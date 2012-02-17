@@ -463,7 +463,6 @@ static int stm32lx_probe(struct flash_bank *bank)
 	int i;
 	uint16_t flash_size;
 	uint32_t device_id;
-	uint32_t reg32;
 
 	stm32lx_info->probed = 0;
 
@@ -477,64 +476,6 @@ static int stm32lx_probe(struct flash_bank *bank)
 	if ((device_id & 0xfff) != 0x416) {
 		LOG_WARNING("Cannot identify target as a STM32L family.");
 		return ERROR_FAIL;
-	}
-
-	/* Read the RDP byte and check if it is 0xAA */
-	uint8_t rdp;
-	retval = target_read_u32(target, FLASH_OBR, &reg32);
-	if (retval != ERROR_OK)
-		return retval;
-	rdp = reg32 & 0xFF;
-	if (rdp != 0xAA) {
-		/*
-		 * Unlocking the option byte is done by unlocking the PECR, then
-		 * by writing the 2 option byte keys to OPTKEYR
-		 */
-
-		/* To unlock the PECR write the 2 PEKEY to the PEKEYR register */
-		retval = target_write_u32(target, FLASH_PEKEYR, PEKEY1);
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = target_write_u32(target, FLASH_PEKEYR, PEKEY2);
-		if (retval != ERROR_OK)
-			return retval;
-
-		/* Make sure it worked */
-		retval = target_read_u32(target, FLASH_PECR, &reg32);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (reg32 & FLASH_PECR__PELOCK)
-			return ERROR_FLASH_OPERATION_FAILED;
-
-		retval = target_write_u32(target, FLASH_OPTKEYR, OPTKEY1);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = target_write_u32(target, FLASH_OPTKEYR, OPTKEY2);
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = target_read_u32(target, FLASH_PECR, &reg32);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (reg32 & FLASH_PECR__OPTLOCK) {
-			LOG_ERROR("OPTLOCK is not cleared");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-
-		/* Then, write RDP to 0x00 to set level 1 */
-		reg32 = ((~0xAA) << 16) | (0xAA);
-		retval = target_write_u32(target, OB_RDP, reg32);
-		if (retval != ERROR_OK)
-			return retval;
-
-		/* Set Automatic update of the option byte, by setting OBL_LAUNCH in FLASH_PECR */
-		reg32 = FLASH_PECR__OBL_LAUNCH;
-		retval = target_write_u32(target, FLASH_PECR, reg32);
-		if (retval != ERROR_OK)
-			return retval;
 	}
 
 	/* get flash size from target. */
