@@ -271,7 +271,7 @@ COMMAND_HANDLER(handle_nand_write_command)
 		s.address += s.page_size;
 	}
 
-	if (nand_fileio_finish(&s)) {
+	if (nand_fileio_finish(&s) == ERROR_OK) {
 		command_print(CMD_CTX, "wrote file %s to NAND flash %s up to "
 			"offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
 			CMD_ARGV[1], CMD_ARGV[0], s.address, duration_elapsed(&s.bench),
