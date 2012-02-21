@@ -958,8 +958,8 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 	if (0 == tap->expected_ids_cnt && !idcode)
 		return true;
 
-	/* optionally ignore the JTAG version field */
-	uint32_t mask = tap->ignore_version ? ~(0xff << 24) : ~0;
+	/* optionally ignore the JTAG version field - bits 28-31 of IDCODE */
+	uint32_t mask = tap->ignore_version ? ~(0xf << 28) : ~0;
 
 	idcode &= mask;
 
