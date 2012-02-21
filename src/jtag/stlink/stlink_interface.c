@@ -67,7 +67,8 @@ int stlink_interface_init_target(struct target *t)
 	for (ii = 0; ii < limit; ii++) {
 		uint32_t expected = t->tap->expected_ids[ii];
 
-		if (t->tap->idcode == expected) {
+		/* treat "-expected-id 0" as a "don't-warn" wildcard */
+		if (!expected || (t->tap->idcode == expected)) {
 			found = 1;
 			break;
 		}
