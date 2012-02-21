@@ -957,7 +957,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 
 		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
 			snprintf(expected_id, sizeof expected_id, "0x%08x",
-				(unsigned) tap->expected_ids[1]);
+				(unsigned) tap->expected_ids[ii]);
 			if (tap->ignore_version)
 				expected_id[2] = '*';
 
