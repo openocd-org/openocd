@@ -158,56 +158,40 @@ enum stlink_mode {
 };
 
 /** */
-static void stlink_usb_recv_v1_create_cmd(char *b, int s, uint32_t tag, uint32_t rxsize,
-			uint8_t flag, uint8_t lun, uint8_t length)
+static int stlink_usb_xfer_v1_send_cmd(void *handle, const uint8_t *cmd, int cmdsize, int ep, int size)
 {
-	int i = 0;
-
-	memset(b, 0x00, s);
-
-	/* fill the send buffer */
-	strcpy(b, "USBC");
-	i += 4;
-
-	buf_set_u32(b+i, 0, 32, tag);
-	i += 4;
-	buf_set_u32(b+i, 0, 32, rxsize);
-	i += 4;
-	b[i++] = flag;
-	b[i++] = lun;
-	b[i++] = length;
-}
-
-/** */
-static int stlink_usb_recv_v1_mass_storage_cmd(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
-		    int rxsize)
-{
-	char sg_buffer[31];
+	uint8_t sg_buffer[31];
 	struct stlink_usb_handle_s *h;
 
 	assert(handle != NULL);
+	assert(cmdsize <= 16);
 
 	h = (struct stlink_usb_handle_s *)handle;
-	h->sg_tag = (h->sg_tag + 1) & 1;
+	h->sg_tag = (h->sg_tag + 1) & 1; /* seriously? */
 
-	stlink_usb_recv_v1_create_cmd(sg_buffer, 31, h->sg_tag, rxsize, STLINK_TX_EP, 0x00, txsize);
+	memset(sg_buffer, 0, sizeof(sg_buffer));
 
-	memcpy(sg_buffer+15, txbuf, 10);
+	h_u32_to_le(sg_buffer, 0x43425355); /* USBC */
+	h_u32_to_le(&sg_buffer[4], h->sg_tag);
+	h_u32_to_le(&sg_buffer[8], size);
 
-	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)sg_buffer, 31,
-				   1000) != 31) {
-		printf("send failed\n");
+	sg_buffer[12] = (ep == STLINK_RX_EP ? ENDPOINT_IN : ENDPOINT_OUT);
+	/* sg_buffer[13] = 0; */
+	sg_buffer[14] = (uint8_t)cmdsize;
+
+	memcpy(&sg_buffer[15], cmd, cmdsize);
+
+	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)sg_buffer, sizeof(sg_buffer),
+				   1000) != sizeof(sg_buffer)) {
+		LOG_DEBUG("send failed\n");
 		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
 }
 
-#define REQUEST_SENSE		0x03
-#define REQUEST_SENSE_LENGTH	18
-
 /** */
-static int stlink_usb_recv_v1_get_status(void *handle, char *sg_buffer, int len)
+static int stlink_usb_xfer_v1_get_status(void *handle, uint8_t *sg_buffer, int len)
 {
 	struct stlink_usb_handle_s *h;
 
@@ -216,16 +200,14 @@ static int stlink_usb_recv_v1_get_status(void *handle, char *sg_buffer, int len)
 	h = (struct stlink_usb_handle_s *)handle;
 
 	/* read status */
-	memset(sg_buffer, 0x00, len);
+	memset(sg_buffer, 0, len);
 
 	if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)sg_buffer,
 				len, 1000) != len)
 		return ERROR_FAIL;
 
-	uint32_t t1, t2;
-
-	t1 = buf_get_u32(sg_buffer+0, 0, 32);
-	t2 = buf_get_u32(sg_buffer+4, 0, 32);
+	uint32_t t1 = le_to_h_u32(sg_buffer+0);
+	/* uint32_t t2 = le_to_h_u32(sg_buffer+4); */
 
 	/* check for USBS */
 	if (t1 != 0x53425355)
@@ -235,82 +217,117 @@ static int stlink_usb_recv_v1_get_status(void *handle, char *sg_buffer, int len)
 }
 
 /** */
-static int stlink_usb_recv_v1_get_sense(void *handle)
+static int stlink_usb_xfer_rw(void *handle, int ep, uint8_t *buf, int size)
 {
 	struct stlink_usb_handle_s *h;
-	char cdb[16];
-	char sg_buffer[31];
-
-	assert(handle != NULL);
 
 	h = (struct stlink_usb_handle_s *)handle;
-	h->sg_tag = (h->sg_tag + 1) & 1;
 
-	cdb[0] = REQUEST_SENSE;
-	cdb[4] = REQUEST_SENSE_LENGTH;
+	if (!size)
+		return ERROR_OK;
 
-	stlink_usb_recv_v1_create_cmd(sg_buffer, 31, h->sg_tag, REQUEST_SENSE_LENGTH, STLINK_TX_EP,
-			0x00, 16);
-
-	memcpy(sg_buffer+15, cdb, 16);
-
-	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)sg_buffer, 16,
-				   1000) != 16)
-		return ERROR_FAIL;
-
-	if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)cdb,
-				  16, 1000) != 16)
-		return ERROR_FAIL;
-
-	if (stlink_usb_recv_v1_get_status(handle, sg_buffer, 13) != ERROR_OK)
-		return ERROR_FAIL;
-	/* check for sense */
-	if (sg_buffer[12] != 0)
-		return ERROR_FAIL;
-
-	/* if (sense[0] != 0x70 && sense[0] != 0x71) */
+	if (ep == STLINK_RX_EP) {
+		if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)buf,
+					  size, 1000) != size) {
+			return ERROR_FAIL;
+		}
+	} else {
+		if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)buf,
+					  size, 1000) != size) {
+			return ERROR_FAIL;
+		}
+	}
 
 	return ERROR_OK;
 }
 
-/** */
-static int stlink_usb_recv_v1(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
-		    int rxsize)
+/**
+ * http://en.wikipedia.org/wiki/SCSI_Request_Sense_Command
+ */
+static int stlink_usb_xfer_v1_get_sense(void *handle)
 {
 	int err;
-	char sg_buffer[31];
-	struct stlink_usb_handle_s *h;
+
+	uint8_t cdb[STLINK_CMD_SIZE];
+	uint8_t sense[18];
+	uint8_t status[13];
 
 	assert(handle != NULL);
 
-	h = (struct stlink_usb_handle_s *)handle;
+	memset(cdb, 0, sizeof(cdb));
 
-	err = stlink_usb_recv_v1_mass_storage_cmd(handle, txbuf, txsize, rxbuf, rxsize);
+	cdb[0] = 0x03;
+	cdb[4] = sizeof(sense);
+
+	err = stlink_usb_xfer_v1_send_cmd(handle, cdb, sizeof(cdb), STLINK_RX_EP, sizeof(sense));
 
 	if (err != ERROR_OK)
 		return err;
 
-	if (rxsize && rxbuf) {
-		if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)rxbuf,
-					  rxsize, 1000) != rxsize) {
-			LOG_DEBUG("jtag_libusb_bulk_read");
-			return ERROR_FAIL;
-		}
-	}
+	err = stlink_usb_xfer_rw(handle, STLINK_RX_EP, sense, sizeof(sense));
 
-	if (stlink_usb_recv_v1_get_status(handle, sg_buffer, 13) != ERROR_OK)
-		return ERROR_FAIL;
+	if (err != ERROR_OK)
+		return err;
+
+	err = stlink_usb_xfer_v1_get_status(handle, status, sizeof(status));
+
+	if (err != ERROR_OK)
+		return err;
+
 	/* check for sense */
-	if (sg_buffer[12] == 1) {
-		LOG_DEBUG("get sense");
-		err = stlink_usb_recv_v1_get_sense(handle);
-	}
+	if (status[12] != 0)
+		return ERROR_FAIL;
+
+	/* if (sense[0] != 0x70 && sense[0] != 0x71) */
+
 	return err;
 }
 
 /** */
-static int stlink_usb_recv_v2(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
-		    int rxsize)
+static int stlink_usb_xfer_v1_check_status(void *handle)
+{
+	int err;
+	uint8_t sg_buffer[13];
+
+	err = stlink_usb_xfer_v1_get_status(handle, sg_buffer, sizeof(sg_buffer));
+
+	if (err != ERROR_OK)
+		return err;
+
+	/* check for sense */
+	if (sg_buffer[12] == 1) {
+		LOG_DEBUG("get sense");
+
+		err = stlink_usb_xfer_v1_get_sense(handle);
+	}
+
+	return err;
+}
+
+/** */
+static int stlink_usb_xfer_v1(void *handle, const uint8_t *cmd, int cmdsize, int ep,
+			      uint8_t *buf, int size)
+{
+	int err;
+
+	assert(handle != NULL);
+
+	err = stlink_usb_xfer_v1_send_cmd(handle, cmd, cmdsize, ep, size);
+
+	if (err != ERROR_OK)
+		return err;
+
+	err = stlink_usb_xfer_rw(handle, ep, buf, size);
+
+	if (err != ERROR_OK)
+		return err;
+
+	return stlink_usb_xfer_v1_check_status(handle);
+}
+
+/** */
+static int stlink_usb_xfer_v2(void *handle, const uint8_t *cmd, int cmdsize, int ep,
+			      uint8_t *buf, int size)
 {
 	struct stlink_usb_handle_s *h;
 
@@ -318,43 +335,37 @@ static int stlink_usb_recv_v2(void *handle, const uint8_t *txbuf, int txsize, ui
 
 	h = (struct stlink_usb_handle_s *)handle;
 
-	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)txbuf, txsize,
-				   1000) != txsize) {
+	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)cmd, cmdsize,
+				   1000) != cmdsize) {
 		return ERROR_FAIL;
 	}
-	if (rxsize && rxbuf) {
-		if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)rxbuf,
-					  rxsize, 1000) != rxsize) {
-			return ERROR_FAIL;
-		}
-	}
-	return ERROR_OK;
+
+	return stlink_usb_xfer_rw(handle, ep, buf, size);
 }
 
 /** */
-static int stlink_usb_recv(void *handle, const uint8_t *txbuf, int txsize, uint8_t *rxbuf,
-		    int rxsize)
+static int stlink_usb_xfer(void *handle, const uint8_t *cmd, int cmdsize, int ep,
+			      uint8_t *buf, int size)
 {
 	struct stlink_usb_handle_s *h;
 
 	assert(handle != NULL);
+	assert(cmdsize == STLINK_CMD_SIZE);
 
 	h = (struct stlink_usb_handle_s *)handle;
 
 	if (h->version.stlink == 1) {
-		return stlink_usb_recv_v1(handle, txbuf, txsize, rxbuf, rxsize);
+		return stlink_usb_xfer_v1(handle, cmd, cmdsize, ep, buf, size);
 	} else {
-		if (txsize < STLINK_CMD_SIZE)
-			txsize = STLINK_CMD_SIZE;
-		return stlink_usb_recv_v2(handle, txbuf, txsize, rxbuf, rxsize);
+		return stlink_usb_xfer_v2(handle, cmd, cmdsize, ep, buf, size);
 	}
 }
 
 /** */
-static int stlink_usb_send(void *handle, const uint8_t *cmd, int cmdsize, uint8_t *txbuf,
-		    int txsize)
+static int stlink_usb_recv(void *handle, const uint8_t *cmd, int cmdsize, uint8_t *rxbuf,
+		    int rxsize)
 {
-	return stlink_usb_xfer(handle, cmd, cmdsize, STLINK_TX_EP, txbuf, txsize);
+	return stlink_usb_xfer(handle, cmd, cmdsize, STLINK_RX_EP, rxbuf, rxsize);
 }
 
 /** */
@@ -960,7 +971,12 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 	h_u32_to_le(h->txbuf + 2, addr);
 	h_u16_to_le(h->txbuf + 2 + 4, len);
 
-	res = stlink_usb_send(handle, h->txbuf, STLINK_CMD_SIZE, (uint8_t *) buffer, len);
+	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, 0, 0);
+
+	if (res != ERROR_OK)
+		return res;
+
+	res = stlink_usb_recv(handle, (uint8_t *) buffer, len, 0, 0);
 
 	if (res != ERROR_OK)
 		return res;
@@ -1018,7 +1034,12 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 	h_u32_to_le(h->txbuf + 2, addr);
 	h_u16_to_le(h->txbuf + 2 + 4, len);
 
-	res = stlink_usb_send(handle, h->txbuf, STLINK_CMD_SIZE, (uint8_t *) buffer, len);
+	res = stlink_usb_recv(handle, h->txbuf, STLINK_CMD_SIZE, 0, 0);
+
+	if (res != ERROR_OK)
+		return res;
+
+	res = stlink_usb_recv(handle, (uint8_t *) buffer, len, 0, 0);
 
 	if (res != ERROR_OK)
 		return res;
