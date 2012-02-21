@@ -1890,7 +1890,7 @@ The easiest way to convert ``linear'' config files to @code{init_targets} versio
 
 For an example of this scheme see LPC2000 target config files.
 
-The @code{init_boards} procedure is a similar concept concerning board config files (@xref{The init_board procedure}).
+The @code{init_boards} procedure is a similar concept concerning board config files (@xref{The init_board procedure}.)
 
 @subsection ARM Core Specific Hacks
 
