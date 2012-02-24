@@ -56,10 +56,10 @@ struct stlink_layout_api_s {
 			    const uint8_t *buffer);
 	/** */
 	int (*read_mem32) (void *handle, uint32_t addr, uint16_t len,
-			   uint32_t *buffer);
+			   uint8_t *buffer);
 	/** */
 	int (*write_mem32) (void *handle, uint32_t addr, uint16_t len,
-			    const uint32_t *buffer);
+			    const uint8_t *buffer);
 	/** */
 	int (*idcode) (void *fd, uint32_t *idcode);
 	/** */

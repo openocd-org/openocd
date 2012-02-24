@@ -926,7 +926,7 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 	h_u16_to_le(h->cmdbuf+h->cmdidx, len);
 	h->cmdidx += 2;
 
-	res = stlink_usb_xfer(handle, (uint8_t *) buffer, len);
+	res = stlink_usb_xfer(handle, buffer, len);
 
 	if (res != ERROR_OK)
 		return res;
@@ -936,7 +936,7 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 
 /** */
 static int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
-			  uint32_t *buffer)
+			  uint8_t *buffer)
 {
 	int res;
 	struct stlink_usb_handle_s *h;
@@ -968,7 +968,7 @@ static int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 
 /** */
 static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
-			   const uint32_t *buffer)
+			   const uint8_t *buffer)
 {
 	int res;
 	struct stlink_usb_handle_s *h;
@@ -988,7 +988,7 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 	h_u16_to_le(h->cmdbuf+h->cmdidx, len);
 	h->cmdidx += 2;
 
-	res = stlink_usb_xfer(handle, (uint8_t *) buffer, len);
+	res = stlink_usb_xfer(handle, buffer, len);
 
 	if (res != ERROR_OK)
 		return res;
