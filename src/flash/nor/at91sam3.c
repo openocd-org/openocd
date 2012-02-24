@@ -2845,7 +2845,7 @@ static int sam3_write(struct flash_bank *bank,
 
 	/* By checking that offset is correct here, we also
 	fix a clang warning */
-	assert(offset == pPrivate->page_size);
+	assert(offset % pPrivate->page_size == 0);
 
 	/* intermediate large pages */
 	/* also - the final *terminal* */
