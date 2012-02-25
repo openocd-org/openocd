@@ -701,13 +701,13 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		if (buf_get_u32(reg_params[0].value, 0, 32) & FLASH_PGERR) {
 			LOG_ERROR("flash memory not erased before writing");
 			/* Clear but report errors */
-			target_write_u32(target, STM32_FLASH_SR_B0, FLASH_PGERR);
+			target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_SR), FLASH_PGERR);
 		}
 
 		if (buf_get_u32(reg_params[0].value, 0, 32) & FLASH_WRPRTERR) {
 			LOG_ERROR("flash memory write protected");
 			/* Clear but report errors */
-			target_write_u32(target, STM32_FLASH_SR_B0, FLASH_WRPRTERR);
+			target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_SR), FLASH_WRPRTERR);
 		}
 	}
 
@@ -807,7 +807,7 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 			return retval;
 	}
 
-	return target_write_u32(target, STM32_FLASH_CR_B0, FLASH_LOCK);
+	return target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_LOCK);
 }
 
 static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
