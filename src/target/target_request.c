@@ -164,7 +164,6 @@ static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target
 	/* see if there's already a list */
 	if (*p) {
 		/* find end of linked list */
-		p = &target->dbgmsg;
 		while ((*p)->next)
 			p = &((*p)->next);
 		p = &((*p)->next);
