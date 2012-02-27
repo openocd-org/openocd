@@ -98,6 +98,9 @@ endif
 if STLINK
 DRIVERFILES += stlink_usb.c
 endif
+if OSBDM
+DRIVERFILES += osbdm.c
+endif
 
 noinst_HEADERS = \
 	bitbang.h \

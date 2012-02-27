@@ -104,6 +104,9 @@ extern struct jtag_interface remote_bitbang_interface;
 #if BUILD_STLINK == 1
 extern struct jtag_interface stlink_interface;
 #endif
+#if BUILD_OSBDM == 1
+extern struct jtag_interface osbdm_interface;
+#endif
 #endif /* standard drivers */
 
 /**
@@ -175,6 +178,9 @@ struct jtag_interface *jtag_interfaces[] = {
 #endif
 #if BUILD_STLINK == 1
 		&stlink_interface,
+#endif
+#if BUILD_OSBDM == 1
+		&osbdm_interface,
 #endif
 #endif /* standard drivers */
 		NULL,
