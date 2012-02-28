@@ -1836,6 +1836,13 @@ static const struct archnames { unsigned value; const char *name; } archnames[] 
 	{ 0x89,  "ATSAM3SxB Series (64-pin version)"            },
 	{ 0x8A,  "ATSAM3SxC Series (100-pin version)"           },
 	{ 0x92,  "AT91x92 Series"                                                       },
+	{ 0x93,  "ATSAM3NxA Series (48-pin version)"            },
+	{ 0x94,  "ATSAM3NxB Series (64-pin version)"            },
+	{ 0x95,  "ATSAM3NxC Series (100-pin version)"           },
+	{ 0x98,  "ATSAM3SDxA Series (48-pin version)"           },
+	{ 0x99,  "ATSAM3SDxB Series (64-pin version)"           },
+	{ 0x9A,  "ATSAM3SDxC Series (100-pin version)"          },
+	{ 0xA5,  "ATSAM5A"                                                              },
 	{ 0xF0,  "AT75Cxx Series"                                                       },
 	{ -1, NULL },
 };
