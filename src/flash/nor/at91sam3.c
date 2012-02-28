@@ -131,9 +131,6 @@ struct sam3_cfg {
 #define SAM3_CHIPID_EXID          (0x400E0744)
 	uint32_t CHIPID_EXID;
 
-#define SAM3_SUPC_CR              (0x400E1210)
-	uint32_t SUPC_CR;
-
 #define SAM3_PMC_BASE             (0x400E0400)
 #define SAM3_PMC_SCSR             (SAM3_PMC_BASE + 0x0008)
 	uint32_t PMC_SCSR;
@@ -2129,7 +2126,6 @@ static const struct sam3_reg_list sam3_all_regs[] = {
 	SAM3_ENTRY(PMC_SR, NULL),
 	SAM3_ENTRY(CHIPID_CIDR, sam3_explain_chipid_cidr),
 	SAM3_ENTRY(CHIPID_EXID, NULL),
-	SAM3_ENTRY(SUPC_CR, NULL),
 
 	/* TERMINATE THE LIST */
 	{ .name = NULL }
