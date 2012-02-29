@@ -605,10 +605,8 @@ static int stm32_stlink_step(struct target *target, int current,
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
 
-	target->debug_reason = DBG_REASON_SINGLESTEP;
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-
 	stlink_debug_entry(target);
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
 	LOG_INFO("halted: PC: 0x%x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
 
