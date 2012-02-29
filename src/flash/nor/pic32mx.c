@@ -51,6 +51,7 @@
 
 /* pic32mx configuration register locations */
 
+#define PIC32MX_DEVCFG0_1_2	0xBFC00BFC
 #define PIC32MX_DEVCFG0		0xBFC02FFC
 #define PIC32MX_DEVCFG1		0xBFC02FF8
 #define PIC32MX_DEVCFG2		0xBFC02FF4
@@ -91,9 +92,12 @@
 #define NVMKEY1			0xAA996655
 #define NVMKEY2			0x556699AA
 
+#define MX_1_2			1	/* PIC32mx1xx/2xx */
+
 struct pic32mx_flash_bank {
 	struct working_area *write_algorithm;
 	int probed;
+	int dev_type;		/* Default 0. 1 for Pic32MX1XX/2XX variant */
 };
 
 /*
@@ -190,6 +194,7 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 
 	pic32mx_info->write_algorithm = NULL;
 	pic32mx_info->probed = 0;
+	pic32mx_info->dev_type = 0;
 
 	return ERROR_OK;
 }
@@ -244,7 +249,9 @@ static int pic32mx_nvm_exec(struct flash_bank *bank, uint32_t op, uint32_t timeo
 static int pic32mx_protect_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
+	struct pic32mx_flash_bank *pic32mx_info = bank->driver_priv;
 
+	uint32_t config0_address;
 	uint32_t devcfg0;
 	int s;
 	int num_pages;
@@ -254,7 +261,12 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	target_read_u32(target, PIC32MX_DEVCFG0, &devcfg0);
+	if (pic32mx_info->dev_type == MX_1_2)
+		config0_address = PIC32MX_DEVCFG0_1_2;
+	else
+		config0_address = PIC32MX_DEVCFG0;
+
+	target_read_u32(target, config0_address, &devcfg0);
 
 	if ((devcfg0 & (1 << 28)) == 0) /* code protect bit */
 		num_pages = 0xffff;			/* All pages protected */
@@ -327,7 +339,7 @@ static int pic32mx_protect(struct flash_bank *bank, int set, int first, int last
 
 /* see contib/loaders/flash/pic32mx.s for src */
 
-static const uint32_t pic32mx_flash_write_code[] = {
+static uint32_t pic32mx_flash_write_code[] = {
 					/* write: */
 	0x3C08AA99,		/* lui $t0, 0xaa99 */
 	0x35086655,		/* ori $t0, 0x6655 */
@@ -413,6 +425,21 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
+
+	/* Change values for counters and row size, depending on variant */
+	if (pic32mx_info->dev_type == MX_1_2) {
+		/* 128 byte row */
+		pic32mx_flash_write_code[8] = 0x2CD30020;
+		pic32mx_flash_write_code[14] = 0x24840080;
+		pic32mx_flash_write_code[15] = 0x24A50080;
+		pic32mx_flash_write_code[17] = 0x24C6FFE0;
+	} else {
+		/* 512 byte row */
+		pic32mx_flash_write_code[8] = 0x2CD30080;
+		pic32mx_flash_write_code[14] = 0x24840200;
+		pic32mx_flash_write_code[15] = 0x24A50200;
+		pic32mx_flash_write_code[17] = 0x24C6FF80;
+	}
 
 	retval = target_write_buffer(target, pic32mx_info->write_algorithm->address,
 			sizeof(pic32mx_flash_write_code), (uint8_t *)pic32mx_flash_write_code);
@@ -610,7 +637,20 @@ static int pic32mx_probe(struct flash_bank *bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	page_size = 4096;
+	/* Check for PIC32mx1xx/2xx */
+	for (i = 0; pic32mx_devs[i].name != NULL; i++) {
+		if (pic32mx_devs[i].devid == (device_id & 0x0fffffff)) {
+			if ((*(pic32mx_devs[i].name) == '1') || (*(pic32mx_devs[i].name) == '2'))
+				pic32mx_info->dev_type = MX_1_2;
+			break;
+		}
+	}
+
+	if (pic32mx_info->dev_type == MX_1_2)
+		page_size = 1024;
+	else
+		page_size = 4096;
+
 
 	if (Virt2Phys(bank->base) == PIC32MX_PHYS_BOOT_FLASH) {
 		/* 0x1FC00000: Boot flash size */
@@ -624,13 +664,21 @@ static int pic32mx_probe(struct flash_bank *bank)
 		}
 #else
 		/* fixed 12k boot bank - see comments above */
-		num_pages = (12 * 1024);
+		if (pic32mx_info->dev_type == MX_1_2)
+			num_pages = (3 * 1024);
+		else
+			num_pages = (12 * 1024);
 #endif
 	} else {
 		/* read the flash size from the device */
 		if (target_read_u32(target, PIC32MX_BMXPFMSZ, &num_pages) != ERROR_OK) {
-			LOG_WARNING("PIC32MX flash size failed, probe inaccurate - assuming 512k flash");
-			num_pages = (512 * 1024);
+			if (pic32mx_info->dev_type == MX_1_2) {
+				LOG_WARNING("PIC32MX flash size failed, probe inaccurate - assuming 32k flash");
+				num_pages = (32 * 1024);
+			} else {
+				LOG_WARNING("PIC32MX flash size failed, probe inaccurate - assuming 512k flash");
+				num_pages = (512 * 1024);
+			}
 		}
 	}
 
