@@ -396,10 +396,6 @@ AC_ARG_ENABLE([amtjtagaccel],
   AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]),
   [build_amtjtagaccel=$enableval], [build_amtjtagaccel=no])
 
-AC_ARG_ENABLE([ecosboard],
-  AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCos based JTAG debugger]),
-  [build_ecosboard=$enableval], [build_ecosboard=no])
-
 AC_ARG_ENABLE([zy1000_master],
   AS_HELP_STRING([--enable-zy1000-master], [Use ZY1000 JTAG master registers]),
   [build_zy1000_master=$enableval], [build_zy1000_master=no])
@@ -630,12 +626,6 @@ if test $build_ep93xx = yes; then
   AC_DEFINE([BUILD_EP93XX], [1], [1 if you want ep93xx.])
 else
   AC_DEFINE([BUILD_EP93XX], [0], [0 if you don't want ep93xx.])
-fi
-
-if test $build_ecosboard = yes; then
-  AC_DEFINE([BUILD_ECOSBOARD], [1], [1 if you want eCosBoard.])
-else
-  AC_DEFINE([BUILD_ECOSBOARD], [0], [0 if you don't want eCosBoard.])
 fi
 
 if test $build_zy1000 = yes; then
@@ -1104,7 +1094,6 @@ AM_CONDITIONAL([PARPORT], [test $build_parport = yes])
 AM_CONDITIONAL([DUMMY], [test $build_dummy = yes])
 AM_CONDITIONAL([GIVEIO], [test x$parport_use_giveio = xyes])
 AM_CONDITIONAL([EP93XX], [test $build_ep93xx = yes])
-AM_CONDITIONAL([ECOSBOARD], [test $build_ecosboard = yes])
 AM_CONDITIONAL([ZY1000], [test $build_zy1000 = yes])
 AM_CONDITIONAL([ZY1000_MASTER], [test $build_zy1000_master = yes])
 AM_CONDITIONAL([IOUTIL], [test $build_ioutil = yes])

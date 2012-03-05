@@ -128,11 +128,7 @@ static inline unsigned usleep(unsigned int usecs)
 	return 0;
 }
 #else
-#if BUILD_ECOSBOARD
-void usleep(int us);
-#else
 #error no usleep defined for your platform
-#endif
 #endif
 #endif	/* HAVE_USLEEP */
 

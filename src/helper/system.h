@@ -45,9 +45,6 @@
 /* --- AC_HEADER_TIME --- */
 
 /* +++ platform specific headers +++ */
-#if BUILD_ECOSBOARD == 1
-#include <pkgconf/system.h>
-#endif
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>

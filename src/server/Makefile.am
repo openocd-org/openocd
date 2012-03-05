@@ -5,9 +5,7 @@ noinst_LTLIBRARIES = libserver.la
 noinst_HEADERS = server.h telnet_server.h gdb_server.h
 libserver_la_SOURCES = server.c telnet_server.c gdb_server.c
 
-if !ECOSBOARD
 libserver_la_SOURCES += server_stubs.c
-endif
 
 libserver_la_CFLAGS =
 if IS_MINGW

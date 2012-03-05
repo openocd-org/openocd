@@ -31,10 +31,8 @@
 #include "config.h"
 #endif
 
-#if !BUILD_ECOSBOARD
 /* see Embedder-HOWTO.txt in Jim Tcl project hosted on BerliOS*/
 #define JIM_EMBEDDED
-#endif
 
 /* @todo the inclusion of target.h here is a layering violation */
 #include <jtag/jtag.h>
@@ -1280,7 +1278,6 @@ struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp
 	context->output_handler = NULL;
 	context->output_handler_priv = NULL;
 
-#if !BUILD_ECOSBOARD
 	/* Create a jim interpreter if we were not handed one */
 	if (interp == NULL) {
 		/* Create an interpreter */
@@ -1289,7 +1286,7 @@ struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp
 		Jim_RegisterCoreCommands(interp);
 		Jim_InitStaticExtensions(interp);
 	}
-#endif
+
 	context->interp = interp;
 
 	/* Stick to lowercase for HostOS strings. */
@@ -1349,7 +1346,6 @@ int command_context_mode(struct command_context *cmd_ctx, enum command_mode mode
 
 void process_jim_events(struct command_context *cmd_ctx)
 {
-#if !BUILD_ECOSBOARD
 	static int recursion;
 	if (recursion)
 		return;
@@ -1357,7 +1353,6 @@ void process_jim_events(struct command_context *cmd_ctx)
 	recursion++;
 	Jim_ProcessEvents(cmd_ctx->interp, JIM_ALL_EVENTS | JIM_DONT_WAIT);
 	recursion--;
-#endif
 }
 
 #define DEFINE_PARSE_NUM_TYPE(name, type, func, min, max) \

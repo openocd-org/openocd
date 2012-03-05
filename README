@@ -249,7 +249,6 @@ options may be available there:
   --enable-ep93xx         Enable building support for EP93xx based SBCs
   --enable-at91rm9200     Enable building support for AT91RM9200 based SBCs
 
-  --enable-ecosboard      Enable building support for eCos based JTAG debugger
   --enable-zy1000         Enable ZY1000 interface
 
   --enable-minidriver-dummy

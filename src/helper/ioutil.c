@@ -48,9 +48,7 @@
 #include <ifaddrs.h>
 #endif
 #ifdef HAVE_MALLOC_H
-#if !BUILD_ECOSBOARD
 #include <malloc.h>
-#endif
 #endif
 
 /* loads a file and returns a pointer to it in memory. The file contains

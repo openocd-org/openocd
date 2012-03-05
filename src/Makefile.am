@@ -15,11 +15,7 @@ SUBDIRS = \
 lib_LTLIBRARIES = libopenocd.la
 bin_PROGRAMS = openocd
 
-if ECOSBOARD
-MAINFILE = ecosboard.c
-else
 MAINFILE = main.c
-endif
 
 openocd_SOURCES = $(MAINFILE)
 openocd_LDADD = libopenocd.la

@@ -3,13 +3,7 @@ include $(top_srcdir)/common.mk
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libhelper.la
 
-if ECOSBOARD
-CONFIGFILES = time_support_ecos.c
-else
 CONFIGFILES = options.c time_support_common.c
-endif
-
-
 
 libhelper_la_SOURCES = \
 	binarybuffer.c \

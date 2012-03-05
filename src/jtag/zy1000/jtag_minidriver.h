@@ -23,17 +23,10 @@
 
 #if BUILD_ZY1000_MASTER
 
-#if BUILD_ECOSBOARD
-#include <cyg/hal/hal_io.h>		/* low level i/o */
-#include <cyg/hal/hal_intr.h>			/* low level i/o */
-#define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b)
-#define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b)
-#else
 #define ZY1000_PEEK(a, b) do {b = *((volatile uint32_t *)(a)); } while (0)
 #define ZY1000_POKE(a, b) do {*((volatile uint32_t *)(a)) = b; } while (0)
 extern volatile void *zy1000_jtag_master;
 #define ZY1000_JTAG_BASE ((unsigned long)zy1000_jtag_master)
-#endif
 
 #else
 

@@ -26,12 +26,6 @@
 
 #include <helper/types.h>
 
-/* Integrate the JIM TCL interpretor into the command processing. */
-#if BUILD_ECOSBOARD
-#include <stdio.h>
-#include <stdarg.h>
-#endif
-
 #include <jim.h>
 #include <jim-nvp.h>
 

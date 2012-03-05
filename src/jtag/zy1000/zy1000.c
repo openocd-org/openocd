@@ -55,30 +55,8 @@
 
 #include <netinet/tcp.h>
 
-#if BUILD_ECOSBOARD
-#include "zy1000_version.h"
-
-#include <cyg/hal/hal_io.h>		/* low level i/o */
-#include <cyg/hal/hal_diag.h>
-
-#ifdef CYGPKG_HAL_NIOS2
-#include <cyg/hal/io.h>
-#include <cyg/firmwareutil/firmwareutil.h>
-#define ZYLIN_KHZ 60000
-#else
-#define ZYLIN_KHZ 64000
-#endif
-
-#define ZYLIN_VERSION GIT_ZY1000_VERSION
-#define ZYLIN_DATE __DATE__
-#define ZYLIN_TIME __TIME__
-#define ZYLIN_OPENOCD GIT_OPENOCD_VERSION
-#define ZYLIN_OPENOCD_VERSION "ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE
-
-#else
 /* Assume we're connecting to a revc w/60MHz clock. */
 #define ZYLIN_KHZ 60000
-#endif
 
 /* The software needs to check if it's in RCLK mode or not */
 static bool zy1000_rclk;
@@ -307,111 +285,6 @@ static int jim_zy1000_server(Jim_Interp *interp, int argc, Jim_Obj * const *argv
 		return JIM_ERR;
 
 	tcp_server = strdup(Jim_GetString(argv[1], NULL));
-
-	return JIM_OK;
-}
-#endif
-
-#if BUILD_ECOSBOARD
-/* Give TELNET a way to find out what version this is */
-static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
-{
-	if ((argc < 1) || (argc > 3))
-		return JIM_ERR;
-	const char *version_str = NULL;
-
-	if (argc == 1)
-		version_str = ZYLIN_OPENOCD_VERSION;
-	else {
-		const char *str = Jim_GetString(argv[1], NULL);
-		const char *str2 = NULL;
-		if (argc > 2)
-			str2 = Jim_GetString(argv[2], NULL);
-		if (strcmp("openocd", str) == 0)
-			version_str = ZYLIN_OPENOCD;
-		else if (strcmp("zy1000", str) == 0)
-			version_str = ZYLIN_VERSION;
-		else if (strcmp("date", str) == 0)
-			version_str = ZYLIN_DATE;
-		else if (strcmp("time", str) == 0)
-			version_str = ZYLIN_TIME;
-		else if (strcmp("pcb", str) == 0) {
-#ifdef CYGPKG_HAL_NIOS2
-			version_str = "c";
-#else
-			version_str = "b";
-#endif
-		}
-#ifdef CYGPKG_HAL_NIOS2
-		else if (strcmp("fpga", str) == 0) {
-
-			/* return a list of 32 bit integers to describe the expected
-			 * and actual FPGA
-			 */
-			static char *fpga_id = "0x12345678 0x12345678 0x12345678 0x12345678";
-			uint32_t id, timestamp;
-			HAL_READ_UINT32(SYSID_BASE, id);
-			HAL_READ_UINT32(SYSID_BASE+4, timestamp);
-			sprintf(fpga_id,
-				"0x%08x 0x%08x 0x%08x 0x%08x",
-				id,
-				timestamp,
-				SYSID_ID,
-				SYSID_TIMESTAMP);
-			version_str = fpga_id;
-			if ((argc > 2) && (strcmp("time", str2) == 0)) {
-				time_t last_mod = timestamp;
-				char *t = ctime(&last_mod);
-				t[strlen(t)-1] = 0;
-				version_str = t;
-			}
-		}
-#endif
-
-		else
-			return JIM_ERR;
-	}
-
-	Jim_SetResult(interp, Jim_NewStringObj(interp, version_str, -1));
-
-	return JIM_OK;
-}
-#endif
-
-#ifdef CYGPKG_HAL_NIOS2
-
-
-struct info_forward {
-	void *data;
-	struct cyg_upgrade_info *upgraded_file;
-};
-
-static void report_info(void *data, const char *format, va_list args)
-{
-	char *s = alloc_vprintf(format, args);
-	LOG_USER_N("%s", s);
-	free(s);
-}
-
-struct cyg_upgrade_info firmware_info = {
-	(uint8_t *)0x84000000,
-	"/ram/firmware.phi",
-	"Firmware",
-	0x0300000,
-	0x1f00000 -
-	0x0300000,
-	"ZylinNiosFirmware\n",
-	report_info,
-};
-
-/* File written to /ram/firmware.phi before arriving at this fn */
-static int jim_zy1000_writefirmware(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
-{
-	if (argc != 1)
-		return JIM_ERR;
-
-	if (!cyg_firmware_upgrade(NULL, firmware_info))
-		return JIM_ERR;
 
 	return JIM_OK;
 }
@@ -918,17 +791,7 @@ static const struct command_registration zy1000_commands[] = {
 			"With no arguments, prints status.",
 		.usage = "('on'|'off)",
 	},
-#if BUILD_ZY1000_MASTER
-#if BUILD_ECOSBOARD
-	{
-		.name = "zy1000_version",
-		.mode = COMMAND_ANY,
-		.jim_handler = jim_zy1000_version,
-		.help = "Print version info for zy1000.",
-		.usage = "['openocd'|'zy1000'|'date'|'time'|'pcb'|'fpga']",
-	},
-#endif
-#else
+#if !BUILD_ZY1000_MASTER
 	{
 		.name = "zy1000_server",
 		.mode = COMMAND_ANY,
@@ -943,15 +806,6 @@ static const struct command_registration zy1000_commands[] = {
 		.jim_handler = zylinjtag_Jim_Command_powerstatus,
 		.help = "Returns power status of target",
 	},
-#ifdef CYGPKG_HAL_NIOS2
-	{
-		.name = "updatezy1000firmware",
-		.mode = COMMAND_ANY,
-		.jim_handler = jim_zy1000_writefirmware,
-		.help = "writes firmware to flash",
-		/* .usage = "some_string", */
-	},
-#endif
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1269,12 +1123,6 @@ static void writeShiftValue(uint8_t *data, int bits)
 
 #if BUILD_ZY1000_MASTER
 
-#if BUILD_ECOSBOARD
-static char watchdog_stack[2048];
-static cyg_thread watchdog_thread_object;
-static cyg_handle_t watchdog_thread_handle;
-#endif
-
 #ifdef WATCHDOG_BASE
 /* If we connect to port 8888 we must send a char every 10s or the board resets itself */
 static void watchdog_server(cyg_addrword_t data)
@@ -1359,16 +1207,14 @@ int interface_jtag_add_sleep(uint32_t us)
 }
 #endif
 
-#if BUILD_ZY1000_MASTER && !BUILD_ECOSBOARD
+#if BUILD_ZY1000_MASTER
 volatile void *zy1000_jtag_master;
 #include <sys/mman.h>
 #endif
 
 int zy1000_init(void)
 {
-#if BUILD_ECOSBOARD
-	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
-#elif BUILD_ZY1000_MASTER
+#if BUILD_ZY1000_MASTER
 	int fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (fd == -1) {
 		LOG_ERROR("No access to /dev/mem");
@@ -1399,17 +1245,6 @@ int zy1000_init(void)
 
 	/* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
 	zy1000_reset(0, 0);
-
-#if BUILD_ZY1000_MASTER
-#if BUILD_ECOSBOARD
-#ifdef WATCHDOG_BASE
-	cyg_thread_create(1, watchdog_server, (cyg_addrword_t) 0, "watchdog tcip/ip server",
-		(void *) watchdog_stack, sizeof(watchdog_stack),
-		&watchdog_thread_handle, &watchdog_thread_object);
-	cyg_thread_resume(watchdog_thread_handle);
-#endif
-#endif
-#endif
 
 	return ERROR_OK;
 }
