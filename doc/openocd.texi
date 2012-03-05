@@ -4654,13 +4654,6 @@ The AVR 8-bit microcontrollers from Atmel integrate flash memory.
 @comment - defines mass_erase ... pointless given flash_erase_address
 @end deffn
 
-@deffn {Flash Driver} ecosflash
-@emph{No idea what this is...}
-The @var{ecosflash} driver defines one mandatory parameter,
-the name of a modules of target code which is downloaded
-and executed.
-@end deffn
-
 @deffn {Flash Driver} lpc2000
 Most members of the LPC1700 and LPC2000 microcontroller families from NXP
 include internal flash and use Cortex-M3 (LPC1700) or ARM7TDMI (LPC2000) cores.

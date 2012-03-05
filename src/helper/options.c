@@ -60,8 +60,6 @@ static void add_default_dirs(void)
 	 * Directory layout:
 	 * bin\openocd.exe
 	 * lib\openocd
-	 * event\at91eb40a_reset.cfg
-	 * target\at91eb40a.cfg
 	 */
 	{
 		char strExePath[MAX_PATH];

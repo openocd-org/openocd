@@ -214,7 +214,6 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
 
 - finish documentation for the following flash drivers:
   - avr
-  - ecosflash
   - pic32mx
   - ocl
   - str9xpec

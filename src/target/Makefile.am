@@ -165,6 +165,6 @@ noinst_HEADERS = \
 	avr32_regs.h
 
 ocddatadir = $(pkglibdir)
-nobase_dist_ocddata_DATA = ecos/at91eb40a.elf
+nobase_dist_ocddata_DATA =
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
