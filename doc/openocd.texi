@@ -4905,6 +4905,12 @@ the chip identification register, and autoconfigures itself.
 flash bank $_FLASHNAME stm32f1x 0 0 0 0 $_TARGETNAME
 @end example
 
+If you have a target with dual flash banks then define the second bank
+as per the following example.
+@example
+flash bank $_FLASHNAME stm32f1x 0x08080000 0 0 0 $_TARGETNAME
+@end example
+
 Some stm32f1x-specific commands
 @footnote{Currently there is a @command{stm32f1x mass_erase} command.
 That seems pointless since the same effect can be had using the
