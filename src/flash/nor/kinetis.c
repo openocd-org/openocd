@@ -320,7 +320,6 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 		}
 	} else {
 		LOG_DEBUG("flash write into PFLASH @08%X", offset);
-		fallback = 1;
 	}
 
 
