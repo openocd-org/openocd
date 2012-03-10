@@ -38,6 +38,9 @@
 #include "cortex_m.h"
 #include "arm_semihosting.h"
 
+#define ARMV7M_SCS_DCRSR	0xe000edf4
+#define ARMV7M_SCS_DCRDR	0xe000edf8
+
 static inline struct stlink_interface_s *target_to_stlink(struct target *target)
 {
 	return target->tap->priv;
@@ -65,8 +68,19 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 			LOG_ERROR("JTAG failure %i", retval);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "",
-			  (int)num, *value);
+		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "", (int)num, *value);
+		break;
+
+	case 33:
+	case 64 ... 96:
+		/* Floating-point Status and Registers */
+		retval = target_write_u32(target, ARMV7M_SCS_DCRSR, num);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_read_u32(target, ARMV7M_SCS_DCRDR, value);
+		if (retval != ERROR_OK)
+			return retval;
+		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "", (int)num, *value);
 		break;
 
 	case ARMV7M_PRIMASK:
@@ -147,6 +161,18 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 			r->dirty = r->valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
+		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
+		break;
+
+	case 33:
+	case 64 ... 96:
+		/* Floating-point Status and Registers */
+		retval = target_write_u32(target, ARMV7M_SCS_DCRDR, value);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_write_u32(target, ARMV7M_SCS_DCRSR, num | (1<<16));
+		if (retval != ERROR_OK)
+			return retval;
 		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
 		break;
 
