@@ -180,6 +180,7 @@ target_to_cm3(struct target *target)
 			struct cortex_m3_common, armv7m);
 }
 
+int cortex_m3_examine(struct target *target);
 int cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
 int cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint);
 int cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint);

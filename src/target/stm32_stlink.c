@@ -245,66 +245,6 @@ static int stm32_stlink_target_create(struct target *target,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_examine(struct target *target)
-{
-	int retval, i;
-	uint32_t cpuid, fpcr;
-	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
-
-	LOG_DEBUG("%s", __func__);
-
-	if (target->tap->hasidcode == false) {
-		LOG_ERROR("no IDCODE present on device");
-
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	if (!target_was_examined(target)) {
-		target_set_examined(target);
-
-		LOG_INFO("IDCODE %x", target->tap->idcode);
-
-		/* Read from Device Identification Registers */
-		retval = target_read_u32(target, CPUID, &cpuid);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (((cpuid >> 4) & 0xc3f) == 0xc23)
-			LOG_DEBUG("Cortex-M3 r%" PRId8 "p%" PRId8 " processor detected",
-				(uint8_t)((cpuid >> 20) & 0xf), (uint8_t)((cpuid >> 0) & 0xf));
-		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
-
-		/* Setup FPB */
-		target_read_u32(target, FP_CTRL, &fpcr);
-		cortex_m3->auto_bp_type = 1;
-		cortex_m3->fp_num_code = ((fpcr >> 8) & 0x70) |
-			((fpcr >> 4) & 0xF); /* bits [14:12] and [7:4] */
-		cortex_m3->fp_num_lit = (fpcr >> 8) & 0xF;
-		cortex_m3->fp_code_available = cortex_m3->fp_num_code;
-		cortex_m3->fp_comparator_list = calloc(cortex_m3->fp_num_code +
-			cortex_m3->fp_num_lit, sizeof(struct cortex_m3_fp_comparator));
-		cortex_m3->fpb_enabled = fpcr & 1;
-		for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++) {
-			cortex_m3->fp_comparator_list[i].type =
-				(i < cortex_m3->fp_num_code) ? FPCR_CODE : FPCR_LITERAL;
-			cortex_m3->fp_comparator_list[i].fpcr_address = FP_COMP0 + 4 * i;
-		}
-		LOG_DEBUG("FPB fpcr 0x%" PRIx32 ", numcode %i, numlit %i", fpcr,
-			cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
-
-		/* Setup DWT */
-		cortex_m3_dwt_setup(cortex_m3, target);
-
-		/* These hardware breakpoints only work for code in flash! */
-		LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints",
-				target_name(target),
-				cortex_m3->fp_num_code,
-				cortex_m3->dwt_num_comp);
-	}
-
-	return ERROR_OK;
-}
-
 static int stm32_stlink_load_context(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -723,7 +663,7 @@ struct target_type stm32_stlink_target = {
 
 	.init_target = stm32_stlink_init_target,
 	.target_create = stm32_stlink_target_create,
-	.examine = stm32_stlink_examine,
+	.examine = cortex_m3_examine,
 
 	.poll = stm32_stlink_poll,
 	.arch_state = armv7m_arch_state,
