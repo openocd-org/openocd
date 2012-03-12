@@ -143,6 +143,17 @@ static int mips_m4k_poll(struct target *target)
 
 	/* check for processor halted */
 	if (ejtag_ctrl & EJTAG_CTRL_BRKST) {
+		if (target->state == TARGET_UNKNOWN) {
+			LOG_DEBUG("EJTAG_CTRL_BRKST already set during server startup.");
+
+			/* OpenOCD was was probably started on the board with EJTAG_CTRL_BRKST already set
+			 * (maybe put on by HALT-ing the board in the previous session).
+			 *
+			 * Force target to RUNNING state to enable debug entry for this session.
+			 */
+			target->state = TARGET_RUNNING;
+		}
+
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET)) {
 			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT);
 
