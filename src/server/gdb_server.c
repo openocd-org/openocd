@@ -1123,7 +1123,7 @@ static int gdb_set_register_packet(struct connection *connection,
 	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
 
-	if (reg_list_size < reg_num) {
+	if (reg_list_size <= reg_num) {
 		LOG_ERROR("gdb requested a non-existing register");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
