@@ -1137,7 +1137,10 @@ static int gdb_set_register_packet(struct connection *connection,
 	bin_buf = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8));
 	int chars = (DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
 
-	/* fix!!! add some sanity checks on packet size here */
+	if ((unsigned int)chars != strlen(separator + 1)) {
+		LOG_ERROR("gdb sent a packet with wrong register size");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	gdb_target_to_reg(target, separator + 1, chars, bin_buf);
 
