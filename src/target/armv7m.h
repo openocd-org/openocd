@@ -93,6 +93,8 @@ enum {
 	ARMV7M_BASEPRI,
 	ARMV7M_FAULTMASK,
 	ARMV7M_CONTROL,
+
+	ARMV7M_LAST_REG,
 };
 
 #define ARMV7M_COMMON_MAGIC 0x2A452A45
@@ -140,7 +142,7 @@ struct armv7m_algorithm {
 
 	enum armv7m_mode core_mode;
 
-	uint32_t context[ARMV7M_CONTROL + 1]; /* ARMV7M_NUM_REGS */
+	uint32_t context[ARMV7M_LAST_REG]; /* ARMV7M_NUM_REGS */
 };
 
 struct armv7m_core_reg {
