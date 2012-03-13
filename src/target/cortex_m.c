@@ -609,7 +609,7 @@ static int cortex_m3_halt(struct target *target)
 			return ERROR_TARGET_FAILURE;
 		} else {
 			/* we came here in a reset_halt or reset_init sequence
-			 * debug entry was already prepared in cortex_m3_prepare_reset_halt()
+			 * debug entry was already prepared in cortex_m3_assert_reset()
 			 */
 			target->debug_reason = DBG_REASON_DBGRQ;
 

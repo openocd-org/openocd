@@ -141,7 +141,6 @@ int arm7_9_deassert_reset(struct target *target);
 int arm7_9_reset_request_halt(struct target *target);
 int arm7_9_early_halt(struct target *target);
 int arm7_9_soft_reset_halt(struct target *target);
-int arm7_9_prepare_reset_halt(struct target *target);
 
 int arm7_9_halt(struct target *target);
 int arm7_9_resume(struct target *target, int current, uint32_t address,
