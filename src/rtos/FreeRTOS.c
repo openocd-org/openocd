@@ -30,6 +30,8 @@
 #include "helper/log.h"
 #include "rtos_standard_stackings.h"
 
+#define FREERTOS_MAX_PRIORITIES	63
+
 #define FreeRTOS_STRUCT(int_type, ptr_type, list_prev_offset)
 
 struct FreeRTOS_params {
@@ -220,6 +222,11 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 			(uint8_t *)&max_used_priority);
 	if (retval != ERROR_OK)
 		return retval;
+	if (max_used_priority > FREERTOS_MAX_PRIORITIES) {
+		LOG_ERROR("FreeRTOS maximum used priority is unreasonably big, not proceeding: %" PRId64 "",
+			max_used_priority);
+		return ERROR_FAIL;
+	}
 
 	symbol_address_t *list_of_lists =
 		(symbol_address_t *)malloc(sizeof(symbol_address_t) *
