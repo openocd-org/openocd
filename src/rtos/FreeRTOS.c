@@ -187,6 +187,10 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 		tasks_found++;
 		rtos->thread_details = (struct thread_detail *) malloc(
 				sizeof(struct thread_detail) * thread_list_size);
+		if (!rtos->thread_details) {
+			LOG_ERROR("Error allocating memory for %d threads", thread_list_size);
+			return ERROR_FAIL;
+		}
 		rtos->thread_details->threadid = 1;
 		rtos->thread_details->exists = true;
 		rtos->thread_details->display_str = NULL;
@@ -202,6 +206,10 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 		/* create space for new thread details */
 		rtos->thread_details = (struct thread_detail *) malloc(
 				sizeof(struct thread_detail) * thread_list_size);
+		if (!rtos->thread_details) {
+			LOG_ERROR("Error allocating memory for %d threads", thread_list_size);
+			return ERROR_FAIL;
+		}
 	}
 
 	/* Find out how many lists are needed to be read from pxReadyTasksLists, */
@@ -216,6 +224,10 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 	symbol_address_t *list_of_lists =
 		(symbol_address_t *)malloc(sizeof(symbol_address_t) *
 			(max_used_priority+1 + 5));
+	if (!list_of_lists) {
+		LOG_ERROR("Error allocating memory for %" PRId64 " priorities", max_used_priority);
+		return ERROR_FAIL;
+	}
 
 	int num_lists;
 	for (num_lists = 0; num_lists <= max_used_priority; num_lists++)
