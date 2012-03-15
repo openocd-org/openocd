@@ -1756,13 +1756,20 @@ fail1:
 	 */
 }
 
+#define MVFR0 0xe000ef40
+#define MVFR1 0xe000ef44
+
+#define MVFR0_DEFAULT_M4 0x10110021
+#define MVFR1_DEFAULT_M4 0x11000011
+
 int cortex_m3_examine(struct target *target)
 {
 	int retval;
-	uint32_t cpuid, fpcr;
+	uint32_t cpuid, fpcr, mvfr0, mvfr1;
 	int i;
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 	struct adiv5_dap *swjdp = &cortex_m3->armv7m.dap;
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	retval = ahbap_debugport_init(swjdp);
 	if (retval != ERROR_OK)
@@ -1782,6 +1789,17 @@ int cortex_m3_examine(struct target *target)
 		LOG_DEBUG("Cortex-M%d r%" PRId8 "p%" PRId8 " processor detected",
 				i, (uint8_t)((cpuid >> 20) & 0xf), (uint8_t)((cpuid >> 0) & 0xf));
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
+
+		/* test for floating point feature on cortex-m4 */
+		if (i == 4) {
+			target_read_u32(target, MVFR0, &mvfr0);
+			target_read_u32(target, MVFR1, &mvfr1);
+
+			if ((mvfr0 == MVFR0_DEFAULT_M4) && (mvfr1 == MVFR1_DEFAULT_M4)) {
+				LOG_DEBUG("Cortex-M%d floating point feature FPv4_SP found", i);
+				armv7m->fp_feature = FPv4_SP;
+			}
+		}
 
 		/* NOTE: FPB and DWT are both optional. */
 

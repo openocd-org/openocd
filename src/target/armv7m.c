@@ -578,6 +578,7 @@ int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 	struct arm *arm = &armv7m->arm;
 
 	armv7m->common_magic = ARMV7M_COMMON_MAGIC;
+	armv7m->fp_feature = FP_NONE;
 
 	arm->core_type = ARM_MODE_THREAD;
 	arm->arch_info = armv7m;

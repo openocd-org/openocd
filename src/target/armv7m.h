@@ -97,6 +97,11 @@ enum {
 	ARMV7M_LAST_REG,
 };
 
+enum {
+	FP_NONE = 0,
+	FPv4_SP,
+};
+
 #define ARMV7M_COMMON_MAGIC 0x2A452A45
 
 struct armv7m_common {
@@ -107,6 +112,8 @@ struct armv7m_common {
 	enum armv7m_mode core_mode;
 	int exception_number;
 	struct adiv5_dap dap;
+
+	int fp_feature;
 
 	uint32_t demcr;
 
