@@ -33,6 +33,7 @@
 #endif
 
 #include "jtag.h"
+#include "swd.h"
 #include "minidriver.h"
 #include "interface.h"
 #include "interfaces.h"
@@ -672,6 +673,7 @@ static int jim_jtag_arp_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
+	int e = ERROR_OK;
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
 	if (goi.argc != 0) {
@@ -679,7 +681,11 @@ static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const 
 		return JIM_ERR;
 	}
 	struct command_context *context = current_command_context(interp);
-	int e = jtag_init_reset(context);
+	if (transport_is_jtag())
+		e = jtag_init_reset(context);
+	else if (transport_is_swd())
+		e = swd_init_reset(context);
+
 	if (e != ERROR_OK) {
 		Jim_Obj *eObj = Jim_NewIntObj(goi.interp, e);
 		Jim_SetResultFormatted(goi.interp, "error: %#s", eObj);

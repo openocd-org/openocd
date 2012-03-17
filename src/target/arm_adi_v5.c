@@ -69,6 +69,7 @@
 #include "config.h"
 #endif
 
+#include "jtag/interface.h"
 #include "arm.h"
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
@@ -977,10 +978,7 @@ int dap_syssec_kinetis_mdmap(struct adiv5_dap *dap)
 			/* we need to assert reset */
 			if (jtag_reset_config & RESET_HAS_SRST) {
 				/* default to asserting srst */
-				if (jtag_reset_config & RESET_SRST_PULLS_TRST)
-					jtag_add_reset(1, 1);
-				else
-					jtag_add_reset(0, 1);
+				adapter_assert_reset();
 			} else {
 				LOG_DEBUG("SRST not configured");
 				dap_ap_select(dap, 0);

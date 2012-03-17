@@ -304,4 +304,7 @@ extern const char *jtag_only[];
 
 extern const struct swd_driver *swd;
 
+void adapter_assert_reset(void);
+void adapter_deassert_reset(void);
+
 #endif /* OPENOCD_JTAG_INTERFACE_H */

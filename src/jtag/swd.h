@@ -17,6 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#ifndef SWD_H
+#define SWD_H
+
 /* Bits in SWD command packets, written from host to target
  * first bit on the wire is START
  */
@@ -128,4 +131,9 @@ struct swd_driver {
 	int *(*trace)(bool swo);
 };
 
+int swd_init_reset(struct command_context *cmd_ctx);
+void swd_add_reset(int req_srst);
+
 bool transport_is_swd(void);
+
+#endif /* SWD_H */
