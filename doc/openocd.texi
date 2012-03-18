@@ -4538,6 +4538,7 @@ flash bank $_FLASHNAME aduc702x 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@anchor{at91sam3}
 @deffn {Flash Driver} at91sam3
 @cindex at91sam3
 All members of the AT91SAM3 microcontroller family from
@@ -4600,6 +4601,13 @@ be 32768 Hz, see the command @command{at91sam3 slowclk}.
 This command shows/sets the slow clock frequency used in the
 @command{at91sam3 info} command calculations above.
 @end deffn
+@end deffn
+
+@deffn {Flash Driver} at91sam4
+@cindex at91sam4
+All members of the AT91SAM4 microcontroller family from
+Atmel include internal flash and use ARM's Cortex-M4 core.
+This driver uses the same cmd names/syntax as @xref{at91sam3}.
 @end deffn
 
 @deffn {Flash Driver} at91sam7
