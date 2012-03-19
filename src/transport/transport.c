@@ -117,15 +117,9 @@ int allow_transports(struct command_context *ctx, const char **vector)
 	if (!vector[1]) {
 		LOG_INFO("only one transport option; autoselect '%s'", vector[0]);
 		return transport_select(ctx, vector[0]);
-	} else {
-		/* guard against user config errors */
-		LOG_WARNING("must select a transport.");
-		while (*vector) {
-			LOG_DEBUG("allow transport '%s'", *vector);
-			vector++;
-		}
-		return ERROR_OK;
 	}
+
+	return ERROR_OK;
 }
 
 /**
@@ -246,6 +240,13 @@ COMMAND_HANDLER(handle_transport_init)
 	LOG_DEBUG("%s", __func__);
 	if (!session) {
 		LOG_ERROR("session's transport is not selected.");
+
+		/* no session transport configured, print transports then fail */
+		const char **vector = allowed_transports;
+		while (*vector) {
+			LOG_ERROR("allow transport '%s'", *vector);
+			vector++;
+		}
 		return ERROR_FAIL;
 	}
 
