@@ -125,8 +125,8 @@ do_clean_all() {
 
 do_version_commit() {
 	[ "$*" ] || die "usage: $0 commit <message>"
-	git add configure.in || die "error: no version changes to commit"
-	git commit -q -m "$*" configure.in
+	git add configure.ac || die "error: no version changes to commit"
+	git commit -q -m "$*" configure.ac
 }
 
 do_version_finalize() {
@@ -281,7 +281,7 @@ do_reset() {
 	maybe_bootstrap
 	maybe_configure
 	do_clean_all
-	git checkout configure.in
+	git checkout configure.ac
 }
 
 LONGOPTS="fast,final,start-rc,next-tag:,next:,help"

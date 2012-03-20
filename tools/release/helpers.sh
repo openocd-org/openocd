@@ -6,15 +6,15 @@ die() {
 }
 
 package_info_load_name() {
-	grep AC_INIT configure.in | perl -ne 's/^.+\(\[([-\w]*)\],.+$/$1/ and print'
+	grep AC_INIT configure.ac | perl -ne 's/^.+\(\[([-\w]*)\],.+$/$1/ and print'
 }
 package_info_load_version() {
-	grep AC_INIT configure.in | perl -ne 's/^.+\[([-\w\.]*)\],$/$1/ and print'
+	grep AC_INIT configure.ac | perl -ne 's/^.+\[([-\w\.]*)\],$/$1/ and print'
 }
 
 package_info_load() {
-	[ -f "configure.in" ] || \
-		die "package_info_load: configure.in is missing"
+	[ -f "configure.ac" ] || \
+		die "package_info_load: configure.ac is missing"
 
 	PACKAGE_NAME="$(package_info_load_name)"
 	# todo: fix this

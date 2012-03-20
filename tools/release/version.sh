@@ -8,7 +8,7 @@
 # NOTE Use with care!  "RC" should only follow x.x.x, with
 # vendor tags after that.  Be traditional; avoid "rc0".
 
-# NOTE:  This *ONLY* updates the "configure.in" version tag.
+# NOTE:  This *ONLY* updates the "configure.ac" version tag.
 # It does not affect GIT tags.  Use this script immediately
 # before making a release, to remove the "-dev" tag and to
 # update the version label.  Then commit the change and tag
@@ -34,7 +34,7 @@ do_version_sed() {
 	local NEW_VERSION="$1"
 	local MSG="$2"
 
-	sed -i -e "/AC_INIT/ s|${OLD_VERSION}|${NEW_VERSION}|" configure.in
+	sed -i -e "/AC_INIT/ s|${OLD_VERSION}|${NEW_VERSION}|" configure.ac
 	package_info_load
 	echo "${MSG}: ${OLD_VERSION} -> ${NEW_VERSION}"
 }
