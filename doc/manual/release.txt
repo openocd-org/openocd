@@ -107,14 +107,14 @@ original code base.  Each packager release should have a unique
 version.
 
 For example, the following command will add a 'foo' tag to the
-configure.in script of a local copy of the source tree, giving
+configure.ac script of a local copy of the source tree, giving
 a version label like <em>0.3.0-foo</em>:
 
 @code
 tools/release/version.sh version tag add foo
 @endcode
 
-This command will modify the configure.in script in your working copy
+This command will modify the configure.ac script in your working copy
 only.  After running the @c bootstrap sequence, the tree can be patched
 and used to produce your own derived versions.  You might check that
 change into a private branch of your git tree, along with the other
@@ -296,7 +296,7 @@ The following steps should be followed to produce each release:
       be needed (except to seed the process for the next release, or maybe
       if a significant and longstanding bug is fixed late in the RC phase).
   -# Bump library version if our API changed (not yet required)
-  -# Update and commit the final package version in @c configure.in:
+  -# Update and commit the final package version in @c configure.ac:
      (The <code>tools/release/version.sh</code> script might help ensure
      the versions are named properly.):
     -# Remove @c -dev tag.
@@ -306,7 +306,7 @@ The following steps should be followed to produce each release:
       - If producing the next RC in a series, bump the rc number
     -# Commit that version change, with a good descriptive comment.
   -# Create a git tag for the final commit, with a tag name matching
-     the version string in <code>configure.in</code> (including <em>-rcN</em>
+     the version string in <code>configure.ac</code> (including <em>-rcN</em>
      where relevant):
 @verbatim
 PACKAGE_VERSION="x.y.z"
@@ -322,7 +322,7 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
      the last ones to be included in the release being made.
 -# Produce the release files, using the local clone of the source
   tree which holds the release's tag and updated version in
-  @c configure.in ... this is used only to produce the release, and
+  @c configure.ac ... this is used only to produce the release, and
   all files should already be properly checked out.
   -# Run <code>tools/release.sh package</code> to produce the
 	source archives.  This automatically bootstraps and
@@ -373,7 +373,7 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
 -# Resume normal development on mainline, by opening the merge window for
   the next major or minor release cycle.  (You might want to do this
   before all the release bits are fully published.)
-  - Update the version label in the @c configure.in file:
+  - Update the version label in the @c configure.ac file:
      - Restore @c -dev version tag.
      - For a new minor release cycle, increment the release's minor number
      - For a new major release cycle, increment the release's major number
@@ -396,7 +396,7 @@ To start a bug-fix release branch:
 -# Create a new branch, starting from a major or
    minor release tag
 -# Restore @c -dev version tag.
--# Bump micro version number in configure.in
+-# Bump micro version number in configure.ac
 -# Backport bugfix patches from mainline into that branch.
    (Always be sure mainline has the fix first, so it's hard
    to just lose a bugfix.)
