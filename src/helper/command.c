@@ -1311,6 +1311,8 @@ struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp
 	HostOs = "ecos";
 #elif defined(__FreeBSD__)
 	HostOs = "freebsd";
+#elif defined(__OpenBSD__)
+	HostOs = "openbsd";
 #else
 #warning "Unrecognized host OS..."
 	HostOs = "other";
