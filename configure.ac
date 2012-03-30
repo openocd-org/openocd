@@ -772,15 +772,15 @@ else
 fi
 
 if test $build_stlink = yes; then
-  AC_DEFINE(BUILD_STLINK, 1, [1 if you want the ST-Link JTAG driver.])
+  AC_DEFINE([BUILD_STLINK], [1], [1 if you want the ST-Link JTAG driver.])
 else
-  AC_DEFINE(BUILD_STLINK, 0, [0 if you don't want the ST-Link JTAG driver.])
+  AC_DEFINE([BUILD_STLINK], [0], [0 if you don't want the ST-Link JTAG driver.])
 fi
 
 if test $build_osbdm = yes; then
-  AC_DEFINE(BUILD_OSBDM, 1, [1 if you want the OSBDM driver.])
+  AC_DEFINE([BUILD_OSBDM], [1], [1 if you want the OSBDM driver.])
 else
-  AC_DEFINE(BUILD_OSBDM, 0, [0 if you don't want the OSBDM driver.])
+  AC_DEFINE([BUILD_OSBDM], [0], [0 if you don't want the OSBDM driver.])
 fi
 
 if test "$use_internal_jimtcl" = yes; then
