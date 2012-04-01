@@ -154,7 +154,7 @@ struct arm {
 	int (*read_core_reg)(struct target *target, struct reg *reg,
 			int num, enum arm_mode mode);
 	int (*write_core_reg)(struct target *target, struct reg *reg,
-			int num, enum arm_mode mode, uint32_t value);
+			int num, enum arm_mode mode, uint8_t *value);
 
 	/** Read coprocessor register.  */
 	int (*mrc)(struct target *target, int cpnum,

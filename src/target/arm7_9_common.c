@@ -2033,7 +2033,7 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 }
 
 static int arm7_9_write_core_reg(struct target *target, struct reg *r,
-	int num, enum arm_mode mode, uint32_t value)
+	int num, enum arm_mode mode, uint8_t *value)
 {
 	uint32_t reg[16];
 	struct arm_reg *areg = r->arch_info;
@@ -2058,7 +2058,7 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 
 	if ((num >= 0) && (num <= 15)) {
 		/* write a normal core register */
-		reg[num] = value;
+		reg[num] = buf_get_u32(value, 0, 32);
 
 		arm7_9->write_core_regs(target, 1 << num, reg);
 	} else {
@@ -2067,11 +2067,12 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 		*/
 		int spsr = (areg->mode != ARM_MODE_ANY);
 
+		uint32_t t = buf_get_u32(value, 0, 32);
 		/* if we're writing the CPSR, mask the T bit */
 		if (!spsr)
-			value &= ~0x20;
+			t &= ~0x20;
 
-		arm7_9->write_xpsr(target, value, spsr);
+		arm7_9->write_xpsr(target, t, spsr);
 	}
 
 	r->valid = 1;

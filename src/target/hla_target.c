@@ -75,11 +75,6 @@ static int adapter_load_core_reg_u32(struct target *target,
 		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "", (int)num, *value);
 		break;
 
-	case ARMV7M_FPSID:
-	case ARMV7M_FPEXC:
-		*value = 0;
-		break;
-
 	case ARMV7M_FPSCR:
 		/* Floating-point Status and Registers */
 		retval = target_write_u32(target, ARMV7M_SCS_DCRSR, 33);
@@ -88,7 +83,7 @@ static int adapter_load_core_reg_u32(struct target *target,
 		retval = target_read_u32(target, ARMV7M_SCS_DCRDR, value);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "", (int)num, *value);
+		LOG_DEBUG("load from FPSCR  value 0x%" PRIx32, *value);
 		break;
 
 	case ARMV7M_S0 ... ARMV7M_S31:
@@ -99,11 +94,8 @@ static int adapter_load_core_reg_u32(struct target *target,
 		retval = target_read_u32(target, ARMV7M_SCS_DCRDR, value);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "", (int)num, *value);
-		break;
-
-	case ARMV7M_D0 ... ARMV7M_D15:
-		value = 0;
+		LOG_DEBUG("load from FPU reg S%d  value 0x%" PRIx32,
+			  (int)(num - ARMV7M_S0), *value);
 		break;
 
 	case ARMV7M_PRIMASK:
@@ -176,10 +168,6 @@ static int adapter_store_core_reg_u32(struct target *target,
 		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
 		break;
 
-	case ARMV7M_FPSID:
-	case ARMV7M_FPEXC:
-		break;
-
 	case ARMV7M_FPSCR:
 		/* Floating-point Status and Registers */
 		retval = target_write_u32(target, ARMV7M_SCS_DCRDR, value);
@@ -188,7 +176,7 @@ static int adapter_store_core_reg_u32(struct target *target,
 		retval = target_write_u32(target, ARMV7M_SCS_DCRSR, 33 | (1<<16));
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
+		LOG_DEBUG("write FPSCR value 0x%" PRIx32, value);
 		break;
 
 	case ARMV7M_S0 ... ARMV7M_S31:
@@ -199,10 +187,8 @@ static int adapter_store_core_reg_u32(struct target *target,
 		retval = target_write_u32(target, ARMV7M_SCS_DCRSR, (num-ARMV7M_S0+64) | (1<<16));
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
-		break;
-
-	case ARMV7M_D0 ... ARMV7M_D15:
+		LOG_DEBUG("write FPU reg S%d  value 0x%" PRIx32,
+			  (int)(num - ARMV7M_S0), value);
 		break;
 
 	case ARMV7M_PRIMASK:

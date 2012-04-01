@@ -110,6 +110,25 @@ static const struct {
 	{ ARMV7M_BASEPRI, "basepri", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
 	{ ARMV7M_FAULTMASK, "faultmask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
 	{ ARMV7M_CONTROL, "control", 2, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
+
+	{ ARMV7M_D0, "d0", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D1, "d1", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D2, "d2", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D3, "d3", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D4, "d4", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D5, "d5", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D6, "d6", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D7, "d7", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D8, "d8", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D9, "d9", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D10, "d10", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D11, "d11", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D12, "d12", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D13, "d13", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D14, "d14", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D15, "d15", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+
+	{ ARMV7M_FPSCR, "fpscr", 32, REG_TYPE_INT, "float", "org.gnu.gdb.arm.vfp" },
 };
 
 #define ARMV7M_NUM_REGS ARRAY_SIZE(armv7m_regs)
@@ -131,8 +150,8 @@ int armv7m_restore_context(struct target *target)
 
 	for (i = ARMV7M_NUM_REGS - 1; i >= 0; i--) {
 		if (cache->reg_list[i].dirty) {
-			uint32_t value = buf_get_u32(cache->reg_list[i].value, 0, 32);
-			armv7m->arm.write_core_reg(target, &cache->reg_list[i], i, ARM_MODE_ANY, value);
+			armv7m->arm.write_core_reg(target, &cache->reg_list[i], i,
+						   ARM_MODE_ANY, cache->reg_list[i].value);
 		}
 	}
 
@@ -179,12 +198,11 @@ static int armv7m_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct arm_reg *armv7m_reg = reg->arch_info;
 	struct target *target = armv7m_reg->target;
-	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	buf_set_u32(reg->value, 0, 32, value);
+	buf_cpy(buf, reg->value, reg->size);
 	reg->dirty = 1;
 	reg->valid = 1;
 
@@ -202,10 +220,28 @@ static int armv7m_read_core_reg(struct target *target, struct reg *r,
 	assert(num < (int)armv7m->arm.core_cache->num_regs);
 
 	armv7m_core_reg = armv7m->arm.core_cache->reg_list[num].arch_info;
-	retval = armv7m->load_core_reg_u32(target,
-			armv7m_core_reg->num, &reg_value);
 
-	buf_set_u32(armv7m->arm.core_cache->reg_list[num].value, 0, 32, reg_value);
+	if ((armv7m_core_reg->num >= ARMV7M_D0) && (armv7m_core_reg->num <= ARMV7M_D15)) {
+		/* map D0..D15 to S0..S31 */
+		size_t regidx = ARMV7M_S0 + 2 * (armv7m_core_reg->num - ARMV7M_D0);
+		retval = armv7m->load_core_reg_u32(target, regidx, &reg_value);
+		if (retval != ERROR_OK)
+			return retval;
+		buf_set_u32(armv7m->arm.core_cache->reg_list[num].value,
+			    0, 32, reg_value);
+		retval = armv7m->load_core_reg_u32(target, regidx + 1, &reg_value);
+		if (retval != ERROR_OK)
+			return retval;
+		buf_set_u32(armv7m->arm.core_cache->reg_list[num].value + 4,
+			    0, 32, reg_value);
+	} else {
+		retval = armv7m->load_core_reg_u32(target,
+						   armv7m_core_reg->num, &reg_value);
+		if (retval != ERROR_OK)
+			return retval;
+		buf_set_u32(armv7m->arm.core_cache->reg_list[num].value, 0, 32, reg_value);
+	}
+
 	armv7m->arm.core_cache->reg_list[num].valid = 1;
 	armv7m->arm.core_cache->reg_list[num].dirty = 0;
 
@@ -213,7 +249,7 @@ static int armv7m_read_core_reg(struct target *target, struct reg *r,
 }
 
 static int armv7m_write_core_reg(struct target *target, struct reg *r,
-	int num, enum arm_mode mode, uint32_t value)
+	int num, enum arm_mode mode, uint8_t *value)
 {
 	int retval;
 	struct arm_reg *armv7m_core_reg;
@@ -222,20 +258,38 @@ static int armv7m_write_core_reg(struct target *target, struct reg *r,
 	assert(num < (int)armv7m->arm.core_cache->num_regs);
 
 	armv7m_core_reg = armv7m->arm.core_cache->reg_list[num].arch_info;
-	retval = armv7m->store_core_reg_u32(target,
-					    armv7m_core_reg->num,
-					    value);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("JTAG failure");
-		armv7m->arm.core_cache->reg_list[num].dirty = armv7m->arm.core_cache->reg_list[num].valid;
-		return ERROR_JTAG_DEVICE_ERROR;
+
+	if ((armv7m_core_reg->num >= ARMV7M_D0) && (armv7m_core_reg->num <= ARMV7M_D15)) {
+		/* map D0..D15 to S0..S31 */
+		size_t regidx = ARMV7M_S0 + 2 * (armv7m_core_reg->num - ARMV7M_D0);
+
+		uint32_t t = buf_get_u32(value, 0, 32);
+		retval = armv7m->store_core_reg_u32(target, regidx, t);
+		if (retval != ERROR_OK)
+			goto out_error;
+
+		t = buf_get_u32(value + 4, 0, 32);
+		retval = armv7m->store_core_reg_u32(target, regidx + 1, t);
+		if (retval != ERROR_OK)
+			goto out_error;
+	} else {
+		uint32_t t = buf_get_u32(value, 0, 32);
+
+		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num, t);
+		retval = armv7m->store_core_reg_u32(target, armv7m_core_reg->num, t);
+		if (retval != ERROR_OK)
+			goto out_error;
 	}
 
-	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num, value);
 	armv7m->arm.core_cache->reg_list[num].valid = 1;
 	armv7m->arm.core_cache->reg_list[num].dirty = 0;
 
 	return ERROR_OK;
+
+out_error:
+	LOG_ERROR("Error setting register");
+	armv7m->arm.core_cache->reg_list[num].dirty = armv7m->arm.core_cache->reg_list[num].valid;
+	return ERROR_JTAG_DEVICE_ERROR;
 }
 
 /**
@@ -533,7 +587,10 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 
 		reg_list[i].name = armv7m_regs[i].name;
 		reg_list[i].size = armv7m_regs[i].bits;
-		reg_list[i].value = calloc(1, 4);
+		size_t storage_size = DIV_ROUND_UP(armv7m_regs[i].bits, 8);
+		if (storage_size < 4)
+			storage_size = 4;
+		reg_list[i].value = calloc(1, storage_size);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
 		reg_list[i].type = &armv7m_reg_type;

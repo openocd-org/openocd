@@ -1621,7 +1621,7 @@ static int xscale_read_core_reg(struct target *target, struct reg *r,
 }
 
 static int xscale_write_core_reg(struct target *target, struct reg *r,
-	int num, enum arm_mode mode, uint32_t value)
+	int num, enum arm_mode mode, uint8_t *value)
 {
 	/** \todo add debug handler support for core register writes */
 	LOG_ERROR("not implemented");

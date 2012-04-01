@@ -571,7 +571,7 @@ fail:
 }
 
 static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
-	int regnum, enum arm_mode mode, uint32_t value)
+	int regnum, enum arm_mode mode, uint8_t *value)
 {
 	struct arm_dpm *dpm = target_to_arm(target)->dpm;
 	int retval;
