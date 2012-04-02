@@ -631,7 +631,7 @@ int mips32_checksum_memory(struct target *target, uint32_t address,
 		destroy_reg_param(&reg_params[0]);
 		destroy_reg_param(&reg_params[1]);
 		target_free_working_area(target, crc_algorithm);
-		return 0;
+		return retval;
 	}
 
 	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
@@ -688,14 +688,14 @@ int mips32_blank_check_memory(struct target *target,
 
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			erase_check_algorithm->address,
-			erase_check_algorithm->address + (sizeof(erase_check_code)-2),
+			erase_check_algorithm->address + (sizeof(erase_check_code)-4),
 			10000, &mips32_info);
 	if (retval != ERROR_OK) {
 		destroy_reg_param(&reg_params[0]);
 		destroy_reg_param(&reg_params[1]);
 		destroy_reg_param(&reg_params[2]);
 		target_free_working_area(target, erase_check_algorithm);
-		return 0;
+		return retval;
 	}
 
 	*blank = buf_get_u32(reg_params[2].value, 0, 32);
