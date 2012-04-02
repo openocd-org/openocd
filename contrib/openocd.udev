@@ -78,9 +78,9 @@ ATTRS{idVendor}=="1457", ATTRS{idProduct}=="5118", MODE="644", GROUP="plugdev"
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="a6d0", MODE="664", GROUP="plugdev"
 
 # stlink v1
-SYSFS{idVendor}=="0483", SYSFS{idProduct}=="3744", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3744", MODE="664", GROUP="plugdev"
 
 # stlink v2
-SYSFS{idVendor}=="0483", SYSFS{idProduct}=="3748", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="664", GROUP="plugdev"
 
 LABEL="openocd_rules_end"
