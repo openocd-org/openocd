@@ -154,6 +154,9 @@ master branch will be much reduced.
 
 If a contributor pushes a patch, it is considered good form if another
 contributor actually approves and submits that patch.
+
+@section browsing Browsing Patches
+All OpenOCD patches can be reviewed <a href="http://openocd.zylin.com/">here</a>.
 */
 /** @file
 This file contains the @ref patchguide page.
