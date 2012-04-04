@@ -19,7 +19,8 @@
  ***************************************************************************/
 
 /**
- * @file Defines USB descriptors, interrupt routines and helper functions.
+ * @file
+ * Defines USB descriptors, interrupt routines and helper functions.
  * To minimize code size, we make the following assumptions:
  *  - The OpenULINK has exactly one configuration
  *  - and exactly one alternate setting

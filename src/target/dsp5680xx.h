@@ -35,7 +35,6 @@
  * The chip has two taps in the JTAG chain, the Master tap and the Core tap.
  * In this code the Master tap is only used to unlock the flash memory by executing a JTAG instruction.
  *
- *
  */
 
 #define S_FILE_DATA_OFFSET 0x200000
@@ -128,7 +127,7 @@
  */
 
  /** ----------------------------------------------------------------
- * Register Select Encoding (eonce_rev.1.0_0208081.pdf@14)
+ * Register Select Encoding (eonce_rev.1.0_0208081.pdf:14)
  * ----------------------------------------------------------------
  */
 #define DSP5680XX_ONCE_NOREG    0x00    /* No register selected */
@@ -157,7 +156,7 @@
 #define FLUSH_COUNT_READ_WRITE 8192 /* This value works, higher values (and lower...) may work as well. */
 #define FLUSH_COUNT_FLASH 8192
 /** ----------------------------------------------------------------
- * HFM (flash module) Commands (ref:MC56F801xRM.pdf@159)
+ * HFM (flash module) Commands (ref:MC56F801xRM.pdf:159)
  * ----------------------------------------------------------------
  */
 #define HFM_ERASE_VERIFY		  0x05
@@ -171,7 +170,7 @@
  */
 
 /** ----------------------------------------------------------------
- * Flashing (ref:MC56F801xRM.pdf@159)
+ * Flashing (ref:MC56F801xRM.pdf:159)
  * ----------------------------------------------------------------
  */
 #define HFM_BASE_ADDR     0x0F400   /** In x: mem. (write to S_FILE_DATA_OFFSET+HFM_BASE_ADDR
@@ -195,7 +194,7 @@
 
 #define HFM_EXEC_COMPLETE  0x40
 
-/* User status register (USTAT) masks (MC56F80XXRM.pdf@6.7.5) */
+/* User status register (USTAT) masks (MC56F80XXRM.pdf:6.7.5) */
 #define HFM_USTAT_MASK_BLANK 0x4
 #define HFM_USTAT_MASK_PVIOL_ACCER 0x30
 
@@ -224,7 +223,7 @@
  */
 
 /** ----------------------------------------------------------------
- * Register Memory Map (eonce_rev.1.0_0208081.pdf@16)
+ * Register Memory Map (eonce_rev.1.0_0208081.pdf:16)
  * ----------------------------------------------------------------
  */
 #define MC568013_EONCE_OBASE_ADDR 0xFF
@@ -314,7 +313,7 @@ static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target
  * @param buffer
  * @param address Word addressing.
  * @param count In bytes.
- * @param verify_flash Execute a CRC check after flashing.
+ * @param is_flash_lock
  *
  * @return
  */
@@ -322,7 +321,7 @@ int dsp5680xx_f_wr(struct target *target, uint8_t * buffer, uint32_t address,
 		uint32_t count, int is_flash_lock);
 
 /**
- * The FM has the funcionality of checking if the flash array is erased. This function
+ * The FM has the functionality of checking if the flash array is erased. This function
  * executes it. It does not support individual sector analysis.
  *
  * @param target
@@ -337,7 +336,7 @@ int dsp5680xx_f_erase_check(struct target *target, uint8_t * erased,
 
 /**
  * Erases either a sector or the complete flash array. If either the range first-last covers
- * the complete array or if @first == 0 and @last == 0 then a mass erase command is executed
+ * the complete array or if first == 0 and last == 0 then a mass erase command is executed
  * on the FM. If not, then individual sectors are erased.
  *
  * @param target
@@ -382,4 +381,4 @@ int dsp5680xx_f_lock(struct target *target);
  */
 int dsp5680xx_f_unlock(struct target *target);
 
-#endif /* dsp5680xx.h */
+#endif /* DSP5680XX_H */

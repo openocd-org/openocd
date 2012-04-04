@@ -28,7 +28,8 @@
 #include "reg_ezusb.h"
 
 /**
- * @file Implementation of the OpenULINK communication protocol.
+ * @file
+ * Implementation of the OpenULINK communication protocol.
  *
  * The OpenULINK protocol uses one OUT and one IN endpoint. These two endpoints
  * are configured to use the maximum packet size for full-speed transfers,
@@ -75,11 +76,9 @@ void execute_set_led_command(void)
 /**
  * Executes one command and updates global command indexes.
  *
- * @param index the index of the Bulk EP2-OUT data buffer at which the
- *  command ID is stored.
  * @return true if this command was the last command.
  * @return false if there are more commands within the current contents of the
- *  Bulk EP2-OUT data buffer.
+ * Bulk EP2-OUT data buffer.
  */
 bool execute_command(void)
 {

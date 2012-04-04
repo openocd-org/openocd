@@ -19,7 +19,8 @@
  ***************************************************************************/
 
 /**
- * @file Definition of the commands supported by the OpenULINK firmware.
+ * @file
+ * Definition of the commands supported by the OpenULINK firmware.
  *
  * Basically, two types of commands can be distinguished:
  *  - Commands with fixed payload size

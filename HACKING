@@ -90,7 +90,7 @@ chmod +x .git/hooks/commit-msg
 @code
 tools/initial.sh <username>
 @endcode
-With <username> being your Gerrit username.
+With @<username@> being your Gerrit username.
 -# Set up git with your name and email:
 @code
 git config --global user.name "John Smith"

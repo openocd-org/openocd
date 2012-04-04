@@ -22,7 +22,8 @@
 #define REG_EZUSB_H
 
 /**
- * @file All information in this file was taken from the EZ-USB Technical
+ * @file
+ * All information in this file was taken from the EZ-USB Technical
  * Reference Manual, Cypress Semiconductor, 3901 North First Street
  * San Jose, CA 95134 (www.cypress.com).
  *

@@ -51,7 +51,7 @@ int dsp5680xx_execute_queue(void)
 }
 
 /**
- *Reset state machine
+ * Reset state machine
  */
 static int reset_jtag(void)
 {
@@ -74,7 +74,7 @@ static int reset_jtag(void)
 static int dsp5680xx_drscan(struct target *target, uint8_t *d_in,
 			    uint8_t *d_out, int len)
 {
-	/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	/* -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 	 *
 	 *Inputs:
 	 *    - d_in: This is the data that will be shifted into the JTAG DR reg.
@@ -113,14 +113,14 @@ static int dsp5680xx_drscan(struct target *target, uint8_t *d_in,
 	return retval;
 }
 
-/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
- *Inputs:
- *    - data_to_shift_into_ir: This is the data that will be shifted into the JTAG IR reg.
- *    - data_shifted_out_of_ir: The data that will be shifted out of the JTAG IR reg will be
- *    stored here
- *    - len: Length of the data to be shifted to JTAG IR.
+/**
+ * Test func
  *
- *-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+ * @param target
+ * @param d_in This is the data that will be shifted into the JTAG IR reg.
+ * @param d_out The data that will be shifted out of the JTAG IR reg will be stored here.
+ * @apram ir_len Length of the data to be shifted to JTAG IR.
+ *
  */
 static int dsp5680xx_irscan(struct target *target, uint32_t *d_in,
 			    uint32_t *d_out, uint8_t ir_len)
@@ -218,16 +218,16 @@ static int jtag_data_write(struct target *target, uint32_t instr, int num_bits,
 #define jtag_data_write32(target, instr, data_read) jtag_data_write(target, instr, 32, data_read)
 
 /**
- *Executes EOnCE instruction.
+ * Executes EOnCE instruction.
  *
- *@param target
- *@param instr Instruction to execute.
- *@param rw
- *@param go
- *@param ex
- *@param eonce_status Value read from the EOnCE status register.
+ * @param target
+ * @param instr Instruction to execute.
+ * @param rw
+ * @param go
+ * @param ex
+ * @param eonce_status Value read from the EOnCE status register.
  *
- *@return
+ * @return
  */
 static int eonce_instruction_exec_single(struct target *target, uint8_t instr,
 					 uint8_t rw, uint8_t go, uint8_t ex,
@@ -302,16 +302,16 @@ static int dsp5680xx_exe3(struct target *target, uint16_t opcode1,
 	return retval;
 }
 
-/**
+/*
  *--------------- Real-time data exchange ---------------
- *The EOnCE Transmit (OTX) and Receive (ORX) registers are data memory mapped, each with an upper
- *and lower 16 bit word.
- *Transmit and receive directions are defined from the core’s perspective.
- *The core writes to the Transmit register and reads the Receive register, and the host through
- *JTAG writes to the Receive register and reads the Transmit register.
- *Both registers have a combined data memory mapped OTXRXSR which provides indication when
- *each may be accessed.
- *ref: eonce_rev.1.0_0208081.pdf@36
+ * The EOnCE Transmit (OTX) and Receive (ORX) registers are data memory mapped, each with an upper
+ * and lower 16 bit word.
+ * Transmit and receive directions are defined from the core’s perspective.
+ * The core writes to the Transmit register and reads the Receive register, and the host through
+ * JTAG writes to the Receive register and reads the Transmit register.
+ * Both registers have a combined data memory mapped OTXRXSR which provides indication when
+ * each may be accessed.
+ * ref: eonce_rev.1.0_0208081.pdf@36
  */
 
 /* writes data into upper ORx register of the target */
@@ -336,9 +336,9 @@ static int core_tx_upper_data(struct target *target, uint16_t data,
 
 /**
  *
- *@param target
- *@param data_read: Returns the data read from the upper OTX register via JTAG.
- *@return: Returns an error code (see error code documentation)
+ * @param target
+ * @param data_read: Returns the data read from the upper OTX register via JTAG.
+ * @return: Returns an error code (see error code documentation)
  */
 static int core_rx_upper_data(struct target *target, uint8_t *data_read)
 {
@@ -355,9 +355,9 @@ static int core_rx_upper_data(struct target *target, uint8_t *data_read)
 
 /**
  *
- *@param target
- *@param data_read: Returns the data read from the lower OTX register via JTAG.
- *@return: Returns an error code (see error code documentation)
+ * @param target
+ * @param data_read: Returns the data read from the lower OTX register via JTAG.
+ * @return: Returns an error code (see error code documentation)
  */
 static int core_rx_lower_data(struct target *target, uint8_t *data_read)
 {
@@ -372,7 +372,7 @@ static int core_rx_lower_data(struct target *target, uint8_t *data_read)
 	return retval;
 }
 
-/**
+/*
  *-- -- -- -- --- -- -- -- --- -- -- -- --- -- -- -- --- -- -- -- --- --
  *-- -- -- -- --- -- -- -Core Instructions- -- -- -- --- -- -- -- --- --
  *-- -- -- -- --- -- -- -- --- -- -- -- --- -- -- -- --- -- -- -- --- --
@@ -553,12 +553,12 @@ static int eonce_read_status_reg(struct target *target, uint16_t *data)
 }
 
 /**
- *Takes the core out of debug mode.
+ * Takes the core out of debug mode.
  *
- *@param target
- *@param eonce_status Data read from the EOnCE status register.
+ * @param target
+ * @param eonce_status Data read from the EOnCE status register.
  *
- *@return
+ * @return
  */
 static int eonce_exit_debug_mode(struct target *target, uint8_t *eonce_status)
 {
@@ -635,18 +635,18 @@ static int switch_tap(struct target *target, struct jtag_tap *master_tap,
 }
 
 /**
- *Puts the core into debug mode, enabling the EOnCE module.
- *This will not always work, eonce_enter_debug_mode executes much
- *more complicated routine, which is guaranteed to work, but requires
- *a reset. This will complicate comm with the flash module, since
- *after a reset clock divisors must be set again.
- *This implementation works most of the time, and is not accesible to the
- *user.
+ * Puts the core into debug mode, enabling the EOnCE module.
+ * This will not always work, eonce_enter_debug_mode executes much
+ * more complicated routine, which is guaranteed to work, but requires
+ * a reset. This will complicate comm with the flash module, since
+ * after a reset clock divisors must be set again.
+ * This implementation works most of the time, and is not accesible to the
+ * user.
  *
- *@param target
- *@param eonce_status Data read from the EOnCE status register.
+ * @param target
+ * @param eonce_status Data read from the EOnCE status register.
  *
- *@return
+ * @return
  */
 static int eonce_enter_debug_mode_without_reset(struct target *target,
 						uint16_t *eonce_status)
@@ -703,12 +703,12 @@ static int eonce_enter_debug_mode_without_reset(struct target *target,
 }
 
 /**
- *Puts the core into debug mode, enabling the EOnCE module.
+ * Puts the core into debug mode, enabling the EOnCE module.
  *
- *@param target
- *@param eonce_status Data read from the EOnCE status register.
+ * @param target
+ * @param eonce_status Data read from the EOnCE status register.
  *
- *@return
+ * @return
  */
 static int eonce_enter_debug_mode(struct target *target,
 				  uint16_t *eonce_status)
@@ -841,11 +841,11 @@ static int eonce_enter_debug_mode(struct target *target,
 }
 
 /**
- *Reads the current value of the program counter and stores it.
+ * Reads the current value of the program counter and stores it.
  *
- *@param target
+ * @param target
  *
- *@return
+ * @return
  */
 static int eonce_pc_store(struct target *target)
 {
@@ -884,7 +884,7 @@ static int dsp5680xx_init_target(struct command_context *cmd_ctx,
 	dsp5680xx_context.debug_mode_enabled = false;
 	LOG_DEBUG("target initiated!");
 	/* TODO core tap must be enabled before running these commands, currently
-	   this is done in the .cfg tcl script. */
+	 * this is done in the .cfg tcl script. */
 	return ERROR_OK;
 }
 
@@ -1049,10 +1049,10 @@ static int dsp5680xx_resume(struct target *target, int current,
 		}
 		LOG_DEBUG("EOnCE status: 0x%02X.", eonce_status);
 	} else {
-		/**
-		 *If debug mode was not enabled but target was halted, then it is most likely that
-		 *access to eonce registers is locked.
-		 *Reset target to make it run again.
+		/*
+		 * If debug mode was not enabled but target was halted, then it is most likely that
+		 * access to eonce registers is locked.
+		 * Reset target to make it run again.
 		 */
 		jtag_add_reset(0, 1);
 		jtag_add_sleep(TIME_DIV_FREESCALE * 200 * 1000);
@@ -1078,21 +1078,21 @@ static int dsp5680xx_resume(struct target *target, int current,
 }
 
 /**
- *The value of @address determines if it corresponds to P: (program) or X: (dat) memory.
- *If the address is over 0x200000 then it is considered X: memory, and @pmem = 0.
- *The special case of 0xFFXXXX is not modified, since it allows to read out the
+ * The value of @address determines if it corresponds to P: (program) or X: (dat) memory.
+ * If the address is over 0x200000 then it is considered X: memory, and @pmem = 0.
+ * The special case of 0xFFXXXX is not modified, since it allows to read out the
  * memory mapped EOnCE registers.
  *
- *@param address
- *@param pmem
+ * @param address
+ * @param pmem
  *
- *@return
+ * @return
  */
 static int dsp5680xx_convert_address(uint32_t *address, int *pmem)
 {
-	/**
-	 *Distinguish data memory (x) from program memory (p) by the address.
-	 *Addresses over S_FILE_DATA_OFFSET are considered (x) memory.
+	/*
+	 * Distinguish data memory (x) from program memory (p) by the address.
+	 * Addresses over S_FILE_DATA_OFFSET are considered (x) memory.
 	 */
 	if (*address >= S_FILE_DATA_OFFSET) {
 		*pmem = 0;
@@ -1413,17 +1413,17 @@ static int dsp5680xx_write_32(struct target *t, uint32_t a, uint32_t c,
 }
 
 /**
- *Writes @buffer to memory.
- *The parameter @address determines whether @buffer should be written to
- *P: (program) memory or X: (dat) memory.
+ * Writes @buffer to memory.
+ * The parameter @address determines whether @buffer should be written to
+ * P: (program) memory or X: (dat) memory.
  *
- *@param target
- *@param address
- *@param size Bytes (1), Half words (2), Words (4).
- *@param count In bytes.
- *@param buffer
+ * @param target
+ * @param address
+ * @param size Bytes (1), Half words (2), Words (4).
+ * @param count In bytes.
+ * @param buffer
  *
- *@return
+ * @return
  */
 static int dsp5680xx_write(struct target *t, uint32_t a, uint32_t s, uint32_t c,
 			   const uint8_t *b)
@@ -1485,14 +1485,14 @@ static int dsp5680xx_write_buffer(struct target *t, uint32_t a, uint32_t size,
 }
 
 /**
- *This function is called by verify_image, it is used to read data from memory.
+ * This function is called by verify_image, it is used to read data from memory.
  *
- *@param target
- *@param address Word addressing.
- *@param size In bytes.
- *@param buffer
+ * @param target
+ * @param address Word addressing.
+ * @param size In bytes.
+ * @param buffer
  *
- *@return
+ * @return
  */
 static int dsp5680xx_read_buffer(struct target *t, uint32_t a, uint32_t size,
 				 uint8_t *buf)
@@ -1503,16 +1503,16 @@ static int dsp5680xx_read_buffer(struct target *t, uint32_t a, uint32_t size,
 }
 
 /**
- *This function is not implemented.
- *It returns an error in order to get OpenOCD to do read out the data
+ * This function is not implemented.
+ * It returns an error in order to get OpenOCD to do read out the data
  * and calculate the CRC, or try a binary comparison.
  *
- *@param target
- *@param address Start address of the image.
- *@param size In bytes.
- *@param checksum
+ * @param target
+ * @param address Start address of the image.
+ * @param size In bytes.
+ * @param checksum
  *
- *@return
+ * @return
  */
 static int dsp5680xx_checksum_memory(struct target *t, uint32_t a, uint32_t s,
 				     uint32_t *checksum)
@@ -1521,15 +1521,15 @@ static int dsp5680xx_checksum_memory(struct target *t, uint32_t a, uint32_t s,
 }
 
 /**
- *Calculates a signature over @word_count words in the data from @buff16.
+ * Calculates a signature over @word_count words in the data from @buff16.
  * The algorithm used is the same the FM uses, so the @return may be used to compare
  * with the one generated by the FM module, and check if flashing was successful.
- *This algorithm is based on the perl script available from the Freescale website at FAQ 25630.
+ * This algorithm is based on the perl script available from the Freescale website at FAQ 25630.
  *
- *@param buff16
- *@param word_count
+ * @param buff16
+ * @param word_count
  *
- *@return
+ * @return
  */
 static int perl_crc(uint8_t *buff8, uint32_t word_count)
 {
@@ -1558,11 +1558,11 @@ static int perl_crc(uint8_t *buff8, uint32_t word_count)
 }
 
 /**
- *Resets the SIM. (System Integration Modul).
+ * Resets the SIM. (System Integration Modul).
  *
- *@param target
+ * @param target
  *
- *@return
+ * @return
  */
 int dsp5680xx_f_SIM_reset(struct target *target)
 {
@@ -1583,11 +1583,11 @@ int dsp5680xx_f_SIM_reset(struct target *target)
 }
 
 /**
- *Halts the core and resets the SIM. (System Integration Modul).
+ * Halts the core and resets the SIM. (System Integration Modul).
  *
- *@param target
+ * @param target
  *
- *@return
+ * @return
  */
 static int dsp5680xx_soft_reset_halt(struct target *target)
 {
@@ -1620,17 +1620,17 @@ int dsp5680xx_f_protect_check(struct target *target, uint16_t *protected)
 }
 
 /**
- *Executes a command on the FM module.
- *Some commands use the parameters @address and @data, others ignore them.
+ * Executes a command on the FM module.
+ * Some commands use the parameters @address and @data, others ignore them.
  *
- *@param target
- *@param command Command to execute.
- *@param address Command parameter.
- *@param data Command parameter.
- *@param hfm_ustat FM status register.
- *@param pmem Address is P: (program) memory (@pmem == 1) or X: (dat) memory (@pmem == 0)
+ * @param target
+ * @param command Command to execute.
+ * @param address Command parameter.
+ * @param data Command parameter.
+ * @param hfm_ustat FM status register.
+ * @param pmem Address is P: (program) memory (@pmem == 1) or X: (dat) memory (@pmem == 0)
  *
- *@return
+ * @return
  */
 static int dsp5680xx_f_ex(struct target *t, uint16_t c, uint32_t a, uint32_t d,
 			  uint16_t *h, int p)
@@ -1740,11 +1740,11 @@ static int dsp5680xx_f_ex(struct target *t, uint16_t c, uint32_t a, uint32_t d,
 }
 
 /**
- *Prior to the execution of any Flash module command, the Flash module Clock Divider (CLKDIV) register must be initialized. The values of this register determine the speed of the internal Flash Clock (FCLK). FCLK must be in the range of 150kHz ≤ FCLK ≤ 200kHz for proper operation of the Flash module. (Running FCLK too slowly wears out the module, while running it too fast under programs Flash leading to bit errors.)
+ * Prior to the execution of any Flash module command, the Flash module Clock Divider (CLKDIV) register must be initialized. The values of this register determine the speed of the internal Flash Clock (FCLK). FCLK must be in the range of 150kHz ≤ FCLK ≤ 200kHz for proper operation of the Flash module. (Running FCLK too slowly wears out the module, while running it too fast under programs Flash leading to bit errors.)
  *
- *@param target
+ * @param target
  *
- *@return
+ * @return
  */
 static int set_fm_ck_div(struct target *target)
 {
@@ -1796,14 +1796,14 @@ static int set_fm_ck_div(struct target *target)
 }
 
 /**
- *Executes the FM calculate signature command. The FM will calculate over the data from @address to @address + @words -1. The result is written to a register, then read out by this function and returned in @signature. The value @signature may be compared to the the one returned by perl_crc to verify the flash was written correctly.
+ * Executes the FM calculate signature command. The FM will calculate over the data from @address to @address + @words -1. The result is written to a register, then read out by this function and returned in @signature. The value @signature may be compared to the the one returned by perl_crc to verify the flash was written correctly.
  *
- *@param target
- *@param address Start of flash array where the signature should be calculated.
- *@param words Number of words over which the signature should be calculated.
- *@param signature Value calculated by the FM.
+ * @param target
+ * @param address Start of flash array where the signature should be calculated.
+ * @param words Number of words over which the signature should be calculated.
+ * @param signature Value calculated by the FM.
  *
- *@return
+ * @return
  */
 static int dsp5680xx_f_signature(struct target *t, uint32_t a, uint32_t words,
 				 uint16_t *signature)
@@ -1818,8 +1818,8 @@ static int dsp5680xx_f_signature(struct target *t, uint32_t a, uint32_t words,
 
 	if (!dsp5680xx_context.debug_mode_enabled) {
 		retval = eonce_enter_debug_mode_without_reset(target, NULL);
-		/**
-		 *Generate error here, since it is not done in eonce_enter_debug_mode_without_reset
+		/*
+		 * Generate error here, since it is not done in eonce_enter_debug_mode_without_reset
 		 */
 		err_check(retval, DSP5680XX_ERROR_HALT,
 			  "Failed to halt target.");
@@ -1849,8 +1849,8 @@ int dsp5680xx_f_erase_check(struct target *target, uint8_t *erased,
 	}
 	retval = set_fm_ck_div(target);
 	err_check_propagate(retval);
-	/**
-	 *Check if chip is already erased.
+	/*
+	 * Check if chip is already erased.
 	 */
 	tmp = HFM_FLASH_BASE_ADDR + sector * HFM_SECTOR_SIZE / 2;
 	retval =
@@ -1862,13 +1862,13 @@ int dsp5680xx_f_erase_check(struct target *target, uint8_t *erased,
 }
 
 /**
- *Executes the FM page erase command.
+ * Executes the FM page erase command.
  *
- *@param target
- *@param sector Page to erase.
- *@param hfm_ustat FM module status register.
+ * @param target
+ * @param sector Page to erase.
+ * @param hfm_ustat FM module status register.
  *
- *@return
+ * @return
  */
 static int erase_sector(struct target *target, int sector, uint16_t *hfm_ustat)
 {
@@ -1882,12 +1882,12 @@ static int erase_sector(struct target *target, int sector, uint16_t *hfm_ustat)
 }
 
 /**
- *Executes the FM mass erase command. Erases the flash array completely.
+ * Executes the FM mass erase command. Erases the flash array completely.
  *
- *@param target
- *@param hfm_ustat FM module status register.
+ * @param target
+ * @param hfm_ustat FM module status register.
  *
- *@return
+ * @return
  */
 static int mass_erase(struct target *target, uint16_t *hfm_ustat)
 {
@@ -1905,15 +1905,15 @@ int dsp5680xx_f_erase(struct target *target, int first, int last)
 		retval = dsp5680xx_halt(target);
 		err_check_propagate(retval);
 	}
-	/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	/*
 	 * Reset SIM
-	 * -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	 *
 	 */
 	retval = dsp5680xx_f_SIM_reset(target);
 	err_check_propagate(retval);
-	/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	/*
 	 * Set hfmdiv
-	 * -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	 *
 	 */
 	retval = set_fm_ck_div(target);
 	err_check_propagate(retval);
@@ -1936,10 +1936,10 @@ int dsp5680xx_f_erase(struct target *target, int first, int last)
 	return ERROR_OK;
 }
 
-/**
- *Algorithm for programming normal p: flash
- *Follow state machine from "56F801x Peripheral Reference Manual"@163.
- *Registers to set up before calling:
+/*
+ * Algorithm for programming normal p: flash
+ * Follow state machine from "56F801x Peripheral Reference Manual"@163.
+ * Registers to set up before calling:
  * r0: TX/RX high address.
  * r2: FM module base address.
  * r3: Destination address in flash.
@@ -1960,22 +1960,22 @@ int dsp5680xx_f_erase(struct target *target, int first, int last)
  *		      brclr       #0x10, A, hfm_wait		 // access error check
  *		      bfset       #0x10, X:(R2+0x13)		// clear accerr
  *			bra	    hfm_wait			    // loop
- *0x00000000  0x8A460013807D	 brclr       #0x80, X:(R2+0x13),*+0
- *0x00000003  0xE700		 nop
- *0x00000004  0xE700		 nop
- *0x00000005  0x8A44FFFE017B	 brclr       #1, X:(R0-2),*-2
- *0x00000008  0xE700		 nop
- *0x00000009  0xF514		 move.w      X:(R0), Y0
- *0x0000000A  0x8563		 move.w      Y0, P:(R3)+
- *0x0000000B  0x864600200014	 move.w      #32, X:(R2+0x14)
- *0x0000000E  0x864600800013	 move.w      #128, X:(R2+0x13)
- *0x00000011  0xF0420013	     move.w      X:(R2+0x13), A
- *0x00000013  0x8B402004	     brclr       #0x20, A,*+6
- *0x00000015  0x824600130020	 bfset       #0x20, X:(R2+0x13)
- *0x00000018  0xA967		 bra	 *-24
- *0x00000019  0x8B401065	     brclr       #0x10, A,*-25
- *0x0000001B  0x824600130010	 bfset       #0x10, X:(R2+0x13)
- *0x0000001E  0xA961		 bra	 *-30
+ * 0x00000000  0x8A460013807D	 brclr       #0x80, X:(R2+0x13),*+0
+ * 0x00000003  0xE700		 nop
+ * 0x00000004  0xE700		 nop
+ * 0x00000005  0x8A44FFFE017B	 brclr       #1, X:(R0-2),*-2
+ * 0x00000008  0xE700		 nop
+ * 0x00000009  0xF514		 move.w      X:(R0), Y0
+ * 0x0000000A  0x8563		 move.w      Y0, P:(R3)+
+ * 0x0000000B  0x864600200014	 move.w      #32, X:(R2+0x14)
+ * 0x0000000E  0x864600800013	 move.w      #128, X:(R2+0x13)
+ * 0x00000011  0xF0420013	     move.w      X:(R2+0x13), A
+ * 0x00000013  0x8B402004	     brclr       #0x20, A,*+6
+ * 0x00000015  0x824600130020	 bfset       #0x20, X:(R2+0x13)
+ * 0x00000018  0xA967		 bra	 *-24
+ * 0x00000019  0x8B401065	     brclr       #0x10, A,*-25
+ * 0x0000001B  0x824600130010	 bfset       #0x10, X:(R2+0x13)
+ * 0x0000001E  0xA961		 bra	 *-30
  */
 
 const uint16_t pgm_write_pflash[] = { 0x8A46, 0x0013, 0x807D, 0xE700,
@@ -2005,17 +2005,17 @@ int dsp5680xx_f_wr(struct target *t, uint8_t *b, uint32_t a, uint32_t count,
 		retval = eonce_enter_debug_mode(target, NULL);
 		err_check_propagate(retval);
 	}
-	/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	/*
 	 * Download the pgm that flashes.
-	 * -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	 *
 	 */
 	const uint32_t len = pgm_write_pflash_length;
 
 	uint32_t ram_addr = 0x8700;
 
-	/**
+	/*
 	 * This seems to be a safe address.
-	 *This one is the one used by codewarrior in 56801x_flash.cfg
+	 * This one is the one used by codewarrior in 56801x_flash.cfg
 	 */
 	if (!is_flash_lock) {
 		retval =
@@ -2025,15 +2025,15 @@ int dsp5680xx_f_wr(struct target *t, uint8_t *b, uint32_t a, uint32_t count,
 		retval = dsp5680xx_execute_queue();
 		err_check_propagate(retval);
 	}
-	/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	/*
 	 * Set hfmdiv
-	 * -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	 *
 	 */
 	retval = set_fm_ck_div(target);
 	err_check_propagate(retval);
-	/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	/*
 	 * Setup registers needed by pgm_write_pflash
-	 * -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	 *
 	 */
 
 	dsp5680xx_context.flush = 0;
@@ -2044,9 +2044,9 @@ int dsp5680xx_f_wr(struct target *t, uint8_t *b, uint32_t a, uint32_t count,
 	err_check_propagate(retval);
 	retval = core_move_long_to_r2(target, HFM_BASE_ADDR); /* FM base address to r2 */
 	err_check_propagate(retval);
-	/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	/*
 	 * Run flashing program.
-	 * -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	 *
 	 */
 	/* write to HFM_CNFG (lock=0, select bank) */
 	retval = core_move_value_at_r2_disp(target, 0x00, HFM_CNFG);
@@ -2108,9 +2108,9 @@ int dsp5680xx_f_wr(struct target *t, uint8_t *b, uint32_t a, uint32_t count,
 	}
 	dsp5680xx_context.flush = 1;
 	if (!is_flash_lock) {
-		/** -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+		/*
 		 *Verify flash (skip when exec lock sequence)
-		 * -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+		 *
 		 */
 		uint16_t signature;
 
@@ -2195,9 +2195,7 @@ int dsp5680xx_f_unlock(struct target *target)
 	err_check_propagate(retval);
 
 	instr = HFM_CLK_DEFAULT;
-	retval =
-		dsp5680xx_drscan(target, (uint8_t *) &instr, (uint8_t *) &ir_out,
-				 16);
+	retval = dsp5680xx_drscan(target, (uint8_t *) &instr, (uint8_t *) &ir_out, 16);
 	err_check_propagate(retval);
 
 	jtag_add_sleep(TIME_DIV_FREESCALE * 150 * 1000);
@@ -2210,8 +2208,7 @@ int dsp5680xx_f_unlock(struct target *target)
 	jtag_add_sleep(150);
 
 	instr = 0x0606ffff;
-	retval =
-		dsp5680xx_drscan(target, (uint8_t *) &instr, (uint8_t *) &ir_out,
+	retval = dsp5680xx_drscan(target, (uint8_t *) &instr, (uint8_t *) &ir_out,
 				 32);
 	err_check_propagate(retval);
 
@@ -2222,8 +2219,7 @@ int dsp5680xx_f_unlock(struct target *target)
 				 DSP5680XX_JTAG_MASTER_TAP_IRLEN);
 	err_check_propagate(retval);
 	instr = 0x2;
-	retval =
-		dsp5680xx_drscan(target, (uint8_t *) &instr, (uint8_t *) &ir_out,
+	retval = dsp5680xx_drscan(target, (uint8_t *) &instr, (uint8_t *) &ir_out,
 				 4);
 	err_check_propagate(retval);
 
@@ -2242,9 +2238,7 @@ int dsp5680xx_f_lock(struct target *target)
 
 	struct jtag_tap *tap_cpu;
 	uint16_t lock_word[] = { HFM_LOCK_FLASH };
-	retval =
-		dsp5680xx_f_wr(target, (uint8_t *) (lock_word), HFM_LOCK_ADDR_L, 2,
-			       1);
+	retval = dsp5680xx_f_wr(target, (uint8_t *) (lock_word), HFM_LOCK_ADDR_L, 2, 1);
 	err_check_propagate(retval);
 
 	jtag_add_reset(0, 1);
