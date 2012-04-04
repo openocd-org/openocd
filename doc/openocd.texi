@@ -374,6 +374,8 @@ Stellaris eval boards, they can be used to debug other target boards.
 @* Link @url{http://www.hitex.com/index.php?id=cortino}
 @item @b{dlp-usb1232h}
 @* Link @url{http://www.dlpdesign.com/usb/usb1232h.shtml}
+@item @b{digilent-hs1}
+@* Link @url{http://www.digilentinc.com/Products/Detail.cfm?Prod=JTAG-HS1}
 @end itemize
 
 @section USB-JTAG / Altera USB-Blaster compatibles
