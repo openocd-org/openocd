@@ -409,6 +409,7 @@ static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	bytes_written = 128 * halfpages_number;
+	address += bytes_written;
 
 	retval = stm32lx_unlock_program_memory(bank);
 	if (retval != ERROR_OK)
