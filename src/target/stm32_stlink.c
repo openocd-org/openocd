@@ -363,7 +363,7 @@ static int stlink_debug_entry(struct target *target)
 		armv7m->exception_number = 0;
 	}
 
-	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", target->state: %s",
+	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%08" PRIx32 ", target->state: %s",
 		armv7m_mode_strings[armv7m->core_mode],
 		*(uint32_t *)(arm->pc->value),
 		target_state_name(target));
@@ -398,7 +398,7 @@ static int stm32_stlink_poll(struct target *target)
 			return retval;
 
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-		LOG_DEBUG("halted: PC: 0x%x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
+		LOG_DEBUG("halted: PC: 0x%08x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
 	}
 
 	return ERROR_OK;
@@ -498,7 +498,7 @@ static int stm32_stlink_resume(struct target *target, int current,
 	struct breakpoint *breakpoint = NULL;
 	struct reg *pc;
 
-	LOG_DEBUG("%s %d %x %d %d", __func__, current, address,
+	LOG_DEBUG("%s %d 0x%08x %d %d", __func__, current, address,
 			handle_breakpoints, debug_execution);
 
 	if (target->state != TARGET_HALTED) {
@@ -610,7 +610,7 @@ static int stm32_stlink_step(struct target *target, int current,
 	stlink_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_INFO("halted: PC: 0x%x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
+	LOG_INFO("halted: PC: 0x%08x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
 
 	return ERROR_OK;
 }
@@ -628,7 +628,7 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
+	LOG_DEBUG("%s 0x%08x %d %d", __func__, address, size, count);
 
 	/* prepare byte count, buffer threshold
 	 * and address increment for none 32bit access
@@ -676,7 +676,7 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	LOG_DEBUG("%s %x %d %d", __func__, address, size, count);
+	LOG_DEBUG("%s 0x%08x %d %d", __func__, address, size, count);
 
 	/* prepare byte count, buffer threshold
 	 * and address increment for none 32bit access

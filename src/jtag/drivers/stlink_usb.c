@@ -404,7 +404,7 @@ static int stlink_usb_version(void *handle)
 	else
 		h->version.jtag_api_max = STLINK_JTAG_API_V1;
 
-	LOG_DEBUG("STLINK v%d JTAG v%d API v%d SWIM v%d VID %04X PID %04X",
+	LOG_DEBUG("STLINK v%d JTAG v%d API v%d SWIM v%d VID 0x%04X PID 0x%04X",
 		h->version.stlink,
 		h->version.jtag,
 		(h->version.jtag_api_max == STLINK_JTAG_API_V1) ? 1 : 2,
@@ -552,7 +552,7 @@ static int stlink_usb_init_mode(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	LOG_DEBUG("MODE: %02X", mode);
+	LOG_DEBUG("MODE: 0x%02X", mode);
 
 	/* try to exit current mode */
 	switch (mode) {
@@ -584,7 +584,7 @@ static int stlink_usb_init_mode(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	LOG_DEBUG("MODE: %02X", mode);
+	LOG_DEBUG("MODE: 0x%02X", mode);
 
 	/* set selected mode */
 	switch (h->transport) {
@@ -617,7 +617,7 @@ static int stlink_usb_init_mode(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	LOG_DEBUG("MODE: %02X", mode);
+	LOG_DEBUG("MODE: 0x%02X", mode);
 
 	return ERROR_OK;
 }
@@ -644,7 +644,7 @@ static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 
 	*idcode = le_to_h_u32(h->databuf);
 
-	LOG_DEBUG("IDCODE: %08X", *idcode);
+	LOG_DEBUG("IDCODE: 0x%08X", *idcode);
 
 	return ERROR_OK;
 }
@@ -704,7 +704,7 @@ static int stlink_usb_reset(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	LOG_DEBUG("RESET: %08X", h->databuf[0]);
+	LOG_DEBUG("RESET: 0x%08X", h->databuf[0]);
 
 	return ERROR_OK;
 }
@@ -1016,7 +1016,7 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 	const uint16_t vids[] = { param->vid, 0 };
 	const uint16_t pids[] = { param->pid, 0 };
 
-	LOG_DEBUG("transport: %d vid: %04x pid: %04x", param->transport,
+	LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x", param->transport,
 		param->vid, param->pid);
 
 	if (jtag_libusb_open(vids, pids, &h->fd) != ERROR_OK) {
@@ -1053,7 +1053,7 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 
 	/* compare usb vid/pid */
 	if ((param->vid != h->vid) || (param->pid != h->pid))
-		LOG_INFO("vid/pid are not identical: %04X/%04X %04X/%04X",
+		LOG_INFO("vid/pid are not identical: 0x%04X/0x%04X 0x%04X/0x%04X",
 			param->vid, param->pid,
 			h->vid, h->pid);
 
