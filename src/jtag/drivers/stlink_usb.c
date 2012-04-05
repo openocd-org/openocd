@@ -706,7 +706,7 @@ static int stlink_usb_reset(void *handle)
 
 	LOG_DEBUG("RESET: 0x%08X", h->databuf[0]);
 
-	return ERROR_OK;
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
 }
 
 /** */
@@ -732,7 +732,7 @@ static int stlink_usb_run(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	return ERROR_OK;
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
 }
 
 /** */
@@ -758,7 +758,7 @@ static int stlink_usb_halt(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	return ERROR_OK;
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
 }
 
 /** */
@@ -784,7 +784,7 @@ static int stlink_usb_step(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	return ERROR_OK;
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
 }
 
 /** */
@@ -868,7 +868,7 @@ static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 	if (res != ERROR_OK)
 		return res;
 
-	return ERROR_OK;
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
 }
 
 /** */
