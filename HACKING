@@ -69,12 +69,12 @@ to instruct git locally how to send off the changes.
   -# Add a new remote to git using Gerrit username:
 @code
 git remote add review ssh://USERNAME@openocd.zylin.com:29418/openocd.git
-git config remote.review.push HEAD:refs/for/master
+git config remote.review.push HEAD:refs/publish/master
 @endcode
   Or with http only:
 @code
 git remote add review http://openocd.zylin.com/p/openocd.git
-git config remote.review.push HEAD:refs/for/master
+git config remote.review.push HEAD:refs/publish/master
 @endcode
   -# You will need to install this hook, we will look into a better solution:
 @code
