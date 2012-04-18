@@ -122,7 +122,7 @@ Signed-off-by: ...
    are on top of the latest stuff on the server and
    that there are no conflicts:
 @code
-git pull --rebase origin/master
+git pull --rebase origin master
 @endcode
 -# Send the patches to the Gerrit server for review:
 @code
