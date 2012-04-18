@@ -17,7 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/* This file supports the zy1000 debugger: http://www.zylin.com/zy1000.html
+/* This file supports the zy1000 debugger:
+ *
+ * http://www.ultsol.com/index.php/component/content/article/8/33-zylin-zy1000-jtag-probe
  *
  * The zy1000 is a standalone debugger that has a web interface and
  * requires no drivers on the developer host as all communication

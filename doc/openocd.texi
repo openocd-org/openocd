@@ -309,7 +309,7 @@ RTCK support? Also known as ``adaptive clocking''
 
 @section Stand alone Systems
 
-@b{ZY1000} See: @url{http://www.zylin.com/zy1000.html} Technically, not a
+@b{ZY1000} See: @url{http://www.ultsol.com/index.php/component/content/article/8/33-zylin-zy1000-jtag-probe} Technically, not a
 dongle, but a standalone box. The ZY1000 has the advantage that it does
 not require any drivers installed on the developer PC. It also has
 a built in web interface. It supports RTCK/RCLK or adaptive clocking
