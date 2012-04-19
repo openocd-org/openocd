@@ -1272,4 +1272,6 @@ struct stlink_layout_api_s stlink_usb_layout_api = {
 	.read_mem32 = stlink_usb_read_mem32,
 	/** */
 	.write_mem32 = stlink_usb_write_mem32,
+	/** */
+	.write_debug_reg = stlink_usb_write_debug_reg
 };

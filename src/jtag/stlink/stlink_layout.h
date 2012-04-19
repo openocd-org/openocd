@@ -63,6 +63,8 @@ struct stlink_layout_api_s {
 	int (*write_mem32) (void *handle, uint32_t addr, uint16_t len,
 			    const uint8_t *buffer);
 	/** */
+	int (*write_debug_reg) (void *handle, uint32_t addr, uint32_t val);
+	/** */
 	int (*idcode) (void *fd, uint32_t *idcode);
 	/** */
 	enum target_state (*state) (void *fd);
