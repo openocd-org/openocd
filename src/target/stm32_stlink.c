@@ -409,18 +409,35 @@ static int stm32_stlink_assert_reset(struct target *target)
 	int res;
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
+	bool use_srst_fallback = true;
 
 	LOG_DEBUG("%s", __func__);
+
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DHCSR, DBGKEY|C_DEBUGEN);
+	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, VC_CORERESET);
+
+	if (jtag_reset_config & RESET_HAS_SRST) {
+		jtag_add_reset(0, 1);
+		res = stlink_if->layout->api->assert_srst(stlink_if->fd, 0);
+		if (res == ERROR_COMMAND_NOTFOUND)
+			LOG_ERROR("Hardware srst not supported, falling back to software reset");
+		else if (res == ERROR_OK) {
+			/* hardware srst supported */
+			use_srst_fallback = false;
+		}
+	}
+
+	if (use_srst_fallback) {
+		/* stlink v1 api does support hardware srst, so we use a software reset fallback */
+		stlink_if->layout->api->write_debug_reg(stlink_if->fd, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+	}
 
 	res = stlink_if->layout->api->reset(stlink_if->fd);
 
 	if (res != ERROR_OK)
 		return res;
-
-	/* virtual assert reset, we need it for the internal
-	 * jtag state machine
-	 */
-	jtag_add_reset(1, 1);
 
 	/* registers are now invalid */
 	register_cache_invalidate(armv7m->core_cache);
@@ -438,8 +455,14 @@ static int stm32_stlink_assert_reset(struct target *target)
 static int stm32_stlink_deassert_reset(struct target *target)
 {
 	int res;
+	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	LOG_DEBUG("%s", __func__);
+
+	if (jtag_reset_config & RESET_HAS_SRST)
+		stlink_if->layout->api->assert_srst(stlink_if->fd, 1);
 
 	/* virtual deassert reset, we need it for the internal
 	 * jtag state machine
