@@ -32,6 +32,8 @@
 #include <jtag/stlink/stlink_interface.h>
 #include <target/target.h>
 
+#include <target/cortex_m.h>
+
 #include "libusb_common.h"
 
 #define ENDPOINT_IN	0x80
@@ -142,9 +144,11 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_APIV2_RESETSYS		0x32
 #define STLINK_DEBUG_APIV2_READREG		0x33
 #define STLINK_DEBUG_APIV2_WRITEREG		0x34
+#define STLINK_DEBUG_APIV2_WRITEDEBUGREG	0x35
+#define STLINK_DEBUG_APIV2_READDEBUGREG	0x36
 
 #define STLINK_DEBUG_APIV2_READALLREGS		0x3A
-
+#define STLINK_DEBUG_APIV2_GETLASTRWSTATUS	0x3B
 #define STLINK_DEBUG_APIV2_DRIVE_NRST		0x3C
 
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_LOW	0x00
@@ -649,6 +653,76 @@ static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 	return ERROR_OK;
 }
 
+static int stlink_usb_v2_read_debug_reg(void *handle, uint32_t addr, uint32_t *val)
+{
+	struct stlink_usb_handle_s *h;
+	int res;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	stlink_usb_init_buffer(handle, STLINK_RX_EP, 8);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READDEBUGREG;
+	h_u32_to_le(h->cmdbuf+h->cmdidx, addr);
+	h->cmdidx += 4;
+
+	res = stlink_usb_xfer(handle, h->databuf, 8);
+
+	if (res != ERROR_OK)
+		return res;
+
+	*val = le_to_h_u32(h->databuf + 4);
+
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+}
+
+static int stlink_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
+{
+	int res;
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_WRITEDEBUGREG;
+	else
+		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_WRITEDEBUGREG;
+	h_u32_to_le(h->cmdbuf+h->cmdidx, addr);
+	h->cmdidx += 4;
+	h_u32_to_le(h->cmdbuf+h->cmdidx, val);
+	h->cmdidx += 4;
+
+	res = stlink_usb_xfer(handle, h->databuf, 2);
+
+	if (res != ERROR_OK)
+		return res;
+
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+}
+
+static enum target_state stlink_usb_v2_get_status(void *handle)
+{
+	int result;
+	uint32_t status;
+
+	result = stlink_usb_v2_read_debug_reg(handle, DCB_DHCSR, &status);
+	if  (result != ERROR_OK)
+		return TARGET_UNKNOWN;
+
+	if (status & S_HALT)
+		return TARGET_HALTED;
+
+	return TARGET_RUNNING;
+}
+
 /** */
 static enum target_state stlink_usb_state(void *handle)
 {
@@ -660,7 +734,7 @@ static enum target_state stlink_usb_state(void *handle)
 	h = (struct stlink_usb_handle_s *)handle;
 
 	if (h->jtag_api == STLINK_JTAG_API_V2)
-		return TARGET_UNKNOWN;
+		return stlink_usb_v2_get_status(handle);
 
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
 
@@ -720,7 +794,7 @@ static int stlink_usb_run(void *handle)
 	h = (struct stlink_usb_handle_s *)handle;
 
 	if (h->jtag_api == STLINK_JTAG_API_V2)
-		return ERROR_FAIL;
+		return stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
 
@@ -746,7 +820,7 @@ static int stlink_usb_halt(void *handle)
 	h = (struct stlink_usb_handle_s *)handle;
 
 	if (h->jtag_api == STLINK_JTAG_API_V2)
-		return ERROR_FAIL;
+		return stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_DEBUGEN);
 
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
 
@@ -772,7 +846,7 @@ static int stlink_usb_step(void *handle)
 	h = (struct stlink_usb_handle_s *)handle;
 
 	if (h->jtag_api == STLINK_JTAG_API_V2)
-		return ERROR_FAIL;
+		return stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_STEP|C_DEBUGEN);
 
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
 
@@ -823,7 +897,7 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 
 	h = (struct stlink_usb_handle_s *)handle;
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 4);
+	stlink_usb_init_buffer(handle, STLINK_RX_EP, h->jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	if (h->jtag_api == STLINK_JTAG_API_V1)
@@ -832,12 +906,17 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READREG;
 	h->cmdbuf[h->cmdidx++] = num;
 
-	res = stlink_usb_xfer(handle, h->databuf, 4);
+	res = stlink_usb_xfer(handle, h->databuf, h->jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
 
 	if (res != ERROR_OK)
 		return res;
 
-	*val = le_to_h_u32(h->databuf);
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		*val = le_to_h_u32(h->databuf);
+	else {
+		*val = le_to_h_u32(h->databuf + 4);
+		return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
@@ -869,6 +948,31 @@ static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 		return res;
 
 	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+}
+
+static int stlink_usb_get_rw_status(void *handle)
+{
+	int res;
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		return ERROR_OK;
+
+	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_GETLASTRWSTATUS;
+
+	res = stlink_usb_xfer(handle, h->databuf, 2);
+
+	if (res != ERROR_OK)
+		return res;
+
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : res;
 }
 
 /** */
@@ -903,7 +1007,7 @@ static int stlink_usb_read_mem8(void *handle, uint32_t addr, uint16_t len,
 
 	memcpy(buffer, h->databuf, len);
 
-	return ERROR_OK;
+	return stlink_usb_get_rw_status(handle);
 }
 
 /** */
@@ -931,7 +1035,7 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 	if (res != ERROR_OK)
 		return res;
 
-	return ERROR_OK;
+	return stlink_usb_get_rw_status(handle);
 }
 
 /** */
@@ -963,7 +1067,7 @@ static int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 
 	memcpy(buffer, h->databuf, len);
 
-	return ERROR_OK;
+	return stlink_usb_get_rw_status(handle);
 }
 
 /** */
@@ -993,7 +1097,7 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 	if (res != ERROR_OK)
 		return res;
 
-	return ERROR_OK;
+	return stlink_usb_get_rw_status(handle);
 }
 
 /** */
