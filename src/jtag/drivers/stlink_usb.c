@@ -764,6 +764,13 @@ static int stlink_usb_reset(void *handle)
 
 	h = (struct stlink_usb_handle_s *)handle;
 
+	/* use cortex dhcsr to reset the core, this gives us the equiv
+	 * of a srst reset on the stm32 */
+
+	stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
+	stlink_usb_write_debug_reg(handle, DCB_DEMCR, VC_CORERESET);
+	stlink_usb_write_debug_reg(handle, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
