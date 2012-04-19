@@ -1176,7 +1176,11 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 		switch (device_id >> 16) {
 			case 0x1000:
-				snprintf(buf, buf_size, "A");
+				snprintf(buf, buf_size, "1.0");
+				break;
+
+			case 0x2000:
+				snprintf(buf, buf_size, "2.0");
 				break;
 
 			default:
