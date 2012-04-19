@@ -358,7 +358,7 @@ Evaluation Kits.  Like the non-detachable FT2232 support on the other
 Stellaris eval boards, they can be used to debug other target boards.
 @item @b{olimex-jtag}
 @* See: @url{http://www.olimex.com}
-@item @b{flyswatter}
+@item @b{Flyswatter/Flyswatter2}
 @* See: @url{http://www.tincantools.com}
 @item @b{turtelizer2}
 @* See:
