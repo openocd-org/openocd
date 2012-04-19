@@ -1186,8 +1186,8 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 		return err;
 	}
 
-	/* set the used jtag api */
-	h->jtag_api = STLINK_JTAG_API_V1;
+	/* set the used jtag api, this will default to the newest supported version */
+	h->jtag_api = h->version.jtag_api_max;
 
 	/* initialize the debug hardware */
 	err = stlink_usb_init_mode(h);
