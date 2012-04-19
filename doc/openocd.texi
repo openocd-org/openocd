@@ -336,7 +336,7 @@ a built-in low cost debug adapter and usb-to-serial solution.
 
 @itemize @bullet
 @item @b{usbjtag}
-@* Link @url{http://www.hs-augsburg.de/~hhoegl/proj/usbjtag/usbjtag.html}
+@* Link @url{http://elk.informatik.fh-augsburg.de/hhweb/doc/openocd/usbjtag/usbjtag.html}
 @item @b{jtagkey}
 @* See: @url{http://www.amontec.com/jtagkey.shtml}
 @item @b{jtagkey2}
@@ -369,7 +369,8 @@ Stellaris eval boards, they can be used to debug other target boards.
 @item @b{stm32stick}
 @* Link @url{http://www.hitex.com/stm32-stick}
 @item @b{axm0432_jtag}
-@* Axiom AXM-0432 Link @url{http://www.axman.com}
+@* Axiom AXM-0432 Link @url{http://www.axman.com} - NOTE:  This JTAG does not appear
+to be available anymore as of April 2012.
 @item @b{cortino}
 @* Link @url{http://www.hitex.com/index.php?id=cortino}
 @item @b{dlp-usb1232h}
