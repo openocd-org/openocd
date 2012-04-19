@@ -408,7 +408,7 @@ AT91SAM764 internally.
 @item @b{SEGGER JLINK}
 @* Link: @url{http://www.segger.com/jlink.html}
 @item @b{IAR J-Link}
-@* Link: @url{http://www.iar.com/website1/1.0.1.0/369/1/index.php}
+@* Link: @url{http://www.iar.com/en/products/hardware-debug-probes/iar-j-link/}
 @end itemize
 
 @section USB RLINK based
