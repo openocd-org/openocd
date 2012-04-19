@@ -37,6 +37,8 @@ struct stlink_layout_api_s {
 	/** */
 	int (*reset) (void *fd);
 	/** */
+	int (*assert_srst) (void *fd, int srst);
+	/** */
 	int (*run) (void *fd);
 	/** */
 	int (*halt) (void *fd);

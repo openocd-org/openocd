@@ -719,6 +719,8 @@ static enum target_state stlink_usb_v2_get_status(void *handle)
 
 	if (status & S_HALT)
 		return TARGET_HALTED;
+	else if (status & S_RESET_ST)
+		return TARGET_RESET;
 
 	return TARGET_RUNNING;
 }
@@ -779,6 +781,32 @@ static int stlink_usb_reset(void *handle)
 		return res;
 
 	LOG_DEBUG("RESET: 0x%08X", h->databuf[0]);
+
+	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+}
+
+static int stlink_usb_assert_srst(void *handle, int srst)
+{
+	int res;
+	struct stlink_usb_handle_s *h;
+
+	assert(handle != NULL);
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		return ERROR_COMMAND_NOTFOUND;
+
+	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_DRIVE_NRST;
+	h->cmdbuf[h->cmdidx++] = srst;
+
+	res = stlink_usb_xfer(handle, h->databuf, 2);
+
+	if (res != ERROR_OK)
+		return res;
 
 	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
 }
@@ -1222,6 +1250,8 @@ struct stlink_layout_api_s stlink_usb_layout_api = {
 	.state = stlink_usb_state,
 	/** */
 	.reset = stlink_usb_reset,
+	/** */
+	.assert_srst = stlink_usb_assert_srst,
 	/** */
 	.run = stlink_usb_run,
 	/** */
