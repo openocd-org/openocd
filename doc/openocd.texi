@@ -454,7 +454,7 @@ The simplest solution is to get linux to ignore the ST-LINK using one of the fol
 @* Link: @url{http://tools.asix.net/prg_presto.htm}
 
 @item @b{Versaloon-Link}
-@* Link: @url{http://www.simonqian.com/en/Versaloon}
+@* Link: @url{http://www.versaloon.com}
 
 @item @b{ARM-JTAG-EW}
 @* Link: @url{http://www.olimex.com/dev/arm-jtag-ew.html}
