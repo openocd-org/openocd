@@ -448,7 +448,7 @@ The simplest solution is to get linux to ignore the ST-LINK using one of the fol
 @section USB Other
 @itemize @bullet
 @item @b{USBprog}
-@* Link: @url{http://www.embedded-projects.net/usbprog} - which uses an Atmel MEGA32 and a UBN9604
+@* Link: @url{http://shop.embedded-projects.net/} - which uses an Atmel MEGA32 and a UBN9604
 
 @item @b{USB - Presto}
 @* Link: @url{http://tools.asix.net/prg_presto.htm}
