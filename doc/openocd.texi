@@ -513,8 +513,7 @@ Improved parallel-port wiggler-style JTAG adapter}
 
 @item @b{flashlink}
 @* From ST Microsystems;
-@uref{http://www.st.com/stonline/@/products/literature/um/7889.pdf,
-FlashLINK JTAG programing cable for PSD and uPSD}
+@* Link: @url{http://www.st.com/internet/com/TECHNICAL_RESOURCES/TECHNICAL_LITERATURE/DATA_BRIEF/DM00039500.pdf}
 
 @end itemize
 
