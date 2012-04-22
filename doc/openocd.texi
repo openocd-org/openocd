@@ -426,7 +426,7 @@ Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form o
 
 @section USB ST-LINK based
 ST Micro has an adapter called @b{ST-LINK}.
-They only works with ST Micro chips, notably STM32 and STM8.
+They only work with ST Micro chips, notably STM32 and STM8.
 
 @itemize @bullet
 @item @b{ST-LINK}
@@ -439,7 +439,7 @@ They only works with ST Micro chips, notably STM32 and STM8.
 
 For info the original ST-LINK enumerates using the mass storage usb class, however
 it's implementation is completely broken. The result is this causes issues under linux.
-The simplest solution is to get linux to ignore the ST-LINK using one of the following method's:
+The simplest solution is to get linux to ignore the ST-LINK using one of the following methods:
 @itemize @bullet
 @item modprobe -r usb-storage && modprobe usb-storage quirks=483:3744:i
 @item add "options usb-storage quirks=483:3744:i" to /etc/modprobe.conf
