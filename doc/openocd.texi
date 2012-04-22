@@ -466,7 +466,7 @@ The simplest solution is to get linux to ignore the ST-LINK using one of the fol
 @section IBM PC Parallel Printer Port Based
 
 The two well known ``JTAG Parallel Ports'' cables are the Xilnx DLC5
-and the MacGraigor Wiggler. There are many clones and variations of
+and the Macraigor Wiggler. There are many clones and variations of
 these on the market.
 
 Note that parallel ports are becoming much less common, so if you
@@ -489,8 +489,7 @@ produced, PDF schematics are easily found and it is easy to make.
 @* Link: @url{http://www.gateworks.com/products/avila_accessories/gw16042.php}
 
 @item @b{Wiggler2}
-@*@uref{http://www.ccac.rwth-aachen.de/@/~michaels/@/index.php/hardware/@/armjtag,
-Improved parallel-port wiggler-style JTAG adapter}
+@* Link: @url{http://www.ccac.rwth-aachen.de/~michaels/index.php/hardware/armjtag}
 
 @item @b{Wiggler_ntrst_inverted}
 @* Yet another variation - See the source code, src/jtag/parport.c
