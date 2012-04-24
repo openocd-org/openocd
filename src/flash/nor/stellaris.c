@@ -1039,7 +1039,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 				target_name(target), (unsigned) buffer_size);
 	};
 
-	retval = target_write_buffer(target, write_algorithm->address,
+	target_write_buffer(target, write_algorithm->address,
 			sizeof(stellaris_write_code),
 			(uint8_t *) stellaris_write_code);
 
