@@ -89,5 +89,8 @@ patches
 # Emacs temp files
 *~
 
+# Emacs TAGS file
+TAGS
+
 # CScope database files
 *cscope.out
