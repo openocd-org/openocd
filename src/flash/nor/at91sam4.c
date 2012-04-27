@@ -849,9 +849,9 @@ static int FLASHD_GetLockBits(struct sam4_bank_private *pPrivate, uint32_t *v)
 	LOG_DEBUG("Here");
 	r = EFC_PerformCommand(pPrivate, AT91C_EFC_FCMD_GLB, 0, NULL);
 	if (r == ERROR_OK)	{
-		r = EFC_GetResult(pPrivate, v);
-		r = EFC_GetResult(pPrivate, v);
-		r = EFC_GetResult(pPrivate, v);
+		EFC_GetResult(pPrivate, v);
+		EFC_GetResult(pPrivate, v);
+		EFC_GetResult(pPrivate, v);
 		r = EFC_GetResult(pPrivate, v);
 	}
 	LOG_DEBUG("End: %d", r);

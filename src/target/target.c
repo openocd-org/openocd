@@ -5058,7 +5058,6 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	struct target_list *head, *curr, *new;
 	curr = (struct target_list *) NULL;
 	head = (struct target_list *) NULL;
-	new = (struct target_list *) NULL;
 
 	retval = 0;
 	LOG_DEBUG("%d", argc);

@@ -302,7 +302,7 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 				hex_string += sprintf(hex_string, "%02x", 0);
 
 			uint32_t cpsr = 0x00000000;
-			hex_string = reg_converter(hex_string, &cpsr, 4);
+			reg_converter(hex_string, &cpsr, 4);
 		}
 	}
 	return ERROR_OK;
@@ -769,12 +769,12 @@ int linux_get_tasks(struct target *target, int context)
 	struct threads *last = NULL;
 	t->base_addr = linux_os->init_task_addr;
 	/* retrieve the thread id , currently running in the different smp core */
-	retval = get_current(target, 1);
+	get_current(target, 1);
 
 	while (((t->base_addr != linux_os->init_task_addr) &&
 		(t->base_addr != 0)) || (loop == 0)) {
 		loop++;
-		retval = fill_task(target, t);
+		fill_task(target, t);
 		retval = get_name(target, t);
 
 		if (loop > MAX_THREADS) {
@@ -1214,7 +1214,7 @@ int linux_thread_extra_info(struct target *target,
 			tmp_str_ptr +=
 				sprintf(tmp_str_ptr, "%d", (int)temp->pid);
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", " | ");
-			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", name);
+			sprintf(tmp_str_ptr, "%s", name);
 			sprintf(tmp_str_ptr, "%s", temp->name);
 			char *hex_str =
 				(char *)calloc(1, strlen(tmp_str) * 2 + 1);
