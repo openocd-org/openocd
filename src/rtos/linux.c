@@ -1215,7 +1215,7 @@ int linux_thread_extra_info(struct target *target,
 				sprintf(tmp_str_ptr, "%d", (int)temp->pid);
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", " | ");
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", name);
-			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", temp->name);
+			sprintf(tmp_str_ptr, "%s", temp->name);
 			char *hex_str =
 				(char *)calloc(1, strlen(tmp_str) * 2 + 1);
 			str_to_hex(hex_str, tmp_str);

@@ -3274,7 +3274,6 @@ static int sam3_write(struct flash_bank *bank,
 		r = sam3_page_write(pPrivate, page_cur, pagebuffer);
 		if (r != ERROR_OK)
 			goto done;
-		buffer += count;
 	}
 	LOG_DEBUG("Done!");
 	r = ERROR_OK;
