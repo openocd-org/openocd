@@ -843,16 +843,41 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	return retval;
 }
 
-static int stm32x_probe(struct flash_bank *bank)
+static int stm32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_in_kb)
 {
 	struct target *target = bank->target;
+	uint32_t cpuid, flash_size_reg;
+
+	int retval = target_read_u32(target, 0xE000ED00, &cpuid);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (((cpuid >> 4) & 0xFFF) == 0xC20) {
+		/* 0xC20 is M0 devices */
+		flash_size_reg = 0x1FFFF7CC;
+	} else if (((cpuid >> 4) & 0xFFF) == 0xC23) {
+		/* 0xC23 is M3 devices */
+		flash_size_reg = 0x1FFFF7E0;
+	} else {
+		LOG_ERROR("Cannot identify target as a stm32x");
+		return ERROR_FAIL;
+	}
+
+	retval = target_read_u16(target, flash_size_reg, flash_size_in_kb);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return retval;
+}
+
+static int stm32x_probe(struct flash_bank *bank)
+{
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	int i;
 	uint16_t flash_size_in_kb;
 	uint32_t device_id;
 	int page_size;
 	uint32_t base_address = 0x08000000;
-
 
 	stm32x_info->probed = 0;
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
@@ -865,7 +890,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
 	/* get flash size from target. */
-	retval = target_read_u16(target, 0x1FFFF7E0, &flash_size_in_kb);
+	retval = stm32x_get_flash_size(bank, &flash_size_in_kb);
 	if (retval != ERROR_OK) {
 		LOG_WARNING("failed reading flash size, default to max target family");
 		/* failed reading flash size, default to max target family */
