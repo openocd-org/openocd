@@ -26,40 +26,45 @@
 
 	.text
 	.syntax unified
-	.arch armv7-m
+	.cpu cortex-m0
 	.thumb
 	.thumb_func
-	
+
 	.align	2
 
 _start:
-main:	
+main:
 	mov		r2, r0
-	mov		r0, #0xffffffff	/* crc */
+	movs	r0, #0
+	mvns	r0, r0
+	ldr		r6, CRC32XOR
 	mov		r3, r1
-	mov		r4, #0
+	movs	r4, #0
 	b		ncomp
 nbyte:
 	ldrb	r1, [r2, r4]
-
-	ldr		r7, CRC32XOR
-	eor		r0, r0, r1, asl #24
-	mov		r5, #0
+	lsls	r1, r1, #24
+	eors	r0, r0, r1
+	movs	r5, #0
 loop:
 	cmp		r0, #0
-	mov		r6, r0, asl #1
-	add		r5, r5, #1
-	mov		r0, r6
-	it		lt
-	eorlt	r0, r6, r7
+	bge		notset
+	lsls	r0, r0, #1
+	eors	r0, r0, r6
+	b		cont
+notset:
+	lsls	r0, r0, #1
+cont:
+	adds	r5, r5, #1
 	cmp		r5, #8
 	bne		loop
-	
-	add		r4, r4, #1
+	adds	r4, r4, #1
 ncomp:
 	cmp		r4, r3
 	bne		nbyte
 	bkpt	#0
+
+	.align	2
 
 CRC32XOR:	.word	0x04c11db7
 
