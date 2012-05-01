@@ -952,6 +952,16 @@ static int cortex_m3_assert_reset(struct target *target)
 		return ERROR_OK;
 	}
 
+	/* some cores support connecting while srst is asserted
+	 * use that mode is it has been configured */
+
+	bool srst_asserted = false;
+
+	if (jtag_reset_config & RESET_SRST_NO_GATING) {
+		adapter_assert_reset();
+		srst_asserted = true;
+	}
+
 	/* Enable debug requests */
 	int retval;
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -996,7 +1006,8 @@ static int cortex_m3_assert_reset(struct target *target)
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		/* default to asserting srst */
-		adapter_assert_reset();
+		if (!srst_asserted)
+			adapter_assert_reset();
 	} else {
 		/* Use a standard Cortex-M3 software reset mechanism.
 		 * We default to using VECRESET as it is supported on all current cores.
