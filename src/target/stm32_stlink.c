@@ -406,7 +406,7 @@ static int stm32_stlink_poll(struct target *target)
 
 static int stm32_stlink_assert_reset(struct target *target)
 {
-	int res;
+	int res = ERROR_OK;
 	struct stlink_interface_s *stlink_if = target_to_stlink(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	bool use_srst_fallback = true;
@@ -415,12 +415,22 @@ static int stm32_stlink_assert_reset(struct target *target)
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
+	bool srst_asserted = false;
+
+	if (jtag_reset_config & RESET_SRST_NO_GATING) {
+		jtag_add_reset(0, 1);
+		res = stlink_if->layout->api->assert_srst(stlink_if->fd, 0);
+		srst_asserted = true;
+	}
+
 	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, VC_CORERESET);
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
-		jtag_add_reset(0, 1);
-		res = stlink_if->layout->api->assert_srst(stlink_if->fd, 0);
+		if (!srst_asserted) {
+			jtag_add_reset(0, 1);
+			res = stlink_if->layout->api->assert_srst(stlink_if->fd, 0);
+		}
 		if (res == ERROR_COMMAND_NOTFOUND)
 			LOG_ERROR("Hardware srst not supported, falling back to software reset");
 		else if (res == ERROR_OK) {
