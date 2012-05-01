@@ -222,15 +222,22 @@ static int mips_m4k_assert_reset(struct target *target)
 {
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
-	int assert_srst = 1;
 
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
-	if (!(jtag_reset_config & RESET_HAS_SRST))
-		assert_srst = 0;
+	/* some cores support connecting while srst is asserted
+	 * use that mode is it has been configured */
+
+	bool srst_asserted = false;
+
+	if (!(jtag_reset_config & RESET_SRST_PULLS_TRST) &&
+			(jtag_reset_config & RESET_SRST_NO_GATING)) {
+		jtag_add_reset(0, 1);
+		srst_asserted = true;
+	}
 
 	if (target->reset_halt) {
 		/* use hardware to catch reset */
@@ -238,11 +245,11 @@ static int mips_m4k_assert_reset(struct target *target)
 	} else
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT);
 
-	if (assert_srst) {
+	if (jtag_reset_config & RESET_HAS_SRST) {
 		/* here we should issue a srst only, but we may have to assert trst as well */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 			jtag_add_reset(1, 1);
-		else
+		else if (!srst_asserted)
 			jtag_add_reset(0, 1);
 	} else {
 		if (mips_m4k->is_pic32mx) {
