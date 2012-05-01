@@ -1307,7 +1307,7 @@ int arm_checksum_memory(struct target *target,
 	uint32_t i;
 	uint32_t exit_var = 0;
 
-	/* see contib/loaders/checksum/armv4_5_crc.s for src */
+	/* see contrib/loaders/checksum/armv4_5_crc.s for src */
 
 	static const uint32_t arm_crc_code[] = {
 		0xE1A02000,		/* mov		r2, r0 */
@@ -1407,6 +1407,8 @@ int arm_blank_check_memory(struct target *target,
 	int retval;
 	uint32_t i;
 	uint32_t exit_var = 0;
+
+	/* see contrib/loaders/erase_check/armv4_5_erase_check.s for src */
 
 	static const uint32_t check_code[] = {
 		/* loop: */
