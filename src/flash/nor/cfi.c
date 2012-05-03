@@ -1219,18 +1219,18 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t target_code_size;
 	int retval = ERROR_OK;
 
-	/*  todo:  if ( (!is_armv7m(target_to_armv7m(target)) && (!is_arm(target_to_arm(target)) )
-	 **/
-	if (strncmp(target_type_name(target), "mips_m4k", 8) == 0) {
-		LOG_ERROR("Your target has no flash block write support yet.");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	/* check we have a supported arch */
+	if (is_arm(target_to_arm(target))) {
+		/* All other ARM CPUs have 32 bit instructions */
+		arm_algo.common_magic = ARM_COMMON_MAGIC;
+		arm_algo.core_mode = ARM_MODE_SVC;
+		arm_algo.core_state = ARM_STATE_ARM;
+	} else {
+		LOG_ERROR("Unknown architecture");
+		return ERROR_FAIL;
 	}
 
 	cfi_intel_clear_status_register(bank);
-
-	arm_algo.common_magic = ARM_COMMON_MAGIC;
-	arm_algo.core_mode = ARM_MODE_SVC;
-	arm_algo.core_state = ARM_STATE_ARM;
 
 	/* If we are setting up the write_algorith, we need target_code_src
 	 * if not we only need target_code_size. */
