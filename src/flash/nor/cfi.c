@@ -1817,7 +1817,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		arm_algo.common_magic = ARMV7M_COMMON_MAGIC;
 		arm_algo.core_mode = ARMV7M_MODE_HANDLER;
 		arm_algo.core_state = ARM_STATE_ARM;
-	} else if (is_arm7_9(target_to_arm7_9(target))) {
+	} else if (is_arm(target_to_arm(target))) {
 		/* All other ARM CPUs have 32 bit instructions */
 		arm_algo.common_magic = ARM_COMMON_MAGIC;
 		arm_algo.core_mode = ARM_MODE_SVC;
