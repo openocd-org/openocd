@@ -275,8 +275,13 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 			num_pages = 0;			/* All pages unprotected */
 		else
 			num_pages = 0xffff;		/* All pages protected */
-	} else /* pgm flash */
-		num_pages = (~devcfg0 >> 12) & 0xff;
+	} else {
+		/* pgm flash */
+		if (pic32mx_info->dev_type == MX_1_2)
+			num_pages = (~devcfg0 >> 10) & 0x3f;
+		else
+			num_pages = (~devcfg0 >> 12) & 0xff;
+	}
 
 	for (s = 0; s < bank->num_sectors && s < num_pages; s++)
 		bank->sectors[s].is_protected = 1;
