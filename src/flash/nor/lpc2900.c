@@ -1163,7 +1163,7 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 
 	if (warea) {
 		struct reg_param reg_params[5];
-		struct arm_algorithm armv4_5_info;
+		struct arm_algorithm arm_algo;
 
 		/* We can use target mode. Download the algorithm. */
 		retval = target_write_buffer(target,
@@ -1270,15 +1270,15 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 			buf_set_u32(reg_params[4].value, 0, 32, FPTR_EN_T | prog_time);
 
 			/* Execute algorithm, assume breakpoint for last instruction */
-			armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-			armv4_5_info.core_mode = ARM_MODE_SVC;
-			armv4_5_info.core_state = ARM_STATE_ARM;
+			arm_algo.common_magic = ARM_COMMON_MAGIC;
+			arm_algo.core_mode = ARM_MODE_SVC;
+			arm_algo.core_state = ARM_STATE_ARM;
 
 			retval = target_run_algorithm(target, 0, NULL, 5, reg_params,
 					(warea->address) + buffer_size,
 					(warea->address) + buffer_size + target_code_size - 4,
 					10000,	/* 10s should be enough for max. 16 KiB of data */
-					&armv4_5_info);
+					&arm_algo);
 
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Execution of flash algorithm failed.");

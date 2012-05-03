@@ -163,7 +163,7 @@ static int aduc702x_write_block(struct flash_bank *bank,
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[6];
-	struct arm_algorithm armv4_5_info;
+	struct arm_algorithm arm_algo;
 	int retval = ERROR_OK;
 
 	if (((count%2) != 0) || ((offset%2) != 0)) {
@@ -234,9 +234,9 @@ static int aduc702x_write_block(struct flash_bank *bank,
 		}
 	}
 
-	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARM_MODE_SVC;
-	armv4_5_info.core_state = ARM_STATE_ARM;
+	arm_algo.common_magic = ARM_COMMON_MAGIC;
+	arm_algo.core_mode = ARM_MODE_SVC;
+	arm_algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
@@ -260,7 +260,7 @@ static int aduc702x_write_block(struct flash_bank *bank,
 				reg_params, aduc702x_info->write_algorithm->address,
 				aduc702x_info->write_algorithm->address +
 				sizeof(aduc702x_flash_write_code) - 4,
-				10000, &armv4_5_info);
+				10000, &arm_algo);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("error executing aduc702x flash write algorithm");
 			break;

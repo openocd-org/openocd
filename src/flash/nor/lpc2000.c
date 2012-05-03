@@ -272,7 +272,7 @@ static int lpc2000_iap_call(struct flash_bank *bank,
 	struct target *target = bank->target;
 	struct mem_param mem_params[2];
 	struct reg_param reg_params[5];
-	struct arm_algorithm armv4_5_info;	/* for LPC2000 */
+	struct arm_algorithm arm_algo;	/* for LPC2000 */
 	struct armv7m_algorithm armv7m_info;	/* for LPC1700 */
 	uint32_t status_code;
 	uint32_t iap_entry_point = 0;	/* to make compiler happier */
@@ -322,9 +322,9 @@ static int lpc2000_iap_call(struct flash_bank *bank,
 			break;
 		case lpc2000_v1:
 		case lpc2000_v2:
-			armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-			armv4_5_info.core_mode = ARM_MODE_SVC;
-			armv4_5_info.core_state = ARM_STATE_ARM;
+			arm_algo.common_magic = ARM_COMMON_MAGIC;
+			arm_algo.core_mode = ARM_MODE_SVC;
+			arm_algo.core_state = ARM_STATE_ARM;
 			iap_entry_point = 0x7ffffff1;
 			break;
 		default:
@@ -389,7 +389,7 @@ static int lpc2000_iap_call(struct flash_bank *bank,
 			target_run_algorithm(target, 2, mem_params, 5, reg_params,
 					lpc2000_info->iap_working_area->address,
 					lpc2000_info->iap_working_area->address + 0x4,
-					10000, &armv4_5_info);
+					10000, &arm_algo);
 			break;
 		default:
 			LOG_ERROR("BUG: unknown lpc2000->variant encountered");

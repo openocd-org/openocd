@@ -358,7 +358,7 @@ static int str9x_write_block(struct flash_bank *bank,
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[4];
-	struct arm_algorithm armv4_5_info;
+	struct arm_algorithm arm_algo;
 	int retval = ERROR_OK;
 
 	/* see contib/loaders/flash/str9x.s for src */
@@ -413,9 +413,9 @@ static int str9x_write_block(struct flash_bank *bank,
 		}
 	}
 
-	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARM_MODE_SVC;
-	armv4_5_info.core_state = ARM_STATE_ARM;
+	arm_algo.common_magic = ARM_COMMON_MAGIC;
+	arm_algo.core_mode = ARM_MODE_SVC;
+	arm_algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
@@ -433,7 +433,7 @@ static int str9x_write_block(struct flash_bank *bank,
 
 		retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
 				str9x_info->write_algorithm->address,
-				0, 10000, &armv4_5_info);
+				0, 10000, &arm_algo);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("error executing str9x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;

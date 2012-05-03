@@ -454,7 +454,7 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[6];
-	struct arm_algorithm armv4_5_info;
+	struct arm_algorithm arm_algo;
 	int retval = ERROR_OK;
 
 	/* see contib/loaders/flash/str7x.s for src */
@@ -509,9 +509,9 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		}
 	}
 
-	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARM_MODE_SVC;
-	armv4_5_info.core_state = ARM_STATE_ARM;
+	arm_algo.common_magic = ARM_COMMON_MAGIC;
+	arm_algo.core_mode = ARM_MODE_SVC;
+	arm_algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
@@ -534,7 +534,7 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		retval = target_run_algorithm(target, 0, NULL, 6, reg_params,
 				str7x_info->write_algorithm->address,
 				str7x_info->write_algorithm->address + (sizeof(str7x_flash_write_code) - 4),
-				10000, &armv4_5_info);
+				10000, &arm_algo);
 		if (retval != ERROR_OK)
 			break;
 

@@ -1300,7 +1300,7 @@ int arm_checksum_memory(struct target *target,
 	uint32_t address, uint32_t count, uint32_t *checksum)
 {
 	struct working_area *crc_algorithm;
-	struct arm_algorithm armv4_5_info;
+	struct arm_algorithm arm_algo;
 	struct arm *arm = target_to_arm(target);
 	struct reg_param reg_params[2];
 	int retval;
@@ -1352,9 +1352,9 @@ int arm_checksum_memory(struct target *target,
 			return retval;
 	}
 
-	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARM_MODE_SVC;
-	armv4_5_info.core_state = ARM_STATE_ARM;
+	arm_algo.common_magic = ARM_COMMON_MAGIC;
+	arm_algo.core_mode = ARM_MODE_SVC;
+	arm_algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
@@ -1372,7 +1372,7 @@ int arm_checksum_memory(struct target *target,
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
 			crc_algorithm->address,
 			exit_var,
-			timeout, &armv4_5_info);
+			timeout, &arm_algo);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("error executing ARM crc algorithm");
 		destroy_reg_param(&reg_params[0]);
@@ -1402,7 +1402,7 @@ int arm_blank_check_memory(struct target *target,
 {
 	struct working_area *check_algorithm;
 	struct reg_param reg_params[3];
-	struct arm_algorithm armv4_5_info;
+	struct arm_algorithm arm_algo;
 	struct arm *arm = target_to_arm(target);
 	int retval;
 	uint32_t i;
@@ -1436,9 +1436,9 @@ int arm_blank_check_memory(struct target *target,
 			return retval;
 	}
 
-	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARM_MODE_SVC;
-	armv4_5_info.core_state = ARM_STATE_ARM;
+	arm_algo.common_magic = ARM_COMMON_MAGIC;
+	arm_algo.core_mode = ARM_MODE_SVC;
+	arm_algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, address);
@@ -1456,7 +1456,7 @@ int arm_blank_check_memory(struct target *target,
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			check_algorithm->address,
 			exit_var,
-			10000, &armv4_5_info);
+			10000, &arm_algo);
 	if (retval != ERROR_OK) {
 		destroy_reg_param(&reg_params[0]);
 		destroy_reg_param(&reg_params[1]);

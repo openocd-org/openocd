@@ -2571,12 +2571,12 @@ int arm7_9_bulk_write_memory(struct target *target,
 			return retval;
 	}
 
-	struct arm_algorithm armv4_5_info;
+	struct arm_algorithm arm_algo;
 	struct reg_param reg_params[1];
 
-	armv4_5_info.common_magic = ARM_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARM_MODE_SVC;
-	armv4_5_info.core_state = ARM_STATE_ARM;
+	arm_algo.common_magic = ARM_COMMON_MAGIC;
+	arm_algo.core_mode = ARM_MODE_SVC;
+	arm_algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
 
@@ -2587,7 +2587,7 @@ int arm7_9_bulk_write_memory(struct target *target,
 	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,
 			arm7_9->dcc_working_area->address,
 			arm7_9->dcc_working_area->address + 6*4,
-			20*1000, &armv4_5_info, arm7_9_dcc_completion);
+			20*1000, &arm_algo, arm7_9_dcc_completion);
 
 	if (retval == ERROR_OK) {
 		uint32_t endaddress = buf_get_u32(reg_params[0].value, 0, 32);
