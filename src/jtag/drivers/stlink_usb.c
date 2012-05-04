@@ -400,10 +400,9 @@ static int stlink_usb_version(void *handle)
 	h->pid = buf_get_u32(h->databuf, 32, 16);
 
 	/* set the supported jtag api version
-	 * V1 doesn't support API V2 at all
-	 * V2 support API V2 since JTAG V13
+	 * API V2 is supported since JTAG V11
 	 */
-	if ((h->version.stlink == 2) && (h->version.jtag > 12))
+	if (h->version.jtag >= 11)
 		h->version.jtag_api_max = STLINK_JTAG_API_V2;
 	else
 		h->version.jtag_api_max = STLINK_JTAG_API_V1;
