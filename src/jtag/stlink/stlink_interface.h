@@ -38,6 +38,8 @@ struct stlink_interface_param_s {
 	/** */
 	uint16_t pid;
 	/** */
+	unsigned api;
+	/** */
 	enum stlink_transports transport;
 };
 

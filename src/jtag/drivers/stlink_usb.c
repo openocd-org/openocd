@@ -48,7 +48,7 @@
 #define STLINK_CMD_SIZE_V1	(10)
 
 enum stlink_jtag_api_version {
-	STLINK_JTAG_API_V1 = 0,
+	STLINK_JTAG_API_V1 = 1,
 	STLINK_JTAG_API_V2,
 };
 
@@ -1132,6 +1132,7 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 {
 	int err;
 	struct stlink_usb_handle_s *h;
+	enum stlink_jtag_api_version api;
 
 	LOG_DEBUG("stlink_usb_open");
 
@@ -1213,8 +1214,17 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 		return err;
 	}
 
+	api = h->version.jtag_api_max;
+
+	/* check that user has not requested certain api version
+	 * and if they have check it is supported */
+	if ((param->api != 0) && (param->api <= h->version.jtag_api_max)) {
+		api = param->api;
+		LOG_INFO("using stlink api v%d", api);
+	}
+
 	/* set the used jtag api, this will default to the newest supported version */
-	h->jtag_api = h->version.jtag_api_max;
+	h->jtag_api = api;
 
 	/* initialize the debug hardware */
 	err = stlink_usb_init_mode(h);

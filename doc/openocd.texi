@@ -2671,6 +2671,26 @@ which are not currently documented here.
 
 @deffn {Interface Driver} {stlink}
 ST Micro ST-LINK adapter.
+
+@deffn {Config Command} {stlink_device_desc} description
+Currently Not Supported.
+@end deffn
+
+@deffn {Config Command} {stlink_serial} serial
+Currently Not Supported.
+@end deffn
+
+@deffn {Config Command} {stlink_layout} (@option{sg}|@option{usb})
+Specifies the stlink layout to use.
+@end deffn
+
+@deffn {Config Command} {stlink_vid_pid} vid pid
+The vendor ID and product ID of the STLINK device.
+@end deffn
+
+@deffn {Config Command} {stlink_api} api_level
+Manually sets the stlink api used, valid options are 1 or 2.
+@end deffn
 @end deffn
 
 @deffn {Interface Driver} {ZY1000}

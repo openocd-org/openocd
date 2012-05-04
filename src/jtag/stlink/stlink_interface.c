@@ -34,7 +34,7 @@
 
 #include <target/target.h>
 
-static struct stlink_interface_s stlink_if = { {0, 0, 0, 0, 0}, 0, 0 };
+static struct stlink_interface_s stlink_if = { {0, 0, 0, 0, 0, 0}, 0, 0 };
 
 int stlink_interface_open(enum stlink_transports tr)
 {
@@ -200,6 +200,21 @@ COMMAND_HANDLER(stlink_interface_handle_vid_pid_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(stlink_interface_handle_api_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	unsigned new_api;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], new_api);
+	if ((new_api == 0) || (new_api > 2))
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	stlink_if.param.api = new_api;
+
+	return ERROR_OK;
+}
+
 static const struct command_registration stlink_interface_command_handlers[] = {
 	{
 	 .name = "stlink_device_desc",
@@ -228,6 +243,13 @@ static const struct command_registration stlink_interface_command_handlers[] = {
 	 .mode = COMMAND_CONFIG,
 	 .help = "the vendor and product ID of the STLINK device",
 	 .usage = "(vid pid)* ",
+	 },
+	 {
+	 .name = "stlink_api",
+	 .handler = &stlink_interface_handle_api_command,
+	 .mode = COMMAND_CONFIG,
+	 .help = "set the desired stlink api level",
+	 .usage = "api version 1 or 2",
 	 },
 	COMMAND_REGISTRATION_DONE
 };
