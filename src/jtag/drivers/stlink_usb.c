@@ -872,8 +872,13 @@ static int stlink_usb_step(void *handle)
 
 	h = (struct stlink_usb_handle_s *)handle;
 
-	if (h->jtag_api == STLINK_JTAG_API_V2)
-		return stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_STEP|C_DEBUGEN);
+	if (h->jtag_api == STLINK_JTAG_API_V2) {
+		/* TODO: this emulates the v1 api, it should really use a similar auto mask isr
+		 * that the cortex-m3 currently does. */
+		stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_MASKINTS|C_DEBUGEN);
+		stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_STEP|C_MASKINTS|C_DEBUGEN);
+		return stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_DEBUGEN);
+	}
 
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
 
