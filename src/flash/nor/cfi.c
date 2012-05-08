@@ -1634,7 +1634,9 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	struct target *target = bank->target;
 	struct reg_param reg_params[10];
-	struct arm_algorithm arm_algo;
+	struct arm_algorithm *arm_algo;
+	struct arm_algorithm armv4_5_algo;
+	struct armv7m_algorithm armv7m_algo;
 	struct working_area *source;
 	uint32_t buffer_size = 32768;
 	uint32_t status;
@@ -1814,14 +1816,15 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		return cfi_spansion_write_block_mips(bank, buffer, address, count);
 
 	if (is_armv7m(target_to_armv7m(target))) {	/* Cortex-M3 target */
-		arm_algo.common_magic = ARMV7M_COMMON_MAGIC;
-		arm_algo.core_mode = ARMV7M_MODE_HANDLER;
-		arm_algo.core_state = ARM_STATE_ARM;
+		armv7m_algo.common_magic = ARMV7M_COMMON_MAGIC;
+		armv7m_algo.core_mode = ARMV7M_MODE_HANDLER;
+		arm_algo = (struct arm_algorithm *)&armv7m_algo;
 	} else if (is_arm(target_to_arm(target))) {
 		/* All other ARM CPUs have 32 bit instructions */
-		arm_algo.common_magic = ARM_COMMON_MAGIC;
-		arm_algo.core_mode = ARM_MODE_SVC;
-		arm_algo.core_state = ARM_STATE_ARM;
+		armv4_5_algo.common_magic = ARM_COMMON_MAGIC;
+		armv4_5_algo.core_mode = ARM_MODE_SVC;
+		armv4_5_algo.core_state = ARM_STATE_ARM;
+		arm_algo = &armv4_5_algo;
 	} else {
 		LOG_ERROR("Unknown architecture");
 		return ERROR_FAIL;
@@ -1832,7 +1835,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	switch (bank->bus_width) {
 		case 1:
-			if (arm_algo.common_magic != ARM_COMMON_MAGIC) {
+			if (arm_algo->common_magic != ARM_COMMON_MAGIC) {
 				LOG_ERROR("Unknown ARM architecture");
 				return ERROR_FAIL;
 			}
@@ -1842,10 +1845,10 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		case 2:
 			/* Check for DQ5 support */
 			if (cfi_info->status_poll_mask & (1 << 5)) {
-				if (arm_algo.common_magic == ARM_COMMON_MAGIC) {/* armv4_5 target */
+				if (arm_algo->common_magic == ARM_COMMON_MAGIC) {/* armv4_5 target */
 					target_code_src = armv4_5_word_16_code;
 					target_code_size = sizeof(armv4_5_word_16_code);
-				} else if (arm_algo.common_magic == ARMV7M_COMMON_MAGIC) {	/*
+				} else if (arm_algo->common_magic == ARMV7M_COMMON_MAGIC) {	/*
 												 *cortex-m3
 												 *target
 												 **/
@@ -1854,7 +1857,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 				}
 			} else {
 				/* No DQ5 support. Use DQ7 DATA# polling only. */
-				if (arm_algo.common_magic != ARM_COMMON_MAGIC) {
+				if (arm_algo->common_magic != ARM_COMMON_MAGIC) {
 					LOG_ERROR("Unknown ARM architecture");
 					return ERROR_FAIL;
 				}
@@ -1863,7 +1866,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 			}
 			break;
 		case 4:
-			if (arm_algo.common_magic != ARM_COMMON_MAGIC) {
+			if (arm_algo->common_magic != ARM_COMMON_MAGIC) {
 				LOG_ERROR("Unknown ARM architecture");
 				return ERROR_FAIL;
 			}
@@ -1954,7 +1957,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		retval = target_run_algorithm(target, 0, NULL, 10, reg_params,
 				cfi_info->write_algorithm->address,
 				cfi_info->write_algorithm->address + ((target_code_size) - 4),
-				10000, &arm_algo);
+				10000, arm_algo);
 		if (retval != ERROR_OK)
 			break;
 
