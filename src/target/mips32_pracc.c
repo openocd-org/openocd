@@ -829,6 +829,9 @@ int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int siz
 	uint32_t conf = 0;
 	int cached = 0;
 
+	if ((KSEGX(addr) == KSEG1) || ((addr >= 0xff200000) && (addr <= 0xff3fffff)))
+		return retval; /*Nothing to do*/
+
 	mips32_cp0_read(ejtag_info, &conf, 16, 0);
 
 	switch (KSEGX(addr)) {
@@ -837,9 +840,6 @@ int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int siz
 			break;
 		case KSEG0:
 			cached = (conf & MIPS32_CONFIG0_K0_MASK) >> MIPS32_CONFIG0_K0_SHIFT;
-			break;
-		case KSEG1:
-			/* uncachable segment - nothing to do */
 			break;
 		case KSEG2:
 		case KSEG3:
