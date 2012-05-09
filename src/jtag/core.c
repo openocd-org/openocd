@@ -894,7 +894,7 @@ void jtag_sleep(uint32_t us)
 /* A reserved manufacturer ID is used in END_OF_CHAIN_FLAG, so we
  * know that no valid TAP will have it as an IDCODE value.
  */
-#define END_OF_CHAIN_FLAG       0x000000ff
+#define END_OF_CHAIN_FLAG       0xffffffff
 
 /* a larger IR length than we ever expect to autoprobe */
 #define JTAG_IRLEN_MAX          60
