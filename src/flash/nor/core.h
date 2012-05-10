@@ -152,13 +152,6 @@ int default_flash_read(struct flash_bank *bank,
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
 int default_flash_blank_check(struct flash_bank *bank);
-/**
- * Provides a default blank flash memory check.  Ensures the contents
- * of the given bank have truly been erased.
- * @param bank The flash bank.
- * @returns ERROR_OK if successful; otherwise, an error code.
- */
-int default_flash_mem_blank_check(struct flash_bank *bank);
 
 /**
  * Returns the flash bank specified by @a name, which matches the

@@ -479,7 +479,7 @@ struct flash_driver avr_flash = {
 	.read = default_flash_read,
 	.probe = avrf_probe,
 	.auto_probe = avrf_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = avrf_protect_check,
 	.info = avrf_info,
 };

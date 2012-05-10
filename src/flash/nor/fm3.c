@@ -822,6 +822,6 @@ struct flash_driver fm3_flash = {
 	.write = fm3_write_block,
 	.probe = fm3_probe,
 	.auto_probe = fm3_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
+	.erase_check = default_flash_blank_check,
 	.info = fm3_info,
 };

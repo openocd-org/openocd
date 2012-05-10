@@ -253,7 +253,7 @@ int get_flash_bank_by_addr(struct target *target,
 	return ERROR_OK;
 }
 
-int default_flash_mem_blank_check(struct flash_bank *bank)
+static int default_flash_mem_blank_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	const int buffer_size = 1024;

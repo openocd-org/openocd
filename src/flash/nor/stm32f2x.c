@@ -826,7 +826,7 @@ struct flash_driver stm32f2x_flash = {
 	.read = default_flash_read,
 	.probe = stm32x_probe,
 	.auto_probe = stm32x_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = stm32x_protect_check,
 	.info = get_stm32x_info,
 };

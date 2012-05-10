@@ -914,7 +914,7 @@ struct flash_driver em357_flash = {
 	.read = default_flash_read,
 	.probe = em357_probe,
 	.auto_probe = em357_auto_probe,
-	.erase_check = default_flash_mem_blank_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = em357_protect_check,
 	.info = get_em357_info,
 };
