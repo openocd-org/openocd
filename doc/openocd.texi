@@ -4227,12 +4227,10 @@ The following target events are defined:
 @* The target has resumed (i.e.: gdb said run)
 @item @b{early-halted}
 @* Occurs early in the halt process
-@ignore
-@item @b{examine-end}
-@* Currently not used (goal: when JTAG examine completes)
 @item @b{examine-start}
-@* Currently not used (goal: when JTAG examine starts)
-@end ignore
+@* Before target examine is called.
+@item @b{examine-end}
+@* After target examine is called with no errors.
 @item @b{gdb-attach}
 @* When GDB connects. This is before any communication with the target, so this
 can be used to set up the target so it is possible to probe flash. Probing flash
@@ -4317,7 +4315,6 @@ when reset disables PLLs needed to use a fast clock.
 @item @b{resumed}
 @* Target has resumed
 @end itemize
-
 
 @node Flash Commands
 @chapter Flash Commands

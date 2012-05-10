@@ -64,7 +64,11 @@ proc ocd_process_reset_inner { MODE } {
 	# Examine all targets on enabled taps.
 	foreach t $targets {
 		if {[jtag tapisenabled [$t cget -chain-position]]} {
-			$t arp_examine
+			$t invoke-event examine-start
+			set err [catch "$t arp_examine"]
+			if { $err == 0 } {
+				$t invoke-event examine-end
+			}
 		}
 	}
 
@@ -152,8 +156,8 @@ proc armv4_5 params {
 	arm $params
 }
 
-# Target/chain configuration scripts can either execute commands directly 
-# or define a procedure which is executed once all configuration 
+# Target/chain configuration scripts can either execute commands directly
+# or define a procedure which is executed once all configuration
 # scripts have completed.
 #
 # By default(classic) the config scripts will set up the target configuration

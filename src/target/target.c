@@ -611,9 +611,17 @@ static int jtag_enable_callback(enum jtag_event event, void *priv)
 		return ERROR_OK;
 
 	jtag_unregister_event_callback(jtag_enable_callback, target);
-	return target_examine_one(target);
-}
 
+	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
+
+	int retval = target_examine_one(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
+
+	return retval;
+}
 
 /* Targets that correctly implement init + examine, i.e.
  * no communication with target during init:
@@ -632,12 +640,18 @@ int target_examine(void)
 					target);
 			continue;
 		}
+
+		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
+
 		retval = target_examine_one(target);
 		if (retval != ERROR_OK)
 			return retval;
+
+		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 	}
 	return retval;
 }
+
 const char *target_type_name(struct target *target)
 {
 	return target->type->name;
