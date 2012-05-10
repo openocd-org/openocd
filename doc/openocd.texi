@@ -4320,8 +4320,6 @@ when reset disables PLLs needed to use a fast clock.
 @* Before any target is resumed
 @item @b{resume-end}
 @* After all targets have resumed
-@item @b{resume-ok}
-@* Success
 @item @b{resumed}
 @* Target has resumed
 @end itemize
