@@ -171,8 +171,10 @@ struct armv7m_common {
 	struct adiv5_dap dap;
 
 	int fp_feature;
-
 	uint32_t demcr;
+
+	/* stlink is a high level adapter, does not support all functions */
+	bool stlink;
 
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target *target,

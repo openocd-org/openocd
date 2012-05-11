@@ -1096,14 +1096,6 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 
 	LOG_DEBUG(" ");
 
-	/* test for initialized low level jtag hardware
-	 * this always fails for stlink hardware
-	 */
-	if (!dap->jtag_info) {
-		LOG_DEBUG("No low level jtag hardware found");
-		return ERROR_OK;
-	}
-
 	/* JTAG-DP or SWJ-DP, in JTAG mode
 	 * ... for SWD mode this is patched as part
 	 * of link switchover

@@ -278,6 +278,7 @@ static int stm32_stlink_init_arch_info(struct target *target,
 	armv7m->store_core_reg_u32 = stm32_stlink_store_core_reg_u32;
 
 	armv7m->examine_debug_reason = stm32_stlink_examine_debug_reason;
+	armv7m->stlink = true;
 
 	return ERROR_OK;
 }

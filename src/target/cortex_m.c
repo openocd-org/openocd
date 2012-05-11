@@ -1780,9 +1780,13 @@ int cortex_m3_examine(struct target *target)
 	struct adiv5_dap *swjdp = &cortex_m3->armv7m.dap;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
-	retval = ahbap_debugport_init(swjdp);
-	if (retval != ERROR_OK)
-		return retval;
+	/* stlink shares the examine handler but does not support
+	 * all its calls */
+	if (!armv7m->stlink) {
+		retval = ahbap_debugport_init(swjdp);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	if (!target_was_examined(target)) {
 		target_set_examined(target);
