@@ -72,7 +72,7 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="c141", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0640", ATTRS{idProduct}=="0028", MODE="664", GROUP="plugdev"
 
 # Debug Board for Neo1973
-ATTRS{idVendor}=="1457", ATTRS{idProduct}=="5118", MODE="644", GROUP="plugdev"
+ATTRS{idVendor}=="1457", ATTRS{idProduct}=="5118", MODE="664", GROUP="plugdev"
 
 # XDS100v2
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="a6d0", MODE="664", GROUP="plugdev"
