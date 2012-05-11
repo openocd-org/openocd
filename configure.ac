@@ -478,6 +478,10 @@ AC_ARG_ENABLE([osbdm],
   AS_HELP_STRING([--enable-osbdm], [Enable building support for the OSBDM (JTAG only) Programmer]),
   [build_osbdm=$enableval], [build_osbdm=no])
 
+AC_ARG_ENABLE([opendous],
+  AS_HELP_STRING([--enable-opendous], [Enable building support for the estick/opendous JTAG Programmer]),
+  [build_opendous=$enableval], [build_opendous=no])
+
 AC_ARG_ENABLE([minidriver_dummy],
   AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
@@ -783,6 +787,12 @@ else
   AC_DEFINE([BUILD_OSBDM], [0], [0 if you don't want the OSBDM driver.])
 fi
 
+if test $build_opendous = yes; then
+  AC_DEFINE([BUILD_OPENDOUS], [1], [1 if you want the estick/opendous JTAG driver.])
+else
+  AC_DEFINE([BUILD_OPENDOUS], [0], [0 if you don't want the estick/opendous JTAG driver.])
+fi
+
 if test "$use_internal_jimtcl" = yes; then
   if test -f "$srcdir/jimtcl/configure.ac"; then
     AX_CONFIG_SUBDIR_OPTION([jimtcl], [--disable-install-jim])
@@ -1069,7 +1079,9 @@ fi
 
 # Check for libusb1 ported drivers.
 build_usb_ng=no
-if test $build_jlink = yes -o $build_stlink = yes -o $build_osbdm = yes; then
+if test $build_jlink = yes -o $build_stlink = yes -o $build_osbdm = yes -o \
+  $build_opendous = yes
+then
   build_usb_ng=yes
 fi
 
@@ -1118,6 +1130,7 @@ AM_CONDITIONAL([REMOTE_BITBANG], [test $build_remote_bitbang = yes])
 AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
 AM_CONDITIONAL([STLINK], [test $build_stlink = yes])
 AM_CONDITIONAL([OSBDM], [test $build_osbdm = yes])
+AM_CONDITIONAL([OPENDOUS], [test $build_opendous = yes])
 AM_CONDITIONAL([USB], [test $build_usb = yes])
 AM_CONDITIONAL([USB_NG], [test $build_usb_ng = yes])
 AM_CONDITIONAL([USE_LIBUSB0], [test $use_libusb0 = yes])

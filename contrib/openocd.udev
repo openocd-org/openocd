@@ -83,4 +83,7 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3744", MODE="664", GROUP="plugdev"
 # stlink v2
 ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="664", GROUP="plugdev"
 
+# opendous and estick
+ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="204f", MODE="664", GROUP="plugdev"
+
 LABEL="openocd_rules_end"

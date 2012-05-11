@@ -461,6 +461,12 @@ The simplest solution is to get linux to ignore the ST-LINK using one of the fol
 
 @item @b{Buspirate}
 @* Link: @url{http://dangerousprototypes.com/bus-pirate-manual/}
+
+@item @b{opendous}
+@* Link: @url{http://code.google.com/p/opendous-jtag/}
+
+@item @b{estick}
+@* Link: @url{http://code.google.com/p/estick-jtag/}
 @end itemize
 
 @section IBM PC Parallel Printer Port Based
@@ -2691,6 +2697,10 @@ The vendor ID and product ID of the STLINK device.
 @deffn {Config Command} {stlink_api} api_level
 Manually sets the stlink api used, valid options are 1 or 2.
 @end deffn
+@end deffn
+
+@deffn {Interface Driver} {opendous}
+opendous-jtag is a freely programmable USB adapter.
 @end deffn
 
 @deffn {Interface Driver} {ZY1000}

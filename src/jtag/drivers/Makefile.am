@@ -101,6 +101,9 @@ endif
 if OSBDM
 DRIVERFILES += osbdm.c
 endif
+if OPENDOUS
+DRIVERFILES += opendous.c
+endif
 
 noinst_HEADERS = \
 	bitbang.h \
