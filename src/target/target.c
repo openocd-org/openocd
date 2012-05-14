@@ -518,6 +518,8 @@ int target_resume(struct target *target, int current, uint32_t address, int hand
 		return ERROR_FAIL;
 	}
 
+	target_call_event_callbacks(target, TARGET_EVENT_RESUME_START);
+
 	/* note that resume *must* be asynchronous. The CPU can halt before
 	 * we poll. The CPU can even halt at the current PC as a result of
 	 * a software breakpoint being inserted by (a bug?) the application.
@@ -525,6 +527,8 @@ int target_resume(struct target *target, int current, uint32_t address, int hand
 	retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution);
 	if (retval != ERROR_OK)
 		return retval;
+
+	target_call_event_callbacks(target, TARGET_EVENT_RESUME_END);
 
 	return retval;
 }
