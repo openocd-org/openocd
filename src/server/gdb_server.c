@@ -735,7 +735,6 @@ static int gdb_target_callback_event_handler(struct target *target,
 			target_call_event_callbacks(target, TARGET_EVENT_GDB_END);
 			break;
 		case TARGET_EVENT_GDB_FLASH_ERASE_START:
-			target_handle_event(target, TARGET_EVENT_OLD_gdb_program_config);
 			retval = jtag_execute_queue();
 			if (retval != ERROR_OK)
 				return retval;
@@ -1367,7 +1366,6 @@ static int gdb_step_continue_packet(struct connection *connection,
 
 	if (packet[0] == 'c') {
 		LOG_DEBUG("continue");
-		target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 		retval = target_resume(target, current, address, 0, 0);	/* resume at current
 									 *address, don't handle
 									 *breakpoints, not debugging

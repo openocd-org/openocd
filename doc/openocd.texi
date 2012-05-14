@@ -4255,12 +4255,6 @@ depending on whether the breakpoint is in RAM or read only memory.
 @* Before the target steps, gdb is trying to start/resume the target
 @item @b{halted}
 @* The target has halted
-@ignore
-@item @b{old-gdb_program_config}
-@* DO NOT USE THIS: Used internally
-@item @b{old-pre_resume}
-@* DO NOT USE THIS: Used internally
-@end ignore
 @item @b{reset-assert-pre}
 @* Issued as part of @command{reset} processing
 after @command{reset_init} was triggered

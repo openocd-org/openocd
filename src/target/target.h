@@ -195,12 +195,6 @@ static inline const char *target_name(struct target *target)
 const char *debug_reason_name(struct target *t);
 
 enum target_event {
-	/* LD historical names
-	 * - Prior to the great TCL change
-	 * - June/July/Aug 2008
-	 * - Duane Ellis */
-	TARGET_EVENT_OLD_gdb_program_config,
-	TARGET_EVENT_OLD_pre_resume,
 
 	/* allow GDB to do stuff before others handle the halted event,
 	 * this is in lieu of defining ordering of invocation of events,

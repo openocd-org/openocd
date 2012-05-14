@@ -156,8 +156,6 @@ static const char *target_strerror_safe(int err)
 }
 
 static const Jim_Nvp nvp_target_event[] = {
-	{ .value = TARGET_EVENT_OLD_gdb_program_config , .name = "old-gdb_program_config" },
-	{ .value = TARGET_EVENT_OLD_pre_resume         , .name = "old-pre_resume" },
 
 	{ .value = TARGET_EVENT_GDB_HALT, .name = "gdb-halt" },
 	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
@@ -168,10 +166,7 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .name = "gdb-start", .value = TARGET_EVENT_GDB_START },
 	{ .name = "gdb-end", .value = TARGET_EVENT_GDB_END },
 
-	/* historical name */
-
-	{ .value = TARGET_EVENT_RESET_START, .name = "reset-start" },
-
+	{ .value = TARGET_EVENT_RESET_START,         .name = "reset-start" },
 	{ .value = TARGET_EVENT_RESET_ASSERT_PRE,    .name = "reset-assert-pre" },
 	{ .value = TARGET_EVENT_RESET_ASSERT,        .name = "reset-assert" },
 	{ .value = TARGET_EVENT_RESET_ASSERT_POST,   .name = "reset-assert-post" },
@@ -2507,7 +2502,6 @@ COMMAND_HANDLER(handle_resume_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct target *target = get_current_target(CMD_CTX);
-	target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 
 	/* with no CMD_ARGV, resume from current pc, addr = 0,
 	 * with one arguments, addr = CMD_ARGV[0],
