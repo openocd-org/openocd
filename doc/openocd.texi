@@ -1231,17 +1231,30 @@ These are for debug adapters.
 Files that configure JTAG adapters go here.
 @example
 $ ls interface
-arm-jtag-ew.cfg          hitex_str9-comstick.cfg  oocdlink.cfg
-arm-usb-ocd.cfg          icebear.cfg              openocd-usb.cfg
-at91rm9200.cfg           jlink.cfg                parport.cfg
-axm0432.cfg              jtagkey2.cfg             parport_dlc5.cfg
-calao-usb-a9260-c01.cfg  jtagkey.cfg              rlink.cfg
-calao-usb-a9260-c02.cfg  jtagkey-tiny.cfg         sheevaplug.cfg
-calao-usb-a9260.cfg      luminary.cfg             signalyzer.cfg
-chameleon.cfg            luminary-icdi.cfg        stm32-stick.cfg
-cortino.cfg              luminary-lm3s811.cfg     turtelizer2.cfg
-dummy.cfg                olimex-arm-usb-ocd.cfg   usbprog.cfg
-flyswatter.cfg           olimex-jtag-tiny.cfg     vsllink.cfg
+altera-usb-blaster.cfg    hilscher_nxhx50_etm.cfg    openrd.cfg
+arm-jtag-ew.cfg           hilscher_nxhx50_re.cfg     osbdm.cfg
+arm-usb-ocd.cfg           hitex_str9-comstick.cfg    parport.cfg
+at91rm9200.cfg            icebear.cfg                parport_dlc5.cfg
+axm0432.cfg               jlink.cfg                  redbee-econotag.cfg
+busblaster.cfg            jtagkey2.cfg               redbee-usb.cfg
+buspirate.cfg             jtagkey2p.cfg              rlink.cfg
+calao-usb-a9260-c01.cfg   jtagkey.cfg                sheevaplug.cfg
+calao-usb-a9260-c02.cfg   jtagkey-tiny.cfg           signalyzer.cfg
+calao-usb-a9260.cfg       kt-link.cfg                signalyzer-h2.cfg
+chameleon.cfg             lisa-l.cfg                 signalyzer-h4.cfg
+cortino.cfg               luminary.cfg               signalyzer-lite.cfg
+digilent-hs1.cfg          luminary-icdi.cfg          stlink-v1.cfg
+dlp-usb1232h.cfg          luminary-lm3s811.cfg       stlink-v2.cfg
+dummy.cfg                 minimodule.cfg             stm32-stick.cfg
+estick.cfg                neodb.cfg                  turtelizer2.cfg
+flashlink.cfg             ngxtech.cfg                ulink.cfg
+flossjtag.cfg             olimex-arm-usb-ocd.cfg     usb-jtag.cfg
+flossjtag-noeeprom.cfg    olimex-arm-usb-ocd-h.cfg   usbprog.cfg
+flyswatter2.cfg           olimex-arm-usb-tiny-h.cfg  vpaclink.cfg
+flyswatter.cfg            olimex-jtag-tiny.cfg       vsllink.cfg
+hilscher_nxhx10_etm.cfg   oocdlink.cfg               xds100v2.cfg
+hilscher_nxhx500_etm.cfg  opendous.cfg
+hilscher_nxhx500_re.cfg   openocd-usb.cfg
 $
 @end example
 @item @file{board} ...
@@ -1257,32 +1270,72 @@ board file. Boards may also contain multiple targets:  two CPUs; or
 a CPU and an FPGA.
 @example
 $ ls board
-arm_evaluator7t.cfg               keil_mcb1700.cfg
-at91rm9200-dk.cfg                 keil_mcb2140.cfg
-at91sam9g20-ek.cfg                linksys_nslu2.cfg
-atmel_at91sam7s-ek.cfg            logicpd_imx27.cfg
-atmel_at91sam9260-ek.cfg          mini2440.cfg
-atmel_sam3u_ek.cfg                olimex_LPC2378STK.cfg
-crossbow_tech_imote2.cfg          olimex_lpc_h2148.cfg
-csb337.cfg                        olimex_sam7_ex256.cfg
-csb732.cfg                        olimex_sam9_l9260.cfg
-digi_connectcore_wi-9c.cfg        olimex_stm32_h103.cfg
-dm355evm.cfg                      omap2420_h4.cfg
-dm365evm.cfg                      osk5912.cfg
-dm6446evm.cfg                     pic-p32mx.cfg
-eir.cfg                           propox_mmnet1001.cfg
-ek-lm3s1968.cfg                   pxa255_sst.cfg
-ek-lm3s3748.cfg                   sheevaplug.cfg
-ek-lm3s811.cfg                    stm3210e_eval.cfg
-ek-lm3s9b9x.cfg                   stm32f10x_128k_eval.cfg
-hammer.cfg                        str910-eval.cfg
-hitex_lpc2929.cfg                 telo.cfg
-hitex_stm32-performancestick.cfg  ti_beagleboard.cfg
-hitex_str9-comstick.cfg           topas910.cfg
-iar_str912_sk.cfg                 topasa900.cfg
-imx27ads.cfg                      unknown_at91sam9260.cfg
-imx27lnst.cfg                     x300t.cfg
-imx31pdk.cfg                      zy1000.cfg
+actux3.cfg                        logicpd_imx27.cfg
+am3517evm.cfg                     lubbock.cfg
+arm_evaluator7t.cfg               mcb1700.cfg
+at91cap7a-stk-sdram.cfg           microchip_explorer16.cfg
+at91eb40a.cfg                     mini2440.cfg
+at91rm9200-dk.cfg                 mini6410.cfg
+at91rm9200-ek.cfg                 olimex_LPC2378STK.cfg
+at91sam9261-ek.cfg                olimex_lpc_h2148.cfg
+at91sam9263-ek.cfg                olimex_sam7_ex256.cfg
+at91sam9g20-ek.cfg                olimex_sam9_l9260.cfg
+atmel_at91sam7s-ek.cfg            olimex_stm32_h103.cfg
+atmel_at91sam9260-ek.cfg          olimex_stm32_h107.cfg
+atmel_at91sam9rl-ek.cfg           olimex_stm32_p107.cfg
+atmel_sam3n_ek.cfg                omap2420_h4.cfg
+atmel_sam3s_ek.cfg                open-bldc.cfg
+atmel_sam3u_ek.cfg                openrd.cfg
+atmel_sam3x_ek.cfg                osk5912.cfg
+atmel_sam4s_ek.cfg                phytec_lpc3250.cfg
+balloon3-cpu.cfg                  pic-p32mx.cfg
+colibri.cfg                       propox_mmnet1001.cfg
+crossbow_tech_imote2.cfg          pxa255_sst.cfg
+csb337.cfg                        redbee.cfg
+csb732.cfg                        rsc-w910.cfg
+da850evm.cfg                      sheevaplug.cfg
+digi_connectcore_wi-9c.cfg        smdk6410.cfg
+diolan_lpc4350-db1.cfg            spear300evb.cfg
+dm355evm.cfg                      spear300evb_mod.cfg
+dm365evm.cfg                      spear310evb20.cfg
+dm6446evm.cfg                     spear310evb20_mod.cfg
+efikamx.cfg                       spear320cpu.cfg
+eir.cfg                           spear320cpu_mod.cfg
+ek-lm3s1968.cfg                   steval_pcc010.cfg
+ek-lm3s3748.cfg                   stm320518_eval_stlink.cfg
+ek-lm3s6965.cfg                   stm32100b_eval.cfg
+ek-lm3s811.cfg                    stm3210b_eval.cfg
+ek-lm3s811-revb.cfg               stm3210c_eval.cfg
+ek-lm3s9b9x.cfg                   stm3210e_eval.cfg
+ek-lm4f232.cfg                    stm3220g_eval.cfg
+embedded-artists_lpc2478-32.cfg   stm3220g_eval_stlink.cfg
+ethernut3.cfg                     stm3241g_eval.cfg
+glyn_tonga2.cfg                   stm3241g_eval_stlink.cfg
+hammer.cfg                        stm32f0discovery.cfg
+hilscher_nxdb500sys.cfg           stm32f4discovery.cfg
+hilscher_nxeb500hmi.cfg           stm32ldiscovery.cfg
+hilscher_nxhx10.cfg               stm32vldiscovery.cfg
+hilscher_nxhx500.cfg              str910-eval.cfg
+hilscher_nxhx50.cfg               telo.cfg
+hilscher_nxsb100.cfg              ti_beagleboard.cfg
+hitex_lpc2929.cfg                 ti_beagleboard_xm.cfg
+hitex_stm32-performancestick.cfg  ti_beaglebone.cfg
+hitex_str9-comstick.cfg           ti_blaze.cfg
+iar_lpc1768.cfg                   ti_pandaboard.cfg
+iar_str912_sk.cfg                 ti_pandaboard_es.cfg
+icnova_imx53_sodimm.cfg           topas910.cfg
+icnova_sam9g45_sodimm.cfg         topasa900.cfg
+imx27ads.cfg                      twr-k60n512.cfg
+imx27lnst.cfg                     tx25_stk5.cfg
+imx28evk.cfg                      tx27_stk5.cfg
+imx31pdk.cfg                      unknown_at91sam9260.cfg
+imx35pdk.cfg                      uptech_2410.cfg
+imx53loco.cfg                     verdex.cfg
+keil_mcb1700.cfg                  voipac.cfg
+keil_mcb2140.cfg                  voltcraft_dso-3062c.cfg
+kwikstik.cfg                      x300t.cfg
+linksys_nslu2.cfg                 zy1000.cfg
+lisa-l.cfg
 $
 @end example
 @item @file{target} ...
@@ -1294,32 +1347,71 @@ When a chip has multiple TAPs (maybe it has both ARM and DSP cores),
 the target config file defines all of them.
 @example
 $ ls target
-aduc702x.cfg     imx27.cfg     pxa255.cfg
-ar71xx.cfg       imx31.cfg     pxa270.cfg
-at91eb40a.cfg    imx35.cfg     readme.txt
-at91r40008.cfg   is5114.cfg    sam7se512.cfg
-at91rm9200.cfg   ixp42x.cfg    sam7x256.cfg
-at91sam3u1c.cfg  lm3s1968.cfg  samsung_s3c2410.cfg
-at91sam3u1e.cfg  lm3s3748.cfg  samsung_s3c2440.cfg
-at91sam3u2c.cfg  lm3s6965.cfg  samsung_s3c2450.cfg
-at91sam3u2e.cfg  lm3s811.cfg   samsung_s3c4510.cfg
-at91sam3u4c.cfg  lm3s9b9x.cfg  samsung_s3c6410.cfg
-at91sam3u4e.cfg  lpc1768.cfg   sharp_lh79532.cfg
-at91sam3uXX.cfg  lpc2103.cfg   smdk6410.cfg
-at91sam7sx.cfg   lpc2124.cfg   smp8634.cfg
-at91sam9260.cfg  lpc2129.cfg   stm32f1x.cfg
-c100.cfg         lpc2148.cfg   str710.cfg
-c100config.tcl   lpc2294.cfg   str730.cfg
-c100helper.tcl   lpc2378.cfg   str750.cfg
-c100regs.tcl     lpc2478.cfg   str912.cfg
-cs351x.cfg       lpc2900.cfg   telo.cfg
-davinci.cfg      mega128.cfg   ti_dm355.cfg
-dragonite.cfg    netx500.cfg   ti_dm365.cfg
-epc9301.cfg      omap2420.cfg  ti_dm6446.cfg
-feroceon.cfg     omap3530.cfg  tmpa900.cfg
-icepick.cfg      omap5912.cfg  tmpa910.cfg
-imx21.cfg        pic32mx.cfg   xba_revA3.cfg
-$
+$duc702x.cfg                       ixp42x.cfg
+am335x.cfg                         k40.cfg
+amdm37x.cfg                        k60.cfg
+ar71xx.cfg                         lpc1768.cfg
+at32ap7000.cfg                     lpc2103.cfg
+at91r40008.cfg                     lpc2124.cfg
+at91rm9200.cfg                     lpc2129.cfg
+at91sam3ax_4x.cfg                  lpc2148.cfg
+at91sam3ax_8x.cfg                  lpc2294.cfg
+at91sam3ax_xx.cfg                  lpc2378.cfg
+at91sam3nXX.cfg                    lpc2460.cfg
+at91sam3sXX.cfg                    lpc2478.cfg
+at91sam3u1c.cfg                    lpc2900.cfg
+at91sam3u1e.cfg                    lpc2xxx.cfg
+at91sam3u2c.cfg                    lpc3131.cfg
+at91sam3u2e.cfg                    lpc3250.cfg
+at91sam3u4c.cfg                    lpc4350.cfg
+at91sam3u4e.cfg                    mc13224v.cfg
+at91sam3uxx.cfg                    nuc910.cfg
+at91sam3XXX.cfg                    omap2420.cfg
+at91sam4sXX.cfg                    omap3530.cfg
+at91sam4XXX.cfg                    omap4430.cfg
+at91sam7se512.cfg                  omap4460.cfg
+at91sam7sx.cfg                     omap5912.cfg
+at91sam7x256.cfg                   omapl138.cfg
+at91sam7x512.cfg                   pic32mx.cfg
+at91sam9260.cfg                    pxa255.cfg
+at91sam9260_ext_RAM_ext_flash.cfg  pxa270.cfg
+at91sam9261.cfg                    pxa3xx.cfg
+at91sam9263.cfg                    readme.txt
+at91sam9.cfg                       samsung_s3c2410.cfg
+at91sam9g10.cfg                    samsung_s3c2440.cfg
+at91sam9g20.cfg                    samsung_s3c2450.cfg
+at91sam9g45.cfg                    samsung_s3c4510.cfg
+at91sam9rl.cfg                     samsung_s3c6410.cfg
+atmega128.cfg                      sharp_lh79532.cfg
+avr32.cfg                          smp8634.cfg
+c100.cfg                           spear3xx.cfg
+c100config.tcl                     stellaris.cfg
+c100helper.tcl                     stm32.cfg
+c100regs.tcl                       stm32f0x_stlink.cfg
+cs351x.cfg                         stm32f1x.cfg
+davinci.cfg                        stm32f1x_stlink.cfg
+dragonite.cfg                      stm32f2x.cfg
+dsp56321.cfg                       stm32f2x_stlink.cfg
+dsp568013.cfg                      stm32f2xxx.cfg
+dsp568037.cfg                      stm32f4x.cfg
+epc9301.cfg                        stm32f4x_stlink.cfg
+faux.cfg                           stm32l.cfg
+feroceon.cfg                       stm32lx_stlink.cfg
+fm3.cfg                            stm32_stlink.cfg
+hilscher_netx10.cfg                stm32xl.cfg
+hilscher_netx500.cfg               str710.cfg
+hilscher_netx50.cfg                str730.cfg
+icepick.cfg                        str750.cfg
+imx21.cfg                          str912.cfg
+imx25.cfg                          swj-dp.tcl
+imx27.cfg                          test_reset_syntax_error.cfg
+imx28.cfg                          test_syntax_error.cfg
+imx31.cfg                          ti_dm355.cfg
+imx35.cfg                          ti_dm365.cfg
+imx51.cfg                          ti_dm6446.cfg
+imx53.cfg                          tmpa900.cfg
+imx.cfg                            tmpa910.cfg
+is5114.cfg                         u8500.cfg
 @end example
 @item @emph{more} ... browse for other library files which may be useful.
 For example, there are various generic and CPU-specific utilities.
