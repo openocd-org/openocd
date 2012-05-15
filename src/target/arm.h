@@ -125,6 +125,9 @@ struct arm {
 	/** Flag reporting unavailability of the BKPT instruction. */
 	bool is_armv4;
 
+	/** Flag reporting armv6m based core. */
+	bool is_armv6m;
+
 	/** Flag reporting whether semihosting is active. */
 	bool is_semihosting;
 

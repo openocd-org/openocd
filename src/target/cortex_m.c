@@ -1570,6 +1570,12 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 	struct adiv5_dap *swjdp = &armv7m->dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
+	if (armv7m->arm.is_armv6m) {
+		/* armv6m does not handle unaligned memory access */
+		if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
+			return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
+
 	/* cortex_m3 handles unaligned memory access */
 	if (count && buffer) {
 		switch (size) {
@@ -1594,6 +1600,12 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = &armv7m->dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (armv7m->arm.is_armv6m) {
+		/* armv6m does not handle unaligned memory access */
+		if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
+			return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
 
 	if (count && buffer) {
 		switch (size) {
@@ -1812,6 +1824,9 @@ int cortex_m3_examine(struct target *target)
 				LOG_DEBUG("Cortex-M%d floating point feature FPv4_SP found", i);
 				armv7m->fp_feature = FPv4_SP;
 			}
+		} else if (i == 0) {
+			/* Cortex-M0 does not support unaligned memory access */
+			armv7m->arm.is_armv6m = true;
 		}
 
 		/* NOTE: FPB and DWT are both optional. */
