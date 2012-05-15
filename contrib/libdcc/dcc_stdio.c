@@ -29,9 +29,9 @@
 #define TARGET_REQ_DEBUGMSG_HEXMSG(size)	(0x01 | ((size & 0xff) << 8))
 #define TARGET_REQ_DEBUGCHAR				0x02
 
-#if defined(__ARM_ARCH_7M__)
+#if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_6SM__)
 
-/* we use the cortex_m3 DCRDR reg to simulate a arm7_9 dcc channel
+/* we use the System Control Block DCRDR reg to simulate a arm7_9 dcc channel
  * DCRDR[7:0] is used by target for status
  * DCRDR[15:8] is used by target for write buffer
  * DCRDR[23:16] is used for by host for status
