@@ -2,6 +2,9 @@
  *   Copyright (C) 2011-2012 by Mathias Kuester                            *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
+ *   Copyright (C) 2012 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This code is based on https://github.com/texane/stlink                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
