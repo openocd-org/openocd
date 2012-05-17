@@ -33,8 +33,6 @@
 #ifndef TARGET_H
 #define TARGET_H
 
-#include <helper/types.h>
-
 struct reg;
 struct trace;
 struct command_context;

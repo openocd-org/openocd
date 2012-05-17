@@ -21,8 +21,6 @@
 #ifndef ARM_SIMULATOR_H
 #define ARM_SIMULATOR_H
 
-#include <helper/types.h>
-
 struct target;
 
 struct arm_sim_interface {

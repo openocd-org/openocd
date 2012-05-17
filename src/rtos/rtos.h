@@ -22,7 +22,6 @@
 #define RTOS_H
 
 #include "server/server.h"
-#include <helper/types.h>
 #include <jim-nvp.h>
 
 typedef int64_t threadid_t;

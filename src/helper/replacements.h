@@ -139,8 +139,6 @@ static inline unsigned usleep(unsigned int usecs)
 #include <windows.h>
 #include <time.h>
 
-#include <helper/types.h>
-
 /* Windows does not declare sockaddr_un */
 #define UNIX_PATH_LEN 108
 struct sockaddr_un {
@@ -229,8 +227,6 @@ static inline int socket_select(int max_fd,
 }
 
 #ifndef HAVE_ELF_H
-
-#include <helper/types.h>
 
 typedef uint32_t Elf32_Addr;
 typedef uint16_t Elf32_Half;

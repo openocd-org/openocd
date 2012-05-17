@@ -21,8 +21,6 @@
 #ifndef ARMV4_5_CACHE_H
 #define ARMV4_5_CACHE_H
 
-#include <helper/types.h>
-
 struct command_context;
 
 struct armv4_5_cachesize {

@@ -27,8 +27,6 @@
 #ifndef FILEIO_H
 #define FILEIO_H
 
-#include <helper/types.h>
-
 #define FILEIO_MAX_ERROR_STRING		(128)
 
 enum fileio_type {

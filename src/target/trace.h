@@ -21,8 +21,6 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-#include <helper/types.h>
-
 struct target;
 struct command_context;
 

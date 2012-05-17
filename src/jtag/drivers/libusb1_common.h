@@ -22,7 +22,6 @@
 #ifndef JTAG_LIBUSB_COMMON_H
 #define JTAG_LIBUSB_COMMON_H
 
-#include <helper/types.h>
 #include <libusb-1.0/libusb.h>
 
 #define jtag_libusb_device			libusb_device

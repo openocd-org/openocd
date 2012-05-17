@@ -22,7 +22,6 @@
 #endif
 
 #include "target.h"
-#include "helper/types.h"
 #include "jtag/jtag.h"
 #include "avr32_jtag.h"
 

@@ -26,8 +26,6 @@
 #ifndef MIPS_M4K_H
 #define MIPS_M4K_H
 
-#include <helper/types.h>
-
 struct target;
 
 #define MIPSM4K_COMMON_MAGIC	0xB321B321

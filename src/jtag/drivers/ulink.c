@@ -26,7 +26,6 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <target/image.h>
-#include <helper/types.h>
 #include "usb_common.h"
 #include "OpenULINK/include/msgtypes.h"
 

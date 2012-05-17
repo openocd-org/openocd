@@ -21,8 +21,6 @@
 #ifndef BREAKPOINTS_H
 #define BREAKPOINTS_H
 
-#include <helper/types.h>
-
 struct target;
 
 enum breakpoint_type {

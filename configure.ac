@@ -11,6 +11,7 @@ AM_MAINTAINER_MODE
 AM_CONFIG_HEADER([config.h])
 AH_BOTTOM([
 #include <helper/system.h>
+#include <helper/types.h>
 #include <helper/replacements.h>
 ])
 

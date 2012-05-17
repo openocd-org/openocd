@@ -24,8 +24,6 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include <helper/types.h>
-
 #include <jim.h>
 #include <jim-nvp.h>
 

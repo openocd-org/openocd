@@ -20,8 +20,6 @@
 #ifndef AVR32_AP7K
 #define AVR32_AP7K
 
-#include <helper/types.h>
-
 struct target;
 
 #define AP7k_COMMON_MAGIC	0x4150374b

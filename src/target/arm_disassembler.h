@@ -21,8 +21,6 @@
 #ifndef ARM_DISASSEMBLER_H
 #define ARM_DISASSEMBLER_H
 
-#include <helper/types.h>
-
 enum arm_instruction_type {
 	ARM_UNKNOWN_INSTUCTION,
 

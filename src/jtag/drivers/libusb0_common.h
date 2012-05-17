@@ -22,7 +22,6 @@
 #ifndef JTAG_LIBUSB_COMMON_H
 #define JTAG_LIBUSB_COMMON_H
 
-#include <helper/types.h>
 #include <usb.h>
 
 #define jtag_libusb_device			usb_device
