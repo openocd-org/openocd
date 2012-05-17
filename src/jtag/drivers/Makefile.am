@@ -113,7 +113,6 @@ noinst_HEADERS = \
 	rlink_dtc_cmd.h \
 	rlink_ep1_cmd.h \
 	rlink_st7.h \
-	usb_common.h \
-	stlink_usb.h
+	usb_common.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
