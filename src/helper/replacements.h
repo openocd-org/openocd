@@ -139,6 +139,15 @@ static inline unsigned usleep(unsigned int usecs)
 #include <windows.h>
 #include <time.h>
 
+#include <helper/types.h>
+
+/* Windows does not declare sockaddr_un */
+#define UNIX_PATH_LEN 108
+struct sockaddr_un {
+	uint16_t sun_family;
+	char sun_path[UNIX_PATH_LEN];
+};
+
 /* win32 systems do not support ETIMEDOUT */
 
 #ifndef ETIMEDOUT
