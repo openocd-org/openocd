@@ -39,7 +39,7 @@
 		LOG_ERROR(expr); \
 		LOG_ERROR("Terminating openocd."); \
 		exit(-1); \
-	while (0)
+	} while (0)
 
 static char remote_bitbang_host[REMOTE_BITBANG_HOST_MAX] = "openocd";
 static uint16_t remote_bitbang_port;
@@ -246,7 +246,6 @@ static int remote_bitbang_speed_div(int speed, int *khz)
 	return ERROR_OK;
 }
 
-
 COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_port_command)
 {
 	if (CMD_ARGC == 1) {
@@ -265,7 +264,6 @@ COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_host_command)
 	}
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
-
 
 static const struct command_registration remote_bitbang_command_handlers[] = {
 	{
