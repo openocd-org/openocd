@@ -200,7 +200,7 @@ struct flash_driver {
 	/**
 	 * A more gentle flavor of filash_driver_s::probe, performing
 	 * setup with less noise.  Generally, driver routines should test
-	 * to seee if the bank has already been probed; if it has, the
+	 * to see if the bank has already been probed; if it has, the
 	 * driver probably should not perform its probe a second time.
 	 *
 	 * This callback is often called from the inside of other
