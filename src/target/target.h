@@ -55,7 +55,6 @@ struct target_list;
  * also see: target_state_name();
  */
 
-
 enum target_state {
 	TARGET_UNKNOWN = 0,
 	TARGET_RUNNING = 1,
@@ -109,7 +108,7 @@ struct gdb_service {
 	int32_t core[2];
 };
 
-/* target_type.h contains the full definitionof struct targe_type */
+/* target_type.h contains the full definition of struct target_type */
 struct target {
 	struct target_type *type;			/* target type definition (name, access functions) */
 	const char *cmd_name;				/* tcl Name of target */
@@ -126,18 +125,19 @@ struct target {
 	 */
 	bool examined;
 
-	/** true iff the  target is currently running a downloaded
-	 *  "algorithm" instetad of arbitrary user code.  OpenOCD code
-	 *  invoking algorithms is trusted to maintain correctness of
-	 *  any cached state (e.g. for flash status), which arbitrary
-	 *  code will have no reason to know about.
+	/**
+	 * true if the  target is currently running a downloaded
+	 * "algorithm" instead of arbitrary user code. OpenOCD code
+	 * invoking algorithms is trusted to maintain correctness of
+	 * any cached state (e.g. for flash status), which arbitrary
+	 * code will have no reason to know about.
 	 */
 	bool running_alg;
 
 	struct target_event_action *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
-	uint32_t working_area;				/* working area (initialized RAM). Evaluated
+	uint32_t working_area;				/* working area (initialised RAM). Evaluated
 										 * upon first allocation from virtual/physical address. */
 	bool working_area_virt_spec;		/* virtual address specified? */
 	uint32_t working_area_virt;			/* virtual address */
@@ -166,18 +166,18 @@ struct target {
 
 	bool dbgbase_set;					/* By default the debug base is not set */
 	uint32_t dbgbase;					/* Really a Cortex-A specific option, but there is no
-											system in place to support target specific options
-											currently. */
+										 * system in place to support target specific options
+										 * currently. */
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
 										 * and must be detected when symbols are offered */
 
-	int smp;							/*  add some target attributes for smp support */
+	int smp;							/* add some target attributes for smp support */
 	struct target_list *head;
-	/*  the gdb service is there in case of smp , we have only one gdb server
-	 *  for all smp target
-	 *  the target attached to the gdb is changing dynamically by changing
-	 *  gdb_service->target pointer */
+	/* the gdb service is there in case of smp, we have only one gdb server
+	 * for all smp target
+	 * the target attached to the gdb is changing dynamically by changing
+	 * gdb_service->target pointer */
 	struct gdb_service *gdb_service;
 };
 
@@ -278,6 +278,7 @@ int target_unregister_event_callback(
 		int (*callback)(struct target *target,
 		enum target_event event, void *priv),
 		void *priv);
+
 /* Poll the status of the target, detect any error conditions and report them.
  *
  * Also note that this fn will clear such error conditions, so a subsequent
@@ -288,7 +289,7 @@ int target_unregister_event_callback(
  * fails, then a note is made of it, the error is sticky, but the memory
  * write loop still runs to completion. This improves performance in the
  * normal case as there is no need to verify that every single write succeed,
- * yet it is possible to detect error condtions.
+ * yet it is possible to detect error conditions.
  */
 int target_poll(struct target *target);
 int target_resume(struct target *target, int current, uint32_t address,
@@ -306,7 +307,7 @@ int target_register_timer_callback(int (*callback)(void *priv),
 int target_call_timer_callbacks(void);
 /**
  * Invoke this to ensure that e.g. polling timer callbacks happen before
- * a syncrhonous command completes.
+ * a synchronous command completes.
  */
 int target_call_timer_callbacks_now(void);
 
@@ -323,7 +324,7 @@ const char *target_type_name(struct target *target);
 
 /**
  * Examine the specified @a target, letting it perform any
- * initialization that requires JTAG access.
+ * Initialisation that requires JTAG access.
  *
  * This routine is a wrapper for target->type->examine.
  */
@@ -538,7 +539,7 @@ int target_alloc_working_area(struct target *target,
  * when ERROR_TARGET_RESOURCE_NOT_AVAILABLE is returned.
  *
  * This allows the calling code to *try* to allocate target memory
- * and have a fallback to another behavior(slower?).
+ * and have a fallback to another behaviour(slower?).
  */
 int target_alloc_working_area_try(struct target *target,
 		uint32_t size, struct working_area **area);
