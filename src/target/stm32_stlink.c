@@ -111,6 +111,8 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 		 * it was removed from r1 docs, but still works.
 		 */
 		retval = stlink_if->layout->api->read_reg(stlink_if->fd, 20, value);
+		if (retval != ERROR_OK)
+			return retval;
 
 		switch (num) {
 		case ARMV7M_PRIMASK:
