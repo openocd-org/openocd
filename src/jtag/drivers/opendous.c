@@ -578,28 +578,28 @@ int opendous_tap_execute(void)
 
 		for (j = 0, i = 0; j <  byte_length;) {
 
-			int recieve;
+			int receive;
 			int transmit = byte_length - j;
 			if (transmit > OPENDOUS_MAX_TAP_TRANSMIT) {
 				transmit = OPENDOUS_MAX_TAP_TRANSMIT;
-				recieve = (OPENDOUS_MAX_TAP_TRANSMIT) / 2;
+				receive = (OPENDOUS_MAX_TAP_TRANSMIT) / 2;
 				usb_out_buffer[2] = JTAG_CMD_TAP_OUTPUT;
 			} else {
 				usb_out_buffer[2] = JTAG_CMD_TAP_OUTPUT | ((tap_length % 4) << 4);
-				recieve = (transmit + 1) / 2;
+				receive = (transmit + 1) / 2;
 			}
 			usb_out_buffer[0] = (transmit + 1) & 0xff;
 			usb_out_buffer[1] = ((transmit + 1) >> 8) & 0xff;
 
 			memmove(usb_out_buffer + 3, tms_buffer + j, transmit);
-			result = opendous_usb_message(opendous_jtag_handle, 3 + transmit, recieve);
-			if (result != recieve) {
-				LOG_ERROR("opendous_tap_execute, wrong result %d, expected %d", result, recieve);
+			result = opendous_usb_message(opendous_jtag_handle, 3 + transmit, receive);
+			if (result != receive) {
+				LOG_ERROR("opendous_tap_execute, wrong result %d, expected %d", result, receive);
 				return ERROR_JTAG_QUEUE_FAILED;
 			}
 
-			memmove(tdo_buffer + i, usb_in_buffer, recieve);
-			i += recieve;
+			memmove(tdo_buffer + i, usb_in_buffer, receive);
+			i += receive;
 			j += transmit;
 		}
 
