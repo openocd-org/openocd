@@ -557,23 +557,25 @@ void opendous_tap_append_scan(int length, uint8_t *buffer, struct scan_command *
  * For the purpose of padding we assume that we are in idle or pause state. */
 int opendous_tap_execute(void)
 {
-	int byte_length, byte_length_out;
+	int byte_length;
 	int i, j;
 	int result;
-	int output_counter;
+
+#ifdef _DEBUG_USB_COMMS_
+	int byte_length_out;
+#endif
 
 	if (tap_length > 0) {
 
 		/* memset(tdo_buffer,0,OPENDOUS_TAP_BUFFER_SIZE); */
 		/* LOG_INFO("OPENDOUS tap execute %d",tap_length); */
 		byte_length = (tap_length + 3) / 4;
-		byte_length_out = (tap_length + 7) / 8;
 
 #ifdef _DEBUG_USB_COMMS_
+		byte_length_out = (tap_length + 7) / 8;
 		LOG_DEBUG("opendous is sending %d bytes", byte_length);
 #endif
 
-		output_counter = 0;
 		for (j = 0, i = 0; j <  byte_length;) {
 
 			int recieve;
@@ -601,10 +603,9 @@ int opendous_tap_execute(void)
 			j += transmit;
 		}
 
-		result = byte_length_out;
 #ifdef _DEBUG_USB_COMMS_
-		LOG_DEBUG("opendous tap result %d", result);
-		opendous_debug_buffer(tdo_buffer, result);
+		LOG_DEBUG("opendous tap result %d", byte_length_out);
+		opendous_debug_buffer(tdo_buffer, byte_length_out);
 #endif
 
 		/* LOG_INFO("eStick tap execute %d",tap_length); */
