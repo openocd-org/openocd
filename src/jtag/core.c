@@ -1314,13 +1314,13 @@ void jtag_tap_init(struct jtag_tap *tap)
 
 	/* register the reset callback for the TAP */
 	jtag_register_event_callback(&jtag_reset_callback, tap);
+	jtag_tap_add(tap);
 
 	LOG_DEBUG("Created Tap: %s @ abs position %d, "
-		"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
-		tap->abs_chain_position, tap->ir_length,
-		(unsigned) tap->ir_capture_value,
-		(unsigned) tap->ir_capture_mask);
-	jtag_tap_add(tap);
+			"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
+			tap->abs_chain_position, tap->ir_length,
+			(unsigned) tap->ir_capture_value,
+			(unsigned) tap->ir_capture_mask);
 }
 
 void jtag_tap_free(struct jtag_tap *tap)
