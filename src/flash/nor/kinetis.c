@@ -5,6 +5,9 @@
  *   Copyright (C) 2011 sleep(5) ltd                                       *
  *   tomas@sleepfive.com                                                   *
  *                                                                         *
+ *   Copyright (C) 2012 by Christopher D. Kilgour                          *
+ *   techie at whiterocker.com                                             *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -28,42 +31,87 @@
 #include "imp.h"
 #include "helper/binarybuffer.h"
 
-struct kinetis_flash_bank {
-	uint32_t nvm_start;
+/*
+ * Implementation Notes
+ *
+ * The persistent memories in the Kinetis chip families K10 through
+ * K70 are all manipulated with the Flash Memory Module.  Some
+ * variants call this module the FTFE, others call it the FTFL.  To
+ * indicate that both are considered here, we use FTFX.
+ *
+ * Within the module, according to the chip variant, the persistent
+ * memory is divided into what Freescale terms Program Flash, FlexNVM,
+ * and FlexRAM.  All chip variants have Program Flash.  Some chip
+ * variants also have FlexNVM and FlexRAM, which always appear
+ * together.
+ *
+ * A given Kinetis chip may have 2 or 4 blocks of flash.  Here we map
+ * each block to a separate bank.  Each block size varies by chip and
+ * may be determined by the read-only SIM_FCFG1 register.  The sector
+ * size within each bank/block varies by the chip granularity as
+ * described below.
+ *
+ * Kinetis offers four different of flash granularities applicable
+ * across the chip families.  The granularity is apparently reflected
+ * by at least the reference manual suffix.  For example, for chip
+ * MK60FN1M0VLQ12, reference manual K60P144M150SF3RM ends in "SF3RM",
+ * where the "3" indicates there are four flash blocks with 4kiB
+ * sectors.  All possible granularities are indicated below.
+ *
+ * The first half of the flash (1 or 2 blocks, depending on the
+ * granularity) is always Program Flash and always starts at address
+ * 0x00000000.  The "PFLSH" flag, bit 23 of the read-only SIM_FCFG2
+ * register, determines whether the second half of the flash is also
+ * Program Flash or FlexNVM+FlexRAM.  When PFLSH is set, the second
+ * half of flash is Program Flash and is contiguous in the memory map
+ * from the first half.  When PFLSH is clear, the second half of flash
+ * is FlexNVM and always starts at address 0x10000000.  FlexRAM, which
+ * is also present when PFLSH is clear, always starts at address
+ * 0x14000000.
+ *
+ * The Flash Memory Module provides a register set where flash
+ * commands are loaded to perform flash operations like erase and
+ * program.  Different commands are available depending on whether
+ * Program Flash or FlexNVM/FlexRAM is being manipulated.  Although
+ * the commands used are quite consistent between flash blocks, the
+ * parameters they accept differ according to the flash granularity.
+ * Some Kinetis chips have different granularity between Program Flash
+ * and FlexNVM/FlexRAM, so flash command arguments may differ between
+ * blocks in the same chip.
+ *
+ * Although not documented as such by Freescale, it appears that bits
+ * 8:7 of the read-only SIM_SDID register reflect the granularity
+ * settings 0..3, so sector sizes and block counts are applicable
+ * according to the following table.
+ */
+const struct {
+	unsigned pflash_sector_size_bytes;
+	unsigned nvm_sector_size_bytes;
+	unsigned num_blocks;
+} kinetis_flash_params[4] = {
+	{ 1<<10, 1<<10, 2 },
+	{ 2<<10, 1<<10, 2 },
+	{ 2<<10, 2<<10, 2 },
+	{ 4<<10, 4<<10, 4 }
 };
 
-static int kinetis_get_master_bank(struct flash_bank *bank,
-	struct flash_bank **master_bank)
-{
-	*master_bank = get_flash_bank_by_name_noprobe(bank->name);
-	if (*master_bank == NULL) {
-		LOG_ERROR("master flash bank '%s' does not exist",
-			(char *)bank->driver_priv);
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
+struct kinetis_flash_bank {
+	unsigned granularity;
+	unsigned bank_ordinal;
+	uint32_t sector_size;
+	uint32_t protection_size;
 
-	return ERROR_OK;
-}
+	uint32_t sim_sdid;
+	uint32_t sim_fcfg1;
+	uint32_t sim_fcfg2;
 
-static int kinetis_update_bank_info(struct flash_bank *bank)
-{
-	int result;
-	struct flash_bank *master_bank;
-
-	result = kinetis_get_master_bank(bank, &master_bank);
-
-	if (result != ERROR_OK)
-		return result;
-
-	/* update the info we do not have */
-	bank->size = master_bank->size;
-	bank->chip_width = master_bank->chip_width;
-	bank->bus_width = master_bank->bus_width;
-	bank->num_sectors = master_bank->num_sectors;
-	bank->sectors = master_bank->sectors;
-
-	return ERROR_OK;
-}
+	enum {
+		FC_AUTO = 0,
+		FC_PFLASH,
+		FC_FLEX_NVM,
+		FC_FLEX_RAM,
+	} flash_class;
+};
 
 FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 {
@@ -84,76 +132,71 @@ FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 }
 
 static int kinetis_protect(struct flash_bank *bank, int set, int first,
-	int last)
+			   int last)
 {
-	int result;
-	struct flash_bank *master_bank;
-
-	result = kinetis_get_master_bank(bank, &master_bank);
-
-	if (result != ERROR_OK)
-		return result;
-
 	LOG_WARNING("kinetis_protect not supported yet");
+	/* FIXME: TODO */
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	return ERROR_OK;
+	return ERROR_FLASH_BANK_INVALID;
 }
 
 static int kinetis_protect_check(struct flash_bank *bank)
 {
-	int result;
-	struct flash_bank *master_bank;
-	uint8_t buffer[4];
-	uint32_t fprot, psize, psec;
-	int i, b;
+	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	result = kinetis_get_master_bank(bank, &master_bank);
+	if (kinfo->flash_class == FC_PFLASH) {
+		int result;
+		uint8_t buffer[4];
+		uint32_t fprot, psec;
+		int i, b;
 
-	if (result != ERROR_OK)
-		return result;
+		/* read protection register FTFx_FPROT */
+		result = target_read_memory(bank->target, 0x40020010, 1, 4, buffer);
 
-	/* read protection register FTFL_FPROT */
-	result = target_read_memory(bank->target, 0x40020010, 1, 4, buffer);
+		if (result != ERROR_OK)
+			return result;
 
-	if (result != ERROR_OK)
-		return result;
+		fprot = target_buffer_get_u32(bank->target, buffer);
 
-	fprot = target_buffer_get_u32(bank->target, buffer);
+		/*
+		 * Every bit protects 1/32 of the full flash (not necessarily
+		 * just this bank), but we enforce the bank ordinals for
+		 * PFlash to start at zero.
+		 */
+		b = kinfo->bank_ordinal * (bank->size / kinfo->protection_size);
+		for (psec = 0, i = 0; i < bank->num_sectors; i++) {
+			if ((fprot >> b) & 1)
+				bank->sectors[i].is_protected = 0;
+			else
+				bank->sectors[i].is_protected = 1;
 
-	/* every bit protect 1/32 of the full flash */
-	psize = bank->size / 32;
-	psec = 0;
-	b = 0;
+			psec += bank->sectors[i].size;
 
-	for (i = 0; i < bank->num_sectors; i++) {
-		if ((fprot >> b) & 1)
-			bank->sectors[i].is_protected = 0;
-		else
-			bank->sectors[i].is_protected = 1;
-
-		psec += bank->sectors[i].size;
-
-		if (psec >= psize) {
-			psec = 0;
-			b++;
+			if (psec >= kinfo->protection_size) {
+				psec = 0;
+				b++;
+			}
 		}
+	} else {
+		LOG_ERROR("Protection checks for FlexNVM not yet supported");
+		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	return ERROR_OK;
 }
 
-static int kinetis_ftfl_command(struct flash_bank *bank, uint32_t w0,
-	uint32_t w1, uint32_t w2)
+static int kinetis_ftfx_command(struct flash_bank *bank, uint32_t w0,
+				uint32_t w1, uint32_t w2, uint8_t *ftfx_fstat)
 {
 	uint8_t buffer[12];
 	int result, i;
@@ -199,21 +242,19 @@ static int kinetis_ftfl_command(struct flash_bank *bank, uint32_t w0,
 	/* wait for done */
 	for (i = 0; i < 50; i++) {
 		result =
-			target_read_memory(bank->target, 0x40020000, 1, 1, buffer);
+			target_read_memory(bank->target, 0x40020000, 1, 1, ftfx_fstat);
 
 		if (result != ERROR_OK)
 			return result;
 
-		if (buffer[0] & 0x80)
+		if (*ftfx_fstat & 0x80)
 			break;
-
-		buffer[0] = 0x00;
 	}
 
-	if (buffer[0] != 0x80) {
+	if ((*ftfx_fstat & 0xf0) != 0x80) {
 		LOG_ERROR
-			("ftfl command failed FSTAT: %02X W0: %08X W1: %08X W2: %08X",
-			buffer[0], w0, w1, w2);
+			("ftfx command failed FSTAT: %02X W0: %08X W1: %08X W2: %08X",
+			 *ftfx_fstat, w0, w1, w2);
 
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -223,7 +264,6 @@ static int kinetis_ftfl_command(struct flash_bank *bank, uint32_t w0,
 
 static int kinetis_erase(struct flash_bank *bank, int first, int last)
 {
-	struct flash_bank *master_bank;
 	int result, i;
 	uint32_t w0 = 0, w1 = 0, w2 = 0;
 
@@ -232,19 +272,20 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	result = kinetis_get_master_bank(bank, &master_bank);
-
-	if (result != ERROR_OK)
-		return result;
-
 	if ((first > bank->num_sectors) || (last > bank->num_sectors))
 		return ERROR_FLASH_OPERATION_FAILED;
 
+	/*
+	 * FIXME: TODO: use the 'Erase Flash Block' command if the
+	 * requested erase is PFlash or NVM and encompasses the entire
+	 * block.  Should be quicker.
+	 */
 	for (i = first; i <= last; i++) {
+		uint8_t ftfx_fstat;
 		/* set command and sector address */
-		w0 = (0x09 << 24) | bank->sectors[i].offset;
+		w0 = (0x09 << 24) | (bank->base + bank->sectors[i].offset);
 
-		result = kinetis_ftfl_command(bank, w0, w1, w2);
+		result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
 
 		if (result != ERROR_OK) {
 			LOG_WARNING("erase sector %d failed", i);
@@ -263,44 +304,27 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 }
 
 static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
-	uint32_t offset, uint32_t count)
+			 uint32_t offset, uint32_t count)
 {
-	struct flash_bank *master_bank;
-	unsigned int i, result, fallback = 0, nvm = 0;
+	unsigned int i, result, fallback = 0;
 	uint8_t buf[8];
 	uint32_t wc, w0 = 0, w1 = 0, w2 = 0;
-	struct kinetis_flash_bank *kbank = (struct kinetis_flash_bank *)
-		bank->driver_priv;
+	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	result = kinetis_get_master_bank(bank, &master_bank);
+	if (kinfo->flash_class == FC_FLEX_NVM) {
+		uint8_t ftfx_fstat;
 
-	if (result != ERROR_OK)
-		return result;
-
-	if (offset >= kbank->nvm_start)
-		nvm = 1;
-
-	if (!nvm && (offset + count) > kbank->nvm_start) {
-		/* we could flash this in two goes, but if the segment
-		   spans across the pflash/nvm boundary, something is probably
-		   not right.
-		*/
-		LOG_ERROR("Segment spans NVM boundary");
-		return ERROR_FLASH_DST_OUT_OF_BANK;
-	}
-
-	if (nvm) {
-		LOG_DEBUG("flash write into NVM @%08X", offset);
+		LOG_DEBUG("flash write into FlexNVM @%08X", offset);
 
 		/* make flex ram available */
 		w0 = (0x81 << 24) | 0x00ff0000;
 
-		result = kinetis_ftfl_command(bank, w0, w1, w2);
+		result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
 
 		if (result != ERROR_OK)
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -316,7 +340,7 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 			fallback = 1;
 
 			LOG_WARNING("ram not ready, fallback to slow longword write (FCNFG: %02X)",
-				buf[0]);
+				    buf[0]);
 		}
 	} else {
 		LOG_DEBUG("flash write into PFLASH @08%X", offset);
@@ -325,21 +349,24 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 
 	/* program section command */
 	if (fallback == 0) {
-		for (i = 0; i < count; i += (2 * 1024)) {
-			wc = 512;
+		unsigned prog_section_bytes = kinfo->sector_size >> 8;
+		for (i = 0; i < count; i += kinfo->sector_size) {
+			uint8_t ftfx_fstat;
 
-			if ((count - i) < (2 * 1024)) {
+			wc = kinfo->sector_size / 4;
+
+			if ((count - i) < kinfo->sector_size) {
 				wc = count - i;
 				wc /= 4;
 			}
 
 			LOG_DEBUG("write section @ %08X with length %d",
-				offset + i, wc * 4);
+				  offset + i, wc * 4);
 
 			/* write data to flexram */
 			result =
 				target_write_memory(bank->target, 0x14000000, 4, wc,
-					buffer + i);
+						    buffer + i);
 
 			if (result != ERROR_OK) {
 				LOG_ERROR("target_write_memory failed");
@@ -348,28 +375,272 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 			}
 
 			/* execute section command */
-			w0 = (0x0b << 24) | (offset + i);
-			w1 = (256 << 16);
+			w0 = (0x0b << 24) | (bank->base + offset + i);
+			w1 = ((wc * 4 / prog_section_bytes) << 16);
 
-			result = kinetis_ftfl_command(bank, w0, w1, w2);
+			result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
 
 			if (result != ERROR_OK)
 				return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
-	/* program longword command */
-	else {
+	/* program longword command, not supported in "SF3" devices */
+	else if (kinfo->granularity != 3) {
 		for (i = 0; i < count; i += 4) {
+			uint8_t ftfx_fstat;
+
 			LOG_DEBUG("write longword @ %08X", offset + i);
 
-			w0 = (0x06 << 24) | (offset + i);
+			w0 = (0x06 << 24) | (bank->base + offset + i);
 			w1 = buf_get_u32(buffer + offset + i, 0, 32);
 
-			result = kinetis_ftfl_command(bank, w0, w1, w2);
+			result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
 
 			if (result != ERROR_OK)
 				return ERROR_FLASH_OPERATION_FAILED;
 		}
+	} else {
+		LOG_ERROR("Flash write strategy not implemented");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static int kinetis_read_part_info(struct flash_bank *bank)
+{
+	int result, i;
+	uint8_t buf[4];
+	uint32_t offset = 0;
+	uint8_t fcfg1_nvmsize, fcfg1_pfsize, fcfg1_eesize, fcfg2_pflsh;
+	uint32_t nvm_size = 0, pf_size = 0, ee_size = 0;
+	unsigned granularity, num_blocks = 0, num_pflash_blocks = 0, num_nvm_blocks = 0,
+		first_nvm_bank = 0, reassign = 0;
+	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+
+	result = target_read_memory(bank->target, 0x40048024, 1, 4, buf);
+	if (result != ERROR_OK)
+		return result;
+	kinfo->sim_sdid = target_buffer_get_u32(bank->target, buf);
+	granularity = (kinfo->sim_sdid >> 7) & 0x03;
+	result = target_read_memory(bank->target, 0x4004804c, 1, 4, buf);
+	if (result != ERROR_OK)
+		return result;
+	kinfo->sim_fcfg1 = target_buffer_get_u32(bank->target, buf);
+	result = target_read_memory(bank->target, 0x40048050, 1, 4, buf);
+	if (result != ERROR_OK)
+		return result;
+	kinfo->sim_fcfg2 = target_buffer_get_u32(bank->target, buf);
+	fcfg2_pflsh = (kinfo->sim_fcfg2 >> 23) & 0x01;
+
+	LOG_DEBUG("SDID: %08X FCFG1: %08X FCFG2: %08X", kinfo->sim_sdid,
+		  kinfo->sim_fcfg1, kinfo->sim_fcfg2);
+
+	fcfg1_nvmsize = (uint8_t)((kinfo->sim_fcfg1 >> 28) & 0x0f);
+	fcfg1_pfsize = (uint8_t)((kinfo->sim_fcfg1 >> 24) & 0x0f);
+	fcfg1_eesize = (uint8_t)((kinfo->sim_fcfg1 >> 16) & 0x0f);
+
+	/* when the PFLSH bit is set, there is no FlexNVM/FlexRAM */
+	if (!fcfg2_pflsh) {
+		switch (fcfg1_nvmsize) {
+		case 0x03:
+		case 0x07:
+		case 0x09:
+		case 0x0b:
+			nvm_size = 1 << (14 + (fcfg1_nvmsize >> 1));
+			break;
+		case 0x0f:
+			if (granularity == 3)
+				nvm_size = 512<<10;
+			else
+				nvm_size = 256<<10;
+			break;
+		default:
+			nvm_size = 0;
+			break;
+		}
+
+		switch (fcfg1_eesize) {
+		case 0x00:
+		case 0x01:
+		case 0x02:
+		case 0x03:
+		case 0x04:
+		case 0x05:
+		case 0x06:
+		case 0x07:
+		case 0x08:
+		case 0x09:
+			ee_size = (16 << (10 - fcfg1_eesize));
+			break;
+		default:
+			ee_size = 0;
+			break;
+		}
+	}
+
+	switch (fcfg1_pfsize) {
+	case 0x03:
+	case 0x05:
+	case 0x07:
+	case 0x09:
+	case 0x0b:
+	case 0x0d:
+		pf_size = 1 << (14 + (fcfg1_pfsize >> 1));
+		break;
+	case 0x0f:
+		if (granularity == 3)
+			pf_size = 1024<<10;
+		else if (fcfg2_pflsh)
+			pf_size = 512<<10;
+		else
+			pf_size = 256<<10;
+		break;
+	default:
+		pf_size = 0;
+		break;
+	}
+
+	LOG_DEBUG("FlexNVM: %d PFlash: %d FlexRAM: %d PFLSH: %d",
+		  nvm_size, pf_size, ee_size, fcfg2_pflsh);
+
+	num_blocks = kinetis_flash_params[granularity].num_blocks;
+	num_pflash_blocks = num_blocks / (2 - fcfg2_pflsh);
+	first_nvm_bank = num_pflash_blocks;
+	num_nvm_blocks = num_blocks - num_pflash_blocks;
+
+	LOG_DEBUG("%d blocks total: %d PFlash, %d FlexNVM",
+		  num_blocks, num_pflash_blocks, num_nvm_blocks);
+
+	/*
+	 * If the flash class is already assigned, verify the
+	 * parameters.
+	 */
+	if (kinfo->flash_class != FC_AUTO) {
+		if (kinfo->bank_ordinal != (unsigned) bank->bank_number) {
+			LOG_WARNING("Flash ordinal/bank number mismatch");
+			reassign = 1;
+		} else if (kinfo->granularity != granularity) {
+			LOG_WARNING("Flash granularity mismatch");
+			reassign = 1;
+		} else {
+			switch (kinfo->flash_class) {
+			case FC_PFLASH:
+				if (kinfo->bank_ordinal >= first_nvm_bank) {
+					LOG_WARNING("Class mismatch, bank %d is not PFlash",
+						    bank->bank_number);
+					reassign = 1;
+				} else if (bank->size != (pf_size / num_pflash_blocks)) {
+					LOG_WARNING("PFlash size mismatch");
+					reassign = 1;
+				} else if (bank->base !=
+					 (0x00000000 + bank->size * kinfo->bank_ordinal)) {
+					LOG_WARNING("PFlash address range mismatch");
+					reassign = 1;
+				} else if (kinfo->sector_size !=
+					 kinetis_flash_params[granularity].pflash_sector_size_bytes) {
+					LOG_WARNING("PFlash sector size mismatch");
+					reassign = 1;
+				} else {
+					LOG_DEBUG("PFlash bank %d already configured okay",
+						  kinfo->bank_ordinal);
+				}
+				break;
+			case FC_FLEX_NVM:
+				if ((kinfo->bank_ordinal >= num_blocks) ||
+				    (kinfo->bank_ordinal < first_nvm_bank)) {
+					LOG_WARNING("Class mismatch, bank %d is not FlexNVM",
+						    bank->bank_number);
+					reassign = 1;
+				} else if (bank->size != (nvm_size / num_nvm_blocks)) {
+					LOG_WARNING("FlexNVM size mismatch");
+					reassign = 1;
+				} else if (bank->base !=
+					 (0x10000000 + bank->size * kinfo->bank_ordinal)) {
+					LOG_WARNING("FlexNVM address range mismatch");
+					reassign = 1;
+				} else if (kinfo->sector_size !=
+					 kinetis_flash_params[granularity].nvm_sector_size_bytes) {
+					LOG_WARNING("FlexNVM sector size mismatch");
+					reassign = 1;
+				} else {
+					LOG_DEBUG("FlexNVM bank %d already configured okay",
+						  kinfo->bank_ordinal);
+				}
+				break;
+			case FC_FLEX_RAM:
+				if (kinfo->bank_ordinal != num_blocks) {
+					LOG_WARNING("Class mismatch, bank %d is not FlexRAM",
+						    bank->bank_number);
+					reassign = 1;
+				} else if (bank->size != ee_size) {
+					LOG_WARNING("FlexRAM size mismatch");
+					reassign = 1;
+				} else if (bank->base != 0x14000000) {
+					LOG_WARNING("FlexRAM address mismatch");
+					reassign = 1;
+				} else if (kinfo->sector_size !=
+					 kinetis_flash_params[granularity].nvm_sector_size_bytes) {
+					LOG_WARNING("FlexRAM sector size mismatch");
+					reassign = 1;
+				} else {
+					LOG_DEBUG("FlexRAM bank %d already configured okay",
+						  kinfo->bank_ordinal);
+				}
+			default:
+				LOG_WARNING("Unknown or inconsistent flash class");
+				reassign = 1;
+				break;
+			}
+		}
+	} else {
+		LOG_INFO("Probing flash info for bank %d", bank->bank_number);
+		reassign = 1;
+	}
+
+	if (!reassign)
+		return ERROR_OK;
+
+	kinfo->granularity = granularity;
+
+	if ((unsigned)bank->bank_number < num_pflash_blocks) {
+		/* pflash, banks start at address zero */
+		kinfo->flash_class = FC_PFLASH;
+		bank->size = (pf_size / num_pflash_blocks);
+		bank->base = 0x00000000 + bank->size * bank->bank_number;
+		kinfo->sector_size = kinetis_flash_params[granularity].pflash_sector_size_bytes;
+		kinfo->protection_size = pf_size / 32;
+	} else if ((unsigned)bank->bank_number < num_blocks) {
+		/* nvm, banks start at address 0x10000000 */
+		kinfo->flash_class = FC_FLEX_NVM;
+		bank->size = (nvm_size / num_nvm_blocks);
+		bank->base = 0x10000000 + bank->size * (bank->bank_number - first_nvm_bank);
+		kinfo->sector_size = kinetis_flash_params[granularity].nvm_sector_size_bytes;
+		kinfo->protection_size = 0; /* FIXME: TODO: depends on DEPART bits, chip */
+	} else if ((unsigned)bank->bank_number == num_blocks) {
+		LOG_ERROR("FlexRAM support not yet implemented");
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+	} else {
+		LOG_ERROR("Cannot determine parameters for bank %d, only %d banks on device",
+			  bank->bank_number, num_blocks);
+		return ERROR_FLASH_BANK_INVALID;
+	}
+
+	if (bank->sectors) {
+		free(bank->sectors);
+		bank->sectors = NULL;
+	}
+
+	bank->num_sectors = bank->size / kinfo->sector_size;
+	assert(bank->num_sectors > 0);
+	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
+
+	for (i = 0; i < bank->num_sectors; i++) {
+		bank->sectors[i].offset = offset;
+		bank->sectors[i].size = kinfo->sector_size;
+		offset += kinfo->sector_size;
+		bank->sectors[i].is_erased = -1;
+		bank->sectors[i].is_protected = 1;
 	}
 
 	return ERROR_OK;
@@ -377,172 +648,96 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 
 static int kinetis_probe(struct flash_bank *bank)
 {
-	struct flash_bank *master_bank;
-	int result, i;
-	uint8_t buf[4];
-	uint32_t sim_sdid, sim_fcfg1, sim_fcfg2, offset = 0;
-	uint32_t nvm_size, pf_size, ee_size;
-
 	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
+		LOG_WARNING("Cannot communicate... target not halted.");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	result = kinetis_get_master_bank(bank, &master_bank);
-
-	if (result != ERROR_OK)
-		return result;
-
-	result = target_read_memory(bank->target, 0x40048024, 1, 4, buf);
-	if (result != ERROR_OK)
-		return result;
-	sim_sdid = target_buffer_get_u32(bank->target, buf);
-	result = target_read_memory(bank->target, 0x4004804c, 1, 4, buf);
-	if (result != ERROR_OK)
-		return result;
-	sim_fcfg1 = target_buffer_get_u32(bank->target, buf);
-	result = target_read_memory(bank->target, 0x40048050, 1, 4, buf);
-	if (result != ERROR_OK)
-		return result;
-	sim_fcfg2 = target_buffer_get_u32(bank->target, buf);
-
-	LOG_DEBUG("SDID: %08X FCFG1: %08X FCFG2: %08X", sim_sdid, sim_fcfg1,
-		sim_fcfg2);
-
-	switch ((sim_fcfg1 >> 28) & 0x0f) {
-		case 0x07:
-			nvm_size = 128 * 1024;
-			break;
-		case 0x09:
-		case 0x0f:
-			nvm_size = 256 * 1024;
-			break;
-		default:
-			nvm_size = 0;
-			break;
-	}
-
-	switch ((sim_fcfg1 >> 24) & 0x0f) {
-		case 0x07:
-			pf_size = 128 * 1024;
-			break;
-		case 0x09:
-			pf_size = 256 * 1024;
-			break;
-		case 0x0b:
-		case 0x0f:
-			pf_size = 512 * 1024;
-			break;
-		default:
-			pf_size = 0;
-			break;
-	}
-
-	switch ((sim_fcfg1 >> 16) & 0x0f) {
-		case 0x02:
-			ee_size = 4 * 1024;
-			break;
-		case 0x03:
-			ee_size = 2 * 1024;
-			break;
-		case 0x04:
-			ee_size = 1 * 1024;
-			break;
-		case 0x05:
-			ee_size = 512;
-			break;
-		case 0x06:
-			ee_size = 256;
-			break;
-		case 0x07:
-			ee_size = 128;
-			break;
-		case 0x08:
-			ee_size = 64;
-			break;
-		case 0x09:
-			ee_size = 32;
-			break;
-		default:
-			ee_size = 0;
-			break;
-	}
-
-	((struct kinetis_flash_bank *) bank->driver_priv)->nvm_start =
-		pf_size - nvm_size;
-
-	LOG_DEBUG("NVM: %d PF: %d EE: %d BL1: %d", nvm_size, pf_size, ee_size,
-		(sim_fcfg2 >> 23) & 1);
-
-	if (pf_size != bank->size) {
-		LOG_WARNING("flash size is different %d != %d", pf_size,
-			bank->size);
-	}
-
-	bank->num_sectors = bank->size / (2 * 1024);
-	assert(bank->num_sectors > 0);
-	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
-
-	for (i = 0; i < bank->num_sectors; i++) {
-		bank->sectors[i].offset = offset;
-		bank->sectors[i].size = 2 * 1024;
-		offset += bank->sectors[i].size;
-		bank->sectors[i].is_erased = -1;
-		bank->sectors[i].is_protected = 1;
-	}
-
-	/* update the info we do not have */
-	return kinetis_update_bank_info(bank);
+	return kinetis_read_part_info(bank);
 }
 
 static int kinetis_auto_probe(struct flash_bank *bank)
 {
+	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+
+	if (kinfo->sim_sdid)
+		return ERROR_OK;
+
 	return kinetis_probe(bank);
 }
 
 static int kinetis_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	int result;
-	struct flash_bank *master_bank;
+	const char *bank_class_names[] = {
+		"(ANY)", "PFlash", "FlexNVM", "FlexRAM"
+	};
 
-	result = kinetis_get_master_bank(bank, &master_bank);
+	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 
-	if (result != ERROR_OK)
-		return result;
-
-	snprintf(buf, buf_size,
-		"%s driver for flash bank %s at 0x%8.8" PRIx32 "",
-		bank->driver->name, master_bank->name, master_bank->base);
+	(void) snprintf(buf, buf_size,
+			"%s driver for %s flash bank %s at 0x%8.8" PRIx32 "",
+			bank->driver->name, bank_class_names[kinfo->flash_class],
+			bank->name, bank->base);
 
 	return ERROR_OK;
 }
 
 static int kinetis_blank_check(struct flash_bank *bank)
 {
-	int result;
-	struct flash_bank *master_bank;
-
-	LOG_WARNING("kinetis_blank_check not supported yet");
+	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	result = kinetis_get_master_bank(bank, &master_bank);
+	if (kinfo->flash_class == FC_PFLASH) {
+		int result;
+		uint32_t w0 = 0, w1 = 0, w2 = 0;
+		uint8_t ftfx_fstat;
 
-	if (result != ERROR_OK)
-		return result;
+		/* check if whole bank is blank */
+		w0 = (0x00 << 24) | bank->base;
+		w1 = 0; /* "normal margin" */
+
+		result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
+
+		if (result != ERROR_OK)
+			return result;
+
+		if (ftfx_fstat & 0x01) {
+			/* the whole bank is not erased, check sector-by-sector */
+			int i;
+			for (i = 0; i < bank->num_sectors; i++) {
+				w0 = (0x01 << 24) | (bank->base + bank->sectors[i].offset);
+				w1 = (0x100 << 16) | 0; /* normal margin */
+
+				result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
+
+				if (result == ERROR_OK) {
+					bank->sectors[i].is_erased = !(ftfx_fstat & 0x01);
+				} else {
+					LOG_DEBUG("Ignoring errored PFlash sector blank-check");
+					bank->sectors[i].is_erased = -1;
+				}
+			}
+		} else {
+			/* the whole bank is erased, update all sectors */
+			int i;
+			for (i = 0; i < bank->num_sectors; i++)
+				bank->sectors[i].is_erased = 1;
+		}
+	} else {
+		LOG_WARNING("kinetis_blank_check not supported yet for FlexNVM");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
 
 	return ERROR_OK;
 }
 
 static int kinetis_flash_read(struct flash_bank *bank,
-	uint8_t *buffer, uint32_t offset, uint32_t count)
+			      uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	int result;
-	struct flash_bank *master_bank;
-
 	LOG_WARNING("kinetis_flash_read not supported yet");
 
 	if (bank->target->state != TARGET_HALTED) {
@@ -550,12 +745,7 @@ static int kinetis_flash_read(struct flash_bank *bank,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	result = kinetis_get_master_bank(bank, &master_bank);
-
-	if (result != ERROR_OK)
-		return result;
-
-	return ERROR_OK;
+	return ERROR_FLASH_OPERATION_FAILED;
 }
 
 struct flash_driver kinetis_flash = {
