@@ -129,9 +129,8 @@ static int tcl_input(struct connection *connection)
 			tclc->tc_line[tclc->tc_lineoffset-1] = '\0';
 			LOG_DEBUG("Executing script:\n %s", tclc->tc_line);
 			retval = Jim_Eval_Named(interp, tclc->tc_line, "remote:connection", 1);
-			LOG_DEBUG("Result: %d\n %s", retval,
-				Jim_GetString(Jim_GetResult(interp), &reslen));
 			result = Jim_GetString(Jim_GetResult(interp), &reslen);
+			LOG_DEBUG("Result: %d\n %s", retval, result);
 			retval = tcl_output(connection, result, reslen);
 			if (retval != ERROR_OK)
 				return retval;
