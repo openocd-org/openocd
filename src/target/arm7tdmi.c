@@ -223,7 +223,7 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
 
-	fields[1].num_bits = 32;
+	fields[1].num_bits = size * 8;
 	fields[1].out_value = NULL;
 	fields[1].in_value = in;
 

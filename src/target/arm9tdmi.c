@@ -272,7 +272,7 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	if (retval != ERROR_OK)
 		return retval;
 
-	fields[0].num_bits = 32;
+	fields[0].num_bits = size * 8;
 	fields[0].out_value = NULL;
 	fields[0].in_value = in;
 
