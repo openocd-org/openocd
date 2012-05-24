@@ -4343,6 +4343,34 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return (target_fill_mem(target, a, fn, data_size, b, c) == ERROR_OK) ? JIM_OK : JIM_ERR;
 }
 
+/**
+*  @brief Reads an array of words/halfwords/bytes from target memory starting at specified address.
+*
+*  Usage: mdw [phys] <address> [<count>] - for 32 bit reads
+*         mdh [phys] <address> [<count>] - for 16 bit reads
+*         mdb [phys] <address> [<count>] - for  8 bit reads
+*
+*  Count defaults to 1.
+*
+*  Calls target_read_memory or target_read_phys_memory depending on
+*  the presence of the "phys" argument
+*  Reads the target memory in blocks of max. 32 bytes, and returns an array of ints formatted
+*  to int representation in base16.
+*  Also outputs read data in a human readable form using command_print
+*
+*  @param phys if present target_read_phys_memory will be used instead of target_read_memory
+*  @param address address where to start the read. May be specified in decimal or hex using the standard "0x" prefix
+*  @param count optional count parameter to read an array of values. If not specified, defaults to 1.
+*  @returns:  JIM_ERR on error or JIM_OK on success and sets the result string to an array of ascii formatted numbers
+*  on success, with [<count>] number of elements.
+*
+*  In case of little endian target:
+*      Example1: "mdw 0x00000000"  returns "10123456"
+*      Exmaple2: "mdh 0x00000000 1" returns "3456"
+*      Example3: "mdb 0x00000000" returns "56"
+*      Example4: "mdh 0x00000000 2" returns "3456 1012"
+*      Example5: "mdb 0x00000000 3" returns "56 34 12"
+**/
 static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	const char *cmd_name = Jim_GetString(argv[0], NULL);
@@ -4371,54 +4399,56 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		fn = target_read_phys_memory;
 	}
 
-	jim_wide a;
-	e = Jim_GetOpt_Wide(&goi, &a);
+	/* Read address parameter */
+	jim_wide addr;
+	e = Jim_GetOpt_Wide(&goi, &addr);
 	if (e != JIM_OK)
 		return JIM_ERR;
-	jim_wide c;
+
+	/* If next parameter exists, read it out as the count parameter, if not, set it to 1 (default) */
+	jim_wide count;
 	if (goi.argc == 1) {
-		e = Jim_GetOpt_Wide(&goi, &c);
+		e = Jim_GetOpt_Wide(&goi, &count);
 		if (e != JIM_OK)
 			return JIM_ERR;
 	} else
-		c = 1;
+		count = 1;
 
 	/* all args must be consumed */
 	if (goi.argc != 0)
 		return JIM_ERR;
 
-	jim_wide b = 1; /* shut up gcc */
+	jim_wide dwidth = 1; /* shut up gcc */
 	if (strcasecmp(cmd_name, "mdw") == 0)
-		b = 4;
+		dwidth = 4;
 	else if (strcasecmp(cmd_name, "mdh") == 0)
-		b = 2;
+		dwidth = 2;
 	else if (strcasecmp(cmd_name, "mdb") == 0)
-		b = 1;
+		dwidth = 1;
 	else {
 		LOG_ERROR("command '%s' unknown: ", cmd_name);
 		return JIM_ERR;
 	}
 
 	/* convert count to "bytes" */
-	c = c * b;
+	int bytes = count * dwidth;
 
 	struct target *target = Jim_CmdPrivData(goi.interp);
 	uint8_t  target_buf[32];
 	jim_wide x, y, z;
-	while (c > 0) {
-		y = c;
-		if (y > 16)
-			y = 16;
-		e = fn(target, a, b, y / b, target_buf);
+	while (bytes > 0) {
+		y = (bytes < 16) ? bytes : 16; /* y = min(bytes, 16); */
+
+		/* Try to read out next block */
+		e = fn(target, addr, dwidth, y / dwidth, target_buf);
+
 		if (e != ERROR_OK) {
-			char tmp[10];
-			snprintf(tmp, sizeof(tmp), "%08lx", (long)a);
-			Jim_SetResultFormatted(interp, "error reading target @ 0x%s", tmp);
+			Jim_SetResultFormatted(interp, "error reading target @ 0x%08lx", (long)addr);
 			return JIM_ERR;
 		}
 
-		command_print(NULL, "0x%08x ", (int)(a));
-		switch (b) {
+		command_print(NULL, "0x%08x ", (int)(addr));
+		switch (dwidth) {
 		case 4:
 			for (x = 0; x < 16 && x < y; x += 4) {
 				z = target_buffer_get_u32(target, &(target_buf[x]));
@@ -4465,8 +4495,8 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		/* print - with a newline */
 		command_print(NULL, "%s\n", target_buf);
 		/* NEXT... */
-		c -= 16;
-		a += 16;
+		bytes -= 16;
+		addr += 16;
 	}
 	return JIM_OK;
 }
