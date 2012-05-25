@@ -1298,6 +1298,7 @@ static const struct command_registration jlink_command_handlers[] = {
 struct jtag_interface jlink_interface = {
 	.name = "jlink",
 	.commands = jlink_command_handlers,
+	.transports = jtag_only,
 
 	.execute_queue = jlink_execute_queue,
 	.speed = jlink_speed,
