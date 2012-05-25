@@ -738,6 +738,42 @@ static int jlink_set_config(struct jlink_config *cfg)
 	return ERROR_OK;
 }
 
+/*
+ * List of unsupported version string markers.
+ *
+ * The firmware versions does not correspond directly with
+ * "Software and documentation pack for Windows", it may be
+ * distinguished by the "compile" date in the information string.
+ *
+ * For example, version string is:
+ *   "J-Link ARM V8 compiled May  3 2012 18:36:22"
+ * Marker sould be:
+ *   "May  3 2012"
+ *
+ * The list must be terminated by NULL string.
+ */
+static const char * const unsupported_versions[] = {
+	"Jan 31 2011",
+	"JAN 31 2011",
+	"Mar 19 2012",	/* V4.44 */
+	"May  3 2012",	/* V4.46 "J-Link ARM V8 compiled May  3 2012 18:36:22" */
+	NULL			/* End of list */
+};
+
+static void jlink_check_supported(const char *str)
+{
+	const char * const *p = unsupported_versions;
+	while (*p) {
+		if (NULL != strstr(str, *p)) {
+			LOG_WARNING(
+			"Unsupported J-Link firmware version.\n"
+			"       Please check http://www.segger.com/j-link-older-versions.html for updates");
+			return;
+		}
+		p++;
+	}
+}
+
 static int jlink_get_version_info(void)
 {
 	int result;
@@ -767,6 +803,7 @@ static int jlink_get_version_info(void)
 
 	usb_in_buffer[result] = 0;
 	LOG_INFO("%s", (char *)usb_in_buffer);
+	jlink_check_supported((char *)usb_in_buffer);
 
 	/* query hardware capabilities */
 	jlink_simple_command(EMU_CMD_GET_CAPS);
