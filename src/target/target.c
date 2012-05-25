@@ -4447,32 +4447,32 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			return JIM_ERR;
 		}
 
-		command_print(NULL, "0x%08x ", (int)(addr));
+		command_print_sameline(NULL, "0x%08x ", (int)(addr));
 		switch (dwidth) {
 		case 4:
 			for (x = 0; x < 16 && x < y; x += 4) {
 				z = target_buffer_get_u32(target, &(target_buf[x]));
-				command_print(NULL, "%08x ", (int)(z));
+				command_print_sameline(NULL, "%08x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 4)
-				command_print(NULL, "         ");
+				command_print_sameline(NULL, "         ");
 			break;
 		case 2:
 			for (x = 0; x < 16 && x < y; x += 2) {
 				z = target_buffer_get_u16(target, &(target_buf[x]));
-				command_print(NULL, "%04x ", (int)(z));
+				command_print_sameline(NULL, "%04x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 2)
-				command_print(NULL, "     ");
+				command_print_sameline(NULL, "     ");
 			break;
 		case 1:
 		default:
 			for (x = 0 ; (x < 16) && (x < y) ; x += 1) {
 				z = target_buffer_get_u8(target, &(target_buf[x]));
-				command_print(NULL, "%02x ", (int)(z));
+				command_print_sameline(NULL, "%02x ", (int)(z));
 			}
 			for (; (x < 16) ; x += 1)
-				command_print(NULL, "   ");
+				command_print_sameline(NULL, "   ");
 			break;
 		}
 		/* ascii-ify the bytes */
@@ -4493,7 +4493,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		/* terminate */
 		target_buf[16] = 0;
 		/* print - with a newline */
-		command_print(NULL, "%s\n", target_buf);
+		command_print_sameline(NULL, "%s\n", target_buf);
 		/* NEXT... */
 		bytes -= 16;
 		addr += 16;
