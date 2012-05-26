@@ -4418,14 +4418,26 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (goi.argc != 0)
 		return JIM_ERR;
 
-	jim_wide dwidth = 1; /* shut up gcc */
-	if (strcasecmp(cmd_name, "mdw") == 0)
+	typedef uint32_t (*target_buf_getter)(struct target*, const uint8_t *addr);
+	target_buf_getter target_buf_get;
+	const char *format;
+
+	int dwidth = 1; /* shut up gcc */
+	if (strcasecmp(cmd_name, "mdw") == 0) {
 		dwidth = 4;
-	else if (strcasecmp(cmd_name, "mdh") == 0)
+		target_buf_get = &target_buffer_get_u32;
+		format = "0x%08x ";
+	} else if (strcasecmp(cmd_name, "mdh") == 0) {
 		dwidth = 2;
-	else if (strcasecmp(cmd_name, "mdb") == 0)
+		/* Cast is needed because target_buffer_get_u16 returns uint16_t */
+		target_buf_get = (target_buf_getter)&target_buffer_get_u16;
+		format = "0x%04x ";
+	} else if (strcasecmp(cmd_name, "mdb") == 0) {
 		dwidth = 1;
-	else {
+		/* Cast is needed because target_buffer_get_u16 returns uint8_t */
+		target_buf_get = (target_buf_getter)&target_buffer_get_u8;
+		format = "0x%02x ";
+	} else {
 		LOG_ERROR("command '%s' unknown: ", cmd_name);
 		return JIM_ERR;
 	}
@@ -4434,70 +4446,58 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int bytes = count * dwidth;
 
 	struct target *target = Jim_CmdPrivData(goi.interp);
-	uint8_t  target_buf[32];
-	jim_wide x, y, z;
-	while (bytes > 0) {
-		y = (bytes < 16) ? bytes : 16; /* y = min(bytes, 16); */
+	uint8_t  *target_buf = malloc(bytes);
 
-		/* Try to read out next block */
-		e = fn(target, addr, dwidth, y / dwidth, target_buf);
+	/* Every byte can be represented as two hex characters hence 2*dwidth,
+	 * And every element is separated by a space, hence 2*dwidth+1
+	 * There are count number of elements, and one terminating (\x00) character
+	*/
+	char  *response = malloc((2*dwidth+1) * count+1+1);
+	char element[10];
+	*response = 0;
 
-		if (e != ERROR_OK) {
-			Jim_SetResultFormatted(interp, "error reading target @ 0x%08lx", (long)addr);
-			return JIM_ERR;
-		}
+	/* Try to read out next block */
+	e = fn(target, addr, dwidth, count, target_buf);
 
-		command_print_sameline(NULL, "0x%08x ", (int)(addr));
-		switch (dwidth) {
-		case 4:
-			for (x = 0; x < 16 && x < y; x += 4) {
-				z = target_buffer_get_u32(target, &(target_buf[x]));
-				command_print_sameline(NULL, "%08x ", (int)(z));
-			}
-			for (; (x < 16) ; x += 4)
-				command_print_sameline(NULL, "         ");
-			break;
-		case 2:
-			for (x = 0; x < 16 && x < y; x += 2) {
-				z = target_buffer_get_u16(target, &(target_buf[x]));
-				command_print_sameline(NULL, "%04x ", (int)(z));
-			}
-			for (; (x < 16) ; x += 2)
-				command_print_sameline(NULL, "     ");
-			break;
-		case 1:
-		default:
-			for (x = 0 ; (x < 16) && (x < y) ; x += 1) {
-				z = target_buffer_get_u8(target, &(target_buf[x]));
-				command_print_sameline(NULL, "%02x ", (int)(z));
-			}
-			for (; (x < 16) ; x += 1)
-				command_print_sameline(NULL, "   ");
-			break;
-		}
-		/* ascii-ify the bytes */
-		for (x = 0 ; x < y ; x++) {
-			if ((target_buf[x] >= 0x20) &&
-				(target_buf[x] <= 0x7e)) {
-				/* good */
-			} else {
-				/* smack it */
-				target_buf[x] = '.';
-			}
-		}
-		/* space pad  */
-		while (x < 16) {
-			target_buf[x] = ' ';
-			x++;
-		}
-		/* terminate */
-		target_buf[16] = 0;
-		/* print - with a newline */
-		command_print_sameline(NULL, "%s\n", target_buf);
-		/* NEXT... */
-		bytes -= 16;
-		addr += 16;
+	if (e != ERROR_OK) {
+		free(target_buf);
+		free(response);
+		return JIM_ERR;
 	}
+
+	int x;
+	for (x = 0; x < count; x++) {
+		/* Print address on new line every 16 bytes */
+		if (((x * dwidth) % 16) == 0)
+			command_print_sameline(NULL, "0x%08x: ", ((int)(addr)) + x * dwidth);
+
+		jim_wide val = target_buf_get(target, &target_buf[x * dwidth]);
+		command_print_sameline(NULL, format, val);
+		snprintf(element, 10, "%08x ", (unsigned int)val);
+		strcat(response, element);
+
+		/* Print hexdump-like characters after every 16 bytes
+		 * Note that x has not yet been increased.
+		*/
+		if ((((x + 1) * dwidth) % 16) == 0) {
+			int i = (x+1) * dwidth - 16;
+			for (; i < (x+1) * dwidth; i++) {
+				if ((target_buf[i] >= 0x20) && (target_buf[i] <= 0x7e)) {
+					/* good */
+					command_print_sameline(NULL, "%c", target_buf[i]);
+				} else {
+					/* smack it */
+					command_print_sameline(NULL, ".");
+				}
+			}
+			command_print_sameline(NULL, "\n");
+		}
+	}
+
+	Jim_SetResultString(interp, response, -1);
+
+	free(target_buf);
+	free(response);
 	return JIM_OK;
 }
 
