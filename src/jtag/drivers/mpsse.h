@@ -36,6 +36,7 @@ enum ftdi_chip_type {
 	TYPE_FT2232C,
 	TYPE_FT2232H,
 	TYPE_FT4232H,
+	TYPE_FT232H,
 };
 
 struct mpsse_ctx;
