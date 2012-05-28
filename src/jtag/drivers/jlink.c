@@ -205,6 +205,7 @@ struct jlink {
 static struct jlink *jlink_usb_open(void);
 static void jlink_usb_close(struct jlink *jlink);
 static int jlink_usb_message(struct jlink *jlink, int out_length, int in_length);
+static int jlink_usb_io(struct jlink *jlink, int out_length, int in_length);
 static int jlink_usb_write(struct jlink *jlink, int out_length);
 static int jlink_usb_read(struct jlink *jlink, int expected_size);
 static int jlink_usb_read_emu_result(struct jlink *jlink);
@@ -701,22 +702,15 @@ static int jlink_get_config(struct jlink_config *cfg)
 	int result;
 	int size = sizeof(struct jlink_config);
 
-	jlink_simple_command(EMU_CMD_READ_CONFIG);
+	usb_out_buffer[0] = EMU_CMD_READ_CONFIG;
+	result = jlink_usb_io(jlink_handle, 1, size);
 
-	result = jlink_usb_read(jlink_handle, size);
-	if (size != result) {
+	if (result != ERROR_OK) {
 		LOG_ERROR("jlink_usb_read failed (requested=%d, result=%d)", size, result);
 		return ERROR_FAIL;
 	}
 
 	memcpy(cfg, usb_in_buffer, size);
-
-	/*
-	 * Section 4.2.4 IN-transaction
-	 * read dummy 0-byte packet
-	 */
-	jlink_usb_read(jlink_handle, 1);
-
 	return ERROR_OK;
 }
 
@@ -1579,6 +1573,48 @@ static int jlink_usb_read_emu_result(struct jlink *jlink)
 
 	jlink_debug_buffer(usb_emu_result_buffer, result);
 	return result;
+}
+
+/*
+ * Send a message and receive the reply - simple messages.
+ *
+ * @param jlink pointer to driver data
+ * @param out_length data length in @c usb_out_buffer
+ * @param in_length data length to be read to @c usb_in_buffer
+ */
+static int jlink_usb_io(struct jlink *jlink, int out_length, int in_length)
+{
+	int result;
+
+	result = jlink_usb_write(jlink, out_length);
+	if (result != out_length) {
+		LOG_ERROR("usb_bulk_write failed (requested=%d, result=%d)",
+				out_length, result);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	result = jlink_usb_read(jlink, in_length);
+	if (result != in_length) {
+		LOG_ERROR("usb_bulk_read failed (requested=%d, result=%d)",
+				in_length, result);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	/*
+	 * Section 4.2.4 IN-transaction:
+	 * read dummy 0-byte packet if transaction size is
+	 * multiple of 64 bytes but not max. size of 0x8000
+	 */
+	if ((in_length % 64) == 0 && in_length != 0x8000) {
+		char dummy_buffer;
+		result = usb_bulk_read_ex(jlink->usb_handle, jlink_read_ep,
+			&dummy_buffer, 1, JLINK_USB_TIMEOUT);
+		if (result != 0) {
+			LOG_ERROR("dummy byte read failed");
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+	}
+	return ERROR_OK;
 }
 
 #ifdef _DEBUG_USB_COMMS_
