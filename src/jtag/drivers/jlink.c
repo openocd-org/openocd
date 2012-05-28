@@ -75,22 +75,45 @@ static uint8_t usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 
 /* Constants for JLink command */
 #define EMU_CMD_VERSION			0x01
+#define EMU_CMD_RESET_TRST		0x02
+#define EMU_CMD_RESET_TARGET	0x03
 #define EMU_CMD_SET_SPEED		0x05
 #define EMU_CMD_GET_STATE		0x07
+#define EMU_CMD_SET_KS_POWER	0x08
+#define EMU_CMD_GET_SPEEDS		0xc0
+#define EMU_CMD_GET_HW_INFO		0xc1
+#define EMU_CMD_GET_COUNTERS	0xc2
+#define EMU_CMD_SELECT_IF		0xc7
 #define EMU_CMD_HW_CLOCK		0xc8
 #define EMU_CMD_HW_TMS0			0xc9
 #define EMU_CMD_HW_TMS1			0xca
+#define EMU_CMD_HW_DATA0		0xcb
+#define EMU_CMD_HW_DATA1		0xcc
+#define EMU_CMD_HW_JTAG			0xcd
 #define EMU_CMD_HW_JTAG2		0xce
 #define EMU_CMD_HW_JTAG3		0xcf
+#define EMU_CMD_HW_RELEASE_RESET_STOP_EX 0xd0
+#define EMU_CMD_HW_RELEASE_RESET_STOP_TIMED 0xd1
 #define EMU_CMD_GET_MAX_MEM_BLOCK	0xd4
+#define EMU_CMD_HW_JTAG_WRITE		0xd5
+#define EMU_CMD_HW_JTAG_GET_RESULT	0xd6
 #define EMU_CMD_HW_RESET0		0xdc
 #define EMU_CMD_HW_RESET1		0xdd
 #define EMU_CMD_HW_TRST0		0xde
 #define EMU_CMD_HW_TRST1		0xdf
 #define EMU_CMD_GET_CAPS		0xe8
+#define EMU_CMD_GET_CPU_CAPS	0xe9
+#define EMU_CMD_EXEC_CPU_CMD	0xea
+#define EMU_CMD_GET_CAPS_EX		0xed
 #define EMU_CMD_GET_HW_VERSION	0xf0
+#define EMU_CMD_WRITE_DCC		0xf1
 #define EMU_CMD_READ_CONFIG		0xf2
 #define EMU_CMD_WRITE_CONFIG		0xf3
+#define EMU_CMD_WRITE_MEM			0xf4
+#define EMU_CMD_READ_MEM			0xf5
+#define EMU_CMD_MEASURE_RTCK_REACT	0xf6
+#define EMU_CMD_WRITE_MEM_ARM79		0xf7
+#define EMU_CMD_READ_MEM_ARM79		0xf8
 
 /* bits return from EMU_CMD_GET_CAPS */
 #define EMU_CAP_RESERVED_1		0
@@ -400,6 +423,67 @@ static int jlink_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
+/*
+ * select transport interface
+ *
+ * @param	iface [0..31] currently: 0=JTAG, 1=SWD
+ * @returns	ERROR_OK or ERROR_ code
+ *
+ * @pre jlink_handle must be opened
+ * @pre function may be called only for devices, that have
+ *		EMU_CAP_SELECT_IF capability enabled
+ */
+static int jlink_select_interface(int iface)
+{
+	/* According to Segger's document RM08001-R7 Date: October 8, 2010,
+	 * http://www.segger.com/admin/uploads/productDocs/RM08001_JLinkUSBProtocol.pdf
+	 * section 5.5.3 EMU_CMD_SELECT_IF
+	 * > SubCmd 1..31 to select interface (0..31)
+	 *
+	 * The table below states:
+	 *  0 TIF_JTAG
+	 *  1 TIF_SWD
+	 *
+	 * This obviosly means that to select TIF_JTAG one should write SubCmd = 1.
+	 *
+	 * In fact, JTAG interface operates when SubCmd=0
+	 *
+	 * It looks like a typo in documentation, because interfaces 0..31 could not
+	 * be selected by 1..31 range command.
+	 */
+	assert(iface >= 0 && iface < 32);
+	int result;
+
+	/* get available interfaces */
+	usb_out_buffer[0] = EMU_CMD_SELECT_IF;
+	usb_out_buffer[1] = 0xff;
+
+	result = jlink_usb_io(jlink_handle, 2, 4);
+	if (result != ERROR_OK) {
+		LOG_ERROR("J-Link query interface failed (%d)", result);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	uint32_t iface_mask = buf_get_u32(usb_in_buffer, 0, 32);
+
+	if (!(iface_mask & (1<<iface))) {
+		LOG_ERROR("J-Link requesting to select unsupported interface (%x)", iface_mask);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	/* Select interface */
+	usb_out_buffer[0] = EMU_CMD_SELECT_IF;
+	usb_out_buffer[1] = iface;
+
+	result = jlink_usb_io(jlink_handle, 2, 4);
+	if (result != ERROR_OK) {
+		LOG_ERROR("J-Link interface select failed (%d)", result);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	return ERROR_OK;
+}
+
 static int jlink_init(void)
 {
 	int i;
@@ -440,6 +524,17 @@ static int jlink_init(void)
 		/* attempt to get status */
 		jlink_get_status();
 	}
+
+	/*
+	 * Some versions of Segger's software do not select JTAG interface by default.
+	 *
+	 * Segger recommends to select interface necessarily as a part of init process,
+	 * in case any previous session leaves improper interface selected.
+	 *
+	 * Until SWD implemented, select only JTAG interface here.
+	 */
+	if (jlink_caps & (1<<EMU_CAP_SELECT_IF))
+		jlink_select_interface(0);
 
 	LOG_INFO("J-Link JTAG Interface ready");
 
@@ -749,8 +844,6 @@ static int jlink_set_config(struct jlink_config *cfg)
 static const char * const unsupported_versions[] = {
 	"Jan 31 2011",
 	"JAN 31 2011",
-	"Mar 19 2012",	/* V4.44 */
-	"May  3 2012",	/* V4.46 "J-Link ARM V8 compiled May  3 2012 18:36:22" */
 	NULL			/* End of list */
 };
 
