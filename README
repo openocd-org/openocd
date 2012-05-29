@@ -210,52 +210,84 @@ options may be available there:
 
   --enable-dummy          Enable building the dummy JTAG port driver
 
+  --enable-parport        Enable building the pc parallel port driver
+  --disable-parport-ppdev Disable use of ppdev (/dev/parportN) for parport
+                          (for x86 only)
+  --enable-parport-giveio Enable use of giveio for parport (for CygWin only)
+
+
   --enable-ft2232_libftdi Enable building support for FT2232 based devices
                           using the libftdi driver, opensource alternate of
                           FTD2XX
   --enable-ft2232_ftd2xx  Enable building support for FT2232 based devices
                           using the FTD2XX driver from ftdichip.com
 
+  --enable-usb_blaster_libftdi
+                          Enable building support for the Altera USB-Blaster
+                          using the libftdi driver, opensource alternate of
+                          FTD2XX
+  --enable-usb_blaster_ftd2xx
+                          Enable building support for the Altera USB-Blaster
+                          using the FTD2XX driver from ftdichip.com
+
+  --enable-amtjtagaccel   Enable building the Amontec JTAG-Accelerator driver
+
+  --enable-zy1000-master  Use ZY1000 JTAG master registers
+  --enable-zy1000         Enable ZY1000 interface
+
+  --enable-ioutil         Enable ioutil functions - useful for standalone
+                          OpenOCD implementations
+
+  --enable-ep93xx         Enable building support for EP93xx based SBCs
+
+  --enable-at91rm9200     Enable building support for AT91RM9200 based SBCs
+
   --enable-gw16012        Enable building support for the Gateworks GW16012
                           JTAG Programmer
-
-  --enable-parport        Enable building the pc parallel port driver
-  --disable-parport-ppdev Disable use of ppdev (/dev/parportN) for parport
-                          (for x86 only)
-  --enable-parport-giveio Enable use of giveio for parport (for CygWin only)
 
   --enable-presto_libftdi Enable building support for ASIX Presto Programmer
                           using the libftdi driver
   --enable-presto_ftd2xx  Enable building support for ASIX Presto Programmer
                           using the FTD2XX driver
 
-  --enable-amtjtagaccel   Enable building the Amontec JTAG-Accelerator driver
-  --enable-arm-jtag-ew    Enable building support for the Olimex ARM-JTAG-EW
+  --enable-usbprog        Enable building support for the usbprog JTAG
                           Programmer
+
+  --enable-oocd_trace     Enable building support for some prototype
+                          OpenOCD+trace ETM capture hardware
+
   --enable-jlink          Enable building support for the Segger J-Link JTAG
                           Programmer
+
+  --enable-vsllink        Enable building support for the Versaloon-Link JTAG
+                          Programmer
+
   --enable-rlink          Enable building support for the Raisonance RLink
                           JTAG Programmer
   --enable-ulink          Enable building support for the Keil ULINK JTAG
                           Programmer
-  --enable-usbprog        Enable building support for the usbprog JTAG
-                          Programmer
-  --enable-vsllink        Enable building support for the Versaloon-Link JTAG
+  --enable-arm-jtag-ew    Enable building support for the Olimex ARM-JTAG-EW
                           Programmer
 
-  --enable-oocd_trace     Enable building support for the OpenOCD+trace ETM
-                          capture device
+  --enable-buspirate      Enable building support for the Buspirate
 
-  --enable-ep93xx         Enable building support for EP93xx based SBCs
-  --enable-at91rm9200     Enable building support for AT91RM9200 based SBCs
+  --enable-stlink         Enable building support for the ST-Link JTAG
+                          Programmer
 
-  --enable-zy1000         Enable ZY1000 interface
+  --enable-osbdm          Enable building support for the OSBDM (JTAG only)
+                          Programmer
+
+  --enable-opendous       Enable building support for the estick/opendous JTAG
+                          Programmer
 
   --enable-minidriver-dummy
                           Enable the dummy minidriver.
 
-  --enable-ioutil         Enable ioutil functions - useful for standalone
-                          OpenOCD implementations
+  --disable-internal-jimtcl
+                          Disable building internal jimtcl
+  --enable-libusb0        Use libusb-0.1 library for USB JTAG devices
+  --enable-remote-bitbang Enable building support for the Remote Bitbang jtag
+                          driver
 
   --disable-doxygen-html Disable building Doxygen manual as HTML.
   --enable-doxygen-pdf   Enable building Doxygen manual as PDF.
