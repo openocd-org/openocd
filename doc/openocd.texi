@@ -2616,33 +2616,56 @@ This is a write-once setting.
 @end deffn
 
 @deffn {Interface Driver} {jlink}
-Segger jlink USB adapter
-@c command:	jlink caps
-@c     dumps jlink capabilities
-@c command:	jlink config
-@c     access J-Link configurationif no argument this will dump the config
-@c command:	jlink config kickstart [val]
-@c     set Kickstart power on JTAG-pin 19.
-@c command:	jlink config mac_address [ff:ff:ff:ff:ff:ff]
-@c     set the MAC Address
-@c command:	jlink config ip [A.B.C.D[/E] [F.G.H.I]]
-@c     set the ip address of the J-Link Pro, "
-@c     where A.B.C.D is the ip,
-@c     E the bit of the subnet mask
-@c     F.G.H.I the subnet mask
-@c command:	jlink config reset
-@c     reset the current config
-@c command:	jlink config save
-@c     save the current config
-@c command:	jlink config usb_address [0x00 to 0x03 or 0xff]
-@c     set the USB-Address,
-@c     This will change the product id
-@c command:	jlink info
-@c     dumps status
-@c command:	jlink hw_jtag (2|3)
-@c     sets version 2 or 3
-@c command:	 jlink pid
-@c     set the pid of the interface we want to use
+Segger J-Link family of USB adapters. It currently supports only the JTAG transport.
+
+@quotation Compatibility Note
+Segger released many firmware versions for the many harware versions they
+produced. OpenOCD was extensively tested and intended to run on all of them,
+but some combinations were reported as incompatible. As a general
+recommendation, it is advisable to use the latest firmware version
+available for each hardware version. However the current V8 is a moving
+target, and Segger firmware versions released after the OpenOCD was
+released may not be compatible. In such cases it is recommended to
+revert to the last known functional version. For 0.5.0, this is from
+"Feb  8 2012 14:30:39", packed with 4.42c. For 0.6.0, the last known
+version is from "May  3 2012 18:36:22", packed with 4.46f.
+@end quotation
+
+@deffn {Command} {jlink caps}
+Display the device firmware capabilities.
+@end deffn
+@deffn {Command} {jlink info}
+Display various device information, like hardware version, firmware version, current bus status.
+@end deffn
+@deffn {Command} {jlink hw_jtag} [@option{2}|@option{3}]
+Set the JTAG protocol version to be used. Without argument, show the actual JTAG protocol version.
+@end deffn
+@deffn {Command} {jlink config}
+Display the J-Link configuration.
+@end deffn
+@deffn {Command} {jlink config kickstart} [val]
+Set the Kickstart power on JTAG-pin 19. Without argument, show the Kickstart configuration.
+@end deffn
+@deffn {Command} {jlink config mac_address} [@option{ff:ff:ff:ff:ff:ff}]
+Set the MAC address of the J-Link Pro. Without argument, show the MAC address.
+@end deffn
+@deffn {Command} {jlink config ip} [@option{A.B.C.D}(@option{/E}|@option{F.G.H.I})]
+Set the IP configuration of the J-Link Pro, where A.B.C.D is the IP address,
+     E the bit of the subnet mask and
+     F.G.H.I the subnet mask. Without arguments, show the IP configuration.
+@end deffn
+@deffn {Command} {jlink config usb_address} [@option{0x00} to @option{0x03} or @option{0xff}]
+Set the USB address; this will also change the product id. Without argument, show the USB address.
+@end deffn
+@deffn {Command} {jlink config reset}
+Reset the current configuration.
+@end deffn
+@deffn {Command} {jlink config save}
+Save the current configuration to the internal persistent storage.
+@end deffn
+@deffn {Config} {jlink pid} val
+Set the USB PID of the interface. As a configuration command, it can be used only before 'init'.
+@end deffn
 @end deffn
 
 @deffn {Interface Driver} {parport}
