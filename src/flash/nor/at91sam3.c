@@ -82,6 +82,9 @@
 #define	FLASH_BANK1_BASE_256K_AX	0x000A0000
 #define	FLASH_BANK1_BASE_512K_AX	0x000C0000
 
+#define FLASH_BANK0_BASE_SD FLASH_BANK_BASE_S
+#define FLASH_BANK1_BASE_512K_SD (FLASH_BANK0_BASE_SD+(512*1024/2))
+
 #define         AT91C_EFC_FCMD_GETD                 (0x0)	/* (EFC) Get Flash Descriptor */
 #define         AT91C_EFC_FCMD_WP                   (0x1)	/* (EFC) Write Page */
 #define         AT91C_EFC_FCMD_WPL                  (0x2)	/* (EFC) Write Page and Lock */
@@ -724,6 +727,46 @@ static const struct sam3_chip_details all_sam3_details[] = {
 				.probed = 0,
 				.bank_number = 1,
 
+			},
+		},
+	},
+	{
+		.chipid_cidr    = 0x29ab0a60,
+		.name           = "at91sam3sd8c",
+		.total_flash_size     = 512 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+		{
+/*			.bank[0] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  256 * 1024,
+				.nsectors   =  16,
+				.sector_size = 16384,
+				.page_size   = 256,
+			  },
+/*			.bank[1] = { */
+			  {
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_512K_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  256 * 1024,
+				.nsectors   =  16,
+				.sector_size = 16384,
+				.page_size   = 256,
 			},
 		},
 	},
