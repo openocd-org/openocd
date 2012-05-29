@@ -20,7 +20,7 @@ add_remote()
 
 update_commit_msg()
 {
-	cd ${TOPDIR}/.git/hooks
+	cd "${TOPDIR}/.git/hooks"
 	save_file=commit-msg-`date +%F-%T`
 	mv commit-msg $save_file
 	printf "%-30s"	"Updating commit-msg"
