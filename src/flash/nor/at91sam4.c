@@ -1678,6 +1678,9 @@ static int sam4_erase(struct flash_bank *bank, int first, int last)
 	struct sam4_bank_private *pPrivate;
 	int r;
 	int i;
+	int pageCount;
+	/*16 pages equals 8KB - Same size as a lock region*/
+	pageCount = 16;
 	uint32_t status;
 
 	LOG_DEBUG("Here");
@@ -1705,7 +1708,7 @@ static int sam4_erase(struct flash_bank *bank, int first, int last)
 	LOG_INFO("sam4 First: 0x%08x Last: 0x%08x", (unsigned int)(first), (unsigned int)(last));
 	for (i = first; i <= last; i++) {
 		/*16 pages equals 8KB - Same size as a lock region*/
-		r = FLASHD_ErasePages(pPrivate, i, 16, &status);
+		r = FLASHD_ErasePages(pPrivate, (i * pageCount), pageCount, &status);
 		LOG_INFO("Erasing sector: 0x%08x", (unsigned int)(i));
 		if (r != ERROR_OK)
 			LOG_ERROR("SAM4: Error performing Erase page @ lock region number %d",
