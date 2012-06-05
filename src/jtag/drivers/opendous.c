@@ -39,38 +39,58 @@
 #include <sys/timeb.h>
 #include <time.h>
 
-#define ESTICK_VID 0x1781
-#define ESTICK_PID 0xC0C0
+#define OPENDOUS_MAX_VIDS_PIDS 4
+/* define some probes with similar interface */
+struct opendous_probe {
+	char *name;
+	uint16_t VID[OPENDOUS_MAX_VIDS_PIDS];
+	uint16_t PID[OPENDOUS_MAX_VIDS_PIDS];
+	uint8_t READ_EP;
+	uint8_t WRITE_EP;
+	uint8_t CONTROL_TRANSFER;
+	int BUFFERSIZE;
+};
 
-#define OPENDOUS_VID 0x03EB
-#define OPENDOUS_PID 0x204F
+static struct opendous_probe opendous_probes[] = {
+	{"usbprog-jtag",	{0x1781, 0},			{0x0C63, 0},			0x82, 0x02, 0x00, 510 },
+	{"opendous",		{0x1781, 0x03EB, 0},	{0xC0C0, 0x204F, 0},	0x81, 0x02, 0x00, 360 },
+	{"usbvlab",			{0x16C0, 0},			{0x05DC, 0},			0x81, 0x02, 0x01, 360 },
+	{NULL,				{0x0000},				{0x0000},				0x00, 0x00, 0x00,   0 }
+};
 
-/* pid could be specified at runtime */
-static uint16_t vids[] = { OPENDOUS_VID, ESTICK_VID, 0 };
-static uint16_t pids[] = { OPENDOUS_PID, ESTICK_PID, 0 };
-
-#define OPENDOUS_WRITE_ENDPOINT   0x02
-#define OPENDOUS_READ_ENDPOINT    0x81
+#define OPENDOUS_WRITE_ENDPOINT   (opendous_probe->WRITE_EP)
+#define OPENDOUS_READ_ENDPOINT    (opendous_probe->READ_EP)
 
 static unsigned int opendous_hw_jtag_version = 1;
 
 #define OPENDOUS_USB_TIMEOUT      1000
 
-#define OPENDOUS_USB_BUFFER_SIZE  360
+#define OPENDOUS_USB_BUFFER_SIZE  (opendous_probe->BUFFERSIZE)
 #define OPENDOUS_IN_BUFFER_SIZE   (OPENDOUS_USB_BUFFER_SIZE)
 #define OPENDOUS_OUT_BUFFER_SIZE  (OPENDOUS_USB_BUFFER_SIZE)
 
 /* Global USB buffers */
-static uint8_t usb_in_buffer[OPENDOUS_IN_BUFFER_SIZE];
-static uint8_t usb_out_buffer[OPENDOUS_OUT_BUFFER_SIZE];
+static uint8_t *usb_in_buffer;
+static uint8_t *usb_out_buffer;
 
 /* Constants for OPENDOUS command */
 
 #define OPENDOUS_MAX_SPEED			66
-#define OPENDOUS_MAX_TAP_TRANSMIT	350	/* even number is easier to handle */
+#define OPENDOUS_MAX_TAP_TRANSMIT	((opendous_probe->BUFFERSIZE)-10)
 #define OPENDOUS_MAX_INPUT_DATA		(OPENDOUS_MAX_TAP_TRANSMIT*4)
 
+/* TAP */
 #define OPENDOUS_TAP_BUFFER_SIZE 65536
+
+struct pending_scan_result {
+	int first;	/* First bit position in tdo_buffer to read */
+	int length; /* Number of bits to read */
+	struct scan_command *command; /* Corresponding scan command */
+	uint8_t *buffer;
+};
+
+static int pending_scan_results_length;
+static struct pending_scan_result *pending_scan_results_buffer;
 
 #define MAX_PENDING_SCAN_RESULTS (OPENDOUS_MAX_INPUT_DATA)
 
@@ -83,6 +103,14 @@ static uint8_t usb_out_buffer[OPENDOUS_OUT_BUFFER_SIZE];
 #define JTAG_CMD_SET_DELAY		0x5
 #define JTAG_CMD_SET_SRST_TRST	0x6
 #define JTAG_CMD_READ_CONFIG	0x7
+
+/* usbvlab control transfer */
+#define FUNC_START_BOOTLOADER 30
+#define FUNC_WRITE_DATA       0x50
+#define FUNC_READ_DATA        0x51
+
+static char *opendous_type;
+static struct opendous_probe *opendous_probe;
 
 /* External interface functions */
 static int opendous_execute_queue(void);
@@ -131,6 +159,22 @@ static struct opendous_jtag *opendous_jtag_handle;
 
 /***************************************************************************/
 /* External interface implementation */
+
+COMMAND_HANDLER(opendous_handle_opendous_type_command)
+{
+	if (CMD_ARGC == 0)
+		return ERROR_OK;
+
+	/* only if the cable name wasn't overwritten by cmdline */
+	if (opendous_type == NULL) {
+		/* REVISIT first verify that it's listed in cables[] ... */
+		opendous_type = strdup(CMD_ARGV[0]);
+	}
+
+	/* REVISIT it's probably worth returning the current value ... */
+
+	return ERROR_OK;
+}
 
 COMMAND_HANDLER(opendous_handle_opendous_info_command)
 {
@@ -183,6 +227,13 @@ static const struct command_registration opendous_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "access opendous HW JTAG command version",
 		.usage = "[2|3]",
+	},
+	{
+		.name = "opendous_type",
+		.handler = &opendous_handle_opendous_type_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set opendous type",
+		.usage = "[usbvlab|usbprog-jtag|opendous]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -273,6 +324,34 @@ static int opendous_execute_queue(void)
 static int opendous_init(void)
 {
 	int check_cnt;
+	struct opendous_probe *cur_opendous_probe;
+
+	cur_opendous_probe = opendous_probes;
+
+	if (opendous_type == NULL) {
+		opendous_type = strdup("opendous");
+		LOG_WARNING("No opendous_type specified, using default 'opendous'");
+	}
+
+	while (cur_opendous_probe->name) {
+		if (strcmp(cur_opendous_probe->name, opendous_type) == 0) {
+			opendous_probe = cur_opendous_probe;
+			break;
+		}
+		cur_opendous_probe++;
+	}
+
+	if (!opendous_probe) {
+		LOG_ERROR("No matching cable found for %s", opendous_type);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+
+	usb_in_buffer = malloc(opendous_probe->BUFFERSIZE);
+	usb_out_buffer = malloc(opendous_probe->BUFFERSIZE);
+
+	pending_scan_results_buffer = (struct pending_scan_result *)
+			malloc(MAX_PENDING_SCAN_RESULTS * sizeof(struct pending_scan_result));
 
 	opendous_jtag_handle = opendous_usb_open();
 
@@ -303,6 +382,27 @@ static int opendous_init(void)
 static int opendous_quit(void)
 {
 	opendous_usb_close(opendous_jtag_handle);
+
+	if (usb_out_buffer) {
+		free(usb_out_buffer);
+		usb_out_buffer = NULL;
+	}
+
+	if (usb_in_buffer) {
+		free(usb_in_buffer);
+		usb_in_buffer = NULL;
+	}
+
+	if (pending_scan_results_buffer) {
+		free(pending_scan_results_buffer);
+		pending_scan_results_buffer = NULL;
+	}
+
+	if (opendous_type) {
+		free(opendous_type);
+		opendous_type = NULL;
+	}
+
 	return ERROR_OK;
 }
 
@@ -461,16 +561,6 @@ static int tap_length;
 static uint8_t tms_buffer[OPENDOUS_TAP_BUFFER_SIZE];
 static uint8_t tdo_buffer[OPENDOUS_TAP_BUFFER_SIZE];
 
-struct pending_scan_result {
-	int first;	/* First bit position in tdo_buffer to read */
-	int length; /* Number of bits to read */
-	struct scan_command *command; /* Corresponding scan command */
-	uint8_t *buffer;
-};
-
-static int pending_scan_results_length;
-static struct pending_scan_result pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
-
 static int last_tms;
 
 void opendous_tap_init(void)
@@ -622,7 +712,7 @@ struct opendous_jtag *opendous_usb_open(void)
 	struct opendous_jtag *result;
 
 	struct jtag_libusb_device_handle *devh;
-	if (jtag_libusb_open(vids, pids, &devh) != ERROR_OK)
+	if (jtag_libusb_open(opendous_probe->VID, opendous_probe->PID, &devh) != ERROR_OK)
 		return NULL;
 
 	jtag_libusb_set_configuration(devh, 0);
@@ -672,8 +762,14 @@ int opendous_usb_write(struct opendous_jtag *opendous_jtag, int out_length)
 #ifdef _DEBUG_USB_COMMS_
 	LOG_DEBUG("%s: USB write begin", opendous_get_time(time_str));
 #endif
-	result = jtag_libusb_bulk_write(opendous_jtag->usb_handle, OPENDOUS_WRITE_ENDPOINT, \
-		(char *)usb_out_buffer, out_length, OPENDOUS_USB_TIMEOUT);
+	if (opendous_probe->CONTROL_TRANSFER) {
+		result = jtag_libusb_control_transfer(opendous_jtag->usb_handle,
+			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
+			FUNC_WRITE_DATA, 0, 0, (char *) usb_out_buffer, out_length, OPENDOUS_USB_TIMEOUT);
+	} else {
+		result = jtag_libusb_bulk_write(opendous_jtag->usb_handle, OPENDOUS_WRITE_ENDPOINT, \
+			(char *)usb_out_buffer, out_length, OPENDOUS_USB_TIMEOUT);
+	}
 #ifdef _DEBUG_USB_COMMS_
 	LOG_DEBUG("%s: USB write end: %d bytes", opendous_get_time(time_str), result);
 #endif
@@ -692,8 +788,15 @@ int opendous_usb_read(struct opendous_jtag *opendous_jtag)
 #ifdef _DEBUG_USB_COMMS_
 	LOG_DEBUG("%s: USB read begin", opendous_get_time(time_str));
 #endif
-	int result = jtag_libusb_bulk_read(opendous_jtag->usb_handle, OPENDOUS_READ_ENDPOINT,
-		(char *)usb_in_buffer, OPENDOUS_IN_BUFFER_SIZE, OPENDOUS_USB_TIMEOUT);
+	int result;
+	if (opendous_probe->CONTROL_TRANSFER) {
+		result = jtag_libusb_control_transfer(opendous_jtag->usb_handle,
+			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_IN,
+			FUNC_READ_DATA, 0, 0, (char *) usb_in_buffer, OPENDOUS_IN_BUFFER_SIZE, OPENDOUS_USB_TIMEOUT);
+	} else {
+		result = jtag_libusb_bulk_read(opendous_jtag->usb_handle, OPENDOUS_READ_ENDPOINT,
+			(char *)usb_in_buffer, OPENDOUS_IN_BUFFER_SIZE, OPENDOUS_USB_TIMEOUT);
+	}
 #ifdef _DEBUG_USB_COMMS_
 	LOG_DEBUG("%s: USB read end: %d bytes", opendous_get_time(time_str), result);
 #endif

@@ -35,6 +35,12 @@
 #define jtag_libusb_reset_device(dev)		usb_reset(dev)
 #define jtag_libusb_get_device(devh)		usb_device(devh)
 
+/* make some defines compatible to libusb1 */
+#define LIBUSB_REQUEST_TYPE_VENDOR		USB_TYPE_VENDOR
+#define LIBUSB_RECIPIENT_DEVICE			USB_RECIP_DEVICE
+#define LIBUSB_ENDPOINT_OUT				USB_ENDPOINT_OUT
+#define LIBUSB_ENDPOINT_IN				USB_ENDPOINT_IN
+
 static inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
 				       int iface)
 {
@@ -44,6 +50,9 @@ static inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 		struct jtag_libusb_device_handle **out);
 void jtag_libusb_close(jtag_libusb_device_handle *dev);
+int jtag_libusb_control_transfer(jtag_libusb_device_handle *dev,
+		uint8_t requestType, uint8_t request, uint16_t wValue,
+		uint16_t wIndex, char *bytes,	uint16_t size, unsigned int timeout);
 int jtag_libusb_bulk_write(struct jtag_libusb_device_handle *dev, int ep,
 		char *bytes, int size, int timeout);
 int jtag_libusb_bulk_read(struct jtag_libusb_device_handle *dev, int ep,

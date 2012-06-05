@@ -67,6 +67,21 @@ void jtag_libusb_close(jtag_libusb_device_handle *dev)
 	usb_close(dev);
 }
 
+int jtag_libusb_control_transfer(jtag_libusb_device_handle *dev, uint8_t requestType,
+		uint8_t request, uint16_t wValue, uint16_t wIndex, char *bytes,
+		uint16_t size, unsigned int timeout)
+{
+	int transferred = 0;
+
+	transferred = usb_control_msg(dev, requestType, request, wValue, wIndex,
+				bytes, size, timeout);
+
+	if (transferred < 0)
+		transferred = 0;
+
+	return transferred;
+}
+
 int jtag_libusb_bulk_write(jtag_libusb_device_handle *dev, int ep, char *bytes,
 		int size, int timeout)
 {

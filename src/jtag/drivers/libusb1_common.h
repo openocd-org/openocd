@@ -44,6 +44,9 @@ static inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 		struct jtag_libusb_device_handle **out);
 void jtag_libusb_close(jtag_libusb_device_handle *dev);
+int jtag_libusb_control_transfer(jtag_libusb_device_handle *dev,
+		uint8_t requestType, uint8_t request, uint16_t wValue,
+		uint16_t wIndex, char *bytes,	uint16_t size, unsigned int timeout);
 int jtag_libusb_bulk_write(struct jtag_libusb_device_handle *dev, int ep,
 		char *bytes,	int size, int timeout);
 int jtag_libusb_bulk_read(struct jtag_libusb_device_handle *dev, int ep,
