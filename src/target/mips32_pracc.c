@@ -153,18 +153,22 @@ static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t add
 	uint32_t ejtag_ctrl, data;
 
 	if ((address >= MIPS32_PRACC_PARAM_IN)
-		&& (address <= MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4)) {
+		&& (address < MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4)) {
 		offset = (address - MIPS32_PRACC_PARAM_IN) / 4;
 		data = ctx->local_iparam[offset];
 	} else if ((address >= MIPS32_PRACC_PARAM_OUT)
-		&& (address <= MIPS32_PRACC_PARAM_OUT + ctx->num_oparam * 4)) {
+		&& (address < MIPS32_PRACC_PARAM_OUT + ctx->num_oparam * 4)) {
 		offset = (address - MIPS32_PRACC_PARAM_OUT) / 4;
 		data = ctx->local_oparam[offset];
 	} else if ((address >= MIPS32_PRACC_TEXT)
-		&& (address <= MIPS32_PRACC_TEXT + ctx->code_len * 4)) {
+		&& (address < MIPS32_PRACC_TEXT + ctx->code_len * 4)) {
 		offset = (address - MIPS32_PRACC_TEXT) / 4;
 		data = ctx->code[offset];
 	} else if (address == MIPS32_PRACC_STACK) {
+		if (ctx->stack_offset <= 0) {
+			LOG_ERROR("Error: Pracc stack out of bounds");
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
 		/* save to our debug stack */
 		data = ctx->stack[--ctx->stack_offset];
 	} else {
@@ -209,14 +213,18 @@ static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t ad
 		return retval;
 
 	if ((address >= MIPS32_PRACC_PARAM_IN)
-		&& (address <= MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4)) {
+		&& (address < MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4)) {
 		offset = (address - MIPS32_PRACC_PARAM_IN) / 4;
 		ctx->local_iparam[offset] = data;
 	} else if ((address >= MIPS32_PRACC_PARAM_OUT)
-		&& (address <= MIPS32_PRACC_PARAM_OUT + ctx->num_oparam * 4)) {
+		&& (address < MIPS32_PRACC_PARAM_OUT + ctx->num_oparam * 4)) {
 		offset = (address - MIPS32_PRACC_PARAM_OUT) / 4;
 		ctx->local_oparam[offset] = data;
 	} else if (address == MIPS32_PRACC_STACK) {
+		if (ctx->stack_offset >= 32) {
+			LOG_ERROR("Error: Pracc stack out of bounds");
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
 		/* save data onto our stack */
 		ctx->stack[ctx->stack_offset++] = data;
 	} else {
@@ -231,7 +239,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_
 		int num_param_in, uint32_t *param_in, int num_param_out, uint32_t *param_out, int cycle)
 {
 	uint32_t ejtag_ctrl;
-	uint32_t address, data;
+	uint32_t address;
 	struct mips32_pracc_context ctx;
 	int retval;
 	int pass = 0;
@@ -250,7 +258,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_
 		if (retval != ERROR_OK)
 			return retval;
 
-		address = data = 0;
+		address = 0;
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 		retval = mips_ejtag_drscan_32(ejtag_info, &address);
 		if (retval != ERROR_OK)
