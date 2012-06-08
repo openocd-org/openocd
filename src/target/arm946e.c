@@ -112,6 +112,16 @@ static int arm946e_verify_pointer(struct command_context *cmd_ctx,
 }
 
 /*
+ * Update cp15_control_reg, saved on debug_entry.
+ */
+static void arm946e_update_cp15_caches(struct target *target, uint32_t value)
+{
+	struct arm946e_common *arm946e = target_to_arm946(target);
+	arm946e->cp15_control_reg = (arm946e->cp15_control_reg & ~(CP15_CTL_DCACHE|CP15_CTL_ICACHE))
+		| (value & (CP15_CTL_DCACHE|CP15_CTL_ICACHE));
+}
+
+/*
  * REVISIT:  The "read_cp15" and "write_cp15" commands could hook up
  * to eventual mrc() and mcr() routines ... the reg_addr values being
  * constructed (for CP15 only) from Opcode_1, Opcode_2, and CRn values.
@@ -541,61 +551,79 @@ int arm946e_read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-
-COMMAND_HANDLER(arm946e_handle_cp15_command)
+static int jim_arm946e_cp15(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
-	int retval;
-	struct target *target = get_current_target(CMD_CTX);
-	struct arm946e_common *arm946e = target_to_arm946(target);
+	/* one or two arguments, access a single register (write if second argument is given) */
+	if (argc < 2 || argc > 3) {
+		Jim_WrongNumArgs(interp, 1, argv, "addr [value]");
+		return JIM_ERR;
+	}
 
-	retval = arm946e_verify_pointer(CMD_CTX, arm946e);
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx != NULL);
+
+	struct target *target = get_current_target(cmd_ctx);
+	if (target == NULL) {
+		LOG_ERROR("arm946e: no current target");
+		return JIM_ERR;
+	}
+
+	struct arm946e_common *arm946e = target_to_arm946(target);
+	int retval = arm946e_verify_pointer(cmd_ctx, arm946e);
 	if (retval != ERROR_OK)
-		return retval;
+		return JIM_ERR;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
-		return ERROR_OK;
+		command_print(cmd_ctx, "target %s must be stopped for \"cp15\" command", target_name(target));
+		return JIM_ERR;
 	}
 
-	/* one or more argument, access a single register (write if second argument is given */
-	if (CMD_ARGC >= 1) {
-		uint32_t address;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	long l;
+	uint32_t address;
+	retval = Jim_GetLong(interp, argv[1], &l);
+	address = l;
+	if (JIM_OK != retval)
+		return retval;
 
-		if (CMD_ARGC == 1) {
-			uint32_t value;
-			retval = arm946e_read_cp15(target, address, &value);
-			if (retval != ERROR_OK) {
-				command_print(CMD_CTX, "couldn't access reg %" PRIi32, address);
-				return ERROR_OK;
-			}
-			retval = jtag_execute_queue();
-			if (retval != ERROR_OK)
-				return retval;
-
-			command_print(CMD_CTX, "%" PRIi32 ": %8.8" PRIx32, address, value);
-		} else if (CMD_ARGC == 2) {
-			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
-			retval = arm946e_write_cp15(target, address, value);
-			if (retval != ERROR_OK) {
-				command_print(CMD_CTX, "couldn't access reg %" PRIi32, address);
-				return ERROR_OK;
-			}
-			command_print(CMD_CTX, "%" PRIi32 ": %8.8" PRIx32, address, value);
+	if (argc == 2) {
+		uint32_t value;
+		retval = arm946e_read_cp15(target, address, &value);
+		if (retval != ERROR_OK) {
+			command_print(cmd_ctx, "%s cp15 reg %" PRIi32 " access failed", target_name(target), address);
+			return JIM_ERR;
 		}
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK)
+			return JIM_ERR;
+		char buf[20];
+		sprintf(buf, "0x%08x", value);
+		/* Return value in hex format */
+		Jim_SetResultString(interp, buf, -1);
+	} else if (argc == 3) {
+		uint32_t value;
+		retval = Jim_GetLong(interp, argv[2], &l);
+		value = l;
+		if (JIM_OK != retval)
+			return retval;
+		retval = arm946e_write_cp15(target, address, value);
+		if (retval != ERROR_OK) {
+			command_print(cmd_ctx, "%s cp15 reg %" PRIi32 " access failed", target_name(target), address);
+			return JIM_ERR;
+		}
+		if (address == CP15_CTL)
+			arm946e_update_cp15_caches(target, value);
 	}
 
-	return ERROR_OK;
+	return JIM_OK;
 }
 
 static const struct command_registration arm946e_exec_command_handlers[] = {
 	{
 		.name = "cp15",
-		.handler = arm946e_handle_cp15_command,
+		.jim_handler = jim_arm946e_cp15,
 		.mode = COMMAND_EXEC,
 		.usage = "regnum [value]",
-		.help = "display/modify cp15 register",
+		.help = "read/modify cp15 register",
 	},
 	COMMAND_REGISTRATION_DONE
 };
