@@ -35,6 +35,7 @@ struct arm946e_common {
 	struct arm7_9_common arm7_9_common;
 	int common_magic;
 	uint32_t cp15_control_reg;
+	uint32_t cp15_cache_info;
 };
 
 static inline struct arm946e_common *target_to_arm946(struct target *target)

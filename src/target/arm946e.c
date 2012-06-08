@@ -210,43 +210,55 @@ int arm946e_write_cp15(struct target *target, int reg_addr, uint32_t value)
 	return ERROR_OK;
 }
 
+#define GET_ICACHE_SIZE  6
+#define GET_DCACHE_SIZE 18
+
+/*
+ * \param target struct target pointer
+ * \param idsel  select GET_ICACHE_SIZE or GET_DCACHE_SIZE
+ * \returns      cache size, given in bytes
+ */
+static uint32_t arm946e_cp15_get_csize(struct target *target, int idsel)
+{
+	struct arm946e_common *arm946e = target_to_arm946(target);
+	uint32_t csize = arm946e->cp15_cache_info;
+	if (csize == 0) {
+		if (arm946e_read_cp15(target, 0x01, &csize) == ERROR_OK)
+			arm946e->cp15_cache_info = csize;
+	}
+	if (csize & (1<<(idsel-4)))	/* cache absent */
+		return 0;
+	csize = (csize >> idsel) & 0x0F;
+	return csize ? 1 << (12 + (csize-3)) : 0;
+}
+
 uint32_t arm946e_invalidate_whole_dcache(struct target *target)
 {
-
-	uint32_t csize = 0;
-	uint32_t shift = 0;
-	uint32_t cp15_idx, seg, dtag;
-	int nb_idx, idx = 0;
-	int retval;
-
-	/* Get cache type */
-	arm946e_read_cp15(target, 0x01, (uint32_t *) &csize);
-
-	csize = (csize >> 18) & 0x0F;
-
+	uint32_t csize = arm946e_cp15_get_csize(target, GET_DCACHE_SIZE);
 	if (csize == 0)
-		shift = 0;
-	else
-		shift = csize - 0x3;	/* Now 0 = 4KB, 1 = 8KB, ... */
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	/* Cache size, given in bytes */
-	csize = 1 << (12 + shift);
-	/* One line (index) is 32 bytes (8 words) long */
-	nb_idx = (csize / 32);	/* gives nb of lines (indexes) in the cache */
+	/* One line (index) is 32 bytes (8 words) long, 4-way assoc
+	 * ARM DDI 0201D, Section 3.3.5
+	 */
+	int nb_idx = (csize / (4*8*NB_CACHE_WAYS));	/* gives nb of lines (indexes) in the cache */
 
 	/* Loop for all segmentde (i.e. ways) */
+	uint32_t seg;
 	for (seg = 0; seg < NB_CACHE_WAYS; seg++) {
 		/* Loop for all indexes */
+		int idx;
 		for (idx = 0; idx < nb_idx; idx++) {
 			/* Form and write cp15 index (segment + line idx) */
-			cp15_idx = seg << 30 | idx << 5;
-			retval = arm946e_write_cp15(target, 0x3a, cp15_idx);
+			uint32_t cp15_idx = seg << 30 | idx << 5;
+			int retval = arm946e_write_cp15(target, 0x3a, cp15_idx);
 			if (retval != ERROR_OK) {
 				LOG_DEBUG("ERROR writing index");
 				return retval;
 			}
 
 			/* Read dtag */
+			uint32_t dtag;
 			arm946e_read_cp15(target, 0x16, (uint32_t *) &dtag);
 
 			/* Check cache line VALID bit */
@@ -274,15 +286,17 @@ uint32_t arm946e_invalidate_whole_dcache(struct target *target)
 
 uint32_t arm946e_invalidate_whole_icache(struct target *target)
 {
-	int retval;
+	/* Check cache presence before flushing - avoid undefined behavior */
+	uint32_t csize = arm946e_cp15_get_csize(target, GET_ICACHE_SIZE);
+	if (csize == 0)
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	LOG_DEBUG("FLUSHING I$");
-
 	/**
 	 *  Invalidate (flush) I$
 	 *  mcr	15, 0, r0, cr7, cr5, {0}
 	 */
-	retval = arm946e_write_cp15(target, 0x0f, 0x1);
+	int retval = arm946e_write_cp15(target, 0x0f, 0x1);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("ERROR flushing I$");
 		return retval;
@@ -360,8 +374,6 @@ void arm946e_pre_restore_context(struct target *target)
 uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 	uint32_t size, uint32_t count)
 {
-	uint32_t csize = 0x0;
-	uint32_t shift = 0;
 	uint32_t cur_addr = 0x0;
 	uint32_t cp15_idx, set, way, dtag;
 	uint32_t i = 0;
@@ -370,18 +382,6 @@ uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 	for (i = 0; i < count*size; i++) {
 		cur_addr = address + i;
 
-		/* Get cache type */
-		arm946e_read_cp15(target, 0x01, (uint32_t *) &csize);
-
-		/* Conclude cache size to find number of lines */
-		csize = (csize >> 18) & 0x0F;
-
-		if (csize == 0)
-			shift = 0;
-		else
-			shift = csize - 0x3;	/* Now 0 = 4KB, 1 = 8KB, ... */
-
-		csize = 1 << (12 + shift);
 
 		set = (cur_addr >> 5) & 0xff;	/* set field is 8 bits long */
 
