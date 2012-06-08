@@ -617,6 +617,90 @@ static int jim_arm946e_cp15(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	return JIM_OK;
 }
 
+COMMAND_HANDLER(arm946e_handle_idcache)
+{
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	int retval;
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm946e_common *arm946e = target_to_arm946(target);
+
+	retval = arm946e_verify_pointer(CMD_CTX, arm946e);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (target->state != TARGET_HALTED) {
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	bool icache = (strcmp(CMD_NAME, "icache") == 0);
+	uint32_t csize = arm946e_cp15_get_csize(target, icache ? GET_ICACHE_SIZE : GET_DCACHE_SIZE) / 1024;
+	if (CMD_ARGC == 0) {
+		bool  bena = ((arm946e->cp15_control_reg & (icache ? CP15_CTL_ICACHE : CP15_CTL_DCACHE)) != 0)
+			  && (arm946e->cp15_control_reg & 0x1);
+		if (csize == 0)
+			command_print(CMD_CTX, "%s-cache absent", icache ? "I" : "D");
+		else
+			command_print(CMD_CTX, "%s-cache size: %dK, %s", icache ? "I" : "D", csize, bena ? "enabled" : "disabled");
+		return ERROR_OK;
+	}
+
+	bool flush = false;
+	bool enable = false;
+	retval = command_parse_bool_arg(CMD_ARGV[0], &enable);
+	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
+		if (strcmp(CMD_ARGV[0], "flush") == 0) {
+			flush = true;
+			retval = ERROR_OK;
+		} else
+			return retval;
+	}
+
+	/* Do not invalidate or change state, if cache is absent */
+	if (csize == 0) {
+		command_print(CMD_CTX, "%s-cache absent, '%s' operation undefined", icache ? "I" : "D", CMD_ARGV[0]);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	/* NOTE: flushing entire cache will not preserve lock-down cache regions */
+	if (icache) {
+		if ((arm946e->cp15_control_reg & CP15_CTL_ICACHE) && !enable)
+			retval = arm946e_invalidate_whole_icache(target);
+	} else {
+		if ((arm946e->cp15_control_reg & CP15_CTL_DCACHE) && !enable)
+			retval = arm946e_invalidate_whole_dcache(target);
+	}
+
+	if (retval != ERROR_OK || flush)
+		return retval;
+
+	uint32_t value;
+	retval = arm946e_read_cp15(target, CP15_CTL, &value);
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint32_t vnew = value;
+	uint32_t cmask = icache ? CP15_CTL_ICACHE : CP15_CTL_DCACHE;
+	if (enable) {
+		if ((value & 0x1) == 0)
+			LOG_WARNING("arm946e: MPU must be enabled for cache to operate");
+		vnew |= cmask;
+	} else
+		vnew &= ~cmask;
+
+	if (vnew == value)
+		return ERROR_OK;
+
+	retval = arm946e_write_cp15(target, CP15_CTL, vnew);
+	if (retval != ERROR_OK)
+		return retval;
+
+	arm946e_update_cp15_caches(target, vnew);
+	return ERROR_OK;
+}
+
 static const struct command_registration arm946e_exec_command_handlers[] = {
 	{
 		.name = "cp15",
@@ -624,6 +708,20 @@ static const struct command_registration arm946e_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "regnum [value]",
 		.help = "read/modify cp15 register",
+	},
+	{
+		.name = "icache",
+		.handler = arm946e_handle_idcache,
+		.mode = COMMAND_EXEC,
+		.usage = "['enable'|'disable'|'flush']",
+		.help = "I-cache info and operations",
+	},
+	{
+		.name = "dcache",
+		.handler = arm946e_handle_idcache,
+		.mode = COMMAND_EXEC,
+		.usage = "['enable'|'disable'|'flush']",
+		.help = "D-cache info and operations",
 	},
 	COMMAND_REGISTRATION_DONE
 };
