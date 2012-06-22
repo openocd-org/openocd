@@ -353,9 +353,8 @@ static int at91sam7_flash_command(struct flash_bank *bank, uint8_t cmd, uint16_t
 /* Read device id register, main clock frequency register and fill in driver info structure */
 static int at91sam7_read_part_info(struct flash_bank *bank)
 {
-	struct flash_bank *t_bank = bank;
 	struct at91sam7_flash_bank *at91sam7_info;
-	struct target *target = t_bank->target;
+	struct target *target = bank->target;
 
 	uint16_t bnk, sec;
 	uint16_t arch;
@@ -370,12 +369,12 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 	uint32_t base_address = 0;
 	char *target_name_t = "Unknown";
 
-	at91sam7_info = t_bank->driver_priv;
+	at91sam7_info = bank->driver_priv;
 
 	if (at91sam7_info->cidr != 0) {
 		/* flash already configured, update clock and check for protected sectors */
 		struct flash_bank *fb = bank;
-		t_bank = fb;
+		struct flash_bank *t_bank = bank;
 
 		while (t_bank) {
 			/* re-calculate master clock frequency */
@@ -404,7 +403,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 	if (at91sam7_info->flash_autodetection == 0) {
 		/* banks and sectors are already created, based on data from input file */
 		struct flash_bank *fb = bank;
-		t_bank = fb;
+		struct flash_bank *t_bank = bank;
 		while (t_bank) {
 			at91sam7_info = t_bank->driver_priv;
 
@@ -576,6 +575,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 	bank_size = sectors_num * pages_per_sector * page_size;
 
 	for (bnk = 0; bnk < banks_num; bnk++) {
+		struct flash_bank *t_bank = bank;
 		if (bnk > 0) {
 			if (!t_bank->next) {
 				/* create a new flash bank element */
