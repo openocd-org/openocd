@@ -962,10 +962,10 @@ static bool jtag_idcode_is_final(uint32_t idcode)
 {
 	/*
 	 * Some devices, such as AVR8, will output all 1's instead
-	 * of TDI input value at end of chain.  Allow those values
+	 * of TDI input value at end of chain. Allow those values
 	 * instead of failing.
 	 */
-	return idcode == END_OF_CHAIN_FLAG || idcode == 0xFFFFFFFF;
+	return idcode == END_OF_CHAIN_FLAG;
 }
 
 /**
