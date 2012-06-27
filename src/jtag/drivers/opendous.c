@@ -465,7 +465,8 @@ void opendous_simple_command(uint8_t command, uint8_t _data)
 
 	DEBUG_JTAG_IO("0x%02x 0x%02x", command, _data);
 
-	usb_out_buffer[0] = (uint16_t) 2;
+	usb_out_buffer[0] = 2;
+	usb_out_buffer[1] = 0;
 	usb_out_buffer[2] = command;
 	usb_out_buffer[3] = _data;
 
