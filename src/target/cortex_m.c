@@ -1829,6 +1829,11 @@ int cortex_m3_examine(struct target *target)
 			armv7m->arm.is_armv6m = true;
 		}
 
+		if (i == 4 || i == 3) {
+			/* Cortex-M3/M4 has 4096 bytes autoincrement range */
+			armv7m->dap.tar_autoincr_block = (1 << 12);
+		}
+
 		/* NOTE: FPB and DWT are both optional. */
 
 		/* Setup FPB */
@@ -1964,8 +1969,11 @@ static int cortex_m3_init_arch_info(struct target *target,
 	/* Leave (only) generic DAP stuff for debugport_init(); */
 	armv7m->dap.jtag_info = &cortex_m3->jtag_info;
 	armv7m->dap.memaccess_tck = 8;
-	/* Cortex-M3 has 4096 bytes autoincrement range */
-	armv7m->dap.tar_autoincr_block = (1 << 12);
+
+	/* Cortex-M3/M4 has 4096 bytes autoincrement range
+	 * but set a safe default to 1024 to support Cortex-M0
+	 * this will be changed in cortex_m3_examine if a M3/M4 is detected */
+	armv7m->dap.tar_autoincr_block = (1 << 10);
 
 	/* register arch-specific functions */
 	armv7m->examine_debug_reason = cortex_m3_examine_debug_reason;
