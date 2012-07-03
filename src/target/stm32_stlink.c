@@ -586,6 +586,7 @@ static int stm32_stlink_resume(struct target *target, int current,
 		return res;
 
 	target->state = TARGET_RUNNING;
+	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
@@ -754,12 +755,20 @@ static int stm32_stlink_bulk_write_memory(struct target *target,
 	return stm32_stlink_write_memory(target, address, 4, count, buffer);
 }
 
+static const struct command_registration stm32_stlink_command_handlers[] = {
+	{
+		.chain = arm_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 struct target_type stm32_stlink_target = {
 	.name = "stm32_stlink",
 
 	.init_target = stm32_stlink_init_target,
 	.target_create = stm32_stlink_target_create,
 	.examine = cortex_m3_examine,
+	.commands = stm32_stlink_command_handlers,
 
 	.poll = stm32_stlink_poll,
 	.arch_state = armv7m_arch_state,
