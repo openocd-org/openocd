@@ -830,6 +830,9 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	} else if (((cpuid >> 4) & 0xFFF) == 0xC23) {
 		/* 0xC23 is M3 devices */
 		device_id_register = 0xE0042000;
+	} else if (((cpuid >> 4) & 0xFFF) == 0xC24) {
+		/* 0xC24 is M4 devices */
+		device_id_register = 0xE0042000;
 	} else {
 		LOG_ERROR("Cannot identify target as a stm32x");
 		return ERROR_FAIL;
@@ -858,6 +861,9 @@ static int stm32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_i
 	} else if (((cpuid >> 4) & 0xFFF) == 0xC23) {
 		/* 0xC23 is M3 devices */
 		flash_size_reg = 0x1FFFF7E0;
+	} else if (((cpuid >> 4) & 0xFFF) == 0xC24) {
+		/* 0xC24 is M4 devices */
+		flash_size_reg = 0x1FFFF7CC;
 	} else {
 		LOG_ERROR("Cannot identify target as a stm32x");
 		return ERROR_FAIL;
@@ -957,6 +963,17 @@ static int stm32x_probe(struct flash_bank *bank)
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
 			flash_size_in_kb = 128;
 		}
+	} else if ((device_id & 0xfff) == 0x422) {
+		/* stm32f30x - we have 2k pages
+		 * 2 pages for a protection area */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+
+		/* check for early silicon */
+		if (flash_size_in_kb == 0xffff) {
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 256k flash");
+			flash_size_in_kb = 256;
+		}
 	} else if ((device_id & 0xfff) == 0x428) {
 		/* value line High density - we have 2k pages
 		 * 4 pages for a protection area */
@@ -992,6 +1009,17 @@ static int stm32x_probe(struct flash_bank *bank)
 			/* bank1 also uses a register offset */
 			stm32x_info->register_base = FLASH_REG_BASE_B1;
 			base_address = 0x08080000;
+		}
+	} else if ((device_id & 0xfff) == 0x432) {
+		/* stm32f37x - we have 2k pages
+		 * 2 pages for a protection area */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+
+		/* check for early silicon */
+		if (flash_size_in_kb == 0xffff) {
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 256k flash");
+			flash_size_in_kb = 256;
 		}
 	} else if ((device_id & 0xfff) == 0x440) {
 		/* stm32f0x - we have 1k pages
@@ -1162,6 +1190,20 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "unknown");
 				break;
 		}
+	} else if ((device_id & 0xfff) == 0x422) {
+		printed = snprintf(buf, buf_size, "stm32f30x - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+
+		switch (device_id >> 16) {
+			case 0x1000:
+				snprintf(buf, buf_size, "1.0");
+				break;
+
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
 	} else if ((device_id & 0xfff) == 0x428) {
 		printed = snprintf(buf, buf_size, "stm32x (Value HD) - Rev: ");
 		buf += printed;
@@ -1188,6 +1230,20 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		switch (device_id >> 16) {
 			case 0x1000:
 				snprintf(buf, buf_size, "A");
+				break;
+
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	} else if ((device_id & 0xfff) == 0x432) {
+		printed = snprintf(buf, buf_size, "stm32f37x - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+
+		switch (device_id >> 16) {
+			case 0x1000:
+				snprintf(buf, buf_size, "1.0");
 				break;
 
 			default:
