@@ -1017,6 +1017,29 @@ DWORD x = FT_DEVICE_4232H;
     AC_MSG_WARN([You need a newer FTD2XX driver (version 2.04.16 or later).])
   fi
 
+AC_MSG_CHECKING([for ftd2xx FT232H device support])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include "confdefs.h"
+#if IS_WIN32
+#include "windows.h"
+#endif
+#include <stdio.h>
+#include <ftd2xx.h>
+
+DWORD x = FT_DEVICE_232H;
+    ]], [])], [
+      AC_DEFINE([HAS_ENUM_FT232H], [1],
+        [Support FT232H with FTD2XX or libftdi.])
+      has_enum_ft232h=yes
+    ], [
+      has_enum_ft232h=no
+    ])
+  AC_MSG_RESULT([$has_enum_ft232h])
+
+  if test $has_enum_ft232h = no; then
+    AC_MSG_WARN([You need a newer FTD2XX driver (version 2.08.12 or later).])
+  fi
+
 LDFLAGS=$LDFLAGS_SAVE
 CFLAGS=$CFLAGS_SAVE
 fi
@@ -1073,6 +1096,25 @@ enum ftdi_chip_type x = TYPE_2232H;
 
     if test $build_ft2232_highspeed = no; then
       AC_MSG_WARN([You need a newer libftdi version (0.16 or later).])
+    fi
+
+AC_MSG_CHECKING([for libftdi FT232H device support])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <ftdi.h>
+  ]], [[
+enum ftdi_chip_type x = TYPE_232H;
+    ]])], [
+      AC_DEFINE([HAS_ENUM_FT232H], [1],
+        [Support FT232H with FTD2XX or libftdi.])
+      has_enum_ft232h=yes
+    ], [
+      has_enum_ft232h=no
+    ])
+    AC_MSG_RESULT([$has_enum_ft232h])
+
+    if test $has_enum_ft232h = no; then
+      AC_MSG_WARN([You need a newer libftdi version (0.20 or later).])
     fi
 
   # Restore the 'unexpanded ldflags'

@@ -114,7 +114,7 @@ enum ftdi_interface {
 #endif
 
 /* max TCK for the high speed devices 30000 kHz */
-#define	FTDI_2232H_4232H_MAX_TCK	30000
+#define	FTDI_x232H_MAX_TCK	30000
 /* max TCK for the full speed devices 6000 kHz */
 #define FTDI_2232C_MAX_TCK 6000
 /* this speed value tells that RTCK is requested */
@@ -133,9 +133,9 @@ enum ftdi_interface {
 
 #ifndef BUILD_FT2232_HIGHSPEED
  #if BUILD_FT2232_FTD2XX == 1
-	enum { FT_DEVICE_2232H = 6, FT_DEVICE_4232H };
+	enum { FT_DEVICE_2232H = 6, FT_DEVICE_4232H, FT_DEVICE_232H };
  #elif BUILD_FT2232_LIBFTDI == 1
-	enum { TYPE_2232H = 4, TYPE_4232H = 5 };
+	enum { TYPE_2232H = 4, TYPE_4232H = 5, TYPE_232H = 6 };
  #endif
 #endif
 
@@ -598,19 +598,27 @@ static int ft2232_read(uint8_t *buf, uint32_t size, uint32_t *bytes_read)
 static bool ft2232_device_is_highspeed(void)
 {
 #if BUILD_FT2232_FTD2XX == 1
-	return (ftdi_device == FT_DEVICE_2232H) || (ftdi_device == FT_DEVICE_4232H);
+	return (ftdi_device == FT_DEVICE_2232H) || (ftdi_device == FT_DEVICE_4232H)
+ #ifdef HAS_ENUM_FT232H
+		|| (ftdi_device == FT_DEVICE_232H)
+ #endif
+	;
 #elif BUILD_FT2232_LIBFTDI == 1
-	return (ftdi_device == TYPE_2232H || ftdi_device == TYPE_4232H);
+	return (ftdi_device == TYPE_2232H || ftdi_device == TYPE_4232H
+ #ifdef HAS_ENUM_FT232H
+		|| ftdi_device == TYPE_232H
+ #endif
+	);
 #endif
 }
 
 /*
- * Commands that only apply to the FT2232H and FT4232H devices.
+ * Commands that only apply to the highspeed FTx232H devices (FT2232H, FT4232H, FT232H).
  * See chapter 6 in http://www.ftdichip.com/Documents/AppNotes/
  * AN_108_Command_Processor_for_MPSSE_and_MCU_Host_Bus_Emulation_Modes.pdf
  */
 
-static int ft2232h_ft4232h_adaptive_clocking(bool enable)
+static int ftx232h_adaptive_clocking(bool enable)
 {
 	uint8_t buf = enable ? 0x96 : 0x97;
 	LOG_DEBUG("%2.2x", buf);
@@ -633,7 +641,7 @@ static int ft2232h_ft4232h_adaptive_clocking(bool enable)
  * This result in a JTAG clock speed range of 91.553Hz-6MHz
  * respective 457.763Hz-30MHz.
  */
-static int ft2232h_ft4232h_clk_divide_by_5(bool enable)
+static int ftx232h_clk_divide_by_5(bool enable)
 {
 	uint32_t bytes_written;
 	uint8_t buf = enable ?  0x8b : 0x8a;
@@ -643,7 +651,7 @@ static int ft2232h_ft4232h_clk_divide_by_5(bool enable)
 			, enable ? "enable" : "disable");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	ft2232_max_tck = enable ? FTDI_2232C_MAX_TCK : FTDI_2232H_4232H_MAX_TCK;
+	ft2232_max_tck = enable ? FTDI_2232C_MAX_TCK : FTDI_x232H_MAX_TCK;
 	LOG_INFO("max TCK change to: %u kHz", ft2232_max_tck);
 
 	return ERROR_OK;
@@ -658,7 +666,7 @@ static int ft2232_speed(int speed)
 	retval = ERROR_OK;
 	bool enable_adaptive_clocking = (RTCK_SPEED == speed);
 	if (ft2232_device_is_highspeed())
-		retval = ft2232h_ft4232h_adaptive_clocking(enable_adaptive_clocking);
+		retval = ftx232h_adaptive_clocking(enable_adaptive_clocking);
 	else if (enable_adaptive_clocking) {
 		LOG_ERROR("ft2232 device %lu does not support RTCK"
 			, (long unsigned int)ftdi_device);
@@ -2172,7 +2180,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int *try_mor
 		return ERROR_JTAG_INIT_FAILED;
 	} else {
 		static const char *type_str[] = {
-			"BM", "AM", "100AX", "UNKNOWN", "2232C", "232R", "2232H", "4232H"
+			"BM", "AM", "100AX", "UNKNOWN", "2232C", "232R", "2232H", "4232H", "232H"
 		};
 		unsigned no_of_known_types = ARRAY_SIZE(type_str) - 1;
 		unsigned type_index = ((unsigned)ftdi_device <= no_of_known_types)
@@ -2258,7 +2266,7 @@ static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int *try_mo
 
 	ftdi_device = ftdic.type;
 	static const char *type_str[] = {
-		"AM", "BM", "2232C", "R", "2232H", "4232H", "Unknown"
+		"AM", "BM", "2232C", "R", "2232H", "4232H", "232H", "Unknown"
 	};
 	unsigned no_of_known_types = ARRAY_SIZE(type_str) - 1;
 	unsigned type_index = ((unsigned)ftdi_device < no_of_known_types)
@@ -2375,7 +2383,7 @@ static int ft2232_init(void)
  #endif
 #endif
 		/* make sure the legacy mode is disabled */
-		if (ft2232h_ft4232h_clk_divide_by_5(false) != ERROR_OK)
+		if (ftx232h_clk_divide_by_5(false) != ERROR_OK)
 			return ERROR_JTAG_INIT_FAILED;
 	}
 
