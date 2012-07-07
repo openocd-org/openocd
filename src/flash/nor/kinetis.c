@@ -351,32 +351,75 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 	if (fallback == 0) {
 		unsigned prog_section_bytes = kinfo->sector_size >> 8;
 		for (i = 0; i < count; i += kinfo->sector_size) {
+			/*
+			 * The largest possible Kinetis "section" is
+			 * 16 bytes.  A full Kinetis sector is always
+			 * 256 "section"s.
+			 */
+			uint8_t residual_buffer[16];
 			uint8_t ftfx_fstat;
+			uint32_t section_count = 256;
+			uint32_t residual_wc = 0;
 
+			/*
+			 * Assume the word count covers an entire
+			 * sector.
+			 */
 			wc = kinfo->sector_size / 4;
 
+			/*
+			 * If bytes to be programmed are less than the
+			 * full sector, then determine the number of
+			 * full-words to program, and put together the
+			 * residual buffer so that a full "section"
+			 * may always be programmed.
+			 */
 			if ((count - i) < kinfo->sector_size) {
-				wc = count - i;
-				wc /= 4;
+				/* number of bytes to program beyond full section */
+				unsigned residual_bc = (count-i) % prog_section_bytes;
+
+				/* number of complete words to copy directly from buffer */
+				wc = (count - i) / 4;
+
+				/* number of total sections to write, including residual */
+				section_count = DIV_ROUND_UP((count-i), prog_section_bytes);
+
+				/* any residual bytes delivers a whole residual section */
+				residual_wc = (residual_bc ? prog_section_bytes : 0)/4;
+
+				/* clear residual buffer then populate residual bytes */
+				(void) memset(residual_buffer, 0xff, prog_section_bytes);
+				(void) memcpy(residual_buffer, &buffer[i+4*wc], residual_bc);
 			}
 
-			LOG_DEBUG("write section @ %08X with length %d",
-				  offset + i, wc * 4);
+			LOG_DEBUG("write section @ %08X with length %d bytes",
+				  offset + i, (count - i));
 
-			/* write data to flexram */
-			result =
-				target_write_memory(bank->target, 0x14000000, 4, wc,
-						    buffer + i);
+			/* write data to flexram as whole-words */
+			result = target_write_memory(bank->target, 0x14000000, 4, wc,
+						     buffer + i);
 
 			if (result != ERROR_OK) {
 				LOG_ERROR("target_write_memory failed");
-
 				return result;
 			}
 
-			/* execute section command */
+			/* write the residual words to the flexram */
+			if (residual_wc) {
+				result = target_write_memory(bank->target,
+							     0x14000000+4*wc,
+							     4, residual_wc,
+							     residual_buffer);
+
+				if (result != ERROR_OK) {
+					LOG_ERROR("target_write_memory failed");
+					return result;
+				}
+			}
+
+			/* execute section-write command */
 			w0 = (0x0b << 24) | (bank->base + offset + i);
-			w1 = ((wc * 4 / prog_section_bytes) << 16);
+			w1 = section_count << 16;
 
 			result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
 
