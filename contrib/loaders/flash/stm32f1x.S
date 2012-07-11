@@ -37,7 +37,6 @@
 	 * r7 - tmp
 	 */
 
-#define STM32_FLASH_CR_OFFSET 0x10 /* offset of CR register from flash reg base */
 #define STM32_FLASH_SR_OFFSET 0x0c /* offset of SR register from flash reg base */
 
 wait_fifo:
@@ -47,8 +46,6 @@ wait_fifo:
 	ldr 	r5, [r2, #4]	/* read rp */
 	cmp 	r5, r6			/* wait until rp != wp */
 	beq 	wait_fifo
-	movs	r6, #1			/* set PG flag to enable flash programming */
-	str 	r6, [r0, #STM32_FLASH_CR_OFFSET]
 	ldrh	r6, [r5]	/* "*target_address++ = *rp++" */
 	strh	r6, [r4]
 	adds	r5, #2

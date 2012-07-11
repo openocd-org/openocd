@@ -604,17 +604,14 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	/* see contrib/loaders/flash/stm32f1x.S for src */
 
 	static const uint8_t stm32x_flash_write_code[] = {
-		/* #define STM32_FLASH_CR_OFFSET 0x10 */
 		/* #define STM32_FLASH_SR_OFFSET 0x0C */
 		/* wait_fifo: */
 			0x16, 0x68,   /* ldr   r6, [r2, #0] */
 			0x00, 0x2e,   /* cmp   r6, #0 */
-			0x1a, 0xd0,   /* beq   exit */
+			0x18, 0xd0,   /* beq   exit */
 			0x55, 0x68,   /* ldr   r5, [r2, #4] */
 			0xb5, 0x42,   /* cmp   r5, r6 */
 			0xf9, 0xd0,   /* beq   wait_fifo */
-			0x01, 0x26,   /* movs  r6, #1 */
-			0x06, 0x61,   /* str   r6, [r0, #STM32_FLASH_CR_OFFSET] */
 			0x2e, 0x88,   /* ldrh  r6, [r5, #0] */
 			0x26, 0x80,   /* strh  r6, [r4, #0] */
 			0x02, 0x35,   /* adds  r5, #2 */
@@ -636,7 +633,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 			0x01, 0x39,   /* subs  r1, r1, #1 */
 			0x00, 0x29,   /* cmp   r1, #0 */
 			0x02, 0xd0,   /* beq   exit */
-			0xe3, 0xe7,   /* b     wait_fifo */
+			0xe5, 0xe7,   /* b     wait_fifo */
 		/* error: */
 			0x00, 0x20,   /* movs  r0, #0 */
 			0x50, 0x60,   /* str   r0, [r2, #4] */
@@ -751,6 +748,10 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
+	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_PG);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* multiple half words (2-byte) to be programmed? */
 	if (words_remaining > 0) {
 		/* try using a block write */
@@ -769,22 +770,19 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	if ((retval != ERROR_OK) && (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE))
-		return retval;
+		goto reset_pg_and_lock;
 
 	while (words_remaining > 0) {
 		uint16_t value;
 		memcpy(&value, buffer + bytes_written, sizeof(uint16_t));
 
-		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_PG);
-		if (retval != ERROR_OK)
-			return retval;
 		retval = target_write_u16(target, address, value);
 		if (retval != ERROR_OK)
-			return retval;
+			goto reset_pg_and_lock;
 
 		retval = stm32x_wait_status_busy(bank, 5);
 		if (retval != ERROR_OK)
-			return retval;
+			goto reset_pg_and_lock;
 
 		bytes_written += 2;
 		words_remaining--;
@@ -795,19 +793,20 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		uint16_t value = 0xffff;
 		memcpy(&value, buffer + bytes_written, bytes_remaining);
 
-		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_PG);
-		if (retval != ERROR_OK)
-			return retval;
 		retval = target_write_u16(target, address, value);
 		if (retval != ERROR_OK)
-			return retval;
+			goto reset_pg_and_lock;
 
 		retval = stm32x_wait_status_busy(bank, 5);
 		if (retval != ERROR_OK)
-			return retval;
+			goto reset_pg_and_lock;
 	}
 
 	return target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_LOCK);
+
+reset_pg_and_lock:
+	target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_LOCK);
+	return retval;
 }
 
 static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
