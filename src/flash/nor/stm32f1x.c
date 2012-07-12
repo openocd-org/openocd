@@ -963,7 +963,7 @@ static int stm32x_probe(struct flash_bank *bank)
 
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrrect on early silicon */
+			/* number of sectors may be incorrect on early silicon */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
 			flash_size_in_kb = 128;
 		}
@@ -986,7 +986,7 @@ static int stm32x_probe(struct flash_bank *bank)
 
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrrect on early silicon */
+			/* number of sectors may be incorrect on early silicon */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
 			flash_size_in_kb = 128;
 		}
@@ -999,7 +999,7 @@ static int stm32x_probe(struct flash_bank *bank)
 
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrrect on early silicon */
+			/* number of sectors may be incorrect on early silicon */
 			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
 			flash_size_in_kb = 1024;
 		}
