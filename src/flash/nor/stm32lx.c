@@ -618,6 +618,10 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "Y");
 				break;
 
+			case 0x1018:
+				snprintf(buf, buf_size, "X");
+				break;
+
 			case 0x1038:
 				snprintf(buf, buf_size, "W");
 				break;
