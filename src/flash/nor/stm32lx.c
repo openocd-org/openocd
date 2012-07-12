@@ -476,8 +476,11 @@ static int stm32lx_probe(struct flash_bank *bank)
 
 	/* get flash size from target. */
 	retval = target_read_u16(target, F_SIZE, &flash_size_in_kb);
-	if (retval != ERROR_OK)
-		return retval;
+	if (retval != ERROR_OK) {
+		LOG_WARNING("failed reading flash size, default to max target family");
+		/* failed reading flash size, default to max target family */
+		flash_size_in_kb = 0xffff;
+	}
 
 	if ((device_id & 0xfff) == 0x416) {
 		/* check for early silicon */
