@@ -605,6 +605,11 @@ static int stm32x_probe(struct flash_bank *bank)
 		flash_size_in_kb = 0xffff;
 	}
 
+	/* some variants read 0 for flash size register
+	 * use a max flash size as a default */
+	if (flash_size_in_kb == 0)
+		flash_size_in_kb = 0xffff;
+
 	if ((device_id & 0xfff) == 0x411) {
 		/* check for early silicon */
 		if (flash_size_in_kb == 0xffff) {
