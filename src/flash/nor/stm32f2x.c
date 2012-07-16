@@ -586,6 +586,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	int i;
 	uint16_t flash_size_in_kb;
+	uint16_t max_flash_size_in_kb;
 	uint32_t device_id;
 	uint32_t base_address = 0x08000000;
 
@@ -597,36 +598,26 @@ static int stm32x_probe(struct flash_bank *bank)
 		return retval;
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
-	/* get flash size from target. */
-	retval = target_read_u16(target, 0x1FFF7A22, &flash_size_in_kb);
-	if (retval != ERROR_OK) {
-		LOG_WARNING("failed reading flash size, default to max target family");
-		/* failed reading flash size, default to max target family */
-		flash_size_in_kb = 0xffff;
-	}
-
-	/* some variants read 0 for flash size register
-	 * use a max flash size as a default */
-	if (flash_size_in_kb == 0)
-		flash_size_in_kb = 0xffff;
-
-	if ((device_id & 0xfff) == 0x411) {
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrect on early silicon */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
-			flash_size_in_kb = 1024;
-		}
-	} else if ((device_id & 0xfff) == 0x413) {
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrect on early silicon */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
-			flash_size_in_kb = 1024;
-		}
-	} else {
+	/* set max flash size depending on family */
+	switch (device_id & 0xfff) {
+	case 0x411:
+	case 0x413:
+		max_flash_size_in_kb = 1024;
+		break;
+	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
+	}
+
+	/* get flash size from target. */
+	retval = target_read_u16(target, 0x1FFF7A22, &flash_size_in_kb);
+
+	/* failed reading flash size or flash size invalid (early silicon),
+	 * default to max target family */
+	if (retval != ERROR_OK || flash_size_in_kb == 0xffff || flash_size_in_kb == 0) {
+		LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming %dk flash",
+			max_flash_size_in_kb);
+		flash_size_in_kb = max_flash_size_in_kb;
 	}
 
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);

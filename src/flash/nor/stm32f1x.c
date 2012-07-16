@@ -880,6 +880,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	int i;
 	uint16_t flash_size_in_kb;
+	uint16_t max_flash_size_in_kb;
 	uint32_t device_id;
 	int page_size;
 	uint32_t base_address = 0x08000000;
@@ -894,116 +895,76 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 
-	/* get flash size from target. */
-	retval = stm32x_get_flash_size(bank, &flash_size_in_kb);
-	if (retval != ERROR_OK) {
-		LOG_WARNING("failed reading flash size, default to max target family");
-		/* failed reading flash size, default to max target family */
-		flash_size_in_kb = 0xffff;
+	/* set page size, protection granularity and max flash size depending on family */
+	switch (device_id & 0xfff) {
+	case 0x410: /* medium density */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+		max_flash_size_in_kb = 128;
+		break;
+	case 0x412: /* low density */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+		max_flash_size_in_kb = 32;
+		break;
+	case 0x414: /* high density */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+		max_flash_size_in_kb = 512;
+		break;
+	case 0x418: /* connectivity line density */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+		max_flash_size_in_kb = 256;
+		break;
+	case 0x420: /* value line density */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+		max_flash_size_in_kb = 128;
+		break;
+	case 0x422: /* stm32f30x */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+		max_flash_size_in_kb = 256;
+		break;
+	case 0x428: /* value line High density */
+		page_size = 2048;
+		stm32x_info->ppage_size = 4;
+		max_flash_size_in_kb = 128;
+		break;
+	case 0x430: /* xl line density (dual flash banks) */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+		max_flash_size_in_kb = 1024;
+		stm32x_info->has_dual_banks = true;
+		break;
+	case 0x432: /* stm32f37x */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+		max_flash_size_in_kb = 256;
+		break;
+	case 0x440: /* stm32f0x */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+		max_flash_size_in_kb = 64;
+		break;
+	default:
+		LOG_WARNING("Cannot identify target as a STM32 family.");
+		return ERROR_FAIL;
 	}
 
-	/* some variants read 0 for flash size register
-	 * use a max flash size as a default */
-	if (flash_size_in_kb == 0)
-		flash_size_in_kb = 0xffff;
+	/* get flash size from target. */
+	retval = stm32x_get_flash_size(bank, &flash_size_in_kb);
 
-	if ((device_id & 0xfff) == 0x410) {
-		/* medium density - we have 1k pages
-		 * 4 pages for a protection area */
-		page_size = 1024;
-		stm32x_info->ppage_size = 4;
+	/* failed reading flash size or flash size invalid (early silicon),
+	 * default to max target family */
+	if (retval != ERROR_OK || flash_size_in_kb == 0xffff || flash_size_in_kb == 0) {
+		LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming %dk flash",
+			max_flash_size_in_kb);
+		flash_size_in_kb = max_flash_size_in_kb;
+	}
 
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors incorrect on revA */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
-			flash_size_in_kb = 128;
-		}
-	} else if ((device_id & 0xfff) == 0x412) {
-		/* low density - we have 1k pages
-		 * 4 pages for a protection area */
-		page_size = 1024;
-		stm32x_info->ppage_size = 4;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors incorrect on revA */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 32k flash");
-			flash_size_in_kb = 32;
-		}
-	} else if ((device_id & 0xfff) == 0x414) {
-		/* high density - we have 2k pages
-		 * 2 pages for a protection area */
-		page_size = 2048;
-		stm32x_info->ppage_size = 2;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors incorrect on revZ */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 512k flash");
-			flash_size_in_kb = 512;
-		}
-	} else if ((device_id & 0xfff) == 0x418) {
-		/* connectivity line density - we have 2k pages
-		 * 2 pages for a protection area */
-		page_size = 2048;
-		stm32x_info->ppage_size = 2;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors incorrect on revZ */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 256k flash");
-			flash_size_in_kb = 256;
-		}
-	} else if ((device_id & 0xfff) == 0x420) {
-		/* value line density - we have 1k pages
-		 * 4 pages for a protection area */
-		page_size = 1024;
-		stm32x_info->ppage_size = 4;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrect on early silicon */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
-			flash_size_in_kb = 128;
-		}
-	} else if ((device_id & 0xfff) == 0x422) {
-		/* stm32f30x - we have 2k pages
-		 * 2 pages for a protection area */
-		page_size = 2048;
-		stm32x_info->ppage_size = 2;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 256k flash");
-			flash_size_in_kb = 256;
-		}
-	} else if ((device_id & 0xfff) == 0x428) {
-		/* value line High density - we have 2k pages
-		 * 4 pages for a protection area */
-		page_size = 2048;
-		stm32x_info->ppage_size = 4;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrect on early silicon */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash");
-			flash_size_in_kb = 128;
-		}
-	} else if ((device_id & 0xfff) == 0x430) {
-		/* xl line density - we have 2k pages
-		 * 2 pages for a protection area */
-		page_size = 2048;
-		stm32x_info->ppage_size = 2;
-		stm32x_info->has_dual_banks = true;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors may be incorrect on early silicon */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 1024k flash");
-			flash_size_in_kb = 1024;
-		}
-
+	if (stm32x_info->has_dual_banks) {
 		/* split reported size into matching bank */
 		if (bank->base != 0x08080000) {
 			/* bank 0 will be fixed 512k */
@@ -1014,32 +975,6 @@ static int stm32x_probe(struct flash_bank *bank)
 			stm32x_info->register_base = FLASH_REG_BASE_B1;
 			base_address = 0x08080000;
 		}
-	} else if ((device_id & 0xfff) == 0x432) {
-		/* stm32f37x - we have 2k pages
-		 * 2 pages for a protection area */
-		page_size = 2048;
-		stm32x_info->ppage_size = 2;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 256k flash");
-			flash_size_in_kb = 256;
-		}
-	} else if ((device_id & 0xfff) == 0x440) {
-		/* stm32f0x - we have 1k pages
-		 * 4 pages for a protection area */
-		page_size = 1024;
-		stm32x_info->ppage_size = 4;
-
-		/* check for early silicon */
-		if (flash_size_in_kb == 0xffff) {
-			/* number of sectors incorrect on revZ */
-			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 64k flash");
-			flash_size_in_kb = 64;
-		}
-	} else {
-		LOG_WARNING("Cannot identify target as a STM32 family.");
-		return ERROR_FAIL;
 	}
 
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
