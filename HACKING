@@ -152,6 +152,13 @@ master branch will be much reduced.
 If a contributor pushes a patch, it is considered good form if another
 contributor actually approves and submits that patch.
 
+It should be noted that a negative review in Gerrit ("-1" or "-2") may (but does
+not have to) be disregarded if all conditions listed below are met:
+
+- the concerns raised in the review have been addressed (or explained),
+- reviewer does not re-examine the change in a month,
+- reviewer does not answer e-mails for another month.
+
 @section browsing Browsing Patches
 All OpenOCD patches can be reviewed <a href="http://openocd.zylin.com/">here</a>.
 */
