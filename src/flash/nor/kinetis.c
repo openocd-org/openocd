@@ -435,7 +435,13 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 			LOG_DEBUG("write longword @ %08X", offset + i);
 
 			w0 = (0x06 << 24) | (bank->base + offset + i);
-			w1 = buf_get_u32(buffer + offset + i, 0, 32);
+			if (count - i < 4) {
+				uint32_t padding = 0xffffffff;
+				memcpy(&padding, buffer + i, count - i);
+				w1 = buf_get_u32(&padding, 0, 32);
+			} else {
+				w1 = buf_get_u32(buffer + i, 0, 32);
+			}
 
 			result = kinetis_ftfx_command(bank, w0, w1, w2, &ftfx_fstat);
 
