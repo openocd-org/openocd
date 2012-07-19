@@ -155,8 +155,8 @@ static int telnet_new_connection(struct connection *connection)
 		telnet_write(connection, "\r\n", 2);
 	}
 
-	telnet_write(connection, "\r", 1);	/* the prompt is always placed at the line beginning
-						 **/
+	/* the prompt is always placed at the line beginning */
+	telnet_write(connection, "\r", 1);
 	telnet_prompt(connection);
 
 	/* initialize history */
@@ -213,19 +213,11 @@ static int telnet_input(struct connection *connection)
 				else {
 					if (isprint(*buf_p)) {	/* printable character */
 						/* watch buffer size leaving one spare character for
-						 *string null termination */
+						 * string null termination */
 						if (t_con->line_size == TELNET_LINE_MAX_SIZE-1) {
-							/* output audible bell if buffer is full */
-							telnet_write(connection, "\x07", 1);	/*
-												 *"\a"
-												 *does
-												 *not
-												 *work,
-												 *at
-												 *least
-												 *on
-												 *windows
-												 **/
+							/* output audible bell if buffer is full
+							 * "\a" does not work, at least on windows */
+							telnet_write(connection, "\x07", 1);
 						} else if (t_con->line_cursor == t_con->line_size) {
 							telnet_write(connection, buf_p, 1);
 							t_con->line[t_con->line_size++] = *buf_p;
@@ -248,13 +240,10 @@ static int telnet_input(struct connection *connection)
 						if (*buf_p == 0x1b) {	/* escape */
 							t_con->state = TELNET_STATE_ESCAPE;
 							t_con->last_escape = '\x00';
-						} else if ((*buf_p == 0xd) || (*buf_p == 0xa)) {	/*
-												 *CR/LF
-												 **/
+						} else if ((*buf_p == 0xd) || (*buf_p == 0xa)) {	/* CR/LF */
 							int retval;
 
-							/* skip over combinations with CR/LF and NUL
-							 *characters */
+							/* skip over combinations with CR/LF and NUL characters */
 							if ((bytes_read > 1) && ((*(buf_p + 1) == 0xa) ||
 									(*(buf_p + 1) == 0xd))) {
 								buf_p++;
@@ -271,10 +260,8 @@ static int telnet_input(struct connection *connection)
 							if (strcmp(t_con->line, "history") == 0) {
 								int i;
 								for (i = 1; i < TELNET_LINE_HISTORY_SIZE; i++) {
-									/* the t_con->next_history
-									 *line contains empty string
-									 *(unless NULL), thus it is
-									 *not printed */
+									/* the t_con->next_history line contains empty string
+									 * (unless NULL), thus it is not printed */
 									char *history_line = t_con->history[(t_con->
 											next_history + i) %
 											TELNET_LINE_HISTORY_SIZE];
@@ -289,27 +276,23 @@ static int telnet_input(struct connection *connection)
 								continue;
 							}
 
-							/* save only non-blank not repeating lines
-							 *in the history */
+							/* save only non-blank not repeating lines in the history */
 							char *prev_line = t_con->history[(t_con->current_history > 0) ?
 									t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1];
 							if (*t_con->line && (prev_line == NULL ||
 									strcmp(t_con->line, prev_line))) {
-								/* if the history slot is already
-								 *taken, free it */
+								/* if the history slot is already taken, free it */
 								if (t_con->history[t_con->next_history])
 									free(t_con->history[t_con->next_history]);
 
 								/* add line to history */
 								t_con->history[t_con->next_history] = strdup(t_con->line);
 
-								/* wrap history at
-								 *TELNET_LINE_HISTORY_SIZE */
+								/* wrap history at TELNET_LINE_HISTORY_SIZE */
 								t_con->next_history = (t_con->next_history + 1) %
 										TELNET_LINE_HISTORY_SIZE;
 
-								/* current history line starts at
-								 *the new entry */
+								/* current history line starts at the new entry */
 								t_con->current_history =
 										t_con->next_history;
 
@@ -320,10 +303,8 @@ static int telnet_input(struct connection *connection)
 
 							t_con->line_size = 0;
 
-							t_con->line_cursor = -1;	/* to supress prompt
-										 *in log callback
-										 *during command
-										 *execution */
+							/* to suppress prompt in log callback during command execution */
+							t_con->line_cursor = -1;
 
 							retval = command_run_line(command_context, t_con->line);
 
@@ -332,25 +313,14 @@ static int telnet_input(struct connection *connection)
 							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 								return ERROR_SERVER_REMOTE_CLOSED;
 
-							telnet_write(connection, "\r", 1);		/*
-												 *the
-												 *prompt
-												 *is
-												 *always
-												 *placed
-												 *at
-												 *the
-												 *line
-												 *beginning
-												 **/
+							/* the prompt is always * placed at the line beginning */
+							telnet_write(connection, "\r", 1);
+
 							retval = telnet_prompt(connection);
 							if (retval == ERROR_SERVER_REMOTE_CLOSED)
 								return ERROR_SERVER_REMOTE_CLOSED;
 
-						} else if ((*buf_p == 0x7f) || (*buf_p == 0x8)) {	/*
-												 *delete
-												 *character
-												 **/
+						} else if ((*buf_p == 0x7f) || (*buf_p == 0x8)) {	/* delete character */
 							if (t_con->line_cursor > 0) {
 								if (t_con->line_cursor != t_con->line_size) {
 									int i;
@@ -372,10 +342,8 @@ static int telnet_input(struct connection *connection)
 								} else {
 									t_con->line_size--;
 									t_con->line_cursor--;
-									/* back space: move the
-									 *'printer' head one char
-									 *back, overwrite with
-									 *space, move back again */
+									/* back space: move the 'printer' head one char
+									 * back, overwrite with space, move back again */
 									telnet_write(connection, "\b \b", 3);
 								}
 							}
