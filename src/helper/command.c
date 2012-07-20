@@ -118,15 +118,10 @@ static void command_log_capture_finish(struct log_capture_state *state)
 static int command_retval_set(Jim_Interp *interp, int retval)
 {
 	int *return_retval = Jim_GetAssocData(interp, "retval");
-	if (retval == ERROR_COMMAND_CLOSE_CONNECTION) {
-		if (return_retval != NULL)
-			*return_retval = 0;
-		return JIM_EXIT;
-	} else {
-		if (return_retval != NULL)
-			*return_retval = retval;
-		return (retval == ERROR_OK) ? JIM_OK : JIM_ERR;
-	}
+	if (return_retval != NULL)
+		*return_retval = retval;
+
+	return (retval == ERROR_OK) ? JIM_OK : JIM_ERR;
 }
 
 extern struct command_context *global_cmd_ctx;
@@ -676,7 +671,8 @@ int command_run_line(struct command_context *context, char *line)
 		}
 		return retval;
 	} else if (retcode == JIM_EXIT) {
-		return ERROR_OK_EXIT;
+		/* ignore.
+		 * exit(Jim_GetExitCode(interp)); */
 	} else {
 		const char *result;
 		int reslen;

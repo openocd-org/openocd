@@ -279,8 +279,6 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 		return EXIT_FAILURE;
 
 	ret = parse_config_file(cmd_ctx);
-	if (ret == ERROR_OK_EXIT)
-		return ERROR_OK;
 	if (ret != ERROR_OK)
 		return EXIT_FAILURE;
 
