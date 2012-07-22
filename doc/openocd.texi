@@ -574,6 +574,9 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{at91rm9200}
 @* Like the EP93xx - but an ATMEL AT91RM9200 based solution using the GPIO pins on the chip.
 
+@item @b{bcm2835gpio}
+@* A BCM2835-based board (e.g. Raspberry Pi) using the GPIO pins of the expansion header.
+
 @end itemize
 
 @node About Jim-Tcl
@@ -3046,6 +3049,22 @@ which are not currently documented here.
 @deffn Command power [@option{on}|@option{off}]
 Turn power switch to target on/off.
 No arguments: print status.
+@end deffn
+
+@deffn {Interface Driver} {bcm2835gpio}
+This SoC is present in Raspberry Pi which is a cheap single-board computer
+exposing some GPIOs on its expansion header.
+
+The driver accesses memory-mapped GPIO peripheral registers directly
+for maximum performance, but the only possible race condition is for
+the pins' modes/muxing (which is highly unlikely), so it should be
+able to coexist nicely with both sysfs bitbanging and various
+peripherals' kernel drivers. The driver restores the previous
+configuration on exit.
+
+See @file{interface/raspberrypi-native.cfg} for a sample config and
+pinout.
+
 @end deffn
 
 @section Transport Configuration

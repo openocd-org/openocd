@@ -122,6 +122,9 @@ extern struct jtag_interface sysfsgpio_interface;
 #if BUILD_AICE == 1
 extern struct jtag_interface aice_interface;
 #endif
+#if BUILD_BCM2835GPIO == 1
+extern struct jtag_interface bcm2835gpio_interface;
+#endif
 #endif /* standard drivers */
 
 /**
@@ -211,6 +214,9 @@ struct jtag_interface *jtag_interfaces[] = {
 #endif
 #if BUILD_AICE == 1
 		&aice_interface,
+#endif
+#if BUILD_BCM2835GPIO == 1
+		&bcm2835gpio_interface,
 #endif
 #endif /* standard drivers */
 		NULL,
