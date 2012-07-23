@@ -467,6 +467,9 @@ The simplest solution is to get linux to ignore the ST-LINK using one of the fol
 
 @item @b{estick}
 @* Link: @url{http://code.google.com/p/estick-jtag/}
+
+@item @b{Keil ULINK v1}
+@* Link: @url{http://www.keil.com/ulink1/}
 @end itemize
 
 @section IBM PC Parallel Printer Port Based
@@ -2816,6 +2819,10 @@ Manually sets the stlink api used, valid options are 1 or 2.
 
 @deffn {Interface Driver} {opendous}
 opendous-jtag is a freely programmable USB adapter.
+@end deffn
+
+@deffn {Interface Driver} {ulink}
+This is the Keil ULINK v1 JTAG debugger.
 @end deffn
 
 @deffn {Interface Driver} {ZY1000}
