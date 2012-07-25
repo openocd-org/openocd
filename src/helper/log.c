@@ -225,7 +225,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 	if (CMD_ARGC == 1) {
 		int new_level;
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], new_level);
-		if ((debug_level > LOG_LVL_DEBUG) || (new_level < LOG_LVL_SILENT)) {
+		if ((new_level > LOG_LVL_DEBUG) || (new_level < LOG_LVL_SILENT)) {
 			LOG_ERROR("level must be between %d and %d", LOG_LVL_SILENT, LOG_LVL_DEBUG);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
