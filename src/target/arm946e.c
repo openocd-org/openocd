@@ -40,8 +40,9 @@
 
 #define NB_CACHE_WAYS 4
 
-static uint32_t dc;
-static uint32_t ic;
+#define CP15_CTL		0x02
+#define CP15_CTL_DCACHE (1<<2)
+#define CP15_CTL_ICACHE (1<<12)
 
 /**
  * flag to give info about cache manipulation during debug :
@@ -294,32 +295,34 @@ int arm946e_post_debug_entry(struct target *target)
 {
 	uint32_t ctr_reg = 0x0;
 	uint32_t retval = ERROR_OK;
+	struct arm946e_common *arm946e = target_to_arm946(target);
 
 	/* See if CACHES are enabled, and save that info
-	 * in the global vars, so that arm946e_pre_restore_context() can use them */
-	arm946e_read_cp15(target, 0x02, (uint32_t *) &ctr_reg);
-	dc = (ctr_reg >> 2) & 0x01;
-	ic = (ctr_reg >> 12) & 0x01;
+	 * in the context bits, so that arm946e_pre_restore_context() can use them */
+	arm946e_read_cp15(target, CP15_CTL, (uint32_t *) &ctr_reg);
+
+	/* Save control reg in the context */
+	arm946e->cp15_control_reg = ctr_reg;
 
 	if (arm946e_preserve_cache) {
-		if (dc == 1) {
+		if (ctr_reg & CP15_CTL_DCACHE) {
 			/* Clean and flush D$ */
 			arm946e_invalidate_whole_dcache(target);
 
 			/* Disable D$ */
-			ctr_reg &= ~(1 << 2);
+			ctr_reg &= ~CP15_CTL_DCACHE;
 		}
 
-		if (ic == 1) {
+		if (ctr_reg & CP15_CTL_ICACHE) {
 			/* Flush I$ */
 			arm946e_invalidate_whole_icache(target);
 
 			/* Disable I$ */
-			ctr_reg &= ~(1 << 12);
+			ctr_reg &= ~CP15_CTL_ICACHE;
 		}
 
 		/* Write the new configuration */
-		retval = arm946e_write_cp15(target, 0x02, ctr_reg);
+		retval = arm946e_write_cp15(target, CP15_CTL, ctr_reg);
 		if (retval != ERROR_OK) {
 			LOG_DEBUG("ERROR disabling cache");
 			return retval;
@@ -335,25 +338,20 @@ void arm946e_pre_restore_context(struct target *target)
 	uint32_t retval;
 
 	if (arm946e_preserve_cache) {
+		struct arm946e_common *arm946e = target_to_arm946(target);
 		/* Get the contents of the CTR reg */
-		arm946e_read_cp15(target, 0x02, (uint32_t *) &ctr_reg);
+		arm946e_read_cp15(target, CP15_CTL, (uint32_t *) &ctr_reg);
 
 		/**
-		 * Read-modify-write CP15 test state register
-		 * to reenable I/D-cache linefills
+		 * Read-modify-write CP15 control
+		 * to reenable I/D-cache operation
+		 * NOTE: It is not possible to disable cache by CP15.
+		 * if arm946e_preserve_cache debugging flag enabled.
 		 */
-		if (dc == 1) {
-			/* Enable D$ */
-			ctr_reg |= 1 << 2;
-		}
-
-		if (ic == 1) {
-			/* Enable I$ */
-			ctr_reg |= 1 << 12;
-		}
+		ctr_reg |= arm946e->cp15_control_reg & (CP15_CTL_DCACHE|CP15_CTL_ICACHE);
 
 		/* Write the new configuration */
-		retval = arm946e_write_cp15(target, 0x02, ctr_reg);
+		retval = arm946e_write_cp15(target, CP15_CTL, ctr_reg);
 		if (retval != ERROR_OK)
 			LOG_DEBUG("ERROR enabling cache");
 	}	/* if preserve_cache */
@@ -488,8 +486,9 @@ int arm946e_write_memory(struct target *target, uint32_t address,
 
 	LOG_DEBUG("-");
 
+	struct arm946e_common *arm946e = target_to_arm946(target);
 	/* Invalidate D$ if it is ON */
-	if (!arm946e_preserve_cache && dc == 1)
+	if (!arm946e_preserve_cache && (arm946e->cp15_control_reg & CP15_CTL_DCACHE))
 		arm946e_invalidate_dcache(target, address, size, count);
 
 	/**
@@ -521,7 +520,7 @@ int arm946e_write_memory(struct target *target, uint32_t address,
 	 * the cache write policy is write-through.
 	 * If the data is not in the cache, the controller writes to main memory only.
 	 */
-	if (!arm946e_preserve_cache && ic == 1)
+	if (!arm946e_preserve_cache && (arm946e->cp15_control_reg & CP15_CTL_ICACHE))
 		arm946e_invalidate_icache(target, address, size, count);
 
 	return ERROR_OK;
