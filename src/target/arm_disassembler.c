@@ -2890,7 +2890,7 @@ static int t2ev_cond_b(uint32_t opcode, uint32_t address,
 	offset = opcode & 0x7ff;
 	offset |= (opcode & 0x003f0000) >> 5;
 	if (opcode & (1 << 26)) {
-		offset |= 0xffff << 19;
+		offset |= 0x1fff << 19;
 		if ((opcode & (1 << 11)) == 0)
 			b17 = 0;
 		if ((opcode & (1 << 13)) == 0)

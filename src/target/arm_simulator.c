@@ -524,7 +524,7 @@ static int arm_simulate_step_core(struct target *target,
 
 		switch (instruction.info.load_store_multiple.addressing_mode) {
 			case 0:	/* Increment after */
-				Rn = Rn;
+				/* Rn = Rn; */
 				break;
 			case 1:	/* Increment before */
 				Rn = Rn + 4;
@@ -604,7 +604,7 @@ static int arm_simulate_step_core(struct target *target,
 
 			switch (instruction.info.load_store_multiple.addressing_mode) {
 				case 0:	/* Increment after */
-					Rn = Rn;
+					/* Rn = Rn; */
 					break;
 				case 1:	/* Increment before */
 					Rn = Rn + 4;

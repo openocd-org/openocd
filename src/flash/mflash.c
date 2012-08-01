@@ -510,7 +510,7 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 }
 
 static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt,
-	mg_io_type_cmd cmd)
+	uint8_t cmd)
 {
 	uint32_t i, address;
 	int ret;

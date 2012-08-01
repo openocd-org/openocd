@@ -387,7 +387,7 @@ static int  armv7a_flush_all_data(struct target *target)
 		head = target->head;
 		while (head != (struct target_list *)NULL) {
 			curr = head->target;
-			if ((curr->state == TARGET_HALTED)) {
+			if (curr->state == TARGET_HALTED) {
 				LOG_INFO("Wait flushing data l1 on core %d", curr->coreid);
 				retval = _armv7a_flush_all_data(curr);
 			}
