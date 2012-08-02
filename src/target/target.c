@@ -5131,8 +5131,10 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		target->head = head;
 		curr = curr->next;
 	}
-	if (target->rtos)
+
+	if (target && target->rtos)
 		retval = rtos_smp_init(head->target);
+
 	return retval;
 }
 
