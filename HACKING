@@ -47,14 +47,8 @@ Add yourself to the GPL copyright for non-trivial changes.
      add a username of your choice.
      Your username will be required in step 3 and substituted wherever
      the string 'USERNAME' is found.
-  -# Add an SSH public key following the directions for your specific platform:
-     - for Windows: http://help.github.com/win-set-up-git/#_set_up_ssh_keys
-     - for OSX: http://help.github.com/mac-set-up-git/#_set_up_ssh_keys
-     - for Linux: http://help.github.com/linux-set-up-git/#_set_up_ssh_keys<br>
-     .
-     While these pages describe the setting up of git as well,
-     you should scroll down the page till you get to the section:
-     <i>Next: Set Up SSH Keys</i>, and follow the steps described.
+  -# Add an SSH public key following the directions on github:
+     https://help.github.com/articles/generating-ssh-keys
 -# Clone the git repository, rather than just download the source:
  @code
  git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd
