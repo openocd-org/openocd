@@ -111,11 +111,21 @@ endif
 noinst_HEADERS = \
 	bitbang.h \
 	bitq.h \
+	ftd2xx_common.h \
+	libusb0_common.h \
+	libusb1_common.h \
+	libusb_common.h \
 	minidriver_imp.h \
+	mpsse.h \
 	rlink.h \
 	rlink_dtc_cmd.h \
 	rlink_ep1_cmd.h \
 	rlink_st7.h \
-	usb_common.h
+	usb_common.h \
+	versaloon/usbtoxxx/usbtoxxx.h \
+	versaloon/usbtoxxx/usbtoxxx_internal.h \
+	versaloon/versaloon.h \
+	versaloon/versaloon_include.h \
+	versaloon/versaloon_internal.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

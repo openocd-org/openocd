@@ -63,7 +63,7 @@ $(THE_MANUAL): %.pdf: %.tex
 
 TCL_PATH = tcl
 # command to find paths of script files, relative to TCL_PATH
-TCL_FILES = find $(srcdir)/$(TCL_PATH) -name '*.cfg' -o -name '*.tcl' | \
+TCL_FILES = find $(srcdir)/$(TCL_PATH) -name '*.cfg' -o -name '*.tcl' -o -name '*.txt' | \
 		sed -e 's,^$(srcdir)/$(TCL_PATH),,'
 
 dist-hook:
