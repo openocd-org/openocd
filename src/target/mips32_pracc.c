@@ -125,9 +125,9 @@ static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 
 	/* wait for the PrAcc to become "1" */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
-	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 
 	while (1) {
+		ejtag_ctrl = ejtag_info->ejtag_ctrl;
 		retval = mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		if (retval != ERROR_OK)
 			return retval;
