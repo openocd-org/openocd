@@ -587,6 +587,8 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 					LOG_DEBUG("FlexRAM bank %d already configured okay",
 						  kinfo->bank_ordinal);
 				}
+				break;
+
 			default:
 				LOG_WARNING("Unknown or inconsistent flash class");
 				reassign = 1;
