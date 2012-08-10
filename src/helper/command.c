@@ -31,7 +31,7 @@
 #include "config.h"
 #endif
 
-/* see Embedder-HOWTO.txt in Jim Tcl project hosted on BerliOS*/
+/* see Embedded-HOWTO.txt in Jim Tcl project hosted on BerliOS*/
 #define JIM_EMBEDDED
 
 /* @todo the inclusion of target.h here is a layering violation */
@@ -152,6 +152,7 @@ static void script_command_args_free(const char **words, unsigned nwords)
 		free((void *)words[i]);
 	free(words);
 }
+
 static const char **script_command_args_alloc(
 	unsigned argc, Jim_Obj * const *argv, unsigned *nwords)
 {
@@ -244,6 +245,7 @@ static struct command *command_find(struct command *head, const char *name)
 	}
 	return NULL;
 }
+
 struct command *command_find_in_context(struct command_context *cmd_ctx,
 	const char *name)
 {
@@ -570,6 +572,7 @@ static char *__command_name(struct command *c, char delim, unsigned extra)
 	}
 	return name;
 }
+
 char *command_name(struct command *c, char delim)
 {
 	return __command_name(c, delim, 0);
@@ -777,7 +780,7 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	/* disable polling during capture. This avoids capturing output
 	 * from polling.
 	 *
-	 * This is necessary in order to avoid accidentially getting a non-empty
+	 * This is necessary in order to avoid accidentally getting a non-empty
 	 * string for tcl fn's.
 	 */
 	bool save_poll = jtag_poll_get_enabled();
@@ -847,6 +850,7 @@ static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
 		n = n2;
 	}
 }
+
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 	bool show_help, const char *match)
 {
@@ -911,6 +915,7 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 	return CALL_COMMAND_HANDLER(command_help_show_list,
 		c->children, n, show_help, match);
 }
+
 COMMAND_HANDLER(handle_help_command)
 {
 	bool full = strcmp(CMD_NAME, "help") == 0;
@@ -927,19 +932,16 @@ COMMAND_HANDLER(handle_help_command)
 			if (NULL != match) {
 				char *prev = match;
 
-				match = alloc_printf("%s %s", match,
-						CMD_ARGV[i]);
+				match = alloc_printf("%s %s", match, CMD_ARGV[i]);
 				free(prev);
 				if (NULL == match) {
-					LOG_ERROR("unable to build "
-						"search string");
+					LOG_ERROR("unable to build search string");
 					return -ENOMEM;
 				}
 			} else {
 				match = alloc_printf("%s", CMD_ARGV[i]);
 				if (NULL == match) {
-					LOG_ERROR("unable to build "
-						"search string");
+					LOG_ERROR("unable to build search string");
 					return -ENOMEM;
 				}
 			}
