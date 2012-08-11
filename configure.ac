@@ -816,7 +816,7 @@ if test $build_remote_bitbang = yes; then
   build_bitbang=yes
   AC_DEFINE([BUILD_REMOTE_BITBANG], [1], [1 if you want the Remote Bitbang JTAG driver.])
 else
-  AC_DEFINE([BUILD_REMOTE_BITBNAG], [0], [0 if you don't want the Remote Bitbang JTAG driver.])
+  AC_DEFINE([BUILD_REMOTE_BITBANG], [0], [0 if you don't want the Remote Bitbang JTAG driver.])
 fi
 
 #-- Deal with MingW/Cygwin FTD2XX issues
