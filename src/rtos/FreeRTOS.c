@@ -259,6 +259,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 				(uint8_t *)&list_thread_count);
 		if (retval != ERROR_OK) {
 			LOG_OUTPUT("Error reading number of threads in FreeRTOS thread list\r\n");
+			free(list_of_lists);
 			return retval;
 		}
 
@@ -273,8 +274,8 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 				param->pointer_width,
 				(uint8_t *)&list_elem_ptr);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT(
-				"Error reading first thread item location in FreeRTOS thread list\r\n");
+			LOG_OUTPUT("Error reading first thread item location in FreeRTOS thread list\r\n");
+			free(list_of_lists);
 			return retval;
 		}
 
@@ -288,8 +289,8 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 					param->pointer_width,
 					(uint8_t *)&(rtos->thread_details[tasks_found].threadid));
 			if (retval != ERROR_OK) {
-				LOG_OUTPUT(
-					"Error reading thread list item object in FreeRTOS thread list\r\n");
+				LOG_OUTPUT("Error reading thread list item object in FreeRTOS thread list\r\n");
+				free(list_of_lists);
 				return retval;
 			}
 
@@ -304,8 +305,8 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 					FREERTOS_THREAD_NAME_STR_SIZE,
 					(uint8_t *)&tmp_str);
 			if (retval != ERROR_OK) {
-				LOG_OUTPUT(
-					"Error reading first thread item location in FreeRTOS thread list\r\n");
+				LOG_OUTPUT("Error reading first thread item location in FreeRTOS thread list\r\n");
+				free(list_of_lists);
 				return retval;
 			}
 			tmp_str[FREERTOS_THREAD_NAME_STR_SIZE-1] = '\x00';
@@ -338,12 +339,13 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 					param->pointer_width,
 					(uint8_t *)&list_elem_ptr);
 			if (retval != ERROR_OK) {
-				LOG_OUTPUT(
-					"Error reading next thread item location in FreeRTOS thread list\r\n");
+				LOG_OUTPUT("Error reading next thread item location in FreeRTOS thread list\r\n");
+				free(list_of_lists);
 				return retval;
 			}
 		}
 	}
+
 	free(list_of_lists);
 	rtos->thread_count = tasks_found;
 	return 0;

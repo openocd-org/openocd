@@ -1138,6 +1138,7 @@ static int gdb_set_register_packet(struct connection *connection,
 
 	if ((unsigned int)chars != strlen(separator + 1)) {
 		LOG_ERROR("gdb sent a packet with wrong register size");
+		free(bin_buf);
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
