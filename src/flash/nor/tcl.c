@@ -427,16 +427,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	int retval = ERROR_OK;
 
 	static size_t const chunksize = 1024;
-	uint8_t *chunk = malloc(chunksize);
-	if (chunk == NULL)
-		return ERROR_FAIL;
-
-	uint8_t *readback = malloc(chunksize);
-	if (readback == NULL) {
-		free(chunk);
-		return ERROR_FAIL;
-	}
-
+	uint8_t *chunk = NULL, *readback = NULL;
 
 	if (CMD_ARGC != 3) {
 		retval = ERROR_COMMAND_SYNTAX_ERROR;
@@ -446,6 +437,16 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], pattern);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], count);
+
+	chunk = malloc(chunksize);
+	if (chunk == NULL)
+		return ERROR_FAIL;
+
+	readback = malloc(chunksize);
+	if (readback == NULL) {
+		free(chunk);
+		return ERROR_FAIL;
+	}
 
 	if (count == 0)
 		goto done;
