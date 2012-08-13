@@ -1265,6 +1265,8 @@ int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
 			retval = mem_ap_read_atomic_u32(dap,
 					(component_base & 0xfffff000) | 0xfcc,
 					&devtype);
+			if (retval != ERROR_OK)
+				return retval;
 			if ((devtype & 0xff) == type) {
 				*addr = component_base;
 				retval = ERROR_OK;
