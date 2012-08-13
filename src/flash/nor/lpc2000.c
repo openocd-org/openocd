@@ -422,7 +422,7 @@ static int lpc2000_iap_call(struct flash_bank *bank,
 
 static int lpc2000_iap_blank_check(struct flash_bank *bank, int first, int last)
 {
-	uint32_t param_table[5];
+	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
 	int status_code;
 	int i;
@@ -512,7 +512,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 static int lpc2000_erase(struct flash_bank *bank, int first, int last)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
-	uint32_t param_table[5];
+	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
 	int status_code;
 
@@ -573,7 +573,7 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 	uint32_t bytes_written = 0;
 	int first_sector = 0;
 	int last_sector = 0;
-	uint32_t param_table[5];
+	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
 	int status_code;
 	int i;
@@ -772,7 +772,7 @@ static int get_lpc2000_info(struct flash_bank *bank, char *buf, int buf_size)
 
 COMMAND_HANDLER(lpc2000_handle_part_id_command)
 {
-	uint32_t param_table[5];
+	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
 	int status_code;
 
