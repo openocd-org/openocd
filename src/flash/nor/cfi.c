@@ -1634,7 +1634,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	struct target *target = bank->target;
 	struct reg_param reg_params[10];
-	struct arm_algorithm *arm_algo;
+	void *arm_algo;
 	struct arm_algorithm armv4_5_algo;
 	struct armv7m_algorithm armv7m_algo;
 	struct working_area *source;
@@ -1818,7 +1818,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	if (is_armv7m(target_to_armv7m(target))) {	/* Cortex-M3 target */
 		armv7m_algo.common_magic = ARMV7M_COMMON_MAGIC;
 		armv7m_algo.core_mode = ARMV7M_MODE_HANDLER;
-		arm_algo = (struct arm_algorithm *)&armv7m_algo;
+		arm_algo = &armv7m_algo;
 	} else if (is_arm(target_to_arm(target))) {
 		/* All other ARM CPUs have 32 bit instructions */
 		armv4_5_algo.common_magic = ARM_COMMON_MAGIC;
@@ -1835,7 +1835,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	switch (bank->bus_width) {
 		case 1:
-			if (arm_algo->common_magic != ARM_COMMON_MAGIC) {
+			if (is_armv7m(target_to_armv7m(target))) {
 				LOG_ERROR("Unknown ARM architecture");
 				return ERROR_FAIL;
 			}
@@ -1845,19 +1845,19 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		case 2:
 			/* Check for DQ5 support */
 			if (cfi_info->status_poll_mask & (1 << 5)) {
-				if (arm_algo->common_magic == ARM_COMMON_MAGIC) {/* armv4_5 target */
-					target_code_src = armv4_5_word_16_code;
-					target_code_size = sizeof(armv4_5_word_16_code);
-				} else if (arm_algo->common_magic == ARMV7M_COMMON_MAGIC) {	/*
+				if (is_armv7m(target_to_armv7m(target))) {	/*
 												 *cortex-m3
 												 *target
 												 **/
 					target_code_src = armv7m_word_16_code;
 					target_code_size = sizeof(armv7m_word_16_code);
+				} else { /* armv4_5 target */
+					target_code_src = armv4_5_word_16_code;
+					target_code_size = sizeof(armv4_5_word_16_code);
 				}
 			} else {
 				/* No DQ5 support. Use DQ7 DATA# polling only. */
-				if (arm_algo->common_magic != ARM_COMMON_MAGIC) {
+				if (is_armv7m(target_to_armv7m(target))) {
 					LOG_ERROR("Unknown ARM architecture");
 					return ERROR_FAIL;
 				}
@@ -1866,7 +1866,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 			}
 			break;
 		case 4:
-			if (arm_algo->common_magic != ARM_COMMON_MAGIC) {
+			if (is_armv7m(target_to_armv7m(target))) {
 				LOG_ERROR("Unknown ARM architecture");
 				return ERROR_FAIL;
 			}
