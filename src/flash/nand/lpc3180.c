@@ -524,8 +524,9 @@ static int lpc3180_write_page(struct nand_device *nand,
 			target_write_u32(target, 0x200b8010, 0x0);
 
 			if (!lpc3180_controller_ready(nand, 1000)) {
-				LOG_ERROR(
-					"timeout while waiting for completion of auto encode cycle");
+				LOG_ERROR("timeout while waiting for completion of auto encode cycle");
+				free(page_buffer);
+				free(oob_buffer);
 				return ERROR_NAND_OPERATION_FAILED;
 			}
 		}
@@ -536,11 +537,15 @@ static int lpc3180_write_page(struct nand_device *nand,
 		retval = nand_read_status(nand, &status);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("couldn't read status");
+			free(page_buffer);
+			free(oob_buffer);
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 
 		if (status & NAND_STATUS_FAIL) {
 			LOG_ERROR("write operation didn't pass, status: 0x%2.2x", status);
+			free(page_buffer);
+			free(oob_buffer);
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 
@@ -888,8 +893,9 @@ static int lpc3180_read_page(struct nand_device *nand,
 			target_write_u32(target, 0x200b8014, 0xaa55aa55);
 
 			if (!lpc3180_controller_ready(nand, 1000)) {
-				LOG_ERROR(
-					"timeout while waiting for completion of auto decode cycle");
+				LOG_ERROR("timeout while waiting for completion of auto decode cycle");
+				free(page_buffer);
+				free(oob_buffer);
 				return ERROR_NAND_OPERATION_FAILED;
 			}
 
@@ -899,6 +905,8 @@ static int lpc3180_read_page(struct nand_device *nand,
 				if (mlc_isr & 0x40) {
 					LOG_ERROR("uncorrectable error detected: 0x%2.2x",
 						(unsigned)mlc_isr);
+					free(page_buffer);
+					free(oob_buffer);
 					return ERROR_NAND_OPERATION_FAILED;
 				}
 

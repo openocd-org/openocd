@@ -169,6 +169,8 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 			if (target->rtos->symbols[symbol_num].symbol_name == NULL) {
 				LOG_OUTPUT("ERROR: unknown symbol\r\n");
 				gdb_put_packet(connection, "OK", 2);
+				free(hex_name_str);
+				free(name_str);
 				return ERROR_OK;
 			}
 

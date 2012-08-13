@@ -897,8 +897,10 @@ static int at91sam7_erase(struct flash_bank *bank, int first, int last)
 		for (pos = 0; pos < nbytes; pos++)
 			buffer[pos] = 0xFF;
 
-		if (at91sam7_write(bank, buffer, bank->sectors[first].offset, nbytes) != ERROR_OK)
+		if (at91sam7_write(bank, buffer, bank->sectors[first].offset, nbytes) != ERROR_OK) {
+			free(buffer);
 			return ERROR_FLASH_OPERATION_FAILED;
+		}
 
 		free(buffer);
 	}

@@ -420,6 +420,8 @@ int fill_task(struct target *target, struct threads *t)
 	} else
 		LOG_ERROR("fill task: unable to read memory");
 
+	free(buffer);
+
 	return retval;
 }
 
@@ -494,8 +496,10 @@ int get_current(struct target *target, int create)
 		int retval;
 
 		if (target_get_gdb_reg_list(head->target, &reg_list,
-				&reg_list_size) != ERROR_OK)
+				&reg_list_size) != ERROR_OK) {
+			free(buffer);
 			return ERROR_TARGET_FAILURE;
+		}
 
 		if (!reg_list[13]->valid)
 			reg_list[13]->type->get(reg_list[13]);
@@ -549,6 +553,8 @@ int get_current(struct target *target, int create)
 		free(reg_list);
 		head = head->next;
 	}
+
+	free(buffer);
 
 	return ERROR_OK;
 }
@@ -615,6 +621,7 @@ retry:
 			(uint8_t *) registers);
 
 	if (retval != ERROR_OK) {
+		free(buffer);
 		LOG_ERROR("cpu_context: unable to read memory\n");
 		return context;
 	}
@@ -643,6 +650,8 @@ retry:
 	if (*thread_info_addr_old == 0xdeadbeef)
 		*thread_info_addr_old = thread_info_addr_update;
 
+	free(buffer);
+
 	return context;
 }
 
@@ -655,10 +664,12 @@ uint32_t next_task(struct target *target, struct threads *t)
 	if (retval == ERROR_OK) {
 		uint32_t val = get_buffer(target, buffer);
 		val = val - NEXT;
-		return val;
 		free(buffer);
+		return val;
 	} else
 		LOG_ERROR("next task: unable to read memory");
+
+	free(buffer);
 
 	return 0;
 }
@@ -778,6 +789,7 @@ int linux_get_tasks(struct target *target, int context)
 		retval = get_name(target, t);
 
 		if (loop > MAX_THREADS) {
+			free(t);
 			LOG_INFO("more than %d threads !!", MAX_THREADS);
 			return ERROR_FAIL;
 		}
@@ -829,6 +841,7 @@ int linux_get_tasks(struct target *target, int context)
 		(timeval_ms() - start) / linux_os->threadid_count);
 
 	LOG_INFO("threadid count %d", linux_os->threadid_count);
+	free(t);
 
 	return ERROR_OK;
 }
@@ -973,7 +986,7 @@ error_handling:
 #ifndef PID_CHECK
 error_handling:
 	free(t);
-	LOG_ERROR("unable toread pid");
+	LOG_ERROR("unable to read pid");
 	return;
 
 #endif
@@ -1454,7 +1467,7 @@ static int linux_thread_packet(struct connection *connection, char *packet,
 			}
 		}
 
-			/* if a packet handler returned an error, exit input loop */
+		/* if a packet handler returned an error, exit input loop */
 		if (retval != ERROR_OK)
 			return retval;
 	}

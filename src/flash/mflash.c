@@ -770,6 +770,7 @@ COMMAND_HANDLER(mg_write_cmd)
 	int retval = fileio_size(&fileio, &filesize);
 	if (retval != ERROR_OK) {
 		fileio_close(&fileio);
+		free(buffer);
 		return retval;
 	}
 
