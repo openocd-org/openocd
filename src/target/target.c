@@ -1405,7 +1405,6 @@ static void target_split_working_area(struct working_area *area, uint32_t size)
 		new_wa->size = area->size - size;
 		new_wa->address = area->address + size;
 		new_wa->backup = NULL;
-		new_wa->user = NULL;
 		new_wa->free = true;
 
 		area->next = new_wa;
@@ -1494,7 +1493,6 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 			new_wa->size = target->working_area_size & ~3UL; /* 4-byte align */
 			new_wa->address = target->working_area;
 			new_wa->backup = NULL;
-			new_wa->user = NULL;
 			new_wa->free = true;
 		}
 
@@ -1537,9 +1535,6 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 	/* mark as used, and return the new (reused) area */
 	c->free = false;
 	*area = c;
-
-	/* user pointer */
-	c->user = area;
 
 	print_wa_layout(target);
 
@@ -1591,13 +1586,6 @@ static int target_free_working_area_restore(struct target *target, struct workin
 	LOG_DEBUG("freed %"PRIu32" bytes of working area at address 0x%08"PRIx32,
 			area->size, area->address);
 
-	/* mark user pointer invalid */
-	/* TODO: Is this really safe? It points to some previous caller's memory.
-	 * How could we know that the area pointer is still in that place and not
-	 * some other vital data? What's the purpose of this, anyway? */
-	*area->user = NULL;
-	area->user = NULL;
-
 	target_merge_working_areas(target);
 
 	print_wa_layout(target);
@@ -1625,8 +1613,6 @@ static void target_free_all_working_areas_restore(struct target *target, int res
 			if (restore)
 				target_restore_working_area(target, c);
 			c->free = true;
-			*c->user = NULL; /* Same as above */
-			c->user = NULL;
 		}
 		c = c->next;
 	}

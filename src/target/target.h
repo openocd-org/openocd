@@ -95,7 +95,6 @@ struct working_area {
 	uint32_t size;
 	bool free;
 	uint8_t *backup;
-	struct working_area **user;
 	struct working_area *next;
 };
 
