@@ -9,6 +9,8 @@ JTAG Layer:
 	New Tincantools Flyswatter2 support.
 	Improved ULINK driver.
 	Improved RLINK driver.
+	Support for adapters based on FT232H chips.
+	New experimental driver for FTDI based adapters, using libusb-1.0 in asynchronous mode.
 
 Boundary Scan:
 
@@ -17,6 +19,7 @@ Target Layer:
 	New Cortex-M4 support.
 	Improved Working area algorithm.
 	New RTOS support. Currently linux, FreeRTOS, ThreadX and eCos.
+	Connecting under reset to Cortex-Mx and MIPS chips.
 
 Flash Layer:
 	New SST39WF1601 support.
