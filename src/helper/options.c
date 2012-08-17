@@ -55,43 +55,52 @@ int configuration_output_handler(struct command_context *context, const char *li
 static void add_default_dirs(void)
 {
 #ifdef _WIN32
+	char strExePath[MAX_PATH];
+	char *path;
+	GetModuleFileName(NULL, strExePath, MAX_PATH);
+
+	/* Strip executable file name, leaving path */
+	*strrchr(strExePath, '\\') = '\0';
+
+	/* Convert path separators to UNIX style, should work on Windows also. */
+	for (char *p = strExePath; *p; p++) {
+		if (*p == '\\')
+			*p = '/';
+	}
+
 	/* Add the parent of the directory where openocd.exe resides to the
 	 * config script search path.
-	 * Directory layout:
-	 * bin\openocd.exe
-	 * lib\openocd
+	 *
+	 * bin/openocd.exe
+	 * interface/dummy.cfg
+	 * target/at91eb40a.cfg
 	 */
-	{
-		char strExePath[MAX_PATH];
-		GetModuleFileName(NULL, strExePath, MAX_PATH);
-		/* Either this code will *always* work or it will SEGFAULT giving
-		 * excellent information on the culprit.
-		 */
-		*strrchr(strExePath, '\\') = 0;
-		strcat(strExePath, "\\..");
-		add_script_search_dir(strExePath);
+	path = alloc_printf("%s%s", strExePath, "/..");
+	if (path) {
+		add_script_search_dir(path);
+		free(path);
 	}
-	/*
-	 * Add support for the default (as of 20091118) layout when
-	 * using autotools and cygwin/MinGW to build native binary.
-	 * Path separator is converted to UNIX style so that MinGW is
-	 * pleased.
+	/* Add support for the directory layout resulting from a 'make install'.
 	 *
 	 * bin/openocd.exe
 	 * share/openocd/scripts/interface/dummy.cfg
 	 * share/openocd/scripts/target/at91eb40a.cfg
 	 */
-	{
-		char strExePath[MAX_PATH];
-		char *p;
-		GetModuleFileName(NULL, strExePath, MAX_PATH);
-		*strrchr(strExePath, '\\') = 0;
-		strcat(strExePath, "/../share/"PACKAGE "/scripts");
-		for (p = strExePath; *p; p++) {
-			if (*p == '\\')
-				*p = '/';
-		}
-		add_script_search_dir(strExePath);
+	path = alloc_printf("%s%s", strExePath, "/../share/" PACKAGE "/scripts");
+	if (path) {
+		add_script_search_dir(path);
+		free(path);
+	}
+	/* Add single "scripts" folder to search path for Windows OpenOCD builds that don't use cygwin
+	 *
+	 * bin/openocd.exe
+	 * scripts/interface/dummy.cfg
+	 * scripts/target/at91eb40a.cfg
+	 */
+	path = alloc_printf("%s%s", strExePath, "/../scripts");
+	if (path) {
+		add_script_search_dir(path);
+		free(path);
 	}
 #else
 	/*
