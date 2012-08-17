@@ -22,6 +22,7 @@ NOR_DRIVERS = \
 	non_cfi.c \
 	ocl.c \
 	pic32mx.c \
+	spi.c \
 	stmsmi.c \
 	stellaris.c \
 	stm32f1x.c \
@@ -42,6 +43,7 @@ noinst_HEADERS = \
 	driver.h \
 	imp.h \
 	non_cfi.h \
-	ocl.h
+	ocl.h \
+	spi.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

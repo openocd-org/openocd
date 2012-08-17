@@ -39,6 +39,7 @@
 #endif
 
 #include "imp.h"
+#include "spi.h"
 #include <jtag/jtag.h>
 #include <helper/time_support.h>
 
@@ -105,8 +106,6 @@
 #define SMI_SEL_BANK3     0x00003000 /* Select Bank3 */
 
 /* fields in SMI_SR */
-#define SMI_WIP_BIT       0x00000001 /* WIP Bit of SPI SR on SMI SR */
-#define SMI_WEL_BIT       0x00000002 /* WEL Bit of SPI SR on SMI SR */
 #define SMI_TFF           0x00000100 /* Transfer Finished Flag */
 
 /* Commands */
@@ -122,65 +121,6 @@ struct stmsmi_flash_bank {
 	uint32_t io_base;
 	uint32_t bank_num;
 	struct flash_device *dev;
-};
-
-/* data structure to maintain flash ids from different vendors */
-struct flash_device {
-	char *name;
-	uint8_t erase_cmd;
-	uint32_t device_id;
-	uint32_t pagesize;
-	unsigned long sectorsize;
-	unsigned long size_in_bytes;
-};
-
-#define FLASH_ID(n, es, id, psize, ssize, size) \
-{	                        \
-	.name = n,              \
-	.erase_cmd = es,        \
-	.device_id = id,        \
-	.pagesize = psize,      \
-	.sectorsize = ssize,    \
-	.size_in_bytes = size   \
-}
-
-/* List below is taken from Linux driver. It is not exhaustive of all the
- * possible SPI memories, nor exclusive for SMI. Could be shared with
- * other SPI drivers. */
-static struct flash_device flash_devices[] = {
-	/* name, erase_cmd, device_id, pagesize, sectorsize, size_in_bytes */
-	FLASH_ID("st m25p05",      0xd8, 0x00102020, 0x80,  0x8000,  0x10000),
-	FLASH_ID("st m25p10",      0xd8, 0x00112020, 0x80,  0x8000,  0x20000),
-	FLASH_ID("st m25p20",      0xd8, 0x00122020, 0x100, 0x10000, 0x40000),
-	FLASH_ID("st m25p40",      0xd8, 0x00132020, 0x100, 0x10000, 0x80000),
-	FLASH_ID("st m25p80",      0xd8, 0x00142020, 0x100, 0x10000, 0x100000),
-	FLASH_ID("st m25p16",      0xd8, 0x00152020, 0x100, 0x10000, 0x200000),
-	FLASH_ID("st m25p32",      0xd8, 0x00162020, 0x100, 0x10000, 0x400000),
-	FLASH_ID("st m25p64",      0xd8, 0x00172020, 0x100, 0x10000, 0x800000),
-	FLASH_ID("st m25p128",     0xd8, 0x00182020, 0x100, 0x40000, 0x1000000),
-	FLASH_ID("st m45pe10",     0xd8, 0x00114020, 0x100, 0x10000, 0x20000),
-	FLASH_ID("st m45pe20",     0xd8, 0x00124020, 0x100, 0x10000, 0x40000),
-	FLASH_ID("st m45pe40",     0xd8, 0x00134020, 0x100, 0x10000, 0x80000),
-	FLASH_ID("st m45pe80",     0xd8, 0x00144020, 0x100, 0x10000, 0x100000),
-	FLASH_ID("sp s25fl004",    0xd8, 0x00120201, 0x100, 0x10000, 0x80000),
-	FLASH_ID("sp s25fl008",    0xd8, 0x00130201, 0x100, 0x10000, 0x100000),
-	FLASH_ID("sp s25fl016",    0xd8, 0x00140201, 0x100, 0x10000, 0x200000),
-	FLASH_ID("sp s25fl032",    0xd8, 0x00150201, 0x100, 0x10000, 0x400000),
-	FLASH_ID("sp s25fl064",    0xd8, 0x00160201, 0x100, 0x10000, 0x800000),
-	FLASH_ID("atmel 25f512",   0x52, 0x0065001f, 0x80,  0x8000,  0x10000),
-	FLASH_ID("atmel 25f1024",  0x52, 0x0060001f, 0x100, 0x8000,  0x20000),
-	FLASH_ID("atmel 25f2048",  0x52, 0x0063001f, 0x100, 0x10000, 0x40000),
-	FLASH_ID("atmel 25f4096",  0x52, 0x0064001f, 0x100, 0x10000, 0x80000),
-	FLASH_ID("atmel 25fs040",  0xd7, 0x0004661f, 0x100, 0x10000, 0x80000),
-	FLASH_ID("mac 25l512",     0xd8, 0x001020c2, 0x010, 0x10000, 0x10000),
-	FLASH_ID("mac 25l1005",    0xd8, 0x001120c2, 0x010, 0x10000, 0x20000),
-	FLASH_ID("mac 25l2005",    0xd8, 0x001220c2, 0x010, 0x10000, 0x40000),
-	FLASH_ID("mac 25l4005",    0xd8, 0x001320c2, 0x010, 0x10000, 0x80000),
-	FLASH_ID("mac 25l8005",    0xd8, 0x001420c2, 0x010, 0x10000, 0x100000),
-	FLASH_ID("mac 25l1605",    0xd8, 0x001520c2, 0x100, 0x10000, 0x200000),
-	FLASH_ID("mac 25l3205",    0xd8, 0x001620c2, 0x100, 0x10000, 0x400000),
-	FLASH_ID("mac 25l6405",    0xd8, 0x001720c2, 0x100, 0x10000, 0x800000),
-	FLASH_ID(NULL,             0,    0,          0,     0,       0)
 };
 
 struct stmsmi_target {
@@ -282,7 +222,7 @@ static int wait_till_ready(struct flash_bank *bank, int timeout)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if ((status & SMI_WIP_BIT) == 0)
+		if ((status & SPIFLASH_BSY_BIT) == 0)
 			return ERROR_OK;
 		alive_sleep(1);
 	} while (timeval_ms() < endtime);
@@ -320,7 +260,7 @@ static int smi_write_enable(struct flash_bank *bank)
 		return retval;
 
 	/* Check write enabled */
-	if ((status & SMI_WEL_BIT) == 0) {
+	if ((status & SPIFLASH_WE_BIT) == 0) {
 		LOG_ERROR("Cannot enable write to flash. Status=0x%08" PRIx32, status);
 		return ERROR_FAIL;
 	}
