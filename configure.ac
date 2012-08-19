@@ -487,6 +487,10 @@ AC_ARG_ENABLE([opendous],
   AS_HELP_STRING([--enable-opendous], [Enable building support for the estick/opendous JTAG Programmer]),
   [build_opendous=$enableval], [build_opendous=no])
 
+AC_ARG_ENABLE([sysfsgpio],
+  AS_HELP_STRING([--enable-sysfsgpio], [Enable building support for programming driven via sysfs gpios.]),
+  [build_sysfsgpio=$enableval], [build_sysfsgpio=no])
+
 AC_ARG_ENABLE([minidriver_dummy],
   AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
@@ -819,6 +823,12 @@ else
   AC_DEFINE([BUILD_REMOTE_BITBANG], [0], [0 if you don't want the Remote Bitbang JTAG driver.])
 fi
 
+if test $build_sysfsgpio = yes; then
+  build_bitbang=yes
+  AC_DEFINE([BUILD_SYSFSGPIO], [1], [1 if you want the SysfsGPIO driver.])
+else
+  AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
+fi
 #-- Deal with MingW/Cygwin FTD2XX issues
 
 if test $is_win32 = yes; then
@@ -1185,6 +1195,7 @@ AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
 AM_CONDITIONAL([STLINK], [test $build_stlink = yes])
 AM_CONDITIONAL([OSBDM], [test $build_osbdm = yes])
 AM_CONDITIONAL([OPENDOUS], [test $build_opendous = yes])
+AM_CONDITIONAL([SYSFSGPIO], [test $build_sysfsgpio = yes])
 AM_CONDITIONAL([USB], [test $build_usb = yes])
 AM_CONDITIONAL([USB_NG], [test $build_usb_ng = yes])
 AM_CONDITIONAL([USE_LIBUSB0], [test $use_libusb0 = yes])
