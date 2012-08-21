@@ -635,6 +635,10 @@ SERVER_PIPE_COMMAND()
 			break;
 		case 1:
 		{
+			if (CMD_CTX->mode == COMMAND_EXEC) {
+				LOG_WARNING("unable to change server port after init");
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+			}
 			const char *t = strdup(CMD_ARGV[0]);
 			free((void *)*out);
 			*out = t;
