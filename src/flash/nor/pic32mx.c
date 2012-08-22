@@ -28,6 +28,7 @@
 #include "config.h"
 #endif
 
+#include <jtag/jtag.h>
 #include "imp.h"
 #include <target/algorithm.h>
 #include <target/mips32.h>
@@ -828,6 +829,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 
 	/* unlock/erase device */
 	mips_ejtag_drscan_8_out(ejtag_info, MCHP_ASERT_RST);
+	jtag_add_sleep(200);
 
 	mips_ejtag_drscan_8_out(ejtag_info, MCHP_ERASE);
 
