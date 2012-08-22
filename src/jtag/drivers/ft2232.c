@@ -135,7 +135,7 @@ enum ftdi_interface {
  #if BUILD_FT2232_FTD2XX == 1
 	enum { FT_DEVICE_2232H = 6, FT_DEVICE_4232H, FT_DEVICE_232H };
  #elif BUILD_FT2232_LIBFTDI == 1
-	enum { TYPE_2232H = 4, TYPE_4232H = 5, TYPE_232H = 6 };
+	enum ftdi_chip_type { TYPE_2232H = 4, TYPE_4232H = 5, TYPE_232H = 6 };
  #endif
 #endif
 
