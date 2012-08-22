@@ -2659,6 +2659,46 @@ int arm7_9_check_reset(struct target *target)
 	return ERROR_OK;
 }
 
+int arm7_9_endianness_callback(jtag_callback_data_t pu8_in,
+		jtag_callback_data_t i_size, jtag_callback_data_t i_be,
+		jtag_callback_data_t i_flip)
+{
+	uint8_t *in = (uint8_t *)pu8_in;
+	int size = (int)i_size;
+	int be = (int)i_be;
+	int flip = (int)i_flip;
+	uint32_t readback;
+
+	switch (size) {
+	case 4:
+		readback = le_to_h_u32(in);
+		if (flip)
+			readback = flip_u32(readback, 32);
+		if (be)
+			h_u32_to_be(in, readback);
+		else
+			h_u32_to_le(in, readback);
+		break;
+	case 2:
+		readback = le_to_h_u16(in);
+		if (flip)
+			readback = flip_u32(readback, 16);
+		if (be)
+			h_u16_to_be(in, readback & 0xffff);
+		else
+			h_u16_to_le(in, readback & 0xffff);
+		break;
+	case 1:
+		readback = *in;
+		if (flip)
+			readback = flip_u32(readback, 8);
+		*in = readback & 0xff;
+		break;
+	}
+
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 {
 	struct target *target = get_current_target(CMD_CTX);

@@ -168,40 +168,6 @@ static int arm7tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	return ERROR_OK;
 }
 
-void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
-{
-	uint32_t readback = le_to_h_u32(tmp);
-	if (flip)
-		readback = flip_u32(readback, 32);
-	switch (size) {
-		case 4:
-			if (be)
-				h_u32_to_be(((uint8_t *)in), readback);
-			else
-				 h_u32_to_le(((uint8_t *)in), readback);
-			break;
-		case 2:
-			if (be)
-				h_u16_to_be(((uint8_t *)in), readback & 0xffff);
-			else
-				h_u16_to_le(((uint8_t *)in), readback & 0xffff);
-			break;
-		case 1:
-			*((uint8_t *)in) = readback & 0xff;
-			break;
-	}
-}
-
-static int arm7endianness(jtag_callback_data_t arg,
-	jtag_callback_data_t size, jtag_callback_data_t be,
-	jtag_callback_data_t captured)
-{
-	uint8_t *in = (uint8_t *)arg;
-
-	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 1);
-	return ERROR_OK;
-}
-
 /* clock the target, and read the databus
  * the *in pointer points to a buffer where elements of 'size' bytes
  * are stored in big (be == 1) or little (be == 0) endianness
@@ -210,7 +176,7 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 		void *in, int size, int be)
 {
 	int retval = ERROR_OK;
-	struct scan_field fields[2];
+	struct scan_field fields[3];
 
 	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
@@ -223,17 +189,29 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
 
-	fields[1].num_bits = size * 8;
-	fields[1].out_value = NULL;
-	fields[1].in_value = in;
+	if (size == 4) {
+		fields[1].num_bits = 32;
+		fields[1].out_value = NULL;
+		fields[1].in_value = in;
+	} else {
+		/* Discard irrelevant bits of the scan, making sure we don't write more
+		 * than size bytes to in */
+		fields[1].num_bits = 32 - size * 8;
+		fields[1].out_value = NULL;
+		fields[1].in_value = NULL;
 
-	jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_DRPAUSE);
+		fields[2].num_bits = size * 8;
+		fields[2].out_value = NULL;
+		fields[2].in_value = in;
+	}
 
-	jtag_add_callback4(arm7endianness,
+	jtag_add_dr_scan(jtag_info->tap, size == 4 ? 2 : 3, fields, TAP_DRPAUSE);
+
+	jtag_add_callback4(arm7_9_endianness_callback,
 		(jtag_callback_data_t)in,
 		(jtag_callback_data_t)size,
 		(jtag_callback_data_t)be,
-		(jtag_callback_data_t)in);
+		(jtag_callback_data_t)1);
 
 	jtag_add_runtest(0, TAP_DRPAUSE);
 

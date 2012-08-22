@@ -244,16 +244,6 @@ int arm9tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	return ERROR_OK;
 }
 
-static int arm9endianness(jtag_callback_data_t arg,
-	jtag_callback_data_t size, jtag_callback_data_t be,
-	jtag_callback_data_t captured)
-{
-	uint8_t *in = (uint8_t *)arg;
-
-	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 0);
-	return ERROR_OK;
-}
-
 /* clock the target, and read the databus
  * the *in pointer points to a buffer where elements of 'size' bytes
  * are stored in big (be == 1) or little (be == 0) endianness
@@ -262,7 +252,7 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 		void *in, int size, int be)
 {
 	int retval = ERROR_OK;
-	struct scan_field fields[3];
+	struct scan_field fields[2];
 
 	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
@@ -272,25 +262,33 @@ int arm9tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	if (retval != ERROR_OK)
 		return retval;
 
-	fields[0].num_bits = size * 8;
-	fields[0].out_value = NULL;
-	fields[0].in_value = in;
+	if (size == 4) {
+		fields[0].num_bits = 32;
+		fields[0].out_value = NULL;
+		fields[0].in_value = in;
 
-	fields[1].num_bits = 3;
-	fields[1].out_value = NULL;
-	fields[1].in_value = NULL;
+		fields[1].num_bits = 3 + 32;
+		fields[1].out_value = NULL;
+		fields[1].in_value = NULL;
+	} else {
+		/* Discard irrelevant bits of the scan, making sure we don't write more
+		 * than size bytes to in */
+		fields[0].num_bits = size * 8;
+		fields[0].out_value = NULL;
+		fields[0].in_value = in;
 
-	fields[2].num_bits = 32;
-	fields[2].out_value = NULL;
-	fields[2].in_value = NULL;
+		fields[1].num_bits = 3 + 32 + 32 - size * 8;
+		fields[1].out_value = NULL;
+		fields[1].in_value = NULL;
+	}
 
-	jtag_add_dr_scan(jtag_info->tap, 3, fields, TAP_DRPAUSE);
+	jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_DRPAUSE);
 
-	jtag_add_callback4(arm9endianness,
+	jtag_add_callback4(arm7_9_endianness_callback,
 		(jtag_callback_data_t)in,
 		(jtag_callback_data_t)size,
 		(jtag_callback_data_t)be,
-		(jtag_callback_data_t)in);
+		(jtag_callback_data_t)0);
 
 	jtag_add_runtest(0, TAP_DRPAUSE);
 

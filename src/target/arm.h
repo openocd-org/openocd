@@ -237,8 +237,6 @@ int arm_blank_check_memory(struct target *target,
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
 
-void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip);
-
 extern struct reg arm_gdb_dummy_fp_reg;
 extern struct reg arm_gdb_dummy_fps_reg;
 
