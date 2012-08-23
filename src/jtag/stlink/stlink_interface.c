@@ -75,9 +75,8 @@ int stlink_interface_init_target(struct target *t)
 	}
 
 	if (found == 0) {
-		LOG_ERROR
-		    ("stlink_interface_init_target: target not found: idcode: %x ",
-		     t->tap->idcode);
+		LOG_ERROR("stlink_interface_init_target: target not found: idcode: 0x%08x",
+				t->tap->idcode);
 		return ERROR_FAIL;
 	}
 
