@@ -389,6 +389,18 @@ static int ftdi_execute_scan(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
 		jtag_scan_type(cmd->cmd.scan));
 
+	/* Make sure there are no trailing fields with num_bits == 0, or the logic below will fail. */
+	while (cmd->cmd.scan->num_fields > 0
+			&& cmd->cmd.scan->fields[cmd->cmd.scan->num_fields - 1].num_bits == 0) {
+		cmd->cmd.scan->num_fields--;
+		LOG_DEBUG("discarding trailing empty field");
+	}
+
+	if (cmd->cmd.scan->num_fields == 0) {
+		LOG_DEBUG("empty scan, doing nothing");
+		return retval;
+	}
+
 	if (cmd->cmd.scan->ir_scan) {
 		if (tap_get_state() != TAP_IRSHIFT)
 			move_to_state(TAP_IRSHIFT);
@@ -413,7 +425,7 @@ static int ftdi_execute_scan(struct jtag_command *cmd)
 
 		if (i == cmd->cmd.scan->num_fields - 1 && tap_get_state() != tap_get_end_state()) {
 			/* Last field, and we're leaving IRSHIFT/DRSHIFT. Clock last bit during tap
-			 *movement */
+			 * movement. This last field can't have length zero, it was checked above. */
 			mpsse_clock_data(mpsse_ctx,
 				field->out_value,
 				0,
