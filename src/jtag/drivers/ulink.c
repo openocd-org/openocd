@@ -532,6 +532,7 @@ int ulink_allocate_payload(struct ulink_cmd *ulink_cmd, int size,
 	    case PAYLOAD_DIRECTION_OUT:
 		    if (ulink_cmd->payload_out != NULL) {
 			    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
+			    free(payload);
 			    return ERROR_FAIL;
 		    } else {
 			    ulink_cmd->payload_out = payload;
@@ -541,6 +542,7 @@ int ulink_allocate_payload(struct ulink_cmd *ulink_cmd, int size,
 	    case PAYLOAD_DIRECTION_IN:
 		    if (ulink_cmd->payload_in_start != NULL) {
 			    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
+			    free(payload);
 			    return ERROR_FAIL;
 		    } else {
 			    ulink_cmd->payload_in_start = payload;
@@ -896,6 +898,7 @@ int ulink_append_scan_cmd(struct ulink *device, enum scan_type scan_type,
 	if (scan_size_bits > (58 * 8)) {
 		LOG_ERROR("BUG: Tried to create CMD_SCAN_IO OpenULINK command with too"
 			" large payload");
+		free(cmd);
 		return ERROR_FAIL;
 	}
 
@@ -934,8 +937,10 @@ int ulink_append_scan_cmd(struct ulink *device, enum scan_type scan_type,
 		    break;
 	}
 
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	/* Build payload_out that is common to all scan types */
 	cmd->payload_out[0] = scan_size_bytes & 0xFF;
@@ -993,8 +998,10 @@ int ulink_append_clock_tms_cmd(struct ulink *device, uint8_t count,
 
 	/* CMD_CLOCK_TMS has two OUT payload bytes and zero IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 2, PAYLOAD_DIRECTION_OUT);
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	cmd->payload_out[0] = count;
 	cmd->payload_out[1] = sequence;
@@ -1027,8 +1034,10 @@ int ulink_append_clock_tck_cmd(struct ulink *device, uint16_t count)
 
 	/* CMD_CLOCK_TCK has two OUT payload bytes and zero IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 2, PAYLOAD_DIRECTION_OUT);
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	cmd->payload_out[0] = count & 0xff;
 	cmd->payload_out[1] = (count >> 8) & 0xff;
@@ -1057,8 +1066,10 @@ int ulink_append_get_signals_cmd(struct ulink *device)
 	/* CMD_GET_SIGNALS has two IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 2, PAYLOAD_DIRECTION_IN);
 
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	return ulink_append_queue(device, cmd);
 }
@@ -1094,8 +1105,10 @@ int ulink_append_set_signals_cmd(struct ulink *device, uint8_t low,
 	/* CMD_SET_SIGNALS has two OUT payload bytes and zero IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 2, PAYLOAD_DIRECTION_OUT);
 
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	cmd->payload_out[0] = low;
 	cmd->payload_out[1] = high;
@@ -1124,8 +1137,10 @@ int ulink_append_sleep_cmd(struct ulink *device, uint32_t us)
 	/* CMD_SLEEP_US has two OUT payload bytes and zero IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 2, PAYLOAD_DIRECTION_OUT);
 
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	cmd->payload_out[0] = us & 0x00ff;
 	cmd->payload_out[1] = (us >> 8) & 0x00ff;
@@ -1159,8 +1174,10 @@ int ulink_append_configure_tck_cmd(struct ulink *device, int delay_scan_in,
 	/* CMD_CONFIGURE_TCK_FREQ has five OUT payload bytes and zero
 	 * IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 5, PAYLOAD_DIRECTION_OUT);
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	if (delay_scan_in < 0)
 		cmd->payload_out[0] = 0;
@@ -1217,8 +1234,10 @@ int ulink_append_led_cmd(struct ulink *device, uint8_t led_state)
 
 	/* CMD_SET_LEDS has one OUT payload byte and zero IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 1, PAYLOAD_DIRECTION_OUT);
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	cmd->payload_out[0] = led_state;
 
@@ -1245,8 +1264,10 @@ int ulink_append_test_cmd(struct ulink *device)
 
 	/* CMD_TEST has one OUT payload byte and zero IN payload bytes */
 	ret = ulink_allocate_payload(cmd, 1, PAYLOAD_DIRECTION_OUT);
-	if (ret != ERROR_OK)
+	if (ret != ERROR_OK) {
+		free(cmd);
 		return ret;
+	}
 
 	cmd->payload_out[0] = 0xAA;
 
@@ -2136,6 +2157,8 @@ static int ulink_init(void)
 	ret = ulink_usb_open(&ulink_handle);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Could not open ULINK device");
+		free(ulink_handle);
+		ulink_handle = NULL;
 		return ret;
 	}
 
@@ -2157,6 +2180,8 @@ static int ulink_init(void)
 				ULINK_FIRMWARE_FILE, ULINK_RENUMERATION_DELAY);
 		if (ret != ERROR_OK) {
 			LOG_ERROR("Could not download firmware and re-numerate ULINK");
+			free(ulink_handle);
+			ulink_handle = NULL;
 			return ret;
 		}
 	} else
@@ -2186,6 +2211,8 @@ static int ulink_init(void)
 			/* Bulk IN transfer failed -> unrecoverable error condition */
 			LOG_ERROR("Cannot communicate with ULINK device. Disconnect ULINK from "
 				"the USB port and re-connect, then re-run OpenOCD");
+			free(ulink_handle);
+			ulink_handle = NULL;
 			return ERROR_FAIL;
 		}
 #ifdef _DEBUG_USB_COMMS_
