@@ -432,9 +432,9 @@ COMMAND_HANDLER(handle_adapter_khz_command)
 		return retval;
 
 	if (cur_speed)
-		command_print(CMD_CTX, "%d kHz", cur_speed);
+		command_print(CMD_CTX, "adapter speed: %d kHz", cur_speed);
 	else
-		command_print(CMD_CTX, "RCLK - adaptive");
+		command_print(CMD_CTX, "adapter speed: RCLK - adaptive");
 
 	return retval;
 }
