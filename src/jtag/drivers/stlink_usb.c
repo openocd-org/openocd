@@ -94,7 +94,10 @@ struct stlink_usb_handle_s {
 };
 
 #define STLINK_DEBUG_ERR_OK			0x80
-#define STLINK_DEBUG_ERR_FAULT			0x81
+#define STLINK_DEBUG_ERR_FAULT		0x81
+#define STLINK_SWD_AP_WAIT			0x10
+#define STLINK_SWD_DP_WAIT			0x14
+
 #define STLINK_CORE_RUNNING			0x80
 #define STLINK_CORE_HALTED			0x81
 #define STLINK_CORE_STAT_UNKNOWN		-1
@@ -783,6 +786,10 @@ static int stlink_usb_reset(void *handle)
 		return res;
 
 	LOG_DEBUG("RESET: 0x%08X", h->databuf[0]);
+
+	/* the following is not a error under swd (using hardware srst), so return success */
+	if (h->databuf[0] == STLINK_SWD_AP_WAIT || h->databuf[0] == STLINK_SWD_DP_WAIT)
+		return ERROR_OK;
 
 	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
 }
