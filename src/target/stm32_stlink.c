@@ -443,7 +443,7 @@ static int stm32_stlink_assert_reset(struct target *target)
 	}
 
 	if (use_srst_fallback) {
-		/* stlink v1 api does support hardware srst, so we use a software reset fallback */
+		/* stlink v1 api does not support hardware srst, so we use a software reset fallback */
 		stlink_if->layout->api->write_debug_reg(stlink_if->fd, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
 	}
 
