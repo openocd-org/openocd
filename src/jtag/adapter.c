@@ -311,7 +311,6 @@ next:
 	} else
 		new_cfg = jtag_get_reset_config();
 
-
 	/*
 	 * Display the (now-)current reset mode
 	 */
@@ -408,8 +407,6 @@ COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
 	command_print(CMD_CTX, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
 	return ERROR_OK;
 }
-
-
 
 COMMAND_HANDLER(handle_adapter_khz_command)
 {
