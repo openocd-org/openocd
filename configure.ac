@@ -224,7 +224,7 @@ __EOF__
 # In case (1) and (2) we need to know where the package was unpacked.
 
 AC_ARG_WITH(ftd2xx-win32-zipdir,
-  AS_HELP_STRING([--with-ftd2xx-win32-zipdir],[Where (CYGWIN/MINGW) the zip file from ftdichip.com was unpacked <default=search>]),
+  AS_HELP_STRING([--with-ftd2xx-win32-zipdir],[Where (CYGWIN/MINGW) the zip file from ftdichip.com was unpacked (default=search)]),
   [
   # option present
   if test -d $with_ftd2xx_win32_zipdir
@@ -237,7 +237,7 @@ AC_ARG_WITH(ftd2xx-win32-zipdir,
   ], [true])
 
 AC_ARG_WITH(ftd2xx-linux-tardir,
-  AS_HELP_STRING([--with-ftd2xx-linux-tardir], [Where (Linux/Unix) the tar file from ftdichip.com was unpacked <default=search>]),
+  AS_HELP_STRING([--with-ftd2xx-linux-tardir], [Where (Linux/Unix) the tar file from ftdichip.com was unpacked (default=search)]),
   [
   # Option present
   if test $is_win32 = yes ; then
@@ -254,7 +254,7 @@ AC_ARG_WITH(ftd2xx-linux-tardir,
 
 AC_ARG_WITH(ftd2xx-lib,
   AS_HELP_STRING([--with-ftd2xx-lib],
-    [Use static or shared ftd2xx libs on default static]),
+    [Use static or shared ftd2xx libs (default=static)]),
   [
   case "$withval" in
   static)
