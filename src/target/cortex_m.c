@@ -1025,7 +1025,7 @@ static int cortex_m3_assert_reset(struct target *target)
 
 		if (reset_config == CORTEX_M3_RESET_VECTRESET) {
 			LOG_WARNING("Only resetting the Cortex-M3 core, use a reset-init event "
-				"handler to reset any peripherals");
+				"handler to reset any peripherals or configure hardware srst support.");
 		}
 
 		{
