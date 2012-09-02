@@ -3018,7 +3018,7 @@ static int sam3_page_read(struct sam3_bank_private *pPrivate, unsigned pagenum, 
 	int r;
 
 	adr = pagenum * pPrivate->page_size;
-	adr += adr + pPrivate->base_address;
+	adr += pPrivate->base_address;
 
 	r = target_read_memory(pPrivate->pChip->target,
 			adr,
@@ -3126,7 +3126,7 @@ static int sam3_page_write(struct sam3_bank_private *pPrivate, unsigned pagenum,
 	int r;
 
 	adr = pagenum * pPrivate->page_size;
-	adr += (adr + pPrivate->base_address);
+	adr += pPrivate->base_address;
 
 	/* Get flash mode register value */
 	r = target_read_u32(pPrivate->pChip->target, pPrivate->controller_address, &fmr);
