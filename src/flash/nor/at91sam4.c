@@ -722,10 +722,17 @@ static int FLASHD_ErasePages(struct sam4_bank_private *pPrivate,
 			break;
 	}
 
+	/* AT91C_EFC_FCMD_EPA
+	 * According to the datasheet FARG[15:2] defines the page from which
+	 * the erase will start.This page must be modulo 4, 8, 16 or 32
+	 * according to the number of pages to erase. FARG[1:0] defines the
+	 * number of pages to be erased. Previously (firstpage << 2) was used
+	 * to conform to this, seems it should not be shifted...
+	 */
 	return EFC_PerformCommand(pPrivate,
 		/* send Erase Page */
 		AT91C_EFC_FCMD_EPA,
-		(firstPage << 2) | erasePages,
+		(firstPage) | erasePages,
 		status);
 }
 
