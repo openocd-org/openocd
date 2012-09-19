@@ -85,6 +85,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		if (retval != ERROR_OK) {
 			close_socket(c->fd);
 			LOG_ERROR("attempted '%s' connection rejected", service->name);
+			command_done(c->cmd_ctx);
 			free(c);
 			return retval;
 		}
@@ -104,6 +105,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		retval = service->new_connection(c);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("attempted '%s' connection rejected", service->name);
+			command_done(c->cmd_ctx);
 			free(c);
 			return retval;
 		}
@@ -124,6 +126,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		retval = service->new_connection(c);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("attempted '%s' connection rejected", service->name);
+			command_done(c->cmd_ctx);
 			free(c);
 			return retval;
 		}
