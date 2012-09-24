@@ -643,7 +643,7 @@ static int ftdi_initialize(void)
 	if (retval == ERROR_OK)
 		retval = mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
 	if (retval != ERROR_OK)	{
-		LOG_ERROR("couldn't initialize FTDI with 'JTAGkey' layout");
+		LOG_ERROR("couldn't initialize FTDI with configured layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
