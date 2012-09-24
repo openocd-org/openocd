@@ -247,6 +247,11 @@ static int ftdi_speed_div(int speed, int *khz)
 
 static int ftdi_khz(int khz, int *jtag_speed)
 {
+	if (khz == 0 && !mpsse_is_high_speed(mpsse_ctx)) {
+		LOG_DEBUG("RCLK not supported");
+		return ERROR_FAIL;
+	}
+
 	*jtag_speed = khz * 1000;
 	return ERROR_OK;
 }
