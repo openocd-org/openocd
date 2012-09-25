@@ -1586,6 +1586,10 @@ static int dap_info_command(struct command_context *cmd_ctx,
 					type = "Cortex-M3 FBP";
 					full = "(Flash Patch and Breakpoint)";
 					break;
+				case 0x00c:
+					type = "Cortex-M4 SCS";
+					full = "(System Control Space)";
+					break;
 				case 0x00d:
 					type = "CoreSight ETM11";
 					full = "(Embedded Trace)";
@@ -1635,9 +1639,17 @@ static int dap_info_command(struct command_context *cmd_ctx,
 					type = "Cortex-M3 ETM";
 					full = "(Embedded Trace)";
 					break;
+				case 0x925:
+					type = "Cortex-M4 ETM";
+					full = "(Embedded Trace)";
+					break;
 				case 0x930:
 					type = "Cortex-R4 ETM";
 					full = "(Embedded Trace)";
+					break;
+				case 0x9a1:
+					type = "Cortex-M4 TPUI";
+					full = "(Trace Port Interface Unit)";
 					break;
 				case 0xc08:
 					type = "Cortex-A8 Debug";
