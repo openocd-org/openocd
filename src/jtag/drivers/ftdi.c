@@ -175,7 +175,7 @@ static int ftdi_set_signal(const struct signal *s, char value)
 
 	output = data ? output | s->data_mask : output & ~s->data_mask;
 	if (s->oe_mask == s->data_mask)
-		direction = oe ? output | s->oe_mask : output & ~s->oe_mask;
+		direction = oe ? direction | s->oe_mask : direction & ~s->oe_mask;
 	else
 		output = oe ? output | s->oe_mask : output & ~s->oe_mask;
 
