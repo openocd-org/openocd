@@ -199,6 +199,7 @@ static void sysfsgpio_write(int tck, int tms, int tdi)
 	static int last_tdi;
 
 	static int first_time;
+	size_t bytes_written;
 
 	if (!first_time) {
 		last_tck = !tck;
@@ -207,13 +208,24 @@ static void sysfsgpio_write(int tck, int tms, int tdi)
 		first_time = 1;
 	}
 
-	if (tdi != last_tdi)
-		write(tdi_fd, tdi ? &one : &zero, 1);
-	if (tms != last_tms)
-		write(tms_fd, tms ? &one : &zero, 1);
+	if (tdi != last_tdi) {
+		bytes_written = write(tdi_fd, tdi ? &one : &zero, 1);
+		if (bytes_written != 1)
+			LOG_WARNING("writing tdi failed");
+	}
+
+	if (tms != last_tms) {
+		bytes_written = write(tms_fd, tms ? &one : &zero, 1);
+		if (bytes_written != 1)
+			LOG_WARNING("writing tms failed");
+	}
+
 	/* write clk last */
-	if (tck != last_tck)
-		write(tck_fd, tck ? &one : &zero, 1);
+	if (tck != last_tck) {
+		bytes_written = write(tck_fd, tck ? &one : &zero, 1);
+		if (bytes_written != 1)
+			LOG_WARNING("writing tck failed");
+	}
 
 	last_tdi = tdi;
 	last_tms = tms;
@@ -229,14 +241,21 @@ static void sysfsgpio_reset(int trst, int srst)
 {
 	const char one[] = "1";
 	const char zero[] = "0";
+	size_t bytes_written;
 
 	/* assume active low */
-	if (srst_fd >= 0)
-		write(srst_fd, srst ? &zero : &one, 1);
+	if (srst_fd >= 0) {
+		bytes_written = write(srst_fd, srst ? &zero : &one, 1);
+		if (bytes_written != 1)
+			LOG_WARNING("writing srst failed");
+	}
 
 	/* assume active low */
-	if (trst_fd >= 0)
-		write(trst_fd, trst ? &zero : &one, 1);
+	if (trst_fd >= 0) {
+		bytes_written = write(trst_fd, trst ? &zero : &one, 1);
+		if (bytes_written != 1)
+			LOG_WARNING("writing trst failed");
+	}
 }
 
 /* No speed control is implemented yet */
