@@ -24,7 +24,6 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include <jim.h>
 #include <jim-nvp.h>
 
 /* To achieve C99 printf compatibility in MinGW, gnu_printf should be
