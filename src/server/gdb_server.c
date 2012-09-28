@@ -65,14 +65,14 @@ struct gdb_connection {
 	int closed;
 	int busy;
 	int noack_mode;
-	bool sync;	/* set flag to true if you want the next stepi to return immediately.
-			allowing GDB to pick up a fresh set of register values from the target
-			without modifying the target state. */
+	/* set flag to true if you want the next stepi to return immediately.
+	 * allowing GDB to pick up a fresh set of register values from the target
+	 * without modifying the target state. */
+	bool sync;
 	/* We delay reporting memory write errors until next step/continue or memory
 	 * write. This improves performance of gdb load significantly as the GDB packet
 	 * can be replied immediately and a new GDB packet will be ready without delay
-	 * (ca. 10% or so...).
-	 */
+	 * (ca. 10% or so...). */
 	bool mem_write_error;
 };
 
@@ -125,7 +125,7 @@ static int gdb_last_signal(struct target *target)
 			return 0x0;		/* no signal... shouldn't happen */
 		default:
 			LOG_USER("undefined debug reason %d - target needs reset",
-			target->debug_reason);
+					target->debug_reason);
 			return 0x0;
 	}
 }
@@ -372,8 +372,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 		char local_buffer[1024];
 		local_buffer[0] = '$';
 		if ((size_t)len + 4 <= sizeof(local_buffer)) {
-			/* performance gain on smaller packets by only a single call to gdb_write()
-			 **/
+			/* performance gain on smaller packets by only a single call to gdb_write() */
 			memcpy(local_buffer + 1, buffer, len++);
 			local_buffer[len++] = '#';
 			local_buffer[len++] = DIGITS[(my_checksum >> 4) & 0xf];
@@ -383,7 +382,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 				return retval;
 		} else {
 			/* larger packets are transmitted directly from caller supplied buffer
-			   by several calls to gdb_write() to avoid dynamic allocation */
+			 * by several calls to gdb_write() to avoid dynamic allocation */
 			local_buffer[1] = '#';
 			local_buffer[2] = DIGITS[(my_checksum >> 4) & 0xf];
 			local_buffer[3] = DIGITS[my_checksum & 0xf];
@@ -427,8 +426,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 				gdb_putback_char(connection, reply);
 				return ERROR_OK;
 			} else {
-				LOG_ERROR(
-						"unknown character(1) 0x%2.2x in reply, dropping connection", reply);
+				LOG_ERROR("unknown character(1) 0x%2.2x in reply, dropping connection", reply);
 				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
@@ -500,8 +498,7 @@ static inline int fetch_packet(struct connection *connection,
 				i++;
 				if (character == '#') {
 					/* Danger! character can be '#' when esc is
-					 * used so we need an explicit boolean for done here.
-					 */
+					 * used so we need an explicit boolean for done here. */
 					done = 1;
 					break;
 				}
@@ -620,8 +617,7 @@ static int gdb_get_packet_inner(struct connection *connection,
 
 		int checksum_ok = 0;
 		/* explicit code expansion here to get faster inlined code in -O3 by not
-		 * calculating checksum
-		 */
+		 * calculating checksum */
 		if (gdb_con->noack_mode) {
 			retval = fetch_packet(connection, &checksum_ok, 1, len, buffer);
 			if (retval != ERROR_OK)
@@ -807,8 +803,8 @@ static int gdb_new_connection(struct connection *connection)
 			struct flash_bank *p;
 			retval = get_flash_bank_by_num(i, &p);
 			if (retval != ERROR_OK) {
-				LOG_ERROR(
-					"Connect failed. Consider setting up a gdb-attach event for the target to prepare target for GDB connect, or use 'gdb_memory_map disable'.");
+				LOG_ERROR("Connect failed. Consider setting up a gdb-attach event for the target " \
+						"to prepare target for GDB connect, or use 'gdb_memory_map disable'.");
 				return retval;
 			}
 		}
@@ -1031,8 +1027,7 @@ static int gdb_set_registers_packet(struct connection *connection,
 	packet_size--;
 
 	if (packet_size % 2) {
-		LOG_WARNING(
-			"GDB set_registers packet with uneven characters received, dropping connection");
+		LOG_WARNING("GDB set_registers packet with uneven characters received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -1367,10 +1362,8 @@ static int gdb_step_continue_packet(struct connection *connection,
 
 	if (packet[0] == 'c') {
 		LOG_DEBUG("continue");
-		retval = target_resume(target, current, address, 0, 0);	/* resume at current
-									 *address, don't handle
-									 *breakpoints, not debugging
-									 **/
+		/* resume at current address, don't handle breakpoints, not debugging */
+		retval = target_resume(target, current, address, 0, 0);
 	} else if (packet[0] == 's') {
 		LOG_DEBUG("step");
 		/* step at current or address, don't handle breakpoints */
@@ -1739,8 +1732,7 @@ static int gdb_query_packet(struct connection *connection,
 			addr = strtoul(packet, &separator, 16);
 
 			if (*separator != ',') {
-				LOG_ERROR(
-					"incomplete read memory packet received, dropping connection");
+				LOG_ERROR("incomplete read memory packet received, dropping connection");
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 
@@ -1945,9 +1937,8 @@ static int gdb_v_packet(struct connection *connection,
 		/* process the flashing buffer. No need to erase as GDB
 		 * always issues a vFlashErase first. */
 		target_call_event_callbacks(gdb_service->target,
-			TARGET_EVENT_GDB_FLASH_WRITE_START);
-		result =
-			flash_write(gdb_service->target, gdb_connection->vflash_image, &written, 0);
+				TARGET_EVENT_GDB_FLASH_WRITE_START);
+		result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, 0);
 		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_WRITE_END);
 		if (result != ERROR_OK) {
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)
@@ -1974,8 +1965,7 @@ static int gdb_detach(struct connection *connection)
 {
 	struct gdb_service *gdb_service = connection->service->priv;
 
-	target_call_event_callbacks(gdb_service->target,
-		TARGET_EVENT_GDB_DETACH);
+	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH);
 
 	return gdb_put_packet(connection, "OK", 2);
 }
@@ -1999,7 +1989,6 @@ static void gdb_sig_halted(struct connection *connection)
 	char sig_reply[4];
 	snprintf(sig_reply, 4, "T%2.2x", 2);
 	gdb_put_packet(connection, sig_reply, 3);
-
 }
 
 static int gdb_input_inner(struct connection *connection)
@@ -2054,8 +2043,8 @@ static int gdb_input_inner(struct connection *connection)
 				case 'T':	/* Is thread alive? */
 					gdb_thread_packet(connection, packet, packet_size);
 					break;
-				case 'H':	/* Set current thread ( 'c' for step and continue, 'g' for
-					 * all other operations ) */
+				case 'H':	/* Set current thread ( 'c' for step and continue,
+							 * 'g' for all other operations ) */
 					gdb_thread_packet(connection, packet, packet_size);
 					break;
 				case 'q':
@@ -2099,7 +2088,7 @@ static int gdb_input_inner(struct connection *connection)
 						LOG_ERROR("Memory write failure!");
 
 						/* now that we have reported the memory write error,
-						 *we can clear the condition */
+						 * we can clear the condition */
 						gdb_con->mem_write_error = false;
 					}
 
@@ -2150,8 +2139,8 @@ static int gdb_input_inner(struct connection *connection)
 							retval = gdb_step_continue_packet(connection, packet, packet_size);
 							if (retval != ERROR_OK) {
 								/* we'll never receive a halted
-								 *condition... issue a false one..
-								 **/
+								 * condition... issue a false one..
+								 */
 								gdb_frontend_halted(target, connection);
 							}
 						}
@@ -2184,24 +2173,23 @@ static int gdb_input_inner(struct connection *connection)
 					/* handle extended restart packet */
 					breakpoint_clear_target(gdb_service->target);
 					watchpoint_clear_target(gdb_service->target);
-					command_run_linef(connection->cmd_ctx,
-					"ocd_gdb_restart %s",
-					target_name(target));
+					command_run_linef(connection->cmd_ctx, "ocd_gdb_restart %s",
+							target_name(target));
 					/*  info rtos parts */
 					gdb_thread_packet(connection, packet, packet_size);
 					gdb_put_packet(connection, "OK", 2);
 					break;
 
 				case 'j':
-					/*  packet supported only by smp target i.e cortex_a.c*/
+					/* packet supported only by smp target i.e cortex_a.c*/
 					/* handle smp packet replying coreid played to gbd */
 					gdb_read_smp_packet(connection, packet, packet_size);
 					break;
 
 				case 'J':
-					/*  packet supported only by smp target i.e cortex_a.c */
-					/*  handle smp packet setting coreid to be played at next
-					 *  resume to gdb */
+					/* packet supported only by smp target i.e cortex_a.c */
+					/* handle smp packet setting coreid to be played at next
+					 * resume to gdb */
 					gdb_write_smp_packet(connection, packet, packet_size);
 					break;
 
@@ -2224,8 +2212,7 @@ static int gdb_input_inner(struct connection *connection)
 					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				gdb_con->ctrl_c = 0;
 			} else {
-				LOG_INFO(
-					"The target is not running when halt was requested, stopping GDB.");
+				LOG_INFO("The target is not running when halt was requested, stopping GDB.");
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 			}
 		}
