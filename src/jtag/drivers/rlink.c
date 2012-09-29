@@ -642,7 +642,7 @@ static int dtc_queue_run(void)
 
 	usb_err = dtc_run_download(pHDev,
 			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
-			reply_buffer, dtc_queue.reply_index
+			reply_buffer, sizeof(reply_buffer)
 			);
 	if (usb_err < 0) {
 		LOG_ERROR("dtc_run_download: %s", usb_strerror());
