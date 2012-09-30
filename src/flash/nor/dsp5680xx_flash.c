@@ -45,10 +45,6 @@
 #include <target/algorithm.h>
 #include <target/dsp5680xx.h>
 
-struct dsp5680xx_flash_bank {
-	struct working_area *write_algorithm;
-};
-
 static int dsp5680xx_build_sector_list(struct flash_bank *bank)
 {
 	uint32_t offset = HFM_FLASH_BASE_ADDR;
@@ -71,13 +67,8 @@ static int dsp5680xx_build_sector_list(struct flash_bank *bank)
 /* flash bank dsp5680xx 0 0 0 0 <target#> */
 FLASH_BANK_COMMAND_HANDLER(dsp5680xx_flash_bank_command)
 {
-	struct dsp5680xx_flash_bank *nbank;
-
-	nbank = malloc(sizeof(struct dsp5680xx_flash_bank));
-
 	bank->base = HFM_FLASH_BASE_ADDR;
 	bank->size = HFM_SIZE_BYTES; /* top 4k not accessible */
-	bank->driver_priv = nbank;
 	bank->num_sectors = HFM_SECTOR_COUNT;
 	dsp5680xx_build_sector_list(bank);
 
