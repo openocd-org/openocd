@@ -53,7 +53,6 @@ enum fm3_flash_type {
 };
 
 struct fm3_flash_bank {
-	struct working_area *write_algorithm;
 	enum fm3_variant variant;
 	enum fm3_flash_type flashtype;
 	int probed;
@@ -115,7 +114,6 @@ FLASH_BANK_COMMAND_HANDLER(fm3_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	fm3_info->write_algorithm = NULL;
 	fm3_info->probed = 0;
 
 	return ERROR_OK;
@@ -282,6 +280,7 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	struct fm3_flash_bank *fm3_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t buffer_size = 2048;		/* 8192 for MB9Bxx6! */
+	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[6];
@@ -461,12 +460,12 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	/* allocate working area with flash programming code */
 	if (target_alloc_working_area(target, sizeof(fm3_flash_write_code),
-			&fm3_info->write_algorithm) != ERROR_OK) {
+			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	retval = target_write_buffer(target, fm3_info->write_algorithm->address,
+	retval = target_write_buffer(target, write_algorithm->address,
 		sizeof(fm3_flash_write_code), fm3_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
@@ -477,9 +476,8 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= 256) {
-			/* free working area, if write algorithm already allocated */
-			if (fm3_info->write_algorithm)
-				target_free_working_area(target, fm3_info->write_algorithm);
+			/* free working area, write algorithm already allocated */
+			target_free_working_area(target, write_algorithm);
 
 			LOG_WARNING("No large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -501,22 +499,22 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	while (count > 0) {
 		uint32_t thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
 
-		retval = target_write_buffer(target, fm3_info->write_algorithm->address, 8,
+		retval = target_write_buffer(target, write_algorithm->address, 8,
 				fm3_flash_write_code);
 		if (retval != ERROR_OK)
 			break;
 
 		/* Patching 'local variable address' for different RAM addresses */
-		if (fm3_info->write_algorithm->address != 0x1FFF8008) {
+		if (write_algorithm->address != 0x1FFF8008) {
 			/* Algorithm: u32DummyRead: */
-			retval = target_write_u32(target, (fm3_info->write_algorithm->address)
-				+ sizeof(fm3_flash_write_code) - 8, (fm3_info->write_algorithm->address) - 8);
+			retval = target_write_u32(target, (write_algorithm->address)
+				+ sizeof(fm3_flash_write_code) - 8, (write_algorithm->address) - 8);
 			if (retval != ERROR_OK)
 				break;
 
 			/* Algorithm: u32FlashResult: */
-			retval = target_write_u32(target, (fm3_info->write_algorithm->address)
-				+ sizeof(fm3_flash_write_code) - 4, (fm3_info->write_algorithm->address) - 4);
+			retval = target_write_u32(target, (write_algorithm->address)
+				+ sizeof(fm3_flash_write_code) - 4, (write_algorithm->address) - 4);
 			if (retval != ERROR_OK)
 				break;
 		}
@@ -532,7 +530,7 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 		buf_set_u32(reg_params[4].value, 0, 32, u32FlashSeqAddress2);
 
 		retval = target_run_algorithm(target, 0, NULL, 6, reg_params,
-				fm3_info->write_algorithm->address, 0, 1000, &armv7m_info);
+				write_algorithm->address, 0, 1000, &armv7m_info);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Error executing fm3 Flash programming algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
@@ -552,7 +550,7 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	target_free_working_area(target, source);
-	target_free_working_area(target, fm3_info->write_algorithm);
+	target_free_working_area(target, write_algorithm);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);

@@ -43,21 +43,12 @@ static int aduc702x_set_write_enable(struct target *target, int enable);
 #define ADUC702x_FLASH_FEEPRO           (6*4)
 #define ADUC702x_FLASH_FEEHIDE          (7*4)
 
-struct aduc702x_flash_bank {
-	struct working_area *write_algorithm;
-};
-
 /* flash bank aduc702x 0 0 0 0 <target#>
  * The ADC7019-28 devices all have the same flash layout */
 FLASH_BANK_COMMAND_HANDLER(aduc702x_flash_bank_command)
 {
-	struct aduc702x_flash_bank *nbank;
-
-	nbank = malloc(sizeof(struct aduc702x_flash_bank));
-
 	bank->base = 0x80000;
 	bank->size = 0xF800;	/* top 4k not accessible */
-	bank->driver_priv = nbank;
 
 	aduc702x_build_sector_list(bank);
 
@@ -157,9 +148,9 @@ static int aduc702x_write_block(struct flash_bank *bank,
 	uint32_t offset,
 	uint32_t count)
 {
-	struct aduc702x_flash_bank *aduc702x_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t buffer_size = 7000;
+	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[6];
@@ -210,12 +201,12 @@ static int aduc702x_write_block(struct flash_bank *bank,
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(aduc702x_flash_write_code),
-			&aduc702x_info->write_algorithm) != ERROR_OK) {
+			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	retval = target_write_buffer(target, aduc702x_info->write_algorithm->address,
+	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(aduc702x_flash_write_code), (uint8_t *)aduc702x_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
@@ -224,10 +215,9 @@ static int aduc702x_write_block(struct flash_bank *bank,
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= 256) {
-			/* if we already allocated the writing code, but failed to get a buffer,
+			/* we already allocated the writing code, but failed to get a buffer,
 			 *free the algorithm */
-			if (aduc702x_info->write_algorithm)
-				target_free_working_area(target, aduc702x_info->write_algorithm);
+			target_free_working_area(target, write_algorithm);
 
 			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -257,8 +247,8 @@ static int aduc702x_write_block(struct flash_bank *bank,
 		buf_set_u32(reg_params[4].value, 0, 32, 0xFFFFF800);
 
 		retval = target_run_algorithm(target, 0, NULL, 5,
-				reg_params, aduc702x_info->write_algorithm->address,
-				aduc702x_info->write_algorithm->address +
+				reg_params, write_algorithm->address,
+				write_algorithm->address +
 				sizeof(aduc702x_flash_write_code) - 4,
 				10000, &arm_algo);
 		if (retval != ERROR_OK) {
@@ -279,7 +269,7 @@ static int aduc702x_write_block(struct flash_bank *bank,
 	}
 
 	target_free_working_area(target, source);
-	target_free_working_area(target, aduc702x_info->write_algorithm);
+	target_free_working_area(target, write_algorithm);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);

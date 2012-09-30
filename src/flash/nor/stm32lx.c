@@ -119,7 +119,6 @@ static int stm32lx_erase_sector(struct flash_bank *bank, int sector);
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank);
 
 struct stm32lx_flash_bank {
-	struct working_area *write_algorithm;
 	int probed;
 };
 
@@ -142,7 +141,6 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 
 	bank->driver_priv = stm32lx_info;
 
-	stm32lx_info->write_algorithm = NULL;
 	stm32lx_info->probed = 0;
 
 	return ERROR_OK;
@@ -213,9 +211,9 @@ static int stm32lx_protect(struct flash_bank *bank, int set, int first,
 static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
-	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t buffer_size = 4096 * 4;
+	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 
@@ -264,17 +262,17 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 	/* Add bytes to make 4byte aligned */
 	reg32 += (4 - (reg32 % 4)) % 4;
 	retval = target_alloc_working_area(target, reg32,
-			&stm32lx_info->write_algorithm);
+			&write_algorithm);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Write the flashing code */
 	retval = target_write_buffer(target,
-			stm32lx_info->write_algorithm->address,
+			write_algorithm->address,
 			sizeof(stm32lx_flash_write_code),
 			(uint8_t *)stm32lx_flash_write_code);
 	if (retval != ERROR_OK) {
-		target_free_working_area(target, stm32lx_info->write_algorithm);
+		target_free_working_area(target, write_algorithm);
 		return retval;
 	}
 
@@ -287,10 +285,9 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 			buffer_size /= 2;
 
 		if (buffer_size <= 256) {
-			/* if we already allocated the writing code, but failed to get a
+			/* we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
-			if (stm32lx_info->write_algorithm)
-				target_free_working_area(target, stm32lx_info->write_algorithm);
+			target_free_working_area(target, write_algorithm);
 
 			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -310,7 +307,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 	retval = stm32lx_enable_write_half_page(bank);
 	if (retval != ERROR_OK) {
 		target_free_working_area(target, source);
-		target_free_working_area(target, stm32lx_info->write_algorithm);
+		target_free_working_area(target, write_algorithm);
 
 		destroy_reg_param(&reg_params[0]);
 		destroy_reg_param(&reg_params[1]);
@@ -341,7 +338,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		/* 5: Execute the bunch of code */
 		retval = target_run_algorithm(target, 0, NULL, sizeof(reg_params)
 				/ sizeof(*reg_params), reg_params,
-				stm32lx_info->write_algorithm->address, 0, 20000, &armv7m_info);
+				write_algorithm->address, 0, 20000, &armv7m_info);
 		if (retval != ERROR_OK)
 			break;
 
@@ -359,7 +356,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		retval = stm32lx_lock_program_memory(bank);
 
 	target_free_working_area(target, source);
-	target_free_working_area(target, stm32lx_info->write_algorithm);
+	target_free_working_area(target, write_algorithm);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);

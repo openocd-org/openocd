@@ -96,7 +96,6 @@
 #define MX_1_2			1	/* PIC32mx1xx/2xx */
 
 struct pic32mx_flash_bank {
-	struct working_area *write_algorithm;
 	int probed;
 	int dev_type;		/* Default 0. 1 for Pic32MX1XX/2XX variant */
 };
@@ -193,7 +192,6 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 	pic32mx_info = malloc(sizeof(struct pic32mx_flash_bank));
 	bank->driver_priv = pic32mx_info;
 
-	pic32mx_info->write_algorithm = NULL;
 	pic32mx_info->probed = 0;
 	pic32mx_info->dev_type = 0;
 
@@ -417,6 +415,7 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 {
 	struct target *target = bank->target;
 	uint32_t buffer_size = 16384;
+	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[3];
@@ -428,7 +427,7 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(pic32mx_flash_write_code),
-			&pic32mx_info->write_algorithm) != ERROR_OK) {
+			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
@@ -450,7 +449,7 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 		row_size = 512;
 	}
 
-	retval = target_write_buffer(target, pic32mx_info->write_algorithm->address,
+	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(pic32mx_flash_write_code), (uint8_t *)pic32mx_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
@@ -459,10 +458,9 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= 256) {
-			/* if we already allocated the writing code, but failed to get a
+			/* we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
-			if (pic32mx_info->write_algorithm)
-				target_free_working_area(target, pic32mx_info->write_algorithm);
+			target_free_working_area(target, write_algorithm);
 
 			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -518,7 +516,7 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count + row_offset / 4);
 
 		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-				pic32mx_info->write_algorithm->address,
+				write_algorithm->address,
 				0, 10000, &mips32_info);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("error executing pic32mx flash write algorithm");
@@ -550,7 +548,7 @@ static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	target_free_working_area(target, source);
-	target_free_working_area(target, pic32mx_info->write_algorithm);
+	target_free_working_area(target, write_algorithm);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);

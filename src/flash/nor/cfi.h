@@ -25,8 +25,6 @@
 #define CFI_STATUS_POLL_MASK_DQ6_DQ7     0xC0 /* DQ6..DQ7 */
 
 struct cfi_flash_bank {
-	struct working_area *write_algorithm;
-
 	int x16_as_x8;
 	int jedec_probe;
 	int not_cfi;

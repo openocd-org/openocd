@@ -150,7 +150,6 @@
 #define KEY2			0xCDEF89AB
 
 struct stm32x_flash_bank {
-	struct working_area *write_algorithm;
 	int probed;
 };
 
@@ -167,7 +166,6 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 	stm32x_info = malloc(sizeof(struct stm32x_flash_bank));
 	bank->driver_priv = stm32x_info;
 
-	stm32x_info->write_algorithm = NULL;
 	stm32x_info->probed = 0;
 
 	return ERROR_OK;
@@ -316,9 +314,9 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
-	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t buffer_size = 16384;
+	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[5];
@@ -366,12 +364,12 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	};
 
 	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code),
-			&stm32x_info->write_algorithm) != ERROR_OK) {
+			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	retval = target_write_buffer(target, stm32x_info->write_algorithm->address,
+	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(stm32x_flash_write_code),
 			(uint8_t *)stm32x_flash_write_code);
 	if (retval != ERROR_OK)
@@ -381,10 +379,9 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= 256) {
-			/* if we already allocated the writing code, but failed to get a
+			/* we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
-			if (stm32x_info->write_algorithm)
-				target_free_working_area(target, stm32x_info->write_algorithm);
+			target_free_working_area(target, write_algorithm);
 
 			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -410,7 +407,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 			0, NULL,
 			5, reg_params,
 			source->address, source->size,
-			stm32x_info->write_algorithm->address, 0,
+			write_algorithm->address, 0,
 			&armv7m_info);
 
 	if (retval == ERROR_FLASH_OPERATION_FAILED) {
@@ -430,7 +427,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	target_free_working_area(target, source);
-	target_free_working_area(target, stm32x_info->write_algorithm);
+	target_free_working_area(target, write_algorithm);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);

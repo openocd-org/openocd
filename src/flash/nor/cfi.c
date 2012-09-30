@@ -825,8 +825,6 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	cfi_info->pri_ext = NULL;
 	bank->driver_priv = cfi_info;
 
-	cfi_info->write_algorithm = NULL;
-
 	cfi_info->x16_as_x8 = 0;
 	cfi_info->jedec_probe = 0;
 	cfi_info->not_cfi = 0;
@@ -837,8 +835,6 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 		else if (strcmp(CMD_ARGV[i], "jedec_probe") == 0)
 			cfi_info->jedec_probe = 1;
 	}
-
-	cfi_info->write_algorithm = NULL;
 
 	/* bank wasn't probed yet */
 	cfi_info->qry[0] = 0xff;
@@ -1143,10 +1139,10 @@ static uint32_t cfi_command_val(struct flash_bank *bank, uint8_t cmd)
 static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t address, uint32_t count)
 {
-	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct target *target = bank->target;
 	struct reg_param reg_params[7];
 	struct arm_algorithm arm_algo;
+	struct working_area *write_algorithm;
 	struct working_area *source = NULL;
 	uint32_t buffer_size = 32768;
 	uint32_t write_command_val, busy_pattern_val, error_pattern_val;
@@ -1260,31 +1256,29 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	/* flash write code */
-	if (!cfi_info->write_algorithm) {
-		if (target_code_size > sizeof(target_code)) {
-			LOG_WARNING("Internal error - target code buffer to small. "
+	if (target_code_size > sizeof(target_code)) {
+		LOG_WARNING("Internal error - target code buffer to small. "
 				"Increase CFI_MAX_INTEL_CODESIZE and recompile.");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
-		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
 
-		/* Get memory for block write handler */
-		retval = target_alloc_working_area(target,
-				target_code_size,
-				&cfi_info->write_algorithm);
-		if (retval != ERROR_OK) {
-			LOG_WARNING("No working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
-		;
+	/* Get memory for block write handler */
+	retval = target_alloc_working_area(target,
+			target_code_size,
+			&write_algorithm);
+	if (retval != ERROR_OK) {
+		LOG_WARNING("No working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	;
 
-		/* write algorithm code to working area */
-		retval = target_write_buffer(target, cfi_info->write_algorithm->address,
-				target_code_size, target_code);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Unable to write block write code to target");
-			goto cleanup;
-		}
+	/* write algorithm code to working area */
+	retval = target_write_buffer(target, write_algorithm->address,
+			target_code_size, target_code);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Unable to write block write code to target");
+		goto cleanup;
 	}
 
 	/* Get a workspace buffer for the data to flash starting with 32k size.
@@ -1340,8 +1334,8 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 		/* Execute algorithm, assume breakpoint for last instruction */
 		retval = target_run_algorithm(target, 0, NULL, 7, reg_params,
-				cfi_info->write_algorithm->address,
-				cfi_info->write_algorithm->address + target_code_size -
+				write_algorithm->address,
+				write_algorithm->address + target_code_size -
 				sizeof(uint32_t),
 				10000,	/* 10s should be enough for max. 32k of data */
 				&arm_algo);
@@ -1381,10 +1375,7 @@ cleanup:
 	if (source)
 		target_free_working_area(target, source);
 
-	if (cfi_info->write_algorithm) {
-		target_free_working_area(target, cfi_info->write_algorithm);
-		cfi_info->write_algorithm = NULL;
-	}
+	target_free_working_area(target, write_algorithm);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
@@ -1405,6 +1396,7 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffe
 	struct target *target = bank->target;
 	struct reg_param reg_params[10];
 	struct mips32_algorithm mips32_info;
+	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t buffer_size = 32768;
 	uint32_t status;
@@ -1518,44 +1510,42 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffe
 	}
 
 	/* flash write code */
-	if (!cfi_info->write_algorithm) {
-		uint8_t *target_code;
+	uint8_t *target_code;
 
-		/* convert bus-width dependent algorithm code to correct endiannes */
-		target_code = malloc(target_code_size);
-		if (target_code == NULL) {
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
-
-		/* allocate working area */
-		retval = target_alloc_working_area(target, target_code_size,
-				&cfi_info->write_algorithm);
-		if (retval != ERROR_OK) {
-			free(target_code);
-			return retval;
-		}
-
-		/* write algorithm code to working area */
-		retval = target_write_buffer(target, cfi_info->write_algorithm->address,
-				target_code_size, target_code);
-		if (retval != ERROR_OK) {
-			free(target_code);
-			return retval;
-		}
-
-		free(target_code);
+	/* convert bus-width dependent algorithm code to correct endiannes */
+	target_code = malloc(target_code_size);
+	if (target_code == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
 	}
+	cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
+
+	/* allocate working area */
+	retval = target_alloc_working_area(target, target_code_size,
+			&write_algorithm);
+	if (retval != ERROR_OK) {
+		free(target_code);
+		return retval;
+	}
+
+	/* write algorithm code to working area */
+	retval = target_write_buffer(target, write_algorithm->address,
+			target_code_size, target_code);
+	if (retval != ERROR_OK) {
+		free(target_code);
+		return retval;
+	}
+
+	free(target_code);
+
 	/* the following code still assumes target code is fixed 24*4 bytes */
 
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= 256) {
-			/* if we already allocated the writing code, but failed to get a
+			/* we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
-			if (cfi_info->write_algorithm)
-				target_free_working_area(target, cfi_info->write_algorithm);
+			target_free_working_area(target, write_algorithm);
 
 			LOG_WARNING(
 				"not enough working area available, can't do block memory writes");
@@ -1593,8 +1583,8 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffe
 		buf_set_u32(reg_params[9].value, 0, 32, 0x55555555);
 
 		retval = target_run_algorithm(target, 0, NULL, 10, reg_params,
-				cfi_info->write_algorithm->address,
-				cfi_info->write_algorithm->address + ((target_code_size) - 4),
+				write_algorithm->address,
+				write_algorithm->address + ((target_code_size) - 4),
 				10000, &mips32_info);
 		if (retval != ERROR_OK)
 			break;
@@ -1637,6 +1627,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	void *arm_algo;
 	struct arm_algorithm armv4_5_algo;
 	struct armv7m_algorithm armv7m_algo;
+	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t buffer_size = 32768;
 	uint32_t status;
@@ -1880,44 +1871,42 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	/* flash write code */
-	if (!cfi_info->write_algorithm) {
-		uint8_t *target_code;
+	uint8_t *target_code;
 
-		/* convert bus-width dependent algorithm code to correct endiannes */
-		target_code = malloc(target_code_size);
-		if (target_code == NULL) {
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
-
-		/* allocate working area */
-		retval = target_alloc_working_area(target, target_code_size,
-				&cfi_info->write_algorithm);
-		if (retval != ERROR_OK) {
-			free(target_code);
-			return retval;
-		}
-
-		/* write algorithm code to working area */
-		retval = target_write_buffer(target, cfi_info->write_algorithm->address,
-				target_code_size, target_code);
-		if (retval != ERROR_OK) {
-			free(target_code);
-			return retval;
-		}
-
-		free(target_code);
+	/* convert bus-width dependent algorithm code to correct endiannes */
+	target_code = malloc(target_code_size);
+	if (target_code == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
 	}
+	cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
+
+	/* allocate working area */
+	retval = target_alloc_working_area(target, target_code_size,
+			&write_algorithm);
+	if (retval != ERROR_OK) {
+		free(target_code);
+		return retval;
+	}
+
+	/* write algorithm code to working area */
+	retval = target_write_buffer(target, write_algorithm->address,
+			target_code_size, target_code);
+	if (retval != ERROR_OK) {
+		free(target_code);
+		return retval;
+	}
+
+	free(target_code);
+
 	/* the following code still assumes target code is fixed 24*4 bytes */
 
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= 256) {
-			/* if we already allocated the writing code, but failed to get a
+			/* we already allocated the writing code, but failed to get a
 			 * buffer, free the algorithm */
-			if (cfi_info->write_algorithm)
-				target_free_working_area(target, cfi_info->write_algorithm);
+			target_free_working_area(target, write_algorithm);
 
 			LOG_WARNING(
 				"not enough working area available, can't do block memory writes");
@@ -1955,8 +1944,8 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		buf_set_u32(reg_params[9].value, 0, 32, 0x55555555);
 
 		retval = target_run_algorithm(target, 0, NULL, 10, reg_params,
-				cfi_info->write_algorithm->address,
-				cfi_info->write_algorithm->address + ((target_code_size) - 4),
+				write_algorithm->address,
+				write_algorithm->address + ((target_code_size) - 4),
 				10000, arm_algo);
 		if (retval != ERROR_OK)
 			break;
