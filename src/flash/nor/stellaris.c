@@ -1031,8 +1031,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
 		if (buffer_size <= buf_min) {
-			if (write_algorithm)
-				target_free_working_area(target, write_algorithm);
+			target_free_working_area(target, write_algorithm);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		LOG_DEBUG("retry target_alloc_working_area(%s, size=%u)",
