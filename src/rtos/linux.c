@@ -1398,8 +1398,6 @@ static int linux_thread_packet(struct connection *connection, char *packet,
 
 			if ((strstr(packet, "qSymbol"))) {
 				if (rtos_qsymbol(connection, packet, packet_size) == 1) {
-					gdb_put_packet(connection, "OK", 2);
-
 					linux_compute_virt2phys(target,
 							target->rtos->
 							symbols[INIT_TASK].

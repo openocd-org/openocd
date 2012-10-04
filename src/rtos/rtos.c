@@ -143,90 +143,96 @@ int gdb_thread_packet(struct connection *connection, char *packet, int packet_si
 										 *found*/
 	return target->rtos->gdb_thread_packet(connection, packet, packet_size);
 }
-/* return -1 if no rtos defined, 0 if rtos and symbol to be asked, 1 if all
- * symbol have been asked*/
+
+static char *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
+{
+	symbol_table_elem_t *s;
+
+	if (!os->symbols)
+		os->type->get_symbol_list_to_lookup(&os->symbols);
+
+	if (!cur_symbol[0])
+		return os->symbols[0].symbol_name;
+
+	for (s = os->symbols; s->symbol_name; s++)
+		if (!strcmp(s->symbol_name, cur_symbol)) {
+			s->address = cur_addr;
+			s++;
+			return s->symbol_name;
+		}
+
+	return NULL;
+}
+
+/* rtos_qsymbol() processes and replies to all qSymbol packets from GDB.
+ *
+ * GDB sends a qSymbol:: packet (empty address, empty name) to notify
+ * that it can now answer qSymbol::hexcodedname queries, to look up symbols.
+ *
+ * If the qSymbol packet has no address that means GDB did not find the
+ * symbol, in which case auto-detect will move on to try the next RTOS.
+ *
+ * rtos_qsymbol() then calls the next_symbol() helper function, which
+ * iterates over symbol names for the current RTOS until it finds the
+ * symbol in the received GDB packet, and then returns the next entry
+ * in the list of symbols.
+ *
+ * If GDB replied about the last symbol for the RTOS and the RTOS was
+ * specified explicitly, then no further symbol lookup is done. When
+ * auto-detecting, the RTOS driver _detect() function must return success.
+ *
+ * rtos_qsymbol() returns 1 if an RTOS has been detected, or 0 otherwise.
+ */
 int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 {
+	int rtos_detected = 0;
+	uint64_t addr;
+	size_t reply_len;
+	char reply[GDB_BUFFER_SIZE], cur_sym[GDB_BUFFER_SIZE / 2] = "", *next_sym;
 	struct target *target = get_target_from_connection(connection);
-	if (target->rtos != NULL) {
-		int next_symbol_num = -1;
-		if (target->rtos->symbols == NULL)
-			target->rtos->type->get_symbol_list_to_lookup(&target->rtos->symbols);
-		if (0 == strcmp("qSymbol::", packet))
-			/* first query - */
-			next_symbol_num = 0;
-		else {
-			int64_t value = 0;
-			char *hex_name_str = malloc(strlen(packet));
-			char *name_str;
-			int symbol_num;
+	struct rtos *os = target->rtos;
 
-			char *found = strstr(packet, "qSymbol::");
-			if (0 == found)
-				sscanf(packet, "qSymbol:%" SCNx64 ":%s", &value, hex_name_str);
-			else
-				/* No value returned by GDB - symbol was not found*/
-				sscanf(packet, "qSymbol::%s", hex_name_str);
-			name_str = (char *) malloc(1 + strlen(hex_name_str) / 2);
+	reply_len = sprintf(reply, "OK");
 
-			hex_to_str(name_str, hex_name_str);
-			symbol_num = 0;
-			while ((target->rtos->symbols[symbol_num].symbol_name != NULL) &&
-					(0 != strcmp(target->rtos->symbols[symbol_num].symbol_name, name_str)))
-				symbol_num++;
+	if (sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))
+		hex_to_str(cur_sym, strchr(packet + 8, ':') + 1);
+	else if (target->rtos_auto_detect && !rtos_try_next(target))
+		goto done;
 
-			if (target->rtos->symbols[symbol_num].symbol_name == NULL) {
-				LOG_OUTPUT("ERROR: unknown symbol\r\n");
-				gdb_put_packet(connection, "OK", 2);
-				free(hex_name_str);
-				free(name_str);
-				return ERROR_OK;
-			}
-
-			target->rtos->symbols[symbol_num].address = value;
-
-			next_symbol_num = symbol_num+1;
-			free(hex_name_str);
-			free(name_str);
+	next_sym = next_symbol(os, cur_sym, addr);
+	if (!next_sym) {
+		if (!target->rtos_auto_detect) {
+			rtos_detected = 1;
+			goto done;
 		}
 
-		int symbols_done = 0;
-		if (target->rtos->symbols[next_symbol_num].symbol_name == NULL) {
-			if ((target->rtos_auto_detect == false) ||
-					(1 == target->rtos->type->detect_rtos(target))) {
-				/* Found correct RTOS or not autodetecting */
-				if (target->rtos_auto_detect == true)
-					LOG_OUTPUT("Auto-detected RTOS: %s\r\n",
-						target->rtos->type->name);
-				symbols_done = 1;
-			} else {
-				/* Auto detecting RTOS and currently not found */
-				if (1 != rtos_try_next(target))
-					/* No more RTOS's to try */
-					symbols_done = 1;
-				else {
-					next_symbol_num = 0;
-					target->rtos->type->get_symbol_list_to_lookup(
-						&target->rtos->symbols);
-				}
-			}
+		if (os->type->detect_rtos(target)) {
+			LOG_OUTPUT("Auto-detected RTOS: %s\r\n", os->type->name);
+			rtos_detected = 1;
+			goto done;
 		}
-		if (symbols_done == 1)
-			return symbols_done;
-		else {
-			char *symname = target->rtos->symbols[next_symbol_num].symbol_name;
-			char qsymstr[] = "qSymbol:";
-			char *opstring = (char *)malloc(sizeof(qsymstr)+strlen(symname)*2+1);
-			char *posptr = opstring;
-			posptr += sprintf(posptr, "%s", qsymstr);
-			str_to_hex(posptr, symname);
-			gdb_put_packet(connection, opstring, strlen(opstring));
-			free(opstring);
-			return symbols_done;
-		}
+
+		if (!rtos_try_next(target))
+			goto done;
+
+		os->type->get_symbol_list_to_lookup(&os->symbols);
+
+		next_sym = os->symbols[0].symbol_name;
+		if (!next_sym)
+			goto done;
 	}
-	gdb_put_packet(connection, "OK", 2);
-	return -1;
+
+	if (8 + (strlen(next_sym) * 2) + 1 > sizeof(reply)) {
+		LOG_OUTPUT("ERROR: RTOS symbol '%s' name is too long for GDB!", next_sym);
+		goto done;
+	}
+
+	reply_len = sprintf(reply, "qSymbol:");
+	reply_len += str_to_hex(reply + reply_len, next_sym);
+
+done:
+	gdb_put_packet(connection, reply, reply_len);
+	return rtos_detected;
 }
 
 int rtos_thread_packet(struct connection *connection, char *packet, int packet_size)
@@ -300,8 +306,6 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 			target->rtos_auto_detect = false;
 			target->rtos->type->create(target);
 			target->rtos->type->update_threads(target->rtos);
-			/* No more symbols needed */
-			gdb_put_packet(connection, "OK", 2);
 		}
 		return ERROR_OK;
 	} else if (strstr(packet, "qfThreadInfo")) {
