@@ -886,7 +886,7 @@ then
    AC_MSG_ERROR([The option: with_ftd2xx_linux_tardir is for LINUX only.])
 fi
 
-if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
+if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes -o $build_usb_blaster_ftd2xx = yes ; then
    AC_MSG_CHECKING([for libftd2xx.a (darwin)])
 
    if test ! -f /usr/local/include/ftd2xx.h ; then
@@ -907,7 +907,7 @@ then
    AC_MSG_ERROR([The option: --with-ftd2xx-win32-zipdir is for win32 only])
 fi
 
-if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
+if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes -o $build_usb_blaster_ftd2xx = yes ; then
    # Must be linux
    if test $host_os != linux-gnu && test $host_os != linux ; then
       AC_MSG_ERROR([The (linux) ftd2xx library from FTDICHIP.com is linux only. Try --enable-ft2232-libftdi instead])
@@ -970,7 +970,7 @@ if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
 fi
 fi # linux
 
-if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes; then
+if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes -o $build_usb_blaster_ftd2xx = yes ; then
 
 # Before we go any further - make sure we can *BUILD* and *RUN*
 # a simple app with the "ftd2xx.lib" file - in what ever form we where given
