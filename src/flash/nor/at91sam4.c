@@ -74,10 +74,9 @@
 #define         AT91C_EFC_FCMD_WP                   (0x1)	/* (EFC) Write Page */
 #define         AT91C_EFC_FCMD_WPL                  (0x2)	/* (EFC) Write Page and Lock */
 #define         AT91C_EFC_FCMD_EWP                  (0x3)	/* (EFC) Erase Page and Write Page */
-#define         AT91C_EFC_FCMD_EWPL                 (0x4)	/* (EFC) Erase Page and Write Page
-								 * then Lock */
+#define         AT91C_EFC_FCMD_EWPL                 (0x4)	/* (EFC) Erase Page and Write Page then Lock */
 #define         AT91C_EFC_FCMD_EA                   (0x5)	/* (EFC) Erase All */
-/* cmd6 is not present int he at91sam4u4/2/1 data sheet table 19-2 */
+/* cmd6 is not present in the at91sam4u4/2/1 data sheet table 19-2 */
 /* #define      AT91C_EFC_FCMD_EPL                  (0x6) // (EFC) Erase plane? */
 #define			AT91C_EFC_FCMD_EPA                  (0x7)     /* (EFC) Erase pages */
 #define         AT91C_EFC_FCMD_SLB                  (0x8)	/* (EFC) Set Lock Bit */
@@ -166,7 +165,7 @@ struct sam4_bank_private {
 
 	/* so we can find the chip we belong to */
 	struct sam4_chip *pChip;
-	/* so we can find the orginal bank pointer */
+	/* so we can find the original bank pointer */
 	struct flash_bank *pBank;
 	unsigned bank_number;
 	uint32_t controller_address;
@@ -182,7 +181,7 @@ struct sam4_bank_private {
 struct sam4_chip_details {
 	/* THERE ARE DRAGONS HERE.. */
 	/* note: If you add pointers here */
-	/* becareful about them as they */
+	/* be careful about them as they */
 	/* may need to be updated inside */
 	/* the function: "sam4_GetDetails() */
 	/* which copy/overwrites the */
@@ -248,7 +247,7 @@ static struct sam4_chip *get_current_sam4(struct command_context *cmd_ctx)
 }
 
 /*The actual sector size of the SAM4S flash memory is 65536 bytes. 16 sectors for a 1024KB device*/
-/*The lockregions are 8KB per lock reqion, with a 1024KB device having 128 lock reqions. */
+/*The lockregions are 8KB per lock region, with a 1024KB device having 128 lock regions. */
 /*For the best results, nsectors are thus set to the amount of lock regions, and the sector_size*/
 /*set to the lock region size.  Page erases are used to erase 8KB sections when programming*/
 
@@ -1408,7 +1407,7 @@ static int sam4_ReadAllRegs(struct sam4_chip *pChip)
 		r = sam4_ReadThisReg(pChip,
 				sam4_get_reg_ptr(&(pChip->cfg), pReg));
 		if (r != ERROR_OK) {
-			LOG_ERROR("Cannot read SAM4 registere: %s @ 0x%08x, Error: %d",
+			LOG_ERROR("Cannot read SAM4 register: %s @ 0x%08x, Error: %d",
 				pReg->name, ((unsigned)(pReg->address)), r);
 			return r;
 		}
@@ -1519,9 +1518,9 @@ FLASH_BANK_COMMAND_HANDLER(sam4_flash_bank_command)
 	switch (bank->base) {
 		default:
 			LOG_ERROR("Address 0x%08x invalid bank address (try 0x%08x"
-			"[at91sam4s series] )",
-			((unsigned int)(bank->base)),
-			((unsigned int)(FLASH_BANK_BASE_S)));
+				"[at91sam4s series] )",
+				((unsigned int)(bank->base)),
+				((unsigned int)(FLASH_BANK_BASE_S)));
 			return ERROR_FAIL;
 			break;
 
@@ -1711,7 +1710,7 @@ static int sam4_erase(struct flash_bank *bank, int first, int last)
 		LOG_DEBUG("Here");
 		return FLASHD_EraseEntireBank(pPrivate);
 	}
-	LOG_INFO("sam4 does not auto-erase while programing (Erasing relevant sectors)");
+	LOG_INFO("sam4 does not auto-erase while programming (Erasing relevant sectors)");
 	LOG_INFO("sam4 First: 0x%08x Last: 0x%08x", (unsigned int)(first), (unsigned int)(last));
 	for (i = first; i <= last; i++) {
 		/*16 pages equals 8KB - Same size as a lock region*/
@@ -1721,7 +1720,7 @@ static int sam4_erase(struct flash_bank *bank, int first, int last)
 			LOG_ERROR("SAM4: Error performing Erase page @ lock region number %d",
 				(unsigned int)(i));
 		if (status & (1 << 2)) {
-			LOG_ERROR("SAM4: Lock Reqion %d is locked", (unsigned int)(i));
+			LOG_ERROR("SAM4: Lock Region %d is locked", (unsigned int)(i));
 			return ERROR_FAIL;
 		}
 		if (status & (1 << 1)) {

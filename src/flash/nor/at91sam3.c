@@ -89,12 +89,11 @@
 #define         AT91C_EFC_FCMD_WP                   (0x1)	/* (EFC) Write Page */
 #define         AT91C_EFC_FCMD_WPL                  (0x2)	/* (EFC) Write Page and Lock */
 #define         AT91C_EFC_FCMD_EWP                  (0x3)	/* (EFC) Erase Page and Write Page */
-#define         AT91C_EFC_FCMD_EWPL                 (0x4)	/* (EFC) Erase Page and Write Page
-								 * then Lock */
+#define         AT91C_EFC_FCMD_EWPL                 (0x4)	/* (EFC) Erase Page and Write Page then Lock */
 #define         AT91C_EFC_FCMD_EA                   (0x5)	/* (EFC) Erase All */
-/* cmd6 is not present int he at91sam3u4/2/1 data sheet table 17-2 */
+/* cmd6 is not present in the at91sam3u4/2/1 data sheet table 17-2 */
 /* #define      AT91C_EFC_FCMD_EPL                  (0x6) // (EFC) Erase plane? */
-/* cmd7 is not present int he at91sam3u4/2/1 data sheet table 17-2 */
+/* cmd7 is not present in the at91sam3u4/2/1 data sheet table 17-2 */
 /* #define      AT91C_EFC_FCMD_EPA                  (0x7) // (EFC) Erase pages? */
 #define         AT91C_EFC_FCMD_SLB                  (0x8)	/* (EFC) Set Lock Bit */
 #define         AT91C_EFC_FCMD_CLB                  (0x9)	/* (EFC) Clear Lock Bit */
@@ -197,7 +196,7 @@ struct sam3_bank_private {
 
 	/* so we can find the chip we belong to */
 	struct sam3_chip *pChip;
-	/* so we can find the orginal bank pointer */
+	/* so we can find the original bank pointer */
 	struct flash_bank *pBank;
 	unsigned bank_number;
 	uint32_t controller_address;
@@ -213,7 +212,7 @@ struct sam3_bank_private {
 struct sam3_chip_details {
 	/* THERE ARE DRAGONS HERE.. */
 	/* note: If you add pointers here */
-	/* becareful about them as they */
+	/* be careful about them as they */
 	/* may need to be updated inside */
 	/* the function: "sam3_GetDetails() */
 	/* which copy/overwrites the */
@@ -2615,7 +2614,7 @@ static int sam3_ReadAllRegs(struct sam3_chip *pChip)
 		r = sam3_ReadThisReg(pChip,
 				sam3_get_reg_ptr(&(pChip->cfg), pReg));
 		if (r != ERROR_OK) {
-			LOG_ERROR("Cannot read SAM3 registere: %s @ 0x%08x, Error: %d",
+			LOG_ERROR("Cannot read SAM3 register: %s @ 0x%08x, Error: %d",
 				pReg->name, ((unsigned)(pReg->address)), r);
 			return r;
 		}
@@ -2973,7 +2972,7 @@ static int sam3_erase(struct flash_bank *bank, int first, int last)
 		LOG_DEBUG("Here");
 		return FLASHD_EraseEntireBank(pPrivate);
 	}
-	LOG_INFO("sam3 auto-erases while programing (request ignored)");
+	LOG_INFO("sam3 auto-erases while programming (request ignored)");
 	return ERROR_OK;
 }
 
