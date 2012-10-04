@@ -456,28 +456,25 @@ int rtos_generic_stack_read(struct target *target,
 
 int rtos_try_next(struct target *target)
 {
-	int x;
+	struct rtos *os = target->rtos;
+	struct rtos_type **type = rtos_types;
 
-	if (target->rtos == NULL)
-		return -1;
+	if (!os)
+		return 0;
 
-	for (x = 0; rtos_types[x]; x++) {
-		if (target->rtos->type == rtos_types[x]) {
-			/* found */
-			if (rtos_types[x+1] != NULL) {
-				target->rtos->type = rtos_types[x+1];
-				if (target->rtos->symbols != NULL)
-					free(target->rtos->symbols);
-				return 1;
-			} else {
-				/* No more rtos types */
-				return 0;
-			}
+	while (*type && os->type != *type)
+		type++;
 
-		}
+	if (!*type || !*(++type))
+		return 0;
+
+	os->type = *type;
+	if (os->symbols) {
+		free(os->symbols);
+		os->symbols = NULL;
 	}
-	return 0;
 
+	return 1;
 }
 
 static void hex_to_str(char *dst, char *hex_src)
