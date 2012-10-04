@@ -215,6 +215,8 @@ options may be available there:
                           (for x86 only)
   --enable-parport-giveio Enable use of giveio for parport (for CygWin only)
 
+  --enable-ftdi           Enable building support for the MPSSE mode of FTDI
+                          based devices, using libusb-1.0 in asynchronous mode
 
   --enable-ft2232_libftdi Enable building support for FT2232 based devices
                           using the libftdi driver, opensource alternate of
@@ -279,6 +281,8 @@ options may be available there:
 
   --enable-opendous       Enable building support for the estick/opendous JTAG
                           Programmer
+  --enable-sysfsgpio      Enable building support for programming driven via
+                          sysfs gpios.
 
   --enable-minidriver-dummy
                           Enable the dummy minidriver.
