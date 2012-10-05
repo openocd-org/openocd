@@ -102,6 +102,11 @@
 #define KEY1			0x45670123
 #define KEY2			0xCDEF89AB
 
+/* timeout values */
+
+#define FLASH_WRITE_TIMEOUT 10
+#define FLASH_ERASE_TIMEOUT 100
+
 struct stm32x_options {
 	uint16_t RDP;
 	uint16_t user_options;
@@ -283,7 +288,7 @@ static int stm32x_erase_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -327,7 +332,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, FLASH_WRITE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -336,7 +341,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, FLASH_WRITE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -345,7 +350,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, FLASH_WRITE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -354,7 +359,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, FLASH_WRITE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -363,7 +368,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, FLASH_WRITE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -372,7 +377,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 10);
+	retval = stm32x_wait_status_busy(bank, FLASH_WRITE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -487,7 +492,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 		if (retval != ERROR_OK)
 			return retval;
 
-		retval = stm32x_wait_status_busy(bank, 100);
+		retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1475,7 +1480,7 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 100);
+	retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
