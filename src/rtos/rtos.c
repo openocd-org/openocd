@@ -34,12 +34,14 @@ extern struct rtos_type FreeRTOS_rtos;
 extern struct rtos_type ThreadX_rtos;
 extern struct rtos_type eCos_rtos;
 extern struct rtos_type Linux_os;
+extern struct rtos_type ChibiOS_rtos;
 
 static struct rtos_type *rtos_types[] = {
 	&ThreadX_rtos,
 	&FreeRTOS_rtos,
 	&eCos_rtos,
 	&Linux_os,
+	&ChibiOS_rtos,
 	NULL
 };
 

@@ -22,8 +22,8 @@ include $(top_srcdir)/common.mk
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = librtos.la
-noinst_HEADERS = rtos.h rtos_standard_stackings.h rtos_ecos_stackings.h linux_header.h
-librtos_la_SOURCES = rtos.c rtos_standard_stackings.c rtos_ecos_stackings.c FreeRTOS.c ThreadX.c eCos.c linux.c
+noinst_HEADERS = rtos.h rtos_standard_stackings.h rtos_ecos_stackings.h linux_header.h rtos_chibios_stackings.h
+librtos_la_SOURCES = rtos.c rtos_standard_stackings.c rtos_ecos_stackings.c rtos_chibios_stackings.c FreeRTOS.c ThreadX.c eCos.c linux.c ChibiOS.c
 
 librtos_la_CFLAGS =
 if IS_MINGW
