@@ -68,7 +68,6 @@ typedef enum {
 
 struct lpc2000_flash_bank {
 	lpc2000_variant variant;
-	struct working_area *iap_working_area;
 	uint32_t cclk;
 	int cmd51_dst_boundary;
 	int cmd51_can_256b;
@@ -252,52 +251,56 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-/* call LPC1700/LPC2000 IAP function
+/* this function allocates and initializes working area used for IAP algorithm
  * uses 180 bytes working area
  * 0x0 to 0x7: jump gate (BX to thumb state, b -2 to wait)
  * 0x8 to 0x1f: command parameter table (1+5 words)
  * 0x20 to 0x33: command result table (1+4 words)
  * 0x34 to 0xb3: stack (only 128b needed)
  */
-static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_table[5], uint32_t result_table[4])
+
+static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working_area **iap_working_area)
 {
-	int retval;
-	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 	struct target *target = bank->target;
 
-	/* regrab previously allocated working_area, or allocate a new one */
-	if (!lpc2000_info->iap_working_area) {
-		uint8_t jump_gate[8];
-
-		/* make sure we have a working area */
-		if (target_alloc_working_area(target, 180, &lpc2000_info->iap_working_area) != ERROR_OK) {
-			LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-
-		/* write IAP code to working area */
-		switch (lpc2000_info->variant) {
-			case lpc1700:
-				target_buffer_set_u32(target, jump_gate, ARMV4_5_T_BX(12));
-				target_buffer_set_u32(target, jump_gate + 4, ARMV5_T_BKPT(0));
-				break;
-			case lpc2000_v1:
-			case lpc2000_v2:
-				target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
-				target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
-				break;
-			default:
-				LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
-				exit(-1);
-		}
-
-		retval = target_write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, jump_gate);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Write memory at address 0x%8.8" PRIx32 " failed (check work_area definition)",
-					lpc2000_info->iap_working_area->address);
-			return retval;
-		}
+	if (target_alloc_working_area(target, 180, iap_working_area) != ERROR_OK) {
+		LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
+
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
+	uint8_t jump_gate[8];
+
+	/* write IAP code to working area */
+	switch (lpc2000_info->variant) {
+		case lpc1700:
+			target_buffer_set_u32(target, jump_gate, ARMV4_5_T_BX(12));
+			target_buffer_set_u32(target, jump_gate + 4, ARMV5_T_BKPT(0));
+			break;
+		case lpc2000_v1:
+		case lpc2000_v2:
+			target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
+			target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
+			break;
+		default:
+			LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
+			exit(-1);
+	}
+
+	int retval = target_write_memory(target, (*iap_working_area)->address, 4, 2, jump_gate);
+	if (retval != ERROR_OK)
+		LOG_ERROR("Write memory at address 0x%8.8" PRIx32 " failed (check work_area definition)",
+				(*iap_working_area)->address);
+
+	return retval;
+}
+
+/* call LPC1700/LPC2000 IAP function */
+
+static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_working_area, int code,
+		uint32_t param_table[5], uint32_t result_table[4])
+{
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 
 	struct arm_algorithm arm_algo;	/* for LPC2000 */
 	struct armv7m_algorithm armv7m_info;	/* for LPC1700 */
@@ -321,10 +324,11 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 			exit(-1);
 	}
 
+	struct target *target = bank->target;
 	struct mem_param mem_params[2];
 
 	/* command parameter table */
-	init_mem_param(&mem_params[0], lpc2000_info->iap_working_area->address + 8, 6 * 4, PARAM_OUT);
+	init_mem_param(&mem_params[0], iap_working_area->address + 8, 6 * 4, PARAM_OUT);
 	target_buffer_set_u32(target, mem_params[0].value, code);
 	target_buffer_set_u32(target, mem_params[0].value + 0x04, param_table[0]);
 	target_buffer_set_u32(target, mem_params[0].value + 0x08, param_table[1]);
@@ -335,13 +339,13 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 	struct reg_param reg_params[5];
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
-	buf_set_u32(reg_params[0].value, 0, 32, lpc2000_info->iap_working_area->address + 0x08);
+	buf_set_u32(reg_params[0].value, 0, 32, iap_working_area->address + 0x08);
 
 	/* command result table */
-	init_mem_param(&mem_params[1], lpc2000_info->iap_working_area->address + 0x20, 5 * 4, PARAM_IN);
+	init_mem_param(&mem_params[1], iap_working_area->address + 0x20, 5 * 4, PARAM_IN);
 
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
-	buf_set_u32(reg_params[1].value, 0, 32, lpc2000_info->iap_working_area->address + 0x20);
+	buf_set_u32(reg_params[1].value, 0, 32, iap_working_area->address + 0x20);
 
 	/* IAP entry point */
 	init_reg_param(&reg_params[2], "r12", 32, PARAM_OUT);
@@ -351,28 +355,28 @@ static int lpc2000_iap_call(struct flash_bank *bank, int code, uint32_t param_ta
 		case lpc1700:
 			/* IAP stack */
 			init_reg_param(&reg_params[3], "sp", 32, PARAM_OUT);
-			buf_set_u32(reg_params[3].value, 0, 32, lpc2000_info->iap_working_area->address + 0xb4);
+			buf_set_u32(reg_params[3].value, 0, 32, iap_working_area->address + 0xb4);
 
 			/* return address */
 			init_reg_param(&reg_params[4], "lr", 32, PARAM_OUT);
-			buf_set_u32(reg_params[4].value, 0, 32, (lpc2000_info->iap_working_area->address + 0x04) | 1);
+			buf_set_u32(reg_params[4].value, 0, 32, (iap_working_area->address + 0x04) | 1);
 			/* bit0 of LR = 1 to return in Thumb mode */
 
-			target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, 0,
-					10000, &armv7m_info);
+			target_run_algorithm(target, 2, mem_params, 5, reg_params, iap_working_area->address, 0, 10000,
+					&armv7m_info);
 			break;
 		case lpc2000_v1:
 		case lpc2000_v2:
 			/* IAP stack */
 			init_reg_param(&reg_params[3], "sp_svc", 32, PARAM_OUT);
-			buf_set_u32(reg_params[3].value, 0, 32, lpc2000_info->iap_working_area->address + 0xb4);
+			buf_set_u32(reg_params[3].value, 0, 32, iap_working_area->address + 0xb4);
 
 			/* return address */
 			init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
-			buf_set_u32(reg_params[4].value, 0, 32, lpc2000_info->iap_working_area->address + 0x04);
+			buf_set_u32(reg_params[4].value, 0, 32, iap_working_area->address + 0x04);
 
-			target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address,
-					lpc2000_info->iap_working_area->address + 0x4, 10000, &arm_algo);
+			target_run_algorithm(target, 2, mem_params, 5, reg_params, iap_working_area->address,
+					iap_working_area->address + 0x4, 10000, &arm_algo);
 			break;
 		default:
 			LOG_ERROR("BUG: unknown lpc2000->variant encountered");
@@ -408,15 +412,22 @@ static int lpc2000_iap_blank_check(struct flash_bank *bank, int first, int last)
 
 	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
+	struct working_area *iap_working_area;
 
-	for (int i = first; i <= last; i++) {
+	int retval = lpc2000_iap_working_area_init(bank, &iap_working_area);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	for (int i = first; i <= last && retval == ERROR_OK; i++) {
 		/* check single sector */
 		param_table[0] = param_table[1] = i;
-		int status_code = lpc2000_iap_call(bank, 53, param_table, result_table);
+		int status_code = lpc2000_iap_call(bank, iap_working_area, 53, param_table, result_table);
 
 		switch (status_code) {
 			case ERROR_FLASH_OPERATION_FAILED:
-				return ERROR_FLASH_OPERATION_FAILED;
+				retval = ERROR_FLASH_OPERATION_FAILED;
+				break;
 			case LPC2000_CMD_SUCCESS:
 				bank->sectors[i].is_erased = 1;
 				break;
@@ -427,7 +438,7 @@ static int lpc2000_iap_blank_check(struct flash_bank *bank, int first, int last)
 				bank->sectors[i].is_erased = 0;
 				break;
 			case LPC2000_BUSY:
-				return ERROR_FLASH_BUSY;
+				retval = ERROR_FLASH_BUSY;
 				break;
 			default:
 				LOG_ERROR("BUG: unknown LPC2000 status code %i", status_code);
@@ -435,7 +446,10 @@ static int lpc2000_iap_blank_check(struct flash_bank *bank, int first, int last)
 		}
 	}
 
-	return ERROR_OK;
+	struct target *target = bank->target;
+	target_free_working_area(target, iap_working_area);
+
+	return retval;
 }
 
 /*
@@ -473,7 +487,6 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	lpc2000_info->iap_working_area = NULL;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[7], lpc2000_info->cclk);
 	lpc2000_info->calc_checksum = 0;
 	lpc2000_build_sector_list(bank);
@@ -501,38 +514,53 @@ static int lpc2000_erase(struct flash_bank *bank, int first, int last)
 	param_table[2] = lpc2000_info->cclk;
 
 	uint32_t result_table[4];
+	struct working_area *iap_working_area;
+
+	int retval = lpc2000_iap_working_area_init(bank, &iap_working_area);
+
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Prepare sectors */
-	int status_code = lpc2000_iap_call(bank, 50, param_table, result_table);
+	int status_code = lpc2000_iap_call(bank, iap_working_area, 50, param_table, result_table);
 	switch (status_code) {
 		case ERROR_FLASH_OPERATION_FAILED:
-			return ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
 		case LPC2000_CMD_SUCCESS:
 			break;
 		case LPC2000_INVALID_SECTOR:
-			return ERROR_FLASH_SECTOR_INVALID;
+			retval = ERROR_FLASH_SECTOR_INVALID;
 			break;
 		default:
 			LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
-			return ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
 	}
 
-	/* Erase sectors */
-	status_code = lpc2000_iap_call(bank, 52, param_table, result_table);
-	switch (status_code) {
-		case ERROR_FLASH_OPERATION_FAILED:
-			return ERROR_FLASH_OPERATION_FAILED;
-		case LPC2000_CMD_SUCCESS:
-			break;
-		case LPC2000_INVALID_SECTOR:
-			return ERROR_FLASH_SECTOR_INVALID;
-			break;
-		default:
-			LOG_WARNING("lpc2000 erase sectors returned %i", status_code);
-			return ERROR_FLASH_OPERATION_FAILED;
+	if (retval == ERROR_OK) {
+		/* Erase sectors */
+		status_code = lpc2000_iap_call(bank, iap_working_area, 52, param_table, result_table);
+		switch (status_code) {
+			case ERROR_FLASH_OPERATION_FAILED:
+				retval = ERROR_FLASH_OPERATION_FAILED;
+				break;
+			case LPC2000_CMD_SUCCESS:
+				break;
+			case LPC2000_INVALID_SECTOR:
+				retval = ERROR_FLASH_SECTOR_INVALID;
+				break;
+			default:
+				LOG_WARNING("lpc2000 erase sectors returned %i", status_code);
+				retval = ERROR_FLASH_OPERATION_FAILED;
+				break;
+		}
 	}
 
-	return ERROR_OK;
+	struct target *target = bank->target;
+	target_free_working_area(target, iap_working_area);
+
+	return retval;
 }
 
 static int lpc2000_protect(struct flash_bank *bank, int set, int first, int last)
@@ -596,11 +624,19 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 		buf_set_u32(buffer + (lpc2000_info->checksum_vector * 4), 0, 32, checksum);
 	}
 
+	struct working_area *iap_working_area;
+
+	int retval = lpc2000_iap_working_area_init(bank, &iap_working_area);
+
+	if (retval != ERROR_OK)
+		return retval;
+
 	struct working_area *download_area;
 
 	/* allocate a working area */
 	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK) {
 		LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
+		target_free_working_area(target, iap_working_area);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -608,7 +644,6 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 	uint32_t bytes_written = 0;
 	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
-	int retval = ERROR_OK;
 
 	while (bytes_remaining > 0) {
 		uint32_t thisrun_bytes;
@@ -624,7 +659,7 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 		/* Prepare sectors */
 		param_table[0] = first_sector;
 		param_table[1] = last_sector;
-		int status_code = lpc2000_iap_call(bank, 50, param_table, result_table);
+		int status_code = lpc2000_iap_call(bank, iap_working_area, 50, param_table, result_table);
 		switch (status_code) {
 			case ERROR_FLASH_OPERATION_FAILED:
 				retval = ERROR_FLASH_OPERATION_FAILED;
@@ -666,7 +701,7 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 		param_table[1] = download_area->address;
 		param_table[2] = thisrun_bytes;
 		param_table[3] = lpc2000_info->cclk;
-		status_code = lpc2000_iap_call(bank, 51, param_table, result_table);
+		status_code = lpc2000_iap_call(bank, iap_working_area, 51, param_table, result_table);
 		switch (status_code) {
 			case ERROR_FLASH_OPERATION_FAILED:
 				retval = ERROR_FLASH_OPERATION_FAILED;
@@ -693,6 +728,7 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 		bytes_written += thisrun_bytes;
 	}
 
+	target_free_working_area(target, iap_working_area);
 	target_free_working_area(target, download_area);
 
 	return retval;
@@ -747,18 +783,23 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 
 	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
+	struct working_area *iap_working_area;
 
-	int status_code = lpc2000_iap_call(bank, 54, param_table, result_table);
+	retval = lpc2000_iap_working_area_init(bank, &iap_working_area);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	int status_code = lpc2000_iap_call(bank, iap_working_area, 54, param_table, result_table);
 	if (status_code != 0x0) {
 		if (status_code == ERROR_FLASH_OPERATION_FAILED) {
 			command_print(CMD_CTX, "no sufficient working area specified, can't access LPC2000 IAP interface");
-			return ERROR_OK;
-		}
-		command_print(CMD_CTX, "lpc2000 IAP returned status code %i", status_code);
+		} else
+			command_print(CMD_CTX, "lpc2000 IAP returned status code %i", status_code);
 	} else
 		command_print(CMD_CTX, "lpc2000 part id: 0x%8.8" PRIx32, result_table[0]);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static const struct command_registration lpc2000_exec_command_handlers[] = {
