@@ -82,6 +82,7 @@ modules are stacked in the current implementation (from bottom to top):
 - @subpage targetdocs
   - @ref targetarm
   - @ref targetnotarm
+  - @ref targetmips
   - @ref targetregister
   - @ref targetimage
   - @ref targettrace

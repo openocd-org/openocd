@@ -9,6 +9,7 @@ The Target Support module contains APIs that cover several functional areas:
 
   - @subpage targetarm
   - @subpage targetnotarm
+  - @subpage targetmips
   - @subpage targetregister
   - @subpage targetimage
   - @subpage targettrace
