@@ -51,7 +51,7 @@ static struct cfi_unlock_addresses cfi_unlock_addresses[] = {
 	[CFI_UNLOCK_5555_2AAA] = { .unlock1 = 0x5555, .unlock2 = 0x2aaa },
 };
 
-/* CFI fixups foward declarations */
+/* CFI fixups forward declarations */
 static void cfi_fixup_0002_erase_regions(struct flash_bank *bank, void *param);
 static void cfi_fixup_0002_unlock_addresses(struct flash_bank *bank, void *param);
 static void cfi_fixup_reversed_erase_regions(struct flash_bank *bank, void *param);
@@ -109,7 +109,6 @@ static void cfi_fixup(struct flash_bank *bank, const struct cfi_fixup *fixups)
 	}
 }
 
-/* inline uint32_t flash_address(struct flash_bank *bank, int sector, uint32_t offset) */
 static inline uint32_t flash_address(struct flash_bank *bank, int sector, uint32_t offset)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -807,7 +806,7 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	 * - not exceed max value;
 	 * - not be null;
 	 * - be equal to a power of 2.
-	 * bus must be wide enought to hold one chip */
+	 * bus must be wide enough to hold one chip */
 	if ((bank->chip_width > CFI_MAX_CHIP_WIDTH)
 			|| (bank->bus_width > CFI_MAX_BUS_WIDTH)
 			|| (bank->chip_width == 0)
@@ -871,9 +870,8 @@ static int cfi_intel_erase(struct flash_bank *bank, int first, int last)
 			if (retval != ERROR_OK)
 				return retval;
 
-			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%" PRIx32,
-				i,
-				bank->base);
+			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%"
+					PRIx32, i, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -1159,56 +1157,56 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	/* see contib/loaders/flash/armv4_5_cfi_intel_32.s for src */
 	static const uint32_t word_32_code[] = {
-		0xe4904004,	/* loop:	ldr r4, [r0], #4 */
-		0xe5813000,	/*              str r3, [r1] */
-		0xe5814000,	/*              str r4, [r1] */
-		0xe5914000,	/* busy:  ldr r4, [r1] */
-		0xe0047005,	/*		and r7, r4, r5 */
-		0xe1570005,	/*		cmp r7, r5 */
-		0x1afffffb,	/*		bne busy */
-		0xe1140006,	/*              tst r4, r6 */
-		0x1a000003,	/*		bne done */
-		0xe2522001,	/*		subs r2, r2, #1 */
-		0x0a000001,	/*              beq done */
-		0xe2811004,	/*		add r1, r1 #4 */
-		0xeafffff2,	/*              b loop */
-		0xeafffffe	/* done:	b -2 */
+		0xe4904004,	/* loop: ldr r4, [r0], #4 */
+		0xe5813000,	/*       str r3, [r1] */
+		0xe5814000,	/*       str r4, [r1] */
+		0xe5914000,	/* busy: ldr r4, [r1] */
+		0xe0047005,	/*        and r7, r4, r5 */
+		0xe1570005,	/*       cmp r7, r5 */
+		0x1afffffb,	/*       bne busy */
+		0xe1140006,	/*       tst r4, r6 */
+		0x1a000003,	/*       bne done */
+		0xe2522001,	/*       subs r2, r2, #1 */
+		0x0a000001,	/*       beq done */
+		0xe2811004,	/*       add r1, r1 #4 */
+		0xeafffff2,	/*       b loop */
+		0xeafffffe	/* done: b -2 */
 	};
 
 	/* see contib/loaders/flash/armv4_5_cfi_intel_16.s for src */
 	static const uint32_t word_16_code[] = {
-		0xe0d040b2,	/* loop:	ldrh r4, [r0], #2 */
-		0xe1c130b0,	/*              strh r3, [r1] */
-		0xe1c140b0,	/*              strh r4, [r1] */
-		0xe1d140b0,	/* busy	ldrh r4, [r1] */
-		0xe0047005,	/*		and r7, r4, r5 */
-		0xe1570005,	/*		cmp r7, r5 */
-		0x1afffffb,	/*		bne busy */
-		0xe1140006,	/*              tst r4, r6 */
-		0x1a000003,	/*		bne done */
-		0xe2522001,	/*		subs r2, r2, #1 */
-		0x0a000001,	/*              beq done */
-		0xe2811002,	/*		add r1, r1 #2 */
-		0xeafffff2,	/*              b loop */
+		0xe0d040b2,	/* loop: ldrh r4, [r0], #2 */
+		0xe1c130b0,	/*       strh r3, [r1] */
+		0xe1c140b0,	/*       strh r4, [r1] */
+		0xe1d140b0,	/* busy  ldrh r4, [r1] */
+		0xe0047005,	/*       and r7, r4, r5 */
+		0xe1570005,	/*       cmp r7, r5 */
+		0x1afffffb,	/*       bne busy */
+		0xe1140006,	/*       tst r4, r6 */
+		0x1a000003,	/*       bne done */
+		0xe2522001,	/*       subs r2, r2, #1 */
+		0x0a000001,	/*       beq done */
+		0xe2811002,	/*       add r1, r1 #2 */
+		0xeafffff2,	/*       b loop */
 		0xeafffffe	/* done:	b -2 */
 	};
 
 	/* see contib/loaders/flash/armv4_5_cfi_intel_8.s for src */
 	static const uint32_t word_8_code[] = {
-		0xe4d04001,	/* loop:	ldrb r4, [r0], #1 */
-		0xe5c13000,	/*              strb r3, [r1] */
-		0xe5c14000,	/*              strb r4, [r1] */
-		0xe5d14000,	/* busy	ldrb r4, [r1] */
-		0xe0047005,	/*		and r7, r4, r5 */
-		0xe1570005,	/*		cmp r7, r5 */
-		0x1afffffb,	/*		bne busy */
-		0xe1140006,	/*              tst r4, r6 */
-		0x1a000003,	/*		bne done */
-		0xe2522001,	/*		subs r2, r2, #1 */
-		0x0a000001,	/*              beq done */
-		0xe2811001,	/*		add r1, r1 #1 */
-		0xeafffff2,	/*              b loop */
-		0xeafffffe	/* done:	b -2 */
+		0xe4d04001,	/* loop: ldrb r4, [r0], #1 */
+		0xe5c13000,	/*       strb r3, [r1] */
+		0xe5c14000,	/*       strb r4, [r1] */
+		0xe5d14000,	/* busy  ldrb r4, [r1] */
+		0xe0047005,	/*       and r7, r4, r5 */
+		0xe1570005,	/*       cmp r7, r5 */
+		0x1afffffb,	/*       bne busy */
+		0xe1140006,	/*       tst r4, r6 */
+		0x1a000003,	/*       bne done */
+		0xe2522001,	/*       subs r2, r2, #1 */
+		0x0a000001,	/*       beq done */
+		0xe2811001,	/*       add r1, r1 #1 */
+		0xeafffff2,	/*       b loop */
+		0xeafffffe	/* done: b -2 */
 	};
 	uint8_t target_code[4*CFI_MAX_INTEL_CODESIZE];
 	const uint32_t *target_code_src;
@@ -1232,7 +1230,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	 * if not we only need target_code_size. */
 
 	/* However, we don't want to create multiple code paths, so we
-	 * do the unecessary evaluation of target_code_src, which the
+	 * do the unnecessary evaluation of target_code_src, which the
 	 * compiler will probably nicely optimize away if not needed */
 
 	/* prepare algorithm code for target endian */
@@ -1282,7 +1280,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	/* Get a workspace buffer for the data to flash starting with 32k size.
-	   Half size until buffer would be smaller 256 Bytem then fail back */
+	 * Half size until buffer would be smaller 256 Bytes then fail back */
 	/* FIXME Why 256 bytes, why not 32 bytes (smallest flash write page */
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
@@ -1355,7 +1353,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 		/* Check return value from algo code */
 		wsm_error = buf_get_u32(reg_params[4].value, 0, 32) & error_pattern_val;
 		if (wsm_error) {
-			/* read status register (outputs debug inforation) */
+			/* read status register (outputs debug information) */
 			uint8_t status;
 			cfi_intel_wait_status_busy(bank, 100, &status);
 			cfi_intel_clear_status_register(bank);
@@ -1421,67 +1419,50 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffe
 
 	static const uint32_t mips_word_16_code[] = {
 		/* start:	*/
-		MIPS32_LHU(9, 0, 4),		/* lhu $t1, ($a0)		; out = &saddr				*/
-		MIPS32_ADDI(4, 4, 2),		/* addi $a0, $a0, 2		; saddr += 2				*/
-		MIPS32_SH(13, 0, 12),		/* sh $t5, ($t4)		; *fl_unl_addr1 =
-						 *fl_unl_cmd1		*/
-		MIPS32_SH(15, 0, 14),		/* sh $t7, ($t6)		; *fl_unl_addr2 =
-						 *fl_unl_cmd2		*/
-		MIPS32_SH(7, 0, 12),		/* sh $a3, ($t4)		; *fl_unl_addr1 =
-						 *fl_write_cmd		*/
-		MIPS32_SH(9, 0, 5),		/* sh $t1, ($a1)		; *daddr = out				*/
-		MIPS32_NOP,			/* nop									*/
+		MIPS32_LHU(9, 0, 4),			/* lhu $t1, ($a0)		; out = &saddr */
+		MIPS32_ADDI(4, 4, 2),			/* addi $a0, $a0, 2		; saddr += 2 */
+		MIPS32_SH(13, 0, 12),			/* sh $t5, ($t4)		; *fl_unl_addr1 = fl_unl_cmd1 */
+		MIPS32_SH(15, 0, 14),			/* sh $t7, ($t6)		; *fl_unl_addr2 = fl_unl_cmd2 */
+		MIPS32_SH(7, 0, 12),			/* sh $a3, ($t4)		; *fl_unl_addr1 = fl_write_cmd */
+		MIPS32_SH(9, 0, 5),				/* sh $t1, ($a1)		; *daddr = out */
+		MIPS32_NOP,						/* nop */
 		/* busy:	*/
-		MIPS32_LHU(10, 0, 5),		/* lhu $t2, ($a1)		; temp1 = *daddr			*/
-		MIPS32_XOR(11, 9, 10),		/* xor $t3, $a0, $t2		; temp2 = out ^
-						 *temp1;			*/
-		MIPS32_AND(11, 8, 11),		/* and $t3, $t0, $t3		; temp2 = temp2 &
-						 *DQ7mask		*/
-		MIPS32_BNE(11, 8, 13),		/* bne $t3, $t0, cont		; if (temp2 !=
-						 *DQ7mask) goto cont	*/
-		MIPS32_NOP,			/* nop									*/
+		MIPS32_LHU(10, 0, 5),			/* lhu $t2, ($a1)		; temp1 = *daddr */
+		MIPS32_XOR(11, 9, 10),			/* xor $t3, $a0, $t2	; temp2 = out ^ temp1; */
+		MIPS32_AND(11, 8, 11),			/* and $t3, $t0, $t3	; temp2 = temp2 & DQ7mask */
+		MIPS32_BNE(11, 8, 13),			/* bne $t3, $t0, cont	; if (temp2 != DQ7mask) goto cont */
+		MIPS32_NOP,						/* nop									*/
 
-		MIPS32_SRL(10, 8, 2),		/* srl $t2,$t0,2		; temp1 = DQ7mask >>
-						 *2			*/
-		MIPS32_AND(11, 10, 11),		/* and $t3, $t2, $t3		; temp2 = temp2 &
-						 *temp1			*/
-		MIPS32_BNE(11, 10, NEG16(8)),	/* bne $t3, $t2, busy		; if (temp2 !=
-						 *temp1) goto busy		*/
-		MIPS32_NOP,			/* nop									*/
+		MIPS32_SRL(10, 8, 2),			/* srl $t2,$t0,2		; temp1 = DQ7mask >> 2 */
+		MIPS32_AND(11, 10, 11),			/* and $t3, $t2, $t3	; temp2 = temp2 & temp1	*/
+		MIPS32_BNE(11, 10, NEG16(8)),	/* bne $t3, $t2, busy	; if (temp2 != temp1) goto busy	*/
+		MIPS32_NOP,						/* nop									*/
 
-		MIPS32_LHU(10, 0, 5),		/* lhu $t2, ($a1)		; temp1 = *daddr			*/
-		MIPS32_XOR(11, 9, 10),		/* xor $t3, $a0, $t2		; temp2 = out ^
-						 *temp1;			*/
-		MIPS32_AND(11, 8, 11),		/* and $t3, $t0, $t3		; temp2 = temp2 &
-						 *DQ7mask		*/
-		MIPS32_BNE(11, 8, 4),		/* bne $t3, $t0, cont		; if (temp2 !=
-						 *DQ7mask) goto cont	*/
-		MIPS32_NOP,			/* nop									*/
+		MIPS32_LHU(10, 0, 5),			/* lhu $t2, ($a1)		; temp1 = *daddr */
+		MIPS32_XOR(11, 9, 10),			/* xor $t3, $a0, $t2	; temp2 = out ^ temp1; */
+		MIPS32_AND(11, 8, 11),			/* and $t3, $t0, $t3	; temp2 = temp2 & DQ7mask */
+		MIPS32_BNE(11, 8, 4),			/* bne $t3, $t0, cont	; if (temp2 != DQ7mask) goto cont */
+		MIPS32_NOP,						/* nop */
 
-		MIPS32_XOR(9, 9, 9),		/* xor $t1, $t1, $t1		; out = 0				*/
-		MIPS32_BEQ(9, 0, 11),		/* beq $t1, $zero, done		; if (out == 0) goto
-						 *done		*/
-		MIPS32_NOP,			/* nop									*/
+		MIPS32_XOR(9, 9, 9),			/* xor $t1, $t1, $t1	; out = 0 */
+		MIPS32_BEQ(9, 0, 11),			/* beq $t1, $zero, done	; if (out == 0) goto done */
+		MIPS32_NOP,						/* nop */
 		/* cont:	*/
-		MIPS32_ADDI(6, 6, NEG16(1)),	/* addi, $a2, $a2, -1		; numwrites--				*/
-		MIPS32_BNE(6, 0, 5),		/* bne $a2, $zero, cont2	; if (numwrite != 0)
-						 *goto cont2		*/
-		MIPS32_NOP,			/* nop									*/
+		MIPS32_ADDI(6, 6, NEG16(1)),	/* addi, $a2, $a2, -1	; numwrites-- */
+		MIPS32_BNE(6, 0, 5),			/* bne $a2, $zero, cont2	; if (numwrite != 0) goto cont2 */
+		MIPS32_NOP,						/* nop */
 
-		MIPS32_LUI(9, 0),		/* lui $t1, 0								*/
-		MIPS32_ORI(9, 9, 0x80),		/* ori $t1, $t1, 0x80		; out = 0x80				*/
+		MIPS32_LUI(9, 0),				/* lui $t1, 0 */
+		MIPS32_ORI(9, 9, 0x80),			/* ori $t1, $t1, 0x80	; out = 0x80 */
 
-		MIPS32_B(4),			/* b done			; goto done				*/
-		MIPS32_NOP,			/* nop									*/
+		MIPS32_B(4),					/* b done			; goto done */
+		MIPS32_NOP,						/* nop */
 		/* cont2:	*/
-		MIPS32_ADDI(5, 5, 2),		/* addi $a0, $a0, 2		; daddr += 2				*/
-		MIPS32_B(NEG16(33)),		/* b start			; goto start				*/
-		MIPS32_NOP,			/* nop									*/
-		/* done:
-		 *MIPS32_B(NEG16(1)),	*/	/* b done			; goto done				*/
-		MIPS32_SDBBP,			/* sdbbp			; break();				*/
-		/*MIPS32_B(NEG16(33)),	*/	/* b start			; goto start
-		 * MIPS32_NOP, */
+		MIPS32_ADDI(5, 5, 2),			/* addi $a0, $a0, 2	; daddr += 2 */
+		MIPS32_B(NEG16(33)),			/* b start			; goto start */
+		MIPS32_NOP,						/* nop */
+		/* done: */
+		MIPS32_SDBBP,					/* sdbbp			; break(); */
 	};
 
 	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
@@ -1512,7 +1493,7 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffe
 	/* flash write code */
 	uint8_t *target_code;
 
-	/* convert bus-width dependent algorithm code to correct endiannes */
+	/* convert bus-width dependent algorithm code to correct endianness */
 	target_code = malloc(target_code_size);
 	if (target_code == NULL) {
 		LOG_ERROR("Out of memory");
@@ -1659,8 +1640,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xe5883000,		/* str	r3, [r8]				*/
 		0xe5815000,		/* str	r5, [r1]				*/
 		0xe1a00000,		/* nop							*/
-		/*
-		 * 00008110 <sp_32_busy>:		*/
+		/* 00008110 <sp_32_busy>:		*/
 		0xe5916000,		/* ldr	r6, [r1]				*/
 		0xe0257006,		/* eor	r7, r5, r6				*/
 		0xe0147007,		/* ands	r7, r4, r7				*/
@@ -1673,15 +1653,13 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0x0a000001,		/* beq	8140 <sp_32_cont> ; b if DQ7 == Data7 */
 		0xe3a05000,		/* mov	r5, #0	; 0x0 - return 0x00, error */
 		0x1a000004,		/* bne	8154 <sp_32_done>		*/
-		/*
-		 * 00008140 <sp_32_cont>:		*/
+		/* 00008140 <sp_32_cont>:		*/
 		0xe2522001,		/* subs	r2, r2, #1	; 0x1		*/
 		0x03a05080,		/* moveq	r5, #128	; 0x80	*/
 		0x0a000001,		/* beq	8154 <sp_32_done>		*/
 		0xe2811004,		/* add	r1, r1, #4	; 0x4		*/
 		0xeaffffe8,		/* b	8100 <sp_32_code>		*/
-		/*
-		 * 00008154 <sp_32_done>:		*/
+		/* 00008154 <sp_32_done>:		*/
 		0xeafffffe		/* b	8154 <sp_32_done>		*/
 	};
 
@@ -1694,8 +1672,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xe1c830b0,		/* strh	r3, [r8]				*/
 		0xe1c150b0,		/* strh	r5, [r1]				*/
 		0xe1a00000,		/* nop			(mov r0,r0)		*/
-		/*
-		 * 00008168 <sp_16_busy>:		*/
+		/* 00008168 <sp_16_busy>:		*/
 		0xe1d160b0,		/* ldrh	r6, [r1]				*/
 		0xe0257006,		/* eor	r7, r5, r6				*/
 		0xe0147007,		/* ands	r7, r4, r7				*/
@@ -1708,15 +1685,13 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0x0a000001,		/* beq	8198 <sp_16_cont>		*/
 		0xe3a05000,		/* mov	r5, #0	; 0x0			*/
 		0x1a000004,		/* bne	81ac <sp_16_done>		*/
-		/*
-		 * 00008198 <sp_16_cont>:		*/
+		/* 00008198 <sp_16_cont>:		*/
 		0xe2522001,	/* subs	r2, r2, #1	; 0x1		*/
 		0x03a05080,	/* moveq	r5, #128	; 0x80	*/
 		0x0a000001,	/* beq	81ac <sp_16_done>		*/
 		0xe2811002,	/* add	r1, r1, #2	; 0x2		*/
 		0xeaffffe8,	/* b	8158 <sp_16_code>		*/
-		/*
-		 * 000081ac <sp_16_done>:		*/
+		/* 000081ac <sp_16_done>:		*/
 		0xeafffffe		/* b	81ac <sp_16_done>		*/
 	};
 
@@ -1751,8 +1726,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xe1c830b0,		/* strh	r3, [r8]				*/
 		0xe1c150b0,		/* strh	r5, [r1]				*/
 		0xe1a00000,		/* nop			(mov r0,r0)		*/
-		/*
-		 * <sp_16_busy>:				*/
+		/* <sp_16_busy>:				*/
 		0xe1d160b0,		/* ldrh	r6, [r1]				*/
 		0xe0257006,		/* eor	r7, r5, r6				*/
 		0xe2177080,		/* ands	r7, #0x80				*/
@@ -1763,8 +1737,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0x0a000001,		/* beq	81ac <sp_16_done>		*/
 		0xe2811002,		/* add	r1, r1, #2	; 0x2		*/
 		0xeafffff0,		/* b	8158 <sp_16_code>		*/
-		/*
-		 * 000081ac <sp_16_done>:		*/
+		/* 000081ac <sp_16_done>:		*/
 		0xeafffffe		/* b	81ac <sp_16_done>		*/
 	};
 
@@ -1777,8 +1750,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xe5c83000,		/* strb	r3, [r8]				*/
 		0xe5c15000,		/* strb	r5, [r1]				*/
 		0xe1a00000,		/* nop			(mov r0,r0)		*/
-		/*
-		 * 000081c0 <sp_8_busy>:		*/
+		/* 000081c0 <sp_8_busy>:		*/
 		0xe5d16000,		/* ldrb	r6, [r1]				*/
 		0xe0257006,		/* eor	r7, r5, r6				*/
 		0xe0147007,		/* ands	r7, r4, r7				*/
@@ -1791,22 +1763,20 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0x0a000001,		/* beq	81f0 <sp_8_cont>		*/
 		0xe3a05000,		/* mov	r5, #0	; 0x0			*/
 		0x1a000004,		/* bne	8204 <sp_8_done>		*/
-		/*
-		 * 000081f0 <sp_8_cont>:		*/
+		/* 000081f0 <sp_8_cont>:		*/
 		0xe2522001,		/* subs	r2, r2, #1	; 0x1		*/
 		0x03a05080,		/* moveq	r5, #128	; 0x80	*/
 		0x0a000001,		/* beq	8204 <sp_8_done>		*/
 		0xe2811001,		/* add	r1, r1, #1	; 0x1		*/
 		0xeaffffe8,		/* b	81b0 <sp_16_code_end>	*/
-		/*
-		 * 00008204 <sp_8_done>:		*/
+		/* 00008204 <sp_8_done>:		*/
 		0xeafffffe		/* b	8204 <sp_8_done>		*/
 	};
 
 	if (strncmp(target_type_name(target), "mips_m4k", 8) == 0)
 		return cfi_spansion_write_block_mips(bank, buffer, address, count);
 
-	if (is_armv7m(target_to_armv7m(target))) {	/* Cortex-M3 target */
+	if (is_armv7m(target_to_armv7m(target))) {	/* armv7m target */
 		armv7m_algo.common_magic = ARMV7M_COMMON_MAGIC;
 		armv7m_algo.core_mode = ARMV7M_MODE_HANDLER;
 		arm_algo = &armv7m_algo;
@@ -1836,10 +1806,8 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		case 2:
 			/* Check for DQ5 support */
 			if (cfi_info->status_poll_mask & (1 << 5)) {
-				if (is_armv7m(target_to_armv7m(target))) {	/*
-												 *cortex-m3
-												 *target
-												 **/
+				if (is_armv7m(target_to_armv7m(target))) {
+					/* armv7m target */
 					target_code_src = armv7m_word_16_code;
 					target_code_size = sizeof(armv7m_word_16_code);
 				} else { /* armv4_5 target */
@@ -1873,7 +1841,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 	/* flash write code */
 	uint8_t *target_code;
 
-	/* convert bus-width dependent algorithm code to correct endiannes */
+	/* convert bus-width dependent algorithm code to correct endianness */
 	target_code = malloc(target_code_size);
 	if (target_code == NULL) {
 		LOG_ERROR("Out of memory");
@@ -2626,7 +2594,7 @@ static int cfi_probe(struct flash_bank *bank)
 		 * a single bus sequence with address = 0x55, data = 0x98 should put
 		 * the device into CFI query mode.
 		 *
-		 * SST flashes clearly violate this, and we will consider them incompatbile for now
+		 * SST flashes clearly violate this, and we will consider them incompatible for now
 		 */
 
 		retval = cfi_query_string(bank, 0x55);
