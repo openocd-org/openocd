@@ -854,45 +854,70 @@ static int cortex_m3_step(struct target *target, int current,
 			 *
 			 */
 
-			/* Set a temporary break point */
-			retval = breakpoint_add(target, pc_value, 2, BKPT_TYPE_BY_ADDR(pc_value));
-			bool tmp_bp_set = (retval == ERROR_OK);
-
-			/* No more breakpoints left, just do a step */
-			if (!tmp_bp_set)
+			/* 2012-09-29 ph
+			 *
+			 * If a break point is already set on the lower half word then a break point on
+			 * the upper half word will not break again when the core is restarted. So we
+			 * just step over the instruction with interrupts disabled.
+			 *
+			 * The documentation has no information about this, it was found by observation
+			 * on STM32F1 and STM32F2. Proper explanation welcome. STM32F0 dosen't seem to
+			 * suffer from this problem.
+			 *
+			 * To add some confusion: pc_value has bit 0 always set, while the breakpoint
+			 * address has it always cleared. The former is done to indicate thumb mode
+			 * to gdb.
+			 *
+			 */
+			if ((pc_value & 0x02) && breakpoint_find(target, pc_value & ~0x03)) {
+				LOG_DEBUG("Stepping over next instruction with interrupts disabled");
+				cortex_m3_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
 				cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+				/* Re-enable interrupts */
+				cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+			}
 			else {
-				/* Start the core */
-				LOG_DEBUG("Starting core to serve pending interrupts");
-				int64_t t_start = timeval_ms();
-				cortex_m3_write_debug_halt_mask(target, 0, C_HALT | C_STEP);
 
-				/* Wait for pending handlers to complete or timeout */
-				do {
-					retval = mem_ap_read_atomic_u32(swjdp,
-							DCB_DHCSR,
-							&cortex_m3->dcb_dhcsr);
-					if (retval != ERROR_OK) {
-						target->state = TARGET_UNKNOWN;
-						return retval;
-					}
-					isr_timed_out = ((timeval_ms() - t_start) > 500);
-				} while (!((cortex_m3->dcb_dhcsr & S_HALT) || isr_timed_out));
+				/* Set a temporary break point */
+				retval = breakpoint_add(target, pc_value, 2, BKPT_TYPE_BY_ADDR(pc_value));
+				bool tmp_bp_set = (retval == ERROR_OK);
 
-				/* Remove the temporary breakpoint */
-				breakpoint_remove(target, pc_value);
-
-				if (isr_timed_out) {
-					LOG_DEBUG("Interrupt handlers didn't complete within time, "
-						"leaving target running");
-				} else {
-					/* Step over next instruction with interrupts disabled */
-					cortex_m3_write_debug_halt_mask(target,
-						C_HALT | C_MASKINTS,
-						0);
+				/* No more breakpoints left, just do a step */
+				if (!tmp_bp_set)
 					cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
-					/* Re-enable interrupts */
-					cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+				else {
+					/* Start the core */
+					LOG_DEBUG("Starting core to serve pending interrupts");
+					int64_t t_start = timeval_ms();
+					cortex_m3_write_debug_halt_mask(target, 0, C_HALT | C_STEP);
+
+					/* Wait for pending handlers to complete or timeout */
+					do {
+						retval = mem_ap_read_atomic_u32(swjdp,
+								DCB_DHCSR,
+								&cortex_m3->dcb_dhcsr);
+						if (retval != ERROR_OK) {
+							target->state = TARGET_UNKNOWN;
+							return retval;
+						}
+						isr_timed_out = ((timeval_ms() - t_start) > 500);
+					} while (!((cortex_m3->dcb_dhcsr & S_HALT) || isr_timed_out));
+
+					/* Remove the temporary breakpoint */
+					breakpoint_remove(target, pc_value);
+
+					if (isr_timed_out) {
+						LOG_DEBUG("Interrupt handlers didn't complete within time, "
+							"leaving target running");
+					} else {
+						/* Step over next instruction with interrupts disabled */
+						cortex_m3_write_debug_halt_mask(target,
+							C_HALT | C_MASKINTS,
+							0);
+						cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
+						/* Re-enable interrupts */
+						cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+					}
 				}
 			}
 		}
