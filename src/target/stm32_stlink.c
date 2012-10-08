@@ -325,6 +325,7 @@ static int stm32_stlink_load_context(struct target *target)
 
 static int stlink_debug_entry(struct target *target)
 {
+	struct stlink_interface_s *stlink_if = target_to_stlink(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct arm *arm = &armv7m->arm;
 	struct reg *r;
@@ -336,6 +337,9 @@ static int stlink_debug_entry(struct target *target)
 		return retval;
 
 	stm32_stlink_load_context(target);
+
+	/* make sure we clear the vector catch bit */
+	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, 0);
 
 	r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
 	xPSR = buf_get_u32(r->value, 0, 32);
@@ -427,7 +431,12 @@ static int stm32_stlink_assert_reset(struct target *target)
 	}
 
 	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DHCSR, DBGKEY|C_DEBUGEN);
-	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, VC_CORERESET);
+
+	/* only set vector catch if halt is requested */
+	if (target->reset_halt)
+		stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, VC_CORERESET);
+	else
+		stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, 0);
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		if (!srst_asserted) {
