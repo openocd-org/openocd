@@ -194,6 +194,9 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 
 	reply_len = sprintf(reply, "OK");
 
+	if (!os)
+		goto done;
+
 	if (sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))
 		hex_to_str(cur_sym, strchr(packet + 8, ':') + 1);
 	else if (target->rtos_auto_detect && !rtos_try_next(target))
