@@ -254,7 +254,7 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if (retval != ERROR_OK)
 				return retval;
-			retval = dap_run(dap);
+			retval = jtag_execute_queue();
 			if (retval != ERROR_OK)
 				return retval;
 			dap->ack = dap->ack & 0x7;
@@ -305,7 +305,7 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 					DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if (retval != ERROR_OK)
 				return retval;
-			retval = dap_run(dap);
+			retval = jtag_execute_queue();
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -321,14 +321,14 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 			if (retval != ERROR_OK)
 				return retval;
 
-			retval = dap_run(dap);
+			retval = jtag_execute_queue();
 			if (retval != ERROR_OK)
 				return retval;
 			LOG_ERROR("MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%"
 					PRIx32, mem_ap_csw, mem_ap_tar);
 
 		}
-		retval = dap_run(dap);
+		retval = jtag_execute_queue();
 		if (retval != ERROR_OK)
 			return retval;
 		return ERROR_JTAG_DEVICE_ERROR;
