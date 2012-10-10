@@ -2195,7 +2195,6 @@ static int gdb_input_inner(struct connection *connection)
 					gdb_con->attached = true;
 					/*  info rtos parts */
 					gdb_thread_packet(connection, packet, packet_size);
-					gdb_put_packet(connection, "OK", 2);
 					break;
 
 				case 'j':
