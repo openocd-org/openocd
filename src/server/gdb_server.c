@@ -74,6 +74,11 @@ struct gdb_connection {
 	 * can be replied immediately and a new GDB packet will be ready without delay
 	 * (ca. 10% or so...). */
 	bool mem_write_error;
+	/* with extended-remote it seems we need to better emulate attach/detach.
+	 * what this means is we reply with a W stop reply after a kill packet,
+	 * normally we reply with a S reply via gdb_last_signal_packet.
+	 * as a side note this behaviour only effects gdb > 6.8 */
+	bool attached;
 };
 
 #if 0
@@ -762,6 +767,7 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->noack_mode = 0;
 	gdb_connection->sync = true;
 	gdb_connection->mem_write_error = false;
+	gdb_connection->attached = true;
 
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
@@ -878,8 +884,16 @@ static int gdb_last_signal_packet(struct connection *connection,
 		char *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
+	struct gdb_connection *gdb_con = connection->priv;
 	char sig_reply[4];
 	int signal_var;
+
+	if (!gdb_con->attached) {
+		/* if we are here we have received a kill packet
+		 * reply W stop reply otherwise gdb gets very unhappy */
+		gdb_put_packet(connection, "W00", 3);
+		return ERROR_OK;
+	}
 
 	signal_var = gdb_last_signal(target);
 
@@ -2160,8 +2174,10 @@ static int gdb_input_inner(struct connection *connection)
 						return retval;
 					break;
 				case 'k':
-					if (extended_protocol != 0)
+					if (extended_protocol != 0) {
+						gdb_con->attached = false;
 						break;
+					}
 					gdb_put_packet(connection, "OK", 2);
 					return ERROR_SERVER_REMOTE_CLOSED;
 				case '!':
@@ -2175,6 +2191,8 @@ static int gdb_input_inner(struct connection *connection)
 					watchpoint_clear_target(gdb_service->target);
 					command_run_linef(connection->cmd_ctx, "ocd_gdb_restart %s",
 							target_name(target));
+					/* set connection as attached after reset */
+					gdb_con->attached = true;
 					/*  info rtos parts */
 					gdb_thread_packet(connection, packet, packet_size);
 					gdb_put_packet(connection, "OK", 2);
