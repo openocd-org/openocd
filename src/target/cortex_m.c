@@ -973,6 +973,14 @@ static int cortex_m3_assert_reset(struct target *target)
 			return retval;
 	}
 
+	/* If the processor is sleeping in a WFI or WFE instruction, the
+	 * C_HALT bit must be asserted to regain control */
+	if (cortex_m3->dcb_dhcsr & S_SLEEP) {
+		retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
 	retval = mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
 	if (retval != ERROR_OK)
 		return retval;
