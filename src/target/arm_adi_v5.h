@@ -224,6 +224,15 @@ struct dap_ops {
 	int (*run)(struct adiv5_dap *dap);
 };
 
+/*
+ * Access Port types
+ */
+enum ap_type {
+	AP_TYPE_AHB_AP  = 0x01,  /* AHB Memory-AP */
+	AP_TYPE_APB_AP  = 0x02,  /* APB Memory-AP */
+	AP_TYPE_JTAG_AP = 0x10   /* JTAG-AP - JTAG master for controlling other JTAG devices */
+};
+
 /**
  * Queue an IDCODE register read.  This is primarily useful for SWD
  * transports, where it is required as part of link initialization.
@@ -422,6 +431,11 @@ int ahbap_debugport_init(struct adiv5_dap *swjdp);
 /* Probe the AP for ROM Table location */
 int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 			uint32_t *dbgbase, uint32_t *apid);
+
+/* Probe Access Ports to find a particular type */
+int dap_find_ap(struct adiv5_dap *dap,
+			enum ap_type type_to_find,
+			uint8_t *ap_num_out);
 
 /* Lookup CoreSight component */
 int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
