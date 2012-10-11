@@ -17,6 +17,9 @@
  *   Copyright (C) ST-Ericsson SA 2011                                     *
  *   michel.jaouen@stericsson.com : smp minimum support                    *
  *                                                                         *
+ *   Copyright (C) Broadcom 2012                                           *
+ *   ehunter@broadcom.com : Cortex R4 support                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -34,6 +37,7 @@
  *                                                                         *
  *   Cortex-A8(tm) TRM, ARM DDI 0344H                                      *
  *   Cortex-A9(tm) TRM, ARM DDI 0407F                                      *
+ *   Cortex-A4(tm) TRM, ARM DDI 0363E                                      *
  *                                                                         *
  ***************************************************************************/
 
@@ -1240,8 +1244,12 @@ static int cortex_a8_post_debug_entry(struct target *target)
 	if (armv7a->armv7a_mmu.armv7a_cache.ctype == -1)
 		armv7a_identify_cache(target);
 
-	armv7a->armv7a_mmu.mmu_enabled =
-		(cortex_a8->cp15_control_reg & 0x1U) ? 1 : 0;
+	if (armv7a->is_armv7r) {
+		armv7a->armv7a_mmu.mmu_enabled = 0;
+	} else {
+		armv7a->armv7a_mmu.mmu_enabled =
+			(cortex_a8->cp15_control_reg & 0x1U) ? 1 : 0;
+	}
 	armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled =
 		(cortex_a8->cp15_control_reg & 0x4U) ? 1 : 0;
 	armv7a->armv7a_mmu.armv7a_cache.i_cache_enabled =
@@ -2119,11 +2127,13 @@ static int cortex_a8_read_phys_memory(struct target *target,
 			}
 		} else {
 
-			/* read memory through APB-AP
-			 *  disable mmu */
-			retval = cortex_a8_mmu_modify(target, 0);
-			if (retval != ERROR_OK)
-				return retval;
+			/* read memory through APB-AP */
+			if (!armv7a->is_armv7r) {
+				/*  disable mmu */
+				retval = cortex_a8_mmu_modify(target, 0);
+				if (retval != ERROR_OK)
+					return retval;
+			}
 			retval = cortex_a8_read_apb_ab_memory(target, address, size, count, buffer);
 		}
 	}
@@ -2144,30 +2154,34 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 	LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address,
 		size, count);
 	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
-		retval = cortex_a8_mmu(target, &enabled);
-		if (retval != ERROR_OK)
-			return retval;
-
-
-		if (enabled) {
-			virt = address;
-			retval = cortex_a8_virt2phys(target, virt, &phys);
+		if (!armv7a->is_armv7r) {
+			retval = cortex_a8_mmu(target, &enabled);
 			if (retval != ERROR_OK)
 				return retval;
 
-			LOG_DEBUG("Reading at virtual address. Translating v:0x%x to r:0x%x",
-				virt, phys);
-			address = phys;
+
+			if (enabled) {
+				virt = address;
+				retval = cortex_a8_virt2phys(target, virt, &phys);
+				if (retval != ERROR_OK)
+					return retval;
+
+				LOG_DEBUG("Reading at virtual address. Translating v:0x%x to r:0x%x",
+					virt, phys);
+				address = phys;
+			}
 		}
 		retval = cortex_a8_read_phys_memory(target, address, size, count, buffer);
 	} else {
-		retval = cortex_a8_check_address(target, address);
-		if (retval != ERROR_OK)
-			return retval;
-		/*  enable mmu */
-		retval = cortex_a8_mmu_modify(target, 1);
-		if (retval != ERROR_OK)
-			return retval;
+		if (!armv7a->is_armv7r) {
+			retval = cortex_a8_check_address(target, address);
+			if (retval != ERROR_OK)
+				return retval;
+			/*  enable mmu */
+			retval = cortex_a8_mmu_modify(target, 1);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 		retval = cortex_a8_read_apb_ab_memory(target, address, size, count, buffer);
 	}
 	return retval;
@@ -2209,9 +2223,11 @@ static int cortex_a8_write_phys_memory(struct target *target,
 		} else {
 
 			/* write memory through APB-AP */
-			retval = cortex_a8_mmu_modify(target, 0);
-			if (retval != ERROR_OK)
-				return retval;
+			if (!armv7a->is_armv7r) {
+				retval = cortex_a8_mmu_modify(target, 0);
+				if (retval != ERROR_OK)
+					return retval;
+			}
 			return cortex_a8_write_apb_ab_memory(target, address, size, count, buffer);
 		}
 	}
@@ -2284,37 +2300,41 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
 	/* cortex_a8 handles unaligned memory access */
-	LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address,
+	LOG_DEBUG("Writing memory at address 0x%x; size %d; count %d", address,
 		size, count);
 	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
 
 		LOG_DEBUG("Writing memory to address 0x%x; size %d; count %d", address, size,
 			count);
-		retval = cortex_a8_mmu(target, &enabled);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (enabled) {
-			virt = address;
-			retval = cortex_a8_virt2phys(target, virt, &phys);
+		if (!armv7a->is_armv7r) {
+			retval = cortex_a8_mmu(target, &enabled);
 			if (retval != ERROR_OK)
 				return retval;
-			LOG_DEBUG("Writing to virtual address. Translating v:0x%x to r:0x%x",
-				virt,
-				phys);
-			address = phys;
+
+			if (enabled) {
+				virt = address;
+				retval = cortex_a8_virt2phys(target, virt, &phys);
+				if (retval != ERROR_OK)
+					return retval;
+				LOG_DEBUG("Writing to virtual address. Translating v:0x%x to r:0x%x",
+					virt,
+					phys);
+				address = phys;
+			}
 		}
 
 		retval = cortex_a8_write_phys_memory(target, address, size,
 				count, buffer);
 	} else {
-		retval = cortex_a8_check_address(target, address);
-		if (retval != ERROR_OK)
-			return retval;
-		/*  enable mmu  */
-		retval = cortex_a8_mmu_modify(target, 1);
-		if (retval != ERROR_OK)
-			return retval;
+		if (!armv7a->is_armv7r) {
+			retval = cortex_a8_check_address(target, address);
+			if (retval != ERROR_OK)
+				return retval;
+			/*  enable mmu  */
+			retval = cortex_a8_mmu_modify(target, 1);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 		retval = cortex_a8_write_apb_ab_memory(target, address, size, count, buffer);
 	}
 	return retval;
@@ -2557,9 +2577,19 @@ static int cortex_a8_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_a8_common *cortex_a8 = calloc(1, sizeof(struct cortex_a8_common));
 
+	cortex_a8->armv7a_common.is_armv7r = false;
+
 	return cortex_a8_init_arch_info(target, cortex_a8, target->tap);
 }
 
+static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
+{
+	struct cortex_a8_common *cortex_a8 = calloc(1, sizeof(struct cortex_a8_common));
+
+	cortex_a8->armv7a_common.is_armv7r = true;
+
+	return cortex_a8_init_arch_info(target, cortex_a8, target->tap);
+}
 
 
 static int cortex_a8_mmu(struct target *target, int *enabled)
@@ -2775,4 +2805,80 @@ struct target_type cortexa8_target = {
 	.write_phys_memory = cortex_a8_write_phys_memory,
 	.mmu = cortex_a8_mmu,
 	.virt2phys = cortex_a8_virt2phys,
+};
+
+static const struct command_registration cortex_r4_exec_command_handlers[] = {
+	{
+		.name = "cache_info",
+		.handler = cortex_a8_handle_cache_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display information about target caches",
+		.usage = "",
+	},
+	{
+		.name = "dbginit",
+		.handler = cortex_a8_handle_dbginit_command,
+		.mode = COMMAND_EXEC,
+		.help = "Initialize core debug",
+		.usage = "",
+	},
+
+	COMMAND_REGISTRATION_DONE
+};
+static const struct command_registration cortex_r4_command_handlers[] = {
+	{
+		.chain = arm_command_handlers,
+	},
+	{
+		.chain = armv7a_command_handlers,
+	},
+	{
+		.name = "cortex_r4",
+		.mode = COMMAND_ANY,
+		.help = "Cortex-R4 command group",
+		.usage = "",
+		.chain = cortex_r4_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+struct target_type cortexr4_target = {
+	.name = "cortex_r4",
+
+	.poll = cortex_a8_poll,
+	.arch_state = armv7a_arch_state,
+
+	.target_request_data = NULL,
+
+	.halt = cortex_a8_halt,
+	.resume = cortex_a8_resume,
+	.step = cortex_a8_step,
+
+	.assert_reset = cortex_a8_assert_reset,
+	.deassert_reset = cortex_a8_deassert_reset,
+	.soft_reset_halt = NULL,
+
+	/* REVISIT allow exporting VFP3 registers ... */
+	.get_gdb_reg_list = arm_get_gdb_reg_list,
+
+	.read_memory = cortex_a8_read_memory,
+	.write_memory = cortex_a8_write_memory,
+	.bulk_write_memory = cortex_a8_bulk_write_memory,
+
+	.checksum_memory = arm_checksum_memory,
+	.blank_check_memory = arm_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = cortex_a8_add_breakpoint,
+	.add_context_breakpoint = cortex_a8_add_context_breakpoint,
+	.add_hybrid_breakpoint = cortex_a8_add_hybrid_breakpoint,
+	.remove_breakpoint = cortex_a8_remove_breakpoint,
+	.add_watchpoint = NULL,
+	.remove_watchpoint = NULL,
+
+	.commands = cortex_r4_command_handlers,
+	.target_create = cortex_r4_target_create,
+	.init_target = cortex_a8_init_target,
+	.examine = cortex_a8_examine,
 };
