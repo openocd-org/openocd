@@ -75,8 +75,6 @@ struct stlink_layout {
 	/** */
 	char *name;
 	/** */
-	int type;
-	/** */
 	int (*open) (struct stlink_interface_s *stlink_if);
 	/** */
 	int (*close) (struct stlink_interface_s *stlink_if);

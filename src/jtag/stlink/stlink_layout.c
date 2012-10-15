@@ -32,10 +32,6 @@
 #include <jtag/stlink/stlink_transport.h>
 #include <jtag/stlink/stlink_interface.h>
 
-#define STLINK_LAYOUT_UNKNOWN	0
-#define STLINK_LAYOUT_SG	1
-#define STLINK_LAYOUT_USB	2
-
 static int stlink_layout_open(struct stlink_interface_s *stlink_if)
 {
 	int res;
@@ -61,15 +57,7 @@ static int stlink_layout_close(struct stlink_interface_s *stlink_if)
 
 static const struct stlink_layout stlink_layouts[] = {
 	{
-	 .name = "usb",
-	 .type = STLINK_LAYOUT_USB,
-	 .open = stlink_layout_open,
-	 .close = stlink_layout_close,
-	 .api = &stlink_usb_layout_api,
-	 },
-	{
-	 .name = "sg",
-	 .type = STLINK_LAYOUT_SG,
+	 .name = "stlink",
 	 .open = stlink_layout_open,
 	 .close = stlink_layout_close,
 	 .api = &stlink_usb_layout_api,
