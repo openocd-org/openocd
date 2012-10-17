@@ -42,6 +42,10 @@ static int mips_m4k_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 static int mips_m4k_unset_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
+static int mips_m4k_internal_restore(struct target *target, int current,
+		uint32_t address, int handle_breakpoints,
+		int debug_execution);
+static int mips_m4k_halt(struct target *target);
 
 static int mips_m4k_examine_debug_reason(struct target *target)
 {
@@ -107,12 +111,73 @@ static int mips_m4k_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
+static struct target *get_mips_m4k(struct target *target, int32_t coreid)
+{
+	struct target_list *head;
+	struct target *curr;
+
+	head = target->head;
+	while (head != (struct target_list *)NULL) {
+		curr = head->target;
+		if ((curr->coreid == coreid) && (curr->state == TARGET_HALTED))
+			return curr;
+		head = head->next;
+	}
+	return target;
+}
+
+static int mips_m4k_halt_smp(struct target *target)
+{
+	int retval = ERROR_OK;
+	struct target_list *head;
+	struct target *curr;
+	head = target->head;
+	while (head != (struct target_list *)NULL) {
+		int ret = ERROR_OK;
+		curr = head->target;
+		if ((curr != target) && (curr->state != TARGET_HALTED))
+			ret = mips_m4k_halt(curr);
+
+		if (ret != ERROR_OK) {
+			LOG_ERROR("halt failed target->coreid: %d", curr->coreid);
+			retval = ret;
+		}
+		head = head->next;
+	}
+	return retval;
+}
+
+static int update_halt_gdb(struct target *target)
+{
+	int retval = ERROR_OK;
+	if (target->gdb_service->core[0] == -1) {
+		target->gdb_service->target = target;
+		target->gdb_service->core[0] = target->coreid;
+		retval = mips_m4k_halt_smp(target);
+	}
+	return retval;
+}
+
 static int mips_m4k_poll(struct target *target)
 {
-	int retval;
+	int retval = ERROR_OK;
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl;
+	enum target_state prev_target_state = target->state;
+
+	/*  toggle to another core is done by gdb as follow */
+	/*  maint packet J core_id */
+	/*  continue */
+	/*  the next polling trigger an halt event sent to gdb */
+	if ((target->state == TARGET_HALTED) && (target->smp) &&
+		(target->gdb_service) &&
+		(target->gdb_service->target == NULL)) {
+		target->gdb_service->target =
+			get_mips_m4k(target, target->gdb_service->core[1]);
+		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		return retval;
+	}
 
 	/* read ejtag control reg */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
@@ -136,26 +201,29 @@ static int mips_m4k_poll(struct target *target)
 
 	/* check for processor halted */
 	if (ejtag_ctrl & EJTAG_CTRL_BRKST) {
-		if (target->state == TARGET_UNKNOWN) {
-			LOG_DEBUG("EJTAG_CTRL_BRKST already set during server startup.");
+		if ((target->state != TARGET_HALTED)
+		    && (target->state != TARGET_DEBUG_RUNNING)) {
+			if (target->state == TARGET_UNKNOWN)
+				LOG_DEBUG("EJTAG_CTRL_BRKST already set during server startup.");
 
 			/* OpenOCD was was probably started on the board with EJTAG_CTRL_BRKST already set
 			 * (maybe put on by HALT-ing the board in the previous session).
 			 *
-			 * Force target to RUNNING state to enable debug entry for this session.
+			 * Force enable debug entry for this session.
 			 */
-			target->state = TARGET_RUNNING;
-		}
-
-		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET)) {
 			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT);
-
 			target->state = TARGET_HALTED;
-
 			retval = mips_m4k_debug_entry(target);
 			if (retval != ERROR_OK)
 				return retval;
 
+			if (target->smp &&
+				((prev_target_state == TARGET_RUNNING)
+			     || (prev_target_state == TARGET_RESET))) {
+				retval = update_halt_gdb(target);
+				if (retval != ERROR_OK)
+					return retval;
+			}
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		} else if (target->state == TARGET_DEBUG_RUNNING) {
 			target->state = TARGET_HALTED;
@@ -163,6 +231,12 @@ static int mips_m4k_poll(struct target *target)
 			retval = mips_m4k_debug_entry(target);
 			if (retval != ERROR_OK)
 				return retval;
+
+			if (target->smp) {
+				retval = update_halt_gdb(target);
+				if (retval != ERROR_OK)
+					return retval;
+			}
 
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		}
@@ -313,7 +387,33 @@ static int mips_m4k_single_step_core(struct target *target)
 	return ERROR_OK;
 }
 
-static int mips_m4k_resume(struct target *target, int current,
+static int mips_m4k_restore_smp(struct target *target, uint32_t address, int handle_breakpoints)
+{
+	int retval = ERROR_OK;
+	struct target_list *head;
+	struct target *curr;
+
+	head = target->head;
+	while (head != (struct target_list *)NULL) {
+		int ret = ERROR_OK;
+		curr = head->target;
+		if ((curr != target) && (curr->state != TARGET_RUNNING)) {
+			/*  resume current address , not in step mode */
+			ret = mips_m4k_internal_restore(curr, 1, address,
+						   handle_breakpoints, 0);
+
+			if (ret != ERROR_OK) {
+				LOG_ERROR("target->coreid :%d failed to resume at address :0x%x",
+						  curr->coreid, address);
+				retval = ret;
+			}
+		}
+		head = head->next;
+	}
+	return retval;
+}
+
+static int mips_m4k_internal_restore(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -342,7 +442,10 @@ static int mips_m4k_resume(struct target *target, int current,
 	if (ejtag_info->impcode & EJTAG_IMP_MIPS16)
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1, mips32->isa_mode);
 
-	resume_pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32);
+	if (!current)
+		resume_pc = address;
+	else
+		resume_pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32);
 
 	mips32_restore_context(target);
 
@@ -379,6 +482,33 @@ static int mips_m4k_resume(struct target *target, int current,
 	}
 
 	return ERROR_OK;
+}
+
+static int mips_m4k_resume(struct target *target, int current,
+		uint32_t address, int handle_breakpoints, int debug_execution)
+{
+	int retval = ERROR_OK;
+
+	/* dummy resume for smp toggle in order to reduce gdb impact  */
+	if ((target->smp) && (target->gdb_service->core[1] != -1)) {
+		/*   simulate a start and halt of target */
+		target->gdb_service->target = NULL;
+		target->gdb_service->core[0] = target->gdb_service->core[1];
+		/*  fake resume at next poll we play the  target core[1], see poll*/
+		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+		return retval;
+	}
+
+	retval = mips_m4k_internal_restore(target, current, address,
+				handle_breakpoints,
+				debug_execution);
+
+	if (retval != ERROR_OK && target->smp) {
+		target->gdb_service->core[0] = -1;
+		retval = mips_m4k_restore_smp(target, address, handle_breakpoints);
+	}
+
+	return retval;
 }
 
 static int mips_m4k_step(struct target *target, int current,
@@ -1088,6 +1218,64 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(mips_m4k_handle_smp_off_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	/* check target is an smp target */
+	struct target_list *head;
+	struct target *curr;
+	head = target->head;
+	target->smp = 0;
+	if (head != (struct target_list *)NULL) {
+		while (head != (struct target_list *)NULL) {
+			curr = head->target;
+			curr->smp = 0;
+			head = head->next;
+		}
+		/*  fixes the target display to the debugger */
+		target->gdb_service->target = target;
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(mips_m4k_handle_smp_on_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct target_list *head;
+	struct target *curr;
+	head = target->head;
+	if (head != (struct target_list *)NULL) {
+		target->smp = 1;
+		while (head != (struct target_list *)NULL) {
+			curr = head->target;
+			curr->smp = 1;
+			head = head->next;
+		}
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(mips_m4k_handle_smp_gdb_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	int retval = ERROR_OK;
+	struct target_list *head;
+	head = target->head;
+	if (head != (struct target_list *)NULL) {
+		if (CMD_ARGC == 1) {
+			int coreid = 0;
+			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], coreid);
+			if (ERROR_OK != retval)
+				return retval;
+			target->gdb_service->core[1] = coreid;
+
+		}
+		command_print(CMD_CTX, "gdb coreid  %d -> %d", target->gdb_service->core[0]
+			, target->gdb_service->core[1]);
+	}
+	return ERROR_OK;
+}
+
 static const struct command_registration mips_m4k_exec_command_handlers[] = {
 	{
 		.name = "cp0",
@@ -1095,6 +1283,27 @@ static const struct command_registration mips_m4k_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "regnum [value]",
 		.help = "display/modify cp0 register",
+	},
+	{
+		.name = "smp_off",
+		.handler = mips_m4k_handle_smp_off_command,
+		.mode = COMMAND_EXEC,
+		.help = "Stop smp handling",
+		.usage = "",},
+
+	{
+		.name = "smp_on",
+		.handler = mips_m4k_handle_smp_on_command,
+		.mode = COMMAND_EXEC,
+		.help = "Restart smp handling",
+		.usage = "",
+	},
+	{
+		.name = "smp_gdb",
+		.handler = mips_m4k_handle_smp_gdb_command,
+		.mode = COMMAND_EXEC,
+		.help = "display/fix current core played to gdb",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
