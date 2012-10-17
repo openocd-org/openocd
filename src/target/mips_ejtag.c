@@ -274,6 +274,12 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 		case 3:
 			LOG_DEBUG("EJTAG: Version 3.1 Detected");
 			break;
+		case 4:
+			LOG_DEBUG("EJTAG: Version 4.1 Detected");
+			break;
+		case 5:
+			LOG_DEBUG("EJTAG: Version 5.1 Detected");
+			break;
 		default:
 			LOG_DEBUG("EJTAG: Unknown Version Detected");
 			break;
