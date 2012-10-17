@@ -137,6 +137,7 @@ COMMAND_HANDLER(handle_trunc_command)
 	return ERROR_OK;
 }
 
+#ifdef HAVE_MALLOC_H
 COMMAND_HANDLER(handle_meminfo_command)
 {
 	static int prev;
@@ -155,7 +156,7 @@ COMMAND_HANDLER(handle_meminfo_command)
 
 	return ERROR_OK;
 }
-
+#endif
 
 COMMAND_HANDLER(handle_append_command)
 {
@@ -487,6 +488,8 @@ static int ioutil_Jim_Command_ip(Jim_Interp *interp, int argc,
 	return JIM_OK;
 }
 
+#ifdef HAVE_SYS_IOCTL_H
+#ifdef SIOCGIFHWADDR
 /* not so pretty code to fish out eth0 mac address */
 static int ioutil_Jim_Command_mac(Jim_Interp *interp, int argc,
 	Jim_Obj *const *argv)
@@ -545,6 +548,8 @@ static int ioutil_Jim_Command_mac(Jim_Interp *interp, int argc,
 	return JIM_ERR;
 
 }
+#endif
+#endif
 
 static const struct command_registration ioutil_command_handlers[] = {
 	{
@@ -575,12 +580,14 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.help = "append a variable number of strings to a file",
 		.usage = "file_name [<string1>, [<string2>, ...]]",
 	},
+#ifdef HAVE_MALLOC_H
 	{
 		.name = "meminfo",
 		.handler = handle_meminfo_command,
 		.mode = COMMAND_ANY,
 		.help = "display free heap space",
 	},
+#endif
 	{
 		.name = "rm",
 		.mode = COMMAND_ANY,
@@ -616,12 +623,16 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.help = "show a listing of files",
 		.usage = "dirname",
 	},
+#ifdef HAVE_SYS_IOCTL_H
+#ifdef SIOCGIFHWADDR
 	{
 		.name = "mac",
 		.mode = COMMAND_ANY,
 		.jim_handler = ioutil_Jim_Command_mac,
 		.help = "show MAC address",
 	},
+#endif
+#endif
 	{
 		.name = "ip",
 		.jim_handler = ioutil_Jim_Command_ip,
