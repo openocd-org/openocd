@@ -7579,6 +7579,11 @@ A socket (TCP/IP) connection is typically started as follows:
 target remote localhost:3333
 @end example
 This would cause GDB to connect to the gdbserver on the local pc using port 3333.
+
+It is also possible to use the GDB extended remote protocol as follows:
+@example
+target extended-remote localhost:3333
+@end example
 @item
 A pipe connection is typically started as follows:
 @example
