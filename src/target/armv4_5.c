@@ -1002,13 +1002,13 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.jim_handler = &jim_mcrmrc,
 		.help = "write coprocessor register",
-		.usage = "cpnum op1 CRn op2 CRm value",
+		.usage = "cpnum op1 CRn CRm op2 value",
 	},
 	{
 		.name = "mrc",
 		.jim_handler = &jim_mcrmrc,
 		.help = "read coprocessor register",
-		.usage = "cpnum op1 CRn op2 CRm",
+		.usage = "cpnum op1 CRn CRm op2",
 	},
 	{
 		"semihosting",
