@@ -43,5 +43,11 @@ else
     git submodule update
 fi
 
+# Bootstrap the submodules/libswd when working with git master not release
+if [ -f submodules/libswd/autogen.sh ]; then
+ echo "Bootstrapping submodules/libswd..."
+ cd submodules/libswd; sh autogen.sh
+fi
+
 echo "Bootstrap complete. Quick build instructions:"
 echo "./configure --enable-maintainer-mode ...."
