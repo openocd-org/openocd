@@ -499,6 +499,10 @@ AC_ARG_ENABLE([internal-jimtcl],
   AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
   [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
 
+AC_ARG_ENABLE([internal-libswd],
+  AS_HELP_STRING([--disable-internal-libswd], [Disable building internal libswd]),
+  [use_internal_libswd=$enableval], [use_internal_libswd=yes])
+
 AC_ARG_ENABLE([libusb0],
   AS_HELP_STRING([--enable-libusb0], [Use libusb-0.1 library for USB JTAG devices]),
   [check_libusb0=$enableval], [check_libusb0=no])
@@ -813,6 +817,14 @@ if test "$use_internal_jimtcl" = yes; then
     AX_CONFIG_SUBDIR_OPTION([jimtcl], [--disable-install-jim])
   else
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
+  fi
+fi
+
+if test "$use_internal_libswd" = yes; then
+  if test -f "$srcdir/submodules/libswd/configure.ac"; then
+    AX_CONFIG_SUBDIR_OPTION([submodules/libswd])
+  else
+    AC_MSG_ERROR([libswd not found, run git submodule init and git submodule update.])
   fi
 fi
 
@@ -1210,6 +1222,7 @@ AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = ye]s)
 AM_CONDITIONAL([MINIDRIVER_DUMMY], [test $build_minidriver_dummy = yes])
 
 AM_CONDITIONAL([INTERNAL_JIMTCL], [test $use_internal_jimtcl = yes])
+AM_CONDITIONAL([INTERNAL_LIBSWD], [test $use_internal_libswd = yes])
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
