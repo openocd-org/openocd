@@ -1,0 +1,3 @@
+Submodules are external GIT repositories of software components, utilities
+or libraries that are supposed to be built together with OpenOCD.
+Submodules are handled by bootstrap script using git, autotools, etc.
