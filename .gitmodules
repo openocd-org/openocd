@@ -4,3 +4,6 @@
 [submodule "jimtcl"]
 	path = jimtcl
 	url = http://repo.or.cz/r/jimtcl.git
+[submodule "submodules/libswd"]
+	path = submodules/libswd
+	url = git://libswd.git.sourceforge.net/gitroot/libswd/libswd
