@@ -262,16 +262,17 @@ int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 
 /*****************************************************************************
 *                                                                            *
-* mem_ap_write_buf(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address) *
+* mem_ap_write_buf(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address, bool addr_incr) *
 *                                                                            *
 * Write a buffer in target order (little endian)                             *
 *                                                                            *
 *****************************************************************************/
-int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
+int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address, bool addr_incr)
 {
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
 	const uint8_t *pBuffer = buffer;
+	uint32_t incr_flag = CSW_ADDRINC_OFF;
 
 	count >>= 2;
 	wcount = count;
@@ -302,7 +303,10 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count
 		if (blocksize == 0)
 			blocksize = 1;
 
-		retval = dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
+		if (addr_incr)
+			incr_flag = CSW_ADDRINC_SINGLE;
+
+		retval = dap_setup_accessport(dap, CSW_32BIT | incr_flag, address);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -317,7 +321,8 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count
 		retval = dap_run(dap);
 		if (retval == ERROR_OK) {
 			wcount = wcount - blocksize;
-			address = address + 4 * blocksize;
+			if (addr_incr)
+				address = address + 4 * blocksize;
 			buffer = buffer + 4 * blocksize;
 		} else
 			errorcount++;
@@ -547,14 +552,16 @@ extern int adi_jtag_dp_scan(struct adiv5_dap *dap,
  * @param buffer where the words will be stored (in host byte order).
  * @param count How many words to read.
  * @param address Memory address from which to read words; all the
+ * @param addr_incr if true, increment the source address for each u32
  *	words must be readable by the currently selected MEM-AP.
  */
 int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
-		int count, uint32_t address)
+		int count, uint32_t address, bool addr_incr)
 {
 	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
 	uint8_t *pBuffer = buffer;
+	uint32_t incr_flag = CSW_ADDRINC_OFF;
 
 	count >>= 2;
 	wcount = count;
@@ -573,7 +580,10 @@ int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 		if (blocksize == 0)
 			blocksize = 1;
 
-		retval = dap_setup_accessport(dap, CSW_32BIT | CSW_ADDRINC_SINGLE,
+		if (addr_incr)
+			incr_flag = CSW_ADDRINC_SINGLE;
+
+		retval = dap_setup_accessport(dap, CSW_32BIT | incr_flag,
 				address);
 		if (retval != ERROR_OK)
 			return retval;
@@ -622,7 +632,8 @@ int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 			return retval;
 		}
 		wcount = wcount - blocksize;
-		address += 4 * blocksize;
+		if (addr_incr)
+			address += 4 * blocksize;
 		buffer += 4 * blocksize;
 	}
 
@@ -881,11 +892,18 @@ int mem_ap_sel_read_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
 	return mem_ap_read_buf_u16(swjdp, buffer, count, address);
 }
 
+int mem_ap_sel_read_buf_u32_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+		uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, ap);
+	return mem_ap_read_buf_u32(swjdp, buffer, count, address, false);
+}
+
 int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
-	return mem_ap_read_buf_u32(swjdp, buffer, count, address);
+	return mem_ap_read_buf_u32(swjdp, buffer, count, address, true);
 }
 
 int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
@@ -906,7 +924,14 @@ int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		const uint8_t *buffer, int count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
-	return mem_ap_write_buf_u32(swjdp, buffer, count, address);
+	return mem_ap_write_buf_u32(swjdp, buffer, count, address, true);
+}
+
+int mem_ap_sel_write_buf_u32_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+		const uint8_t *buffer, int count, uint32_t address)
+{
+	dap_ap_select(swjdp, ap);
+	return mem_ap_write_buf_u32(swjdp, buffer, count, address, false);
 }
 
 #define MDM_REG_STAT		0x00

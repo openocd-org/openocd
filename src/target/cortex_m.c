@@ -1620,7 +1620,7 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 	if (count && buffer) {
 		switch (size) {
 			case 4:
-				retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address);
+				retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address, true);
 				break;
 			case 2:
 				retval = mem_ap_read_buf_u16(swjdp, buffer, 2 * count, address);
@@ -1650,7 +1650,7 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 	if (count && buffer) {
 		switch (size) {
 			case 4:
-				retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address);
+				retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address, true);
 				break;
 			case 2:
 				retval = mem_ap_write_buf_u16(swjdp, buffer, 2 * count, address);

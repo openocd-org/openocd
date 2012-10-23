@@ -140,21 +140,58 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
 
 void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 
-/* Subset of DSCR bits; see ARMv7a arch spec section C10.3.1.
+/* DSCR bits; see ARMv7a arch spec section C10.3.1.
  * Not all v7 bits are valid in v6.
  */
-#define DSCR_CORE_HALTED	(1 << 0)
-#define DSCR_CORE_RESTARTED	(1 << 1)
-#define DSCR_INT_DIS		(1 << 11)
-#define DSCR_ITR_EN			(1 << 13)
-#define DSCR_HALT_DBG_MODE	(1 << 14)
-#define DSCR_MON_DBG_MODE	(1 << 15)
-#define DSCR_INSTR_COMP		(1 << 24)
-#define DSCR_DTR_TX_FULL	(1 << 29)
-#define DSCR_DTR_RX_FULL	(1 << 30)
+#define DSCR_CORE_HALTED            (0x1 <<  0)
+#define DSCR_CORE_RESTARTED         (0x1 <<  1)
+#define DSCR_ENTRY_MASK             (0xF <<  2)
+#define DSCR_STICKY_ABORT_PRECISE   (0x1 <<  6)
+#define DSCR_STICKY_ABORT_IMPRECISE (0x1 <<  7)
+#define DSCR_STICKY_UNDEFINED       (0x1 <<  8)
+#define DSCR_DBG_NOPWRDWN           (0x1 <<  9) /* v6 only */
+#define DSCR_DBG_ACK                (0x1 << 10)
+#define DSCR_INT_DIS                (0x1 << 11)
+#define DSCR_CP14_USR_COMMS         (0x1 << 12)
+#define DSCR_ITR_EN                 (0x1 << 13)
+#define DSCR_HALT_DBG_MODE          (0x1 << 14)
+#define DSCR_MON_DBG_MODE           (0x1 << 15)
+#define DSCR_SEC_PRIV_INVASV_DIS    (0x1 << 16)
+#define DSCR_SEC_PRIV_NINVASV_DIS   (0x1 << 17)
+#define DSCR_NON_SECURE             (0x1 << 18)
+#define DSCR_DSCRD_IMPRECISE_ABORT  (0x1 << 19)
+#define DSCR_EXT_DCC_MASK           (0x3 << 20) /* DTR mode */  /* bits 22, 23 are reserved */
+#define DSCR_INSTR_COMP             (0x1 << 24)
+#define DSCR_PIPE_ADVANCE           (0x1 << 25)
+#define DSCR_DTRTX_FULL_LATCHED     (0x1 << 26)
+#define DSCR_DTRRX_FULL_LATCHED     (0x1 << 27) /* bit 28 is reserved */
+#define DSCR_DTR_TX_FULL            (0x1 << 29)
+#define DSCR_DTR_RX_FULL            (0x1 << 30) /* bit 31 is reserved */
 
-#define DSCR_ENTRY(dscr) 	(((dscr) >> 2) & 0xf)
-#define DSCR_RUN_MODE(dscr)	((dscr) & (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED))
+#define DSCR_ENTRY(dscr)            (((dscr) >> 2) & 0xf)
+#define DSCR_RUN_MODE(dscr)         ((dscr) & (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED))
+
+
+/* Methods of entry into debug mode */
+#define DSCR_ENTRY_HALT_REQ           (0x0 << 2)
+#define DSCR_ENTRY_BREAKPOINT         (0x1 << 2)
+#define DSCR_ENTRY_IMPRECISE_WATCHPT  (0x2 << 2)
+#define DSCR_ENTRY_BKPT_INSTR         (0x3 << 2)
+#define DSCR_ENTRY_EXT_DBG_REQ        (0x4 << 2)
+#define DSCR_ENTRY_VECT_CATCH         (0x5 << 2)
+#define DSCR_ENTRY_D_SIDE_ABORT       (0x6 << 2)  /* v6 only */
+#define DSCR_ENTRY_I_SIDE_ABORT       (0x7 << 2)  /* v6 only */
+#define DSCR_ENTRY_OS_UNLOCK          (0x8 << 2)
+#define DSCR_ENTRY_PRECISE_WATCHPT    (0xA << 2)
+
+/* DTR modes */
+#define DSCR_EXT_DCC_NON_BLOCKING     (0x0 << 20)
+#define DSCR_EXT_DCC_STALL_MODE       (0x1 << 20)
+#define DSCR_EXT_DCC_FAST_MODE        (0x2 << 20)  /* bits 22, 23 are reserved */
+
+
+
+
 
 /* DRCR (debug run control register) bits */
 #define DRCR_HALT				(1 << 0)

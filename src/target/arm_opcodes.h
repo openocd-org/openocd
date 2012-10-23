@@ -133,6 +133,36 @@
  */
 #define ARMV4_5_BX(Rm) (0xe12fff10 | (Rm))
 
+/* Store data from coprocessor to consecutive memory
+ * See Armv7-A arch doc section A8.6.187
+ * P:    1=index mode (offset from Rn)
+ * U:    1=add, 0=subtract  Rn address with imm
+ * D:    Opcode D encoding
+ * W:    write back the offset start address to the Rn register
+ * CP:   Coprocessor number (4 bits)
+ * CRd:  Coprocessor source register (4 bits)
+ * Rn:   Base register for memory address (4 bits)
+ * imm:  Immediate value (0 - 1020, must be divisible by 4)
+ */
+#define ARMV4_5_STC(P, U, D, W, CP, CRd, Rn, imm) \
+	(0xec000000 | ((P) << 24) | ((U) << 23) | ((D) << 22) | \
+	((W) << 21) | ((Rn) << 16) | ((CRd) << 12) | ((CP) << 8) | ((imm)>>2))
+
+/* Loads data from consecutive memory to coprocessor
+ * See Armv7-A arch doc section A8.6.51
+ * P:    1=index mode (offset from Rn)
+ * U:    1=add, 0=subtract  Rn address with imm
+ * D:    Opcode D encoding
+ * W:    write back the offset start address to the Rn register
+ * CP:   Coprocessor number (4 bits)
+ * CRd:  Coprocessor dest register (4 bits)
+ * Rn:   Base register for memory address (4 bits)
+ * imm:  Immediate value (0 - 1020, must be divisible by 4)
+ */
+#define ARMV4_5_LDC(P, U, D, W, CP, CRd, Rn, imm) \
+	(0xec100000 | ((P) << 24) | ((U) << 23) | ((D) << 22) | \
+	((W) << 21) | ((Rn) << 16) | ((CRd) << 12) | ((CP) << 8) | ((imm) >> 2))
+
 /* Move to ARM register from coprocessor
  * CP: Coprocessor number
  * op1: Coprocessor opcode

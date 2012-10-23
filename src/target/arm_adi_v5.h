@@ -374,14 +374,14 @@ int mem_ap_read_buf_u8(struct adiv5_dap *swjdp,
 int mem_ap_read_buf_u16(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
 int mem_ap_read_buf_u32(struct adiv5_dap *swjdp,
-		uint8_t *buffer, int count, uint32_t address);
+		uint8_t *buffer, int count, uint32_t address, bool addr_incr);
 
 int mem_ap_write_buf_u8(struct adiv5_dap *swjdp,
 		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_write_buf_u16(struct adiv5_dap *swjdp,
 		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_write_buf_u32(struct adiv5_dap *swjdp,
-		const uint8_t *buffer, int count, uint32_t address);
+		const uint8_t *buffer, int count, uint32_t address, bool addr_incr);
 
 /* Queued MEM-AP memory mapped single word transfers with selection of ap */
 int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t ap,
@@ -394,6 +394,12 @@ int mem_ap_sel_read_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t *value);
 int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t value);
+
+/* Non incrementing buffer functions for accessing fifos */
+int mem_ap_sel_read_buf_u32_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+		uint8_t *buffer, int count, uint32_t address);
+int mem_ap_sel_write_buf_u32_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+		const uint8_t *buffer, int count, uint32_t address);
 
 /* MEM-AP memory mapped bus block transfers with selection of ap */
 int mem_ap_sel_read_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,

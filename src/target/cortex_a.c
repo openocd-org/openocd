@@ -67,6 +67,8 @@ static int cortex_a8_dap_write_coreregister_u32(struct target *target,
 static int cortex_a8_mmu(struct target *target, int *enabled);
 static int cortex_a8_virt2phys(struct target *target,
 	uint32_t virt, uint32_t *phys);
+static int cortex_a8_read_apb_ab_memory(struct target *target,
+	uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 /*
  * FIXME do topology discovery using the ROM; don't
@@ -1787,127 +1789,302 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *arm = &armv7a->arm;
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int total_bytes = count * size;
-	int start_byte, nbytes_to_write, i;
+	int total_u32;
+	int start_byte = address & 0x3;
+	int end_byte   = (address + total_bytes) & 0x3;
 	struct reg *reg;
-	union _data {
-		uint8_t uc_a[4];
-		uint32_t ui;
-	} data;
+	uint32_t dscr;
+	uint8_t *tmp_buff = NULL;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	reg = arm_reg_current(arm, 0);
-	reg->dirty = 1;
-	reg = arm_reg_current(arm, 1);
-	reg->dirty = 1;
+	total_u32 = DIV_ROUND_UP((address & 3) + total_bytes, 4);
 
-	retval = cortex_a8_dap_write_coreregister_u32(target, address & 0xFFFFFFFC, 0);
+	/* Mark register R0 as dirty, as it will be used
+	 * for transferring the data.
+	 * It will be restored automatically when exiting
+	 * debug mode
+	 */
+	reg = arm_reg_current(arm, 0);
+	reg->dirty = true;
+
+	/*  clear any abort  */
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap, armv7a->debug_base + CPUDBG_DRCR, 1<<2);
 	if (retval != ERROR_OK)
 		return retval;
 
-	start_byte = address & 0x3;
+	/* This algorithm comes from either :
+	 * Cortex-A8 TRM Example 12-25
+	 * Cortex-R4 TRM Example 11-26
+	 * (slight differences)
+	 */
 
-	while (total_bytes > 0) {
+	/* The algorithm only copies 32 bit words, so the buffer
+	 * should be expanded to include the words at either end.
+	 * The first and last words will be read first to avoid
+	 * corruption if needed.
+	 */
+	tmp_buff = (uint8_t *) malloc(total_u32 << 2);
 
-		nbytes_to_write = 4 - start_byte;
-		if (total_bytes < nbytes_to_write)
-			nbytes_to_write = total_bytes;
 
-		if (nbytes_to_write != 4) {
-
-			/* execute instruction LDR r1, [r0] */
-			retval = cortex_a8_exec_opcode(target,  ARMV4_5_LDR(1, 0), NULL);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = cortex_a8_dap_read_coreregister_u32(target, &data.ui, 1);
-			if (retval != ERROR_OK)
-				return retval;
-		}
-
-		for (i = 0; i < nbytes_to_write; ++i)
-			data.uc_a[i + start_byte] = *buffer++;
-
-		retval = cortex_a8_dap_write_coreregister_u32(target, data.ui, 1);
+	if ((start_byte != 0) && (total_u32 > 1)) {
+		/* First bytes not aligned - read the 32 bit word to avoid corrupting
+		 * the other bytes in the word.
+		 */
+		retval = cortex_a8_read_apb_ab_memory(target, (address & ~0x3), 4, 1, tmp_buff);
 		if (retval != ERROR_OK)
-			return retval;
-
-		/* execute instruction STRW r1, [r0], 1 (0xe4801004) */
-		retval = cortex_a8_exec_opcode(target, ARMV4_5_STRW_IP(1, 0), NULL);
-		if (retval != ERROR_OK)
-			return retval;
-
-		total_bytes -= nbytes_to_write;
-		start_byte = 0;
+			goto error_free_buff_w;
 	}
 
-	return retval;
-}
+	/* If end of write is not aligned, or the write is less than 4 bytes */
+	if ((end_byte != 0) ||
+		((total_u32 == 1) && (total_bytes != 4))) {
 
+		/* Read the last word to avoid corruption during 32 bit write */
+		int mem_offset = (total_u32-1) << 4;
+		retval = cortex_a8_read_apb_ab_memory(target, (address & ~0x3) + mem_offset, 4, 1, &tmp_buff[mem_offset]);
+		if (retval != ERROR_OK)
+			goto error_free_buff_w;
+	}
+
+	/* Copy the write buffer over the top of the temporary buffer */
+	memcpy(&tmp_buff[start_byte], buffer, total_bytes);
+
+	/* We now have a 32 bit aligned buffer that can be written */
+
+	/* Read DSCR */
+	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		goto error_free_buff_w;
+
+	/* Set DTR mode to Fast (2) */
+	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_FAST_MODE;
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, dscr);
+	if (retval != ERROR_OK)
+		goto error_free_buff_w;
+
+	/* Copy the destination address into R0 */
+	/*  - pend an instruction  MRC p14, 0, R0, c5, c0 */
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_ITR, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
+	if (retval != ERROR_OK)
+		goto error_unset_dtr_w;
+	/* Write address into DTRRX, which triggers previous instruction */
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DTRRX, address & (~0x3));
+	if (retval != ERROR_OK)
+		goto error_unset_dtr_w;
+
+	/* Write the data transfer instruction into the ITR
+	 * (STC p14, c5, [R0], 4)
+	 */
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_ITR, ARMV4_5_STC(0, 1, 0, 1, 14, 5, 0, 4));
+	if (retval != ERROR_OK)
+		goto error_unset_dtr_w;
+
+	/* Do the write */
+	retval = mem_ap_sel_write_buf_u32_noincr(swjdp, armv7a->debug_ap,
+					tmp_buff, (total_u32)<<2, armv7a->debug_base + CPUDBG_DTRRX);
+	if (retval != ERROR_OK)
+		goto error_unset_dtr_w;
+
+
+	/* Switch DTR mode back to non-blocking (0) */
+	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_NON_BLOCKING;
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, dscr);
+	if (retval != ERROR_OK)
+		goto error_unset_dtr_w;
+
+    /* Check for sticky abort flags in the DSCR */
+	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		goto error_free_buff_w;
+	if (dscr & (DSCR_STICKY_ABORT_PRECISE | DSCR_STICKY_ABORT_IMPRECISE)) {
+		/* Abort occurred - clear it and exit */
+		LOG_ERROR("abort occurred - dscr = 0x%08x", dscr);
+		mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+					armv7a->debug_base + CPUDBG_DRCR, 1<<2);
+		goto error_free_buff_w;
+	}
+
+	/* Done */
+	free(tmp_buff);
+	return ERROR_OK;
+
+error_unset_dtr_w:
+	/* Unset DTR mode */
+	mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_NON_BLOCKING;
+	mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, dscr);
+error_free_buff_w:
+	LOG_ERROR("error");
+	free(tmp_buff);
+	return ERROR_FAIL;
+}
 
 static int cortex_a8_read_apb_ab_memory(struct target *target,
 	uint32_t address, uint32_t size,
 	uint32_t count, uint8_t *buffer)
 {
-
 	/* read memory through APB-AP */
 
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	struct arm *arm = &armv7a->arm;
 	int total_bytes = count * size;
-	int start_byte, nbytes_to_read, i;
+	int total_u32;
+	int start_byte = address & 0x3;
 	struct reg *reg;
-	union _data {
-		uint8_t uc_a[4];
-		uint32_t ui;
-	} data;
-
+	uint32_t dscr;
+	char *tmp_buff = NULL;
+	uint32_t buff32[2];
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	reg = arm_reg_current(arm, 0);
-	reg->dirty = 1;
-	reg = arm_reg_current(arm, 1);
-	reg->dirty = 1;
+	total_u32 = DIV_ROUND_UP((address & 3) + total_bytes, 4);
 
-	retval = cortex_a8_dap_write_coreregister_u32(target, address & 0xFFFFFFFC, 0);
+	/* Mark register R0 as dirty, as it will be used
+	 * for transferring the data.
+	 * It will be restored automatically when exiting
+	 * debug mode
+	 */
+	reg = arm_reg_current(arm, 0);
+	reg->dirty = true;
+
+	/*  clear any abort  */
+	retval =
+		mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap, armv7a->debug_base + CPUDBG_DRCR, 1<<2);
 	if (retval != ERROR_OK)
 		return retval;
 
-	start_byte = address & 0x3;
+	/* Read DSCR */
+	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
 
-	while (total_bytes > 0) {
+	/* This algorithm comes from either :
+	 * Cortex-A8 TRM Example 12-24
+	 * Cortex-R4 TRM Example 11-25
+	 * (slight differences)
+	 */
 
-		/* execute instruction LDRW r1, [r0], 4 (0xe4901004)  */
-		retval = cortex_a8_exec_opcode(target,  ARMV4_5_LDRW_IP(1, 0), NULL);
+	/* Set DTR access mode to stall mode b01  */
+	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_STALL_MODE;
+	retval +=  mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, dscr);
+
+    /* Write R0 with value 'address' using write procedure for stall mode */
+	/*   - Write the address for read access into DTRRX */
+	retval += mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DTRRX, address & ~0x3);
+	/*  - Copy value from DTRRX to R0 using instruction mrc p14, 0, r0, c5, c0 */
+	cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0), &dscr);
+
+
+	/* Write the data transfer instruction (ldc p14, c5, [r0],4)
+	 * and the DTR mode setting to fast mode
+	 * in one combined write (since they are adjacent registers)
+	 */
+	buff32[0] = ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4);
+	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_FAST_MODE;
+	buff32[1] = dscr;
+	/*  group the 2 access CPUDBG_ITR 0x84 and CPUDBG_DSCR 0x88 */
+	retval += mem_ap_sel_write_buf_u32(swjdp, armv7a->debug_ap, (uint8_t *)buff32, 8,
+			armv7a->debug_base + CPUDBG_ITR);
+	if (retval != ERROR_OK)
+		goto error_unset_dtr_r;
+
+
+	/* Due to offset word alignment, the  buffer may not have space
+	 * to read the full first and last int32 words,
+	 * hence, malloc space to read into, then copy and align into the buffer.
+	 */
+	tmp_buff = (char *) malloc(total_u32<<2);
+
+	/* The last word needs to be handled separately - read all other words in one go.
+	 */
+	if (total_u32 > 1) {
+		/* Read the data - Each read of the DTRTX register causes the instruction to be reissued
+		 * Abort flags are sticky, so can be read at end of transactions
+		 *
+		 * This data is read in aligned to 32 bit boundary, hence may need shifting later.
+		 */
+		retval = mem_ap_sel_read_buf_u32_noincr(swjdp, armv7a->debug_ap, (uint8_t *)tmp_buff, (total_u32-1)<<2,
+									armv7a->debug_base + CPUDBG_DTRTX);
 		if (retval != ERROR_OK)
-			return retval;
-
-		retval = cortex_a8_dap_read_coreregister_u32(target, &data.ui, 1);
-		if (retval != ERROR_OK)
-			return retval;
-
-		nbytes_to_read = 4 - start_byte;
-		if (total_bytes < nbytes_to_read)
-			nbytes_to_read = total_bytes;
-
-		for (i = 0; i < nbytes_to_read; ++i)
-			*buffer++ = data.uc_a[i + start_byte];
-
-		total_bytes -= nbytes_to_read;
-		start_byte = 0;
+			goto error_unset_dtr_r;
 	}
 
-	return retval;
-}
+	/* set DTR access mode back to non blocking b00  */
+	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_NON_BLOCKING;
+	retval =  mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+					armv7a->debug_base + CPUDBG_DSCR, dscr);
+	if (retval != ERROR_OK)
+		goto error_free_buff_r;
 
+	/* Wait for the final read instruction to finish */
+	do {
+		retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+					armv7a->debug_base + CPUDBG_DSCR, &dscr);
+		if (retval != ERROR_OK)
+			goto error_free_buff_r;
+	} while ((dscr & DSCR_INSTR_COMP) == 0);
+
+
+	/* Check for sticky abort flags in the DSCR */
+	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		goto error_free_buff_r;
+	if (dscr & (DSCR_STICKY_ABORT_PRECISE | DSCR_STICKY_ABORT_IMPRECISE)) {
+		/* Abort occurred - clear it and exit */
+		LOG_ERROR("abort occurred - dscr = 0x%08x", dscr);
+		mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+					armv7a->debug_base + CPUDBG_DRCR, 1<<2);
+		goto error_free_buff_r;
+	}
+
+	/* Read the last word */
+	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DTRTX, (uint32_t *)&tmp_buff[(total_u32-1)<<2]);
+	if (retval != ERROR_OK)
+		goto error_free_buff_r;
+
+	/* Copy and align the data into the output buffer */
+	memcpy(buffer, &tmp_buff[start_byte], total_bytes);
+
+	free(tmp_buff);
+
+	/* Done */
+	return ERROR_OK;
+
+
+error_unset_dtr_r:
+	/* Unset DTR mode */
+	mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_NON_BLOCKING;
+	mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, dscr);
+error_free_buff_r:
+	LOG_ERROR("error");
+	free(tmp_buff);
+	return ERROR_FAIL;
+}
 
 
 /*
