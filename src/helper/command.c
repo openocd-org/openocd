@@ -1404,19 +1404,21 @@ DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
 		return ERROR_OK; \
 	}
 
-#define DEFINE_PARSE_ULONG(name, type, min, max) \
-	DEFINE_PARSE_WRAPPER(name, type, min, max, unsigned long, _ulong)
-DEFINE_PARSE_ULONG(_uint, unsigned, 0, UINT_MAX)
-DEFINE_PARSE_ULONG(_u32, uint32_t, 0, UINT32_MAX)
-DEFINE_PARSE_ULONG(_u16, uint16_t, 0, UINT16_MAX)
-DEFINE_PARSE_ULONG(_u8, uint8_t, 0, UINT8_MAX)
+#define DEFINE_PARSE_ULONGLONG(name, type, min, max) \
+	DEFINE_PARSE_WRAPPER(name, type, min, max, unsigned long long, _ullong)
+DEFINE_PARSE_ULONGLONG(_uint, unsigned, 0, UINT_MAX)
+DEFINE_PARSE_ULONGLONG(_u64,  uint64_t, 0, UINT64_MAX)
+DEFINE_PARSE_ULONGLONG(_u32,  uint32_t, 0, UINT32_MAX)
+DEFINE_PARSE_ULONGLONG(_u16,  uint16_t, 0, UINT16_MAX)
+DEFINE_PARSE_ULONGLONG(_u8,   uint8_t,  0, UINT8_MAX)
 
-#define DEFINE_PARSE_LONG(name, type, min, max)	\
-	DEFINE_PARSE_WRAPPER(name, type, min, max, long, _long)
-DEFINE_PARSE_LONG(_int, int, n < INT_MIN, INT_MAX)
-DEFINE_PARSE_LONG(_s32, int32_t, n < INT32_MIN, INT32_MAX)
-DEFINE_PARSE_LONG(_s16, int16_t, n < INT16_MIN, INT16_MAX)
-DEFINE_PARSE_LONG(_s8, int8_t, n < INT8_MIN, INT8_MAX)
+#define DEFINE_PARSE_LONGLONG(name, type, min, max) \
+	DEFINE_PARSE_WRAPPER(name, type, min, max, long long, _llong)
+DEFINE_PARSE_LONGLONG(_int, int,     n < INT_MIN,   INT_MAX)
+DEFINE_PARSE_LONGLONG(_s64, int64_t, n < INT64_MIN, INT64_MAX)
+DEFINE_PARSE_LONGLONG(_s32, int32_t, n < INT32_MIN, INT32_MAX)
+DEFINE_PARSE_LONGLONG(_s16, int16_t, n < INT16_MIN, INT16_MAX)
+DEFINE_PARSE_LONGLONG(_s8,  int8_t,  n < INT8_MIN,  INT8_MAX)
 
 static int command_parse_bool(const char *in, bool *out,
 	const char *on, const char *off)

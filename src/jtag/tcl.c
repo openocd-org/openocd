@@ -1141,12 +1141,12 @@ COMMAND_HANDLER(handle_irscan_command)
 		fields[i].num_bits = field_size;
 		fields[i].out_value = malloc(DIV_ROUND_UP(field_size, 8));
 
-		uint32_t value;
-		retval = parse_u32(CMD_ARGV[i * 2 + 1], &value);
+		uint64_t value;
+		retval = parse_u64(CMD_ARGV[i * 2 + 1], &value);
 		if (ERROR_OK != retval)
 			goto error_return;
 		void *v = (void *)fields[i].out_value;
-		buf_set_u32(v, 0, field_size, value);
+		buf_set_u64(v, 0, field_size, value);
 		fields[i].in_value = NULL;
 	}
 
