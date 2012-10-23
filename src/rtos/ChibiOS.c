@@ -99,7 +99,7 @@ struct ChibiOS_params ChibiOS_params_list[] = {
 	NULL,									/* stacking_info */
 	},
 	{
-	"stm32_stlink",							/* target_name */
+	"hla_target",							/* target_name */
 	0,
 	NULL,									/* stacking_info */
 	}

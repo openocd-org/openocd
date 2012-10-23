@@ -62,7 +62,7 @@ const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	&rtos_standard_Cortex_M3_stacking,	/* stacking_info */
 	},
 	{
-	"stm32_stlink",			/* target_name */
+	"hla_target",			/* target_name */
 	4,						/* thread_count_width; */
 	4,						/* pointer_width; */
 	16,						/* list_next_offset; */
