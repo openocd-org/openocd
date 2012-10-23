@@ -344,9 +344,9 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 		return ERROR_OK;
 	} else if (strstr(packet, "qC")) {
 		if (target->rtos != NULL) {
-			char buffer[15];
+			char buffer[19];
 			int size;
-			size = snprintf(buffer, 15, "QC%08X", (int)target->rtos->current_thread);
+			size = snprintf(buffer, 19, "QC%016" PRIx64, target->rtos->current_thread);
 			gdb_put_packet(connection, buffer, size);
 		} else
 			gdb_put_packet(connection, "QC0", 3);
