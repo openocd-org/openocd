@@ -413,7 +413,7 @@ static int stlink_usb_version(void *handle)
 	else
 		h->version.jtag_api_max = STLINK_JTAG_API_V1;
 
-	LOG_DEBUG("STLINK v%d JTAG v%d API v%d SWIM v%d VID 0x%04X PID 0x%04X",
+	LOG_INFO("STLINK v%d JTAG v%d API v%d SWIM v%d VID 0x%04X PID 0x%04X",
 		h->version.stlink,
 		h->version.jtag,
 		(h->version.jtag_api_max == STLINK_JTAG_API_V1) ? 1 : 2,
