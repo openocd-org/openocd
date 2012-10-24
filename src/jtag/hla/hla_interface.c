@@ -218,7 +218,7 @@ COMMAND_HANDLER(hl_interface_handle_vid_pid_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(hl_interface_handle_api_command)
+COMMAND_HANDLER(stlink_interface_handle_api_command)
 {
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -235,28 +235,28 @@ COMMAND_HANDLER(hl_interface_handle_api_command)
 
 static const struct command_registration hl_interface_command_handlers[] = {
 	{
-	 .name = "stlink_device_desc",
+	 .name = "hla_device_desc",
 	 .handler = &hl_interface_handle_device_desc_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the a device description of the adapter",
 	 .usage = "description_string",
 	 },
 	{
-	 .name = "stlink_serial",
+	 .name = "hla_serial",
 	 .handler = &hl_interface_handle_serial_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the serial number of the adapter",
 	 .usage = "serial_string",
 	 },
 	{
-	 .name = "stlink_layout",
+	 .name = "hla_layout",
 	 .handler = &hl_interface_handle_layout_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the layout of the adapter",
 	 .usage = "layout_name",
 	 },
 	{
-	 .name = "stlink_vid_pid",
+	 .name = "hla_vid_pid",
 	 .handler = &hl_interface_handle_vid_pid_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "the vendor and product ID of the adapter",
@@ -264,7 +264,7 @@ static const struct command_registration hl_interface_command_handlers[] = {
 	 },
 	 {
 	 .name = "stlink_api",
-	 .handler = &hl_interface_handle_api_command,
+	 .handler = &stlink_interface_handle_api_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the desired stlink api level",
 	 .usage = "api version 1 or 2",
@@ -273,7 +273,7 @@ static const struct command_registration hl_interface_command_handlers[] = {
 };
 
 struct jtag_interface hl_interface = {
-	.name = "stlink",
+	.name = "hla",
 	.supported = 0,
 	.commands = hl_interface_command_handlers,
 	.transports = hl_transports,

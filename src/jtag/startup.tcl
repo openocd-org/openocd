@@ -106,4 +106,30 @@ proc jtag_nsrst_assert_width args {
 	eval adapter_nsrst_assert_width $args
 }
 
+# stlink migration helpers
+proc stlink_device_desc args {
+	echo "DEPRECATED! use 'hla_device_desc' not 'stlink_device_desc'"
+	eval hla_device_desc $args
+}
+
+proc stlink_serial args {
+	echo "DEPRECATED! use 'hla_serial' not 'stlink_serial'"
+	eval hla_serial $args
+}
+
+proc stlink_layout args {
+	echo "DEPRECATED! use 'hla_layout' not 'stlink_layout'"
+	eval hla_layout $args
+}
+
+proc stlink_vid_pid args {
+	echo "DEPRECATED! use 'hla_vid_pid' not 'stlink_vid_pid'"
+	eval hla_vid_pid $args
+}
+
+proc stlink args {
+	echo "DEPRECATED! use 'hla' not 'stlink'"
+	eval hla $args
+}
+
 # END MIGRATION AIDS
