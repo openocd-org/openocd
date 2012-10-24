@@ -2,6 +2,9 @@
  *   Copyright (C) 2011 by Mathias Kuester                                 *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
+ *   Copyright (C) 2012 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -18,14 +21,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef _STLINK_TRANSPORT_
-#define _STLINK_TRANSPORT_
+#ifndef _HL_TCL_
+#define _HL_TCL_
 
-enum stlink_transports {
-	STLINK_TRANSPORT_UNKNOWN = 0,
-	STLINK_TRANSPORT_SWD,
-	STLINK_TRANSPORT_JTAG,
-	STLINK_TRANSPORT_SWIM
-};
+/** */
+int jim_hl_newtap(Jim_Interp *interp, int argc, Jim_Obj * const *argv);
 
-#endif
+#endif /* _HL_TCL_ */

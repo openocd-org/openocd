@@ -39,9 +39,9 @@ else
 MINIDRIVER_IMP_DIR = $(srcdir)/drivers
 DRIVERFILES += commands.c
 
-if STLINK
-SUBDIRS += stlink
-libjtag_la_LIBADD += $(top_builddir)/src/jtag/stlink/libocdstlink.la
+if HLADAPTER
+SUBDIRS += hla
+libjtag_la_LIBADD += $(top_builddir)/src/jtag/hla/libocdhla.la
 endif
 
 SUBDIRS += drivers

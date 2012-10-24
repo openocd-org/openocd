@@ -2,6 +2,9 @@
  *   Copyright (C) 2011 by Mathias Kuester                                 *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
+ *   Copyright (C) 2012 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -18,66 +21,45 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#ifndef _HL_INTERFACE
+#define _HL_INTERFACE
 
-/* project specific includes */
-#include <jtag/interface.h>
-#include <transport/transport.h>
-#include <helper/time_support.h>
+/** */
+struct target;
+/** */
+enum e_hl_transports;
+/** */
+extern const char *hl_transports[];
 
-#include <jtag/stlink/stlink_layout.h>
-#include <jtag/stlink/stlink_tcl.h>
-#include <jtag/stlink/stlink_transport.h>
-#include <jtag/stlink/stlink_interface.h>
+struct hl_interface_param_s {
+	/** */
+	char *device_desc;
+	/** */
+	char *serial;
+	/** */
+	uint16_t vid;
+	/** */
+	uint16_t pid;
+	/** */
+	unsigned api;
+	/** */
+	enum hl_transports transport;
+};
 
-static int stlink_layout_open(struct stlink_interface_s *stlink_if)
-{
-	int res;
-
-	LOG_DEBUG("stlink_layout_open");
-
-	stlink_if->fd = NULL;
-
-	res = stlink_if->layout->api->open(&stlink_if->param, &stlink_if->fd);
-
-	if (res != ERROR_OK) {
-		LOG_DEBUG("failed");
-		return res;
-	}
-
-	return ERROR_OK;
-}
-
-static int stlink_layout_close(struct stlink_interface_s *stlink_if)
-{
-	return ERROR_OK;
-}
-
-static const struct stlink_layout stlink_layouts[] = {
-	{
-	 .name = "stlink",
-	 .open = stlink_layout_open,
-	 .close = stlink_layout_close,
-	 .api = &stlink_usb_layout_api,
-	 },
-	{.name = NULL, /* END OF TABLE */ },
+struct hl_interface_s {
+	/** */
+	struct hl_interface_param_s param;
+	/** */
+	const struct hl_layout *layout;
+	/** */
+	void *fd;
 };
 
 /** */
-const struct stlink_layout *stlink_layout_get_list(void)
-{
-	return stlink_layouts;
-}
+int hl_interface_open(enum hl_transports tr);
+/** */
 
-int stlink_layout_init(struct stlink_interface_s *stlink_if)
-{
-	LOG_DEBUG("stlink_layout_init");
+int hl_interface_init_target(struct target *t);
+int hl_interface_init_reset(void);
 
-	if (stlink_if->layout == NULL) {
-		LOG_ERROR("no layout specified");
-		return ERROR_FAIL;
-	}
-	return ERROR_OK;
-}
+#endif /* _HL_INTERFACE */

@@ -2,6 +2,9 @@
  *   Copyright (C) 2011 by Mathias Kuester                                 *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
+ *   Copyright (C) 2012 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -18,20 +21,20 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef _STLINK_LAYOUT_H_
-#define _STLINK_LAYOUT_H_
+#ifndef _HL_LAYOUT_H
+#define _HL_LAYOUT_H
 
 /** */
-struct stlink_interface_s;
-struct stlink_interface_param_s;
+struct hl_interface_s;
+struct hl_interface_param_s;
 
 /** */
-extern struct stlink_layout_api_s stlink_usb_layout_api;
+extern struct hl_layout_api_s stlink_usb_layout_api;
 
 /** */
-struct stlink_layout_api_s {
+struct hl_layout_api_s {
 	/** */
-	int (*open) (struct stlink_interface_param_s *param, void **fd);
+	int (*open) (struct hl_interface_param_s *param, void **fd);
 	/** */
 	int (*close) (void *fd);
 	/** */
@@ -71,20 +74,20 @@ struct stlink_layout_api_s {
 };
 
 /** */
-struct stlink_layout {
+struct hl_layout {
 	/** */
 	char *name;
 	/** */
-	int (*open) (struct stlink_interface_s *stlink_if);
+	int (*open) (struct hl_interface_s *adapter);
 	/** */
-	int (*close) (struct stlink_interface_s *stlink_if);
+	int (*close) (struct hl_interface_s *adapter);
 	/** */
-	struct stlink_layout_api_s *api;
+	struct hl_layout_api_s *api;
 };
 
 /** */
-const struct stlink_layout *stlink_layout_get_list(void);
+const struct hl_layout *hl_layout_get_list(void);
 /** */
-int stlink_layout_init(struct stlink_interface_s *stlink_if);
+int hl_layout_init(struct hl_interface_s *adapter);
 
-#endif
+#endif /* _HL_LAYOUT_H */

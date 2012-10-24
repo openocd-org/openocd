@@ -30,9 +30,9 @@
 /* project specific includes */
 #include <helper/binarybuffer.h>
 #include <jtag/interface.h>
-#include <jtag/stlink/stlink_layout.h>
-#include <jtag/stlink/stlink_transport.h>
-#include <jtag/stlink/stlink_interface.h>
+#include <jtag/hla/hla_layout.h>
+#include <jtag/hla/hla_transport.h>
+#include <jtag/hla/hla_interface.h>
 #include <target/target.h>
 
 #include <target/cortex_m.h>
@@ -82,7 +82,7 @@ struct stlink_usb_handle_s {
 	/** */
 	uint8_t databuf[STLINK_DATA_SIZE];
 	/** */
-	enum stlink_transports transport;
+	enum hl_transports transport;
 	/** */
 	struct stlink_usb_version version;
 	/** */
@@ -597,13 +597,13 @@ static int stlink_usb_init_mode(void *handle)
 
 	/* set selected mode */
 	switch (h->transport) {
-		case STLINK_TRANSPORT_SWD:
+		case HL_TRANSPORT_SWD:
 			emode = STLINK_MODE_DEBUG_SWD;
 			break;
-		case STLINK_TRANSPORT_JTAG:
+		case HL_TRANSPORT_JTAG:
 			emode = STLINK_MODE_DEBUG_JTAG;
 			break;
-		case STLINK_TRANSPORT_SWIM:
+		case HL_TRANSPORT_SWIM:
 			emode = STLINK_MODE_DEBUG_SWIM;
 			break;
 		default:
@@ -1143,7 +1143,7 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 }
 
 /** */
-static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
+static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 {
 	int err;
 	struct stlink_usb_handle_s *h;
@@ -1208,12 +1208,12 @@ static int stlink_usb_open(struct stlink_interface_param_s *param, void **fd)
 	err = ERROR_OK;
 
 	switch (h->transport) {
-		case STLINK_TRANSPORT_SWD:
-		case STLINK_TRANSPORT_JTAG:
+		case HL_TRANSPORT_SWD:
+		case HL_TRANSPORT_JTAG:
 			if (h->version.jtag == 0)
 				err = ERROR_FAIL;
 			break;
-		case STLINK_TRANSPORT_SWIM:
+		case HL_TRANSPORT_SWIM:
 			if (h->version.swim == 0)
 				err = ERROR_FAIL;
 			break;
@@ -1263,7 +1263,7 @@ static int stlink_usb_close(void *fd)
 }
 
 /** */
-struct stlink_layout_api_s stlink_usb_layout_api = {
+struct hl_layout_api_s stlink_usb_layout_api = {
 	/** */
 	.open = stlink_usb_open,
 	/** */

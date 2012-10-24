@@ -2,6 +2,9 @@
  *   Copyright (C) 2011 by Mathias Kuester                                 *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
+ *   Copyright (C) 2012 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -58,7 +61,7 @@ static int jim_newtap_expected_id(Jim_Nvp *n, Jim_GetOptInfo *goi,
 
 #define NTAP_OPT_EXPECTED_ID 0
 
-static int jim_stlink_newtap_cmd(Jim_GetOptInfo *goi)
+static int jim_hl_newtap_cmd(Jim_GetOptInfo *goi)
 {
 	struct jtag_tap *pTap;
 	int x;
@@ -128,9 +131,9 @@ static int jim_stlink_newtap_cmd(Jim_GetOptInfo *goi)
 	return JIM_OK;
 }
 
-int jim_stlink_newtap(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+int jim_hl_newtap(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
-	return jim_stlink_newtap_cmd(&goi);
+	return jim_hl_newtap_cmd(&goi);
 }

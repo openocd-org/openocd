@@ -26,9 +26,9 @@
 #endif
 
 #include "jtag/jtag.h"
-#include "jtag/stlink/stlink_transport.h"
-#include "jtag/stlink/stlink_interface.h"
-#include "jtag/stlink/stlink_layout.h"
+#include "jtag/hla/hla_transport.h"
+#include "jtag/hla/hla_interface.h"
+#include "jtag/hla/hla_layout.h"
 #include "register.h"
 #include "algorithm.h"
 #include "target.h"
@@ -41,17 +41,17 @@
 #define ARMV7M_SCS_DCRSR	0xe000edf4
 #define ARMV7M_SCS_DCRDR	0xe000edf8
 
-static inline struct stlink_interface_s *target_to_stlink(struct target *target)
+static inline struct hl_interface_s *target_to_adapter(struct target *target)
 {
 	return target->tap->priv;
 }
 
-static int stm32_stlink_load_core_reg_u32(struct target *target,
+static int adapter_load_core_reg_u32(struct target *target,
 		enum armv7m_regtype type,
 		uint32_t num, uint32_t *value)
 {
 	int retval;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	LOG_DEBUG("%s", __func__);
 
@@ -62,7 +62,7 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 	switch (num) {
 	case 0 ... 18:
 		/* read a normal core register */
-		retval = stlink_if->layout->api->read_reg(stlink_if->fd, num, value);
+		retval = adapter->layout->api->read_reg(adapter->fd, num, value);
 
 		if (retval != ERROR_OK) {
 			LOG_ERROR("JTAG failure %i", retval);
@@ -110,7 +110,7 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 		 * in one Debug Core register.  So say r0 and r2 docs;
 		 * it was removed from r1 docs, but still works.
 		 */
-		retval = stlink_if->layout->api->read_reg(stlink_if->fd, 20, value);
+		retval = adapter->layout->api->read_reg(adapter->fd, 20, value);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -143,14 +143,14 @@ static int stm32_stlink_load_core_reg_u32(struct target *target,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_store_core_reg_u32(struct target *target,
+static int adapter_store_core_reg_u32(struct target *target,
 		enum armv7m_regtype type,
 		uint32_t num, uint32_t value)
 {
 	int retval;
 	uint32_t reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	LOG_DEBUG("%s", __func__);
 
@@ -172,7 +172,7 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 	 */
 	switch (num) {
 	case 0 ... 18:
-		retval = stlink_if->layout->api->write_reg(stlink_if->fd, num, value);
+		retval = adapter->layout->api->write_reg(adapter->fd, num, value);
 
 		if (retval != ERROR_OK) {
 			struct reg *r;
@@ -223,7 +223,7 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 		 * it was removed from r1 docs, but still works.
 		 */
 
-		stlink_if->layout->api->read_reg(stlink_if->fd, 20, &reg);
+		adapter->layout->api->read_reg(adapter->fd, 20, &reg);
 
 		switch (num) {
 		case ARMV7M_PRIMASK:
@@ -243,7 +243,7 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 			break;
 		}
 
-		stlink_if->layout->api->write_reg(stlink_if->fd, 20, reg);
+		adapter->layout->api->write_reg(adapter->fd, 20, reg);
 
 		LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num, value);
 		break;
@@ -255,7 +255,7 @@ static int stm32_stlink_store_core_reg_u32(struct target *target,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_examine_debug_reason(struct target *target)
+static int adapter_examine_debug_reason(struct target *target)
 {
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 			&& (target->debug_reason != DBG_REASON_SINGLESTEP)) {
@@ -265,7 +265,7 @@ static int stm32_stlink_examine_debug_reason(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm32_stlink_init_arch_info(struct target *target,
+static int adapter_init_arch_info(struct target *target,
 				       struct cortex_m3_common *cortex_m3,
 				       struct jtag_tap *tap)
 {
@@ -276,16 +276,16 @@ static int stm32_stlink_init_arch_info(struct target *target,
 	armv7m = &cortex_m3->armv7m;
 	armv7m_init_arch_info(target, armv7m);
 
-	armv7m->load_core_reg_u32 = stm32_stlink_load_core_reg_u32;
-	armv7m->store_core_reg_u32 = stm32_stlink_store_core_reg_u32;
+	armv7m->load_core_reg_u32 = adapter_load_core_reg_u32;
+	armv7m->store_core_reg_u32 = adapter_store_core_reg_u32;
 
-	armv7m->examine_debug_reason = stm32_stlink_examine_debug_reason;
+	armv7m->examine_debug_reason = adapter_examine_debug_reason;
 	armv7m->stlink = true;
 
 	return ERROR_OK;
 }
 
-static int stm32_stlink_init_target(struct command_context *cmd_ctx,
+static int adapter_init_target(struct command_context *cmd_ctx,
 				    struct target *target)
 {
 	LOG_DEBUG("%s", __func__);
@@ -295,7 +295,7 @@ static int stm32_stlink_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_target_create(struct target *target,
+static int adapter_target_create(struct target *target,
 		Jim_Interp *interp)
 {
 	LOG_DEBUG("%s", __func__);
@@ -305,12 +305,12 @@ static int stm32_stlink_target_create(struct target *target,
 	if (!cortex_m3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	stm32_stlink_init_arch_info(target, cortex_m3, target->tap);
+	adapter_init_arch_info(target, cortex_m3, target->tap);
 
 	return ERROR_OK;
 }
 
-static int stm32_stlink_load_context(struct target *target)
+static int adapter_load_context(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int num_regs = armv7m->core_cache->num_regs;
@@ -323,9 +323,9 @@ static int stm32_stlink_load_context(struct target *target)
 	return ERROR_OK;
 }
 
-static int stlink_debug_entry(struct target *target)
+static int adapter_debug_entry(struct target *target)
 {
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct arm *arm = &armv7m->arm;
 	struct reg *r;
@@ -336,10 +336,10 @@ static int stlink_debug_entry(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	stm32_stlink_load_context(target);
+	adapter_load_context(target);
 
 	/* make sure we clear the vector catch bit */
-	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, 0);
+	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, 0);
 
 	r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
 	xPSR = buf_get_u32(r->value, 0, 32);
@@ -378,13 +378,13 @@ static int stlink_debug_entry(struct target *target)
 	return retval;
 }
 
-static int stm32_stlink_poll(struct target *target)
+static int adapter_poll(struct target *target)
 {
 	enum target_state state;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
-	state = stlink_if->layout->api->state(stlink_if->fd);
+	state = adapter->layout->api->state(adapter->fd);
 
 	if (state == TARGET_UNKNOWN) {
 		LOG_ERROR("jtag status contains invalid mode value - communication failure");
@@ -397,7 +397,7 @@ static int stm32_stlink_poll(struct target *target)
 	if (state == TARGET_HALTED) {
 		target->state = state;
 
-		int retval = stlink_debug_entry(target);
+		int retval = adapter_debug_entry(target);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -411,10 +411,10 @@ static int stm32_stlink_poll(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm32_stlink_assert_reset(struct target *target)
+static int adapter_assert_reset(struct target *target)
 {
 	int res = ERROR_OK;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	bool use_srst_fallback = true;
 
@@ -426,22 +426,22 @@ static int stm32_stlink_assert_reset(struct target *target)
 
 	if (jtag_reset_config & RESET_SRST_NO_GATING) {
 		jtag_add_reset(0, 1);
-		res = stlink_if->layout->api->assert_srst(stlink_if->fd, 0);
+		res = adapter->layout->api->assert_srst(adapter->fd, 0);
 		srst_asserted = true;
 	}
 
-	stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DHCSR, DBGKEY|C_DEBUGEN);
+	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
 	/* only set vector catch if halt is requested */
 	if (target->reset_halt)
-		stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, VC_CORERESET);
+		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, VC_CORERESET);
 	else
-		stlink_if->layout->api->write_debug_reg(stlink_if->fd, DCB_DEMCR, 0);
+		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, 0);
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		if (!srst_asserted) {
 			jtag_add_reset(0, 1);
-			res = stlink_if->layout->api->assert_srst(stlink_if->fd, 0);
+			res = adapter->layout->api->assert_srst(adapter->fd, 0);
 		}
 		if (res == ERROR_COMMAND_NOTFOUND)
 			LOG_ERROR("Hardware srst not supported, falling back to software reset");
@@ -453,10 +453,10 @@ static int stm32_stlink_assert_reset(struct target *target)
 
 	if (use_srst_fallback) {
 		/* stlink v1 api does not support hardware srst, so we use a software reset fallback */
-		stlink_if->layout->api->write_debug_reg(stlink_if->fd, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+		adapter->layout->api->write_debug_reg(adapter->fd, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
 	}
 
-	res = stlink_if->layout->api->reset(stlink_if->fd);
+	res = adapter->layout->api->reset(adapter->fd);
 
 	if (res != ERROR_OK)
 		return res;
@@ -474,17 +474,17 @@ static int stm32_stlink_assert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm32_stlink_deassert_reset(struct target *target)
+static int adapter_deassert_reset(struct target *target)
 {
 	int res;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	LOG_DEBUG("%s", __func__);
 
 	if (jtag_reset_config & RESET_HAS_SRST)
-		stlink_if->layout->api->assert_srst(stlink_if->fd, 1);
+		adapter->layout->api->assert_srst(adapter->fd, 1);
 
 	/* virtual deassert reset, we need it for the internal
 	 * jtag state machine
@@ -501,16 +501,16 @@ static int stm32_stlink_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm32_stlink_soft_reset_halt(struct target *target)
+static int adapter_soft_reset_halt(struct target *target)
 {
 	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
-static int stm32_stlink_halt(struct target *target)
+static int adapter_halt(struct target *target)
 {
 	int res;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	LOG_DEBUG("%s", __func__);
 
@@ -522,7 +522,7 @@ static int stm32_stlink_halt(struct target *target)
 	if (target->state == TARGET_UNKNOWN)
 		LOG_WARNING("target was in unknown state when halt was requested");
 
-	res = stlink_if->layout->api->halt(stlink_if->fd);
+	res = adapter->layout->api->halt(adapter->fd);
 
 	if (res != ERROR_OK)
 		return res;
@@ -532,12 +532,12 @@ static int stm32_stlink_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm32_stlink_resume(struct target *target, int current,
+static int adapter_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints,
 		int debug_execution)
 {
 	int res;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	uint32_t resume_pc;
 	struct breakpoint *breakpoint = NULL;
@@ -580,7 +580,7 @@ static int stm32_stlink_resume(struct target *target, int current,
 					breakpoint->unique_id);
 			cortex_m3_unset_breakpoint(target, breakpoint);
 
-			res = stlink_if->layout->api->step(stlink_if->fd);
+			res = adapter->layout->api->step(adapter->fd);
 
 			if (res != ERROR_OK)
 				return res;
@@ -589,7 +589,7 @@ static int stm32_stlink_resume(struct target *target, int current,
 		}
 	}
 
-	res = stlink_if->layout->api->run(stlink_if->fd);
+	res = adapter->layout->api->run(adapter->fd);
 
 	if (res != ERROR_OK)
 		return res;
@@ -602,11 +602,11 @@ static int stm32_stlink_resume(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_step(struct target *target, int current,
+static int adapter_step(struct target *target, int current,
 		uint32_t address, int handle_breakpoints)
 {
 	int res;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct breakpoint *breakpoint = NULL;
 	struct reg *pc = armv7m->arm.pc;
@@ -642,7 +642,7 @@ static int stm32_stlink_step(struct target *target, int current,
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
-	res = stlink_if->layout->api->step(stlink_if->fd);
+	res = adapter->layout->api->step(adapter->fd);
 
 	if (res != ERROR_OK)
 		return res;
@@ -653,7 +653,7 @@ static int stm32_stlink_step(struct target *target, int current,
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
 
-	stlink_debug_entry(target);
+	adapter_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
 	LOG_INFO("halted: PC: 0x%08x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
@@ -661,7 +661,7 @@ static int stm32_stlink_step(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_read_memory(struct target *target, uint32_t address,
+static int adapter_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count,
 		uint8_t *buffer)
 {
@@ -669,7 +669,7 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 	uint32_t buffer_threshold = 128;
 	uint32_t addr_increment = 4;
 	uint32_t c;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -692,10 +692,10 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 			c = count;
 
 		if (size != 4)
-			res = stlink_if->layout->api->read_mem8(stlink_if->fd,
+			res = adapter->layout->api->read_mem8(adapter->fd,
 					address, c, buffer);
 		else
-			res = stlink_if->layout->api->read_mem32(stlink_if->fd,
+			res = adapter->layout->api->read_mem32(adapter->fd,
 					address, c, buffer);
 
 		if (res != ERROR_OK)
@@ -709,7 +709,7 @@ static int stm32_stlink_read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_write_memory(struct target *target, uint32_t address,
+static int adapter_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count,
 		const uint8_t *buffer)
 {
@@ -717,7 +717,7 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 	uint32_t buffer_threshold = 128;
 	uint32_t addr_increment = 4;
 	uint32_t c;
-	struct stlink_interface_s *stlink_if = target_to_stlink(target);
+	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -740,10 +740,10 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 			c = count;
 
 		if (size != 4)
-			res = stlink_if->layout->api->write_mem8(stlink_if->fd,
+			res = adapter->layout->api->write_mem8(adapter->fd,
 					address, c, buffer);
 		else
-			res = stlink_if->layout->api->write_mem32(stlink_if->fd,
+			res = adapter->layout->api->write_mem32(adapter->fd,
 					address, c, buffer);
 
 		if (res != ERROR_OK)
@@ -757,14 +757,14 @@ static int stm32_stlink_write_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-static int stm32_stlink_bulk_write_memory(struct target *target,
+static int adapter_bulk_write_memory(struct target *target,
 		uint32_t address, uint32_t count,
 		const uint8_t *buffer)
 {
-	return stm32_stlink_write_memory(target, address, 4, count, buffer);
+	return adapter_write_memory(target, address, 4, count, buffer);
 }
 
-static const struct command_registration stm32_stlink_command_handlers[] = {
+static const struct command_registration adapter_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,
 	},
@@ -774,27 +774,27 @@ static const struct command_registration stm32_stlink_command_handlers[] = {
 struct target_type stm32_stlink_target = {
 	.name = "stm32_stlink",
 
-	.init_target = stm32_stlink_init_target,
-	.target_create = stm32_stlink_target_create,
+	.init_target = adapter_init_target,
+	.target_create = adapter_target_create,
 	.examine = cortex_m3_examine,
-	.commands = stm32_stlink_command_handlers,
+	.commands = adapter_command_handlers,
 
-	.poll = stm32_stlink_poll,
+	.poll = adapter_poll,
 	.arch_state = armv7m_arch_state,
 
-	.assert_reset = stm32_stlink_assert_reset,
-	.deassert_reset = stm32_stlink_deassert_reset,
-	.soft_reset_halt = stm32_stlink_soft_reset_halt,
+	.assert_reset = adapter_assert_reset,
+	.deassert_reset = adapter_deassert_reset,
+	.soft_reset_halt = adapter_soft_reset_halt,
 
-	.halt = stm32_stlink_halt,
-	.resume = stm32_stlink_resume,
-	.step = stm32_stlink_step,
+	.halt = adapter_halt,
+	.resume = adapter_resume,
+	.step = adapter_step,
 
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
-	.read_memory = stm32_stlink_read_memory,
-	.write_memory = stm32_stlink_write_memory,
-	.bulk_write_memory = stm32_stlink_bulk_write_memory,
+	.read_memory = adapter_read_memory,
+	.write_memory = adapter_write_memory,
+	.bulk_write_memory = adapter_bulk_write_memory,
 	.checksum_memory = armv7m_checksum_memory,
 	.blank_check_memory = armv7m_blank_check_memory,
 

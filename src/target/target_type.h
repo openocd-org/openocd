@@ -42,6 +42,7 @@ struct target_type {
 	 * field directly, use target_type_name() instead.
 	 */
 	const char *name;
+	const char *deprecated_name;
 
 	/* poll current target status */
 	int (*poll)(struct target *target);
