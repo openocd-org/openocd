@@ -551,6 +551,12 @@ static int adapter_resume(struct target *target, int current,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	if (!debug_execution) {
+		target_free_all_working_areas(target);
+		cortex_m3_enable_breakpoints(target);
+		cortex_m3_enable_watchpoints(target);
+	}
+
 	pc = armv7m->arm.pc;
 	if (!current) {
 		buf_set_u32(pc->value, 0, 32, address);

@@ -194,6 +194,7 @@ int cortex_m3_set_watchpoint(struct target *target, struct watchpoint *watchpoin
 int cortex_m3_unset_watchpoint(struct target *target, struct watchpoint *watchpoint);
 int cortex_m3_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
 int cortex_m3_remove_watchpoint(struct target *target, struct watchpoint *watchpoint);
+void cortex_m3_enable_breakpoints(struct target *target);
 void cortex_m3_enable_watchpoints(struct target *target);
 void cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target *target);
 

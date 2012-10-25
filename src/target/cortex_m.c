@@ -677,7 +677,7 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static void cortex_m3_enable_breakpoints(struct target *target)
+void cortex_m3_enable_breakpoints(struct target *target)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
