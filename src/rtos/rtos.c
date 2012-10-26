@@ -244,7 +244,7 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 {
 	struct target *target = get_target_from_connection(connection);
 
-	if (strstr(packet, "qThreadExtraInfo,")) {
+	if (strncmp(packet, "qThreadExtraInfo,", 17) == 0) {
 		if ((target->rtos != NULL) && (target->rtos->thread_details != NULL) &&
 				(target->rtos->thread_count != 0)) {
 			threadid_t threadid = 0;
@@ -306,14 +306,14 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 		}
 		gdb_put_packet(connection, "", 0);
 		return ERROR_OK;
-	} else if (strstr(packet, "qSymbol")) {
+	} else if (strncmp(packet, "qSymbol", 7) == 0) {
 		if (rtos_qsymbol(connection, packet, packet_size) == 1) {
 			target->rtos_auto_detect = false;
 			target->rtos->type->create(target);
 			target->rtos->type->update_threads(target->rtos);
 		}
 		return ERROR_OK;
-	} else if (strstr(packet, "qfThreadInfo")) {
+	} else if (strncmp(packet, "qfThreadInfo", 12) == 0) {
 		int i;
 		if ((target->rtos != NULL) && (target->rtos->thread_count != 0)) {
 
@@ -332,17 +332,17 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 			gdb_put_packet(connection, "", 0);
 
 		return ERROR_OK;
-	} else if (strstr(packet, "qsThreadInfo")) {
+	} else if (strncmp(packet, "qsThreadInfo", 12) == 0) {
 		gdb_put_packet(connection, "l", 1);
 		return ERROR_OK;
-	} else if (strstr(packet, "qAttached")) {
+	} else if (strncmp(packet, "qAttached", 9) == 0) {
 		gdb_put_packet(connection, "1", 1);
 		return ERROR_OK;
-	} else if (strstr(packet, "qOffsets")) {
+	} else if (strncmp(packet, "qOffsets", 8) == 0) {
 		char offsets[] = "Text=0;Data=0;Bss=0";
 		gdb_put_packet(connection, offsets, sizeof(offsets)-1);
 		return ERROR_OK;
-	} else if (strstr(packet, "qC")) {
+	} else if (strncmp(packet, "qC", 2) == 0) {
 		if (target->rtos != NULL) {
 			char buffer[19];
 			int size;

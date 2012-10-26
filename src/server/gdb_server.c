@@ -1705,7 +1705,7 @@ static int gdb_query_packet(struct connection *connection,
 	struct gdb_connection *gdb_connection = connection->priv;
 	struct target *target = get_target_from_connection(connection);
 
-	if (strstr(packet, "qRcmd,")) {
+	if (strncmp(packet, "qRcmd,", 6) == 0) {
 		if (packet_size > 6) {
 			char *cmd;
 			int i;
@@ -1731,7 +1731,7 @@ static int gdb_query_packet(struct connection *connection,
 		}
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
-	} else if (strstr(packet, "qCRC:")) {
+	} else if (strncmp(packet, "qCRC:", 5) == 0) {
 		if (packet_size > 5) {
 			int retval;
 			char gdb_reply[10];
@@ -1765,7 +1765,7 @@ static int gdb_query_packet(struct connection *connection,
 
 			return ERROR_OK;
 		}
-	} else if (strstr(packet, "qSupported")) {
+	} else if (strncmp(packet, "qSupported", 10) == 0) {
 		/* we currently support packet size and qXfer:memory-map:read (if enabled)
 		 * disable qXfer:features:read for the moment */
 		int retval = ERROR_OK;
@@ -1790,10 +1790,10 @@ static int gdb_query_packet(struct connection *connection,
 		free(buffer);
 
 		return ERROR_OK;
-	} else if (strstr(packet, "qXfer:memory-map:read::")
+	} else if ((strncmp(packet, "qXfer:memory-map:read::", 23) == 0)
 		   && (flash_get_bank_count() > 0))
 		return gdb_memory_map(connection, packet, packet_size);
-	else if (strstr(packet, "qXfer:features:read:")) {
+	else if (strncmp(packet, "qXfer:features:read:", 20) == 0) {
 		char *xml = NULL;
 		int size = 0;
 		int pos = 0;
@@ -1831,7 +1831,7 @@ static int gdb_query_packet(struct connection *connection,
 
 		free(xml);
 		return ERROR_OK;
-	} else if (strstr(packet, "QStartNoAckMode")) {
+	} else if (strncmp(packet, "QStartNoAckMode", 15) == 0) {
 		gdb_connection->noack_mode = 1;
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
@@ -1855,7 +1855,7 @@ static int gdb_v_packet(struct connection *connection,
 		return ERROR_OK;
 	}
 
-	if (strstr(packet, "vFlashErase:")) {
+	if (strncmp(packet, "vFlashErase:", 12) == 0) {
 		unsigned long addr;
 		unsigned long length;
 
@@ -1911,7 +1911,7 @@ static int gdb_v_packet(struct connection *connection,
 		return ERROR_OK;
 	}
 
-	if (strstr(packet, "vFlashWrite:")) {
+	if (strncmp(packet, "vFlashWrite:", 12) == 0) {
 		int retval;
 		unsigned long addr;
 		unsigned long length;
@@ -1945,7 +1945,7 @@ static int gdb_v_packet(struct connection *connection,
 		return ERROR_OK;
 	}
 
-	if (!strcmp(packet, "vFlashDone")) {
+	if (strncmp(packet, "vFlashDone", 10) == 0) {
 		uint32_t written;
 
 		/* process the flashing buffer. No need to erase as GDB

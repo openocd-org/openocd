@@ -65,7 +65,7 @@ int gdb_read_smp_packet(struct connection *connection,
 	char *hex_buffer;
 	int retval = ERROR_OK;
 	if (target->smp) {
-		if (strstr(packet, "jc")) {
+		if (strncmp(packet, "jc", 2) == 0) {
 			hex_buffer = malloc(len * 2 + 1);
 			buffer = (uint8_t *)&target->gdb_service->core[0];
 			uint32_t i;
@@ -95,7 +95,7 @@ int gdb_write_smp_packet(struct connection *connection,
 
 	/* skip command character */
 	if (target->smp) {
-		if (strstr(packet, "Jc")) {
+		if (strncmp(packet, "Jc", 2) == 0) {
 			packet += 2;
 			coreid = strtoul(packet, &separator, 16);
 			target->gdb_service->core[1] = coreid;

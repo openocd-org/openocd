@@ -1396,7 +1396,7 @@ static int linux_thread_packet(struct connection *connection, char *packet,
 			break;
 		case 'q':
 
-			if ((strstr(packet, "qSymbol"))) {
+			if (strncmp(packet, "qSymbol", 7) == 0) {
 				if (rtos_qsymbol(connection, packet, packet_size) == 1) {
 					linux_compute_virt2phys(target,
 							target->rtos->
@@ -1405,7 +1405,7 @@ static int linux_thread_packet(struct connection *connection, char *packet,
 				}
 
 				break;
-			} else if (strstr(packet, "qfThreadInfo")) {
+			} else if (strncmp(packet, "qfThreadInfo", 12) == 0) {
 				if (linux_os->thread_list == NULL) {
 					retval = linux_gdb_thread_packet(target,
 							connection,
@@ -1419,10 +1419,10 @@ static int linux_thread_packet(struct connection *connection, char *packet,
 							packet_size);
 					break;
 				}
-			} else if (strstr(packet, "qsThreadInfo")) {
+			} else if (strncmp(packet, "qsThreadInfo", 12) == 0) {
 				gdb_put_packet(connection, "l", 1);
 				break;
-			} else if (strstr(packet, "qThreadExtraInfo,")) {
+			} else if (strncmp(packet, "qThreadExtraInfo,", 17) == 0) {
 				linux_thread_extra_info(target, connection, packet,
 						packet_size);
 				break;
