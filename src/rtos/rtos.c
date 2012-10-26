@@ -342,6 +342,10 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 		char offsets[] = "Text=0;Data=0;Bss=0";
 		gdb_put_packet(connection, offsets, sizeof(offsets)-1);
 		return ERROR_OK;
+	} else if (strncmp(packet, "qCRC:", 5) == 0) {
+		/* make sure we check this before "qC" packet below
+		 * otherwise it gets incorrectly handled */
+		return GDB_THREAD_PACKET_NOT_CONSUMED;
 	} else if (strncmp(packet, "qC", 2) == 0) {
 		if (target->rtos != NULL) {
 			char buffer[19];
