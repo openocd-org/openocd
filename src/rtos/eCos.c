@@ -26,6 +26,7 @@
 #include "target/target_type.h"
 #include "rtos.h"
 #include "helper/log.h"
+#include "helper/types.h"
 #include "rtos_ecos_stackings.h"
 
 static int eCos_detect_rtos(struct target *target);
@@ -86,8 +87,6 @@ static char *eCos_symbol_list[] = {
 	"Cyg_Scheduler_Base::current_thread",
 	NULL
 };
-
-#define ECOS_NUM_SYMBOLS (sizeof(eCos_symbol_list)/sizeof(char *))
 
 const struct rtos_type eCos_rtos = {
 	.name = "eCos",
@@ -379,9 +378,9 @@ static int eCos_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
 	*symbol_list = (symbol_table_elem_t *) malloc(
-			sizeof(symbol_table_elem_t) * ECOS_NUM_SYMBOLS);
+			sizeof(symbol_table_elem_t) * ARRAY_SIZE(eCos_symbol_list));
 
-	for (i = 0; i < ECOS_NUM_SYMBOLS; i++)
+	for (i = 0; i < ARRAY_SIZE(eCos_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = eCos_symbol_list[i];
 
 	return 0;

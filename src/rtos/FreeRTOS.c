@@ -28,6 +28,7 @@
 #include "target/target_type.h"
 #include "rtos.h"
 #include "helper/log.h"
+#include "helper/types.h"
 #include "rtos_standard_stackings.h"
 
 #define FREERTOS_MAX_PRIORITIES	63
@@ -120,8 +121,6 @@ static char *FreeRTOS_symbol_list[] = {
 	"uxTopUsedPriority",
 	NULL
 };
-
-#define FREERTOS_NUM_SYMBOLS (sizeof(FreeRTOS_symbol_list)/sizeof(char *))
 
 /* TODO: */
 /* this is not safe for little endian yet */
@@ -399,9 +398,9 @@ static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]
 {
 	unsigned int i;
 	*symbol_list = (symbol_table_elem_t *) malloc(
-			sizeof(symbol_table_elem_t) * FREERTOS_NUM_SYMBOLS);
+			sizeof(symbol_table_elem_t) * ARRAY_SIZE(FreeRTOS_symbol_list));
 
-	for (i = 0; i < FREERTOS_NUM_SYMBOLS; i++)
+	for (i = 0; i < ARRAY_SIZE(FreeRTOS_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = FreeRTOS_symbol_list[i];
 
 	return 0;

@@ -31,6 +31,7 @@
 #include "target/target_type.h"
 #include "rtos.h"
 #include "helper/log.h"
+#include "helper/types.h"
 #include "rtos_chibios_stackings.h"
 
 
@@ -131,8 +132,6 @@ static char *ChibiOS_symbol_list[] = {
 	"chSysInit",	/* Necessary part of API, used for ChibiOS detection*/
 	NULL
 };
-
-#define CHIBIOS_NUM_SYMBOLS (sizeof(ChibiOS_symbol_list)/sizeof(char *))
 
 static int ChibiOS_update_memory_signature(struct rtos *rtos)
 {
@@ -483,9 +482,9 @@ static int ChibiOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
 	*symbol_list = (symbol_table_elem_t *) malloc(
-			sizeof(symbol_table_elem_t) * CHIBIOS_NUM_SYMBOLS);
+			sizeof(symbol_table_elem_t) * ARRAY_SIZE(ChibiOS_symbol_list));
 
-	for (i = 0; i < CHIBIOS_NUM_SYMBOLS; i++)
+	for (i = 0; i < ARRAY_SIZE(ChibiOS_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = ChibiOS_symbol_list[i];
 
 	return 0;

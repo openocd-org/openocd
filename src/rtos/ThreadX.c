@@ -28,6 +28,7 @@
 #include "target/target_type.h"
 #include "rtos.h"
 #include "helper/log.h"
+#include "helper/types.h"
 #include "rtos_standard_stackings.h"
 
 static int ThreadX_detect_rtos(struct target *target);
@@ -96,8 +97,6 @@ static char *ThreadX_symbol_list[] = {
 	"_tx_thread_created_count",
 	NULL
 };
-
-#define THREADX_NUM_SYMBOLS (sizeof(ThreadX_symbol_list)/sizeof(char *))
 
 const struct rtos_type ThreadX_rtos = {
 	.name = "ThreadX",
@@ -342,9 +341,9 @@ static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
 	*symbol_list = (symbol_table_elem_t *) malloc(
-			sizeof(symbol_table_elem_t) * THREADX_NUM_SYMBOLS);
+			sizeof(symbol_table_elem_t) * ARRAY_SIZE(ThreadX_symbol_list));
 
-	for (i = 0; i < THREADX_NUM_SYMBOLS; i++)
+	for (i = 0; i < ARRAY_SIZE(ThreadX_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = ThreadX_symbol_list[i];
 
 	return 0;
