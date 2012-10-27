@@ -28,8 +28,8 @@
 #include "target/target.h"
 #include "target/target_type.h"
 #include "helper/log.h"
+#include "helper/types.h"
 #include "rtos.h"
-#include "helper/log.h"
 #include "rtos_standard_stackings.h"
 #include <target/register.h>
 #include "server/gdb_server.h"
@@ -326,9 +326,9 @@ static int linux_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
 	*symbol_list = (symbol_table_elem_t *)
-		malloc(sizeof(symbol_table_elem_t) / sizeof(char *));
+		malloc(sizeof(symbol_table_elem_t) * ARRAY_SIZE(linux_symbol_list));
 
-	for (i = 0; i < sizeof(linux_symbol_list) / sizeof(char *); i++)
+	for (i = 0; i < ARRAY_SIZE(linux_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = linux_symbol_list[i];
 
 	return 0;
