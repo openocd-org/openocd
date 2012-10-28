@@ -55,6 +55,7 @@
 #define FTDI_DEVICE_OUT_REQTYPE (LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE)
 #define FTDI_DEVICE_IN_REQTYPE (0x80 | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE)
 
+#define BITMODE_RESET 0x00
 #define BITMODE_MPSSE 0x02
 
 #define SIO_RESET_REQUEST             0x00
@@ -309,6 +310,19 @@ struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const cha
 			ctx->usb_write_timeout);
 	if (err < 0) {
 		LOG_ERROR("unable to set latency timer: %d", err);
+		goto error;
+	}
+
+	err = libusb_control_transfer(ctx->usb_dev,
+			FTDI_DEVICE_OUT_REQTYPE,
+			SIO_SET_BITMODE_REQUEST,
+			0x0b | (BITMODE_RESET << 8),
+			ctx->index,
+			NULL,
+			0,
+			ctx->usb_write_timeout);
+	if (err < 0) {
+		LOG_ERROR("unable to reset bitmode: %d", err);
 		goto error;
 	}
 
