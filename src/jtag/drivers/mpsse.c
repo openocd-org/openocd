@@ -779,11 +779,8 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 	if (ctx->read_count) {
 		buffer_write_byte(ctx, 0x87); /* SEND_IMMEDIATE */
 		read_result.done = false;
-		read_transfer = libusb_alloc_transfer(0);
-		libusb_fill_bulk_transfer(read_transfer, ctx->usb_dev, ctx->in_ep, ctx->read_chunk,
-			ctx->read_chunk_size, read_cb, &read_result,
-			ctx->usb_read_timeout);
-		retval = libusb_submit_transfer(read_transfer);
+		/* delay read transaction to ensure the FTDI chip can support us with data
+		   immediately after processing the MPSSE commands in the write transaction */
 	}
 
 	struct transfer_result write_result = { .ctx = ctx, .done = false };
@@ -791,6 +788,14 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 	libusb_fill_bulk_transfer(write_transfer, ctx->usb_dev, ctx->out_ep, ctx->write_buffer,
 		ctx->write_count, write_cb, &write_result, ctx->usb_write_timeout);
 	retval = libusb_submit_transfer(write_transfer);
+
+	if (ctx->read_count) {
+		read_transfer = libusb_alloc_transfer(0);
+		libusb_fill_bulk_transfer(read_transfer, ctx->usb_dev, ctx->in_ep, ctx->read_chunk,
+			ctx->read_chunk_size, read_cb, &read_result,
+			ctx->usb_read_timeout);
+		retval = libusb_submit_transfer(read_transfer);
+	}
 
 	/* Polling loop, more or less taken from libftdi */
 	while (!write_result.done || !read_result.done) {
