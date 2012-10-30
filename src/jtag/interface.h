@@ -31,6 +31,7 @@
 #define OPENOCD_JTAG_INTERFACE_H
 
 #include <jtag/jtag.h>
+#include <interface/interface.h>
 
 /* @file
  * The "Cable Helper API" is what the cable drivers can use to help
@@ -313,9 +314,54 @@ struct jtag_interface {
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*srst_asserted)(int *srst_asserted);
+
+	/** Functions below are for other transports than JTAG, PoC code. */
+
+	/** current transport */
+	struct transport *transport;
+
+	/**
+	 * Generic bitstream transfer from/into interface and char bits array.
+	 *
+	 * This generic function makes it possible to implement various transports.
+	 * It transfer bits in/out stored in char array starting from LSB first or MSB
+	 * first, alternatively if you want to make MSB-first shift on LSB-first mode
+	 * put data in reverse order into input/output array.
+	 */
+	int (*transfer)(void *device, int bits, char *mosidata, char *misodata, int nLSBfirst);
+
+	/**
+	 * Generic signal set/get that allows generic interface bitbang operations.
+	 *
+	 * It can read and write port state using signal names. Each interface have its
+	 * own specific signal names and fields. This function works on those fields
+	 * and based on their values talks to the interface device.
+	 * The function name 'bitbang' reflects ability to affect selected pin states.
+	 *
+	 * @Warning: reading and writing will set pin direction input or output,
+	 * so it is possible to disable basic data output pins with bad masking,
+	 * but also gives chance to create and manage full TCL signal description,
+	 * that can be used to take advantage of some additional interface hardware
+	 * features installed on some devices (i.e. ADC, power supply, etc).
+	 * This gives new way of signal handling that is still backward-compatible.
+	 */
+	int (*bitbang)(void *device, char *signal, int SETnGET, int *value);
+
+	/**
+	 * Interface signals that are defined and used at runtime for bitbang etc.
+	 */
+	oocd_interface_signal_t *signal;
+
+	/**
+	 * Target device that interface is connected to/working with.
+	 * This is a quick fix for the moment until we get the openocd ctx implemented.
+	 */
+	struct target *target;
+
 };
 
 extern const char *jtag_only[];
+extern const char *swd_only[];
 
 extern const struct swd_driver *swd;
 
