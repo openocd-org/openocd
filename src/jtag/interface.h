@@ -8,6 +8,9 @@
  *   Copyright (C) 2009 Zachary T Welch                                    *
  *   zw@superlucidity.net                                                  *
  *                                                                         *
+ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
+ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -219,6 +222,12 @@ struct jtag_interface {
 
 	/**
 	 * Set the interface speed.
+	 * @a speed is usually the internal interface clock source divisor value
+	 * that directly impacts transport TCK/CLK frequency. If you want to
+	 * specify clock frequency in kHz, you must first calculate it with
+	 * @a khz() function. Using speed==-1 enables adaptive clocking based
+	 * on RTCK signal (however not all devices support this feature).
+	 *
 	 * @param speed The new interface speed setting.
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
@@ -254,6 +263,12 @@ struct jtag_interface {
 	/**
 	 * Returns JTAG maxium speed for KHz. 0 = RTCK. The function returns
 	 *  a failure if it can't support the KHz/RTCK.
+	 *
+	 * Calculates jtag_speed value for given transport clock frequency
+	 * specified in kHz. @a jtag_speed is usually the internal interface clock
+	 * source divisor value that directly impacts transport TCK/CLK frequency.
+	 * For @a jtag_speed=0 adaptive clocking is used, based on RTCK signal.
+	 * Function returns error code if an interface does not support kHz/RTCK.
 	 *
 	 *  WARNING!!!! if RTCK is *slow* then think carefully about
 	 *  whether you actually want to support this in the driver.
