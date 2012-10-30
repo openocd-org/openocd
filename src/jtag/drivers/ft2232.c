@@ -1,31 +1,34 @@
-/***************************************************************************
-*   Copyright (C) 2009 by Øyvind Harboe                                   *
-*	Øyvind Harboe <oyvind.harboe@zylin.com>                               *
-*                                                                         *
-*   Copyright (C) 2009 by SoftPLC Corporation.  http://softplc.com        *
-*	Dick Hollenbeck <dick@softplc.com>                                    *
-*                                                                         *
-*   Copyright (C) 2004, 2006 by Dominic Rath                              *
-*   Dominic.Rath@gmx.de                                                   *
-*                                                                         *
-*   Copyright (C) 2008 by Spencer Oliver                                  *
-*   spen@spen-soft.co.uk                                                  *
-*                                                                         *
-*   This program is free software; you can redistribute it and/or modify  *
-*   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
-*   (at your option) any later version.                                   *
-*                                                                         *
-*   This program is distributed in the hope that it will be useful,       *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-*   GNU General Public License for more details.                          *
-*                                                                         *
-*   You should have received a copy of the GNU General Public License     *
-*   along with this program; if not, write to the                         *
-*   Free Software Foundation, Inc.,                                       *
-*   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
-***************************************************************************/
+﻿/***************************************************************************
+ *   Copyright (C) 2009 by Øyvind Harboe                                   *
+ *   Øyvind Harboe <oyvind.harboe@zylin.com>                               *
+ *                                                                         *
+ *   Copyright (C) 2009 by SoftPLC Corporation.  http://softplc.com        *
+ *   Dick Hollenbeck <dick@softplc.com>                                    *
+ *                                                                         *
+ *   Copyright (C) 2004, 2006 by Dominic Rath                              *
+ *   Dominic.Rath@gmx.de                                                   *
+ *                                                                         *
+ *   Copyright (C) 2008 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
+ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
+ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
 
 /**
  * @file
@@ -162,12 +165,20 @@ static unsigned ft2232_max_tck = FTDI_2232C_MAX_TCK;
 static uint16_t ft2232_vid[MAX_USB_IDS + 1] = { 0x0403, 0 };
 static uint16_t ft2232_pid[MAX_USB_IDS + 1] = { 0x6010, 0 };
 
+/** This structure describes different layout of FT2232 based devices. */
 struct ft2232_layout {
+	/** Layout name. */
 	char *name;
+	/** Layout specific initialization routine. */
 	int (*init)(void);
+	/** Layout specific reset routine. */
 	void (*reset)(int trst, int srst);
+	/** Layout specific LED blink routine. */
 	void (*blink)(void);
+	/** Which FTDI channel does this layout use. */
 	int channel;
+	/** This will forbid bitbanging selected port pins. */
+	int bitbang_deny;
 };
 
 /* init procedures for supported layouts */
