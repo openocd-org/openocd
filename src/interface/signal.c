@@ -118,7 +118,7 @@ int interface_signal_add(char *name, unsigned int mask)
 		LOG_ERROR("cannot allocate memory for new signal: %s", name);
 		return ERROR_FAIL;
 	}
-	newsignal->name = (char *)calloc(1, snlen+1);
+	newsignal->name = (char *)calloc(1, snlen + 1);
 	if (!newsignal->name) {
 		LOG_ERROR("cannot allocate memory for signal %s name", name);
 		return ERROR_FAIL;
@@ -205,4 +205,106 @@ int interface_signal_del(char *name)
 	free(delsig->name);
 	free(delsig);
 	return ERROR_OK;
+}
+
+/******************************************************************************
+ * TCL INTERFACE TO INTERFACE_SIGNAL INFRASTRUCTURE AND OPERATIONS
+ ******************************************************************************/
+
+/** Interface signals handling routine that can add, delete and list signals.
+ * Signal ADD requires signal name string and 32-bit mask, optionally a value.
+ * Values are read as HEX. Signal DEL requires only signal name to delete.
+ * Signal LIST will show marvelous table wits signal names, masks and values.
+ * Interfaces should be defined in configuration file by TCL interface.
+ * Parameters are checked before function execution.
+ */
+
+COMMAND_HANDLER(handle_interface_signal_command)
+{
+	if (!jtag_interface) {
+		command_print(CMD_CTX, "You must initialize interface first!");
+		return ERROR_FAIL;
+	}
+
+	if (CMD_ARGC < 1 || CMD_ARGC > 3) {
+		command_print(CMD_CTX, "Bad syntax!");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	int sigmask;
+	char signame[32];
+
+	if (!strncasecmp(CMD_ARGV[0], "add", 3)) {
+		if (CMD_ARGC < 3) {
+			LOG_ERROR("Usage: interface_signal add signal_name signal_mask");
+			return ERROR_FAIL;
+		}
+		if (!strncpy(signame, CMD_ARGV[1], 32)) {
+			LOG_ERROR("Unable to copy signal name from parameter list!");
+			return ERROR_FAIL;
+		}
+		/* We are going to add interface signal. */
+		/* Check the mask parameter. */
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], sigmask);
+
+		/* Now add the inetrface signal with specified parameters. */
+		return interface_signal_add(signame, sigmask);
+
+	} else if (!strncasecmp(CMD_ARGV[0], "del", 3)) {
+		if (CMD_ARGC < 2) {
+			LOG_ERROR("Usage: interface_signal del signal_name");
+			return ERROR_FAIL;
+		}
+		/* We are going to delete specified signal. */
+		return interface_signal_del((char *)CMD_ARGV[1]);
+
+	} else if (!strncasecmp(CMD_ARGV[0], "list", 4)) {
+		/* We are going to list available signals. */
+		struct interface_signal *sig;
+		sig = jtag_interface->signal;
+		command_print(CMD_CTX, "      Interface Signal Name      |    Mask    |   Value   ");
+		command_print(CMD_CTX, "----------------------------------------------------------");
+		while (sig) {
+			command_print(CMD_CTX, "%32s | 0x%08X | 0x%08X", sig->name, sig->mask, sig->value);
+			sig = sig->next;
+		}
+		/* Also print warning if interface driver does not support bit-baning. */
+		if (!jtag_interface->bitbang)
+			command_print(CMD_CTX, "WARNING: This interface does not support bit-baning!");
+		return ERROR_OK;
+
+	} else if (!strncasecmp(CMD_ARGV[0], "find", 4)) {
+		if (CMD_ARGC < 2) {
+			LOG_ERROR("Usage: interface_signal find signal_name");
+			return ERROR_FAIL;
+		}
+		/* Find the signal and print its details. */
+		struct interface_signal *sig = interface_signal_find((char *)CMD_ARGV[1]);
+		if (sig != NULL) {
+			command_print(CMD_CTX, "%s: mask=0x%08X value=0x%08X", sig->name, sig->mask, sig->value);
+			return ERROR_OK;
+		}
+		/* Or return information and error if not found. */
+		command_print(CMD_CTX, "Signal not found!");
+		return ERROR_FAIL;
+	}
+	/* For unknown parameter print error and return error code. */
+	command_print(CMD_CTX, "Unknown parameter!");
+	return ERROR_COMMAND_SYNTAX_ERROR;
+}
+
+static const struct command_registration interface_signal_commands[] = {
+	{
+		.name = "interface_signal",
+		.handler = handle_interface_signal_command,
+		.mode = COMMAND_ANY,
+		.help = "List, Find, Remove and Add interface signal mask",
+		.usage = "(add|del|find|list) signal_name [mask]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+int interface_signal_register_commands(struct command_context *ctx)
+{
+	return register_commands(ctx, NULL, interface_signal_commands);
 }
