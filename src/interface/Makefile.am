@@ -14,13 +14,14 @@ BUILT_SOURCES =
 BUILT_SOURCES +=
 CLEANFILES +=
 
-
 libinterface_la_SOURCES = \
-	signal.c
+	signal.c \
+	bitbang.c
 
 noinst_HEADERS = \
 	interface.h \
-	signal.h
+	signal.h \
+	bitbang.h
 
 EXTRA_DIST =
 
