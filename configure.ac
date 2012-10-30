@@ -1310,6 +1310,7 @@ AC_CONFIG_FILES([
   src/jtag/drivers/Makefile
   src/jtag/stlink/Makefile
   src/transport/Makefile
+  src/interface/Makefile
   src/xsvf/Makefile
   src/svf/Makefile
   src/target/Makefile

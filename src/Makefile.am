@@ -5,6 +5,7 @@ SUBDIRS = \
 	helper \
 	target \
 	transport \
+	interface \
 	flash \
 	svf \
 	xsvf \
