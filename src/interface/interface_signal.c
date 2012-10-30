@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Tomasz Boleslaw CEDRO
+ * Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO
  * cederom@tlen.pl, http://www.tomek.cedro.info
  *
  * This program is free software; you can redistribute it and/or modify

@@ -14,7 +14,8 @@ BUILT_SOURCES =
 BUILT_SOURCES +=
 CLEANFILES +=
 
-liboocdinterface_la_SOURCES =
+liboocdinterface_la_SOURCES = \
+	interface_signal.c
 
 noinst_HEADERS = \
 	interface.h \
