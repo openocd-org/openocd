@@ -24,7 +24,6 @@
 #endif
 
 #include <interface/interface.h>
-#include <jtag/interface.h>
 #include <helper/log.h>
 
 extern struct jtag_interface *jtag_interface;
