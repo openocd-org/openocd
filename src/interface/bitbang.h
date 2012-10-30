@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO
+ * Copyright (c) 2011-2012 Tomasz Boleslaw CEDRO
  * cederom@tlen.pl, http://www.tomek.cedro.info
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,12 @@
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef INTERFACE_H
-#define INTERFACE_H
+/** @file Framework to work with interface signals, header file. */
 
-#include <jtag/interface.h>
-#include <interface/signal.h>
-#include <interface/bitbang.h>
+#ifndef INTERFACE_BITBANG_H
+#define INTERFACE_BITBANG_H
+
+#define BITBANG_PARAM_CMD_MAX_LEN 45
+int interface_bitbang_register_commands(struct command_context *ctx);
 
 #endif
