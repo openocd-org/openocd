@@ -86,6 +86,7 @@
 #include <jtag/interface.h>
 #include <transport/transport.h>
 #include <helper/time_support.h>
+#include <interface/interface.h>
 
 #if IS_CYGWIN == 1
 #include <windows.h>
@@ -622,6 +623,208 @@ static bool ft2232_device_is_highspeed(void)
 	);
 #endif
 }
+
+
+/** Generic IO BITBANG Port Manipulation Routine.
+ * It can read and write port state using signal names. Each interface have its
+ * own specific signal names and fields. This function works on those fields
+ * and based on their values talks to the FT*232 chip on the interface device.
+ * ft2232 drivers use {low,high}_{output,direction} global variables to remember
+ * port direction and value, so we need to work on them as well not to change
+ * any other pin with our bit-baning performed only on selected pins.
+ * The function name 'bitbang' reflects ability to change selected pin states.
+ *
+ * @Note: FT2232 has special mechanism called MPSSE for serial communications
+ * that is far more efficient than pure 'bitbang' mode on this device family.
+ * Although our function is named 'bitbang' it does not use bitbang mode.
+ * MPSSE command send value and port bytes on port write, but does not on read.
+ * This happens every time we want to change pin value, so we need to use cache.
+ * On write we want to OR direction mask already set by init() procedure
+ * to mark bit-mask output. On read we want to clear bits given by mask
+ * to mark them input. To read we need to write/update port state first.
+ * Long story short: to read data we first need to set pins to input.
+ *
+ * @Warning: reading and writing will set pin direction input or output,
+ * so it is possible to disable basic data output pins with bad masking,
+ * but also gives chance to create and manage full TCL signal description,
+ * that can be used to take advantage of some additional interface hardware
+ * features installed on some devices (i.e. ADC, power supply, etc).
+ * This gives new way of signal handling that is still backward-compatible.
+ *
+ * \param *device void pointer to pass additional driver information to the routine.
+ * \param signal is the string representation of the signal mask stored in layout structure.
+ * \param GETnSET if zero then perform read operation, write otherwise.
+ * \param *value is the pointer that holds the value.
+ * \return ERROR_OK on success, or ERROR_FAIL on failure.
+ */
+int ft2232_bitbang(void *device, char *signal_name, int GETnSET, int *value)
+{
+	uint8_t  buf[3];
+	int retval, vall = 0, valh = 0;
+	unsigned int sigmask;
+	uint32_t bytes_written, bytes_read;
+	oocd_interface_signal_t *sig = oocd_interface_signal_find(signal_name);
+
+	/* First get the signal mask, or return error if signal not defined. */
+	if (!sig) {
+		LOG_ERROR("Requested signal not found on this interface!");
+		return ERROR_FAIL;
+	}
+	/* Pin mask is also related with port direction and complicates it!!! */
+	sigmask = sig->mask;
+
+	/* First check against restricted port pins defined by the interface layout */
+	if (sigmask & layout->bitbang_deny) {
+		LOG_ERROR("This interface does not allow to bit-bang selected pins (0x%08X)!", layout->bitbang_deny);
+		return ERROR_FAIL;
+	}
+
+	if (!GETnSET) {
+		/* We will SET port pins selected by sigmask. */
+		/* Modify our pins value, but remember about other pins and their previous value */
+		low_output  = (low_output & ~sigmask) | ((*value & sigmask) & 0x0ff);
+		high_output = (high_output & ~(sigmask >> 8)) | (((*value & sigmask) >> 8) & 0x0ff);
+		/* Modify our pins direction, but remember about other pins and their previous direction */
+		low_direction  |= sigmask & 0x0ff;
+		high_direction |= (sigmask >> 8) & 0x0ff;
+		/* Now send those settings to the interface chip */
+		buf[0] = 0x80;  /* Set Data Bits LowByte */
+		buf[1] = low_output;
+		buf[2] = low_direction;
+		retval = ft2232_write(buf, 3, &bytes_written);
+		if (retval != ERROR_OK)
+			return retval;
+		buf[0] = 0x82;   /* Set Data Bits HighByte */
+		buf[1] = high_output;
+		buf[2] = high_direction;
+		retval = ft2232_write(buf, 3, &bytes_written);
+		if (retval != ERROR_OK)
+			return retval;
+		sig->value = ((high_output << 8) | low_output) & sig->mask;
+	} else {
+		/* Modify our pins value, but remember about other pins and their previous value */
+		/* DO WE REALLY NEED TO PULL-UP PINS TO READ THEIR STATE OR SIMPLY LEAVE AS IS? */
+		/* low_output  = (low_output & ~sigmask) | (sigmask & 0x0ff); */
+		/* high_output = (high_output & ~sigmask) | (sigmask>>8) & 0x0ff); */
+		/* Modify our pins direction to input, but remember about other pins and their previous direction */
+		low_direction  &= ~(sigmask);
+		high_direction &= ~(sigmask >> 8);
+		/* Now send those settings to the interface chip */
+		/* First change desired pins to input */
+		buf[0] = 0x80;  /* Set Data Bits LowByte */
+		buf[1] = low_output;
+		buf[2] = low_direction;
+		retval = ft2232_write(buf, 3, &bytes_written);
+		if (retval != ERROR_OK)
+			return retval;
+		buf[0] = 0x82;   /* Set Data Bits HighByte */
+		buf[1] = high_output;
+		buf[2] = high_direction;
+		retval = ft2232_write(buf, 3, &bytes_written);
+		if (retval != ERROR_OK)
+			return retval;
+		/* Then read pins designated by a signal mask */
+		buf[0] = 0x81;    /* Read Data Bits LowByte. */
+		retval = ft2232_write(buf, 1, &bytes_written);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = ft2232_read((uint8_t *)&vall, 1, &bytes_read);
+		if (retval != ERROR_OK)
+			return retval;
+		buf[0] = 0x83;    /* Read Data Bits HighByte. */
+		retval = ft2232_write(buf, 1, &bytes_written);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = ft2232_read((uint8_t *)&valh, 1, &bytes_read);
+		if (retval != ERROR_OK)
+			return retval;
+		sig->value = *value = ((valh << 8) | vall) & sig->mask; /* Join result bytes and apply signal bitmask */
+	}
+	return ERROR_OK;
+}
+
+
+/** Transfer bits in/out stored in char array starting from LSB first or MSB first,
+ * alternatively if you want to make MSB-first shift on LSB-first mode put data
+ * in reverse order into input/output array.
+ * \param *device void pointer to pass driver details to the function.
+ * \param bits is the number of bits (char array elements) to transfer.
+ * \param *mosidata pointer to char array with data to be send.
+ * \param *misodata pointer to char array with data to be received.
+ * \param nLSBfirst if zero shift data LSB-first, otherwise MSB-first.
+ * \return number of bits sent on success, or ERROR_FAIL on failure.
+ */
+int ft2232_transfer(void *device, int bits, char *mosidata, char *misodata, int nLSBfirst)
+{
+	static uint8_t buf[65539], databuf;
+	int i, retval, bit = 0, byte = 0, bytes = 0;
+	uint32_t bytes_written, bytes_read;
+
+	LOG_DEBUG("ft2232_transfer(device=@%p, bits=%d, mosidata=@%p, misodata=@%p, nLSDfirst=%d) ",\
+		(void *)device, bits, (void *)mosidata, (void *)misodata, nLSBfirst);
+
+	if (bits > 65535) {
+		LOG_ERROR("Cannot transfer more than 65536 bits at once!");
+		return ERROR_FAIL;
+	}
+
+	if (bits >= 8) {
+		/* Try to pack as many bits into bytes for better performance. */
+		bytes = bits / 8;
+		bytes--;		      /* MPSSE starts counting bytes from 0. */
+		buf[0] = (nLSBfirst) ? 0x31 : 0x39; /* Clock Bytes In and Out LSb or MSb first. */
+		buf[1] = (char)bytes & 0x0ff;
+		buf[2] = (char)((bytes >> 8) & 0x0ff);
+		bytes++;
+		for (byte = 0; byte * 8 < bits; byte++) {
+			databuf = 0;
+			for (i = 0; i < 8; i++)
+				databuf |= mosidata[byte * 8 + i] ? (1 << i) : 0;
+			buf[byte + 3] = databuf;
+		}
+		retval = ft2232_write(buf, bytes + 3, &bytes_written);
+		if (retval < 0) {
+			LOG_ERROR("ft2232_write() returns %d", retval);
+			return ERROR_FAIL;
+		}
+		retval = ft2232_read((uint8_t *)buf, bytes, &bytes_read);
+		if (retval < 0) {
+			LOG_ERROR("ft2232_read() returns %d", retval);
+			return ERROR_FAIL;
+		}
+		/* Explode read bytes into bit array. */
+		for (byte = 0; byte * 8 < bits; byte++)
+			for (bit = 0; bit < 8; bit++)
+				misodata[byte * 8 + bit] = buf[byte] & (1 << bit) ? 1 : 0;
+	}
+
+	/* Now send remaining bits that cannot be packed as bytes. */
+	/* Because "Clock Data Bits In and Out LSB/MSB" of FTDI is a mess, pack single */
+	/* bit read/writes into buffer and then flush it using single USB transfer. */
+	for (bit = bytes * 8; bit < bits; bit++) {
+		buf[3 * bit + 0] = (nLSBfirst) ? 0x33 : 0x3b;     /* Clock Bits In and Out LSb or MSb first. */
+		buf[3 * bit + 1] = 0;				 /* One bit per element. */
+		buf[3 * bit + 2] = mosidata[bit] ? 0xff : 0;      /* Take data from supplied array. */
+	}
+	retval = ft2232_write(buf, 3 * (bits - (bytes * 8)), &bytes_written);
+	if (retval < 0) {
+		LOG_ERROR("ft2232_write() returns %d", retval);
+		return ERROR_FAIL;
+	}
+	retval = ft2232_read((uint8_t *)misodata, bits - (bytes * 8), &bytes_read);
+	if (retval < 0) {
+		LOG_ERROR("ft2232_read() returns %d", retval);
+		return ERROR_FAIL;
+	}
+	/* FTDI MPSSE returns shift register value, our bit is MSb */
+	for (bit = bytes * 8; bit < bits; bit++)
+		misodata[bit] = (misodata[bit] & (nLSBfirst ? 0x01 : 0x80)) ? 1 : 0;
+	/* USE THIS FOR WIRE-LEVEL DEBUG */
+	/* LOG_DEBUG("read 0x%02X written 0x%02X", misodata[bit], mosidata[bit]); */
+
+	return bit;
+}
+
 
 /*
  * Commands that only apply to the highspeed FTx232H devices (FT2232H, FT4232H, FT232H).
@@ -4284,4 +4487,5 @@ struct jtag_interface ft2232_interface = {
 	.speed_div = ft2232_speed_div,
 	.khz = ft2232_khz,
 	.execute_queue = ft2232_execute_queue,
+	.bitbang = ft2232_bitbang,
 };

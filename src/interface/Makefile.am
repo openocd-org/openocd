@@ -15,10 +15,11 @@ BUILT_SOURCES +=
 CLEANFILES +=
 
 liboocdinterface_la_SOURCES = \
-	interface.c
+	interface_signal.c
 
 noinst_HEADERS = \
-	interface.h
+	interface.h \
+	interface_signal.h
 
 EXTRA_DIST =
 
