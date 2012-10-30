@@ -46,4 +46,6 @@ int oocd_interface_signal_add(char *name, unsigned int mask);
 int oocd_interface_signal_del(char *name);
 oocd_interface_signal_t *oocd_interface_signal_find(char *name);
 
+int oocd_interface_signal_register_commands(struct command_context *ctx);
+
 #endif
