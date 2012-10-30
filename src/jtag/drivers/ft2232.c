@@ -4490,3 +4490,19 @@ struct jtag_interface ft2232_interface = {
 	.execute_queue = ft2232_execute_queue,
 	.bitbang = ft2232_bitbang,
 };
+
+struct jtag_interface ft2232_interface_swd = {
+	.name = "ft2232_swd",
+	.supported = DEBUG_CAP_TMS_SEQ,
+	.commands = ft2232_command_handlers,
+	.transports = swd_only,
+
+	.init = ft2232_init,
+	.quit = ft2232_quit,
+	.speed = ft2232_speed,
+	.speed_div = ft2232_speed_div,
+	.khz = ft2232_khz,
+	.transfer = ft2232_transfer,
+	.bitbang = ft2232_bitbang,
+};
+
