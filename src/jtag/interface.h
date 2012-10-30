@@ -301,6 +301,7 @@ struct jtag_interface {
 };
 
 extern const char *jtag_only[];
+extern const char *swd_only[];
 
 extern const struct swd_driver *swd;
 
