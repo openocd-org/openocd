@@ -144,6 +144,7 @@ struct mips32_algorithm {
 #define MIPS32_OP_SH	0x29
 #define MIPS32_OP_SW	0x2B
 #define MIPS32_OP_ORI	0x0D
+#define MIPS32_OP_XORI	0x0E
 #define MIPS32_OP_XOR	0x26
 #define MIPS32_OP_SLTU  0x2B
 #define MIPS32_OP_SRL	0x03
@@ -186,6 +187,7 @@ struct mips32_algorithm {
 #define MIPS32_MTLO(reg)				MIPS32_R_INST(0, reg, 0, 0, 0, MIPS32_OP_MTLO)
 #define MIPS32_MTHI(reg)				MIPS32_R_INST(0, reg, 0, 0, 0, MIPS32_OP_MTHI)
 #define MIPS32_ORI(tar, src, val)		MIPS32_I_INST(MIPS32_OP_ORI, src, tar, val)
+#define MIPS32_XORI(tar, src, val)		MIPS32_I_INST(MIPS32_OP_XORI, src, tar, val)
 #define MIPS32_RDHWR(tar, dst)			MIPS32_R_INST(MIPS32_OP_SPECIAL3, 0, tar, dst, 0, MIPS32_OP_RDHWR)
 #define MIPS32_SB(reg, off, base)		MIPS32_I_INST(MIPS32_OP_SB, base, reg, off)
 #define MIPS32_SH(reg, off, base)		MIPS32_I_INST(MIPS32_OP_SH, base, reg, off)
