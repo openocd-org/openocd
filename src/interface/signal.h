@@ -49,4 +49,6 @@ int interface_signal_add(char *name, unsigned int mask);
 int interface_signal_del(char *name);
 struct interface_signal *interface_signal_find(char *name);
 
+int interface_signal_register_commands(struct command_context *ctx);
+
 #endif
