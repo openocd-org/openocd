@@ -222,12 +222,12 @@ static int jtag_dpi_stableclocks(int cycles)
 	return jtag_dpi_runtest(cycles);
 }
 
-static int jtag_dpi_execute_queue(void)
+static int jtag_dpi_execute_queue(struct jtag_command *cmd_queue)
 {
 	struct jtag_command *cmd;
 	int ret = ERROR_OK;
 
-	for (cmd = jtag_command_queue; ret == ERROR_OK && cmd;
+	for (cmd = cmd_queue; ret == ERROR_OK && cmd;
 	     cmd = cmd->next) {
 		switch (cmd->type) {
 		case JTAG_RUNTEST:

@@ -187,10 +187,12 @@ struct jtag_interface {
 #define DEBUG_CAP_TMS_SEQ	(1 << 0)
 
 	/**
-	 * Execute queued commands.
+	 * Execute commands in the supplied queue
+	 * @param cmd_queue - a linked list of commands to execute
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
-	int (*execute_queue)(void);
+
+	int (*execute_queue)(struct jtag_command *cmd_queue);
 };
 
 /**

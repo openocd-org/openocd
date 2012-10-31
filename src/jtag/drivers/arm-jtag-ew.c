@@ -85,9 +85,9 @@ static struct armjtagew *armjtagew_handle;
 /**************************************************************************
  * External interface implementation */
 
-static int armjtagew_execute_queue(void)
+static int armjtagew_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue;
+	struct jtag_command *cmd = cmd_queue;
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;

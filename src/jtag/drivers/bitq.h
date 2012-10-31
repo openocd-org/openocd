@@ -27,7 +27,7 @@ struct bitq_interface {
 
 extern struct bitq_interface *bitq_interface;
 
-int bitq_execute_queue(void);
+int bitq_execute_queue(struct jtag_command *cmd_queue);
 
 void bitq_cleanup(void);
 

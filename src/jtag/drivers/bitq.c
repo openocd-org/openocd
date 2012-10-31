@@ -203,11 +203,11 @@ static void bitq_scan(struct scan_command *cmd)
 	bitq_scan_field(&cmd->fields[i], 1);
 }
 
-int bitq_execute_queue(void)
+int bitq_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue; /* currently processed command */
+	struct jtag_command *cmd = cmd_queue; /* currently processed command */
 
-	bitq_in_state.cmd = jtag_command_queue;
+	bitq_in_state.cmd = cmd_queue;
 	bitq_in_state.field_idx = 0;
 	bitq_in_state.bit_pos   = 0;
 	bitq_in_state.status    = ERROR_OK;

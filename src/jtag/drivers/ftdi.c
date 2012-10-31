@@ -625,14 +625,14 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 	}
 }
 
-static int ftdi_execute_queue(void)
+static int ftdi_execute_queue(struct jtag_command *cmd_queue)
 {
 	/* blink, if the current layout has that feature */
 	struct signal *led = find_signal_by_name("LED");
 	if (led)
 		ftdi_set_signal(led, '1');
 
-	for (struct jtag_command *cmd = jtag_command_queue; cmd; cmd = cmd->next) {
+	for (struct jtag_command *cmd = cmd_queue; cmd; cmd = cmd->next) {
 		/* fill the write buffer with the desired command */
 		ftdi_execute_command(cmd);
 	}

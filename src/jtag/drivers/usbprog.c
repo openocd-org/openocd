@@ -83,9 +83,9 @@ static void usbprog_jtag_write_slice(struct usbprog_jtag *usbprog_jtag, unsigned
 static void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag, int bit, int value);
 /* static int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit); */
 
-static int usbprog_execute_queue(void)
+static int usbprog_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
+	struct jtag_command *cmd = cmd_queue;	/* currently processed command */
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;
