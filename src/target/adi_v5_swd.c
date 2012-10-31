@@ -20,6 +20,9 @@
 
 /**
  * @file
+ * TCEDRO: THIS FILE IS A MESS, IT SHOULD BE REMOVED ASAP!!!
+ * ITS FUNCTIONALITY IS DISTRIBUTED AMONG ARM_ADI_V5 (TARGET) + TRANSPORT (SWD)
+ *
  * Utilities to support ARM "Serial Wire Debug" (SWD), a low pin-count debug
  * link protocol used in cases where JTAG is not wanted.  This is coupled to
  * recent versions of ARM's "CoreSight" debug framework.  This specific code
