@@ -568,26 +568,20 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_r
 {
 	/**
 	 * Do not make this code static, but regenerate it every time,
-	 * as 5th element has to be changed to add parameters
+	 * as 3th element has to be changed to add parameters
 	 */
 	uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
+														/* start: */
+		MIPS32_MTC0(15, 31, 0),							/* move $15 to COP0 DeSave */
+		MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR),					/* $15 = MIPS32_PRACC_BASE_ADDR */
+		MIPS32_SW(8, PRACC_STACK_OFFSET, 15),					/* sw $8,PRACC_STACK_OFFSET($15) */
 
-		/* 5 */ MIPS32_MFC0(8, 0, 0),						/* move COP0 [cp0_reg select] to $8 */
+		/* 3 */ MIPS32_MFC0(8, 0, 0),						/* move COP0 [cp0_reg select] to $8 */
+		MIPS32_SW(8, PRACC_OUT_OFFSET, 15),					/* sw $8,PRACC_OUT_OFFSET($15) */
 
-		MIPS32_LUI(9, UPPER16(MIPS32_PRACC_PARAM_OUT)),		/* $11 = MIPS32_PRACC_PARAM_OUT */
-		MIPS32_ORI(9, 9, LOWER16(MIPS32_PRACC_PARAM_OUT)),
-		MIPS32_SW(8, 0, 9),									/* sw $8,0($9) */
-
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(12)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
+		MIPS32_LW(8, PRACC_STACK_OFFSET, 15),					/* lw $8,PRACC_STACK_OFFSET($15) */
+		MIPS32_B(NEG16(7)),							/* b start */
+		MIPS32_MFC0(15, 31, 0),							/* move COP0 DeSave to $15 */
 	};
 
 	/**
@@ -604,56 +598,32 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_r
 	 * MIPS32_MTC0 is implemented via MIPS32_R_INST macro.
 	 * In order to insert our parameters, we must change rd and funct fields.
 	 */
-	code[5] |= (cp0_reg << 11) | cp0_sel;  /* change rd and funct of MIPS32_R_INST macro */
+	code[3] |= (cp0_reg << 11) | cp0_sel;  /* change rd and funct of MIPS32_R_INST macro */
 
-	/* TODO remove array */
-	uint32_t *param_out = val;
-	int retval;
-
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 1, param_out, 1);
-
-	return retval;
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 1, val, 1);
 }
 
-int mips32_cp0_write(struct mips_ejtag *ejtag_info,
-		uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel)
+int mips32_cp0_write(struct mips_ejtag *ejtag_info, uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel)
 {
 	uint32_t code[] = {
 															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
+		MIPS32_MTC0(15, 31, 0),							/* move $15 to COP0 DeSave */
+		MIPS32_LUI(15, UPPER16(val)),						/* Load val to $15 */
+		MIPS32_ORI(15, 15, LOWER16(val)),
 
-		MIPS32_LUI(8, UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
-		MIPS32_ORI(8, 8, LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9, 0, 8),									/* Load write val to $9 */
+		/* 3 */ MIPS32_MTC0(15, 0, 0),						/* move $15 to COP0 [cp0_reg select] */
 
-		/* 8 */ MIPS32_MTC0(9, 0, 0),						/* move $9 to COP0 [cp0_reg select] */
-
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(12)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
+		MIPS32_B(NEG16(5)),							/* b start */
+		MIPS32_MFC0(15, 31, 0),							/* move COP0 DeSave to $15 */
 	};
 
 	/**
 	 * Note that MIPS32_MTC0 macro is implemented via MIPS32_R_INST macro.
 	 * In order to insert our parameters, we must change rd and funct fields.
 	 */
-	code[8] |= (cp0_reg << 11) | cp0_sel;  /* change rd and funct fields of MIPS32_R_INST macro */
+	code[3] |= (cp0_reg << 11) | cp0_sel;  /* change rd and funct fields of MIPS32_R_INST macro */
 
-	/* TODO remove array */
-	uint32_t *param_in = malloc(1 * sizeof(uint32_t));
-	int retval;
-	param_in[0] = val;
-
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 1, param_in, 0, NULL, 1);
-
-	free(param_in);
-
-	return retval;
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 0, NULL, 1);
 }
 
 /**
