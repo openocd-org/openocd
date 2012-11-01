@@ -379,34 +379,22 @@ static int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr,
 
 static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
 {
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
+	uint32_t code[] = {
+														/* start: */
+		MIPS32_MTC0(15, 31, 0),						/* move $15 to COP0 DeSave */
+		MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR),				/* $15 = MIPS32_PRACC_BASE_ADDR */
+		MIPS32_SW(8, PRACC_STACK_OFFSET, 15),				/* sw $8,PRACC_STACK_OFFSET($15) */
 
-		MIPS32_LW(8, NEG16(MIPS32_PRACC_STACK-MIPS32_PRACC_PARAM_IN), 15), /* load R8 @ param_in[0] = address */
+		MIPS32_LUI(8, UPPER16((addr + 0x8000))),                        /* load  $8 with modified upper address */
+		MIPS32_LW(8, LOWER16(addr), 8),					/* lw $8, LOWER16(addr)($8) */
+		MIPS32_SW(8, PRACC_OUT_OFFSET, 15),				/* sw $8,PRACC_OUT_OFFSET($15) */
 
-		MIPS32_LW(8, 0, 8),									/* lw $8,0($8), Load $8 with the word @mem[$8] */
-		MIPS32_SW(8, NEG16(MIPS32_PRACC_STACK - MIPS32_PRACC_PARAM_OUT), 15), /* store R8 @ param_out[0] */
-
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(9)),									/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
+		MIPS32_LW(8, PRACC_STACK_OFFSET, 15),				/* lw $8,PRACC_STACK_OFFSET($15) */
+		MIPS32_B(NEG16(8)),							/* b start */
+		MIPS32_MFC0(15, 31, 0),						/* move COP0 DeSave to $15 */
 	};
 
-	int retval = ERROR_OK;
-	uint32_t param_in[1];
-
-	param_in[0] = addr;
-
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-			ARRAY_SIZE(param_in), param_in, 1, buf, 1);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return retval;
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 1, buf, 1);
 }
 
 static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
