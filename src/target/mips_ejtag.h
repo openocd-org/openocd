@@ -143,7 +143,6 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info);
 int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step);
-int mips_ejtag_read_debug(struct mips_ejtag *ejtag_info, uint32_t* debug_reg);
 
 static inline void mips_le_to_h_u32(jtag_callback_data_t arg)
 {

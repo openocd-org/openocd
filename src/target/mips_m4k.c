@@ -82,22 +82,15 @@ static int mips_m4k_debug_entry(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
-	uint32_t debug_reg;
 
-	/* read debug register */
-	mips_ejtag_read_debug(ejtag_info, &debug_reg);
+	/* make sure stepping disabled, SSt bit in CP0 debug register cleared */
+	mips_ejtag_config_step(ejtag_info, 0);
 
 	/* make sure break unit configured */
 	mips32_configure_break_unit(target);
 
 	/* attempt to find halt reason */
 	mips_m4k_examine_debug_reason(target);
-
-	/* clear single step if active */
-	if (debug_reg & EJTAG_DEBUG_DSS) {
-		/* stopped due to single step - clear step bit */
-		mips_ejtag_config_step(ejtag_info, 0);
-	}
 
 	mips32_save_context(target);
 
