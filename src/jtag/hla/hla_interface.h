@@ -44,6 +44,8 @@ struct hl_interface_param_s {
 	unsigned api;
 	/** */
 	enum hl_transports transport;
+	/** */
+	int max_buffer;
 };
 
 struct hl_interface_s {

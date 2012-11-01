@@ -671,11 +671,11 @@ static int adapter_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count,
 		uint8_t *buffer)
 {
+	struct hl_interface_s *adapter = target_to_adapter(target);
 	int res;
-	uint32_t buffer_threshold = 128;
+	uint32_t buffer_threshold = (adapter->param.max_buffer / 4);
 	uint32_t addr_increment = 4;
 	uint32_t c;
-	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -687,7 +687,7 @@ static int adapter_read_memory(struct target *target, uint32_t address,
 	 */
 	if (size != 4) {
 		count *= size;
-		buffer_threshold = 64;
+		buffer_threshold = (adapter->param.max_buffer / 4) / 2;
 		addr_increment = 1;
 	}
 
@@ -719,11 +719,11 @@ static int adapter_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count,
 		const uint8_t *buffer)
 {
+	struct hl_interface_s *adapter = target_to_adapter(target);
 	int res;
-	uint32_t buffer_threshold = 128;
+	uint32_t buffer_threshold = (adapter->param.max_buffer / 4);
 	uint32_t addr_increment = 4;
 	uint32_t c;
-	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -735,7 +735,7 @@ static int adapter_write_memory(struct target *target, uint32_t address,
 	 */
 	if (size != 4) {
 		count *= size;
-		buffer_threshold = 64;
+		buffer_threshold = (adapter->param.max_buffer / 4) / 2;
 		addr_increment = 1;
 	}
 

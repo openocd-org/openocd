@@ -1160,6 +1160,9 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	h->transport = param->transport;
 
+	/* set max read/write buffer size in bytes */
+	param->max_buffer = 512;
+
 	const uint16_t vids[] = { param->vid, 0 };
 	const uint16_t pids[] = { param->pid, 0 };
 
