@@ -812,6 +812,7 @@ static int cortex_a8_poll(struct target *target)
 			LOG_DEBUG("Target halted");
 			target->state = TARGET_HALTED;
 			if ((prev_target_state == TARGET_RUNNING)
+				|| (prev_target_state == TARGET_UNKNOWN)
 				|| (prev_target_state == TARGET_RESET)) {
 				retval = cortex_a8_debug_entry(target);
 				if (retval != ERROR_OK)
