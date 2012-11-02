@@ -93,12 +93,6 @@ struct mips32_pracc_context {
 	struct mips_ejtag *ejtag_info;
 };
 
-static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint8_t *buf);
-static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint16_t *buf);
-static int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint32_t *buf);
 static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info,
 		uint32_t addr, uint32_t *buf);
 
@@ -294,86 +288,102 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_
 
 int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
-	switch (size) {
-		case 1:
-			return mips32_pracc_read_mem8(ejtag_info, addr, count, (uint8_t *)buf);
-		case 2:
-			return mips32_pracc_read_mem16(ejtag_info, addr, count, (uint16_t *)buf);
-		case 4:
-			if (count == 1)
-				return mips32_pracc_read_u32(ejtag_info, addr, (uint32_t *)buf);
+	if (count == 1 && size == 4)
+		return mips32_pracc_read_u32(ejtag_info, addr, (uint32_t *)buf);
+
+	int retval = ERROR_FAIL;
+
+	uint32_t *code = NULL;
+	uint32_t *data = NULL;
+
+	code = malloc((256 * 2 + 10) * sizeof(uint32_t));
+	if (code == NULL) {
+		LOG_ERROR("Out of memory");
+		goto exit;
+	}
+
+	if (size != 4) {
+		data = malloc(256 * sizeof(uint32_t));
+		if (data == NULL) {
+			LOG_ERROR("Out of memory");
+			goto exit;
+		}
+	}
+
+	uint32_t *buf32 = buf;
+	uint16_t *buf16 = buf;
+	uint8_t *buf8 = buf;
+
+	int i;
+	uint32_t upper_base_addr, last_upper_base_addr;
+	int this_round_count;
+	int code_len;
+
+	while (count) {
+		this_round_count = (count > 256) ? 256 : count;
+		last_upper_base_addr = UPPER16((addr + 0x8000));
+		uint32_t *code_p = code;
+
+		*code_p++ = MIPS32_MTC0(15, 31, 0);					/* save $15 in DeSave */
+		*code_p++ = MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR);			/* $15 = MIPS32_PRACC_BASE_ADDR */
+		*code_p++ = MIPS32_SW(8, PRACC_STACK_OFFSET, 15);			/* save $8 and $9 to pracc stack */
+		*code_p++ = MIPS32_SW(9, PRACC_STACK_OFFSET, 15);
+		*code_p++ = MIPS32_LUI(9, last_upper_base_addr);			/* load the upper memory address in $9*/
+		code_len = 5;
+
+		for (i = 0; i != this_round_count; i++) {		/* Main code loop */
+			upper_base_addr = UPPER16((addr + 0x8000));
+			if (last_upper_base_addr != upper_base_addr) {
+				*code_p++ = MIPS32_LUI(9, upper_base_addr);		/* if needed, change upper address in $9*/
+				code_len++;
+				last_upper_base_addr = upper_base_addr;
+			}
+
+			if (size == 4)
+				*code_p++ = MIPS32_LW(8, LOWER16(addr), 9);		/* load from memory to $8 */
+			else if (size == 2)
+				*code_p++ = MIPS32_LHU(8, LOWER16(addr), 9);
 			else
-				return mips32_pracc_read_mem32(ejtag_info, addr, count, (uint32_t *)buf);
+				*code_p++ = MIPS32_LBU(8, LOWER16(addr), 9);
+
+			*code_p++ = MIPS32_SW(8, PRACC_OUT_OFFSET + i * 4, 15);		/* store $8 at param out */
+
+			code_len += 2;
+			addr += size;
+		}
+
+		*code_p++ = MIPS32_LW(9, PRACC_STACK_OFFSET, 15);			/* restore $8 and $9 from pracc stack */
+		*code_p++ = MIPS32_LW(8, PRACC_STACK_OFFSET, 15);
+
+		code_len += 4;
+		*code_p++ = MIPS32_B(NEG16(code_len - 1));					/* jump to start */
+		*code_p = MIPS32_MFC0(15, 31, 0);					/* restore $15 from DeSave */
+
+		if (size == 4) {
+			retval = mips32_pracc_exec(ejtag_info, code_len, code, 0, NULL, this_round_count, buf32, 1);
+			if (retval != ERROR_OK)
+				goto exit;
+			buf32 += this_round_count;
+		} else {
+			retval = mips32_pracc_exec(ejtag_info, code_len, code, 0, NULL, this_round_count, data, 1);
+			if (retval != ERROR_OK)
+				goto exit;
+			uint32_t *data_p = data;
+			for (i = 0; i != this_round_count; i++) {
+				if (size == 2)
+					*buf16++ = *data_p++;
+				else
+					*buf8++ = *data_p++;
+			}
+		}
+		count -= this_round_count;
 	}
 
-	return ERROR_OK;
-}
-
-static int mips32_pracc_read_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
-{
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
-		MIPS32_SW(10, 0, 15),								/* sw $10,($15) */
-		MIPS32_SW(11, 0, 15),								/* sw $11,($15) */
-
-		MIPS32_LUI(8, UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
-		MIPS32_ORI(8, 8, LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9, 0, 8),									/* $9 = mem[$8]; read addr */
-		MIPS32_LW(10, 4, 8),								/* $10 = mem[$8 + 4]; read count */
-		MIPS32_LUI(11, UPPER16(MIPS32_PRACC_PARAM_OUT)),	/* $11 = MIPS32_PRACC_PARAM_OUT */
-		MIPS32_ORI(11, 11, LOWER16(MIPS32_PRACC_PARAM_OUT)),
-															/* loop: */
-		MIPS32_BEQ(0, 10, 8),								/* beq 0, $10, end */
-		MIPS32_NOP,
-
-		MIPS32_LW(8, 0, 9),									/* lw $8,0($9), Load $8 with the word @mem[$9] */
-		MIPS32_SW(8, 0, 11),								/* sw $8,0($11) */
-
-		MIPS32_ADDI(10, 10, NEG16(1)),						/* $10-- */
-		MIPS32_ADDI(9, 9, 4),								/* $1 += 4 */
-		MIPS32_ADDI(11, 11, 4),								/* $11 += 4 */
-
-		MIPS32_B(NEG16(8)),									/* b loop */
-		MIPS32_NOP,
-															/* end: */
-		MIPS32_LW(11, 0, 15),								/* lw $11,($15) */
-		MIPS32_LW(10, 0, 15),								/* lw $10,($15) */
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(27)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
-	};
-
-	int retval = ERROR_OK;
-	int blocksize;
-	int wordsread;
-	uint32_t param_in[2];
-
-	wordsread = 0;
-
-	while (count > 0) {
-		blocksize = count;
-		if (count > 0x400)
-			blocksize = 0x400;
-
-		param_in[0] = addr;
-		param_in[1] = blocksize;
-
-		retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-				ARRAY_SIZE(param_in), param_in, blocksize, &buf[wordsread], 1);
-		if (retval != ERROR_OK)
-			return retval;
-
-		count -= blocksize;
-		addr += blocksize*sizeof(uint32_t);
-		wordsread += blocksize;
-	}
-
+exit:
+	if (code)
+		free(code);
+	if (data)
+		free(data);
 	return retval;
 }
 
@@ -395,161 +405,6 @@ static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, u
 	};
 
 	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 1, buf, 1);
-}
-
-static int mips32_pracc_read_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
-{
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
-		MIPS32_SW(10, 0, 15),								/* sw $10,($15) */
-		MIPS32_SW(11, 0, 15),								/* sw $11,($15) */
-
-		MIPS32_LUI(8, UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
-		MIPS32_ORI(8, 8, LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9, 0, 8),									/* $9 = mem[$8]; read addr */
-		MIPS32_LW(10, 4, 8),								/* $10 = mem[$8 + 4]; read count */
-		MIPS32_LUI(11, UPPER16(MIPS32_PRACC_PARAM_OUT)),	/* $11 = MIPS32_PRACC_PARAM_OUT */
-		MIPS32_ORI(11, 11, LOWER16(MIPS32_PRACC_PARAM_OUT)),
-															/* loop: */
-		MIPS32_BEQ(0, 10, 8),								/* beq 0, $10, end */
-		MIPS32_NOP,
-
-		MIPS32_LHU(8, 0, 9),								/* lw $8,0($9), Load $8 with the halfword @mem[$9] */
-		MIPS32_SW(8, 0, 11),								/* sw $8,0($11) */
-
-		MIPS32_ADDI(10, 10, NEG16(1)),						/* $10-- */
-		MIPS32_ADDI(9, 9, 2),								/* $9 += 2 */
-		MIPS32_ADDI(11, 11, 4),								/* $11 += 4 */
-		MIPS32_B(NEG16(8)),									/* b loop */
-		MIPS32_NOP,
-															/* end: */
-		MIPS32_LW(11, 0, 15),								/* lw $11,($15) */
-		MIPS32_LW(10, 0, 15),								/* lw $10,($15) */
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(27)),								/* b start */
-		MIPS32_MFC0(15, 30, 0),								/* move COP0 DeSave to $15 */
-	};
-
-	/* TODO remove array */
-	uint32_t *param_out = malloc(count * sizeof(uint32_t));
-	if (param_out == NULL) {
-		LOG_ERROR("Out of memory");
-		return ERROR_FAIL;
-	}
-
-	int retval = ERROR_OK;
-	int blocksize;
-	int hwordsread = 0;
-	uint32_t param_in[2];
-
-	while (count > 0) {
-		blocksize = count;
-		if (count > 0x400)
-			blocksize = 0x400;
-
-		param_in[0] = addr;
-		param_in[1] = blocksize;
-
-		retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-			ARRAY_SIZE(param_in), param_in, blocksize, &param_out[hwordsread], 1);
-
-		if (retval != ERROR_OK)
-			return retval;
-
-		count -= blocksize;
-		addr += blocksize*sizeof(uint16_t);
-		hwordsread += blocksize;
-	}
-
-	int i;
-	for (i = 0; i < hwordsread; i++)
-		buf[i] = param_out[i];
-
-	free(param_out);
-	return retval;
-}
-
-static int mips32_pracc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
-{
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
-		MIPS32_SW(10, 0, 15),								/* sw $10,($15) */
-		MIPS32_SW(11, 0, 15),								/* sw $11,($15) */
-
-		MIPS32_LUI(8, UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
-		MIPS32_ORI(8, 8, LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9, 0, 8),									/* $9 = mem[$8]; read addr */
-		MIPS32_LW(10, 4, 8),								/* $10 = mem[$8 + 4]; read count */
-		MIPS32_LUI(11, UPPER16(MIPS32_PRACC_PARAM_OUT)),	/* $11 = MIPS32_PRACC_PARAM_OUT */
-		MIPS32_ORI(11, 11, LOWER16(MIPS32_PRACC_PARAM_OUT)),
-															/* loop: */
-		MIPS32_BEQ(0, 10, 8),								/* beq 0, $10, end */
-		MIPS32_NOP,
-
-		MIPS32_LBU(8, 0, 9),								/* lw $8,0($9), Load t4 with the byte @mem[t1] */
-		MIPS32_SW(8, 0, 11),								/* sw $8,0($11) */
-
-		MIPS32_ADDI(10, 10, NEG16(1)),						/* $10-- */
-		MIPS32_ADDI(9, 9, 1),								/* $9 += 1 */
-		MIPS32_ADDI(11, 11, 4),								/* $11 += 4 */
-		MIPS32_B(NEG16(8)),									/* b loop */
-		MIPS32_NOP,
-															/* end: */
-		MIPS32_LW(11, 0, 15),								/* lw $11,($15) */
-		MIPS32_LW(10, 0, 15),								/* lw $10,($15) */
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(27)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
-	};
-
-	/* TODO remove array */
-	uint32_t *param_out = malloc(count * sizeof(uint32_t));
-	if (param_out == NULL) {
-		LOG_ERROR("Out of memory");
-		return ERROR_FAIL;
-	}
-
-	int retval = ERROR_OK;
-	int blocksize;
-	uint32_t param_in[2];
-	int bytesread = 0;
-
-	while (count > 0) {
-		blocksize = count;
-		if (count > 0x400)
-			blocksize = 0x400;
-
-		param_in[0] = addr;
-		param_in[1] = blocksize;
-
-		retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-			ARRAY_SIZE(param_in), param_in, count, &param_out[bytesread], 1);
-
-		if (retval != ERROR_OK)
-			return retval;
-
-		count -= blocksize;
-		addr += blocksize;
-		bytesread += blocksize;
-	}
-	int i;
-	for (i = 0; i < bytesread; i++)
-		buf[i] = param_out[i];
-
-	free(param_out);
-	return retval;
 }
 
 int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_reg, uint32_t cp0_sel)
