@@ -93,18 +93,6 @@ struct mips32_pracc_context {
 	struct mips_ejtag *ejtag_info;
 };
 
-static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info,
-		uint32_t addr, uint32_t *buf);
-
-static int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint8_t *buf);
-static int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint16_t *buf);
-static int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint32_t *buf);
-static int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info,
-		uint32_t addr, uint32_t *buf);
-
 static int mips32_pracc_sync_cache(struct mips_ejtag *ejtag_info,
 		uint32_t start_addr, uint32_t end_addr);
 static int mips32_pracc_clean_invalidate_cache(struct mips_ejtag *ejtag_info,
@@ -286,6 +274,26 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_
 	return ERROR_OK;
 }
 
+static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
+{
+	uint32_t code[] = {
+														/* start: */
+		MIPS32_MTC0(15, 31, 0),						/* move $15 to COP0 DeSave */
+		MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR),				/* $15 = MIPS32_PRACC_BASE_ADDR */
+		MIPS32_SW(8, PRACC_STACK_OFFSET, 15),				/* sw $8,PRACC_STACK_OFFSET($15) */
+
+		MIPS32_LUI(8, UPPER16((addr + 0x8000))),                        /* load  $8 with modified upper address */
+		MIPS32_LW(8, LOWER16(addr), 8),					/* lw $8, LOWER16(addr)($8) */
+		MIPS32_SW(8, PRACC_OUT_OFFSET, 15),				/* sw $8,PRACC_OUT_OFFSET($15) */
+
+		MIPS32_LW(8, PRACC_STACK_OFFSET, 15),				/* lw $8,PRACC_STACK_OFFSET($15) */
+		MIPS32_B(NEG16(8)),							/* b start */
+		MIPS32_MFC0(15, 31, 0),						/* move COP0 DeSave to $15 */
+	};
+
+	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 1, buf, 1);
+}
+
 int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
 	if (count == 1 && size == 4)
@@ -385,26 +393,6 @@ exit:
 	if (data)
 		free(data);
 	return retval;
-}
-
-static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
-{
-	uint32_t code[] = {
-														/* start: */
-		MIPS32_MTC0(15, 31, 0),						/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR),				/* $15 = MIPS32_PRACC_BASE_ADDR */
-		MIPS32_SW(8, PRACC_STACK_OFFSET, 15),				/* sw $8,PRACC_STACK_OFFSET($15) */
-
-		MIPS32_LUI(8, UPPER16((addr + 0x8000))),                        /* load  $8 with modified upper address */
-		MIPS32_LW(8, LOWER16(addr), 8),					/* lw $8, LOWER16(addr)($8) */
-		MIPS32_SW(8, PRACC_OUT_OFFSET, 15),				/* sw $8,PRACC_OUT_OFFSET($15) */
-
-		MIPS32_LW(8, PRACC_STACK_OFFSET, 15),				/* lw $8,PRACC_STACK_OFFSET($15) */
-		MIPS32_B(NEG16(8)),							/* b start */
-		MIPS32_MFC0(15, 31, 0),						/* move COP0 DeSave to $15 */
-	};
-
-	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 1, buf, 1);
 }
 
 int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_reg, uint32_t cp0_sel)
@@ -619,27 +607,101 @@ static int mips32_pracc_clean_invalidate_cache(struct mips_ejtag *ejtag_info,
 	return retval;
 }
 
+static int mips32_pracc_write_mem_generic(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
+{
+	uint32_t *code;
+	code = malloc((128 * 3 + 9) * sizeof(uint32_t));	/* alloc memory for the worst case */
+	if (code == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	uint32_t *buf32 = buf;
+	uint16_t *buf16 = buf;
+	uint8_t *buf8 = buf;
+
+	int i;
+	int retval = ERROR_FAIL;
+	uint32_t *code_p;
+	uint32_t upper_base_addr, last_upper_base_addr;
+	int this_round_count;
+	int code_len;
+
+	while (count) {
+		this_round_count = (count > 128) ? 128 : count;
+		last_upper_base_addr = UPPER16((addr + 0x8000));
+		code_p = code;
+
+		*code_p++ = MIPS32_MTC0(15, 31, 0);					/* save $15 in DeSave */
+		*code_p++ = MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR);			/* $15 = MIPS32_PRACC_BASE_ADDR */
+		*code_p++ = MIPS32_SW(8, PRACC_STACK_OFFSET, 15);			/* save $8 to pracc stack */
+		*code_p++ = MIPS32_LUI(15, last_upper_base_addr);			/* reuse $15 as memory base address */
+		code_len = 4;
+
+		for (i = 0; i != this_round_count; i++) {
+			upper_base_addr = UPPER16((addr + 0x8000));
+			if (last_upper_base_addr != upper_base_addr) {
+				*code_p++ = MIPS32_LUI(15, upper_base_addr);		/* if needed, change upper address in $15*/
+				code_len++;
+				last_upper_base_addr = upper_base_addr;
+			}
+
+			if (size == 4) {	/* for word write check if one half word is 0 and load it accordingly */
+				if (LOWER16(*buf32) == 0) {
+					*code_p++ = MIPS32_LUI(8, UPPER16(*buf32));		/* load only upper value */
+					code_len++;
+				} else if (UPPER16(*buf32) == 0) {
+					*code_p++ = MIPS32_ORI(8, 0, LOWER16(*buf32));		/* load only lower value */
+					code_len++;
+				} else {
+					*code_p++ = MIPS32_LUI(8, UPPER16(*buf32));		/* load upper and lower */
+					*code_p++ = MIPS32_ORI(8, 8, LOWER16(*buf32));
+					code_len += 2;
+				}
+				*code_p++ = MIPS32_SW(8, LOWER16(addr), 15);			/* store word to memory */
+				code_len++;
+				buf32++;
+
+			} else if (size == 2) {
+				*code_p++ = MIPS32_ORI(8, 0, *buf16);				/* load lower value */
+				*code_p++ = MIPS32_SH(8, LOWER16(addr), 15);		/* store half word to memory */
+				code_len += 2;
+				buf16++;
+
+			} else {
+				*code_p++ = MIPS32_ORI(8, 0, *buf8);				/* load lower value */
+				*code_p++ = MIPS32_SB(8, LOWER16(addr), 15);			/* store byte to memory */
+				code_len += 2;
+				buf8++;
+			}
+
+			addr += size;
+		}
+
+		*code_p++ = MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR);			/* $15 = MIPS32_PRACC_BASE_ADDR */
+		*code_p++ = MIPS32_LW(8, PRACC_STACK_OFFSET, 15);			/* restore $8 from pracc stack */
+
+		code_len += 4;
+		*code_p++ = MIPS32_B(NEG16(code_len - 1));					/* jump to start */
+		*code_p = MIPS32_MFC0(15, 31, 0);					/* restore $15 from DeSave */
+
+		retval = mips32_pracc_exec(ejtag_info, code_len, code, 0, NULL, 0, NULL, 1);
+		if (retval != ERROR_OK)
+			goto exit;
+
+		count -= this_round_count;
+	}
+
+exit:
+	free(code);
+	return retval;
+}
 
 int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
-	int retval;
-
-	switch (size) {
-		case 1:
-			retval = mips32_pracc_write_mem8(ejtag_info, addr, count, (uint8_t *)buf);
-			break;
-		case 2:
-			retval = mips32_pracc_write_mem16(ejtag_info, addr, count, (uint16_t *)buf);
-			break;
-		case 4:
-			if (count == 1)
-				retval = mips32_pracc_write_u32(ejtag_info, addr, (uint32_t *)buf);
-			else
-				retval = mips32_pracc_write_mem32(ejtag_info, addr, count, (uint32_t *)buf);
-			break;
-		default:
-			retval = ERROR_FAIL;
-	}
+	int retval = mips32_pracc_write_mem_generic(ejtag_info, addr, size, count, buf);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/**
 	 * If we are in the cachable regoion and cache is activated,
@@ -699,200 +761,6 @@ int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int siz
 				break;
 		}
 	}
-
-	return retval;
-}
-
-static int mips32_pracc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
-{
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
-		MIPS32_SW(10, 0, 15),								/* sw $10,($15) */
-		MIPS32_SW(11, 0, 15),								/* sw $11,($15) */
-
-		MIPS32_ADDI(8, 15, NEG16(MIPS32_PRACC_STACK-MIPS32_PRACC_PARAM_IN)),  /* $8= MIPS32_PRACC_PARAM_IN */
-		MIPS32_LW(9, 0, 8),									/* Load write addr to $9 */
-		MIPS32_LW(10, 4, 8),								/* Load write count to $10 */
-		MIPS32_ADDI(8, 8, 8),								/* $8 += 8 beginning of data */
-
-															/* loop: */
-		MIPS32_LW(11, 0, 8),								/* lw $11,0($8), Load $11 with the word @mem[$8] */
-		MIPS32_SW(11, 0, 9),								/* sw $11,0($9) */
-
-		MIPS32_ADDI(9, 9, 4),								/* $9 += 4 */
-		MIPS32_BNE(10, 9, NEG16(4)),						/* bne $10, $9, loop */
-		MIPS32_ADDI(8, 8, 4),								/* $8 += 4 */
-
-															/* end: */
-		MIPS32_LW(11, 0, 15),								/* lw $11,($15) */
-		MIPS32_LW(10, 0, 15),								/* lw $10,($15) */
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(21)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
-	};
-
-	/* TODO remove array */
-	uint32_t *param_in = malloc((count + 2) * sizeof(uint32_t));
-	param_in[0] = addr;
-	param_in[1] = addr + (count * sizeof(uint32_t));	/* last address */
-
-	memcpy(&param_in[2], buf, count * sizeof(uint32_t));
-
-	int retval;
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-		count + 2, param_in, 0, NULL, 1);
-
-	free(param_in);
-
-	return retval;
-}
-
-static int mips32_pracc_write_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *buf)
-{
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
-
-		MIPS32_LW(8, NEG16((MIPS32_PRACC_STACK-MIPS32_PRACC_PARAM_IN)-4), 15),	/* load R8 @ param_in[1] = data */
-		MIPS32_LW(9, NEG16(MIPS32_PRACC_STACK-MIPS32_PRACC_PARAM_IN), 15),		/* load R9 @ param_in[0] = address */
-
-		MIPS32_SW(8, 0, 9),									/* sw $8,0($9) */
-
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(11)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
-	};
-
-	/* TODO remove array */
-	uint32_t param_in[1 + 1];
-	param_in[0] = addr;
-	param_in[1] = *buf;
-
-	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-		ARRAY_SIZE(param_in), param_in, 0, NULL, 1);
-}
-
-static int mips32_pracc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
-{
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
-		MIPS32_SW(10, 0, 15),								/* sw $10,($15) */
-		MIPS32_SW(11, 0, 15),								/* sw $11,($15) */
-
-		MIPS32_LUI(8, UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
-		MIPS32_ORI(8, 8, LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9, 0, 8),									/* Load write addr to $9 */
-		MIPS32_LW(10, 4, 8),								/* Load write count to $10 */
-		MIPS32_ADDI(8, 8, 8),								/* $8 += 8 */
-															/* loop: */
-		MIPS32_BEQ(0, 10, 8),								/* beq $0, $10, end */
-		MIPS32_NOP,
-
-		MIPS32_LW(11, 0, 8),								/* lw $11,0($8), Load $11 with the word @mem[$8] */
-		MIPS32_SH(11, 0, 9),								/* sh $11,0($9) */
-
-		MIPS32_ADDI(10, 10, NEG16(1)),						/* $10-- */
-		MIPS32_ADDI(9, 9, 2),								/* $9 += 2 */
-		MIPS32_ADDI(8, 8, 4),								/* $8 += 4 */
-
-		MIPS32_B(NEG16(8)),									/* b loop */
-		MIPS32_NOP,
-															/* end: */
-		MIPS32_LW(11, 0, 15),								/* lw $11,($15) */
-		MIPS32_LW(10, 0, 15),								/* lw $10,($15) */
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(26)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
-	};
-
-	/* TODO remove array */
-	uint32_t *param_in = malloc((count + 2) * sizeof(uint32_t));
-	int i;
-	param_in[0] = addr;
-	param_in[1] = count;
-
-	for (i = 0; i < count; i++)
-		param_in[i + 2] = buf[i];
-
-	int retval;
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-		count + 2, param_in, 0, NULL, 1);
-
-	free(param_in);
-
-	return retval;
-}
-
-static int mips32_pracc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
-{
-	static const uint32_t code[] = {
-															/* start: */
-		MIPS32_MTC0(15, 31, 0),								/* move $15 to COP0 DeSave */
-		MIPS32_LUI(15, UPPER16(MIPS32_PRACC_STACK)),		/* $15 = MIPS32_PRACC_STACK */
-		MIPS32_ORI(15, 15, LOWER16(MIPS32_PRACC_STACK)),
-		MIPS32_SW(8, 0, 15),								/* sw $8,($15) */
-		MIPS32_SW(9, 0, 15),								/* sw $9,($15) */
-		MIPS32_SW(10, 0, 15),								/* sw $10,($15) */
-		MIPS32_SW(11, 0, 15),								/* sw $11,($15) */
-
-		MIPS32_LUI(8, UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
-		MIPS32_ORI(8, 8, LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9, 0, 8),									/* Load write addr to $9 */
-		MIPS32_LW(10, 4, 8),								/* Load write count to $10 */
-		MIPS32_ADDI(8, 8, 8),								/* $8 += 8 */
-															/* loop: */
-		MIPS32_BEQ(0, 10, 8),								/* beq $0, $10, end */
-		MIPS32_NOP,
-
-		MIPS32_LW(11, 0, 8),								/* lw $11,0($8), Load $11 with the word @mem[$8] */
-		MIPS32_SB(11, 0, 9),								/* sb $11,0($9) */
-
-		MIPS32_ADDI(10, 10, NEG16(1)),						/* $10-- */
-		MIPS32_ADDI(9, 9, 1),								/* $9 += 1 */
-		MIPS32_ADDI(8, 8, 4),								/* $8 += 4 */
-
-		MIPS32_B(NEG16(8)),									/* b loop */
-		MIPS32_NOP,
-															/* end: */
-		MIPS32_LW(11, 0, 15),								/* lw $11,($15) */
-		MIPS32_LW(10, 0, 15),								/* lw $10,($15) */
-		MIPS32_LW(9, 0, 15),								/* lw $9,($15) */
-		MIPS32_LW(8, 0, 15),								/* lw $8,($15) */
-		MIPS32_B(NEG16(26)),								/* b start */
-		MIPS32_MFC0(15, 31, 0),								/* move COP0 DeSave to $15 */
-	};
-
-	/* TODO remove array */
-	uint32_t *param_in = malloc((count + 2) * sizeof(uint32_t));
-	int retval;
-	int i;
-	param_in[0] = addr;
-	param_in[1] = count;
-
-	for (i = 0; i < count; i++)
-		param_in[i + 2] = buf[i];
-
-	retval = mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code,
-		count + 2, param_in, 0, NULL, 1);
-
-	free(param_in);
 
 	return retval;
 }
@@ -1105,7 +973,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 
 	/* write program into RAM */
 	if (write_t != ejtag_info->fast_access_save) {
-		mips32_pracc_write_mem32(ejtag_info, source->address, ARRAY_SIZE(handler_code), handler_code);
+		mips32_pracc_write_mem_generic(ejtag_info, source->address, 4, ARRAY_SIZE(handler_code), handler_code);
 		/* save previous operation to speed to any consecutive read/writes */
 		ejtag_info->fast_access_save = write_t;
 	}
