@@ -268,19 +268,11 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 	/* ChibiOS does not save the current thread count. We have to first
 	 * parse the double linked thread list to check for errors and the number of
 	 * threads. */
-	uint32_t rlist;
+	const uint32_t rlist = rtos->symbols[ChibiOS_VAL_rlist].address;
 	uint32_t current;
 	uint32_t previous;
 	uint32_t older;
 
-	retval = target_read_buffer(rtos->target,
-		rtos->symbols[ChibiOS_VAL_rlist].address,
-		param->signature->ch_ptrsize,
-		(uint8_t *)&rlist);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("Could not read ChibiOS ReadyList from target");
-		return retval;
-	}
 	current = rlist;
 	previous = rlist;
 	while (1) {
