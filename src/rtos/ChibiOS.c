@@ -191,6 +191,15 @@ static int ChibiOS_update_memory_signature(struct rtos *rtos)
 			"running version %i.%i.%i", GET_CH_KERNEL_MAJOR(ch_version),
 			GET_CH_KERNEL_MINOR(ch_version), GET_CH_KERNEL_PATCH(ch_version));
 
+	/* Currently, we have the inherent assumption that all address pointers
+	 * are 32 bit wide. */
+	if (signature->ch_ptrsize != sizeof(uint32_t)) {
+		LOG_ERROR("ChibiOS/RT target memory signature claims an address"
+				  "width unequal to 32 bits!");
+		free(signature);
+		return -1;
+	}
+
 	param->signature = signature;
 	return 0;
 
@@ -306,6 +315,7 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 	 * parse the double linked thread list to check for errors and the number of
 	 * threads. */
 	const uint32_t rlist = rtos->symbols[ChibiOS_VAL_rlist].address;
+	const struct ChibiOS_chdebug *signature = param->signature;
 	uint32_t current;
 	uint32_t previous;
 	uint32_t older;
@@ -313,10 +323,8 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 	current = rlist;
 	previous = rlist;
 	while (1) {
-		retval = target_read_buffer(rtos->target,
-			current + param->signature->cf_off_newer,
-			param->signature->ch_ptrsize,
-			(uint8_t *)&current);
+		retval = target_read_u32(rtos->target,
+								 current + signature->cf_off_newer, &current);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Could not read next ChibiOS thread");
 			return retval;
@@ -330,10 +338,8 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 			break;
 		}
 		/* Fetch previous thread in the list as a integrity check. */
-		retval = target_read_buffer(rtos->target,
-		  current + param->signature->cf_off_older,
-		  param->signature->ch_ptrsize,
-		  (uint8_t *)&older);
+		retval = target_read_u32(rtos->target,
+								 current + signature->cf_off_older, &older);
 		if ((retval != ERROR_OK) || (older == 0) || (older != previous)) {
 			LOG_ERROR("ChibiOS registry integrity check failed, "
 						"double linked list violation");
@@ -388,10 +394,8 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		uint32_t name_ptr = 0;
 		char tmp_str[CHIBIOS_THREAD_NAME_STR_SIZE];
 
-		retval = target_read_buffer(rtos->target,
-									current + param->signature->cf_off_newer,
-									param->signature->ch_ptrsize,
-									(uint8_t *)&current);
+		retval = target_read_u32(rtos->target,
+								 current + signature->cf_off_newer, &current);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Could not read next ChibiOS thread");
 			return -6;
@@ -405,10 +409,8 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		curr_thrd_details->threadid = current;
 
 		/* read the name pointer */
-		retval = target_read_buffer(rtos->target,
-									current + param->signature->cf_off_name,
-									param->signature->ch_ptrsize,
-									(uint8_t *)&name_ptr);
+		retval = target_read_u32(rtos->target,
+								 current + signature->cf_off_name, &name_ptr);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Could not read ChibiOS thread name pointer from target");
 			return retval;
@@ -435,9 +437,8 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		uint8_t threadState;
 		const char *state_desc;
 
-		retval = target_read_buffer(rtos->target,
-									current + param->signature->cf_off_state,
-									1, &threadState);
+		retval = target_read_u8(rtos->target,
+								current + signature->cf_off_state, &threadState);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Error reading thread state from ChibiOS target");
 			return retval;
@@ -458,15 +459,17 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 
 		curr_thrd_details++;
 	}
+
+	uint32_t current_thrd;
 	/* NOTE: By design, cf_off_name equals readylist_current_offset */
-	retval = target_read_buffer(rtos->target,
-								rlist + param->signature->cf_off_name,
-								param->signature->ch_ptrsize,
-								(uint8_t *)&rtos->current_thread);
+	retval = target_read_u32(rtos->target,
+							 current + signature->cf_off_name,
+							 &current_thrd);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Could not read current Thread from ChibiOS target");
 		return retval;
 	}
+	rtos->current_thread = current_thrd;
 
 	return 0;
 }
@@ -475,7 +478,7 @@ static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, cha
 {
 	int retval;
 	const struct ChibiOS_params *param;
-	int64_t stack_ptr = 0;
+	uint32_t stack_ptr = 0;
 
 	*hex_reg_list = NULL;
 	if ((rtos == NULL) || (thread_id == 0) ||
@@ -495,10 +498,8 @@ static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, cha
 	}
 
 	/* Read the stack pointer */
-	retval = target_read_buffer(rtos->target,
-			thread_id + param->signature->cf_off_ctx,
-			param->signature->ch_ptrsize,
-			(uint8_t *)&stack_ptr);
+	retval = target_read_u32(rtos->target,
+							 thread_id + param->signature->cf_off_ctx, &stack_ptr);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error reading stack frame from ChibiOS thread");
 		return retval;
