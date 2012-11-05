@@ -59,6 +59,11 @@
 #define FP_COMP6	0xE0002020
 #define FP_COMP7	0xE0002024
 
+#define FPU_CPACR	0xE000ED88
+#define FPU_FPCCR	0xE000EF34
+#define FPU_FPCAR	0xE000EF38
+#define FPU_FPDSCR	0xE000EF3C
+
 /* DCB_DHCSR bit and field definitions */
 #define DBGKEY		(0xA05F << 16)
 #define C_DEBUGEN	(1 << 0)

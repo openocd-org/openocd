@@ -29,6 +29,8 @@
 #include <jtag/jtag.h>
 #include "target/target.h"
 #include "target/target_type.h"
+#include "target/armv7m.h"
+#include "target/cortex_m.h"
 #include "rtos.h"
 #include "helper/log.h"
 #include "helper/types.h"
@@ -94,12 +96,12 @@ struct ChibiOS_params ChibiOS_params_list[] = {
 	{
 	"cortex_m3",							/* target_name */
 	0,
-	&rtos_chibios_arm_v7m_stacking,		/* stacking_info */
+	NULL,									/* stacking_info */
 	},
 	{
 	"stm32_stlink",							/* target_name */
 	0,
-	&rtos_chibios_arm_v7m_stacking,		/* stacking_info */
+	NULL,									/* stacking_info */
 	}
 };
 #define CHIBIOS_NUM_PARAMS ((int)(sizeof(ChibiOS_params_list)/sizeof(struct ChibiOS_params)))
@@ -219,8 +221,43 @@ static int ChibiOS_update_stacking(struct rtos *rtos)
 	 *    available than the current execution. In which case
 	 *    ChibiOS_get_thread_reg_list is called.
 	 */
+	int retval;
 
-	/* TODO: Add actual detection, currently it will not work  with FPU enabled.*/
+	if (!rtos->rtos_specific_params)
+		return -1;
+
+	struct ChibiOS_params *param;
+	param = (struct ChibiOS_params *) rtos->rtos_specific_params;
+
+	/* Check for armv7m with *enabled* FPU, i.e. a Cortex M4  */
+	struct armv7m_common *armv7m_target = target_to_armv7m(rtos->target);
+	if (is_armv7m(armv7m_target)) {
+		if (armv7m_target->fp_feature == FPv4_SP) {
+			/* Found ARM v7m target which includes a FPU */
+			uint32_t cpacr;
+
+			retval = target_read_u32(rtos->target, FPU_CPACR, &cpacr);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not read CPACR register to check FPU state");
+				return -1;
+			}
+
+			/* Check if CP10 and CP11 are set to full access.
+			 * In ChibiOS this is done in ResetHandler() in crt0.c */
+			if (cpacr & 0x00F00000) {
+				/* Found target with enabled FPU */
+				/* FIXME: Need to figure out how to specify the FPU registers */
+				LOG_ERROR("ChibiOS ARM v7m targets with enabled FPU "
+						  " are NOT supported");
+				return -1;
+			}
+		}
+
+		/* Found ARM v7m target with no or disabled FPU */
+		param->stacking_info = &rtos_chibios_arm_v7m_stacking;
+		return 0;
+	}
+
 	return -1;
 }
 
