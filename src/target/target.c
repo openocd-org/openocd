@@ -822,6 +822,7 @@ int target_run_flash_async_algorithm(struct target *target,
 		uint32_t entry_point, uint32_t exit_point, void *arch_info)
 {
 	int retval;
+	int timeout = 0;
 
 	/* Set up working area. First word is write pointer, second word is read pointer,
 	 * rest is fifo data area. */
@@ -893,8 +894,18 @@ int target_run_flash_async_algorithm(struct target *target,
 			 * less than buffer size / flash speed. This is very unlikely to
 			 * run when using high latency connections such as USB. */
 			alive_sleep(10);
+
+			/* to stop an infinite loop on some targets check and increment a timeout
+			 * this issue was observed on a stellaris using the new ICDI interface */
+			if (timeout++ >= 500) {
+				LOG_ERROR("timeout waiting for algorithm, a target reset is recommended");
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
 			continue;
 		}
+
+		/* reset our timeout */
+		timeout = 0;
 
 		/* Limit to the amount of data we actually want to write */
 		if (thisrun_bytes > count * block_size)
