@@ -456,6 +456,11 @@ The simplest solution is to get linux to ignore the ST-LINK using one of the fol
 @item add "options usb-storage quirks=483:3744:i" to /etc/modprobe.conf
 @end itemize
 
+@section USB TI/Stellaris ICDI based
+Texas Instruments has an adapter called @b{ICDI}.
+It is not to be confused with the FTDI based adapters that were originally fitted to their
+evaluation boards. This is the adapter fitted to the Stellaris LaunchPad.
+
 @section USB Other
 @itemize @bullet
 @item @b{USBprog}
@@ -2804,27 +2809,31 @@ which are not currently documented here.
 @end quotation
 @end deffn
 
-@deffn {Interface Driver} {stlink}
-ST Micro ST-LINK adapter.
+@deffn {Interface Driver} {hla}
+This is a driver that supports multiple High Level Adapters.
+This type of adapter does not expose some of the lower level api's
+that OpenOCD would normally use to access the target.
 
-@deffn {Config Command} {stlink_device_desc} description
+Currently supported adapters include the ST STLINK and TI ICDI.
+
+@deffn {Config Command} {hla_device_desc} description
 Currently Not Supported.
 @end deffn
 
-@deffn {Config Command} {stlink_serial} serial
+@deffn {Config Command} {hla_serial} serial
 Currently Not Supported.
 @end deffn
 
-@deffn {Config Command} {stlink_layout} (@option{sg}|@option{usb})
-Specifies the stlink layout to use.
+@deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi})
+Specifies the adapter layout to use.
 @end deffn
 
-@deffn {Config Command} {stlink_vid_pid} vid pid
-The vendor ID and product ID of the STLINK device.
+@deffn {Config Command} {hla_vid_pid} vid pid
+The vendor ID and product ID of the device.
 @end deffn
 
 @deffn {Config Command} {stlink_api} api_level
-Manually sets the stlink api used, valid options are 1 or 2.
+Manually sets the stlink api used, valid options are 1 or 2. (@b{STLINK Only}).
 @end deffn
 @end deffn
 
