@@ -176,7 +176,7 @@ static int adapter_store_core_reg_u32(struct target *target,
 			struct reg *r;
 
 			LOG_ERROR("JTAG failure");
-			r = armv7m->core_cache->reg_list + num;
+			r = armv7m->arm.core_cache->reg_list + num;
 			r->dirty = r->valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -311,10 +311,10 @@ static int adapter_target_create(struct target *target,
 static int adapter_load_context(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	int num_regs = armv7m->core_cache->num_regs;
+	int num_regs = armv7m->arm.core_cache->num_regs;
 
 	for (int i = 0; i < num_regs; i++) {
-		if (!armv7m->core_cache->reg_list[i].valid)
+		if (!armv7m->arm.core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
 	}
 
@@ -339,7 +339,7 @@ static int adapter_debug_entry(struct target *target)
 	/* make sure we clear the vector catch bit */
 	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA);
 
-	r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
+	r = arm->core_cache->reg_list + ARMV7M_xPSR;
 	xPSR = buf_get_u32(r->value, 0, 32);
 
 	/* Are we in an exception handler */
@@ -458,7 +458,7 @@ static int adapter_assert_reset(struct target *target)
 		return res;
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv7m->core_cache);
+	register_cache_invalidate(armv7m->arm.core_cache);
 
 	if (target->reset_halt) {
 		target->state = TARGET_RESET;
@@ -575,7 +575,7 @@ static int adapter_resume(struct target *target, int current,
 	armv7m_restore_context(target);
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv7m->core_cache);
+	register_cache_invalidate(armv7m->arm.core_cache);
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints) {
@@ -655,7 +655,7 @@ static int adapter_step(struct target *target, int current,
 		return res;
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv7m->core_cache);
+	register_cache_invalidate(armv7m->arm.core_cache);
 
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);

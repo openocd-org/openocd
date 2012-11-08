@@ -151,7 +151,6 @@ struct armv7m_common {
 	struct arm	arm;
 
 	int common_magic;
-	struct reg_cache *core_cache;
 	int exception_number;
 	struct adiv5_dap dap;
 
@@ -192,12 +191,6 @@ struct armv7m_algorithm {
 	enum arm_mode core_mode;
 
 	uint32_t context[ARMV7M_LAST_REG]; /* ARMV7M_NUM_REGS */
-};
-
-struct armv7m_core_reg {
-	uint32_t num;
-	struct target *target;
-	struct armv7m_common *armv7m_common;
 };
 
 struct reg_cache *armv7m_build_reg_cache(struct target *target);

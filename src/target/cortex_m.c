@@ -298,7 +298,7 @@ static int cortex_m3_endreset_event(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	register_cache_invalidate(cortex_m3->armv7m.core_cache);
+	register_cache_invalidate(armv7m->arm.core_cache);
 
 	/* make sure we have latest dhcsr flags */
 	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -421,15 +421,15 @@ static int cortex_m3_debug_entry(struct target *target)
 		return retval;
 
 	/* Examine target state and mode
-	 * First load register acessible through core debug port*/
-	int num_regs = armv7m->core_cache->num_regs;
+	 * First load register accessible through core debug port */
+	int num_regs = arm->core_cache->num_regs;
 
 	for (i = 0; i < num_regs; i++) {
-		if (!armv7m->core_cache->reg_list[i].valid)
+		if (!armv7m->arm.core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
 	}
 
-	r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
+	r = arm->core_cache->reg_list + ARMV7M_xPSR;
 	xPSR = buf_get_u32(r->value, 0, 32);
 
 #ifdef ARMV7_GDB_HACKS
@@ -645,7 +645,7 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 	target->state = TARGET_RESET;
 
 	/* registers are now invalid */
-	register_cache_invalidate(cortex_m3->armv7m.core_cache);
+	register_cache_invalidate(cortex_m3->armv7m.arm.core_cache);
 
 	while (timeout < 100) {
 		retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
@@ -707,7 +707,7 @@ static int cortex_m3_resume(struct target *target, int current,
 	}
 
 	if (debug_execution) {
-		r = armv7m->core_cache->reg_list + ARMV7M_PRIMASK;
+		r = armv7m->arm.core_cache->reg_list + ARMV7M_PRIMASK;
 
 		/* Disable interrupts */
 		/* We disable interrupts in the PRIMASK register instead of
@@ -725,7 +725,7 @@ static int cortex_m3_resume(struct target *target, int current,
 		r->valid = true;
 
 		/* Make sure we are in Thumb mode */
-		r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
+		r = armv7m->arm.core_cache->reg_list + ARMV7M_xPSR;
 		buf_set_u32(r->value, 24, 1, 1);
 		r->dirty = true;
 		r->valid = true;
@@ -771,7 +771,7 @@ static int cortex_m3_resume(struct target *target, int current,
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv7m->core_cache);
+	register_cache_invalidate(armv7m->arm.core_cache);
 
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
@@ -934,7 +934,7 @@ static int cortex_m3_step(struct target *target, int current,
 		return retval;
 
 	/* registers are now invalid */
-	register_cache_invalidate(cortex_m3->armv7m.core_cache);
+	register_cache_invalidate(armv7m->arm.core_cache);
 
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
@@ -977,7 +977,7 @@ static int cortex_m3_assert_reset(struct target *target)
 		/* allow scripts to override the reset event */
 
 		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
-		register_cache_invalidate(cortex_m3->armv7m.core_cache);
+		register_cache_invalidate(cortex_m3->armv7m.arm.core_cache);
 		target->state = TARGET_RESET;
 
 		return ERROR_OK;
@@ -1082,7 +1082,7 @@ static int cortex_m3_assert_reset(struct target *target)
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
-	register_cache_invalidate(cortex_m3->armv7m.core_cache);
+	register_cache_invalidate(cortex_m3->armv7m.arm.core_cache);
 
 	if (target->reset_halt) {
 		retval = target_halt(target);
@@ -1555,7 +1555,7 @@ static int cortex_m3_store_core_reg_u32(struct target *target,
 				struct reg *r;
 
 				LOG_ERROR("JTAG failure");
-				r = armv7m->core_cache->reg_list + num;
+				r = armv7m->arm.core_cache->reg_list + num;
 				r->dirty = r->valid;
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
