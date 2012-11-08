@@ -43,12 +43,6 @@ extern struct reg armv7m_gdb_dummy_cpsr_reg;
 extern const int armv7m_psp_reg_map[];
 extern const int armv7m_msp_reg_map[];
 
-enum armv7m_regtype {
-	ARMV7M_REGISTER_CORE_GP,
-	ARMV7M_REGISTER_CORE_SP,
-	ARMV7M_REGISTER_MEMMAP
-};
-
 char *armv7m_exception_string(int number);
 
 /* offsets into armv7m core register cache */
@@ -168,10 +162,8 @@ struct armv7m_common {
 	bool stlink;
 
 	/* Direct processor core register read and writes */
-	int (*load_core_reg_u32)(struct target *target,
-		enum armv7m_regtype type, uint32_t num, uint32_t *value);
-	int (*store_core_reg_u32)(struct target *target,
-		enum armv7m_regtype type, uint32_t num, uint32_t value);
+	int (*load_core_reg_u32)(struct target *target, uint32_t num, uint32_t *value);
+	int (*store_core_reg_u32)(struct target *target, uint32_t num, uint32_t value);
 
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target *target, unsigned num);
@@ -204,7 +196,6 @@ struct armv7m_algorithm {
 
 struct armv7m_core_reg {
 	uint32_t num;
-	enum armv7m_regtype type;
 	struct target *target;
 	struct armv7m_common *armv7m_common;
 };

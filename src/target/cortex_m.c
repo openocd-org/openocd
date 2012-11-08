@@ -61,7 +61,7 @@
 
 /* forward declarations */
 static int cortex_m3_store_core_reg_u32(struct target *target,
-	enum armv7m_regtype type, uint32_t num, uint32_t value);
+		uint32_t num, uint32_t value);
 
 static int cortexm3_dap_read_coreregister_u32(struct adiv5_dap *swjdp,
 	uint32_t *value, int regnum)
@@ -446,7 +446,7 @@ static int cortex_m3_debug_entry(struct target *target)
 	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec */
 	if (xPSR & 0xf00) {
 		r->dirty = r->valid;
-		cortex_m3_store_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 16, xPSR & ~0xff);
+		cortex_m3_store_core_reg_u32(target, 16, xPSR & ~0xff);
 	}
 
 	/* Are we in an exception handler */
@@ -1464,7 +1464,7 @@ void cortex_m3_enable_watchpoints(struct target *target)
 }
 
 static int cortex_m3_load_core_reg_u32(struct target *target,
-	enum armv7m_regtype type, uint32_t num, uint32_t *value)
+		uint32_t num, uint32_t *value)
 {
 	int retval;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -1525,7 +1525,7 @@ static int cortex_m3_load_core_reg_u32(struct target *target,
 }
 
 static int cortex_m3_store_core_reg_u32(struct target *target,
-	enum armv7m_regtype type, uint32_t num, uint32_t value)
+		uint32_t num, uint32_t value)
 {
 	int retval;
 	uint32_t reg;

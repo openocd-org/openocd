@@ -47,7 +47,6 @@ static inline struct hl_interface_s *target_to_adapter(struct target *target)
 }
 
 static int adapter_load_core_reg_u32(struct target *target,
-		enum armv7m_regtype type,
 		uint32_t num, uint32_t *value)
 {
 	int retval;
@@ -144,7 +143,6 @@ static int adapter_load_core_reg_u32(struct target *target,
 }
 
 static int adapter_store_core_reg_u32(struct target *target,
-		enum armv7m_regtype type,
 		uint32_t num, uint32_t value)
 {
 	int retval;

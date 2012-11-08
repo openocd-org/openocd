@@ -213,7 +213,6 @@ static int armv7m_read_core_reg(struct target *target, unsigned num)
 
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
 	retval = armv7m->load_core_reg_u32(target,
-			armv7m_core_reg->type,
 			armv7m_core_reg->num,
 			&reg_value);
 	buf_set_u32(armv7m->core_cache->reg_list[num].value, 0, 32, reg_value);
@@ -236,7 +235,6 @@ static int armv7m_write_core_reg(struct target *target, unsigned num)
 	reg_value = buf_get_u32(armv7m->core_cache->reg_list[num].value, 0, 32);
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
 	retval = armv7m->store_core_reg_u32(target,
-			armv7m_core_reg->type,
 			armv7m_core_reg->num,
 			reg_value);
 	if (retval != ERROR_OK) {
@@ -429,7 +427,7 @@ int armv7m_wait_algorithm(struct target *target,
 		return ERROR_TARGET_TIMEOUT;
 	}
 
-	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
+	armv7m->load_core_reg_u32(target, 15, &pc);
 	if (exit_point && (pc != exit_point)) {
 		LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 ", expected 0x%" PRIx32,
 			pc,
