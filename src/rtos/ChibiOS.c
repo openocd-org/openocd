@@ -463,7 +463,7 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 	uint32_t current_thrd;
 	/* NOTE: By design, cf_off_name equals readylist_current_offset */
 	retval = target_read_u32(rtos->target,
-							 current + signature->cf_off_name,
+							 rlist + signature->cf_off_name,
 							 &current_thrd);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Could not read current Thread from ChibiOS target");
