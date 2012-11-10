@@ -22,7 +22,7 @@
 #ifndef OOCD_INTERFACE_H
 #define OOCD_INTERFACE_H
 
-#include <interface/interface_signal.h>
-#include <interface/interface_bitbang.h>
+#include <interface/signal.h>
+#include <interface/bitbang.h>
 
 #endif
