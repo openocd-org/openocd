@@ -19,10 +19,6 @@
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 /** @file
  * Infrastructure for specifying and managing the transport protocol
  * used in a given debug or programming session.
@@ -45,8 +41,15 @@
  * messaging and error handling.
  */
 
-#include <helper/log.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <interface/interface.h>
 #include <transport/transport.h>
+#include <target/arm.h>
+#include <target/arm_adi_v5.h>
+#include <helper/log.h>
 
 extern struct command_context *global_cmd_ctx;
 
@@ -365,3 +368,4 @@ int oocd_transport_register_commands(struct command_context *ctx)
 {
 	return register_commands(ctx, NULL, oocd_transport_group);
 }
+

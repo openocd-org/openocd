@@ -21,14 +21,8 @@
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #ifndef OOCD_TRANSPORT_H
 #define OOCD_TRANSPORT_H
-
-#include "helper/command.h"
 
 /**
  * Wrapper for transport lifecycle operations.
@@ -93,8 +87,5 @@ int oocd_transport_register_commands(struct command_context *ctx);
 int oocd_transport_select_jim(Jim_Interp *interp, int argc, Jim_Obj * const *argv);
 
 COMMAND_HELPER(oocd_transport_list_parse, char ***vector);
-
-/* TODO: Remove ASAP when interface becomes JTAG independent. */
-#include <jtag/interface.h>
 
 #endif
