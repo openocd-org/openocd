@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2010 by David Brownell
  *
+ * Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO
+ * cederom@tlen.pl, http://www.tomek.cedro.info
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -54,28 +57,28 @@ extern struct command_context *global_cmd_ctx;
  */
 
 /** List of transports known to OpenOCD. */
-static struct transport *transport_list;
+oocd_transport_t *oocd_transport_list_all;
 
 /**
  * NULL-terminated Vector of names of transports which the
  * currently selected debug adapter supports.  This is declared
  * by the time that adapter is fully set up.
  */
-static const char **allowed_transports;
+static const char **oocd_transport_list_allowed;
 
 /** * The transport being used for the current OpenOCD session.  */
-static struct transport *session;
+oocd_transport_t *session;
 
-static int transport_select(struct command_context *ctx, const char *name)
+int oocd_transport_select(struct command_context *ctx, const char *name)
 {
+	LOG_INFO("TRANSPORT SELECT: %s", name);
 	/* name may only identify a known transport;
 	 * caller guarantees session's transport isn't yet set.*/
-	for (struct transport *t = transport_list; t; t = t->next) {
+	for (oocd_transport_t *t = oocd_transport_list_all; t; t = t->next) {
 		if (strcmp(t->name, name) == 0) {
 			int retval = t->select(ctx);
-			/* select() registers commands specific to this
-			 * transport, and may also reset the link, e.g.
-			 * forcing it to JTAG or SWD mode.
+			/* select() registers commands specific to this transport.
+			 * init() will make hardware talk and initialize the target.
 			 */
 			if (retval == ERROR_OK)
 				session = t;
@@ -94,7 +97,7 @@ static int transport_select(struct command_context *ctx, const char *name)
  * to declare the set of transports supported by an adapter.  When
  * there is only one member of that set, it is automatically selected.
  */
-int allow_transports(struct command_context *ctx, const char **vector)
+int oocd_transport_allow(struct command_context *ctx, const char **vector)
 {
 	/* NOTE:  caller is required to provide only a list
 	 * of *valid* transport names
@@ -106,17 +109,17 @@ int allow_transports(struct command_context *ctx, const char **vector)
 	 * of one transport; C code should be definitive about what
 	 * can be used when all goes well.
 	 */
-	if (allowed_transports != NULL || session) {
+	if (oocd_transport_list_allowed != NULL || session) {
 		LOG_ERROR("Can't modify the set of allowed transports.");
 		return ERROR_FAIL;
 	}
 
-	allowed_transports = vector;
+	oocd_transport_list_allowed = vector;
 
 	/* autoselect if there's no choice ... */
 	if (!vector[1]) {
 		LOG_INFO("only one transport option; autoselect '%s'", vector[0]);
-		return transport_select(ctx, vector[0]);
+		return oocd_transport_select(ctx, vector[0]);
 	}
 
 	return ERROR_OK;
@@ -125,11 +128,11 @@ int allow_transports(struct command_context *ctx, const char **vector)
 /**
  * Used to verify corrrect adapter driver initialization.
  *
- * @returns true iff the adapter declared one or more transports.
+ * @returns true if the adapter declared one or more transports.
  */
-bool transports_are_declared(void)
+bool oocd_transport_declared(void)
 {
-	return allowed_transports != NULL;
+	return oocd_transport_list_allowed != NULL;
 }
 
 /**
@@ -147,11 +150,12 @@ bool transports_are_declared(void)
  *
  * @returns ERROR_OK on success, else a fault code.
  */
-int transport_register(struct transport *new_transport)
+int oocd_transport_register(oocd_transport_t *new_transport)
 {
-	struct transport *t;
+	oocd_transport_t *t;
+	printf("TRANSPORT REGISTER: %s\n", new_transport->name);
 
-	for (t = transport_list; t; t = t->next) {
+	for (t = oocd_transport_list_all; t; t = t->next) {
 		if (strcmp(t->name, new_transport->name) == 0) {
 			LOG_ERROR("transport name already used");
 			return ERROR_FAIL;
@@ -162,8 +166,8 @@ int transport_register(struct transport *new_transport)
 		LOG_ERROR("invalid transport %s", new_transport->name);
 
 	/* splice this into the list */
-	new_transport->next = transport_list;
-	transport_list = new_transport;
+	new_transport->next = oocd_transport_list_all;
+	oocd_transport_list_all = new_transport;
 	LOG_DEBUG("register '%s'", new_transport->name);
 
 	return ERROR_OK;
@@ -175,7 +179,7 @@ int transport_register(struct transport *new_transport)
  *
  * @returns handle to the read-only transport entity.
  */
-struct transport *get_current_transport(void)
+oocd_transport_t *oocd_transport_current_get(void)
 {
 	/* REVISIT -- constify */
 	return session;
@@ -194,7 +198,7 @@ struct transport *get_current_transport(void)
  * @param vector where the resulting copy is stored, as an argv-style
  *	NULL-terminated vector.
  */
-COMMAND_HELPER(transport_list_parse, char ***vector)
+COMMAND_HELPER(oocd_transport_list_parse, char ***vector)
 {
 	char **argv;
 	unsigned n = CMD_ARGC;
@@ -211,9 +215,9 @@ COMMAND_HELPER(transport_list_parse, char ***vector)
 		return ERROR_FAIL;
 
 	for (unsigned i = 0; i < n; i++) {
-		struct transport *t;
+		oocd_transport_t *t;
 
-		for (t = transport_list; t; t = t->next) {
+		for (t = oocd_transport_list_all; t; t = t->next) {
 			if (strcmp(t->name, CMD_ARGV[i]) != 0)
 				continue;
 			argv[j++] = strdup(CMD_ARGV[i]);
@@ -235,14 +239,14 @@ fail:
 	return ERROR_FAIL;
 }
 
-COMMAND_HANDLER(handle_transport_init)
+COMMAND_HANDLER(handle_oocd_transport_init)
 {
 	LOG_DEBUG("%s", __func__);
 	if (!session) {
 		LOG_ERROR("session's transport is not selected.");
 
 		/* no session transport configured, print transports then fail */
-		const char **vector = allowed_transports;
+		const char **vector = oocd_transport_list_allowed;
 		while (*vector) {
 			LOG_ERROR("allow transport '%s'", *vector);
 			vector++;
@@ -253,14 +257,14 @@ COMMAND_HANDLER(handle_transport_init)
 	return session->init(CMD_CTX);
 }
 
-COMMAND_HANDLER(handle_transport_list)
+COMMAND_HANDLER(handle_oocd_transport_list)
 {
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(CMD_CTX, "The following transports are available:");
 
-	for (struct transport *t = transport_list; t; t = t->next)
+	for (oocd_transport_t *t = oocd_transport_list_all; t; t = t->next)
 		command_print(CMD_CTX, "\t%s", t->name);
 
 	return ERROR_OK;
@@ -272,7 +276,7 @@ COMMAND_HANDLER(handle_transport_list)
  * set supported by the debug adapter being used.  Return value
  * is scriptable (allowing "if swd then..." etc).
  */
-static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+int oocd_transport_select_jim(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	switch (argc) {
 		case 1:		/* return/display */
@@ -297,15 +301,15 @@ static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *a
 			 * NOTE:  requires adapter to have been set up, with
 			 * transports declared via C.
 			 */
-			if (!allowed_transports) {
+			if (!oocd_transport_list_allowed) {
 				LOG_ERROR("Debug adapter doesn't support any transports?");
 				return JIM_ERR;
 			}
 
-			for (unsigned i = 0; allowed_transports[i]; i++) {
+			for (unsigned i = 0; oocd_transport_list_allowed[i]; i++) {
 
-				if (strcmp(allowed_transports[i], argv[1]->bytes) == 0)
-					return transport_select(global_cmd_ctx, argv[1]->bytes);
+				if (strcmp(oocd_transport_list_allowed[i], argv[1]->bytes) == 0)
+					return oocd_transport_select(global_cmd_ctx, argv[1]->bytes);
 			}
 
 			LOG_ERROR("Debug adapter doesn't support '%s' transport", argv[1]->bytes);
@@ -317,10 +321,10 @@ static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	}
 }
 
-static const struct command_registration transport_commands[] = {
+static const struct command_registration oocd_transport_commands[] = {
 	{
 		.name = "init",
-		.handler = handle_transport_init,
+		.handler = handle_oocd_transport_init,
 		/* this would be COMMAND_CONFIG ... except that
 		 * it needs to trigger event handlers that may
 		 * require COMMAND_EXEC ...
@@ -331,14 +335,14 @@ static const struct command_registration transport_commands[] = {
 	},
 	{
 		.name = "list",
-		.handler = handle_transport_list,
+		.handler = handle_oocd_transport_list,
 		.mode = COMMAND_ANY,
 		.help = "list all built-in transports",
 		.usage = ""
 	},
 	{
 		.name = "select",
-		.jim_handler = jim_transport_select,
+		.jim_handler = oocd_transport_select_jim,
 		.mode = COMMAND_ANY,
 		.help = "Select this session's transport",
 		.usage = "[transport_name]",
@@ -346,18 +350,18 @@ static const struct command_registration transport_commands[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration transport_group[] = {
+static const struct command_registration oocd_transport_group[] = {
 	{
 		.name = "transport",
 		.mode = COMMAND_ANY,
 		.help = "Transport command group",
-		.chain = transport_commands,
+		.chain = oocd_transport_commands,
 		.usage = ""
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
-int transport_register_commands(struct command_context *ctx)
+int oocd_transport_register_commands(struct command_context *ctx)
 {
-	return register_commands(ctx, NULL, transport_group);
+	return register_commands(ctx, NULL, oocd_transport_group);
 }
