@@ -200,7 +200,8 @@ static int icebear_jtag_init(void);
 static int cortino_jtag_init(void);
 static int signalyzer_init(void);
 static int signalyzer_h_init(void);
-static int ktlink_init(void);
+static int ktlink_init_jtag(void);
+static int ktlink_init_swd(void);
 static int redbee_init(void);
 static int lisa_l_init(void);
 static int flossjtag_init(void);
@@ -322,8 +323,13 @@ static const struct ft2232_layout  ft2232_layouts[] = {
 		.reset = signalyzer_h_reset,
 		.blink = signalyzer_h_blink
 	},
-	{ .name = "ktlink",
-		.init = ktlink_init,
+	{ .name = "ktlink_jtag",
+		.init = ktlink_init_jtag,
+		.reset = ktlink_reset,
+		.blink = ktlink_blink
+	},
+	{ .name = "ktlink_swd",
+		.init = ktlink_init_swd,
 		.reset = ktlink_reset,
 		.blink = ktlink_blink
 	},
@@ -4313,7 +4319,7 @@ static void signalyzer_h_blink(void)
  * JTAG adapter from KRISTECH
  * http://www.kristech.eu
  *******************************************************************/
-static int ktlink_init(void)
+static int ktlink_init_jtag(void)
 {
 	uint8_t swd_en = 0x20;	/* 0x20 SWD disable, 0x00 SWD enable (ADBUS5) */
 
@@ -4358,6 +4364,50 @@ static int ktlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	return ERROR_OK;
+}
+
+/* KT-LINK SWD Support added by Tomasz Boleslaw CEDRO (http://www.tomek.cedro.info). */
+static int ktlink_init_swd(void)
+{
+	/* High Byte (ACBUS) members. */
+	static uint8_t nSWCLKen = 0x40, nTDIen = 0x20, TRST = 0x01, nTRSTen = 0x04, SRST = 0x02, nSRSTen = 0x08, LED = 0x80,
+			RnW = 0x10;
+	/* Low Byte (ADBUS) members. */
+	static uint8_t SWCLK = 0x01, TDI = 0x02, TDO = 0x04, nSWDIOsel = 0x20;
+
+	nTRST    = TRST;
+	nSRST    = SRST;
+	nTRSTnOE = nTRSTen;
+	nSRSTnOE = nSRSTen;
+
+	/* Set ADBUS Port Data: SWCLK=0, TDI=0,TDO=1, nSWDIOsel=0 */
+	low_output = 0 | TDO;
+	/* Set ADBUS Port Direction (1=Output) */
+	low_direction = 0 | SWCLK | TDI | nSWDIOsel;
+
+	/* initialize low byte port (ADBUS) */
+	if (ft2232_set_data_bits_low_byte(low_output, low_direction) != ERROR_OK) {
+		LOG_ERROR("couldn't initialize FT2232 ADBUS with 'ktlink_swd' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	/* Set Data Bits High Byte (ACBUS)                                */
+	/* Enable SWD pins  : nTCKen=0, RnW=1, nSRSTen=0, nLED=0, SRST=1  */
+	/* Disable JTAG pins: nTDIen=1, nSWDIOen=1, nTRSTen=1             */
+	high_output = 0 | RnW | SRST | nTDIen | nTRSTen;
+	/* Set ACBUS Port Direction (1=Output) */
+	high_direction = 0 | RnW | nSWCLKen | nTDIen | nTRSTen | nSRSTen | SRST | LED;
+
+	/* initialize high byte port (ACBUS) */
+	if (ft2232_set_data_bits_high_byte(high_output, high_direction) != ERROR_OK) {
+		LOG_ERROR("couldn't initialize FT2232 ACBUS with 'ktlink_swd' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	/* Additional bit-bang signals should be placed in a configuration file. */
+
+	LOG_INFO("KT-LINK SWD-Mode initialization complete...");
 	return ERROR_OK;
 }
 
