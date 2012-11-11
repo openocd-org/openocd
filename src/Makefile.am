@@ -92,7 +92,7 @@ libopenocd_la_LIBADD = \
 	$(top_builddir)/src/svf/libsvf.la \
 	$(top_builddir)/src/pld/libpld.la \
 	$(top_builddir)/src/jtag/libjtag.la \
-	$(top_builddir)/src/transport/libtransport.la \
+	$(top_builddir)/src/transport/liboocdtransport.la \
 	$(top_builddir)/src/interface/liboocdinterface.la \
 	$(top_builddir)/src/flash/libflash.la \
 	$(top_builddir)/src/target/libtarget.la \
