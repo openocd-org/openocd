@@ -12,6 +12,9 @@
  *   Copyright (C) 2009 Zachary T Welch                                    *
  *   zw@superlucidity.net                                                  *
  *                                                                         *
+ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
+ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -97,11 +100,11 @@ COMMAND_HANDLER(interface_transport_command)
 	char **transports;
 	int retval;
 
-	retval = CALL_COMMAND_HANDLER(transport_list_parse, &transports);
+	retval = CALL_COMMAND_HANDLER(oocd_transport_list_parse, &transports);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = allow_transports(CMD_CTX, (const char **)transports);
+	retval = oocd_transport_allow(CMD_CTX, (const char **)transports);
 
 	if (retval != ERROR_OK) {
 		for (unsigned i = 0; transports[i]; i++)
@@ -160,7 +163,7 @@ COMMAND_HANDLER(handle_interface_command)
 		LOG_WARNING("Adapter driver '%s' did not declare "
 			"which transports it allows; assuming "
 			"legacy JTAG-only", jtag_interface->name);
-		retval = allow_transports(CMD_CTX, jtag_interface->transports
+		retval = oocd_transport_allow(CMD_CTX, jtag_interface->transports
 						? jtag_interface->transports : jtag_only);
 			if (ERROR_OK != retval)
 				return retval;
