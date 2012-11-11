@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008 Oyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009 SoftPLC Corporation                                *
@@ -11,6 +11,9 @@
  *                                                                         *
  *   Copyright (C) 2009 Zachary T Welch                                    *
  *   zw@superlucidity.net                                                  *
+ *                                                                         *
+ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
+ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -55,9 +58,11 @@ extern struct jtag_interface dummy_interface;
 #endif
 #if BUILD_FT2232_FTD2XX == 1
 extern struct jtag_interface ft2232_interface;
+extern struct jtag_interface ft2232_interface_swd;
 #endif
 #if BUILD_FT2232_LIBFTDI == 1
 extern struct jtag_interface ft2232_interface;
+extern struct jtag_interface ft2232_interface_swd;
 #endif
 #if BUILD_FTDI == 1
 extern struct jtag_interface ftdi_interface;
@@ -139,9 +144,11 @@ struct jtag_interface *jtag_interfaces[] = {
 #endif
 #if BUILD_FT2232_FTD2XX == 1
 		&ft2232_interface,
+		&ft2232_interface_swd,
 #endif
 #if BUILD_FT2232_LIBFTDI == 1
 		&ft2232_interface,
+		&ft2232_interface_swd,
 #endif
 #if BUILD_FTDI == 1
 		&ftdi_interface,
