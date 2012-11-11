@@ -1362,11 +1362,11 @@ int adapter_init(struct command_context *cmd_ctx)
 	 * transports they allow.  Until they all do so, assume
 	 * the legacy drivers are JTAG-only
 	 */
-	if (!transports_are_declared()) {
+	if (!oocd_transport_declared()) {
 		LOG_ERROR("Adapter driver '%s' did not declare "
 			"which transports it allows; assuming "
 			"JTAG-only", jtag->name);
-		retval = allow_transports(cmd_ctx, jtag_only);
+		retval = oocd_transport_allow(cmd_ctx, jtag_only);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1792,7 +1792,7 @@ static int jtag_select(struct command_context *ctx)
 	return xsvf_register_commands(ctx);
 }
 
-static struct transport jtag_transport = {
+oocd_transport_t jtag_transport = {
 	.name = "jtag",
 	.select = jtag_select,
 	.init = jtag_init,
@@ -1801,7 +1801,7 @@ static struct transport jtag_transport = {
 static void jtag_constructor(void) __attribute__((constructor));
 static void jtag_constructor(void)
 {
-	transport_register(&jtag_transport);
+	oocd_transport_register(&jtag_transport);
 }
 
 /** Returns true if the current debug session
@@ -1809,7 +1809,7 @@ static void jtag_constructor(void)
  */
 bool transport_is_jtag(void)
 {
-	return get_current_transport() == &jtag_transport;
+	return oocd_transport_current_get() == &jtag_transport;
 }
 
 void adapter_assert_reset(void)
@@ -1821,9 +1821,9 @@ void adapter_assert_reset(void)
 			jtag_add_reset(0, 1);
 	} else if (transport_is_swd())
 		swd_add_reset(1);
-	else if (get_current_transport() != NULL)
+	else if (oocd_transport_current_get() != NULL)
 		LOG_ERROR("reset is not supported on %s",
-			get_current_transport()->name);
+			oocd_transport_current_get()->name);
 	else
 		LOG_ERROR("transport is not selected");
 }
@@ -1834,9 +1834,9 @@ void adapter_deassert_reset(void)
 		jtag_add_reset(0, 0);
 	else if (transport_is_swd())
 		swd_add_reset(0);
-	else if (get_current_transport() != NULL)
+	else if (oocd_transport_current_get() != NULL)
 		LOG_ERROR("reset is not supported on %s",
-			get_current_transport()->name);
+			oocd_transport_current_get()->name);
 	else
 		LOG_ERROR("transport is not selected");
 }
