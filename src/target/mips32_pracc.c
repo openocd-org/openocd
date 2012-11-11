@@ -194,11 +194,7 @@ static int mips32_pracc_exec_write(struct mips32_pracc_context *ctx, uint32_t ad
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((address >= MIPS32_PRACC_PARAM_IN)
-		&& (address < MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4)) {
-		offset = (address - MIPS32_PRACC_PARAM_IN) / 4;
-		ctx->local_iparam[offset] = data;
-	} else if ((address >= MIPS32_PRACC_PARAM_OUT)
+	if ((address >= MIPS32_PRACC_PARAM_OUT)
 		&& (address < MIPS32_PRACC_PARAM_OUT + ctx->num_oparam * 4)) {
 		offset = (address - MIPS32_PRACC_PARAM_OUT) / 4;
 		ctx->local_oparam[offset] = data;
