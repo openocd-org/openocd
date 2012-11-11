@@ -1792,7 +1792,7 @@ static int jtag_select(struct command_context *ctx)
 	return xsvf_register_commands(ctx);
 }
 
-static struct transport jtag_transport = {
+struct transport jtag_transport = {
 	.name = "jtag",
 	.select = jtag_select,
 	.init = jtag_init,

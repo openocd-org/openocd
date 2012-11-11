@@ -12,6 +12,9 @@
  *   Copyright (C) 2009 Zachary T Welch                                    *
  *   zw@superlucidity.net                                                  *
  *                                                                         *
+ *   Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO                         *
+ *   cederom@tlen.pl, http://www.tomek.cedro.info                          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
