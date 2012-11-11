@@ -54,7 +54,6 @@
 #include <helper/time_support.h>
 
 #include <transport/transport.h>
-#include <jtag/interface.h>
 
 #include <jtag/swd.h>
 
@@ -339,8 +338,8 @@ static int swd_init(struct command_context *ctx)
 
 }
 
-static struct transport swd_transport = {
-	.name = "swd",
+oocd_transport_t swd_transport = {
+	.name = "oldswd",
 	.select = swd_select,
 	.init = swd_init,
 };
@@ -348,7 +347,7 @@ static struct transport swd_transport = {
 static void swd_constructor(void) __attribute__((constructor));
 static void swd_constructor(void)
 {
-	transport_register(&swd_transport);
+	oocd_transport_register(&swd_transport);
 }
 
 /** Returns true if the current debug session
@@ -356,5 +355,5 @@ static void swd_constructor(void)
  */
 bool transport_is_swd(void)
 {
-	return get_current_transport() == &swd_transport;
+	return oocd_transport_current_get() == &swd_transport;
 }

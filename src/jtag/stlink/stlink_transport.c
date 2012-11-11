@@ -144,7 +144,7 @@ static int stlink_transport_init(struct command_context *cmd_ctx)
 {
 	LOG_DEBUG("stlink_transport_init");
 	struct target *t = get_current_target(cmd_ctx);
-	struct transport *transport;
+	oocd_transport_t *transport;
 	enum stlink_transports tr;
 
 	if (!t) {
@@ -152,7 +152,7 @@ static int stlink_transport_init(struct command_context *cmd_ctx)
 		return ERROR_FAIL;
 	}
 
-	transport = get_current_transport();
+	transport = oocd_transport_current_get();
 
 	if (!transport) {
 		LOG_ERROR("no transport selected");
@@ -197,19 +197,19 @@ static int stlink_transport_select(struct command_context *ctx)
 	return ERROR_OK;
 }
 
-static struct transport stlink_swd_transport = {
+static oocd_transport_t stlink_swd_transport = {
 	.name = "stlink_swd",
 	.select = stlink_transport_select,
 	.init = stlink_transport_init,
 };
 
-static struct transport stlink_jtag_transport = {
+static oocd_transport_t stlink_jtag_transport = {
 	.name = "stlink_jtag",
 	.select = stlink_transport_select,
 	.init = stlink_transport_init,
 };
 
-static struct transport stlink_swim_transport = {
+static oocd_transport_t stlink_swim_transport = {
 	.name = "stlink_swim",
 	.select = stlink_transport_select,
 	.init = stlink_transport_init,
@@ -220,12 +220,12 @@ const char *stlink_transports[] = { "stlink_swd", "stlink_jtag", "stlink_swim", 
 static void stlink_constructor(void) __attribute__ ((constructor));
 static void stlink_constructor(void)
 {
-	transport_register(&stlink_swd_transport);
-	transport_register(&stlink_jtag_transport);
-	transport_register(&stlink_swim_transport);
+	oocd_transport_register(&stlink_swd_transport);
+	oocd_transport_register(&stlink_jtag_transport);
+	oocd_transport_register(&stlink_swim_transport);
 }
 
 bool transport_is_stlink(void)
 {
-	return get_current_transport() == &stlink_swd_transport;
+	return oocd_transport_current_get() == &stlink_swd_transport;
 }
