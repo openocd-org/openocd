@@ -53,9 +53,7 @@
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
 
-#include <transport/transport.h>
 #include <jtag/interface.h>
-
 #include <jtag/swd.h>
 
 static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
@@ -339,8 +337,8 @@ static int swd_init(struct command_context *ctx)
 
 }
 
-static struct transport swd_transport = {
-	.name = "swd",
+struct transport swd_transport = {
+	.name = "oldswd",
 	.select = swd_select,
 	.init = swd_init,
 };

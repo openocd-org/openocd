@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2010 by David Brownell
  *
+ * Copyright (C) 2011-2012 Tomasz Boleslaw CEDRO
+ * cederom@tlen.pl, http://www.tomek.cedro.info
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -42,8 +45,15 @@
  * messaging and error handling.
  */
 
-#include <helper/log.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <interface/interface.h>
 #include <transport/transport.h>
+#include <target/arm.h>
+#include <target/arm_adi_v5.h>
+#include <helper/log.h>
 
 extern struct command_context *global_cmd_ctx;
 
@@ -54,7 +64,7 @@ extern struct command_context *global_cmd_ctx;
  */
 
 /** List of transports known to OpenOCD. */
-static struct transport *transport_list;
+struct transport *transport_list;
 
 /**
  * NULL-terminated Vector of names of transports which the
@@ -64,18 +74,18 @@ static struct transport *transport_list;
 static const char **allowed_transports;
 
 /** * The transport being used for the current OpenOCD session.  */
-static struct transport *session;
+struct transport *session;
 
-static int transport_select(struct command_context *ctx, const char *name)
+int transport_select(struct command_context *ctx, const char *name)
 {
+	LOG_INFO("TRANSPORT SELECT: %s", name);
 	/* name may only identify a known transport;
 	 * caller guarantees session's transport isn't yet set.*/
 	for (struct transport *t = transport_list; t; t = t->next) {
 		if (strcmp(t->name, name) == 0) {
 			int retval = t->select(ctx);
-			/* select() registers commands specific to this
-			 * transport, and may also reset the link, e.g.
-			 * forcing it to JTAG or SWD mode.
+			/* select() registers commands specific to this transport.
+			 * init() will make hardware talk and initialize the target.
 			 */
 			if (retval == ERROR_OK)
 				session = t;
@@ -125,7 +135,7 @@ int allow_transports(struct command_context *ctx, const char **vector)
 /**
  * Used to verify corrrect adapter driver initialization.
  *
- * @returns true iff the adapter declared one or more transports.
+ * @returns true if the adapter declared one or more transports.
  */
 bool transports_are_declared(void)
 {
@@ -150,6 +160,7 @@ bool transports_are_declared(void)
 int transport_register(struct transport *new_transport)
 {
 	struct transport *t;
+	LOG_DEBUG("TRANSPORT REGISTER: %s\n", new_transport->name);
 
 	for (t = transport_list; t; t = t->next) {
 		if (strcmp(t->name, new_transport->name) == 0) {
@@ -272,7 +283,7 @@ COMMAND_HANDLER(handle_transport_list)
  * set supported by the debug adapter being used.  Return value
  * is scriptable (allowing "if swd then..." etc).
  */
-static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	switch (argc) {
 		case 1:		/* return/display */

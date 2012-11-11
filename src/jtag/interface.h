@@ -32,6 +32,7 @@
 
 #include <jtag/jtag.h>
 #include <interface/interface.h>
+#include <transport/transport.h>
 
 /* @file
  * The "Cable Helper API" is what the cable drivers can use to help
@@ -314,8 +315,6 @@ struct jtag_interface {
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*srst_asserted)(int *srst_asserted);
-
-	/** Functions below are for other transports than JTAG, PoC code. */
 
 	/** current transport */
 	struct transport *transport;
