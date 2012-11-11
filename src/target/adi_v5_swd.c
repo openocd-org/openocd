@@ -52,9 +52,7 @@
 #include "arm.h"
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
-
-#include <transport/transport.h>
-
+#include <jtag/interface.h>
 #include <jtag/swd.h>
 
 static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
