@@ -239,7 +239,7 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&server_register_commands,
 		&gdb_register_commands,
 		&log_register_commands,
-		&transport_register_commands,
+		&oocd_transport_register_commands,
 		&interface_register_commands,
 		&oocd_interface_signal_register_commands,
 		&oocd_interface_bitbang_register_commands,
