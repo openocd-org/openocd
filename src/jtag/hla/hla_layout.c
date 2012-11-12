@@ -71,6 +71,12 @@ static const struct hl_layout hl_layouts[] = {
 	 .close = hl_layout_close,
 	 .api = &stlink_usb_layout_api,
 	 },
+	{
+	 .name = "ti-icdi",
+	 .open = hl_layout_open,
+	 .close = hl_layout_close,
+	 .api = &icdi_usb_layout_api,
+	},
 	{.name = NULL, /* END OF TABLE */ },
 };
 

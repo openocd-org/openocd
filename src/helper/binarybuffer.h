@@ -156,4 +156,9 @@ int bit_copy_queued(struct bit_copy_queue *q, uint8_t *dst, unsigned dst_offset,
 void bit_copy_execute(struct bit_copy_queue *q);
 void bit_copy_discard(struct bit_copy_queue *q);
 
+/* functions to convert to/from hex encoded buffer
+ * used in ti-icdi driver and gdb server */
+int unhexify(char *bin, const char *hex, int count);
+int hexify(char *hex, const char *bin, int count, int out_maxlen);
+
 #endif /* BINARYBUFFER_H */

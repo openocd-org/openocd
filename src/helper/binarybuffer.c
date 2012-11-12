@@ -370,3 +370,30 @@ void bit_copy_discard(struct bit_copy_queue *q)
 		free(qe);
 	}
 }
+
+int unhexify(char *bin, const char *hex, int count)
+{
+	int i, tmp;
+
+	for (i = 0; i < count; i++) {
+		if (sscanf(hex + (2 * i), "%02x", &tmp) != 1)
+			return i;
+		bin[i] = tmp;
+	}
+
+	return i;
+}
+
+int hexify(char *hex, const char *bin, int count, int out_maxlen)
+{
+	int i, cmd_len = 0;
+
+	/* May use a length, or a null-terminated string as input. */
+	if (count == 0)
+		count = strlen(bin);
+
+	for (i = 0; i < count; i++)
+		cmd_len += snprintf(hex + cmd_len, out_maxlen - cmd_len, "%02x", bin[i]);
+
+	return cmd_len;
+}

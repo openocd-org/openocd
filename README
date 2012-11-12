@@ -275,6 +275,8 @@ options may be available there:
 
   --enable-stlink         Enable building support for the ST-Link JTAG
                           Programmer
+  --enable-ti-icdi        Enable building support for the TI/Stellaris ICDI
+                          JTAG Programmer
 
   --enable-osbdm          Enable building support for the OSBDM (JTAG only)
                           Programmer

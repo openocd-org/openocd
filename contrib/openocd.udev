@@ -49,11 +49,14 @@ ATTRS{idVendor}=="0640", ATTRS{idProduct}=="002c", MODE="664", GROUP="plugdev"
 # Hitex STM32-PerformanceStick
 ATTRS{idVendor}=="0640", ATTRS{idProduct}=="002d", MODE="664", GROUP="plugdev"
 
-# TI/Luminary Stellaris Evaluation Board (several)
+# TI/Luminary Stellaris Evaluation Board FTDI (several)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="bcd9", MODE="664", GROUP="plugdev"
 
-# TI/Luminary Stellaris In-Circuit Debug Interface (ICDI) Board
+# TI/Luminary Stellaris In-Circuit Debug Interface FTDI (ICDI) Board
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="bcda", MODE="664", GROUP="plugdev"
+
+# TI/Luminary Stellaris In-Circuit Debug Interface (ICDI) Board
+ATTRS{idVendor}=="1cbe", ATTRS{idProduct}=="00fd", MODE="664", GROUP="plugdev"
 
 # Xverve Signalyzer Tool (DT-USB-ST)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="bca0", MODE="664", GROUP="plugdev"

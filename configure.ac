@@ -477,7 +477,11 @@ AC_ARG_ENABLE([buspirate],
 
 AC_ARG_ENABLE([stlink],
   AS_HELP_STRING([--enable-stlink], [Enable building support for the ST-Link JTAG Programmer]),
-  [build_hladapter=$enableval], [build_hladapter=no])
+  [build_hladapter_stlink=$enableval], [build_hladapter_stlink=no])
+
+AC_ARG_ENABLE([ti-icdi],
+  AS_HELP_STRING([--enable-ti-icdi], [Enable building support for the TI ICDI JTAG Programmer]),
+  [build_hladapter_icdi=$enableval], [build_hladapter_icdi=no])
 
 AC_ARG_ENABLE([osbdm],
   AS_HELP_STRING([--enable-osbdm], [Enable building support for the OSBDM (JTAG only) Programmer]),
@@ -790,10 +794,10 @@ else
   AC_DEFINE([BUILD_BUSPIRATE], [0], [0 if you don't want the Buspirate JTAG driver.])
 fi
 
-if test $build_hladapter = yes; then
-  AC_DEFINE([BUILD_HLADAPTER], [1], [1 if you want the ST-Link JTAG driver.])
+if test $build_hladapter_stlink = yes -o $build_hladapter_icdi = yes; then
+  AC_DEFINE([BUILD_HLADAPTER], [1], [1 if you want the High Level JTAG driver.])
 else
-  AC_DEFINE([BUILD_HLADAPTER], [0], [0 if you don't want the ST-Link JTAG driver.])
+  AC_DEFINE([BUILD_HLADAPTER], [0], [0 if you don't want the High Level JTAG driver.])
 fi
 
 if test $build_osbdm = yes; then
@@ -1142,8 +1146,8 @@ fi
 
 # Check for libusb1 ported drivers.
 build_usb_ng=no
-if test $build_jlink = yes -o $build_hladapter = yes -o $build_osbdm = yes -o \
-  $build_opendous = yes -o $build_ftdi = yes
+if test $build_jlink = yes -o $build_hladapter_stlink = yes -o $build_osbdm = yes -o \
+  $build_opendous = yes -o $build_ftdi = yes -o $build_hladapter_icdi = yes
 then
   build_usb_ng=yes
 fi
@@ -1192,7 +1196,7 @@ AM_CONDITIONAL([ULINK], [test $build_ulink = yes])
 AM_CONDITIONAL([ARMJTAGEW], [test $build_armjtagew = yes])
 AM_CONDITIONAL([REMOTE_BITBANG], [test $build_remote_bitbang = yes])
 AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
-AM_CONDITIONAL([HLADAPTER], [test $build_hladapter = yes])
+AM_CONDITIONAL([HLADAPTER], [test $build_hladapter_stlink = yes -o $build_hladapter_icdi = yes])
 AM_CONDITIONAL([OSBDM], [test $build_osbdm = yes])
 AM_CONDITIONAL([OPENDOUS], [test $build_opendous = yes])
 AM_CONDITIONAL([SYSFSGPIO], [test $build_sysfsgpio = yes])
