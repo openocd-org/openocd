@@ -3201,6 +3201,18 @@ JTAG clock. This means that no communication can happen on JTAG
 while SRST is asserted.
 Its converse is @option{srst_nogate}, indicating that JTAG commands
 can safely be issued while SRST is active.
+
+@item
+The @var{connect_type} tokens control flags that describe some cases where
+SRST is asserted while connecting to the target. @option{srst_nogate}
+is required to use this option.
+@option{connect_deassert_srst} (default)
+indicates that SRST will not be asserted while connecting to the target.
+Its converse is @option{connect_assert_srst}, indicating that SRST will
+be asserted before any target connection.
+Only some targets support this feature, STM32 and STR9 are examples.
+This feature is useful if you are unable to connect to your target due
+to incorrect options byte config or illegal program execution.
 @end itemize
 
 The optional @var{trst_type} and @var{srst_type} parameters allow the
