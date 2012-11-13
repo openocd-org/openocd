@@ -118,8 +118,6 @@ COMMAND_HANDLER(handle_init_command)
 	if (initialized)
 		return ERROR_OK;
 
-	initialized = 1;
-
 	retval = command_run_line(CMD_CTX, "target init");
 	if (ERROR_OK != retval)
 		return ERROR_FAIL;
@@ -166,6 +164,8 @@ COMMAND_HANDLER(handle_init_command)
 	gdb_target_add_all(all_targets);
 
 	target_register_event_callback(log_target_callback_event_handler, CMD_CTX);
+
+	initialized = 1;
 
 	return ERROR_OK;
 }
