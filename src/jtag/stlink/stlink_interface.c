@@ -43,7 +43,11 @@ int stlink_interface_open(enum stlink_transports tr)
 	/* set transport mode */
 	stlink_if.param.transport = tr;
 
-	return stlink_if.layout->open(&stlink_if);
+	int result = stlink_if.layout->open(&stlink_if);
+	if (result != ERROR_OK)
+		return result;
+
+	return stlink_interface_init_reset();
 }
 
 int stlink_interface_init_target(struct target *t)
@@ -123,6 +127,21 @@ static int stlink_khz(int khz, int *jtag_speed)
 static int stlink_interface_execute_queue(void)
 {
 	LOG_DEBUG("stlink_interface_execute_queue: ignored");
+
+	return ERROR_OK;
+}
+
+int stlink_interface_init_reset(void)
+{
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
+		if (jtag_reset_config & RESET_SRST_NO_GATING) {
+			jtag_add_reset(0, 1);
+			stlink_if.layout->api->assert_srst(stlink_if.fd, 0);
+		} else
+			LOG_WARNING("\'srst_nogate\' reset_config option is required");
+	}
 
 	return ERROR_OK;
 }

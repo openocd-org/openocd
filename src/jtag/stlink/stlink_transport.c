@@ -39,6 +39,11 @@ COMMAND_HANDLER(stlink_transport_jtag_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(stlink_transport_reset_command)
+{
+	return stlink_interface_init_reset();
+}
+
 static const struct command_registration
 stlink_transport_stlink_subcommand_handlers[] = {
 	{
@@ -71,7 +76,7 @@ stlink_transport_jtag_subcommand_handlers[] = {
 	{
 	 .name = "arp_init-reset",
 	 .mode = COMMAND_ANY,
-	 .handler = stlink_transport_jtag_command,
+	 .handler = stlink_transport_reset_command,
 	 .usage = ""
 	 },
 	{

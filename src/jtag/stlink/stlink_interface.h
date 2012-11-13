@@ -56,5 +56,6 @@ struct stlink_interface_s {
 int stlink_interface_open(enum stlink_transports tr);
 /** */
 int stlink_interface_init_target(struct target *t);
+int stlink_interface_init_reset(void);
 
 #endif
