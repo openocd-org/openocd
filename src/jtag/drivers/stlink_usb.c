@@ -1143,6 +1143,21 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 }
 
 /** */
+static int stlink_usb_close(void *fd)
+{
+	struct stlink_usb_handle_s *h;
+
+	h = (struct stlink_usb_handle_s *)fd;
+
+	if (h->fd)
+		jtag_libusb_close(h->fd);
+
+	free(fd);
+
+	return ERROR_OK;
+}
+
+/** */
 static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 {
 	int err;
@@ -1151,7 +1166,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	LOG_DEBUG("stlink_usb_open");
 
-	h = malloc(sizeof(struct stlink_usb_handle_s));
+	h = calloc(1, sizeof(struct stlink_usb_handle_s));
 
 	if (h == 0) {
 		LOG_DEBUG("malloc failed");
@@ -1171,14 +1186,14 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	if (jtag_libusb_open(vids, pids, &h->fd) != ERROR_OK) {
 		LOG_ERROR("open failed");
-		return ERROR_FAIL;
+		goto error_open;
 	}
 
 	jtag_libusb_set_configuration(h->fd, 0);
 
 	if (jtag_libusb_claim_interface(h->fd, 0) != ERROR_OK) {
 		LOG_DEBUG("claim interface failed");
-		return ERROR_FAIL;
+		goto error_open;
 	}
 
 	/* wrap version for first read */
@@ -1196,9 +1211,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	if (err != ERROR_OK) {
 		LOG_ERROR("read version failed");
-		jtag_libusb_close(h->fd);
-		free(h);
-		return err;
+		goto error_open;
 	}
 
 	/* compare usb vid/pid */
@@ -1227,9 +1240,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	if (err != ERROR_OK) {
 		LOG_ERROR("mode (transport) not supported by device");
-		jtag_libusb_close(h->fd);
-		free(h);
-		return err;
+		goto error_open;
 	}
 
 	api = h->version.jtag_api_max;
@@ -1249,20 +1260,17 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	if (err != ERROR_OK) {
 		LOG_ERROR("init mode failed");
-		jtag_libusb_close(h->fd);
-		free(h);
-		return err;
+		goto error_open;
 	}
 
 	*fd = h;
 
 	return ERROR_OK;
-}
 
-/** */
-static int stlink_usb_close(void *fd)
-{
-	return ERROR_OK;
+error_open:
+	stlink_usb_close(h);
+
+	return ERROR_FAIL;
 }
 
 /** */
