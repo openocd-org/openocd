@@ -107,6 +107,7 @@ struct stlink_usb_handle_s {
 #define STLINK_DFU_COMMAND             0xF3
 #define STLINK_SWIM_COMMAND            0xF4
 #define STLINK_GET_CURRENT_MODE        0xF5
+#define STLINK_GET_TARGET_VOLTAGE      0xF7
 
 #define STLINK_DEV_DFU_MODE            0x00
 #define STLINK_DEV_MASS_MODE           0x01
@@ -424,6 +425,40 @@ static int stlink_usb_version(void *handle)
 	return ERROR_OK;
 }
 
+static int stlink_usb_check_voltage(void *handle, float *target_voltage)
+{
+	struct stlink_usb_handle_s *h;
+	uint32_t adc_results[2];
+
+	h = (struct stlink_usb_handle_s *)handle;
+
+	/* only supported by stlink/v2 and for firmware >= 13 */
+	if (h->version.stlink == 1 || h->version.jtag < 13)
+		return ERROR_COMMAND_NOTFOUND;
+
+	stlink_usb_init_buffer(handle, STLINK_RX_EP, 8);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_GET_TARGET_VOLTAGE;
+
+	int result = stlink_usb_xfer(handle, h->databuf, 8);
+
+	if (result != ERROR_OK)
+		return result;
+
+	/* convert result */
+	adc_results[0] = le_to_h_u32(h->databuf);
+	adc_results[1] = le_to_h_u32(h->databuf + 4);
+
+	*target_voltage = 0;
+
+	if (adc_results[0])
+		*target_voltage = 2 * ((float)adc_results[1]) * (float)(1.2 / adc_results[0]);
+
+	LOG_INFO("Target voltage: %f", (double)*target_voltage);
+
+	return ERROR_OK;
+}
+
 /** */
 static int stlink_usb_current_mode(void *handle, uint8_t *mode)
 {
@@ -592,6 +627,29 @@ static int stlink_usb_init_mode(void *handle)
 
 	if (res != ERROR_OK)
 		return res;
+
+	/* we check the target voltage here as an aid to debugging connection problems.
+	 * the stlink requires the target Vdd to be connected for reliable debugging.
+	 * this cmd is supported in all modes except DFU
+	 */
+	if (mode != STLINK_DEV_DFU_MODE) {
+
+		float target_voltage;
+
+		/* check target voltage (if supported) */
+		res = stlink_usb_check_voltage(h, &target_voltage);
+
+		if (res != ERROR_OK) {
+			if (res != ERROR_COMMAND_NOTFOUND)
+				LOG_ERROR("voltage check failed");
+			/* attempt to continue as it is not a catastrophic failure */
+		} else {
+			/* check for a sensible target voltage, operating range is 1.65-5.5v
+			 * according to datasheet */
+			if (target_voltage < 1.5)
+				LOG_ERROR("target voltage may be too low for reliable debugging");
+		}
+	}
 
 	LOG_DEBUG("MODE: 0x%02X", mode);
 
