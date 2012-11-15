@@ -51,12 +51,12 @@ Add yourself to the GPL copyright for non-trivial changes.
      https://help.github.com/articles/generating-ssh-keys
 -# Clone the git repository, rather than just download the source:
  @code
- git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd
+ git clone git://git.code.sf.net/p/openocd/code openocd
  @endcode
    or if you have problems with the "git:" protocol, use
    the slower http protocol:
  @code
- git clone http://repo.or.cz/r/openocd.git
+ git clone http://git.code.sf.net/p/openocd/code openocd
  @endcode
 -# Set up Gerrit with your local repository. All this does it
 to instruct git locally how to send off the changes.
