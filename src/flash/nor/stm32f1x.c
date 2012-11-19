@@ -122,6 +122,7 @@ struct stm32x_flash_bank {
 	bool has_dual_banks;
 	/* used to access dual flash bank stm32xl */
 	uint32_t register_base;
+	uint16_t default_rdp;
 	int user_data_offset;
 };
 
@@ -291,7 +292,7 @@ static int stm32x_erase_options(struct flash_bank *bank)
 
 	/* clear readout protection and complementary option bytes
 	 * this will also force a device unlock if set */
-	stm32x_info->option_bytes.RDP = 0x5AA5;
+	stm32x_info->option_bytes.RDP = stm32x_info->default_rdp;
 
 	return ERROR_OK;
 }
@@ -857,6 +858,9 @@ static int stm32x_probe(struct flash_bank *bank)
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
 	stm32x_info->user_data_offset = 10;
 
+	/* default factory protection level */
+	stm32x_info->default_rdp = 0x5AA5;
+
 	/* read stm32 device id register */
 	int retval = stm32x_get_device_id(bank, &device_id);
 	if (retval != ERROR_OK)
@@ -896,6 +900,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
 		stm32x_info->user_data_offset = 16;
+		stm32x_info->default_rdp = 0x55AA;
 		break;
 	case 0x428: /* value line High density */
 		page_size = 2048;
@@ -913,12 +918,14 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
 		stm32x_info->user_data_offset = 16;
+		stm32x_info->default_rdp = 0x55AA;
 		break;
 	case 0x440: /* stm32f0x */
 		page_size = 1024;
 		stm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 64;
 		stm32x_info->user_data_offset = 16;
+		stm32x_info->default_rdp = 0x55AA;
 		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
