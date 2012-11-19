@@ -116,6 +116,7 @@
 #define FLASH_PG		(1 << 0)
 #define FLASH_SER		(1 << 1)
 #define FLASH_MER		(1 << 2)
+#define FLASH_MER1		(1 << 15)
 #define FLASH_STRT		(1 << 16)
 #define FLASH_PSIZE_8	(0 << 8)
 #define FLASH_PSIZE_16	(1 << 8)
@@ -601,6 +602,9 @@ static int stm32x_probe(struct flash_bank *bank)
 	case 0x413:
 		max_flash_size_in_kb = 1024;
 		break;
+	case 0x419:
+		max_flash_size_in_kb = 2048;
+		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
@@ -625,6 +629,10 @@ static int stm32x_probe(struct flash_bank *bank)
 	/* calculate numbers of pages */
 	int num_pages = (flash_size_in_kb / 128) + 4;
 
+	/* check for larger 2048 bytes devices */
+	if (flash_size_in_kb > 1024)
+		num_pages += 4;
+
 	/* check that calculation result makes sense */
 	assert(num_pages > 0);
 
@@ -643,7 +651,17 @@ static int stm32x_probe(struct flash_bank *bank)
 	setup_sector(bank, 4, 1, 64 * 1024);
 
 	/* dynamic memory */
-	setup_sector(bank, 4 + 1, num_pages - 5, 128 * 1024);
+	setup_sector(bank, 4 + 1, MAX(12, num_pages) - 5, 128 * 1024);
+
+	if (num_pages > 12) {
+
+		/* fixed memory for larger devices */
+		setup_sector(bank, 12, 4, 16 * 1024);
+		setup_sector(bank, 16, 1, 64 * 1024);
+
+		/* dynamic memory for larger devices */
+		setup_sector(bank, 16 + 1, num_pages - 5 - 12, 128 * 1024);
+	}
 
 	for (i = 0; i < num_pages; i++) {
 		bank->sectors[i].is_erased = -1;
@@ -699,7 +717,8 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "unknown");
 				break;
 		}
-	} else if ((device_id & 0xfff) == 0x413) {
+	} else if (((device_id & 0xfff) == 0x413) ||
+			((device_id & 0xfff) == 0x419)) {
 		printed = snprintf(buf, buf_size, "stm32f4x - Rev: ");
 		buf += printed;
 		buf_size -= printed;
@@ -740,7 +759,10 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 		return retval;
 
 	/* mass erase flash memory */
-	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER);
+	if (bank->num_sectors > 12)
+		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER | FLASH_MER1);
+	else
+		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR),
