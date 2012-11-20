@@ -231,7 +231,7 @@ static int stm32x_read_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF8 | ((optiondata >> 2) & 0x07);
+	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF0 | ((optiondata >> 2) & 0x0f);
 	stm32x_info->option_bytes.user_data = (optiondata >> stm32x_info->user_data_offset) & 0xffff;
 	stm32x_info->option_bytes.RDP = (optiondata & (1 << OPT_READOUT)) ? 0xFFFF : 0x5AA5;
 
@@ -1364,7 +1364,7 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 {
 	struct target *target = NULL;
 	struct stm32x_flash_bank *stm32x_info = NULL;
-	uint16_t optionbyte = 0xF8;
+	uint32_t optionbyte = 0xF0;
 
 	if (CMD_ARGC < 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
