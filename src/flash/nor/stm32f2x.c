@@ -91,69 +91,68 @@
 #define FLASH_ERASE_TIMEOUT 10000
 #define FLASH_WRITE_TIMEOUT 5
 
-#define STM32_FLASH_BASE	0x40023c00
-#define STM32_FLASH_ACR		0x40023c00
-#define STM32_FLASH_KEYR	0x40023c04
-#define STM32_FLASH_OPTKEYR	0x40023c08
-#define STM32_FLASH_SR		0x40023c0C
-#define STM32_FLASH_CR		0x40023c10
-#define STM32_FLASH_OPTCR	0x40023c14
-#define STM32_FLASH_OBR		0x40023c1C
+#define STM32_FLASH_BASE    0x40023c00
+#define STM32_FLASH_ACR     0x40023c00
+#define STM32_FLASH_KEYR    0x40023c04
+#define STM32_FLASH_OPTKEYR 0x40023c08
+#define STM32_FLASH_SR      0x40023c0C
+#define STM32_FLASH_CR      0x40023c10
+#define STM32_FLASH_OPTCR   0x40023c14
+#define STM32_FLASH_OBR     0x40023c1C
 
 /* option byte location */
 
-#define STM32_OB_RDP		0x1FFFF800
-#define STM32_OB_USER		0x1FFFF802
-#define STM32_OB_DATA0		0x1FFFF804
-#define STM32_OB_DATA1		0x1FFFF806
-#define STM32_OB_WRP0		0x1FFFF808
-#define STM32_OB_WRP1		0x1FFFF80A
-#define STM32_OB_WRP2		0x1FFFF80C
-#define STM32_OB_WRP3		0x1FFFF80E
+#define STM32_OB_RDP        0x1FFFF800
+#define STM32_OB_USER       0x1FFFF802
+#define STM32_OB_DATA0      0x1FFFF804
+#define STM32_OB_DATA1      0x1FFFF806
+#define STM32_OB_WRP0       0x1FFFF808
+#define STM32_OB_WRP1       0x1FFFF80A
+#define STM32_OB_WRP2       0x1FFFF80C
+#define STM32_OB_WRP3       0x1FFFF80E
 
 /* FLASH_CR register bits */
 
-#define FLASH_PG		(1 << 0)
-#define FLASH_SER		(1 << 1)
-#define FLASH_MER		(1 << 2)
-#define FLASH_MER1		(1 << 15)
-#define FLASH_STRT		(1 << 16)
-#define FLASH_PSIZE_8	(0 << 8)
-#define FLASH_PSIZE_16	(1 << 8)
-#define FLASH_PSIZE_32	(2 << 8)
-#define FLASH_PSIZE_64	(3 << 8)
-#define FLASH_SNB(a)	((a) << 3)
-#define FLASH_LOCK		(1 << 31)
+#define FLASH_PG       (1 << 0)
+#define FLASH_SER      (1 << 1)
+#define FLASH_MER      (1 << 2)
+#define FLASH_MER1     (1 << 15)
+#define FLASH_STRT     (1 << 16)
+#define FLASH_PSIZE_8  (0 << 8)
+#define FLASH_PSIZE_16 (1 << 8)
+#define FLASH_PSIZE_32 (2 << 8)
+#define FLASH_PSIZE_64 (3 << 8)
+#define FLASH_SNB(a)   ((a) << 3)
+#define FLASH_LOCK     (1 << 31)
 
 /* FLASH_SR register bits */
 
-#define FLASH_BSY		(1 << 16)
-#define FLASH_PGSERR	(1 << 7) /* Programming sequence error */
-#define FLASH_PGPERR	(1 << 6) /* Programming parallelism error */
-#define FLASH_PGAERR	(1 << 5) /* Programming alignment error */
-#define FLASH_WRPERR	(1 << 4) /* Write protection error */
-#define FLASH_OPERR		(1 << 1) /* Operation error */
+#define FLASH_BSY      (1 << 16)
+#define FLASH_PGSERR   (1 << 7) /* Programming sequence error */
+#define FLASH_PGPERR   (1 << 6) /* Programming parallelism error */
+#define FLASH_PGAERR   (1 << 5) /* Programming alignment error */
+#define FLASH_WRPERR   (1 << 4) /* Write protection error */
+#define FLASH_OPERR    (1 << 1) /* Operation error */
 
 #define FLASH_ERROR (FLASH_PGSERR | FLASH_PGPERR | FLASH_PGAERR | FLASH_WRPERR | FLASH_OPERR)
 
 /* STM32_FLASH_OBR bit definitions (reading) */
 
-#define OPT_ERROR		0
-#define OPT_READOUT		1
-#define OPT_RDWDGSW		2
-#define OPT_RDRSTSTOP	3
-#define OPT_RDRSTSTDBY	4
-#define OPT_BFB2		5	/* dual flash bank only */
+#define OPT_ERROR      0
+#define OPT_READOUT    1
+#define OPT_RDWDGSW    2
+#define OPT_RDRSTSTOP  3
+#define OPT_RDRSTSTDBY 4
+#define OPT_BFB2       5	/* dual flash bank only */
 
 /* register unlock keys */
 
-#define KEY1			0x45670123
-#define KEY2			0xCDEF89AB
+#define KEY1           0x45670123
+#define KEY2           0xCDEF89AB
 
 struct stm32x_flash_bank {
 	int probed;
 };
-
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
