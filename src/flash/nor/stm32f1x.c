@@ -1364,9 +1364,9 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 {
 	struct target *target = NULL;
 	struct stm32x_flash_bank *stm32x_info = NULL;
-	uint32_t optionbyte = 0xF0;
+	uint16_t optionbyte;
 
-	if (CMD_ARGC < 4)
+	if (CMD_ARGC < 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
@@ -1387,34 +1387,41 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	/* REVISIT: ignores some options which we will display...
-	 * and doesn't insist on the specified syntax.
-	 */
+	retval = stm32x_read_options(bank);
+	if (ERROR_OK != retval)
+		return retval;
 
-	/* OPT_RDWDGSW */
-	if (strcmp(CMD_ARGV[1], "SWWDG") == 0)
-		optionbyte |= (1 << 0);
-	else	/* REVISIT must be "HWWDG" then ... */
-		optionbyte &= ~(1 << 0);
+	/* start with current options */
+	optionbyte = stm32x_info->option_bytes.user_options;
 
-	/* OPT_RDRSTSTOP */
-	if (strcmp(CMD_ARGV[2], "NORSTSTOP") == 0)
-		optionbyte |= (1 << 1);
-	else	/* REVISIT must be "RSTSTNDBY" then ... */
-		optionbyte &= ~(1 << 1);
+	/* skip over flash bank */
+	CMD_ARGC--;
+	CMD_ARGV++;
 
-	/* OPT_RDRSTSTDBY */
-	if (strcmp(CMD_ARGV[3], "NORSTSTNDBY") == 0)
-		optionbyte |= (1 << 2);
-	else	/* REVISIT must be "RSTSTOP" then ... */
-		optionbyte &= ~(1 << 2);
-
-	if (CMD_ARGC > 4 && stm32x_info->has_dual_banks) {
-		/* OPT_BFB2 */
-		if (strcmp(CMD_ARGV[4], "BOOT0") == 0)
-			optionbyte |= (1 << 3);
-		else
-			optionbyte &= ~(1 << 3);
+	while (CMD_ARGC) {
+		if (strcmp("SWWDG", CMD_ARGV[0]) == 0)
+			optionbyte |= (1 << 0);
+		else if (strcmp("HWWDG", CMD_ARGV[0]) == 0)
+			optionbyte &= ~(1 << 0);
+		else if (strcmp("NORSTSTOP", CMD_ARGV[0]) == 0)
+			optionbyte &= ~(1 << 1);
+		else if (strcmp("RSTSTNDBY", CMD_ARGV[0]) == 0)
+			optionbyte &= ~(1 << 1);
+		else if (strcmp("NORSTSTNDBY", CMD_ARGV[0]) == 0)
+			optionbyte &= ~(1 << 2);
+		else if (strcmp("RSTSTOP", CMD_ARGV[0]) == 0)
+			optionbyte &= ~(1 << 2);
+		else if (stm32x_info->has_dual_banks) {
+			if (strcmp("BOOT0", CMD_ARGV[0]) == 0)
+				optionbyte |= (1 << 3);
+			else if (strcmp("BOOT1", CMD_ARGV[0]) == 0)
+				optionbyte &= ~(1 << 3);
+			else
+				return ERROR_COMMAND_SYNTAX_ERROR;
+		} else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		CMD_ARGC--;
+		CMD_ARGV++;
 	}
 
 	if (stm32x_erase_options(bank) != ERROR_OK) {
