@@ -377,6 +377,28 @@ static int stm32x_write_options(struct flash_bank *bank)
 
 static int stm32x_protect_check(struct flash_bank *bank)
 {
+	struct target *target = bank->target;
+	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* read write protection settings */
+	int retval = stm32x_read_options(bank);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("unable to read option bytes");
+		return retval;
+	}
+
+	for (int i = 0; i < bank->num_sectors; i++) {
+		if (stm32x_info->option_bytes.protection & (1 << i))
+			bank->sectors[i].is_protected = 0;
+		else
+			bank->sectors[i].is_protected = 1;
+	}
+
 	return ERROR_OK;
 }
 
@@ -428,6 +450,33 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 
 static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 {
+	struct target *target = bank->target;
+	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* read protection settings */
+	int retval = stm32x_read_options(bank);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("unable to read option bytes");
+		return retval;
+	}
+
+	for (int i = first; i <= last; i++) {
+
+		if (set)
+			stm32x_info->option_bytes.protection &= ~(1 << i);
+		else
+			stm32x_info->option_bytes.protection |= (1 << i);
+	}
+
+	retval = stm32x_write_options(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
 	return ERROR_OK;
 }
 
