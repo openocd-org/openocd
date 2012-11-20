@@ -110,6 +110,7 @@
 struct stm32x_options {
 	uint16_t RDP;
 	uint16_t user_options;
+	uint16_t user_data;
 	uint16_t protection[4];
 };
 
@@ -121,6 +122,7 @@ struct stm32x_flash_bank {
 	bool has_dual_banks;
 	/* used to access dual flash bank stm32xl */
 	uint32_t register_base;
+	int user_data_offset;
 };
 
 static int stm32x_mass_erase(struct flash_bank *bank);
@@ -229,6 +231,7 @@ static int stm32x_read_options(struct flash_bank *bank)
 		return retval;
 
 	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF8 | ((optiondata >> 2) & 0x07);
+	stm32x_info->option_bytes.user_data = (optiondata >> stm32x_info->user_data_offset) & 0xffff;
 	stm32x_info->option_bytes.RDP = (optiondata & (1 << OPT_READOUT)) ? 0xFFFF : 0x5AA5;
 
 	if (optiondata & (1 << OPT_READOUT))
@@ -325,8 +328,8 @@ static int stm32x_write_options(struct flash_bank *bank)
 
 	target_buffer_set_u16(target, opt_bytes, stm32x_info->option_bytes.RDP);
 	target_buffer_set_u16(target, opt_bytes + 2, stm32x_info->option_bytes.user_options);
-	target_buffer_set_u16(target, opt_bytes + 4, 0x00FF);
-	target_buffer_set_u16(target, opt_bytes + 6, 0x00FF);
+	target_buffer_set_u16(target, opt_bytes + 4, stm32x_info->option_bytes.user_data & 0xff);
+	target_buffer_set_u16(target, opt_bytes + 6, (stm32x_info->option_bytes.user_data >> 8) & 0xff);
 	target_buffer_set_u16(target, opt_bytes + 8, stm32x_info->option_bytes.protection[0]);
 	target_buffer_set_u16(target, opt_bytes + 10, stm32x_info->option_bytes.protection[1]);
 	target_buffer_set_u16(target, opt_bytes + 12, stm32x_info->option_bytes.protection[2]);
@@ -852,6 +855,7 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	stm32x_info->probed = 0;
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
+	stm32x_info->user_data_offset = 10;
 
 	/* read stm32 device id register */
 	int retval = stm32x_get_device_id(bank, &device_id);
@@ -891,6 +895,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		page_size = 2048;
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
+		stm32x_info->user_data_offset = 16;
 		break;
 	case 0x428: /* value line High density */
 		page_size = 2048;
@@ -907,11 +912,13 @@ static int stm32x_probe(struct flash_bank *bank)
 		page_size = 2048;
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
+		stm32x_info->user_data_offset = 16;
 		break;
 	case 0x440: /* stm32f0x */
 		page_size = 1024;
 		stm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 64;
+		stm32x_info->user_data_offset = 16;
 		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
@@ -1337,6 +1344,11 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 		else
 			command_print(CMD_CTX, "Boot: Bank 1");
 	}
+
+	command_print(CMD_CTX, "User Option0: 0x%02" PRIx8,
+			(optionbyte >> stm32x_info->user_data_offset) & 0xff);
+	command_print(CMD_CTX, "User Option1: 0x%02" PRIx8,
+			(optionbyte >> (stm32x_info->user_data_offset + 8)) & 0xff);
 
 	return ERROR_OK;
 }
