@@ -465,9 +465,10 @@ int server_loop(struct command_context *command_context)
 						retval = service->input(c);
 						if (retval != ERROR_OK) {
 							struct connection *next = c->next;
-							if (service->type == CONNECTION_PIPE) {
+							if (service->type == CONNECTION_PIPE ||
+									service->type == CONNECTION_STDINOUT) {
 								/* if connection uses a pipe then
-								 *shutdown openocd on error */
+								 * shutdown openocd on error */
 								shutdown_openocd = 1;
 							}
 							remove_connection(service, c);
