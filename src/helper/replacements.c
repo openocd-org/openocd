@@ -89,12 +89,9 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		GetSystemTimeAsFileTime(&ft);
 		li.LowPart  = ft.dwLowDateTime;
 		li.HighPart = ft.dwHighDateTime;
-		t  = li.QuadPart;					/* In 100-nanosecond
-									 *intervals */
-		t -= EPOCHFILETIME;					/* Offset to the Epoch time
-									 **/
-		t /= 10;							/* In microseconds
-										 **/
+		t  = li.QuadPart;					/* In 100-nanosecond intervals */
+		t -= EPOCHFILETIME;					/* Offset to the Epoch time */
+		t /= 10;							/* In microseconds */
 		tv->tv_sec  = (long)(t / 1000000);
 		tv->tv_usec = (long)(t % 1000000);
 	}
@@ -244,16 +241,13 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 
 							if (PeekNamedPipe((HANDLE)handle, NULL, 0,
 								    NULL, &dwBytes, NULL)) {
-								/* check to see if gdb pipe has data
-								 *available */
+								/* check to see if gdb pipe has data available */
 								if (dwBytes) {
-									FD_SET(handle_slot_to_fd[i],
-										&aread);
+									FD_SET(handle_slot_to_fd[i], &aread);
 									retcode++;
 								}
 							} else {
-								FD_SET(handle_slot_to_fd[i],
-									&aread);
+								FD_SET(handle_slot_to_fd[i], &aread);
 								retcode++;
 							}
 						}
