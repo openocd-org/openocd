@@ -289,6 +289,22 @@ COMMAND_HANDLER(handle_reset_config_command)
 		if (m)
 			goto next;
 
+		/* connect_type - only valid when srst_nogate */
+		m = RESET_CNCT_UNDER_SRST;
+		if (strcmp(*CMD_ARGV, "connect_assert_srst") == 0)
+			tmp |= RESET_CNCT_UNDER_SRST;
+		else if (strcmp(*CMD_ARGV, "connect_deassert_srst") == 0)
+			/* connect normally - default */;
+		else
+			m = 0;
+		if (mask & m) {
+			LOG_ERROR("extra reset_config %s spec (%s)",
+					"connect_type", *CMD_ARGV);
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		if (m)
+			goto next;
+
 		/* caller provided nonsense; fail */
 		LOG_ERROR("unknown reset_config flag (%s)", *CMD_ARGV);
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -314,7 +330,7 @@ next:
 	/*
 	 * Display the (now-)current reset mode
 	 */
-	char *modes[5];
+	char *modes[6];
 
 	/* minimal JTAG has neither SRST nor TRST (so that's the default) */
 	switch (new_cfg & (RESET_HAS_TRST | RESET_HAS_SRST)) {
@@ -368,14 +384,20 @@ next:
 			modes[4] = " srst_push_pull";
 		else
 			modes[4] = " srst_open_drain";
+
+		if (new_cfg & RESET_CNCT_UNDER_SRST)
+			modes[5] = " connect_assert_srst";
+		else
+			modes[5] = " connect_deassert_srst";
 	} else {
 		modes[2] = "";
 		modes[4] = "";
+		modes[5] = "";
 	}
 
-	command_print(CMD_CTX, "%s %s%s%s%s",
+	command_print(CMD_CTX, "%s %s%s%s%s%s",
 			modes[0], modes[1],
-			modes[2], modes[3], modes[4]);
+			modes[2], modes[3], modes[4], modes[5]);
 
 	return ERROR_OK;
 }
