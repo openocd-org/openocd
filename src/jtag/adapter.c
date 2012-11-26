@@ -274,7 +274,7 @@ COMMAND_HANDLER(handle_reset_config_command)
 			goto next;
 
 		/* srst_type (NOP without HAS_SRST) */
-		m |= RESET_SRST_PUSH_PULL;
+		m = RESET_SRST_PUSH_PULL;
 		if (strcmp(*CMD_ARGV, "srst_push_pull") == 0)
 			tmp |= RESET_SRST_PUSH_PULL;
 		else if (strcmp(*CMD_ARGV, "srst_open_drain") == 0)
