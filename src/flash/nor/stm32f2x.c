@@ -713,6 +713,10 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "Y");
 				break;
 
+			case 0x2003:
+				snprintf(buf, buf_size, "X");
+				break;
+
 			default:
 				snprintf(buf, buf_size, "unknown");
 				break;
