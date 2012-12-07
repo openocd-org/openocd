@@ -399,10 +399,16 @@ static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	if (halfpages_number) {
-		retval = stm32lx_write_half_pages(bank, buffer, offset, 128
-				* halfpages_number);
-		if (retval != ERROR_OK)
-			return ERROR_FAIL;
+		retval = stm32lx_write_half_pages(bank, buffer, offset, 128 * halfpages_number);
+		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
+			/* attempt slow memory writes */
+			LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
+			halfpages_number = 0;
+			words_remaining = (count / 4);
+		} else {
+			if (retval != ERROR_OK)
+				return ERROR_FAIL;
+		}
 	}
 
 	bytes_written = 128 * halfpages_number;
