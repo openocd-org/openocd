@@ -503,7 +503,7 @@ static int mips_m4k_resume(struct target *target, int current,
 				handle_breakpoints,
 				debug_execution);
 
-	if (retval != ERROR_OK && target->smp) {
+	if (retval == ERROR_OK && target->smp) {
 		target->gdb_service->core[0] = -1;
 		retval = mips_m4k_restore_smp(target, address, handle_breakpoints);
 	}
