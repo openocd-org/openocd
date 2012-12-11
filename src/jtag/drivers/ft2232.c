@@ -1061,7 +1061,8 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, 
 			/* LOG_DEBUG("added TDI bits (i %i)", bits_left - 1); */
 		}
 		buffer_write(0x0);
-		buffer_write(last_bit);
+		if (type != SCAN_IN)
+			buffer_write(last_bit);
 	} else {
 		int tms_bits;
 		int tms_count;
