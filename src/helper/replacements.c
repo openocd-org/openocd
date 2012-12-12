@@ -206,10 +206,11 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 			aexcept = sock_except;
 
 			tvslice.tv_sec = 0;
-			tvslice.tv_usec = 100000;
+			tvslice.tv_usec = 1000;
 
 			retcode = select(sock_max_fd + 1, &aread, &awrite, &aexcept, &tvslice);
 		}
+
 		if (n_handles > 0) {
 			/* check handles */
 			DWORD wret;
@@ -217,7 +218,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 			wret = MsgWaitForMultipleObjects(n_handles,
 					handles,
 					FALSE,
-					retcode > 0 ? 0 : 100,
+					retcode > 0 ? 0 : 1,
 					QS_ALLEVENTS);
 
 			if (wret == WAIT_TIMEOUT) {
