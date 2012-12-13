@@ -116,6 +116,7 @@
 /* 30:24 - implementation-defined! */
 #define CSW_HPROT			(1 << 25)		/* ? */
 #define CSW_MASTER_DEBUG	(1 << 29)		/* ? */
+#define CSW_SPROT (1 << 30)
 #define CSW_DBGSWENABLE		(1 << 31)
 
 /**
@@ -141,6 +142,7 @@ struct adiv5_dap {
 	/* Control config */
 	uint32_t dp_ctrl_stat;
 
+	uint32_t apcsw[256];
 	uint32_t apsel;
 
 	/**

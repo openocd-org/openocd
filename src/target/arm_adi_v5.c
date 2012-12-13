@@ -137,8 +137,9 @@ void dap_ap_select(struct adiv5_dap *dap, uint8_t ap)
 int dap_setup_accessport(struct adiv5_dap *dap, uint32_t csw, uint32_t tar)
 {
 	int retval;
+	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
+		dap->apcsw[dap->ap_current >> 24];
 
-	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT;
 	if (csw != dap->ap_csw_value) {
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
 		retval = dap_queue_ap_write(dap, AP_REG_CSW, csw);
@@ -1885,6 +1886,39 @@ COMMAND_HANDLER(dap_apsel_command)
 	return retval;
 }
 
+COMMAND_HANDLER(dap_apcsw_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+
+	uint32_t apcsw = dap->apcsw[dap->apsel], sprot = 0;
+
+	switch (CMD_ARGC) {
+	case 0:
+		command_print(CMD_CTX, "apsel %" PRIi32 " selected, csw 0x%8.8" PRIx32,
+			(dap->apsel), apcsw);;
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], sprot);
+		/* AP address is in bits 31:24 of DP_SELECT */
+		if (sprot >1)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		if (sprot)
+			apcsw |= CSW_SPROT;
+		else
+			apcsw &= ~CSW_SPROT;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	dap->apcsw[dap->apsel] = apcsw;
+
+	return 0;
+}
+
+
+
 COMMAND_HANDLER(dap_apid_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -1939,6 +1973,14 @@ static const struct command_registration dap_commands[] = {
 			"and display the result",
 		.usage = "[ap_num]",
 	},
+	{
+		.name = "apcsw",
+		.handler = dap_apcsw_command,
+		.mode = COMMAND_EXEC,
+		.help = "Set csw access bit ",
+		.usage = "[sprot]",
+	},
+
 	{
 		.name = "apid",
 		.handler = dap_apid_command,
