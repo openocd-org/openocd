@@ -494,6 +494,7 @@ struct target_type nds32_v3m_target = {
 	.remove_breakpoint = nds32_v3m_remove_breakpoint,
 	.add_watchpoint = nds32_v3m_add_watchpoint,
 	.remove_watchpoint = nds32_v3m_remove_watchpoint,
+	.hit_watchpoint = nds32_v3_hit_watchpoint,
 
 	/* MMU */
 	.mmu = nds32_mmu,

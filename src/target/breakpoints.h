@@ -72,4 +72,7 @@ int watchpoint_add(struct target *target,
 		enum watchpoint_rw rw, uint32_t value, uint32_t mask);
 void watchpoint_remove(struct target *target, uint32_t address);
 
+/* report type and address of just hit watchpoint */
+int watchpoint_hit(struct target *target, enum watchpoint_rw *rw, uint32_t *address);
+
 #endif /* BREAKPOINTS_H */

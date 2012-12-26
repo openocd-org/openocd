@@ -400,6 +400,14 @@ int target_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
 
 /**
+ * Find out the just hit @a watchpoint for @a target.
+ *
+ * This routine is a wrapper for target->type->hit_watchpoint.
+ */
+int target_hit_watchpoint(struct target *target,
+		struct watchpoint **watchpoint);
+
+/**
  * Obtain the registers for GDB.
  *
  * This routine is a wrapper for target->type->get_gdb_reg_list.

@@ -500,3 +500,22 @@ void watchpoint_clear_target(struct target *target)
 	while (target->watchpoints != NULL)
 		watchpoint_free(target, target->watchpoints);
 }
+
+int watchpoint_hit(struct target *target, enum watchpoint_rw *rw, uint32_t *address)
+{
+	int retval;
+	struct watchpoint *hit_watchpoint;
+
+	retval = target_hit_watchpoint(target, &hit_watchpoint);
+	if (retval != ERROR_OK)
+		return ERROR_FAIL;
+
+	*rw = hit_watchpoint->rw;
+	*address = hit_watchpoint->address;
+
+	LOG_DEBUG("Found hit watchpoint at 0x%8.8" PRIx32 " (WPID: %d)",
+		hit_watchpoint->address,
+		hit_watchpoint->unique_id);
+
+	return ERROR_OK;
+}

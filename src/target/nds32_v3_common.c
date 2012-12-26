@@ -294,6 +294,45 @@ int nds32_v3_checksum_memory(struct target *target,
 	return ERROR_FAIL;
 }
 
+/**
+ * find out which watchpoint hits
+ * get exception address and compare the address to watchpoints
+ */
+int nds32_v3_hit_watchpoint(struct target *target,
+		struct watchpoint **hit_watchpoint)
+{
+	static struct watchpoint scan_all_watchpoint;
+
+	uint32_t exception_address;
+	struct watchpoint *wp;
+	struct nds32 *nds32 = target_to_nds32(target);
+
+	exception_address = nds32->watched_address;
+
+	if (exception_address == 0xFFFFFFFF)
+		return ERROR_FAIL;
+
+	if (exception_address == 0) {
+		scan_all_watchpoint.address = 0;
+		scan_all_watchpoint.rw = WPT_WRITE;
+		scan_all_watchpoint.next = 0;
+		scan_all_watchpoint.unique_id = 0x5CA8;
+
+		*hit_watchpoint = &scan_all_watchpoint;
+		return ERROR_OK;
+	}
+
+	for (wp = target->watchpoints; wp; wp = wp->next) {
+		if (((exception_address ^ wp->address) & (~wp->mask)) == 0) {
+			*hit_watchpoint = wp;
+
+			return ERROR_OK;
+		}
+	}
+
+	return ERROR_FAIL;
+}
+
 int nds32_v3_target_create_common(struct target *target, struct nds32 *nds32)
 {
 	nds32->register_map = nds32_v3_register_mapping;

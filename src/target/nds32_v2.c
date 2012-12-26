@@ -534,6 +534,42 @@ static int nds32_v2_get_exception_address(struct nds32 *nds32,
 	return ERROR_OK;
 }
 
+/**
+ * find out which watchpoint hits
+ * get exception address and compare the address to watchpoints
+ */
+static int nds32_v2_hit_watchpoint(struct target *target,
+		struct watchpoint **hit_watchpoint)
+{
+	uint32_t exception_address;
+	struct watchpoint *wp;
+	static struct watchpoint scan_all_watchpoint;
+	struct nds32 *nds32 = target_to_nds32(target);
+
+	scan_all_watchpoint.address = 0;
+	scan_all_watchpoint.rw = WPT_WRITE;
+	scan_all_watchpoint.next = 0;
+	scan_all_watchpoint.unique_id = 0x5CA8;
+
+	exception_address = nds32->watched_address;
+
+	if (exception_address == 0) {
+		/* send watch:0 to tell GDB to do software scan for hitting multiple watchpoints */
+		*hit_watchpoint = &scan_all_watchpoint;
+		return ERROR_OK;
+	}
+
+	for (wp = target->watchpoints; wp; wp = wp->next) {
+		if (((exception_address ^ wp->address) & (~wp->mask)) == 0) {
+			/* TODO: dispel false match */
+			*hit_watchpoint = wp;
+			return ERROR_OK;
+		}
+	}
+
+	return ERROR_FAIL;
+}
+
 static int nds32_v2_run_algorithm(struct target *target,
 		int num_mem_params,
 		struct mem_param *mem_params,
@@ -747,6 +783,7 @@ struct target_type nds32_v2_target = {
 	.remove_breakpoint = nds32_v2_remove_breakpoint,
 	.add_watchpoint = nds32_v2_add_watchpoint,
 	.remove_watchpoint = nds32_v2_remove_watchpoint,
+	.hit_watchpoint = nds32_v2_hit_watchpoint,
 
 	/* MMU */
 	.mmu = nds32_mmu,

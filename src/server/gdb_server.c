@@ -705,7 +705,9 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 	 * that are to be ignored.
 	 */
 	if (gdb_connection->frontend_state == TARGET_RUNNING) {
-		char sig_reply[4];
+		char sig_reply[20];
+		char stop_reason[20];
+		int sig_reply_len;
 		int signal_var;
 
 		/* stop forwarding log packets! */
@@ -717,8 +719,36 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 		} else
 			signal_var = gdb_last_signal(target);
 
-		snprintf(sig_reply, 4, "T%2.2x", signal_var);
-		gdb_put_packet(connection, sig_reply, 3);
+		stop_reason[0] = '\0';
+		if (target->debug_reason == DBG_REASON_WATCHPOINT) {
+			enum watchpoint_rw hit_wp_type;
+			uint32_t hit_wp_address;
+
+			if (watchpoint_hit(target, &hit_wp_type, &hit_wp_address) == ERROR_OK) {
+
+				switch (hit_wp_type) {
+					case WPT_WRITE:
+						snprintf(stop_reason, sizeof(stop_reason),
+								"watch:%08x;", hit_wp_address);
+						break;
+					case WPT_READ:
+						snprintf(stop_reason, sizeof(stop_reason),
+								"rwatch:%08x;", hit_wp_address);
+						break;
+					case WPT_ACCESS:
+						snprintf(stop_reason, sizeof(stop_reason),
+								"awatch:%08x;", hit_wp_address);
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s",
+				signal_var, stop_reason);
+
+		gdb_put_packet(connection, sig_reply, sig_reply_len);
 		gdb_connection->frontend_state = TARGET_HALTED;
 		rtos_update_threads(target);
 	}

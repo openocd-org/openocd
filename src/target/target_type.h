@@ -174,6 +174,11 @@ struct target_type {
 	 */
 	int (*remove_watchpoint)(struct target *target, struct watchpoint *watchpoint);
 
+	/* Find out just hit watchpoint. After the target hits a watchpoint, the
+	 * information could assist gdb to locate where the modified/accessed memory is.
+	 */
+	int (*hit_watchpoint)(struct target *target, struct watchpoint **hit_watchpoint);
+
 	/**
 	 * Target algorithm support.  Do @b not call this method directly,
 	 * use target_run_algorithm() instead.

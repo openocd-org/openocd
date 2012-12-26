@@ -1035,6 +1035,23 @@ int target_remove_watchpoint(struct target *target,
 {
 	return target->type->remove_watchpoint(target, watchpoint);
 }
+int target_hit_watchpoint(struct target *target,
+		struct watchpoint **hit_watchpoint)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	if (target->type->hit_watchpoint == NULL) {
+		/* For backward compatible, if hit_watchpoint is not implemented,
+		 * return ERROR_FAIL such that gdb_server will not take the nonsense
+		 * information. */
+		return ERROR_FAIL;
+	}
+
+	return target->type->hit_watchpoint(target, hit_watchpoint);
+}
 
 int target_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
