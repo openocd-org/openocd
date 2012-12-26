@@ -28,7 +28,7 @@
 static bool jtag_libusb_match(struct jtag_libusb_device *dev,
 		const uint16_t vids[], const uint16_t pids[])
 {
-	for (unsigned i = 0; vids[i] && pids[i]; i++) {
+	for (unsigned i = 0; vids[i]; i++) {
 		if (dev->descriptor.idVendor == vids[i] &&
 			dev->descriptor.idProduct == pids[i]) {
 			return true;
