@@ -389,6 +389,9 @@ to be available anymore as of April 2012.
 @* Link @url{http://www.dlpdesign.com/usb/usb1232h.shtml}
 @item @b{digilent-hs1}
 @* Link @url{http://www.digilentinc.com/Products/Detail.cfm?Prod=JTAG-HS1}
+@item @b{opendous}
+@* Link @url{http://code.google.com/p/opendous/wiki/JTAG} FT2232H-based
+(OpenHardware).
 @end itemize
 
 @section USB-JTAG / Altera USB-Blaster compatibles
@@ -480,7 +483,7 @@ evaluation boards. This is the adapter fitted to the Stellaris LaunchPad.
 @* Link: @url{http://dangerousprototypes.com/bus-pirate-manual/}
 
 @item @b{opendous}
-@* Link: @url{http://code.google.com/p/opendous-jtag/}
+@* Link: @url{http://code.google.com/p/opendous-jtag/} - which uses an AT90USB162
 
 @item @b{estick}
 @* Link: @url{http://code.google.com/p/estick-jtag/}
@@ -2537,6 +2540,11 @@ USB communication delays and has proved hard to reproduce and debug. Setting the
 FT2232 latency timer to a larger value increases delays for short USB packets but it
 also reduces the risk of timeouts before receiving the expected number of bytes.
 The OpenOCD default value is 2 and for some systems a value of 10 has proved useful.
+@end deffn
+
+@deffn {Config Command} {ft2232_channel} channel
+Used to select the channel of the ft2232 chip to use (between 1 and 4).
+The default value is 1.
 @end deffn
 
 For example, the interface config file for a
