@@ -102,15 +102,18 @@ while(!done) {
 }
 @endcode
    @b TIP! use "git add ." before commit to add new files.
+
+   Comment template, notice the short first line w/topic. The topic field
+   should identify the main part or subsystem the patch touches. Check
+   git log for examples.
 @code
---- example comment, notice the short first line w/topic ---
-topic: short comment
+topic: Short comment
 <blank line>
-longer comments over several
-lines...
+Longer comments over several lines, explaining (where applicable) the
+reason for the patch and the general idea the solution is based on,
+any major design decisions, etc...
 <blank line>
 Signed-off-by: ...
------
 @endcode
 -# Next you need to make sure that your patches
    are on top of the latest stuff on the server and
