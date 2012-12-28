@@ -2462,6 +2462,10 @@ Cirrus Logic EP93xx based single-board computer bit-banging (in development)
 
 @deffn {Interface Driver} {ft2232}
 FTDI FT2232 (USB) based devices over one of the userspace libraries.
+
+Note that this driver has several flaws and the @command{ftdi} driver is
+recommended as its replacement.
+
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
@@ -2543,6 +2547,119 @@ ft2232_device_desc "Turtelizer JTAG/RS232 Adapter"
 ft2232_layout turtelizer2
 ft2232_vid_pid 0x0403 0xbdc8
 @end example
+@end deffn
+
+@deffn {Interface Driver} {ftdi}
+This driver is for adapters using the MPSSE (Multi-Protocol Synchronous Serial
+Engine) mode built into many FTDI chips, such as the FT2232, FT4232 and FT232H.
+It is a complete rewrite to address a large number of problems with the ft2232
+interface driver.
+
+The driver is using libusb-1.0 in asynchronous mode to talk to the FTDI device,
+bypassing intermediate libraries like libftdi of D2XX. Performance-wise it is
+consistently faster than the ft2232 driver, sometimes several times faster.
+
+A major improvement of this driver is that support for new FTDI based adapters
+can be added competely through configuration files, without the need to patch
+and rebuild OpenOCD.
+
+The driver uses a signal abstraction to enable Tcl configuration files to
+define outputs for one or several FTDI GPIO. These outputs can then be
+controlled using the @command{ftdi_set_signal} command. Special signal names
+are reserved for nTRST, nSRST and LED (for blink) so that they, if defined,
+will be used for their customary purpose.
+
+Depending on the type of buffer attached to the FTDI GPIO, the outputs have to
+be controlled differently. In order to support tristateable signals such as
+nSRST, both a data GPIO and an output-enable GPIO can be specified for each
+signal. The following output buffer configurations are supported:
+
+@itemize @minus
+@item Push-pull with one FTDI output as (non-)inverted data line
+@item Open drain with one FTDI output as (non-)inverted output-enable
+@item Tristate with one FTDI output as (non-)inverted data line and another
+      FTDI output as (non-)inverted output-enable
+@item Unbuffered, using the FTDI GPIO as a tristate output directly by
+      switching data and direction as necessary
+@end itemize
+
+These interfaces have several commands, used to configure the driver
+before initializing the JTAG scan chain:
+
+@deffn {Config Command} {ftdi_vid_pid} [vid pid]+
+The vendor ID and product ID of the adapter. If not specified, the FTDI
+default values are used.
+Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
+@example
+ftdi_vid_pid 0x0403 0xcff8 0x15ba 0x0003
+@end example
+@end deffn
+
+@deffn {Config Command} {ftdi_device_desc} description
+Provides the USB device description (the @emph{iProduct string})
+of the adapter. If not specified, the device description is ignored
+during device selection.
+@end deffn
+
+@deffn {Config Command} {ftdi_serial} serial-number
+Specifies the @var{serial-number} of the adapter to use,
+in case the vendor provides unique IDs and more than one adapter
+is connected to the host.
+If not specified, serial numbers are not considered.
+(Note that USB serial numbers can be arbitrary Unicode strings,
+and are not restricted to containing only decimal digits.)
+@end deffn
+
+@deffn {Config Command} {ftdi_channel} channel
+Selects the channel of the FTDI device to use for MPSSE operations. Most
+adapters use the default, channel 0, but there are exceptions.
+@end deffn
+
+@deffn {Config Command} {ftdi_layout_init} data direction
+Specifies the initial values of the FTDI GPIO data and direction registers.
+Each value is a 16-bit number corresponding to the concatenation of the high
+and low FTDI GPIO registers. The values should be selected based on the
+schematics of the adapter, such that all signals are set to safe levels with
+minimal impact on the target system. Avoid floating inputs, conflicting outputs
+and initially asserted reset signals.
+@end deffn
+
+@deffn {Config Command} {ftdi_layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-oe}|@option{-noe} oe_mask]
+Creates a signal with the specified @var{name}, controlled by one or more FTDI
+GPIO pins via a range of possible buffer connections. The masks are FTDI GPIO
+register bitmasks to tell the driver the connection and type of the output
+buffer driving the respective signal. @var{data_mask} is the bitmask for the
+pin(s) connected to the data input of the output buffer. @option{-ndata} is
+used with inverting data inputs and @option{-data} with non-inverting inputs.
+The @option{-oe} (or @option{-noe}) option tells where the output-enable (or
+not-output-enable) input to the output buffer is connected.
+
+Both @var{data_mask} and @var{oe_mask} need not be specified. For example, a
+simple open-collector transistor driver would be specified with @option{-oe}
+only. In that case the signal can only be set to drive low or to Hi-Z and the
+driver will complain if the signal is set to drive high. Which means that if
+it's a reset signal, @command{reset_config} must be specified as
+@option{srst_open_drain}, not @option{srst_push_pull}.
+
+A special case is provided when @option{-data} and @option{-oe} is set to the
+same bitmask. Then the FTDI pin is considered being connected straight to the
+target without any buffer. The FTDI pin is then switched between output and
+input as necessary to provide the full set of low, high and Hi-Z
+characteristics. In all other cases, the pins specified in a signal definition
+are always driven by the FTDI.
+@end deffn
+
+@deffn {Command} {ftdi_set_signal} name @option{0}|@option{1}|@option{z}
+Set a previously defined signal to the specified level.
+@itemize @minus
+@item @option{0}, drive low
+@item @option{1}, drive high
+@item @option{z}, set to high-impedance
+@end itemize
+@end deffn
+
+For example adapter definitions, see the configuration files shipped in the
+@file{interface/ftdi} directory.
 @end deffn
 
 @deffn {Interface Driver} {remote_bitbang}
