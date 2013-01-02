@@ -571,6 +571,11 @@ static int adapter_resume(struct target *target, int current,
 
 	resume_pc = buf_get_u32(pc->value, 0, 32);
 
+	/* write any user vector flags */
+	res = target_write_u32(target, DCB_DEMCR, armv7m->demcr);
+	if (res != ERROR_OK)
+		return res;
+
 	armv7m_restore_context(target);
 
 	/* registers are now invalid */
