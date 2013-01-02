@@ -68,6 +68,10 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 static int target_mem2array(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj * const *argv);
 static int target_register_user_commands(struct command_context *cmd_ctx);
+static int target_get_gdb_fileio_info_default(struct target *target,
+		struct gdb_fileio_info *fileio_info);
+static int target_gdb_fileio_end_default(struct target *target, int retcode,
+		int fileio_errno, bool ctrl_c);
 
 /* targets */
 extern struct target_type arm7tdmi_target;
@@ -1065,6 +1069,24 @@ int target_step(struct target *target,
 	return target->type->step(target, current, address, handle_breakpoints);
 }
 
+int target_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fileio_info)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	return target->type->get_gdb_fileio_info(target, fileio_info);
+}
+
+int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	return target->type->gdb_fileio_end(target, retcode, fileio_errno, ctrl_c);
+}
+
 /**
  * Reset the @c examined flag for the given target.
  * Pure paranoia -- targets are zeroed on allocation.
@@ -1150,6 +1172,12 @@ static int target_init_one(struct command_context *cmd_ctx,
 
 	if (target->type->bulk_write_memory == NULL)
 		target->type->bulk_write_memory = target_bulk_write_memory_default;
+
+	if (target->type->get_gdb_fileio_info == NULL)
+		target->type->get_gdb_fileio_info = target_get_gdb_fileio_info_default;
+
+	if (target->type->gdb_fileio_end == NULL)
+		target->type->gdb_fileio_end = target_gdb_fileio_end_default;
 
 	return ERROR_OK;
 }
@@ -1698,6 +1726,20 @@ int target_arch_state(struct target *target)
 
 	retval = target->type->arch_state(target);
 	return retval;
+}
+
+static int target_get_gdb_fileio_info_default(struct target *target,
+		struct gdb_fileio_info *fileio_info)
+{
+	LOG_ERROR("Not implemented: %s", __func__);
+	return ERROR_FAIL;
+}
+
+static int target_gdb_fileio_end_default(struct target *target,
+		int retcode, int fileio_errno, bool ctrl_c)
+{
+	LOG_ERROR("Not implemented: %s", __func__);
+	return ERROR_OK;
 }
 
 /* Single aligned words are guaranteed to use 16 or 32 bit access

@@ -41,6 +41,7 @@ struct watchpoint;
 struct mem_param;
 struct reg_param;
 struct target_list;
+struct gdb_fileio_info;
 
 /*
  * TARGET_UNKNOWN = 0: we don't know anything about the target yet
@@ -191,11 +192,22 @@ struct target {
 	 * the target attached to the gdb is changing dynamically by changing
 	 * gdb_service->target pointer */
 	struct gdb_service *gdb_service;
+
+	/* file-I/O information for host to do syscall */
+	struct gdb_fileio_info *fileio_info;
 };
 
 struct target_list {
 	struct target *target;
 	struct target_list *next;
+};
+
+struct gdb_fileio_info {
+	char *identifier;
+	uint32_t param_1;
+	uint32_t param_2;
+	uint32_t param_3;
+	uint32_t param_4;
 };
 
 /** Returns the instance-specific name of the specified target. */
@@ -533,6 +545,22 @@ int target_checksum_memory(struct target *target,
 int target_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t *blank);
 int target_wait_state(struct target *target, enum target_state state, int ms);
+
+/**
+ * Obtain file-I/O information from target for GDB to do syscall.
+ *
+ * This routine is a wrapper for target->type->get_gdb_fileio_info.
+ */
+int target_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fileio_info);
+
+/**
+ * Pass GDB file-I/O response to target after finishing host syscall.
+ *
+ * This routine is a wrapper for target->type->gdb_fileio_end.
+ */
+int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c);
+
+
 
 /** Return the *name* of this targets current state */
 const char *target_state_name(struct target *target);

@@ -284,6 +284,18 @@ struct nds32 {
 	/** Flag reporting whether virtual hosting is active. */
 	bool virtual_hosting;
 
+	/** Flag reporting whether continue/step hits syscall or not */
+	bool hit_syscall;
+
+	/** Value to be returned by virtual hosting SYS_ERRNO request. */
+	int virtual_hosting_errno;
+
+	/** Flag reporting whether syscall is aborted */
+	bool virtual_hosting_ctrl_c;
+
+	/** Record syscall ID for other operations to do special processing for target */
+	int active_syscall_id;
+
 	/** Flag reporting whether global stop is active. */
 	bool global_stop;
 
@@ -404,6 +416,10 @@ extern int nds32_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution);
 extern int nds32_assert_reset(struct target *target);
 extern int nds32_init(struct nds32 *nds32);
+extern int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fileio_info);
+extern int nds32_gdb_fileio_write_memory(struct nds32 *nds32, uint32_t address,
+		uint32_t size, const uint8_t *buffer);
+extern int nds32_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c);
 extern int nds32_reset_halt(struct nds32 *nds32);
 extern int nds32_login(struct nds32 *nds32);
 

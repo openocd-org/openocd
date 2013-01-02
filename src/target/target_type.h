@@ -264,6 +264,15 @@ struct target_type {
 	 * circumstances.
 	 */
 	int (*check_reset)(struct target *target);
+
+	/* get GDB file-I/O parameters from target
+	 */
+	int (*get_gdb_fileio_info)(struct target *target, struct gdb_fileio_info *fileio_info);
+
+	/* pass GDB file-I/O response to target
+	 */
+	int (*gdb_fileio_end)(struct target *target, int retcode, int fileio_errno, bool ctrl_c);
+
 };
 
 #endif /* TARGET_TYPE_H */

@@ -1645,6 +1645,10 @@ int nds32_init_arch_info(struct target *target, struct nds32 *nds32)
 	nds32->keep_target_edm_ctl = false;
 	nds32->word_access_mem = false;
 	nds32->virtual_hosting = false;
+	nds32->hit_syscall = false;
+	nds32->active_syscall_id = NDS32_SYSCALL_UNDEFINED;
+	nds32->virtual_hosting_errno = 0;
+	nds32->virtual_hosting_ctrl_c = false;
 
 	nds32_reg_init();
 
@@ -1772,13 +1776,24 @@ int nds32_step(struct target *target, int current,
 		ir14_value &= ~(0x1 << 31);
 	nds32_set_mapped_reg(nds32, IR14, ir14_value);
 
+	/* check hit_syscall before leave_debug_state() because
+	 * leave_debug_state() may clear hit_syscall flag */
+	bool no_step = false;
+	if (nds32->hit_syscall)
+		/* step after hit_syscall should be ignored because
+		 * leave_debug_state will step implicitly to skip the
+		 * syscall */
+		no_step = true;
+
 	/********* TODO: maybe create another function to handle this part */
 	CHECK_RETVAL(nds32->leave_debug_state(nds32, true));
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
 
-	struct aice_port_s *aice = target_to_aice(target);
-	if (ERROR_OK != aice_step(aice))
-		return ERROR_FAIL;
+	if (no_step == false) {
+		struct aice_port_s *aice = target_to_aice(target);
+		if (ERROR_OK != aice_step(aice))
+			return ERROR_FAIL;
+	}
 
 	/* save state */
 	CHECK_RETVAL(nds32->enter_debug_state(nds32, true));
@@ -1877,6 +1892,12 @@ int nds32_examine_debug_reason(struct nds32 *nds32)
 {
 	uint32_t reason;
 	struct target *target = nds32->target;
+
+	if (nds32->hit_syscall == true) {
+		LOG_DEBUG("Hit syscall breakpoint");
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		return ERROR_OK;
+	}
 
 	nds32->get_debug_reason(nds32, &reason);
 
@@ -2110,8 +2131,11 @@ int nds32_resume(struct target *target, int current,
 	CHECK_RETVAL(nds32->leave_debug_state(nds32, true));
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
 
-	struct aice_port_s *aice = target_to_aice(target);
-	aice_run(aice);
+	if (nds32->virtual_hosting_ctrl_c == false) {
+		struct aice_port_s *aice = target_to_aice(target);
+		aice_run(aice);
+	} else
+		nds32->virtual_hosting_ctrl_c = false;
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 	if (!debug_execution)
@@ -2237,6 +2261,292 @@ int nds32_init(struct nds32 *nds32)
 	target_register_event_callback(nds32_callback_event_handler, nds32);
 
 	return ERROR_OK;
+}
+
+int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fileio_info)
+{
+	/* fill syscall parameters to file-I/O info */
+	if (NULL == fileio_info) {
+		LOG_ERROR("Target has not initial file-I/O data structure");
+		return ERROR_FAIL;
+	}
+
+	struct nds32 *nds32 = target_to_nds32(target);
+	uint32_t value_ir6;
+	uint32_t syscall_id;
+
+	if (nds32->hit_syscall == false)
+		return ERROR_FAIL;
+
+	nds32_get_mapped_reg(nds32, IR6, &value_ir6);
+	syscall_id = (value_ir6 >> 16) & 0x7FFF;
+	nds32->active_syscall_id = syscall_id;
+
+	LOG_DEBUG("hit syscall ID: 0x%x", syscall_id);
+
+	/* free previous identifier storage */
+	if (NULL != fileio_info->identifier) {
+		free(fileio_info->identifier);
+		fileio_info->identifier = NULL;
+	}
+
+	switch (syscall_id) {
+		case NDS32_SYSCALL_EXIT:
+			fileio_info->identifier = (char *)malloc(5);
+			sprintf(fileio_info->identifier, "exit");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			break;
+		case NDS32_SYSCALL_OPEN:
+			{
+				uint8_t filename[256];
+				fileio_info->identifier = (char *)malloc(5);
+				sprintf(fileio_info->identifier, "open");
+				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+				/* reserve fileio_info->param_2 for length of path */
+				nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_3));
+				nds32_get_mapped_reg(nds32, R2, &(fileio_info->param_4));
+
+				target->type->read_buffer(target, fileio_info->param_1,
+						256, filename);
+				fileio_info->param_2 = strlen((char *)filename) + 1;
+			}
+			break;
+		case NDS32_SYSCALL_CLOSE:
+			fileio_info->identifier = (char *)malloc(6);
+			sprintf(fileio_info->identifier, "close");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			break;
+		case NDS32_SYSCALL_READ:
+			fileio_info->identifier = (char *)malloc(5);
+			sprintf(fileio_info->identifier, "read");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
+			nds32_get_mapped_reg(nds32, R2, &(fileio_info->param_3));
+			break;
+		case NDS32_SYSCALL_WRITE:
+			fileio_info->identifier = (char *)malloc(6);
+			sprintf(fileio_info->identifier, "write");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
+			nds32_get_mapped_reg(nds32, R2, &(fileio_info->param_3));
+			break;
+		case NDS32_SYSCALL_LSEEK:
+			fileio_info->identifier = (char *)malloc(6);
+			sprintf(fileio_info->identifier, "lseek");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
+			nds32_get_mapped_reg(nds32, R2, &(fileio_info->param_3));
+			break;
+		case NDS32_SYSCALL_UNLINK:
+			{
+				uint8_t filename[256];
+				fileio_info->identifier = (char *)malloc(7);
+				sprintf(fileio_info->identifier, "unlink");
+				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+				/* reserve fileio_info->param_2 for length of path */
+
+				target->type->read_buffer(target, fileio_info->param_1,
+						256, filename);
+				fileio_info->param_2 = strlen((char *)filename) + 1;
+			}
+			break;
+		case NDS32_SYSCALL_RENAME:
+			{
+				uint8_t filename[256];
+				fileio_info->identifier = (char *)malloc(7);
+				sprintf(fileio_info->identifier, "rename");
+				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+				/* reserve fileio_info->param_2 for length of old path */
+				nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_3));
+				/* reserve fileio_info->param_4 for length of new path */
+
+				target->type->read_buffer(target, fileio_info->param_1,
+						256, filename);
+				fileio_info->param_2 = strlen((char *)filename) + 1;
+
+				target->type->read_buffer(target, fileio_info->param_3,
+						256, filename);
+				fileio_info->param_4 = strlen((char *)filename) + 1;
+			}
+			break;
+		case NDS32_SYSCALL_FSTAT:
+			fileio_info->identifier = (char *)malloc(6);
+			sprintf(fileio_info->identifier, "fstat");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
+			break;
+		case NDS32_SYSCALL_STAT:
+			{
+				uint8_t filename[256];
+				fileio_info->identifier = (char *)malloc(5);
+				sprintf(fileio_info->identifier, "stat");
+				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+				/* reserve fileio_info->param_2 for length of old path */
+				nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_3));
+
+				target->type->read_buffer(target, fileio_info->param_1,
+						256, filename);
+				fileio_info->param_2 = strlen((char *)filename) + 1;
+			}
+			break;
+		case NDS32_SYSCALL_GETTIMEOFDAY:
+			fileio_info->identifier = (char *)malloc(13);
+			sprintf(fileio_info->identifier, "gettimeofday");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
+			break;
+		case NDS32_SYSCALL_ISATTY:
+			fileio_info->identifier = (char *)malloc(7);
+			sprintf(fileio_info->identifier, "isatty");
+			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+			break;
+		case NDS32_SYSCALL_SYSTEM:
+			{
+				uint8_t command[256];
+				fileio_info->identifier = (char *)malloc(7);
+				sprintf(fileio_info->identifier, "system");
+				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
+				/* reserve fileio_info->param_2 for length of old path */
+
+				target->type->read_buffer(target, fileio_info->param_1,
+						256, command);
+				fileio_info->param_2 = strlen((char *)command) + 1;
+			}
+			break;
+		case NDS32_SYSCALL_ERRNO:
+			fileio_info->identifier = (char *)malloc(6);
+			sprintf(fileio_info->identifier, "errno");
+			nds32_set_mapped_reg(nds32, R0, nds32->virtual_hosting_errno);
+			break;
+		default:
+			fileio_info->identifier = (char *)malloc(8);
+			sprintf(fileio_info->identifier, "unknown");
+			break;
+	}
+
+	return ERROR_OK;
+}
+
+int nds32_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c)
+{
+	LOG_DEBUG("syscall return code: 0x%x, errno: 0x%x, ctrl_c: %s",
+			retcode, fileio_errno, ctrl_c ? "true" : "false");
+
+	struct nds32 *nds32 = target_to_nds32(target);
+
+	nds32_set_mapped_reg(nds32, R0, (uint32_t)retcode);
+
+	nds32->virtual_hosting_errno = fileio_errno;
+	nds32->virtual_hosting_ctrl_c = ctrl_c;
+	nds32->active_syscall_id = NDS32_SYSCALL_UNDEFINED;
+
+	return ERROR_OK;
+}
+
+int nds32_gdb_fileio_write_memory(struct nds32 *nds32, uint32_t address,
+		uint32_t size, const uint8_t *buffer)
+{
+	if ((NDS32_SYSCALL_FSTAT == nds32->active_syscall_id) ||
+			(NDS32_SYSCALL_STAT == nds32->active_syscall_id)) {
+		/* If doing GDB file-I/O, target should convert 'struct stat'
+		 * from gdb-format to target-format */
+		uint8_t stat_buffer[NDS32_STRUCT_STAT_SIZE];
+		/* st_dev 2 */
+		stat_buffer[0] = buffer[3];
+		stat_buffer[1] = buffer[2];
+		/* st_ino 2 */
+		stat_buffer[2] = buffer[7];
+		stat_buffer[3] = buffer[6];
+		/* st_mode 4 */
+		stat_buffer[4] = buffer[11];
+		stat_buffer[5] = buffer[10];
+		stat_buffer[6] = buffer[9];
+		stat_buffer[7] = buffer[8];
+		/* st_nlink 2 */
+		stat_buffer[8] = buffer[15];
+		stat_buffer[9] = buffer[16];
+		/* st_uid 2 */
+		stat_buffer[10] = buffer[19];
+		stat_buffer[11] = buffer[18];
+		/* st_gid 2 */
+		stat_buffer[12] = buffer[23];
+		stat_buffer[13] = buffer[22];
+		/* st_rdev 2 */
+		stat_buffer[14] = buffer[27];
+		stat_buffer[15] = buffer[26];
+		/* st_size 4 */
+		stat_buffer[16] = buffer[35];
+		stat_buffer[17] = buffer[34];
+		stat_buffer[18] = buffer[33];
+		stat_buffer[19] = buffer[32];
+		/* st_atime 4 */
+		stat_buffer[20] = buffer[55];
+		stat_buffer[21] = buffer[54];
+		stat_buffer[22] = buffer[53];
+		stat_buffer[23] = buffer[52];
+		/* st_spare1 4 */
+		stat_buffer[24] = 0;
+		stat_buffer[25] = 0;
+		stat_buffer[26] = 0;
+		stat_buffer[27] = 0;
+		/* st_mtime 4 */
+		stat_buffer[28] = buffer[59];
+		stat_buffer[29] = buffer[58];
+		stat_buffer[30] = buffer[57];
+		stat_buffer[31] = buffer[56];
+		/* st_spare2 4 */
+		stat_buffer[32] = 0;
+		stat_buffer[33] = 0;
+		stat_buffer[34] = 0;
+		stat_buffer[35] = 0;
+		/* st_ctime 4 */
+		stat_buffer[36] = buffer[63];
+		stat_buffer[37] = buffer[62];
+		stat_buffer[38] = buffer[61];
+		stat_buffer[39] = buffer[60];
+		/* st_spare3 4 */
+		stat_buffer[40] = 0;
+		stat_buffer[41] = 0;
+		stat_buffer[42] = 0;
+		stat_buffer[43] = 0;
+		/* st_blksize 4 */
+		stat_buffer[44] = buffer[43];
+		stat_buffer[45] = buffer[42];
+		stat_buffer[46] = buffer[41];
+		stat_buffer[47] = buffer[40];
+		/* st_blocks 4 */
+		stat_buffer[48] = buffer[51];
+		stat_buffer[49] = buffer[50];
+		stat_buffer[50] = buffer[49];
+		stat_buffer[51] = buffer[48];
+		/* st_spare4 8 */
+		stat_buffer[52] = 0;
+		stat_buffer[53] = 0;
+		stat_buffer[54] = 0;
+		stat_buffer[55] = 0;
+		stat_buffer[56] = 0;
+		stat_buffer[57] = 0;
+		stat_buffer[58] = 0;
+		stat_buffer[59] = 0;
+
+		return nds32_write_buffer(nds32->target, address, NDS32_STRUCT_STAT_SIZE, stat_buffer);
+	} else if (NDS32_SYSCALL_GETTIMEOFDAY == nds32->active_syscall_id) {
+		/* If doing GDB file-I/O, target should convert 'struct timeval'
+		 * from gdb-format to target-format */
+		uint8_t timeval_buffer[NDS32_STRUCT_TIMEVAL_SIZE];
+		timeval_buffer[0] = buffer[3];
+		timeval_buffer[1] = buffer[2];
+		timeval_buffer[2] = buffer[1];
+		timeval_buffer[3] = buffer[0];
+		timeval_buffer[4] = buffer[11];
+		timeval_buffer[5] = buffer[10];
+		timeval_buffer[6] = buffer[9];
+		timeval_buffer[7] = buffer[8];
+
+		return nds32_write_buffer(nds32->target, address, NDS32_STRUCT_TIMEVAL_SIZE, timeval_buffer);
+	}
+
+	return nds32_write_buffer(nds32->target, address, size, buffer);
 }
 
 int nds32_reset_halt(struct nds32 *nds32)

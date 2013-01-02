@@ -508,4 +508,7 @@ struct target_type nds32_v3m_target = {
 	.target_create = nds32_v3m_target_create,
 	.init_target = nds32_v3_init_target,
 	.examine = nds32_v3m_examine,
+
+	.get_gdb_fileio_info = nds32_get_gdb_fileio_info,
+	.gdb_fileio_end = nds32_gdb_fileio_end,
 };

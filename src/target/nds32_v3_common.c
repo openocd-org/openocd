@@ -29,6 +29,18 @@
 #include "nds32_aice.h"
 #include "nds32_v3_common.h"
 
+static struct breakpoint syscall_breakpoint = {
+	0x80,
+	0,
+	4,
+	BKPT_SOFT,
+	0,
+	NULL,
+	NULL,
+	0x515CA11,
+	0,
+};
+
 static struct nds32_v3_common_callback *v3_common_callback;
 
 static int nds32_v3_register_mapping(struct nds32 *nds32, int reg_no)
@@ -79,6 +91,22 @@ static int nds32_v3_debug_entry(struct nds32 *nds32, bool enable_watchpoint)
 
 	if (enable_watchpoint)
 		CHECK_RETVAL(v3_common_callback->deactivate_hardware_watchpoint(nds32->target));
+
+	if (nds32->virtual_hosting) {
+		if (syscall_breakpoint.set) {
+			/** disable virtual hosting */
+
+			/* remove breakpoint at syscall entry */
+			target_remove_breakpoint(nds32->target, &syscall_breakpoint);
+			syscall_breakpoint.set = 0;
+
+			uint32_t value_pc;
+			nds32_get_mapped_reg(nds32, PC, &value_pc);
+			if (value_pc == syscall_breakpoint.address)
+				/** process syscall for virtual hosting */
+				nds32->hit_syscall = true;
+		}
+	}
 
 	if (ERROR_OK != nds32_examine_debug_reason(nds32)) {
 		nds32->target->state = backup_state;
@@ -131,6 +159,74 @@ static int nds32_v3_leave_debug_state(struct nds32 *nds32, bool enable_watchpoin
 	 * registers.
 	 */
 	CHECK_RETVAL(nds32_restore_context(target));
+
+	if (nds32->virtual_hosting) {
+		/** enable virtual hosting */
+		uint32_t value_ir3;
+		uint32_t entry_size;
+		uint32_t syscall_address;
+
+		/* get syscall entry address */
+		nds32_get_mapped_reg(nds32, IR3, &value_ir3);
+		entry_size = 0x4 << (((value_ir3 >> 14) & 0x3) << 1);
+		syscall_address = (value_ir3 & 0xFFFF0000) + entry_size * 8; /* The index of SYSCALL is 8 */
+
+		if (nds32->hit_syscall) {
+			/* single step to skip syscall entry */
+			/* use IRET to skip syscall */
+			struct aice_port_s *aice = target_to_aice(target);
+			uint32_t value_ir9;
+			uint32_t value_ir6;
+			uint32_t syscall_id;
+
+			nds32_get_mapped_reg(nds32, IR6, &value_ir6);
+			syscall_id = (value_ir6 >> 16) & 0x7FFF;
+
+			if (syscall_id == NDS32_SYSCALL_EXIT) {
+				/* If target hits exit syscall, do not use IRET to skip handler. */
+				aice_step(aice);
+			} else {
+				/* use api->read/write_reg to skip nds32 register cache */
+				uint32_t value_dimbr;
+				aice_read_debug_reg(aice, NDS_EDM_SR_DIMBR, &value_dimbr);
+				aice_write_register(aice, IR11, value_dimbr + 0xC);
+
+				aice_read_register(aice, IR9, &value_ir9);
+				value_ir9 += 4; /* syscall is always 4 bytes */
+				aice_write_register(aice, IR9, value_ir9);
+
+				/* backup hardware breakpoint 0 */
+				uint32_t backup_bpa, backup_bpam, backup_bpc;
+				aice_read_debug_reg(aice, NDS_EDM_SR_BPA0, &backup_bpa);
+				aice_read_debug_reg(aice, NDS_EDM_SR_BPAM0, &backup_bpam);
+				aice_read_debug_reg(aice, NDS_EDM_SR_BPC0, &backup_bpc);
+
+				/* use hardware breakpoint 0 to stop cpu after skipping syscall */
+				aice_write_debug_reg(aice, NDS_EDM_SR_BPA0, value_ir9);
+				aice_write_debug_reg(aice, NDS_EDM_SR_BPAM0, 0);
+				aice_write_debug_reg(aice, NDS_EDM_SR_BPC0, 0xA);
+
+				/* Execute two IRET.
+				 * First IRET is used to quit debug mode.
+				 * Second IRET is used to quit current syscall. */
+				uint32_t dim_inst[4] = {NOP, NOP, IRET, IRET};
+				aice_execute(aice, dim_inst, 4);
+
+				/* restore origin hardware breakpoint 0 */
+				aice_write_debug_reg(aice, NDS_EDM_SR_BPA0, backup_bpa);
+				aice_write_debug_reg(aice, NDS_EDM_SR_BPAM0, backup_bpam);
+				aice_write_debug_reg(aice, NDS_EDM_SR_BPC0, backup_bpc);
+			}
+
+			nds32->hit_syscall = false;
+		}
+
+		/* insert breakpoint at syscall entry */
+		syscall_breakpoint.address = syscall_address;
+		syscall_breakpoint.type = BKPT_SOFT;
+		syscall_breakpoint.set = 1;
+		target_add_breakpoint(target, &syscall_breakpoint);
+	}
 
 	/* enable polling */
 	jtag_poll_set_enabled(true);
@@ -398,7 +494,27 @@ int nds32_v3_read_buffer(struct target *target, uint32_t address,
 	else
 		return ERROR_FAIL;
 
-	return nds32_read_buffer(target, address, size, buffer);
+	int result;
+	struct aice_port_s *aice = target_to_aice(target);
+	/* give arbitrary initial value to avoid warning messages */
+	enum nds_memory_access origin_access_channel = NDS_MEMORY_ACC_CPU;
+
+	if (nds32->hit_syscall) {
+		/* Use bus mode to access memory during virtual hosting */
+		origin_access_channel = memory->access_channel;
+		memory->access_channel = NDS_MEMORY_ACC_BUS;
+		aice_memory_access(aice, NDS_MEMORY_ACC_BUS);
+	}
+
+	result = nds32_read_buffer(target, address, size, buffer);
+
+	if (nds32->hit_syscall) {
+		/* Restore access_channel after virtual hosting */
+		memory->access_channel = origin_access_channel;
+		aice_memory_access(aice, origin_access_channel);
+	}
+
+	return result;
 }
 
 int nds32_v3_write_buffer(struct target *target, uint32_t address,
@@ -435,6 +551,24 @@ int nds32_v3_write_buffer(struct target *target, uint32_t address,
 		address = physical_address;
 	else
 		return ERROR_FAIL;
+
+	if (nds32->hit_syscall) {
+		/* Use bus mode to access memory during virtual hosting */
+		struct aice_port_s *aice = target_to_aice(target);
+		enum nds_memory_access origin_access_channel;
+		int result;
+
+		origin_access_channel = memory->access_channel;
+		memory->access_channel = NDS_MEMORY_ACC_BUS;
+		aice_memory_access(aice, NDS_MEMORY_ACC_BUS);
+
+		result = nds32_gdb_fileio_write_memory(nds32, address, size, buffer);
+
+		memory->access_channel = origin_access_channel;
+		aice_memory_access(aice, origin_access_channel);
+
+		return result;
+	}
 
 	return nds32_write_buffer(target, address, size, buffer);
 }
@@ -474,9 +608,25 @@ int nds32_v3_read_memory(struct target *target, uint32_t address,
 	else
 		return ERROR_FAIL;
 
+	struct aice_port_s *aice = target_to_aice(target);
+	/* give arbitrary initial value to avoid warning messages */
+	enum nds_memory_access origin_access_channel = NDS_MEMORY_ACC_CPU;
 	int result;
 
+	if (nds32->hit_syscall) {
+		/* Use bus mode to access memory during virtual hosting */
+		origin_access_channel = memory->access_channel;
+		memory->access_channel = NDS_MEMORY_ACC_BUS;
+		aice_memory_access(aice, NDS_MEMORY_ACC_BUS);
+	}
+
 	result = nds32_read_memory(target, address, size, count, buffer);
+
+	if (nds32->hit_syscall) {
+		/* Restore access_channel after virtual hosting */
+		memory->access_channel = origin_access_channel;
+		aice_memory_access(aice, origin_access_channel);
+	}
 
 	return result;
 }
@@ -526,6 +676,9 @@ int nds32_v3_init_target(struct command_context *cmd_ctx,
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	nds32_init(nds32);
+
+	target->fileio_info = malloc(sizeof(struct gdb_fileio_info));
+	target->fileio_info->identifier = NULL;
 
 	return ERROR_OK;
 }
