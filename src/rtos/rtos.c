@@ -199,13 +199,30 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 	if (!os)
 		goto done;
 
-	if (sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))
-		hex_to_str(cur_sym, strchr(packet + 8, ':') + 1);
-	else if (target->rtos_auto_detect && !rtos_try_next(target))
-		goto done;
+	/* Decode any symbol name in the packet*/
+	hex_to_str(cur_sym, strchr(packet + 8, ':') + 1);
 
+	if ((strcmp(packet, "qSymbol::") != 0) &&               /* GDB is not offering symbol lookup for the first time */
+	    (!sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))) { /* GDB did not found an address for a symbol */
+		/* GDB could not find an address for the previous symbol */
+		if (!target->rtos_auto_detect) {
+			LOG_WARNING("RTOS %s not detected. (GDB could not find symbol \'%s\')", os->type->name, cur_sym);
+			goto done;
+		} else {
+			/* Autodetecting RTOS - try next RTOS */
+			if (!rtos_try_next(target))
+				goto done;
+
+			/* Next RTOS selected - invalidate current symbol */
+			cur_sym[0] = '\x00';
+
+		}
+	}
 	next_sym = next_symbol(os, cur_sym, addr);
+
 	if (!next_sym) {
+		/* No more symbols need looking up */
+
 		if (!target->rtos_auto_detect) {
 			rtos_detected = 1;
 			goto done;
@@ -215,16 +232,10 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 			LOG_OUTPUT("Auto-detected RTOS: %s\r\n", os->type->name);
 			rtos_detected = 1;
 			goto done;
+		} else {
+			LOG_WARNING("No RTOS could be auto-detected!");
+			goto done;
 		}
-
-		if (!rtos_try_next(target))
-			goto done;
-
-		os->type->get_symbol_list_to_lookup(&os->symbols);
-
-		next_sym = os->symbols[0].symbol_name;
-		if (!next_sym)
-			goto done;
 	}
 
 	if (8 + (strlen(next_sym) * 2) + 1 > sizeof(reply)) {
