@@ -229,7 +229,7 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 		}
 
 		if (os->type->detect_rtos(target)) {
-			LOG_OUTPUT("Auto-detected RTOS: %s\r\n", os->type->name);
+			LOG_INFO("Auto-detected RTOS: %s", os->type->name);
 			rtos_detected = 1;
 			goto done;
 		} else {
@@ -239,7 +239,7 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 	}
 
 	if (8 + (strlen(next_sym) * 2) + 1 > sizeof(reply)) {
-		LOG_OUTPUT("ERROR: RTOS symbol '%s' name is too long for GDB!", next_sym);
+		LOG_ERROR("ERROR: RTOS symbol '%s' name is too long for GDB!", next_sym);
 		goto done;
 	}
 
@@ -429,7 +429,7 @@ int rtos_generic_stack_read(struct target *target,
 	int retval;
 
 	if (stack_ptr == 0) {
-		LOG_OUTPUT("Error: null stack pointer in thread\r\n");
+		LOG_ERROR("Error: null stack pointer in thread");
 		return -5;
 	}
 	/* Read the stack */
@@ -440,7 +440,7 @@ int rtos_generic_stack_read(struct target *target,
 		address -= stacking->stack_registers_size;
 	retval = target_read_buffer(target, address, stacking->stack_registers_size, stack_data);
 	if (retval != ERROR_OK) {
-		LOG_OUTPUT("Error reading stack frame from FreeRTOS thread\r\n");
+		LOG_ERROR("Error reading stack frame from FreeRTOS thread");
 		return retval;
 	}
 #if 0

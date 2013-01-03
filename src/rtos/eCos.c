@@ -115,12 +115,12 @@ static int eCos_update_threads(struct rtos *rtos)
 	param = (const struct eCos_params *) rtos->rtos_specific_params;
 
 	if (rtos->symbols == NULL) {
-		LOG_OUTPUT("No symbols for eCos\r\n");
+		LOG_ERROR("No symbols for eCos");
 		return -4;
 	}
 
 	if (rtos->symbols[eCos_VAL_thread_list].address == 0) {
-		LOG_OUTPUT("Don't have the thread list head\r\n");
+		LOG_ERROR("Don't have the thread list head");
 		return -2;
 	}
 
@@ -177,7 +177,7 @@ static int eCos_update_threads(struct rtos *rtos)
 			2,
 			(uint8_t *)&rtos->current_thread);
 	if (retval != ERROR_OK) {
-		LOG_OUTPUT("Could not read eCos current thread from target\r\n");
+		LOG_ERROR("Could not read eCos current thread from target");
 		return retval;
 	}
 
@@ -224,7 +224,7 @@ static int eCos_update_threads(struct rtos *rtos)
 				2,
 				(uint8_t *)&thread_id);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Could not read eCos thread id from target\r\n");
+			LOG_ERROR("Could not read eCos thread id from target");
 			return retval;
 		}
 		rtos->thread_details[tasks_found].threadid = thread_id;
@@ -235,7 +235,7 @@ static int eCos_update_threads(struct rtos *rtos)
 				param->pointer_width,
 				(uint8_t *)&name_ptr);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Could not read eCos thread name pointer from target\r\n");
+			LOG_ERROR("Could not read eCos thread name pointer from target");
 			return retval;
 		}
 
@@ -246,7 +246,7 @@ static int eCos_update_threads(struct rtos *rtos)
 				ECOS_THREAD_NAME_STR_SIZE,
 				(uint8_t *)&tmp_str);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Error reading thread name from eCos target\r\n");
+			LOG_ERROR("Error reading thread name from eCos target");
 			return retval;
 		}
 		tmp_str[ECOS_THREAD_NAME_STR_SIZE-1] = '\x00';
@@ -265,7 +265,7 @@ static int eCos_update_threads(struct rtos *rtos)
 				4,
 				(uint8_t *)&thread_status);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Error reading thread state from eCos target\r\n");
+			LOG_ERROR("Error reading thread state from eCos target");
 			return retval;
 		}
 
@@ -299,7 +299,7 @@ static int eCos_update_threads(struct rtos *rtos)
 				param->pointer_width,
 				(uint8_t *) &thread_index);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Error reading next thread pointer in eCos thread list\r\n");
+			LOG_ERROR("Error reading next thread pointer in eCos thread list");
 			return retval;
 		}
 	} while (thread_index != first_thread);
@@ -339,7 +339,7 @@ static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char *
 				2,
 				(uint8_t *)&id);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Error reading unique id from eCos thread\r\n");
+			LOG_ERROR("Error reading unique id from eCos thread");
 			return retval;
 		}
 
@@ -361,7 +361,7 @@ static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char *
 				param->pointer_width,
 				(uint8_t *)&stack_ptr);
 		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Error reading stack frame from eCos thread\r\n");
+			LOG_ERROR("Error reading stack frame from eCos thread");
 			return retval;
 		}
 
@@ -404,7 +404,7 @@ static int eCos_create(struct target *target)
 		i++;
 	}
 	if (i >= ECOS_NUM_PARAMS) {
-		LOG_OUTPUT("Could not find target in eCos compatibility list\r\n");
+		LOG_ERROR("Could not find target in eCos compatibility list");
 		return -1;
 	}
 
