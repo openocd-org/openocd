@@ -212,44 +212,34 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
-	uint32_t buffer_size = 4096 * 4;
+	uint32_t buffer_size = 16384;
 	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
 
-	struct reg_param reg_params[5];
+	struct reg_param reg_params[3];
 	struct armv7m_algorithm armv7m_info;
 
 	int retval = ERROR_OK;
-	uint32_t reg32;
 
-	/* see contib/loaders/flash/stm32lx.s for src */
+	/* see contib/loaders/flash/stm32lx.S for src */
 
-	static const uint16_t stm32lx_flash_write_code_16[] = {
-	/*	00000000 <write_word-0x4>: */
-			0x2300, /* 0:	2300		movs	r3, #0 */
-			0xe004, /* 2:	e004		b.n	e <test_done> */
+	static const uint8_t stm32lx_flash_write_code[] = {
+		/* write_word: */
+		0x00, 0x23,             /* movs r3, #0 */
+		0x04, 0xe0,             /* b test_done */
 
-			/*	00000004 <write_word>: */
-			0xf851, 0xcb04, /* 4:	f851 cb04	ldr.w	ip, [r1], #4 */
-			0xf840, 0xcb04, /* 8:	f840 cb04	str.w	ip, [r0], #4 */
-			0x3301, /* c:	3301		adds	r3, #1 */
+		/* write_word: */
+		0x51, 0xf8, 0x04, 0xcb, /* ldr ip, [r1], #4 */
+		0x40, 0xf8, 0x04, 0xcb, /* str ip, [r0], #4 */
+		0x01, 0x33,             /* adds r3, #1 */
 
-			/*	0000000e <test_done>: */
-			0x4293, /* e:	4293		cmp	r3, r2 */
-			0xd3f8, /* 10:	d3f8		bcc.n	4 <write_word> */
-			0xbe00, /* 12:	be00		bkpt	0x0000 */
+		/* test_done: */
+		0x93, 0x42,             /* cmp r3, r2 */
+		0xf8, 0xd3,             /* bcc write_word */
+		0x00, 0xbe,             /* bkpt 0 */
+	};
 
-			};
-
-	/* Flip endian */
-	uint8_t stm32lx_flash_write_code[sizeof(stm32lx_flash_write_code_16)];
-	for (unsigned int i = 0; i < sizeof(stm32lx_flash_write_code_16) / 2; i++) {
-		stm32lx_flash_write_code[i * 2 + 0] = stm32lx_flash_write_code_16[i]
-				& 0xff;
-		stm32lx_flash_write_code[i * 2 + 1] = (stm32lx_flash_write_code_16[i]
-				>> 8) & 0xff;
-	}
 	/* Check if there is an even number of half pages (128bytes) */
 	if (count % 128) {
 		LOG_ERROR("there should be an even number "
@@ -257,14 +247,12 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		return ERROR_FAIL;
 	}
 
-	/* Allocate working area */
-	reg32 = sizeof(stm32lx_flash_write_code);
-	/* Add bytes to make 4byte aligned */
-	reg32 += (4 - (reg32 % 4)) % 4;
-	retval = target_alloc_working_area(target, reg32,
-			&write_algorithm);
-	if (retval != ERROR_OK)
-		return retval;
+	/* flash write code */
+	if (target_alloc_working_area(target, sizeof(stm32lx_flash_write_code),
+			&write_algorithm) != ERROR_OK) {
+		LOG_DEBUG("no working area for block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	};
 
 	/* Write the flashing code */
 	retval = target_write_buffer(target,
@@ -277,8 +265,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 	}
 
 	/* Allocate half pages memory */
-	while (target_alloc_working_area_try(target, buffer_size, &source)
-			!= ERROR_OK) {
+	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
 		if (buffer_size > 1024)
 			buffer_size -= 1024;
 		else
@@ -293,15 +280,12 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
-	LOG_DEBUG("allocated working area for data (%" PRIx32 " bytes)", buffer_size);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
-	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN_OUT);
-	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
 
 	/* Enable half-page write */
 	retval = stm32lx_enable_write_half_page(bank);
@@ -312,7 +296,6 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		destroy_reg_param(&reg_params[0]);
 		destroy_reg_param(&reg_params[1]);
 		destroy_reg_param(&reg_params[2]);
-		destroy_reg_param(&reg_params[3]);
 		return retval;
 	}
 
@@ -322,8 +305,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 		this_count = (count > buffer_size) ? buffer_size : count;
 
 		/* Write the next half pages */
-		retval = target_write_buffer(target, source->address, this_count,
-				buffer);
+		retval = target_write_buffer(target, source->address, this_count, buffer);
 		if (retval != ERROR_OK)
 			break;
 
@@ -361,103 +343,118 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
-	destroy_reg_param(&reg_params[3]);
 
 	return retval;
 }
+
 static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 
 	uint32_t halfpages_number;
-	uint32_t words_remaining;
-	uint32_t bytes_remaining;
+	uint32_t bytes_remaining = 0;
 	uint32_t address = bank->base + offset;
 	uint32_t bytes_written = 0;
-	int retval;
+	int retval, retval2;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset & 0x1) {
-		LOG_ERROR("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
+	if (offset & 0x3) {
+		LOG_ERROR("offset 0x%" PRIx32 " breaks required 4-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
-	/* Check if there are some full half pages */
-	if (((offset % 128) == 0) && (count >= 128)) {
-		halfpages_number = count / 128;
-		words_remaining = (count - 128 * halfpages_number) / 4;
-		bytes_remaining = (count & 0x3);
-	} else {
-		halfpages_number = 0;
-		words_remaining = (count / 4);
-		bytes_remaining = (count & 0x3);
+	retval = stm32lx_unlock_program_memory(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* first we need to write any unaligned head bytes upto
+	 * the next 128 byte page */
+
+	if (offset % 128)
+		bytes_remaining = MIN(count, 128 - (offset % 128));
+
+	while (bytes_remaining > 0) {
+		uint8_t value[4] = {0xff, 0xff, 0xff, 0xff};
+
+		/* copy remaining bytes into the write buffer */
+		uint32_t bytes_to_write = MIN(4, bytes_remaining);
+		memcpy(value, buffer + bytes_written, bytes_to_write);
+
+		retval = target_write_buffer(target, address, 4, value);
+		if (retval != ERROR_OK)
+			goto reset_pg_and_lock;
+
+		bytes_written += bytes_to_write;
+		bytes_remaining -= bytes_to_write;
+		address += 4;
+
+		retval = stm32lx_wait_until_bsy_clear(bank);
+		if (retval != ERROR_OK)
+			goto reset_pg_and_lock;
 	}
 
+	offset += bytes_written;
+	count -= bytes_written;
+
+	/* this should always pass this check here */
+	assert((offset % 128) == 0);
+
+	/* calculate half pages */
+	halfpages_number = count / 128;
+
 	if (halfpages_number) {
-		retval = stm32lx_write_half_pages(bank, buffer, offset, 128 * halfpages_number);
+		retval = stm32lx_write_half_pages(bank, buffer + bytes_written, offset, 128 * halfpages_number);
 		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 			/* attempt slow memory writes */
 			LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			halfpages_number = 0;
-			words_remaining = (count / 4);
 		} else {
 			if (retval != ERROR_OK)
 				return ERROR_FAIL;
 		}
 	}
 
-	bytes_written = 128 * halfpages_number;
-	address += bytes_written;
+	/* write any remaining bytes */
+	uint32_t page_bytes_written = 128 * halfpages_number;
+	bytes_written += page_bytes_written;
+	address += page_bytes_written;
+	bytes_remaining = count - page_bytes_written;
 
 	retval = stm32lx_unlock_program_memory(bank);
 	if (retval != ERROR_OK)
 		return retval;
 
-	while (words_remaining > 0) {
-		uint32_t value;
-		uint8_t *p = buffer + bytes_written;
+	while (bytes_remaining > 0) {
+		uint8_t value[4] = {0xff, 0xff, 0xff, 0xff};
 
-		/* Prepare the word, Little endian conversion */
-		value = p[0] + (p[1] << 8) + (p[2] << 16) + (p[3] << 24);
+		/* copy remaining bytes into the write buffer */
+		uint32_t bytes_to_write = MIN(4, bytes_remaining);
+		memcpy(value, buffer + bytes_written, bytes_to_write);
 
-		retval = target_write_u32(target, address, value);
+		retval = target_write_buffer(target, address, 4, value);
 		if (retval != ERROR_OK)
-			return retval;
+			goto reset_pg_and_lock;
 
-		bytes_written += 4;
-		words_remaining--;
+		bytes_written += bytes_to_write;
+		bytes_remaining -= bytes_to_write;
 		address += 4;
 
 		retval = stm32lx_wait_until_bsy_clear(bank);
 		if (retval != ERROR_OK)
-			return retval;
+			goto reset_pg_and_lock;
 	}
 
-	if (bytes_remaining) {
-		uint8_t last_word[4] = {0xff, 0xff, 0xff, 0xff};
+reset_pg_and_lock:
+	retval2 = stm32lx_lock_program_memory(bank);
+	if (retval == ERROR_OK)
+		retval = retval2;
 
-		/* copy the last remaining bytes into the write buffer */
-		memcpy(last_word, buffer+bytes_written, bytes_remaining);
-
-		retval = target_write_buffer(target, address, 4, last_word);
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = stm32lx_wait_until_bsy_clear(bank);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	retval = stm32lx_lock_program_memory(bank);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ERROR_OK;
+	return retval;
 }
 
 static int stm32lx_probe(struct flash_bank *bank)
@@ -710,6 +707,14 @@ static int stm32lx_unlock_program_memory(struct flash_bank *bank)
 	 * then by writing the 2 PRGKEY to the PRGKEYR register
 	 */
 
+	/* check flash is not already unlocked */
+	retval = target_read_u32(target, FLASH_PECR, &reg32);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((reg32 & FLASH_PECR__PRGLOCK) == 0)
+		return ERROR_OK;
+
 	/* To unlock the PECR write the 2 PEKEY to the PEKEYR register */
 	retval = target_write_u32(target, FLASH_PEKEYR, PEKEY1);
 	if (retval != ERROR_OK)
@@ -745,6 +750,7 @@ static int stm32lx_unlock_program_memory(struct flash_bank *bank)
 		LOG_ERROR("PRGLOCK is not cleared :(");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
+
 	return ERROR_OK;
 }
 
