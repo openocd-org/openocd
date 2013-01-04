@@ -98,18 +98,7 @@
 #define STM32_FLASH_SR      0x40023c0C
 #define STM32_FLASH_CR      0x40023c10
 #define STM32_FLASH_OPTCR   0x40023c14
-#define STM32_FLASH_OBR     0x40023c1C
-
-/* option byte location */
-
-#define STM32_OB_RDP        0x1FFFF800
-#define STM32_OB_USER       0x1FFFF802
-#define STM32_OB_DATA0      0x1FFFF804
-#define STM32_OB_DATA1      0x1FFFF806
-#define STM32_OB_WRP0       0x1FFFF808
-#define STM32_OB_WRP1       0x1FFFF80A
-#define STM32_OB_WRP2       0x1FFFF80C
-#define STM32_OB_WRP3       0x1FFFF80E
+#define STM32_FLASH_OPTCR1  0x40023c18
 
 /* FLASH_CR register bits */
 
@@ -136,6 +125,11 @@
 
 #define FLASH_ERROR (FLASH_PGSERR | FLASH_PGPERR | FLASH_PGAERR | FLASH_WRPERR | FLASH_OPERR)
 
+/* STM32_FLASH_OPTCR register bits */
+
+#define OPT_LOCK      (1 << 0)
+#define OPT_START     (1 << 1)
+
 /* STM32_FLASH_OBR bit definitions (reading) */
 
 #define OPT_ERROR      0
@@ -150,8 +144,20 @@
 #define KEY1           0x45670123
 #define KEY2           0xCDEF89AB
 
+/* option register unlock key */
+#define OPTKEY1        0x08192A3B
+#define OPTKEY2        0x4C5D6E7F
+
+struct stm32x_options {
+	uint8_t RDP;
+	uint8_t user_options;
+	uint32_t protection;
+};
+
 struct stm32x_flash_bank {
+	struct stm32x_options option_bytes;
 	int probed;
+	bool has_large_mem;		/* stm32f42x/stm32f43x family */
 };
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
@@ -251,6 +257,120 @@ static int stm32x_unlock_reg(struct target *target)
 		LOG_ERROR("flash not unlocked STM32_FLASH_CR: %x", ctrl);
 		return ERROR_TARGET_FAILURE;
 	}
+
+	return ERROR_OK;
+}
+
+static int stm32x_unlock_option_reg(struct target *target)
+{
+	uint32_t ctrl;
+
+	int retval = target_read_u32(target, STM32_FLASH_OPTCR, &ctrl);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((ctrl & OPT_LOCK) == 0)
+		return ERROR_OK;
+
+	/* unlock option registers */
+	retval = target_write_u32(target, STM32_FLASH_OPTKEYR, OPTKEY1);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, STM32_FLASH_OPTKEYR, OPTKEY2);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_read_u32(target, STM32_FLASH_OPTCR, &ctrl);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (ctrl & OPT_LOCK) {
+		LOG_ERROR("options not unlocked STM32_FLASH_OPTCR: %x", ctrl);
+		return ERROR_TARGET_FAILURE;
+	}
+
+	return ERROR_OK;
+}
+
+static int stm32x_read_options(struct flash_bank *bank)
+{
+	uint32_t optiondata;
+	struct stm32x_flash_bank *stm32x_info = NULL;
+	struct target *target = bank->target;
+
+	stm32x_info = bank->driver_priv;
+
+	/* read current option bytes */
+	int retval = target_read_u32(target, STM32_FLASH_OPTCR, &optiondata);
+	if (retval != ERROR_OK)
+		return retval;
+
+	stm32x_info->option_bytes.user_options = optiondata & 0xec;
+	stm32x_info->option_bytes.RDP = (optiondata >> 8) & 0xff;
+	stm32x_info->option_bytes.protection = (optiondata >> 16) & 0xfff;
+
+	if (stm32x_info->has_large_mem) {
+
+		retval = target_read_u32(target, STM32_FLASH_OPTCR1, &optiondata);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* append protection bits */
+		stm32x_info->option_bytes.protection |= (optiondata >> 4) & 0x00fff000;
+	}
+
+	if (stm32x_info->option_bytes.RDP != 0xAA)
+		LOG_INFO("Device Security Bit Set");
+
+	return ERROR_OK;
+}
+
+static int stm32x_write_options(struct flash_bank *bank)
+{
+	struct stm32x_flash_bank *stm32x_info = NULL;
+	struct target *target = bank->target;
+	uint32_t optiondata;
+
+	stm32x_info = bank->driver_priv;
+
+	int retval = stm32x_unlock_option_reg(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* rebuild option data */
+	optiondata = stm32x_info->option_bytes.user_options;
+	buf_set_u32(&optiondata, 8, 8, stm32x_info->option_bytes.RDP);
+	buf_set_u32(&optiondata, 16, 12, stm32x_info->option_bytes.protection);
+
+	/* program options */
+	retval = target_write_u32(target, STM32_FLASH_OPTCR, optiondata);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (stm32x_info->has_large_mem) {
+
+		uint32_t optiondata2 = 0;
+		buf_set_u32(&optiondata2, 16, 12, stm32x_info->option_bytes.protection >> 12);
+		retval = target_write_u32(target, STM32_FLASH_OPTCR1, optiondata2);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	/* start programming cycle */
+	retval = target_write_u32(target, STM32_FLASH_OPTCR, optiondata | OPT_START);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* wait for completion */
+	retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* relock registers */
+	retval = target_write_u32(target, STM32_FLASH_OPTCR, OPT_LOCK);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -588,6 +708,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	uint32_t base_address = 0x08000000;
 
 	stm32x_info->probed = 0;
+	stm32x_info->has_large_mem = false;
 
 	/* read stm32 device id register */
 	int retval = stm32x_get_device_id(bank, &device_id);
@@ -603,6 +724,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		break;
 	case 0x419:
 		max_flash_size_in_kb = 2048;
+		stm32x_info->has_large_mem = true;
 		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
@@ -629,7 +751,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	int num_pages = (flash_size_in_kb / 128) + 4;
 
 	/* check for larger 2048 bytes devices */
-	if (flash_size_in_kb > 1024)
+	if (stm32x_info->has_large_mem)
 		num_pages += 4;
 
 	/* check that calculation result makes sense */
@@ -652,7 +774,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	/* dynamic memory */
 	setup_sector(bank, 4 + 1, MAX(12, num_pages) - 5, 128 * 1024);
 
-	if (num_pages > 12) {
+	if (stm32x_info->has_large_mem) {
 
 		/* fixed memory for larger devices */
 		setup_sector(bank, 12, 4, 16 * 1024);
@@ -747,22 +869,106 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static int stm32x_mass_erase(struct flash_bank *bank)
+COMMAND_HANDLER(stm32x_handle_lock_command)
 {
-	int retval;
-	struct target *target = bank->target;
+	struct target *target = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
+
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	stm32x_info = bank->driver_priv;
+	target = bank->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	if (stm32x_read_options(bank) != ERROR_OK) {
+		command_print(CMD_CTX, "%s failed to read options", bank->driver->name);
+		return ERROR_OK;
+	}
+
+	/* set readout protection */
+	stm32x_info->option_bytes.RDP = 0;
+
+	if (stm32x_write_options(bank) != ERROR_OK) {
+		command_print(CMD_CTX, "%s failed to lock device", bank->driver->name);
+		return ERROR_OK;
+	}
+
+	command_print(CMD_CTX, "%s locked", bank->driver->name);
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(stm32x_handle_unlock_command)
+{
+	struct target *target = NULL;
+	struct stm32x_flash_bank *stm32x_info = NULL;
+
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	stm32x_info = bank->driver_priv;
+	target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	if (stm32x_read_options(bank) != ERROR_OK) {
+		command_print(CMD_CTX, "%s failed to read options", bank->driver->name);
+		return ERROR_OK;
+	}
+
+	/* clear readout protection and complementary option bytes
+	 * this will also force a device unlock if set */
+	stm32x_info->option_bytes.RDP = 0xAA;
+
+	if (stm32x_write_options(bank) != ERROR_OK) {
+		command_print(CMD_CTX, "%s failed to unlock device", bank->driver->name);
+		return ERROR_OK;
+	}
+
+	command_print(CMD_CTX, "%s unlocked.\n"
+			"INFO: a reset or power cycle is required "
+			"for the new settings to take effect.", bank->driver->name);
+
+	return ERROR_OK;
+}
+
+static int stm32x_mass_erase(struct flash_bank *bank)
+{
+	int retval;
+	struct target *target = bank->target;
+	struct stm32x_flash_bank *stm32x_info = NULL;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	stm32x_info = bank->driver_priv;
+
 	retval = stm32x_unlock_reg(target);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* mass erase flash memory */
-	if (bank->num_sectors > 12)
+	if (stm32x_info->has_large_mem)
 		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER | FLASH_MER1);
 	else
 		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER);
@@ -813,6 +1019,20 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 }
 
 static const struct command_registration stm32x_exec_command_handlers[] = {
+	{
+		.name = "lock",
+		.handler = stm32x_handle_lock_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Lock entire flash device.",
+	},
+	{
+		.name = "unlock",
+		.handler = stm32x_handle_unlock_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Unlock entire protected flash device.",
+	},
 	{
 		.name = "mass_erase",
 		.handler = stm32x_handle_mass_erase_command,
