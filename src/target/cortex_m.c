@@ -425,8 +425,9 @@ static int cortex_m3_debug_entry(struct target *target)
 	int num_regs = arm->core_cache->num_regs;
 
 	for (i = 0; i < num_regs; i++) {
-		if (!armv7m->arm.core_cache->reg_list[i].valid)
-			armv7m->read_core_reg(target, i);
+		r = &armv7m->arm.core_cache->reg_list[i];
+		if (!r->valid)
+			arm->read_core_reg(target, r, i, ARM_MODE_ANY);
 	}
 
 	r = arm->core_cache->reg_list + ARMV7M_xPSR;
