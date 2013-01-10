@@ -384,13 +384,23 @@ int armv7m_start_algorithm(struct target *target,
 		armv7m_set_core_reg(reg, reg_params[i].value);
 	}
 
-	if (armv7m_algorithm_info->core_mode != ARM_MODE_ANY) {
+	if (armv7m_algorithm_info->core_mode != ARM_MODE_ANY &&
+			armv7m_algorithm_info->core_mode != core_mode) {
+
+		/* we cannot set ARM_MODE_HANDLER, so use ARM_MODE_THREAD instead */
+		if (armv7m_algorithm_info->core_mode == ARM_MODE_HANDLER) {
+			armv7m_algorithm_info->core_mode = ARM_MODE_THREAD;
+			LOG_INFO("ARM_MODE_HANDLER not currently supported, using ARM_MODE_THREAD instead");
+		}
+
 		LOG_DEBUG("setting core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
 		buf_set_u32(armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].value,
 			0, 1, armv7m_algorithm_info->core_mode);
 		armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].dirty = 1;
 		armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].valid = 1;
 	}
+
+	/* save previous core mode */
 	armv7m_algorithm_info->core_mode = core_mode;
 
 	retval = target_resume(target, 0, entry_point, 1, 1);
@@ -484,6 +494,15 @@ int armv7m_wait_algorithm(struct target *target,
 			armv7m->arm.core_cache->reg_list[i].valid = 1;
 			armv7m->arm.core_cache->reg_list[i].dirty = 1;
 		}
+	}
+
+	/* restore previous core mode */
+	if (armv7m_algorithm_info->core_mode != armv7m->arm.core_mode) {
+		LOG_DEBUG("restoring core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
+		buf_set_u32(armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].value,
+			0, 1, armv7m_algorithm_info->core_mode);
+		armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].dirty = 1;
+		armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].valid = 1;
 	}
 
 	armv7m->arm.core_mode = armv7m_algorithm_info->core_mode;
