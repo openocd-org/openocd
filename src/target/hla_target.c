@@ -346,18 +346,16 @@ static int adapter_debug_entry(struct target *target)
 
 	/* Are we in an exception handler */
 	if (xPSR & 0x1FF) {
-		armv7m->core_mode = ARMV7M_MODE_HANDLER;
 		armv7m->exception_number = (xPSR & 0x1FF);
 
 		arm->core_mode = ARM_MODE_HANDLER;
 		arm->map = armv7m_msp_reg_map;
 	} else {
-		unsigned control = buf_get_u32(armv7m->core_cache
+		unsigned control = buf_get_u32(arm->core_cache
 				->reg_list[ARMV7M_CONTROL].value, 0, 2);
 
 		/* is this thread privileged? */
-		armv7m->core_mode = control & 1;
-		arm->core_mode = armv7m->core_mode
+		arm->core_mode = control & 1
 				? ARM_MODE_USER_THREAD
 				: ARM_MODE_THREAD;
 
@@ -371,7 +369,7 @@ static int adapter_debug_entry(struct target *target)
 	}
 
 	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%08" PRIx32 ", target->state: %s",
-		armv7m_mode_strings[armv7m->core_mode],
+		arm_mode_name(arm->core_mode),
 		*(uint32_t *)(arm->pc->value),
 		target_state_name(target));
 

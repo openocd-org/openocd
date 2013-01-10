@@ -610,7 +610,7 @@ static int efm32x_write_block(struct flash_bank *bank, uint8_t *buf,
 	buf_set_u32(reg_params[4].value, 0, 32, address);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARMV7M_MODE_ANY;
+	armv7m_info.core_mode = ARM_MODE_ANY;
 
 	ret = target_run_flash_async_algorithm(target, buf, count, 4,
 			0, NULL,

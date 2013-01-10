@@ -40,14 +40,6 @@ extern uint8_t armv7m_gdb_dummy_cpsr_value[];
 extern struct reg armv7m_gdb_dummy_cpsr_reg;
 #endif
 
-enum armv7m_mode {
-	ARMV7M_MODE_THREAD = 0,
-	ARMV7M_MODE_USER_THREAD = 1,
-	ARMV7M_MODE_HANDLER = 2,
-	ARMV7M_MODE_ANY = -1
-};
-
-extern char *armv7m_mode_strings[];
 extern const int armv7m_psp_reg_map[];
 extern const int armv7m_msp_reg_map[];
 
@@ -166,7 +158,6 @@ struct armv7m_common {
 
 	int common_magic;
 	struct reg_cache *core_cache;
-	enum armv7m_mode core_mode;
 	int exception_number;
 	struct adiv5_dap dap;
 
@@ -206,7 +197,7 @@ static inline bool is_armv7m(struct armv7m_common *armv7m)
 struct armv7m_algorithm {
 	int common_magic;
 
-	enum armv7m_mode core_mode;
+	enum arm_mode core_mode;
 
 	uint32_t context[ARMV7M_LAST_REG]; /* ARMV7M_NUM_REGS */
 };

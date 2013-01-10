@@ -140,6 +140,21 @@ static const struct {
 		.n_indices = ARRAY_SIZE(arm_mon_indices),
 		.indices = arm_mon_indices,
 	},
+
+	/* These special modes are currently only supported
+	 * by ARMv6M and ARMv7M profiles */
+	{
+		.name = "Thread",
+		.psr = ARM_MODE_THREAD,
+	},
+	{
+		.name = "Thread (User)",
+		.psr = ARM_MODE_USER_THREAD,
+	},
+	{
+		.name = "Handler",
+		.psr = ARM_MODE_HANDLER,
+	},
 };
 
 /** Map PSR mode bits to the name of an ARM processor operating mode. */

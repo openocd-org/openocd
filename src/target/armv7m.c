@@ -44,11 +44,6 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/** Maps from enum armv7m_mode (except ARMV7M_MODE_ANY) to name. */
-char *armv7m_mode_strings[] = {
-	"Thread", "Thread (User)", "Handler",
-};
-
 static char *armv7m_exception_strings[] = {
 	"", "Reset", "NMI", "HardFault",
 	"MemManage", "BusFault", "UsageFault", "RESERVED",
@@ -332,7 +327,7 @@ int armv7m_start_algorithm(struct target *target,
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct armv7m_algorithm *armv7m_algorithm_info = arch_info;
-	enum armv7m_mode core_mode = armv7m->core_mode;
+	enum arm_mode core_mode = armv7m->arm.core_mode;
 	int retval = ERROR_OK;
 
 	/* NOTE: armv7m_run_algorithm requires that each algorithm uses a software breakpoint
@@ -388,7 +383,7 @@ int armv7m_start_algorithm(struct target *target,
 		armv7m_set_core_reg(reg, reg_params[i].value);
 	}
 
-	if (armv7m_algorithm_info->core_mode != ARMV7M_MODE_ANY) {
+	if (armv7m_algorithm_info->core_mode != ARM_MODE_ANY) {
 		LOG_DEBUG("setting core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value,
 			0, 1, armv7m_algorithm_info->core_mode);
@@ -490,7 +485,7 @@ int armv7m_wait_algorithm(struct target *target,
 		}
 	}
 
-	armv7m->core_mode = armv7m_algorithm_info->core_mode;
+	armv7m->arm.core_mode = armv7m_algorithm_info->core_mode;
 
 	return retval;
 }
@@ -508,7 +503,7 @@ int armv7m_arch_state(struct target *target)
 	LOG_USER("target halted due to %s, current mode: %s %s\n"
 		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32 "%s",
 		debug_reason_name(target),
-		armv7m_mode_strings[armv7m->core_mode],
+		arm_mode_name(arm->core_mode),
 		armv7m_exception_string(armv7m->exception_number),
 		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u32(arm->pc->value, 0, 32),
@@ -518,6 +513,7 @@ int armv7m_arch_state(struct target *target)
 
 	return ERROR_OK;
 }
+
 static const struct reg_arch_type armv7m_reg_type = {
 	.get = armv7m_get_core_reg,
 	.set = armv7m_set_core_reg,
@@ -648,7 +644,7 @@ int armv7m_checksum_memory(struct target *target,
 		goto cleanup;
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARMV7M_MODE_ANY;
+	armv7m_info.core_mode = ARM_MODE_ANY;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
@@ -708,7 +704,7 @@ int armv7m_blank_check_memory(struct target *target,
 		return retval;
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARMV7M_MODE_ANY;
+	armv7m_info.core_mode = ARM_MODE_ANY;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, address);

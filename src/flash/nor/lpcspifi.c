@@ -182,7 +182,7 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 	};
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARMV7M_MODE_ANY;
+	armv7m_info.core_mode = ARM_MODE_ANY;
 
 
 	LOG_DEBUG("Allocating working area for SPIFI init algorithm");
@@ -519,7 +519,7 @@ static int lpcspifi_erase(struct flash_bank *bank, int first, int last)
 	};
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARMV7M_MODE_ANY;
+	armv7m_info.core_mode = ARM_MODE_ANY;
 
 
 	/* Get memory for spifi initialization algorithm */
@@ -726,7 +726,7 @@ static int lpcspifi_write(struct flash_bank *bank, uint8_t *buffer,
 	};
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARMV7M_MODE_ANY;
+	armv7m_info.core_mode = ARM_MODE_ANY;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);		/* buffer start, status (out) */
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);		/* buffer end */
