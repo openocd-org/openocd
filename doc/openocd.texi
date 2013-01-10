@@ -155,13 +155,13 @@ OpenOCD internally. @xref{Debug Adapter Hardware}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
 ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x) and
-Cortex-M3 (Stellaris LM3 and ST STM32) based cores to be
+Cortex-M3 (Stellaris LM3, ST STM32 and Energy Micro EFM32) based cores to be
 debugged via the GDB protocol.
 
 @b{Flash Programing:} Flash writing is supported for external CFI
 compatible NOR flashes (Intel and AMD/Spansion command set) and several
-internal flashes (LPC1700, LPC2000, AT91SAM7, AT91SAM3U, STR7x, STR9x, LM3, and
-STM32x). Preliminary support for various NAND flash controllers
+internal flashes (LPC1700, LPC2000, AT91SAM7, AT91SAM3U, STR7x, STR9x, LM3,
+STM32x and EFM32). Preliminary support for various NAND flash controllers
 (LPC3180, Orion, S3C24xx, more) controller is included.
 
 @section OpenOCD Web Site
@@ -4978,6 +4978,18 @@ the appropriate at91sam7 target.
 The AVR 8-bit microcontrollers from Atmel integrate flash memory.
 @emph{The current implementation is incomplete.}
 @comment - defines mass_erase ... pointless given flash_erase_address
+@end deffn
+
+@deffn {Flash Driver} efm32
+All members of the EFM32 microcontroller family from Energy Micro include
+internal flash and use ARM Cortex M3 cores. The driver automatically recognizes
+a number of these chips using the chip identification register, and
+autoconfigures itself.
+@example
+flash bank $_FLASHNAME efm32 0 0 0 0 $_TARGETNAME
+@end example
+@emph{The current implementation is incomplete. Unprotecting flash pages is not
+supported.}
 @end deffn
 
 @deffn {Flash Driver} lpc2000
