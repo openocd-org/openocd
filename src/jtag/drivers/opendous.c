@@ -422,7 +422,9 @@ void opendous_scan(int ir_scan, enum scan_type type, uint8_t *buffer, int scan_s
 	/* Move to appropriate scan state */
 	opendous_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
 
-	opendous_state_move();
+	if (tap_get_state() != tap_get_end_state())
+		opendous_state_move();
+
 	opendous_end_state(saved_end_state);
 
 	/* Scan */
