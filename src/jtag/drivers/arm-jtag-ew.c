@@ -355,7 +355,10 @@ static void armjtagew_scan(bool ir_scan,
 	/* Move to appropriate scan state */
 	armjtagew_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
 
-	armjtagew_state_move();
+	/* Only move if we're not already there */
+	if (tap_get_state() != tap_get_end_state())
+		armjtagew_state_move();
+
 	armjtagew_end_state(saved_end_state);
 
 	/* Scan */

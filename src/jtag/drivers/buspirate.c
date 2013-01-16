@@ -520,7 +520,10 @@ static void buspirate_scan(bool ir_scan, enum scan_type type,
 	saved_end_state = tap_get_end_state();
 
 	buspirate_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
-	buspirate_state_move();
+
+	/* Only move if we're not already there */
+	if (tap_get_state() != tap_get_end_state())
+		buspirate_state_move();
 
 	buspirate_tap_append_scan(scan_size, buffer, command);
 

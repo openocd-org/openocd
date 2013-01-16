@@ -264,7 +264,10 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffe
 	else
 		amt_jtagaccel_end_state(TAP_DRSHIFT);
 
-	amt_jtagaccel_state_move();
+	/* Only move if we're not already there */
+	if (tap_get_state() != tap_get_end_state())
+		amt_jtagaccel_state_move();
+
 	amt_jtagaccel_end_state(saved_end_state);
 
 	/* handle unaligned bits at the beginning */
