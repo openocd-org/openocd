@@ -50,6 +50,8 @@
 #define JTAG_ACK_OK_FAULT	0x2
 #define JTAG_ACK_WAIT		0x1
 
+static int jtag_ap_q_abort(struct adiv5_dap *dap, uint8_t *ack);
+
 /***************************************************************************
  *
  * DPACC and APACC scanchain access through JTAG-DP (or SWJ-DP)
@@ -232,12 +234,16 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 		while (dap->ack != JTAG_ACK_OK_FAULT) {
 			if (dap->ack == JTAG_ACK_WAIT) {
 				if ((timeval_ms()-then) > 1000) {
-					/* NOTE:  this would be a good spot
-					 * to use JTAG_DP_ABORT.
-					 */
 					LOG_WARNING("Timeout (1000ms) waiting "
 						"for ACK=OK/FAULT "
-						"in JTAG-DP transaction");
+						"in JTAG-DP transaction - aborting");
+
+					uint8_t ack;
+					int abort_ret = jtag_ap_q_abort(dap, &ack);
+
+					if (abort_ret != 0)
+						LOG_WARNING("Abort failed : return=%d ack=%d", abort_ret, ack);
+
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			} else {
