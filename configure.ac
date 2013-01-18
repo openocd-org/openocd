@@ -8,7 +8,7 @@ m4_include([config_subdir.m4])dnl
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip])
 AM_MAINTAINER_MODE
 
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 AH_BOTTOM([
 #include <helper/system.h>
 #include <helper/types.h>
