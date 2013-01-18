@@ -169,14 +169,22 @@ static int efm32x_read_info(struct flash_bank *bank,
 		efm32_info->page_size = 512;
 	else if (EFM_FAMILY_ID_GIANT_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family) {
-		uint8_t pg_size = 0;
+		if (efm32_info->prod_rev >= 18) {
+			uint8_t pg_size = 0;
+			ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE,
+				&pg_size);
+			if (ERROR_OK != ret)
+				return ret;
 
-		ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE,
-			&pg_size);
-		if (ERROR_OK != ret)
-			return ret;
-
-		efm32_info->page_size = (1 << ((pg_size+10) & 0xff));
+			efm32_info->page_size = (1 << ((pg_size+10) & 0xff));
+		} else {
+			/* EFM32 GG/LG errata: MEM_INFO_PAGE_SIZE is invalid
+			   for MCUs with PROD_REV < 18 */
+			if (efm32_info->flash_sz_kib < 512)
+				efm32_info->page_size = 2048;
+			else
+				efm32_info->page_size = 4096;
+		}
 
 		if ((2048 != efm32_info->page_size) &&
 				(4096 != efm32_info->page_size)) {
