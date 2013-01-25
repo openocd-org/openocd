@@ -339,7 +339,7 @@ static int adapter_debug_entry(struct target *target)
 	adapter_load_context(target);
 
 	/* make sure we clear the vector catch bit */
-	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, 0);
+	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA);
 
 	r = armv7m->core_cache->reg_list + ARMV7M_xPSR;
 	xPSR = buf_get_u32(r->value, 0, 32);
@@ -434,9 +434,9 @@ static int adapter_assert_reset(struct target *target)
 
 	/* only set vector catch if halt is requested */
 	if (target->reset_halt)
-		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, VC_CORERESET);
+		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA|VC_CORERESET);
 	else
-		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, 0);
+		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA);
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		if (!srst_asserted) {
@@ -572,7 +572,7 @@ static int adapter_resume(struct target *target, int current,
 	resume_pc = buf_get_u32(pc->value, 0, 32);
 
 	/* write any user vector flags */
-	res = target_write_u32(target, DCB_DEMCR, armv7m->demcr);
+	res = target_write_u32(target, DCB_DEMCR, TRCENA | armv7m->demcr);
 	if (res != ERROR_OK)
 		return res;
 
