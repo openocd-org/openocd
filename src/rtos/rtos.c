@@ -440,7 +440,7 @@ int rtos_generic_stack_read(struct target *target,
 		address -= stacking->stack_registers_size;
 	retval = target_read_buffer(target, address, stacking->stack_registers_size, stack_data);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Error reading stack frame from FreeRTOS thread");
+		LOG_ERROR("Error reading stack frame from thread");
 		return retval;
 	}
 #if 0
