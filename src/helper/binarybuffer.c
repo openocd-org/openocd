@@ -393,7 +393,7 @@ int hexify(char *hex, const char *bin, int count, int out_maxlen)
 		count = strlen(bin);
 
 	for (i = 0; i < count; i++)
-		cmd_len += snprintf(hex + cmd_len, out_maxlen - cmd_len, "%02x", bin[i]);
+		cmd_len += snprintf(hex + cmd_len, out_maxlen - cmd_len, "%02x", bin[i] & 0xff);
 
 	return cmd_len;
 }
