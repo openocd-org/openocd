@@ -1217,7 +1217,7 @@ int linux_thread_extra_info(struct target *target,
 			char *tmp_str = (char *)calloc(1, str_size + 50);
 			char *tmp_str_ptr = tmp_str;
 
-			/*  discriminate cuurent task */
+			/*  discriminate current task */
 			if (temp->status == 3)
 				tmp_str_ptr += sprintf(tmp_str_ptr, "%s",
 						pid_current);
@@ -1229,10 +1229,9 @@ int linux_thread_extra_info(struct target *target,
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", " | ");
 			sprintf(tmp_str_ptr, "%s", name);
 			sprintf(tmp_str_ptr, "%s", temp->name);
-			char *hex_str =
-				(char *)calloc(1, strlen(tmp_str) * 2 + 1);
-			str_to_hex(hex_str, tmp_str);
-			gdb_put_packet(connection, hex_str, strlen(hex_str));
+			char *hex_str = (char *)calloc(1, strlen(tmp_str) * 2 + 1);
+			int pkt_len = hexify(hex_str, tmp_str, 0, strlen(tmp_str) * 2 + 1);
+			gdb_put_packet(connection, hex_str, pkt_len);
 			free(hex_str);
 			free(tmp_str);
 			return ERROR_OK;

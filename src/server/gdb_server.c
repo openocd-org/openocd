@@ -662,20 +662,17 @@ static int gdb_get_packet(struct connection *connection, char *buffer, int *len)
 static int gdb_output_con(struct connection *connection, const char *line)
 {
 	char *hex_buffer;
-	int i, bin_size;
+	int bin_size;
 
 	bin_size = strlen(line);
 
-	hex_buffer = malloc(bin_size*2 + 2);
+	hex_buffer = malloc(bin_size * 2 + 2);
 	if (hex_buffer == NULL)
 		return ERROR_GDB_BUFFER_TOO_SMALL;
 
 	hex_buffer[0] = 'O';
-	for (i = 0; i < bin_size; i++)
-		snprintf(hex_buffer + 1 + i*2, 3, "%2.2x", line[i]);
-	hex_buffer[bin_size*2 + 1] = 0;
-
-	int retval = gdb_put_packet(connection, hex_buffer, bin_size*2 + 1);
+	int pkt_len = hexify(hex_buffer + 1, line, bin_size, bin_size * 2 + 1);
+	int retval = gdb_put_packet(connection, hex_buffer, pkt_len + 1);
 
 	free(hex_buffer);
 	return retval;
@@ -1231,14 +1228,9 @@ static int gdb_read_memory_packet(struct connection *connection,
 	if (retval == ERROR_OK) {
 		hex_buffer = malloc(len * 2 + 1);
 
-		uint32_t i;
-		for (i = 0; i < len; i++) {
-			uint8_t t = buffer[i];
-			hex_buffer[2 * i] = DIGITS[(t >> 4) & 0xf];
-			hex_buffer[2 * i + 1] = DIGITS[t & 0xf];
-		}
+		int pkt_len = hexify(hex_buffer, (char *)buffer, len, len * 2 + 1);
 
-		gdb_put_packet(connection, hex_buffer, len * 2);
+		gdb_put_packet(connection, hex_buffer, pkt_len);
 
 		free(hex_buffer);
 	} else
@@ -1258,8 +1250,6 @@ static int gdb_write_memory_packet(struct connection *connection,
 	uint32_t len = 0;
 
 	uint8_t *buffer;
-
-	uint32_t i;
 	int retval;
 
 	/* skip command character */
@@ -1283,11 +1273,8 @@ static int gdb_write_memory_packet(struct connection *connection,
 
 	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
-	for (i = 0; i < len; i++) {
-		uint32_t tmp;
-		sscanf(separator + 2*i, "%2" SCNx32, &tmp);
-		buffer[i] = tmp;
-	}
+	if (unhexify((char *)buffer, separator + 2, len) != (int)len)
+		LOG_ERROR("unable to decode memory packet");
 
 	retval = target_write_buffer(target, addr, len, buffer);
 
@@ -1708,14 +1695,9 @@ static int gdb_query_packet(struct connection *connection,
 	if (strncmp(packet, "qRcmd,", 6) == 0) {
 		if (packet_size > 6) {
 			char *cmd;
-			int i;
-			cmd = malloc((packet_size - 6)/2 + 1);
-			for (i = 0; i < (packet_size - 6)/2; i++) {
-				uint32_t tmp;
-				sscanf(packet + 6 + 2*i, "%2" SCNx32, &tmp);
-				cmd[i] = tmp;
-			}
-			cmd[(packet_size - 6)/2] = 0x0;
+			cmd = malloc((packet_size - 6) / 2 + 1);
+			int len = unhexify(cmd, packet + 6, (packet_size - 6) / 2);
+			cmd[len] = 0;
 
 			/* We want to print all debug output to GDB connection */
 			log_add_callback(gdb_log_callback, connection);

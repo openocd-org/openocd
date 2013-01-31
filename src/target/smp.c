@@ -28,6 +28,7 @@
 
 #include "server/gdb_server.h"
 #include "smp.h"
+#include "helper/binarybuffer.h"
 
 /*  implementation of new packet in gdb interface for smp feature          */
 /*                                                                         */
@@ -53,8 +54,6 @@
 /*  maint packet Jc01                                                      */
 /*  maint packet jc                                                        */
 
-static const char DIGITS[16] = "0123456789abcdef";
-
 /* packet j :smp status request */
 int gdb_read_smp_packet(struct connection *connection,
 		char *packet, int packet_size)
@@ -68,15 +67,9 @@ int gdb_read_smp_packet(struct connection *connection,
 		if (strncmp(packet, "jc", 2) == 0) {
 			hex_buffer = malloc(len * 2 + 1);
 			buffer = (uint8_t *)&target->gdb_service->core[0];
-			uint32_t i;
-			for (i = 0; i < 4; i++) {
-				uint8_t t = buffer[i];
-				hex_buffer[2 * i] = DIGITS[(t >> 4) & 0xf];
-				hex_buffer[2 * i + 1] = DIGITS[t & 0xf];
-			}
+			int pkt_len = hexify(hex_buffer, (char *)buffer, len, len * 2 + 1);
 
-			retval = gdb_put_packet(connection, hex_buffer, len * 2);
-
+			retval = gdb_put_packet(connection, hex_buffer, pkt_len);
 			free(hex_buffer);
 		}
 	} else

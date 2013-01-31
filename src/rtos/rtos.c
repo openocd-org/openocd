@@ -25,9 +25,8 @@
 #include "rtos.h"
 #include "target/target.h"
 #include "helper/log.h"
+#include "helper/binarybuffer.h"
 #include "server/gdb_server.h"
-
-static void hex_to_str(char *dst, char *hex_src);
 
 /* RTOSs */
 extern struct rtos_type FreeRTOS_rtos;
@@ -200,7 +199,8 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 		goto done;
 
 	/* Decode any symbol name in the packet*/
-	hex_to_str(cur_sym, strchr(packet + 8, ':') + 1);
+	int len = unhexify(cur_sym, strchr(packet + 8, ':') + 1, strlen(strchr(packet + 8, ':') + 1));
+	cur_sym[len] = 0;
 
 	if ((strcmp(packet, "qSymbol::") != 0) &&               /* GDB is not offering symbol lookup for the first time */
 	    (!sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))) { /* GDB did not found an address for a symbol */
@@ -215,7 +215,6 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 
 			/* Next RTOS selected - invalidate current symbol */
 			cur_sym[0] = '\x00';
-
 		}
 	}
 	next_sym = next_symbol(os, cur_sym, addr);
@@ -243,8 +242,8 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 		goto done;
 	}
 
-	reply_len = sprintf(reply, "qSymbol:");
-	reply_len += str_to_hex(reply + reply_len, next_sym);
+	reply_len = snprintf(reply, sizeof(reply), "qSymbol:");
+	reply_len += hexify(reply + reply_len, next_sym, 0, sizeof(reply) - reply_len);
 
 done:
 	gdb_put_packet(connection, reply, reply_len);
@@ -306,10 +305,10 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 			assert(strlen(tmp_str) ==
 				(size_t) (tmp_str_ptr - tmp_str));
 
-			char *hex_str = (char *) malloc(strlen(tmp_str)*2 + 1);
-			str_to_hex(hex_str, tmp_str);
+			char *hex_str = (char *) malloc(strlen(tmp_str) * 2 + 1);
+			int pkt_len = unhexify(hex_str, tmp_str, strlen(tmp_str) * 2 + 1);
 
-			gdb_put_packet(connection, hex_str, strlen(hex_str));
+			gdb_put_packet(connection, hex_str, pkt_len);
 			free(hex_str);
 			free(tmp_str);
 			return ERROR_OK;
@@ -499,39 +498,6 @@ int rtos_try_next(struct target *target)
 	}
 
 	return 1;
-}
-
-static void hex_to_str(char *dst, char *hex_src)
-{
-	int src_pos = 0;
-	int dst_pos = 0;
-
-	while (hex_src[src_pos] != '\x00') {
-		char hex_char = hex_src[src_pos];
-		char hex_digit_val =
-			(hex_char >=
-			 'a') ? hex_char-'a'+
-			10 : (hex_char >= 'A') ? hex_char-'A'+10 : hex_char-'0';
-		if (0 == (src_pos & 0x01)) {
-			dst[dst_pos] = hex_digit_val;
-			dst[dst_pos+1] = 0;
-		} else {
-			((unsigned char *)dst)[dst_pos] <<= 4;
-			((unsigned char *)dst)[dst_pos] += hex_digit_val;
-			dst_pos++;
-		}
-		src_pos++;
-	}
-
-}
-
-int str_to_hex(char *hex_dst, char *src)
-{
-	char *posptr = hex_dst;
-	unsigned i;
-	for (i = 0; i < strlen(src); i++)
-		posptr += sprintf(posptr, "%02x", (unsigned char)src[i]);
-	return posptr - hex_dst;
 }
 
 int rtos_update_threads(struct target *target)
