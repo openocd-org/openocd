@@ -2256,9 +2256,9 @@ static const struct command_registration cortex_m3_command_handlers[] = {
 		.chain = armv7m_command_handlers,
 	},
 	{
-		.name = "cortex_m3",
+		.name = "cortex_m",
 		.mode = COMMAND_EXEC,
-		.help = "Cortex-M3 command group",
+		.help = "Cortex-M command group",
 		.usage = "",
 		.chain = cortex_m3_exec_command_handlers,
 	},
@@ -2266,7 +2266,8 @@ static const struct command_registration cortex_m3_command_handlers[] = {
 };
 
 struct target_type cortexm3_target = {
-	.name = "cortex_m3",
+	.name = "cortex_m",
+	.deprecated_name = "cortex_m3",
 
 	.poll = cortex_m3_poll,
 	.arch_state = armv7m_arch_state,

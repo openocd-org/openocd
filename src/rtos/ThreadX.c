@@ -73,7 +73,7 @@ struct ThreadX_params {
 
 const struct ThreadX_params ThreadX_params_list[] = {
 	{
-	"cortex_m3",				/* target_name */
+	"cortex_m",				/* target_name */
 	4,							/* pointer_width; */
 	8,							/* thread_stack_offset; */
 	40,							/* thread_name_offset; */

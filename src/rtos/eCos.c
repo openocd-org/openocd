@@ -64,7 +64,7 @@ struct eCos_params {
 
 const struct eCos_params eCos_params_list[] = {
 	{
-	"cortex_m3",			/* target_name */
+	"cortex_m",			/* target_name */
 	4,						/* pointer_width; */
 	0x0c,					/* thread_stack_offset; */
 	0x9c,					/* thread_name_offset; */

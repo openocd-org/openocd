@@ -94,7 +94,7 @@ struct ChibiOS_params {
 
 struct ChibiOS_params ChibiOS_params_list[] = {
 	{
-	"cortex_m3",							/* target_name */
+	"cortex_m",							/* target_name */
 	0,
 	NULL,									/* stacking_info */
 	},

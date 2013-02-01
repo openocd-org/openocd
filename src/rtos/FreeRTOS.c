@@ -50,7 +50,7 @@ struct FreeRTOS_params {
 
 const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	{
-	"cortex_m3",			/* target_name */
+	"cortex_m",			/* target_name */
 	4,						/* thread_count_width; */
 	4,						/* pointer_width; */
 	16,						/* list_next_offset; */

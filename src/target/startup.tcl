@@ -167,3 +167,9 @@ proc init_targets {} {
 # Additionally board config scripts can define a procedure init_board that will be executed after init and init_targets
 proc init_board {} {
 }
+
+# deprecated target name cmds
+proc cortex_m3 args {
+	echo "DEPRECATED! use 'cortex_m' not 'cortex_m3'"
+	eval cortex_m $args
+}

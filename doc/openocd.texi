@@ -986,7 +986,7 @@ that the @code{reset-init} event handler does.
 Likewise, the @command{arm9 vector_catch} command (or
 @cindex vector_catch
 its siblings @command{xscale vector_catch}
-and @command{cortex_m3 vector_catch}) can be a timesaver
+and @command{cortex_m vector_catch}) can be a timesaver
 during some debug sessions, but don't make everyone use that either.
 Keep those kinds of debugging aids in your user config file,
 along with messaging and tracing setup.
@@ -1948,7 +1948,7 @@ don't want to reset all targets at once.
 Such a handler might write to chip registers to force a reset,
 use a JRC to do that (preferable -- the target may be wedged!),
 or force a watchdog timer to trigger.
-(For Cortex-M3 targets, this is not necessary. The target
+(For Cortex-M targets, this is not necessary.  The target
 driver knows how to use trigger an NVIC reset when SRST is
 not available.)
 
@@ -3953,7 +3953,7 @@ look like with more than one:
     TargetName         Type       Endian TapName            State
 --  ------------------ ---------- ------ ------------------ ------------
  0* at91rm9200.cpu     arm920t    little at91rm9200.cpu     running
- 1  MyTarget           cortex_m3  little mychip.foo         tap-disabled
+ 1  MyTarget           cortex_m   little mychip.foo         tap-disabled
 @end verbatim
 
 One member of that list is the @dfn{current target}, which
@@ -4065,7 +4065,7 @@ At this writing, the supported CPU types and variants are:
 @item @code{avr} -- implements Atmel's 8-bit AVR instruction set.
 (Support for this is preliminary and incomplete.)
 @item @code{cortex_a8} -- this is an ARMv7 core with an MMU
-@item @code{cortex_m3} -- this is an ARMv7 core, supporting only the
+@item @code{cortex_m} -- this is an ARMv7 core, supporting only the
 compact Thumb2 instruction set.
 @item @code{dragonite} -- resembles arm966e
 @item @code{dsp563xx} -- implements Freescale's 24-bit DSP.
@@ -4119,7 +4119,7 @@ to be much more board-specific.
 The key steps you use might look something like this
 
 @example
-target create MyTarget cortex_m3 -chain-position mychip.cpu
+target create MyTarget cortex_m -chain-position mychip.cpu
 $MyTarget configure -work-area-phys 0x08000 -work-area-size 8096
 $MyTarget configure -event reset-deassert-pre @{ jtag_rclk 5 @}
 $MyTarget configure -event reset-init @{ myboard_reinit @}
@@ -7300,7 +7300,7 @@ cores @emph{except the ARM1176} use the same six bits.
 @cindex Debug Access Port
 @cindex DAP
 These commands are specific to ARM architecture v7 Debug Access Port (DAP),
-included on Cortex-M3 and Cortex-A8 systems.
+included on Cortex-M and Cortex-A8 systems.
 They are available in addition to other core-specific commands that may be available.
 
 @deffn Command {dap apid} [num]
@@ -7333,10 +7333,10 @@ fix CSW_SPROT from register AP_REG_CSW on selected dap.
 Defaulting to 0.
 @end deffn
 
-@subsection Cortex-M3 specific commands
-@cindex Cortex-M3
+@subsection Cortex-M specific commands
+@cindex Cortex-M
 
-@deffn Command {cortex_m3 maskisr} (@option{auto}|@option{on}|@option{off})
+@deffn Command {cortex_m maskisr} (@option{auto}|@option{on}|@option{off})
 Control masking (disabling) interrupts during target step/resume.
 
 The @option{auto} option handles interrupts during stepping a way they get
@@ -7353,7 +7353,7 @@ with interrupts enabled, i.e. the same way the @option{off} option does.
 Default is @option{auto}.
 @end deffn
 
-@deffn Command {cortex_m3 vector_catch} [@option{all}|@option{none}|list]
+@deffn Command {cortex_m vector_catch} [@option{all}|@option{none}|list]
 @cindex vector_catch
 Vector Catch hardware provides dedicated breakpoints
 for certain hardware events.
@@ -7380,7 +7380,7 @@ must also be explicitly enabled.
 This finishes by listing the current vector catch configuration.
 @end deffn
 
-@deffn Command {cortex_m3 reset_config} (@option{srst}|@option{sysresetreq}|@option{vectreset})
+@deffn Command {cortex_m reset_config} (@option{srst}|@option{sysresetreq}|@option{vectreset})
 Control reset handling. The default @option{srst} is to use srst if fitted,
 otherwise fallback to @option{vectreset}.
 @itemize @minus
@@ -7388,7 +7388,7 @@ otherwise fallback to @option{vectreset}.
 @item @option{sysresetreq} use NVIC SYSRESETREQ to reset system.
 @item @option{vectreset} use NVIC VECTRESET to reset system.
 @end itemize
-Using @option{vectreset} is a safe option for all current Cortex-M3 cores.
+Using @option{vectreset} is a safe option for all current Cortex-M cores.
 This however has the disadvantage of only resetting the core, all peripherals
 are uneffected. A solution would be to use a @code{reset-init} event handler to manually reset
 the peripherals.
@@ -7407,7 +7407,7 @@ The most powerful mechanism is semihosting, but there is also
 a lighter weight mechanism using only the DCC channel.
 
 Currently @command{target_request debugmsgs}
-is supported only for @option{arm7_9} and @option{cortex_m3} cores.
+is supported only for @option{arm7_9} and @option{cortex_m} cores.
 These messages are received as part of target polling, so
 you need to have @command{poll on} active to receive them.
 They are intrusive in that they will affect program execution
@@ -7913,10 +7913,10 @@ and an RTOS until he told GDB to disable the IRQs while stepping:
 
 @example
 define hook-step
-mon cortex_m3 maskisr on
+mon cortex_m maskisr on
 end
 define hookpost-step
-mon cortex_m3 maskisr off
+mon cortex_m maskisr off
 end
 @end example
 
