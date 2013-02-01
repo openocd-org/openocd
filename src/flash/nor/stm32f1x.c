@@ -656,7 +656,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	buf_set_u32(reg_params[4].value, 0, 32, address);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARM_MODE_ANY;
+	armv7m_info.core_mode = ARM_MODE_THREAD;
 
 	retval = target_run_flash_async_algorithm(target, buffer, count, 2,
 			0, NULL,

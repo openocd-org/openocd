@@ -309,7 +309,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	switch (lpc2000_info->variant) {
 		case lpc1700:
 			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-			armv7m_info.core_mode = ARM_MODE_ANY;
+			armv7m_info.core_mode = ARM_MODE_THREAD;
 			iap_entry_point = 0x1fff1ff1;
 			break;
 		case lpc2000_v1:
