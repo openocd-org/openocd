@@ -2746,9 +2746,9 @@ static const struct command_registration cortex_a8_command_handlers[] = {
 		.chain = armv7a_command_handlers,
 	},
 	{
-		.name = "cortex_a8",
+		.name = "cortex_a",
 		.mode = COMMAND_ANY,
-		.help = "Cortex-A8 command group",
+		.help = "Cortex-A command group",
 		.usage = "",
 		.chain = cortex_a8_exec_command_handlers,
 	},

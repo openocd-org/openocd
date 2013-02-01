@@ -173,3 +173,8 @@ proc cortex_m3 args {
 	echo "DEPRECATED! use 'cortex_m' not 'cortex_m3'"
 	eval cortex_m $args
 }
+
+proc cortex_a8 args {
+	echo "DEPRECATED! use 'cortex_a' not 'cortex_a8'"
+	eval cortex_a $args
+}

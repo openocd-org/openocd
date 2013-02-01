@@ -1878,14 +1878,14 @@ After setting targets, you can define a list of targets working in SMP.
 @example
 set _TARGETNAME_1 $_CHIPNAME.cpu1
 set _TARGETNAME_2 $_CHIPNAME.cpu2
-target create $_TARGETNAME_1 cortex_a8 -chain-position $_CHIPNAME.dap \
+target create $_TARGETNAME_1 cortex_a -chain-position $_CHIPNAME.dap \
 -coreid 0 -dbgbase $_DAP_DBG1
-target create $_TARGETNAME_2 cortex_a8 -chain-position $_CHIPNAME.dap \
+target create $_TARGETNAME_2 cortex_a -chain-position $_CHIPNAME.dap \
 -coreid 1 -dbgbase $_DAP_DBG2
 #define 2 targets working in smp.
 target smp $_CHIPNAME.cpu2 $_CHIPNAME.cpu1
 @end example
-In the above example on cortex_a8, 2 cpus are working in SMP.
+In the above example on cortex_a, 2 cpus are working in SMP.
 In SMP only one GDB instance is created and :
 @itemize @bullet
 @item a set of hardware breakpoint sets the same breakpoint on all targets in the list.
@@ -1896,32 +1896,32 @@ In SMP only one GDB instance is created and :
 displayed by the GDB session @pxref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.
 @end itemize
 
-The SMP behaviour can be disabled/enabled dynamically. On cortex_a8 following
+The SMP behaviour can be disabled/enabled dynamically. On cortex_a following
 command have been implemented.
 @itemize @bullet
-@item cortex_a8 smp_on : enable SMP mode, behaviour is as described above.
-@item cortex_a8 smp_off : disable SMP mode, the current target is the one
+@item cortex_a smp_on : enable SMP mode, behaviour is as described above.
+@item cortex_a smp_off : disable SMP mode, the current target is the one
 displayed in the GDB session, only this target is now controlled by GDB
 session. This behaviour is useful during system boot up.
-@item cortex_a8 smp_gdb : display/fix the core id displayed in GDB session see
+@item cortex_a smp_gdb : display/fix the core id displayed in GDB session see
 following example.
 @end itemize
 
 @example
->cortex_a8 smp_gdb
+>cortex_a smp_gdb
 gdb coreid  0 -> -1
 #0 : coreid 0 is displayed to GDB ,
 #-> -1 : next resume triggers a real resume
-> cortex_a8 smp_gdb 1
+> cortex_a smp_gdb 1
 gdb coreid  0 -> 1
 #0 :coreid 0 is displayed to GDB ,
 #->1  : next resume displays coreid 1 to GDB
 > resume
-> cortex_a8 smp_gdb
+> cortex_a smp_gdb
 gdb coreid  1 -> 1
 #1 :coreid 1 is displayed to GDB ,
 #->1 : next resume displays coreid 1 to GDB
-> cortex_a8 smp_gdb -1
+> cortex_a smp_gdb -1
 gdb coreid  1 -> -1
 #1 :coreid 1 is displayed to GDB,
 #->-1 : next resume triggers a real resume
@@ -4064,7 +4064,7 @@ At this writing, the supported CPU types and variants are:
 @item @code{arm9tdmi} -- this is an ARMv4 core
 @item @code{avr} -- implements Atmel's 8-bit AVR instruction set.
 (Support for this is preliminary and incomplete.)
-@item @code{cortex_a8} -- this is an ARMv7 core with an MMU
+@item @code{cortex_a} -- this is an ARMv7 core with an MMU
 @item @code{cortex_m} -- this is an ARMv7 core, supporting only the
 compact Thumb2 instruction set.
 @item @code{dragonite} -- resembles arm966e
@@ -7300,7 +7300,7 @@ cores @emph{except the ARM1176} use the same six bits.
 @cindex Debug Access Port
 @cindex DAP
 These commands are specific to ARM architecture v7 Debug Access Port (DAP),
-included on Cortex-M and Cortex-A8 systems.
+included on Cortex-M and Cortex-A systems.
 They are available in addition to other core-specific commands that may be available.
 
 @deffn Command {dap apid} [num]
