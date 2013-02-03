@@ -130,11 +130,6 @@ static struct bitbang_interface remote_bitbang_bitbang = {
 	.blink = &remote_bitbang_blink,
 };
 
-static int remote_bitbang_speed(int speed)
-{
-	return ERROR_OK;
-}
-
 static int remote_bitbang_init_tcp(void)
 {
 	LOG_INFO("Connecting to %s:%i", remote_bitbang_host, remote_bitbang_port);
@@ -235,19 +230,6 @@ static int remote_bitbang_init(void)
 	return remote_bitbang_init_tcp();
 }
 
-static int remote_bitbang_khz(int khz, int *jtag_speed)
-{
-	*jtag_speed = 0;
-	return ERROR_OK;
-}
-
-static int remote_bitbang_speed_div(int speed, int *khz)
-{
-	/* I don't think this really matters any. */
-	*khz = 1;
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_port_command)
 {
 	if (CMD_ARGC == 1) {
@@ -290,10 +272,7 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 struct jtag_interface remote_bitbang_interface = {
 	.name = "remote_bitbang",
 	.execute_queue = &bitbang_execute_queue,
-	.speed = &remote_bitbang_speed,
 	.commands = remote_bitbang_command_handlers,
 	.init = &remote_bitbang_init,
 	.quit = &remote_bitbang_quit,
-	.khz = &remote_bitbang_khz,
-	.speed_div = &remote_bitbang_speed_div,
 };

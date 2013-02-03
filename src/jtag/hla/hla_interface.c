@@ -108,25 +108,6 @@ static int hl_interface_quit(void)
 	return ERROR_OK;
 }
 
-static int hl_interface_speed(int speed)
-{
-	LOG_DEBUG("hl_interface_speed: ignore speed %d", speed);
-
-	return ERROR_OK;
-}
-
-static int hl_speed_div(int speed, int *khz)
-{
-	*khz = speed;
-	return ERROR_OK;
-}
-
-static int hl_khz(int khz, int *jtag_speed)
-{
-	*jtag_speed = khz;
-	return ERROR_OK;
-}
-
 static int hl_interface_execute_queue(void)
 {
 	LOG_DEBUG("hl_interface_execute_queue: ignored");
@@ -279,8 +260,5 @@ struct jtag_interface hl_interface = {
 	.transports = hl_transports,
 	.init = hl_interface_init,
 	.quit = hl_interface_quit,
-	.speed = hl_interface_speed,
-	.speed_div = hl_speed_div,
-	.khz = hl_khz,
 	.execute_queue = hl_interface_execute_queue,
 };

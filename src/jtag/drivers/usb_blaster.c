@@ -297,27 +297,6 @@ static void usb_blaster_write(int tck, int tms, int tdi)
 	usb_blaster_addtowritebuffer(out_value, false);
 }
 
-static int usb_blaster_speed(int speed)
-{
-#if BUILD_USB_BLASTER_FTD2XX == 1
-	LOG_DEBUG("TODO: usb_blaster_speed() isn't implemented for libftd2xx!");
-#elif BUILD_USB_BLASTER_LIBFTDI == 1
-	LOG_DEBUG("TODO: usb_blaster_speed() isn't optimally implemented!");
-
-	/* TODO: libftdi's ftdi_set_baudrate chokes on high rates, use lowlevel
-	 * usb function instead! And additionally allow user to throttle.
-	 */
-	if (ftdi_set_baudrate(&ftdic, 3000000 / 4) < 0) {
-		LOG_ERROR("Can't set baud rate to max: %s",
-			ftdi_get_error_string(&ftdic));
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	;
-#endif
-
-	return ERROR_OK;
-}
-
 static void usb_blaster_reset(int trst, int srst)
 {
 	LOG_DEBUG("TODO: usb_blaster_reset(%d,%d) isn't implemented!",
@@ -588,7 +567,6 @@ struct jtag_interface usb_blaster_interface = {
 
 	.execute_queue = bitbang_execute_queue,
 
-	.speed = usb_blaster_speed,
 	.init = usb_blaster_init,
 	.quit = usb_blaster_quit,
 };

@@ -47,7 +47,6 @@ static int ep93xx_read(void);
 static void ep93xx_write(int tck, int tms, int tdi);
 static void ep93xx_reset(int trst, int srst);
 
-static int ep93xx_speed(int speed);
 static int ep93xx_init(void);
 static int ep93xx_quit(void);
 
@@ -59,7 +58,6 @@ struct jtag_interface ep93xx_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
 
-	.speed = ep93xx_speed,
 	.init = ep93xx_init,
 	.quit = ep93xx_quit,
 };
@@ -112,12 +110,6 @@ static void ep93xx_reset(int trst, int srst)
 
 	*gpio_data_register = output_value;
 	nanosleep(&ep93xx_zzzz, NULL);
-}
-
-static int ep93xx_speed(int speed)
-{
-
-	return ERROR_OK;
 }
 
 static int set_gonk_mode(void)

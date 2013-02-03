@@ -86,9 +86,6 @@ static uint8_t usb_out_buffer[OPENDOUS_OUT_BUFFER_SIZE];
 
 /* External interface functions */
 static int opendous_execute_queue(void);
-static int opendous_speed(int speed);
-static int opendous_speed_div(int speed, int *khz);
-static int opendous_khz(int khz, int *jtag_speed);
 static int opendous_init(void);
 static int opendous_quit(void);
 
@@ -194,9 +191,6 @@ struct jtag_interface opendous_interface = {
 	.name = "opendous",
 	.commands = opendous_command_handlers,
 	.execute_queue = opendous_execute_queue,
-	.speed = opendous_speed,
-	.speed_div = opendous_speed_div,
-	.khz = opendous_khz,
 	.init = opendous_init,
 	.quit = opendous_quit,
 };
@@ -274,33 +268,6 @@ static int opendous_execute_queue(void)
 		cmd = cmd->next;
 	}
 	return opendous_tap_execute();
-}
-
-/* Sets speed in kHz. */
-static int opendous_speed(int speed)
-{
-	if (speed <= OPENDOUS_MAX_SPEED) {
-		/* one day... */
-		return ERROR_OK;
-	} else
-		LOG_INFO("Requested speed %dkHz exceeds maximum of %dkHz, ignored", speed, OPENDOUS_MAX_SPEED);
-
-	return ERROR_OK;
-}
-
-static int opendous_speed_div(int speed, int *khz)
-{
-	*khz = speed;
-
-	return ERROR_OK;
-}
-
-static int opendous_khz(int khz, int *jtag_speed)
-{
-	*jtag_speed = khz;
-	/* TODO: convert this into delay value for opendous */
-
-	return ERROR_OK;
 }
 
 static int opendous_init(void)

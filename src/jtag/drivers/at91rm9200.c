@@ -115,7 +115,6 @@ static int at91rm9200_read(void);
 static void at91rm9200_write(int tck, int tms, int tdi);
 static void at91rm9200_reset(int trst, int srst);
 
-static int at91rm9200_speed(int speed);
 static int at91rm9200_init(void);
 static int at91rm9200_quit(void);
 
@@ -163,12 +162,6 @@ static void at91rm9200_reset(int trst, int srst)
 		pio_base[device->SRST_PIO + PIO_CODR] = device->SRST_MASK;
 }
 
-static int at91rm9200_speed(int speed)
-{
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(at91rm9200_handle_device_command)
 {
 	if (CMD_ARGC == 0)
@@ -196,7 +189,6 @@ static const struct command_registration at91rm9200_command_handlers[] = {
 struct jtag_interface at91rm9200_interface = {
 	.name = "at91rm9200",
 	.execute_queue = bitbang_execute_queue,
-	.speed = at91rm9200_speed,
 	.commands = at91rm9200_command_handlers,
 	.init = at91rm9200_init,
 	.quit = at91rm9200_quit,

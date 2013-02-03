@@ -96,11 +96,6 @@ static void usbprog_jtag_write_slice(struct usbprog_jtag *usbprog_jtag, unsigned
 static void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag, int bit, int value);
 /* static int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit); */
 
-static int usbprog_speed(int speed)
-{
-	return ERROR_OK;
-}
-
 static int usbprog_execute_queue(void)
 {
 	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
@@ -621,7 +616,6 @@ struct jtag_interface usbprog_interface = {
 	.name = "usbprog",
 
 	.execute_queue = usbprog_execute_queue,
-	.speed = usbprog_speed,
 	.init = usbprog_init,
 	.quit = usbprog_quit
 };

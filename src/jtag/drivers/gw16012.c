@@ -146,12 +146,6 @@ static void gw16012_reset(int trst, int srst)
 		gw16012_control(0x0b);
 }
 
-static int gw16012_speed(int speed)
-{
-
-	return ERROR_OK;
-}
-
 static void gw16012_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
@@ -547,6 +541,5 @@ struct jtag_interface gw16012_interface = {
 
 	.init = gw16012_init,
 	.quit = gw16012_quit,
-	.speed = gw16012_speed,
 	.execute_queue = gw16012_execute_queue,
 };

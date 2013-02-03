@@ -1371,6 +1371,11 @@ int adapter_init(struct command_context *cmd_ctx)
 			return retval;
 	}
 
+	if (jtag->speed == NULL) {
+		LOG_INFO("This adapter doesn't support configurable speed");
+		return ERROR_OK;
+	}
+
 	if (CLOCK_MODE_UNSELECTED == clock_mode) {
 		LOG_ERROR("An adapter speed is not selected in the init script."
 			" Insert a call to adapter_khz or jtag_rclk to proceed.");

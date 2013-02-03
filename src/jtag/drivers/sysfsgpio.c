@@ -258,28 +258,6 @@ static void sysfsgpio_reset(int trst, int srst)
 	}
 }
 
-/* No speed control is implemented yet */
-static int sysfsgpio_speed(int speed)
-{
-	return ERROR_OK;
-}
-
-static int sysfsgpio_khz(int khz, int *jtag_speed)
-{
-	/* no adaptive clocking */
-	if (khz == 0)
-		return ERROR_FAIL;
-
-	*jtag_speed = 0;
-	return ERROR_OK;
-}
-
-static int sysfsgpio_speed_div(int speed, int *khz)
-{
-	*khz = 1;
-	return ERROR_OK;
-}
-
 /* gpio numbers for each gpio. Negative values are invalid */
 static int tck_gpio = -1;
 static int tms_gpio = -1;
@@ -415,9 +393,6 @@ struct jtag_interface sysfsgpio_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
 	.transports = jtag_only,
-	.speed = sysfsgpio_speed,
-	.khz = sysfsgpio_khz,
-	.speed_div = sysfsgpio_speed_div,
 	.commands = sysfsgpio_command_handlers,
 	.init = sysfsgpio_init,
 	.quit = sysfsgpio_quit,
