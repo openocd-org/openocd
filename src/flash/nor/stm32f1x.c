@@ -956,6 +956,13 @@ static int stm32x_probe(struct flash_bank *bank)
 		}
 	}
 
+	/* if the user sets the size manually then ignore the probed value
+	 * this allows us to work around devices that have a invalid flash size register value */
+	if (bank->size) {
+		LOG_INFO("ignoring flash probed value, using configured bank size");
+		flash_size_in_kb = bank->size / 1024;
+	}
+
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
 	/* did we assign flash size? */

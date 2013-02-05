@@ -5243,6 +5243,14 @@ the chip identification register, and autoconfigures itself.
 flash bank $_FLASHNAME stm32f1x 0 0 0 0 $_TARGETNAME
 @end example
 
+Note that some devices have been found that have a flash size register that contains
+an invalid value, to workaround this issue you can override the probed value used by
+the flash driver.
+
+@example
+flash bank $_FLASHNAME stm32f1x 0 0x20000 0 0 $_TARGETNAME
+@end example
+
 If you have a target with dual flash banks then define the second bank
 as per the following example.
 @example
@@ -5283,6 +5291,14 @@ include internal flash and use ARM Cortex-M3/M4 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
+Note that some devices have been found that have a flash size register that contains
+an invalid value, to workaround this issue you can override the probed value used by
+the flash driver.
+
+@example
+flash bank $_FLASHNAME stm32f2x 0 0x20000 0 0 $_TARGETNAME
+@end example
+
 Some stm32f2x-specific commands are defined:
 
 @deffn Command {stm32f2x lock} num
@@ -5294,6 +5310,21 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 Unlocks the entire stm32 device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
+@end deffn
+
+@deffn {Flash Driver} stm32lx
+All members of the STM32L microcontroller families from ST Microelectronics
+include internal flash and use ARM Cortex-M3 cores.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+
+Note that some devices have been found that have a flash size register that contains
+an invalid value, to workaround this issue you can override the probed value used by
+the flash driver.
+
+@example
+flash bank $_FLASHNAME stm32lx 0 0x20000 0 0 $_TARGETNAME
+@end example
 @end deffn
 
 @deffn {Flash Driver} str7x
