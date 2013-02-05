@@ -44,6 +44,11 @@ SUBDIRS += hla
 libjtag_la_LIBADD += $(top_builddir)/src/jtag/hla/libocdhla.la
 endif
 
+if AICE
+SUBDIRS += aice
+libjtag_la_LIBADD += $(top_builddir)/src/jtag/aice/libocdaice.la
+endif
+
 SUBDIRS += drivers
 libjtag_la_LIBADD += $(top_builddir)/src/jtag/drivers/libocdjtagdrivers.la
 

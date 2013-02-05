@@ -507,6 +507,10 @@ AC_ARG_ENABLE([libusb0],
   AS_HELP_STRING([--enable-libusb0], [Use libusb-0.1 library for USB JTAG devices]),
   [check_libusb0=$enableval], [check_libusb0=no])
 
+AC_ARG_ENABLE([aice],
+  AS_HELP_STRING([--enable-aice], [Enable building support for the Andes JTAG Programmer]),
+  [build_aice=$enableval], [build_aice=no])
+
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
 if test $build_zy1000 = yes; then
@@ -760,6 +764,12 @@ if test $build_jlink = yes; then
   AC_DEFINE([BUILD_JLINK], [1], [1 if you want the J-Link JTAG driver.])
 else
   AC_DEFINE([BUILD_JLINK], [0], [0 if you don't want the J-Link JTAG driver.])
+fi
+
+if test $build_aice = yes; then
+  AC_DEFINE([BUILD_AICE], [1], [1 if you want the AICE JTAG driver.])
+else
+  AC_DEFINE([BUILD_AICE], [0], [0 if you don't want the AICE JTAG driver.])
 fi
 
 if test $build_vsllink = yes; then
@@ -1137,7 +1147,8 @@ fi
 # check for usb.h when a driver will require it
 build_usb=no
 if test $build_vsllink = yes -o $build_usbprog = yes -o \
-  $build_rlink = yes -o $build_ulink = yes -o $build_armjtagew = yes
+  $build_rlink = yes -o $build_ulink = yes -o $build_armjtagew = yes -o \
+  $build_aice = yes
 then
   build_usb=yes
 fi
@@ -1189,6 +1200,7 @@ AM_CONDITIONAL([PRESTO_DRIVER], [test $build_presto_ftd2xx = yes -o $build_prest
 AM_CONDITIONAL([USBPROG], [test $build_usbprog = yes])
 AM_CONDITIONAL([OOCD_TRACE], [test $build_oocd_trace = yes])
 AM_CONDITIONAL([JLINK], [test $build_jlink = yes])
+AM_CONDITIONAL([AICE], [test $build_aice = yes])
 AM_CONDITIONAL([VSLLINK], [test $build_vsllink = yes])
 AM_CONDITIONAL([RLINK], [test $build_rlink = yes])
 AM_CONDITIONAL([ULINK], [test $build_ulink = yes])
@@ -1313,6 +1325,7 @@ AC_CONFIG_FILES([
   src/jtag/drivers/Makefile
   src/jtag/drivers/usb_blaster/Makefile
   src/jtag/hla/Makefile
+  src/jtag/aice/Makefile
   src/transport/Makefile
   src/xsvf/Makefile
   src/svf/Makefile
