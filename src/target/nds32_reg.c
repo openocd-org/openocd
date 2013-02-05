@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Andes Technology                                *
+ *   Copyright (C) 2013 Andes Technology                                   *
  *   Hsiangkai Wang <hkwang@andestech.com>                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,14 +21,28 @@
 #include "config.h"
 #endif
 
+#include <helper/log.h>
 #include "nds32_reg.h"
 
 static bool nds32_reg_init_done;
 static struct nds32_reg_s nds32_regs[TOTAL_REG_NUM];
+static struct nds32_reg_exception_s nds32_ex_reg_values[] = {
+	{IR0, 3, 0x3, 2},
+	{IR0, 3, 0x3, 3},
+	{IR1, 3, 0x3, 2},
+	{IR1, 3, 0x3, 3},
+	{IR2, 3, 0x3, 2},
+	{IR2, 3, 0x3, 3},
+	{MR3, 1, 0x7, 0},
+	{MR3, 1, 0x7, 4},
+	{MR3, 1, 0x7, 6},
+	{MR3, 8, 0x7, 3},
+	{0, 0, 0, 0},
+};
 
 static inline void nds32_reg_set(uint32_t number, const char *simple_mnemonic,
-					const char *symbolic_mnemonic, uint32_t sr_index,
-					enum nds32_reg_type_s type, uint8_t size)
+		const char *symbolic_mnemonic, uint32_t sr_index,
+		enum nds32_reg_type_s type, uint8_t size)
 {
 	nds32_regs[number].simple_mnemonic = simple_mnemonic;
 	nds32_regs[number].symbolic_mnemonic = symbolic_mnemonic;
@@ -117,6 +131,11 @@ void nds32_reg_init(void)
 	nds32_reg_set(IR23, "ir23", "", SRIDX(1, 10, 5), NDS32_REG_TYPE_IR, 32);
 	nds32_reg_set(IR24, "ir24", "", SRIDX(1, 10, 6), NDS32_REG_TYPE_IR, 32);
 	nds32_reg_set(IR25, "ir25", "", SRIDX(1, 10, 7), NDS32_REG_TYPE_IR, 32);
+	nds32_reg_set(IR26, "ir26", "", SRIDX(1, 8, 1), NDS32_REG_TYPE_IR, 32);
+	nds32_reg_set(IR27, "ir27", "", SRIDX(1, 9, 1), NDS32_REG_TYPE_IR, 32);
+	nds32_reg_set(IR28, "ir28", "", SRIDX(1, 11, 1), NDS32_REG_TYPE_IR, 32);
+	nds32_reg_set(IR29, "ir29", "", SRIDX(1, 9, 4), NDS32_REG_TYPE_IR, 32);
+	nds32_reg_set(IR30, "ir30", "", SRIDX(1, 1, 3), NDS32_REG_TYPE_IR, 32);
 
 	nds32_reg_set(MR0, "mr0", "MMU_CTL", SRIDX(2, 0, 0), NDS32_REG_TYPE_MR, 32);
 	nds32_reg_set(MR1, "mr1", "L1_PPTB", SRIDX(2, 1, 0), NDS32_REG_TYPE_MR, 32);
@@ -334,4 +353,30 @@ const char *nds32_reg_simple_name(uint32_t number)
 const char *nds32_reg_symbolic_name(uint32_t number)
 {
 	return nds32_regs[number].symbolic_mnemonic;
+}
+
+bool nds32_reg_exception(uint32_t number, uint32_t value)
+{
+	int i;
+	struct nds32_reg_exception_s *ex_reg_value;
+	uint32_t field_value;
+
+	i = 0;
+	while (nds32_ex_reg_values[i].reg_num != 0) {
+		ex_reg_value = nds32_ex_reg_values + i;
+
+		if (ex_reg_value->reg_num == number) {
+			field_value = (value >> ex_reg_value->ex_value_bit_pos) &
+				ex_reg_value->ex_value_mask;
+			if (field_value == ex_reg_value->ex_value) {
+				LOG_WARNING("It will generate exceptions as setting %d to %s",
+						value, nds32_regs[number].simple_mnemonic);
+				return true;
+			}
+		}
+
+		i++;
+	}
+
+	return false;
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Andes Technology                                *
+ *   Copyright (C) 2013 Andes Technology                                   *
  *   Hsiangkai Wang <hkwang@andestech.com>                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
