@@ -381,6 +381,7 @@ static int adapter_poll(struct target *target)
 	enum target_state state;
 	struct hl_interface_s *adapter = target_to_adapter(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
+	enum target_state prev_target_state = target->state;
 
 	state = adapter->layout->api->state(adapter->fd);
 
@@ -399,10 +400,15 @@ static int adapter_poll(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (arm_semihosting(target, &retval) != 0)
-			return retval;
+		if (prev_target_state == TARGET_DEBUG_RUNNING) {
+			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
+		} else {
+			if (arm_semihosting(target, &retval) != 0)
+				return retval;
 
-		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		}
+
 		LOG_DEBUG("halted: PC: 0x%08x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
 	}
 
@@ -603,10 +609,15 @@ static int adapter_resume(struct target *target, int current,
 	if (res != ERROR_OK)
 		return res;
 
-	target->state = TARGET_RUNNING;
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
-	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+	if (!debug_execution) {
+		target->state = TARGET_RUNNING;
+		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+	} else {
+		target->state = TARGET_DEBUG_RUNNING;
+		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
+	}
 
 	return ERROR_OK;
 }
