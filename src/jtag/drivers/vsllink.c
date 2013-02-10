@@ -302,7 +302,7 @@ static int vsllink_init(void)
 	}
 
 	/* malloc buffer size for tap */
-	tap_buffer_size = versaloon_interface.usb_setting.buf_size - 32;
+	tap_buffer_size = versaloon_interface.usb_setting.buf_size / 2 - 32;
 	vsllink_free_buffer();
 	tdi_buffer = (uint8_t *)malloc(tap_buffer_size);
 	tdo_buffer = (uint8_t *)malloc(tap_buffer_size);
