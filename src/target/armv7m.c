@@ -289,7 +289,7 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int 
 	 * if it does not support this arch */
 	*((char *)armv7m->arm.pc->value) |= 1;
 #else
-	(*reg_list)[25] = &armv7m->core_cache->reg_list[ARMV7M_xPSR];
+	(*reg_list)[25] = &armv7m->arm.core_cache->reg_list[ARMV7M_xPSR];
 #endif
 
 	return ERROR_OK;
