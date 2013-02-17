@@ -245,7 +245,12 @@ int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 	inst = MIPS32_DRET;
 
 	/* execute our dret instruction */
-	return mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
+	int retval = mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
+
+	/* pic32mx workaround, false pending at low core clock */
+	jtag_add_sleep(1000);
+
+	return retval;
 }
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
