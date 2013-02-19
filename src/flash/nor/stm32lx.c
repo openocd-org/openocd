@@ -538,6 +538,10 @@ static int stm32lx_probe(struct flash_bank *bank)
 	case 0x416:
 		max_flash_size_in_kb = 128;
 		break;
+	case 0x427:
+		/* single bank, high density */
+		max_flash_size_in_kb = 256;
+		break;
 	case 0x436:
 		/* According to ST, the devices with id 0x436 have dual bank flash and comes with
 		 * a total flash size of 384k or 256kb. However, the first bank is always 192kb,
