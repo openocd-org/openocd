@@ -944,6 +944,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		mips_ejtag_drscan_32_out(ejtag_info, ejtag_ctrl);
 	}
 
+	/* wait PrAcc pending bit for FASTDATA write */
 	retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl);
 	if (retval != ERROR_OK)
 		return retval;
@@ -958,18 +959,18 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	if (address != MIPS32_PRACC_FASTDATA_AREA)
 		return ERROR_FAIL;
 
-	/* wait PrAcc pending bit for FASTDATA write */
-	retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl);
-	if (retval != ERROR_OK)
-		return retval;
-
 	/* Send the load start address */
 	val = addr;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA);
 	mips_ejtag_fastdata_scan(ejtag_info, 1, &val);
 
+	retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Send the load end address */
 	val = addr + (count - 1) * 4;
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA);
 	mips_ejtag_fastdata_scan(ejtag_info, 1, &val);
 
 	for (i = 0; i < count; i++) {
