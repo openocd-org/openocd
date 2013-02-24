@@ -128,6 +128,8 @@ struct mips_ejtag {
 	uint32_t idcode;
 	uint32_t ejtag_ctrl;
 	int fast_access_save;
+	uint32_t reg8;
+	uint32_t reg9;
 };
 
 void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,

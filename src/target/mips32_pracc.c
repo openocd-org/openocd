@@ -276,13 +276,13 @@ static int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, u
 														/* start: */
 		MIPS32_MTC0(15, 31, 0),						/* move $15 to COP0 DeSave */
 		MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR),				/* $15 = MIPS32_PRACC_BASE_ADDR */
-		MIPS32_SW(8, PRACC_STACK_OFFSET, 15),				/* sw $8,PRACC_STACK_OFFSET($15) */
 
 		MIPS32_LUI(8, UPPER16((addr + 0x8000))),                        /* load  $8 with modified upper address */
 		MIPS32_LW(8, LOWER16(addr), 8),					/* lw $8, LOWER16(addr)($8) */
 		MIPS32_SW(8, PRACC_OUT_OFFSET, 15),				/* sw $8,PRACC_OUT_OFFSET($15) */
 
-		MIPS32_LW(8, PRACC_STACK_OFFSET, 15),				/* lw $8,PRACC_STACK_OFFSET($15) */
+		MIPS32_LUI(8, UPPER16(ejtag_info->reg8)),				/* restore upper 16 bits of reg 8 */
+		MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)),				/* restore lower 16 bits of reg 8 */
 		MIPS32_B(NEG16(8)),							/* b start */
 		MIPS32_MFC0(15, 31, 0),						/* move COP0 DeSave to $15 */
 	};
@@ -330,10 +330,8 @@ int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size
 
 		*code_p++ = MIPS32_MTC0(15, 31, 0);					/* save $15 in DeSave */
 		*code_p++ = MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR);			/* $15 = MIPS32_PRACC_BASE_ADDR */
-		*code_p++ = MIPS32_SW(8, PRACC_STACK_OFFSET, 15);			/* save $8 and $9 to pracc stack */
-		*code_p++ = MIPS32_SW(9, PRACC_STACK_OFFSET, 15);
 		*code_p++ = MIPS32_LUI(9, last_upper_base_addr);			/* load the upper memory address in $9*/
-		code_len = 5;
+		code_len = 3;
 
 		for (i = 0; i != this_round_count; i++) {		/* Main code loop */
 			upper_base_addr = UPPER16((addr + 0x8000));
@@ -356,10 +354,12 @@ int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size
 			addr += size;
 		}
 
-		*code_p++ = MIPS32_LW(9, PRACC_STACK_OFFSET, 15);			/* restore $8 and $9 from pracc stack */
-		*code_p++ = MIPS32_LW(8, PRACC_STACK_OFFSET, 15);
+		*code_p++ = MIPS32_LUI(8, UPPER16(ejtag_info->reg8));			/* restore upper 16 bits of reg 8 */
+		*code_p++ = MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8));		/* restore lower 16 bits of reg 8 */
+		*code_p++ = MIPS32_LUI(9, UPPER16(ejtag_info->reg8));			/* restore upper 16 bits of reg 9 */
+		*code_p++ = MIPS32_ORI(9, 9, LOWER16(ejtag_info->reg8));		/* restore lower 16 bits of reg 9 */
 
-		code_len += 4;
+		code_len += 6;
 		*code_p++ = MIPS32_B(NEG16(code_len - 1));					/* jump to start */
 		*code_p = MIPS32_MFC0(15, 31, 0);					/* restore $15 from DeSave */
 
@@ -395,18 +395,18 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_r
 {
 	/**
 	 * Do not make this code static, but regenerate it every time,
-	 * as 3th element has to be changed to add parameters
+	 * as 2th element has to be changed to add parameters
 	 */
 	uint32_t code[] = {
 														/* start: */
 		MIPS32_MTC0(15, 31, 0),							/* move $15 to COP0 DeSave */
 		MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR),					/* $15 = MIPS32_PRACC_BASE_ADDR */
-		MIPS32_SW(8, PRACC_STACK_OFFSET, 15),					/* sw $8,PRACC_STACK_OFFSET($15) */
 
-		/* 3 */ MIPS32_MFC0(8, 0, 0),						/* move COP0 [cp0_reg select] to $8 */
+		/* 2 */ MIPS32_MFC0(8, 0, 0),						/* move COP0 [cp0_reg select] to $8 */
 		MIPS32_SW(8, PRACC_OUT_OFFSET, 15),					/* sw $8,PRACC_OUT_OFFSET($15) */
 
-		MIPS32_LW(8, PRACC_STACK_OFFSET, 15),					/* lw $8,PRACC_STACK_OFFSET($15) */
+		MIPS32_LUI(8, UPPER16(ejtag_info->reg8)),				/* restore upper 16 bits of reg 8 */
+		MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)),				/* restore lower 16 bits of reg 8 */
 		MIPS32_B(NEG16(7)),							/* b start */
 		MIPS32_MFC0(15, 31, 0),							/* move COP0 DeSave to $15 */
 	};
@@ -425,7 +425,7 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_r
 	 * MIPS32_MTC0 is implemented via MIPS32_R_INST macro.
 	 * In order to insert our parameters, we must change rd and funct fields.
 	 */
-	code[3] |= (cp0_reg << 11) | cp0_sel;  /* change rd and funct of MIPS32_R_INST macro */
+	code[2] |= (cp0_reg << 11) | cp0_sel;  /* change rd and funct of MIPS32_R_INST macro */
 
 	return mips32_pracc_exec(ejtag_info, ARRAY_SIZE(code), code, 0, NULL, 1, val, 1);
 }
@@ -629,10 +629,8 @@ static int mips32_pracc_write_mem_generic(struct mips_ejtag *ejtag_info, uint32_
 		code_p = code;
 
 		*code_p++ = MIPS32_MTC0(15, 31, 0);					/* save $15 in DeSave */
-		*code_p++ = MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR);			/* $15 = MIPS32_PRACC_BASE_ADDR */
-		*code_p++ = MIPS32_SW(8, PRACC_STACK_OFFSET, 15);			/* save $8 to pracc stack */
-		*code_p++ = MIPS32_LUI(15, last_upper_base_addr);			/* reuse $15 as memory base address */
-		code_len = 4;
+		*code_p++ = MIPS32_LUI(15, last_upper_base_addr);			/* load $15 with memory base address */
+		code_len = 2;
 
 		for (i = 0; i != this_round_count; i++) {
 			upper_base_addr = UPPER16((addr + 0x8000));
@@ -674,8 +672,8 @@ static int mips32_pracc_write_mem_generic(struct mips_ejtag *ejtag_info, uint32_
 			addr += size;
 		}
 
-		*code_p++ = MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR);			/* $15 = MIPS32_PRACC_BASE_ADDR */
-		*code_p++ = MIPS32_LW(8, PRACC_STACK_OFFSET, 15);			/* restore $8 from pracc stack */
+		*code_p++ = MIPS32_LUI(8, UPPER16(ejtag_info->reg8)),			/* restore upper 16 bits of reg 8 */
+		*code_p++ = MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)),		/* restore lower 16 bits of reg 8 */
 
 		code_len += 4;
 		*code_p++ = MIPS32_B(NEG16(code_len - 1));					/* jump to start */
@@ -810,6 +808,9 @@ int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 
 	int retval = mips32_pracc_exec(ejtag_info, code_len, code, 0, NULL, 0, NULL, 1);
 	free(code);
+
+	ejtag_info->reg8 = regs[8];
+	ejtag_info->reg9 = regs[9];
 	return retval;
 }
 
@@ -852,8 +853,10 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 	*code_p = MIPS32_MFC0(1, 31, 0);						/* move COP0 DeSave to $1 */
 
 	int retval = mips32_pracc_exec(ejtag_info, 49, code, 0, NULL, MIPS32NUMCOREREGS, regs, 1);
-
 	free(code);
+
+	ejtag_info->reg8 = regs[8];
+	ejtag_info->reg9 = regs[9];
 	return retval;
 }
 
