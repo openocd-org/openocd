@@ -346,6 +346,8 @@ static int icdi_usb_query(void *handle)
 	h = (struct icdi_usb_handle_s *)handle;
 
 	result = icdi_send_cmd(handle, "qSupported");
+	if (result != ERROR_OK)
+		return result;
 
 	/* check result */
 	result = icdi_get_cmd_result(handle);
@@ -412,6 +414,8 @@ static int icdi_usb_run(void *handle)
 
 	/* resume target at current address */
 	result = icdi_send_cmd(handle, "c");
+	if (result != ERROR_OK)
+		return result;
 
 	/* check result */
 	result = icdi_get_cmd_result(handle);
@@ -429,6 +433,8 @@ static int icdi_usb_halt(void *handle)
 
 	/* this query halts the target ?? */
 	result = icdi_send_cmd(handle, "?");
+	if (result != ERROR_OK)
+		return result;
 
 	/* check result */
 	result = icdi_get_cmd_result(handle);
@@ -446,6 +452,8 @@ static int icdi_usb_step(void *handle)
 
 	/* step target at current address */
 	result = icdi_send_cmd(handle, "s");
+	if (result != ERROR_OK)
+		return result;
 
 	/* check result */
 	result = icdi_get_cmd_result(handle);
