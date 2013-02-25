@@ -108,6 +108,12 @@ struct gdb_service {
 	int32_t core[2];
 };
 
+/* target back off timer */
+struct backoff_timer {
+	int times;
+	int count;
+};
+
 /* target_type.h contains the full definition of struct target_type */
 struct target {
 	struct target_type *type;			/* target type definition (name, access functions) */
@@ -171,7 +177,7 @@ struct target {
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
 										 * and must be detected when symbols are offered */
-
+	struct backoff_timer backoff;
 	int smp;							/* add some target attributes for smp support */
 	struct target_list *head;
 	/* the gdb service is there in case of smp, we have only one gdb server

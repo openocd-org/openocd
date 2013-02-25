@@ -2164,9 +2164,6 @@ static int sense_handler(void)
 	return ERROR_OK;
 }
 
-static int backoff_times;
-static int backoff_count;
-
 /* process target state changes */
 static int handle_target(void *priv)
 {
@@ -2222,13 +2219,6 @@ static int handle_target(void *priv)
 		recursive = 0;
 	}
 
-	if (backoff_times > backoff_count) {
-		/* do not poll this time as we failed previously */
-		backoff_count++;
-		return ERROR_OK;
-	}
-	backoff_count = 0;
-
 	/* Poll targets for state changes unless that's globally disabled.
 	 * Skip targets that are currently disabled.
 	 */
@@ -2238,19 +2228,26 @@ static int handle_target(void *priv)
 		if (!target->tap->enabled)
 			continue;
 
+		if (target->backoff.times > target->backoff.count) {
+			/* do not poll this time as we failed previously */
+			target->backoff.count++;
+			continue;
+		}
+		target->backoff.count = 0;
+
 		/* only poll target if we've got power and srst isn't asserted */
 		if (!powerDropout && !srstAsserted) {
 			/* polling may fail silently until the target has been examined */
 			retval = target_poll(target);
 			if (retval != ERROR_OK) {
 				/* 100ms polling interval. Increase interval between polling up to 5000ms */
-				if (backoff_times * polling_interval < 5000) {
-					backoff_times *= 2;
-					backoff_times++;
+				if (target->backoff.times * polling_interval < 5000) {
+					target->backoff.times *= 2;
+					target->backoff.times++;
 				}
 				LOG_USER("Polling target %s failed, GDB will be halted. Polling again in %dms",
 						target_name(target),
-						backoff_times * polling_interval);
+						target->backoff.times * polling_interval);
 
 				/* Tell GDB to halt the debugger. This allows the user to
 				 * run monitor commands to handle the situation.
@@ -2259,9 +2256,9 @@ static int handle_target(void *priv)
 				return retval;
 			}
 			/* Since we succeeded, we reset backoff count */
-			if (backoff_times > 0)
+			if (target->backoff.times > 0)
 				LOG_USER("Polling target %s succeeded again", target_name(target));
-			backoff_times = 0;
+			target->backoff.times = 0;
 		}
 	}
 
