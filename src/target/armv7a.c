@@ -549,7 +549,7 @@ static int armv7a_read_mpidr(struct target *target)
 		armv7a->multi_processor_system = (mpidr >> 30) & 1;
 		armv7a->cluster_id = (mpidr >> 8) & 0xf;
 		armv7a->cpu_id = mpidr & 0x3;
-		LOG_INFO("%s cluster %x core %x %s", target->cmd_name,
+		LOG_INFO("%s cluster %x core %x %s", target_name(target),
 			armv7a->cluster_id,
 			armv7a->cpu_id,
 			armv7a->multi_processor_system == 0 ? "multi core" : "mono core");
