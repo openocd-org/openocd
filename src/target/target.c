@@ -2248,7 +2248,8 @@ static int handle_target(void *priv)
 					backoff_times *= 2;
 					backoff_times++;
 				}
-				LOG_USER("Polling target failed, GDB will be halted. Polling again in %dms",
+				LOG_USER("Polling target %s failed, GDB will be halted. Polling again in %dms",
+						target_name(target),
 						backoff_times * polling_interval);
 
 				/* Tell GDB to halt the debugger. This allows the user to
@@ -2259,7 +2260,7 @@ static int handle_target(void *priv)
 			}
 			/* Since we succeeded, we reset backoff count */
 			if (backoff_times > 0)
-				LOG_USER("Polling succeeded again");
+				LOG_USER("Polling target %s succeeded again", target_name(target));
 			backoff_times = 0;
 		}
 	}
