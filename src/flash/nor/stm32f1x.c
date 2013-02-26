@@ -124,6 +124,7 @@ struct stm32x_flash_bank {
 	uint32_t register_base;
 	uint16_t default_rdp;
 	int user_data_offset;
+	int option_offset;
 };
 
 static int stm32x_mass_erase(struct flash_bank *bank);
@@ -204,7 +205,7 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 	return retval;
 }
 
-int stm32x_check_operation_supported(struct flash_bank *bank)
+static int stm32x_check_operation_supported(struct flash_bank *bank)
 {
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 
@@ -231,7 +232,7 @@ static int stm32x_read_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF0 | ((optiondata >> 2) & 0x0f);
+	stm32x_info->option_bytes.user_options = (optiondata >> stm32x_info->option_offset >> 2) & 0xffff;
 	stm32x_info->option_bytes.user_data = (optiondata >> stm32x_info->user_data_offset) & 0xffff;
 	stm32x_info->option_bytes.RDP = (optiondata & (1 << OPT_READOUT)) ? 0xFFFF : 0x5AA5;
 
@@ -857,6 +858,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	stm32x_info->probed = 0;
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
 	stm32x_info->user_data_offset = 10;
+	stm32x_info->option_offset = 0;
 
 	/* default factory protection level */
 	stm32x_info->default_rdp = 0x5AA5;
@@ -900,6 +902,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
 		stm32x_info->user_data_offset = 16;
+		stm32x_info->option_offset = 6;
 		stm32x_info->default_rdp = 0x55AA;
 		break;
 	case 0x428: /* value line High density */
@@ -918,6 +921,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
 		stm32x_info->user_data_offset = 16;
+		stm32x_info->option_offset = 6;
 		stm32x_info->default_rdp = 0x55AA;
 		break;
 	case 0x440: /* stm32f0x */
@@ -925,6 +929,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 64;
 		stm32x_info->user_data_offset = 16;
+		stm32x_info->option_offset = 6;
 		stm32x_info->default_rdp = 0x55AA;
 		break;
 	default:
@@ -1329,6 +1334,8 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 		return retval;
 	command_print(CMD_CTX, "Option Byte: 0x%" PRIx32 "", optionbyte);
 
+	int user_data = optionbyte;
+
 	if (buf_get_u32((uint8_t *)&optionbyte, OPT_ERROR, 1))
 		command_print(CMD_CTX, "Option Byte Complement Error");
 
@@ -1336,6 +1343,9 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 		command_print(CMD_CTX, "Readout Protection On");
 	else
 		command_print(CMD_CTX, "Readout Protection Off");
+
+	/* user option bytes are offset depending on variant */
+	optionbyte >>= stm32x_info->option_offset;
 
 	if (buf_get_u32((uint8_t *)&optionbyte, OPT_RDWDGSW, 1))
 		command_print(CMD_CTX, "Software Watchdog");
@@ -1360,9 +1370,9 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	}
 
 	command_print(CMD_CTX, "User Option0: 0x%02" PRIx8,
-			(optionbyte >> stm32x_info->user_data_offset) & 0xff);
+			(user_data >> stm32x_info->user_data_offset) & 0xff);
 	command_print(CMD_CTX, "User Option1: 0x%02" PRIx8,
-			(optionbyte >> (stm32x_info->user_data_offset + 8)) & 0xff);
+			(user_data >> (stm32x_info->user_data_offset + 8)) & 0xff);
 
 	return ERROR_OK;
 }
