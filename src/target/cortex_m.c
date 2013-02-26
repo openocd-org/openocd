@@ -521,15 +521,8 @@ static int cortex_m_poll(struct target *target)
 	}
 
 	if (cortex_m->dcb_dhcsr & S_RESET_ST) {
-		/* check if still in reset */
-		retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m->dcb_dhcsr);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (cortex_m->dcb_dhcsr & S_RESET_ST) {
-			target->state = TARGET_RESET;
-			return ERROR_OK;
-		}
+		target->state = TARGET_RESET;
+		return ERROR_OK;
 	}
 
 	if (target->state == TARGET_RESET) {
@@ -538,7 +531,11 @@ static int cortex_m_poll(struct target *target)
 		 */
 		LOG_DEBUG("Exit from reset with dcb_dhcsr 0x%" PRIx32,
 			cortex_m->dcb_dhcsr);
-		cortex_m_endreset_event(target);
+		retval = cortex_m_endreset_event(target);
+		if (retval != ERROR_OK) {
+			target->state = TARGET_UNKNOWN;
+			return retval;
+		}
 		target->state = TARGET_RUNNING;
 		prev_target_state = TARGET_RUNNING;
 	}
