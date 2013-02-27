@@ -122,6 +122,7 @@ static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank);
 struct stm32lx_flash_bank {
 	int probed;
 	bool has_dual_banks;
+	uint32_t user_bank_size;
 };
 
 /* flash bank stm32lx <base> <size> 0 0 <target#>
@@ -145,6 +146,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 
 	stm32lx_info->probed = 0;
 	stm32lx_info->has_dual_banks = false;
+	stm32lx_info->user_bank_size = bank->size;
 
 	return ERROR_OK;
 }
@@ -597,8 +599,8 @@ static int stm32lx_probe(struct flash_bank *bank)
 
 	/* if the user sets the size manually then ignore the probed value
 	 * this allows us to work around devices that have a invalid flash size register value */
-	if (bank->size) {
-		flash_size_in_kb = bank->size / 1024;
+	if (stm32lx_info->user_bank_size) {
+		flash_size_in_kb = stm32lx_info->user_bank_size / 1024;
 		LOG_INFO("ignoring flash probed value, using configured bank size: %dkbytes", flash_size_in_kb);
 	}
 

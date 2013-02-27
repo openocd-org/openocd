@@ -125,6 +125,7 @@ struct stm32x_flash_bank {
 	uint16_t default_rdp;
 	int user_data_offset;
 	int option_offset;
+	uint32_t user_bank_size;
 };
 
 static int stm32x_mass_erase(struct flash_bank *bank);
@@ -147,6 +148,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 	stm32x_info->probed = 0;
 	stm32x_info->has_dual_banks = false;
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
+	stm32x_info->user_bank_size = bank->size;
 
 	return ERROR_OK;
 }
@@ -963,9 +965,9 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	/* if the user sets the size manually then ignore the probed value
 	 * this allows us to work around devices that have a invalid flash size register value */
-	if (bank->size) {
+	if (stm32x_info->user_bank_size) {
 		LOG_INFO("ignoring flash probed value, using configured bank size");
-		flash_size_in_kb = bank->size / 1024;
+		flash_size_in_kb = stm32x_info->user_bank_size / 1024;
 	}
 
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);

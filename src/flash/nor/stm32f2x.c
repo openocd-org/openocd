@@ -158,6 +158,7 @@ struct stm32x_flash_bank {
 	struct stm32x_options option_bytes;
 	int probed;
 	bool has_large_mem;		/* stm32f42x/stm32f43x family */
+	uint32_t user_bank_size;
 };
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
@@ -173,6 +174,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 	bank->driver_priv = stm32x_info;
 
 	stm32x_info->probed = 0;
+	stm32x_info->user_bank_size = bank->size;
 
 	return ERROR_OK;
 }
@@ -793,9 +795,9 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	/* if the user sets the size manually then ignore the probed value
 	 * this allows us to work around devices that have a invalid flash size register value */
-	if (bank->size) {
+	if (stm32x_info->user_bank_size) {
 		LOG_INFO("ignoring flash probed value, using configured bank size");
-		flash_size_in_kb = bank->size / 1024;
+		flash_size_in_kb = stm32x_info->user_bank_size / 1024;
 	}
 
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
