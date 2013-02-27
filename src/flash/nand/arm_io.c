@@ -28,6 +28,7 @@
 #include "arm_io.h"
 #include <helper/binarybuffer.h>
 #include <target/arm.h>
+#include <target/armv7m.h>
 #include <target/algorithm.h>
 
 /**
@@ -78,14 +79,13 @@ static int arm_code_to_working_area(struct target *target,
 
 /**
  * ARM-specific bulk write from buffer to address of 8-bit wide NAND.
- * For now this only supports ARMv4 and ARMv5 cores.
+ * For now this supports ARMv4,ARMv5 and ARMv7-M cores.
  *
  * Enhancements to target_run_algorithm() could enable:
  *   - ARMv6 and ARMv7 cores in ARM mode
  *
  * Different code fragments could handle:
- *   - Thumb2 cores like Cortex-M (needs different byteswapping)
- *   - 16-bit wide data (needs different setup too)
+ *   - 16-bit wide data (needs different setup)
  *
  * @param nand Pointer to the arm_nand_data struct that defines the I/O
  * @param data Pointer to the data to be copied to flash
@@ -95,7 +95,9 @@ static int arm_code_to_working_area(struct target *target,
 int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 {
 	struct target *target = nand->target;
-	struct arm_algorithm algo;
+	struct arm_algorithm armv4_5_algo;
+	struct armv7m_algorithm armv7m_algo;
+	void *arm_algo;
 	struct arm *arm = target->arch_info;
 	struct reg_param reg_params[3];
 	uint32_t target_buf;
@@ -107,7 +109,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 	 *  r1	buffer address
 	 *  r2	buffer length
 	 */
-	static const uint32_t code[] = {
+	static const uint32_t code_armv4_5[] = {
 		0xe4d13001,	/* s: ldrb  r3, [r1], #1 */
 		0xe5c03000,	/*    strb  r3, [r0]     */
 		0xe2522001,	/*    subs  r2, r2, #1   */
@@ -117,8 +119,41 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 		0xe1200070,	/* e: bkpt  #0           */
 	};
 
+	/* Inputs:
+	 *  r0	NAND data address (byte wide)
+	 *  r1	buffer address
+	 *  r2	buffer length
+	 *
+	 * see contrib/loaders/flash/armv7m_io.s for src
+	 */
+	static const uint32_t code_armv7m[] = {
+		0x3b01f811,
+		0x3a017003,
+		0xaffaf47f,
+		0xbf00be00,
+	};
+
+	int target_code_size = 0;
+	const uint32_t *target_code_src = NULL;
+
+	/* set up algorithm */
+	if (is_armv7m(target_to_armv7m(target))) {  /* armv7m target */
+		armv7m_algo.common_magic = ARMV7M_COMMON_MAGIC;
+		armv7m_algo.core_mode = ARM_MODE_THREAD;
+		arm_algo = &armv7m_algo;
+		target_code_size = sizeof(code_armv7m);
+		target_code_src = code_armv7m;
+	} else {
+		armv4_5_algo.common_magic = ARM_COMMON_MAGIC;
+		armv4_5_algo.core_mode = ARM_MODE_SVC;
+		armv4_5_algo.core_state = ARM_STATE_ARM;
+		arm_algo = &armv4_5_algo;
+		target_code_size = sizeof(code_armv4_5);
+		target_code_src = code_armv4_5;
+	}
+
 	if (nand->op != ARM_NAND_WRITE || !nand->copy_area) {
-		retval = arm_code_to_working_area(target, code, sizeof(code),
+		retval = arm_code_to_working_area(target, target_code_src, target_code_size,
 				nand->chunk_size, &nand->copy_area);
 		if (retval != ERROR_OK)
 			return retval;
@@ -127,16 +162,12 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 	nand->op = ARM_NAND_WRITE;
 
 	/* copy data to work area */
-	target_buf = nand->copy_area->address + sizeof(code);
+	target_buf = nand->copy_area->address + target_code_size;
 	retval = target_write_buffer(target, target_buf, size, data);
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* set up algorithm and parameters */
-	algo.common_magic = ARM_COMMON_MAGIC;
-	algo.core_mode = ARM_MODE_SVC;
-	algo.core_state = ARM_STATE_ARM;
-
+	/* set up parameters */
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_IN);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN);
@@ -147,11 +178,11 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 
 	/* armv4 must exit using a hardware breakpoint */
 	if (arm->is_armv4)
-		exit_var = nand->copy_area->address + sizeof(code) - 4;
+		exit_var = nand->copy_area->address + target_code_size - 4;
 
 	/* use alg to write data from work area to NAND chip */
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			nand->copy_area->address, exit_var, 1000, &algo);
+			nand->copy_area->address, exit_var, 1000, arm_algo);
 	if (retval != ERROR_OK)
 		LOG_ERROR("error executing hosted NAND write");
 
@@ -174,7 +205,9 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 {
 	struct target *target = nand->target;
-	struct arm_algorithm algo;
+	struct arm_algorithm armv4_5_algo;
+	struct armv7m_algorithm armv7m_algo;
+	void *arm_algo;
 	struct arm *arm = target->arch_info;
 	struct reg_param reg_params[3];
 	uint32_t target_buf;
@@ -186,7 +219,7 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	 *  r1	NAND data address (byte wide)
 	 *  r2	buffer length
 	 */
-	static const uint32_t code[] = {
+	static const uint32_t code_armv4_5[] = {
 		0xe5d13000,	/* s: ldrb  r3, [r1]     */
 		0xe4c03001,	/*    strb  r3, [r0], #1 */
 		0xe2522001,	/*    subs  r2, r2, #1   */
@@ -196,22 +229,51 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 		0xe1200070,	/* e: bkpt  #0           */
 	};
 
+	/* Inputs:
+	 *  r0	buffer address
+	 *  r1	NAND data address (byte wide)
+	 *  r2	buffer length
+	 *
+	 * see contrib/loaders/flash/armv7m_io.s for src
+	 */
+	static const uint32_t code_armv7m[] = {
+		0xf800780b,
+		0x3a013b01,
+		0xaffaf47f,
+		0xbf00be00,
+	};
+
+	int target_code_size = 0;
+	const uint32_t *target_code_src = NULL;
+
+	/* set up algorithm */
+	if (is_armv7m(target_to_armv7m(target))) {  /* armv7m target */
+		armv7m_algo.common_magic = ARMV7M_COMMON_MAGIC;
+		armv7m_algo.core_mode = ARM_MODE_THREAD;
+		arm_algo = &armv7m_algo;
+		target_code_size = sizeof(code_armv7m);
+		target_code_src = code_armv7m;
+	} else {
+		armv4_5_algo.common_magic = ARM_COMMON_MAGIC;
+		armv4_5_algo.core_mode = ARM_MODE_SVC;
+		armv4_5_algo.core_state = ARM_STATE_ARM;
+		arm_algo = &armv4_5_algo;
+		target_code_size = sizeof(code_armv4_5);
+		target_code_src = code_armv4_5;
+	}
+
 	/* create the copy area if not yet available */
 	if (nand->op != ARM_NAND_READ || !nand->copy_area) {
-		retval = arm_code_to_working_area(target, code, sizeof(code),
+		retval = arm_code_to_working_area(target, target_code_src, target_code_size,
 				nand->chunk_size, &nand->copy_area);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	nand->op = ARM_NAND_READ;
-	target_buf = nand->copy_area->address + sizeof(code);
+	target_buf = nand->copy_area->address + target_code_size;
 
-	/* set up algorithm and parameters */
-	algo.common_magic = ARM_COMMON_MAGIC;
-	algo.core_mode = ARM_MODE_SVC;
-	algo.core_state = ARM_STATE_ARM;
-
+	/* set up parameters */
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_IN);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN);
@@ -222,11 +284,11 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 
 	/* armv4 must exit using a hardware breakpoint */
 	if (arm->is_armv4)
-		exit_var = nand->copy_area->address + sizeof(code) - 4;
+		exit_var = nand->copy_area->address + target_code_size - 4;
 
 	/* use alg to write data from NAND chip to work area */
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			nand->copy_area->address, exit_var, 1000, &algo);
+			nand->copy_area->address, exit_var, 1000, arm_algo);
 	if (retval != ERROR_OK)
 		LOG_ERROR("error executing hosted NAND read");
 
