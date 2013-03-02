@@ -758,12 +758,9 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 						cp0_reg);
 				return ERROR_OK;
 			}
-			retval = jtag_execute_queue();
-			if (retval != ERROR_OK)
-				return retval;
-
 			command_print(CMD_CTX, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
 					cp0_reg, cp0_sel, value);
+
 		} else if (CMD_ARGC == 3) {
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
