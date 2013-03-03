@@ -87,10 +87,10 @@ static int mips_m4k_debug_entry(struct target *target)
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
+	mips32_save_context(target);
+
 	/* make sure stepping disabled, SSt bit in CP0 debug register cleared */
 	mips_ejtag_config_step(ejtag_info, 0);
-
-	mips32_save_context(target);
 
 	/* make sure break unit configured */
 	mips32_configure_break_unit(target);

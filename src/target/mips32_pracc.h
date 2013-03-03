@@ -58,6 +58,11 @@ struct pracc_queue_info {
 	int store_count;
 	uint32_t *pracc_list;	/* Code and store addresses */
 };
+void pracc_queue_init(struct pracc_queue_info *ctx);
+void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t instr);
+void pracc_queue_free(struct pracc_queue_info *ctx);
+int mips32_pracc_queue_exec(struct mips_ejtag *ejtag_info,
+			    struct pracc_queue_info *ctx, uint32_t *buf);
 
 int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
