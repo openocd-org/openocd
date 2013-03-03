@@ -1186,7 +1186,6 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 
 		if (CMD_ARGC == 2) {
 			uint32_t value;
-
 			retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel);
 			if (retval != ERROR_OK) {
 				command_print(CMD_CTX,
@@ -1273,6 +1272,29 @@ COMMAND_HANDLER(mips_m4k_handle_smp_gdb_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(mips_m4k_handle_scan_delay_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
+	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
+
+	if (CMD_ARGC == 1)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], ejtag_info->scan_delay);
+	else if (CMD_ARGC > 1)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX, "scan delay: %d nsec", ejtag_info->scan_delay);
+	if (ejtag_info->scan_delay >= 20000000) {
+		ejtag_info->mode = 0;
+		command_print(CMD_CTX, "running in legacy mode");
+	} else {
+		ejtag_info->mode = 1;
+		command_print(CMD_CTX, "running in fast queued mode");
+	}
+
+	return ERROR_OK;
+}
+
 static const struct command_registration mips_m4k_exec_command_handlers[] = {
 	{
 		.name = "cp0",
@@ -1301,6 +1323,13 @@ static const struct command_registration mips_m4k_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "display/fix current core played to gdb",
 		.usage = "",
+	},
+	{
+		.name = "scan_delay",
+		.handler = mips_m4k_handle_scan_delay_command,
+		.mode = COMMAND_ANY,
+		.help = "display/set scan delay in nano seconds",
+		.usage = "[value]",
 	},
 	COMMAND_REGISTRATION_DONE
 };

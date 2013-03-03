@@ -99,6 +99,29 @@ static int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impco
 	return ERROR_OK;
 }
 
+void mips_ejtag_add_scan_96(struct mips_ejtag *ejtag_info, uint32_t ctrl, uint32_t data, uint8_t *in_scan_buf)
+{
+	assert(ejtag_info->tap != NULL);
+	struct jtag_tap *tap = ejtag_info->tap;
+
+	struct scan_field field;
+	uint8_t out_scan[12];
+
+	/* processor access "all" register 96 bit */
+	field.num_bits = 96;
+
+	field.out_value = out_scan;
+	buf_set_u32(out_scan, 0, 32, ctrl);
+	buf_set_u32(out_scan + 4, 0, 32, data);
+	buf_set_u32(out_scan + 8, 0, 32, 0);
+
+	field.in_value = in_scan_buf;
+
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
+
+	keep_alive();
+}
+
 int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
 {
 	struct jtag_tap *tap;
