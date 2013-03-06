@@ -702,40 +702,44 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 	int sig_reply_len;
 	int signal_var;
 
-	if (gdb_connection->ctrl_c) {
-		signal_var = 0x2;
-		gdb_connection->ctrl_c = 0;
-	} else
-		signal_var = gdb_last_signal(target);
+	if (target->debug_reason == DBG_REASON_EXIT) {
+		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "W00");
+	} else {
+		if (gdb_connection->ctrl_c) {
+			signal_var = 0x2;
+			gdb_connection->ctrl_c = 0;
+		} else
+			signal_var = gdb_last_signal(target);
 
-	stop_reason[0] = '\0';
-	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
-		enum watchpoint_rw hit_wp_type;
-		uint32_t hit_wp_address;
+		stop_reason[0] = '\0';
+		if (target->debug_reason == DBG_REASON_WATCHPOINT) {
+			enum watchpoint_rw hit_wp_type;
+			uint32_t hit_wp_address;
 
-		if (watchpoint_hit(target, &hit_wp_type, &hit_wp_address) == ERROR_OK) {
+			if (watchpoint_hit(target, &hit_wp_type, &hit_wp_address) == ERROR_OK) {
 
-			switch (hit_wp_type) {
-				case WPT_WRITE:
-					snprintf(stop_reason, sizeof(stop_reason),
-							"watch:%08x;", hit_wp_address);
-					break;
-				case WPT_READ:
-					snprintf(stop_reason, sizeof(stop_reason),
-							"rwatch:%08x;", hit_wp_address);
-					break;
-				case WPT_ACCESS:
-					snprintf(stop_reason, sizeof(stop_reason),
-							"awatch:%08x;", hit_wp_address);
-					break;
-				default:
-					break;
+				switch (hit_wp_type) {
+					case WPT_WRITE:
+						snprintf(stop_reason, sizeof(stop_reason),
+								"watch:%08x;", hit_wp_address);
+						break;
+					case WPT_READ:
+						snprintf(stop_reason, sizeof(stop_reason),
+								"rwatch:%08x;", hit_wp_address);
+						break;
+					case WPT_ACCESS:
+						snprintf(stop_reason, sizeof(stop_reason),
+								"awatch:%08x;", hit_wp_address);
+						break;
+					default:
+						break;
+				}
 			}
 		}
-	}
 
-	sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s",
-			signal_var, stop_reason);
+		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s",
+				signal_var, stop_reason);
+	}
 
 	gdb_put_packet(connection, sig_reply, sig_reply_len);
 	gdb_connection->frontend_state = TARGET_HALTED;

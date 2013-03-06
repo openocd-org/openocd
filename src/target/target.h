@@ -83,7 +83,8 @@ enum target_debug_reason {
 	DBG_REASON_WPTANDBKPT = 3,
 	DBG_REASON_SINGLESTEP = 4,
 	DBG_REASON_NOTHALTED = 5,
-	DBG_REASON_UNDEFINED = 6
+	DBG_REASON_EXIT = 6,
+	DBG_REASON_UNDEFINED = 7,
 };
 
 enum target_endianness {

@@ -1921,7 +1921,13 @@ int nds32_examine_debug_reason(struct nds32 *nds32)
 							&instruction))
 					return ERROR_FAIL;
 
-				target->debug_reason = DBG_REASON_BREAKPOINT;
+				/* hit 'break 0x7FFF' */
+				if ((instruction.info.opc_6 == 0x32) &&
+					(instruction.info.sub_opc == 0xA) &&
+					(instruction.info.imm == 0x7FFF)) {
+					target->debug_reason = DBG_REASON_EXIT;
+				} else
+					target->debug_reason = DBG_REASON_BREAKPOINT;
 			}
 			break;
 		case NDS32_DEBUG_DATA_ADDR_WATCHPOINT_PRECISE:
