@@ -72,6 +72,7 @@ Free Documentation License''.
 * TAP Declaration::                  TAP Declaration
 * CPU Configuration::                CPU Configuration
 * Flash Commands::                   Flash Commands
+* Flash Programming::                Flash Programming
 * NAND Flash Commands::              NAND Flash Commands
 * PLD/FPGA Commands::                PLD/FPGA Commands
 * General Commands::                 General Commands
@@ -4596,6 +4597,7 @@ but most don't bother.
 @cindex flash reading
 @cindex flash writing
 @cindex flash programming
+@anchor{Flash Programming Commands}
 
 One feature distinguishing NOR flash from NAND or serial flash technologies
 is that for read access, it acts exactly like any other addressible memory.
@@ -4737,6 +4739,13 @@ and continuing up to and including @var{last}.
 Providing a @var{last} sector of @option{last}
 specifies "to the end of the flash bank".
 The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@anchor{program}
+@deffn Command {program} filename [verify] [reset] [offset]
+This is a helper script that simplifies using OpenOCD as a standalone
+programmer. The only required parameter is @option{filename}, the others are optional.
+@xref{Flash Programming}.
 @end deffn
 
 @anchor{Flash Driver List}
@@ -5579,6 +5588,38 @@ Probe mflash.
 Write the binary file @var{filename} to mflash bank @var{num}, starting at
 @var{offset} bytes from the beginning of the bank.
 @end deffn
+
+@node Flash Programming
+@chapter Flash Programming
+
+OpenOCD implements numerous ways to program the target flash, whether internal or external.
+Programming can be acheived by either using GDB @ref{Programming using GDB}, or using the cmds given in @ref{Flash Programming Commands}.
+
+@*To simplify using the flash cmds directly a jimtcl script is available that handles the programming and verify stage.
+OpenOCD will program/verify/reset the target and shutdown.
+
+The script is executed as follows and by default the following actions will be peformed.
+@enumerate
+@item 'init' is executed.
+@item 'reset init' is called to reset and halt the target, any 'reset init' scripts are executed.
+@item @code{flash write_image} is called to erase and write any flash using the filename given.
+@item @code{verify_image} is called if @option{verify} parameter is given.
+@item @code{reset run} is called if @option{reset} parameter is given.
+@item OpenOCD is shutdown.
+@end enumerate
+
+An example of usage is given below. @xref{program}.
+
+@example
+# program and verify using elf/hex/s19. verify and reset
+# are optional parameters
+openocd -f board/stm32f3discovery.cfg \
+	-c "program filename.elf verify reset"
+
+# binary files need the flash address passing
+openocd -f board/stm32f3discovery.cfg \
+	-c "program filename.bin 0x08000000"
+@end example
 
 @node NAND Flash Commands
 @chapter NAND Flash Commands
@@ -7871,6 +7912,7 @@ using @command{gdb -x filename}.
 
 @section Programming using GDB
 @cindex Programming using GDB
+@anchor{Programming using GDB}
 
 By default the target memory map is sent to GDB. This can be disabled by
 the following OpenOCD configuration option:
