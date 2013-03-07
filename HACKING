@@ -1,10 +1,10 @@
 // This file is part of the Doxygen Developer Manual
 /** @page patchguide Patch Guidelines
 
-@b NB! If you're behind a corporate wall with http only access to the
+\attention If you're behind a corporate wall with http only access to the
 world, you can still use these instructions!
 
-@b NB2! You can't send patches to the mailing list anymore at all. Nowadays
+\attention You can't send patches to the mailing list anymore at all. Nowadays
 you are expected to send patches to the OpenOCD Gerrit GIT server for a
 review.
 
@@ -101,7 +101,7 @@ while(!done) {
   run tools/checkpatch.sh to verify your patch style is ok.
 }
 @endcode
-   @b TIP! use "git add ." before commit to add new files.
+   \note use "git add ." before commit to add new files.
 
    Comment template, notice the short first line w/topic. The topic field
    should identify the main part or subsystem the patch touches. Check
