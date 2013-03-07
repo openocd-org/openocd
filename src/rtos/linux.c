@@ -234,6 +234,8 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 		for (i = 0; i < reg_list_size; i++)
 			reg_packet_size += reg_list[i]->size;
 
+		assert(reg_packet_size > 0);
+
 		*hex_reg_list = malloc(DIV_ROUND_UP(reg_packet_size, 8) * 2);
 
 		hex_string = *hex_reg_list;
