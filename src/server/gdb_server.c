@@ -93,7 +93,6 @@ static enum breakpoint_type gdb_breakpoint_override_type;
 static int gdb_error(struct connection *connection, int retval);
 static const char *gdb_port;
 static const char *gdb_port_next;
-static const char DIGITS[16] = "0123456789abcdef";
 
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
@@ -379,18 +378,14 @@ static int gdb_put_packet_inner(struct connection *connection,
 		if ((size_t)len + 4 <= sizeof(local_buffer)) {
 			/* performance gain on smaller packets by only a single call to gdb_write() */
 			memcpy(local_buffer + 1, buffer, len++);
-			local_buffer[len++] = '#';
-			local_buffer[len++] = DIGITS[(my_checksum >> 4) & 0xf];
-			local_buffer[len++] = DIGITS[my_checksum & 0xf];
+			len += snprintf(local_buffer + len, sizeof(local_buffer) - len, "#%02x", my_checksum);
 			retval = gdb_write(connection, local_buffer, len);
 			if (retval != ERROR_OK)
 				return retval;
 		} else {
 			/* larger packets are transmitted directly from caller supplied buffer
 			 * by several calls to gdb_write() to avoid dynamic allocation */
-			local_buffer[1] = '#';
-			local_buffer[2] = DIGITS[(my_checksum >> 4) & 0xf];
-			local_buffer[3] = DIGITS[my_checksum & 0xf];
+			snprintf(local_buffer + 1, sizeof(local_buffer) - 1, "#%02x", my_checksum);
 			retval = gdb_write(connection, local_buffer, 1);
 			if (retval != ERROR_OK)
 				return retval;
@@ -900,7 +895,7 @@ static int gdb_last_signal_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
-static int gdb_reg_pos(struct target *target, int pos, int len)
+static inline int gdb_reg_pos(struct target *target, int pos, int len)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return pos;
@@ -929,20 +924,8 @@ static void gdb_str_to_target(struct target *target,
 
 	for (i = 0; i < buf_len; i++) {
 		int j = gdb_reg_pos(target, i, buf_len);
-		tstr[i*2]   = DIGITS[(buf[j]>>4) & 0xf];
-		tstr[i*2 + 1] = DIGITS[buf[j]&0xf];
+		tstr += sprintf(tstr, "%02x", buf[j]);
 	}
-}
-
-static int hextoint(int c)
-{
-	if (c >= '0' && c <= '9')
-		return c - '0';
-	c = toupper(c);
-	if (c >= 'A' && c <= 'F')
-		return c - 'A' + 10;
-	LOG_ERROR("BUG: invalid register value %08x", c);
-	return 0;
 }
 
 /* copy over in register buffer */
@@ -956,8 +939,11 @@ static void gdb_target_to_reg(struct target *target,
 
 	int i;
 	for (i = 0; i < str_len; i += 2) {
-		uint8_t t = hextoint(tstr[i]) << 4;
-		t |= hextoint(tstr[i + 1]);
+		unsigned t;
+		if (sscanf(tstr + i, "%02x", &t) != 1) {
+			LOG_ERROR("BUG: unable to convert register value");
+			exit(-1);
+		}
 
 		int j = gdb_reg_pos(target, i/2, str_len/2);
 		bin[j] = t;
