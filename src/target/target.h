@@ -485,16 +485,6 @@ int target_write_memory(struct target *target,
 int target_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
-/**
- * Write @a count items of 4 bytes to the memory of @a target at
- * the @a address given.  Because it operates only on whole words,
- * this should be faster than target_write_memory().
- *
- * This routine is wrapper for target->type->bulk_write_memory.
- */
-int target_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, const uint8_t *buffer);
-
 /*
  * Write to target memory using the virtual address.
  *

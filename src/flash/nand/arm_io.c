@@ -128,11 +128,7 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 
 	/* copy data to work area */
 	target_buf = nand->copy_area->address + sizeof(code);
-	retval = target_bulk_write_memory(target, target_buf, size / 4, data);
-	if (retval == ERROR_OK && (size & 3) != 0)
-		retval = target_write_memory(target,
-				target_buf + (size & ~3),
-				1, size & 3, data + (size & ~3));
+	retval = target_write_buffer(target, target_buf, size, data);
 	if (retval != ERROR_OK)
 		return retval;
 

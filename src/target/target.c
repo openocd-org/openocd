@@ -970,12 +970,6 @@ int target_write_phys_memory(struct target *target,
 	return target->type->write_phys_memory(target, address, size, count, buffer);
 }
 
-int target_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, const uint8_t *buffer)
-{
-	return target->type->bulk_write_memory(target, address, count, buffer);
-}
-
 static int target_bulk_write_memory_default(struct target *target,
 		uint32_t address, uint32_t count, const uint8_t *buffer)
 {
