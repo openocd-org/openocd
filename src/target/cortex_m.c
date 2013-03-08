@@ -1664,12 +1664,6 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 	return retval;
 }
 
-static int cortex_m3_bulk_write_memory(struct target *target, uint32_t address,
-	uint32_t count, const uint8_t *buffer)
-{
-	return cortex_m3_write_memory(target, address, 4, count, buffer);
-}
-
 static int cortex_m3_init_target(struct command_context *cmd_ctx,
 	struct target *target)
 {
@@ -2285,7 +2279,6 @@ struct target_type cortexm3_target = {
 
 	.read_memory = cortex_m3_read_memory,
 	.write_memory = cortex_m3_write_memory,
-	.bulk_write_memory = cortex_m3_bulk_write_memory,
 	.checksum_memory = armv7m_checksum_memory,
 	.blank_check_memory = armv7m_blank_check_memory,
 

@@ -1038,18 +1038,6 @@ static int arm11_write_memory(struct target *target,
 		count, buffer, count == 1);
 }
 
-/* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
-static int arm11_bulk_write_memory(struct target *target,
-	uint32_t address, uint32_t count, const uint8_t *buffer)
-{
-	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target was not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	return arm11_write_memory(target, address, 4, count, buffer);
-}
-
 /* target break-/watchpoint control
 * rw: 0 = write, 1 = read, 2 = access
 */
@@ -1365,8 +1353,6 @@ struct target_type arm11_target = {
 
 	.read_memory = arm11_read_memory,
 	.write_memory = arm11_write_memory,
-
-	.bulk_write_memory = arm11_bulk_write_memory,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,

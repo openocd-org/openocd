@@ -566,15 +566,6 @@ static int avr32_ap7k_examine(struct target *target)
 	return ERROR_OK;
 }
 
-static int avr32_ap7k_bulk_write_memory(struct target *target, uint32_t address,
-	uint32_t count, const uint8_t *buffer)
-{
-	LOG_ERROR("%s: implement me", __func__);
-
-	return ERROR_OK;
-}
-
-
 int avr32_ap7k_arch_state(struct target *target)
 {
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
@@ -630,7 +621,6 @@ struct target_type avr32_ap7k_target = {
 
 	.read_memory = avr32_ap7k_read_memory,
 	.write_memory = avr32_ap7k_write_memory,
-	.bulk_write_memory = avr32_ap7k_bulk_write_memory,
 	/* .checksum_memory = avr32_ap7k_checksum_memory, */
 	/* .blank_check_memory = avr32_ap7k_blank_check_memory, */
 

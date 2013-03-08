@@ -1470,13 +1470,6 @@ static int dsp5680xx_write(struct target *t, uint32_t a, uint32_t s, uint32_t c,
 	return retval;
 }
 
-static int dsp5680xx_bulk_write_memory(struct target *t, uint32_t a,
-				       uint32_t al, const uint8_t *b)
-{
-	LOG_ERROR("Not implemented yet.");
-	return ERROR_FAIL;
-}
-
 static int dsp5680xx_write_buffer(struct target *t, uint32_t a, uint32_t size,
 				  const uint8_t *b)
 {
@@ -2300,7 +2293,6 @@ struct target_type dsp5680xx_target = {
 
 	.read_memory = dsp5680xx_read,
 	.write_memory = dsp5680xx_write,
-	.bulk_write_memory = dsp5680xx_bulk_write_memory,
 
 	.checksum_memory = dsp5680xx_checksum_memory,
 

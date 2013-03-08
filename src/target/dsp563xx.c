@@ -1814,15 +1814,6 @@ static int dsp563xx_write_buffer_default(struct target *target,
 			buffer);
 }
 
-static int dsp563xx_bulk_write_memory_default(struct target *target,
-	uint32_t address,
-	uint32_t count,
-	const uint8_t *buffer)
-{
-	return dsp563xx_write_memory(target,
-			dsp563xx_get_default_memory(), address, 4, count, buffer);
-}
-
 static int dsp563xx_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	return ERROR_OK;
@@ -2055,7 +2046,6 @@ struct target_type dsp563xx_target = {
 
 	.read_memory = dsp563xx_read_memory_default,
 	.write_memory = dsp563xx_write_memory_default,
-	.bulk_write_memory = dsp563xx_bulk_write_memory_default,
 
 	.read_buffer = dsp563xx_read_buffer_default,
 	.write_buffer = dsp563xx_write_buffer_default,

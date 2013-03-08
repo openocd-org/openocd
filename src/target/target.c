@@ -976,6 +976,12 @@ int target_bulk_write_memory(struct target *target,
 	return target->type->bulk_write_memory(target, address, count, buffer);
 }
 
+static int target_bulk_write_memory_default(struct target *target,
+		uint32_t address, uint32_t count, const uint8_t *buffer)
+{
+	return target_write_memory(target, address, 4, count, buffer);
+}
+
 int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
@@ -1120,6 +1126,9 @@ static int target_init_one(struct command_context *cmd_ctx,
 
 	if (target->type->write_buffer == NULL)
 		target->type->write_buffer = target_write_buffer_default;
+
+	if (target->type->bulk_write_memory == NULL)
+		target->type->bulk_write_memory = target_bulk_write_memory_default;
 
 	return ERROR_OK;
 }

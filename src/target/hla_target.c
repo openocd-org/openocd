@@ -777,13 +777,6 @@ static int adapter_write_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-static int adapter_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count,
-		const uint8_t *buffer)
-{
-	return adapter_write_memory(target, address, 4, count, buffer);
-}
-
 static const struct command_registration adapter_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,
@@ -815,7 +808,6 @@ struct target_type hla_target = {
 
 	.read_memory = adapter_read_memory,
 	.write_memory = adapter_write_memory,
-	.bulk_write_memory = adapter_bulk_write_memory,
 	.checksum_memory = armv7m_checksum_memory,
 	.blank_check_memory = armv7m_blank_check_memory,
 

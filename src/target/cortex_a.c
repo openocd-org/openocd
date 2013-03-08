@@ -2340,12 +2340,6 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 	return retval;
 }
 
-static int cortex_a8_bulk_write_memory(struct target *target, uint32_t address,
-	uint32_t count, const uint8_t *buffer)
-{
-	return cortex_a8_write_memory(target, address, 4, count, buffer);
-}
-
 static int cortex_a8_handle_target_request(void *priv)
 {
 	struct target *target = priv;
@@ -2782,7 +2776,6 @@ struct target_type cortexa8_target = {
 
 	.read_memory = cortex_a8_read_memory,
 	.write_memory = cortex_a8_write_memory,
-	.bulk_write_memory = cortex_a8_bulk_write_memory,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
