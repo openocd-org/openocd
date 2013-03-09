@@ -46,6 +46,8 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 		uint32_t address, int handle_breakpoints,
 		int debug_execution);
 static int mips_m4k_halt(struct target *target);
+static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
+		uint32_t count, const uint8_t *buffer);
 
 static int mips_m4k_examine_debug_reason(struct target *target)
 {
@@ -978,6 +980,13 @@ static int mips_m4k_write_memory(struct target *target, uint32_t address,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	if (size == 4 && count > 32) {
+		int retval = mips_m4k_bulk_write_memory(target, address, count, buffer);
+		if (retval == ERROR_OK)
+			return ERROR_OK;
+		LOG_WARNING("Falling back to non-bulk write");
+	}
+
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1098,11 +1107,6 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 
 	LOG_DEBUG("address: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, count);
 
-	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	/* check alignment */
 	if (address & 0x3u)
 		return ERROR_TARGET_UNALIGNED_ACCESS;
@@ -1116,8 +1120,8 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 				MIPS32_FASTDATA_HANDLER_SIZE,
 				&mips32->fast_data_area);
 		if (retval != ERROR_OK) {
-			LOG_WARNING("No working area available, falling back to non-bulk write");
-			return mips_m4k_write_memory(target, address, 4, count, buffer);
+			LOG_ERROR("No working area available");
+			return retval;
 		}
 
 		/* reset fastadata state so the algo get reloaded */
@@ -1141,11 +1145,8 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 	if (t != NULL)
 		free(t);
 
-	if (retval != ERROR_OK) {
-		/* FASTDATA access failed, try normal memory write */
-		LOG_DEBUG("Fastdata access Failed, falling back to non-bulk write");
-		retval = mips_m4k_write_memory(target, address, 4, count, buffer);
-	}
+	if (retval != ERROR_OK)
+		LOG_ERROR("Fastdata access Failed");
 
 	return retval;
 }
@@ -1368,7 +1369,6 @@ struct target_type mips_m4k_target = {
 
 	.read_memory = mips_m4k_read_memory,
 	.write_memory = mips_m4k_write_memory,
-	.bulk_write_memory = mips_m4k_bulk_write_memory,
 	.checksum_memory = mips32_checksum_memory,
 	.blank_check_memory = mips32_blank_check_memory,
 
