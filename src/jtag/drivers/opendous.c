@@ -482,8 +482,9 @@ void opendous_tap_init(void)
 void opendous_tap_ensure_space(int scans, int bits)
 {
 	int available_scans = MAX_PENDING_SCAN_RESULTS - pending_scan_results_length;
+	int available_bits = OPENDOUS_TAP_BUFFER_SIZE / 2 - tap_length;
 
-	if (scans > available_scans)
+	if ((scans > available_scans) || (bits > available_bits))
 		opendous_tap_execute();
 }
 
@@ -492,6 +493,8 @@ void opendous_tap_append_step(int tms, int tdi)
 	last_tms = tms;
 	unsigned char _tms = tms ? 1 : 0;
 	unsigned char _tdi = tdi ? 1 : 0;
+
+	opendous_tap_ensure_space(0, 1);
 
 	int tap_index =  tap_length / 4;
 	int bits  = (tap_length % 4) * 2;
