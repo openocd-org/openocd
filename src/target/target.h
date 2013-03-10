@@ -461,6 +461,8 @@ int target_run_flash_async_algorithm(struct target *target,
  */
 int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int target_read_phys_memory(struct target *target,
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 /**
  * Write @a count items of @a size bytes to the memory of @a target at
  * the @a address given. @a address must be aligned to @a size
@@ -479,6 +481,8 @@ int target_read_memory(struct target *target,
  * This routine is wrapper for target->type->write_memory.
  */
 int target_write_memory(struct target *target,
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+int target_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 /**

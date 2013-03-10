@@ -140,9 +140,9 @@ static int linux_read_memory(struct target *target,
 		return ERROR_FAIL;
 	}
 #ifdef PHYS
-	target->type->read_phys_memory(target, pa, size, count, buffer);
+	target_read_phys_memory(target, pa, size, count, buffer);
 #endif
-	target->type->read_memory(target, address, size, count, buffer);
+	target_read_memory(target, address, size, count, buffer);
 	return ERROR_OK;
 }
 

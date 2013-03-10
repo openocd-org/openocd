@@ -107,8 +107,7 @@ struct target_type {
 	* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 	* count: number of items of <size>
 	*/
-	int (*read_memory_imp)(struct target *target, uint32_t address,
-			uint32_t size, uint32_t count, uint8_t *buffer);
+
 	/**
 	 * Target memory read callback.  Do @b not call this function
 	 * directly, use target_read_memory() instead.

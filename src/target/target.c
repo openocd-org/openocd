@@ -657,16 +657,6 @@ const char *target_type_name(struct target *target)
 	return target->type->name;
 }
 
-static int target_read_memory_imp(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
-{
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
-	return target->type->read_memory_imp(target, address, size, count, buffer);
-}
-
 static int target_soft_reset_halt(struct target *target)
 {
 	if (!target_was_examined(target)) {
@@ -941,12 +931,20 @@ int target_run_flash_async_algorithm(struct target *target,
 int target_read_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
-static int target_read_phys_memory(struct target *target,
+int target_read_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 	return target->type->read_phys_memory(target, address, size, count, buffer);
 }
 
@@ -960,7 +958,7 @@ int target_write_memory(struct target *target,
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
-static int target_write_phys_memory(struct target *target,
+int target_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	if (!target_was_examined(target)) {
@@ -1082,17 +1080,6 @@ static int target_init_one(struct command_context *cmd_ctx,
 		LOG_ERROR("target '%s' init failed", target_name(target));
 		return retval;
 	}
-
-	/**
-	 * @todo get rid of those *memory_imp() methods, now that all
-	 * callers are using target_*_memory() accessors ... and make
-	 * sure the "physical" paths handle the same issues.
-	 */
-	/* a non-invasive way(in terms of patches) to add some code that
-	 * runs before the type->write/read_memory implementation
-	 */
-	type->read_memory_imp = target->type->read_memory;
-	type->read_memory = target_read_memory_imp;
 
 	/* Sanity-check MMU support ... stub in what we must, to help
 	 * implement it in stages, but warn if we need to do so.

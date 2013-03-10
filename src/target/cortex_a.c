@@ -1398,7 +1398,7 @@ static int cortex_a8_set_breakpoint(struct target *target,
 			buf_set_u32(code, 0, 32, ARMV5_T_BKPT(0x11));
 		else
 			buf_set_u32(code, 0, 32, ARMV5_BKPT(0x11));
-		retval = target->type->read_memory(target,
+		retval = target_read_memory(target,
 				breakpoint->address & 0xFFFFFFFE,
 				breakpoint->length, 1,
 				breakpoint->orig_instr);
