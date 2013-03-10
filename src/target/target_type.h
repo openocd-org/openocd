@@ -88,7 +88,6 @@ struct target_type {
 	 * reset run; halt
      */
 	int (*deassert_reset)(struct target *target);
-	int (*soft_reset_halt_imp)(struct target *target);
 	int (*soft_reset_halt)(struct target *target);
 
 	/**

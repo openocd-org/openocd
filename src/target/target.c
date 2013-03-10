@@ -677,18 +677,18 @@ static int target_read_memory_imp(struct target *target, uint32_t address,
 	return target->type->read_memory_imp(target, address, size, count, buffer);
 }
 
-static int target_soft_reset_halt_imp(struct target *target)
+static int target_soft_reset_halt(struct target *target)
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
-	if (!target->type->soft_reset_halt_imp) {
+	if (!target->type->soft_reset_halt) {
 		LOG_ERROR("Target %s does not support soft_reset_halt",
 				target_name(target));
 		return ERROR_FAIL;
 	}
-	return target->type->soft_reset_halt_imp(target);
+	return target->type->soft_reset_halt(target);
 }
 
 /**
@@ -1098,9 +1098,6 @@ static int target_init_one(struct command_context *cmd_ctx,
 
 	type->read_memory_imp = target->type->read_memory;
 	type->read_memory = target_read_memory_imp;
-
-	type->soft_reset_halt_imp = target->type->soft_reset_halt;
-	type->soft_reset_halt = target_soft_reset_halt_imp;
 
 	/* Sanity-check MMU support ... stub in what we must, to help
 	 * implement it in stages, but warn if we need to do so.
@@ -2498,7 +2495,7 @@ COMMAND_HANDLER(handle_soft_reset_halt_command)
 
 	LOG_USER("requesting target halt and executing a soft reset");
 
-	target->type->soft_reset_halt(target);
+	target_soft_reset_halt(target);
 
 	return ERROR_OK;
 }
