@@ -1404,7 +1404,7 @@ static int cortex_a8_set_breakpoint(struct target *target,
 				breakpoint->orig_instr);
 		if (retval != ERROR_OK)
 			return retval;
-		retval = target->type->write_memory(target,
+		retval = target_write_memory(target,
 				breakpoint->address & 0xFFFFFFFE,
 				breakpoint->length, 1, code);
 		if (retval != ERROR_OK)
@@ -1630,13 +1630,13 @@ static int cortex_a8_unset_breakpoint(struct target *target, struct breakpoint *
 	} else {
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4) {
-			retval = target->type->write_memory(target,
+			retval = target_write_memory(target,
 					breakpoint->address & 0xFFFFFFFE,
 					4, 1, breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
 		} else {
-			retval = target->type->write_memory(target,
+			retval = target_write_memory(target,
 					breakpoint->address & 0xFFFFFFFE,
 					2, 1, breakpoint->orig_instr);
 			if (retval != ERROR_OK)

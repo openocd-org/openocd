@@ -657,16 +657,6 @@ const char *target_type_name(struct target *target)
 	return target->type->name;
 }
 
-static int target_write_memory_imp(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, const uint8_t *buffer)
-{
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
-	return target->type->write_memory_imp(target, address, size, count, buffer);
-}
-
 static int target_read_memory_imp(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -963,12 +953,20 @@ static int target_read_phys_memory(struct target *target,
 int target_write_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
 static int target_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 	return target->type->write_phys_memory(target, address, size, count, buffer);
 }
 
@@ -1093,9 +1091,6 @@ static int target_init_one(struct command_context *cmd_ctx,
 	/* a non-invasive way(in terms of patches) to add some code that
 	 * runs before the type->write/read_memory implementation
 	 */
-	type->write_memory_imp = target->type->write_memory;
-	type->write_memory = target_write_memory_imp;
-
 	type->read_memory_imp = target->type->read_memory;
 	type->read_memory = target_read_memory_imp;
 

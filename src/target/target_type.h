@@ -115,8 +115,6 @@ struct target_type {
 	 */
 	int (*read_memory)(struct target *target, uint32_t address,
 			uint32_t size, uint32_t count, uint8_t *buffer);
-	int (*write_memory_imp)(struct target *target, uint32_t address,
-			uint32_t size, uint32_t count, const uint8_t *buffer);
 	/**
 	 * Target memory write callback.  Do @b not call this function
 	 * directly, use target_write_memory() instead.
