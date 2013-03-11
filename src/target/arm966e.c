@@ -264,8 +264,7 @@ struct target_type arm966e_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
-	.write_memory = arm7_9_write_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.write_memory = arm7_9_write_memory_opt,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,

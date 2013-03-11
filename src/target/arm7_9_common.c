@@ -2469,6 +2469,20 @@ int arm7_9_write_memory(struct target *target,
 	return ERROR_OK;
 }
 
+int arm7_9_write_memory_opt(struct target *target,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	const uint8_t *buffer)
+{
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
+
+	if (size == 4 && count > 32 && arm7_9->bulk_write_memory)
+		return arm7_9->bulk_write_memory(target, address, count, buffer);
+	else
+		return arm7_9_write_memory(target, address, size, count, buffer);
+}
+
 static int dcc_count;
 static const uint8_t *dcc_buffer;
 

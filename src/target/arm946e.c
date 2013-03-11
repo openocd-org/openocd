@@ -504,7 +504,7 @@ int arm946e_write_memory(struct target *target, uint32_t address,
 	/**
 	 * Write memory
 	 */
-	retval = arm7_9_write_memory(target, address, size, count, buffer);
+	retval = arm7_9_write_memory_opt(target, address, size, count, buffer);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -763,8 +763,6 @@ struct target_type arm946e_target = {
 	/* .write_memory = arm7_9_write_memory, */
 	.read_memory = arm946e_read_memory,
 	.write_memory = arm946e_write_memory,
-
-	.bulk_write_memory = arm7_9_bulk_write_memory,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,

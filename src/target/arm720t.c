@@ -565,13 +565,11 @@ struct target_type arm720t_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm720t_read_memory,
-	.write_memory = arm7_9_write_memory,
+	.write_memory = arm7_9_write_memory_opt,
 	.read_phys_memory = arm720t_read_phys_memory,
 	.write_phys_memory = arm720t_write_phys_memory,
 	.mmu = arm720_mmu,
 	.virt2phys = arm720_virt2phys,
-
-	.bulk_write_memory = arm7_9_bulk_write_memory,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,

@@ -50,6 +50,8 @@ int arm926ejs_init_arch_info(struct target *target,
 int arm926ejs_arch_state(struct target *target);
 int arm926ejs_write_memory(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+int arm926ejs_write_memory_opt(struct target *target,
+		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 int arm926ejs_soft_reset_halt(struct target *target);
 
 extern const struct command_registration arm926ejs_command_handlers[];

@@ -986,12 +986,6 @@ int target_write_phys_memory(struct target *target,
 	return target->type->write_phys_memory(target, address, size, count, buffer);
 }
 
-static int target_bulk_write_memory_default(struct target *target,
-		uint32_t address, uint32_t count, const uint8_t *buffer)
-{
-	return target_write_memory(target, address, 4, count, buffer);
-}
-
 int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
@@ -1172,9 +1166,6 @@ static int target_init_one(struct command_context *cmd_ctx,
 
 	if (target->type->write_buffer == NULL)
 		target->type->write_buffer = target_write_buffer_default;
-
-	if (target->type->bulk_write_memory == NULL)
-		target->type->bulk_write_memory = target_bulk_write_memory_default;
 
 	if (target->type->get_gdb_fileio_info == NULL)
 		target->type->get_gdb_fileio_info = target_get_gdb_fileio_info_default;
@@ -1802,16 +1793,9 @@ static int target_write_buffer_default(struct target *target, uint32_t address, 
 	if (size >= 4) {
 		int aligned = size - (size % 4);
 
-		/* use bulk writes above a certain limit. This may have to be changed */
-		if (aligned > 128) {
-			retval = target->type->bulk_write_memory(target, address, aligned / 4, buffer);
-			if (retval != ERROR_OK)
-				return retval;
-		} else {
-			retval = target_write_memory(target, address, 4, aligned / 4, buffer);
-			if (retval != ERROR_OK)
-				return retval;
-		}
+		retval = target_write_memory(target, address, 4, aligned / 4, buffer);
+		if (retval != ERROR_OK)
+			return retval;
 
 		buffer += aligned;
 		address += aligned;

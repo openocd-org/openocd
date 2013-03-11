@@ -60,6 +60,8 @@ int arm920t_read_memory(struct target *target,
 	uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm920t_write_memory(struct target *target,
 	uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+int arm920t_write_memory_opt(struct target *target,
+	uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 int arm920t_post_debug_entry(struct target *target);
 void arm920t_pre_restore_context(struct target *target);
 int arm920t_get_ttb(struct target *target, uint32_t *result);

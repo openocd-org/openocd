@@ -118,6 +118,13 @@ struct arm7_9_common {
 
 	void (*pre_restore_context)(struct target *target);
 	/**< Callback function called before restoring the processor context */
+
+	/**
+	 * Write target memory in multiples of 4 bytes, optimized for
+	 * writing large quantities of data.
+	 */
+	int (*bulk_write_memory)(struct target *target, uint32_t address,
+			uint32_t count, const uint8_t *buffer);
 };
 
 static inline struct arm7_9_common *target_to_arm7_9(struct target *target)
@@ -150,6 +157,8 @@ int arm7_9_step(struct target *target, int current, uint32_t address,
 int arm7_9_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer);
 int arm7_9_write_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer);
+int arm7_9_write_memory_opt(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
 int arm7_9_bulk_write_memory(struct target *target, uint32_t address,
 		uint32_t count, const uint8_t *buffer);

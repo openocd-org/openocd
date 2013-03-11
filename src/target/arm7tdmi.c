@@ -648,6 +648,8 @@ int arm7tdmi_init_arch_info(struct target *target,
 	arm7_9->enable_single_step = arm7_9_enable_eice_step;
 	arm7_9->disable_single_step = arm7_9_disable_eice_step;
 
+	arm7_9->bulk_write_memory = arm7_9_bulk_write_memory;
+
 	arm7_9->post_debug_entry = NULL;
 
 	arm7_9->pre_restore_context = NULL;
@@ -694,8 +696,7 @@ struct target_type arm7tdmi_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
-	.write_memory = arm7_9_write_memory,
-	.bulk_write_memory = arm7_9_bulk_write_memory,
+	.write_memory = arm7_9_write_memory_opt,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,

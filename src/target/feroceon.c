@@ -605,6 +605,8 @@ static void feroceon_common_setup(struct target *target)
 	arm7_9->enable_single_step = feroceon_enable_single_step;
 	arm7_9->disable_single_step = feroceon_disable_single_step;
 
+	arm7_9->bulk_write_memory = feroceon_bulk_write_memory;
+
 	/* MOE is not implemented */
 	arm7_9->examine_debug_reason = feroceon_examine_debug_reason;
 
@@ -695,8 +697,7 @@ struct target_type feroceon_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
-	.write_memory = arm926ejs_write_memory,
-	.bulk_write_memory = feroceon_bulk_write_memory,
+	.write_memory = arm926ejs_write_memory_opt,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
@@ -733,8 +734,7 @@ struct target_type dragonite_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
-	.write_memory = arm7_9_write_memory,
-	.bulk_write_memory = feroceon_bulk_write_memory,
+	.write_memory = arm7_9_write_memory_opt,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
