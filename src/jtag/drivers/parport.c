@@ -268,8 +268,8 @@ static int parport_init(void)
 
 	cur_cable = cables;
 
-	if ((parport_cable == NULL) || (parport_cable[0] == 0)) {
-		parport_cable = "wiggler";
+	if (parport_cable == NULL) {
+		parport_cable = strdup("wiggler");
 		LOG_WARNING("No parport cable specified, using default 'wiggler'");
 	}
 
