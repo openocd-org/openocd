@@ -338,7 +338,7 @@ static int usb_blaster_init(void)
 	if (usb_blaster_device_desc == NULL) {
 		LOG_WARNING("no usb_blaster device description specified, "
 			"using default 'USB-Blaster'");
-		usb_blaster_device_desc = "USB-Blaster";
+		usb_blaster_device_desc = strdup("USB-Blaster");
 	}
 
 #if IS_WIN32 == 0
@@ -468,6 +468,11 @@ static int usb_blaster_quit(void)
 	ftdi_usb_close(&ftdic);
 	ftdi_deinit(&ftdic);
 #endif
+
+	if (usb_blaster_device_desc) {
+		free(usb_blaster_device_desc);
+		usb_blaster_device_desc = NULL;
+	}
 
 	return ERROR_OK;
 }
