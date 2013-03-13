@@ -60,9 +60,9 @@
 #define DEFAULT_HALT_TIMEOUT 5000
 
 static int target_read_buffer_default(struct target *target, uint32_t address,
-		uint32_t size, uint8_t *buffer);
+		uint32_t count, uint8_t *buffer);
 static int target_write_buffer_default(struct target *target, uint32_t address,
-		uint32_t size, const uint8_t *buffer);
+		uint32_t count, const uint8_t *buffer);
 static int target_array2mem(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj * const *argv);
 static int target_mem2array(Jim_Interp *interp, struct target *target,
@@ -1766,50 +1766,37 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
 	return target->type->write_buffer(target, address, size, buffer);
 }
 
-static int target_write_buffer_default(struct target *target, uint32_t address, uint32_t size, const uint8_t *buffer)
+static int target_write_buffer_default(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer)
 {
-	int retval = ERROR_OK;
+	uint32_t size;
 
-	if (((address % 2) == 0) && (size == 2))
-		return target_write_memory(target, address, 2, 1, buffer);
-
-	/* handle unaligned head bytes */
-	if (address % 4) {
-		uint32_t unaligned = 4 - (address % 4);
-
-		if (unaligned > size)
-			unaligned = size;
-
-		retval = target_write_memory(target, address, 1, unaligned, buffer);
-		if (retval != ERROR_OK)
-			return retval;
-
-		buffer += unaligned;
-		address += unaligned;
-		size -= unaligned;
+	/* Align up to maximum 4 bytes. The loop condition makes sure the next pass
+	 * will have something to do with the size we leave to it. */
+	for (size = 1; size < 4 && count >= size * 2 + (address & size); size *= 2) {
+		if (address & size) {
+			int retval = target_write_memory(target, address, size, 1, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += size;
+			count -= size;
+			buffer += size;
+		}
 	}
 
-	/* handle aligned words */
-	if (size >= 4) {
-		int aligned = size - (size % 4);
-
-		retval = target_write_memory(target, address, 4, aligned / 4, buffer);
-		if (retval != ERROR_OK)
-			return retval;
-
-		buffer += aligned;
-		address += aligned;
-		size -= aligned;
+	/* Write the data with as large access size as possible. */
+	for (; size > 0; size /= 2) {
+		uint32_t aligned = count - count % size;
+		if (aligned > 0) {
+			int retval = target_write_memory(target, address, size, aligned / size, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += aligned;
+			count -= aligned;
+			buffer += aligned;
+		}
 	}
 
-	/* handle tail writes of less than 4 bytes */
-	if (size > 0) {
-		retval = target_write_memory(target, address, 1, size, buffer);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	return retval;
+	return ERROR_OK;
 }
 
 /* Single aligned words are guaranteed to use 16 or 32 bit access
@@ -1840,58 +1827,34 @@ int target_read_buffer(struct target *target, uint32_t address, uint32_t size, u
 	return target->type->read_buffer(target, address, size, buffer);
 }
 
-static int target_read_buffer_default(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
+static int target_read_buffer_default(struct target *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
-	int retval = ERROR_OK;
+	uint32_t size;
 
-	if (((address % 2) == 0) && (size == 2))
-		return target_read_memory(target, address, 2, 1, buffer);
-
-	/* handle unaligned head bytes */
-	if (address % 4) {
-		uint32_t unaligned = 4 - (address % 4);
-
-		if (unaligned > size)
-			unaligned = size;
-
-		retval = target_read_memory(target, address, 1, unaligned, buffer);
-		if (retval != ERROR_OK)
-			return retval;
-
-		buffer += unaligned;
-		address += unaligned;
-		size -= unaligned;
+	/* Align up to maximum 4 bytes. The loop condition makes sure the next pass
+	 * will have something to do with the size we leave to it. */
+	for (size = 1; size < 4 && count >= size * 2 + (address & size); size *= 2) {
+		if (address & size) {
+			int retval = target_read_memory(target, address, size, 1, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += size;
+			count -= size;
+			buffer += size;
+		}
 	}
 
-	/* handle aligned words */
-	if (size >= 4) {
-		int aligned = size - (size % 4);
-
-		retval = target_read_memory(target, address, 4, aligned / 4, buffer);
-		if (retval != ERROR_OK)
-			return retval;
-
-		buffer += aligned;
-		address += aligned;
-		size -= aligned;
-	}
-
-	/*prevent byte access when possible (avoid AHB access limitations in some cases)*/
-	if (size	>= 2) {
-		int aligned = size - (size % 2);
-		retval = target_read_memory(target, address, 2, aligned / 2, buffer);
-		if (retval != ERROR_OK)
-			return retval;
-
-		buffer += aligned;
-		address += aligned;
-		size -= aligned;
-	}
-	/* handle tail writes of less than 4 bytes */
-	if (size > 0) {
-		retval = target_read_memory(target, address, 1, size, buffer);
-		if (retval != ERROR_OK)
-			return retval;
+	/* Read the data with as large access size as possible. */
+	for (; size > 0; size /= 2) {
+		uint32_t aligned = count - count % size;
+		if (aligned > 0) {
+			int retval = target_read_memory(target, address, size, aligned / size, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += aligned;
+			count -= aligned;
+			buffer += aligned;
+		}
 	}
 
 	return ERROR_OK;
