@@ -321,8 +321,8 @@ RTCK support? Also known as ``adaptive clocking''
 
 @section Stand alone Systems
 
-@b{ZY1000} See: @url{http://www.ultsol.com/index.php/component/content/article/8/33-zylin-zy1000-jtag-probe} Technically, not a
-dongle, but a standalone box. The ZY1000 has the advantage that it does
+@b{ZY1000} See: @url{http://www.ultsol.com/index.php/component/content/article/8/33-zylin-zy1000-jtag-probe}
+Technically, not a dongle, but a standalone box. The ZY1000 has the advantage that it does
 not require any drivers installed on the developer PC. It also has
 a built in web interface. It supports RTCK/RCLK or adaptive clocking
 and has a built in relay to power cycle targets remotely.
@@ -428,7 +428,9 @@ AT91SAM764 internally.
 @end itemize
 
 @section USB RLINK based
-Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form on the STM32 Primer, permanently attached to the JTAG lines.  It also exists on the STM32 Primer2, but that is wired for SWD and not JTAG, thus not supported.
+Raisonance has an adapter called @b{RLink}. It exists in a stripped-down form on the STM32 Primer,
+permanently attached to the JTAG lines. It also exists on the STM32 Primer2, but that is wired for
+SWD and not JTAG, thus not supported.
 
 @itemize @bullet
 @item @b{Raisonance RLink}
@@ -699,7 +701,7 @@ you'll probably need more project-specific setup.
 OpenOCD starts by processing the configuration commands provided
 on the command line or, if there were no @option{-c command} or
 @option{-f file.cfg} options given, in @file{openocd.cfg}.
-@xref{Configuration Stage}.
+@xref{configurationstage,,Configuration Stage}.
 At the end of the configuration stage it verifies the JTAG scan
 chain defined using those commands; your configuration should
 ensure that this always succeeds.
@@ -723,8 +725,8 @@ itself), use the @option{-d} command line switch. This sets the
 @option{debug_level} to "3", outputting the most information,
 including debug messages. The default setting is "2", outputting only
 informational messages, warnings and errors. You can also change this
-setting from within a telnet or gdb session using @command{debug_level
-<n>} (@pxref{debug_level}).
+setting from within a telnet or gdb session using @command{debug_level<n>}
+(@pxref{debuglevel,,debug_level}).
 
 You can redirect all output from the daemon to a file using the
 @option{-l <logfile>} switch.
@@ -934,7 +936,7 @@ need help from OpenOCD to discover what's on the board.
 Once you find the JTAG TAPs, you can just search for appropriate
 target and board
 configuration files ... or write your own, from the bottom up.
-@xref{Autoprobing}.
+@xref{autoprobing,,Autoprobing}.
 
 @item You can often reuse some standard config files but
 need to write a few new ones, probably a @file{board.cfg} file.
@@ -986,7 +988,7 @@ and @command{cortex_m3 vector_catch}) can be a timesaver
 during some debug sessions, but don't make everyone use that either.
 Keep those kinds of debugging aids in your user config file,
 along with messaging and tracing setup.
-(@xref{Software Debug Messages and Tracing}.)
+(@xref{softwaredebugmessagesandtracing,,Software Debug Messages and Tracing}.)
 
 @item
 You might need to override some defaults.
@@ -996,7 +998,7 @@ work area if your application needs much SRAM.
 @item
 TCP/IP port configuration is another example of something which
 is environment-specific, and should only appear in
-a user config file.  @xref{TCP/IP Ports}.
+a user config file.  @xref{tcpipports,,TCP/IP Ports}.
 @end itemize
 
 @section Project-Specific Utilities
@@ -1153,7 +1155,7 @@ Your application may want to deliver various debugging messages
 over JTAG, by @emph{linking with a small library of code}
 provided with OpenOCD and using the utilities there to send
 various kinds of message.
-@xref{Software Debug Messages and Tracing}.
+@xref{softwaredebugmessagesandtracing,,Software Debug Messages and Tracing}.
 
 @end itemize
 
@@ -1482,8 +1484,8 @@ In summary the board files should contain (if present)
 
 @enumerate
 @item One or more @command{source [target/...cfg]} statements
-@item NOR flash configuration (@pxref{NOR Configuration})
-@item NAND flash configuration (@pxref{NAND Configuration})
+@item NOR flash configuration (@pxref{norconfiguration,,NOR Configuration})
+@item NAND flash configuration (@pxref{nandconfiguration,,NAND Configuration})
 @item Target @code{reset} handlers for SDRAM and I/O configuration
 @item JTAG adapter reset configuration (@pxref{Reset Configuration})
 @item All things that are not ``inside a chip''
@@ -1619,7 +1621,7 @@ are included here.
 Instead, look at the board config files distributed with OpenOCD.
 If you have a boot loader, its source code will help; so will
 configuration files for other JTAG tools
-(@pxref{Translating Configuration Files}).
+(@pxref{translatingconfigurationfiles,,Translating Configuration Files}).
 @end quotation
 
 Some of this code could probably be shared between different boards.
@@ -1643,7 +1645,7 @@ access uses the CPU or to prevent conflicting CPU access.
 Before your @code{reset-init} handler has set up
 the PLLs and clocking, you may need to run with
 a low JTAG clock rate.
-@xref{JTAG Speed}.
+@xref{jtagspeed,,JTAG Speed}.
 Then you'd increase that rate after your handler has
 made it possible to use the faster JTAG clock.
 When the initial low speed is board-specific, for example
@@ -1671,19 +1673,21 @@ also supports it.  Otherwise use @command{adapter_khz}.
 Set the slow rate at the beginning of the reset sequence,
 and the faster rate as soon as the clocks are at full speed.
 
-@anchor{The init_board procedure}
+@anchor{theinitboardprocedure}
 @subsection The init_board procedure
 @cindex init_board procedure
 
-The concept of @code{init_board} procedure is very similar to @code{init_targets} (@xref{The init_targets procedure}.)
-- it's a replacement of ``linear'' configuration scripts. This procedure is meant to be executed when OpenOCD enters run
-stage (@xref{Entering the Run Stage},) after @code{init_targets}. The idea to have spearate @code{init_targets} and
-@code{init_board} procedures is to allow the first one to configure everything target specific (internal flash,
-internal RAM, etc.) and the second one to configure everything board specific (reset signals, chip frequency,
-reset-init event handler, external memory, etc.). Additionally ``linear'' board config file will most likely fail when
-target config file uses @code{init_targets} scheme (``linear'' script is executed before @code{init} and
-@code{init_targets} - after), so separating these two configuration stages is very convenient, as the easiest way to
-overcome this problem is to convert board config file to use @code{init_board} procedure. Board config scripts don't
+The concept of @code{init_board} procedure is very similar to @code{init_targets}
+(@xref{theinittargetsprocedure,,The init_targets procedure}.) - it's a replacement of ``linear''
+configuration scripts. This procedure is meant to be executed when OpenOCD enters run stage
+(@xref{enteringtherunstage,,Entering the Run Stage},) after @code{init_targets}. The idea to have
+spearate @code{init_targets} and @code{init_board} procedures is to allow the first one to configure
+everything target specific (internal flash, internal RAM, etc.) and the second one to configure
+everything board specific (reset signals, chip frequency, reset-init event handler, external memory, etc.).
+Additionally ``linear'' board config file will most likely fail when target config file uses
+@code{init_targets} scheme (``linear'' script is executed before @code{init} and @code{init_targets} - after),
+so separating these two configuration stages is very convenient, as the easiest way to overcome this
+problem is to convert board config file to use @code{init_board} procedure. Board config scripts don't
 need to override @code{init_targets} defined in target config files when they only need to to add some specifics.
 
 Just as @code{init_targets}, the @code{init_board} procedure can be overriden by ``next level'' script (which sources
@@ -1864,7 +1868,7 @@ $_TARGETNAME configure -work-area-phys 0x00200000 \
              -work-area-size 0x4000 -work-area-backup 0
 @end example
 
-@anchor{Define CPU targets working in SMP}
+@anchor{definecputargetsworkinginsmp}
 @subsection Define CPU targets working in SMP
 @cindex SMP
 After setting targets, you can define a list of targets working in SMP.
@@ -1887,7 +1891,7 @@ In SMP only one GDB instance is created and :
 @item resume command triggers the write context and the restart of all targets in the list.
 @item following a breakpoint: the target stopped by the breakpoint is displayed to the GDB session.
 @item dedicated GDB serial protocol packets are implemented for switching/retrieving the target
-displayed by the GDB session @pxref{Using openocd SMP with GDB}.
+displayed by the GDB session @pxref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.
 @end itemize
 
 The SMP behaviour can be disabled/enabled dynamically. On cortex_a8 following
@@ -1963,7 +1967,7 @@ slower clock than they will use later.
 That means that after reset (and potentially, as OpenOCD
 first starts up) they must use a slower JTAG clock rate
 than they will use later.
-@xref{JTAG Speed}.
+@xref{jtagspeed,,JTAG Speed}.
 
 @quotation Important
 When you are debugging code that runs right after chip
@@ -1973,17 +1977,19 @@ OpenOCD verifies the scan chain after reset,
 look at how you are setting up JTAG clocking.
 @end quotation
 
-@anchor{The init_targets procedure}
+@anchor{theinittargetsprocedure}
 @subsection The init_targets procedure
 @cindex init_targets procedure
 
-Target config files can either be ``linear'' (script executed line-by-line when parsed in configuration stage,
-@xref{Configuration Stage},) or they can contain a special procedure called @code{init_targets}, which will be executed
-when entering run stage (after parsing all config files or after @code{init} command, @xref{Entering the Run Stage}.)
-Such procedure can be overriden by ``next level'' script (which sources the original). This concept faciliates code
-reuse when basic target config files provide generic configuration procedures and @code{init_targets} procedure, which
-can then be sourced and enchanced or changed in a ``more specific'' target config file. This is not possible with
-``linear'' config scripts, because sourcing them executes every initialization commands they provide.
+Target config files can either be ``linear'' (script executed line-by-line when parsed in
+configuration stage, @xref{configurationstage,,Configuration Stage},) or they can contain a special
+procedure called @code{init_targets}, which will be executed when entering run stage
+(after parsing all config files or after @code{init} command, @xref{enteringtherunstage,,Entering the Run Stage}.)
+Such procedure can be overriden by ``next level'' script (which sources the original).
+This concept faciliates code reuse when basic target config files provide generic configuration
+procedures and @code{init_targets} procedure, which can then be sourced and enchanced or changed in
+a ``more specific'' target config file. This is not possible with ``linear'' config scripts,
+because sourcing them executes every initialization commands they provide.
 
 @example
 ### generic_file.cfg ###
@@ -2007,12 +2013,13 @@ proc init_targets @{@} @{
 @}
 @end example
 
-The easiest way to convert ``linear'' config files to @code{init_targets} version is to enclose every line of ``code''
-(i.e. not @code{source} commands, procedures, etc.) in this procedure.
+The easiest way to convert ``linear'' config files to @code{init_targets} version is to
+enclose every line of ``code'' (i.e. not @code{source} commands, procedures, etc.) in this procedure.
 
 For an example of this scheme see LPC2000 target config files.
 
-The @code{init_boards} procedure is a similar concept concerning board config files (@xref{The init_board procedure}.)
+The @code{init_boards} procedure is a similar concept concerning board config files
+(@xref{theinitboardprocedure,,The init_board procedure}.)
 
 @subsection ARM Core Specific Hacks
 
@@ -2025,7 +2032,7 @@ Some ARM cores are equipped with trace support, which permits
 examination of the instruction and data bus activity.  Trace
 activity is controlled through an ``Embedded Trace Module'' (ETM)
 on one of the core's scan chains.  The ETM emits voluminous data
-through a ``trace port''.  (@xref{ARM Hardware Tracing}.)
+through a ``trace port''.  (@xref{armhardwaretracing,,ARM Hardware Tracing}.)
 If you are using an external trace port,
 configure it in your board config file.
 If you are using an on-chip ``Embedded Trace Buffer'' (ETB),
@@ -2053,7 +2060,7 @@ Examples:
 @item pxa270 - again - CS0 flash - it goes in the board file.
 @end itemize
 
-@anchor{Translating Configuration Files}
+@anchor{translatingconfigurationfiles}
 @section Translating Configuration Files
 @cindex translation
 If you have a configuration file for another hardware debugger
@@ -2100,7 +2107,7 @@ The commands here are commonly found in the openocd.cfg file and are
 used to specify what TCP/IP ports are used, and how GDB should be
 supported.
 
-@anchor{Configuration Stage}
+@anchor{configurationstage}
 @section Configuration Stage
 @cindex configuration stage
 @cindex config command
@@ -2126,7 +2133,7 @@ may access or activate TAPs.
 After it leaves this stage, configuration commands may no
 longer be issued.
 
-@anchor{Entering the Run Stage}
+@anchor{enteringtherunstage}
 @section Entering the Run Stage
 
 The first thing OpenOCD does after leaving the configuration
@@ -2184,7 +2191,7 @@ This is done by calling @command{jtag arp_init}
 (or @command{jtag arp_init-reset}).
 @end deffn
 
-@anchor{TCP/IP Ports}
+@anchor{tcpipports}
 @section TCP/IP Ports
 @cindex TCP port
 @cindex server
@@ -2246,16 +2253,16 @@ the port @var{number} defaults to 4444.
 When specified as zero, this port is not activated.
 @end deffn
 
-@anchor{GDB Configuration}
+@anchor{gdbconfiguration}
 @section GDB Configuration
 @cindex GDB
 @cindex GDB configuration
 You can reconfigure some GDB behaviors if needed.
 The ones listed here are static and global.
-@xref{Target Configuration}, about configuring individual targets.
-@xref{Target Events}, about configuring target-specific event handling.
+@xref{targetconfiguration,,Target Configuration}, about configuring individual targets.
+@xref{targetevents,,Target Events}, about configuring target-specific event handling.
 
-@anchor{gdb_breakpoint_override}
+@anchor{gdbbreakpointoverride}
 @deffn {Command} gdb_breakpoint_override [@option{hard}|@option{soft}|@option{disable}]
 Force breakpoint type for gdb @command{break} commands.
 This option supports GDB GUIs which don't
@@ -2264,7 +2271,7 @@ GDB behaviour is not sufficient.  GDB normally uses hardware
 breakpoints if the memory map has been set up for flash regions.
 @end deffn
 
-@anchor{gdb_flash_program}
+@anchor{gdbflashprogram}
 @deffn {Config Command} gdb_flash_program (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
@@ -2277,7 +2284,7 @@ requested. GDB will then know when to set hardware breakpoints, and program flas
 using the GDB load command. @command{gdb_flash_program enable} must also be enabled
 for flash programming to work.
 Default behaviour is @option{enable}.
-@xref{gdb_flash_program}.
+@xref{gdbflashprogram,,gdb_flash_program}.
 @end deffn
 
 @deffn {Config Command} gdb_report_data_abort (@option{enable}|@option{disable})
@@ -2287,7 +2294,7 @@ The default behaviour is @option{disable};
 use @option{enable} see these errors reported.
 @end deffn
 
-@anchor{Event Polling}
+@anchor{eventpolling}
 @section Event Polling
 
 Hardware debuggers are parts of asynchronous systems,
@@ -2328,7 +2335,7 @@ which is normally done in the background.
 
 @deffn Command poll [@option{on}|@option{off}]
 Poll the current target for its current state.
-(Also, @pxref{target curstate}.)
+(Also, @pxref{targetcurstate,,target curstate}.)
 If that target is in debug mode, architecture
 specific information about the current state is printed.
 An optional parameter
@@ -3038,7 +3045,7 @@ The Serial Peripheral Interface (SPI) is a general purpose transport
 which uses four wire signaling.  Some processors use it as part of a
 solution for flash programming.
 
-@anchor{JTAG Speed}
+@anchor{jtagspeed}
 @section JTAG Speed
 JTAG clock setup is part of system setup.
 It @emph{does not belong with interface setup} since any interface
@@ -3057,7 +3064,7 @@ It can then be reconfigured to a faster speed by a
 @code{reset-init} target event handler after it reprograms those
 CPU clocks, or manually (if something else, such as a boot loader,
 sets up those clocks).
-@xref{Target Events}.
+@xref{targetevents,,Target Events}.
 When the initial low JTAG speed is a chip characteristic, perhaps
 because of a required oscillator speed, provide such a handler
 in the target config file.
@@ -3094,7 +3101,7 @@ and is normally less than that peak rate.
 For example, most ARM cores accept at most one sixth of the CPU clock.
 
 Speed 0 (khz) selects RTCK method.
-@xref{FAQ RTCK}.
+@xref{faqrtck,,FAQ RTCK}.
 If your system uses RTCK, you won't need to change the
 JTAG clocking after setup.
 Not all interfaces, boards, or targets support ``rtck''.
@@ -3122,7 +3129,7 @@ Every system configuration may require a different reset
 configuration. This can also be quite confusing.
 Resets also interact with @var{reset-init} event handlers,
 which do things like setting up clocks and DRAM, and
-JTAG clock rates.  (@xref{JTAG Speed}.)
+JTAG clock rates.  (@xref{jtagspeed,,JTAG Speed}.)
 They can also interact with JTAG routers.
 Please see the various board files for examples.
 
@@ -3179,9 +3186,9 @@ halted under debugger control before any code has executed.
 This is the behavior required to support the @command{reset halt}
 and @command{reset init} commands; after @command{reset init} a
 board-specific script might do things like setting up DRAM.
-(@xref{Reset Command}.)
+(@xref{resetcommand,,Reset Command}.)
 
-@anchor{SRST and TRST Issues}
+@anchor{srstandtrstissues}
 @section SRST and TRST Issues
 
 Because SRST and TRST are hardware signals, they can have a
@@ -3282,7 +3289,7 @@ of your combination of JTAG board and target in target
 configuration scripts.
 
 Information earlier in this section describes the kind of problems
-the command is intended to address (@pxref{SRST and TRST Issues}).
+the command is intended to address (@pxref{srstandtrstissues,,SRST and TRST Issues}).
 As a rule this command belongs only in board config files,
 describing issues like @emph{board doesn't connect TRST};
 or in user config files, addressing limitations derived
@@ -3401,7 +3408,7 @@ to find a sequence of operations that works.
 @xref{JTAG Commands}.
 When you find a working sequence, it can be used to override
 @command{jtag_init}, which fires during OpenOCD startup
-(@pxref{Configuration Stage});
+(@pxref{configurationstage,,Configuration Stage});
 or @command{init_reset}, which fires during reset processing.
 
 You might also want to provide some project-specific reset
@@ -3511,7 +3518,7 @@ Here's what the scan chain might look like for a chip more than one TAP:
 @end verbatim
 
 OpenOCD can detect some of that information, but not all
-of it.  @xref{Autoprobing}.
+of it.  @xref{autoprobing,,Autoprobing}.
 Unfortunately those TAPs can't always be autoconfigured,
 because not all devices provide good support for that.
 JTAG doesn't require supporting IDCODE instructions, and
@@ -3534,7 +3541,7 @@ and so forth.
 Note that @emph{the order in which TAPs are declared is very important.}
 It must match the order in the JTAG scan chain, both inside
 a single chip and between them.
-@xref{FAQ TAP Order}.
+@xref{faqtaporder,,FAQ TAP Order}.
 
 For example, the ST Microsystems STR912 chip has
 three separate TAPs@footnote{See the ST
@@ -3610,7 +3617,6 @@ reusing those scripts on boards with multiple targets.
 @section TAP Declaration Commands
 
 @c shouldn't this be(come) a {Config Command}?
-@anchor{jtag newtap}
 @deffn Command {jtag newtap} chipname tapname configparams...
 Declares a new TAP with the dotted name @var{chipname}.@var{tapname},
 and configured according to the various @var{configparams}.
@@ -3658,7 +3664,7 @@ linked in to the scan chain after a reset using either TRST
 or the JTAG state machine's @sc{reset} state.
 You may use @code{-enable} to highlight the default state
 (the TAP is linked in).
-@xref{Enabling and Disabling TAPs}.
+@xref{enablinganddisablingtaps,,Enabling and Disabling TAPs}.
 @item @code{-expected-id} @var{number}
 @*A non-zero @var{number} represents a 32-bit IDCODE
 which you expect to find when the scan chain is examined.
@@ -3673,7 +3679,7 @@ tell when the scan chain it sees isn't right.  These values
 are provided in vendors' chip documentation, usually a technical
 reference manual.  Sometimes you may need to probe the JTAG
 hardware to find these values.
-@xref{Autoprobing}.
+@xref{autoprobing,,Autoprobing}.
 @item @code{-ignore-version}
 @*Specify this to ignore the JTAG version field in the @code{-expected-id}
 option.  When vendors put out multiple versions of a chip, or use the same
@@ -3711,7 +3717,6 @@ a TCL string which is evaluated when the event is triggered.
 The @code{cget} subcommand returns that handler.
 @end deffn
 
-@anchor{TAP Events}
 @section TAP Events
 @cindex events
 @cindex TAP events
@@ -3760,7 +3765,7 @@ jtag configure CHIP.jrc -event post-reset @{
 @end example
 
 
-@anchor{Enabling and Disabling TAPs}
+@anchor{enablinganddisablingtaps}
 @section Enabling and Disabling TAPs
 @cindex JTAG Route Controller
 @cindex jrc
@@ -3848,7 +3853,7 @@ for querying the state of the JTAG taps.
 @end quotation
 @end deffn
 
-@anchor{Autoprobing}
+@anchor{autoprobing}
 @section Autoprobing
 @cindex autoprobe
 @cindex JTAG autoprobe
@@ -3924,7 +3929,7 @@ and so forth.
 This chapter discusses how to set up GDB debug targets for CPUs.
 You can also access these targets without GDB
 (@pxref{Architecture and Core Commands},
-and @ref{Target State handling}) and
+and @ref{targetstatehandling,,Target State handling}) and
 through various kinds of NAND and NOR flash commands.
 If you have multiple CPUs you can have multiple such targets.
 
@@ -4042,7 +4047,7 @@ since there's a command to list them.
 However, there is currently no way to list what target variants
 are supported (other than by reading the OpenOCD source code).
 
-@anchor{target types}
+@anchor{targettypes}
 @deffn Command {target types}
 Lists all supported target types.
 At this writing, the supported CPU types and variants are:
@@ -4089,7 +4094,7 @@ reflect design generations;
 while names like ARMv4, ARMv5, ARMv6, and ARMv7
 reflect an architecture version implemented by a CPU design.
 
-@anchor{Target Configuration}
+@anchor{targetconfiguration}
 @section Target Configuration
 
 Before creating a ``target'', you must have added its TAP to the scan chain.
@@ -4107,7 +4112,7 @@ command, created as part of target creation.
 The two main things to configure after target creation are
 a work area, which usually has target-specific defaults even
 if the board setup code overrides them later;
-and event handlers (@pxref{Target Events}), which tend
+and event handlers (@pxref{targetevents,,Target Events}), which tend
 to be much more board-specific.
 The key steps you use might look something like this
 
@@ -4160,7 +4165,7 @@ using the @code{-chain-position @var{dotted.name}} configparam.
 This name is also used to create the target object command,
 referred to here as @command{$target_name},
 and in other places the target needs to be identified.
-@item @var{type} ... specifies the target type.  @xref{target types}.
+@item @var{type} ... specifies the target type.  @xref{targettypes,,target types}.
 @item @var{configparams} ...  all parameters accepted by
 @command{$target_name configure} are permitted.
 If the target is big-endian, set it here with @code{-endian big}.
@@ -4189,7 +4194,7 @@ used to access this target.
 whether the CPU uses big or little endian conventions
 
 @item @code{-event} @var{event_name} @var{event_body} --
-@xref{Target Events}.
+@xref{targetevents,,Target Events}.
 Note that this updates a list of named event handlers.
 Calling this twice with two different event names assigns
 two different handlers, but calling it twice with the
@@ -4324,20 +4329,20 @@ foreach name [target names] @{
 @end example
 @end deffn
 
-@anchor{target curstate}
+@anchor{targetcurstate}
 @deffn Command {$target_name curstate}
 Displays the current target state:
 @code{debug-running},
 @code{halted},
 @code{reset},
 @code{running}, or @code{unknown}.
-(Also, @pxref{Event Polling}.)
+(Also, @pxref{eventpolling,,Event Polling}.)
 @end deffn
 
 @deffn Command {$target_name eventlist}
 Displays a table listing all event handlers
 currently associated with this target.
-@xref{Target Events}.
+@xref{targetevents,,Target Events}.
 @end deffn
 
 @deffn Command {$target_name invoke-event} event_name
@@ -4365,7 +4370,7 @@ Writes the specified @var{word} (32 bits),
 at the specified address @var{addr}.
 @end deffn
 
-@anchor{Target Events}
+@anchor{targetevents}
 @section Target Events
 @cindex target events
 @cindex events
@@ -4528,7 +4533,7 @@ boot loader, operating system, or other data.
 @item GDB Flashing
 @* Flashing via GDB requires the flash be configured via ``flash
 bank'', and the GDB flash features be enabled.
-@xref{GDB Configuration}.
+@xref{gdbconfiguration,,GDB Configuration}.
 @end enumerate
 
 Many CPUs have the ablity to ``boot'' from the first flash bank.
@@ -4537,7 +4542,7 @@ so that it can't boot.
 JTAG tools, like OpenOCD, are often then used to ``de-brick'' the
 board by (re)installing working boot firmware.
 
-@anchor{NOR Configuration}
+@anchor{norconfiguration}
 @section Flash Configuration Commands
 @cindex flash configuration
 
@@ -4555,7 +4560,7 @@ in other flash commands.  A number is also available.
 associated with the flash bank being declared.
 This is usually @code{cfi} for external flash, or else
 the name of a microcontroller with embedded flash memory.
-@xref{Flash Driver List}.
+@xref{flashdriverlist,,Flash Driver List}.
 @item @var{base} ... Base address of the flash chip.
 @item @var{size} ... Size of the chip, in bytes.
 For some drivers, this value is detected from the hardware.
@@ -4605,13 +4610,13 @@ but most don't bother.
 @cindex flash reading
 @cindex flash writing
 @cindex flash programming
-@anchor{Flash Programming Commands}
+@anchor{flashprogrammingcommands}
 
 One feature distinguishing NOR flash from NAND or serial flash technologies
 is that for read access, it acts exactly like any other addressible memory.
 This means you can use normal memory read commands like @command{mdw} or
 @command{dump_image} with it, with no special @command{flash} subcommands.
-@xref{Memory access}, and @ref{Image access}.
+@xref{memoryaccess,,Memory access}, and @ref{imageaccess,,Image access}.
 
 Write access works differently.  Flash memory normally needs to be erased
 before it's written.  Erasing a sector turns all of its bits to ones, and
@@ -4637,9 +4642,8 @@ For such systems, erasing and writing may require sector protection to be
 disabled first.
 Examples include CFI flash such as ``Intel Advanced Bootblock flash'',
 and AT91SAM7 on-chip flash.
-@xref{flash protect}.
+@xref{flashprotect,,flash protect}.
 
-@anchor{flash erase_sector}
 @deffn Command {flash erase_sector} num first last
 Erase sectors in bank @var{num}, starting at sector @var{first}
 up to and including @var{last}.
@@ -4679,14 +4683,12 @@ each block, and the specified length must stay within that bank.
 @end deffn
 @comment no current checks for errors if fill blocks touch multiple banks!
 
-@anchor{flash write_bank}
 @deffn Command {flash write_bank} num filename offset
 Write the binary @file{filename} to flash bank @var{num},
 starting at @var{offset} bytes from the beginning of the bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@anchor{flash write_image}
 @deffn Command {flash write_image} [erase] [unlock] filename [offset] [type]
 Write the image @file{filename} to the current target's flash bank(s).
 A relocation @var{offset} may be specified, in which case it is added
@@ -4739,7 +4741,7 @@ This command will first query the hardware, it does not print cached
 and possibly stale information.
 @end deffn
 
-@anchor{flash protect}
+@anchor{flashprotect}
 @deffn Command {flash protect} num first last (@option{on}|@option{off})
 Enable (@option{on}) or disable (@option{off}) protection of flash sectors
 in flash bank @var{num}, starting at sector @var{first}
@@ -4756,7 +4758,7 @@ programmer. The only required parameter is @option{filename}, the others are opt
 @xref{Flash Programming}.
 @end deffn
 
-@anchor{Flash Driver List}
+@anchor{flashdriverlist}
 @section Flash Driver List
 As noted above, the @command{flash bank} command requires a driver name,
 and allows driver-specific options and behaviors.
@@ -5601,7 +5603,8 @@ Write the binary file @var{filename} to mflash bank @var{num}, starting at
 @chapter Flash Programming
 
 OpenOCD implements numerous ways to program the target flash, whether internal or external.
-Programming can be acheived by either using GDB @ref{Programming using GDB}, or using the cmds given in @ref{Flash Programming Commands}.
+Programming can be acheived by either using GDB @ref{programmingusinggdb,,Programming using GDB},
+or using the cmds given in @ref{flashprogrammingcommands,,Flash Programming Commands}.
 
 @*To simplify using the flash cmds directly a jimtcl script is available that handles the programming and verify stage.
 OpenOCD will program/verify/reset the target and shutdown.
@@ -5693,7 +5696,7 @@ is larger than 0xffffffff, the largest 32-bit unsigned integer.)
 Some larger devices will work, since they are actually multi-chip
 modules with two smaller chips and individual chipselect lines.
 
-@anchor{NAND Configuration}
+@anchor{nandconfiguration}
 @section NAND Configuration Commands
 @cindex NAND configuration
 
@@ -5719,7 +5722,7 @@ configuration files, not interactively.
 in most other NAND commands.  A number is also available.
 @item @var{driver} ... identifies the NAND controller driver
 associated with the NAND device being declared.
-@xref{NAND Driver List}.
+@xref{nanddriverlist,,NAND Driver List}.
 @item @var{target} ... names the target used when issuing
 commands to the NAND controller.
 @comment Actually, it's currently a controller-specific parameter...
@@ -5936,7 +5939,7 @@ bypassing hardware ECC logic.
 with the wrong ECC data can cause them to be marked as bad.
 @end deffn
 
-@anchor{NAND Driver List}
+@anchor{nanddriverlist}
 @section NAND Driver List
 As noted above, the @command{nand device} command allows
 driver-specific options and behaviors.
@@ -6171,7 +6174,7 @@ Useful in connection with script files
 Close the OpenOCD daemon, disconnecting all clients (GDB, telnet, other).
 @end deffn
 
-@anchor{debug_level}
+@anchor{debuglevel}
 @deffn Command debug_level [n]
 @cindex message level
 Display debug level.
@@ -6205,7 +6208,7 @@ the initial log output channel is stderr.
 Add @var{directory} to the file/script search path.
 @end deffn
 
-@anchor{Target State handling}
+@anchor{targetstatehandling}
 @section Target State handling
 @cindex reset
 @cindex halt
@@ -6302,7 +6305,7 @@ Single-step the target at its current code position,
 or the optional @var{address} if it is provided.
 @end deffn
 
-@anchor{Reset Command}
+@anchor{resetcommand}
 @deffn Command reset
 @deffnx Command {reset run}
 @deffnx Command {reset halt}
@@ -6393,7 +6396,7 @@ Unlinks the file @file{filename}.
 Removes all data in the file @file{filename}.
 @end deffn
 
-@anchor{Memory access}
+@anchor{memoryaccess}
 @section Memory access commands
 @cindex memory access
 
@@ -6437,13 +6440,11 @@ Otherwise, or if the optional @var{phys} flag is specified,
 @var{addr} is interpreted as a physical address.
 @end deffn
 
-
-@anchor{Image access}
+@anchor{imageaccess}
 @section Image loading commands
 @cindex image loading
 @cindex image dumping
 
-@anchor{dump_image}
 @deffn Command {dump_image} filename address size
 Dump @var{size} bytes of target memory starting at @var{address} to the
 binary file named @var{filename}.
@@ -6465,7 +6466,6 @@ target programming performance as I/O and target programming can easily be profi
 separately.
 @end deffn
 
-@anchor{load_image}
 @deffn Command {load_image} filename address [[@option{bin}|@option{ihex}|@option{elf}|@option{s19}] @option{min_addr} @option{max_length}]
 Load image from file @var{filename} to target memory offset by @var{address} from its load address.
 The file format may optionally be specified
@@ -6514,7 +6514,7 @@ at @var{address} for @var{length} bytes.
 This is a software breakpoint, unless @option{hw} is specified
 in which case it will be a hardware breakpoint.
 
-(@xref{arm9 vector_catch}, or @pxref{xscale vector_catch},
+(@xref{arm9vectorcatch,,arm9 vector_catch}, or @pxref{xscalevectorcatch,,xscale vector_catch},
 for similar mechanisms that do not consume hardware breakpoints.)
 @end deffn
 
@@ -6565,7 +6565,7 @@ OpenOCD packages most such operations in its standard command framework.
 Some of those operations don't fit well in that framework, so they are
 exposed here as architecture or implementation (core) specific commands.
 
-@anchor{ARM Hardware Tracing}
+@anchor{armhardwaretracing}
 @section ARM Hardware Tracing
 @cindex tracing
 @cindex ETM
@@ -6628,7 +6628,7 @@ ETM setup is coupled with the trace port driver configuration.
 
 @deffn {Config Command} {etm config} target width mode clocking driver
 Declares the ETM associated with @var{target}, and associates it
-with a given trace port @var{driver}.  @xref{Trace Port Drivers}.
+with a given trace port @var{driver}.  @xref{traceportdrivers,,Trace Port Drivers}.
 
 Several of the parameters must reflect the trace port capabilities,
 which are a function of silicon capabilties (exposed later
@@ -6769,7 +6769,7 @@ Starts trace data collection.
 Stops trace data collection.
 @end deffn
 
-@anchor{Trace Port Drivers}
+@anchor{traceportdrivers}
 @subsection Trace Port Drivers
 
 To use an ETM trace port it must be associated with a driver.
@@ -6948,7 +6948,6 @@ unsafe, especially with targets running at very low speeds. This command was int
 with OpenOCD rev. 60, and requires a few bytes of working area.
 @end deffn
 
-@anchor{arm7_9 fast_memory_access}
 @deffn Command {arm7_9 fast_memory_access} [@option{enable}|@option{disable}]
 Displays the value of the flag controlling use of memory writes and reads
 that don't check completion of the operation.
@@ -6988,7 +6987,7 @@ Such cores include the ARM920T, ARM926EJ-S, and ARM966.
 @c 23-oct-2009:  doesn't work _consistently_ ... as if the ICE
 @c versions have different rules about when they commit writes.
 
-@anchor{arm9 vector_catch}
+@anchor{arm9vectorcatch}
 @deffn Command {arm9 vector_catch} [@option{all}|@option{none}|list]
 @cindex vector_catch
 Vector Catch hardware provides a sort of dedicated breakpoint
@@ -7213,7 +7212,7 @@ The image @var{type} may be one of
 @option{mem}, or @option{builder}.
 @end deffn
 
-@anchor{xscale vector_catch}
+@anchor{xscalevectorcatch}
 @deffn Command {xscale vector_catch} [mask]
 @cindex vector_catch
 Display a bitmask showing the hardware vectors to catch.
@@ -7232,7 +7231,6 @@ The mask bits correspond with bit 16..23 in the DCSR:
 @end example
 @end deffn
 
-@anchor{xscale vector_table}
 @deffn Command {xscale vector_table} [(@option{low}|@option{high}) index value]
 @cindex vector_table
 
@@ -7384,10 +7382,10 @@ Using @option{vectreset} is a safe option for all current Cortex-M3 cores.
 This however has the disadvantage of only resetting the core, all peripherals
 are uneffected. A solution would be to use a @code{reset-init} event handler to manually reset
 the peripherals.
-@xref{Target Events}.
+@xref{targetevents,,Target Events}.
 @end deffn
 
-@anchor{Software Debug Messages and Tracing}
+@anchor{softwaredebugmessagesandtracing}
 @section Software Debug Messages and Tracing
 @cindex Linux-ARM DCC support
 @cindex tracing
@@ -7403,7 +7401,7 @@ is supported only for @option{arm7_9} and @option{cortex_m3} cores.
 These messages are received as part of target polling, so
 you need to have @command{poll on} active to receive them.
 They are intrusive in that they will affect program execution
-times.  If that is a problem, @pxref{ARM Hardware Tracing}.
+times.  If that is a problem, @pxref{armhardwaretracing,,ARM Hardware Tracing}.
 
 See @file{libdcc} in the contrib dir for more details.
 In addition to sending strings, characters, and
@@ -7477,7 +7475,7 @@ or after @command{trace point clear}) and count up from there.
 @chapter JTAG Commands
 @cindex JTAG Commands
 Most general purpose JTAG commands have been presented earlier.
-(@xref{JTAG Speed}, @ref{Reset Configuration}, and @ref{TAP Declaration}.)
+(@xref{jtagspeed,,JTAG Speed}, @ref{Reset Configuration}, and @ref{TAP Declaration}.)
 Lower level JTAG commands, as presented here,
 may be needed to work with targets which require special
 attention during operations such as reset or initialization.
@@ -7789,7 +7787,7 @@ Setting up GDB to work with OpenOCD can involve several components:
 
 @itemize
 @item The OpenOCD server support for GDB may need to be configured.
-@xref{GDB Configuration}.
+@xref{gdbconfiguration,,GDB Configuration}.
 @item GDB's support for OpenOCD may need configuration,
 as shown in this chapter.
 @item If you have a GUI environment like Eclipse,
@@ -7803,7 +7801,6 @@ cross-development for ARM on an x86 PC, instead of using the native
 x86 @command{gdb} command you might use @command{arm-none-eabi-gdb}
 if that's the tool chain used to compile your code.
 
-@anchor{Connecting to GDB}
 @section Connecting to GDB
 @cindex Connecting to GDB
 Use GDB 6.7 or newer with OpenOCD if you run into trouble. For
@@ -7920,7 +7917,7 @@ using @command{gdb -x filename}.
 
 @section Programming using GDB
 @cindex Programming using GDB
-@anchor{Programming using GDB}
+@anchor{programmingusinggdb}
 
 By default the target memory map is sent to GDB. This can be disabled by
 the following OpenOCD configuration option:
@@ -7934,7 +7931,7 @@ working area.
 Informing GDB of the memory map of the target will enable GDB to protect any
 flash areas of the target and use hardware breakpoints by default. This means
 that the OpenOCD option @command{gdb_breakpoint_override} is not required when
-using a memory map. @xref{gdb_breakpoint_override}.
+using a memory map. @xref{gdbbreakpointoverride,,gdb_breakpoint_override}.
 
 To view the configured memory map in GDB, use the GDB command @option{info mem}
 All other unassigned addresses within GDB are treated as RAM.
@@ -7960,8 +7957,8 @@ $_TARGETNAME configure -event EVENTNAME BODY
 
 To verify any flash programming the GDB command @option{compare-sections}
 can be used.
-@anchor{Using openocd SMP with GDB}
-@section Using openocd SMP with GDB
+@anchor{usingopenocdsmpwithgdb}
+@section Using OpenOCD SMP with GDB
 @cindex SMP
 For SMP support following GDB serial protocol packet have been defined :
 @itemize @bullet
@@ -7990,8 +7987,8 @@ print $_core
 #jc packet is sent and result is affected in $
 @end example
 
-@item by the usage of GDB maintenance command as described in following example (2
-cpus in SMP with core id 0 and 1  @pxref{Define CPU targets working in SMP}).
+@item by the usage of GDB maintenance command as described in following example (2 cpus in SMP with
+core id 0 and 1 @pxref{definecputargetsworkinginsmp,,Define CPU targets working in SMP}).
 
 @example
 # toggle0 : force display of coreid 0
@@ -8104,7 +8101,7 @@ is jim, not real tcl).
 @chapter FAQ
 @cindex faq
 @enumerate
-@anchor{FAQ RTCK}
+@anchor{faqrtck}
 @item @b{RTCK, also known as: Adaptive Clocking - What is it?}
 @cindex RTCK
 @cindex adaptive clocking
@@ -8357,7 +8354,7 @@ processed.  Such commands include @command{nand probe} and everything
 else that needs to write to controller registers, perhaps for setting
 up DRAM and loading it with code.
 
-@anchor{FAQ TAP Order}
+@anchor{faqtaporder}
 @item @b{JTAG TAP Order} Do I have to declare the TAPS in some
 particular order?
 
