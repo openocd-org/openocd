@@ -31,7 +31,7 @@ Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
 any later version published by the Free Software Foundation; with no
 Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
-Texts.  A copy of the license is included in the section entitled ``GNU
+Texts. A copy of the license is included in the section entitled ``GNU
 Free Documentation License''.
 @end quotation
 @end copying
@@ -67,7 +67,7 @@ Free Documentation License''.
 * OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
 * Daemon Configuration::             Daemon Configuration
-* Debug Adapter Configuration:: Debug Adapter Configuration
+* Debug Adapter Configuration::      Debug Adapter Configuration
 * Reset Configuration::              Reset Configuration
 * TAP Declaration::                  TAP Declaration
 * CPU Configuration::                CPU Configuration
@@ -114,16 +114,16 @@ devices.
 
 It does so with the assistance of a @dfn{debug adapter}, which is
 a small hardware module which helps provide the right kind of
-electrical signaling to the target being debugged.  These are
+electrical signaling to the target being debugged. These are
 required since the debug host (on which OpenOCD runs) won't
 usually have native support for such signaling, or the connector
 needed to hook up to the target.
 
 Such debug adapters support one or more @dfn{transport} protocols,
 each of which involves different electrical signaling (and uses
-different messaging protocols on top of that signaling).  There
+different messaging protocols on top of that signaling). There
 are many types of debug adapter, and little uniformity in what
-they are called.  (There are also product naming differences.)
+they are called. (There are also product naming differences.)
 
 These adapters are sometimes packaged as discrete dongles, which
 may generically be called @dfn{hardware interface dongles}.
@@ -135,13 +135,13 @@ For example, a @dfn{JTAG Adapter} supports JTAG
 signaling, and is used to communicate
 with JTAG (IEEE 1149.1) compliant TAPs on your target board.
 A @dfn{TAP} is a ``Test Access Port'', a module which processes
-special instructions and data.  TAPs are daisy-chained within and
-between chips and boards.  JTAG supports debugging and boundary
+special instructions and data. TAPs are daisy-chained within and
+between chips and boards. JTAG supports debugging and boundary
 scan operations.
 
 There are also @dfn{SWD Adapters} that support Serial Wire Debug (SWD)
 signaling to communicate with some newer ARM cores, as well as debug
-adapters which support both JTAG and SWD transports.  SWD only supports
+adapters which support both JTAG and SWD transports. SWD only supports
 debugging, whereas JTAG also supports boundary scan operations.
 
 For some chips, there are also @dfn{Programming Adapters} supporting
@@ -174,7 +174,7 @@ The OpenOCD web site provides the latest public news from the community:
 @section Latest User's Guide:
 
 The user's guide you are now reading may not be the latest one
-available.  A version for more recent code may be available.
+available. A version for more recent code may be available.
 Its HTML form is published regularly at:
 
 @uref{http://openocd.sourceforge.net/doc/html/index.html}
@@ -186,7 +186,7 @@ PDF form is likewise published at:
 @section OpenOCD User's Forum
 
 There is an OpenOCD forum (phpBB) hosted by SparkFun,
-which might be helpful to you.  Note that if you want
+which might be helpful to you. Note that if you want
 anything to come to the attention of developers, you
 should post it to the OpenOCD Developer Mailing List
 instead of this forum.
@@ -210,7 +210,7 @@ Support can also be found on irc:
 @cindex developers
 
 If you are interested in improving the state of OpenOCD's debugging and
-testing support, new contributions will be welcome.  Motivated developers
+testing support, new contributions will be welcome. Motivated developers
 can produce new target, flash or interface drivers, improve the
 documentation, as well as more conventional bug fixes and enhancements.
 
@@ -220,7 +220,7 @@ or expand the OpenOCD source code.
 @section OpenOCD GIT Repository
 
 During the 0.3.x release cycle, OpenOCD switched from Subversion to
-a GIT repository hosted at SourceForge.  The repository URL is:
+a GIT repository hosted at SourceForge. The repository URL is:
 
 @uref{git://openocd.git.sourceforge.net/gitroot/openocd/openocd}
 
@@ -249,14 +249,14 @@ work from their submitter in order to be updated for newer releases.
 @section Doxygen Developer Manual
 
 During the 0.2.x release cycle, the OpenOCD project began
-providing a Doxygen reference manual.  This document contains more
+providing a Doxygen reference manual. This document contains more
 technical information about the software internals, development
 processes, and similar documentation:
 
 @uref{http://openocd.sourceforge.net/doc/doxygen/html/index.html}
 
 This document is a work-in-progress, but contributions would be welcome
-to fill in the gaps.  All of the source files are provided in-tree,
+to fill in the gaps. All of the source files are provided in-tree,
 listed in the Doxyfile configuration in the top of the source tree.
 
 @section OpenOCD Developer Mailing List
@@ -292,7 +292,7 @@ Defined: @b{dongle}: A small device that plugins into a computer and serves as
 an adapter .... [snip]
 
 In the OpenOCD case, this generally refers to @b{a small adapter} that
-attaches to your computer via USB or the Parallel Printer Port.  One
+attaches to your computer via USB or the Parallel Printer Port. One
 exception is the Zylin ZY1000, packaged as a small box you attach via
 an ethernet cable. The Zylin ZY1000 has the advantage that it does not
 require any drivers to be installed on the developer PC. It also has
@@ -306,12 +306,12 @@ There are several things you should keep in mind when choosing a dongle.
 
 @enumerate
 @item @b{Transport} Does it support the kind of communication that you need?
-OpenOCD focusses mostly on JTAG.  Your version may also support
+OpenOCD focusses mostly on JTAG. Your version may also support
 other ways to communicate with target devices.
 @item @b{Voltage} What voltage is your target - 1.8, 2.8, 3.3, or 5V?
-Does your dongle support it?  You might need a level converter.
+Does your dongle support it? You might need a level converter.
 @item @b{Pinout} What pinout does your target board use?
-Does your dongle support it?  You may be able to use jumper
+Does your dongle support it? You may be able to use jumper
 wires, or an "octopus" connector, to convert pinouts.
 @item @b{Connection} Does your computer have the USB, printer, or
 Ethernet port needed?
@@ -334,7 +334,7 @@ on a chip from ``Future Technology Devices International'' (FTDI)
 known as the FTDI FT2232; this is a USB full speed (12 Mbps) chip.
 See: @url{http://www.ftdichip.com} for more information.
 In summer 2009, USB high speed (480 Mbps) versions of these FTDI
-chips are starting to become available in JTAG adapters.  (Adapters
+chips are starting to become available in JTAG adapters. (Adapters
 using those high speed FT2232H chips may support adaptive clocking.)
 
 The FT2232 chips are flexible enough to support some other
@@ -360,13 +360,13 @@ a built-in low cost debug adapter and usb-to-serial solution.
 @item @b{Stellaris Eval Boards}
 @* See: @url{http://www.ti.com} - The Stellaris eval boards
 bundle FT2232-based JTAG and SWD support, which can be used to debug
-the Stellaris chips.  Using separate JTAG adapters is optional.
+the Stellaris chips. Using separate JTAG adapters is optional.
 These boards can also be used in a "pass through" mode as JTAG adapters
 to other target boards, disabling the Stellaris chip.
 @item @b{TI/Luminary ICDI}
 @* See: @url{http://www.ti.com} - TI/Luminary In-Circuit Debug
 Interface (ICDI) Boards are included in Stellaris LM3S9B9x
-Evaluation Kits.  Like the non-detachable FT2232 support on the other
+Evaluation Kits. Like the non-detachable FT2232 support on the other
 Stellaris eval boards, they can be used to debug other target boards.
 @item @b{olimex-jtag}
 @* See: @url{http://www.olimex.com}
@@ -381,7 +381,7 @@ Stellaris eval boards, they can be used to debug other target boards.
 @item @b{stm32stick}
 @* Link @url{http://www.hitex.com/stm32-stick}
 @item @b{axm0432_jtag}
-@* Axiom AXM-0432 Link @url{http://www.axman.com} - NOTE:  This JTAG does not appear
+@* Axiom AXM-0432 Link @url{http://www.axman.com} - NOTE: This JTAG does not appear
 to be available anymore as of April 2012.
 @item @b{cortino}
 @* Link @url{http://www.hitex.com/index.php?id=cortino}
@@ -398,12 +398,12 @@ to be available anymore as of April 2012.
 
 These devices also show up as FTDI devices, but are not
 protocol-compatible with the FT2232 devices. They are, however,
-protocol-compatible among themselves.  USB-JTAG devices typically consist
+protocol-compatible among themselves. USB-JTAG devices typically consist
 of a FT245 followed by a CPLD that understands a particular protocol,
 or emulate this protocol using some other hardware.
 
 They may appear under different USB VID/PID depending on the particular
-product.  The driver can be configured to search for any VID/PID pair
+product. The driver can be configured to search for any VID/PID pair
 (see the section on driver commands).
 
 @itemize
@@ -572,7 +572,7 @@ You can use them as simple commands, without needing to learn
 much of anything about Tcl.
 Alternatively, can write Tcl programs with them.
 
-You can learn more about Jim at its website,  @url{http://jim.berlios.de}.
+You can learn more about Jim at its website, @url{http://jim.berlios.de}.
 There is an active and responsive community, get on the mailing list
 if you have any questions. Jim-Tcl maintainers also lurk on the
 OpenOCD mailing list.
@@ -619,9 +619,9 @@ to benefit from new features and bugfixes in Jim Tcl.
 @cindex directory search
 
 Properly installing OpenOCD sets up your operating system to grant it access
-to the debug adapters.  On Linux, this usually involves installing a file
-in @file{/etc/udev/rules.d,} so OpenOCD has permissions.  MS-Windows needs
-complex and confusing driver configuration for every peripheral.  Such issues
+to the debug adapters. On Linux, this usually involves installing a file
+in @file{/etc/udev/rules.d,} so OpenOCD has permissions. MS-Windows needs
+complex and confusing driver configuration for every peripheral. Such issues
 are unique to each operating system, and are not detailed in this User's Guide.
 
 Then later you will invoke the OpenOCD server, with various options to
@@ -661,16 +661,16 @@ The first found file with a matching file name will be used.
 
 @quotation Note
 Don't try to use configuration script names or paths which
-include the "#" character.  That character begins Tcl comments.
+include the "#" character. That character begins Tcl comments.
 @end quotation
 
 @section Simple setup, no customization
 
 In the best case, you can use two scripts from one of the script
 libraries, hook up your JTAG adapter, and start the server ... and
-your JTAG setup will just work "out of the box".  Always try to
+your JTAG setup will just work "out of the box". Always try to
 start by reusing those scripts, but assume you'll need more
-customization even if this works.  @xref{OpenOCD Project Setup}.
+customization even if this works. @xref{OpenOCD Project Setup}.
 
 If you find a script for your JTAG adapter, and for your board or
 target, you may be able to hook up your JTAG adapter then start
@@ -693,7 +693,7 @@ Info : JTAG tap: lm3s.cpu tap/device found: 0x3ba00477
 @end example
 
 Seeing that "tap/device found" message, and no warnings, means
-the JTAG communication is working.  That's a key milestone, but
+the JTAG communication is working. That's a key milestone, but
 you'll probably need more project-specific setup.
 
 @section What OpenOCD does as it starts
@@ -775,7 +775,7 @@ Not all JTAG adapters have the level shifters needed to work
 with 1.2 Volt boards.
 
 @item @emph{Be certain the cable is properly oriented} or you might
-damage your board.  In most cases there are only two possible
+damage your board. In most cases there are only two possible
 ways to connect the cable.
 Connect the JTAG cable from your adapter to the board.
 Be sure it's firmly connected.
@@ -787,7 +787,7 @@ housing, which must match a key on the JTAG cable's female connector.
 If there's no housing, then you must look carefully and
 make sure pin 1 on the cable hooks up to pin 1 on the board.
 Ribbon cables are frequently all grey except for a wire on one
-edge, which is red.  The red wire is pin 1.
+edge, which is red. The red wire is pin 1.
 
 Sometimes dongles provide cables where one end is an ``octopus'' of
 color coded single-wire connectors, instead of a connector block.
@@ -802,7 +802,7 @@ you are using to run OpenOCD.
 For Ethernet, consult the documentation and your network administrator.
 
 For USB based JTAG adapters you have an easy sanity check at this point:
-does the host operating system see the JTAG adapter?  If that host is an
+does the host operating system see the JTAG adapter? If that host is an
 MS-Windows host, you'll need to install a driver before OpenOCD works.
 
 @item @emph{Connect the adapter's power supply, if needed.}
@@ -881,7 +881,7 @@ same in a script, the variable @var{VAR} will have no value
 that can be tested in a later script.
 @end quotation
 
-Here we will focus on the simpler solution:  one user config
+Here we will focus on the simpler solution: one user config
 file, including basic configuration plus any TCL procedures
 to simplify your work.
 
@@ -901,7 +901,7 @@ For example, OpenOCD distributes a @file{scripts} directory
 (probably in @file{/usr/share/openocd/scripts} on Linux).
 Board and tool vendors can provide these too, as can individual
 user sites; the @option{-s} command line option lets you say
-where to find these files.  (@xref{Running}.)
+where to find these files. (@xref{Running}.)
 The AT91SAM7X256 example above works this way.
 
 Three main types of non-user configuration file each have their
@@ -913,7 +913,7 @@ own subdirectory in the @file{scripts} directory:
 @item @b{target} -- the chips which integrate CPUs and other JTAG TAPs
 @end enumerate
 
-Best case:  include just two files, and they handle everything else.
+Best case: include just two files, and they handle everything else.
 The first is an interface config file.
 The second is board-specific, and it sets up the JTAG TAPs and
 their GDB targets (by deferring to some @file{target.cfg} file),
@@ -998,7 +998,7 @@ work area if your application needs much SRAM.
 @item
 TCP/IP port configuration is another example of something which
 is environment-specific, and should only appear in
-a user config file.  @xref{tcpipports,,TCP/IP Ports}.
+a user config file. @xref{tcpipports,,TCP/IP Ports}.
 @end itemize
 
 @section Project-Specific Utilities
@@ -1037,7 +1037,7 @@ based microcontroller application instead of a boot loader.)
 
 @example
 proc newboot @{ @} @{
-    # Reset, leaving the CPU halted.  The "reset-init" event
+    # Reset, leaving the CPU halted. The "reset-init" event
     # proc gives faster access to the CPU and to NOR flash;
     # "reset halt" would be slower.
     reset init
@@ -1076,7 +1076,7 @@ handling issues like:
 
 @item @b{Watchdog Timers}...
 Watchog timers are typically used to automatically reset systems if
-some application task doesn't periodically reset the timer.  (The
+some application task doesn't periodically reset the timer. (The
 assumption is that the system has locked up if the task can't run.)
 When a JTAG debugger halts the system, that task won't be able to run
 and reset the timer ... potentially causing resets in the middle of
@@ -1087,15 +1087,15 @@ needs to be debugged just like all other parts of your firmware.
 That might however be your only option.
 
 Look instead for chip-specific ways to stop the watchdog from counting
-while the system is in a debug halt state.  It may be simplest to set
-that non-counting mode in your debugger startup scripts.  You may however
+while the system is in a debug halt state. It may be simplest to set
+that non-counting mode in your debugger startup scripts. You may however
 need a different approach when, for example, a motor could be physically
-damaged by firmware remaining inactive in a debug halt state.  That might
+damaged by firmware remaining inactive in a debug halt state. That might
 involve a type of firmware mode where that "non-counting" mode is disabled
 at the beginning then re-enabled at the end; a watchdog reset might fire
 and complicate the debug session, but hardware (or people) would be
 protected.@footnote{Note that many systems support a "monitor mode" debug
-that is a somewhat cleaner way to address such issues.  You can think of
+that is a somewhat cleaner way to address such issues. You can think of
 it as only halting part of the system, maybe just one task,
 instead of the whole thing.
 At this writing, January 2010, OpenOCD based debugging does not support
@@ -1108,7 +1108,7 @@ toolchains@footnote{See chapter 8 "Semihosting" in
 @uref{http://infocenter.arm.com/help/topic/com.arm.doc.dui0203i/DUI0203I_rvct_developer_guide.pdf,
 ARM DUI 0203I}, the "RealView Compilation Tools Developer Guide".
 The CodeSourcery EABI toolchain also includes a semihosting library.},
-your target code can use I/O facilities on the debug host.  That library
+your target code can use I/O facilities on the debug host. That library
 provides a small set of system calls which are handled by OpenOCD.
 It can let the debugger provide your system console and a file system,
 helping with early debugging or providing a more capable environment
@@ -1163,7 +1163,7 @@ various kinds of message.
 
 Chip vendors often provide software development boards which
 are highly configurable, so that they can support all options
-that product boards may require.  @emph{Make sure that any
+that product boards may require. @emph{Make sure that any
 jumpers or switches match the system configuration you are
 working with.}
 
@@ -1182,13 +1182,13 @@ EMU0 and EMU1 signals (which OpenOCD won't currently control).
 
 @item @b{Boot Modes} ...
 Complex chips often support multiple boot modes, controlled
-by external jumpers.  Make sure this is set up correctly.
+by external jumpers. Make sure this is set up correctly.
 For example many i.MX boards from NXP need to be jumpered
 to "ATX mode" to start booting using the on-chip ROM, when
 using second stage bootloader code stored in a NAND flash chip.
 
 Such explicit configuration is common, and not limited to
-booting from NAND.  You might also need to set jumpers to
+booting from NAND. You might also need to set jumpers to
 start booting using code loaded from an MMC/SD card; external
 SPI flash; Ethernet, UART, or USB links; NOR flash; OneNAND
 flash; some external host; or various other sources.
@@ -1196,10 +1196,10 @@ flash; some external host; or various other sources.
 
 @item @b{Memory Addressing} ...
 Boards which support multiple boot modes may also have jumpers
-to configure memory addressing.  One board, for example, jumpers
+to configure memory addressing. One board, for example, jumpers
 external chipselect 0 (used for booting) to address either
 a large SRAM (which must be pre-loaded via JTAG), NOR flash,
-or NAND flash.  When it's jumpered to address NAND flash, that
+or NAND flash. When it's jumpered to address NAND flash, that
 board must also be told to start booting from on-chip ROM.
 
 Your @file{board.cfg} file may also need to be told this jumper
@@ -1208,7 +1208,7 @@ using @command{flash bank} or instead declare NAND flash with
 @command{nand device}; and likewise which probe to perform in
 its @code{reset-init} handler.
 
-A closely related issue is bus width.  Jumpers might need to
+A closely related issue is bus width. Jumpers might need to
 distinguish between 8 bit or 16 bit bus access for the flash
 used to start booting.
 
@@ -1219,8 +1219,8 @@ multiple audio codec chips).
 This interacts with software
 configuration of pin multiplexing, where for example a
 given pin may be routed either to the MMC/SD controller
-or the GPIO controller.  It also often interacts with
-configuration jumpers.  One jumper may be used to route
+or the GPIO controller. It also often interacts with
+configuration jumpers. One jumper may be used to route
 signals to an MMC/SD card slot or an expansion bus (which
 might in turn affect booting); others might control which
 audio or video codecs are used.
@@ -1231,10 +1231,10 @@ Plus you should of course have @code{reset-init} event handlers
 which set up the hardware to match that jumper configuration.
 That includes in particular any oscillator or PLL used to clock
 the CPU, and any memory controllers needed to access external
-memory and peripherals.  Without such handlers, you won't be
+memory and peripherals. Without such handlers, you won't be
 able to access those resources without working target firmware
 which can do that setup ... this can be awkward when you're
-trying to debug that target firmware.  Even if there's a ROM
+trying to debug that target firmware. Even if there's a ROM
 bootloader which handles a few issues, it rarely provides full
 access to all board-specific capabilities.
 
@@ -1283,15 +1283,15 @@ hilscher_nxhx500_re.cfg   openocd-usb.cfg
 $
 @end example
 @item @file{board} ...
-think Circuit Board, PWA, PCB, they go by many names.  Board files
+think Circuit Board, PWA, PCB, they go by many names. Board files
 contain initialization items that are specific to a board.
 They reuse target configuration files, since the same
 microprocessor chips are used on many boards,
-but support for external parts varies widely.  For
+but support for external parts varies widely. For
 example, the SDRAM initialization sequence for the board, or the type
-of external flash and what address it uses.  Any initialization
+of external flash and what address it uses. Any initialization
 sequence to enable that external flash or SDRAM should be found in the
-board file. Boards may also contain multiple targets:  two CPUs; or
+board file. Boards may also contain multiple targets: two CPUs; or
 a CPU and an FPGA.
 @example
 $ ls board
@@ -1492,7 +1492,7 @@ In summary the board files should contain (if present)
 @end enumerate
 
 Generic things inside target chips belong in target config files,
-not board config files.  So for example a @code{reset-init} event
+not board config files. So for example a @code{reset-init} event
 handler should know board-specific oscillator and PLL parameters,
 which it passes to target-specific utility code.
 
@@ -1543,12 +1543,12 @@ or the @code{reset-init} event handlers to initialize external DRAM
 or (assuming it needs it) load a configuration into the FPGA.
 Such features are usually needed for low-level work with many boards,
 where ``low level'' implies that the board initialization software may
-not be working.  (That's a common reason to need JTAG tools.  Another
+not be working. (That's a common reason to need JTAG tools. Another
 is to enable working with microcontroller-based systems, which often
 have no debugging support except a JTAG connector.)
 
 Target config files may also export utility functions to board and user
-config files.  Such functions should use name prefixes, to help avoid
+config files. Such functions should use name prefixes, to help avoid
 naming collisions.
 
 Board files could also accept input variables from user config files.
@@ -1612,7 +1612,7 @@ handler is one of the most important.
 Except on microcontrollers, the basic job of @code{reset-init} event
 handlers is setting up flash and DRAM, as normally handled by boot loaders.
 Microcontrollers rarely use boot loaders; they run right out of their
-on-chip flash and SRAM memory.  But they may want to use one of these
+on-chip flash and SRAM memory. But they may want to use one of these
 handlers too, if just for developer convenience.
 
 @quotation Note
@@ -1636,7 +1636,7 @@ the next developer doing such work.
 (@emph{You might be that next person} trying to reuse init code!)
 
 The last thing normally done in a @code{reset-init} handler is probing
-whatever flash memory was configured.  For most chips that needs to be
+whatever flash memory was configured. For most chips that needs to be
 done while the associated target is halted, either because JTAG memory
 access uses the CPU or to prevent conflicting CPU access.
 
@@ -1669,7 +1669,7 @@ solution just avoids using that instruction with JTAG debuggers.
 If both the chip and the board support adaptive clocking,
 use the @command{jtag_rclk}
 command, in case your board is used with JTAG adapter which
-also supports it.  Otherwise use @command{adapter_khz}.
+also supports it. Otherwise use @command{adapter_khz}.
 Set the slow rate at the beginning of the reset sequence,
 and the faster rate as soon as the clocks are at full speed.
 
@@ -1775,7 +1775,7 @@ if @{ [info exists ENDIAN] @} @{
 @}
 
 # TAP identifiers may change as chips mature, for example with
-# new revision fields (the "3" here).  Pick a good default; you
+# new revision fields (the "3" here). Pick a good default; you
 # can pass several such identifiers to the "jtag newtap" command.
 if @{ [info exists CPUTAPID ] @} @{
    set _CPUTAPID $CPUTAPID
@@ -1832,7 +1832,7 @@ ERROR:      got: mfg: 0x787, part: 0xf0f0, ver: 0x3
 @end example
 
 There are more complex examples too, with chips that have
-multiple TAPs.  Ones worth looking at include:
+multiple TAPs. Ones worth looking at include:
 
 @itemize
 @item @file{target/omap3530.cfg} -- with disabled ARM and DSP,
@@ -1929,7 +1929,7 @@ gdb coreid  1 -> -1
 @subsection Chip Reset Setup
 
 As a rule, you should put the @command{reset_config} command
-into the board file.  Most things you think you know about a
+into the board file. Most things you think you know about a
 chip can be tweaked by the board.
 
 Some chips have specific ways the TRST and SRST signals are
@@ -1946,7 +1946,7 @@ don't want to reset all targets at once.
 Such a handler might write to chip registers to force a reset,
 use a JRC to do that (preferable -- the target may be wedged!),
 or force a watchdog timer to trigger.
-(For Cortex-M3 targets, this is not necessary.  The target
+(For Cortex-M3 targets, this is not necessary. The target
 driver knows how to use trigger an NVIC reset when SRST is
 not available.)
 
@@ -2029,10 +2029,10 @@ special high speed download features - enable it.
 If present, the MMU, the MPU and the CACHE should be disabled.
 
 Some ARM cores are equipped with trace support, which permits
-examination of the instruction and data bus activity.  Trace
+examination of the instruction and data bus activity. Trace
 activity is controlled through an ``Embedded Trace Module'' (ETM)
-on one of the core's scan chains.  The ETM emits voluminous data
-through a ``trace port''.  (@xref{armhardwaretracing,,ARM Hardware Tracing}.)
+on one of the core's scan chains. The ETM emits voluminous data
+through a ``trace port''. (@xref{armhardwaretracing,,ARM Hardware Tracing}.)
 If you are using an external trace port,
 configure it in your board config file.
 If you are using an on-chip ``Embedded Trace Buffer'' (ETB),
@@ -2158,7 +2158,7 @@ entry to the run stage.
 
 @deffn {Config Command} init
 This command terminates the configuration stage and
-enters the run stage.  This helps when you need to have
+enters the run stage. This helps when you need to have
 the startup scripts manage tasks such as resetting the target,
 programming flash, etc. To reset the CPU upon startup, add "init" and
 "reset" at the end of the config script or at the end of the OpenOCD
@@ -2172,7 +2172,7 @@ configuration files and/or command line options.
 openocd.cfg file to force OpenOCD to ``initialize'' and make the
 targets ready. For example: If your openocd.cfg file needs to
 read/write memory on your target, @command{init} must occur before
-the memory read/write commands.  This includes @command{nand probe}.
+the memory read/write commands. This includes @command{nand probe}.
 @end deffn
 
 @deffn {Overridable Procedure} jtag_init
@@ -2267,7 +2267,7 @@ The ones listed here are static and global.
 Force breakpoint type for gdb @command{break} commands.
 This option supports GDB GUIs which don't
 distinguish hard versus soft breakpoints, if the default OpenOCD and
-GDB behaviour is not sufficient.  GDB normally uses hardware
+GDB behaviour is not sufficient. GDB normally uses hardware
 breakpoints if the memory map has been set up for flash regions.
 @end deffn
 
@@ -2362,16 +2362,16 @@ MMU: disabled, D-Cache: disabled, I-Cache: enabled
 @cindex interface config file
 
 Correctly installing OpenOCD includes making your operating system give
-OpenOCD access to debug adapters.  Once that has been done, Tcl commands
+OpenOCD access to debug adapters. Once that has been done, Tcl commands
 are used to select which one is used, and to configure how it is used.
 
 @quotation Note
 Because OpenOCD started out with a focus purely on JTAG, you may find
 places where it wrongly presumes JTAG is the only transport protocol
-in use.  Be aware that recent versions of OpenOCD are removing that
-limitation.  JTAG remains more functional than most other transports.
+in use. Be aware that recent versions of OpenOCD are removing that
+limitation. JTAG remains more functional than most other transports.
 Other transports do not support boundary scan operations, or may be
-specific to a given chip vendor.  Some might be usable only for
+specific to a given chip vendor. Some might be usable only for
 programming flash memory, instead of also for debugging.
 @end quotation
 
@@ -2512,7 +2512,7 @@ used only for older boards (before rev C).
 @item @b{luminary_icdi} This layout should be used with most TI/Luminary
 eval boards, including Rev C LM3S811 eval boards and the eponymous
 ICDI boards, to debug either the local Cortex-M3 or in passthrough mode
-to debug some other target.  It can support the SWO trace mechanism.
+to debug some other target. It can support the SWO trace mechanism.
 @item @b{flyswatter} Tin Can Tools Flyswatter
 @item @b{icebear} ICEbear JTAG adapter from Section 5
 @item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
@@ -2717,7 +2717,7 @@ remote_bitbang_host mysocket
 
 @deffn {Interface Driver} {usb_blaster}
 USB JTAG/USB-Blaster compatibles over one of the userspace libraries
-for FTDI chips.  These interfaces have several commands, used to
+for FTDI chips. These interfaces have several commands, used to
 configure the driver before initializing the JTAG scan chain:
 
 @deffn {Config Command} {usb_blaster_device_desc} description
@@ -2897,7 +2897,7 @@ commands given in OpenOCD scripts and event handlers.
 
 You can do something similar with many digital multimeters, but note
 that you'll probably need to run the clock continuously for several
-seconds before it decides what clock rate to show.  Adjust the
+seconds before it decides what clock rate to show. Adjust the
 toggling time up or down until the measured clock rate is a good
 match for the adapter_khz rate you specified; be conservative.
 @end quotation
@@ -3005,7 +3005,7 @@ version of OpenOCD.
 
 @deffn Command {transport select} transport_name
 Select which of the supported transports to use in this OpenOCD session.
-The transport must be supported by the debug adapter hardware  and by the
+The transport must be supported by the debug adapter hardware and by the
 version of OPenOCD you are using (including the adapter's driver).
 No arguments: returns name of session's selected transport.
 @end deffn
@@ -3024,7 +3024,7 @@ Flash programming support is built on top of debug support.
 SWD (Serial Wire Debug) is an ARM-specific transport which exposes one
 Debug Access Point (DAP, which must be explicitly declared.
 (SWD uses fewer signal wires than JTAG.)
-SWD is debug-oriented, and does not support  boundary scan testing.
+SWD is debug-oriented, and does not support boundary scan testing.
 Flash programming support is built on top of debug support.
 (Some processors support both JTAG and SWD.)
 @deffn Command {swd newdap} ...
@@ -3042,7 +3042,7 @@ No parameters: displays current settings.
 @cindex SPI
 @cindex Serial Peripheral Interface
 The Serial Peripheral Interface (SPI) is a general purpose transport
-which uses four wire signaling.  Some processors use it as part of a
+which uses four wire signaling. Some processors use it as part of a
 solution for flash programming.
 
 @anchor{jtagspeed}
@@ -3092,7 +3092,7 @@ which support adaptive clocking.
 @deffn {Command} adapter_khz max_speed_kHz
 A non-zero speed is in KHZ. Hence: 3000 is 3mhz.
 JTAG interfaces usually support a limited number of
-speeds.  The speed actually used won't be faster
+speeds. The speed actually used won't be faster
 than the speed specified.
 
 Chip data sheets generally include a top JTAG clock rate.
@@ -3129,7 +3129,7 @@ Every system configuration may require a different reset
 configuration. This can also be quite confusing.
 Resets also interact with @var{reset-init} event handlers,
 which do things like setting up clocks and DRAM, and
-JTAG clock rates.  (@xref{jtagspeed,,JTAG Speed}.)
+JTAG clock rates. (@xref{jtagspeed,,JTAG Speed}.)
 They can also interact with JTAG routers.
 Please see the various board files for examples.
 
@@ -3158,7 +3158,7 @@ That's part of why reset configuration can be error prone.
 @item
 @emph{System Reset} ... the @emph{SRST} hardware signal
 resets all chips connected to the JTAG adapter, such as processors,
-power management chips, and I/O controllers.  Normally resets triggered
+power management chips, and I/O controllers. Normally resets triggered
 with this signal behave exactly like pressing a RESET button.
 @item
 @emph{JTAG TAP Reset} ... the @emph{TRST} hardware signal resets
@@ -3167,7 +3167,7 @@ Such resets should not be visible to the rest of the system; resetting a
 device's TAP controller just puts that controller into a known state.
 @item
 @emph{Emulation Reset} ... many devices can be reset through JTAG
-commands.  These resets are often distinguishable from system
+commands. These resets are often distinguishable from system
 resets, either explicitly (a "reset reason" register says so)
 or implicitly (not all parts of the chip get reset).
 @item
@@ -3192,13 +3192,13 @@ board-specific script might do things like setting up DRAM.
 @section SRST and TRST Issues
 
 Because SRST and TRST are hardware signals, they can have a
-variety of system-specific constraints.  Some of the most
+variety of system-specific constraints. Some of the most
 common issues are:
 
 @itemize @bullet
 
 @item @emph{Signal not available} ... Some boards don't wire
-SRST or TRST to the JTAG connector.  Some JTAG adapters don't
+SRST or TRST to the JTAG connector. Some JTAG adapters don't
 support such signals even if they are wired up.
 Use the @command{reset_config} @var{signals} options to say
 when either of those signals is not connected.
@@ -3215,7 +3215,7 @@ when those signals aren't properly independent.
 @item @emph{Timing} ... Reset circuitry like a resistor/capacitor
 delay circuit, reset supervisor, or on-chip features can extend
 the effect of a JTAG adapter's reset for some time after the adapter
-stops issuing the reset.  For example, there may be chip or board
+stops issuing the reset. For example, there may be chip or board
 requirements that all reset pulses last for at least a
 certain amount of time; and reset buttons commonly have
 hardware debouncing.
@@ -3224,14 +3224,14 @@ commands to say when extra delays are needed.
 
 @item @emph{Drive type} ... Reset lines often have a pullup
 resistor, letting the JTAG interface treat them as open-drain
-signals.  But that's not a requirement, so the adapter may need
+signals. But that's not a requirement, so the adapter may need
 to use push/pull output drivers.
 Also, with weak pullups it may be advisable to drive
 signals to both levels (push/pull) to minimize rise times.
 Use the @command{reset_config} @var{trst_type} and
 @var{srst_type} parameters to say how to drive reset signals.
 
-@item @emph{Special initialization} ...  Targets sometimes need
+@item @emph{Special initialization} ... Targets sometimes need
 special JTAG initialization sequences to handle chip-specific
 issues (not limited to errata).
 For example, certain JTAG commands might need to be issued while
@@ -3357,9 +3357,9 @@ to incorrect options byte config or illegal program execution.
 @end itemize
 
 The optional @var{trst_type} and @var{srst_type} parameters allow the
-driver mode of each reset line to be specified.  These values only affect
+driver mode of each reset line to be specified. These values only affect
 JTAG interfaces with support for different driver modes, like the Amontec
-JTAGkey and JTAG Accelerator.  Also, they are necessarily ignored if the
+JTAGkey and JTAG Accelerator. Also, they are necessarily ignored if the
 relevant signal (TRST or SRST) is not connected.
 
 @itemize
@@ -3412,7 +3412,7 @@ When you find a working sequence, it can be used to override
 or @command{init_reset}, which fires during reset processing.
 
 You might also want to provide some project-specific reset
-schemes.  For example, on a multi-target board the standard
+schemes. For example, on a multi-target board the standard
 @command{reset} command would reset all targets, but you
 may need the ability to reset only one target at time and
 thus want to avoid using the board-wide SRST signal.
@@ -3518,7 +3518,7 @@ Here's what the scan chain might look like for a chip more than one TAP:
 @end verbatim
 
 OpenOCD can detect some of that information, but not all
-of it.  @xref{autoprobing,,Autoprobing}.
+of it. @xref{autoprobing,,Autoprobing}.
 Unfortunately those TAPs can't always be autoconfigured,
 because not all devices provide good support for that.
 JTAG doesn't require supporting IDCODE instructions, and
@@ -3581,7 +3581,7 @@ but systems with a JTAG router can
 enable or disable TAPs dynamically.
 @end deffn
 
-@c FIXME!  "jtag cget" should be able to return all TAP
+@c FIXME! "jtag cget" should be able to return all TAP
 @c attributes, like "$target_name cget" does for targets.
 
 @c Probably want "jtag eventlist", and a "tap-reset" event
@@ -3596,11 +3596,11 @@ name of a module (usually a chip) and a label for the TAP.
 For example: @code{xilinx.tap}, @code{str912.flash},
 @code{omap3530.jrc}, @code{dm6446.dsp}, or @code{stm32.cpu}.
 Many other commands use that dotted.name to manipulate or
-refer to the TAP.  For example, CPU configuration uses the
+refer to the TAP. For example, CPU configuration uses the
 name, as does declaration of NAND or NOR flash banks.
 
 The components of a dotted name should follow ``C'' symbol
-name rules:  start with an alphabetic character, then numbers
+name rules: start with an alphabetic character, then numbers
 and underscores are OK; while others (including dots!) are not.
 
 @quotation Tip
@@ -3675,14 +3675,14 @@ Specify @var{number} as zero to suppress warnings about IDCODE
 values that were found but not included in the list.
 
 Provide this value if at all possible, since it lets OpenOCD
-tell when the scan chain it sees isn't right.  These values
+tell when the scan chain it sees isn't right. These values
 are provided in vendors' chip documentation, usually a technical
-reference manual.  Sometimes you may need to probe the JTAG
+reference manual. Sometimes you may need to probe the JTAG
 hardware to find these values.
 @xref{autoprobing,,Autoprobing}.
 @item @code{-ignore-version}
 @*Specify this to ignore the JTAG version field in the @code{-expected-id}
-option.  When vendors put out multiple versions of a chip, or use the same
+option. When vendors put out multiple versions of a chip, or use the same
 JTAG-level ID for several largely-compatible chips, it may be more practical
 to ignore the version field than to update config files to handle all of
 the various chip IDs. The version field is defined as bit 28-31 of the IDCODE.
@@ -3691,7 +3691,7 @@ the various chip IDs. The version field is defined as bit 28-31 of the IDCODE.
 on entry to the @sc{ircapture} state, such as 0x01.
 JTAG requires the two LSBs of this value to be 01.
 By default, @code{-ircapture} and @code{-irmask} are set
-up to verify that two-bit value.  You may provide
+up to verify that two-bit value. You may provide
 additional bits, if you know them, or indicate that
 a TAP doesn't conform to the JTAG specification.
 @item @code{-irmask} @var{NUMBER}
@@ -3744,11 +3744,11 @@ of any particular target.
 @* The scan chain has been reset and verified.
 This handler may enable TAPs as needed.
 @item @b{tap-disable}
-@* The TAP needs to be disabled.  This handler should
+@* The TAP needs to be disabled. This handler should
 implement @command{jtag tapdisable}
 by issuing the relevant JTAG commands.
 @item @b{tap-enable}
-@* The TAP needs to be enabled.  This handler should
+@* The TAP needs to be enabled. This handler should
 implement @command{jtag tapenable}
 by issuing the relevant JTAG commands.
 @end itemize
@@ -3859,7 +3859,7 @@ for querying the state of the JTAG taps.
 @cindex JTAG autoprobe
 
 TAP configuration is the first thing that needs to be done
-after interface and reset configuration.  Sometimes it's
+after interface and reset configuration. Sometimes it's
 hard finding out what TAPs exist, or how they are identified.
 Vendor documentation is not always easy to find and use.
 
@@ -3880,7 +3880,7 @@ jtag_rclk 8
 @end example
 
 When you start the server without any TAPs configured, it will
-attempt to autoconfigure the TAPs.  There are two parts to this:
+attempt to autoconfigure the TAPs. There are two parts to this:
 
 @enumerate
 @item @emph{TAP discovery} ...
@@ -3900,12 +3900,12 @@ as chip data sheets or BSDL files.
 @end enumerate
 
 In many cases your board will have a simple scan chain with just
-a single device.  Here's what OpenOCD reported with one board
+a single device. Here's what OpenOCD reported with one board
 that's a bit more complex:
 
 @example
 clock speed 8 kHz
-There are no enabled taps.  AUTO PROBING MIGHT NOT WORK!!
+There are no enabled taps. AUTO PROBING MIGHT NOT WORK!!
 AUTO auto0.tap - use "jtag newtap auto0 tap -expected-id 0x2b900f0f ..."
 AUTO auto1.tap - use "jtag newtap auto1 tap -expected-id 0x07926001 ..."
 AUTO auto2.tap - use "jtag newtap auto2 tap -expected-id 0x0b73b02f ..."
@@ -3916,8 +3916,8 @@ no gdb ports allocated as no target has been specified
 @end example
 
 Given that information, you should be able to either find some existing
-config files to use, or create your own.  If you create your own, you
-would configure from the bottom up:  first a @file{target.cfg} file
+config files to use, or create your own. If you create your own, you
+would configure from the bottom up: first a @file{target.cfg} file
 with these TAPs, any targets associated with them, and any on-chip
 resources; then a @file{board.cfg} with off-chip resources, clocking,
 and so forth.
@@ -4010,7 +4010,7 @@ puts [format "Target %d is: %s\n" $x $thename]
 @c plus maybe "target setdefault".
 
 @deffn Command targets [name]
-@emph{Note: the name of this command is plural.  Other target
+@emph{Note: the name of this command is plural. Other target
 command names are singular.}
 
 With no parameter, this command displays a table of all known
@@ -4027,7 +4027,7 @@ only relevant on boards which have more than one target.
 @cindex CPU variant
 
 Each target has a @dfn{CPU type}, as shown in the output of
-the @command{targets} command.  You need to specify that type
+the @command{targets} command. You need to specify that type
 when calling @command{target create}.
 The CPU type indicates more than just the instruction set.
 It also indicates how that instruction set is implemented,
@@ -4070,9 +4070,9 @@ compact Thumb2 instruction set.
 (Support for this is still incomplete.)
 @item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
-@item @code{mips_m4k} -- a MIPS core.  This supports one variant:
+@item @code{mips_m4k} -- a MIPS core. This supports one variant:
 @item @code{xscale} -- this is actually an architecture,
-not a CPU type.  It is based on the ARMv5 architecture.
+not a CPU type. It is based on the ARMv5 architecture.
 There are several variants defined:
 @itemize @minus
 @item @code{ixp42x}, @code{ixp45x}, @code{ixp46x},
@@ -4104,7 +4104,7 @@ The chip-specific configuration file will normally configure its CPU(s)
 right after it adds all of the chip's TAPs to the scan chain.
 
 Although you can set up a target in one step, it's often clearer if you
-use shorter commands and do it in two steps:  create it, then configure
+use shorter commands and do it in two steps: create it, then configure
 optional parts.
 All operations on the target after it's created will use a new
 command, created as part of target creation.
@@ -4157,7 +4157,7 @@ command (@command{@var{target_name}}) which is used for various
 purposes including additional configuration.
 
 @itemize @bullet
-@item @var{target_name} ...  is the name of the debug target.
+@item @var{target_name} ... is the name of the debug target.
 By convention this should be the same as the @emph{dotted.name}
 of the TAP associated with this target, which must be specified here
 using the @code{-chain-position @var{dotted.name}} configparam.
@@ -4165,8 +4165,8 @@ using the @code{-chain-position @var{dotted.name}} configparam.
 This name is also used to create the target object command,
 referred to here as @command{$target_name},
 and in other places the target needs to be identified.
-@item @var{type} ... specifies the target type.  @xref{targettypes,,target types}.
-@item @var{configparams} ...  all parameters accepted by
+@item @var{type} ... specifies the target type. @xref{targettypes,,target types}.
+@item @var{configparams} ... all parameters accepted by
 @command{$target_name configure} are permitted.
 If the target is big-endian, set it here with @code{-endian big}.
 If the variant matters, set it here with @code{-variant}.
@@ -4212,7 +4212,7 @@ For example, the beginning of an SRAM block is likely to
 be used by most build systems, but the end is often unused.
 
 @item @code{-work-area-size} @var{size} -- specify work are size,
-in bytes.  The same size applies regardless of whether its physical
+in bytes. The same size applies regardless of whether its physical
 or virtual address is being used.
 
 @item @code{-work-area-phys} @var{address} -- set the work area
@@ -4394,7 +4394,7 @@ These are set up by @command{$target_name configure -event} or
 @command{target create ... -event}.
 
 The programmer's model matches the @code{-command} option used in Tcl/Tk
-buttons and events.  The two examples below act the same, but one creates
+buttons and events. The two examples below act the same, but one creates
 and invokes a small procedure while the other inlines it.
 
 @example
@@ -4517,7 +4517,7 @@ the ``nand'' command works with NAND flash.
 This partially reflects different hardware technologies:
 NOR flash usually supports direct CPU instruction and data bus access,
 while data from a NAND flash must be copied to memory before it can be
-used.  (SPI flash must also be copied to memory before use.)
+used. (SPI flash must also be copied to memory before use.)
 However, the documentation also uses ``flash'' as a generic term;
 for example, ``Put flash configuration in board-specific files''.
 
@@ -4528,7 +4528,7 @@ Flash Steps:
 passing parameters as needed by the driver.
 @item Operate on the flash via @command{flash subcommand}
 @* Often commands to manipulate the flash are typed by a human, or run
-via a script in some automated way.  Common tasks include writing a
+via a script in some automated way. Common tasks include writing a
 boot loader, operating system, or other data.
 @item GDB Flashing
 @* Flashing via GDB requires the flash be configured via ``flash
@@ -4555,7 +4555,7 @@ see the driver-specific documentation.
 
 @itemize @bullet
 @item @var{name} ... may be used to reference the flash bank
-in other flash commands.  A number is also available.
+in other flash commands. A number is also available.
 @item @var{driver} ... identifies the controller driver
 associated with the flash bank being declared.
 This is usually @code{cfi} for external flash, or else
@@ -4572,7 +4572,7 @@ chip, in bytes; ignored for most microcontroller drivers.
 commands to the flash controller.
 @comment Actually, it's currently a controller-specific parameter...
 @item @var{driver_options} ... drivers may support, or require,
-additional parameters.  See the driver-specific documentation
+additional parameters. See the driver-specific documentation
 for more information.
 @end itemize
 @quotation Note
@@ -4582,7 +4582,7 @@ Use it in board specific configuration files, not interactively.
 @end deffn
 
 @comment the REAL name for this command is "ocd_flash_banks"
-@comment less confusing would be:  "flash list" (like "nand list")
+@comment less confusing would be: "flash list" (like "nand list")
 @deffn Command {flash banks}
 Prints a one-line summary of each device that was
 declared using @command{flash bank}, numbered from zero.
@@ -4618,15 +4618,15 @@ This means you can use normal memory read commands like @command{mdw} or
 @command{dump_image} with it, with no special @command{flash} subcommands.
 @xref{memoryaccess,,Memory access}, and @ref{imageaccess,,Image access}.
 
-Write access works differently.  Flash memory normally needs to be erased
-before it's written.  Erasing a sector turns all of its bits to ones, and
-writing can turn ones into zeroes.  This is why there are special commands
+Write access works differently. Flash memory normally needs to be erased
+before it's written. Erasing a sector turns all of its bits to ones, and
+writing can turn ones into zeroes. This is why there are special commands
 for interactive erasing and writing, and why GDB needs to know which parts
 of the address space hold NOR flash memory.
 
 @quotation Note
 Most of these erase and write commands leverage the fact that NOR flash
-chips consume target address space.  They implicitly refer to the current
+chips consume target address space. They implicitly refer to the current
 JTAG target, and map from an address in that target's address space
 back to a flash bank.
 @comment In May 2009, those mappings may fail if any bank associated
@@ -4887,7 +4887,7 @@ readers/updaters: Please remove this worrysome comment after other
 chips are confirmed.}
 
 The AT91SAM3U4[E/C] (256K) chips have two flash banks; most other chips
-have one flash bank.  In all cases the flash banks are at
+have one flash bank. In all cases the flash banks are at
 the following fixed locations:
 
 @example
@@ -4903,7 +4903,7 @@ to the @command{flash bank} command:
 
 @itemize
 @item @emph{N-Banks:} 256K chips have 2 banks, others have 1 bank.
-@item @emph{Bank Size:}  128K/64K Per flash bank
+@item @emph{Bank Size:} 128K/64K Per flash bank
 @item @emph{Sectors:} 16 or 8 per bank
 @item @emph{SectorSize:} 8K Per Sector
 @item @emph{PageSize:} 256 bytes per page. Note that OpenOCD operates on 'sector' sizes, not page sizes.
@@ -4948,7 +4948,7 @@ This driver uses the same cmd names/syntax as @xref{at91sam3}.
 
 @deffn {Flash Driver} at91sam7
 All members of the AT91SAM7 microcontroller family from Atmel include
-internal flash and use ARM7TDMI cores.  The driver automatically
+internal flash and use ARM7TDMI cores. The driver automatically
 recognizes a number of these chips using the chip identification
 register, and autoconfigures itself.
 
@@ -4983,7 +4983,7 @@ plane (of up to 256KB), and it will be used automatically when you issue
 
 @deffn Command {at91sam7 gpnvm} bitnum (@option{set}|@option{clear})
 Set or clear a ``General Purpose Non-Volatile Memory'' (GPNVM)
-bit for the processor.   Each processor has a number of such bits,
+bit for the processor. Each processor has a number of such bits,
 used for controlling features such as brownout detection (so they
 are not truly general purpose).
 @quotation Note
@@ -5637,36 +5637,36 @@ openocd -f board/stm32f3discovery.cfg \
 @cindex NAND
 
 Compared to NOR or SPI flash, NAND devices are inexpensive
-and high density.  Today's NAND chips, and multi-chip modules,
+and high density. Today's NAND chips, and multi-chip modules,
 commonly hold multiple GigaBytes of data.
 
 NAND chips consist of a number of ``erase blocks'' of a given
 size (such as 128 KBytes), each of which is divided into a
-number of pages (of perhaps 512 or 2048 bytes each).  Each
+number of pages (of perhaps 512 or 2048 bytes each). Each
 page of a NAND flash has an ``out of band'' (OOB) area to hold
 Error Correcting Code (ECC) and other metadata, usually 16 bytes
 of OOB for every 512 bytes of page data.
 
 One key characteristic of NAND flash is that its error rate
-is higher than that of NOR flash.  In normal operation, that
-ECC is used to correct and detect errors.  However, NAND
+is higher than that of NOR flash. In normal operation, that
+ECC is used to correct and detect errors. However, NAND
 blocks can also wear out and become unusable; those blocks
-are then marked "bad".  NAND chips are even shipped from the
-manufacturer with a few bad blocks.  The highest density chips
+are then marked "bad". NAND chips are even shipped from the
+manufacturer with a few bad blocks. The highest density chips
 use a technology (MLC) that wears out more quickly, so ECC
 support is increasingly important as a way to detect blocks
 that have begun to fail, and help to preserve data integrity
 with techniques such as wear leveling.
 
-Software is used to manage the ECC.  Some controllers don't
+Software is used to manage the ECC. Some controllers don't
 support ECC directly; in those cases, software ECC is used.
 Other controllers speed up the ECC calculations with hardware.
-Single-bit error correction hardware is routine.  Controllers
+Single-bit error correction hardware is routine. Controllers
 geared for newer MLC chips may correct 4 or more errors for
 every 512 bytes of data.
 
 You will need to make sure that any data you write using
-OpenOCD includes the apppropriate kind of ECC.  For example,
+OpenOCD includes the apppropriate kind of ECC. For example,
 that may mean passing the @code{oob_softecc} flag when
 writing NAND data, or ensuring that the correct hardware
 ECC mode is used.
@@ -5682,7 +5682,7 @@ such as in its reset-init script or in procures defined
 to access that device.
 @item Operate on the flash via @command{nand subcommand}
 @* Often commands to manipulate the flash are typed by a human, or run
-via a script in some automated way.  Common task include writing a
+via a script in some automated way. Common task include writing a
 boot loader, operating system, or other data needed to initialize or
 de-brick a board.
 @end enumerate
@@ -5714,12 +5714,12 @@ In some cases, configuring a device will activate extra
 commands; see the controller-specific documentation.
 
 @b{NOTE:} This command is not available after OpenOCD
-initialization has completed.  Use it in board specific
+initialization has completed. Use it in board specific
 configuration files, not interactively.
 
 @itemize @bullet
 @item @var{name} ... may be used to reference the NAND bank
-in most other NAND commands.  A number is also available.
+in most other NAND commands. A number is also available.
 @item @var{driver} ... identifies the NAND controller driver
 associated with the NAND device being declared.
 @xref{nanddriverlist,,NAND Driver List}.
@@ -5727,7 +5727,7 @@ associated with the NAND device being declared.
 commands to the NAND controller.
 @comment Actually, it's currently a controller-specific parameter...
 @item @var{configparams} ... controllers may support, or require,
-additional parameters.  See the controller-specific documentation
+additional parameters. See the controller-specific documentation
 for more information.
 @end itemize
 @end deffn
@@ -5766,7 +5766,7 @@ Use a complete path name for @var{filename}, so you don't depend
 on the directory used to start the OpenOCD server.
 
 The @var{offset} and @var{length} must be exact multiples of the
-device's page size.  They describe a data region; the OOB data
+device's page size. They describe a data region; the OOB data
 associated with each such page may also be accessed.
 
 @b{NOTE:} At the time this text was written, no error correction
@@ -5815,7 +5815,7 @@ will still report that the block ``is'' bad.
 @cindex NAND writing
 @cindex NAND programming
 Writes binary data from the file into the specified NAND device,
-starting at the specified offset.  Those pages should already
+starting at the specified offset. Those pages should already
 have been erased; you can't change zero bits to one bits.
 The @var{num} parameter is the value shown by @command{nand list}.
 
@@ -5826,14 +5826,14 @@ The @var{offset} must be an exact multiple of the device's page size.
 All data in the file will be written, assuming it doesn't run
 past the end of the device.
 Only full pages are written, and any extra space in the last
-page will be filled with 0xff bytes.  (That includes OOB data,
+page will be filled with 0xff bytes. (That includes OOB data,
 if that's being written.)
 
 @b{NOTE:} At the time this text was written, bad blocks are
-ignored.  That is, this routine will not skip bad blocks,
-but will instead try to write them.  This can cause problems.
+ignored. That is, this routine will not skip bad blocks,
+but will instead try to write them. This can cause problems.
 
-Provide at most one @var{option} parameter.  With some
+Provide at most one @var{option} parameter. With some
 NAND drivers, the meanings of these parameters may change
 if @command{nand raw_access} was used to disable hardware ECC.
 @itemize @bullet
@@ -5845,7 +5845,7 @@ a @code{write_page} routine, that routine may write the OOB
 with hardware-computed ECC data.
 @item @code{oob_only}
 @*File has only raw OOB data, which is written to the OOB area.
-Each page's data area stays untouched.  @i{This can be a dangerous
+Each page's data area stays untouched. @i{This can be a dangerous
 option}, since it can invalidate the ECC data.
 You may need to force raw access to use this mode.
 @item @code{oob_raw}
@@ -5892,7 +5892,7 @@ can be compared against the contents produced from @command{nand dump}.
 
 @b{NOTE:} This will not work when the underlying NAND controller
 driver's @code{write_page} routine must update the OOB with a
-hardward-computed ECC before the data is written.  This limitation may
+hardward-computed ECC before the data is written. This limitation may
 be removed in a future release.
 @end deffn
 
@@ -5901,7 +5901,7 @@ be removed in a future release.
 
 @deffn Command {nand check_bad_blocks} num [offset length]
 Checks for manufacturer bad block markers on the specified NAND
-device.  If no parameters are provided, checks the whole
+device. If no parameters are provided, checks the whole
 device; otherwise, starts at the specified @var{offset} and
 continues for @var{length} bytes.
 Both of those values must be exact multiples of the device's
@@ -5925,14 +5925,14 @@ Sets or clears an flag affecting how page I/O is done.
 The @var{num} parameter is the value shown by @command{nand list}.
 
 This flag is cleared (disabled) by default, but changing that
-value won't affect all NAND devices.  The key factor is whether
+value won't affect all NAND devices. The key factor is whether
 the underlying driver provides @code{read_page} or @code{write_page}
-methods.  If it doesn't provide those methods, the setting of
+methods. If it doesn't provide those methods, the setting of
 this flag is irrelevant; all access is effectively ``raw''.
 
 When those methods exist, they are normally used when reading
 data (@command{nand dump} or reading bad block markers) or
-writing it (@command{nand write}).  However, enabling
+writing it (@command{nand write}). However, enabling
 raw access (setting the flag) prevents use of those methods,
 bypassing hardware ECC logic.
 @i{This can be a dangerous option}, since writing blocks
@@ -5947,35 +5947,35 @@ Some controllers also activate controller-specific commands.
 
 @deffn {NAND Driver} at91sam9
 This driver handles the NAND controllers found on AT91SAM9 family chips from
-Atmel.  It takes two extra parameters: address of the NAND chip;
+Atmel. It takes two extra parameters: address of the NAND chip;
 address of the ECC controller.
 @example
 nand device $NANDFLASH at91sam9 $CHIPNAME 0x40000000 0xfffffe800
 @end example
 AT91SAM9 chips support single-bit ECC hardware. The @code{write_page} and
 @code{read_page} methods are used to utilize the ECC hardware unless they are
-disabled by using the @command{nand raw_access} command.  There are four
+disabled by using the @command{nand raw_access} command. There are four
 additional commands that are needed to fully configure the AT91SAM9 NAND
-controller.  Two are optional; most boards use the same wiring for ALE/CLE:
+controller. Two are optional; most boards use the same wiring for ALE/CLE:
 @deffn Command {at91sam9 cle} num addr_line
-Configure the address line used for latching commands.  The @var{num}
+Configure the address line used for latching commands. The @var{num}
 parameter is the value shown by @command{nand list}.
 @end deffn
 @deffn Command {at91sam9 ale} num addr_line
-Configure the address line used for latching addresses.  The @var{num}
+Configure the address line used for latching addresses. The @var{num}
 parameter is the value shown by @command{nand list}.
 @end deffn
 
 For the next two commands, it is assumed that the pins have already been
 properly configured for input or output.
 @deffn Command {at91sam9 rdy_busy} num pio_base_addr pin
-Configure the RDY/nBUSY input from the NAND device.  The @var{num}
-parameter is the value shown by @command{nand list}.  @var{pio_base_addr}
+Configure the RDY/nBUSY input from the NAND device. The @var{num}
+parameter is the value shown by @command{nand list}. @var{pio_base_addr}
 is the base address of the PIO controller and @var{pin} is the pin number.
 @end deffn
 @deffn Command {at91sam9 ce} num pio_base_addr pin
-Configure the chip enable input to the NAND device.  The @var{num}
-parameter is the value shown by @command{nand list}.  @var{pio_base_addr}
+Configure the chip enable input to the NAND device. The @var{num}
+parameter is the value shown by @command{nand list}. @var{pio_base_addr}
 is the base address of the PIO controller and @var{pin} is the pin number.
 @end deffn
 @end deffn
@@ -6000,7 +6000,7 @@ the @command{nand raw_access} command.
 
 @deffn {NAND Driver} lpc3180
 These controllers require an extra @command{nand device}
-parameter:  the clock rate used by the controller.
+parameter: the clock rate used by the controller.
 @deffn Command {lpc3180 select} num [mlc|slc]
 Configures use of the MLC or SLC controller mode.
 MLC implies use of hardware ECC.
@@ -6008,7 +6008,7 @@ The @var{num} parameter is the value shown by @command{nand list}.
 @end deffn
 
 At this writing, this driver includes @code{write_page}
-and @code{read_page} methods.  Using @command{nand raw_access}
+and @code{read_page} methods. Using @command{nand raw_access}
 to disable those methods will prevent use of hardware ECC
 in the MLC controller mode, but won't change SLC behavior.
 @end deffn
@@ -6037,7 +6037,7 @@ without parameter query status.
 
 @deffn {NAND Driver} orion
 These controllers require an extra @command{nand device}
-parameter:  the address of the controller.
+parameter: the address of the controller.
 @example
 nand device orion 0xd8000000
 @end example
@@ -6218,14 +6218,14 @@ In this section ``target'' refers to a CPU configured as
 shown earlier (@pxref{CPU Configuration}).
 These commands, like many, implicitly refer to
 a current target which is used to perform the
-various operations.  The current target may be changed
+various operations. The current target may be changed
 by using @command{targets} command with the name of the
 target which should become current.
 
 @deffn Command reg [(number|name) [value]]
 Access a single register by @var{number} or by its @var{name}.
 The target must generally be halted before access to CPU core
-registers is allowed.  Depending on the hardware, some other
+registers is allowed. Depending on the hardware, some other
 registers may be accessible while the target is running.
 
 @emph{With no arguments}:
@@ -6240,7 +6240,7 @@ are flagged as such.
 @emph{With both number/name and value}: set register's value.
 Writes may be held in a writeback cache internal to OpenOCD,
 so that setting the value marks the register as dirty instead
-of immediately flushing that value.  Resuming CPU execution
+of immediately flushing that value. Resuming CPU execution
 (including by single stepping) or otherwise activating the
 relevant module will flush such values.
 
@@ -6263,7 +6263,7 @@ Debug and trace infrastructure:
 @deffnx Command wait_halt [ms]
 The @command{halt} command first sends a halt request to the target,
 which @command{wait_halt} doesn't.
-Otherwise these behave the same:  wait up to @var{ms} milliseconds,
+Otherwise these behave the same: wait up to @var{ms} milliseconds,
 or 5 seconds if there is no parameter, for the target to halt
 (and enter debug mode).
 Using 0 as the @var{ms} parameter prevents OpenOCD from waiting.
@@ -6275,7 +6275,7 @@ This is because that operation also puts the core into a low
 power mode by gating the core clock;
 but the core clock is needed to detect JTAG clock transitions.
 
-One partial workaround uses adaptive clocking:  when the core is
+One partial workaround uses adaptive clocking: when the core is
 interrupted the operation completes, then JTAG clocks are accepted
 at least until the interrupt handler completes.
 However, this workaround is often unusable since the processor, board,
@@ -6374,7 +6374,7 @@ into @file{dest_filename}.
 @emph{No description provided.}
 @end deffn
 
-@deffn Command  meminfo
+@deffn Command meminfo
 Display available RAM memory on OpenOCD host.
 Used in OpenOCD regression testing scripts.
 @end deffn
@@ -6461,7 +6461,7 @@ testing purposes or when I/O overhead is significant(OpenOCD running on an embed
 host), storing the image in memory and uploading the image to the target
 can be a way to upload e.g. multiple debug sessions when the binary does not change.
 Arguments are the same as @command{load_image}, but the image is stored in OpenOCD host
-memory, i.e. does not affect target.  This approach is also useful when profiling
+memory, i.e. does not affect target. This approach is also useful when profiling
 target programming performance as I/O and target programming can easily be profiled
 separately.
 @end deffn
@@ -6533,7 +6533,7 @@ The watch point is an "access" watchpoint unless
 the @option{r} or @option{w} parameter is provided,
 defining it as respectively a read or write watchpoint.
 If a @var{value} is provided, that value is used when determining if
-the watchpoint should trigger.  The value may be first be masked
+the watchpoint should trigger. The value may be first be masked
 using @var{mask} to mark ``don't care'' fields.
 @end deffn
 
@@ -6590,7 +6590,7 @@ in the board-specific configuration file.
 @item
 If the CPU doesn't provide an external interface, it probably
 has an ``Embedded Trace Buffer'' (ETB) on the chip, which is a
-dedicated SRAM.  4KBytes is one common ETB size.
+dedicated SRAM. 4KBytes is one common ETB size.
 Configuring an ETM coupled only to an ETB belongs in the CPU-specific
 (target) configuration file, since it works the same on all boards.
 @end itemize
@@ -6618,7 +6618,7 @@ with the current XScale trace support, or should be
 shared with eventual Nexus-style trace module support.
 
 At this writing (November 2009) only ARM7, ARM9, and ARM11 support
-for ETM modules is available.  The code should be able to
+for ETM modules is available. The code should be able to
 work with some newer cores; but not all of them support
 this original style of JTAG access.
 @end quotation
@@ -6628,7 +6628,7 @@ ETM setup is coupled with the trace port driver configuration.
 
 @deffn {Config Command} {etm config} target width mode clocking driver
 Declares the ETM associated with @var{target}, and associates it
-with a given trace port @var{driver}.  @xref{traceportdrivers,,Trace Port Drivers}.
+with a given trace port @var{driver}. @xref{traceportdrivers,,Trace Port Drivers}.
 
 Several of the parameters must reflect the trace port capabilities,
 which are a function of silicon capabilties (exposed later
@@ -6688,10 +6688,10 @@ The value is one of
 @option{address} (save addresses),
 @option{all} (save data and addresses)
 @item @var{context_id_bits} ... 0, 8, 16, or 32
-@item @var{cycle_accurate} ...  @option{enable} or @option{disable}
+@item @var{cycle_accurate} ... @option{enable} or @option{disable}
 cycle-accurate instruction tracing.
 Before ETMv3, enabling this causes much extra data to be recorded.
-@item @var{branch_output} ...  @option{enable} or @option{disable}.
+@item @var{branch_output} ... @option{enable} or @option{disable}.
 Disable this unless you need to try reconstructing the instruction
 trace stream without an image of the code.
 @end itemize
@@ -6719,17 +6719,17 @@ various trace registers using @command{reg ETM_*} commands.
 For the definitions of these registers, read ARM publication
 @emph{IHI 0014, ``Embedded Trace Macrocell, Architecture Specification''}.
 Be aware that most of the relevant registers are write-only,
-and that ETM resources are limited.  There are only a handful
+and that ETM resources are limited. There are only a handful
 of address comparators, data comparators, counters, and so on.
 
 Examples of scenarios you might arrange to trace include:
 
 @itemize
 @item Code flow within a function, @emph{excluding} subroutines
-it calls.  Use address range comparators to enable tracing
+it calls. Use address range comparators to enable tracing
 for instruction access within that function's body.
 @item Code flow within a function, @emph{including} subroutines
-it calls.  Use the sequencer and address comparators to activate
+it calls. Use the sequencer and address comparators to activate
 tracing on an ``entered function'' state, then deactivate it by
 exiting that state when the function's exit code is invoked.
 @item Code flow starting at the fifth invocation of a function,
@@ -6817,7 +6817,7 @@ how the event caused trouble.
 
 @deffn {Trace Port Driver} oocd_trace
 This driver isn't available unless OpenOCD was explicitly configured
-with the @option{--enable-oocd_trace} option.  You probably don't want
+with the @option{--enable-oocd_trace} option. You probably don't want
 to configure it unless you've built the appropriate prototype hardware;
 it's @emph{proof-of-concept} software.
 
@@ -6982,9 +6982,9 @@ ARM9-family cores are built around ARM9TDMI or ARM9E (including ARM9EJS)
 integer processors.
 Such cores include the ARM920T, ARM926EJ-S, and ARM966.
 
-@c 9-june-2009:  tried this on arm920t, it didn't work.
+@c 9-june-2009: tried this on arm920t, it didn't work.
 @c no-params always lists nothing caught, and that's how it acts.
-@c 23-oct-2009:  doesn't work _consistently_ ... as if the ICE
+@c 23-oct-2009: doesn't work _consistently_ ... as if the ICE
 @c versions have different rules about when they commit writes.
 
 @anchor{arm9vectorcatch}
@@ -7126,34 +7126,34 @@ _vectors:
 
 Alternatively, you may choose to keep some or all of the mini-IC
 vector table entries synced with those written to memory by your
-system software.  The mini-IC can not be modified while the processor
+system software. The mini-IC can not be modified while the processor
 is executing, but for each vector table entry not previously defined
 using the @code{xscale vector_table} command, OpenOCD will copy the
 value from memory to the mini-IC every time execution resumes from a
-halt.  This is done for both high and low vector tables (although the
+halt. This is done for both high and low vector tables (although the
 table not in use may not be mapped to valid memory, and in this case
-that copy operation will silently fail).  This means that you will
+that copy operation will silently fail). This means that you will
 need to briefly halt execution at some strategic point during system
 start-up; e.g., after the software has initialized the vector table,
-but before exceptions are enabled.  A breakpoint can be used to
+but before exceptions are enabled. A breakpoint can be used to
 accomplish this once the appropriate location in the start-up code has
-been identified.  A watchpoint over the vector table region is helpful
-in finding the location if you're not sure.  Note that the same
+been identified. A watchpoint over the vector table region is helpful
+in finding the location if you're not sure. Note that the same
 situation exists any time the vector table is modified by the system
 software.
 
 The debug handler must be placed somewhere in the address space using
-the @code{xscale debug_handler} command.  The allowed locations for the
+the @code{xscale debug_handler} command. The allowed locations for the
 debug handler are either (0x800 - 0x1fef800) or (0xfe000800 -
 0xfffff800). The default value is 0xfe000800.
 
 XScale has resources to support two hardware breakpoints and two
-watchpoints.  However, the following restrictions on watchpoint
+watchpoints. However, the following restrictions on watchpoint
 functionality apply: (1) the value and mask arguments to the @code{wp}
 command are not supported, (2) the watchpoint length must be a
 power of two and not less than four, and can not be greater than the
 watchpoint address, and (3) a watchpoint with a length greater than
-four consumes all the watchpoint hardware resources.  This means that
+four consumes all the watchpoint hardware resources. This means that
 at any one time, you can have enabled either two watchpoints with a
 length of four, or one watchpoint with a length greater than four.
 
@@ -7401,7 +7401,7 @@ is supported only for @option{arm7_9} and @option{cortex_m3} cores.
 These messages are received as part of target polling, so
 you need to have @command{poll on} active to receive them.
 They are intrusive in that they will affect program execution
-times.  If that is a problem, @pxref{armhardwaretracing,,ARM Hardware Tracing}.
+times. If that is a problem, @pxref{armhardwaretracing,,ARM Hardware Tracing}.
 
 See @file{libdcc} in the contrib dir for more details.
 In addition to sending strings, characters, and
@@ -7464,7 +7464,7 @@ With the parameter @option{clear}, erases all current trace point counters.
 With a numeric @var{identifier} parameter, creates a new a trace point counter
 and associates it with that identifier.
 
-@emph{Important:}  The identifier and the trace point number
+@emph{Important:} The identifier and the trace point number
 are not related except by this command.
 These trace point numbers always start at zero (from server startup,
 or after @command{trace point clear}) and count up from there.
@@ -7522,7 +7522,7 @@ of those fields.
 For example, a 38 bit number might be specified as one
 field of 32 bits then one of 6 bits.
 @emph{For portability, never pass fields which are more
-than 32 bits long.  Many OpenOCD implementations do not
+than 32 bits long. Many OpenOCD implementations do not
 support 64-bit (or larger) integer values.}
 
 All TAPs other than @var{tap} must be in BYPASS mode.
@@ -7624,14 +7624,14 @@ to execute before they take effect.
 
 @deffn Command {verify_ircapture} (@option{enable}|@option{disable})
 Verify values captured during @sc{ircapture} and returned
-during IR scans.  Default is enabled, but this can be
+during IR scans. Default is enabled, but this can be
 overridden by @command{verify_jtag}.
 This flag is ignored when validating JTAG chain configuration.
 @end deffn
 
 @deffn Command {verify_jtag} (@option{enable}|@option{disable})
 Enables verification of DR and IR scans, to help detect
-programming errors.  For IR scans, @command{verify_ircapture}
+programming errors. For IR scans, @command{verify_ircapture}
 must also be enabled.
 Default is enabled.
 @end deffn
@@ -7670,12 +7670,12 @@ for update or more shifting
 
 Note that only six of those states are fully ``stable'' in the
 face of TMS fixed (low except for @sc{reset})
-and a free-running JTAG clock.  For all the
+and a free-running JTAG clock. For all the
 others, the next TCK transition changes to a new state.
 
 @itemize @bullet
 @item From @sc{drshift} and @sc{irshift}, clock transitions will
-produce side effects by changing register contents.  The values
+produce side effects by changing register contents. The values
 to be latched in upcoming @sc{drupdate} or @sc{irupdate} states
 may not be as expected.
 @item @sc{run/idle}, @sc{drpause}, and @sc{irpause} are reasonable
@@ -7795,8 +7795,8 @@ that also will probably need to be configured.
 @end itemize
 
 Of course, the version of GDB you use will need to be one which has
-been built to know about the target CPU you're using.  It's probably
-part of the tool chain you're using.  For example, if you are doing
+been built to know about the target CPU you're using. It's probably
+part of the tool chain you're using. For example, if you are doing
 cross-development for ARM on an x86 PC, instead of using the native
 x86 @command{gdb} command you might use @command{arm-none-eabi-gdb}
 if that's the tool chain used to compile your code.
@@ -7894,7 +7894,7 @@ set remote hardware-watchpoint-limit 4
 @end example
 
 With that particular hardware (Cortex-M3) the hardware breakpoints
-only work for code running from flash memory.  Most other ARM systems
+only work for code running from flash memory. Most other ARM systems
 do not have such restrictions.
 
 Another example of useful GDB configuration came from a user who
@@ -7969,10 +7969,10 @@ For SMP support following GDB serial protocol packet have been defined :
 OpenOCD implements :
 @itemize @bullet
 @item @option{jc} packet for reading core id displayed by
-GDB connection. Reply is  @option{XXXXXXXX} (8 hex digits giving core id) or
+GDB connection. Reply is @option{XXXXXXXX} (8 hex digits giving core id) or
  @option{E01} for target not smp.
-@item  @option{JcXXXXXXXX} (8 hex digits) packet for setting core id displayed at next GDB continue
-(core id -1 is reserved for returning to normal resume mode). Reply  @option{E01}
+@item @option{JcXXXXXXXX} (8 hex digits) packet for setting core id displayed at next GDB continue
+(core id -1 is reserved for returning to normal resume mode). Reply @option{E01}
 for target not smp or @option{OK} on success.
 @end itemize
 
@@ -8040,7 +8040,7 @@ The result is:
 
 Thus, to get the names of the associative array is easy:
 
-     foreach  { name value }   [set foo]   {
+     foreach { name value } [set foo] {
                 puts "Name: $name, Value: $value"
      }
 @end verbatim
@@ -8114,7 +8114,7 @@ The two clocks are not synchronised, they are ``asynchronous''
 
 In order for the two to work together they must be synchronised
 well enough to work; JTAG can't go ten times faster than the CPU,
-for example.  There are 2 basic options:
+for example. There are 2 basic options:
 @enumerate
 @item
 Use a special "adaptive clocking" circuit to change the JTAG
@@ -8132,16 +8132,16 @@ situations where the CPU clock rate changes (perhaps to save
 power).
 
 For example, Atmel AT91SAM chips start operation from reset with
-a 32kHz system clock.  Boot firmware may activate the main oscillator
+a 32kHz system clock. Boot firmware may activate the main oscillator
 and PLL before switching to a faster clock (perhaps that 500 MHz
 ARM926 scenario).
 If you're using JTAG to debug that startup sequence, you must slow
-the JTAG clock to sometimes 1 to 4kHz.  After startup completes,
+the JTAG clock to sometimes 1 to 4kHz. After startup completes,
 JTAG can use a faster clock.
 
 Consider also debugging a 500MHz ARM926 hand held battery powered
 device that enters a low power ``deep sleep'' mode, at 32kHz CPU
-clock, between keystrokes unless it has work to do.   When would
+clock, between keystrokes unless it has work to do. When would
 that 5 MHz JTAG clock be usable?
 
 @b{Solution #1 - A special circuit}
@@ -8185,7 +8185,7 @@ ARM11 cores use an 8:1 division.
 @b{Xilinx rule of thumb} is 1/12 the clock speed.
 
 Note: most full speed FT2232 based JTAG adapters are limited to a
-maximum of 6MHz.  The ones using USB high speed chips (FT2232H)
+maximum of 6MHz. The ones using USB high speed chips (FT2232H)
 often support faster clock rates (and adaptive clocking).
 
 You can still debug the 'low power' situations - you just need to
@@ -8202,7 +8202,7 @@ Note that on ARM you may need to avoid using the @emph{wait for interrupt}
 operation in your idle loops even if you don't otherwise change the CPU
 clock rate.
 That operation gates the CPU clock, and thus the JTAG clock; which
-prevents JTAG access.  One consequence is not being able to @command{halt}
+prevents JTAG access. One consequence is not being able to @command{halt}
 cores which are executing that @emph{wait for interrupt} operation.
 
 To set the JTAG frequency use the command:
@@ -8324,11 +8324,11 @@ has closed the connection to OpenOCD. This might be a GDB issue.
 
 @item @b{LPC2000 Flash} In the configuration file in the section where flash device configurations
 are described, there is a parameter for specifying the clock frequency
-for LPC2000 internal flash devices (e.g.  @option{flash bank $_FLASHNAME lpc2000
+for LPC2000 internal flash devices (e.g. @option{flash bank $_FLASHNAME lpc2000
 0x0 0x40000 0 0 $_TARGETNAME lpc2000_v1 14746 calc_checksum}), which must be
 specified in kilohertz. However, I do have a quartz crystal of a
 frequency that contains fractions of kilohertz (e.g. 14,745,600 Hz,
-i.e. 14,745.600 kHz).  Is it possible to specify real numbers for the
+i.e. 14,745.600 kHz). Is it possible to specify real numbers for the
 clock frequency?
 
 No. The clock frequency specified here must be given as an integral number.
@@ -8350,7 +8350,7 @@ references a jtag newtap and a flash bank references a target).
 You can use the ``scan_chain'' command to verify and display the tap order.
 
 Also, some commands can't execute until after @command{init} has been
-processed.  Such commands include @command{nand probe} and everything
+processed. Such commands include @command{nand probe} and everything
 else that needs to write to controller registers, perhaps for setting
 up DRAM and loading it with code.
 
@@ -8363,7 +8363,7 @@ the same order used by the hardware.
 
 Many newer devices have multiple JTAG TAPs. For example: ST
 Microsystems STM32 chips have two TAPs, a ``boundary scan TAP'' and
-``Cortex-M3'' TAP.  Example: The STM32 reference manual, Document ID:
+``Cortex-M3'' TAP. Example: The STM32 reference manual, Document ID:
 RM0008, Section 26.5, Figure 259, page 651/681, the ``TDI'' pin is
 connected to the boundary scan TAP, which then connects to the
 Cortex-M3 TAP, which then connects to the TDO pin.
@@ -8492,7 +8492,7 @@ is a string}
 @*@b{@{Curly-Braces@}} are magic: $VARIABLES and [square-brackets] are
 parsed, but are NOT expanded or executed. @{Curly-Braces@} are like
 'single-quote' operators in BASH shell scripts, with the added
-feature: @{curly-braces@} can be nested, single quotes can not.  @{@{@{this is
+feature: @{curly-braces@} can be nested, single quotes can not. @{@{@{this is
 nested 3 times@}@}@} NOTE: [date] is a bad example;
 at this writing, Jim/OpenOCD does not have a date command.
 @end itemize
@@ -8547,7 +8547,7 @@ command stores these items in a table somewhere so it can be found by
 
 @subsection The FOR command
 
-The most interesting command to look at is the FOR command.  In Tcl,
+The most interesting command to look at is the FOR command. In Tcl,
 the FOR command is normally implemented in C. Remember, FOR is a
 command just like any other command.
 
@@ -8629,7 +8629,7 @@ MyForCommand( void *interp,
         // Execute the body
         Execute_AsciiString( interp, argv[3] );
 
-        // Execute the LOOP  part
+        // Execute the LOOP part
         Execute_AsciiString( interp, argv[4] );
     @}
 
@@ -8685,7 +8685,7 @@ it reads a file and executes as a script.
    proc someproc @{@} @{
        ... multiple lines of stuff ...
    @}
-   $_TARGETNAME configure -event FOO  someproc
+   $_TARGETNAME configure -event FOO someproc
 #2 Good - no variables
    $_TARGETNAME confgure -event foo "this ; that;"
 #3 Good Curly Braces
@@ -8712,7 +8712,7 @@ command.
 @end enumerate
 
 In the end, when the target event FOO occurs the TCLBODY is
-evaluated. Method @b{#1} and @b{#2} are functionally identical.  For
+evaluated. Method @b{#1} and @b{#2} are functionally identical. For
 Method @b{#3} and @b{#4} it is more interesting. What is the TCLBODY?
 
 Remember the parsing rules. In case #3, @{curly-braces@} mean the
@@ -8729,7 +8729,7 @@ simple terms: Inside a PROC, if you need to access a global variable
 you must say so. See also ``upvar''. Example:
 @example
 proc myproc @{ @} @{
-     set y 0  #Local variable Y
+     set y 0 #Local variable Y
      global x #Global variable X
      puts [format "X=%d, Y=%d" $x $y]
 @}
@@ -8738,13 +8738,13 @@ proc myproc @{ @} @{
 @b{Dynamic variable creation}
 @example
 # Dynamically create a bunch of variables.
-for @{ set x 0  @} @{ $x < 32 @} @{ set x [expr $x + 1]@} @{
+for @{ set x 0 @} @{ $x < 32 @} @{ set x [expr $x + 1]@} @{
     # Create var name
     set vn [format "BIT%d" $x]
     # Make it a global
     global $vn
     # Set it.
-    set $vn   [expr (1 << $x)]
+    set $vn [expr (1 << $x)]
 @}
 @end example
 @b{Dynamic proc/command creation}
