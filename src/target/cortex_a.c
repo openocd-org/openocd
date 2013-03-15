@@ -2856,7 +2856,6 @@ struct target_type cortexr4_target = {
 
 	.read_memory = cortex_a8_read_memory,
 	.write_memory = cortex_a8_write_memory,
-	.bulk_write_memory = cortex_a8_bulk_write_memory,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
