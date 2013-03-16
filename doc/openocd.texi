@@ -222,7 +222,11 @@ or expand the OpenOCD source code.
 During the 0.3.x release cycle, OpenOCD switched from Subversion to
 a GIT repository hosted at SourceForge. The repository URL is:
 
-@uref{git://openocd.git.sourceforge.net/gitroot/openocd/openocd}
+@uref{git://git.code.sf.net/p/openocd/code}
+
+or via http
+
+@uref{http://git.code.sf.net/p/openocd/code}
 
 You may prefer to use a mirror and the HTTP protocol:
 
@@ -233,8 +237,6 @@ a local repository, and @command{git pull} to update it.
 There are also gitweb pages letting you browse the repository
 with a web browser, or download arbitrary snapshots without
 needing a GIT client:
-
-@uref{http://openocd.git.sourceforge.net/git/gitweb.cgi?p=openocd/openocd}
 
 @uref{http://repo.or.cz/w/openocd.git}
 
