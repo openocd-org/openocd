@@ -539,13 +539,6 @@ int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count,
 	return retval;
 }
 
-/* FIXME don't import ... this is a temporary workaround for the
- * mem_ap_read_buf_u32() mess, until it's no longer JTAG-specific.
- */
-extern int adi_jtag_dp_scan(struct adiv5_dap *dap,
-		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
-		uint8_t *outvalue, uint8_t *invalue, uint8_t *ack);
-
 /**
  * Synchronously read a block of 32-bit words into a buffer
  * @param dap The DAP connected to the MEM-AP.
@@ -588,38 +581,7 @@ int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 		if (retval != ERROR_OK)
 			return retval;
 
-		/* FIXME remove these three calls to adi_jtag_dp_scan(),
-		 * so this routine becomes transport-neutral.  Be careful
-		 * not to cause performance problems with JTAG; would it
-		 * suffice to loop over dap_queue_ap_read(), or would that
-		 * be slower when JTAG is the chosen transport?
-		 */
-
-		/* Scan out first read */
-		retval = adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
-				DPAP_READ, 0, NULL, NULL);
-		if (retval != ERROR_OK)
-			return retval;
-		for (readcount = 0; readcount < blocksize - 1; readcount++) {
-			/* Scan out next read; scan in posted value for the
-			 * previous one.  Assumes read is acked "OK/FAULT",
-			 * and CTRL_STAT says that meant "OK".
-			 */
-			retval = adi_jtag_dp_scan(dap, JTAG_DP_APACC, AP_REG_DRW,
-					DPAP_READ, 0, buffer + 4 * readcount,
-					&dap->ack);
-			if (retval != ERROR_OK)
-				return retval;
-		}
-
-		/* Scan in last posted value; RDBUFF has no other effect,
-		 * assuming ack is OK/FAULT and CTRL_STAT says "OK".
-		 */
-		retval = adi_jtag_dp_scan(dap, JTAG_DP_DPACC, DP_RDBUFF,
-				DPAP_READ, 0, buffer + 4 * readcount,
-				&dap->ack);
-		if (retval != ERROR_OK)
-			return retval;
+		retval = dap_queue_ap_read_block(dap, AP_REG_DRW, blocksize, buffer);
 
 		retval = dap_run(dap);
 		if (retval != ERROR_OK) {
