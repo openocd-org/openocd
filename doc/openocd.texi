@@ -7325,6 +7325,11 @@ memory bus access [0-255], giving additional time to respond to reads.
 If @var{value} is defined, first assigns that.
 @end deffn
 
+@deffn Command {dap apcsw} [0 / 1]
+fix CSW_SPROT from register AP_REG_CSW on selected dap.
+Defaulting to 0.
+@end deffn
+
 @subsection Cortex-M3 specific commands
 @cindex Cortex-M3
 
