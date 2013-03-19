@@ -385,6 +385,8 @@ static int icdi_usb_query(void *handle)
 
 	/* set extended mode */
 	result = icdi_send_cmd(handle, "!");
+	if (result != ERROR_OK)
+		return result;
 
 	/* check result */
 	result = icdi_get_cmd_result(handle);
