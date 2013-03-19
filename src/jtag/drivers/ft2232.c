@@ -1108,6 +1108,11 @@ static int ft2232_large_scan(struct scan_command *cmd,
 	int retval;
 	int thisrun_read = 0;
 
+	if (!receive_buffer) {
+		LOG_ERROR("failed to allocate memory");
+		exit(-1);
+	}
+
 	if (cmd->ir_scan) {
 		LOG_ERROR("BUG: large IR scans are not supported");
 		exit(-1);
@@ -1272,6 +1277,8 @@ static int ft2232_large_scan(struct scan_command *cmd,
 			thisrun_read,
 			(int)bytes_read);
 	}
+
+	free(receive_buffer);
 
 	return ERROR_OK;
 }
