@@ -2399,8 +2399,8 @@ static void sam3_explain_ckgr_plla(struct sam3_chip *pChip)
 		LOG_USER("\tPLLA Freq: (Disabled,mula = 0)");
 	else if (diva == 0)
 		LOG_USER("\tPLLA Freq: (Disabled,diva = 0)");
-	else if (diva == 1) {
-		pChip->cfg.plla_freq = (pChip->cfg.mainosc_freq * (mula + 1));
+	else if (diva >= 1) {
+		pChip->cfg.plla_freq = (pChip->cfg.mainosc_freq * (mula + 1) / diva);
 		LOG_USER("\tPLLA Freq: %3.03f MHz",
 			_tomhz(pChip->cfg.plla_freq));
 	}
