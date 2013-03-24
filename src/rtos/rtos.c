@@ -306,7 +306,7 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 				(size_t) (tmp_str_ptr - tmp_str));
 
 			char *hex_str = (char *) malloc(strlen(tmp_str) * 2 + 1);
-			int pkt_len = unhexify(hex_str, tmp_str, strlen(tmp_str) * 2 + 1);
+			int pkt_len = hexify(hex_str, tmp_str, 0, strlen(tmp_str) * 2 + 1);
 
 			gdb_put_packet(connection, hex_str, pkt_len);
 			free(hex_str);
