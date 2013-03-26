@@ -452,8 +452,13 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 
 		parport_toggling_time_ns = ns;
 		retval = jtag_get_speed(&wait_states);
-		if (retval != ERROR_OK)
-			return retval;
+		if (retval != ERROR_OK) {
+			/* if jtag_get_speed fails then the clock_mode
+			 * has not been configured, this happens if parport_toggling_time is
+			 * called before the adapter speed is set */
+			LOG_INFO("no parport speed set - defaulting to zero wait states");
+			wait_states = 0;
+		}
 	}
 
 	command_print(CMD_CTX, "parport toggling time = %" PRIu32 " ns",
