@@ -30,6 +30,7 @@
 
 #include "telnet_server.h"
 #include <target/target_request.h>
+#include <helper/configuration.h>
 
 static const char *telnet_port;
 
@@ -40,6 +41,7 @@ static char *negotiate =
 	"\xFF\xFE\x01";			/* IAC DON'T Echo */
 
 #define CTRL(c) (c - '@')
+#define TELNET_HISTORY	".openocd_history"
 
 /* The only way we can detect that the socket is closed is the first time
  * we write to it, we will fail. Subsequent write operations will
@@ -127,6 +129,82 @@ static void telnet_log_callback(void *priv, const char *file, unsigned line,
 		telnet_write(connection, "\b", 1);
 }
 
+static void telnet_load_history(struct telnet_connection *t_con)
+{
+	FILE *histfp;
+	char buffer[TELNET_BUFFER_SIZE];
+	int i = 0;
+
+	char *history = get_home_dir(TELNET_HISTORY);
+
+	if (history == NULL) {
+		LOG_INFO("unable to get user home directory, telnet history will be disabled");
+		return;
+	}
+
+	histfp = fopen(history, "rb");
+
+	if (histfp) {
+
+		while (fgets(buffer, sizeof(buffer), histfp) != NULL) {
+
+			char *p = strchr(buffer, '\n');
+			if (p)
+				*p = '\0';
+			if (buffer[0] && i < TELNET_LINE_HISTORY_SIZE)
+				t_con->history[i++] = strdup(buffer);
+		}
+
+		t_con->next_history = i;
+		t_con->next_history %= TELNET_LINE_HISTORY_SIZE;
+		/* try to set to last entry - 1, that way we skip over any exit/shutdown cmds */
+		t_con->current_history = t_con->next_history > 0 ? i - 1 : 0;
+		fclose(histfp);
+	}
+
+	free(history);
+}
+
+static void telnet_save_history(struct telnet_connection *t_con)
+{
+	FILE *histfp;
+	int i;
+	int num;
+
+	char *history = get_home_dir(TELNET_HISTORY);
+
+	if (history == NULL) {
+		LOG_INFO("unable to get user home directory, telnet history will be disabled");
+		return;
+	}
+
+	histfp = fopen(history, "wb");
+
+	if (histfp) {
+
+		num = TELNET_LINE_HISTORY_SIZE;
+		i = t_con->current_history + 1;
+		i %= TELNET_LINE_HISTORY_SIZE;
+
+		while (t_con->history[i] == NULL && num > 0) {
+			i++;
+			i %= TELNET_LINE_HISTORY_SIZE;
+			num--;
+		}
+
+		if (num > 0) {
+			for (; num > 0; num--) {
+				fprintf(histfp, "%s\n", t_con->history[i]);
+				i++;
+				i %= TELNET_LINE_HISTORY_SIZE;
+			}
+		}
+		fclose(histfp);
+	}
+
+	free(history);
+}
+
 static int telnet_new_connection(struct connection *connection)
 {
 	struct telnet_connection *telnet_connection = malloc(sizeof(struct telnet_connection));
@@ -164,6 +242,7 @@ static int telnet_new_connection(struct connection *connection)
 		telnet_connection->history[i] = NULL;
 	telnet_connection->next_history = 0;
 	telnet_connection->current_history = 0;
+	telnet_load_history(telnet_connection);
 
 	log_add_callback(telnet_log_callback, connection);
 
@@ -305,6 +384,9 @@ static int telnet_input(struct connection *connection)
 
 							/* to suppress prompt in log callback during command execution */
 							t_con->line_cursor = -1;
+
+							if (strcmp(t_con->line, "shutdown") == 0)
+								telnet_save_history(t_con);
 
 							retval = command_run_line(command_context, t_con->line);
 
@@ -489,6 +571,9 @@ static int telnet_connection_closed(struct connection *connection)
 		free(t_con->prompt);
 		t_con->prompt = NULL;
 	}
+
+	/* save telnet history */
+	telnet_save_history(t_con);
 
 	for (i = 0; i < TELNET_LINE_HISTORY_SIZE; i++) {
 		if (t_con->history[i]) {

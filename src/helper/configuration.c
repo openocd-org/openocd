@@ -128,3 +128,47 @@ int parse_config_file(struct command_context *cmd_ctx)
 
 	return ERROR_OK;
 }
+
+#ifndef _WIN32
+#include <pwd.h>
+#endif
+
+char *get_home_dir(const char *append_path)
+{
+	char *home = getenv("HOME");
+
+	if (home == NULL) {
+
+#ifdef _WIN32
+		home = getenv("USERPROFILE");
+
+		if (home == NULL) {
+
+			char homepath[MAX_PATH];
+			char *drive = getenv("HOMEDRIVE");
+			char *path = getenv("HOMEPATH");
+			if (drive && path) {
+				snprintf(homepath, MAX_PATH, "%s/%s", drive, path);
+				home = homepath;
+			}
+		}
+#else
+		struct passwd *pwd = getpwuid(getuid());
+		if (pwd)
+			home = pwd->pw_dir;
+
+#endif
+	}
+
+	if (home == NULL)
+		return home;
+
+	char *home_path;
+
+	if (append_path)
+		home_path = alloc_printf("%s/%s", home, append_path);
+	else
+		home_path = alloc_printf("%s", home);
+
+	return home_path;
+}

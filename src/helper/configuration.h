@@ -40,5 +40,6 @@ int configuration_output_handler(struct command_context *cmd_ctx,
 FILE *open_file_from_path(const char *file, const char *mode);
 
 char *find_file(const char *name);
+char *get_home_dir(const char *append_path);
 
 #endif	/* CONFIGURATION_H */
