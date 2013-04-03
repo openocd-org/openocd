@@ -260,16 +260,15 @@ int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 {
-	uint32_t inst;
-	inst = MIPS32_DRET;
+	uint32_t instr = MIPS32_DRET;
+	struct pracc_queue_info ctx = {.max_code = 1, .pracc_list = &instr, .code_count = 1, .store_count = 0};
 
 	/* execute our dret instruction */
-	int retval = mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
+	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL);
 
 	/* pic32mx workaround, false pending at low core clock */
 	jtag_add_sleep(1000);
-
-	return retval;
+	return ctx.retval;
 }
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
