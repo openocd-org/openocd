@@ -51,8 +51,6 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 	if (libusb_init(&jtag_libusb_context) < 0)
 		return -ENODEV;
 
-	libusb_set_debug(jtag_libusb_context, 3);
-
 	cnt = libusb_get_device_list(jtag_libusb_context, &devs);
 
 	for (idx = 0; idx < cnt; idx++) {
