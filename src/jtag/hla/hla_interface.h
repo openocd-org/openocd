@@ -46,6 +46,8 @@ struct hl_interface_param_s {
 	enum hl_transports transport;
 	/** */
 	int max_buffer;
+	/** */
+	bool connect_under_reset;
 };
 
 struct hl_interface_s {

@@ -579,8 +579,10 @@ static int stlink_usb_mode_leave(void *handle, enum stlink_mode type)
 	return ERROR_OK;
 }
 
+static int stlink_usb_assert_srst(void *handle, int srst);
+
 /** */
-static int stlink_usb_init_mode(void *handle)
+static int stlink_usb_init_mode(void *handle, bool connect_under_reset)
 {
 	int res;
 	uint8_t mode;
@@ -672,6 +674,12 @@ static int stlink_usb_init_mode(void *handle)
 	if (emode == STLINK_MODE_UNKNOWN) {
 		LOG_ERROR("selected mode (transport) not supported");
 		return ERROR_FAIL;
+	}
+
+	if (connect_under_reset) {
+		res = stlink_usb_assert_srst(handle, 0);
+		if (res != ERROR_OK)
+			return res;
 	}
 
 	res = stlink_usb_mode_enter(handle, emode);
@@ -1314,7 +1322,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	h->jtag_api = api;
 
 	/* initialize the debug hardware */
-	err = stlink_usb_init_mode(h);
+	err = stlink_usb_init_mode(h, param->connect_under_reset);
 
 	if (err != ERROR_OK) {
 		LOG_ERROR("init mode failed");

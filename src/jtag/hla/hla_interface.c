@@ -37,11 +37,20 @@
 
 #include <target/target.h>
 
-static struct hl_interface_s hl_if = { {0, 0, 0, 0, 0, 0, 0}, 0, 0 };
+static struct hl_interface_s hl_if = { {0, 0, 0, 0, 0, HL_TRANSPORT_UNKNOWN, 0, false}, 0, 0 };
 
 int hl_interface_open(enum hl_transports tr)
 {
 	LOG_DEBUG("hl_interface_open");
+
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
+		if (jtag_reset_config & RESET_SRST_NO_GATING)
+			hl_if.param.connect_under_reset = true;
+		else
+			LOG_WARNING("\'srst_nogate\' reset_config option is required");
+	}
 
 	/* set transport mode */
 	hl_if.param.transport = tr;
@@ -117,14 +126,11 @@ static int hl_interface_execute_queue(void)
 
 int hl_interface_init_reset(void)
 {
-	enum reset_types jtag_reset_config = jtag_get_reset_config();
-
-	if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
-		if (jtag_reset_config & RESET_SRST_NO_GATING) {
-			jtag_add_reset(0, 1);
-			hl_if.layout->api->assert_srst(hl_if.fd, 0);
-		} else
-			LOG_WARNING("\'srst_nogate\' reset_config option is required");
+	/* incase the adapter has not already handled asserting srst
+	 * we will attempt it again */
+	if (hl_if.param.connect_under_reset) {
+		jtag_add_reset(0, 1);
+		hl_if.layout->api->assert_srst(hl_if.fd, 0);
 	}
 
 	return ERROR_OK;
