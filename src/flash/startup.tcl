@@ -54,6 +54,8 @@ proc program {filename args} {
 
 		if {[info exists reset]} {
 			# reset target if requested
+			# also disable target polling, we are shutting down anyway
+			poll off
 			echo "** Resetting Target **"
 			reset run
 		}
