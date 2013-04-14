@@ -701,14 +701,12 @@ else
 fi
 
 if test $build_usb_blaster_libftdi = yes; then
-  build_bitbang=yes
   AC_DEFINE([BUILD_USB_BLASTER_LIBFTDI], [1], [1 if you want libftdi usb_blaster.])
 else
   AC_DEFINE([BUILD_USB_BLASTER_LIBFTDI], [0], [0 if you don't want libftdi usb_blaster.])
 fi
 
 if test $build_usb_blaster_ftd2xx = yes; then
-  build_bitbang=yes
   AC_DEFINE([BUILD_USB_BLASTER_FTD2XX], [1], [1 if you want ftd2xx usb_blaster.])
 else
   AC_DEFINE([BUILD_USB_BLASTER_FTD2XX], [0], [0 if you don't want ftd2xx usb_blaster.])
@@ -1058,7 +1056,7 @@ LDFLAGS=$LDFLAGS_SAVE
 CFLAGS=$CFLAGS_SAVE
 fi
 
-if test $build_ft2232_libftdi = yes ; then
+if test $build_ft2232_libftdi = yes -o $build_usb_blaster_libftdi = yes; then
   # We assume: the package is preinstalled in the proper place
   # these present as 2 libraries..
   LIBS="$LIBS -lftdi -lusb"
@@ -1182,6 +1180,7 @@ AM_CONDITIONAL([FT2232_LIBFTDI], [test $build_ft2232_libftdi = yes])
 AM_CONDITIONAL([FT2232_DRIVER], [test $build_ft2232_ftd2xx = yes -o $build_ft2232_libftdi = yes])
 AM_CONDITIONAL([FTDI_DRIVER], [test $build_ftdi = yes])
 AM_CONDITIONAL([USB_BLASTER_LIBFTDI], [test $build_usb_blaster_libftdi = yes])
+AM_CONDITIONAL([USB_BLASTER_FTD2XX], [test $build_usb_blaster_ftd2xx = yes])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test $build_usb_blaster_ftd2xx = yes -o $build_usb_blaster_libftdi = yes])
 AM_CONDITIONAL([AMTJTAGACCEL], [test $build_amtjtagaccel = yes])
 AM_CONDITIONAL([GW16012], [test $build_gw16012 = yes])
@@ -1312,6 +1311,7 @@ AC_CONFIG_FILES([
   src/helper/Makefile
   src/jtag/Makefile
   src/jtag/drivers/Makefile
+  src/jtag/drivers/usb_blaster/Makefile
   src/jtag/hla/Makefile
   src/transport/Makefile
   src/xsvf/Makefile

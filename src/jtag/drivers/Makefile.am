@@ -1,6 +1,7 @@
 include $(top_srcdir)/common.mk
 
 noinst_LTLIBRARIES = libocdjtagdrivers.la
+libocdjtagdrivers_la_LIBADD =
 
 libocdjtagdrivers_la_SOURCES = \
 	$(DRIVERFILES)
@@ -13,6 +14,7 @@ ULINK_FIRMWARE = $(srcdir)/OpenULINK
 EXTRA_DIST = $(ULINK_FIRMWARE)
 
 DRIVERFILES =
+SUBDIRS=
 
 # Standard Driver: common files
 DRIVERFILES += driver.c
@@ -47,7 +49,8 @@ if FTDI_DRIVER
 DRIVERFILES += ftdi.c mpsse.c
 endif
 if USB_BLASTER_DRIVER
-DRIVERFILES += usb_blaster.c
+SUBDIRS += usb_blaster
+libocdjtagdrivers_la_LIBADD += $(top_builddir)/src/jtag/drivers/usb_blaster/libocdusbblaster.la
 endif
 if AMTJTAGACCEL
 DRIVERFILES += amt_jtagaccel.c
