@@ -303,6 +303,45 @@ int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 	return ctx.retval;
 }
 
+/* mips_ejtag_init_mmr - asign Memory-Mapped Registers depending
+ *			on EJTAG version.
+ */
+static void mips_ejtag_init_mmr(struct mips_ejtag *ejtag_info)
+{
+	if (ejtag_info->ejtag_version == EJTAG_VERSION_20) {
+		ejtag_info->ejtag_ibs_addr	= EJTAG_V20_IBS;
+		ejtag_info->ejtag_iba0_addr	= EJTAG_V20_IBA0;
+		ejtag_info->ejtag_ibc_offs	= EJTAG_V20_IBC_OFFS;
+		ejtag_info->ejtag_ibm_offs	= EJTAG_V20_IBM_OFFS;
+
+		ejtag_info->ejtag_dbs_addr	= EJTAG_V20_DBS;
+		ejtag_info->ejtag_dba0_addr	= EJTAG_V20_DBA0;
+		ejtag_info->ejtag_dbc_offs	= EJTAG_V20_DBC_OFFS;
+		ejtag_info->ejtag_dbm_offs	= EJTAG_V20_DBM_OFFS;
+		ejtag_info->ejtag_dbv_offs	= EJTAG_V20_DBV_OFFS;
+
+		ejtag_info->ejtag_iba_step_size	= EJTAG_V20_IBAn_STEP;
+		ejtag_info->ejtag_dba_step_size	= EJTAG_V20_DBAn_STEP;
+	} else {
+		ejtag_info->ejtag_ibs_addr	= EJTAG_V25_IBS;
+		ejtag_info->ejtag_iba0_addr	= EJTAG_V25_IBA0;
+		ejtag_info->ejtag_ibm_offs	= EJTAG_V25_IBM_OFFS;
+		ejtag_info->ejtag_ibasid_offs	= EJTAG_V25_IBASID_OFFS;
+		ejtag_info->ejtag_ibc_offs	= EJTAG_V25_IBC_OFFS;
+
+		ejtag_info->ejtag_dbs_addr	= EJTAG_V25_DBS;
+		ejtag_info->ejtag_dba0_addr	= EJTAG_V25_DBA0;
+		ejtag_info->ejtag_dbm_offs	= EJTAG_V25_DBM_OFFS;
+		ejtag_info->ejtag_dbasid_offs	= EJTAG_V25_DBASID_OFFS;
+		ejtag_info->ejtag_dbc_offs	= EJTAG_V25_DBC_OFFS;
+		ejtag_info->ejtag_dbv_offs	= EJTAG_V25_DBV_OFFS;
+
+		ejtag_info->ejtag_iba_step_size	= EJTAG_V25_IBAn_STEP;
+		ejtag_info->ejtag_dba_step_size	= EJTAG_V25_DBAn_STEP;
+	}
+}
+
+
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 {
 	int retval;
@@ -353,6 +392,8 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 	/* set initial state for ejtag control reg */
 	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
 	ejtag_info->fast_access_save = -1;
+
+	mips_ejtag_init_mmr(ejtag_info);
 
 	return ERROR_OK;
 }

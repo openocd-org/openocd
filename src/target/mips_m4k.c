@@ -51,30 +51,36 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 
 static int mips_m4k_examine_debug_reason(struct target *target)
 {
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	uint32_t break_status;
 	int retval;
 
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 		&& (target->debug_reason != DBG_REASON_SINGLESTEP)) {
 		/* get info about inst breakpoint support */
-		retval = target_read_u32(target, EJTAG_IBS, &break_status);
+		retval = target_read_u32(target,
+			ejtag_info->ejtag_ibs_addr, &break_status);
 		if (retval != ERROR_OK)
 			return retval;
 		if (break_status & 0x1f) {
 			/* we have halted on a  breakpoint */
-			retval = target_write_u32(target, EJTAG_IBS, 0);
+			retval = target_write_u32(target,
+				ejtag_info->ejtag_ibs_addr, 0);
 			if (retval != ERROR_OK)
 				return retval;
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 		}
 
 		/* get info about data breakpoint support */
-		retval = target_read_u32(target, EJTAG_DBS, &break_status);
+		retval = target_read_u32(target,
+			ejtag_info->ejtag_dbs_addr, &break_status);
 		if (retval != ERROR_OK)
 			return retval;
 		if (break_status & 0x1f) {
 			/* we have halted on a  breakpoint */
-			retval = target_write_u32(target, EJTAG_DBS, 0);
+			retval = target_write_u32(target,
+				ejtag_info->ejtag_dbs_addr, 0);
 			if (retval != ERROR_OK)
 				return retval;
 			target->debug_reason = DBG_REASON_WATCHPOINT;
@@ -587,6 +593,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	struct mips32_comparator *comparator_list = mips32->inst_break_list;
 	int retval;
 
@@ -608,10 +615,19 @@ static int mips_m4k_set_breakpoint(struct target *target,
 		breakpoint->set = bp_num + 1;
 		comparator_list[bp_num].used = 1;
 		comparator_list[bp_num].bp_value = breakpoint->address;
+
+		/* EJTAG 2.0 uses 30bit IBA. First 2 bits are reserved.
+		 * Warning: there is no IB ASID registers in 2.0.
+		 * Do not set it! :) */
+		if (ejtag_info->ejtag_version == EJTAG_VERSION_20)
+			comparator_list[bp_num].bp_value &= 0xFFFFFFFC;
+
 		target_write_u32(target, comparator_list[bp_num].reg_address,
 				comparator_list[bp_num].bp_value);
-		target_write_u32(target, comparator_list[bp_num].reg_address + 0x08, 0x00000000);
-		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 1);
+		target_write_u32(target, comparator_list[bp_num].reg_address +
+				 ejtag_info->ejtag_ibm_offs, 0x00000000);
+		target_write_u32(target, comparator_list[bp_num].reg_address +
+				 ejtag_info->ejtag_ibc_offs, 1);
 		LOG_DEBUG("bpid: %d, bp_num %i bp_value 0x%" PRIx32 "",
 				  breakpoint->unique_id,
 				  bp_num, comparator_list[bp_num].bp_value);
@@ -668,6 +684,7 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	struct mips32_comparator *comparator_list = mips32->inst_break_list;
 	int retval;
 
@@ -688,7 +705,8 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 				bp_num);
 		comparator_list[bp_num].used = 0;
 		comparator_list[bp_num].bp_value = 0;
-		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 0);
+		target_write_u32(target, comparator_list[bp_num].reg_address +
+				 ejtag_info->ejtag_ibc_offs, 0);
 
 	} else {
 		/* restore original instruction (kept in target endianness) */
@@ -777,6 +795,7 @@ static int mips_m4k_set_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	struct mips32_comparator *comparator_list = mips32->data_break_list;
 	int wp_num = 0;
 	/*
@@ -826,11 +845,25 @@ static int mips_m4k_set_watchpoint(struct target *target,
 	watchpoint->set = wp_num + 1;
 	comparator_list[wp_num].used = 1;
 	comparator_list[wp_num].bp_value = watchpoint->address;
-	target_write_u32(target, comparator_list[wp_num].reg_address, comparator_list[wp_num].bp_value);
-	target_write_u32(target, comparator_list[wp_num].reg_address + 0x08, 0x00000000);
-	target_write_u32(target, comparator_list[wp_num].reg_address + 0x10, 0x00000000);
-	target_write_u32(target, comparator_list[wp_num].reg_address + 0x18, enable);
-	target_write_u32(target, comparator_list[wp_num].reg_address + 0x20, 0);
+
+	/* EJTAG 2.0 uses 29bit DBA. First 3 bits are reserved.
+	 * There is as well no ASID register support. */
+	if (ejtag_info->ejtag_version == EJTAG_VERSION_20)
+		comparator_list[wp_num].bp_value &= 0xFFFFFFF8;
+	else
+		target_write_u32(target, comparator_list[wp_num].reg_address +
+			 ejtag_info->ejtag_dbasid_offs, 0x00000000);
+
+	target_write_u32(target, comparator_list[wp_num].reg_address,
+			 comparator_list[wp_num].bp_value);
+	target_write_u32(target, comparator_list[wp_num].reg_address +
+			 ejtag_info->ejtag_dbm_offs, 0x00000000);
+
+	target_write_u32(target, comparator_list[wp_num].reg_address +
+			 ejtag_info->ejtag_dbc_offs, enable);
+	/* TODO: probably this value is ignored on 2.0 */
+	target_write_u32(target, comparator_list[wp_num].reg_address +
+			 ejtag_info->ejtag_dbv_offs, 0);
 	LOG_DEBUG("wp_num %i bp_value 0x%" PRIx32 "", wp_num, comparator_list[wp_num].bp_value);
 
 	return ERROR_OK;
@@ -841,6 +874,7 @@ static int mips_m4k_unset_watchpoint(struct target *target,
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	struct mips32_comparator *comparator_list = mips32->data_break_list;
 
 	if (!watchpoint->set) {
@@ -855,7 +889,8 @@ static int mips_m4k_unset_watchpoint(struct target *target,
 	}
 	comparator_list[wp_num].used = 0;
 	comparator_list[wp_num].bp_value = 0;
-	target_write_u32(target, comparator_list[wp_num].reg_address + 0x18, 0);
+	target_write_u32(target, comparator_list[wp_num].reg_address +
+			 ejtag_info->ejtag_dbc_offs, 0);
 	watchpoint->set = 0;
 
 	return ERROR_OK;

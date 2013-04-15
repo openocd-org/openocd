@@ -472,11 +472,12 @@ int mips32_examine(struct target *target)
 static int mips32_configure_ibs(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	int retval, i;
 	uint32_t bpinfo;
 
 	/* get number of inst breakpoints */
-	retval = target_read_u32(target, EJTAG_IBS, &bpinfo);
+	retval = target_read_u32(target, ejtag_info->ejtag_ibs_addr, &bpinfo);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -487,21 +488,23 @@ static int mips32_configure_ibs(struct target *target)
 
 	for (i = 0; i < mips32->num_inst_bpoints; i++)
 		mips32->inst_break_list[i].reg_address =
-			EJTAG_IBA1 + (0x100 * i);
+			ejtag_info->ejtag_iba0_addr +
+			(ejtag_info->ejtag_iba_step_size * i);
 
 	/* clear IBIS reg */
-	retval = target_write_u32(target, EJTAG_IBS, 0);
+	retval = target_write_u32(target, ejtag_info->ejtag_ibs_addr, 0);
 	return retval;
 }
 
 static int mips32_configure_dbs(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	int retval, i;
 	uint32_t bpinfo;
 
 	/* get number of data breakpoints */
-	retval = target_read_u32(target, EJTAG_DBS, &bpinfo);
+	retval = target_read_u32(target, ejtag_info->ejtag_dbs_addr, &bpinfo);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -512,10 +515,11 @@ static int mips32_configure_dbs(struct target *target)
 
 	for (i = 0; i < mips32->num_data_bpoints; i++)
 		mips32->data_break_list[i].reg_address =
-			EJTAG_DBA1 + (0x100 * i);
+			ejtag_info->ejtag_dba0_addr +
+			(ejtag_info->ejtag_dba_step_size * i);
 
 	/* clear DBIS reg */
-	retval = target_write_u32(target, EJTAG_DBS, 0);
+	retval = target_write_u32(target, ejtag_info->ejtag_dbs_addr, 0);
 	return retval;
 }
 
@@ -523,6 +527,7 @@ int mips32_configure_break_unit(struct target *target)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	int retval;
 	uint32_t dcr;
 
@@ -533,6 +538,11 @@ int mips32_configure_break_unit(struct target *target)
 	retval = target_read_u32(target, EJTAG_DCR, &dcr);
 	if (retval != ERROR_OK)
 		return retval;
+
+	/* EJTAG 2.0 does not specify EJTAG_DCR_IB and EJTAG_DCR_DB bits,
+	 * assume IB and DB registers are always present. */
+	if (ejtag_info->ejtag_version == EJTAG_VERSION_20)
+		dcr |= EJTAG_DCR_IB | EJTAG_DCR_DB;
 
 	if (dcr & EJTAG_DCR_IB) {
 		retval = mips32_configure_ibs(target);

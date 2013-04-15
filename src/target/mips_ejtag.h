@@ -113,10 +113,34 @@
 #define EJTAG_DCR_MP			(1 << 2)
 
 /* breakpoint support */
-#define EJTAG_IBS				0xFF301000
-#define EJTAG_IBA1				0xFF301100
-#define EJTAG_DBS				0xFF302000
-#define EJTAG_DBA1				0xFF302100
+/* EJTAG_V20_* was tested on Broadcom BCM7401
+ * and may or will differ with other hardware. For example EZ4021-FC. */
+#define EJTAG_V20_IBS			0xFF300004
+#define EJTAG_V20_IBA0			0xFF300100
+#define EJTAG_V20_IBC_OFFS		0x4	/* IBC Offset */
+#define EJTAG_V20_IBM_OFFS		0x8
+#define EJTAG_V20_IBAn_STEP		0x10	/* Offset for next channel */
+#define EJTAG_V20_DBS			0xFF30008
+#define EJTAG_V20_DBA0			0xFF300200
+#define EJTAG_V20_DBC_OFFS		0x4
+#define EJTAG_V20_DBM_OFFS		0x8
+#define EJTAG_V20_DBV_OFFS		0xc
+#define EJTAG_V20_DBAn_STEP		0x10
+
+#define EJTAG_V25_IBS			0xFF301000
+#define EJTAG_V25_IBA0			0xFF301100
+#define EJTAG_V25_IBM_OFFS		0x8
+#define EJTAG_V25_IBASID_OFFS		0x10
+#define EJTAG_V25_IBC_OFFS		0x18
+#define EJTAG_V25_IBAn_STEP		0x100
+#define EJTAG_V25_DBS			0xFF302000
+#define EJTAG_V25_DBA0			0xFF302100
+#define EJTAG_V25_DBM_OFFS		0x8
+#define EJTAG_V25_DBASID_OFFS		0x10
+#define EJTAG_V25_DBC_OFFS		0x18
+#define EJTAG_V25_DBV_OFFS		0x20
+#define EJTAG_V25_DBAn_STEP		0x100
+
 #define	EJTAG_DBCn_NOSB			(1 << 13)
 #define	EJTAG_DBCn_NOLB			(1 << 12)
 #define	EJTAG_DBCn_BLM_MASK		0xff
@@ -141,6 +165,25 @@ struct mips_ejtag {
 	unsigned scan_delay;
 	int mode;
 	unsigned int ejtag_version;
+
+	/* Memory-Mapped Registers. This addresses are not same on different
+	 * EJTAG versions. */
+	uint32_t ejtag_ibs_addr;	/* Instruction Address Break Status */
+	uint32_t ejtag_iba0_addr;	/* IAB channel 0 */
+	uint32_t ejtag_ibc_offs;	/* IAB Control offset */
+	uint32_t ejtag_ibm_offs;	/* IAB Mask offset */
+	uint32_t ejtag_ibasid_offs;	/* IAB ASID (4Kc) */
+
+	uint32_t ejtag_dbs_addr;	/* Data Address Break Status Register */
+	uint32_t ejtag_dba0_addr;	/* DAB channel 0 */
+	uint32_t ejtag_dbc_offs;	/* DAB Control offset */
+	uint32_t ejtag_dbm_offs;	/* DAB Mask offset */
+	uint32_t ejtag_dbv_offs;	/* DAB Value offset */
+	uint32_t ejtag_dbasid_offs;	/* DAB ASID (4Kc) */
+
+	uint32_t ejtag_iba_step_size;
+	uint32_t ejtag_dba_step_size;	/* siez of step till next
+					 * *DBAn register. */
 };
 
 void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,
