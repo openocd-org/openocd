@@ -3141,9 +3141,8 @@ static void flossjtag_blink(void)
 static int ft2232_quit(void)
 {
 #if BUILD_FT2232_FTD2XX == 1
-	FT_STATUS status;
 
-	status = FT_Close(ftdih);
+	FT_Close(ftdih);
 #elif BUILD_FT2232_LIBFTDI == 1
 	ftdi_usb_close(&ftdic);
 
