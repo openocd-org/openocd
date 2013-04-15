@@ -70,6 +70,13 @@
 /* at91sam4s series (has always one flash bank)*/
 #define FLASH_BANK_BASE_S   0x00400000
 
+/* at91sam4sd series (two one flash banks), first bank address */
+#define FLASH_BANK0_BASE_SD FLASH_BANK_BASE_S
+/* at91sam4sd16x, second bank address */
+#define FLASH_BANK1_BASE_1024K_SD (FLASH_BANK0_BASE_SD+(1024*1024/2))
+/* at91sam4sd32x, second bank address */
+#define FLASH_BANK1_BASE_2048K_SD (FLASH_BANK0_BASE_SD+(2048*1024/2))
+
 #define         AT91C_EFC_FCMD_GETD                 (0x0)	/* (EFC) Get Flash Descriptor */
 #define         AT91C_EFC_FCMD_WP                   (0x1)	/* (EFC) Write Page */
 #define         AT91C_EFC_FCMD_WPL                  (0x2)	/* (EFC) Write Page and Lock */
@@ -452,6 +459,51 @@ static const struct sam4_chip_details all_sam4_details[] = {
 		  },
 		},
 	},
+
+	/*at91sam4sd32c*/
+	{
+		.chipid_cidr    = 0x29a70ee0,
+		.name           = "at91sam4sd32c",
+		.total_flash_size     = 2048 * 1024,
+		.total_sram_size      = 160 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+
+/*		.bank[0] = { */
+		{
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+
+/*		.bank[1] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_2048K_SD,
+				.controller_address = 0x400e0c00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+		},
+	},
+
 	/* terminate */
 	{
 		.chipid_cidr    = 0,
@@ -1525,11 +1577,21 @@ FLASH_BANK_COMMAND_HANDLER(sam4_flash_bank_command)
 			break;
 
 		/* at91sam4s series only has bank 0*/
+		/* at91sam4sd series has the same address for bank 0 (FLASH_BANK0_BASE_SD)*/
 		case FLASH_BANK_BASE_S:
 			bank->driver_priv = &(pChip->details.bank[0]);
 			bank->bank_number = 0;
 			pChip->details.bank[0].pChip = pChip;
 			pChip->details.bank[0].pBank = bank;
+			break;
+
+		/* Bank 1 of at91sam4sd series */
+		case FLASH_BANK1_BASE_1024K_SD:
+		case FLASH_BANK1_BASE_2048K_SD:
+			bank->driver_priv = &(pChip->details.bank[1]);
+			bank->bank_number = 1;
+			pChip->details.bank[1].pChip = pChip;
+			pChip->details.bank[1].pBank = bank;
 			break;
 	}
 
