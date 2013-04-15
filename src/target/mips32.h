@@ -130,6 +130,7 @@ struct mips32_algorithm {
 #define MIPS32_OP_AND	0x24
 #define MIPS32_OP_CACHE	0x2F
 #define MIPS32_OP_COP0	0x10
+#define MIPS32_OP_J	0x02
 #define MIPS32_OP_JR	0x08
 #define MIPS32_OP_LUI	0x0F
 #define MIPS32_OP_LW	0x23
@@ -175,6 +176,7 @@ struct mips32_algorithm {
 #define MIPS32_BGTZ(reg, off)			MIPS32_I_INST(MIPS32_OP_BGTZ, reg, 0, off)
 #define MIPS32_BNE(src, tar, off)		MIPS32_I_INST(MIPS32_OP_BNE, src, tar, off)
 #define MIPS32_CACHE(op, off, base)		MIPS32_I_INST(MIPS32_OP_CACHE, base, op, off)
+#define MIPS32_J(tar)				MIPS32_J_INST(MIPS32_OP_J, tar)
 #define MIPS32_JR(reg)					MIPS32_R_INST(0, reg, 0, 0, 0, MIPS32_OP_JR)
 #define MIPS32_MFC0(gpr, cpr, sel)		MIPS32_R_INST(MIPS32_OP_COP0, MIPS32_COP0_MF, gpr, cpr, 0, sel)
 #define MIPS32_MTC0(gpr, cpr, sel)		MIPS32_R_INST(MIPS32_OP_COP0, MIPS32_COP0_MT, gpr, cpr, 0, sel)
