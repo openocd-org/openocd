@@ -28,6 +28,7 @@
 
 #include "mips32.h"
 #include "mips_ejtag.h"
+#include "mips32_dmaacc.h"
 
 void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
 {
@@ -237,10 +238,40 @@ exit:
 	return ctx.retval;
 }
 
+/*
+ * Disable memory protection for 0xFF20.0000–0xFF3F.FFFF
+ * It is needed by EJTAG 1.5-2.0, especially for BMIPS CPUs
+ * For example bcm7401 and others. At leas on some
+ * CPUs, DebugMode wont start if this bit is not removed.
+ */
+static int disable_dcr_mp(struct mips_ejtag *ejtag_info)
+{
+	uint32_t dcr;
+	int retval;
+
+	retval = mips32_dmaacc_read_mem(ejtag_info, EJTAG_DCR, 4, 1, &dcr);
+	if (retval != ERROR_OK)
+		goto error;
+
+	dcr &= ~EJTAG_DCR_MP;
+	retval = mips32_dmaacc_write_mem(ejtag_info, EJTAG_DCR, 4, 1, &dcr);
+	if (retval != ERROR_OK)
+		goto error;
+	return ERROR_OK;
+error:
+	LOG_ERROR("Failed to remove DCR MPbit!");
+	return retval;
+}
+
 int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ejtag_ctrl;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
+
+	if (ejtag_info->ejtag_version == EJTAG_VERSION_20) {
+		if (disable_dcr_mp(ejtag_info) != ERROR_OK)
+			goto error;
+	}
 
 	/* set debug break bit */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_JTAGBRK;
@@ -250,12 +281,13 @@ int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	LOG_DEBUG("ejtag_ctrl: 0x%8.8" PRIx32 "", ejtag_ctrl);
-	if ((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0) {
-		LOG_ERROR("Failed to enter Debug Mode!");
-		return ERROR_FAIL;
-	}
+	if ((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
+		goto error;
 
 	return ERROR_OK;
+error:
+	LOG_ERROR("Failed to enter Debug Mode!");
+	return ERROR_FAIL;
 }
 
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)

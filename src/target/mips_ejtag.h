@@ -110,6 +110,7 @@
 #define EJTAG_DCR_DB			(1 << 17)
 #define EJTAG_DCR_IB			(1 << 16)
 #define EJTAG_DCR_INTE			(1 << 4)
+#define EJTAG_DCR_MP			(1 << 2)
 
 /* breakpoint support */
 #define EJTAG_IBS				0xFF301000
