@@ -34,6 +34,7 @@ extern struct rtos_type ThreadX_rtos;
 extern struct rtos_type eCos_rtos;
 extern struct rtos_type Linux_os;
 extern struct rtos_type ChibiOS_rtos;
+extern struct rtos_type embKernel_rtos;
 
 static struct rtos_type *rtos_types[] = {
 	&ThreadX_rtos,
@@ -41,6 +42,7 @@ static struct rtos_type *rtos_types[] = {
 	&eCos_rtos,
 	&Linux_os,
 	&ChibiOS_rtos,
+	&embKernel_rtos,
 	NULL
 };
 
