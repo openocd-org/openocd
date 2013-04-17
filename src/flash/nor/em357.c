@@ -358,6 +358,9 @@ static int em357_erase(struct flash_bank *bank, int first, int last)
 	if ((first == 0) && (last == (bank->num_sectors - 1)))
 		return em357_mass_erase(bank);
 
+	/* Enable FPEC clock */
+	target_write_u32(target, EM357_FPEC_CLK, 0x00000001);
+
 	/* unlock flash registers */
 	int retval = target_write_u32(target, EM357_FLASH_KEYR, KEY1);
 	if (retval != ERROR_OK)
@@ -519,7 +522,6 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
-	;
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;
@@ -609,6 +611,8 @@ static int em357_write(struct flash_bank *bank, uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
+	target_write_u32(target, EM357_FPEC_CLK, 0x00000001);
+
 	/* multiple half words (2-byte) to be programmed? */
 	if (words_remaining > 0) {
 		/* try using a block write */
@@ -680,14 +684,40 @@ static int em357_probe(struct flash_bank *bank)
 
 	em357_info->probed = 0;
 
+	switch (bank->size) {
+		case 0x10000:
+			/* 64k -- 64 1k pages */
+			num_pages = 64;
+			page_size = 1024;
+			break;
+		case 0x20000:
+			/* 128k -- 128 1k pages */
+			num_pages = 128;
+			page_size = 1024;
+			break;
+		case 0x30000:
+			/* 192k -- 96 2k pages */
+			num_pages = 96;
+			page_size = 2048;
+			break;
+		case 0x40000:
+			/* 256k -- 128 2k pages */
+			num_pages = 128;
+			page_size = 2048;
+			break;
+		default:
+			LOG_WARNING("No size specified for em357 flash driver, assuming 192k!");
+			num_pages = 96;
+			page_size = 2048;
+			break;
+	}
+
 	/* Enable FPEC CLK */
 	int retval = target_write_u32(target, EM357_FPEC_CLK, 0x00000001);
 	if (retval != ERROR_OK)
 		return retval;
 
-	page_size = 2048;
 	em357_info->ppage_size = 4;
-	num_pages = 96;
 
 	LOG_INFO("flash size = %dkbytes", num_pages*page_size/1024);
 
@@ -812,6 +842,9 @@ static int em357_mass_erase(struct flash_bank *bank)
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	/* Make sure the flash clock is on */
+	target_write_u32(target, EM357_FPEC_CLK, 0x00000001);
 
 	/* unlock option flash registers */
 	int retval = target_write_u32(target, EM357_FLASH_KEYR, KEY1);
