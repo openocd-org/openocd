@@ -53,6 +53,15 @@ static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info,
  * displaying/modifying memory and memory mapped registers.
  */
 
+static void ejtag_dma_dstrt_poll(struct mips_ejtag *ejtag_info)
+{
+	uint32_t ejtag_ctrl;
+	do {
+		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
+		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+}
+
 static int ejtag_dma_read(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *data)
 {
 	uint32_t v;
@@ -72,10 +81,7 @@ begin_ejtag_dma_read:
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
 	/* Wait for DSTRT to Clear */
-	do {
-		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	ejtag_dma_dstrt_poll(ejtag_info);
 
 	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
@@ -117,10 +123,7 @@ begin_ejtag_dma_read_h:
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
 	/* Wait for DSTRT to Clear */
-	do {
-		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	ejtag_dma_dstrt_poll(ejtag_info);
 
 	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
@@ -167,10 +170,7 @@ begin_ejtag_dma_read_b:
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
 	/* Wait for DSTRT to Clear */
-	do {
-		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	ejtag_dma_dstrt_poll(ejtag_info);
 
 	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
@@ -232,10 +232,7 @@ begin_ejtag_dma_write:
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
 	/* Wait for DSTRT to Clear */
-	do {
-		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	ejtag_dma_dstrt_poll(ejtag_info);
 
 	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
@@ -281,10 +278,7 @@ begin_ejtag_dma_write_h:
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
 	/* Wait for DSTRT to Clear */
-	do {
-		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	ejtag_dma_dstrt_poll(ejtag_info);
 
 	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
@@ -331,10 +325,7 @@ begin_ejtag_dma_write_b:
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
 	/* Wait for DSTRT to Clear */
-	do {
-		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	ejtag_dma_dstrt_poll(ejtag_info);
 
 	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
