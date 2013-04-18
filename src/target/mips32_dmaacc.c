@@ -28,6 +28,7 @@
 #endif
 
 #include "mips32_dmaacc.h"
+#include <helper/time_support.h>
 
 static int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint8_t *buf);
@@ -53,13 +54,20 @@ static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info,
  * displaying/modifying memory and memory mapped registers.
  */
 
-static void ejtag_dma_dstrt_poll(struct mips_ejtag *ejtag_info)
+static int ejtag_dma_dstrt_poll(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ejtag_ctrl;
+	int64_t start = timeval_ms();
+
 	do {
+		if (timeval_ms() - start > 1000) {
+			LOG_ERROR("DMA time out");
+			return -ETIMEDOUT;
+		}
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	return 0;
 }
 
 static int ejtag_dma_read(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t *data)
