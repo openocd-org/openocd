@@ -374,9 +374,34 @@ static int do_semihosting(struct target *target)
 		}
 		return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
+	case 0x12:	/* SYS_SYSTEM */
+		/* Provide SYS_SYSTEM functionality.  Uses the
+		 * libc system command, there may be a reason *NOT*
+		 * to use this, but as I can't think of one, I
+		 * implemented it this way.
+		 */
+		retval = target_read_memory(target, r1, 4, 2, params);
+		if (retval != ERROR_OK)
+			return retval;
+		else {
+			uint32_t len = target_buffer_get_u32(target, params+4);
+			uint32_t c_ptr = target_buffer_get_u32(target, params);
+			uint8_t cmd[256];
+			if (len > 255) {
+				result = -1;
+				arm->semihosting_errno = EINVAL;
+			} else {
+				memset(cmd, 0x0, 256);
+				retval = target_read_memory(target, c_ptr, 1, len, cmd);
+				if (retval != ERROR_OK)
+					return retval;
+				else
+					result = system((const char *)cmd);
+			}
+		}
+		break;
 	case 0x0d:	/* SYS_TMPNAM */
 	case 0x10:	/* SYS_CLOCK */
-	case 0x12:	/* SYS_SYSTEM */
 	case 0x17:	/* angel_SWIreason_EnterSVC */
 	case 0x30:	/* SYS_ELAPSED */
 	case 0x31:	/* SYS_TICKFREQ */
