@@ -130,8 +130,8 @@ static struct queue *queue_alloc(void)
 
 /* Lists of valid VID/PID pairs
  */
-static const uint16_t osbdm_vid[] = { 0x15a2, 0x15a2, 0 };
-static const uint16_t osbdm_pid[] = { 0x0042, 0x0058, 0 };
+static const uint16_t osbdm_vid[] = { 0x15a2, 0x15a2, 0x15a2, 0 };
+static const uint16_t osbdm_pid[] = { 0x0042, 0x0058, 0x005e, 0 };
 
 struct osbdm {
 	struct jtag_libusb_device_handle *devh; /* USB handle */
