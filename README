@@ -434,7 +434,7 @@ Using the GIT command line client, you might use the following command
 to set up a local copy of the current repository (make sure there is no
 directory called "openocd" in the current directory):
 
-   git clone git://git.code.sf.net/p/openocd/code
+   git clone git://git.code.sf.net/p/openocd/code openocd
 
 Then you can update that at your convenience using
 
