@@ -59,7 +59,7 @@
  * - 175x
  * - 176x (tested with LPC1768)
  *
- * lpc4300:
+ * lpc4300 (also available as lpc1800 - alias)
  * - 43x2 | 3 | 5 | 7 (tested with 4337)
  * - 18x2 | 3 | 5 | 7
  */
@@ -533,7 +533,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 128;
-	} else if (strcmp(CMD_ARGV[6], "lpc4300") == 0) {
+	} else if (strcmp(CMD_ARGV[6], "lpc1800") == 0 || strcmp(CMD_ARGV[6], "lpc4300") == 0) {
 		lpc2000_info->variant = lpc4300;
 		lpc2000_info->cmd51_dst_boundary = 512;
 		lpc2000_info->cmd51_can_256b = 0;
