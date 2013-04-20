@@ -153,10 +153,15 @@ static int mips32_pracc_exec_read(struct mips32_pracc_context *ctx, uint32_t add
 		}
 		/* save to our debug stack */
 		data = ctx->stack[--ctx->stack_offset];
+	} else if (address >= 0xFF200000) {
+		/* CPU keeps reading at the end of execution.
+		 * If we after 0xF0000000  address range, we can use
+		 * one shot jump instruction.
+		 * Since this instruction is limited to
+		 * 26bit, we need to do some magic to fit it to our needs. */
+		LOG_DEBUG("Reading unexpected address. Jump to 0xFF200200\n");
+		data = MIPS32_J((0x0FFFFFFF & 0xFF200200) >> 2);
 	} else {
-		/* TODO: send JMP 0xFF200000 instruction. Hopefully processor jump back
-		 * to start of debug vector */
-
 		LOG_ERROR("Error reading unexpected address 0x%8.8" PRIx32 "", address);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
