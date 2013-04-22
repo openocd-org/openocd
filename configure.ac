@@ -961,7 +961,7 @@ if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes -o $build_usb_b
       fi
     fi
     LDFLAGS="${LDFLAGS} ${FTD2XX_LDFLAGS}"
-    LIBS="${LIBS} ${FTD2XX_LIB}"
+    LIBS="${FTD2XX_LIB} ${LIBS}"
     AC_MSG_RESULT([${FTD2XX_LDFLAGS} ${FTD2XX_LIB}])
   else
     AC_CHECK_HEADER([ftd2xx.h],[],[
