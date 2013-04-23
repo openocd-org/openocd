@@ -365,23 +365,27 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 
 	/* program section command */
 	if (fallback == 0) {
-		unsigned prog_section_bytes = kinfo->sector_size >> 8;
-		for (i = 0; i < count; i += kinfo->sector_size) {
-			/*
-			 * The largest possible Kinetis "section" is
-			 * 16 bytes.  A full Kinetis sector is always
-			 * 256 "section"s.
-			 */
+		/*
+		 * Kinetis uses different terms for the granularity of
+		 * sector writes, e.g. "phrase" or "128 bits".  We use
+		 * the generic term "chunk". The largest possible
+		 * Kinetis "chunk" is 16 bytes (128 bits).
+		 */
+		unsigned prog_section_chunk_bytes = kinfo->sector_size >> 8;
+		/* assume the NVM sector size is half the FlexRAM size */
+		unsigned prog_size_bytes = MIN(kinfo->sector_size,
+					       kinetis_flash_params[kinfo->granularity].nvm_sector_size_bytes);
+		for (i = 0; i < count; i += prog_size_bytes) {
 			uint8_t residual_buffer[16];
 			uint8_t ftfx_fstat;
-			uint32_t section_count = 256;
+			uint32_t section_count = prog_size_bytes / prog_section_chunk_bytes;
 			uint32_t residual_wc = 0;
 
 			/*
 			 * Assume the word count covers an entire
 			 * sector.
 			 */
-			wc = kinfo->sector_size / 4;
+			wc = prog_size_bytes / 4;
 
 			/*
 			 * If bytes to be programmed are less than the
@@ -390,21 +394,21 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 			 * residual buffer so that a full "section"
 			 * may always be programmed.
 			 */
-			if ((count - i) < kinfo->sector_size) {
+			if ((count - i) < prog_size_bytes) {
 				/* number of bytes to program beyond full section */
-				unsigned residual_bc = (count-i) % prog_section_bytes;
+				unsigned residual_bc = (count-i) % prog_section_chunk_bytes;
 
 				/* number of complete words to copy directly from buffer */
 				wc = (count - i) / 4;
 
 				/* number of total sections to write, including residual */
-				section_count = DIV_ROUND_UP((count-i), prog_section_bytes);
+				section_count = DIV_ROUND_UP((count-i), prog_section_chunk_bytes);
 
 				/* any residual bytes delivers a whole residual section */
-				residual_wc = (residual_bc ? prog_section_bytes : 0)/4;
+				residual_wc = (residual_bc ? prog_section_chunk_bytes : 0)/4;
 
 				/* clear residual buffer then populate residual bytes */
-				(void) memset(residual_buffer, 0xff, prog_section_bytes);
+				(void) memset(residual_buffer, 0xff, prog_section_chunk_bytes);
 				(void) memcpy(residual_buffer, &buffer[i+4*wc], residual_bc);
 			}
 
@@ -770,7 +774,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 			for (i = 0; i < bank->num_sectors; i++) {
 				/* normal margin */
 				result = kinetis_ftfx_command(bank, FTFx_CMD_SECTSTAT, bank->base + bank->sectors[i].offset,
-						0, 0, 0, 1,  0, 0, 0, 0, &ftfx_fstat);
+						1, 0, 0, 0,  0, 0, 0, 0, &ftfx_fstat);
 
 				if (result == ERROR_OK) {
 					bank->sectors[i].is_erased = !(ftfx_fstat & 0x01);
