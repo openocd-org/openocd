@@ -1259,7 +1259,7 @@ static int gdb_write_memory_packet(struct connection *connection,
 
 	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
-	if (unhexify((char *)buffer, separator + 2, len) != (int)len)
+	if (unhexify((char *)buffer, separator, len) != (int)len)
 		LOG_ERROR("unable to decode memory packet");
 
 	retval = target_write_buffer(target, addr, len, buffer);
