@@ -1094,6 +1094,7 @@ static int arm11_target_create(struct target *target, Jim_Interp *interp)
 	if (!arm11)
 		return ERROR_FAIL;
 
+	arm11->arm.core_type = ARM_MODE_ANY;
 	arm_init_arch_info(target, &arm11->arm);
 
 	arm11->jtag_info.tap = target->tap;
