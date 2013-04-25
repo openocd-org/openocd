@@ -1796,6 +1796,9 @@ fail1:
 		for (j = 0; j < 3; j++, reg++)
 			cortex_m3_dwt_addreg(target, cache->reg_list + reg,
 				dwt_comp + 3 * i + j);
+
+		/* make sure we clear any watchpoints enabled on the target */
+		target_write_u32(target, comparator->dwt_comparator_address + 8, 0);
 	}
 
 	*register_get_last_cache_p(&target->reg_cache) = cache;
@@ -1887,6 +1890,9 @@ int cortex_m3_examine(struct target *target)
 			cortex_m3->fp_comparator_list[i].type =
 				(i < cortex_m3->fp_num_code) ? FPCR_CODE : FPCR_LITERAL;
 			cortex_m3->fp_comparator_list[i].fpcr_address = FP_COMP0 + 4 * i;
+
+			/* make sure we clear any breakpoints enabled on the target */
+			target_write_u32(target, cortex_m3->fp_comparator_list[i].fpcr_address, 0);
 		}
 		LOG_DEBUG("FPB fpcr 0x%" PRIx32 ", numcode %i, numlit %i",
 			fpcr,
