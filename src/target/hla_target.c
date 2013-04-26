@@ -5,6 +5,8 @@
  *   Copyright (C) 2011 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   revised:  4/25/13 by brent@mbari.org [DCC target request support]	   *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -37,9 +39,12 @@
 #include "armv7m.h"
 #include "cortex_m.h"
 #include "arm_semihosting.h"
+#include "target_request.h"
 
-#define ARMV7M_SCS_DCRSR	0xe000edf4
-#define ARMV7M_SCS_DCRDR	0xe000edf8
+#define savedDCRDR  dbgbase  /* FIXME: using target->dbgbase to preserve DCRDR */
+
+#define ARMV7M_SCS_DCRSR	DCB_DCRSR
+#define ARMV7M_SCS_DCRDR	DCB_DCRDR
 
 static inline struct hl_interface_s *target_to_adapter(struct target *target)
 {
@@ -263,6 +268,80 @@ static int adapter_examine_debug_reason(struct target *target)
 	return ERROR_OK;
 }
 
+static int hl_dcc_read(struct hl_interface_s *hl_if, uint8_t *value, uint8_t *ctrl)
+{
+	uint16_t dcrdr;
+	int retval = hl_if->layout->api->read_mem8(hl_if->fd,
+								DCB_DCRDR, sizeof(dcrdr), (uint8_t *)&dcrdr);
+	if (retval == ERROR_OK) {
+	    *ctrl = (uint8_t)dcrdr;
+	    *value = (uint8_t)(dcrdr >> 8);
+
+	    LOG_DEBUG("data 0x%x ctrl 0x%x", *value, *ctrl);
+
+	    if (dcrdr & 1) {
+			/* write ack back to software dcc register
+			 * to signify we have read data */
+			/* atomically clear just the byte containing the busy bit */
+			static const uint8_t zero;
+			retval = hl_if->layout->api->write_mem8(
+						hl_if->fd, DCB_DCRDR, 1, &zero);
+		}
+	}
+	return retval;
+}
+
+static int hl_target_request_data(struct target *target,
+	uint32_t size, uint8_t *buffer)
+{
+	struct hl_interface_s *hl_if = target_to_adapter(target);
+	uint8_t data;
+	uint8_t ctrl;
+	uint32_t i;
+
+	for (i = 0; i < (size * 4); i++) {
+		hl_dcc_read(hl_if, &data, &ctrl);
+		buffer[i] = data;
+	}
+
+	return ERROR_OK;
+}
+
+static int hl_handle_target_request(void *priv)
+{
+	struct target *target = priv;
+	if (!target_was_examined(target))
+		return ERROR_OK;
+	struct hl_interface_s *hl_if = target_to_adapter(target);
+
+	if (!target->dbg_msg_enabled)
+		return ERROR_OK;
+
+	if (target->state == TARGET_RUNNING) {
+		uint8_t data;
+		uint8_t ctrl;
+
+		hl_dcc_read(hl_if, &data, &ctrl);
+
+		/* check if we have data */
+		if (ctrl & (1 << 0)) {
+			uint32_t request;
+
+			/* we assume target is quick enough */
+			request = data;
+			hl_dcc_read(hl_if, &data, &ctrl);
+			request |= (data << 8);
+			hl_dcc_read(hl_if, &data, &ctrl);
+			request |= (data << 16);
+			hl_dcc_read(hl_if, &data, &ctrl);
+			request |= (data << 24);
+			target_request(target, request);
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static int adapter_init_arch_info(struct target *target,
 				       struct cortex_m3_common *cortex_m3,
 				       struct jtag_tap *tap)
@@ -279,6 +358,8 @@ static int adapter_init_arch_info(struct target *target,
 
 	armv7m->examine_debug_reason = adapter_examine_debug_reason;
 	armv7m->stlink = true;
+
+	target_register_timer_callback(hl_handle_target_request, 1, 1, target);
 
 	return ERROR_OK;
 }
@@ -331,6 +412,11 @@ static int adapter_debug_entry(struct target *target)
 	struct reg *r;
 	uint32_t xPSR;
 	int retval;
+
+	/* preserve the DCRDR across halts */
+	retval = target_read_u32(target, DCB_DCRDR, &target->savedDCRDR);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = armv7m->examine_debug_reason(target);
 	if (retval != ERROR_OK)
@@ -481,7 +567,6 @@ static int adapter_assert_reset(struct target *target)
 
 static int adapter_deassert_reset(struct target *target)
 {
-	int res;
 	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
@@ -496,14 +581,9 @@ static int adapter_deassert_reset(struct target *target)
 	 */
 	jtag_add_reset(0, 0);
 
-	if (!target->reset_halt) {
-		res = target_resume(target, 1, 0, 0, 0);
+	target->savedDCRDR = 0;  /* clear both DCC busy bits on initial resume */
 
-		if (res != ERROR_OK)
-			return res;
-	}
-
-	return ERROR_OK;
+	return target->reset_halt ? ERROR_OK : target_resume(target, 1, 0, 0, 0);
 }
 
 static int adapter_soft_reset_halt(struct target *target)
@@ -583,6 +663,11 @@ static int adapter_resume(struct target *target, int current,
 
 	armv7m_restore_context(target);
 
+	/* restore savedDCRDR */
+	res = target_write_u32(target, DCB_DCRDR, target->savedDCRDR);
+	if (res != ERROR_OK)
+		return res;
+
 	/* registers are now invalid */
 	register_cache_invalidate(armv7m->arm.core_cache);
 
@@ -660,6 +745,11 @@ static int adapter_step(struct target *target, int current,
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
 	armv7m_restore_context(target);
+
+	/* restore savedDCRDR */
+	res = target_write_u32(target, DCB_DCRDR, target->savedDCRDR);
+	if (res != ERROR_OK)
+		return res;
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
@@ -797,6 +887,7 @@ struct target_type hla_target = {
 	.poll = adapter_poll,
 	.arch_state = armv7m_arch_state,
 
+	.target_request_data = hl_target_request_data,
 	.assert_reset = adapter_assert_reset,
 	.deassert_reset = adapter_deassert_reset,
 	.soft_reset_halt = adapter_soft_reset_halt,
