@@ -111,7 +111,7 @@ configure.ac script of a local copy of the source tree, giving
 a version label like <em>0.3.0-foo</em>:
 
 @code
-tools/release/version.sh version tag add foo
+tools/release/version.sh tag add foo
 @endcode
 
 This command will modify the configure.ac script in your working copy
@@ -125,7 +125,7 @@ each time a derived package is released, incrementing the tag's
 version to facilitate tracking the changes you have distributed.
 
 @code
-tools/release/version.sh version bump tag foo
+tools/release/version.sh bump tag foo
 @endcode
 
 Of course, any patches in your branches must be provided to
