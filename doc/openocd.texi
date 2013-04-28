@@ -336,8 +336,10 @@ on a chip from ``Future Technology Devices International'' (FTDI)
 known as the FTDI FT2232; this is a USB full speed (12 Mbps) chip.
 See: @url{http://www.ftdichip.com} for more information.
 In summer 2009, USB high speed (480 Mbps) versions of these FTDI
-chips are starting to become available in JTAG adapters. (Adapters
-using those high speed FT2232H chips may support adaptive clocking.)
+chips are starting to become available in JTAG adapters. Around 2012 a new
+variant appeared - FT232H - this is a single-channel version of FT2232H.
+(Adapters using those high speed FT2232H or FT232H chips may support adaptive
+clocking.)
 
 The FT2232 chips are flexible enough to support some other
 transport options, such as SWD or the SPI variants used to
@@ -394,6 +396,8 @@ to be available anymore as of April 2012.
 @item @b{opendous}
 @* Link @url{http://code.google.com/p/opendous/wiki/JTAG} FT2232H-based
 (OpenHardware).
+@item @b{JTAG-lock-pick Tiny 2}
+@* Link @url{http://www.distortec.com/jtag-lock-pick-tiny-2} FT232H-based
 @end itemize
 
 @section USB-JTAG / Altera USB-Blaster compatibles
