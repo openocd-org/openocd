@@ -719,7 +719,6 @@ static int gdb_target_callback_event_handler(struct target *target,
 	int retval;
 	struct connection *connection = priv;
 
-	target_handle_event(target, event);
 	switch (event) {
 		case TARGET_EVENT_GDB_HALT:
 			gdb_frontend_halted(target, connection);
