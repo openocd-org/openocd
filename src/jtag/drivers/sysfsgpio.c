@@ -475,14 +475,18 @@ static int sysfsgpio_init(void)
 		goto out_error;
 
 	/* assume active low*/
-	trst_fd = setup_sysfs_gpio(trst_gpio, 1, 1);
-	if (trst_gpio > 0 && trst_fd < 0)
-		goto out_error;
+	if (trst_gpio > 0) {
+		trst_fd = setup_sysfs_gpio(trst_gpio, 1, 1);
+		if (trst_fd < 0)
+			goto out_error;
+	}
 
 	/* assume active low*/
-	srst_fd = setup_sysfs_gpio(srst_gpio, 1, 1);
-	if (srst_gpio > 0 && srst_fd < 0)
-		goto out_error;
+	if (srst_gpio > 0) {
+		srst_fd = setup_sysfs_gpio(srst_gpio, 1, 1);
+		if (srst_fd < 0)
+			goto out_error;
+	}
 
 	return ERROR_OK;
 
