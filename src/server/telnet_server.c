@@ -266,6 +266,39 @@ static void telnet_clear_line(struct connection *connection,
 	t_con->line_cursor = 0;
 }
 
+static void telnet_history_go(struct connection *connection, int idx)
+{
+	struct telnet_connection *t_con = connection->priv;
+
+	if (t_con->history[idx]) {
+		telnet_clear_line(connection, t_con);
+		t_con->line_size = strlen(t_con->history[idx]);
+		t_con->line_cursor = t_con->line_size;
+		memcpy(t_con->line, t_con->history[idx], t_con->line_size);
+		telnet_write(connection, t_con->line, t_con->line_size);
+		t_con->current_history = idx;
+	}
+	t_con->state = TELNET_STATE_DATA;
+}
+
+static void telnet_history_up(struct connection *connection)
+{
+	struct telnet_connection *t_con = connection->priv;
+
+	int last_history = (t_con->current_history > 0) ?
+				t_con->current_history - 1 :
+				TELNET_LINE_HISTORY_SIZE-1;
+	telnet_history_go(connection, last_history);
+}
+
+static void telnet_history_down(struct connection *connection)
+{
+	struct telnet_connection *t_con = connection->priv;
+
+	int next_history = (t_con->current_history + 1) % TELNET_LINE_HISTORY_SIZE;
+	telnet_history_go(connection, next_history);
+}
+
 static int telnet_input(struct connection *connection)
 {
 	int bytes_read;
@@ -441,7 +474,11 @@ static int telnet_input(struct connection *connection)
 							if (t_con->line_cursor < t_con->line_size)
 								telnet_write(connection, t_con->line + t_con->line_cursor++, 1);
 							t_con->state = TELNET_STATE_DATA;
-						} else
+						} else if (*buf_p == CTRL('P'))		/* cursor up */
+							telnet_history_up(connection);
+						else if (*buf_p == CTRL('N'))		/* cursor down */
+							telnet_history_down(connection);
+						else
 							LOG_DEBUG("unhandled nonprintable: %2.2x", *buf_p);
 					}
 				}
@@ -486,28 +523,9 @@ static int telnet_input(struct connection *connection)
 									t_con->line + t_con->line_cursor++, 1);
 						t_con->state = TELNET_STATE_DATA;
 					} else if (*buf_p == 'A') {	/* cursor up */
-						int last_history = (t_con->current_history > 0) ?
-								t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1;
-						if (t_con->history[last_history]) {
-							telnet_clear_line(connection, t_con);
-							t_con->line_size = strlen(t_con->history[last_history]);
-							t_con->line_cursor = t_con->line_size;
-							memcpy(t_con->line, t_con->history[last_history], t_con->line_size);
-							telnet_write(connection, t_con->line, t_con->line_size);
-							t_con->current_history = last_history;
-						}
-						t_con->state = TELNET_STATE_DATA;
+						telnet_history_up(connection);
 					} else if (*buf_p == 'B') {	/* cursor down */
-						int next_history = (t_con->current_history + 1) % TELNET_LINE_HISTORY_SIZE;
-						if (t_con->history[next_history]) {
-							telnet_clear_line(connection, t_con);
-							t_con->line_size = strlen(t_con->history[next_history]);
-							t_con->line_cursor = t_con->line_size;
-							memcpy(t_con->line, t_con->history[next_history], t_con->line_size);
-							telnet_write(connection, t_con->line, t_con->line_size);
-							t_con->current_history = next_history;
-						}
-						t_con->state = TELNET_STATE_DATA;
+						telnet_history_down(connection);
 					} else if (*buf_p == '3')
 						t_con->last_escape = *buf_p;
 					else
