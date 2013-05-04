@@ -519,7 +519,8 @@ static const struct command_registration interface_command_handlers[] = {
 			"[srst_pulls_trst|trst_pulls_srst|combined|separate] "
 			"[srst_gates_jtag|srst_nogate] "
 			"[trst_push_pull|trst_open_drain] "
-			"[srst_push_pull|srst_open_drain]",
+			"[srst_push_pull|srst_open_drain] "
+			"[connect_deassert_srst|connect_assert_srst]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
