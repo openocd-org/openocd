@@ -43,8 +43,8 @@
 		exit(-1); \
 	} while (0)
 
-static char remote_bitbang_host[REMOTE_BITBANG_HOST_MAX] = "openocd";
-static uint16_t remote_bitbang_port;
+static char *remote_bitbang_host;
+static char *remote_bitbang_port;
 
 FILE *remote_bitbang_in;
 FILE *remote_bitbang_out;
@@ -73,6 +73,9 @@ static int remote_bitbang_quit(void)
 		LOG_ERROR("fclose: %s", strerror(errno));
 		return ERROR_FAIL;
 	}
+
+	free(remote_bitbang_host);
+	free(remote_bitbang_port);
 
 	LOG_INFO("remote_bitbang interface quit");
 	return ERROR_OK;
@@ -132,40 +135,41 @@ static struct bitbang_interface remote_bitbang_bitbang = {
 
 static int remote_bitbang_init_tcp(void)
 {
-	LOG_INFO("Connecting to %s:%i", remote_bitbang_host, remote_bitbang_port);
-	int fd = socket(PF_INET, SOCK_STREAM, 0);
-	if (fd < 0) {
-		LOG_ERROR("socket: %s", strerror(errno));
+	struct addrinfo hints = { .ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM };
+	struct addrinfo *result, *rp;
+	int fd;
+
+	LOG_INFO("Connecting to %s:%s",
+			remote_bitbang_host ? remote_bitbang_host : "localhost",
+			remote_bitbang_port);
+
+	/* Obtain address(es) matching host/port */
+	int s = getaddrinfo(remote_bitbang_host, remote_bitbang_port, &hints, &result);
+	if (s != 0) {
+		LOG_ERROR("getaddrinfo: %s\n", gai_strerror(s));
 		return ERROR_FAIL;
 	}
 
-	struct hostent *hent = gethostbyname(remote_bitbang_host);
-	if (hent == NULL) {
-		char *errorstr = "???";
-		switch (h_errno) {
-			case HOST_NOT_FOUND:
-				errorstr = "host not found";
-				break;
-			case NO_ADDRESS:
-				errorstr = "no address";
-				break;
-			case NO_RECOVERY:
-				errorstr = "no recovery";
-				break;
-			case TRY_AGAIN:
-				errorstr = "try again";
-				break;
-		}
-		LOG_ERROR("gethostbyname: %s", errorstr);
-		return ERROR_FAIL;
+	/* getaddrinfo() returns a list of address structures.
+	 Try each address until we successfully connect(2).
+	 If socket(2) (or connect(2)) fails, we (close the socket
+	 and) try the next address. */
+
+	for (rp = result; rp != NULL ; rp = rp->ai_next) {
+		fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (fd == -1)
+			continue;
+
+		if (connect(fd, rp->ai_addr, rp->ai_addrlen) != -1)
+			break; /* Success */
+
+		close(fd);
 	}
 
-	struct sockaddr_in addr;
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(remote_bitbang_port);
-	addr.sin_addr = *(struct in_addr *)hent->h_addr;
-	if (connect(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) < 0) {
-		LOG_ERROR("connect: %s", strerror(errno));
+	freeaddrinfo(result); /* No longer needed */
+
+	if (rp == NULL) { /* No address succeeded */
+		LOG_ERROR("Failed to connect: %s", strerror(errno));
 		return ERROR_FAIL;
 	}
 
@@ -187,6 +191,11 @@ static int remote_bitbang_init_tcp(void)
 
 static int remote_bitbang_init_unix(void)
 {
+	if (remote_bitbang_host == NULL) {
+		LOG_ERROR("host/socket not specified");
+		return ERROR_FAIL;
+	}
+
 	LOG_INFO("Connecting to unix socket %s", remote_bitbang_host);
 	int fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {
@@ -225,7 +234,7 @@ static int remote_bitbang_init(void)
 	bitbang_interface = &remote_bitbang_bitbang;
 
 	LOG_INFO("Initializing remote_bitbang driver");
-	if (remote_bitbang_port == 0)
+	if (remote_bitbang_port == NULL)
 		return remote_bitbang_init_unix();
 	return remote_bitbang_init_tcp();
 }
@@ -233,7 +242,10 @@ static int remote_bitbang_init(void)
 COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_port_command)
 {
 	if (CMD_ARGC == 1) {
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], remote_bitbang_port);
+		uint16_t port;
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], port);
+		free(remote_bitbang_port);
+		remote_bitbang_port = port == 0 ? NULL : strdup(CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 	return ERROR_COMMAND_SYNTAX_ERROR;
@@ -242,8 +254,8 @@ COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_port_command)
 COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_host_command)
 {
 	if (CMD_ARGC == 1) {
-		strncpy(remote_bitbang_host, CMD_ARGV[0], REMOTE_BITBANG_HOST_MAX);
-		remote_bitbang_host[REMOTE_BITBANG_HOST_MAX-1] = '\0';
+		free(remote_bitbang_host);
+		remote_bitbang_host = strdup(CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 	return ERROR_COMMAND_SYNTAX_ERROR;
@@ -255,7 +267,7 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 		.handler = remote_bitbang_handle_remote_bitbang_port_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the port to use to connect to the remote jtag.\n"
-			"  if 0, use unix sockets to connect to the remote jtag.",
+			"  if 0 or unset, use unix sockets to connect to the remote jtag.",
 		.usage = "port_number",
 	},
 	{
@@ -263,7 +275,7 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 		.handler = remote_bitbang_handle_remote_bitbang_host_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the host to use to connect to the remote jtag.\n"
-			"  if port is 0, this is the name of the unix socket to use.",
+			"  if port is 0 or unset, this is the name of the unix socket to use.",
 		.usage = "host_name",
 	},
 	COMMAND_REGISTRATION_DONE,
