@@ -173,20 +173,7 @@ static int remote_bitbang_init_tcp(void)
 		return ERROR_FAIL;
 	}
 
-	remote_bitbang_in = fdopen(fd, "r");
-	if (remote_bitbang_in == NULL) {
-		LOG_ERROR("fdopen: failed to open read stream");
-		return ERROR_FAIL;
-	}
-
-	remote_bitbang_out = fdopen(fd, "w");
-	if (remote_bitbang_out == NULL) {
-		LOG_ERROR("fdopen: failed to open write stream");
-		return ERROR_FAIL;
-	}
-
-	LOG_INFO("remote_bitbang driver initialized");
-	return ERROR_OK;
+	return fd;
 }
 
 static int remote_bitbang_init_unix(void)
@@ -213,30 +200,39 @@ static int remote_bitbang_init_unix(void)
 		return ERROR_FAIL;
 	}
 
+	return fd;
+}
+
+static int remote_bitbang_init(void)
+{
+	int fd;
+	bitbang_interface = &remote_bitbang_bitbang;
+
+	LOG_INFO("Initializing remote_bitbang driver");
+	if (remote_bitbang_port == NULL)
+		fd = remote_bitbang_init_unix();
+	else
+		fd = remote_bitbang_init_tcp();
+
+	if (fd < 0)
+		return fd;
+
 	remote_bitbang_in = fdopen(fd, "r");
 	if (remote_bitbang_in == NULL) {
 		LOG_ERROR("fdopen: failed to open read stream");
+		close(fd);
 		return ERROR_FAIL;
 	}
 
 	remote_bitbang_out = fdopen(fd, "w");
 	if (remote_bitbang_out == NULL) {
 		LOG_ERROR("fdopen: failed to open write stream");
+		fclose(remote_bitbang_in);
 		return ERROR_FAIL;
 	}
 
 	LOG_INFO("remote_bitbang driver initialized");
 	return ERROR_OK;
-}
-
-static int remote_bitbang_init(void)
-{
-	bitbang_interface = &remote_bitbang_bitbang;
-
-	LOG_INFO("Initializing remote_bitbang driver");
-	if (remote_bitbang_port == NULL)
-		return remote_bitbang_init_unix();
-	return remote_bitbang_init_tcp();
 }
 
 COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_port_command)
