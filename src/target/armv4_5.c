@@ -1051,7 +1051,8 @@ const struct command_registration arm_command_handlers[] = {
 };
 
 int arm_get_gdb_reg_list(struct target *target,
-	struct reg **reg_list[], int *reg_list_size)
+	struct reg **reg_list[], int *reg_list_size,
+	enum target_register_class reg_class)
 {
 	struct arm *arm = target_to_arm(target);
 	int i;

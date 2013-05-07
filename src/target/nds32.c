@@ -91,21 +91,23 @@ static int nds32_get_core_reg(struct reg *reg)
 		return ERROR_OK;
 	}
 
+	int mapped_regnum = nds32->register_map(nds32, reg_arch_info->num);
+
 	if (reg_arch_info->enable == false) {
 		reg_arch_info->value = NDS32_REGISTER_DISABLE;
 		retval = ERROR_FAIL;
 	} else {
 		if ((nds32->fpu_enable == false) &&
-			(NDS32_REG_TYPE_FPU == nds32_reg_type(reg_arch_info->num))) {
+			(NDS32_REG_TYPE_FPU == nds32_reg_type(mapped_regnum))) {
 			reg_arch_info->value = 0;
 			retval = ERROR_OK;
 		} else if ((nds32->audio_enable == false) &&
-			(NDS32_REG_TYPE_AUMR == nds32_reg_type(reg_arch_info->num))) {
+			(NDS32_REG_TYPE_AUMR == nds32_reg_type(mapped_regnum))) {
 			reg_arch_info->value = 0;
 			retval = ERROR_OK;
 		} else {
 			retval = aice_read_register(aice,
-					reg_arch_info->num, &(reg_arch_info->value));
+					mapped_regnum, &(reg_arch_info->value));
 		}
 
 		LOG_DEBUG("reading register %i(%s), value: 0x%8.8" PRIx32,
@@ -301,44 +303,46 @@ static int nds32_set_core_reg(struct reg *reg, uint8_t *buf)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	int mapped_regnum = nds32->register_map(nds32, reg_arch_info->num);
+
 	/* ignore values that will generate exception */
-	if (nds32_reg_exception(reg_arch_info->num, value))
+	if (nds32_reg_exception(mapped_regnum, value))
 		return ERROR_OK;
 
 	LOG_DEBUG("writing register %i(%s) with value 0x%8.8" PRIx32,
 			reg_arch_info->num, reg->name, value);
 
 	if ((nds32->fpu_enable == false) &&
-		(NDS32_REG_TYPE_FPU == nds32_reg_type(reg_arch_info->num))) {
+		(NDS32_REG_TYPE_FPU == nds32_reg_type(mapped_regnum))) {
 
 		buf_set_u32(reg->value, 0, 32, 0);
 	} else if ((nds32->audio_enable == false) &&
-		(NDS32_REG_TYPE_AUMR == nds32_reg_type(reg_arch_info->num))) {
+		(NDS32_REG_TYPE_AUMR == nds32_reg_type(mapped_regnum))) {
 
 		buf_set_u32(reg->value, 0, 32, 0);
 	} else {
 		buf_set_u32(reg->value, 0, 32, value);
-		aice_write_register(aice, reg_arch_info->num, reg_arch_info->value);
+		aice_write_register(aice, mapped_regnum, reg_arch_info->value);
 
 		/* After set value to registers, read the value from target
 		 * to avoid W1C inconsistency. */
-		aice_read_register(aice, reg_arch_info->num, &(reg_arch_info->value));
+		aice_read_register(aice, mapped_regnum, &(reg_arch_info->value));
 	}
 
 	reg->valid = true;
 	reg->dirty = false;
 
 	/* update registers to take effect right now */
-	if (IR0 == reg_arch_info->num) {
+	if (IR0 == mapped_regnum) {
 		nds32_update_psw(nds32);
-	} else if (MR0 == reg_arch_info->num) {
+	} else if (MR0 == mapped_regnum) {
 		nds32_update_mmu_info(nds32);
-	} else if ((MR6 == reg_arch_info->num) || (MR7 == reg_arch_info->num)) {
+	} else if ((MR6 == mapped_regnum) || (MR7 == mapped_regnum)) {
 		/* update lm information */
 		nds32_update_lm_info(nds32);
-	} else if (MR8 == reg_arch_info->num) {
+	} else if (MR8 == mapped_regnum) {
 		nds32_update_cache_info(nds32);
-	} else if (FUCPR == reg_arch_info->num) {
+	} else if (FUCPR == mapped_regnum) {
 		/* update audio/fpu setting */
 		nds32_check_extension(nds32);
 	}
@@ -415,16 +419,61 @@ static struct reg_cache *nds32_build_reg_cache(struct target *target,
 		reg_arch_info[i].enable = false;
 
 		reg_list[i].name = nds32_reg_simple_name(i);
+		reg_list[i].number = reg_arch_info[i].num;
 		reg_list[i].size = nds32_reg_size(i);
 		reg_list[i].arch_info = &reg_arch_info[i];
+
+		reg_list[i].reg_data_type = malloc(sizeof(struct reg_data_type));
 
 		if (FD0 <= reg_arch_info[i].num && reg_arch_info[i].num <= FD31) {
 			reg_list[i].value = &(reg_arch_info[i].value_64);
 			reg_list[i].type = &nds32_reg_access_type_64;
+
+			reg_list[i].reg_data_type->type = REG_TYPE_IEEE_DOUBLE;
+			reg_list[i].reg_data_type->id = "ieee_double";
+			reg_list[i].group = "float";
 		} else {
 			reg_list[i].value = &(reg_arch_info[i].value);
 			reg_list[i].type = &nds32_reg_access_type;
+			reg_list[i].group = "general";
+
+			if ((FS0 <= reg_arch_info[i].num) && (reg_arch_info[i].num <= FS31)) {
+				reg_list[i].reg_data_type->type = REG_TYPE_IEEE_SINGLE;
+				reg_list[i].reg_data_type->id = "ieee_single";
+				reg_list[i].group = "float";
+			} else if ((reg_arch_info[i].num == FPCSR) ||
+				   (reg_arch_info[i].num == FPCFG)) {
+				reg_list[i].group = "float";
+			} else if ((reg_arch_info[i].num == R28) ||
+				   (reg_arch_info[i].num == R29) ||
+				   (reg_arch_info[i].num == R31)) {
+				reg_list[i].reg_data_type->type = REG_TYPE_DATA_PTR;
+				reg_list[i].reg_data_type->id = "data_ptr";
+			} else if ((reg_arch_info[i].num == R30) ||
+				   (reg_arch_info[i].num == PC)) {
+				reg_list[i].reg_data_type->type = REG_TYPE_CODE_PTR;
+				reg_list[i].reg_data_type->id = "code_ptr";
+			} else {
+				reg_list[i].reg_data_type->type = REG_TYPE_UINT32;
+				reg_list[i].reg_data_type->id = "uint32";
+			}
 		}
+
+		if (R16 <= reg_arch_info[i].num && reg_arch_info[i].num <= R25)
+			reg_list[i].caller_save = true;
+		else
+			reg_list[i].caller_save = false;
+
+		reg_list[i].feature = malloc(sizeof(struct reg_feature));
+
+		if (R0 <= reg_arch_info[i].num && reg_arch_info[i].num <= IFC_LP)
+			reg_list[i].feature->name = "org.gnu.gdb.nds32.core";
+		else if (CR0 <= reg_arch_info[i].num && reg_arch_info[i].num <= SECUR0)
+			reg_list[i].feature->name = "org.gnu.gdb.nds32.system";
+		else if (D0L24 <= reg_arch_info[i].num && reg_arch_info[i].num <= CBE3)
+			reg_list[i].feature->name = "org.gnu.gdb.nds32.audio";
+		else if (FPCSR <= reg_arch_info[i].num && reg_arch_info[i].num <= FD31)
+			reg_list[i].feature->name = "org.gnu.gdb.nds32.fpu";
 
 		cache->num_regs++;
 	}
@@ -451,9 +500,7 @@ static struct reg *nds32_reg_current(struct nds32 *nds32, unsigned regnum)
 {
 	struct reg *r;
 
-	/* Register mapping, pass user-view registers to gdb */
-	int mapped_regnum = nds32->register_map(nds32, regnum);
-	r = nds32->core_cache->reg_list + mapped_regnum;
+	r = nds32->core_cache->reg_list + regnum;
 
 	return r;
 }
@@ -512,12 +559,36 @@ int nds32_set_mapped_reg(struct nds32 *nds32, unsigned regnum, uint32_t value)
 	return r->type->set(r, set_value);
 }
 
-/** get all register list */
-int nds32_get_gdb_reg_list(struct target *target,
+/** get general register list */
+static int nds32_get_general_reg_list(struct nds32 *nds32,
 		struct reg **reg_list[], int *reg_list_size)
 {
-	struct nds32 *nds32 = target_to_nds32(target);
+	struct reg *reg_current;
+	int i;
+	int current_idx;
+
+	/** freed in gdb_server.c */
+	*reg_list = malloc(sizeof(struct reg *) * (IFC_LP - R0 + 1));
+	current_idx = 0;
+
+	for (i = R0; i < IFC_LP + 1; i++) {
+		reg_current = nds32_reg_current(nds32, i);
+		if (((struct nds32_reg *)reg_current->arch_info)->enable) {
+			(*reg_list)[current_idx] = reg_current;
+			current_idx++;
+		}
+	}
+	*reg_list_size = current_idx;
+
+	return ERROR_OK;
+}
+
+/** get all register list */
+static int nds32_get_all_reg_list(struct nds32 *nds32,
+		struct reg **reg_list[], int *reg_list_size)
+{
 	struct reg_cache *reg_cache = nds32->core_cache;
+	struct reg *reg_current;
 	unsigned int i;
 
 	*reg_list_size = reg_cache->num_regs;
@@ -525,10 +596,33 @@ int nds32_get_gdb_reg_list(struct target *target,
 	/** freed in gdb_server.c */
 	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
-	for (i = 0; i < reg_cache->num_regs; i++)
-		(*reg_list)[i] = nds32_reg_current(nds32, i);
+	for (i = 0; i < reg_cache->num_regs; i++) {
+		reg_current = nds32_reg_current(nds32, i);
+		reg_current->exist = ((struct nds32_reg *)
+				reg_current->arch_info)->enable;
+		(*reg_list)[i] = reg_current;
+	}
 
 	return ERROR_OK;
+}
+
+/** get all register list */
+int nds32_get_gdb_reg_list(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class)
+{
+	struct nds32 *nds32 = target_to_nds32(target);
+
+	switch (reg_class) {
+		case REG_CLASS_ALL:
+			return nds32_get_all_reg_list(nds32, reg_list, reg_list_size);
+		case REG_CLASS_GENERAL:
+			return nds32_get_general_reg_list(nds32, reg_list, reg_list_size);
+		default:
+			return ERROR_FAIL;
+	}
+
+	return ERROR_FAIL;
 }
 
 static int nds32_select_memory_mode(struct target *target, uint32_t address,

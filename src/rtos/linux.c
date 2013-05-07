@@ -226,7 +226,8 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 		/*LOG_INFO("thread %lx current on core %x",thread_id,
 		 * target->coreid);*/
 		retval =
-			target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+			target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+					REG_CLASS_GENERAL);
 
 		if (retval != ERROR_OK)
 			return retval;
@@ -498,7 +499,7 @@ int get_current(struct target *target, int create)
 		int retval;
 
 		if (target_get_gdb_reg_list(head->target, &reg_list,
-				&reg_list_size) != ERROR_OK) {
+				&reg_list_size, REG_CLASS_GENERAL) != ERROR_OK) {
 			free(buffer);
 			return ERROR_TARGET_FAILURE;
 		}

@@ -14,6 +14,12 @@
  *   Copyright (C) ST-Ericsson SA 2011                                     *
  *   michel.jaouen@stericsson.com : smp minimum support                    *
  *                                                                         *
+ *   Copyright (C) 2013 Andes Technology                                   *
+ *   Hsiangkai Wang <hkwang@andestech.com>                                 *
+ *                                                                         *
+ *   Copyright (C) 2013 Franck Jullien                                     *
+ *   elec4fun@gmail.com                                                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -113,6 +119,11 @@ static int gdb_flash_program = 1;
  * Disabled by default.
  */
 static int gdb_report_data_abort;
+
+/* set if we are sending target descriptions to gdb
+ * via qXfer:features:read packet */
+/* disabled by default */
+static int gdb_use_target_description;
 
 static int gdb_last_signal(struct target *target)
 {
@@ -968,7 +979,8 @@ static int gdb_get_registers_packet(struct connection *connection,
 	if ((target->rtos != NULL) && (ERROR_OK == rtos_get_gdb_reg_list(connection)))
 		return ERROR_OK;
 
-	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+			REG_CLASS_GENERAL);
 	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
 
@@ -1027,7 +1039,8 @@ static int gdb_set_registers_packet(struct connection *connection,
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+			REG_CLASS_GENERAL);
 	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
 
@@ -1072,7 +1085,8 @@ static int gdb_get_register_packet(struct connection *connection,
 	LOG_DEBUG("-");
 #endif
 
-	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+			REG_CLASS_ALL);
 	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
 
@@ -1109,7 +1123,8 @@ static int gdb_set_register_packet(struct connection *connection,
 
 	LOG_DEBUG("-");
 
-	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size);
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+			REG_CLASS_ALL);
 	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
 
@@ -1670,6 +1685,331 @@ static int gdb_memory_map(struct connection *connection,
 	return ERROR_OK;
 }
 
+static const char *gdb_get_reg_type_name(enum reg_type type)
+{
+	switch (type) {
+		case REG_TYPE_INT8:
+			return "int8";
+		case REG_TYPE_INT16:
+			return "int16";
+		case REG_TYPE_INT32:
+			return "int32";
+		case REG_TYPE_INT64:
+			return "int64";
+		case REG_TYPE_INT128:
+			return "int128";
+		case REG_TYPE_UINT8:
+			return "uint8";
+		case REG_TYPE_UINT16:
+			return "uint16";
+		case REG_TYPE_UINT32:
+			return "uint32";
+		case REG_TYPE_UINT64:
+			return "uint64";
+		case REG_TYPE_UINT128:
+			return "uint128";
+		case REG_TYPE_CODE_PTR:
+			return "code_ptr";
+		case REG_TYPE_DATA_PTR:
+			return "data_ptr";
+		case REG_TYPE_IEEE_SINGLE:
+			return "ieee_single";
+		case REG_TYPE_IEEE_DOUBLE:
+			return "ieee_double";
+		case REG_TYPE_ARCH_DEFINED:
+			return "int"; /* return arbitrary string to avoid compile warning. */
+	}
+
+	return "int"; /* "int" as default value */
+}
+
+static int gdb_generate_reg_type_description(struct target *target,
+		char **tdesc, int *pos, int *size, struct reg_data_type *type)
+{
+	int retval = ERROR_OK;
+
+	if (type->type_class == REG_TYPE_CLASS_VECTOR) {
+		/* <vector id="id" type="type" count="count"/> */
+		xml_printf(&retval, tdesc, pos, size,
+				"<vector id=\"%s\" type=\"%s\" count=\"%d\"/>\n",
+				type->id, type->reg_type_vector->type->id,
+				type->reg_type_vector->count);
+
+	} else if (type->type_class == REG_TYPE_CLASS_UNION) {
+		/* <union id="id">
+		 *  <field name="name" type="type"/> ...
+		 * </union> */
+		xml_printf(&retval, tdesc, pos, size,
+				"<union id=\"%s\">\n",
+				type->id);
+
+		struct reg_data_type_union_field *field;
+		field = type->reg_type_union->fields;
+		while (field != NULL) {
+			xml_printf(&retval, tdesc, pos, size,
+					"<field name=\"%s\" type=\"%s\"/>\n",
+					field->name, field->type->id);
+
+			field = field->next;
+		}
+
+		xml_printf(&retval, tdesc, pos, size,
+				"</union>\n");
+
+	} else if (type->type_class == REG_TYPE_CLASS_STRUCT) {
+		struct reg_data_type_struct_field *field;
+		field = type->reg_type_struct->fields;
+
+		if (field->use_bitfields) {
+			/* <struct id="id" size="size">
+			 *  <field name="name" start="start" end="end"/> ...
+			 * </struct> */
+			xml_printf(&retval, tdesc, pos, size,
+					"<struct id=\"%s\" size=\"%d\">\n",
+					type->id, type->reg_type_struct->size);
+			while (field != NULL) {
+				xml_printf(&retval, tdesc, pos, size,
+						"<field name=\"%s\" start=\"%d\" end=\"%d\"/>\n",
+						field->name, field->bitfield->start,
+						field->bitfield->end);
+
+				field = field->next;
+			}
+		} else {
+			/* <struct id="id">
+			 *  <field name="name" type="type"/> ...
+			 * </struct> */
+			xml_printf(&retval, tdesc, pos, size,
+					"<struct id=\"%s\">\n",
+					type->id);
+			while (field != NULL) {
+				xml_printf(&retval, tdesc, pos, size,
+						"<field name=\"%s\" type=\"%s\"/>\n",
+						field->name, field->type->id);
+
+				field = field->next;
+			}
+		}
+
+		xml_printf(&retval, tdesc, pos, size,
+				"</struct>\n");
+
+	} else if (type->type_class == REG_TYPE_CLASS_FLAGS) {
+		/* <flags id="id" size="size">
+		 *  <field name="name" start="start" end="end"/> ...
+		 * </flags> */
+		xml_printf(&retval, tdesc, pos, size,
+				"<flags id=\"%s\" size=\"%d\">\n",
+				type->id, type->reg_type_flags->size);
+
+		struct reg_data_type_flags_field *field;
+		field = type->reg_type_flags->fields;
+		while (field != NULL) {
+			xml_printf(&retval, tdesc, pos, size,
+					"<field name=\"%s\" start=\"%d\" end=\"%d\"/>\n",
+					field->name, field->bitfield->start, field->bitfield->end);
+
+			field = field->next;
+		}
+
+		xml_printf(&retval, tdesc, pos, size,
+				"</flags>\n");
+
+	}
+
+	return ERROR_OK;
+}
+
+/* Get a list of available target registers features. feature_list must
+ * be freed by caller.
+ */
+int get_reg_features_list(struct target *target, char **feature_list[], int *feature_list_size,
+		struct reg **reg_list, int reg_list_size)
+{
+	int tbl_sz = 0;
+
+	/* Start with only one element */
+	*feature_list = calloc(1, sizeof(char *));
+
+	for (int i = 0; i < reg_list_size; i++) {
+		if (reg_list[i]->exist == false)
+			continue;
+
+		if ((reg_list[i]->feature->name != NULL)
+			&& (strcmp(reg_list[i]->feature->name, ""))) {
+			/* We found a feature, check if the feature is already in the
+			 * table. If not, allocate a new entry for the table and
+			 * put the new feature in it.
+			 */
+			for (int j = 0; j < (tbl_sz + 1); j++) {
+				if (!((*feature_list)[j])) {
+					(*feature_list)[tbl_sz++] = strdup(reg_list[i]->feature->name);
+					*feature_list = realloc(*feature_list, sizeof(char *) * (tbl_sz + 1));
+					(*feature_list)[tbl_sz] = NULL;
+					break;
+				} else {
+					if (!strcmp((*feature_list)[j], reg_list[i]->feature->name))
+						break;
+				}
+			}
+		}
+	}
+
+	if (feature_list_size)
+		*feature_list_size = tbl_sz;
+
+	return ERROR_OK;
+}
+
+static int gdb_generate_target_description(struct target *target, char **tdesc)
+{
+	int retval = ERROR_OK;
+	struct reg **reg_list;
+	int reg_list_size;
+	int pos = 0;
+	int size = 0;
+
+	xml_printf(&retval, tdesc, &pos, &size,
+			"<?xml version=\"1.0\"?>\n"
+			"<!DOCTYPE target SYSTEM \"gdb-target.dtd\">\n"
+			"<target version=\"1.0\">\n");
+
+	retval = target_get_gdb_reg_list(target, &reg_list,
+			&reg_list_size, REG_CLASS_ALL);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("get register list failed");
+		return ERROR_FAIL;
+	}
+
+	if (reg_list_size <= 0)
+		return ERROR_FAIL;
+
+	char **features = NULL;
+	/* Get a list of available target registers features */
+	retval = get_reg_features_list(target, &features, NULL, reg_list, reg_list_size);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Can't get the registers feature list");
+		return ERROR_FAIL;
+	}
+
+	/* If we found some features associated with registers, create sections */
+	int current_feature = 0;
+
+	/* generate target description according to register list */
+	if (features != NULL) {
+		while (features[current_feature]) {
+
+			xml_printf(&retval, tdesc, &pos, &size,
+					"<feature name=\"%s\">\n",
+					features[current_feature]);
+
+			int i;
+			for (i = 0; i < reg_list_size; i++) {
+
+				if (reg_list[i]->exist == false)
+					continue;
+
+				if (strcmp(reg_list[i]->feature->name, features[current_feature]))
+					continue;
+
+				const char *type_str;
+				if (reg_list[i]->reg_data_type != NULL) {
+					if (reg_list[i]->reg_data_type->type == REG_TYPE_ARCH_DEFINED) {
+						/* generate <type... first, if there are architecture-defined types. */
+						gdb_generate_reg_type_description(target, tdesc, &pos, &size,
+								reg_list[i]->reg_data_type);
+
+						type_str = reg_list[i]->reg_data_type->id;
+					} else {
+						/* predefined type */
+						type_str = gdb_get_reg_type_name(
+								reg_list[i]->reg_data_type->type);
+					}
+				} else {
+					/* Default type is "int" */
+					type_str = "int";
+				}
+
+				xml_printf(&retval, tdesc, &pos, &size,
+						"<reg name=\"%s\"", reg_list[i]->name);
+				xml_printf(&retval, tdesc, &pos, &size,
+						" bitsize=\"%d\"", reg_list[i]->size);
+				xml_printf(&retval, tdesc, &pos, &size,
+						" regnum=\"%d\"", reg_list[i]->number);
+				if (reg_list[i]->caller_save)
+					xml_printf(&retval, tdesc, &pos, &size,
+							" save-restore=\"yes\"");
+				else
+					xml_printf(&retval, tdesc, &pos, &size,
+							" save-restore=\"no\"");
+
+				xml_printf(&retval, tdesc, &pos, &size,
+						" type=\"%s\"", type_str);
+
+				if (reg_list[i]->group != NULL)
+					xml_printf(&retval, tdesc, &pos, &size,
+							" group=\"%s\"", reg_list[i]->group);
+
+				xml_printf(&retval, tdesc, &pos, &size,
+						"/>\n");
+			}
+
+			xml_printf(&retval, tdesc, &pos, &size,
+					"</feature>\n");
+
+			current_feature++;
+		}
+	}
+
+	xml_printf(&retval, tdesc, &pos, &size,
+			"</target>\n");
+
+	if (reg_list != NULL)
+		free(reg_list);
+
+	if (features != NULL)
+		free(features);
+
+	return ERROR_OK;
+}
+
+static int gdb_get_target_description_chunk(struct target *target, char **chunk,
+		int32_t offset, uint32_t length)
+{
+	static char *tdesc;
+	static uint32_t tdesc_length;
+
+	if (tdesc == NULL) {
+		gdb_generate_target_description(target, &tdesc);
+		tdesc_length = strlen(tdesc);
+	}
+
+	char transfer_type;
+
+	if (length < (tdesc_length - offset))
+		transfer_type = 'm';
+	else
+		transfer_type = 'l';
+
+	*chunk = malloc(length + 2);
+	(*chunk)[0] = transfer_type;
+	if (transfer_type == 'm') {
+		strncpy((*chunk) + 1, tdesc + offset, length);
+		(*chunk)[1 + length] = '\0';
+	} else {
+		strncpy((*chunk) + 1, tdesc + offset, tdesc_length - offset);
+		(*chunk)[1 + (tdesc_length - offset)] = '\0';
+
+		/* After gdb-server sends out last chunk, invalidate tdesc. */
+		free(tdesc);
+		tdesc = NULL;
+		tdesc_length = 0;
+	}
+
+	return ERROR_OK;
+}
+
 static int gdb_query_packet(struct connection *connection,
 		char *packet, int packet_size)
 {
@@ -1744,9 +2084,10 @@ static int gdb_query_packet(struct connection *connection,
 			&buffer,
 			&pos,
 			&size,
-			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-;QStartNoAckMode+",
+			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;QStartNoAckMode+",
 			(GDB_BUFFER_SIZE - 1),
-			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-');
+			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-',
+			(gdb_use_target_description == 1) ? '+' : '-');
 
 		if (retval != ERROR_OK) {
 			gdb_send_error(connection, 01);
@@ -1762,8 +2103,6 @@ static int gdb_query_packet(struct connection *connection,
 		return gdb_memory_map(connection, packet, packet_size);
 	else if (strncmp(packet, "qXfer:features:read:", 20) == 0) {
 		char *xml = NULL;
-		int size = 0;
-		int pos = 0;
 		int retval = ERROR_OK;
 
 		int offset;
@@ -1778,17 +2117,12 @@ static int gdb_query_packet(struct connection *connection,
 			return ERROR_OK;
 		}
 
-		if (strcmp(annex, "target.xml") != 0) {
-			gdb_send_error(connection, 01);
-			return ERROR_OK;
-		}
-
-		xml_printf(&retval,
-			&xml,
-			&pos,
-			&size, \
-			"l < target version=\"1.0\">\n < architecture > arm</architecture>\n</target>\n");
-
+		/* Target should prepare correct target description for annex.
+		 * The first character of returned xml is 'm' or 'l'. 'm' for
+		 * there are *more* chunks to transfer. 'l' for it is the *last*
+		 * chunk of target description.
+		 */
+		retval = gdb_get_target_description_chunk(target, &xml, offset, length);
 		if (retval != ERROR_OK) {
 			gdb_error(connection, retval);
 			return retval;
@@ -2372,6 +2706,54 @@ COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_gdb_target_description_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_use_target_description);
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_gdb_save_tdesc_command)
+{
+	static char *tdesc;
+	static uint32_t tdesc_length;
+	struct target *target = get_current_target(CMD_CTX);
+	char *tdesc_filename;
+
+	if (tdesc == NULL) {
+		gdb_generate_target_description(target, &tdesc);
+		tdesc_length = strlen(tdesc);
+	}
+
+	struct fileio fileio;
+	size_t size_written;
+
+	tdesc_filename = malloc(strlen(target_type_name(target)) + 5);
+	sprintf(tdesc_filename, "%s.xml", target_type_name(target));
+
+	int retval = fileio_open(&fileio, tdesc_filename, FILEIO_WRITE, FILEIO_TEXT);
+
+	free(tdesc_filename);
+
+	if (retval != ERROR_OK) {
+		LOG_WARNING("Can't open %s for writing", tdesc_filename);
+		return ERROR_FAIL;
+	}
+
+	retval = fileio_write(&fileio, tdesc_length, tdesc, &size_written);
+
+	fileio_close(&fileio);
+
+	if (retval != ERROR_OK) {
+		LOG_WARNING("Error while writing the tdesc file");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 static const struct command_registration gdb_command_handlers[] = {
 	{
 		.name = "gdb_sync",
@@ -2423,6 +2805,19 @@ static const struct command_registration gdb_command_handlers[] = {
 		.help = "Display or specify type of breakpoint "
 			"to be used by gdb 'break' commands.",
 		.usage = "('hard'|'soft'|'disable')"
+	},
+	{
+		.name = "gdb_target_description",
+		.handler = handle_gdb_target_description_command,
+		.mode = COMMAND_CONFIG,
+		.help = "enable or disable target description",
+		.usage = "('enable'|'disable')"
+	},
+	{
+		.name = "gdb_save_tdesc",
+		.handler = handle_gdb_save_tdesc_command,
+		.mode = COMMAND_EXEC,
+		.help = "Save the target description file",
 	},
 	COMMAND_REGISTRATION_DONE
 };

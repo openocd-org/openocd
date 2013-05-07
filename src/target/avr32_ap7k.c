@@ -576,7 +576,8 @@ int avr32_ap7k_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
-int avr32_ap7k_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
+int avr32_ap7k_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
+		int *reg_list_size, enum target_register_class reg_class)
 {
 #if 0
 	/* get pointers to arch-specific information */

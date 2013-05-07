@@ -114,6 +114,12 @@ struct backoff_timer {
 	int count;
 };
 
+/* split target registers into multiple class */
+enum target_register_class {
+	REG_CLASS_ALL,
+	REG_CLASS_GENERAL,
+};
+
 /* target_type.h contains the full definition of struct target_type */
 struct target {
 	struct target_type *type;			/* target type definition (name, access functions) */
@@ -399,7 +405,8 @@ int target_remove_watchpoint(struct target *target,
  * This routine is a wrapper for target->type->get_gdb_reg_list.
  */
 int target_get_gdb_reg_list(struct target *target,
-		struct reg **reg_list[], int *reg_list_size);
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class);
 
 /**
  * Step the target.

@@ -259,7 +259,8 @@ static int armv7m_write_core_reg(struct target *target, struct reg *r,
  * hardware, so this also fakes a set of long-obsolete FPA registers that
  * are not used in EABI based software stacks.
  */
-int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
+int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
+		int *reg_list_size, enum target_register_class reg_class)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int i;

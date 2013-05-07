@@ -173,7 +173,8 @@ static int mips32_write_core_reg(struct target *target, int num)
 	return ERROR_OK;
 }
 
-int mips32_get_gdb_reg_list(struct target *target, struct reg **reg_list[], int *reg_list_size)
+int mips32_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
+		int *reg_list_size, enum target_register_class reg_class)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);

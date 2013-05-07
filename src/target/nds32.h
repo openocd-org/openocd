@@ -341,7 +341,7 @@ struct nds32 {
 };
 
 struct nds32_reg {
-	uint32_t num;
+	int32_t num;
 	uint32_t value;
 	uint64_t value_64;
 	struct target *target;
@@ -364,7 +364,8 @@ extern int nds32_remove_software_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 
 extern int nds32_get_gdb_reg_list(struct target *target,
-		struct reg **reg_list[], int *reg_list_size);
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class);
 
 extern int nds32_write_buffer(struct target *target, uint32_t address,
 		uint32_t size, const uint8_t *buffer);

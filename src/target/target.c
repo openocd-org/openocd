@@ -1037,9 +1037,10 @@ int target_remove_watchpoint(struct target *target,
 }
 
 int target_get_gdb_reg_list(struct target *target,
-		struct reg **reg_list[], int *reg_list_size)
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class)
 {
-	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size);
+	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
 }
 int target_step(struct target *target,
 		int current, uint32_t address, int handle_breakpoints)
