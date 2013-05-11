@@ -989,7 +989,8 @@ static int cortex_m3_assert_reset(struct target *target)
 
 	bool srst_asserted = false;
 
-	if (jtag_reset_config & RESET_SRST_NO_GATING) {
+	if ((jtag_reset_config & RESET_HAS_SRST) &&
+	    (jtag_reset_config & RESET_SRST_NO_GATING)) {
 		adapter_assert_reset();
 		srst_asserted = true;
 	}

@@ -428,7 +428,8 @@ static int adapter_assert_reset(struct target *target)
 
 	bool srst_asserted = false;
 
-	if (jtag_reset_config & RESET_SRST_NO_GATING) {
+	if ((jtag_reset_config & RESET_HAS_SRST) &&
+	    (jtag_reset_config & RESET_SRST_NO_GATING)) {
 		jtag_add_reset(0, 1);
 		res = adapter->layout->api->assert_srst(adapter->fd, 0);
 		srst_asserted = true;
