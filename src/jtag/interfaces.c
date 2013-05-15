@@ -83,6 +83,9 @@ extern struct jtag_interface presto_interface;
 #if BUILD_USBPROG == 1
 extern struct jtag_interface usbprog_interface;
 #endif
+#if BUILD_OPENJTAG == 1
+extern struct jtag_interface openjtag_interface;
+#endif
 #if BUILD_JLINK == 1
 extern struct jtag_interface jlink_interface;
 #endif
@@ -169,6 +172,9 @@ struct jtag_interface *jtag_interfaces[] = {
 #endif
 #if BUILD_USBPROG == 1
 		&usbprog_interface,
+#endif
+#if BUILD_OPENJTAG == 1
+		&openjtag_interface,
 #endif
 #if BUILD_JLINK == 1
 		&jlink_interface,
