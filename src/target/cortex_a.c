@@ -2756,7 +2756,8 @@ static const struct command_registration cortex_a8_command_handlers[] = {
 };
 
 struct target_type cortexa8_target = {
-	.name = "cortex_a8",
+	.name = "cortex_a",
+	.deprecated_name = "cortex_a8",
 
 	.poll = cortex_a8_poll,
 	.arch_state = armv7a_arch_state,
