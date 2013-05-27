@@ -2161,8 +2161,6 @@ int nds32_assert_reset(struct target *target)
 	struct aice_port_s *aice = target_to_aice(target);
 	struct nds32_cpu_version *cpu_version = &(nds32->cpu_version);
 
-	jtag_poll_set_enabled(true);
-
 	if (target->reset_halt) {
 		if ((nds32->soft_reset_halt)
 			|| (nds32->edm.version < 0x51)
@@ -2205,7 +2203,9 @@ static int nds32_gdb_attach(struct nds32 *nds32)
 		}
 
 		target_halt(nds32->target);
-		target_poll(nds32->target);
+
+		/* turn on polling */
+		jtag_poll_set_enabled(true);
 
 		gdb_attached = true;
 	}
