@@ -235,10 +235,7 @@ static int nds32_v3m_deassert_reset(struct target *target)
 		retval = target_halt(target);
 		if (retval != ERROR_OK)
 			return retval;
-		/* call target_poll() to avoid "Halt timed out" */
-		CHECK_RETVAL(target_poll(target));
-	} else {
-		jtag_poll_set_enabled(false);
+
 	}
 
 	return ERROR_OK;
