@@ -979,6 +979,102 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			},
 		},
 	},
+	{
+		.chipid_cidr    = 0x288B0A60,
+		.name           = "at91sam3s8a",
+		.total_flash_size     = 256 * 2048,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK_BASE_S,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes = 256 * 2048,
+				.nsectors   = 16,
+				.sector_size = 32768,
+				.page_size   = 256,
+			},
+/*		.bank[1] = { */
+			{
+				.present = 0,
+				.probed = 0,
+				.bank_number = 1,
+
+			},
+		},
+	},
+	{
+		.chipid_cidr    = 0x289B0A60,
+		.name           = "at91sam3s8b",
+		.total_flash_size     = 256 * 2048,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK_BASE_S,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes = 256 * 2048,
+				.nsectors   = 16,
+				.sector_size = 32768,
+				.page_size   = 256,
+			},
+/*		.bank[1] = { */
+			{
+				.present = 0,
+				.probed = 0,
+				.bank_number = 1,
+
+			},
+		},
+	},
+	{
+		.chipid_cidr    = 0x28AB0A60,
+		.name           = "at91sam3s8c",
+		.total_flash_size     = 256 * 2048,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK_BASE_S,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes = 256 * 2048,
+				.nsectors   = 16,
+				.sector_size = 32768,
+				.page_size   = 256,
+			},
+/*		.bank[1] = { */
+			{
+				.present = 0,
+				.probed = 0,
+				.bank_number = 1,
+
+			},
+		},
+	},
 
 	/* Start at91sam3n* series */
 	{
