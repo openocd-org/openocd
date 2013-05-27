@@ -71,8 +71,6 @@ static int nds32_v3_debug_entry(struct nds32 *nds32, bool enable_watchpoint)
 {
 	LOG_DEBUG("nds32_v3_debug_entry");
 
-	jtag_poll_set_enabled(false);
-
 	enum target_state backup_state = nds32->target->state;
 	nds32->target->state = TARGET_HALTED;
 
@@ -116,8 +114,6 @@ static int nds32_v3_debug_entry(struct nds32 *nds32, bool enable_watchpoint)
 
 		if (enable_watchpoint)
 			CHECK_RETVAL(v3_common_callback->activate_hardware_watchpoint(nds32->target));
-
-		jtag_poll_set_enabled(true);
 
 		return ERROR_FAIL;
 	}
@@ -227,9 +223,6 @@ static int nds32_v3_leave_debug_state(struct nds32 *nds32, bool enable_watchpoin
 		syscall_breakpoint.set = 1;
 		target_add_breakpoint(target, &syscall_breakpoint);
 	}
-
-	/* enable polling */
-	jtag_poll_set_enabled(true);
 
 	return ERROR_OK;
 }
