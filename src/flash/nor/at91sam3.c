@@ -73,6 +73,11 @@
 /* at91sam3s series (has always one flash bank) */
 #define FLASH_BANK_BASE_S   0x00400000
 
+/* at91sam3sd series (has always two flash banks) */
+#define FLASH_BANK0_BASE_SD FLASH_BANK_BASE_S
+#define FLASH_BANK1_BASE_512K_SD (FLASH_BANK0_BASE_SD+(512*1024/2))
+
+
 /* at91sam3n series (has always one flash bank) */
 #define FLASH_BANK_BASE_N   0x00400000
 
@@ -81,9 +86,6 @@
 /*Bank 1 of the at91sam3a/x series starts at 0x00080000 + half flash size*/
 #define	FLASH_BANK1_BASE_256K_AX	0x000A0000
 #define	FLASH_BANK1_BASE_512K_AX	0x000C0000
-
-#define FLASH_BANK0_BASE_SD FLASH_BANK_BASE_S
-#define FLASH_BANK1_BASE_512K_SD (FLASH_BANK0_BASE_SD+(512*1024/2))
 
 #define         AT91C_EFC_FCMD_GETD                 (0x0)	/* (EFC) Get Flash Descriptor */
 #define         AT91C_EFC_FCMD_WP                   (0x1)	/* (EFC) Write Page */
@@ -749,7 +751,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 				.present = 1,
 				.size_bytes =  256 * 1024,
 				.nsectors   =  16,
-				.sector_size = 16384,
+				.sector_size = 32768,
 				.page_size   = 256,
 			  },
 /*			.bank[1] = { */
@@ -764,7 +766,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 				.present = 1,
 				.size_bytes =  256 * 1024,
 				.nsectors   =  16,
-				.sector_size = 16384,
+				.sector_size = 32768,
 				.page_size   = 256,
 			},
 		},
