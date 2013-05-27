@@ -569,7 +569,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 
 	/* Note: The preliminary at91sam3s datasheet says on page 302 */
 	/* that the flash controller is at address 0x400E0800. */
-	/* This is _not_ the case, the controller resides at address 0x400e0a0. */
+	/* This is _not_ the case, the controller resides at address 0x400e0a00. */
 	{
 		.chipid_cidr    = 0x28A00960,
 		.name           = "at91sam3s4c",
@@ -728,6 +728,86 @@ static const struct sam3_chip_details all_sam3_details[] = {
 				.probed = 0,
 				.bank_number = 1,
 
+			},
+		},
+	},
+	{
+		.chipid_cidr    = 0x298B0A60,
+		.name           = "at91sam3sd8a",
+		.total_flash_size     = 512 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+		{
+/*			.bank[0] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  256 * 1024,
+				.nsectors   =  16,
+				.sector_size = 32768,
+				.page_size   = 256,
+			  },
+/*			.bank[1] = { */
+			  {
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_512K_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  256 * 1024,
+				.nsectors   =  16,
+				.sector_size = 32768,
+				.page_size   = 256,
+			},
+		},
+	},
+	{
+		.chipid_cidr    = 0x299B0A60,
+		.name           = "at91sam3sd8b",
+		.total_flash_size     = 512 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+		{
+/*			.bank[0] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  256 * 1024,
+				.nsectors   =  16,
+				.sector_size = 32768,
+				.page_size   = 256,
+			  },
+/*			.bank[1] = { */
+			  {
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_512K_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 6,	/* workaround silicon bug */
+				.present = 1,
+				.size_bytes =  256 * 1024,
+				.nsectors   =  16,
+				.sector_size = 32768,
+				.page_size   = 256,
 			},
 		},
 	},
