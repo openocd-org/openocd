@@ -70,6 +70,24 @@ proc program {filename args} {
 add_help_text program "write an image to flash, address is only required for binary images. verify, reset are optional"
 add_usage_text program "<filename> \[address\] \[verify\] \[reset\]"
 
+# stm32f0x uses the same flash driver as the stm32f1x
+# this alias enables the use of either name.
+proc stm32f0x args {
+	eval stm32f1x $args
+}
+
+# stm32f3x uses the same flash driver as the stm32f1x
+# this alias enables the use of either name.
+proc stm32f3x args {
+	eval stm32f1x $args
+}
+
+# stm32f4x uses the same flash driver as the stm32f2x
+# this alias enables the use of either name.
+proc stm32f4x args {
+	eval stm32f2x $args
+}
+
 # ease migration to updated flash driver
 proc stm32x args {
 	echo "DEPRECATED! use 'stm32f1x $args' not 'stm32x $args'"
