@@ -1061,11 +1061,11 @@ static int cortex_m3_assert_reset(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_DEBUG("Using Cortex-M3 %s", (reset_config == CORTEX_M3_RESET_SYSRESETREQ)
+		LOG_DEBUG("Using Cortex-M %s", (reset_config == CORTEX_M3_RESET_SYSRESETREQ)
 			? "SYSRESETREQ" : "VECTRESET");
 
 		if (reset_config == CORTEX_M3_RESET_VECTRESET) {
-			LOG_WARNING("Only resetting the Cortex-M3 core, use a reset-init event "
+			LOG_WARNING("Only resetting the Cortex-M core, use a reset-init event "
 				"handler to reset any peripherals or configure hardware srst support.");
 		}
 
@@ -2051,7 +2051,7 @@ static int cortex_m3_verify_pointer(struct command_context *cmd_ctx,
 	struct cortex_m3_common *cm3)
 {
 	if (cm3->common_magic != CORTEX_M3_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not a Cortex-M3");
+		command_print(cmd_ctx, "target is not a Cortex-M");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
