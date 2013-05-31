@@ -1490,6 +1490,9 @@ static int aice_check_dbger(uint32_t expect_status)
 			return ERROR_OK;
 		}
 
+		if ((i % 30) == 0)
+			keep_alive();
+
 		long long then = 0;
 		if (i == aice_count_to_check_dbger)
 			then = timeval_ms();
