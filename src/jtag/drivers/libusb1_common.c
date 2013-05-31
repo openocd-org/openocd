@@ -62,8 +62,11 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 		/** Free the device list **/
 		libusb_free_device_list(devs, 1);
 
-		if (errCode < 0)
+		if (errCode) {
+			LOG_ERROR("libusb_open() failed with %s",
+				  libusb_error_name(errCode));
 			return errCode;
+		}
 		return 0;
 	}
 	return -ENODEV;

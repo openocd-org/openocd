@@ -135,7 +135,8 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 
 		err = libusb_open(device, &ctx->usb_dev);
 		if (err != LIBUSB_SUCCESS) {
-			LOG_ERROR("libusb_open() failed with %d", err);
+			LOG_ERROR("libusb_open() failed with %s",
+				  libusb_error_name(err));
 			continue;
 		}
 

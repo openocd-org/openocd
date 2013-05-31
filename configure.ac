@@ -1200,9 +1200,14 @@ use_libusb0=no
 use_libusb1=no
 if test $build_usb = yes -o $build_usb_ng = yes; then
   if test $check_libusb0 = no -a $build_usb_ng = yes; then
-	AC_CHECK_HEADER([libusb-1.0/libusb.h],
-			[AC_DEFINE(HAVE_LIBUSB1, 1, [Define if you have libusb-1.0]) check_libusb0=no use_libusb1=yes ],
-			[ check_libusb0=yes use_libusb1=no ])
+	AC_CHECK_HEADER([libusb-1.0/libusb.h], [
+	    AC_DEFINE(HAVE_LIBUSB1, 1, [Define if you have libusb-1.0])
+	    check_libusb0=no use_libusb1=yes
+	    AC_SEARCH_LIBS([libusb_error_name], [usb-1.0],
+	      [AC_DEFINE(HAVE_LIBUSB_ERROR_NAME, 1, [Define if your libusb has libusb_error_name()])],
+	      [AC_MSG_WARN([libusb-1 older than 1.0.9 detected, consider updating])])
+	  ], [
+	    check_libusb0=yes use_libusb1=no ])
   fi
 
   if test $check_libusb0 = yes -o $build_usb = yes; then
