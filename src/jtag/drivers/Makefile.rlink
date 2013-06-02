@@ -51,10 +51,10 @@ DTCFILES += $(addsuffix _call.dtc, ${PRESCALERS})
 
 default: rlink_speed_table.c clean
 
-%_init.fsm: init.m4
+%_init.fsm: rlink_init.m4
 	${M4} -P -DSHIFTER_PRESCALER=`echo "$@" | sed -e's/_.*//'` $< > $@
 
-%_call.fsm: call.m4
+%_call.fsm: rlink_call.m4
 	${M4} -P -DSHIFTER_PRESCALER=`echo "$@" | sed -e's/_.*//'` $< > $@
 
 %.dtc: %.fsm
