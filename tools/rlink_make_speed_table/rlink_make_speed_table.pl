@@ -16,7 +16,7 @@
 #*   You should have received a copy of the GNU General Public License     *
 #*   along with this program; if not, write to the                         *
 #*   Free Software Foundation, Inc.,                                       *
-#*   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+#*   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
 #***************************************************************************
 
 # A simple utility to read a list of files (names composed by numeric prescaler arguments) and compose a C source file defining data structures which hold the binary data read from those files.
