@@ -327,19 +327,20 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 		return ERROR_OK;
 	} else if (strncmp(packet, "qfThreadInfo", 12) == 0) {
 		int i;
-		if ((target->rtos != NULL) && (target->rtos->thread_count != 0)) {
-
-			char *out_str = (char *) malloc(17 * target->rtos->thread_count + 5);
-			char *tmp_str = out_str;
-			tmp_str += sprintf(tmp_str, "m");
-			for (i = 0; i < target->rtos->thread_count; i++) {
-				if (i != 0)
-					tmp_str += sprintf(tmp_str, ",");
-				tmp_str += sprintf(tmp_str, "%016" PRIx64,
-						target->rtos->thread_details[i].threadid);
+		if (target->rtos != NULL) {
+			if (target->rtos->thread_count == 0) {
+				gdb_put_packet(connection, "l", 1);
+			} else {
+				/*thread id are 16 char +1 for ',' */
+				char *out_str = (char *) malloc(17 * target->rtos->thread_count + 1);
+				char *tmp_str = out_str;
+				for (i = 0; i < target->rtos->thread_count; i++) {
+					tmp_str += sprintf(tmp_str, "%c%016" PRIx64, i == 0 ? 'm' : ',',
+										target->rtos->thread_details[i].threadid);
+				}
+				gdb_put_packet(connection, out_str, strlen(out_str));
+				free(out_str);
 			}
-			tmp_str[0] = 0;
-			gdb_put_packet(connection, out_str, strlen(out_str));
 		} else
 			gdb_put_packet(connection, "", 0);
 
@@ -441,6 +442,7 @@ int rtos_generic_stack_read(struct target *target,
 		address -= stacking->stack_registers_size;
 	retval = target_read_buffer(target, address, stacking->stack_registers_size, stack_data);
 	if (retval != ERROR_OK) {
+		free(stack_data);
 		LOG_ERROR("Error reading stack frame from thread");
 		return retval;
 	}
@@ -475,6 +477,7 @@ int rtos_generic_stack_read(struct target *target,
 						stack_data[stacking->register_offsets[i].offset + j]);
 		}
 	}
+	free(stack_data);
 /*	LOG_OUTPUT("Output register string: %s\r\n", *hex_reg_list); */
 	return ERROR_OK;
 }
