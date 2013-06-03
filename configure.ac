@@ -516,10 +516,6 @@ AC_ARG_ENABLE([internal-jimtcl],
   AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
   [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
 
-AC_ARG_ENABLE([libusb0],
-  AS_HELP_STRING([--enable-libusb0], [Use libusb-0.1 library for USB JTAG devices]),
-  [check_libusb0=$enableval], [check_libusb0=no])
-
 AC_ARG_ENABLE([aice],
   AS_HELP_STRING([--enable-aice], [Enable building support for the Andes JTAG Programmer]),
   [build_aice=$enableval], [build_aice=no])
@@ -1178,42 +1174,53 @@ enum ftdi_chip_type x = TYPE_232H;
   CFLAGS=$CFLAGS_SAVE
 fi
 
-# check for usb.h when a driver will require it
-build_usb=no
+# check if some driver requires libusb-0.1
+need_usb0=no
 if test $build_vsllink = yes -o $build_usbprog = yes -o \
-  $build_rlink = yes -o $build_ulink = yes -o $build_armjtagew = yes -o \
-  $build_aice = yes
-then
-  build_usb=yes
+        $build_rlink = yes -o $build_ulink = yes -o $build_armjtagew = yes; then
+  need_usb0=yes
 fi
 
-# Check for libusb1 ported drivers.
-build_usb_ng=no
-if test $build_jlink = yes -o $build_hladapter_stlink = yes -o $build_osbdm = yes -o \
-  $build_opendous = yes -o $build_ftdi = yes -o $build_hladapter_icdi = yes
-then
-  build_usb_ng=yes
+# check if some driver can work with either libusb version
+need_usb=no
+if test $build_jlink = yes -o $build_osbdm = yes -o $build_opendous = yes -o \
+	$build_aice = yes; then
+  need_usb=yes
+fi
+
+# check if some driver requires libusb-1.x
+need_usb_ng=no
+if test $build_ftdi = yes -o $build_hladapter_icdi = yes -o \
+        $build_hladapter_stlink = yes; then
+  need_usb_ng=yes
 fi
 
 # check for libusb library if necessary
-use_libusb0=no
 use_libusb1=no
-if test $build_usb = yes -o $build_usb_ng = yes; then
-  if test $check_libusb0 = no -a $build_usb_ng = yes; then
-	AC_CHECK_HEADER([libusb-1.0/libusb.h], [
-	    AC_DEFINE(HAVE_LIBUSB1, 1, [Define if you have libusb-1.0])
-	    check_libusb0=no use_libusb1=yes
-	    AC_SEARCH_LIBS([libusb_error_name], [usb-1.0],
-	      [AC_DEFINE(HAVE_LIBUSB_ERROR_NAME, 1, [Define if your libusb has libusb_error_name()])],
-	      [AC_MSG_WARN([libusb-1 older than 1.0.9 detected, consider updating])])
-	  ], [
-	    check_libusb0=yes use_libusb1=no ])
-  fi
+if test $need_usb = yes -o $need_usb_ng = yes; then
+  AC_CHECK_HEADER([libusb-1.0/libusb.h], [
+	AC_DEFINE(HAVE_LIBUSB1, 1, [Define if you have libusb-1.x])
+	use_libusb1=yes
+	AC_SEARCH_LIBS([libusb_error_name], [usb-1.0],
+		[AC_DEFINE(HAVE_LIBUSB_ERROR_NAME, 1, [Define if your libusb has libusb_error_name()])],
+		[AC_MSG_WARN([libusb-1.x older than 1.0.9 detected, consider updating])])
+  ], [
+	if test $need_usb_ng = yes; then
+	  AC_MSG_ERROR([libusb-1.x is required for some driver(s) you've selected])
+	else
+	  AC_MSG_WARN([Trying legacy libusb-0.1 as a fallback, consider installing libusb-1 instead])
+	  need_usb0=yes
+	fi
+  ])
+fi
 
-  if test $check_libusb0 = yes -o $build_usb = yes; then
-	AC_CHECK_HEADERS([usb.h], [use_libusb0=yes],
-			[AC_MSG_ERROR([libusb or libusb-1.0 are required to build some OpenOCD driver(s)])])
-  fi
+use_libusb0=no
+if test $need_usb0 = yes; then
+	AC_CHECK_HEADERS([usb.h], [
+			use_libusb0=yes
+		], [
+			AC_MSG_ERROR([libusb-0.1 is required to build some OpenOCD driver(s)])
+		])
 fi
 
 AM_CONDITIONAL([RELEASE], [test $build_release = yes])
@@ -1252,8 +1259,6 @@ AM_CONDITIONAL([HLADAPTER], [test $build_hladapter_stlink = yes -o $build_hladap
 AM_CONDITIONAL([OSBDM], [test $build_osbdm = yes])
 AM_CONDITIONAL([OPENDOUS], [test $build_opendous = yes])
 AM_CONDITIONAL([SYSFSGPIO], [test $build_sysfsgpio = yes])
-AM_CONDITIONAL([USB], [test $build_usb = yes])
-AM_CONDITIONAL([USB_NG], [test $build_usb_ng = yes])
 AM_CONDITIONAL([USE_LIBUSB0], [test $use_libusb0 = yes])
 AM_CONDITIONAL([USE_LIBUSB1], [test $use_libusb1 = yes])
 AM_CONDITIONAL([IS_CYGWIN], [test $is_cygwin = yes])

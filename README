@@ -291,7 +291,7 @@ options may be available there:
 
   --disable-internal-jimtcl
                           Disable building internal jimtcl
-  --enable-libusb0        Use libusb-0.1 library for USB JTAG devices
+
   --enable-remote-bitbang Enable building support for the Remote Bitbang jtag
                           driver
 
