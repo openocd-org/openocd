@@ -1177,7 +1177,7 @@ static int jtag_validate_ircapture(void)
 	int total_ir_length = 0;
 	uint8_t *ir_test = NULL;
 	struct scan_field field;
-	int val;
+	uint64_t val;
 	int chain_pos = 0;
 	int retval;
 
@@ -1236,8 +1236,8 @@ static int jtag_validate_ircapture(void)
 		 */
 		if (tap->ir_length == 0) {
 			tap->ir_length = 2;
-			while ((val = buf_get_u32(ir_test, chain_pos, tap->ir_length + 1)) == 1
-					&& tap->ir_length <= 32) {
+			while ((val = buf_get_u64(ir_test, chain_pos, tap->ir_length + 1)) == 1
+					&& tap->ir_length <= 64) {
 				tap->ir_length++;
 			}
 			LOG_WARNING("AUTO %s - use \"... -irlen %d\"",
@@ -1251,25 +1251,23 @@ static int jtag_validate_ircapture(void)
 		 * this part of the JTAG spec, so their capture mask/value
 		 * attributes might disable this test.
 		 */
-		val = buf_get_u32(ir_test, chain_pos, tap->ir_length);
+		val = buf_get_u64(ir_test, chain_pos, tap->ir_length);
 		if ((val & tap->ir_capture_mask) != tap->ir_capture_value) {
-			LOG_ERROR("%s: IR capture error; saw 0x%0*x not 0x%0*x",
+			LOG_ERROR("%s: IR capture error; saw 0x%0*" PRIx64 " not 0x%0*" PRIx32,
 				jtag_tap_name(tap),
-				(tap->ir_length + 7) / tap->ir_length,
-				val,
-				(tap->ir_length + 7) / tap->ir_length,
-				(unsigned) tap->ir_capture_value);
+				(tap->ir_length + 7) / tap->ir_length, val,
+				(tap->ir_length + 7) / tap->ir_length, tap->ir_capture_value);
 
 			retval = ERROR_JTAG_INIT_FAILED;
 			goto done;
 		}
-		LOG_DEBUG("%s: IR capture 0x%0*x", jtag_tap_name(tap),
+		LOG_DEBUG("%s: IR capture 0x%0*" PRIx64, jtag_tap_name(tap),
 			(tap->ir_length + 7) / tap->ir_length, val);
 		chain_pos += tap->ir_length;
 	}
 
 	/* verify the '11' sentinel we wrote is returned at the end */
-	val = buf_get_u32(ir_test, chain_pos, 2);
+	val = buf_get_u64(ir_test, chain_pos, 2);
 	if (val != 0x3) {
 		char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
 
