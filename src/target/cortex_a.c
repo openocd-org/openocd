@@ -1978,7 +1978,7 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 	retval =
 		mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap, armv7a->debug_base + CPUDBG_DRCR, 1<<2);
 	if (retval != ERROR_OK)
-		return retval;
+		goto error_free_buff_r;
 
 	/* Read DSCR */
 	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
