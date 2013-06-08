@@ -1,6 +1,7 @@
 /***************************************************************************
  *   Copyright (C) 2010 by Michal Demin                                    *
  *   based on usbprog.c and arm-jtag-ew.c                                  *
+ *   Several fixes by R. Diez in 2013.                                     *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -81,12 +82,18 @@ enum {
 	SERIAL_FAST = 1
 };
 
+static const cc_t SHORT_TIMEOUT  = 1; /* Must be at least 1. */
+static const cc_t NORMAL_TIMEOUT = 10;
+
 static int buspirate_fd = -1;
 static int buspirate_pinmode = MODE_JTAG_OD;
 static int buspirate_baudrate = SERIAL_NORMAL;
 static int buspirate_vreg;
 static int buspirate_pullup;
 static char *buspirate_port;
+
+static enum tap_state last_tap_state = TAP_RESET;
+
 
 /* TAP interface */
 static void buspirate_tap_init(void);
@@ -109,7 +116,7 @@ static void buspirate_jtag_get_adcs(int);
 
 /* low level HW communication interface */
 static int buspirate_serial_open(char *port);
-static int buspirate_serial_setspeed(int fd, char speed);
+static int buspirate_serial_setspeed(int fd, char speed, cc_t timeout);
 static int buspirate_serial_write(int fd, char *buf, int size);
 static int buspirate_serial_read(int fd, char *buf, int size);
 static void buspirate_serial_close(int fd);
@@ -196,6 +203,54 @@ static int buspirate_execute_queue(void)
 	return buspirate_tap_execute();
 }
 
+
+/* Returns true if successful, false if error. */
+
+static bool read_and_discard_all_data(const int fd)
+{
+	/* LOG_INFO("Discarding any stale data from a previous connection..."); */
+
+	bool was_msg_already_printed = false;
+
+	for ( ; ; ) {
+		char buffer[1024];  /* Any size will do, it's a trade-off between stack size and performance. */
+
+		const ssize_t read_count = read(fd, buffer, sizeof(buffer));
+
+		if (read_count == 0) {
+			/* This is the "end of file" or "connection closed at the other end" condition. */
+			return true;
+		}
+
+		if (read_count > 0) {
+			if (!was_msg_already_printed)	{
+				LOG_INFO("Some stale data from a previous connection was discarded.");
+				was_msg_already_printed = true;
+			}
+
+			continue;
+		}
+
+		assert(read_count == -1);  /* According to the specification. */
+
+		const int errno_code = errno;
+
+		if (errno_code == EINTR)
+			continue;
+
+		if (errno_code == EAGAIN ||
+			errno_code == EWOULDBLOCK) {
+			/* We know that the file descriptor has been opened with O_NONBLOCK or O_NDELAY,
+			   and these codes mean that there is no data to read at present. */
+			return true;
+		}
+
+		/* Some other error has occurred. */
+		return false;
+	}
+}
+
+
 static int buspirate_init(void)
 {
 	if (buspirate_port == NULL) {
@@ -209,7 +264,33 @@ static int buspirate_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	buspirate_serial_setspeed(buspirate_fd, SERIAL_NORMAL);
+	/* The Operating System or the device itself may deliver stale data from the last connection,
+	   so discard all available bytes right after the new connection has been established.
+	   After all, we are implementing here a master/slave protocol, so the slave should have nothing
+	   to say until the master sends the first command.
+
+	   In the past, there was a tcflush() call in buspirate_serial_setspeed(), but that
+	   was not enough. I guess you must actively read from the serial port to trigger any
+	   data collection from the device and/or lower USB layers. If you disable the serial port
+	   read timeout (if you set SHORT_TIMEOUT to 0), then the discarding does not work any more.
+
+	   Note that we are lowering the serial port timeout for this first read operation,
+	   otherwise the normal initialisation would be delayed for too long. */
+
+	if (-1 == buspirate_serial_setspeed(buspirate_fd, SERIAL_NORMAL, SHORT_TIMEOUT)) {
+		LOG_ERROR("Error configuring the serial port.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if (!read_and_discard_all_data(buspirate_fd)) {
+		LOG_ERROR("Error while attempting to discard any stale data right after establishing the connection.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if (-1 == buspirate_serial_setspeed(buspirate_fd, SERIAL_NORMAL, NORMAL_TIMEOUT)) {
+		LOG_ERROR("Error configuring the serial port.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
 	buspirate_jtag_enable(buspirate_fd);
 
@@ -524,8 +605,20 @@ static void buspirate_scan(bool ir_scan, enum scan_type type,
 
 /************************* TAP related stuff **********/
 
+/* This buffer size matches the maximum CMD_TAP_SHIFT bit length in the Bus Pirate firmware,
+   look for constant 0x2000 in OpenOCD.c . */
 #define BUSPIRATE_BUFFER_SIZE 1024
-#define BUSPIRATE_MAX_PENDING_SCANS 32
+
+/* The old value of 32 scans was not enough to achieve near 100% utilisation ratio
+   for the current BUSPIRATE_BUFFER_SIZE value of 1024.
+   With 128 scans I am getting full USB 2.0 high speed packets (512 bytes long) when
+   using the JtagDue firmware on the Arduino Due instead of the Bus Pirate, which
+   amounts approximately to a 10% overall speed gain. Bigger packets should also
+   benefit the Bus Pirate, but the speed difference is much smaller.
+   Unfortunately, each 512-byte packet is followed by a 329-byte one, which is not ideal.
+   However, increasing BUSPIRATE_BUFFER_SIZE for the benefit of the JtagDue would
+   make it incompatible with the Bus Pirate firmware. */
+#define BUSPIRATE_MAX_PENDING_SCANS 128
 
 static char tms_chain[BUSPIRATE_BUFFER_SIZE]; /* send */
 static char tdi_chain[BUSPIRATE_BUFFER_SIZE]; /* send */
@@ -551,6 +644,8 @@ static void buspirate_tap_init(void)
 
 static int buspirate_tap_execute(void)
 {
+	static const int CMD_TAP_SHIFT_HEADER_LEN = 3;
+
 	char tmp[4096];
 	uint8_t *in_buf;
 	int i;
@@ -564,13 +659,13 @@ static int buspirate_tap_execute(void)
 	LOG_DEBUG("executing tap num bits = %i scans = %i",
 			tap_chain_index, tap_pending_scans_num);
 
-	bytes_to_send = (tap_chain_index+7) / 8;
+	bytes_to_send = DIV_ROUND_UP(tap_chain_index, 8);
 
 	tmp[0] = CMD_TAP_SHIFT; /* this command expects number of bits */
 	tmp[1] = (char)(tap_chain_index >> 8);  /* high */
 	tmp[2] = (char)(tap_chain_index);  /* low */
 
-	fill_index = 3;
+	fill_index = CMD_TAP_SHIFT_HEADER_LEN;
 	for (i = 0; i < bytes_to_send; i++) {
 		tmp[fill_index] = tdi_chain[i];
 		fill_index++;
@@ -578,18 +673,26 @@ static int buspirate_tap_execute(void)
 		fill_index++;
 	}
 
-	ret = buspirate_serial_write(buspirate_fd, tmp, 3 + bytes_to_send*2);
-	if (ret != bytes_to_send*2+3) {
+	/* jlink.c calls the routine below, which may be useful for debugging purposes.
+	   For example, enabling this allows you to compare the log outputs from jlink.c
+	   and from this module for JTAG development or troubleshooting purposes. */
+	if (false) {
+		last_tap_state = jtag_debug_state_machine(tms_chain, tdi_chain,
+												  tap_chain_index, last_tap_state);
+	}
+
+	ret = buspirate_serial_write(buspirate_fd, tmp, CMD_TAP_SHIFT_HEADER_LEN + bytes_to_send*2);
+	if (ret != bytes_to_send*2+CMD_TAP_SHIFT_HEADER_LEN) {
 		LOG_ERROR("error writing :(");
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	ret = buspirate_serial_read(buspirate_fd, tmp, bytes_to_send + 3);
-	if (ret != bytes_to_send + 3) {
+	ret = buspirate_serial_read(buspirate_fd, tmp, bytes_to_send + CMD_TAP_SHIFT_HEADER_LEN);
+	if (ret != bytes_to_send + CMD_TAP_SHIFT_HEADER_LEN) {
 		LOG_ERROR("error reading");
 		return ERROR_FAIL;
 	}
-	in_buf = (uint8_t *)(&tmp[3]);
+	in_buf = (uint8_t *)(&tmp[CMD_TAP_SHIFT_HEADER_LEN]);
 
 	/* parse the scans */
 	for (i = 0; i < tap_pending_scans_num; i++) {
@@ -609,8 +712,7 @@ static int buspirate_tap_execute(void)
 
 		free(buffer);
 	}
-	tap_pending_scans_num = 0;
-	tap_chain_index = 0;
+	buspirate_tap_init();
 	return ERROR_OK;
 }
 
@@ -634,6 +736,19 @@ static void buspirate_tap_append(int tms, int tdi)
 		int bit_index = tap_chain_index % 8;
 		uint8_t bit = 1 << bit_index;
 
+		if (0 == bit_index) {
+			/* Let's say that the TAP shift operation wants to shift 9 bits,
+			   so we will be sending to the Bus Pirate a bit count of 9 but still
+			   full 16 bits (2 bytes) of shift data.
+			   If we don't clear all bits at this point, the last 7 bits will contain
+			   random data from the last buffer contents, which is not pleasant to the eye.
+			   Besides, the Bus Pirate (or some clone) may want to assert in debug builds
+			   that, after consuming all significant data bits, the rest of them are zero.
+			   Therefore, for aesthetic and for assert purposes, we clear all bits below. */
+			tms_chain[chain_index] = 0;
+			tdi_chain[chain_index] = 0;
+		}
+
 		if (tms)
 			tms_chain[chain_index] |= bit;
 		else
@@ -645,9 +760,13 @@ static void buspirate_tap_append(int tms, int tdi)
 			tdi_chain[chain_index] &= ~bit;
 
 		tap_chain_index++;
-	} else
+	} else {
 		LOG_ERROR("tap_chain overflow, bad things will happen");
-
+		/* Exit abruptly, like jlink.c does. After a buffer overflow we don't want
+		   to carry on, as data will be corrupt. Another option would be to return
+		   some error code at this point. */
+		exit(-1);
+	}
 }
 
 static void buspirate_tap_append_scan(int length, uint8_t *buffer,
@@ -770,7 +889,10 @@ static void buspirate_jtag_set_speed(int fd, char speed)
 	buspirate_jtag_command(fd, tmp, 2);
 
 	/* here the adapter changes speed, we need follow */
-	buspirate_serial_setspeed(fd, speed);
+	if (-1 == buspirate_serial_setspeed(fd, speed, NORMAL_TIMEOUT)) {
+		LOG_ERROR("Error configuring the serial port.");
+		exit(-1);
+	}
 
 	buspirate_serial_write(fd, ack, 2);
 	ret = buspirate_serial_read(fd, tmp, 2);
@@ -779,7 +901,7 @@ static void buspirate_jtag_set_speed(int fd, char speed)
 		exit(-1);
 	}
 	if ((tmp[0] != CMD_UART_SPEED) || (tmp[1] != speed)) {
-		LOG_ERROR("Buspirate did not reply as expected");
+		LOG_ERROR("Buspirate did not reply as expected to the speed change command");
 		exit(-1);
 	}
 	LOG_INFO("Buspirate switched to %s mode",
@@ -865,28 +987,50 @@ static int buspirate_serial_open(char *port)
 	return fd;
 }
 
-static int buspirate_serial_setspeed(int fd, char speed)
+
+/* Returns -1 on error. */
+
+static int buspirate_serial_setspeed(int fd, char speed, cc_t timeout)
 {
 	struct termios t_opt;
 	speed_t baud = (speed == SERIAL_FAST) ? B1000000 : B115200;
 
 	/* set the serial port parameters */
 	fcntl(fd, F_SETFL, 0);
-	tcgetattr(fd, &t_opt);
-	cfsetispeed(&t_opt, baud);
-	cfsetospeed(&t_opt, baud);
+	if (0 != tcgetattr(fd, &t_opt))
+		return -1;
+
+	if (0 != cfsetispeed(&t_opt, baud))
+		return -1;
+
+	if (0 != cfsetospeed(&t_opt, baud))
+		return -1;
+
 	t_opt.c_cflag |= (CLOCAL | CREAD);
 	t_opt.c_cflag &= ~PARENB;
 	t_opt.c_cflag &= ~CSTOPB;
 	t_opt.c_cflag &= ~CSIZE;
 	t_opt.c_cflag |= CS8;
 	t_opt.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	t_opt.c_iflag &= ~(IXON | IXOFF | IXANY);
+
+	/* The serial port may have been configured for human interaction with
+	   the Bus Pirate console, but OpenOCD is going to use a binary protocol,
+	   so make sure to turn off any CR/LF translation and the like. */
+	t_opt.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR | ICRNL);
+
 	t_opt.c_oflag &= ~OPOST;
 	t_opt.c_cc[VMIN] = 0;
-	t_opt.c_cc[VTIME] = 10;
-	tcflush(fd, TCIFLUSH);
-	tcsetattr(fd, TCSANOW, &t_opt);
+	t_opt.c_cc[VTIME] = timeout;
+
+	/* Note that, in the past, TCSANOW was used below instead of TCSADRAIN,
+	   and CMD_UART_SPEED did not work properly then, at least with
+	   the Bus Pirate v3.5 (USB). */
+	if (0 != tcsetattr(fd, TCSADRAIN, &t_opt)) {
+		/* According to the Linux documentation, this is actually not enough
+		   to detect errors, you need to call tcgetattr() and check that
+		   all changes have been performed successfully. */
+		return -1;
+	}
 
 	return 0;
 }
