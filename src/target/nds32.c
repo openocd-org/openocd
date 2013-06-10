@@ -1644,7 +1644,7 @@ int nds32_init_arch_info(struct target *target, struct nds32 *nds32)
 	nds32->reset_halt_as_examine = false;
 	nds32->keep_target_edm_ctl = false;
 	nds32->word_access_mem = false;
-	nds32->virtual_hosting = false;
+	nds32->virtual_hosting = true;
 	nds32->hit_syscall = false;
 	nds32->active_syscall_id = NDS32_SYSCALL_UNDEFINED;
 	nds32->virtual_hosting_errno = 0;

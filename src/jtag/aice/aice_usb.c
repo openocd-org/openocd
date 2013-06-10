@@ -38,7 +38,7 @@ static uint8_t current_target_id;
 static uint32_t jtag_clock;
 static struct aice_usb_handler_s aice_handler;
 /* AICE max retry times. If AICE command timeout, retry it. */
-static int aice_max_retry_times = 10;
+static int aice_max_retry_times = 50;
 /* Default endian is little endian. */
 static enum aice_target_endian data_endian;
 
