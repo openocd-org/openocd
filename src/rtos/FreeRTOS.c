@@ -72,7 +72,19 @@ const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	0,						/* thread_stack_offset; */
 	52,						/* thread_name_offset; */
 	&rtos_standard_Cortex_M3_stacking,	/* stacking_info */
-	}
+	},
+	{
+	"nds32_v3",			/* target_name */
+	4,						/* thread_count_width; */
+	4,						/* pointer_width; */
+	16,						/* list_next_offset; */
+	20,						/* list_width; */
+	8,						/* list_elem_next_offset; */
+	12,						/* list_elem_content_offset */
+	0,						/* thread_stack_offset; */
+	52,						/* thread_name_offset; */
+	&rtos_standard_NDS32_N1068_stacking,	/* stacking_info */
+	},
 };
 
 #define FREERTOS_NUM_PARAMS ((int)(sizeof(FreeRTOS_params_list)/sizeof(struct FreeRTOS_params)))
