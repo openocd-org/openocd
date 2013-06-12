@@ -632,6 +632,12 @@ static int cortex_m3_soft_reset_halt(struct target *target)
 	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
+	/* soft_reset_halt is deprecated on cortex_m as the same functionality
+	 * can be obtained by using 'reset halt' and 'cortex_m reset_config vectreset'
+	 * As this reset only used VC_CORERESET it would only ever reset the cortex_m
+	 * core, not the peripherals */
+	LOG_WARNING("soft_reset_halt is deprecated, please use 'reset halt' instead.");
+
 	/* Enter debug state on reset; restore DEMCR in endreset_event() */
 	retval = mem_ap_write_u32(swjdp, DCB_DEMCR,
 			TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
