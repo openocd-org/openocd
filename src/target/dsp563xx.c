@@ -304,7 +304,7 @@ enum memory_type {
 	((s & 1) << 16) | ((w & 1) << 15) | ((d & 0x3f) << 8) | (p & 0x3f))
 
 /* the gdb register list is send in this order */
-uint8_t gdb_reg_list_idx[] = {
+static uint8_t gdb_reg_list_idx[] = {
 	DSP563XX_REG_IDX_X1, DSP563XX_REG_IDX_X0, DSP563XX_REG_IDX_Y1, DSP563XX_REG_IDX_Y0,
 	DSP563XX_REG_IDX_A2, DSP563XX_REG_IDX_A1, DSP563XX_REG_IDX_A0, DSP563XX_REG_IDX_B2,
 	DSP563XX_REG_IDX_B1, DSP563XX_REG_IDX_B0, DSP563XX_REG_IDX_PC, DSP563XX_REG_IDX_SR,
