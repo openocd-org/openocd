@@ -425,6 +425,24 @@ static void aice_usb_packet_append(uint8_t *out_buffer, int out_length,
 
 /***************************************************************************/
 /* AICE commands */
+static int aice_edm_reset(void)
+{
+	if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* turn off FASTMODE */
+	uint32_t pin_status;
+	if (aice_read_ctrl(AICE_READ_CTRL_GET_JTAG_PIN_STATUS, &pin_status)
+			!= ERROR_OK)
+		return ERROR_FAIL;
+
+	if (aice_write_ctrl(AICE_WRITE_CTRL_JTAG_PIN_STATUS, pin_status & (~0x2))
+			!= ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
 static int aice_scan_chain(uint32_t *id_codes, uint8_t *num_of_ids)
 {
 	int result;
@@ -462,7 +480,7 @@ static int aice_scan_chain(uint32_t *id_codes, uint8_t *num_of_ids)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -593,7 +611,7 @@ int aice_read_dtr(uint8_t target_id, uint32_t *data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -643,7 +661,7 @@ int aice_write_dtr(uint8_t target_id, uint32_t data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -693,7 +711,7 @@ int aice_read_misc(uint8_t target_id, uint32_t address, uint32_t *data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -743,7 +761,7 @@ int aice_write_misc(uint8_t target_id, uint32_t address, uint32_t data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -793,7 +811,7 @@ int aice_read_edmsr(uint8_t target_id, uint32_t address, uint32_t *data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -843,7 +861,7 @@ int aice_write_edmsr(uint8_t target_id, uint32_t address, uint32_t data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -919,7 +937,7 @@ static int aice_write_dim(uint8_t target_id, uint32_t *word, uint8_t num_of_word
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -968,7 +986,7 @@ static int aice_do_execute(uint8_t target_id)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -1019,7 +1037,7 @@ int aice_write_mem_b(uint8_t target_id, uint32_t address, uint32_t data)
 					return ERROR_FAIL;
 
 				/* clear timeout and retry */
-				if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+				if (aice_edm_reset() != ERROR_OK)
 					return ERROR_FAIL;
 
 				retry_times++;
@@ -1071,7 +1089,7 @@ int aice_write_mem_h(uint8_t target_id, uint32_t address, uint32_t data)
 					return ERROR_FAIL;
 
 				/* clear timeout and retry */
-				if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+				if (aice_edm_reset() != ERROR_OK)
 					return ERROR_FAIL;
 
 				retry_times++;
@@ -1123,7 +1141,7 @@ int aice_write_mem(uint8_t target_id, uint32_t address, uint32_t data)
 					return ERROR_FAIL;
 
 				/* clear timeout and retry */
-				if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+				if (aice_edm_reset() != ERROR_OK)
 					return ERROR_FAIL;
 
 				retry_times++;
@@ -1172,7 +1190,7 @@ int aice_fastread_mem(uint8_t target_id, uint8_t *word, uint32_t num_of_words)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -1220,7 +1238,7 @@ int aice_fastwrite_mem(uint8_t target_id, const uint8_t *word, uint32_t num_of_w
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -1270,7 +1288,7 @@ int aice_read_mem_b(uint8_t target_id, uint32_t address, uint32_t *data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -1320,7 +1338,7 @@ int aice_read_mem_h(uint8_t target_id, uint32_t address, uint32_t *data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -1371,7 +1389,7 @@ int aice_read_mem(uint8_t target_id, uint32_t address, uint32_t *data)
 				return ERROR_FAIL;
 
 			/* clear timeout and retry */
-			if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+			if (aice_edm_reset() != ERROR_OK)
 				return ERROR_FAIL;
 
 			retry_times++;
@@ -1920,14 +1938,6 @@ get_delay:
 	return ERROR_OK;
 }
 
-static int aice_edm_reset(void)
-{
-	if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
-		return ERROR_FAIL;
-
-	return ERROR_OK;
-}
-
 static int aice_usb_set_clock(int set_clock)
 {
 	if (aice_write_ctrl(AICE_WRITE_CTRL_TCK_CONTROL,
@@ -2367,9 +2377,10 @@ static int aice_usb_state(enum aice_target_state_s *state)
 
 static int aice_usb_reset(void)
 {
-	if (aice_write_ctrl(AICE_WRITE_CTRL_CLEAR_TIMEOUT_STATUS, 0x1) != ERROR_OK)
+	if (aice_edm_reset() != ERROR_OK)
 		return ERROR_FAIL;
 
+	/* issue TRST */
 	if (custom_trst_script == NULL) {
 		if (aice_write_ctrl(AICE_WRITE_CTRL_JTAG_PIN_CONTROL,
 					AICE_JTAG_PIN_CONTROL_TRST) != ERROR_OK)
