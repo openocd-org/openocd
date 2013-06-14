@@ -1199,10 +1199,10 @@ fi
 use_libusb1=no
 if test $need_usb = yes -o $need_usb_ng = yes; then
   AC_CHECK_HEADER([libusb-1.0/libusb.h], [
-	AC_DEFINE(HAVE_LIBUSB1, 1, [Define if you have libusb-1.x])
+	AC_DEFINE([HAVE_LIBUSB1], [1], [Define if you have libusb-1.x])
 	use_libusb1=yes
 	AC_SEARCH_LIBS([libusb_error_name], [usb-1.0],
-		[AC_DEFINE(HAVE_LIBUSB_ERROR_NAME, 1, [Define if your libusb has libusb_error_name()])],
+		[AC_DEFINE([HAVE_LIBUSB_ERROR_NAME], [1], [Define if your libusb has libusb_error_name()])],
 		[AC_MSG_WARN([libusb-1.x older than 1.0.9 detected, consider updating])])
   ], [
 	if test $need_usb_ng = yes; then
