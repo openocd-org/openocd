@@ -429,7 +429,11 @@ struct reg *arm_reg_current(struct arm *arm, unsigned regnum)
 	if (regnum > 16)
 		return NULL;
 
-	r = arm->core_cache->reg_list + arm->map[regnum];
+	if (!arm->map) {
+		LOG_ERROR("Register map is not available yet, the target is not fully initialised");
+		r = arm->core_cache->reg_list + regnum;
+	} else
+		r = arm->core_cache->reg_list + arm->map[regnum];
 
 	/* e.g. invalid CPSR said "secure monitor" mode on a core
 	 * that doesn't support it...
