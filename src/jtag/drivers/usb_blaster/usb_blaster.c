@@ -82,11 +82,20 @@
  */
 #define BUF_LEN 4096
 
+enum gpio_steer {
+	FIXED_0 = 0,
+	FIXED_1,
+	SRST,
+	TRST,
+};
+
 struct ublast_info {
-	int pin6;
-	int pin8;
+	enum gpio_steer pin6;
+	enum gpio_steer pin8;
 	int tms;
 	int tdi;
+	bool trst_asserted;
+	bool srst_asserted;
 	uint8_t buf[BUF_LEN];
 	int bufidx;
 
@@ -103,6 +112,10 @@ static struct ublast_info info = {
 	.ublast_vid = 0x09fb, /* Altera */
 	.ublast_pid = 0x6001, /* USB-Blaster */
 	.lowlevel_name = NULL,
+	.srst_asserted = false,
+	.trst_asserted = false,
+	.pin6 = FIXED_1,
+	.pin8 = FIXED_1,
 };
 
 /*
@@ -219,20 +232,6 @@ static void ublast_flush_buffer(void)
 #define READ_TDO	(1 << 0)
 
 /**
- * ublast_reset - reset the JTAG device is possible
- * @trst: 1 if TRST is to be asserted
- * @srst: 1 if SRST is to be asserted
- *
- * This is not implemented yet. If pin6 or pin8 controlls the TRST/SRST, code
- * should be added so that this function makes use of it.
- */
-static void ublast_reset(int trst, int srst)
-{
-	DEBUG_JTAG_IO("TODO: ublast_reset(%d,%d) isn't implemented!",
-		  trst, srst);
-}
-
-/**
  * ublast_queue_byte - queue one 'bitbang mode' byte for USB Blaster
  * @abyte: the byte to queue
  *
@@ -251,6 +250,28 @@ static void ublast_queue_byte(uint8_t abyte)
 }
 
 /**
+ * ublast_compute_pin - compute if gpio should be asserted
+ * @steer: control (ie. TRST driven, SRST driven, of fixed)
+ *
+ * Returns pin value (1 means driven high, 0 mean driven low)
+ */
+bool ublast_compute_pin(enum gpio_steer steer)
+{
+	switch (steer) {
+	case FIXED_0:
+		return 0;
+	case FIXED_1:
+		return 1;
+	case SRST:
+		return !info.srst_asserted;
+	case TRST:
+		return !info.trst_asserted;
+	default:
+		return 1;
+	}
+}
+
+/**
  * ublast_build_out - build bitbang mode output byte
  * @type: says if reading back TDO is required
  *
@@ -261,13 +282,29 @@ static uint8_t ublast_build_out(enum scan_type type)
 	uint8_t abyte = 0;
 
 	abyte |= info.tms ? TMS : 0;
-	abyte |= info.pin6 ? NCE : 0;
-	abyte |= info.pin8 ? NCS : 0;
+	abyte |= ublast_compute_pin(info.pin6) ? NCE : 0;
+	abyte |= ublast_compute_pin(info.pin8) ? NCS : 0;
 	abyte |= info.tdi ? TDI : 0;
 	abyte |= LED;
 	if (type == SCAN_IN || type == SCAN_IO)
 		abyte |= READ;
 	return abyte;
+}
+
+/**
+ * ublast_reset - reset the JTAG device is possible
+ * @trst: 1 if TRST is to be asserted
+ * @srst: 1 if SRST is to be asserted
+ */
+static void ublast_reset(int trst, int srst)
+{
+	uint8_t out_value;
+
+	info.trst_asserted = trst;
+	info.srst_asserted = srst;
+	out_value = ublast_build_out(SCAN_OUT);
+	ublast_queue_byte(out_value);
+	ublast_flush_buffer();
 }
 
 /**
@@ -841,24 +878,57 @@ COMMAND_HANDLER(ublast_handle_vid_pid_command)
 COMMAND_HANDLER(ublast_handle_pin_command)
 {
 	uint8_t out_value;
+	const char * const pin_name = CMD_ARGV[0];
+	enum gpio_steer *steer = NULL;
+	static const char * const pin_val_str[] = {
+		[FIXED_0] = "0",
+		[FIXED_1] = "1",
+		[SRST] = "SRST driven",
+		[TRST] = "TRST driven",
+	};
+
+	if (CMD_ARGC > 2) {
+		LOG_ERROR("%s takes exactly one or two arguments", CMD_NAME);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (!strcmp(pin_name, "pin6"))
+		steer = &info.pin6;
+	if (!strcmp(pin_name, "pin8"))
+		steer = &info.pin8;
+	if (!steer) {
+		LOG_ERROR("%s: pin name must be \"pin6\" or \"pin8\"",
+			  CMD_NAME);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (CMD_ARGC == 1) {
+		LOG_INFO("%s: %s is set as %s\n", CMD_NAME, pin_name,
+			 pin_val_str[*steer]);
+	}
 
 	if (CMD_ARGC == 2) {
-		const char * const pin_name = CMD_ARGV[0];
-		unsigned int state;
+		const char * const pin_value = CMD_ARGV[1];
+		char val = pin_value[0];
 
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], state);
-		if ((state != 0) && (state != 1)) {
-			LOG_ERROR("%s: pin state must be 0 or 1", CMD_NAME);
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-
-		if (!strcmp(pin_name, "pin6")) {
-			info.pin6 = state;
-		} else if (!strcmp(pin_name, "pin8")) {
-			info.pin8 = state;
-		} else {
-			LOG_ERROR("%s: pin name must be \"pin6\" or \"pin8\"",
-					CMD_NAME);
+		if (strlen(pin_value) > 1)
+			val = '?';
+		switch (tolower(val)) {
+		case '0':
+			*steer = FIXED_0;
+			break;
+		case '1':
+			*steer = FIXED_1;
+			break;
+		case 't':
+			*steer = TRST;
+			break;
+		case 's':
+			*steer = SRST;
+			break;
+		default:
+			LOG_ERROR("%s: pin value must be 0, 1, s (SRST) or t (TRST)",
+				pin_value);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
@@ -867,11 +937,8 @@ COMMAND_HANDLER(ublast_handle_pin_command)
 			ublast_queue_byte(out_value);
 			ublast_flush_buffer();
 		}
-		return ERROR_OK;
-	} else {
-		LOG_ERROR("%s takes exactly two arguments", CMD_NAME);
-		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(ublast_handle_lowlevel_drv_command)
@@ -907,11 +974,11 @@ static const struct command_registration ublast_command_handlers[] = {
 		.usage = "(ftdi|ftd2xx)",
 	},
 	{
-		.name = "usb_blaster",
+		.name = "usb_blaster_pin",
 		.handler = ublast_handle_pin_command,
 		.mode = COMMAND_ANY,
-		.help = "set pin state for the unused GPIO pins",
-		.usage = "(pin6|pin8) (0|1)",
+		.help = "show or set pin state for the unused GPIO pins",
+		.usage = "(pin6|pin8) (0|1|s|t)",
 	},
 	COMMAND_REGISTRATION_DONE
 };
