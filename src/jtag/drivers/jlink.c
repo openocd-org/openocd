@@ -64,14 +64,12 @@ static unsigned int jlink_hw_jtag_version = 2;
 /*#define JLINK_TAP_BUFFER_SIZE 256*/
 /*#define JLINK_TAP_BUFFER_SIZE 384*/
 
-#define JLINK_IN_BUFFER_SIZE			2048
+#define JLINK_IN_BUFFER_SIZE			(2048 + 1)
 #define JLINK_OUT_BUFFER_SIZE			(2*2048 + 4)
-#define JLINK_EMU_RESULT_BUFFER_SIZE	64
 
 /* Global USB buffers */
 static uint8_t usb_in_buffer[JLINK_IN_BUFFER_SIZE];
 static uint8_t usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
-static uint8_t usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 
 /* Constants for JLink command */
 #define EMU_CMD_VERSION			0x01
@@ -231,7 +229,6 @@ static int jlink_usb_message(struct jlink *jlink, int out_length, int in_length)
 static int jlink_usb_io(struct jlink *jlink, int out_length, int in_length);
 static int jlink_usb_write(struct jlink *jlink, int out_length);
 static int jlink_usb_read(struct jlink *jlink, int expected_size);
-static int jlink_usb_read_emu_result(struct jlink *jlink);
 
 /* helper functions */
 static int jlink_get_version_info(void);
@@ -1421,10 +1418,17 @@ static int jlink_tap_execute(void)
 	jlink_last_state = jtag_debug_state_machine(tms_buffer, tdi_buffer,
 			tap_length, jlink_last_state);
 
-	result = jlink_usb_message(jlink_handle, 4 + 2 * byte_length, byte_length);
-	if (result != byte_length) {
-		LOG_ERROR("jlink_tap_execute, wrong result %d (expected %d)",
-				result, byte_length);
+	result = jlink_usb_message(jlink_handle, 4 + 2 * byte_length,
+			use_jtag3 ? byte_length + 1 : byte_length);
+	if (result != ERROR_OK) {
+		LOG_ERROR("jlink_tap_execute failed USB io (%d)", result);
+		jlink_tap_init();
+		return ERROR_JTAG_QUEUE_FAILED;
+	}
+
+	result = use_jtag3 ? usb_in_buffer[byte_length] : 0;
+	if (result != 0) {
+		LOG_ERROR("jlink_tap_execute failed, result %d", result);
 		jlink_tap_init();
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
@@ -1539,44 +1543,12 @@ static int jlink_usb_message(struct jlink *jlink, int out_length, int in_length)
 	}
 
 	result = jlink_usb_read(jlink, in_length);
-	if ((result != in_length) && (result != (in_length + 1))) {
+	if (result != in_length) {
 		LOG_ERROR("usb_bulk_read failed (requested=%d, result=%d)",
 				in_length, result);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-
-	if (jlink_hw_jtag_version < 3)
-		return result;
-
-	int result2 = ERROR_OK;
-	if (result == in_length) {
-		/* Must read the result from the EMU too */
-		result2 = jlink_usb_read_emu_result(jlink);
-		if (1 != result2) {
-			LOG_ERROR("jlink_usb_read_emu_result retried requested = 1, "
-					"result=%d, in_length=%i", result2, in_length);
-			/* Try again once, should only happen if (in_length%64 == 0) */
-			result2 = jlink_usb_read_emu_result(jlink);
-			if (1 != result2) {
-				LOG_ERROR("jlink_usb_read_emu_result failed "
-					"(requested = 1, result=%d)", result2);
-				return ERROR_JTAG_DEVICE_ERROR;
-			}
-		}
-
-		/* Check the result itself */
-		result2 = usb_emu_result_buffer[0];
-	} else {
-		/* Save the result, then remove it from return value */
-		result2 = usb_in_buffer[result--];
-	}
-
-	if (result2) {
-		LOG_ERROR("jlink_usb_message failed with result=%d)", result2);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	return result;
+	return ERROR_OK;
 }
 
 /* calls the given usb_bulk_* function, allowing for the data to
@@ -1649,19 +1621,6 @@ static int jlink_usb_read(struct jlink *jlink, int expected_size)
 	DEBUG_JTAG_IO("jlink_usb_read, result = %d", result);
 
 	jlink_debug_buffer(usb_in_buffer, result);
-	return result;
-}
-
-/* Read the result from the previous EMU cmd into result_buffer. */
-static int jlink_usb_read_emu_result(struct jlink *jlink)
-{
-	int result = usb_bulk_read_ex(jlink->usb_handle, jlink_read_ep,
-		(char *)usb_emu_result_buffer, 1 /* JLINK_EMU_RESULT_BUFFER_SIZE */,
-		JLINK_USB_TIMEOUT);
-
-	DEBUG_JTAG_IO("jlink_usb_read_result, result = %d", result);
-
-	jlink_debug_buffer(usb_emu_result_buffer, result);
 	return result;
 }
 
