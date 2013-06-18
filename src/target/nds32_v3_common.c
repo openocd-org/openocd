@@ -240,6 +240,7 @@ static int nds32_v3_get_exception_address(struct nds32 *nds32,
 	uint32_t match_count;
 	int32_t i;
 	static int32_t number_of_hard_break;
+	uint32_t bp_control;
 
 	if (number_of_hard_break == 0) {
 		aice_read_debug_reg(aice, NDS_EDM_SR_EDM_CFG, &edm_cfg);
@@ -255,6 +256,14 @@ static int nds32_v3_get_exception_address(struct nds32 *nds32,
 		if (match_bits & (1 << i)) {
 			aice_read_debug_reg(aice, NDS_EDM_SR_BPA0 + i, address);
 			match_count++;
+
+			/* If target hits multiple read/access watchpoint,
+			 * select the first one. */
+			aice_read_debug_reg(aice, NDS_EDM_SR_BPC0 + i, &bp_control);
+			if (0x3 == (bp_control & 0x3)) {
+				match_count = 1;
+				break;
+			}
 		}
 	}
 
