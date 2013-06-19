@@ -95,14 +95,15 @@ int aice_program_edm(struct aice_port_s *aice, char *command_sequence)
 	return aice->port->api->program_edm(command_sequence);
 }
 
-int aice_pack_command(struct aice_port_s *aice, bool enable_pack_command)
+int aice_set_command_mode(struct aice_port_s *aice,
+		enum aice_command_mode command_mode)
 {
-	if (aice->port->api->pack_command == NULL) {
+	if (aice->port->api->set_command_mode == NULL) {
 		LOG_WARNING("Not implemented: %s", __func__);
 		return ERROR_FAIL;
 	}
 
-	return aice->port->api->pack_command(enable_pack_command);
+	return aice->port->api->set_command_mode(command_mode);
 }
 
 int aice_execute(struct aice_port_s *aice, uint32_t *instructions,
