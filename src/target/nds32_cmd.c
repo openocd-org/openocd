@@ -738,7 +738,7 @@ static int jim_nds32_multi_write(Jim_Interp *interp, int argc, Jim_Obj * const *
 	uint32_t data;
 	jim_wide i;
 
-	aice_pack_command(aice, true);
+	aice_set_command_mode(aice, AICE_COMMAND_MODE_PACK);
 	for (i = 0; i < num_of_pairs; i++) {
 		jim_wide tmp;
 		e = Jim_GetOpt_Wide(&goi, &tmp);
@@ -755,7 +755,7 @@ static int jim_nds32_multi_write(Jim_Interp *interp, int argc, Jim_Obj * const *
 		if (result != ERROR_OK)
 			break;
 	}
-	aice_pack_command(aice, false);
+	aice_set_command_mode(aice, AICE_COMMAND_MODE_NORMAL);
 
 	/* all args must be consumed */
 	if (goi.argc != 0)
