@@ -143,8 +143,8 @@ struct cfi_unlock_addresses {
 struct cfi_fixup {
 	uint16_t mfr;
 	uint16_t id;
-	void (*fixup)(struct flash_bank *bank, void *param);
-	void *param;
+	void (*fixup)(struct flash_bank *bank, const void *param);
+	const void *param;
 };
 
 #define CFI_MFR_AMD		0x0001

@@ -46,16 +46,19 @@
 #define AT49BV6416      0x00d6
 #define AT49BV6416T     0x00d2
 
-static struct cfi_unlock_addresses cfi_unlock_addresses[] = {
+static const struct cfi_unlock_addresses cfi_unlock_addresses[] = {
 	[CFI_UNLOCK_555_2AA] = { .unlock1 = 0x555, .unlock2 = 0x2aa },
 	[CFI_UNLOCK_5555_2AAA] = { .unlock1 = 0x5555, .unlock2 = 0x2aaa },
 };
 
+static const int cfi_status_poll_mask_dq6_dq7 = CFI_STATUS_POLL_MASK_DQ6_DQ7;
+
 /* CFI fixups forward declarations */
-static void cfi_fixup_0002_erase_regions(struct flash_bank *bank, void *param);
-static void cfi_fixup_0002_unlock_addresses(struct flash_bank *bank, void *param);
-static void cfi_fixup_reversed_erase_regions(struct flash_bank *bank, void *param);
-static void cfi_fixup_0002_write_buffer(struct flash_bank *bank, void *param);
+static void cfi_fixup_0002_erase_regions(struct flash_bank *bank, const void *param);
+static void cfi_fixup_0002_unlock_addresses(struct flash_bank *bank, const void *param);
+static void cfi_fixup_reversed_erase_regions(struct flash_bank *bank, const void *param);
+static void cfi_fixup_0002_write_buffer(struct flash_bank *bank, const void *param);
+static void cfi_fixup_0002_polling_bits(struct flash_bank *bank, const void *param);
 
 /* fixup after reading cmdset 0002 primary query table */
 static const struct cfi_fixup cfi_0002_fixups[] = {
@@ -71,6 +74,8 @@ static const struct cfi_fixup cfi_0002_fixups[] = {
 	 &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x274b, cfi_fixup_0002_unlock_addresses,
 	 &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
+	{CFI_MFR_SST, 0x235f, cfi_fixup_0002_polling_bits,	/* 39VF3201C */
+	 &cfi_status_poll_mask_dq6_dq7},
 	{CFI_MFR_SST, 0x236d, cfi_fixup_0002_unlock_addresses,
 	 &cfi_unlock_addresses[CFI_UNLOCK_555_2AA]},
 	{CFI_MFR_ATMEL, 0x00C8, cfi_fixup_reversed_erase_regions, NULL},
@@ -522,6 +527,11 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* default values for implementation specific workarounds */
+	pri_ext->_unlock1 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock1;
+	pri_ext->_unlock2 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock2;
+	pri_ext->_reversed_geometry = 0;
+
 	if ((pri_ext->pri[0] != 'P') || (pri_ext->pri[1] != 'R') || (pri_ext->pri[2] != 'I')) {
 		retval = cfi_send_command(bank, 0xf0, flash_address(bank, 0, 0x0));
 		if (retval != ERROR_OK)
@@ -589,11 +599,6 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 		(pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
 
 	LOG_DEBUG("WP# protection 0x%x", pri_ext->TopBottom);
-
-	/* default values for implementation specific workarounds */
-	pri_ext->_unlock1 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock1;
-	pri_ext->_unlock2 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock2;
-	pri_ext->_reversed_geometry = 0;
 
 	return ERROR_OK;
 }
@@ -1695,7 +1700,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xeafffffe		/* b	81ac <sp_16_done>		*/
 	};
 
-	/* see contib/loaders/flash/armv7m_cfi_span_16.s for src */
+	/* see contrib/loaders/flash/armv7m_cfi_span_16.s for src */
 	static const uint32_t armv7m_word_16_code[] = {
 		0x5B02F830,
 		0x9000F8A8,
@@ -1717,7 +1722,36 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0x0000BE00
 	};
 
-	/* see contib/loaders/flash/armv4_5_cfi_span_16_dq7.s for src */
+	/* see contrib/loaders/flash/armv7m_cfi_span_16_dq7.s for src */
+	static const uint32_t armv7m_word_16_code_dq7only[] = {
+		/* 00000000 <code>: */
+		0x5B02F830,		/* ldrh.w	r5, [r0], #2	*/
+		0x9000F8A8,		/* strh.w	r9, [r8]		*/
+		0xB000F8AA,		/* strh.w	fp, [sl]		*/
+		0x3000F8A8,		/* strh.w	r3, [r8]		*/
+		0xBF00800D,		/* strh	r5, [r1, #0]		*/
+						/* nop						*/
+
+		/* 00000014 <busy>: */
+		0xEA85880E,		/* ldrh	r6, [r1, #0]		*/
+						/* eor.w	r7, r5, r6		*/
+		0x40270706,		/* ands		r7, r4			*/
+		0x3A01D1FA,		/* bne.n	14 <busy>		*/
+						/* subs	r2, #1				*/
+		0xF101D002,		/* beq.n	28 <success>	*/
+		0xE7EB0102,		/* add.w	r1, r1, #2		*/
+						/* b.n	0 <code>			*/
+
+		/* 00000028 <success>: */
+		0x0580F04F,		/* mov.w	r5, #128		*/
+		0xBF00E7FF,		/* b.n	30 <done>			*/
+						/* nop (for alignment purposes)	*/
+
+		/* 00000030 <done>: */
+		0x0000BE00		/* bkpt	0x0000				*/
+	};
+
+	/* see contrib/loaders/flash/armv4_5_cfi_span_16_dq7.s for src */
 	static const uint32_t armv4_5_word_16_code_dq7only[] = {
 		/* <sp_16_code>:				*/
 		0xe0d050b2,		/* ldrh r5, [r0], #2			*/
@@ -1741,7 +1775,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		0xeafffffe		/* b	81ac <sp_16_done>		*/
 	};
 
-	/* see contib/loaders/flash/armv4_5_cfi_span_8.s for src */
+	/* see contrib/loaders/flash/armv4_5_cfi_span_8.s for src */
 	static const uint32_t armv4_5_word_8_code[] = {
 		/* 000081b0 <sp_16_code_end>:	*/
 		0xe4d05001,		/* ldrb	r5, [r0], #1			*/
@@ -1817,11 +1851,13 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 			} else {
 				/* No DQ5 support. Use DQ7 DATA# polling only. */
 				if (is_armv7m(target_to_armv7m(target))) {
-					LOG_ERROR("Unknown ARM architecture");
-					return ERROR_FAIL;
+					/* armv7m target */
+					target_code_src = armv7m_word_16_code_dq7only;
+					target_code_size = sizeof(armv7m_word_16_code_dq7only);
+				} else { /* armv4_5 target */
+					target_code_src = armv4_5_word_16_code_dq7only;
+					target_code_size = sizeof(armv4_5_word_16_code_dq7only);
 				}
-				target_code_src = armv4_5_word_16_code_dq7only;
-				target_code_size = sizeof(armv4_5_word_16_code_dq7only);
 			}
 			break;
 		case 4:
@@ -2427,7 +2463,7 @@ static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, 
 	return cfi_reset(bank);
 }
 
-static void cfi_fixup_reversed_erase_regions(struct flash_bank *bank, void *param)
+static void cfi_fixup_reversed_erase_regions(struct flash_bank *bank, const void *param)
 {
 	(void) param;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -2436,7 +2472,7 @@ static void cfi_fixup_reversed_erase_regions(struct flash_bank *bank, void *para
 	pri_ext->_reversed_geometry = 1;
 }
 
-static void cfi_fixup_0002_erase_regions(struct flash_bank *bank, void *param)
+static void cfi_fixup_0002_erase_regions(struct flash_bank *bank, const void *param)
 {
 	int i;
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -2457,14 +2493,22 @@ static void cfi_fixup_0002_erase_regions(struct flash_bank *bank, void *param)
 	}
 }
 
-static void cfi_fixup_0002_unlock_addresses(struct flash_bank *bank, void *param)
+static void cfi_fixup_0002_unlock_addresses(struct flash_bank *bank, const void *param)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
-	struct cfi_unlock_addresses *unlock_addresses = param;
+	const struct cfi_unlock_addresses *unlock_addresses = param;
 
 	pri_ext->_unlock1 = unlock_addresses->unlock1;
 	pri_ext->_unlock2 = unlock_addresses->unlock2;
+}
+
+static void cfi_fixup_0002_polling_bits(struct flash_bank *bank, const void *param)
+{
+	struct cfi_flash_bank *cfi_info = bank->driver_priv;
+	const int status_poll_mask = *(const int *)param;
+
+	cfi_info->status_poll_mask = status_poll_mask;
 }
 
 
@@ -3028,7 +3072,7 @@ static int get_cfi_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static void cfi_fixup_0002_write_buffer(struct flash_bank *bank, void *param)
+static void cfi_fixup_0002_write_buffer(struct flash_bank *bank, const void *param)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 
