@@ -79,6 +79,7 @@ Free Documentation License''.
 * Architecture and Core Commands::   Architecture and Core Commands
 * JTAG Commands::                    JTAG Commands
 * Boundary Scan Commands::           Boundary Scan Commands
+* Utility Commands::                 Utility Commands
 * TFTP::                             TFTP
 * GDB and OpenOCD::                  Using GDB and OpenOCD
 * Tcl Scripting API::                Tcl Scripting API
@@ -7925,6 +7926,53 @@ two opcodes supporting a more accurate translation of SVF
 If @emph{xsvfdump} shows a file is using those opcodes, it
 probably will not be usable with other XSVF tools.
 
+
+@node Utility Commands
+@chapter Utility Commands
+@cindex Utility Commands
+
+@section RAM testing
+@cindex RAM testing
+
+There is often a need to stress-test random access memory (RAM) for
+errors. OpenOCD comes with a Tcl implementation of well-known memory
+testing procedures allowing to detect all sorts of issues with
+electrical wiring, defective chips, PCB layout and other common
+hardware problems.
+
+To use them you usually need to initialise your RAM controller first,
+consult your SoC's documentation to get the recommended list of
+register operations and translate them to the corresponding
+@command{mww}/@command{mwb} commands.
+
+Load the memory testing functions with
+
+@example
+source [find tools/memtest.tcl]
+@end example
+
+to get access to the following facilities:
+
+@deffn Command {memTestDataBus} address
+Test the data bus wiring in a memory region by performing a walking
+1's test at a fixed address within that region.
+@end deffn
+
+@deffn Command {memTestAddressBus} baseaddress size
+Perform a walking 1's test on the relevant bits of the address and
+check for aliasing. This test will find single-bit address failures
+such as stuck-high, stuck-low, and shorted pins.
+@end deffn
+
+@deffn Command {memTestDevice} baseaddress size
+Test the integrity of a physical memory device by performing an
+increment/decrement test over the entire region. In the process every
+storage bit in the device is tested as zero and as one.
+@end deffn
+
+@deffn Command {runAllMemTests} baseaddress size
+Run all of the above tests over a specified memory region.
+@end deffn
 
 @node TFTP
 @chapter TFTP
