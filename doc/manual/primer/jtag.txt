@@ -14,8 +14,7 @@ just a logical interface that allows a uniform channel for communication.
 See @par
 	http://en.wikipedia.org/wiki/Joint_Test_Action_Group
 
-and @par
-	http://www.inaccessnetworks.com/projects/ianjtag/jtag-intro/jtag-state-machine-large.png
+@image html jtag-state-machine-large.png
 
 The first page (among other things) shows a logical representation
 describing how multiple devices are wired up using JTAG.  JTAG does not
