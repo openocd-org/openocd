@@ -3218,28 +3218,66 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 	return ERROR_OK;
 }
 
+static const struct {
+	char name[15];
+	unsigned mask;
+} vec_ids[] = {
+	{ "fiq",		DCSR_TF, },
+	{ "irq",		DCSR_TI, },
+	{ "dabt",		DCSR_TD, },
+	{ "pabt",		DCSR_TA, },
+	{ "swi",		DCSR_TS, },
+	{ "undef",		DCSR_TU, },
+	{ "reset",		DCSR_TR, },
+};
+
 COMMAND_HANDLER(xscale_handle_vector_catch_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
+	uint32_t dcsr_value;
+	uint32_t catch = 0;
+	struct reg *dcsr_reg = &xscale->reg_cache->reg_list[XSCALE_DCSR];
 
 	retval = xscale_verify_pointer(CMD_CTX, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (CMD_ARGC < 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	else {
-		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], xscale->vector_catch);
-		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value,
-			16,
-			8,
-			xscale->vector_catch);
+	dcsr_value = buf_get_u32(dcsr_reg->value, 0, 32);
+	if (CMD_ARGC > 0) {
+		if (CMD_ARGC == 1) {
+			if (strcmp(CMD_ARGV[0], "all") == 0) {
+				catch = DCSR_TRAP_MASK;
+				CMD_ARGC--;
+			} else if (strcmp(CMD_ARGV[0], "none") == 0) {
+				catch = 0;
+				CMD_ARGC--;
+			}
+		}
+		while (CMD_ARGC-- > 0) {
+			unsigned i;
+			for (i = 0; i < ARRAY_SIZE(vec_ids); i++) {
+				if (strcmp(CMD_ARGV[CMD_ARGC], vec_ids[i].name))
+					continue;
+				catch |= vec_ids[i].mask;
+				break;
+			}
+			if (i == ARRAY_SIZE(vec_ids)) {
+				LOG_ERROR("No vector '%s'", CMD_ARGV[CMD_ARGC]);
+				return ERROR_COMMAND_SYNTAX_ERROR;
+			}
+		}
+		*(uint32_t *)(dcsr_reg->value) &= ~DCSR_TRAP_MASK;
+		*(uint32_t *)(dcsr_reg->value) |= catch;
 		xscale_write_dcsr(target, -1, -1);
 	}
 
-	command_print(CMD_CTX, "vector catch mask: 0x%2.2x", xscale->vector_catch);
+	dcsr_value = buf_get_u32(dcsr_reg->value, 0, 32);
+	for (unsigned i = 0; i < ARRAY_SIZE(vec_ids); i++) {
+		command_print(CMD_CTX, "%15s: %s", vec_ids[i].name,
+			(dcsr_value & vec_ids[i].mask) ? "catch" : "ignore");
+	}
 
 	return ERROR_OK;
 }
@@ -3585,9 +3623,9 @@ static const struct command_registration xscale_exec_command_handlers[] = {
 		.name = "vector_catch",
 		.handler = xscale_handle_vector_catch_command,
 		.mode = COMMAND_EXEC,
-		.help = "set or display 8-bit mask of vectors "
+		.help = "set or display mask of vectors "
 			"that should trigger debug entry",
-		.usage = "[mask]",
+		.usage = "['all'|'none'|'fiq'|'irq'|'dabt'|'pabt'|'swi'|'undef'|'reset']",
 	},
 	{
 		.name = "vector_table",
