@@ -1447,6 +1447,13 @@ static int xscale_assert_reset(struct target *target)
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
 
+	/* assert reset */
+	jtag_add_reset(0, 1);
+
+	/* sleep 1ms, to be sure we fulfill any requirements */
+	jtag_add_sleep(1000);
+	jtag_execute_queue();
+
 	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG
 	 */
@@ -1461,13 +1468,6 @@ static int xscale_assert_reset(struct target *target)
 
 	/* select BYPASS, because having DCSR selected caused problems on the PXA27x */
 	xscale_jtag_set_instr(target->tap, ~0, TAP_IDLE);
-	jtag_execute_queue();
-
-	/* assert reset */
-	jtag_add_reset(0, 1);
-
-	/* sleep 1ms, to be sure we fulfill any requirements */
-	jtag_add_sleep(1000);
 	jtag_execute_queue();
 
 	target->state = TARGET_RESET;
