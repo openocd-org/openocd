@@ -724,10 +724,10 @@ static int ublast_scan(struct scan_command *cmd)
 	return ret;
 }
 
-static void ublast_msleep(int ms)
+static void ublast_usleep(int us)
 {
-	DEBUG_JTAG_IO("%s(ms=%d)",  __func__, ms);
-	jtag_sleep(ms);
+	DEBUG_JTAG_IO("%s(us=%d)",  __func__, us);
+	jtag_sleep(us);
 }
 
 static int ublast_execute_queue(void)
@@ -758,7 +758,7 @@ static int ublast_execute_queue(void)
 			ublast_tms(cmd->cmd.tms);
 			break;
 		case JTAG_SLEEP:
-			ublast_msleep(cmd->cmd.sleep->us);
+			ublast_usleep(cmd->cmd.sleep->us);
 			break;
 		case JTAG_SCAN:
 			ret = ublast_scan(cmd->cmd.scan);
