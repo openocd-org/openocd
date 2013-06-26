@@ -72,6 +72,8 @@ static int target_get_gdb_fileio_info_default(struct target *target,
 		struct gdb_fileio_info *fileio_info);
 static int target_gdb_fileio_end_default(struct target *target, int retcode,
 		int fileio_errno, bool ctrl_c);
+static int target_profiling_default(struct target *target, uint32_t *samples,
+		uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
 
 /* targets */
 extern struct target_type arm7tdmi_target;
@@ -1084,6 +1086,17 @@ int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, 
 	return target->type->gdb_fileio_end(target, retcode, fileio_errno, ctrl_c);
 }
 
+int target_profiling(struct target *target, uint32_t *samples,
+			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s is not halted", target->cmd_name);
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	return target->type->profiling(target, samples, max_num_samples,
+			num_samples, seconds);
+}
+
 /**
  * Reset the @c examined flag for the given target.
  * Pure paranoia -- targets are zeroed on allocation.
@@ -1172,6 +1185,9 @@ static int target_init_one(struct command_context *cmd_ctx,
 
 	if (target->type->gdb_fileio_end == NULL)
 		target->type->gdb_fileio_end = target_gdb_fileio_end_default;
+
+	if (target->type->profiling == NULL)
+		target->type->profiling = target_profiling_default;
 
 	return ERROR_OK;
 }
@@ -1736,6 +1752,55 @@ static int target_gdb_fileio_end_default(struct target *target,
 		int retcode, int fileio_errno, bool ctrl_c)
 {
 	return ERROR_OK;
+}
+
+static int target_profiling_default(struct target *target, uint32_t *samples,
+		uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
+{
+	struct timeval timeout, now;
+
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, seconds, 0);
+
+	LOG_INFO("Starting profiling. Halting and resuming the"
+			" target as often as we can...");
+
+	uint32_t sample_count = 0;
+	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
+	struct reg *reg = register_get_by_name(target->reg_cache, "pc", 1);
+
+	int retval = ERROR_OK;
+	for (;;) {
+		target_poll(target);
+		if (target->state == TARGET_HALTED) {
+			uint32_t t = *((uint32_t *)reg->value);
+			samples[sample_count++] = t;
+			/* current pc, addr = 0, do not handle breakpoints, not debugging */
+			retval = target_resume(target, 1, 0, 0, 0);
+			target_poll(target);
+			alive_sleep(10); /* sleep 10ms, i.e. <100 samples/second. */
+		} else if (target->state == TARGET_RUNNING) {
+			/* We want to quickly sample the PC. */
+			retval = target_halt(target);
+		} else {
+			LOG_INFO("Target not halted or running");
+			retval = ERROR_OK;
+			break;
+		}
+
+		if (retval != ERROR_OK)
+			break;
+
+		gettimeofday(&now, NULL);
+		if ((sample_count >= max_num_samples) ||
+			((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec))) {
+			LOG_INFO("Profiling completed. %d samples.", sample_count);
+			break;
+		}
+	}
+
+	*num_samples = sample_count;
+	return retval;
 }
 
 /* Single aligned words are guaranteed to use 16 or 32 bit access
@@ -3362,7 +3427,7 @@ static void writeString(FILE *f, char *s)
 }
 
 /* Dump a gmon.out histogram file. */
-static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filename)
+static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filename)
 {
 	uint32_t i;
 	FILE *f = fopen(filename, "w");
@@ -3451,84 +3516,59 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 COMMAND_HANDLER(handle_profile_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct timeval timeout, now;
 
-	gettimeofday(&timeout, NULL);
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	unsigned offset;
+
+	const uint32_t MAX_PROFILE_SAMPLE_NUM = 10000;
+	uint32_t offset;
+	uint32_t num_of_sampels;
+	int retval = ERROR_OK;
+	uint32_t *samples = malloc(sizeof(uint32_t) * MAX_PROFILE_SAMPLE_NUM);
+	if (samples == NULL) {
+		LOG_ERROR("No memory to store samples.");
+		return ERROR_FAIL;
+	}
+
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], offset);
 
-	timeval_add_time(&timeout, offset, 0);
-
 	/**
-	 * @todo: Some cores let us sample the PC without the
+	 * Some cores let us sample the PC without the
 	 * annoying halt/resume step; for example, ARMv7 PCSR.
 	 * Provide a way to use that more efficient mechanism.
 	 */
+	retval = target_profiling(target, samples, MAX_PROFILE_SAMPLE_NUM,
+				&num_of_sampels, offset);
+	if (retval != ERROR_OK) {
+		free(samples);
+		return retval;
+	}
 
-	command_print(CMD_CTX, "Starting profiling. Halting and resuming the target as often as we can...");
+	assert(num_of_sampels <= MAX_PROFILE_SAMPLE_NUM);
 
-	static const int maxSample = 10000;
-	uint32_t *samples = malloc(sizeof(uint32_t)*maxSample);
-	if (samples == NULL)
-		return ERROR_OK;
-
-	int numSamples = 0;
-	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
-	struct reg *reg = register_get_by_name(target->reg_cache, "pc", 1);
-
-	int retval = ERROR_OK;
-	for (;;) {
-		target_poll(target);
-		if (target->state == TARGET_HALTED) {
-			uint32_t t = *((uint32_t *)reg->value);
-			samples[numSamples++] = t;
-			/* current pc, addr = 0, do not handle breakpoints, not debugging */
-			retval = target_resume(target, 1, 0, 0, 0);
-			target_poll(target);
-			alive_sleep(10); /* sleep 10ms, i.e. <100 samples/second. */
-		} else if (target->state == TARGET_RUNNING) {
-			/* We want to quickly sample the PC. */
-			retval = target_halt(target);
-			if (retval != ERROR_OK) {
-				free(samples);
-				return retval;
-			}
-		} else {
-			command_print(CMD_CTX, "Target not halted or running");
-			retval = ERROR_OK;
-			break;
-		}
-		if (retval != ERROR_OK)
-			break;
-
-		gettimeofday(&now, NULL);
-		if ((numSamples >= maxSample) || ((now.tv_sec >= timeout.tv_sec)
-				&& (now.tv_usec >= timeout.tv_usec))) {
-			command_print(CMD_CTX, "Profiling completed. %d samples.", numSamples);
-			retval = target_poll(target);
-			if (retval != ERROR_OK) {
-				free(samples);
-				return retval;
-			}
-			if (target->state == TARGET_HALTED) {
-				/* current pc, addr = 0, do not handle
-				 * breakpoints, not debugging */
-				target_resume(target, 1, 0, 0, 0);
-			}
-			retval = target_poll(target);
-			if (retval != ERROR_OK) {
-				free(samples);
-				return retval;
-			}
-			writeGmon(samples, numSamples, CMD_ARGV[1]);
-			command_print(CMD_CTX, "Wrote %s", CMD_ARGV[1]);
-			break;
+	retval = target_poll(target);
+	if (retval != ERROR_OK) {
+		free(samples);
+		return retval;
+	}
+	if (target->state == TARGET_RUNNING) {
+		retval = target_halt(target);
+		if (retval != ERROR_OK) {
+			free(samples);
+			return retval;
 		}
 	}
-	free(samples);
 
+	retval = target_poll(target);
+	if (retval != ERROR_OK) {
+		free(samples);
+		return retval;
+	}
+
+	write_gmon(samples, num_of_sampels, CMD_ARGV[1]);
+	command_print(CMD_CTX, "Wrote %s", CMD_ARGV[1]);
+
+	free(samples);
 	return retval;
 }
 

@@ -265,6 +265,10 @@ struct target_type {
 	 */
 	int (*gdb_fileio_end)(struct target *target, int retcode, int fileio_errno, bool ctrl_c);
 
+	/* do target profiling
+	 */
+	int (*profiling)(struct target *target, uint32_t *samples,
+			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
 };
 
 #endif /* TARGET_TYPE_H */
