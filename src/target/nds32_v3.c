@@ -523,4 +523,6 @@ struct target_type nds32_v3_target = {
 
 	.get_gdb_fileio_info = nds32_get_gdb_fileio_info,
 	.gdb_fileio_end = nds32_gdb_fileio_end,
+
+	.profiling = nds32_profiling,
 };

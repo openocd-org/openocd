@@ -218,6 +218,10 @@ struct aice_port_api_s {
 
 	/** */
 	int (*set_data_endian)(enum aice_target_endian target_data_endian);
+
+	/** */
+	int (*profiling)(uint32_t interval, uint32_t iteration,
+		uint32_t reg_no, uint32_t *samples, uint32_t *num_samples);
 };
 
 #define AICE_PORT_UNKNOWN	0
