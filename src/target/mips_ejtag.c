@@ -273,7 +273,6 @@ int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 {
-	uint32_t ejtag_version;
 	int retval;
 
 	retval = mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode);
@@ -282,25 +281,25 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 	LOG_DEBUG("impcode: 0x%8.8" PRIx32 "", ejtag_info->impcode);
 
 	/* get ejtag version */
-	ejtag_version = ((ejtag_info->impcode >> 29) & 0x07);
+	ejtag_info->ejtag_version = ((ejtag_info->impcode >> 29) & 0x07);
 
-	switch (ejtag_version) {
-		case 0:
+	switch (ejtag_info->ejtag_version) {
+		case EJTAG_VERSION_20:
 			LOG_DEBUG("EJTAG: Version 1 or 2.0 Detected");
 			break;
-		case 1:
+		case EJTAG_VERSION_25:
 			LOG_DEBUG("EJTAG: Version 2.5 Detected");
 			break;
-		case 2:
+		case EJTAG_VERSION_26:
 			LOG_DEBUG("EJTAG: Version 2.6 Detected");
 			break;
-		case 3:
+		case EJTAG_VERSION_31:
 			LOG_DEBUG("EJTAG: Version 3.1 Detected");
 			break;
-		case 4:
+		case EJTAG_VERSION_41:
 			LOG_DEBUG("EJTAG: Version 4.1 Detected");
 			break;
-		case 5:
+		case EJTAG_VERSION_51:
 			LOG_DEBUG("EJTAG: Version 5.1 Detected");
 			break;
 		default:

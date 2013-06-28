@@ -122,6 +122,13 @@
 #define	EJTAG_DBCn_BLM_SHIFT	4
 #define	EJTAG_DBCn_BE			(1 << 0)
 
+#define EJTAG_VERSION_20		0
+#define EJTAG_VERSION_25		1
+#define EJTAG_VERSION_26		2
+#define EJTAG_VERSION_31		3
+#define EJTAG_VERSION_41		4
+#define EJTAG_VERSION_51		5
+
 struct mips_ejtag {
 	struct jtag_tap *tap;
 	uint32_t impcode;
@@ -132,6 +139,7 @@ struct mips_ejtag {
 	uint32_t reg9;
 	unsigned scan_delay;
 	int mode;
+	unsigned int ejtag_version;
 };
 
 void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,
