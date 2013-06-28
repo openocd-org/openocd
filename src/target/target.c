@@ -56,6 +56,9 @@
 #include "image.h"
 #include "rtos/rtos.h"
 
+/* default halt wait timeout (ms) */
+#define DEFAULT_HALT_TIMEOUT 5000
+
 static int target_read_buffer_default(struct target *target, uint32_t address,
 		uint32_t size, uint8_t *buffer);
 static int target_write_buffer_default(struct target *target, uint32_t address,
@@ -456,7 +459,7 @@ int target_poll(struct target *target)
 			target->halt_issued = false;
 		else {
 			long long t = timeval_ms() - target->halt_issued_time;
-			if (t > 1000) {
+			if (t > DEFAULT_HALT_TIMEOUT) {
 				target->halt_issued = false;
 				LOG_INFO("Halt timed out, wake up GDB.");
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
@@ -2409,7 +2412,7 @@ COMMAND_HANDLER(handle_wait_halt_command)
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned ms = 5000;
+	unsigned ms = DEFAULT_HALT_TIMEOUT;
 	if (1 == CMD_ARGC) {
 		int retval = parse_uint(CMD_ARGV[0], &ms);
 		if (ERROR_OK != retval)
