@@ -31,6 +31,16 @@ struct mcu_jtag {
 	struct jtag_tap *tap;
 };
 
+enum breakpoint_usage {
+	BPU_NONE = 0,
+	BPU_BREAKPOINT,
+	BPU_WATCHPOINT
+};
+
+struct hardware_breakpoint {
+	enum breakpoint_usage used;
+};
+
 struct dsp563xx_common {
 	struct mcu_jtag jtag_info;
 	struct reg_cache *core_cache;
@@ -40,6 +50,11 @@ struct dsp563xx_common {
 	/* register cache to processor synchronization */
 	int (*read_core_reg) (struct target *target, int num);
 	int (*write_core_reg) (struct target *target, int num);
+
+	struct hardware_breakpoint hardware_breakpoint[1];
+
+	/*Were the hardware breakpoints cleared on startup?*/
+	int hardware_breakpoints_cleared;
 };
 
 struct dsp563xx_core_reg {

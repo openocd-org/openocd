@@ -23,6 +23,10 @@
 
 #include <jtag/jtag.h>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define DSP563XX_ONCE_OCR_EX	(1<<5)
 #define DSP563XX_ONCE_OCR_GO	(1<<6)
 #define DSP563XX_ONCE_OCR_RW	(1<<7)

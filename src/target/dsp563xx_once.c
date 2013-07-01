@@ -209,6 +209,7 @@ int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, int flush, uint8_t reg, uint
 		return err;
 	if (flush)
 		err = jtag_execute_queue();
+
 	return err;
 }
 
@@ -225,6 +226,7 @@ int dsp563xx_once_reg_read(struct jtag_tap *tap, int flush, uint8_t reg, uint32_
 		return err;
 	if (flush)
 		err = jtag_execute_queue();
+
 	return err;
 }
 
