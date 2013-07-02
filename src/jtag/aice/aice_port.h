@@ -22,6 +22,8 @@
 
 #include <target/nds32_edm.h>
 
+#define AICE_MAX_NUM_CORE      (0x10)
+
 #define ERROR_AICE_DISCONNECT  (-200)
 #define ERROR_AICE_TIMEOUT     (-201)
 
@@ -49,6 +51,8 @@ enum aice_api_s {
 	AICE_OPEN = 0x0,
 	AICE_CLOSE,
 	AICE_RESET,
+	AICE_IDCODE,
+	AICE_SET_JTAG_CLOCK,
 	AICE_ASSERT_SRST,
 	AICE_RUN,
 	AICE_HALT,
@@ -63,10 +67,7 @@ enum aice_api_s {
 	AICE_WRITE_MEM_BULK,
 	AICE_READ_DEBUG_REG,
 	AICE_WRITE_DEBUG_REG,
-	AICE_IDCODE,
 	AICE_STATE,
-	AICE_SET_JTAG_CLOCK,
-	AICE_SELECT_TARGET,
 	AICE_MEMORY_ACCESS,
 	AICE_MEMORY_MODE,
 	AICE_READ_TLB,
@@ -118,13 +119,9 @@ struct aice_port_param_s {
 
 struct aice_port_s {
 	/** */
-	struct aice_port_param_s param;
+	uint32_t coreid;
 	/** */
 	const struct aice_port *port;
-	/** */
-	uint32_t retry_times;
-	/** */
-	uint32_t count_to_check_dbger;
 };
 
 /** */
@@ -139,70 +136,67 @@ struct aice_port_api_s {
 	/** */
 	int (*reset)(void);
 	/** */
-	int (*assert_srst)(enum aice_srst_type_s srst);
-	/** */
-	int (*run)(void);
-	/** */
-	int (*halt)(void);
-	/** */
-	int (*step)(void);
-	/** */
-	int (*read_reg)(uint32_t num, uint32_t *val);
-	/** */
-	int (*write_reg)(uint32_t num, uint32_t val);
-	/** */
-	int (*read_reg_64)(uint32_t num, uint64_t *val);
-	/** */
-	int (*write_reg_64)(uint32_t num, uint64_t val);
-	/** */
-	int (*read_mem_unit)(uint32_t addr, uint32_t size, uint32_t count,
-			uint8_t *buffer);
-	/** */
-	int (*write_mem_unit)(uint32_t addr, uint32_t size, uint32_t count,
-			const uint8_t *buffer);
-	/** */
-	int (*read_mem_bulk)(uint32_t addr, uint32_t length,
-			uint8_t *buffer);
-	/** */
-	int (*write_mem_bulk)(uint32_t addr, uint32_t length,
-			const uint8_t *buffer);
-	/** */
-	int (*read_debug_reg)(uint32_t addr, uint32_t *val);
-	/** */
-	int (*write_debug_reg)(uint32_t addr, const uint32_t val);
-
-	/** */
 	int (*idcode)(uint32_t *idcode, uint8_t *num_of_idcode);
-	/** */
-	int (*state)(enum aice_target_state_s *state);
-
 	/** */
 	int (*set_jtag_clock)(uint32_t a_clock);
 	/** */
-	int (*select_target)(uint32_t target_id);
+	int (*assert_srst)(uint32_t coreid, enum aice_srst_type_s srst);
+	/** */
+	int (*run)(uint32_t coreid);
+	/** */
+	int (*halt)(uint32_t coreid);
+	/** */
+	int (*step)(uint32_t coreid);
+	/** */
+	int (*read_reg)(uint32_t coreid, uint32_t num, uint32_t *val);
+	/** */
+	int (*write_reg)(uint32_t coreid, uint32_t num, uint32_t val);
+	/** */
+	int (*read_reg_64)(uint32_t coreid, uint32_t num, uint64_t *val);
+	/** */
+	int (*write_reg_64)(uint32_t coreid, uint32_t num, uint64_t val);
+	/** */
+	int (*read_mem_unit)(uint32_t coreid, uint32_t addr, uint32_t size,
+			uint32_t count, uint8_t *buffer);
+	/** */
+	int (*write_mem_unit)(uint32_t coreid, uint32_t addr, uint32_t size,
+			uint32_t count, const uint8_t *buffer);
+	/** */
+	int (*read_mem_bulk)(uint32_t coreid, uint32_t addr, uint32_t length,
+			uint8_t *buffer);
+	/** */
+	int (*write_mem_bulk)(uint32_t coreid, uint32_t addr, uint32_t length,
+			const uint8_t *buffer);
+	/** */
+	int (*read_debug_reg)(uint32_t coreid, uint32_t addr, uint32_t *val);
+	/** */
+	int (*write_debug_reg)(uint32_t coreid, uint32_t addr, const uint32_t val);
 
 	/** */
-	int (*memory_access)(enum nds_memory_access a_access);
-	/** */
-	int (*memory_mode)(enum nds_memory_select mem_select);
+	int (*state)(uint32_t coreid, enum aice_target_state_s *state);
 
 	/** */
-	int (*read_tlb)(uint32_t virtual_address, uint32_t *physical_address);
+	int (*memory_access)(uint32_t coreid, enum nds_memory_access a_access);
+	/** */
+	int (*memory_mode)(uint32_t coreid, enum nds_memory_select mem_select);
 
 	/** */
-	int (*cache_ctl)(uint32_t subtype, uint32_t address);
+	int (*read_tlb)(uint32_t coreid, uint32_t virtual_address, uint32_t *physical_address);
+
+	/** */
+	int (*cache_ctl)(uint32_t coreid, uint32_t subtype, uint32_t address);
 
 	/** */
 	int (*set_retry_times)(uint32_t a_retry_times);
 
 	/** */
-	int (*program_edm)(char *command_sequence);
+	int (*program_edm)(uint32_t coreid, char *command_sequence);
 
 	/** */
 	int (*set_command_mode)(enum aice_command_mode command_mode);
 
 	/** */
-	int (*execute)(uint32_t *instructions, uint32_t instruction_num);
+	int (*execute)(uint32_t coreid, uint32_t *instructions, uint32_t instruction_num);
 
 	/** */
 	int (*set_custom_srst_script)(const char *script);
@@ -217,10 +211,10 @@ struct aice_port_api_s {
 	int (*set_count_to_check_dbger)(uint32_t count_to_check);
 
 	/** */
-	int (*set_data_endian)(enum aice_target_endian target_data_endian);
+	int (*set_data_endian)(uint32_t coreid, enum aice_target_endian target_data_endian);
 
 	/** */
-	int (*profiling)(uint32_t interval, uint32_t iteration,
+	int (*profiling)(uint32_t coreid, uint32_t interval, uint32_t iteration,
 		uint32_t reg_no, uint32_t *samples, uint32_t *num_samples);
 };
 
@@ -235,7 +229,7 @@ struct aice_port {
 	/** */
 	int type;
 	/** */
-	struct aice_port_api_s *api;
+	struct aice_port_api_s *const api;
 };
 
 /** */

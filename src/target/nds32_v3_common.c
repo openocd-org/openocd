@@ -29,18 +29,6 @@
 #include "nds32_aice.h"
 #include "nds32_v3_common.h"
 
-static struct breakpoint syscall_breakpoint = {
-	0x80,
-	0,
-	4,
-	BKPT_SOFT,
-	0,
-	NULL,
-	NULL,
-	0x515CA11,
-	0,
-};
-
 static struct nds32_v3_common_callback *v3_common_callback;
 
 static int nds32_v3_register_mapping(struct nds32 *nds32, int reg_no)
@@ -90,17 +78,18 @@ static int nds32_v3_debug_entry(struct nds32 *nds32, bool enable_watchpoint)
 	if (enable_watchpoint)
 		CHECK_RETVAL(v3_common_callback->deactivate_hardware_watchpoint(nds32->target));
 
+	struct breakpoint *syscall_break = &(nds32->syscall_break);
 	if (nds32->virtual_hosting) {
-		if (syscall_breakpoint.set) {
+		if (syscall_break->set) {
 			/** disable virtual hosting */
 
 			/* remove breakpoint at syscall entry */
-			target_remove_breakpoint(nds32->target, &syscall_breakpoint);
-			syscall_breakpoint.set = 0;
+			target_remove_breakpoint(nds32->target, syscall_break);
+			syscall_break->set = 0;
 
 			uint32_t value_pc;
 			nds32_get_mapped_reg(nds32, PC, &value_pc);
-			if (value_pc == syscall_breakpoint.address)
+			if (value_pc == syscall_break->address)
 				/** process syscall for virtual hosting */
 				nds32->hit_syscall = true;
 		}
@@ -218,10 +207,12 @@ static int nds32_v3_leave_debug_state(struct nds32 *nds32, bool enable_watchpoin
 		}
 
 		/* insert breakpoint at syscall entry */
-		syscall_breakpoint.address = syscall_address;
-		syscall_breakpoint.type = BKPT_SOFT;
-		syscall_breakpoint.set = 1;
-		target_add_breakpoint(target, &syscall_breakpoint);
+		struct breakpoint *syscall_break = &(nds32->syscall_break);
+
+		syscall_break->address = syscall_address;
+		syscall_break->type = BKPT_SOFT;
+		syscall_break->set = 1;
+		target_add_breakpoint(target, syscall_break);
 	}
 
 	return ERROR_OK;

@@ -31,6 +31,6 @@ struct aice_interface_param_s {
 	uint16_t pid;
 };
 
-int aice_init_target(struct target *t);
+int aice_init_targets(void);
 
 #endif

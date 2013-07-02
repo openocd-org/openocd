@@ -31,7 +31,7 @@ int aice_read_reg_64(struct aice_port_s *aice, uint32_t num, uint64_t *val)
 		return ERROR_FAIL;
 	}
 
-	return aice->port->api->read_reg_64(num, val);
+	return aice->port->api->read_reg_64(aice->coreid, num, val);
 }
 
 int aice_write_reg_64(struct aice_port_s *aice, uint32_t num, uint64_t val)
@@ -41,17 +41,7 @@ int aice_write_reg_64(struct aice_port_s *aice, uint32_t num, uint64_t val)
 		return ERROR_FAIL;
 	}
 
-	return aice->port->api->write_reg_64(num, val);
-}
-
-int aice_select_target(struct aice_port_s *aice, uint32_t target_id)
-{
-	if (aice->port->api->select_target == NULL) {
-		LOG_WARNING("Not implemented: %s", __func__);
-		return ERROR_FAIL;
-	}
-
-	return aice->port->api->select_target(target_id);
+	return aice->port->api->write_reg_64(aice->coreid, num, val);
 }
 
 int aice_read_tlb(struct aice_port_s *aice, uint32_t virtual_address,
@@ -62,7 +52,7 @@ int aice_read_tlb(struct aice_port_s *aice, uint32_t virtual_address,
 		return ERROR_FAIL;
 	}
 
-	return aice->port->api->read_tlb(virtual_address, physical_address);
+	return aice->port->api->read_tlb(aice->coreid, virtual_address, physical_address);
 }
 
 int aice_cache_ctl(struct aice_port_s *aice, uint32_t subtype, uint32_t address)
@@ -72,7 +62,7 @@ int aice_cache_ctl(struct aice_port_s *aice, uint32_t subtype, uint32_t address)
 		return ERROR_FAIL;
 	}
 
-	return aice->port->api->cache_ctl(subtype, address);
+	return aice->port->api->cache_ctl(aice->coreid, subtype, address);
 }
 
 int aice_set_retry_times(struct aice_port_s *aice, uint32_t a_retry_times)
@@ -92,7 +82,7 @@ int aice_program_edm(struct aice_port_s *aice, char *command_sequence)
 		return ERROR_FAIL;
 	}
 
-	return aice->port->api->program_edm(command_sequence);
+	return aice->port->api->program_edm(aice->coreid, command_sequence);
 }
 
 int aice_set_command_mode(struct aice_port_s *aice,
@@ -114,7 +104,7 @@ int aice_execute(struct aice_port_s *aice, uint32_t *instructions,
 		return ERROR_FAIL;
 	}
 
-	return aice->port->api->execute(instructions, instruction_num);
+	return aice->port->api->execute(aice->coreid, instructions, instruction_num);
 }
 
 int aice_set_custom_srst_script(struct aice_port_s *aice, const char *script)
@@ -155,4 +145,16 @@ int aice_set_count_to_check_dbger(struct aice_port_s *aice, uint32_t count_to_ch
 	}
 
 	return aice->port->api->set_count_to_check_dbger(count_to_check);
+}
+
+int aice_profiling(struct aice_port_s *aice, uint32_t interval, uint32_t iteration,
+		uint32_t reg_no, uint32_t *samples, uint32_t *num_samples)
+{
+	if (aice->port->api->profiling == NULL) {
+		LOG_WARNING("Not implemented: %s", __func__);
+		return ERROR_FAIL;
+	}
+
+	return aice->port->api->profiling(aice->coreid, interval, iteration,
+			reg_no, samples, num_samples);
 }

@@ -156,6 +156,35 @@ struct aice_usb_handler_s {
 	struct jtag_libusb_device_handle *usb_handle;
 };
 
+struct cache_info {
+	uint32_t set;
+	uint32_t way;
+	uint32_t line_size;
+
+	uint32_t log2_set;
+	uint32_t log2_line_size;
+};
+
+struct aice_nds32_info {
+	uint32_t edm_version;
+	uint32_t r0_backup;
+	uint32_t r1_backup;
+	uint32_t host_dtr_backup;
+	uint32_t target_dtr_backup;
+	uint32_t edmsw_backup;
+	uint32_t edm_ctl_backup;
+	bool debug_under_dex_on;
+	bool dex_use_psw_on;
+	bool host_dtr_valid;
+	bool target_dtr_valid;
+	enum nds_memory_access access_channel;
+	enum nds_memory_select memory_select;
+	enum aice_target_state_s core_state;
+	bool cache_init;
+	struct cache_info icache;
+	struct cache_info dcache;
+};
+
 extern struct aice_port_api_s aice_usb_api;
 
 int aice_read_ctrl(uint32_t address, uint32_t *data);

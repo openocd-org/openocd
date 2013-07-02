@@ -351,7 +351,7 @@ static int aice_transport_init(struct command_context *cmd_ctx)
 
 	LOG_DEBUG("current transport %s", transport->name);
 
-	return aice_init_target(t);
+	return aice_init_targets();
 }
 
 /* */

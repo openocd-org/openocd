@@ -296,6 +296,8 @@ struct nds32 {
 	/** Record syscall ID for other operations to do special processing for target */
 	int active_syscall_id;
 
+	struct breakpoint syscall_break;
+
 	/** Flag reporting whether global stop is active. */
 	bool global_stop;
 
@@ -308,6 +310,9 @@ struct nds32 {
 	/** backup/restore target EDM_CTL value. As debugging target debug
 	 * handler, it should be true. */
 	bool keep_target_edm_ctl;
+
+	/* Value of $EDM_CTL before target enters debug mode */
+	uint32_t backup_edm_ctl;
 
 	/** always use word-aligned address to access memory */
 	bool word_access_mem;
@@ -345,6 +350,9 @@ struct nds32 {
 	/** Flag to indicate if auto convert software breakpoints to
 	 *  hardware breakpoints or not in ROM */
 	bool auto_convert_hw_bp;
+
+	/* Flag to indicate the target is attached by debugger or not */
+	bool attached;
 
 	/** Backpointer to the target. */
 	struct target *target;

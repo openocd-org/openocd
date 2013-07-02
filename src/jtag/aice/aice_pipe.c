@@ -348,7 +348,7 @@ static int aice_pipe_idcode(uint32_t *idcode, uint8_t *num_of_idcode)
 	return ERROR_OK;
 }
 
-static int aice_pipe_state(enum aice_target_state_s *state)
+static int aice_pipe_state(uint32_t coreid, enum aice_target_state_s *state)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -385,7 +385,7 @@ static int aice_pipe_reset(void)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_assert_srst(enum aice_srst_type_s srst)
+static int aice_pipe_assert_srst(uint32_t coreid, enum aice_srst_type_s srst)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -405,7 +405,7 @@ static int aice_pipe_assert_srst(enum aice_srst_type_s srst)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_run(void)
+static int aice_pipe_run(uint32_t coreid)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -424,7 +424,7 @@ static int aice_pipe_run(void)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_halt(void)
+static int aice_pipe_halt(uint32_t coreid)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -443,7 +443,7 @@ static int aice_pipe_halt(void)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_read_reg(uint32_t num, uint32_t *val)
+static int aice_pipe_read_reg(uint32_t coreid, uint32_t num, uint32_t *val)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -462,7 +462,7 @@ static int aice_pipe_read_reg(uint32_t num, uint32_t *val)
 	return ERROR_OK;
 }
 
-static int aice_pipe_write_reg(uint32_t num, uint32_t val)
+static int aice_pipe_write_reg(uint32_t coreid, uint32_t num, uint32_t val)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -483,7 +483,7 @@ static int aice_pipe_write_reg(uint32_t num, uint32_t val)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_read_reg_64(uint32_t num, uint64_t *val)
+static int aice_pipe_read_reg_64(uint32_t coreid, uint32_t num, uint64_t *val)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -502,7 +502,7 @@ static int aice_pipe_read_reg_64(uint32_t num, uint64_t *val)
 	return ERROR_OK;
 }
 
-static int aice_pipe_write_reg_64(uint32_t num, uint64_t val)
+static int aice_pipe_write_reg_64(uint32_t coreid, uint32_t num, uint64_t val)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -524,7 +524,7 @@ static int aice_pipe_write_reg_64(uint32_t num, uint64_t val)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_step(void)
+static int aice_pipe_step(uint32_t coreid)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -543,7 +543,7 @@ static int aice_pipe_step(void)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_read_mem_unit(uint32_t addr, uint32_t size,
+static int aice_pipe_read_mem_unit(uint32_t coreid, uint32_t addr, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
 	char command[AICE_PIPE_MAXLINE];
@@ -562,7 +562,7 @@ static int aice_pipe_read_mem_unit(uint32_t addr, uint32_t size,
 	return ERROR_OK;
 }
 
-static int aice_pipe_write_mem_unit(uint32_t addr, uint32_t size,
+static int aice_pipe_write_mem_unit(uint32_t coreid, uint32_t addr, uint32_t size,
 		uint32_t count, const uint8_t *buffer)
 {
 	char line[AICE_PIPE_MAXLINE];
@@ -590,7 +590,8 @@ static int aice_pipe_write_mem_unit(uint32_t addr, uint32_t size,
 	return ERROR_OK;
 }
 
-static int aice_pipe_read_mem_bulk(uint32_t addr, uint32_t length, uint8_t *buffer)
+static int aice_pipe_read_mem_bulk(uint32_t coreid, uint32_t addr,
+		uint32_t length, uint8_t *buffer)
 {
 	char line[AICE_PIPE_MAXLINE + 1];
 	char command[AICE_PIPE_MAXLINE];
@@ -636,7 +637,8 @@ static int aice_pipe_read_mem_bulk(uint32_t addr, uint32_t length, uint8_t *buff
 	return ERROR_OK;
 }
 
-static int aice_pipe_write_mem_bulk(uint32_t addr, uint32_t length, const uint8_t *buffer)
+static int aice_pipe_write_mem_bulk(uint32_t coreid, uint32_t addr,
+		uint32_t length, const uint8_t *buffer)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE + 4];
@@ -686,7 +688,7 @@ static int aice_pipe_write_mem_bulk(uint32_t addr, uint32_t length, const uint8_
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_read_debug_reg(uint32_t addr, uint32_t *val)
+static int aice_pipe_read_debug_reg(uint32_t coreid, uint32_t addr, uint32_t *val)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -705,7 +707,7 @@ static int aice_pipe_read_debug_reg(uint32_t addr, uint32_t *val)
 	return ERROR_OK;
 }
 
-static int aice_pipe_write_debug_reg(uint32_t addr, const uint32_t val)
+static int aice_pipe_write_debug_reg(uint32_t coreid, uint32_t addr, const uint32_t val)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -746,27 +748,7 @@ static int aice_pipe_set_jtag_clock(uint32_t a_clock)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_select_target(uint32_t target_id)
-{
-	char line[AICE_PIPE_MAXLINE];
-	char command[AICE_PIPE_MAXLINE];
-
-	command[0] = AICE_SELECT_TARGET;
-	set_u32(command + 1, target_id);
-
-	if (aice_pipe_write(command, 5) != 5)
-		return ERROR_FAIL;
-
-	if (aice_pipe_read(line, AICE_PIPE_MAXLINE) < 0)
-		return ERROR_FAIL;
-
-	if (line[0] == AICE_OK)
-		return ERROR_OK;
-	else
-		return ERROR_FAIL;
-}
-
-static int aice_pipe_memory_access(enum nds_memory_access access_channel)
+static int aice_pipe_memory_access(uint32_t coreid, enum nds_memory_access access_channel)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -786,7 +768,7 @@ static int aice_pipe_memory_access(enum nds_memory_access access_channel)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_memory_mode(enum nds_memory_select mem_select)
+static int aice_pipe_memory_mode(uint32_t coreid, enum nds_memory_select mem_select)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -806,7 +788,8 @@ static int aice_pipe_memory_mode(enum nds_memory_select mem_select)
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_read_tlb(uint32_t virtual_address, uint32_t *physical_address)
+static int aice_pipe_read_tlb(uint32_t coreid, uint32_t virtual_address,
+		uint32_t *physical_address)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -827,7 +810,7 @@ static int aice_pipe_read_tlb(uint32_t virtual_address, uint32_t *physical_addre
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_cache_ctl(uint32_t subtype, uint32_t address)
+static int aice_pipe_cache_ctl(uint32_t coreid, uint32_t subtype, uint32_t address)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];
@@ -862,6 +845,8 @@ struct aice_port_api_s aice_pipe = {
 	/** */
 	.idcode = aice_pipe_idcode,
 	/** */
+	.set_jtag_clock = aice_pipe_set_jtag_clock,
+	/** */
 	.state = aice_pipe_state,
 	/** */
 	.reset = aice_pipe_reset,
@@ -893,11 +878,6 @@ struct aice_port_api_s aice_pipe = {
 	.read_debug_reg = aice_pipe_read_debug_reg,
 	/** */
 	.write_debug_reg = aice_pipe_write_debug_reg,
-
-	/** */
-	.set_jtag_clock = aice_pipe_set_jtag_clock,
-	/** */
-	.select_target = aice_pipe_select_target,
 
 	/** */
 	.memory_access = aice_pipe_memory_access,

@@ -395,7 +395,7 @@ static const struct reg_arch_type nds32_reg_access_type_64 = {
 static struct reg_cache *nds32_build_reg_cache(struct target *target,
 		struct nds32 *nds32)
 {
-	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
+	struct reg_cache *cache = calloc(sizeof(struct reg_cache), 1);
 	struct reg *reg_list = calloc(TOTAL_REG_NUM, sizeof(struct reg));
 	struct nds32_reg *reg_arch_info = calloc(TOTAL_REG_NUM, sizeof(struct nds32_reg));
 	int i;
@@ -423,7 +423,7 @@ static struct reg_cache *nds32_build_reg_cache(struct target *target,
 		reg_list[i].size = nds32_reg_size(i);
 		reg_list[i].arch_info = &reg_arch_info[i];
 
-		reg_list[i].reg_data_type = malloc(sizeof(struct reg_data_type));
+		reg_list[i].reg_data_type = calloc(sizeof(struct reg_data_type), 1);
 
 		if (FD0 <= reg_arch_info[i].num && reg_arch_info[i].num <= FD31) {
 			reg_list[i].value = &(reg_arch_info[i].value_64);
@@ -1649,6 +1649,15 @@ int nds32_init_arch_info(struct target *target, struct nds32 *nds32)
 	nds32->active_syscall_id = NDS32_SYSCALL_UNDEFINED;
 	nds32->virtual_hosting_errno = 0;
 	nds32->virtual_hosting_ctrl_c = false;
+	nds32->attached = false;
+
+	nds32->syscall_break.asid = 0;
+	nds32->syscall_break.length = 4;
+	nds32->syscall_break.set = 0;
+	nds32->syscall_break.orig_instr = NULL;
+	nds32->syscall_break.next = NULL;
+	nds32->syscall_break.unique_id = 0x515CAll + target->target_number;
+	nds32->syscall_break.linked_BRP = 0;
 
 	nds32_reg_init();
 
@@ -2187,27 +2196,21 @@ int nds32_assert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static uint32_t nds32_backup_edm_ctl;
-static bool gdb_attached;
-
 static int nds32_gdb_attach(struct nds32 *nds32)
 {
-	LOG_DEBUG("nds32_gdb_attach");
+	LOG_DEBUG("nds32_gdb_attach, target coreid: %d", nds32->target->coreid);
 
-	if (gdb_attached == false) {
+	if (nds32->attached == false) {
 
 		if (nds32->keep_target_edm_ctl) {
 			/* backup target EDM_CTL */
 			struct aice_port_s *aice = target_to_aice(nds32->target);
-			aice_read_debug_reg(aice, NDS_EDM_SR_EDM_CTL, &nds32_backup_edm_ctl);
+			aice_read_debug_reg(aice, NDS_EDM_SR_EDM_CTL, &nds32->backup_edm_ctl);
 		}
 
 		target_halt(nds32->target);
 
-		/* turn on polling */
-		jtag_poll_set_enabled(true);
-
-		gdb_attached = true;
+		nds32->attached = true;
 	}
 
 	return ERROR_OK;
@@ -2218,7 +2221,7 @@ static int nds32_gdb_detach(struct nds32 *nds32)
 	LOG_DEBUG("nds32_gdb_detach");
 	bool backup_virtual_hosting_setting;
 
-	if (gdb_attached) {
+	if (nds32->attached) {
 
 		backup_virtual_hosting_setting = nds32->virtual_hosting;
 		/* turn off virtual hosting before resume as gdb-detach */
@@ -2229,13 +2232,10 @@ static int nds32_gdb_detach(struct nds32 *nds32)
 		if (nds32->keep_target_edm_ctl) {
 			/* restore target EDM_CTL */
 			struct aice_port_s *aice = target_to_aice(nds32->target);
-			aice_write_debug_reg(aice, NDS_EDM_SR_EDM_CTL, nds32_backup_edm_ctl);
+			aice_write_debug_reg(aice, NDS_EDM_SR_EDM_CTL, nds32->backup_edm_ctl);
 		}
 
-		/* turn off polling */
-		jtag_poll_set_enabled(false);
-
-		gdb_attached = false;
+		nds32->attached = false;
 	}
 
 	return ERROR_OK;
@@ -2245,7 +2245,12 @@ static int nds32_callback_event_handler(struct target *target,
 		enum target_event event, void *priv)
 {
 	int retval = ERROR_OK;
-	struct nds32 *nds32 = priv;
+	int target_number = *(int *)priv;
+
+	if (target_number != target->target_number)
+		return ERROR_OK;
+
+	struct nds32 *nds32 = target_to_nds32(target);
 
 	switch (event) {
 		case TARGET_EVENT_GDB_ATTACH:
@@ -2266,11 +2271,9 @@ int nds32_init(struct nds32 *nds32)
 	/* Initialize anything we can set up without talking to the target */
 	nds32->memory.access_channel = NDS_MEMORY_ACC_CPU;
 
-	/* turn off polling by default */
-	jtag_poll_set_enabled(false);
-
 	/* register event callback */
-	target_register_event_callback(nds32_callback_event_handler, nds32);
+	target_register_event_callback(nds32_callback_event_handler,
+			&(nds32->target->target_number));
 
 	return ERROR_OK;
 }
@@ -2467,7 +2470,7 @@ int nds32_profiling(struct target *target, uint32_t *samples,
 		iteration = max_num_samples;
 
 	int pc_regnum = nds32->register_map(nds32, PC);
-	aice->port->api->profiling(10, iteration, pc_regnum, samples, num_samples);
+	aice_profiling(aice, 10, iteration, pc_regnum, samples, num_samples);
 
 	register_cache_invalidate(nds32->core_cache);
 

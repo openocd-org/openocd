@@ -50,24 +50,28 @@ static int aice_khz_to_speed_map[AICE_KHZ_TO_SPEED_MAP_SIZE] = {
 	375,
 };
 
-static struct aice_port_s aice;
+static const struct aice_port *aice_port;
+static struct aice_port_param_s param;
+static uint32_t retry_times;
+static uint32_t count_to_check_dbger;
 
 /***************************************************************************/
 /* External interface implementation */
-#define AICE_MAX_TARGET_ID_CODES	0x10
-static uint32_t aice_target_id_codes[AICE_MAX_TARGET_ID_CODES];
+static uint32_t aice_target_id_codes[AICE_MAX_NUM_CORE];
 static uint8_t aice_num_of_target_id_codes;
 
 /***************************************************************************/
 /* AICE operations */
-int aice_init_target(struct target *t)
+int aice_init_targets(void)
 {
 	int res;
+	struct target *target;
+	struct aice_port_s *aice;
 
-	LOG_DEBUG("aice_init_target");
+	LOG_DEBUG("aice_init_targets");
 
 	if (aice_num_of_target_id_codes == 0) {
-		res = aice.port->api->idcode(aice_target_id_codes, &aice_num_of_target_id_codes);
+		res = aice_port->api->idcode(aice_target_id_codes, &aice_num_of_target_id_codes);
 		if (res != ERROR_OK) {
 			LOG_ERROR("<-- TARGET ERROR! Failed to identify AndesCore "
 					"JTAG Manufacture ID in the JTAG scan chain. "
@@ -76,30 +80,36 @@ int aice_init_target(struct target *t)
 		}
 	}
 
-	t->tap->idcode = aice_target_id_codes[t->tap->abs_chain_position];
+	for (target = all_targets; target; target = target->next) {
+		target->tap->idcode = aice_target_id_codes[target->tap->abs_chain_position];
 
-	unsigned ii, limit = t->tap->expected_ids_cnt;
-	int found = 0;
+		unsigned ii, limit = target->tap->expected_ids_cnt;
+		int found = 0;
 
-	for (ii = 0; ii < limit; ii++) {
-		uint32_t expected = t->tap->expected_ids[ii];
+		for (ii = 0; ii < limit; ii++) {
+			uint32_t expected = target->tap->expected_ids[ii];
 
-		/* treat "-expected-id 0" as a "don't-warn" wildcard */
-		if (!expected || (t->tap->idcode == expected)) {
-			found = 1;
-			break;
+			/* treat "-expected-id 0" as a "don't-warn" wildcard */
+			if (!expected || (target->tap->idcode == expected)) {
+				found = 1;
+				break;
+			}
 		}
-	}
 
-	if (found == 0) {
-		LOG_ERROR
-			("aice_init_target: target not found: idcode: %x ",
-			 t->tap->idcode);
-		return ERROR_FAIL;
-	}
+		if (found == 0) {
+			LOG_ERROR
+				("aice_init_targets: target not found: idcode: %x ",
+				 target->tap->idcode);
+			return ERROR_FAIL;
+		}
 
-	t->tap->priv = &aice;
-	t->tap->hasidcode = 1;
+		aice = calloc(1, sizeof(struct aice_port_s));
+		aice->port = aice_port;
+		aice->coreid = target->tap->abs_chain_position;
+
+		target->tap->priv = aice;
+		target->tap->hasidcode = 1;
+	}
 
 	return ERROR_OK;
 }
@@ -114,14 +124,14 @@ int aice_init_target(struct target *t)
  */
 static int aice_init(void)
 {
-	if (ERROR_OK != aice.port->api->open(&(aice.param))) {
+	if (ERROR_OK != aice_port->api->open(&param)) {
 		LOG_ERROR("Cannot find AICE Interface! Please check "
 				"connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	aice.port->api->set_retry_times(aice.retry_times);
-	aice.port->api->set_count_to_check_dbger(aice.count_to_check_dbger);
+	aice_port->api->set_retry_times(retry_times);
+	aice_port->api->set_count_to_check_dbger(count_to_check_dbger);
 
 	LOG_INFO("AICE JTAG Interface ready");
 
@@ -133,7 +143,7 @@ static int aice_init(void)
  */
 static int aice_quit(void)
 {
-	aice.port->api->close();
+	aice_port->api->close();
 	return ERROR_OK;
 }
 
@@ -146,7 +156,7 @@ static int aice_execute_reset(struct jtag_command *cmd)
 
 	if (cmd->cmd.reset->trst != last_trst) {
 		if (cmd->cmd.reset->trst)
-			retval = aice.port->api->reset();
+			retval = aice_port->api->reset();
 
 		last_trst = cmd->cmd.reset->trst;
 	}
@@ -191,7 +201,7 @@ static int aice_execute_queue(void)
 /* set jtag frequency(base frequency/frequency divider) to your jtag adapter */
 static int aice_speed(int speed)
 {
-	return aice.port->api->set_jtag_clock(speed);
+	return aice_port->api->set_jtag_clock(speed);
 }
 
 /* convert jtag adapter frequency(base frequency/frequency divider) to
@@ -237,10 +247,10 @@ COMMAND_HANDLER(aice_handle_aice_info_command)
 {
 	LOG_DEBUG("aice_handle_aice_info_command");
 
-	command_print(CMD_CTX, "Description: %s", aice.param.device_desc);
-	command_print(CMD_CTX, "Serial number: %s", aice.param.serial);
-	if (strncmp(aice.port->name, "aice_pipe", 9) == 0)
-		command_print(CMD_CTX, "Adapter: %s", aice.param.adapter_name);
+	command_print(CMD_CTX, "Description: %s", param.device_desc);
+	command_print(CMD_CTX, "Serial number: %s", param.serial);
+	if (strncmp(aice_port->name, "aice_pipe", 9) == 0)
+		command_print(CMD_CTX, "Adapter: %s", param.adapter_name);
 
 	return ERROR_OK;
 }
@@ -256,7 +266,7 @@ COMMAND_HANDLER(aice_handle_aice_port_command)
 
 	for (const struct aice_port *l = aice_port_get_list(); l->name; l++) {
 		if (strcmp(l->name, CMD_ARGV[0]) == 0) {
-			aice.port = l;
+			aice_port = l;
 			return ERROR_OK;
 		}
 	}
@@ -270,7 +280,7 @@ COMMAND_HANDLER(aice_handle_aice_desc_command)
 	LOG_DEBUG("aice_handle_aice_desc_command");
 
 	if (CMD_ARGC == 1)
-		aice.param.device_desc = strdup(CMD_ARGV[0]);
+		param.device_desc = strdup(CMD_ARGV[0]);
 	else
 		LOG_ERROR("expected exactly one argument to aice desc <description>");
 
@@ -282,7 +292,7 @@ COMMAND_HANDLER(aice_handle_aice_serial_command)
 	LOG_DEBUG("aice_handle_aice_serial_command");
 
 	if (CMD_ARGC == 1)
-		aice.param.serial = strdup(CMD_ARGV[0]);
+		param.serial = strdup(CMD_ARGV[0]);
 	else
 		LOG_ERROR("expected exactly one argument to aice serial <serial-number>");
 
@@ -298,8 +308,8 @@ COMMAND_HANDLER(aice_handle_aice_vid_pid_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], aice.param.vid);
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], aice.param.pid);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], param.vid);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], param.pid);
 
 	return ERROR_OK;
 }
@@ -309,7 +319,7 @@ COMMAND_HANDLER(aice_handle_aice_adapter_command)
 	LOG_DEBUG("aice_handle_aice_adapter_command");
 
 	if (CMD_ARGC == 1)
-		aice.param.adapter_name = strdup(CMD_ARGV[0]);
+		param.adapter_name = strdup(CMD_ARGV[0]);
 	else
 		LOG_ERROR("expected exactly one argument to aice adapter <adapter-name>");
 
@@ -321,7 +331,7 @@ COMMAND_HANDLER(aice_handle_aice_retry_times_command)
 	LOG_DEBUG("aice_handle_aice_retry_times_command");
 
 	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], aice.retry_times);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], retry_times);
 	else
 		LOG_ERROR("expected exactly one argument to aice retry_times <num_of_retry>");
 
@@ -333,7 +343,7 @@ COMMAND_HANDLER(aice_handle_aice_count_to_check_dbger_command)
 	LOG_DEBUG("aice_handle_aice_count_to_check_dbger_command");
 
 	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], aice.count_to_check_dbger);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], count_to_check_dbger);
 	else
 		LOG_ERROR("expected exactly one argument to aice count_to_check_dbger "
 				"<count_of_checking>");
@@ -346,7 +356,7 @@ COMMAND_HANDLER(aice_handle_aice_custom_srst_script_command)
 	LOG_DEBUG("aice_handle_aice_custom_srst_script_command");
 
 	if (CMD_ARGC > 0) {
-		aice.port->api->set_custom_srst_script(CMD_ARGV[0]);
+		aice_port->api->set_custom_srst_script(CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -358,7 +368,7 @@ COMMAND_HANDLER(aice_handle_aice_custom_trst_script_command)
 	LOG_DEBUG("aice_handle_aice_custom_trst_script_command");
 
 	if (CMD_ARGC > 0) {
-		aice.port->api->set_custom_trst_script(CMD_ARGV[0]);
+		aice_port->api->set_custom_trst_script(CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -370,7 +380,7 @@ COMMAND_HANDLER(aice_handle_aice_custom_restart_script_command)
 	LOG_DEBUG("aice_handle_aice_custom_restart_script_command");
 
 	if (CMD_ARGC > 0) {
-		aice.port->api->set_custom_restart_script(CMD_ARGV[0]);
+		aice_port->api->set_custom_restart_script(CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -381,7 +391,7 @@ COMMAND_HANDLER(aice_handle_aice_reset_command)
 {
 	LOG_DEBUG("aice_handle_aice_reset_command");
 
-	return aice.port->api->reset();
+	return aice_port->api->reset();
 }
 
 
@@ -497,4 +507,3 @@ struct jtag_interface aice_interface = {
 	.speed_div = aice_speed_div,	/* return readable value */
 	.khz = aice_khz,		/* convert khz to interface speed value */
 };
-
