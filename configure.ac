@@ -1128,7 +1128,8 @@ if test $build_ft2232_libftdi = yes -o $build_usb_blaster_libftdi = yes -o \
     ], [
       AC_MSG_ERROR([Cannot build & run test program using libftdi])
     ], [
-      AC_MSG_RESULT([Skipping as we are cross-compiling])
+      AC_MSG_RESULT([Skipping as we are cross-compiling, trying build only])
+      AC_SEARCH_LIBS([ftdi_new], [], [], [AC_MSG_ERROR([Cannot link with libftdi])])
     ])
 
 AC_MSG_CHECKING([for libftdi highspeed device support])
