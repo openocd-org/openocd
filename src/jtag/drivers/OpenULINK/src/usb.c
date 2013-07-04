@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Martin Schmoelzer                               *
+ *   Copyright (C) 2011-2013 by Martin Schmoelzer                          *
  *   <martin.schmoelzer@student.tuwien.ac.at>                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -43,87 +43,72 @@ volatile __xdata __at 0x7FE8 struct setup_data setup_data;
  * Be sure to include the neccessary endpoint descriptors! */
 #define NUM_ENDPOINTS 2
 
-/*
- * Normally, we would initialize the descriptor structures in C99 style:
- *
- * __code usb_device_descriptor_t device_descriptor = {
- *   .bLength = foo,
- *   .bDescriptorType = bar,
- *   .bcdUSB = 0xABCD,
- *   ...
- * };
- *
- * But SDCC currently does not support this, so we have to do it the
- * old-fashioned way...
- */
-
 __code struct usb_device_descriptor device_descriptor = {
-	/* .bLength = */ sizeof(struct usb_device_descriptor),
-	/* .bDescriptorType = */ DESCRIPTOR_TYPE_DEVICE,
-	/* .bcdUSB = */ 0x0110,		/* BCD: 01.00 (Version 1.0 USB spec) */
-	/* .bDeviceClass = */ 0xFF,	/* 0xFF = vendor-specific */
-	/* .bDeviceSubClass = */ 0xFF,
-	/* .bDeviceProtocol = */ 0xFF,
-	/* .bMaxPacketSize0 = */ 64,
-	/* .idVendor = */ 0xC251,
-	/* .idProduct = */ 0x2710,
-	/* .bcdDevice = */ 0x0100,
-	/* .iManufacturer = */ 1,
-	/* .iProduct = */ 2,
-	/* .iSerialNumber = */ 3,
-	/* .bNumConfigurations = */ 1
+	.bLength =		sizeof(struct usb_device_descriptor),
+	.bDescriptorType =	DESCRIPTOR_TYPE_DEVICE,
+	.bcdUSB =		0x0110,	/* BCD: 01.00 (Version 1.0 USB spec) */
+	.bDeviceClass =		0xFF,	/* 0xFF = vendor-specific */
+	.bDeviceSubClass =	0xFF,
+	.bDeviceProtocol =	0xFF,
+	.bMaxPacketSize0 =	64,
+	.idVendor =		0xC251,
+	.idProduct =		0x2710,
+	.bcdDevice =		0x0100,
+	.iManufacturer =	1,
+	.iProduct =		2,
+	.iSerialNumber =	3,
+	.bNumConfigurations =	1
 };
 
 /* WARNING: ALL config, interface and endpoint descriptors MUST be adjacent! */
 
 __code struct usb_config_descriptor config_descriptor = {
-	/* .bLength = */ sizeof(struct usb_config_descriptor),
-	/* .bDescriptorType = */ DESCRIPTOR_TYPE_CONFIGURATION,
-	/* .wTotalLength = */ sizeof(struct usb_config_descriptor) +
-	sizeof(struct usb_interface_descriptor) +
-	(NUM_ENDPOINTS *
-	 sizeof(struct usb_endpoint_descriptor)),
-	/* .bNumInterfaces = */ 1,
-	/* .bConfigurationValue = */ 1,
-	/* .iConfiguration = */ 4,	/* String describing this configuration */
-	/* .bmAttributes = */ 0x80,	/* Only MSB set according to USB spec */
-	/* .MaxPower = */ 50		/* 100 mA */
+	.bLength =		sizeof(struct usb_config_descriptor),
+	.bDescriptorType =	DESCRIPTOR_TYPE_CONFIGURATION,
+	.wTotalLength =		sizeof(struct usb_config_descriptor) +
+		sizeof(struct usb_interface_descriptor) +
+		(NUM_ENDPOINTS * sizeof(struct usb_endpoint_descriptor)),
+	.bNumInterfaces =	1,
+	.bConfigurationValue =	1,
+	.iConfiguration =	4,	/* String describing this configuration */
+	.bmAttributes =		0x80,	/* Only MSB set according to USB spec */
+	.MaxPower =		50	/* 100 mA */
 };
 
 __code struct usb_interface_descriptor interface_descriptor00 = {
-	/* .bLength = */ sizeof(struct usb_interface_descriptor),
-	/* .bDescriptorType = */ DESCRIPTOR_TYPE_INTERFACE,
-	/* .bInterfaceNumber = */ 0,
-	/* .bAlternateSetting = */ 0,
-	/* .bNumEndpoints = */ NUM_ENDPOINTS,
-	/* .bInterfaceClass = */ 0xFF,
-	/* .bInterfaceSubclass = */ 0xFF,
-	/* .bInterfaceProtocol = */ 0xFF,
-	/* .iInterface = */ 0
+	.bLength = sizeof(struct usb_interface_descriptor),
+	.bDescriptorType =	DESCRIPTOR_TYPE_INTERFACE,
+	.bInterfaceNumber =	0,
+	.bAlternateSetting =	0,
+	.bNumEndpoints =	NUM_ENDPOINTS,
+	.bInterfaceClass =	0xFF,
+	.bInterfaceSubclass =	0xFF,
+	.bInterfaceProtocol =	0xFF,
+	.iInterface =		0
 };
 
 __code struct usb_endpoint_descriptor Bulk_EP2_IN_Endpoint_Descriptor = {
-	/* .bLength = */ sizeof(struct usb_endpoint_descriptor),
-	/* .bDescriptorType = */ 0x05,
-	/* .bEndpointAddress = */ 2 | USB_DIR_IN,
-	/* .bmAttributes = */ 0x02,
-	/* .wMaxPacketSize = */ 64,
-	/* .bInterval = */ 0
+	.bLength =		sizeof(struct usb_endpoint_descriptor),
+	.bDescriptorType =	0x05,
+	.bEndpointAddress =	(2 | USB_DIR_IN),
+	.bmAttributes =		0x02,
+	.wMaxPacketSize =	64,
+	.bInterval =		0
 };
 
 __code struct usb_endpoint_descriptor Bulk_EP2_OUT_Endpoint_Descriptor = {
-	/* .bLength = */ sizeof(struct usb_endpoint_descriptor),
-	/* .bDescriptorType = */ 0x05,
-	/* .bEndpointAddress = */ 2 | USB_DIR_OUT,
-	/* .bmAttributes = */ 0x02,
-	/* .wMaxPacketSize = */ 64,
-	/* .bInterval = */ 0
+	.bLength =		sizeof(struct usb_endpoint_descriptor),
+	.bDescriptorType =	0x05,
+	.bEndpointAddress =	(2 | USB_DIR_OUT),
+	.bmAttributes =		0x02,
+	.wMaxPacketSize =	64,
+	.bInterval =		0
 };
 
 __code struct usb_language_descriptor language_descriptor = {
-	/* .bLength =  */ 4,
-	/* .bDescriptorType = */ DESCRIPTOR_TYPE_STRING,
-	/* .wLANGID = */ {0x0409 /* US English */}
+	.bLength =		4,
+	.bDescriptorType =	DESCRIPTOR_TYPE_STRING,
+	.wLANGID =		{0x0409 /* US English */}
 };
 
 __code struct usb_string_descriptor strManufacturer =
