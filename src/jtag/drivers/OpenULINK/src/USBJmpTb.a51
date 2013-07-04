@@ -1,5 +1,5 @@
 ;--------------------------------------------------------------------------;
-;    Copyright (C) 2011 by Martin Schmoelzer                               ;
+;    Copyright (C) 2011-2013 by Martin Schmoelzer                          ;
 ;    <martin.schmoelzer@student.tuwien.ac.at>                              ;
 ;                                                                          ;
 ;    This program is free software; you can redistribute it and/or modify  ;
@@ -28,7 +28,7 @@
 .area   USB_JV (ABS,OVR)   ; Absolute, Overlay
 .org    0x43               ; USB interrupt (INT2) jumps here
 USB_AutoVector = #. + 2
-    ljmp  USB_jump_table
+    ljmp  USB_Jump_Table
 
 ;--------------------------------------------------------------------------;
 ; USB Jump Table                                                           ;
@@ -36,7 +36,7 @@ USB_AutoVector = #. + 2
 .area  USB_JT (ABS)        ; Absolute placement
 .org   0x1B00              ; Place jump table at 0x1B00
 
-USB_jump_table:            ; autovector jump table
+USB_Jump_Table:            ; autovector jump table
     ljmp  _sudav_isr       ; Setup Data Available
     .db 0
     ljmp  _sof_isr         ; Start of Frame
