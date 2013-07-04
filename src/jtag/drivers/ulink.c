@@ -123,14 +123,14 @@ enum ulink_delay_type {
  * The last command sets #needs_postprocessing to true.
  */
 struct ulink_cmd {
-	uint8_t id;		/* /< ULINK command ID */
+	uint8_t id;			/**< ULINK command ID */
 
-	uint8_t *payload_out;	/* /< OUT direction payload data */
-	uint8_t payload_out_size;	/* /< OUT direction payload size for this command */
+	uint8_t *payload_out;		/**< OUT direction payload data */
+	uint8_t payload_out_size;	/**< OUT direction payload size for this command */
 
-	uint8_t *payload_in_start;	/* /< Pointer to first element of IN payload array */
-	uint8_t *payload_in;	/* /< Pointer where IN payload shall be stored */
-	uint8_t payload_in_size;/* /< IN direction payload size for this command */
+	uint8_t *payload_in_start;	/**< Pointer to first element of IN payload array */
+	uint8_t *payload_in;		/**< Pointer where IN payload shall be stored */
+	uint8_t payload_in_size;	/**< IN direction payload size for this command */
 
 	/** Indicates if this command needs post-processing */
 	bool needs_postprocessing;
@@ -141,7 +141,7 @@ struct ulink_cmd {
 	/** Pointer to corresponding OpenOCD command for post-processing */
 	struct jtag_command *cmd_origin;
 
-	struct ulink_cmd *next;	/* /< Pointer to next command (linked list) */
+	struct ulink_cmd *next;		/**< Pointer to next command (linked list) */
 };
 
 /** Describes one driver instance */
@@ -150,15 +150,15 @@ struct ulink {
 	struct libusb_device_handle *usb_device_handle;
 	enum ulink_type type;
 
-	int delay_scan_in;	/* /< Delay value for SCAN_IN commands */
-	int delay_scan_out;	/* /< Delay value for SCAN_OUT commands */
-	int delay_scan_io;	/* /< Delay value for SCAN_IO commands */
-	int delay_clock_tck;	/* /< Delay value for CLOCK_TMS commands */
-	int delay_clock_tms;	/* /< Delay value for CLOCK_TCK commands */
+	int delay_scan_in;	/**< Delay value for SCAN_IN commands */
+	int delay_scan_out;	/**< Delay value for SCAN_OUT commands */
+	int delay_scan_io;	/**< Delay value for SCAN_IO commands */
+	int delay_clock_tck;	/**< Delay value for CLOCK_TMS commands */
+	int delay_clock_tms;	/**< Delay value for CLOCK_TCK commands */
 
-	int commands_in_queue;	/* /< Number of commands in queue */
-	struct ulink_cmd *queue_start;	/* /< Pointer to first command in queue */
-	struct ulink_cmd *queue_end;	/* /< Pointer to last command in queue */
+	int commands_in_queue;		/**< Number of commands in queue */
+	struct ulink_cmd *queue_start;	/**< Pointer to first command in queue */
+	struct ulink_cmd *queue_end;	/**< Pointer to last command in queue */
 };
 
 /**************************** Function Prototypes *****************************/
@@ -517,8 +517,8 @@ void ulink_print_signal_states(uint8_t input_signals, uint8_t output_signals)
 		(input_signals  & SIGNAL_TDO   ? 1 : 0),
 		(output_signals & SIGNAL_TMS   ? 1 : 0),
 		(output_signals & SIGNAL_TCK   ? 1 : 0),
-		(output_signals & SIGNAL_TRST  ? 0 : 1),/* TRST and RESET are inverted */
-		(output_signals & SIGNAL_RESET ? 0 : 1));	/* by hardware */
+		(output_signals & SIGNAL_TRST  ? 0 : 1),	/* Inverted by hardware */
+		(output_signals & SIGNAL_RESET ? 0 : 1));	/* Inverted by hardware */
 }
 
 /**************** OpenULINK command generation helper functions ***************/

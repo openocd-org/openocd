@@ -49,80 +49,80 @@
 
 /** USB Device Descriptor. See USB 1.1 spec, pp. 196 - 198 */
 struct usb_device_descriptor {
-	uint8_t bLength;	/* /< Size of this descriptor in bytes. */
-	uint8_t bDescriptorType;/* /< DEVICE Descriptor Type. */
-	uint16_t bcdUSB;	/* /< USB specification release number (BCD). */
-	uint8_t bDeviceClass;	/* /< Class code. */
-	uint8_t bDeviceSubClass;/* /< Subclass code. */
-	uint8_t bDeviceProtocol;/* /< Protocol code. */
-	uint8_t bMaxPacketSize0;/* /< Maximum packet size for EP0 (8, 16, 32, 64). */
-	uint16_t idVendor;	/* /< USB Vendor ID. */
-	uint16_t idProduct;	/* /< USB Product ID. */
-	uint16_t bcdDevice;	/* /< Device Release Number (BCD). */
-	uint8_t iManufacturer;	/* /< Index of manufacturer string descriptor. */
-	uint8_t iProduct;	/* /< Index of product string descriptor. */
-	uint8_t iSerialNumber;	/* /< Index of string descriptor containing serial #. */
-	uint8_t bNumConfigurations;	/* /< Number of possible configurations. */
+	uint8_t bLength;		/**< Size of this descriptor in bytes. */
+	uint8_t bDescriptorType;	/**< DEVICE Descriptor Type. */
+	uint16_t bcdUSB;		/**< USB specification release number (BCD). */
+	uint8_t bDeviceClass;		/**< Class code. */
+	uint8_t bDeviceSubClass;	/**< Subclass code. */
+	uint8_t bDeviceProtocol;	/**< Protocol code. */
+	uint8_t bMaxPacketSize0;	/**< Maximum packet size for EP0 (8, 16, 32, 64). */
+	uint16_t idVendor;		/**< USB Vendor ID. */
+	uint16_t idProduct;		/**< USB Product ID. */
+	uint16_t bcdDevice;		/**< Device Release Number (BCD). */
+	uint8_t iManufacturer;		/**< Index of manufacturer string descriptor. */
+	uint8_t iProduct;		/**< Index of product string descriptor. */
+	uint8_t iSerialNumber;		/**< Index of string descriptor containing serial #. */
+	uint8_t bNumConfigurations;	/**< Number of possible configurations. */
 };
 
 /** USB Configuration Descriptor. See USB 1.1 spec, pp. 199 - 200 */
 struct usb_config_descriptor {
-	uint8_t bLength;	/* /< Size of this descriptor in bytes. */
-	uint8_t bDescriptorType;/* /< CONFIGURATION descriptor type. */
-	uint16_t wTotalLength;	/* /< Combined total length of all descriptors. */
-	uint8_t bNumInterfaces;	/* /< Number of interfaces in this configuration. */
-	uint8_t bConfigurationValue;	/* /< Value used to select this configuration. */
-	uint8_t iConfiguration;	/* /< Index of configuration string descriptor. */
-	uint8_t bmAttributes;	/* /< Configuration characteristics. */
-	uint8_t MaxPower;	/* /< Maximum power consumption in 2 mA units. */
+	uint8_t bLength;		/**< Size of this descriptor in bytes. */
+	uint8_t bDescriptorType;	/**< CONFIGURATION descriptor type. */
+	uint16_t wTotalLength;		/**< Combined total length of all descriptors. */
+	uint8_t bNumInterfaces;		/**< Number of interfaces in this configuration. */
+	uint8_t bConfigurationValue;	/**< Value used to select this configuration. */
+	uint8_t iConfiguration;		/**< Index of configuration string descriptor. */
+	uint8_t bmAttributes;		/**< Configuration characteristics. */
+	uint8_t MaxPower;		/**< Maximum power consumption in 2 mA units. */
 };
 
 /** USB Interface Descriptor. See USB 1.1 spec, pp. 201 - 203 */
 struct usb_interface_descriptor {
-	uint8_t bLength;	/* /< Size of this descriptor in bytes. */
-	uint8_t bDescriptorType;/* /< INTERFACE descriptor type. */
-	uint8_t bInterfaceNumber;	/* /< Interface number. */
-	uint8_t bAlternateSetting;	/* /< Value used to select alternate setting. */
-	uint8_t bNumEndpoints;	/* /< Number of endpoints used by this interface. */
-	uint8_t bInterfaceClass;/* /< Class code. */
-	uint8_t bInterfaceSubclass;	/* /< Subclass code. */
-	uint8_t bInterfaceProtocol;	/* /< Protocol code. */
-	uint8_t iInterface;	/* /< Index of interface string descriptor. */
+	uint8_t bLength;		/**< Size of this descriptor in bytes. */
+	uint8_t bDescriptorType;	/**< INTERFACE descriptor type. */
+	uint8_t bInterfaceNumber;	/**< Interface number. */
+	uint8_t bAlternateSetting;	/**< Value used to select alternate setting. */
+	uint8_t bNumEndpoints;		/**< Number of endpoints used by this interface. */
+	uint8_t bInterfaceClass;	/**< Class code. */
+	uint8_t bInterfaceSubclass;	/**< Subclass code. */
+	uint8_t bInterfaceProtocol;	/**< Protocol code. */
+	uint8_t iInterface;		/**< Index of interface string descriptor. */
 };
 
 /** USB Endpoint Descriptor. See USB 1.1 spec, pp. 203 - 204 */
 struct usb_endpoint_descriptor {
-	uint8_t bLength;	/* /< Size of this descriptor in bytes. */
-	uint8_t bDescriptorType;/* /< ENDPOINT descriptor type. */
-	uint8_t bEndpointAddress;	/* /< Endpoint Address: USB 1.1 spec, table 9-10. */
-	uint8_t bmAttributes;	/* /< Endpoint Attributes: USB 1.1 spec, table 9-10. */
-	uint16_t wMaxPacketSize;/* /< Maximum packet size for this endpoint. */
-	uint8_t bInterval;	/* /< Polling interval (in ms) for this endpoint. */
+	uint8_t bLength;		/**< Size of this descriptor in bytes. */
+	uint8_t bDescriptorType;	/**< ENDPOINT descriptor type. */
+	uint8_t bEndpointAddress;	/**< Endpoint Address: USB 1.1 spec, table 9-10. */
+	uint8_t bmAttributes;		/**< Endpoint Attributes: USB 1.1 spec, table 9-10. */
+	uint16_t wMaxPacketSize;	/**< Maximum packet size for this endpoint. */
+	uint8_t bInterval;		/**< Polling interval (in ms) for this endpoint. */
 };
 
 /** USB Language Descriptor. See USB 1.1 spec, pp. 204 - 205 */
 struct usb_language_descriptor {
-	uint8_t bLength;	/* /< Size of this descriptor in bytes. */
-	uint8_t bDescriptorType;/* /< STRING descriptor type. */
-	uint16_t wLANGID[];	/* /< LANGID codes. */
+	uint8_t bLength;		/**< Size of this descriptor in bytes. */
+	uint8_t bDescriptorType;	/**< STRING descriptor type. */
+	uint16_t wLANGID[];		/**< LANGID codes. */
 };
 
 /** USB String Descriptor. See USB 1.1 spec, pp. 204 - 205 */
 struct usb_string_descriptor {
-	uint8_t bLength;	/* /< Size of this descriptor in bytes. */
-	uint8_t bDescriptorType;/* /< STRING descriptor type. */
-	uint16_t bString[];	/* /< UNICODE encoded string. */
+	uint8_t bLength;		/**< Size of this descriptor in bytes. */
+	uint8_t bDescriptorType;	/**< STRING descriptor type. */
+	uint16_t bString[];		/**< UNICODE encoded string. */
 };
 
 /********************** USB Control Endpoint 0 related *********************/
 
 /** USB Control Setup Data. See USB 1.1 spec, pp. 183 - 185 */
 struct setup_data {
-	uint8_t bmRequestType;	/* /< Characteristics of a request. */
-	uint8_t bRequest;	/* /< Specific request. */
-	uint16_t wValue;	/* /< Field that varies according to request. */
-	uint16_t wIndex;	/* /< Field that varies according to request. */
-	uint16_t wLength;	/* /< Number of bytes to transfer in data stage. */
+	uint8_t bmRequestType;		/**< Characteristics of a request. */
+	uint8_t bRequest;		/**< Specific request. */
+	uint16_t wValue;		/**< Field that varies according to request. */
+	uint16_t wIndex;		/**< Field that varies according to request. */
+	uint16_t wLength;		/**< Number of bytes to transfer in data stage. */
 };
 
 /* External declarations for variables that need to be accessed outside of

@@ -101,7 +101,7 @@ void jtag_scan_in(uint8_t out_offset, uint8_t in_offset)
 			tms_sequence_end = tms_sequence_end >> 1;
 		}
 
-		OUTB = outb_buffer;	/* TCK change here */
+		OUTB = outb_buffer;	/* TCK changes here */
 		tdo_data = tdo_data >> 1;
 		OUTB = (outb_buffer | PIN_TCK);
 
@@ -183,7 +183,7 @@ void jtag_slow_scan_in(uint8_t out_offset, uint8_t in_offset)
 			tms_sequence_end = tms_sequence_end >> 1;
 		}
 
-		OUTB = outb_buffer;	/* TCK change here */
+		OUTB = outb_buffer;	/* TCK changes here */
 		for (k = 0; k < delay_scan_in; k++)
 			;
 		tdo_data = tdo_data >> 1;
@@ -662,7 +662,7 @@ void jtag_slow_clock_tms(uint8_t count, uint8_t sequence)
  * Get current JTAG signal states.
  *
  * @return a 16-bit integer where the most-significant byte contains the state
- *  of the JTAG input signals and the least-significant byte cotains the state
+ *  of the JTAG input signals and the least-significant byte contains the state
  *  of the JTAG output signals.
  */
 uint16_t jtag_get_signals(void)
