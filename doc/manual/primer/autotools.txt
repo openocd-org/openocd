@@ -53,26 +53,6 @@ The @c autoconf program generates the @c configure script from
 included in the project distribution packages and run by users to
 configure the build process for their system.
 
-@subsection primermaintainermode Maintainer Mode
-
-After a fresh checkout, @c bootstrap, and a simple @c configure, you may
-experience errors when running @c make that some files cannot be found
-(e.g. @c version.texi), and a second @c make will "mysteriously" solve
-the problems.  The isssue is well-known and expected, if unfortunate.
-
-The OpenOCD project requires that all developers building from  the
-git repository use the @c --enable-maintainer-mode option when
-running the @c configure script.  This option ensures that certain files
-are created during the build process that would normally be packaged in
-the distribution tarball.  The @c bootstrap script will remind you of
-this requirement when it runs.
-
-In addition to solving these problems, this option enables Makefile
-rules (provided by automake) that allow the normal @c make process to
-rebuild the autotools outputs, included the automake-generated Makefiles
-themselves.  This avoids the heavy-handed approach of running the
-@c bootstrap script after changing one of these files.
-
 @section primerautomake Automake Makefiles
 
 The @c automake program generates @c Makefile.in files (from @c

@@ -203,11 +203,6 @@ interfaces should be included (among other things).  The following list
 of options was extracted from the output of './configure --help'.  Other
 options may be available there:
 
-  --enable-maintainer-mode  enable make rules and dependencies not useful
-                          (and sometimes confusing) to the casual installer
-			  NOTE: This option is *required* for GIT builds!
-			  It should *not* be used to build a release.
-
   --enable-dummy          Enable building the dummy JTAG port driver
 
   --enable-parport        Enable building the pc parallel port driver
@@ -453,9 +448,9 @@ Tips For Building From a GIT Repository
 ---------------------------------------
 
 Building OpenOCD from a repository requires a recent version of the GNU
-autotools (autoconf >= 2.59 and automake >= 1.9).
+autotools (autoconf >= 2.60 and automake >= 1.9).
 
 1) Run './bootstrap' to create the 'configure' script and prepare
    the build process for your host system.
 
-2) Run './configure --enable-maintainer-mode' with other options.
+2) Run './configure' with other options.
