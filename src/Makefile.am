@@ -12,7 +12,7 @@ SUBDIRS = \
 	server \
 	rtos
 
-lib_LTLIBRARIES = libopenocd.la
+noinst_LTLIBRARIES = libopenocd.la
 bin_PROGRAMS = openocd
 
 MAINFILE = main.c
