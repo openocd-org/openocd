@@ -14,3 +14,5 @@ USB_BLASTER_SRC += ublast_access_ftd2xx.c
 endif
 
 noinst_HEADERS = ublast_access.h
+
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
