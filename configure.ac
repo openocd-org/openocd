@@ -6,7 +6,11 @@ AC_CONFIG_SRCDIR([src/openocd.c])
 m4_include([config_subdir.m4])dnl
 
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip])
-AM_MAINTAINER_MODE
+if test -d .git; then
+	AM_MAINTAINER_MODE([enable])
+else
+	AM_MAINTAINER_MODE
+fi
 
 AC_CONFIG_HEADERS([config.h])
 AH_BOTTOM([
