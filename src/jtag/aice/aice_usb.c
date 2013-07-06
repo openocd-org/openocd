@@ -60,7 +60,10 @@ static void aice_pack_htdc(uint8_t cmd_code, uint8_t extra_word_length,
 	usb_out_buffer[1] = extra_word_length;
 	usb_out_buffer[2] = (uint8_t)(address & 0xFF);
 	if (access_endian == AICE_BIG_ENDIAN) {
-		*(uint32_t *)(usb_out_buffer + 3) = word;
+		usb_out_buffer[6] = (uint8_t)((word >> 24) & 0xFF);
+		usb_out_buffer[5] = (uint8_t)((word >> 16) & 0xFF);
+		usb_out_buffer[4] = (uint8_t)((word >> 8) & 0xFF);
+		usb_out_buffer[3] = (uint8_t)(word & 0xFF);
 	} else {
 		usb_out_buffer[3] = (uint8_t)((word >> 24) & 0xFF);
 		usb_out_buffer[4] = (uint8_t)((word >> 16) & 0xFF);
@@ -100,7 +103,10 @@ static void aice_pack_htdmc(uint8_t cmd_code, uint8_t target_id,
 	usb_out_buffer[2] = extra_word_length;
 	usb_out_buffer[3] = (uint8_t)(address & 0xFF);
 	if (access_endian == AICE_BIG_ENDIAN) {
-		*(uint32_t *)(usb_out_buffer + 4) = word;
+		usb_out_buffer[7] = (uint8_t)((word >> 24) & 0xFF);
+		usb_out_buffer[6] = (uint8_t)((word >> 16) & 0xFF);
+		usb_out_buffer[5] = (uint8_t)((word >> 8) & 0xFF);
+		usb_out_buffer[4] = (uint8_t)(word & 0xFF);
 	} else {
 		usb_out_buffer[4] = (uint8_t)((word >> 24) & 0xFF);
 		usb_out_buffer[5] = (uint8_t)((word >> 16) & 0xFF);
@@ -121,7 +127,10 @@ static void aice_pack_htdmc_multiple_data(uint8_t cmd_code, uint8_t target_id,
 	uint8_t i;
 	for (i = 0 ; i < num_of_words ; i++, word++) {
 		if (access_endian == AICE_BIG_ENDIAN) {
-			*(uint32_t *)(usb_out_buffer + 4 + i * 4) = *word;
+			usb_out_buffer[7 + i * 4] = (uint8_t)((*word >> 24) & 0xFF);
+			usb_out_buffer[6 + i * 4] = (uint8_t)((*word >> 16) & 0xFF);
+			usb_out_buffer[5 + i * 4] = (uint8_t)((*word >> 8) & 0xFF);
+			usb_out_buffer[4 + i * 4] = (uint8_t)(*word & 0xFF);
 		} else {
 			usb_out_buffer[4 + i * 4] = (uint8_t)((*word >> 24) & 0xFF);
 			usb_out_buffer[5 + i * 4] = (uint8_t)((*word >> 16) & 0xFF);
@@ -144,7 +153,10 @@ static void aice_pack_htdmd(uint8_t cmd_code, uint8_t target_id,
 	usb_out_buffer[6] = (uint8_t)((address >> 8) & 0xFF);
 	usb_out_buffer[7] = (uint8_t)(address & 0xFF);
 	if (access_endian == AICE_BIG_ENDIAN) {
-		*(uint32_t *)(usb_out_buffer + 8) = word;
+		usb_out_buffer[11] = (uint8_t)((word >> 24) & 0xFF);
+		usb_out_buffer[10] = (uint8_t)((word >> 16) & 0xFF);
+		usb_out_buffer[9] = (uint8_t)((word >> 8) & 0xFF);
+		usb_out_buffer[8] = (uint8_t)(word & 0xFF);
 	} else {
 		usb_out_buffer[8] = (uint8_t)((word >> 24) & 0xFF);
 		usb_out_buffer[9] = (uint8_t)((word >> 16) & 0xFF);
@@ -154,7 +166,7 @@ static void aice_pack_htdmd(uint8_t cmd_code, uint8_t target_id,
 }
 
 static void aice_pack_htdmd_multiple_data(uint8_t cmd_code, uint8_t target_id,
-		uint8_t extra_word_length, uint32_t address, const uint32_t *word,
+		uint8_t extra_word_length, uint32_t address, const uint8_t *word,
 		enum aice_target_endian access_endian)
 {
 	usb_out_buffer[0] = cmd_code;
@@ -170,14 +182,17 @@ static void aice_pack_htdmd_multiple_data(uint8_t cmd_code, uint8_t target_id,
 	/* num_of_words may be over 0xFF, so use uint32_t */
 	uint32_t num_of_words = extra_word_length + 1;
 
-	for (i = 0 ; i < num_of_words ; i++, word++) {
+	for (i = 0 ; i < num_of_words ; i++, word += 4) {
 		if (access_endian == AICE_BIG_ENDIAN) {
-			*(uint32_t *)(usb_out_buffer + 8 + i * 4) = *word;
+			usb_out_buffer[11 + i * 4] = word[3];
+			usb_out_buffer[10 + i * 4] = word[2];
+			usb_out_buffer[9 + i * 4] = word[1];
+			usb_out_buffer[8 + i * 4] = word[0];
 		} else {
-			usb_out_buffer[8 + i * 4] = (uint8_t)((*word >> 24) & 0xFF);
-			usb_out_buffer[9 + i * 4] = (uint8_t)((*word >> 16) & 0xFF);
-			usb_out_buffer[10 + i * 4] = (uint8_t)((*word >> 8) & 0xFF);
-			usb_out_buffer[11 + i * 4] = (uint8_t)(*word & 0xFF);
+			usb_out_buffer[8 + i * 4] = word[3];
+			usb_out_buffer[9 + i * 4] = word[2];
+			usb_out_buffer[10 + i * 4] = word[1];
+			usb_out_buffer[11 + i * 4] = word[0];
 		}
 	}
 }
@@ -189,7 +204,10 @@ static void aice_unpack_dtha(uint8_t *cmd_ack_code, uint8_t *extra_word_length,
 	*extra_word_length = usb_in_buffer[1];
 
 	if (access_endian == AICE_BIG_ENDIAN) {
-		*word = *(uint32_t *)(usb_in_buffer + 2);
+		*word = (usb_in_buffer[5] << 24) |
+			(usb_in_buffer[4] << 16) |
+			(usb_in_buffer[3] << 8) |
+			(usb_in_buffer[2]);
 	} else {
 		*word = (usb_in_buffer[2] << 24) |
 			(usb_in_buffer[3] << 16) |
@@ -208,7 +226,10 @@ static void aice_unpack_dtha_multiple_data(uint8_t *cmd_ack_code,
 	uint8_t i;
 	for (i = 0 ; i < num_of_words ; i++, word++) {
 		if (access_endian == AICE_BIG_ENDIAN) {
-			*word = *(uint32_t *)(usb_in_buffer + 2 + i * 4);
+			*word = (usb_in_buffer[5 + i * 4] << 24) |
+				(usb_in_buffer[4 + i * 4] << 16) |
+				(usb_in_buffer[3 + i * 4] << 8) |
+				(usb_in_buffer[2 + i * 4]);
 		} else {
 			*word = (usb_in_buffer[2 + i * 4] << 24) |
 				(usb_in_buffer[3 + i * 4] << 16) |
@@ -232,7 +253,10 @@ static void aice_unpack_dthma(uint8_t *cmd_ack_code, uint8_t *target_id,
 	*target_id = usb_in_buffer[1];
 	*extra_word_length = usb_in_buffer[2];
 	if (access_endian == AICE_BIG_ENDIAN) {
-		*word = *(uint32_t *)(usb_in_buffer + 4);
+		*word = (usb_in_buffer[7] << 24) |
+			(usb_in_buffer[6] << 16) |
+			(usb_in_buffer[5] << 8) |
+			(usb_in_buffer[4]);
 	} else {
 		*word = (usb_in_buffer[4] << 24) |
 			(usb_in_buffer[5] << 16) |
@@ -242,33 +266,39 @@ static void aice_unpack_dthma(uint8_t *cmd_ack_code, uint8_t *target_id,
 }
 
 static void aice_unpack_dthma_multiple_data(uint8_t *cmd_ack_code,
-		uint8_t *target_id, uint8_t *extra_word_length, uint32_t *word,
+		uint8_t *target_id, uint8_t *extra_word_length, uint8_t *word,
 		enum aice_target_endian access_endian)
 {
 	*cmd_ack_code = usb_in_buffer[0];
 	*target_id = usb_in_buffer[1];
 	*extra_word_length = usb_in_buffer[2];
 	if (access_endian == AICE_BIG_ENDIAN) {
-		*word = *(uint32_t *)(usb_in_buffer + 4);
+		word[0] = usb_in_buffer[4];
+		word[1] = usb_in_buffer[5];
+		word[2] = usb_in_buffer[6];
+		word[3] = usb_in_buffer[7];
 	} else {
-		*word = (usb_in_buffer[4] << 24) |
-			(usb_in_buffer[5] << 16) |
-			(usb_in_buffer[6] << 8) |
-			(usb_in_buffer[7]);
+		word[0] = usb_in_buffer[7];
+		word[1] = usb_in_buffer[6];
+		word[2] = usb_in_buffer[5];
+		word[3] = usb_in_buffer[4];
 	}
-	word++;
+	word += 4;
 
 	uint8_t i;
 	for (i = 0; i < *extra_word_length; i++) {
 		if (access_endian == AICE_BIG_ENDIAN) {
-			*word = *(uint32_t *)(usb_in_buffer + 8 + i * 4);
+			word[0] = usb_in_buffer[8 + i * 4];
+			word[1] = usb_in_buffer[9 + i * 4];
+			word[2] = usb_in_buffer[10 + i * 4];
+			word[3] = usb_in_buffer[11 + i * 4];
 		} else {
-			*word = (usb_in_buffer[8 + i * 4] << 24) |
-				(usb_in_buffer[9 + i * 4] << 16) |
-				(usb_in_buffer[10 + i * 4] << 8) |
-				(usb_in_buffer[11 + i * 4]);
+			word[0] = usb_in_buffer[11 + i * 4];
+			word[1] = usb_in_buffer[10 + i * 4];
+			word[2] = usb_in_buffer[9 + i * 4];
+			word[3] = usb_in_buffer[8 + i * 4];
 		}
-		word++;
+		word += 4;
 	}
 }
 
@@ -1104,7 +1134,7 @@ int aice_write_mem(uint8_t target_id, uint32_t address, uint32_t data)
 	return ERROR_OK;
 }
 
-int aice_fastread_mem(uint8_t target_id, uint32_t *word, uint32_t num_of_words)
+int aice_fastread_mem(uint8_t target_id, uint8_t *word, uint32_t num_of_words)
 {
 	int result;
 	int retry_times = 0;
@@ -1152,7 +1182,7 @@ int aice_fastread_mem(uint8_t target_id, uint32_t *word, uint32_t num_of_words)
 	return ERROR_OK;
 }
 
-int aice_fastwrite_mem(uint8_t target_id, const uint32_t *word, uint32_t num_of_words)
+int aice_fastwrite_mem(uint8_t target_id, const uint8_t *word, uint32_t num_of_words)
 {
 	int result;
 	int retry_times = 0;
@@ -2849,7 +2879,7 @@ static int aice_bulk_read_mem(uint32_t addr, uint32_t count, uint8_t *buffer)
 		if (aice_write_misc(current_target_id, NDS_EDM_MISC_SBAR, addr) != ERROR_OK)
 			return ERROR_FAIL;
 
-		if (aice_fastread_mem(current_target_id, (uint32_t *)buffer,
+		if (aice_fastread_mem(current_target_id, buffer,
 					packet_size) != ERROR_OK)
 			return ERROR_FAIL;
 
@@ -2873,7 +2903,7 @@ static int aice_bulk_write_mem(uint32_t addr, uint32_t count, const uint8_t *buf
 		if (aice_write_misc(current_target_id, NDS_EDM_MISC_SBAR, addr | 1) != ERROR_OK)
 			return ERROR_FAIL;
 
-		if (aice_fastwrite_mem(current_target_id, (const uint32_t *)buffer,
+		if (aice_fastwrite_mem(current_target_id, buffer,
 					packet_size) != ERROR_OK)
 			return ERROR_FAIL;
 
