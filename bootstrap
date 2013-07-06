@@ -31,10 +31,6 @@ autoheader
 automake --gnu --add-missing --copy
 )
 
-# AM_MAINTAINER_MODE requires --enable-maintainer-mode from everyone using
-# current source snapshots (working from GIT, or some source snapshot, etc)
-# otherwise the documentation will fail to build due to missing version.texi
-
 if [ -n "$SKIP_SUBMODULE" ]; then
     echo "Skipping submodule setup"
 else
@@ -44,4 +40,4 @@ else
 fi
 
 echo "Bootstrap complete. Quick build instructions:"
-echo "./configure --enable-maintainer-mode ...."
+echo "./configure ...."
