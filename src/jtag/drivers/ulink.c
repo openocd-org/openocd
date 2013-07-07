@@ -63,7 +63,7 @@
 #define ULINK_RENUMERATION_DELAY 1500000
 
 /** Default location of OpenULINK firmware image. */
-#define ULINK_FIRMWARE_FILE      PKGLIBDIR "/OpenULINK/ulink_firmware.hex"
+#define ULINK_FIRMWARE_FILE      PKGDATADIR "/OpenULINK/ulink_firmware.hex"
 
 /** Maximum size of a single firmware section. Entire EZ-USB code space = 8kB */
 #define SECTION_BUFFERSIZE       8192
