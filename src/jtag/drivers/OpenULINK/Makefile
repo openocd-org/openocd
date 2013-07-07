@@ -83,7 +83,7 @@ ulink_firmware.ihx: $(OBJECTS)
 	$(AS) -lsgo $@ $<
 
 clean:
-	rm -f *.asm *.lst *.rel *.rst *.sym *.ihx *.lnk *.map *.mem
+	rm -f *.asm *.lst *.rel *.rst *.sym *.ihx *.lk *.map *.mem
 
 hex: ulink_firmware.ihx
 	$(PACKIHX) ulink_firmware.ihx > ulink_firmware.hex
