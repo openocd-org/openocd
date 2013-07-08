@@ -5022,7 +5022,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	}
 
 	/* now - create the new target name command */
-	const const struct command_registration target_subcommands[] = {
+	const struct command_registration target_subcommands[] = {
 		{
 			.chain = target_instance_command_handlers,
 		},
@@ -5031,7 +5031,7 @@ static int target_create(Jim_GetOptInfo *goi)
 		},
 		COMMAND_REGISTRATION_DONE
 	};
-	const const struct command_registration target_commands[] = {
+	const struct command_registration target_commands[] = {
 		{
 			.name = cp,
 			.mode = COMMAND_ANY,
