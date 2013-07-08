@@ -34,8 +34,6 @@ RESULT usbtoswd_callback(void *p, uint8_t *src, uint8_t *processed)
 {
 	struct versaloon_pending_t *pending = (struct versaloon_pending_t *)p;
 
-	processed = processed;
-
 	if (pending->extra_data != NULL)
 		*((uint8_t *)pending->extra_data) = src[0];
 
