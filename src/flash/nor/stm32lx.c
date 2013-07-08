@@ -739,7 +739,8 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "unknown");
 				break;
 		}
-	} else if ((device_id & 0xfff) == 0x436) {
+	} else if (((device_id & 0xfff) == 0x436) ||
+			((device_id & 0xfff) == 0x427)) {
 		printed = snprintf(buf, buf_size, "stm32lx (HD) - Rev: ");
 		buf += printed;
 		buf_size -= printed;
