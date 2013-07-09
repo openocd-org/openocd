@@ -379,13 +379,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 
 static int stm32x_protect_check(struct flash_bank *bank)
 {
-	struct target *target = bank->target;
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	/* read write protection settings */
 	int retval = stm32x_read_options(bank);

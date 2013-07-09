@@ -364,11 +364,6 @@ static int stm32x_protect_check(struct flash_bank *bank)
 	int num_bits;
 	int set;
 
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	int retval = stm32x_check_operation_supported(bank);
 	if (ERROR_OK != retval)
 		return retval;

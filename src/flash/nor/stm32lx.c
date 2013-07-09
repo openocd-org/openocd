@@ -158,11 +158,6 @@ static int stm32lx_protect_check(struct flash_bank *bank)
 
 	uint32_t wrpr;
 
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	/*
 	 * Read the WRPR word, and check each bit (corresponding to each
 	 * flash sector
