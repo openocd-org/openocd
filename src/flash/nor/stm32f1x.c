@@ -1030,7 +1030,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	switch (device_id) {
 	case 0x410:
-		device_str = "stm32x (Medium Density)";
+		device_str = "STM32F10x (Medium Density)";
 
 		switch (rev_id) {
 		case 0x0000:
@@ -1052,7 +1052,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x412:
-		device_str = "stm32x (Low Density)";
+		device_str = "STM32F10x (Low Density)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1062,7 +1062,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x414:
-		device_str = "stm32x (High Density)";
+		device_str = "STM32F10x (High Density)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1072,11 +1072,15 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		case 0x1001:
 			rev_str = "Z";
 			break;
+
+		case 0x1003:
+			rev_str = "Y";
+			break;
 		}
 		break;
 
 	case 0x418:
-		device_str = "stm32x (Connectivity)";
+		device_str = "STM32F10x (Connectivity)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1090,7 +1094,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x420:
-		device_str = "stm32x (Value)";
+		device_str = "STM32F100 (Low/Medium Density)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1104,7 +1108,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x422:
-		device_str = "stm32f30x";
+		device_str = "STM32F30x";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1115,6 +1119,10 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 			rev_str = "Z";
 			break;
 
+		case 0x1003:
+			rev_str = "Y";
+			break;
+
 		case 0x2000:
 			rev_str = "B";
 			break;
@@ -1122,7 +1130,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x428:
-		device_str = "stm32x (Value HD)";
+		device_str = "STM32F100 (High Density)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1136,7 +1144,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x430:
-		device_str = "stm32x (XL)";
+		device_str = "STM32F10x (XL Density)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1146,7 +1154,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x432:
-		device_str = "stm32f37x";
+		device_str = "STM32F37x";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1161,7 +1169,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	case 0x440:
 	case 0x444:
-		device_str = "stm32f0x";
+		device_str = "STM32F0xx";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1175,7 +1183,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	default:
-		snprintf(buf, buf_size, "Cannot identify target as a stm32x\n");
+		snprintf(buf, buf_size, "Cannot identify target as a STM32F0/1/3\n");
 		return ERROR_FAIL;
 	}
 

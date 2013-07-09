@@ -871,7 +871,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	switch (device_id) {
 	case 0x411:
-		device_str = "stm32f2x";
+		device_str = "STM32F2xx";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -898,7 +898,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	case 0x413:
 	case 0x419:
-		device_str = "stm32f4x";
+		device_str = "STM32F4xx";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -912,7 +912,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	default:
-		snprintf(buf, buf_size, "Cannot identify target as a stm32x\n");
+		snprintf(buf, buf_size, "Cannot identify target as a STM32F2/4\n");
 		return ERROR_FAIL;
 	}
 

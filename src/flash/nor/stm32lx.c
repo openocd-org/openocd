@@ -709,7 +709,7 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	switch (device_id) {
 	case 0x416:
-		device_str = "stm32lx";
+		device_str = "STM32L1xx (Low/Medium Density)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -734,9 +734,18 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 		}
 		break;
 
-	case 0x436:
 	case 0x427:
-		device_str = "stm32lx (HD)";
+		device_str = "STM32L1xx (Medium+ Density)";
+
+		switch (rev_id) {
+		case 0x1018:
+			rev_str = "A";
+			break;
+		}
+		break;
+
+	case 0x436:
+		device_str = "STM32L1xx (Medium+/High Density)";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -754,7 +763,7 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	default:
-		snprintf(buf, buf_size, "Cannot identify target as a stm32lx");
+		snprintf(buf, buf_size, "Cannot identify target as a STM32L1");
 		return ERROR_FAIL;
 	}
 
