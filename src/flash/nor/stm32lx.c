@@ -695,72 +695,73 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	/* This method must return a string displaying information about the bank */
 
-	struct target *target = bank->target;
-	uint32_t device_id;
-	int printed;
+	uint32_t dbgmcu_idcode;
 
 	/* read stm32 device id register */
-	int retval = target_read_u32(target, DBGMCU_IDCODE, &device_id);
+	int retval = target_read_u32(bank->target, DBGMCU_IDCODE, &dbgmcu_idcode);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((device_id & 0xfff) == 0x416) {
-		printed = snprintf(buf, buf_size, "stm32lx - Rev: ");
-		buf += printed;
-		buf_size -= printed;
+	uint16_t device_id = dbgmcu_idcode & 0xfff;
+	uint16_t rev_id = dbgmcu_idcode >> 16;
+	const char *device_str;
+	const char *rev_str = NULL;
 
-		switch (device_id >> 16) {
-			case 0x1000:
-				snprintf(buf, buf_size, "A");
-				break;
+	switch (device_id) {
+	case 0x416:
+		device_str = "stm32lx";
 
-			case 0x1008:
-				snprintf(buf, buf_size, "Y");
-				break;
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "A";
+			break;
 
-			case 0x1018:
-				snprintf(buf, buf_size, "X");
-				break;
+		case 0x1008:
+			rev_str = "Y";
+			break;
 
-			case 0x1038:
-				snprintf(buf, buf_size, "W");
-				break;
+		case 0x1018:
+			rev_str = "X";
+			break;
 
-			case 0x1078:
-				snprintf(buf, buf_size, "V");
-				break;
+		case 0x1038:
+			rev_str = "W";
+			break;
 
-			default:
-				snprintf(buf, buf_size, "unknown");
-				break;
+		case 0x1078:
+			rev_str = "V";
+			break;
 		}
-	} else if (((device_id & 0xfff) == 0x436) ||
-			((device_id & 0xfff) == 0x427)) {
-		printed = snprintf(buf, buf_size, "stm32lx (HD) - Rev: ");
-		buf += printed;
-		buf_size -= printed;
+		break;
 
-		switch (device_id >> 16) {
-			case 0x1000:
-				snprintf(buf, buf_size, "A");
-				break;
+	case 0x436:
+	case 0x427:
+		device_str = "stm32lx (HD)";
 
-			case 0x1008:
-				snprintf(buf, buf_size, "Z");
-				break;
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "A";
+			break;
 
-			case 0x1018:
-				snprintf(buf, buf_size, "Y");
-				break;
+		case 0x1008:
+			rev_str = "Z";
+			break;
 
-			default:
-				snprintf(buf, buf_size, "unknown");
-				break;
+		case 0x1018:
+			rev_str = "Y";
+			break;
 		}
-	} else {
+		break;
+
+	default:
 		snprintf(buf, buf_size, "Cannot identify target as a stm32lx");
 		return ERROR_FAIL;
 	}
+
+	if (rev_str != NULL)
+		snprintf(buf, buf_size, "%s - Rev: %s", device_str, rev_str);
+	else
+		snprintf(buf, buf_size, "%s - Rev: unknown (0x%04x)", device_str, rev_id);
 
 	return ERROR_OK;
 }
