@@ -602,7 +602,7 @@ void mpsse_read_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t *data)
 		return;
 	}
 
-	if (buffer_write_space(ctx) < 1)
+	if (buffer_write_space(ctx) < 1 || buffer_read_space(ctx) < 1)
 		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, 0x81);
@@ -618,7 +618,7 @@ void mpsse_read_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t *data)
 		return;
 	}
 
-	if (buffer_write_space(ctx) < 1)
+	if (buffer_write_space(ctx) < 1 || buffer_read_space(ctx) < 1)
 		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, 0x83);
