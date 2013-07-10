@@ -50,22 +50,22 @@ bool mpsse_is_high_speed(struct mpsse_ctx *ctx);
 /* Command queuing. These correspond to the MPSSE commands with the same names, but no need to care
  * about bit/byte transfer or data length limitation. Read data is guaranteed to be available only
  * after the following mpsse_flush(). */
-int mpsse_clock_data_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
+void mpsse_clock_data_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
 			 unsigned length, uint8_t mode);
-int mpsse_clock_data_in(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_offset, unsigned length,
+void mpsse_clock_data_in(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_offset, unsigned length,
 			uint8_t mode);
-int mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
+void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
 		     unsigned in_offset, unsigned length, uint8_t mode);
-int mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
+void mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
 			   unsigned length, bool tdi, uint8_t mode);
-int mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
+void mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
 		       unsigned in_offset, unsigned length, bool tdi, uint8_t mode);
-int mpsse_set_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir);
-int mpsse_set_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir);
-int mpsse_read_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t *data);
-int mpsse_read_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t *data);
-int mpsse_loopback_config(struct mpsse_ctx *ctx, bool enable);
-int mpsse_set_divisor(struct mpsse_ctx *ctx, uint16_t divisor);
+void mpsse_set_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir);
+void mpsse_set_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir);
+void mpsse_read_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t *data);
+void mpsse_read_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t *data);
+void mpsse_loopback_config(struct mpsse_ctx *ctx, bool enable);
+void mpsse_set_divisor(struct mpsse_ctx *ctx, uint16_t divisor);
 int mpsse_divide_by_5_config(struct mpsse_ctx *ctx, bool enable);
 int mpsse_rtck_config(struct mpsse_ctx *ctx, bool enable);
 

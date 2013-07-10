@@ -140,7 +140,6 @@ static struct signal *create_signal(const char *name)
 
 static int ftdi_set_signal(const struct signal *s, char value)
 {
-	int retval;
 	bool data;
 	bool oe;
 
@@ -181,13 +180,8 @@ static int ftdi_set_signal(const struct signal *s, char value)
 	else
 		output = oe ? output | s->oe_mask : output & ~s->oe_mask;
 
-	retval = mpsse_set_data_bits_low_byte(mpsse_ctx, output & 0xff, direction & 0xff);
-	if (retval == ERROR_OK)
-		retval = mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
-	if (retval != ERROR_OK)	{
-		LOG_ERROR("couldn't initialize FTDI GPIO");
-		return ERROR_JTAG_INIT_FAILED;
-	}
+	mpsse_set_data_bits_low_byte(mpsse_ctx, output & 0xff, direction & 0xff);
+	mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
 
 	return ERROR_OK;
 }
@@ -201,7 +195,7 @@ static int ftdi_set_signal(const struct signal *s, char value)
  *
  * @param goal_state is the destination state for the move.
  */
-static int move_to_state(tap_state_t goal_state)
+static void move_to_state(tap_state_t goal_state)
 {
 	tap_state_t start_state = tap_get_state();
 
@@ -220,7 +214,7 @@ static int move_to_state(tap_state_t goal_state)
 	for (int i = 0; i < tms_count; i++)
 		tap_set_state(tap_state_transition(tap_get_state(), (tms_bits >> i) & 1));
 
-	return mpsse_clock_tms_cs_out(mpsse_ctx,
+	mpsse_clock_tms_cs_out(mpsse_ctx,
 		(uint8_t *)&tms_bits,
 		0,
 		tms_count,
@@ -268,9 +262,8 @@ static void ftdi_end_state(tap_state_t state)
 	}
 }
 
-static int ftdi_execute_runtest(struct jtag_command *cmd)
+static void ftdi_execute_runtest(struct jtag_command *cmd)
 {
-	int retval = ERROR_OK;
 	int i;
 	uint8_t zero = 0;
 
@@ -283,10 +276,10 @@ static int ftdi_execute_runtest(struct jtag_command *cmd)
 
 	/* TODO: Reuse ftdi_execute_stableclocks */
 	i = cmd->cmd.runtest->num_cycles;
-	while (i > 0 && retval == ERROR_OK) {
+	while (i > 0) {
 		/* there are no state transitions in this code, so omit state tracking */
 		unsigned this_len = i > 7 ? 7 : i;
-		retval = mpsse_clock_tms_cs_out(mpsse_ctx, &zero, 0, this_len, false, JTAG_MODE);
+		mpsse_clock_tms_cs_out(mpsse_ctx, &zero, 0, this_len, false, JTAG_MODE);
 		i -= this_len;
 	}
 
@@ -298,13 +291,10 @@ static int ftdi_execute_runtest(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("runtest: %i, end in %s",
 		cmd->cmd.runtest->num_cycles,
 		tap_state_name(tap_get_end_state()));
-	return retval;
 }
 
-static int ftdi_execute_statemove(struct jtag_command *cmd)
+static void ftdi_execute_statemove(struct jtag_command *cmd)
 {
-	int retval = ERROR_OK;
-
 	DEBUG_JTAG_IO("statemove end in %s",
 		tap_state_name(cmd->cmd.statemove->end_state));
 
@@ -313,20 +303,18 @@ static int ftdi_execute_statemove(struct jtag_command *cmd)
 	/* shortest-path move to desired end state */
 	if (tap_get_state() != tap_get_end_state() || tap_get_end_state() == TAP_RESET)
 		move_to_state(tap_get_end_state());
-
-	return retval;
 }
 
 /**
  * Clock a bunch of TMS (or SWDIO) transitions, to change the JTAG
  * (or SWD) state machine. REVISIT: Not the best method, perhaps.
  */
-static int ftdi_execute_tms(struct jtag_command *cmd)
+static void ftdi_execute_tms(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("TMS: %d bits", cmd->cmd.tms->num_bits);
 
 	/* TODO: Missing tap state tracking, also missing from ft2232.c! */
-	return mpsse_clock_tms_cs_out(mpsse_ctx,
+	mpsse_clock_tms_cs_out(mpsse_ctx,
 		cmd->cmd.tms->bits,
 		0,
 		cmd->cmd.tms->num_bits,
@@ -334,10 +322,8 @@ static int ftdi_execute_tms(struct jtag_command *cmd)
 		JTAG_MODE);
 }
 
-static int ftdi_execute_pathmove(struct jtag_command *cmd)
+static void ftdi_execute_pathmove(struct jtag_command *cmd)
 {
-	int retval = ERROR_OK;
-
 	tap_state_t *path = cmd->cmd.pathmove->path;
 	int num_states  = cmd->cmd.pathmove->num_states;
 
@@ -352,7 +338,7 @@ static int ftdi_execute_pathmove(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("-");
 
 	/* this loop verifies that the path is legal and logs each state in the path */
-	while (num_states-- && retval == ERROR_OK) {
+	while (num_states--) {
 
 		/* either TMS=0 or TMS=1 must work ... */
 		if (tap_state_transition(tap_get_state(), false)
@@ -375,7 +361,7 @@ static int ftdi_execute_pathmove(struct jtag_command *cmd)
 		state_count++;
 
 		if (bit_count == 7 || num_states == 0) {
-			retval = mpsse_clock_tms_cs_out(mpsse_ctx,
+			mpsse_clock_tms_cs_out(mpsse_ctx,
 					&tms_byte,
 					0,
 					bit_count,
@@ -385,14 +371,10 @@ static int ftdi_execute_pathmove(struct jtag_command *cmd)
 		}
 	}
 	tap_set_end_state(tap_get_state());
-
-	return retval;
 }
 
-static int ftdi_execute_scan(struct jtag_command *cmd)
+static void ftdi_execute_scan(struct jtag_command *cmd)
 {
-	int retval = ERROR_OK;
-
 	DEBUG_JTAG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
 		jtag_scan_type(cmd->cmd.scan));
 
@@ -405,7 +387,7 @@ static int ftdi_execute_scan(struct jtag_command *cmd)
 
 	if (cmd->cmd.scan->num_fields == 0) {
 		LOG_DEBUG("empty scan, doing nothing");
-		return retval;
+		return;
 	}
 
 	if (cmd->cmd.scan->ir_scan) {
@@ -444,7 +426,7 @@ static int ftdi_execute_scan(struct jtag_command *cmd)
 			if (field->out_value)
 				bit_copy(&last_bit, 0, field->out_value, field->num_bits - 1, 1);
 			uint8_t tms_bits = 0x01;
-			retval = mpsse_clock_tms_cs(mpsse_ctx,
+			mpsse_clock_tms_cs(mpsse_ctx,
 					&tms_bits,
 					0,
 					field->in_value,
@@ -453,7 +435,7 @@ static int ftdi_execute_scan(struct jtag_command *cmd)
 					last_bit,
 					JTAG_MODE);
 			tap_set_state(tap_state_transition(tap_get_state(), 1));
-			retval = mpsse_clock_tms_cs_out(mpsse_ctx,
+			mpsse_clock_tms_cs_out(mpsse_ctx,
 					&tms_bits,
 					1,
 					1,
@@ -468,10 +450,6 @@ static int ftdi_execute_scan(struct jtag_command *cmd)
 				0,
 				field->num_bits,
 				JTAG_MODE);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("failed to add field %d in scan", i);
-			return retval;
-		}
 	}
 
 	if (tap_get_state() != tap_get_end_state())
@@ -480,11 +458,9 @@ static int ftdi_execute_scan(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("%s scan, %i bits, end in %s",
 		(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
 		tap_state_name(tap_get_end_state()));
-	return retval;
-
 }
 
-static int ftdi_execute_reset(struct jtag_command *cmd)
+static void ftdi_execute_reset(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("reset trst: %i srst %i",
 		cmd->cmd.reset->trst, cmd->cmd.reset->srst);
@@ -516,27 +492,21 @@ static int ftdi_execute_reset(struct jtag_command *cmd)
 
 	DEBUG_JTAG_IO("trst: %i, srst: %i",
 		cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-	return ERROR_OK;
 }
 
-static int ftdi_execute_sleep(struct jtag_command *cmd)
+static void ftdi_execute_sleep(struct jtag_command *cmd)
 {
-	int retval = ERROR_OK;
-
 	DEBUG_JTAG_IO("sleep %" PRIi32, cmd->cmd.sleep->us);
 
-	retval = mpsse_flush(mpsse_ctx);
+	mpsse_flush(mpsse_ctx);
 	jtag_sleep(cmd->cmd.sleep->us);
 	DEBUG_JTAG_IO("sleep %" PRIi32 " usec while in %s",
 		cmd->cmd.sleep->us,
 		tap_state_name(tap_get_state()));
-	return retval;
 }
 
-static int ftdi_execute_stableclocks(struct jtag_command *cmd)
+static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 {
-	int retval = ERROR_OK;
-
 	/* this is only allowed while in a stable state.  A check for a stable
 	 * state was done in jtag_add_clocks()
 	 */
@@ -547,60 +517,53 @@ static int ftdi_execute_stableclocks(struct jtag_command *cmd)
 
 	/* TODO: Use mpsse_clock_data with in=out=0 for this, if TMS can be set to
 	 * the correct level and remain there during the scan */
-	while (num_cycles > 0 && retval == ERROR_OK) {
+	while (num_cycles > 0) {
 		/* there are no state transitions in this code, so omit state tracking */
 		unsigned this_len = num_cycles > 7 ? 7 : num_cycles;
-		retval = mpsse_clock_tms_cs_out(mpsse_ctx, &tms, 0, this_len, false, JTAG_MODE);
+		mpsse_clock_tms_cs_out(mpsse_ctx, &tms, 0, this_len, false, JTAG_MODE);
 		num_cycles -= this_len;
 	}
 
 	DEBUG_JTAG_IO("clocks %i while in %s",
 		cmd->cmd.stableclocks->num_cycles,
 		tap_state_name(tap_get_state()));
-	return retval;
 }
 
-static int ftdi_execute_command(struct jtag_command *cmd)
+static void ftdi_execute_command(struct jtag_command *cmd)
 {
-	int retval;
-
 	switch (cmd->type) {
 		case JTAG_RESET:
-			retval = ftdi_execute_reset(cmd);
+			ftdi_execute_reset(cmd);
 			break;
 		case JTAG_RUNTEST:
-			retval = ftdi_execute_runtest(cmd);
+			ftdi_execute_runtest(cmd);
 			break;
 		case JTAG_TLR_RESET:
-			retval = ftdi_execute_statemove(cmd);
+			ftdi_execute_statemove(cmd);
 			break;
 		case JTAG_PATHMOVE:
-			retval = ftdi_execute_pathmove(cmd);
+			ftdi_execute_pathmove(cmd);
 			break;
 		case JTAG_SCAN:
-			retval = ftdi_execute_scan(cmd);
+			ftdi_execute_scan(cmd);
 			break;
 		case JTAG_SLEEP:
-			retval = ftdi_execute_sleep(cmd);
+			ftdi_execute_sleep(cmd);
 			break;
 		case JTAG_STABLECLOCKS:
-			retval = ftdi_execute_stableclocks(cmd);
+			ftdi_execute_stableclocks(cmd);
 			break;
 		case JTAG_TMS:
-			retval = ftdi_execute_tms(cmd);
+			ftdi_execute_tms(cmd);
 			break;
 		default:
 			LOG_ERROR("BUG: unknown JTAG command type encountered: %d", cmd->type);
-			retval = ERROR_JTAG_QUEUE_FAILED;
 			break;
 	}
-	return retval;
 }
 
 static int ftdi_execute_queue(void)
 {
-	int retval = ERROR_OK;
-
 	/* blink, if the current layout has that feature */
 	struct signal *led = find_signal_by_name("LED");
 	if (led)
@@ -608,14 +571,13 @@ static int ftdi_execute_queue(void)
 
 	for (struct jtag_command *cmd = jtag_command_queue; cmd; cmd = cmd->next) {
 		/* fill the write buffer with the desired command */
-		if (ftdi_execute_command(cmd) != ERROR_OK)
-			retval = ERROR_JTAG_QUEUE_FAILED;
+		ftdi_execute_command(cmd);
 	}
 
 	if (led)
 		ftdi_set_signal(led, '0');
 
-	retval = mpsse_flush(mpsse_ctx);
+	int retval = mpsse_flush(mpsse_ctx);
 	if (retval != ERROR_OK)
 		LOG_ERROR("error while flushing MPSSE queue: %d", retval);
 
@@ -624,8 +586,6 @@ static int ftdi_execute_queue(void)
 
 static int ftdi_initialize(void)
 {
-	int retval;
-
 	if (tap_get_tms_path_len(TAP_IRPAUSE, TAP_IRPAUSE) == 7)
 		LOG_DEBUG("ftdi interface using 7 step jtag state transitions");
 	else
@@ -641,19 +601,10 @@ static int ftdi_initialize(void)
 	if (!mpsse_ctx)
 		return ERROR_JTAG_INIT_FAILED;
 
-	retval = mpsse_set_data_bits_low_byte(mpsse_ctx, output & 0xff, direction & 0xff);
-	if (retval == ERROR_OK)
-		retval = mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
-	if (retval != ERROR_OK)	{
-		LOG_ERROR("couldn't initialize FTDI with configured layout");
-		return ERROR_JTAG_INIT_FAILED;
-	}
+	mpsse_set_data_bits_low_byte(mpsse_ctx, output & 0xff, direction & 0xff);
+	mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
 
-	retval = mpsse_loopback_config(mpsse_ctx, false);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("couldn't write to FTDI to disable loopback");
-		return ERROR_JTAG_INIT_FAILED;
-	}
+	mpsse_loopback_config(mpsse_ctx, false);
 
 	return mpsse_flush(mpsse_ctx);
 }

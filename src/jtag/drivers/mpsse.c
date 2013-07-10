@@ -86,6 +86,7 @@ struct mpsse_ctx {
 	uint8_t *read_chunk;
 	unsigned read_chunk_size;
 	struct bit_copy_queue read_queue;
+	int retval;
 };
 
 /* Returns true if the string descriptor indexed by str_index in device matches string */
@@ -362,6 +363,7 @@ void mpsse_purge(struct mpsse_ctx *ctx)
 	LOG_DEBUG("-");
 	ctx->write_count = 0;
 	ctx->read_count = 0;
+	ctx->retval = ERROR_OK;
 	bit_copy_discard(&ctx->read_queue);
 	err = libusb_control_transfer(ctx->usb_dev, FTDI_DEVICE_OUT_REQTYPE, SIO_RESET_REQUEST,
 			SIO_RESET_PURGE_RX, ctx->index, NULL, 0, ctx->usb_write_timeout);
@@ -417,24 +419,28 @@ static unsigned buffer_add_read(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_
 	return bit_count;
 }
 
-int mpsse_clock_data_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
+void mpsse_clock_data_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
 	unsigned length, uint8_t mode)
 {
-	return mpsse_clock_data(ctx, out, out_offset, 0, 0, length, mode);
+	mpsse_clock_data(ctx, out, out_offset, 0, 0, length, mode);
 }
 
-int mpsse_clock_data_in(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_offset, unsigned length,
+void mpsse_clock_data_in(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_offset, unsigned length,
 	uint8_t mode)
 {
-	return mpsse_clock_data(ctx, 0, 0, in, in_offset, length, mode);
+	mpsse_clock_data(ctx, 0, 0, in, in_offset, length, mode);
 }
 
-int mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
+void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
 	unsigned in_offset, unsigned length, uint8_t mode)
 {
 	/* TODO: Fix MSB first modes */
 	DEBUG_IO("%s%s %d bits", in ? "in" : "", out ? "out" : "", length);
-	int retval = ERROR_OK;
+
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	/* TODO: On H chips, use command 0x8E/0x8F if in and out are both 0 */
 	if (out || (!out && !in))
@@ -446,7 +452,7 @@ int mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_off
 		/* Guarantee buffer space enough for a minimum size transfer */
 		if (buffer_write_space(ctx) + (length < 8) < (out || (!out && !in) ? 4 : 3)
 				|| (in && buffer_read_space(ctx) < 1))
-			retval = mpsse_flush(ctx);
+			ctx->retval = mpsse_flush(ctx);
 
 		if (length < 8) {
 			/* Transfer remaining bits in bit mode */
@@ -494,21 +500,24 @@ int mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_off
 			}
 		}
 	}
-	return retval;
 }
 
-int mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
+void mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
 	unsigned length, bool tdi, uint8_t mode)
 {
-	return mpsse_clock_tms_cs(ctx, out, out_offset, 0, 0, length, tdi, mode);
+	mpsse_clock_tms_cs(ctx, out, out_offset, 0, 0, length, tdi, mode);
 }
 
-int mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
+void mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
 	unsigned in_offset, unsigned length, bool tdi, uint8_t mode)
 {
 	DEBUG_IO("%sout %d bits, tdi=%d", in ? "in" : "", length, tdi);
 	assert(out);
-	int retval = ERROR_OK;
+
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	mode |= 0x42;
 	if (in)
@@ -517,7 +526,7 @@ int mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_o
 	while (length > 0) {
 		/* Guarantee buffer space enough for a minimum size transfer */
 		if (buffer_write_space(ctx) < 3 || (in && buffer_read_space(ctx) < 1))
-			retval = mpsse_flush(ctx);
+			ctx->retval = mpsse_flush(ctx);
 
 		/* Byte transfer */
 		unsigned this_bits = length;
@@ -548,99 +557,109 @@ int mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_o
 			length -= this_bits;
 		}
 	}
-	return retval;
 }
 
-int mpsse_set_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir)
+void mpsse_set_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir)
 {
 	DEBUG_IO("-");
-	int retval = ERROR_OK;
+
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	if (buffer_write_space(ctx) < 3)
-		retval = mpsse_flush(ctx);
+		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, 0x80);
 	buffer_write_byte(ctx, data);
 	buffer_write_byte(ctx, dir);
-
-	return retval;
 }
 
-int mpsse_set_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir)
+void mpsse_set_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t data, uint8_t dir)
 {
 	DEBUG_IO("-");
-	int retval = ERROR_OK;
+
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	if (buffer_write_space(ctx) < 3)
-		retval = mpsse_flush(ctx);
+		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, 0x82);
 	buffer_write_byte(ctx, data);
 	buffer_write_byte(ctx, dir);
-
-	return retval;
 }
 
-int mpsse_read_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t *data)
+void mpsse_read_data_bits_low_byte(struct mpsse_ctx *ctx, uint8_t *data)
 {
 	DEBUG_IO("-");
-	int retval = ERROR_OK;
+
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	if (buffer_write_space(ctx) < 1)
-		retval = mpsse_flush(ctx);
+		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, 0x81);
 	buffer_add_read(ctx, data, 0, 8, 0);
-
-	return retval;
 }
 
-int mpsse_read_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t *data)
+void mpsse_read_data_bits_high_byte(struct mpsse_ctx *ctx, uint8_t *data)
 {
 	DEBUG_IO("-");
-	int retval = ERROR_OK;
+
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	if (buffer_write_space(ctx) < 1)
-		retval = mpsse_flush(ctx);
+		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, 0x83);
 	buffer_add_read(ctx, data, 0, 8, 0);
-
-	return retval;
 }
 
-static int single_byte_boolean_helper(struct mpsse_ctx *ctx, bool var, uint8_t val_if_true,
+static void single_byte_boolean_helper(struct mpsse_ctx *ctx, bool var, uint8_t val_if_true,
 	uint8_t val_if_false)
 {
-	int retval = ERROR_OK;
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	if (buffer_write_space(ctx) < 1)
-		retval = mpsse_flush(ctx);
+		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, var ? val_if_true : val_if_false);
-
-	return retval;
 }
 
-int mpsse_loopback_config(struct mpsse_ctx *ctx, bool enable)
+void mpsse_loopback_config(struct mpsse_ctx *ctx, bool enable)
 {
 	LOG_DEBUG("%s", enable ? "on" : "off");
-	return single_byte_boolean_helper(ctx, enable, 0x84, 0x85);
+	single_byte_boolean_helper(ctx, enable, 0x84, 0x85);
 }
 
-int mpsse_set_divisor(struct mpsse_ctx *ctx, uint16_t divisor)
+void mpsse_set_divisor(struct mpsse_ctx *ctx, uint16_t divisor)
 {
 	LOG_DEBUG("%d", divisor);
-	int retval = ERROR_OK;
+
+	if (ctx->retval != ERROR_OK) {
+		DEBUG_IO("Ignoring command due to previous error");
+		return;
+	}
 
 	if (buffer_write_space(ctx) < 3)
-		retval = mpsse_flush(ctx);
+		ctx->retval = mpsse_flush(ctx);
 
 	buffer_write_byte(ctx, 0x86);
 	buffer_write_byte(ctx, divisor & 0xff);
 	buffer_write_byte(ctx, divisor >> 8);
-
-	return retval;
 }
 
 int mpsse_divide_by_5_config(struct mpsse_ctx *ctx, bool enable)
@@ -649,8 +668,9 @@ int mpsse_divide_by_5_config(struct mpsse_ctx *ctx, bool enable)
 		return ERROR_FAIL;
 
 	LOG_DEBUG("%s", enable ? "on" : "off");
+	single_byte_boolean_helper(ctx, enable, 0x8b, 0x8a);
 
-	return single_byte_boolean_helper(ctx, enable, 0x8b, 0x8a);
+	return ERROR_OK;
 }
 
 int mpsse_rtck_config(struct mpsse_ctx *ctx, bool enable)
@@ -659,8 +679,9 @@ int mpsse_rtck_config(struct mpsse_ctx *ctx, bool enable)
 		return ERROR_FAIL;
 
 	LOG_DEBUG("%s", enable ? "on" : "off");
+	single_byte_boolean_helper(ctx, enable, 0x96, 0x97);
 
-	return single_byte_boolean_helper(ctx, enable, 0x96, 0x97);
+	return ERROR_OK;
 }
 
 int mpsse_set_frequency(struct mpsse_ctx *ctx, int frequency)
@@ -674,10 +695,7 @@ int mpsse_set_frequency(struct mpsse_ctx *ctx, int frequency)
 
 	mpsse_rtck_config(ctx, false); /* just try */
 
-	if (frequency > 60000000 / 2 / 65536 && mpsse_is_high_speed(ctx)) {
-		int retval = mpsse_divide_by_5_config(ctx, false);
-		if (retval != ERROR_OK)
-			return retval;
+	if (frequency > 60000000 / 2 / 65536 && mpsse_divide_by_5_config(ctx, false) == ERROR_OK) {
 		base_clock = 60000000;
 	} else {
 		mpsse_divide_by_5_config(ctx, true); /* just try */
@@ -689,9 +707,7 @@ int mpsse_set_frequency(struct mpsse_ctx *ctx, int frequency)
 		divisor = 65535;
 	assert(divisor >= 0);
 
-	int retval = mpsse_set_divisor(ctx, divisor);
-	if (retval != ERROR_OK)
-		return retval;
+	mpsse_set_divisor(ctx, divisor);
 
 	frequency = base_clock / 2 / (1 + divisor);
 	LOG_DEBUG("actually %d Hz", frequency);
@@ -767,10 +783,18 @@ static LIBUSB_CALL void write_cb(struct libusb_transfer *transfer)
 
 int mpsse_flush(struct mpsse_ctx *ctx)
 {
+	int retval = ctx->retval;
+
+	if (retval != ERROR_OK) {
+		DEBUG_IO("Ignoring flush due to previous error");
+		assert(ctx->write_count == 0 && ctx->read_count == 0);
+		ctx->retval = ERROR_OK;
+		return retval;
+	}
+
 	DEBUG_IO("write %d%s, read %d", ctx->write_count, ctx->read_count ? "+1" : "",
 			ctx->read_count);
 	assert(ctx->write_count > 0 || ctx->read_count == 0); /* No read data without write data */
-	int retval = ERROR_OK;
 
 	if (ctx->write_count == 0)
 		return retval;
