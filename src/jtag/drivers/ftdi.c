@@ -127,8 +127,10 @@ static struct signal *create_signal(const char *name)
 		psig = &(*psig)->next;
 
 	*psig = calloc(1, sizeof(**psig));
-	if (*psig)
-		(*psig)->name = strdup(name);
+	if (*psig == NULL)
+		return NULL;
+
+	(*psig)->name = strdup(name);
 	if ((*psig)->name == NULL) {
 		free(*psig);
 		*psig = NULL;
