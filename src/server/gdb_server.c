@@ -864,6 +864,10 @@ static int gdb_target_callback_event_handler(struct target *target,
 {
 	int retval;
 	struct connection *connection = priv;
+	struct gdb_service *gdb_service = connection->service->priv;
+
+	if (gdb_service->target != target)
+		return ERROR_OK;
 
 	switch (event) {
 		case TARGET_EVENT_GDB_HALT:
