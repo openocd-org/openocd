@@ -555,19 +555,25 @@ int nds32_v3_write_buffer(struct target *target, uint32_t address,
 		return ERROR_FAIL;
 
 	if (nds32->hit_syscall) {
-		/* Use bus mode to access memory during virtual hosting */
 		struct aice_port_s *aice = target_to_aice(target);
 		enum nds_memory_access origin_access_channel;
-		int result;
-
 		origin_access_channel = memory->access_channel;
-		memory->access_channel = NDS_MEMORY_ACC_BUS;
-		aice_memory_access(aice, NDS_MEMORY_ACC_BUS);
 
+		/* If target has no cache, use BUS mode to access memory. */
+		if ((memory->dcache.line_size == 0)
+			|| (memory->dcache.enable == false)) {
+			/* There is no Dcache or Dcache is disabled. */
+			memory->access_channel = NDS_MEMORY_ACC_BUS;
+			aice_memory_access(aice, NDS_MEMORY_ACC_BUS);
+		}
+
+		int result;
 		result = nds32_gdb_fileio_write_memory(nds32, address, size, buffer);
 
-		memory->access_channel = origin_access_channel;
-		aice_memory_access(aice, origin_access_channel);
+		if (NDS_MEMORY_ACC_CPU == origin_access_channel) {
+			memory->access_channel = NDS_MEMORY_ACC_CPU;
+			aice_memory_access(aice, NDS_MEMORY_ACC_CPU);
+		}
 
 		return result;
 	}
