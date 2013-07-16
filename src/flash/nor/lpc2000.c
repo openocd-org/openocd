@@ -62,6 +62,9 @@
  * lpc4300 (also available as lpc1800 - alias)
  * - 43x2 | 3 | 5 | 7 (tested with 4337)
  * - 18x2 | 3 | 5 | 7
+ *
+ * lpc800:
+ * - 810 | 1 | 2 (tested with 812)
  */
 
 typedef enum {
@@ -69,12 +72,14 @@ typedef enum {
 	lpc2000_v2,
 	lpc1700,
 	lpc4300,
+	lpc800,
 } lpc2000_variant;
 
 struct lpc2000_flash_bank {
 	lpc2000_variant variant;
 	uint32_t cclk;
 	int cmd51_dst_boundary;
+	int cmd51_can_64b;
 	int cmd51_can_256b;
 	int cmd51_can_8192b;
 	int calc_checksum;
@@ -224,7 +229,20 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 	} else if (lpc2000_info->variant == lpc1700) {
 		switch (bank->size) {
+			case 4 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024;
+				bank->num_sectors = 1;
+				break;
+			case 8 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024;
+				bank->num_sectors = 2;
+				break;
+			case 16 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024;
+				bank->num_sectors = 4;
+				break;
 			case 32 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024;
 				bank->num_sectors = 8;
 				break;
 			case 64 * 1024:
@@ -280,6 +298,35 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			bank->sectors[i].is_erased = -1;
 			bank->sectors[i].is_protected = 1;
 		}
+
+	}  else if (lpc2000_info->variant == lpc800) {
+			lpc2000_info->cmd51_max_buffer = 1024;
+		switch (bank->size) {
+			case 4 * 1024:
+				bank->num_sectors = 4;
+				break;
+			case 8 * 1024:
+				bank->num_sectors = 8;
+				break;
+			case 16 * 1024:
+				bank->num_sectors = 16;
+				break;
+			default:
+				LOG_ERROR("BUG: unknown bank->size encountered");
+				exit(-1);
+		}
+
+		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
+
+		for (int i = 0; i < bank->num_sectors; i++) {
+			bank->sectors[i].offset = offset;
+			/* sectors 0-15 are 1kB-sized for LPC8xx devices */
+			bank->sectors[i].size = 1 * 1024;
+			offset += bank->sectors[i].size;
+			bank->sectors[i].is_erased = -1;
+			bank->sectors[i].is_protected = 1;
+		}
+
 	} else {
 		LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
 		exit(-1);
@@ -293,7 +340,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
  * 0x0 to 0x7: jump gate (BX to thumb state, b -2 to wait)
  * 0x8 to 0x1f: command parameter table (1+5 words)
  * 0x20 to 0x33: command result table (1+4 words)
- * 0x34 to 0xb3|0x104: stack (only 128b needed for lpc17xx/2000, 208 for lpc43xx)
+ * 0x34 to 0xb3|0x104: stack (only 128b needed for lpc17xx/2000, 208 for lpc43xx and 148b for lpc8xx)
  */
 
 static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working_area **iap_working_area)
@@ -310,6 +357,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 
 	/* write IAP code to working area */
 	switch (lpc2000_info->variant) {
+		case lpc800:
 		case lpc1700:
 		case lpc4300:
 			target_buffer_set_u32(target, jump_gate, ARMV4_5_T_BX(12));
@@ -346,6 +394,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	uint32_t iap_entry_point = 0;	/* to make compiler happier */
 
 	switch (lpc2000_info->variant) {
+		case lpc800:
 		case lpc1700:
 			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 			armv7m_info.core_mode = ARM_MODE_THREAD;
@@ -396,6 +445,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	buf_set_u32(reg_params[2].value, 0, 32, iap_entry_point);
 
 	switch (lpc2000_info->variant) {
+		case lpc800:
 		case lpc1700:
 		case lpc4300:
 			/* IAP stack */
@@ -540,6 +590,14 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 208;
+	} else if (strcmp(CMD_ARGV[6], "lpc800") == 0) {
+		lpc2000_info->variant = lpc800;
+		lpc2000_info->cmd51_dst_boundary = 64;
+		lpc2000_info->cmd51_can_64b = 1;
+		lpc2000_info->cmd51_can_256b = 0;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
+		lpc2000_info->iap_max_stack = 148;
 	} else {
 		LOG_ERROR("unknown LPC2000 variant: %s", CMD_ARGV[6]);
 		free(lpc2000_info);
@@ -730,8 +788,10 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 			thisrun_bytes = 1024;
 		else if ((bytes_remaining >= 512) || (!lpc2000_info->cmd51_can_256b))
 			thisrun_bytes = 512;
-		else
+		else if ((bytes_remaining >= 256) || (!lpc2000_info->cmd51_can_64b))
 			thisrun_bytes = 256;
+		else
+			thisrun_bytes = 64;
 
 		/* Prepare sectors */
 		param_table[0] = first_sector;
