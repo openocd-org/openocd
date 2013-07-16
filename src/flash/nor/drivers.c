@@ -52,6 +52,7 @@ extern struct flash_driver kinetis_flash;
 extern struct flash_driver efm32_flash;
 extern struct flash_driver mdr_flash;
 extern struct flash_driver mini51_flash;
+extern struct flash_driver nuc1x_flash;
 
 /**
  * The list of built-in flash drivers.
@@ -88,6 +89,7 @@ static struct flash_driver *flash_drivers[] = {
 	&efm32_flash,
 	&mdr_flash,
 	&mini51_flash,
+	&nuc1x_flash,
 	NULL,
 };
 
