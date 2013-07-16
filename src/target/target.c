@@ -2417,8 +2417,6 @@ COMMAND_HANDLER(handle_wait_halt_command)
 		int retval = parse_uint(CMD_ARGV[0], &ms);
 		if (ERROR_OK != retval)
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		/* convert seconds (given) to milliseconds (needed) */
-		ms *= 1000;
 	}
 
 	struct target *target = get_current_target(CMD_CTX);
@@ -5538,7 +5536,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_wait_halt_command,
 		.mode = COMMAND_EXEC,
 		.help = "wait up to the specified number of milliseconds "
-			"(default 5) for a previously requested halt",
+			"(default 5000) for a previously requested halt",
 		.usage = "[milliseconds]",
 	},
 	{
@@ -5546,7 +5544,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_halt_command,
 		.mode = COMMAND_EXEC,
 		.help = "request target to halt, then wait up to the specified"
-			"number of milliseconds (default 5) for it to complete",
+			"number of milliseconds (default 5000) for it to complete",
 		.usage = "[milliseconds]",
 	},
 	{
