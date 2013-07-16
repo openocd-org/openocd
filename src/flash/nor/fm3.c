@@ -229,7 +229,7 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_INFO("Fujitsu MB9Bxxx: Sector Erase ... (%d to %d)", first, last);
+	LOG_INFO("Fujitsu MB9[A/B]FXXX: Sector Erase ... (%d to %d)", first, last);
 
 	/* FASZR = 0x01, Enables CPU Programming Mode (16-bit Flash acccess) */
 	retval = target_write_u32(target, 0x40000000, 0x0001);
@@ -296,7 +296,7 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 {
 	struct fm3_flash_bank *fm3_info = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t buffer_size = 2048;		/* 8192 for MB9Bxx6! */
+	uint32_t buffer_size = 2048;		/* Default minimum value */
 	struct working_area *write_algorithm;
 	struct working_area *source;
 	uint32_t address = bank->base + offset;
@@ -306,6 +306,10 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	uint32_t u32FlashType;
 	uint32_t u32FlashSeqAddress1;
 	uint32_t u32FlashSeqAddress2;
+
+	/* Increase buffer_size if needed */
+	if (buffer_size < (target->working_area_size / 2))
+		buffer_size = (target->working_area_size / 2);
 
 	u32FlashType = (uint32_t) fm3_info->flashtype;
 
@@ -446,13 +450,13 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	0x00, 0xBE,					/*        BKPT     #0                         */
 
 	/* The following address pointers assume, that the code is running from   */
-	/* address 0x1FFF8008. These address pointers will be patched, if a       */
-	/* different start address in RAM is used (e.g. for Flash type 2)!        */
-	0x00, 0x80, 0xFF, 0x1F,     /* u32DummyRead address in RAM (0x1FFF8000)   */
-	0x04, 0x80, 0xFF, 0x1F      /* u32FlashResult address in RAM (0x1FFF8004) */
+	/* SRAM basic-address(BASE_ADDR)+8.These address pointers will be patched */
+	/* if a different start address in RAM is used (e.g. for Flash type 2)!   */
+	0x00, 0x80, 0xFF, 0x1F,     /* u32DummyRead address in RAM (BASE_ADDR)    */
+	0x04, 0x80, 0xFF, 0x1F      /* u32FlashResult address in RAM (BASE_ADDR+4)*/
 	};
 
-	LOG_INFO("Fujitsu MB9B500: FLASH Write ...");
+	LOG_INFO("Fujitsu MB9[A/B]FXXX: FLASH Write ...");
 
 	/* disable HW watchdog */
 	retval = target_write_u32(target, 0x40011C00, 0x1ACCE551);
@@ -487,8 +491,6 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
-
-
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK) {
 		buffer_size /= 2;
@@ -522,7 +524,7 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 			break;
 
 		/* Patching 'local variable address' for different RAM addresses */
-		if (write_algorithm->address != 0x1FFF8008) {
+		if (write_algorithm->address != (target->working_area_phys + 8)) {
 			/* Algorithm: u32DummyRead: */
 			retval = target_write_u32(target, (write_algorithm->address)
 				+ sizeof(fm3_flash_write_code) - 8, (write_algorithm->address) - 8);
