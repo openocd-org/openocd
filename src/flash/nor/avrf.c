@@ -69,6 +69,11 @@ static struct avrf_type avft_chips_info[] = {
  */
 	{"atmega128", 0x9702, 256, 512, 8, 512},
 	{"at90can128", 0x9781, 256, 512, 8, 512},
+	{"atmega164p", 0x940a, 128, 128, 4, 128},
+	{"atmega324p", 0x9508, 128, 256, 4, 256},
+	{"atmega324pa", 0x9511, 128, 256, 4, 256},
+	{"atmega644p", 0x960a, 256, 256, 8, 256},
+	{"atmega1284p", 0x9705, 256, 512, 8, 512},
 };
 
 /* avr program functions */
