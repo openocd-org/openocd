@@ -144,6 +144,7 @@ static const struct etm_reg_info etm_addr_comp[] = {
 	ADDR_COMPARATOR(14),
 	ADDR_COMPARATOR(15),
 	ADDR_COMPARATOR(16),
+	{ 0, 0, 0, 0, NULL }
 #undef ADDR_COMPARATOR
 };
 
@@ -162,6 +163,7 @@ static const struct etm_reg_info etm_data_comp[] = {
 	DATA_COMPARATOR(6),
 	DATA_COMPARATOR(7),
 	DATA_COMPARATOR(8),
+	{ 0, 0, 0, 0, NULL }
 #undef DATA_COMPARATOR
 };
 
@@ -179,6 +181,7 @@ static const struct etm_reg_info etm_counters[] = {
 	ETM_COUNTER(2),
 	ETM_COUNTER(3),
 	ETM_COUNTER(4),
+	{ 0, 0, 0, 0, NULL }
 #undef ETM_COUNTER
 };
 
@@ -206,6 +209,7 @@ static const struct etm_reg_info etm_outputs[] = {
 	ETM_OUTPUT(2),
 	ETM_OUTPUT(3),
 	ETM_OUTPUT(4),
+	{ 0, 0, 0, 0, NULL }
 #undef ETM_OUTPUT
 };
 
@@ -265,6 +269,11 @@ static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
 	 * version of the ETM, to the specified cache.
 	 */
 	for (; nreg--; r++) {
+		/* No more registers to add */
+		if (!r->size) {
+			LOG_ERROR("etm_reg_add is requested to add non-existing registers, ETM config might be bogus");
+			return;
+		}
 
 		/* this ETM may be too old to have some registers */
 		if (r->bcd_vers > bcd_vers)
