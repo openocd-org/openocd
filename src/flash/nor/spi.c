@@ -21,7 +21,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -66,6 +65,7 @@ struct flash_device flash_devices[] = {
 	FLASH_ID("mac 25l3205",    0xd8, 0xc7, 0x001620c2, 0x100, 0x10000, 0x400000),
 	FLASH_ID("mac 25l6405",    0xd8, 0xc7, 0x001720c2, 0x100, 0x10000, 0x800000),
 	FLASH_ID("mcr n25q064",    0xd8, 0xc7, 0x0017ba20, 0x100, 0x10000, 0x800000),
+	FLASH_ID("win w25q80bv",   0xd8, 0xc7, 0x001440ef, 0x100, 0x10000, 0x100000),
 	FLASH_ID("win w25q32dw",   0xd8, 0xc7, 0x001660ef, 0x100, 0x10000, 0x400000),
 	FLASH_ID("win w25q64cv",   0xd8, 0xc7, 0x001740ef, 0x100, 0x10000, 0x800000),
 	FLASH_ID(NULL,             0,    0,	   0,          0,     0,       0)
