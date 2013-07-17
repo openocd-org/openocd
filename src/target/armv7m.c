@@ -678,7 +678,7 @@ int armv7m_checksum_memory(struct target *target,
 	if (retval == ERROR_OK)
 		*checksum = buf_get_u32(reg_params[0].value, 0, 32);
 	else
-		LOG_ERROR("error executing cortex_m3 crc algorithm");
+		LOG_ERROR("error executing cortex_m crc algorithm");
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);

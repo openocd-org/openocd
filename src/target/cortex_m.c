@@ -2192,7 +2192,7 @@ COMMAND_HANDLER(handle_cortex_m3_mask_interrupts_command)
 	}
 
 	n = Jim_Nvp_value2name_simple(nvp_maskisr_modes, cortex_m3->isrmasking_mode);
-	command_print(CMD_CTX, "cortex_m3 interrupt mask %s", n->name);
+	command_print(CMD_CTX, "cortex_m interrupt mask %s", n->name);
 
 	return ERROR_OK;
 }
@@ -2229,7 +2229,7 @@ COMMAND_HANDLER(handle_cortex_m3_reset_config_command)
 			break;
 	}
 
-	command_print(CMD_CTX, "cortex_m3 reset_config %s", reset_config);
+	command_print(CMD_CTX, "cortex_m reset_config %s", reset_config);
 
 	return ERROR_OK;
 }
@@ -2239,7 +2239,7 @@ static const struct command_registration cortex_m3_exec_command_handlers[] = {
 		.name = "maskisr",
 		.handler = handle_cortex_m3_mask_interrupts_command,
 		.mode = COMMAND_EXEC,
-		.help = "mask cortex_m3 interrupts",
+		.help = "mask cortex_m interrupts",
 		.usage = "['auto'|'on'|'off']",
 	},
 	{
