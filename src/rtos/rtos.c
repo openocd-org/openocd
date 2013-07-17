@@ -212,8 +212,10 @@ int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
 			goto done;
 		} else {
 			/* Autodetecting RTOS - try next RTOS */
-			if (!rtos_try_next(target))
+			if (!rtos_try_next(target)) {
+				LOG_WARNING("No RTOS could be auto-detected!");
 				goto done;
+			}
 
 			/* Next RTOS selected - invalidate current symbol */
 			cur_sym[0] = '\x00';
