@@ -2159,11 +2159,17 @@ int nds32_assert_reset(struct target *target)
 {
 	struct nds32 *nds32 = target_to_nds32(target);
 	struct aice_port_s *aice = target_to_aice(target);
+	struct nds32_cpu_version *cpu_version = &(nds32->cpu_version);
 
 	jtag_poll_set_enabled(true);
 
 	if (target->reset_halt) {
-		if (nds32->soft_reset_halt)
+		if ((nds32->soft_reset_halt)
+			|| (nds32->edm.version < 0x51)
+			|| ((nds32->edm.version == 0x51)
+				&& (cpu_version->revision == 0x1C)
+				&& (cpu_version->cpu_id_family == 0xC)
+				&& (cpu_version->cpu_id_version == 0x0)))
 			target->type->soft_reset_halt(target);
 		else
 			aice_assert_srst(aice, AICE_RESET_HOLD);
