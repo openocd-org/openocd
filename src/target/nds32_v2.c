@@ -245,7 +245,6 @@ static int nds32_v2_check_interrupt_stack(struct nds32_v2_common *nds32_v2)
 		return ERROR_OK;
 	}
 
-
 	/* There is a case that single step also trigger another interrupt,
 	   then HSS bit in psw(ir0) will push to ipsw(ir1).
 	   Then hit debug interrupt HSS bit in ipsw(ir1) will push to (p_ipsw)ir2
@@ -294,15 +293,8 @@ static int nds32_v2_debug_entry(struct nds32 *nds32, bool enable_watchpoint)
 		LOG_WARNING("<-- TARGET WARNING! Virtual hosting is not supported "
 				"under V1/V2 architecture. -->");
 
-	struct nds32_v2_common *nds32_v2 = target_to_nds32_v2(nds32->target);
-
-	CHECK_RETVAL(nds32_v2_deactivate_hardware_breakpoint(nds32->target));
-
-	if (enable_watchpoint)
-		CHECK_RETVAL(nds32_v2_deactivate_hardware_watchpoint(nds32->target));
-
+	enum target_state backup_state = nds32->target->state;
 	nds32->target->state = TARGET_HALTED;
-	nds32_examine_debug_reason(nds32);
 
 	if (nds32->init_arch_info_after_halted == false) {
 		/* init architecture info according to config registers */
@@ -314,8 +306,30 @@ static int nds32_v2_debug_entry(struct nds32 *nds32, bool enable_watchpoint)
 	/* REVISIT entire cache should already be invalid !!! */
 	register_cache_invalidate(nds32->core_cache);
 
+	/* deactivate all hardware breakpoints */
+	CHECK_RETVAL(nds32_v2_deactivate_hardware_breakpoint(nds32->target));
+
+	if (enable_watchpoint)
+		CHECK_RETVAL(nds32_v2_deactivate_hardware_watchpoint(nds32->target));
+
+	if (ERROR_OK != nds32_examine_debug_reason(nds32)) {
+		nds32->target->state = backup_state;
+
+		/* re-activate all hardware breakpoints & watchpoints */
+		CHECK_RETVAL(nds32_v2_activate_hardware_breakpoint(nds32->target));
+
+		if (enable_watchpoint) {
+			/* activate all watchpoints */
+			CHECK_RETVAL(nds32_v2_activate_hardware_watchpoint(nds32->target));
+		}
+
+		return ERROR_FAIL;
+	}
+
 	/* check interrupt level before .full_context(), because
-	 * get_mapped_reg needs current_interrupt_level information */
+	 * get_mapped_reg() in nds32_full_context() needs current_interrupt_level
+	 * information */
+	struct nds32_v2_common *nds32_v2 = target_to_nds32_v2(nds32->target);
 	nds32_v2_check_interrupt_stack(nds32_v2);
 
 	/* Save registers. */
@@ -350,7 +364,9 @@ static int nds32_v2_target_request_data(struct target *target,
  */
 static int nds32_v2_leave_debug_state(struct nds32 *nds32, bool enable_watchpoint)
 {
-	struct nds32_v2_common *nds32_v2 = target_to_nds32_v2(nds32->target);
+	LOG_DEBUG("nds32_v2_leave_debug_state");
+
+	struct target *target = nds32->target;
 
 	/* activate all hardware breakpoints */
 	CHECK_RETVAL(nds32_v2_activate_hardware_breakpoint(nds32->target));
@@ -361,12 +377,13 @@ static int nds32_v2_leave_debug_state(struct nds32 *nds32, bool enable_watchpoin
 	}
 
 	/* restore interrupt stack */
+	struct nds32_v2_common *nds32_v2 = target_to_nds32_v2(nds32->target);
 	nds32_v2_restore_interrupt_stack(nds32_v2);
 
 	/* restore PSW, PC, and R0 ... after flushing any modified
 	 * registers.
 	 */
-	CHECK_RETVAL(nds32_restore_context(nds32->target));
+	CHECK_RETVAL(nds32_restore_context(target));
 
 	register_cache_invalidate(nds32->core_cache);
 
