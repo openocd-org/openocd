@@ -583,8 +583,10 @@ static int target_process_reset(struct command_context *cmd_ctx, enum target_res
 	retval = target_call_timer_callbacks_now();
 
 	struct target *target;
-	for (target = all_targets; target; target = target->next)
+	for (target = all_targets; target; target = target->next) {
 		target->type->check_reset(target);
+		target->running_alg = false;
+	}
 
 	return retval;
 }
