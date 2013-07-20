@@ -5,7 +5,7 @@ AC_CONFIG_SRCDIR([src/openocd.c])
 
 m4_include([config_subdir.m4])dnl
 
-AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip])
+AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip subdir-objects])
 
 AC_CONFIG_HEADERS([config.h])
 AH_BOTTOM([
