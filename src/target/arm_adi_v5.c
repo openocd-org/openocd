@@ -1031,17 +1031,15 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 	int retval;
 	uint32_t cid0, cid1, cid2, cid3, memtype, romentry;
 	uint16_t entry_offset;
-	int i;
-	char tabs[16 + 1];
+	char tabs[7] = "";
 
 	if (depth > 16) {
 		command_print(cmd_ctx, "\tTables too deep");
 		return ERROR_FAIL;
 	}
 
-	for (i = 0; i < depth; ++i)
-		tabs[i] = '\t';
-	tabs[i] = '\0';
+	if (depth)
+		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
 
 	/* bit 16 of apid indicates a memory access port */
 	if (dbgbase & 0x02)
@@ -1140,12 +1138,12 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				return retval;
 			c_cid3 &= 0xff;
 
-			command_print(cmd_ctx, "\t%s\tComponent base address 0x%" PRIx32 ", "
-				      "start address 0x%" PRIx32, tabs, component_base,
+			command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32 ", "
+				      "start address 0x%" PRIx32, component_base,
 				      /* component may take multiple 4K pages */
 				      (uint32_t)(component_base - 0x1000*(c_pid4 >> 4)));
-			command_print(cmd_ctx, "\t%s\tComponent class is 0x%x, %s",
-					tabs, (c_cid1 >> 4) & 0xf,
+			command_print(cmd_ctx, "\t\tComponent class is 0x%x, %s",
+					(c_cid1 >> 4) & 0xf,
 					/* See ARM IHI 0029B Table 3-3 */
 					class_description[(c_cid1 >> 4) & 0xf]);
 
@@ -1256,26 +1254,25 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 					}
 					break;
 				}
-				command_print(cmd_ctx, "\t%s\tType is 0x%02x, %s, %s",
-						tabs, devtype & 0xff,
+				command_print(cmd_ctx, "\t\tType is 0x%02x, %s, %s",
+						devtype & 0xff,
 						major, subtype);
 				/* REVISIT also show 0xfc8 DevId */
 			}
 
 			if (!is_dap_cid_ok(cid3, cid2, cid1, cid0))
 				command_print(cmd_ctx,
-						"\t%s\tCID3 0%02x"
+						"\t\tCID3 0%02x"
 						", CID2 0%02x"
 						", CID1 0%02x"
 						", CID0 0%02x",
-						tabs,
 						(int)c_cid3,
 						(int)c_cid2,
 						(int)c_cid1,
 						(int)c_cid0);
 			command_print(cmd_ctx,
-				"\t%s\tPeripheral ID[4..0] = hex "
-				"%02x %02x %02x %02x %02x", tabs,
+				"\t\tPeripheral ID[4..0] = hex "
+				"%02x %02x %02x %02x %02x",
 				(int)c_pid4, (int)c_pid3, (int)c_pid2,
 				(int)c_pid1, (int)c_pid0);
 
@@ -1386,8 +1383,8 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				full = "";
 				break;
 			}
-			command_print(cmd_ctx, "\t%s\tPart is %s %s",
-					tabs, type, full);
+			command_print(cmd_ctx, "\t\tPart is %s %s",
+					type, full);
 
 			/* ROM Table? */
 			if (((c_cid1 >> 4) & 0x0f) == 1) {
@@ -1397,7 +1394,7 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			}
 		} else {
 			if (romentry)
-				command_print(cmd_ctx, "\t%s\tComponent not present", tabs);
+				command_print(cmd_ctx, "\t\tComponent not present");
 			else
 				break;
 		}
