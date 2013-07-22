@@ -772,6 +772,9 @@ static int stm32x_probe(struct flash_bank *bank)
 		max_flash_size_in_kb = 2048;
 		stm32x_info->has_large_mem = true;
 		break;
+	case 0x423:
+		max_flash_size_in_kb = 256;
+		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
@@ -899,6 +902,20 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	case 0x413:
 	case 0x419:
 		device_str = "STM32F4xx";
+
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "A";
+			break;
+
+		case 0x1001:
+			rev_str = "Z";
+			break;
+		}
+		break;
+
+	case 0x423:
+		device_str = "STM32F4xx (Low Power)";
 
 		switch (rev_id) {
 		case 0x1000:
