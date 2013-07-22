@@ -1,0 +1,71 @@
+USB Blaster Cheap Clone
+=======================
+
+The Altera USB Blaster has a cheap clone, based on :
+ - a Cypress CY7C68013A-56PVXC as the main chip
+ - a 74HC244D as the output latch
+ - a 24 MHz quartz
+ - a EEPROM 24C64BN
+
+The schematics (cut down to essential) is :
+
+                           /-----------------+----------------------\
+     +--------------+      |                 |                      |
+USB--|  CY7C68013A  |      |  +----------+   |                      |
+     |              |      |  | 74HC244D |   |                      |
+     .              .      |  |          |   |                      |
+     .              .      \--o 1     20 o   |     10 pins header   |
+     |           47 o-- TCK --o 2     19 o---/        +-------+     |
+     |           46 o-- TDO --o 3     18 o-- TCK -----o 1   2 o     |
+     |           45 o-- TMS --o 4     17 o-- TDO -----o 3   4 o     |
+     |           44 o         o 5     16 o-- TMS -----o 5   6 o     |
+     |           43 o--       o 6     15 o            o 7   8 o     |
+     |           42 o--       o 7     14 o         +--o 9  10 o     |
+     |           41 o-- TDI --o 8     13 o-- ?     |  +-------+     |
+     .           40 o-- nOE \ o 9     12 o-- TDI --+                |
+     .              .       | o 10    11 o                          |
+     o 28        29 o       | |          |                          |
+     |              |       | +----------+                          |
+     +--------------+       \                                       |
+                             ---------------------------------------/
+
+From this one can deduce that :
+ - the cypress emulates the Altera chip
+ - as the cypress pins used are 41-47, all output/input are controlled by 8051
+   PortA.
+ - as the 8051 is clocked at 24Mhz, and because each USB byte is handled by the
+   8051, assuming a 40 instruction cycles per USB packet, the maximum throughput
+   would be around 500 kHz.
+
+Pinout
+======
+ Port A.0: nOE (output enable of 74HC244D)
+ Port A.1: TDI
+ Port A.5: TMS
+ Port A.6: TDO
+ Port A.7: TCK
+
+Throughput considerations
+=========================
+Mesurements on a scope reveal that :
+ - for bitbang mode, the throughtput is 56.5 kbits/s
+   (as each clock transition is mesured at 17.7us)
+ - for byteshift mode, the throughput is 107.7 kbits/s
+   (as 63 bits TDI transmission is mesured in 585 us)
+
+Let's suppose that to upload a 32 bits value, it is necessary to :
+ - move from IDLE to DR-SHIFT : 3 bitbang (3 TMS transitions)
+ - input the 32 bits of data : 1 byteshift (24 bits) + 8 bitbang (8 bits)
+ - move from DR-SHIFT to IDLE : 5 bitbang (5 TMS transitions)
+So for this 32 bits of data, the time would be :
+   3 * 17.7us + 1 * 585us/63*24 + 5 * 17.7us
+ = 53.1us + 222us + 88.5us
+ = 363us
+
+Throughtput in bit/s: 32 * (1 / 363E-6) = 88000 bits/s
+Throughtput in bytes/s: 11kBytes/s
+
+Conclusion
+==========
+Contrary to the original USB Blaster, the cheap clone will never reach high
+transfer speeds over JTAG.
