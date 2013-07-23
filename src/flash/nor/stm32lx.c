@@ -88,6 +88,7 @@
 /* other registers */
 #define DBGMCU_IDCODE	0xE0042000
 #define F_SIZE			0x1FF8004C
+#define F_SIZE_MP		0x1FF800CC /* on 0x427 Medium+ and 0x436 HD devices */
 
 /* Constants */
 #define FLASH_PAGE_SIZE 256
@@ -554,8 +555,23 @@ static int stm32lx_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	/* Get the flash size from target. */
-	retval = target_read_u16(target, F_SIZE, &flash_size_in_kb);
+	/* Get the flash size from target.  0x427 and 0x436 devices use a
+	 * different location for the Flash Size register, please see RM0038 r8 or
+	 * newer. */
+	if ((device_id & 0xfff) == 0x427 || (device_id & 0xfff) == 0x436)
+			retval = target_read_u16(target, F_SIZE_MP, &flash_size_in_kb);
+	else
+			retval = target_read_u16(target, F_SIZE, &flash_size_in_kb);
+
+	/* 0x436 devices report their flash size as a 0 or 1 code indicating 384K
+	 * or 256K, respectively.  Please see RM0038 r8 or newer and refer to
+	 * section 30.1.1. */
+	if (retval == ERROR_OK && (device_id & 0xfff) == 0x436) {
+		if (flash_size_in_kb == 0)
+			flash_size_in_kb = 384;
+		else if (flash_size_in_kb == 1)
+			flash_size_in_kb = 256;
+	}
 
 	/* Failed reading flash size or flash size invalid (early silicon),
 	 * default to max target family */
