@@ -913,7 +913,7 @@ static int lpcspifi_probe(struct flash_bank *bank)
 		sectors[sector].offset = sector * lpcspifi_info->dev->sectorsize;
 		sectors[sector].size = lpcspifi_info->dev->sectorsize;
 		sectors[sector].is_erased = -1;
-		sectors[sector].is_protected = 1;
+		sectors[sector].is_protected = 0;
 	}
 
 	bank->sectors = sectors;
