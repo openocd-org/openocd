@@ -37,7 +37,7 @@
 
 #include <target/target.h>
 
-static struct hl_interface_s hl_if = { {0, 0, 0, 0, 0, HL_TRANSPORT_UNKNOWN, 0, false}, 0, 0 };
+static struct hl_interface_s hl_if = { {0, 0, 0, 0, 0, HL_TRANSPORT_UNKNOWN, 0, false, NULL, 0}, 0, 0 };
 
 int hl_interface_open(enum hl_transports tr)
 {
@@ -113,6 +113,11 @@ static int hl_interface_init(void)
 static int hl_interface_quit(void)
 {
 	LOG_DEBUG("hl_interface_quit");
+
+	if (hl_if.param.trace_f) {
+		fclose(hl_if.param.trace_f);
+		hl_if.param.trace_f = NULL;
+	}
 
 	return ERROR_OK;
 }
@@ -220,6 +225,30 @@ COMMAND_HANDLER(stlink_interface_handle_api_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(interface_handle_trace_command)
+{
+	FILE *f;
+	unsigned source_hz;
+
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	f = fopen(CMD_ARGV[0], "a");
+	if (!f)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], source_hz);
+	if (source_hz == 0) {
+		fclose(f);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	hl_if.param.trace_f = f;
+	hl_if.param.trace_source_hz = source_hz;
+
+	return ERROR_OK;
+}
+
 static const struct command_registration hl_interface_command_handlers[] = {
 	{
 	 .name = "hla_device_desc",
@@ -255,6 +284,13 @@ static const struct command_registration hl_interface_command_handlers[] = {
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the desired stlink api level",
 	 .usage = "api version 1 or 2",
+	 },
+	 {
+	 .name = "trace",
+	 .handler = &interface_handle_trace_command,
+	 .mode = COMMAND_CONFIG,
+	 .help = "configure trace reception",
+	 .usage = "destination_path source_lock_hz",
 	 },
 	COMMAND_REGISTRATION_DONE
 };

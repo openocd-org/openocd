@@ -48,6 +48,10 @@ struct hl_interface_param_s {
 	int max_buffer;
 	/** */
 	bool connect_under_reset;
+	/** Output file for trace data (if any) */
+	FILE *trace_f;
+	/** Trace module source clock rate */
+	uint32_t trace_source_hz;
 };
 
 struct hl_interface_s {

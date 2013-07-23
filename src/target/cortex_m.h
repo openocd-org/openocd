@@ -33,6 +33,11 @@
 
 #define SYSTEM_CONTROL_BASE 0x400FE000
 
+#define ITM_TER		0xE0000E00
+#define ITM_TPR		0xE0000E40
+#define ITM_TCR		0xE0000E80
+#define ITM_LAR		0xE0000FB0
+
 #define CPUID		0xE000ED00
 /* Debug Control Block */
 #define DCB_DHCSR	0xE000EDF0
@@ -63,6 +68,14 @@
 #define FPU_FPCCR	0xE000EF34
 #define FPU_FPCAR	0xE000EF38
 #define FPU_FPDSCR	0xE000EF3C
+
+#define TPI_SSPSR	0xE0040000
+#define TPI_CSPSR	0xE0040004
+#define TPI_ACPR	0xE0040010
+#define TPI_SPPR	0xE00400F0
+#define TPI_FFSR	0xE0040300
+#define TPI_FFCR	0xE0040304
+#define TPI_FSCR	0xE0040308
 
 /* DCB_DHCSR bit and field definitions */
 #define DBGKEY		(0xA05F << 16)
