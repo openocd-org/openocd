@@ -4301,7 +4301,7 @@ The value should normally correspond to a static mapping for the
 
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
 @var{rtos_type} can be one of @option{auto}|@option{eCos}|@option{ThreadX}|
-@option{FreeRTOS}|@option{linux}|@option{ChibiOS}.
+@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}.
 
 @end itemize
 @end deffn
