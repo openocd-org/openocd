@@ -150,39 +150,6 @@ else
 fi
 AC_MSG_RESULT([$build_release])
 
-# We are not *ALWAYS* being installed in the standard place.
-# We may be installed in a "tool-build" specific location.
-# Normally with other packages - as part of a tool distro.
-# Thus - we should search that 'libdir' also.
-#
-# And - if we are being installed there - the odds are
-# The libraries unique to what we are are there too.
-#
-
-# Expand nd deal with NONE - just like configure will do later
-OCDprefix=$prefix
-OCDxprefix=$exec_prefix
-test x"$OCDprefix"  = xNONE && OCDprefix=$ac_default_prefix
-# Let make expand exec_prefix.
-test x"$OCDxprefix" = xNONE && OCDxprefix="$OCDprefix"
-
-# what matters is the "exec-prefix"
-if test "$OCDxprefix" != "$ac_default_prefix"
-then
-    # We are installing in a non-standard place
-    # Nonstandard --prefix and/or --exec-prefix
-    # We have an override of some sort.
-    # use build specific install library dir
-
-    LDFLAGS="$LDFLAGS -L$OCDxprefix/lib"
-    # RPATH becomes an issue on Linux only
-    if test $host_os = linux-gnu || test $host_os = linux ; then
-      LDFLAGS="$LDFLAGS -Wl,-rpath,$OCDxprefix/lib"
-    fi
-    # The "INCDIR" is also usable
-    CFLAGS="$CFLAGS -I$includedir"
-fi
-
 AC_ARG_WITH(ftd2xx,
    AS_HELP_STRING([--with-ftd2xx=<PATH>],[This option has been removed.]),
   [
