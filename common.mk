@@ -4,7 +4,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src \
 			  -I$(top_builddir)/src \
 			  -I$(top_srcdir)/src/helper \
 			  -DPKGDATADIR=\"$(pkgdatadir)\" \
-			  -DPKGLIBDIR=\"$(pkglibdir)\"
+			  -DBINDIR=\"$(bindir)\"
 
 if INTERNAL_JIMTCL
 AM_CPPFLAGS += -I$(top_srcdir)/jimtcl \

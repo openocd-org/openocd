@@ -52,11 +52,29 @@ int configuration_output_handler(struct command_context *context, const char *li
 	return ERROR_OK;
 }
 
+#ifdef _WIN32
+static char *find_suffix(const char *text, const char *suffix)
+{
+	size_t text_len = strlen(text);
+	size_t suffix_len = strlen(suffix);
+
+	if (suffix_len == 0)
+		return (char *)text + text_len;
+
+	if (suffix_len > text_len || strncmp(text + text_len - suffix_len, suffix, suffix_len) != 0)
+		return NULL; /* Not a suffix of text */
+
+	return (char *)text + text_len - suffix_len;
+}
+#endif
+
 static void add_default_dirs(void)
 {
+	const char *run_prefix;
+	char *path;
+
 #ifdef _WIN32
 	char strExePath[MAX_PATH];
-	char *path;
 	GetModuleFileName(NULL, strExePath, MAX_PATH);
 
 	/* Strip executable file name, leaving path */
@@ -68,63 +86,45 @@ static void add_default_dirs(void)
 			*p = '/';
 	}
 
-	/* Add the parent of the directory where openocd.exe resides to the
-	 * config script search path.
-	 *
-	 * bin/openocd.exe
-	 * interface/dummy.cfg
-	 * target/at91eb40a.cfg
-	 */
-	path = alloc_printf("%s%s", strExePath, "/..");
-	if (path) {
-		add_script_search_dir(path);
-		free(path);
-	}
-	/* Add support for the directory layout resulting from a 'make install'.
-	 *
-	 * bin/openocd.exe
-	 * share/openocd/scripts/interface/dummy.cfg
-	 * share/openocd/scripts/target/at91eb40a.cfg
-	 */
-	path = alloc_printf("%s%s", strExePath, "/../share/" PACKAGE "/scripts");
-	if (path) {
-		add_script_search_dir(path);
-		free(path);
-	}
-	/* Add single "scripts" folder to search path for Windows OpenOCD builds that don't use cygwin
-	 *
-	 * bin/openocd.exe
-	 * scripts/interface/dummy.cfg
-	 * scripts/target/at91eb40a.cfg
-	 */
-	path = alloc_printf("%s%s", strExePath, "/../scripts");
-	if (path) {
-		add_script_search_dir(path);
-		free(path);
-	}
+	char *end_of_prefix = find_suffix(strExePath, BINDIR);
+	if (end_of_prefix != NULL)
+		*end_of_prefix = '\0';
+
+	run_prefix = strExePath;
 #else
+	run_prefix = "";
+#endif
+
+	LOG_DEBUG("bindir=%s", BINDIR);
+	LOG_DEBUG("pkgdatadir=%s", PKGDATADIR);
+	LOG_DEBUG("run_prefix=%s", run_prefix);
+
 	/*
 	 * The directory containing OpenOCD-supplied scripts should be
 	 * listed last in the built-in search order, so the user can
 	 * override these scripts with site-specific customizations.
 	 */
-
 	const char *home = getenv("HOME");
 
 	if (home) {
-		char *path;
-
 		path = alloc_printf("%s/.openocd", home);
-
 		if (path) {
 			add_script_search_dir(path);
 			free(path);
 		}
 	}
 
-	add_script_search_dir(PKGDATADIR "/site");
-	add_script_search_dir(PKGDATADIR "/scripts");
-#endif
+	path = alloc_printf("%s%s%s", run_prefix, PKGDATADIR, "/site");
+	if (path) {
+		add_script_search_dir(path);
+		free(path);
+	}
+
+	path = alloc_printf("%s%s%s", run_prefix, PKGDATADIR, "/scripts");
+	if (path) {
+		add_script_search_dir(path);
+		free(path);
+	}
 }
 
 int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
