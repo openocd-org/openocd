@@ -21,6 +21,7 @@ NOR_DRIVERS = \
 	lpc288x.c \
 	lpc2900.c \
 	lpcspifi.c \
+	mdr.c \
 	non_cfi.c \
 	ocl.c \
 	pic32mx.c \
