@@ -113,6 +113,17 @@ static void add_default_dirs(void)
 			free(path);
 		}
 	}
+#ifdef _WIN32
+	const char *appdata = getenv("APPDATA");
+
+	if (appdata) {
+		path = alloc_printf("%s/OpenOCD", appdata);
+		if (path) {
+			add_script_search_dir(path);
+			free(path);
+		}
+	}
+#endif
 
 	path = alloc_printf("%s%s%s", run_prefix, PKGDATADIR, "/site");
 	if (path) {
