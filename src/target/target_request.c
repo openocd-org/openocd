@@ -122,6 +122,8 @@ int target_request(struct target *target, uint32_t request)
 {
 	target_req_cmd_t target_req_cmd = request & 0xff;
 
+	assert(target->type->target_request_data);
+
 	/* Record that we got a target message for back-off algorithm */
 	got_message = true;
 
@@ -255,6 +257,11 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 	struct target *target = get_current_target(CMD_CTX);
 
 	int receiving = 0;
+
+	if (target->type->target_request_data == NULL) {
+		LOG_ERROR("Target %s does not support target requests", target_name(target));
+		return ERROR_OK;
+	}
 
 	/* see if reciever is already registered */
 	if (find_debug_msg_receiver(CMD_CTX, target) != NULL)
