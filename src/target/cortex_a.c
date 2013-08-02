@@ -2772,7 +2772,6 @@ struct target_type cortexa8_target = {
 
 	.assert_reset = cortex_a8_assert_reset,
 	.deassert_reset = cortex_a8_deassert_reset,
-	.soft_reset_halt = NULL,
 
 	/* REVISIT allow exporting VFP3 registers ... */
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
@@ -2852,7 +2851,6 @@ struct target_type cortexr4_target = {
 
 	.assert_reset = cortex_a8_assert_reset,
 	.deassert_reset = cortex_a8_deassert_reset,
-	.soft_reset_halt = NULL,
 
 	/* REVISIT allow exporting VFP3 registers ... */
 	.get_gdb_reg_list = arm_get_gdb_reg_list,

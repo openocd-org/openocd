@@ -586,12 +586,6 @@ static int adapter_deassert_reset(struct target *target)
 	return target->reset_halt ? ERROR_OK : target_resume(target, 1, 0, 0, 0);
 }
 
-static int adapter_soft_reset_halt(struct target *target)
-{
-	LOG_DEBUG("%s", __func__);
-	return ERROR_OK;
-}
-
 static int adapter_halt(struct target *target)
 {
 	int res;
@@ -890,7 +884,6 @@ struct target_type hla_target = {
 	.target_request_data = hl_target_request_data,
 	.assert_reset = adapter_assert_reset,
 	.deassert_reset = adapter_deassert_reset,
-	.soft_reset_halt = adapter_soft_reset_halt,
 
 	.halt = adapter_halt,
 	.resume = adapter_resume,

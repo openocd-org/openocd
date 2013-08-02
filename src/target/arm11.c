@@ -771,13 +771,6 @@ static int arm11_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int arm11_soft_reset_halt(struct target *target)
-{
-	LOG_WARNING("Not implemented: %s", __func__);
-
-	return ERROR_FAIL;
-}
-
 /* target memory access
  * size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
  * count: number of items of <size>
@@ -1348,7 +1341,6 @@ struct target_type arm11_target = {
 
 	.assert_reset = arm11_assert_reset,
 	.deassert_reset = arm11_deassert_reset,
-	.soft_reset_halt = arm11_soft_reset_halt,
 
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 

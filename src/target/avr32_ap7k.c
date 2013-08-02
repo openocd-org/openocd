@@ -313,13 +313,6 @@ static int avr32_ap7k_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int avr32_ap7k_soft_reset_halt(struct target *target)
-{
-	LOG_ERROR("%s: implement me", __func__);
-
-	return ERROR_OK;
-}
-
 static int avr32_ap7k_resume(struct target *target, int current,
 	uint32_t address, int handle_breakpoints, int debug_execution)
 {
@@ -600,8 +593,6 @@ int avr32_ap7k_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 	return ERROR_FAIL;
 }
 
-
-
 struct target_type avr32_ap7k_target = {
 	.name = "avr32_ap7k",
 
@@ -616,7 +607,6 @@ struct target_type avr32_ap7k_target = {
 
 	.assert_reset = avr32_ap7k_assert_reset,
 	.deassert_reset = avr32_ap7k_deassert_reset,
-	.soft_reset_halt = avr32_ap7k_soft_reset_halt,
 
 	.get_gdb_reg_list = avr32_ap7k_get_gdb_reg_list,
 

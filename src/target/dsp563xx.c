@@ -1373,12 +1373,6 @@ static int dsp563xx_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int dsp563xx_soft_reset_halt(struct target *target)
-{
-	LOG_DEBUG("%s", __func__);
-	return ERROR_OK;
-}
-
 static int dsp563xx_run_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
@@ -2328,7 +2322,6 @@ struct target_type dsp563xx_target = {
 
 	.assert_reset = dsp563xx_assert_reset,
 	.deassert_reset = dsp563xx_deassert_reset,
-	.soft_reset_halt = dsp563xx_soft_reset_halt,
 
 	.read_memory = dsp563xx_read_memory_default,
 	.write_memory = dsp563xx_write_memory_default,

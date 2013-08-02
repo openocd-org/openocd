@@ -42,7 +42,6 @@ static int avr_step(struct target *target, int current, uint32_t address,
 
 static int avr_assert_reset(struct target *target);
 static int avr_deassert_reset(struct target *target);
-static int avr_soft_reset_halt(struct target *target);
 
 /* IR and DR functions */
 static int mcu_write_ir(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
@@ -64,7 +63,6 @@ struct target_type avr_target = {
 
 	.assert_reset = avr_assert_reset,
 	.deassert_reset = avr_deassert_reset,
-	.soft_reset_halt = avr_soft_reset_halt,
 /*
 	.get_gdb_reg_list = avr_get_gdb_reg_list,
 
@@ -147,12 +145,6 @@ static int avr_deassert_reset(struct target *target)
 {
 	target->state = TARGET_RUNNING;
 
-	LOG_DEBUG("%s", __func__);
-	return ERROR_OK;
-}
-
-static int avr_soft_reset_halt(struct target *target)
-{
 	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
