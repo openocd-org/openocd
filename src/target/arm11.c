@@ -363,15 +363,6 @@ static int arm11_arch_state(struct target *target)
 	return retval;
 }
 
-/* target request support */
-static int arm11_target_request_data(struct target *target,
-	uint32_t size, uint8_t *buffer)
-{
-	LOG_WARNING("Not implemented: %s", __func__);
-
-	return ERROR_FAIL;
-}
-
 /* target execution control */
 static int arm11_halt(struct target *target)
 {
@@ -1332,8 +1323,6 @@ struct target_type arm11_target = {
 
 	.poll = arm11_poll,
 	.arch_state = arm11_arch_state,
-
-	.target_request_data = arm11_target_request_data,
 
 	.halt = arm11_halt,
 	.resume = arm11_resume,

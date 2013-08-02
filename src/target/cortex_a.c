@@ -2764,8 +2764,6 @@ struct target_type cortexa8_target = {
 	.poll = cortex_a8_poll,
 	.arch_state = armv7a_arch_state,
 
-	.target_request_data = NULL,
-
 	.halt = cortex_a8_halt,
 	.resume = cortex_a8_resume,
 	.step = cortex_a8_step,
@@ -2842,8 +2840,6 @@ struct target_type cortexr4_target = {
 
 	.poll = cortex_a8_poll,
 	.arch_state = armv7a_arch_state,
-
-	.target_request_data = NULL,
 
 	.halt = cortex_a8_halt,
 	.resume = cortex_a8_resume,

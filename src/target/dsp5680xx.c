@@ -2278,8 +2278,6 @@ struct target_type dsp5680xx_target = {
 	.poll = dsp5680xx_poll,
 	.arch_state = dsp5680xx_arch_state,
 
-	.target_request_data = NULL,
-
 	.halt = dsp5680xx_halt,
 	.resume = dsp5680xx_resume,
 	.step = dsp5680xx_step,

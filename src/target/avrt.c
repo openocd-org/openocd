@@ -55,8 +55,6 @@ struct target_type avr_target = {
 	.poll = avr_poll,
 	.arch_state = avr_arch_state,
 
-	.target_request_data = NULL,
-
 	.halt = avr_halt,
 	.resume = avr_resume,
 	.step = avr_step,

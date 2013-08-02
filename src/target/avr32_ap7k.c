@@ -599,8 +599,6 @@ struct target_type avr32_ap7k_target = {
 	.poll = avr32_ap7k_poll,
 	.arch_state = avr32_ap7k_arch_state,
 
-	.target_request_data = NULL,
-
 	.halt = avr32_ap7k_halt,
 	.resume = avr32_ap7k_resume,
 	.step = avr32_ap7k_step,

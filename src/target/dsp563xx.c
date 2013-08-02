@@ -2312,8 +2312,6 @@ struct target_type dsp563xx_target = {
 	.poll = dsp563xx_poll,
 	.arch_state = dsp563xx_arch_state,
 
-	.target_request_data = NULL,
-
 	.get_gdb_reg_list = dsp563xx_get_gdb_reg_list,
 
 	.halt = dsp563xx_halt,

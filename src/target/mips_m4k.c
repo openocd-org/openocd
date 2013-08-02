@@ -1384,8 +1384,6 @@ struct target_type mips_m4k_target = {
 	.poll = mips_m4k_poll,
 	.arch_state = mips32_arch_state,
 
-	.target_request_data = NULL,
-
 	.halt = mips_m4k_halt,
 	.resume = mips_m4k_resume,
 	.step = mips_m4k_step,

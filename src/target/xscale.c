@@ -3713,8 +3713,6 @@ struct target_type xscale_target = {
 	.poll = xscale_poll,
 	.arch_state = xscale_arch_state,
 
-	.target_request_data = NULL,
-
 	.halt = xscale_halt,
 	.resume = xscale_resume,
 	.step = xscale_step,
