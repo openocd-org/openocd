@@ -4318,9 +4318,11 @@ base @var{address} to be used when an MMU is active.
 The value should normally correspond to a static mapping for the
 @code{-work-area-phys} address, set up by the current operating system.
 
+@anchor{rtostype}
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
 @var{rtos_type} can be one of @option{auto}|@option{eCos}|@option{ThreadX}|
-@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}.
+@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}
+@xref{gdbrtossupport,,RTOS Support}.
 
 @end itemize
 @end deffn
@@ -8108,6 +8110,57 @@ end
 @end example
 @end itemize
 
+@section RTOS Support
+@cindex RTOS Support
+@anchor{gdbrtossupport}
+
+OpenOCD includes RTOS support, this will however need enabling as it defaults to disabled.
+It can be enabled by passing @option{-rtos} arg to the target @xref{rtostype,,RTOS Type}
+
+@* An example setup is below:
+
+@example
+$_TARGETNAME configure -rtos auto
+@end example
+
+This will attempt to auto detect the RTOS within your application.
+
+Currently supported rtos's include:
+@itemize @bullet
+@item @option{eCos}
+@item @option{ThreadX}
+@item @option{FreeRTOS}
+@item @option{linux}
+@item @option{ChibiOS}
+@item @option{embKernel}
+@end itemize
+
+@quotation Note
+Before an RTOS can be detected it must export certain symbols otherwise it cannot be used by
+OpenOCD. Below is a list of the required symbols for each supported RTOS.
+@end quotation
+
+@table @code
+@item eCos symbols
+Cyg_Thread::thread_list, Cyg_Scheduler_Base::current_thread.
+@item ThreadX symbols
+_tx_thread_current_ptr, _tx_thread_created_ptr, _tx_thread_created_count.
+@item FreeRTOS symbols
+pxCurrentTCB, pxReadyTasksLists, xDelayedTaskList1, xDelayedTaskList2,
+pxDelayedTaskList, pxOverflowDelayedTaskList, xPendingReadyList,
+xTasksWaitingTermination, xSuspendedTaskList, uxCurrentNumberOfTasks, uxTopUsedPriority.
+@item linux symbols
+init_task.
+@item ChibiOS symbols
+rlist, ch_debug, chSysInit.
+@item embKernel symbols
+Rtos::sCurrentTask, Rtos::sListReady, Rtos::sListSleep,
+Rtos::sListSuspended, Rtos::sMaxPriorities, Rtos::sCurrentTaskCount.
+@end table
+
+For most RTOS supported the above symbols will be exported by default. However for
+some, eg. FreeRTOS @option{xTasksWaitingTermination} is only exported
+if @option{INCLUDE_vTaskDelete} is defined during the build.
 
 @node Tcl Scripting API
 @chapter Tcl Scripting API
