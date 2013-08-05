@@ -430,7 +430,7 @@ static int cortex_m3_debug_entry(struct target *target)
 			arm->read_core_reg(target, r, i, ARM_MODE_ANY);
 	}
 
-	r = arm->core_cache->reg_list + ARMV7M_xPSR;
+	r = arm->cpsr;
 	xPSR = buf_get_u32(r->value, 0, 32);
 
 #ifdef ARMV7_GDB_HACKS
@@ -732,7 +732,7 @@ static int cortex_m3_resume(struct target *target, int current,
 		r->valid = true;
 
 		/* Make sure we are in Thumb mode */
-		r = armv7m->arm.core_cache->reg_list + ARMV7M_xPSR;
+		r = armv7m->arm.cpsr;
 		buf_set_u32(r->value, 24, 1, 1);
 		r->dirty = true;
 		r->valid = true;

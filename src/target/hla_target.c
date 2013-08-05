@@ -427,7 +427,7 @@ static int adapter_debug_entry(struct target *target)
 	/* make sure we clear the vector catch bit */
 	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA);
 
-	r = arm->core_cache->reg_list + ARMV7M_xPSR;
+	r = arm->cpsr;
 	xPSR = buf_get_u32(r->value, 0, 32);
 
 	/* Are we in an exception handler */

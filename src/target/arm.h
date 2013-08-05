@@ -97,7 +97,7 @@ struct arm {
 	/** Handle to the PC; valid in all core modes. */
 	struct reg *pc;
 
-	/** Handle to the CPSR; valid in all core modes. */
+	/** Handle to the CPSR/xPSR; valid in all core modes. */
 	struct reg *cpsr;
 
 	/** Handle to the SPSR; valid only in core modes with an SPSR. */
