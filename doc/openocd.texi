@@ -3088,7 +3088,7 @@ version of OpenOCD.
 @deffn Command {transport select} transport_name
 Select which of the supported transports to use in this OpenOCD session.
 The transport must be supported by the debug adapter hardware and by the
-version of OPenOCD you are using (including the adapter's driver).
+version of OpenOCD you are using (including the adapter's driver).
 No arguments: returns name of session's selected transport.
 @end deffn
 
