@@ -770,7 +770,6 @@ static int stm32x_probe(struct flash_bank *bank)
 		break;
 	case 0x419:
 		max_flash_size_in_kb = 2048;
-		stm32x_info->has_large_mem = true;
 		break;
 	case 0x423:
 		max_flash_size_in_kb = 256;
@@ -797,6 +796,10 @@ static int stm32x_probe(struct flash_bank *bank)
 		LOG_INFO("ignoring flash probed value, using configured bank size");
 		flash_size_in_kb = stm32x_info->user_bank_size / 1024;
 	}
+
+	/* only devices with > 1024kB have dual banks */
+	if (flash_size_in_kb > 1024)
+		stm32x_info->has_large_mem = true;
 
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
