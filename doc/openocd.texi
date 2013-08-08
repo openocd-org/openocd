@@ -4179,6 +4179,17 @@ There are several variants defined:
 @code{pxa26x} ... instruction register length is 5 bits
 @item @code{pxa3xx} ... instruction register length is 11 bits
 @end itemize
+@item @code{openrisc} -- this is an OpenRISC 1000 core.
+The current implementation supports two JTAG TAP cores:
+@itemize @minus
+@item @code{OpenCores TAP} (See: @emph{http://opencores.org/project,jtag})
+@item @code{Altera Virtual JTAG TAP} (See: @emph{http://www.altera.com/literature/ug/ug_virtualjtag.pdf})
+@end itemize
+And two debug interfaces cores:
+@itemize @minus
+@item @code{Advanced debug interface} (See: @emph{http://opencores.org/project,adv_debug_sys})
+@item @code{SoC Debug Interface} (See: @emph{http://opencores.org/project,dbg_interface})
+@end itemize
 @end itemize
 @end deffn
 
@@ -7491,6 +7502,51 @@ This however has the disadvantage of only resetting the core, all peripherals
 are uneffected. A solution would be to use a @code{reset-init} event handler to manually reset
 the peripherals.
 @xref{targetevents,,Target Events}.
+@end deffn
+
+@section OpenRISC Architecture
+
+The OpenRISC CPU is a soft core. It is used in a programmable SoC which can be
+configured with any of the TAP / Debug Unit available.
+
+@subsection TAP and Debug Unit selection commands
+@deffn Command {tap_select} (@option{vjtag}|@option{mohor})
+Select between the Altera Virtual JTAG and Mohor TAP.
+@end deffn
+@deffn Command {du_select} (@option{adv}|@option{mohor}) [option]
+Select between the Advanced Debug Interface and the classic one.
+
+An option can be passed as a second argument to the debug unit.
+
+When using the Advanced Debug Interface, option = 1 means the RTL core is
+configured with ADBG_USE_HISPEED = 1. This configuration skips status checking
+between bytes while doing read or write bursts.
+@end deffn
+
+@subsection Registers commands
+@deffn Command {addreg} [name] [address] [feature] [reg_group]
+Add a new register in the cpu register list. This register will be
+included in the generated target descriptor file.
+
+@strong{[feature]} must be "org.gnu.gdb.or1k.group[0..10]".
+
+@strong{[reg_group]} can be anything. The default register list defines "system",
+ "dmmu", "immu", "dcache", "icache", "mac", "debug", "perf", "power", "pic"
+ and "timer" groups.
+
+@emph{example:}
+@example
+addreg rtest 0x1234 org.gnu.gdb.or1k.group0 system
+@end example
+
+
+@end deffn
+@deffn Command {readgroup} (@option{group})
+Display all registers in @emph{group}.
+
+@emph{group} can be "system",
+ "dmmu", "immu", "dcache", "icache", "mac", "debug", "perf", "power", "pic",
+ "timer" or any new group created with addreg command.
 @end deffn
 
 @anchor{softwaredebugmessagesandtracing}

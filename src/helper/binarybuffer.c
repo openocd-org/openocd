@@ -397,3 +397,24 @@ int hexify(char *hex, const char *bin, int count, int out_maxlen)
 
 	return cmd_len;
 }
+
+void buffer_shr(void *_buf, unsigned buf_len, unsigned count)
+{
+	unsigned i;
+	unsigned char *buf = _buf;
+	unsigned bytes_to_remove;
+	unsigned shift;
+
+	bytes_to_remove = count / 8;
+	shift = count - (bytes_to_remove * 8);
+
+	for (i = 0; i < (buf_len - 1); i++)
+		buf[i] = (buf[i] >> shift) | ((buf[i+1] << (8 - shift)) & 0xff);
+
+	buf[(buf_len - 1)] = buf[(buf_len - 1)] >> shift;
+
+	if (bytes_to_remove) {
+		memmove(buf, &buf[bytes_to_remove], buf_len - bytes_to_remove);
+		memset(&buf[buf_len - bytes_to_remove], 0, bytes_to_remove);
+	}
+}

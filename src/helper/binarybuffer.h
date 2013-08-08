@@ -238,5 +238,6 @@ void bit_copy_discard(struct bit_copy_queue *q);
  * used in ti-icdi driver and gdb server */
 int unhexify(char *bin, const char *hex, int count);
 int hexify(char *hex, const char *bin, int count, int out_maxlen);
+void buffer_shr(void *_buf, unsigned buf_len, unsigned count);
 
 #endif /* BINARYBUFFER_H */
