@@ -38,7 +38,8 @@ NOR_DRIVERS = \
 	virtual.c \
 	fm3.c \
 	dsp5680xx_flash.c \
-	kinetis.c
+	kinetis.c \
+	mini51.c
 
 noinst_HEADERS = \
 	core.h \
