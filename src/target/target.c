@@ -3426,8 +3426,11 @@ static void writeString(FILE *f, char *s)
 	writeData(f, s, strlen(s));
 }
 
+typedef unsigned char UNIT[2];  /* unit of profiling */
+
 /* Dump a gmon.out histogram file. */
-static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filename)
+static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filename,
+		bool with_range, uint32_t start_address, uint32_t end_address)
 {
 	uint32_t i;
 	FILE *f = fopen(filename, "w");
@@ -3443,18 +3446,25 @@ static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filena
 	writeData(f, &zero, 1);
 
 	/* figure out bucket size */
-	uint32_t min = samples[0];
-	uint32_t max = samples[0];
-	for (i = 0; i < sampleNum; i++) {
-		if (min > samples[i])
-			min = samples[i];
-		if (max < samples[i])
-			max = samples[i];
-	}
+	uint32_t min;
+	uint32_t max;
+	if (with_range) {
+		min = start_address;
+		max = end_address;
+	} else {
+		min = samples[0];
+		max = samples[0];
+		for (i = 0; i < sampleNum; i++) {
+			if (min > samples[i])
+				min = samples[i];
+			if (max < samples[i])
+				max = samples[i];
+		}
 
-	/* max should be (largest sample + 1)
-	 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
-	max++;
+		/* max should be (largest sample + 1)
+		 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
+		max++;
+	}
 
 	int addressSpace = max - min;
 	assert(addressSpace >= 2);
@@ -3462,7 +3472,7 @@ static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filena
 	/* FIXME: What is the reasonable number of buckets?
 	 * The profiling result will be more accurate if there are enough buckets. */
 	static const uint32_t maxBuckets = 128 * 1024; /* maximum buckets. */
-	uint32_t numBuckets = addressSpace;
+	uint32_t numBuckets = addressSpace / sizeof(UNIT);
 	if (numBuckets > maxBuckets)
 		numBuckets = maxBuckets;
 	int *buckets = malloc(sizeof(int) * numBuckets);
@@ -3473,6 +3483,10 @@ static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filena
 	memset(buckets, 0, sizeof(int) * numBuckets);
 	for (i = 0; i < sampleNum; i++) {
 		uint32_t address = samples[i];
+
+		if ((address < min) || (max <= address))
+			continue;
+
 		long long a = address - min;
 		long long b = numBuckets;
 		long long c = addressSpace;
@@ -3517,7 +3531,7 @@ COMMAND_HANDLER(handle_profile_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
-	if (CMD_ARGC != 2)
+	if ((CMD_ARGC != 2) && (CMD_ARGC != 4))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	const uint32_t MAX_PROFILE_SAMPLE_NUM = 10000;
@@ -3565,7 +3579,17 @@ COMMAND_HANDLER(handle_profile_command)
 		return retval;
 	}
 
-	write_gmon(samples, num_of_sampels, CMD_ARGV[1]);
+	uint32_t start_address = 0;
+	uint32_t end_address = 0;
+	bool with_range = false;
+	if (CMD_ARGC == 4) {
+		with_range = true;
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], start_address);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[3], end_address);
+	}
+
+	write_gmon(samples, num_of_sampels, CMD_ARGV[1],
+			with_range, start_address, end_address);
 	command_print(CMD_CTX, "Wrote %s", CMD_ARGV[1]);
 
 	free(samples);
@@ -5563,7 +5587,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "profile",
 		.handler = handle_profile_command,
 		.mode = COMMAND_EXEC,
-		.usage = "seconds filename",
+		.usage = "seconds filename [start end]",
 		.help = "profiling samples the CPU PC",
 	},
 	/** @todo don't register virt2phys() unless target supports it */
