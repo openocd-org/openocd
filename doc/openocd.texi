@@ -410,8 +410,12 @@ to be available anymore as of April 2012.
 (OpenHardware).
 @item @b{JTAG-lock-pick Tiny 2}
 @* Link @url{http://www.distortec.com/jtag-lock-pick-tiny-2} FT232H-based
-@end itemize
 
+@item @b{GW16042}
+@* Link: @url{http://shop.gateworks.com/index.php?route=product/product&path=70_80&product_id=64}
+FT2232H-based
+
+@end itemize
 @section USB-JTAG / Altera USB-Blaster compatibles
 
 These devices also show up as FTDI devices, but are not
@@ -533,9 +537,6 @@ produced, PDF schematics are easily found and it is easy to make.
 
 @item @b{Amontec - JTAG Accelerator}
 @* Link: @url{http://www.amontec.com/jtag_accelerator.shtml}
-
-@item @b{GW16402}
-@* Link: @url{http://www.gateworks.com/products/avila_accessories/gw16042.php}
 
 @item @b{Wiggler2}
 @* Link: @url{http://www.ccac.rwth-aachen.de/~michaels/index.php/hardware/armjtag}
