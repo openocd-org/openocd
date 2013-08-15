@@ -2354,6 +2354,17 @@ The default behaviour is @option{disable};
 use @option{enable} see these errors reported.
 @end deffn
 
+@deffn {Config Command} gdb_target_description (@option{enable}|@option{disable})
+Set to @option{enable} to cause OpenOCD to send the target descriptions to gdb via qXfer:features:read packet.
+The default behaviour is @option{disable}.
+@end deffn
+
+@deffn {Command} gdb_save_tdesc
+Saves the target descripton file to the local file system.
+
+The file name is @i{target_name}.xml.
+@end deffn
+
 @anchor{eventpolling}
 @section Event Polling
 
