@@ -2936,16 +2936,16 @@ COMMAND_HANDLER(handle_gdb_save_tdesc_command)
 
 	int retval = fileio_open(&fileio, tdesc_filename, FILEIO_WRITE, FILEIO_TEXT);
 
-	free(tdesc_filename);
-
 	if (retval != ERROR_OK) {
 		LOG_WARNING("Can't open %s for writing", tdesc_filename);
+		free(tdesc_filename);
 		return ERROR_FAIL;
 	}
 
 	retval = fileio_write(&fileio, tdesc_length, tdesc, &size_written);
 
 	fileio_close(&fileio);
+	free(tdesc_filename);
 
 	if (retval != ERROR_OK) {
 		LOG_WARNING("Error while writing the tdesc file");
