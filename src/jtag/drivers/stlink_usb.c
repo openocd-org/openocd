@@ -1447,7 +1447,7 @@ static int stlink_usb_close(void *fd)
 /** */
 static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 {
-	int err;
+	int err, retry_count = 1;
 	struct stlink_usb_handle_s *h;
 	enum stlink_jtag_api_version api;
 
@@ -1471,35 +1471,69 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x", param->transport,
 		param->vid, param->pid);
 
-	if (jtag_libusb_open(vids, pids, &h->fd) != ERROR_OK) {
-		LOG_ERROR("open failed");
-		goto error_open;
-	}
+	/*
+	  On certain host USB configurations(e.g. MacBook Air)
+	  STLINKv2 dongle seems to have its FW in a funky state if,
+	  after plugging it in, you try to use openocd with it more
+	  then once (by launching and closing openocd). In cases like
+	  that initial attempt to read the FW info via
+	  stlink_usb_version will fail and the device has to be reset
+	  in order to become operational.
+	 */
+	do {
+		if (jtag_libusb_open(vids, pids, &h->fd) != ERROR_OK) {
+			LOG_ERROR("open failed");
+			goto error_open;
+		}
 
-	jtag_libusb_set_configuration(h->fd, 0);
+		jtag_libusb_set_configuration(h->fd, 0);
 
-	if (jtag_libusb_claim_interface(h->fd, 0) != ERROR_OK) {
-		LOG_DEBUG("claim interface failed");
-		goto error_open;
-	}
+		if (jtag_libusb_claim_interface(h->fd, 0) != ERROR_OK) {
+			LOG_DEBUG("claim interface failed");
+			goto error_open;
+		}
 
-	/* wrap version for first read */
-	switch (param->pid) {
+		/* wrap version for first read */
+		switch (param->pid) {
 		case 0x3744:
 			h->version.stlink = 1;
 			break;
 		default:
 			h->version.stlink = 2;
 			break;
-	}
+		}
 
-	/* get the device version */
-	err = stlink_usb_version(h);
+		/* get the device version */
+		err = stlink_usb_version(h);
 
-	if (err != ERROR_OK) {
-		LOG_ERROR("read version failed");
-		goto error_open;
-	}
+		if (err == ERROR_OK) {
+			break;
+		} else if (h->version.stlink == 1 ||
+			   retry_count == 0) {
+			LOG_ERROR("read version failed");
+			goto error_open;
+		} else {
+			err = jtag_libusb_release_interface(h->fd, 0);
+			if (err != ERROR_OK) {
+				LOG_ERROR("release interface failed");
+				goto error_open;
+			}
+
+			err = jtag_libusb_reset_device(h->fd);
+			if (err != ERROR_OK) {
+				LOG_ERROR("reset device failed");
+				goto error_open;
+			}
+
+			jtag_libusb_close(h->fd);
+			/*
+			  Give the device one second to settle down and
+			  reenumerate.
+			 */
+			usleep(1 * 1000 * 1000);
+			retry_count--;
+		}
+	} while (1);
 
 	/* compare usb vid/pid */
 	if ((param->vid != h->vid) || (param->pid != h->pid))

@@ -47,6 +47,12 @@ static inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
 	return usb_claim_interface(devh, iface);
 };
 
+static inline int jtag_libusb_release_interface(jtag_libusb_device_handle *devh,
+				       int iface)
+{
+	return usb_release_interface(devh, iface);
+}
+
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 		struct jtag_libusb_device_handle **out);
 void jtag_libusb_close(jtag_libusb_device_handle *dev);
