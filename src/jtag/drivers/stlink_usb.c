@@ -990,7 +990,7 @@ static int stlink_configure_target_trace_port(void *handle)
 		goto out;
 	/* select the pin protocol.  The STLinkv2 only supports asynchronous
 	 * UART emulation (NRZ) mode, so that's what we pick. */
-	res = stlink_usb_write_debug_reg(handle, TPI_SPPR, 0b10);
+	res = stlink_usb_write_debug_reg(handle, TPI_SPPR, 0x02);
 	if (res != ERROR_OK)
 		goto out;
 	/* disable continuous formatting */
