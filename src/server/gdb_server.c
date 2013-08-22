@@ -1988,7 +1988,8 @@ static int get_reg_features_list(struct target *target, char **feature_list[], i
 		if (reg_list[i]->exist == false)
 			continue;
 
-		if ((reg_list[i]->feature->name != NULL)
+		if (reg_list[i]->feature != NULL
+			&& reg_list[i]->feature->name != NULL
 			&& (strcmp(reg_list[i]->feature->name, ""))) {
 			/* We found a feature, check if the feature is already in the
 			 * table. If not, allocate a new entry for the table and
