@@ -45,7 +45,7 @@ enum {
 	ARMV4_5_SPSR_SVC = 34,
 	ARMV4_5_SPSR_ABT = 35,
 	ARMV4_5_SPSR_UND = 36,
-	ARM_SPSR_MON = 39,
+	ARM_SPSR_MON = 41,
 };
 
 static const uint8_t arm_usr_indices[17] = {
@@ -73,7 +73,7 @@ static const uint8_t arm_und_indices[3] = {
 };
 
 static const uint8_t arm_mon_indices[3] = {
-	37, 38, ARM_SPSR_MON,
+	39, 40, ARM_SPSR_MON,
 };
 
 static const struct {
@@ -258,69 +258,81 @@ static const struct {
 	 * (Exception modes have both CPSR and SPSR registers ...)
 	 */
 	unsigned cookie;
+	unsigned gdb_index;
 	enum arm_mode mode;
 } arm_core_regs[] = {
 	/* IMPORTANT:  we guarantee that the first eight cached registers
 	 * correspond to r0..r7, and the fifteenth to PC, so that callers
 	 * don't need to map them.
 	 */
-	{ .name = "r0", .cookie = 0, .mode = ARM_MODE_ANY, },
-	{ .name = "r1", .cookie = 1, .mode = ARM_MODE_ANY, },
-	{ .name = "r2", .cookie = 2, .mode = ARM_MODE_ANY, },
-	{ .name = "r3", .cookie = 3, .mode = ARM_MODE_ANY, },
-	{ .name = "r4", .cookie = 4, .mode = ARM_MODE_ANY, },
-	{ .name = "r5", .cookie = 5, .mode = ARM_MODE_ANY, },
-	{ .name = "r6", .cookie = 6, .mode = ARM_MODE_ANY, },
-	{ .name = "r7", .cookie = 7, .mode = ARM_MODE_ANY, },
+	{ .name = "r0", .cookie = 0, .mode = ARM_MODE_ANY, .gdb_index = 0, },
+	{ .name = "r1", .cookie = 1, .mode = ARM_MODE_ANY, .gdb_index = 1, },
+	{ .name = "r2", .cookie = 2, .mode = ARM_MODE_ANY, .gdb_index = 2, },
+	{ .name = "r3", .cookie = 3, .mode = ARM_MODE_ANY, .gdb_index = 3, },
+	{ .name = "r4", .cookie = 4, .mode = ARM_MODE_ANY, .gdb_index = 4, },
+	{ .name = "r5", .cookie = 5, .mode = ARM_MODE_ANY, .gdb_index = 5, },
+	{ .name = "r6", .cookie = 6, .mode = ARM_MODE_ANY, .gdb_index = 6, },
+	{ .name = "r7", .cookie = 7, .mode = ARM_MODE_ANY, .gdb_index = 7, },
 
 	/* NOTE: regs 8..12 might be shadowed by FIQ ... flagging
 	 * them as MODE_ANY creates special cases.  (ANY means
 	 * "not mapped" elsewhere; here it's "everything but FIQ".)
 	 */
-	{ .name = "r8", .cookie = 8, .mode = ARM_MODE_ANY, },
-	{ .name = "r9", .cookie = 9, .mode = ARM_MODE_ANY, },
-	{ .name = "r10", .cookie = 10, .mode = ARM_MODE_ANY, },
-	{ .name = "r11", .cookie = 11, .mode = ARM_MODE_ANY, },
-	{ .name = "r12", .cookie = 12, .mode = ARM_MODE_ANY, },
+	{ .name = "r8", .cookie = 8, .mode = ARM_MODE_ANY, .gdb_index = 8, },
+	{ .name = "r9", .cookie = 9, .mode = ARM_MODE_ANY, .gdb_index = 9, },
+	{ .name = "r10", .cookie = 10, .mode = ARM_MODE_ANY, .gdb_index = 10, },
+	{ .name = "r11", .cookie = 11, .mode = ARM_MODE_ANY, .gdb_index = 11, },
+	{ .name = "r12", .cookie = 12, .mode = ARM_MODE_ANY, .gdb_index = 12, },
+
+	/* Historical GDB mapping of indices:
+	 *  - 13-14 are sp and lr, but banked counterparts are used
+	 *  - 16-24 are left for deprecated 8 FPA + 1 FPS
+	 *  - 25 is the cpsr
+	 */
 
 	/* NOTE all MODE_USR registers are equivalent to MODE_SYS ones */
-	{ .name = "sp_usr", .cookie = 13, .mode = ARM_MODE_USR, },
-	{ .name = "lr_usr", .cookie = 14, .mode = ARM_MODE_USR, },
+	{ .name = "sp_usr", .cookie = 13, .mode = ARM_MODE_USR, .gdb_index = 26, },
+	{ .name = "lr_usr", .cookie = 14, .mode = ARM_MODE_USR, .gdb_index = 27, },
 
 	/* guaranteed to be at index 15 */
-	{ .name = "pc", .cookie = 15, .mode = ARM_MODE_ANY, },
+	{ .name = "pc", .cookie = 15, .mode = ARM_MODE_ANY, .gdb_index = 15, },
+	{ .name = "r8_fiq", .cookie = 8, .mode = ARM_MODE_FIQ, .gdb_index = 28, },
+	{ .name = "r9_fiq", .cookie = 9, .mode = ARM_MODE_FIQ, .gdb_index = 29, },
+	{ .name = "r10_fiq", .cookie = 10, .mode = ARM_MODE_FIQ, .gdb_index = 30, },
+	{ .name = "r11_fiq", .cookie = 11, .mode = ARM_MODE_FIQ, .gdb_index = 31, },
+	{ .name = "r12_fiq", .cookie = 12, .mode = ARM_MODE_FIQ, .gdb_index = 32, },
 
-	{ .name = "r8_fiq", .cookie = 8, .mode = ARM_MODE_FIQ, },
-	{ .name = "r9_fiq", .cookie = 9, .mode = ARM_MODE_FIQ, },
-	{ .name = "r10_fiq", .cookie = 10, .mode = ARM_MODE_FIQ, },
-	{ .name = "r11_fiq", .cookie = 11, .mode = ARM_MODE_FIQ, },
-	{ .name = "r12_fiq", .cookie = 12, .mode = ARM_MODE_FIQ, },
+	{ .name = "sp_fiq", .cookie = 13, .mode = ARM_MODE_FIQ, .gdb_index = 33, },
+	{ .name = "lr_fiq", .cookie = 14, .mode = ARM_MODE_FIQ, .gdb_index = 34, },
 
-	{ .name = "sp_fiq", .cookie = 13, .mode = ARM_MODE_FIQ, },
-	{ .name = "lr_fiq", .cookie = 14, .mode = ARM_MODE_FIQ, },
+	{ .name = "sp_irq", .cookie = 13, .mode = ARM_MODE_IRQ, .gdb_index = 35, },
+	{ .name = "lr_irq", .cookie = 14, .mode = ARM_MODE_IRQ, .gdb_index = 36, },
 
-	{ .name = "sp_irq", .cookie = 13, .mode = ARM_MODE_IRQ, },
-	{ .name = "lr_irq", .cookie = 14, .mode = ARM_MODE_IRQ, },
+	{ .name = "sp_svc", .cookie = 13, .mode = ARM_MODE_SVC, .gdb_index = 37, },
+	{ .name = "lr_svc", .cookie = 14, .mode = ARM_MODE_SVC, .gdb_index = 38, },
 
-	{ .name = "sp_svc", .cookie = 13, .mode = ARM_MODE_SVC, },
-	{ .name = "lr_svc", .cookie = 14, .mode = ARM_MODE_SVC, },
+	{ .name = "sp_abt", .cookie = 13, .mode = ARM_MODE_ABT, .gdb_index = 39, },
+	{ .name = "lr_abt", .cookie = 14, .mode = ARM_MODE_ABT, .gdb_index = 40, },
 
-	{ .name = "sp_abt", .cookie = 13, .mode = ARM_MODE_ABT, },
-	{ .name = "lr_abt", .cookie = 14, .mode = ARM_MODE_ABT, },
+	{ .name = "sp_und", .cookie = 13, .mode = ARM_MODE_UND, .gdb_index = 41, },
+	{ .name = "lr_und", .cookie = 14, .mode = ARM_MODE_UND, .gdb_index = 42, },
 
-	{ .name = "sp_und", .cookie = 13, .mode = ARM_MODE_UND, },
-	{ .name = "lr_und", .cookie = 14, .mode = ARM_MODE_UND, },
+	{ .name = "cpsr", .cookie = 16, .mode = ARM_MODE_ANY, .gdb_index = 25, },
+	{ .name = "spsr_fiq", .cookie = 16, .mode = ARM_MODE_FIQ, .gdb_index = 43, },
+	{ .name = "spsr_irq", .cookie = 16, .mode = ARM_MODE_IRQ, .gdb_index = 44, },
+	{ .name = "spsr_svc", .cookie = 16, .mode = ARM_MODE_SVC, .gdb_index = 45, },
+	{ .name = "spsr_abt", .cookie = 16, .mode = ARM_MODE_ABT, .gdb_index = 46, },
+	{ .name = "spsr_und", .cookie = 16, .mode = ARM_MODE_UND, .gdb_index = 47, },
 
-	{ .name = "cpsr", .cookie = 16, .mode = ARM_MODE_ANY, },
-	{ .name = "spsr_fiq", .cookie = 16, .mode = ARM_MODE_FIQ, },
-	{ .name = "spsr_irq", .cookie = 16, .mode = ARM_MODE_IRQ, },
-	{ .name = "spsr_svc", .cookie = 16, .mode = ARM_MODE_SVC, },
-	{ .name = "spsr_abt", .cookie = 16, .mode = ARM_MODE_ABT, },
-	{ .name = "spsr_und", .cookie = 16, .mode = ARM_MODE_UND, },
+	/* These are only used for GDB target description, banked registers are accessed instead */
+	{ .name = "sp", .cookie = 13, .mode = ARM_MODE_ANY, .gdb_index = 13, },
+	{ .name = "lr", .cookie = 14, .mode = ARM_MODE_ANY, .gdb_index = 14, },
 
-	{ .name = "sp_mon", .cookie = 13, .mode = ARM_MODE_MON, },
-	{ .name = "lr_mon", .cookie = 14, .mode = ARM_MODE_MON, },
-	{ .name = "spsr_mon", .cookie = 16, .mode = ARM_MODE_MON, },
+	/* These exist only when the Security Extension (TrustZone) is present */
+	{ .name = "sp_mon", .cookie = 13, .mode = ARM_MODE_MON, .gdb_index = 48, },
+	{ .name = "lr_mon", .cookie = 14, .mode = ARM_MODE_MON, .gdb_index = 49, },
+	{ .name = "spsr_mon", .cookie = 16, .mode = ARM_MODE_MON, .gdb_index = 50, },
+
 };
 
 /* map core mode (USR, FIQ, ...) and register number to
@@ -448,6 +460,10 @@ struct reg *arm_reg_current(struct arm *arm, unsigned regnum)
 
 static const uint8_t arm_gdb_dummy_fp_value[12];
 
+static struct reg_feature arm_gdb_dummy_fp_features = {
+	.name = "net.sourceforge.openocd.fake_fpa"
+};
+
 /**
  * Dummy FPA registers are required to support GDB on ARM.
  * Register packets require eight obsolete FPA register values.
@@ -459,6 +475,10 @@ struct reg arm_gdb_dummy_fp_reg = {
 	.value = (uint8_t *) arm_gdb_dummy_fp_value,
 	.valid = 1,
 	.size = 96,
+	.exist = false,
+	.number = 16,
+	.feature = &arm_gdb_dummy_fp_features,
+	.group = "fake_fpa",
 };
 
 static const uint8_t arm_gdb_dummy_fps_value[4];
@@ -472,6 +492,10 @@ struct reg arm_gdb_dummy_fps_reg = {
 	.value = (uint8_t *) arm_gdb_dummy_fps_value,
 	.valid = 1,
 	.size = 32,
+	.exist = false,
+	.number = 24,
+	.feature = &arm_gdb_dummy_fp_features,
+	.group = "fake_fpa",
 };
 
 static void arm_gdb_dummy_init(void) __attribute__ ((constructor));
@@ -582,10 +606,40 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 		reg_arch_info[i].arm = arm;
 
 		reg_list[i].name = (char *) arm_core_regs[i].name;
+		reg_list[i].number = arm_core_regs[i].gdb_index;
 		reg_list[i].size = 32;
 		reg_list[i].value = &reg_arch_info[i].value;
 		reg_list[i].type = &arm_reg_type;
 		reg_list[i].arch_info = &reg_arch_info[i];
+		reg_list[i].exist = true;
+
+		/* This really depends on the calling convention in use */
+		reg_list[i].caller_save = false;
+
+		/* Registers data type, as used by GDB target description */
+		reg_list[i].reg_data_type = malloc(sizeof(struct reg_data_type));
+		switch (arm_core_regs[i].cookie) {
+		case 13:
+			reg_list[i].reg_data_type->type = REG_TYPE_DATA_PTR;
+			break;
+		case 14:
+		case 15:
+			reg_list[i].reg_data_type->type = REG_TYPE_CODE_PTR;
+		    break;
+		default:
+			reg_list[i].reg_data_type->type = REG_TYPE_UINT32;
+		    break;
+		}
+
+		/* let GDB shows banked registers only in "info all-reg" */
+		reg_list[i].feature = malloc(sizeof(struct reg_feature));
+		if (reg_list[i].number <= 15 || reg_list[i].number == 25) {
+			reg_list[i].feature->name = "org.gnu.gdb.arm.core";
+			reg_list[i].group = "general";
+		} else {
+			reg_list[i].feature->name = "net.sourceforge.openocd.banked";
+			reg_list[i].group = "banked";
+		}
 
 		cache->num_regs++;
 	}
@@ -1055,26 +1109,61 @@ int arm_get_gdb_reg_list(struct target *target,
 	enum target_register_class reg_class)
 {
 	struct arm *arm = target_to_arm(target);
-	int i;
+	unsigned int i;
 
 	if (!is_arm_mode(arm->core_mode)) {
 		LOG_ERROR("not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
 	}
 
-	*reg_list_size = 26;
-	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+	switch (reg_class) {
+	case REG_CLASS_GENERAL:
+		*reg_list_size = 26;
+		*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
-	for (i = 0; i < 16; i++)
-		(*reg_list)[i] = arm_reg_current(arm, i);
+		for (i = 0; i < 16; i++)
+				(*reg_list)[i] = arm_reg_current(arm, i);
 
-	for (i = 16; i < 24; i++)
-		(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
+		/* For GDB compatibility, take FPA registers size into account and zero-fill it*/
+		for (i = 16; i < 24; i++)
+				(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
+		(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
 
-	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
-	(*reg_list)[25] = arm->cpsr;
+		(*reg_list)[25] = arm->cpsr;
 
-	return ERROR_OK;
+		return ERROR_OK;
+		break;
+
+	case REG_CLASS_ALL:
+		*reg_list_size = (arm->core_type != ARM_MODE_MON ? 48 : 51);
+		*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+
+		for (i = 0; i < 16; i++)
+				(*reg_list)[i] = arm_reg_current(arm, i);
+
+		for (i = 13; i < ARRAY_SIZE(arm_core_regs); i++) {
+				int reg_index = arm->core_cache->reg_list[i].number;
+				if (!(arm_core_regs[i].mode == ARM_MODE_MON
+						&& arm->core_type != ARM_MODE_MON))
+					(*reg_list)[reg_index] = &(arm->core_cache->reg_list[i]);
+		}
+
+		/* When we supply the target description, there is no need for fake FPA */
+		for (i = 16; i < 24; i++) {
+				(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
+				(*reg_list)[i]->size = 0;
+		}
+		(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
+		(*reg_list)[24]->size = 0;
+
+		return ERROR_OK;
+		break;
+
+	default:
+		LOG_ERROR("not a valid register class type in query.");
+		return ERROR_FAIL;
+		break;
+	}
 }
 
 /* wait for execution to complete and check exit point */
