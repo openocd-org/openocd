@@ -1306,23 +1306,23 @@ hilscher_nxhx500_re.cfg   opendous_ftdi.cfg          vsllink.cfg
 hilscher_nxhx50_etm.cfg   openocd-usb.cfg            xds100v2.cfg
 
 interface/ftdi:
-axm0432.cfg               icebear.cfg                oocdlink.cfg
-calao-usb-a9260-c01.cfg   jtagkey2.cfg               opendous_ftdi.cfg
-calao-usb-a9260-c02.cfg   jtagkey2p.cfg              openocd-usb.cfg
-cortino.cfg               jtagkey.cfg                openocd-usb-hs.cfg
-dlp-usb1232h.cfg          jtag-lock-pick_tiny_2.cfg  openrd.cfg
-dp_busblaster.cfg         kt-link.cfg                redbee-econotag.cfg
-flossjtag.cfg             lisa-l.cfg                 redbee-usb.cfg
-flossjtag-noeeprom.cfg    luminary.cfg               sheevaplug.cfg
-flyswatter2.cfg           luminary-icdi.cfg          signalyzer.cfg
-flyswatter.cfg            luminary-lm3s811.cfg       signalyzer-lite.cfg
+axm0432.cfg               hitex_str9-comstick.cfg    olimex-jtag-tiny.cfg
+calao-usb-a9260-c01.cfg   icebear.cfg                oocdlink.cfg
+calao-usb-a9260-c02.cfg   jtagkey2.cfg               opendous_ftdi.cfg
+cortino.cfg               jtagkey2p.cfg              openocd-usb.cfg
+dlp-usb1232h.cfg          jtagkey.cfg                openocd-usb-hs.cfg
+dp_busblaster.cfg         jtag-lock-pick_tiny_2.cfg  openrd.cfg
+flossjtag.cfg             kt-link.cfg                redbee-econotag.cfg
+flossjtag-noeeprom.cfg    lisa-l.cfg                 redbee-usb.cfg
+flyswatter2.cfg           luminary.cfg               sheevaplug.cfg
+flyswatter.cfg            luminary-icdi.cfg          signalyzer.cfg
+gw16042.cfg               luminary-lm3s811.cfg       signalyzer-lite.cfg
 hilscher_nxhx10_etm.cfg   minimodule.cfg             stm32-stick.cfg
 hilscher_nxhx500_etm.cfg  neodb.cfg                  turtelizer2-revB.cfg
 hilscher_nxhx500_re.cfg   ngxtech.cfg                turtelizer2-revC.cfg
 hilscher_nxhx50_etm.cfg   olimex-arm-usb-ocd.cfg     vpaclink.cfg
 hilscher_nxhx50_re.cfg    olimex-arm-usb-ocd-h.cfg   xds100v2.cfg
 hitex_lpc1768stick.cfg    olimex-arm-usb-tiny-h.cfg
-hitex_str9-comstick.cfg   olimex-jtag-tiny.cfg
 $
 @end example
 @item @file{board} ...
