@@ -606,10 +606,8 @@ int mips32_checksum_memory(struct target *target, uint32_t address,
 	struct working_area *crc_algorithm;
 	struct reg_param reg_params[2];
 	struct mips32_algorithm mips32_info;
-	int retval;
-	uint32_t i;
 
-	/* see contib/loaders/checksum/mips32.s for src */
+	/* see contrib/loaders/checksum/mips32.s for src */
 
 	static const uint32_t mips_crc_code[] = {
 		0x248C0000,		/* addiu	$t4, $a0, 0 */
@@ -644,9 +642,12 @@ int mips32_checksum_memory(struct target *target, uint32_t address,
 	if (target_alloc_working_area(target, sizeof(mips_crc_code), &crc_algorithm) != ERROR_OK)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < ARRAY_SIZE(mips_crc_code); i++)
-		target_write_u32(target, crc_algorithm->address + i*sizeof(uint32_t), mips_crc_code[i]);
+	/* convert mips crc code into a buffer in target endianness */
+	uint8_t mips_crc_code_8[sizeof(mips_crc_code)];
+	target_buffer_set_u32_array(target, mips_crc_code_8,
+					ARRAY_SIZE(mips_crc_code), mips_crc_code);
+
+	target_write_buffer(target, crc_algorithm->address, sizeof(mips_crc_code), mips_crc_code_8);
 
 	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
 	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
@@ -659,24 +660,19 @@ int mips32_checksum_memory(struct target *target, uint32_t address,
 
 	int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
-	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
-			crc_algorithm->address, crc_algorithm->address + (sizeof(mips_crc_code)-4), timeout,
+	int retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
+			crc_algorithm->address, crc_algorithm->address + (sizeof(mips_crc_code) - 4), timeout,
 			&mips32_info);
-	if (retval != ERROR_OK) {
-		destroy_reg_param(&reg_params[0]);
-		destroy_reg_param(&reg_params[1]);
-		target_free_working_area(target, crc_algorithm);
-		return retval;
-	}
 
-	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+	if (retval == ERROR_OK)
+		*checksum = buf_get_u32(reg_params[0].value, 0, 32);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 
 	target_free_working_area(target, crc_algorithm);
 
-	return ERROR_OK;
+	return retval;
 }
 
 /** Checks whether a memory region is zeroed. */
@@ -686,8 +682,6 @@ int mips32_blank_check_memory(struct target *target,
 	struct working_area *erase_check_algorithm;
 	struct reg_param reg_params[3];
 	struct mips32_algorithm mips32_info;
-	int retval;
-	uint32_t i;
 
 	static const uint32_t erase_check_code[] = {
 						/* nbyte: */
@@ -703,11 +697,12 @@ int mips32_blank_check_memory(struct target *target,
 	if (target_alloc_working_area(target, sizeof(erase_check_code), &erase_check_algorithm) != ERROR_OK)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < ARRAY_SIZE(erase_check_code); i++) {
-		target_write_u32(target, erase_check_algorithm->address + i*sizeof(uint32_t),
-				erase_check_code[i]);
-	}
+	/* convert erase check code into a buffer in target endianness */
+	uint8_t erase_check_code_8[sizeof(erase_check_code)];
+	target_buffer_set_u32_array(target, erase_check_code_8,
+					ARRAY_SIZE(erase_check_code), erase_check_code);
+
+	target_write_buffer(target, erase_check_algorithm->address, sizeof(erase_check_code), erase_check_code_8);
 
 	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
 	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
@@ -721,19 +716,13 @@ int mips32_blank_check_memory(struct target *target,
 	init_reg_param(&reg_params[2], "a2", 32, PARAM_IN_OUT);
 	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
 
-	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
+	int retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			erase_check_algorithm->address,
-			erase_check_algorithm->address + (sizeof(erase_check_code)-4),
+			erase_check_algorithm->address + (sizeof(erase_check_code) - 4),
 			10000, &mips32_info);
-	if (retval != ERROR_OK) {
-		destroy_reg_param(&reg_params[0]);
-		destroy_reg_param(&reg_params[1]);
-		destroy_reg_param(&reg_params[2]);
-		target_free_working_area(target, erase_check_algorithm);
-		return retval;
-	}
 
-	*blank = buf_get_u32(reg_params[2].value, 0, 32);
+	if (retval == ERROR_OK)
+		*blank = buf_get_u32(reg_params[2].value, 0, 32);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
@@ -741,7 +730,7 @@ int mips32_blank_check_memory(struct target *target,
 
 	target_free_working_area(target, erase_check_algorithm);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int mips32_verify_pointer(struct command_context *cmd_ctx,
