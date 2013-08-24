@@ -986,7 +986,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 
 	/* write program into RAM */
 	if (write_t != ejtag_info->fast_access_save) {
-		mips32_pracc_write_mem_generic(ejtag_info, source->address, 4, ARRAY_SIZE(handler_code), handler_code);
+		mips32_pracc_write_mem(ejtag_info, source->address, 4, ARRAY_SIZE(handler_code), handler_code);
 		/* save previous operation to speed to any consecutive read/writes */
 		ejtag_info->fast_access_save = write_t;
 	}
