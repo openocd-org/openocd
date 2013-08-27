@@ -906,7 +906,7 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->closed = 0;
 	gdb_connection->busy = 0;
 	gdb_connection->noack_mode = 0;
-	gdb_connection->sync = true;
+	gdb_connection->sync = false;
 	gdb_connection->mem_write_error = false;
 	gdb_connection->attached = true;
 
