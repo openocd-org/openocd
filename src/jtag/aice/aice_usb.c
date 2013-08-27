@@ -390,7 +390,7 @@ static uint32_t usb_out_packets_buffer_length;
 static uint32_t usb_in_packets_buffer_length;
 static enum aice_command_mode aice_command_mode;
 
-extern int aice_batch_buffer_write(uint8_t buf_index, const uint8_t *word,
+static int aice_batch_buffer_write(uint8_t buf_index, const uint8_t *word,
 		uint32_t num_of_words);
 
 static int aice_usb_packet_flush(void)
@@ -3788,6 +3788,168 @@ static int aice_usb_set_data_endian(enum aice_target_endian target_data_endian)
 	return ERROR_OK;
 }
 
+static int fill_profiling_batch_commands(uint32_t reg_no)
+{
+	uint32_t dim_instructions[4];
+
+	aice_usb_set_command_mode(AICE_COMMAND_MODE_BATCH);
+
+	/* halt */
+	if (aice_write_misc(current_target_id, NDS_EDM_MISC_EDM_CMDR, 0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* backup $r0 */
+	dim_instructions[0] = MTSR_DTR(0);
+	dim_instructions[1] = DSB;
+	dim_instructions[2] = NOP;
+	dim_instructions[3] = BEQ_MINUS_12;
+	if (aice_write_dim(current_target_id, dim_instructions, 4) != ERROR_OK)
+		return ERROR_FAIL;
+	aice_read_dtr_to_buffer(current_target_id, AICE_BATCH_DATA_BUFFER_0);
+
+	/* get samples */
+	if (NDS32_REG_TYPE_GPR == nds32_reg_type(reg_no)) {
+		/* general registers */
+		dim_instructions[0] = MTSR_DTR(reg_no);
+		dim_instructions[1] = DSB;
+		dim_instructions[2] = NOP;
+		dim_instructions[3] = BEQ_MINUS_12;
+	} else if (NDS32_REG_TYPE_SPR == nds32_reg_type(reg_no)) {
+		/* user special registers */
+		dim_instructions[0] = MFUSR_G0(0, nds32_reg_sr_index(reg_no));
+		dim_instructions[1] = MTSR_DTR(0);
+		dim_instructions[2] = DSB;
+		dim_instructions[3] = BEQ_MINUS_12;
+	} else { /* system registers */
+		dim_instructions[0] = MFSR(0, nds32_reg_sr_index(reg_no));
+		dim_instructions[1] = MTSR_DTR(0);
+		dim_instructions[2] = DSB;
+		dim_instructions[3] = BEQ_MINUS_12;
+	}
+	if (aice_write_dim(current_target_id, dim_instructions, 4) != ERROR_OK)
+		return ERROR_FAIL;
+	aice_read_dtr_to_buffer(current_target_id, AICE_BATCH_DATA_BUFFER_1);
+
+	/* restore $r0 */
+	aice_write_dtr_from_buffer(current_target_id, AICE_BATCH_DATA_BUFFER_0);
+	dim_instructions[0] = MFSR_DTR(0);
+	dim_instructions[1] = DSB;
+	dim_instructions[2] = NOP;
+	dim_instructions[3] = IRET;  /* free run */
+	if (aice_write_dim(current_target_id, dim_instructions, 4) != ERROR_OK)
+		return ERROR_FAIL;
+
+	aice_command_mode = AICE_COMMAND_MODE_NORMAL;
+
+	/* use BATCH_BUFFER_WRITE to fill command-batch-buffer */
+	if (aice_batch_buffer_write(AICE_BATCH_COMMAND_BUFFER_0,
+				usb_out_packets_buffer,
+				(usb_out_packets_buffer_length + 3) / 4) != ERROR_OK)
+		return ERROR_FAIL;
+
+	usb_out_packets_buffer_length = 0;
+	usb_in_packets_buffer_length = 0;
+
+	return ERROR_OK;
+}
+
+static int aice_usb_profiling(uint32_t interval, uint32_t iteration,
+		uint32_t reg_no, uint32_t *samples, uint32_t *num_samples)
+{
+	uint32_t iteration_count;
+	uint32_t this_iteration;
+	int retval = ERROR_OK;
+	const uint32_t MAX_ITERATION = 250;
+
+	*num_samples = 0;
+
+	/* init DIM size */
+	if (aice_write_ctrl(AICE_WRITE_CTRL_BATCH_DIM_SIZE, 4) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Use AICE_BATCH_DATA_BUFFER_0 to read/write $DTR.
+	 * Set it to circular buffer */
+	if (aice_write_ctrl(AICE_WRITE_CTRL_BATCH_DATA_BUF0_CTRL, 0xC0000) != ERROR_OK)
+		return ERROR_FAIL;
+
+	fill_profiling_batch_commands(reg_no);
+
+	iteration_count = 0;
+	while (iteration_count < iteration) {
+		if (iteration - iteration_count < MAX_ITERATION)
+			this_iteration = iteration - iteration_count;
+		else
+			this_iteration = MAX_ITERATION;
+
+		/* set number of iterations */
+		uint32_t val_iteration;
+		val_iteration = interval << 16 | this_iteration;
+		if (aice_write_ctrl(AICE_WRITE_CTRL_BATCH_ITERATION,
+					val_iteration) != ERROR_OK) {
+			retval = ERROR_FAIL;
+			goto end_profiling;
+		}
+
+		/* init AICE_WRITE_CTRL_BATCH_DATA_BUF1_CTRL to store $PC */
+		if (aice_write_ctrl(AICE_WRITE_CTRL_BATCH_DATA_BUF1_CTRL,
+					0x40000) != ERROR_OK) {
+			retval = ERROR_FAIL;
+			goto end_profiling;
+		}
+
+		aice_usb_run();
+
+		/* enable BATCH command */
+		if (aice_write_ctrl(AICE_WRITE_CTRL_BATCH_CTRL,
+					0x80000000) != ERROR_OK) {
+			aice_usb_halt();
+			retval = ERROR_FAIL;
+			goto end_profiling;
+		}
+
+		/* wait a while (AICE bug, workaround) */
+		alive_sleep(this_iteration);
+
+		/* check status */
+		uint32_t i;
+		uint32_t batch_status;
+
+		i = 0;
+		while (1) {
+			aice_read_ctrl(AICE_READ_CTRL_BATCH_STATUS, &batch_status);
+
+			if (batch_status & 0x1) {
+				break;
+			} else if (batch_status & 0xE) {
+				aice_usb_halt();
+				retval = ERROR_FAIL;
+				goto end_profiling;
+			}
+
+			if ((i % 30) == 0)
+				keep_alive();
+
+			i++;
+		}
+
+		aice_usb_halt();
+
+		/* get samples from batch data buffer */
+		if (aice_batch_buffer_read(AICE_BATCH_DATA_BUFFER_1,
+					samples + iteration_count, this_iteration) != ERROR_OK) {
+			retval = ERROR_FAIL;
+			goto end_profiling;
+		}
+
+		iteration_count += this_iteration;
+	}
+
+end_profiling:
+	*num_samples = iteration_count;
+
+	return retval;
+}
+
 /** */
 struct aice_port_api_s aice_usb_api = {
 	/** */
@@ -3858,4 +4020,6 @@ struct aice_port_api_s aice_usb_api = {
 	.set_count_to_check_dbger = aice_usb_set_count_to_check_dbger,
 	/** */
 	.set_data_endian = aice_usb_set_data_endian,
+	/** */
+	.profiling = aice_usb_profiling,
 };

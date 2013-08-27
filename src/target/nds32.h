@@ -422,6 +422,8 @@ extern int nds32_gdb_fileio_write_memory(struct nds32 *nds32, uint32_t address,
 extern int nds32_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c);
 extern int nds32_reset_halt(struct nds32 *nds32);
 extern int nds32_login(struct nds32 *nds32);
+extern int nds32_profiling(struct target *target, uint32_t *samples,
+			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
 
 /** Convert target handle to generic Andes target state handle. */
 static inline struct nds32 *target_to_nds32(struct target *target)
