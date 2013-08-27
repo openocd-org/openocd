@@ -30,7 +30,8 @@ int aice_read_tlb(struct aice_port_s *aice, uint32_t virtual_address,
 int aice_cache_ctl(struct aice_port_s *aice, uint32_t subtype, uint32_t address);
 int aice_set_retry_times(struct aice_port_s *aice, uint32_t a_retry_times);
 int aice_program_edm(struct aice_port_s *aice, char *command_sequence);
-int aice_pack_command(struct aice_port_s *aice, bool enable_pack_command);
+int aice_set_command_mode(struct aice_port_s *aice,
+		enum aice_command_mode command_mode);
 int aice_execute(struct aice_port_s *aice, uint32_t *instructions,
 		uint32_t instruction_num);
 int aice_set_custom_srst_script(struct aice_port_s *aice, const char *script);
