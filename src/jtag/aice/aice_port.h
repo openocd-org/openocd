@@ -73,7 +73,7 @@ enum aice_api_s {
 	AICE_CACHE_CTL,
 	AICE_SET_RETRY_TIMES,
 	AICE_PROGRAM_EDM,
-	AICE_PACK_COMMAND,
+	AICE_SET_COMMAND_MODE,
 	AICE_EXECUTE,
 	AICE_SET_CUSTOM_SRST_SCRIPT,
 	AICE_SET_CUSTOM_TRST_SCRIPT,
@@ -95,6 +95,12 @@ enum aice_cache_ctl_type {
 	AICE_CACHE_CTL_L1D_VA_WB,
 	AICE_CACHE_CTL_L1I_INVALALL,
 	AICE_CACHE_CTL_L1I_VA_INVAL,
+};
+
+enum aice_command_mode {
+	AICE_COMMAND_MODE_NORMAL,
+	AICE_COMMAND_MODE_PACK,
+	AICE_COMMAND_MODE_BATCH,
 };
 
 struct aice_port_param_s {
@@ -193,7 +199,7 @@ struct aice_port_api_s {
 	int (*program_edm)(char *command_sequence);
 
 	/** */
-	int (*pack_command)(bool enable_pack_command);
+	int (*set_command_mode)(enum aice_command_mode command_mode);
 
 	/** */
 	int (*execute)(uint32_t *instructions, uint32_t instruction_num);
