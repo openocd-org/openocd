@@ -2455,6 +2455,25 @@ int nds32_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, b
 	return ERROR_OK;
 }
 
+int nds32_profiling(struct target *target, uint32_t *samples,
+			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
+{
+	/* sample $PC every 10 milliseconds */
+	uint32_t iteration = seconds * 100;
+	struct aice_port_s *aice = target_to_aice(target);
+	struct nds32 *nds32 = target_to_nds32(target);
+
+	if (max_num_samples < iteration)
+		iteration = max_num_samples;
+
+	int pc_regnum = nds32->register_map(nds32, PC);
+	aice->port->api->profiling(10, iteration, pc_regnum, samples, num_samples);
+
+	register_cache_invalidate(nds32->core_cache);
+
+	return ERROR_OK;
+}
+
 int nds32_gdb_fileio_write_memory(struct nds32 *nds32, uint32_t address,
 		uint32_t size, const uint8_t *buffer)
 {
