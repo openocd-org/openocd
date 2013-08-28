@@ -1734,14 +1734,16 @@ int target_arch_state(struct target *target)
 static int target_get_gdb_fileio_info_default(struct target *target,
 		struct gdb_fileio_info *fileio_info)
 {
-	LOG_ERROR("Not implemented: %s", __func__);
+	/* If target does not support semi-hosting function, target
+	   has no need to provide .get_gdb_fileio_info callback.
+	   It just return ERROR_FAIL and gdb_server will return "Txx"
+	   as target halted every time.  */
 	return ERROR_FAIL;
 }
 
 static int target_gdb_fileio_end_default(struct target *target,
 		int retcode, int fileio_errno, bool ctrl_c)
 {
-	LOG_ERROR("Not implemented: %s", __func__);
 	return ERROR_OK;
 }
 
