@@ -20,6 +20,9 @@
  *   Copyright (C) Broadcom 2012                                           *
  *   ehunter@broadcom.com : Cortex R4 support                              *
  *                                                                         *
+ *   Copyright (C) 2013 Kamal Dasu                                         *
+ *   kdasu.kdev@gmail.com                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -164,12 +167,11 @@ static int cortex_a_mmu_modify(struct target *target, int enable)
 /*
  * Cortex-A Basic debug access, very low level assumes state is saved
  */
-static int cortex_a_init_debug_access(struct target *target)
+static int cortex_a8_init_debug_access(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval;
-	uint32_t dummy;
 
 	LOG_DEBUG(" ");
 
@@ -185,12 +187,57 @@ static int cortex_a_init_debug_access(struct target *target)
 			LOG_USER(
 				"Locking debug access failed on first, but succeeded on second try.");
 	}
+
+	return retval;
+}
+
+/*
+ * Cortex-A Basic debug access, very low level assumes state is saved
+ */
+static int cortex_a_init_debug_access(struct target *target)
+{
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
+	int retval;
+	uint32_t dbg_osreg;
+	uint32_t cortex_part_num;
+	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
+
+	LOG_DEBUG(" ");
+	cortex_part_num = (cortex_a->cpuid & CORTEX_A_MIDR_PARTNUM_MASK) >>
+		CORTEX_A_MIDR_PARTNUM_SHIFT;
+
+	switch (cortex_part_num) {
+	case CORTEX_A15_PARTNUM:
+		retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+						    armv7a->debug_base + CPUDBG_OSLSR,
+						    &dbg_osreg);
+		if (retval != ERROR_OK)
+			return retval;
+
+		LOG_DEBUG("DBGOSLSR  0x%" PRIx32, dbg_osreg);
+
+		if (dbg_osreg & CPUDBG_OSLAR_LK_MASK)
+			/* Unlocking the DEBUG OS registers for modification */
+			retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+							     armv7a->debug_base + CPUDBG_OSLAR,
+							     0);
+		break;
+
+	case CORTEX_A8_PARTNUM:
+	case CORTEX_A9_PARTNUM:
+	default:
+		retval = cortex_a8_init_debug_access(target);
+	}
+
 	if (retval != ERROR_OK)
 		return retval;
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_PRSR, &dummy);
+			armv7a->debug_base + CPUDBG_PRSR, &dbg_osreg);
+	LOG_DEBUG("target->coreid %d DBGPRSR  0x%x ", target->coreid, dbg_osreg);
+
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1799,6 +1846,7 @@ static int cortex_a_write_apb_ab_memory(struct target *target,
 	uint32_t dscr;
 	uint8_t *tmp_buff = NULL;
 
+
 	LOG_DEBUG("Writing APB-AP memory address 0x%" PRIx32 " size %"  PRIu32 " count%"  PRIu32,
 			  address, size, count);
 	if (target->state != TARGET_HALTED) {
@@ -1846,7 +1894,6 @@ static int cortex_a_write_apb_ab_memory(struct target *target,
 	/* If end of write is not aligned, or the write is less than 4 bytes */
 	if ((end_byte != 0) ||
 		((total_u32 == 1) && (total_bytes != 4))) {
-
 		/* Read the last word to avoid corruption during 32 bit write */
 		int mem_offset = (total_u32-1) * 4;
 		retval = cortex_a_read_apb_ab_memory(target, (address & ~0x3) + mem_offset, 4, 1, &tmp_buff[mem_offset]);
@@ -2163,7 +2210,8 @@ static int cortex_a_read_memory(struct target *target, uint32_t address,
 				  virt, phys);
 			address = phys;
 		}
-		retval = cortex_a_read_phys_memory(target, address, size, count, buffer);
+		retval = cortex_a_read_phys_memory(target, address, size,
+			    count, buffer);
 	} else {
 		if (mmu_enabled) {
 			retval = cortex_a_check_address(target, address);
@@ -2363,7 +2411,7 @@ static int cortex_a_examine_first(struct target *target)
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int i;
 	int retval = ERROR_OK;
-	uint32_t didr, ctypr, ttypr, cpuid;
+	uint32_t didr, ctypr, ttypr, cpuid, dbg_osreg;
 
 	/* We do one extra read to ensure DAP is configured,
 	 * we call ahbap_debugport_init(swjdp) instead
@@ -2446,6 +2494,31 @@ static int cortex_a_examine_first(struct target *target)
 	LOG_DEBUG("ctypr = 0x%08" PRIx32, ctypr);
 	LOG_DEBUG("ttypr = 0x%08" PRIx32, ttypr);
 	LOG_DEBUG("didr = 0x%08" PRIx32, didr);
+
+	cortex_a->cpuid = cpuid;
+	cortex_a->ctypr = ctypr;
+	cortex_a->ttypr = ttypr;
+	cortex_a->didr = didr;
+
+	/* Unlocking the debug registers */
+	if ((cpuid & CORTEX_A_MIDR_PARTNUM_MASK) >> CORTEX_A_MIDR_PARTNUM_SHIFT ==
+		CORTEX_A15_PARTNUM) {
+
+		retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+						     armv7a->debug_base + CPUDBG_OSLAR,
+						     0);
+
+		if (retval != ERROR_OK)
+			return retval;
+
+	}
+	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+					    armv7a->debug_base + CPUDBG_PRSR, &dbg_osreg);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("target->coreid %d DBGPRSR  0x%" PRIx32, target->coreid, dbg_osreg);
 
 	armv7a->arm.core_type = ARM_MODE_MON;
 	retval = cortex_a_dpm_setup(cortex_a, didr);

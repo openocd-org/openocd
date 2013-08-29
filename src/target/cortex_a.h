@@ -33,12 +33,20 @@
 #include "armv7a.h"
 
 #define CORTEX_A_COMMON_MAGIC 0x411fc082
+#define CORTEX_A15_COMMON_MAGIC 0x413fc0f1
+
+#define CORTEX_A8_PARTNUM 0xc08
+#define CORTEX_A9_PARTNUM 0xc09
+#define CORTEX_A15_PARTNUM 0xc0f
+#define CORTEX_A_MIDR_PARTNUM_MASK 0x0000fff0
+#define CORTEX_A_MIDR_PARTNUM_SHIFT 4
 
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
 #define CPUDBG_TTYPR	0xD0C
 #define CPUDBG_LOCKACCESS 0xFB0
 #define CPUDBG_LOCKSTATUS 0xFB4
+#define CPUDBG_OSLAR_LK_MASK (1 << 1)
 
 #define BRP_NORMAL 0
 #define BRP_CONTEXT 1
@@ -75,6 +83,11 @@ struct cortex_a_common {
 
 	/* Use cortex_a_read_regs_through_mem for fast register reads */
 	int fast_reg_read;
+
+	uint32_t cpuid;
+	uint32_t ctypr;
+	uint32_t ttypr;
+	uint32_t didr;
 
 	struct armv7a_common armv7a_common;
 

@@ -1339,7 +1339,12 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				type = "Cortex-A9 Debug";
 				full = "(Debug Unit)";
 				break;
+			case 0x4af:
+				type = "Cortex-A15 Debug";
+				full = "(Debug Unit)";
+				break;
 			default:
+				LOG_DEBUG("Unrecognized Part number 0x%" PRIx32, part_num);
 				type = "-*- unrecognized -*-";
 				full = "";
 				break;
@@ -1408,9 +1413,9 @@ static int dap_info_command(struct command_context *cmd_ctx,
 		command_print(cmd_ctx, "No AP found at this ap 0x%x", ap);
 
 	romtable_present = ((mem_ap) && (dbgbase != 0xFFFFFFFF));
-	if (romtable_present) {
+	if (romtable_present)
 		dap_rom_display(cmd_ctx, dap, ap, dbgbase, 0);
-	} else
+	else
 		command_print(cmd_ctx, "\tNo ROM table present");
 	dap_ap_select(dap, ap_old);
 

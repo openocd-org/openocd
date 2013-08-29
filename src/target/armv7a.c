@@ -88,11 +88,50 @@ done:
 	/* (void) */ dpm->finish(dpm);
 }
 
+
+/*  retrieve main id register  */
+static int armv7a_read_midr(struct target *target)
+{
+	int retval = ERROR_FAIL;
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct arm_dpm *dpm = armv7a->arm.dpm;
+	uint32_t midr;
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+	/* MRC p15,0,<Rd>,c0,c0,0; read main id register*/
+
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 0, 0, 0),
+			&midr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	armv7a->rev = (midr & 0xf);
+	armv7a->partnum = (midr >> 4) & 0xfff;
+	armv7a->arch = (midr >> 16) & 0xf;
+	armv7a->variant = (midr >> 20) & 0xf;
+	armv7a->implementor = (midr >> 24) & 0xff;
+	LOG_INFO("%s rev %" PRIx32 ", partnum %" PRIx32 ", arch %" PRIx32
+			 ", variant %" PRIx32 ", implementor %" PRIx32,
+		 target->cmd_name,
+		 armv7a->rev,
+		 armv7a->partnum,
+		 armv7a->arch,
+		 armv7a->variant,
+		 armv7a->implementor);
+
+done:
+	dpm->finish(dpm);
+	return retval;
+}
+
 static int armv7a_read_ttbcr(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t ttbcr;
+	uint32_t ttbr0, ttbr1;
 	int retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
@@ -102,26 +141,54 @@ static int armv7a_read_ttbcr(struct target *target)
 			&ttbcr);
 	if (retval != ERROR_OK)
 		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 2, 0, 0),
+			&ttbr0);
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 2, 0, 1),
+			&ttbr1);
+	if (retval != ERROR_OK)
+		goto done;
+
+	LOG_INFO("ttbcr %" PRIx32 "ttbr0 %" PRIx32 "ttbr1 %" PRIx32, ttbcr, ttbr0, ttbr1);
+
 	armv7a->armv7a_mmu.ttbr1_used = ((ttbcr & 0x7) != 0) ? 1 : 0;
-	armv7a->armv7a_mmu.ttbr0_mask  = 7 << (32 - ((ttbcr & 0x7)));
-#if 0
-	LOG_INFO("ttb1 %s ,ttb0_mask %x",
-		armv7a->armv7a_mmu.ttbr1_used ? "used" : "not used",
-		armv7a->armv7a_mmu.ttbr0_mask);
-#endif
-	if (armv7a->armv7a_mmu.ttbr1_used == 1) {
-		LOG_INFO("SVC access above %" PRIx32,
-			 (uint32_t)(0xffffffff & armv7a->armv7a_mmu.ttbr0_mask));
-		armv7a->armv7a_mmu.os_border = 0xffffffff & armv7a->armv7a_mmu.ttbr0_mask;
+	armv7a->armv7a_mmu.ttbr0_mask = 0;
+
+	retval = armv7a_read_midr(target);
+	if (retval != ERROR_OK)
+		goto done;
+
+	if (armv7a->partnum & 0xf) {
+		/*
+		 * ARM Architecture Reference Manual (ARMv7-A and ARMv7-Redition),
+		 * document # ARM DDI 0406C
+		 */
+		armv7a->armv7a_mmu.ttbr0_mask  = 1 << (14 - ((ttbcr & 0x7)));
 	} else {
+		/*  ARM DDI 0344H , ARM DDI 0407F */
+		armv7a->armv7a_mmu.ttbr0_mask  = 7 << (32 - ((ttbcr & 0x7)));
 		/*  fix me , default is hard coded LINUX border  */
 		armv7a->armv7a_mmu.os_border = 0xc0000000;
+	}
+
+	LOG_DEBUG("ttbr1 %s, ttbr0_mask %" PRIx32,
+		  armv7a->armv7a_mmu.ttbr1_used ? "used" : "not used",
+		  armv7a->armv7a_mmu.ttbr0_mask);
+
+	if (armv7a->armv7a_mmu.ttbr1_used == 1) {
+		LOG_INFO("SVC access above %" PRIx32,
+			(0xffffffff & armv7a->armv7a_mmu.ttbr0_mask));
+		armv7a->armv7a_mmu.os_border = 0xffffffff & armv7a->armv7a_mmu.ttbr0_mask;
 	}
 done:
 	dpm->finish(dpm);
 	return retval;
 }
-
 
 /*  method adapted to cortex A : reused arm v4 v5 method*/
 int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)

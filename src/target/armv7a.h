@@ -77,6 +77,7 @@ struct armv7a_cache_common {
 
 struct armv7a_mmu_common {
 	/* following field mmu working way */
+	int32_t ttbr0_used;
 	int32_t ttbr1_used; /*  -1 not initialized, 0 no ttbr1 1 ttbr1 used and  */
 	uint32_t ttbr0_mask;/*  masked to be used  */
 	uint32_t os_border;
@@ -105,6 +106,11 @@ struct armv7a_common {
 	uint8_t cluster_id;
 	uint8_t cpu_id;
 	bool is_armv7r;
+	uint32_t rev;
+	uint32_t partnum;
+	uint32_t arch;
+	uint32_t variant;
+	uint32_t implementor;
 
 	/* cache specific to V7 Memory Management Unit compatible with v4_5*/
 	struct armv7a_mmu_common armv7a_mmu;
