@@ -27,12 +27,12 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef CORTEX_A8_H
-#define CORTEX_A8_H
+#ifndef CORTEX_A_H
+#define CORTEX_A_H
 
 #include "armv7a.h"
 
-#define CORTEX_A8_COMMON_MAGIC 0x411fc082
+#define CORTEX_A_COMMON_MAGIC 0x411fc082
 
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
@@ -43,9 +43,9 @@
 #define BRP_NORMAL 0
 #define BRP_CONTEXT 1
 
-#define CORTEX_A8_PADDRDBG_CPU_SHIFT 13
+#define CORTEX_A_PADDRDBG_CPU_SHIFT 13
 
-struct cortex_a8_brp {
+struct cortex_a_brp {
 	int used;
 	int type;
 	uint32_t value;
@@ -53,7 +53,7 @@ struct cortex_a8_brp {
 	uint8_t BRPn;
 };
 
-struct cortex_a8_common {
+struct cortex_a_common {
 	int common_magic;
 	struct arm_jtag jtag_info;
 
@@ -71,19 +71,19 @@ struct cortex_a8_common {
 	int brp_num_context;
 	int brp_num;
 	int brp_num_available;
-	struct cortex_a8_brp *brp_list;
+	struct cortex_a_brp *brp_list;
 
-	/* Use cortex_a8_read_regs_through_mem for fast register reads */
+	/* Use cortex_a_read_regs_through_mem for fast register reads */
 	int fast_reg_read;
 
 	struct armv7a_common armv7a_common;
 
 };
 
-static inline struct cortex_a8_common *
-target_to_cortex_a8(struct target *target)
+static inline struct cortex_a_common *
+target_to_cortex_a(struct target *target)
 {
-	return container_of(target->arch_info, struct cortex_a8_common, armv7a_common.arm);
+	return container_of(target->arch_info, struct cortex_a_common, armv7a_common.arm);
 }
 
-#endif /* CORTEX_A8_H */
+#endif /* CORTEX_A_H */
