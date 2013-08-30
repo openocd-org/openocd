@@ -3391,19 +3391,19 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 	assert(addressSpace >= 2);
 
 	static const uint32_t maxBuckets = 16 * 1024; /* maximum buckets. */
-	uint32_t length = addressSpace;
-	if (length > maxBuckets)
-		length = maxBuckets;
-	int *buckets = malloc(sizeof(int)*length);
+	uint32_t numBuckets = addressSpace;
+	if (numBuckets > maxBuckets)
+		numBuckets = maxBuckets;
+	int *buckets = malloc(sizeof(int) * numBuckets);
 	if (buckets == NULL) {
 		fclose(f);
 		return;
 	}
-	memset(buckets, 0, sizeof(int) * length);
+	memset(buckets, 0, sizeof(int) * numBuckets);
 	for (i = 0; i < sampleNum; i++) {
 		uint32_t address = samples[i];
 		long long a = address - min;
-		long long b = length - 1;
+		long long b = numBuckets - 1;
 		long long c = addressSpace - 1;
 		int index_t = (a * b) / c; /* danger!!!! int32 overflows */
 		buckets[index_t]++;
@@ -3412,7 +3412,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 	/* append binary memory gmon.out &profile_hist_hdr ((char*)&profile_hist_hdr + sizeof(struct gmon_hist_hdr)) */
 	writeLong(f, min);			/* low_pc */
 	writeLong(f, max);			/* high_pc */
-	writeLong(f, length);		/* # of samples */
+	writeLong(f, numBuckets);	/* # of buckets */
 	writeLong(f, 100);			/* KLUDGE! We lie, ca. 100Hz best case. */
 	writeString(f, "seconds");
 	for (i = 0; i < (15-strlen("seconds")); i++)
@@ -3421,9 +3421,9 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 
 	/*append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size) */
 
-	char *data = malloc(2 * length);
+	char *data = malloc(2 * numBuckets);
 	if (data != NULL) {
-		for (i = 0; i < length; i++) {
+		for (i = 0; i < numBuckets; i++) {
 			int val;
 			val = buckets[i];
 			if (val > 65535)
@@ -3432,7 +3432,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 			data[i * 2 + 1] = (val >> 8) & 0xff;
 		}
 		free(buckets);
-		writeData(f, data, length * 2);
+		writeData(f, data, numBuckets * 2);
 		free(data);
 	} else
 		free(buckets);
