@@ -3394,7 +3394,9 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 	int addressSpace = max - min;
 	assert(addressSpace >= 2);
 
-	static const uint32_t maxBuckets = 16 * 1024; /* maximum buckets. */
+	/* FIXME: What is the reasonable number of buckets?
+	 * The profiling result will be more accurate if there are enough buckets. */
+	static const uint32_t maxBuckets = 128 * 1024; /* maximum buckets. */
 	uint32_t numBuckets = addressSpace;
 	if (numBuckets > maxBuckets)
 		numBuckets = maxBuckets;
