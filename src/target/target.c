@@ -3387,7 +3387,11 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 			max = samples[i];
 	}
 
-	int addressSpace = (max - min + 1);
+	/* max should be (largest sample + 1)
+	 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
+	max++;
+
+	int addressSpace = max - min;
 	assert(addressSpace >= 2);
 
 	static const uint32_t maxBuckets = 16 * 1024; /* maximum buckets. */
@@ -3403,8 +3407,8 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, const char *filenam
 	for (i = 0; i < sampleNum; i++) {
 		uint32_t address = samples[i];
 		long long a = address - min;
-		long long b = numBuckets - 1;
-		long long c = addressSpace - 1;
+		long long b = numBuckets;
+		long long c = addressSpace;
 		int index_t = (a * b) / c; /* danger!!!! int32 overflows */
 		buckets[index_t]++;
 	}
