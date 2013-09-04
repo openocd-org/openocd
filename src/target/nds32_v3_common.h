@@ -34,7 +34,6 @@ struct nds32_v3_common_callback {
 void nds32_v3_common_register_callback(struct nds32_v3_common_callback *callback);
 int nds32_v3_target_request_data(struct target *target,
 		uint32_t size, uint8_t *buffer);
-int nds32_v3_soft_reset_halt(struct target *target);
 int nds32_v3_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum);
 int nds32_v3_hit_watchpoint(struct target *target,

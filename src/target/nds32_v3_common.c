@@ -369,12 +369,6 @@ int nds32_v3_target_request_data(struct target *target,
 	return ERROR_OK;
 }
 
-int nds32_v3_soft_reset_halt(struct target *target)
-{
-	struct aice_port_s *aice = target_to_aice(target);
-	return aice_assert_srst(aice, AICE_RESET_HOLD);
-}
-
 int nds32_v3_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum)
 {

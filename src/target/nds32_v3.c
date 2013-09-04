@@ -484,7 +484,6 @@ struct target_type nds32_v3_target = {
 
 	.assert_reset = nds32_assert_reset,
 	.deassert_reset = nds32_v3_deassert_reset,
-	.soft_reset_halt = nds32_v3_soft_reset_halt,
 
 	/* register access */
 	.get_gdb_reg_list = nds32_get_gdb_reg_list,

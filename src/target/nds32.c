@@ -2164,6 +2164,27 @@ int nds32_resume(struct target *target, int current,
 	return ERROR_OK;
 }
 
+static int nds32_soft_reset_halt(struct target *target)
+{
+	/* TODO: test it */
+	struct nds32 *nds32 = target_to_nds32(target);
+	struct aice_port_s *aice = target_to_aice(target);
+
+	aice_assert_srst(aice, AICE_SRST);
+
+	/* halt core and set pc to 0x0 */
+	int retval = target_halt(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* start fetching from IVB */
+	uint32_t value_ir3;
+	nds32_get_mapped_reg(nds32, IR3, &value_ir3);
+	nds32_set_mapped_reg(nds32, PC, value_ir3 & 0xFFFF0000);
+
+	return ERROR_OK;
+}
+
 int nds32_assert_reset(struct target *target)
 {
 	struct nds32 *nds32 = target_to_nds32(target);
@@ -2177,7 +2198,7 @@ int nds32_assert_reset(struct target *target)
 				&& (cpu_version->revision == 0x1C)
 				&& (cpu_version->cpu_id_family == 0xC)
 				&& (cpu_version->cpu_id_version == 0x0)))
-			target->type->soft_reset_halt(target);
+			nds32_soft_reset_halt(target);
 		else
 			aice_assert_srst(aice, AICE_RESET_HOLD);
 	} else {
