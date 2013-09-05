@@ -814,13 +814,13 @@ static COMMAND_HELPER(command_help_find, struct command *head,
 }
 
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
-	bool show_help, const char *match);
+	bool show_help, const char *cmd_match);
 
 static COMMAND_HELPER(command_help_show_list, struct command *head, unsigned n,
-	bool show_help, const char *match)
+	bool show_help, const char *cmd_match)
 {
 	for (struct command *c = head; NULL != c; c = c->next)
-		CALL_COMMAND_HANDLER(command_help_show, c, n, show_help, match);
+		CALL_COMMAND_HANDLER(command_help_show, c, n, show_help, cmd_match);
 	return ERROR_OK;
 }
 
@@ -852,7 +852,7 @@ static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
 }
 
 static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
-	bool show_help, const char *match)
+	bool show_help, const char *cmd_match)
 {
 	char *cmd_name = command_name(c, ' ');
 	if (NULL == cmd_name)
@@ -860,9 +860,9 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 
 	/* If the match string occurs anywhere, we print out
 	 * stuff for this command. */
-	bool is_match = (strstr(cmd_name, match) != NULL) ||
-		((c->usage != NULL) && (strstr(c->usage, match) != NULL)) ||
-		((c->help != NULL) && (strstr(c->help, match) != NULL));
+	bool is_match = (strstr(cmd_name, cmd_match) != NULL) ||
+		((c->usage != NULL) && (strstr(c->usage, cmd_match) != NULL)) ||
+		((c->help != NULL) && (strstr(c->help, cmd_match) != NULL));
 
 	if (is_match) {
 		command_help_show_indent(n);
@@ -913,7 +913,7 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 	}
 
 	return CALL_COMMAND_HANDLER(command_help_show_list,
-		c->children, n, show_help, match);
+		c->children, n, show_help, cmd_match);
 }
 
 COMMAND_HANDLER(handle_help_command)
@@ -921,26 +921,26 @@ COMMAND_HANDLER(handle_help_command)
 	bool full = strcmp(CMD_NAME, "help") == 0;
 	int retval;
 	struct command *c = CMD_CTX->commands;
-	char *match = NULL;
+	char *cmd_match = NULL;
 
 	if (CMD_ARGC == 0)
-		match = "";
+		cmd_match = "";
 	else if (CMD_ARGC >= 1) {
 		unsigned i;
 
 		for (i = 0; i < CMD_ARGC; ++i) {
-			if (NULL != match) {
-				char *prev = match;
+			if (NULL != cmd_match) {
+				char *prev = cmd_match;
 
-				match = alloc_printf("%s %s", match, CMD_ARGV[i]);
+				cmd_match = alloc_printf("%s %s", cmd_match, CMD_ARGV[i]);
 				free(prev);
-				if (NULL == match) {
+				if (NULL == cmd_match) {
 					LOG_ERROR("unable to build search string");
 					return -ENOMEM;
 				}
 			} else {
-				match = alloc_printf("%s", CMD_ARGV[i]);
-				if (NULL == match) {
+				cmd_match = alloc_printf("%s", CMD_ARGV[i]);
+				if (NULL == cmd_match) {
 					LOG_ERROR("unable to build search string");
 					return -ENOMEM;
 				}
@@ -950,10 +950,10 @@ COMMAND_HANDLER(handle_help_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	retval = CALL_COMMAND_HANDLER(command_help_show_list,
-			c, 0, full, match);
+			c, 0, full, cmd_match);
 
 	if (CMD_ARGC >= 1)
-		free(match);
+		free(cmd_match);
 	return retval;
 }
 
