@@ -908,7 +908,7 @@ if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes -o $build_usb_b
       ])
     AC_SEARCH_LIBS([FT_GetLibraryVersion],[ftd2xx],,[
         AC_MSG_ERROR([You appear to be missing the FTD2xx driver library.])
-      ],[])
+      ],[-lrt -lusb-1.0])
   fi
 fi
 fi # linux
