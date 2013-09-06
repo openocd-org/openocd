@@ -355,6 +355,10 @@ AC_ARG_ENABLE([ftdi],
   AS_HELP_STRING([--enable-ftdi], [Enable building support for the MPSSE mode of FTDI based devices, using libusb-1.0 in asynchronous mode]),
   [build_ftdi=$enableval], [build_ftdi=no])
 
+AC_ARG_ENABLE([jtag_vpi],
+  AS_HELP_STRING([--enable-jtag_vpi], [Enable building support for JTAG VPI]),
+  [build_jtag_vpi=$enableval], [build_jtag_vpi=no])
+
 AC_ARG_ENABLE([usb_blaster_libftdi],
   AS_HELP_STRING([--enable-usb_blaster_libftdi], [Enable building support for the Altera USB-Blaster using the libftdi driver, opensource alternate of FTD2XX]),
   [build_usb_blaster_libftdi=$enableval], [build_usb_blaster_libftdi=no])
@@ -690,6 +694,12 @@ if test $build_usb_blaster_libftdi = yes; then
   AC_DEFINE([BUILD_USB_BLASTER_LIBFTDI], [1], [1 if you want libftdi usb_blaster.])
 else
   AC_DEFINE([BUILD_USB_BLASTER_LIBFTDI], [0], [0 if you don't want libftdi usb_blaster.])
+fi
+
+if test $build_jtag_vpi = yes; then
+  AC_DEFINE([BUILD_JTAG_VPI], [1], [1 if you want JTAG VPI.])
+else
+  AC_DEFINE([BUILD_JTAG_VPI], [0], [0 if you don't want JTAG VPI.])
 fi
 
 if test $build_usb_blaster_ftd2xx = yes; then
@@ -1206,6 +1216,7 @@ AM_CONDITIONAL([FT2232_DRIVER], [test $build_ft2232_ftd2xx = yes -o $build_ft223
 AM_CONDITIONAL([FTDI_DRIVER], [test $build_ftdi = yes])
 AM_CONDITIONAL([USB_BLASTER_LIBFTDI], [test $build_usb_blaster_libftdi = yes])
 AM_CONDITIONAL([USB_BLASTER_FTD2XX], [test $build_usb_blaster_ftd2xx = yes])
+AM_CONDITIONAL([JTAG_VPI], [test $build_jtag_vpi = yes -o $build_jtag_vpi = yes])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test $build_usb_blaster_ftd2xx = yes -o $build_usb_blaster_libftdi = yes])
 AM_CONDITIONAL([AMTJTAGACCEL], [test $build_amtjtagaccel = yes])
 AM_CONDITIONAL([GW16012], [test $build_gw16012 = yes])

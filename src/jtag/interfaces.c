@@ -65,6 +65,9 @@ extern struct jtag_interface ftdi_interface;
 #if BUILD_USB_BLASTER_LIBFTDI == 1 || BUILD_USB_BLASTER_FTD2XX == 1
 extern struct jtag_interface usb_blaster_interface;
 #endif
+#if BUILD_JTAG_VPI == 1
+extern struct jtag_interface jtag_vpi_interface;
+#endif
 #if BUILD_AMTJTAGACCEL == 1
 extern struct jtag_interface amt_jtagaccel_interface;
 #endif
@@ -157,6 +160,9 @@ struct jtag_interface *jtag_interfaces[] = {
 #endif
 #if BUILD_USB_BLASTER_LIBFTDI == 1 || BUILD_USB_BLASTER_FTD2XX == 1
 		&usb_blaster_interface,
+#endif
+#if BUILD_JTAG_VPI == 1
+		&jtag_vpi_interface,
 #endif
 #if BUILD_AMTJTAGACCEL == 1
 		&amt_jtagaccel_interface,

@@ -42,6 +42,9 @@ endif
 if FTDI_DRIVER
 DRIVERFILES += ftdi.c mpsse.c
 endif
+if JTAG_VPI
+DRIVERFILES += jtag_vpi.c
+endif
 if USB_BLASTER_DRIVER
 SUBDIRS += usb_blaster
 libocdjtagdrivers_la_LIBADD += $(top_builddir)/src/jtag/drivers/usb_blaster/libocdusbblaster.la

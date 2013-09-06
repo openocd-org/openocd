@@ -578,6 +578,10 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{bcm2835gpio}
 @* A BCM2835-based board (e.g. Raspberry Pi) using the GPIO pins of the expansion header.
 
+@item @b{jtag_vpi}
+@* A JTAG driver acting as a client for the JTAG VPI server interface.
+@* Link: @url{http://github.com/fjullien/jtag_vpi}
+
 @end itemize
 
 @node About Jim-Tcl
