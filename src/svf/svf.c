@@ -642,8 +642,9 @@ static int svf_read_command_from_file(FILE *fd)
 				 *  - added space.
 				 *  - terminating NUL ('\0')
 				 */
-				if ((cmd_pos + 2) >= svf_command_buffer_size) {
-					svf_command_buffer = realloc(svf_command_buffer, (cmd_pos + 2));
+				if (cmd_pos + 3 > svf_command_buffer_size) {
+					svf_command_buffer = realloc(svf_command_buffer, cmd_pos + 3);
+					svf_command_buffer_size = cmd_pos + 3;
 					if (svf_command_buffer == NULL) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
