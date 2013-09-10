@@ -278,7 +278,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionums)
 	}
 
 	command_print(CMD_CTX,
-			"SysfsGPIO nums: tck = %d, tms = %d, tdi = %d, tdi = %d",
+			"SysfsGPIO nums: tck = %d, tms = %d, tdi = %d, tdo = %d",
 			tck_gpio, tms_gpio, tdi_gpio, tdo_gpio);
 
 	return ERROR_OK;
