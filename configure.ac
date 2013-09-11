@@ -181,6 +181,34 @@ __EOF__
    AC_MSG_ERROR([Sorry Cannot continue])
   ], [true])
 
+# Adapter drivers
+# 1st column -- configure option
+# 2nd column -- description
+# 3rd column -- symbol used for both config.h and automake
+m4_define([ADAPTER_ARG], [m4_argn([1], $1)])
+m4_define([ADAPTER_DESC], [m4_argn([2], $1)])
+m4_define([ADAPTER_SYM], [m4_argn([3], $1)])
+m4_define([ADAPTER_VAR], [enable_[]ADAPTER_ARG($1)])
+m4_define([ADAPTER_OPT], [m4_translit(ADAPTER_ARG($1), [_], [-])])
+
+m4_define([USB1_ADAPTERS],
+	[[[ftdi], [MPSSE mode of FTDI based devices], [FTDI]],
+	[[stlink], [ST-Link JTAG Programmer], [HLADAPTER_STLINK]],
+	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]]])
+
+m4_define([USB_ADAPTERS],
+	[[[jlink], [Segger J-Link JTAG Programmer], [JLINK]],
+	[[osbdm], [OSBDM (JTAG only) Programmer], [OSBDM]],
+	[[opendous], [eStick/opendous JTAG Programmer], [OPENDOUS]],
+	[[aice], [Andes JTAG Programmer], [AICE]]])
+
+m4_define([USB0_ADAPTERS],
+	[[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]],
+	[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
+	[[rlink], [Raisonance RLink JTAG Programmer], [RLINK]],
+	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
+	[[armjtagew], [Olimex ARM-JTAG-EW Programmer], [ARMJTAGEW]]])
+
 #========================================
 # FTD2XXX support comes in 4 forms.
 #    (1) win32 - via a zip file
@@ -330,6 +358,17 @@ AC_ARG_ENABLE([dummy],
   AS_HELP_STRING([--enable-dummy], [Enable building the dummy port driver]),
   [build_dummy=$enableval], [build_dummy=no])
 
+m4_define([AC_ARG_ADAPTERS], [
+  m4_foreach([adapter], [$1],
+	[AC_ARG_ENABLE(ADAPTER_OPT([adapter]),
+		AS_HELP_STRING([--enable-ADAPTER_OPT([adapter])],
+			[Enable building support for the ]ADAPTER_DESC([adapter])[ (default is $2)]),
+		[], [ADAPTER_VAR([adapter])=$2])
+  ])
+])
+
+AC_ARG_ADAPTERS([USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS], [auto])
+
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
   [build_parport=$enableval], [build_parport=no])
@@ -351,10 +390,6 @@ AC_ARG_ENABLE([ft2232_libftdi],
 AC_ARG_ENABLE([ft2232_ftd2xx],
   AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]),
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
-
-AC_ARG_ENABLE([ftdi],
-  AS_HELP_STRING([--enable-ftdi], [Enable building support for the MPSSE mode of FTDI based devices, using libusb-1.0 in asynchronous mode]),
-  [build_ftdi=$enableval], [build_ftdi=no])
 
 AC_ARG_ENABLE([jtag_vpi],
   AS_HELP_STRING([--enable-jtag_vpi], [Enable building support for JTAG VPI]),
@@ -418,10 +453,6 @@ AC_ARG_ENABLE([presto_ftd2xx],
   AS_HELP_STRING([--enable-presto_ftd2xx], [Enable building support for ASIX Presto Programmer using the FTD2XX driver]),
   [build_presto_ftd2xx=$enableval], [build_presto_ftd2xx=no])
 
-AC_ARG_ENABLE([usbprog],
-  AS_HELP_STRING([--enable-usbprog], [Enable building support for the usbprog JTAG Programmer]),
-  [build_usbprog=$enableval], [build_usbprog=no])
-
 AC_ARG_ENABLE([openjtag_ftd2xx],
   AS_HELP_STRING([--enable-openjtag_ftd2xx], [Enable building support for the OpenJTAG Programmer with ftd2xx driver]),
   [build_openjtag_ftd2xx=$enableval], [build_openjtag_ftd2xx=no])
@@ -435,45 +466,9 @@ AC_ARG_ENABLE([oocd_trace],
   [Enable building support for some prototype OpenOCD+trace ETM capture hardware]),
   [build_oocd_trace=$enableval], [build_oocd_trace=no])
 
-AC_ARG_ENABLE([jlink],
-  AS_HELP_STRING([--enable-jlink], [Enable building support for the Segger J-Link JTAG Programmer]),
-  [build_jlink=$enableval], [build_jlink=no])
-
-AC_ARG_ENABLE([vsllink],
-  AS_HELP_STRING([--enable-vsllink], [Enable building support for the Versaloon-Link JTAG Programmer]),
-  [build_vsllink=$enableval], [build_vsllink=no])
-
-AC_ARG_ENABLE([rlink],
-  AS_HELP_STRING([--enable-rlink], [Enable building support for the Raisonance RLink JTAG Programmer]),
-  [build_rlink=$enableval], [build_rlink=no])
-
-AC_ARG_ENABLE([ulink],
-  AS_HELP_STRING([--enable-ulink], [Enable building support for the Keil ULINK JTAG Programmer]),
-  [build_ulink=$enableval], [build_ulink=no])
-
-AC_ARG_ENABLE([arm-jtag-ew],
-  AS_HELP_STRING([--enable-arm-jtag-ew], [Enable building support for the Olimex ARM-JTAG-EW Programmer]),
-  [build_armjtagew=$enableval], [build_armjtagew=no])
-
 AC_ARG_ENABLE([buspirate],
   AS_HELP_STRING([--enable-buspirate], [Enable building support for the Buspirate]),
   [build_buspirate=$enableval], [build_buspirate=no])
-
-AC_ARG_ENABLE([stlink],
-  AS_HELP_STRING([--enable-stlink], [Enable building support for the ST-Link JTAG Programmer]),
-  [build_hladapter_stlink=$enableval], [build_hladapter_stlink=no])
-
-AC_ARG_ENABLE([ti-icdi],
-  AS_HELP_STRING([--enable-ti-icdi], [Enable building support for the TI ICDI JTAG Programmer]),
-  [build_hladapter_icdi=$enableval], [build_hladapter_icdi=no])
-
-AC_ARG_ENABLE([osbdm],
-  AS_HELP_STRING([--enable-osbdm], [Enable building support for the OSBDM (JTAG only) Programmer]),
-  [build_osbdm=$enableval], [build_osbdm=no])
-
-AC_ARG_ENABLE([opendous],
-  AS_HELP_STRING([--enable-opendous], [Enable building support for the estick/opendous JTAG Programmer]),
-  [build_opendous=$enableval], [build_opendous=no])
 
 AC_ARG_ENABLE([sysfsgpio],
   AS_HELP_STRING([--enable-sysfsgpio], [Enable building support for programming driven via sysfs gpios.]),
@@ -486,10 +481,6 @@ AC_ARG_ENABLE([minidriver_dummy],
 AC_ARG_ENABLE([internal-jimtcl],
   AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
   [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
-
-AC_ARG_ENABLE([aice],
-  AS_HELP_STRING([--enable-aice], [Enable building support for the Andes JTAG Programmer]),
-  [build_aice=$enableval], [build_aice=no])
 
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
@@ -685,12 +676,6 @@ else
   AC_DEFINE([BUILD_FT2232_FTD2XX], [0], [0 if you don't want ftd2xx ft2232.])
 fi
 
-if test $build_ftdi = yes; then
-  AC_DEFINE([BUILD_FTDI], [1], [1 if you want ftdi.])
-else
-  AC_DEFINE([BUILD_FTDI], [0], [0 if you don't want ftdi.])
-fi
-
 if test $build_usb_blaster_libftdi = yes; then
   AC_DEFINE([BUILD_USB_BLASTER_LIBFTDI], [1], [1 if you want libftdi usb_blaster.])
 else
@@ -741,12 +726,6 @@ else
   AC_DEFINE([BUILD_BITQ], [0], [0 if you don't want a bitq interface.])
 fi
 
-if test $build_usbprog = yes; then
-  AC_DEFINE([BUILD_USBPROG], [1], [1 if you want the usbprog JTAG driver.])
-else
-  AC_DEFINE([BUILD_USBPROG], [0], [0 if you don't want the usbprog JTAG driver.])
-fi
-
 AC_DEFINE([BUILD_OPENJTAG], [0], [0 if you don't want the OpenJTAG driver.])
 AC_DEFINE([BUILD_OPENJTAG_FTD2XX], [0], [0 if you don't want the OpenJTAG driver with FTD2XX driver.])
 AC_DEFINE([BUILD_OPENJTAG_LIBFTDI], [0], [0 if you don't want to build OpenJTAG driver with libftdi.])
@@ -766,64 +745,10 @@ else
   AC_DEFINE([BUILD_OOCD_TRACE], [0], [0 if you don't want the OpenOCD+trace ETM capture driver.])
 fi
 
-if test $build_jlink = yes; then
-  AC_DEFINE([BUILD_JLINK], [1], [1 if you want the J-Link JTAG driver.])
-else
-  AC_DEFINE([BUILD_JLINK], [0], [0 if you don't want the J-Link JTAG driver.])
-fi
-
-if test $build_aice = yes; then
-  AC_DEFINE([BUILD_AICE], [1], [1 if you want the AICE JTAG driver.])
-else
-  AC_DEFINE([BUILD_AICE], [0], [0 if you don't want the AICE JTAG driver.])
-fi
-
-if test $build_vsllink = yes; then
-  AC_DEFINE([BUILD_VSLLINK], [1], [1 if you want the Versaloon-Link JTAG driver.])
-else
-  AC_DEFINE([BUILD_VSLLINK], [0], [0 if you don't want the Versaloon-Link JTAG driver.])
-fi
-
-if test $build_rlink = yes; then
-  AC_DEFINE([BUILD_RLINK], [1], [1 if you want the RLink JTAG driver.])
-else
-  AC_DEFINE([BUILD_RLINK], [0], [0 if you don't want the RLink JTAG driver.])
-fi
-
-if test $build_ulink = yes; then
-  AC_DEFINE([BUILD_ULINK], [1], [1 if you want the ULINK JTAG driver.])
-else
-  AC_DEFINE([BUILD_ULINK], [0], [0 if you don't want the ULINK JTAG driver.])
-fi
-
-if test $build_armjtagew = yes; then
-  AC_DEFINE([BUILD_ARMJTAGEW], [1], [1 if you want the ARM-JTAG-EW JTAG driver.])
-else
-  AC_DEFINE([BUILD_ARMJTAGEW], [0], [0 if you don't want the ARM-JTAG-EW JTAG driver.])
-fi
-
 if test $build_buspirate = yes; then
   AC_DEFINE([BUILD_BUSPIRATE], [1], [1 if you want the Buspirate JTAG driver.])
 else
   AC_DEFINE([BUILD_BUSPIRATE], [0], [0 if you don't want the Buspirate JTAG driver.])
-fi
-
-if test $build_hladapter_stlink = yes -o $build_hladapter_icdi = yes; then
-  AC_DEFINE([BUILD_HLADAPTER], [1], [1 if you want the High Level JTAG driver.])
-else
-  AC_DEFINE([BUILD_HLADAPTER], [0], [0 if you don't want the High Level JTAG driver.])
-fi
-
-if test $build_osbdm = yes; then
-  AC_DEFINE([BUILD_OSBDM], [1], [1 if you want the OSBDM driver.])
-else
-  AC_DEFINE([BUILD_OSBDM], [0], [0 if you don't want the OSBDM driver.])
-fi
-
-if test $build_opendous = yes; then
-  AC_DEFINE([BUILD_OPENDOUS], [1], [1 if you want the estick/opendous JTAG driver.])
-else
-  AC_DEFINE([BUILD_OPENDOUS], [0], [0 if you don't want the estick/opendous JTAG driver.])
 fi
 
 if test "$use_internal_jimtcl" = yes; then
@@ -1152,52 +1077,47 @@ enum ftdi_chip_type x = TYPE_232H;
   CFLAGS=$CFLAGS_SAVE
 fi
 
-# check if some driver requires libusb-0.1
-need_usb0=no
-if test $build_vsllink = yes -o $build_usbprog = yes -o \
-        $build_rlink = yes -o $build_armjtagew = yes; then
-  need_usb0=yes
-fi
-
-# check if some driver can work with either libusb version
-need_usb=no
-if test $build_jlink = yes -o $build_osbdm = yes -o $build_opendous = yes -o \
-	$build_aice = yes; then
-  need_usb=yes
-fi
-
-# check if some driver requires libusb-1.x
-need_usb_ng=no
-if test $build_ftdi = yes -o $build_hladapter_icdi = yes -o \
-        $build_hladapter_stlink = yes -o $build_ulink = yes; then
-  need_usb_ng=yes
-fi
-
-# check for libusb library if necessary
-use_libusb1=no
-if test $need_usb = yes -o $need_usb_ng = yes; then
-  PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
+PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 	use_libusb1=yes
 	AC_DEFINE([HAVE_LIBUSB1], [1], [Define if you have libusb-1.x])
 	PKG_CHECK_EXISTS([libusb-1.0 >= 1.0.9],
 		[AC_DEFINE([HAVE_LIBUSB_ERROR_NAME], [1], [Define if your libusb has libusb_error_name()])],
 		[AC_MSG_WARN([libusb-1.x older than 1.0.9 detected, consider updating])])
   ], [
-	if test $need_usb_ng = yes; then
-	  AC_MSG_ERROR([libusb-1.x is required for some driver(s) you've selected])
-	else
-	  AC_MSG_WARN([Trying legacy libusb-0.1 as a fallback, consider installing libusb-1 instead])
-	  need_usb0=yes
-	fi
-  ])
-fi
+	use_libusb1=no
+	AC_MSG_WARN([libusb-1.x not found, trying legacy libusb-0.1 as a fallback; consider installing libusb-1.x instead])
+])
 
-use_libusb0=no
-if test $need_usb0 = yes; then
-	PKG_CHECK_MODULES([LIBUSB0], [libusb], [use_libusb0=yes], [
-		AC_MSG_ERROR([libusb-0.1 is required to build some OpenOCD driver(s)])
-	])
+PKG_CHECK_MODULES([LIBUSB0], [libusb], [use_libusb0=yes], [use_libusb0=no])
+
+m4_define([PROCESS_ADAPTERS], [
+  m4_foreach([adapter], [$1], [
+	if test $2; then
+		if test $ADAPTER_VAR([adapter]) != no; then
+			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [1], [1 if you want the ]ADAPTER_DESC([adapter]).)
+		else
+			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [0], [0 if you do not want the ]ADAPTER_DESC([adapter]).)
+		fi
+	else
+		if test $ADAPTER_VAR([adapter]) = yes; then
+			AC_MSG_ERROR([$3 is required for the ADAPTER_DESC([adapter])])
+		fi
+		ADAPTER_VAR([adapter])=no
+	fi
+	AM_CONDITIONAL(ADAPTER_SYM([adapter]), [test $ADAPTER_VAR([adapter]) != no])
+  ])
+])
+
+PROCESS_ADAPTERS([USB1_ADAPTERS], [$use_libusb1 = yes], [libusb-1.x])
+PROCESS_ADAPTERS([USB_ADAPTERS], [$use_libusb1 = yes -o $use_libusb0 = yes], [libusb-1.x or libusb-0.1])
+PROCESS_ADAPTERS([USB0_ADAPTERS], [$use_libusb0 = yes], [libusb-0.1])
+
+if test $enable_stlink != no -o $enable_ti_icdi != no; then
+	AC_DEFINE([BUILD_HLADAPTER], [1], [1 if you want the High Level JTAG driver.])
+else
+	AC_DEFINE([BUILD_HLADAPTER], [0], [0 if you want the High Level JTAG driver.])
 fi
+AM_CONDITIONAL([HLADAPTER], [test $enable_stlink != no -o $enable_ti_icdi != no])
 
 AM_CONDITIONAL([RELEASE], [test $build_release = yes])
 AM_CONDITIONAL([PARPORT], [test $build_parport = yes])
@@ -1212,7 +1132,6 @@ AM_CONDITIONAL([BCM2835GPIO], [test $build_bcm2835gpio = yes])
 AM_CONDITIONAL([BITBANG], [test $build_bitbang = yes])
 AM_CONDITIONAL([FT2232_LIBFTDI], [test $build_ft2232_libftdi = yes])
 AM_CONDITIONAL([FT2232_DRIVER], [test $build_ft2232_ftd2xx = yes -o $build_ft2232_libftdi = yes])
-AM_CONDITIONAL([FTDI_DRIVER], [test $build_ftdi = yes])
 AM_CONDITIONAL([USB_BLASTER_LIBFTDI], [test $build_usb_blaster_libftdi = yes])
 AM_CONDITIONAL([USB_BLASTER_FTD2XX], [test $build_usb_blaster_ftd2xx = yes])
 AM_CONDITIONAL([JTAG_VPI], [test $build_jtag_vpi = yes -o $build_jtag_vpi = yes])
@@ -1221,20 +1140,10 @@ AM_CONDITIONAL([AMTJTAGACCEL], [test $build_amtjtagaccel = yes])
 AM_CONDITIONAL([GW16012], [test $build_gw16012 = yes])
 AM_CONDITIONAL([PRESTO_LIBFTDI], [test $build_presto_libftdi = yes])
 AM_CONDITIONAL([PRESTO_DRIVER], [test $build_presto_ftd2xx = yes -o $build_presto_libftdi = yes])
-AM_CONDITIONAL([USBPROG], [test $build_usbprog = yes])
 AM_CONDITIONAL([OPENJTAG], [test $build_openjtag_ftd2xx = yes -o $build_openjtag_ftdi = yes])
 AM_CONDITIONAL([OOCD_TRACE], [test $build_oocd_trace = yes])
-AM_CONDITIONAL([JLINK], [test $build_jlink = yes])
-AM_CONDITIONAL([AICE], [test $build_aice = yes])
-AM_CONDITIONAL([VSLLINK], [test $build_vsllink = yes])
-AM_CONDITIONAL([RLINK], [test $build_rlink = yes])
-AM_CONDITIONAL([ULINK], [test $build_ulink = yes])
-AM_CONDITIONAL([ARMJTAGEW], [test $build_armjtagew = yes])
 AM_CONDITIONAL([REMOTE_BITBANG], [test $build_remote_bitbang = yes])
 AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
-AM_CONDITIONAL([HLADAPTER], [test $build_hladapter_stlink = yes -o $build_hladapter_icdi = yes])
-AM_CONDITIONAL([OSBDM], [test $build_osbdm = yes])
-AM_CONDITIONAL([OPENDOUS], [test $build_opendous = yes])
 AM_CONDITIONAL([SYSFSGPIO], [test $build_sysfsgpio = yes])
 AM_CONDITIONAL([USE_LIBUSB0], [test $use_libusb0 = yes])
 AM_CONDITIONAL([USE_LIBUSB1], [test $use_libusb1 = yes])
@@ -1362,3 +1271,23 @@ AC_CONFIG_FILES([
   doc/Makefile
 ])
 AC_OUTPUT
+
+echo
+echo
+echo OpenOCD configuration summary
+echo --------------------------------------------------
+m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS],
+	[echo -n m4_format(["%-40s"], ADAPTER_DESC([adapter]))
+	case $ADAPTER_VAR([adapter]) in
+		auto)
+			echo yes '(auto)'
+			;;
+		yes)
+			echo yes
+			;;
+		no)
+			echo no
+			;;
+	esac
+])
+echo
