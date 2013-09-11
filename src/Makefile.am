@@ -75,11 +75,11 @@ endif
 
 LIBUSB =
 if USE_LIBUSB1
-LIBUSB += -lusb-1.0
+LIBUSB += $(LIBUSB1_LIBS)
 endif
 
 if USE_LIBUSB0
-LIBUSB += -lusb
+LIBUSB += $(LIBUSB0_LIBS)
 endif
 
 libopenocd_la_LIBADD = \

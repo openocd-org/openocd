@@ -5,6 +5,8 @@ noinst_LTLIBRARIES = libhelper.la
 
 CONFIGFILES = options.c time_support_common.c
 
+libhelper_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS)
+
 libhelper_la_SOURCES = \
 	binarybuffer.c \
 	$(CONFIGFILES) \

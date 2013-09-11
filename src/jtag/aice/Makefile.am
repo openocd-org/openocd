@@ -1,6 +1,6 @@
 include $(top_srcdir)/common.mk
 
-AM_CPPFLAGS += -I$(top_srcdir)/src/jtag/drivers
+AM_CPPFLAGS += -I$(top_srcdir)/src/jtag/drivers $(LIBUSB1_CFLAGS) $(LIBUSB0_CFLAGS)
 
 noinst_LTLIBRARIES = libocdaice.la
 

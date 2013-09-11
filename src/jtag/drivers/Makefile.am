@@ -6,6 +6,8 @@ libocdjtagdrivers_la_LIBADD =
 libocdjtagdrivers_la_SOURCES = \
 	$(DRIVERFILES)
 
+libocdjtagdrivers_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS) $(LIBUSB0_CFLAGS)
+
 ULINK_FIRMWARE = $(srcdir)/OpenULINK
 
 EXTRA_DIST = $(ULINK_FIRMWARE)

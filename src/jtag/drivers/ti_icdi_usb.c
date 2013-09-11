@@ -33,7 +33,7 @@
 
 #include <target/cortex_m.h>
 
-#include <libusb-1.0/libusb.h>
+#include <libusb.h>
 
 #define ICDI_WRITE_ENDPOINT 0x02
 #define ICDI_READ_ENDPOINT 0x83

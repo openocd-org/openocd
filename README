@@ -210,6 +210,7 @@ You'll also need:
 
 - make
 - libtool
+- pkg-config >= 0.23 (or compatible)
 
 Additionally, for building from git:
 
@@ -218,7 +219,8 @@ Additionally, for building from git:
 - texinfo
 
 USB-based adapters depend on libusb-1.0 and some older drivers require
-libusb-0.1 or libusb-compat-0.1.
+libusb-0.1 or libusb-compat-0.1. A compatible implementation, such as
+FreeBSD's, additionally needs the corresponding .pc files.
 
 USB-Blaster, ASIX Presto, OpenJTAG and ft2232 interface adapter
 drivers need either one of:
@@ -271,6 +273,16 @@ to specify the cross-compiling target triplet in the --host option,
 e.g. for cross-building for Windows 32-bit with MinGW on Debian:
 
   ./configure --host=i686-w64-mingw32 [options]
+
+To make pkg-config work nicely for cross-compiling, you might need an
+additional wrapper script as described at
+
+  http://www.flameeyes.eu/autotools-mythbuster/pkgconfig/cross-compiling.html
+
+This is needed to tell pkg-config where to look for the target
+libraries that OpenOCD depends on. Alternatively, you can specify
+*_CFLAGS and *_LIBS environment variables directly, see "./configure
+--help" for the details.
 
 Parallel Port Dongles
 ---------------------

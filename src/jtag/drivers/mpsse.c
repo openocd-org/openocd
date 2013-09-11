@@ -24,7 +24,7 @@
 
 #include "mpsse.h"
 #include "helper/log.h"
-#include <libusb-1.0/libusb.h>
+#include <libusb.h>
 
 /* Compatibility define for older libusb-1.0 */
 #ifndef LIBUSB_CALL

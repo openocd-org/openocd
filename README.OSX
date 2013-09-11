@@ -9,9 +9,9 @@ There are a few prerequisites you will need first:
   or
 - Homebrew (http://mxcl.github.io/homebrew/)
 
-libtool, automake, autoconf and libusb can be easily installed via
-MacPorts:
-  sudo port install libtool automake autoconf libusb [libusb-compat]
+libtool, automake, autoconf, pkg-config and libusb can be easily
+installed via MacPorts:
+  sudo port install libtool automake autoconf pkgconfig libusb [libusb-compat]
 or with Homebrew:
   brew install libtool automake libusb [libusb-compat]
 

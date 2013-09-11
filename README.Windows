@@ -5,6 +5,18 @@ You can build OpenOCD for Windows natively with either MinGW/MSYS or
 Cygwin. Alternatively, one can cross-compile it using MinGW on a *nix
 host. See README for the generic instructions.
 
+Native MinGW/MSYS compilation
+-----------------------------
+
+As MSYS doesn't come with pkg-config pre-installed, you need to add it
+manually. The easiest way to do that is to download pkg-config-lite
+from:
+
+  http://sourceforge.net/projects/pkgconfiglite/
+
+Then simply unzip the archive to the root directory of your MSYS
+installation.
+
 USB adapters
 ------------
 
