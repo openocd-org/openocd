@@ -55,8 +55,10 @@ struct icdi_usb_handle_s {
 	int read_count;
 };
 
-static int icdi_usb_read_mem32(void *handle, uint32_t addr, uint16_t len, uint8_t *buffer);
-static int icdi_usb_write_mem32(void *handle, uint32_t addr, uint16_t len, const uint8_t *buffer);
+static int icdi_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
+		uint32_t count, uint8_t *buffer);
+static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
+		uint32_t count, const uint8_t *buffer);
 
 static int remote_escape_output(const char *buffer, int len, char *out_buf, int *out_len, int out_maxlen)
 {
@@ -286,7 +288,7 @@ static int icdi_usb_idcode(void *handle, uint32_t *idcode)
 
 static int icdi_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 {
-	return icdi_usb_write_mem32(handle, addr, 1, (uint8_t *)&val);
+	return icdi_usb_write_mem(handle, addr, 4, 1, (uint8_t *)&val);
 }
 
 static enum target_state icdi_usb_state(void *handle)
@@ -297,7 +299,7 @@ static enum target_state icdi_usb_state(void *handle)
 
 	h = (struct icdi_usb_handle_s *)handle;
 
-	result = icdi_usb_read_mem32(h, DCB_DHCSR, 1, (uint8_t *)&dhcsr);
+	result = icdi_usb_read_mem(h, DCB_DHCSR, 4, 1, (uint8_t *)&dhcsr);
 	if (result != ERROR_OK)
 		return TARGET_UNKNOWN;
 
@@ -524,7 +526,7 @@ static int icdi_usb_write_reg(void *handle, int num, uint32_t val)
 	return result;
 }
 
-static int icdi_usb_read_mem(void *handle, uint32_t addr, uint32_t len, uint8_t *buffer)
+static int icdi_usb_read_mem_int(void *handle, uint32_t addr, uint32_t len, uint8_t *buffer)
 {
 	int result;
 	struct icdi_usb_handle_s *h;
@@ -554,7 +556,7 @@ static int icdi_usb_read_mem(void *handle, uint32_t addr, uint32_t len, uint8_t 
 	return ERROR_OK;
 }
 
-static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t len, const uint8_t *buffer)
+static int icdi_usb_write_mem_int(void *handle, uint32_t addr, uint32_t len, const uint8_t *buffer)
 {
 	int result;
 	struct icdi_usb_handle_s *h;
@@ -587,24 +589,20 @@ static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t len, const u
 	return ERROR_OK;
 }
 
-static int icdi_usb_read_mem8(void *handle, uint32_t addr, uint16_t len, uint8_t *buffer)
+static int icdi_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
+		uint32_t count, uint8_t *buffer)
 {
-	return icdi_usb_read_mem(handle, addr, len, buffer);
+	if (size == 4)
+		count *= size;
+	return icdi_usb_read_mem_int(handle, addr, count, buffer);
 }
 
-static int icdi_usb_write_mem8(void *handle, uint32_t addr, uint16_t len, const uint8_t *buffer)
+static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
+		uint32_t count, const uint8_t *buffer)
 {
-	return icdi_usb_write_mem(handle, addr, len, buffer);
-}
-
-static int icdi_usb_read_mem32(void *handle, uint32_t addr, uint16_t len, uint8_t *buffer)
-{
-	return icdi_usb_read_mem(handle, addr, len * 4, buffer);
-}
-
-static int icdi_usb_write_mem32(void *handle, uint32_t addr, uint16_t len, const uint8_t *buffer)
-{
-	return icdi_usb_write_mem(handle, addr, len * 4, buffer);
+	if (size == 4)
+		count *= size;
+	return icdi_usb_write_mem_int(handle, addr, count, buffer);
 }
 
 static int icdi_usb_close(void *handle)
@@ -732,9 +730,7 @@ struct hl_layout_api_s icdi_usb_layout_api = {
 	.read_regs = icdi_usb_read_regs,
 	.read_reg = icdi_usb_read_reg,
 	.write_reg = icdi_usb_write_reg,
-	.read_mem8 = icdi_usb_read_mem8,
-	.write_mem8 = icdi_usb_write_mem8,
-	.read_mem32 = icdi_usb_read_mem32,
-	.write_mem32 = icdi_usb_write_mem32,
+	.read_mem = icdi_usb_read_mem,
+	.write_mem = icdi_usb_write_mem,
 	.write_debug_reg = icdi_usb_write_debug_reg
 };

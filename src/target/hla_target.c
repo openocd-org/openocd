@@ -259,8 +259,8 @@ static int adapter_examine_debug_reason(struct target *target)
 static int hl_dcc_read(struct hl_interface_s *hl_if, uint8_t *value, uint8_t *ctrl)
 {
 	uint16_t dcrdr;
-	int retval = hl_if->layout->api->read_mem8(hl_if->fd,
-								DCB_DCRDR, sizeof(dcrdr), (uint8_t *)&dcrdr);
+	int retval = hl_if->layout->api->read_mem(hl_if->fd,
+			DCB_DCRDR, 1, sizeof(dcrdr), (uint8_t *)&dcrdr);
 	if (retval == ERROR_OK) {
 	    *ctrl = (uint8_t)dcrdr;
 	    *value = (uint8_t)(dcrdr >> 8);
@@ -272,8 +272,7 @@ static int hl_dcc_read(struct hl_interface_s *hl_if, uint8_t *value, uint8_t *ct
 			 * to signify we have read data */
 			/* atomically clear just the byte containing the busy bit */
 			static const uint8_t zero;
-			retval = hl_if->layout->api->write_mem8(
-						hl_if->fd, DCB_DCRDR, 1, &zero);
+			retval = hl_if->layout->api->write_mem(hl_if->fd, DCB_DCRDR, 1, 1, &zero);
 		}
 	}
 	return retval;
@@ -784,13 +783,7 @@ static int adapter_read_memory(struct target *target, uint32_t address,
 		else
 			c = count;
 
-		if (size != 4)
-			res = adapter->layout->api->read_mem8(adapter->fd,
-					address, c, buffer);
-		else
-			res = adapter->layout->api->read_mem32(adapter->fd,
-					address, c, buffer);
-
+		res = adapter->layout->api->read_mem(adapter->fd, address, size, c, buffer);
 		if (res != ERROR_OK)
 			return res;
 
@@ -832,13 +825,7 @@ static int adapter_write_memory(struct target *target, uint32_t address,
 		else
 			c = count;
 
-		if (size != 4)
-			res = adapter->layout->api->write_mem8(adapter->fd,
-					address, c, buffer);
-		else
-			res = adapter->layout->api->write_mem32(adapter->fd,
-					address, c, buffer);
-
+		res = adapter->layout->api->write_mem(adapter->fd, address, size, c, buffer);
 		if (res != ERROR_OK)
 			return res;
 

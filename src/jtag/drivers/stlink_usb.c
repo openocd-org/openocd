@@ -1429,6 +1429,24 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 	return stlink_usb_get_rw_status(handle);
 }
 
+static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
+		uint32_t count, uint8_t *buffer)
+{
+	if (size == 4)
+		return stlink_usb_read_mem32(handle, addr, count, buffer);
+	else
+		return stlink_usb_read_mem8(handle, addr, count, buffer);
+}
+
+static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
+		uint32_t count, const uint8_t *buffer)
+{
+	if (size == 4)
+		return stlink_usb_write_mem32(handle, addr, count, buffer);
+	else
+		return stlink_usb_write_mem8(handle, addr, count, buffer);
+}
+
 /** */
 static int stlink_usb_close(void *fd)
 {
@@ -1632,13 +1650,9 @@ struct hl_layout_api_s stlink_usb_layout_api = {
 	/** */
 	.write_reg = stlink_usb_write_reg,
 	/** */
-	.read_mem8 = stlink_usb_read_mem8,
+	.read_mem = stlink_usb_read_mem,
 	/** */
-	.write_mem8 = stlink_usb_write_mem8,
-	/** */
-	.read_mem32 = stlink_usb_read_mem32,
-	/** */
-	.write_mem32 = stlink_usb_write_mem32,
+	.write_mem = stlink_usb_write_mem,
 	/** */
 	.write_debug_reg = stlink_usb_write_debug_reg
 };
