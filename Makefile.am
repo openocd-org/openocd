@@ -24,7 +24,8 @@ EXTRA_DIST = \
 	BUGS \
 	HACKING \
 	NEWTAPS \
-	README.Win32 \
+	README.Windows \
+	README.OSX \
 	Doxyfile.in \
 	tools/logger.pl \
 	contrib/loaders
@@ -89,7 +90,7 @@ uninstall-hook:
 distclean-local:
 	rm -rf Doxyfile doxygen
 	rm -f $(srcdir)/jimtcl/configure.gnu
-	
+
 DISTCLEANFILES = doxygen.log
 
 MAINTAINERCLEANFILES = \

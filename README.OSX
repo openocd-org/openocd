@@ -1,0 +1,28 @@
+Building OpenOCD for OSX
+------------------------
+
+There are a few prerequisites you will need first:
+
+- Xcode 4 (install from the AppStore)
+- Command Line Tools (install from Xcode 4 -> Preferences -> Downloads)
+- MacPorts (http://www.macports.org/install.php)
+  or
+- Homebrew (http://mxcl.github.io/homebrew/)
+
+libtool, automake, autoconf and libusb can be easily installed via
+MacPorts:
+  sudo port install libtool automake autoconf libusb [libusb-compat]
+or with Homebrew:
+  brew install libtool automake libusb [libusb-compat]
+
+You should also specify LDFLAGS and CPPFLAGS to allow configure to use
+MacPorts' libraries, so run configure like this:
+  LDFLAGS=-L/opt/local/lib CPPFLAGS=-I/opt/local/include ./configure [options]
+
+If you're using Homebrew, no custom flags are necessary.
+
+See README for the generic building instructions.
+
+If you use an FTDI-based adapter and have the FTDI kext installed, you
+will need to unload it prior to using OpenOCD:
+  sudo kextunload FTDIUSBSerialDriver.kext
