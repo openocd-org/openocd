@@ -69,19 +69,6 @@ const int armv7m_msp_reg_map[17] = {
 	ARMV7M_xPSR,
 };
 
-#ifdef ARMV7_GDB_HACKS
-uint8_t armv7m_gdb_dummy_cpsr_value[] = {0, 0, 0, 0};
-
-struct reg armv7m_gdb_dummy_cpsr_reg = {
-	.name = "GDB dummy cpsr register",
-	.value = armv7m_gdb_dummy_cpsr_value,
-	.dirty = 0,
-	.valid = 1,
-	.size = 32,
-	.arch_info = NULL,
-};
-#endif
-
 /*
  * These registers are not memory-mapped.  The ARMv7-M profile includes
  * memory mapped registers too, such as for the NVIC (interrupt controller)
@@ -281,17 +268,7 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 	for (i = 16; i < 24; i++)
 		(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
 	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
-
-#ifdef ARMV7_GDB_HACKS
-	/* use dummy cpsr reg otherwise gdb may try and set the thumb bit */
-	(*reg_list)[25] = &armv7m_gdb_dummy_cpsr_reg;
-
-	/* ARMV7M is always in thumb mode, try to make GDB understand this
-	 * if it does not support this arch */
-	*((char *)armv7m->arm.pc->value) |= 1;
-#else
 	(*reg_list)[25] = &armv7m->arm.core_cache->reg_list[ARMV7M_xPSR];
-#endif
 
 	return ERROR_OK;
 }
@@ -551,10 +528,6 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct arm_reg *arch_info = calloc(num_regs, sizeof(struct arm_reg));
 	int i;
-
-#ifdef ARMV7_GDB_HACKS
-	register_init_dummy(&armv7m_gdb_dummy_cpsr_reg);
-#endif
 
 	/* Build the process context cache */
 	cache->name = "arm v7m registers";

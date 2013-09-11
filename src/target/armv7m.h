@@ -30,16 +30,6 @@
 #include "arm_adi_v5.h"
 #include "arm.h"
 
-/* define for enabling armv7 gdb workarounds */
-#if 1
-#define ARMV7_GDB_HACKS
-#endif
-
-#ifdef ARMV7_GDB_HACKS
-extern uint8_t armv7m_gdb_dummy_cpsr_value[];
-extern struct reg armv7m_gdb_dummy_cpsr_reg;
-#endif
-
 extern const int armv7m_psp_reg_map[];
 extern const int armv7m_msp_reg_map[];
 

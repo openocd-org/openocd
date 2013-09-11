@@ -157,18 +157,6 @@ static int adapter_store_core_reg_u32(struct target *target,
 
 	LOG_DEBUG("%s", __func__);
 
-#ifdef ARMV7_GDB_HACKS
-	/* If the LR register is being modified, make sure it will put us
-	 * in "thumb" mode, or an INVSTATE exception will occur. This is a
-	 * hack to deal with the fact that gdb will sometimes "forge"
-	 * return addresses, and doesn't set the LSB correctly (i.e., when
-	 * printing expressions containing function calls, it sets LR = 0.)
-	 * Valid exception return codes have bit 0 set too.
-	 */
-	if (num == ARMV7M_R14)
-		value |= 0x01;
-#endif
-
 	/* NOTE:  we "know" here that the register identifiers used
 	 * in the v7m header match the Cortex-M3 Debug Core Register
 	 * Selector values for R0..R15, xPSR, MSP, and PSP.

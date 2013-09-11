@@ -433,17 +433,6 @@ static int cortex_m3_debug_entry(struct target *target)
 	r = arm->cpsr;
 	xPSR = buf_get_u32(r->value, 0, 32);
 
-#ifdef ARMV7_GDB_HACKS
-	/* FIXME this breaks on scan chains with more than one Cortex-M3.
-	 * Instead, each CM3 should have its own dummy value...
-	 */
-	/* copy real xpsr reg for gdb, setting thumb bit */
-	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 0, 32, xPSR);
-	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 5, 1, 1);
-	armv7m_gdb_dummy_cpsr_reg.valid = r->valid;
-	armv7m_gdb_dummy_cpsr_reg.dirty = r->dirty;
-#endif
-
 	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec */
 	if (xPSR & 0xf00) {
 		r->dirty = r->valid;
@@ -1232,17 +1221,8 @@ int cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoin
 {
 	struct cortex_m3_common *cortex_m3 = target_to_cm3(target);
 
-	if (cortex_m3->auto_bp_type) {
+	if (cortex_m3->auto_bp_type)
 		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
-#ifdef ARMV7_GDB_HACKS
-		if (breakpoint->length != 2) {
-			/* XXX Hack: Replace all breakpoints with length != 2 with
-			 * a hardware breakpoint. */
-			breakpoint->type = BKPT_HARD;
-			breakpoint->length = 2;
-		}
-#endif
-	}
 
 	if (breakpoint->type != BKPT_TYPE_BY_ADDR(breakpoint->address)) {
 		if (breakpoint->type == BKPT_HARD) {
@@ -1539,18 +1519,6 @@ static int cortex_m3_store_core_reg_u32(struct target *target,
 	uint32_t reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = armv7m->arm.dap;
-
-#ifdef ARMV7_GDB_HACKS
-	/* If the LR register is being modified, make sure it will put us
-	 * in "thumb" mode, or an INVSTATE exception will occur. This is a
-	 * hack to deal with the fact that gdb will sometimes "forge"
-	 * return addresses, and doesn't set the LSB correctly (i.e., when
-	 * printing expressions containing function calls, it sets LR = 0.)
-	 * Valid exception return codes have bit 0 set too.
-	 */
-	if (num == ARMV7M_R14)
-		value |= 0x01;
-#endif
 
 	/* NOTE:  we "know" here that the register identifiers used
 	 * in the v7m header match the Cortex-M3 Debug Core Register
