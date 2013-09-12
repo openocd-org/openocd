@@ -1828,6 +1828,8 @@ static int gdb_memory_map(struct connection *connection,
 static const char *gdb_get_reg_type_name(enum reg_type type)
 {
 	switch (type) {
+		case REG_TYPE_INT:
+			return "int";
 		case REG_TYPE_INT8:
 			return "int8";
 		case REG_TYPE_INT16:
@@ -1852,6 +1854,8 @@ static const char *gdb_get_reg_type_name(enum reg_type type)
 			return "code_ptr";
 		case REG_TYPE_DATA_PTR:
 			return "data_ptr";
+		case REG_TYPE_FLOAT:
+			return "float";
 		case REG_TYPE_IEEE_SINGLE:
 			return "ieee_single";
 		case REG_TYPE_IEEE_DOUBLE:
