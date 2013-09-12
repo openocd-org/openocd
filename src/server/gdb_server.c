@@ -60,6 +60,11 @@
  * found in most modern embedded processors.
  */
 
+struct target_desc_format {
+	char *tdesc;
+	uint32_t tdesc_length;
+};
+
 /* private connection data for GDB */
 struct gdb_connection {
 	char buffer[GDB_BUFFER_SIZE];
@@ -85,6 +90,8 @@ struct gdb_connection {
 	 * normally we reply with a S reply via gdb_last_signal_packet.
 	 * as a side note this behaviour only effects gdb > 6.8 */
 	bool attached;
+	/* temporarily used for target description support */
+	struct target_desc_format target_desc;
 };
 
 #if 0
@@ -909,6 +916,8 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->sync = false;
 	gdb_connection->mem_write_error = false;
 	gdb_connection->attached = true;
+	gdb_connection->target_desc.tdesc = NULL;
+	gdb_connection->target_desc.tdesc_length = 0;
 
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
@@ -1967,7 +1976,7 @@ static int gdb_generate_reg_type_description(struct target *target,
 /* Get a list of available target registers features. feature_list must
  * be freed by caller.
  */
-int get_reg_features_list(struct target *target, char **feature_list[], int *feature_list_size,
+static int get_reg_features_list(struct target *target, char **feature_list[], int *feature_list_size,
 		struct reg **reg_list, int reg_list_size)
 {
 	int tbl_sz = 0;
@@ -2118,14 +2127,24 @@ static int gdb_generate_target_description(struct target *target, char **tdesc)
 	return ERROR_OK;
 }
 
-static int gdb_get_target_description_chunk(struct target *target, char **chunk,
-		int32_t offset, uint32_t length)
+static int gdb_get_target_description_chunk(struct target *target, struct target_desc_format *target_desc,
+		char **chunk, int32_t offset, uint32_t length)
 {
-	static char *tdesc;
-	static uint32_t tdesc_length;
+	if (target_desc == NULL) {
+		LOG_ERROR("Unable to Generate Target Description");
+		return ERROR_FAIL;
+	}
+
+	char *tdesc = target_desc->tdesc;
+	uint32_t tdesc_length = target_desc->tdesc_length;
 
 	if (tdesc == NULL) {
-		gdb_generate_target_description(target, &tdesc);
+		int retval = gdb_generate_target_description(target, &tdesc);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Unable to Generate Target Description");
+			return ERROR_FAIL;
+		}
+
 		tdesc_length = strlen(tdesc);
 	}
 
@@ -2137,6 +2156,11 @@ static int gdb_get_target_description_chunk(struct target *target, char **chunk,
 		transfer_type = 'l';
 
 	*chunk = malloc(length + 2);
+	if (*chunk == NULL) {
+		LOG_ERROR("Unable to allocate memory");
+		return ERROR_FAIL;
+	}
+
 	(*chunk)[0] = transfer_type;
 	if (transfer_type == 'm') {
 		strncpy((*chunk) + 1, tdesc + offset, length);
@@ -2150,6 +2174,9 @@ static int gdb_get_target_description_chunk(struct target *target, char **chunk,
 		tdesc = NULL;
 		tdesc_length = 0;
 	}
+
+	target_desc->tdesc = tdesc;
+	target_desc->tdesc_length = tdesc_length;
 
 	return ERROR_OK;
 }
@@ -2325,7 +2352,8 @@ static int gdb_query_packet(struct connection *connection,
 		 * there are *more* chunks to transfer. 'l' for it is the *last*
 		 * chunk of target description.
 		 */
-		retval = gdb_get_target_description_chunk(target, &xml, offset, length);
+		retval = gdb_get_target_description_chunk(target, &gdb_connection->target_desc,
+				&xml, offset, length);
 		if (retval != ERROR_OK) {
 			gdb_error(connection, retval);
 			return retval;
@@ -2981,14 +3009,22 @@ COMMAND_HANDLER(handle_gdb_target_description_command)
 
 COMMAND_HANDLER(handle_gdb_save_tdesc_command)
 {
-	static char *tdesc;
-	static uint32_t tdesc_length;
+	char *tdesc;
+	uint32_t tdesc_length;
 	struct target *target = get_current_target(CMD_CTX);
 	char *tdesc_filename;
 
-	if (tdesc == NULL) {
-		gdb_generate_target_description(target, &tdesc);
-		tdesc_length = strlen(tdesc);
+	int retval = gdb_generate_target_description(target, &tdesc);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Unable to Generate Target Description");
+		return ERROR_FAIL;
+	}
+
+	tdesc_length = strlen(tdesc);
+
+	if (tdesc_length == 0) {
+		LOG_ERROR("Unable to Generate Target Description");
+		return ERROR_FAIL;
 	}
 
 	struct fileio fileio;
@@ -2997,7 +3033,7 @@ COMMAND_HANDLER(handle_gdb_save_tdesc_command)
 	tdesc_filename = malloc(strlen(target_type_name(target)) + 5);
 	sprintf(tdesc_filename, "%s.xml", target_type_name(target));
 
-	int retval = fileio_open(&fileio, tdesc_filename, FILEIO_WRITE, FILEIO_TEXT);
+	retval = fileio_open(&fileio, tdesc_filename, FILEIO_WRITE, FILEIO_TEXT);
 
 	if (retval != ERROR_OK) {
 		LOG_WARNING("Can't open %s for writing", tdesc_filename);
@@ -3009,6 +3045,7 @@ COMMAND_HANDLER(handle_gdb_save_tdesc_command)
 
 	fileio_close(&fileio);
 	free(tdesc_filename);
+	free(tdesc);
 
 	if (retval != ERROR_OK) {
 		LOG_WARNING("Error while writing the tdesc file");
