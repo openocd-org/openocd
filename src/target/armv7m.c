@@ -81,35 +81,35 @@ static const struct {
 	unsigned id;
 	const char *name;
 	unsigned bits;
+	enum reg_type type;
+	const char *group;
+	const char *feature;
 } armv7m_regs[] = {
-	{ ARMV7M_R0, "r0", 32 },
-	{ ARMV7M_R1, "r1", 32 },
-	{ ARMV7M_R2, "r2", 32 },
-	{ ARMV7M_R3, "r3", 32 },
+	{ ARMV7M_R0, "r0", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R1, "r1", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R2, "r2", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R3, "r3", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R4, "r4", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R5, "r5", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R6, "r6", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R7, "r7", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R8, "r8", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R9, "r9", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R10, "r10", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R11, "r11", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R12, "r12", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R13, "sp", 32, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R14, "lr", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_PC, "pc", 32, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_xPSR, "xPSR", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
 
-	{ ARMV7M_R4, "r4", 32 },
-	{ ARMV7M_R5, "r5", 32 },
-	{ ARMV7M_R6, "r6", 32 },
-	{ ARMV7M_R7, "r7", 32 },
+	{ ARMV7M_MSP, "msp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV7M_PSP, "psp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system" },
 
-	{ ARMV7M_R8, "r8", 32 },
-	{ ARMV7M_R9, "r9", 32 },
-	{ ARMV7M_R10, "r10", 32 },
-	{ ARMV7M_R11, "r11", 32 },
-
-	{ ARMV7M_R12, "r12", 32 },
-	{ ARMV7M_R13, "sp", 32 },
-	{ ARMV7M_R14, "lr", 32 },
-	{ ARMV7M_PC, "pc", 32 },
-
-	{ ARMV7M_xPSR, "xPSR", 32 },
-	{ ARMV7M_MSP, "msp", 32 },
-	{ ARMV7M_PSP, "psp", 32 },
-
-	{ ARMV7M_PRIMASK, "primask", 1 },
-	{ ARMV7M_BASEPRI, "basepri", 8 },
-	{ ARMV7M_FAULTMASK, "faultmask", 1 },
-	{ ARMV7M_CONTROL, "control", 2 },
+	{ ARMV7M_PRIMASK, "primask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV7M_BASEPRI, "basepri", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV7M_FAULTMASK, "faultmask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV7M_CONTROL, "control", 2, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
 };
 
 #define ARMV7M_NUM_REGS ARRAY_SIZE(armv7m_regs)
@@ -242,9 +242,6 @@ static int armv7m_write_core_reg(struct target *target, struct reg *r,
 
 /**
  * Returns generic ARM userspace registers to GDB.
- * GDB doesn't quite understand that most ARMs don't have floating point
- * hardware, so this also fakes a set of long-obsolete FPA registers that
- * are not used in EABI based software stacks.
  */
 int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 		int *reg_list_size, enum target_register_class reg_class)
@@ -252,23 +249,17 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int i;
 
-	*reg_list_size = 26;
+	if (reg_class == REG_CLASS_ALL)
+		*reg_list_size = ARMV7M_NUM_REGS;
+	else
+		*reg_list_size = 17;
+
 	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+	if (*reg_list == NULL)
+		return ERROR_FAIL;
 
-	/*
-	 * GDB register packet format for ARM:
-	 *  - the first 16 registers are r0..r15
-	 *  - (obsolete) 8 FPA registers
-	 *  - (obsolete) FPA status
-	 *  - CPSR
-	 */
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < *reg_list_size; i++)
 		(*reg_list)[i] = &armv7m->arm.core_cache->reg_list[i];
-
-	for (i = 16; i < 24; i++)
-		(*reg_list)[i] = &arm_gdb_dummy_fp_reg;
-	(*reg_list)[24] = &arm_gdb_dummy_fps_reg;
-	(*reg_list)[25] = &armv7m->arm.core_cache->reg_list[ARMV7M_xPSR];
 
 	return ERROR_OK;
 }
@@ -527,6 +518,7 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct arm_reg *arch_info = calloc(num_regs, sizeof(struct arm_reg));
+	struct reg_feature *feature;
 	int i;
 
 	/* Build the process context cache */
@@ -548,11 +540,30 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 		reg_list[i].valid = 0;
 		reg_list[i].type = &armv7m_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
+
+		reg_list[i].group = armv7m_regs[i].group;
+		reg_list[i].number = i;
+		reg_list[i].exist = true;
+		reg_list[i].caller_save = true;	/* gdb defaults to true */
+
+		feature = calloc(1, sizeof(struct reg_feature));
+		if (feature) {
+			feature->name = armv7m_regs[i].feature;
+			reg_list[i].feature = feature;
+		} else
+			LOG_ERROR("unable to allocate feature list");
+
+		reg_list[i].reg_data_type = calloc(1, sizeof(struct reg_data_type));
+		if (reg_list[i].reg_data_type)
+			reg_list[i].reg_data_type->type = armv7m_regs[i].type;
+		else
+			LOG_ERROR("unable to allocate reg type list");
 	}
 
 	arm->cpsr = reg_list + ARMV7M_xPSR;
 	arm->pc = reg_list + ARMV7M_PC;
 	arm->core_cache = cache;
+
 	return cache;
 }
 
