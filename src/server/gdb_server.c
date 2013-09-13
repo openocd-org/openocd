@@ -122,8 +122,8 @@ static int gdb_report_data_abort;
 
 /* set if we are sending target descriptions to gdb
  * via qXfer:features:read packet */
-/* disabled by default */
-static int gdb_use_target_description;
+/* enabled by default */
+static int gdb_use_target_description = 1;
 
 /* current processing free-run type, used by file-I/O */
 static char gdb_running_type;
@@ -2154,6 +2154,50 @@ static int gdb_get_target_description_chunk(struct target *target, char **chunk,
 	return ERROR_OK;
 }
 
+static int gdb_target_description_supported(struct target *target, int *supported)
+{
+	int retval = ERROR_OK;
+	struct reg **reg_list = NULL;
+	int reg_list_size = 0;
+	int feature_list_size = 0;
+
+	retval = target_get_gdb_reg_list(target, &reg_list,
+			&reg_list_size, REG_CLASS_ALL);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("get register list failed");
+		goto error;
+	}
+
+	if (reg_list_size <= 0) {
+		retval = ERROR_FAIL;
+		goto error;
+	}
+
+	char **features = NULL;
+	/* Get a list of available target registers features */
+	retval = get_reg_features_list(target, &features, &feature_list_size, reg_list, reg_list_size);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Can't get the registers feature list");
+		goto error;
+	}
+
+	if (supported) {
+		if (feature_list_size)
+			*supported = 1;
+		else
+			*supported = 0;
+	}
+
+error:
+	if (reg_list != NULL)
+		free(reg_list);
+
+	if (features != NULL)
+		free(features);
+
+	return retval;
+}
+
 static int gdb_query_packet(struct connection *connection,
 		char *packet, int packet_size)
 {
@@ -2218,11 +2262,26 @@ static int gdb_query_packet(struct connection *connection,
 		}
 	} else if (strncmp(packet, "qSupported", 10) == 0) {
 		/* we currently support packet size and qXfer:memory-map:read (if enabled)
-		 * disable qXfer:features:read for the moment */
+		 * qXfer:features:read is supported for some targets */
 		int retval = ERROR_OK;
 		char *buffer = NULL;
 		int pos = 0;
 		int size = 0;
+		int gdb_target_desc_supported = 0;
+
+		/* we need to test that the target supports target descriptions */
+		retval = gdb_target_description_supported(target, &gdb_target_desc_supported);
+		if (retval != ERROR_OK) {
+			LOG_INFO("Failed detecting Target Description Support, disabling");
+			gdb_target_desc_supported = 0;
+		}
+
+		/* support may be disabled globally */
+		if (gdb_use_target_description == 0) {
+			if (gdb_target_desc_supported)
+				LOG_WARNING("Target Descriptions Supported, but disabled");
+			gdb_target_desc_supported = 0;
+		}
 
 		xml_printf(&retval,
 			&buffer,
@@ -2231,7 +2290,7 @@ static int gdb_query_packet(struct connection *connection,
 			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;QStartNoAckMode+",
 			(GDB_BUFFER_SIZE - 1),
 			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-',
-			(gdb_use_target_description == 1) ? '+' : '-');
+			(gdb_target_desc_supported == 1) ? '+' : '-');
 
 		if (retval != ERROR_OK) {
 			gdb_send_error(connection, 01);
