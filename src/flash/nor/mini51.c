@@ -102,7 +102,6 @@
 #define PAGE_SIZE          512
 #define TIMEOUT            1000
 
-
 struct mini51_flash_bank {
 	bool probed;
 };
@@ -111,7 +110,6 @@ enum mini51_boot_source {
 	APROM = 0,
 	LDROM = 1
 };
-
 
 /* Private methods */
 
@@ -139,7 +137,7 @@ static int mini51_reboot_with_source(struct flash_bank *bank,
 {
 	uint32_t ispcon;
 	uint32_t isprtc1;
-	bool reboot = false;
+	bool mini51_reboot = false;
 	int status;
 	int timeout = TIMEOUT;
 
@@ -153,13 +151,13 @@ static int mini51_reboot_with_source(struct flash_bank *bank,
 
 	if ((new_source == APROM) && (*prev_source != APROM)) {
 		ispcon &= ~ISPCON_BS_LDROM;
-		reboot = true;
+		mini51_reboot = true;
 	} else if ((new_source == LDROM) && (*prev_source != LDROM)) {
 		ispcon |= ISPCON_BS_LDROM;
-		reboot = true;
+		mini51_reboot = true;
 	}
 
-	if (reboot) {
+	if (mini51_reboot) {
 		mini51_unlock_reg(bank);
 		status = target_write_u32(target, ISPCON, ispcon);
 		if (status != ERROR_OK)
@@ -214,7 +212,6 @@ static int mini51_get_flash_size(struct flash_bank *bank, uint32_t *flash_size)
 
 	return ERROR_OK;
 }
-
 
 /* Public (API) methods */
 
@@ -398,7 +395,6 @@ static int mini51_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offse
 	return ERROR_OK;
 }
 
-
 static int get_mini51_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "Mini51 flash driver");
@@ -460,4 +456,3 @@ struct flash_driver mini51_flash = {
 	.protect_check = mini51_protect_check,
 	.info = get_mini51_info,
 };
-
