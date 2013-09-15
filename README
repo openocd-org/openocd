@@ -7,9 +7,9 @@ layered architecture of JTAG interface and TAP support including:
 - (X)SVF playback to faciliate automated boundary scan and FPGA/CPLD
   programming;
 - debug target support (e.g. ARM, MIPS): single-stepping,
-  breakpoints/watchpoints, etc;
+  breakpoints/watchpoints, gprof profiling, etc;
 - flash chip drivers (e.g. CFI, NAND, internal flash);
-- embedded TCL intepreter for easy scripting.
+- embedded TCL interpreter for easy scripting.
 
 Several network interfaces are available for interacting with OpenOCD:
 telnet, TCL, and GDB. The GDB server enables OpenOCD to function as a
@@ -101,12 +101,13 @@ JTAG adapters
 -------------
 
 AICE, ARM-JTAG-EW, ARM-USB-OCD, ARM-USB-TINY, AT91RM9200, axm0432,
-BCM2835, Bus Blaster, Buspirate, Chameleon, Cortino, DLC 5,
+BCM2835, Bus Blaster, Buspirate, Chameleon, Cortino, DENX, DLC 5,
 DLP-USB1232H, embedded projects, eStick, FlashLINK, FlossJTAG,
-Flyswatter, Flyswatter2, Hoegl, ICDI, ICEBear, J-Link, JTAGkey,
-JTAGkey2, JTAG-lock-pick, KT-Link, Lisa/L, LPC1768-Stick, MiniModule,
-NGX, NXHX, OOCDLink, Opendous, OpenJTAG, Openmoko, OpenRD, OSBDM,
-Presto, Redbee, RLink, SheevaPlug devkit, Stellaris evkits, ST-LINK,
+Flyswatter, Flyswatter2, Gateworks, Hoegl, ICDI, ICEBear, J-Link,
+JTAG VPI, JTAGkey, JTAGkey2, JTAG-lock-pick, KT-Link, Lisa/L,
+LPC1768-Stick, MiniModule, NGX, NXHX, OOCDLink, Opendous, OpenJTAG,
+Openmoko, OpenRD, OSBDM, Presto, Redbee, RLink, SheevaPlug devkit,
+Stellaris evkits, ST-LINK (SWO tracing supported),
 STM32-PerformanceStick, STR9-comStick, sysfsgpio, TUMPA, Turtelizer,
 ULINK, USB-A9260, USB-Blaster, USB-JTAG, USBprog, VPACLink, VSLLink,
 Wiggler, XDS100v2, Xverve.
@@ -122,9 +123,9 @@ Flash drivers
 -------------
 
 ADUC702x, AT91SAM, AVR, CFI, DSP5680xx, EFM32, EM357, FM3, Kinetis,
-LPC2000, LPC2900, LPCSPIFI, PIC32mx, Stellaris, STM32, STMSMI, STR7x,
-STR9x; NAND controllers of AT91SAM9, LPC3180, LPC32xx, i.MX31, MXC,
-NUC910, Orion/Kirkwood, S3C24xx, S3C6400.
+LPC2000, LPC2900, LPCSPIFI, Milandr, NuMicro, PIC32mx, Stellaris,
+STM32, STMSMI, STR7x, STR9x; NAND controllers of AT91SAM9, LPC3180,
+LPC32xx, i.MX31, MXC, NUC910, Orion/Kirkwood, S3C24xx, S3C6400.
 
 
 ==================
