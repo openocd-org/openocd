@@ -99,11 +99,10 @@ static int ublast_ftdi_init(struct ublast_lowlevel *low)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (ftdi_get_latency_timer(ftdic, &latency_timer) < 0) {
+	if (ftdi_get_latency_timer(ftdic, &latency_timer) < 0)
 		LOG_ERROR("unable to get latency timer");
-		return ERROR_JTAG_INIT_FAILED;
-	}
-	LOG_DEBUG("current latency timer: %u", latency_timer);
+	else
+		LOG_DEBUG("current latency timer: %u", latency_timer);
 
 	ftdi_disable_bitbang(ftdic);
 	return ERROR_OK;

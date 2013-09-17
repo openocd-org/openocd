@@ -136,12 +136,11 @@ static int ublast_ftd2xx_init(struct ublast_lowlevel *low)
 	}
 
 	status = FT_GetLatencyTimer(*ftdih, &latency_timer);
-	if (status != FT_OK) {
+	if (status != FT_OK)
 		LOG_ERROR("unable to get latency timer: %s",
 				ftd2xx_status_string(status));
-		return ERROR_JTAG_INIT_FAILED;
-	}
-	LOG_DEBUG("current latency timer: %i", latency_timer);
+	else
+		LOG_DEBUG("current latency timer: %i", latency_timer);
 
 	status = FT_SetBitMode(*ftdih, 0x00, 0);
 	if (status != FT_OK) {
