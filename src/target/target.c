@@ -2744,12 +2744,6 @@ COMMAND_HANDLER(handle_md_command)
 typedef int (*target_write_fn)(struct target *target,
 		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
-static int target_write_memory_fast(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
-{
-	return target_write_buffer(target, address, size * count, buffer);
-}
-
 static int target_fill_mem(struct target *target,
 		uint32_t address,
 		target_write_fn fn,
@@ -2814,7 +2808,7 @@ COMMAND_HANDLER(handle_mw_command)
 		CMD_ARGV++;
 		fn = target_write_phys_memory;
 	} else
-		fn = target_write_memory_fast;
+		fn = target_write_memory;
 	if ((CMD_ARGC < 2) || (CMD_ARGC > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -4375,7 +4369,7 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 
 	target_write_fn fn;
-	fn = target_write_memory_fast;
+	fn = target_write_memory;
 
 	int e;
 	if (strcmp(Jim_GetString(argv[1], NULL), "phys") == 0) {
