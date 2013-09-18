@@ -42,6 +42,9 @@
 #define ENDPOINT_IN  0x80
 #define ENDPOINT_OUT 0x00
 
+#define STLINK_WRITE_TIMEOUT 1000
+#define STLINK_READ_TIMEOUT 1000
+
 #define STLINK_NULL_EP     0
 #define STLINK_RX_EP       (1|ENDPOINT_IN)
 #define STLINK_TX_EP       (2|ENDPOINT_OUT)
@@ -210,7 +213,7 @@ static int stlink_usb_xfer_v1_get_status(void *handle)
 	memset(h->cmdbuf, 0, STLINK_SG_SIZE);
 
 	if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)h->cmdbuf,
-				13, 1000) != 13)
+			13, STLINK_READ_TIMEOUT) != 13)
 		return ERROR_FAIL;
 
 	uint32_t t1;
@@ -242,19 +245,19 @@ static int stlink_usb_xfer_rw(void *handle, int cmdsize, const uint8_t *buf, int
 	h = (struct stlink_usb_handle_s *)handle;
 
 	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)h->cmdbuf, cmdsize,
-				   1000) != cmdsize) {
+			STLINK_WRITE_TIMEOUT) != cmdsize) {
 		return ERROR_FAIL;
 	}
 
 	if (h->direction == STLINK_TX_EP && size) {
 		if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)buf,
-					  size, 1000) != size) {
+				size, STLINK_WRITE_TIMEOUT) != size) {
 			LOG_DEBUG("bulk write failed");
 			return ERROR_FAIL;
 		}
 	} else if (h->direction == STLINK_RX_EP && size) {
 		if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)buf,
-					  size, 1000) != size) {
+				size, STLINK_READ_TIMEOUT) != size) {
 			LOG_DEBUG("bulk read failed");
 			return ERROR_FAIL;
 		}
@@ -337,7 +340,7 @@ static int stlink_usb_read_trace(void *handle, const uint8_t *buf, int size)
 	assert(h->version.stlink >= 2);
 
 	if (jtag_libusb_bulk_read(h->fd, STLINK_TRACE_EP, (char *)buf,
-				size, 1000) != size) {
+			size, STLINK_READ_TIMEOUT) != size) {
 		LOG_ERROR("bulk trace read failed");
 		return ERROR_FAIL;
 	}
