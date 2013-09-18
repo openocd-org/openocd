@@ -14,7 +14,7 @@ from:
 
   http://sourceforge.net/projects/pkgconfiglite/
 
-Then simply unzip the archive to the root directory of your MSYS
+Then simply unzip the archive to the root directory of your MinGW
 installation.
 
 USB adapters
