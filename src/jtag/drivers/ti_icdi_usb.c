@@ -53,6 +53,7 @@ struct icdi_usb_handle_s {
 	char *write_buffer;
 	int max_packet;
 	int read_count;
+	uint32_t max_rw_packet; /* max X packet (read/write memory) transfers */
 };
 
 static int icdi_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
@@ -592,17 +593,57 @@ static int icdi_usb_write_mem_int(void *handle, uint32_t addr, uint32_t len, con
 static int icdi_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
-	if (size == 4)
-		count *= size;
-	return icdi_usb_read_mem_int(handle, addr, count, buffer);
+	int retval = ERROR_OK;
+	struct icdi_usb_handle_s *h = (struct icdi_usb_handle_s *)handle;
+	uint32_t bytes_remaining;
+
+	/* calculate byte count */
+	count *= size;
+
+	while (count) {
+
+		bytes_remaining = h->max_rw_packet;
+		if (count < bytes_remaining)
+			bytes_remaining = count;
+
+		retval = icdi_usb_read_mem_int(handle, addr, bytes_remaining, buffer);
+		if (retval != ERROR_OK)
+			return retval;
+
+		buffer += bytes_remaining;
+		addr += bytes_remaining;
+		count -= bytes_remaining;
+	}
+
+	return retval;
 }
 
 static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, const uint8_t *buffer)
 {
-	if (size == 4)
-		count *= size;
-	return icdi_usb_write_mem_int(handle, addr, count, buffer);
+	int retval = ERROR_OK;
+	struct icdi_usb_handle_s *h = (struct icdi_usb_handle_s *)handle;
+	uint32_t bytes_remaining;
+
+	/* calculate byte count */
+	count *= size;
+
+	while (count) {
+
+		bytes_remaining = h->max_rw_packet;
+		if (count < bytes_remaining)
+			bytes_remaining = count;
+
+		retval = icdi_usb_write_mem_int(handle, addr, bytes_remaining, buffer);
+		if (retval != ERROR_OK)
+			return retval;
+
+		buffer += bytes_remaining;
+		addr += bytes_remaining;
+		count -= bytes_remaining;
+	}
+
+	return retval;
 }
 
 static int icdi_usb_close(void *handle)
@@ -707,7 +748,7 @@ static int icdi_usb_open(struct hl_interface_param_s *param, void **fd)
 	 * as we are using gdb binary packets to transfer memory we have to
 	 * reserve half the buffer for any possible escape chars plus
 	 * at least 64 bytes for the gdb packet header */
-	param->max_buffer = (((h->max_packet - 64) / 4) * 4) / 2;
+	h->max_rw_packet = (((h->max_packet - 64) / 4) * 4) / 2;
 
 	return ERROR_OK;
 

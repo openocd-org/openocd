@@ -45,8 +45,6 @@ struct hl_interface_param_s {
 	/** */
 	enum hl_transports transport;
 	/** */
-	int max_buffer;
-	/** */
 	bool connect_under_reset;
 	/** Output file for trace data (if any) */
 	FILE *trace_f;

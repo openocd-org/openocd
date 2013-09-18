@@ -50,9 +50,13 @@
 #define STLINK_TX_EP       (2|ENDPOINT_OUT)
 #define STLINK_TRACE_EP    (3|ENDPOINT_IN)
 #define STLINK_SG_SIZE     (31)
-#define STLINK_DATA_SIZE   (4*128)
+#define STLINK_DATA_SIZE   (4096)
 #define STLINK_CMD_SIZE_V2 (16)
 #define STLINK_CMD_SIZE_V1 (10)
+
+/* the current implementation of the stlink limits
+ * 8bit read/writes to max 64 bytes. */
+#define STLINK_MAX_RW8		(64)
 
 enum stlink_jtag_api_version {
 	STLINK_JTAG_API_V1 = 1,
@@ -85,6 +89,8 @@ struct stlink_usb_handle_s {
 	uint8_t direction;
 	/** */
 	uint8_t databuf[STLINK_DATA_SIZE];
+	/** */
+	uint32_t max_mem_packet;
 	/** */
 	enum hl_transports transport;
 	/** */
@@ -1317,6 +1323,12 @@ static int stlink_usb_read_mem8(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
+	/* max 8bit read/write is 64bytes */
+	if (len > STLINK_MAX_RW8) {
+		LOG_DEBUG("max buffer length exceeded");
+		return ERROR_FAIL;
+	}
+
 	h = (struct stlink_usb_handle_s *)handle;
 
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, read_len);
@@ -1351,6 +1363,12 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
+	/* max 8bit read/write is 64bytes */
+	if (len > STLINK_MAX_RW8) {
+		LOG_DEBUG("max buffer length exceeded");
+		return ERROR_FAIL;
+	}
+
 	h = (struct stlink_usb_handle_s *)handle;
 
 	stlink_usb_init_buffer(handle, STLINK_TX_EP, len);
@@ -1379,9 +1397,13 @@ static int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
-	h = (struct stlink_usb_handle_s *)handle;
+	/* data must be a multiple of 4 and word aligned */
+	if (len % 4 || addr % 4) {
+		LOG_DEBUG("Invalid data alignment");
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
 
-	len *= 4;
+	h = (struct stlink_usb_handle_s *)handle;
 
 	stlink_usb_init_buffer(handle, STLINK_RX_EP, len);
 
@@ -1411,9 +1433,13 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
-	h = (struct stlink_usb_handle_s *)handle;
+	/* data must be a multiple of 4 and word aligned */
+	if (len % 4 || addr % 4) {
+		LOG_DEBUG("Invalid data alignment");
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
 
-	len *= 4;
+	h = (struct stlink_usb_handle_s *)handle;
 
 	stlink_usb_init_buffer(handle, STLINK_TX_EP, len);
 
@@ -1432,22 +1458,134 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 	return stlink_usb_get_rw_status(handle);
 }
 
+static uint32_t stlink_max_block_size(uint32_t tar_autoincr_block, uint32_t address)
+{
+	uint32_t max_tar_block = (tar_autoincr_block - ((tar_autoincr_block - 1) & address));
+	if (max_tar_block == 0)
+		max_tar_block = 4;
+	return max_tar_block;
+}
+
 static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
-	if (size == 4)
-		return stlink_usb_read_mem32(handle, addr, count, buffer);
-	else
-		return stlink_usb_read_mem8(handle, addr, count, buffer);
+	int retval = ERROR_OK;
+	uint32_t bytes_remaining;
+	struct stlink_usb_handle_s *h = (struct stlink_usb_handle_s *)handle;
+
+	/* calculate byte count */
+	count *= size;
+
+	while (count) {
+
+		bytes_remaining = (size == 4) ? \
+				stlink_max_block_size(h->max_mem_packet, addr) : STLINK_MAX_RW8;
+
+		if (count < bytes_remaining)
+			bytes_remaining = count;
+
+		/* the stlink only supports 8/32bit memory read/writes
+		 * honour 32bit, all others will be handled as 8bit access */
+		if (size == 4) {
+
+			/* When in jtag mode the stlink uses the auto-increment functinality.
+			 * However it expects us to pass the data correctly, this includes
+			 * alignment and any page boundaries. We already do this as part of the
+			 * adi_v5 implementation, but the stlink is a hla adapter and so this
+			 * needs implementiong manually.
+			 * currently this only affects jtag mode, according to ST they do single
+			 * access in SWD mode - but this may change and so we do it for both modes */
+
+			/* we first need to check for any unaligned bytes */
+			if (addr % 4) {
+
+				uint32_t head_bytes = 4 - (addr % 4);
+				retval = stlink_usb_read_mem8(handle, addr, head_bytes, buffer);
+				if (retval != ERROR_OK)
+					return retval;
+				buffer += head_bytes;
+				addr += head_bytes;
+				count -= head_bytes;
+				bytes_remaining -= head_bytes;
+			}
+
+			if (bytes_remaining % 4)
+				retval = stlink_usb_read_mem(handle, addr, 1, bytes_remaining, buffer);
+			else
+				retval = stlink_usb_read_mem32(handle, addr, bytes_remaining, buffer);
+		} else
+			retval = stlink_usb_read_mem8(handle, addr, bytes_remaining, buffer);
+
+		if (retval != ERROR_OK)
+			return retval;
+
+		buffer += bytes_remaining;
+		addr += bytes_remaining;
+		count -= bytes_remaining;
+	}
+
+	return retval;
 }
 
 static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, const uint8_t *buffer)
 {
-	if (size == 4)
-		return stlink_usb_write_mem32(handle, addr, count, buffer);
-	else
-		return stlink_usb_write_mem8(handle, addr, count, buffer);
+	int retval = ERROR_OK;
+	uint32_t bytes_remaining;
+	struct stlink_usb_handle_s *h = (struct stlink_usb_handle_s *)handle;
+
+	/* calculate byte count */
+	count *= size;
+
+	while (count) {
+
+		bytes_remaining = (size == 4) ? \
+				stlink_max_block_size(h->max_mem_packet, addr) : STLINK_MAX_RW8;
+
+		if (count < bytes_remaining)
+			bytes_remaining = count;
+
+		/* the stlink only supports 8/32bit memory read/writes
+		 * honour 32bit, all others will be handled as 8bit access */
+		if (size == 4) {
+
+			/* When in jtag mode the stlink uses the auto-increment functinality.
+			 * However it expects us to pass the data correctly, this includes
+			 * alignment and any page boundaries. We already do this as part of the
+			 * adi_v5 implementation, but the stlink is a hla adapter and so this
+			 * needs implementiong manually.
+			 * currently this only affects jtag mode, according to ST they do single
+			 * access in SWD mode - but this may change and so we do it for both modes */
+
+			/* we first need to check for any unaligned bytes */
+			if (addr % 4) {
+
+				uint32_t head_bytes = 4 - (addr % 4);
+				retval = stlink_usb_write_mem8(handle, addr, head_bytes, buffer);
+				if (retval != ERROR_OK)
+					return retval;
+				buffer += head_bytes;
+				addr += head_bytes;
+				count -= head_bytes;
+				bytes_remaining -= head_bytes;
+			}
+
+			if (bytes_remaining % 4)
+				retval = stlink_usb_write_mem(handle, addr, 1, bytes_remaining, buffer);
+			else
+				retval = stlink_usb_write_mem32(handle, addr, bytes_remaining, buffer);
+
+		} else
+			retval = stlink_usb_write_mem8(handle, addr, bytes_remaining, buffer);
+		if (retval != ERROR_OK)
+			return retval;
+
+		buffer += bytes_remaining;
+		addr += bytes_remaining;
+		count -= bytes_remaining;
+	}
+
+	return retval;
 }
 
 /** */
@@ -1482,9 +1620,6 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	}
 
 	h->transport = param->transport;
-
-	/* set max read/write buffer size in bytes */
-	param->max_buffer = 512;
 
 	const uint16_t vids[] = { param->vid, 0 };
 	const uint16_t pids[] = { param->pid, 0 };
@@ -1615,6 +1750,23 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 		LOG_ERROR("init mode failed");
 		goto error_open;
 	}
+
+	/* get cpuid, so we can determine the max page size
+	 * start with a safe default */
+	h->max_mem_packet = (1 << 10);
+
+	uint8_t buffer[4];
+	err = stlink_usb_read_mem32(h, CPUID, 4, buffer);
+	if (err == ERROR_OK) {
+		uint32_t cpuid = le_to_h_u32(buffer);
+		int i = (cpuid >> 4) & 0xf;
+		if (i == 4 || i == 3) {
+			/* Cortex-M3/M4 has 4096 bytes autoincrement range */
+			h->max_mem_packet = (1 << 12);
+		}
+	}
+
+	LOG_DEBUG("Using TAR autoincrement: %" PRIu32, h->max_mem_packet);
 
 	*fd = h;
 

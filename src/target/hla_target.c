@@ -758,41 +758,13 @@ static int adapter_read_memory(struct target *target, uint32_t address,
 		uint8_t *buffer)
 {
 	struct hl_interface_s *adapter = target_to_adapter(target);
-	int res;
-	uint32_t buffer_threshold = (adapter->param.max_buffer / 4);
-	uint32_t addr_increment = 4;
-	uint32_t c;
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	LOG_DEBUG("%s 0x%08x %d %d", __func__, address, size, count);
 
-	/* prepare byte count, buffer threshold
-	 * and address increment for none 32bit access
-	 */
-	if (size != 4) {
-		count *= size;
-		buffer_threshold = (adapter->param.max_buffer / 4) / 2;
-		addr_increment = 1;
-	}
-
-	while (count) {
-		if (count > buffer_threshold)
-			c = buffer_threshold;
-		else
-			c = count;
-
-		res = adapter->layout->api->read_mem(adapter->fd, address, size, c, buffer);
-		if (res != ERROR_OK)
-			return res;
-
-		address += (c * addr_increment);
-		buffer += (c * addr_increment);
-		count -= c;
-	}
-
-	return ERROR_OK;
+	return adapter->layout->api->read_mem(adapter->fd, address, size, count, buffer);
 }
 
 static int adapter_write_memory(struct target *target, uint32_t address,
@@ -800,41 +772,13 @@ static int adapter_write_memory(struct target *target, uint32_t address,
 		const uint8_t *buffer)
 {
 	struct hl_interface_s *adapter = target_to_adapter(target);
-	int res;
-	uint32_t buffer_threshold = (adapter->param.max_buffer / 4);
-	uint32_t addr_increment = 4;
-	uint32_t c;
 
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	LOG_DEBUG("%s 0x%08x %d %d", __func__, address, size, count);
 
-	/* prepare byte count, buffer threshold
-	 * and address increment for none 32bit access
-	 */
-	if (size != 4) {
-		count *= size;
-		buffer_threshold = (adapter->param.max_buffer / 4) / 2;
-		addr_increment = 1;
-	}
-
-	while (count) {
-		if (count > buffer_threshold)
-			c = buffer_threshold;
-		else
-			c = count;
-
-		res = adapter->layout->api->write_mem(adapter->fd, address, size, c, buffer);
-		if (res != ERROR_OK)
-			return res;
-
-		address += (c * addr_increment);
-		buffer += (c * addr_increment);
-		count -= c;
-	}
-
-	return ERROR_OK;
+	return adapter->layout->api->write_mem(adapter->fd, address, size, count, buffer);
 }
 
 static const struct command_registration adapter_command_handlers[] = {

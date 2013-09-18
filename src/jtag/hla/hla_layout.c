@@ -50,12 +50,6 @@ static int hl_layout_open(struct hl_interface_s *adapter)
 		return res;
 	}
 
-	/* make sure adapter has set the buffer size */
-	if (!adapter->param.max_buffer) {
-		LOG_ERROR("buffer size not set");
-		return ERROR_FAIL;
-	}
-
 	return ERROR_OK;
 }
 
