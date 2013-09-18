@@ -416,7 +416,7 @@ int mem_ap_write_buf_u16(struct adiv5_dap *dap, const uint8_t *buffer, int count
 {
 	int retval = ERROR_OK;
 
-	if (count >= 4)
+	if (dap->packed_transfers && count >= 4)
 		return mem_ap_write_buf_packed_u16(dap, buffer, count, address);
 
 	while (count > 0) {
@@ -516,7 +516,7 @@ int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count,
 {
 	int retval = ERROR_OK;
 
-	if (count >= 4)
+	if (dap->packed_transfers && count >= 4)
 		return mem_ap_write_buf_packed_u8(dap, buffer, count, address);
 
 	while (count > 0) {
@@ -685,7 +685,7 @@ int mem_ap_read_buf_u16(struct adiv5_dap *dap, uint8_t *buffer,
 	uint32_t invalue, i;
 	int retval = ERROR_OK;
 
-	if (count >= 4)
+	if (dap->packed_transfers && count >= 4)
 		return mem_ap_read_buf_packed_u16(dap, buffer, count, address);
 
 	while (count > 0) {
@@ -787,7 +787,7 @@ int mem_ap_read_buf_u8(struct adiv5_dap *dap, uint8_t *buffer,
 	uint32_t invalue;
 	int retval = ERROR_OK;
 
-	if (count >= 4)
+	if (dap->packed_transfers && count >= 4)
 		return mem_ap_read_buf_packed_u8(dap, buffer, count, address);
 
 	while (count > 0) {
@@ -1163,6 +1163,29 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 		return retval;
 
 	dap_syssec(dap);
+
+	/* check that we support packed transfers */
+	uint32_t csw;
+
+	retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_ap_read(dap, AP_REG_CSW, &csw);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_run(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (csw & CSW_ADDRINC_PACKED)
+		dap->packed_transfers = true;
+	else
+		dap->packed_transfers = false;
+
+	LOG_DEBUG("MEM_AP Packed Transfers: %s",
+			dap->packed_transfers ? "enabled" : "disabled");
 
 	return ERROR_OK;
 }

@@ -186,6 +186,9 @@ struct adiv5_dap {
 
 	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
 	uint32_t tar_autoincr_block;
+
+	/* true if packed transfers are supported by the MEM-AP */
+	bool packed_transfers;
 };
 
 /**
