@@ -150,6 +150,9 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
 	stm32x_info->user_bank_size = bank->size;
 
+	/* the stm32l erased value is 0x00 */
+	bank->default_padded_value = 0x00;
+
 	return ERROR_OK;
 }
 
