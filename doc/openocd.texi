@@ -8119,7 +8119,7 @@ end
 @anchor{gdbrtossupport}
 
 OpenOCD includes RTOS support, this will however need enabling as it defaults to disabled.
-It can be enabled by passing @option{-rtos} arg to the target @xref{rtostype,,RTOS Type}
+It can be enabled by passing @option{-rtos} arg to the target @xref{rtostype,,RTOS Type}.
 
 @* An example setup is below:
 
