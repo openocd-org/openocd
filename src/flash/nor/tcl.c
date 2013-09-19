@@ -605,6 +605,24 @@ void flash_set_dirty(void)
 	}
 }
 
+COMMAND_HANDLER(handle_flash_padded_value_command)
+{
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *p;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+	if (ERROR_OK != retval)
+		return retval;
+
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[1], p->default_padded_value);
+
+	command_print(CMD_CTX, "Default padded value set to 0x%" PRIx8 " for flash bank %u", \
+			p->default_padded_value, p->bank_number);
+
+	return retval;
+}
+
 static const struct command_registration flash_exec_command_handlers[] = {
 	{
 		.name = "probe",
@@ -700,6 +718,13 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.help = "Turn protection on or off for a range of sectors "
 			"in a given flash bank.",
 	},
+	{
+		.name = "padded_value",
+		.handler = handle_flash_padded_value_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id value",
+		.help = "Set default flash padded value",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -711,7 +736,6 @@ static int flash_init_drivers(struct command_context *cmd_ctx)
 	struct command *parent = command_find_in_context(cmd_ctx, "flash");
 	return register_commands(cmd_ctx, parent, flash_exec_command_handlers);
 }
-
 
 COMMAND_HANDLER(handle_flash_bank_command)
 {
@@ -765,6 +789,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], c->size);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], c->chip_width);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[4], c->bus_width);
+	c->default_padded_value = 0xff;
 	c->num_sectors = 0;
 	c->sectors = NULL;
 	c->next = NULL;

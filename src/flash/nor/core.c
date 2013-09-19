@@ -710,7 +710,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 
 			/* see if we need to pad the section */
 			while (padding[section]--)
-				(buffer + buffer_size)[size_read++] = 0xff;
+				(buffer + buffer_size)[size_read++] = c->default_padded_value;
 
 			buffer_size += size_read;
 			section_offset += size_read;

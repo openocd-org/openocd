@@ -87,6 +87,10 @@ struct flash_bank {
 	int chip_width; /**< Width of the chip in bytes (1,2,4 bytes) */
 	int bus_width; /**< Maximum bus width, in bytes (1,2,4 bytes) */
 
+	/** Default padded value used, normally this matches the  flash
+	 * erased value. Defaults to 0xFF. */
+	uint8_t default_padded_value;
+
 	/**
 	 * The number of sectors on this chip.  This value will
 	 * be set intially to 0, and the flash driver must set this to

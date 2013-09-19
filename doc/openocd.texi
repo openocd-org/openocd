@@ -4862,6 +4862,12 @@ specifies "to the end of the flash bank".
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
+@deffn Command {flash padded_value} num value
+Sets the default value used for padding any image sections, This should
+normally match the flash bank erased value. If not specified by this
+comamnd or the flash driver then it defaults to 0xff.
+@end deffn
+
 @anchor{program}
 @deffn Command {program} filename [verify] [reset] [offset]
 This is a helper script that simplifies using OpenOCD as a standalone
