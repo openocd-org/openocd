@@ -1,11 +1,13 @@
 Building OpenOCD for Windows
 ----------------------------
 
-You can build OpenOCD for Windows natively with either MinGW/MSYS or
-Cygwin. Alternatively, one can cross-compile it using MinGW on a *nix
+You can build OpenOCD for Windows natively with either MinGW-w64/MSYS
+or Cygwin (plain MinGW might work with --disable-werror but is not
+recommended as it doesn't provide enough C99 compatibility).
+Alternatively, one can cross-compile it using MinGW-w64 on a *nix
 host. See README for the generic instructions.
 
-Native MinGW/MSYS compilation
+Native MinGW-w64/MSYS compilation
 -----------------------------
 
 As MSYS doesn't come with pkg-config pre-installed, you need to add it
@@ -14,7 +16,7 @@ from:
 
   http://sourceforge.net/projects/pkgconfiglite/
 
-Then simply unzip the archive to the root directory of your MinGW
+Then simply unzip the archive to the root directory of your MinGW-w64
 installation.
 
 USB adapters
