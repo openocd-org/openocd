@@ -2031,11 +2031,12 @@ int target_read_u16(struct target *target, uint32_t address, uint16_t *value)
 
 int target_read_u8(struct target *target, uint32_t address, uint8_t *value)
 {
-	int retval = target_read_memory(target, address, 1, 1, value);
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
+
+	int retval = target_read_memory(target, address, 1, 1, value);
 
 	if (retval == ERROR_OK) {
 		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x",
