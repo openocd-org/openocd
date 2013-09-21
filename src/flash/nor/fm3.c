@@ -760,12 +760,6 @@ static int fm3_auto_probe(struct flash_bank *bank)
 	return fm3_probe(bank);
 }
 
-static int fm3_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "Fujitsu fm3 Device does not support Chip-ID (Type unknown)");
-	return ERROR_OK;
-}
-
 /* Chip erase */
 static int fm3_chip_erase(struct flash_bank *bank)
 {
@@ -907,5 +901,4 @@ struct flash_driver fm3_flash = {
 	.probe = fm3_probe,
 	.auto_probe = fm3_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.info = fm3_info,
 };

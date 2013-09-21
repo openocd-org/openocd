@@ -1588,19 +1588,6 @@ static int lpc2900_protect_check(struct flash_bank *bank)
 	return lpc2900_read_security_status(bank);
 }
 
-/**
- * Print info about the driver (not the device).
- *
- * @param bank Pointer to the flash bank descriptor
- * @param buf Buffer to take the string
- * @param buf_size Maximum number of characters that the buffer can take
- */
-static int lpc2900_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "lpc2900 flash driver");
-	return ERROR_OK;
-}
-
 struct flash_driver lpc2900_flash = {
 	.name = "lpc2900",
 	.commands = lpc2900_command_handlers,
@@ -1613,5 +1600,4 @@ struct flash_driver lpc2900_flash = {
 	.auto_probe = lpc2900_probe,
 	.erase_check = lpc2900_erase_check,
 	.protect_check = lpc2900_protect_check,
-	.info = lpc2900_info
 };

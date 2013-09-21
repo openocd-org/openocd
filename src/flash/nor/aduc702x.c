@@ -352,12 +352,6 @@ static int aduc702x_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int aduc702x_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "aduc702x flash driver info");
-	return ERROR_OK;
-}
-
 /* sets FEEMOD bit 3
  * enable = 1 enables writes & erases, 0 disables them */
 static int aduc702x_set_write_enable(struct target *target, int enable)
@@ -407,5 +401,4 @@ struct flash_driver aduc702x_flash = {
 	.auto_probe = aduc702x_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = aduc702x_protect_check,
-	.info = aduc702x_info
 };

@@ -101,12 +101,13 @@ COMMAND_HANDLER(handle_flash_info_command)
 				protect_state);
 		}
 
-		*buf = '\0';	/* initialize buffer, otherwise it migh contain garbage if driver
-				 *function fails */
-		retval = p->driver->info(p, buf, sizeof(buf));
-		command_print(CMD_CTX, "%s", buf);
-		if (retval != ERROR_OK)
-			LOG_ERROR("error retrieving flash info");
+		if (p->driver->info != NULL) {
+			retval = p->driver->info(p, buf, sizeof(buf));
+			if (retval == ERROR_OK)
+				command_print(CMD_CTX, "%s", buf);
+			else
+				LOG_ERROR("error retrieving flash info");
+		}
 	}
 
 	return retval;

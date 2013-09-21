@@ -3179,16 +3179,6 @@ static int sam3_protect(struct flash_bank *bank, int set, int first, int last)
 
 }
 
-static int sam3_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	buf[0] = 0;
-	return ERROR_OK;
-}
-
 static int sam3_page_read(struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *buf)
 {
 	uint32_t adr;
@@ -3733,5 +3723,4 @@ struct flash_driver at91sam3_flash = {
 	.auto_probe = sam3_auto_probe,
 	.erase_check = sam3_erase_check,
 	.protect_check = sam3_protect_check,
-	.info = sam3_info,
 };

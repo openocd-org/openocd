@@ -751,13 +751,6 @@ static int em357_auto_probe(struct flash_bank *bank)
 	return em357_probe(bank);
 }
 
-
-static int get_em357_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "em357\n");
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(em357_handle_lock_command)
 {
 	struct target *target = NULL;
@@ -946,5 +939,4 @@ struct flash_driver em357_flash = {
 	.auto_probe = em357_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = em357_protect_check,
-	.info = get_em357_info,
 };

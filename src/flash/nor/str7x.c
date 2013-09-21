@@ -707,12 +707,11 @@ COMMAND_HANDLER(str7x_handle_part_id_command)
 
 static int get_str7x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
-	snprintf(buf, buf_size, "str7x flash driver info");
 	/* STR7x flash doesn't support sector protection interrogation.
 	 * FLASH_NVWPAR acts as a write only register; its read value
 	 * doesn't reflect the actual protection state of the sectors.
 	 */
-	LOG_WARNING("STR7x flash lock information might not be correct "
+	snprintf(buf, buf_size, "STR7x flash lock information might not be correct "
 			"due to hardware limitations.");
 	return ERROR_OK;
 }

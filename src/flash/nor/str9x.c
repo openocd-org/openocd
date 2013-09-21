@@ -606,12 +606,6 @@ COMMAND_HANDLER(str9x_handle_part_id_command)
 }
 #endif
 
-static int get_str9x_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "str9x flash driver info");
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(str9x_handle_flash_config_command)
 {
 	struct target *target = NULL;
@@ -686,5 +680,4 @@ struct flash_driver str9x_flash = {
 	.auto_probe = str9x_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = str9x_protect_check,
-	.info = get_str9x_info,
 };

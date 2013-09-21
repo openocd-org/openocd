@@ -395,12 +395,6 @@ static int mini51_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offse
 	return ERROR_OK;
 }
 
-static int get_mini51_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "Mini51 flash driver");
-	return ERROR_OK;
-}
-
 static int mini51_probe(struct flash_bank *bank)
 {
 	uint32_t flash_size;
@@ -454,5 +448,4 @@ struct flash_driver mini51_flash = {
 	.auto_probe = mini51_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = mini51_protect_check,
-	.info = get_mini51_info,
 };

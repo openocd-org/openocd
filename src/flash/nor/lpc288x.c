@@ -400,12 +400,6 @@ static int lpc288x_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int lpc288x_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "lpc288x flash driver");
-	return ERROR_OK;
-}
-
 static int lpc288x_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	int lockregion, status;
@@ -450,5 +444,4 @@ struct flash_driver lpc288x_flash = {
 	.auto_probe = lpc288x_probe,
 	.erase_check = lpc288x_erase_check,
 	.protect_check = lpc288x_protect_check,
-	.info = lpc288x_info,
 };

@@ -760,12 +760,6 @@ static int str9xpec_erase_check(struct flash_bank *bank)
 	return str9xpec_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
-static int get_str9xpec_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	snprintf(buf, buf_size, "str9xpec flash driver info");
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 {
 	uint8_t status;
@@ -1215,5 +1209,4 @@ struct flash_driver str9xpec_flash = {
 	.auto_probe = str9xpec_probe,
 	.erase_check = str9xpec_erase_check,
 	.protect_check = str9xpec_protect_check,
-	.info = get_str9xpec_info,
 };

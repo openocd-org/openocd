@@ -321,11 +321,6 @@ static int ocl_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int ocl_info(struct flash_bank *bank, char *buf, int buf_size)
-{
-	return ERROR_OK;
-}
-
 static int ocl_auto_probe(struct flash_bank *bank)
 {
 	struct ocl_priv *ocl = bank->driver_priv;
@@ -346,6 +341,5 @@ struct flash_driver ocl_flash = {
 	.probe = ocl_probe,
 	.erase_check = ocl_erase_check,
 	.protect_check = ocl_protect_check,
-	.info = ocl_info,
 	.auto_probe = ocl_auto_probe,
 };

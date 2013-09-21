@@ -193,14 +193,6 @@ static int dsp5680xx_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int dsp5680xx_flash_info(struct flash_bank *bank, char *buf,
-		int buf_size)
-{
-	snprintf(buf, buf_size,
-		"\ndsp5680xx flash driver info:\n - See comments in code.");
-	return ERROR_OK;
-}
-
 /**
  * The flash module (FM) on the dsp5680xx supports both individual sector
  * and mass erase of the flash memory.
@@ -277,5 +269,4 @@ struct flash_driver dsp5680xx_flash = {
 	.auto_probe = dsp5680xx_probe,
 	.erase_check = dsp5680xx_flash_erase_check,
 	.protect_check = dsp5680xx_flash_protect_check,
-	.info = dsp5680xx_flash_info
 };
