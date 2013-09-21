@@ -1348,11 +1348,7 @@ static void jlink_tap_append_step(int tms, int tdi)
 {
 	int index_var = tap_length / 8;
 
-	if (index_var >= JLINK_TAP_BUFFER_SIZE) {
-		LOG_ERROR("jlink_tap_append_step: overflow");
-		*(uint32_t *)0xFFFFFFFF = 0;
-		exit(-1);
-	}
+	assert(index_var < JLINK_TAP_BUFFER_SIZE);
 
 	int bit_index = tap_length % 8;
 	uint8_t bit = 1 << bit_index;
