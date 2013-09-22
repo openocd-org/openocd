@@ -2014,18 +2014,14 @@ static int get_reg_features_list(struct target *target, char **feature_list[], i
 	return ERROR_OK;
 }
 
-static int gdb_generate_target_description(struct target *target, char **tdesc)
+static int gdb_generate_target_description(struct target *target, char **tdesc_out)
 {
 	int retval = ERROR_OK;
 	struct reg **reg_list;
 	int reg_list_size;
+	char *tdesc = NULL;
 	int pos = 0;
 	int size = 0;
-
-	xml_printf(&retval, tdesc, &pos, &size,
-			"<?xml version=\"1.0\"?>\n"
-			"<!DOCTYPE target SYSTEM \"gdb-target.dtd\">\n"
-			"<target version=\"1.0\">\n");
 
 	retval = target_get_gdb_reg_list(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
@@ -2035,25 +2031,33 @@ static int gdb_generate_target_description(struct target *target, char **tdesc)
 		return ERROR_FAIL;
 	}
 
-	if (reg_list_size <= 0)
+	if (reg_list_size <= 0) {
+		free(reg_list);
 		return ERROR_FAIL;
+	}
 
 	char **features = NULL;
 	/* Get a list of available target registers features */
 	retval = get_reg_features_list(target, &features, NULL, reg_list, reg_list_size);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Can't get the registers feature list");
+		free(reg_list);
 		return ERROR_FAIL;
 	}
 
 	/* If we found some features associated with registers, create sections */
 	int current_feature = 0;
 
+	xml_printf(&retval, &tdesc, &pos, &size,
+			"<?xml version=\"1.0\"?>\n"
+			"<!DOCTYPE target SYSTEM \"gdb-target.dtd\">\n"
+			"<target version=\"1.0\">\n");
+
 	/* generate target description according to register list */
 	if (features != NULL) {
 		while (features[current_feature]) {
 
-			xml_printf(&retval, tdesc, &pos, &size,
+			xml_printf(&retval, &tdesc, &pos, &size,
 					"<feature name=\"%s\">\n",
 					features[current_feature]);
 
@@ -2070,7 +2074,7 @@ static int gdb_generate_target_description(struct target *target, char **tdesc)
 				if (reg_list[i]->reg_data_type != NULL) {
 					if (reg_list[i]->reg_data_type->type == REG_TYPE_ARCH_DEFINED) {
 						/* generate <type... first, if there are architecture-defined types. */
-						gdb_generate_reg_type_description(target, tdesc, &pos, &size,
+						gdb_generate_reg_type_description(target, &tdesc, &pos, &size,
 								reg_list[i]->reg_data_type);
 
 						type_str = reg_list[i]->reg_data_type->id;
@@ -2084,47 +2088,49 @@ static int gdb_generate_target_description(struct target *target, char **tdesc)
 					type_str = "int";
 				}
 
-				xml_printf(&retval, tdesc, &pos, &size,
+				xml_printf(&retval, &tdesc, &pos, &size,
 						"<reg name=\"%s\"", reg_list[i]->name);
-				xml_printf(&retval, tdesc, &pos, &size,
+				xml_printf(&retval, &tdesc, &pos, &size,
 						" bitsize=\"%d\"", reg_list[i]->size);
-				xml_printf(&retval, tdesc, &pos, &size,
+				xml_printf(&retval, &tdesc, &pos, &size,
 						" regnum=\"%d\"", reg_list[i]->number);
 				if (reg_list[i]->caller_save)
-					xml_printf(&retval, tdesc, &pos, &size,
+					xml_printf(&retval, &tdesc, &pos, &size,
 							" save-restore=\"yes\"");
 				else
-					xml_printf(&retval, tdesc, &pos, &size,
+					xml_printf(&retval, &tdesc, &pos, &size,
 							" save-restore=\"no\"");
 
-				xml_printf(&retval, tdesc, &pos, &size,
+				xml_printf(&retval, &tdesc, &pos, &size,
 						" type=\"%s\"", type_str);
 
 				if (reg_list[i]->group != NULL)
-					xml_printf(&retval, tdesc, &pos, &size,
+					xml_printf(&retval, &tdesc, &pos, &size,
 							" group=\"%s\"", reg_list[i]->group);
 
-				xml_printf(&retval, tdesc, &pos, &size,
+				xml_printf(&retval, &tdesc, &pos, &size,
 						"/>\n");
 			}
 
-			xml_printf(&retval, tdesc, &pos, &size,
+			xml_printf(&retval, &tdesc, &pos, &size,
 					"</feature>\n");
 
 			current_feature++;
 		}
 	}
 
-	xml_printf(&retval, tdesc, &pos, &size,
+	xml_printf(&retval, &tdesc, &pos, &size,
 			"</target>\n");
 
-	if (reg_list != NULL)
-		free(reg_list);
+	free(reg_list);
+	free(features);
 
-	if (features != NULL)
-		free(features);
+	if (retval == ERROR_OK)
+		*tdesc_out = tdesc;
+	else
+		free(tdesc);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int gdb_get_target_description_chunk(struct target *target, struct target_desc_format *target_desc,
@@ -3012,7 +3018,6 @@ COMMAND_HANDLER(handle_gdb_save_tdesc_command)
 	char *tdesc;
 	uint32_t tdesc_length;
 	struct target *target = get_current_target(CMD_CTX);
-	char *tdesc_filename;
 
 	int retval = gdb_generate_target_description(target, &tdesc);
 	if (retval != ERROR_OK) {
@@ -3022,37 +3027,34 @@ COMMAND_HANDLER(handle_gdb_save_tdesc_command)
 
 	tdesc_length = strlen(tdesc);
 
-	if (tdesc_length == 0) {
-		LOG_ERROR("Unable to Generate Target Description");
-		return ERROR_FAIL;
-	}
-
 	struct fileio fileio;
 	size_t size_written;
 
-	tdesc_filename = malloc(strlen(target_type_name(target)) + 5);
-	sprintf(tdesc_filename, "%s.xml", target_type_name(target));
+	char *tdesc_filename = alloc_printf("%s.xml", target_type_name(target));
+	if (tdesc_filename == NULL) {
+		retval = ERROR_FAIL;
+		goto out;
+	}
 
 	retval = fileio_open(&fileio, tdesc_filename, FILEIO_WRITE, FILEIO_TEXT);
 
 	if (retval != ERROR_OK) {
-		LOG_WARNING("Can't open %s for writing", tdesc_filename);
-		free(tdesc_filename);
-		return ERROR_FAIL;
+		LOG_ERROR("Can't open %s for writing", tdesc_filename);
+		goto out;
 	}
 
 	retval = fileio_write(&fileio, tdesc_length, tdesc, &size_written);
 
 	fileio_close(&fileio);
+
+	if (retval != ERROR_OK)
+		LOG_ERROR("Error while writing the tdesc file");
+
+out:
 	free(tdesc_filename);
 	free(tdesc);
 
-	if (retval != ERROR_OK) {
-		LOG_WARNING("Error while writing the tdesc file");
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
+	return retval;
 }
 
 static const struct command_registration gdb_command_handlers[] = {
