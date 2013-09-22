@@ -261,41 +261,16 @@ int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 	return dap_run(dap);
 }
 
-/*****************************************************************************
-*                                                                            *
-* mem_ap_write_buf(struct adiv5_dap *dap, uint8_t *buffer, int count, uint32_t address, bool addr_incr) *
-*                                                                            *
-* Write a buffer in target order (little endian)                             *
-*                                                                            *
-*****************************************************************************/
 int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address, bool addr_incr)
 {
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	uint32_t adr = address;
-	const uint8_t *pBuffer = buffer;
-	uint32_t incr_flag = CSW_ADDRINC_OFF;
+	uint32_t incr_flag = addr_incr ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
 
-	count >>= 2;
-	wcount = count;
-
-	/* if we have an unaligned access - reorder data */
-	if (adr & 0x3u) {
-		for (writecount = 0; writecount < count; writecount++) {
-			int i;
-			uint32_t outvalue;
-			memcpy(&outvalue, pBuffer, sizeof(uint32_t));
-
-			for (i = 0; i < 4; i++) {
-				*((uint8_t *)pBuffer + (adr & 0x3)) = outvalue;
-				outvalue >>= 8;
-				adr++;
-			}
-			pBuffer += sizeof(uint32_t);
-		}
-	}
+	wcount = count >> 2;
 
 	while (wcount > 0) {
-		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
+		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
 		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 		if (wcount < blocksize)
 			blocksize = wcount;
@@ -304,27 +279,27 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count
 		if (blocksize == 0)
 			blocksize = 1;
 
-		if (addr_incr)
-			incr_flag = CSW_ADDRINC_SINGLE;
-
 		retval = dap_setup_accessport(dap, CSW_32BIT | incr_flag, address);
 		if (retval != ERROR_OK)
 			return retval;
 
 		for (writecount = 0; writecount < blocksize; writecount++) {
-			uint32_t tmp;
-			tmp = buf_get_u32(buffer + 4 * writecount, 0, 32);
-			retval = dap_queue_ap_write(dap, AP_REG_DRW, tmp);
+			uint32_t outvalue = 0;
+			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
+			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
+			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
+			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
+
+			retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
 			if (retval != ERROR_OK)
 				break;
 		}
 
 		retval = dap_run(dap);
 		if (retval == ERROR_OK) {
-			wcount = wcount - blocksize;
+			wcount -= blocksize;
 			if (addr_incr)
-				address = address + 4 * blocksize;
-			buffer = buffer + 4 * blocksize;
+				address += 4 * blocksize;
 		} else
 			errorcount++;
 
@@ -341,14 +316,14 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 		const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
-	int wcount, blocksize, writecount, i;
+	int wcount, blocksize, writecount;
 
 	wcount = count >> 1;
 
 	while (wcount > 0) {
 		int nbytes;
 
-		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
+		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
 		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
@@ -376,18 +351,17 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 					return retval;
 				}
 
-				address += nbytes >> 1;
+				address += nbytes;
+				buffer += nbytes;
 			} else {
-				uint32_t outvalue;
-				memcpy(&outvalue, buffer, sizeof(uint32_t));
+				assert(nbytes == 4);
 
-				for (i = 0; i < nbytes; i++) {
-					*((uint8_t *)buffer + (address & 0x3)) = outvalue;
-					outvalue >>= 8;
-					address++;
-				}
+				uint32_t outvalue = 0;
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
 
-				memcpy(&outvalue, buffer, sizeof(uint32_t));
 				retval = dap_queue_ap_write(dap,
 						AP_REG_DRW, outvalue);
 				if (retval != ERROR_OK)
@@ -402,7 +376,6 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 				}
 			}
 
-			buffer += nbytes >> 1;
 			writecount -= nbytes >> 1;
 
 		} while (writecount);
@@ -423,9 +396,11 @@ int mem_ap_write_buf_u16(struct adiv5_dap *dap, const uint8_t *buffer, int count
 		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
 		if (retval != ERROR_OK)
 			return retval;
-		uint16_t svalue;
-		memcpy(&svalue, buffer, sizeof(uint16_t));
-		uint32_t outvalue = (uint32_t)svalue << 8 * (address & 0x3);
+
+		uint32_t outvalue = 0;
+		outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+		outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+
 		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
 		if (retval != ERROR_OK)
 			break;
@@ -435,8 +410,6 @@ int mem_ap_write_buf_u16(struct adiv5_dap *dap, const uint8_t *buffer, int count
 			break;
 
 		count -= 2;
-		address += 2;
-		buffer += 2;
 	}
 
 	return retval;
@@ -446,14 +419,14 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 		const uint8_t *buffer, int count, uint32_t address)
 {
 	int retval = ERROR_OK;
-	int wcount, blocksize, writecount, i;
+	int wcount, blocksize, writecount;
 
 	wcount = count;
 
 	while (wcount > 0) {
 		int nbytes;
 
-		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
+		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
 		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
@@ -477,17 +450,16 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 				}
 
 				address += nbytes;
+				buffer += nbytes;
 			} else {
-				uint32_t outvalue;
-				memcpy(&outvalue, buffer, sizeof(uint32_t));
+				assert(nbytes == 4);
 
-				for (i = 0; i < nbytes; i++) {
-					*((uint8_t *)buffer + (address & 0x3)) = outvalue;
-					outvalue >>= 8;
-					address++;
-				}
+				uint32_t outvalue = 0;
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
 
-				memcpy(&outvalue, buffer, sizeof(uint32_t));
 				retval = dap_queue_ap_write(dap,
 						AP_REG_DRW, outvalue);
 				if (retval != ERROR_OK)
@@ -502,7 +474,6 @@ static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
 				}
 			}
 
-			buffer += nbytes;
 			writecount -= nbytes;
 
 		} while (writecount);
@@ -523,7 +494,7 @@ int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count,
 		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
 		if (retval != ERROR_OK)
 			return retval;
-		uint32_t outvalue = (uint32_t)*buffer << 8 * (address & 0x3);
+		uint32_t outvalue = (uint32_t)*buffer++ << 8 * (address++ & 0x3);
 		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
 		if (retval != ERROR_OK)
 			break;
@@ -533,8 +504,6 @@ int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count,
 			break;
 
 		count--;
-		address++;
-		buffer++;
 	}
 
 	return retval;
