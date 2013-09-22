@@ -82,7 +82,7 @@
 */
 static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address)
 {
-	return (tar_autoincr_block - ((tar_autoincr_block - 1) & address)) >> 2;
+	return tar_autoincr_block - ((tar_autoincr_block - 1) & address);
 }
 
 /***************************************************************************
@@ -271,7 +271,7 @@ int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count
 
 	while (wcount > 0) {
 		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 4;
 		if (wcount < blocksize)
 			blocksize = wcount;
 
@@ -324,7 +324,7 @@ static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
 		int nbytes;
 
 		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 2;
 
 		if (wcount < blocksize)
 			blocksize = wcount;
@@ -534,8 +534,7 @@ int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 		 * TAR autoincrement size (at least 2^10).  Autoincrement
 		 * mode avoids an extra per-word roundtrip to update TAR.
 		 */
-		blocksize = max_tar_block_size(dap->tar_autoincr_block,
-				address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 4;
 		if (wcount < blocksize)
 			blocksize = wcount;
 
@@ -601,7 +600,7 @@ static int mem_ap_read_buf_packed_u16(struct adiv5_dap *dap,
 		int nbytes;
 
 		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
+		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 2;
 		if (wcount < blocksize)
 			blocksize = wcount;
 
