@@ -3424,10 +3424,10 @@ static int aice_usb_memory_mode(uint32_t coreid, enum nds_memory_select mem_sele
 	return ERROR_OK;
 }
 
-static int aice_usb_read_tlb(uint32_t coreid, uint32_t virtual_address,
-		uint32_t *physical_address)
+static int aice_usb_read_tlb(uint32_t coreid, target_addr_t virtual_address,
+		target_addr_t *physical_address)
 {
-	LOG_DEBUG("aice_usb_read_tlb, virtual address: 0x%08" PRIx32, virtual_address);
+	LOG_DEBUG("aice_usb_read_tlb, virtual address: 0x%08" TARGET_PRIxADDR, virtual_address);
 
 	uint32_t instructions[4];
 	uint32_t probe_result;

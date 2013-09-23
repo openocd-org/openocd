@@ -1410,6 +1410,8 @@ DEFINE_PARSE_ULONGLONG(_u32,  uint32_t, 0, UINT32_MAX)
 DEFINE_PARSE_ULONGLONG(_u16,  uint16_t, 0, UINT16_MAX)
 DEFINE_PARSE_ULONGLONG(_u8,   uint8_t,  0, UINT8_MAX)
 
+DEFINE_PARSE_ULONGLONG(_target_addr, target_addr_t, 0, TARGET_ADDR_MAX)
+
 #define DEFINE_PARSE_LONGLONG(name, type, min, max) \
 	DEFINE_PARSE_WRAPPER(name, type, min, max, long long, _llong)
 DEFINE_PARSE_LONGLONG(_int, int,     n < INT_MIN,   INT_MAX)

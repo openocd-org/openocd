@@ -553,7 +553,7 @@ static int arm920_mmu(struct target *target, int *enabled)
 }
 
 static int arm920_virt2phys(struct target *target,
-	uint32_t virt, uint32_t *phys)
+	target_addr_t virt, target_addr_t *phys)
 {
 	uint32_t cb;
 	struct arm920t_common *arm920t = target_to_arm920(target);
@@ -568,7 +568,7 @@ static int arm920_virt2phys(struct target *target,
 }
 
 /** Reads a buffer, in the specified word size, with current MMU settings. */
-int arm920t_read_memory(struct target *target, uint32_t address,
+int arm920t_read_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
@@ -580,7 +580,7 @@ int arm920t_read_memory(struct target *target, uint32_t address,
 
 
 static int arm920t_read_phys_memory(struct target *target,
-	uint32_t address, uint32_t size,
+	target_addr_t address, uint32_t size,
 	uint32_t count, uint8_t *buffer)
 {
 	struct arm920t_common *arm920t = target_to_arm920(target);
@@ -590,7 +590,7 @@ static int arm920t_read_phys_memory(struct target *target,
 }
 
 static int arm920t_write_phys_memory(struct target *target,
-	uint32_t address, uint32_t size,
+	target_addr_t address, uint32_t size,
 	uint32_t count, const uint8_t *buffer)
 {
 	struct arm920t_common *arm920t = target_to_arm920(target);
@@ -600,7 +600,7 @@ static int arm920t_write_phys_memory(struct target *target,
 }
 
 /** Writes a buffer, in the specified word size, with current MMU settings. */
-int arm920t_write_memory(struct target *target, uint32_t address,
+int arm920t_write_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	int retval;

@@ -46,7 +46,7 @@ enum image_type {
 };
 
 struct imagesection {
-	uint32_t base_address;
+	target_addr_t base_address;
 	uint32_t size;
 	int flags;
 	void *private;		/* private data */

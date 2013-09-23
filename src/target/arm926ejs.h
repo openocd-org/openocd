@@ -47,7 +47,7 @@ int arm926ejs_init_arch_info(struct target *target,
 		struct arm926ejs_common *arm926ejs, struct jtag_tap *tap);
 int arm926ejs_arch_state(struct target *target);
 int arm926ejs_write_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+		target_addr_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 int arm926ejs_soft_reset_halt(struct target *target);
 
 extern const struct command_registration arm926ejs_command_handlers[];

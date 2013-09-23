@@ -1035,7 +1035,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		ejtag_info->fast_access_save = write_t;
 	}
 
-	LOG_DEBUG("%s using 0x%.8" PRIx32 " for write handler", __func__, source->address);
+	LOG_DEBUG("%s using 0x%.8" TARGET_PRIxADDR " for write handler", __func__, source->address);
 
 	jmp_code[0] |= UPPER16(source->address);
 	jmp_code[1] |= LOWER16(source->address);

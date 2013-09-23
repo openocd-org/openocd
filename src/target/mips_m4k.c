@@ -44,7 +44,7 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 		uint32_t address, int handle_breakpoints,
 		int debug_execution);
 static int mips_m4k_halt(struct target *target);
-static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
+static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,
 		uint32_t count, const uint8_t *buffer);
 
 static int mips_m4k_examine_debug_reason(struct target *target)
@@ -469,7 +469,8 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at " TARGET_ADDR_FMT "",
+					  breakpoint->address);
 			mips_m4k_unset_breakpoint(target, breakpoint);
 			mips_m4k_single_step_core(target);
 			mips_m4k_set_breakpoint(target, breakpoint);
@@ -500,7 +501,7 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 }
 
 static int mips_m4k_resume(struct target *target, int current,
-		uint32_t address, int handle_breakpoints, int debug_execution)
+		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	int retval = ERROR_OK;
 
@@ -527,7 +528,7 @@ static int mips_m4k_resume(struct target *target, int current,
 }
 
 static int mips_m4k_step(struct target *target, int current,
-		uint32_t address, int handle_breakpoints)
+		target_addr_t address, int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -655,7 +656,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 			if (retval != ERROR_OK)
 				return retval;
 			if (verify != MIPS32_SDBBP) {
-				LOG_ERROR("Unable to set 32bit breakpoint at address %08" PRIx32
+				LOG_ERROR("Unable to set 32-bit breakpoint at address " TARGET_ADDR_FMT
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
@@ -674,7 +675,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 			if (retval != ERROR_OK)
 				return retval;
 			if (verify != MIPS16_SDBBP) {
-				LOG_ERROR("Unable to set 16bit breakpoint at address %08" PRIx32
+				LOG_ERROR("Unable to set 16-bit breakpoint at address " TARGET_ADDR_FMT
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
@@ -949,13 +950,13 @@ static void mips_m4k_enable_watchpoints(struct target *target)
 	}
 }
 
-static int mips_m4k_read_memory(struct target *target, uint32_t address,
+static int mips_m4k_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
 			address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -1008,13 +1009,13 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 	return retval;
 }
 
-static int mips_m4k_write_memory(struct target *target, uint32_t address,
+static int mips_m4k_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
 			address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -1139,7 +1140,7 @@ static int mips_m4k_examine(struct target *target)
 	return ERROR_OK;
 }
 
-static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
+static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,
 		uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -1148,7 +1149,8 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 	int retval;
 	int write_t = 1;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, count);
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", count: 0x%8.8" PRIx32 "",
+			  address, count);
 
 	/* check alignment */
 	if (address & 0x3u)
@@ -1175,8 +1177,8 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 
 	if (address <= fast_data_area->address + fast_data_area->size &&
 			fast_data_area->address <= address + count) {
-		LOG_ERROR("fast_data (0x%8.8" PRIx32 ") is within write area "
-			  "(0x%8.8" PRIx32 "-0x%8.8" PRIx32 ").",
+		LOG_ERROR("fast_data (" TARGET_ADDR_FMT ") is within write area "
+			  "(" TARGET_ADDR_FMT "-" TARGET_ADDR_FMT ").",
 			  fast_data_area->address, address, address + count);
 		LOG_ERROR("Change work-area-phys or load_image address!");
 		return ERROR_FAIL;

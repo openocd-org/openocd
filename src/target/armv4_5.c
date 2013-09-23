@@ -816,7 +816,7 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 	}
 
 	struct arm *arm = target_to_arm(target);
-	uint32_t address;
+	target_addr_t address;
 	int count = 1;
 	int thumb = 0;
 
@@ -840,7 +840,7 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 			COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], count);
 		/* FALL THROUGH */
 		case 1:
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+			COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
 			if (address & 0x01) {
 				if (!thumb) {
 					command_print(CMD_CTX, "Disassemble as Thumb");
@@ -1434,8 +1434,8 @@ int armv4_5_run_algorithm(struct target *target,
 	struct mem_param *mem_params,
 	int num_reg_params,
 	struct reg_param *reg_params,
-	uint32_t entry_point,
-	uint32_t exit_point,
+	target_addr_t entry_point,
+	target_addr_t exit_point,
 	int timeout_ms,
 	void *arch_info)
 {
@@ -1444,8 +1444,8 @@ int armv4_5_run_algorithm(struct target *target,
 			mem_params,
 			num_reg_params,
 			reg_params,
-			entry_point,
-			exit_point,
+			(uint32_t)entry_point,
+			(uint32_t)exit_point,
 			timeout_ms,
 			arch_info,
 			armv4_5_run_algorithm_completion);
@@ -1456,7 +1456,7 @@ int armv4_5_run_algorithm(struct target *target,
  *
  */
 int arm_checksum_memory(struct target *target,
-	uint32_t address, uint32_t count, uint32_t *checksum)
+	target_addr_t address, uint32_t count, uint32_t *checksum)
 {
 	struct working_area *crc_algorithm;
 	struct arm_algorithm arm_algo;
@@ -1529,7 +1529,7 @@ cleanup:
  *
  */
 int arm_blank_check_memory(struct target *target,
-	uint32_t address, uint32_t count, uint32_t *blank, uint8_t erased_value)
+	target_addr_t address, uint32_t count, uint32_t *blank, uint8_t erased_value)
 {
 	struct working_area *check_algorithm;
 	struct reg_param reg_params[3];

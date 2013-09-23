@@ -1312,7 +1312,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	busy_pattern_val  = cfi_command_val(bank, 0x80);
 	error_pattern_val = cfi_command_val(bank, 0x7e);
 
-	LOG_DEBUG("Using target buffer at 0x%08" PRIx32 " and of size 0x%04" PRIx32,
+	LOG_DEBUG("Using target buffer at " TARGET_ADDR_FMT " and of size 0x%04" PRIx32,
 		source->address, buffer_size);
 
 	/* Programming main loop */
