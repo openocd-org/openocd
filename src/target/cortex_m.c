@@ -1892,7 +1892,7 @@ static int cortex_m3_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *
 	uint16_t dcrdr;
 	int retval;
 
-	mem_ap_read_buf_u16(swjdp, (uint8_t *)&dcrdr, 1, DCB_DCRDR);
+	mem_ap_read_buf_u16(swjdp, (uint8_t *)&dcrdr, 2, DCB_DCRDR);
 	*ctrl = (uint8_t)dcrdr;
 	*value = (uint8_t)(dcrdr >> 8);
 
@@ -1902,7 +1902,7 @@ static int cortex_m3_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *
 	 * signify we have read data */
 	if (dcrdr & (1 << 0)) {
 		dcrdr = 0;
-		retval = mem_ap_write_buf_u16(swjdp, (uint8_t *)&dcrdr, 1, DCB_DCRDR);
+		retval = mem_ap_write_buf_u16(swjdp, (uint8_t *)&dcrdr, 2, DCB_DCRDR);
 		if (retval != ERROR_OK)
 			return retval;
 	}
