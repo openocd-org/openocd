@@ -1583,7 +1583,6 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = armv7m->arm.dap;
-	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (armv7m->arm.is_armv6m) {
 		/* armv6m does not handle unaligned memory access */
@@ -1591,22 +1590,7 @@ static int cortex_m3_read_memory(struct target *target, uint32_t address,
 			return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
-	/* cortex_m3 handles unaligned memory access */
-	if (count && buffer) {
-		switch (size) {
-			case 4:
-				retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address, true);
-				break;
-			case 2:
-				retval = mem_ap_read_buf_u16(swjdp, buffer, 2 * count, address);
-				break;
-			case 1:
-				retval = mem_ap_read_buf_u8(swjdp, buffer, count, address);
-				break;
-		}
-	}
-
-	return retval;
+	return mem_ap_read(swjdp, buffer, size, count, address, true);
 }
 
 static int cortex_m3_write_memory(struct target *target, uint32_t address,
@@ -1614,7 +1598,6 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct adiv5_dap *swjdp = armv7m->arm.dap;
-	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (armv7m->arm.is_armv6m) {
 		/* armv6m does not handle unaligned memory access */
@@ -1622,21 +1605,7 @@ static int cortex_m3_write_memory(struct target *target, uint32_t address,
 			return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
-	if (count && buffer) {
-		switch (size) {
-			case 4:
-				retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address, true);
-				break;
-			case 2:
-				retval = mem_ap_write_buf_u16(swjdp, buffer, 2 * count, address);
-				break;
-			case 1:
-				retval = mem_ap_write_buf_u8(swjdp, buffer, count, address);
-				break;
-		}
-	}
-
-	return retval;
+	return mem_ap_write(swjdp, buffer, size, count, address, true);
 }
 
 static int cortex_m3_init_target(struct command_context *cmd_ctx,
