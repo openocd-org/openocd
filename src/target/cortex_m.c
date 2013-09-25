@@ -214,6 +214,24 @@ static int cortex_m_single_step_core(struct target *target)
 	return ERROR_OK;
 }
 
+static int cortex_m_enable_fpb(struct target *target)
+{
+	int retval = target_write_u32(target, FP_CTRL, 3);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* check the fpb is actually enabled */
+	uint32_t fpctrl;
+	retval = target_read_u32(target, FP_CTRL, &fpctrl);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (fpctrl & 1)
+		return ERROR_OK;
+
+	return ERROR_FAIL;
+}
+
 static int cortex_m_endreset_event(struct target *target)
 {
 	int i;
@@ -265,9 +283,11 @@ static int cortex_m_endreset_event(struct target *target)
 	 */
 
 	/* Enable FPB */
-	retval = target_write_u32(target, FP_CTRL, 3);
-	if (retval != ERROR_OK)
+	retval = cortex_m_enable_fpb(target);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Failed to enable the FPB");
 		return retval;
+	}
 
 	cortex_m->fpb_enabled = 1;
 
@@ -1134,7 +1154,13 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 			comparator_list[fp_num].fpcr_value);
 		if (!cortex_m->fpb_enabled) {
 			LOG_DEBUG("FPB wasn't enabled, do it now");
-			target_write_u32(target, FP_CTRL, 3);
+			retval = cortex_m_enable_fpb(target);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Failed to enable the FPB");
+				return retval;
+			}
+
+			cortex_m->fpb_enabled = 1;
 		}
 	} else if (breakpoint->type == BKPT_SOFT) {
 		uint8_t code[4];
