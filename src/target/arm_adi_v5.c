@@ -10,6 +10,9 @@
  *                                                                         *
  *   Copyright (C) 2009-2010 by David Brownell                             *
  *                                                                         *
+ *   Copyright (C) 2013 by Andreas Fritiofson                              *
+ *   andreas.fritiofson@gmail.com                                          *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -115,6 +118,33 @@ void dap_ap_select(struct adiv5_dap *dap, uint8_t ap)
 	}
 }
 
+static int dap_setup_accessport_csw(struct adiv5_dap *dap, uint32_t csw)
+{
+	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
+		dap->apcsw[dap->ap_current >> 24];
+
+	if (csw != dap->ap_csw_value) {
+		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
+		int retval = dap_queue_ap_write(dap, AP_REG_CSW, csw);
+		if (retval != ERROR_OK)
+			return retval;
+		dap->ap_csw_value = csw;
+	}
+	return ERROR_OK;
+}
+
+static int dap_setup_accessport_tar(struct adiv5_dap *dap, uint32_t tar)
+{
+	if (tar != dap->ap_tar_value || dap->ap_csw_value & CSW_ADDRINC_MASK) {
+		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
+		int retval = dap_queue_ap_write(dap, AP_REG_TAR, tar);
+		if (retval != ERROR_OK)
+			return retval;
+		dap->ap_tar_value = tar;
+	}
+	return ERROR_OK;
+}
+
 /**
  * Queue transactions setting up transfer parameters for the
  * currently selected MEM-AP.
@@ -137,26 +167,12 @@ void dap_ap_select(struct adiv5_dap *dap, uint8_t ap)
 int dap_setup_accessport(struct adiv5_dap *dap, uint32_t csw, uint32_t tar)
 {
 	int retval;
-	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
-		dap->apcsw[dap->ap_current >> 24];
-
-	if (csw != dap->ap_csw_value) {
-		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
-		retval = dap_queue_ap_write(dap, AP_REG_CSW, csw);
-		if (retval != ERROR_OK)
-			return retval;
-		dap->ap_csw_value = csw;
-	}
-	if (tar != dap->ap_tar_value) {
-		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
-		retval = dap_queue_ap_write(dap, AP_REG_TAR, tar);
-		if (retval != ERROR_OK)
-			return retval;
-		dap->ap_tar_value = tar;
-	}
-	/* Disable TAR cache when autoincrementing */
-	if (csw & CSW_ADDRINC_MASK)
-		dap->ap_tar_value = -1;
+	retval = dap_setup_accessport_csw(dap, csw);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = dap_setup_accessport_tar(dap, tar);
+	if (retval != ERROR_OK)
+		return retval;
 	return ERROR_OK;
 }
 
@@ -261,521 +277,257 @@ int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 	return dap_run(dap);
 }
 
-int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address, bool addr_incr)
+/**
+ * Synchronous write of a block of memory, using a specific access size.
+ *
+ * @param dap The DAP connected to the MEM-AP.
+ * @param buffer The data buffer to write. No particular alignment is assumed.
+ * @param size Which access size to use, in bytes. 1, 2 or 4.
+ * @param count The number of writes to do (in size units, not bytes).
+ * @param address Address to be written; it must be writable by the currently selected MEM-AP.
+ * @param addrinc Whether the target address should be increased for each write or not. This
+ *  should normally be true, except when writing to e.g. a FIFO.
+ * @return ERROR_OK on success, otherwise an error code.
+ */
+int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, uint32_t count,
+		uint32_t address, bool addrinc)
 {
-	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
-	uint32_t adr = address;
-	uint32_t incr_flag = addr_incr ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
+	size_t nbytes = size * count;
+	const uint32_t csw_addrincr = addrinc ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
+	uint32_t csw_size;
+	int retval;
 
-	wcount = count >> 2;
+	if (size == 4)
+		csw_size = CSW_32BIT;
+	else if (size == 2)
+		csw_size = CSW_16BIT;
+	else if (size == 1)
+		csw_size = CSW_8BIT;
+	else
+		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	while (wcount > 0) {
-		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 4;
-		if (wcount < blocksize)
-			blocksize = wcount;
+	retval = dap_setup_accessport_tar(dap, address);
+	if (retval != ERROR_OK)
+		return retval;
 
-		/* handle unaligned data at 4k boundary */
-		if (blocksize == 0)
-			blocksize = 1;
+	while (nbytes > 0) {
+		uint32_t this_size = size;
 
-		retval = dap_setup_accessport(dap, CSW_32BIT | incr_flag, address);
+		/* Select packed transfer if possible */
+		if (addrinc && dap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
+			this_size = 4;
+			retval = dap_setup_accessport_csw(dap, csw_size | CSW_ADDRINC_PACKED);
+		} else {
+			retval = dap_setup_accessport_csw(dap, csw_size | csw_addrincr);
+		}
+
 		if (retval != ERROR_OK)
-			return retval;
+			break;
 
-		for (writecount = 0; writecount < blocksize; writecount++) {
-			uint32_t outvalue = 0;
-			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
-			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
-			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
-			outvalue |= (uint32_t)*buffer++ << 8 * (adr++ & 3);
+		/* How many source bytes each transfer will consume, and their location in the DRW,
+		 * depends on the type of transfer and alignment. See ARM document IHI0031C. */
+		uint32_t outvalue = 0;
+		switch (this_size) {
+		case 4:
+			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+		case 2:
+			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+		case 1:
+			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+		}
 
-			retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
+		nbytes -= this_size;
+
+		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
+		if (retval != ERROR_OK)
+			break;
+
+		/* Rewrite TAR if it wrapped */
+		if (addrinc && address % dap->tar_autoincr_block < size && nbytes > 0) {
+			retval = dap_setup_accessport_tar(dap, address);
 			if (retval != ERROR_OK)
 				break;
 		}
+	}
 
+	/* REVISIT: Might want to have a queued version of this function that does not run. */
+	if (retval == ERROR_OK)
 		retval = dap_run(dap);
-		if (retval == ERROR_OK) {
-			wcount -= blocksize;
-			if (addr_incr)
-				address += 4 * blocksize;
-		} else
-			errorcount++;
 
-		if (errorcount > 1) {
-			LOG_WARNING("Block write error address 0x%" PRIx32 ", wcount 0x%x", address, wcount);
-			return retval;
-		}
+	if (retval != ERROR_OK) {
+		uint32_t tar;
+		if (dap_queue_ap_read(dap, AP_REG_TAR, &tar) == ERROR_OK
+				&& dap_run(dap) == ERROR_OK)
+			LOG_ERROR("Failed to write memory at 0x%08"PRIx32, tar);
+		else
+			LOG_ERROR("Failed to write memory and, additionally, failed to find out where");
 	}
 
 	return retval;
 }
 
-static int mem_ap_write_buf_packed_u16(struct adiv5_dap *dap,
-		const uint8_t *buffer, int count, uint32_t address)
+/* Compatibility wrappers around mem_ap_write(). Note that the count is in bytes for these. */
+int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address, bool addr_incr)
 {
-	int retval = ERROR_OK;
-	int wcount, blocksize, writecount;
-
-	wcount = count >> 1;
-
-	while (wcount > 0) {
-		int nbytes;
-
-		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 2;
-
-		if (wcount < blocksize)
-			blocksize = wcount;
-
-		/* handle unaligned data at 4k boundary */
-		if (blocksize == 0)
-			blocksize = 1;
-
-		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
-		if (retval != ERROR_OK)
-			return retval;
-		writecount = blocksize;
-
-		do {
-			nbytes = MIN((writecount << 1), 4);
-
-			if (nbytes < 4) {
-				retval = mem_ap_write_buf_u16(dap, buffer,
-						nbytes, address);
-				if (retval != ERROR_OK) {
-					LOG_WARNING("Block write error address "
-						"0x%" PRIx32 ", count 0x%x",
-						address, count);
-					return retval;
-				}
-
-				address += nbytes;
-				buffer += nbytes;
-			} else {
-				assert(nbytes == 4);
-
-				uint32_t outvalue = 0;
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-
-				retval = dap_queue_ap_write(dap,
-						AP_REG_DRW, outvalue);
-				if (retval != ERROR_OK)
-					break;
-
-				retval = dap_run(dap);
-				if (retval != ERROR_OK) {
-					LOG_WARNING("Block write error address "
-						"0x%" PRIx32 ", count 0x%x",
-						address, count);
-					return retval;
-				}
-			}
-
-			writecount -= nbytes >> 1;
-
-		} while (writecount);
-		wcount -= blocksize;
-	}
-
-	return retval;
+	return mem_ap_write(dap, buffer, 4, count / 4, address, true);
 }
 
 int mem_ap_write_buf_u16(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
-	int retval = ERROR_OK;
-
-	if (dap->packed_transfers && count >= 4)
-		return mem_ap_write_buf_packed_u16(dap, buffer, count, address);
-
-	while (count > 0) {
-		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
-		if (retval != ERROR_OK)
-			return retval;
-
-		uint32_t outvalue = 0;
-		outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-		outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-
-		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
-		if (retval != ERROR_OK)
-			break;
-
-		retval = dap_run(dap);
-		if (retval != ERROR_OK)
-			break;
-
-		count -= 2;
-	}
-
-	return retval;
-}
-
-static int mem_ap_write_buf_packed_u8(struct adiv5_dap *dap,
-		const uint8_t *buffer, int count, uint32_t address)
-{
-	int retval = ERROR_OK;
-	int wcount, blocksize, writecount;
-
-	wcount = count;
-
-	while (wcount > 0) {
-		int nbytes;
-
-		/* Adjust to write blocks within boundaries aligned to the TAR auto-increment size */
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
-
-		if (wcount < blocksize)
-			blocksize = wcount;
-
-		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
-		if (retval != ERROR_OK)
-			return retval;
-		writecount = blocksize;
-
-		do {
-			nbytes = MIN(writecount, 4);
-
-			if (nbytes < 4) {
-				retval = mem_ap_write_buf_u8(dap, buffer, nbytes, address);
-				if (retval != ERROR_OK) {
-					LOG_WARNING("Block write error address "
-						"0x%" PRIx32 ", count 0x%x",
-						address, count);
-					return retval;
-				}
-
-				address += nbytes;
-				buffer += nbytes;
-			} else {
-				assert(nbytes == 4);
-
-				uint32_t outvalue = 0;
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-
-				retval = dap_queue_ap_write(dap,
-						AP_REG_DRW, outvalue);
-				if (retval != ERROR_OK)
-					break;
-
-				retval = dap_run(dap);
-				if (retval != ERROR_OK) {
-					LOG_WARNING("Block write error address "
-						"0x%" PRIx32 ", count 0x%x",
-						address, count);
-					return retval;
-				}
-			}
-
-			writecount -= nbytes;
-
-		} while (writecount);
-		wcount -= blocksize;
-	}
-
-	return retval;
+	return mem_ap_write(dap, buffer, 2, count / 2, address, true);
 }
 
 int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
 {
-	int retval = ERROR_OK;
-
-	if (dap->packed_transfers && count >= 4)
-		return mem_ap_write_buf_packed_u8(dap, buffer, count, address);
-
-	while (count > 0) {
-		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
-		if (retval != ERROR_OK)
-			return retval;
-		uint32_t outvalue = (uint32_t)*buffer++ << 8 * (address++ & 0x3);
-		retval = dap_queue_ap_write(dap, AP_REG_DRW, outvalue);
-		if (retval != ERROR_OK)
-			break;
-
-		retval = dap_run(dap);
-		if (retval != ERROR_OK)
-			break;
-
-		count--;
-	}
-
-	return retval;
+	return mem_ap_write(dap, buffer, 1, count, address, true);
 }
 
 /**
- * Synchronously read a block of 32-bit words into a buffer
+ * Synchronous read of a block of memory, using a specific access size.
+ *
  * @param dap The DAP connected to the MEM-AP.
- * @param buffer where the words will be stored (in host byte order).
- * @param count How many words to read.
- * @param address Memory address from which to read words; all the
- * @param addr_incr if true, increment the source address for each u32
- *	words must be readable by the currently selected MEM-AP.
+ * @param buffer The data buffer to receive the data. No particular alignment is assumed.
+ * @param size Which access size to use, in bytes. 1, 2 or 4.
+ * @param count The number of reads to do (in size units, not bytes).
+ * @param address Address to be read; it must be readable by the currently selected MEM-AP.
+ * @param addrinc Whether the target address should be increased after each read or not. This
+ *  should normally be true, except when reading from e.g. a FIFO.
+ * @return ERROR_OK on success, otherwise an error code.
  */
+int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t count,
+		uint32_t adr, bool addrinc)
+{
+	size_t nbytes = size * count;
+	const uint32_t csw_addrincr = addrinc ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
+	uint32_t csw_size;
+	uint32_t address = adr;
+	int retval;
+
+	if (size == 4)
+		csw_size = CSW_32BIT;
+	else if (size == 2)
+		csw_size = CSW_16BIT;
+	else if (size == 1)
+		csw_size = CSW_8BIT;
+	else
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+
+	/* Allocate buffer to hold the sequence of DRW reads that will be made. This is a significant
+	 * over-allocation if packed transfers are going to be used, but determining the real need at
+	 * this point would be messy. */
+	uint32_t *read_buf = malloc(count * sizeof(uint32_t));
+	uint32_t *read_ptr = read_buf;
+	if (read_buf == NULL) {
+		LOG_ERROR("Failed to allocate read buffer");
+		return ERROR_FAIL;
+	}
+
+	retval = dap_setup_accessport_tar(dap, address);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Queue up all reads. Each read will store the entire DRW word in the read buffer. How many
+	 * useful bytes it contains, and their location in the word, depends on the type of transfer
+	 * and alignment. */
+	while (nbytes > 0) {
+		uint32_t this_size = size;
+
+		/* Select packed transfer if possible */
+		if (addrinc && dap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
+			this_size = 4;
+			retval = dap_setup_accessport_csw(dap, csw_size | CSW_ADDRINC_PACKED);
+		} else {
+			retval = dap_setup_accessport_csw(dap, csw_size | csw_addrincr);
+		}
+		if (retval != ERROR_OK)
+			break;
+
+		retval = dap_queue_ap_read(dap, AP_REG_DRW, read_ptr++);
+		if (retval != ERROR_OK)
+			break;
+
+		nbytes -= this_size;
+		address += this_size;
+
+		/* Rewrite TAR if it wrapped */
+		if (addrinc && address % dap->tar_autoincr_block < size && nbytes > 0) {
+			retval = dap_setup_accessport_tar(dap, address);
+			if (retval != ERROR_OK)
+				break;
+		}
+	}
+
+	if (retval == ERROR_OK)
+		retval = dap_run(dap);
+
+	/* Restore state */
+	address = adr;
+	nbytes = size * count;
+	read_ptr = read_buf;
+
+	/* If something failed, read TAR to find out how much data was successfully read, so we can
+	 * at least give the caller what we have. */
+	if (retval != ERROR_OK) {
+		uint32_t tar;
+		if (dap_queue_ap_read(dap, AP_REG_TAR, &tar) == ERROR_OK
+				&& dap_run(dap) == ERROR_OK) {
+			LOG_ERROR("Failed to read memory at 0x%08"PRIx32, tar);
+			if (nbytes > tar - address)
+				nbytes = tar - address;
+		} else {
+			LOG_ERROR("Failed to read memory and, additionally, failed to find out where");
+			nbytes = 0;
+		}
+	}
+
+	/* Replay loop to populate caller's buffer from the correct word and byte lane */
+	while (nbytes > 0) {
+		uint32_t this_size = size;
+
+		if (addrinc && dap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
+			this_size = 4;
+		}
+
+		switch (this_size) {
+		case 4:
+			*buffer++ = *read_ptr >> 8 * (address++ & 3);
+			*buffer++ = *read_ptr >> 8 * (address++ & 3);
+		case 2:
+			*buffer++ = *read_ptr >> 8 * (address++ & 3);
+		case 1:
+			*buffer++ = *read_ptr >> 8 * (address++ & 3);
+		}
+
+		read_ptr++;
+		nbytes -= this_size;
+	}
+
+	free(read_buf);
+	return retval;
+}
+
+/* Compatibility wrappers around mem_ap_read(). Note that the count is in bytes for these (despite
+ * what their doxygen documentation said). */
 int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
 		int count, uint32_t address, bool addr_incr)
 {
-	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
-	uint32_t adr = address;
-	uint8_t *pBuffer = buffer;
-	uint32_t incr_flag = CSW_ADDRINC_OFF;
-
-	count >>= 2;
-	wcount = count;
-
-	while (wcount > 0) {
-		/* Adjust to read blocks within boundaries aligned to the
-		 * TAR autoincrement size (at least 2^10).  Autoincrement
-		 * mode avoids an extra per-word roundtrip to update TAR.
-		 */
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 4;
-		if (wcount < blocksize)
-			blocksize = wcount;
-
-		/* handle unaligned data at 4k boundary */
-		if (blocksize == 0)
-			blocksize = 1;
-
-		if (addr_incr)
-			incr_flag = CSW_ADDRINC_SINGLE;
-
-		retval = dap_setup_accessport(dap, CSW_32BIT | incr_flag,
-				address);
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = dap_queue_ap_read_block(dap, AP_REG_DRW, blocksize, buffer);
-
-		retval = dap_run(dap);
-		if (retval != ERROR_OK) {
-			errorcount++;
-			if (errorcount <= 1) {
-				/* try again */
-				continue;
-			}
-			LOG_WARNING("Block read error address 0x%" PRIx32, address);
-			return retval;
-		}
-		wcount = wcount - blocksize;
-		if (addr_incr)
-			address += 4 * blocksize;
-		buffer += 4 * blocksize;
-	}
-
-	/* if we have an unaligned access - reorder data */
-	if (adr & 0x3u) {
-		for (readcount = 0; readcount < count; readcount++) {
-			int i;
-			uint32_t data;
-			memcpy(&data, pBuffer, sizeof(uint32_t));
-
-			for (i = 0; i < 4; i++) {
-				*((uint8_t *)pBuffer) =
-						(data >> 8 * (adr & 0x3));
-				pBuffer++;
-				adr++;
-			}
-		}
-	}
-
-	return retval;
+	return mem_ap_read(dap, buffer, 4, count / 4, address, addr_incr);
 }
 
-static int mem_ap_read_buf_packed_u16(struct adiv5_dap *dap,
-		uint8_t *buffer, int count, uint32_t address)
-{
-	uint32_t invalue;
-	int retval = ERROR_OK;
-	int wcount, blocksize, readcount, i;
-
-	wcount = count >> 1;
-
-	while (wcount > 0) {
-		int nbytes;
-
-		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address) / 2;
-		if (wcount < blocksize)
-			blocksize = wcount;
-
-		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_PACKED, address);
-		if (retval != ERROR_OK)
-			return retval;
-
-		/* handle unaligned data at 4k boundary */
-		if (blocksize == 0)
-			blocksize = 1;
-		readcount = blocksize;
-
-		do {
-			retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = dap_run(dap);
-			if (retval != ERROR_OK) {
-				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
-				return retval;
-			}
-
-			nbytes = MIN((readcount << 1), 4);
-
-			for (i = 0; i < nbytes; i++) {
-				*((uint8_t *)buffer) = (invalue >> 8 * (address & 0x3));
-				buffer++;
-				address++;
-			}
-
-			readcount -= (nbytes >> 1);
-		} while (readcount);
-		wcount -= blocksize;
-	}
-
-	return retval;
-}
-
-/**
- * Synchronously read a block of 16-bit halfwords into a buffer
- * @param dap The DAP connected to the MEM-AP.
- * @param buffer where the halfwords will be stored (in host byte order).
- * @param count How many halfwords to read.
- * @param address Memory address from which to read words; all the
- *	words must be readable by the currently selected MEM-AP.
- */
 int mem_ap_read_buf_u16(struct adiv5_dap *dap, uint8_t *buffer,
 		int count, uint32_t address)
 {
-	uint32_t invalue, i;
-	int retval = ERROR_OK;
-
-	if (dap->packed_transfers && count >= 4)
-		return mem_ap_read_buf_packed_u16(dap, buffer, count, address);
-
-	while (count > 0) {
-		retval = dap_setup_accessport(dap, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
-		if (retval != ERROR_OK)
-			break;
-
-		retval = dap_run(dap);
-		if (retval != ERROR_OK)
-			break;
-
-		if (address & 0x1) {
-			for (i = 0; i < 2; i++) {
-				*((uint8_t *)buffer) = (invalue >> 8 * (address & 0x3));
-				buffer++;
-				address++;
-			}
-		} else {
-			uint16_t svalue = (invalue >> 8 * (address & 0x3));
-			memcpy(buffer, &svalue, sizeof(uint16_t));
-			address += 2;
-			buffer += 2;
-		}
-		count -= 2;
-	}
-
-	return retval;
+	return mem_ap_read(dap, buffer, 2, count / 2, address, true);
 }
 
-/* FIX!!! is this a potential performance bottleneck w.r.t. requiring too many
- * roundtrips when jtag_execute_queue() has a large overhead(e.g. for USB)s?
- *
- * The solution is to arrange for a large out/in scan in this loop and
- * and convert data afterwards.
- */
-static int mem_ap_read_buf_packed_u8(struct adiv5_dap *dap,
-		uint8_t *buffer, int count, uint32_t address)
-{
-	uint32_t invalue;
-	int retval = ERROR_OK;
-	int wcount, blocksize, readcount, i;
-
-	wcount = count;
-
-	while (wcount > 0) {
-		int nbytes;
-
-		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
-		blocksize = max_tar_block_size(dap->tar_autoincr_block, address);
-
-		if (wcount < blocksize)
-			blocksize = wcount;
-
-		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, address);
-		if (retval != ERROR_OK)
-			return retval;
-		readcount = blocksize;
-
-		do {
-			retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = dap_run(dap);
-			if (retval != ERROR_OK) {
-				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
-				return retval;
-			}
-
-			nbytes = MIN(readcount, 4);
-
-			for (i = 0; i < nbytes; i++) {
-				*((uint8_t *)buffer) = (invalue >> 8 * (address & 0x3));
-				buffer++;
-				address++;
-			}
-
-			readcount -= nbytes;
-		} while (readcount);
-		wcount -= blocksize;
-	}
-
-	return retval;
-}
-
-/**
- * Synchronously read a block of bytes into a buffer
- * @param dap The DAP connected to the MEM-AP.
- * @param buffer where the bytes will be stored.
- * @param count How many bytes to read.
- * @param address Memory address from which to read data; all the
- *	data must be readable by the currently selected MEM-AP.
- */
 int mem_ap_read_buf_u8(struct adiv5_dap *dap, uint8_t *buffer,
 		int count, uint32_t address)
 {
-	uint32_t invalue;
-	int retval = ERROR_OK;
-
-	if (dap->packed_transfers && count >= 4)
-		return mem_ap_read_buf_packed_u8(dap, buffer, count, address);
-
-	while (count > 0) {
-		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = dap_queue_ap_read(dap, AP_REG_DRW, &invalue);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = dap_run(dap);
-		if (retval != ERROR_OK)
-			break;
-
-		*((uint8_t *)buffer) = (invalue >> 8 * (address & 0x3));
-		count--;
-		address++;
-		buffer++;
-	}
-
-	return retval;
+	return mem_ap_read(dap, buffer, 1, count, address, true);
 }
 
 /*--------------------------------------------------------------------*/

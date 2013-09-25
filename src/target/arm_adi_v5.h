@@ -410,6 +410,8 @@ int mem_ap_read_buf_u16(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address);
 int mem_ap_read_buf_u32(struct adiv5_dap *swjdp,
 		uint8_t *buffer, int count, uint32_t address, bool addr_incr);
+int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size,
+		uint32_t count, uint32_t address, bool addrinc);
 
 int mem_ap_write_buf_u8(struct adiv5_dap *swjdp,
 		const uint8_t *buffer, int count, uint32_t address);
@@ -417,6 +419,9 @@ int mem_ap_write_buf_u16(struct adiv5_dap *swjdp,
 		const uint8_t *buffer, int count, uint32_t address);
 int mem_ap_write_buf_u32(struct adiv5_dap *swjdp,
 		const uint8_t *buffer, int count, uint32_t address, bool addr_incr);
+int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size,
+		uint32_t count, uint32_t address, bool addrinc);
+
 
 /* Queued MEM-AP memory mapped single word transfers with selection of ap */
 int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t ap,
