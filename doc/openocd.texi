@@ -3045,11 +3045,11 @@ The vendor ID and product ID of the device.
 Manually sets the stlink api used, valid options are 1 or 2. (@b{STLINK Only}).
 @end deffn
 
-@deffn {Config Command} {trace} output_file_path source_clock_hz
-Enable SWO tracing (if supported), trace data is appended to the specified
-output file and the file is created if it does not exist.  The source clock
-rate for the trace port must be specified, this is typically the CPU clock
-rate.
+@deffn {Config Command} {trace} source_clock_hz [output_file_path]
+Enable SWO tracing (if supported). The source clock rate for the
+trace port must be specified, this is typically the CPU clock rate. If
+the optional output file is specified then raw trace data is appended
+to the file, and the file is created if it does not exist.
 @end deffn
 @end deffn
 

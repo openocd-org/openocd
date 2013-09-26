@@ -119,6 +119,7 @@ static int hl_interface_quit(void)
 		fclose(hl_if.param.trace_f);
 		hl_if.param.trace_f = NULL;
 	}
+	hl_if.param.trace_source_hz = 0;
 
 	return ERROR_OK;
 }
@@ -230,20 +231,21 @@ COMMAND_HANDLER(stlink_interface_handle_api_command)
 
 COMMAND_HANDLER(interface_handle_trace_command)
 {
-	FILE *f;
+	FILE *f = NULL;
 	unsigned source_hz;
 
-	if (CMD_ARGC != 2)
+	if ((CMD_ARGC < 1) || (CMD_ARGC > 2))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	f = fopen(CMD_ARGV[0], "a");
-	if (!f)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], source_hz);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], source_hz);
 	if (source_hz == 0) {
-		fclose(f);
 		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (CMD_ARGC == 2) {
+		f = fopen(CMD_ARGV[0], "a");
+		if (!f)
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	hl_if.param.trace_f = f;
@@ -293,7 +295,7 @@ static const struct command_registration hl_interface_command_handlers[] = {
 	 .handler = &interface_handle_trace_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "configure trace reception",
-	 .usage = "destination_path source_lock_hz",
+	 .usage = "source_lock_hz [destination_path]",
 	 },
 	COMMAND_REGISTRATION_DONE
 };

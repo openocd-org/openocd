@@ -855,9 +855,11 @@ static void stlink_usb_trace_read(void *handle)
 
 				res = stlink_usb_read_trace(handle, buf, size);
 				if (res == ERROR_OK) {
-					/* Log retrieved trace output */
-					if (fwrite(buf, 1, size, h->trace.output_f) > 0)
-						fflush(h->trace.output_f);
+					if (h->trace.output_f) {
+						/* Log retrieved trace output */
+						if (fwrite(buf, 1, size, h->trace.output_f) > 0)
+							fflush(h->trace.output_f);
+					}
 				}
 			}
 		}
@@ -1113,7 +1115,7 @@ static int stlink_usb_run(void *handle)
 		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
 		/* Try to start tracing, if requested */
-		if (res == ERROR_OK && h->trace.output_f) {
+		if (res == ERROR_OK && h->trace.source_hz) {
 			if (stlink_usb_trace_enable(handle) == ERROR_OK)
 				LOG_DEBUG("Tracing: enabled\n");
 			else
@@ -1732,7 +1734,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	/* set the used jtag api, this will default to the newest supported version */
 	h->jtag_api = api;
 
-	if (h->jtag_api >= 2 && param->trace_f && param->trace_source_hz > 0) {
+	if (h->jtag_api >= 2 && param->trace_source_hz > 0) {
 		uint32_t prescale;
 
 		prescale = param->trace_source_hz > STLINK_TRACE_MAX_HZ ?
