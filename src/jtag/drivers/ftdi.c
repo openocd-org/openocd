@@ -205,8 +205,9 @@ static void move_to_state(tap_state_t goal_state)
 	*/
 
 	/* do the 2 lookups */
-	int tms_bits  = tap_get_tms_path(start_state, goal_state);
+	uint8_t tms_bits  = tap_get_tms_path(start_state, goal_state);
 	int tms_count = tap_get_tms_path_len(start_state, goal_state);
+	assert(tms_count <= 8);
 
 	DEBUG_JTAG_IO("start=%s goal=%s", tap_state_name(start_state), tap_state_name(goal_state));
 
@@ -215,7 +216,7 @@ static void move_to_state(tap_state_t goal_state)
 		tap_set_state(tap_state_transition(tap_get_state(), (tms_bits >> i) & 1));
 
 	mpsse_clock_tms_cs_out(mpsse_ctx,
-		(uint8_t *)&tms_bits,
+		&tms_bits,
 		0,
 		tms_count,
 		false,
