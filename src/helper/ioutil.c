@@ -53,7 +53,7 @@
 
 /* loads a file and returns a pointer to it in memory. The file contains
  * a 0 byte(sentinel) after len bytes - the length of the file. */
-int loadFile(const char *fileName, void **data, size_t *len)
+static int loadFile(const char *fileName, char **data, size_t *len)
 {
 	/* ensure returned length is always sane */
 	*len = 0;
@@ -98,8 +98,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 	fclose(pFile);
 
 	/* 0-byte after buffer (not included in *len) serves as a sentinel */
-	char *buf = (char *)*data;
-	buf[*len] = 0;
+	(*data)[*len] = 0;
 
 	return ERROR_OK;
 }
@@ -111,12 +110,12 @@ COMMAND_HANDLER(handle_cat_command)
 
 	/* NOTE!!! we only have line printing capability so we print the entire file as a single
 	 * line. */
-	void *data;
+	char *data;
 	size_t len;
 
 	int retval = loadFile(CMD_ARGV[0], &data, &len);
 	if (retval == ERROR_OK) {
-		command_print(CMD_CTX, "%s", (char *)data);
+		command_print(CMD_CTX, "%s", data);
 		free(data);
 	} else
 		command_print(CMD_CTX, "%s not found", CMD_ARGV[0]);
@@ -196,7 +195,7 @@ COMMAND_HANDLER(handle_cp_command)
 
 	/* NOTE!!! we only have line printing capability so we print the entire file as a single
 	 * line. */
-	void *data;
+	char *data;
 	size_t len;
 
 	int retval = loadFile(CMD_ARGV[0], &data, &len);
@@ -214,7 +213,7 @@ COMMAND_HANDLER(handle_cp_command)
 		if (chunk > maxChunk)
 			chunk = maxChunk;
 
-		if ((retval == ERROR_OK) && (fwrite(((char *)data) + pos, 1, chunk, f) != chunk))
+		if ((retval == ERROR_OK) && (fwrite(data + pos, 1, chunk, f) != chunk))
 			retval = ERROR_COMMAND_SYNTAX_ERROR;
 
 		if (retval != ERROR_OK)
@@ -378,7 +377,7 @@ static int ioutil_Jim_Command_ls(Jim_Interp *interp,
 		return JIM_ERR;
 	}
 
-	char *name = (char *) Jim_GetString(argv[1], NULL);
+	const char *name = Jim_GetString(argv[1], NULL);
 
 	DIR *dirp = NULL;
 	dirp = opendir(name);
