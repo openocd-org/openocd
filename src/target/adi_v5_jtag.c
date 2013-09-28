@@ -356,7 +356,7 @@ static int jtag_idcode_q_read(struct adiv5_dap *dap,
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	fields[0].in_value = (void *) data;
+	fields[0].in_value = (uint8_t *) data;
 
 	jtag_add_dr_scan(jtag_info->tap, 1, fields, TAP_IDLE);
 

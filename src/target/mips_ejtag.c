@@ -422,7 +422,7 @@ int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_
 		fields[1].in_value = NULL;
 		buf_set_u32(t, 0, 32, *data);
 	} else
-		fields[1].in_value = (void *) data;
+		fields[1].in_value = (uint8_t *) data;
 
 	jtag_add_dr_scan(tap, 2, fields, TAP_IDLE);
 

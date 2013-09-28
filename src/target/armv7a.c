@@ -468,7 +468,7 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	l2x_cache->base,l2x_cache->way);*/
 	if (armv7a->armv7a_mmu.armv7a_cache.l2_cache)
 		LOG_INFO("cache l2 already initialized\n");
-	armv7a->armv7a_mmu.armv7a_cache.l2_cache = (void *) l2x_cache;
+	armv7a->armv7a_mmu.armv7a_cache.l2_cache = l2x_cache;
 	/*  initialize l1 / l2x cache function  */
 	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache
 		= armv7a_l2x_flush_all_data;
@@ -482,7 +482,7 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 			armv7a = target_to_armv7a(curr);
 			if (armv7a->armv7a_mmu.armv7a_cache.l2_cache)
 				LOG_ERROR("smp target : cache l2 already initialized\n");
-			armv7a->armv7a_mmu.armv7a_cache.l2_cache = (void *) l2x_cache;
+			armv7a->armv7a_mmu.armv7a_cache.l2_cache = l2x_cache;
 			armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
 				armv7a_l2x_flush_all_data;
 			armv7a->armv7a_mmu.armv7a_cache.display_cache_info =

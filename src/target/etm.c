@@ -318,7 +318,7 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 		etm_core, 1);
 
 	etm_get_reg(reg_list);
-	etm_ctx->config = buf_get_u32((void *)&arch_info->value, 0, 32);
+	etm_ctx->config = buf_get_u32(&arch_info->value, 0, 32);
 	config = etm_ctx->config;
 
 	/* figure ETM version then add base registers */
@@ -334,7 +334,7 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 			etm_core + 1, 1);
 		etm_get_reg(reg_list + 1);
 		etm_ctx->id = buf_get_u32(
-				(void *)&arch_info[1].value, 0, 32);
+				&arch_info[1].value, 0, 32);
 		LOG_DEBUG("ETM ID: %08x", (unsigned) etm_ctx->id);
 		bcd_vers = 0x10 + (((etm_ctx->id) >> 4) & 0xff);
 

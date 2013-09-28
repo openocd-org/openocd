@@ -323,7 +323,7 @@ static int do_semihosting(struct target *target)
 			if (l < s)
 				result = -1;
 			else {
-				retval = target_write_buffer(target, a, s, (void *)arg);
+				retval = target_write_buffer(target, a, s, (uint8_t *)arg);
 				if (retval != ERROR_OK)
 					return retval;
 				result = 0;
