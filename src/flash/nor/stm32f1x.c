@@ -626,7 +626,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	};
 
 	retval = target_write_buffer(target, write_algorithm->address,
-			sizeof(stm32x_flash_write_code), (uint8_t *)stm32x_flash_write_code);
+			sizeof(stm32x_flash_write_code), stm32x_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1316,10 +1316,10 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 
 	int user_data = optionbyte;
 
-	if (buf_get_u32((uint8_t *)&optionbyte, OPT_ERROR, 1))
+	if (optionbyte >> OPT_ERROR & 1)
 		command_print(CMD_CTX, "Option Byte Complement Error");
 
-	if (buf_get_u32((uint8_t *)&optionbyte, OPT_READOUT, 1))
+	if (optionbyte >> OPT_READOUT & 1)
 		command_print(CMD_CTX, "Readout Protection On");
 	else
 		command_print(CMD_CTX, "Readout Protection Off");
@@ -1327,23 +1327,23 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	/* user option bytes are offset depending on variant */
 	optionbyte >>= stm32x_info->option_offset;
 
-	if (buf_get_u32((uint8_t *)&optionbyte, OPT_RDWDGSW, 1))
+	if (optionbyte >> OPT_RDWDGSW & 1)
 		command_print(CMD_CTX, "Software Watchdog");
 	else
 		command_print(CMD_CTX, "Hardware Watchdog");
 
-	if (buf_get_u32((uint8_t *)&optionbyte, OPT_RDRSTSTOP, 1))
+	if (optionbyte >> OPT_RDRSTSTOP & 1)
 		command_print(CMD_CTX, "Stop: No reset generated");
 	else
 		command_print(CMD_CTX, "Stop: Reset generated");
 
-	if (buf_get_u32((uint8_t *)&optionbyte, OPT_RDRSTSTDBY, 1))
+	if (optionbyte >> OPT_RDRSTSTDBY & 1)
 		command_print(CMD_CTX, "Standby: No reset generated");
 	else
 		command_print(CMD_CTX, "Standby: Reset generated");
 
 	if (stm32x_info->has_dual_banks) {
-		if (buf_get_u32((uint8_t *)&optionbyte, OPT_BFB2, 1))
+		if (optionbyte >> OPT_BFB2 & 1)
 			command_print(CMD_CTX, "Boot: Bank 0");
 		else
 			command_print(CMD_CTX, "Boot: Bank 1");
