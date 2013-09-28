@@ -206,8 +206,10 @@ static int aduc702x_write_block(struct flash_bank *bank,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	retval = target_write_buffer(target, write_algorithm->address,
-			sizeof(aduc702x_flash_write_code), (uint8_t *)aduc702x_flash_write_code);
+	uint8_t code[sizeof(aduc702x_flash_write_code)];
+	target_buffer_set_u32_array(target, code, ARRAY_SIZE(aduc702x_flash_write_code),
+			aduc702x_flash_write_code);
+	retval = target_write_buffer(target, write_algorithm->address, sizeof(code), code);
 	if (retval != ERROR_OK)
 		return retval;
 
