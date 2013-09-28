@@ -96,7 +96,6 @@ enum mx_nf_finalize_action {
 };
 
 struct mx3_nf_flags {
-	unsigned host_little_endian:1;
 	unsigned target_little_endian:1;
 	unsigned nand_readonly:1;
 	unsigned one_kb_sram:1;

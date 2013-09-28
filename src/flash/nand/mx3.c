@@ -91,16 +91,7 @@ NAND_DEVICE_COMMAND_HANDLER(imx31_nand_device_command)
 	mx3_nf_info->fin = MX3_NF_FIN_NONE;
 	mx3_nf_info->flags.target_little_endian =
 			(nand->target->endianness == TARGET_LITTLE_ENDIAN);
-	/*
-	* testing host endianness
-	*/
-	{
-		int x = 1;
-		if (*(char *) &x == 1)
-			mx3_nf_info->flags.host_little_endian = 1;
-		else
-			mx3_nf_info->flags.host_little_endian = 0;
-	}
+
 	return ERROR_OK;
 }
 

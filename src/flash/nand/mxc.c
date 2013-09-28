@@ -89,7 +89,6 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 {
 	struct mxc_nf_controller *mxc_nf_info;
 	int hwecc_needed;
-	int x;
 
 	mxc_nf_info = malloc(sizeof(struct mxc_nf_controller));
 	if (mxc_nf_info == NULL) {
@@ -147,14 +146,6 @@ NAND_DEVICE_COMMAND_HANDLER(mxc_nand_device_command)
 		mxc_nf_info->flags.biswap_enabled = 1;
 	}
 
-	/*
-	 * testing host endianness
-	 */
-	x = 1;
-	if (*(char *) &x == 1)
-		mxc_nf_info->flags.host_little_endian = 1;
-	else
-		mxc_nf_info->flags.host_little_endian = 0;
 	return ERROR_OK;
 }
 
