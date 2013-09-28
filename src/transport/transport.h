@@ -66,6 +66,14 @@ struct transport {
 	int (*init)(struct command_context *ctx);
 
 	/**
+	 * Optional. If defined, allows transport to override target
+	 * name prior to initialisation.
+	 *
+	 * @returns ERROR_OK on success, or an error code on failure.
+	 */
+	int (*override_target)(const char **targetname);
+
+	/**
 	 * Transports are stored in a singly linked list.
 	 */
 	struct transport *next;

@@ -1571,6 +1571,12 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 }
 
 /** */
+static int stlink_usb_override_target(const char *targetname)
+{
+	return !strcmp(targetname, "cortex_m");
+}
+
+/** */
 static int stlink_usb_close(void *fd)
 {
 	struct stlink_usb_handle_s *h = fd;
@@ -1798,5 +1804,7 @@ struct hl_layout_api_s stlink_usb_layout_api = {
 	/** */
 	.write_mem = stlink_usb_write_mem,
 	/** */
-	.write_debug_reg = stlink_usb_write_debug_reg
+	.write_debug_reg = stlink_usb_write_debug_reg,
+	/** */
+	.override_target = stlink_usb_override_target,
 };

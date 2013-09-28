@@ -67,5 +67,6 @@ int hl_interface_open(enum hl_transports tr);
 
 int hl_interface_init_target(struct target *t);
 int hl_interface_init_reset(void);
+int hl_interface_override_target(const char **targetname);
 
 #endif /* _HL_INTERFACE */

@@ -59,7 +59,13 @@ static int jim_newtap_expected_id(Jim_Nvp *n, Jim_GetOptInfo *goi,
 	return JIM_OK;
 }
 
-#define NTAP_OPT_EXPECTED_ID 0
+#define NTAP_OPT_IRLEN     0
+#define NTAP_OPT_IRMASK    1
+#define NTAP_OPT_IRCAPTURE 2
+#define NTAP_OPT_ENABLED   3
+#define NTAP_OPT_DISABLED  4
+#define NTAP_OPT_EXPECTED_ID 5
+#define NTAP_OPT_VERSION   6
 
 static int jim_hl_newtap_cmd(Jim_GetOptInfo *goi)
 {
@@ -69,8 +75,14 @@ static int jim_hl_newtap_cmd(Jim_GetOptInfo *goi)
 	Jim_Nvp *n;
 	char *cp;
 	const Jim_Nvp opts[] = {
-		{.name = "-expected-id", .value = NTAP_OPT_EXPECTED_ID},
-		{.name = NULL, .value = -1},
+		{ .name = "-irlen",       .value = NTAP_OPT_IRLEN },
+		{ .name = "-irmask",       .value = NTAP_OPT_IRMASK },
+		{ .name = "-ircapture",       .value = NTAP_OPT_IRCAPTURE },
+		{ .name = "-enable",       .value = NTAP_OPT_ENABLED },
+		{ .name = "-disable",       .value = NTAP_OPT_DISABLED },
+		{ .name = "-expected-id",       .value = NTAP_OPT_EXPECTED_ID },
+		{ .name = "-ignore-version",       .value = NTAP_OPT_VERSION },
+		{ .name = NULL, .value = -1},
 	};
 
 	pTap = calloc(1, sizeof(struct jtag_tap));
@@ -120,6 +132,12 @@ static int jim_hl_newtap_cmd(Jim_GetOptInfo *goi)
 				free(pTap);
 				return e;
 			}
+			break;
+		case NTAP_OPT_IRLEN:
+		case NTAP_OPT_IRMASK:
+		case NTAP_OPT_IRCAPTURE:
+			/* dummy read to ignore the next argument */
+			Jim_GetOpt_Wide(goi, NULL);
 			break;
 		}		/* switch (n->value) */
 	}			/* while (goi->argc) */

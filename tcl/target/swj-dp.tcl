@@ -24,7 +24,13 @@ if [catch {transport select}] {
 }
 
 proc swj_newdap {chip tag args} {
- if {[using_jtag]} { eval jtag newtap $chip $tag $args }
- if {[using_swd]} { eval swd newdap $chip $tag $args }
- if {[string equal [transport select] "cmsis-dap"]} { eval cmsis-dap newdap $chip $tag $args }
+ if [using_hla] {
+     eval hla newtap $chip $tag $args
+ } elseif [using_jtag] {
+     eval jtag newtap $chip $tag $args
+ } elseif [using_swd] {
+     eval swd newdap $chip $tag $args
+ } elseif [string equal [transport select] "cmsis-dap"] {
+     eval cmsis-dap newdap $chip $tag $args
+ }
 }

@@ -55,6 +55,7 @@
 #include "trace.h"
 #include "image.h"
 #include "rtos/rtos.h"
+#include "transport/transport.h"
 
 /* default halt wait timeout (ms) */
 #define DEFAULT_HALT_TIMEOUT 5000
@@ -5066,6 +5067,15 @@ static int target_create(Jim_GetOptInfo *goi)
 	if (e != JIM_OK)
 		return e;
 	cp = cp2;
+	struct transport *tr = get_current_transport();
+	if (tr->override_target) {
+		e = tr->override_target(&cp);
+		if (e != ERROR_OK) {
+			LOG_ERROR("The selected transport doesn't support this target");
+			return JIM_ERR;
+		}
+		LOG_INFO("The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD");
+	}
 	/* now does target type exist */
 	for (x = 0 ; target_types[x] ; x++) {
 		if (0 == strcmp(cp, target_types[x]->name)) {

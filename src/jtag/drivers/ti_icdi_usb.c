@@ -645,6 +645,11 @@ static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 	return retval;
 }
 
+static int icdi_usb_override_target(const char *targetname)
+{
+	return !strcmp(targetname, "cortex_m");
+}
+
 static int icdi_usb_close(void *handle)
 {
 	struct icdi_usb_handle_s *h = handle;
@@ -770,5 +775,6 @@ struct hl_layout_api_s icdi_usb_layout_api = {
 	.write_reg = icdi_usb_write_reg,
 	.read_mem = icdi_usb_read_mem,
 	.write_mem = icdi_usb_write_mem,
-	.write_debug_reg = icdi_usb_write_debug_reg
+	.write_debug_reg = icdi_usb_write_debug_reg,
+	.override_target = icdi_usb_override_target,
 };
