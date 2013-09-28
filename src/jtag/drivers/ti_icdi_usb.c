@@ -121,12 +121,11 @@ static int remote_unescape_input(const char *buffer, int len, char *out_buf, int
 static int icdi_send_packet(void *handle, int len)
 {
 	unsigned char cksum = 0;
-	struct icdi_usb_handle_s *h;
+	struct icdi_usb_handle_s *h = handle;
 	int result, retry = 0;
 	int transferred = 0;
 
 	assert(handle != NULL);
-	h = (struct icdi_usb_handle_s *)handle;
 
 	/* check we have a large enough buffer for checksum "#00" */
 	if (len + 3 > h->max_packet) {
@@ -234,8 +233,7 @@ static int icdi_send_packet(void *handle, int len)
 
 static int icdi_send_cmd(void *handle, const char *cmd)
 {
-	struct icdi_usb_handle_s *h;
-	h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 
 	int cmd_len = snprintf(h->write_buffer, h->max_packet, PACKET_START "%s", cmd);
 	return icdi_send_packet(handle, cmd_len);
@@ -243,8 +241,7 @@ static int icdi_send_cmd(void *handle, const char *cmd)
 
 static int icdi_send_remote_cmd(void *handle, const char *data)
 {
-	struct icdi_usb_handle_s *h;
-	h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 
 	size_t cmd_len = sprintf(h->write_buffer, PACKET_START "qRcmd,");
 	cmd_len += hexify(h->write_buffer + cmd_len, data, 0, h->max_packet - cmd_len);
@@ -254,12 +251,11 @@ static int icdi_send_remote_cmd(void *handle, const char *data)
 
 static int icdi_get_cmd_result(void *handle)
 {
-	struct icdi_usb_handle_s *h;
+	struct icdi_usb_handle_s *h = handle;
 	int offset = 0;
 	char ch;
 
 	assert(handle != NULL);
-	h = (struct icdi_usb_handle_s *)handle;
 
 	do {
 		ch = h->read_buffer[offset++];
@@ -290,21 +286,27 @@ static int icdi_usb_idcode(void *handle, uint32_t *idcode)
 
 static int icdi_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 {
-	return icdi_usb_write_mem(handle, addr, 4, 1, (uint8_t *)&val);
+	uint8_t buf[4];
+	/* REVISIT: There's no target pointer here so there's no way to use target_buffer_set_u32().
+	 * I guess all supported chips are little-endian anyway. */
+	h_u32_to_le(buf, val);
+	return icdi_usb_write_mem(handle, addr, 4, 1, buf);
 }
 
 static enum target_state icdi_usb_state(void *handle)
 {
 	int result;
-	struct icdi_usb_handle_s *h;
+	struct icdi_usb_handle_s *h = handle;
 	uint32_t dhcsr;
+	uint8_t buf[4];
 
-	h = (struct icdi_usb_handle_s *)handle;
-
-	result = icdi_usb_read_mem(h, DCB_DHCSR, 4, 1, (uint8_t *)&dhcsr);
+	result = icdi_usb_read_mem(h, DCB_DHCSR, 4, 1, buf);
 	if (result != ERROR_OK)
 		return TARGET_UNKNOWN;
 
+	/* REVISIT: There's no target pointer here so there's no way to use target_buffer_get_u32().
+	 * I guess all supported chips are little-endian anyway. */
+	dhcsr = le_to_h_u32(buf);
 	if (dhcsr & S_HALT)
 		return TARGET_HALTED;
 
@@ -313,8 +315,7 @@ static enum target_state icdi_usb_state(void *handle)
 
 static int icdi_usb_version(void *handle)
 {
-	struct icdi_usb_handle_s *h;
-	h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 
 	char version[20];
 
@@ -346,8 +347,7 @@ static int icdi_usb_query(void *handle)
 {
 	int result;
 
-	struct icdi_usb_handle_s *h;
-	h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 
 	result = icdi_send_cmd(handle, "qSupported");
 	if (result != ERROR_OK)
@@ -480,10 +480,8 @@ static int icdi_usb_read_regs(void *handle)
 static int icdi_usb_read_reg(void *handle, int num, uint32_t *val)
 {
 	int result;
-	struct icdi_usb_handle_s *h;
+	struct icdi_usb_handle_s *h = handle;
 	char cmd[10];
-
-	h = (struct icdi_usb_handle_s *)handle;
 
 	snprintf(cmd, sizeof(cmd), "p%x", num);
 	result = icdi_send_cmd(handle, cmd);
@@ -498,10 +496,12 @@ static int icdi_usb_read_reg(void *handle, int num, uint32_t *val)
 	}
 
 	/* convert result */
-	if (unhexify((char *)val, h->read_buffer + 2, 4) != 4) {
+	uint8_t buf[4];
+	if (unhexify((char *)buf, h->read_buffer + 2, 4) != 4) {
 		LOG_ERROR("failed to convert result");
 		return ERROR_FAIL;
 	}
+	*val = le_to_h_u32(buf);
 
 	return result;
 }
@@ -510,9 +510,11 @@ static int icdi_usb_write_reg(void *handle, int num, uint32_t val)
 {
 	int result;
 	char cmd[20];
+	uint8_t buf[4];
+	h_u32_to_le(buf, val);
 
 	int cmd_len = snprintf(cmd, sizeof(cmd), "P%x=", num);
-	hexify(cmd + cmd_len, (char *)&val, 4, sizeof(cmd));
+	hexify(cmd + cmd_len, (const char *)buf, 4, sizeof(cmd));
 
 	result = icdi_send_cmd(handle, cmd);
 	if (result != ERROR_OK)
@@ -531,10 +533,8 @@ static int icdi_usb_write_reg(void *handle, int num, uint32_t val)
 static int icdi_usb_read_mem_int(void *handle, uint32_t addr, uint32_t len, uint8_t *buffer)
 {
 	int result;
-	struct icdi_usb_handle_s *h;
+	struct icdi_usb_handle_s *h = handle;
 	char cmd[20];
-
-	h = (struct icdi_usb_handle_s *)handle;
 
 	snprintf(cmd, sizeof(cmd), "x%x,%x", addr, len);
 	result = icdi_send_cmd(handle, cmd);
@@ -561,14 +561,12 @@ static int icdi_usb_read_mem_int(void *handle, uint32_t addr, uint32_t len, uint
 static int icdi_usb_write_mem_int(void *handle, uint32_t addr, uint32_t len, const uint8_t *buffer)
 {
 	int result;
-	struct icdi_usb_handle_s *h;
-
-	h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 
 	size_t cmd_len = snprintf(h->write_buffer, h->max_packet, PACKET_START "X%x,%x:", addr, len);
 
 	int out_len;
-	cmd_len += remote_escape_output((char *)buffer, len, h->write_buffer + cmd_len,
+	cmd_len += remote_escape_output((const char *)buffer, len, h->write_buffer + cmd_len,
 			&out_len, h->max_packet - cmd_len);
 
 	if (out_len < (int)len) {
@@ -595,7 +593,7 @@ static int icdi_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
 	int retval = ERROR_OK;
-	struct icdi_usb_handle_s *h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 	uint32_t bytes_remaining;
 
 	/* calculate byte count */
@@ -623,7 +621,7 @@ static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, const uint8_t *buffer)
 {
 	int retval = ERROR_OK;
-	struct icdi_usb_handle_s *h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 	uint32_t bytes_remaining;
 
 	/* calculate byte count */
@@ -649,9 +647,7 @@ static int icdi_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 
 static int icdi_usb_close(void *handle)
 {
-	struct icdi_usb_handle_s *h;
-
-	h = (struct icdi_usb_handle_s *)handle;
+	struct icdi_usb_handle_s *h = handle;
 
 	if (h->usb_dev)
 		libusb_close(h->usb_dev);
