@@ -489,9 +489,10 @@ static int str7x_write_block(struct flash_bank *bank, uint8_t *buffer,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	target_write_buffer(target, write_algorithm->address,
-			sizeof(str7x_flash_write_code),
-			(uint8_t *)str7x_flash_write_code);
+	uint8_t code[sizeof(str7x_flash_write_code)];
+	target_buffer_set_u32_array(target, code, ARRAY_SIZE(str7x_flash_write_code),
+			str7x_flash_write_code);
+	target_write_buffer(target, write_algorithm->address, sizeof(code), code);
 
 	/* memory buffer */
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
