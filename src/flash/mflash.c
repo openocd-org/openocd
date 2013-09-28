@@ -1073,16 +1073,16 @@ static void mg_gen_ataid(mg_io_type_drv_info *pSegIdDrvInfo)
 	pSegIdDrvInfo->vendor_unique1[1]                = 0x7570;
 	pSegIdDrvInfo->vendor_unique1[2]                = 0x8888;
 
-	memcpy(pSegIdDrvInfo->serial_number, (void *)g_strSEG_SerialNum, 20);
+	memcpy(pSegIdDrvInfo->serial_number, g_strSEG_SerialNum, 20);
 	/* 0x2 : dual buffer */
 	pSegIdDrvInfo->buffer_type                      = 0x2;
 	/* buffer size : 2KB */
 	pSegIdDrvInfo->buffer_sector_size               = 0x800;
 	pSegIdDrvInfo->number_of_ecc_bytes              = 0;
 
-	memcpy(pSegIdDrvInfo->firmware_revision, (void *)g_strSEG_FWRev, 8);
+	memcpy(pSegIdDrvInfo->firmware_revision, g_strSEG_FWRev, 8);
 
-	memcpy(pSegIdDrvInfo->model_number, (void *)g_strSEG_ModelNum, 40);
+	memcpy(pSegIdDrvInfo->model_number, g_strSEG_ModelNum, 40);
 
 	pSegIdDrvInfo->maximum_block_transfer           = 0x4;
 	pSegIdDrvInfo->vendor_unique2                   = 0x0;
@@ -1131,7 +1131,7 @@ static void mg_gen_ataid(mg_io_type_drv_info *pSegIdDrvInfo)
 	pSegIdDrvInfo->recommend_dma_cyc                = 0x1E0;
 	pSegIdDrvInfo->min_pio_cyc_no_iordy             = 0x1E0;
 	pSegIdDrvInfo->min_pio_cyc_with_iordy           = 0x1E0;
-	memset((void *)pSegIdDrvInfo->reserved3, 0x00, 22);
+	memset(pSegIdDrvInfo->reserved3, 0x00, 22);
 	/* b7 : ATA/ATAPI-7 ,b6 : ATA/ATAPI-6 ,b5 : ATA/ATAPI-5,b4 : ATA/ATAPI-4 */
 	pSegIdDrvInfo->major_ver_num                    = 0x7E;
 	/* 0x1C : ATA/ATAPI-6 T13 1532D revision1 */
@@ -1155,13 +1155,13 @@ static void mg_gen_ataid(mg_io_type_drv_info *pSegIdDrvInfo)
 	/* Advanced power management level 1 */
 	pSegIdDrvInfo->adv_pwr_mgm_lvl_val                      = 0x0;
 	pSegIdDrvInfo->reserved5                        = 0x0;
-	memset((void *)pSegIdDrvInfo->reserved6, 0x00, 68);
+	memset(pSegIdDrvInfo->reserved6, 0x00, 68);
 	/* Security mode feature is disabled */
 	pSegIdDrvInfo->security_stas                    = 0x0;
-	memset((void *)pSegIdDrvInfo->vendor_uniq_bytes, 0x00, 62);
+	memset(pSegIdDrvInfo->vendor_uniq_bytes, 0x00, 62);
 	/* CFA power mode 1 support in maximum 200mA */
 	pSegIdDrvInfo->cfa_pwr_mode                     = 0x0100;
-	memset((void *)pSegIdDrvInfo->reserved7, 0x00, 190);
+	memset(pSegIdDrvInfo->reserved7, 0x00, 190);
 }
 
 static int mg_storage_config(void)

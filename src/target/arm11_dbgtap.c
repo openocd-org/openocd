@@ -599,7 +599,7 @@ int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *tap,
 
 	uint8_t *ReadyPos                        = Readies;
 	while (count--) {
-		chain5_fields[0].out_value      = (void *)(data++);
+		chain5_fields[0].out_value      = (uint8_t *)(data++);
 		chain5_fields[1].in_value       = ReadyPos++;
 
 		if (count > 0) {
