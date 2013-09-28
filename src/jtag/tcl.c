@@ -467,7 +467,6 @@ static int jim_newtap_ir_param(Jim_Nvp *n, Jim_GetOptInfo *goi,
 	if (e != JIM_OK) {
 		Jim_SetResultFormatted(goi->interp,
 			"option: %s bad parameter", n->name);
-		free((void *)pTap->dotted_name);
 		return e;
 	}
 	switch (n->value) {
