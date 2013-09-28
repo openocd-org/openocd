@@ -116,7 +116,7 @@ void *cmd_queue_alloc(size_t size)
 	offset = (*p_page)->used;
 	(*p_page)->used += size;
 
-	t = (uint8_t *)((*p_page)->address);
+	t = (*p_page)->address;
 	return t + offset;
 }
 

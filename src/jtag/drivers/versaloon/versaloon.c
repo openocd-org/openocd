@@ -241,8 +241,7 @@ RESULT versaloon_init(void)
 	uint32_t timeout_tmp;
 
 	/* malloc temporary buffer */
-	versaloon_buf =
-		(uint8_t *)malloc(versaloon_interface.usb_setting.buf_size);
+	versaloon_buf = malloc(versaloon_interface.usb_setting.buf_size);
 	if (NULL == versaloon_buf) {
 		LOG_ERROR(ERRMSG_NOT_ENOUGH_MEMORY);
 		return ERRCODE_NOT_ENOUGH_MEMORY;
@@ -274,15 +273,13 @@ RESULT versaloon_init(void)
 	free(versaloon_buf);
 	versaloon_buf = NULL;
 
-	versaloon_buf =
-		(uint8_t *)malloc(versaloon_interface.usb_setting.buf_size);
+	versaloon_buf = malloc(versaloon_interface.usb_setting.buf_size);
 	if (NULL == versaloon_buf) {
 		versaloon_fini();
 		LOG_ERROR(ERRMSG_NOT_ENOUGH_MEMORY);
 		return ERRCODE_NOT_ENOUGH_MEMORY;
 	}
-	versaloon_cmd_buf =
-		(uint8_t *)malloc(versaloon_interface.usb_setting.buf_size - 3);
+	versaloon_cmd_buf = malloc(versaloon_interface.usb_setting.buf_size - 3);
 	if (NULL == versaloon_cmd_buf) {
 		versaloon_fini();
 		LOG_ERROR(ERRMSG_NOT_ENOUGH_MEMORY);

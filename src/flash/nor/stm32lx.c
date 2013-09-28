@@ -259,7 +259,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 	retval = target_write_buffer(target,
 			write_algorithm->address,
 			sizeof(stm32lx_flash_write_code),
-			(uint8_t *)stm32lx_flash_write_code);
+			stm32lx_flash_write_code);
 	if (retval != ERROR_OK) {
 		target_free_working_area(target, write_algorithm);
 		return retval;

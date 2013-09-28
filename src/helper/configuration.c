@@ -36,8 +36,7 @@ static char **script_search_dirs;
 void add_script_search_dir(const char *dir)
 {
 	num_script_dirs++;
-	script_search_dirs =
-		(char **)realloc(script_search_dirs, (num_script_dirs + 1) * sizeof(char *));
+	script_search_dirs = realloc(script_search_dirs, (num_script_dirs + 1) * sizeof(char *));
 
 	script_search_dirs[num_script_dirs-1] = strdup(dir);
 	script_search_dirs[num_script_dirs] = NULL;
@@ -48,8 +47,7 @@ void add_script_search_dir(const char *dir)
 void add_config_command(const char *cfg)
 {
 	num_config_files++;
-	config_file_names =
-		(char **)realloc(config_file_names, (num_config_files + 1) * sizeof(char *));
+	config_file_names = realloc(config_file_names, (num_config_files + 1) * sizeof(char *));
 
 	config_file_names[num_config_files-1] = strdup(cfg);
 	config_file_names[num_config_files] = NULL;

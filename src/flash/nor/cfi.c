@@ -2506,9 +2506,9 @@ static void cfi_fixup_0002_unlock_addresses(struct flash_bank *bank, const void 
 static void cfi_fixup_0002_polling_bits(struct flash_bank *bank, const void *param)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
-	const int status_poll_mask = *(const int *)param;
+	const int *status_poll_mask = param;
 
-	cfi_info->status_poll_mask = status_poll_mask;
+	cfi_info->status_poll_mask = *status_poll_mask;
 }
 
 

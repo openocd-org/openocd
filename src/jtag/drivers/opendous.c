@@ -350,8 +350,8 @@ static int opendous_init(void)
 	usb_in_buffer = malloc(opendous_probe->BUFFERSIZE);
 	usb_out_buffer = malloc(opendous_probe->BUFFERSIZE);
 
-	pending_scan_results_buffer = (struct pending_scan_result *)
-			malloc(MAX_PENDING_SCAN_RESULTS * sizeof(struct pending_scan_result));
+	pending_scan_results_buffer = malloc(
+			MAX_PENDING_SCAN_RESULTS * sizeof(*pending_scan_results_buffer));
 
 	opendous_jtag_handle = opendous_usb_open();
 
@@ -718,7 +718,7 @@ struct opendous_jtag *opendous_usb_open(void)
 	jtag_libusb_set_configuration(devh, 0);
 	jtag_libusb_claim_interface(devh, 0);
 
-	result = (struct opendous_jtag *) malloc(sizeof(struct opendous_jtag));
+	result = malloc(sizeof(*result));
 	result->usb_handle = devh;
 	return result;
 }

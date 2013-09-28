@@ -304,9 +304,9 @@ static int vsllink_init(void)
 	/* malloc buffer size for tap */
 	tap_buffer_size = versaloon_interface.usb_setting.buf_size / 2 - 32;
 	vsllink_free_buffer();
-	tdi_buffer = (uint8_t *)malloc(tap_buffer_size);
-	tdo_buffer = (uint8_t *)malloc(tap_buffer_size);
-	tms_buffer = (uint8_t *)malloc(tap_buffer_size);
+	tdi_buffer = malloc(tap_buffer_size);
+	tdo_buffer = malloc(tap_buffer_size);
+	tms_buffer = malloc(tap_buffer_size);
 	if ((NULL == tdi_buffer) || (NULL == tdo_buffer) || (NULL == tms_buffer)) {
 		vsllink_quit();
 		return ERROR_FAIL;
@@ -660,7 +660,7 @@ static uint8_t usb_check_string(usb_dev_handle *usb, uint8_t stringidx,
 
 	if (NULL == buff) {
 		buf_size = 256;
-		buff = (char *)malloc(buf_size);
+		buff = malloc(buf_size);
 		if (NULL == buff) {
 			ret = 0;
 			goto free_and_return;
@@ -669,14 +669,14 @@ static uint8_t usb_check_string(usb_dev_handle *usb, uint8_t stringidx,
 	}
 
 	strcpy(buff, "");
-	len = usb_get_string_simple(usb, stringidx, (char *)buff, buf_size);
-	if ((len < 0) || (len != ((int)strlen((const char *)buff)))) {
+	len = usb_get_string_simple(usb, stringidx, buff, buf_size);
+	if ((len < 0) || ((size_t)len != strlen(buff))) {
 		ret = 0;
 		goto free_and_return;
 	}
 
 	buff[len] = '\0';
-	if ((string != NULL) && strcmp((const char *)buff, string)) {
+	if ((string != NULL) && strcmp(buff, string)) {
 		ret = 0;
 		goto free_and_return;
 	}

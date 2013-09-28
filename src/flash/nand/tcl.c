@@ -500,7 +500,7 @@ COMMAND_HANDLER(handle_nand_init_command)
 
 static int nand_list_walker(struct nand_flash_controller *c, void *x)
 {
-	struct command_context *cmd_ctx = (struct command_context *)x;
+	struct command_context *cmd_ctx = x;
 	command_print(cmd_ctx, "  %s", c->name);
 	return ERROR_OK;
 }

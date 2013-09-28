@@ -258,7 +258,7 @@ static int mdr_write_block(struct flash_bank *bank, uint8_t *buffer,
 	};
 
 	retval = target_write_buffer(target, write_algorithm->address,
-			sizeof(mdr32fx_flash_write_code), (uint8_t *)mdr32fx_flash_write_code);
+			sizeof(mdr32fx_flash_write_code), mdr32fx_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
 
