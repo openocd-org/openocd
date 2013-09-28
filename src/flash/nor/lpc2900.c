@@ -175,7 +175,7 @@ static uint32_t lpc2900_is_ready(struct flash_bank *bank);
 static uint32_t lpc2900_read_security_status(struct flash_bank *bank);
 static uint32_t lpc2900_run_bist128(struct flash_bank *bank,
 		uint32_t addr_from, uint32_t addr_to,
-		uint32_t (*signature)[4]);
+		uint32_t signature[4]);
 static uint32_t lpc2900_address2sector(struct flash_bank *bank, uint32_t offset);
 static uint32_t lpc2900_calc_tr(uint32_t clock_var, uint32_t time_var);
 
@@ -325,7 +325,7 @@ static uint32_t lpc2900_read_security_status(struct flash_bank *bank)
 static uint32_t lpc2900_run_bist128(struct flash_bank *bank,
 	uint32_t addr_from,
 	uint32_t addr_to,
-	uint32_t (*signature)[4])
+	uint32_t signature[4])
 {
 	struct target *target = bank->target;
 
@@ -342,7 +342,9 @@ static uint32_t lpc2900_run_bist128(struct flash_bank *bank,
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* Return the signature */
-	target_read_memory(target, FMSW0, 4, 4, (uint8_t *)signature);
+	uint8_t sig_buf[4 * 4];
+	target_read_memory(target, FMSW0, 4, 4, sig_buf);
+	target_buffer_get_u32_array(target, sig_buf, 4, signature);
 
 	return ERROR_OK;
 }
@@ -382,7 +384,7 @@ static uint32_t lpc2900_address2sector(struct flash_bank *bank,
  */
 static int lpc2900_write_index_page(struct flash_bank *bank,
 	int pagenum,
-	uint8_t (*page)[FLASH_PAGE_SIZE])
+	uint8_t page[FLASH_PAGE_SIZE])
 {
 	/* Only pages 4...7 are user writable */
 	if ((pagenum < 4) || (pagenum > 7)) {
@@ -416,7 +418,7 @@ static int lpc2900_write_index_page(struct flash_bank *bank,
 	/* Write whole page to flash data latches */
 	if (target_write_memory(target,
 			bank->base + pagenum * FLASH_PAGE_SIZE,
-			4, FLASH_PAGE_SIZE / 4, (uint8_t *)page) != ERROR_OK) {
+			4, FLASH_PAGE_SIZE / 4, page) != ERROR_OK) {
 		LOG_ERROR("Index sector write failed @ page %d", pagenum);
 		target_write_u32(target, FCTR, FCTR_FS_CS | FCTR_FS_WEB);
 
@@ -497,7 +499,7 @@ COMMAND_HANDLER(lpc2900_handle_signature_command)
 	}
 
 	/* Run BIST over whole flash range */
-	status = lpc2900_run_bist128(bank, bank->base, bank->base + (bank->size - 1), &signature);
+	status = lpc2900_run_bist128(bank, bank->base, bank->base + (bank->size - 1), signature);
 	if (status != ERROR_OK)
 		return status;
 
@@ -537,7 +539,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	}
 
 	/* Storage for customer info. Read in two parts */
-	uint32_t customer[ISS_CUSTOMER_NWORDS1 + ISS_CUSTOMER_NWORDS2];
+	uint8_t customer[4 * (ISS_CUSTOMER_NWORDS1 + ISS_CUSTOMER_NWORDS2)];
 
 	/* Enable access to index sector */
 	target_write_u32(target, FCTR, FCTR_FS_CS | FCTR_FS_WEB | FCTR_FS_ISS);
@@ -545,10 +547,10 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	/* Read two parts */
 	target_read_memory(target, bank->base+ISS_CUSTOMER_START1, 4,
 		ISS_CUSTOMER_NWORDS1,
-		(uint8_t *)&customer[0]);
+		&customer[0]);
 	target_read_memory(target, bank->base+ISS_CUSTOMER_START2, 4,
 		ISS_CUSTOMER_NWORDS2,
-		(uint8_t *)&customer[ISS_CUSTOMER_NWORDS1]);
+		&customer[4 * ISS_CUSTOMER_NWORDS1]);
 
 	/* Deactivate access to index sector */
 	target_write_u32(target, FCTR, FCTR_FS_CS | FCTR_FS_WEB);
@@ -563,8 +565,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	}
 
 	size_t nwritten;
-	ret = fileio_write(&fileio, sizeof(customer),
-			(const uint8_t *)customer, &nwritten);
+	ret = fileio_write(&fileio, sizeof(customer), customer, &nwritten);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Write operation to file %s failed", filename);
 		fileio_close(&fileio);
@@ -677,7 +678,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 		image_close(&image);
 		return retval;
 	}
-	retval = lpc2900_write_index_page(bank, 4, &page);
+	retval = lpc2900_write_index_page(bank, 4, page);
 	if (retval != ERROR_OK) {
 		image_close(&image);
 		return retval;
@@ -693,7 +694,7 @@ COMMAND_HANDLER(lpc2900_handle_write_custom_command)
 		image_close(&image);
 		return retval;
 	}
-	retval = lpc2900_write_index_page(bank, 5, &page);
+	retval = lpc2900_write_index_page(bank, 5, page);
 	if (retval != ERROR_OK) {
 		image_close(&image);
 		return retval;
@@ -752,7 +753,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 				memset(&page[0x00 + 16*(sector - 8)], 0, 16);
 		}
 
-		retval = lpc2900_write_index_page(bank, 6, &page);
+		retval = lpc2900_write_index_page(bank, 6, page);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("failed to update index sector page 6");
 			return retval;
@@ -767,7 +768,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_sector_command)
 				memset(&page[0x00 + 16*(sector - 5)], 0, 16);
 		}
 
-		retval = lpc2900_write_index_page(bank, 7, &page);
+		retval = lpc2900_write_index_page(bank, 7, page);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("failed to update index sector page 7");
 			return retval;
@@ -822,7 +823,7 @@ COMMAND_HANDLER(lpc2900_handle_secure_jtag_command)
 	page[0x30 +  3] = 0x7F;
 
 	/* Write to page 5 */
-	retval = lpc2900_write_index_page(bank, 5, &page);
+	retval = lpc2900_write_index_page(bank, 5, page);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("failed to update index sector page 5");
 		return retval;
@@ -1142,7 +1143,7 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 	 * a target algorithm. If not, fall back to host programming. */
 
 	/* We need some room for target code. */
-	uint32_t target_code_size = sizeof(write_target_code);
+	const uint32_t target_code_size = sizeof(write_target_code);
 
 	/* Try working area allocation. Start with a large buffer, and try with
 	 * reduced size if that fails. */
@@ -1166,10 +1167,10 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 		struct arm_algorithm arm_algo;
 
 		/* We can use target mode. Download the algorithm. */
-		retval = target_write_buffer(target,
-				(warea->address)+buffer_size,
-				target_code_size,
-				(uint8_t *)write_target_code);
+		uint8_t code[sizeof(write_target_code)];
+		target_buffer_set_u32_array(target, code, ARRAY_SIZE(write_target_code),
+				write_target_code);
+		retval = target_write_buffer(target, (warea->address) + buffer_size, sizeof(code), code);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Unable to write block write code to target");
 			target_free_all_working_areas(target);
@@ -1549,7 +1550,7 @@ static int lpc2900_erase_check(struct flash_bank *bank)
 	for (sector = 0; sector < bank->num_sectors; sector++) {
 		uint32_t signature[4];
 		status = lpc2900_run_bist128(bank, bank->sectors[sector].offset,
-				bank->sectors[sector].offset + (bank->sectors[sector].size - 1), &signature);
+				bank->sectors[sector].offset + (bank->sectors[sector].size - 1), signature);
 		if (status != ERROR_OK)
 			return status;
 
