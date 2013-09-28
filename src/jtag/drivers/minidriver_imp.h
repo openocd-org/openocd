@@ -26,7 +26,7 @@
 static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
 {
 	unsigned num_bytes = DIV_ROUND_UP(field->num_bits, 8);
-	field->in_value = (uint8_t *)cmd_queue_alloc(num_bytes);
+	field->in_value = cmd_queue_alloc(num_bytes);
 }
 
 void interface_jtag_add_dr_out(struct jtag_tap *tap,

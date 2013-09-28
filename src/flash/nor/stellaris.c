@@ -1042,7 +1042,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 
 	target_write_buffer(target, write_algorithm->address,
 			sizeof(stellaris_write_code),
-			(uint8_t *) stellaris_write_code);
+			stellaris_write_code);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;

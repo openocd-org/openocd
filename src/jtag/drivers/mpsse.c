@@ -724,7 +724,7 @@ struct transfer_result {
 
 static LIBUSB_CALL void read_cb(struct libusb_transfer *transfer)
 {
-	struct transfer_result *res = (struct transfer_result *)transfer->user_data;
+	struct transfer_result *res = transfer->user_data;
 	struct mpsse_ctx *ctx = res->ctx;
 
 	unsigned packet_size = ctx->max_packet_size;
@@ -762,7 +762,7 @@ static LIBUSB_CALL void read_cb(struct libusb_transfer *transfer)
 
 static LIBUSB_CALL void write_cb(struct libusb_transfer *transfer)
 {
-	struct transfer_result *res = (struct transfer_result *)transfer->user_data;
+	struct transfer_result *res = transfer->user_data;
 	struct mpsse_ctx *ctx = res->ctx;
 
 	res->transferred += transfer->actual_length;

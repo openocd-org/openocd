@@ -57,7 +57,7 @@ struct log_capture_state {
 static void tcl_output(void *privData, const char *file, unsigned line,
 	const char *function, const char *string)
 {
-	struct log_capture_state *state = (struct log_capture_state *)privData;
+	struct log_capture_state *state = privData;
 	Jim_AppendString(state->interp, state->output, string, strlen(string));
 }
 

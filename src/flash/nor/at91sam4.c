@@ -1398,7 +1398,7 @@ static const struct sam4_reg_list sam4_all_regs[] = {
 
 static struct sam4_bank_private *get_sam4_bank_private(struct flash_bank *bank)
 {
-	return (struct sam4_bank_private *)(bank->driver_priv);
+	return bank->driver_priv;
 }
 
 /**

@@ -505,7 +505,7 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 	;
 
 	retval = target_write_buffer(target, write_algorithm->address,
-			sizeof(em357_flash_write_code), (uint8_t *)em357_flash_write_code);
+			sizeof(em357_flash_write_code), em357_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
 

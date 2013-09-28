@@ -541,7 +541,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 
 	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(stm32x_flash_write_code),
-			(uint8_t *)stm32x_flash_write_code);
+			stm32x_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
 

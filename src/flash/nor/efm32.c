@@ -578,8 +578,7 @@ static int efm32x_write_block(struct flash_bank *bank, uint8_t *buf,
 	};
 
 	ret = target_write_buffer(target, write_algorithm->address,
-		sizeof(efm32x_flash_write_code),
-		(uint8_t *)efm32x_flash_write_code);
+			sizeof(efm32x_flash_write_code), efm32x_flash_write_code);
 	if (ret != ERROR_OK)
 		return ret;
 
