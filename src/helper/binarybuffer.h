@@ -42,7 +42,7 @@
 static inline void buf_set_u32(void *_buffer,
 	unsigned first, unsigned num, uint32_t value)
 {
-	uint8_t *buffer = (uint8_t *)_buffer;
+	uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
 		buffer[3] = (value >> 24) & 0xff;
@@ -71,7 +71,7 @@ static inline void buf_set_u32(void *_buffer,
 static inline void buf_set_u64(void *_buffer,
 	unsigned first, unsigned num, uint64_t value)
 {
-	uint8_t *buffer = (uint8_t *)_buffer;
+	uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
 		buffer[3] = (value >> 24) & 0xff;
@@ -109,7 +109,7 @@ static inline void buf_set_u64(void *_buffer,
 static inline uint32_t buf_get_u32(const void *_buffer,
 	unsigned first, unsigned num)
 {
-	uint8_t *buffer = (uint8_t *)_buffer;
+	const uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
 		return (((uint32_t)buffer[3]) << 24) |
@@ -138,7 +138,7 @@ static inline uint32_t buf_get_u32(const void *_buffer,
 static inline uint64_t buf_get_u64(const void *_buffer,
 	unsigned first, unsigned num)
 {
-	uint8_t *buffer = (uint8_t *)_buffer;
+	const uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
 		return 0 + ((((uint32_t)buffer[3]) << 24) |   /* Note - zero plus is to avoid a checkpatch bug */

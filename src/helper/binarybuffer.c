@@ -148,7 +148,7 @@ void *buf_set_buf(const void *_src, unsigned src_start,
 	if ((sq == 0) && (dq == 0) &&  (lq == 0)) {
 		for (i = 0; i < lb; i++)
 			*dst++ = *src++;
-		return (uint8_t *)_dst;
+		return _dst;
 	}
 
 	/* fallback to slow bit copy */
@@ -167,7 +167,7 @@ void *buf_set_buf(const void *_src, unsigned src_start,
 		}
 	}
 
-	return (uint8_t *)_dst;
+	return _dst;
 }
 
 uint32_t flip_u32(uint32_t value, unsigned int num)
