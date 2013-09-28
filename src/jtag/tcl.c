@@ -1120,17 +1120,12 @@ COMMAND_HANDLER(handle_irscan_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	size_t fields_len = sizeof(struct scan_field) * num_fields;
-	fields = malloc(fields_len);
-	memset(fields, 0, fields_len);
+	fields = calloc(num_fields, sizeof(*fields));
 
 	int retval;
 	for (i = 0; i < num_fields; i++) {
 		tap = jtag_tap_by_string(CMD_ARGV[i*2]);
 		if (tap == NULL) {
-			int j;
-			for (j = 0; j < i; j++)
-				free((void *)fields[j].out_value);
 			free(fields);
 			command_print(CMD_CTX, "Tap: %s unknown", CMD_ARGV[i*2]);
 
