@@ -284,6 +284,7 @@ static int icdi_get_cmd_result(void *handle)
 
 static int icdi_usb_idcode(void *handle, uint32_t *idcode)
 {
+	*idcode = 0;
 	return ERROR_OK;
 }
 

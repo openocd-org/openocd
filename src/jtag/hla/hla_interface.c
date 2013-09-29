@@ -84,7 +84,8 @@ int hl_interface_init_target(struct target *t)
 		uint32_t expected = t->tap->expected_ids[ii];
 
 		/* treat "-expected-id 0" as a "don't-warn" wildcard */
-		if (!expected || (t->tap->idcode == expected)) {
+		if (!expected || !t->tap->idcode ||
+		    (t->tap->idcode == expected)) {
 			found = 1;
 			break;
 		}

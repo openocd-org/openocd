@@ -62,8 +62,17 @@ struct hl_layout_api_s {
 			uint32_t count, const uint8_t *buffer);
 	/** */
 	int (*write_debug_reg) (void *handle, uint32_t addr, uint32_t val);
-	/** */
-	int (*idcode) (void *fd, uint32_t *idcode);
+	/**
+	 * Read the idcode of the target connected to the adapter
+	 *
+	 * If the adapter doesn't support idcode retrieval, this callback should
+	 * store 0 to indicate a wildcard match.
+	 *
+	 * @param handle A pointer to the device-specific handle
+	 * @param idcode Storage for the detected idcode
+	 * @returns ERROR_OK on success, or an error code on failure.
+	 */
+	int (*idcode) (void *handle, uint32_t *idcode);
 	/** */
 	enum target_state (*state) (void *fd);
 };
