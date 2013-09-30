@@ -258,7 +258,7 @@ static int stm32x_unlock_reg(struct target *target)
 		return retval;
 
 	if (ctrl & FLASH_LOCK) {
-		LOG_ERROR("flash not unlocked STM32_FLASH_CR: %x", ctrl);
+		LOG_ERROR("flash not unlocked STM32_FLASH_CR: %" PRIx32, ctrl);
 		return ERROR_TARGET_FAILURE;
 	}
 
@@ -290,7 +290,7 @@ static int stm32x_unlock_option_reg(struct target *target)
 		return retval;
 
 	if (ctrl & OPT_LOCK) {
-		LOG_ERROR("options not unlocked STM32_FLASH_OPTCR: %x", ctrl);
+		LOG_ERROR("options not unlocked STM32_FLASH_OPTCR: %" PRIx32, ctrl);
 		return ERROR_TARGET_FAILURE;
 	}
 
@@ -589,7 +589,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 			LOG_ERROR("flash memory write protected");
 
 		if (error != 0) {
-			LOG_ERROR("flash write failed = %08x", error);
+			LOG_ERROR("flash write failed = %08" PRIx32, error);
 			/* Clear but report errors */
 			target_write_u32(target, STM32_FLASH_SR, error);
 			retval = ERROR_FAIL;

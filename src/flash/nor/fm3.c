@@ -195,7 +195,7 @@ static int fm3_busy_wait(struct target *target, uint32_t offset, int timeout_ms)
 	}
 
 	if (retval == ERROR_OK)
-		LOG_DEBUG("fm3_busy_wait(%x) needs about %d ms", offset, ms);
+		LOG_DEBUG("fm3_busy_wait(%" PRIx32 ") needs about %d ms", offset, ms);
 
 	return retval;
 }
@@ -557,7 +557,7 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 		}
 
 		if (buf_get_u32(reg_params[5].value, 0, 32) != ERROR_OK) {
-			LOG_ERROR("Fujitsu MB9[A/B]FXXX: Flash programming ERROR (Timeout) -> Reg R3: %x",
+			LOG_ERROR("Fujitsu MB9[A/B]FXXX: Flash programming ERROR (Timeout) -> Reg R3: %" PRIx32,
 				buf_get_u32(reg_params[5].value, 0, 32));
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;

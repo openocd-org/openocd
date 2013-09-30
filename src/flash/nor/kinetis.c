@@ -553,12 +553,12 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 		/* fallback to longword write */
 		fallback = 1;
 		LOG_WARNING("Kinetis L Series supports Program Longword execution only.");
-		LOG_DEBUG("flash write into PFLASH @08%X", offset);
+		LOG_DEBUG("flash write into PFLASH @08%" PRIX32, offset);
 
 	} else if (kinfo->flash_class == FC_FLEX_NVM) {
 		uint8_t ftfx_fstat;
 
-		LOG_DEBUG("flash write into FlexNVM @%08X", offset);
+		LOG_DEBUG("flash write into FlexNVM @%08" PRIX32, offset);
 
 		/* make flex ram available */
 		result = kinetis_ftfx_command(bank, FTFx_CMD_SETFLEXRAM, 0x00ff0000, 0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
@@ -579,7 +579,7 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 			LOG_WARNING("ram not ready, fallback to slow longword write (FCNFG: %02X)", buf[0]);
 		}
 	} else {
-		LOG_DEBUG("flash write into PFLASH @08%X", offset);
+		LOG_DEBUG("flash write into PFLASH @08%" PRIX32, offset);
 	}
 
 
@@ -632,8 +632,8 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 				(void) memcpy(residual_buffer, &buffer[i+4*wc], residual_bc);
 			}
 
-			LOG_DEBUG("write section @ %08X with length %d bytes",
-				  offset + i, wc*4);
+			LOG_DEBUG("write section @ %08" PRIX32 " with length %" PRIu32 " bytes",
+				  offset + i, (uint32_t)wc*4);
 
 			/* write data to flexram as whole-words */
 			result = target_write_memory(bank->target, FLEXRAM, 4, wc,
@@ -678,7 +678,7 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 					"for padding buffer");
 				return ERROR_FAIL;
 			}
-			LOG_INFO("odd number of bytes to write (%d), extending to %d "
+			LOG_INFO("odd number of bytes to write (%" PRIu32 "), extending to %" PRIu32 " "
 				"and padding with 0xff", old_count, count);
 			memset(buffer, 0xff, count);
 			buffer = memcpy(new_buffer, buffer, old_count);
@@ -698,7 +698,7 @@ static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
 			for (i = 0; i < count; i += 4) {
 				uint8_t ftfx_fstat;
 
-				LOG_DEBUG("write longword @ %08X", offset + i);
+				LOG_DEBUG("write longword @ %08" PRIX32, (uint32_t)(offset + i));
 
 				uint8_t padding[4] = {0xff, 0xff, 0xff, 0xff};
 				memcpy(padding, buffer + i, MIN(4, count-i));
@@ -753,7 +753,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		return result;
 	fcfg2_pflsh = (kinfo->sim_fcfg2 >> 23) & 0x01;
 
-	LOG_DEBUG("SDID: 0x%08X FCFG1: 0x%08X FCFG2: 0x%08X", kinfo->sim_sdid,
+	LOG_DEBUG("SDID: 0x%08" PRIX32 " FCFG1: 0x%08" PRIX32 " FCFG2: 0x%08" PRIX32, kinfo->sim_sdid,
 			kinfo->sim_fcfg1, kinfo->sim_fcfg2);
 
 	fcfg1_nvmsize = (uint8_t)((kinfo->sim_fcfg1 >> 28) & 0x0f);
@@ -821,7 +821,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		break;
 	}
 
-	LOG_DEBUG("FlexNVM: %d PFlash: %d FlexRAM: %d PFLSH: %d",
+	LOG_DEBUG("FlexNVM: %" PRIu32 " PFlash: %" PRIu32 " FlexRAM: %" PRIu32 " PFLSH: %d",
 		  nvm_size, pf_size, ee_size, fcfg2_pflsh);
 	if (kinfo->klxx)
 		num_blocks = 1;

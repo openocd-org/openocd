@@ -595,7 +595,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 		if (retval != ERROR_OK)
 			goto done;
 		if (c == NULL) {
-			LOG_WARNING("no flash bank found for address %x", run_address);
+			LOG_WARNING("no flash bank found for address %" PRIx32, run_address);
 			section++;	/* and skip it */
 			section_offset = 0;
 			continue;

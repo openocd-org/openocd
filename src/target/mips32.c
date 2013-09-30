@@ -825,7 +825,7 @@ COMMAND_HANDLER(mips32_handle_scan_delay_command)
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
 	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], ejtag_info->scan_delay);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], ejtag_info->scan_delay);
 	else if (CMD_ARGC > 1)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 

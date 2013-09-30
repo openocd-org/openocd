@@ -638,7 +638,7 @@ static int get_stmsmi_info(struct flash_bank *bank, char *buf, int buf_size)
 	}
 
 	snprintf(buf, buf_size, "\nSMI flash information:\n"
-		"  Device \'%s\' (ID 0x%08x)\n",
+		"  Device \'%s\' (ID 0x%08" PRIx32 ")\n",
 		stmsmi_info->dev->name, stmsmi_info->dev->device_id);
 
 	return ERROR_OK;

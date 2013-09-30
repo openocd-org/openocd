@@ -596,7 +596,7 @@ static int jim_arm946e_cp15(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 		if (retval != ERROR_OK)
 			return JIM_ERR;
 		char buf[20];
-		sprintf(buf, "0x%08x", value);
+		sprintf(buf, "0x%08" PRIx32, value);
 		/* Return value in hex format */
 		Jim_SetResultString(interp, buf, -1);
 	} else if (argc == 3) {
@@ -643,7 +643,8 @@ COMMAND_HANDLER(arm946e_handle_idcache)
 		if (csize == 0)
 			command_print(CMD_CTX, "%s-cache absent", icache ? "I" : "D");
 		else
-			command_print(CMD_CTX, "%s-cache size: %dK, %s", icache ? "I" : "D", csize, bena ? "enabled" : "disabled");
+			command_print(CMD_CTX, "%s-cache size: %" PRIu32 "K, %s",
+				      icache ? "I" : "D", csize, bena ? "enabled" : "disabled");
 		return ERROR_OK;
 	}
 

@@ -373,7 +373,7 @@ int mips32_pracc_queue_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_in
 				goto exit;
 			}
 			if (addr != store_addr) {
-				LOG_ERROR("Store address mismatch, read: %x expected: %x count: %d",
+				LOG_ERROR("Store address mismatch, read: %" PRIx32 " expected: %" PRIx32 " count: %d",
 						addr, store_addr, scan_count);
 				retval = ERROR_FAIL;
 				goto exit;
@@ -388,7 +388,8 @@ int mips32_pracc_queue_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_in
 				goto exit;
 			}
 			if (addr != fetch_addr) {
-				LOG_ERROR("Fetch addr mismatch, read: %x expected: %x count: %d", addr, fetch_addr, scan_count);
+				LOG_ERROR("Fetch addr mismatch, read: %" PRIx32 " expected: %" PRIx32 " count: %d",
+					  addr, fetch_addr, scan_count);
 				retval = ERROR_FAIL;
 				goto exit;
 			}

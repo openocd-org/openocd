@@ -544,7 +544,7 @@ static int avr32_ap7k_examine(struct target *target)
 	if (!target_was_examined(target)) {
 		target_set_examined(target);
 		avr32_jtag_nexus_read(&ap7k->jtag, AVR32_OCDREG_DID, &devid);
-		LOG_INFO("device id: %08x", devid);
+		LOG_INFO("device id: %08" PRIx32, devid);
 		avr32_ocd_setbits(&ap7k->jtag, AVR32_OCDREG_DC, OCDREG_DC_DBE);
 		avr32_jtag_nexus_read(&ap7k->jtag, AVR32_OCDREG_DS, &ds);
 

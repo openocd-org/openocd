@@ -3388,7 +3388,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 
 	if (xscale->trace.mode != XSCALE_TRACE_DISABLED) {
 		char fill_string[12];
-		sprintf(fill_string, "fill %" PRId32, xscale->trace.buffer_fill);
+		sprintf(fill_string, "fill %d", xscale->trace.buffer_fill);
 		command_print(CMD_CTX, "trace buffer enabled (%s)",
 			(xscale->trace.mode == XSCALE_TRACE_FILL)
 			? fill_string : "wrap");

@@ -86,7 +86,7 @@ static int nds32_get_core_reg(struct reg *reg)
 	}
 
 	if (reg->valid) {
-		LOG_DEBUG("reading register(cached) %i(%s), value: 0x%8.8" PRIx32,
+		LOG_DEBUG("reading register(cached) %" PRIi32 "(%s), value: 0x%8.8" PRIx32,
 				reg_arch_info->num, reg->name, reg_arch_info->value);
 		return ERROR_OK;
 	}
@@ -110,7 +110,7 @@ static int nds32_get_core_reg(struct reg *reg)
 					mapped_regnum, &(reg_arch_info->value));
 		}
 
-		LOG_DEBUG("reading register %i(%s), value: 0x%8.8" PRIx32,
+		LOG_DEBUG("reading register %" PRIi32 "(%s), value: 0x%8.8" PRIx32,
 				reg_arch_info->num, reg->name, reg_arch_info->value);
 	}
 
@@ -309,7 +309,7 @@ static int nds32_set_core_reg(struct reg *reg, uint8_t *buf)
 	if (nds32_reg_exception(mapped_regnum, value))
 		return ERROR_OK;
 
-	LOG_DEBUG("writing register %i(%s) with value 0x%8.8" PRIx32,
+	LOG_DEBUG("writing register %" PRIi32 "(%s) with value 0x%8.8" PRIx32,
 			reg_arch_info->num, reg->name, value);
 
 	if ((nds32->fpu_enable == false) &&
@@ -1572,7 +1572,7 @@ int nds32_edm_config(struct nds32 *nds32)
 	aice_read_debug_reg(aice, NDS_EDM_SR_EDM_CFG, &edm_cfg);
 
 	nds32->edm.version = (edm_cfg >> 16) & 0xFFFF;
-	LOG_INFO("EDM version 0x%04" PRIx32, nds32->edm.version);
+	LOG_INFO("EDM version 0x%04x", nds32->edm.version);
 
 	nds32->edm.breakpoint_num = (edm_cfg & 0x7) + 1;
 
@@ -2008,7 +2008,7 @@ int nds32_login(struct nds32 *nds32)
 			code_str[copy_length] = '\0';
 			code = strtoul(code_str, NULL, 16);
 
-			sprintf(command_str, "write_misc gen_port0 0x%x;", code);
+			sprintf(command_str, "write_misc gen_port0 0x%" PRIx32 ";", code);
 			strcat(command_sequence, command_str);
 		}
 
@@ -2033,7 +2033,7 @@ int nds32_login(struct nds32 *nds32)
 			else
 				return ERROR_FAIL;
 
-			sprintf(command_str, "write_misc %s 0x%x;", reg_name, code);
+			sprintf(command_str, "write_misc %s 0x%" PRIx32 ";", reg_name, code);
 			if (ERROR_OK != aice_program_edm(aice, command_str))
 				return ERROR_FAIL;
 		}
@@ -2118,7 +2118,7 @@ int nds32_poll(struct target *target)
 int nds32_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
+	LOG_DEBUG("current %d  address %08" PRIx32 "  handle_breakpoints %d  debug_execution %d",
 			current, address, handle_breakpoints, debug_execution);
 
 	struct nds32 *nds32 = target_to_nds32(target);
@@ -2219,7 +2219,7 @@ int nds32_assert_reset(struct target *target)
 
 static int nds32_gdb_attach(struct nds32 *nds32)
 {
-	LOG_DEBUG("nds32_gdb_attach, target coreid: %d", nds32->target->coreid);
+	LOG_DEBUG("nds32_gdb_attach, target coreid: %" PRId32, nds32->target->coreid);
 
 	if (nds32->attached == false) {
 
@@ -2318,7 +2318,7 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 	syscall_id = (value_ir6 >> 16) & 0x7FFF;
 	nds32->active_syscall_id = syscall_id;
 
-	LOG_DEBUG("hit syscall ID: 0x%x", syscall_id);
+	LOG_DEBUG("hit syscall ID: 0x%" PRIx32, syscall_id);
 
 	/* free previous identifier storage */
 	if (NULL != fileio_info->identifier) {

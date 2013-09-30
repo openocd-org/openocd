@@ -102,14 +102,14 @@ static int cortex_a8_check_address(struct target *target, uint32_t address)
 	uint32_t os_border = armv7a->armv7a_mmu.os_border;
 	if ((address < os_border) &&
 		(armv7a->arm.core_mode == ARM_MODE_SVC)) {
-		LOG_ERROR("%x access in userspace and target in supervisor", address);
+		LOG_ERROR("%" PRIx32 " access in userspace and target in supervisor", address);
 		return ERROR_FAIL;
 	}
 	if ((address >= os_border) &&
 		(cortex_a8->curr_mode != ARM_MODE_SVC)) {
 		dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
 		cortex_a8->curr_mode = ARM_MODE_SVC;
-		LOG_INFO("%x access in kernel space and target not in supervisor",
+		LOG_INFO("%" PRIx32 " access in kernel space and target not in supervisor",
 			address);
 		return ERROR_OK;
 	}
@@ -1911,7 +1911,7 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 		goto error_free_buff_w;
 	if (dscr & (DSCR_STICKY_ABORT_PRECISE | DSCR_STICKY_ABORT_IMPRECISE)) {
 		/* Abort occurred - clear it and exit */
-		LOG_ERROR("abort occurred - dscr = 0x%08x", dscr);
+		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);
 		mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
 					armv7a->debug_base + CPUDBG_DRCR, 1<<2);
 		goto error_free_buff_w;
@@ -2054,7 +2054,7 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 		goto error_free_buff_r;
 	if (dscr & (DSCR_STICKY_ABORT_PRECISE | DSCR_STICKY_ABORT_IMPRECISE)) {
 		/* Abort occurred - clear it and exit */
-		LOG_ERROR("abort occurred - dscr = 0x%08x", dscr);
+		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);
 		mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
 					armv7a->debug_base + CPUDBG_DRCR, 1<<2);
 		goto error_free_buff_r;
@@ -2104,7 +2104,7 @@ static int cortex_a8_read_phys_memory(struct target *target,
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
-	LOG_DEBUG("Reading memory at real address 0x%x; size %d; count %d",
+	LOG_DEBUG("Reading memory at real address 0x%" PRIx32 "; size %" PRId32 "; count %" PRId32,
 		address, size, count);
 
 	if (count && buffer) {
@@ -2153,7 +2153,7 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 	uint8_t apsel = swjdp->apsel;
 
 	/* cortex_a8 handles unaligned memory access */
-	LOG_DEBUG("Reading memory at address 0x%x; size %d; count %d", address,
+	LOG_DEBUG("Reading memory at address 0x%" PRIx32 "; size %" PRId32 "; count %" PRId32, address,
 		size, count);
 	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
 		if (!armv7a->is_armv7r) {
@@ -2168,7 +2168,7 @@ static int cortex_a8_read_memory(struct target *target, uint32_t address,
 				if (retval != ERROR_OK)
 					return retval;
 
-				LOG_DEBUG("Reading at virtual address. Translating v:0x%x to r:0x%x",
+				LOG_DEBUG("Reading at virtual address. Translating v:0x%" PRIx32 " to r:0x%" PRIx32,
 					virt, phys);
 				address = phys;
 			}
@@ -2198,7 +2198,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
 
-	LOG_DEBUG("Writing memory to real address 0x%x; size %d; count %d", address,
+	LOG_DEBUG("Writing memory to real address 0x%" PRIx32 "; size %" PRId32 "; count %" PRId32, address,
 		size, count);
 
 	if (count && buffer) {
@@ -2302,11 +2302,11 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
 	/* cortex_a8 handles unaligned memory access */
-	LOG_DEBUG("Writing memory at address 0x%x; size %d; count %d", address,
+	LOG_DEBUG("Writing memory at address 0x%" PRIx32 "; size %" PRId32 "; count %" PRId32, address,
 		size, count);
 	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
 
-		LOG_DEBUG("Writing memory to address 0x%x; size %d; count %d", address, size,
+		LOG_DEBUG("Writing memory to address 0x%" PRIx32 "; size %" PRId32 "; count %" PRId32, address, size,
 			count);
 		if (!armv7a->is_armv7r) {
 			retval = cortex_a8_mmu(target, &enabled);
@@ -2318,7 +2318,7 @@ static int cortex_a8_write_memory(struct target *target, uint32_t address,
 				retval = cortex_a8_virt2phys(target, virt, &phys);
 				if (retval != ERROR_OK)
 					return retval;
-				LOG_DEBUG("Writing to virtual address. Translating v:0x%x to r:0x%x",
+				LOG_DEBUG("Writing to virtual address. Translating v:0x%" PRIx32 " to r:0x%" PRIx32,
 					virt,
 					phys);
 				address = phys;
@@ -2696,7 +2696,7 @@ COMMAND_HANDLER(cortex_a8_handle_smp_gdb_command)
 			target->gdb_service->core[1] = coreid;
 
 		}
-		command_print(CMD_CTX, "gdb coreid  %d -> %d", target->gdb_service->core[0]
+		command_print(CMD_CTX, "gdb coreid  %" PRId32 " -> %" PRId32, target->gdb_service->core[0]
 			, target->gdb_service->core[1]);
 	}
 	return ERROR_OK;

@@ -2333,7 +2333,7 @@ static uint32_t sam3_reg_fieldname(struct sam3_chip *pChip,
 	}
 
 	/* show the basics */
-	LOG_USER_N("\t%*s: %*d [0x%0*x] ",
+	LOG_USER_N("\t%*s: %*" PRIu32 " [0x%0*" PRIx32 "] ",
 		REG_NAME_WIDTH, regname,
 		dwidth, v,
 		hwidth, v);
@@ -2558,10 +2558,10 @@ static void sam3_explain_ckgr_mcfr(struct sam3_chip *pChip)
 	v = (v * pChip->cfg.slow_freq) / 16;
 	pChip->cfg.mainosc_freq = v;
 
-	LOG_USER("(%3.03f Mhz (%d.%03dkhz slowclk)",
+	LOG_USER("(%3.03f Mhz (%" PRIu32 ".%03" PRIu32 "khz slowclk)",
 		_tomhz(v),
-		pChip->cfg.slow_freq / 1000,
-		pChip->cfg.slow_freq % 1000);
+		(uint32_t)(pChip->cfg.slow_freq / 1000),
+		(uint32_t)(pChip->cfg.slow_freq % 1000));
 }
 
 static void sam3_explain_ckgr_plla(struct sam3_chip *pChip)
@@ -2831,7 +2831,7 @@ static int sam3_GetInfo(struct sam3_chip *pChip)
 		/* display all regs */
 		LOG_DEBUG("Start: %s", pReg->name);
 		regval = *sam3_get_reg_ptr(&(pChip->cfg), pReg);
-		LOG_USER("%*s: [0x%08x] -> 0x%08x",
+		LOG_USER("%*s: [0x%08" PRIx32 "] -> 0x%08" PRIx32,
 			REG_NAME_WIDTH,
 			pReg->name,
 			pReg->address,
@@ -2847,7 +2847,7 @@ static int sam3_GetInfo(struct sam3_chip *pChip)
 	LOG_USER(" cpu-freq: %3.03f MHz", _tomhz(pChip->cfg.cpu_freq));
 	LOG_USER("mclk-freq: %3.03f MHz", _tomhz(pChip->cfg.mclk_freq));
 
-	LOG_USER(" UniqueId: 0x%08x 0x%08x 0x%08x 0x%08x",
+	LOG_USER(" UniqueId: 0x%08" PRIx32 " 0x%08" PRIx32 " 0x%08" PRIx32 " 0x%08" PRIx32,
 		pChip->cfg.unique_id[0],
 		pChip->cfg.unique_id[1],
 		pChip->cfg.unique_id[2],
@@ -3002,7 +3002,7 @@ static int sam3_GetDetails(struct sam3_bank_private *pPrivate)
 		LOG_ERROR("SAM3 ChipID 0x%08x not found in table (perhaps you can ID this chip?)",
 			(unsigned int)(pPrivate->pChip->cfg.CHIPID_CIDR));
 		/* Help the victim, print details about the chip */
-		LOG_INFO("SAM3 CHIPID_CIDR: 0x%08x decodes as follows",
+		LOG_INFO("SAM3 CHIPID_CIDR: 0x%08" PRIx32 " decodes as follows",
 			pPrivate->pChip->cfg.CHIPID_CIDR);
 		sam3_explain_chipid_cidr(pPrivate->pChip);
 		return ERROR_FAIL;

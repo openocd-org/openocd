@@ -598,14 +598,15 @@ static int stm32lx_probe(struct flash_bank *bank)
 			/* This is the first bank */
 			flash_size_in_kb = first_bank_size_in_kb;
 		} else {
-			LOG_WARNING("STM32L flash bank base address config is incorrect. 0x%x but should rather be 0x%x or 0x%x",
+			LOG_WARNING("STM32L flash bank base address config is incorrect."
+				    " 0x%" PRIx32 " but should rather be 0x%" PRIx32 " or 0x%" PRIx32,
 						bank->base, base_address, second_bank_base);
 			return ERROR_FAIL;
 		}
-		LOG_INFO("STM32L flash has dual banks. Bank (%d) size is %dkb, base address is 0x%x",
+		LOG_INFO("STM32L flash has dual banks. Bank (%d) size is %dkb, base address is 0x%" PRIx32,
 				bank->bank_number, flash_size_in_kb, base_address);
 	} else {
-		LOG_INFO("STM32L flash size is %dkb, base address is 0x%x", flash_size_in_kb, base_address);
+		LOG_INFO("STM32L flash size is %dkb, base address is 0x%" PRIx32, flash_size_in_kb, base_address);
 	}
 
 	/* if the user sets the size manually then ignore the probed value

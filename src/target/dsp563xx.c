@@ -580,7 +580,7 @@ static int dsp563xx_reg_pc_read(struct target *target)
 	/* conditional branch check */
 	if (once_regs[ONCE_REG_IDX_OPABDR].reg == once_regs[ONCE_REG_IDX_OPABEX].reg) {
 		if ((once_regs[ONCE_REG_IDX_OPABF11].reg & 1) == 0) {
-			LOG_DEBUG("%s conditional branch not supported yet (0x%x 0x%x 0x%x)",
+			LOG_DEBUG("%s conditional branch not supported yet (0x%" PRIx32 " 0x%" PRIx32 " 0x%" PRIx32 ")",
 				__func__,
 				(once_regs[ONCE_REG_IDX_OPABF11].reg >> 1),
 				once_regs[ONCE_REG_IDX_OPABDR].reg,
@@ -938,7 +938,7 @@ static int dsp563xx_examine(struct target *target)
 		if (((chip>>5)&0x1f) == 0)
 			chip += 300;
 
-		LOG_INFO("DSP56%03d device found", chip);
+		LOG_INFO("DSP56%03" PRId32 " device found", chip);
 
 		/* Clear all breakpoints */
 		dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OBCR, 0);
@@ -1079,8 +1079,8 @@ static int dsp563xx_poll(struct target *target)
 			else
 				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-			LOG_DEBUG("target->state: %s (%x)", target_state_name(target), once_status);
-			LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC]);
+			LOG_DEBUG("target->state: %s (%" PRIx32 ")", target_state_name(target), once_status);
+			LOG_INFO("halted: PC: 0x%" PRIx32, dsp563xx->core_regs[DSP563XX_REG_IDX_PC]);
 		}
 	}
 
@@ -1310,7 +1310,7 @@ static int dsp563xx_step(struct target *target,
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_INFO("halted: PC: 0x%x", dsp563xx->core_regs[DSP563XX_REG_IDX_PC]);
+	LOG_INFO("halted: PC: 0x%" PRIx32, dsp563xx->core_regs[DSP563XX_REG_IDX_PC]);
 
 	return err;
 }
@@ -1965,7 +1965,7 @@ static int dsp563xx_add_custom_watchpoint(struct target *target, uint32_t addres
 				obcr_value |= OBCR_BP_MEM_P;
 				break;
 			default:
-				LOG_ERROR("Unknown memType parameter (%d)", memType);
+				LOG_ERROR("Unknown memType parameter (%" PRIu32 ")", memType);
 				err = ERROR_TARGET_INVALID;
 		}
 	}

@@ -209,7 +209,7 @@ COMMAND_HANDLER(handle_swd_wcr)
 		}
 
 		command_print(CMD_CTX,
-			"turnaround=%d, prescale=%d",
+			"turnaround=%" PRIu32 ", prescale=%" PRIu32,
 			WCR_TO_TRN(wcr),
 			WCR_TO_PRESCALE(wcr));
 	return ERROR_OK;
@@ -330,7 +330,7 @@ static int swd_init(struct command_context *ctx)
 	status = swd_queue_idcode_read(dap, &ack, &idcode);
 
 	if (status == ERROR_OK)
-		LOG_INFO("SWD IDCODE %#8.8x", idcode);
+		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
 
 	return status;
 

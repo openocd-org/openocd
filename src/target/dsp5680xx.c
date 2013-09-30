@@ -1125,7 +1125,7 @@ static int dsp5680xx_read_16_single(struct target *t, uint32_t a,
 	/* at this point the data i want is at the reg eonce can read */
 	retval = core_rx_lower_data(target, data_read);
 	err_check_propagate(retval);
-	LOG_DEBUG("%s:Data read from 0x%06X: 0x%02X%02X", __func__, address,
+	LOG_DEBUG("%s:Data read from 0x%06" PRIX32 ": 0x%02X%02X", __func__, address,
 		  data_read[1], data_read[0]);
 	return retval;
 }
@@ -1170,8 +1170,8 @@ static int dsp5680xx_read_32_single(struct target *t, uint32_t a,
 	return retval;
 }
 
-static int dsp5680xx_read(struct target *t, uint32_t a, unsigned size,
-			  unsigned count, uint8_t *buf)
+static int dsp5680xx_read(struct target *t, uint32_t a, uint32_t size,
+			  uint32_t count, uint8_t *buf)
 {
 	struct target *target = t;
 
@@ -1307,7 +1307,7 @@ static int dsp5680xx_write_8(struct target *t, uint32_t a, uint32_t c,
 			dsp5680xx_write_16_single(target, address + iter, data_16,
 						  pmem);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: Could not write to p:0x%04X", __func__,
+			LOG_ERROR("%s: Could not write to p:0x%04" PRIX32, __func__,
 				  address);
 			dsp5680xx_context.flush = 1;
 			return retval;
@@ -1364,7 +1364,7 @@ static int dsp5680xx_write_16(struct target *t, uint32_t a, uint32_t c,
 			dsp5680xx_write_16_single(target, address + iter,
 						  data[iter], pmem);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: Could not write to p:0x%04X", __func__,
+			LOG_ERROR("%s: Could not write to p:0x%04" PRIX32, __func__,
 				  address);
 			dsp5680xx_context.flush = 1;
 			return retval;
@@ -1401,7 +1401,7 @@ static int dsp5680xx_write_32(struct target *t, uint32_t a, uint32_t c,
 			dsp5680xx_write_32_single(target, address + (iter << 1),
 						  data[iter], pmem);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: Could not write to p:0x%04X", __func__,
+			LOG_ERROR("%s: Could not write to p:0x%04" PRIX32, __func__,
 				  address);
 			dsp5680xx_context.flush = 1;
 			return retval;

@@ -410,7 +410,7 @@ static int nuc1x_write(struct flash_bank *bank, uint8_t *buffer,
 	/* program command */
 	for (i = 0; i < count; i += 4) {
 
-		LOG_DEBUG("write longword @ %08X", offset + i);
+		LOG_DEBUG("write longword @ %08" PRIX32, (uint32_t)(offset + i));
 
 		uint8_t padding[4] = {0xff, 0xff, 0xff, 0xff};
 		memcpy(padding, buffer + i, MIN(4, count-i));
@@ -495,7 +495,7 @@ static int nuc1x_probe(struct flash_bank *bank)
 	}
 	if (!(NuMicroParts[i].partno == 0x00000000)) {
 		LOG_INFO("DeviceID : 0x%08" PRIx32 "", device_id);
-		LOG_INFO("Detect %s%CN!", NuMicroParts[i].partname, ('A'+(device_id>>28)));
+		LOG_INFO("Detect %s%cN!", NuMicroParts[i].partname, (char)('A'+(device_id>>28)));
 	} else {
 		LOG_INFO("No NUC Device Detected...");
 		return ERROR_FAIL;
@@ -552,7 +552,7 @@ static int get_nuc1x_info(struct flash_bank *bank, char *buf, int buf_size)
 	}
 	if (!(NuMicroParts[i].partno == 0x00000000)) {
 		LOG_INFO("DeviceID : 0x%08" PRIx32 "", device_id);
-		LOG_INFO("Detect %s%CN!", NuMicroParts[i].partname, ('A'+(device_id>>28)));
+		LOG_INFO("Detect %s%cN!", NuMicroParts[i].partname, (char)('A'+(device_id>>28)));
 	} else {
 		LOG_INFO("No NUC Device Detected...");
 		return ERROR_FAIL;

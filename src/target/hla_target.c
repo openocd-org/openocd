@@ -483,7 +483,7 @@ static int adapter_poll(struct target *target)
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		}
 
-		LOG_DEBUG("halted: PC: 0x%08x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
+		LOG_DEBUG("halted: PC: 0x%08" PRIx32, buf_get_u32(armv7m->arm.pc->value, 0, 32));
 	}
 
 	return ERROR_OK;
@@ -610,7 +610,7 @@ static int adapter_resume(struct target *target, int current,
 	struct breakpoint *breakpoint = NULL;
 	struct reg *pc;
 
-	LOG_DEBUG("%s %d 0x%08x %d %d", __func__, current, address,
+	LOG_DEBUG("%s %d 0x%08" PRIx32 " %d %d", __func__, current, address,
 			handle_breakpoints, debug_execution);
 
 	if (target->state != TARGET_HALTED) {
@@ -658,7 +658,7 @@ static int adapter_resume(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %d)",
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %" PRIu32 ")",
 					breakpoint->address,
 					breakpoint->unique_id);
 			cortex_m_unset_breakpoint(target, breakpoint);
@@ -749,7 +749,7 @@ static int adapter_step(struct target *target, int current,
 	adapter_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_INFO("halted: PC: 0x%08x", buf_get_u32(armv7m->arm.pc->value, 0, 32));
+	LOG_INFO("halted: PC: 0x%08" PRIx32, buf_get_u32(armv7m->arm.pc->value, 0, 32));
 
 	return ERROR_OK;
 }
@@ -763,7 +763,7 @@ static int adapter_read_memory(struct target *target, uint32_t address,
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	LOG_DEBUG("%s 0x%08x %d %d", __func__, address, size, count);
+	LOG_DEBUG("%s 0x%08" PRIx32 " %" PRIu32 " %" PRIu32, __func__, address, size, count);
 
 	return adapter->layout->api->read_mem(adapter->fd, address, size, count, buffer);
 }
@@ -777,7 +777,7 @@ static int adapter_write_memory(struct target *target, uint32_t address,
 	if (!count || !buffer)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	LOG_DEBUG("%s 0x%08x %d %d", __func__, address, size, count);
+	LOG_DEBUG("%s 0x%08" PRIx32 " %" PRIu32 " %" PRIu32, __func__, address, size, count);
 
 	return adapter->layout->api->write_mem(adapter->fd, address, size, count, buffer);
 }

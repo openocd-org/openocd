@@ -74,7 +74,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 			return retval;
 
 		command_print(CMD_CTX,
-			"#%" PRIu32 " : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32
+			"#%d : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32
 			", buswidth %i, chipwidth %i",
 			p->bank_number,
 			p->driver->name,
@@ -236,7 +236,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 		retval = flash_erase_address_range(target, do_pad, address, length);
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK)) {
-		command_print(CMD_CTX, "erased address 0x%8.8x (length %i)"
+		command_print(CMD_CTX, "erased address 0x%8.8" PRIx32 " (length %" PRIi32 ")"
 			" in %fs (%0.3f KiB/s)", address, length,
 			duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
@@ -294,7 +294,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK)) {
 		command_print(CMD_CTX, "erased sectors %" PRIu32 " "
-			"through %" PRIu32 " on flash bank %" PRIu32 " "
+			"through %" PRIu32 " on flash bank %d "
 			"in %fs", first, last, p->bank_number, duration_elapsed(&bench));
 	}
 
@@ -332,7 +332,7 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	retval = flash_driver_protect(p, set, first, last);
 	if (retval == ERROR_OK) {
 		command_print(CMD_CTX, "%s protection for sectors %i "
-			"through %i on flash bank %" PRIu32 "",
+			"through %i on flash bank %d",
 			(set) ? "set" : "cleared", (int) first,
 			(int) last, p->bank_number);
 	}
@@ -818,7 +818,7 @@ COMMAND_HANDLER(handle_flash_banks_command)
 
 	unsigned n = 0;
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++) {
-		LOG_USER("#%" PRIu32 " : %s (%s) at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
+		LOG_USER("#%d : %s (%s) at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
 			"buswidth %u, chipwidth %u", p->bank_number,
 			p->name, p->driver->name, p->base, p->size,
 			p->bus_width, p->chip_width);

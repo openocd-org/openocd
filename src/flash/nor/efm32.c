@@ -292,7 +292,7 @@ static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
 	int ret = 0;
 	uint32_t status = 0;
 
-	LOG_DEBUG("erasing flash page at 0x%08x", addr);
+	LOG_DEBUG("erasing flash page at 0x%08" PRIx32, addr);
 
 	ret = target_write_u32(bank->target, EFM32_MSC_ADDRB, addr);
 	if (ERROR_OK != ret)
@@ -307,13 +307,13 @@ static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
 	if (ERROR_OK != ret)
 		return ret;
 
-	LOG_DEBUG("status 0x%x", status);
+	LOG_DEBUG("status 0x%" PRIx32, status);
 
 	if (status & EFM32_MSC_STATUS_LOCKED_MASK) {
 		LOG_ERROR("Page is locked");
 		return ERROR_FAIL;
 	} else if (status & EFM32_MSC_STATUS_INVADDR_MASK) {
-		LOG_ERROR("Invalid address 0x%x", addr);
+		LOG_ERROR("Invalid address 0x%" PRIx32, addr);
 		return ERROR_FAIL;
 	}
 
@@ -681,13 +681,13 @@ static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
 	if (ERROR_OK != ret)
 		return ret;
 
-	LOG_DEBUG("status 0x%x", status);
+	LOG_DEBUG("status 0x%" PRIx32, status);
 
 	if (status & EFM32_MSC_STATUS_LOCKED_MASK) {
 		LOG_ERROR("Page is locked");
 		return ERROR_FAIL;
 	} else if (status & EFM32_MSC_STATUS_INVADDR_MASK) {
-		LOG_ERROR("Invalid address 0x%x", addr);
+		LOG_ERROR("Invalid address 0x%" PRIx32, addr);
 		return ERROR_FAIL;
 	}
 
@@ -747,7 +747,7 @@ static int efm32x_write(struct flash_bank *bank, uint8_t *buffer,
 				"for padding buffer");
 			return ERROR_FAIL;
 		}
-		LOG_INFO("odd number of bytes to write (%d), extending to %d "
+		LOG_INFO("odd number of bytes to write (%" PRIu32 "), extending to %" PRIu32 " "
 			"and padding with 0xff", old_count, count);
 		memset(buffer, 0xff, count);
 		buffer = memcpy(new_buffer, buffer, old_count);

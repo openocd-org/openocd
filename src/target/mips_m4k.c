@@ -147,7 +147,7 @@ static int mips_m4k_halt_smp(struct target *target)
 			ret = mips_m4k_halt(curr);
 
 		if (ret != ERROR_OK) {
-			LOG_ERROR("halt failed target->coreid: %d", curr->coreid);
+			LOG_ERROR("halt failed target->coreid: %" PRId32, curr->coreid);
 			retval = ret;
 		}
 		head = head->next;
@@ -405,7 +405,7 @@ static int mips_m4k_restore_smp(struct target *target, uint32_t address, int han
 						   handle_breakpoints, 0);
 
 			if (ret != ERROR_OK) {
-				LOG_ERROR("target->coreid :%d failed to resume at address :0x%x",
+				LOG_ERROR("target->coreid :%" PRId32 " failed to resume at address :0x%" PRIx32,
 						  curr->coreid, address);
 				retval = ret;
 			}
@@ -602,7 +602,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 		while (comparator_list[bp_num].used && (bp_num < mips32->num_inst_bpoints))
 			bp_num++;
 		if (bp_num >= mips32->num_inst_bpoints) {
-			LOG_ERROR("Can not find free FP Comparator(bpid: %d)",
+			LOG_ERROR("Can not find free FP Comparator(bpid: %" PRIu32 ")",
 					breakpoint->unique_id);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
@@ -622,11 +622,11 @@ static int mips_m4k_set_breakpoint(struct target *target,
 				 ejtag_info->ejtag_ibm_offs, 0x00000000);
 		target_write_u32(target, comparator_list[bp_num].reg_address +
 				 ejtag_info->ejtag_ibc_offs, 1);
-		LOG_DEBUG("bpid: %d, bp_num %i bp_value 0x%" PRIx32 "",
+		LOG_DEBUG("bpid: %" PRIu32 ", bp_num %i bp_value 0x%" PRIx32 "",
 				  breakpoint->unique_id,
 				  bp_num, comparator_list[bp_num].bp_value);
 	} else if (breakpoint->type == BKPT_SOFT) {
-		LOG_DEBUG("bpid: %d", breakpoint->unique_id);
+		LOG_DEBUG("bpid: %" PRIu32, breakpoint->unique_id);
 		if (breakpoint->length == 4) {
 			uint32_t verify = 0xffffffff;
 
@@ -690,11 +690,11 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 	if (breakpoint->type == BKPT_HARD) {
 		int bp_num = breakpoint->set - 1;
 		if ((bp_num < 0) || (bp_num >= mips32->num_inst_bpoints)) {
-			LOG_DEBUG("Invalid FP Comparator number in breakpoint (bpid: %d)",
+			LOG_DEBUG("Invalid FP Comparator number in breakpoint (bpid: %" PRIu32 ")",
 					  breakpoint->unique_id);
 			return ERROR_OK;
 		}
-		LOG_DEBUG("bpid: %d - releasing hw: %d",
+		LOG_DEBUG("bpid: %" PRIu32 " - releasing hw: %d",
 				breakpoint->unique_id,
 				bp_num);
 		comparator_list[bp_num].used = 0;
@@ -704,7 +704,7 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 
 	} else {
 		/* restore original instruction (kept in target endianness) */
-		LOG_DEBUG("bpid: %d", breakpoint->unique_id);
+		LOG_DEBUG("bpid: %" PRIu32, breakpoint->unique_id);
 		if (breakpoint->length == 4) {
 			uint32_t current_instr;
 
@@ -1296,7 +1296,7 @@ COMMAND_HANDLER(mips_m4k_handle_smp_gdb_command)
 			target->gdb_service->core[1] = coreid;
 
 		}
-		command_print(CMD_CTX, "gdb coreid  %d -> %d", target->gdb_service->core[0]
+		command_print(CMD_CTX, "gdb coreid  %" PRId32 " -> %" PRId32, target->gdb_service->core[0]
 			, target->gdb_service->core[1]);
 	}
 	return ERROR_OK;
@@ -1309,7 +1309,7 @@ COMMAND_HANDLER(mips_m4k_handle_scan_delay_command)
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
 
 	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], ejtag_info->scan_delay);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], ejtag_info->scan_delay);
 	else if (CMD_ARGC > 1)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 

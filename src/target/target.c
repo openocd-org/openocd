@@ -1796,7 +1796,7 @@ static int target_profiling_default(struct target *target, uint32_t *samples,
 		gettimeofday(&now, NULL);
 		if ((sample_count >= max_num_samples) ||
 			((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec))) {
-			LOG_INFO("Profiling completed. %d samples.", sample_count);
+			LOG_INFO("Profiling completed. %" PRIu32 " samples.", sample_count);
 			break;
 		}
 	}
@@ -3541,7 +3541,7 @@ COMMAND_HANDLER(handle_profile_command)
 		return ERROR_FAIL;
 	}
 
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], offset);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
 
 	/**
 	 * Some cores let us sample the PC without the
@@ -3581,8 +3581,8 @@ COMMAND_HANDLER(handle_profile_command)
 	bool with_range = false;
 	if (CMD_ARGC == 4) {
 		with_range = true;
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], start_address);
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[3], end_address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], start_address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], end_address);
 	}
 
 	write_gmon(samples, num_of_sampels, CMD_ARGV[1],
@@ -5439,7 +5439,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 			fastload[i].data = malloc(length);
 			if (fastload[i].data == NULL) {
 				free(buffer);
-				command_print(CMD_CTX, "error allocating buffer for section (%d bytes)",
+				command_print(CMD_CTX, "error allocating buffer for section (%" PRIu32 " bytes)",
 							  length);
 				retval = ERROR_FAIL;
 				break;

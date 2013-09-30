@@ -816,7 +816,7 @@ static int jim_nds32_bulk_read(Jim_Interp *interp, int argc, Jim_Obj * const *ar
 	jim_wide i;
 	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 	for (i = 0; i < count; i++) {
-		sprintf(data_str, "0x%08x ", data[i]);
+		sprintf(data_str, "0x%08" PRIx32 " ", data[i]);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), data_str, NULL);
 	}
 
@@ -864,7 +864,7 @@ static int jim_nds32_read_edm_sr(Jim_Interp *interp, int argc, Jim_Obj * const *
 
 	aice_read_debug_reg(aice, edm_sr_number, &edm_sr_value);
 
-	sprintf(data_str, "0x%08x", edm_sr_value);
+	sprintf(data_str, "0x%08" PRIx32, edm_sr_value);
 	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 	Jim_AppendStrings(interp, Jim_GetResult(interp), data_str, NULL);
 

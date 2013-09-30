@@ -485,7 +485,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	result_table[3] = target_buffer_get_u32(target, mem_params[1].value + 0x10);
 
 	LOG_DEBUG("IAP command = %i (0x%8.8" PRIx32 ", 0x%8.8" PRIx32 ", 0x%8.8" PRIx32 ", 0x%8.8" PRIx32 ", 0x%8.8" PRIx32
-			") completed with result = %8.8" PRIx32,
+			") completed with result = %8.8x",
 			code, param_table[0], param_table[1], param_table[2], param_table[3], param_table[4], status_code);
 
 	destroy_mem_param(&mem_params[0]);

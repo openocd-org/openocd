@@ -2307,7 +2307,7 @@ static int cfi_read(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, u
 	}
 
 	if (count) {
-		LOG_INFO("Fixup %d unaligned read tail bytes", count);
+		LOG_INFO("Fixup %" PRIu32 " unaligned read tail bytes", count);
 
 		/* read a complete word from flash */
 		retval = target_read_memory(target, read_p, bank->bus_width, 1, current_word);

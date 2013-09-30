@@ -1040,8 +1040,8 @@ static int lpc32xx_write_page_slc(struct nand_device *nand,
 	int retval;
 	uint32_t target_mem_base;
 
-	LOG_DEBUG("SLC write page %x data=%d, oob=%d, "
-		"data_size=%d, oob_size=%d",
+	LOG_DEBUG("SLC write page %" PRIx32 " data=%d, oob=%d, "
+		"data_size=%" PRIu32 ", oob_size=%" PRIu32,
 		page, data != 0, oob != 0, data_size, oob_size);
 
 	target_mem_base = pworking_area->address;
@@ -1451,7 +1451,7 @@ static int lpc32xx_read_page_slc(struct nand_device *nand,
 	int retval;
 	uint32_t target_mem_base;
 
-	LOG_DEBUG("SLC read page %x data=%d, oob=%d",
+	LOG_DEBUG("SLC read page %" PRIx32 " data=%" PRIu32 ", oob=%" PRIu32,
 		page, data_size, oob_size);
 
 	target_mem_base = pworking_area->address;
@@ -1558,7 +1558,7 @@ static int lpc32xx_read_page_slc(struct nand_device *nand,
 		retval = nand_correct_data(nand, data + 256*i, &fecc[i * 3],
 				&ecc[i * 3]);
 		if (retval > 0)
-			LOG_WARNING("error detected and corrected: %d/%d",
+			LOG_WARNING("error detected and corrected: %" PRIu32 "/%d",
 				page, i);
 		if (retval < 0)
 			break;
@@ -1566,7 +1566,7 @@ static int lpc32xx_read_page_slc(struct nand_device *nand,
 	if (i == ecc_count)
 		retval = ERROR_OK;
 	else {
-		LOG_ERROR("uncorrectable error detected: %d/%d", page, i);
+		LOG_ERROR("uncorrectable error detected: %" PRIu32 "/%d", page, i);
 		retval = ERROR_NAND_OPERATION_FAILED;
 	}
 	return retval;
