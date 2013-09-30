@@ -377,7 +377,7 @@ void target_buffer_get_u16_array(struct target *target, const uint8_t *buffer, u
 }
 
 /* write a uint32_t array to a buffer in target memory endianness */
-void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, uint32_t *srcbuf)
+void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, const uint32_t *srcbuf)
 {
 	uint32_t i;
 	for (i = 0; i < count; i++)
@@ -385,7 +385,7 @@ void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_
 }
 
 /* write a uint16_t array to a buffer in target memory endianness */
-void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, uint16_t *srcbuf)
+void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, const uint16_t *srcbuf)
 {
 	uint32_t i;
 	for (i = 0; i < count; i++)
@@ -4260,11 +4260,10 @@ no_params:
 										   n->name);
 					return JIM_ERR;
 				}
-				if (target->variant)
-					free((void *)(target->variant));
 				e = Jim_GetOpt_String(goi, &cp, NULL);
 				if (e != JIM_OK)
 					return e;
+				free(target->variant);
 				target->variant = strdup(cp);
 			} else {
 				if (goi->argc != 0)

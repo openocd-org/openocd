@@ -38,6 +38,6 @@
 int mips32_dmaacc_read_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
 int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int size, int count, void *buf);
+		uint32_t addr, int size, int count, const void *buf);
 
 #endif

@@ -55,9 +55,9 @@ typedef int (*input_handler_t)(struct connection *connection);
 typedef int (*connection_closed_handler_t)(struct connection *connection);
 
 struct service {
-	const char *name;
+	char *name;
 	enum connection_type type;
-	const char *port;
+	char *port;
 	unsigned short portnumber;
 	int fd;
 	struct sockaddr_in sin;
@@ -101,14 +101,9 @@ void openocd_sleep_postlude(void);
  * Call server_port like a normal COMMAND_HANDLER with an extra @a out parameter
  * to receive the specified port number.
  */
-#define SERVER_PIPE_COMMAND() \
-	COMMAND_HELPER(server_pipe_command, const char **out)
-SERVER_PIPE_COMMAND();
+COMMAND_HELPER(server_pipe_command, char **out);
 
-#define SERVER_PORT_COMMAND() \
-	COMMAND_HELPER(server_port_command, unsigned short *out)
-
-SERVER_PORT_COMMAND();
+COMMAND_HELPER(server_port_command, unsigned short *out);
 
 #define ERROR_SERVER_REMOTE_CLOSED		(-400)
 #define ERROR_CONNECTION_REJECTED		(-401)

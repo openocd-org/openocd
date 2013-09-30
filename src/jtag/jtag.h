@@ -121,9 +121,9 @@ struct scan_field {
 };
 
 struct jtag_tap {
-	const char *chip;
-	const char *tapname;
-	const char *dotted_name;
+	char *chip;
+	char *tapname;
+	char *dotted_name;
 	int abs_chain_position;
 	/** Is this TAP disabled after JTAG reset? */
 	bool disabled_after_reset;

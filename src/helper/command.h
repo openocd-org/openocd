@@ -162,9 +162,9 @@ struct command_invocation {
 typedef __COMMAND_HANDLER((*command_handler_t));
 
 struct command {
-	const char *name;
-	const char *help;
-	const char *usage;
+	char *name;
+	char *help;
+	char *usage;
 	struct command *parent;
 	struct command *children;
 	command_handler_t handler;

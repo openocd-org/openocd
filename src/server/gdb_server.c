@@ -104,8 +104,8 @@ static int gdb_breakpoint_override;
 static enum breakpoint_type gdb_breakpoint_override_type;
 
 static int gdb_error(struct connection *connection, int retval);
-static const char *gdb_port;
-static const char *gdb_port_next;
+static char *gdb_port;
+static char *gdb_port_next;
 
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
@@ -2900,7 +2900,7 @@ static int gdb_target_add_one(struct target *target)
 		portnumber = strtol(gdb_port_next, &end, 0);
 		if (!*end) {
 			if (parse_long(gdb_port_next, &portnumber) == ERROR_OK) {
-				free((void *)gdb_port_next);
+				free(gdb_port_next);
 				gdb_port_next = alloc_printf("%d", portnumber+1);
 			}
 		}
@@ -2947,7 +2947,7 @@ COMMAND_HANDLER(handle_gdb_port_command)
 {
 	int retval = CALL_COMMAND_HANDLER(server_pipe_command, &gdb_port);
 	if (ERROR_OK == retval) {
-		free((void *)gdb_port_next);
+		free(gdb_port_next);
 		gdb_port_next = strdup(gdb_port);
 	}
 	return retval;

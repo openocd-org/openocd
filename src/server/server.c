@@ -303,14 +303,14 @@ static int remove_services(void)
 		struct service *next = c->next;
 
 		if (c->name)
-			free((void *)c->name);
+			free(c->name);
 
 		if (c->type == CONNECTION_PIPE) {
 			if (c->fd != -1)
 				close(c->fd);
 		}
 		if (c->port)
-			free((void *)c->port);
+			free(c->port);
 
 		if (c->priv)
 			free(c->priv);
@@ -612,7 +612,7 @@ int server_register_commands(struct command_context *cmd_ctx)
 	return register_commands(cmd_ctx, NULL, server_command_handlers);
 }
 
-SERVER_PORT_COMMAND()
+COMMAND_HELPER(server_port_command, unsigned short *out)
 {
 	switch (CMD_ARGC) {
 		case 0:
@@ -631,7 +631,7 @@ SERVER_PORT_COMMAND()
 	return ERROR_OK;
 }
 
-SERVER_PIPE_COMMAND()
+COMMAND_HELPER(server_pipe_command, char **out)
 {
 	switch (CMD_ARGC) {
 		case 0:
@@ -643,9 +643,8 @@ SERVER_PIPE_COMMAND()
 				LOG_WARNING("unable to change server port after init");
 				return ERROR_COMMAND_ARGUMENT_INVALID;
 			}
-			const char *t = strdup(CMD_ARGV[0]);
-			free((void *)*out);
-			*out = t;
+			free(*out);
+			*out = strdup(CMD_ARGV[0]);
 			break;
 		}
 		default:

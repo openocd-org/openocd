@@ -32,7 +32,7 @@
 #include <target/target_request.h>
 #include <helper/configuration.h>
 
-static const char *telnet_port;
+static char *telnet_port;
 
 static char *negotiate =
 	"\xFF\xFB\x03"			/* IAC WILL Suppress Go Ahead */

@@ -109,7 +109,7 @@ static int jim_aice_newtap_cmd(Jim_GetOptInfo *goi)
 		e = Jim_GetOpt_Nvp(goi, opts, &n);
 		if (e != JIM_OK) {
 			Jim_GetOpt_NvpUnknown(goi, opts, 0);
-			free((void *)pTap->dotted_name);
+			free(cp);
 			free(pTap);
 			return e;
 		}
@@ -118,7 +118,7 @@ static int jim_aice_newtap_cmd(Jim_GetOptInfo *goi)
 			case NTAP_OPT_EXPECTED_ID:
 				e = jim_newtap_expected_id(n, goi, pTap);
 				if (JIM_OK != e) {
-					free((void *)pTap->dotted_name);
+					free(cp);
 					free(pTap);
 					return e;
 				}

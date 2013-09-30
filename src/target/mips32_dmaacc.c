@@ -38,11 +38,11 @@ static int mips32_dmaacc_read_mem32(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int count, uint32_t *buf);
 
 static int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint8_t *buf);
+		uint32_t addr, int count, const uint8_t *buf);
 static int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint16_t *buf);
+		uint32_t addr, int count, const uint16_t *buf);
 static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info,
-		uint32_t addr, int count, uint32_t *buf);
+		uint32_t addr, int count, const uint32_t *buf);
 
 /*
  * The following logic shamelessly cloned from HairyDairyMaid's wrt54g_debrick
@@ -407,21 +407,21 @@ static int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr,
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
+int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, const void *buf)
 {
 	switch (size) {
 		case 1:
-			return mips32_dmaacc_write_mem8(ejtag_info, addr, count, (uint8_t *)buf);
+			return mips32_dmaacc_write_mem8(ejtag_info, addr, count, buf);
 		case 2:
-			return mips32_dmaacc_write_mem16(ejtag_info, addr, count, (uint16_t *)buf);
+			return mips32_dmaacc_write_mem16(ejtag_info, addr, count, buf);
 		case 4:
-			return mips32_dmaacc_write_mem32(ejtag_info, addr, count, (uint32_t *)buf);
+			return mips32_dmaacc_write_mem32(ejtag_info, addr, count, buf);
 	}
 
 	return ERROR_OK;
 }
 
-static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint32_t *buf)
+static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t addr, int count, const uint32_t *buf)
 {
 	int i;
 	int retval;
@@ -435,7 +435,7 @@ static int mips32_dmaacc_write_mem32(struct mips_ejtag *ejtag_info, uint32_t add
 	return ERROR_OK;
 }
 
-static int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint16_t *buf)
+static int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t addr, int count, const uint16_t *buf)
 {
 	int i;
 	int retval;
@@ -449,7 +449,7 @@ static int mips32_dmaacc_write_mem16(struct mips_ejtag *ejtag_info, uint32_t add
 	return ERROR_OK;
 }
 
-static int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, uint8_t *buf)
+static int mips32_dmaacc_write_mem8(struct mips_ejtag *ejtag_info, uint32_t addr, int count, const uint8_t *buf)
 {
 	int i;
 	int retval;

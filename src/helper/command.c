@@ -146,17 +146,17 @@ void script_debug(Jim_Interp *interp, const char *name,
 	free(dbg);
 }
 
-static void script_command_args_free(const char **words, unsigned nwords)
+static void script_command_args_free(char **words, unsigned nwords)
 {
 	for (unsigned i = 0; i < nwords; i++)
-		free((void *)words[i]);
+		free(words[i]);
 	free(words);
 }
 
-static const char **script_command_args_alloc(
+static char **script_command_args_alloc(
 	unsigned argc, Jim_Obj * const *argv, unsigned *nwords)
 {
-	const char **words = malloc(argc * sizeof(char *));
+	char **words = malloc(argc * sizeof(char *));
 	if (NULL == words)
 		return NULL;
 
@@ -198,7 +198,7 @@ static int script_command_run(Jim_Interp *interp,
 	LOG_USER_N("%s", "");	/* Keep GDB connection alive*/
 
 	unsigned nwords;
-	const char **words = script_command_args_alloc(argc, argv, &nwords);
+	char **words = script_command_args_alloc(argc, argv, &nwords);
 	if (NULL == words)
 		return JIM_ERR;
 
@@ -299,12 +299,9 @@ static void command_free(struct command *c)
 		command_free(tmp);
 	}
 
-	if (c->name)
-		free((void *)c->name);
-	if (c->help)
-		free((void *)c->help);
-	if (c->usage)
-		free((void *)c->usage);
+	free(c->name);
+	free(c->help);
+	free(c->usage);
 	free(c);
 }
 
@@ -362,7 +359,7 @@ static int register_command_handler(struct command_context *cmd_ctx,
 	struct command *c)
 {
 	Jim_Interp *interp = cmd_ctx->interp;
-	const char *ocd_name = alloc_printf("ocd_%s", c->name);
+	char *ocd_name = alloc_printf("ocd_%s", c->name);
 	if (NULL == ocd_name)
 		return JIM_ERR;
 
@@ -370,19 +367,19 @@ static int register_command_handler(struct command_context *cmd_ctx,
 
 	Jim_CmdProc func = c->handler ? &script_command : &command_unknown;
 	int retval = Jim_CreateCommand(interp, ocd_name, func, c, NULL);
-	free((void *)ocd_name);
+	free(ocd_name);
 	if (JIM_OK != retval)
 		return retval;
 
 	/* we now need to add an overrideable proc */
-	const char *override_name = alloc_printf(
+	char *override_name = alloc_printf(
 			"proc %s {args} {eval ocd_bouncer %s $args}",
 			c->name, c->name);
 	if (NULL == override_name)
 		return JIM_ERR;
 
 	retval = Jim_Eval_Named(interp, override_name, 0, 0);
-	free((void *)override_name);
+	free(override_name);
 
 	return retval;
 }
@@ -1103,7 +1100,7 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 	if (help_text) {
 		bool replaced = false;
 		if (nc->help) {
-			free((void *)nc->help);
+			free(nc->help);
 			replaced = true;
 		}
 		nc->help = strdup(help_text);
@@ -1115,7 +1112,7 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 	if (usage) {
 		bool replaced = false;
 		if (nc->usage) {
-			free((void *)nc->usage);
+			free(nc->usage);
 			replaced = true;
 		}
 		nc->usage = strdup(usage);

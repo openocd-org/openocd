@@ -33,7 +33,7 @@
 #include "fileio.h"
 
 struct fileio_internal {
-	const char *url;
+	char *url;
 	ssize_t size;
 	enum fileio_type type;
 	enum fileio_access access;
@@ -141,7 +141,7 @@ int fileio_close(struct fileio *fileio_p)
 
 	retval = fileio_close_local(fileio);
 
-	free((void *)fileio->url);
+	free(fileio->url);
 	fileio->url = NULL;
 
 	free(fileio);

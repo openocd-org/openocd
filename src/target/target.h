@@ -129,7 +129,7 @@ struct target {
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;				/* where on the jtag chain is this */
 	int32_t coreid;						/* which device on the TAP? */
-	const char *variant;				/* what variant of this chip is it? */
+	char *variant;						/* what variant of this chip is it? */
 
 	/**
 	 * Indicates whether this target has been examined.
@@ -602,8 +602,8 @@ void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t valu
 
 void target_buffer_get_u32_array(struct target *target, const uint8_t *buffer, uint32_t count, uint32_t *dstbuf);
 void target_buffer_get_u16_array(struct target *target, const uint8_t *buffer, uint32_t count, uint16_t *dstbuf);
-void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, uint32_t *srcbuf);
-void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, uint16_t *srcbuf);
+void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, const uint32_t *srcbuf);
+void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, const uint16_t *srcbuf);
 
 int target_read_u32(struct target *target, uint32_t address, uint32_t *value);
 int target_read_u16(struct target *target, uint32_t address, uint16_t *value);

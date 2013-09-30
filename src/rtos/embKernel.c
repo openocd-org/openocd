@@ -131,7 +131,7 @@ static int embKernel_create(struct target *target)
 		return -1;
 	}
 
-	target->rtos->rtos_specific_params = (void *) &embKernel_params_list[i];
+	target->rtos->rtos_specific_params = &embKernel_params_list[i];
 	return 0;
 }
 
