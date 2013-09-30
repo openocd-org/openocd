@@ -1326,11 +1326,11 @@ void jtag_tap_free(struct jtag_tap *tap)
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
 	/** @todo is anything missing? no memory leaks please */
-	free((void *)tap->expected);
-	free((void *)tap->expected_ids);
-	free((void *)tap->chip);
-	free((void *)tap->tapname);
-	free((void *)tap->dotted_name);
+	free(tap->expected);
+	free(tap->expected_ids);
+	free(tap->chip);
+	free(tap->tapname);
+	free(tap->dotted_name);
 	free(tap);
 }
 

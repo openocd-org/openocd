@@ -169,9 +169,9 @@ int ulink_usb_close(struct ulink **device);
 
 /* ULINK MCU (Cypress EZ-USB) specific functions */
 int ulink_cpu_reset(struct ulink *device, unsigned char reset_bit);
-int ulink_load_firmware_and_renumerate(struct ulink **device, char *filename,
+int ulink_load_firmware_and_renumerate(struct ulink **device, const char *filename,
 		uint32_t delay);
-int ulink_load_firmware(struct ulink *device, char *filename);
+int ulink_load_firmware(struct ulink *device, const char *filename);
 int ulink_write_firmware_section(struct ulink *device,
 		struct image *firmware_image, int section_index);
 
@@ -362,7 +362,7 @@ int ulink_cpu_reset(struct ulink *device, unsigned char reset_bit)
  * @return on failure: ERROR_FAIL
  */
 int ulink_load_firmware_and_renumerate(struct ulink **device,
-	char *filename, uint32_t delay)
+	const char *filename, uint32_t delay)
 {
 	int ret;
 
@@ -397,7 +397,7 @@ int ulink_load_firmware_and_renumerate(struct ulink **device,
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
-int ulink_load_firmware(struct ulink *device, char *filename)
+int ulink_load_firmware(struct ulink *device, const char *filename)
 {
 	struct image ulink_firmware_image;
 	int ret, i;
@@ -2284,7 +2284,7 @@ COMMAND_HANDLER(ulink_download_firmware_handler)
 	LOG_INFO("Downloading ULINK firmware image %s", CMD_ARGV[0]);
 
 	/* Download firmware image in CMD_ARGV[0] */
-	ret = ulink_load_firmware_and_renumerate(&ulink_handle, (char *)CMD_ARGV[0],
+	ret = ulink_load_firmware_and_renumerate(&ulink_handle, CMD_ARGV[0],
 			ULINK_RENUMERATION_DELAY);
 
 	return ret;

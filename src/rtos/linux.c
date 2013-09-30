@@ -1524,7 +1524,7 @@ static int linux_os_create(struct target *target)
 	os_linux->threads_needs_update = 0;
 	os_linux->threadid_count = 1;
 	os_linux->current_threads = NULL;
-	target->rtos->rtos_specific_params = (void *)os_linux;
+	target->rtos->rtos_specific_params = os_linux;
 	ct->core_id = target->coreid;
 	ct->threadid = -1;
 	ct->TS = 0xdeadbeef;

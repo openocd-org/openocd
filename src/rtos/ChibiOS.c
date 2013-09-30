@@ -552,6 +552,6 @@ static int ChibiOS_create(struct target *target)
 		return -1;
 	}
 
-	target->rtos->rtos_specific_params = (void *) &ChibiOS_params_list[i];
+	target->rtos->rtos_specific_params = &ChibiOS_params_list[i];
 	return 0;
 }

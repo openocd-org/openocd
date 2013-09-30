@@ -1048,9 +1048,9 @@ static int mips_m4k_write_memory(struct target *target, uint32_t address,
 	/* if noDMA off, use DMAACC mode for memory write */
 	int retval;
 	if (ejtag_info->impcode & EJTAG_IMP_NODMA)
-		retval = mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+		retval = mips32_pracc_write_mem(ejtag_info, address, size, count, buffer);
 	else
-		retval = mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+		retval = mips32_dmaacc_write_mem(ejtag_info, address, size, count, buffer);
 
 	if (t != NULL)
 		free(t);

@@ -729,16 +729,17 @@ static int mips32_pracc_clean_invalidate_cache(struct mips_ejtag *ejtag_info,
 	return retval;
 }
 
-static int mips32_pracc_write_mem_generic(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
+static int mips32_pracc_write_mem_generic(struct mips_ejtag *ejtag_info,
+		uint32_t addr, int size, int count, const void *buf)
 {
 	struct pracc_queue_info ctx = {.max_code = 128 * 3 + 6 + 1};	/* alloc memory for the worst case */
 	pracc_queue_init(&ctx);
 	if (ctx.retval != ERROR_OK)
 		goto exit;
 
-	uint32_t *buf32 = buf;
-	uint16_t *buf16 = buf;
-	uint8_t *buf8 = buf;
+	const uint32_t *buf32 = buf;
+	const uint16_t *buf16 = buf;
+	const uint8_t *buf8 = buf;
 
 	while (count) {
 		ctx.code_count = 0;
@@ -797,7 +798,7 @@ exit:
 	return ctx.retval;
 }
 
-int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
+int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, const void *buf)
 {
 	int retval = mips32_pracc_write_mem_generic(ejtag_info, addr, size, count, buf);
 	if (retval != ERROR_OK)

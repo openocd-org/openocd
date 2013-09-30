@@ -34,7 +34,7 @@ struct tcl_connection {
 	int tc_outerror;/* flag an output error */
 };
 
-static const char *tcl_port;
+static char *tcl_port;
 
 /* handlers */
 static int tcl_new_connection(struct connection *connection);

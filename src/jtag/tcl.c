@@ -563,7 +563,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 		e = Jim_GetOpt_Nvp(goi, opts, &n);
 		if (e != JIM_OK) {
 			Jim_GetOpt_NvpUnknown(goi, opts, 0);
-			free((void *)pTap->dotted_name);
+			free(cp);
 			free(pTap);
 			return e;
 		}
@@ -578,7 +578,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 		    case NTAP_OPT_EXPECTED_ID:
 			    e = jim_newtap_expected_id(n, goi, pTap);
 			    if (JIM_OK != e) {
-				    free((void *)pTap->dotted_name);
+				    free(cp);
 				    free(pTap);
 				    return e;
 			    }
@@ -588,7 +588,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 		    case NTAP_OPT_IRCAPTURE:
 			    e = jim_newtap_ir_param(n, goi, pTap);
 			    if (JIM_OK != e) {
-				    free((void *)pTap->dotted_name);
+				    free(cp);
 				    free(pTap);
 				    return e;
 			    }
@@ -1133,14 +1133,14 @@ COMMAND_HANDLER(handle_irscan_command)
 		}
 		int field_size = tap->ir_length;
 		fields[i].num_bits = field_size;
-		fields[i].out_value = malloc(DIV_ROUND_UP(field_size, 8));
+		uint8_t *v = malloc(DIV_ROUND_UP(field_size, 8));
 
 		uint64_t value;
 		retval = parse_u64(CMD_ARGV[i * 2 + 1], &value);
 		if (ERROR_OK != retval)
 			goto error_return;
-		void *v = (void *)fields[i].out_value;
 		buf_set_u64(v, 0, field_size, value);
+		fields[i].out_value = v;
 		fields[i].in_value = NULL;
 	}
 
