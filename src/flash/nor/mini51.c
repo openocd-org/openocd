@@ -98,9 +98,9 @@
 #define MINI54 0x00205400
 
 #define MINI51_APROM_BASE  0x00000000
-#define KB                 1024
-#define PAGE_SIZE          512
-#define TIMEOUT            1000
+#define MINI51_KB          1024
+#define MINI51_PAGE_SIZE   512
+#define MINI51_TIMEOUT     1000
 
 struct mini51_flash_bank {
 	bool probed;
@@ -139,7 +139,7 @@ static int mini51_reboot_with_source(struct flash_bank *bank,
 	uint32_t isprtc1;
 	bool mini51_reboot = false;
 	int status;
-	int timeout = TIMEOUT;
+	int timeout = MINI51_TIMEOUT;
 
 	/* Read current boot source */
 	struct target *target = bank->target;
@@ -197,13 +197,13 @@ static int mini51_get_flash_size(struct flash_bank *bank, uint32_t *flash_size)
 
 	switch (part_id & PART_ID_MAIN_MASK) {
 		case MINI51:
-			*flash_size = 4 * KB;
+			*flash_size = 4 * MINI51_KB;
 			break;
 		case MINI52:
-			*flash_size = 8 * KB;
+			*flash_size = 8 * MINI51_KB;
 			break;
 		case MINI54:
-			*flash_size = 16 * KB;
+			*flash_size = 16 * MINI51_KB;
 			break;
 		default:
 			*flash_size = 0;
@@ -262,7 +262,7 @@ static int mini51_erase(struct flash_bank *bank, int first, int last)
 
 	for (int page_start = first; page_start <= last; page_start++) {
 		/* Set up erase command */
-		status = target_write_u32(target, ISPADR, page_start*PAGE_SIZE);
+		status = target_write_u32(target, ISPADR, page_start*MINI51_PAGE_SIZE);
 		if (status != ERROR_OK)
 			return status;
 		status = target_write_u32(target, ISPCMD, ISPCMD_ERASE);
@@ -275,7 +275,7 @@ static int mini51_erase(struct flash_bank *bank, int first, int last)
 			return status;
 
 		/* Wait for for command to finish executing */
-		timeout = TIMEOUT;
+		timeout = MINI51_TIMEOUT;
 		do {
 			target_read_u32(target, ISPTRG, &isptrg);
 			timeout--;
@@ -366,7 +366,7 @@ static int mini51_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offse
 			return status;
 
 		/* Wait for for command to finish executing */
-		timeout = TIMEOUT;
+		timeout = MINI51_TIMEOUT;
 		do {
 			target_read_u32(target, ISPTRG, &isptrg);
 			timeout--;
@@ -408,7 +408,7 @@ static int mini51_probe(struct flash_bank *bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	num_pages = flash_size / PAGE_SIZE;
+	num_pages = flash_size / MINI51_PAGE_SIZE;
 
 	bank->base = MINI51_APROM_BASE;
 	bank->num_sectors = num_pages;
@@ -417,10 +417,10 @@ static int mini51_probe(struct flash_bank *bank)
 
 	for (int i = 0; i < num_pages; i++) {
 		bank->sectors[i].offset = offset;
-		bank->sectors[i].size = PAGE_SIZE;
+		bank->sectors[i].size = MINI51_PAGE_SIZE;
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = 0;
-		offset += PAGE_SIZE;
+		offset += MINI51_PAGE_SIZE;
 	}
 
 	struct mini51_flash_bank *mini51_info = bank->driver_priv;
