@@ -123,23 +123,17 @@ static int jtag_vpi_tms_seq(const uint8_t *bits, int nb_bits)
 
 static int jtag_vpi_path_move(struct pathmove_command *cmd)
 {
-	uint16_t trans = 0;
-	int retval;
-	int i;
+	uint8_t trans[DIV_ROUND_UP(cmd->num_states, 8)];
 
-	for (i = 0; i < cmd->num_states; i++) {
+	memset(trans, 0, DIV_ROUND_UP(cmd->num_states, 8));
+
+	for (int i = 0; i < cmd->num_states; i++) {
 		if (tap_state_transition(tap_get_state(), true) == cmd->path[i])
-			trans = trans | 1;
-		trans = trans << 1;
+			buf_set_u32(trans, i, 1, 1);
+		tap_set_state(cmd->path[i]);
 	}
 
-	retval = jtag_vpi_tms_seq((uint8_t *)&trans, 1);
-	if (retval != ERROR_OK)
-		return retval;
-
-	tap_set_state(cmd->path[i]);
-
-	return ERROR_OK;
+	return jtag_vpi_tms_seq(trans, cmd->num_states);
 }
 
 /**
