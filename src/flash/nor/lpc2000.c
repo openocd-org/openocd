@@ -559,7 +559,8 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 	if (CMD_ARGC < 8)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct lpc2000_flash_bank *lpc2000_info = malloc(sizeof(struct lpc2000_flash_bank));
+	struct lpc2000_flash_bank *lpc2000_info = calloc(1, sizeof(*lpc2000_info));
+
 	bank->driver_priv = lpc2000_info;
 
 	if (strcmp(CMD_ARGV[6], "lpc2000_v1") == 0) {
