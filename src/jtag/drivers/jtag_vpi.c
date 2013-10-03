@@ -100,7 +100,7 @@ static int jtag_vpi_tms_seq(const uint8_t *bits, int nb_bits)
 	struct vpi_cmd vpi;
 	int nb_bytes;
 
-	nb_bytes = (nb_bits / 8) + !!(nb_bits % 8);
+	nb_bytes = DIV_ROUND_UP(nb_bits, 8);
 
 	vpi.cmd = CMD_TMS_SEQ;
 	memcpy(vpi.buffer_out, bits, nb_bytes);
@@ -165,7 +165,7 @@ static int jtag_vpi_state_move(tap_state_t state)
 static int jtag_vpi_queue_tdi_xfer(uint8_t *bits, int nb_bits, int tap_shift)
 {
 	struct vpi_cmd vpi;
-	int nb_bytes = (nb_bits / 8) + !!(nb_bits % 8);
+	int nb_bytes = DIV_ROUND_UP(nb_bits, 8);
 
 	vpi.cmd = tap_shift ? CMD_SCAN_CHAIN_FLIP_TMS : CMD_SCAN_CHAIN;
 
@@ -198,7 +198,7 @@ static int jtag_vpi_queue_tdi_xfer(uint8_t *bits, int nb_bits, int tap_shift)
  */
 static int jtag_vpi_queue_tdi(uint8_t *bits, int nb_bits, int tap_shift)
 {
-	int nb_xfer = (nb_bits / (XFERT_MAX_SIZE * 8)) + !!(nb_bits % (XFERT_MAX_SIZE * 8));
+	int nb_xfer = DIV_ROUND_UP(nb_bits, XFERT_MAX_SIZE * 8);
 	uint8_t *xmit_buffer = bits;
 	int xmit_nb_bits = nb_bits;
 	int i = 0;
