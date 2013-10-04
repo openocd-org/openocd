@@ -350,22 +350,13 @@ static int lpc288x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 			target_write_u32(target, F_CTRL, FC_CS | FC_SET_DATA | FC_WEN | FC_FUNC);
 
 			target_write_u32(target, F_CTRL, FC_CS | FC_WEN | FC_FUNC);
-			/*would be better to use the clean target_write_buffer() interface but
-			 * it seems not to be a LOT slower....
-			 * bulk_write_memory() is no quicker :(*/
-#if 1
-			if (target_write_memory(target, offset + dest_offset, 4, 128,
-					page_buffer) != ERROR_OK) {
-				LOG_ERROR("Write failed s %" PRIx32 " p %" PRIx32 "", sector, page);
-				return ERROR_FLASH_OPERATION_FAILED;
-			}
-#else
+
 			if (target_write_buffer(target, offset + dest_offset, FLASH_PAGE_SIZE,
 					page_buffer) != ERROR_OK) {
 				LOG_INFO("Write to flash buffer failed");
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
-#endif
+
 			dest_offset += FLASH_PAGE_SIZE;
 			source_offset += count;
 			bytes_remaining -= count;
