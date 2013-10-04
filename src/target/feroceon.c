@@ -493,8 +493,11 @@ static int feroceon_bulk_write_memory(struct target *target,
 
 	uint32_t dcc_size = sizeof(dcc_code);
 
+	if (address % 4 != 0)
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+
 	if (!arm7_9->dcc_downloads)
-		return target_write_memory(target, address, 4, count, buffer);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!arm7_9->dcc_working_area) {
@@ -503,15 +506,16 @@ static int feroceon_bulk_write_memory(struct target *target,
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, dcc_size, &arm7_9->dcc_working_area) != ERROR_OK) {
 			LOG_INFO("no working area available, falling back to memory writes");
-			return target_write_memory(target, address, 4, count, buffer);
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 
 		/* copy target instructions to target endianness */
 		for (i = 0; i < dcc_size/4; i++)
 			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
 
-		/* write DCC code to working area */
-		retval = target_write_memory(target,
+		/* write DCC code to working area, using the non-optimized
+		 * memory write to avoid ending up here again */
+		retval = arm7_9_write_memory_no_opt(target,
 				arm7_9->dcc_working_area->address, 4, dcc_size/4, dcc_code_buf);
 		if (retval != ERROR_OK)
 			return retval;
@@ -627,6 +631,10 @@ static int feroceon_target_create(struct target *target, Jim_Interp *interp)
 	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 	feroceon_common_setup(target);
 
+	struct arm *arm = target->arch_info;
+	struct arm7_9_common *arm7_9 = arm->arch_info;
+	arm7_9->write_memory = arm926ejs_write_memory;
+
 	/* the standard ARM926 methods don't always work (don't ask...) */
 	arm926ejs->read_cp15 = feroceon_read_cp15;
 	arm926ejs->write_cp15 = feroceon_write_cp15;
@@ -640,6 +648,10 @@ static int dragonite_target_create(struct target *target, Jim_Interp *interp)
 
 	arm966e_init_arch_info(target, arm966e, target->tap);
 	feroceon_common_setup(target);
+
+	struct arm *arm = target->arch_info;
+	struct arm7_9_common *arm7_9 = arm->arch_info;
+	arm7_9->write_memory = arm7_9_write_memory;
 
 	return ERROR_OK;
 }
@@ -697,7 +709,7 @@ struct target_type feroceon_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
-	.write_memory = arm926ejs_write_memory_opt,
+	.write_memory = arm7_9_write_memory_opt,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,

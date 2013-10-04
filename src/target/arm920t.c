@@ -740,17 +740,6 @@ int arm920t_write_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-int arm920t_write_memory_opt(struct target *target, uint32_t address,
-	uint32_t size, uint32_t count, const uint8_t *buffer)
-{
-	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-
-	if (size == 4 && count > 32 && arm7_9->bulk_write_memory)
-		return arm7_9->bulk_write_memory(target, address, count, buffer);
-	else
-		return arm920t_write_memory(target, address, size, count, buffer);
-}
-
 /* EXPORTED to FA256 */
 int arm920t_soft_reset_halt(struct target *target)
 {
@@ -1708,7 +1697,7 @@ struct target_type arm920t_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm920t_read_memory,
-	.write_memory = arm920t_write_memory_opt,
+	.write_memory = arm7_9_write_memory_opt,
 	.read_phys_memory = arm920t_read_phys_memory,
 	.write_phys_memory = arm920t_write_phys_memory,
 	.mmu = arm920_mmu,

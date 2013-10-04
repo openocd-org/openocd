@@ -2476,11 +2476,28 @@ int arm7_9_write_memory_opt(struct target *target,
 	const uint8_t *buffer)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
+	int retval;
 
-	if (size == 4 && count > 32 && arm7_9->bulk_write_memory)
-		return arm7_9->bulk_write_memory(target, address, count, buffer);
-	else
-		return arm7_9_write_memory(target, address, size, count, buffer);
+	if (size == 4 && count > 32 && arm7_9->bulk_write_memory) {
+		/* Attempt to do a bulk write */
+		retval = arm7_9->bulk_write_memory(target, address, count, buffer);
+
+		if (retval == ERROR_OK)
+			return ERROR_OK;
+	}
+
+	return arm7_9->write_memory(target, address, size, count, buffer);
+}
+
+int arm7_9_write_memory_no_opt(struct target *target,
+	uint32_t address,
+	uint32_t size,
+	uint32_t count,
+	const uint8_t *buffer)
+{
+	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
+
+	return arm7_9->write_memory(target, address, size, count, buffer);
 }
 
 static int dcc_count;
@@ -2561,8 +2578,11 @@ int arm7_9_bulk_write_memory(struct target *target,
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	int i;
 
+	if (address % 4 != 0)
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+
 	if (!arm7_9->dcc_downloads)
-		return target_write_memory(target, address, 4, count, buffer);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!arm7_9->dcc_working_area) {
@@ -2571,15 +2591,16 @@ int arm7_9_bulk_write_memory(struct target *target,
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 24, &arm7_9->dcc_working_area) != ERROR_OK) {
 			LOG_INFO("no working area available, falling back to memory writes");
-			return target_write_memory(target, address, 4, count, buffer);
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 
 		/* copy target instructions to target endianness */
 		for (i = 0; i < 6; i++)
 			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
 
-		/* write DCC code to working area */
-		retval = target_write_memory(target,
+		/* write DCC code to working area, using the non-optimized
+		 * memory write to avoid ending up here again */
+		retval = arm7_9_write_memory_no_opt(target,
 				arm7_9->dcc_working_area->address, 4, 6, dcc_code_buf);
 		if (retval != ERROR_OK)
 			return retval;

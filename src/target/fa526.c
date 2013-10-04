@@ -284,6 +284,7 @@ static int fa526_init_arch_info_2(struct target *target,
 	arm7_9->enable_single_step = arm9tdmi_enable_single_step;
 	arm7_9->disable_single_step = arm9tdmi_disable_single_step;
 
+	arm7_9->write_memory = arm920t_write_memory;
 	arm7_9->bulk_write_memory = arm7_9_bulk_write_memory;
 
 	arm7_9->post_debug_entry = NULL;
@@ -368,7 +369,7 @@ struct target_type fa526_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm920t_read_memory,
-	.write_memory = arm920t_write_memory_opt,
+	.write_memory = arm7_9_write_memory_opt,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,

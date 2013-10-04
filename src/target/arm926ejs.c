@@ -656,17 +656,6 @@ int arm926ejs_write_memory(struct target *target, uint32_t address,
 	return retval;
 }
 
-int arm926ejs_write_memory_opt(struct target *target, uint32_t address,
-	uint32_t size, uint32_t count, const uint8_t *buffer)
-{
-	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-
-	if (size == 4 && count > 32 && arm7_9->bulk_write_memory)
-		return arm7_9->bulk_write_memory(target, address, count, buffer);
-	else
-		return arm926ejs_write_memory(target, address, size, count, buffer);
-}
-
 static int arm926ejs_write_phys_memory(struct target *target,
 		uint32_t address, uint32_t size,
 		uint32_t count, const uint8_t *buffer)
@@ -819,7 +808,7 @@ struct target_type arm926ejs_target = {
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
-	.write_memory = arm926ejs_write_memory_opt,
+	.write_memory = arm7_9_write_memory_opt,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
