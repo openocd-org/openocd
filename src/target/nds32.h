@@ -391,8 +391,6 @@ extern int nds32_write_buffer(struct target *target, uint32_t address,
 		uint32_t size, const uint8_t *buffer);
 extern int nds32_read_buffer(struct target *target, uint32_t address,
 		uint32_t size, uint8_t *buffer);
-extern int nds32_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, const uint8_t *buffer);
 extern int nds32_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer);
 extern int nds32_write_memory(struct target *target, uint32_t address,
