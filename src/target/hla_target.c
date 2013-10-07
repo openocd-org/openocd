@@ -463,11 +463,12 @@ static int adapter_poll(struct target *target)
 		return ERROR_TARGET_FAILURE;
 	}
 
-	if (target->state == state)
+	if (prev_target_state == state)
 		return ERROR_OK;
 
+	target->state = state;
+
 	if (state == TARGET_HALTED) {
-		target->state = state;
 
 		int retval = adapter_debug_entry(target);
 		if (retval != ERROR_OK)
