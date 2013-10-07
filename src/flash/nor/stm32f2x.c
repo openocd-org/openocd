@@ -111,7 +111,9 @@
 #define FLASH_PSIZE_16 (1 << 8)
 #define FLASH_PSIZE_32 (2 << 8)
 #define FLASH_PSIZE_64 (3 << 8)
-#define FLASH_SNB(a)   ((a) << 3)
+/* The sector number encoding is not straight binary for dual bank flash.
+ * Warning: evaluates the argument multiple times */
+#define FLASH_SNB(a)   ((((a) >= 12) ? 0x10 | ((a) - 12) : (a)) << 3)
 #define FLASH_LOCK     (1 << 31)
 
 /* FLASH_SR register bits */
@@ -403,6 +405,9 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 	struct target *target = bank->target;
 	int i;
 
+	assert(first < bank->num_sectors);
+	assert(last < bank->num_sectors);
+
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -418,7 +423,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 	To erase a sector, follow the procedure below:
 	1. Check that no Flash memory operation is ongoing by checking the BSY bit in the
 	  FLASH_SR register
-	2. Set the SER bit and select the sector (out of the 12 sectors in the main memory block)
+	2. Set the SER bit and select the sector
 	  you wish to erase (SNB) in the FLASH_CR register
 	3. Set the STRT bit in the FLASH_CR register
 	4. Wait for the BSY bit to be cleared
