@@ -24,12 +24,12 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef CORTEX_M3_H
-#define CORTEX_M3_H
+#ifndef CORTEX_M_H
+#define CORTEX_M_H
 
 #include "armv7m.h"
 
-#define CORTEX_M3_COMMON_MAGIC 0x1A451A45
+#define CORTEX_M_COMMON_MAGIC 0x1A451A45
 
 #define SYSTEM_CONTROL_BASE 0x400FE000
 
@@ -135,14 +135,14 @@
 #define FPCR_REPLACE_BKPT_HIGH  (2 << 30)
 #define FPCR_REPLACE_BKPT_BOTH  (3 << 30)
 
-struct cortex_m3_fp_comparator {
+struct cortex_m_fp_comparator {
 	int used;
 	int type;
 	uint32_t fpcr_value;
 	uint32_t fpcr_address;
 };
 
-struct cortex_m3_dwt_comparator {
+struct cortex_m_dwt_comparator {
 	int used;
 	uint32_t comp;
 	uint32_t mask;
@@ -150,18 +150,18 @@ struct cortex_m3_dwt_comparator {
 	uint32_t dwt_comparator_address;
 };
 
-enum cortex_m3_soft_reset_config {
-	CORTEX_M3_RESET_SYSRESETREQ,
-	CORTEX_M3_RESET_VECTRESET,
+enum cortex_m_soft_reset_config {
+	CORTEX_M_RESET_SYSRESETREQ,
+	CORTEX_M_RESET_VECTRESET,
 };
 
-enum cortex_m3_isrmasking_mode {
-	CORTEX_M3_ISRMASK_AUTO,
-	CORTEX_M3_ISRMASK_OFF,
-	CORTEX_M3_ISRMASK_ON,
+enum cortex_m_isrmasking_mode {
+	CORTEX_M_ISRMASK_AUTO,
+	CORTEX_M_ISRMASK_OFF,
+	CORTEX_M_ISRMASK_ON,
 };
 
-struct cortex_m3_common {
+struct cortex_m_common {
 	int common_magic;
 	struct arm_jtag jtag_info;
 
@@ -176,39 +176,39 @@ struct cortex_m3_common {
 	int fp_code_available;
 	int fpb_enabled;
 	int auto_bp_type;
-	struct cortex_m3_fp_comparator *fp_comparator_list;
+	struct cortex_m_fp_comparator *fp_comparator_list;
 
 	/* Data Watchpoint and Trace (DWT) */
 	int dwt_num_comp;
 	int dwt_comp_available;
-	struct cortex_m3_dwt_comparator *dwt_comparator_list;
+	struct cortex_m_dwt_comparator *dwt_comparator_list;
 	struct reg_cache *dwt_cache;
 
-	enum cortex_m3_soft_reset_config soft_reset_config;
+	enum cortex_m_soft_reset_config soft_reset_config;
 
-	enum cortex_m3_isrmasking_mode isrmasking_mode;
+	enum cortex_m_isrmasking_mode isrmasking_mode;
 
 	struct armv7m_common armv7m;
 };
 
-static inline struct cortex_m3_common *
-target_to_cm3(struct target *target)
+static inline struct cortex_m_common *
+target_to_cm(struct target *target)
 {
 	return container_of(target->arch_info,
-			struct cortex_m3_common, armv7m);
+			struct cortex_m_common, armv7m);
 }
 
-int cortex_m3_examine(struct target *target);
-int cortex_m3_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
-int cortex_m3_unset_breakpoint(struct target *target, struct breakpoint *breakpoint);
-int cortex_m3_add_breakpoint(struct target *target, struct breakpoint *breakpoint);
-int cortex_m3_remove_breakpoint(struct target *target, struct breakpoint *breakpoint);
-int cortex_m3_set_watchpoint(struct target *target, struct watchpoint *watchpoint);
-int cortex_m3_unset_watchpoint(struct target *target, struct watchpoint *watchpoint);
-int cortex_m3_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
-int cortex_m3_remove_watchpoint(struct target *target, struct watchpoint *watchpoint);
-void cortex_m3_enable_breakpoints(struct target *target);
-void cortex_m3_enable_watchpoints(struct target *target);
-void cortex_m3_dwt_setup(struct cortex_m3_common *cm3, struct target *target);
+int cortex_m_examine(struct target *target);
+int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint);
+int cortex_m_unset_watchpoint(struct target *target, struct watchpoint *watchpoint);
+int cortex_m_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
+int cortex_m_remove_watchpoint(struct target *target, struct watchpoint *watchpoint);
+void cortex_m_enable_breakpoints(struct target *target);
+void cortex_m_enable_watchpoints(struct target *target);
+void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target);
 
-#endif /* CORTEX_M3_H */
+#endif /* CORTEX_M_H */

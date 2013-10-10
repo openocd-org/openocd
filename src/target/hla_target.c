@@ -330,14 +330,14 @@ static int hl_handle_target_request(void *priv)
 }
 
 static int adapter_init_arch_info(struct target *target,
-				       struct cortex_m3_common *cortex_m3,
+				       struct cortex_m_common *cortex_m,
 				       struct jtag_tap *tap)
 {
 	struct armv7m_common *armv7m;
 
 	LOG_DEBUG("%s", __func__);
 
-	armv7m = &cortex_m3->armv7m;
+	armv7m = &cortex_m->armv7m;
 	armv7m_init_arch_info(target, armv7m);
 
 	armv7m->load_core_reg_u32 = adapter_load_core_reg_u32;
@@ -366,12 +366,12 @@ static int adapter_target_create(struct target *target,
 {
 	LOG_DEBUG("%s", __func__);
 
-	struct cortex_m3_common *cortex_m3 = calloc(1, sizeof(struct cortex_m3_common));
+	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
 
-	if (!cortex_m3)
+	if (!cortex_m)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	adapter_init_arch_info(target, cortex_m3, target->tap);
+	adapter_init_arch_info(target, cortex_m, target->tap);
 
 	return ERROR_OK;
 }
@@ -619,8 +619,8 @@ static int adapter_resume(struct target *target, int current,
 
 	if (!debug_execution) {
 		target_free_all_working_areas(target);
-		cortex_m3_enable_breakpoints(target);
-		cortex_m3_enable_watchpoints(target);
+		cortex_m_enable_breakpoints(target);
+		cortex_m_enable_watchpoints(target);
 	}
 
 	pc = armv7m->arm.pc;
@@ -660,14 +660,14 @@ static int adapter_resume(struct target *target, int current,
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %d)",
 					breakpoint->address,
 					breakpoint->unique_id);
-			cortex_m3_unset_breakpoint(target, breakpoint);
+			cortex_m_unset_breakpoint(target, breakpoint);
 
 			res = adapter->layout->api->step(adapter->fd);
 
 			if (res != ERROR_OK)
 				return res;
 
-			cortex_m3_set_breakpoint(target, breakpoint);
+			cortex_m_set_breakpoint(target, breakpoint);
 		}
 	}
 
@@ -718,7 +718,7 @@ static int adapter_step(struct target *target, int current,
 	if (handle_breakpoints) {
 		breakpoint = breakpoint_find(target, pc_value);
 		if (breakpoint)
-			cortex_m3_unset_breakpoint(target, breakpoint);
+			cortex_m_unset_breakpoint(target, breakpoint);
 	}
 
 	armv7m_maybe_skip_bkpt_inst(target, &bkpt_inst_found);
@@ -743,7 +743,7 @@ static int adapter_step(struct target *target, int current,
 	register_cache_invalidate(armv7m->arm.core_cache);
 
 	if (breakpoint)
-		cortex_m3_set_breakpoint(target, breakpoint);
+		cortex_m_set_breakpoint(target, breakpoint);
 
 	adapter_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -794,7 +794,7 @@ struct target_type hla_target = {
 
 	.init_target = adapter_init_target,
 	.target_create = adapter_target_create,
-	.examine = cortex_m3_examine,
+	.examine = cortex_m_examine,
 	.commands = adapter_command_handlers,
 
 	.poll = adapter_poll,
@@ -819,8 +819,8 @@ struct target_type hla_target = {
 	.start_algorithm = armv7m_start_algorithm,
 	.wait_algorithm = armv7m_wait_algorithm,
 
-	.add_breakpoint = cortex_m3_add_breakpoint,
-	.remove_breakpoint = cortex_m3_remove_breakpoint,
-	.add_watchpoint = cortex_m3_add_watchpoint,
-	.remove_watchpoint = cortex_m3_remove_watchpoint,
+	.add_breakpoint = cortex_m_add_breakpoint,
+	.remove_breakpoint = cortex_m_remove_breakpoint,
+	.add_watchpoint = cortex_m_add_watchpoint,
+	.remove_watchpoint = cortex_m_remove_watchpoint,
 };

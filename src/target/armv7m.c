@@ -602,7 +602,7 @@ int armv7m_checksum_memory(struct target *target,
 
 	/* see contrib/loaders/checksum/armv7m_crc.s for src */
 
-	static const uint8_t cortex_m3_crc_code[] = {
+	static const uint8_t cortex_m_crc_code[] = {
 		/* main: */
 		0x02, 0x46,			/* mov		r2, r0 */
 		0x00, 0x20,			/* movs		r0, #0 */
@@ -636,12 +636,12 @@ int armv7m_checksum_memory(struct target *target,
 		0xB7, 0x1D, 0xC1, 0x04	/* CRC32XOR:	.word	0x04c11db7 */
 	};
 
-	retval = target_alloc_working_area(target, sizeof(cortex_m3_crc_code), &crc_algorithm);
+	retval = target_alloc_working_area(target, sizeof(cortex_m_crc_code), &crc_algorithm);
 	if (retval != ERROR_OK)
 		return retval;
 
 	retval = target_write_buffer(target, crc_algorithm->address,
-			sizeof(cortex_m3_crc_code), (uint8_t *)cortex_m3_crc_code);
+			sizeof(cortex_m_crc_code), (uint8_t *)cortex_m_crc_code);
 	if (retval != ERROR_OK)
 		goto cleanup;
 
@@ -657,7 +657,7 @@ int armv7m_checksum_memory(struct target *target,
 	int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params, crc_algorithm->address,
-			crc_algorithm->address + (sizeof(cortex_m3_crc_code) - 6),
+			crc_algorithm->address + (sizeof(cortex_m_crc_code) - 6),
 			timeout, &armv7m_info);
 
 	if (retval == ERROR_OK)

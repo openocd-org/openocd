@@ -28,7 +28,7 @@
  */
 
 
-/* These symbols match the OpenOCD "cortex_m3 vector_catch" bit names. */
+/* These symbols match the OpenOCD "cortex_m vector_catch" bit names. */
 enum vc_case {
 	hard_err,
 	int_err,
@@ -71,21 +71,21 @@ int main(void)
 	 */
 	switch (VC_ID) {
 
-	/* "cortex_m3 vector_catch hard_err" */
+	/* "cortex_m vector_catch hard_err" */
 	case hard_err:
 		/* FORCED - Fault escalation */
 
 		/* FIXME code this */
 		break;
 
-	/* "cortex_m3 vector_catch int_err" */
+	/* "cortex_m vector_catch int_err" */
 	case int_err:
 		/* STKERR -- Exception stack BusFault */
 
 		/* FIXME code this */
 		break;
 
-	/* "cortex_m3 vector_catch bus_err" */
+	/* "cortex_m vector_catch bus_err" */
 	case bus_err:
 		/* PRECISERR -- precise data bus read
 		 * Here we assume a Cortex-M3 with 512 MBytes SRAM is very
@@ -97,13 +97,13 @@ int main(void)
 			);
 		break;
 
-	/* "cortex_m3 vector_catch state_err" */
+	/* "cortex_m vector_catch state_err" */
 	case state_err:
 		/* UNDEFINSTR -- architectural undefined instruction */
 		__asm__ volatile(".hword 0xde00");
 		break;
 
-	/* "cortex_m3 vector_catch chk_err" */
+	/* "cortex_m vector_catch chk_err" */
 	case chk_err:
 		/* UNALIGNED ldm */
 		__asm__ volatile(
@@ -112,7 +112,7 @@ int main(void)
 			);
 		break;
 
-	/* "cortex_m3 vector_catch nocp_err" */
+	/* "cortex_m vector_catch nocp_err" */
 	case nocp_err:
 		/* NOCP ... Cortex-M3 has no coprocessors (like CP14 DCC),
 		 * but these instructions are allowed by ARMv7-M.
@@ -120,7 +120,7 @@ int main(void)
 		__asm__ volatile("mrc p14, 0, r0, c0, c5, 0");
 		break;
 
-	/* "cortex_m3 vector_catch mm_err" */
+	/* "cortex_m vector_catch mm_err" */
 	case mm_err:
 		/* IACCVIOL -- instruction fetch from an XN region */
 		__asm__ volatile(
@@ -129,7 +129,7 @@ int main(void)
 			);
 		break;
 
-	/* "cortex_m3 vector_catch reset" */
+	/* "cortex_m vector_catch reset" */
 	case reset:
 		__asm__ volatile(
 			/* r1 = SYSRESETREQ */

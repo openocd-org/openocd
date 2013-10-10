@@ -83,7 +83,7 @@ struct embKernel_params {
 
 struct embKernel_params embKernel_params_list[] = {
 		{
-			"cortex_m3", /* target_name */
+			"cortex_m", /* target_name */
 			4, /* pointer_width */
 			4, /* thread_count_width */
 			8, /*rtos_list_size */
@@ -93,7 +93,7 @@ struct embKernel_params embKernel_params_list[] = {
 			4, /*thread_priority_width */
 			4, /*iterable_next_offset */
 			12, /*iterable_task_owner_offset */
-			&rtos_embkernel_Cortex_M3_stacking, /* stacking_info*/
+			&rtos_embkernel_Cortex_M_stacking, /* stacking_info*/
 		},
 		{ "hla_target", /* target_name */
 			4, /* pointer_width */
@@ -105,7 +105,7 @@ struct embKernel_params embKernel_params_list[] = {
 			4, /*thread_priority_width */
 			4, /*iterable_next_offset */
 			12, /*iterable_task_owner_offset */
-			&rtos_embkernel_Cortex_M3_stacking, /* stacking_info */
+			&rtos_embkernel_Cortex_M_stacking, /* stacking_info */
 		}
 };
 

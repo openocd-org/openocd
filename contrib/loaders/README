@@ -7,7 +7,7 @@ checksum/armv4_5_crc.s :
  - ARMv4 and ARMv5 checksum loader : see target/arm_crc_code.c:arm_crc_code
 
 checksum/armv7m_crc.s :
- - ARMv7m checksum loader : see target/armv7m.c:cortex_m3_crc_code
+ - ARMv7m checksum loader : see target/armv7m.c:cortex_m_crc_code
 
 checksum/mips32.s :
  - MIPS32 checksum loader : see target/mips32.c:mips_crc_code

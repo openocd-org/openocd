@@ -87,7 +87,7 @@ extern struct target_type fa526_target;
 extern struct target_type feroceon_target;
 extern struct target_type dragonite_target;
 extern struct target_type xscale_target;
-extern struct target_type cortexm3_target;
+extern struct target_type cortexm_target;
 extern struct target_type cortexa8_target;
 extern struct target_type cortexr4_target;
 extern struct target_type arm11_target;
@@ -115,7 +115,7 @@ static struct target_type *target_types[] = {
 	&feroceon_target,
 	&dragonite_target,
 	&xscale_target,
-	&cortexm3_target,
+	&cortexm_target,
 	&cortexa8_target,
 	&cortexr4_target,
 	&arm11_target,
