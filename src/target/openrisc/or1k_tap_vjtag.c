@@ -275,21 +275,22 @@ static int or1k_tap_vjtag_init(struct or1k_jtag *jtag_info)
 	}
 
 	/* Select VIR */
-	t[0] = ALTERA_CYCLONE_CMD_USER1;
+	buf_set_u32(t, 0, tap->ir_length, ALTERA_CYCLONE_CMD_USER1);
 	field.num_bits = tap->ir_length;
 	field.out_value = t;
 	field.in_value = NULL;
 	jtag_add_ir_scan(tap, &field, TAP_IDLE);
 
 	/* Send the DEBUG command to the VJTAG IR */
-	buf_set_u32(t, 0, field.num_bits, (vjtag_node_address << m_width) | ALT_VJTAG_CMD_DEBUG);
-	field.num_bits = guess_addr_width(nb_nodes) + m_width;
+	int dr_length = guess_addr_width(nb_nodes) + m_width;
+	buf_set_u32(t, 0, dr_length, (vjtag_node_address << m_width) | ALT_VJTAG_CMD_DEBUG);
+	field.num_bits = dr_length;
 	field.out_value = t;
 	field.in_value = NULL;
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
 	/* Select the VJTAG DR */
-	t[0] = ALTERA_CYCLONE_CMD_USER0;
+	buf_set_u32(t, 0, tap->ir_length, ALTERA_CYCLONE_CMD_USER0);
 	field.num_bits = tap->ir_length;
 	field.out_value = t;
 	field.in_value = NULL;
