@@ -711,10 +711,14 @@ retry_full_write:
 static int or1k_adv_jtag_read_cpu(struct or1k_jtag *jtag_info,
 		uint32_t addr, int count, uint32_t *value)
 {
-	if (!jtag_info->or1k_jtag_inited)
-		or1k_adv_jtag_init(jtag_info);
+	int retval;
+	if (!jtag_info->or1k_jtag_inited) {
+		retval = or1k_adv_jtag_init(jtag_info);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	int retval = adbg_select_module(jtag_info, DC_CPU0);
+	retval = adbg_select_module(jtag_info, DC_CPU0);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -724,10 +728,14 @@ static int or1k_adv_jtag_read_cpu(struct or1k_jtag *jtag_info,
 static int or1k_adv_jtag_write_cpu(struct or1k_jtag *jtag_info,
 		uint32_t addr, int count, const uint32_t *value)
 {
-	if (!jtag_info->or1k_jtag_inited)
-		or1k_adv_jtag_init(jtag_info);
+	int retval;
+	if (!jtag_info->or1k_jtag_inited) {
+		retval = or1k_adv_jtag_init(jtag_info);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	int retval = adbg_select_module(jtag_info, DC_CPU0);
+	retval = adbg_select_module(jtag_info, DC_CPU0);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -736,10 +744,14 @@ static int or1k_adv_jtag_write_cpu(struct or1k_jtag *jtag_info,
 
 static int or1k_adv_cpu_stall(struct or1k_jtag *jtag_info, int action)
 {
-	if (!jtag_info->or1k_jtag_inited)
-		or1k_adv_jtag_init(jtag_info);
+	int retval;
+	if (!jtag_info->or1k_jtag_inited) {
+		retval = or1k_adv_jtag_init(jtag_info);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	int retval = adbg_select_module(jtag_info, DC_CPU0);
+	retval = adbg_select_module(jtag_info, DC_CPU0);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -762,10 +774,14 @@ static int or1k_adv_cpu_stall(struct or1k_jtag *jtag_info, int action)
 
 static int or1k_adv_is_cpu_running(struct or1k_jtag *jtag_info, int *running)
 {
-	if (!jtag_info->or1k_jtag_inited)
-		or1k_adv_jtag_init(jtag_info);
+	int retval;
+	if (!jtag_info->or1k_jtag_inited) {
+		retval = or1k_adv_jtag_init(jtag_info);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	int retval = adbg_select_module(jtag_info, DC_CPU0);
+	retval = adbg_select_module(jtag_info, DC_CPU0);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -784,10 +800,14 @@ static int or1k_adv_is_cpu_running(struct or1k_jtag *jtag_info, int *running)
 
 static int or1k_adv_cpu_reset(struct or1k_jtag *jtag_info, int action)
 {
-	if (!jtag_info->or1k_jtag_inited)
-		or1k_adv_jtag_init(jtag_info);
+	int retval;
+	if (!jtag_info->or1k_jtag_inited) {
+		retval = or1k_adv_jtag_init(jtag_info);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	int retval = adbg_select_module(jtag_info, DC_CPU0);
+	retval = adbg_select_module(jtag_info, DC_CPU0);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -813,10 +833,14 @@ static int or1k_adv_jtag_read_memory(struct or1k_jtag *jtag_info,
 {
 	LOG_DEBUG("Reading WB%d at 0x%08x", size * 8, addr);
 
-	if (!jtag_info->or1k_jtag_inited)
-		or1k_adv_jtag_init(jtag_info);
+	int retval;
+	if (!jtag_info->or1k_jtag_inited) {
+		retval = or1k_adv_jtag_init(jtag_info);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	int retval = adbg_select_module(jtag_info, DC_WISHBONE);
+	retval = adbg_select_module(jtag_info, DC_WISHBONE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -847,10 +871,14 @@ static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 {
 	LOG_DEBUG("Writing WB%d at 0x%08x", size * 8, addr);
 
-	if (!jtag_info->or1k_jtag_inited)
-		or1k_adv_jtag_init(jtag_info);
+	int retval;
+	if (!jtag_info->or1k_jtag_inited) {
+		retval = or1k_adv_jtag_init(jtag_info);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	int retval = adbg_select_module(jtag_info, DC_WISHBONE);
+	retval = adbg_select_module(jtag_info, DC_WISHBONE);
 	if (retval != ERROR_OK)
 		return retval;
 
