@@ -261,7 +261,8 @@ our $logFunctions = qr{(?x:
 	[a-z0-9]+_(?:printk|emerg|alert|crit|err|warning|warn|notice|info|debug|dbg|vdbg|devel|cont|WARN)(?:_ratelimited|_once|)|
 	WARN(?:_RATELIMIT|_ONCE|)|
 	panic|
-	MODULE_[A-Z_]+
+	MODULE_[A-Z_]+|
+	LOG_(?:DEBUG|INFO|WARNING|ERROR|USER|USER_N|OUTPUT)+
 )};
 
 our $signature_tags = qr{(?xi:
