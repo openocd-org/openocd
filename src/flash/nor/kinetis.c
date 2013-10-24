@@ -88,6 +88,10 @@
  * 8:7 of the read-only SIM_SDID register reflect the granularity
  * settings 0..3, so sector sizes and block counts are applicable
  * according to the following table.
+ * NB. These undocumented bits does not work for all MCUs.
+ * A more reliable way is to detect the particular MCU model from the
+ * SDID field and pick the correct granularity based on that. See
+ * the handling of K21 in kinetis_read_part_info() for an example.
  */
 
 const struct {
@@ -119,6 +123,21 @@ const struct {
 #define FTFx_CMD_SECTWRITE  0x0b
 #define FTFx_CMD_SETFLEXRAM 0x81
 #define FTFx_CMD_MASSERASE  0x44
+
+#define KINETIS_SDID_FAMID_MASK 0x00000070
+#define KINETIS_SDID_FAMID_K10  0x00000000
+#define KINETIS_SDID_FAMID_K12  0x00000000
+#define KINETIS_SDID_FAMID_K20  0x00000010
+#define KINETIS_SDID_FAMID_K22  0x00000010
+#define KINETIS_SDID_FAMID_K30  0x00000020
+#define KINETIS_SDID_FAMID_K11  0x00000020
+#define KINETIS_SDID_FAMID_K61  0x00000020
+#define KINETIS_SDID_FAMID_K40  0x00000030
+#define KINETIS_SDID_FAMID_K21  0x00000030
+#define KINETIS_SDID_FAMID_K60  0x00000040
+#define KINETIS_SDID_FAMID_K62  0x00000040
+#define KINETIS_SDID_FAMID_K70  0x00000050
+#define KINETIS_SDID_FAMID_KW24 0x00000060
 
 struct kinetis_flash_bank {
 	unsigned granularity;
@@ -741,6 +760,9 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	if (i == 1) {
 		kinfo->klxx = 1;
 		granularity = 0;
+	} else if ((kinfo->sim_sdid & KINETIS_SDID_FAMID_MASK)
+		== KINETIS_SDID_FAMID_K21) {
+		granularity = 2;
 	} else
 		granularity = (kinfo->sim_sdid >> 7) & 0x03;
 
