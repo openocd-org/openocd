@@ -1798,6 +1798,8 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 	uint32_t dscr;
 	uint8_t *tmp_buff = NULL;
 
+	LOG_DEBUG("Writing APB-AP memory address 0x%" PRIx32 " size %"  PRIu32 " count%"  PRIu32,
+			  address, size, count);
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -1829,8 +1831,7 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 	 * The first and last words will be read first to avoid
 	 * corruption if needed.
 	 */
-	tmp_buff = (uint8_t *) malloc(total_u32 << 2);
-
+	tmp_buff = malloc(total_u32 * 4);
 
 	if ((start_byte != 0) && (total_u32 > 1)) {
 		/* First bytes not aligned - read the 32 bit word to avoid corrupting
@@ -1846,7 +1847,7 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 		((total_u32 == 1) && (total_bytes != 4))) {
 
 		/* Read the last word to avoid corruption during 32 bit write */
-		int mem_offset = (total_u32-1) << 4;
+		int mem_offset = (total_u32-1) * 4;
 		retval = cortex_a8_read_apb_ab_memory(target, (address & ~0x3) + mem_offset, 4, 1, &tmp_buff[mem_offset]);
 		if (retval != ERROR_OK)
 			goto error_free_buff_w;
@@ -1947,25 +1948,21 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 	int total_bytes = count * size;
 	int total_u32;
 	int start_byte = address & 0x3;
+	int end_byte   = (address + total_bytes) & 0x3;
 	struct reg *reg;
 	uint32_t dscr;
-	uint32_t *tmp_buff;
-	uint32_t buff32[2];
+	uint8_t *tmp_buff = NULL;
+	uint8_t buf[8];
+	uint8_t *u8buf_ptr;
+
+	LOG_DEBUG("Reading APB-AP memory address 0x%" PRIx32 " size %"  PRIu32 " count%"  PRIu32,
+			  address, size, count);
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	total_u32 = DIV_ROUND_UP((address & 3) + total_bytes, 4);
-
-	/* Due to offset word alignment, the  buffer may not have space
-	 * to read the full first and last int32 words,
-	 * hence, malloc space to read into, then copy and align into the buffer.
-	 */
-	tmp_buff = malloc(total_u32 * 4);
-	if (tmp_buff == NULL)
-		return ERROR_FAIL;
-
 	/* Mark register R0 as dirty, as it will be used
 	 * for transferring the data.
 	 * It will be restored automatically when exiting
@@ -1995,41 +1992,53 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 	retval +=  mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DSCR, dscr);
 
-    /* Write R0 with value 'address' using write procedure for stall mode */
+	/* Write R0 with value 'address' using write procedure for stall mode */
 	/*   - Write the address for read access into DTRRX */
 	retval += mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DTRRX, address & ~0x3);
 	/*  - Copy value from DTRRX to R0 using instruction mrc p14, 0, r0, c5, c0 */
 	cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0), &dscr);
 
-
 	/* Write the data transfer instruction (ldc p14, c5, [r0],4)
 	 * and the DTR mode setting to fast mode
 	 * in one combined write (since they are adjacent registers)
 	 */
-	buff32[0] = ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4);
+	u8buf_ptr = buf;
+	target_buffer_set_u32(target, u8buf_ptr, ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4));
 	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_FAST_MODE;
-	buff32[1] = dscr;
+	target_buffer_set_u32(target, u8buf_ptr + 4, dscr);
 	/*  group the 2 access CPUDBG_ITR 0x84 and CPUDBG_DSCR 0x88 */
-	retval += mem_ap_sel_write_buf(swjdp, armv7a->debug_ap, (uint8_t *)buff32, 4, 2,
+	retval += mem_ap_sel_write_buf(swjdp, armv7a->debug_ap, u8buf_ptr, 4, 2,
 			armv7a->debug_base + CPUDBG_ITR);
 	if (retval != ERROR_OK)
 		goto error_unset_dtr_r;
 
-
-	/* The last word needs to be handled separately - read all other words in one go.
-	 */
-	if (total_u32 > 1) {
-		/* Read the data - Each read of the DTRTX register causes the instruction to be reissued
-		 * Abort flags are sticky, so can be read at end of transactions
-		 *
-		 * This data is read in aligned to 32 bit boundary, hence may need shifting later.
+	/* Optimize the read as much as we can, either way we read in a single pass  */
+	if ((start_byte) || (end_byte)) {
+		/* The algorithm only copies 32 bit words, so the buffer
+		 * should be expanded to include the words at either end.
+		 * The first and last words will be read into a temp buffer
+		 * to avoid corruption
 		 */
-		retval = mem_ap_sel_read_buf_noincr(swjdp, armv7a->debug_ap, (uint8_t *)tmp_buff, 4, total_u32 - 1,
-									armv7a->debug_base + CPUDBG_DTRTX);
-		if (retval != ERROR_OK)
+		tmp_buff = malloc(total_u32 * 4);
+		if (!tmp_buff)
 			goto error_unset_dtr_r;
-	}
+
+		/* use the tmp buffer to read the entire data */
+		u8buf_ptr = tmp_buff;
+	} else
+		/* address and read length are aligned so read directely into the passed buffer */
+		u8buf_ptr = buffer;
+
+	/* Read the data - Each read of the DTRTX register causes the instruction to be reissued
+	 * Abort flags are sticky, so can be read at end of transactions
+	 *
+	 * This data is read in aligned to 32 bit boundary.
+	 */
+	retval = mem_ap_sel_read_buf_noincr(swjdp, armv7a->debug_ap, u8buf_ptr, 4, total_u32,
+									armv7a->debug_base + CPUDBG_DTRTX);
+	if (retval != ERROR_OK)
+			goto error_unset_dtr_r;
 
 	/* set DTR access mode back to non blocking b00  */
 	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_NON_BLOCKING;
@@ -2046,7 +2055,6 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 			goto error_free_buff_r;
 	} while ((dscr & DSCR_INSTR_COMP) == 0);
 
-
 	/* Check for sticky abort flags in the DSCR */
 	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
@@ -2060,20 +2068,14 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 		goto error_free_buff_r;
 	}
 
-	/* Read the last word */
-	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
-				armv7a->debug_base + CPUDBG_DTRTX, &tmp_buff[total_u32 - 1]);
-	if (retval != ERROR_OK)
-		goto error_free_buff_r;
-
-	/* Copy and align the data into the output buffer */
-	memcpy(buffer, (uint8_t *)tmp_buff + start_byte, total_bytes);
-
-	free(tmp_buff);
+	/* check if we need to copy aligned data by applying any shift necessary */
+	if (tmp_buff) {
+		memcpy(buffer, tmp_buff + start_byte, total_bytes);
+		free(tmp_buff);
+	}
 
 	/* Done */
 	return ERROR_OK;
-
 
 error_unset_dtr_r:
 	/* Unset DTR mode */
