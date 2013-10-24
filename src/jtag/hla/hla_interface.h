@@ -58,7 +58,7 @@ struct hl_interface_s {
 	/** */
 	const struct hl_layout *layout;
 	/** */
-	void *fd;
+	void *handle;
 };
 
 /** */

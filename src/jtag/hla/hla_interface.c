@@ -72,7 +72,7 @@ int hl_interface_init_target(struct target *t)
 	 * can setup the private pointer in the tap structure
 	 * if the interface match the tap idcode
 	 */
-	res = hl_if.layout->api->idcode(hl_if.fd, &t->tap->idcode);
+	res = hl_if.layout->api->idcode(hl_if.handle, &t->tap->idcode);
 
 	if (res != ERROR_OK)
 		return res;
@@ -137,7 +137,7 @@ int hl_interface_init_reset(void)
 	 * we will attempt it again */
 	if (hl_if.param.connect_under_reset) {
 		jtag_add_reset(0, 1);
-		hl_if.layout->api->assert_srst(hl_if.fd, 0);
+		hl_if.layout->api->assert_srst(hl_if.handle, 0);
 	} else {
 		jtag_add_reset(0, 0);
 	}

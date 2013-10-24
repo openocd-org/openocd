@@ -66,7 +66,7 @@ static int adapter_load_core_reg_u32(struct target *target,
 	switch (num) {
 	case 0 ... 18:
 		/* read a normal core register */
-		retval = adapter->layout->api->read_reg(adapter->fd, num, value);
+		retval = adapter->layout->api->read_reg(adapter->handle, num, value);
 
 		if (retval != ERROR_OK) {
 			LOG_ERROR("JTAG failure %i", retval);
@@ -114,7 +114,7 @@ static int adapter_load_core_reg_u32(struct target *target,
 		 * in one Debug Core register.  So say r0 and r2 docs;
 		 * it was removed from r1 docs, but still works.
 		 */
-		retval = adapter->layout->api->read_reg(adapter->fd, 20, value);
+		retval = adapter->layout->api->read_reg(adapter->handle, 20, value);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -163,7 +163,7 @@ static int adapter_store_core_reg_u32(struct target *target,
 	 */
 	switch (num) {
 	case 0 ... 18:
-		retval = adapter->layout->api->write_reg(adapter->fd, num, value);
+		retval = adapter->layout->api->write_reg(adapter->handle, num, value);
 
 		if (retval != ERROR_OK) {
 			struct reg *r;
@@ -214,7 +214,7 @@ static int adapter_store_core_reg_u32(struct target *target,
 		 * it was removed from r1 docs, but still works.
 		 */
 
-		adapter->layout->api->read_reg(adapter->fd, 20, &reg);
+		adapter->layout->api->read_reg(adapter->handle, 20, &reg);
 
 		switch (num) {
 		case ARMV7M_PRIMASK:
@@ -234,7 +234,7 @@ static int adapter_store_core_reg_u32(struct target *target,
 			break;
 		}
 
-		adapter->layout->api->write_reg(adapter->fd, 20, reg);
+		adapter->layout->api->write_reg(adapter->handle, 20, reg);
 
 		LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num, value);
 		break;
@@ -259,7 +259,7 @@ static int adapter_examine_debug_reason(struct target *target)
 static int hl_dcc_read(struct hl_interface_s *hl_if, uint8_t *value, uint8_t *ctrl)
 {
 	uint16_t dcrdr;
-	int retval = hl_if->layout->api->read_mem(hl_if->fd,
+	int retval = hl_if->layout->api->read_mem(hl_if->handle,
 			DCB_DCRDR, 1, sizeof(dcrdr), (uint8_t *)&dcrdr);
 	if (retval == ERROR_OK) {
 	    *ctrl = (uint8_t)dcrdr;
@@ -272,7 +272,7 @@ static int hl_dcc_read(struct hl_interface_s *hl_if, uint8_t *value, uint8_t *ct
 			 * to signify we have read data */
 			/* atomically clear just the byte containing the busy bit */
 			static const uint8_t zero;
-			retval = hl_if->layout->api->write_mem(hl_if->fd, DCB_DCRDR, 1, 1, &zero);
+			retval = hl_if->layout->api->write_mem(hl_if->handle, DCB_DCRDR, 1, 1, &zero);
 		}
 	}
 	return retval;
@@ -412,7 +412,7 @@ static int adapter_debug_entry(struct target *target)
 	adapter_load_context(target);
 
 	/* make sure we clear the vector catch bit */
-	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA);
+	adapter->layout->api->write_debug_reg(adapter->handle, DCB_DEMCR, TRCENA);
 
 	r = arm->cpsr;
 	xPSR = buf_get_u32(r->value, 0, 32);
@@ -456,7 +456,7 @@ static int adapter_poll(struct target *target)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	enum target_state prev_target_state = target->state;
 
-	state = adapter->layout->api->state(adapter->fd);
+	state = adapter->layout->api->state(adapter->handle);
 
 	if (state == TARGET_UNKNOWN) {
 		LOG_ERROR("jtag status contains invalid mode value - communication failure");
@@ -505,22 +505,22 @@ static int adapter_assert_reset(struct target *target)
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
 	    (jtag_reset_config & RESET_SRST_NO_GATING)) {
 		jtag_add_reset(0, 1);
-		res = adapter->layout->api->assert_srst(adapter->fd, 0);
+		res = adapter->layout->api->assert_srst(adapter->handle, 0);
 		srst_asserted = true;
 	}
 
-	adapter->layout->api->write_debug_reg(adapter->fd, DCB_DHCSR, DBGKEY|C_DEBUGEN);
+	adapter->layout->api->write_debug_reg(adapter->handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
 	/* only set vector catch if halt is requested */
 	if (target->reset_halt)
-		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA|VC_CORERESET);
+		adapter->layout->api->write_debug_reg(adapter->handle, DCB_DEMCR, TRCENA|VC_CORERESET);
 	else
-		adapter->layout->api->write_debug_reg(adapter->fd, DCB_DEMCR, TRCENA);
+		adapter->layout->api->write_debug_reg(adapter->handle, DCB_DEMCR, TRCENA);
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		if (!srst_asserted) {
 			jtag_add_reset(0, 1);
-			res = adapter->layout->api->assert_srst(adapter->fd, 0);
+			res = adapter->layout->api->assert_srst(adapter->handle, 0);
 		}
 		if (res == ERROR_COMMAND_NOTFOUND)
 			LOG_ERROR("Hardware srst not supported, falling back to software reset");
@@ -532,10 +532,10 @@ static int adapter_assert_reset(struct target *target)
 
 	if (use_srst_fallback) {
 		/* stlink v1 api does not support hardware srst, so we use a software reset fallback */
-		adapter->layout->api->write_debug_reg(adapter->fd, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+		adapter->layout->api->write_debug_reg(adapter->handle, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
 	}
 
-	res = adapter->layout->api->reset(adapter->fd);
+	res = adapter->layout->api->reset(adapter->handle);
 
 	if (res != ERROR_OK)
 		return res;
@@ -562,7 +562,7 @@ static int adapter_deassert_reset(struct target *target)
 	LOG_DEBUG("%s", __func__);
 
 	if (jtag_reset_config & RESET_HAS_SRST)
-		adapter->layout->api->assert_srst(adapter->fd, 1);
+		adapter->layout->api->assert_srst(adapter->handle, 1);
 
 	/* virtual deassert reset, we need it for the internal
 	 * jtag state machine
@@ -589,7 +589,7 @@ static int adapter_halt(struct target *target)
 	if (target->state == TARGET_UNKNOWN)
 		LOG_WARNING("target was in unknown state when halt was requested");
 
-	res = adapter->layout->api->halt(adapter->fd);
+	res = adapter->layout->api->halt(adapter->handle);
 
 	if (res != ERROR_OK)
 		return res;
@@ -663,7 +663,7 @@ static int adapter_resume(struct target *target, int current,
 					breakpoint->unique_id);
 			cortex_m_unset_breakpoint(target, breakpoint);
 
-			res = adapter->layout->api->step(adapter->fd);
+			res = adapter->layout->api->step(adapter->handle);
 
 			if (res != ERROR_OK)
 				return res;
@@ -672,7 +672,7 @@ static int adapter_resume(struct target *target, int current,
 		}
 	}
 
-	res = adapter->layout->api->run(adapter->fd);
+	res = adapter->layout->api->run(adapter->handle);
 
 	if (res != ERROR_OK)
 		return res;
@@ -735,7 +735,7 @@ static int adapter_step(struct target *target, int current,
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
-	res = adapter->layout->api->step(adapter->fd);
+	res = adapter->layout->api->step(adapter->handle);
 
 	if (res != ERROR_OK)
 		return res;
@@ -765,7 +765,7 @@ static int adapter_read_memory(struct target *target, uint32_t address,
 
 	LOG_DEBUG("%s 0x%08" PRIx32 " %" PRIu32 " %" PRIu32, __func__, address, size, count);
 
-	return adapter->layout->api->read_mem(adapter->fd, address, size, count, buffer);
+	return adapter->layout->api->read_mem(adapter->handle, address, size, count, buffer);
 }
 
 static int adapter_write_memory(struct target *target, uint32_t address,
@@ -779,7 +779,7 @@ static int adapter_write_memory(struct target *target, uint32_t address,
 
 	LOG_DEBUG("%s 0x%08" PRIx32 " %" PRIu32 " %" PRIu32, __func__, address, size, count);
 
-	return adapter->layout->api->write_mem(adapter->fd, address, size, count, buffer);
+	return adapter->layout->api->write_mem(adapter->handle, address, size, count, buffer);
 }
 
 static const struct command_registration adapter_command_handlers[] = {

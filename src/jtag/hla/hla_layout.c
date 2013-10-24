@@ -41,9 +41,9 @@ static int hl_layout_open(struct hl_interface_s *adapter)
 
 	LOG_DEBUG("hl_layout_open");
 
-	adapter->fd = NULL;
+	adapter->handle = NULL;
 
-	res = adapter->layout->api->open(&adapter->param, &adapter->fd);
+	res = adapter->layout->api->open(&adapter->param, &adapter->handle);
 
 	if (res != ERROR_OK) {
 		LOG_DEBUG("failed");
