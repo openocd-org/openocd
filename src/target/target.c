@@ -3767,6 +3767,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 				new_int_array_element(interp, varname, n, v);
 			}
 			len -= count;
+			addr += count * width;
 		}
 	}
 
@@ -3960,6 +3961,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 			e = JIM_ERR;
 			break;
 		}
+		addr += count * width;
 	}
 
 	free(buffer);
