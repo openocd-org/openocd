@@ -671,14 +671,16 @@ int dap_syssec_kinetis_mdmap(struct adiv5_dap *dap)
 	 * it's important that the device is out of
 	 * reset here
 	 */
-	retval = dap_queue_ap_read(dap, MDM_REG_STAT, &val);
-	if (retval != ERROR_OK)
-		return retval;
-	dap_run(dap);
+	do {
+		retval = dap_queue_ap_read(dap, MDM_REG_STAT, &val);
+		if (retval != ERROR_OK)
+			return retval;
+		dap_run(dap);
 
-	LOG_DEBUG("MDM_REG_STAT %08" PRIX32, val);
+		LOG_DEBUG("MDM_REG_STAT %08" PRIX32, val);
+	} while (!(val & MDM_STAT_FREADY));
 
-	if ((val & (MDM_STAT_SYSSEC|MDM_STAT_FREADY)) != (MDM_STAT_FREADY)) {
+	if ((val & MDM_STAT_SYSSEC)) {
 		LOG_DEBUG("MDMAP: system is secured, masserase needed");
 
 		if (!(val & MDM_STAT_FMEEN))
