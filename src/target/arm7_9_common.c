@@ -2576,7 +2576,6 @@ int arm7_9_bulk_write_memory(struct target *target,
 {
 	int retval;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
-	int i;
 
 	if (address % 4 != 0)
 		return ERROR_TARGET_UNALIGNED_ACCESS;
@@ -2595,8 +2594,7 @@ int arm7_9_bulk_write_memory(struct target *target,
 		}
 
 		/* copy target instructions to target endianness */
-		for (i = 0; i < 6; i++)
-			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
+		target_buffer_set_u32_array(target, dcc_code_buf, ARRAY_SIZE(dcc_code), dcc_code);
 
 		/* write DCC code to working area, using the non-optimized
 		 * memory write to avoid ending up here again */

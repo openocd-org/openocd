@@ -1103,19 +1103,6 @@ static int cfi_protect(struct flash_bank *bank, int set, int first, int last)
 	}
 }
 
-/* Convert code image to target endian
- * FIXME create general block conversion fcts in target.c?) */
-static void cfi_fix_code_endian(struct target *target, uint8_t *dest,
-	const uint32_t *src, uint32_t count)
-{
-	uint32_t i;
-	for (i = 0; i < count; i++) {
-		target_buffer_set_u32(target, dest, *src);
-		dest += 4;
-		src++;
-	}
-}
-
 static uint32_t cfi_command_val(struct flash_bank *bank, uint8_t cmd)
 {
 	struct target *target = bank->target;
@@ -1264,7 +1251,8 @@ static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
 				"Increase CFI_MAX_INTEL_CODESIZE and recompile.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
+
+	target_buffer_set_u32_array(target, target_code, target_code_size / 4, target_code_src);
 
 	/* Get memory for block write handler */
 	retval = target_alloc_working_area(target,
@@ -1504,7 +1492,8 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffe
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
-	cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
+
+	target_buffer_set_u32_array(target, target_code, target_code_size / 4, target_code_src);
 
 	/* allocate working area */
 	retval = target_alloc_working_area(target, target_code_size,
@@ -1883,7 +1872,8 @@ static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
-	cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
+
+	target_buffer_set_u32_array(target, target_code, target_code_size / 4, target_code_src);
 
 	/* allocate working area */
 	retval = target_alloc_working_area(target, target_code_size,

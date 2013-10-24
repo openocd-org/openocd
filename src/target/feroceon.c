@@ -510,8 +510,7 @@ static int feroceon_bulk_write_memory(struct target *target,
 		}
 
 		/* copy target instructions to target endianness */
-		for (i = 0; i < dcc_size/4; i++)
-			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
+		target_buffer_set_u32_array(target, dcc_code_buf, ARRAY_SIZE(dcc_code), dcc_code);
 
 		/* write DCC code to working area, using the non-optimized
 		 * memory write to avoid ending up here again */
