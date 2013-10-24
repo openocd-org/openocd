@@ -1051,26 +1051,13 @@ static int kinetis_blank_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int kinetis_flash_read(struct flash_bank *bank,
-		uint8_t *buffer, uint32_t offset, uint32_t count)
-{
-	LOG_WARNING("kinetis_flash_read not supported yet");
-
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	return ERROR_FLASH_OPERATION_FAILED;
-}
-
 struct flash_driver kinetis_flash = {
 	.name = "kinetis",
 	.flash_bank_command = kinetis_flash_bank_command,
 	.erase = kinetis_erase,
 	.protect = kinetis_protect,
 	.write = kinetis_write,
-	.read = kinetis_flash_read,
+	.read = default_flash_read,
 	.probe = kinetis_probe,
 	.auto_probe = kinetis_auto_probe,
 	.erase_check = kinetis_blank_check,
