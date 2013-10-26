@@ -446,6 +446,8 @@ sub parse_email {
 			$address = "";
 			$comment = "";
 		}
+	} elsif ($formatted_email eq "jenkins") {
+		$address = "jenkins"
 	}
 
 	$name =~ s/^\s+|\s+$//g;
