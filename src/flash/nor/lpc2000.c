@@ -653,6 +653,10 @@ static int lpc2000_erase(struct flash_bank *bank, int first, int last)
 	if (retval != ERROR_OK)
 		return retval;
 
+	if (lpc2000_info->variant == lpc4300)
+		/* Init IAP Anyway */
+		lpc2000_iap_call(bank, iap_working_area, 49, param_table, result_table);
+
 	/* Prepare sectors */
 	int status_code = lpc2000_iap_call(bank, iap_working_area, 50, param_table, result_table);
 	switch (status_code) {
@@ -780,6 +784,10 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 	uint32_t bytes_written = 0;
 	uint32_t param_table[5] = {0};
 	uint32_t result_table[4];
+
+	if (lpc2000_info->variant == lpc4300)
+		/* Init IAP Anyway */
+		lpc2000_iap_call(bank, iap_working_area, 49, param_table, result_table);
 
 	while (bytes_remaining > 0) {
 		uint32_t thisrun_bytes;
