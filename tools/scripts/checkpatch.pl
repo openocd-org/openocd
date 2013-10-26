@@ -1342,11 +1342,21 @@ NOTE: perl $^V is not modern enough to detect all possible issues.
 EOM
 	}
 	if ($exit) {
+		if (!$OpenOCD) {
 		print << "EOM"
 
 NOTE: If any of the errors are false positives, please report
       them to the maintainer, see CHECKPATCH in MAINTAINERS.
 EOM
+		} # !$OpenOCD
+		# OpenOCD specific: Begin
+		print << "EOM"
+
+NOTE: If any of the errors are false positives, please report
+      them to the openocd-devel mailing list or prepare a patch
+      and send it to Gerrit for review.
+EOM
+		# OpenOCD specific: End
 	}
 }
 
