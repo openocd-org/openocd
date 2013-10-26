@@ -1403,6 +1403,10 @@ sub parse_email {
 			$address = "";
 			$comment = "";
 		}
+	# OpenOCD specific: Begin: handle jenkins as valid email
+	} elsif ($formatted_email eq "jenkins") {
+			$address = "jenkins";
+	# OpenOCD specific: End
 	}
 
 	# Extract comments from names excluding quoted parts
