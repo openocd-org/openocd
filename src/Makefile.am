@@ -52,7 +52,7 @@ libopenocd_la_CPPFLAGS += -DGITVERSION=\"`cd $(top_srcdir) && git describe`\"
 endif
 
 # add default CPPFLAGS
-libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
+libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS) $(LIBFTDI_CFLAGS)
 
 # the library search path.
 libopenocd_la_LDFLAGS = $(all_libraries)
@@ -61,25 +61,6 @@ if IS_MINGW
 MINGWLDADD = -lws2_32
 else
 MINGWLDADD =
-endif
-
-if FT2232_LIBFTDI
-FTDI2232LIB = -lftdi -lusb
-else
-if PRESTO_LIBFTDI
-FTDI2232LIB = -lftdi -lusb
-else
-FTDI2232LIB =
-endif
-endif
-
-LIBUSB =
-if USE_LIBUSB1
-LIBUSB += $(LIBUSB1_LIBS)
-endif
-
-if USE_LIBUSB0
-LIBUSB += $(LIBUSB0_LIBS)
 endif
 
 libopenocd_la_LIBADD = \
@@ -93,7 +74,8 @@ libopenocd_la_LIBADD = \
 	$(top_builddir)/src/server/libserver.la \
 	$(top_builddir)/src/rtos/librtos.la \
 	$(top_builddir)/src/helper/libhelper.la \
-	$(FTDI2232LIB) $(MINGWLDADD) $(LIBUSB)
+	$(LIBFTDI_LIBS) $(MINGWLDADD) \
+	$(LIBUSB1_LIBS) $(LIBUSB0_LIBS)
 
 STARTUP_TCL_SRCS = \
 	$(srcdir)/helper/startup.tcl \

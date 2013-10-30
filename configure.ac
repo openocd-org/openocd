@@ -999,19 +999,29 @@ fi
 
 if test $build_ft2232_libftdi = yes -o $build_usb_blaster_libftdi = yes -o \
   $build_openjtag_ftdi = yes; then
-  # We assume: the package is preinstalled in the proper place
-  # these present as 2 libraries..
-  LIBS="$LIBS -lftdi -lusb"
+
+  # we can have libftdi or libftdi1, so check it and use the latest one
+  PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [use_libftdi=yes], [use_libftdi=no])
+  if test $use_libftdi = no; then
+	PKG_CHECK_MODULES([LIBFTDI], [libftdi], [use_libftdi=yes], [use_libftdi=no])
+  fi
+  if test $use_libftdi = no; then
+	AC_MSG_ERROR([The libftdi driver is not present on your system.])
+  fi
+
   #
   # Try to build a small program.
   AC_MSG_CHECKING([Build & Link with libftdi...])
 
   LDFLAGS_SAVE=$LDFLAGS
   CFLAGS_SAVE=$CFLAGS
+  LIBS_SAVE=$LIBS
   _LDFLAGS=`eval echo $LDFLAGS`
   _CFLAGS=`eval echo $CFLAGS`
+  _LIBS=`eval echo $LIBS`
   LDFLAGS=$_LDFLAGS
-  CFLAGS=$_CFLAGS
+  CFLAGS="$_CFLAGS $LIBFTDI_CFLAGS"
+  LIBS="$_LIBS $LIBFTDI_LIBS"
 
   AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
@@ -1075,6 +1085,7 @@ enum ftdi_chip_type x = TYPE_232H;
   # Restore the 'unexpanded ldflags'
   LDFLAGS=$LDFLAGS_SAVE
   CFLAGS=$CFLAGS_SAVE
+  LIBS=$LIBS_SAVE
 fi
 
 PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
