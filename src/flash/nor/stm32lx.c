@@ -550,6 +550,12 @@ static int stm32lx_probe(struct flash_bank *bank)
 		first_bank_size_in_kb = 192;
 		stm32lx_info->has_dual_banks = true;
 		break;
+	case 0x437:
+		/* Dual bank, high density */
+		max_flash_size_in_kb = 512;
+		first_bank_size_in_kb = 192;
+		stm32lx_info->has_dual_banks = true;
+		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32L family.");
 		return ERROR_FAIL;
@@ -558,7 +564,8 @@ static int stm32lx_probe(struct flash_bank *bank)
 	/* Get the flash size from target.  0x427 and 0x436 devices use a
 	 * different location for the Flash Size register, please see RM0038 r8 or
 	 * newer. */
-	if ((device_id & 0xfff) == 0x427 || (device_id & 0xfff) == 0x436)
+	if ((device_id & 0xfff) == 0x427 || (device_id & 0xfff) == 0x436 ||
+		(device_id & 0xfff) == 0x437)
 			retval = target_read_u16(target, F_SIZE_MP, &flash_size_in_kb);
 	else
 			retval = target_read_u16(target, F_SIZE, &flash_size_in_kb);
@@ -777,6 +784,10 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 			rev_str = "Y";
 			break;
 		}
+		break;
+
+	case 0x437:
+		device_str = "STM32L1xx (Medium+/High Density)";
 		break;
 
 	default:
