@@ -109,7 +109,9 @@ void *cmd_queue_alloc(size_t size)
 	if (!*p_page) {
 		*p_page = malloc(sizeof(struct cmd_queue_page));
 		(*p_page)->used = 0;
-		(*p_page)->address = malloc(CMD_QUEUE_PAGE_SIZE);
+		size_t alloc_size = (size < CMD_QUEUE_PAGE_SIZE) ?
+					CMD_QUEUE_PAGE_SIZE : size;
+		(*p_page)->address = malloc(alloc_size);
 		(*p_page)->next = NULL;
 	}
 
