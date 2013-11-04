@@ -114,7 +114,7 @@ static int nds32_v2_activate_hardware_breakpoint(struct target *target)
 				/* enable breakpoint (physical address) */
 				aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + hbr_index, 0xA);
 
-			LOG_DEBUG("Add hardware BP %d at %08" PRIx32, hbr_index,
+			LOG_DEBUG("Add hardware BP %" PRId32 " at %08" PRIx32, hbr_index,
 					bp->address);
 
 			hbr_index++;
@@ -141,7 +141,7 @@ static int nds32_v2_deactivate_hardware_breakpoint(struct target *target)
 		else
 			return ERROR_FAIL;
 
-		LOG_DEBUG("Remove hardware BP %d at %08" PRIx32, hbr_index,
+		LOG_DEBUG("Remove hardware BP %" PRId32 " at %08" PRIx32, hbr_index,
 				bp->address);
 
 		hbr_index++;
@@ -186,7 +186,7 @@ static int nds32_v2_activate_hardware_watchpoint(struct target *target)
 		/* set value */
 		aice_write_debug_reg(aice, NDS_EDM_SR_BPV0 + wp_num, 0);
 
-		LOG_DEBUG("Add hardware wathcpoint %d at %08" PRIx32 " mask %08" PRIx32, wp_num,
+		LOG_DEBUG("Add hardware wathcpoint %" PRId32 " at %08" PRIx32 " mask %08" PRIx32, wp_num,
 				wp->address, wp->mask);
 
 	}
@@ -206,7 +206,7 @@ static int nds32_v2_deactivate_hardware_watchpoint(struct target *target)
 		/* disable watchpoint */
 		aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + wp_num, 0x0);
 
-		LOG_DEBUG("Remove hardware wathcpoint %d at %08" PRIx32 " mask %08" PRIx32,
+		LOG_DEBUG("Remove hardware wathcpoint %" PRId32 " at %08" PRIx32 " mask %08" PRIx32,
 				wp_num, wp->address, wp->mask);
 	}
 
@@ -231,7 +231,7 @@ static int nds32_v2_check_interrupt_stack(struct nds32_v2_common *nds32_v2)
 	nds32->current_interrupt_level = (val_ir0 >> 1) & 0x3;
 
 	if (nds32_reach_max_interrupt_level(nds32)) {
-		LOG_ERROR("<-- TARGET ERROR! Reaching the max interrupt stack level %d. -->",
+		LOG_ERROR("<-- TARGET ERROR! Reaching the max interrupt stack level %" PRIu32 ". -->",
 				nds32->current_interrupt_level);
 
 		/* decrease interrupt level */
@@ -427,7 +427,7 @@ static int nds32_v2_add_breakpoint(struct target *target,
 			LOG_WARNING("<-- TARGET WARNING! Insert too many hardware "
 					"breakpoints/watchpoints!  The limit of "
 					"combined hardware breakpoints/watchpoints "
-					"is %d. -->", nds32_v2->n_hbr);
+					"is %" PRId32 ". -->", nds32_v2->n_hbr);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 
@@ -486,7 +486,7 @@ static int nds32_v2_add_watchpoint(struct target *target,
 	if (nds32_v2->n_hbr <= nds32_v2->next_hbr_index) {
 		LOG_WARNING("<-- TARGET WARNING! Insert too many hardware "
 				"breakpoints/watchpoints!  The limit of "
-				"combined hardware breakpoints/watchpoints is %d. -->", nds32_v2->n_hbr);
+				"combined hardware breakpoints/watchpoints is %" PRId32 ". -->", nds32_v2->n_hbr);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -626,7 +626,7 @@ static int nds32_v2_examine(struct target *target)
 
 	nds32_v2->next_hbr_index = 0;
 
-	LOG_INFO("%s: total hardware breakpoint %d", target_name(target),
+	LOG_INFO("%s: total hardware breakpoint %" PRId32, target_name(target),
 			nds32_v2->n_hbr);
 
 	nds32->target->state = TARGET_RUNNING;

@@ -1545,8 +1545,8 @@ int nds32_restore_context(struct target *target)
 			if (reg->valid == true) {
 
 				LOG_DEBUG("examining dirty reg: %s", reg->name);
-				LOG_DEBUG("writing register %i "
-						"with value 0x%8.8" PRIx32, i, buf_get_u32(reg->value, 0, 32));
+				LOG_DEBUG("writing register %d with value 0x%8.8" PRIx32,
+						i, buf_get_u32(reg->value, 0, 32));
 
 				reg_arch_info = reg->arch_info;
 				if (FD0 <= reg_arch_info->num && reg_arch_info->num <= FD31)
@@ -2118,7 +2118,9 @@ int nds32_poll(struct target *target)
 int nds32_resume(struct target *target, int current,
 		uint32_t address, int handle_breakpoints, int debug_execution)
 {
-	LOG_DEBUG("current %d  address %08" PRIx32 "  handle_breakpoints %d  debug_execution %d",
+	LOG_DEBUG("current %d address %08" PRIx32
+			" handle_breakpoints %d"
+			" debug_execution %d",
 			current, address, handle_breakpoints, debug_execution);
 
 	struct nds32 *nds32 = target_to_nds32(target);
@@ -2465,7 +2467,7 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 
 int nds32_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c)
 {
-	LOG_DEBUG("syscall return code: 0x%x, errno: 0x%x, ctrl_c: %s",
+	LOG_DEBUG("syscall return code: 0x%x, errno: 0x%x , ctrl_c: %s",
 			retcode, fileio_errno, ctrl_c ? "true" : "false");
 
 	struct nds32 *nds32 = target_to_nds32(target);

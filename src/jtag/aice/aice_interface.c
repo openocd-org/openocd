@@ -98,7 +98,7 @@ int aice_init_targets(void)
 
 		if (found == 0) {
 			LOG_ERROR
-				("aice_init_targets: target not found: idcode: %x ",
+				("aice_init_targets: target not found: idcode: %" PRIx32,
 				 target->tap->idcode);
 			return ERROR_FAIL;
 		}
@@ -152,7 +152,7 @@ static int aice_execute_reset(struct jtag_command *cmd)
 	static int last_trst;
 	int retval = ERROR_OK;
 
-	DEBUG_JTAG_IO("reset trst: %i", cmd->cmd.reset->trst);
+	DEBUG_JTAG_IO("reset trst: %d", cmd->cmd.reset->trst);
 
 	if (cmd->cmd.reset->trst != last_trst) {
 		if (cmd->cmd.reset->trst)

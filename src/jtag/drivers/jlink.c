@@ -464,7 +464,7 @@ static int jlink_select_interface(int iface)
 	uint32_t iface_mask = buf_get_u32(usb_in_buffer, 0, 32);
 
 	if (!(iface_mask & (1<<iface))) {
-		LOG_ERROR("J-Link requesting to select unsupported interface (%x)", iface_mask);
+		LOG_ERROR("J-Link requesting to select unsupported interface (%" PRIx32 ")", iface_mask);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -746,7 +746,7 @@ static void jlink_config_kickstart_dump(struct command_context *ctx, struct jlin
 	if (!cfg)
 		return;
 
-	jlink_dump_printf(ctx, "Kickstart power on JTAG-pin 19: 0x%x",
+	jlink_dump_printf(ctx, "Kickstart power on JTAG-pin 19: 0x%" PRIx32,
 		cfg->kickstart_power_on_jtag_pin_19);
 }
 
@@ -920,7 +920,7 @@ static int jlink_get_version_info(void)
 		LOG_INFO("J-Link hw version %i", (int)jlink_hw_version);
 
 		if (jlink_hw_type >= JLINK_HW_TYPE_MAX)
-			LOG_INFO("J-Link hw type uknown 0x%x", jlink_hw_type);
+			LOG_INFO("J-Link hw type uknown 0x%" PRIx32, jlink_hw_type);
 		else
 			LOG_INFO("J-Link hw type %s", jlink_hw_type_str[jlink_hw_type]);
 	}

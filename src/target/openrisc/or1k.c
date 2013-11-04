@@ -424,7 +424,7 @@ static int or1k_read_core_reg(struct target *target, int num)
 	if ((num >= 0) && (num < OR1KNUMCOREREGS)) {
 		reg_value = or1k->core_regs[num];
 		buf_set_u32(or1k->core_cache->reg_list[num].value, 0, 32, reg_value);
-		LOG_DEBUG("Read core reg %i value 0x%08x", num , reg_value);
+		LOG_DEBUG("Read core reg %i value 0x%08" PRIx32, num , reg_value);
 		or1k->core_cache->reg_list[num].valid = 1;
 		or1k->core_cache->reg_list[num].dirty = 0;
 	} else {
@@ -432,11 +432,11 @@ static int or1k_read_core_reg(struct target *target, int num)
 		int retval = du_core->or1k_jtag_read_cpu(&or1k->jtag,
 							 or1k->arch_info[num].spr_num, 1, &reg_value);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Error while reading spr 0x%08x", or1k->arch_info[num].spr_num);
+			LOG_ERROR("Error while reading spr 0x%08" PRIx32, or1k->arch_info[num].spr_num);
 			return retval;
 		}
 		buf_set_u32(or1k->core_cache->reg_list[num].value, 0, 32, reg_value);
-		LOG_DEBUG("Read spr reg %i value 0x%08x", num , reg_value);
+		LOG_DEBUG("Read spr reg %i value 0x%08" PRIx32, num , reg_value);
 	}
 
 	return ERROR_OK;
@@ -453,7 +453,7 @@ static int or1k_write_core_reg(struct target *target, int num)
 
 	uint32_t reg_value = buf_get_u32(or1k->core_cache->reg_list[num].value, 0, 32);
 	or1k->core_regs[num] = reg_value;
-	LOG_DEBUG("Write core reg %i value 0x%08x", num , reg_value);
+	LOG_DEBUG("Write core reg %i value 0x%08" PRIx32, num , reg_value);
 	or1k->core_cache->reg_list[num].valid = 1;
 	or1k->core_cache->reg_list[num].dirty = 0;
 
@@ -495,7 +495,7 @@ static int or1k_set_core_reg(struct reg *reg, uint8_t *buf)
 		int retval = du_core->or1k_jtag_write_cpu(&or1k->jtag,
 							  or1k_reg->spr_num, 1, &value);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Error while writing spr 0x%08x", or1k_reg->spr_num);
+			LOG_ERROR("Error while writing spr 0x%08" PRIx32, or1k_reg->spr_num);
 			return retval;
 		}
 	}
@@ -797,7 +797,7 @@ static int or1k_resume_or_step(struct target *target, int current,
 	uint32_t resume_pc;
 	uint32_t debug_reg_list[OR1K_DEBUG_REG_NUM];
 
-	LOG_DEBUG("Addr: 0x%x, stepping: %s, handle breakpoints %s\n",
+	LOG_DEBUG("Addr: 0x%" PRIx32 ", stepping: %s, handle breakpoints %s\n",
 		  address, step ? "yes" : "no", handle_breakpoints ? "yes" : "no");
 
 	if (target->state != TARGET_HALTED) {
@@ -862,7 +862,7 @@ static int or1k_resume_or_step(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("Unset breakpoint at 0x%08x", breakpoint->address);
+			LOG_DEBUG("Unset breakpoint at 0x%08" PRIx32, breakpoint->address);
 			retval = or1k_remove_breakpoint(target, breakpoint);
 			if (retval != ERROR_OK)
 				return retval;
@@ -887,11 +887,11 @@ static int or1k_resume_or_step(struct target *target, int current,
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("Target resumed at 0x%08x", resume_pc);
+		LOG_DEBUG("Target resumed at 0x%08" PRIx32, resume_pc);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("Target debug resumed at 0x%08x", resume_pc);
+		LOG_DEBUG("Target debug resumed at 0x%08" PRIx32, resume_pc);
 	}
 
 	return ERROR_OK;
@@ -923,7 +923,7 @@ static int or1k_add_breakpoint(struct target *target,
 	struct or1k_du *du_core = or1k_to_du(or1k);
 	uint8_t data;
 
-	LOG_DEBUG("Adding breakpoint: addr 0x%08x, len %d, type %d, set: %d, id: %d",
+	LOG_DEBUG("Adding breakpoint: addr 0x%08" PRIx32 ", len %d, type %d, set: %d, id: %" PRId32,
 		  breakpoint->address, breakpoint->length, breakpoint->type,
 		  breakpoint->set, breakpoint->unique_id);
 
@@ -938,7 +938,7 @@ static int or1k_add_breakpoint(struct target *target,
 					 1,
 					 &data);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Error while reading the instruction at 0x%08x",
+		LOG_ERROR("Error while reading the instruction at 0x%08" PRIx32,
 			   breakpoint->address);
 		return retval;
 	}
@@ -958,7 +958,7 @@ static int or1k_add_breakpoint(struct target *target,
 					  (uint8_t *)&or1k_trap_insn);
 
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Error while writing OR1K_TRAP_INSTR at 0x%08x",
+		LOG_ERROR("Error while writing OR1K_TRAP_INSTR at 0x%08" PRIx32,
 			   breakpoint->address);
 		return retval;
 	}
@@ -980,7 +980,7 @@ static int or1k_remove_breakpoint(struct target *target,
 	struct or1k_common *or1k = target_to_or1k(target);
 	struct or1k_du *du_core = or1k_to_du(or1k);
 
-	LOG_DEBUG("Removing breakpoint: addr 0x%08x, len %d, type %d, set: %d, id: %d",
+	LOG_DEBUG("Removing breakpoint: addr 0x%08" PRIx32 ", len %d, type %d, set: %d, id: %" PRId32,
 		  breakpoint->address, breakpoint->length, breakpoint->type,
 		  breakpoint->set, breakpoint->unique_id);
 
@@ -996,7 +996,7 @@ static int or1k_remove_breakpoint(struct target *target,
 					  breakpoint->orig_instr);
 
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Error while writing back the instruction at 0x%08x",
+		LOG_ERROR("Error while writing back the instruction at 0x%08" PRIx32,
 			   breakpoint->address);
 		return retval;
 	}
@@ -1032,7 +1032,7 @@ static int or1k_read_memory(struct target *target, uint32_t address,
 	struct or1k_common *or1k = target_to_or1k(target);
 	struct or1k_du *du_core = or1k_to_du(or1k);
 
-	LOG_DEBUG("Read memory at 0x%08x, size: %d, count: 0x%08x", address, size, count);
+	LOG_DEBUG("Read memory at 0x%08" PRIx32 ", size: %" PRIu32 ", count: 0x%08" PRIx32, address, size, count);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -1090,7 +1090,7 @@ static int or1k_write_memory(struct target *target, uint32_t address,
 	struct or1k_common *or1k = target_to_or1k(target);
 	struct or1k_du *du_core = or1k_to_du(or1k);
 
-	LOG_DEBUG("Write memory at 0x%08x, size: %d, count: 0x%08x", address, size, count);
+	LOG_DEBUG("Write memory at 0x%08" PRIx32 ", size: %" PRIu32 ", count: 0x%08" PRIx32, address, size, count);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("Target not halted");
@@ -1377,7 +1377,7 @@ COMMAND_HANDLER(or1k_addreg_command_handler)
 
 	or1k_add_reg(target, &new_reg);
 
-	LOG_DEBUG("Add reg \"%s\" @ 0x%08x, group \"%s\", feature \"%s\"",
+	LOG_DEBUG("Add reg \"%s\" @ 0x%08" PRIx32 ", group \"%s\", feature \"%s\"",
 		  new_reg.name, addr, new_reg.group, new_reg.feature);
 
 	return ERROR_OK;

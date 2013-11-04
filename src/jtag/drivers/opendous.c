@@ -307,7 +307,7 @@ static int opendous_execute_queue(void)
 				break;
 
 			case JTAG_SLEEP:
-				DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
+				DEBUG_JTAG_IO("sleep %" PRIi32, cmd->cmd.sleep->us);
 				opendous_tap_execute();
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;

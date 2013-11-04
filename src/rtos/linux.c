@@ -160,7 +160,7 @@ int fill_buffer(struct target *target, uint32_t addr, uint8_t *buffer)
 {
 
 	if ((addr & 0xfffffffc) != addr)
-		LOG_INFO("unaligned address %x!!", addr);
+		LOG_INFO("unaligned address %" PRIx32 "!!", addr);
 
 	int retval = linux_read_memory(target, addr, 4, 1, buffer);
 	return retval;
@@ -217,7 +217,7 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 		if (found == 0) {
 			LOG_ERROR
 			(
-				"current thread %" PRIx64 ": no target to perform access of core id %x",
+				"current thread %" PRIx64 ": no target to perform access of core id %" PRIx32,
 				thread_id,
 				next->core_id);
 			return ERROR_FAIL;
@@ -1571,14 +1571,14 @@ static char *linux_ps_command(struct target *target)
 				if (temp->context)
 					tmp +=
 						sprintf(tmp,
-							"%d\t\t%d\t\t%x\t\t%s\n",
-							(int)temp->pid, temp->oncpu,
+							"%" PRId32 "\t\t%" PRId32 "\t\t%" PRIx32 "\t\t%s\n",
+							temp->pid, temp->oncpu,
 							temp->asid, temp->name);
 				else
 					tmp +=
 						sprintf(tmp,
-							"%d\t\t%d\t\t%x\t\t%s\n",
-							(int)temp->pid, temp->oncpu,
+							"%" PRId32 "\t\t%" PRId32 "\t\t%" PRIx32 "\t\t%s\n",
+							temp->pid, temp->oncpu,
 							temp->asid, temp->name);
 			}
 

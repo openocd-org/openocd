@@ -738,7 +738,7 @@ static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 
 	*idcode = le_to_h_u32(h->databuf);
 
-	LOG_DEBUG("IDCODE: 0x%08X", *idcode);
+	LOG_DEBUG("IDCODE: 0x%08" PRIX32, *idcode);
 
 	return ERROR_OK;
 }
@@ -1043,7 +1043,7 @@ static int stlink_usb_trace_enable(void *handle)
 
 		if (res == ERROR_OK)  {
 			h->trace.enabled = true;
-			LOG_DEBUG("Tracing: recording at %uHz\n", trace_hz);
+			LOG_DEBUG("Tracing: recording at %" PRIu32 "Hz\n", trace_hz);
 		}
 	} else {
 		LOG_ERROR("Tracing is not supported by this version.");

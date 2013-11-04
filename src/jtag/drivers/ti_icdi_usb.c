@@ -368,12 +368,12 @@ static int icdi_usb_query(void *handle)
 		char *separator;
 		int max_packet;
 
-		max_packet = strtoul(offset + 11, &separator, 16);
+		max_packet = strtol(offset + 11, &separator, 16);
 		if (!max_packet)
 			LOG_ERROR("invalid max packet, using defaults");
 		else
 			h->max_packet = max_packet;
-		LOG_DEBUG("max packet supported : %" PRIu32 " bytes", h->max_packet);
+		LOG_DEBUG("max packet supported : %i bytes", h->max_packet);
 	}
 
 
@@ -536,7 +536,7 @@ static int icdi_usb_read_mem_int(void *handle, uint32_t addr, uint32_t len, uint
 	struct icdi_usb_handle_s *h = handle;
 	char cmd[20];
 
-	snprintf(cmd, sizeof(cmd), "x%x,%x", addr, len);
+	snprintf(cmd, sizeof(cmd), "x%" PRIx32 ",%" PRIx32, addr, len);
 	result = icdi_send_cmd(handle, cmd);
 	if (result != ERROR_OK)
 		return result;
@@ -551,7 +551,7 @@ static int icdi_usb_read_mem_int(void *handle, uint32_t addr, uint32_t len, uint
 	/* unescape input */
 	int read_len = remote_unescape_input(h->read_buffer + 5, h->read_count - 8, (char *)buffer, len);
 	if (read_len != (int)len) {
-		LOG_ERROR("read more bytes than expected: actual 0x%" PRIx32 " expected 0x%" PRIx32, read_len, len);
+		LOG_ERROR("read more bytes than expected: actual 0x%x expected 0x%" PRIx32, read_len, len);
 		return ERROR_FAIL;
 	}
 
@@ -563,7 +563,7 @@ static int icdi_usb_write_mem_int(void *handle, uint32_t addr, uint32_t len, con
 	int result;
 	struct icdi_usb_handle_s *h = handle;
 
-	size_t cmd_len = snprintf(h->write_buffer, h->max_packet, PACKET_START "X%x,%x:", addr, len);
+	size_t cmd_len = snprintf(h->write_buffer, h->max_packet, PACKET_START "X%" PRIx32 ",%" PRIx32 ":", addr, len);
 
 	int out_len;
 	cmd_len += remote_escape_output((const char *)buffer, len, h->write_buffer + cmd_len,
@@ -571,7 +571,7 @@ static int icdi_usb_write_mem_int(void *handle, uint32_t addr, uint32_t len, con
 
 	if (out_len < (int)len) {
 		/* for now issue a error as we have no way of allocating a larger buffer */
-		LOG_ERROR("memory buffer too small: requires 0x%" PRIx32 " actual 0x%" PRIx32, out_len, len);
+		LOG_ERROR("memory buffer too small: requires 0x%x actual 0x%" PRIx32, out_len, len);
 		return ERROR_FAIL;
 	}
 

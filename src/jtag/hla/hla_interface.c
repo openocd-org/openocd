@@ -92,7 +92,7 @@ int hl_interface_init_target(struct target *t)
 	}
 
 	if (found == 0) {
-		LOG_ERROR("hl_interface_init_target: target not found: idcode: 0x%08x",
+		LOG_ERROR("hl_interface_init_target: target not found: idcode: 0x%08" PRIx32,
 				t->tap->idcode);
 		return ERROR_FAIL;
 	}

@@ -281,8 +281,8 @@ static int nds32_v3_get_exception_address(struct nds32 *nds32,
 		nds32_read_opcode(nds32, val_pc, &opcode);
 		nds32_evaluate_opcode(nds32, opcode, val_pc, &instruction);
 
-		LOG_DEBUG("PC: 0x%08x, access start: 0x%08x, end: 0x%08x", val_pc,
-				instruction.access_start, instruction.access_end);
+		LOG_DEBUG("PC: 0x%08" PRIx32 ", access start: 0x%08" PRIx32 ", end: 0x%08" PRIx32,
+				val_pc, instruction.access_start, instruction.access_end);
 
 		/* check if multiple hits in the access range */
 		uint32_t in_range_watch_count = 0;

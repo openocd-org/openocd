@@ -47,7 +47,7 @@ static int aice_pipe_write(const void *buffer, int count)
 
 	success = WriteFile(aice_pipe_output[1], buffer, count, &written, NULL);
 	if (!success) {
-		LOG_ERROR("(WIN32) write to pipe failed, error code: 0x%08lx", GetLastError());
+		LOG_ERROR("(WIN32) write to pipe failed, error code: 0x%08l" PRIx32, GetLastError());
 		return -1;
 	}
 
@@ -61,7 +61,7 @@ static int aice_pipe_read(void *buffer, int count)
 
 	success = ReadFile(aice_pipe_input[0], buffer, count, &has_read, NULL);
 	if (!success || (has_read == 0)) {
-		LOG_ERROR("(WIN32) read from pipe failed, error code: 0x%08lx", GetLastError());
+		LOG_ERROR("(WIN32) read from pipe failed, error code: 0x%08l" PRIx32, GetLastError());
 		return -1;
 	}
 

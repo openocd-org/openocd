@@ -431,7 +431,7 @@ static int osbdm_add_statemove(
 	int skip_first)
 {
 	int len = 0;
-	int tms;
+	int tms = 0;
 
 	tap_set_end_state(new_state);
 	if (tap_get_end_state() == TAP_RESET) {

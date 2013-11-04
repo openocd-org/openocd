@@ -124,7 +124,8 @@ static int nds32_parse_group_0_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLBI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -140,7 +141,8 @@ static int nds32_parse_group_0_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLHI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -156,7 +158,8 @@ static int nds32_parse_group_0_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLWI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLWI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -171,7 +174,8 @@ static int nds32_parse_group_0_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLBI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -186,7 +190,8 @@ static int nds32_parse_group_0_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLHI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -201,7 +206,8 @@ static int nds32_parse_group_0_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLWI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLWI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32 "",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -237,7 +243,8 @@ static int nds32_parse_group_1_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSBI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSBI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -253,7 +260,8 @@ static int nds32_parse_group_1_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSHI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSHI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -269,7 +277,8 @@ static int nds32_parse_group_1_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSWI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSWI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -284,7 +293,8 @@ static int nds32_parse_group_1_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSBI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSBI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -299,7 +309,8 @@ static int nds32_parse_group_1_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSHI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSHI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -314,7 +325,8 @@ static int nds32_parse_group_1_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSWI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSWI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -350,7 +362,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBSI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLBSI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -366,7 +379,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHSI\t$r%d,[$r%d+#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLHSI\t$r%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -382,7 +396,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 					instruction->info.imm = (instruction->info.imm << 17) >> 14;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDPREFI.d\t%d,[$r%d+#%d]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tDPREFI.d\t%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 							address,
 							opcode, instruction->info.sub_opc,
 							instruction->info.ra, instruction->info.imm);
@@ -391,7 +406,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 					instruction->info.imm = (instruction->info.imm << 17) >> 15;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDPREFI.w\t%d,[$r%d+#%d]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tDPREFI.w\t%" PRIu8 ",[$r%" PRIu8 "+#%" PRId32 "]",
 							address,
 							opcode, instruction->info.sub_opc,
 							instruction->info.ra, instruction->info.imm);
@@ -408,7 +424,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBSI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLBSI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -423,7 +440,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHSI.bi\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLHSI.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -438,7 +456,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 				instruction->access_end = instruction->access_start + 1;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBSI.gp\t$r%d,[#%d]",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tLBSI.gp\t$r%" PRIu8 ",[#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			} else { /* LBI.gp */
@@ -448,7 +467,8 @@ static int nds32_parse_group_2_insn(struct nds32 *nds32, uint32_t opcode,
 				instruction->access_end = instruction->access_start + 1;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBI.gp\t$r%d,[#%d]",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tLBI.gp\t$r%" PRIu8 ",[#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			}
@@ -485,7 +505,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLB\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLB\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -503,7 +524,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 2;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLH\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLH\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -521,7 +543,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLW\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLW\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -537,7 +560,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLB.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLB.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt,
 							instruction->info.ra, instruction->info.rb,
@@ -553,7 +577,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 2;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLH.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLH.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -569,7 +594,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLW.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLW.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -591,7 +617,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSB\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSB\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt,
 							instruction->info.ra, instruction->info.rb,
@@ -609,7 +636,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 2;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSH\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSH\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -627,7 +655,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSW\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSW\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt,
 							instruction->info.ra, instruction->info.rb,
@@ -643,7 +672,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSB.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSB.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -659,7 +689,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 2;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSH.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSH.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -675,7 +706,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSW.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSW.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -697,7 +729,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBS\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLBS\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt,
 							instruction->info.ra, instruction->info.rb,
@@ -715,7 +748,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 2;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHS\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLHS\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -728,7 +762,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->type = NDS32_INSN_MISC;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDPREF\t#%d,[$r%d+($r%d<<#%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tDPREF\t#%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<#%" PRId32 ")]",
 							address,
 							opcode, instruction->info.sub_opc,
 							instruction->info.ra, instruction->info.rb,
@@ -744,7 +779,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBS.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLBS.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -760,7 +796,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 2;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHS.bi\t$r%d,[$r%d],($r%d<<%d)",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLHS.bi\t$r%" PRIu8 ",[$r%" PRIu8 "],($r%" PRIu8 "<<%" PRId32 ")",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -782,7 +819,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLLW\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLLW\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -800,7 +838,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSCW\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSCW\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -822,7 +861,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLBUP\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLBUP\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -840,7 +880,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLWUP\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tLWUP\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -862,7 +903,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 1;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSBUP\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSBUP\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -880,7 +922,8 @@ static int nds32_parse_mem(struct nds32 *nds32, uint32_t opcode, uint32_t addres
 					instruction->access_end = instruction->access_start + 4;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSWUP\t$r%d,[$r%d+($r%d<<%d)]",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tSWUP\t$r%" PRIu8 ",[$r%" PRIu8 "+($r%" PRIu8 "<<%" PRId32 ")]",
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.rb,
@@ -953,7 +996,8 @@ static int nds32_parse_lsmw(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				nds32_calculate_lsmw_access_range(nds32, instruction);
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSMW\t$r%d,[$r%d],$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSMW\t$r%" PRIu8 ",[$r%" PRIu8 "],$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rb, instruction->info.ra,
 						instruction->info.rd,
@@ -967,7 +1011,8 @@ static int nds32_parse_lsmw(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				nds32_calculate_lsmw_access_range(nds32, instruction);
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSMWA\t$r%d,[$r%d],$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSMWA\t$r%" PRIu8 ",[$r%" PRIu8 "],$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rb, instruction->info.ra,
 						instruction->info.rd,
@@ -981,7 +1026,8 @@ static int nds32_parse_lsmw(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				/* TODO: calculate access_start/access_end */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSMWZB\t$r%d,[$r%d],$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSMWZB\t$r%" PRIu8 ",[$r%" PRIu8 "],$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rb, instruction->info.ra,
 						instruction->info.rd,
@@ -1005,7 +1051,8 @@ static int nds32_parse_lsmw(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				nds32_calculate_lsmw_access_range(nds32, instruction);
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLMW\t$r%d,[$r%d],$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tLMW\t$r%" PRIu8 ",[$r%" PRIu8 "],$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rb, instruction->info.ra,
 						instruction->info.rd,
@@ -1019,7 +1066,8 @@ static int nds32_parse_lsmw(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				nds32_calculate_lsmw_access_range(nds32, instruction);
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLMWA\t$r%d,[$r%d],$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tLMWA\t$r%" PRIu8 ",[$r%" PRIu8 "],$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rb, instruction->info.ra,
 						instruction->info.rd,
@@ -1033,7 +1081,8 @@ static int nds32_parse_lsmw(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				/* TODO: calculate access_start/access_end */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLMWZB\t$r%d,[$r%d],$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tLMWZB\t$r%" PRIu8 ",[$r%" PRIu8 "],$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rb, instruction->info.ra,
 						instruction->info.rd,
@@ -1065,7 +1114,8 @@ static int nds32_parse_hwgp(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHI.gp\t$r%d,[#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLHI.gp\t$r%" PRIu8 ",[#%" PRId32"]",
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -1078,7 +1128,8 @@ static int nds32_parse_hwgp(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLHSI.gp\t$r%d,[#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tLHSI.gp\t$r%" PRIu8 ",[#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -1091,7 +1142,8 @@ static int nds32_parse_hwgp(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSHI.gp\t$r%d,[#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSHI.gp\t$r%" PRIu8 ",[#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -1107,7 +1159,8 @@ static int nds32_parse_hwgp(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				instruction->access_end = instruction->access_start + 4;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSWI.gp\t$r%d,[#%d]",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSWI.gp\t$r%" PRIu8 ",[#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			} else { /* LWI.gp */
@@ -1120,7 +1173,8 @@ static int nds32_parse_hwgp(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 				instruction->access_end = instruction->access_start + 4;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tLWI.gp\t$r%d,[#%d]",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tLWI.gp\t$r%" PRIu8 ",[#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			}
@@ -1151,7 +1205,8 @@ static int nds32_parse_sbgp(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSBI.gp\t$r%d,[#%d]",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSBI.gp\t$r%" PRIu8 ",[#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -1161,7 +1216,8 @@ static int nds32_parse_sbgp(struct nds32 *nds32, uint32_t opcode, uint32_t addre
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tADDI.gp\t$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tADDI.gp\t$r%" PRIu8 ",#%" PRId32 "",
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -1221,7 +1277,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tADD_SLLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tADD_SLLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1229,7 +1286,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tADD\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tADD\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1243,7 +1301,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSUB_SLLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSUB_SLLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1251,7 +1310,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSUB\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSUB\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 "",
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1265,7 +1325,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tAND_SLLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tAND_SLLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1273,7 +1334,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tAND\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tAND\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 "",
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1287,7 +1349,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tXOR_SLLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tXOR_SLLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1295,7 +1358,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tXOR\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tXOR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1309,7 +1373,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tOR_SLLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tOR_SLLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1317,7 +1382,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tOR\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tOR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1329,7 +1395,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tNOR\t$r%d,$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tNOR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.rb);
@@ -1341,7 +1408,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSLT\t$r%d,$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSLT\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.rb);
@@ -1353,7 +1421,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSLTS\t$r%d,$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSLTS\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.rb);
@@ -1368,7 +1437,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				instruction->type = NDS32_INSN_DATA_PROC;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSLLI\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSLLI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -1384,7 +1454,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				instruction->type = NDS32_INSN_DATA_PROC;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSRLI\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSRLI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -1400,7 +1471,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSRAI\t$r%d,$r%d,#%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSRAI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.imm);
@@ -1416,7 +1488,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tROTRI\t$r%d,$r%d,#%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tROTRI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.imm);
@@ -1429,7 +1502,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSLL\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSLL\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1442,7 +1516,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSRL\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSRL\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1455,7 +1530,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSRA\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSRA\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1468,7 +1544,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tROTR\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tROTR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1481,7 +1558,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSEB\t$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSEB\t$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra);
 			 }
@@ -1493,7 +1571,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSEH\t$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSEH\t$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra);
 			 }
@@ -1505,7 +1584,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBITC\t$r%d,$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tBITC\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.rb);
@@ -1517,7 +1597,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tZEH\t$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tZEH\t$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra);
 			 }
@@ -1529,7 +1610,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tWSBH\t$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tWSBH\t$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra);
 			 }
@@ -1543,7 +1625,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tOR_SRLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tOR_SRLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1551,7 +1634,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tOR\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tOR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1564,7 +1648,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDIVSR\t$r%d,$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tDIVSR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb,
@@ -1579,7 +1664,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDIVR\t$r%d,$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tDIVR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb,
@@ -1593,7 +1679,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSVA\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSVA\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1606,7 +1693,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSVS\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tSVS\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1619,7 +1707,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_MISC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tCMOVZ\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tCMOVZ\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1632,7 +1721,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_MISC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tCMOVN\t$r%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tCMOVN\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.rb);
@@ -1647,7 +1737,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tADD_SRLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tADD_SRLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1655,7 +1746,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tADD\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tADD\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1669,7 +1761,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSUB_SRLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSUB_SRLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1677,7 +1770,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSUB\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tSUB\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1691,7 +1785,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tAND_SRLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tAND_SRLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1699,7 +1794,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tAND\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tAND\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1713,7 +1809,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			if (instruction->info.imm)
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tXOR_SRLI\t$r%d,$r%d,$r%d,%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tXOR_SRLI\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8 ",%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb,
@@ -1721,7 +1818,8 @@ static int nds32_parse_alu_1(uint32_t opcode, uint32_t address,
 			else
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tXOR\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tXOR\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -1749,7 +1847,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMAX\t$r%d,$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tMAX\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.rb);
@@ -1761,7 +1860,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMIN\t$r%d,$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tMIN\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.rb);
@@ -1773,7 +1873,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tAVE\t$r%d,$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tAVE\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.rb);
@@ -1785,7 +1886,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tAVE\t$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tAVE\t$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra);
 			break;
@@ -1798,7 +1900,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				instruction->type = NDS32_INSN_DATA_PROC;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tCLIPS\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tCLIPS\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -1813,7 +1916,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				instruction->type = NDS32_INSN_DATA_PROC;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tCLIP\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tCLIP\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -1826,7 +1930,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tCLO\t$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tCLO\t$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra);
 			break;
@@ -1837,7 +1942,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tCLZ\t$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tCLZ\t$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra);
 			break;
@@ -1850,7 +1956,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				instruction->type = NDS32_INSN_DATA_PROC;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBSET\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tBSET\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -1865,7 +1972,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				instruction->type = NDS32_INSN_DATA_PROC;
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBCLR\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tBCLR\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -1880,7 +1988,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBTGL\t$r%d,$r%d,#%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tBTGL\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.imm);
@@ -1895,7 +2004,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBTST\t$r%d,$r%d,#%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tBTST\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						 address,
 						 opcode, instruction->info.rt, instruction->info.ra,
 						 instruction->info.imm);
@@ -1908,7 +2018,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_DATA_PROC;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBSE\t$r%d,$r%d,$r%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tBSE\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					 address,
 					 opcode, instruction->info.rt, instruction->info.ra,
 					 instruction->info.rb);
@@ -1920,7 +2031,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_DATA_PROC;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBSP\t$r%d,$r%d,$r%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tBSP\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					 address,
 					 opcode, instruction->info.rt, instruction->info.ra,
 					 instruction->info.rb);
@@ -1932,7 +2044,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_DATA_PROC;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tFFB\t$r%d,$r%d,$r%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tFFB\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					 address,
 					 opcode, instruction->info.rt, instruction->info.ra,
 					 instruction->info.rb);
@@ -1944,7 +2057,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_DATA_PROC;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tFFMISM\t$r%d,$r%d,$r%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tFFMISM\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					 address,
 					 opcode, instruction->info.rt, instruction->info.ra,
 					 instruction->info.rb);
@@ -1956,7 +2070,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_DATA_PROC;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tFFZMISM\t$r%d,$r%d,$r%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tFFZMISM\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					 address,
 					 opcode, instruction->info.rt, instruction->info.ra,
 					 instruction->info.rb);
@@ -1967,7 +2082,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_RESOURCE_ACCESS;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMFUSR\t$r%d,#%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tMFUSR\t$r%" PRIu8 ",#%" PRId32,
 					 address,
 					 opcode, instruction->info.rt,
 					 (instruction->info.imm >> 10) & 0x3FF);
@@ -1978,7 +2094,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_RESOURCE_ACCESS;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMTUSR\t$r%d,#%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tMTUSR\t$r%" PRIu8 ",#%" PRId32,
 					 address,
 					 opcode, instruction->info.rt,
 					 (instruction->info.imm >> 10) & 0x3FF);
@@ -1990,7 +2107,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 			 instruction->type = NDS32_INSN_DATA_PROC;
 			 snprintf(instruction->text,
 					 128,
-					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMUL\t$r%d,$r%d,$r%d",
+					 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					 "\tMUL\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 					 address,
 					 opcode, instruction->info.rt, instruction->info.ra,
 					 instruction->info.rb);
@@ -2003,7 +2121,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMULTS64\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMULTS64\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2017,7 +2136,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMULT64\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMULT64\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2030,7 +2150,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMADDS64\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMADDS64\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2043,7 +2164,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMADD64\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMADD64\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2056,7 +2178,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMSUBS64\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMSUBS64\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2069,7 +2192,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMSUB64\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMSUB64\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2082,7 +2206,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDIVS\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tDIVS\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2095,7 +2220,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDIV\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tDIV\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2108,7 +2234,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMULT32\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMULT32\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2121,7 +2248,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMADD32\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMADD32\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2134,7 +2262,8 @@ static int nds32_parse_alu_2(uint32_t opcode, uint32_t address,
 				 instruction->type = NDS32_INSN_DATA_PROC;
 				 snprintf(instruction->text,
 						 128,
-						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMSUB32\t$D%d,$r%d,$r%d",
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						 "\tMSUB32\t$D%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						 address,
 						 opcode, (dt_val >> 1) & 0x1, instruction->info.ra,
 						 instruction->info.rb);
@@ -2174,7 +2303,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMOVI\t$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tMOVI\t$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -2184,7 +2314,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSETHI\t$r%d,0x%8.8" PRIx32,
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSETHI\t$r%" PRIu8 ",0x%8.8" PRIx32,
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -2196,13 +2327,15 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 			if ((instruction->info.imm >> 24) & 0x1) { /* JAL */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tJAL\t#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tJAL\t#%" PRId32,
 						address,
 						opcode, instruction->info.imm);
 			} else { /* J */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tJ\t#%d",
+						"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+						"\tJ\t#%" PRId32,
 						address,
 						opcode, instruction->info.imm);
 			}
@@ -2218,13 +2351,15 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						if (imm & 0x20) { /* RET */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tRET\t$r%d",
+									"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+									"\tRET\t$r%" PRIu8,
 									address,
 									opcode, instruction->info.rb);
 						} else { /* JR */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tJR\t$r%d",
+									"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+									"\tJR\t$r%" PRIu8,
 									address,
 									opcode, instruction->info.rb);
 						}
@@ -2233,14 +2368,16 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.rt = (imm >> 20) & 0x1F;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tJRAL\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tJRAL\t$r%" PRIu8 ",$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt, instruction->info.rb);
 						break;
 					case 2: /* JRNEZ */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tJRNEZ\t$r%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tJRNEZ\t$r%" PRIu8,
 								address,
 								opcode, instruction->info.rb);
 						break;
@@ -2249,14 +2386,15 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						if (instruction->info.rt == R30)
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tJRALNEZ\t$r%d",
+									"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+									"\tJRALNEZ\t$r%" PRIu8,
 									address,
 									opcode, instruction->info.rb);
 						else
 							snprintf(instruction->text,
 									128,
 									"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
-									"\tJRALNEZ\t$r%d,$r%d",
+									"\tJRALNEZ\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode,
 									instruction->info.rt,
@@ -2277,7 +2415,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 					instruction->info.imm = (instruction->info.imm << 18) >> 18;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBNE\t$r%d,$r%d,#%d",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tBNE\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 							address,
 							opcode, instruction->info.rt, instruction->info.ra,
 							instruction->info.imm);
@@ -2288,7 +2427,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 					instruction->info.imm = (instruction->info.imm << 18) >> 18;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBEQ\t$r%d,$r%d,#%d",
+							"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+							"\tBEQ\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 							address,
 							opcode, instruction->info.rt,
 							instruction->info.ra,
@@ -2308,7 +2448,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBEQZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBEQZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2318,7 +2459,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBNEZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBNEZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2328,7 +2470,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBGEZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBGEZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2338,7 +2481,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBLTZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBLTZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2348,7 +2492,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBGTZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBGTZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2358,7 +2503,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBLEZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBLEZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2368,7 +2514,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBGEZAL\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBGEZAL\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2378,7 +2525,8 @@ static int nds32_parse_group_4_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (instruction->info.imm << 16) >> 16;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBLTZAL\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBLTZAL\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2412,7 +2560,8 @@ static int nds32_parse_group_5_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tADDI\t$r%d,$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tADDI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2424,7 +2573,8 @@ static int nds32_parse_group_5_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSUBRI\t$r%d,$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSUBRI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2435,7 +2585,8 @@ static int nds32_parse_group_5_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tANDI\t$r%d,$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tANDI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2446,7 +2597,8 @@ static int nds32_parse_group_5_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tXORI\t$r%d,$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tXORI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2457,7 +2609,8 @@ static int nds32_parse_group_5_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tORI\t$r%d,$r%d,0x%8.8" PRIx32,
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tORI\t$r%" PRIu8 ",$r%" PRIu8 ",0x%8.8" PRIx32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2469,7 +2622,8 @@ static int nds32_parse_group_5_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSLTI\t$r%d,$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSLTI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2481,7 +2635,8 @@ static int nds32_parse_group_5_insn(struct nds32 *nds32, uint32_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSLTSI\t$r%d,$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+					"\tSLTSI\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2518,7 +2673,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSTANDBY\t#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tSTANDBY\t#%" PRIu32,
 								address,
 								opcode, (opcode >> 5) & 0x3);
 						break;
@@ -2539,7 +2695,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_RESOURCE_ACCESS;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMFSR\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tMFSR\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.rt,
 								(instruction->info.imm >> 10) & 0x3FF);
@@ -2550,7 +2707,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_RESOURCE_ACCESS;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMTSR\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tMTSR\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.ra,
 								(instruction->info.imm >> 10) & 0x3FF);
@@ -2567,7 +2725,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tTRAP\t#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tTRAP\t#%" PRId32,
 								address,
 								opcode, (imm >> 5) & 0x7FFF);
 						break;
@@ -2577,7 +2736,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tTEQZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tTEQZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.ra,
 								(instruction->info.imm >> 5) & 0x7FFF);
@@ -2588,7 +2748,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tTNEZ\t$r%d,#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tTNEZ\t$r%" PRIu8 ",#%" PRId32,
 								address,
 								opcode, instruction->info.ra,
 								(instruction->info.imm >> 5) & 0x7FFF);
@@ -2615,7 +2776,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->info.imm = (imm >> 5) & 0x7FFF;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBREAK\t#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tBREAK\t#%" PRId32,
 								address,
 								opcode, instruction->info.imm);
 						break;
@@ -2623,7 +2785,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSYSCALL\t#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tSYSCALL\t#%" PRId32,
 								address,
 								opcode, (imm >> 5) & 0x7FFF);
 						break;
@@ -2631,7 +2794,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMSYNC\t#%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tMSYNC\t#%" PRId32,
 								address,
 								opcode, (imm >> 5) & 0x7);
 						break;
@@ -2641,7 +2805,8 @@ static int nds32_parse_group_6_insn(struct nds32 *nds32, uint32_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tISYNC\t$r%d",
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"\tISYNC\t$r%" PRIu8,
 								address,
 								opcode, instruction->info.ra);
 						break;
@@ -2702,7 +2867,8 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->type = NDS32_INSN_MISC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tMOV55\t$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tMOV55\t$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra);
 			break;
@@ -2713,7 +2879,8 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->type = NDS32_INSN_MISC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tMOVI55\t$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tMOVI55\t$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -2724,13 +2891,15 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (nds32_extract_field_8u(opcode, 9, 1) == 0) { /* ADD45 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tADD45\t$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tADD45\t$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.rb);
 			} else { /* SUB45 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSUB45\t$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSUB45\t$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.rb);
 			}
@@ -2743,13 +2912,15 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (nds32_extract_field_8u(opcode, 9, 1) == 0) { /* ADDI45 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tADDI45\t$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tADDI45\t$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			} else { /* SUBI45 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSUBI45\t$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSUBI45\t$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			}
@@ -2761,20 +2932,22 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (nds32_extract_field_8u(opcode, 9, 1) == 0) { /* SRAI45 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSRAI45\t$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSRAI45\t$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			} else { /* SRLI45 */
 				if ((instruction->info.rt == 0) && (instruction->info.imm == 0)) {
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tNOP",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16 "\t\tNOP",
 							address,
 							opcode);
 				} else {
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSRLI45\t$r%d,#%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tSRLI45\t$r%" PRIu8 ",#%" PRId32,
 							address,
 							opcode, instruction->info.rt, instruction->info.imm);
 				}
@@ -2788,7 +2961,8 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 				instruction->info.imm = nds32_extract_field_8u(opcode, 0, 3);
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSLLI333\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSLLI333\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -2798,42 +2972,48 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 					case 0: /* ZEB33 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tZEB33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tZEB33\t$r%" PRIu8 ",$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt, instruction->info.ra);
 						break;
 					case 1: /* ZEH33 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tZEH33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tZEH33\t$r%" PRIu8 ",$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt, instruction->info.ra);
 						break;
 					case 2: /* SEB33 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSEB33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tSEB33\t$r%" PRIu8 ",$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt, instruction->info.ra);
 						break;
 					case 3: /* SEH33 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSEH33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tSEH33\t$r%" PRIu8 ",$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt, instruction->info.ra);
 						break;
 					case 4: /* XLSB33 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tXLSB33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tXLSB33\t$r%" PRIu8 ",$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt, instruction->info.ra);
 						break;
 					case 5: /* XLLB33 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tXLLB33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tXLLB33\t$r%" PRIu8 ",$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt, instruction->info.ra);
 						break;
@@ -2842,7 +3022,8 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 						instruction->info.imm = nds32_extract_field_8u(opcode, 3, 3);
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBMSKI33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tBMSKI33\t$r%" PRIu8 ",$r%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
@@ -2851,14 +3032,15 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 						instruction->info.imm = nds32_extract_field_8u(opcode, 3, 3);
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tFEXTI33\t$r%d,$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tFEXTI33\t$r%" PRIu8 ",$r%" PRId32,
 								address,
 								opcode, instruction->info.rt, instruction->info.imm);
 						break;
 					default:
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx16
 								"\tUNDEFINED INSTRUCTION",
 								address,
 								opcode);
@@ -2874,14 +3056,16 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (nds32_extract_field_8u(opcode, 9, 1) == 0) { /* ADD333 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tADD333\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tADD333\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
 			} else { /* SUB333 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSUB333\t$r%d,$r%d,$r%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSUB333\t$r%" PRIu8 ",$r%" PRIu8 ",$r%" PRIu8,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.rb);
@@ -2895,14 +3079,16 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (nds32_extract_field_8u(opcode, 9, 1) == 0) { /* ADDI333 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tADDI333\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tADDI333\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
 			} else { /* SUBI333 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSUBI333\t$r%d,$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSUBI333\t$r%" PRIu8 ",$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.ra,
 						instruction->info.imm);
@@ -2911,7 +3097,7 @@ static int nds32_parse_group_0_insn_16(struct nds32 *nds32, uint16_t opcode,
 		default:
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEFINED INSTRUCTION",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx16 "\tUNDEFINED INSTRUCTION",
 					address,
 					opcode);
 			return ERROR_FAIL;
@@ -2935,7 +3121,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLWI333\t$r%d,[$r%d+(#%d)]",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tLWI333\t$r%" PRIu8 ",[$r%" PRIu8 "+(#%" PRId32 ")]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2950,7 +3137,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLWI333.BI\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tLWI333.BI\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm << 2);
@@ -2966,7 +3154,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLHI333\t$r%d,[$r%d+(#%d)]",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tLHI333\t$r%" PRIu8 ",[$r%" PRIu8 "+(#%" PRId32 ")]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2982,7 +3171,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLBI333\t$r%d,[$r%d+(#%d)]",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tLBI333\t$r%" PRIu8 ",[$r%" PRIu8 "+(#%" PRId32 ")]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -2998,7 +3188,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSWI333\t$r%d,[$r%d+(#%d)]",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tSWI333\t$r%" PRIu8 ",[$r%" PRIu8 "+(#%" PRId32 ")]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -3013,7 +3204,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSWI333.BI\t$r%d,[$r%d],#%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tSWI333.BI\t$r%" PRIu8 ",[$r%" PRIu8 "],#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -3029,7 +3221,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 2;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSHI333\t$r%d,[$r%d+(#%d)]",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tSHI333\t$r%" PRIu8 ",[$r%" PRIu8 "+(#%" PRId32 ")]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -3045,7 +3238,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 1;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSHI333\t$r%d,[$r%d+(#%d)]",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tSHI333\t$r%" PRIu8 ",[$r%" PRIu8 "+(#%" PRId32 ")]",
 					address,
 					opcode, instruction->info.rt, instruction->info.ra,
 					instruction->info.imm);
@@ -3056,7 +3250,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->type = NDS32_INSN_DATA_PROC;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tADDRI36.SP\t$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tADDRI36.SP\t$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -3071,7 +3266,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLWI45.FE\t$r%d,[#%d]",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tLWI45.FE\t$r%" PRIu8 ",[#%" PRId32 "]",
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -3084,7 +3280,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLWI450\t$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tLWI450\t$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra);
 			break;
@@ -3097,7 +3294,8 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->access_end = instruction->access_start + 4;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSWI450\t$r%d,$r%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tSWI450\t$r%" PRIu8 ",$r%" PRIu8,
 					address,
 					opcode, instruction->info.rt, instruction->info.ra);
 			break;
@@ -3114,13 +3312,15 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (nds32_extract_field_8u(opcode, 7, 1) == 0) { /* LWI37 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLWI37\t$r%d,[fp+#%d]",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tLWI37\t$r%" PRIu8 ",[fp+#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			} else { /* SWI37 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSWI37\t$r%d,[fp+#%d]",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSWI37\t$r%" PRIu8 ",[fp+#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			}
@@ -3128,7 +3328,7 @@ static int nds32_parse_group_1_insn_16(struct nds32 *nds32, uint16_t opcode,
 		default: /* ERROR */
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEFINED INSTRUCTION",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx16 "\tUNDEFINED INSTRUCTION",
 					address,
 					opcode);
 			return ERROR_FAIL;
@@ -3148,7 +3348,8 @@ static int nds32_parse_group_2_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->type = NDS32_INSN_JUMP_BRANCH;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBEQZ38\t$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tBEQZ38\t$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -3159,7 +3360,8 @@ static int nds32_parse_group_2_insn_16(struct nds32 *nds32, uint16_t opcode,
 			instruction->type = NDS32_INSN_JUMP_BRANCH;
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBNEZ38\t$r%d,#%d",
+					"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+					"\t\tBNEZ38\t$r%" PRIu8 ",#%" PRId32,
 					address,
 					opcode, instruction->info.rt, instruction->info.imm);
 			break;
@@ -3171,13 +3373,15 @@ static int nds32_parse_group_2_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (instruction->info.rt == 5) { /* J8 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tJ8\t#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tJ8\t#%" PRId32,
 						address,
 						opcode, instruction->info.imm);
 			} else { /* BEQS38 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBEQS38\t$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tBEQS38\t$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			}
@@ -3194,14 +3398,16 @@ static int nds32_parse_group_2_insn_16(struct nds32 *nds32, uint16_t opcode,
 					case 0: /* JR5 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tJR5\t$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tJR5\t$r%" PRIu8,
 								address,
 								opcode, instruction->info.rb);
 						break;
 					case 1: /* JRAL5 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tJRAL5\t$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tJRAL5\t$r%" PRIu8,
 								address,
 								opcode, instruction->info.rb);
 						break;
@@ -3211,14 +3417,16 @@ static int nds32_parse_group_2_insn_16(struct nds32 *nds32, uint16_t opcode,
 						/* TODO: implement real instruction semantics */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tEX9.IT\t#%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tEX9.IT\t#%" PRId32,
 								address,
 								opcode, instruction->info.imm);
 						break;
 					case 4: /* RET5 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tRET5\t$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tRET5\t$r%" PRIu8,
 								address,
 								opcode, instruction->info.rb);
 						break;
@@ -3228,14 +3436,15 @@ static int nds32_parse_group_2_insn_16(struct nds32 *nds32, uint16_t opcode,
 						instruction->type = NDS32_INSN_DATA_PROC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tADD5.PC\t$r%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tADD5.PC\t$r%" PRIu8,
 								address,
 								opcode, instruction->info.rt);
 						break;
 					default:
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%8.8" PRIx32
+								"0x%8.8" PRIx32 "\t0x%8.8" PRIx16
 								"\tUNDEFINED INSTRUCTION",
 								address,
 								opcode);
@@ -3244,7 +3453,8 @@ static int nds32_parse_group_2_insn_16(struct nds32 *nds32, uint16_t opcode,
 			} else { /* BNES38 */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBNES38\t$r%d,#%d",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tBNES38\t$r%" PRIu8 ",#%" PRId32,
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			}
@@ -3266,7 +3476,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					instruction->type = NDS32_INSN_DATA_PROC;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSLTS45\t$r%d,$r%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tSLTS45\t$r%" PRIu8 ",$r%" PRIu8,
 							address,
 							opcode, instruction->info.ra, instruction->info.rb);
 					break;
@@ -3276,7 +3487,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					instruction->type = NDS32_INSN_DATA_PROC;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSLT45\t$r%d,$r%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tSLT45\t$r%" PRIu8 ",$r%" PRIu8,
 							address,
 							opcode, instruction->info.ra, instruction->info.rb);
 					break;
@@ -3286,7 +3498,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					instruction->type = NDS32_INSN_DATA_PROC;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSLTSI45\t$r%d,#%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tSLTSI45\t$r%" PRIu8 ",#%" PRId32,
 							address,
 							opcode, instruction->info.ra, instruction->info.imm);
 					break;
@@ -3296,7 +3509,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					instruction->type = NDS32_INSN_DATA_PROC;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSLTI45\t$r%d,#%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tSLTI45\t$r%" PRIu8 ",#%" PRId32,
 							address,
 							opcode, instruction->info.ra, instruction->info.imm);
 					break;
@@ -3311,13 +3525,15 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					if (nds32_extract_field_8u(opcode, 8, 1) == 0) { /* BEQZS8 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBEQZS8\t#%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tBEQZS8\t#%" PRId32,
 								address,
 								opcode, instruction->info.imm);
 					} else { /* BNEZS8 */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBNEZS8\t#%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tBNEZS8\t#%" PRId32,
 								address,
 								opcode, instruction->info.imm);
 					}
@@ -3327,7 +3543,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 						instruction->type = NDS32_INSN_MISC;
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tBREAK16\t#%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tBREAK16\t#%" PRId16,
 								address,
 								opcode, opcode & 0x1F);
 					} else { /* EX9.IT */
@@ -3335,7 +3552,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 						/* TODO: implement real instruction semantics */
 						snprintf(instruction->text,
 								128,
-								"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tEX9.IT\t#%d",
+								"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+								"\t\tEX9.IT\t#%" PRId16,
 								address,
 								opcode, opcode & 0x1FF);
 					}
@@ -3347,7 +3565,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					instruction->type = NDS32_INSN_DATA_PROC;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tADDI10.SP\t#%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tADDI10.SP\t#%" PRId32,
 							address,
 							opcode, instruction->info.imm);
 					break;
@@ -3363,13 +3582,15 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 			if (nds32_extract_field_8u(opcode, 7, 1) == 0) { /* LWI37.SP */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tLWI37.SP\t$r%d,[+#%d]",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tLWI37.SP\t$r%" PRIu8 ",[+#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			} else { /* SWI37.SP */
 				snprintf(instruction->text,
 						128,
-						"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tSWI37.SP\t$r%d,[+#%d]",
+						"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+						"\t\tSWI37.SP\t$r%" PRIu8 ",[+#%" PRId32 "]",
 						address,
 						opcode, instruction->info.rt, instruction->info.imm);
 			}
@@ -3381,7 +3602,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					instruction->type = NDS32_INSN_JUMP_BRANCH;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tIFCALL9\t#%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tIFCALL9\t#%" PRId32 "",
 							address,
 							opcode, instruction->info.imm);
 					break;
@@ -3391,7 +3613,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 					instruction->type = NDS32_INSN_MISC;
 					snprintf(instruction->text,
 							128,
-							"0x%8.8" PRIx32 "\t0x%4.4" PRIx32 "\t\tMOVPI45\t$r%d,#%d",
+							"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+							"\t\tMOVPI45\t$r%" PRIu8 ",#%" PRId32 "",
 							address,
 							opcode, instruction->info.rt, instruction->info.imm);
 					break;
@@ -3427,8 +3650,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 
 								snprintf(instruction->text,
 										128,
-										"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-										"\t\tPUSH25\t$r%d,#%d",
+										"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+										"\t\tPUSH25\t$r%" PRIu8 ",#%" PRId32,
 										address,
 										opcode, instruction->info.rd,
 										instruction->info.imm);
@@ -3465,8 +3688,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 
 								snprintf(instruction->text,
 										128,
-										"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-										"\t\tPOP25\t$r%d,#%d",
+										"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+										"\t\tPOP25\t$r%" PRIu8 ",#%" PRId32,
 										address,
 										opcode, instruction->info.rd,
 										instruction->info.imm);
@@ -3481,8 +3704,8 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 							instruction->type = NDS32_INSN_MISC;
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-									"\t\tMOVD44\t$r%d,$r%d",
+									"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+									"\t\tMOVD44\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode, instruction->info.rt, instruction->info.ra);
 							break;
@@ -3496,48 +3719,48 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 						case 2: /* NEG33 */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-									"\t\tNEG33\t$r%d,$r%d",
+									"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+									"\t\tNEG33\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode, instruction->info.rt, instruction->info.ra);
 							break;
 						case 3: /* NOT33 */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-									"\t\tNOT33\t$r%d,$r%d",
+									"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+									"\t\tNOT33\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode, instruction->info.rt, instruction->info.ra);
 							break;
 						case 4: /* MUL33 */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-									"\t\tMUL33\t$r%d,$r%d",
+									"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+									"\t\tMUL33\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode, instruction->info.rt, instruction->info.ra);
 							break;
 						case 5: /* XOR33 */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-									"\t\tXOR33\t$r%d,$r%d",
+									"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+									"\t\tXOR33\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode, instruction->info.rt, instruction->info.ra);
 							break;
 						case 6: /* AND33 */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-									"\t\tAND33\t$r%d,$r%d",
+									"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+									"\t\tAND33\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode, instruction->info.rt, instruction->info.ra);
 							break;
 						case 7: /* OR33 */
 							snprintf(instruction->text,
 									128,
-									"0x%8.8" PRIx32 "\t0x%4.4" PRIx32
-									"\t\tOR33\t$r%d,$r%d",
+									"0x%8.8" PRIx32 "\t0x%4.4" PRIx16
+									"\t\tOR33\t$r%" PRIu8 ",$r%" PRIu8,
 									address,
 									opcode, instruction->info.rt, instruction->info.ra);
 							break;
@@ -3548,7 +3771,7 @@ static int nds32_parse_group_3_insn_16(struct nds32 *nds32, uint16_t opcode,
 		default:
 			snprintf(instruction->text,
 					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEFINED INSTRUCTION",
+					"0x%8.8" PRIx32 "\t0x%8.8" PRIx16 "\tUNDEFINED INSTRUCTION",
 					address,
 					opcode);
 			return ERROR_FAIL;

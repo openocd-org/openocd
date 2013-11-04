@@ -283,7 +283,7 @@ static int adbg_ctrl_write(struct or1k_jtag *jtag_info, uint8_t regidx,
 	uint32_t opcode;
 	uint32_t opcode_len;
 
-	LOG_DEBUG("Write control register %d: 0x%08x", regidx, cmd_data[0]);
+	LOG_DEBUG("Write control register %" PRId8 ": 0x%08" PRIx32, regidx, cmd_data[0]);
 
 	int retval = adbg_select_ctrl_reg(jtag_info, regidx);
 	if (retval != ERROR_OK) {
@@ -419,7 +419,7 @@ static int adbg_wb_burst_read(struct or1k_jtag *jtag_info, int size,
 	int retval;
 	uint8_t opcode;
 
-	LOG_DEBUG("Doing burst read, word size %d, word count %d, start address 0x%08x",
+	LOG_DEBUG("Doing burst read, word size %d, word count %d, start address 0x%08" PRIx32,
 		  size, count, start_address);
 
 	/* Select the appropriate opcode */
@@ -508,7 +508,7 @@ retry_read_full:
 		crc_calc = adbg_compute_crc(crc_calc, data[i], 8);
 
 	if (crc_calc != crc_read) {
-		LOG_WARNING("CRC ERROR! Computed 0x%08x, read CRC 0x%08x", crc_calc, crc_read);
+		LOG_WARNING("CRC ERROR! Computed 0x%08" PRIx32 ", read CRC 0x%08" PRIx32, crc_calc, crc_read);
 		if (retry_full_crc++ < MAX_READ_CRC_RETRY)
 			goto retry_read_full;
 		else {
@@ -540,7 +540,7 @@ retry_read_full:
 				goto out;
 
 			addr = (err_data[0] >> 1) | (err_data[1] << 31);
-			LOG_WARNING("WB bus error during burst read, address 0x%08x, retrying!", addr);
+			LOG_WARNING("WB bus error during burst read, address 0x%08" PRIx32 ", retrying!", addr);
 
 			bus_error_retries++;
 			if (bus_error_retries > MAX_BUS_ERRORS) {
@@ -656,7 +656,7 @@ retry_full_write:
 		return retval;
 
 	if (!value) {
-		LOG_WARNING("CRC ERROR! match bit after write is %i (computed CRC 0x%08x)", value, crc_calc);
+		LOG_WARNING("CRC ERROR! match bit after write is %" PRIi8 " (computed CRC 0x%08" PRIx32 ")", value, crc_calc);
 		if (retry_full_crc++ < MAX_WRITE_CRC_RETRY)
 			goto retry_full_write;
 		else
@@ -684,7 +684,7 @@ retry_full_write:
 				return retval;
 
 			addr = (err_data[0] >> 1) | (err_data[1] << 31);
-			LOG_WARNING("WB bus error during burst write, address 0x%08x, retrying!", addr);
+			LOG_WARNING("WB bus error during burst write, address 0x%08" PRIx32 ", retrying!", addr);
 
 			bus_error_retries++;
 			if (bus_error_retries > MAX_BUS_ERRORS) {
@@ -831,7 +831,7 @@ static int or1k_adv_cpu_reset(struct or1k_jtag *jtag_info, int action)
 static int or1k_adv_jtag_read_memory(struct or1k_jtag *jtag_info,
 			    uint32_t addr, uint32_t size, int count, uint8_t *buffer)
 {
-	LOG_DEBUG("Reading WB%d at 0x%08x", size * 8, addr);
+	LOG_DEBUG("Reading WB%" PRId32 " at 0x%08" PRIx32, size * 8, addr);
 
 	int retval;
 	if (!jtag_info->or1k_jtag_inited) {
@@ -869,7 +869,7 @@ static int or1k_adv_jtag_read_memory(struct or1k_jtag *jtag_info,
 static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 			     uint32_t addr, uint32_t size, int count, const uint8_t *buffer)
 {
-	LOG_DEBUG("Writing WB%d at 0x%08x", size * 8, addr);
+	LOG_DEBUG("Writing WB%" PRId32 " at 0x%08" PRIx32, size * 8, addr);
 
 	int retval;
 	if (!jtag_info->or1k_jtag_inited) {
