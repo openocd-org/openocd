@@ -101,4 +101,8 @@ KERNEL=="hidraw*", ATTRS{idVendor}=="c251", ATTRS{idProduct}=="f002", MODE="664"
 ATTRS{idVendor}=="c251", ATTRS{idProduct}=="2722", MODE="664", GROUP="plugdev"
 KERNEL=="hidraw*", ATTRS{idVendor}=="c251", ATTRS{idProduct}=="2722", MODE="664", GROUP="plugdev"
 
+# Atmel EDBG CMSIS-DAP
+ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2111", MODE="664", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2111", MODE="664", GROUP="plugdev"
+
 LABEL="openocd_rules_end"
