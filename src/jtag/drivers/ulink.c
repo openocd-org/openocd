@@ -26,7 +26,7 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <target/image.h>
-#include <libusb-1.0/libusb.h>
+#include <libusb.h>
 #include "OpenULINK/include/msgtypes.h"
 
 /** USB Vendor ID of ULINK device in unconfigured state (no firmware loaded
