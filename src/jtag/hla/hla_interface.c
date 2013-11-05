@@ -243,7 +243,7 @@ COMMAND_HANDLER(interface_handle_trace_command)
 	}
 
 	if (CMD_ARGC == 2) {
-		f = fopen(CMD_ARGV[0], "a");
+		f = fopen(CMD_ARGV[1], "a");
 		if (!f)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
