@@ -95,12 +95,18 @@ static const int arm7tdmi_num_bits[] = {1, 32};
 
 static inline int arm7tdmi_clock_out_inner(struct arm_jtag *jtag_info, uint32_t out, int breakpoint)
 {
-	uint32_t values[2] = {breakpoint, flip_u32(out, 32)};
+	uint8_t bp = breakpoint ? 1 : 0;
+	uint8_t out_value[4];
+	buf_set_u32(out_value, 0, 32, flip_u32(out, 32));
 
-	jtag_add_dr_out(jtag_info->tap,
+	struct scan_field fields[2] = {
+			{ .num_bits = arm7tdmi_num_bits[0], .out_value = &bp },
+			{ .num_bits = arm7tdmi_num_bits[1], .out_value = out_value },
+	};
+
+	jtag_add_dr_scan(jtag_info->tap,
 			2,
-			arm7tdmi_num_bits,
-			values,
+			fields,
 			TAP_DRPAUSE);
 
 	jtag_add_runtest(0, TAP_DRPAUSE);

@@ -631,16 +631,6 @@ static void jtag_pre_post_bits(struct jtag_tap *tap, int *pre, int *post)
 	*post = post_bits;
 }
 
-#if 0
-static const int embeddedice_num_bits[] = {32, 6};
-	uint32_t values[2];
-
-	values[0] = value;
-	values[1] = (1 << 5) | reg_addr;
-
-	jtag_add_dr_out(tap, 2, embeddedice_num_bits, values, TAP_IDLE);
-#endif
-
 void embeddedice_write_dcc(struct jtag_tap *tap,
 	int reg_addr,
 	const uint8_t *buffer,
@@ -700,8 +690,7 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 				uint32_t, const uint32_t *, size_t);
 		return arm11_run_instr_data_to_core_noack_inner_default(tap, opcode, data, count);
 	} else {
-		static const int bits[] = {32, 2};
-		uint32_t values[] = {0, 0};
+		static const uint8_t zero;
 
 		/* FIX!!!!!! the target_write_memory() API started this nasty problem
 		 * with unaligned uint32_t * pointers... */
@@ -710,7 +699,7 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 		while (--count > 0) {
 #if 1
 			/* Danger! This code doesn't update cmd_queue_cur_state, so
-			 * invoking jtag_add_pathmove() before jtag_add_dr_out() after
+			 * invoking jtag_add_pathmove() before jtag_add_dr_scan() after
 			 * this loop would fail!
 			 */
 			shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, pre_bits, 0);
@@ -750,15 +739,15 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 				TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 			};
 
-			values[0] = *t++;
-			values[0] |= (*t++<<8);
-			values[0] |= (*t++<<16);
-			values[0] |= (*t++<<24);
+			struct scan_field fields[2] = {
+					{ .num_bits = 32, .out_value = t },
+					{ .num_bits = 2, .out_value = &zero },
+			};
+			t += 4;
 
-			jtag_add_dr_out(tap,
+			jtag_add_dr_scan(tap,
 				2,
-				bits,
-				values,
+				fields,
 				TAP_IDLE);
 
 			jtag_add_pathmove(ARRAY_SIZE(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
@@ -766,18 +755,17 @@ int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 #endif
 		}
 
-		values[0] = *t++;
-		values[0] |= (*t++<<8);
-		values[0] |= (*t++<<16);
-		values[0] |= (*t++<<24);
+		struct scan_field fields[2] = {
+				{ .num_bits = 32, .out_value = t },
+				{ .num_bits = 2, .out_value = &zero },
+		};
 
 		/* This will happen on the last iteration updating cmd_queue_cur_state
 		 * so we don't have to track it during the common code path
 		 */
-		jtag_add_dr_out(tap,
+		jtag_add_dr_scan(tap,
 			2,
-			bits,
-			values,
+			fields,
 			TAP_IDLE);
 
 		return jtag_execute_queue();

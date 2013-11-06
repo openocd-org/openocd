@@ -39,7 +39,6 @@
  * define static inline versions of them):
  * - jtag_add_callback
  * - jtag_add_callback4
- * - interface_jtag_add_dr_out
  *
  * The following core functions are declared in this file for use by
  * the minidriver and do @b not need to be defined by an implementation:

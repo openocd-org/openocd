@@ -112,13 +112,16 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
  */
 static inline void embeddedice_write_reg_inner(struct jtag_tap *tap, int reg_addr, uint32_t value)
 {
-	static const int embeddedice_num_bits[] = {32, 6};
-	uint32_t values[2];
+	uint8_t out_reg_addr = (1 << 5) | reg_addr;
+	uint8_t out_value[4];
+	buf_set_u32(out_value, 0, 32, value);
 
-	values[0] = value;
-	values[1] = (1 << 5) | reg_addr;
+	struct scan_field fields[2] = {
+			{ .num_bits = 32, .out_value = out_value },
+			{ .num_bits = 6, .out_value = &out_reg_addr },
+	};
 
-	jtag_add_dr_out(tap, 2, embeddedice_num_bits, values, TAP_IDLE);
+	jtag_add_dr_scan(tap, 2, fields, TAP_IDLE);
 }
 
 void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *buffer,

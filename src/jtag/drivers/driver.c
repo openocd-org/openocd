@@ -193,92 +193,6 @@ int interface_jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields,
 	return ERROR_OK;
 }
 
-/**
- * Generate a DR SCAN using the array of output values passed to the function
- *
- * This function assumes that the parameter target_tap specifies the one TAP
- * that is not bypassed. All other TAPs must be bypassed and the function will
- * generate a dummy 1bit field for them.
- *
- * For the target_tap a sequence of output-only fields will be generated where
- * each field has the size num_bits and the field's values are taken from
- * the array value.
- *
- * The bypass status of TAPs is set by jtag_add_ir_scan().
- *
- */
-void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
-		int in_num_fields,
-		const int *num_bits,
-		const uint32_t *value,
-		tap_state_t end_state)
-{
-	/* count devices in bypass */
-
-	size_t bypass_devices = 0;
-
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap)) {
-		if (tap->bypass)
-			bypass_devices++;
-	}
-
-
-	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));
-	struct scan_command *scan = cmd_queue_alloc(sizeof(struct scan_command));
-	struct scan_field *out_fields = cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
-
-	jtag_queue_command(cmd);
-
-	cmd->type = JTAG_SCAN;
-	cmd->cmd.scan = scan;
-
-	scan->ir_scan = false;
-	scan->num_fields = in_num_fields + bypass_devices;
-	scan->fields = out_fields;
-	scan->end_state = end_state;
-
-
-	bool target_tap_match	= false;
-
-	struct scan_field *field = out_fields;	/* keep track where we insert data */
-
-	/* loop over all enabled TAPs */
-
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap)) {
-		/* if TAP is not bypassed insert matching input fields */
-
-		if (!tap->bypass) {
-			assert(tap == target_tap); /* target_tap must match the one not bypassed TAP */
-
-			target_tap_match = true;
-
-			for (int j = 0; j < in_num_fields; j++) {
-				uint8_t out_value[4];
-				size_t scan_size = num_bits[j];
-				buf_set_u32(out_value, 0, scan_size, value[j]);
-
-				field->num_bits = scan_size;
-				field->out_value = buf_cpy(out_value, cmd_queue_alloc(DIV_ROUND_UP(scan_size, 8)), scan_size);
-				field->in_value = NULL;
-
-				field++;
-			}
-		}
-
-		/* if a TAP is bypassed, generated a dummy bit*/
-		else {
-
-			field->num_bits = 1;
-			field->out_value = NULL;
-			field->in_value = NULL;
-
-			field++;
-		}
-	}
-
-	assert(target_tap_match);	/* target_tap should be enabled and not bypassed */
-}
-
 static int jtag_add_plain_scan(int num_bits, const uint8_t *out_bits,
 		uint8_t *in_bits, tap_state_t state, bool ir_scan)
 {
@@ -494,21 +408,6 @@ static int jtag_convert_to_callback4(jtag_callback_data_t data0,
 void interface_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t data0)
 {
 	jtag_add_callback4(jtag_convert_to_callback4, data0, (jtag_callback_data_t)callback, 0, 0);
-}
-
-/* A minidriver can use use an inline versions of this API level fn */
-void jtag_add_dr_out(struct jtag_tap *tap,
-		int num_fields, const int *num_bits, const uint32_t *value,
-		tap_state_t end_state)
-{
-	assert(end_state != TAP_RESET);
-	assert(end_state != TAP_INVALID);
-
-	cmd_queue_cur_state = end_state;
-
-	interface_jtag_add_dr_out(tap,
-			num_fields, num_bits, value,
-			end_state);
 }
 
 void jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0)

@@ -610,33 +610,6 @@ void jtag_sleep(uint32_t us);
 #define ERROR_JTAG_INIT_SOFT_FAIL    (-110)
 
 /**
- * jtag_add_dr_out() is a version of jtag_add_dr_scan() which
- * only scans data out. It operates on 32 bit integers instead
- * of 8 bit, which makes it a better impedance match with
- * the calling code which often operate on 32 bit integers.
- *
- * Current or end_state can not be TAP_RESET. end_state can be TAP_INVALID
- *
- * num_bits[i] is the number of bits to clock out from value[i] LSB first.
- *
- * If the device is in bypass, then that is an error condition in
- * the caller code that is not detected by this fn, whereas
- * jtag_add_dr_scan() does detect it. Similarly if the device is not in
- * bypass, data must be passed to it.
- *
- * If anything fails, then jtag_error will be set and jtag_execute() will
- * return an error. There is no way to determine if there was a failure
- * during this function call.
- *
- * This is an inline fn to speed up embedded hosts. Also note that
- * interface_jtag_add_dr_out() can be a *small* inline function for
- * embedded hosts.
- *
- * There is no jtag_add_dr_outin() version of this fn that also allows
- * clocking data back in. Patches gladly accepted!
- */
-
-/**
  * Set the current JTAG core execution error, unless one was set
  * by a previous call previously.  Driver or application code must
  * use jtag_error_clear to reset jtag_error once this routine has been

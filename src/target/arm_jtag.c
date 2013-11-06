@@ -59,20 +59,18 @@ int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info,
 int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, tap_state_t end_state)
 {
 	int retval = ERROR_OK;
-	uint32_t values[1];
-	int num_bits[1];
 
-	values[0] = new_scan_chain;
-	num_bits[0] = jtag_info->scann_size;
+	uint8_t out_value[4];
+	buf_set_u32(out_value, 0, jtag_info->scann_size, new_scan_chain);
+	struct scan_field field = { .num_bits = jtag_info->scann_size, .out_value = out_value, };
 
 	retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL, end_state);
 	if (retval != ERROR_OK)
 		return retval;
 
-	jtag_add_dr_out(jtag_info->tap,
+	jtag_add_dr_scan(jtag_info->tap,
 			1,
-			num_bits,
-			values,
+			&field,
 			end_state);
 
 	jtag_info->cur_scan_chain = new_scan_chain;

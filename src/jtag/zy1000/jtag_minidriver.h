@@ -169,52 +169,6 @@ static inline void shiftValueInner(const enum tap_state state,
 #endif
 }
 
-static inline void interface_jtag_add_dr_out_core(struct jtag_tap *target_tap,
-	int num_fields,
-	const int *num_bits,
-	const uint32_t *value,
-	enum tap_state end_state)
-{
-	enum tap_state pause_state = TAP_DRSHIFT;
-
-	struct jtag_tap *tap, *nextTap;
-	for (tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = nextTap) {
-		nextTap = jtag_tap_next_enabled(tap);
-		if (nextTap == NULL)
-			pause_state = end_state;
-		if (tap == target_tap) {
-			int j;
-			for (j = 0; j < (num_fields-1); j++)
-				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[j], value[j]);
-			shiftValueInner(TAP_DRSHIFT, pause_state, num_bits[j], value[j]);
-		} else {
-			/* program the scan field to 1 bit length, and ignore it's value */
-			shiftValueInner(TAP_DRSHIFT, pause_state, 1, 0);
-		}
-	}
-}
-
-static inline void interface_jtag_add_dr_out(struct jtag_tap *target_tap,
-	int num_fields,
-	const int *num_bits,
-	const uint32_t *value,
-	enum tap_state end_state)
-{
-
-	int singletap = (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL)) == NULL);
-	if ((singletap) && (num_fields == 3)) {
-		/* used by embeddedice_write_reg_inner() */
-		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[0], value[0]);
-		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[1], value[1]);
-		shiftValueInner(TAP_DRSHIFT, end_state, num_bits[2], value[2]);
-	} else if ((singletap) && (num_fields == 2)) {
-		/* used by arm7 code */
-		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[0], value[0]);
-		shiftValueInner(TAP_DRSHIFT, end_state, num_bits[1], value[1]);
-	} else
-		interface_jtag_add_dr_out_core(target_tap, num_fields, num_bits, value, end_state);
-}
-
 #if BUILD_ZY1000_MASTER
 #define interface_jtag_add_callback(callback, in) callback(in)
 #define interface_jtag_add_callback4(callback, in, data1, data2, \

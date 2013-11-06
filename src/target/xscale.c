@@ -513,8 +513,6 @@ done:
 static int xscale_send(struct target *target, const uint8_t *buffer, int count, int size)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	uint32_t t[3];
-	int bits[3];
 	int retval;
 	int done_count = 0;
 
@@ -522,37 +520,45 @@ static int xscale_send(struct target *target, const uint8_t *buffer, int count, 
 		XSCALE_DBGRX << xscale->xscale_variant,
 		TAP_IDLE);
 
-	bits[0] = 3;
-	t[0] = 0;
-	bits[1] = 32;
-	t[2] = 1;
-	bits[2] = 1;
+	static const uint8_t t0;
+	uint8_t t1[4];
+	static const uint8_t t2 = 1;
+	struct scan_field fields[3] = {
+			{ .num_bits = 3, .out_value = &t0 },
+			{ .num_bits = 32, .out_value = t1 },
+			{ .num_bits = 1, .out_value = &t2 },
+	};
+
 	int endianness = target->endianness;
 	while (done_count++ < count) {
+		uint32_t t;
+
 		switch (size) {
 			case 4:
 				if (endianness == TARGET_LITTLE_ENDIAN)
-					t[1] = le_to_h_u32(buffer);
+					t = le_to_h_u32(buffer);
 				else
-					t[1] = be_to_h_u32(buffer);
+					t = be_to_h_u32(buffer);
 				break;
 			case 2:
 				if (endianness == TARGET_LITTLE_ENDIAN)
-					t[1] = le_to_h_u16(buffer);
+					t = le_to_h_u16(buffer);
 				else
-					t[1] = be_to_h_u16(buffer);
+					t = be_to_h_u16(buffer);
 				break;
 			case 1:
-				t[1] = buffer[0];
+				t = buffer[0];
 				break;
 			default:
 				LOG_ERROR("BUG: size neither 4, 2 nor 1");
 				return ERROR_COMMAND_SYNTAX_ERROR;
 		}
-		jtag_add_dr_out(target->tap,
+
+		buf_set_u32(t1, 0, 32, t);
+
+		jtag_add_dr_scan(target->tap,
 			3,
-			bits,
-			t,
+			fields,
 			TAP_IDLE);
 		buffer += size;
 	}
