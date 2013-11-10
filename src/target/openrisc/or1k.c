@@ -1179,6 +1179,7 @@ static int or1k_target_create(struct target *target, Jim_Interp *interp)
 	or1k_create_reg_list(target);
 
 	or1k_tap_vjtag_register();
+	or1k_tap_xilinx_bscan_register();
 	or1k_tap_mohor_register();
 
 	or1k_du_adv_register();

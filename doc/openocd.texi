@@ -4181,10 +4181,11 @@ There are several variants defined:
 @item @code{pxa3xx} ... instruction register length is 11 bits
 @end itemize
 @item @code{openrisc} -- this is an OpenRISC 1000 core.
-The current implementation supports two JTAG TAP cores:
+The current implementation supports three JTAG TAP cores:
 @itemize @minus
 @item @code{OpenCores TAP} (See: @emph{http://opencores.org/project,jtag})
 @item @code{Altera Virtual JTAG TAP} (See: @emph{http://www.altera.com/literature/ug/ug_virtualjtag.pdf})
+@item @code{Xilinx BSCAN_* virtual JTAG interface} (See: @emph{http://www.xilinx.com/support/documentation/sw_manuals/xilinx14_2/spartan6_hdl.pdf})
 @end itemize
 And two debug interfaces cores:
 @itemize @minus
@@ -7517,8 +7518,8 @@ The OpenRISC CPU is a soft core. It is used in a programmable SoC which can be
 configured with any of the TAP / Debug Unit available.
 
 @subsection TAP and Debug Unit selection commands
-@deffn Command {tap_select} (@option{vjtag}|@option{mohor})
-Select between the Altera Virtual JTAG and Mohor TAP.
+@deffn Command {tap_select} (@option{vjtag}|@option{mohor}|@option{xilinx_bscan})
+Select between the Altera Virtual JTAG , Xilinx Virtual JTAG and Mohor TAP.
 @end deffn
 @deffn Command {du_select} (@option{adv}|@option{mohor}) [option]
 Select between the Advanced Debug Interface and the classic one.
