@@ -1652,12 +1652,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	api = h->version.jtag_api_max;
 
-	/* check that user has not requested certain api version
-	 * and if they have check it is supported */
-	if ((param->api != 0) && (param->api <= h->version.jtag_api_max)) {
-		api = param->api;
-		LOG_INFO("using stlink api v%d", api);
-	}
+	LOG_INFO("using stlink api v%d", api);
 
 	/* set the used jtag api, this will default to the newest supported version */
 	h->jtag_api = api;

@@ -3041,10 +3041,6 @@ Specifies the adapter layout to use.
 The vendor ID and product ID of the device.
 @end deffn
 
-@deffn {Config Command} {stlink_api} api_level
-Manually sets the stlink api used, valid options are 1 or 2. (@b{STLINK Only}).
-@end deffn
-
 @deffn {Config Command} {trace} source_clock_hz [output_file_path]
 Enable SWO tracing (if supported). The source clock rate for the
 trace port must be specified, this is typically the CPU clock rate. If

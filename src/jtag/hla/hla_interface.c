@@ -214,21 +214,6 @@ COMMAND_HANDLER(hl_interface_handle_vid_pid_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(stlink_interface_handle_api_command)
-{
-	if (CMD_ARGC != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	unsigned new_api;
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], new_api);
-	if ((new_api == 0) || (new_api > 2))
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	hl_if.param.api = new_api;
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(interface_handle_trace_command)
 {
 	FILE *f = NULL;
@@ -282,13 +267,6 @@ static const struct command_registration hl_interface_command_handlers[] = {
 	 .mode = COMMAND_CONFIG,
 	 .help = "the vendor and product ID of the adapter",
 	 .usage = "(vid pid)* ",
-	 },
-	 {
-	 .name = "stlink_api",
-	 .handler = &stlink_interface_handle_api_command,
-	 .mode = COMMAND_CONFIG,
-	 .help = "set the desired stlink api level",
-	 .usage = "api version 1 or 2",
 	 },
 	 {
 	 .name = "trace",
