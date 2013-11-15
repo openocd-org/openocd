@@ -294,6 +294,15 @@ static int new_target_number(void)
 	return x + 1;
 }
 
+/* read a uint64_t from a buffer in target memory endianness */
+uint64_t target_buffer_get_u64(struct target *target, const uint8_t *buffer)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		return le_to_h_u64(buffer);
+	else
+		return be_to_h_u64(buffer);
+}
+
 /* read a uint32_t from a buffer in target memory endianness */
 uint32_t target_buffer_get_u32(struct target *target, const uint8_t *buffer)
 {
@@ -325,6 +334,15 @@ uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer)
 static uint8_t target_buffer_get_u8(struct target *target, const uint8_t *buffer)
 {
 	return *buffer & 0x0ff;
+}
+
+/* write a uint64_t to a buffer in target memory endianness */
+void target_buffer_set_u64(struct target *target, uint8_t *buffer, uint64_t value)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		h_u64_to_le(buffer, value);
+	else
+		h_u64_to_be(buffer, value);
 }
 
 /* write a uint32_t to a buffer in target memory endianness */
@@ -360,6 +378,14 @@ static void target_buffer_set_u8(struct target *target, uint8_t *buffer, uint8_t
 	*buffer = value;
 }
 
+/* write a uint64_t array to a buffer in target memory endianness */
+void target_buffer_get_u64_array(struct target *target, const uint8_t *buffer, uint32_t count, uint64_t *dstbuf)
+{
+	uint32_t i;
+	for (i = 0; i < count; i++)
+		dstbuf[i] = target_buffer_get_u64(target, &buffer[i * 8]);
+}
+
 /* write a uint32_t array to a buffer in target memory endianness */
 void target_buffer_get_u32_array(struct target *target, const uint8_t *buffer, uint32_t count, uint32_t *dstbuf)
 {
@@ -374,6 +400,14 @@ void target_buffer_get_u16_array(struct target *target, const uint8_t *buffer, u
 	uint32_t i;
 	for (i = 0; i < count; i++)
 		dstbuf[i] = target_buffer_get_u16(target, &buffer[i * 2]);
+}
+
+/* write a uint64_t array to a buffer in target memory endianness */
+void target_buffer_set_u64_array(struct target *target, uint8_t *buffer, uint32_t count, const uint64_t *srcbuf)
+{
+	uint32_t i;
+	for (i = 0; i < count; i++)
+		target_buffer_set_u64(target, &buffer[i * 8], srcbuf[i]);
 }
 
 /* write a uint32_t array to a buffer in target memory endianness */
@@ -1983,6 +2017,30 @@ int target_blank_check_memory(struct target *target, uint32_t address, uint32_t 
 	return retval;
 }
 
+int target_read_u64(struct target *target, uint64_t address, uint64_t *value)
+{
+	uint8_t value_buf[8];
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
+	int retval = target_read_memory(target, address, 8, 1, value_buf);
+
+	if (retval == ERROR_OK) {
+		*value = target_buffer_get_u64(target, value_buf);
+		LOG_DEBUG("address: 0x%" PRIx64 ", value: 0x%16.16" PRIx64 "",
+				  address,
+				  *value);
+	} else {
+		*value = 0x0;
+		LOG_DEBUG("address: 0x%" PRIx64 " failed",
+				  address);
+	}
+
+	return retval;
+}
+
 int target_read_u32(struct target *target, uint32_t address, uint32_t *value)
 {
 	uint8_t value_buf[4];
@@ -2049,6 +2107,27 @@ int target_read_u8(struct target *target, uint32_t address, uint8_t *value)
 		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed",
 				  address);
 	}
+
+	return retval;
+}
+
+int target_write_u64(struct target *target, uint64_t address, uint64_t value)
+{
+	int retval;
+	uint8_t value_buf[8];
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
+	LOG_DEBUG("address: 0x%" PRIx64 ", value: 0x%16.16" PRIx64 "",
+			  address,
+			  value);
+
+	target_buffer_set_u64(target, value_buf, value);
+	retval = target_write_memory(target, address, 8, 1, value_buf);
+	if (retval != ERROR_OK)
+		LOG_DEBUG("failed: %i", retval);
 
 	return retval;
 }

@@ -593,21 +593,27 @@ uint32_t target_get_working_area_avail(struct target *target);
 
 extern struct target *all_targets;
 
+uint64_t target_buffer_get_u64(struct target *target, const uint8_t *buffer);
 uint32_t target_buffer_get_u32(struct target *target, const uint8_t *buffer);
 uint32_t target_buffer_get_u24(struct target *target, const uint8_t *buffer);
 uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer);
+void target_buffer_set_u64(struct target *target, uint8_t *buffer, uint64_t value);
 void target_buffer_set_u32(struct target *target, uint8_t *buffer, uint32_t value);
 void target_buffer_set_u24(struct target *target, uint8_t *buffer, uint32_t value);
 void target_buffer_set_u16(struct target *target, uint8_t *buffer, uint16_t value);
 
+void target_buffer_get_u64_array(struct target *target, const uint8_t *buffer, uint32_t count, uint64_t *dstbuf);
 void target_buffer_get_u32_array(struct target *target, const uint8_t *buffer, uint32_t count, uint32_t *dstbuf);
 void target_buffer_get_u16_array(struct target *target, const uint8_t *buffer, uint32_t count, uint16_t *dstbuf);
+void target_buffer_set_u64_array(struct target *target, uint8_t *buffer, uint32_t count, const uint64_t *srcbuf);
 void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, const uint32_t *srcbuf);
 void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, const uint16_t *srcbuf);
 
+int target_read_u64(struct target *target, uint64_t address, uint64_t *value);
 int target_read_u32(struct target *target, uint32_t address, uint32_t *value);
 int target_read_u16(struct target *target, uint32_t address, uint16_t *value);
 int target_read_u8(struct target *target, uint32_t address, uint8_t *value);
+int target_write_u64(struct target *target, uint64_t address, uint64_t value);
 int target_write_u32(struct target *target, uint32_t address, uint32_t value);
 int target_write_u16(struct target *target, uint32_t address, uint16_t value);
 int target_write_u8(struct target *target, uint32_t address, uint8_t value);
