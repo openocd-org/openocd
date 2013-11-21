@@ -183,6 +183,46 @@ static inline void h_u16_to_be(uint8_t* buf, int val)
 	buf[1] = (uint8_t) (val >> 0);
 }
 
+/**
+ * Byte-swap buffer 16-bit.
+ *
+ * Len must be even, dst and src must be either the same or non-overlapping.
+ *
+ * @param dst Destination buffer.
+ * @param src Source buffer.
+ * @param len Length of source (and destination) buffer, in bytes.
+ */
+static inline void buf_bswap16(uint8_t *dst, const uint8_t *src, size_t len)
+{
+	assert(len % 2 == 0);
+	assert(dst == src || dst + len <= src || src + len <= dst);
+
+	for (size_t n = 0; n < len; n += 2) {
+		uint16_t x = be_to_h_u16(src + n);
+		h_u16_to_le(dst + n, x);
+	}
+}
+
+/**
+ * Byte-swap buffer 32-bit.
+ *
+ * Len must be divisible by four, dst and src must be either the same or non-overlapping.
+ *
+ * @param dst Destination buffer.
+ * @param src Source buffer.
+ * @param len Length of source (and destination) buffer, in bytes.
+ */
+static inline void buf_bswap32(uint8_t *dst, const uint8_t *src, size_t len)
+{
+	assert(len % 4 == 0);
+	assert(dst == src || dst + len <= src || src + len <= dst);
+
+	for (size_t n = 0; n < len; n += 4) {
+		uint32_t x = be_to_h_u32(src + n);
+		h_u32_to_le(dst + n, x);
+	}
+}
+
 #if defined(__ECOS)
 
 /* eCos plain lacks these definition... A series of upstream patches
