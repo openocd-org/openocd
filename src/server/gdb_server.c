@@ -957,6 +957,9 @@ static int gdb_new_connection(struct connection *connection)
 		int i;
 		for (i = 0; i < flash_get_bank_count(); i++) {
 			struct flash_bank *p;
+			p = get_flash_bank_by_num_noprobe(i);
+			if (p->target != gdb_service->target)
+				continue;
 			retval = get_flash_bank_by_num(i, &p);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Connect failed. Consider setting up a gdb-attach event for the target " \
@@ -1732,14 +1735,16 @@ static int gdb_memory_map(struct connection *connection,
 	banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
 
 	for (i = 0; i < flash_get_bank_count(); i++) {
+		p = get_flash_bank_by_num_noprobe(i);
+		if (p->target != target)
+			continue;
 		retval = get_flash_bank_by_num(i, &p);
 		if (retval != ERROR_OK) {
 			free(banks);
 			gdb_error(connection, retval);
 			return retval;
 		}
-		if (p->target == target)
-			banks[target_flash_banks++] = p;
+		banks[target_flash_banks++] = p;
 	}
 
 	qsort(banks, target_flash_banks, sizeof(struct flash_bank *),

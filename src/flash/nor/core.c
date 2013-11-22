@@ -232,6 +232,9 @@ int get_flash_bank_by_addr(struct target *target,
 
 	/* cycle through bank list */
 	for (c = flash_banks; c; c = c->next) {
+		if (c->target != target)
+			continue;
+
 		int retval;
 		retval = c->driver->auto_probe(c);
 
@@ -240,7 +243,7 @@ int get_flash_bank_by_addr(struct target *target,
 			return retval;
 		}
 		/* check whether address belongs to this flash bank */
-		if ((addr >= c->base) && (addr <= c->base + (c->size - 1)) && target == c->target) {
+		if ((addr >= c->base) && (addr <= c->base + (c->size - 1))) {
 			*result_bank = c;
 			return ERROR_OK;
 		}
