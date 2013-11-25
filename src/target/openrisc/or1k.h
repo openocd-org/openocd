@@ -94,6 +94,7 @@ struct or1k_jtag {
 	uint8_t *current_reg_idx;
 	struct or1k_tap_ip *tap_ip;
 	struct or1k_du *du_core;
+	struct target *target;
 };
 
 struct or1k_common {

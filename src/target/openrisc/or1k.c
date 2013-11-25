@@ -950,12 +950,13 @@ static int or1k_add_breakpoint(struct target *target,
 	memcpy(breakpoint->orig_instr, &data, breakpoint->length);
 
 	/* Sub in the OR1K trap instruction */
-	uint32_t or1k_trap_insn = OR1K_TRAP_INSTR;
+	uint8_t or1k_trap_insn[4];
+	target_buffer_set_u32(target, or1k_trap_insn, OR1K_TRAP_INSTR);
 	retval = du_core->or1k_jtag_write_memory(&or1k->jtag,
 					  breakpoint->address,
 					  4,
 					  1,
-					  (uint8_t *)&or1k_trap_insn);
+					  or1k_trap_insn);
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while writing OR1K_TRAP_INSTR at 0x%08" PRIx32,
@@ -1050,38 +1051,7 @@ static int or1k_read_memory(struct target *target, uint32_t address,
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
-	/* or1k_read_memory with size 4/2 returns uint32_t/uint16_t in host   */
-	/* endianness, but byte array should represent target endianness      */
-
-	void *t = NULL;
-	if (size > 1) {
-		t = malloc(count * size * sizeof(uint8_t));
-		if (t == NULL) {
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-	} else
-		t = buffer;
-
-
-	int retval = du_core->or1k_jtag_read_memory(&or1k->jtag, address,
-						    size, count, t);
-
-	if (retval == ERROR_OK) {
-		switch (size) {
-		case 4:
-			target_buffer_set_u32_array(target, buffer, count, t);
-			break;
-		case 2:
-			target_buffer_set_u16_array(target, buffer, count, t);
-			break;
-		}
-	}
-
-	if ((size > 1) && (t != NULL))
-		free(t);
-
-	return ERROR_OK;
+	return du_core->or1k_jtag_read_memory(&or1k->jtag, address, size, count, buffer);
 }
 
 static int or1k_write_memory(struct target *target, uint32_t address,
@@ -1108,37 +1078,7 @@ static int or1k_write_memory(struct target *target, uint32_t address,
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
-	/* or1k_write_memory with size 4/2 requires uint32_t/uint16_t in host */
-	/* endianness, but byte array represents target endianness            */
-
-	void *t = NULL;
-	if (size > 1) {
-		t = malloc(count * size * sizeof(uint8_t));
-		if (t == NULL) {
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-
-		switch (size) {
-		case 4:
-			target_buffer_get_u32_array(target, buffer, count, (uint32_t *)t);
-			break;
-		case 2:
-			target_buffer_get_u16_array(target, buffer, count, (uint16_t *)t);
-			break;
-		}
-		buffer = t;
-	}
-
-	int retval = du_core->or1k_jtag_write_memory(&or1k->jtag, address, size, count, buffer);
-
-	if (t != NULL)
-		free(t);
-
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ERROR_OK;
+	return du_core->or1k_jtag_write_memory(&or1k->jtag, address, size, count, buffer);
 }
 
 static int or1k_init_target(struct command_context *cmd_ctx,
@@ -1161,6 +1101,7 @@ static int or1k_init_target(struct command_context *cmd_ctx,
 	or1k->jtag.tap = target->tap;
 	or1k->jtag.or1k_jtag_inited = 0;
 	or1k->jtag.or1k_jtag_module_selected = -1;
+	or1k->jtag.target = target;
 
 	or1k_build_reg_cache(target);
 
