@@ -468,6 +468,21 @@ COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(vsllink_handle_usb_serial_command)
+{
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	free(versaloon_interface.usb_setting.serialstring);
+
+	if (CMD_ARGC == 1)
+		versaloon_interface.usb_setting.serialstring = strdup(CMD_ARGV[0]);
+	else
+		versaloon_interface.usb_setting.serialstring = NULL;
+
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 {
 	if (CMD_ARGC != 1)
@@ -689,9 +704,8 @@ free_and_return:
 	return ret;
 }
 
-static usb_dev_handle *find_usb_device(uint16_t VID, uint16_t PID,
-	uint8_t interface, int8_t serialindex, char *serialstring,
-	int8_t productindex, char *productstring)
+static usb_dev_handle *find_usb_device(uint16_t VID, uint16_t PID, uint8_t interface,
+		char *serialstring, char *productstring)
 {
 	usb_dev_handle *dev_handle = NULL;
 	struct usb_bus *busses;
@@ -715,12 +729,10 @@ static usb_dev_handle *find_usb_device(uint16_t VID, uint16_t PID,
 				}
 
 				/* check description string */
-				if (((productstring != NULL) && (productindex >= 0)
-						&& !usb_check_string(dev_handle, productindex,
-						productstring, NULL, 0))
-						|| ((serialstring != NULL) && (serialindex >= 0)
-					&& !usb_check_string(dev_handle, serialindex,
-						serialstring, NULL, 0))) {
+				if ((productstring != NULL && !usb_check_string(dev_handle,
+						dev->descriptor.iProduct, productstring, NULL, 0))
+					|| (serialstring != NULL && !usb_check_string(dev_handle,
+								dev->descriptor.iSerialNumber, serialstring, NULL, 0))) {
 					usb_close(dev_handle);
 					dev_handle = NULL;
 					continue;
@@ -752,7 +764,7 @@ static struct vsllink *vsllink_usb_open(void)
 	dev = find_usb_device(versaloon_interface.usb_setting.vid,
 			versaloon_interface.usb_setting.pid,
 			versaloon_interface.usb_setting.interface,
-			0, NULL, 2, "Versaloon");
+			versaloon_interface.usb_setting.serialstring, "Versaloon");
 	if (NULL == dev)
 		return NULL;
 
@@ -812,6 +824,11 @@ static const struct command_registration vsllink_command_handlers[] = {
 	{
 		.name = "vsllink_usb_pid",
 		.handler = &vsllink_handle_usb_pid_command,
+		.mode = COMMAND_CONFIG,
+	},
+	{
+		.name = "vsllink_usb_serial",
+		.handler = &vsllink_handle_usb_serial_command,
 		.mode = COMMAND_CONFIG,
 	},
 	{
