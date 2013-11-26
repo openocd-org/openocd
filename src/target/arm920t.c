@@ -823,6 +823,7 @@ static int arm920t_init_arch_info(struct target *target,
 
 	arm7_9->post_debug_entry = arm920t_post_debug_entry;
 	arm7_9->pre_restore_context = arm920t_pre_restore_context;
+	arm7_9->write_memory = arm920t_write_memory;
 
 	arm920t->armv4_5_mmu.armv4_5_cache.ctype = -1;
 	arm920t->armv4_5_mmu.get_ttb = arm920t_get_ttb;
