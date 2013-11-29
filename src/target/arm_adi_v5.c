@@ -644,6 +644,8 @@ int mem_ap_sel_write_buf_u32_noincr(struct adiv5_dap *swjdp, uint8_t ap,
 #define MEM_CTRL_VLLSX_DBG_ACK	(1<<6)
 #define MEM_CTRL_VLLSX_STAT_ACK	(1<<7)
 
+#define MDM_ACCESS_TIMEOUT	3000 /* ms */
+
 /**
  *
  */
@@ -651,6 +653,7 @@ int dap_syssec_kinetis_mdmap(struct adiv5_dap *dap)
 {
 	uint32_t val;
 	int retval;
+	int timeout = 0;
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	dap_ap_select(dap, 1);
@@ -671,14 +674,21 @@ int dap_syssec_kinetis_mdmap(struct adiv5_dap *dap)
 	 * it's important that the device is out of
 	 * reset here
 	 */
-	do {
+	while (1) {
+		if (timeout++ > MDM_ACCESS_TIMEOUT) {
+			LOG_DEBUG("MDMAP : flash ready timeout");
+			return ERROR_FAIL;
+		}
 		retval = dap_queue_ap_read(dap, MDM_REG_STAT, &val);
 		if (retval != ERROR_OK)
 			return retval;
 		dap_run(dap);
 
 		LOG_DEBUG("MDM_REG_STAT %08" PRIX32, val);
-	} while (!(val & MDM_STAT_FREADY));
+		if (val & MDM_STAT_FREADY)
+			break;
+		alive_sleep(1);
+	}
 
 	if ((val & MDM_STAT_SYSSEC)) {
 		LOG_DEBUG("MDMAP: system is secured, masserase needed");
@@ -695,8 +705,12 @@ int dap_syssec_kinetis_mdmap(struct adiv5_dap *dap)
 				dap_ap_select(dap, 0);
 				return ERROR_FAIL;
 			}
-
+			timeout = 0;
 			while (1) {
+				if (timeout++ > MDM_ACCESS_TIMEOUT) {
+					LOG_DEBUG("MDMAP : flash ready timeout");
+					return ERROR_FAIL;
+				}
 				retval = dap_queue_ap_write(dap, MDM_REG_CTRL, MEM_CTRL_FMEIP);
 				if (retval != ERROR_OK)
 					return retval;
@@ -710,9 +724,14 @@ int dap_syssec_kinetis_mdmap(struct adiv5_dap *dap)
 
 				if ((val & 1))
 					break;
+				alive_sleep(1);
 			}
-
+			timeout = 0;
 			while (1) {
+				if (timeout++ > MDM_ACCESS_TIMEOUT) {
+					LOG_DEBUG("MDMAP : flash ready timeout");
+					return ERROR_FAIL;
+				}
 				retval = dap_queue_ap_write(dap, MDM_REG_CTRL, 0);
 				if (retval != ERROR_OK)
 					return retval;
@@ -732,6 +751,7 @@ int dap_syssec_kinetis_mdmap(struct adiv5_dap *dap)
 
 				if (val == 0x00)
 					break;
+				alive_sleep(1);
 			}
 		}
 	}
