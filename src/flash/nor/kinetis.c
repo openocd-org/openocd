@@ -84,14 +84,6 @@
  * and FlexNVM/FlexRAM, so flash command arguments may differ between
  * blocks in the same chip.
  *
- * Although not documented as such by Freescale, it appears that bits
- * 8:7 of the read-only SIM_SDID register reflect the granularity
- * settings 0..3, so sector sizes and block counts are applicable
- * according to the following table.
- * NB. These undocumented bits does not work for all MCUs.
- * A more reliable way is to detect the particular MCU model from the
- * SDID field and pick the correct granularity based on that. See
- * the handling of K21 in kinetis_read_part_info() for an example.
  */
 
 const struct {
@@ -124,20 +116,55 @@ const struct {
 #define FTFx_CMD_SETFLEXRAM 0x81
 #define FTFx_CMD_MASSERASE  0x44
 
-#define KINETIS_SDID_FAMID_MASK 0x00000070
-#define KINETIS_SDID_FAMID_K10  0x00000000
-#define KINETIS_SDID_FAMID_K12  0x00000000
-#define KINETIS_SDID_FAMID_K20  0x00000010
-#define KINETIS_SDID_FAMID_K22  0x00000010
-#define KINETIS_SDID_FAMID_K30  0x00000020
-#define KINETIS_SDID_FAMID_K11  0x00000020
-#define KINETIS_SDID_FAMID_K61  0x00000020
-#define KINETIS_SDID_FAMID_K40  0x00000030
-#define KINETIS_SDID_FAMID_K21  0x00000030
-#define KINETIS_SDID_FAMID_K60  0x00000040
-#define KINETIS_SDID_FAMID_K62  0x00000040
-#define KINETIS_SDID_FAMID_K70  0x00000050
-#define KINETIS_SDID_FAMID_KW24 0x00000060
+/* The Kinetis K series uses the following SDID layout :
+ * Bit 31-16 : 0
+ * Bit 15-12 : REVID
+ * Bit 11-7  : DIEID
+ * Bit 6-4   : FAMID
+ * Bit 3-0   : PINID
+ *
+ * The Kinetis KL series uses the following SDID layout :
+ * Bit 31-28 : FAMID
+ * Bit 27-24 : SUBFAMID
+ * Bit 23-20 : SERIESID
+ * Bit 19-16 : SRAMSIZE
+ * Bit 15-12 : REVID
+ * Bit 6-4   : Reserved (0)
+ * Bit 3-0   : PINID
+ *
+ * SERIESID should be 1 for the KL-series so we assume that if
+ * bits 31-16 are 0 then it's a K-series MCU.
+ */
+
+#define KINETIS_SDID_K_SERIES_MASK  0x0000FFFF
+
+#define KINETIS_SDID_DIEID_MASK 0x00000F80
+#define KINETIS_SDID_DIEID_K_A	0x00000100
+#define KINETIS_SDID_DIEID_K_B	0x00000200
+#define KINETIS_SDID_DIEID_KL	0x00000000
+
+/* We can't rely solely on the FAMID field to determine the MCU
+ * type since some FAMID values identify multiple MCUs with
+ * different flash sector sizes (K20 and K22 for instance).
+ * Therefore we combine it with the DIEID bits which may possibly
+ * break if Freescale bumps the DIEID for a particular MCU. */
+#define KINETIS_K_SDID_TYPE_MASK 0x00000FF0
+#define KINETIS_K_SDID_K10  0x00000000
+#define KINETIS_K_SDID_K11  0x00000220
+#define KINETIS_K_SDID_K12  0x00000200
+#define KINETIS_K_SDID_K20  0x00000290
+#define KINETIS_K_SDID_K21  0x00000230
+#define KINETIS_K_SDID_K22  0x00000210
+#define KINETIS_K_SDID_K30  0x00000120
+#define KINETIS_K_SDID_K40  0x00000130
+#define KINETIS_K_SDID_K50  0x000000E0
+#define KINETIS_K_SDID_K51  0x000000F0
+#define KINETIS_K_SDID_K53  0x00000170
+#define KINETIS_K_SDID_K60  0x000001C0
+#define KINETIS_K_SDID_K70  0x000001D0
+
+#define KINETIS_KL_SDID_SERIESID_MASK 0x00F00000
+#define KINETIS_KL_SDID_SERIESID_KL   0x00100000
 
 struct kinetis_flash_bank {
 	unsigned granularity;
@@ -754,17 +781,51 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	if (result != ERROR_OK)
 		return result;
 
-	/* Kinetis L Series SubFamily Check */
 	kinfo->klxx = 0;
-	i = (kinfo->sim_sdid >> 20) & 0x0F;
-	if (i == 1) {
+
+	/* K-series MCU? */
+	if ((kinfo->sim_sdid & (~KINETIS_SDID_K_SERIES_MASK)) == 0) {
+		uint32_t mcu_type = kinfo->sim_sdid & KINETIS_K_SDID_TYPE_MASK;
+
+		switch (mcu_type) {
+		case KINETIS_K_SDID_K20:
+			/* 1kB sectors */
+			granularity = 0;
+			break;
+		case KINETIS_K_SDID_K30:
+		case KINETIS_K_SDID_K40:
+		case KINETIS_K_SDID_K50:
+			/* 2kB sectors, 1kB FlexNVM sectors */
+			granularity = 1;
+			break;
+		case KINETIS_K_SDID_K11:
+		case KINETIS_K_SDID_K12:
+		case KINETIS_K_SDID_K21:
+		case KINETIS_K_SDID_K22:
+		case KINETIS_K_SDID_K51:
+		case KINETIS_K_SDID_K53:
+		case KINETIS_K_SDID_K60:
+			/* 2kB sectors */
+			granularity = 2;
+			break;
+		case KINETIS_K_SDID_K10:
+		case KINETIS_K_SDID_K70:
+			/* 4kB sectors */
+			granularity = 3;
+			break;
+		default:
+			LOG_ERROR("Unsupported K-family FAMID");
+			return ERROR_FLASH_OPER_UNSUPPORTED;
+		}
+	}
+	/* KL-series? */
+	else if ((kinfo->sim_sdid & KINETIS_KL_SDID_SERIESID_MASK) == KINETIS_KL_SDID_SERIESID_KL) {
 		kinfo->klxx = 1;
 		granularity = 0;
-	} else if ((kinfo->sim_sdid & KINETIS_SDID_FAMID_MASK)
-		== KINETIS_SDID_FAMID_K21) {
-		granularity = 2;
-	} else
-		granularity = (kinfo->sim_sdid >> 7) & 0x03;
+	} else {
+		LOG_ERROR("MCU is unsupported");
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+	}
 
 	result = target_read_u32(target, SIM_FCFG1, &kinfo->sim_fcfg1);
 	if (result != ERROR_OK)
