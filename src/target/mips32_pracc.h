@@ -30,20 +30,13 @@
 #include <target/mips_ejtag.h>
 
 #define MIPS32_PRACC_FASTDATA_AREA		0xFF200000
-#define MIPS32_PRACC_BASE_ADDR			0xFF200000
 #define MIPS32_PRACC_FASTDATA_SIZE		16
+#define MIPS32_PRACC_BASE_ADDR			0xFF200000
 #define MIPS32_PRACC_TEXT				0xFF200200
-#define MIPS32_PRACC_STACK				0xFF204000
-#define MIPS32_PRACC_PARAM_IN			0xFF201000
-#define MIPS32_PRACC_PARAM_IN_SIZE		0x1000
-#define MIPS32_PRACC_PARAM_OUT			(MIPS32_PRACC_PARAM_IN + MIPS32_PRACC_PARAM_IN_SIZE)
-#define MIPS32_PRACC_PARAM_OUT_SIZE		0x1000
+#define MIPS32_PRACC_PARAM_OUT			0xFF202000
 
 #define PRACC_UPPER_BASE_ADDR			(MIPS32_PRACC_BASE_ADDR >> 16)
-#define PRACC_TEXT_OFFSET			(MIPS32_PRACC_TEXT - MIPS32_PRACC_BASE_ADDR)
-#define PRACC_IN_OFFSET				(MIPS32_PRACC_PARAM_IN - MIPS32_PRACC_BASE_ADDR)
 #define PRACC_OUT_OFFSET			(MIPS32_PRACC_PARAM_OUT - MIPS32_PRACC_BASE_ADDR)
-#define PRACC_STACK_OFFSET			(MIPS32_PRACC_STACK - MIPS32_PRACC_BASE_ADDR)
 
 #define MIPS32_FASTDATA_HANDLER_SIZE	0x80
 #define UPPER16(uint32_t)				(uint32_t >> 16)
@@ -75,8 +68,7 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 
 int mips32_pracc_exec(struct mips_ejtag *ejtag_info, int code_len, const uint32_t *code,
-		int num_param_in, uint32_t *param_in,
-		int num_param_out, uint32_t *param_out, int cycle);
+			int num_param_out, uint32_t *param_out, int cycle);
 
 /**
  * \b mips32_cp0_read
