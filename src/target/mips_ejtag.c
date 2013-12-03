@@ -292,8 +292,8 @@ error:
 
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 {
-	uint32_t instr = MIPS32_DRET;
-	struct pracc_queue_info ctx = {.max_code = 1, .pracc_list = &instr, .code_count = 1, .store_count = 0};
+	uint32_t pracc_list[] = {MIPS32_DRET, 0};
+	struct pracc_queue_info ctx = {.max_code = 1, .pracc_list = pracc_list, .code_count = 1, .store_count = 0};
 
 	/* execute our dret instruction */
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL);
@@ -340,7 +340,6 @@ static void mips_ejtag_init_mmr(struct mips_ejtag *ejtag_info)
 		ejtag_info->ejtag_dba_step_size	= EJTAG_V25_DBAn_STEP;
 	}
 }
-
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 {
