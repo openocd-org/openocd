@@ -149,6 +149,9 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 	stm32lx_info->has_dual_banks = false;
 	stm32lx_info->user_bank_size = bank->size;
 
+	/* the stm32l erased value is 0x00 */
+	bank->default_padded_value = 0x00;
+
 	return ERROR_OK;
 }
 
