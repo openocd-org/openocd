@@ -44,6 +44,10 @@
 #define SSP_PROBE_TIMEOUT (100)
 #define SSP_MAX_TIMEOUT  (3000)
 
+/* Size of the stack to alloc in the working area for the execution of
+ * the ROM spifi_init() function */
+#define SPIFI_INIT_STACK_SIZE  512
+
 struct lpcspifi_flash_bank {
 	int probed;
 	uint32_t ssp_base;
@@ -151,7 +155,7 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 	uint32_t ssp_base = lpcspifi_info->ssp_base;
 	struct armv7m_algorithm armv7m_info;
 	struct working_area *spifi_init_algorithm;
-	struct reg_param reg_params[1];
+	struct reg_param reg_params[2];
 	int retval = ERROR_OK;
 
 	LOG_DEBUG("Uninitializing LPC43xx SSP");
@@ -187,13 +191,13 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 
 	LOG_DEBUG("Allocating working area for SPIFI init algorithm");
 	/* Get memory for spifi initialization algorithm */
-	retval = target_alloc_working_area(target, sizeof(spifi_init_code),
-		&spifi_init_algorithm);
+	retval = target_alloc_working_area(target, sizeof(spifi_init_code)
+		+ SPIFI_INIT_STACK_SIZE, &spifi_init_algorithm);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Insufficient working area to initialize SPIFI "\
 			"module. You must allocate at least %zdB of working "\
 			"area in order to use this driver.",
-			sizeof(spifi_init_code)
+			sizeof(spifi_init_code) + SPIFI_INIT_STACK_SIZE
 		);
 
 		return retval;
@@ -214,6 +218,8 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 	}
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);		/* spifi clk speed */
+	/* the spifi_init() rom API makes use of the stack */
+	init_reg_param(&reg_params[1], "sp", 32, PARAM_OUT);
 
 	/* For now, the algorithm will set up the SPIFI module
 	 * @ the IRC clock speed. In the future, it could be made
@@ -221,10 +227,13 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 	 * already configured them in order to speed up memory-
 	 * mapped reads. */
 	buf_set_u32(reg_params[0].value, 0, 32, 12);
+	/* valid stack pointer */
+	buf_set_u32(reg_params[1].value, 0, 32, (spifi_init_algorithm->address +
+		sizeof(spifi_init_code) + SPIFI_INIT_STACK_SIZE) & ~7UL);
 
 	/* Run the algorithm */
 	LOG_DEBUG("Running SPIFI init algorithm");
-	retval = target_run_algorithm(target, 0 , NULL, 1, reg_params,
+	retval = target_run_algorithm(target, 0 , NULL, 2, reg_params,
 		spifi_init_algorithm->address,
 		spifi_init_algorithm->address + sizeof(spifi_init_code) - 2,
 		1000, &armv7m_info);
@@ -235,6 +244,7 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 	target_free_working_area(target, spifi_init_algorithm);
 
 	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
 
 	return retval;
 }
