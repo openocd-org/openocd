@@ -774,7 +774,7 @@ static int lpcspifi_read_flash_id(struct flash_bank *bank, uint32_t *id)
 	uint32_t ssp_base = lpcspifi_info->ssp_base;
 	uint32_t io_base = lpcspifi_info->io_base;
 	uint32_t value;
-	uint8_t id_buf[3];
+	uint8_t id_buf[3] = {0, 0, 0};
 	int retval;
 
 	if (target->state != TARGET_HALTED) {
