@@ -20,6 +20,7 @@
 #
 # Usage:
 # export LIBUSB1_SRC=/path/to/libusb-1.0
+# export HIDAPI_SRC=/path/to/hidapi
 # export OPENOCD_CONFIG="--enable-..."
 # cd /work/dir
 # /path/to/openocd/contrib/cross-build.sh <host-triplet>
@@ -36,13 +37,16 @@ WORK_DIR=$PWD
 ## Source code paths, customize as necessary
 : ${OPENOCD_SRC:="`dirname "$0"`/.."}
 : ${LIBUSB1_SRC:=/path/to/libusb}
+: ${HIDAPI_SRC:=/path/to/hidapi}
 
 OPENOCD_SRC=`readlink -m $OPENOCD_SRC`
 LIBUSB1_SRC=`readlink -m $LIBUSB1_SRC`
+HIDAPI_SRC=`readlink -m $HIDAPI_SRC`
 
 HOST_TRIPLET=$1
 BUILD_DIR=$WORK_DIR/$HOST_TRIPLET-build
 LIBUSB1_BUILD_DIR=$BUILD_DIR/libusb1
+HIDAPI_BUILD_DIR=$BUILD_DIR/hidapi
 OPENOCD_BUILD_DIR=$BUILD_DIR/openocd
 
 ## Root of host file tree
@@ -89,6 +93,17 @@ $LIBUSB1_SRC/configure --build=`$LIBUSB1_SRC/config.guess` --host=$HOST_TRIPLET 
 $LIBUSB1_CONFIG
 make
 make install DESTDIR=$SYSROOT
+
+# hidapi build & install into sysroot
+if [ -d $HIDAPI_SRC ] ; then
+  mkdir -p $HIDAPI_BUILD_DIR
+  cd $HIDAPI_BUILD_DIR
+  $HIDAPI_SRC/configure --build=`$HIDAPI_SRC/config.guess` --host=$HOST_TRIPLET \
+    --with-sysroot=$SYSROOT --prefix=$PREFIX \
+    $HIDAPI_CONFIG
+  make
+  make install DESTDIR=$SYSROOT
+fi
 
 # OpenOCD build & install into sysroot
 mkdir -p $OPENOCD_BUILD_DIR

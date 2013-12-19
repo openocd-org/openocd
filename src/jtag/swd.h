@@ -110,11 +110,17 @@ struct swd_driver {
 	  */
 	 int (*write_reg)(uint8_t cmd, uint32_t value);
 
-	/* XXX START WITH enough to:
-	 *	init (synch mode, WCR)
-	 *		for async, TRN > 1
-	 *	read IDCODE from DP
-	 */
+	 /**
+	  * Synchronous block read of an AP or DP register.
+	  *
+	  * @param cmd with APnDP/RnW/addr/parity bits
+	  * @param number of reads from register to be executed
+	  * @param buffer to store data read from register
+	  *
+	  * @return SWD_ACK_* code for the transaction
+	  *		or (negative) fault code
+	  */
+	 int (*read_block)(uint8_t cmd, uint32_t blocksize, uint8_t *buffer);
 
 	/**
 	 * Configures data collection from the Single-wire
@@ -135,5 +141,6 @@ int swd_init_reset(struct command_context *cmd_ctx);
 void swd_add_reset(int req_srst);
 
 bool transport_is_swd(void);
+bool transport_is_cmsis_dap(void);
 
 #endif /* SWD_H */

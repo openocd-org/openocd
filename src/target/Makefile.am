@@ -91,6 +91,7 @@ ARM_DEBUG_SRC = \
 	arm_adi_v5.c \
 	adi_v5_jtag.c \
 	adi_v5_swd.c \
+	adi_v5_cmsis_dap.c \
 	embeddedice.c \
 	trace.c \
 	etb.c \

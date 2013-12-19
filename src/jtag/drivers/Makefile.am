@@ -6,7 +6,8 @@ libocdjtagdrivers_la_LIBADD =
 libocdjtagdrivers_la_SOURCES = \
 	$(DRIVERFILES)
 
-libocdjtagdrivers_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS) $(LIBUSB0_CFLAGS)
+libocdjtagdrivers_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS) \
+	$(LIBUSB0_CFLAGS) $(HIDAPI_CFLAGS)
 
 ULINK_FIRMWARE = $(srcdir)/OpenULINK
 
@@ -120,6 +121,10 @@ endif
 
 if OPENJTAG
 DRIVERFILES += openjtag.c
+endif
+
+if CMSIS_DAP
+DRIVERFILES += cmsis_dap_usb.c
 endif
 
 noinst_HEADERS = \

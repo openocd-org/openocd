@@ -55,10 +55,16 @@
 
 #include <jtag/swd.h>
 
+/* YUK! - but this is currently a global.... */
+extern struct jtag_interface *jtag_interface;
+
 static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
 	/* REVISIT status return vs ack ... */
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
 	return swd->read_reg(swd_cmd(true,  false, reg), data);
 }
 
@@ -77,6 +83,9 @@ static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
 	/* REVISIT status return vs ack ... */
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
 	return swd->write_reg(swd_cmd(false,  false, reg), data);
 }
 
@@ -86,6 +95,9 @@ static int (swd_queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
 {
 	/* REVISIT  APSEL ... */
 	/* REVISIT status return ... */
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
 	return swd->read_reg(swd_cmd(true,  true, reg), data);
 }
 
@@ -94,6 +106,9 @@ static int (swd_queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 {
 	/* REVISIT  APSEL ... */
 	/* REVISIT status return ... */
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
 	return swd->write_reg(swd_cmd(false,  true, reg), data);
 }
 
@@ -184,8 +199,6 @@ int dap_to_swd(struct target *target)
 
 	return retval;
 }
-
-
 
 COMMAND_HANDLER(handle_swd_wcr)
 {
@@ -280,13 +293,14 @@ static const struct command_registration swd_handlers[] = {
 
 static int swd_select(struct command_context *ctx)
 {
-	struct target *target = get_current_target(ctx);
 	int retval;
 
 	retval = register_commands(ctx, NULL, swd_handlers);
 
 	if (retval != ERROR_OK)
 		return retval;
+
+	const struct swd_driver *swd = jtag_interface->swd;
 
 	 /* be sure driver is in SWD mode; start
 	  * with hardware default TRN (1), it can be changed later
@@ -296,14 +310,20 @@ static int swd_select(struct command_context *ctx)
 		return ERROR_FAIL;
 	}
 
-	 retval = swd->init(1);
+	retval = swd->init(1);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("can't init SWD driver");
 		return retval;
 	}
 
 	/* force DAP into SWD mode (not JTAG) */
-	retval = dap_to_swd(target);
+	/*retval = dap_to_swd(target);*/
+
+	if (ctx->current_target) {
+		/* force DAP into SWD mode (not JTAG) */
+		struct target *target = get_current_target(ctx);
+		retval = dap_to_swd(target);
+	}
 
 	return retval;
 }
@@ -315,6 +335,10 @@ static int swd_init(struct command_context *ctx)
 	struct adiv5_dap *dap = arm->dap;
 	uint32_t idcode;
 	int status;
+
+	/* Force the DAP's ops vector for SWD mode.
+	 * messy - is there a better way? */
+	arm->dap->ops = &swd_dap_ops;
 
 	/* FIXME validate transport config ... is the
 	 * configured DAP present (check IDCODE)?

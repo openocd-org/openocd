@@ -490,6 +490,10 @@ Texas Instruments has an adapter called @b{ICDI}.
 It is not to be confused with the FTDI based adapters that were originally fitted to their
 evaluation boards. This is the adapter fitted to the Stellaris LaunchPad.
 
+@section USB CMSIS-DAP based
+ARM has released a interface standard called CMSIS-DAP that simplifies connecting
+debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/dapdebug/dapdebug_introduction.htm}.
+
 @section USB Other
 @itemize @bullet
 @item @b{USBprog}
@@ -2541,6 +2545,23 @@ and a specific set of GPIOs is used.
 @c chooses among list of bit configs ... only one option
 @end deffn
 
+@deffn {Interface Driver} {cmsis-dap}
+CMSIS-DAP compliant based adapter.
+
+@deffn {Config Command} {cmsis_dap_vid_pid} [vid pid]+
+The vendor ID and product ID of the CMSIS-DAP device. If not specified
+known default values are used.
+Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
+@example
+cmsis_dap_vid_pid 0xc251 0xf001 0x0d28 0x0204
+@end example
+@end deffn
+
+@deffn {Command} {cmsis-dap info}
+Display various device information, like hardware version, firmware version, current bus status.
+@end deffn
+@end deffn
+
 @deffn {Interface Driver} {dummy}
 A dummy software-only driver for debugging.
 @end deffn
@@ -3134,6 +3155,11 @@ Updates TRN (turnaraound delay) and prescaling.fields of the
 Wire Control Register (WCR).
 No parameters: displays current settings.
 @end deffn
+
+@subsection CMSIS-DAP Transport
+@cindex CMSIS-DAP
+CMSIS-DAP is an ARM-specific transport that is used to connect to
+compilant debuggers.
 
 @subsection SPI Transport
 @cindex SPI

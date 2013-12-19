@@ -1,5 +1,5 @@
 ACTION!="add|change", GOTO="openocd_rules_end"
-SUBSYSTEM!="usb|tty", GOTO="openocd_rules_end"
+SUBSYSTEM!="usb|tty|hidraw", GOTO="openocd_rules_end"
 
 # Olimex ARM-USB-OCD
 ATTRS{idVendor}=="15ba", ATTRS{idProduct}=="0003", MODE="664", GROUP="plugdev"
@@ -88,5 +88,17 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="664", GROUP="plugdev"
 
 # opendous and estick
 ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="204f", MODE="664", GROUP="plugdev"
+
+# mbed CMSIS-DAP
+ATTRS{idVendor}=="0d28", ATTRS{idProduct}=="0204", MODE="664", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="0d28", ATTRS{idProduct}=="0204", MODE="664", GROUP="plugdev"
+
+# Freescale Freedom Board CMSIS-DAP
+ATTRS{idVendor}=="c251", ATTRS{idProduct}=="f002", MODE="664", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="c251", ATTRS{idProduct}=="f002", MODE="664", GROUP="plugdev"
+
+# Keil ULINK2 CMSIS-DAP
+ATTRS{idVendor}=="c251", ATTRS{idProduct}=="2722", MODE="664", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="c251", ATTRS{idProduct}=="2722", MODE="664", GROUP="plugdev"
 
 LABEL="openocd_rules_end"

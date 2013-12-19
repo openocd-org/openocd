@@ -59,8 +59,6 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-extern struct jtag_interface *jtag_interface;
-
 struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 {
 	const char *cp = Jim_GetString(o, NULL);
