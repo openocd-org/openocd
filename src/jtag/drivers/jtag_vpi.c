@@ -23,7 +23,9 @@
 #endif
 
 #include <jtag/interface.h>
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
 
 #define NO_TAP_SHIFT	0
 #define TAP_SHIFT	1
@@ -54,7 +56,7 @@ struct vpi_cmd {
 
 static int jtag_vpi_send_cmd(struct vpi_cmd *vpi)
 {
-	int retval = write(sockfd, vpi, sizeof(struct vpi_cmd));
+	int retval = write_socket(sockfd, vpi, sizeof(struct vpi_cmd));
 	if (retval <= 0)
 		return ERROR_FAIL;
 
@@ -63,7 +65,7 @@ static int jtag_vpi_send_cmd(struct vpi_cmd *vpi)
 
 static int jtag_vpi_receive_cmd(struct vpi_cmd *vpi)
 {
-	int retval = read(sockfd, vpi, sizeof(struct vpi_cmd));
+	int retval = read_socket(sockfd, vpi, sizeof(struct vpi_cmd));
 	if (retval < (int)sizeof(struct vpi_cmd))
 		return ERROR_FAIL;
 
@@ -377,8 +379,10 @@ static int jtag_vpi_init(void)
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(server_port);
 
-	if (inet_pton(AF_INET, SERVER_ADDRESS, &serv_addr.sin_addr) <= 0) {
-		LOG_ERROR("inet_pton error occured");
+	serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
+
+	if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
+		LOG_ERROR("inet_addr error occured");
 		return ERROR_FAIL;
 	}
 
