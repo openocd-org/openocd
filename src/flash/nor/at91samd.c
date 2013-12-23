@@ -60,6 +60,7 @@
 #define SAMD_PROCESSOR_M0	0x01
 #define SAMD_FAMILY_D		0x00
 #define SAMD_SERIES_20		0x00
+#define SAMD_SERIES_21      0x01
 
 struct samd_part {
 	uint8_t id;
@@ -86,6 +87,25 @@ static struct samd_part samd20_parts[] = {
 	{ 0xE, "SAMD20E14A", 16, 2 },
 };
 
+/* Known SAMD21 parts. */
+static struct samd_part samd21_parts[] = {
+	{ 0x0, "SAMD21J18A", 256, 32 },
+	{ 0x1, "SAMD21J17A", 128, 16 },
+	{ 0x2, "SAMD21J16A", 64, 8 },
+	{ 0x3, "SAMD21J15A", 32, 4 },
+	{ 0x4, "SAMD21J14A", 16, 2 },
+	{ 0x5, "SAMD21G18A", 256, 32 },
+	{ 0x6, "SAMD21G17A", 128, 16 },
+	{ 0x7, "SAMD21G16A", 64, 8 },
+	{ 0x8, "SAMD21G15A", 32, 4 },
+	{ 0x9, "SAMD21G14A", 16, 2 },
+	{ 0xA, "SAMD21E18A", 256, 32 },
+	{ 0xB, "SAMD21E17A", 128, 16 },
+	{ 0xC, "SAMD21E16A", 64, 8 },
+	{ 0xD, "SAMD21E15A", 32, 4 },
+	{ 0xE, "SAMD21E14A", 16, 2 },
+};
+
 /* Each family of parts contains a parts table in the DEVSEL field of DID.  The
  * processor ID, family ID, and series ID are used to determine which exact
  * family this is and then we can use the corresponding table. */
@@ -101,6 +121,8 @@ struct samd_family {
 static struct samd_family samd_families[] = {
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_20,
 		samd20_parts, ARRAY_SIZE(samd20_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
+		samd21_parts, ARRAY_SIZE(samd21_parts) },
 };
 
 struct samd_info {
