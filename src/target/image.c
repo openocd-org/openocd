@@ -152,6 +152,9 @@ static int image_ihex_buffer_complete_inner(struct image *image,
 		uint8_t cal_checksum = 0;
 		size_t bytes_read = 0;
 
+		if (lpszLine[0] == '#')
+			continue;
+
 		if (sscanf(&lpszLine[bytes_read], ":%2" SCNx32 "%4" SCNx32 "%2" SCNx32, &count,
 			&address, &record_type) != 3)
 			return ERROR_IMAGE_FORMAT_ERROR;
