@@ -60,11 +60,11 @@
  * - 176x (tested with LPC1768)
  *
  * lpc4300 (also available as lpc1800 - alias)
- * - 43x2 | 3 | 5 | 7 (tested with 4337)
+ * - 43x2 | 3 | 5 | 7 (tested with LPC4337/LPC4357)
  * - 18x2 | 3 | 5 | 7
  *
  * lpc800:
- * - 810 | 1 | 2 (tested with 812)
+ * - 810 | 1 | 2 (tested with LPC810/LPC812)
  */
 
 typedef enum {
@@ -230,15 +230,15 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 	} else if (lpc2000_info->variant == lpc1700) {
 		switch (bank->size) {
 			case 4 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024;
+				lpc2000_info->cmd51_max_buffer = 256;
 				bank->num_sectors = 1;
 				break;
 			case 8 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024;
+				lpc2000_info->cmd51_max_buffer = 512;
 				bank->num_sectors = 2;
 				break;
 			case 16 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024;
+				lpc2000_info->cmd51_max_buffer = 512;
 				bank->num_sectors = 4;
 				break;
 			case 32 * 1024:
@@ -303,9 +303,11 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			lpc2000_info->cmd51_max_buffer = 1024;
 		switch (bank->size) {
 			case 4 * 1024:
+				lpc2000_info->cmd51_max_buffer = 256;
 				bank->num_sectors = 4;
 				break;
 			case 8 * 1024:
+				lpc2000_info->cmd51_max_buffer = 512;
 				bank->num_sectors = 8;
 				break;
 			case 16 * 1024:
