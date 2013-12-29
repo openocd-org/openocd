@@ -62,84 +62,70 @@
 static int cortex_m_store_core_reg_u32(struct target *target,
 		uint32_t num, uint32_t value);
 
-static int cortexm_dap_read_coreregister_u32(struct adiv5_dap *swjdp,
+static int cortexm_dap_read_coreregister_u32(struct target *target,
 	uint32_t *value, int regnum)
 {
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct adiv5_dap *swjdp = armv7m->arm.dap;
 	int retval;
 	uint32_t dcrdr;
 
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we have to save/restore the DCB_DCRDR when used */
+	if (target->dbg_msg_enabled) {
+		retval = mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	retval = mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* mem_ap_write_u32(swjdp, DCB_DCRSR, regnum); */
-	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum);
+	retval = mem_ap_write_u32(swjdp, DCB_DCRSR, regnum);
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* mem_ap_read_u32(swjdp, DCB_DCRDR, value); */
-	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = dap_queue_ap_read(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
+	retval = mem_ap_read_atomic_u32(swjdp, DCB_DCRDR, value);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_run(swjdp);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* restore DCB_DCRDR - this needs to be in a seperate
-	 * transaction otherwise the emulated DCC channel breaks */
-	if (retval == ERROR_OK)
-		retval = mem_ap_write_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+	if (target->dbg_msg_enabled) {
+		/* restore DCB_DCRDR - this needs to be in a separate
+		 * transaction otherwise the emulated DCC channel breaks */
+		if (retval == ERROR_OK)
+			retval = mem_ap_write_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+	}
 
 	return retval;
 }
 
-static int cortexm_dap_write_coreregister_u32(struct adiv5_dap *swjdp,
+static int cortexm_dap_write_coreregister_u32(struct target *target,
 	uint32_t value, int regnum)
 {
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct adiv5_dap *swjdp = armv7m->arm.dap;
 	int retval;
 	uint32_t dcrdr;
 
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we have to save/restore the DCB_DCRDR when used */
+	if (target->dbg_msg_enabled) {
+		retval = mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	retval = mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* mem_ap_write_u32(swjdp, DCB_DCRDR, core_regs[i]); */
-	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
+	retval = mem_ap_write_u32(swjdp, DCB_DCRDR, value);
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* mem_ap_write_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR); */
-	retval = dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = dap_queue_ap_write(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR);
+	retval = mem_ap_write_atomic_u32(swjdp, DCB_DCRSR, regnum | DCRSR_WnR);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_run(swjdp);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* restore DCB_DCRDR - this needs to be in a seperate
-	 * transaction otherwise the emulated DCC channel breaks */
-	if (retval == ERROR_OK)
-		retval = mem_ap_write_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+	if (target->dbg_msg_enabled) {
+		/* restore DCB_DCRDR - this needs to be in a seperate
+		 * transaction otherwise the emulated DCC channel breaks */
+		if (retval == ERROR_OK)
+			retval = mem_ap_write_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+	}
 
 	return retval;
 }
@@ -1480,8 +1466,6 @@ static int cortex_m_load_core_reg_u32(struct target *target,
 		uint32_t num, uint32_t *value)
 {
 	int retval;
-	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct adiv5_dap *swjdp = armv7m->arm.dap;
 
 	/* NOTE:  we "know" here that the register identifiers used
 	 * in the v7m header match the Cortex-M3 Debug Core Register
@@ -1490,7 +1474,7 @@ static int cortex_m_load_core_reg_u32(struct target *target,
 	switch (num) {
 		case 0 ... 18:
 			/* read a normal core register */
-			retval = cortexm_dap_read_coreregister_u32(swjdp, value, num);
+			retval = cortexm_dap_read_coreregister_u32(target, value, num);
 
 			if (retval != ERROR_OK) {
 				LOG_ERROR("JTAG failure %i", retval);
@@ -1507,7 +1491,7 @@ static int cortex_m_load_core_reg_u32(struct target *target,
 			 * in one Debug Core register.  So say r0 and r2 docs;
 			 * it was removed from r1 docs, but still works.
 			 */
-			cortexm_dap_read_coreregister_u32(swjdp, value, 20);
+			cortexm_dap_read_coreregister_u32(target, value, 20);
 
 			switch (num) {
 				case ARMV7M_PRIMASK:
@@ -1543,7 +1527,6 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 	int retval;
 	uint32_t reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct adiv5_dap *swjdp = armv7m->arm.dap;
 
 	/* NOTE:  we "know" here that the register identifiers used
 	 * in the v7m header match the Cortex-M3 Debug Core Register
@@ -1551,7 +1534,7 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 	 */
 	switch (num) {
 		case 0 ... 18:
-			retval = cortexm_dap_write_coreregister_u32(swjdp, value, num);
+			retval = cortexm_dap_write_coreregister_u32(target, value, num);
 			if (retval != ERROR_OK) {
 				struct reg *r;
 
@@ -1571,7 +1554,7 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 			 * in one Debug Core register.  So say r0 and r2 docs;
 			 * it was removed from r1 docs, but still works.
 			 */
-			cortexm_dap_read_coreregister_u32(swjdp, &reg, 20);
+			cortexm_dap_read_coreregister_u32(target, &reg, 20);
 
 			switch (num) {
 				case ARMV7M_PRIMASK:
@@ -1591,7 +1574,7 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 					break;
 			}
 
-			cortexm_dap_write_coreregister_u32(swjdp, reg, 20);
+			cortexm_dap_write_coreregister_u32(target, reg, 20);
 
 			LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num, value);
 			break;
