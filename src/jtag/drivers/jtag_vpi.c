@@ -42,6 +42,7 @@
 #define CMD_STOP_SIMU		4
 
 int server_port = SERVER_PORT;
+char *server_address;
 
 int sockfd;
 struct sockaddr_in serv_addr;
@@ -379,7 +380,10 @@ static int jtag_vpi_init(void)
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(server_port);
 
-	serv_addr.sin_addr.s_addr = inet_addr(SERVER_ADDRESS);
+	if (!server_address)
+		server_address = strdup(SERVER_ADDRESS);
+
+	serv_addr.sin_addr.s_addr = inet_addr(server_address);
 
 	if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
 		LOG_ERROR("inet_addr error occured");
@@ -388,17 +392,18 @@ static int jtag_vpi_init(void)
 
 	if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
 		close(sockfd);
-		LOG_ERROR("Can't connect to %s : %u", SERVER_ADDRESS, server_port);
+		LOG_ERROR("Can't connect to %s : %u", server_address, server_port);
 		return ERROR_COMMAND_CLOSE_CONNECTION;
 	}
 
-	LOG_INFO("Connection to %s : %u succeed", SERVER_ADDRESS, server_port);
+	LOG_INFO("Connection to %s : %u succeed", server_address, server_port);
 
 	return ERROR_OK;
 }
 
 static int jtag_vpi_quit(void)
 {
+	free(server_address);
 	return close(sockfd);
 }
 
@@ -414,6 +419,20 @@ COMMAND_HANDLER(jtag_vpi_set_port)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(jtag_vpi_set_address)
+{
+	free(server_address);
+
+	if (CMD_ARGC == 0) {
+		LOG_WARNING("You need to set an address");
+		server_address = strdup(SERVER_ADDRESS);
+	} else
+		server_address = strdup(CMD_ARGV[0]);
+
+	LOG_INFO("Set server address to %s", server_address);
+
+	return ERROR_OK;
+}
 
 static const struct command_registration jtag_vpi_command_handlers[] = {
 	{
@@ -421,6 +440,13 @@ static const struct command_registration jtag_vpi_command_handlers[] = {
 		.handler = &jtag_vpi_set_port,
 		.mode = COMMAND_CONFIG,
 		.help = "set the port of the VPI server",
+		.usage = "description_string",
+	},
+	{
+		.name = "jtag_vpi_set_address",
+		.handler = &jtag_vpi_set_address,
+		.mode = COMMAND_CONFIG,
+		.help = "set the address of the VPI server",
 		.usage = "description_string",
 	},
 	COMMAND_REGISTRATION_DONE
