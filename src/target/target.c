@@ -5642,6 +5642,198 @@ COMMAND_HANDLER(handle_ps_command)
 	}
 }
 
+static void binprint(struct command_context *cmd_ctx, const char *text, const uint8_t *buf, int size)
+{
+	if (text != NULL)
+		command_print_sameline(cmd_ctx, "%s", text);
+	for (int i = 0; i < size; i++)
+		command_print_sameline(cmd_ctx, " %02x", buf[i]);
+	command_print(cmd_ctx, " ");
+}
+
+COMMAND_HANDLER(handle_test_mem_access_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	uint32_t test_size;
+	int retval = ERROR_OK;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_INFO("target not halted !!");
+		return ERROR_FAIL;
+	}
+
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], test_size);
+
+	/* Test reads */
+	size_t num_bytes = test_size + 4;
+
+	struct working_area *wa = NULL;
+	retval = target_alloc_working_area(target, num_bytes, &wa);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Not enough working area");
+		return ERROR_FAIL;
+	}
+
+	uint8_t *test_pattern = malloc(num_bytes);
+
+	for (size_t i = 0; i < num_bytes; i++)
+		test_pattern[i] = rand();
+
+	retval = target_write_memory(target, wa->address, 1, num_bytes, test_pattern);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Test pattern write failed");
+		goto out;
+	}
+
+	for (int host_offset = 0; host_offset <= 1; host_offset++) {
+		for (int size = 1; size <= 4; size *= 2) {
+			for (int offset = 0; offset < 4; offset++) {
+				uint32_t count = test_size / size;
+				size_t host_bufsiz = (count + 2) * size + host_offset;
+				uint8_t *read_ref = malloc(host_bufsiz);
+				uint8_t *read_buf = malloc(host_bufsiz);
+
+				for (size_t i = 0; i < host_bufsiz; i++) {
+					read_ref[i] = rand();
+					read_buf[i] = read_ref[i];
+				}
+				command_print_sameline(CMD_CTX,
+						"Test read %d x %d @ %d to %saligned buffer: ", count,
+						size, offset, host_offset ? "un" : "");
+
+				struct duration bench;
+				duration_start(&bench);
+
+				retval = target_read_memory(target, wa->address + offset, size, count,
+						read_buf + size + host_offset);
+
+				duration_measure(&bench);
+
+				if (retval == ERROR_TARGET_UNALIGNED_ACCESS) {
+					command_print(CMD_CTX, "Unsupported alignment");
+					goto next;
+				} else if (retval != ERROR_OK) {
+					command_print(CMD_CTX, "Memory read failed");
+					goto next;
+				}
+
+				/* replay on host */
+				memcpy(read_ref + size + host_offset, test_pattern + offset, count * size);
+
+				/* check result */
+				int result = memcmp(read_ref, read_buf, host_bufsiz);
+				if (result == 0) {
+					command_print(CMD_CTX, "Pass in %fs (%0.3f KiB/s)",
+							duration_elapsed(&bench),
+							duration_kbps(&bench, count * size));
+				} else {
+					command_print(CMD_CTX, "Compare failed");
+					binprint(CMD_CTX, "ref:", read_ref, host_bufsiz);
+					binprint(CMD_CTX, "buf:", read_buf, host_bufsiz);
+				}
+next:
+				free(read_ref);
+				free(read_buf);
+			}
+		}
+	}
+
+out:
+	free(test_pattern);
+
+	if (wa != NULL)
+		target_free_working_area(target, wa);
+
+	/* Test writes */
+	num_bytes = test_size + 4 + 4 + 4;
+
+	retval = target_alloc_working_area(target, num_bytes, &wa);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Not enough working area");
+		return ERROR_FAIL;
+	}
+
+	test_pattern = malloc(num_bytes);
+
+	for (size_t i = 0; i < num_bytes; i++)
+		test_pattern[i] = rand();
+
+	for (int host_offset = 0; host_offset <= 1; host_offset++) {
+		for (int size = 1; size <= 4; size *= 2) {
+			for (int offset = 0; offset < 4; offset++) {
+				uint32_t count = test_size / size;
+				size_t host_bufsiz = count * size + host_offset;
+				uint8_t *read_ref = malloc(num_bytes);
+				uint8_t *read_buf = malloc(num_bytes);
+				uint8_t *write_buf = malloc(host_bufsiz);
+
+				for (size_t i = 0; i < host_bufsiz; i++)
+					write_buf[i] = rand();
+				command_print_sameline(CMD_CTX,
+						"Test write %d x %d @ %d from %saligned buffer: ", count,
+						size, offset, host_offset ? "un" : "");
+
+				retval = target_write_memory(target, wa->address, 1, num_bytes, test_pattern);
+				if (retval != ERROR_OK) {
+					command_print(CMD_CTX, "Test pattern write failed");
+					goto nextw;
+				}
+
+				/* replay on host */
+				memcpy(read_ref, test_pattern, num_bytes);
+				memcpy(read_ref + size + offset, write_buf + host_offset, count * size);
+
+				struct duration bench;
+				duration_start(&bench);
+
+				retval = target_write_memory(target, wa->address + size + offset, size, count,
+						write_buf + host_offset);
+
+				duration_measure(&bench);
+
+				if (retval == ERROR_TARGET_UNALIGNED_ACCESS) {
+					command_print(CMD_CTX, "Unsupported alignment");
+					goto nextw;
+				} else if (retval != ERROR_OK) {
+					command_print(CMD_CTX, "Memory write failed");
+					goto nextw;
+				}
+
+				/* read back */
+				retval = target_read_memory(target, wa->address, 1, num_bytes, read_buf);
+				if (retval != ERROR_OK) {
+					command_print(CMD_CTX, "Test pattern write failed");
+					goto nextw;
+				}
+
+				/* check result */
+				int result = memcmp(read_ref, read_buf, num_bytes);
+				if (result == 0) {
+					command_print(CMD_CTX, "Pass in %fs (%0.3f KiB/s)",
+							duration_elapsed(&bench),
+							duration_kbps(&bench, count * size));
+				} else {
+					command_print(CMD_CTX, "Compare failed");
+					binprint(CMD_CTX, "ref:", read_ref, num_bytes);
+					binprint(CMD_CTX, "buf:", read_buf, num_bytes);
+				}
+nextw:
+				free(read_ref);
+				free(read_buf);
+			}
+		}
+	}
+
+	free(test_pattern);
+
+	if (wa != NULL)
+		target_free_working_area(target, wa);
+	return retval;
+}
+
 static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "fast_load_image",
@@ -5860,6 +6052,13 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "list all tasks ",
 		.usage = " ",
+	},
+	{
+		.name = "test_mem_access",
+		.handler = handle_test_mem_access_command,
+		.mode = COMMAND_EXEC,
+		.help = "Test the target's memory access functions",
+		.usage = "size",
 	},
 
 	COMMAND_REGISTRATION_DONE
