@@ -1879,12 +1879,19 @@ int cortex_m_examine(struct target *target)
 	return ERROR_OK;
 }
 
-static int cortex_m_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *ctrl)
+static int cortex_m_dcc_read(struct target *target, uint8_t *value, uint8_t *ctrl)
 {
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct adiv5_dap *swjdp = armv7m->arm.dap;
 	uint16_t dcrdr;
+	uint8_t buf[2];
 	int retval;
 
-	mem_ap_read_buf_u16(swjdp, (uint8_t *)&dcrdr, 2, DCB_DCRDR);
+	retval = mem_ap_read(swjdp, buf, 2, 1, DCB_DCRDR, false);
+	if (retval != ERROR_OK)
+		return retval;
+
+	dcrdr = target_buffer_get_u16(target, buf);
 	*ctrl = (uint8_t)dcrdr;
 	*value = (uint8_t)(dcrdr >> 8);
 
@@ -1893,8 +1900,8 @@ static int cortex_m_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *c
 	/* write ack back to software dcc register
 	 * signify we have read data */
 	if (dcrdr & (1 << 0)) {
-		dcrdr = 0;
-		retval = mem_ap_write_buf_u16(swjdp, (uint8_t *)&dcrdr, 2, DCB_DCRDR);
+		target_buffer_set_u16(target, buf, 0);
+		retval = mem_ap_write(swjdp, buf, 2, 1, DCB_DCRDR, false);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1905,14 +1912,12 @@ static int cortex_m_dcc_read(struct adiv5_dap *swjdp, uint8_t *value, uint8_t *c
 static int cortex_m_target_request_data(struct target *target,
 	uint32_t size, uint8_t *buffer)
 {
-	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct adiv5_dap *swjdp = armv7m->arm.dap;
 	uint8_t data;
 	uint8_t ctrl;
 	uint32_t i;
 
 	for (i = 0; i < (size * 4); i++) {
-		cortex_m_dcc_read(swjdp, &data, &ctrl);
+		cortex_m_dcc_read(target, &data, &ctrl);
 		buffer[i] = data;
 	}
 
@@ -1924,8 +1929,6 @@ static int cortex_m_handle_target_request(void *priv)
 	struct target *target = priv;
 	if (!target_was_examined(target))
 		return ERROR_OK;
-	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct adiv5_dap *swjdp = armv7m->arm.dap;
 
 	if (!target->dbg_msg_enabled)
 		return ERROR_OK;
@@ -1934,7 +1937,7 @@ static int cortex_m_handle_target_request(void *priv)
 		uint8_t data;
 		uint8_t ctrl;
 
-		cortex_m_dcc_read(swjdp, &data, &ctrl);
+		cortex_m_dcc_read(target, &data, &ctrl);
 
 		/* check if we have data */
 		if (ctrl & (1 << 0)) {
@@ -1942,11 +1945,11 @@ static int cortex_m_handle_target_request(void *priv)
 
 			/* we assume target is quick enough */
 			request = data;
-			cortex_m_dcc_read(swjdp, &data, &ctrl);
+			cortex_m_dcc_read(target, &data, &ctrl);
 			request |= (data << 8);
-			cortex_m_dcc_read(swjdp, &data, &ctrl);
+			cortex_m_dcc_read(target, &data, &ctrl);
 			request |= (data << 16);
-			cortex_m_dcc_read(swjdp, &data, &ctrl);
+			cortex_m_dcc_read(target, &data, &ctrl);
 			request |= (data << 24);
 			target_request(target, request);
 		}
