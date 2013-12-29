@@ -279,8 +279,8 @@ static int cortex_a8_read_regs_through_mem(struct target *target, uint32_t addre
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = mem_ap_sel_read_buf_u32(swjdp, armv7a->memory_ap,
-			(uint8_t *)(&regfile[1]), 4*15, address);
+	retval = mem_ap_sel_read_buf(swjdp, armv7a->memory_ap,
+			(uint8_t *)(&regfile[1]), 4, 15, address);
 
 	return retval;
 }
@@ -1891,8 +1891,8 @@ static int cortex_a8_write_apb_ab_memory(struct target *target,
 		goto error_unset_dtr_w;
 
 	/* Do the write */
-	retval = mem_ap_sel_write_buf_u32_noincr(swjdp, armv7a->debug_ap,
-					tmp_buff, (total_u32)<<2, armv7a->debug_base + CPUDBG_DTRRX);
+	retval = mem_ap_sel_write_buf_noincr(swjdp, armv7a->debug_ap,
+					tmp_buff, 4, total_u32, armv7a->debug_base + CPUDBG_DTRRX);
 	if (retval != ERROR_OK)
 		goto error_unset_dtr_w;
 
@@ -2011,7 +2011,7 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 	dscr = (dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_FAST_MODE;
 	buff32[1] = dscr;
 	/*  group the 2 access CPUDBG_ITR 0x84 and CPUDBG_DSCR 0x88 */
-	retval += mem_ap_sel_write_buf_u32(swjdp, armv7a->debug_ap, (uint8_t *)buff32, 8,
+	retval += mem_ap_sel_write_buf(swjdp, armv7a->debug_ap, (uint8_t *)buff32, 4, 2,
 			armv7a->debug_base + CPUDBG_ITR);
 	if (retval != ERROR_OK)
 		goto error_unset_dtr_r;
@@ -2025,7 +2025,7 @@ static int cortex_a8_read_apb_ab_memory(struct target *target,
 		 *
 		 * This data is read in aligned to 32 bit boundary, hence may need shifting later.
 		 */
-		retval = mem_ap_sel_read_buf_u32_noincr(swjdp, armv7a->debug_ap, (uint8_t *)tmp_buff, (total_u32-1) * 4,
+		retval = mem_ap_sel_read_buf_noincr(swjdp, armv7a->debug_ap, (uint8_t *)tmp_buff, 4, total_u32 - 1,
 									armv7a->debug_base + CPUDBG_DTRTX);
 		if (retval != ERROR_OK)
 			goto error_unset_dtr_r;
@@ -2112,21 +2112,7 @@ static int cortex_a8_read_phys_memory(struct target *target,
 		if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
 
 			/* read memory through AHB-AP */
-
-			switch (size) {
-				case 4:
-					retval = mem_ap_sel_read_buf_u32(swjdp, armv7a->memory_ap,
-						buffer, 4 * count, address);
-					break;
-				case 2:
-					retval = mem_ap_sel_read_buf_u16(swjdp, armv7a->memory_ap,
-						buffer, 2 * count, address);
-					break;
-				case 1:
-					retval = mem_ap_sel_read_buf_u8(swjdp, armv7a->memory_ap,
-						buffer, count, address);
-					break;
-			}
+			retval = mem_ap_sel_read_buf(swjdp, armv7a->memory_ap, buffer, size, count, address);
 		} else {
 
 			/* read memory through APB-AP */
@@ -2206,22 +2192,7 @@ static int cortex_a8_write_phys_memory(struct target *target,
 		if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
 
 			/* write memory through AHB-AP */
-
-			switch (size) {
-				case 4:
-					retval = mem_ap_sel_write_buf_u32(swjdp, armv7a->memory_ap,
-						buffer, 4 * count, address);
-					break;
-				case 2:
-					retval = mem_ap_sel_write_buf_u16(swjdp, armv7a->memory_ap,
-						buffer, 2 * count, address);
-					break;
-				case 1:
-					retval = mem_ap_sel_write_buf_u8(swjdp, armv7a->memory_ap,
-						buffer, count, address);
-					break;
-			}
-
+			retval = mem_ap_sel_write_buf(swjdp, armv7a->memory_ap, buffer, size, count, address);
 		} else {
 
 			/* write memory through APB-AP */

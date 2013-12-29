@@ -368,22 +368,6 @@ int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, ui
 	return retval;
 }
 
-/* Compatibility wrappers around mem_ap_write(). Note that the count is in bytes for these. */
-int mem_ap_write_buf_u32(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address, bool addr_incr)
-{
-	return mem_ap_write(dap, buffer, 4, count / 4, address, true);
-}
-
-int mem_ap_write_buf_u16(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
-{
-	return mem_ap_write(dap, buffer, 2, count / 2, address, true);
-}
-
-int mem_ap_write_buf_u8(struct adiv5_dap *dap, const uint8_t *buffer, int count, uint32_t address)
-{
-	return mem_ap_write(dap, buffer, 1, count, address, true);
-}
-
 /**
  * Synchronous read of a block of memory, using a specific access size.
  *
@@ -510,26 +494,6 @@ int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t 
 	return retval;
 }
 
-/* Compatibility wrappers around mem_ap_read(). Note that the count is in bytes for these (despite
- * what their doxygen documentation said). */
-int mem_ap_read_buf_u32(struct adiv5_dap *dap, uint8_t *buffer,
-		int count, uint32_t address, bool addr_incr)
-{
-	return mem_ap_read(dap, buffer, 4, count / 4, address, addr_incr);
-}
-
-int mem_ap_read_buf_u16(struct adiv5_dap *dap, uint8_t *buffer,
-		int count, uint32_t address)
-{
-	return mem_ap_read(dap, buffer, 2, count / 2, address, true);
-}
-
-int mem_ap_read_buf_u8(struct adiv5_dap *dap, uint8_t *buffer,
-		int count, uint32_t address)
-{
-	return mem_ap_read(dap, buffer, 1, count, address, true);
-}
-
 /*--------------------------------------------------------------------*/
 /*          Wrapping function with selection of AP                    */
 /*--------------------------------------------------------------------*/
@@ -561,60 +525,32 @@ int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
 	return mem_ap_write_atomic_u32(swjdp, address, value);
 }
 
-int mem_ap_sel_read_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+int mem_ap_sel_read_buf(struct adiv5_dap *swjdp, uint8_t ap,
+		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
-	return mem_ap_read_buf_u8(swjdp, buffer, count, address);
+	return mem_ap_read(swjdp, buffer, size, count, address, true);
 }
 
-int mem_ap_sel_read_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+int mem_ap_sel_write_buf(struct adiv5_dap *swjdp, uint8_t ap,
+		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
-	return mem_ap_read_buf_u16(swjdp, buffer, count, address);
+	return mem_ap_write(swjdp, buffer, size, count, address, true);
 }
 
-int mem_ap_sel_read_buf_u32_noincr(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+int mem_ap_sel_read_buf_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
-	return mem_ap_read_buf_u32(swjdp, buffer, count, address, false);
+	return mem_ap_read(swjdp, buffer, size, count, address, false);
 }
 
-int mem_ap_sel_read_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
-		uint8_t *buffer, int count, uint32_t address)
+int mem_ap_sel_write_buf_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
 	dap_ap_select(swjdp, ap);
-	return mem_ap_read_buf_u32(swjdp, buffer, count, address, true);
-}
-
-int mem_ap_sel_write_buf_u8(struct adiv5_dap *swjdp, uint8_t ap,
-		const uint8_t *buffer, int count, uint32_t address)
-{
-	dap_ap_select(swjdp, ap);
-	return mem_ap_write_buf_u8(swjdp, buffer, count, address);
-}
-
-int mem_ap_sel_write_buf_u16(struct adiv5_dap *swjdp, uint8_t ap,
-		const uint8_t *buffer, int count, uint32_t address)
-{
-	dap_ap_select(swjdp, ap);
-	return mem_ap_write_buf_u16(swjdp, buffer, count, address);
-}
-
-int mem_ap_sel_write_buf_u32(struct adiv5_dap *swjdp, uint8_t ap,
-		const uint8_t *buffer, int count, uint32_t address)
-{
-	dap_ap_select(swjdp, ap);
-	return mem_ap_write_buf_u32(swjdp, buffer, count, address, true);
-}
-
-int mem_ap_sel_write_buf_u32_noincr(struct adiv5_dap *swjdp, uint8_t ap,
-		const uint8_t *buffer, int count, uint32_t address)
-{
-	dap_ap_select(swjdp, ap);
-	return mem_ap_write_buf_u32(swjdp, buffer, count, address, false);
+	return mem_ap_write(swjdp, buffer, size, count, address, false);
 }
 
 #define MDM_REG_STAT		0x00
