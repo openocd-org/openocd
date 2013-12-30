@@ -7973,6 +7973,17 @@ storage bit in the device is tested as zero and as one.
 Run all of the above tests over a specified memory region.
 @end deffn
 
+@section Firmware recovery helpers
+@cindex Firmware recovery
+
+OpenOCD includes an easy-to-use script to faciliate mass-market
+devices recovery with JTAG.
+
+For quickstart instructions run:
+@example
+openocd -f tools/firmware-recovery.tcl -c firmware_help
+@end example
+
 @node TFTP
 @chapter TFTP
 @cindex TFTP
