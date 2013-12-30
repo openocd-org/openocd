@@ -4,6 +4,7 @@ echo "Use -c firmware_help to get help\n"
 set known_boards {
     "asus-rt-n16		ASUS RT-N16"
     "linksys-wrt54gl		Linksys WRT54GL v1.1"
+    "netgear-dg834v3		Netgear DG834G v3"
 }
 
 proc firmware_help { } {
