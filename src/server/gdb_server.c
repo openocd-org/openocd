@@ -1352,6 +1352,12 @@ static int gdb_read_memory_packet(struct connection *connection,
 
 	len = strtoul(separator + 1, NULL, 16);
 
+	if (!len) {
+		LOG_WARNING("invalid read memory packet received (len == 0)");
+		gdb_put_packet(connection, NULL, 0);
+		return ERROR_OK;
+	}
+
 	buffer = malloc(len);
 
 	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
