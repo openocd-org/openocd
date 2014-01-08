@@ -868,7 +868,7 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 	free(cmd_name);
 
 	if (is_match) {
-		if (c->usage) {
+		if (c->usage && strlen(c->usage) > 0) {
 			LOG_USER_N(" ");
 			command_help_show_wrap(c->usage, 0, n + 5);
 		} else
