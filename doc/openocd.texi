@@ -99,8 +99,8 @@ Free Documentation License''.
 @unnumbered About
 @cindex about
 
-OpenOCD was created by Dominic Rath as part of a diploma thesis written at the
-University of Applied Sciences Augsburg (@uref{http://www.fh-augsburg.de}).
+OpenOCD was created by Dominic Rath as part of a 2005 diploma thesis written
+at the University of Applied Sciences Augsburg (@uref{http://www.hs-augsburg.de}).
 Since that time, the project has grown into an active open-source project,
 supported by a diverse community of software and hardware developers from
 around the world.
@@ -129,7 +129,7 @@ they are called. (There are also product naming differences.)
 These adapters are sometimes packaged as discrete dongles, which
 may generically be called @dfn{hardware interface dongles}.
 Some development boards also integrate them directly, which may
-let the development board can be directly connected to the debug
+let the development board connect directly to the debug
 host over USB (and sometimes also to power it over USB).
 
 For example, a @dfn{JTAG Adapter} supports JTAG
@@ -142,7 +142,7 @@ scan operations.
 
 There are also @dfn{SWD Adapters} that support Serial Wire Debug (SWD)
 signaling to communicate with some newer ARM cores, as well as debug
-adapters which support both JTAG and SWD transports. SWD only supports
+adapters which support both JTAG and SWD transports. SWD supports only
 debugging, whereas JTAG also supports boundary scan operations.
 
 For some chips, there are also @dfn{Programming Adapters} supporting
@@ -151,8 +151,8 @@ support for on-chip debugging or boundary scan.
 (At this writing, OpenOCD does not support such non-debug adapters.)
 
 
-@b{Dongles:} OpenOCD currently supports many types of hardware dongles: USB
-based, parallel port based, and other standalone boxes that run
+@b{Dongles:} OpenOCD currently supports many types of hardware dongles:
+USB-based, parallel port-based, and other standalone boxes that run
 OpenOCD internally. @xref{Debug Adapter Hardware}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
@@ -160,11 +160,11 @@ ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x) and
 Cortex-M3 (Stellaris LM3, ST STM32 and Energy Micro EFM32) based cores to be
 debugged via the GDB protocol.
 
-@b{Flash Programing:} Flash writing is supported for external CFI
-compatible NOR flashes (Intel and AMD/Spansion command set) and several
+@b{Flash Programming:} Flash writing is supported for external
+CFI-compatible NOR flashes (Intel and AMD/Spansion command set) and several
 internal flashes (LPC1700, LPC1800, LPC2000, LPC4300, AT91SAM7, AT91SAM3U,
 STR7x, STR9x, LM3, STM32x and EFM32). Preliminary support for various NAND flash
-controllers (LPC3180, Orion, S3C24xx, more) controller is included.
+controllers (LPC3180, Orion, S3C24xx, more) is included.
 
 @section OpenOCD Web Site
 
@@ -218,10 +218,10 @@ documentation, as well as more conventional bug fixes and enhancements.
 The resources in this chapter are available for developers wishing to explore
 or expand the OpenOCD source code.
 
-@section OpenOCD GIT Repository
+@section OpenOCD Git Repository
 
 During the 0.3.x release cycle, OpenOCD switched from Subversion to
-a GIT repository hosted at SourceForge. The repository URL is:
+a Git repository hosted at SourceForge. The repository URL is:
 
 @uref{git://git.code.sf.net/p/openocd/code}
 
@@ -233,11 +233,11 @@ You may prefer to use a mirror and the HTTP protocol:
 
 @uref{http://repo.or.cz/r/openocd.git}
 
-With standard GIT tools, use @command{git clone} to initialize
+With standard Git tools, use @command{git clone} to initialize
 a local repository, and @command{git pull} to update it.
 There are also gitweb pages letting you browse the repository
 with a web browser, or download arbitrary snapshots without
-needing a GIT client:
+needing a Git client:
 
 @uref{http://repo.or.cz/w/openocd.git}
 
@@ -260,7 +260,7 @@ processes, and similar documentation:
 
 This document is a work-in-progress, but contributions would be welcome
 to fill in the gaps. All of the source files are provided in-tree,
-listed in the Doxyfile configuration in the top of the source tree.
+listed in the Doxyfile configuration at the top of the source tree.
 
 @section OpenOCD Developer Mailing List
 
@@ -291,16 +291,16 @@ using Trac for its bug database:
 @cindex USB Adapter
 @cindex RTCK
 
-Defined: @b{dongle}: A small device that plugins into a computer and serves as
+Defined: @b{dongle}: A small device that plugs into a computer and serves as
 an adapter .... [snip]
 
 In the OpenOCD case, this generally refers to @b{a small adapter} that
-attaches to your computer via USB or the Parallel Printer Port. One
-exception is the Zylin ZY1000, packaged as a small box you attach via
-an ethernet cable. The Zylin ZY1000 has the advantage that it does not
+attaches to your computer via USB or the parallel port. One
+exception is the Ultimate Solutions ZY1000, packaged as a small box you
+attach via an ethernet cable. The ZY1000 has the advantage that it does not
 require any drivers to be installed on the developer PC. It also has
 a built in web interface. It supports RTCK/RCLK or adaptive clocking
-and has a built in relay to power cycle targets remotely.
+and has a built-in relay to power cycle targets remotely.
 
 
 @section Choosing a Dongle
@@ -316,17 +316,17 @@ Does your dongle support it? You might need a level converter.
 @item @b{Pinout} What pinout does your target board use?
 Does your dongle support it? You may be able to use jumper
 wires, or an "octopus" connector, to convert pinouts.
-@item @b{Connection} Does your computer have the USB, printer, or
+@item @b{Connection} Does your computer have the USB, parallel, or
 Ethernet port needed?
 @item @b{RTCK} Do you expect to use it with ARM chips and boards with
-RTCK support? Also known as ``adaptive clocking''
+RTCK support (also known as ``adaptive clocking'')?
 @end enumerate
 
 @section Stand-alone JTAG Probe
 
 The ZY1000 from Ultimate Solutions is technically not a dongle but a
-stand-alone JTAG probe that unlikemost dongles doesn’t require any drivers
-running on the developers host computer.
+stand-alone JTAG probe that, unlike most dongles, doesn't require any drivers
+running on the developer's host computer.
 Once installed on a network using DHCP or a static IP assignment, users can
 access the ZY1000 probe locally or remotely from any host with access to the
 IP address assigned to the probe.
@@ -340,16 +340,16 @@ to power cycle the target remotely.
 
 For more information, visit:
 
-@b{ZY1000} See: @url{http://www.ultsol.com/index.php/component/content/article/8/33-zylin-zy1000-jtag-probe}
+@b{ZY1000} See: @url{http://www.ultsol.com/index.php/component/content/article/8/210-zylin-zy1000-main}
 
 @section USB FT2232 Based
 
-There are many USB JTAG dongles on the market, many of them are based
+There are many USB JTAG dongles on the market, many of them based
 on a chip from ``Future Technology Devices International'' (FTDI)
 known as the FTDI FT2232; this is a USB full speed (12 Mbps) chip.
 See: @url{http://www.ftdichip.com} for more information.
 In summer 2009, USB high speed (480 Mbps) versions of these FTDI
-chips are starting to become available in JTAG adapters. Around 2012 a new
+chips started to become available in JTAG adapters. Around 2012, a new
 variant appeared - FT232H - this is a single-channel version of FT2232H.
 (Adapters using those high speed FT2232H or FT232H chips may support adaptive
 clocking.)
@@ -361,7 +361,7 @@ and one can be used for a UART adapter at the same time the
 other one is used to provide a debug adapter.
 
 Also, some development boards integrate an FT2232 chip to serve as
-a built-in low cost debug adapter and usb-to-serial solution.
+a built-in low-cost debug adapter and USB-to-serial solution.
 
 @itemize @bullet
 @item @b{usbjtag}
@@ -423,7 +423,7 @@ These devices also show up as FTDI devices, but are not
 protocol-compatible with the FT2232 devices. They are, however,
 protocol-compatible among themselves. USB-JTAG devices typically consist
 of a FT245 followed by a CPLD that understands a particular protocol,
-or emulate this protocol using some other hardware.
+or emulates this protocol using some other hardware.
 
 They may appear under different USB VID/PID depending on the particular
 product. The driver can be configured to search for any VID/PID pair
@@ -477,9 +477,9 @@ They only work with ST Micro chips, notably STM32 and STM8.
 @* Link: @url{http://www.st.com/internet/evalboard/product/251168.jsp}
 @end itemize
 
-For info the original ST-LINK enumerates using the mass storage usb class, however
-it's implementation is completely broken. The result is this causes issues under linux.
-The simplest solution is to get linux to ignore the ST-LINK using one of the following methods:
+For info the original ST-LINK enumerates using the mass storage usb class; however,
+its implementation is completely broken. The result is this causes issues under Linux.
+The simplest solution is to get Linux to ignore the ST-LINK using one of the following methods:
 @itemize @bullet
 @item modprobe -r usb-storage && modprobe usb-storage quirks=483:3744:i
 @item add "options usb-storage quirks=483:3744:i" to /etc/modprobe.conf
@@ -519,7 +519,7 @@ evaluation boards. This is the adapter fitted to the Stellaris LaunchPad.
 
 @section IBM PC Parallel Printer Port Based
 
-The two well known ``JTAG Parallel Ports'' cables are the Xilnx DLC5
+The two well-known ``JTAG Parallel Ports'' cables are the Xilinx DLC5
 and the Macraigor Wiggler. There are many clones and variations of
 these on the market.
 
@@ -597,9 +597,9 @@ command interpreter.
 All commands presented in this Guide are extensions to Jim-Tcl.
 You can use them as simple commands, without needing to learn
 much of anything about Tcl.
-Alternatively, can write Tcl programs with them.
+Alternatively, you can write Tcl programs with them.
 
-You can learn more about Jim at its website, @url{http://jim.berlios.de}.
+You can learn more about Jim at its website, @url{http://jim.tcl.tk}.
 There is an active and responsive community, get on the mailing list
 if you have any questions. Jim-Tcl maintainers also lurk on the
 OpenOCD mailing list.
@@ -621,7 +621,7 @@ enabled in OpenOCD.
 @item @b{Scripts}
 @* OpenOCD configuration scripts are Jim-Tcl Scripts. OpenOCD's
 command interpreter today is a mixture of (newer)
-Jim-Tcl commands, and (older) the orginal command interpreter.
+Jim-Tcl commands, and the (older) original command interpreter.
 
 @item @b{Commands}
 @* At the OpenOCD telnet command line (or via the GDB monitor command) one
@@ -631,9 +631,9 @@ as Tcl scripts, from a @file{startup.tcl} file internal to the server.
 
 @item @b{Historical Note}
 @* Jim-Tcl was introduced to OpenOCD in spring 2008. Fall 2010,
-before OpenOCD 0.5 release OpenOCD switched to using Jim Tcl
-as a git submodule, which greatly simplified upgrading Jim Tcl
-to benefit from new features and bugfixes in Jim Tcl.
+before OpenOCD 0.5 release, OpenOCD switched to using Jim-Tcl
+as a Git submodule, which greatly simplified upgrading Jim-Tcl
+to benefit from new features and bugfixes in Jim-Tcl.
 
 @item @b{Need a crash course in Tcl?}
 @*@xref{Tcl Crash Course}.
@@ -701,10 +701,11 @@ customization even if this works. @xref{OpenOCD Project Setup}.
 
 If you find a script for your JTAG adapter, and for your board or
 target, you may be able to hook up your JTAG adapter then start
-the server like:
+the server with some variation of one of the following:
 
 @example
 openocd -f interface/ADAPTER.cfg -f board/MYBOARD.cfg
+openocd -f interface/ftdi/ADAPTER.cfg -f board/MYBOARD.cfg
 @end example
 
 You might also need to configure which reset signals are present,
@@ -767,10 +768,10 @@ correctly via e.g. GDB monitor commands in a GDB init script.
 @chapter OpenOCD Project Setup
 
 To use OpenOCD with your development projects, you need to do more than
-just connecting the JTAG adapter hardware (dongle) to your development board
-and then starting the OpenOCD server.
-You also need to configure that server so that it knows
-about that adapter and board, and helps your work.
+just connect the JTAG adapter hardware (dongle) to your development board
+and start the OpenOCD server.
+You also need to configure your OpenOCD server so that it knows
+about your adapter and board, and helps your work.
 You may also want to connect OpenOCD to GDB, possibly
 using Eclipse or some other GUI.
 
@@ -828,8 +829,9 @@ A USB, parallel, or serial port connector will go to the host which
 you are using to run OpenOCD.
 For Ethernet, consult the documentation and your network administrator.
 
-For USB based JTAG adapters you have an easy sanity check at this point:
-does the host operating system see the JTAG adapter? If that host is an
+For USB-based JTAG adapters you have an easy sanity check at this point:
+does the host operating system see the JTAG adapter? If you're running
+Linux, try the @command{lsusb} command. If that host is an
 MS-Windows host, you'll need to install a driver before OpenOCD works.
 
 @item @emph{Connect the adapter's power supply, if needed.}
@@ -986,7 +988,7 @@ will help support users of any board using that chip.
 
 @item
 You may may need to write some C code.
-It may be as simple as a supporting a new ft2232 or parport
+It may be as simple as supporting a new FT2232 or parport
 based adapter; a bit more involved, like a NAND or NOR flash
 controller driver; or a big piece of work like supporting
 a new chip architecture.
@@ -1548,7 +1550,7 @@ about a given board that user config files need to know.
 In summary the board files should contain (if present)
 
 @enumerate
-@item One or more @command{source [target/...cfg]} statements
+@item One or more @command{source [find target/...cfg]} statements
 @item NOR flash configuration (@pxref{norconfiguration,,NOR Configuration})
 @item NAND flash configuration (@pxref{nandconfiguration,,NAND Configuration})
 @item Target @code{reset} handlers for SDRAM and I/O configuration
@@ -1746,16 +1748,16 @@ The concept of @code{init_board} procedure is very similar to @code{init_targets
 (@xref{theinittargetsprocedure,,The init_targets procedure}.) - it's a replacement of ``linear''
 configuration scripts. This procedure is meant to be executed when OpenOCD enters run stage
 (@xref{enteringtherunstage,,Entering the Run Stage},) after @code{init_targets}. The idea to have
-spearate @code{init_targets} and @code{init_board} procedures is to allow the first one to configure
+separate @code{init_targets} and @code{init_board} procedures is to allow the first one to configure
 everything target specific (internal flash, internal RAM, etc.) and the second one to configure
 everything board specific (reset signals, chip frequency, reset-init event handler, external memory, etc.).
 Additionally ``linear'' board config file will most likely fail when target config file uses
 @code{init_targets} scheme (``linear'' script is executed before @code{init} and @code{init_targets} - after),
 so separating these two configuration stages is very convenient, as the easiest way to overcome this
 problem is to convert board config file to use @code{init_board} procedure. Board config scripts don't
-need to override @code{init_targets} defined in target config files when they only need to to add some specifics.
+need to override @code{init_targets} defined in target config files when they only need to add some specifics.
 
-Just as @code{init_targets}, the @code{init_board} procedure can be overriden by ``next level'' script (which sources
+Just as @code{init_targets}, the @code{init_board} procedure can be overridden by ``next level'' script (which sources
 the original), allowing greater code reuse.
 
 @example
@@ -3566,7 +3568,7 @@ TAPs serve many roles, including:
 
 @itemize @bullet
 @item @b{Debug Target} A CPU TAP can be used as a GDB debug target
-@item @b{Flash Programing} Some chips program the flash directly via JTAG.
+@item @b{Flash Programming} Some chips program the flash directly via JTAG.
 Others do it indirectly, making a CPU do it.
 @item @b{Program Download} Using the same CPU support GDB uses,
 you can initialize a DRAM controller, download code to DRAM, and then
