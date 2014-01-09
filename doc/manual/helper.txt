@@ -23,7 +23,7 @@ portability API.
 
 The Jim API provides access to a small-footprint TCL implementation.
 
-Visit http://jim.berlios.de/ for more information on Jim.
+Visit http://jim.tcl.tk/ for more information on Jim.
 
 This section needs to be expanded to describe OpenOCD's Jim API.
 
@@ -33,8 +33,8 @@ This section needs to be expanded to describe OpenOCD's Jim API.
 
 OpenOCD's command API allows modules to register callbacks that are then
 available to the scripting services.  It provides the mechanism for
-these commands to be dispatched to the modlue using a standard
-interfaces.  It provides macros for defining functions that use and
+these commands to be dispatched to the module using a standard
+interface.  It provides macros for defining functions that use and
 extend this interface.
 
 @section helpercmdhandler Command Handlers
@@ -46,7 +46,7 @@ another layer of handlers.
 @subsection helpercmdhandlerdef Defining and Calling Command Handlers
 
 These functions should be defined using the @c COMMAND_HANDLER macro.
-These methods must be defined as static, as their principle entry point
+These methods must be defined as static, as their principal entry point
 should be the run_command dispatch mechanism.
 
 Command helper functions that require access to the full set of
@@ -56,7 +56,7 @@ among several files (e.g. @c s3c24xx_nand.h).
 
 Both types of routines must be called using the @c CALL_COMMAND_HANDLER macro.
 Calls using this macro to normal handlers require the name of the command
-handler (which can a name or function pointer).  Calls to helpers and
+handler (which can be a name or function pointer).  Calls to helpers and
 derived handlers must pass those extra parameters specified by their
 definitions; however, lexical capture is used for the core parameters.
 This dirty trick is being used as a stop-gap measure while the API is
@@ -69,7 +69,7 @@ handlers or helpers:
 
 - @c COMMAND_HANDLER - declare or define a command handler.
 - @c COMMAND_HELPER - declare or define a derived command handler or helper.
-- @c CALL_COMMAND_COMMAND - call a command handler/helper.
+- @c CALL_COMMAND_HANDLER - call a command handler/helper.
 
 @subsection helpercmdhandlermacros Command Handler Macros
 
@@ -119,7 +119,7 @@ added in the same context as the other commands in the array.
 @section helpercmdprimer Command Development Primer
 
 This @ref primercommand provides details about the @c hello module,
-showing how the pieces desrcribed on this page fit together.
+showing how the pieces described on this page fit together.
 
  */
 
