@@ -4133,22 +4133,6 @@ are examples; and there are many more.
 
 Several commands let you examine the list of targets:
 
-@deffn Command {target count}
-@emph{Note: target numbers are deprecated; don't use them.
-They will be removed shortly after August 2010, including this command.
-Iterate target using @command{target names}, not by counting.}
-
-Returns the number of targets, @math{N}.
-The highest numbered target is @math{N - 1}.
-@example
-set c [target count]
-for @{ set x 0 @} @{ $x < $c @} @{ incr x @} @{
-    # Assuming you have created this function
-    print_target_details $x
-@}
-@end example
-@end deffn
-
 @deffn Command {target current}
 Returns the name of the current target.
 @end deffn
@@ -4159,18 +4143,6 @@ Lists the names of all current targets in the list.
 foreach t [target names] @{
     puts [format "Target: %s\n" $t]
 @}
-@end example
-@end deffn
-
-@deffn Command {target number} number
-@emph{Note: target numbers are deprecated; don't use them.
-They will be removed shortly after August 2010, including this command.}
-
-The list of targets is numbered starting at zero.
-This command returns the name of the target at index @var{number}.
-@example
-set thename [target number $x]
-puts [format "Target %d is: %s\n" $x $thename]
 @end example
 @end deffn
 

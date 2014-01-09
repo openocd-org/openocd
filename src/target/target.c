@@ -5333,55 +5333,6 @@ static int jim_target_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return target_create(&goi);
 }
 
-static int jim_target_number(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	Jim_GetOptInfo goi;
-	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
-
-	/* It's OK to remove this mechanism sometime after August 2010 or so */
-	LOG_WARNING("don't use numbers as target identifiers; use names");
-	if (goi.argc != 1) {
-		Jim_SetResultFormatted(goi.interp, "usage: target number <number>");
-		return JIM_ERR;
-	}
-	jim_wide w;
-	int e = Jim_GetOpt_Wide(&goi, &w);
-	if (e != JIM_OK)
-		return JIM_ERR;
-
-	struct target *target;
-	for (target = all_targets; NULL != target; target = target->next) {
-		if (target->target_number != w)
-			continue;
-
-		Jim_SetResultString(goi.interp, target_name(target), -1);
-		return JIM_OK;
-	}
-	{
-		Jim_Obj *wObj = Jim_NewIntObj(goi.interp, w);
-		Jim_SetResultFormatted(goi.interp,
-			"Target: number %#s does not exist", wObj);
-		Jim_FreeNewObj(interp, wObj);
-	}
-	return JIM_ERR;
-}
-
-static int jim_target_count(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "<no parameters>");
-		return JIM_ERR;
-	}
-	unsigned count = 0;
-	struct target *target = all_targets;
-	while (NULL != target) {
-		target = target->next;
-		count++;
-	}
-	Jim_SetResult(interp, Jim_NewIntObj(interp, count));
-	return JIM_OK;
-}
-
 static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "init",
@@ -5415,21 +5366,6 @@ static const struct command_registration target_subcommand_handlers[] = {
 		.mode = COMMAND_ANY,
 		.jim_handler = jim_target_names,
 		.help = "Returns the names of all targets as a list of strings",
-	},
-	{
-		.name = "number",
-		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_number,
-		.usage = "number",
-		.help = "Returns the name of the numbered target "
-			"(DEPRECATED)",
-	},
-	{
-		.name = "count",
-		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_count,
-		.help = "Returns the number of targets as an integer "
-			"(DEPRECATED)",
 	},
 	{
 		.name = "smp",
