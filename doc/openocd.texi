@@ -3593,7 +3593,7 @@ It then invokes the logic of @command{jtag arp_init}.
 TAPs serve many roles, including:
 
 @itemize @bullet
-@item @b{Debug Target} A CPU TAP can be used as a GDB debug target
+@item @b{Debug Target} A CPU TAP can be used as a GDB debug target.
 @item @b{Flash Programming} Some chips program the flash directly via JTAG.
 Others do it indirectly, making a CPU do it.
 @item @b{Program Download} Using the same CPU support GDB uses,
@@ -3601,7 +3601,7 @@ you can initialize a DRAM controller, download code to DRAM, and then
 start running that code.
 @item @b{Boundary Scan} Most chips support boundary scan, which
 helps test for board assembly problems like solder bridges
-and missing connections
+and missing connections.
 @end itemize
 
 OpenOCD must know about the active TAPs on your board(s).
@@ -3614,7 +3614,7 @@ probes flash memory, performs low-level JTAG operations, and more.
 @cindex scan chain
 
 TAPs are part of a hardware @dfn{scan chain},
-which is daisy chain of TAPs.
+which is a daisy chain of TAPs.
 They also need to be added to
 OpenOCD's software mirror of that hardware list,
 giving each member a name and associating other data with it.
@@ -3642,7 +3642,7 @@ Here's what the scan chain might look like for a chip more than one TAP:
 
 OpenOCD can detect some of that information, but not all
 of it. @xref{autoprobing,,Autoprobing}.
-Unfortunately those TAPs can't always be autoconfigured,
+Unfortunately, those TAPs can't always be autoconfigured,
 because not all devices provide good support for that.
 JTAG doesn't require supporting IDCODE instructions, and
 chips with JTAG routers may not link TAPs into the chain
@@ -3662,8 +3662,8 @@ by a given chip.
 Board configuration files combine all the targets on a board,
 and so forth.
 Note that @emph{the order in which TAPs are declared is very important.}
-It must match the order in the JTAG scan chain, both inside
-a single chip and between them.
+That declaration order must match the order in the JTAG scan chain,
+both inside a single chip and between them.
 @xref{faqtaporder,,FAQ TAP Order}.
 
 For example, the ST Microsystems STR912 chip has
@@ -3680,9 +3680,9 @@ jtag newtap str912 cpu ... params ...
 jtag newtap str912 bs ... params ...
 @end example
 
-Actual config files use a variable instead of literals like
-@option{str912}, to support more than one chip of each type.
-@xref{Config File Guidelines}.
+Actual config files typically use a variable such as @code{$_CHIPNAME}
+instead of literals like @option{str912}, to support more than one chip
+of each type.  @xref{Config File Guidelines}.
 
 @deffn Command {jtag names}
 Returns the names of all current TAPs in the scan chain.
@@ -3754,19 +3754,19 @@ The @var{tapname} reflects the role of that TAP,
 and should follow this convention:
 
 @itemize @bullet
-@item @code{bs} -- For boundary scan if this is a seperate TAP;
+@item @code{bs} -- For boundary scan if this is a separate TAP;
 @item @code{cpu} -- The main CPU of the chip, alternatively
 @code{arm} and @code{dsp} on chips with both ARM and DSP CPUs,
-@code{arm1} and @code{arm2} on chips two ARMs, and so forth;
+@code{arm1} and @code{arm2} on chips with two ARMs, and so forth;
 @item @code{etb} -- For an embedded trace buffer (example: an ARM ETB11);
 @item @code{flash} -- If the chip has a flash TAP, like the str912;
-@item @code{jrc} -- For JTAG route controller (example: the ICEpick modules
+@item @code{jrc} -- For JTAG route controller (example: the ICEPick modules
 on many Texas Instruments chips, like the OMAP3530 on Beagleboards);
-@item @code{tap} -- Should be used only FPGA or CPLD like devices
+@item @code{tap} -- Should be used only for FPGA- or CPLD-like devices
 with a single TAP;
 @item @code{unknownN} -- If you have no idea what the TAP is for (N is a number);
 @item @emph{when in doubt} -- Use the chip maker's name in their data sheet.
-For example, the Freescale IMX31 has a SDMA (Smart DMA) with
+For example, the Freescale i.MX31 has a SDMA (Smart DMA) with
 a JTAG TAP; that TAP should be named @code{sdma}.
 @end itemize
 
@@ -3783,12 +3783,12 @@ A TAP may also provide optional @var{configparams}:
 @itemize @bullet
 @item @code{-disable} (or @code{-enable})
 @*Use the @code{-disable} parameter to flag a TAP which is not
-linked in to the scan chain after a reset using either TRST
+linked into the scan chain after a reset using either TRST
 or the JTAG state machine's @sc{reset} state.
 You may use @code{-enable} to highlight the default state
 (the TAP is linked in).
 @xref{enablinganddisablingtaps,,Enabling and Disabling TAPs}.
-@item @code{-expected-id} @var{number}
+@item @code{-expected-id} @var{NUMBER}
 @*A non-zero @var{number} represents a 32-bit IDCODE
 which you expect to find when the scan chain is examined.
 These codes are not required by all JTAG devices.
@@ -3815,7 +3815,7 @@ on entry to the @sc{ircapture} state, such as 0x01.
 JTAG requires the two LSBs of this value to be 01.
 By default, @code{-ircapture} and @code{-irmask} are set
 up to verify that two-bit value. You may provide
-additional bits, if you know them, or indicate that
+additional bits if you know them, or indicate that
 a TAP doesn't conform to the JTAG specification.
 @item @code{-irmask} @var{NUMBER}
 @*A mask used with @code{-ircapture}
@@ -3827,8 +3827,8 @@ there seems to be no problems with JTAG scan chain operations.
 
 @section Other TAP commands
 
-@deffn Command {jtag cget} dotted.name @option{-event} name
-@deffnx Command {jtag configure} dotted.name @option{-event} name string
+@deffn Command {jtag cget} dotted.name @option{-event} event_name
+@deffnx Command {jtag configure} dotted.name @option{-event} event_name handler
 At this writing this TAP attribute
 mechanism is used only for event handling.
 (It is not a direct analogue of the @code{cget}/@code{configure}
@@ -3876,7 +3876,7 @@ implement @command{jtag tapenable}
 by issuing the relevant JTAG commands.
 @end itemize
 
-If you need some action after each JTAG reset, which isn't actually
+If you need some action after each JTAG reset which isn't actually
 specific to any TAP (since you can't yet trust the scan chain's
 contents to be accurate), you might:
 
@@ -3895,8 +3895,8 @@ jtag configure CHIP.jrc -event post-reset @{
 
 In some systems, a @dfn{JTAG Route Controller} (JRC)
 is used to enable and/or disable specific JTAG TAPs.
-Many ARM based chips from Texas Instruments include
-an ``ICEpick'' module, which is a JRC.
+Many ARM-based chips from Texas Instruments include
+an ``ICEPick'' module, which is a JRC.
 Such chips include DaVinci and OMAP3 processors.
 
 A given TAP may not be visible until the JRC has been
