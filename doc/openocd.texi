@@ -3726,17 +3726,6 @@ The components of a dotted name should follow ``C'' symbol
 name rules: start with an alphabetic character, then numbers
 and underscores are OK; while others (including dots!) are not.
 
-@quotation Tip
-In older code, JTAG TAPs were numbered from 0..N.
-This feature is still present.
-However its use is highly discouraged, and
-should not be relied on; it will be removed by mid-2010.
-Update all of your scripts to use TAP names rather than numbers,
-by paying attention to the runtime warnings they trigger.
-Using TAP numbers in target configuration scripts prevents
-reusing those scripts on boards with multiple targets.
-@end quotation
-
 @section TAP Declaration Commands
 
 @c shouldn't this be(come) a {Config Command}?
