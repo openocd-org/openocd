@@ -931,7 +931,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 				 * and a new branch was encountered in cycle ctx->pipe_index + retval;
 				 */
 				LOG_WARNING(
-					"abandoned branch encountered, correctnes of analysis uncertain");
+					"abandoned branch encountered, correctness of analysis uncertain");
 				ctx->pipe_index += retval;
 				continue;
 			}
@@ -990,12 +990,12 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 
 			/* if we got here the branch was a normal PC change
 			 * (or a periodic synchronization point, which means the same for that matter)
-			 * if we didn't accquire a complete PC continue with the next cycle
+			 * if we didn't acquire a complete PC continue with the next cycle
 			 */
 			if (!ctx->pc_ok)
 				continue;
 
-			/* indirect branch to the exception vector means an exception occured */
+			/* indirect branch to the exception vector means an exception occurred */
 			if ((ctx->last_branch <= 0x20)
 				|| ((ctx->last_branch >= 0xffff0000) &&
 				(ctx->last_branch <= 0xffff0020))) {
@@ -1024,7 +1024,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					return retval;
 				else if (retval == ERROR_TRACE_INSTRUCTION_UNAVAILABLE) {
 					/* TODO: handle incomplete images
-					 * for now we just quit the analsysis*/
+					 * for now we just quit the analysis*/
 					return retval;
 				}
 			}
@@ -1195,7 +1195,7 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 	/* IGNORED:
 	 *  - CPRT tracing (coprocessor register transfers)
 	 *  - debug request (causes debug entry on trigger)
-	 *  - stall on FIFOFULL (preventing tracedata lossage)
+	 *  - stall on FIFOFULL (preventing tracedata loss)
 	 */
 	*mode = tracemode;
 
@@ -1347,7 +1347,7 @@ COMMAND_HANDLER(handle_etm_config_command)
 	 *    check whether our setting "took".
 	 *
 	 *  - The "clock" and "mode" bits are interpreted differently.
-	 *    See ARM IHI 0014O table 2-17 for the old behavior, and
+	 *    See ARM IHI 0014O table 2-17 for the old behaviour, and
 	 *    table 2-18 for the new.  With ETB it's best to specify
 	 *    "normal full" ...
 	 */
@@ -2026,7 +2026,7 @@ const struct command_registration etm_command_handlers[] = {
 	{
 		.name = "etm",
 		.mode = COMMAND_ANY,
-		.help = "Emebdded Trace Macrocell command group",
+		.help = "Embedded Trace Macrocell command group",
 		.usage = "",
 		.chain = etm_config_command_handlers,
 	},

@@ -165,7 +165,6 @@ static void etb_getbuf(jtag_callback_data_t arg)
 	*((uint32_t *)arg) = buf_get_u32(in, 0, 32);
 }
 
-
 static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 {
 	struct scan_field fields[3];
@@ -193,7 +192,7 @@ static int etb_read_ram(struct etb *etb, uint32_t *data, int num_frames)
 	jtag_add_dr_scan(etb->tap, 3, fields, TAP_IDLE);
 
 	for (i = 0; i < num_frames; i++) {
-		/* ensure nR/W reamins set to read */
+		/* ensure nR/W remains set to read */
 		buf_set_u32(&temp2, 0, 1, 0);
 
 		/* address remains set to 0x4 (RAM data) until we read the last frame */
@@ -442,7 +441,7 @@ static const struct command_registration etb_command_handlers[] = {
 	{
 		.name = "etb",
 		.mode = COMMAND_ANY,
-		.help = "Emebdded Trace Buffer command group",
+		.help = "Embedded Trace Buffer command group",
 		.chain = etb_config_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
