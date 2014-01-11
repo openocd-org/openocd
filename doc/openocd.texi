@@ -7950,11 +7950,11 @@ probably will not be usable with other XSVF tools.
 
 There is often a need to stress-test random access memory (RAM) for
 errors. OpenOCD comes with a Tcl implementation of well-known memory
-testing procedures allowing to detect all sorts of issues with
+testing procedures allowing the detection of all sorts of issues with
 electrical wiring, defective chips, PCB layout and other common
 hardware problems.
 
-To use them you usually need to initialise your RAM controller first,
+To use them, you usually need to initialise your RAM controller first;
 consult your SoC's documentation to get the recommended list of
 register operations and translate them to the corresponding
 @command{mww}/@command{mwb} commands.
@@ -7991,7 +7991,7 @@ Run all of the above tests over a specified memory region.
 @section Firmware recovery helpers
 @cindex Firmware recovery
 
-OpenOCD includes an easy-to-use script to faciliate mass-market
+OpenOCD includes an easy-to-use script to facilitate mass-market
 devices recovery with JTAG.
 
 For quickstart instructions run:
@@ -8002,7 +8002,7 @@ openocd -f tools/firmware-recovery.tcl -c firmware_help
 @node TFTP
 @chapter TFTP
 @cindex TFTP
-If OpenOCD runs on an embedded host(as ZY1000 does), then TFTP can
+If OpenOCD runs on an embedded host (as ZY1000 does), then TFTP can
 be used to access files on PCs (either the developer's PC or some other PC).
 
 The way this works on the ZY1000 is to prefix a filename by
@@ -8024,7 +8024,7 @@ a bit of googling to find something that fits your requirements.
 @node GDB and OpenOCD
 @chapter GDB and OpenOCD
 @cindex GDB
-OpenOCD complies with the remote gdbserver protocol, and as such can be used
+OpenOCD complies with the remote gdbserver protocol and, as such, can be used
 to debug remote targets.
 Setting up GDB to work with OpenOCD can involve several components:
 
@@ -8083,7 +8083,7 @@ GDB command line.
 
 With the remote protocol, GDB sessions start a little differently
 than they do when you're debugging locally.
-Here's an examples showing how to start a debug session with a
+Here's an example showing how to start a debug session with a
 small ARM program.
 In this case the program was linked to be loaded into SRAM on a Cortex-M3.
 Most programs would be written into flash (address 0) and run from there.
@@ -8176,7 +8176,7 @@ flash areas of the target and use hardware breakpoints by default. This means
 that the OpenOCD option @command{gdb_breakpoint_override} is not required when
 using a memory map. @xref{gdbbreakpointoverride,,gdb_breakpoint_override}.
 
-To view the configured memory map in GDB, use the GDB command @option{info mem}
+To view the configured memory map in GDB, use the GDB command @option{info mem}.
 All other unassigned addresses within GDB are treated as RAM.
 
 GDB 6.8 and higher set any memory area not in the memory map as inaccessible.
@@ -8275,8 +8275,8 @@ Currently supported rtos's include:
 @end itemize
 
 @quotation Note
-Before an RTOS can be detected it must export certain symbols otherwise it cannot be used by
-OpenOCD. Below is a list of the required symbols for each supported RTOS.
+Before an RTOS can be detected, it must export certain symbols; otherwise, it cannot
+be used by OpenOCD. Below is a list of the required symbols for each supported RTOS.
 @end quotation
 
 @table @code
