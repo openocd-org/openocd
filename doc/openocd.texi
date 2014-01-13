@@ -8307,9 +8307,9 @@ if @option{INCLUDE_vTaskDelete} is defined during the build.
 @cindex Tcl scripts
 @section API rules
 
-The commands are stateless. E.g. the telnet command line has a concept
-of currently active target, the Tcl API proc's take this sort of state
-information as an argument to each proc.
+Tcl commands are stateless; e.g. the @command{telnet} command has
+a concept of currently active target, the Tcl API proc's take this sort
+of state information as an argument to each proc.
 
 There are three main types of return values: single value, name value
 pair list and lists.
@@ -8317,38 +8317,44 @@ pair list and lists.
 Name value pair. The proc 'foo' below returns a name/value pair
 list.
 
-@verbatim
-
- >  set foo(me)  Duane
- >  set foo(you) Oyvind
- >  set foo(mouse) Micky
- >  set foo(duck) Donald
+@example
+>  set foo(me)  Duane
+>  set foo(you) Oyvind
+>  set foo(mouse) Micky
+>  set foo(duck) Donald
+@end example
 
 If one does this:
 
- >  set foo
+@example
+>  set foo
+@end example
 
 The result is:
 
-    me Duane you Oyvind mouse Micky duck Donald
+@example
+me Duane you Oyvind mouse Micky duck Donald
+@end example
 
 Thus, to get the names of the associative array is easy:
 
-     foreach { name value } [set foo] {
-                puts "Name: $name, Value: $value"
-     }
+@verbatim
+foreach { name value } [set foo] {
+        puts "Name: $name, Value: $value"
+}
 @end verbatim
 
-Lists returned must be relatively small. Otherwise a range
+Lists returned should be relatively small. Otherwise, a range
 should be passed in to the proc in question.
 
 @section Internal low-level Commands
 
-By low-level, the intent is a human would not directly use these commands.
+By "low-level," we mean commands that a human would typically not
+invoke directly.
 
-Low-level commands are (should be) prefixed with "ocd_", e.g.
+Low-level commands are (should be) prefixed with "ocd_"; e.g.
 @command{ocd_flash_banks}
-is the low level API upon which @command{flash banks} is implemented.
+is the low-level API upon which @command{flash banks} is implemented.
 
 @itemize @bullet
 @item @b{mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
@@ -8376,9 +8382,12 @@ holds one of the following values:
 @item @b{cygwin}   Running under Cygwin
 @item @b{darwin}   Darwin (Mac-OS) is the underlying operating sytem.
 @item @b{freebsd}  Running under FreeBSD
+@item @b{openbsd}  Running under OpenBSD
+@item @b{netbsd}   Running under NetBSD
 @item @b{linux}    Linux is the underlying operating sytem
 @item @b{mingw32}  Running under MingW32
 @item @b{winxx}    Built using Microsoft Visual Studio
+@item @b{ecos}     Running under eCos
 @item @b{other}    Unknown, none of the above.
 @end itemize
 
