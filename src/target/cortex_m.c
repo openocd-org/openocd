@@ -1728,7 +1728,7 @@ fail1:
 		free(cm->dwt_comparator_list);
 		goto fail0;
 	}
-	cache->name = "cortex-m3 dwt registers";
+	cache->name = "Cortex-M DWT registers";
 	cache->num_regs = 2 + cm->dwt_num_comp * 3;
 	cache->reg_list = calloc(cache->num_regs, sizeof *cache->reg_list);
 	if (!cache->reg_list) {
