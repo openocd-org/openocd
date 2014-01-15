@@ -60,7 +60,7 @@
 #define SAMD_PROCESSOR_M0	0x01
 #define SAMD_FAMILY_D		0x00
 #define SAMD_SERIES_20		0x00
-#define SAMD_SERIES_21      0x01
+#define SAMD_SERIES_21		0x01
 
 struct samd_part {
 	uint8_t id;
@@ -70,7 +70,7 @@ struct samd_part {
 };
 
 /* Known SAMD20 parts. See Table 12-8 in 42129F–SAM–10/2013 */
-static struct samd_part samd20_parts[] = {
+static const struct samd_part samd20_parts[] = {
 	{ 0x0, "SAMD20J18A", 256, 32 },
 	{ 0x1, "SAMD20J17A", 128, 16 },
 	{ 0x2, "SAMD20J16A", 64, 8 },
@@ -88,7 +88,7 @@ static struct samd_part samd20_parts[] = {
 };
 
 /* Known SAMD21 parts. */
-static struct samd_part samd21_parts[] = {
+static const struct samd_part samd21_parts[] = {
 	{ 0x0, "SAMD21J18A", 256, 32 },
 	{ 0x1, "SAMD21J17A", 128, 16 },
 	{ 0x2, "SAMD21J16A", 64, 8 },
@@ -113,12 +113,12 @@ struct samd_family {
 	uint8_t processor;
 	uint8_t family;
 	uint8_t series;
-	struct samd_part *parts;
+	const struct samd_part *parts;
 	size_t num_parts;
 };
 
 /* Known SAMD families */
-static struct samd_family samd_families[] = {
+static const struct samd_family samd_families[] = {
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_20,
 		samd20_parts, ARRAY_SIZE(samd20_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
@@ -137,7 +137,7 @@ struct samd_info {
 
 static struct samd_info *samd_chips;
 
-static struct samd_part *samd_find_part(uint32_t id)
+static const struct samd_part *samd_find_part(uint32_t id)
 {
 	uint8_t processor = (id >> 28);
 	uint8_t family = (id >> 24) & 0x0F;
@@ -180,7 +180,7 @@ static int samd_probe(struct flash_bank *bank)
 	uint32_t id, param;
 	int res;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
-	struct samd_part *part;
+	const struct samd_part *part;
 
 	if (chip->probed)
 		return ERROR_OK;
