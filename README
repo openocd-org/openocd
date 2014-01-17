@@ -101,10 +101,10 @@ JTAG adapters
 -------------
 
 AICE, ARM-JTAG-EW, ARM-USB-OCD, ARM-USB-TINY, AT91RM9200, axm0432,
-BCM2835, Bus Blaster, Buspirate, Chameleon, Cortino, DENX, DLC 5,
-DLP-USB1232H, embedded projects, eStick, FlashLINK, FlossJTAG,
-Flyswatter, Flyswatter2, Gateworks, Hoegl, ICDI, ICEBear, J-Link,
-JTAG VPI, JTAGkey, JTAGkey2, JTAG-lock-pick, KT-Link, Lisa/L,
+BCM2835, Bus Blaster, Buspirate, Chameleon, CMSIS-DAP, Cortino, DENX,
+DLC 5, DLP-USB1232H, embedded projects, eStick, FlashLINK, FlossJTAG,
+Flyswatter, Flyswatter2, Gateworks, Hoegl, ICDI, ICEBear, J-Link, JTAG
+VPI, JTAGkey, JTAGkey2, JTAG-lock-pick, KT-Link, Lisa/L,
 LPC1768-Stick, MiniModule, NGX, NXHX, OOCDLink, Opendous, OpenJTAG,
 Openmoko, OpenRD, OSBDM, Presto, Redbee, RLink, SheevaPlug devkit,
 Stellaris evkits, ST-LINK (SWO tracing supported),
@@ -228,6 +228,8 @@ drivers need either one of:
   - libftdi: http://www.intra2net.com/en/developer/libftdi/index.php
   - ftd2xx: http://www.ftdichip.com/Drivers/D2XX.htm (proprietary,
     GPL-incompatible)
+
+CMSIS-DAP support needs HIDAPI library.
 
 Permissions delegation
 ----------------------

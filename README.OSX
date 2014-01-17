@@ -13,7 +13,7 @@ libtool, automake, autoconf, pkg-config and libusb can be easily
 installed via MacPorts:
   sudo port install libtool automake autoconf pkgconfig libusb [libusb-compat]
 or with Homebrew:
-  brew install libtool automake libusb [libusb-compat]
+  brew install libtool automake libusb [libusb-compat] [hidapi]
 
 You should also specify LDFLAGS and CPPFLAGS to allow configure to use
 MacPorts' libraries, so run configure like this:
