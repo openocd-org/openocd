@@ -2205,6 +2205,7 @@ static int gdb_target_description_supported(struct target *target, int *supporte
 	struct reg **reg_list = NULL;
 	int reg_list_size = 0;
 	int feature_list_size = 0;
+	char **features = NULL;
 
 	retval = target_get_gdb_reg_list(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
@@ -2218,7 +2219,6 @@ static int gdb_target_description_supported(struct target *target, int *supporte
 		goto error;
 	}
 
-	char **features = NULL;
 	/* Get a list of available target registers features */
 	retval = get_reg_features_list(target, &features, &feature_list_size, reg_list, reg_list_size);
 	if (retval != ERROR_OK) {
