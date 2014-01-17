@@ -159,7 +159,7 @@ static int mdr_erase(struct flash_bank *bank, int first, int last)
 
 	retval = target_write_u32(target, FLASH_KEY, KEY);
 	if (retval != ERROR_OK)
-		goto reset_pg_and_lock;
+		return retval;
 
 	retval = target_read_u32(target, FLASH_CMD, &flash_cmd);
 	if (retval != ERROR_OK)
@@ -367,7 +367,7 @@ static int mdr_write(struct flash_bank *bank, uint8_t *buffer,
 
 	retval = target_write_u32(target, FLASH_KEY, KEY);
 	if (retval != ERROR_OK)
-		goto reset_pg_and_lock;
+		goto free_buffer;
 
 	retval = target_read_u32(target, FLASH_CMD, &flash_cmd);
 	if (retval != ERROR_OK)
@@ -466,6 +466,7 @@ reset_pg_and_lock:
 	if (retval == ERROR_OK)
 		retval = retval2;
 
+free_buffer:
 	if (new_buffer)
 		free(new_buffer);
 
