@@ -159,7 +159,7 @@ static int mdr_erase(struct flash_bank *bank, int first, int last)
 
 	retval = target_write_u32(target, FLASH_KEY, KEY);
 	if (retval != ERROR_OK)
-		goto reset_pg_and_lock;
+		return retval;
 
 	retval = target_read_u32(target, FLASH_CMD, &flash_cmd);
 	if (retval != ERROR_OK)
@@ -353,21 +353,22 @@ static int mdr_write(struct flash_bank *bank, uint8_t *buffer,
 
 	retval = target_read_u32(target, MD_PER_CLOCK, &cur_per_clock);
 	if (retval != ERROR_OK)
-		return retval;
+		goto free_buffer;
 
 	if (!(cur_per_clock & MD_PER_CLOCK_RST_CLK)) {
 		/* Something's very wrong if the RST_CLK module is not clocked */
 		LOG_ERROR("Target needs reset before flash operations");
-		return ERROR_FLASH_OPERATION_FAILED;
+		retval = ERROR_FLASH_OPERATION_FAILED;
+		goto free_buffer;
 	}
 
 	retval = target_write_u32(target, MD_PER_CLOCK, cur_per_clock | MD_PER_CLOCK_EEPROM);
 	if (retval != ERROR_OK)
-		return retval;
+		goto free_buffer;
 
 	retval = target_write_u32(target, FLASH_KEY, KEY);
 	if (retval != ERROR_OK)
-		goto reset_pg_and_lock;
+		goto free_buffer;
 
 	retval = target_read_u32(target, FLASH_CMD, &flash_cmd);
 	if (retval != ERROR_OK)
@@ -466,6 +467,7 @@ reset_pg_and_lock:
 	if (retval == ERROR_OK)
 		retval = retval2;
 
+free_buffer:
 	if (new_buffer)
 		free(new_buffer);
 
