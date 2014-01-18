@@ -262,16 +262,31 @@ This document is a work-in-progress, but contributions would be welcome
 to fill in the gaps. All of the source files are provided in-tree,
 listed in the Doxyfile configuration at the top of the source tree.
 
+@section Gerrit Review System
+
+All changes in the OpenOCD Git repository go through the web-based Gerrit
+Code Review System:
+
+@uref{http://openocd.zylin.com/}
+
+After a one-time registration and repository setup, anyone can push commits
+from their local Git repository directly into Gerrit.
+All users and developers are encouraged to review, test, discuss and vote
+for changes in Gerrit. The feedback provides the basis for a maintainer to
+eventually submit the change to the main Git repository.
+
+The @file{HACKING} file, also available as the Patch Guide in the Doxygen
+Developer Manual, contains basic information about how to connect a
+repository to Gerrit, prepare and push patches. Patch authors are expected to
+maintain their changes while they're in Gerrit, respond to feedback and if
+necessary rework and push improved versions of the change.
+
 @section OpenOCD Developer Mailing List
 
 The OpenOCD Developer Mailing List provides the primary means of
 communication between developers:
 
 @uref{https://lists.sourceforge.net/mailman/listinfo/openocd-devel}
-
-Discuss and submit patches to this list.
-The @file{HACKING} file contains basic information about how
-to prepare patches.
 
 @section OpenOCD Bug Database
 
