@@ -120,7 +120,7 @@ struct stmsmi_flash_bank {
 	int probed;
 	uint32_t io_base;
 	uint32_t bank_num;
-	struct flash_device *dev;
+	const struct flash_device *dev;
 };
 
 struct stmsmi_target {
@@ -130,7 +130,7 @@ struct stmsmi_target {
 	uint32_t io_base;
 };
 
-static struct stmsmi_target target_devices[] = {
+static const struct stmsmi_target target_devices[] = {
 	/* name,          tap_idcode, smi_base,   io_base */
 	{ "SPEAr3xx/6xx", 0x07926041, 0xf8000000, 0xfc000000 },
 	{ "STR75x",       0x4f1f0041, 0x80000000, 0x90000000 },
@@ -529,7 +529,7 @@ static int stmsmi_probe(struct flash_bank *bank)
 	uint32_t io_base;
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
-	struct stmsmi_target *target_device;
+	const struct stmsmi_target *target_device;
 	int retval;
 
 	if (stmsmi_info->probed)
@@ -575,7 +575,7 @@ static int stmsmi_probe(struct flash_bank *bank)
 		return retval;
 
 	stmsmi_info->dev = NULL;
-	for (struct flash_device *p = flash_devices; p->name ; p++)
+	for (const struct flash_device *p = flash_devices; p->name ; p++)
 		if (p->device_id == id) {
 			stmsmi_info->dev = p;
 			break;

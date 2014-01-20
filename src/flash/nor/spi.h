@@ -43,7 +43,7 @@ struct flash_device {
 	.size_in_bytes = size   \
 }
 
-extern struct flash_device flash_devices[];
+extern const struct flash_device flash_devices[];
 
 /* fields in SPI flash status register */
 #define SPIFLASH_BSY_BIT		0x00000001 /* WIP Bit of SPI SR on SMI SR */

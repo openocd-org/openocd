@@ -63,7 +63,7 @@ struct avrf_flash_bank {
 	int probed;
 };
 
-static struct avrf_type avft_chips_info[] = {
+static const struct avrf_type avft_chips_info[] = {
 /*	name, chip_id,	flash_page_size, flash_page_num,
  *			eeprom_page_size, eeprom_page_num
  */
@@ -293,7 +293,7 @@ static int avrf_probe(struct flash_bank *bank)
 	struct target *target = bank->target;
 	struct avrf_flash_bank *avrf_info = bank->driver_priv;
 	struct avr_common *avr = target->arch_info;
-	struct avrf_type *avr_info = NULL;
+	const struct avrf_type *avr_info = NULL;
 	int i;
 	uint32_t device_id;
 
@@ -370,7 +370,7 @@ static int avrf_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;
-	struct avrf_type *avr_info = NULL;
+	const struct avrf_type *avr_info = NULL;
 	int i;
 	uint32_t device_id;
 

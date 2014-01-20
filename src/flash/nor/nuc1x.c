@@ -76,7 +76,7 @@
 #define LOCK 0x00
 
 /* part structs */
-static struct {
+static const struct {
 	const char *partname;
 	uint32_t partno;
 	uint16_t num_page;

@@ -86,7 +86,7 @@
  *
  */
 
-const struct {
+static const struct {
 	unsigned pflash_sector_size_bytes;
 	unsigned nvm_sector_size_bytes;
 	unsigned num_blocks;

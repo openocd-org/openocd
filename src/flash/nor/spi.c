@@ -31,7 +31,7 @@
 
  /* Shared table of known SPI flash devices for SPI-based flash drivers. Taken
   * from device datasheets and Linux SPI flash drivers. */
-struct flash_device flash_devices[] = {
+const struct flash_device flash_devices[] = {
 	/* name, erase_cmd, chip_erase_cmd, device_id, pagesize, sectorsize, size_in_bytes */
 	FLASH_ID("st m25p05",      0xd8, 0xc7, 0x00102020, 0x80,  0x8000,  0x10000),
 	FLASH_ID("st m25p10",      0xd8, 0xc7, 0x00112020, 0x80,  0x8000,  0x20000),

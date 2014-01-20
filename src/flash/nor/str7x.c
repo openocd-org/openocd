@@ -113,7 +113,7 @@ enum str7x_status_codes {
 	STR7X_BUSY = 11
 };
 
-static struct str7x_mem_layout mem_layout_str7bank0[] = {
+static const struct str7x_mem_layout mem_layout_str7bank0[] = {
 	{0x00000000, 0x02000, 0x01},
 	{0x00002000, 0x02000, 0x02},
 	{0x00004000, 0x02000, 0x04},
@@ -124,7 +124,7 @@ static struct str7x_mem_layout mem_layout_str7bank0[] = {
 	{0x00030000, 0x10000, 0x80}
 };
 
-static struct str7x_mem_layout mem_layout_str7bank1[] = {
+static const struct str7x_mem_layout mem_layout_str7bank1[] = {
 	{0x00000000, 0x02000, 0x10000},
 	{0x00002000, 0x02000, 0x20000}
 };

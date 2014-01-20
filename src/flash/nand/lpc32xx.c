@@ -52,10 +52,10 @@ extern int nand_correct_data(struct nand_device *nand, u_char *dat,
 #define SPARE_OFFS 0x140
 #define DATA_OFFS  0x200
 
-static int sp_ooblayout[] = {
+static const int sp_ooblayout[] = {
 	10, 11, 12, 13, 14, 15
 };
-static int lp_ooblayout[] = {
+static const int lp_ooblayout[] = {
 	40, 41, 42, 43, 44, 45,
 	46, 47, 48, 49, 50, 51,
 	52, 53, 54, 55, 56, 57,
@@ -1148,7 +1148,7 @@ static int lpc32xx_write_page_slc(struct nand_device *nand,
 		/* Copy to oob, at correct offsets */
 		static uint8_t ecc[24];
 		slc_ecc_copy_to_buffer(ecc, hw_ecc, ecc_count);
-		int *layout = nand->page_size == 2048 ? lp_ooblayout : sp_ooblayout;
+		const int *layout = nand->page_size == 2048 ? lp_ooblayout : sp_ooblayout;
 		int i;
 		for (i = 0; i < ecc_count * 3; i++)
 			foob[layout[i]] = ecc[i];
@@ -1549,7 +1549,7 @@ static int lpc32xx_read_page_slc(struct nand_device *nand,
 	slc_ecc_copy_to_buffer(ecc, hw_ecc, ecc_count);
 	/* Copy ECC from flash using correct layout */
 	static uint8_t fecc[24];/* max size */
-	int *layout = nand->page_size == 2048 ? lp_ooblayout : sp_ooblayout;
+	const int *layout = nand->page_size == 2048 ? lp_ooblayout : sp_ooblayout;
 	int i;
 	for (i = 0; i < ecc_count * 3; i++)
 		fecc[i] = foob[layout[i]];

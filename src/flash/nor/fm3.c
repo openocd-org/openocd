@@ -332,7 +332,7 @@ static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
 	/* R4 keeps Flash Sequence address 2     (u32FlashSeq2)    */
 	/* R5 returns result value               (u32FlashResult)  */
 
-	const uint8_t fm3_flash_write_code[] = {
+	static const uint8_t fm3_flash_write_code[] = {
 								/*    fm3_FLASH_IF->FASZ &= 0xFFFD;           */
 	0x5F, 0xF0, 0x80, 0x45,		/*        MOVS.W   R5, #(fm3_FLASH_IF->FASZ)  */
 	0x2D, 0x68,					/*        LDR      R5, [R5]                   */

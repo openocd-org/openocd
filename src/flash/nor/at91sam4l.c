@@ -82,7 +82,7 @@ struct sam4l_chip_info {
 };
 
 /* These are taken from Table 9-1 in 42023E-SAM-07/2013 */
-static struct sam4l_chip_info sam4l_known_chips[] = {
+static const struct sam4l_chip_info sam4l_known_chips[] = {
 	{ 0xAB0B0AE0, 0x1400000F, "ATSAM4LC8C" },
 	{ 0xAB0A09E0, 0x0400000F, "ATSAM4LC4C" },
 	{ 0xAB0A07E0, 0x0400000F, "ATSAM4LC2C" },
@@ -104,13 +104,13 @@ static struct sam4l_chip_info sam4l_known_chips[] = {
 };
 
 /* Meaning of SRAMSIZ field in CHIPID, see 9.3.1 in 42023E-SAM-07/2013 */
-static uint16_t sam4l_ram_sizes[16] = { 48, 1, 2, 6, 24, 4, 80, 160, 8, 16, 32, 64, 128, 256, 96, 512 };
+static const uint16_t sam4l_ram_sizes[16] = { 48, 1, 2, 6, 24, 4, 80, 160, 8, 16, 32, 64, 128, 256, 96, 512 };
 
 /* Meaning of PSZ field in FPR, see 14.10.4 in 42023E-SAM-07/2013 */
 static const uint16_t sam4l_page_sizes[8] = { 32, 64, 128, 256, 512, 1024, 2048, 4096 };
 
 struct sam4l_info {
-	struct sam4l_chip_info *details;
+	const struct sam4l_chip_info *details;
 
 	uint32_t flash_kb;
 	uint32_t ram_kb;
@@ -230,7 +230,7 @@ FLASH_BANK_COMMAND_HANDLER(sam4l_flash_bank_command)
 	return ERROR_OK;
 }
 
-static struct sam4l_chip_info *sam4l_find_chip_name(uint32_t id, uint32_t exid)
+static const struct sam4l_chip_info *sam4l_find_chip_name(uint32_t id, uint32_t exid)
 {
 	unsigned int i;
 

@@ -51,7 +51,7 @@ struct lpcspifi_flash_bank {
 	uint32_t ioconfig_base;
 	uint32_t bank_num;
 	uint32_t max_spi_clock_mhz;
-	struct flash_device *dev;
+	const struct flash_device *dev;
 };
 
 struct lpcspifi_target {
@@ -63,7 +63,7 @@ struct lpcspifi_target {
 	uint32_t ioconfig_base; /* base address for the port word pin registers */
 };
 
-static struct lpcspifi_target target_devices[] = {
+static const struct lpcspifi_target target_devices[] = {
 	/* name,          tap_idcode, spifi_base, ssp_base,   io_base,    ioconfig_base */
 	{ "LPC43xx/18xx", 0x4ba00477, 0x14000000, 0x40083000, 0x400F4000, 0x40086000 },
 	{ NULL,           0,          0,          0,          0,          0 }
@@ -848,7 +848,7 @@ static int lpcspifi_probe(struct flash_bank *bank)
 	uint32_t ioconfig_base;
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
-	struct lpcspifi_target *target_device;
+	const struct lpcspifi_target *target_device;
 	int retval;
 
 	/* If we've already probed, we should be fine to skip this time. */
@@ -886,7 +886,7 @@ static int lpcspifi_probe(struct flash_bank *bank)
 		return retval;
 
 	lpcspifi_info->dev = NULL;
-	for (struct flash_device *p = flash_devices; p->name ; p++)
+	for (const struct flash_device *p = flash_devices; p->name ; p++)
 		if (p->device_id == id) {
 			lpcspifi_info->dev = p;
 			break;
