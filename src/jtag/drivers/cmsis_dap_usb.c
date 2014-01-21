@@ -58,8 +58,8 @@
 
 #define MAX_USB_IDS 8
 /* vid = pid = 0 marks the end of the list */
-static uint16_t cmsis_dap_vid[MAX_USB_IDS + 1] = { 0xc251, 0xc251, 0xc251, 0x0d28, 0x03eb, 0 };
-static uint16_t cmsis_dap_pid[MAX_USB_IDS + 1] = { 0xf001, 0xf002, 0x2722, 0x0204, 0x2111, 0 };
+static uint16_t cmsis_dap_vid[MAX_USB_IDS + 1] = { 0 };
+static uint16_t cmsis_dap_pid[MAX_USB_IDS + 1] = { 0 };
 
 #define PACKET_SIZE       (64 + 1)	/* 64 bytes plus report id */
 #define USB_TIMEOUT       1000
@@ -159,17 +159,52 @@ static int cmsis_dap_usb_open(void)
 {
 	hid_device *dev = NULL;
 	int i;
+	struct hid_device_info *devs, *cur_dev;
+	unsigned short target_vid, target_pid;
+
+	target_vid = 0;
+	target_pid = 0;
+
+	/*
+	The CMSIS-DAP specification stipulates:
+	"The Product String must contain "CMSIS-DAP" somewhere in the string. This is used by the
+	debuggers to idenify a CMSIS-DAP compliant Debug Unit that is connected to a host computer."
+	*/
+	devs = hid_enumerate(0x0, 0x0);
+	cur_dev = devs;
+	while (NULL != cur_dev) {
+		if ((0 == cmsis_dap_vid[0]) && wcsstr(cur_dev->product_string, L"CMSIS-DAP")) {
+			/*
+			if the user hasn't specified VID:PID *and*
+			product string contains "CMSIS-DAP", pick it
+			*/
+			break;
+		} else {
+			/*
+			otherwise, exhaustively compare against all VID:PID in list
+			*/
+			for (i = 0; cmsis_dap_vid[i] || cmsis_dap_pid[i]; i++) {
+				if ((cmsis_dap_vid[i] == cur_dev->vendor_id) && (cmsis_dap_pid[i] == cur_dev->product_id))
+					break;
+			}
+		}
+
+		cur_dev = cur_dev->next;
+	}
+
+	if (NULL != cur_dev) {
+		target_vid = cur_dev->vendor_id;
+		target_pid = cur_dev->product_id;
+	}
+
+	hid_free_enumeration(devs);
 
 	if (hid_init() != 0) {
 		LOG_ERROR("unable to open HIDAPI");
 		return ERROR_FAIL;
 	}
 
-	for (i = 0; cmsis_dap_vid[i] || cmsis_dap_pid[i]; i++) {
-		dev = hid_open(cmsis_dap_vid[i], cmsis_dap_pid[i], NULL);
-		if (dev != NULL)
-			break;
-	}
+	dev = hid_open(target_vid, target_pid, NULL);
 
 	if (dev == NULL) {
 		LOG_ERROR("unable to open CMSIS-DAP device");
@@ -196,7 +231,7 @@ static int cmsis_dap_usb_open(void)
 	int packet_size = PACKET_SIZE;
 
 	/* atmel cmsis-dap uses 512 byte reports */
-	if (cmsis_dap_vid[i] == 0x03eb && cmsis_dap_pid[i] == 0x2111)
+	if (target_vid == 0x03eb && target_pid == 0x2111)
 		packet_size = 512 + 1;
 
 	cmsis_dap_handle->packet_buffer = malloc(packet_size);
