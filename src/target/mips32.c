@@ -536,10 +536,15 @@ int mips32_configure_break_unit(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* EJTAG 2.0 does not specify EJTAG_DCR_IB and EJTAG_DCR_DB bits,
-	 * assume IB and DB registers are always present. */
-	if (ejtag_info->ejtag_version == EJTAG_VERSION_20)
-		dcr |= EJTAG_DCR_IB | EJTAG_DCR_DB;
+	/* EJTAG 2.0 defines IB and DB bits in IMP instead of DCR.
+	 * Since these DCR bits should be reserved on EJTAG 2.0, we can
+	 * just remap them. */
+	if (ejtag_info->ejtag_version == EJTAG_VERSION_20) {
+		if (!(ejtag_info->impcode & EJTAG_V20_IMP_NOIB))
+			dcr |= EJTAG_DCR_IB;
+		if (!(ejtag_info->impcode & EJTAG_V20_IMP_NODB))
+			dcr |= EJTAG_DCR_DB;
+	}
 
 	if (dcr & EJTAG_DCR_IB) {
 		retval = mips32_configure_ibs(target);
