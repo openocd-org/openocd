@@ -617,11 +617,21 @@ static int gdb_get_packet_inner(struct connection *connection,
 				case '$':
 					break;
 				case '+':
-					/* gdb sends a dummy ack '+' at every remote connect - see
-					 * remote_start_remote (remote.c)
-					 * in case anyone tries to debug why they receive this
-					 * warning every time */
-					LOG_WARNING("acknowledgment received, but no packet pending");
+					/* According to the GDB documentation
+					 * (https://sourceware.org/gdb/onlinedocs/gdb/Packet-Acknowledgment.html):
+					 * "gdb sends a final `+` acknowledgment of the stub's `OK`
+					 * response, which can be safely ignored by the stub."
+					 * However OpenOCD server already is in noack mode at this
+					 * point and instead of ignoring this it was emitting a
+					 * warning. This code makes server ignore the first ACK
+					 * that will be received after going into noack mode,
+					 * warning only about subsequent ACK's. */
+					if (gdb_con->noack_mode > 1) {
+						LOG_WARNING("acknowledgment received, but no packet pending");
+					} else {
+						LOG_DEBUG("Received first acknowledgment after entering noack mode. Ignoring it.");
+						gdb_con->noack_mode = 2;
+					}
 					break;
 				case '-':
 					LOG_WARNING("negative acknowledgment, but no packet pending");
