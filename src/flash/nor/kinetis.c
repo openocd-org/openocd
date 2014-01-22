@@ -149,19 +149,30 @@ const struct {
  * Therefore we combine it with the DIEID bits which may possibly
  * break if Freescale bumps the DIEID for a particular MCU. */
 #define KINETIS_K_SDID_TYPE_MASK 0x00000FF0
-#define KINETIS_K_SDID_K10  0x00000000
-#define KINETIS_K_SDID_K11  0x00000220
-#define KINETIS_K_SDID_K12  0x00000200
-#define KINETIS_K_SDID_K20  0x00000290
-#define KINETIS_K_SDID_K21  0x00000230
-#define KINETIS_K_SDID_K22  0x00000210
-#define KINETIS_K_SDID_K30  0x00000120
-#define KINETIS_K_SDID_K40  0x00000130
-#define KINETIS_K_SDID_K50  0x000000E0
-#define KINETIS_K_SDID_K51  0x000000F0
-#define KINETIS_K_SDID_K53  0x00000170
-#define KINETIS_K_SDID_K60  0x000001C0
-#define KINETIS_K_SDID_K70  0x000001D0
+#define KINETIS_K_SDID_K10_M50	 0x00000000
+#define KINETIS_K_SDID_K10_M72	 0x00000080
+#define KINETIS_K_SDID_K10_M100	 0x00000100
+#define KINETIS_K_SDID_K10_M120	 0x00000180
+#define KINETIS_K_SDID_K11		 0x00000220
+#define KINETIS_K_SDID_K12		 0x00000200
+#define KINETIS_K_SDID_K20_M50	 0x00000010
+#define KINETIS_K_SDID_K20_M72	 0x00000090
+#define KINETIS_K_SDID_K20_M100	 0x00000110
+#define KINETIS_K_SDID_K20_M120	 0x00000190
+#define KINETIS_K_SDID_K21_M50   0x00000230
+#define KINETIS_K_SDID_K21_M120	 0x00000330
+#define KINETIS_K_SDID_K22_M50   0x00000210
+#define KINETIS_K_SDID_K22_M120	 0x00000310
+#define KINETIS_K_SDID_K30_M72   0x000000A0
+#define KINETIS_K_SDID_K30_M100  0x00000120
+#define KINETIS_K_SDID_K40_M72   0x000000B0
+#define KINETIS_K_SDID_K40_M100  0x00000130
+#define KINETIS_K_SDID_K50_M72   0x000000E0
+#define KINETIS_K_SDID_K51_M72	 0x000000F0
+#define KINETIS_K_SDID_K53		 0x00000170
+#define KINETIS_K_SDID_K60_M100  0x00000140
+#define KINETIS_K_SDID_K60_M150  0x000001C0
+#define KINETIS_K_SDID_K70_M150  0x000001D0
 
 #define KINETIS_KL_SDID_SERIESID_MASK 0x00F00000
 #define KINETIS_KL_SDID_SERIESID_KL   0x00100000
@@ -338,11 +349,6 @@ static int kinetis_write_block(struct flash_bank *bank, uint8_t *buffer,
 	while (wcount > 0) {
 		uint32_t thisrun_count = (wcount > (buffer_size / 4)) ? (buffer_size / 4) : wcount;
 
-		retval = target_write_buffer(target, write_algorithm->address, 8,
-				kinetis_flash_write_code);
-		if (retval != ERROR_OK)
-			break;
-
 		retval = target_write_buffer(target, source->address, thisrun_count * 4, buffer);
 		if (retval != ERROR_OK)
 			break;
@@ -483,7 +489,7 @@ static int kinetis_ftfx_command(struct flash_bank *bank, uint8_t fcmd, uint32_t 
 		return result;
 
 	/* wait for done */
-	for (i = 0; i < 240; i++) { /* Need Entire Erase Nemui Changed */
+	for (i = 0; i < 240; i++) { /* Need longtime for "Mass Erase" Command Nemui Changed */
 		result =
 			target_read_memory(bank->target, FTFx_FSTAT, 1, 1, ftfx_fstat);
 
@@ -517,15 +523,15 @@ static int kinetis_mass_erase(struct flash_bank *bank)
 	}
 
 	/* check if whole bank is blank */
-	LOG_INFO("Kinetis L Series Erase All Blocks");
+	LOG_INFO("Execute Erase All Blocks");
 	/* set command and sector address */
 	result = kinetis_ftfx_command(bank, FTFx_CMD_MASSERASE, 0,
-			0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
-	/* Anyway Result, write unsecure byte */
+					    0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
+	/* Anyway Result, write FSEC to unsecure forcely */
 	/*	if (result != ERROR_OK)
 		return result;*/
 
-	/* Write to MCU security status unsecure in Flash security byte(Work around) */
+	/* Write to MCU security status unsecure in Flash security byte(for Kinetis-L need) */
 	LOG_INFO("Write to MCU security status unsecure Anyway!");
 	uint8_t padding[4] = {0xFE, 0xFF, 0xFF, 0xFF}; /* Write 0xFFFFFFFE */
 
@@ -541,7 +547,6 @@ static int kinetis_mass_erase(struct flash_bank *bank)
 static int kinetis_erase(struct flash_bank *bank, int first, int last)
 {
 	int result, i;
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -551,7 +556,7 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	if ((first > bank->num_sectors) || (last > bank->num_sectors))
 		return ERROR_FLASH_OPERATION_FAILED;
 
-	if ((first == 0) && (last == (bank->num_sectors - 1)) && (kinfo->klxx))
+	if ((first == 0) && (last == (bank->num_sectors - 1)))
 		return kinetis_mass_erase(bank);
 
 	/*
@@ -788,28 +793,39 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		uint32_t mcu_type = kinfo->sim_sdid & KINETIS_K_SDID_TYPE_MASK;
 
 		switch (mcu_type) {
-		case KINETIS_K_SDID_K20:
+		case KINETIS_K_SDID_K10_M50:
+		case KINETIS_K_SDID_K20_M50:
 			/* 1kB sectors */
 			granularity = 0;
 			break;
-		case KINETIS_K_SDID_K30:
-		case KINETIS_K_SDID_K40:
-		case KINETIS_K_SDID_K50:
+		case KINETIS_K_SDID_K10_M72:
+		case KINETIS_K_SDID_K20_M72:
+		case KINETIS_K_SDID_K30_M72:
+		case KINETIS_K_SDID_K30_M100:
+		case KINETIS_K_SDID_K40_M72:
+		case KINETIS_K_SDID_K40_M100:
+		case KINETIS_K_SDID_K50_M72:
 			/* 2kB sectors, 1kB FlexNVM sectors */
 			granularity = 1;
 			break;
+		case KINETIS_K_SDID_K10_M100:
+		case KINETIS_K_SDID_K20_M100:
 		case KINETIS_K_SDID_K11:
 		case KINETIS_K_SDID_K12:
-		case KINETIS_K_SDID_K21:
-		case KINETIS_K_SDID_K22:
-		case KINETIS_K_SDID_K51:
+		case KINETIS_K_SDID_K21_M50:
+		case KINETIS_K_SDID_K22_M50:
+		case KINETIS_K_SDID_K51_M72:
 		case KINETIS_K_SDID_K53:
-		case KINETIS_K_SDID_K60:
+		case KINETIS_K_SDID_K60_M100:
 			/* 2kB sectors */
 			granularity = 2;
 			break;
-		case KINETIS_K_SDID_K10:
-		case KINETIS_K_SDID_K70:
+		case KINETIS_K_SDID_K10_M120:
+		case KINETIS_K_SDID_K20_M120:
+		case KINETIS_K_SDID_K21_M120:
+		case KINETIS_K_SDID_K22_M120:
+		case KINETIS_K_SDID_K60_M150:
+		case KINETIS_K_SDID_K70_M150:
 			/* 4kB sectors */
 			granularity = 3;
 			break;
