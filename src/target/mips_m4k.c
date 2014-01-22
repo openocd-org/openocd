@@ -57,33 +57,37 @@ static int mips_m4k_examine_debug_reason(struct target *target)
 	int retval;
 
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
-		&& (target->debug_reason != DBG_REASON_SINGLESTEP)) {
-		/* get info about inst breakpoint support */
-		retval = target_read_u32(target,
-			ejtag_info->ejtag_ibs_addr, &break_status);
-		if (retval != ERROR_OK)
-			return retval;
-		if (break_status & 0x1f) {
-			/* we have halted on a  breakpoint */
-			retval = target_write_u32(target,
-				ejtag_info->ejtag_ibs_addr, 0);
+			&& (target->debug_reason != DBG_REASON_SINGLESTEP)) {
+		if (ejtag_info->debug_caps & EJTAG_DCR_IB) {
+			/* get info about inst breakpoint support */
+			retval = target_read_u32(target,
+				ejtag_info->ejtag_ibs_addr, &break_status);
 			if (retval != ERROR_OK)
 				return retval;
-			target->debug_reason = DBG_REASON_BREAKPOINT;
+			if (break_status & 0x1f) {
+				/* we have halted on a  breakpoint */
+				retval = target_write_u32(target,
+					ejtag_info->ejtag_ibs_addr, 0);
+				if (retval != ERROR_OK)
+					return retval;
+				target->debug_reason = DBG_REASON_BREAKPOINT;
+			}
 		}
 
-		/* get info about data breakpoint support */
-		retval = target_read_u32(target,
-			ejtag_info->ejtag_dbs_addr, &break_status);
-		if (retval != ERROR_OK)
-			return retval;
-		if (break_status & 0x1f) {
-			/* we have halted on a  breakpoint */
-			retval = target_write_u32(target,
-				ejtag_info->ejtag_dbs_addr, 0);
+		if (ejtag_info->debug_caps & EJTAG_DCR_DB) {
+			/* get info about data breakpoint support */
+			retval = target_read_u32(target,
+				ejtag_info->ejtag_dbs_addr, &break_status);
 			if (retval != ERROR_OK)
 				return retval;
-			target->debug_reason = DBG_REASON_WATCHPOINT;
+			if (break_status & 0x1f) {
+				/* we have halted on a  breakpoint */
+				retval = target_write_u32(target,
+					ejtag_info->ejtag_dbs_addr, 0);
+				if (retval != ERROR_OK)
+					return retval;
+				target->debug_reason = DBG_REASON_WATCHPOINT;
+			}
 		}
 	}
 
