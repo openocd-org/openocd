@@ -318,11 +318,15 @@ static int mips_m4k_assert_reset(struct target *target)
 		srst_asserted = true;
 	}
 
-	if (target->reset_halt) {
-		/* use hardware to catch reset */
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_EJTAGBOOT);
-	} else
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT);
+
+	/* EJTAG before v2.5/2.6 does not support EJTAGBOOT or NORMALBOOT */
+	if (ejtag_info->ejtag_version != EJTAG_VERSION_20) {
+		if (target->reset_halt) {
+			/* use hardware to catch reset */
+			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_EJTAGBOOT);
+		} else
+			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT);
+	}
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		/* here we should issue a srst only, but we may have to assert trst as well */
