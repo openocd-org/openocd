@@ -6372,7 +6372,7 @@ various operations. The current target may be changed
 by using @command{targets} command with the name of the
 target which should become current.
 
-@deffn Command reg [(number|name) [value]]
+@deffn Command reg [(number|name) [(value|'force')]]
 Access a single register by @var{number} or by its @var{name}.
 The target must generally be halted before access to CPU core
 registers is allowed. Depending on the hardware, some other
@@ -6386,6 +6386,8 @@ which are also dirty (and will be written back later)
 are flagged as such.
 
 @emph{With number/name}: display that register's value.
+Use @var{force} argument to read directly from the target,
+bypassing any internal cache.
 
 @emph{With both number/name and value}: set register's value.
 Writes may be held in a writeback cache internal to OpenOCD,

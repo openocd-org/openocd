@@ -5871,9 +5871,9 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "reg",
 		.handler = handle_reg_command,
 		.mode = COMMAND_EXEC,
-		.help = "display or set a register; with no arguments, "
-			"displays all registers and their values",
-		.usage = "[(register_name|register_number) [value]]",
+		.help = "display (reread from target with \"force\") or set a register; "
+			"with no arguments, displays all registers and their values",
+		.usage = "[(register_number|register_name) [(value|'force')]]",
 	},
 	{
 		.name = "poll",
