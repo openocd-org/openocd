@@ -3,6 +3,7 @@
 # build output
 .libs
 .deps
+.dirstamp
 *.o
 *.o.??????
 *.a
