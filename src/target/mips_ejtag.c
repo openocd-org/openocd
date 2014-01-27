@@ -386,8 +386,11 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 		ejtag_info->impcode & EJTAG_IMP_NODMA ? " noDMA" : " DMA",
 		ejtag_info->impcode & EJTAG_DCR_MIPS64  ? " MIPS64" : " MIPS32");
 
-	if ((ejtag_info->impcode & EJTAG_IMP_NODMA) == 0)
-		LOG_DEBUG("EJTAG: DMA Access Mode Support Enabled");
+	if ((ejtag_info->impcode & EJTAG_IMP_NODMA) == 0) {
+		LOG_DEBUG("EJTAG: DMA Access Mode detected. Disabling to "
+			  "workaround current broken code.");
+		ejtag_info->impcode |= EJTAG_IMP_NODMA;
+	}
 
 	/* set initial state for ejtag control reg */
 	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
