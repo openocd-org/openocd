@@ -29,6 +29,8 @@ EXTRA_DIST = \
 	$(wildcard $(srcdir)/NEWS*) \
 	Doxyfile.in \
 	tools/logger.pl \
+	tools/rlink_make_speed_table \
+	tools/st7_dtc_as \
 	contrib/loaders
 
 libtool: $(LIBTOOL_DEPS)
