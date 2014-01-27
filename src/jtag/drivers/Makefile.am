@@ -12,6 +12,7 @@ libocdjtagdrivers_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS) \
 ULINK_FIRMWARE = $(srcdir)/OpenULINK
 
 EXTRA_DIST = $(ULINK_FIRMWARE) \
+	usb_blaster/README.CheapClone \
 	Makefile.rlink \
 	rlink_call.m4 \
 	rlink_init.m4
