@@ -2561,11 +2561,11 @@ and a specific set of GPIOs is used.
 @end deffn
 
 @deffn {Interface Driver} {cmsis-dap}
-CMSIS-DAP compliant based adapter.
+ARM CMSIS-DAP compliant based adapter.
 
 @deffn {Config Command} {cmsis_dap_vid_pid} [vid pid]+
 The vendor ID and product ID of the CMSIS-DAP device. If not specified
-known default values are used.
+the driver will attempt to auto detect the CMSIS-DAP device.
 Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
 @example
 cmsis_dap_vid_pid 0xc251 0xf001 0x0d28 0x0204
