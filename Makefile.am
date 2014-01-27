@@ -26,6 +26,7 @@ EXTRA_DIST = \
 	NEWTAPS \
 	README.Windows \
 	README.OSX \
+	$(wildcard $(srcdir)/NEWS*) \
 	Doxyfile.in \
 	tools/logger.pl \
 	contrib/loaders
