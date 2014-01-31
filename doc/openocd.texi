@@ -8429,7 +8429,7 @@ should be passed in to the proc in question.
 By "low-level," we mean commands that a human would typically not
 invoke directly.
 
-Low-level commands are (should be) prefixed with "ocd_"; e.g.
+Some low-level commands need to be prefixed with "ocd_"; e.g.
 @command{ocd_flash_banks}
 is the low-level API upon which @command{flash banks} is implemented.
 
@@ -8443,6 +8443,16 @@ Convert a Tcl array to memory locations and write the values
 @item @b{ocd_flash_banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
 
 Return information about the flash banks
+
+@item @b{capture} <@var{command}>
+
+Run <@var{command}> and return full log output that was produced during
+its execution. Example:
+
+@example
+> capture "reset init"
+@end example
+
 @end itemize
 
 OpenOCD commands can consist of two words, e.g. "flash banks". The
@@ -8476,6 +8486,24 @@ We should add support for a variable like Tcl variable
 @code{jim_platform} (because it
 is jim, not real tcl).
 @end quotation
+
+@section Tcl RPC server
+@cindex RPC
+
+OpenOCD provides a simple RPC server that allows to run arbitrary Tcl
+commands and receive the results.
+
+To access it, your application needs to connect to a configured TCP port
+(see @command{tcl_port}). Then it can pass any string to the
+interpreter terminating it with @code{0x1a} and wait for the return
+value (it will be terminated with @code{0x1a} as well). This can be
+repeated as many times as desired without reopening the connection.
+
+Remember that most of the OpenOCD commands need to be prefixed with
+@code{ocd_} to get the results back. Sometimes you might also need the
+@command{capture} command.
+
+See @file{contrib/rpc_examples/} for specific client implementations.
 
 @node FAQ
 @chapter FAQ
