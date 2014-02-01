@@ -173,25 +173,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 	}
 
 	/* wipe out previous thread details if any */
-	if (rtos->thread_details != NULL) {
-		int j;
-		for (j = 0; j < rtos->thread_count; j++) {
-			if (rtos->thread_details[j].display_str != NULL) {
-				free(rtos->thread_details[j].display_str);
-				rtos->thread_details[j].display_str = NULL;
-			}
-			if (rtos->thread_details[j].thread_name_str != NULL) {
-				free(rtos->thread_details[j].thread_name_str);
-				rtos->thread_details[j].thread_name_str = NULL;
-			}
-			if (rtos->thread_details[j].extra_info_str != NULL) {
-				free(rtos->thread_details[j].extra_info_str);
-				rtos->thread_details[j].extra_info_str = NULL;
-			}
-		}
-		free(rtos->thread_details);
-		rtos->thread_details = NULL;
-	}
+	rtos_free_threadlist(rtos);
 
 	/* read the current thread */
 	retval = target_read_buffer(rtos->target,

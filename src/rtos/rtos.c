@@ -513,3 +513,20 @@ int rtos_update_threads(struct target *target)
 		target->rtos->type->update_threads(target->rtos);
 	return ERROR_OK;
 }
+
+void rtos_free_threadlist(struct rtos *rtos)
+{
+	if (rtos->thread_details) {
+		int j;
+
+		for (j = 0; j < rtos->thread_count; j++) {
+			struct thread_detail *current_thread = &rtos->thread_details[j];
+			free(current_thread->display_str);
+			free(current_thread->thread_name_str);
+			free(current_thread->extra_info_str);
+		}
+		free(rtos->thread_details);
+		rtos->thread_details = NULL;
+		rtos->thread_count = 0;
+	}
+}

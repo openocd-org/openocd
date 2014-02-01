@@ -296,21 +296,8 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 	}
 
 	/* wipe out previous thread details if any */
-	int j;
-	if (rtos->thread_details) {
-		for (j = 0; j < rtos->thread_count; j++) {
-			struct thread_detail *current_thread = &rtos->thread_details[j];
-			if (current_thread->display_str != NULL)
-				free(current_thread->display_str);
-			if (current_thread->thread_name_str != NULL)
-				free(current_thread->thread_name_str);
-			if (current_thread->extra_info_str != NULL)
-				free(current_thread->extra_info_str);
-		}
-		free(rtos->thread_details);
-		rtos->thread_details = NULL;
-		rtos->thread_count = 0;
-	}
+	rtos_free_threadlist(rtos);
+
 	/* ChibiOS does not save the current thread count. We have to first
 	 * parse the double linked thread list to check for errors and the number of
 	 * threads. */
