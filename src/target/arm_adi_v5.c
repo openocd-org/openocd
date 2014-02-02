@@ -857,15 +857,16 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 }
 
 int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
-			uint32_t dbgbase, uint8_t type, uint32_t *addr)
+			uint32_t dbgbase, uint8_t type, uint32_t *addr, int32_t *idx)
 {
 	uint32_t ap_old;
 	uint32_t romentry, entry_offset = 0, component_base, devtype;
-	int retval = ERROR_FAIL;
+	int retval;
 
 	if (ap >= 256)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
+	*addr = 0;
 	ap_old = dap->ap_current;
 	dap_ap_select(dap, ap);
 
@@ -879,15 +880,33 @@ int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
 			+ (romentry & 0xFFFFF000);
 
 		if (romentry & 0x1) {
+			uint32_t c_cid1;
+			retval = mem_ap_read_atomic_u32(dap, component_base | 0xff4, &c_cid1);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Can't read component with base address 0x%" PRIx32
+					  ", the corresponding core might be turned off", component_base);
+				return retval;
+			}
+			if (((c_cid1 >> 4) & 0x0f) == 1) {
+				retval = dap_lookup_cs_component(dap, ap, component_base,
+							type, addr, idx);
+				if (retval == ERROR_OK)
+					break;
+				if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+					return retval;
+			}
+
 			retval = mem_ap_read_atomic_u32(dap,
 					(component_base & 0xfffff000) | 0xfcc,
 					&devtype);
 			if (retval != ERROR_OK)
 				return retval;
 			if ((devtype & 0xff) == type) {
-				*addr = component_base;
-				retval = ERROR_OK;
-				break;
+				if (!*idx) {
+					*addr = component_base;
+					break;
+				} else
+					(*idx)--;
 			}
 		}
 		entry_offset += 4;
@@ -895,7 +914,10 @@ int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
 
 	dap_ap_select(dap, ap_old);
 
-	return retval;
+	if (!*addr)
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+	return ERROR_OK;
 }
 
 static int dap_rom_display(struct command_context *cmd_ctx,

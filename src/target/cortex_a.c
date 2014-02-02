@@ -2393,14 +2393,19 @@ static int cortex_a_examine_first(struct target *target)
 		uint32_t dbgbase;
 		/* Get ROM Table base */
 		uint32_t apid;
+		int32_t coreidx = target->coreid;
+		LOG_DEBUG("%s's dbgbase is not set, trying to detect using the ROM table",
+			  target->cmd_name);
 		retval = dap_get_debugbase(swjdp, 1, &dbgbase, &apid);
 		if (retval != ERROR_OK)
 			return retval;
 		/* Lookup 0x15 -- Processor DAP */
 		retval = dap_lookup_cs_component(swjdp, 1, dbgbase, 0x15,
-				&armv7a->debug_base);
+				&armv7a->debug_base, &coreidx);
 		if (retval != ERROR_OK)
 			return retval;
+		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32,
+			  coreidx, armv7a->debug_base);
 	} else
 		armv7a->debug_base = target->dbgbase;
 

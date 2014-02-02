@@ -470,7 +470,7 @@ int dap_find_ap(struct adiv5_dap *dap,
 
 /* Lookup CoreSight component */
 int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
-			uint32_t dbgbase, uint8_t type, uint32_t *addr);
+			uint32_t dbgbase, uint8_t type, uint32_t *addr, int32_t *idx);
 
 struct target;
 
