@@ -344,7 +344,7 @@ int rtos_thread_packet(struct connection *connection, char *packet, int packet_s
 				free(out_str);
 			}
 		} else
-			gdb_put_packet(connection, "", 0);
+			gdb_put_packet(connection, "l", 1);
 
 		return ERROR_OK;
 	} else if (strncmp(packet, "qsThreadInfo", 12) == 0) {
