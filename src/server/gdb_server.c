@@ -1522,10 +1522,9 @@ static int gdb_step_continue_packet(struct connection *connection,
 
 	LOG_DEBUG("-");
 
-	if (packet_size > 1) {
-		packet[packet_size] = 0;
+	if (packet_size > 1)
 		address = strtoul(packet + 1, NULL, 16);
-	} else
+	else
 		current = 1;
 
 	gdb_running_type = packet[0];
