@@ -1366,6 +1366,14 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				type = "Cortex-R4 ETM";
 				full = "(Embedded Trace)";
 				break;
+			case 0x950:
+				type = "CoreSight Component";
+				full = "(unidentified Cortex-A9 component)";
+				break;
+			case 0x9a0:
+				type = "CoreSight PMU";
+				full = "(Performance Monitoring Unit)";
+				break;
 			case 0x9a1:
 				type = "Cortex-M4 TPUI";
 				full = "(Trace Port Interface Unit)";
