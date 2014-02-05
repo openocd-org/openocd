@@ -536,31 +536,36 @@ int mips32_configure_break_unit(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* EJTAG 2.0 defines IB and DB bits in IMP instead of DCR.
-	 * Since these DCR bits should be reserved on EJTAG 2.0, we can
-	 * just remap them. */
+	/* EJTAG 2.0 defines IB and DB bits in IMP instead of DCR. */
 	if (ejtag_info->ejtag_version == EJTAG_VERSION_20) {
+		ejtag_info->debug_caps = dcr & EJTAG_DCR_ENM;
 		if (!(ejtag_info->impcode & EJTAG_V20_IMP_NOIB))
-			dcr |= EJTAG_DCR_IB;
+			ejtag_info->debug_caps |= EJTAG_DCR_IB;
 		if (!(ejtag_info->impcode & EJTAG_V20_IMP_NODB))
-			dcr |= EJTAG_DCR_DB;
-	}
+			ejtag_info->debug_caps |= EJTAG_DCR_DB;
+	} else
+		/* keep  debug caps for later use */
+		ejtag_info->debug_caps = dcr & (EJTAG_DCR_ENM
+				| EJTAG_DCR_IB | EJTAG_DCR_DB);
 
-	if (dcr & EJTAG_DCR_IB) {
+
+	if (ejtag_info->debug_caps & EJTAG_DCR_IB) {
 		retval = mips32_configure_ibs(target);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	if (dcr & EJTAG_DCR_DB) {
+	if (ejtag_info->debug_caps & EJTAG_DCR_DB) {
 		retval = mips32_configure_dbs(target);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	/* check if target endianness settings matches debug control register */
-	if (((dcr & EJTAG_DCR_ENM) && (target->endianness == TARGET_LITTLE_ENDIAN)) ||
-			(!(dcr & EJTAG_DCR_ENM) && (target->endianness == TARGET_BIG_ENDIAN)))
+	if (((ejtag_info->debug_caps & EJTAG_DCR_ENM)
+			&& (target->endianness == TARGET_LITTLE_ENDIAN)) ||
+			(!(ejtag_info->debug_caps & EJTAG_DCR_ENM)
+			 && (target->endianness == TARGET_BIG_ENDIAN)))
 		LOG_WARNING("DCR endianness settings does not match target settings");
 
 	LOG_DEBUG("DCR 0x%" PRIx32 " numinst %i numdata %i", dcr, mips32->num_inst_bpoints,

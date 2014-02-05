@@ -194,6 +194,7 @@ struct mips_ejtag {
 
 	/* Memory-Mapped Registers. This addresses are not same on different
 	 * EJTAG versions. */
+	uint32_t debug_caps;
 	uint32_t ejtag_ibs_addr;	/* Instruction Address Break Status */
 	uint32_t ejtag_iba0_addr;	/* IAB channel 0 */
 	uint32_t ejtag_ibc_offs;	/* IAB Control offset */
