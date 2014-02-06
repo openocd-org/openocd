@@ -156,9 +156,9 @@ USB-based, parallel port-based, and other standalone boxes that run
 OpenOCD internally. @xref{Debug Adapter Hardware}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
-ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x) and
-Cortex-M3 (Stellaris LM3, ST STM32 and Energy Micro EFM32) based cores to be
-debugged via the GDB protocol.
+ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x), Cortex-M3
+(Stellaris LM3, ST STM32 and Energy Micro EFM32) and Intel Quark (x10xx)
+based cores to be debugged via the GDB protocol.
 
 @b{Flash Programming:} Flash writing is supported for external
 CFI-compatible NOR flashes (Intel and AMD/Spansion command set) and several
@@ -7540,6 +7540,47 @@ This however has the disadvantage of only resetting the core, all peripherals
 are uneffected. A solution would be to use a @code{reset-init} event handler to manually reset
 the peripherals.
 @xref{targetevents,,Target Events}.
+@end deffn
+
+@section Intel Architecture
+
+Intel Quark X10xx is the first product in the Quark family of SoCs. It is an IA-32
+(Pentium x86 ISA) compatible SoC. The core CPU in the X10xx is codenamed Lakemont.
+Lakemont version 1 (LMT1) is used in X10xx. The CPU TAP (Lakemont TAP) is used for
+software debug and the CLTAP is used for SoC level operations.
+Useful docs are here: https://communities.intel.com/community/makers/documentation
+@itemize
+@item Intel Quark SoC X1000 OpenOCD/GDB/Eclipse App Note (web search for doc num 330015)
+@item Intel Quark SoC X1000 Debug Operations User Guide (web search for doc num 329866)
+@item Intel Quark SoC X1000 Datasheet (web search for doc num 329676)
+@end itemize
+
+@subsection x86 32-bit specific commands
+The three main address spaces for x86 are memory, I/O and configuration space.
+These commands allow a user to read and write to the 64Kbyte I/O address space.
+
+@deffn Command {x86_32 idw} address
+Display the contents of a 32-bit I/O port from address range 0x0000 - 0xffff.
+@end deffn
+
+@deffn Command {x86_32 idh} address
+Display the contents of a 16-bit I/O port from address range 0x0000 - 0xffff.
+@end deffn
+
+@deffn Command {x86_32 idb} address
+Display the contents of a 8-bit I/O port from address range 0x0000 - 0xffff.
+@end deffn
+
+@deffn Command {x86_32 iww} address
+Write the contents of a 32-bit I/O port to address range 0x0000 - 0xffff.
+@end deffn
+
+@deffn Command {x86_32 iwh} address
+Write the contents of a 16-bit I/O port to address range 0x0000 - 0xffff.
+@end deffn
+
+@deffn Command {x86_32 iwb} address
+Write the contents of a 8-bit I/O port to address range 0x0000 - 0xffff.
 @end deffn
 
 @section OpenRISC Architecture
