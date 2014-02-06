@@ -25,9 +25,9 @@ USB adapters
 You usually need to have WinUSB.sys (or libusbK.sys) driver installed
 for a USB-based adapter. Some vendor software (e.g. for ST-LINKv2)
 does it on its own. For the other cases the easiest way to assign
-WinUSB to a device is to use the Zadig installer:
+WinUSB to a device is to use the latest Zadig installer:
 
-  http://sourceforge.net/projects/libwdi/files/zadig/
+  http://zadig.akeo.ie
 
 For the old drivers that use libusb-0.1 API you might need to link
 against libusb-win32 headers and install the corresponding driver with
