@@ -42,7 +42,8 @@ NOR_DRIVERS = \
 	dsp5680xx_flash.c \
 	kinetis.c \
 	mini51.c \
-	nuc1x.c
+	nuc1x.c \
+	nrf51.c
 
 noinst_HEADERS = \
 	core.h \

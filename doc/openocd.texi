@@ -5687,6 +5687,23 @@ unlock str9 device.
 
 @end deffn
 
+@deffn {Flash Driver} nrf51
+All members of the nRF51 microcontroller families from Nordic Semiconductor
+include internal flash and use ARM Cortex-M0 core.
+
+@example
+flash bank $_FLASHNAME nrf51 0 0x00000000 0 0 $_TARGETNAME
+@end example
+
+Some nrf51-specific commands are defined:
+
+@deffn Command {nrf51 mass_erase}
+Erases the contents of the code memory and user information
+configuration registers as well. It must be noted that this command
+works only for chips that do not have factory pre-programmed region 0
+code.
+@end deffn
+@end deffn
 
 @section mFlash
 
