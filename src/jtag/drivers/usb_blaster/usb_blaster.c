@@ -881,11 +881,10 @@ static int ublast_quit(void)
 
 COMMAND_HANDLER(ublast_handle_device_desc_command)
 {
-	if (CMD_ARGC == 1)
-		info.ublast_device_desc = strdup(CMD_ARGV[0]);
-	else
-		LOG_ERROR("require exactly one argument to "
-				  "ublast_device_desc <description>");
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	info.ublast_device_desc = strdup(CMD_ARGV[0]);
 
 	return ERROR_OK;
 }
@@ -983,21 +982,20 @@ COMMAND_HANDLER(ublast_handle_pin_command)
 
 COMMAND_HANDLER(ublast_handle_lowlevel_drv_command)
 {
-	if (CMD_ARGC == 1)
-		info.lowlevel_name = strdup(CMD_ARGV[0]);
-	else
-		LOG_ERROR("require exactly one argument to "
-				  "usb_blaster_lowlevel_driver (ftdi|ftd2xx)");
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	info.lowlevel_name = strdup(CMD_ARGV[0]);
+
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(ublast_firmware_command)
 {
-	if (CMD_ARGC == 1)
-		info.firmware_path = strdup(CMD_ARGV[0]);
-	else
-		LOG_ERROR("require exactly one argument to "
-				  "ublast_firmware_command <path>");
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	info.firmware_path = strdup(CMD_ARGV[0]);
 
 	return ERROR_OK;
 }
