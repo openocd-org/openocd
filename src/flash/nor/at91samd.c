@@ -360,16 +360,23 @@ static int samd_erase(struct flash_bank *bank, int first, int last)
 
 	/* For each sector to be erased */
 	for (int s = first; s <= last; s++) {
-		/* For each row in that sector */
-		for (int r = s * rows_in_sector; r < (s + 1) * rows_in_sector; r++) {
-			res = samd_erase_row(bank, r * chip->page_size * 4);
-			if (res != ERROR_OK) {
-				LOG_ERROR("SAMD: failed to erase sector %d", s);
-				return res;
-			}
+		if (bank->sectors[s].is_protected) {
+			LOG_ERROR("SAMD: failed to erase sector %d. That sector is write-protected", s);
+			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
-		bank->sectors[s].is_erased = 1;
+		if (!bank->sectors[s].is_erased) {
+			/* For each row in that sector */
+			for (int r = s * rows_in_sector; r < (s + 1) * rows_in_sector; r++) {
+				res = samd_erase_row(bank, r * chip->page_size * 4);
+				if (res != ERROR_OK) {
+					LOG_ERROR("SAMD: failed to erase sector %d", s);
+					return res;
+				}
+			}
+
+			bank->sectors[s].is_erased = 1;
+		}
 	}
 
 	return ERROR_OK;
