@@ -375,6 +375,18 @@ static int samd_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
+static struct flash_sector *samd_find_sector_by_address(struct flash_bank *bank, uint32_t address)
+{
+	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
+
+	for (int i = 0; i < bank->num_sectors; i++) {
+		if (bank->sectors[i].offset <= address &&
+		    address < bank->sectors[i].offset + chip->sector_size)
+			return &bank->sectors[i];
+	}
+	return NULL;
+}
+
 /* Write an entire row (four pages) from host buffer 'buf' to row-aligned
  * 'address' in the Flash. */
 static int samd_write_row(struct flash_bank *bank, uint32_t address,
@@ -382,6 +394,18 @@ static int samd_write_row(struct flash_bank *bank, uint32_t address,
 {
 	int res;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
+
+	struct flash_sector *sector = samd_find_sector_by_address(bank, address);
+
+	if (!sector) {
+		LOG_ERROR("Can't find sector corresponding to address 0x%08" PRIx32, address);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	if (sector->is_protected) {
+		LOG_ERROR("Trying to write to a protected sector at 0x%08" PRIx32, address);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
 
 	/* Erase the row that we'll be writing to */
 	res = samd_erase_row(bank, address);
@@ -410,6 +434,8 @@ static int samd_write_row(struct flash_bank *bank, uint32_t address,
 		address += chip->page_size;
 		buf += chip->page_size;
 	}
+
+	sector->is_erased = 0;
 
 	return res;
 }
