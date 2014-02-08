@@ -352,13 +352,6 @@ static int samd_erase(struct flash_bank *bank, int first, int last)
 			return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	/* Make sure the sectors make sense. */
-	if (first >= bank->num_sectors || last >= bank->num_sectors) {
-		LOG_ERROR("Erase range %d - %d not valid (%d sectors total)",
-				first, last, bank->num_sectors);
-		return ERROR_FAIL;
-	}
-
 	/* The SAMD NVM has row erase granularity.  There are four pages in a row
 	 * and the number of rows in a sector depends on the sector size, which in
 	 * turn depends on the Flash capacity as there is a fixed number of
