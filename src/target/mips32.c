@@ -35,58 +35,53 @@
 #include "algorithm.h"
 #include "register.h"
 
-static char *mips32_core_reg_list[] = {
-	"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
-	"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
-	"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
-	"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra",
-	"status", "lo", "hi", "badvaddr", "cause", "pc"
-};
-
 static const char *mips_isa_strings[] = {
 	"MIPS32", "MIPS16e"
 };
 
-static struct mips32_core_reg mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] = {
-	{0, NULL, NULL},
-	{1, NULL, NULL},
-	{2, NULL, NULL},
-	{3, NULL, NULL},
-	{4, NULL, NULL},
-	{5, NULL, NULL},
-	{6, NULL, NULL},
-	{7, NULL, NULL},
-	{8, NULL, NULL},
-	{9, NULL, NULL},
-	{10, NULL, NULL},
-	{11, NULL, NULL},
-	{12, NULL, NULL},
-	{13, NULL, NULL},
-	{14, NULL, NULL},
-	{15, NULL, NULL},
-	{16, NULL, NULL},
-	{17, NULL, NULL},
-	{18, NULL, NULL},
-	{19, NULL, NULL},
-	{20, NULL, NULL},
-	{21, NULL, NULL},
-	{22, NULL, NULL},
-	{23, NULL, NULL},
-	{24, NULL, NULL},
-	{25, NULL, NULL},
-	{26, NULL, NULL},
-	{27, NULL, NULL},
-	{28, NULL, NULL},
-	{29, NULL, NULL},
-	{30, NULL, NULL},
-	{31, NULL, NULL},
+static const struct {
+	unsigned id;
+	const char *name;
+} mips32_regs[MIPS32NUMCOREREGS] = {
+	{ 0, "zero", },
+	{ 1, "at", },
+	{ 2, "v0", },
+	{ 3, "v1", },
+	{ 4, "a0", },
+	{ 5, "a1", },
+	{ 6, "a2", },
+	{ 7, "a3", },
+	{ 8, "t0", },
+	{ 9, "t1", },
+	{ 10, "t2", },
+	{ 11, "t3", },
+	{ 12, "t4", },
+	{ 13, "t5", },
+	{ 14, "t6", },
+	{ 15, "t7", },
+	{ 16, "s0", },
+	{ 17, "s1", },
+	{ 18, "s2", },
+	{ 19, "s3", },
+	{ 20, "s4", },
+	{ 21, "s5", },
+	{ 22, "s6", },
+	{ 23, "s7", },
+	{ 24, "t8", },
+	{ 25, "t9", },
+	{ 26, "k0", },
+	{ 27, "k1", },
+	{ 28, "gp", },
+	{ 29, "sp", },
+	{ 30, "fp", },
+	{ 31, "ra", },
 
-	{32, NULL, NULL},
-	{33, NULL, NULL},
-	{34, NULL, NULL},
-	{35, NULL, NULL},
-	{36, NULL, NULL},
-	{37, NULL, NULL},
+	{ 32, "status", },
+	{ 33, "lo", },
+	{ 34, "hi", },
+	{ 35, "badvaddr", },
+	{ 36, "cause", },
+	{ 37, "pc" },
 };
 
 /* number of mips dummy fp regs fp0 - fp31 + fsr and fir
@@ -272,10 +267,11 @@ struct reg_cache *mips32_build_reg_cache(struct target *target)
 	mips32->core_cache = cache;
 
 	for (i = 0; i < num_regs; i++) {
-		arch_info[i] = mips32_core_reg_list_arch_info[i];
+		arch_info[i].num = mips32_regs[i].id;
 		arch_info[i].target = target;
 		arch_info[i].mips32_common = mips32;
-		reg_list[i].name = mips32_core_reg_list[i];
+
+		reg_list[i].name = mips32_regs[i].name;
 		reg_list[i].size = 32;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
