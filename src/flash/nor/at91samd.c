@@ -254,24 +254,33 @@ static int samd_protect(struct flash_bank *bank, int set, int first, int last)
 	int res;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
 
+	res = ERROR_OK;
+
 	for (int s = first; s <= last; s++) {
-		/* Load an address that is within this sector (we use offset 0) */
-		res = target_write_u32(bank->target, SAMD_NVMCTRL + SAMD_NVMCTRL_ADDR,
-				s * chip->sector_size);
-		if (res != ERROR_OK)
-			return res;
+		if (set != bank->sectors[s].is_protected) {
+			/* Load an address that is within this sector (we use offset 0) */
+			res = target_write_u32(bank->target, SAMD_NVMCTRL + SAMD_NVMCTRL_ADDR,
+					       s * chip->sector_size);
+			if (res != ERROR_OK)
+				goto exit;
 
-		/* Tell the controller to lock that sector */
-		res = target_write_u16(bank->target,
-				SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA,
-				SAMD_NVM_CMD(SAMD_NVM_CMD_LR));
-		if (res != ERROR_OK)
-			return res;
+			/* Tell the controller to lock that sector */
+
+			uint16_t cmd = (set) ?
+				SAMD_NVM_CMD(SAMD_NVM_CMD_LR) :
+				SAMD_NVM_CMD(SAMD_NVM_CMD_UR);
+
+			res = target_write_u16(bank->target,
+					       SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA,
+					       cmd);
+			if (res != ERROR_OK)
+				goto exit;
+		}
 	}
-
+exit:
 	samd_protect_check(bank);
 
-	return ERROR_OK;
+	return res;
 }
 
 static bool samd_check_error(struct flash_bank *bank)
