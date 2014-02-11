@@ -3,6 +3,9 @@
  *       openOCD.fseu(AT)de.fujitsu.com                                    *
  *   Copyright (C) 2011 Ronny Strutz                                       *
  *                                                                         *
+ *   Copyright (C) 2013 Nemui Trinomius                                    *
+ *   nemuisan_kawausogasuki@live.jp                                        *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -28,8 +31,8 @@
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 
-#define FLASH_DQ6 0x00000040	/* Data toggle flag bit (TOGG) position */
-#define FLASH_DQ5 0x00000020	/* Time limit exceeding flag bit (TLOV) position */
+#define FLASH_DQ6 0x40		/* Data toggle flag bit (TOGG) position */
+#define FLASH_DQ5 0x20		/* Time limit exceeding flag bit (TLOV) position */
 
 enum fm3_variant {
 	mb9bfxx1,	/* Flash Type '1' */
@@ -140,23 +143,23 @@ FLASH_BANK_COMMAND_HANDLER(fm3_flash_bank_command)
 static int fm3_busy_wait(struct target *target, uint32_t offset, int timeout_ms)
 {
 	int retval = ERROR_OK;
-	uint16_t state1, state2;
+	uint8_t state1, state2;
 	int ms = 0;
 
 	/* While(1) loop exit via "break" and "return" on error */
 	while (1) {
 		/* dummy-read - see flash manual */
-		retval = target_read_u16(target, offset, &state1);
+		retval = target_read_u8(target, offset, &state1);
 		if (retval != ERROR_OK)
 			return retval;
 
 		/* Data polling 1 */
-		retval = target_read_u16(target, offset, &state1);
+		retval = target_read_u8(target, offset, &state1);
 		if (retval != ERROR_OK)
 			return retval;
 
 		/* Data polling 2 */
-		retval = target_read_u16(target, offset, &state2);
+		retval = target_read_u8(target, offset, &state2);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -168,12 +171,12 @@ static int fm3_busy_wait(struct target *target, uint32_t offset, int timeout_ms)
 			/* Retry data polling */
 
 			/* Data polling 1 */
-			retval = target_read_u16(target, offset, &state1);
+			retval = target_read_u8(target, offset, &state1);
 			if (retval != ERROR_OK)
 				return retval;
 
 			/* Data polling 2 */
-			retval = target_read_u16(target, offset, &state2);
+			retval = target_read_u8(target, offset, &state2);
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -211,6 +214,10 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 	uint32_t u32FlashSeqAddress1;
 	uint32_t u32FlashSeqAddress2;
 
+	struct working_area *write_algorithm;
+	struct reg_param reg_params[3];
+	struct armv7m_algorithm armv7m_info;
+
 	u32FlashType = (uint32_t) fm3_info->flashtype;
 
 	if (u32FlashType == fm3_flash_type1) {
@@ -229,7 +236,46 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	/* RAMCODE used for fm3 Flash sector erase:				   */
+	/* R0 keeps Flash Sequence address 1     (u32FlashSeq1)    */
+	/* R1 keeps Flash Sequence address 2     (u32FlashSeq2)    */
+	/* R2 keeps Flash Offset address         (ofs)			   */
+	const uint8_t fm3_flash_erase_sector_code[] = {
+						/*    *(uint16_t*)u32FlashSeq1 = 0xAA; */
+		0xAA, 0x24,		/*        MOVS  R4, #0xAA              */
+		0x04, 0x80,		/*        STRH  R4, [R0, #0]           */
+						/*    *(uint16_t*)u32FlashSeq2 = 0x55; */
+		0x55, 0x23,		/*        MOVS  R3, #0x55              */
+		0x0B, 0x80,		/*        STRH  R3, [R1, #0]           */
+						/*    *(uint16_t*)u32FlashSeq1 = 0x80; */
+		0x80, 0x25,		/*        MOVS  R5, #0x80              */
+		0x05, 0x80,		/*        STRH  R5, [R0, #0]           */
+						/*    *(uint16_t*)u32FlashSeq1 = 0xAA; */
+		0x04, 0x80,		/*        STRH  R4, [R0, #0]           */
+						/*    *(uint16_t*)u32FlashSeq2 = 0x55; */
+		0x0B, 0x80,		/*        STRH  R3, [R1, #0]           */
+						/* Sector_Erase Command (0x30)         */
+						/*    *(uint16_t*)ofs = 0x30;          */
+		0x30, 0x20,		/*        MOVS  R0, #0x30              */
+		0x10, 0x80,		/*        STRH  R0, [R2, #0]           */
+						/* End Code                            */
+		0x00, 0xBE,		/*        BKPT  #0                     */
+	};
+
 	LOG_INFO("Fujitsu MB9[A/B]FXXX: Sector Erase ... (%d to %d)", first, last);
+
+	/* disable HW watchdog */
+	retval = target_write_u32(target, 0x40011C00, 0x1ACCE551);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, 0x40011C00, 0xE5331AAE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, 0x40011008, 0x00000000);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* FASZR = 0x01, Enables CPU Programming Mode (16-bit Flash acccess) */
 	retval = target_write_u32(target, 0x40000000, 0x0001);
@@ -241,6 +287,25 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* allocate working area with flash sector erase code */
+	if (target_alloc_working_area(target, sizeof(fm3_flash_erase_sector_code),
+			&write_algorithm) != ERROR_OK) {
+		LOG_WARNING("no working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	retval = target_write_buffer(target, write_algorithm->address,
+		sizeof(fm3_flash_erase_sector_code), fm3_flash_erase_sector_code);
+	if (retval != ERROR_OK)
+		return retval;
+
+	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+	armv7m_info.core_mode = ARM_MODE_THREAD;
+
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT); /* u32FlashSeqAddress1 */
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT); /* u32FlashSeqAddress2 */
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT); /* offset				*/
+
+	/* write code buffer and use Flash sector erase code within fm3				*/
 	for (sector = first ; sector <= last ; sector++) {
 		uint32_t offset = bank->sectors[sector].offset;
 
@@ -248,31 +313,17 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 			if (odd)
 				offset += 4;
 
-			/* Flash unlock sequence */
-			retval = target_write_u16(target, u32FlashSeqAddress1, 0x00AA);
-			if (retval != ERROR_OK)
-				return retval;
+			buf_set_u32(reg_params[0].value, 0, 32, u32FlashSeqAddress1);
+			buf_set_u32(reg_params[1].value, 0, 32, u32FlashSeqAddress2);
+			buf_set_u32(reg_params[2].value, 0, 32, offset);
 
-			retval = target_write_u16(target, u32FlashSeqAddress2, 0x0055);
-			if (retval != ERROR_OK)
+			retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
+					write_algorithm->address, 0, 100000, &armv7m_info);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Error executing flash erase programming algorithm");
+				retval = ERROR_FLASH_OPERATION_FAILED;
 				return retval;
-
-			retval = target_write_u16(target, u32FlashSeqAddress1, 0x0080);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = target_write_u16(target, u32FlashSeqAddress1, 0x00AA);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = target_write_u16(target, u32FlashSeqAddress2, 0x0055);
-			if (retval != ERROR_OK)
-				return retval;
-
-			/* Sector erase command (0x0030) */
-			retval = target_write_u16(target, offset, 0x0030);
-			if (retval != ERROR_OK)
-				return retval;
+			}
 
 			retval = fm3_busy_wait(target, offset, 500);
 			if (retval != ERROR_OK)
@@ -280,6 +331,11 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 		}
 		bank->sectors[sector].is_erased = 1;
 	}
+
+	target_free_working_area(target, write_algorithm);
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[2]);
 
 	/* FASZR = 0x02, Enables CPU Run Mode (32-bit Flash acccess) */
 	retval = target_write_u32(target, 0x40000000, 0x0002);
@@ -766,6 +822,10 @@ static int fm3_chip_erase(struct flash_bank *bank)
 	uint32_t u32FlashSeqAddress1;
 	uint32_t u32FlashSeqAddress2;
 
+	struct working_area *write_algorithm;
+	struct reg_param reg_params[3];
+	struct armv7m_algorithm armv7m_info;
+
 	u32FlashType = (uint32_t) fm3_info2->flashtype;
 
 	if (u32FlashType == fm3_flash_type1) {
@@ -786,7 +846,45 @@ static int fm3_chip_erase(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	/* RAMCODE used for fm3 Flash chip erase:				   */
+	/* R0 keeps Flash Sequence address 1     (u32FlashSeq1)    */
+	/* R1 keeps Flash Sequence address 2     (u32FlashSeq2)    */
+	const uint8_t fm3_flash_erase_chip_code[] = {
+						/*    *(uint16_t*)u32FlashSeq1 = 0xAA; */
+		0xAA, 0x22,		/*        MOVS  R2, #0xAA              */
+		0x02, 0x80,		/*        STRH  R2, [R0, #0]           */
+						/*    *(uint16_t*)u32FlashSeq2 = 0x55; */
+		0x55, 0x23,		/*        MOVS  R3, #0x55              */
+		0x0B, 0x80,		/*        STRH  R3, [R1, #0]           */
+						/*    *(uint16_t*)u32FlashSeq1 = 0x80; */
+		0x80, 0x24,		/*        MOVS  R4, #0x80              */
+		0x04, 0x80,		/*        STRH  R4, [R0, #0]           */
+						/*    *(uint16_t*)u32FlashSeq1 = 0xAA; */
+		0x02, 0x80,		/*        STRH  R2, [R0, #0]           */
+						/*    *(uint16_t*)u32FlashSeq2 = 0x55; */
+		0x0B, 0x80,		/*        STRH  R3, [R1, #0]           */
+						/* Chip_Erase Command 0x10             */
+						/*    *(uint16_t*)u32FlashSeq1 = 0x10; */
+		0x10, 0x21,		/*        MOVS  R1, #0x10              */
+		0x01, 0x80,		/*        STRH  R1, [R0, #0]           */
+						/* End Code                            */
+		0x00, 0xBE,		/*        BKPT  #0                      */
+	};
+
 	LOG_INFO("Fujitsu MB9[A/B]xxx: Chip Erase ... (may take several seconds)");
+
+	/* disable HW watchdog */
+	retval = target_write_u32(target, 0x40011C00, 0x1ACCE551);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, 0x40011C00, 0xE5331AAE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, 0x40011008, 0x00000000);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* FASZR = 0x01, Enables CPU Programming Mode (16-bit Flash access) */
 	retval = target_write_u32(target, 0x40000000, 0x0001);
@@ -798,31 +896,38 @@ static int fm3_chip_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* Flash unlock sequence */
-	retval = target_write_u16(target, u32FlashSeqAddress1, 0x00AA);
+	/* allocate working area with flash chip erase code */
+	if (target_alloc_working_area(target, sizeof(fm3_flash_erase_chip_code),
+			&write_algorithm) != ERROR_OK) {
+		LOG_WARNING("no working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	retval = target_write_buffer(target, write_algorithm->address,
+		sizeof(fm3_flash_erase_chip_code), fm3_flash_erase_chip_code);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = target_write_u16(target, u32FlashSeqAddress2, 0x0055);
-	if (retval != ERROR_OK)
-		return retval;
+	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+	armv7m_info.core_mode = ARM_MODE_THREAD;
 
-	retval = target_write_u16(target, u32FlashSeqAddress1, 0x0080);
-	if (retval != ERROR_OK)
-		return retval;
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT); /* u32FlashSeqAddress1 */
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT); /* u32FlashSeqAddress2 */
 
-	retval = target_write_u16(target, u32FlashSeqAddress1, 0x00AA);
-	if (retval != ERROR_OK)
-		return retval;
+	buf_set_u32(reg_params[0].value, 0, 32, u32FlashSeqAddress1);
+	buf_set_u32(reg_params[1].value, 0, 32, u32FlashSeqAddress2);
 
-	retval = target_write_u16(target, u32FlashSeqAddress2, 0x0055);
-	if (retval != ERROR_OK)
+	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
+			write_algorithm->address, 0, 100000, &armv7m_info);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Error executing flash erase programming algorithm");
+		retval = ERROR_FLASH_OPERATION_FAILED;
 		return retval;
+	}
 
-	/* Chip Erase command (0x0010) */
-	retval = target_write_u16(target, u32FlashSeqAddress1, 0x0010);
-	if (retval != ERROR_OK)
-		return retval;
+	target_free_working_area(target, write_algorithm);
+
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
 
 	retval = fm3_busy_wait(target, u32FlashSeqAddress2, 20000);	/* 20s timeout */
 	if (retval != ERROR_OK)
