@@ -499,6 +499,8 @@ static int sam4l_write_page(struct sam4l_info *chip, struct target *target,
 {
 	int res;
 
+	LOG_DEBUG("sam4l_write_page address=%08" PRIx32, address);
+
 	/* Clear the page buffer before we write to it */
 	res = sam4l_flash_command(target, SAM4L_FCMD_CPB, -1);
 	if (res != ERROR_OK) {
@@ -535,6 +537,8 @@ static int sam4l_write_page_partial(struct sam4l_info *chip,
 	if (!pg)
 		return ERROR_FAIL;
 
+	LOG_DEBUG("sam4l_write_page_partial address=%08" PRIx32 " nb=%08" PRIx32, address, nb);
+
 	assert(page_offset + nb < chip->page_size);
 	assert((address % chip->page_size) == 0);
 
@@ -562,6 +566,8 @@ static int sam4l_write(struct flash_bank *bank, const uint8_t *buffer,
 	int res;
 	uint32_t nb = 0;
 	struct sam4l_info *chip = (struct sam4l_info *)bank->driver_priv;
+
+	LOG_DEBUG("sam4l_write offset=%08" PRIx32 " count=%08" PRIx32, offset, count);
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -605,14 +611,14 @@ static int sam4l_write(struct flash_bank *bank, const uint8_t *buffer,
 		for (int i = 0; i < np; i++) {
 			if (count >= chip->page_size) {
 				res = sam4l_write_page(chip, bank->target,
-						bank->base + (i * chip->page_size),
+						bank->base + offset,
 						buffer + (i * chip->page_size));
 				/* Advance one page */
 				offset += chip->page_size;
 				count -= chip->page_size;
 			} else {
 				res = sam4l_write_page_partial(chip, bank,
-						bank->base + (i * chip->page_size),
+						bank->base + offset,
 						buffer + (i * chip->page_size), 0, count);
 				/* We're done after this. */
 				offset += count;
