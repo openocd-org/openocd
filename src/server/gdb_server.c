@@ -1669,29 +1669,41 @@ static void xml_printf(int *retval, char **xml, int *pos, int *size,
 	}
 }
 
-static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len)
+static int decode_xfer_read(char *_buf, char **annex, int *ofs, unsigned int *len)
 {
+	int ret = 0;
+	char *buf = strdup(_buf);
+	char *_annex;
 	char *separator;
 
 	/* Extract and NUL-terminate the annex. */
-	*annex = buf;
+	_annex = buf;
 	while (*buf && *buf != ':')
 		buf++;
-	if (*buf == '\0')
-		return -1;
+	if (*buf == '\0') {
+		ret = -1;
+		goto out;
+	}
 	*buf++ = 0;
+
+	/* Return annex as copy because "buf" will be freed in this function */
+	*annex = strdup(_annex);
 
 	/* After the read marker and annex, qXfer looks like a
 	 * traditional 'm' packet. */
 
 	*ofs = strtoul(buf, &separator, 16);
 
-	if (*separator != ',')
-		return -1;
+	if (*separator != ',') {
+		ret = -1;
+		goto out;
+	}
 
 	*len = strtoul(separator + 1, NULL, 16);
 
-	return 0;
+out:
+	free(buf);
+	return ret;
 }
 
 static int compare_bank(const void *a, const void *b)
@@ -2364,7 +2376,7 @@ static int gdb_query_packet(struct connection *connection,
 
 		int offset;
 		unsigned int length;
-		char *annex;
+		char *annex = NULL;
 
 		/* skip command character */
 		packet += 20;
@@ -2373,6 +2385,7 @@ static int gdb_query_packet(struct connection *connection,
 			gdb_send_error(connection, 01);
 			return ERROR_OK;
 		}
+		free(annex);
 
 		/* Target should prepare correct target description for annex.
 		 * The first character of returned xml is 'm' or 'l'. 'm' for
