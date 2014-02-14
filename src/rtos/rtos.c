@@ -46,7 +46,7 @@ static struct rtos_type *rtos_types[] = {
 	NULL
 };
 
-int rtos_thread_packet(struct connection *connection, char *packet, int packet_size);
+int rtos_thread_packet(struct connection *connection, const char *packet, int packet_size);
 
 int rtos_smp_init(struct target *target)
 {
@@ -138,7 +138,7 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 	return JIM_ERR;
 }
 
-int gdb_thread_packet(struct connection *connection, char *packet, int packet_size)
+int gdb_thread_packet(struct connection *connection, char const *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	if (target->rtos == NULL)
@@ -186,7 +186,7 @@ static char *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
  *
  * rtos_qsymbol() returns 1 if an RTOS has been detected, or 0 otherwise.
  */
-int rtos_qsymbol(struct connection *connection, char *packet, int packet_size)
+int rtos_qsymbol(struct connection *connection, char const *packet, int packet_size)
 {
 	int rtos_detected = 0;
 	uint64_t addr = 0;
@@ -254,7 +254,7 @@ done:
 	return rtos_detected;
 }
 
-int rtos_thread_packet(struct connection *connection, char *packet, int packet_size)
+int rtos_thread_packet(struct connection *connection, char const *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 

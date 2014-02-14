@@ -99,7 +99,7 @@ int image_read_section(struct image *image, int section, uint32_t offset,
 void image_close(struct image *image);
 
 int image_add_section(struct image *image, uint32_t base, uint32_t size,
-		int flags, uint8_t *data);
+		int flags, uint8_t const *data);
 
 int image_calculate_checksum(uint8_t *buffer, uint32_t nbytes,
 		uint32_t *checksum);

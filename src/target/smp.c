@@ -56,7 +56,7 @@
 
 /* packet j :smp status request */
 int gdb_read_smp_packet(struct connection *connection,
-		char *packet, int packet_size)
+		char const *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	int retval = ERROR_OK;
@@ -77,7 +77,7 @@ int gdb_read_smp_packet(struct connection *connection,
 
 /* J :  smp set request */
 int gdb_write_smp_packet(struct connection *connection,
-		char *packet, int packet_size)
+		char const *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	char *separator;

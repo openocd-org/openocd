@@ -56,7 +56,7 @@ struct rtos {
 	threadid_t current_thread;
 	struct thread_detail *thread_details;
 	int thread_count;
-	int (*gdb_thread_packet)(struct connection *connection, char *packet, int packet_size);
+	int (*gdb_thread_packet)(struct connection *connection, char const *packet, int packet_size);
 	void *rtos_specific_params;
 };
 
@@ -95,12 +95,12 @@ int rtos_generic_stack_read(struct target *target,
 		int64_t stack_ptr,
 		char **hex_reg_list);
 int rtos_try_next(struct target *target);
-int gdb_thread_packet(struct connection *connection, char *packet, int packet_size);
+int gdb_thread_packet(struct connection *connection, char const *packet, int packet_size);
 int rtos_get_gdb_reg_list(struct connection *connection);
 int rtos_update_threads(struct target *target);
 void rtos_free_threadlist(struct rtos *rtos);
 int rtos_smp_init(struct target *target);
 /*  function for handling symbol access */
-int rtos_qsymbol(struct connection *connection, char *packet, int packet_size);
+int rtos_qsymbol(struct connection *connection, char const *packet, int packet_size);
 
 #endif	/* RTOS_H */
