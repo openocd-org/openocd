@@ -47,18 +47,20 @@
 #define DPAP_WRITE		0
 #define DPAP_READ		1
 
+#define BANK_REG(bank, reg)	(((bank) << 4) | (reg))
+
 /* A[3:0] for DP registers; A[1:0] are always zero.
  * - JTAG accesses all of these via JTAG_DP_DPACC, except for
  *   IDCODE (JTAG_DP_IDCODE) and ABORT (JTAG_DP_ABORT).
  * - SWD accesses these directly, sometimes needing SELECT.CTRLSEL
  */
-#define DP_IDCODE		0		/* SWD: read */
-#define DP_ABORT		0		/* SWD: write */
-#define DP_CTRL_STAT		0x4		/* r/w */
-#define DP_WCR			0x4		/* SWD: r/w (mux CTRLSEL) */
-#define DP_RESEND		0x8		/* SWD: read */
-#define DP_SELECT		0x8		/* JTAG: r/w; SWD: write */
-#define DP_RDBUFF		0xC		/* read-only */
+#define DP_IDCODE		BANK_REG(0x0, 0x0)	/* SWD: read */
+#define DP_ABORT		BANK_REG(0x0, 0x0)	/* SWD: write */
+#define DP_CTRL_STAT		BANK_REG(0x0, 0x4)	/* r/w */
+#define DP_RESEND		BANK_REG(0x0, 0x8)	/* SWD: read */
+#define DP_SELECT		BANK_REG(0x0, 0x8)	/* JTAG: r/w; SWD: write */
+#define DP_RDBUFF		BANK_REG(0x0, 0xC)	/* read-only */
+#define DP_WCR			BANK_REG(0x1, 0x4)	/* SWD: r/w */
 
 #define WCR_TO_TRN(wcr) ((uint32_t)(1 + (3 & ((wcr)) >> 8)))	/* 1..4 clocks */
 #define WCR_TO_PRESCALE(wcr) ((uint32_t)(7 & ((wcr))))		/* impl defined */
@@ -160,6 +162,13 @@ struct adiv5_dap {
 	 * "-1" indicates no cached value.
 	 */
 	uint32_t ap_bank_value;
+
+	/**
+	 * Cache for DP_SELECT bits identifying the current four-word DP
+	 * register bank.  This caches DP register addresss bits 7:4; JTAG
+	 * and SWD access primitves pass address bits 3:2; bits 1:0 are zero.
+	 */
+	uint32_t dp_bank_value;
 
 	/**
 	 * Cache for (MEM-AP) AP_REG_CSW register value.  This is written to

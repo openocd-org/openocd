@@ -33,7 +33,7 @@
 /* followed by TRN, 3-bits of ACK, TRN */
 
 /* pbit16 holds precomputed parity bits for each nibble */
-#define pbit(parity, nibble) (parity << nibble)
+#define pbit(parity, nibble) ((parity) << (nibble))
 
 static const uint16_t pbit16 =
 	pbit(0, 0) | pbit(1, 1) | pbit(1, 2) | pbit(0, 3)
@@ -41,7 +41,7 @@ static const uint16_t pbit16 =
 	| pbit(1, 8) | pbit(0, 9) | pbit(0, 0xa) | pbit(1, 0xb)
 	| pbit(0, 0xc) | pbit(1, 0xd) | pbit(1, 0xe) | pbit(0, 0xf);
 
-#define nibble_parity(nibble) (pbit16 & pbit(1, nibble))
+#define nibble_parity(nibble) (pbit16 & pbit(1, (nibble)))
 
 /**
  * Construct a "cmd" byte, in lSB bit order, which swd_driver.read_reg()

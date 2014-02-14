@@ -664,6 +664,8 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 
 	/* DP initialization */
 
+	dap->dp_bank_value = 0;
+
 	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 	if (retval != ERROR_OK)
 		return retval;

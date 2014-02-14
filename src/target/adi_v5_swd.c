@@ -58,14 +58,56 @@
 /* YUK! - but this is currently a global.... */
 extern struct jtag_interface *jtag_interface;
 
+static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
+		uint32_t data);
+
+static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
+{
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
+	return swd->write_reg(swd_cmd(false,  false, DP_ABORT),
+		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+}
+
+/** Select the DP register bank matching bits 7:4 of reg. */
+static int swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned reg)
+{
+	uint32_t select_dp_bank = (reg & 0x000000F0) >> 4;
+
+	if (reg == DP_SELECT)
+		return ERROR_OK;
+
+	if (select_dp_bank == dap->dp_bank_value)
+		return ERROR_OK;
+
+	dap->dp_bank_value = select_dp_bank;
+	select_dp_bank |= dap->ap_current | dap->ap_bank_value;
+
+	return swd_queue_dp_write(dap, DP_SELECT, select_dp_bank);
+}
+
 static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
+	int retval;
 	/* REVISIT status return vs ack ... */
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	return swd->read_reg(swd_cmd(true,  false, reg), data);
+	retval = swd_queue_dp_bankselect(dap, reg);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd->read_reg(swd_cmd(true,  false, reg), data);
+
+	if (retval != ERROR_OK) {
+		/* fault response */
+		uint8_t ack = retval & 0xff;
+		swd_queue_ap_abort(dap, &ack);
+	}
+
+	return retval;
 }
 
 static int swd_queue_idcode_read(struct adiv5_dap *dap,
@@ -82,39 +124,82 @@ static int swd_queue_idcode_read(struct adiv5_dap *dap,
 static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
+	int retval;
 	/* REVISIT status return vs ack ... */
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	return swd->write_reg(swd_cmd(false,  false, reg), data);
+	retval = swd_queue_dp_bankselect(dap, reg);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd->write_reg(swd_cmd(false,  false, reg), data);
+
+	if (retval != ERROR_OK) {
+		/* fault response */
+		uint8_t ack = retval & 0xff;
+		swd_queue_ap_abort(dap, &ack);
+	}
+
+	return retval;
 }
 
+/** Select the AP register bank matching bits 7:4 of reg. */
+static int swd_queue_ap_bankselect(struct adiv5_dap *dap, unsigned reg)
+{
+	uint32_t select_ap_bank = reg & 0x000000F0;
+
+	if (select_ap_bank == dap->ap_bank_value)
+		return ERROR_OK;
+
+	dap->ap_bank_value = select_ap_bank;
+	select_ap_bank |= dap->ap_current | dap->dp_bank_value;
+
+	return swd_queue_dp_write(dap, DP_SELECT, select_ap_bank);
+}
 
 static int (swd_queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
-	/* REVISIT  APSEL ... */
 	/* REVISIT status return ... */
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	return swd->read_reg(swd_cmd(true,  true, reg), data);
+	int retval = swd_queue_ap_bankselect(dap, reg);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd->read_reg(swd_cmd(true,  true, reg), data);
+
+	if (retval != ERROR_OK) {
+		/* fault response */
+		uint8_t ack = retval & 0xff;
+		swd_queue_ap_abort(dap, &ack);
+	}
+
+	return retval;
 }
 
 static int (swd_queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
-	/* REVISIT  APSEL ... */
 	/* REVISIT status return ... */
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	return swd->write_reg(swd_cmd(false,  true, reg), data);
-}
+	int retval = swd_queue_ap_bankselect(dap, reg);
+	if (retval != ERROR_OK)
+		return retval;
 
-static int (swd_queue_ap_abort)(struct adiv5_dap *dap, uint8_t *ack)
-{
-	return ERROR_FAIL;
+	retval = swd->write_reg(swd_cmd(false,  true, reg), data);
+
+	if (retval != ERROR_OK) {
+		/* fault response */
+		uint8_t ack = retval & 0xff;
+		swd_queue_ap_abort(dap, &ack);
+	}
+
+	return retval;
 }
 
 /** Executes all queued DAP operations. */
@@ -356,8 +441,13 @@ static int swd_init(struct command_context *ctx)
 	if (status == ERROR_OK)
 		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
 
-	return status;
+	/* force clear all sticky faults */
+	swd_queue_ap_abort(dap, &ack);
 
+	/* this is a workaround to get polling working */
+	jtag_add_reset(0, 0);
+
+	return status;
 }
 
 static struct transport swd_transport = {
