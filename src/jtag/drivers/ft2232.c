@@ -1511,7 +1511,8 @@ static void minimodule_reset(int trst, int srst)
 
 static void turtle_reset(int trst, int srst)
 {
-	trst = trst;
+	if (trst == 1)
+		LOG_ERROR("Can't assert TRST: the adapter lacks this signal");
 
 	if (srst == 1)
 		low_output |= nSRST;
