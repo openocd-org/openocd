@@ -661,6 +661,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	 */
 	dap->ap_current = !0;
 	dap_ap_select(dap, 0);
+	dap->last_read = NULL;
 
 	/* DP initialization */
 

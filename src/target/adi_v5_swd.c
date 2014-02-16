@@ -58,6 +58,17 @@
 /* YUK! - but this is currently a global.... */
 extern struct jtag_interface *jtag_interface;
 
+static int swd_finish_read(struct adiv5_dap *dap)
+{
+	const struct swd_driver *swd = jtag_interface->swd;
+	int retval = ERROR_OK;
+	if (dap->last_read != NULL) {
+		retval = swd->read_reg(swd_cmd(true, false, DP_RDBUFF), dap->last_read);
+		dap->last_read = NULL;
+	}
+	return retval;
+}
+
 static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data);
 
@@ -129,6 +140,10 @@ static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
+	retval = swd_finish_read(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
 	retval = swd_queue_dp_bankselect(dap, reg);
 	if (retval != ERROR_OK)
 		return retval;
@@ -169,12 +184,14 @@ static int (swd_queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = swd->read_reg(swd_cmd(true,  true, reg), data);
+	retval = swd->read_reg(swd_cmd(true,  true, reg), dap->last_read);
+	dap->last_read = data;
 
 	if (retval != ERROR_OK) {
 		/* fault response */
 		uint8_t ack = retval & 0xff;
 		swd_queue_ap_abort(dap, &ack);
+		return retval;
 	}
 
 	return retval;
@@ -186,8 +203,13 @@ static int (swd_queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 	/* REVISIT status return ... */
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
+	int retval;
 
-	int retval = swd_queue_ap_bankselect(dap, reg);
+	retval = swd_finish_read(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd_queue_ap_bankselect(dap, reg);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -207,10 +229,12 @@ static int swd_run(struct adiv5_dap *dap)
 {
 	/* for now the SWD interface hard-wires a zero-size queue.  */
 
+	int retval = swd_finish_read(dap);
+
 	/* FIXME but we still need to check and scrub
 	 * any hardware errors ...
 	 */
-	return ERROR_OK;
+	return retval;
 }
 
 const struct dap_ops swd_dap_ops = {

@@ -188,6 +188,12 @@ struct adiv5_dap {
 	uint8_t  ack;
 
 	/**
+	 * Holds the pointer to the destination word for the last queued read,
+	 * for use with posted AP read sequence optimization.
+	 */
+	uint32_t *last_read;
+
+	/**
 	 * Configures how many extra tck clocks are added after starting a
 	 * MEM-AP access before we try to read its status (and/or result).
 	 */
