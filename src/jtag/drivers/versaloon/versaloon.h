@@ -59,7 +59,8 @@ struct interface_swd_t {
 	RESULT(*fini)(uint8_t interface_index);
 	RESULT(*config)(uint8_t interface_index, uint8_t trn, uint16_t retry,
 		uint16_t dly);
-	RESULT(*seqout)(uint8_t interface_index, uint8_t *data, uint16_t bitlen);
+	RESULT(*seqout)(uint8_t interface_index, const uint8_t *data,
+			uint16_t bitlen);
 	RESULT(*seqin)(uint8_t interface_index, uint8_t *data, uint16_t bitlen);
 	RESULT(*transact)(uint8_t interface_index, uint8_t request,
 		uint32_t *data, uint8_t *ack);

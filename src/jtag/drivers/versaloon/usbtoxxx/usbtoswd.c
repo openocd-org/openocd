@@ -30,13 +30,25 @@
 #include "usbtoxxx.h"
 #include "usbtoxxx_internal.h"
 
-RESULT usbtoswd_callback(void *p, uint8_t *src, uint8_t *processed)
+RESULT usbtoswd_read_callback(void *p, uint8_t *src, uint8_t *processed)
 {
 	struct versaloon_pending_t *pending = (struct versaloon_pending_t *)p;
 
 	if (pending->extra_data != NULL)
 		*((uint8_t *)pending->extra_data) = src[0];
 
+	return ERROR_OK;
+}
+
+RESULT usbtoswd_write_callback(void *p, uint8_t *src, uint8_t *processed)
+{
+	struct versaloon_pending_t *pending = (struct versaloon_pending_t *)p;
+
+	if (pending->extra_data != NULL)
+		*((uint8_t *)pending->extra_data) = src[0];
+
+	/* mark it processed to ignore other input data */
+	*processed = 1;
 	return ERROR_OK;
 }
 
@@ -69,7 +81,8 @@ RESULT usbtoswd_config(uint8_t interface_index, uint8_t trn, uint16_t retry,
 	return usbtoxxx_conf_command(USB_TO_SWD, interface_index, cfg_buf, 5);
 }
 
-RESULT usbtoswd_seqout(uint8_t interface_index, uint8_t *data, uint16_t bitlen)
+RESULT usbtoswd_seqout(uint8_t interface_index, const uint8_t *data,
+	uint16_t bitlen)
 {
 	uint16_t bytelen = (bitlen + 7) >> 3;
 
@@ -130,14 +143,16 @@ RESULT usbtoswd_transact(uint8_t interface_index, uint8_t request,
 		memset(buff + 1, 0, 4);
 
 	versaloon_set_extra_data(ack);
-	versaloon_set_callback(usbtoswd_callback);
 	if (request & 0x04) {
 		/* read */
-		return usbtoxxx_inout_command(USB_TO_SWD, interface_index, buff, 5, 5,
-			(uint8_t *)data, 1, 4, 0);
+		versaloon_set_callback(usbtoswd_read_callback);
 	} else {
 		/* write */
-		return usbtoxxx_inout_command(USB_TO_SWD, interface_index, buff, 5, 5,
-			NULL, 0, 0, 0);
+		versaloon_set_callback(usbtoswd_write_callback);
 	}
+
+	/* Input buffer must be passed even for write operations. Otherwise
+	 * the callback function is not called and ack value is not set. */
+	return usbtoxxx_inout_command(USB_TO_SWD, interface_index, buff, 5, 5,
+		(uint8_t *)data, 1, 4, 0);
 }
