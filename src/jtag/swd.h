@@ -32,17 +32,6 @@
 #define SWD_CMD_PARK	(0 << 7)	/* not driven by host (pull high) */
 /* followed by TRN, 3-bits of ACK, TRN */
 
-/* pbit16 holds precomputed parity bits for each nibble */
-#define pbit(parity, nibble) ((parity) << (nibble))
-
-static const uint16_t pbit16 =
-	pbit(0, 0) | pbit(1, 1) | pbit(1, 2) | pbit(0, 3)
-	| pbit(1, 4) | pbit(0, 5) | pbit(0, 6) | pbit(1, 7)
-	| pbit(1, 8) | pbit(0, 9) | pbit(0, 0xa) | pbit(1, 0xb)
-	| pbit(0, 0xc) | pbit(1, 0xd) | pbit(1, 0xe) | pbit(0, 0xf);
-
-#define nibble_parity(nibble) (pbit16 & pbit(1, (nibble)))
-
 /**
  * Construct a "cmd" byte, in lSB bit order, which swd_driver.read_reg()
  * and swd_driver.write_reg() methods will use directly.
@@ -54,7 +43,7 @@ static inline uint8_t swd_cmd(bool is_read, bool is_ap, uint8_t regnum)
 		| ((regnum & 0xc) << 1);
 
 	/* 8 cmd bits 4:1 may be set */
-	if (nibble_parity(cmd >> 1))
+	if (parity_u32(cmd))
 		cmd |= SWD_CMD_PARITY;
 
 	/* driver handles START, STOP, and TRN */

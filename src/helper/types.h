@@ -270,6 +270,25 @@ static inline void buf_bswap32(uint8_t *dst, const uint8_t *src, size_t len)
 	}
 }
 
+/**
+ * Calculate the (even) parity of a 32-bit datum.
+ * @param x The datum.
+ * @return 1 if the number of set bits in x is odd, 0 if it is even.
+ */
+static inline int parity_u32(uint32_t x)
+{
+#ifdef __GNUC__
+	return __builtin_parityl(x);
+#else
+	x ^= x >> 16;
+	x ^= x >> 8;
+	x ^= x >> 4;
+	x ^= x >> 2;
+	x ^= x >> 1;
+	return x & 1;
+#endif
+}
+
 #if defined(__ECOS)
 
 /* eCos plain lacks these definition... A series of upstream patches
