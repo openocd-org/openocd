@@ -828,11 +828,10 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, uint8_t *ap_nu
 }
 
 int dap_get_debugbase(struct adiv5_dap *dap, int ap,
-			uint32_t *out_dbgbase, uint32_t *out_apid)
+			uint32_t *dbgbase, uint32_t *apid)
 {
 	uint32_t ap_old;
 	int retval;
-	uint32_t dbgbase, apid;
 
 	/* AP address is in bits 31:24 of DP_SELECT */
 	if (ap >= 256)
@@ -841,32 +840,17 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 	ap_old = dap->ap_current;
 	dap_ap_select(dap, ap);
 
-	retval = dap_queue_ap_read(dap, AP_REG_BASE, &dbgbase);
+	retval = dap_queue_ap_read(dap, AP_REG_BASE, dbgbase);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	retval = dap_queue_ap_read(dap, AP_REG_IDR, apid);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* Excavate the device ID code */
-	struct jtag_tap *tap = dap->jtag_info->tap;
-	while (tap != NULL) {
-		if (tap->hasidcode)
-			break;
-		tap = tap->next_tap;
-	}
-	if (tap == NULL || !tap->hasidcode)
-		return ERROR_OK;
-
 	dap_ap_select(dap, ap_old);
-
-	/* The asignment happens only here to prevent modification of these
-	 * values before they are certain. */
-	*out_dbgbase = dbgbase;
-	*out_apid = apid;
 
 	return ERROR_OK;
 }
@@ -1353,7 +1337,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 		struct adiv5_dap *dap, int ap)
 {
 	int retval;
-	uint32_t dbgbase = 0, apid = 0; /* Silence gcc by initializing */
+	uint32_t dbgbase, apid;
 	int romtable_present = 0;
 	uint8_t mem_ap;
 	uint32_t ap_old;
