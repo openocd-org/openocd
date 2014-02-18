@@ -21,7 +21,6 @@
 /* according to different platform */
 #include <jtag/interface.h>
 #include <jtag/commands.h>
-#include "usb_common.h"
 
 #define PARAM_CHECK							1
 
@@ -49,7 +48,6 @@
 #define ERRMSG_NOT_SUPPORT_BY				"%s is not supported by %s."
 
 #define ERRMSG_FAILURE_OPERATION			"Fail to %s."
-#define ERRMSG_FAILURE_OPERATION_ERRSTRING	"Fail to %s, error string is %s."
 #define ERRMSG_FAILURE_OPERATION_MESSAGE	"Fail to %s, %s"
 #define ERRCODE_FAILURE_OPERATION			ERROR_FAIL
 

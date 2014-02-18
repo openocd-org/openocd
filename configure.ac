@@ -196,7 +196,8 @@ m4_define([USB1_ADAPTERS],
 	[[stlink], [ST-Link JTAG Programmer], [HLADAPTER_STLINK]],
 	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]],
 	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
-	[[usb_blaster_2], [Altera USB-Blaster II Compatible], [USB_BLASTER_2]]])
+	[[usb_blaster_2], [Altera USB-Blaster II Compatible], [USB_BLASTER_2]],
+	[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]]])
 
 m4_define([USB_ADAPTERS],
 	[[[jlink], [Segger J-Link JTAG Programmer], [JLINK]],
@@ -205,8 +206,7 @@ m4_define([USB_ADAPTERS],
 	[[aice], [Andes JTAG Programmer], [AICE]]])
 
 m4_define([USB0_ADAPTERS],
-	[[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]],
-	[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
+	[[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
 	[[rlink], [Raisonance RLink JTAG Programmer], [RLINK]],
 	[[armjtagew], [Olimex ARM-JTAG-EW Programmer], [ARMJTAGEW]]])
 

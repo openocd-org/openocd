@@ -20,6 +20,8 @@
 #ifndef __VERSALOON_H_INCLUDED__
 #define __VERSALOON_H_INCLUDED__
 
+#include <libusb.h>
+
 struct usart_status_t {
 	uint32_t tx_buff_avail;
 	uint32_t tx_buff_size;
@@ -107,7 +109,7 @@ struct versaloon_interface_t {
 };
 
 extern struct versaloon_interface_t versaloon_interface;
-extern usb_dev_handle *versaloon_usb_device_handle;
+extern libusb_device_handle *versaloon_usb_device_handle;
 
 #endif /* __VERSALOON_H_INCLUDED__ */
 

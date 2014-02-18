@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <libusb.h>
 
 #include "versaloon_include.h"
 #include "versaloon.h"
@@ -36,7 +37,7 @@ uint16_t versaloon_buf_size;
 struct versaloon_pending_t versaloon_pending[VERSALOON_MAX_PENDING_NUMBER];
 uint16_t versaloon_pending_idx;
 
-usb_dev_handle *versaloon_usb_device_handle;
+libusb_device_handle *versaloon_usb_device_handle;
 static uint32_t versaloon_usb_to = VERSALOON_TIMEOUT;
 
 RESULT versaloon_init(void);
@@ -196,6 +197,7 @@ RESULT versaloon_add_pending(uint8_t type, uint8_t cmd, uint16_t actual_szie,
 RESULT versaloon_send_command(uint16_t out_len, uint16_t *inlen)
 {
 	int ret;
+	int transferred;
 
 #if PARAM_CHECK
 	if (NULL == versaloon_buf) {
@@ -208,25 +210,24 @@ RESULT versaloon_send_command(uint16_t out_len, uint16_t *inlen)
 	}
 #endif
 
-	ret = usb_bulk_write(versaloon_usb_device_handle,
-			versaloon_interface.usb_setting.ep_out, (char *)versaloon_buf,
-			out_len, versaloon_usb_to);
-	if (ret != out_len) {
-		LOG_ERROR(ERRMSG_FAILURE_OPERATION_ERRSTRING, "send usb data",
-			usb_strerror());
+	ret = libusb_bulk_transfer(versaloon_usb_device_handle,
+			versaloon_interface.usb_setting.ep_out,
+			versaloon_buf, out_len, &transferred, versaloon_usb_to);
+	if (0 != ret || transferred != out_len) {
+		LOG_ERROR(ERRMSG_FAILURE_OPERATION, "send usb data");
 		return ERRCODE_FAILURE_OPERATION;
 	}
 
 	if (inlen != NULL) {
-		ret = usb_bulk_read(versaloon_usb_device_handle,
-				versaloon_interface.usb_setting.ep_in, (char *)versaloon_buf,
-				versaloon_interface.usb_setting.buf_size, versaloon_usb_to);
-		if (ret > 0) {
-			*inlen = (uint16_t)ret;
+		ret = libusb_bulk_transfer(versaloon_usb_device_handle,
+			versaloon_interface.usb_setting.ep_in,
+			versaloon_buf, versaloon_interface.usb_setting.buf_size,
+			&transferred, versaloon_usb_to);
+		if (0 == ret) {
+			*inlen = (uint16_t)transferred;
 			return ERROR_OK;
 		} else {
-			LOG_ERROR(ERRMSG_FAILURE_OPERATION_ERRSTRING, "receive usb data",
-				usb_strerror());
+			LOG_ERROR(ERRMSG_FAILURE_OPERATION, "receive usb data");
 			return ERROR_FAIL;
 		}
 	} else
