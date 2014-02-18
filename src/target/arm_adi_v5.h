@@ -220,17 +220,13 @@ struct adiv5_dap {
  * both JTAG and SWD transports.  All submitted transactions are logically
  * queued, until the queue is executed by run().  Some implementations might
  * execute transactions as soon as they're submitted, but no status is made
- * availablue until run().
+ * available until run().
  */
 struct dap_ops {
 	/** If the DAP transport isn't SWD, it must be JTAG.  Upper level
 	 * code may need to care about the difference in some cases.
 	 */
 	bool	is_swd;
-
-	/** Reads the DAP's IDCODe register. */
-	int (*queue_idcode_read)(struct adiv5_dap *dap,
-			uint8_t *ack, uint32_t *data);
 
 	/** DP register read. */
 	int (*queue_dp_read)(struct adiv5_dap *dap, unsigned reg,
@@ -245,9 +241,6 @@ struct dap_ops {
 	/** AP register write. */
 	int (*queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t data);
-	/** AP read block. */
-	int (*queue_ap_read_block)(struct adiv5_dap *dap, unsigned reg,
-			uint32_t blocksize, uint8_t *buffer);
 
 	/** AP operation abort. */
 	int (*queue_ap_abort)(struct adiv5_dap *dap, uint8_t *ack);
@@ -264,24 +257,6 @@ enum ap_type {
 	AP_TYPE_APB_AP  = 0x02,  /* APB Memory-AP */
 	AP_TYPE_JTAG_AP = 0x10   /* JTAG-AP - JTAG master for controlling other JTAG devices */
 };
-
-/**
- * Queue an IDCODE register read.  This is primarily useful for SWD
- * transports, where it is required as part of link initialization.
- * (For JTAG, this register is read as part of scan chain setup.)
- *
- * @param dap The DAP used for reading.
- * @param ack Pointer to where transaction status will be stored.
- * @param data Pointer saying where to store the IDCODE value.
- *
- * @return ERROR_OK for success, else a fault code.
- */
-static inline int dap_queue_idcode_read(struct adiv5_dap *dap,
-		uint8_t *ack, uint32_t *data)
-{
-	assert(dap->ops != NULL);
-	return dap->ops->queue_idcode_read(dap, ack, data);
-}
 
 /**
  * Queue a DP register read.
@@ -351,24 +326,6 @@ static inline int dap_queue_ap_write(struct adiv5_dap *dap,
 {
 	assert(dap->ops != NULL);
 	return dap->ops->queue_ap_write(dap, reg, data);
-}
-
-/**
- * Queue an AP block read.
- *
- * @param dap The DAP used for reading.
- * @param reg The number of the AP register being read.
- * @param blocksize The number of the AP register being read.
- * @param buffer Pointer saying where to store the data
- * (in host endianness).
- *
- * @return ERROR_OK for success, else a fault code.
- */
-static inline int dap_queue_ap_read_block(struct adiv5_dap *dap,
-		unsigned reg, unsigned blocksize, uint8_t *buffer)
-{
-	assert(dap->ops != NULL);
-	return dap->ops->queue_ap_read_block(dap, reg, blocksize, buffer);
 }
 
 /**

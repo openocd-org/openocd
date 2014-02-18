@@ -66,7 +66,7 @@ static inline uint8_t swd_cmd(bool is_read, bool is_ap, uint8_t regnum)
 
 /*
  * FOR NOW  ... SWD driver ops are synchronous and return ACK
- * status ... no quueueing.
+ * status ... no queuing.
  *
  * Individual ops are request/response, and fast-fail permits much
  * better fault handling.  Upper layers may queue if desired.
@@ -109,18 +109,6 @@ struct swd_driver {
 	  *		or (negative) fault code
 	  */
 	 int (*write_reg)(uint8_t cmd, uint32_t value);
-
-	 /**
-	  * Synchronous block read of an AP or DP register.
-	  *
-	  * @param cmd with APnDP/RnW/addr/parity bits
-	  * @param number of reads from register to be executed
-	  * @param buffer to store data read from register
-	  *
-	  * @return SWD_ACK_* code for the transaction
-	  *		or (negative) fault code
-	  */
-	 int (*read_block)(uint8_t cmd, uint32_t blocksize, uint8_t *buffer);
 
 	/**
 	 * Configures data collection from the Single-wire

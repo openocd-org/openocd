@@ -534,46 +534,6 @@ static int cmsis_dap_swd_write_reg(uint8_t cmd, uint32_t value)
 	return retval;
 }
 
-static int cmsis_dap_swd_read_block(uint8_t cmd, uint32_t blocksize, uint8_t *dest_buf)
-{
-	uint8_t *buffer;
-	int tfer_sz;
-	int retval = ERROR_OK;
-	uint16_t read_count;
-
-	DEBUG_IO("CMSIS-DAP: Read Block 0x%02" PRIx8 " %" PRIu32, cmd, blocksize);
-
-	while (blocksize) {
-
-		buffer = cmsis_dap_handle->packet_buffer;
-		tfer_sz = blocksize;
-		if (tfer_sz > 15)
-			tfer_sz = 8;
-
-		buffer[0] = 0;	/* report number */
-		buffer[1] = CMD_DAP_TFER_BLOCK;
-		buffer[2] = 0x00;
-		buffer[3] = tfer_sz;
-		buffer[4] = 0x00;
-		buffer[5] = cmd;
-		retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 6);
-
-		read_count = le_to_h_u16(&buffer[1]);
-		if (read_count != tfer_sz) {
-			LOG_ERROR("CMSIS-DAP: Block Read Error (0x%02" PRIx8 ")", buffer[3]);
-			retval = buffer[3];
-		}
-
-		read_count *= 4;
-		memcpy(dest_buf, &buffer[4], read_count);
-
-		dest_buf += read_count;
-		blocksize -= tfer_sz;
-	}
-
-	return retval;
-}
-
 static int cmsis_dap_get_version_info(void)
 {
 	uint8_t *data;
@@ -1112,7 +1072,6 @@ static const struct swd_driver cmsis_dap_swd_driver = {
 	.init       = cmsis_dap_swd_init,
 	.read_reg   = cmsis_dap_swd_read_reg,
 	.write_reg  = cmsis_dap_swd_write_reg,
-	.read_block = cmsis_dap_swd_read_block
 };
 
 const char *cmsis_dap_transport[] = {"cmsis-dap", NULL};

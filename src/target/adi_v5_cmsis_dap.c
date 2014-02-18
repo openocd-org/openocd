@@ -80,19 +80,6 @@ static int cmsis_dap_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t
 	return retval;
 }
 
-static int cmsis_dap_queue_idcode_read(struct adiv5_dap *dap, uint8_t *ack, uint32_t *data)
-{
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_idcode_read");
-
-	int retval = cmsis_dap_queue_dp_read(dap, DP_IDCODE, data);
-	if (retval != ERROR_OK)
-		return retval;
-
-	*ack = retval;
-
-	return ERROR_OK;
-}
-
 static int (cmsis_dap_queue_dp_write)(struct adiv5_dap *dap, unsigned reg, uint32_t data)
 {
 	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_dp_write %d 0x%08" PRIx32, reg, data);
@@ -177,24 +164,6 @@ static int (cmsis_dap_queue_ap_write)(struct adiv5_dap *dap, unsigned reg, uint3
 	return retval;
 }
 
-static int (cmsis_dap_queue_ap_read_block)(struct adiv5_dap *dap, unsigned reg,
-		uint32_t blocksize, uint8_t *buffer)
-{
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_read_block 0x%08" PRIx32, blocksize);
-
-	int retval = jtag_interface->swd->read_block(
-			(CMSIS_CMD_AP | CMSIS_CMD_READ | CMSIS_CMD_A32(AP_REG_DRW)),
-			blocksize, buffer);
-
-	if (retval != ERROR_OK) {
-		/* fault response */
-		uint8_t ack = retval & 0xff;
-		cmsis_dap_queue_ap_abort(dap, &ack);
-	}
-
-	return retval;
-}
-
 /** Executes all queued DAP operations. */
 static int cmsis_dap_run(struct adiv5_dap *dap)
 {
@@ -206,12 +175,10 @@ static int cmsis_dap_run(struct adiv5_dap *dap)
 
 const struct dap_ops cmsis_dap_ops = {
 	.is_swd = true,
-	.queue_idcode_read   = cmsis_dap_queue_idcode_read,
 	.queue_dp_read       = cmsis_dap_queue_dp_read,
 	.queue_dp_write      = cmsis_dap_queue_dp_write,
 	.queue_ap_read       = cmsis_dap_queue_ap_read,
 	.queue_ap_write      = cmsis_dap_queue_ap_write,
-	.queue_ap_read_block = cmsis_dap_queue_ap_read_block,
 	.queue_ap_abort      = cmsis_dap_queue_ap_abort,
 	.run = cmsis_dap_run,
 };
@@ -309,9 +276,9 @@ static int cmsis_dap_init(struct command_context *ctx)
 	}
 #endif
 
-	uint8_t ack;
+	uint8_t ack = 0;
 
-	status = cmsis_dap_queue_idcode_read(dap, &ack, &idcode);
+	status = cmsis_dap_queue_dp_read(dap, DP_IDCODE, &idcode);
 
 	if (status == ERROR_OK)
 		LOG_INFO("IDCODE 0x%08" PRIx32, idcode);

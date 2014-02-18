@@ -342,30 +342,6 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 
 /*--------------------------------------------------------------------------*/
 
-static int jtag_idcode_q_read(struct adiv5_dap *dap,
-		uint8_t *ack, uint32_t *data)
-{
-	struct arm_jtag *jtag_info = dap->jtag_info;
-	int retval;
-	struct scan_field fields[1];
-
-	/* This is a standard JTAG operation -- no DAP tweakage */
-	retval = arm_jtag_set_instr(jtag_info, JTAG_DP_IDCODE, NULL, TAP_IDLE);
-	if (retval != ERROR_OK)
-		return retval;
-
-	fields[0].num_bits = 32;
-	fields[0].out_value = NULL;
-	fields[0].in_value = (uint8_t *) data;
-
-	jtag_add_dr_scan(jtag_info->tap, 1, fields, TAP_IDLE);
-
-	jtag_add_callback(arm_le_to_h_u32,
-			(jtag_callback_data_t) data);
-
-	return ERROR_OK;
-}
-
 static int jtag_dp_q_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
@@ -420,40 +396,6 @@ static int jtag_ap_q_write(struct adiv5_dap *dap, unsigned reg,
 	return adi_jtag_ap_write_check(dap, reg, out_value_buf);
 }
 
-static int jtag_ap_q_read_block(struct adiv5_dap *dap, unsigned reg,
-		uint32_t blocksize, uint8_t *buffer)
-{
-	uint32_t readcount;
-	int retval = ERROR_OK;
-
-	/* Scan out first read */
-	retval = adi_jtag_dp_scan(dap, JTAG_DP_APACC, reg,
-			DPAP_READ, 0, NULL, NULL);
-	if (retval != ERROR_OK)
-		return retval;
-
-	for (readcount = 0; readcount < blocksize - 1; readcount++) {
-		/* Scan out next read; scan in posted value for the
-		 * previous one.  Assumes read is acked "OK/FAULT",
-		 * and CTRL_STAT says that meant "OK".
-		 */
-		retval = adi_jtag_dp_scan(dap, JTAG_DP_APACC, reg,
-				DPAP_READ, 0, buffer + 4 * readcount,
-				&dap->ack);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	/* Scan in last posted value; RDBUFF has no other effect,
-	 * assuming ack is OK/FAULT and CTRL_STAT says "OK".
-	 */
-	retval = adi_jtag_dp_scan(dap, JTAG_DP_DPACC, DP_RDBUFF,
-			DPAP_READ, 0, buffer + 4 * readcount,
-			&dap->ack);
-
-	return retval;
-}
-
 static int jtag_ap_q_abort(struct adiv5_dap *dap, uint8_t *ack)
 {
 	/* for JTAG, this is the only valid ABORT register operation */
@@ -470,12 +412,10 @@ static int jtag_dp_run(struct adiv5_dap *dap)
  * part of DAP setup
 */
 const struct dap_ops jtag_dp_ops = {
-	.queue_idcode_read   = jtag_idcode_q_read,
 	.queue_dp_read       = jtag_dp_q_read,
 	.queue_dp_write      = jtag_dp_q_write,
 	.queue_ap_read       = jtag_ap_q_read,
 	.queue_ap_write      = jtag_ap_q_write,
-	.queue_ap_read_block = jtag_ap_q_read_block,
 	.queue_ap_abort      = jtag_ap_q_abort,
 	.run                 = jtag_dp_run,
 };

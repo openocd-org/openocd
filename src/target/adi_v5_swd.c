@@ -121,16 +121,6 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 	return retval;
 }
 
-static int swd_queue_idcode_read(struct adiv5_dap *dap,
-		uint8_t *ack, uint32_t *data)
-{
-	int status = swd_queue_dp_read(dap, DP_IDCODE, data);
-	if (status < 0)
-		return status;
-	*ack = status;
-	/* ?? */
-	return ERROR_OK;
-}
 
 static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
@@ -240,7 +230,6 @@ static int swd_run(struct adiv5_dap *dap)
 const struct dap_ops swd_dap_ops = {
 	.is_swd = true,
 
-	.queue_idcode_read = swd_queue_idcode_read,
 	.queue_dp_read = swd_queue_dp_read,
 	.queue_dp_write = swd_queue_dp_write,
 	.queue_ap_read = swd_queue_ap_read,
@@ -460,7 +449,7 @@ static int swd_init(struct command_context *ctx)
 
 	uint8_t ack;
 
-	status = swd_queue_idcode_read(dap, &ack, &idcode);
+	status = swd_queue_dp_read(dap, DP_IDCODE, &idcode);
 
 	if (status == ERROR_OK)
 		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
