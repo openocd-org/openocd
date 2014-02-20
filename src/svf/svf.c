@@ -230,6 +230,7 @@ static uint8_t *svf_tdi_buffer, *svf_tdo_buffer, *svf_mask_buffer;
 static int svf_buffer_index, svf_buffer_size ;
 static int svf_quiet;
 static int svf_nil;
+static int svf_ignore_error;
 
 /* Targetting particular tap */
 static int svf_tap_is_specified;
@@ -373,6 +374,7 @@ COMMAND_HANDLER(handle_svf_command)
 	/* parse command line */
 	svf_quiet = 0;
 	svf_nil = 0;
+	svf_ignore_error = 0;
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		if (strcmp(CMD_ARGV[i], "-tap") == 0) {
 			tap = jtag_tap_by_string(CMD_ARGV[i+1]);
@@ -389,6 +391,9 @@ COMMAND_HANDLER(handle_svf_command)
 		else if ((strcmp(CMD_ARGV[i],
 				  "progress") == 0) || (strcmp(CMD_ARGV[i], "-progress") == 0))
 			svf_progress_enabled = 1;
+		else if ((strcmp(CMD_ARGV[i],
+				  "ignore_error") == 0) || (strcmp(CMD_ARGV[i], "-ignore_error") == 0))
+			svf_ignore_error = 1;
 		else {
 			svf_fd = fopen(CMD_ARGV[i], "r");
 			if (svf_fd == NULL) {
@@ -572,11 +577,14 @@ free_all:
 
 	if (ERROR_OK == ret)
 		command_print(CMD_CTX,
-			"svf file programmed successfully for %d commands",
-			command_num);
+			      "svf file programmed %s for %d commands with %d errors",
+			      (svf_ignore_error > 1) ? "unsuccessfully" : "successfully",
+			      command_num,
+			      (svf_ignore_error > 1) ? (svf_ignore_error - 1) : 0);
 	else
 		command_print(CMD_CTX, "svf file programmed failed");
 
+	svf_ignore_error = 0;
 	return ret;
 }
 
@@ -860,7 +868,11 @@ static int svf_check_tdo(void)
 			SVF_BUF_LOG(ERROR, &svf_tdi_buffer[index_var], len, "READ");
 			SVF_BUF_LOG(ERROR, &svf_tdo_buffer[index_var], len, "WANT");
 			SVF_BUF_LOG(ERROR, &svf_mask_buffer[index_var], len, "MASK");
-			return ERROR_FAIL;
+
+			if (svf_ignore_error == 0)
+				return ERROR_FAIL;
+			else
+				svf_ignore_error++;
 		}
 	}
 	svf_check_tdo_para_index = 0;
@@ -1539,7 +1551,7 @@ static const struct command_registration svf_command_handlers[] = {
 		.handler = handle_svf_command,
 		.mode = COMMAND_EXEC,
 		.help = "Runs a SVF file.",
-		.usage = "svf [-tap device.tap] <file> [quiet] [nil] [progress]",
+		.usage = "svf [-tap device.tap] <file> [quiet] [nil] [progress] [ignore_error]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
