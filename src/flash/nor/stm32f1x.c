@@ -1433,12 +1433,12 @@ COMMAND_HANDLER(stm32x_handle_options_write_command)
 		else if (strcmp("HWWDG", CMD_ARGV[0]) == 0)
 			optionbyte &= ~(1 << 0);
 		else if (strcmp("NORSTSTOP", CMD_ARGV[0]) == 0)
-			optionbyte &= ~(1 << 1);
-		else if (strcmp("RSTSTNDBY", CMD_ARGV[0]) == 0)
+			optionbyte |= (1 << 1);
+		else if (strcmp("RSTSTOP", CMD_ARGV[0]) == 0)
 			optionbyte &= ~(1 << 1);
 		else if (strcmp("NORSTSTNDBY", CMD_ARGV[0]) == 0)
-			optionbyte &= ~(1 << 2);
-		else if (strcmp("RSTSTOP", CMD_ARGV[0]) == 0)
+			optionbyte |= (1 << 2);
+		else if (strcmp("RSTSTNDBY", CMD_ARGV[0]) == 0)
 			optionbyte &= ~(1 << 2);
 		else if (stm32x_info->has_dual_banks) {
 			if (strcmp("BOOT0", CMD_ARGV[0]) == 0)
