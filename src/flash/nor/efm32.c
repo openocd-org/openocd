@@ -42,6 +42,7 @@
 #define EFM_FAMILY_ID_GIANT_GECKO       72
 #define EFM_FAMILY_ID_TINY_GECKO        73
 #define EFM_FAMILY_ID_LEOPARD_GECKO     74
+#define EFM_FAMILY_ID_WONDER_GECKO      75
 
 #define EFM32_FLASH_ERASE_TMO           100
 #define EFM32_FLASH_WDATAREADY_TMO      100
@@ -139,8 +140,10 @@ static int efm32x_read_info(struct flash_bank *bank,
 
 	if (((cpuid >> 4) & 0xfff) == 0xc23) {
 		/* Cortex M3 device */
+	} else if (((cpuid >> 4) & 0xfff) == 0xc24) {
+		/* Cortex M4 device */
 	} else {
-		LOG_ERROR("Target is not CortexM3");
+		LOG_ERROR("Target is not CortexM3 or M4");
 		return ERROR_FAIL;
 	}
 
@@ -188,6 +191,18 @@ static int efm32x_read_info(struct flash_bank *bank,
 
 		if ((2048 != efm32_info->page_size) &&
 				(4096 != efm32_info->page_size)) {
+			LOG_ERROR("Invalid page size %u", efm32_info->page_size);
+			return ERROR_FAIL;
+		}
+	} else if (EFM_FAMILY_ID_WONDER_GECKO == efm32_info->part_family) {
+		uint8_t pg_size = 0;
+		ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE,
+			&pg_size);
+		if (ERROR_OK != ret)
+			return ret;
+
+		efm32_info->page_size = (1 << ((pg_size+10) & 0xff));
+		if (2048 != efm32_info->page_size) {
 			LOG_ERROR("Invalid page size %u", efm32_info->page_size);
 			return ERROR_FAIL;
 		}
@@ -825,6 +840,9 @@ static int efm32x_probe(struct flash_bank *bank)
 		case EFM_FAMILY_ID_LEOPARD_GECKO:
 			LOG_INFO("Leopard Gecko MCU detected");
 			break;
+		case EFM_FAMILY_ID_WONDER_GECKO:
+			LOG_INFO("Wonder Gecko MCU detected");
+			break;
 		default:
 			LOG_ERROR("Unsupported MCU family %d",
 				efm32_mcu_info.part_family);
@@ -934,6 +952,9 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 			break;
 		case EFM_FAMILY_ID_LEOPARD_GECKO:
 			printed = snprintf(buf, buf_size, "Leopard Gecko");
+			break;
+		case EFM_FAMILY_ID_WONDER_GECKO:
+			printed = snprintf(buf, buf_size, "Wonder Gecko");
 			break;
 	}
 
