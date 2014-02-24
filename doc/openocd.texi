@@ -666,7 +666,9 @@ to benefit from new features and bugfixes in Jim-Tcl.
 
 Properly installing OpenOCD sets up your operating system to grant it access
 to the debug adapters. On Linux, this usually involves installing a file
-in @file{/etc/udev/rules.d,} so OpenOCD has permissions. MS-Windows needs
+in @file{/etc/udev/rules.d,} so OpenOCD has permissions. An example rules file
+that works for many common adapters is shipped with OpenOCD in the
+@file{contrib} directory. MS-Windows needs
 complex and confusing driver configuration for every peripheral. Such issues
 are unique to each operating system, and are not detailed in this User's Guide.
 

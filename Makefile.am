@@ -10,7 +10,7 @@ nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/dcc_stdio.h \
 	contrib/libdcc/example.c \
 	contrib/libdcc/README \
-	contrib/openocd.udev
+	contrib/99-openocd.rules
 
 if INTERNAL_JIMTCL
 SUBDIRS = jimtcl
