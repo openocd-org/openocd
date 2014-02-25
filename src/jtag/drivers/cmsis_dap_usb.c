@@ -284,7 +284,7 @@ static int cmsis_dap_usb_xfer(struct cmsis_dap *dap, int txlen)
 	return ERROR_OK;
 }
 
-static int cmsis_dap_cmd_DAP_SWJ_Pins(uint8_t pins, uint8_t mask, uint32_t wait, uint8_t *input)
+static int cmsis_dap_cmd_DAP_SWJ_Pins(uint8_t pins, uint8_t mask, uint32_t delay, uint8_t *input)
 {
 	int retval;
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
@@ -293,10 +293,10 @@ static int cmsis_dap_cmd_DAP_SWJ_Pins(uint8_t pins, uint8_t mask, uint32_t wait,
 	buffer[1] = CMD_DAP_SWJ_PINS;
 	buffer[2] = pins;
 	buffer[3] = mask;
-	buffer[4] = wait & 0xff;
-	buffer[5] = (wait >> 8) & 0xff;
-	buffer[6] = (wait >> 16) & 0xff;
-	buffer[7] = (wait >> 24) & 0xff;
+	buffer[4] = delay & 0xff;
+	buffer[5] = (delay >> 8) & 0xff;
+	buffer[6] = (delay >> 16) & 0xff;
+	buffer[7] = (delay >> 24) & 0xff;
 	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 8);
 
 	if (retval != ERROR_OK) {
@@ -412,7 +412,7 @@ static int cmsis_dap_cmd_DAP_Disconnect(void)
 	return ERROR_OK;
 }
 
-static int cmsis_dap_cmd_DAP_TFER_Configure(uint8_t idle, uint16_t wait, uint16_t retry)
+static int cmsis_dap_cmd_DAP_TFER_Configure(uint8_t idle, uint16_t delay, uint16_t retry)
 {
 	int retval;
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
@@ -420,8 +420,8 @@ static int cmsis_dap_cmd_DAP_TFER_Configure(uint8_t idle, uint16_t wait, uint16_
 	buffer[0] = 0;	/* report number */
 	buffer[1] = CMD_DAP_TFER_CONFIGURE;
 	buffer[2] = idle;
-	buffer[3] = wait & 0xff;
-	buffer[4] = (wait >> 8) & 0xff;
+	buffer[3] = delay & 0xff;
+	buffer[4] = (delay >> 8) & 0xff;
 	buffer[5] = retry & 0xff;
 	buffer[6] = (retry >> 8) & 0xff;
 	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 7);
