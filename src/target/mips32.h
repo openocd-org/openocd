@@ -66,6 +66,7 @@
 /* offsets into mips32 core register cache */
 enum {
 	MIPS32_PC = 37,
+	MIPS32_FIR = 71,
 	MIPS32NUMCOREREGS
 };
 
