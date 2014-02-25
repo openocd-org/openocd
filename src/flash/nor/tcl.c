@@ -349,14 +349,11 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 
 	int retval;
 
-	if (CMD_ARGC < 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	/* flash auto-erase is disabled by default*/
 	int auto_erase = 0;
 	bool auto_unlock = false;
 
-	for (;; ) {
+	while (CMD_ARGC) {
 		if (strcmp(CMD_ARGV[0], "erase") == 0) {
 			auto_erase = 1;
 			CMD_ARGV++;
