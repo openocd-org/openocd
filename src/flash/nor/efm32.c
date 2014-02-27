@@ -10,7 +10,10 @@
  *                                                                         *
  *   Copyright (C) 2013 by Roman Dmitrienko                                *
  *   me@iamroman.org                                                       *
- *
+ *                                                                         *
+ *   Copyright (C) 2014 Nemui Trinomius                                    *
+ *   nemuisan_kawausogasuki@live.jp                                        *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -43,6 +46,7 @@
 #define EFM_FAMILY_ID_TINY_GECKO        73
 #define EFM_FAMILY_ID_LEOPARD_GECKO     74
 #define EFM_FAMILY_ID_WONDER_GECKO      75
+#define EFM_FAMILY_ID_ZERO_GECKO        76
 
 #define EFM32_FLASH_ERASE_TMO           100
 #define EFM32_FLASH_WDATAREADY_TMO      100
@@ -141,9 +145,11 @@ static int efm32x_read_info(struct flash_bank *bank,
 	if (((cpuid >> 4) & 0xfff) == 0xc23) {
 		/* Cortex M3 device */
 	} else if (((cpuid >> 4) & 0xfff) == 0xc24) {
-		/* Cortex M4 device */
+		/* Cortex M4 device(WONDER GECKO) */
+	} else if (((cpuid >> 4) & 0xfff) == 0xc60) {
+		/* Cortex M0plus device(ZERO GECKO) */
 	} else {
-		LOG_ERROR("Target is not CortexM3 or M4");
+		LOG_ERROR("Target is not Cortex-Mx Device");
 		return ERROR_FAIL;
 	}
 
@@ -170,6 +176,8 @@ static int efm32x_read_info(struct flash_bank *bank,
 	if (EFM_FAMILY_ID_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_TINY_GECKO == efm32_info->part_family)
 		efm32_info->page_size = 512;
+	else if (EFM_FAMILY_ID_ZERO_GECKO == efm32_info->part_family)
+		efm32_info->page_size = 1024;
 	else if (EFM_FAMILY_ID_GIANT_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family) {
 		if (efm32_info->prod_rev >= 18) {
@@ -843,6 +851,9 @@ static int efm32x_probe(struct flash_bank *bank)
 		case EFM_FAMILY_ID_WONDER_GECKO:
 			LOG_INFO("Wonder Gecko MCU detected");
 			break;
+		case EFM_FAMILY_ID_ZERO_GECKO:
+			LOG_INFO("Zero Gecko MCU detected");
+			break;
 		default:
 			LOG_ERROR("Unsupported MCU family %d",
 				efm32_mcu_info.part_family);
@@ -955,6 +966,9 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 			break;
 		case EFM_FAMILY_ID_WONDER_GECKO:
 			printed = snprintf(buf, buf_size, "Wonder Gecko");
+			break;
+		case EFM_FAMILY_ID_ZERO_GECKO:
+			printed = snprintf(buf, buf_size, "Zero Gecko");
 			break;
 	}
 
