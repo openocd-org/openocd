@@ -174,14 +174,19 @@ static int ftdi_set_signal(const struct signal *s, char value)
 		return ERROR_FAIL;
 	}
 
+	uint16_t old_output = output;
+	uint16_t old_direction = direction;
+
 	output = data ? output | s->data_mask : output & ~s->data_mask;
 	if (s->oe_mask == s->data_mask)
 		direction = oe ? direction | s->oe_mask : direction & ~s->oe_mask;
 	else
 		output = oe ? output | s->oe_mask : output & ~s->oe_mask;
 
-	mpsse_set_data_bits_low_byte(mpsse_ctx, output & 0xff, direction & 0xff);
-	mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
+	if ((output & 0xff) != (old_output & 0xff) || (direction & 0xff) != (old_direction & 0xff))
+		mpsse_set_data_bits_low_byte(mpsse_ctx, output & 0xff, direction & 0xff);
+	if ((output >> 8 != old_output >> 8) || (direction >> 8 != old_direction >> 8))
+		mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
 
 	return ERROR_OK;
 }
