@@ -109,6 +109,91 @@ struct nrf51_info {
 	struct target *target;
 };
 
+struct nrf51_device_spec {
+	uint16_t hwid;
+	const char *variant;
+	const char *build_code;
+	unsigned int flash_size_kb;
+};
+
+static const struct nrf51_device_spec nrf51_known_devices_table[] = {
+	{
+		.hwid		= 0x001D,
+		.variant	= "QFAA",
+		.build_code	= "CA/C0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x002A,
+		.variant	= "QFAA",
+		.build_code	= "FA",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0044,
+		.variant	= "QFAA",
+		.build_code	= "GC",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x003C,
+		.variant	= "QFAA",
+		.build_code	= "G0",
+		.flash_size_kb	= 256,
+	},
+
+	{
+		.hwid		= 0x0020,
+		.variant	= "CEAA",
+		.build_code	= "BA",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x002F,
+		.variant	= "CEAA",
+		.build_code	= "B0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0040,
+		.variant	= "CEAA",
+		.build_code	= "CA",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0047,
+		.variant	= "CEAA",
+		.build_code	= "DA",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x004D,
+		.variant	= "CEAA",
+		.build_code	= "D0",
+		.flash_size_kb	= 256,
+	},
+
+	{
+		.hwid		= 0x0026,
+		.variant	= "QFAB",
+		.build_code	= "AA",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x0027,
+		.variant	= "QFAB",
+		.build_code	= "A0",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x004C,
+		.variant	= "QFAB",
+		.build_code	= "B0",
+		.flash_size_kb	= 128,
+	},
+
+};
+
 static int nrf51_probe(struct flash_bank *bank);
 
 static int nrf51_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf51_info **chip)
@@ -330,20 +415,32 @@ static int nrf51_protect(struct flash_bank *bank, int set, int first, int last)
 
 static int nrf51_probe(struct flash_bank *bank)
 {
-	uint32_t id;
+	uint32_t hwid;
 	int res;
 	struct nrf51_info *chip = (struct nrf51_info *)bank->driver_priv;
 
-	res = target_read_u32(chip->target, NRF51_FICR_DEVICEID0, &id);
+
+	res = target_read_u32(chip->target, NRF51_FICR_CONFIGID, &hwid);
 	if (res != ERROR_OK) {
-		LOG_ERROR("Couldn't read Device ID 0 register");
+		LOG_ERROR("Couldn't read CONFIGID register");
 		return res;
 	}
 
-	res = target_read_u32(chip->target, NRF51_FICR_DEVICEID1, &id);
-	if (res != ERROR_OK) {
-		LOG_ERROR("Couldn't read Device ID 1 register");
-		return res;
+	hwid &= 0xFFFF;	/* HWID is stored in the lower two
+			 * bytes of the CONFIGID register */
+
+	const struct nrf51_device_spec *spec = NULL;
+	for (size_t i = 0; i < ARRAY_SIZE(nrf51_known_devices_table); i++)
+		if (hwid == nrf51_known_devices_table[i].hwid) {
+			spec = &nrf51_known_devices_table[i];
+			break;
+		}
+
+	if (spec) {
+		LOG_INFO("nRF51822-%s(build code: %s) %ukB Flash",
+			 spec->variant, spec->build_code, spec->flash_size_kb);
+	} else {
+		LOG_WARNING("Unknown device (HWID 0x%08" PRIx32 ")", hwid);
 	}
 
 	res = target_read_u32(chip->target, NRF51_FICR_CODEPAGESIZE,
@@ -358,6 +455,11 @@ static int nrf51_probe(struct flash_bank *bank)
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read code memory size");
 		return res;
+	}
+
+	if (spec && chip->code_memory_size != spec->flash_size_kb) {
+		LOG_ERROR("Chip's reported Flash capacity does not match expected one");
+		return ERROR_FAIL;
 	}
 
 	bank->size = chip->code_memory_size * 1024;
