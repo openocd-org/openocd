@@ -717,11 +717,13 @@ static int nrf51_info(struct flash_bank *bank, char *buf, int buf_size)
 		 "ram block 1 size: %"PRIu32"B\n"
 		 "ram block 2 size: %"PRIu32"B\n"
 		 "ram block 3 size: %"PRIu32 "B\n"
+		 "config id: %" PRIx32 "\n"
+		 "device id: 0x%"PRIx32"%08"PRIx32"\n"
 		 "encryption root: 0x%08"PRIx32"%08"PRIx32"%08"PRIx32"%08"PRIx32"\n"
 		 "identity root: 0x%08"PRIx32"%08"PRIx32"%08"PRIx32"%08"PRIx32"\n"
 		 "device address type: 0x%"PRIx32"\n"
 		 "device address: 0x%"PRIx32"%08"PRIx32"\n"
-		 "override enable: %"PRIu32"\n"
+		 "override enable: %"PRIx32"\n"
 		 "NRF_1MBIT values: %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32"\n"
 		 "BLE_1MBIT values: %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32"\n"
 		 "\n[user information control block]\n\n"
@@ -738,13 +740,15 @@ static int nrf51_info(struct flash_bank *bank, char *buf, int buf_size)
 		 (ficr[6].value == 0xFFFFFFFF) ? 0 : ficr[6].value,
 		 (ficr[7].value == 0xFFFFFFFF) ? 0 : ficr[7].value,
 		 (ficr[8].value == 0xFFFFFFFF) ? 0 : ficr[8].value,
-		 ficr[9].value, ficr[9].value, ficr[9].value, ficr[9].value,
-		 ficr[10].value, ficr[11].value, ficr[12].value, ficr[13].value,
-		 ficr[14].value,
-		 ficr[15].value, ficr[16].value,
-		 ficr[17].value,
-		 ficr[18].value, ficr[19].value, ficr[20].value, ficr[21].value, ficr[22].value,
-		 ficr[23].value, ficr[24].value, ficr[25].value, ficr[26].value, ficr[27].value,
+		 ficr[9].value,
+		 ficr[10].value, ficr[11].value,
+		 ficr[12].value, ficr[13].value, ficr[14].value, ficr[15].value,
+		 ficr[16].value, ficr[17].value, ficr[18].value, ficr[19].value,
+		 ficr[20].value,
+		 ficr[21].value, ficr[22].value,
+		 ficr[23].value,
+		 ficr[24].value, ficr[25].value, ficr[26].value, ficr[27].value, ficr[28].value,
+		 ficr[29].value, ficr[30].value, ficr[31].value, ficr[32].value, ficr[33].value,
 		 (uicr[0].value == 0xFFFFFFFF) ? 0 : uicr[0].value / 1024,
 		 uicr[1].value & 0xFFFF,
 		 uicr[2].value & 0xFF,
