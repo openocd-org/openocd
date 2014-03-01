@@ -18,13 +18,8 @@
 # split out "chip" and "tag" so we can someday handle
 # them more uniformly irlen too...)
 
-global using_jtag
-set using_jtag 1
-
 proc swj_newdap {chip tag args} {
- global using_jtag
- set tran [transport select]
- if [string equal $tran "jtag"] { eval jtag newtap $chip $tag $args; set using_jtag 1 }
- if [string equal $tran "swd"] { eval swd newdap $chip $tag $args; set using_jtag 0 }
- if [string equal $tran "cmsis-dap"] { eval cmsis-dap newdap $chip $tag $args; set using_jtag 0 }
+ if {[using_jtag]} { eval jtag newtap $chip $tag $args }
+ if {[using_swd]} { eval swd newdap $chip $tag $args }
+ if {[string equal [transport select] "cmsis-dap"]} { eval cmsis-dap newdap $chip $tag $args }
 }

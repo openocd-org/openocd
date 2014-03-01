@@ -21,7 +21,9 @@ proc jtag_init {} {
 # startup (at OpenOCD server startup, when JTAG may not yet work); and
 # potentially more (for reset types like cold, warm, etc)
 proc init_reset { mode } {
-	jtag arp_init-reset
+	if {[using_jtag]} {
+		jtag arp_init-reset
+	}
 }
 
 #########
