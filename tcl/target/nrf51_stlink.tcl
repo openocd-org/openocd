@@ -66,5 +66,5 @@ $_TARGETNAME configure -work-area-phys 0x20000000 -work-area-size $_WORKAREASIZE
 # non-"hla" targets it would be useful to have the following in the config.
 # cortex_m reset_config sysresetreq
 
-set _FLASHNAME $_CHIPNAME.flash
-flash bank $_FLASHNAME nrf51 0x00000000 0 1 1 $_TARGETNAME
+flash bank $_CHIPNAME.flash nrf51 0x00000000 0 1 1 $_TARGETNAME
+flash bank $_CHIPNAME.uicr nrf51 0x10001000 0 1 1 $_TARGETNAME
