@@ -66,28 +66,28 @@
 #define WCR_TO_PRESCALE(wcr) ((uint32_t)(7 & ((wcr))))		/* impl defined */
 
 /* Fields of the DP's AP ABORT register */
-#define DAPABORT		(1 << 0)
-#define STKCMPCLR		(1 << 1)	/* SWD-only */
-#define STKERRCLR		(1 << 2)	/* SWD-only */
-#define WDERRCLR		(1 << 3)	/* SWD-only */
-#define ORUNERRCLR		(1 << 4)	/* SWD-only */
+#define DAPABORT        (1UL << 0)
+#define STKCMPCLR       (1UL << 1) /* SWD-only */
+#define STKERRCLR       (1UL << 2) /* SWD-only */
+#define WDERRCLR        (1UL << 3) /* SWD-only */
+#define ORUNERRCLR      (1UL << 4) /* SWD-only */
 
 /* Fields of the DP's CTRL/STAT register */
-#define CORUNDETECT		(1 << 0)
-#define SSTICKYORUN		(1 << 1)
+#define CORUNDETECT     (1UL << 0)
+#define SSTICKYORUN     (1UL << 1)
 /* 3:2 - transaction mode (e.g. pushed compare) */
-#define SSTICKYCMP		(1 << 4)
-#define SSTICKYERR		(1 << 5)
-#define READOK			(1 << 6)	/* SWD-only */
-#define WDATAERR		(1 << 7)	/* SWD-only */
+#define SSTICKYCMP      (1UL << 4)
+#define SSTICKYERR      (1UL << 5)
+#define READOK          (1UL << 6) /* SWD-only */
+#define WDATAERR        (1UL << 7) /* SWD-only */
 /* 11:8 - mask lanes for pushed compare or verify ops */
 /* 21:12 - transaction counter */
-#define CDBGRSTREQ		(1 << 26)
-#define CDBGRSTACK		(1 << 27)
-#define CDBGPWRUPREQ	(1 << 28)
-#define CDBGPWRUPACK	(1 << 29)
-#define CSYSPWRUPREQ	(1 << 30)
-#define CSYSPWRUPACK	(1 << 31)
+#define CDBGRSTREQ      (1UL << 26)
+#define CDBGRSTACK      (1UL << 27)
+#define CDBGPWRUPREQ    (1UL << 28)
+#define CDBGPWRUPACK    (1UL << 29)
+#define CSYSPWRUPREQ    (1UL << 30)
+#define CSYSPWRUPACK    (1UL << 31)
 
 /* MEM-AP register addresses */
 /* TODO: rename as MEM_AP_REG_* */
@@ -108,18 +108,18 @@
 #define CSW_8BIT		0
 #define CSW_16BIT		1
 #define CSW_32BIT		2
-#define CSW_ADDRINC_MASK	(3 << 4)
-#define CSW_ADDRINC_OFF		0
-#define CSW_ADDRINC_SINGLE	(1 << 4)
-#define CSW_ADDRINC_PACKED	(2 << 4)
-#define CSW_DEVICE_EN		(1 << 6)
-#define CSW_TRIN_PROG		(1 << 7)
-#define CSW_SPIDEN			(1 << 23)
+#define CSW_ADDRINC_MASK    (3UL << 4)
+#define CSW_ADDRINC_OFF     0UL
+#define CSW_ADDRINC_SINGLE  (1UL << 4)
+#define CSW_ADDRINC_PACKED  (2UL << 4)
+#define CSW_DEVICE_EN       (1UL << 6)
+#define CSW_TRIN_PROG       (1UL << 7)
+#define CSW_SPIDEN          (1UL << 23)
 /* 30:24 - implementation-defined! */
-#define CSW_HPROT			(1 << 25)		/* ? */
-#define CSW_MASTER_DEBUG	(1 << 29)		/* ? */
-#define CSW_SPROT (1 << 30)
-#define CSW_DBGSWENABLE		(1 << 31)
+#define CSW_HPROT           (1UL << 25) /* ? */
+#define CSW_MASTER_DEBUG    (1UL << 29) /* ? */
+#define CSW_SPROT           (1UL << 30)
+#define CSW_DBGSWENABLE     (1UL << 31)
 
 /**
  * This represents an ARM Debug Interface (v5) Debug Access Port (DAP).
