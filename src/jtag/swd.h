@@ -55,6 +55,80 @@ static inline uint8_t swd_cmd(bool is_read, bool is_ap, uint8_t regnum)
 
 /* SWD_ACK_* bits are defined in <target/arm_adi_v5.h> */
 
+/**
+ * Line reset.
+ *
+ * Line reset is at least 50 SWCLK cycles with SWDIO driven high, followed
+ * by at least one idle (low) cycle.
+ */
+static const uint8_t swd_seq_line_reset[] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x03
+};
+static const unsigned swd_seq_line_reset_len = 51;
+
+/**
+ * JTAG-to-SWD sequence.
+ *
+ * The JTAG-to-SWD sequence is at least 50 TCK/SWCLK cycles with TMS/SWDIO
+ * high, putting either interface logic into reset state, followed by a
+ * specific 16-bit sequence and finally a line reset in case the SWJ-DP was
+ * already in SWD mode.
+ */
+static const uint8_t swd_seq_jtag_to_swd[] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7b, 0x9e,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0f,
+};
+static const unsigned swd_seq_jtag_to_swd_len = 118;
+
+/**
+ * SWD-to-JTAG sequence.
+ *
+ * The SWD-to-JTAG sequence is at least 50 TCK/SWCLK cycles with TMS/SWDIO
+ * high, putting either interface logic into reset state, followed by a
+ * specific 16-bit sequence and finally at least 5 TCK cycles to put the
+ * JTAG TAP in TLR.
+ */
+static const uint8_t swd_seq_swd_to_jtag[] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf3, 0x9c, 0xff
+};
+static const unsigned swd_seq_swd_to_jtag_len = 71;
+
+/**
+ * SWD-to-dormant sequence.
+ *
+ * This is at least 50 SWCLK cycles with SWDIO high to put the interface
+ * in reset state, followed by a specific 16-bit sequence.
+ */
+static const uint8_t swd_seq_swd_to_dormant[] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf3, 0x8e, 0x03
+};
+static const unsigned swd_seq_swd_to_dormant_len = 66;
+
+/**
+ * Dormant-to-SWD sequence.
+ *
+ * This is at least 8 TCK/SWCLK cycles with TMS/SWDIO high to abort any ongoing
+ * selection alert sequence, followed by a specific 128-bit selection alert
+ * sequence, followed by 4 TCK/SWCLK cycles with TMS/SWDIO low, followed by
+ * a specific protocol-dependent activation code. For SWD the activation code
+ * is an 8-bit sequence. The sequence ends with a line reset.
+ */
+static const uint8_t swd_seq_dormant_to_swd[] = {
+	0xff,
+	0x92, 0xf3, 0x09, 0x62, 0x95, 0x2d, 0x85, 0x86,
+	0xe9, 0xaf, 0xdd, 0xe3, 0xa2, 0x0e, 0xbc, 0x19,
+	0x10, 0xfa, 0xff, 0xff, 0xff, 0xff, 0xff, 0x3f
+};
+static const unsigned swd_seq_dormant_to_swd_len = 199;
+
+enum swd_special_seq {
+	LINE_RESET,
+	JTAG_TO_SWD,
+	SWD_TO_JTAG,
+	SWD_TO_DORMANT,
+	DORMANT_TO_SWD,
+};
+
 struct swd_driver {
 	/**
 	 * Initialize the debug link so it can perform SWD operations.
@@ -65,6 +139,35 @@ struct swd_driver {
 	 * @return ERROR_OK on success, else a negative fault code.
 	 */
 	int (*init)(void);
+
+	/**
+	 * Set the SWCLK frequency of the SWD link.
+	 *
+	 * The driver should round the desired value, downwards if possible, to
+	 * the nearest supported frequency. A negative value should be ignored
+	 * and can be used to query the current setting. If the driver does not
+	 * support a variable frequency a fixed, nominal, value should be
+	 * returned.
+	 *
+	 * If the frequency is increased, it must not apply before the currently
+	 * queued transactions are executed. If the frequency is lowered, it may
+	 * apply immediately.
+	 *
+	 * @param dap The DAP controlled by the SWD link.
+	 * @param hz The desired frequency in Hz.
+	 * @return The actual resulting frequency after rounding.
+	 */
+	int_least32_t (*frequency)(struct adiv5_dap *dap, int_least32_t hz);
+
+	/**
+	 * Queue a special SWDIO sequence.
+	 *
+	 * @param dap The DAP controlled by the SWD link.
+	 * @param seq The special sequence to generate.
+	 * @return ERROR_OK if the sequence was queued, negative error if the
+	 * sequence is unsupported.
+	 */
+	int (*switch_seq)(struct adiv5_dap *dap, enum swd_special_seq seq);
 
 	/**
 	 * Queued read of an AP or DP register.
