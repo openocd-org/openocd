@@ -2235,7 +2235,6 @@ static int gdb_target_description_supported(struct target *target, int *supporte
 	int reg_list_size = 0;
 	char **features = NULL;
 	int feature_list_size = 0;
-	char **features = NULL;
 
 	retval = target_get_gdb_reg_list(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
