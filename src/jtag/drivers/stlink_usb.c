@@ -45,14 +45,22 @@
 #define STLINK_WRITE_TIMEOUT 1000
 #define STLINK_READ_TIMEOUT 1000
 
-#define STLINK_NULL_EP     0
-#define STLINK_RX_EP       (1|ENDPOINT_IN)
-#define STLINK_TX_EP       (2|ENDPOINT_OUT)
-#define STLINK_TRACE_EP    (3|ENDPOINT_IN)
-#define STLINK_SG_SIZE     (31)
-#define STLINK_DATA_SIZE   (4096)
-#define STLINK_CMD_SIZE_V2 (16)
-#define STLINK_CMD_SIZE_V1 (10)
+#define STLINK_NULL_EP        0
+#define STLINK_RX_EP          (1|ENDPOINT_IN)
+#define STLINK_TX_EP          (2|ENDPOINT_OUT)
+#define STLINK_TRACE_EP       (3|ENDPOINT_IN)
+
+#define STLINK_V2_1_TX_EP     (1|ENDPOINT_OUT)
+#define STLINK_V2_1_TRACE_EP  (2|ENDPOINT_IN)
+
+#define STLINK_SG_SIZE        (31)
+#define STLINK_DATA_SIZE      (4096)
+#define STLINK_CMD_SIZE_V2    (16)
+#define STLINK_CMD_SIZE_V1    (10)
+
+#define STLINK_V1_PID         (0x3744)
+#define STLINK_V2_PID         (0x3748)
+#define STLINK_V2_1_PID       (0x374B)
 
 /* the current implementation of the stlink limits
  * 8bit read/writes to max 64 bytes. */
@@ -81,6 +89,12 @@ struct stlink_usb_handle_s {
 	struct jtag_libusb_device_handle *fd;
 	/** */
 	struct libusb_transfer *trans;
+	/** */
+	uint8_t rx_ep;
+	/** */
+	uint8_t tx_ep;
+	/** */
+	uint8_t trace_ep;
 	/** */
 	uint8_t cmdbuf[STLINK_SG_SIZE];
 	/** */
@@ -216,7 +230,7 @@ static int stlink_usb_xfer_v1_get_status(void *handle)
 	/* read status */
 	memset(h->cmdbuf, 0, STLINK_SG_SIZE);
 
-	if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)h->cmdbuf,
+	if (jtag_libusb_bulk_read(h->fd, h->rx_ep, (char *)h->cmdbuf,
 			13, STLINK_READ_TIMEOUT) != 13)
 		return ERROR_FAIL;
 
@@ -246,19 +260,19 @@ static int stlink_usb_xfer_rw(void *handle, int cmdsize, const uint8_t *buf, int
 
 	assert(handle != NULL);
 
-	if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)h->cmdbuf, cmdsize,
+	if (jtag_libusb_bulk_write(h->fd, h->tx_ep, (char *)h->cmdbuf, cmdsize,
 			STLINK_WRITE_TIMEOUT) != cmdsize) {
 		return ERROR_FAIL;
 	}
 
-	if (h->direction == STLINK_TX_EP && size) {
-		if (jtag_libusb_bulk_write(h->fd, STLINK_TX_EP, (char *)buf,
+	if (h->direction == h->tx_ep && size) {
+		if (jtag_libusb_bulk_write(h->fd, h->tx_ep, (char *)buf,
 				size, STLINK_WRITE_TIMEOUT) != size) {
 			LOG_DEBUG("bulk write failed");
 			return ERROR_FAIL;
 		}
-	} else if (h->direction == STLINK_RX_EP && size) {
-		if (jtag_libusb_bulk_read(h->fd, STLINK_RX_EP, (char *)buf,
+	} else if (h->direction == h->rx_ep && size) {
+		if (jtag_libusb_bulk_read(h->fd, h->rx_ep, (char *)buf,
 				size, STLINK_READ_TIMEOUT) != size) {
 			LOG_DEBUG("bulk read failed");
 			return ERROR_FAIL;
@@ -276,7 +290,7 @@ static int stlink_usb_xfer_v1_get_sense(void *handle)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 16);
+	stlink_usb_init_buffer(handle, h->rx_ep, 16);
 
 	h->cmdbuf[h->cmdidx++] = REQUEST_SENSE;
 	h->cmdbuf[h->cmdidx++] = 0;
@@ -335,7 +349,7 @@ static int stlink_usb_read_trace(void *handle, const uint8_t *buf, int size)
 
 	assert(h->version.stlink >= 2);
 
-	if (jtag_libusb_bulk_read(h->fd, STLINK_TRACE_EP, (char *)buf,
+	if (jtag_libusb_bulk_read(h->fd, h->trace_ep, (char *)buf,
 			size, STLINK_READ_TIMEOUT) != size) {
 		LOG_ERROR("bulk trace read failed");
 		return ERROR_FAIL;
@@ -356,7 +370,7 @@ static void stlink_usb_xfer_v1_create_cmd(void *handle, uint8_t direction, uint3
 	h->cmdidx += 4;
 	buf_set_u32(h->cmdbuf+h->cmdidx, 0, 32, size);
 	h->cmdidx += 4;
-	h->cmdbuf[h->cmdidx++] = (direction == STLINK_RX_EP ? ENDPOINT_IN : ENDPOINT_OUT);
+	h->cmdbuf[h->cmdidx++] = (direction == h->rx_ep ? ENDPOINT_IN : ENDPOINT_OUT);
 	h->cmdbuf[h->cmdidx++] = 0; /* lun */
 	h->cmdbuf[h->cmdidx++] = STLINK_CMD_SIZE_V1;
 }
@@ -420,7 +434,7 @@ static int stlink_usb_version(void *handle)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 6);
+	stlink_usb_init_buffer(handle, h->rx_ep, 6);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_GET_VERSION;
 
@@ -465,7 +479,7 @@ static int stlink_usb_check_voltage(void *handle, float *target_voltage)
 	if (h->version.stlink == 1 || h->version.jtag < 13)
 		return ERROR_COMMAND_NOTFOUND;
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 8);
+	stlink_usb_init_buffer(handle, h->rx_ep, 8);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_GET_TARGET_VOLTAGE;
 
@@ -496,7 +510,7 @@ static int stlink_usb_current_mode(void *handle, uint8_t *mode)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_GET_CURRENT_MODE;
 
@@ -526,7 +540,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 	if (h->jtag_api == STLINK_JTAG_API_V2)
 		rx_size = 2;
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, rx_size);
+	stlink_usb_init_buffer(handle, h->rx_ep, rx_size);
 
 	switch (type) {
 		case STLINK_MODE_DEBUG_JTAG:
@@ -726,7 +740,7 @@ static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 4);
+	stlink_usb_init_buffer(handle, h->rx_ep, 4);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_READCOREID;
@@ -750,7 +764,7 @@ static int stlink_usb_v2_read_debug_reg(void *handle, uint32_t addr, uint32_t *v
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 8);
+	stlink_usb_init_buffer(handle, h->rx_ep, 8);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READDEBUGREG;
@@ -774,7 +788,7 @@ static int stlink_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	if (h->jtag_api == STLINK_JTAG_API_V1)
@@ -804,7 +818,7 @@ static void stlink_usb_trace_read(void *handle)
 	if (h->trace.enabled && h->version.jtag >= STLINK_TRACE_MIN_VERSION) {
 		int res;
 
-		stlink_usb_init_buffer(handle, STLINK_RX_EP, 10);
+		stlink_usb_init_buffer(handle, h->rx_ep, 10);
 
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_GET_TRACE_NB;
@@ -866,7 +880,7 @@ static enum target_state stlink_usb_state(void *handle)
 	if (h->jtag_api == STLINK_JTAG_API_V2)
 		return stlink_usb_v2_get_status(handle);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_GETSTATUS;
@@ -892,7 +906,7 @@ static int stlink_usb_reset(void *handle)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 
@@ -925,7 +939,7 @@ static int stlink_usb_assert_srst(void *handle, int srst)
 	if (h->jtag_api == STLINK_JTAG_API_V1)
 		return ERROR_COMMAND_NOTFOUND;
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_DRIVE_NRST;
@@ -1007,7 +1021,7 @@ static void stlink_usb_trace_disable(void *handle)
 
 	LOG_DEBUG("Tracing: disable\n");
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_STOP_TRACE_RX;
 	res = stlink_usb_xfer(handle, h->databuf, 2);
@@ -1038,7 +1052,7 @@ static int stlink_usb_trace_enable(void *handle)
 			h->trace.source_hz / (h->trace.prescale + 1) :
 			h->trace.source_hz;
 
-		stlink_usb_init_buffer(handle, STLINK_RX_EP, 10);
+		stlink_usb_init_buffer(handle, h->rx_ep, 10);
 
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_START_TRACE_RX;
@@ -1091,7 +1105,7 @@ static int stlink_usb_run(void *handle)
 		return res;
 	}
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_RUNCORE;
@@ -1121,7 +1135,7 @@ static int stlink_usb_halt(void *handle)
 		return res;
 	}
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_FORCEDEBUG;
@@ -1150,7 +1164,7 @@ static int stlink_usb_step(void *handle)
 		return stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_DEBUGEN);
 	}
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_STEPCORE;
@@ -1171,7 +1185,7 @@ static int stlink_usb_read_regs(void *handle)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 84);
+	stlink_usb_init_buffer(handle, h->rx_ep, 84);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	if (h->jtag_api == STLINK_JTAG_API_V1)
@@ -1195,7 +1209,7 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, h->jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
+	stlink_usb_init_buffer(handle, h->rx_ep, h->jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	if (h->jtag_api == STLINK_JTAG_API_V1)
@@ -1227,7 +1241,7 @@ static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	if (h->jtag_api == STLINK_JTAG_API_V1)
@@ -1256,7 +1270,7 @@ static int stlink_usb_get_rw_status(void *handle)
 	if (h->jtag_api == STLINK_JTAG_API_V1)
 		return ERROR_OK;
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, 2);
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_GETLASTRWSTATUS;
@@ -1285,7 +1299,7 @@ static int stlink_usb_read_mem8(void *handle, uint32_t addr, uint16_t len,
 		return ERROR_FAIL;
 	}
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, read_len);
+	stlink_usb_init_buffer(handle, h->rx_ep, read_len);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_READMEM_8BIT;
@@ -1323,7 +1337,7 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 		return ERROR_FAIL;
 	}
 
-	stlink_usb_init_buffer(handle, STLINK_TX_EP, len);
+	stlink_usb_init_buffer(handle, h->tx_ep, len);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_WRITEMEM_8BIT;
@@ -1355,7 +1369,7 @@ static int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
-	stlink_usb_init_buffer(handle, STLINK_RX_EP, len);
+	stlink_usb_init_buffer(handle, h->rx_ep, len);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_READMEM_32BIT;
@@ -1389,7 +1403,7 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
-	stlink_usb_init_buffer(handle, STLINK_TX_EP, len);
+	stlink_usb_init_buffer(handle, h->tx_ep, len);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_WRITEMEM_32BIT;
@@ -1595,14 +1609,28 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 			goto error_open;
 		}
 
+		/* RX EP is common for all versions */
+		h->rx_ep = STLINK_RX_EP;
+
 		/* wrap version for first read */
 		switch (param->pid) {
-		case 0x3744:
-			h->version.stlink = 1;
-			break;
-		default:
-			h->version.stlink = 2;
-			break;
+			case STLINK_V1_PID:
+				h->version.stlink = 1;
+				h->tx_ep = STLINK_TX_EP;
+				h->trace_ep = STLINK_TRACE_EP;
+				break;
+			case STLINK_V2_1_PID:
+				h->version.stlink = 2;
+				h->tx_ep = STLINK_V2_1_TX_EP;
+				h->trace_ep = STLINK_V2_1_TRACE_EP;
+				break;
+			default:
+			/* fall through - we assume V2 to be the default version*/
+			case STLINK_V2_PID:
+				h->version.stlink = 2;
+				h->tx_ep = STLINK_TX_EP;
+				h->trace_ep = STLINK_TRACE_EP;
+				break;
 		}
 
 		/* get the device version */
