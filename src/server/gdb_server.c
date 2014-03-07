@@ -1998,7 +1998,7 @@ static int gdb_generate_reg_type_description(struct target *target,
 /* Get a list of available target registers features. feature_list must
  * be freed by caller.
  */
-static int get_reg_features_list(struct target *target, char **feature_list[], int *feature_list_size,
+static int get_reg_features_list(struct target *target, char const **feature_list[], int *feature_list_size,
 		struct reg **reg_list, int reg_list_size)
 {
 	int tbl_sz = 0;
@@ -2019,7 +2019,7 @@ static int get_reg_features_list(struct target *target, char **feature_list[], i
 			 */
 			for (int j = 0; j < (tbl_sz + 1); j++) {
 				if (!((*feature_list)[j])) {
-					(*feature_list)[tbl_sz++] = strdup(reg_list[i]->feature->name);
+					(*feature_list)[tbl_sz++] = reg_list[i]->feature->name;
 					*feature_list = realloc(*feature_list, sizeof(char *) * (tbl_sz + 1));
 					(*feature_list)[tbl_sz] = NULL;
 					break;
@@ -2042,7 +2042,7 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 	int retval = ERROR_OK;
 	struct reg **reg_list = NULL;
 	int reg_list_size;
-	char **features = NULL;
+	char const **features = NULL;
 	int feature_list_size = 0;
 	char *tdesc = NULL;
 	int pos = 0;
@@ -2149,10 +2149,6 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 			"</target>\n");
 
 error:
-
-	/* note: features[] contains (feature_list_size + 1) elements */
-	for (int j = feature_list_size; j >= 0; j--)
-		free(features[j]);
 	free(features);
 	free(reg_list);
 
@@ -2223,7 +2219,7 @@ static int gdb_target_description_supported(struct target *target, int *supporte
 	int retval = ERROR_OK;
 	struct reg **reg_list = NULL;
 	int reg_list_size = 0;
-	char **features = NULL;
+	char const **features = NULL;
 	int feature_list_size = 0;
 
 	retval = target_get_gdb_reg_list(target, &reg_list,
@@ -2254,10 +2250,6 @@ static int gdb_target_description_supported(struct target *target, int *supporte
 	}
 
 error:
-
-	/* note: features[] contains (feature_list_size + 1) elements */
-	for (int j = feature_list_size; j >= 0; j--)
-		free(features[j]);
 	free(features);
 
 	free(reg_list);
