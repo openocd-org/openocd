@@ -328,7 +328,7 @@ int target_call_event_callbacks(struct target *target, enum target_event event);
  */
 int target_register_timer_callback(int (*callback)(void *priv),
 		int time_ms, int periodic, void *priv);
-
+int target_unregister_timer_callback(int (*callback)(void *priv), void *priv);
 int target_call_timer_callbacks(void);
 /**
  * Invoke this to ensure that e.g. polling timer callbacks happen before

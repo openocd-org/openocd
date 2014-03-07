@@ -1361,7 +1361,7 @@ int target_unregister_event_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
-static int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
+int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 {
 	struct target_timer_callback **p = &target_timer_callbacks;
 	struct target_timer_callback *c = target_timer_callbacks;

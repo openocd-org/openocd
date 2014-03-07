@@ -830,6 +830,12 @@ static void stlink_usb_trace_read(void *handle)
 	}
 }
 
+static int stlink_usb_trace_read_callback(void *handle)
+{
+	stlink_usb_trace_read(handle);
+	return ERROR_OK;
+}
+
 static enum target_state stlink_usb_v2_get_status(void *handle)
 {
 	int result;
@@ -1006,8 +1012,10 @@ static void stlink_usb_trace_disable(void *handle)
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_STOP_TRACE_RX;
 	res = stlink_usb_xfer(handle, h->databuf, 2);
 
-	if (res == ERROR_OK)
+	if (res == ERROR_OK) {
 		h->trace.enabled = false;
+		target_unregister_timer_callback(stlink_usb_trace_read_callback, handle);
+	}
 }
 
 
@@ -1044,6 +1052,14 @@ static int stlink_usb_trace_enable(void *handle)
 		if (res == ERROR_OK)  {
 			h->trace.enabled = true;
 			LOG_DEBUG("Tracing: recording at %" PRIu32 "Hz\n", trace_hz);
+			/* We need the trace read function to be called at a
+			 * high-enough frequency to ensure reasonable
+			 * "timeliness" in processing ITM/DWT data.
+			 * TODO: An alternative could be using the asynchronous
+			 * features of the libusb-1.0 API to queue up one or more
+			 * reads in advance and requeue them once they are
+			 * completed. */
+			target_register_timer_callback(stlink_usb_trace_read_callback, 1, 1, handle);
 		}
 	} else {
 		LOG_ERROR("Tracing is not supported by this version.");
@@ -1065,7 +1081,7 @@ static int stlink_usb_run(void *handle)
 		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
 		/* Try to start tracing, if requested */
-		if (res == ERROR_OK && h->trace.source_hz) {
+		if (res == ERROR_OK && h->trace.source_hz && !h->trace.enabled) {
 			if (stlink_usb_trace_enable(handle) == ERROR_OK)
 				LOG_DEBUG("Tracing: enabled\n");
 			else
