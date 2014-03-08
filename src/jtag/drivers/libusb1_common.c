@@ -166,3 +166,16 @@ int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
 
 	return 0;
 }
+
+int jtag_libusb_get_pid(struct jtag_libusb_device *dev, uint16_t *pid)
+{
+	struct libusb_device_descriptor dev_desc;
+
+	if (libusb_get_device_descriptor(dev, &dev_desc) == 0) {
+		*pid = dev_desc.idProduct;
+
+		return 0;
+	}
+
+	return -ENODEV;
+}

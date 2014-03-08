@@ -46,11 +46,13 @@
  * pid = ( usb_address > 0x4) ? 0x0101 : (0x101 + usb_address)
  */
 
-#define VID 0x1366, 0x1366, 0x1366, 0x1366
-#define PID 0x0101, 0x0102, 0x0103, 0x0104
+#define JLINK_OB_PID  0x0105
 
 #define JLINK_WRITE_ENDPOINT	0x02
 #define JLINK_READ_ENDPOINT		0x81
+
+#define JLINK_OB_WRITE_ENDPOINT	0x06
+#define JLINK_OB_READ_ENDPOINT	0x85
 
 static unsigned int jlink_write_ep = JLINK_WRITE_ENDPOINT;
 static unsigned int jlink_read_ep = JLINK_READ_ENDPOINT;
@@ -246,8 +248,8 @@ static enum tap_state jlink_last_state = TAP_RESET;
 static struct jlink *jlink_handle;
 
 /* pid could be specified at runtime */
-static uint16_t vids[] = { VID, 0 };
-static uint16_t pids[] = { PID, 0 };
+static uint16_t vids[] = { 0x1366, 0x1366, 0x1366, 0x1366, 0x1366, 0 };
+static uint16_t pids[] = { 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0 };
 
 static uint32_t jlink_caps;
 static uint32_t jlink_hw_type;
@@ -1516,6 +1518,15 @@ static struct jlink *jlink_usb_open()
 	 */
 	usb_set_altinterface(result->usb_handle, 0);
 #endif
+
+	/* Use the OB endpoints if the JLink we matched is a Jlink-OB adapter */
+	uint16_t matched_pid;
+	if (jtag_libusb_get_pid(udev, &matched_pid) == ERROR_OK) {
+		if (matched_pid == JLINK_OB_PID) {
+			jlink_read_ep = JLINK_OB_WRITE_ENDPOINT;
+			jlink_write_ep = JLINK_OB_READ_ENDPOINT;
+		}
+	}
 
 	jtag_libusb_get_endpoints(udev, &jlink_read_ep, &jlink_write_ep);
 
