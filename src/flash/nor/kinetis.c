@@ -35,6 +35,7 @@
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
+#include <target/cortex_m.h>
 
 /*
  * Implementation Notes
@@ -195,6 +196,267 @@ struct kinetis_flash_bank {
 		FC_FLEX_RAM,
 	} flash_class;
 };
+
+
+
+#define MDM_REG_STAT		0x00
+#define MDM_REG_CTRL		0x04
+#define MDM_REG_ID		0xfc
+
+#define MDM_STAT_FMEACK		(1<<0)
+#define MDM_STAT_FREADY		(1<<1)
+#define MDM_STAT_SYSSEC		(1<<2)
+#define MDM_STAT_SYSRES		(1<<3)
+#define MDM_STAT_FMEEN		(1<<5)
+#define MDM_STAT_BACKDOOREN	(1<<6)
+#define MDM_STAT_LPEN		(1<<7)
+#define MDM_STAT_VLPEN		(1<<8)
+#define MDM_STAT_LLSMODEXIT	(1<<9)
+#define MDM_STAT_VLLSXMODEXIT	(1<<10)
+#define MDM_STAT_CORE_HALTED	(1<<16)
+#define MDM_STAT_CORE_SLEEPDEEP	(1<<17)
+#define MDM_STAT_CORESLEEPING	(1<<18)
+
+#define MEM_CTRL_FMEIP		(1<<0)
+#define MEM_CTRL_DBG_DIS	(1<<1)
+#define MEM_CTRL_DBG_REQ	(1<<2)
+#define MEM_CTRL_SYS_RES_REQ	(1<<3)
+#define MEM_CTRL_CORE_HOLD_RES	(1<<4)
+#define MEM_CTRL_VLLSX_DBG_REQ	(1<<5)
+#define MEM_CTRL_VLLSX_DBG_ACK	(1<<6)
+#define MEM_CTRL_VLLSX_STAT_ACK	(1<<7)
+
+#define MDM_ACCESS_TIMEOUT	3000 /* iterations */
+
+static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
+{
+	int retval;
+	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
+
+	retval = dap_queue_ap_write(dap, reg, value);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("MDM: failed to queue a write request");
+		return retval;
+	}
+
+	retval = dap_run(dap);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("MDM: dap_run failed");
+		return retval;
+	}
+
+
+	return ERROR_OK;
+}
+
+static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
+{
+	int retval;
+	retval = dap_queue_ap_read(dap, reg, result);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("MDM: failed to queue a read request");
+		return retval;
+	}
+
+	retval = dap_run(dap);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("MDM: dap_run failed");
+		return retval;
+	}
+
+	LOG_DEBUG("MDM_REG[0x%02x]: %08" PRIX32, reg, *result);
+	return ERROR_OK;
+}
+
+static int kinetis_mdm_poll_register(struct adiv5_dap *dap, unsigned reg, uint32_t mask, uint32_t value)
+{
+	uint32_t val;
+	int retval;
+	int timeout = MDM_ACCESS_TIMEOUT;
+
+	do {
+		retval = kinetis_mdm_read_register(dap, reg, &val);
+		if (retval != ERROR_OK || (val & mask) == value)
+			return retval;
+
+		alive_sleep(1);
+	} while (timeout--);
+
+	LOG_DEBUG("MDM: polling timed out");
+	return ERROR_FAIL;
+}
+
+/*
+ * This function implements the procedure to mass erase the flash via
+ * SWD/JTAG on Kinetis K and L series of devices as it is described in
+ * AN4835 "Production Flash Programming Best Practices for Kinetis K-
+ * and L-series MCUs" Section 4.2.1
+ */
+COMMAND_HANDLER(kinetis_mdm_mass_erase)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+
+	int retval;
+	const uint8_t original_ap = dap->ap_current;
+
+	/*
+	 * ... Power on the processor, or if power has already been
+	 * applied, assert the RESET pin to reset the processor. For
+	 * devices that do not have a RESET pin, write the System
+	 * Reset Request bit in the MDM-AP control register after
+	 * establishing communication...
+	 */
+	dap_ap_select(dap, 1);
+
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, MEM_CTRL_SYS_RES_REQ);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/*
+	 * ... Read the MDM-AP status register until the Flash Ready bit sets...
+	 */
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT,
+					   MDM_STAT_FREADY | MDM_STAT_SYSRES,
+					   MDM_STAT_FREADY);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM : flash ready timeout");
+		return retval;
+	}
+
+	/*
+	 * ... Write the MDM-AP control register to set the Flash Mass
+	 * Erase in Progress bit. This will start the mass erase
+	 * process...
+	 */
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL,
+					    MEM_CTRL_SYS_RES_REQ | MEM_CTRL_FMEIP);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* As a sanity check make sure that device started mass erase procedure */
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT,
+					   MDM_STAT_FMEACK, MDM_STAT_FMEACK);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/*
+	 * ... Read the MDM-AP control register until the Flash Mass
+	 * Erase in Progress bit clears...
+	 */
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_CTRL,
+					   MEM_CTRL_FMEIP,
+					   0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/*
+	 * ... Negate the RESET signal or clear the System Reset Request
+	 * bit in the MDM-AP control register...
+	 */
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	dap_ap_select(dap, original_ap);
+	return ERROR_OK;
+}
+
+static const uint32_t kinetis_known_mdm_ids[] = {
+	0x001C0020,	/* KL26Z */
+};
+
+/*
+ * This function implements the procedure to connect to
+ * SWD/JTAG on Kinetis K and L series of devices as it is described in
+ * AN4835 "Production Flash Programming Best Practices for Kinetis K-
+ * and L-series MCUs" Section 4.1.1
+ */
+COMMAND_HANDLER(kinetis_check_flash_security_status)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+
+	uint32_t val;
+	int retval;
+	const uint8_t origninal_ap = dap->ap_current;
+
+	dap_ap_select(dap, 1);
+
+
+	/*
+	 * ... The MDM-AP ID register can be read to verify that the
+	 * connection is working correctly...
+	 */
+	retval = kinetis_mdm_read_register(dap, MDM_REG_ID, &val);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to read ID register");
+		goto fail;
+	}
+
+	bool found = false;
+	for (size_t i = 0; i < ARRAY_SIZE(kinetis_known_mdm_ids); i++) {
+		if (val == kinetis_known_mdm_ids[i]) {
+			found = true;
+			break;
+		}
+	}
+
+	if (!found)
+		LOG_WARNING("MDM: unknown ID %08" PRIX32, val);
+
+	/*
+	 * ... Read the MDM-AP status register until the Flash Ready bit sets...
+	 */
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT,
+					   MDM_STAT_FREADY,
+					   MDM_STAT_FREADY);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: flash ready timeout");
+		goto fail;
+	}
+
+	/*
+	 * ... Read the System Security bit to determine if security is enabled.
+	 * If System Security = 0, then proceed. If System Security = 1, then
+	 * communication with the internals of the processor, including the
+	 * flash, will not be possible without issuing a mass erase command or
+	 * unsecuring the part through other means (backdoor key unlock)...
+	 */
+	retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &val);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to read MDM_REG_STAT");
+		goto fail;
+	}
+
+	if (val & MDM_STAT_SYSSEC) {
+		jtag_poll_set_enabled(false);
+
+		LOG_WARNING("*********** ATTENTION! ATTENTION! ATTENTION! ATTENTION! **********");
+		LOG_WARNING("****                                                          ****");
+		LOG_WARNING("**** Your Kinetis MCU is in secured state, which means that,  ****");
+		LOG_WARNING("**** with exeption for very basic communication, JTAG/SWD     ****");
+		LOG_WARNING("**** interface will NOT work. In order to restore its         ****");
+		LOG_WARNING("**** functionality please issue 'kinetis mdm mass_erase'      ****");
+		LOG_WARNING("**** command, power cycle the MCU and restart openocd.        ****");
+		LOG_WARNING("****                                                          ****");
+		LOG_WARNING("*********** ATTENTION! ATTENTION! ATTENTION! ATTENTION! **********");
+	} else {
+		LOG_INFO("MDM: Chip is unsecured. Continuing.");
+		jtag_poll_set_enabled(true);
+	}
+
+	dap_ap_select(dap, origninal_ap);
+
+	return ERROR_OK;
+
+fail:
+	LOG_ERROR("MDM: Failed to check security status of the MCU. Cannot proceed further");
+	jtag_poll_set_enabled(false);
+	return retval;
+}
 
 FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 {
@@ -514,7 +776,6 @@ static int kinetis_ftfx_command(struct flash_bank *bank, uint8_t fcmd, uint32_t 
 
 static int kinetis_mass_erase(struct flash_bank *bank)
 {
-	int result;
 	uint8_t ftfx_fstat;
 
 	if (bank->target->state != TARGET_HALTED) {
@@ -522,26 +783,31 @@ static int kinetis_mass_erase(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* check if whole bank is blank */
 	LOG_INFO("Execute Erase All Blocks");
-	/* set command and sector address */
-	result = kinetis_ftfx_command(bank, FTFx_CMD_MASSERASE, 0,
-					    0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
-	/* Anyway Result, write FSEC to unsecure forcely */
-	/*	if (result != ERROR_OK)
-		return result;*/
+	return kinetis_ftfx_command(bank, FTFx_CMD_MASSERASE, 0,
+				    0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
+}
 
-	/* Write to MCU security status unsecure in Flash security byte(for Kinetis-L need) */
-	LOG_INFO("Write to MCU security status unsecure Anyway!");
-	uint8_t padding[4] = {0xFE, 0xFF, 0xFF, 0xFF}; /* Write 0xFFFFFFFE */
+COMMAND_HANDLER(kinetis_securing_test)
+{
+	int result;
+	uint8_t ftfx_fstat;
+	struct target *target = get_current_target(CMD_CTX);
+	struct flash_bank *bank = NULL;
 
-	result = kinetis_ftfx_command(bank, FTFx_CMD_LWORDPROG, (bank->base + 0x0000040C),
-				padding[3], padding[2], padding[1], padding[0],
-				0, 0, 0, 0,  &ftfx_fstat);
+	result = get_flash_bank_by_addr(target, 0x00000000, true, &bank);
 	if (result != ERROR_OK)
-		return ERROR_FLASH_OPERATION_FAILED;
+		return result;
 
-	return ERROR_OK;
+	assert(bank != NULL);
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	return kinetis_ftfx_command(bank, FTFx_CMD_SECTERASE, bank->base + 0x00000400,
+				      0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
 }
 
 static int kinetis_erase(struct flash_bank *bank, int first, int last)
@@ -1150,8 +1416,58 @@ static int kinetis_blank_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
+static const struct command_registration kinetis_securtiy_command_handlers[] = {
+	{
+		.name = "check_security",
+		.mode = COMMAND_EXEC,
+		.help = "",
+		.usage = "",
+		.handler = kinetis_check_flash_security_status,
+	},
+	{
+		.name = "mass_erase",
+		.mode = COMMAND_EXEC,
+		.help = "",
+		.usage = "",
+		.handler = kinetis_mdm_mass_erase,
+	},
+	{
+		.name = "test_securing",
+		.mode = COMMAND_EXEC,
+		.help = "",
+		.usage = "",
+		.handler = kinetis_securing_test,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration kinetis_exec_command_handlers[] = {
+	{
+		.name = "mdm",
+		.mode = COMMAND_ANY,
+		.help = "",
+		.usage = "",
+		.chain = kinetis_securtiy_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration kinetis_command_handler[] = {
+	{
+		.name = "kinetis",
+		.mode = COMMAND_ANY,
+		.help = "kinetis NAND flash controller commands",
+		.usage = "",
+		.chain = kinetis_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+
+
 struct flash_driver kinetis_flash = {
 	.name = "kinetis",
+	.commands = kinetis_command_handler,
 	.flash_bank_command = kinetis_flash_bank_command,
 	.erase = kinetis_erase,
 	.protect = kinetis_protect,
