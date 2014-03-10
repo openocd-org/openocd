@@ -3285,7 +3285,7 @@ static const uint8_t
 	0x00, 0xBE				/* bkpt #0 */
 };
 
-static int sam3_page_write(struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *buf)
+static int sam3_page_write(struct sam3_bank_private *pPrivate, unsigned pagenum, const uint8_t *buf)
 {
 	uint32_t adr;
 	uint32_t status;
@@ -3344,7 +3344,7 @@ static int sam3_page_write(struct sam3_bank_private *pPrivate, unsigned pagenum,
 }
 
 static int sam3_write(struct flash_bank *bank,
-	uint8_t *buffer,
+	const uint8_t *buffer,
 	uint32_t offset,
 	uint32_t count)
 {

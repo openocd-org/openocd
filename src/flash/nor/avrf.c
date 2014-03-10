@@ -142,7 +142,7 @@ static int avr_jtagprg_chiperase(struct avr_common *avr)
 }
 
 static int avr_jtagprg_writeflashpage(struct avr_common *avr,
-	uint8_t *page_buf,
+	const uint8_t *page_buf,
 	uint32_t buf_size,
 	uint32_t addr,
 	uint32_t page_size)
@@ -239,7 +239,7 @@ static int avrf_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int avrf_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int avrf_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	struct avr_common *avr = target->arch_info;

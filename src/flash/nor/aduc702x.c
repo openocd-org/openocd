@@ -144,7 +144,7 @@ static int aduc702x_protect(struct flash_bank *bank, int set, int first, int las
  * Caller should not check for other return values specifically
  */
 static int aduc702x_write_block(struct flash_bank *bank,
-	uint8_t *buffer,
+	const uint8_t *buffer,
 	uint32_t offset,
 	uint32_t count)
 {
@@ -285,7 +285,7 @@ static int aduc702x_write_block(struct flash_bank *bank,
 /* All-JTAG, single-access method.  Very slow.  Used only if there is no
  * working area available. */
 static int aduc702x_write_single(struct flash_bank *bank,
-	uint8_t *buffer,
+	const uint8_t *buffer,
 	uint32_t offset,
 	uint32_t count)
 {
@@ -326,7 +326,7 @@ static int aduc702x_write_single(struct flash_bank *bank,
 	return ERROR_OK;
 }
 
-static int aduc702x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int aduc702x_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 

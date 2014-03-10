@@ -372,7 +372,7 @@ static int stmsmi_protect(struct flash_bank *bank, int set,
 	return ERROR_OK;
 }
 
-static int smi_write_buffer(struct flash_bank *bank, uint8_t *buffer,
+static int smi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t address, uint32_t len)
 {
 	struct target *target = bank->target;
@@ -397,7 +397,7 @@ static int smi_write_buffer(struct flash_bank *bank, uint8_t *buffer,
 	return ERROR_OK;
 }
 
-static int stmsmi_write(struct flash_bank *bank, uint8_t *buffer,
+static int stmsmi_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;

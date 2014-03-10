@@ -997,7 +997,7 @@ static const uint8_t stellaris_write_code[] = {
 	0x01, 0x00, 0x42, 0xA4	/* .word	0xA4420001 */
 };
 static int stellaris_write_block(struct flash_bank *bank,
-		uint8_t *buffer, uint32_t offset, uint32_t wcount)
+		const uint8_t *buffer, uint32_t offset, uint32_t wcount)
 {
 	struct target *target = bank->target;
 	uint32_t buffer_size = 16384;
@@ -1078,7 +1078,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 	return retval;
 }
 
-static int stellaris_write(struct flash_bank *bank, uint8_t *buffer,
+static int stellaris_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct stellaris_flash_bank *stellaris_info = bank->driver_priv;

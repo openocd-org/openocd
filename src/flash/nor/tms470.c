@@ -890,7 +890,7 @@ static int tms470_protect(struct flash_bank *bank, int set, int first, int last)
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int tms470_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	uint32_t glbctrl, fmbac2, orig_fmregopt, fmbsea, fmbseb, fmmaxpp, fmmstat;

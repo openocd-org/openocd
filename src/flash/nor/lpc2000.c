@@ -711,7 +711,7 @@ static int lpc2000_protect(struct flash_bank *bank, int set, int first, int last
 	return ERROR_OK;
 }
 
-static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 
@@ -746,6 +746,7 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 
 	/* check if exception vectors should be flashed */
 	if ((offset == 0) && (count >= 0x20) && lpc2000_info->calc_checksum) {
+		assert(lpc2000_info->checksum_vector < 8);
 		uint32_t checksum = 0;
 		for (int i = 0; i < 8; i++) {
 			LOG_DEBUG("Vector 0x%2.2x: 0x%8.8" PRIx32, i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
@@ -763,7 +764,8 @@ static int lpc2000_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offs
 					"checksum.");
 		}
 
-		buf_set_u32(buffer + (lpc2000_info->checksum_vector * 4), 0, 32, checksum);
+		/* FIXME: WARNING! This code is broken because it modifies the callers buffer in place. */
+		buf_set_u32((uint8_t *)buffer + (lpc2000_info->checksum_vector * 4), 0, 32, checksum);
 	}
 
 	struct working_area *iap_working_area;

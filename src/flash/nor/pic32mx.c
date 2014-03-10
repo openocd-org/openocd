@@ -410,7 +410,7 @@ static uint32_t pic32mx_flash_write_code[] = {
 	0x00000000		/* nop */
 };
 
-static int pic32mx_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -571,7 +571,7 @@ static int pic32mx_write_word(struct flash_bank *bank, uint32_t address, uint32_
 	return pic32mx_nvm_exec(bank, NVMCON_OP_WORD_PROG, 5);
 }
 
-static int pic32mx_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int pic32mx_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	uint32_t words_remaining = (count / 4);
 	uint32_t bytes_remaining = (count & 0x00000003);

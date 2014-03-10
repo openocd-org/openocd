@@ -429,7 +429,7 @@ static int nrf51_erase_page(struct nrf51_info *chip, struct flash_sector *sector
 	return res;
 }
 
-static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, uint8_t *buffer)
+static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, const uint8_t *buffer)
 {
 	assert(offset % 4 == 0);
 
@@ -484,7 +484,7 @@ static int nrf51_erase(struct flash_bank *bank, int first, int last)
 	return res;
 }
 
-static int nrf51_write(struct flash_bank *bank, uint8_t *buffer,
+static int nrf51_write(struct flash_bank *bank, const uint8_t *buffer,
 		       uint32_t offset, uint32_t count)
 {
 	int res;
@@ -502,7 +502,7 @@ static int nrf51_write(struct flash_bank *bank, uint8_t *buffer,
 
 	struct {
 		size_t   length;
-		uint8_t *buffer;
+		const uint8_t *buffer;
 	}  start_extra, end_extra;
 
 	start_extra.length	= region.start % chip->code_page_size;

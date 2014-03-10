@@ -378,7 +378,7 @@ static int nuc1x_erase(struct flash_bank *bank, int first, int last)
 }
 
 /* The write routine stub. */
-static int nuc1x_write(struct flash_bank *bank, uint8_t *buffer,
+static int nuc1x_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;

@@ -130,7 +130,7 @@ struct stm32x_flash_bank {
 
 static int stm32x_mass_erase(struct flash_bank *bank);
 static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id);
-static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count);
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
@@ -561,7 +561,7 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 	return stm32x_write_options(bank);
 }
 
-static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
@@ -692,7 +692,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	return retval;
 }
 
-static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
+static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -720,7 +720,7 @@ static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		}
 		LOG_INFO("odd number of bytes to write, padding with 0xff");
 		buffer = memcpy(new_buffer, buffer, count);
-		buffer[count++] = 0xff;
+		new_buffer[count++] = 0xff;
 	}
 
 	uint32_t words_remaining = count / 2;

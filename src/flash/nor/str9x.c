@@ -347,7 +347,7 @@ static int str9x_protect(struct flash_bank *bank,
 }
 
 static int str9x_write_block(struct flash_bank *bank,
-		uint8_t *buffer, uint32_t offset, uint32_t count)
+		const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	uint32_t buffer_size = 32768;
@@ -459,7 +459,7 @@ static int str9x_write_block(struct flash_bank *bank,
 }
 
 static int str9x_write(struct flash_bank *bank,
-		uint8_t *buffer, uint32_t offset, uint32_t count)
+		const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
 	uint32_t words_remaining = (count / 2);

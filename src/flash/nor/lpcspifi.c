@@ -581,7 +581,7 @@ static int lpcspifi_protect(struct flash_bank *bank, int set,
 	return ERROR_OK;
 }
 
-static int lpcspifi_write(struct flash_bank *bank, uint8_t *buffer,
+static int lpcspifi_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;

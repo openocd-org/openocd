@@ -474,7 +474,7 @@ int target_wait_algorithm(struct target *target,
  *
  */
 int target_run_flash_async_algorithm(struct target *target,
-		uint8_t *buffer, uint32_t count, int block_size,
+		const uint8_t *buffer, uint32_t count, int block_size,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t buffer_start, uint32_t buffer_size,

@@ -98,7 +98,7 @@
 #define FLASH_SIZE_2048KB       14
 
 static int at91sam7_protect_check(struct flash_bank *bank);
-static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset,
+static int at91sam7_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset,
 		uint32_t count);
 
 static uint32_t at91sam7_get_flash_status(struct target *target, int bank_number);
@@ -954,7 +954,7 @@ static int at91sam7_protect(struct flash_bank *bank, int set, int first, int las
 	return ERROR_OK;
 }
 
-static int at91sam7_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int at91sam7_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 	struct at91sam7_flash_bank *at91sam7_info = bank->driver_priv;

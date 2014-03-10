@@ -93,7 +93,7 @@ static int faux_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int faux_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int faux_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct faux_flash_bank *info = bank->driver_priv;
 	memcpy(info->memory + offset, buffer, count);

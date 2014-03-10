@@ -312,7 +312,7 @@ static int mini51_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-static int mini51_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int mini51_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int status;
 	int timeout;

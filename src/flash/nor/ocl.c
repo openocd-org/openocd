@@ -118,7 +118,7 @@ static int ocl_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int ocl_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int ocl_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct ocl_priv *ocl = bank->driver_priv;
 	int retval;

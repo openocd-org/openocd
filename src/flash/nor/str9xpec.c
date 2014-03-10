@@ -565,7 +565,7 @@ static int str9xpec_set_address(struct flash_bank *bank, uint8_t sector)
 	return ERROR_OK;
 }
 
-static int str9xpec_write(struct flash_bank *bank, uint8_t *buffer,
+static int str9xpec_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct str9xpec_flash_controller *str9xpec_info = bank->driver_priv;

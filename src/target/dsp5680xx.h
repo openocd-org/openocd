@@ -317,7 +317,7 @@ static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target
  *
  * @return
  */
-int dsp5680xx_f_wr(struct target *target, uint8_t * buffer, uint32_t address,
+int dsp5680xx_f_wr(struct target *target, const uint8_t * buffer, uint32_t address,
 		uint32_t count, int is_flash_lock);
 
 /**

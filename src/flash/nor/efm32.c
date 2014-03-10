@@ -98,7 +98,7 @@ struct efm32_info {
 	uint16_t page_size;
 };
 
-static int efm32x_write(struct flash_bank *bank, uint8_t *buffer,
+static int efm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count);
 
 static int efm32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_sz)
@@ -499,7 +499,7 @@ static int efm32x_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int efm32x_write_block(struct flash_bank *bank, uint8_t *buf,
+static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -735,7 +735,7 @@ static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
 	return ERROR_OK;
 }
 
-static int efm32x_write(struct flash_bank *bank, uint8_t *buffer,
+static int efm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;

@@ -1524,7 +1524,7 @@ static int dsp5680xx_checksum_memory(struct target *t, uint32_t a, uint32_t s,
  *
  * @return
  */
-static int perl_crc(uint8_t *buff8, uint32_t word_count)
+static int perl_crc(const uint8_t *buff8, uint32_t word_count)
 {
 	uint16_t checksum = 0xffff;
 
@@ -1983,14 +1983,14 @@ const uint16_t pgm_write_pflash[] = { 0x8A46, 0x0013, 0x807D, 0xE700,
 
 const uint32_t pgm_write_pflash_length = 31;
 
-int dsp5680xx_f_wr(struct target *t, uint8_t *b, uint32_t a, uint32_t count,
+int dsp5680xx_f_wr(struct target *t, const uint8_t *b, uint32_t a, uint32_t count,
 		   int is_flash_lock)
 {
 	struct target *target = t;
 
 	uint32_t address = a;
 
-	uint8_t *buffer = b;
+	const uint8_t *buffer = b;
 
 	int retval = ERROR_OK;
 

@@ -278,7 +278,7 @@ static const uint8_t kinetis_flash_write_code[] = {
 };
 
 /* Program LongWord Block Write */
-static int kinetis_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t wcount)
 {
 	struct target *target = bank->target;
@@ -586,7 +586,7 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int kinetis_write(struct flash_bank *bank, uint8_t *buffer,
+static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 			 uint32_t offset, uint32_t count)
 {
 	unsigned int i, result, fallback = 0;

@@ -385,7 +385,7 @@ static int samd_erase(struct flash_bank *bank, int first, int last)
 /* Write an entire row (four pages) from host buffer 'buf' to row-aligned
  * 'address' in the Flash. */
 static int samd_write_row(struct flash_bank *bank, uint32_t address,
-		uint8_t *buf)
+		const uint8_t *buf)
 {
 	int res;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
@@ -424,7 +424,7 @@ static int samd_write_row(struct flash_bank *bank, uint32_t address,
 /* Write partial contents into row-aligned 'address' on the Flash from host
  * buffer 'buf' by writing 'nb' of 'buf' at 'row_offset' into the Flash row. */
 static int samd_write_row_partial(struct flash_bank *bank, uint32_t address,
-		uint8_t *buf, uint32_t row_offset, uint32_t nb)
+		const uint8_t *buf, uint32_t row_offset, uint32_t nb)
 {
 	int res;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
@@ -453,7 +453,7 @@ static int samd_write_row_partial(struct flash_bank *bank, uint32_t address,
 	return res;
 }
 
-static int samd_write(struct flash_bank *bank, uint8_t *buffer,
+static int samd_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	int res;

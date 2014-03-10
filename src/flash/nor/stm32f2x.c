@@ -481,7 +481,7 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -608,7 +608,7 @@ static int stm32x_write_block(struct flash_bank *bank, uint8_t *buffer,
 	return retval;
 }
 
-static int stm32x_write(struct flash_bank *bank, uint8_t *buffer,
+static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;

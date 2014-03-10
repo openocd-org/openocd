@@ -1058,7 +1058,7 @@ static int lpc2900_protect(struct flash_bank *bank, int set, int first, int last
  * @param offset Start address (relative to bank start)
  * @param count Number of bytes to be programmed
  */
-static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
+static int lpc2900_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
 	uint8_t page[FLASH_PAGE_SIZE];
@@ -1186,7 +1186,7 @@ static int lpc2900_write(struct flash_bank *bank, uint8_t *buffer,
 		/* Write to flash in large blocks */
 		while (count != 0) {
 			uint32_t this_npages;
-			uint8_t *this_buffer;
+			const uint8_t *this_buffer;
 			int start_sector = lpc2900_address2sector(bank, offset);
 
 			/* First page / last page / rest */

@@ -1126,7 +1126,7 @@ static uint32_t cfi_command_val(struct flash_bank *bank, uint8_t cmd)
 	}
 }
 
-static int cfi_intel_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int cfi_intel_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t address, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -1379,7 +1379,7 @@ cleanup:
 	return retval;
 }
 
-static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffer,
+static int cfi_spansion_write_block_mips(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t address, uint32_t count)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -1592,7 +1592,7 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, uint8_t *buffe
 	return retval;
 }
 
-static int cfi_spansion_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int cfi_spansion_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t address, uint32_t count)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -2002,7 +2002,7 @@ static int cfi_intel_write_word(struct flash_bank *bank, uint8_t *word, uint32_t
 	return ERROR_OK;
 }
 
-static int cfi_intel_write_words(struct flash_bank *bank, uint8_t *word,
+static int cfi_intel_write_words(struct flash_bank *bank, const uint8_t *word,
 	uint32_t wordcount, uint32_t address)
 {
 	int retval;
@@ -2122,7 +2122,7 @@ static int cfi_spansion_write_word(struct flash_bank *bank, uint8_t *word, uint3
 	return ERROR_OK;
 }
 
-static int cfi_spansion_write_words(struct flash_bank *bank, uint8_t *word,
+static int cfi_spansion_write_words(struct flash_bank *bank, const uint8_t *word,
 	uint32_t wordcount, uint32_t address)
 {
 	int retval;
@@ -2215,7 +2215,7 @@ static int cfi_write_word(struct flash_bank *bank, uint8_t *word, uint32_t addre
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-static int cfi_write_words(struct flash_bank *bank, uint8_t *word,
+static int cfi_write_words(struct flash_bank *bank, const uint8_t *word,
 	uint32_t wordcount, uint32_t address)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
@@ -2312,7 +2312,7 @@ static int cfi_read(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, u
 	return ERROR_OK;
 }
 
-static int cfi_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int cfi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	struct target *target = bank->target;

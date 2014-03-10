@@ -347,7 +347,7 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-static int fm3_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int fm3_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct fm3_flash_bank *fm3_info = bank->driver_priv;

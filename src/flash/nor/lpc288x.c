@@ -277,7 +277,7 @@ static int lpc288x_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int lpc288x_write(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+static int lpc288x_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	uint8_t page_buffer[FLASH_PAGE_SIZE];
 	uint32_t status, source_offset, dest_offset;

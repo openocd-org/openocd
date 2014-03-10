@@ -223,7 +223,7 @@ static int mdr_protect(struct flash_bank *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int mdr_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int mdr_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -314,7 +314,7 @@ static int mdr_write_block(struct flash_bank *bank, uint8_t *buffer,
 	return retval;
 }
 
-static int mdr_write(struct flash_bank *bank, uint8_t *buffer,
+static int mdr_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -345,7 +345,7 @@ static int mdr_write(struct flash_bank *bank, uint8_t *buffer,
 		LOG_INFO("odd number of bytes to write, padding with 0xff");
 		buffer = memcpy(new_buffer, buffer, count);
 		while (rem--)
-			buffer[count++] = 0xff;
+			new_buffer[count++] = 0xff;
 	}
 
 	uint32_t flash_cmd, cur_per_clock;

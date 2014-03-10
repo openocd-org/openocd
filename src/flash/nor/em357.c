@@ -455,7 +455,7 @@ static int em357_protect(struct flash_bank *bank, int set, int first, int last)
 	return em357_write_options(bank);
 }
 
-static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
+static int em357_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -583,7 +583,7 @@ static int em357_write_block(struct flash_bank *bank, uint8_t *buffer,
 	return retval;
 }
 
-static int em357_write(struct flash_bank *bank, uint8_t *buffer,
+static int em357_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;

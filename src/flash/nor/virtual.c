@@ -119,7 +119,7 @@ static int virtual_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int virtual_write(struct flash_bank *bank, uint8_t *buffer,
+static int virtual_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct flash_bank *master_bank = virtual_get_master_bank(bank);

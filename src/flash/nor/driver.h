@@ -137,7 +137,7 @@ struct flash_driver {
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
 	int (*write)(struct flash_bank *bank,
-			uint8_t *buffer, uint32_t offset, uint32_t count);
+			const uint8_t *buffer, uint32_t offset, uint32_t count);
 
 	/**
 	 * Read data from the flash. Note CPU address will be

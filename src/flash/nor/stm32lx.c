@@ -212,7 +212,7 @@ static int stm32lx_protect(struct flash_bank *bank, int set, int first,
 	return ERROR_OK;
 }
 
-static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
+static int stm32lx_write_half_pages(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -403,7 +403,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, uint8_t *buffer,
 	return retval;
 }
 
-static int stm32lx_write(struct flash_bank *bank, uint8_t *buffer,
+static int stm32lx_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;

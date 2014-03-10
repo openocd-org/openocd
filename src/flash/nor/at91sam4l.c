@@ -495,7 +495,7 @@ static int sam4l_erase(struct flash_bank *bank, int first, int last)
 /* Write an entire page from host buffer 'buf' to page-aligned 'address' in the
  * Flash. */
 static int sam4l_write_page(struct sam4l_info *chip, struct target *target,
-		uint32_t address, uint8_t *buf)
+		uint32_t address, const uint8_t *buf)
 {
 	int res;
 
@@ -527,7 +527,7 @@ static int sam4l_write_page(struct sam4l_info *chip, struct target *target,
 /* Write partial contents into page-aligned 'address' on the Flash from host
  * buffer 'buf' by writing 'nb' of 'buf' at 'offset' into the Flash page. */
 static int sam4l_write_page_partial(struct sam4l_info *chip,
-		struct flash_bank *bank, uint32_t address, uint8_t *buf,
+		struct flash_bank *bank, uint32_t address, const uint8_t *buf,
 		uint32_t page_offset, uint32_t nb)
 {
 	int res;
@@ -556,7 +556,7 @@ static int sam4l_write_page_partial(struct sam4l_info *chip,
 	return res;
 }
 
-static int sam4l_write(struct flash_bank *bank, uint8_t *buffer,
+static int sam4l_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	int res;

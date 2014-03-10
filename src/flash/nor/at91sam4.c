@@ -1877,7 +1877,7 @@ static int sam4_page_read(struct sam4_bank_private *pPrivate, unsigned pagenum, 
 	return r;
 }
 
-static int sam4_page_write(struct sam4_bank_private *pPrivate, unsigned pagenum, uint8_t *buf)
+static int sam4_page_write(struct sam4_bank_private *pPrivate, unsigned pagenum, const uint8_t *buf)
 {
 	uint32_t adr;
 	uint32_t status;
@@ -1939,7 +1939,7 @@ static int sam4_page_write(struct sam4_bank_private *pPrivate, unsigned pagenum,
 }
 
 static int sam4_write(struct flash_bank *bank,
-	uint8_t *buffer,
+	const uint8_t *buffer,
 	uint32_t offset,
 	uint32_t count)
 {
