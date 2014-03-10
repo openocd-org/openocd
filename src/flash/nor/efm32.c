@@ -763,7 +763,7 @@ static int efm32x_write(struct flash_bank *bank, uint8_t *buffer,
 		}
 		LOG_INFO("odd number of bytes to write (%" PRIu32 "), extending to %" PRIu32 " "
 			"and padding with 0xff", old_count, count);
-		memset(buffer, 0xff, count);
+		memset(new_buffer, 0xff, count);
 		buffer = memcpy(new_buffer, buffer, old_count);
 	}
 
