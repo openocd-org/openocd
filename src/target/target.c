@@ -2379,6 +2379,10 @@ static int handle_target(void *priv)
 	for (struct target *target = all_targets;
 			is_jtag_poll_safe() && target;
 			target = target->next) {
+
+		if (!target_was_examined(target))
+			continue;
+
 		if (!target->tap->enabled)
 			continue;
 
