@@ -1177,6 +1177,12 @@ static int arm11_examine(struct target *target)
 	LOG_DEBUG("IDCODE %08" PRIx32 " IMPLEMENTOR %02x DIDR %08" PRIx32,
 		device_id, implementor, didr);
 
+	/* Build register cache "late", after target_init(), since we
+	 * want to know if this core supports Secure Monitor mode.
+	 */
+	if (!target_was_examined(target))
+		CHECK_RETVAL(arm11_dpm_init(arm11, didr));
+
 	/* as a side-effect this reads DSCR and thus
 	 * clears the ARM11_DSCR_STICKY_PRECISE_DATA_ABORT / Sticky Precise Data Abort Flag
 	 * as suggested by the spec.
@@ -1185,12 +1191,6 @@ static int arm11_examine(struct target *target)
 	retval = arm11_check_init(arm11);
 	if (retval != ERROR_OK)
 		return retval;
-
-	/* Build register cache "late", after target_init(), since we
-	 * want to know if this core supports Secure Monitor mode.
-	 */
-	if (!target_was_examined(target))
-		CHECK_RETVAL(arm11_dpm_init(arm11, didr));
 
 	/* ETM on ARM11 still uses original scanchain 6 access mode */
 	if (arm11->arm.etm && !target_was_examined(target)) {
