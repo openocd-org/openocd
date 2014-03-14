@@ -232,7 +232,7 @@ static int cmsis_dap_usb_open(void)
 	int packet_size = PACKET_SIZE;
 
 	/* atmel cmsis-dap uses 512 byte reports */
-	if (target_vid == 0x03eb && target_pid == 0x2111)
+	if (target_vid == 0x03eb)
 		packet_size = 512 + 1;
 
 	cmsis_dap_handle->packet_buffer = malloc(packet_size);
