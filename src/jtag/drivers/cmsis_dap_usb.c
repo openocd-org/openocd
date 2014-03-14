@@ -173,7 +173,8 @@ static int cmsis_dap_usb_open(void)
 	devs = hid_enumerate(0x0, 0x0);
 	cur_dev = devs;
 	while (NULL != cur_dev) {
-		if ((0 == cmsis_dap_vid[0]) && wcsstr(cur_dev->product_string, L"CMSIS-DAP")) {
+		if ((0 == cmsis_dap_vid[0]) && (NULL != cur_dev->product_string)
+		    && wcsstr(cur_dev->product_string, L"CMSIS-DAP")) {
 			/*
 			if the user hasn't specified VID:PID *and*
 			product string contains "CMSIS-DAP", pick it
