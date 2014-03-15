@@ -600,10 +600,30 @@ static int nrf51_erase_page(struct nrf51_info *chip, struct flash_sector *sector
 	return res;
 }
 
+static int nrf51_ll_flash_write(struct nrf51_info *chip, uint32_t offset, const uint8_t *buffer, uint32_t buffer_size)
+{
+	int res;
+	assert(buffer_size % 4 == 0);
+
+	for (; buffer_size > 0; buffer_size -= 4) {
+		res = target_write_memory(chip->target, offset, 4, 1, buffer);
+		if (res != ERROR_OK)
+			return res;
+
+		res = nrf51_wait_for_nvmc(chip);
+		if (res != ERROR_OK)
+			return res;
+
+		offset += 4;
+		buffer += 4;
+	}
+
+	return ERROR_OK;
+}
+
 static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, const uint8_t *buffer)
 {
 	assert(offset % 4 == 0);
-
 	int res = ERROR_FAIL;
 	struct nrf51_info *chip = bank->driver_priv;
 	struct flash_sector *sector = nrf51_find_sector_by_address(bank, offset);
@@ -627,8 +647,8 @@ static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, const uint
 		goto error;
 
 	sector->is_erased = 0;
-	res = target_write_memory(bank->target, offset, 4,
-				  chip->code_page_size / 4, buffer);
+
+	res = nrf51_ll_flash_write(chip, offset, buffer, chip->code_page_size);
 	if (res != ERROR_OK)
 		goto set_read_only;
 
@@ -768,11 +788,7 @@ static int nrf51_uicr_flash_write(struct flash_bank *bank,
 
 	memcpy(&uicr[offset], buffer, count);
 
-	res = target_write_memory(bank->target,
-				   NRF51_UICR_BASE,
-				   4,
-				   NRF51_UICR_SIZE / 4,
-				   uicr);
+	res = nrf51_ll_flash_write(chip, NRF51_UICR_BASE, uicr, NRF51_UICR_SIZE);
 	if (res != ERROR_OK) {
 		nrf51_nvmc_read_only(chip);
 		return res;
