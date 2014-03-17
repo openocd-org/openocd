@@ -52,7 +52,7 @@ static char *armv7m_exception_strings[] = {
 };
 
 /* PSP is used in some thread modes */
-const int armv7m_psp_reg_map[17] = {
+const int armv7m_psp_reg_map[ARMV7M_NUM_CORE_REGS] = {
 	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
 	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
 	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
@@ -61,7 +61,7 @@ const int armv7m_psp_reg_map[17] = {
 };
 
 /* MSP is used in handler and some thread modes */
-const int armv7m_msp_reg_map[17] = {
+const int armv7m_msp_reg_map[ARMV7M_NUM_CORE_REGS] = {
 	ARMV7M_R0, ARMV7M_R1, ARMV7M_R2, ARMV7M_R3,
 	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
 	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
@@ -250,7 +250,7 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 	if (reg_class == REG_CLASS_ALL)
 		*reg_list_size = ARMV7M_NUM_REGS;
 	else
-		*reg_list_size = 17;
+		*reg_list_size = ARMV7M_NUM_CORE_REGS;
 
 	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 	if (*reg_list == NULL)

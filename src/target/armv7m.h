@@ -135,6 +135,8 @@ enum {
 	FPv4_SP,
 };
 
+#define ARMV7M_NUM_CORE_REGS (ARMV7M_xPSR + 1)
+
 #define ARMV7M_COMMON_MAGIC 0x2A452A45
 
 struct armv7m_common {
