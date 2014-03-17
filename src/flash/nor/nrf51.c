@@ -203,7 +203,7 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 
 static int nrf51_bank_is_probed(struct flash_bank *bank)
 {
-	struct nrf51_info *chip = (struct nrf51_info *)bank->driver_priv;
+	struct nrf51_info *chip = bank->driver_priv;
 
 	assert(chip != NULL);
 
@@ -218,7 +218,7 @@ static int nrf51_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf51
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	*chip = (struct nrf51_info *)bank->driver_priv;
+	*chip = bank->driver_priv;
 
 	int probed = nrf51_bank_is_probed(bank);
 	if (probed < 0)
@@ -357,7 +357,7 @@ static int nrf51_protect_check(struct flash_bank *bank)
 	if (bank->base == NRF51_UICR_BASE)
 		return ERROR_OK;
 
-	struct nrf51_info *chip = (struct nrf51_info *)bank->driver_priv;
+	struct nrf51_info *chip = bank->driver_priv;
 
 	assert(chip != NULL);
 
@@ -443,7 +443,7 @@ static int nrf51_probe(struct flash_bank *bank)
 {
 	uint32_t hwid;
 	int res;
-	struct nrf51_info *chip = (struct nrf51_info *)bank->driver_priv;
+	struct nrf51_info *chip = bank->driver_priv;
 
 	res = target_read_u32(chip->target, NRF51_FICR_CONFIGID, &hwid);
 	if (res != ERROR_OK) {
@@ -546,7 +546,7 @@ static int nrf51_auto_probe(struct flash_bank *bank)
 
 static struct flash_sector *nrf51_find_sector_by_address(struct flash_bank *bank, uint32_t address)
 {
-	struct nrf51_info *chip = (struct nrf51_info *)bank->driver_priv;
+	struct nrf51_info *chip = bank->driver_priv;
 
 	for (int i = 0; i < bank->num_sectors; i++)
 		if (bank->sectors[i].offset <= address &&
@@ -605,7 +605,7 @@ static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, const uint
 	assert(offset % 4 == 0);
 
 	int res = ERROR_FAIL;
-	struct nrf51_info *chip = (struct nrf51_info *)bank->driver_priv;
+	struct nrf51_info *chip = bank->driver_priv;
 	struct flash_sector *sector = nrf51_find_sector_by_address(bank, offset);
 
 	if (!sector)
