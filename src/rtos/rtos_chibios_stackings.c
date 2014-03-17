@@ -26,8 +26,9 @@
 #endif
 
 #include "rtos.h"
+#include "target/armv7m.h"
 
-static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets[] = {
+static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets[ARMV7M_NUM_CORE_REGS] = {
 	{ -1,   32 },		/* r0   */
 	{ -1,   32 },		/* r1   */
 	{ -1,   32 },		/* r2   */
@@ -44,22 +45,13 @@ static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets[] =
 	{ -2,   32 },		/* sp   */
 	{ -1,   32 },		/* lr   */
 	{ 0x20, 32 },		/* pc   */
-	{ -1,   96 },		/* FPA1 */
-	{ -1,   96 },		/* FPA2 */
-	{ -1,   96 },		/* FPA3 */
-	{ -1,   96 },		/* FPA4 */
-	{ -1,   96 },		/* FPA5 */
-	{ -1,   96 },		/* FPA6 */
-	{ -1,   96 },		/* FPA7 */
-	{ -1,   96 },		/* FPA8 */
-	{ -1,   32 },		/* FPS  */
 	{ -1,   32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_chibios_arm_v7m_stacking = {
 	0x24,					/* stack_registers_size */
-	-1,					/* stack_growth_direction */
-	26,					/* num_output_registers */
-	0,					/* stack_alignment */
+	-1,						/* stack_growth_direction */
+	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
+	0,						/* stack_alignment */
 	rtos_chibios_arm_v7m_stack_offsets	/* register_offsets */
 };
