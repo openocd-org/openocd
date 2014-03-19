@@ -216,24 +216,22 @@ static int armv7m_write_core_reg(struct target *target, struct reg *r,
 	int num, enum arm_mode mode, uint32_t value)
 {
 	int retval;
-	uint32_t reg_value;
 	struct arm_reg *armv7m_core_reg;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	assert(num < (int)armv7m->arm.core_cache->num_regs);
 
-	reg_value = buf_get_u32(armv7m->arm.core_cache->reg_list[num].value, 0, 32);
 	armv7m_core_reg = armv7m->arm.core_cache->reg_list[num].arch_info;
 	retval = armv7m->store_core_reg_u32(target,
-			armv7m_core_reg->num,
-			reg_value);
+					    armv7m_core_reg->num,
+					    value);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("JTAG failure");
 		armv7m->arm.core_cache->reg_list[num].dirty = armv7m->arm.core_cache->reg_list[num].valid;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num, reg_value);
+	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num, value);
 	armv7m->arm.core_cache->reg_list[num].valid = 1;
 	armv7m->arm.core_cache->reg_list[num].dirty = 0;
 
