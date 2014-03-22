@@ -387,12 +387,24 @@ AC_ARG_ENABLE([parport_giveio],
       [Enable use of giveio for parport (for CygWin only)]),
     [parport_use_giveio=$enableval], [parport_use_giveio=])
 
-AC_ARG_ENABLE([ft2232_libftdi],
-  AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver, opensource alternate of FTD2XX]),
+AC_ARG_ENABLE([ft2232_libftdi], [], [
+if test $enableval = yes; then
+  AC_MSG_ERROR([The ft2232 driver is deprecated, use --enable-ftdi to build its replacement, or force the old driver with --enable-legacy-ft2232_libftdi])
+fi
+])
+
+AC_ARG_ENABLE([ft2232_ftd2xx], [], [
+if test $enableval = yes; then
+  AC_MSG_ERROR([The ft2232 driver is deprecated, use --enable-ftdi to build its replacement, or force the old driver with --enable-legacy-ft2232_ftd2xx])
+fi
+])
+
+AC_ARG_ENABLE([legacy-ft2232_libftdi],
+  AS_HELP_STRING([--enable-legacy-ft2232_libftdi], [(DEPRECATED) Enable building support for FT2232 based devices using the libftdi library]),
   [build_ft2232_libftdi=$enableval], [build_ft2232_libftdi=no])
 
-AC_ARG_ENABLE([ft2232_ftd2xx],
-  AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]),
+AC_ARG_ENABLE([legacy-ft2232_ftd2xx],
+  AS_HELP_STRING([--enable-legacy-ft2232_ftd2xx], [(DEPRECATED) Enable building support for FT2232 based devices using the D2XX library from ftdichip.com]),
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
 
 AC_ARG_ENABLE([jtag_vpi],
@@ -1320,3 +1332,12 @@ m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS, HIDAPI_ADAPTE
 	esac
 ])
 echo
+
+if test $build_ft2232_libftdi = yes -o $build_ft2232_ftd2xx = yes; then
+	if test $enable_ftdi = no; then
+		AC_MSG_WARN([Building the deprecated 'ft2232' adapter driver but not its replacement!])
+		AC_MSG_WARN([Please consider using --enable-ftdi instead.])
+	else
+		AC_MSG_WARN([Building the deprecated 'ft2232' adapter driver.])
+	fi
+fi

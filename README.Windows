@@ -32,3 +32,18 @@ WinUSB to a device is to use the latest Zadig installer:
 For the old drivers that use libusb-0.1 API you might need to link
 against libusb-win32 headers and install the corresponding driver with
 Zadig.
+
+If you need to use the same adapter with other applications that may
+require another driver, a solution for Windows Vista and above is to
+activate the IgnoreHWSerNum registry setting for the USB device.
+
+That setting forces Windows to associate the driver per port instead of
+per serial number, the same behaviour as when the device does not contain
+a serial number. So different drivers can be installed for the adapter on
+different ports and you just need to plug the adapter into the correct
+port depending on which application to use.
+
+For more information, see:
+
+  http://msdn.microsoft.com/en-us/library/windows/hardware/jj649944(v=vs.85).aspx
+  http://www.ftdichip.com/Support/Knowledgebase/index.html?ignorehardwareserialnumber.htm
