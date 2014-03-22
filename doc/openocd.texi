@@ -2109,6 +2109,17 @@ For an example of this scheme see LPC2000 target config files.
 The @code{init_boards} procedure is a similar concept concerning board config files
 (@xref{theinitboardprocedure,,The init_board procedure}.)
 
+@anchor{theinittargeteventsprocedure}
+@subsection The init_target_events procedure
+@cindex init_target_events procedure
+
+A special procedure called @code{init_target_events} is run just after
+@code{init_targets} (@xref{theinittargetsprocedure,,The init_targets
+procedure}.) and before @code{init_board}
+(@xref{theinitboardprocedure,,The init_board procedure}.) It is used
+to set up default target events for the targets that do not have those
+events already assigned.
+
 @subsection ARM Core Specific Hacks
 
 If the chip has a DCC, enable it. If the chip is an ARM9 with some
@@ -4577,13 +4588,14 @@ depending on whether the breakpoint is in RAM or read only memory.
 @item @b{gdb-end}
 @* When the target has halted and GDB is not doing anything (see early halt)
 @item @b{gdb-flash-erase-start}
-@* Before the GDB flash process tries to erase the flash
+@* Before the GDB flash process tries to erase the flash (default is
+@code{reset init})
 @item @b{gdb-flash-erase-end}
 @* After the GDB flash process has finished erasing the flash
 @item @b{gdb-flash-write-start}
 @* Before GDB writes to the flash
 @item @b{gdb-flash-write-end}
-@* After GDB writes to the flash
+@* After GDB writes to the flash (default is @code{reset halt})
 @item @b{gdb-start}
 @* Before the target steps, gdb is trying to start/resume the target
 @item @b{halted}

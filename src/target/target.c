@@ -1274,6 +1274,10 @@ COMMAND_HANDLER(handle_target_init_command)
 	if (ERROR_OK != retval)
 		return retval;
 
+	retval = command_run_line(CMD_CTX, "init_target_events");
+	if (ERROR_OK != retval)
+		return retval;
+
 	retval = command_run_line(CMD_CTX, "init_board");
 	if (ERROR_OK != retval)
 		return retval;

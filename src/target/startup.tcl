@@ -164,6 +164,21 @@ proc armv4_5 params {
 proc init_targets {} {
 }
 
+proc set_default_target_event {t e s} {
+	if {[$t cget -event $e] == ""} {
+		$t configure -event $e $s
+	}
+}
+
+proc init_target_events {} {
+	set targets [target names]
+
+	foreach t $targets {
+		set_default_target_event $t gdb-flash-erase-start "reset init"
+		set_default_target_event $t gdb-flash-write-end "reset halt"
+	}
+}
+
 # Additionally board config scripts can define a procedure init_board that will be executed after init and init_targets
 proc init_board {} {
 }
