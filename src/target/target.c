@@ -3620,13 +3620,14 @@ COMMAND_HANDLER(handle_profile_command)
 	uint32_t offset;
 	uint32_t num_of_sampels;
 	int retval = ERROR_OK;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
+
 	uint32_t *samples = malloc(sizeof(uint32_t) * MAX_PROFILE_SAMPLE_NUM);
 	if (samples == NULL) {
 		LOG_ERROR("No memory to store samples.");
 		return ERROR_FAIL;
 	}
-
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
 
 	/**
 	 * Some cores let us sample the PC without the
