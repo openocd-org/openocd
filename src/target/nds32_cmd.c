@@ -704,18 +704,25 @@ static int jim_nds32_bulk_write(Jim_Interp *interp, int argc, Jim_Obj * const *a
 		return e;
 
 	uint32_t *data = malloc(count * sizeof(uint32_t));
+	if (data == NULL)
+		return JIM_ERR;
+
 	jim_wide i;
 	for (i = 0; i < count; i++) {
 		jim_wide tmp;
 		e = Jim_GetOpt_Wide(&goi, &tmp);
-		if (e != JIM_OK)
+		if (e != JIM_OK) {
+			free(data);
 			return e;
+		}
 		data[i] = (uint32_t)tmp;
 	}
 
 	/* all args must be consumed */
-	if (goi.argc != 0)
+	if (goi.argc != 0) {
+		free(data);
 		return JIM_ERR;
+	}
 
 	struct target *target = Jim_CmdPrivData(goi.interp);
 	int result;

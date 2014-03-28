@@ -1821,8 +1821,10 @@ static int xscale_read_memory(struct target *target, uint32_t address,
 	/* receive data from target (count times 32-bit words in host endianness) */
 	buf32 = malloc(4 * count);
 	retval = xscale_receive(target, buf32, count);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		free(buf32);
 		return retval;
+	}
 
 	/* extract data from host-endian buffer into byte stream */
 	for (i = 0; i < count; i++) {

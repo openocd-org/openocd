@@ -409,8 +409,10 @@ int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t 
 	}
 
 	retval = dap_setup_accessport_tar(dap, address);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		free(read_buf);
 		return retval;
+	}
 
 	/* Queue up all reads. Each read will store the entire DRW word in the read buffer. How many
 	 * useful bytes it contains, and their location in the word, depends on the type of transfer
