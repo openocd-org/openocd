@@ -206,7 +206,7 @@ COMMAND_HELPER(transport_list_parse, char ***vector)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* our return vector must be NULL terminated */
-	argv = (char **) calloc(n + 1, sizeof(char *));
+	argv = calloc(n + 1, sizeof(char *));
 	if (argv == NULL)
 		return ERROR_FAIL;
 

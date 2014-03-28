@@ -254,7 +254,7 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 
 	} else {
 		struct threads *temp = linux_os->thread_list;
-		*hex_reg_list = (char *)calloc(1, 500 * sizeof(char));
+		*hex_reg_list = calloc(1, 500 * sizeof(char));
 		hex_string = *hex_reg_list;
 
 		for (i = 0; i < 16; i++)
@@ -1136,7 +1136,7 @@ int linux_gdb_thread_packet(struct target *target,
 	if (retval != ERROR_OK)
 		return ERROR_TARGET_FAILURE;
 
-	char *out_str = (char *)calloc(1, 350 * sizeof(int64_t));
+	char *out_str = calloc(1, 350 * sizeof(int64_t));
 	char *tmp_str = out_str;
 	tmp_str += sprintf(tmp_str, "m");
 	struct threads *temp = linux_os->thread_list;
@@ -1172,7 +1172,7 @@ int linux_gdb_thread_update(struct target *target,
 
 	if (found == 1) {
 		/*LOG_INFO("INTO GDB THREAD UPDATE FOUNDING START TASK");*/
-		char *out_strr = (char *)calloc(1, 350 * sizeof(int64_t));
+		char *out_strr = calloc(1, 350 * sizeof(int64_t));
 		char *tmp_strr = out_strr;
 		tmp_strr += sprintf(tmp_strr, "m");
 		/*LOG_INFO("CHAR MALLOC & M DONE");*/
@@ -1216,7 +1216,7 @@ int linux_thread_extra_info(struct target *target,
 			char *pid_current = "*PID: ";
 			char *name = "NAME: ";
 			int str_size = strlen(pid) + strlen(name);
-			char *tmp_str = (char *)calloc(1, str_size + 50);
+			char *tmp_str = calloc(1, str_size + 50);
 			char *tmp_str_ptr = tmp_str;
 
 			/*  discriminate current task */
@@ -1231,7 +1231,7 @@ int linux_thread_extra_info(struct target *target,
 			tmp_str_ptr += sprintf(tmp_str_ptr, "%s", " | ");
 			sprintf(tmp_str_ptr, "%s", name);
 			sprintf(tmp_str_ptr, "%s", temp->name);
-			char *hex_str = (char *)calloc(1, strlen(tmp_str) * 2 + 1);
+			char *hex_str = calloc(1, strlen(tmp_str) * 2 + 1);
 			int pkt_len = hexify(hex_str, tmp_str, 0, strlen(tmp_str) * 2 + 1);
 			gdb_put_packet(connection, hex_str, pkt_len);
 			free(hex_str);

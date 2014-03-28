@@ -139,7 +139,7 @@ RESULT versaloon_add_want_pos(uint16_t offset, uint16_t size, uint8_t *buff)
 {
 	struct versaloon_want_pos_t *new_pos = NULL;
 
-	new_pos = (struct versaloon_want_pos_t *)malloc(sizeof(*new_pos));
+	new_pos = malloc(sizeof(*new_pos));
 	if (NULL == new_pos) {
 		LOG_ERROR(ERRMSG_NOT_ENOUGH_MEMORY);
 		return ERRCODE_NOT_ENOUGH_MEMORY;

@@ -289,7 +289,7 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 			if (detail->extra_info_str != NULL)
 				str_size += strlen(detail->extra_info_str);
 
-			char *tmp_str = (char *) malloc(str_size + 7);
+			char *tmp_str = malloc(str_size + 7);
 			char *tmp_str_ptr = tmp_str;
 
 			if (detail->display_str != NULL)
@@ -309,7 +309,7 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 			assert(strlen(tmp_str) ==
 				(size_t) (tmp_str_ptr - tmp_str));
 
-			char *hex_str = (char *) malloc(strlen(tmp_str) * 2 + 1);
+			char *hex_str = malloc(strlen(tmp_str) * 2 + 1);
 			int pkt_len = hexify(hex_str, tmp_str, 0, strlen(tmp_str) * 2 + 1);
 
 			gdb_put_packet(connection, hex_str, pkt_len);
@@ -334,7 +334,7 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 				gdb_put_packet(connection, "l", 1);
 			} else {
 				/*thread id are 16 char +1 for ',' */
-				char *out_str = (char *) malloc(17 * target->rtos->thread_count + 1);
+				char *out_str = malloc(17 * target->rtos->thread_count + 1);
 				char *tmp_str = out_str;
 				for (i = 0; i < target->rtos->thread_count; i++) {
 					tmp_str += sprintf(tmp_str, "%c%016" PRIx64, i == 0 ? 'm' : ',',
@@ -437,7 +437,7 @@ int rtos_generic_stack_read(struct target *target,
 		return -5;
 	}
 	/* Read the stack */
-	uint8_t *stack_data = (uint8_t *) malloc(stacking->stack_registers_size);
+	uint8_t *stack_data = malloc(stacking->stack_registers_size);
 	uint32_t address = stack_ptr;
 
 	if (stacking->stack_growth_direction == 1)
@@ -456,7 +456,7 @@ int rtos_generic_stack_read(struct target *target,
 #endif
 	for (i = 0; i < stacking->num_output_registers; i++)
 		list_size += stacking->register_offsets[i].width_bits/8;
-	*hex_reg_list = (char *)malloc(list_size*2 + 1);
+	*hex_reg_list = malloc(list_size*2 + 1);
 	tmp_str_ptr = *hex_reg_list;
 	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
 		stacking->stack_registers_size;

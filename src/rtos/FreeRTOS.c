@@ -192,7 +192,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 		char tmp_str[] = "Current Execution";
 		thread_list_size++;
 		tasks_found++;
-		rtos->thread_details = (struct thread_detail *) malloc(
+		rtos->thread_details = malloc(
 				sizeof(struct thread_detail) * thread_list_size);
 		if (!rtos->thread_details) {
 			LOG_ERROR("Error allocating memory for %d threads", thread_list_size);
@@ -202,7 +202,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 		rtos->thread_details->exists = true;
 		rtos->thread_details->display_str = NULL;
 		rtos->thread_details->extra_info_str = NULL;
-		rtos->thread_details->thread_name_str = (char *) malloc(sizeof(tmp_str));
+		rtos->thread_details->thread_name_str = malloc(sizeof(tmp_str));
 		strcpy(rtos->thread_details->thread_name_str, tmp_str);
 
 		if (thread_list_size == 1) {
@@ -211,7 +211,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 		}
 	} else {
 		/* create space for new thread details */
-		rtos->thread_details = (struct thread_detail *) malloc(
+		rtos->thread_details = malloc(
 				sizeof(struct thread_detail) * thread_list_size);
 		if (!rtos->thread_details) {
 			LOG_ERROR("Error allocating memory for %d threads", thread_list_size);
@@ -234,7 +234,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 	}
 
 	symbol_address_t *list_of_lists =
-		(symbol_address_t *)malloc(sizeof(symbol_address_t) *
+		malloc(sizeof(symbol_address_t) *
 			(max_used_priority+1 + 5));
 	if (!list_of_lists) {
 		LOG_ERROR("Error allocating memory for %" PRId64 " priorities", max_used_priority);
@@ -320,14 +320,14 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 				strcpy(tmp_str, "No Name");
 
 			rtos->thread_details[tasks_found].thread_name_str =
-				(char *)malloc(strlen(tmp_str)+1);
+				malloc(strlen(tmp_str)+1);
 			strcpy(rtos->thread_details[tasks_found].thread_name_str, tmp_str);
 			rtos->thread_details[tasks_found].display_str = NULL;
 			rtos->thread_details[tasks_found].exists = true;
 
 			if (rtos->thread_details[tasks_found].threadid == rtos->current_thread) {
 				char running_str[] = "Running";
-				rtos->thread_details[tasks_found].extra_info_str = (char *) malloc(
+				rtos->thread_details[tasks_found].extra_info_str = malloc(
 						sizeof(running_str));
 				strcpy(rtos->thread_details[tasks_found].extra_info_str,
 					running_str);
@@ -390,7 +390,7 @@ static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, ch
 static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
-	*symbol_list = (symbol_table_elem_t *) malloc(
+	*symbol_list = malloc(
 			sizeof(symbol_table_elem_t) * ARRAY_SIZE(FreeRTOS_symbol_list));
 
 	for (i = 0; i < ARRAY_SIZE(FreeRTOS_symbol_list); i++)
@@ -439,7 +439,7 @@ static int FreeRTOS_get_thread_ascii_info(struct rtos *rtos, threadid_t thread_i
 	if (tmp_str[0] == '\x00')
 		strcpy(tmp_str, "No Name");
 
-	*info = (char *)malloc(strlen(tmp_str)+1);
+	*info = malloc(strlen(tmp_str)+1);
 	strcpy(*info, tmp_str);
 	return 0;
 }

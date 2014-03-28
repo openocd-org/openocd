@@ -123,7 +123,7 @@ size_t strnlen(const char *s, size_t maxlen)
 char *strndup(const char *s, size_t n)
 {
 	size_t len = strnlen(s, n);
-	char *new = (char *) malloc(len + 1);
+	char *new = malloc(len + 1);
 
 	if (new == NULL)
 		return NULL;

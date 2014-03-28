@@ -383,19 +383,19 @@ COMMAND_HANDLER(handle_svf_command)
 	/* in case current command cannot be committed, and next command is a bit scan command */
 	/* here is 32K bits for this big scan command, it should be enough */
 	/* buffer will be reallocated if buffer size is not enough */
-	svf_tdi_buffer = (uint8_t *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
+	svf_tdi_buffer = malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
 	if (NULL == svf_tdi_buffer) {
 		LOG_ERROR("not enough memory");
 		ret = ERROR_FAIL;
 		goto free_all;
 	}
-	svf_tdo_buffer = (uint8_t *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
+	svf_tdo_buffer = malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
 	if (NULL == svf_tdo_buffer) {
 		LOG_ERROR("not enough memory");
 		ret = ERROR_FAIL;
 		goto free_all;
 	}
-	svf_mask_buffer = (uint8_t *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
+	svf_mask_buffer = malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
 	if (NULL == svf_mask_buffer) {
 		LOG_ERROR("not enough memory");
 		ret = ERROR_FAIL;
@@ -561,7 +561,7 @@ static int svf_getline(char **lineptr, size_t *n, FILE *stream)
 
 	if (*lineptr == NULL) {
 		*n = MIN_CHUNK;
-		*lineptr = (char *)malloc(*n);
+		*lineptr = malloc(*n);
 		if (!*lineptr)
 			return -1;
 	}
@@ -733,7 +733,7 @@ static int svf_adjust_array_length(uint8_t **arr, int orig_bit_len, int new_bit_
 			free(*arr);
 			*arr = NULL;
 		}
-		*arr = (uint8_t *)malloc(new_byte_len);
+		*arr = malloc(new_byte_len);
 		if (NULL == *arr) {
 			LOG_ERROR("not enough memory");
 			return ERROR_FAIL;
@@ -1086,7 +1086,7 @@ XXR_common:
 					uint8_t *buffer_tmp;
 
 					/* reallocate buffer */
-					buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
+					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
 					if (NULL == buffer_tmp) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
@@ -1096,7 +1096,7 @@ XXR_common:
 					free(svf_tdi_buffer);
 					svf_tdi_buffer = buffer_tmp;
 
-					buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
+					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
 					if (NULL == buffer_tmp) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
@@ -1106,7 +1106,7 @@ XXR_common:
 					free(svf_tdo_buffer);
 					svf_tdo_buffer = buffer_tmp;
 
-					buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
+					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
 					if (NULL == buffer_tmp) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
@@ -1213,7 +1213,7 @@ XXR_common:
 					uint8_t *buffer_tmp;
 
 					/* reallocate buffer */
-					buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
+					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
 					if (NULL == buffer_tmp) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
@@ -1223,7 +1223,7 @@ XXR_common:
 					free(svf_tdi_buffer);
 					svf_tdi_buffer = buffer_tmp;
 
-					buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
+					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
 					if (NULL == buffer_tmp) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
@@ -1233,7 +1233,7 @@ XXR_common:
 					free(svf_tdo_buffer);
 					svf_tdo_buffer = buffer_tmp;
 
-					buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
+					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
 					if (NULL == buffer_tmp) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
@@ -1456,7 +1456,7 @@ XXR_common:
 			}
 			if (num_of_argu > 2) {
 				/* STATE pathstate1 ... stable_state */
-				path = (tap_state_t *)malloc((num_of_argu - 1) * sizeof(tap_state_t));
+				path = malloc((num_of_argu - 1) * sizeof(tap_state_t));
 				if (NULL == path) {
 					LOG_ERROR("not enough memory");
 					return ERROR_FAIL;

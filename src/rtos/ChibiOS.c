@@ -347,17 +347,17 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		const char tmp_thread_name[] = "Current Execution";
 		const char tmp_thread_extra_info[] = "No RTOS thread";
 
-		rtos->thread_details = (struct thread_detail *) malloc(
+		rtos->thread_details = malloc(
 				sizeof(struct thread_detail));
 		rtos->thread_details->threadid = 1;
 		rtos->thread_details->exists = true;
 		rtos->thread_details->display_str = NULL;
 
-		rtos->thread_details->extra_info_str = (char *) malloc(
+		rtos->thread_details->extra_info_str = malloc(
 				sizeof(tmp_thread_extra_info));
 		strcpy(rtos->thread_details->extra_info_str, tmp_thread_extra_info);
 
-		rtos->thread_details->thread_name_str = (char *) malloc(
+		rtos->thread_details->thread_name_str = malloc(
 				sizeof(tmp_thread_name));
 		strcpy(rtos->thread_details->thread_name_str, tmp_thread_name);
 
@@ -367,7 +367,7 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 	}
 
 	/* create space for new thread details */
-	rtos->thread_details = (struct thread_detail *) malloc(
+	rtos->thread_details = malloc(
 			sizeof(struct thread_detail) * tasks_found);
 	if (!rtos->thread_details) {
 		LOG_ERROR("Could not allocate space for thread details");
@@ -416,7 +416,7 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		if (tmp_str[0] == '\x00')
 			strcpy(tmp_str, "No Name");
 
-		curr_thrd_details->thread_name_str = (char *)malloc(
+		curr_thrd_details->thread_name_str = malloc(
 				strlen(tmp_str) + 1);
 		strcpy(curr_thrd_details->thread_name_str, tmp_str);
 
@@ -437,7 +437,7 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		else
 			state_desc = "Unknown state";
 
-		curr_thrd_details->extra_info_str = (char *)malloc(strlen(
+		curr_thrd_details->extra_info_str = malloc(strlen(
 					state_desc)+1);
 		strcpy(curr_thrd_details->extra_info_str, state_desc);
 
@@ -498,7 +498,7 @@ static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, cha
 static int ChibiOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
-	*symbol_list = (symbol_table_elem_t *) malloc(
+	*symbol_list = malloc(
 			sizeof(symbol_table_elem_t) * ARRAY_SIZE(ChibiOS_symbol_list));
 
 	for (i = 0; i < ARRAY_SIZE(ChibiOS_symbol_list); i++)

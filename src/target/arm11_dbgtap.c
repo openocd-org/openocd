@@ -591,7 +591,7 @@ int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *tap,
 	unsigned readiesNum = count;
 	unsigned bytes = sizeof(*Readies)*readiesNum;
 
-	Readies = (uint8_t *) malloc(bytes);
+	Readies = malloc(bytes);
 	if (Readies == NULL) {
 		LOG_ERROR("Out of memory allocating %u bytes", bytes);
 		return ERROR_FAIL;

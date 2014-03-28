@@ -2330,14 +2330,14 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 
 	switch (syscall_id) {
 		case NDS32_SYSCALL_EXIT:
-			fileio_info->identifier = (char *)malloc(5);
+			fileio_info->identifier = malloc(5);
 			sprintf(fileio_info->identifier, "exit");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			break;
 		case NDS32_SYSCALL_OPEN:
 			{
 				uint8_t filename[256];
-				fileio_info->identifier = (char *)malloc(5);
+				fileio_info->identifier = malloc(5);
 				sprintf(fileio_info->identifier, "open");
 				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 				/* reserve fileio_info->param_2 for length of path */
@@ -2350,26 +2350,26 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 			}
 			break;
 		case NDS32_SYSCALL_CLOSE:
-			fileio_info->identifier = (char *)malloc(6);
+			fileio_info->identifier = malloc(6);
 			sprintf(fileio_info->identifier, "close");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			break;
 		case NDS32_SYSCALL_READ:
-			fileio_info->identifier = (char *)malloc(5);
+			fileio_info->identifier = malloc(5);
 			sprintf(fileio_info->identifier, "read");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
 			nds32_get_mapped_reg(nds32, R2, &(fileio_info->param_3));
 			break;
 		case NDS32_SYSCALL_WRITE:
-			fileio_info->identifier = (char *)malloc(6);
+			fileio_info->identifier = malloc(6);
 			sprintf(fileio_info->identifier, "write");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
 			nds32_get_mapped_reg(nds32, R2, &(fileio_info->param_3));
 			break;
 		case NDS32_SYSCALL_LSEEK:
-			fileio_info->identifier = (char *)malloc(6);
+			fileio_info->identifier = malloc(6);
 			sprintf(fileio_info->identifier, "lseek");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
@@ -2378,7 +2378,7 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 		case NDS32_SYSCALL_UNLINK:
 			{
 				uint8_t filename[256];
-				fileio_info->identifier = (char *)malloc(7);
+				fileio_info->identifier = malloc(7);
 				sprintf(fileio_info->identifier, "unlink");
 				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 				/* reserve fileio_info->param_2 for length of path */
@@ -2391,7 +2391,7 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 		case NDS32_SYSCALL_RENAME:
 			{
 				uint8_t filename[256];
-				fileio_info->identifier = (char *)malloc(7);
+				fileio_info->identifier = malloc(7);
 				sprintf(fileio_info->identifier, "rename");
 				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 				/* reserve fileio_info->param_2 for length of old path */
@@ -2408,7 +2408,7 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 			}
 			break;
 		case NDS32_SYSCALL_FSTAT:
-			fileio_info->identifier = (char *)malloc(6);
+			fileio_info->identifier = malloc(6);
 			sprintf(fileio_info->identifier, "fstat");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
@@ -2416,7 +2416,7 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 		case NDS32_SYSCALL_STAT:
 			{
 				uint8_t filename[256];
-				fileio_info->identifier = (char *)malloc(5);
+				fileio_info->identifier = malloc(5);
 				sprintf(fileio_info->identifier, "stat");
 				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 				/* reserve fileio_info->param_2 for length of old path */
@@ -2428,20 +2428,20 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 			}
 			break;
 		case NDS32_SYSCALL_GETTIMEOFDAY:
-			fileio_info->identifier = (char *)malloc(13);
+			fileio_info->identifier = malloc(13);
 			sprintf(fileio_info->identifier, "gettimeofday");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			nds32_get_mapped_reg(nds32, R1, &(fileio_info->param_2));
 			break;
 		case NDS32_SYSCALL_ISATTY:
-			fileio_info->identifier = (char *)malloc(7);
+			fileio_info->identifier = malloc(7);
 			sprintf(fileio_info->identifier, "isatty");
 			nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 			break;
 		case NDS32_SYSCALL_SYSTEM:
 			{
 				uint8_t command[256];
-				fileio_info->identifier = (char *)malloc(7);
+				fileio_info->identifier = malloc(7);
 				sprintf(fileio_info->identifier, "system");
 				nds32_get_mapped_reg(nds32, R0, &(fileio_info->param_1));
 				/* reserve fileio_info->param_2 for length of old path */
@@ -2452,12 +2452,12 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 			}
 			break;
 		case NDS32_SYSCALL_ERRNO:
-			fileio_info->identifier = (char *)malloc(6);
+			fileio_info->identifier = malloc(6);
 			sprintf(fileio_info->identifier, "errno");
 			nds32_set_mapped_reg(nds32, R0, nds32->virtual_hosting_errno);
 			break;
 		default:
-			fileio_info->identifier = (char *)malloc(8);
+			fileio_info->identifier = malloc(8);
 			sprintf(fileio_info->identifier, "unknown");
 			break;
 	}

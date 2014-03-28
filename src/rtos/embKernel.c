@@ -169,7 +169,7 @@ static int embKernel_get_tasks_details(struct rtos *rtos, int64_t iterable, cons
 			(uint8_t *) &priority);
 	if (retval != ERROR_OK)
 		return retval;
-	details->extra_info_str = (char *) malloc(EMBKERNEL_MAX_THREAD_NAME_STR_SIZE);
+	details->extra_info_str = malloc(EMBKERNEL_MAX_THREAD_NAME_STR_SIZE);
 	if (task == rtos->current_thread) {
 		snprintf(details->extra_info_str, EMBKERNEL_MAX_THREAD_NAME_STR_SIZE, "Pri=%u, Running",
 				(unsigned int) priority);
@@ -233,7 +233,7 @@ static int embKernel_update_threads(struct rtos *rtos)
 	}
 
 	/* create space for new thread details */
-	rtos->thread_details = (struct thread_detail *) malloc(sizeof(struct thread_detail) * thread_list_size);
+	rtos->thread_details = malloc(sizeof(struct thread_detail) * thread_list_size);
 	if (!rtos->thread_details) {
 		LOG_ERROR("Error allocating memory for %d threads", thread_list_size);
 		return ERROR_FAIL;
@@ -335,7 +335,7 @@ static int embKernel_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, c
 static int embKernel_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
-	*symbol_list = (symbol_table_elem_t *) malloc(sizeof(symbol_table_elem_t) * ARRAY_SIZE(embKernel_symbol_list));
+	*symbol_list = malloc(sizeof(symbol_table_elem_t) * ARRAY_SIZE(embKernel_symbol_list));
 
 	for (i = 0; i < ARRAY_SIZE(embKernel_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = embKernel_symbol_list[i];

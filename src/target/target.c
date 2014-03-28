@@ -3190,7 +3190,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 				if (diffs == 0)
 					LOG_ERROR("checksum mismatch - attempting binary compare");
 
-				data = (uint8_t *)malloc(buf_cnt);
+				data = malloc(buf_cnt);
 
 				/* Can we use 32bit word accesses? */
 				int size = 1;
@@ -5102,7 +5102,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->target_number = new_target_number();
 
 	/* allocate memory for each unique target type */
-	target->type = (struct target_type *)calloc(1, sizeof(struct target_type));
+	target->type = calloc(1, sizeof(struct target_type));
 
 	memcpy(target->type, target_types[x], sizeof(struct target_type));
 
@@ -5488,7 +5488,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	image_size = 0x0;
 	retval = ERROR_OK;
 	fastload_num = image.num_sections;
-	fastload = (struct FastLoad *)malloc(sizeof(struct FastLoad)*image.num_sections);
+	fastload = malloc(sizeof(struct FastLoad)*image.num_sections);
 	if (fastload == NULL) {
 		command_print(CMD_CTX, "out of memory");
 		image_close(&image);
