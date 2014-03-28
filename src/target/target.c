@@ -3618,7 +3618,7 @@ COMMAND_HANDLER(handle_profile_command)
 
 	const uint32_t MAX_PROFILE_SAMPLE_NUM = 10000;
 	uint32_t offset;
-	uint32_t num_of_sampels;
+	uint32_t num_of_samples;
 	int retval = ERROR_OK;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
@@ -3635,13 +3635,13 @@ COMMAND_HANDLER(handle_profile_command)
 	 * Provide a way to use that more efficient mechanism.
 	 */
 	retval = target_profiling(target, samples, MAX_PROFILE_SAMPLE_NUM,
-				&num_of_sampels, offset);
+				&num_of_samples, offset);
 	if (retval != ERROR_OK) {
 		free(samples);
 		return retval;
 	}
 
-	assert(num_of_sampels <= MAX_PROFILE_SAMPLE_NUM);
+	assert(num_of_samples <= MAX_PROFILE_SAMPLE_NUM);
 
 	retval = target_poll(target);
 	if (retval != ERROR_OK) {
@@ -3671,7 +3671,7 @@ COMMAND_HANDLER(handle_profile_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], end_address);
 	}
 
-	write_gmon(samples, num_of_sampels, CMD_ARGV[1],
+	write_gmon(samples, num_of_samples, CMD_ARGV[1],
 			with_range, start_address, end_address);
 	command_print(CMD_CTX, "Wrote %s", CMD_ARGV[1]);
 
