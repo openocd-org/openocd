@@ -5195,7 +5195,9 @@ which must appear in the following order:
 @option{lpc1700} (LPC175x and LPC176x)
 @option{lpc4300} - available also as @option{lpc1800} alias (LPC18x[2357] and
 LPC43x[2357])
-or @option{lpc1100} (LPC11(x)xx and LPC13xx)
+@option{lpc1100} (LPC11(x)xx and LPC13xx)
+or @option{auto} - automatically detects flash variant and size for LPC11(x)00,
+LPC1300 and LPC1700
 @item @var{clock_kHz} ... the frequency, in kiloHertz,
 at which the core is running
 @item @option{calc_checksum} ... optional (but you probably want to provide this!),

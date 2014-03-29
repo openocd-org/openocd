@@ -5,6 +5,9 @@
  *   LPC1700 support Copyright (C) 2009 by Audrius Urmanavicius            *
  *   didele.deze@gmail.com                                                 *
  *                                                                         *
+ *   LPC1100 variant and auto-probing support Copyright (C) 2014           *
+ *   by Cosmin Gorgovan cosmin [at] linux-geek [dot] org                   *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -75,7 +78,137 @@
  * - 11Uxx (tested with LPC11U34)
  * - 131x
  * - 134x
+ *
+ *
+ * The auto variant auto-detects parts from the following series:
+ * - 11xx
+ * - 11Axx
+ * - 11Cxx
+ * - 11Dxx
+ * - 11Exx
+ * - 11Uxx
+ * - 131x
+ * - 134x
+ * - 175x
+ * - 176x
  */
+
+/* Part IDs for autodetection */
+/* A script which can automatically extract part ids from user manuals is available here:
+ * https://github.com/lgeek/lpc_part_ids
+ */
+#define LPC1110_1      0x0A07102B
+#define LPC1110_2      0x1A07102B
+#define LPC1111_002_1  0x0A16D02B
+#define LPC1111_002_2  0x1A16D02B
+#define LPC1111_101_1  0x041E502B
+#define LPC1111_101_2  0x2516D02B
+#define LPC1111_103_1  0x00010013
+#define LPC1111_201_1  0x0416502B
+#define LPC1111_201_2  0x2516902B
+#define LPC1111_203_1  0x00010012
+#define LPC1112_101_1  0x042D502B
+#define LPC1112_101_2  0x2524D02B
+#define LPC1112_102_1  0x0A24902B
+#define LPC1112_102_2  0x1A24902B
+#define LPC1112_103_1  0x00020023
+#define LPC1112_201_1  0x0425502B
+#define LPC1112_201_2  0x2524902B
+#define LPC1112_203_1  0x00020022
+#define LPC1113_201_1  0x0434502B
+#define LPC1113_201_2  0x2532902B
+#define LPC1113_203_1  0x00030032
+#define LPC1113_301_1  0x0434102B
+#define LPC1113_301_2  0x2532102B
+#define LPC1113_303_1  0x00030030
+#define LPC1114_102_1  0x0A40902B
+#define LPC1114_102_2  0x1A40902B
+#define LPC1114_201_1  0x0444502B
+#define LPC1114_201_2  0x2540902B
+#define LPC1114_203_1  0x00040042
+#define LPC1114_301_1  0x0444102B
+#define LPC1114_301_2  0x2540102B
+#define LPC1114_303_1  0x00040040
+#define LPC1114_323_1  0x00040060
+#define LPC1114_333_1  0x00040070
+#define LPC1115_303_1  0x00050080
+
+#define LPC11A02_1     0x4D4C802B
+#define LPC11A04_1     0x4D80002B
+#define LPC11A11_001_1 0x455EC02B
+#define LPC11A12_101_1 0x4574802B
+#define LPC11A13_201_1 0x458A402B
+#define LPC11A14_301_1 0x35A0002B
+#define LPC11A14_301_2 0x45A0002B
+
+#define LPC11C12_301_1 0x1421102B
+#define LPC11C14_301_1 0x1440102B
+#define LPC11C22_301_1 0x1431102B
+#define LPC11C24_301_1 0x1430102B
+
+#define LPC11E11_101   0x293E902B
+#define LPC11E12_201   0x2954502B
+#define LPC11E13_301   0x296A102B
+#define LPC11E14_401   0x2980102B
+#define LPC11E36_501   0x00009C41
+#define LPC11E37_401   0x00007C45
+#define LPC11E37_501   0x00007C41
+
+#define LPC11U12_201_1 0x095C802B
+#define LPC11U12_201_2 0x295C802B
+#define LPC11U13_201_1 0x097A802B
+#define LPC11U13_201_2 0x297A802B
+#define LPC11U14_201_1 0x0998802B
+#define LPC11U14_201_2 0x2998802B
+#define LPC11U23_301   0x2972402B
+#define LPC11U24_301   0x2988402B
+#define LPC11U24_401   0x2980002B
+#define LPC11U34_311   0x0003D440
+#define LPC11U34_421   0x0001CC40
+#define LPC11U35_401   0x0001BC40
+#define LPC11U35_501   0x0000BC40
+#define LPC11U36_401   0x00019C40
+#define LPC11U37_401   0x00017C40
+#define LPC11U37H_401  0x00007C44
+#define LPC11U37_501   0x00007C40
+
+#define LPC1311        0x2C42502B
+#define LPC1311_1      0x1816902B
+#define LPC1313        0x2C40102B
+#define LPC1313_1      0x1830102B
+#define LPC1315        0x3A010523
+#define LPC1316        0x1A018524
+#define LPC1317        0x1A020525
+#define LPC1342        0x3D01402B
+#define LPC1343        0x3D00002B
+#define LPC1345        0x28010541
+#define LPC1346        0x08018542
+#define LPC1347        0x08020543
+
+#define LPC1751_1      0x25001110
+#define LPC1751_2      0x25001118
+#define LPC1752        0x25001121
+#define LPC1754        0x25011722
+#define LPC1756        0x25011723
+#define LPC1758        0x25013F37
+#define LPC1759        0x25113737
+#define LPC1763        0x26012033
+#define LPC1764        0x26011922
+#define LPC1765        0x26013733
+#define LPC1766        0x26013F33
+#define LPC1767        0x26012837
+#define LPC1768        0x26013F37
+#define LPC1769        0x26113F37
+#define LPC1774        0x27011132
+#define LPC1776        0x27191F43
+#define LPC1777        0x27193747
+#define LPC1778        0x27193F47
+#define LPC1785        0x281D1743
+#define LPC1786        0x281D1F43
+#define LPC1787        0x281D3747
+#define LPC1788        0x281D3F47
+
+#define IAP_CODE_LEN 0x34
 
 typedef enum {
 	lpc2000_v1,
@@ -84,6 +217,7 @@ typedef enum {
 	lpc4300,
 	lpc800,
 	lpc1100,
+	lpc_auto,
 } lpc2000_variant;
 
 struct lpc2000_flash_bank {
@@ -97,8 +231,8 @@ struct lpc2000_flash_bank {
 	uint32_t cmd51_max_buffer;
 	int checksum_vector;
 	uint32_t iap_max_stack;
-	uint32_t cmd51_src_offset;
 	uint32_t lpc4300_bank;
+	bool probed;
 };
 
 enum lpc2000_status_codes {
@@ -136,6 +270,12 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 	lpc2000_info->cmd51_max_buffer = 4096;
 
 	if (lpc2000_info->variant == lpc2000_v1) {
+		lpc2000_info->cmd51_dst_boundary = 512;
+		lpc2000_info->cmd51_can_256b = 0;
+		lpc2000_info->cmd51_can_8192b = 1;
+		lpc2000_info->checksum_vector = 5;
+		lpc2000_info->iap_max_stack = 128;
+
 		/* variant 1 has different layout for 128kb and 256kb flashes */
 		if (bank->size == 128 * 1024) {
 			bank->num_sectors = 16;
@@ -177,6 +317,12 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			exit(-1);
 		}
 	} else if (lpc2000_info->variant == lpc2000_v2) {
+		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_256b = 1;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 5;
+		lpc2000_info->iap_max_stack = 128;
+
 		/* variant 2 has a uniform layout, only number of sectors differs */
 		switch (bank->size) {
 			case 4 * 1024:
@@ -239,6 +385,12 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			}
 		}
 	} else if (lpc2000_info->variant == lpc1700) {
+		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_256b = 1;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
+		lpc2000_info->iap_max_stack = 128;
+
 		switch (bank->size) {
 			case 4 * 1024:
 				lpc2000_info->cmd51_max_buffer = 256;
@@ -284,6 +436,12 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			bank->sectors[i].is_protected = 1;
 		}
 	} else if (lpc2000_info->variant == lpc4300) {
+		lpc2000_info->cmd51_dst_boundary = 512;
+		lpc2000_info->cmd51_can_256b = 0;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
+		lpc2000_info->iap_max_stack = 208;
+
 		switch (bank->size) {
 			case 256 * 1024:
 				bank->num_sectors = 11;
@@ -310,8 +468,15 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			bank->sectors[i].is_protected = 1;
 		}
 
-	}  else if (lpc2000_info->variant == lpc800) {
-			lpc2000_info->cmd51_max_buffer = 1024;
+	} else if (lpc2000_info->variant == lpc800) {
+		lpc2000_info->cmd51_dst_boundary = 64;
+		lpc2000_info->cmd51_can_64b = 1;
+		lpc2000_info->cmd51_can_256b = 0;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
+		lpc2000_info->iap_max_stack = 148;
+		lpc2000_info->cmd51_max_buffer = 1024;
+
 		switch (bank->size) {
 			case 4 * 1024:
 				lpc2000_info->cmd51_max_buffer = 256;
@@ -341,6 +506,12 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 
 	} else if (lpc2000_info->variant == lpc1100) {
+		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_256b = 1;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
+		lpc2000_info->iap_max_stack = 128;
+
 		if ((bank->size % (4 * 1024)) != 0) {
 			LOG_ERROR("BUG: unknown bank->size encountered,\nLPC1100 flash size must be a multiple of 4096");
 			exit(-1);
@@ -380,7 +551,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 	struct target *target = bank->target;
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 
-	if (target_alloc_working_area(target, 0x34 + lpc2000_info->iap_max_stack, iap_working_area) != ERROR_OK) {
+	if (target_alloc_working_area(target, IAP_CODE_LEN + lpc2000_info->iap_max_stack, iap_working_area) != ERROR_OK) {
 		LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -393,6 +564,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 		case lpc1100:
 		case lpc1700:
 		case lpc4300:
+		case lpc_auto:
 			target_buffer_set_u32(target, jump_gate, ARMV4_5_T_BX(12));
 			target_buffer_set_u32(target, jump_gate + 4, ARMV5_T_BKPT(0));
 			break;
@@ -430,6 +602,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 		case lpc800:
 		case lpc1100:
 		case lpc1700:
+		case lpc_auto:
 			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 			armv7m_info.core_mode = ARM_MODE_THREAD;
 			iap_entry_point = 0x1fff1ff1;
@@ -483,9 +656,11 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 		case lpc1100:
 		case lpc1700:
 		case lpc4300:
+		case lpc_auto:
 			/* IAP stack */
 			init_reg_param(&reg_params[3], "sp", 32, PARAM_OUT);
-			buf_set_u32(reg_params[3].value, 0, 32, iap_working_area->address + lpc2000_info->cmd51_src_offset);
+			buf_set_u32(reg_params[3].value, 0, 32,
+				iap_working_area->address + IAP_CODE_LEN + lpc2000_info->iap_max_stack);
 
 			/* return address */
 			init_reg_param(&reg_params[4], "lr", 32, PARAM_OUT);
@@ -499,7 +674,8 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 		case lpc2000_v2:
 			/* IAP stack */
 			init_reg_param(&reg_params[3], "sp_svc", 32, PARAM_OUT);
-			buf_set_u32(reg_params[3].value, 0, 32, iap_working_area->address + lpc2000_info->cmd51_src_offset);
+			buf_set_u32(reg_params[3].value, 0, 32,
+				iap_working_area->address + IAP_CODE_LEN + lpc2000_info->iap_max_stack);
 
 			/* return address */
 			init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
@@ -595,64 +771,39 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct lpc2000_flash_bank *lpc2000_info = calloc(1, sizeof(*lpc2000_info));
+	lpc2000_info->probed = false;
 
 	bank->driver_priv = lpc2000_info;
 
 	if (strcmp(CMD_ARGV[6], "lpc2000_v1") == 0) {
 		lpc2000_info->variant = lpc2000_v1;
-		lpc2000_info->cmd51_dst_boundary = 512;
-		lpc2000_info->cmd51_can_256b = 0;
-		lpc2000_info->cmd51_can_8192b = 1;
-		lpc2000_info->checksum_vector = 5;
-		lpc2000_info->iap_max_stack = 128;
 	} else if (strcmp(CMD_ARGV[6], "lpc2000_v2") == 0) {
 		lpc2000_info->variant = lpc2000_v2;
-		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
-		lpc2000_info->checksum_vector = 5;
-		lpc2000_info->iap_max_stack = 128;
 	} else if (strcmp(CMD_ARGV[6], "lpc1700") == 0) {
 		lpc2000_info->variant = lpc1700;
-		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
-		lpc2000_info->checksum_vector = 7;
-		lpc2000_info->iap_max_stack = 128;
 	} else if (strcmp(CMD_ARGV[6], "lpc1800") == 0 || strcmp(CMD_ARGV[6], "lpc4300") == 0) {
 		lpc2000_info->variant = lpc4300;
-		lpc2000_info->cmd51_dst_boundary = 512;
-		lpc2000_info->cmd51_can_256b = 0;
-		lpc2000_info->cmd51_can_8192b = 0;
-		lpc2000_info->checksum_vector = 7;
-		lpc2000_info->iap_max_stack = 208;
 	} else if (strcmp(CMD_ARGV[6], "lpc800") == 0) {
 		lpc2000_info->variant = lpc800;
-		lpc2000_info->cmd51_dst_boundary = 64;
-		lpc2000_info->cmd51_can_64b = 1;
-		lpc2000_info->cmd51_can_256b = 0;
-		lpc2000_info->cmd51_can_8192b = 0;
-		lpc2000_info->checksum_vector = 7;
-		lpc2000_info->iap_max_stack = 148;
 	} else if (strcmp(CMD_ARGV[6], "lpc1100") == 0) {
 		lpc2000_info->variant = lpc1100;
-		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
-		lpc2000_info->checksum_vector = 7;
-		lpc2000_info->iap_max_stack = 128;
+	} else if (strcmp(CMD_ARGV[6], "auto") == 0) {
+		lpc2000_info->variant = lpc_auto;
 	} else {
 		LOG_ERROR("unknown LPC2000 variant: %s", CMD_ARGV[6]);
 		free(lpc2000_info);
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	/* see lpc2000_iap_working_area_init() for the reason behind the 0x34 value */
-	lpc2000_info->cmd51_src_offset = 0x34 + lpc2000_info->iap_max_stack;
+	/* Maximum size required for the IAP stack.
+	   This value only gets used when probing, only for auto, lpc1100 and lpc1700.
+	   We use the maximum size for any part supported by the driver(!) to be safe
+	   in case the auto variant is mistakenly used on a MCU from one of the series
+	   for which we don't support auto-probing. */
+	lpc2000_info->iap_max_stack = 208;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[7], lpc2000_info->cclk);
 	lpc2000_info->calc_checksum = 0;
-	lpc2000_build_sector_list(bank);
 
 	uint32_t temp_base = 0;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], temp_base);
@@ -930,9 +1081,246 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 	return retval;
 }
 
+static int get_lpc2000_part_id(struct flash_bank *bank, uint32_t *part_id)
+{
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	uint32_t param_table[5] = {0};
+	uint32_t result_table[4];
+	struct working_area *iap_working_area;
+
+	int retval = lpc2000_iap_working_area_init(bank, &iap_working_area);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	int status_code = lpc2000_iap_call(bank, iap_working_area, 54, param_table, result_table);
+
+	if (status_code == LPC2000_CMD_SUCCESS)
+		*part_id = result_table[0];
+
+	return status_code;
+}
+
+static int lpc2000_auto_probe_flash(struct flash_bank *bank)
+{
+	uint32_t part_id;
+	int retval;
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
+
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	retval = get_lpc2000_part_id(bank, &part_id);
+	if (retval != LPC2000_CMD_SUCCESS) {
+		LOG_ERROR("Could not get part ID");
+		return retval;
+	}
+
+	switch (part_id) {
+		case LPC1110_1:
+		case LPC1110_2:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 4 * 1024;
+			break;
+
+		case LPC1111_002_1:
+		case LPC1111_002_2:
+		case LPC1111_101_1:
+		case LPC1111_101_2:
+		case LPC1111_103_1:
+		case LPC1111_201_1:
+		case LPC1111_201_2:
+		case LPC1111_203_1:
+		case LPC11A11_001_1:
+		case LPC11E11_101:
+		case LPC1311:
+		case LPC1311_1:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 8 * 1024;
+			break;
+
+		case LPC1112_101_1:
+		case LPC1112_101_2:
+		case LPC1112_102_1:
+		case LPC1112_102_2:
+		case LPC1112_103_1:
+		case LPC1112_201_1:
+		case LPC1112_201_2:
+		case LPC1112_203_1:
+		case LPC11A02_1:
+		case LPC11C12_301_1:
+		case LPC11C22_301_1:
+		case LPC11A12_101_1:
+		case LPC11E12_201:
+		case LPC11U12_201_1:
+		case LPC11U12_201_2:
+		case LPC1342:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 16 * 1024;
+			break;
+
+		case LPC1113_201_1:
+		case LPC1113_201_2:
+		case LPC1113_203_1:
+		case LPC1113_301_1:
+		case LPC1113_301_2:
+		case LPC1113_303_1:
+		case LPC11A13_201_1:
+		case LPC11E13_301:
+		case LPC11U13_201_1:
+		case LPC11U13_201_2:
+		case LPC11U23_301:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 24 * 1024;
+			break;
+
+		case LPC1114_102_1:
+		case LPC1114_102_2:
+		case LPC1114_201_1:
+		case LPC1114_201_2:
+		case LPC1114_203_1:
+		case LPC1114_301_1:
+		case LPC1114_301_2:
+		case LPC1114_303_1:
+		case LPC11A04_1:
+		case LPC11A14_301_1:
+		case LPC11A14_301_2:
+		case LPC11C14_301_1:
+		case LPC11C24_301_1:
+		case LPC11E14_401:
+		case LPC11U14_201_1:
+		case LPC11U14_201_2:
+		case LPC11U24_301:
+		case LPC11U24_401:
+		case LPC1313:
+		case LPC1313_1:
+		case LPC1315:
+		case LPC1343:
+		case LPC1345:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 32 * 1024;
+			break;
+
+		case LPC1751_1:
+		case LPC1751_2:
+			lpc2000_info->variant = lpc1700;
+			bank->size = 32 * 1024;
+			break;
+
+		case LPC11U34_311:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 40 * 1024;
+			break;
+
+		case LPC1114_323_1:
+		case LPC11U34_421:
+		case LPC1316:
+		case LPC1346:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 48 * 1024;
+			break;
+
+		case LPC1114_333_1:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 56 * 1024;
+			break;
+
+		case LPC1115_303_1:
+		case LPC11U35_401:
+		case LPC11U35_501:
+		case LPC1317:
+		case LPC1347:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 64 * 1024;
+			break;
+
+		case LPC1752:
+			lpc2000_info->variant = lpc1700;
+			bank->size = 64 * 1024;
+			break;
+
+		case LPC11E36_501:
+		case LPC11U36_401:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 96 * 1024;
+			break;
+
+		case LPC11E37_401:
+		case LPC11E37_501:
+		case LPC11U37_401:
+		case LPC11U37H_401:
+		case LPC11U37_501:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 128 * 1024;
+			break;
+
+		case LPC1754:
+		case LPC1764:
+		case LPC1774:
+			lpc2000_info->variant = lpc1700;
+			bank->size = 128 * 1024;
+			break;
+
+		case LPC1756:
+		case LPC1763:
+		case LPC1765:
+		case LPC1766:
+		case LPC1776:
+		case LPC1785:
+		case LPC1786:
+			lpc2000_info->variant = lpc1700;
+			bank->size = 256 * 1024;
+			break;
+
+		case LPC1758:
+		case LPC1759:
+		case LPC1767:
+		case LPC1768:
+		case LPC1769:
+		case LPC1777:
+		case LPC1778:
+		case LPC1787:
+		case LPC1788:
+			lpc2000_info->variant = lpc1700;
+			bank->size = 512 * 1024;
+			break;
+
+		default:
+			LOG_ERROR("BUG: unknown Part ID encountered: 0x%x", part_id);
+			exit(-1);
+	}
+
+	return ERROR_OK;
+}
+
 static int lpc2000_probe(struct flash_bank *bank)
 {
-	/* we can't probe on an lpc2000 if this is an lpc2xxx, it has the configured flash */
+	int status;
+	uint32_t part_id;
+	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
+
+	if (!lpc2000_info->probed) {
+		if (lpc2000_info->variant == lpc_auto) {
+			status = lpc2000_auto_probe_flash(bank);
+			if (status != ERROR_OK)
+				return status;
+		} else if (lpc2000_info->variant == lpc1100 || lpc2000_info->variant == lpc1700) {
+			status = get_lpc2000_part_id(bank, &part_id);
+			if (status == LPC2000_CMD_SUCCESS)
+				LOG_INFO("If auto-detection fails for this part, please email "
+					"openocd-devel@lists.sourceforge.net, citing part id 0x%x.\n", part_id);
+		}
+
+		lpc2000_build_sector_list(bank);
+		lpc2000_info->probed = true;
+	}
+
 	return ERROR_OK;
 }
 
@@ -977,23 +1365,15 @@ COMMAND_HANDLER(lpc2000_handle_part_id_command)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	uint32_t param_table[5] = {0};
-	uint32_t result_table[4];
-	struct working_area *iap_working_area;
-
-	retval = lpc2000_iap_working_area_init(bank, &iap_working_area);
-
-	if (retval != ERROR_OK)
-		return retval;
-
-	int status_code = lpc2000_iap_call(bank, iap_working_area, 54, param_table, result_table);
+	uint32_t part_id;
+	int status_code = get_lpc2000_part_id(bank, &part_id);
 	if (status_code != 0x0) {
 		if (status_code == ERROR_FLASH_OPERATION_FAILED) {
 			command_print(CMD_CTX, "no sufficient working area specified, can't access LPC2000 IAP interface");
 		} else
 			command_print(CMD_CTX, "lpc2000 IAP returned status code %i", status_code);
 	} else
-		command_print(CMD_CTX, "lpc2000 part id: 0x%8.8" PRIx32, result_table[0]);
+		command_print(CMD_CTX, "lpc2000 part id: 0x%8.8" PRIx32, part_id);
 
 	return retval;
 }
