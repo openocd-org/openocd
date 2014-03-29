@@ -5173,9 +5173,10 @@ supported.}
 @end deffn
 
 @deffn {Flash Driver} lpc2000
-Most members of the LPC1700, LPC1800, LPC2000 and LPC4300 microcontroller
-families from NXP include internal flash and use Cortex-M3 (LPC1700, LPC1800),
-Cortex-M4 (LPC4300) or ARM7TDMI (LPC2000) cores.
+All members of the LPC11(x)00 and LPC1300 microcontroller families and most members
+of the LPC1700, LPC1800, LPC2000 and LPC4300 microcontroller families from NXP
+include internal flash and use Cortex-M0 (LPC11(x)00), Cortex-M3 (LPC1300, LPC1700,
+LPC1800), Cortex-M4 (LPC4300) or ARM7TDMI (LPC2000) cores.
 
 @quotation Note
 There are LPC2000 devices which are not supported by the @var{lpc2000}
@@ -5192,8 +5193,9 @@ which must appear in the following order:
 @option{lpc2000_v1} (older LPC21xx and LPC22xx)
 @option{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx)
 @option{lpc1700} (LPC175x and LPC176x)
-or @option{lpc4300} - available also as @option{lpc1800} alias (LPC18x[2357] and
+@option{lpc4300} - available also as @option{lpc1800} alias (LPC18x[2357] and
 LPC43x[2357])
+or @option{lpc1100} (LPC11(x)xx and LPC13xx)
 @item @var{clock_kHz} ... the frequency, in kiloHertz,
 at which the core is running
 @item @option{calc_checksum} ... optional (but you probably want to provide this!),
