@@ -31,7 +31,7 @@ EXTRA_DIST = \
 	tools/logger.pl \
 	tools/rlink_make_speed_table \
 	tools/st7_dtc_as \
-	contrib/
+	contrib
 
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
