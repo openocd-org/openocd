@@ -52,7 +52,7 @@ libopenocd_la_CPPFLAGS += -DGITVERSION=\"`cd $(top_srcdir) && git describe`\"
 endif
 
 # add default CPPFLAGS
-libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS) $(LIBFTDI_CFLAGS)
+libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
 
 # the library search path.
 libopenocd_la_LDFLAGS = $(all_libraries)

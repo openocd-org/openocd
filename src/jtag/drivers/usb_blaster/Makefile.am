@@ -1,6 +1,6 @@
 include $(top_srcdir)/common.mk
 
-AM_CPPFLAGS += -I$(top_srcdir)/src/jtag/drivers $(LIBUSB1_CFLAGS)
+AM_CPPFLAGS += -I$(top_srcdir)/src/jtag/drivers $(LIBUSB1_CFLAGS) $(LIBFTDI_CFLAGS)
 
 noinst_LTLIBRARIES = libocdusbblaster.la
 libocdusbblaster_la_SOURCES = $(USB_BLASTER_SRC)
