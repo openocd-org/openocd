@@ -43,9 +43,7 @@ static enum aice_target_endian data_endian;
 
 /* Constants for AICE command format length */
 static const int32_t AICE_FORMAT_HTDA = 3;
-static const int32_t AICE_FORMAT_HTDB	= 6;
 static const int32_t AICE_FORMAT_HTDC	= 7;
-static const int32_t AICE_FORMAT_HTDD	= 10;
 static const int32_t AICE_FORMAT_HTDMA = 4;
 static const int32_t AICE_FORMAT_HTDMB = 8;
 static const int32_t AICE_FORMAT_HTDMC = 8;
@@ -57,26 +55,9 @@ static const int32_t AICE_FORMAT_DTHMB = 4;
 
 /* Constants for AICE command */
 static const uint8_t AICE_CMD_SCAN_CHAIN = 0x00;
-static const uint8_t AICE_CMD_SELECT_TARGET = 0x01;
-static const uint8_t AICE_CMD_READ_DIM = 0x02;
-static const uint8_t AICE_CMD_READ_EDMSR = 0x03;
-static const uint8_t AICE_CMD_READ_DTR = 0x04;
-static const uint8_t AICE_CMD_READ_MEM = 0x05;
-static const uint8_t AICE_CMD_READ_MISC = 0x06;
-static const uint8_t AICE_CMD_FASTREAD_MEM = 0x07;
-static const uint8_t AICE_CMD_WRITE_DIM = 0x08;
-static const uint8_t AICE_CMD_WRITE_EDMSR = 0x09;
-static const uint8_t AICE_CMD_WRITE_DTR = 0x0A;
-static const uint8_t AICE_CMD_WRITE_MEM = 0x0B;
-static const uint8_t AICE_CMD_WRITE_MISC = 0x0C;
-static const uint8_t AICE_CMD_FASTWRITE_MEM	= 0x0D;
-static const uint8_t AICE_CMD_EXECUTE = 0x0E;
-static const uint8_t AICE_CMD_READ_MEM_B = 0x14;
-static const uint8_t AICE_CMD_READ_MEM_H = 0x15;
 static const uint8_t AICE_CMD_T_READ_MISC = 0x20;
 static const uint8_t AICE_CMD_T_READ_EDMSR = 0x21;
 static const uint8_t AICE_CMD_T_READ_DTR = 0x22;
-static const uint8_t AICE_CMD_T_READ_DIM = 0x23;
 static const uint8_t AICE_CMD_T_READ_MEM_B = 0x24;
 static const uint8_t AICE_CMD_T_READ_MEM_H = 0x25;
 static const uint8_t AICE_CMD_T_READ_MEM = 0x26;
@@ -89,11 +70,7 @@ static const uint8_t AICE_CMD_T_WRITE_MEM_B = 0x2C;
 static const uint8_t AICE_CMD_T_WRITE_MEM_H = 0x2D;
 static const uint8_t AICE_CMD_T_WRITE_MEM = 0x2E;
 static const uint8_t AICE_CMD_T_FASTWRITE_MEM = 0x2F;
-static const uint8_t AICE_CMD_T_GET_TRACE_STATUS = 0x36;
 static const uint8_t AICE_CMD_T_EXECUTE = 0x3E;
-static const uint8_t AICE_CMD_AICE_PROGRAM_READ = 0x40;
-static const uint8_t AICE_CMD_AICE_PROGRAM_WRITE = 0x41;
-static const uint8_t AICE_CMD_AICE_PROGRAM_CONTROL = 0x42;
 static const uint8_t AICE_CMD_READ_CTRL = 0x50;
 static const uint8_t AICE_CMD_WRITE_CTRL = 0x51;
 static const uint8_t AICE_CMD_BATCH_BUFFER_READ = 0x60;
