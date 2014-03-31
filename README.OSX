@@ -23,6 +23,12 @@ If you're using Homebrew, no custom flags are necessary.
 
 See README for the generic building instructions.
 
-If you use an FTDI-based adapter and have the FTDI kext installed, you
-will need to unload it prior to using OpenOCD:
+If you're using a USB adapter and have a driver kext matched to it,
+you will need to unload it prior to running OpenOCD. E.g. with Apple
+driver (OS X 10.9 or later) for FTDI run:
+  sudo kextunload -b com.apple.driver.AppleUSBFTDI
+for FTDI vendor driver use:
   sudo kextunload FTDIUSBSerialDriver.kext
+
+To learn more on the topic please refer to the official libusb FAQ:
+https://github.com/libusb/libusb/wiki/FAQ
