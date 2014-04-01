@@ -8,10 +8,6 @@ SUBSYSTEM!="usb|tty|hidraw", GOTO="openocd_rules_end"
 # opendous and estick
 ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="204f", MODE="664", GROUP="plugdev"
 
-# Atmel EDBG CMSIS-DAP
-ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2111", MODE="664", GROUP="plugdev"
-KERNEL=="hidraw*", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2111", MODE="664", GROUP="plugdev"
-
 # Original FT232/FT245 VID:PID
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 
@@ -114,16 +110,7 @@ ATTRS{idVendor}=="1cbe", ATTRS{idProduct}=="00fd", MODE="664", GROUP="plugdev"
 # Marvell Sheevaplug
 ATTRS{idVendor}=="9e88", ATTRS{idProduct}=="9e8f", MODE="664", GROUP="plugdev"
 
-# mbed CMSIS-DAP
-ATTRS{idVendor}=="0d28", ATTRS{idProduct}=="0204", MODE="664", GROUP="plugdev"
-KERNEL=="hidraw*", ATTRS{idVendor}=="0d28", ATTRS{idProduct}=="0204", MODE="664", GROUP="plugdev"
-
-# Freescale Freedom Board CMSIS-DAP
-ATTRS{idVendor}=="c251", ATTRS{idProduct}=="f002", MODE="664", GROUP="plugdev"
-KERNEL=="hidraw*", ATTRS{idVendor}=="c251", ATTRS{idProduct}=="f002", MODE="664", GROUP="plugdev"
-
-# Keil ULINK2 CMSIS-DAP
-ATTRS{idVendor}=="c251", ATTRS{idProduct}=="2722", MODE="664", GROUP="plugdev"
-KERNEL=="hidraw*", ATTRS{idVendor}=="c251", ATTRS{idProduct}=="2722", MODE="664", GROUP="plugdev"
+# CMSIS-DAP compatible adapters
+ATTRS{product}=="*CMSIS-DAP*", MODE="664", GROUP="plugdev"
 
 LABEL="openocd_rules_end"
