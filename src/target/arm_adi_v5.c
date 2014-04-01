@@ -295,18 +295,39 @@ int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, ui
 	size_t nbytes = size * count;
 	const uint32_t csw_addrincr = addrinc ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
 	uint32_t csw_size;
+	uint32_t addr_xor;
 	int retval;
 
-	if (size == 4)
+	/* TI BE-32 Quirks mode:
+	 * Writes on big-endian TMS570 behave very strangely. Observed behavior:
+	 *   size   write address   bytes written in order
+	 *   4      TAR ^ 0         (val >> 24), (val >> 16), (val >> 8), (val)
+	 *   2      TAR ^ 2         (val >> 8), (val)
+	 *   1      TAR ^ 3         (val)
+	 * For example, if you attempt to write a single byte to address 0, the processor
+	 * will actually write a byte to address 3.
+	 *
+	 * To make writes of size < 4 work as expected, we xor a value with the address before
+	 * setting the TAP, and we set the TAP after every transfer rather then relying on
+	 * address increment. */
+
+	if (size == 4) {
 		csw_size = CSW_32BIT;
-	else if (size == 2)
+		addr_xor = 0;
+	} else if (size == 2) {
 		csw_size = CSW_16BIT;
-	else if (size == 1)
+		addr_xor = dap->ti_be_32_quirks ? 2 : 0;
+	} else if (size == 1) {
 		csw_size = CSW_8BIT;
-	else
+		addr_xor = dap->ti_be_32_quirks ? 3 : 0;
+	} else {
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
+
+	if (dap->unaligned_access_bad && (address % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	retval = dap_setup_accessport_tar(dap, address);
+	retval = dap_setup_accessport_tar(dap, address ^ addr_xor);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -328,14 +349,32 @@ int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, ui
 		/* How many source bytes each transfer will consume, and their location in the DRW,
 		 * depends on the type of transfer and alignment. See ARM document IHI0031C. */
 		uint32_t outvalue = 0;
-		switch (this_size) {
-		case 4:
-			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-		case 2:
-			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
-		case 1:
-			outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+		if (dap->ti_be_32_quirks) {
+			switch (this_size) {
+			case 4:
+				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (address++ & 3) ^ addr_xor);
+				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (address++ & 3) ^ addr_xor);
+				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (address++ & 3) ^ addr_xor);
+				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (address++ & 3) ^ addr_xor);
+				break;
+			case 2:
+				outvalue |= (uint32_t)*buffer++ << 8 * (1 ^ (address++ & 3) ^ addr_xor);
+				outvalue |= (uint32_t)*buffer++ << 8 * (1 ^ (address++ & 3) ^ addr_xor);
+				break;
+			case 1:
+				outvalue |= (uint32_t)*buffer++ << 8 * (0 ^ (address++ & 3) ^ addr_xor);
+				break;
+			}
+		} else {
+			switch (this_size) {
+			case 4:
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+			case 2:
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+			case 1:
+				outvalue |= (uint32_t)*buffer++ << 8 * (address++ & 3);
+			}
 		}
 
 		nbytes -= this_size;
@@ -344,9 +383,9 @@ int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, ui
 		if (retval != ERROR_OK)
 			break;
 
-		/* Rewrite TAR if it wrapped */
-		if (addrinc && address % dap->tar_autoincr_block < size && nbytes > 0) {
-			retval = dap_setup_accessport_tar(dap, address);
+		/* Rewrite TAR if it wrapped or we're xoring addresses */
+		if (addrinc && (addr_xor || (address % dap->tar_autoincr_block < size && nbytes > 0))) {
+			retval = dap_setup_accessport_tar(dap, address ^ addr_xor);
 			if (retval != ERROR_OK)
 				break;
 		}
@@ -389,6 +428,13 @@ int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t 
 	uint32_t address = adr;
 	int retval;
 
+	/* TI BE-32 Quirks mode:
+	 * Reads on big-endian TMS570 behave strangely differently than writes.
+	 * They read from the physical address requested, but with DRW byte-reversed.
+	 * For example, a byte read from address 0 will place the result in the high bytes of DRW.
+	 * Also, packed 8-bit and 16-bit transfers seem to sometimes return garbage in some bytes,
+	 * so avoid them. */
+
 	if (size == 4)
 		csw_size = CSW_32BIT;
 	else if (size == 2)
@@ -396,6 +442,9 @@ int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t 
 	else if (size == 1)
 		csw_size = CSW_8BIT;
 	else
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+
+	if (dap->unaligned_access_bad && (adr % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	/* Allocate buffer to hold the sequence of DRW reads that will be made. This is a significant
@@ -478,14 +527,26 @@ int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t 
 			this_size = 4;
 		}
 
-		switch (this_size) {
-		case 4:
-			*buffer++ = *read_ptr >> 8 * (address++ & 3);
-			*buffer++ = *read_ptr >> 8 * (address++ & 3);
-		case 2:
-			*buffer++ = *read_ptr >> 8 * (address++ & 3);
-		case 1:
-			*buffer++ = *read_ptr >> 8 * (address++ & 3);
+		if (dap->ti_be_32_quirks) {
+			switch (this_size) {
+			case 4:
+				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
+				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
+			case 2:
+				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
+			case 1:
+				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
+			}
+		} else {
+			switch (this_size) {
+			case 4:
+				*buffer++ = *read_ptr >> 8 * (address++ & 3);
+				*buffer++ = *read_ptr >> 8 * (address++ & 3);
+			case 2:
+				*buffer++ = *read_ptr >> 8 * (address++ & 3);
+			case 1:
+				*buffer++ = *read_ptr >> 8 * (address++ & 3);
+			}
 		}
 
 		read_ptr++;
@@ -845,13 +906,17 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	dap_syssec(dap);
 
 	/* check that we support packed transfers */
-	uint32_t csw;
+	uint32_t csw, cfg;
 
 	retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
 	retval = dap_queue_ap_read(dap, AP_REG_CSW, &csw);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_ap_read(dap, AP_REG_CFG, &cfg);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -864,8 +929,24 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	else
 		dap->packed_transfers = false;
 
+	/* Packed transfers on TI BE-32 processors do not work correctly in
+	 * many cases. */
+	if (dap->ti_be_32_quirks)
+		dap->packed_transfers = false;
+
 	LOG_DEBUG("MEM_AP Packed Transfers: %s",
 			dap->packed_transfers ? "enabled" : "disabled");
+
+	/* The ARM ADI spec leaves implementation-defined whether unaligned
+	 * memory accesses work, only work partially, or cause a sticky error.
+	 * On TI BE-32 processors, reads seem to return garbage in some bytes
+	 * and unaligned writes seem to cause a sticky error.
+	 * TODO: it would be nice to have a way to detect whether unaligned
+	 * operations are supported on other processors. */
+	dap->unaligned_access_bad = dap->ti_be_32_quirks;
+
+	LOG_DEBUG("MEM_AP CFG: large data %d, long address %d, big-endian %d",
+			!!(cfg & 0x04), !!(cfg & 0x02), !!(cfg & 0x01));
 
 	return ERROR_OK;
 }
@@ -1664,6 +1745,32 @@ COMMAND_HANDLER(dap_apid_command)
 	return retval;
 }
 
+COMMAND_HANDLER(dap_ti_be_32_quirks_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+
+	uint32_t enable = dap->ti_be_32_quirks;
+
+	switch (CMD_ARGC) {
+	case 0:
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], enable);
+		if (enable > 1)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	dap->ti_be_32_quirks = enable;
+	command_print(CMD_CTX, "TI BE-32 quirks mode %s",
+		enable ? "enabled" : "disabled");
+
+	return 0;
+}
+
 static const struct command_registration dap_commands[] = {
 	{
 		.name = "info",
@@ -1712,6 +1819,13 @@ static const struct command_registration dap_commands[] = {
 		.help = "set/get number of extra tck for MEM-AP memory "
 			"bus access [0-255]",
 		.usage = "[cycles]",
+	},
+	{
+		.name = "ti_be_32_quirks",
+		.handler = dap_ti_be_32_quirks_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set/get quirks mode for TI TMS450/TMS570 processors",
+		.usage = "[enable]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
