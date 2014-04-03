@@ -132,11 +132,11 @@ static int cmsis_dap_ap_q_bankselect(struct adiv5_dap *dap, unsigned reg)
 
 static int (cmsis_dap_queue_ap_read)(struct adiv5_dap *dap, unsigned reg, uint32_t *data)
 {
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_read %d", reg);
-
 	int retval = cmsis_dap_ap_q_bankselect(dap, reg);
 	if (retval != ERROR_OK)
 		return retval;
+
+	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_read %d", reg);
 
 	retval = jtag_interface->swd->read_reg(
 			(CMSIS_CMD_AP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
@@ -152,7 +152,7 @@ static int (cmsis_dap_queue_ap_read)(struct adiv5_dap *dap, unsigned reg, uint32
 
 static int (cmsis_dap_queue_ap_write)(struct adiv5_dap *dap, unsigned reg, uint32_t data)
 {
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_write %d 0x%08" PRIx32, reg, data);
+
 
 	/* TODO: CSW_DBGSWENABLE (bit31) causes issues for some targets
 	 * disable until we find out why */
@@ -162,6 +162,8 @@ static int (cmsis_dap_queue_ap_write)(struct adiv5_dap *dap, unsigned reg, uint3
 	int retval = cmsis_dap_ap_q_bankselect(dap, reg);
 	if (retval != ERROR_OK)
 		return retval;
+
+	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_write %d 0x%08" PRIx32, reg, data);
 
 	retval = jtag_interface->swd->write_reg(
 			(CMSIS_CMD_AP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
