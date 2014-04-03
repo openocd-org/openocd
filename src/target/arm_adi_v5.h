@@ -401,6 +401,35 @@ static inline int dap_dp_read_atomic(struct adiv5_dap *dap, unsigned reg,
 	return dap_run(dap);
 }
 
+static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned reg,
+				       uint32_t mask, uint32_t value, int timeout)
+{
+	assert(timeout > 0);
+	assert((value & mask) == value);
+
+	int ret;
+	uint32_t regval;
+	LOG_DEBUG("DAP: poll %x, mask 0x08%" PRIx32 ", value 0x%08" PRIx32,
+		  reg, mask, value);
+	do {
+		ret = dap_dp_read_atomic(dap, reg, &regval);
+		if (ret != ERROR_OK)
+			return ret;
+
+		if ((regval & mask) == value)
+			break;
+
+		alive_sleep(10);
+	} while (--timeout);
+
+	if (!timeout) {
+		LOG_DEBUG("DAP: poll %x timeout", reg);
+		return ERROR_FAIL;
+	} else {
+		return ERROR_OK;
+	}
+}
+
 /** Accessor for currently selected DAP-AP number (0..255) */
 static inline uint8_t dap_ap_get_select(struct adiv5_dap *swjdp)
 {
