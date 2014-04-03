@@ -167,10 +167,38 @@ static int (cmsis_dap_queue_ap_write)(struct adiv5_dap *dap, unsigned reg, uint3
 /** Executes all queued DAP operations. */
 static int cmsis_dap_run(struct adiv5_dap *dap)
 {
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_run");
+	LOG_DEBUG(" ");
 	/* FIXME: for now the CMSIS-DAP interface hard-wires a zero-size queue. */
+	int ret;
+	uint32_t ctrlstat;
 
-	return ERROR_OK;
+	/*
+	  Some debug dongles do more than asked for(e.g. EDBG from
+	  Atmel) behind the scene and issuing an AP write
+	  may result in more than just APACC SWD transaction, which in
+	  turn can possibly set sticky error bit in CTRL/STAT register
+	  of the DP(an example would be writing SYSRESETREQ to AIRCR).
+	  Such adapters may interpret CMSIS-DAP secification
+	  differently and not guarantee to be report those failures
+	  via status byte of the return USB packet from CMSIS-DAP, so
+	  we need to check CTRL/STAT and if that happens to clear it.
+	*/
+	ret = cmsis_dap_queue_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("Failed to read CTRL/STAT register");
+		return ret;
+	}
+
+	if (ctrlstat & SSTICKYERR) {
+		LOG_WARNING("SSTICKYERR was set, clearing it");
+		ret = cmsis_dap_clear_sticky_errors(dap);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Failed to clear sticky errors");
+			return ret;
+		}
+	}
+
+	return ret;
 }
 
 const struct dap_ops cmsis_dap_ops = {

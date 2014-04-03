@@ -1069,6 +1069,19 @@ static int cortex_m_assert_reset(struct target *target)
 				"handler to reset any peripherals or configure hardware srst support.");
 		}
 
+		/*
+		  SAM4L needs to execute security initalization
+		  startup sequence before AP access would be enabled.
+		  During the intialization CDBGPWRUPACK is pulled low and we
+		  need to wait for it to be set to 1 again.
+		*/
+		retval = dap_dp_poll_register(swjdp, DP_CTRL_STAT,
+					      CDBGPWRUPACK, CDBGPWRUPACK, 100);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Failed waitnig for CDBGPWRUPACK");
+			return ERROR_FAIL;
+		}
+
 		{
 			/* I do not know why this is necessary, but it
 			 * fixes strange effects (step/resume cause NMI
