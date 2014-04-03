@@ -389,6 +389,18 @@ static inline int dap_run(struct adiv5_dap *dap)
 	return dap->ops->run(dap);
 }
 
+static inline int dap_dp_read_atomic(struct adiv5_dap *dap, unsigned reg,
+				     uint32_t *value)
+{
+	int retval;
+
+	retval = dap_queue_dp_read(dap, reg, value);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dap_run(dap);
+}
+
 /** Accessor for currently selected DAP-AP number (0..255) */
 static inline uint8_t dap_ap_get_select(struct adiv5_dap *swjdp)
 {
