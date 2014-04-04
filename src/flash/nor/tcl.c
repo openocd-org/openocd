@@ -31,11 +31,18 @@
  * Implements Tcl commands used to access NOR flash facilities.
  */
 
-COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
-	struct flash_bank **bank)
+COMMAND_HELPER(flash_command_get_bank_maybe_probe, unsigned name_index,
+	       struct flash_bank **bank, bool do_probe)
 {
 	const char *name = CMD_ARGV[name_index];
-	int retval = get_flash_bank_by_name(name, bank);
+	int retval;
+	if (do_probe) {
+		retval = get_flash_bank_by_name(name, bank);
+	} else {
+		*bank  = get_flash_bank_by_name_noprobe(name);
+		retval = ERROR_OK;
+	}
+
 	if (retval != ERROR_OK)
 		return retval;
 	if (*bank)
@@ -44,7 +51,20 @@ COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 	unsigned bank_num;
 	COMMAND_PARSE_NUMBER(uint, name, bank_num);
 
-	return get_flash_bank_by_num(bank_num, bank);
+	if (do_probe) {
+		return get_flash_bank_by_num(bank_num, bank);
+	} else {
+		*bank  = get_flash_bank_by_num_noprobe(bank_num);
+		retval = (bank) ? ERROR_OK : ERROR_FAIL;
+		return retval;
+	}
+}
+
+COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
+	struct flash_bank **bank)
+{
+	return CALL_COMMAND_HANDLER(flash_command_get_bank_maybe_probe,
+				    name_index, bank, true);
 }
 
 COMMAND_HANDLER(handle_flash_info_command)
@@ -121,7 +141,7 @@ COMMAND_HANDLER(handle_flash_probe_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank_maybe_probe, 0, &p, false);
 	if (retval != ERROR_OK)
 		return retval;
 
