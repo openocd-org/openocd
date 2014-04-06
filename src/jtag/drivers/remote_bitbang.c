@@ -29,10 +29,6 @@
 #include <jtag/interface.h>
 #include "bitbang.h"
 
-#ifndef UNIX_PATH_LEN
-#define UNIX_PATH_LEN 108
-#endif
-
 /* arbitrary limit on host name length: */
 #define REMOTE_BITBANG_HOST_MAX 255
 
@@ -192,8 +188,8 @@ static int remote_bitbang_init_unix(void)
 
 	struct sockaddr_un addr;
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, remote_bitbang_host, UNIX_PATH_LEN);
-	addr.sun_path[UNIX_PATH_LEN-1] = '\0';
+	strncpy(addr.sun_path, remote_bitbang_host, sizeof(addr.sun_path));
+	addr.sun_path[sizeof(addr.sun_path)-1] = '\0';
 
 	if (connect(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0) {
 		LOG_ERROR("connect: %s", strerror(errno));
