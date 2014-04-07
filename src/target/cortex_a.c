@@ -766,7 +766,7 @@ static int cortex_a8_halt_smp(struct target *target)
 static int update_halt_gdb(struct target *target)
 {
 	int retval = 0;
-	if (target->gdb_service->core[0] == -1) {
+	if (target->gdb_service && target->gdb_service->core[0] == -1) {
 		target->gdb_service->target = target;
 		target->gdb_service->core[0] = target->coreid;
 		retval += cortex_a8_halt_smp(target);
