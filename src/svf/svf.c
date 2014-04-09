@@ -241,6 +241,30 @@ static long svf_total_lines;
 static int svf_percentage;
 static int svf_last_printed_percentage = -1;
 
+static int svf_realloc_buffers(size_t len)
+{
+	void *ptr;
+
+	ptr = realloc(svf_tdi_buffer, len);
+	if (!ptr)
+		return ERROR_FAIL;
+	svf_tdi_buffer = ptr;
+
+	ptr = realloc(svf_tdo_buffer, len);
+	if (!ptr)
+		return ERROR_FAIL;
+	svf_tdo_buffer = ptr;
+
+	ptr = realloc(svf_mask_buffer, len);
+	if (!ptr)
+		return ERROR_FAIL;
+	svf_mask_buffer = ptr;
+
+	svf_buffer_size = len;
+
+	return ERROR_OK;
+}
+
 static void svf_free_xxd_para(struct svf_xxr_para *para)
 {
 	if (NULL != para) {
@@ -383,25 +407,10 @@ COMMAND_HANDLER(handle_svf_command)
 	/* in case current command cannot be committed, and next command is a bit scan command */
 	/* here is 32K bits for this big scan command, it should be enough */
 	/* buffer will be reallocated if buffer size is not enough */
-	svf_tdi_buffer = malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
-	if (NULL == svf_tdi_buffer) {
-		LOG_ERROR("not enough memory");
+	if (svf_realloc_buffers(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT) != ERROR_OK) {
 		ret = ERROR_FAIL;
 		goto free_all;
 	}
-	svf_tdo_buffer = malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
-	if (NULL == svf_tdo_buffer) {
-		LOG_ERROR("not enough memory");
-		ret = ERROR_FAIL;
-		goto free_all;
-	}
-	svf_mask_buffer = malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
-	if (NULL == svf_mask_buffer) {
-		LOG_ERROR("not enough memory");
-		ret = ERROR_FAIL;
-		goto free_all;
-	}
-	svf_buffer_size = 2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT;
 
 	memcpy(&svf_para, &svf_para_init, sizeof(svf_para));
 
@@ -1078,47 +1087,11 @@ XXR_common:
 				i = svf_para.hdr_para.len + svf_para.sdr_para.len +
 						svf_para.tdr_para.len;
 				if ((svf_buffer_size - svf_buffer_index) < ((i + 7) >> 3)) {
-#if 1
-					/* simply print error message */
-					LOG_ERROR("buffer is not enough, report to author");
-					return ERROR_FAIL;
-#else
-					uint8_t *buffer_tmp;
-
 					/* reallocate buffer */
-					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
-					if (NULL == buffer_tmp) {
+					if (svf_realloc_buffers(svf_buffer_index + ((i + 7) >> 3)) != ERROR_OK) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
 					}
-					memcpy(buffer_tmp, svf_tdi_buffer, svf_buffer_index);
-					/* svf_tdi_buffer isn't NULL here */
-					free(svf_tdi_buffer);
-					svf_tdi_buffer = buffer_tmp;
-
-					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
-					if (NULL == buffer_tmp) {
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
-					memcpy(buffer_tmp, svf_tdo_buffer, svf_buffer_index);
-					/* svf_tdo_buffer isn't NULL here */
-					free(svf_tdo_buffer);
-					svf_tdo_buffer = buffer_tmp;
-
-					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
-					if (NULL == buffer_tmp) {
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
-					memcpy(buffer_tmp, svf_mask_buffer, svf_buffer_index);
-					/* svf_mask_buffer isn't NULL here */
-					free(svf_mask_buffer);
-					svf_mask_buffer = buffer_tmp;
-
-					buffer_tmp = NULL;
-					svf_buffer_size = svf_buffer_index + ((i + 7) >> 3);
-#endif
 				}
 
 				/* assemble dr data */
@@ -1205,47 +1178,10 @@ XXR_common:
 				i = svf_para.hir_para.len + svf_para.sir_para.len +
 						svf_para.tir_para.len;
 				if ((svf_buffer_size - svf_buffer_index) < ((i + 7) >> 3)) {
-#if 1
-					/* simply print error message */
-					LOG_ERROR("buffer is not enough, report to author");
-					return ERROR_FAIL;
-#else
-					uint8_t *buffer_tmp;
-
-					/* reallocate buffer */
-					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
-					if (NULL == buffer_tmp) {
+					if (svf_realloc_buffers(svf_buffer_index + ((i + 7) >> 3)) != ERROR_OK) {
 						LOG_ERROR("not enough memory");
 						return ERROR_FAIL;
 					}
-					memcpy(buffer_tmp, svf_tdi_buffer, svf_buffer_index);
-					/* svf_tdi_buffer isn't NULL here */
-					free(svf_tdi_buffer);
-					svf_tdi_buffer = buffer_tmp;
-
-					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
-					if (NULL == buffer_tmp) {
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
-					memcpy(buffer_tmp, svf_tdo_buffer, svf_buffer_index);
-					/* svf_tdo_buffer isn't NULL here */
-					free(svf_tdo_buffer);
-					svf_tdo_buffer = buffer_tmp;
-
-					buffer_tmp = malloc(svf_buffer_index + ((i + 7) >> 3));
-					if (NULL == buffer_tmp) {
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
-					memcpy(buffer_tmp, svf_mask_buffer, svf_buffer_index);
-					/* svf_mask_buffer isn't NULL here */
-					free(svf_mask_buffer);
-					svf_mask_buffer = buffer_tmp;
-
-					buffer_tmp = NULL;
-					svf_buffer_size = svf_buffer_index + ((i + 7) >> 3);
-#endif
 				}
 
 				/* assemble ir data */
