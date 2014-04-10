@@ -1014,7 +1014,7 @@ CFLAGS=$CFLAGS_SAVE
 fi
 
 if test $build_ft2232_libftdi = yes -o $build_usb_blaster_libftdi = yes -o \
-  $build_openjtag_ftdi = yes; then
+  $build_openjtag_ftdi = yes -o $build_presto_libftdi = yes; then
 
   # we can have libftdi or libftdi1, so check it and use the latest one
   PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [use_libftdi=yes], [use_libftdi=no])
