@@ -451,7 +451,7 @@ static void dsp563xx_build_reg_cache(struct target *target)
 
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	struct reg *reg_list = malloc(sizeof(struct reg) * DSP563XX_NUMCOREREGS);
+	struct reg *reg_list = calloc(DSP563XX_NUMCOREREGS, sizeof(struct reg));
 	struct dsp563xx_core_reg *arch_info = malloc(
 			sizeof(struct dsp563xx_core_reg) * DSP563XX_NUMCOREREGS);
 	int i;

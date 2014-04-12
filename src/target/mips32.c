@@ -252,7 +252,7 @@ struct reg_cache *mips32_build_reg_cache(struct target *target)
 	int num_regs = MIPS32NUMCOREREGS;
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	struct reg *reg_list = malloc(sizeof(struct reg) * num_regs);
+	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct mips32_core_reg *arch_info = malloc(sizeof(struct mips32_core_reg) * num_regs);
 	int i;
 

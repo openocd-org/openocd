@@ -178,7 +178,7 @@ static struct reg_cache *avr32_build_reg_cache(struct target *target)
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	struct reg *reg_list = malloc(sizeof(struct reg) * num_regs);
+	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct avr32_core_reg *arch_info =
 		malloc(sizeof(struct avr32_core_reg) * num_regs);
 	int i;

@@ -513,7 +513,7 @@ static struct reg_cache *or1k_build_reg_cache(struct target *target)
 	struct or1k_common *or1k = target_to_or1k(target);
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
-	struct reg *reg_list = malloc((or1k->nb_regs) * sizeof(struct reg));
+	struct reg *reg_list = calloc(or1k->nb_regs, sizeof(struct reg));
 	struct or1k_core_reg *arch_info =
 		malloc((or1k->nb_regs) * sizeof(struct or1k_core_reg));
 	struct reg_feature *feature;
