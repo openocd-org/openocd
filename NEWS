@@ -66,7 +66,7 @@ Board, Target, and Interface Configuration Scripts:
 	* TI TMDX570LS31USB (TMS570, Cortex-R4) support scripts
 	* Freescale FRDM-KL25Z, KL46Z board configs
 	* Digilent Zedboard config
-	* Asus RT-N16, Linksys WRT54GL board configs
+	* Asus RT-N16, Linksys WRT54GL, BT HomeHub board configs
 	* Atmel Xplained initial support
 	* Broadcom bcm28155_ap board config
 	* TUMPA, TUMPA Lite interface configs
@@ -77,7 +77,7 @@ Board, Target, and Interface Configuration Scripts:
 
 Server Layer:
 	* Auto-generation of GDB target description for ARMv7-M,
-	  ARM4, nds23, OR1K, Quark
+	  ARM4, nds32, OR1K, Quark
 	* GDB File-I/O Remote Protocol extension support
 	* Default GDB flashing events handlers to initialise and reset
 	  the target automatically when "load" is used
@@ -87,7 +87,7 @@ Documentation:
 	* The official User's Guide was proofread
 	* Example cross-build script
 	* RTOS documentation improvements
-	* Tcl RPC documentation added
+	* Tcl RPC documentation and examples added
 
 Build and Release:
 	* *BSD, OS X, clang, ARM, windows build fixes
