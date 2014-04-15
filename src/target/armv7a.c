@@ -785,7 +785,7 @@ const struct command_registration l2x_cache_command_handlers[] = {
 	{
 		.name = "cache_config",
 		.mode = COMMAND_EXEC,
-		.help = "cache configuation for a target",
+		.help = "cache configuration for a target",
 		.usage = "",
 		.chain = l2_cache_commands,
 	},
