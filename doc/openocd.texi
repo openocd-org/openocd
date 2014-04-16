@@ -6723,10 +6723,12 @@ using @var{mask} to mark ``don't care'' fields.
 @section Misc Commands
 
 @cindex profiling
-@deffn Command {profile} seconds filename
+@deffn Command {profile} seconds filename [start end]
 Profiling samples the CPU's program counter as quickly as possible,
 which is useful for non-intrusive stochastic profiling.
-Saves up to 10000 sampines in @file{filename} using ``gmon.out'' format.
+Saves up to 10000 samples in @file{filename} using ``gmon.out''
+format. Optional @option{start} and @option{end} parameters allow to
+limit the address range.
 @end deffn
 
 @deffn Command {version}
