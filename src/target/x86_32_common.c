@@ -670,6 +670,7 @@ int x86_32_common_read_io(struct target *t, uint32_t addr,
 	/* if CS.D bit=1 then its a 32 bit code segment, else 16 */
 	bool use32 = (buf_get_u32(x86_32->cache->reg_list[CSAR].value, 0, 32)) & CSAR_D;
 	int retval = ERROR_FAIL;
+	bool pg_disabled = false;
 	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, buf=%p", addr, size, buf);
 	check_not_halted(t);
 	if (!buf || !addr) {
@@ -680,6 +681,13 @@ int x86_32_common_read_io(struct target *t, uint32_t addr,
 	if (retval != ERROR_OK) {
 		LOG_ERROR("%s error EDX write", __func__);
 		return retval;
+	}
+	/* to access physical memory, switch off the CR0.PG bit */
+	if (x86_32->is_paging_enabled(t)) {
+		retval = x86_32->disable_paging(t);
+		if (retval != ERROR_OK)
+			return retval;
+		pg_disabled = true;
 	}
 	switch (size) {
 		case BYTE:
@@ -703,6 +711,13 @@ int x86_32_common_read_io(struct target *t, uint32_t addr,
 		default:
 			LOG_ERROR("%s invalid read io size", __func__);
 			return ERROR_FAIL;
+	}
+	/* restore CR0.PG bit if needed */
+	if (pg_disabled) {
+		retval = x86_32->enable_paging(t);
+		if (retval != ERROR_OK)
+			return retval;
+		pg_disabled = false;
 	}
 	uint32_t regval = 0;
 	retval = x86_32->read_hw_reg(t, EAX, &regval, 0);
@@ -729,6 +744,7 @@ int x86_32_common_write_io(struct target *t, uint32_t addr,
 	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, buf=%p", addr, size, buf);
 	check_not_halted(t);
 	int retval = ERROR_FAIL;
+	bool pg_disabled = false;
 	if (!buf || !addr) {
 		LOG_ERROR("%s invalid params buf=%p, addr=%08" PRIx32, __func__, buf, addr);
 		return retval;
@@ -746,6 +762,13 @@ int x86_32_common_write_io(struct target *t, uint32_t addr,
 	if (retval != ERROR_OK) {
 		LOG_ERROR("%s error on EAX write", __func__);
 		return retval;
+	}
+	/* to access physical memory, switch off the CR0.PG bit */
+	if (x86_32->is_paging_enabled(t)) {
+		retval = x86_32->disable_paging(t);
+		if (retval != ERROR_OK)
+			return retval;
+		pg_disabled = true;
 	}
 	switch (size) {
 		case BYTE:
@@ -769,6 +792,13 @@ int x86_32_common_write_io(struct target *t, uint32_t addr,
 		default:
 			LOG_ERROR("%s invalid write io size", __func__);
 			return ERROR_FAIL;
+	}
+	/* restore CR0.PG bit if needed */
+	if (pg_disabled) {
+		retval = x86_32->enable_paging(t);
+		if (retval != ERROR_OK)
+			return retval;
+		pg_disabled = false;
 	}
 	retval = x86_32->transaction_status(t);
 	if (retval != ERROR_OK) {
