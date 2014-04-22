@@ -629,7 +629,7 @@ static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, const uint
 	struct flash_sector *sector = nrf51_find_sector_by_address(bank, offset);
 
 	if (!sector)
-		goto error;
+		return ERROR_FLASH_SECTOR_INVALID;
 
 	if (sector->is_protected)
 		goto error;
