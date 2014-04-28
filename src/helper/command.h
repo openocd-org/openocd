@@ -168,7 +168,7 @@ struct command {
 	struct command *parent;
 	struct command *children;
 	command_handler_t handler;
-	Jim_CmdProc jim_handler;
+	Jim_CmdProc *jim_handler;
 	void *jim_handler_data;
 	enum command_mode mode;
 	struct command *next;
@@ -204,7 +204,7 @@ char *command_name(struct command *c, char delim);
 struct command_registration {
 	const char *name;
 	command_handler_t handler;
-	Jim_CmdProc jim_handler;
+	Jim_CmdProc *jim_handler;
 	void *jim_handler_data;
 	enum command_mode mode;
 	const char *help;
