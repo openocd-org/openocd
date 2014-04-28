@@ -35,7 +35,7 @@
 #define SAM4L_NUM_SECTORS 16
 
 /* Locations in memory map */
-#define SAM4L_FLASH			0x00000000 /* Flash region */
+#define SAM4L_FLASH			((uint32_t)0x00000000) /* Flash region */
 #define SAM4L_FLASH_USER	0x00800000 /* Flash user page region */
 #define SAM4L_FLASHCALW		0x400A0000 /* Flash controller */
 #define SAM4L_CHIPID		0x400E0740 /* Chip Identification */
@@ -253,7 +253,7 @@ static int sam4l_check_page_erased(struct flash_bank *bank, uint32_t pn,
 	/* Issue a quick page read to verify that we've erased this page */
 	res = sam4l_flash_command(bank->target, SAM4L_FCMD_QPR, pn);
 	if (res != ERROR_OK) {
-		LOG_ERROR("Quick page read %d failed", pn);
+		LOG_ERROR("Quick page read %" PRIu32 " failed", pn);
 		return res;
 	}
 
@@ -307,7 +307,7 @@ static int sam4l_probe(struct flash_bank *bank)
 			chip->flash_kb = 512;
 			break;
 		default:
-			LOG_ERROR("Unknown flash size (chip ID is %08X), assuming 128K", id);
+			LOG_ERROR("Unknown flash size (chip ID is %08" PRIx32 "), assuming 128K", id);
 			chip->flash_kb = 128;
 			break;
 	}
@@ -351,8 +351,8 @@ static int sam4l_probe(struct flash_bank *bank)
 	/* Done */
 	chip->probed = true;
 
-	LOG_INFO("SAM4L MCU: %s (Rev %c) (%uKB Flash with %d %dB pages, %uKB RAM)",
-			chip->details ? chip->details->name : "unknown", 'A' + (id & 0xF),
+	LOG_INFO("SAM4L MCU: %s (Rev %c) (%" PRIu32 "KB Flash with %d %" PRId32 "B pages, %" PRIu32 "KB RAM)",
+			chip->details ? chip->details->name : "unknown", (char)('A' + (id & 0xF)),
 			chip->flash_kb, chip->num_pages, chip->page_size, chip->ram_kb);
 
 	return ERROR_OK;

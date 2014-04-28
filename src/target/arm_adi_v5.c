@@ -1225,8 +1225,8 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				      "start address 0x%" PRIx32, component_base,
 				      /* component may take multiple 4K pages */
 				      (uint32_t)(component_base - 0x1000*(c_pid4 >> 4)));
-			command_print(cmd_ctx, "\t\tComponent class is 0x%x, %s",
-					(c_cid1 >> 4) & 0xf,
+			command_print(cmd_ctx, "\t\tComponent class is 0x%" PRIx8 ", %s",
+					(uint8_t)((c_cid1 >> 4) & 0xf),
 					/* See ARM IHI 0029B Table 3-3 */
 					class_description[(c_cid1 >> 4) & 0xf]);
 
@@ -1337,8 +1337,8 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 					}
 					break;
 				}
-				command_print(cmd_ctx, "\t\tType is 0x%02x, %s, %s",
-						devtype & 0xff,
+				command_print(cmd_ctx, "\t\tType is 0x%02" PRIx8 ", %s, %s",
+						(uint8_t)(devtype & 0xff),
 						major, subtype);
 				/* REVISIT also show 0xfc8 DevId */
 			}

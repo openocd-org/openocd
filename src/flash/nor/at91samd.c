@@ -26,7 +26,7 @@
 
 #define SAMD_NUM_SECTORS	16
 
-#define SAMD_FLASH			0x00000000	/* physical Flash memory */
+#define SAMD_FLASH			((uint32_t)0x00000000)	/* physical Flash memory */
 #define SAMD_DSU			0x41002000	/* Device Service Unit */
 #define SAMD_NVMCTRL		0x41004000	/* Non-volatile memory controller */
 
@@ -218,7 +218,7 @@ static int samd_probe(struct flash_bank *bank)
 	 * multiplied by the number of pages. */
 	if (bank->size != chip->num_pages * chip->page_size) {
 		LOG_WARNING("SAMD: bank size doesn't match NVM parameters. "
-				"Identified %uKB Flash but NVMCTRL reports %u %uB pages",
+				"Identified %" PRIu32 "KB Flash but NVMCTRL reports %u %" PRIu32 "B pages",
 				part->flash_kb, chip->num_pages, chip->page_size);
 	}
 
@@ -243,7 +243,7 @@ static int samd_probe(struct flash_bank *bank)
 	/* Done */
 	chip->probed = true;
 
-	LOG_INFO("SAMD MCU: %s (%uKB Flash, %uKB RAM)", part->name,
+	LOG_INFO("SAMD MCU: %s (%" PRIu32 "KB Flash, %" PRIu32 "KB RAM)", part->name,
 			part->flash_kb, part->ram_kb);
 
 	return ERROR_OK;
@@ -337,7 +337,7 @@ static int samd_erase_row(struct flash_bank *bank, uint32_t address)
 	}
 
 	if (res != ERROR_OK || error)  {
-		LOG_ERROR("Failed to erase row containing %08X" PRIx32, address);
+		LOG_ERROR("Failed to erase row containing %08" PRIx32, address);
 		return ERROR_FAIL;
 	}
 

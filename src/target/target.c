@@ -5712,7 +5712,7 @@ COMMAND_HANDLER(handle_test_mem_access_command)
 					read_buf[i] = read_ref[i];
 				}
 				command_print_sameline(CMD_CTX,
-						"Test read %d x %d @ %d to %saligned buffer: ", count,
+						"Test read %" PRIu32 " x %d @ %d to %saligned buffer: ", count,
 						size, offset, host_offset ? "un" : "");
 
 				struct duration bench;
@@ -5784,7 +5784,7 @@ out:
 				for (size_t i = 0; i < host_bufsiz; i++)
 					write_buf[i] = rand();
 				command_print_sameline(CMD_CTX,
-						"Test write %d x %d @ %d from %saligned buffer: ", count,
+						"Test write %" PRIu32 " x %d @ %d from %saligned buffer: ", count,
 						size, offset, host_offset ? "un" : "");
 
 				retval = target_write_memory(target, wa->address, 1, num_bytes, test_pattern);
