@@ -2232,12 +2232,12 @@ static int cortex_a8_write_phys_memory(struct target *target,
 			 * with MVA to PoU
 			 *      MCR p15, 0, r0, c7, c5, 1
 			 */
-			for (uint32_t cacheline = address;
-				cacheline < address + size * count;
+			for (uint32_t cacheline = 0;
+				cacheline < size * count;
 				cacheline += 64) {
 				retval = dpm->instr_write_data_r0(dpm,
 						ARMV4_5_MCR(15, 0, 0, 7, 5, 1),
-						cacheline);
+						address + cacheline);
 				if (retval != ERROR_OK)
 					return retval;
 			}
@@ -2249,12 +2249,12 @@ static int cortex_a8_write_phys_memory(struct target *target,
 			 * with MVA to PoC
 			 *      MCR p15, 0, r0, c7, c6, 1
 			 */
-			for (uint32_t cacheline = address;
-				cacheline < address + size * count;
+			for (uint32_t cacheline = 0;
+				cacheline < size * count;
 				cacheline += 64) {
 				retval = dpm->instr_write_data_r0(dpm,
 						ARMV4_5_MCR(15, 0, 0, 7, 6, 1),
-						cacheline);
+						address + cacheline);
 				if (retval != ERROR_OK)
 					return retval;
 			}
