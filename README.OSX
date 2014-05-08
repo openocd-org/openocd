@@ -3,8 +3,8 @@ Building OpenOCD for OSX
 
 There are a few prerequisites you will need first:
 
-- Xcode 4 (install from the AppStore)
-- Command Line Tools (install from Xcode 4 -> Preferences -> Downloads)
+- Xcode 5 (install from the AppStore)
+- Command Line Tools (install from Xcode 5 -> Preferences -> Downloads)
 - MacPorts (http://www.macports.org/install.php)
   or
 - Homebrew (http://mxcl.github.io/homebrew/)
