@@ -380,7 +380,7 @@ static int swd_select(struct command_context *ctx)
 		return ERROR_FAIL;
 	}
 
-	retval = swd->init(1);
+	retval = swd->init();
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("can't init SWD driver");
 		return retval;

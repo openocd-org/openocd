@@ -58,17 +58,13 @@ static inline uint8_t swd_cmd(bool is_read, bool is_ap, uint8_t regnum)
 struct swd_driver {
 	/**
 	 * Initialize the debug link so it can perform SWD operations.
-	 * @param trn value from WCR: how many clocks
-	 * to not drive the SWDIO line at certain points in
-	 * the SWD protocol (at least 1 clock).
 	 *
 	 * As an example, this would switch a dual-mode debug adapter
 	 * into SWD mode and out of JTAG mode.
 	 *
 	 * @return ERROR_OK on success, else a negative fault code.
 	 */
-	int (*init)(uint8_t trn);
-
+	int (*init)(void);
 
 	/**
 	 * Queued read of an AP or DP register.

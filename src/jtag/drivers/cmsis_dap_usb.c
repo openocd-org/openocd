@@ -828,7 +828,7 @@ static int cmsis_dap_init(void)
 	return ERROR_OK;
 }
 
-static int cmsis_dap_swd_init(uint8_t trn)
+static int cmsis_dap_swd_init(void)
 {
 	int retval;
 

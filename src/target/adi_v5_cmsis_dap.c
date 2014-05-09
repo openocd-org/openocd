@@ -244,7 +244,7 @@ static int cmsis_dap_select(struct command_context *ctx)
 		return ERROR_FAIL;
 	}
 
-	retval = swd->init(1);
+	retval = swd->init();
 	if (retval != ERROR_OK) {
 		LOG_ERROR("unable to init CMSIS-DAP driver");
 		return retval;
