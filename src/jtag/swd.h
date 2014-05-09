@@ -31,7 +31,7 @@
 #define SWD_CMD_A32	(3 << 3)		/* bits A[3:2] of register addr */
 #define SWD_CMD_PARITY	(1 << 5)	/* parity of APnDP|RnW|A32 */
 #define SWD_CMD_STOP	(0 << 6)	/* always clear for synch SWD */
-#define SWD_CMD_PARK	(0 << 7)	/* not driven by host (pull high) */
+#define SWD_CMD_PARK	(1 << 7)	/* driven high by host */
 /* followed by TRN, 3-bits of ACK, TRN */
 
 /**
