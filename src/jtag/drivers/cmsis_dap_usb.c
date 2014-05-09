@@ -975,73 +975,6 @@ static const struct command_registration cmsis_dap_subcommand_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-COMMAND_HANDLER(cmsis_dap_reset_command)
-{
-	LOG_DEBUG("cmsis_dap_reset_command");
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(cmsis_dap_jtag_command)
-{
-	LOG_DEBUG("cmsis_dap_jtag_command");
-	return ERROR_OK;
-}
-
-static const struct command_registration cmsis_dap_jtag_subcommand_handlers[] = {
-	{
-		.name = "init",
-		.mode = COMMAND_ANY,
-		.handler = cmsis_dap_jtag_command,
-		.usage = ""
-	 },
-	{
-		.name = "arp_init",
-		.mode = COMMAND_ANY,
-		.handler = cmsis_dap_jtag_command,
-		.usage = ""
-	 },
-	{
-		.name = "arp_init-reset",
-		.mode = COMMAND_ANY,
-		.handler = cmsis_dap_reset_command,
-		.usage = ""
-	 },
-	{
-		.name = "tapisenabled",
-		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_tap_enabler,
-	 },
-	{
-		.name = "tapenable",
-		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_tap_enabler,
-	 },
-	{
-		.name = "tapdisable",
-		.mode = COMMAND_EXEC,
-		.handler = cmsis_dap_jtag_command,
-		.usage = "",
-	 },
-	{
-		.name = "configure",
-		.mode = COMMAND_EXEC,
-		.handler = cmsis_dap_jtag_command,
-		.usage = "",
-	 },
-	{
-		.name = "cget",
-		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_configure,
-	 },
-	{
-		.name = "names",
-		.mode = COMMAND_ANY,
-		.handler = cmsis_dap_jtag_command,
-		.usage = "",
-	 },
-	 COMMAND_REGISTRATION_DONE
-};
-
 static const struct command_registration cmsis_dap_command_handlers[] = {
 	{
 		.name = "cmsis-dap",
@@ -1056,14 +989,6 @@ static const struct command_registration cmsis_dap_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "the vendor ID and product ID of the CMSIS-DAP device",
 		.usage = "(vid pid)* ",
-	},
-	{
-		/* this is currently a nasty hack so we get
-		 * reset working with non jtag interfaces */
-		.name = "jtag",
-		.mode = COMMAND_ANY,
-		.usage = "",
-		.chain = cmsis_dap_jtag_subcommand_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
