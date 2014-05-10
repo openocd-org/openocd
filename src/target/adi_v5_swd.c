@@ -72,13 +72,22 @@ static int swd_finish_read(struct adiv5_dap *dap)
 static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data);
 
-static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
+static int swd_clear_sticky_errors(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
 	return swd->write_reg(swd_cmd(false,  false, DP_ABORT),
 		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+}
+
+static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
+{
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
+	return swd->write_reg(swd_cmd(false,  false, DP_ABORT),
+		DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
 }
 
 /** Select the DP register bank matching bits 7:4 of reg. */
@@ -114,8 +123,7 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 
 	if (retval != ERROR_OK) {
 		/* fault response */
-		uint8_t ack = retval & 0xff;
-		swd_queue_ap_abort(dap, &ack);
+		swd_clear_sticky_errors(dap);
 	}
 
 	return retval;
@@ -142,8 +150,7 @@ static int (swd_queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
 
 	if (retval != ERROR_OK) {
 		/* fault response */
-		uint8_t ack = retval & 0xff;
-		swd_queue_ap_abort(dap, &ack);
+		swd_clear_sticky_errors(dap);
 	}
 
 	return retval;
@@ -179,8 +186,7 @@ static int (swd_queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
 
 	if (retval != ERROR_OK) {
 		/* fault response */
-		uint8_t ack = retval & 0xff;
-		swd_queue_ap_abort(dap, &ack);
+		swd_clear_sticky_errors(dap);
 		return retval;
 	}
 
@@ -207,8 +213,7 @@ static int (swd_queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
 
 	if (retval != ERROR_OK) {
 		/* fault response */
-		uint8_t ack = retval & 0xff;
-		swd_queue_ap_abort(dap, &ack);
+		swd_clear_sticky_errors(dap);
 	}
 
 	return retval;
@@ -447,15 +452,13 @@ static int swd_init(struct command_context *ctx)
 
  /* Note, debugport_init() does setup too */
 
-	uint8_t ack;
-
 	status = swd_queue_dp_read(dap, DP_IDCODE, &idcode);
 
 	if (status == ERROR_OK)
 		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
 
 	/* force clear all sticky faults */
-	swd_queue_ap_abort(dap, &ack);
+	swd_clear_sticky_errors(dap);
 
 	/* this is a workaround to get polling working */
 	jtag_add_reset(0, 0);
