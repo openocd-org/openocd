@@ -61,7 +61,7 @@ static struct transport *transport_list;
  * currently selected debug adapter supports.  This is declared
  * by the time that adapter is fully set up.
  */
-static const char **allowed_transports;
+static const char * const *allowed_transports;
 
 /** * The transport being used for the current OpenOCD session.  */
 static struct transport *session;
@@ -94,7 +94,7 @@ static int transport_select(struct command_context *ctx, const char *name)
  * to declare the set of transports supported by an adapter.  When
  * there is only one member of that set, it is automatically selected.
  */
-int allow_transports(struct command_context *ctx, const char **vector)
+int allow_transports(struct command_context *ctx, const char * const *vector)
 {
 	/* NOTE:  caller is required to provide only a list
 	 * of *valid* transport names
@@ -242,7 +242,7 @@ COMMAND_HANDLER(handle_transport_init)
 		LOG_ERROR("session's transport is not selected.");
 
 		/* no session transport configured, print transports then fail */
-		const char **vector = allowed_transports;
+		const char * const *vector = allowed_transports;
 		while (*vector) {
 			LOG_ERROR("allow transport '%s'", *vector);
 			vector++;

@@ -79,7 +79,7 @@ int transport_register_commands(struct command_context *ctx);
 
 COMMAND_HELPER(transport_list_parse, char ***vector);
 
-int allow_transports(struct command_context *ctx, const char **vector);
+int allow_transports(struct command_context *ctx, const char * const *vector);
 
 bool transports_are_declared(void);
 

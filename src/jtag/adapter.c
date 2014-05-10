@@ -48,7 +48,7 @@
  */
 
 extern struct jtag_interface *jtag_interface;
-const char *jtag_only[] = { "jtag", NULL };
+const char * const jtag_only[] = { "jtag", NULL };
 
 static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
