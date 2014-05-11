@@ -44,18 +44,9 @@ noinst_HEADERS = \
 	replacements.h \
 	fileio.h \
 	system.h \
-	bin2char.c \
+	bin2char.sh \
 	jim-nvp.h
 
 EXTRA_DIST = startup.tcl
-
-BIN2C = bin2char$(EXEEXT_FOR_BUILD)
-
-BUILT_SOURCES = $(BIN2C)
-
-$(BIN2C): bin2char.c
-	${CC_FOR_BUILD} ${CFLAGS_FOR_BUILD} $(srcdir)/bin2char.c -o $@
-
-CLEANFILES = bin2char$(EXEEXT_FOR_BUILD)
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
