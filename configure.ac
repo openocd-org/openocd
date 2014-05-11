@@ -1248,47 +1248,6 @@ if test $gcc_warnings = yes; then
   CFLAGS="$CFLAGS $GCC_WARNINGS"
 fi
 
-# Setup for compiling build tools
-AC_MSG_CHECKING([for a C compiler for build tools])
-if test $cross_compiling = yes; then
-  AC_CHECK_PROGS(CC_FOR_BUILD, gcc cc)
-  CFLAGS_FOR_BUILD="-g -O2 $GCC_WARNINGS"
-else
-  CC_FOR_BUILD=$CC
-  CFLAGS_FOR_BUILD=$CFLAGS
-fi
-
-AC_MSG_RESULT([$CC_FOR_BUILD])
-AC_SUBST([CC_FOR_BUILD])
-AC_SUBST([CFLAGS_FOR_BUILD])
-
-AC_MSG_CHECKING([for suffix of executable build tools])
-if test $cross_compiling = yes; then
-  cat >conftest.c <<\_______EOF
-int main ()
-{
-  exit (0);
-}
-_______EOF
-  for i in .exe ""; do
-    compile="$CC_FOR_BUILD conftest.c -o conftest$i"
-    if AC_TRY_EVAL(compile); then
-      if (./conftest) 2>&AC_FD_CC; then
-        EXEEXT_FOR_BUILD=$i
-        break
-      fi
-    fi
-  done
-  rm -f conftest*
-  if test "${EXEEXT_FOR_BUILD+set}" != set; then
-    AC_MSG_ERROR([Cannot determine suffix of executable build tools])
-  fi
-else
-  EXEEXT_FOR_BUILD=$EXEEXT
-fi
-AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
-AC_SUBST([EXEEXT_FOR_BUILD])
-
 AC_CONFIG_FILES([
   Makefile
   src/Makefile
