@@ -212,7 +212,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ct
 		if (ejtag_info->pa_ctrl & EJTAG_CTRL_PRNW) {						/* write/store access */
 			/* Check for pending store from a previous store instruction at dmseg */
 			if (store_pending == 0) {
-				LOG_DEBUG("unexpected write at address %x", ejtag_info->pa_addr);
+				LOG_DEBUG("unexpected write at address %" PRIx32, ejtag_info->pa_addr);
 				if (code_count < 2) {	/* allow for restart */
 					restart = 1;
 					continue;
@@ -222,7 +222,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ct
 				/* check address */
 				if (ejtag_info->pa_addr < MIPS32_PRACC_PARAM_OUT || ejtag_info->pa_addr > max_store_addr) {
 
-					LOG_DEBUG("writing at unexpected address %x", ejtag_info->pa_addr);
+					LOG_DEBUG("writing at unexpected address %" PRIx32, ejtag_info->pa_addr);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -241,7 +241,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ct
 			 if (!final_check) {			/* executing function code */
 				/* check address */
 				if (ejtag_info->pa_addr != (MIPS32_PRACC_TEXT + code_count * 4)) {
-					LOG_DEBUG("reading at unexpected address %x, expected %x",
+					LOG_DEBUG("reading at unexpected address %" PRIx32 ", expected %x",
 							ejtag_info->pa_addr, MIPS32_PRACC_TEXT + code_count * 4);
 
 					/* restart code execution only in some cases */
@@ -283,7 +283,7 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ct
 					}
 				} else {
 					if (ejtag_info->pa_addr != (MIPS32_PRACC_TEXT + code_count * 4)) {
-						LOG_DEBUG("unexpected read address in final check: %x, expected: %x",
+						LOG_DEBUG("unexpected read address in final check: %" PRIx32 ", expected: %x",
 							  ejtag_info->pa_addr, MIPS32_PRACC_TEXT + code_count * 4);
 						return ERROR_JTAG_DEVICE_ERROR;
 					}
