@@ -29,6 +29,7 @@
 #endif
 
 #include <jtag/interface.h>
+#include <jtag/swd.h>
 #include <jtag/commands.h>
 #include "libusb_common.h"
 
@@ -201,6 +202,11 @@ static char *jlink_hw_type_str[] = {
 	"J-Link Pro",
 };
 
+#define JLINK_TIF_JTAG		0
+#define JLINK_TIF_SWD		1
+#define JLINK_SWD_DIR_IN	0
+#define JLINK_SWD_DIR_OUT	1
+
 /* Queue command functions */
 static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
@@ -211,6 +217,9 @@ static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 static void jlink_reset(int trst, int srst);
 static void jlink_simple_command(uint8_t command);
 static int jlink_get_status(void);
+static int jlink_swd_run_queue(struct adiv5_dap *dap);
+static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst, uint32_t data);
+static int jlink_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq);
 
 /* J-Link tap buffer functions */
 static void jlink_tap_init(void);
@@ -253,6 +262,9 @@ static uint16_t pids[] = { 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0 };
 
 static uint32_t jlink_caps;
 static uint32_t jlink_hw_type;
+
+static int queued_retval;
+static bool swd_mode;
 
 /* 256 byte non-volatile memory */
 struct jlink_config {
@@ -529,11 +541,17 @@ static int jlink_init(void)
 	 *
 	 * Segger recommends to select interface necessarily as a part of init process,
 	 * in case any previous session leaves improper interface selected.
-	 *
-	 * Until SWD implemented, select only JTAG interface here.
 	 */
+	int retval;
 	if (jlink_caps & (1<<EMU_CAP_SELECT_IF))
-		jlink_select_interface(0);
+		retval = jlink_select_interface(swd_mode ? JLINK_TIF_SWD : JLINK_TIF_JTAG);
+	else
+		retval = swd_mode ? ERROR_JTAG_DEVICE_ERROR : ERROR_OK;
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Selected transport mode is not supported.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
 	LOG_INFO("J-Link JTAG Interface ready");
 
@@ -541,11 +559,19 @@ static int jlink_init(void)
 	jtag_sleep(3000);
 	jlink_tap_init();
 
-	/* v5/6 jlink seems to have an issue if the first tap move
-	 * is not divisible by 8, so we send a TLR on first power up */
-	for (i = 0; i < 8; i++)
-		jlink_tap_append_step(1, 0);
-	jlink_tap_execute();
+	if (!swd_mode) {
+		/* v5/6 jlink seems to have an issue if the first tap move
+		 * is not divisible by 8, so we send a TLR on first power up */
+		for (i = 0; i < 8; i++)
+			jlink_tap_append_step(1, 0);
+		jlink_tap_execute();
+	}
+
+	if (swd_mode)
+		jlink_swd_switch_seq(NULL, JTAG_TO_SWD);
+	else
+		jlink_swd_switch_seq(NULL, SWD_TO_JTAG);
+	jlink_swd_run_queue(NULL);
 
 	return ERROR_OK;
 }
@@ -1294,10 +1320,50 @@ static const struct command_registration jlink_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+static int jlink_swd_init(void)
+{
+	LOG_INFO("JLink SWD mode enabled");
+	swd_mode = true;
+
+	return ERROR_OK;
+}
+
+static void jlink_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t value)
+{
+	assert(!(cmd & SWD_CMD_RnW));
+	jlink_swd_queue_cmd(dap, cmd, NULL, value);
+}
+
+static void jlink_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value)
+{
+	assert(cmd & SWD_CMD_RnW);
+	jlink_swd_queue_cmd(dap, cmd, value, 0);
+}
+
+static int_least32_t jlink_swd_frequency(struct adiv5_dap *dap, int_least32_t hz)
+{
+	if (hz > 0)
+		jlink_speed(hz);
+
+	return hz;
+}
+
+static const struct swd_driver jlink_swd = {
+	.init = jlink_swd_init,
+	.frequency = jlink_swd_frequency,
+	.switch_seq = jlink_swd_switch_seq,
+	.read_reg = jlink_swd_read_reg,
+	.write_reg = jlink_swd_write_reg,
+	.run = jlink_swd_run_queue,
+};
+
+static const char * const jlink_transports[] = { "jtag", "swd", NULL };
+
 struct jtag_interface jlink_interface = {
 	.name = "jlink",
 	.commands = jlink_command_handlers,
-	.transports = jtag_only,
+	.transports = jlink_transports,
+	.swd = &jlink_swd,
 
 	.execute_queue = jlink_execute_queue,
 	.speed = jlink_speed,
@@ -1312,6 +1378,7 @@ struct jtag_interface jlink_interface = {
 
 
 static unsigned tap_length;
+/* In SWD mode use tms buffer for direction control */
 static uint8_t tms_buffer[JLINK_TAP_BUFFER_SIZE];
 static uint8_t tdi_buffer[JLINK_TAP_BUFFER_SIZE];
 static uint8_t tdo_buffer[JLINK_TAP_BUFFER_SIZE];
@@ -1320,7 +1387,7 @@ struct pending_scan_result {
 	int first;	/* First bit position in tdo_buffer to read */
 	int length; /* Number of bits to read */
 	struct scan_command *command; /* Corresponding scan command */
-	uint8_t *buffer;
+	void *buffer;
 };
 
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -1463,6 +1530,184 @@ static int jlink_tap_execute(void)
 
 	jlink_tap_init();
 	return ERROR_OK;
+}
+
+static void fill_buffer(uint8_t *buf, uint32_t val, uint32_t len)
+{
+	unsigned int tap_pos = tap_length;
+
+	while (len > 32) {
+		buf_set_u32(buf, tap_pos, 32, val);
+		len -= 32;
+		tap_pos += 32;
+	}
+	if (len)
+		buf_set_u32(buf, tap_pos, len, val);
+}
+
+static void jlink_queue_data_out(const uint8_t *data, uint32_t len)
+{
+	const uint32_t dir_out = 0xffffffff;
+
+	if (data)
+		bit_copy(tdi_buffer, tap_length, data, 0, len);
+	else
+		fill_buffer(tdi_buffer, 0, len);
+	fill_buffer(tms_buffer, dir_out, len);
+	tap_length += len;
+}
+
+static void jlink_queue_data_in(uint32_t len)
+{
+	const uint32_t dir_in = 0;
+
+	fill_buffer(tms_buffer, dir_in, len);
+	tap_length += len;
+}
+
+static int jlink_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
+{
+	const uint8_t *s;
+	unsigned int s_len;
+
+	switch (seq) {
+	case LINE_RESET:
+		LOG_DEBUG("SWD line reset");
+		s = swd_seq_line_reset;
+		s_len = swd_seq_line_reset_len;
+		break;
+	case JTAG_TO_SWD:
+		LOG_DEBUG("JTAG-to-SWD");
+		s = swd_seq_jtag_to_swd;
+		s_len = swd_seq_jtag_to_swd_len;
+		break;
+	case SWD_TO_JTAG:
+		LOG_DEBUG("SWD-to-JTAG");
+		s = swd_seq_swd_to_jtag;
+		s_len = swd_seq_swd_to_jtag_len;
+		break;
+	default:
+		LOG_ERROR("Sequence %d not supported", seq);
+		return ERROR_FAIL;
+	}
+
+	jlink_queue_data_out(s, s_len);
+
+	return ERROR_OK;
+}
+
+static int jlink_swd_run_queue(struct adiv5_dap *dap)
+{
+	LOG_DEBUG("Executing %d queued transactions", pending_scan_results_length);
+	int retval;
+
+	if (queued_retval != ERROR_OK) {
+		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
+		goto skip;
+	}
+
+	/* A transaction must be followed by another transaction or at least 8 idle cycles to
+	 * ensure that data is clocked through the AP. */
+	jlink_queue_data_out(NULL, 8);
+
+	size_t byte_length = DIV_ROUND_UP(tap_length, 8);
+
+	/* There's a comment in jlink_tap_execute saying JLink returns
+	 * an extra NULL in packet when size of incoming message is a
+	 * multiple of 64. Someone should verify if that's still the
+	 * case with the current jlink firmware */
+
+	usb_out_buffer[0] = EMU_CMD_HW_JTAG3;
+	usb_out_buffer[1] = 0;
+	usb_out_buffer[2] = (tap_length >> 0) & 0xff;
+	usb_out_buffer[3] = (tap_length >> 8) & 0xff;
+	memcpy(usb_out_buffer + 4, tms_buffer, byte_length);
+	memcpy(usb_out_buffer + 4 + byte_length, tdi_buffer, byte_length);
+
+	retval = jlink_usb_message(jlink_handle, 4 + 2 * byte_length,
+				   byte_length + 1);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("jlink_swd_run_queue failed USB io (%d)", retval);
+		goto skip;
+	}
+
+	retval = usb_in_buffer[byte_length];
+	if (retval) {
+		LOG_ERROR("jlink_swd_run_queue failed, result %d", retval);
+		goto skip;
+	}
+
+	for (int i = 0; i < pending_scan_results_length; i++) {
+		int ack = buf_get_u32(usb_in_buffer, pending_scan_results_buffer[i].first, 3);
+
+		if (ack != SWD_ACK_OK) {
+			LOG_ERROR("SWD ack not OK: %d %s", ack,
+				  ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK");
+			queued_retval = ack;
+			goto skip;
+		} else if (pending_scan_results_buffer[i].length) {
+			uint32_t data = buf_get_u32(usb_in_buffer, 3 + pending_scan_results_buffer[i].first, 32);
+			int parity = buf_get_u32(usb_in_buffer, 3 + 32 + pending_scan_results_buffer[i].first, 1);
+
+			if (parity != parity_u32(data)) {
+				LOG_ERROR("SWD Read data parity mismatch");
+				queued_retval = ERROR_FAIL;
+				goto skip;
+			}
+
+			if (pending_scan_results_buffer[i].buffer)
+				*(uint32_t *)pending_scan_results_buffer[i].buffer = data;
+		}
+	}
+
+skip:
+	jlink_tap_init();
+	retval = queued_retval;
+	queued_retval = ERROR_OK;
+
+	return retval;
+}
+
+static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst, uint32_t data)
+{
+	uint8_t data_parity_trn[DIV_ROUND_UP(32 + 1, 8)];
+	if (tap_length + 46 + 8 + dap->memaccess_tck >= sizeof(tdi_buffer) * 8 ||
+	    pending_scan_results_length == MAX_PENDING_SCAN_RESULTS) {
+		/* Not enough room in the queue. Run the queue. */
+		queued_retval = jlink_swd_run_queue(dap);
+	}
+
+	if (queued_retval != ERROR_OK)
+		return;
+
+	cmd |= SWD_CMD_START | SWD_CMD_PARK;
+
+	jlink_queue_data_out(&cmd, 8);
+
+	pending_scan_results_buffer[pending_scan_results_length].first = tap_length;
+
+	if (cmd & SWD_CMD_RnW) {
+		/* Queue a read transaction */
+		pending_scan_results_buffer[pending_scan_results_length].length = 32;
+		pending_scan_results_buffer[pending_scan_results_length].buffer = dst;
+
+		jlink_queue_data_in(1 + 3 + 32 + 1 + 1);
+	} else {
+		/* Queue a write transaction */
+		pending_scan_results_buffer[pending_scan_results_length].length = 0;
+		jlink_queue_data_in(1 + 3 + 1);
+
+		buf_set_u32(data_parity_trn, 0, 32, data);
+		buf_set_u32(data_parity_trn, 32, 1, parity_u32(data));
+
+		jlink_queue_data_out(data_parity_trn, 32 + 1);
+	}
+
+	pending_scan_results_length++;
+
+	/* Insert idle cycles after AP accesses to avoid WAIT */
+	if (cmd & SWD_CMD_APnDP)
+		jlink_queue_data_out(NULL, dap->memaccess_tck);
 }
 
 /*****************************************************************************/
