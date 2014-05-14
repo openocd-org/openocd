@@ -429,9 +429,6 @@ static int swd_init(struct command_context *ctx)
 	if (status == ERROR_OK)
 		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
 
-	/* this is a workaround to get polling working */
-	jtag_add_reset(0, 0);
-
 	return status;
 }
 

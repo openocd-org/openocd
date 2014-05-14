@@ -166,6 +166,9 @@ bool is_jtag_poll_safe(void)
 	 * It is also implicitly disabled while TRST is active and
 	 * while SRST is gating the JTAG clock.
 	 */
+	if (!transport_is_jtag())
+		return jtag_poll;
+
 	if (!jtag_poll || jtag_trst != 0)
 		return false;
 	return jtag_srst == 0 || (jtag_reset_config & RESET_SRST_NO_GATING);
