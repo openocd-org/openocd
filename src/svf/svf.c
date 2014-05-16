@@ -1171,7 +1171,7 @@ XXR_common:
 					svf_add_check_para(0, svf_buffer_index, i);
 				field.num_bits = i;
 				field.out_value = &svf_tdi_buffer[svf_buffer_index];
-				field.in_value = &svf_tdi_buffer[svf_buffer_index];
+				field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
 				if (!svf_nil) {
 					/* NOTE:  doesn't use SVF-specified state paths */
 					jtag_add_plain_dr_scan(field.num_bits,
@@ -1261,7 +1261,7 @@ XXR_common:
 					svf_add_check_para(0, svf_buffer_index, i);
 				field.num_bits = i;
 				field.out_value = &svf_tdi_buffer[svf_buffer_index];
-				field.in_value = &svf_tdi_buffer[svf_buffer_index];
+				field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
 				if (!svf_nil) {
 					/* NOTE:  doesn't use SVF-specified state paths */
 					jtag_add_plain_ir_scan(field.num_bits,
