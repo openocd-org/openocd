@@ -5,21 +5,36 @@ There are a few prerequisites you will need first:
 
 - Xcode 5 (install from the AppStore)
 - Command Line Tools (install from Xcode 5 -> Preferences -> Downloads)
-- MacPorts (http://www.macports.org/install.php)
+- Gentoo Prefix (http://www.gentoo.org/proj/en/gentoo-alt/prefix/bootstrap.xml)
   or
 - Homebrew (http://mxcl.github.io/homebrew/)
+  or
+- MacPorts (http://www.macports.org/install.php)
 
-libtool, automake, autoconf, pkg-config and libusb can be easily
-installed via MacPorts:
-  sudo port install libtool automake autoconf pkgconfig libusb [libusb-compat]
-or with Homebrew:
-  brew install libtool automake libusb [libusb-compat] [hidapi]
+
+With Gentoo Prefix you can build the release version or the latest
+devel version (-9999) the usual way described in the Gentoo
+documentation. Alternatively, install the prerequisites and build
+manually from the sources.
+
+
+With Homebrew you can either run:
+  brew install [--HEAD] openocd (where optional --HEAD asks brew to
+                                 install the current git version)
+    or
+  brew install libtool automake libusb [libusb-compat] [hidapi] [libftdi]
+    (to install the needed dependencies and then proceed with the
+     manual building procedure)
+
+
+For building with MacPorts you need to run:
+  sudo port install libtool automake autoconf pkgconfig \
+    libusb [libusb-compat] [libftdi1]
 
 You should also specify LDFLAGS and CPPFLAGS to allow configure to use
 MacPorts' libraries, so run configure like this:
   LDFLAGS=-L/opt/local/lib CPPFLAGS=-I/opt/local/include ./configure [options]
 
-If you're using Homebrew, no custom flags are necessary.
 
 See README for the generic building instructions.
 
