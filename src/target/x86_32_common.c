@@ -172,14 +172,14 @@ static int read_phys_mem(struct target *t, uint32_t phys_address,
 {
 	int retval = ERROR_OK;
 	bool pg_disabled = false;
-	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, count=%d, buf=%p",
+	LOG_DEBUG("addr=0x%08" PRIx32 ", size=%" PRIu32 ", count=0x%" PRIx32 ", buf=%p",
 			phys_address, size, count, buffer);
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 
 	if (check_not_halted(t))
 		return ERROR_TARGET_NOT_HALTED;
 	if (!count || !buffer || !phys_address) {
-		LOG_ERROR("%s invalid params count=%d, buf=%p, addr=%08" PRIx32,
+		LOG_ERROR("%s invalid params count=0x%" PRIx32 ", buf=%p, addr=0x%08" PRIx32,
 				__func__, count, buffer, phys_address);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
@@ -187,8 +187,10 @@ static int read_phys_mem(struct target *t, uint32_t phys_address,
 	/* to access physical memory, switch off the CR0.PG bit */
 	if (x86_32->is_paging_enabled(t)) {
 		retval = x86_32->disable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not disable paging", __func__);
 			return retval;
+		}
 		pg_disabled = true;
 	}
 
@@ -211,8 +213,10 @@ static int read_phys_mem(struct target *t, uint32_t phys_address,
 	/* restore CR0.PG bit if needed (regardless of retval) */
 	if (pg_disabled) {
 		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not enable paging", __func__);
 			return retval;
+		}
 		pg_disabled = true;
 	}
 	/* TODO: After reading memory from target, we must replace
@@ -231,7 +235,7 @@ int x86_32_common_write_phys_mem(struct target *t, uint32_t phys_address,
 
 	check_not_halted(t);
 	if (!count || !buffer || !phys_address) {
-		LOG_ERROR("%s invalid params count=%d, buf=%p, addr=%08" PRIx32,
+		LOG_ERROR("%s invalid params count=0x%" PRIx32 ", buf=%p, addr=0x%08" PRIx32,
 				__func__, count, buffer, phys_address);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
@@ -272,12 +276,12 @@ static int write_phys_mem(struct target *t, uint32_t phys_address,
 	int retval = ERROR_OK;
 	bool pg_disabled = false;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, count=%d, buf=%p",
+	LOG_DEBUG("addr=0x%08" PRIx32 ", size=%" PRIu32 ", count=0x%" PRIx32 ", buf=%p",
 			phys_address, size, count, buffer);
 
 	check_not_halted(t);
 	if (!count || !buffer || !phys_address) {
-		LOG_ERROR("%s invalid params count=%d, buf=%p, addr=%08" PRIx32,
+		LOG_ERROR("%s invalid params count=0x%" PRIx32 ", buf=%p, addr=0x%08" PRIx32,
 				__func__, count, buffer, phys_address);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
@@ -290,8 +294,10 @@ static int write_phys_mem(struct target *t, uint32_t phys_address,
 	/* to access physical memory, switch off the CR0.PG bit */
 	if (x86_32->is_paging_enabled(t)) {
 		retval = x86_32->disable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not disable paging", __func__);
 			return retval;
+		}
 		pg_disabled = true;
 	}
 	for (uint32_t i = 0; i < count; i++) {
@@ -313,8 +319,10 @@ static int write_phys_mem(struct target *t, uint32_t phys_address,
 	/* restore CR0.PG bit if needed (regardless of retval) */
 	if (pg_disabled) {
 		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not enable paging", __func__);
 			return retval;
+		}
 	}
 	return retval;
 }
@@ -565,11 +573,11 @@ int x86_32_common_read_memory(struct target *t, uint32_t addr,
 {
 	int retval = ERROR_OK;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, count=%d, buf=%p",
+	LOG_DEBUG("addr=0x%08" PRIx32 ", size=%" PRIu32 ", count=0x%" PRIx32 ", buf=%p",
 			addr, size, count, buf);
 	check_not_halted(t);
 	if (!count || !buf || !addr) {
-		LOG_ERROR("%s invalid params count=%d, buf=%p, addr=%08" PRIx32,
+		LOG_ERROR("%s invalid params count=0x%" PRIx32 ", buf=%p, addr=0x%08" PRIx32,
 				__func__, count, buf, addr);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
@@ -579,8 +587,10 @@ int x86_32_common_read_memory(struct target *t, uint32_t addr,
 		 * conversion to physical address space needed
 		 */
 		retval = x86_32->disable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not disable paging", __func__);
 			return retval;
+		}
 		uint32_t physaddr = 0;
 		if (calcaddr_pyhsfromlin(t, addr, &physaddr) != ERROR_OK) {
 			LOG_ERROR("%s failed to calculate physical address from 0x%08" PRIx32, __func__, addr);
@@ -598,8 +608,10 @@ int x86_32_common_read_memory(struct target *t, uint32_t addr,
 		}
 		/* restore PG bit if it was cleared prior (regardless of retval) */
 		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not enable paging", __func__);
 			return retval;
+		}
 	} else {
 		/* paging is off - linear address is physical address */
 		if (x86_32_common_read_phys_mem(t, addr, size, count, buf) != ERROR_OK) {
@@ -616,11 +628,11 @@ int x86_32_common_write_memory(struct target *t, uint32_t addr,
 {
 	int retval = ERROR_OK;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, count=%d, buf=%p",
+	LOG_DEBUG("addr=0x%08" PRIx32 ", size=%" PRIu32 ", count=0x%" PRIx32 ", buf=%p",
 			addr, size, count, buf);
 	check_not_halted(t);
 	if (!count || !buf || !addr) {
-		LOG_ERROR("%s invalid params count=%d, buf=%p, addr=%08" PRIx32,
+		LOG_ERROR("%s invalid params count=0x%" PRIx32 ", buf=%p, addr=0x%08" PRIx32,
 					__func__, count, buf, addr);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
@@ -629,8 +641,10 @@ int x86_32_common_write_memory(struct target *t, uint32_t addr,
 		 * conversion to physical address space needed
 		 */
 		retval = x86_32->disable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not disable paging", __func__);
 			return retval;
+		}
 		uint32_t physaddr = 0;
 		if (calcaddr_pyhsfromlin(t, addr, &physaddr) != ERROR_OK) {
 			LOG_ERROR("%s failed to calculate physical address from 0x%08" PRIx32,
@@ -649,8 +663,10 @@ int x86_32_common_write_memory(struct target *t, uint32_t addr,
 		}
 		/* restore PG bit if it was cleared prior (regardless of retval) */
 		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not enable paging", __func__);
 			return retval;
+		}
 	} else {
 
 		/* paging is off - linear address is physical address */
@@ -671,7 +687,7 @@ int x86_32_common_read_io(struct target *t, uint32_t addr,
 	bool use32 = (buf_get_u32(x86_32->cache->reg_list[CSAR].value, 0, 32)) & CSAR_D;
 	int retval = ERROR_FAIL;
 	bool pg_disabled = false;
-	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, buf=%p", addr, size, buf);
+	LOG_DEBUG("addr=0x%08" PRIx32 ", size=%" PRIu32 ", buf=%p", addr, size, buf);
 	check_not_halted(t);
 	if (!buf || !addr) {
 		LOG_ERROR("%s invalid params buf=%p, addr=%08" PRIx32, __func__, buf, addr);
@@ -685,8 +701,10 @@ int x86_32_common_read_io(struct target *t, uint32_t addr,
 	/* to access physical memory, switch off the CR0.PG bit */
 	if (x86_32->is_paging_enabled(t)) {
 		retval = x86_32->disable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not disable paging", __func__);
 			return retval;
+		}
 		pg_disabled = true;
 	}
 	switch (size) {
@@ -715,8 +733,10 @@ int x86_32_common_read_io(struct target *t, uint32_t addr,
 	/* restore CR0.PG bit if needed */
 	if (pg_disabled) {
 		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not enable paging", __func__);
 			return retval;
+		}
 		pg_disabled = false;
 	}
 	uint32_t regval = 0;
@@ -741,12 +761,12 @@ int x86_32_common_write_io(struct target *t, uint32_t addr,
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	/* if CS.D bit=1 then its a 32 bit code segment, else 16 */
 	bool use32 = (buf_get_u32(x86_32->cache->reg_list[CSAR].value, 0, 32)) & CSAR_D;
-	LOG_DEBUG("addr=%08" PRIx32 ", size=%d, buf=%p", addr, size, buf);
+	LOG_DEBUG("addr=0x%08" PRIx32 ", size=%" PRIu32 ", buf=%p", addr, size, buf);
 	check_not_halted(t);
 	int retval = ERROR_FAIL;
 	bool pg_disabled = false;
 	if (!buf || !addr) {
-		LOG_ERROR("%s invalid params buf=%p, addr=%08" PRIx32, __func__, buf, addr);
+		LOG_ERROR("%s invalid params buf=%p, addr=0x%08" PRIx32, __func__, buf, addr);
 		return retval;
 	}
 	/* no do the write */
@@ -766,8 +786,10 @@ int x86_32_common_write_io(struct target *t, uint32_t addr,
 	/* to access physical memory, switch off the CR0.PG bit */
 	if (x86_32->is_paging_enabled(t)) {
 		retval = x86_32->disable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not disable paging", __func__);
 			return retval;
+		}
 		pg_disabled = true;
 	}
 	switch (size) {
@@ -796,8 +818,10 @@ int x86_32_common_write_io(struct target *t, uint32_t addr,
 	/* restore CR0.PG bit if needed */
 	if (pg_disabled) {
 		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s could not enable paging", __func__);
 			return retval;
+		}
 		pg_disabled = false;
 	}
 	retval = x86_32->transaction_status(t);
@@ -828,7 +852,7 @@ int x86_32_common_remove_watchpoint(struct target *t, struct watchpoint *wp)
 
 int x86_32_common_add_breakpoint(struct target *t, struct breakpoint *bp)
 {
-	LOG_DEBUG("type=%d, addr=%08" PRIx32, bp->type, bp->address);
+	LOG_DEBUG("type=%d, addr=0x%08" PRIx32, bp->type, bp->address);
 	if (check_not_halted(t))
 		return ERROR_TARGET_NOT_HALTED;
 	/* set_breakpoint() will return ERROR_TARGET_RESOURCE_NOT_AVAILABLE if all
@@ -839,7 +863,7 @@ int x86_32_common_add_breakpoint(struct target *t, struct breakpoint *bp)
 
 int x86_32_common_remove_breakpoint(struct target *t, struct breakpoint *bp)
 {
-	LOG_DEBUG("type=%d, addr=%08" PRIx32, bp->type, bp->address);
+	LOG_DEBUG("type=%d, addr=0x%08" PRIx32, bp->type, bp->address);
 	if (check_not_halted(t))
 		return ERROR_TARGET_NOT_HALTED;
 	if (bp->set)
@@ -852,7 +876,7 @@ static int set_debug_regs(struct target *t, uint32_t address,
 			uint8_t bp_num, uint8_t bp_type, uint8_t bp_length)
 {
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("addr=%08" PRIx32 ", bp_num=%d, bp_type=%d, pb_length=%d",
+	LOG_DEBUG("addr=0x%08" PRIx32 ", bp_num=%" PRIu8 ", bp_type=%" PRIu8 ", pb_length=%" PRIu8,
 			address, bp_num, bp_type, bp_length);
 
 	/* DR7 - set global enable */
@@ -912,14 +936,14 @@ static int set_debug_regs(struct target *t, uint32_t address,
 static int unset_debug_regs(struct target *t, uint8_t bp_num)
 {
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("bp_num=%d", bp_num);
+	LOG_DEBUG("bp_num=%" PRIu8, bp_num);
 
 	uint32_t dr7 = buf_get_u32(x86_32->cache->reg_list[DR7].value, 0, 32);
 
 	if (!(DR7_BP_FREE(dr7, bp_num))) {
 		DR7_GLOBAL_DISABLE(dr7, bp_num);
 	} else {
-		LOG_ERROR("%s dr7 error, not enabled, val=%08" PRIx32, __func__, dr7);
+		LOG_ERROR("%s dr7 error, not enabled, val=0x%08" PRIx32, __func__, dr7);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	/* this will clear rw and len bits */
@@ -949,7 +973,7 @@ static int set_hwbp(struct target *t, struct breakpoint *bp)
 	while (debug_reg_list[hwbp_num].used && (hwbp_num < x86_32->num_hw_bpoints))
 		hwbp_num++;
 	if (hwbp_num >= x86_32->num_hw_bpoints) {
-		LOG_ERROR("%s no free hw breakpoint bpid=%d", __func__, bp->unique_id);
+		LOG_ERROR("%s no free hw breakpoint bpid=0x%" PRIx32, __func__, bp->unique_id);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	if (set_debug_regs(t, bp->address, hwbp_num, DR7_BP_EXECUTE, 1) != ERROR_OK)
@@ -957,7 +981,7 @@ static int set_hwbp(struct target *t, struct breakpoint *bp)
 	bp->set = hwbp_num + 1;
 	debug_reg_list[hwbp_num].used = 1;
 	debug_reg_list[hwbp_num].bp_value = bp->address;
-	LOG_USER("%s hardware breakpoint %d set at 0x%08" PRIx32 " (hwreg=%d)", __func__,
+	LOG_USER("%s hardware breakpoint %" PRIu32 " set at 0x%08" PRIx32 " (hwreg=%" PRIu8 ")", __func__,
 			bp->unique_id, debug_reg_list[hwbp_num].bp_value, hwbp_num);
 	return ERROR_OK;
 }
@@ -969,7 +993,7 @@ static int unset_hwbp(struct target *t, struct breakpoint *bp)
 	int hwbp_num = bp->set - 1;
 
 	if ((hwbp_num < 0) || (hwbp_num >= x86_32->num_hw_bpoints)) {
-		LOG_ERROR("%s invalid breakpoint number=%d, bpid=%d",
+		LOG_ERROR("%s invalid breakpoint number=%d, bpid=%" PRIu32,
 				__func__, hwbp_num, bp->unique_id);
 		return ERROR_OK;
 	}
@@ -979,7 +1003,7 @@ static int unset_hwbp(struct target *t, struct breakpoint *bp)
 	debug_reg_list[hwbp_num].used = 0;
 	debug_reg_list[hwbp_num].bp_value = 0;
 
-	LOG_USER("%s hardware breakpoint %d removed from 0x%08" PRIx32 " (hwreg=%d)",
+	LOG_USER("%s hardware breakpoint %" PRIu32 " removed from 0x%08" PRIx32 " (hwreg=%d)",
 			__func__, bp->unique_id, bp->address, hwbp_num);
 	return ERROR_OK;
 }
@@ -987,7 +1011,7 @@ static int unset_hwbp(struct target *t, struct breakpoint *bp)
 static int set_swbp(struct target *t, struct breakpoint *bp)
 {
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("id %d", bp->unique_id);
+	LOG_DEBUG("id %" PRIx32, bp->unique_id);
 	uint32_t physaddr;
 	uint8_t opcode = SW_BP_OPCODE;
 	uint8_t readback;
@@ -997,7 +1021,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 	if (read_phys_mem(t, physaddr, 1, 1, bp->orig_instr))
 		return ERROR_FAIL;
 
-	LOG_DEBUG("set software breakpoint - orig byte=%02" PRIx8 "", *bp->orig_instr);
+	LOG_DEBUG("set software breakpoint - orig byte=0x%02" PRIx8 "", *bp->orig_instr);
 
 	/* just write the instruction trap byte */
 	if (write_phys_mem(t, physaddr, 1, 1, &opcode))
@@ -1010,7 +1034,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 	if (readback != SW_BP_OPCODE) {
 		LOG_ERROR("%s software breakpoint error at 0x%08" PRIx32 ", check memory",
 				__func__, bp->address);
-		LOG_ERROR("%s readback=%02" PRIx8 " orig=%02" PRIx8 "",
+		LOG_ERROR("%s readback=0x%02" PRIx8 " orig=0x%02" PRIx8 "",
 				__func__, readback, *bp->orig_instr);
 		return ERROR_FAIL;
 	}
@@ -1035,7 +1059,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 			addto = addto->next;
 		addto->next = new_patch;
 	}
-	LOG_USER("%s software breakpoint %d set at 0x%08" PRIx32,
+	LOG_USER("%s software breakpoint %" PRIu32 " set at 0x%08" PRIx32,
 			__func__, bp->unique_id, bp->address);
 	return ERROR_OK;
 }
@@ -1043,7 +1067,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 static int unset_swbp(struct target *t, struct breakpoint *bp)
 {
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("id %d", bp->unique_id);
+	LOG_DEBUG("id %" PRIx32, bp->unique_id);
 	uint32_t physaddr;
 	uint8_t current_instr;
 
@@ -1059,7 +1083,7 @@ static int unset_swbp(struct target *t, struct breakpoint *bp)
 	} else {
 		LOG_ERROR("%s software breakpoint remove error at 0x%08" PRIx32 ", check memory",
 				__func__, bp->address);
-		LOG_ERROR("%s current=%02" PRIx8 " orig=%02" PRIx8 "",
+		LOG_ERROR("%s current=0x%02" PRIx8 " orig=0x%02" PRIx8 "",
 				__func__, current_instr, *bp->orig_instr);
 		return ERROR_FAIL;
 	}
@@ -1083,7 +1107,7 @@ static int unset_swbp(struct target *t, struct breakpoint *bp)
 		}
 	}
 
-	LOG_USER("%s software breakpoint %d removed from 0x%08" PRIx32,
+	LOG_USER("%s software breakpoint %" PRIu32 " removed from 0x%08" PRIx32,
 			__func__, bp->unique_id, bp->address);
 	return ERROR_OK;
 }
@@ -1092,7 +1116,7 @@ static int set_breakpoint(struct target *t, struct breakpoint *bp)
 {
 	int error = ERROR_OK;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	LOG_DEBUG("type=%d, addr=%08" PRIx32, bp->type, bp->address);
+	LOG_DEBUG("type=%d, addr=0x%08" PRIx32, bp->type, bp->address);
 	if (bp->set) {
 		LOG_ERROR("breakpoint already set");
 		return error;
@@ -1123,7 +1147,7 @@ static int set_breakpoint(struct target *t, struct breakpoint *bp)
 
 static int unset_breakpoint(struct target *t, struct breakpoint *bp)
 {
-	LOG_DEBUG("type=%d, addr=%08" PRIx32, bp->type, bp->address);
+	LOG_DEBUG("type=%d, addr=0x%08" PRIx32, bp->type, bp->address);
 	if (!bp->set) {
 		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
@@ -1151,7 +1175,7 @@ static int set_watchpoint(struct target *t, struct watchpoint *wp)
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	struct x86_32_dbg_reg *debug_reg_list = x86_32->hw_break_list;
 	int wp_num = 0;
-	LOG_DEBUG("type=%d, addr=%08" PRIx32, wp->rw, wp->address);
+	LOG_DEBUG("type=%d, addr=0x%08" PRIx32, wp->rw, wp->address);
 
 	if (wp->set) {
 		LOG_ERROR("%s watchpoint already set", __func__);
@@ -1196,7 +1220,7 @@ static int set_watchpoint(struct target *t, struct watchpoint *wp)
 	wp->set = wp_num + 1;
 	debug_reg_list[wp_num].used = 1;
 	debug_reg_list[wp_num].bp_value = wp->address;
-	LOG_USER("'%s' watchpoint %d set at 0x%08" PRIx32 " with length %d (hwreg=%d)",
+	LOG_USER("'%s' watchpoint %d set at 0x%08" PRIx32 " with length %" PRIu32 " (hwreg=%d)",
 			wp->rw == WPT_READ ? "read" : wp->rw == WPT_WRITE ?
 			"write" : wp->rw == WPT_ACCESS ? "access" : "?",
 			wp->unique_id, wp->address, wp->length, wp_num);
@@ -1207,7 +1231,7 @@ static int unset_watchpoint(struct target *t, struct watchpoint *wp)
 {
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	struct x86_32_dbg_reg *debug_reg_list = x86_32->hw_break_list;
-	LOG_DEBUG("type=%d, addr=%08" PRIx32, wp->rw, wp->address);
+	LOG_DEBUG("type=%d, addr=0x%08" PRIx32, wp->rw, wp->address);
 	if (!wp->set) {
 		LOG_WARNING("watchpoint not set");
 		return ERROR_OK;
@@ -1225,7 +1249,7 @@ static int unset_watchpoint(struct target *t, struct watchpoint *wp)
 	debug_reg_list[wp_num].bp_value = 0;
 	wp->set = 0;
 
-	LOG_USER("'%s' watchpoint %d removed from 0x%08" PRIx32 " with length %d (hwreg=%d)",
+	LOG_USER("'%s' watchpoint %d removed from 0x%08" PRIx32 " with length %" PRIu32 " (hwreg=%d)",
 			wp->rw == WPT_READ ? "read" : wp->rw == WPT_WRITE ?
 			"write" : wp->rw == WPT_ACCESS ? "access" : "?",
 			wp->unique_id, wp->address, wp->length, wp_num);
@@ -1334,7 +1358,7 @@ COMMAND_HANDLER(handle_iod_command)
 	uint32_t address;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 	if (address > 0xffff) {
-		LOG_ERROR("%s IA-32 I/O space is 2^16, %08" PRIx32 " exceeds max", __func__, address);
+		LOG_ERROR("%s IA-32 I/O space is 2^16, 0x%08" PRIx32 " exceeds max", __func__, address);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1368,7 +1392,7 @@ static int target_fill_io(struct target *target,
 		/* value */
 		uint32_t b)
 {
-	LOG_DEBUG("address=%08X, data_size=%d, b=%08X",
+	LOG_DEBUG("address=0x%08" PRIx32 ", data_size=%u, b=0x%08" PRIx32,
 			address, data_size, b);
 	uint8_t target_buf[data_size];
 	switch (data_size) {

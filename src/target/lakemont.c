@@ -342,7 +342,7 @@ static int lakemont_get_core_reg(struct reg *reg)
 	struct target *t = lakemont_reg->target;
 	if (check_not_halted(t))
 		return ERROR_TARGET_NOT_HALTED;
-	LOG_DEBUG("reg=%s, value=%08" PRIx32, reg->name,
+	LOG_DEBUG("reg=%s, value=0x%08" PRIx32, reg->name,
 			buf_get_u32(reg->value, 0, 32));
 	return retval;
 }
@@ -352,7 +352,7 @@ static int lakemont_set_core_reg(struct reg *reg, uint8_t *buf)
 	struct lakemont_core_reg *lakemont_reg = reg->arch_info;
 	struct target *t = lakemont_reg->target;
 	uint32_t value = buf_get_u32(buf, 0, 32);
-	LOG_DEBUG("reg=%s, newval=%08" PRIx32, reg->name, value);
+	LOG_DEBUG("reg=%s, newval=0x%08" PRIx32, reg->name, value);
 	if (check_not_halted(t))
 		return ERROR_TARGET_NOT_HALTED;
 	buf_set_u32(reg->value, 0, 32, value);
@@ -444,7 +444,7 @@ static int enter_probemode(struct target *t)
 {
 	uint32_t tapstatus = 0;
 	tapstatus = get_tapstatus(t);
-	LOG_DEBUG("TS before PM enter = %08" PRIx32, tapstatus);
+	LOG_DEBUG("TS before PM enter = 0x%08" PRIx32, tapstatus);
 	if (tapstatus & TS_PM_BIT) {
 		LOG_DEBUG("core already in probemode");
 		return ERROR_OK;
@@ -456,11 +456,11 @@ static int enter_probemode(struct target *t)
 	if (drscan(t, scan.out, scan.in, 1) != ERROR_OK)
 		return ERROR_FAIL;
 	tapstatus = get_tapstatus(t);
-	LOG_DEBUG("TS after PM enter = %08" PRIx32, tapstatus);
+	LOG_DEBUG("TS after PM enter = 0x%08" PRIx32, tapstatus);
 	if ((tapstatus & TS_PM_BIT) && (!(tapstatus & TS_EN_PM_BIT)))
 		return ERROR_OK;
 	else {
-		LOG_ERROR("%s PM enter error, tapstatus = %08" PRIx32
+		LOG_ERROR("%s PM enter error, tapstatus = 0x%08" PRIx32
 				, __func__, tapstatus);
 		return ERROR_FAIL;
 	}
@@ -469,7 +469,7 @@ static int enter_probemode(struct target *t)
 static int exit_probemode(struct target *t)
 {
 	uint32_t tapstatus = get_tapstatus(t);
-	LOG_DEBUG("TS before PM exit = %08" PRIx32, tapstatus);
+	LOG_DEBUG("TS before PM exit = 0x%08" PRIx32, tapstatus);
 
 	if (!(tapstatus & TS_PM_BIT)) {
 		LOG_USER("core not in PM");
@@ -490,16 +490,16 @@ static int halt_prep(struct target *t)
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	if (write_hw_reg(t, DSB, PM_DSB, 0) != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_DEBUG("write %s %08" PRIx32, regs[DSB].name, PM_DSB);
+	LOG_DEBUG("write %s 0x%08" PRIx32, regs[DSB].name, PM_DSB);
 	if (write_hw_reg(t, DSL, PM_DSL, 0) != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_DEBUG("write %s %08" PRIx32, regs[DSL].name, PM_DSL);
+	LOG_DEBUG("write %s 0x%08" PRIx32, regs[DSL].name, PM_DSL);
 	if (write_hw_reg(t, DSAR, PM_DSAR, 0) != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_DEBUG("write DSAR %08" PRIx32, PM_DSAR);
+	LOG_DEBUG("write DSAR 0x%08" PRIx32, PM_DSAR);
 	if (write_hw_reg(t, DR7, PM_DR7, 0) != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_DEBUG("write DR7 %08" PRIx32, PM_DR7);
+	LOG_DEBUG("write DR7 0x%08" PRIx32, PM_DR7);
 
 	uint32_t eflags = buf_get_u32(x86_32->cache->reg_list[EFLAGS].value, 0, 32);
 	uint32_t csar = buf_get_u32(x86_32->cache->reg_list[CSAR].value, 0, 32);
@@ -507,7 +507,7 @@ static int halt_prep(struct target *t)
 	uint32_t cr0 = buf_get_u32(x86_32->cache->reg_list[CR0].value, 0, 32);
 
 	/* clear VM86 and IF bits if they are set */
-	LOG_DEBUG("EFLAGS = %08" PRIx32 ", VM86 = %d, IF = %d", eflags,
+	LOG_DEBUG("EFLAGS = 0x%08" PRIx32 ", VM86 = %d, IF = %d", eflags,
 			eflags & EFLAGS_VM86 ? 1 : 0,
 			eflags & EFLAGS_IF ? 1 : 0);
 	if (eflags & EFLAGS_VM86
@@ -515,7 +515,7 @@ static int halt_prep(struct target *t)
 		x86_32->pm_regs[I(EFLAGS)] = eflags & ~(EFLAGS_VM86 | EFLAGS_IF);
 		if (write_hw_reg(t, EFLAGS, x86_32->pm_regs[I(EFLAGS)], 0) != ERROR_OK)
 			return ERROR_FAIL;
-		LOG_DEBUG("EFLAGS now = %08" PRIx32 ", VM86 = %d, IF = %d",
+		LOG_DEBUG("EFLAGS now = 0x%08" PRIx32 ", VM86 = %d, IF = %d",
 				x86_32->pm_regs[I(EFLAGS)],
 				x86_32->pm_regs[I(EFLAGS)] & EFLAGS_VM86 ? 1 : 0,
 				x86_32->pm_regs[I(EFLAGS)] & EFLAGS_IF ? 1 : 0);
@@ -526,23 +526,23 @@ static int halt_prep(struct target *t)
 		x86_32->pm_regs[I(CSAR)] = csar & ~CSAR_DPL;
 		if (write_hw_reg(t, CSAR, x86_32->pm_regs[I(CSAR)], 0) != ERROR_OK)
 			return ERROR_FAIL;
-		LOG_DEBUG("write CSAR_CPL to 0 %08" PRIx32, x86_32->pm_regs[I(CSAR)]);
+		LOG_DEBUG("write CSAR_CPL to 0 0x%08" PRIx32, x86_32->pm_regs[I(CSAR)]);
 	}
 	if (ssar & SSAR_DPL) {
 		x86_32->pm_regs[I(SSAR)] = ssar & ~CSAR_DPL;
 		if (write_hw_reg(t, SSAR, x86_32->pm_regs[I(SSAR)], 0) != ERROR_OK)
 			return ERROR_FAIL;
-		LOG_DEBUG("write SSAR_CPL to 0 %08" PRIx32, x86_32->pm_regs[I(SSAR)]);
+		LOG_DEBUG("write SSAR_CPL to 0 0x%08" PRIx32, x86_32->pm_regs[I(SSAR)]);
 	}
 
 	/* if cache's are enabled, disable and flush */
 	if (!(cr0 & CR0_CD)) {
-		LOG_DEBUG("caching enabled CR0 = %08" PRIx32, cr0);
+		LOG_DEBUG("caching enabled CR0 = 0x%08" PRIx32, cr0);
 		if (cr0 & CR0_PG) {
 			x86_32->pm_regs[I(CR0)] = cr0 & ~CR0_PG;
 			if (write_hw_reg(t, CR0, x86_32->pm_regs[I(CR0)], 0) != ERROR_OK)
 				return ERROR_FAIL;
-			LOG_DEBUG("cleared paging CR0_PG = %08" PRIx32, x86_32->pm_regs[I(CR0)]);
+			LOG_DEBUG("cleared paging CR0_PG = 0x%08" PRIx32, x86_32->pm_regs[I(CR0)]);
 			/* submit wbinvd to flush cache */
 			if (submit_reg_pir(t, WBINVD) != ERROR_OK)
 				return ERROR_FAIL;
@@ -550,7 +550,7 @@ static int halt_prep(struct target *t)
 				x86_32->pm_regs[I(CR0)] | (CR0_CD | CR0_NW | CR0_PG);
 			if (write_hw_reg(t, CR0, x86_32->pm_regs[I(CR0)], 0) != ERROR_OK)
 				return ERROR_FAIL;
-			LOG_DEBUG("set CD, NW and PG, CR0 = %08" PRIx32, x86_32->pm_regs[I(CR0)]);
+			LOG_DEBUG("set CD, NW and PG, CR0 = 0x%08" PRIx32, x86_32->pm_regs[I(CR0)]);
 		}
 	}
 	return ERROR_OK;
@@ -590,7 +590,8 @@ static int do_resume(struct target *t)
 static int read_all_core_hw_regs(struct target *t)
 {
 	int err;
-	uint32_t regval, i;
+	uint32_t regval;
+	unsigned i;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	for (i = 0; i < (x86_32->cache->num_regs); i++) {
 		if (NOT_AVAIL_REG == regs[i].pm_idx)
@@ -602,14 +603,14 @@ static int read_all_core_hw_regs(struct target *t)
 			return err;
 		}
 	}
-	LOG_DEBUG("read_all_core_hw_regs read %d registers ok", i);
+	LOG_DEBUG("read_all_core_hw_regs read %u registers ok", i);
 	return ERROR_OK;
 }
 
 static int write_all_core_hw_regs(struct target *t)
 {
 	int err;
-	uint32_t i;
+	unsigned i;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	for (i = 0; i < (x86_32->cache->num_regs); i++) {
 		if (NOT_AVAIL_REG == regs[i].pm_idx)
@@ -621,7 +622,7 @@ static int write_all_core_hw_regs(struct target *t)
 			return err;
 		}
 	}
-	LOG_DEBUG("write_all_core_hw_regs wrote %d registers ok", i);
+	LOG_DEBUG("write_all_core_hw_regs wrote %u registers ok", i);
 	return ERROR_OK;
 }
 
@@ -652,7 +653,7 @@ static int read_hw_reg(struct target *t, int reg, uint32_t *regval, uint8_t cach
 		x86_32->cache->reg_list[reg].valid = 1;
 		x86_32->cache->reg_list[reg].dirty = 0;
 	}
-	LOG_DEBUG("reg=%s, op=0x%016" PRIx64 ", val=%08" PRIx32,
+	LOG_DEBUG("reg=%s, op=0x%016" PRIx64 ", val=0x%08" PRIx32,
 			x86_32->cache->reg_list[reg].name,
 			arch_info->op,
 			*regval);
@@ -670,7 +671,7 @@ static int write_hw_reg(struct target *t, int reg, uint32_t regval, uint8_t cach
 	if (cache)
 		regval = buf_get_u32(x86_32->cache->reg_list[reg].value, 0, 32);
 	buf_set_u32(reg_buf, 0, 32, regval);
-	LOG_DEBUG("reg=%s, op=0x%016" PRIx64 ", val=%08" PRIx32,
+	LOG_DEBUG("reg=%s, op=0x%016" PRIx64 ", val=0x%08" PRIx32,
 			x86_32->cache->reg_list[reg].name,
 			arch_info->op,
 			regval);
@@ -749,7 +750,7 @@ static int transaction_status(struct target *t)
 {
 	uint32_t tapstatus = get_tapstatus(t);
 	if ((TS_EN_PM_BIT | TS_PRDY_BIT) & tapstatus) {
-		LOG_ERROR("%s transaction error tapstatus = %08" PRIx32
+		LOG_ERROR("%s transaction error tapstatus = 0x%08" PRIx32
 				, __func__, tapstatus);
 		return ERROR_FAIL;
 	} else {
@@ -865,7 +866,7 @@ int lakemont_poll(struct target *t)
 
 		if ((ts & TS_PM_BIT) && (ts & TS_PMCR_BIT)) {
 
-			LOG_DEBUG("redirect to PM, tapstatus=%08" PRIx32, get_tapstatus(t));
+			LOG_DEBUG("redirect to PM, tapstatus=0x%08" PRIx32, get_tapstatus(t));
 
 			t->state = TARGET_DEBUG_RUNNING;
 			if (save_context(t) != ERROR_OK)
@@ -893,7 +894,7 @@ int lakemont_poll(struct target *t)
 				uint32_t dr7 = buf_get_u32(x86_32->cache->reg_list[DR7].value, 0, 32);
 				uint32_t type = dr7 & (0x03 << (DR7_RW_SHIFT + hwbreakpoint*DR7_RW_LEN_SIZE));
 				if (type == DR7_BP_EXECUTE) {
-					LOG_USER("hit hardware breakpoint (hwreg=%d) at 0x%08" PRIx32, hwbreakpoint, eip);
+					LOG_USER("hit hardware breakpoint (hwreg=%" PRIu32 ") at 0x%08" PRIx32, hwbreakpoint, eip);
 				} else {
 					uint32_t address = 0;
 					switch (hwbreakpoint) {
@@ -911,7 +912,7 @@ int lakemont_poll(struct target *t)
 						address = buf_get_u32(x86_32->cache->reg_list[DR3].value, 0, 32);
 					break;
 					}
-					LOG_USER("hit '%s' watchpoint for 0x%08" PRIx32 " (hwreg=%d) at 0x%08" PRIx32,
+					LOG_USER("hit '%s' watchpoint for 0x%08" PRIx32 " (hwreg=%" PRIu32 ") at 0x%08" PRIx32,
 								type == DR7_BP_WRITE ? "write" : "access", address,
 								hwbreakpoint, eip);
 				}
@@ -1044,11 +1045,11 @@ int lakemont_step(struct target *t, int current,
 	}
 
 	/* Set EFLAGS[TF] and PMCR[IR], exit pm and wait for PRDY# */
-	LOG_DEBUG("modifying PMCR = %d and EFLAGS = %08" PRIx32, pmcr, eflags);
+	LOG_DEBUG("modifying PMCR = 0x%08" PRIx32 " and EFLAGS = 0x%08" PRIx32, pmcr, eflags);
 	eflags = eflags | (EFLAGS_TF | EFLAGS_RF);
 	buf_set_u32(x86_32->cache->reg_list[EFLAGS].value, 0, 32, eflags);
 	buf_set_u32(x86_32->cache->reg_list[PMCR].value, 0, 32, 1);
-	LOG_DEBUG("EFLAGS [TF] [RF] bits set=%08" PRIx32 ", PMCR=%d, EIP=%08" PRIx32,
+	LOG_DEBUG("EFLAGS [TF] [RF] bits set=0x%08" PRIx32 ", PMCR=0x%08" PRIx32 ", EIP=0x%08" PRIx32,
 			eflags, pmcr, eip);
 
 	tapstatus = get_tapstatus(t);

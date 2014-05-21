@@ -34,6 +34,7 @@
 
 #include <jtag/jtag.h>
 #include <helper/command.h>
+#include <helper/types.h>
 
 extern const struct command_registration x86_32_command_handlers[];
 
@@ -42,27 +43,27 @@ extern const struct command_registration x86_32_command_handlers[];
 #define WORD			2
 #define DWORD			4
 
-#define EFLAGS_TF		0x00000100 /* Trap Flag */
-#define EFLAGS_IF		0x00000200 /* Interrupt Flag */
-#define EFLAGS_RF		0x00010000 /* Resume Flag */
-#define EFLAGS_VM86		0x00020000 /* Virtual 8086 Mode */
+#define EFLAGS_TF		((uint32_t)0x00000100) /* Trap Flag */
+#define EFLAGS_IF		((uint32_t)0x00000200) /* Interrupt Flag */
+#define EFLAGS_RF		((uint32_t)0x00010000) /* Resume Flag */
+#define EFLAGS_VM86		((uint32_t)0x00020000) /* Virtual 8086 Mode */
 
-#define CSAR_DPL		0x00006000
-#define CSAR_D			0x00400000
-#define SSAR_DPL		0x00006000
+#define CSAR_DPL		((uint32_t)0x00006000)
+#define CSAR_D			((uint32_t)0x00400000)
+#define SSAR_DPL		((uint32_t)0x00006000)
 
-#define CR0_PE			0x00000001 /* Protected Mode Enable */
-#define CR0_NW			0x20000000 /* Non Write-Through */
-#define CR0_CD			0x40000000 /* Cache Disable */
-#define CR0_PG			0x80000000 /* Paging Enable */
+#define CR0_PE			((uint32_t)0x00000001) /* Protected Mode Enable */
+#define CR0_NW			((uint32_t)0x20000000) /* Non Write-Through */
+#define CR0_CD			((uint32_t)0x40000000) /* Cache Disable */
+#define CR0_PG			((uint32_t)0x80000000) /* Paging Enable */
 
 /* TODO - move back to PM specific file */
-#define PM_DR6			0xFFFF0FF0
+#define PM_DR6			((uint32_t)0xFFFF0FF0)
 
-#define DR6_BRKDETECT_0		0x00000001 /* B0 through B3 */
-#define DR6_BRKDETECT_1		0x00000002 /* breakpoint condition detected */
-#define DR6_BRKDETECT_2		0x00000004
-#define DR6_BRKDETECT_3		0x00000008
+#define DR6_BRKDETECT_0		((uint32_t)0x00000001) /* B0 through B3 */
+#define DR6_BRKDETECT_1		((uint32_t)0x00000002) /* breakpoint condition detected */
+#define DR6_BRKDETECT_2		((uint32_t)0x00000004)
+#define DR6_BRKDETECT_3		((uint32_t)0x00000008)
 
 enum {
 	/* general purpose registers */

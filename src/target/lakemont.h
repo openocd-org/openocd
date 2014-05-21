@@ -32,6 +32,7 @@
 #ifndef LAKEMONT_H
 #define LAKEMONT_H
 #include <jtag/jtag.h>
+#include <helper/types.h>
 
 /* The Intel Quark SoC X1000 Core is codenamed lakemont */
 
@@ -59,18 +60,18 @@
 /* needed during lakemont probemode */
 #define NOT_PMREG		0xfe
 #define NOT_AVAIL_REG		0xff
-#define PM_DSB			0x00000000
-#define PM_DSL			0xFFFFFFFF
-#define PM_DSAR			0x004F9300
-#define PM_DR7			0x00000400
+#define PM_DSB			((uint32_t)0x00000000)
+#define PM_DSL			((uint32_t)0xFFFFFFFF)
+#define PM_DSAR			((uint32_t)0x004F9300)
+#define PM_DR7			((uint32_t)0x00000400)
 #define DELAY_SUBMITPIR		0 /* for now 0 is working */
 
 /* lakemont tapstatus bits */
-#define TS_PRDY_BIT		0x00000001
-#define TS_EN_PM_BIT		0x00000002
-#define TS_PM_BIT		0x00000004
-#define TS_PMCR_BIT		0x00000008
-#define TS_SBP_BIT		0x00000010
+#define TS_PRDY_BIT		((uint32_t)0x00000001)
+#define TS_EN_PM_BIT		((uint32_t)0x00000002)
+#define TS_PM_BIT		((uint32_t)0x00000004)
+#define TS_PMCR_BIT		((uint32_t)0x00000008)
+#define TS_SBP_BIT		((uint32_t)0x00000010)
 
 struct lakemont_core_reg {
 	uint32_t num;
