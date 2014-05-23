@@ -2418,8 +2418,12 @@ static int handle_target(void *priv)
 				return retval;
 			}
 			/* Since we succeeded, we reset backoff count */
-			if (target->backoff.times > 0)
-				LOG_USER("Polling target %s succeeded again", target_name(target));
+			if (target->backoff.times > 0) {
+				LOG_USER("Polling target %s succeeded again, trying to reexamine", target_name(target));
+				target_reset_examined(target);
+				target_examine_one(target);
+			}
+
 			target->backoff.times = 0;
 		}
 	}
