@@ -923,6 +923,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		break;
 	case 0x440: /* stm32f05x */
 	case 0x444: /* stm32f03x */
+	case 0x445: /* stm32f04x */
 		page_size = 1024;
 		stm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 64;
@@ -1191,6 +1192,20 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	case 0x440:
 		device_str = "STM32F05x";
+
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "1.0";
+			break;
+
+		case 0x2000:
+			rev_str = "2.0";
+			break;
+		}
+		break;
+
+	case 0x445:
+		device_str = "STM32F04x";
 
 		switch (rev_id) {
 		case 0x1000:
