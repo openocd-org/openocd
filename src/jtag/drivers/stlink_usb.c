@@ -126,6 +126,9 @@ struct stlink_usb_handle_s {
 		/** trace module clock prescaler */
 		uint32_t prescale;
 	} trace;
+	/** reconnect is needed next time we try to query the
+	 * status */
+	bool reconnect_pending;
 };
 
 #define STLINK_DEBUG_ERR_OK            0x80
@@ -618,6 +621,20 @@ static int stlink_usb_mode_leave(void *handle, enum stlink_mode type)
 
 static int stlink_usb_assert_srst(void *handle, int srst);
 
+static enum stlink_mode stlink_get_mode(enum hl_transports t)
+{
+	switch (t) {
+	case HL_TRANSPORT_SWD:
+		return STLINK_MODE_DEBUG_SWD;
+	case HL_TRANSPORT_JTAG:
+		return STLINK_MODE_DEBUG_JTAG;
+	case HL_TRANSPORT_SWIM:
+		return STLINK_MODE_DEBUG_SWIM;
+	default:
+		return STLINK_MODE_UNKNOWN;
+	}
+}
+
 /** */
 static int stlink_usb_init_mode(void *handle, bool connect_under_reset)
 {
@@ -691,20 +708,7 @@ static int stlink_usb_init_mode(void *handle, bool connect_under_reset)
 	LOG_DEBUG("MODE: 0x%02X", mode);
 
 	/* set selected mode */
-	switch (h->transport) {
-		case HL_TRANSPORT_SWD:
-			emode = STLINK_MODE_DEBUG_SWD;
-			break;
-		case HL_TRANSPORT_JTAG:
-			emode = STLINK_MODE_DEBUG_JTAG;
-			break;
-		case HL_TRANSPORT_SWIM:
-			emode = STLINK_MODE_DEBUG_SWIM;
-			break;
-		default:
-			emode = STLINK_MODE_UNKNOWN;
-			break;
-	}
+	emode = stlink_get_mode(h->transport);
 
 	if (emode == STLINK_MODE_UNKNOWN) {
 		LOG_ERROR("selected mode (transport) not supported");
@@ -877,8 +881,22 @@ static enum target_state stlink_usb_state(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->jtag_api == STLINK_JTAG_API_V2)
-		return stlink_usb_v2_get_status(handle);
+	if (h->reconnect_pending) {
+		LOG_INFO("Previous state query failed, trying to reconnect");
+		res = stlink_usb_mode_enter(handle, stlink_get_mode(h->transport));
+
+		if (res != ERROR_OK)
+			return TARGET_UNKNOWN;
+
+		h->reconnect_pending = false;
+	}
+
+	if (h->jtag_api == STLINK_JTAG_API_V2) {
+		res = stlink_usb_v2_get_status(handle);
+		if (res == TARGET_UNKNOWN)
+			h->reconnect_pending = true;
+		return res;
+	}
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
@@ -894,6 +912,8 @@ static enum target_state stlink_usb_state(void *handle)
 		return TARGET_RUNNING;
 	if (h->databuf[0] == STLINK_CORE_HALTED)
 		return TARGET_HALTED;
+
+	h->reconnect_pending = true;
 
 	return TARGET_UNKNOWN;
 }
