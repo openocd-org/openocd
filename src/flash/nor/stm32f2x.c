@@ -372,7 +372,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 		return retval;
 
 	/* relock registers */
-	retval = target_write_u32(target, STM32_FLASH_OPTCR, OPT_LOCK);
+	retval = target_write_u32(target, STM32_FLASH_OPTCR, optiondata | OPT_LOCK);
 	if (retval != ERROR_OK)
 		return retval;
 
