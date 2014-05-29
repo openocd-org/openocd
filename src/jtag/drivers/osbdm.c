@@ -107,7 +107,7 @@ static struct queue *queue_alloc(void)
 	return queue;
 }
 
-/* Size of usb communnication buffer */
+/* Size of usb communication buffer */
 #define OSBDM_USB_BUFSIZE 64
 /* Timeout for USB transfer, ms */
 #define OSBDM_USB_TIMEOUT 1000
@@ -150,7 +150,7 @@ static int osbdm_send_and_recv(struct osbdm *osbdm)
 		(char *)osbdm->buffer, osbdm->count, OSBDM_USB_TIMEOUT);
 
 	if (count != osbdm->count) {
-		LOG_ERROR("OSBDM communnication error: can't write");
+		LOG_ERROR("OSBDM communication error: can't write");
 		return ERROR_FAIL;
 	}
 
@@ -165,22 +165,22 @@ static int osbdm_send_and_recv(struct osbdm *osbdm)
 	 */
 
 	if (osbdm->count < 0) {
-		LOG_ERROR("OSBDM communnication error: can't read");
+		LOG_ERROR("OSBDM communication error: can't read");
 		return ERROR_FAIL;
 	}
 
 	if (osbdm->count < 2) {
-		LOG_ERROR("OSBDM communnication error: answer too small");
+		LOG_ERROR("OSBDM communication error: reply too small");
 		return ERROR_FAIL;
 	}
 
 	if (osbdm->count != osbdm->buffer[1])  {
-		LOG_ERROR("OSBDM communnication error: answer size mismatch");
+		LOG_ERROR("OSBDM communication error: reply size mismatch");
 		return ERROR_FAIL;
 	}
 
 	if (cmd_saved != osbdm->buffer[0]) {
-		LOG_ERROR("OSBDM communnication error: answer command mismatch");
+		LOG_ERROR("OSBDM communication error: reply command mismatch");
 		return ERROR_FAIL;
 	}
 
@@ -219,7 +219,7 @@ static int osbdm_swap(struct osbdm *osbdm, void *tms, void *tdi,
 	}
 
 	if (length <= 0) {
-		LOG_ERROR("BUG: bit sequence equal or less to 0");
+		LOG_ERROR("BUG: bit sequence equal or less than 0");
 		return ERROR_FAIL;
 	}
 
@@ -271,7 +271,7 @@ static int osbdm_swap(struct osbdm *osbdm, void *tms, void *tdi,
 	/*	Extra check
 	 */
 	if (((osbdm->buffer[2] << 8) | osbdm->buffer[3]) != 2 * swap_count) {
-		LOG_ERROR("OSBDM communnication error: not proper answer to swap command");
+		LOG_ERROR("OSBDM communication error: invalid swap command reply");
 		return ERROR_FAIL;
 	}
 
@@ -678,7 +678,7 @@ static int osbdm_init(void)
 		return ERROR_FAIL;
 	} else {
 		/* Device successfully opened */
-		LOG_INFO("OSBDM has opened");
+		LOG_DEBUG("OSBDM init");
 	}
 
 	/* Perform initialize command */
