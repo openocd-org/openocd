@@ -67,7 +67,7 @@
 
 #define REG_NAME_WIDTH  (12)
 
-/* at91sam4s series (has always one flash bank)*/
+/* at91sam4s/at91sam4e series (has always one flash bank)*/
 #define FLASH_BANK_BASE_S   0x00400000
 
 /* at91sam4sd series (two one flash banks), first bank address */
@@ -260,6 +260,42 @@ static struct sam4_chip *get_current_sam4(struct command_context *cmd_ctx)
 
 /* these are used to *initialize* the "pChip->details" structure. */
 static const struct sam4_chip_details all_sam4_details[] = {
+
+	/* Start at91sam4e* series */
+	/*atsam4e16e - LQFP144/LFBGA144*/
+	{
+		.chipid_cidr    = 0xA3CC0CE0,
+		.name           = "at91sam4e16e",
+		.total_flash_size     = 1024 * 1024,
+		.total_sram_size      = 128 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6,	/* workaround silicon bug */
+			.present = 1,
+			.size_bytes =  1024 * 1024,
+			.nsectors   =  128,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
 	/* Start at91sam4s* series */
 	/*atsam4s16c - LQFP100/BGA100*/
 	{
@@ -1111,6 +1147,7 @@ static const struct archnames { unsigned value; const char *name; } archnames[] 
 	{ 0x37,  "CAP7 Series"                                                          },
 	{ 0x39,  "CAP9 Series"                                                          },
 	{ 0x3B,  "CAP11 Series"                                                         },
+	{ 0x3C, "ATSAM4E"                                                               },
 	{ 0x40,  "AT91x40 Series"                                                       },
 	{ 0x42,  "AT91x42 Series"                                                       },
 	{ 0x43,  "SAMG51 Series"
