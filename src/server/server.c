@@ -31,6 +31,7 @@
 #include "server.h"
 #include <target/target.h>
 #include <target/target_request.h>
+#include <target/openrisc/jsp_server.h>
 #include "openocd.h"
 #include "tcl_server.h"
 #include "telnet_server.h"
@@ -45,6 +46,9 @@ static struct service *services;
 
 /* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
 static int shutdown_openocd;
+
+/* set the polling period to 100ms */
+static int polling_period = 100;
 
 static int add_connection(struct service *service, struct command_context *cmd_ctx)
 {
@@ -380,8 +384,8 @@ int server_loop(struct command_context *command_context)
 			tv.tv_usec = 0;
 			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		} else {
-			/* Every 100ms */
-			tv.tv_usec = 100000;
+			/* Every 100ms, can be changed with "poll_period" command */
+			tv.tv_usec = polling_period * 1000;
 			/* Only while we're sleeping we'll let others run */
 			openocd_sleep_prelude();
 			kept_alive();
@@ -588,6 +592,18 @@ COMMAND_HANDLER(handle_shutdown_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_poll_period_command)
+{
+	if (CMD_ARGC == 0)
+		LOG_WARNING("You need to set a period value");
+	else
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], polling_period);
+
+	LOG_INFO("set servers polling period to %ums", polling_period);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration server_command_handlers[] = {
 	{
 		.name = "shutdown",
@@ -595,6 +611,13 @@ static const struct command_registration server_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "",
 		.help = "shut the server down",
+	},
+	{
+		.name = "poll_period",
+		.handler = &handle_poll_period_command,
+		.mode = COMMAND_ANY,
+		.usage = "",
+		.help = "set the servers polling period",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -606,6 +629,10 @@ int server_register_commands(struct command_context *cmd_ctx)
 		return retval;
 
 	retval = tcl_register_commands(cmd_ctx);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = jsp_register_commands(cmd_ctx);
 	if (ERROR_OK != retval)
 		return retval;
 

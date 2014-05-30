@@ -8,9 +8,11 @@ OPENRISC_SRC = \
 	or1k_du_adv.c \
 	or1k_tap_mohor.c \
 	or1k_tap_vjtag.c \
-	or1k_tap_xilinx_bscan.c
+	or1k_tap_xilinx_bscan.c \
+	jsp_server.c
 
 noinst_HEADERS = \
 	or1k.h \
 	or1k_du.h \
-	or1k_tap.h
+	or1k_tap.h \
+	jsp_server.h

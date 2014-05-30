@@ -73,5 +73,9 @@ static inline struct or1k_du *or1k_to_du(struct or1k_common *or1k)
 	return (struct or1k_du *)jtag->du_core;
 }
 
+int or1k_adv_jtag_jsp_xfer(struct or1k_jtag *jtag_info,
+				  int *out_len, unsigned char *out_buffer,
+				  int *in_len, unsigned char *in_buffer);
+
 #endif
 

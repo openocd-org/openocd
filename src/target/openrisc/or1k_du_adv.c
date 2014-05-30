@@ -1,8 +1,8 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Franck Jullien                                  *
+ *   Copyright (C) 2013-2014 by Franck Jullien                             *
  *   elec4fun@gmail.com                                                    *
  *                                                                         *
- *   Inspired from adv_jtag_bridge which is:                                *
+ *   Inspired from adv_jtag_bridge which is:                               *
  *   Copyright (C) 2008-2010 Nathan Yawn                                   *
  *   nyawn@opencores.net                                                   *
  *                                                                         *
@@ -33,9 +33,18 @@
 #include "or1k_tap.h"
 #include "or1k.h"
 #include "or1k_du.h"
+#include "jsp_server.h"
 
 #include <target/target.h>
 #include <jtag/jtag.h>
+
+#define JSP_BANNER "\n\r" \
+		   "******************************\n\r" \
+		   "**     JTAG Serial Port     **\n\r" \
+		   "******************************\n\r" \
+		   "\n\r"
+
+#define NO_OPTION			0
 
 /* This an option to the adv debug unit.
  * If this is defined, status bits will be skipped on burst
@@ -43,6 +52,17 @@
  * This option must match the RTL configured option.
  */
 #define ADBG_USE_HISPEED		1
+
+/* This an option to the adv debug unit.
+ * If this is defined, the JTAG Serial Port Server is started.
+ * This option must match the RTL configured option.
+ */
+#define ENABLE_JSP_SERVER		2
+
+/* Define this if you intend to use the JSP in a system with multiple
+ * devices on the JTAG chain
+ */
+#define ENABLE_JSP_MULTI		4
 
 /* Definitions for the top-level debug unit.  This really just consists
  * of a single register, used to select the active debug module ("chain").
@@ -181,6 +201,17 @@ static int or1k_adv_jtag_init(struct or1k_jtag *jtag_info)
 
 	if (or1k_du_adv.options & ADBG_USE_HISPEED)
 		LOG_INFO("adv debug unit is configured with option ADBG_USE_HISPEED");
+
+	if (or1k_du_adv.options & ENABLE_JSP_SERVER) {
+		if (or1k_du_adv.options & ENABLE_JSP_MULTI)
+			LOG_INFO("adv debug unit is configured with option ENABLE_JSP_MULTI");
+		LOG_INFO("adv debug unit is configured with option ENABLE_JSP_SERVER");
+		retval = jsp_init(jtag_info, JSP_BANNER);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Couldn't start the JSP server");
+			return retval;
+		}
+	}
 
 	LOG_DEBUG("Init done");
 
@@ -962,9 +993,93 @@ static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 	return ERROR_OK;
 }
 
+int or1k_adv_jtag_jsp_xfer(struct or1k_jtag *jtag_info,
+				  int *out_len, unsigned char *out_buffer,
+				  int *in_len, unsigned char *in_buffer)
+{
+	LOG_DEBUG("JSP transfert");
+
+	int retval;
+	if (!jtag_info->or1k_jtag_inited)
+		return ERROR_OK;
+
+	retval = adbg_select_module(jtag_info, DC_JSP);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* return nb char xmit */
+	int xmitsize;
+	if (*out_len > 8)
+		xmitsize = 8;
+	else
+		xmitsize = *out_len;
+
+	uint8_t out_data[10];
+	uint8_t in_data[10];
+	struct scan_field field;
+	int startbit, stopbit, wrapbit;
+
+	memset(out_data, 0, 10);
+
+	if (or1k_du_adv.options & ENABLE_JSP_MULTI) {
+
+		startbit = 1;
+		wrapbit = (xmitsize >> 3) & 0x1;
+		out_data[0] = (xmitsize << 5) | 0x1;  /* set the start bit */
+
+		int i;
+		/* don't copy off the end of the input array */
+		for (i = 0; i < xmitsize; i++) {
+			out_data[i + 1] = (out_buffer[i] << 1) | wrapbit;
+			wrapbit = (out_buffer[i] >> 7) & 0x1;
+		}
+
+		if (i < 8)
+			out_data[i + 1] = wrapbit;
+		else
+			out_data[9] = wrapbit;
+
+		/* If the last data bit is a '1', then we need to append a '0' so the top-level module
+		 * won't treat the burst as a 'module select' command.
+		 */
+		stopbit = !!(out_data[9] & 0x01);
+
+	} else {
+		startbit = 0;
+		/* First byte out has write count in upper nibble */
+		out_data[0] = 0x0 | (xmitsize << 4);
+		if (xmitsize > 0)
+			memcpy(&out_data[1], out_buffer, xmitsize);
+
+		/* If the last data bit is a '1', then we need to append a '0' so the top-level module
+		 * won't treat the burst as a 'module select' command.
+		 */
+		stopbit = !!(out_data[8] & 0x80);
+	}
+
+	field.num_bits = 72 + startbit + stopbit;
+	field.out_value = out_data;
+	field.in_value = in_data;
+
+	jtag_add_dr_scan(jtag_info->tap, 1, &field, TAP_IDLE);
+
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* bytes available is in the upper nibble */
+	*in_len = (in_data[0] >> 4) & 0xF;
+	memcpy(in_buffer, &in_data[1], *in_len);
+
+	int bytes_free = in_data[0] & 0x0F;
+	*out_len = (bytes_free < xmitsize) ? bytes_free : xmitsize;
+
+	return ERROR_OK;
+}
+
 static struct or1k_du or1k_du_adv = {
 	.name                     = "adv",
-	.options                  = ADBG_USE_HISPEED,
+	.options                  = NO_OPTION,
 	.or1k_jtag_init           = or1k_adv_jtag_init,
 
 	.or1k_is_cpu_running      = or1k_adv_is_cpu_running,
