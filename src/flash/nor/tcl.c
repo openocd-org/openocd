@@ -794,7 +794,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	int retval;
 	retval = CALL_COMMAND_HANDLER(driver->flash_bank_command, c);
 	if (ERROR_OK != retval) {
-		LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 "Usage %s",
+		LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 "; usage: %s",
 			driver_name, c->base, driver->usage);
 		free(c);
 		return retval;
