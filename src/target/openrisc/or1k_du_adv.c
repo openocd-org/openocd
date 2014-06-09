@@ -50,6 +50,7 @@
 #define DBG_MODULE_SELECT_REG_SIZE	2
 #define DBG_MAX_MODULES			4
 
+#define DC_NONE				-1
 #define DC_WISHBONE			0
 #define DC_CPU0				1
 #define DC_CPU1				2
@@ -173,7 +174,7 @@ static int or1k_adv_jtag_init(struct or1k_jtag *jtag_info)
 	jtag_info->or1k_jtag_inited = 1;
 
 	/* TAP reset - not sure what state debug module chain is in now */
-	jtag_info->or1k_jtag_module_selected = -1;
+	jtag_info->or1k_jtag_module_selected = DC_NONE;
 
 	jtag_info->current_reg_idx = malloc(DBG_MAX_MODULES * sizeof(uint8_t));
 	memset(jtag_info->current_reg_idx, 0, DBG_MAX_MODULES * sizeof(uint8_t));
@@ -781,6 +782,8 @@ static int or1k_adv_is_cpu_running(struct or1k_jtag *jtag_info, int *running)
 			return retval;
 	}
 
+	int current = jtag_info->or1k_jtag_module_selected;
+
 	retval = adbg_select_module(jtag_info, DC_CPU0);
 	if (retval != ERROR_OK)
 		return retval;
@@ -794,6 +797,12 @@ static int or1k_adv_is_cpu_running(struct or1k_jtag *jtag_info, int *running)
 		*running = 0;
 	else
 		*running = 1;
+
+	if (current != DC_NONE) {
+		retval = adbg_select_module(jtag_info, current);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	return ERROR_OK;
 }
