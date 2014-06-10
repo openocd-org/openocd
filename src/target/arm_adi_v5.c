@@ -1069,6 +1069,9 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 					case 2:
 						subtype = "Buffer";
 						break;
+					case 3:
+						subtype = "Router";
+						break;
 					}
 					break;
 				case 2:
@@ -1106,6 +1109,9 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 					case 4:
 						subtype = "Bus";
 						break;
+					case 6:
+						subtype = "Software";
+						break;
 					}
 					break;
 				case 4:
@@ -1119,6 +1125,9 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 						break;
 					case 2:
 						subtype = "Debug Auth";
+						break;
+					case 3:
+						subtype = "Power Requestor";
 						break;
 					}
 					break;
@@ -1136,6 +1145,35 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 						break;
 					case 3:
 						subtype = "Engine/Coprocessor";
+						break;
+					case 4:
+						subtype = "Bus";
+						break;
+					case 5:
+						subtype = "Memory";
+						break;
+					}
+					break;
+				case 6:
+					major = "Perfomance Monitor";
+					switch (minor) {
+					case 0:
+						subtype = "other";
+						break;
+					case 1:
+						subtype = "Processor";
+						break;
+					case 2:
+						subtype = "DSP";
+						break;
+					case 3:
+						subtype = "Engine/Coprocessor";
+						break;
+					case 4:
+						subtype = "Bus";
+						break;
+					case 5:
+						subtype = "Memory";
 						break;
 					}
 					break;
@@ -1228,6 +1266,14 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				type = "Coresight ITM";
 				full = "(Instrumentation Trace Macrocell)";
 				break;
+			case 0x917:
+				type = "Coresight HTM";
+				full = "(AHB Trace Macrocell)";
+				break;
+			case 0x920:
+				type = "CoreSight ETM11";
+				full = "(Embedded Trace)";
+				break;
 			case 0x921:
 				type = "Cortex-A8 ETM";
 				full = "(Embedded Trace)";
@@ -1255,6 +1301,10 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			case 0x950:
 				type = "CoreSight Component";
 				full = "(unidentified Cortex-A9 component)";
+				break;
+			case 0x962:
+				type = "CoreSight STM";
+				full = "(System Trace Macrocell)";
 				break;
 			case 0x9a0:
 				type = "CoreSight PMU";
