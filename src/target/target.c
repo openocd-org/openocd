@@ -3520,14 +3520,12 @@ static void writeData(FILE *f, const void *data, size_t len)
 		LOG_ERROR("failed to write %zu bytes: %s", len, strerror(errno));
 }
 
-static void writeLong(FILE *f, int l)
+static void writeLong(FILE *f, int l, struct target *target)
 {
-	int i;
-	for (i = 0; i < 4; i++) {
-		char c = (l >> (i*8))&0xff;
-		writeData(f, &c, 1);
-	}
+	uint8_t val[4];
 
+	target_buffer_set_u32(target, val, l);
+	writeData(f, val, 4);
 }
 
 static void writeString(FILE *f, char *s)
@@ -3538,18 +3536,18 @@ static void writeString(FILE *f, char *s)
 typedef unsigned char UNIT[2];  /* unit of profiling */
 
 /* Dump a gmon.out histogram file. */
-static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filename,
-		bool with_range, uint32_t start_address, uint32_t end_address)
+static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filename, bool with_range,
+			uint32_t start_address, uint32_t end_address, struct target *target)
 {
 	uint32_t i;
 	FILE *f = fopen(filename, "w");
 	if (f == NULL)
 		return;
 	writeString(f, "gmon");
-	writeLong(f, 0x00000001); /* Version */
-	writeLong(f, 0); /* padding */
-	writeLong(f, 0); /* padding */
-	writeLong(f, 0); /* padding */
+	writeLong(f, 0x00000001, target); /* Version */
+	writeLong(f, 0, target); /* padding */
+	writeLong(f, 0, target); /* padding */
+	writeLong(f, 0, target); /* padding */
 
 	uint8_t zero = 0;  /* GMON_TAG_TIME_HIST */
 	writeData(f, &zero, 1);
@@ -3604,10 +3602,10 @@ static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filena
 	}
 
 	/* append binary memory gmon.out &profile_hist_hdr ((char*)&profile_hist_hdr + sizeof(struct gmon_hist_hdr)) */
-	writeLong(f, min);			/* low_pc */
-	writeLong(f, max);			/* high_pc */
-	writeLong(f, numBuckets);	/* # of buckets */
-	writeLong(f, 100);			/* KLUDGE! We lie, ca. 100Hz best case. */
+	writeLong(f, min, target);			/* low_pc */
+	writeLong(f, max, target);			/* high_pc */
+	writeLong(f, numBuckets, target);	/* # of buckets */
+	writeLong(f, 100, target);			/* KLUDGE! We lie, ca. 100Hz best case. */
 	writeString(f, "seconds");
 	for (i = 0; i < (15-strlen("seconds")); i++)
 		writeData(f, &zero, 1);
@@ -3699,7 +3697,7 @@ COMMAND_HANDLER(handle_profile_command)
 	}
 
 	write_gmon(samples, num_of_samples, CMD_ARGV[1],
-			with_range, start_address, end_address);
+		   with_range, start_address, end_address, target);
 	command_print(CMD_CTX, "Wrote %s", CMD_ARGV[1]);
 
 	free(samples);
