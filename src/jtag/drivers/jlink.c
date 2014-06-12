@@ -1430,7 +1430,8 @@ static int jlink_tap_execute(void)
 
 	result = use_jtag3 ? usb_in_buffer[byte_length] : 0;
 	if (result != 0) {
-		LOG_ERROR("jlink_tap_execute failed, result %d", result);
+		LOG_ERROR("jlink_tap_execute failed, result %d (%s)", result,
+			  result == 1 ? "adaptive clocking timeout" : "unknown");
 		jlink_tap_init();
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
