@@ -61,12 +61,40 @@
 #define SAMD_FAMILY_D		0x00
 #define SAMD_SERIES_20		0x00
 #define SAMD_SERIES_21		0x01
+#define SAMD_SERIES_10		0x02
+#define SAMD_SERIES_11		0x03
 
 struct samd_part {
 	uint8_t id;
 	const char *name;
 	uint32_t flash_kb;
 	uint32_t ram_kb;
+};
+
+/* Known SAMD10 parts */
+static const struct samd_part samd10_parts[] = {
+	{ 0x0, "SAMD10D14AMU", 16, 4 },
+	{ 0x1, "SAMD10D13AMU", 8, 4 },
+	{ 0x2, "SAMD10D12AMU", 4, 4 },
+	{ 0x3, "SAMD10D14ASU", 16, 4 },
+	{ 0x4, "SAMD10D13ASU", 8, 4 },
+	{ 0x5, "SAMD10D12ASU", 4, 4 },
+	{ 0x6, "SAMD10C14A", 16, 4 },
+	{ 0x7, "SAMD10C13A", 8, 4 },
+	{ 0x8, "SAMD10C12A", 4, 4 },
+};
+
+/* Known SAMD11 parts */
+static const struct samd_part samd11_parts[] = {
+	{ 0x0, "SAMD11D14AMU", 16, 4 },
+	{ 0x1, "SAMD11D13AMU", 8, 4 },
+	{ 0x2, "SAMD11D12AMU", 4, 4 },
+	{ 0x3, "SAMD11D14ASU", 16, 4 },
+	{ 0x4, "SAMD11D13ASU", 8, 4 },
+	{ 0x5, "SAMD11D12ASU", 4, 4 },
+	{ 0x6, "SAMD11C14A", 16, 4 },
+	{ 0x7, "SAMD11C13A", 8, 4 },
+	{ 0x8, "SAMD11C12A", 4, 4 },
 };
 
 /* Known SAMD20 parts. See Table 12-8 in 42129F–SAM–10/2013 */
@@ -123,6 +151,10 @@ static const struct samd_family samd_families[] = {
 		samd20_parts, ARRAY_SIZE(samd20_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
 		samd21_parts, ARRAY_SIZE(samd21_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_10,
+		samd10_parts, ARRAY_SIZE(samd10_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_11,
+		samd11_parts, ARRAY_SIZE(samd11_parts) },
 };
 
 struct samd_info {
