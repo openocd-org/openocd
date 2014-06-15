@@ -298,6 +298,11 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
 
+	if (!dap) {
+		LOG_ERROR("Cannot perform mass erase with a high-level adapter");
+		return ERROR_FAIL;
+	}
+
 	int retval;
 	const uint8_t original_ap = dap->ap_current;
 
@@ -378,6 +383,11 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+
+	if (!dap) {
+		LOG_WARNING("Cannot check flash security status with a high-level adapter");
+		return ERROR_OK;
+	}
 
 	uint32_t val;
 	int retval;
