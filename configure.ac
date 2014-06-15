@@ -1318,16 +1318,16 @@ echo
 echo OpenOCD configuration summary
 echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS, HIDAPI_ADAPTERS],
-	[echo -n m4_format(["%-40s"], ADAPTER_DESC([adapter]))
+	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	case $ADAPTER_VAR([adapter]) in
 		auto)
-			echo yes '(auto)'
+			echo "$s"yes '(auto)'
 			;;
 		yes)
-			echo yes
+			echo "$s"yes
 			;;
 		no)
-			echo no
+			echo "$s"no
 			;;
 	esac
 ])
