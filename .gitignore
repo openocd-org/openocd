@@ -30,8 +30,8 @@ src/jtag/drivers/OpenULINK/*.rst
 *.swp
 
 src/startup.tcl
-startup_tcl.c
-xscale_debug.h
+startup_tcl.inc
+xscale_debug.inc
 
 bin2char
 bin2char.exe
