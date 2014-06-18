@@ -16,12 +16,12 @@ EXTRA_DIST = \
 	startup.tcl \
 	$(wildcard $(srcdir)/xscale/*)
 
-DEBUG_HEADER	= xscale_debug.h
+DEBUG_HEADER	= xscale_debug.inc
 BUILT_SOURCES = $(DEBUG_HEADER)
 CLEANFILES = $(DEBUG_HEADER)
 
-$(DEBUG_HEADER): $(BIN2C) $(DEBUG_HANDLER)
-	$(BIN2C) < $(DEBUG_HANDLER) xscale_debug_handler > xscale_debug.h
+$(DEBUG_HEADER): $(DEBUG_HANDLER) $(BIN2C)
+	$(BIN2C) < $< > $@ || { rm -f $@; false; }
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libtarget.la

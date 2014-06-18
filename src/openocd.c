@@ -50,6 +50,11 @@
 #define OPENOCD_VERSION	\
 	"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
 
+static const char openocd_startup_tcl[] = {
+#include "startup_tcl.inc"
+0 /* Terminate with zero */
+};
+
 /* Give scripts and TELNET a way to find out what version this is */
 static int jim_version_command(Jim_Interp *interp, int argc,
 	Jim_Obj * const *argv)
@@ -228,8 +233,7 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 	log_init();
 	LOG_DEBUG("log_init: complete");
 
-	const char *startup = openocd_startup_tcl;
-	struct command_context *cmd_ctx = command_init(startup, interp);
+	struct command_context *cmd_ctx = command_init(openocd_startup_tcl, interp);
 
 	/* register subsystem commands */
 	typedef int (*command_registrant_t)(struct command_context *cmd_ctx_value);
