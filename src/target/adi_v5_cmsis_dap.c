@@ -56,7 +56,7 @@ extern struct jtag_interface *jtag_interface;
 
 static int cmsis_dap_clear_sticky_errors(struct adiv5_dap *dap)
 {
-	LOG_DEBUG("CMSIS-ADI: %s", __func__);
+	LOG_DEBUG(" ");
 
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
@@ -67,7 +67,7 @@ static int cmsis_dap_clear_sticky_errors(struct adiv5_dap *dap)
 
 static int cmsis_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 {
-	LOG_DEBUG("CMSIS-ADI: %s", __func__);
+	LOG_DEBUG(" ");
 
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
@@ -78,7 +78,7 @@ static int cmsis_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 
 static int cmsis_dap_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t *data)
 {
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_dp_read %d", reg);
+	LOG_DEBUG("reg = %d", reg);
 
 	int retval = jtag_interface->swd->read_reg(
 			(CMSIS_CMD_DP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
@@ -91,7 +91,7 @@ static int cmsis_dap_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t
 
 static int (cmsis_dap_queue_dp_write)(struct adiv5_dap *dap, unsigned reg, uint32_t data)
 {
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_dp_write %d 0x%08" PRIx32, reg, data);
+	LOG_DEBUG("reg = %d, data = 0x%08" PRIx32, reg, data);
 
 	/* setting the ORUNDETECT bit causes issues for some targets,
 	 * disable until we find out why */
@@ -129,7 +129,7 @@ static int (cmsis_dap_queue_ap_read)(struct adiv5_dap *dap, unsigned reg, uint32
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_read %d", reg);
+	LOG_DEBUG("reg = %d", reg);
 
 	retval = jtag_interface->swd->read_reg(
 			(CMSIS_CMD_AP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
@@ -153,7 +153,7 @@ static int (cmsis_dap_queue_ap_write)(struct adiv5_dap *dap, unsigned reg, uint3
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_write %d 0x%08" PRIx32, reg, data);
+	LOG_DEBUG("reg = %d, data = 0x%08" PRIx32, reg, data);
 
 	retval = jtag_interface->swd->write_reg(
 			(CMSIS_CMD_AP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
@@ -240,7 +240,7 @@ static const struct command_registration cmsis_dap_handlers[] = {
 
 static int cmsis_dap_select(struct command_context *ctx)
 {
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_select");
+	LOG_DEBUG(" ");
 
 	int retval = register_commands(ctx, NULL, cmsis_dap_handlers);
 
@@ -275,7 +275,7 @@ static int cmsis_dap_init(struct command_context *ctx)
 	uint32_t idcode;
 	int status;
 
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_init");
+	LOG_DEBUG("CMSIS-ADI init");
 
 	/* Force the DAP's ops vector for CMSIS-DAP mode.
 	 * messy - is there a better way? */
