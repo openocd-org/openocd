@@ -479,8 +479,13 @@ static int cmsis_dap_cmd_DAP_Delay(uint16_t delay_us)
 }
 #endif
 
-static int cmsis_dap_swd_read_reg(uint8_t cmd, uint32_t *value)
+static int queued_retval;
+
+static void cmsis_dap_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value)
 {
+	if (queued_retval != ERROR_OK)
+		return;
+
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
 	int retval;
 	uint32_t val;
@@ -497,7 +502,8 @@ static int cmsis_dap_swd_read_reg(uint8_t cmd, uint32_t *value)
 	/* TODO - need better response checking */
 	if (retval != ERROR_OK || buffer[1] != 0x01) {
 		LOG_ERROR("CMSIS-DAP: Read Error (0x%02" PRIx8 ")", buffer[2]);
-		return buffer[2];
+		queued_retval = buffer[2];
+		return;
 	}
 
 	val = le_to_h_u32(&buffer[3]);
@@ -506,11 +512,14 @@ static int cmsis_dap_swd_read_reg(uint8_t cmd, uint32_t *value)
 	if (value)
 		*value = val;
 
-	return retval;
+	queued_retval = retval;
 }
 
-static int cmsis_dap_swd_write_reg(uint8_t cmd, uint32_t value)
+static void cmsis_dap_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t value)
 {
+	if (queued_retval != ERROR_OK)
+		return;
+
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
 
 	DEBUG_IO("CMSIS-DAP: Write Reg 0x%02" PRIx8 " 0x%08" PRIx32, cmd, value);
@@ -531,6 +540,13 @@ static int cmsis_dap_swd_write_reg(uint8_t cmd, uint32_t value)
 		retval = buffer[2];
 	}
 
+	queued_retval = retval;
+}
+
+static int cmsis_dap_swd_run(struct adiv5_dap *dap)
+{
+	int retval = queued_retval;
+	queued_retval = ERROR_OK;
 	return retval;
 }
 
@@ -994,9 +1010,10 @@ static const struct command_registration cmsis_dap_command_handlers[] = {
 };
 
 static const struct swd_driver cmsis_dap_swd_driver = {
-	.init       = cmsis_dap_swd_init,
-	.read_reg   = cmsis_dap_swd_read_reg,
-	.write_reg  = cmsis_dap_swd_write_reg,
+	.init = cmsis_dap_swd_init,
+	.read_reg = cmsis_dap_swd_read_reg,
+	.write_reg = cmsis_dap_swd_write_reg,
+	.run = cmsis_dap_swd_run,
 };
 
 const char *cmsis_dap_transport[] = {"cmsis-dap", NULL};

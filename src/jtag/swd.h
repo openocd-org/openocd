@@ -20,6 +20,8 @@
 #ifndef SWD_H
 #define SWD_H
 
+#include <target/arm_adi_v5.h>
+
 /* Bits in SWD command packets, written from host to target
  * first bit on the wire is START
  */
@@ -53,51 +55,47 @@ static inline uint8_t swd_cmd(bool is_read, bool is_ap, uint8_t regnum)
 
 /* SWD_ACK_* bits are defined in <target/arm_adi_v5.h> */
 
-/*
- * FOR NOW  ... SWD driver ops are synchronous and return ACK
- * status ... no queuing.
- *
- * Individual ops are request/response, and fast-fail permits much
- * better fault handling.  Upper layers may queue if desired.
- */
-
 struct swd_driver {
 	/**
-	 * Initialize the debug link so it can perform
-	 * synchronous SWD operations.
+	 * Initialize the debug link so it can perform SWD operations.
 	 * @param trn value from WCR: how many clocks
 	 * to not drive the SWDIO line at certain points in
 	 * the SWD protocol (at least 1 clock).
 	 *
 	 * As an example, this would switch a dual-mode debug adapter
 	 * into SWD mode and out of JTAG mode.
-	  *
-	  * @return ERROR_OK on success, else a negative fault code.
+	 *
+	 * @return ERROR_OK on success, else a negative fault code.
 	 */
 	int (*init)(uint8_t trn);
 
 
-	 /**
-	  * Synchronous read of an AP or DP register.
-	  *
-	  * @param cmd with APnDP/RnW/addr/parity bits
-	  * @param where to store value to read from register
-	  *
-	  * @return SWD_ACK_* code for the transaction
-	  *		or (negative) fault code
-	  */
-	 int (*read_reg)(uint8_t cmd, uint32_t *value);
+	/**
+	 * Queued read of an AP or DP register.
+	 *
+	 * @param dap The DAP controlled by the SWD link.
+	 * @param Command byte with APnDP/RnW/addr/parity bits
+	 * @param Where to store value to read from register
+	 */
+	void (*read_reg)(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value);
 
-	 /**
-	  * Synchronous write of an AP or DP register.
-	  *
-	  * @param cmd with APnDP/RnW/addr/parity bits
-	  * @param value to be written to the register
-	  *
-	  * @return SWD_ACK_* code for the transaction
-	  *		or (negative) fault code
-	  */
-	 int (*write_reg)(uint8_t cmd, uint32_t value);
+	/**
+	 * Queued write of an AP or DP register.
+	 *
+	 * @param dap The DAP controlled by the SWD link.
+	 * @param Command byte with APnDP/RnW/addr/parity bits
+	 * @param Value to be written to the register
+	 */
+	void (*write_reg)(struct adiv5_dap *dap, uint8_t cmd, uint32_t value);
+
+	/**
+	 * Execute any queued transactions and collect the result.
+	 *
+	 * @param dap The DAP controlled by the SWD link.
+	 * @return ERROR_OK on success, Ack response code on WAIT/FAULT
+	 * or negative error code on other kinds of failure.
+	 */
+	int (*run)(struct adiv5_dap *dap);
 
 	/**
 	 * Configures data collection from the Single-wire
@@ -108,10 +106,10 @@ struct swd_driver {
 	 * is normally connected to a microcontroller's UART TX,
 	 * but which may instead be connected to SWO for use in
 	 * collecting ITM (and possibly ETM) trace data.
-	  *
-	  * @return ERROR_OK on success, else a negative fault code.
+	 *
+	 * @return ERROR_OK on success, else a negative fault code.
 	 */
-	int *(*trace)(bool swo);
+	int *(*trace)(struct adiv5_dap *dap, bool swo);
 };
 
 int swd_init_reset(struct command_context *cmd_ctx);

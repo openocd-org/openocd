@@ -61,8 +61,9 @@ static int cmsis_dap_clear_sticky_errors(struct adiv5_dap *dap)
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	return swd->write_reg(swd_cmd(false,  false, DP_ABORT),
-			      STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+	swd->write_reg(dap, (CMSIS_CMD_DP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(DP_ABORT)),
+			STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+	return ERROR_OK;
 }
 
 static int cmsis_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
@@ -72,21 +73,20 @@ static int cmsis_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	return swd->write_reg(swd_cmd(false,  false, DP_ABORT),
-			      DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+	swd->write_reg(dap, (CMSIS_CMD_DP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(DP_ABORT)),
+			DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+	return ERROR_OK;
 }
 
 static int cmsis_dap_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t *data)
 {
 	LOG_DEBUG("reg = %d", reg);
 
-	int retval = jtag_interface->swd->read_reg(
-			(CMSIS_CMD_DP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
 
-	if (retval != ERROR_OK)
-		cmsis_dap_clear_sticky_errors(dap);
-
-	return retval;
+	swd->read_reg(dap, (CMSIS_CMD_DP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
+	return ERROR_OK;
 }
 
 static int (cmsis_dap_queue_dp_write)(struct adiv5_dap *dap, unsigned reg, uint32_t data)
@@ -100,13 +100,11 @@ static int (cmsis_dap_queue_dp_write)(struct adiv5_dap *dap, unsigned reg, uint3
 		data &= ~CORUNDETECT;
 	}
 
-	int retval = jtag_interface->swd->write_reg(
-			(CMSIS_CMD_DP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
 
-	if (retval != ERROR_OK)
-		cmsis_dap_clear_sticky_errors(dap);
-
-	return retval;
+	swd->write_reg(dap, (CMSIS_CMD_DP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
+	return ERROR_OK;
 }
 
 /** Select the AP register bank matching bits 7:4 of reg. */
@@ -120,58 +118,47 @@ static int cmsis_dap_ap_q_bankselect(struct adiv5_dap *dap, unsigned reg)
 	dap->ap_bank_value = select_ap_bank;
 	select_ap_bank |= dap->ap_current;
 
-	return cmsis_dap_queue_dp_write(dap, DP_SELECT, select_ap_bank);
+	cmsis_dap_queue_dp_write(dap, DP_SELECT, select_ap_bank);
+	return ERROR_OK;
 }
 
 static int (cmsis_dap_queue_ap_read)(struct adiv5_dap *dap, unsigned reg, uint32_t *data)
 {
-	int retval = cmsis_dap_ap_q_bankselect(dap, reg);
-	if (retval != ERROR_OK)
-		return retval;
+	cmsis_dap_ap_q_bankselect(dap, reg);
 
 	LOG_DEBUG("reg = %d", reg);
 
-	retval = jtag_interface->swd->read_reg(
-			(CMSIS_CMD_AP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
 
-	if (retval != ERROR_OK)
-		cmsis_dap_clear_sticky_errors(dap);
+	swd->read_reg(dap, (CMSIS_CMD_AP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
 
-	return retval;
+	return ERROR_OK;
 }
 
 static int (cmsis_dap_queue_ap_write)(struct adiv5_dap *dap, unsigned reg, uint32_t data)
 {
-
-
 	/* TODO: CSW_DBGSWENABLE (bit31) causes issues for some targets
 	 * disable until we find out why */
 	if (reg == AP_REG_CSW)
 		data &= ~CSW_DBGSWENABLE;
 
-	int retval = cmsis_dap_ap_q_bankselect(dap, reg);
-	if (retval != ERROR_OK)
-		return retval;
+	cmsis_dap_ap_q_bankselect(dap, reg);
 
 	LOG_DEBUG("reg = %d, data = 0x%08" PRIx32, reg, data);
 
-	retval = jtag_interface->swd->write_reg(
-			(CMSIS_CMD_AP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
 
-	if (retval != ERROR_OK)
-		cmsis_dap_clear_sticky_errors(dap);
+	swd->write_reg(dap, (CMSIS_CMD_AP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
 
-	return retval;
+	return ERROR_OK;
 }
 
 /** Executes all queued DAP operations. */
 static int cmsis_dap_run(struct adiv5_dap *dap)
 {
 	LOG_DEBUG(" ");
-	/* FIXME: for now the CMSIS-DAP interface hard-wires a zero-size queue. */
-	int ret;
-	uint32_t ctrlstat;
-
 	/*
 	  Some debug dongles do more than asked for(e.g. EDBG from
 	  Atmel) behind the scene and issuing an AP write
@@ -182,23 +169,22 @@ static int cmsis_dap_run(struct adiv5_dap *dap)
 	  differently and not guarantee to be report those failures
 	  via status byte of the return USB packet from CMSIS-DAP, so
 	  we need to check CTRL/STAT and if that happens to clear it.
+	  Note that once the CMSIS-DAP SWD implementation starts queueing
+	  transfers this will cause loss of the transfers after the
+	  failed one. At least a warning is printed.
 	*/
-	ret = cmsis_dap_queue_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
-	if (ret != ERROR_OK) {
-		LOG_ERROR("Failed to read CTRL/STAT register");
-		return ret;
-	}
+	uint32_t ctrlstat;
+	cmsis_dap_queue_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
 
-	if (ctrlstat & SSTICKYERR) {
-		LOG_WARNING("SSTICKYERR was set, clearing it");
-		ret = cmsis_dap_clear_sticky_errors(dap);
-		if (ret != ERROR_OK) {
-			LOG_ERROR("Failed to clear sticky errors");
-			return ret;
-		}
-	}
+	int retval = jtag_interface->swd->run(dap);
 
-	return ret;
+	if (retval == ERROR_OK && (ctrlstat & SSTICKYERR))
+		LOG_WARNING("Adapter returned success despite SSTICKYERR being set.");
+
+	if (retval != ERROR_OK || (ctrlstat & SSTICKYERR))
+		cmsis_dap_clear_sticky_errors(dap);
+
+	return retval;
 }
 
 const struct dap_ops cmsis_dap_ops = {
@@ -240,7 +226,7 @@ static const struct command_registration cmsis_dap_handlers[] = {
 
 static int cmsis_dap_select(struct command_context *ctx)
 {
-	LOG_DEBUG(" ");
+	LOG_DEBUG("CMSIS-ADI: cmsis_dap_select");
 
 	int retval = register_commands(ctx, NULL, cmsis_dap_handlers);
 
