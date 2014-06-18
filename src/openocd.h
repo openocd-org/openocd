@@ -31,7 +31,4 @@
  */
 int openocd_main(int argc, char *argv[]);
 
-/** provides a hard-coded command environment setup */
-extern const char openocd_startup_tcl[];
-
 #endif

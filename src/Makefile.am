@@ -32,8 +32,7 @@ endif
 
 libopenocd_la_SOURCES = \
 	hello.c \
-	openocd.c \
-	startup_tcl.c
+	openocd.c
 
 noinst_HEADERS = \
 	hello.h \
@@ -86,23 +85,23 @@ STARTUP_TCL_SRCS = \
 
 EXTRA_DIST = $(STARTUP_TCL_SRCS)
 
-BUILT_SOURCES = startup.tcl
+BUILT_SOURCES = startup_tcl.inc
 
 startup.tcl: $(STARTUP_TCL_SRCS)
 	cat $^ > $@
 
 BIN2C = $(top_srcdir)/src/helper/bin2char.sh
 
-# Convert .tcl to cfile
-startup_tcl.c: startup.tcl $(BIN2C)
-	$(BIN2C) openocd_startup_tcl < $< > $@ || rm -f $@
+# Convert .tcl to c-array
+startup_tcl.inc: startup.tcl $(BIN2C)
+	$(BIN2C) < $< > $@ || { rm -f $@; false; }
 
-# add startup_tcl.c to make clean list
-CLEANFILES = startup.tcl startup_tcl.c
+# add generated files to make clean list
+CLEANFILES = startup.tcl startup_tcl.inc
 
 # we do not want generated file in the dist
 dist-hook:
-	rm -f $(distdir)/startup_tcl.c
+	rm -f $(distdir)/startup_tcl.inc
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
