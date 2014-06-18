@@ -54,14 +54,26 @@
 /* YUK! - but this is currently a global.... */
 extern struct jtag_interface *jtag_interface;
 
-static int (cmsis_dap_queue_ap_abort)(struct adiv5_dap *dap, uint8_t *ack)
+static int cmsis_dap_clear_sticky_errors(struct adiv5_dap *dap)
 {
-	LOG_DEBUG("CMSIS-ADI: cmsis_dap_queue_ap_abort");
+	LOG_DEBUG("CMSIS-ADI: %s", __func__);
 
-	/* FIXME: implement this properly cmsis-dap has DAP_WriteABORT()
-	 * for now just hack @ everything */
-	return jtag_interface->swd->write_reg(
-			(CMSIS_CMD_DP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(DP_ABORT)), 0x1e);
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
+	return swd->write_reg(swd_cmd(false,  false, DP_ABORT),
+			      STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+}
+
+static int cmsis_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
+{
+	LOG_DEBUG("CMSIS-ADI: %s", __func__);
+
+	const struct swd_driver *swd = jtag_interface->swd;
+	assert(swd);
+
+	return swd->write_reg(swd_cmd(false,  false, DP_ABORT),
+			      DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
 }
 
 static int cmsis_dap_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t *data)
@@ -71,11 +83,8 @@ static int cmsis_dap_queue_dp_read(struct adiv5_dap *dap, unsigned reg, uint32_t
 	int retval = jtag_interface->swd->read_reg(
 			(CMSIS_CMD_DP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
 
-	if (retval != ERROR_OK) {
-		/* fault response */
-		uint8_t ack = retval & 0xff;
-		cmsis_dap_queue_ap_abort(dap, &ack);
-	}
+	if (retval != ERROR_OK)
+		cmsis_dap_clear_sticky_errors(dap);
 
 	return retval;
 }
@@ -94,11 +103,8 @@ static int (cmsis_dap_queue_dp_write)(struct adiv5_dap *dap, unsigned reg, uint3
 	int retval = jtag_interface->swd->write_reg(
 			(CMSIS_CMD_DP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
 
-	if (retval != ERROR_OK) {
-		/* fault response */
-		uint8_t ack = retval & 0xff;
-		cmsis_dap_queue_ap_abort(dap, &ack);
-	}
+	if (retval != ERROR_OK)
+		cmsis_dap_clear_sticky_errors(dap);
 
 	return retval;
 }
@@ -128,11 +134,8 @@ static int (cmsis_dap_queue_ap_read)(struct adiv5_dap *dap, unsigned reg, uint32
 	retval = jtag_interface->swd->read_reg(
 			(CMSIS_CMD_AP | CMSIS_CMD_READ | CMSIS_CMD_A32(reg)), data);
 
-	if (retval != ERROR_OK) {
-		/* fault response */
-		uint8_t ack = retval & 0xff;
-		cmsis_dap_queue_ap_abort(dap, &ack);
-	}
+	if (retval != ERROR_OK)
+		cmsis_dap_clear_sticky_errors(dap);
 
 	return retval;
 }
@@ -155,11 +158,8 @@ static int (cmsis_dap_queue_ap_write)(struct adiv5_dap *dap, unsigned reg, uint3
 	retval = jtag_interface->swd->write_reg(
 			(CMSIS_CMD_AP | CMSIS_CMD_WRITE | CMSIS_CMD_A32(reg)), data);
 
-	if (retval != ERROR_OK) {
-		/* fault response */
-		uint8_t ack = retval & 0xff;
-		cmsis_dap_queue_ap_abort(dap, &ack);
-	}
+	if (retval != ERROR_OK)
+		cmsis_dap_clear_sticky_errors(dap);
 
 	return retval;
 }
@@ -276,15 +276,13 @@ static int cmsis_dap_init(struct command_context *ctx)
 	}
 #endif
 
-	uint8_t ack = 0;
-
 	status = cmsis_dap_queue_dp_read(dap, DP_IDCODE, &idcode);
 
 	if (status == ERROR_OK)
 		LOG_INFO("IDCODE 0x%08" PRIx32, idcode);
 
 	/* force clear all sticky faults */
-	cmsis_dap_queue_ap_abort(dap, &ack);
+	cmsis_dap_clear_sticky_errors(dap);
 
 	/* this is a workaround to get polling working */
 	jtag_add_reset(0, 0);
