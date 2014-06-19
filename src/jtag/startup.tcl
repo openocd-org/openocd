@@ -87,6 +87,32 @@ proc measure_clk {} {
 
 add_help_text measure_clk "Runs a test to measure the JTAG clk. Useful with RCLK / RTCK."
 
+proc default_to_jtag { f args } {
+	if [catch {transport select} current_transport] {
+		echo "Info : session transport was not selected, defaulting to JTAG"
+		transport select jtag
+		eval $f $args
+	} {
+		error "session transport is \"$current_transport\" but your config requires JTAG"
+	}
+}
+
+proc jtag args {
+	eval default_to_jtag jtag $args
+}
+
+proc jtag_rclk args {
+	eval default_to_jtag jtag_rclk $args
+}
+
+proc jtag_ntrst_delay args {
+	eval default_to_jtag jtag_ntrst_delay $args
+}
+
+proc jtag_ntrst_assert_width args {
+	eval default_to_jtag jtag_ntrst_assert_width $args
+}
+
 # BEGIN MIGRATION AIDS ...  these adapter operations originally had
 # JTAG-specific names despite the fact that the operations were not
 # specific to JTAG, or otherewise had troublesome/misleading names.
