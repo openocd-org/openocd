@@ -127,8 +127,6 @@ static uint16_t output;
 static uint16_t direction;
 static uint16_t jtag_output_init;
 static uint16_t jtag_direction_init;
-static uint16_t swd_output_init;
-static uint16_t swd_direction_init;
 
 static int ftdi_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq);
 
@@ -634,8 +632,19 @@ static int ftdi_initialize(void)
 	if (!mpsse_ctx)
 		return ERROR_JTAG_INIT_FAILED;
 
-	output = swd_mode ? swd_output_init : jtag_output_init;
-	direction = swd_mode ? swd_direction_init : jtag_direction_init;
+	output = jtag_output_init;
+	direction = jtag_direction_init;
+
+	if (swd_mode) {
+		struct signal *sig = find_signal_by_name("SWD_EN");
+		if (!sig) {
+			LOG_ERROR("SWD mode is active but SWD_EN signal is not defined");
+			return ERROR_JTAG_INIT_FAILED;
+		}
+		/* A dummy SWD_EN would have zero mask */
+		if (sig->data_mask)
+			ftdi_set_signal(sig, '1');
+	}
 
 	mpsse_set_data_bits_low_byte(mpsse_ctx, output & 0xff, direction & 0xff);
 	mpsse_set_data_bits_high_byte(mpsse_ctx, output >> 8, direction >> 8);
@@ -703,17 +712,6 @@ COMMAND_HANDLER(ftdi_handle_layout_init_command)
 
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], jtag_output_init);
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], jtag_direction_init);
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(ftdi_handle_layout_init_swd_command)
-{
-	if (CMD_ARGC != 2)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], swd_output_init);
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], swd_direction_init);
 
 	return ERROR_OK;
 }
@@ -863,17 +861,7 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.handler = &ftdi_handle_layout_init_command,
 		.mode = COMMAND_CONFIG,
 		.help = "initialize the FTDI GPIO signals used "
-			"to control output-enables and reset signals"
-			"when JTAG mode is selected",
-		.usage = "data direction",
-	},
-	{
-		.name = "ftdi_layout_init_swd",
-		.handler = &ftdi_handle_layout_init_swd_command,
-		.mode = COMMAND_CONFIG,
-		.help = "initialize the FTDI GPIO signals used "
-			"to control output-enables and reset signals"
-			"when SWD mode is selected",
+			"to control output-enables and reset signals",
 		.usage = "data direction",
 	},
 	{
