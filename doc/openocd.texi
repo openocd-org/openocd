@@ -2767,7 +2767,7 @@ minimal impact on the target system. Avoid floating inputs, conflicting outputs
 and initially asserted reset signals.
 @end deffn
 
-@deffn {Config Command} {ftdi_layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-oe}|@option{-noe} oe_mask]
+@deffn {Config Command} {ftdi_layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
 Creates a signal with the specified @var{name}, controlled by one or more FTDI
 GPIO pins via a range of possible buffer connections. The masks are FTDI GPIO
 register bitmasks to tell the driver the connection and type of the output
@@ -2790,6 +2790,10 @@ target without any buffer. The FTDI pin is then switched between output and
 input as necessary to provide the full set of low, high and Hi-Z
 characteristics. In all other cases, the pins specified in a signal definition
 are always driven by the FTDI.
+
+If @option{-alias} or @option{-nalias} is used, the signal is created
+identical (or with data inverted) to an already specified signal
+@var{name}.
 @end deffn
 
 @deffn {Command} {ftdi_set_signal} name @option{0}|@option{1}|@option{z}

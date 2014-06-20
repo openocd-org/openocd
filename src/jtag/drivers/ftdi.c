@@ -740,6 +740,19 @@ COMMAND_HANDLER(ftdi_handle_layout_signal_command)
 		} else if (strcmp("-noe", CMD_ARGV[i]) == 0) {
 			invert_oe = true;
 			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], oe_mask);
+		} else if (!strcmp("-alias", CMD_ARGV[i]) ||
+			   !strcmp("-nalias", CMD_ARGV[i])) {
+			if (!strcmp("-nalias", CMD_ARGV[i]))
+				invert_data = true;
+			struct signal *sig = find_signal_by_name(CMD_ARGV[i + 1]);
+			if (!sig) {
+				LOG_ERROR("signal %s is not defined", CMD_ARGV[i + 1]);
+				return ERROR_FAIL;
+			}
+			data_mask = sig->data_mask;
+			oe_mask = sig->oe_mask;
+			invert_oe = sig->invert_oe;
+			invert_data ^= sig->invert_data;
 		} else {
 			LOG_ERROR("unknown option '%s'", CMD_ARGV[i]);
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -869,7 +882,7 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "define a signal controlled by one or more FTDI GPIO as data "
 			"and/or output enable",
-		.usage = "name [-data mask|-ndata mask] [-oe mask|-noe mask]",
+		.usage = "name [-data mask|-ndata mask] [-oe mask|-noe mask] [-alias|-nalias name]",
 	},
 	{
 		.name = "ftdi_set_signal",
