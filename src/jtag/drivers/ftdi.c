@@ -901,10 +901,41 @@ static const struct command_registration ftdi_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+static int create_default_signal(const char *name, uint16_t data_mask)
+{
+	struct signal *sig = create_signal(name);
+	if (!sig) {
+		LOG_ERROR("failed to create signal %s", name);
+		return ERROR_FAIL;
+	}
+	sig->invert_data = false;
+	sig->data_mask = data_mask;
+	sig->invert_oe = false;
+	sig->oe_mask = 0;
+
+	return ERROR_OK;
+}
+
+static int create_signals(void)
+{
+	if (create_default_signal("TCK", 0x01) != ERROR_OK)
+		return ERROR_FAIL;
+	if (create_default_signal("TDI", 0x02) != ERROR_OK)
+		return ERROR_FAIL;
+	if (create_default_signal("TDO", 0x04) != ERROR_OK)
+		return ERROR_FAIL;
+	if (create_default_signal("TMS", 0x08) != ERROR_OK)
+		return ERROR_FAIL;
+	return ERROR_OK;
+}
+
 static int ftdi_swd_init(void)
 {
 	LOG_INFO("FTDI SWD mode enabled");
 	swd_mode = true;
+
+	if (create_signals() != ERROR_OK)
+		return ERROR_FAIL;
 
 	swd_cmd_queue_alloced = 10;
 	swd_cmd_queue = malloc(swd_cmd_queue_alloced * sizeof(*swd_cmd_queue));
