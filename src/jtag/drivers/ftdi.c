@@ -501,7 +501,8 @@ static void ftdi_execute_reset(struct jtag_command *cmd)
 			ftdi_set_signal(trst, '0');
 		else
 			LOG_ERROR("Can't assert TRST: nTRST signal is not defined");
-	} else if (trst && cmd->cmd.reset->trst == 0) {
+	} else if (trst && jtag_get_reset_config() & RESET_HAS_TRST &&
+			cmd->cmd.reset->trst == 0) {
 		if (jtag_get_reset_config() & RESET_TRST_OPEN_DRAIN)
 			ftdi_set_signal(trst, 'z');
 		else
@@ -514,7 +515,8 @@ static void ftdi_execute_reset(struct jtag_command *cmd)
 			ftdi_set_signal(srst, '0');
 		else
 			LOG_ERROR("Can't assert SRST: nSRST signal is not defined");
-	} else if (srst && cmd->cmd.reset->srst == 0) {
+	} else if (srst && jtag_get_reset_config() & RESET_HAS_SRST &&
+			cmd->cmd.reset->srst == 0) {
 		if (jtag_get_reset_config() & RESET_SRST_PUSH_PULL)
 			ftdi_set_signal(srst, '1');
 		else
