@@ -193,6 +193,8 @@ static int cmsis_dap_usb_open(void)
 				if ((cmsis_dap_vid[i] == cur_dev->vendor_id) && (cmsis_dap_pid[i] == cur_dev->product_id))
 					break;
 			}
+			if (cmsis_dap_vid[i] || cmsis_dap_pid[i])
+				break;
 		}
 
 		cur_dev = cur_dev->next;
