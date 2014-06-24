@@ -208,6 +208,11 @@ static int cmsis_dap_usb_open(void)
 
 	hid_free_enumeration(devs);
 
+	if (target_vid == 0 && target_pid == 0) {
+		LOG_ERROR("unable to find CMSIS-DAP device");
+		return ERROR_FAIL;
+	}
+
 	if (hid_init() != 0) {
 		LOG_ERROR("unable to open HIDAPI");
 		return ERROR_FAIL;
