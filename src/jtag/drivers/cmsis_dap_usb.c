@@ -60,6 +60,7 @@
 /* vid = pid = 0 marks the end of the list */
 static uint16_t cmsis_dap_vid[MAX_USB_IDS + 1] = { 0 };
 static uint16_t cmsis_dap_pid[MAX_USB_IDS + 1] = { 0 };
+static bool swd_mode;
 
 #define PACKET_SIZE       (64 + 1)	/* 64 bytes plus report id */
 #define USB_TIMEOUT       1000
@@ -720,10 +721,49 @@ static int cmsis_dap_reset_link(void)
 	return retval;
 }
 
+static int cmsis_dap_swd_open(void)
+{
+	int retval;
+
+	DEBUG_IO("CMSIS-DAP: cmsis_dap_swd_open");
+
+	if (cmsis_dap_handle == NULL) {
+
+		/* SWD init */
+		retval = cmsis_dap_usb_open();
+		if (retval != ERROR_OK)
+			return retval;
+
+		retval = cmsis_dap_get_caps_info();
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	if (!(cmsis_dap_handle->caps & INFO_CAPS_SWD)) {
+		LOG_ERROR("CMSIS-DAP: SWD not supported");
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	retval = cmsis_dap_cmd_DAP_Connect(CONNECT_SWD);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Add more setup here.??... */
+
+	LOG_INFO("CMSIS-DAP: Interface Initialised (SWD)");
+	return ERROR_OK;
+}
+
 static int cmsis_dap_init(void)
 {
 	int retval;
 	uint8_t *data;
+
+	if (swd_mode) {
+		retval = cmsis_dap_swd_open();
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	if (cmsis_dap_handle == NULL) {
 
@@ -832,34 +872,7 @@ static int cmsis_dap_init(void)
 
 static int cmsis_dap_swd_init(void)
 {
-	int retval;
-
-	DEBUG_IO("CMSIS-DAP: cmsis_dap_swd_init");
-
-	if (cmsis_dap_handle == NULL) {
-
-		/* SWD init */
-		retval = cmsis_dap_usb_open();
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = cmsis_dap_get_caps_info();
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	if (!(cmsis_dap_handle->caps & INFO_CAPS_SWD)) {
-		LOG_ERROR("CMSIS-DAP: SWD not supported");
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	retval = cmsis_dap_cmd_DAP_Connect(CONNECT_SWD);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* Add more setup here.??... */
-
-	LOG_INFO("CMSIS-DAP: Interface Initialised (SWD)");
+	swd_mode = true;
 	return ERROR_OK;
 }
 
