@@ -138,5 +138,7 @@ extern int debug_level;
  * make no assumptions about what went wrong and try to handle the problem.
  */
 #define ERROR_FAIL						(-4)
+#define ERROR_WAIT						(-5)
+
 
 #endif	/* LOG_H */

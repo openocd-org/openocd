@@ -66,6 +66,11 @@
  * 8bit read/writes to max 64 bytes. */
 #define STLINK_MAX_RW8		(64)
 
+/* "WAIT" responses will be retried (with exponential backoff) at
+ * most this many times before failing to caller.
+ */
+#define MAX_WAIT_RETRIES 8
+
 enum stlink_jtag_api_version {
 	STLINK_JTAG_API_V1 = 1,
 	STLINK_JTAG_API_V2,
@@ -343,6 +348,64 @@ static int stlink_usb_xfer(void *handle, const uint8_t *buf, int size)
 	return ERROR_OK;
 }
 
+
+/**
+    Converts an STLINK status code held in the first byte of a response
+    to an openocd error, logs any error/wait status as debug output.
+*/
+static int stlink_usb_error_check(void *handle)
+{
+	struct stlink_usb_handle_s *h = handle;
+
+	assert(handle != NULL);
+
+	/* TODO: no error checking yet on api V1 */
+	if (h->jtag_api == STLINK_JTAG_API_V1)
+		h->databuf[0] = STLINK_DEBUG_ERR_OK;
+
+	switch (h->databuf[0]) {
+		case STLINK_DEBUG_ERR_OK:
+			return ERROR_OK;
+		case STLINK_DEBUG_ERR_FAULT:
+			LOG_DEBUG("SWD fault response (0x%x)", STLINK_DEBUG_ERR_FAULT);
+			return ERROR_FAIL;
+		case STLINK_SWD_AP_WAIT:
+			LOG_DEBUG("wait status SWD_AP_WAIT (0x%x)", STLINK_SWD_AP_WAIT);
+			return ERROR_WAIT;
+		case STLINK_SWD_DP_WAIT:
+			LOG_DEBUG("wait status SWD_DP_WAIT (0x%x)", STLINK_SWD_AP_WAIT);
+			return ERROR_WAIT;
+		default:
+			LOG_DEBUG("unknown/unexpected STLINK status code 0x%x", h->databuf[0]);
+			return ERROR_FAIL;
+	}
+}
+
+
+/** Issue an STLINK command via USB transfer, with retries on any wait status responses.
+
+    Works for commands where the STLINK_DEBUG status is returned in the first
+    byte of the response packet.
+
+    Returns an openocd result code.
+*/
+static int stlink_cmd_allow_retry(void *handle, const uint8_t *buf, int size)
+{
+	int retries = 0;
+	int res;
+	while (1) {
+		res = stlink_usb_xfer(handle, buf, size);
+		if (res != ERROR_OK)
+			return res;
+		res = stlink_usb_error_check(handle);
+		if (res == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
+			usleep((1<<retries++) * 1000);
+			continue;
+		}
+		return res;
+	}
+}
+
 /** */
 static int stlink_usb_read_trace(void *handle, const uint8_t *buf, int size)
 {
@@ -392,40 +455,6 @@ static void stlink_usb_init_buffer(void *handle, uint8_t direction, uint32_t siz
 
 	if (h->version.stlink == 1)
 		stlink_usb_xfer_v1_create_cmd(handle, direction, size);
-}
-
-static const char * const stlink_usb_error_msg[] = {
-	"unknown"
-};
-
-/** */
-static int stlink_usb_error_check(void *handle)
-{
-	int res;
-	const char *err_msg = 0;
-	struct stlink_usb_handle_s *h = handle;
-
-	assert(handle != NULL);
-
-	/* TODO: no error checking yet on api V1 */
-	if (h->jtag_api == STLINK_JTAG_API_V1)
-		h->databuf[0] = STLINK_DEBUG_ERR_OK;
-
-	switch (h->databuf[0]) {
-		case STLINK_DEBUG_ERR_OK:
-			res = ERROR_OK;
-			break;
-		case STLINK_DEBUG_ERR_FAULT:
-		default:
-			err_msg = stlink_usb_error_msg[0];
-			res = ERROR_FAIL;
-			break;
-	}
-
-	if (res != ERROR_OK)
-		LOG_DEBUG("status error: %d ('%s')", h->databuf[0], err_msg);
-
-	return res;
 }
 
 /** */
@@ -530,7 +559,6 @@ static int stlink_usb_current_mode(void *handle, uint8_t *mode)
 /** */
 static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 {
-	int res;
 	int rx_size = 0;
 	struct stlink_usb_handle_s *h = handle;
 
@@ -572,14 +600,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 			return ERROR_FAIL;
 	}
 
-	res = stlink_usb_xfer(handle, h->databuf, rx_size);
-
-	if (res != ERROR_OK)
-		return res;
-
-	res = stlink_usb_error_check(h);
-
-	return res;
+	return stlink_cmd_allow_retry(handle, h->databuf, rx_size);
 }
 
 /** */
@@ -775,19 +796,16 @@ static int stlink_usb_v2_read_debug_reg(void *handle, uint32_t addr, uint32_t *v
 	h_u32_to_le(h->cmdbuf+h->cmdidx, addr);
 	h->cmdidx += 4;
 
-	res = stlink_usb_xfer(handle, h->databuf, 8);
-
+	res = stlink_cmd_allow_retry(handle, h->databuf, 8);
 	if (res != ERROR_OK)
 		return res;
 
 	*val = le_to_h_u32(h->databuf + 4);
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return ERROR_OK;
 }
 
 static int stlink_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 {
-	int res;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
@@ -804,12 +822,7 @@ static int stlink_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 	h_u32_to_le(h->cmdbuf+h->cmdidx, val);
 	h->cmdidx += 4;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
-
-	if (res != ERROR_OK)
-		return res;
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return stlink_cmd_allow_retry(handle, h->databuf, 2);
 }
 
 /** */
@@ -921,7 +934,6 @@ static enum target_state stlink_usb_state(void *handle)
 /** */
 static int stlink_usb_reset(void *handle)
 {
-	int res;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
@@ -935,23 +947,11 @@ static int stlink_usb_reset(void *handle)
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_RESETSYS;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
-
-	if (res != ERROR_OK)
-		return res;
-
-	LOG_DEBUG("RESET: 0x%08X", h->databuf[0]);
-
-	/* the following is not a error under swd (using hardware srst), so return success */
-	if (h->databuf[0] == STLINK_SWD_AP_WAIT || h->databuf[0] == STLINK_SWD_DP_WAIT)
-		return ERROR_OK;
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return stlink_cmd_allow_retry(handle, h->databuf, 2);
 }
 
 static int stlink_usb_assert_srst(void *handle, int srst)
 {
-	int res;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
@@ -965,12 +965,7 @@ static int stlink_usb_assert_srst(void *handle, int srst)
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_DRIVE_NRST;
 	h->cmdbuf[h->cmdidx++] = srst;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
-
-	if (res != ERROR_OK)
-		return res;
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return stlink_cmd_allow_retry(handle, h->databuf, 2);
 }
 
 /** */
@@ -1130,12 +1125,7 @@ static int stlink_usb_run(void *handle)
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_RUNCORE;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
-
-	if (res != ERROR_OK)
-		return res;
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return stlink_cmd_allow_retry(handle, h->databuf, 2);
 }
 
 /** */
@@ -1160,18 +1150,12 @@ static int stlink_usb_halt(void *handle)
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_FORCEDEBUG;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
-
-	if (res != ERROR_OK)
-		return res;
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return stlink_cmd_allow_retry(handle, h->databuf, 2);
 }
 
 /** */
 static int stlink_usb_step(void *handle)
 {
-	int res;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
@@ -1189,12 +1173,7 @@ static int stlink_usb_step(void *handle)
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_STEPCORE;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
-
-	if (res != ERROR_OK)
-		return res;
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return stlink_cmd_allow_retry(handle, h->databuf, 2);
 }
 
 /** */
@@ -1238,25 +1217,24 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READREG;
 	h->cmdbuf[h->cmdidx++] = num;
 
-	res = stlink_usb_xfer(handle, h->databuf, h->jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
-
-	if (res != ERROR_OK)
-		return res;
-
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->jtag_api == STLINK_JTAG_API_V1) {
+		res = stlink_usb_xfer(handle, h->databuf, 4);
+		if (res != ERROR_OK)
+			return res;
 		*val = le_to_h_u32(h->databuf);
-	else {
+		return ERROR_OK;
+	} else {
+		res = stlink_cmd_allow_retry(handle, h->databuf, 8);
+		if (res != ERROR_OK)
+			return res;
 		*val = le_to_h_u32(h->databuf + 4);
-		return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+		return ERROR_OK;
 	}
-
-	return ERROR_OK;
 }
 
 /** */
 static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 {
-	int res;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
@@ -1272,12 +1250,7 @@ static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 	h_u32_to_le(h->cmdbuf+h->cmdidx, val);
 	h->cmdidx += 4;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
-
-	if (res != ERROR_OK)
-		return res;
-
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : ERROR_FAIL;
+	return stlink_cmd_allow_retry(handle, h->databuf, 2);
 }
 
 static int stlink_usb_get_rw_status(void *handle)
@@ -1300,7 +1273,7 @@ static int stlink_usb_get_rw_status(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	return h->databuf[0] == STLINK_DEBUG_ERR_OK ? ERROR_OK : res;
+	return stlink_usb_error_check(h);
 }
 
 /** */
@@ -1453,6 +1426,7 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 {
 	int retval = ERROR_OK;
 	uint32_t bytes_remaining;
+	int retries = 0;
 	struct stlink_usb_handle_s *h = handle;
 
 	/* calculate byte count */
@@ -1483,6 +1457,10 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 
 				uint32_t head_bytes = 4 - (addr % 4);
 				retval = stlink_usb_read_mem8(handle, addr, head_bytes, buffer);
+				if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
+					usleep((1<<retries++) * 1000);
+					continue;
+				}
 				if (retval != ERROR_OK)
 					return retval;
 				buffer += head_bytes;
@@ -1498,6 +1476,10 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 		} else
 			retval = stlink_usb_read_mem8(handle, addr, bytes_remaining, buffer);
 
+		if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
+			usleep((1<<retries++) * 1000);
+			continue;
+		}
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1514,6 +1496,7 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 {
 	int retval = ERROR_OK;
 	uint32_t bytes_remaining;
+	int retries = 0;
 	struct stlink_usb_handle_s *h = handle;
 
 	/* calculate byte count */
@@ -1544,6 +1527,10 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 
 				uint32_t head_bytes = 4 - (addr % 4);
 				retval = stlink_usb_write_mem8(handle, addr, head_bytes, buffer);
+				if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
+					usleep((1<<retries++) * 1000);
+					continue;
+				}
 				if (retval != ERROR_OK)
 					return retval;
 				buffer += head_bytes;
@@ -1559,6 +1546,10 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 
 		} else
 			retval = stlink_usb_write_mem8(handle, addr, bytes_remaining, buffer);
+		if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
+			usleep((1<<retries++) * 1000);
+			continue;
+		}
 		if (retval != ERROR_OK)
 			return retval;
 
