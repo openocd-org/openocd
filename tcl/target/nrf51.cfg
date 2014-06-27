@@ -17,11 +17,11 @@ if { [info exists ENDIAN] } {
 }
 
 # Work-area is a space in RAM used for flash programming
-# By default use 2kB
+# By default use 16kB
 if { [info exists WORKAREASIZE] } {
    set _WORKAREASIZE $WORKAREASIZE
 } else {
-   set _WORKAREASIZE 0x800
+   set _WORKAREASIZE 0x4000
 }
 
 if { [info exists CPUTAPID] } {
