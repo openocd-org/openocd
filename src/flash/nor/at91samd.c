@@ -134,6 +134,17 @@ static const struct samd_part samd21_parts[] = {
 	{ 0xE, "SAMD21E14A", 16, 2 },
 };
 
+/* Known SAMR21 parts. */
+static const struct samd_part samr21_parts[] = {
+	{ 0x19, "SAMR21G18A", 256, 32 },
+	{ 0x1A, "SAMR21G17A", 128, 32 },
+	{ 0x1B, "SAMR21G16A",  64, 32 },
+	{ 0x1C, "SAMR21E18A", 256, 32 },
+	{ 0x1D, "SAMR21E17A", 128, 32 },
+	{ 0x1E, "SAMR21E16A",  64, 32 },
+};
+
+
 /* Each family of parts contains a parts table in the DEVSEL field of DID.  The
  * processor ID, family ID, and series ID are used to determine which exact
  * family this is and then we can use the corresponding table. */
@@ -151,6 +162,8 @@ static const struct samd_family samd_families[] = {
 		samd20_parts, ARRAY_SIZE(samd20_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
 		samd21_parts, ARRAY_SIZE(samd21_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
+		samr21_parts, ARRAY_SIZE(samr21_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_10,
 		samd10_parts, ARRAY_SIZE(samd10_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_11,
