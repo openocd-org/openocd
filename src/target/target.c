@@ -863,6 +863,8 @@ int target_run_flash_async_algorithm(struct target *target,
 	int retval;
 	int timeout = 0;
 
+	const uint8_t *buffer_orig = buffer;
+
 	/* Set up working area. First word is write pointer, second word is read pointer,
 	 * rest is fifo data area. */
 	uint32_t wp_addr = buffer_start;
@@ -903,7 +905,8 @@ int target_run_flash_async_algorithm(struct target *target,
 			break;
 		}
 
-		LOG_DEBUG("count 0x%" PRIx32 " wp 0x%" PRIx32 " rp 0x%" PRIx32, count, wp, rp);
+		LOG_DEBUG("offs 0x%zx count 0x%" PRIx32 " wp 0x%" PRIx32 " rp 0x%" PRIx32,
+			(buffer - buffer_orig), count, wp, rp);
 
 		if (rp == 0) {
 			LOG_ERROR("flash write algorithm aborted by target");
