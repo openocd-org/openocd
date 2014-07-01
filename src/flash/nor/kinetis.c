@@ -369,7 +369,8 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 }
 
 static const uint32_t kinetis_known_mdm_ids[] = {
-	0x001C0020,	/* KL26Z */
+	0x001C0000,	/* Kinetis-K Series */
+	0x001C0020,	/* Kinetis-L/M/V/E Series */
 };
 
 /*
