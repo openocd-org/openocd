@@ -100,8 +100,8 @@ struct mips32_common {
 	struct mips32_comparator *data_break_list;
 
 	/* register cache to processor synchronization */
-	int (*read_core_reg)(struct target *target, int num);
-	int (*write_core_reg)(struct target *target, int num);
+	int (*read_core_reg)(struct target *target, unsigned int num);
+	int (*write_core_reg)(struct target *target, unsigned int num);
 };
 
 static inline struct mips32_common *

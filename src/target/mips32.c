@@ -131,14 +131,14 @@ static int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-static int mips32_read_core_reg(struct target *target, int num)
+static int mips32_read_core_reg(struct target *target, unsigned int num)
 {
 	uint32_t reg_value;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
 
-	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
+	if (num >= MIPS32NUMCOREREGS)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = mips32->core_regs[num];
@@ -149,14 +149,14 @@ static int mips32_read_core_reg(struct target *target, int num)
 	return ERROR_OK;
 }
 
-static int mips32_write_core_reg(struct target *target, int num)
+static int mips32_write_core_reg(struct target *target, unsigned int num)
 {
 	uint32_t reg_value;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
 
-	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
+	if (num >= MIPS32NUMCOREREGS)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
@@ -173,7 +173,7 @@ int mips32_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
-	int i;
+	unsigned int i;
 
 	/* include floating point registers */
 	*reg_list_size = MIPS32NUMCOREREGS + MIPS32NUMFPREGS;
@@ -191,7 +191,7 @@ int mips32_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 
 int mips32_save_context(struct target *target)
 {
-	int i;
+	unsigned int i;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -210,7 +210,7 @@ int mips32_save_context(struct target *target)
 
 int mips32_restore_context(struct target *target)
 {
-	int i;
+	unsigned int i;
 
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -346,7 +346,6 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 	enum mips32_isa_mode isa_mode = mips32->isa_mode;
 
 	uint32_t context[MIPS32NUMCOREREGS];
-	int i;
 	int retval = ERROR_OK;
 
 	LOG_DEBUG("Running algorithm");
@@ -365,20 +364,20 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	/* refresh core register cache */
-	for (i = 0; i < MIPS32NUMCOREREGS; i++) {
+	for (unsigned int i = 0; i < MIPS32NUMCOREREGS; i++) {
 		if (!mips32->core_cache->reg_list[i].valid)
 			mips32->read_core_reg(target, i);
 		context[i] = buf_get_u32(mips32->core_cache->reg_list[i].value, 0, 32);
 	}
 
-	for (i = 0; i < num_mem_params; i++) {
+	for (int i = 0; i < num_mem_params; i++) {
 		retval = target_write_buffer(target, mem_params[i].address,
 				mem_params[i].size, mem_params[i].value);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	for (i = 0; i < num_reg_params; i++) {
+	for (int i = 0; i < num_reg_params; i++) {
 		struct reg *reg = register_get_by_name(mips32->core_cache, reg_params[i].reg_name, 0);
 
 		if (!reg) {
@@ -402,7 +401,7 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (i = 0; i < num_mem_params; i++) {
+	for (int i = 0; i < num_mem_params; i++) {
 		if (mem_params[i].direction != PARAM_OUT) {
 			retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size,
 					mem_params[i].value);
@@ -411,7 +410,7 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 		}
 	}
 
-	for (i = 0; i < num_reg_params; i++) {
+	for (int i = 0; i < num_reg_params; i++) {
 		if (reg_params[i].direction != PARAM_OUT) {
 			struct reg *reg = register_get_by_name(mips32->core_cache, reg_params[i].reg_name, 0);
 			if (!reg) {
@@ -430,7 +429,7 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	/* restore everything we saved before */
-	for (i = 0; i < MIPS32NUMCOREREGS; i++) {
+	for (unsigned int i = 0; i < MIPS32NUMCOREREGS; i++) {
 		uint32_t regvalue;
 		regvalue = buf_get_u32(mips32->core_cache->reg_list[i].value, 0, 32);
 		if (regvalue != context[i]) {
