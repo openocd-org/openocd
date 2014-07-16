@@ -1034,7 +1034,7 @@ static void stlink_usb_trace_disable(void *handle)
 
 	assert(h->version.jtag >= STLINK_TRACE_MIN_VERSION);
 
-	LOG_DEBUG("Tracing: disable\n");
+	LOG_DEBUG("Tracing: disable");
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
@@ -1061,7 +1061,7 @@ static int stlink_usb_trace_enable(void *handle)
 
 		res = stlink_configure_target_trace_port(handle);
 		if (res != ERROR_OK)
-			LOG_ERROR("Unable to configure tracing on target\n");
+			LOG_ERROR("Unable to configure tracing on target");
 
 		trace_hz = h->trace.prescale > 0 ?
 			h->trace.source_hz / (h->trace.prescale + 1) :
@@ -1080,7 +1080,7 @@ static int stlink_usb_trace_enable(void *handle)
 
 		if (res == ERROR_OK)  {
 			h->trace.enabled = true;
-			LOG_DEBUG("Tracing: recording at %" PRIu32 "Hz\n", trace_hz);
+			LOG_DEBUG("Tracing: recording at %" PRIu32 "Hz", trace_hz);
 			/* We need the trace read function to be called at a
 			 * high-enough frequency to ensure reasonable
 			 * "timeliness" in processing ITM/DWT data.
@@ -1112,9 +1112,9 @@ static int stlink_usb_run(void *handle)
 		/* Try to start tracing, if requested */
 		if (res == ERROR_OK && h->trace.source_hz && !h->trace.enabled) {
 			if (stlink_usb_trace_enable(handle) == ERROR_OK)
-				LOG_DEBUG("Tracing: enabled\n");
+				LOG_DEBUG("Tracing: enabled");
 			else
-				LOG_ERROR("Tracing: enable failed\n");
+				LOG_ERROR("Tracing: enable failed");
 		}
 
 		return res;
