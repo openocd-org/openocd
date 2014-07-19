@@ -653,8 +653,7 @@ static int ftdi_initialize(void)
 
 	mpsse_loopback_config(mpsse_ctx, false);
 
-	/* Set a low default */
-	freq = mpsse_set_frequency(mpsse_ctx, 1000);
+	freq = mpsse_set_frequency(mpsse_ctx, jtag_get_speed_khz() * 1000);
 
 	if (swd_mode)
 		ftdi_swd_switch_seq(NULL, JTAG_TO_SWD);
