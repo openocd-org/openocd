@@ -559,6 +559,8 @@ static int jlink_init(void)
 	jtag_sleep(3000);
 	jlink_tap_init();
 
+	jlink_speed(jtag_get_speed_khz());
+
 	if (!swd_mode) {
 		/* v5/6 jlink seems to have an issue if the first tap move
 		 * is not divisible by 8, so we send a TLR on first power up */
@@ -1343,7 +1345,7 @@ static void jlink_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *val
 static int_least32_t jlink_swd_frequency(struct adiv5_dap *dap, int_least32_t hz)
 {
 	if (hz > 0)
-		jlink_speed(hz);
+		jlink_speed(hz / 1000);
 
 	return hz;
 }
