@@ -553,8 +553,15 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params",
 		pTap->chip, pTap->tapname, pTap->dotted_name, goi->argc);
 
+	if (!transport_is_jtag()) {
+		/* SWD or CMSIS-DAP (which is currently SWD-only) doesn't
+		   require any JTAG tap parameters */
+		jtag_tap_init(pTap);
+		return JIM_OK;
+	}
+
 	/* IEEE specifies that the two LSBs of an IR scan are 01, so make
-	 * that the default.  The "-irlen" and "-irmask" options are only
+	 * that the default.  The "-ircapture" and "-irmask" options are only
 	 * needed to cope with nonstandard TAPs, or to specify more bits.
 	 */
 	pTap->ir_capture_mask = 0x03;
