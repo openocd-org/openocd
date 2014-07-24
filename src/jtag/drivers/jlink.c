@@ -507,28 +507,6 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	/*
-	 * The next three instructions were added after discovering a problem
-	 * while using an oscilloscope.
-	 * For the V8 SAM-ICE dongle (and likely other j-link device variants),
-	 * the reset line to the target microprocessor was found to cycle only
-	 * intermittently during emulator startup (even after encountering the
-	 * downstream reset instruction later in the code).
-	 * This was found to create two issues:
-	 * 1) In general it is a bad practice to not reset a CPU to a known
-	 * state when starting an emulator and
-	 * 2) something critical happens inside the dongle when it does the
-	 * first read following a new USB session.
-	 * Keeping the processor in reset during the first read collecting
-	 * version information seems to prevent errant
-	 * "J-Link command EMU_CMD_VERSION failed" issues.
-	 */
-
-	LOG_INFO("J-Link initialization started / target CPU reset initiated");
-	jlink_simple_command(EMU_CMD_HW_TRST0);
-	jlink_simple_command(EMU_CMD_HW_RESET0);
-	usleep(1000);
-
 	jlink_hw_jtag_version = 2;
 
 	if (jlink_get_version_info() == ERROR_OK) {
