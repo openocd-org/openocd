@@ -90,11 +90,6 @@ static int jtag_srst = -1;
  * List all TAPs that have been created.
  */
 static struct jtag_tap *__jtag_all_taps;
-/**
- * The number of TAPs in the __jtag_all_taps list, used to track the
- * assigned chain position to new TAPs
- */
-static unsigned jtag_num_taps;
 
 static enum reset_types jtag_reset_config = RESET_NONE;
 tap_state_t cmd_queue_cur_state = TAP_RESET;
@@ -193,7 +188,13 @@ struct jtag_tap *jtag_all_taps(void)
 
 unsigned jtag_tap_count(void)
 {
-	return jtag_num_taps;
+	struct jtag_tap *t = jtag_all_taps();
+	unsigned n = 0;
+	while (t) {
+		n++;
+		t = t->next_tap;
+	}
+	return n;
 }
 
 unsigned jtag_tap_count_enabled(void)
@@ -211,12 +212,15 @@ unsigned jtag_tap_count_enabled(void)
 /** Append a new TAP to the chain of all taps. */
 void jtag_tap_add(struct jtag_tap *t)
 {
-	t->abs_chain_position = jtag_num_taps++;
+	unsigned jtag_num_taps = 0;
 
 	struct jtag_tap **tap = &__jtag_all_taps;
-	while (*tap != NULL)
+	while (*tap != NULL) {
+		jtag_num_taps++;
 		tap = &(*tap)->next_tap;
+	}
 	*tap = t;
+	t->abs_chain_position = jtag_num_taps;
 }
 
 /* returns a pointer to the n-th device in the scan chain */
