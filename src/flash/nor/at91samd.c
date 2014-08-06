@@ -27,6 +27,7 @@
 #define SAMD_NUM_SECTORS	16
 
 #define SAMD_FLASH			((uint32_t)0x00000000)	/* physical Flash memory */
+#define SAMD_PAC1			0x41000000	/* Peripheral Access Control 1 */
 #define SAMD_DSU			0x41002000	/* Device Service Unit */
 #define SAMD_NVMCTRL		0x41004000	/* Non-volatile memory controller */
 
@@ -295,47 +296,13 @@ static int samd_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int samd_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	int res;
-	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
-
-	res = ERROR_OK;
-
-	for (int s = first; s <= last; s++) {
-		if (set != bank->sectors[s].is_protected) {
-			/* Load an address that is within this sector (we use offset 0) */
-			res = target_write_u32(bank->target, SAMD_NVMCTRL + SAMD_NVMCTRL_ADDR,
-					       s * chip->sector_size);
-			if (res != ERROR_OK)
-				goto exit;
-
-			/* Tell the controller to lock that sector */
-
-			uint16_t cmd = (set) ?
-				SAMD_NVM_CMD(SAMD_NVM_CMD_LR) :
-				SAMD_NVM_CMD(SAMD_NVM_CMD_UR);
-
-			res = target_write_u16(bank->target,
-					       SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA,
-					       cmd);
-			if (res != ERROR_OK)
-				goto exit;
-		}
-	}
-exit:
-	samd_protect_check(bank);
-
-	return res;
-}
-
-static bool samd_check_error(struct flash_bank *bank)
+static bool samd_check_error(struct target *target)
 {
 	int ret;
 	bool error;
 	uint16_t status;
 
-	ret = target_read_u16(bank->target,
+	ret = target_read_u16(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_STATUS, &status);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Can't read NVM status");
@@ -356,7 +323,7 @@ static bool samd_check_error(struct flash_bank *bank)
 	}
 
 	/* Clear the error conditions by writing a one to them */
-	ret = target_write_u16(bank->target,
+	ret = target_write_u16(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_STATUS, status);
 	if (ret != ERROR_OK)
 		LOG_ERROR("Can't clear NVM error conditions");
@@ -364,25 +331,88 @@ static bool samd_check_error(struct flash_bank *bank)
 	return error;
 }
 
+static int samd_issue_nvmctrl_command(struct target *target, uint16_t cmd)
+{
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* Read current configuration. */
+	uint16_t tmp = 0;
+	int res = target_read_u16(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB,
+			&tmp);
+	if (res != ERROR_OK)
+		return res;
+
+	/* Set cache disable. */
+	res = target_write_u16(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB,
+			tmp | (1<<18));
+	if (res != ERROR_OK)
+		return res;
+
+	/* Issue the NVM command */
+	int res_cmd = target_write_u16(target,
+			SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA, SAMD_NVM_CMD(cmd));
+
+	/* Try to restore configuration, regardless of NVM command write
+	 * status. */
+	res = target_write_u16(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB, tmp);
+
+	if (res_cmd != ERROR_OK)
+		return res_cmd;
+
+	if (res != ERROR_OK)
+		return res;
+
+	/* Check to see if the NVM command resulted in an error condition. */
+	if (samd_check_error(target))
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+static int samd_protect(struct flash_bank *bank, int set, int first, int last)
+{
+	int res;
+	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
+
+	res = ERROR_OK;
+
+	for (int s = first; s <= last; s++) {
+		if (set != bank->sectors[s].is_protected) {
+			/* Load an address that is within this sector (we use offset 0) */
+			res = target_write_u32(bank->target, SAMD_NVMCTRL + SAMD_NVMCTRL_ADDR,
+					       s * chip->sector_size);
+			if (res != ERROR_OK)
+				goto exit;
+
+			/* Tell the controller to lock that sector */
+			res = samd_issue_nvmctrl_command(bank->target,
+					set ? SAMD_NVM_CMD_LR : SAMD_NVM_CMD_UR);
+			if (res != ERROR_OK)
+				goto exit;
+		}
+	}
+exit:
+	samd_protect_check(bank);
+
+	return res;
+}
+
 static int samd_erase_row(struct flash_bank *bank, uint32_t address)
 {
 	int res;
-	bool error = false;
 
 	/* Set an address contained in the row to be erased */
 	res = target_write_u32(bank->target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_ADDR, address >> 1);
-	if (res == ERROR_OK) {
-		/* Issue the Erase Row command to erase that row */
-		res = target_write_u16(bank->target,
-				SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA,
-				SAMD_NVM_CMD(SAMD_NVM_CMD_ER));
 
-		/* Check (and clear) error conditions */
-		error = samd_check_error(bank);
-	}
+	/* Issue the Erase Row command to erase that row */
+	if (res == ERROR_OK)
+		res = samd_issue_nvmctrl_command(bank->target, SAMD_NVM_CMD_ER);
 
-	if (res != ERROR_OK || error)  {
+	if (res != ERROR_OK)  {
 		LOG_ERROR("Failed to erase row containing %08" PRIx32, address);
 		return ERROR_FAIL;
 	}
@@ -488,7 +518,7 @@ static int samd_write_row(struct flash_bank *bank, uint32_t address,
 			return res;
 		}
 
-		error = samd_check_error(bank);
+		error = samd_check_error(bank->target);
 		if (error)
 			return ERROR_FAIL;
 
@@ -652,6 +682,51 @@ COMMAND_HANDLER(samd_handle_info_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(samd_handle_chip_erase_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (target) {
+		/* Enable access to the DSU by disabling the write protect bit */
+		target_write_u32(target, SAMD_PAC1, (1<<1));
+		/* Tell the DSU to perform a full chip erase.  It takes about 240ms to
+		 * perform the erase. */
+		target_write_u8(target, SAMD_DSU, (1<<4));
+
+		command_print(CMD_CTX, "chip erased");
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(samd_handle_set_security_command)
+{
+	int res = ERROR_OK;
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (CMD_ARGC < 1 || (CMD_ARGC >= 1 && (strcmp(CMD_ARGV[0], "enable")))) {
+		command_print(CMD_CTX, "supply the \"enable\" argument to proceed.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (target) {
+		if (target->state != TARGET_HALTED) {
+			LOG_ERROR("Target not halted");
+			return ERROR_TARGET_NOT_HALTED;
+		}
+
+		res = samd_issue_nvmctrl_command(target, SAMD_NVM_CMD_SSB);
+
+		/* Check (and clear) error conditions */
+		if (res == ERROR_OK)
+			command_print(CMD_CTX, "chip secured on next power-cycle");
+		else
+			command_print(CMD_CTX, "failed to secure chip");
+	}
+
+	return res;
+}
+
 static const struct command_registration at91samd_exec_command_handlers[] = {
 	{
 		.name = "info",
@@ -659,6 +734,22 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Print information about the current at91samd chip"
 			"and its flash configuration.",
+	},
+	{
+		.name = "chip-erase",
+		.handler = samd_handle_chip_erase_command,
+		.mode = COMMAND_EXEC,
+		.help = "Erase the entire Flash by using the Chip"
+			"Erase feature in the Device Service Unit (DSU).",
+	},
+	{
+		.name = "set-security",
+		.handler = samd_handle_set_security_command,
+		.mode = COMMAND_EXEC,
+		.help = "Secure the chip's Flash by setting the Security Bit."
+			"This makes it impossible to read the Flash contents."
+			"The only way to undo this is to issue the chip-erase"
+			"command.",
 	},
 	COMMAND_REGISTRATION_DONE
 };

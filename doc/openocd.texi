@@ -5023,6 +5023,30 @@ flash bank $_FLASHNAME aduc702x 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@anchor{at91samd}
+@deffn {Flash Driver} at91samd
+@cindex at91samd
+
+@deffn Command {at91samd chip-erase}
+Issues a complete Flash erase via the Device Service Unit (DSU). This can be
+used to erase a chip back to its factory state and does not require the
+processor to be halted.
+@end deffn
+
+@deffn Command {at91samd set-security}
+Secures the Flash via the Set Security Bit (SSB) command. This prevents access
+to the Flash and can only be undone by using the chip-erase command which
+erases the Flash contents and turns off the security bit. Warning: at this
+time, openocd will not be able to communicate with a secured chip and it is
+therefore not possible to chip-erase it without using another tool.
+
+@example
+at91samd set-security enable
+@end example
+@end deffn
+
+@end deffn
+
 @anchor{at91sam3}
 @deffn {Flash Driver} at91sam3
 @cindex at91sam3
