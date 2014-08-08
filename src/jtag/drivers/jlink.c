@@ -150,7 +150,7 @@ static uint8_t usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
 #define EMU_CAP_RAWTRACE		30
 #define EMU_CAP_RESERVED_3		31
 
-static char *jlink_cap_str[] = {
+static const char * const jlink_cap_str[] = {
 	"Always 1.",
 	"Supports command EMU_CMD_GET_HARDWARE_VERSION",
 	"Supports command EMU_CMD_WRITE_DCC",
@@ -196,7 +196,7 @@ static char *jlink_cap_str[] = {
 #define JLINK_HW_TYPE_JLINK_LITE_ADI	5
 #define JLINK_HW_TYPE_MAX				6
 
-static char *jlink_hw_type_str[] = {
+static const char * const jlink_hw_type_str[] = {
 	"J-Link",
 	"J-Trace",
 	"Flasher",
