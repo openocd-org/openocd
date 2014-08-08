@@ -141,7 +141,6 @@ static void add_default_dirs(void)
 int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 {
 	int c;
-	char command_buffer[128];
 
 	while (1) {
 		/* getopt_long stores the option index here. */
@@ -164,24 +163,26 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 				break;
 			case 'f':		/* --file | -f */
 			{
-				snprintf(command_buffer, 128, "script {%s}", optarg);
-				add_config_command(command_buffer);
+				char *command = alloc_printf("script {%s}", optarg);
+				add_config_command(command);
+				free(command);
 				break;
 			}
 			case 's':		/* --search | -s */
 				add_script_search_dir(optarg);
 				break;
 			case 'd':		/* --debug | -d */
-				if (optarg)
-					snprintf(command_buffer, 128, "debug_level %s", optarg);
-				else
-					snprintf(command_buffer, 128, "debug_level 3");
-				command_run_line(cmd_ctx, command_buffer);
+			{
+				char *command = alloc_printf("debug_level %s", optarg ? optarg : "3");
+				command_run_line(cmd_ctx, command);
+				free(command);
 				break;
+			}
 			case 'l':		/* --log_output | -l */
 				if (optarg) {
-					snprintf(command_buffer, 128, "log_output %s", optarg);
-					command_run_line(cmd_ctx, command_buffer);
+					char *command = alloc_printf("log_output %s", optarg);
+					command_run_line(cmd_ctx, command);
+					free(command);
 				}
 				break;
 			case 'c':		/* --command | -c */
