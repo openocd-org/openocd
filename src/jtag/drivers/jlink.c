@@ -189,17 +189,20 @@ static char *jlink_cap_str[] = {
 #define JLINK_MAX_SPEED 12000
 
 /* J-Link hardware versions */
-#define JLINK_HW_TYPE_JLINK	0
-#define JLINK_HW_TYPE_JTRACE	1
-#define JLINK_HW_TYPE_FLASHER	2
-#define JLINK_HW_TYPE_JLINK_PRO	3
-#define JLINK_HW_TYPE_MAX	4
+#define JLINK_HW_TYPE_JLINK				0
+#define JLINK_HW_TYPE_JTRACE			1
+#define JLINK_HW_TYPE_FLASHER			2
+#define JLINK_HW_TYPE_JLINK_PRO			3
+#define JLINK_HW_TYPE_JLINK_LITE_ADI	5
+#define JLINK_HW_TYPE_MAX				6
 
 static char *jlink_hw_type_str[] = {
 	"J-Link",
 	"J-Trace",
 	"Flasher",
 	"J-Link Pro",
+	"Unknown",
+	"J-Link Lite-ADI",
 };
 
 #define JLINK_TIF_JTAG		0
