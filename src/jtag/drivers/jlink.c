@@ -928,7 +928,7 @@ static int jlink_get_version_info(void)
 		LOG_INFO("J-Link hw version %i", (int)jlink_hw_version);
 
 		if (jlink_hw_type >= JLINK_HW_TYPE_MAX)
-			LOG_INFO("J-Link hw type uknown 0x%" PRIx32, jlink_hw_type);
+			LOG_INFO("J-Link hw type unknown 0x%" PRIx32, jlink_hw_type);
 		else
 			LOG_INFO("J-Link hw type %s", jlink_hw_type_str[jlink_hw_type]);
 	}
