@@ -97,11 +97,35 @@
 #define EJTAG_DEBUG_DM			(1 << 30)
 #define EJTAG_DEBUG_DBD			(1 << 31)
 
-/* implementaion register bits */
-#define EJTAG_IMP_R3K			(1 << 28)
-#define EJTAG_IMP_DINT			(1 << 24)
-#define EJTAG_IMP_NODMA			(1 << 14)
+/* implementation MIPS register bits.
+ * Bits marked with V20 or v2.0 mean that, this registers supported only
+ * by EJTAG v2.0. Bits marked with Lexra or BMIPS are different from the
+ * official EJATG.
+ * NOTE: Lexra or BMIPS use EJTAG v2.0 */
+
+#define EJTAG_IMP_HAS(x)			(ejtag_info->impcode & (x))
+/* v2.0(Lexra) 29 - 1’b1 - Lexra Internal Trace Buffer implemented. This bit
+ * overlaps with version bit of MIPS EJTAG specification. */
+#define EJTAG_V26_IMP_R3K		(1 << 28)
+/* v2.0 - 24:25 - 2’b00- No profiling support */
+#define EJTAG_V26_IMP_DINT		(1 << 24)
+#define EJTAG_V20_IMP_SDBBP		(1 << 23) /* 1’b1 - sdbbp is Special2 Opcode */
+#define EJTAG_IMP_ASID8			(1 << 22)
+#define EJTAG_IMP_ASID6			(1 << 21)
+#define EJTAG_V20_IMP_COMPLEX_BREAK	(1 << 20) /* Complex Breaks supported*/
+#define EJTAG_V20_IMP_EADDR_NO32BIT	(1 << 19) /* EJTAG_ADDR > 32 bits wide */
+#define EJTAG_V20_IMP_DCACHE_COH	(1 << 18) /* DCache does keep DMA coherent */
+#define EJTAG_V20_IMP_ICACHE_COH	(1 << 17) /* DCache does keep DMA coherent */
 #define EJTAG_IMP_MIPS16		(1 << 16)
+#define EJTAG_IMP_NODMA			(1 << 14)
+/* v2.0 - 11:13 external PC trace. Trace PC Width. */
+/* v2.0 - 8:10 external PC trace. PCST Width and DCLK Division Factor */
+#define EJTAG_V20_IMP_NOPB		(1 << 7) /* no processor breaks */
+#define EJTAG_V20_IMP_NODB		(1 << 6) /* no data breaks */
+#define EJTAG_V20_IMP_NOIB		(1 << 5) /* no instruction breaks implemented */
+/* v2.0 - 1:4 Number of Break Channels. */
+#define EJTAG_V20_IMP_BCHANNELS_MASK	0xf
+#define EJTAG_V20_IMP_BCHANNELS_SHIFT	1
 #define EJTAG_DCR_MIPS64		(1 << 0)
 
 /* Debug Control Register DCR */
@@ -184,8 +208,7 @@ struct mips_ejtag {
 	uint32_t ejtag_dbasid_offs;	/* DAB ASID (4Kc) */
 
 	uint32_t ejtag_iba_step_size;
-	uint32_t ejtag_dba_step_size;	/* siez of step till next
-					 * *DBAn register. */
+	uint32_t ejtag_dba_step_size;	/* size of step till next *DBAn register. */
 };
 
 void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info,
