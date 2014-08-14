@@ -894,7 +894,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 128;
 		break;
-	case 0x422: /* stm32f30x */
+	case 0x422: /* stm32f302xb/c */
 		page_size = 2048;
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 256;
@@ -922,6 +922,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->default_rdp = 0x55AA;
 		break;
 	case 0x438: /* stm32f33x */
+	case 0x439: /* stm32f302x6/8 */
 		page_size = 2048;
 		stm32x_info->ppage_size = 2;
 		max_flash_size_in_kb = 64;
@@ -1125,7 +1126,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x422:
-		device_str = "STM32F30x";
+		device_str = "STM32F302xB/C";
 
 		switch (rev_id) {
 		case 0x1000:
@@ -1190,6 +1191,20 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		switch (rev_id) {
 		case 0x1000:
 			rev_str = "A";
+			break;
+		}
+		break;
+
+	case 0x439:
+		device_str = "STM32F302x6/8";
+
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "A";
+			break;
+
+		case 0x1001:
+			rev_str = "Z";
 			break;
 		}
 		break;
