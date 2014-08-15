@@ -174,8 +174,8 @@ int jtag_libusb_get_pid(struct jtag_libusb_device *dev, uint16_t *pid)
 	if (libusb_get_device_descriptor(dev, &dev_desc) == 0) {
 		*pid = dev_desc.idProduct;
 
-		return 0;
+		return ERROR_OK;
 	}
 
-	return -ENODEV;
+	return ERROR_FAIL;
 }
