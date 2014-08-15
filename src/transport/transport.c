@@ -286,9 +286,13 @@ static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *a
 			break;
 		case 2:		/* assign */
 			if (session) {
-				/* can't change session's transport after-the-fact */
-				LOG_ERROR("session's transport is already selected.");
-				return JIM_ERR;
+				if (!strcmp(session->name, argv[1]->bytes)) {
+					LOG_WARNING("Transport \"%s\" was already selected", session->name);
+					return JIM_OK;
+				} else {
+					LOG_ERROR("Can't change session's transport after the initial selection was made");
+					return JIM_ERR;
+				}
 			}
 
 			/* Is this transport supported by our debug adapter?
