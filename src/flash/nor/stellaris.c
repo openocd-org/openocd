@@ -69,6 +69,8 @@
 #define FLASH_CRIS	(FLASH_CONTROL_BASE | 0x00C)
 #define FLASH_CIM	(FLASH_CONTROL_BASE | 0x010)
 #define FLASH_MISC	(FLASH_CONTROL_BASE | 0x014)
+#define FLASH_FSIZE	(FLASH_CONTROL_BASE | 0xFC0)
+#define FLASH_SSIZE	(FLASH_CONTROL_BASE | 0xFC4)
 
 #define AMISC	1
 #define PMISC	2
@@ -98,6 +100,8 @@ struct stellaris_flash_bank {
 	uint32_t did1;
 	uint32_t dc0;
 	uint32_t dc1;
+	uint32_t fsize;
+	uint32_t ssize;
 
 	const char *target_name;
 	uint8_t target_class;
@@ -403,7 +407,7 @@ static const struct {
 	{0x05, 0xC4, "LM4F212H5QC"},
 	{0x05, 0xC6, "LM4F212H5QD"},
 	{0x05, 0xA0, "LM4F230E5QR"},
-	{0x05, 0xA1, "LM4F230H5QR"},
+	{0x05, 0xA1, "LM4F230H5QR/TM4C123GH6PM"},
 	{0x05, 0xB0, "LM4F231E5QR"},
 	{0x05, 0xB1, "LM4F231H5QR"},
 	{0x05, 0xC0, "LM4F232E5QC"},
@@ -414,17 +418,22 @@ static const struct {
 	{0x05, 0xEA, "LM4FS1GH5BB"},
 	{0x05, 0xE4, "LM4FS99H5BB"},
 	{0x05, 0xE1, "LM4FSXLH5BB"},
+	{0x0A, 0x1F, "TM4C1294NCPDT"},
 	{0xFF, 0x00, "Unknown Part"}
 };
 
-static const char *StellarisClassname[7] = {
+static const char * const StellarisClassname[] = {
 	"Sandstorm",
 	"Fury",
 	"Unknown",
 	"DustDevil",
 	"Tempest",
-	"Blizzard",
-	"Firestorm"
+	"Blizzard/TM4C123x",
+	"Firestorm",
+	"",
+	"",
+	"",
+	"Snowflake",
 };
 
 /***************************************************************************
@@ -486,8 +495,8 @@ static int get_stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 			   stellaris_info->did1,
 			   stellaris_info->did1,
 			   "ARMv7M",
-			   (int)((1 + ((stellaris_info->dc0 >> 16) & 0xFFFF))/4),
-			   (int)((1 + (stellaris_info->dc0 & 0xFFFF))*2));
+			   stellaris_info->sramsiz,
+			   stellaris_info->num_pages * stellaris_info->pagesize / 1024);
 	buf += printed;
 	buf_size -= printed;
 
@@ -666,7 +675,7 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	LOG_DEBUG("did0 0x%" PRIx32 ", did1 0x%" PRIx32 ", dc0 0x%" PRIx32 ", dc1 0x%" PRIx32 "",
 		  did0, did1, stellaris_info->dc0, stellaris_info->dc1);
 
-	ver = did0 >> 28;
+	ver = DID0_VER(did0);
 	if ((ver != 0) && (ver != 1)) {
 		LOG_WARNING("Unknown did0 version, cannot identify target");
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -724,6 +733,7 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 		case 4:			/* Tempest */
 		case 5:			/* Blizzard */
 		case 6:			/* Firestorm */
+		case 0xa:		/* Snowflake */
 			stellaris_info->iosc_freq = 16000000;	/* +/- 1% */
 			stellaris_info->iosc_desc = " (±1%)";
 			/* FALL THROUGH */
@@ -747,10 +757,34 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	stellaris_info->did0 = did0;
 	stellaris_info->did1 = did1;
 
-	stellaris_info->num_lockbits = 1 + (stellaris_info->dc0 & 0xFFFF);
-	stellaris_info->num_pages = 2 * (1 + (stellaris_info->dc0 & 0xFFFF));
-	stellaris_info->pagesize = 1024;
-	stellaris_info->pages_in_lockregion = 2;
+	if (stellaris_info->target_class == 5) { /* Blizzard */
+		target_read_u32(target, FLASH_FSIZE, &stellaris_info->fsize);
+		target_read_u32(target, FLASH_SSIZE, &stellaris_info->ssize);
+
+		stellaris_info->num_lockbits = 1 + (stellaris_info->fsize & 0xFFFF);
+		stellaris_info->num_pages = 2 * (1 + (stellaris_info->fsize & 0xFFFF));
+		stellaris_info->sramsiz = (1 + (stellaris_info->ssize & 0xFFFF)) / 4;
+		stellaris_info->pagesize = 1024;
+		stellaris_info->pages_in_lockregion = 2;
+	} else if (stellaris_info->target_class == 0xa) { /* Snowflake */
+		target_read_u32(target, FLASH_FSIZE, &stellaris_info->fsize);
+		target_read_u32(target, FLASH_SSIZE, &stellaris_info->ssize);
+
+		stellaris_info->pagesize = (1 << ((stellaris_info->fsize >> 16) & 7)) * 1024;
+		stellaris_info->num_pages = 2048 * (1 + (stellaris_info->fsize & 0xFFFF)) /
+			stellaris_info->pagesize;
+		stellaris_info->pages_in_lockregion = 1;
+
+		stellaris_info->num_lockbits = stellaris_info->pagesize * stellaris_info->num_pages /
+			2048;
+		stellaris_info->sramsiz = (1 + (stellaris_info->ssize & 0xFFFF)) / 4;
+	} else {
+		stellaris_info->num_lockbits = 1 + (stellaris_info->dc0 & 0xFFFF);
+		stellaris_info->num_pages = 2 * (1 + (stellaris_info->dc0 & 0xFFFF));
+		stellaris_info->sramsiz = (1 + ((stellaris_info->dc0 >> 16) & 0xFFFF)) / 4;
+		stellaris_info->pagesize = 1024;
+		stellaris_info->pages_in_lockregion = 2;
+	}
 
 	/* REVISIT for at least Tempest parts, read NVMSTAT.FWB too.
 	 * That exposes a 32-word Flash Write Buffer ... enabling
@@ -773,6 +807,11 @@ static int stellaris_protect_check(struct flash_bank *bank)
 
 	if (stellaris->did1 == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
+
+	if (stellaris->target_class == 0xa) {
+		LOG_WARNING("Assuming flash to be unprotected on Snowflake");
+		return ERROR_OK;
+	}
 
 	for (i = 0; i < (unsigned) bank->num_sectors; i++)
 		bank->sectors[i].is_protected = -1;
@@ -889,6 +928,11 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 
 	if (stellaris_info->did1 == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
+
+	if (stellaris_info->target_class == 0xa) {
+		LOG_ERROR("Protection on Snowflake is not supported yet");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
 
 	/* lockregions are 2 pages ... must protect [even..odd] */
 	if ((first < 0) || (first & 1)
@@ -1216,7 +1260,7 @@ static int stellaris_probe(struct flash_bank *bank)
 	}
 
 	/* provide this for the benefit of the NOR flash framework */
-	bank->size = 1024 * stellaris_info->num_pages;
+	bank->size = stellaris_info->num_pages * stellaris_info->pagesize;
 	bank->num_sectors = stellaris_info->num_pages;
 	bank->sectors = calloc(bank->num_sectors, sizeof(struct flash_sector));
 	for (int i = 0; i < bank->num_sectors; i++) {
