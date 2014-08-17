@@ -253,6 +253,11 @@ int dap_to_swd(struct target *target)
 	struct arm *arm = target_to_arm(target);
 	int retval;
 
+	if (!arm->dap) {
+		LOG_ERROR("SWD mode is not available");
+		return ERROR_FAIL;
+	}
+
 	LOG_DEBUG("Enter SWD mode");
 
 	/* REVISIT it's ugly to need to make calls to a "jtag"
