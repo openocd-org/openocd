@@ -779,6 +779,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	case 0x423:
 		max_flash_size_in_kb = 256;
 		break;
+	case 0x431:
 	case 0x433:
 		max_flash_size_in_kb = 512;
 		break;
@@ -930,6 +931,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	case 0x423:
+	case 0x431:
 	case 0x433:
 		device_str = "STM32F4xx (Low Power)";
 
