@@ -109,6 +109,7 @@ static const struct samd_part samd20_parts[] = {
 	{ 0x7, "SAMD20G16A", 64, 8 },
 	{ 0x8, "SAMD20G15A", 32, 4 },
 	{ 0x9, "SAMD20G14A", 16, 2 },
+	{ 0xA, "SAMD20E18A", 256, 32 },
 	{ 0xB, "SAMD20E17A", 128, 16 },
 	{ 0xC, "SAMD20E16A", 64, 8 },
 	{ 0xD, "SAMD20E15A", 32, 4 },
