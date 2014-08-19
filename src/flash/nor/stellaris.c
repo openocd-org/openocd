@@ -950,6 +950,13 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 	if (stellaris_info->did1 == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
+	if (stellaris_info->target_class == 0x03 &&
+	    !((stellaris_info->did0 >> 8) & 0xFF) &&
+	    !((stellaris_info->did0) & 0xFF)) {
+		LOG_ERROR("DustDevil A0 parts can't be unprotected, see errata; refusing to proceed");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
 	if (stellaris_info->target_class == 0xa) {
 		LOG_ERROR("Protection on Snowflake is not supported yet");
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -997,15 +1004,8 @@ static int stellaris_protect(struct flash_bank *bank, int set, int first, int la
 
 	/* Commit FMPPE */
 	target_write_u32(target, FLASH_FMA, 1);
-
 	/* Write commit command */
-	/* REVISIT safety check, since this cannot be undone
-	 * except by the "Recover a locked device" procedure.
-	 * REVISIT DustDevil-A0 parts have an erratum making FMPPE commits
-	 * inadvisable ... it makes future mass erase operations fail.
-	 */
-	LOG_WARNING("Flash protection cannot be removed once committed, commit is NOT executed !");
-	/* target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_COMT); */
+	target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_COMT);
 
 	/* Wait until erase complete */
 	do {
@@ -1392,6 +1392,12 @@ COMMAND_HANDLER(stellaris_handle_recover_command)
 	 * cycle to recover.
 	 */
 
+	Jim_Eval_Named(CMD_CTX->interp, "catch { hla_command \"debug unlock\" }", 0, 0);
+	if (!strcmp(Jim_GetString(Jim_GetResult(CMD_CTX->interp), NULL), "0")) {
+		retval = ERROR_OK;
+		goto user_action;
+	}
+
 	/* assert SRST */
 	if (!(jtag_get_reset_config() & RESET_HAS_SRST)) {
 		LOG_ERROR("Can't recover Stellaris flash without SRST");
@@ -1416,6 +1422,7 @@ COMMAND_HANDLER(stellaris_handle_recover_command)
 	/* wait 400+ msec ... OK, "1+ second" is simpler */
 	usleep(1000);
 
+user_action:
 	/* USER INTERVENTION required for the power cycle
 	 * Restarting OpenOCD is likely needed because of mode switching.
 	 */
