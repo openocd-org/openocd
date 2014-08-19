@@ -76,6 +76,8 @@ struct hl_layout_api_s {
 	/** */
 	int (*override_target) (const char *targetname);
 	/** */
+	int (*custom_command) (void *handle, const char *command);
+	/** */
 	enum target_state (*state) (void *fd);
 };
 

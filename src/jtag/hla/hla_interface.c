@@ -268,6 +268,21 @@ COMMAND_HANDLER(interface_handle_trace_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(interface_handle_hla_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (!hl_if.layout->api->custom_command) {
+		LOG_ERROR("The selected adapter doesn't support custom commands");
+		return ERROR_FAIL;
+	}
+
+	hl_if.layout->api->custom_command(hl_if.handle, CMD_ARGV[0]);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration hl_interface_command_handlers[] = {
 	{
 	 .name = "hla_device_desc",
@@ -303,6 +318,13 @@ static const struct command_registration hl_interface_command_handlers[] = {
 	 .mode = COMMAND_CONFIG,
 	 .help = "configure trace reception",
 	 .usage = "source_lock_hz [destination_path]",
+	 },
+	 {
+	 .name = "hla_command",
+	 .handler = &interface_handle_hla_command,
+	 .mode = COMMAND_EXEC,
+	 .help = "execute a custom adapter-specific command",
+	 .usage = "hla_command <command>",
 	 },
 	COMMAND_REGISTRATION_DONE
 };

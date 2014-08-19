@@ -777,4 +777,5 @@ struct hl_layout_api_s icdi_usb_layout_api = {
 	.write_mem = icdi_usb_write_mem,
 	.write_debug_reg = icdi_usb_write_debug_reg,
 	.override_target = icdi_usb_override_target,
+	.custom_command = icdi_send_remote_cmd,
 };

@@ -3100,6 +3100,11 @@ Specifies the adapter layout to use.
 The vendor ID and product ID of the device.
 @end deffn
 
+@deffn {Command} {hla_command} command
+Execute a custom adapter-specific command. The @var{command} string is
+passed as is to the underlying adapter layout handler.
+@end deffn
+
 @deffn {Config Command} {trace} source_clock_hz [output_file_path]
 Enable SWO tracing (if supported). The source clock rate for the
 trace port must be specified, this is typically the CPU clock rate. If
