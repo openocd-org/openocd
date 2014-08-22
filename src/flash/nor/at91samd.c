@@ -658,6 +658,9 @@ static int samd_write_row(struct flash_bank *bank, uint32_t address,
 			return res;
 		}
 
+		/* Access through AHB is stalled while flash is being programmed */
+		usleep(200);
+
 		error = samd_check_error(bank->target);
 		if (error)
 			return ERROR_FAIL;
