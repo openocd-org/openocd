@@ -144,7 +144,7 @@
 #define EJTAG_V20_IBC_OFFS		0x4	/* IBC Offset */
 #define EJTAG_V20_IBM_OFFS		0x8
 #define EJTAG_V20_IBAn_STEP		0x10	/* Offset for next channel */
-#define EJTAG_V20_DBS			0xFF30008
+#define EJTAG_V20_DBS			0xFF300008
 #define EJTAG_V20_DBA0			0xFF300200
 #define EJTAG_V20_DBC_OFFS		0x4
 #define EJTAG_V20_DBM_OFFS		0x8
