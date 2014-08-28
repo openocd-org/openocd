@@ -624,6 +624,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 	uint32_t second_bank_base;
 
 	stm32lx_info->probed = 0;
+	stm32lx_info->part_info = NULL;
 
 	int retval = stm32lx_read_id_code(bank->target, &device_id);
 	if (retval != ERROR_OK)
