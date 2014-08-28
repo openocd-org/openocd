@@ -221,6 +221,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 		LOG_ERROR("failed to allocate bank structure");
 		return ERROR_FAIL;
 	}
+	memset(stm32lx_info, 0, sizeof(*stm32lx_info));
 
 	bank->driver_priv = stm32lx_info;
 
@@ -623,7 +624,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 	uint32_t base_address = FLASH_BANK0_ADDRESS;
 	uint32_t second_bank_base;
 
-	stm32lx_info->probed = 0;
+	stm32lx_info->part_info = NULL;
 
 	int retval = stm32lx_read_id_code(bank->target, &device_id);
 	if (retval != ERROR_OK)
