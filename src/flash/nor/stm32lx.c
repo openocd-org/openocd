@@ -214,7 +214,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* Create the bank structure */
-	stm32lx_info = malloc(sizeof(struct stm32lx_flash_bank));
+	stm32lx_info = calloc(1, sizeof(*stm32lx_info));
 
 	/* Check allocation */
 	if (stm32lx_info == NULL) {
@@ -624,6 +624,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 	uint32_t second_bank_base;
 
 	stm32lx_info->probed = 0;
+	stm32lx_info->part_info = NULL;
 
 	int retval = stm32lx_read_id_code(bank->target, &device_id);
 	if (retval != ERROR_OK)
