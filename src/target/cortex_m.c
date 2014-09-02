@@ -1910,7 +1910,9 @@ static int cortex_m_target_request_data(struct target *target,
 	uint32_t i;
 
 	for (i = 0; i < (size * 4); i++) {
-		cortex_m_dcc_read(target, &data, &ctrl);
+		int retval = cortex_m_dcc_read(target, &data, &ctrl);
+		if (retval != ERROR_OK)
+			return retval;
 		buffer[i] = data;
 	}
 
@@ -1929,8 +1931,11 @@ static int cortex_m_handle_target_request(void *priv)
 	if (target->state == TARGET_RUNNING) {
 		uint8_t data;
 		uint8_t ctrl;
+		int retval;
 
-		cortex_m_dcc_read(target, &data, &ctrl);
+		retval = cortex_m_dcc_read(target, &data, &ctrl);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* check if we have data */
 		if (ctrl & (1 << 0)) {
@@ -1938,12 +1943,12 @@ static int cortex_m_handle_target_request(void *priv)
 
 			/* we assume target is quick enough */
 			request = data;
-			cortex_m_dcc_read(target, &data, &ctrl);
-			request |= (data << 8);
-			cortex_m_dcc_read(target, &data, &ctrl);
-			request |= (data << 16);
-			cortex_m_dcc_read(target, &data, &ctrl);
-			request |= (data << 24);
+			for (int i = 1; i <= 3; i++) {
+				retval = cortex_m_dcc_read(target, &data, &ctrl);
+				if (retval != ERROR_OK)
+					return retval;
+				request |= ((uint32_t)data << (i * 8));
+			}
 			target_request(target, request);
 		}
 	}
