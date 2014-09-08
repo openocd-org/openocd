@@ -98,7 +98,7 @@ static bool string_descriptor_equal(libusb_device_handle *device, uint8_t str_in
 	retval = libusb_get_string_descriptor_ascii(device, str_index, (unsigned char *)desc_string,
 			sizeof(desc_string));
 	if (retval < 0) {
-		LOG_ERROR("libusb_get_string_descriptor_ascii() failed with %d", retval);
+		LOG_ERROR("libusb_get_string_descriptor_ascii() failed with %s", libusb_error_name(retval));
 		return false;
 	}
 	return strncmp(string, desc_string, sizeof(desc_string)) == 0;
@@ -118,14 +118,14 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 	bool found = false;
 	ssize_t cnt = libusb_get_device_list(ctx->usb_ctx, &list);
 	if (cnt < 0)
-		LOG_ERROR("libusb_get_device_list() failed with %zi", cnt);
+		LOG_ERROR("libusb_get_device_list() failed with %s", libusb_error_name(cnt));
 
 	for (ssize_t i = 0; i < cnt; i++) {
 		libusb_device *device = list[i];
 
 		err = libusb_get_device_descriptor(device, &desc);
 		if (err != LIBUSB_SUCCESS) {
-			LOG_ERROR("libusb_get_device_descriptor() failed with %d", err);
+			LOG_ERROR("libusb_get_device_descriptor() failed with %s", libusb_error_name(err));
 			continue;
 		}
 
@@ -164,7 +164,7 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 
 	err = libusb_get_config_descriptor(libusb_get_device(ctx->usb_dev), 0, &config0);
 	if (err != LIBUSB_SUCCESS) {
-		LOG_ERROR("libusb_get_config_descriptor() failed with %d", err);
+		LOG_ERROR("libusb_get_config_descriptor() failed with %s", libusb_error_name(err));
 		libusb_close(ctx->usb_dev);
 		return false;
 	}
@@ -173,14 +173,14 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 	int cfg;
 	err = libusb_get_configuration(ctx->usb_dev, &cfg);
 	if (err != LIBUSB_SUCCESS) {
-		LOG_ERROR("libusb_get_configuration() failed with %d", err);
+		LOG_ERROR("libusb_get_configuration() failed with %s", libusb_error_name(err));
 		goto error;
 	}
 
 	if (desc.bNumConfigurations > 0 && cfg != config0->bConfigurationValue) {
 		err = libusb_set_configuration(ctx->usb_dev, config0->bConfigurationValue);
 		if (err != LIBUSB_SUCCESS) {
-			LOG_ERROR("libusb_set_configuration() failed with %d", err);
+			LOG_ERROR("libusb_set_configuration() failed with %s", libusb_error_name(err));
 			goto error;
 		}
 	}
@@ -189,13 +189,13 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 	err = libusb_detach_kernel_driver(ctx->usb_dev, ctx->interface);
 	if (err != LIBUSB_SUCCESS && err != LIBUSB_ERROR_NOT_FOUND
 			&& err != LIBUSB_ERROR_NOT_SUPPORTED) {
-		LOG_ERROR("libusb_detach_kernel_driver() failed with %d", err);
+		LOG_ERROR("libusb_detach_kernel_driver() failed with %s", libusb_error_name(err));
 		goto error;
 	}
 
 	err = libusb_claim_interface(ctx->usb_dev, ctx->interface);
 	if (err != LIBUSB_SUCCESS) {
-		LOG_ERROR("libusb_claim_interface() failed with %d", err);
+		LOG_ERROR("libusb_claim_interface() failed with %s", libusb_error_name(err));
 		goto error;
 	}
 
@@ -204,7 +204,7 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 			SIO_RESET_REQUEST, SIO_RESET_SIO,
 			ctx->index, NULL, 0, ctx->usb_write_timeout);
 	if (err < 0) {
-		LOG_ERROR("failed to reset FTDI device: %d", err);
+		LOG_ERROR("failed to reset FTDI device: %s", libusb_error_name(err));
 		goto error;
 	}
 
@@ -288,7 +288,7 @@ struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const cha
 
 	err = libusb_init(&ctx->usb_ctx);
 	if (err != LIBUSB_SUCCESS) {
-		LOG_ERROR("libusb_init() failed with %d", err);
+		LOG_ERROR("libusb_init() failed with %s", libusb_error_name(err));
 		goto error;
 	}
 
@@ -310,7 +310,7 @@ struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const cha
 			SIO_SET_LATENCY_TIMER_REQUEST, 255, ctx->index, NULL, 0,
 			ctx->usb_write_timeout);
 	if (err < 0) {
-		LOG_ERROR("unable to set latency timer: %d", err);
+		LOG_ERROR("unable to set latency timer: %s", libusb_error_name(err));
 		goto error;
 	}
 
@@ -323,7 +323,7 @@ struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const cha
 			0,
 			ctx->usb_write_timeout);
 	if (err < 0) {
-		LOG_ERROR("unable to set MPSSE bitmode: %d", err);
+		LOG_ERROR("unable to set MPSSE bitmode: %s", libusb_error_name(err));
 		goto error;
 	}
 
@@ -368,14 +368,14 @@ void mpsse_purge(struct mpsse_ctx *ctx)
 	err = libusb_control_transfer(ctx->usb_dev, FTDI_DEVICE_OUT_REQTYPE, SIO_RESET_REQUEST,
 			SIO_RESET_PURGE_RX, ctx->index, NULL, 0, ctx->usb_write_timeout);
 	if (err < 0) {
-		LOG_ERROR("unable to purge ftdi rx buffers: %d", err);
+		LOG_ERROR("unable to purge ftdi rx buffers: %s", libusb_error_name(err));
 		return;
 	}
 
 	err = libusb_control_transfer(ctx->usb_dev, FTDI_DEVICE_OUT_REQTYPE, SIO_RESET_REQUEST,
 			SIO_RESET_PURGE_TX, ctx->index, NULL, 0, ctx->usb_write_timeout);
 	if (err < 0) {
-		LOG_ERROR("unable to purge ftdi tx buffers: %d", err);
+		LOG_ERROR("unable to purge ftdi tx buffers: %s", libusb_error_name(err));
 		return;
 	}
 }
@@ -837,7 +837,7 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 	}
 
 	if (retval != LIBUSB_SUCCESS) {
-		LOG_ERROR("libusb_handle_events() failed with %d", retval);
+		LOG_ERROR("libusb_handle_events() failed with %s", libusb_error_name(retval));
 		retval = ERROR_FAIL;
 	} else if (write_result.transferred < ctx->write_count) {
 		LOG_ERROR("ftdi device did not accept all data: %d, tried %d",
