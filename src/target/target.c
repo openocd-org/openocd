@@ -4115,7 +4115,6 @@ enum target_cfg_param {
 	TCFG_WORK_AREA_SIZE,
 	TCFG_WORK_AREA_BACKUP,
 	TCFG_ENDIAN,
-	TCFG_VARIANT,
 	TCFG_COREID,
 	TCFG_CHAIN_POSITION,
 	TCFG_DBGBASE,
@@ -4130,7 +4129,6 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-work-area-size",   .value = TCFG_WORK_AREA_SIZE },
 	{ .name = "-work-area-backup", .value = TCFG_WORK_AREA_BACKUP },
 	{ .name = "-endian" ,          .value = TCFG_ENDIAN },
-	{ .name = "-variant",          .value = TCFG_VARIANT },
 	{ .name = "-coreid",           .value = TCFG_COREID },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
@@ -4143,7 +4141,6 @@ static int target_configure(Jim_GetOptInfo *goi, struct target *target)
 	Jim_Nvp *n;
 	Jim_Obj *o;
 	jim_wide w;
-	char *cp;
 	int e;
 
 	/* parse config or cget options ... */
@@ -4349,27 +4346,6 @@ no_params:
 				n = Jim_Nvp_value2name_simple(nvp_target_endian, target->endianness);
 			}
 			Jim_SetResultString(goi->interp, n->name, -1);
-			/* loop for more */
-			break;
-
-		case TCFG_VARIANT:
-			if (goi->isconfigure) {
-				if (goi->argc < 1) {
-					Jim_SetResultFormatted(goi->interp,
-										   "%s ?STRING?",
-										   n->name);
-					return JIM_ERR;
-				}
-				e = Jim_GetOpt_String(goi, &cp, NULL);
-				if (e != JIM_OK)
-					return e;
-				free(target->variant);
-				target->variant = strdup(cp);
-			} else {
-				if (goi->argc != 0)
-					goto no_params;
-			}
-			Jim_SetResultString(goi->interp, target->variant, -1);
 			/* loop for more */
 			break;
 
@@ -5184,10 +5160,6 @@ static int target_create(Jim_GetOptInfo *goi)
 		/* default endian to little if not specified */
 		target->endianness = TARGET_LITTLE_ENDIAN;
 	}
-
-	/* incase variant is not set */
-	if (!target->variant)
-		target->variant = strdup("");
 
 	cp = Jim_GetString(new_cmd, NULL);
 	target->cmd_name = strdup(cp);

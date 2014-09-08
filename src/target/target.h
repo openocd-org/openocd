@@ -129,7 +129,6 @@ struct target {
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;				/* where on the jtag chain is this */
 	int32_t coreid;						/* which device on the TAP? */
-	char *variant;						/* what variant of this chip is it? */
 
 	/**
 	 * Indicates whether this target has been examined.

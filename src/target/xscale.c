@@ -2905,7 +2905,7 @@ static int xscale_init_target(struct command_context *cmd_ctx,
 }
 
 static int xscale_init_arch_info(struct target *target,
-	struct xscale_common *xscale, struct jtag_tap *tap, const char *variant)
+	struct xscale_common *xscale, struct jtag_tap *tap)
 {
 	struct arm *arm;
 	uint32_t high_reset_branch, low_reset_branch;
@@ -2916,33 +2916,7 @@ static int xscale_init_arch_info(struct target *target,
 	/* store architecture specfic data */
 	xscale->common_magic = XSCALE_COMMON_MAGIC;
 
-	/* we don't really *need* a variant param ... */
-	if (variant) {
-		int ir_length = 0;
-
-		if (strcmp(variant, "pxa250") == 0
-			|| strcmp(variant, "pxa255") == 0
-			|| strcmp(variant, "pxa26x") == 0)
-			ir_length = 5;
-		else if (strcmp(variant, "pxa27x") == 0
-			|| strcmp(variant, "ixp42x") == 0
-			|| strcmp(variant, "ixp45x") == 0
-			|| strcmp(variant, "ixp46x") == 0)
-			ir_length = 7;
-		else if (strcmp(variant, "pxa3xx") == 0)
-			ir_length = 11;
-		else
-			LOG_WARNING("%s: unrecognized variant %s",
-				tap->dotted_name, variant);
-
-		if (ir_length && ir_length != tap->ir_length) {
-			LOG_WARNING("%s: IR length for %s is %d; fixing",
-				tap->dotted_name, variant, ir_length);
-			tap->ir_length = ir_length;
-		}
-	}
-
-	/* PXA3xx shifts the JTAG instructions */
+	/* PXA3xx with 11 bit IR shifts the JTAG instructions */
 	if (tap->ir_length == 11)
 		xscale->xscale_variant = XSCALE_PXA3XX;
 	else
@@ -3033,8 +3007,7 @@ static int xscale_target_create(struct target *target, Jim_Interp *interp)
 	if (!xscale)
 		return ERROR_FAIL;
 
-	return xscale_init_arch_info(target, xscale, target->tap,
-			target->variant);
+	return xscale_init_arch_info(target, xscale, target->tap);
 }
 
 COMMAND_HANDLER(xscale_handle_debug_handler_command)
