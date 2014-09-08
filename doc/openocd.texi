@@ -5440,6 +5440,40 @@ This will remove any Code Protection.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} psoc4
+All members of the PSoC 41xx/42xx microcontroller family from Cypress
+include internal flash and use ARM Cortex M0 cores.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+
+Note: Erased internal flash reads as 00.
+System ROM of PSoC 4 does not implement erase of a flash sector.
+
+@example
+flash bank $_FLASHNAME psoc4 0 0 0 0 $_TARGETNAME
+@end example
+
+psoc4-specific commands
+@deffn Command {psoc4 flash_autoerase} num (on|off)
+Enables or disables autoerase mode for a flash bank.
+
+If flash_autoerase is off, use mass_erase before flash programming.
+Flash erase command fails if region to erase is not whole flash memory.
+
+If flash_autoerase is on, a sector is both erased and programmed in one
+system ROM call. Flash erase command is ignored.
+This mode is suitable for gdb load.
+
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {psoc4 mass_erase} num
+Erases the contents of the flash memory, protection and security lock.
+
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} stellaris
 All members of the Stellaris LM3Sxxx microcontroller family from
 Texas Instruments

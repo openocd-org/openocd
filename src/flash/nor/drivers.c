@@ -57,6 +57,7 @@ extern struct flash_driver mini51_flash;
 extern struct flash_driver nuc1x_flash;
 extern struct flash_driver nrf51_flash;
 extern struct flash_driver mrvlqspi_flash;
+extern struct flash_driver psoc4_flash;
 
 /**
  * The list of built-in flash drivers.
@@ -98,6 +99,7 @@ static struct flash_driver *flash_drivers[] = {
 	&nuc1x_flash,
 	&nrf51_flash,
 	&mrvlqspi_flash,
+	&psoc4_flash,
 	NULL,
 };
 
