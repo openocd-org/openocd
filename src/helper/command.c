@@ -1070,8 +1070,10 @@ static int jim_command_type(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		Jim_SetResultString(interp, "native", -1);
 	else if (c->handler)
 		Jim_SetResultString(interp, "simple", -1);
-	else
+	else if (remaining == 0)
 		Jim_SetResultString(interp, "group", -1);
+	else
+		Jim_SetResultString(interp, "unknown", -1);
 
 	return JIM_OK;
 }

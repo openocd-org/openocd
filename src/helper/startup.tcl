@@ -30,7 +30,7 @@ proc ocd_bouncer {name args} {
 		set errmsg [format "%s: command requires more arguments" \
 			[concat $name " " $args]]
 	} else {
-		set errmsg [format "Unknown command type: %s" $type]
+		set errmsg [format "invalid subcommand \"%s\"" $args]
 	}}}
 	return -code error $errmsg
 }
