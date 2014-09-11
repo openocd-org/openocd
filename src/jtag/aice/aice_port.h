@@ -106,9 +106,9 @@ enum aice_command_mode {
 
 struct aice_port_param_s {
 	/** */
-	char *device_desc;
+	const char *device_desc;
 	/** */
-	char *serial;
+	const char *serial;
 	/** */
 	uint16_t vid;
 	/** */
@@ -225,7 +225,7 @@ struct aice_port_api_s {
 /** */
 struct aice_port {
 	/** */
-	char *name;
+	const char *name;
 	/** */
 	int type;
 	/** */

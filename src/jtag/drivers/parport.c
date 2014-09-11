@@ -60,7 +60,7 @@
 /* parallel port cable description
  */
 struct cable {
-	char *name;
+	const char *name;
 	uint8_t TDO_MASK;	/* status port bit containing current TDO value */
 	uint8_t TRST_MASK;	/* data port bit for TRST */
 	uint8_t TMS_MASK;	/* data port bit for TMS */
@@ -74,7 +74,7 @@ struct cable {
 	uint8_t LED_MASK;	/* data port bit for LED */
 };
 
-static struct cable cables[] = {
+static const struct cable cables[] = {
 	/* name				tdo   trst  tms   tck   tdi   srst  o_inv i_inv init  exit  led */
 	{ "wiggler",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x80, 0x00 },
 	{ "wiggler2",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x00, 0x20 },
@@ -108,7 +108,7 @@ static int wait_states;
 
 /* interface variables
  */
-static struct cable *cable;
+static const struct cable *cable;
 static uint8_t dataport_value;
 
 #if PARPORT_USE_PPDEV == 1
@@ -262,7 +262,7 @@ static struct bitbang_interface parport_bitbang = {
 
 static int parport_init(void)
 {
-	struct cable *cur_cable;
+	const struct cable *cur_cable;
 #if PARPORT_USE_PPDEV == 1
 	char buffer[256];
 #endif

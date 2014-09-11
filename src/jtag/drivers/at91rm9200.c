@@ -79,7 +79,7 @@
 #define P31	(1 << 31)
 
 struct device_t {
-	char *name;
+	const char *name;
 	int TDO_PIO;	/* PIO holding TDO */
 	uint32_t TDO_MASK;	/* TDO bitmask */
 	int TRST_PIO;	/* PIO holding TRST */
@@ -94,7 +94,7 @@ struct device_t {
 	uint32_t SRST_MASK;	/* SRST bitmask */
 };
 
-static struct device_t devices[] = {
+static const struct device_t devices[] = {
 	{ "rea_ecr", PIOD, P27, PIOA, NC, PIOD, P23, PIOD, P24, PIOD, P26, PIOC, P5 },
 	{ .name = NULL },
 };
@@ -104,7 +104,7 @@ static char *at91rm9200_device;
 
 /* interface variables
  */
-static struct device_t *device;
+static const struct device_t *device;
 static int dev_mem_fd;
 static void *sys_controller;
 static uint32_t *pio_base;
@@ -196,7 +196,7 @@ struct jtag_interface at91rm9200_interface = {
 
 static int at91rm9200_init(void)
 {
-	struct device_t *cur_device;
+	const struct device_t *cur_device;
 
 	cur_device = devices;
 

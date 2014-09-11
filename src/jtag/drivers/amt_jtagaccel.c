@@ -124,7 +124,7 @@ static const int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA;
  * 4: Shift-IR
  * 5: Pause-IR
  */
-static uint8_t amt_jtagaccel_tap_move[6][6][2] = {
+static const uint8_t amt_jtagaccel_tap_move[6][6][2] = {
 	/*	   RESET         IDLE        DRSHIFT       DRPAUSE       IRSHIFT       IRPAUSE             */
 	{ {0x1f, 0x00}, {0x0f, 0x00}, {0x05, 0x00}, {0x0a, 0x00}, {0x06, 0x00}, {0x96, 0x00} },	/* RESET */
 	{ {0x1f, 0x00}, {0x00, 0x00}, {0x04, 0x00}, {0x05, 0x00}, {0x06, 0x00}, {0x0b, 0x00} },	/* IDLE */

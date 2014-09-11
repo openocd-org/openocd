@@ -41,7 +41,7 @@
 #define OPENDOUS_MAX_VIDS_PIDS 4
 /* define some probes with similar interface */
 struct opendous_probe {
-	char *name;
+	const char *name;
 	uint16_t VID[OPENDOUS_MAX_VIDS_PIDS];
 	uint16_t PID[OPENDOUS_MAX_VIDS_PIDS];
 	uint8_t READ_EP;
@@ -50,7 +50,7 @@ struct opendous_probe {
 	int BUFFERSIZE;
 };
 
-static struct opendous_probe opendous_probes[] = {
+static const struct opendous_probe opendous_probes[] = {
 	{"usbprog-jtag",	{0x1781, 0},			{0x0C63, 0},			0x82, 0x02, 0x00, 510 },
 	{"opendous",		{0x1781, 0x03EB, 0},	{0xC0C0, 0x204F, 0},	0x81, 0x02, 0x00, 360 },
 	{"usbvlab",			{0x16C0, 0},			{0x05DC, 0},			0x81, 0x02, 0x01, 360 },
@@ -109,7 +109,7 @@ static struct pending_scan_result *pending_scan_results_buffer;
 #define FUNC_READ_DATA        0x51
 
 static char *opendous_type;
-static struct opendous_probe *opendous_probe;
+static const struct opendous_probe *opendous_probe;
 
 /* External interface functions */
 static int opendous_execute_queue(void);
@@ -321,7 +321,7 @@ static int opendous_execute_queue(void)
 static int opendous_init(void)
 {
 	int check_cnt;
-	struct opendous_probe *cur_opendous_probe;
+	const struct opendous_probe *cur_opendous_probe;
 
 	cur_opendous_probe = opendous_probes;
 

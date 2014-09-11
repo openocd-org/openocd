@@ -137,7 +137,7 @@ static bool swd_mode;
 /* CMSIS-DAP Vendor Commands
  * None as yet... */
 
-static char *info_caps_str[] = {
+static const char * const info_caps_str[] = {
 	"SWD  Supported",
 	"JTAG Supported"
 };

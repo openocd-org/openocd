@@ -164,7 +164,7 @@ static uint16_t ft2232_vid[MAX_USB_IDS + 1] = { 0x0403, 0 };
 static uint16_t ft2232_pid[MAX_USB_IDS + 1] = { 0x6010, 0 };
 
 struct ft2232_layout {
-	char *name;
+	const char *name;
 	int (*init)(void);
 	void (*reset)(int trst, int srst);
 	void (*blink)(void);

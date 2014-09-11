@@ -31,7 +31,7 @@
 #include "aice_usb.h"
 
 #define AICE_KHZ_TO_SPEED_MAP_SIZE	16
-static int aice_khz_to_speed_map[AICE_KHZ_TO_SPEED_MAP_SIZE] = {
+static const int aice_khz_to_speed_map[AICE_KHZ_TO_SPEED_MAP_SIZE] = {
 	30000,
 	15000,
 	7500,

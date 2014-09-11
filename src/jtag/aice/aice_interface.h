@@ -22,9 +22,9 @@
 
 struct aice_interface_param_s {
 	/** */
-	char *device_desc;
+	const char *device_desc;
 	/** */
-	char *serial;
+	const char *serial;
 	/** */
 	uint16_t vid;
 	/** */

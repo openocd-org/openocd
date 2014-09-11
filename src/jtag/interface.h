@@ -198,7 +198,7 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
  */
 struct jtag_interface {
 	/** The name of the JTAG interface driver. */
-	char *name;
+	const char * const name;
 
 	/**
 	 * Bit vector listing capabilities exposed by this driver.
