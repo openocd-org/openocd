@@ -78,7 +78,7 @@ static const uint8_t xscale_debug_handler[] = {
 #include "xscale_debug.inc"
 };
 
-static char *const xscale_reg_list[] = {
+static const char *const xscale_reg_list[] = {
 	"XSCALE_MAINID",		/* 0 */
 	"XSCALE_CACHETYPE",
 	"XSCALE_CTRL",

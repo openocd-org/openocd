@@ -33,7 +33,7 @@
 extern const int armv7m_psp_reg_map[];
 extern const int armv7m_msp_reg_map[];
 
-char *armv7m_exception_string(int number);
+const char *armv7m_exception_string(int number);
 
 /* offsets into armv7m core register cache */
 enum {

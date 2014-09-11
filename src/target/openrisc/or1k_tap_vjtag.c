@@ -61,7 +61,7 @@
 #define OR1K_TAP_INST_IDCODE 0x2
 #define OR1K_TAP_INST_DEBUG 0x8
 
-static char *id_to_string(unsigned char id)
+static const char *id_to_string(unsigned char id)
 {
 	switch (id) {
 	case VJTAG_NODE_ID:

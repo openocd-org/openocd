@@ -26,7 +26,7 @@
 
 static bool nds32_reg_init_done;
 static struct nds32_reg_s nds32_regs[TOTAL_REG_NUM];
-static struct nds32_reg_exception_s nds32_ex_reg_values[] = {
+static const struct nds32_reg_exception_s nds32_ex_reg_values[] = {
 	{IR0, 3, 0x3, 2},
 	{IR0, 3, 0x3, 3},
 	{IR1, 3, 0x3, 2},
@@ -358,7 +358,7 @@ const char *nds32_reg_symbolic_name(uint32_t number)
 bool nds32_reg_exception(uint32_t number, uint32_t value)
 {
 	int i;
-	struct nds32_reg_exception_s *ex_reg_value;
+	const struct nds32_reg_exception_s *ex_reg_value;
 	uint32_t field_value;
 
 	i = 0;

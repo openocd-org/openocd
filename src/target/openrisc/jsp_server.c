@@ -37,7 +37,7 @@ static char *jsp_port;
  * the client should be forced into character mode. However it doesn't make any difference.
  */
 
-static char *negotiate =
+static const char * const negotiate =
 	"\xFF\xFB\x03"			/* IAC WILL Suppress Go Ahead */
 	"\xFF\xFB\x01"			/* IAC WILL Echo */
 	"\xFF\xFD\x03"			/* IAC DO Suppress Go Ahead */

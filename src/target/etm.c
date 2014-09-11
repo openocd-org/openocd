@@ -67,7 +67,7 @@ struct etm_reg_info {
 	uint8_t size;			/* low-N of 32 bits */
 	uint8_t mode;			/* RO, WO, RW */
 	uint8_t bcd_vers;		/* 1.0, 2.0, etc */
-	char *name;
+	const char *name;
 };
 
 /*

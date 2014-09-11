@@ -63,9 +63,9 @@
 #define DSP563XX_ONCE_NOREG	0x01F	/* no register selected */
 
 struct once_reg {
-	uint8_t num;
-	uint8_t addr;
-	uint8_t len;
+	const uint8_t num;
+	const uint8_t addr;
+	const uint8_t len;
 	const char *name;
 	uint32_t reg;
 };

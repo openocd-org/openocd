@@ -54,9 +54,9 @@ static int embeddedice_set_reg_w_exec(struct reg *reg, uint8_t *buf);
  * From:  ARM9E-S TRM, DDI 0165, table C-4 (and similar, for other cores)
  */
 static const struct {
-	char		*name;
-	unsigned short	addr;
-	unsigned short	width;
+	const char     *name;
+	unsigned short addr;
+	unsigned short width;
 } eice_regs[] = {
 	[EICE_DBG_CTRL] = {
 		.name =		"debug_ctrl",

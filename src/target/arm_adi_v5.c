@@ -987,7 +987,7 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			uint32_t c_pid0, c_pid1, c_pid2, c_pid3, c_pid4;
 			uint32_t component_base;
 			unsigned part_num;
-			char *type, *full;
+			const char *type, *full;
 
 			component_base = (dbgbase & 0xFFFFF000) + (romentry & 0xFFFFF000);
 
@@ -1046,7 +1046,7 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			if (((c_cid1 >> 4) & 0x0f) == 9) {
 				uint32_t devtype;
 				unsigned minor;
-				char *major = "Reserved", *subtype = "Reserved";
+				const char *major = "Reserved", *subtype = "Reserved";
 
 				retval = mem_ap_read_atomic_u32(dap,
 						(component_base & 0xfffff000) | 0xfcc,

@@ -50,7 +50,7 @@ static int or1k_write_core_reg(struct target *target, int num);
 
 static struct or1k_core_reg *or1k_core_reg_list_arch_info;
 
-struct or1k_core_reg_init or1k_init_reg_list[] = {
+static const struct or1k_core_reg_init or1k_init_reg_list[] = {
 	{"r0"       , GROUP0 + 1024, "org.gnu.gdb.or1k.group0", NULL},
 	{"r1"       , GROUP0 + 1025, "org.gnu.gdb.or1k.group0", NULL},
 	{"r2"       , GROUP0 + 1026, "org.gnu.gdb.or1k.group0", NULL},

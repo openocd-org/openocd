@@ -44,7 +44,7 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-static char *armv7m_exception_strings[] = {
+static const char * const armv7m_exception_strings[] = {
 	"", "Reset", "NMI", "HardFault",
 	"MemManage", "BusFault", "UsageFault", "RESERVED",
 	"RESERVED", "RESERVED", "RESERVED", "SVCall",
@@ -148,7 +148,7 @@ int armv7m_restore_context(struct target *target)
  * They are assigned by vendors, which generally assign different numbers to
  * peripherals (such as UART0 or a USB peripheral controller).
  */
-char *armv7m_exception_string(int number)
+const char *armv7m_exception_string(int number)
 {
 	static char enamebuf[32];
 

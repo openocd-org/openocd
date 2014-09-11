@@ -29,12 +29,12 @@
 #include <helper/log.h>
 #include "breakpoints.h"
 
-static char *breakpoint_type_strings[] = {
+static const char * const breakpoint_type_strings[] = {
 	"hardware",
 	"software"
 };
 
-static char *watchpoint_rw_strings[] = {
+static const char * const watchpoint_rw_strings[] = {
 	"read",
 	"write",
 	"access"
@@ -50,7 +50,7 @@ int breakpoint_add_internal(struct target *target,
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 	struct breakpoint **breakpoint_p = &target->breakpoints;
-	char *reason;
+	const char *reason;
 	int retval;
 	int n;
 
@@ -396,7 +396,7 @@ int watchpoint_add(struct target *target, uint32_t address, uint32_t length,
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
 	int retval;
-	char *reason;
+	const char *reason;
 
 	while (watchpoint) {
 		if (watchpoint->address == address) {

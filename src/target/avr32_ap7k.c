@@ -35,12 +35,12 @@
 #include "avr32_regs.h"
 #include "avr32_ap7k.h"
 
-static char *avr32_core_reg_list[] = {
+static const char * const avr32_core_reg_list[] = {
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8",
 	"r9", "r10", "r11", "r12", "sp", "lr", "pc", "sr"
 };
 
-static struct avr32_core_reg
+static const struct avr32_core_reg
 	avr32_core_reg_list_arch_info[AVR32NUMCOREREGS] = {
 	{0, NULL, NULL},
 	{1, NULL, NULL},

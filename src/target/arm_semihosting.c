@@ -48,7 +48,7 @@
 #include <helper/log.h>
 #include <sys/stat.h>
 
-static int open_modeflags[12] = {
+static const int open_modeflags[12] = {
 	O_RDONLY,
 	O_RDONLY | O_BINARY,
 	O_RDWR,
