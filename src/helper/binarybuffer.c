@@ -231,7 +231,7 @@ char *buf_to_str(const void *_buf, unsigned buf_len, unsigned radix)
 		}
 	}
 
-	const char *DIGITS = "0123456789ABCDEF";
+	const char * const DIGITS = "0123456789ABCDEF";
 	for (unsigned j = 0; j < str_len; j++)
 		str[j] = DIGITS[(int)str[j]];
 

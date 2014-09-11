@@ -52,7 +52,7 @@ static long long current_time;
 
 static long long start;
 
-static char *log_strings[5] = {
+static const char * const log_strings[5] = {
 	"User : ",
 	"Error: ",
 	"Warn : ",	/* want a space after each colon, all same width, colons aligned */
