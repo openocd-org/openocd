@@ -240,7 +240,7 @@ static int fm3_erase(struct flash_bank *bank, int first, int last)
 	/* R0 keeps Flash Sequence address 1     (u32FlashSeq1)    */
 	/* R1 keeps Flash Sequence address 2     (u32FlashSeq2)    */
 	/* R2 keeps Flash Offset address         (ofs)			   */
-	const uint8_t fm3_flash_erase_sector_code[] = {
+	static const uint8_t fm3_flash_erase_sector_code[] = {
 						/*    *(uint16_t*)u32FlashSeq1 = 0xAA; */
 		0xAA, 0x24,		/*        MOVS  R4, #0xAA              */
 		0x04, 0x80,		/*        STRH  R4, [R0, #0]           */
@@ -849,7 +849,7 @@ static int fm3_chip_erase(struct flash_bank *bank)
 	/* RAMCODE used for fm3 Flash chip erase:				   */
 	/* R0 keeps Flash Sequence address 1     (u32FlashSeq1)    */
 	/* R1 keeps Flash Sequence address 2     (u32FlashSeq2)    */
-	const uint8_t fm3_flash_erase_chip_code[] = {
+	static const uint8_t fm3_flash_erase_chip_code[] = {
 						/*    *(uint16_t*)u32FlashSeq1 = 0xAA; */
 		0xAA, 0x22,		/*        MOVS  R2, #0xAA              */
 		0x02, 0x80,		/*        STRH  R2, [R0, #0]           */

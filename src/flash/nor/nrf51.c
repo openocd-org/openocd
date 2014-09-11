@@ -920,8 +920,9 @@ static int nrf51_info(struct flash_bank *bank, char *buf, int buf_size)
 	if (res != ERROR_OK)
 		return res;
 
-	struct {
-		uint32_t address, value;
+	static struct {
+		const uint32_t address;
+		uint32_t value;
 	} ficr[] = {
 		{ .address = NRF51_FICR_CODEPAGESIZE	},
 		{ .address = NRF51_FICR_CODESIZE	},
