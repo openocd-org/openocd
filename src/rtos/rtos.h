@@ -33,7 +33,7 @@ struct reg;
  * Table should be terminated by an element with NULL in symbol_name
  */
 typedef struct symbol_table_elem_struct {
-	char *symbol_name;
+	const char *symbol_name;
 	symbol_address_t address;
 
 } symbol_table_elem_t;
@@ -61,7 +61,7 @@ struct rtos {
 };
 
 struct rtos_type {
-	char *name;
+	const char *name;
 	int (*detect_rtos)(struct target *target);
 	int (*create)(struct target *target);
 	int (*smp_init)(struct target *target);

@@ -147,7 +147,7 @@ int gdb_thread_packet(struct connection *connection, char const *packet, int pac
 	return target->rtos->gdb_thread_packet(connection, packet, packet_size);
 }
 
-static char *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
+static const char *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
 {
 	symbol_table_elem_t *s;
 
@@ -191,7 +191,8 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	int rtos_detected = 0;
 	uint64_t addr = 0;
 	size_t reply_len;
-	char reply[GDB_BUFFER_SIZE], cur_sym[GDB_BUFFER_SIZE / 2] = "", *next_sym;
+	char reply[GDB_BUFFER_SIZE], cur_sym[GDB_BUFFER_SIZE / 2] = "";
+	const char *next_sym;
 	struct target *target = get_target_from_connection(connection);
 	struct rtos *os = target->rtos;
 

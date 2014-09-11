@@ -39,10 +39,10 @@ static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 
 struct ThreadX_thread_state {
 	int value;
-	char *desc;
+	const char *desc;
 };
 
-struct ThreadX_thread_state ThreadX_thread_states[] = {
+static const struct ThreadX_thread_state ThreadX_thread_states[] = {
 	{ 0,  "Ready" },
 	{ 1,  "Completed" },
 	{ 2,  "Terminated" },
@@ -62,7 +62,7 @@ struct ThreadX_thread_state ThreadX_thread_states[] = {
 #define THREADX_NUM_STATES (sizeof(ThreadX_thread_states)/sizeof(struct ThreadX_thread_state))
 
 struct ThreadX_params {
-	char *target_name;
+	const char *target_name;
 	unsigned char pointer_width;
 	unsigned char thread_stack_offset;
 	unsigned char thread_name_offset;
@@ -71,7 +71,7 @@ struct ThreadX_params {
 	const struct rtos_register_stacking *stacking_info;
 };
 
-const struct ThreadX_params ThreadX_params_list[] = {
+static const struct ThreadX_params ThreadX_params_list[] = {
 	{
 	"cortex_m",				/* target_name */
 	4,							/* pointer_width; */
@@ -100,7 +100,7 @@ enum ThreadX_symbol_values {
 	ThreadX_VAL_tx_thread_created_count = 2,
 };
 
-static char *ThreadX_symbol_list[] = {
+static const char * const ThreadX_symbol_list[] = {
 	"_tx_thread_current_ptr",
 	"_tx_thread_created_ptr",
 	"_tx_thread_created_count",
@@ -115,7 +115,6 @@ const struct rtos_type ThreadX_rtos = {
 	.update_threads = ThreadX_update_threads,
 	.get_thread_reg_list = ThreadX_get_thread_reg_list,
 	.get_symbol_list_to_lookup = ThreadX_get_symbol_list_to_lookup,
-
 };
 
 static int ThreadX_update_threads(struct rtos *rtos)
@@ -262,7 +261,7 @@ static int ThreadX_update_threads(struct rtos *rtos)
 			/* empty */
 		}
 
-		char *state_desc;
+		const char *state_desc;
 		if  (i < THREADX_NUM_STATES)
 			state_desc = ThreadX_thread_states[i].desc;
 		else

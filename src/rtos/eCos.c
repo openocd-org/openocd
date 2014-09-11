@@ -37,10 +37,10 @@ static int eCos_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 
 struct eCos_thread_state {
 	int value;
-	char *desc;
+	const char *desc;
 };
 
-struct eCos_thread_state eCos_thread_states[] = {
+static const struct eCos_thread_state eCos_thread_states[] = {
 	{ 0, "Ready" },
 	{ 1, "Sleeping" },
 	{ 2, "Countsleep" },
@@ -52,7 +52,7 @@ struct eCos_thread_state eCos_thread_states[] = {
 #define ECOS_NUM_STATES (sizeof(eCos_thread_states)/sizeof(struct eCos_thread_state))
 
 struct eCos_params {
-	char *target_name;
+	const char *target_name;
 	unsigned char pointer_width;
 	unsigned char thread_stack_offset;
 	unsigned char thread_name_offset;
@@ -62,7 +62,7 @@ struct eCos_params {
 	const struct rtos_register_stacking *stacking_info;
 };
 
-const struct eCos_params eCos_params_list[] = {
+static const struct eCos_params eCos_params_list[] = {
 	{
 	"cortex_m",			/* target_name */
 	4,						/* pointer_width; */
@@ -82,7 +82,7 @@ enum eCos_symbol_values {
 	eCos_VAL_current_thread_ptr = 1
 };
 
-static char *eCos_symbol_list[] = {
+static const char * const eCos_symbol_list[] = {
 	"Cyg_Thread::thread_list",
 	"Cyg_Scheduler_Base::current_thread",
 	NULL
@@ -257,7 +257,7 @@ static int eCos_update_threads(struct rtos *rtos)
 			 */
 		}
 
-		char *state_desc;
+		const char *state_desc;
 		if  (i < ECOS_NUM_STATES)
 			state_desc = eCos_thread_states[i].desc;
 		else

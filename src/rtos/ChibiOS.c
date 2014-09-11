@@ -36,7 +36,6 @@
 #include "helper/types.h"
 #include "rtos_chibios_stackings.h"
 
-
 /**
  * @brief   ChibiOS/RT memory signature record.
  *
@@ -72,7 +71,7 @@ struct ChibiOS_chdebug {
 /**
  * @brief ChibiOS thread states.
  */
-const char *ChibiOS_thread_states[] = {
+static const char * const ChibiOS_thread_states[] = {
 	"READY", "CURRENT", "SUSPENDED", "WTSEM", "WTMTX", "WTCOND", "SLEEPING",
 	"WTEXIT", "WTOREVT", "WTANDEVT", "SNDMSGQ", "SNDMSG", "WTMSG", "WTQUEUE",
 	"FINAL"
@@ -92,7 +91,7 @@ struct ChibiOS_params {
 	const struct rtos_register_stacking *stacking_info;
 };
 
-struct ChibiOS_params ChibiOS_params_list[] = {
+static const struct ChibiOS_params ChibiOS_params_list[] = {
 	{
 	"cortex_m",							/* target_name */
 	0,
@@ -128,7 +127,7 @@ enum ChibiOS_symbol_values {
 	ChibiOS_VAL_chSysInit = 2
 };
 
-static char *ChibiOS_symbol_list[] = {
+static const char * const ChibiOS_symbol_list[] = {
 	"rlist",		/* Thread ready list*/
 	"ch_debug",		/* Memory Signatur containing offsets of fields in rlist*/
 	"chSysInit",	/* Necessary part of API, used for ChibiOS detection*/
@@ -539,6 +538,6 @@ static int ChibiOS_create(struct target *target)
 		return -1;
 	}
 
-	target->rtos->rtos_specific_params = &ChibiOS_params_list[i];
+	target->rtos->rtos_specific_params = (void *) &ChibiOS_params_list[i];
 	return 0;
 }

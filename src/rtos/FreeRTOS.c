@@ -48,7 +48,7 @@ struct FreeRTOS_params {
 	const struct rtos_register_stacking *stacking_info;
 };
 
-const struct FreeRTOS_params FreeRTOS_params_list[] = {
+static const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	{
 	"cortex_m",			/* target_name */
 	4,						/* thread_count_width; */
@@ -119,7 +119,7 @@ enum FreeRTOS_symbol_values {
 	FreeRTOS_VAL_uxTopUsedPriority = 10,
 };
 
-static char *FreeRTOS_symbol_list[] = {
+static const char * const FreeRTOS_symbol_list[] = {
 	"pxCurrentTCB",
 	"pxReadyTasksLists",
 	"xDelayedTaskList1",
