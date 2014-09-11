@@ -328,7 +328,7 @@ static int nuc1x_erase(struct flash_bank *bank, int first, int last)
 		return retval;
 
 	for (i = first; i <= last; i++) {
-		LOG_DEBUG("erasing sector %d at addresss 0x%" PRIx32 "", i, bank->base + bank->sectors[i].offset);
+		LOG_DEBUG("erasing sector %d at address 0x%" PRIx32 "", i, bank->base + bank->sectors[i].offset);
 		retval = target_write_u32(target, NUC1X_FLASH_ISPADR, bank->base + bank->sectors[i].offset);
 		if (retval != ERROR_OK)
 			return retval;
@@ -389,7 +389,7 @@ static int nuc1x_write(struct flash_bank *bank, const uint8_t *buffer,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_INFO("Novoton NUC: FLASH Write ...");
+	LOG_INFO("Nuvoton NUC: FLASH Write ...");
 
 	int retval = nuc1x_reset2lprom(bank);
 	if (retval != ERROR_OK)
@@ -452,7 +452,7 @@ static int nuc1x_write(struct flash_bank *bank, const uint8_t *buffer,
 			if (retval != ERROR_OK)
 				return retval;
 		} else {
-			LOG_DEBUG("writed OK");
+			LOG_DEBUG("Write OK");
 		}
 	}
 
@@ -520,7 +520,7 @@ static int nuc1x_probe(struct flash_bank *bank)
 
 	nuc1x_info->probed = 1;
 
-	LOG_DEBUG("Novoton NUC: Probed ...");
+	LOG_DEBUG("Nuvoton NUC: Probed ...");
 
 	return ERROR_OK;
 }
@@ -574,7 +574,7 @@ static int nuc1x_mass_erase(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_INFO("Novoton NUC: Chip Erase ... (may take several seconds)");
+	LOG_INFO("Nuvoton NUC: Chip Erase ... (may take several seconds)");
 
 	return retval;
 }
