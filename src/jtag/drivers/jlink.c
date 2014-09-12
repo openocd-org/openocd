@@ -1713,7 +1713,15 @@ static struct jlink *jlink_usb_open()
 	 * committing them!
 	 */
 
-#if IS_WIN32 == 0
+/* This entire block can probably be removed. It was a workaround for
+ * libusb0.1 and old JLink firmware. It has already be removed for
+ * windows and causing problems (LPC Link-2 with JLink firmware) on
+ * Linux with libusb1.0.
+ *
+ * However, for now the behavior will be left unchanged for non-windows
+ * platforms using libusb0.1 due to lack of testing.
+ */
+#if IS_WIN32 == 0 && HAVE_LIBUSB1 == 0
 
 	jtag_libusb_reset_device(devh);
 
@@ -1735,18 +1743,12 @@ static struct jlink *jlink_usb_open()
 
 #endif
 
-	/* usb_set_configuration required under win32 */
+	/* usb_set_configuration is only required under win32
+	 * with libusb 0.1 and libusb0.sys. For libusb 1.0 it is a no-op
+	 * since the configuration is already set. */
 	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	jtag_libusb_set_configuration(devh, 0);
 	jtag_libusb_claim_interface(devh, 0);
-
-#if 0
-	/*
-	 * This makes problems under Mac OS X. And is not needed
-	 * under Windows. Hopefully this will not break a linux build
-	 */
-	usb_set_altinterface(result->usb_handle, 0);
-#endif
 
 	/* Use the OB endpoints if the JLink we matched is a Jlink-OB adapter */
 	uint16_t matched_pid;
