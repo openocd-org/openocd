@@ -195,17 +195,9 @@ static const char * const jlink_cap_str[] = {
 #define JLINK_HW_TYPE_FLASHER			2
 #define JLINK_HW_TYPE_JLINK_PRO			3
 #define JLINK_HW_TYPE_JLINK_LITE_ADI	5
-#define JLINK_HW_TYPE_MAX				6
+#define JLINK_HW_TYPE_LPCLINK2			18
 
-static const char * const jlink_hw_type_str[] = {
-	"J-Link",
-	"J-Trace",
-	"Flasher",
-	"J-Link Pro",
-	"Unknown",
-	"J-Link Lite-ADI",
-};
-
+/* Interface selection */
 #define JLINK_TIF_JTAG		0
 #define JLINK_TIF_SWD		1
 #define JLINK_SWD_DIR_IN	0
@@ -964,10 +956,29 @@ static int jlink_get_version_info(void)
 
 		LOG_INFO("J-Link hw version %i", (int)jlink_hw_version);
 
-		if (jlink_hw_type >= JLINK_HW_TYPE_MAX)
-			LOG_INFO("J-Link hw type unknown 0x%" PRIx32, jlink_hw_type);
-		else
-			LOG_INFO("J-Link hw type %s", jlink_hw_type_str[jlink_hw_type]);
+		switch (jlink_hw_type) {
+			case JLINK_HW_TYPE_JLINK:
+				LOG_INFO("J-Link hw type J-Link");
+				break;
+			case JLINK_HW_TYPE_JTRACE:
+				LOG_INFO("J-Link hw type J-Trace");
+				break;
+			case JLINK_HW_TYPE_FLASHER:
+				LOG_INFO("J-Link hw type Flasher");
+				break;
+			case JLINK_HW_TYPE_JLINK_PRO:
+				LOG_INFO("J-Link hw type J-Link Pro");
+				break;
+			case JLINK_HW_TYPE_JLINK_LITE_ADI:
+				LOG_INFO("J-Link hw type J-Link Lite-ADI");
+				break;
+			case JLINK_HW_TYPE_LPCLINK2:
+				LOG_INFO("J-Link hw type J-Link on LPC-Link2");
+				break;
+			default:
+				LOG_INFO("J-Link hw type unknown 0x%" PRIx32, jlink_hw_type);
+				break;
+		}
 	}
 
 	if (jlink_caps & (1 << EMU_CAP_GET_MAX_BLOCK_SIZE)) {
