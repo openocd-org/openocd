@@ -97,7 +97,6 @@ static uint8_t *tdi_buffer;
 static uint8_t *tdo_buffer;
 
 static bool swd_mode;
-static int queued_retval;
 
 static struct vsllink *vsllink_handle;
 
@@ -758,7 +757,6 @@ static int_least32_t vsllink_swd_frequency(struct adiv5_dap *dap,
 		LOG_DEBUG("SWD delay: %d, retry count: %d", delay, retry_count);
 
 		versaloon_interface.adaptors.swd.config(0, 2, retry_count, delay);
-		queued_retval = versaloon_interface.adaptors.peripheral_commit();
 	}
 
 	return hz;
@@ -788,68 +786,24 @@ static int vsllink_swd_switch_seq(struct adiv5_dap *dap,
 		return ERROR_FAIL;
 	}
 
-	return versaloon_interface.adaptors.peripheral_commit();
+	return ERROR_OK;
 }
 
 static void vsllink_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd,
 		uint32_t *value)
 {
-	if (queued_retval != ERROR_OK)
-		return;
-
-	int retval;
-	uint32_t val = 0;
-	uint8_t ack;
-
-	versaloon_interface.adaptors.swd.transact(0, cmd, &val, &ack);
-	retval = versaloon_interface.adaptors.peripheral_commit();
-
-	if (retval != ERROR_OK) {
-		queued_retval = ERROR_FAIL;
-		return;
-	}
-
-	if (ack != 0x01) {
-		queued_retval = ack;
-		return;
-	}
-
-	if (value)
-		*value = val;
-
-	queued_retval = retval;
+	versaloon_interface.adaptors.swd.transact(0, cmd, value, NULL);
 }
 
 static void vsllink_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd,
 		uint32_t value)
 {
-	if (queued_retval != ERROR_OK)
-		return;
-
-	int retval;
-	uint8_t ack;
-
-	versaloon_interface.adaptors.swd.transact(0, cmd, &value, &ack);
-	retval = versaloon_interface.adaptors.peripheral_commit();
-
-	if (retval != ERROR_OK) {
-		queued_retval = ERROR_FAIL;
-		return;
-	}
-
-	if (ack != 0x01) {
-		queued_retval = ack;
-		return;
-	}
-
-	queued_retval = retval;
+	versaloon_interface.adaptors.swd.transact(0, cmd, &value, NULL);
 }
 
 static int vsllink_swd_run_queue(struct adiv5_dap *dap)
 {
-	int retval = queued_retval;
-	queued_retval = ERROR_OK;
-	return retval;
+	return versaloon_interface.adaptors.peripheral_commit();
 }
 
 /****************************************************************************
