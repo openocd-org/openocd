@@ -54,6 +54,7 @@ static inline int jtag_libusb_release_interface(jtag_libusb_device_handle *devh,
 }
 
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
+		const char *serial,
 		struct jtag_libusb_device_handle **out);
 void jtag_libusb_close(jtag_libusb_device_handle *dev);
 int jtag_libusb_control_transfer(jtag_libusb_device_handle *dev,

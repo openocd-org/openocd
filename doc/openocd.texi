@@ -3079,13 +3079,17 @@ This type of adapter does not expose some of the lower level api's
 that OpenOCD would normally use to access the target.
 
 Currently supported adapters include the ST STLINK and TI ICDI.
+STLINK firmware version >= V2.J21.S4 recommended due to issues with earlier
+versions of firmware where serial number is reset after first use.  Suggest
+using ST firmware update utility to upgrade STLINK firmware even if current
+version reported is V2.J21.S4.
 
 @deffn {Config Command} {hla_device_desc} description
 Currently Not Supported.
 @end deffn
 
 @deffn {Config Command} {hla_serial} serial
-Currently Not Supported.
+Specifies the serial number of the adapter.
 @end deffn
 
 @deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi})

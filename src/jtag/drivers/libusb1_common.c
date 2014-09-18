@@ -28,25 +28,53 @@
 static struct libusb_context *jtag_libusb_context; /**< Libusb context **/
 static libusb_device **devs; /**< The usb device list **/
 
-static bool jtag_libusb_match(struct jtag_libusb_device *dev,
+static bool jtag_libusb_match(struct libusb_device_descriptor *dev_desc,
 		const uint16_t vids[], const uint16_t pids[])
 {
-	struct libusb_device_descriptor dev_desc;
-
 	for (unsigned i = 0; vids[i]; i++) {
-		if (libusb_get_device_descriptor(dev, &dev_desc) == 0) {
-			if (dev_desc.idVendor == vids[i] &&
-				dev_desc.idProduct == pids[i])
-				return true;
+		if (dev_desc->idVendor == vids[i] &&
+			dev_desc->idProduct == pids[i]) {
+			return true;
 		}
 	}
 	return false;
 }
 
+/* Returns true if the string descriptor indexed by str_index in device matches string */
+static bool string_descriptor_equal(libusb_device_handle *device, uint8_t str_index,
+									const char *string)
+{
+	int retval;
+	bool matched;
+	char desc_string[256+1]; /* Max size of string descriptor */
+
+	if (str_index == 0)
+		return false;
+
+	retval = libusb_get_string_descriptor_ascii(device, str_index,
+			(unsigned char *)desc_string, sizeof(desc_string)-1);
+	if (retval < 0) {
+		LOG_ERROR("libusb_get_string_descriptor_ascii() failed with %d", retval);
+		return false;
+	}
+
+	/* Null terminate descriptor string in case it needs to be logged. */
+	desc_string[sizeof(desc_string)-1] = '\0';
+
+	matched = strncmp(string, desc_string, sizeof(desc_string)) == 0;
+	if (!matched)
+		LOG_DEBUG("Device serial number '%s' doesn't match requested serial '%s'",
+			desc_string, string);
+	return matched;
+}
+
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
+		const char *serial,
 		struct jtag_libusb_device_handle **out)
 {
 	int cnt, idx, errCode;
+	int retval = -ENODEV;
+	struct jtag_libusb_device_handle *libusb_handle = NULL;
 
 	if (libusb_init(&jtag_libusb_context) < 0)
 		return -ENODEV;
@@ -54,22 +82,37 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 	cnt = libusb_get_device_list(jtag_libusb_context, &devs);
 
 	for (idx = 0; idx < cnt; idx++) {
-		if (!jtag_libusb_match(devs[idx], vids, pids))
+		struct libusb_device_descriptor dev_desc;
+
+		if (libusb_get_device_descriptor(devs[idx], &dev_desc) != 0)
 			continue;
 
-		errCode = libusb_open(devs[idx], out);
+		if (!jtag_libusb_match(&dev_desc, vids, pids))
+			continue;
 
-		/** Free the device list **/
-		libusb_free_device_list(devs, 1);
+		errCode = libusb_open(devs[idx], &libusb_handle);
 
 		if (errCode) {
 			LOG_ERROR("libusb_open() failed with %s",
 				  libusb_error_name(errCode));
-			return errCode;
+			continue;
 		}
-		return 0;
+
+		/* Device must be open to use libusb_get_string_descriptor_ascii. */
+		if (serial != NULL &&
+				!string_descriptor_equal(libusb_handle, dev_desc.iSerialNumber, serial)) {
+			libusb_close(libusb_handle);
+			continue;
+		}
+
+		/* Success. */
+		*out = libusb_handle;
+		retval = 0;
+		break;
 	}
-	return -ENODEV;
+	if (cnt >= 0)
+		libusb_free_device_list(devs, 1);
+	return retval;
 }
 
 void jtag_libusb_close(jtag_libusb_device_handle *dev)

@@ -1600,9 +1600,11 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	const uint16_t vids[] = { param->vid, 0 };
 	const uint16_t pids[] = { param->pid, 0 };
+	const char *serial = param->serial;
 
-	LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x", param->transport,
-		param->vid, param->pid);
+	LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
+			param->transport, param->vid, param->pid,
+			param->serial ? param->serial : "");
 
 	/*
 	  On certain host USB configurations(e.g. MacBook Air)
@@ -1614,7 +1616,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	  in order to become operational.
 	 */
 	do {
-		if (jtag_libusb_open(vids, pids, &h->fd) != ERROR_OK) {
+		if (jtag_libusb_open(vids, pids, serial, &h->fd) != ERROR_OK) {
 			LOG_ERROR("open failed");
 			goto error_open;
 		}

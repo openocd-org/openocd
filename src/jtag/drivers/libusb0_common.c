@@ -37,9 +37,40 @@ static bool jtag_libusb_match(struct jtag_libusb_device *dev,
 	return false;
 }
 
+/* Returns true if the string descriptor indexed by str_index in device matches string */
+static bool string_descriptor_equal(usb_dev_handle *device, uint8_t str_index,
+									const char *string)
+{
+	int retval;
+	bool matched;
+	char desc_string[256+1]; /* Max size of string descriptor */
+
+	if (str_index == 0)
+		return false;
+
+	retval = usb_get_string_simple(device, str_index,
+			desc_string, sizeof(desc_string)-1);
+	if (retval < 0) {
+		LOG_ERROR("usb_get_string_simple() failed with %d", retval);
+		return false;
+	}
+
+	/* Null terminate descriptor string in case it needs to be logged. */
+	desc_string[sizeof(desc_string)-1] = '\0';
+
+	matched = strncmp(string, desc_string, sizeof(desc_string)) == 0;
+	if (!matched)
+		LOG_DEBUG("Device serial number '%s' doesn't match requested serial '%s'",
+			desc_string, string);
+	return matched;
+}
+
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
+		const char *serial,
 		struct jtag_libusb_device_handle **out)
 {
+	int retval = -ENODEV;
+	struct jtag_libusb_device_handle *libusb_handle;
 	usb_init();
 
 	usb_find_busses();
@@ -52,13 +83,24 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 			if (!jtag_libusb_match(dev, vids, pids))
 				continue;
 
-			*out = usb_open(dev);
-			if (NULL == *out)
-				return -errno;
-			return 0;
+			libusb_handle = usb_open(dev);
+			if (NULL == libusb_handle) {
+				retval = -errno;
+				continue;
+			}
+
+			/* Device must be open to use libusb_get_string_descriptor_ascii. */
+			if (serial != NULL &&
+					!string_descriptor_equal(libusb_handle, dev->descriptor.iSerialNumber, serial)) {
+				usb_close(libusb_handle);
+				continue;
+			}
+			*out = libusb_handle;
+			retval = 0;
+			break;
 		}
 	}
-	return -ENODEV;
+	return retval;
 }
 
 void jtag_libusb_close(jtag_libusb_device_handle *dev)
