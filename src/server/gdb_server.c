@@ -714,10 +714,13 @@ static int gdb_output(struct command_context *context, const char *line)
 static void gdb_signal_reply(struct target *target, struct connection *connection)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
-	char sig_reply[20];
+	char sig_reply[45];
 	char stop_reason[20];
+	char current_thread[25];
 	int sig_reply_len;
 	int signal_var;
+
+	rtos_update_threads(target);
 
 	if (target->debug_reason == DBG_REASON_EXIT) {
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "W00");
@@ -754,13 +757,18 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 			}
 		}
 
-		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s",
-				signal_var, stop_reason);
+		current_thread[0] = '\0';
+		if (target->rtos != NULL) {
+			snprintf(current_thread, sizeof(current_thread), "thread:%016" PRIx64 ";", target->rtos->current_thread);
+			target->rtos->current_threadid = target->rtos->current_thread;
+		}
+
+		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s%s",
+				signal_var, stop_reason, current_thread);
 	}
 
 	gdb_put_packet(connection, sig_reply, sig_reply_len);
 	gdb_connection->frontend_state = TARGET_HALTED;
-	rtos_update_threads(target);
 }
 
 static void gdb_fileio_reply(struct target *target, struct connection *connection)
