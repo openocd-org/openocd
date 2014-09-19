@@ -8,6 +8,9 @@
  *   LPC1100 variant and auto-probing support Copyright (C) 2014           *
  *   by Cosmin Gorgovan cosmin [at] linux-geek [dot] org                   *
  *                                                                         *
+ *   LPC800/LPC1500 support Copyright (C) 2013/2014 by Nemui Trinomius     *
+ *   nemuisan_kawausogasuki@live.jp                                        *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -36,7 +39,7 @@
 
 /**
  * @file
- * flash programming support for NXP LPC17xx and LPC2xxx devices.
+ * flash programming support for NXP LPC8xx,LPC1xxx and LPC2xxx devices.
  *
  * @todo Provide a way to update CCLK after declaring the flash bank. The value which is correct after chip reset will
  * rarely still work right after the clocks switch to use the PLL (e.g. 4MHz --> 100 MHz).
@@ -67,7 +70,7 @@
  * - 18x2 | 3 | 5 | 7
  *
  * lpc800:
- * - 810 | 1 | 2 (tested with LPC810/LPC812)
+ * - 810 | 1 | 2 (tested with LPC810/LPC811/LPC812)
  *
  * lpc1100:
  * - 11xx
@@ -79,6 +82,8 @@
  * - 131x
  * - 134x
  *
+ * lpc1500:
+ * - 15x7 | 8 | 9 (tested with LPC1549)
  *
  * The auto variant auto-detects parts from the following series:
  * - 11xx
@@ -217,6 +222,7 @@ typedef enum {
 	lpc4300,
 	lpc800,
 	lpc1100,
+	lpc1500,
 	lpc_auto,
 } lpc2000_variant;
 
@@ -498,7 +504,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		for (int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
-			/* sectors 0-15 are 1kB-sized for LPC8xx devices */
+			/* all sectors are 1kB-sized for LPC8xx devices */
 			bank->sectors[i].size = 1 * 1024;
 			offset += bank->sectors[i].size;
 			bank->sectors[i].is_erased = -1;
@@ -530,6 +536,39 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			bank->sectors[i].is_protected = 1;
 		}
 
+	} else if (lpc2000_info->variant == lpc1500) {
+		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_256b = 1;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
+		lpc2000_info->iap_max_stack = 128;
+
+		switch (bank->size) {
+			case 64 * 1024:
+				bank->num_sectors = 16;
+				break;
+			case 128 * 1024:
+				bank->num_sectors = 32;
+				break;
+			case 256 * 1024:
+				bank->num_sectors = 64;
+				break;
+			default:
+				LOG_ERROR("BUG: unknown bank->size encountered");
+				exit(-1);
+		}
+
+		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
+
+		for (int i = 0; i < bank->num_sectors; i++) {
+			bank->sectors[i].offset = offset;
+			/* all sectors are 4kB-sized */
+			bank->sectors[i].size = 4 * 1024;
+			offset += bank->sectors[i].size;
+			bank->sectors[i].is_erased = -1;
+			bank->sectors[i].is_protected = 1;
+		}
+
 	} else {
 		LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
 		exit(-1);
@@ -543,7 +582,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
  * 0x0 to 0x7: jump gate (BX to thumb state, b -2 to wait)
  * 0x8 to 0x1f: command parameter table (1+5 words)
  * 0x20 to 0x33: command result table (1+4 words)
- * 0x34 to 0xb3|0x104: stack (only 128b needed for lpc17xx/2000, 208 for lpc43xx and 148b for lpc8xx)
+ * 0x34 to 0xb3|0x104: stack (only 128b needed for lpc1xxx/2000, 208 for lpc43xx and 148b for lpc8xx)
  */
 
 static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working_area **iap_working_area)
@@ -562,6 +601,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 	switch (lpc2000_info->variant) {
 		case lpc800:
 		case lpc1100:
+		case lpc1500:
 		case lpc1700:
 		case lpc4300:
 		case lpc_auto:
@@ -586,7 +626,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 	return retval;
 }
 
-/* call LPC1700/LPC2000 IAP function */
+/* call LPC8xx/LPC1xxx/LPC4xxx/LPC2000 IAP function */
 
 static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_working_area, int code,
 		uint32_t param_table[5], uint32_t result_table[4])
@@ -595,7 +635,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	struct target *target = bank->target;
 
 	struct arm_algorithm arm_algo;	/* for LPC2000 */
-	struct armv7m_algorithm armv7m_info;	/* for LPC1700 */
+	struct armv7m_algorithm armv7m_info;	/* for LPC8xx/LPC1xxx/LPC4xxx */
 	uint32_t iap_entry_point = 0;	/* to make compiler happier */
 
 	switch (lpc2000_info->variant) {
@@ -606,6 +646,11 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 			armv7m_info.core_mode = ARM_MODE_THREAD;
 			iap_entry_point = 0x1fff1ff1;
+			break;
+		case lpc1500:
+			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+			armv7m_info.core_mode = ARM_MODE_THREAD;
+			iap_entry_point = 0x03000205;
 			break;
 		case lpc2000_v1:
 		case lpc2000_v2:
@@ -654,6 +699,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	switch (lpc2000_info->variant) {
 		case lpc800:
 		case lpc1100:
+		case lpc1500:
 		case lpc1700:
 		case lpc4300:
 		case lpc_auto:
@@ -787,6 +833,8 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		lpc2000_info->variant = lpc800;
 	} else if (strcmp(CMD_ARGV[6], "lpc1100") == 0) {
 		lpc2000_info->variant = lpc1100;
+	} else if (strcmp(CMD_ARGV[6], "lpc1500") == 0) {
+		lpc2000_info->variant = lpc1500;
 	} else if (strcmp(CMD_ARGV[6], "auto") == 0) {
 		lpc2000_info->variant = lpc_auto;
 	} else {
