@@ -1262,6 +1262,11 @@ int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
+	if (breakpoint->length == 3) {
+		LOG_DEBUG("Using a two byte breakpoint for 32bit Thumb-2 request");
+		breakpoint->length = 2;
+	}
+
 	if ((breakpoint->length != 2)) {
 		LOG_INFO("only breakpoints of two bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
