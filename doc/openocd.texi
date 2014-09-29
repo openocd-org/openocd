@@ -2899,7 +2899,7 @@ This is a write-once setting.
 @end deffn
 
 @deffn {Interface Driver} {jlink}
-Segger J-Link family of USB adapters. It currently supports only the JTAG transport.
+Segger J-Link family of USB adapters. It currently supports JTAG and SWD transports.
 
 @quotation Compatibility Note
 Segger released many firmware versions for the many harware versions they
