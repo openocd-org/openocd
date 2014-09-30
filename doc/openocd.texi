@@ -5045,6 +5045,34 @@ at91samd set-security enable
 @end example
 @end deffn
 
+@deffn Command {at91samd eeprom}
+Shows or sets the EEPROM emulation size configuration, stored in the User Row
+of the Flash. When setting, the EEPROM size must be specified in bytes and it
+must be one of the permitted sizes according to the datasheet. Settings are
+written immediately but only take effect on MCU reset. EEPROM emulation
+requires additional firmware support and the minumum EEPROM size may not be
+the same as the minimum that the hardware supports. Set the EEPROM size to 0
+in order to disable this feature.
+
+@example
+at91samd eeprom
+at91samd eeprom 1024
+@end example
+@end deffn
+
+@deffn Command {at91samd bootloader}
+Shows or sets the bootloader size configuration, stored in the User Row of the
+Flash. This is called the BOOTPROT region. When setting, the bootloader size
+must be specified in bytes and it must be one of the permitted sizes according
+to the datasheet. Settings are written immediately but only take effect on
+MCU reset. Setting the bootloader size to 0 disables bootloader protection.
+
+@example
+at91samd bootloader
+at91samd bootloader 16384
+@end example
+@end deffn
+
 @end deffn
 
 @anchor{at91sam3}
