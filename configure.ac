@@ -5,6 +5,14 @@ AC_CONFIG_SRCDIR([src/openocd.c])
 
 m4_include([config_subdir.m4])dnl
 
+# check for makeinfo before calling AM_INIT_AUTOMAKE
+AC_CHECK_PROG([MAKEINFO], [makeinfo], [makeinfo])
+if test "x$MAKEINFO" = "x"; then
+  MAKEINFO='echo makeinfo missing; true'
+  AC_MSG_WARN([Info documentation will not be built.])
+fi
+AC_SUBST([MAKEINFO])
+
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip subdir-objects])
 
 AC_CONFIG_HEADERS([config.h])
