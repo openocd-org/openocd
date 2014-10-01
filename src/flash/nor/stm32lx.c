@@ -92,11 +92,19 @@
 #define FLASH_SECTOR_SIZE 4096
 #define FLASH_BANK0_ADDRESS 0x08000000
 
+/* option bytes */
+#define OPTION_BYTES_ADDRESS 0x1FF80000
+
+#define OPTION_BYTE_0_PR1 0x015500AA
+#define OPTION_BYTE_0_PR0 0x01FF0011
+
 static int stm32lx_unlock_program_memory(struct flash_bank *bank);
 static int stm32lx_lock_program_memory(struct flash_bank *bank);
 static int stm32lx_enable_write_half_page(struct flash_bank *bank);
 static int stm32lx_erase_sector(struct flash_bank *bank, int sector);
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank);
+static int stm32lx_mass_erase(struct flash_bank *bank);
+static int stm32lx_wait_status_busy(struct flash_bank *bank, int timeout);
 
 struct stm32lx_rev {
 	uint16_t rev;
@@ -233,6 +241,32 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(stm32lx_handle_mass_erase_command)
+{
+	int i;
+
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = stm32lx_mass_erase(bank);
+	if (retval == ERROR_OK) {
+		/* set all sectors as erased */
+		for (i = 0; i < bank->num_sectors; i++)
+			bank->sectors[i].is_erased = 1;
+
+		command_print(CMD_CTX, "stm32lx mass erase complete");
+	} else {
+		command_print(CMD_CTX, "stm32lx mass erase failed");
+	}
+
+	return retval;
+}
+
 static int stm32lx_protect_check(struct flash_bank *bank)
 {
 	int retval;
@@ -272,6 +306,9 @@ static int stm32lx_erase(struct flash_bank *bank, int first, int last)
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	if ((first == 0) && (last == (bank->num_sectors - 1)))
+		return stm32lx_mass_erase(bank);
 
 	/*
 	 * Loop over the selected sectors and erase them
@@ -325,7 +362,6 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, const uint8_t *buff
 		0x93, 0x42,             /* cmp r3, r2 */
 		0xf8, 0xd3,             /* bcc write_word */
 		0x00, 0xbe,             /* bkpt 0 */
-
 	};
 
 	/* Make sure we're performing a half-page aligned write. */
@@ -809,7 +845,6 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 		}
 	}
 
-
 	const struct stm32lx_part_info *info = stm32lx_info->part_info;
 
 	if (info) {
@@ -839,6 +874,13 @@ static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 }
 
 static const struct command_registration stm32lx_exec_command_handlers[] = {
+	{
+		.name = "mass_erase",
+		.handler = stm32lx_handle_mass_erase_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Erase entire flash device. including available EEPROM",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1053,6 +1095,14 @@ static int stm32lx_erase_sector(struct flash_bank *bank, int sector)
 	return ERROR_OK;
 }
 
+static inline int stm32lx_get_flash_status(struct flash_bank *bank, uint32_t *status)
+{
+	struct target *target = bank->target;
+	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
+
+	return target_read_u32(target, stm32lx_info->flash_base + FLASH_SR, status);
+}
+
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -1063,8 +1113,7 @@ static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank)
 
 	/* wait for busy to clear */
 	for (;;) {
-		retval = target_read_u32(target, stm32lx_info->flash_base + FLASH_SR,
-				&status);
+		retval = target_read_u32(target, stm32lx_info->flash_base + FLASH_SR, &status);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1088,4 +1137,128 @@ static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank)
 	}
 
 	return retval;
+}
+
+static int stm32lx_unlock_options_bytes(struct flash_bank *bank)
+{
+	struct target *target = bank->target;
+	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
+	int retval;
+	uint32_t reg32;
+
+	/*
+	* Unlocking the options bytes is done by unlocking the PECR,
+	* then by writing the 2 FLASH_PEKEYR to the FLASH_OPTKEYR register
+	*/
+
+	/* check flash is not already unlocked */
+	retval = target_read_u32(target, stm32lx_info->flash_base + FLASH_PECR, &reg32);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((reg32 & FLASH_PECR__OPTLOCK) == 0)
+		return ERROR_OK;
+
+	if ((reg32 & FLASH_PECR__PELOCK) != 0) {
+
+		retval = target_write_u32(target, stm32lx_info->flash_base + FLASH_PEKEYR, PEKEY1);
+		if (retval != ERROR_OK)
+			return retval;
+
+		retval = target_write_u32(target, stm32lx_info->flash_base + FLASH_PEKEYR, PEKEY2);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	/* To unlock the PECR write the 2 OPTKEY to the FLASH_OPTKEYR register */
+	retval = target_write_u32(target, stm32lx_info->flash_base + FLASH_OPTKEYR, OPTKEY1);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, stm32lx_info->flash_base + FLASH_OPTKEYR, OPTKEY2);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
+static int stm32lx_wait_status_busy(struct flash_bank *bank, int timeout)
+{
+	struct target *target = bank->target;
+	uint32_t status;
+
+	int retval = ERROR_OK;
+	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
+
+	/* wait for busy to clear */
+	for (;;) {
+
+		retval = stm32lx_get_flash_status(bank, &status);
+		if (retval != ERROR_OK)
+			return retval;
+
+		LOG_DEBUG("status: 0x%" PRIx32 "", status);
+		if ((status & FLASH_SR__BSY) == 0)
+			break;
+
+		if (timeout-- <= 0) {
+			LOG_ERROR("timed out waiting for flash");
+			return ERROR_FAIL;
+		}
+		alive_sleep(1);
+	}
+
+	if (status & FLASH_SR__WRPERR) {
+		LOG_ERROR("stm32lx device protected");
+		retval = ERROR_FAIL;
+	}
+
+	/* Clear but report errors */
+	if (status & FLASH_SR__OPTVERR) {
+		/* If this operation fails, we ignore it and report the original retval */
+		target_write_u32(target, stm32lx_info->flash_base + FLASH_SR, status & FLASH_SR__OPTVERR);
+	}
+
+	return retval;
+}
+
+static int stm32lx_mass_erase(struct flash_bank *bank)
+{
+	int retval;
+	struct target *target = bank->target;
+	struct stm32lx_flash_bank *stm32lx_info = NULL;
+	uint32_t reg32;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	stm32lx_info = bank->driver_priv;
+
+	retval = stm32lx_unlock_options_bytes(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* mass erase flash memory, write 0x015500AA option byte address 0*/
+	/* pass the RDP privilege to 1 */
+	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR1);
+
+	/* restore the RDP privilege to 0 */
+	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR0);
+
+	/* the mass erase occur when the privilege go back to 0 */
+	retval = stm32lx_wait_status_busy(bank, 30000);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_read_u32(target, stm32lx_info->flash_base + FLASH_PECR, &reg32);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, stm32lx_info->flash_base + FLASH_PECR, reg32 | FLASH_PECR__OPTLOCK);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
 }
