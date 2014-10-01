@@ -186,40 +186,54 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 	return retCode;
 }
 
-int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
+int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 		unsigned int *usb_read_ep,
-		unsigned int *usb_write_ep)
+		unsigned int *usb_write_ep,
+		int bclass, int subclass, int protocol)
 {
+	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	const struct libusb_interface *inter;
 	const struct libusb_interface_descriptor *interdesc;
 	const struct libusb_endpoint_descriptor *epdesc;
 	struct libusb_config_descriptor *config;
 
+	*usb_read_ep = *usb_write_ep = 0;
+
 	libusb_get_config_descriptor(udev, 0, &config);
 	for (int i = 0; i < (int)config->bNumInterfaces; i++) {
 		inter = &config->interface[i];
 
-		for (int j = 0; j < inter->num_altsetting; j++) {
-			interdesc = &inter->altsetting[j];
-			for (int k = 0;
-				k < (int)interdesc->bNumEndpoints; k++) {
-				epdesc = &interdesc->endpoint[k];
+		interdesc = &inter->altsetting[0];
+		for (int k = 0;
+		     k < (int)interdesc->bNumEndpoints; k++) {
+			if ((bclass > 0 && interdesc->bInterfaceClass != bclass) ||
+			    (subclass > 0 && interdesc->bInterfaceSubClass != subclass) ||
+			    (protocol > 0 && interdesc->bInterfaceProtocol != protocol))
+				continue;
 
-				uint8_t epnum = epdesc->bEndpointAddress;
-				bool is_input = epnum & 0x80;
-				LOG_DEBUG("usb ep %s %02x",
-					is_input ? "in" : "out", epnum);
+			epdesc = &interdesc->endpoint[k];
 
-				if (is_input)
-					*usb_read_ep = epnum;
-				else
-					*usb_write_ep = epnum;
+			uint8_t epnum = epdesc->bEndpointAddress;
+			bool is_input = epnum & 0x80;
+			LOG_DEBUG("usb ep %s %02x",
+				  is_input ? "in" : "out", epnum);
+
+			if (is_input)
+				*usb_read_ep = epnum;
+			else
+				*usb_write_ep = epnum;
+
+			if (*usb_read_ep && *usb_write_ep) {
+				LOG_DEBUG("Claiming interface %d", (int)interdesc->bInterfaceNumber);
+				libusb_claim_interface(devh, (int)interdesc->bInterfaceNumber);
+				libusb_free_config_descriptor(config);
+				return ERROR_OK;
 			}
 		}
 	}
 	libusb_free_config_descriptor(config);
 
-	return 0;
+	return ERROR_FAIL;
 }
 
 int jtag_libusb_get_pid(struct jtag_libusb_device *dev, uint16_t *pid)

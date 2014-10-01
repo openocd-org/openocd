@@ -47,16 +47,12 @@
  * pid = ( usb_address > 0x4) ? 0x0101 : (0x101 + usb_address)
  */
 
-#define JLINK_OB_PID  0x0105
+#define JLINK_USB_INTERFACE_CLASS 0xff
+#define JLINK_USB_INTERFACE_SUBCLASS 0xff
+#define JLINK_USB_INTERFACE_PROTOCOL 0xff
 
-#define JLINK_WRITE_ENDPOINT	0x02
-#define JLINK_READ_ENDPOINT		0x81
-
-#define JLINK_OB_WRITE_ENDPOINT	0x06
-#define JLINK_OB_READ_ENDPOINT	0x85
-
-static unsigned int jlink_write_ep = JLINK_WRITE_ENDPOINT;
-static unsigned int jlink_read_ep = JLINK_READ_ENDPOINT;
+static unsigned int jlink_write_ep;
+static unsigned int jlink_read_ep;
 static unsigned int jlink_hw_jtag_version = 2;
 
 #define JLINK_USB_TIMEOUT 1000
@@ -1746,20 +1742,12 @@ static struct jlink *jlink_usb_open()
 	/* usb_set_configuration is only required under win32
 	 * with libusb 0.1 and libusb0.sys. For libusb 1.0 it is a no-op
 	 * since the configuration is already set. */
-	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	jtag_libusb_set_configuration(devh, 0);
-	jtag_libusb_claim_interface(devh, 0);
 
-	/* Use the OB endpoints if the JLink we matched is a Jlink-OB adapter */
-	uint16_t matched_pid;
-	if (jtag_libusb_get_pid(udev, &matched_pid) == ERROR_OK) {
-		if (matched_pid == JLINK_OB_PID) {
-			jlink_read_ep = JLINK_OB_WRITE_ENDPOINT;
-			jlink_write_ep = JLINK_OB_READ_ENDPOINT;
-		}
-	}
-
-	jtag_libusb_get_endpoints(udev, &jlink_read_ep, &jlink_write_ep);
+	jtag_libusb_choose_interface(devh, &jlink_read_ep, &jlink_write_ep,
+				     JLINK_USB_INTERFACE_CLASS,
+				     JLINK_USB_INTERFACE_SUBCLASS,
+				     JLINK_USB_INTERFACE_PROTOCOL);
 
 	struct jlink *result = malloc(sizeof(struct jlink));
 	result->usb_handle = devh;

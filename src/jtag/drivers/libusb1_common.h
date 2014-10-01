@@ -60,9 +60,23 @@ int jtag_libusb_bulk_read(struct jtag_libusb_device_handle *dev, int ep,
 		char *bytes, int size, int timeout);
 int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 		int configuration);
-int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
+/**
+ * Find the first interface optionally matching class, subclass and
+ * protocol and claim it.
+ * @param devh _libusb_ device handle.
+ * @param usb_read_ep A pointer to a variable where the _IN_ endpoint
+ *	number will be stored.
+ * @param usb_write_ep A pointer to a variable where the _OUT_ endpoint
+ *	number will be stored.
+ * @param bclass `bInterfaceClass` to match, or -1 to ignore this field.
+ * @param subclass `bInterfaceSubClass` to match, or -1 to ignore this field.
+ * @param protocol `bInterfaceProtocol` to match, or -1 to ignore this field.
+ * @returns Returns ERROR_OK on success, ERROR_FAIL otherwise.
+ */
+int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 		unsigned int *usb_read_ep,
-		unsigned int *usb_write_ep);
+		unsigned int *usb_write_ep,
+		int bclass, int subclass, int protocol);
 int jtag_libusb_get_pid(struct jtag_libusb_device *dev, uint16_t *pid);
 
 #endif /* JTAG_USB_COMMON_H */

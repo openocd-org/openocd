@@ -145,14 +145,23 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 			udev->config[configuration].bConfigurationValue);
 }
 
-int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
+int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 		unsigned int *usb_read_ep,
-		unsigned int *usb_write_ep)
+		unsigned int *usb_write_ep,
+		int bclass, int subclass, int protocol)
 {
+	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	struct usb_interface *iface = udev->config->interface;
 	struct usb_interface_descriptor *desc = iface->altsetting;
 
+	*usb_read_ep = *usb_write_ep = 0;
+
 	for (int i = 0; i < desc->bNumEndpoints; i++) {
+		if ((bclass > 0 && desc->bInterfaceClass != bclass) ||
+		    (subclass > 0 && desc->bInterfaceSubClass != subclass) ||
+		    (protocol > 0 && desc->bInterfaceProtocol != protocol))
+			continue;
+
 		uint8_t epnum = desc->endpoint[i].bEndpointAddress;
 		bool is_input = epnum & 0x80;
 		LOG_DEBUG("usb ep %s %02x", is_input ? "in" : "out", epnum);
@@ -160,9 +169,15 @@ int jtag_libusb_get_endpoints(struct jtag_libusb_device *udev,
 			*usb_read_ep = epnum;
 		else
 			*usb_write_ep = epnum;
+
+		if (*usb_read_ep && *usb_write_ep) {
+			LOG_DEBUG("Claiming interface %d", (int)desc->bInterfaceNumber);
+			usb_claim_interface(devh, (int)desc->bInterfaceNumber);
+			return ERROR_OK;
+		}
 	}
 
-	return 0;
+	return ERROR_FAIL;
 }
 
 int jtag_libusb_get_pid(struct jtag_libusb_device *dev, uint16_t *pid)
