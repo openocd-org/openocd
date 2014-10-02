@@ -165,9 +165,21 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 	int retCode = -99;
 
 	struct libusb_config_descriptor *config = NULL;
+	int current_config = -1;
 
-	libusb_get_config_descriptor(udev, configuration, &config);
-	retCode = libusb_set_configuration(devh, config->bConfigurationValue);
+	retCode = libusb_get_configuration(devh, &current_config);
+	if (retCode != 0)
+		return retCode;
+
+	retCode = libusb_get_config_descriptor(udev, configuration, &config);
+	if (retCode != 0 || config == NULL)
+		return retCode;
+
+	/* Only change the configuration if it is not already set to the
+	   same one. Otherwise this issues a lightweight reset and hangs
+	   LPC-Link2 with JLink firmware. */
+	if (current_config != config->bConfigurationValue)
+		retCode = libusb_set_configuration(devh, config->bConfigurationValue);
 
 	libusb_free_config_descriptor(config);
 
