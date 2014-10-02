@@ -163,14 +163,16 @@ static int cmsis_dap_usb_open(void)
 	struct hid_device_info *devs, *cur_dev;
 	unsigned short target_vid, target_pid;
 
+	bool found = false;
+
 	target_vid = 0;
 	target_pid = 0;
 
 	/*
-	The CMSIS-DAP specification stipulates:
-	"The Product String must contain "CMSIS-DAP" somewhere in the string. This is used by the
-	debuggers to idenify a CMSIS-DAP compliant Debug Unit that is connected to a host computer."
-	*/
+	 * The CMSIS-DAP specification stipulates:
+	 * "The Product String must contain "CMSIS-DAP" somewhere in the string. This is used by the
+	 * debuggers to identify a CMSIS-DAP compliant Debug Unit that is connected to a host computer."
+	 */
 	devs = hid_enumerate(0x0, 0x0);
 	cur_dev = devs;
 	while (NULL != cur_dev) {
@@ -179,23 +181,27 @@ static int cmsis_dap_usb_open(void)
 				LOG_DEBUG("Cannot read product string of device 0x%x:0x%x",
 					  cur_dev->vendor_id, cur_dev->product_id);
 			} else {
-				if (wcsstr(cur_dev->product_string, L"CMSIS-DAP"))
-					/*
-					if the user hasn't specified VID:PID *and*
-					product string contains "CMSIS-DAP", pick it
-					*/
-					break;
+				if (wcsstr(cur_dev->product_string, L"CMSIS-DAP")) {
+					/* if the user hasn't specified VID:PID *and*
+					 * product string contains "CMSIS-DAP", pick it
+					 */
+					found = true;
+				}
 			}
 		} else {
-			/*
-			otherwise, exhaustively compare against all VID:PID in list
-			*/
+			/* otherwise, exhaustively compare against all VID:PID in list */
 			for (i = 0; cmsis_dap_vid[i] || cmsis_dap_pid[i]; i++) {
 				if ((cmsis_dap_vid[i] == cur_dev->vendor_id) && (cmsis_dap_pid[i] == cur_dev->product_id))
-					break;
+					found = true;
 			}
+
 			if (cmsis_dap_vid[i] || cmsis_dap_pid[i])
-				break;
+				found = true;
+		}
+
+		if (found) {
+			/* we have found an adapter, so exit further checks */
+			break;
 		}
 
 		cur_dev = cur_dev->next;
