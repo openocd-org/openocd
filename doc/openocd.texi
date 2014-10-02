@@ -2585,6 +2585,11 @@ cmsis_dap_vid_pid 0xc251 0xf001 0x0d28 0x0204
 @end example
 @end deffn
 
+@deffn {Config Command} {cmsis_dap_serial} [serial]
+Specifies the @var{serial} of the CMSIS-DAP device to use.
+If not specified, serial numbers are not considered.
+@end deffn
+
 @deffn {Command} {cmsis-dap info}
 Display various device information, like hardware version, firmware version, current bus status.
 @end deffn
