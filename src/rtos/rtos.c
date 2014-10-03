@@ -35,6 +35,7 @@ extern struct rtos_type eCos_rtos;
 extern struct rtos_type Linux_os;
 extern struct rtos_type ChibiOS_rtos;
 extern struct rtos_type embKernel_rtos;
+extern struct rtos_type mqx_rtos;
 
 static struct rtos_type *rtos_types[] = {
 	&ThreadX_rtos,
@@ -43,6 +44,7 @@ static struct rtos_type *rtos_types[] = {
 	&Linux_os,
 	&ChibiOS_rtos,
 	&embKernel_rtos,
+	&mqx_rtos,
 	NULL
 };
 
@@ -303,7 +305,7 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 			if (detail->extra_info_str != NULL)
 				str_size += strlen(detail->extra_info_str);
 
-			char *tmp_str = malloc(str_size + 7);
+			char *tmp_str = calloc(str_size + 7, sizeof(char));
 			char *tmp_str_ptr = tmp_str;
 
 			if (detail->display_str != NULL)
