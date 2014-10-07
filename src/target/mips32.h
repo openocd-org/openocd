@@ -203,7 +203,7 @@ struct mips32_algorithm {
 #define MIPS32_SYNCI_STEP	0x1	/* reg num od address step size to be used with synci instruction */
 
 /**
- * Cache operations definietions
+ * Cache operations definitions
  * Operation field is 5 bits long :
  * 1) bits 1..0 hold cache type
  * 2) bits 4..2 hold operation code
