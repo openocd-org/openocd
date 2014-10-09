@@ -50,6 +50,8 @@ struct hl_interface_param_s {
 	FILE *trace_f;
 	/** Trace module source clock rate */
 	uint32_t trace_source_hz;
+	/** Initial interface clock clock speed */
+	int initial_interface_speed;
 };
 
 struct hl_interface_s {

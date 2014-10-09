@@ -37,7 +37,7 @@
 
 #include <target/target.h>
 
-static struct hl_interface_s hl_if = { {0, 0, 0, 0, 0, HL_TRANSPORT_UNKNOWN, false, NULL, 0}, 0, 0 };
+static struct hl_interface_s hl_if = { {0, 0, 0, 0, 0, HL_TRANSPORT_UNKNOWN, false, NULL, 0, -1}, 0, 0 };
 
 int hl_interface_open(enum hl_transports tr)
 {
@@ -148,20 +148,31 @@ int hl_interface_init_reset(void)
 	return ERROR_OK;
 }
 
-static int dummy_khz(int khz, int *jtag_speed)
+static int hl_interface_khz(int khz, int *jtag_speed)
 {
-	*jtag_speed = khz;
+	*jtag_speed = hl_if.layout->api->speed(hl_if.handle, khz, true);
 	return ERROR_OK;
 }
 
-static int dummy_speed_div(int speed, int *khz)
+static int hl_interface_speed_div(int speed, int *khz)
 {
 	*khz = speed;
 	return ERROR_OK;
 }
 
-static int dummy_speed(int speed)
+static int hl_interface_speed(int speed)
 {
+	if (hl_if.layout->api->speed == NULL)
+		return ERROR_OK;
+
+	if (hl_if.handle == NULL) {
+		/* pass speed as initial param as interface not open yet */
+		hl_if.param.initial_interface_speed = speed;
+		return ERROR_OK;
+	}
+
+	hl_if.layout->api->speed(hl_if.handle, speed, false);
+
 	return ERROR_OK;
 }
 
@@ -340,7 +351,7 @@ struct jtag_interface hl_interface = {
 	.init = hl_interface_init,
 	.quit = hl_interface_quit,
 	.execute_queue = hl_interface_execute_queue,
-	.speed = &dummy_speed,
-	.khz = &dummy_khz,
-	.speed_div = &dummy_speed_div,
+	.speed = &hl_interface_speed,
+	.khz = &hl_interface_khz,
+	.speed_div = &hl_interface_speed_div,
 };
