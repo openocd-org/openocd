@@ -3310,9 +3310,10 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 		uint32_t addr, uint32_t asid, uint32_t length, int hw)
 {
 	struct target *target = get_current_target(cmd_ctx);
+	int retval;
 
 	if (asid == 0) {
-		int retval = breakpoint_add(target, addr, length, hw);
+		retval = breakpoint_add(target, addr, length, hw);
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "breakpoint set at 0x%8.8" PRIx32 "", addr);
 		else {
@@ -3320,7 +3321,11 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 			return retval;
 		}
 	} else if (addr == 0) {
-		int retval = context_breakpoint_add(target, asid, length, hw);
+		if (target->type->add_context_breakpoint == NULL) {
+			LOG_WARNING("Context breakpoint not available");
+			return ERROR_OK;
+		}
+		retval = context_breakpoint_add(target, asid, length, hw);
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
 		else {
@@ -3328,7 +3333,11 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 			return retval;
 		}
 	} else {
-		int retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
+		if (target->type->add_hybrid_breakpoint == NULL) {
+			LOG_WARNING("Hybrid breakpoint not available");
+			return ERROR_OK;
+		}
+		retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
 		else {
