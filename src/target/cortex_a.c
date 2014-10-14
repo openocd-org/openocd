@@ -208,6 +208,7 @@ static int cortex_a_init_debug_access(struct target *target)
 		CORTEX_A_MIDR_PARTNUM_SHIFT;
 
 	switch (cortex_part_num) {
+	case CORTEX_A7_PARTNUM:
 	case CORTEX_A15_PARTNUM:
 		retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
 						    armv7a->debug_base + CPUDBG_OSLSR,
@@ -2503,6 +2504,18 @@ static int cortex_a_examine_first(struct target *target)
 	/* Unlocking the debug registers */
 	if ((cpuid & CORTEX_A_MIDR_PARTNUM_MASK) >> CORTEX_A_MIDR_PARTNUM_SHIFT ==
 		CORTEX_A15_PARTNUM) {
+
+		retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+						     armv7a->debug_base + CPUDBG_OSLAR,
+						     0);
+
+		if (retval != ERROR_OK)
+			return retval;
+
+	}
+	/* Unlocking the debug registers */
+	if ((cpuid & CORTEX_A_MIDR_PARTNUM_MASK) >> CORTEX_A_MIDR_PARTNUM_SHIFT ==
+		CORTEX_A7_PARTNUM) {
 
 		retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
 						     armv7a->debug_base + CPUDBG_OSLAR,
