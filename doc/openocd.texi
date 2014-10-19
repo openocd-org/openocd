@@ -4844,6 +4844,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 
 @deffn Command {flash write_image} [erase] [unlock] filename [offset] [type]
 Write the image @file{filename} to the current target's flash bank(s).
+Only loadable sections from the image are written.
 A relocation @var{offset} may be specified, in which case it is added
 to the base address for each section in the image.
 The file [@var{type}] can be specified
