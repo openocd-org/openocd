@@ -74,15 +74,23 @@ ATTRS{idVendor}=="0640", ATTRS{idProduct}=="002d", MODE="664", GROUP="plugdev"
 # Amontec JTAGkey-HiSpeed
 ATTRS{idVendor}=="0fbb", ATTRS{idProduct}=="1000", MODE="664", GROUP="plugdev"
 
-# IAR J-Link USB
+# SEGGER J-Link
 ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0101", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0102", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0103", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0104", MODE="664", GROUP="plugdev"
-
-# J-Link-OB (onboard)
 ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0105", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0107", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0108", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1010", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1011", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1012", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1013", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1014", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1015", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1016", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1017", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1018", MODE="664", GROUP="plugdev"
 
 # Raisonance RLink
 ATTRS{idVendor}=="138e", ATTRS{idProduct}=="9000", MODE="664", GROUP="plugdev"

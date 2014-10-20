@@ -20,6 +20,22 @@ EXTRA_DIST = $(ULINK_FIRMWARE) \
 DRIVERFILES =
 SUBDIRS=
 
+if JLINK
+if INTERNAL_LIBJAYLINK
+SUBDIRS += libjaylink
+
+libjaylink_internal_la_SOURCES = jlink.c
+libjaylink_internal_la_LIBADD = libjaylink/libjaylink/libjaylink.la
+libjaylink_internal_la_CPPFLAGS = -I$(builddir)/libjaylink/libjaylink \
+	-I$(srcdir)/libjaylink $(AM_CPPFLAGS)
+
+noinst_LTLIBRARIES += libjaylink_internal.la
+libocdjtagdrivers_la_LIBADD += libjaylink_internal.la
+else
+DRIVERFILES += jlink.c
+endif
+endif
+
 # Standard Driver: common files
 DRIVERFILES += driver.c
 
@@ -76,9 +92,6 @@ DRIVERFILES += presto.c
 endif
 if USBPROG
 DRIVERFILES += usbprog.c
-endif
-if JLINK
-DRIVERFILES += jlink.c
 endif
 if RLINK
 DRIVERFILES += rlink.c rlink_speed_table.c
@@ -150,5 +163,11 @@ noinst_HEADERS = \
 	versaloon/versaloon.h \
 	versaloon/versaloon_include.h \
 	versaloon/versaloon_internal.h
+
+DIST_SUBDIRS = usb_blaster
+
+if INTERNAL_LIBJAYLINK
+DIST_SUBDIRS += libjaylink
+endif
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

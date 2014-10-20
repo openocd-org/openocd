@@ -8,6 +8,9 @@
  *   Copyright (C) 2011 by Jean-Christophe PLAGNIOL-VIILARD                *
  *   plagnioj@jcrosoft.com                                                 *
  *                                                                         *
+ *   Copyright (C) 2015 by Marc Schink                                     *
+ *   openocd-dev@marcschink.de                                             *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -21,257 +24,46 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <stdint.h>
+#include <math.h>
+
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <jtag/commands.h>
-#include "libusb_common.h"
 
-/* See Segger's public documentation:
- * Reference manual for J-Link USB Protocol
- * Document RM08001-R6 Date: June 16, 2009
- * (Or newer, with some SWD information).
- * http://www.segger.com/cms/admin/uploads/productDocs/RM08001_JLinkUSBProtocol.pdf
- */
+#include <libjaylink/libjaylink.h>
 
-/*
- * The default pid of the segger is 0x0101
- * But when you change the USB Address it will also
- *
- * pid = ( usb_address > 0x4) ? 0x0101 : (0x101 + usb_address)
- */
+static struct jaylink_context *jayctx;
+static struct jaylink_device_handle *devh;
+static struct jaylink_connection conn;
+static struct jaylink_connection connlist[JAYLINK_MAX_CONNECTIONS];
+static enum jaylink_jtag_version jtag_command_version;
+static uint8_t caps[JAYLINK_DEV_EXT_CAPS_SIZE];
 
-#define JLINK_USB_INTERFACE_CLASS 0xff
-#define JLINK_USB_INTERFACE_SUBCLASS 0xff
-#define JLINK_USB_INTERFACE_PROTOCOL 0xff
+static uint32_t serial_number;
+static bool use_serial_number;
+static uint8_t usb_address;
+static bool use_usb_address;
+static uint8_t iface = JAYLINK_TIF_JTAG;
+static bool trace_enabled;
 
-static unsigned int jlink_write_ep;
-static unsigned int jlink_read_ep;
-static unsigned int jlink_hw_jtag_version = 2;
+#define JLINK_MAX_SPEED			12000
+#define JLINK_TAP_BUFFER_SIZE	2048
 
-#define JLINK_USB_TIMEOUT 1000
-
-/* See Section 3.3.2 of the Segger JLink USB protocol manual */
-/* 2048 is the max value we can use here */
-#define JLINK_TAP_BUFFER_SIZE 2048
-/*#define JLINK_TAP_BUFFER_SIZE 256*/
-/*#define JLINK_TAP_BUFFER_SIZE 384*/
-
-#define JLINK_IN_BUFFER_SIZE			(2048 + 1)
-#define JLINK_OUT_BUFFER_SIZE			(2*2048 + 4)
-
-/* Global USB buffers */
-static uint8_t usb_in_buffer[JLINK_IN_BUFFER_SIZE];
-static uint8_t usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
-
-/* Constants for JLink command */
-#define EMU_CMD_VERSION			0x01
-#define EMU_CMD_RESET_TRST		0x02
-#define EMU_CMD_RESET_TARGET	0x03
-#define EMU_CMD_SET_SPEED		0x05
-#define EMU_CMD_GET_STATE		0x07
-#define EMU_CMD_SET_KS_POWER	0x08
-#define EMU_CMD_REGISTER		0x09
-#define EMU_CMD_GET_SPEEDS		0xc0
-#define EMU_CMD_GET_HW_INFO		0xc1
-#define EMU_CMD_GET_COUNTERS	0xc2
-#define EMU_CMD_SELECT_IF		0xc7
-#define EMU_CMD_HW_CLOCK		0xc8
-#define EMU_CMD_HW_TMS0			0xc9
-#define EMU_CMD_HW_TMS1			0xca
-#define EMU_CMD_HW_DATA0		0xcb
-#define EMU_CMD_HW_DATA1		0xcc
-#define EMU_CMD_HW_JTAG			0xcd
-#define EMU_CMD_HW_JTAG2		0xce
-#define EMU_CMD_HW_JTAG3		0xcf
-#define EMU_CMD_HW_RELEASE_RESET_STOP_EX 0xd0
-#define EMU_CMD_HW_RELEASE_RESET_STOP_TIMED 0xd1
-#define EMU_CMD_GET_MAX_MEM_BLOCK	0xd4
-#define EMU_CMD_HW_JTAG_WRITE		0xd5
-#define EMU_CMD_HW_JTAG_GET_RESULT	0xd6
-#define EMU_CMD_HW_RESET0		0xdc
-#define EMU_CMD_HW_RESET1		0xdd
-#define EMU_CMD_HW_TRST0		0xde
-#define EMU_CMD_HW_TRST1		0xdf
-#define EMU_CMD_GET_CAPS		0xe8
-#define EMU_CMD_GET_CPU_CAPS	0xe9
-#define EMU_CMD_EXEC_CPU_CMD	0xea
-#define EMU_CMD_GET_CAPS_EX		0xed
-#define EMU_CMD_GET_HW_VERSION	0xf0
-#define EMU_CMD_WRITE_DCC		0xf1
-#define EMU_CMD_READ_CONFIG		0xf2
-#define EMU_CMD_WRITE_CONFIG		0xf3
-#define EMU_CMD_WRITE_MEM			0xf4
-#define EMU_CMD_READ_MEM			0xf5
-#define EMU_CMD_MEASURE_RTCK_REACT	0xf6
-#define EMU_CMD_WRITE_MEM_ARM79		0xf7
-#define EMU_CMD_READ_MEM_ARM79		0xf8
-
-/* Register subcommands */
-#define REG_CMD_REGISTER		100
-#define REG_CMD_UNREGISTER		101
-
-/* bits return from EMU_CMD_GET_CAPS */
-#define EMU_CAP_RESERVED_1		0
-#define EMU_CAP_GET_HW_VERSION		1
-#define EMU_CAP_WRITE_DCC		2
-#define EMU_CAP_ADAPTIVE_CLOCKING	3
-#define EMU_CAP_READ_CONFIG		4
-#define EMU_CAP_WRITE_CONFIG		5
-#define EMU_CAP_TRACE			6
-#define EMU_CAP_WRITE_MEM		7
-#define EMU_CAP_READ_MEM		8
-#define EMU_CAP_SPEED_INFO		9
-#define EMU_CAP_EXEC_CODE		10
-#define EMU_CAP_GET_MAX_BLOCK_SIZE	11
-#define EMU_CAP_GET_HW_INFO		12
-#define EMU_CAP_SET_KS_POWER		13
-#define EMU_CAP_RESET_STOP_TIMED	14
-#define EMU_CAP_RESERVED_2		15
-#define EMU_CAP_MEASURE_RTCK_REACT	16
-#define EMU_CAP_SELECT_IF		17
-#define EMU_CAP_RW_MEM_ARM79		18
-#define EMU_CAP_GET_COUNTERS		19
-#define EMU_CAP_READ_DCC		20
-#define EMU_CAP_GET_CPU_CAPS		21
-#define EMU_CAP_EXEC_CPU_CMD		22
-#define EMU_CAP_SWO			23
-#define EMU_CAP_WRITE_DCC_EX		24
-#define EMU_CAP_UPDATE_FIRMWARE_EX	25
-#define EMU_CAP_FILE_IO			26
-#define EMU_CAP_REGISTER		27
-#define EMU_CAP_INDICATORS		28
-#define EMU_CAP_TEST_NET_SPEED		29
-#define EMU_CAP_RAWTRACE		30
-#define EMU_CAP_RESERVED_3		31
-
-static const char * const jlink_cap_str[] = {
-	"Always 1.",
-	"Supports command EMU_CMD_GET_HARDWARE_VERSION",
-	"Supports command EMU_CMD_WRITE_DCC",
-	"Supports adaptive clocking",
-	"Supports command EMU_CMD_READ_CONFIG",
-	"Supports command EMU_CMD_WRITE_CONFIG",
-	"Supports trace commands",
-	"Supports command EMU_CMD_WRITE_MEM",
-	"Supports command EMU_CMD_READ_MEM",
-	"Supports command EMU_CMD_GET_SPEED",
-	"Supports command EMU_CMD_CODE_...",
-	"Supports command EMU_CMD_GET_MAX_BLOCK_SIZE",
-	"Supports command EMU_CMD_GET_HW_INFO",
-	"Supports command EMU_CMD_SET_KS_POWER",
-	"Supports command EMU_CMD_HW_RELEASE_RESET_STOP_TIMED",
-	"Reserved",
-	"Supports command EMU_CMD_MEASURE_RTCK_REACT",
-	"Supports command EMU_CMD_HW_SELECT_IF",
-	"Supports command EMU_CMD_READ/WRITE_MEM_ARM79",
-	"Supports command EMU_CMD_GET_COUNTERS",
-	"Supports command EMU_CMD_READ_DCC",
-	"Supports command EMU_CMD_GET_CPU_CAPS",
-	"Supports command EMU_CMD_EXEC_CPU_CMD",
-	"Supports command EMU_CMD_SWO",
-	"Supports command EMU_CMD_WRITE_DCC_EX",
-	"Supports command EMU_CMD_UPDATE_FIRMWARE_EX",
-	"Supports command EMU_CMD_FILE_IO",
-	"Supports command EMU_CMD_REGISTER",
-	"Supports command EMU_CMD_INDICATORS",
-	"Supports command EMU_CMD_TEST_NET_SPEED",
-	"Supports command EMU_CMD_RAWTRACE",
-	"Reserved",
-};
-
-/* max speed 12MHz v5.0 jlink */
-#define JLINK_MAX_SPEED 12000
-
-/* J-Link hardware versions */
-#define JLINK_HW_TYPE_JLINK				0
-#define JLINK_HW_TYPE_JTRACE			1
-#define JLINK_HW_TYPE_FLASHER			2
-#define JLINK_HW_TYPE_JLINK_PRO			3
-#define JLINK_HW_TYPE_JLINK_LITE_ADI	5
-#define JLINK_HW_TYPE_JLINK_LITE_XMC4000	16
-#define JLINK_HW_TYPE_JLINK_LITE_XMC4200	17
-#define JLINK_HW_TYPE_LPCLINK2			18
-
-/* Interface selection */
-#define JLINK_TIF_JTAG		0
-#define JLINK_TIF_SWD		1
-#define JLINK_SWD_DIR_IN	0
-#define JLINK_SWD_DIR_OUT	1
-
-/* Queue command functions */
-static void jlink_end_state(tap_state_t state);
-static void jlink_state_move(void);
-static void jlink_path_move(int num_states, tap_state_t *path);
-static void jlink_runtest(int num_cycles);
-static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
-		int scan_size, struct scan_command *command);
-static void jlink_reset(int trst, int srst);
-static void jlink_simple_command(uint8_t command);
-static int jlink_get_status(void);
-static int jlink_swd_run_queue(struct adiv5_dap *dap);
-static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst, uint32_t data);
-static int jlink_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq);
-
-/* J-Link tap buffer functions */
-static void jlink_tap_init(void);
-static int jlink_tap_execute(void);
-static void jlink_tap_ensure_space(int scans, int bits);
-static void jlink_tap_append_step(int tms, int tdi);
-static void jlink_tap_append_scan(int length, uint8_t *buffer,
-		struct scan_command *command);
-
-/* Jlink lowlevel functions */
-struct jlink {
-	struct jtag_libusb_device_handle *usb_handle;
-};
-
-static struct jlink *jlink_usb_open(void);
-static void jlink_usb_close(struct jlink *jlink);
-static int jlink_usb_message(struct jlink *jlink, int out_length, int in_length);
-static int jlink_usb_io(struct jlink *jlink, int out_length, int in_length);
-static int jlink_usb_write(struct jlink *jlink, int out_length);
-static int jlink_usb_read(struct jlink *jlink, int expected_size);
-
-/* helper functions */
-static int jlink_get_version_info(void);
-
-#ifdef _DEBUG_USB_COMMS_
-static void jlink_debug_buffer(uint8_t *buffer, int length);
-#else
-static inline void jlink_debug_buffer(uint8_t *buffer, int length)
-{
-}
-#endif
-
-static enum tap_state jlink_last_state = TAP_RESET;
-
-static struct jlink *jlink_handle;
-
-/* pid could be specified at runtime */
-static uint16_t vids[] = { 0x1366, 0x1366, 0x1366, 0x1366, 0x1366, 0x1366, 0 };
-static uint16_t pids[] = { 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0x1015, 0 };
-
-static char *jlink_serial;
-
-static uint32_t jlink_caps;
-static uint32_t jlink_hw_type;
-
-static int queued_retval;
-static bool swd_mode;
+static unsigned int swd_buffer_size = JLINK_TAP_BUFFER_SIZE;
 
 /* 256 byte non-volatile memory */
-struct jlink_config {
+struct device_config {
 	uint8_t	usb_address;
 	/* 0ffset 0x01 to 0x03 */
 	uint8_t	reserved_1[3];
-	uint32_t kickstart_power_on_jtag_pin_19;
+	uint32_t target_power;
 	/* 0ffset 0x08 to 0x1f */
 	uint8_t reserved_2[24];
 	/* IP only for J-Link Pro */
@@ -283,19 +75,44 @@ struct jlink_config {
 	/* 0ffset 0x36 to 0xff */
 	uint8_t reserved_4[202];
 } __attribute__ ((packed));
-struct jlink_config jlink_cfg;
+
+static struct device_config config;
+static struct device_config tmp_config;
+
+/* Queue command functions */
+static void jlink_end_state(tap_state_t state);
+static void jlink_state_move(void);
+static void jlink_path_move(int num_states, tap_state_t *path);
+static void jlink_runtest(int num_cycles);
+static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
+		int scan_size, struct scan_command *command);
+static void jlink_reset(int trst, int srst);
+static int jlink_swd_run_queue(struct adiv5_dap *dap);
+static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd,
+		uint32_t *dst, uint32_t data);
+static int jlink_swd_switch_seq(struct adiv5_dap *dap,
+		enum swd_special_seq seq);
+
+/* J-Link tap buffer functions */
+static void jlink_tap_init(void);
+static int jlink_tap_execute(void);
+static void jlink_tap_ensure_space(int scans, int bits);
+static void jlink_tap_append_step(int tms, int tdi);
+static void jlink_tap_append_scan(int length, uint8_t *buffer,
+		struct scan_command *command);
+
+static enum tap_state jlink_last_state = TAP_RESET;
+static int queued_retval;
 
 /***************************************************************************/
 /* External interface implementation */
 
 static void jlink_execute_runtest(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("runtest %i cycles, end in %i",
-			cmd->cmd.runtest->num_cycles,
-			cmd->cmd.runtest->end_state);
+	DEBUG_JTAG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
+		cmd->cmd.runtest->end_state);
 
 	jlink_end_state(cmd->cmd.runtest->end_state);
-
 	jlink_runtest(cmd->cmd.runtest->num_cycles);
 }
 
@@ -313,8 +130,7 @@ static void jlink_execute_pathmove(struct jtag_command *cmd)
 		cmd->cmd.pathmove->num_states,
 		cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
-	jlink_path_move(cmd->cmd.pathmove->num_states,
-			cmd->cmd.pathmove->path);
+	jlink_path_move(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
 }
 
 static void jlink_execute_scan(struct jtag_command *cmd)
@@ -330,16 +146,14 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 	scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 	DEBUG_JTAG_IO("scan input, length = %d", scan_size);
 
-	jlink_debug_buffer(buffer, (scan_size + 7) / 8);
 	type = jtag_scan_type(cmd->cmd.scan);
-	jlink_scan(cmd->cmd.scan->ir_scan,
-			type, buffer, scan_size, cmd->cmd.scan);
+	jlink_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
 }
 
 static void jlink_execute_reset(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("reset trst: %i srst %i",
-			cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+	DEBUG_JTAG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst,
+		cmd->cmd.reset->srst);
 
 	jlink_tap_execute();
 	jlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
@@ -353,7 +167,7 @@ static void jlink_execute_sleep(struct jtag_command *cmd)
 	jtag_sleep(cmd->cmd.sleep->us);
 }
 
-static void jlink_execute_command(struct jtag_command *cmd)
+static int jlink_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
 		case JTAG_RUNTEST:
@@ -375,45 +189,54 @@ static void jlink_execute_command(struct jtag_command *cmd)
 			jlink_execute_sleep(cmd);
 			break;
 		default:
-			LOG_ERROR("BUG: unknown JTAG command type encountered");
-			exit(-1);
+			LOG_ERROR("BUG: Unknown JTAG command type encountered.");
+			return ERROR_JTAG_QUEUE_FAILED;
 	}
+
+	return ERROR_OK;
 }
 
 static int jlink_execute_queue(void)
 {
+	int ret;
 	struct jtag_command *cmd = jtag_command_queue;
 
 	while (cmd != NULL) {
-		jlink_execute_command(cmd);
+		ret = jlink_execute_command(cmd);
+
+		if (ret != ERROR_OK)
+			return ret;
+
 		cmd = cmd->next;
 	}
 
 	return jlink_tap_execute();
 }
 
-/* Sets speed in kHz. */
 static int jlink_speed(int speed)
 {
-	int result;
+	int ret;
 
 	if (speed > JLINK_MAX_SPEED) {
-		LOG_INFO("reduce speed request: %dkHz to %dkHz maximum",
-				speed, JLINK_MAX_SPEED);
+		LOG_INFO("Reduce speed from %d kHz to %d kHz (maximum).", speed,
+			JLINK_MAX_SPEED);
 		speed = JLINK_MAX_SPEED;
 	}
 
-	/* check for RTCK setting */
-	if (speed == 0)
-		speed = -1;
+	if (!speed) {
+		if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_ADAPTIVE_CLOCKING)) {
+			LOG_ERROR("Adaptive clocking is not supported by the device.");
+			return ERROR_JTAG_NOT_IMPLEMENTED;
+		}
 
-	usb_out_buffer[0] = EMU_CMD_SET_SPEED;
-	usb_out_buffer[1] = (speed >> 0) & 0xff;
-	usb_out_buffer[2] = (speed >> 8) & 0xff;
+		speed = JAYLINK_SPEED_ADAPTIVE_CLOCKING;
+	}
 
-	result = jlink_usb_write(jlink_handle, 3);
-	if (result != 3) {
-		LOG_ERROR("J-Link setting speed failed (%d)", result);
+	ret = jaylink_set_speed(devh, speed);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_set_speed() failed: %s.",
+			jaylink_strerror_name(ret));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -434,143 +257,319 @@ static int jlink_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static int jlink_register(void)
+static bool read_device_config(struct device_config *cfg)
 {
-	int result;
-	usb_out_buffer[0] = EMU_CMD_REGISTER;
-	usb_out_buffer[1] = REG_CMD_REGISTER;
-	/* 2 - 11 is "additional parameter",
-	 * 12 - 13 is connection handle, zero initially */
-	memset(&usb_out_buffer[2], 0, 10 + 2);
+	int ret;
 
-	result = jlink_usb_write(jlink_handle, 14);
-	if (result != 14) {
-		LOG_ERROR("J-Link register write failed (%d)", result);
-		return ERROR_JTAG_DEVICE_ERROR;
+	ret = jaylink_read_raw_config(devh, (uint8_t *)cfg);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_read_raw_config() failed: %s.",
+			jaylink_strerror_name(ret));
+		return false;
 	}
 
-	/* Returns:
-	 * 0 - 1 connection handle,
-	 * 2 - 3 number of information entities,
-	 * 4 - 5 size of a single information struct,
-	 * 6 - 7 number of additional bytes,
-	 * 8 - ... reply data
-	 *
-	 * Try to read the whole USB bulk packet
-	 */
-	result = jtag_libusb_bulk_read(jlink_handle->usb_handle, jlink_read_ep,
-				       (char *)usb_in_buffer, sizeof(usb_in_buffer),
-				       JLINK_USB_TIMEOUT);
-	if (!result) {
-		LOG_ERROR("J-Link register read failed (0 bytes received)");
-		return ERROR_JTAG_DEVICE_ERROR;
+	if (cfg->usb_address == 0xff)
+		cfg->usb_address = 0x00;
+
+	if (cfg->target_power == 0xffffffff)
+		cfg->target_power = 0;
+
+	return true;
+}
+
+static int select_interface(void)
+{
+	int ret;
+	uint32_t interfaces;
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SELECT_TIF)) {
+		if (iface != JAYLINK_TIF_JTAG) {
+			LOG_ERROR("Device supports JTAG transport only.");
+			return ERROR_JTAG_INIT_FAILED;
+		}
+
+		return ERROR_OK;
+	}
+
+	ret = jaylink_get_available_interfaces(devh, &interfaces);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_get_available_interfaces() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if (!(interfaces & (1 << iface))) {
+		LOG_ERROR("Selected transport is not supported by the device.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	ret = jaylink_select_interface(devh, iface);
+
+	if (ret < 0) {
+		LOG_ERROR("jaylink_select_interface() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static int jlink_register(void)
+{
+	int ret;
+	int i;
+	bool handle_found;
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_REGISTER))
+		return ERROR_OK;
+
+	ret = jaylink_register(devh, &conn, connlist, NULL, NULL);
+
+	if (ret < 0) {
+		LOG_ERROR("jaylink_register() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	handle_found = false;
+
+	for (i = 0; i < ret; i++) {
+		if (connlist[i].handle == conn.handle) {
+			handle_found = true;
+			break;
+		}
+	}
+
+	if (!handle_found) {
+		LOG_ERROR("Registration failed: maximum number of connections on the "
+			"device reached.");
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
 }
 
 /*
- * select transport interface
- *
- * @param	iface [0..31] currently: 0=JTAG, 1=SWD
- * @returns	ERROR_OK or ERROR_ code
- *
- * @pre jlink_handle must be opened
- * @pre function may be called only for devices, that have
- *		EMU_CAP_SELECT_IF capability enabled
+ * Adjust the SWD transaction buffer size depending on the free device internal
+ * memory. This ensures that the SWD transactions sent to the device do not
+ * exceed the internal memory of the device.
  */
-static int jlink_select_interface(int iface)
+static bool adjust_swd_buffer_size(void)
 {
-	/* According to Segger's document RM08001-R7 Date: October 8, 2010,
-	 * http://www.segger.com/admin/uploads/productDocs/RM08001_JLinkUSBProtocol.pdf
-	 * section 5.5.3 EMU_CMD_SELECT_IF
-	 * > SubCmd 1..31 to select interface (0..31)
-	 *
-	 * The table below states:
-	 *  0 TIF_JTAG
-	 *  1 TIF_SWD
-	 *
-	 * This obviosly means that to select TIF_JTAG one should write SubCmd = 1.
-	 *
-	 * In fact, JTAG interface operates when SubCmd=0
-	 *
-	 * It looks like a typo in documentation, because interfaces 0..31 could not
-	 * be selected by 1..31 range command.
-	 */
-	assert(iface >= 0 && iface < 32);
-	int result;
+	int ret;
+	uint32_t tmp;
 
-	/* get available interfaces */
-	usb_out_buffer[0] = EMU_CMD_SELECT_IF;
-	usb_out_buffer[1] = 0xff;
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_FREE_MEMORY))
+		return true;
 
-	result = jlink_usb_io(jlink_handle, 2, 4);
-	if (result != ERROR_OK) {
-		LOG_ERROR("J-Link query interface failed (%d)", result);
-		return ERROR_JTAG_DEVICE_ERROR;
+	ret = jaylink_get_free_memory(devh, &tmp);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_get_free_memory() failed: %s.",
+			jaylink_strerror_name(ret));
+		return false;
 	}
 
-	uint32_t iface_mask = buf_get_u32(usb_in_buffer, 0, 32);
-
-	if (!(iface_mask & (1<<iface))) {
-		LOG_ERROR("J-Link requesting to select unsupported interface (%" PRIx32 ")", iface_mask);
-		return ERROR_JTAG_DEVICE_ERROR;
+	if (tmp < 143) {
+		LOG_ERROR("Not enough free device internal memory: %u bytes.", tmp);
+		return false;
 	}
 
-	/* Select interface */
-	usb_out_buffer[0] = EMU_CMD_SELECT_IF;
-	usb_out_buffer[1] = iface;
+	tmp = MIN(JLINK_TAP_BUFFER_SIZE, (tmp - 16) / 2);
 
-	result = jlink_usb_io(jlink_handle, 2, 4);
-	if (result != ERROR_OK) {
-		LOG_ERROR("J-Link interface select failed (%d)", result);
-		return ERROR_JTAG_DEVICE_ERROR;
+	if (tmp != swd_buffer_size) {
+		swd_buffer_size = tmp;
+		LOG_DEBUG("Adjusted SWD transaction buffer size to %u bytes.",
+			swd_buffer_size);
 	}
 
-	return ERROR_OK;
+	return true;
 }
 
 static int jlink_init(void)
 {
-	int i;
+	int ret;
+	struct jaylink_device **devs;
+	unsigned int i;
+	bool found_device;
+	uint32_t tmp;
+	char *firmware_version;
+	struct jaylink_hardware_version hwver;
+	struct jaylink_hardware_status hwstatus;
 
-	jlink_handle = jlink_usb_open();
+	ret = jaylink_init(&jayctx);
 
-	if (jlink_handle == 0) {
-		LOG_ERROR("Cannot find jlink Interface! Please check "
-				"connection and permissions.");
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_init() failed: %s.",
+			jaylink_strerror_name(ret));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	jlink_hw_jtag_version = 2;
+	ret = jaylink_get_device_list(jayctx, &devs);
 
-	if (jlink_get_version_info() == ERROR_OK) {
-		/* attempt to get status */
-		jlink_get_status();
+	if (ret < 0) {
+		LOG_ERROR("jaylink_get_device_list() failed: %s.",
+			jaylink_strerror_name(ret));
+		jaylink_exit(jayctx);
+		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	/* Registration is sometimes necessary for SWD to work */
-	if (jlink_caps & (1<<EMU_CAP_REGISTER))
-		jlink_register();
+	found_device = false;
+
+	if (!use_serial_number && !use_usb_address)
+		LOG_INFO("No device selected, using first device.");
+
+	for (i = 0; devs[i]; i++) {
+		jaylink_device_get_serial_number(devs[i], &tmp);
+		ret = jaylink_device_get_usb_address(devs[i]);
+
+		if (use_usb_address && usb_address != ret)
+			continue;
+
+		if (use_serial_number && tmp != serial_number)
+			continue;
+
+		ret = jaylink_open(devs[i], &devh);
+
+		if (ret != JAYLINK_OK) {
+			LOG_ERROR("Failed to open device: %s.", jaylink_strerror_name(ret));
+			continue;
+		}
+
+		found_device = true;
+		break;
+	}
+
+	jaylink_free_device_list(devs, 1);
+
+	if (!found_device) {
+		LOG_ERROR("No J-Link device found.");
+		jaylink_exit(jayctx);
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
 	/*
-	 * Some versions of Segger's software do not select JTAG interface by default.
-	 *
-	 * Segger recommends to select interface necessarily as a part of init process,
-	 * in case any previous session leaves improper interface selected.
+	 * Be careful with changing the following initialization sequence because
+	 * some devices are known to be sensitive regarding the order.
 	 */
-	int retval;
-	if (jlink_caps & (1<<EMU_CAP_SELECT_IF))
-		retval = jlink_select_interface(swd_mode ? JLINK_TIF_SWD : JLINK_TIF_JTAG);
-	else
-		retval = swd_mode ? ERROR_JTAG_DEVICE_ERROR : ERROR_OK;
 
-	if (retval != ERROR_OK) {
-		LOG_ERROR("Selected transport mode is not supported.");
+	ret = jaylink_get_firmware_version(devh, &firmware_version);
+
+	if (ret > 0) {
+		LOG_INFO("%s", firmware_version);
+		free(firmware_version);
+	} else if (!ret) {
+		LOG_WARNING("Device responds empty firmware version string.");
+	} else {
+		LOG_ERROR("jaylink_get_firmware_version() failed: %s.",
+			jaylink_strerror_name(ret));
+		jaylink_close(devh);
+		jaylink_exit(jayctx);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	LOG_INFO("J-Link JTAG Interface ready");
+	memset(caps, 0, JAYLINK_DEV_EXT_CAPS_SIZE);
+	ret = jaylink_get_caps(devh, caps);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_get_caps() failed: %s.", jaylink_strerror_name(ret));
+		jaylink_close(devh);
+		jaylink_exit(jayctx);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_EXT_CAPS)) {
+		ret = jaylink_get_extended_caps(devh, caps);
+
+		if (ret != JAYLINK_OK) {
+			LOG_ERROR("jaylink_get_extended_caps() failed:  %s.",
+				jaylink_strerror_name(ret));
+			jaylink_close(devh);
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+	}
+
+	jtag_command_version = JAYLINK_JTAG_V2;
+
+	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_HW_VERSION)) {
+		ret = jaylink_get_hardware_version(devh, &hwver);
+
+		if (ret != JAYLINK_OK) {
+			LOG_ERROR("Failed to retrieve hardware version: %s.",
+				jaylink_strerror_name(ret));
+			jaylink_close(devh);
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+
+		LOG_INFO("Hardware version: %u.%02u", hwver.major, hwver.minor);
+
+		if (hwver.major >= 5)
+			jtag_command_version = JAYLINK_JTAG_V3;
+	}
+
+	if (iface == JAYLINK_TIF_SWD) {
+		/*
+		 * Adjust the SWD transaction buffer size in case there is already
+		 * allocated memory on the device. This happens for example if the
+		 * memory for SWO capturing is still allocated because the software
+		 * which used the device before has not been shut down properly.
+		 */
+		if (!adjust_swd_buffer_size()) {
+			jaylink_close(devh);
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+	}
+
+	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
+		if (!read_device_config(&config)) {
+			LOG_ERROR("Failed to read device configuration data.");
+			jaylink_close(devh);
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+
+		memcpy(&tmp_config, &config, sizeof(struct device_config));
+	}
+
+	ret = jaylink_get_hardware_status(devh, &hwstatus);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_get_hardware_status() failed: %s.",
+			jaylink_strerror_name(ret));
+		jaylink_close(devh);
+		jaylink_exit(jayctx);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	LOG_INFO("VTarget = %u.%03u V", hwstatus.target_voltage / 1000,
+		hwstatus.target_voltage % 1000);
+
+	conn.handle = 0;
+	conn.pid = 0;
+	conn.hid = 0;
+	conn.iid = 0;
+	conn.cid = 0;
+
+	ret = jlink_register();
+
+	if (ret != ERROR_OK) {
+		jaylink_close(devh);
+		jaylink_exit(jayctx);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	ret = select_interface();
+
+	if (ret != ERROR_OK) {
+		jaylink_close(devh);
+		jaylink_exit(jayctx);
+		return ret;
+	}
 
 	jlink_reset(0, 0);
 	jtag_sleep(3000);
@@ -578,11 +577,15 @@ static int jlink_init(void)
 
 	jlink_speed(jtag_get_speed_khz());
 
-	if (!swd_mode) {
-		/* v5/6 jlink seems to have an issue if the first tap move
-		 * is not divisible by 8, so we send a TLR on first power up */
+	if (iface == JAYLINK_TIF_JTAG) {
+		/*
+		 * J-Link devices with firmware version v5 and v6 seems to have an issue
+		 * if the first tap move is not divisible by 8, so we send a TLR on
+		 * first power up.
+		 */
 		for (i = 0; i < 8; i++)
 			jlink_tap_append_step(1, 0);
+
 		jlink_tap_execute();
 	}
 
@@ -591,7 +594,27 @@ static int jlink_init(void)
 
 static int jlink_quit(void)
 {
-	jlink_usb_close(jlink_handle);
+	int ret;
+
+	if (trace_enabled) {
+		ret = jaylink_swo_stop(devh);
+
+		if (ret != JAYLINK_OK)
+			LOG_ERROR("jaylink_swo_stop() failed: %s.",
+				jaylink_strerror_name(ret));
+	}
+
+	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_REGISTER)) {
+		ret = jaylink_unregister(devh, &conn, connlist, NULL, NULL);
+
+		if (ret < 0)
+			LOG_ERROR("jaylink_unregister() failed: %s.",
+				jaylink_strerror_name(ret));
+	}
+
+	jaylink_close(devh);
+	jaylink_exit(jayctx);
+
 	return ERROR_OK;
 }
 
@@ -613,8 +636,11 @@ static void jlink_state_move(void)
 {
 	int i;
 	int tms = 0;
-	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
-	uint8_t tms_scan_bits = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan;
+	uint8_t tms_scan_bits;
+
+	tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	tms_scan_bits = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < tms_scan_bits; i++) {
 		tms = (tms_scan >> i) & 1;
@@ -634,8 +660,8 @@ static void jlink_path_move(int num_states, tap_state_t *path)
 		else if (path[i] == tap_state_transition(tap_get_state(), true))
 			jlink_tap_append_step(1, 0);
 		else {
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
-					tap_state_name(tap_get_state()), tap_state_name(path[i]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition.",
+				tap_state_name(tap_get_state()), tap_state_name(path[i]));
 			exit(-1);
 		}
 
@@ -653,19 +679,20 @@ static void jlink_runtest(int num_cycles)
 
 	jlink_tap_ensure_space(1, num_cycles + 16);
 
-	/* only do a state_move when we're not already in IDLE */
+	/* Only do a state_move when we're not already in IDLE. */
 	if (tap_get_state() != TAP_IDLE) {
 		jlink_end_state(TAP_IDLE);
 		jlink_state_move();
 		/* num_cycles--; */
 	}
 
-	/* execute num_cycles */
+	/* Execute num_cycles. */
 	for (i = 0; i < num_cycles; i++)
 		jlink_tap_append_step(0, 0);
 
-	/* finish in end_state */
+	/* Finish in end_state. */
 	jlink_end_state(saved_end_state);
+
 	if (tap_get_state() != tap_get_end_state())
 		jlink_state_move();
 }
@@ -679,19 +706,19 @@ static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 
 	saved_end_state = tap_get_end_state();
 
-	/* Move to appropriate scan state */
+	/* Move to appropriate scan state. */
 	jlink_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
 
-	/* Only move if we're not already there */
+	/* Only move if we're not already there. */
 	if (tap_get_state() != tap_get_end_state())
 		jlink_state_move();
 
 	jlink_end_state(saved_end_state);
 
-	/* Scan */
+	/* Scan. */
 	jlink_tap_append_scan(scan_size, buffer, command);
 
-	/* We are in Exit1, go to Pause */
+	/* We are in Exit1, go to Pause. */
 	jlink_tap_append_step(0, 0);
 
 	tap_set_state(ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE);
@@ -702,329 +729,41 @@ static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 
 static void jlink_reset(int trst, int srst)
 {
-	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
+	LOG_DEBUG("TRST: %i, SRST: %i.", trst, srst);
 
-	/* Signals are active low */
+	/* Signals are active low. */
 	if (srst == 0)
-		jlink_simple_command(EMU_CMD_HW_RESET1);
+		jaylink_set_reset(devh);
 
 	if (srst == 1)
-		jlink_simple_command(EMU_CMD_HW_RESET0);
+		jaylink_clear_reset(devh);
 
 	if (trst == 1)
-		jlink_simple_command(EMU_CMD_HW_TRST0);
+		jaylink_jtag_clear_trst(devh);
 
 	if (trst == 0)
-		jlink_simple_command(EMU_CMD_HW_TRST1);
+		jaylink_jtag_set_trst(devh);
 }
 
-static void jlink_simple_command(uint8_t command)
-{
-	int result;
-
-	DEBUG_JTAG_IO("0x%02x", command);
-
-	usb_out_buffer[0] = command;
-	result = jlink_usb_write(jlink_handle, 1);
-
-	if (result != 1)
-		LOG_ERROR("J-Link command 0x%02x failed (%d)", command, result);
-}
-
-static int jlink_get_status(void)
-{
-	int result;
-
-	jlink_simple_command(EMU_CMD_GET_STATE);
-
-	result = jlink_usb_read(jlink_handle, 8);
-	if (result != 8) {
-		LOG_ERROR("J-Link command EMU_CMD_GET_STATE failed (%d)", result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	int vref = usb_in_buffer[0] + (usb_in_buffer[1] << 8);
-	LOG_INFO("Vref = %d.%d TCK = %d TDI = %d TDO = %d TMS = %d SRST = %d TRST = %d", \
-		vref / 1000, vref % 1000, \
-		usb_in_buffer[2], usb_in_buffer[3], usb_in_buffer[4], \
-		usb_in_buffer[5], usb_in_buffer[6], usb_in_buffer[7]);
-
-	if (vref < 1500)
-		LOG_ERROR("Vref too low. Check Target Power");
-
-	return ERROR_OK;
-}
-
-#define jlink_dump_printf(context, expr ...) \
-	do { \
-		if (context) \
-			command_print(context, expr); \
-			else \
-			LOG_INFO(expr); \
-	} while (0);
-
-static void jlink_caps_dump(struct command_context *ctx)
-{
-	int i;
-
-	jlink_dump_printf(ctx, "J-Link Capabilities");
-
-	for (i = 1; i < 31; i++)
-		if (jlink_caps & (1 << i))
-			jlink_dump_printf(ctx, "%s", jlink_cap_str[i]);
-}
-
-static void jlink_config_usb_address_dump(struct command_context *ctx, struct jlink_config *cfg)
-{
-	if (!cfg)
-		return;
-
-	jlink_dump_printf(ctx, "USB-Address: 0x%x", cfg->usb_address);
-}
-
-static void jlink_config_kickstart_dump(struct command_context *ctx, struct jlink_config *cfg)
-{
-	if (!cfg)
-		return;
-
-	jlink_dump_printf(ctx, "Kickstart power on JTAG-pin 19: 0x%" PRIx32,
-		cfg->kickstart_power_on_jtag_pin_19);
-}
-
-static void jlink_config_mac_address_dump(struct command_context *ctx, struct jlink_config *cfg)
-{
-	if (!cfg)
-		return;
-
-	jlink_dump_printf(ctx, "MAC Address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x",
-		cfg->mac_address[5], cfg->mac_address[4],
-		cfg->mac_address[3], cfg->mac_address[2],
-		cfg->mac_address[1], cfg->mac_address[0]);
-}
-
-static void jlink_config_ip_dump(struct command_context *ctx, struct jlink_config *cfg)
-{
-	if (!cfg)
-		return;
-
-	jlink_dump_printf(ctx, "IP Address: %d.%d.%d.%d",
-		cfg->ip_address[3], cfg->ip_address[2],
-		cfg->ip_address[1], cfg->ip_address[0]);
-	jlink_dump_printf(ctx, "Subnet Mask: %d.%d.%d.%d",
-		cfg->subnet_mask[3], cfg->subnet_mask[2],
-		cfg->subnet_mask[1], cfg->subnet_mask[0]);
-}
-
-static void jlink_config_dump(struct command_context *ctx, struct jlink_config *cfg)
-{
-	if (!cfg)
-		return;
-
-	jlink_dump_printf(ctx, "J-Link configuration");
-	jlink_config_usb_address_dump(ctx, cfg);
-	jlink_config_kickstart_dump(ctx, cfg);
-
-	if (jlink_hw_type == JLINK_HW_TYPE_JLINK_PRO) {
-		jlink_config_ip_dump(ctx, cfg);
-		jlink_config_mac_address_dump(ctx, cfg);
-	}
-}
-
-static int jlink_get_config(struct jlink_config *cfg)
-{
-	int result;
-	int size = sizeof(struct jlink_config);
-
-	usb_out_buffer[0] = EMU_CMD_READ_CONFIG;
-	result = jlink_usb_io(jlink_handle, 1, size);
-
-	if (result != ERROR_OK) {
-		LOG_ERROR("jlink_usb_read failed (requested=%d, result=%d)", size, result);
-		return ERROR_FAIL;
-	}
-
-	memcpy(cfg, usb_in_buffer, size);
-	return ERROR_OK;
-}
-
-static int jlink_set_config(struct jlink_config *cfg)
-{
-	int result;
-	int size = sizeof(struct jlink_config);
-
-	jlink_simple_command(EMU_CMD_WRITE_CONFIG);
-
-	memcpy(usb_out_buffer, cfg, size);
-
-	result = jlink_usb_write(jlink_handle, size);
-	if (result != size) {
-		LOG_ERROR("jlink_usb_write failed (requested=%d, result=%d)", 256, result);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
-}
-
-/*
- * List of unsupported version string markers.
- *
- * The firmware versions does not correspond directly with
- * "Software and documentation pack for Windows", it may be
- * distinguished by the "compile" date in the information string.
- *
- * For example, version string is:
- *   "J-Link ARM V8 compiled May  3 2012 18:36:22"
- * Marker sould be:
- *   "May  3 2012"
- *
- * The list must be terminated by NULL string.
- */
-static const char * const unsupported_versions[] = {
-	"Jan 31 2011",
-	"JAN 31 2011",
-	NULL			/* End of list */
-};
-
-static void jlink_check_supported(const char *str)
-{
-	const char * const *p = unsupported_versions;
-	while (*p) {
-		if (NULL != strstr(str, *p)) {
-			LOG_WARNING(
-			"Unsupported J-Link firmware version.\n"
-			"       Please check http://www.segger.com/j-link-older-versions.html for updates");
-			return;
-		}
-		p++;
-	}
-}
-
-static int jlink_get_version_info(void)
-{
-	int result;
-	int len;
-	uint32_t jlink_max_size;
-
-	/* query hardware version */
-	jlink_simple_command(EMU_CMD_VERSION);
-
-	result = jlink_usb_read(jlink_handle, 2);
-	if (2 != result) {
-		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)", result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	len = buf_get_u32(usb_in_buffer, 0, 16);
-	if (len > JLINK_IN_BUFFER_SIZE) {
-		LOG_ERROR("J-Link command EMU_CMD_VERSION impossible return length 0x%0x", len);
-		len = JLINK_IN_BUFFER_SIZE;
-	}
-
-	result = jlink_usb_read(jlink_handle, len);
-	if (result != len) {
-		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)", result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	usb_in_buffer[result] = 0;
-	LOG_INFO("%s", (char *)usb_in_buffer);
-	jlink_check_supported((char *)usb_in_buffer);
-
-	/* query hardware capabilities */
-	jlink_simple_command(EMU_CMD_GET_CAPS);
-
-	result = jlink_usb_read(jlink_handle, 4);
-	if (4 != result) {
-		LOG_ERROR("J-Link command EMU_CMD_GET_CAPS failed (%d)", result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	jlink_caps = buf_get_u32(usb_in_buffer, 0, 32);
-	LOG_INFO("J-Link caps 0x%x", (unsigned)jlink_caps);
-
-	if (jlink_caps & (1 << EMU_CAP_GET_HW_VERSION)) {
-		/* query hardware version */
-		jlink_simple_command(EMU_CMD_GET_HW_VERSION);
-
-		result = jlink_usb_read(jlink_handle, 4);
-		if (4 != result) {
-			LOG_ERROR("J-Link command EMU_CMD_GET_HW_VERSION failed (%d)", result);
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-
-		uint32_t jlink_hw_version = buf_get_u32(usb_in_buffer, 0, 32);
-		uint32_t major_revision = (jlink_hw_version / 10000) % 100;
-		jlink_hw_type = (jlink_hw_version / 1000000) % 100;
-		if (major_revision >= 5)
-			jlink_hw_jtag_version = 3;
-
-		LOG_INFO("J-Link hw version %i", (int)jlink_hw_version);
-
-		switch (jlink_hw_type) {
-			case JLINK_HW_TYPE_JLINK:
-				LOG_INFO("J-Link hw type J-Link");
-				break;
-			case JLINK_HW_TYPE_JTRACE:
-				LOG_INFO("J-Link hw type J-Trace");
-				break;
-			case JLINK_HW_TYPE_FLASHER:
-				LOG_INFO("J-Link hw type Flasher");
-				break;
-			case JLINK_HW_TYPE_JLINK_PRO:
-				LOG_INFO("J-Link hw type J-Link Pro");
-				break;
-			case JLINK_HW_TYPE_JLINK_LITE_ADI:
-				LOG_INFO("J-Link hw type J-Link Lite-ADI");
-				break;
-			case JLINK_HW_TYPE_JLINK_LITE_XMC4000:
-				LOG_INFO("J-Link hw type J-Link Lite-XMC4000");
-				break;
-			case JLINK_HW_TYPE_JLINK_LITE_XMC4200:
-				LOG_INFO("J-Link hw type J-Link Lite-XMC4200");
-				break;
-			case JLINK_HW_TYPE_LPCLINK2:
-				LOG_INFO("J-Link hw type J-Link on LPC-Link2");
-				break;
-			default:
-				LOG_INFO("J-Link hw type unknown 0x%" PRIx32, jlink_hw_type);
-				break;
-		}
-	}
-
-	if (jlink_caps & (1 << EMU_CAP_GET_MAX_BLOCK_SIZE)) {
-		/* query hardware maximum memory block */
-		jlink_simple_command(EMU_CMD_GET_MAX_MEM_BLOCK);
-
-		result = jlink_usb_read(jlink_handle, 4);
-		if (4 != result) {
-			LOG_ERROR("J-Link command EMU_CMD_GET_MAX_MEM_BLOCK failed (%d)", result);
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-
-		jlink_max_size = buf_get_u32(usb_in_buffer, 0, 32);
-		LOG_INFO("J-Link max mem block %i", (int)jlink_max_size);
-	}
-
-	if (jlink_caps & (1 << EMU_CAP_READ_CONFIG)) {
-		if (jlink_get_config(&jlink_cfg) != ERROR_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-
-		jlink_config_dump(NULL, &jlink_cfg);
-	}
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(jlink_pid_command)
+COMMAND_HANDLER(jlink_usb_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("Need exactly one argument to jlink_pid");
+		command_print(CMD_CTX, "Need exactly one argument for jlink usb.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (sscanf(CMD_ARGV[0], "%" SCNd8, &usb_address) != 1) {
+		command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
-	pids[0] = strtoul(CMD_ARGV[0], NULL, 16);
-	pids[1] = 0;
-	vids[1] = 0;
+	if (usb_address > JAYLINK_USB_ADDRESS_3) {
+		command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	use_serial_number = false;
+	use_usb_address = true;
 
 	return ERROR_OK;
 }
@@ -1032,114 +771,520 @@ COMMAND_HANDLER(jlink_pid_command)
 COMMAND_HANDLER(jlink_serial_command)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("Need exactly one argument to jlink_serial");
+		command_print(CMD_CTX, "Need exactly one argument for jlink serial.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (sscanf(CMD_ARGV[0], "%" SCNd32, &serial_number) != 1) {
+		command_print(CMD_CTX, "Invalid serial number: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
-	if (jlink_serial)
-		free(jlink_serial);
-	jlink_serial = strdup(CMD_ARGV[0]);
+
+	use_serial_number = true;
+	use_usb_address = false;
 
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(jlink_handle_jlink_info_command)
+COMMAND_HANDLER(jlink_handle_hwstatus_command)
 {
-	if (jlink_get_version_info() == ERROR_OK) {
-		/* attempt to get status */
-		jlink_get_status();
+	int ret;
+	struct jaylink_hardware_status status;
+
+	ret = jaylink_get_hardware_status(devh, &status);
+
+	if (ret != JAYLINK_OK) {
+		command_print(CMD_CTX, "jaylink_get_hardware_status() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
 	}
 
-	return ERROR_OK;
-}
+	command_print(CMD_CTX, "VTarget = %u.%03u V",
+		status.target_voltage / 1000, status.target_voltage % 1000);
 
-COMMAND_HANDLER(jlink_handle_jlink_caps_command)
-{
-	jlink_caps_dump(CMD_CTX);
+	command_print(CMD_CTX, "TCK = %u TDI = %u TDO = %u TMS = %u SRST = %u "
+		"TRST = %u", status.tck, status.tdi, status.tdo, status.tms,
+		status.tres, status.trst);
 
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(jlink_handle_jlink_hw_jtag_command)
-{
-	switch (CMD_ARGC) {
-		case 0:
-			command_print(CMD_CTX, "J-Link hw jtag  %i", jlink_hw_jtag_version);
-			break;
-		case 1: {
-			int request_version = atoi(CMD_ARGV[0]);
-			switch (request_version) {
-				case 2:
-				case 3:
-					jlink_hw_jtag_version = request_version;
-					break;
-				default:
-					return ERROR_COMMAND_SYNTAX_ERROR;
-			}
-			break;
-		}
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+	if (status.target_voltage < 1500)
+		command_print(CMD_CTX, "Target voltage too low. Check target power.");
 
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(jlink_handle_jlink_kickstart_command)
+COMMAND_HANDLER(jlink_handle_free_memory_command)
 {
-	uint32_t kickstart;
+	int ret;
+	uint32_t tmp;
 
-	if (CMD_ARGC < 1) {
-		jlink_config_kickstart_dump(CMD_CTX, &jlink_cfg);
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_FREE_MEMORY)) {
+		command_print(CMD_CTX, "Retrieval of free memory is not supported by "
+			"the device.");
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], kickstart);
+	ret = jaylink_get_free_memory(devh, &tmp);
 
-	jlink_cfg.kickstart_power_on_jtag_pin_19 = kickstart;
+	if (ret != JAYLINK_OK) {
+		command_print(CMD_CTX, "jaylink_get_free_memory() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	command_print(CMD_CTX, "Device has %u bytes of free memory.", tmp);
+
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(jlink_handle_jlink_mac_address_command)
+COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
+{
+	int tmp;
+	int version;
+
+	if (!CMD_ARGC) {
+		switch (jtag_command_version) {
+			case JAYLINK_JTAG_V2:
+				version = 2;
+				break;
+			case JAYLINK_JTAG_V3:
+				version = 3;
+				break;
+			default:
+				return ERROR_FAIL;
+		}
+
+		command_print(CMD_CTX, "JTAG command version: %i", version);
+	} else if (CMD_ARGC == 1) {
+		if (sscanf(CMD_ARGV[0], "%i", &tmp) != 1) {
+			command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+
+		switch (tmp) {
+			case 2:
+				jtag_command_version = JAYLINK_JTAG_V2;
+				break;
+			case 3:
+				jtag_command_version = JAYLINK_JTAG_V3;
+				break;
+			default:
+				command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+				return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else {
+		command_print(CMD_CTX, "Need exactly one argument for jlink jtag.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_target_power_command)
+{
+	int ret;
+	int enable;
+
+	if (CMD_ARGC != 1) {
+		command_print(CMD_CTX, "Need exactly one argument for jlink "
+			"targetpower.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER)) {
+		command_print(CMD_CTX, "Target power supply is not supported by the "
+			"device.");
+		return ERROR_OK;
+	}
+
+	if (!strcmp(CMD_ARGV[0], "on")) {
+		enable = true;
+	} else if (!strcmp(CMD_ARGV[0], "off")) {
+		enable = false;
+	} else {
+		command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	ret = jaylink_set_target_power(devh, enable);
+
+	if (ret != JAYLINK_OK) {
+		command_print(CMD_CTX, "jaylink_set_target_power() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+static void show_config_usb_address(struct command_context *ctx)
+{
+	if (config.usb_address != tmp_config.usb_address)
+		command_print(ctx, "USB address: %u [%u]", config.usb_address,
+			tmp_config.usb_address);
+	else
+		command_print(ctx, "USB address: %u", config.usb_address);
+}
+
+static void show_config_ip_address(struct command_context *ctx)
+{
+	if (!memcmp(config.ip_address, tmp_config.ip_address, 4))
+		command_print(ctx, "IP address: %d.%d.%d.%d",
+			config.ip_address[3], config.ip_address[2],
+			config.ip_address[1], config.ip_address[0]);
+	else
+		command_print(ctx, "IP address: %d.%d.%d.%d [%d.%d.%d.%d]",
+			config.ip_address[3], config.ip_address[2],
+			config.ip_address[1], config.ip_address[0],
+			tmp_config.ip_address[3], tmp_config.ip_address[2],
+			tmp_config.ip_address[1], tmp_config.ip_address[0]);
+
+	if (!memcmp(config.subnet_mask, tmp_config.subnet_mask, 4))
+		command_print(ctx, "Subnet mask: %d.%d.%d.%d",
+			config.subnet_mask[3], config.subnet_mask[2],
+			config.subnet_mask[1], config.subnet_mask[0]);
+	else
+		command_print(ctx, "Subnet mask: %d.%d.%d.%d [%d.%d.%d.%d]",
+			config.subnet_mask[3], config.subnet_mask[2],
+			config.subnet_mask[1], config.subnet_mask[0],
+			tmp_config.subnet_mask[3], tmp_config.subnet_mask[2],
+			tmp_config.subnet_mask[1], tmp_config.subnet_mask[0]);
+}
+
+static void show_config_mac_address(struct command_context *ctx)
+{
+	if (!memcmp(config.mac_address, tmp_config.mac_address, 6))
+		command_print(ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x",
+			config.mac_address[5], config.mac_address[4],
+			config.mac_address[3], config.mac_address[2],
+			config.mac_address[1], config.mac_address[0]);
+	else
+		command_print(ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x "
+			"[%.02x:%.02x:%.02x:%.02x:%.02x:%.02x]",
+			config.mac_address[5], config.mac_address[4],
+			config.mac_address[3], config.mac_address[2],
+			config.mac_address[1], config.mac_address[0],
+			tmp_config.mac_address[5], tmp_config.mac_address[4],
+			tmp_config.mac_address[3], tmp_config.mac_address[2],
+			tmp_config.mac_address[1], tmp_config.mac_address[0]);
+}
+
+static void show_config_target_power(struct command_context *ctx)
+{
+	const char *target_power;
+	const char *current_target_power;
+
+	if (!config.target_power)
+		target_power = "off";
+	else
+		target_power = "on";
+
+	if (!tmp_config.target_power)
+		current_target_power = "off";
+	else
+		current_target_power = "on";
+
+	if (config.target_power != tmp_config.target_power)
+		command_print(ctx, "Target power supply: %s [%s]", target_power,
+			current_target_power);
+	else
+		command_print(ctx, "Target power supply: %s", target_power);
+}
+
+static void show_config(struct command_context *ctx)
+{
+	command_print(ctx, "J-Link device configuration:");
+
+	show_config_usb_address(ctx);
+
+	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER))
+		show_config_target_power(ctx);
+
+	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_ETHERNET)) {
+		show_config_ip_address(ctx);
+		show_config_mac_address(ctx);
+	}
+}
+
+static int poll_trace(uint8_t *buf, size_t *size)
+{
+	int ret;
+	uint32_t length;
+
+	length = *size;
+
+	ret = jaylink_swo_read(devh, buf, &length);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_swo_read() failed: %s.", jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	*size = length;
+
+	return ERROR_OK;
+}
+
+static uint32_t calculate_trace_buffer_size(void)
+{
+	int ret;
+	uint32_t tmp;
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_FREE_MEMORY))
+		return 0;
+
+	ret = jaylink_get_free_memory(devh, &tmp);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_get_free_memory() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	if (tmp > 0x3fff || tmp <= 0x600)
+		tmp = tmp >> 1;
+	else
+		tmp = tmp - 0x400;
+
+	return tmp & 0xffffff00;
+}
+
+static bool check_trace_freq(uint32_t freq, uint32_t div, uint32_t trace_freq)
+{
+	double min;
+	double deviation;
+
+	min = fabs(1.0 - (freq / ((double)trace_freq * div)));
+
+	while (freq / div > 0) {
+		deviation = fabs(1.0 - (freq / ((double)trace_freq * div)));
+
+		if (deviation < 0.03) {
+			LOG_DEBUG("Found suitable frequency divider %u with deviation of "
+				"%.02f %%.", div, deviation);
+			return true;
+		}
+
+		if (deviation < min)
+			min = deviation;
+
+		div++;
+	}
+
+	LOG_ERROR("Selected trace frequency is not supported by the device. "
+		"Please choose a different trace frequency.");
+	LOG_ERROR("Maximum permitted deviation is 3.00 %%, but only %.02f %% "
+		"could be achieved.", min * 100);
+
+	return false;
+}
+
+static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
+		uint32_t port_size, unsigned int *trace_freq)
+{
+	int ret;
+	uint32_t buffer_size;
+	uint32_t freq;
+	uint32_t div;
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SWO)) {
+		LOG_ERROR("Trace capturing is not supported by the device.");
+		return ERROR_FAIL;
+	}
+
+	if (pin_protocol != ASYNC_UART) {
+		LOG_ERROR("Selected pin protocol is not supported.");
+		return ERROR_FAIL;
+	}
+
+	trace_enabled = enabled;
+
+	ret = jaylink_swo_stop(devh);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_swo_stop() failed: %s.", jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	if (!enabled) {
+		/*
+		 * Adjust the SWD transaction buffer size as stopping SWO capturing
+		 * deallocates device internal memory.
+		 */
+		if (!adjust_swd_buffer_size())
+			return ERROR_FAIL;
+
+		return ERROR_OK;
+	}
+
+	buffer_size = calculate_trace_buffer_size();
+
+	if (!buffer_size) {
+		LOG_ERROR("Not enough free device memory to start trace capturing.");
+		return ERROR_FAIL;
+	}
+
+	ret = jaylink_swo_get_speeds(devh, JAYLINK_SWO_MODE_UART, &freq, &div);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_swo_get_speeds() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	if (!*trace_freq)
+		*trace_freq = freq / div;
+
+	if (!check_trace_freq(freq, div, *trace_freq))
+		return ERROR_FAIL;
+
+	LOG_DEBUG("Using %u bytes device memory for trace capturing.", buffer_size);
+
+	ret = jaylink_swo_start(devh, JAYLINK_SWO_MODE_UART, *trace_freq,
+		buffer_size);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_start_swo() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	/*
+	 * Adjust the SWD transaction buffer size as starting SWO capturing
+	 * allocates device internal memory.
+	 */
+	if (!adjust_swd_buffer_size())
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_config_usb_address_command)
+{
+	uint8_t tmp;
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
+		command_print(CMD_CTX, "Reading configuration is not supported by the "
+			"device.");
+		return ERROR_OK;
+	}
+
+	if (!CMD_ARGC) {
+		show_config_usb_address(CMD_CTX);
+	} else if (CMD_ARGC == 1) {
+		if (sscanf(CMD_ARGV[0], "%" SCNd8, &tmp) != 1) {
+			command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
+			return ERROR_FAIL;
+		}
+
+		if (tmp > JAYLINK_USB_ADDRESS_3) {
+			command_print(CMD_CTX, "Invalid USB address: %u.", tmp);
+			return ERROR_FAIL;
+		}
+
+		tmp_config.usb_address = tmp;
+	} else {
+		command_print(CMD_CTX, "Need exactly one argument for jlink config "
+			"usb.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_config_target_power_command)
+{
+	int enable;
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
+		command_print(CMD_CTX, "Reading configuration is not supported by the "
+			"device.");
+		return ERROR_OK;
+	}
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER)) {
+		command_print(CMD_CTX, "Target power supply is not supported by the "
+			"device.");
+		return ERROR_OK;
+	}
+
+	if (!CMD_ARGC) {
+		show_config_target_power(CMD_CTX);
+	} else if (CMD_ARGC == 1) {
+		if (!strcmp(CMD_ARGV[0], "on")) {
+			enable = true;
+		} else if (!strcmp(CMD_ARGV[0], "off")) {
+			enable = false;
+		} else {
+			command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+			return ERROR_FAIL;
+		}
+
+		tmp_config.target_power = enable;
+	} else {
+		command_print(CMD_CTX, "Need exactly one argument for jlink config "
+			"targetpower.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(jlink_handle_config_mac_address_command)
 {
 	uint8_t addr[6];
 	int i;
 	char *e;
 	const char *str;
 
-	if (CMD_ARGC < 1) {
-		jlink_config_mac_address_dump(CMD_CTX, &jlink_cfg);
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
+		command_print(CMD_CTX, "Reading configuration is not supported by the "
+			"device.");
 		return ERROR_OK;
 	}
 
-	str = CMD_ARGV[0];
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_ETHERNET)) {
+		command_print(CMD_CTX, "Ethernet connectivity is not supported by the "
+			"device.");
+		return ERROR_OK;
+	}
 
-	if ((strlen(str) != 17) || (str[2] != ':' || str[5] != ':' || str[8] != ':' ||
-		str[11] != ':' || str[14] != ':')) {
-		command_print(CMD_CTX, "ethaddr miss format ff:ff:ff:ff:ff:ff");
+	if (!CMD_ARGC) {
+		show_config_mac_address(CMD_CTX);
+	} else if (CMD_ARGC == 1) {
+		str = CMD_ARGV[0];
+
+		if ((strlen(str) != 17) || (str[2] != ':' || str[5] != ':' || \
+				str[8] != ':' || str[11] != ':' || str[14] != ':')) {
+			command_print(CMD_CTX, "Invalid MAC address format.");
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+
+		for (i = 5; i >= 0; i--) {
+			addr[i] = strtoul(str, &e, 16);
+			str = e + 1;
+		}
+
+		if (!(addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5])) {
+			command_print(CMD_CTX, "Invalid MAC address: zero address.");
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+
+		if (!(0x01 & addr[0])) {
+			command_print(CMD_CTX, "Invalid MAC address: multicast address.");
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+
+		memcpy(tmp_config.mac_address, addr, sizeof(addr));
+	} else {
+		command_print(CMD_CTX, "Need exactly one argument for jlink config "
+			" mac.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-
-	for (i = 5; i >= 0; i--) {
-		addr[i] = strtoul(str, &e, 16);
-		str = e + 1;
-	}
-
-	if (!(addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5])) {
-		command_print(CMD_CTX, "invalid it's zero mac_address");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	if (!(0x01 & addr[0])) {
-		command_print(CMD_CTX, "invalid it's a multicat mac_address");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	memcpy(jlink_cfg.mac_address, addr, sizeof(addr));
 
 	return ERROR_OK;
 }
 
-static int string_to_ip(const char *s, uint8_t *ip, int *pos)
+static bool string_to_ip(const char *s, uint8_t *ip, int *pos)
 {
 	uint8_t lip[4];
 	char *e;
@@ -1147,21 +1292,21 @@ static int string_to_ip(const char *s, uint8_t *ip, int *pos)
 	int i;
 
 	if (!s)
-		return -EINVAL;
+		return false;
 
 	for (i = 0; i < 4; i++) {
 		lip[i] = strtoul(s, &e, 10);
 
 		if (*e != '.' && i != 3)
-			return -EINVAL;
+			return false;
 
 		s = e + 1;
 	}
 
 	*pos = e - s_save;
-
 	memcpy(ip, lip, sizeof(lip));
-	return ERROR_OK;
+
+	return true;
 }
 
 static void cpy_ip(uint8_t *dst, uint8_t *src)
@@ -1172,197 +1317,220 @@ static void cpy_ip(uint8_t *dst, uint8_t *src)
 		dst[i] = src[j];
 }
 
-COMMAND_HANDLER(jlink_handle_jlink_ip_command)
+COMMAND_HANDLER(jlink_handle_config_ip_address_command)
 {
-	uint32_t ip_address;
+	uint8_t ip_address[4];
 	uint32_t subnet_mask = 0;
 	int i, len;
-	int ret;
 	uint8_t subnet_bits = 24;
 
-	if (CMD_ARGC < 1) {
-		jlink_config_ip_dump(CMD_CTX, &jlink_cfg);
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
+		command_print(CMD_CTX, "Reading configuration is not supported by the "
+			"device.");
 		return ERROR_OK;
 	}
 
-	ret = string_to_ip(CMD_ARGV[0], (uint8_t *)&ip_address, &i);
-	if (ret != ERROR_OK)
-		return ret;
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_ETHERNET)) {
+		command_print(CMD_CTX, "Ethernet connectivity is not supported by the "
+			"device.");
+		return ERROR_OK;
+	}
 
-	len = strlen(CMD_ARGV[0]);
-
-	/* check for this format A.B.C.D/E */
-
-	if (i < len) {
-		if (CMD_ARGV[0][i] != '/')
+	if (!CMD_ARGC) {
+		show_config_ip_address(CMD_CTX);
+	} else {
+		if (!string_to_ip(CMD_ARGV[0], ip_address, &i))
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
-		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0] + i + 1, subnet_bits);
-	} else {
-		if (CMD_ARGC > 1) {
-			ret = string_to_ip(CMD_ARGV[1], (uint8_t *)&subnet_mask, &i);
-			if (ret != ERROR_OK)
-				return ret;
-		}
-	}
+		len = strlen(CMD_ARGV[0]);
 
-	if (!subnet_mask)
-		subnet_mask = (uint32_t)(subnet_bits < 32 ?
+		/* Check for format A.B.C.D/E. */
+		if (i < len) {
+			if (CMD_ARGV[0][i] != '/')
+				return ERROR_COMMAND_SYNTAX_ERROR;
+
+			COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0] + i + 1, subnet_bits);
+		} else if (CMD_ARGC > 1) {
+			if (!string_to_ip(CMD_ARGV[1], (uint8_t *)&subnet_mask, &i))
+				return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+
+		if (!subnet_mask)
+			subnet_mask = (uint32_t)(subnet_bits < 32 ?
 				((1ULL << subnet_bits) - 1) : 0xffffffff);
 
-	cpy_ip(jlink_cfg.ip_address, (uint8_t *)&ip_address);
-	cpy_ip(jlink_cfg.subnet_mask, (uint8_t *)&subnet_mask);
+		cpy_ip(tmp_config.ip_address, ip_address);
+		cpy_ip(tmp_config.subnet_mask, (uint8_t *)&subnet_mask);
+	}
 
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(jlink_handle_jlink_reset_command)
+COMMAND_HANDLER(jlink_handle_config_reset_command)
 {
-	memset(&jlink_cfg, 0xff, sizeof(jlink_cfg));
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG))
+		return ERROR_OK;
+
+	memcpy(&tmp_config, &config, sizeof(struct device_config));
+
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(jlink_handle_jlink_save_command)
+
+COMMAND_HANDLER(jlink_handle_config_write_command)
 {
-	if (!(jlink_caps & (1 << EMU_CAP_WRITE_CONFIG))) {
-		command_print(CMD_CTX, "J-Link write emulator configuration not supported");
+	int ret;
+
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
+		command_print(CMD_CTX, "Reading configuration is not supported by the "
+			"device.");
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "The J-Link need to be unpluged and repluged ta have the config effective");
-	return jlink_set_config(&jlink_cfg);
-}
-
-COMMAND_HANDLER(jlink_handle_jlink_usb_address_command)
-{
-	uint32_t address;
-
-	if (CMD_ARGC < 1) {
-		jlink_config_usb_address_dump(CMD_CTX, &jlink_cfg);
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_WRITE_CONFIG)) {
+		command_print(CMD_CTX, "Writing configuration is not supported by the "
+			"device.");
 		return ERROR_OK;
 	}
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
-
-	if (address > 0x3 && address != 0xff) {
-		command_print(CMD_CTX, "USB Address must be between 0x00 and 0x03 or 0xff");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (!memcmp(&config, &tmp_config, sizeof(struct device_config))) {
+		command_print(CMD_CTX, "Operation not performed due to no changes in "
+			"the configuration.");
+		return ERROR_OK;
 	}
 
-	jlink_cfg.usb_address = address;
+	ret = jaylink_write_raw_config(devh, (const uint8_t *)&tmp_config);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_write_raw_config() failed: %s.",
+			jaylink_strerror_name(ret));
+		return ERROR_FAIL;
+	}
+
+	if (!read_device_config(&config)) {
+		LOG_ERROR("Failed to read device configuration for verification.");
+		return ERROR_FAIL;
+	}
+
+	if (memcmp(&config, &tmp_config, sizeof(struct device_config))) {
+		LOG_ERROR("Verification of device configuration failed. Please check "
+			"your device.");
+		return ERROR_FAIL;
+	}
+
+	memcpy(&tmp_config, &config, sizeof(struct device_config));
+	command_print(CMD_CTX, "The new device configuration applies after power "
+		"cycling the J-Link device.");
+
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(jlink_handle_jlink_config_command)
+COMMAND_HANDLER(jlink_handle_config_command)
 {
-	struct jlink_config cfg;
-	int ret = ERROR_OK;
-
-	if (CMD_ARGC == 0) {
-		if (!(jlink_caps & (1 << EMU_CAP_READ_CONFIG))) {
-			command_print(CMD_CTX, "J-Link read emulator configuration not supported");
-			goto exit;
-		}
-
-		ret = jlink_get_config(&cfg);
-
-		if (ret != ERROR_OK)
-			command_print(CMD_CTX, "J-Link read emulator configuration failled");
-		else
-			jlink_config_dump(CMD_CTX, &jlink_cfg);
+	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
+		command_print(CMD_CTX, "Device doesn't support reading configuration.");
+		return ERROR_OK;
 	}
 
-exit:
-	return ret;
+	if (CMD_ARGC == 0)
+		show_config(CMD_CTX);
+
+	return ERROR_OK;
 }
 
 static const struct command_registration jlink_config_subcommand_handlers[] = {
 	{
-		.name = "kickstart",
-		.handler = &jlink_handle_jlink_kickstart_command,
+		.name = "usb",
+		.handler = &jlink_handle_config_usb_address_command,
 		.mode = COMMAND_EXEC,
-		.help = "set Kickstart power on JTAG-pin 19.",
-		.usage = "[val]",
+		.help = "set the USB address",
+		.usage = "[0-3]",
 	},
 	{
-		.name = "mac_address",
-		.handler = &jlink_handle_jlink_mac_address_command,
+		.name = "targetpower",
+		.handler = &jlink_handle_config_target_power_command,
+		.mode = COMMAND_EXEC,
+		.help = "set the target power supply",
+		.usage = "[on|off]"
+	},
+	{
+		.name = "mac",
+		.handler = &jlink_handle_config_mac_address_command,
 		.mode = COMMAND_EXEC,
 		.help = "set the MAC Address",
 		.usage = "[ff:ff:ff:ff:ff:ff]",
 	},
 	{
 		.name = "ip",
-		.handler = &jlink_handle_jlink_ip_command,
+		.handler = &jlink_handle_config_ip_address_command,
 		.mode = COMMAND_EXEC,
-		.help = "set the ip address of the J-Link Pro, "
-			"where A.B.C.D is the ip, "
-			"E the bit of the subnet mask, "
-			"F.G.H.I the subnet mask",
+		.help = "set the IP address, where A.B.C.D is the IP address, "
+			"E the bit of the subnet mask, F.G.H.I the subnet mask",
 		.usage = "[A.B.C.D[/E] [F.G.H.I]]",
 	},
 	{
 		.name = "reset",
-		.handler = &jlink_handle_jlink_reset_command,
+		.handler = &jlink_handle_config_reset_command,
 		.mode = COMMAND_EXEC,
-		.help = "reset the current config",
+		.help = "undo configuration changes"
 	},
 	{
-		.name = "save",
-		.handler = &jlink_handle_jlink_save_command,
+		.name = "write",
+		.handler = &jlink_handle_config_write_command,
 		.mode = COMMAND_EXEC,
-		.help = "save the current config",
-	},
-	{
-		.name = "usb_address",
-		.handler = &jlink_handle_jlink_usb_address_command,
-		.mode = COMMAND_EXEC,
-		.help = "set the USB-Address, "
-			"This will change the product id",
-		.usage = "[0x00 to 0x03 or 0xff]",
+		.help = "write configuration to the device"
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
 static const struct command_registration jlink_subcommand_handlers[] = {
 	{
-		.name = "caps",
-		.handler = &jlink_handle_jlink_caps_command,
+		.name = "jtag",
+		.handler = &jlink_handle_jlink_jtag_command,
 		.mode = COMMAND_EXEC,
-		.help = "show jlink capabilities",
-	},
-	{
-		.name = "info",
-		.handler = &jlink_handle_jlink_info_command,
-		.mode = COMMAND_EXEC,
-		.help = "show jlink info",
-	},
-	{
-		.name = "hw_jtag",
-		.handler = &jlink_handle_jlink_hw_jtag_command,
-		.mode = COMMAND_EXEC,
-		.help = "access J-Link HW JTAG command version",
+		.help = "select the JTAG command version",
 		.usage = "[2|3]",
 	},
 	{
-		.name = "config",
-		.handler = &jlink_handle_jlink_config_command,
+		.name = "targetpower",
+		.handler = &jlink_handle_target_power_command,
 		.mode = COMMAND_EXEC,
-		.help = "access J-Link configuration, "
-			"if no argument this will dump the config",
-		.chain = jlink_config_subcommand_handlers,
+		.help = "set the target power supply",
+		.usage = "<on|off>"
 	},
 	{
-		.name = "pid",
-		.handler = &jlink_pid_command,
+		.name = "freemem",
+		.handler = &jlink_handle_free_memory_command,
+		.mode = COMMAND_EXEC,
+		.help = "show free device memory"
+	},
+	{
+		.name = "hwstatus",
+		.handler = &jlink_handle_hwstatus_command,
+		.mode = COMMAND_EXEC,
+		.help = "show the hardware status"
+	},
+	{
+		.name = "usb",
+		.handler = &jlink_usb_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the pid of the interface we want to use",
+		.help = "set the USB address of the device that should be used",
+		.usage = "<0-3>"
 	},
 	{
 		.name = "serial",
 		.handler = &jlink_serial_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the serial number of the J-Link adapter we want to use"
+		.help = "set the serial number of the device that should be used",
+		.usage = "<serial number>"
+	},
+	{
+		.name = "config",
+		.handler = &jlink_handle_config_command,
+		.mode = COMMAND_EXEC,
+		.help = "access the device configuration. If no argument is given "
+			"this will show the device configuration",
+		.chain = jlink_config_subcommand_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1379,25 +1547,27 @@ static const struct command_registration jlink_command_handlers[] = {
 
 static int jlink_swd_init(void)
 {
-	LOG_INFO("JLink SWD mode enabled");
-	swd_mode = true;
+	iface = JAYLINK_TIF_SWD;
 
 	return ERROR_OK;
 }
 
-static void jlink_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t value)
+static void jlink_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd,
+		uint32_t value)
 {
 	assert(!(cmd & SWD_CMD_RnW));
 	jlink_swd_queue_cmd(dap, cmd, NULL, value);
 }
 
-static void jlink_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value)
+static void jlink_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd,
+		uint32_t *value)
 {
 	assert(cmd & SWD_CMD_RnW);
 	jlink_swd_queue_cmd(dap, cmd, value, 0);
 }
 
-static int_least32_t jlink_swd_frequency(struct adiv5_dap *dap, int_least32_t hz)
+static int_least32_t jlink_swd_frequency(struct adiv5_dap *dap,
+		int_least32_t hz)
 {
 	if (hz > 0)
 		jlink_speed(hz / 1000);
@@ -1405,34 +1575,8 @@ static int_least32_t jlink_swd_frequency(struct adiv5_dap *dap, int_least32_t hz
 	return hz;
 }
 
-static const struct swd_driver jlink_swd = {
-	.init = jlink_swd_init,
-	.frequency = jlink_swd_frequency,
-	.switch_seq = jlink_swd_switch_seq,
-	.read_reg = jlink_swd_read_reg,
-	.write_reg = jlink_swd_write_reg,
-	.run = jlink_swd_run_queue,
-};
-
-static const char * const jlink_transports[] = { "jtag", "swd", NULL };
-
-struct jtag_interface jlink_interface = {
-	.name = "jlink",
-	.commands = jlink_command_handlers,
-	.transports = jlink_transports,
-	.swd = &jlink_swd,
-
-	.execute_queue = jlink_execute_queue,
-	.speed = jlink_speed,
-	.speed_div = jlink_speed_div,
-	.khz = jlink_khz,
-	.init = jlink_init,
-	.quit = jlink_quit,
-};
-
 /***************************************************************************/
 /* J-Link tap functions */
-
 
 static unsigned tap_length;
 /* In SWD mode use tms buffer for direction control */
@@ -1441,9 +1585,9 @@ static uint8_t tdi_buffer[JLINK_TAP_BUFFER_SIZE];
 static uint8_t tdo_buffer[JLINK_TAP_BUFFER_SIZE];
 
 struct pending_scan_result {
-	int first;	/* First bit position in tdo_buffer to read */
-	int length; /* Number of bits to read */
-	struct scan_command *command; /* Corresponding scan command */
+	int first; /* First bit position in tdo_buffer to read. */
+	int length; /* Number of bits to read. */
+	struct scan_command *command; /* Corresponding scan command. */
 	void *buffer;
 };
 
@@ -1476,7 +1620,7 @@ static void jlink_tap_append_step(int tms, int tdi)
 	int bit_index = tap_length % 8;
 	uint8_t bit = 1 << bit_index;
 
-	/* we do not pad TMS, so be sure to initialize all bits */
+	/* We do not pad TMS, so be sure to initialize all bits. */
 	if (0 == bit_index)
 		tms_buffer[index_var] = tdi_buffer[index_var] = 0;
 
@@ -1510,57 +1654,36 @@ static void jlink_tap_append_scan(int length, uint8_t *buffer,
 		int tdi = (buffer[i / 8] & (1 << (i % 8))) != 0;
 		jlink_tap_append_step(tms, tdi);
 	}
+
 	pending_scan_results_length++;
 }
 
-/* Pad and send a tap sequence to the device, and receive the answer.
- * For the purpose of padding we assume that we are in idle or pause state. */
+/*
+ * Pad and send a tap sequence to the device, and receive the answer. For the
+ * purpose of padding we assume that we are in idle or pause state.
+ */
 static int jlink_tap_execute(void)
 {
-	int byte_length;
 	int i;
-	int result;
+	int ret;
 
 	if (!tap_length)
 		return ERROR_OK;
 
-	/* JLink returns an extra NULL in packet when size of incoming
-	 * message is a multiple of 64, creates problems with USB comms.
-	 * WARNING: This will interfere with tap state counting. */
-	while ((DIV_ROUND_UP(tap_length, 8) % 64) == 0)
-		jlink_tap_append_step((tap_get_state() == TAP_RESET) ? 1 : 0, 0);
-
-	/* number of full bytes (plus one if some would be left over) */
-	byte_length = DIV_ROUND_UP(tap_length, 8);
-
-	bool use_jtag3 = jlink_hw_jtag_version >= 3;
-	usb_out_buffer[0] = use_jtag3 ? EMU_CMD_HW_JTAG3 : EMU_CMD_HW_JTAG2;
-	usb_out_buffer[1] = 0;
-	usb_out_buffer[2] = (tap_length >> 0) & 0xff;
-	usb_out_buffer[3] = (tap_length >> 8) & 0xff;
-	memcpy(usb_out_buffer + 4, tms_buffer, byte_length);
-	memcpy(usb_out_buffer + 4 + byte_length, tdi_buffer, byte_length);
+	jlink_last_state = jtag_debug_state_machine(tms_buffer, tdi_buffer,
+		tap_length, jlink_last_state);
 
 	jlink_last_state = jtag_debug_state_machine(tms_buffer, tdi_buffer,
-			tap_length, jlink_last_state);
+		tap_length, jlink_last_state);
 
-	result = jlink_usb_message(jlink_handle, 4 + 2 * byte_length,
-			use_jtag3 ? byte_length + 1 : byte_length);
-	if (result != ERROR_OK) {
-		LOG_ERROR("jlink_tap_execute failed USB io (%d)", result);
+	ret = jaylink_jtag_io(devh, tms_buffer, tdi_buffer, tdo_buffer,
+		tap_length, jtag_command_version);
+
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_jtag_io() failed: %s.", jaylink_strerror_name(ret));
 		jlink_tap_init();
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
-
-	result = use_jtag3 ? usb_in_buffer[byte_length] : 0;
-	if (result != 0) {
-		LOG_ERROR("jlink_tap_execute failed, result %d (%s)", result,
-			  result == 1 ? "adaptive clocking timeout" : "unknown");
-		jlink_tap_init();
-		return ERROR_JTAG_QUEUE_FAILED;
-	}
-
-	memcpy(tdo_buffer, usb_in_buffer, byte_length);
 
 	for (i = 0; i < pending_scan_results_length; i++) {
 		struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[i];
@@ -1569,12 +1692,10 @@ static int jlink_tap_execute(void)
 		int first = pending_scan_result->first;
 		struct scan_command *command = pending_scan_result->command;
 
-		/* Copy to buffer */
+		/* Copy to buffer. */
 		buf_set_buf(tdo_buffer, first, buffer, 0, length);
 
-		DEBUG_JTAG_IO("pending scan result, length = %d", length);
-
-		jlink_debug_buffer(buffer, DIV_ROUND_UP(length, 8));
+		DEBUG_JTAG_IO("Pending scan result, length = %d.", length);
 
 		if (jtag_read_buffer(buffer, command) != ERROR_OK) {
 			jlink_tap_init();
@@ -1586,6 +1707,7 @@ static int jlink_tap_execute(void)
 	}
 
 	jlink_tap_init();
+
 	return ERROR_OK;
 }
 
@@ -1598,6 +1720,7 @@ static void fill_buffer(uint8_t *buf, uint32_t val, uint32_t len)
 		len -= 32;
 		tap_pos += 32;
 	}
+
 	if (len)
 		buf_set_u32(buf, tap_pos, len, val);
 }
@@ -1610,6 +1733,7 @@ static void jlink_queue_data_out(const uint8_t *data, uint32_t len)
 		bit_copy(tdi_buffer, tap_length, data, 0, len);
 	else
 		fill_buffer(tdi_buffer, 0, len);
+
 	fill_buffer(tms_buffer, dir_out, len);
 	tap_length += len;
 }
@@ -1628,24 +1752,24 @@ static int jlink_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
 	unsigned int s_len;
 
 	switch (seq) {
-	case LINE_RESET:
-		LOG_DEBUG("SWD line reset");
-		s = swd_seq_line_reset;
-		s_len = swd_seq_line_reset_len;
-		break;
-	case JTAG_TO_SWD:
-		LOG_DEBUG("JTAG-to-SWD");
-		s = swd_seq_jtag_to_swd;
-		s_len = swd_seq_jtag_to_swd_len;
-		break;
-	case SWD_TO_JTAG:
-		LOG_DEBUG("SWD-to-JTAG");
-		s = swd_seq_swd_to_jtag;
-		s_len = swd_seq_swd_to_jtag_len;
-		break;
-	default:
-		LOG_ERROR("Sequence %d not supported", seq);
-		return ERROR_FAIL;
+		case LINE_RESET:
+			LOG_DEBUG("SWD line reset");
+			s = swd_seq_line_reset;
+			s_len = swd_seq_line_reset_len;
+			break;
+		case JTAG_TO_SWD:
+			LOG_DEBUG("JTAG-to-SWD");
+			s = swd_seq_jtag_to_swd;
+			s_len = swd_seq_jtag_to_swd_len;
+			break;
+		case SWD_TO_JTAG:
+			LOG_DEBUG("SWD-to-JTAG");
+			s = swd_seq_swd_to_jtag;
+			s_len = swd_seq_swd_to_jtag_len;
+			break;
+		default:
+			LOG_ERROR("Sequence %d not supported.", seq);
+			return ERROR_FAIL;
 	}
 
 	jlink_queue_data_out(s, s_len);
@@ -1655,47 +1779,31 @@ static int jlink_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
 
 static int jlink_swd_run_queue(struct adiv5_dap *dap)
 {
-	LOG_DEBUG("Executing %d queued transactions", pending_scan_results_length);
-	int retval;
+	int i;
+	int ret;
+
+	LOG_DEBUG("Executing %d queued transactions.", pending_scan_results_length);
 
 	if (queued_retval != ERROR_OK) {
-		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
+		LOG_DEBUG("Skipping due to previous errors: %d.", queued_retval);
 		goto skip;
 	}
 
-	/* A transaction must be followed by another transaction or at least 8 idle cycles to
-	 * ensure that data is clocked through the AP. */
+	/*
+	 * A transaction must be followed by another transaction or at least 8 idle
+	 * cycles to ensure that data is clocked through the AP.
+	 */
 	jlink_queue_data_out(NULL, 8);
 
-	size_t byte_length = DIV_ROUND_UP(tap_length, 8);
+	ret = jaylink_swd_io(devh, tms_buffer, tdi_buffer, tdo_buffer, tap_length);
 
-	/* There's a comment in jlink_tap_execute saying JLink returns
-	 * an extra NULL in packet when size of incoming message is a
-	 * multiple of 64. Someone should verify if that's still the
-	 * case with the current jlink firmware */
-
-	usb_out_buffer[0] = EMU_CMD_HW_JTAG3;
-	usb_out_buffer[1] = 0;
-	usb_out_buffer[2] = (tap_length >> 0) & 0xff;
-	usb_out_buffer[3] = (tap_length >> 8) & 0xff;
-	memcpy(usb_out_buffer + 4, tms_buffer, byte_length);
-	memcpy(usb_out_buffer + 4 + byte_length, tdi_buffer, byte_length);
-
-	retval = jlink_usb_message(jlink_handle, 4 + 2 * byte_length,
-				   byte_length + 1);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("jlink_swd_run_queue failed USB io (%d)", retval);
+	if (ret != JAYLINK_OK) {
+		LOG_ERROR("jaylink_swd_io() failed: %s.", jaylink_strerror_name(ret));
 		goto skip;
 	}
 
-	retval = usb_in_buffer[byte_length];
-	if (retval) {
-		LOG_ERROR("jlink_swd_run_queue failed, result %d", retval);
-		goto skip;
-	}
-
-	for (int i = 0; i < pending_scan_results_length; i++) {
-		int ack = buf_get_u32(usb_in_buffer, pending_scan_results_buffer[i].first, 3);
+	for (i = 0; i < pending_scan_results_length; i++) {
+		int ack = buf_get_u32(tdo_buffer, pending_scan_results_buffer[i].first, 3);
 
 		if (ack != SWD_ACK_OK) {
 			LOG_DEBUG("SWD ack not OK: %d %s", ack,
@@ -1703,11 +1811,11 @@ static int jlink_swd_run_queue(struct adiv5_dap *dap)
 			queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
 			goto skip;
 		} else if (pending_scan_results_buffer[i].length) {
-			uint32_t data = buf_get_u32(usb_in_buffer, 3 + pending_scan_results_buffer[i].first, 32);
-			int parity = buf_get_u32(usb_in_buffer, 3 + 32 + pending_scan_results_buffer[i].first, 1);
+			uint32_t data = buf_get_u32(tdo_buffer, 3 + pending_scan_results_buffer[i].first, 32);
+			int parity = buf_get_u32(tdo_buffer, 3 + 32 + pending_scan_results_buffer[i].first, 1);
 
 			if (parity != parity_u32(data)) {
-				LOG_ERROR("SWD Read data parity mismatch");
+				LOG_ERROR("SWD: Read data parity mismatch.");
 				queued_retval = ERROR_FAIL;
 				goto skip;
 			}
@@ -1719,17 +1827,19 @@ static int jlink_swd_run_queue(struct adiv5_dap *dap)
 
 skip:
 	jlink_tap_init();
-	retval = queued_retval;
+	ret = queued_retval;
 	queued_retval = ERROR_OK;
 
-	return retval;
+	return ret;
 }
 
-static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst, uint32_t data)
+static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd,
+		uint32_t *dst, uint32_t data)
 {
 	uint8_t data_parity_trn[DIV_ROUND_UP(32 + 1, 8)];
-	if (tap_length + 46 + 8 + dap->memaccess_tck >= sizeof(tdi_buffer) * 8 ||
-	    pending_scan_results_length == MAX_PENDING_SCAN_RESULTS) {
+
+	if (tap_length + 46 + 8 + dap->memaccess_tck >= swd_buffer_size * 8 ||
+		pending_scan_results_length == MAX_PENDING_SCAN_RESULTS) {
 		/* Not enough room in the queue. Run the queue. */
 		queued_retval = jlink_swd_run_queue(dap);
 	}
@@ -1744,13 +1854,13 @@ static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *ds
 	pending_scan_results_buffer[pending_scan_results_length].first = tap_length;
 
 	if (cmd & SWD_CMD_RnW) {
-		/* Queue a read transaction */
+		/* Queue a read transaction. */
 		pending_scan_results_buffer[pending_scan_results_length].length = 32;
 		pending_scan_results_buffer[pending_scan_results_length].buffer = dst;
 
 		jlink_queue_data_in(1 + 3 + 32 + 1 + 1);
 	} else {
-		/* Queue a write transaction */
+		/* Queue a write transaction. */
 		pending_scan_results_buffer[pending_scan_results_length].length = 0;
 		jlink_queue_data_in(1 + 3 + 1);
 
@@ -1762,235 +1872,33 @@ static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *ds
 
 	pending_scan_results_length++;
 
-	/* Insert idle cycles after AP accesses to avoid WAIT */
+	/* Insert idle cycles after AP accesses to avoid WAIT. */
 	if (cmd & SWD_CMD_APnDP)
 		jlink_queue_data_out(NULL, dap->memaccess_tck);
 }
 
-/*****************************************************************************/
-/* JLink USB low-level functions */
+static const struct swd_driver jlink_swd = {
+	.init = &jlink_swd_init,
+	.frequency = &jlink_swd_frequency,
+	.switch_seq = &jlink_swd_switch_seq,
+	.read_reg = &jlink_swd_read_reg,
+	.write_reg = &jlink_swd_write_reg,
+	.run = &jlink_swd_run_queue,
+};
 
-static struct jlink *jlink_usb_open()
-{
-	struct jtag_libusb_device_handle *devh;
-	if (jtag_libusb_open(vids, pids, jlink_serial, &devh) != ERROR_OK)
-		return NULL;
+static const char * const jlink_transports[] = { "jtag", "swd", NULL };
 
-	/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS
-	 * AREA!!!!!!!!!!!  The behavior of libusb is not completely
-	 * consistent across Windows, Linux, and Mac OS X platforms.
-	 * The actions taken in the following compiler conditionals may
-	 * not agree with published documentation for libusb, but were
-	 * found to be necessary through trials and tribulations.  Even
-	 * little tweaks can break one or more platforms, so if you do
-	 * make changes test them carefully on all platforms before
-	 * committing them!
-	 */
-
-/* This entire block can probably be removed. It was a workaround for
- * libusb0.1 and old JLink firmware. It has already be removed for
- * windows and causing problems (LPC Link-2 with JLink firmware) on
- * Linux with libusb1.0.
- *
- * However, for now the behavior will be left unchanged for non-windows
- * platforms using libusb0.1 due to lack of testing.
- */
-#if IS_WIN32 == 0 && HAVE_LIBUSB1 == 0
-
-	jtag_libusb_reset_device(devh);
-
-#if IS_DARWIN == 0
-
-	int timeout = 5;
-	/* reopen jlink after usb_reset
-	 * on win32 this may take a second or two to re-enumerate */
-	int retval;
-	while ((retval = jtag_libusb_open(vids, pids, jlink_serial, &devh)) != ERROR_OK) {
-		usleep(1000);
-		timeout--;
-		if (!timeout)
-			break;
-	}
-	if (ERROR_OK != retval)
-		return NULL;
-#endif
-
-#endif
-
-	/* usb_set_configuration is only required under win32
-	 * with libusb 0.1 and libusb0.sys. For libusb 1.0 it is a no-op
-	 * since the configuration is already set. */
-	jtag_libusb_set_configuration(devh, 0);
-
-	jtag_libusb_choose_interface(devh, &jlink_read_ep, &jlink_write_ep,
-				     JLINK_USB_INTERFACE_CLASS,
-				     JLINK_USB_INTERFACE_SUBCLASS,
-				     JLINK_USB_INTERFACE_PROTOCOL);
-
-	struct jlink *result = malloc(sizeof(struct jlink));
-	result->usb_handle = devh;
-	return result;
-}
-
-static void jlink_usb_close(struct jlink *jlink)
-{
-	jtag_libusb_close(jlink->usb_handle);
-	free(jlink);
-}
-
-/* Send a message and receive the reply. */
-static int jlink_usb_message(struct jlink *jlink, int out_length, int in_length)
-{
-	int result;
-
-	result = jlink_usb_write(jlink, out_length);
-	if (result != out_length) {
-		LOG_ERROR("usb_bulk_write failed (requested=%d, result=%d)",
-				out_length, result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	result = jlink_usb_read(jlink, in_length);
-	if (result != in_length) {
-		LOG_ERROR("usb_bulk_read failed (requested=%d, result=%d)",
-				in_length, result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	return ERROR_OK;
-}
-
-/* calls the given usb_bulk_* function, allowing for the data to
- * trickle in with some timeouts  */
-static int usb_bulk_with_retries(
-		int (*f)(jtag_libusb_device_handle *, int, char *, int, int),
-		jtag_libusb_device_handle *dev, int ep,
-		char *bytes, int size, int timeout)
-{
-	int tries = 3, count = 0;
-
-	while (tries && (count < size)) {
-		int result = f(dev, ep, bytes + count, size - count, timeout);
-		if (result > 0)
-			count += result;
-		else if ((-ETIMEDOUT != result) || !--tries)
-			return result;
-	}
-	return count;
-}
-
-static int wrap_usb_bulk_write(jtag_libusb_device_handle *dev, int ep,
-		char *buff, int size, int timeout)
-{
-	/* usb_bulk_write() takes const char *buff */
-	return jtag_libusb_bulk_write(dev, ep, buff, size, timeout);
-}
-
-static inline int usb_bulk_write_ex(jtag_libusb_device_handle *dev, int ep,
-		char *bytes, int size, int timeout)
-{
-	return usb_bulk_with_retries(&wrap_usb_bulk_write,
-			dev, ep, bytes, size, timeout);
-}
-
-static inline int usb_bulk_read_ex(jtag_libusb_device_handle *dev, int ep,
-		char *bytes, int size, int timeout)
-{
-	return usb_bulk_with_retries(&jtag_libusb_bulk_read,
-			dev, ep, bytes, size, timeout);
-}
-
-/* Write data from out_buffer to USB. */
-static int jlink_usb_write(struct jlink *jlink, int out_length)
-{
-	int result;
-
-	if (out_length > JLINK_OUT_BUFFER_SIZE) {
-		LOG_ERROR("jlink_write illegal out_length=%d (max=%d)",
-				out_length, JLINK_OUT_BUFFER_SIZE);
-		return -1;
-	}
-
-	result = usb_bulk_write_ex(jlink->usb_handle, jlink_write_ep,
-		(char *)usb_out_buffer, out_length, JLINK_USB_TIMEOUT);
-
-	DEBUG_JTAG_IO("jlink_usb_write, out_length = %d, result = %d",
-			out_length, result);
-
-	jlink_debug_buffer(usb_out_buffer, out_length);
-	return result;
-}
-
-/* Read data from USB into in_buffer. */
-static int jlink_usb_read(struct jlink *jlink, int expected_size)
-{
-	int result = usb_bulk_read_ex(jlink->usb_handle, jlink_read_ep,
-		(char *)usb_in_buffer, expected_size, JLINK_USB_TIMEOUT);
-
-	DEBUG_JTAG_IO("jlink_usb_read, result = %d", result);
-
-	jlink_debug_buffer(usb_in_buffer, result);
-	return result;
-}
-
-/*
- * Send a message and receive the reply - simple messages.
- *
- * @param jlink pointer to driver data
- * @param out_length data length in @c usb_out_buffer
- * @param in_length data length to be read to @c usb_in_buffer
- */
-static int jlink_usb_io(struct jlink *jlink, int out_length, int in_length)
-{
-	int result;
-
-	result = jlink_usb_write(jlink, out_length);
-	if (result != out_length) {
-		LOG_ERROR("usb_bulk_write failed (requested=%d, result=%d)",
-				out_length, result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	result = jlink_usb_read(jlink, in_length);
-	if (result != in_length) {
-		LOG_ERROR("usb_bulk_read failed (requested=%d, result=%d)",
-				in_length, result);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	/*
-	 * Section 4.2.4 IN-transaction:
-	 * read dummy 0-byte packet if transaction size is
-	 * multiple of 64 bytes but not max. size of 0x8000
-	 */
-	if ((in_length % 64) == 0 && in_length != 0x8000) {
-		char dummy_buffer;
-		result = usb_bulk_read_ex(jlink->usb_handle, jlink_read_ep,
-			&dummy_buffer, 1, JLINK_USB_TIMEOUT);
-		if (result != 0) {
-			LOG_ERROR("dummy byte read failed");
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-	}
-	return ERROR_OK;
-}
-
-#ifdef _DEBUG_USB_COMMS_
-#define BYTES_PER_LINE  16
-
-static void jlink_debug_buffer(uint8_t *buffer, int length)
-{
-	char line[81];
-	char s[4];
-	int i;
-	int j;
-
-	for (i = 0; i < length; i += BYTES_PER_LINE) {
-		snprintf(line, 5, "%04x", i);
-		for (j = i; j < i + BYTES_PER_LINE && j < length; j++) {
-			snprintf(s, 4, " %02x", buffer[j]);
-			strcat(line, s);
-		}
-		LOG_DEBUG("%s", line);
-	}
-}
-#endif
+struct jtag_interface jlink_interface = {
+	.name = "jlink",
+	.commands = jlink_command_handlers,
+	.transports = jlink_transports,
+	.swd = &jlink_swd,
+	.execute_queue = &jlink_execute_queue,
+	.speed = &jlink_speed,
+	.speed_div = &jlink_speed_div,
+	.khz = &jlink_khz,
+	.init = &jlink_init,
+	.quit = &jlink_quit,
+	.config_trace = &config_trace,
+	.poll_trace = &poll_trace,
+};

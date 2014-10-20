@@ -201,6 +201,7 @@ m4_define([ADAPTER_OPT], [m4_translit(ADAPTER_ARG($1), [_], [-])])
 
 m4_define([USB1_ADAPTERS],
 	[[[ftdi], [MPSSE mode of FTDI based devices], [FTDI]],
+	[[jlink], [Segger J-Link JTAG Programmer], [JLINK]],
 	[[stlink], [ST-Link JTAG Programmer], [HLADAPTER_STLINK]],
 	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]],
 	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
@@ -208,8 +209,7 @@ m4_define([USB1_ADAPTERS],
 	[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]]])
 
 m4_define([USB_ADAPTERS],
-	[[[jlink], [Segger J-Link JTAG Programmer], [JLINK]],
-	[[osbdm], [OSBDM (JTAG only) Programmer], [OSBDM]],
+	[[[osbdm], [OSBDM (JTAG only) Programmer], [OSBDM]],
 	[[opendous], [eStick/opendous JTAG Programmer], [OPENDOUS]],
 	[[aice], [Andes JTAG Programmer], [AICE]]])
 
@@ -506,6 +506,11 @@ AC_ARG_ENABLE([internal-jimtcl],
   AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
   [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
 
+AC_ARG_ENABLE([internal-libjaylink],
+  AS_HELP_STRING([--disable-internal-libjaylink],
+  [Disable building internal libjaylink]),
+  [use_internal_libjaylink=$enableval], [use_internal_libjaylink=yes])
+
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
 if test $build_zy1000 = yes; then
@@ -785,6 +790,19 @@ if test $use_internal_jimtcl = yes; then
   else
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
   fi
+fi
+
+if test $use_internal_libjaylink = yes; then
+  if test -f "$srcdir/src/jtag/drivers/libjaylink/configure.ac"; then
+    ( cd $srcdir/src/jtag/drivers/libjaylink/ && ./autogen.sh )
+    AX_CONFIG_SUBDIR_OPTION([src/jtag/drivers/libjaylink],
+		[--enable-subproject-build])
+  else
+    AC_MSG_ERROR([Internal libjaylink not found, run either 'git submodule init' and 'git submodule update' or disable internal libjaylink with --disable-internal-libjaylink.])
+  fi
+else
+  PKG_CHECK_MODULES([libjaylink], [libjaylink >= 0.1],
+	[CFLAGS="$CFLAGS $libjaylink_CFLAGS"; LIBS="$LIBS $libjaylink_LIBS"; HAVE_LIBJAYLINK=yes], [HAVE_LIBJAYLINK=no])
 fi
 
 if test $build_remote_bitbang = yes; then
@@ -1170,6 +1188,14 @@ else
 fi
 AM_CONDITIONAL([HLADAPTER], [test $enable_stlink != no -o $enable_ti_icdi != no])
 
+# Disable J-Link driver if internal libjaylink is disabled and libjaylink was
+# not found by pkg-config.
+if test $enable_jlink != no; then
+  if test $use_internal_libjaylink$HAVE_LIBJAYLINK = nono; then
+      enable_jlink=no
+  fi
+fi
+
 AM_CONDITIONAL([RELEASE], [test $build_release = yes])
 AM_CONDITIONAL([PARPORT], [test $build_parport = yes])
 AM_CONDITIONAL([DUMMY], [test $build_dummy = yes])
@@ -1209,6 +1235,7 @@ AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = yes])
 AM_CONDITIONAL([MINIDRIVER_DUMMY], [test $build_minidriver_dummy = yes])
 
 AM_CONDITIONAL([INTERNAL_JIMTCL], [test $use_internal_jimtcl = yes])
+AM_CONDITIONAL([INTERNAL_LIBJAYLINK], [test $use_internal_libjaylink = yes])
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
