@@ -61,6 +61,8 @@
 #define MIPS32_ARCH_REL1 0x0
 #define MIPS32_ARCH_REL2 0x1
 
+#define MIPS32_SCAN_DELAY_LEGACY_MODE 2000000
+
 /* offsets into mips32 core register cache */
 enum {
 	MIPS32_PC = 37,

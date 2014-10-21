@@ -1339,7 +1339,7 @@ COMMAND_HANDLER(mips_m4k_handle_scan_delay_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(CMD_CTX, "scan delay: %d nsec", ejtag_info->scan_delay);
-	if (ejtag_info->scan_delay >= 2000000) {
+	if (ejtag_info->scan_delay >= MIPS32_SCAN_DELAY_LEGACY_MODE) {
 		ejtag_info->mode = 0;
 		command_print(CMD_CTX, "running in legacy mode");
 	} else {
