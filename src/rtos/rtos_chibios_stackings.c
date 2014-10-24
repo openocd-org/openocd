@@ -55,3 +55,31 @@ const struct rtos_register_stacking rtos_chibios_arm_v7m_stacking = {
 	0,						/* stack_alignment */
 	rtos_chibios_arm_v7m_stack_offsets	/* register_offsets */
 };
+
+static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets_w_fpu[ARMV7M_NUM_CORE_REGS] = {
+	{ -1,   32 },		/* r0   */
+	{ -1,   32 },		/* r1   */
+	{ -1,   32 },		/* r2   */
+	{ -1,   32 },		/* r3   */
+	{ 0x40, 32 },		/* r4   */
+	{ 0x44, 32 },		/* r5   */
+	{ 0x48, 32 },		/* r6   */
+	{ 0x4c, 32 },		/* r7   */
+	{ 0x50, 32 },		/* r8   */
+	{ 0x54, 32 },		/* r9   */
+	{ 0x58, 32 },		/* r10  */
+	{ 0x5c, 32 },		/* r11  */
+	{ -1,   32 },		/* r12  */
+	{ -2,   32 },		/* sp   */
+	{ -1,   32 },		/* lr   */
+	{ 0x60, 32 },		/* pc   */
+	{ -1,   32 },		/* xPSR */
+};
+
+const struct rtos_register_stacking rtos_chibios_arm_v7m_stacking_w_fpu = {
+	0x64,										/* stack_registers_size */
+	-1,											/* stack_growth_direction */
+	ARMV7M_NUM_CORE_REGS,						/* num_output_registers */
+	0,											/* stack_alignment */
+	rtos_chibios_arm_v7m_stack_offsets_w_fpu	/* register_offsets */
+};

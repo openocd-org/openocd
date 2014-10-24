@@ -264,11 +264,9 @@ static int ChibiOS_update_stacking(struct rtos *rtos)
 			/* Check if CP10 and CP11 are set to full access.
 			 * In ChibiOS this is done in ResetHandler() in crt0.c */
 			if (cpacr & 0x00F00000) {
-				/* Found target with enabled FPU */
-				/* FIXME: Need to figure out how to specify the FPU registers */
-				LOG_ERROR("ChibiOS ARM v7m targets with enabled FPU "
-						  " are NOT supported");
-				return -1;
+				LOG_DEBUG("Enabled FPU detected.");
+				param->stacking_info = &rtos_chibios_arm_v7m_stacking_w_fpu;
+				return 0;
 			}
 		}
 
