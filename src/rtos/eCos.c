@@ -359,8 +359,8 @@ static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char *
 static int eCos_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
-	*symbol_list = malloc(
-			sizeof(symbol_table_elem_t) * ARRAY_SIZE(eCos_symbol_list));
+	*symbol_list = calloc(
+			ARRAY_SIZE(eCos_symbol_list), sizeof(symbol_table_elem_t));
 
 	for (i = 0; i < ARRAY_SIZE(eCos_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = eCos_symbol_list[i];

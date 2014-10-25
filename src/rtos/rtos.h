@@ -35,7 +35,7 @@ struct reg;
 typedef struct symbol_table_elem_struct {
 	const char *symbol_name;
 	symbol_address_t address;
-
+	bool optional;
 } symbol_table_elem_t;
 
 struct thread_detail {

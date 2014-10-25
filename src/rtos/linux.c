@@ -329,7 +329,7 @@ static int linux_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
 	*symbol_list = (symbol_table_elem_t *)
-		malloc(sizeof(symbol_table_elem_t) * ARRAY_SIZE(linux_symbol_list));
+		calloc(ARRAY_SIZE(linux_symbol_list), sizeof(symbol_table_elem_t));
 
 	for (i = 0; i < ARRAY_SIZE(linux_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = linux_symbol_list[i];

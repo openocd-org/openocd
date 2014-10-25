@@ -147,7 +147,7 @@ int gdb_thread_packet(struct connection *connection, char const *packet, int pac
 	return target->rtos->gdb_thread_packet(connection, packet, packet_size);
 }
 
-static const char *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
+static symbol_table_elem_t *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
 {
 	symbol_table_elem_t *s;
 
@@ -155,16 +155,27 @@ static const char *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_a
 		os->type->get_symbol_list_to_lookup(&os->symbols);
 
 	if (!cur_symbol[0])
-		return os->symbols[0].symbol_name;
+		return &os->symbols[0];
 
 	for (s = os->symbols; s->symbol_name; s++)
 		if (!strcmp(s->symbol_name, cur_symbol)) {
 			s->address = cur_addr;
 			s++;
-			return s->symbol_name;
+			return s;
 		}
 
 	return NULL;
+}
+
+/* searches for 'symbol' in the lookup table for 'os' and returns TRUE,
+ * if 'symbol' is not declared optional */
+static bool is_symbol_mandatory(const struct rtos *os, const char *symbol)
+{
+	for (symbol_table_elem_t *s = os->symbols; s->symbol_name; ++s) {
+		if (!strcmp(s->symbol_name, symbol))
+			return !s->optional;
+	}
+	return false;
 }
 
 /* rtos_qsymbol() processes and replies to all qSymbol packets from GDB.
@@ -192,7 +203,7 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	uint64_t addr = 0;
 	size_t reply_len;
 	char reply[GDB_BUFFER_SIZE], cur_sym[GDB_BUFFER_SIZE / 2] = "";
-	const char *next_sym;
+	symbol_table_elem_t *next_sym = NULL;
 	struct target *target = get_target_from_connection(connection);
 	struct rtos *os = target->rtos;
 
@@ -206,7 +217,9 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	cur_sym[len] = 0;
 
 	if ((strcmp(packet, "qSymbol::") != 0) &&               /* GDB is not offering symbol lookup for the first time */
-	    (!sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))) { /* GDB did not found an address for a symbol */
+	    (!sscanf(packet, "qSymbol:%" SCNx64 ":", &addr)) && /* GDB did not find an address for a symbol */
+	    is_symbol_mandatory(os, cur_sym)) {					/* the symbol is mandatory for this RTOS */
+
 		/* GDB could not find an address for the previous symbol */
 		if (!target->rtos_auto_detect) {
 			LOG_WARNING("RTOS %s not detected. (GDB could not find symbol \'%s\')", os->type->name, cur_sym);
@@ -224,7 +237,7 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	}
 	next_sym = next_symbol(os, cur_sym, addr);
 
-	if (!next_sym) {
+	if (!next_sym->symbol_name) {
 		/* No more symbols need looking up */
 
 		if (!target->rtos_auto_detect) {
@@ -242,13 +255,13 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 		}
 	}
 
-	if (8 + (strlen(next_sym) * 2) + 1 > sizeof(reply)) {
-		LOG_ERROR("ERROR: RTOS symbol '%s' name is too long for GDB!", next_sym);
+	if (8 + (strlen(next_sym->symbol_name) * 2) + 1 > sizeof(reply)) {
+		LOG_ERROR("ERROR: RTOS symbol '%s' name is too long for GDB!", next_sym->symbol_name);
 		goto done;
 	}
 
 	reply_len = snprintf(reply, sizeof(reply), "qSymbol:");
-	reply_len += hexify(reply + reply_len, next_sym, 0, sizeof(reply) - reply_len);
+	reply_len += hexify(reply + reply_len, next_sym->symbol_name, 0, sizeof(reply) - reply_len);
 
 done:
 	gdb_put_packet(connection, reply, reply_len);

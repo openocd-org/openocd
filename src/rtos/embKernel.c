@@ -335,7 +335,7 @@ static int embKernel_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, c
 static int embKernel_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
-	*symbol_list = malloc(sizeof(symbol_table_elem_t) * ARRAY_SIZE(embKernel_symbol_list));
+	*symbol_list = calloc(ARRAY_SIZE(embKernel_symbol_list), sizeof(symbol_table_elem_t));
 
 	for (i = 0; i < ARRAY_SIZE(embKernel_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = embKernel_symbol_list[i];

@@ -330,8 +330,8 @@ static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, cha
 static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
 	unsigned int i;
-	*symbol_list = malloc(
-			sizeof(symbol_table_elem_t) * ARRAY_SIZE(ThreadX_symbol_list));
+	*symbol_list = calloc(
+			ARRAY_SIZE(ThreadX_symbol_list), sizeof(symbol_table_elem_t));
 
 	for (i = 0; i < ARRAY_SIZE(ThreadX_symbol_list); i++)
 		(*symbol_list)[i].symbol_name = ThreadX_symbol_list[i];
