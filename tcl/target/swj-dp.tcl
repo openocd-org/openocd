@@ -30,7 +30,5 @@ proc swj_newdap {chip tag args} {
      eval jtag newtap $chip $tag $args
  } elseif [using_swd] {
      eval swd newdap $chip $tag $args
- } elseif [string equal [transport select] "cmsis-dap"] {
-     eval cmsis-dap newdap $chip $tag $args
  }
 }

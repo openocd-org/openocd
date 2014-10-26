@@ -1801,8 +1801,6 @@ void adapter_assert_reset(void)
 			jtag_add_reset(0, 1);
 	} else if (transport_is_swd())
 		swd_add_reset(1);
-	else if (transport_is_cmsis_dap())
-		swd_add_reset(1);  /* FIXME */
 	else if (get_current_transport() != NULL)
 		LOG_ERROR("reset is not supported on %s",
 			get_current_transport()->name);
@@ -1816,8 +1814,6 @@ void adapter_deassert_reset(void)
 		jtag_add_reset(0, 0);
 	else if (transport_is_swd())
 		swd_add_reset(0);
-	else if (transport_is_cmsis_dap())
-		swd_add_reset(0);  /* FIXME */
 	else if (get_current_transport() != NULL)
 		LOG_ERROR("reset is not supported on %s",
 			get_current_transport()->name);

@@ -215,6 +215,5 @@ int swd_init_reset(struct command_context *cmd_ctx);
 void swd_add_reset(int req_srst);
 
 bool transport_is_swd(void);
-bool transport_is_cmsis_dap(void);
 
 #endif /* SWD_H */

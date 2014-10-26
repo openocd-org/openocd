@@ -554,8 +554,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 		pTap->chip, pTap->tapname, pTap->dotted_name, goi->argc);
 
 	if (!transport_is_jtag()) {
-		/* SWD or CMSIS-DAP (which is currently SWD-only) doesn't
-		   require any JTAG tap parameters */
+		/* SWD doesn't require any JTAG tap parameters */
 		pTap->enabled = true;
 		jtag_tap_init(pTap);
 		return JIM_OK;

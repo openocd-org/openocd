@@ -1,4 +1,7 @@
 /***************************************************************************
+ *   Copyright (C) 2014 by Paul Fertser                                    *
+ *   fercerpav@gmail.com                                                   *
+ *                                                                         *
  *   Copyright (C) 2013 by mike brown                                      *
  *   mike@theshedworks.org.uk                                              *
  *                                                                         *
@@ -32,12 +35,6 @@
 #include <jtag/tcl.h>
 
 #include <hidapi.h>
-
-#ifdef _DEBUG_JTAG_IO_
- #define DEBUG_IO(expr...) LOG_DEBUG(expr)
-#else
- #define DEBUG_IO(expr...) do {} while (0)
-#endif
 
 /*
  * See CMSIS-DAP documentation:
@@ -155,6 +152,17 @@ struct cmsis_dap {
 	uint8_t mode;
 };
 
+struct pending_transfer_result {
+	uint8_t cmd;
+	uint32_t data;
+	void *buffer;
+};
+
+static int pending_transfer_count, pending_queue_len;
+static struct pending_transfer_result *pending_transfers;
+
+static int queued_retval;
+
 static struct cmsis_dap *cmsis_dap_handle;
 
 static int cmsis_dap_usb_open(void)
@@ -263,6 +271,8 @@ static int cmsis_dap_usb_open(void)
 	int packet_size = PACKET_SIZE;
 
 	/* atmel cmsis-dap uses 512 byte reports */
+	/* TODO: HID report descriptor should be parsed instead of
+	 * hardcoding a match by VID */
 	if (target_vid == 0x03eb)
 		packet_size = 512 + 1;
 
@@ -282,18 +292,13 @@ static void cmsis_dap_usb_close(struct cmsis_dap *dap)
 	hid_close(dap->dev_handle);
 	hid_exit();
 
-	if (cmsis_dap_handle->packet_buffer)
-		free(cmsis_dap_handle->packet_buffer);
-
-	if (cmsis_dap_handle) {
-		free(cmsis_dap_handle);
-		cmsis_dap_handle = NULL;
-	}
-
-	if (cmsis_dap_serial) {
-		free(cmsis_dap_serial);
-		cmsis_dap_serial = NULL;
-	}
+	free(cmsis_dap_handle->packet_buffer);
+	free(cmsis_dap_handle);
+	cmsis_dap_handle = NULL;
+	free(cmsis_dap_serial);
+	cmsis_dap_serial = NULL;
+	free(pending_transfers);
+	pending_transfers = NULL;
 
 	return;
 }
@@ -302,7 +307,7 @@ static void cmsis_dap_usb_close(struct cmsis_dap *dap)
 static int cmsis_dap_usb_xfer(struct cmsis_dap *dap, int txlen)
 {
 	/* Pad the rest of the TX buffer with 0's */
-	memset(dap->packet_buffer + txlen, 0, dap->packet_size - 1 - txlen);
+	memset(dap->packet_buffer + txlen, 0, dap->packet_size - txlen);
 
 	/* write data to device */
 	int retval = hid_write(dap->dev_handle, dap->packet_buffer, dap->packet_size);
@@ -449,7 +454,7 @@ static int cmsis_dap_cmd_DAP_Disconnect(void)
 	return ERROR_OK;
 }
 
-static int cmsis_dap_cmd_DAP_TFER_Configure(uint8_t idle, uint16_t delay, uint16_t retry)
+static int cmsis_dap_cmd_DAP_TFER_Configure(uint8_t idle, uint16_t retry_count, uint16_t match_retry)
 {
 	int retval;
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
@@ -457,10 +462,10 @@ static int cmsis_dap_cmd_DAP_TFER_Configure(uint8_t idle, uint16_t delay, uint16
 	buffer[0] = 0;	/* report number */
 	buffer[1] = CMD_DAP_TFER_CONFIGURE;
 	buffer[2] = idle;
-	buffer[3] = delay & 0xff;
-	buffer[4] = (delay >> 8) & 0xff;
-	buffer[5] = retry & 0xff;
-	buffer[6] = (retry >> 8) & 0xff;
+	buffer[3] = retry_count & 0xff;
+	buffer[4] = (retry_count >> 8) & 0xff;
+	buffer[5] = match_retry & 0xff;
+	buffer[6] = (match_retry >> 8) & 0xff;
 	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 7);
 
 	if (retval != ERROR_OK || buffer[1] != DAP_OK) {
@@ -510,75 +515,139 @@ static int cmsis_dap_cmd_DAP_Delay(uint16_t delay_us)
 }
 #endif
 
-static int queued_retval;
-
-static void cmsis_dap_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value)
+static int cmsis_dap_swd_run_queue(struct adiv5_dap *dap)
 {
+	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
+
+	LOG_DEBUG("Executing %d queued transactions", pending_transfer_count);
+
+	if (queued_retval != ERROR_OK) {
+		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
+		goto skip;
+	}
+
+	if (!pending_transfer_count)
+		goto skip;
+
+	size_t idx = 0;
+	buffer[idx++] = 0;	/* report number */
+	buffer[idx++] = CMD_DAP_TFER;
+	buffer[idx++] = 0x00;	/* DAP Index */
+	buffer[idx++] = pending_transfer_count;
+
+	for (int i = 0; i < pending_transfer_count; i++) {
+		uint8_t cmd = pending_transfers[i].cmd;
+		uint32_t data = pending_transfers[i].data;
+
+		LOG_DEBUG("%s %s reg %x %"PRIx32,
+				cmd & SWD_CMD_APnDP ? "AP" : "DP",
+				cmd & SWD_CMD_RnW ? "read" : "write",
+			  (cmd & SWD_CMD_A32) >> 1, data);
+
+		/* When proper WAIT handling is implemented in the
+		 * common SWD framework, this kludge can be
+		 * removed. However, this might lead to minor
+		 * performance degradation as the adapter wouldn't be
+		 * able to automatically retry anything (because ARM
+		 * has forgotten to implement sticky error flags
+		 * clearing). See also comments regarding
+		 * cmsis_dap_cmd_DAP_TFER_Configure() and
+		 * cmsis_dap_cmd_DAP_SWD_Configure() in
+		 * cmsis_dap_init().
+		 */
+		if (!(cmd & SWD_CMD_RnW) &&
+		    !(cmd & SWD_CMD_APnDP) &&
+		    (cmd & SWD_CMD_A32) >> 1 == DP_CTRL_STAT &&
+		    (data & CORUNDETECT)) {
+			LOG_DEBUG("refusing to enable sticky overrun detection");
+			data &= ~CORUNDETECT;
+		}
+
+		buffer[idx++] = (cmd >> 1) & 0x0f;
+		if (!(cmd & SWD_CMD_RnW)) {
+			buffer[idx++] = (data) & 0xff;
+			buffer[idx++] = (data >> 8) & 0xff;
+			buffer[idx++] = (data >> 16) & 0xff;
+			buffer[idx++] = (data >> 24) & 0xff;
+		}
+	}
+
+	queued_retval = cmsis_dap_usb_xfer(cmsis_dap_handle, idx);
+	if (queued_retval != ERROR_OK)
+		goto skip;
+
+	idx = 2;
+	uint8_t ack = buffer[idx] & 0x07;
+	if (ack != SWD_ACK_OK || (buffer[idx] & 0x08)) {
+		LOG_DEBUG("SWD ack not OK: %d %s", buffer[idx-1],
+			  ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK");
+		queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
+		goto skip;
+	}
+	idx++;
+
+	if (pending_transfer_count != buffer[1])
+		LOG_ERROR("CMSIS-DAP transfer count mismatch: expected %d, got %d",
+			  pending_transfer_count, buffer[1]);
+
+	for (int i = 0; i < buffer[1]; i++) {
+		if (pending_transfers[i].cmd & SWD_CMD_RnW) {
+			static uint32_t last_read;
+			uint32_t data = le_to_h_u32(&buffer[idx]);
+			uint32_t tmp = data;
+			idx += 4;
+
+			LOG_DEBUG("Read result: %"PRIx32, data);
+
+			/* Imitate posted AP reads */
+			if ((pending_transfers[i].cmd & SWD_CMD_APnDP) ||
+			    ((pending_transfers[i].cmd & SWD_CMD_A32) >> 1 == DP_RDBUFF)) {
+				tmp = last_read;
+				last_read = data;
+			}
+
+			if (pending_transfers[i].buffer)
+				*(uint32_t *)pending_transfers[i].buffer = tmp;
+		}
+	}
+
+skip:
+	pending_transfer_count = 0;
+	int retval = queued_retval;
+	queued_retval = ERROR_OK;
+
+	return retval;
+}
+
+static void cmsis_dap_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst, uint32_t data)
+{
+	if (pending_transfer_count == pending_queue_len) {
+		/* Not enough room in the queue. Run the queue. */
+		queued_retval = cmsis_dap_swd_run_queue(dap);
+	}
+
 	if (queued_retval != ERROR_OK)
 		return;
 
-	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
-	int retval;
-	uint32_t val;
-
-	DEBUG_IO("CMSIS-DAP: Read  Reg 0x%02" PRIx8, cmd);
-
-	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_TFER;
-	buffer[2] = 0x00;
-	buffer[3] = 0x01;
-	buffer[4] = cmd;
-	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 5);
-
-	/* TODO - need better response checking */
-	if (retval != ERROR_OK || buffer[1] != 0x01) {
-		LOG_ERROR("CMSIS-DAP: Read Error (0x%02" PRIx8 ")", buffer[2]);
-		queued_retval = buffer[2];
-		return;
+	pending_transfers[pending_transfer_count].data = data;
+	pending_transfers[pending_transfer_count].cmd = cmd;
+	if (cmd & SWD_CMD_RnW) {
+		/* Queue a read transaction */
+		pending_transfers[pending_transfer_count].buffer = dst;
 	}
-
-	val = le_to_h_u32(&buffer[3]);
-	DEBUG_IO("0x%08" PRIx32, val);
-
-	if (value)
-		*value = val;
-
-	queued_retval = retval;
+	pending_transfer_count++;
 }
 
 static void cmsis_dap_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t value)
 {
-	if (queued_retval != ERROR_OK)
-		return;
-
-	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
-
-	DEBUG_IO("CMSIS-DAP: Write Reg 0x%02" PRIx8 " 0x%08" PRIx32, cmd, value);
-
-	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_TFER;
-	buffer[2] = 0x00;
-	buffer[3] = 0x01;
-	buffer[4] = cmd;
-	buffer[5] = (value) & 0xff;
-	buffer[6] = (value >> 8) & 0xff;
-	buffer[7] = (value >> 16) & 0xff;
-	buffer[8] = (value >> 24) & 0xff;
-	int retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 9);
-
-	if (buffer[1] != 0x01) {
-		LOG_ERROR("CMSIS-DAP: Write Error (0x%02" PRIx8 ")", buffer[2]);
-		retval = buffer[2];
-	}
-
-	queued_retval = retval;
+	assert(!(cmd & SWD_CMD_RnW));
+	cmsis_dap_swd_queue_cmd(dap, cmd, NULL, value);
 }
 
-static int cmsis_dap_swd_run(struct adiv5_dap *dap)
+static void cmsis_dap_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value)
 {
-	int retval = queued_retval;
-	queued_retval = ERROR_OK;
-	return retval;
+	assert(cmd & SWD_CMD_RnW);
+	cmsis_dap_swd_queue_cmd(dap, cmd, value, 0);
 }
 
 static int cmsis_dap_get_version_info(void)
@@ -638,125 +707,59 @@ static int cmsis_dap_get_status(void)
 	return retval;
 }
 
-static int cmsis_dap_reset_link(void)
+static int cmsis_dap_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
 {
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
+	const uint8_t *s;
+	unsigned int s_len;
+	int retval;
 
-	LOG_DEBUG("CMSIS-DAP: cmsis_dap_reset_link");
-	LOG_INFO("DAP_SWJ Sequence (reset: 50+ '1' followed by 0)");
-
-	/* reset line with SWDIO high for >50 cycles */
-	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_SWJ_SEQ;
-	buffer[2] = 7 * 8;
-	buffer[3] = 0xff;
-	buffer[4] = 0xff;
-	buffer[5] = 0xff;
-	buffer[6] = 0xff;
-	buffer[7] = 0xff;
-	buffer[8] = 0xff;
-	buffer[9] = 0xff;
-	int retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 10);
-
-	if (retval != ERROR_OK || buffer[1] != DAP_OK)
-		return ERROR_FAIL;
-
-	/* 16bit JTAG-SWD sequence */
-	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_SWJ_SEQ;
-	buffer[2] = 2 * 8;
-	buffer[3] = 0x9e;
-	buffer[4] = 0xe7;
-	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 5);
-
-	if (retval != ERROR_OK || buffer[1] != DAP_OK)
-		return ERROR_FAIL;
-
-	/* another reset just incase */
-	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_SWJ_SEQ;
-	buffer[2] = 7 * 8;
-	buffer[3] = 0xff;
-	buffer[4] = 0xff;
-	buffer[5] = 0xff;
-	buffer[6] = 0xff;
-	buffer[7] = 0xff;
-	buffer[8] = 0xff;
-	buffer[9] = 0xff;
-	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 10);
-
-	if (retval != ERROR_OK || buffer[1] != DAP_OK)
-		return ERROR_FAIL;
-
-	/* 16 cycle idle period */
-	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_SWJ_SEQ;
-	buffer[2] = 2 * 8;
-	buffer[3] = 0x00;
-	buffer[4] = 0x00;
-	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 5);
-
-	if (retval != ERROR_OK || buffer[1] != DAP_OK)
-		return ERROR_FAIL;
-
-	DEBUG_IO("DAP Read IDCODE");
-
-	/* read the id code is always the next sequence */
-	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_TFER;
-	buffer[2] = 0x00;
-	buffer[3] = 0x01;
-	buffer[4] = 0x02;
-	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 5);
-
+	/* When we are reconnecting, DAP_Connect needs to be rerun, at
+	 * least on Keil ULINK-ME */
+	retval = cmsis_dap_cmd_DAP_Connect(seq == LINE_RESET || seq == JTAG_TO_SWD ?
+					   CONNECT_SWD : CONNECT_JTAG);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (buffer[1] == 0) {
-		LOG_DEBUG("Result 0x%02" PRIx8 " 0x%02" PRIx8, buffer[1], buffer[2]);
-
-		LOG_DEBUG("DAP Reset Target");
-		buffer[0] = 0;	/* report number */
-		buffer[1] = CMD_DAP_RESET_TARGET;
-		retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 2);
-		LOG_DEBUG("Result 0x%02" PRIx8 " 0x%02" PRIx8, buffer[1], buffer[2]);
-
-		LOG_DEBUG("DAP Write Abort");
-		buffer[0] = 0;	/* report number */
-		buffer[1] = CMD_DAP_WRITE_ABORT;
-		buffer[2] = 0x00;
-		buffer[3] = 0x1e/*0x1f*/;
-		buffer[4] = 0x00;
-		buffer[5] = 0x00;
-		buffer[6] = 0x00;
-		retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 7);
-		LOG_DEBUG("Result 0x%02" PRIx8, buffer[1]);
-
-		return 0x80 + buffer[1];
+	switch (seq) {
+	case LINE_RESET:
+		LOG_DEBUG("SWD line reset");
+		s = swd_seq_line_reset;
+		s_len = swd_seq_line_reset_len;
+		break;
+	case JTAG_TO_SWD:
+		LOG_DEBUG("JTAG-to-SWD");
+		s = swd_seq_jtag_to_swd;
+		s_len = swd_seq_jtag_to_swd_len;
+		break;
+	case SWD_TO_JTAG:
+		LOG_DEBUG("SWD-to-JTAG");
+		s = swd_seq_swd_to_jtag;
+		s_len = swd_seq_swd_to_jtag_len;
+		break;
+	default:
+		LOG_ERROR("Sequence %d not supported", seq);
+		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("DAP Write Abort");
 	buffer[0] = 0;	/* report number */
-	buffer[1] = CMD_DAP_WRITE_ABORT;
-	buffer[2] = 0x00;
-	buffer[3] = 0x1e;
-	buffer[4] = 0x00;
-	buffer[5] = 0x00;
-	buffer[6] = 0x00;
-	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 7);
-	LOG_DEBUG("Result 0x%02" PRIx8, buffer[1]);
+	buffer[1] = CMD_DAP_SWJ_SEQ;
+	buffer[2] = s_len;
+	bit_copy(&buffer[3], 0, s, 0, s_len);
 
-	return retval;
+	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, DIV_ROUND_UP(s_len, 8) + 3);
+
+	if (retval != ERROR_OK || buffer[1] != DAP_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
 static int cmsis_dap_swd_open(void)
 {
 	int retval;
 
-	DEBUG_IO("CMSIS-DAP: cmsis_dap_swd_open");
-
 	if (cmsis_dap_handle == NULL) {
-
 		/* SWD init */
 		retval = cmsis_dap_usb_open();
 		if (retval != ERROR_OK)
@@ -829,6 +832,16 @@ static int cmsis_dap_init(void)
 	if (data[0] == 2) {  /* short */
 		uint16_t pkt_sz = data[1] + (data[2] << 8);
 
+		/* 4 bytes of command header + 5 bytes per register
+		 * write. For bulk read sequences just 4 bytes are
+		 * needed per transfer, so this is suboptimal. */
+		pending_queue_len = (pkt_sz - 4) / 5;
+		pending_transfers = malloc(pending_queue_len * sizeof(*pending_transfers));
+		if (!pending_transfers) {
+			LOG_ERROR("Unable to allocate memory for CMSIS-DAP queue");
+			return ERROR_FAIL;
+		}
+
 		if (cmsis_dap_handle->packet_size != pkt_sz + 1) {
 			/* reallocate buffer */
 			cmsis_dap_handle->packet_size = pkt_sz + 1;
@@ -860,14 +873,19 @@ static int cmsis_dap_init(void)
 
 	/* Now try to connect to the target
 	 * TODO: This is all SWD only @ present */
-	retval = cmsis_dap_cmd_DAP_SWJ_Clock(100);		/* 100kHz */
+	retval = cmsis_dap_cmd_DAP_SWJ_Clock(jtag_get_speed_khz());
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
 
+	/* Ask CMSIS-DAP to automatically retry on receiving WAIT for
+	 * up to 64 times. This must be changed to 0 if sticky
+	 * overrun detection is enabled. */
 	retval = cmsis_dap_cmd_DAP_TFER_Configure(0, 64, 0);
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
-	retval = cmsis_dap_cmd_DAP_SWD_Configure(0x00);
+	/* Data Phase (bit 2) must be set to 1 if sticky overrun
+	 * detection is enabled */
+	retval = cmsis_dap_cmd_DAP_SWD_Configure(0);	/* 1 TRN, no Data Phase */
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -887,11 +905,7 @@ static int cmsis_dap_init(void)
 		}
 	}
 
-	retval = cmsis_dap_reset_link();
-	if (retval != ERROR_OK)
-		return ERROR_FAIL;
-
-	cmsis_dap_cmd_DAP_LED(0x00);				/* Both LEDs off */
+	cmsis_dap_cmd_DAP_LED(0x00);			/* Both LEDs off */
 
 	LOG_INFO("CMSIS-DAP: Interface ready");
 
@@ -983,6 +997,14 @@ static int cmsis_dap_khz(int khz, int *jtag_speed)
 {
 	*jtag_speed = khz;
 	return ERROR_OK;
+}
+
+static int_least32_t cmsis_dap_swd_frequency(struct adiv5_dap *dap, int_least32_t hz)
+{
+	if (hz > 0)
+		cmsis_dap_speed(hz / 1000);
+
+	return hz;
 }
 
 COMMAND_HANDLER(cmsis_dap_handle_info_command)
@@ -1082,12 +1104,14 @@ static const struct command_registration cmsis_dap_command_handlers[] = {
 
 static const struct swd_driver cmsis_dap_swd_driver = {
 	.init = cmsis_dap_swd_init,
+	.frequency = cmsis_dap_swd_frequency,
+	.switch_seq = cmsis_dap_swd_switch_seq,
 	.read_reg = cmsis_dap_swd_read_reg,
 	.write_reg = cmsis_dap_swd_write_reg,
-	.run = cmsis_dap_swd_run,
+	.run = cmsis_dap_swd_run_queue,
 };
 
-const char *cmsis_dap_transport[] = {"cmsis-dap", NULL};
+static const char * const cmsis_dap_transport[] = { "swd", NULL };
 
 struct jtag_interface cmsis_dap_interface = {
 	.name = "cmsis-dap",
