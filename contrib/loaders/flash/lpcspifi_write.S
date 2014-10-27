@@ -39,6 +39,17 @@
  * r11 - current page end address
  */
 
+/*
+ * This code is embedded within: src/flash/nor/lpcspifi.c as a "C" array.
+ *
+ * To rebuild:
+ *   arm-none-eabi-gcc -c lpcspifi_write.S
+ *   arm-none-eabi-objcopy -O binary lpcspifi_write.o lpcspifi_write.bin
+ *   xxd -c 8 -i lpcspifi_write.bin > lpcspifi_write.txt
+ *
+ * Then read and edit this result into the "C" source.
+ */
+
 #define SSP_BASE_HIGH				0x4008
 #define SSP_BASE_LOW				0x3000
 #define SSP_CR0_OFFSET				0x00
@@ -204,6 +215,7 @@ error:
 	movs	r0, #0
 	str 	r0, [r2, #4]	/* set rp = 0 on error */
 exit:
+	bl 		cs_up			/* end the command before returning */
 	mov 	r0, r6
 	bkpt 	#0x00
 
