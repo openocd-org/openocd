@@ -73,7 +73,7 @@ enum nrf51_uicr_registers {
 	NRF51_UICR_BASE = 0x10001000, /* User Information
 				       * Configuration Regsters */
 
-	NRF51_UICR_SIZE = 252,
+	NRF51_UICR_SIZE = 0x100,
 
 #define NRF51_UICR_REG(offset) (NRF51_UICR_BASE + offset)
 
