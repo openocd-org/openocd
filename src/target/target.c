@@ -906,7 +906,7 @@ int target_run_flash_async_algorithm(struct target *target,
 		}
 
 		LOG_DEBUG("offs 0x%zx count 0x%" PRIx32 " wp 0x%" PRIx32 " rp 0x%" PRIx32,
-			(buffer - buffer_orig), count, wp, rp);
+			(size_t) (buffer - buffer_orig), count, wp, rp);
 
 		if (rp == 0) {
 			LOG_ERROR("flash write algorithm aborted by target");
