@@ -562,14 +562,16 @@ static int nrf51_erase_all(struct nrf51_info *chip)
 					0x00000001);
 }
 
-static int nrf51_erase_page(struct nrf51_info *chip, struct flash_sector *sector)
+static int nrf51_erase_page(struct flash_bank *bank,
+							struct nrf51_info *chip,
+							struct flash_sector *sector)
 {
 	int res;
 
 	if (sector->is_protected)
 		return ERROR_FAIL;
 
-	if (sector->offset == NRF51_UICR_BASE) {
+	if (bank->base == NRF51_UICR_BASE) {
 		uint32_t ppfc;
 		res = target_read_u32(chip->target, NRF51_FICR_PPFC,
 				      &ppfc);
@@ -635,7 +637,7 @@ static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, const uint
 		goto error;
 
 	if (!sector->is_erased) {
-		res = nrf51_erase_page(chip, sector);
+		res = nrf51_erase_page(bank, chip, sector);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Failed to erase sector @ 0x%08"PRIx32, sector->offset);
 			goto error;
@@ -672,7 +674,7 @@ static int nrf51_erase(struct flash_bank *bank, int first, int last)
 
 	/* For each sector to be erased */
 	for (int s = first; s <= last && res == ERROR_OK; s++)
-		res = nrf51_erase_page(chip, &bank->sectors[s]);
+		res = nrf51_erase_page(bank, chip, &bank->sectors[s]);
 
 	return res;
 }
@@ -777,7 +779,7 @@ static int nrf51_uicr_flash_write(struct flash_bank *bank,
 		return res;
 
 	if (!sector->is_erased) {
-		res = nrf51_erase_page(chip, sector);
+		res = nrf51_erase_page(bank, chip, sector);
 		if (res != ERROR_OK)
 			return res;
 	}
