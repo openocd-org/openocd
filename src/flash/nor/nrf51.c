@@ -642,7 +642,7 @@ static int nrf51_write_page(struct flash_bank *bank, uint32_t offset, const uint
 	if (sector->is_protected)
 		goto error;
 
-	if (!sector->is_erased) {
+	if (sector->is_erased != 1) {
 		res = nrf51_erase_page(bank, chip, sector);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Failed to erase sector @ 0x%08"PRIx32, sector->offset);
@@ -784,7 +784,7 @@ static int nrf51_uicr_flash_write(struct flash_bank *bank,
 	if (res != ERROR_OK)
 		return res;
 
-	if (!sector->is_erased) {
+	if (sector->is_erased != 1) {
 		res = nrf51_erase_page(bank, chip, sector);
 		if (res != ERROR_OK)
 			return res;
