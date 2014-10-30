@@ -1831,7 +1831,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	err = stlink_usb_init_mode(h, param->connect_under_reset);
 
 	if (err != ERROR_OK) {
-		LOG_ERROR("init mode failed");
+		LOG_ERROR("init mode failed (unable to connect to the target)");
 		goto error_open;
 	}
 
