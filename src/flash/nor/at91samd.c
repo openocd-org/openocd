@@ -590,7 +590,7 @@ static int samd_erase(struct flash_bank *bank, int first, int last)
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
-		if (!bank->sectors[s].is_erased) {
+		if (bank->sectors[s].is_erased != 1) {
 			/* For each row in that sector */
 			for (int r = s * rows_in_sector; r < (s + 1) * rows_in_sector; r++) {
 				res = samd_erase_row(bank->target, r * chip->page_size * 4);
