@@ -1145,12 +1145,16 @@ static int get_lpc2000_part_id(struct flash_bank *bank, uint32_t *part_id)
 	if (retval != ERROR_OK)
 		return retval;
 
-	int status_code = lpc2000_iap_call(bank, iap_working_area, 54, param_table, result_table);
+	/* The status seems to be bogus with the part ID command on some IAP
+	   firmwares, so ignore it. */
+	lpc2000_iap_call(bank, iap_working_area, 54, param_table, result_table);
 
-	if (status_code == LPC2000_CMD_SUCCESS)
-		*part_id = result_table[0];
+	/* If the result is zero, the command probably didn't work out. */
+	if (result_table[0] == 0)
+		return LPC2000_INVALID_COMMAND;
 
-	return status_code;
+	*part_id = result_table[0];
+	return LPC2000_CMD_SUCCESS;
 }
 
 static int lpc2000_auto_probe_flash(struct flash_bank *bank)
