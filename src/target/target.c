@@ -2425,7 +2425,13 @@ static int handle_target(void *priv)
 			if (target->backoff.times > 0) {
 				LOG_USER("Polling target %s succeeded again, trying to reexamine", target_name(target));
 				target_reset_examined(target);
-				target_examine_one(target);
+				retval = target_examine_one(target);
+				/* Target examination could have failed due to unstable connection,
+				 * but we set the examined flag anyway to repoll it later */
+				if (retval != ERROR_OK) {
+					target->examined = true;
+					return retval;
+				}
 			}
 
 			target->backoff.times = 0;
