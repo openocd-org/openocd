@@ -1275,6 +1275,10 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				type = "Coresight ITM";
 				full = "(Instrumentation Trace Macrocell)";
 				break;
+			case 0x914:
+				type = "Coresight SWO";
+				full = "(Single Wire Output)";
+				break;
 			case 0x917:
 				type = "Coresight HTM";
 				full = "(AHB Trace Macrocell)";
@@ -1310,6 +1314,10 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			case 0x950:
 				type = "CoreSight Component";
 				full = "(unidentified Cortex-A9 component)";
+				break;
+			case 0x961:
+				type = "CoreSight TMC";
+				full = "(Trace Memory Controller)";
 				break;
 			case 0x962:
 				type = "CoreSight STM";
