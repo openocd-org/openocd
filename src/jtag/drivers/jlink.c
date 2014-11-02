@@ -590,12 +590,6 @@ static int jlink_init(void)
 		jlink_tap_execute();
 	}
 
-	if (swd_mode)
-		jlink_swd_switch_seq(NULL, JTAG_TO_SWD);
-	else
-		jlink_swd_switch_seq(NULL, SWD_TO_JTAG);
-	jlink_swd_run_queue(NULL);
-
 	return ERROR_OK;
 }
 
@@ -1664,9 +1658,9 @@ static int jlink_swd_run_queue(struct adiv5_dap *dap)
 		int ack = buf_get_u32(usb_in_buffer, pending_scan_results_buffer[i].first, 3);
 
 		if (ack != SWD_ACK_OK) {
-			LOG_ERROR("SWD ack not OK: %d %s", ack,
+			LOG_DEBUG("SWD ack not OK: %d %s", ack,
 				  ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK");
-			queued_retval = ack;
+			queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
 			goto skip;
 		} else if (pending_scan_results_buffer[i].length) {
 			uint32_t data = buf_get_u32(usb_in_buffer, 3 + pending_scan_results_buffer[i].first, 32);

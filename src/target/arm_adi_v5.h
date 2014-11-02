@@ -213,6 +213,12 @@ struct adiv5_dap {
 	 * the AHB-AP has strange byte ordering these processors, and we need to
 	 * swizzle appropriately. */
 	bool ti_be_32_quirks;
+
+	/**
+	 * Signals that an attempt to reestablish communication afresh
+	 * should be performed before the next access.
+	 */
+	bool do_reconnect;
 };
 
 /**

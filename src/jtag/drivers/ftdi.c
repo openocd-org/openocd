@@ -655,11 +655,6 @@ static int ftdi_initialize(void)
 
 	freq = mpsse_set_frequency(mpsse_ctx, jtag_get_speed_khz() * 1000);
 
-	if (swd_mode)
-		ftdi_swd_switch_seq(NULL, JTAG_TO_SWD);
-	else
-		ftdi_swd_switch_seq(NULL, SWD_TO_JTAG);
-
 	return mpsse_flush(mpsse_ctx);
 }
 
@@ -981,7 +976,7 @@ static int ftdi_swd_run_queue(struct adiv5_dap *dap)
 						1 + 3 + (swd_cmd_queue[i].cmd & SWD_CMD_RnW ? 0 : 1), 32));
 
 		if (ack != SWD_ACK_OK) {
-			queued_retval = ack;
+			queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
 			goto skip;
 
 		} else if (swd_cmd_queue[i].cmd & SWD_CMD_RnW) {

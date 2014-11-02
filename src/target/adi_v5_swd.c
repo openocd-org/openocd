@@ -70,6 +70,8 @@ static void swd_finish_read(struct adiv5_dap *dap)
 
 static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data);
+static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
+		uint32_t *data);
 
 static void swd_clear_sticky_errors(struct adiv5_dap *dap)
 {
@@ -83,15 +85,46 @@ static void swd_clear_sticky_errors(struct adiv5_dap *dap)
 static int swd_run_inner(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = jtag_interface->swd;
+	int retval;
 
-	int retval = swd->run(dap);
+	retval = swd->run(dap);
 
 	if (retval != ERROR_OK) {
 		/* fault response */
-		swd_clear_sticky_errors(dap);
+		dap->do_reconnect = true;
 	}
 
 	return retval;
+}
+
+static int swd_connect(struct adiv5_dap *dap)
+{
+	uint32_t idcode;
+	int status;
+
+	/* FIXME validate transport config ... is the
+	 * configured DAP present (check IDCODE)?
+	 * Is *only* one DAP configured?
+	 *
+	 * MUST READ IDCODE
+	 */
+
+	/* Note, debugport_init() does setup too */
+	jtag_interface->swd->switch_seq(dap, JTAG_TO_SWD);
+
+	swd_queue_dp_read(dap, DP_IDCODE, &idcode);
+
+	/* force clear all sticky faults */
+	swd_clear_sticky_errors(dap);
+
+	status = swd_run_inner(dap);
+
+	if (status == ERROR_OK) {
+		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
+		dap->do_reconnect = false;
+	}
+
+	return status;
 }
 
 static inline int check_sync(struct adiv5_dap *dap)
@@ -138,7 +171,6 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 	return check_sync(dap);
 }
 
-
 static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
@@ -171,6 +203,12 @@ static int swd_queue_ap_read(struct adiv5_dap *dap, unsigned reg,
 {
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
+
+	if (dap->do_reconnect) {
+		int retval = swd_connect(dap);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	swd_queue_ap_bankselect(dap, reg);
 	swd->read_reg(dap, swd_cmd(true,  true, reg), dap->last_read);
@@ -408,33 +446,11 @@ static int swd_init(struct command_context *ctx)
 	struct target *target = get_current_target(ctx);
 	struct arm *arm = target_to_arm(target);
 	struct adiv5_dap *dap = arm->dap;
-	uint32_t idcode;
-	int status;
-
 	/* Force the DAP's ops vector for SWD mode.
 	 * messy - is there a better way? */
 	arm->dap->ops = &swd_dap_ops;
 
-	/* FIXME validate transport config ... is the
-	 * configured DAP present (check IDCODE)?
-	 * Is *only* one DAP configured?
-	 *
-	 * MUST READ IDCODE
-	 */
-
- /* Note, debugport_init() does setup too */
-
-	swd_queue_dp_read(dap, DP_IDCODE, &idcode);
-
-	/* force clear all sticky faults */
-	swd_clear_sticky_errors(dap);
-
-	status = swd_run(dap);
-
-	if (status == ERROR_OK)
-		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
-
-	return status;
+	return swd_connect(dap);
 }
 
 static struct transport swd_transport = {
