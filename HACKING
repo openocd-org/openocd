@@ -172,6 +172,13 @@ not have to) be disregarded if all conditions listed below are met:
 
 @section browsing Browsing Patches
 All OpenOCD patches can be reviewed <a href="http://openocd.zylin.com/">here</a>.
+
+@section reviewing Reviewing Patches
+From the main <a href="http://openocd.zylin.com/#/q/status:open,n,z">Review
+page</a> select the patch you want to review and click on that patch. On the
+appearing page select the download method (top right). Apply the
+patch. After building and testing you can leave a note with the "Reply"
+button and mark the patch with -1, 0 and +1.
 */
 /** @file
 This file contains the @ref patchguide page.
