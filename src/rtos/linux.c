@@ -1149,6 +1149,7 @@ int linux_gdb_thread_packet(struct target *target,
 	}
 
 	gdb_put_packet(connection, out_str, strlen(out_str));
+	free(out_str);
 	return ERROR_OK;
 }
 
