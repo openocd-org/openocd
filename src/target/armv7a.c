@@ -232,27 +232,26 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	}
 
 
-	if ((first_lvl_descriptor & 0x3) == 2) {
+	if ((first_lvl_descriptor & 0x40002) == 2) {
 		/* section descriptor */
 		*val = (first_lvl_descriptor & 0xfff00000) | (va & 0x000fffff);
 		return ERROR_OK;
+	} else if ((first_lvl_descriptor & 0x40002) == 0x40002) {
+		/* supersection descriptor */
+		if (first_lvl_descriptor & 0x00f001e0) {
+			LOG_ERROR("Physical address does not fit into 32 bits");
+			return ERROR_TARGET_TRANSLATION_FAULT;
+		}
+		*val = (first_lvl_descriptor & 0xff000000) | (va & 0x00ffffff);
+		return ERROR_OK;
 	}
 
-	if ((first_lvl_descriptor & 0x3) == 1) {
-		/* coarse page table */
-		retval = armv7a->armv7a_mmu.read_physical_memory(target,
-				(first_lvl_descriptor & 0xfffffc00) | ((va & 0x000ff000) >> 10),
-				4, 1, (uint8_t *)&second_lvl_descriptor);
-		if (retval != ERROR_OK)
-			return retval;
-	} else if ((first_lvl_descriptor & 0x3) == 3)   {
-		/* fine page table */
-		retval = armv7a->armv7a_mmu.read_physical_memory(target,
-				(first_lvl_descriptor & 0xfffff000) | ((va & 0x000ffc00) >> 8),
-				4, 1, (uint8_t *)&second_lvl_descriptor);
-		if (retval != ERROR_OK)
-			return retval;
-	}
+	/* page table */
+	retval = armv7a->armv7a_mmu.read_physical_memory(target,
+			(first_lvl_descriptor & 0xfffffc00) | ((va & 0x000ff000) >> 10),
+			4, 1, (uint8_t *)&second_lvl_descriptor);
+	if (retval != ERROR_OK)
+		return retval;
 
 	second_lvl_descriptor = target_buffer_get_u32(target, (uint8_t *)
 			&second_lvl_descriptor);
@@ -267,23 +266,12 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	if ((second_lvl_descriptor & 0x3) == 1) {
 		/* large page descriptor */
 		*val = (second_lvl_descriptor & 0xffff0000) | (va & 0x0000ffff);
-		return ERROR_OK;
-	}
-
-	if ((second_lvl_descriptor & 0x3) == 2) {
+	} else {
 		/* small page descriptor */
 		*val = (second_lvl_descriptor & 0xfffff000) | (va & 0x00000fff);
-		return ERROR_OK;
 	}
 
-	if ((second_lvl_descriptor & 0x3) == 3) {
-		*val = (second_lvl_descriptor & 0xfffffc00) | (va & 0x000003ff);
-		return ERROR_OK;
-	}
-
-	/* should not happen */
-	LOG_ERROR("Address translation failure");
-	return ERROR_TARGET_TRANSLATION_FAULT;
+	return ERROR_OK;
 
 done:
 	return retval;
