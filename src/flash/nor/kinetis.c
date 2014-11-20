@@ -448,10 +448,10 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		LOG_WARNING("*********** ATTENTION! ATTENTION! ATTENTION! ATTENTION! **********");
 		LOG_WARNING("****                                                          ****");
 		LOG_WARNING("**** Your Kinetis MCU is in secured state, which means that,  ****");
-		LOG_WARNING("**** with exeption for very basic communication, JTAG/SWD     ****");
+		LOG_WARNING("**** with exception for very basic communication, JTAG/SWD    ****");
 		LOG_WARNING("**** interface will NOT work. In order to restore its         ****");
 		LOG_WARNING("**** functionality please issue 'kinetis mdm mass_erase'      ****");
-		LOG_WARNING("**** command, power cycle the MCU and restart openocd.        ****");
+		LOG_WARNING("**** command, power cycle the MCU and restart OpenOCD.        ****");
 		LOG_WARNING("****                                                          ****");
 		LOG_WARNING("*********** ATTENTION! ATTENTION! ATTENTION! ATTENTION! **********");
 	} else {
