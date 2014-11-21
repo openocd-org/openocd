@@ -1552,11 +1552,12 @@ int jtag_init_reset(struct command_context *cmd_ctx)
 	 * REVISIT once Tcl code can read the reset_config modes, this won't
 	 * need to be a C routine at all...
 	 */
-	jtag_add_reset(1, 0);	/* TAP_RESET, using TMS+TCK or TRST */
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		jtag_add_reset(1, 1);
 		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0)
 			jtag_add_reset(0, 1);
+	} else {
+		jtag_add_reset(1, 0);	/* TAP_RESET, using TMS+TCK or TRST */
 	}
 
 	/* some targets enable us to connect with srst asserted */
