@@ -948,6 +948,14 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->option_offset = 6;
 		stm32x_info->default_rdp = 0x55AA;
 		break;
+	case 0x442: /* stm32f09x */
+		page_size = 2048;
+		stm32x_info->ppage_size = 4;
+		max_flash_size_in_kb = 256;
+		stm32x_info->user_data_offset = 16;
+		stm32x_info->option_offset = 6;
+		stm32x_info->default_rdp = 0x55AA;
+		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
