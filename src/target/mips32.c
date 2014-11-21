@@ -36,7 +36,7 @@
 #include "register.h"
 
 static const char *mips_isa_strings[] = {
-	"MIPS32", "MIPS16e"
+	"MIPS32", "MIPS16"
 };
 
 #define MIPS32_GDB_DUMMY_FP_REG 1
