@@ -239,12 +239,13 @@ COMMAND_HANDLER(handle_transport_init)
 {
 	LOG_DEBUG("%s", __func__);
 	if (!session) {
-		LOG_ERROR("session's transport is not selected.");
+		LOG_ERROR("session transport was not selected. Use 'transport select <transport>'");
 
 		/* no session transport configured, print transports then fail */
+		LOG_ERROR("Transports available:");
 		const char * const *vector = allowed_transports;
 		while (*vector) {
-			LOG_ERROR("allow transport '%s'", *vector);
+			LOG_ERROR("%s", *vector);
 			vector++;
 		}
 		return ERROR_FAIL;
@@ -277,7 +278,7 @@ static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	switch (argc) {
 		case 1:		/* return/display */
 			if (!session) {
-				LOG_ERROR("session's transport is not selected.");
+				LOG_ERROR("session transport was not selected. Use 'transport select <transport>'");
 				return JIM_ERR;
 			} else {
 				Jim_SetResultString(interp, session->name, -1);
