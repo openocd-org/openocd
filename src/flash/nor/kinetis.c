@@ -31,6 +31,7 @@
 #include "config.h"
 #endif
 
+#include "jtag/interface.h"
 #include "imp.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
@@ -313,6 +314,14 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	 * Reset Request bit in the MDM-AP control register after
 	 * establishing communication...
 	 */
+
+	/* assert SRST */
+	if (jtag_get_reset_config() & RESET_HAS_SRST)
+		adapter_assert_reset();
+	else
+		LOG_WARNING("Attempting mass erase without hardware reset. This is not reliable; "
+			    "it's recommended you connect SRST and use ``reset_config srst_only''.");
+
 	dap_ap_select(dap, 1);
 
 	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, MEM_CTRL_SYS_RES_REQ);
@@ -363,6 +372,9 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, 0);
 	if (retval != ERROR_OK)
 		return retval;
+
+	if (jtag_get_reset_config() & RESET_HAS_SRST)
+		adapter_deassert_reset();
 
 	dap_ap_select(dap, original_ap);
 	return ERROR_OK;
