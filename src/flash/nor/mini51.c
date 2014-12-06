@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /*
-	Flash driver for the Nuvoton NuMicro Mini51 series microcontrollers
+	Flash driver for the Nuvoton NuMicro Mini51 and M051 series microcontrollers
 
 	Part		 |APROM Size |Part ID (at 0x5000_0000)
 	----------------------------------------------
@@ -32,6 +32,30 @@
 	MINI54LAN	 16 KB		 0x00205400
 	MINI54ZAN	 16 KB		 0x00205403
 	MINI54TAN	 16 KB		 0x00205404
+	M052LBN		  8 KB		 0x10005200
+	M054LBN		 16 KB		 0x10005400
+	M058LBN		 32 KB		 0x10005800
+	M0516LBN	 64 KB		 0x10005A00
+	M052ZBN		  8 KB		 0x10005203
+	M054ZBN		 16 KB		 0x10005403
+	M058ZBN		 32 KB		 0x10005803
+	M0516ZBN	 64 KB		 0x10005A03
+	M052LDN		  8 KB		 0x20005200
+	M054LDN		 16 KB		 0x20005400
+	M058LDN		 32 KB		 0x20005800
+	M0516LDN	 64 KB		 0x20005A00
+	M052ZDN		  8 KB		 0x20005203
+	M054ZDN		 16 KB		 0x20005403
+	M058ZDN		 32 KB		 0x20005803
+	M0516ZDN	 64 KB		 0x20005A03
+	M052LDE		  8 KB		 0x30005200
+	M054LDE		 16 KB		 0x30005400
+	M058LDE		 32 KB		 0x30005800
+	M0516LDE	 64 KB		 0x30005A00
+	M052ZDE		  8 KB		 0x30005203
+	M054ZDE		 16 KB		 0x30005403
+	M058ZDE		 32 KB		 0x30005803
+	M0516ZDE	 64 KB		 0x30005A03
 
 	Datasheet & TRM
 	---------------
@@ -40,30 +64,17 @@
 
 	http://www.keil.com/dd/docs/datashts/nuvoton/mini51/da00-mini51_52_54c1.pdf
 
+	M051 ISP datasheet pages 190-206:
+	http://www.nuvoton.com/hq/resource-download.jsp?tp_GUID=DA05-M052-54-58-516
+
 	This driver
 	-----------
 
-	* Only erase and write operations have been implemented;
-	* Both operations only support the APROM, not the LDROM;
-	* The TRM suggests that after the boot source has been selected, a software reset should be performed by
-	  setting bit SWRST in ISPCON. However, this doesn't seem to have any effect on the MCU I'm using. At the
-	  moment, the ARM core is reset using the IPRSTC1 register, which seems to do the trick.
+	* chip_erase, erase, read and write operations have been implemented;
+	* All operations support APROM, LDROM, FLASH DATA and CONFIG;
 
 	Flash access limitations
 	------------------------
-
-	APROM can only be modified when the MCU has booted off the LDROM. For write and erase operations, the
-	microcontroller will probably need to be rebooted. Pseudocode:
-
-	* If operation is write or erase, check bit BS (1) in ISPCON (0x5000_C000);
-	* If BS is 0 (APROM):
-		* unlock protected registers by writing 0x59, 0x16, 0x88 to RegLockAddr(0x5000_0100);
-		* set BS to 1 (LDROM);
-		* reboot by setting bit CPU_RST(1) in IPRSTC1 (0x50000008);
-		* poll CPU_RST until it is reset (not sure it's necessary);
-		* <Perform flash operation>
-		* reboot from APROM using the same procedure but writing 0 to BS
-
 
 	For implementing the read operation, please note that the APROM isn't memory mapped when booted from LDROM.
 */
@@ -82,42 +93,107 @@
 #define ISPDAT          0x5000C008
 #define ISPCMD          0x5000C00C
 #define ISPTRG          0x5000C010
+/* Undocumented isp register */
+#define ISPUNKNOWN      0x5000C01C
 
-#define PART_ID_MAIN_MASK   0xFFFFFFF8
 #define IPRSTC_CPU_RST      0x02
+
+#define ISPCON_ISPFF        0x40
+#define ISPCON_LDUEN        0x20
+#define ISPCON_CFGUEN       0x10
+#define ISPCON_APUEN        0x08
 #define ISPCON_BS_LDROM     0x02
 #define ISPCON_ISPEN        0x01
-#define ISPCON_SWRST        0x80
-#define ISPCON_ISPFF        0x40
+
+#define ISPCMD_READ         0x00
 #define ISPCMD_PROGRAM      0x21
 #define ISPCMD_ERASE        0x22
+#define ISPCMD_CHIP_ERASE   0x26
+
 #define ISPTRG_ISPGO        0x01
 
-#define MINI51 0x00205100
-#define MINI52 0x00205200
-#define MINI54 0x00205400
-
 #define MINI51_APROM_BASE  0x00000000
+#define MINI51_DATA_BASE   0x0001F000
+#define MINI51_LDROM_BASE  0x00100000
+#define MINI51_CONFIG_BASE 0x00300000
+
 #define MINI51_KB          1024
 #define MINI51_PAGE_SIZE   512
 #define MINI51_TIMEOUT     1000
 
-struct mini51_flash_bank {
-	bool probed;
+
+#define ENSURE_OK(status) if (status != ERROR_OK) return status
+
+#define MINI51_MAX_FLASH_BANKS 4
+
+struct mini51_flash_bank_type {
+	uint32_t base;
+	uint32_t size;
 };
 
-enum mini51_boot_source {
-	APROM = 0,
-	LDROM = 1
+struct mini51_cpu_type {
+	char *name;
+	uint32_t ppid;
+	unsigned n_banks;
+	struct mini51_flash_bank_type bank[MINI51_MAX_FLASH_BANKS];
+};
+
+#define MINI51_BANKS_MINI51(aprom_size) \
+	.n_banks = 3, \
+	{ {MINI51_APROM_BASE, (aprom_size)}, {MINI51_LDROM_BASE, 2*1024}, {MINI51_CONFIG_BASE, 512} }
+
+#define MINI51_BANKS_M051(aprom_size) \
+	.n_banks = 4, \
+	{ {MINI51_APROM_BASE, (aprom_size)}, {MINI51_DATA_BASE, 4*1024}, {MINI51_LDROM_BASE, 4*1024}, \
+	{MINI51_CONFIG_BASE, 1024} }
+
+static const struct mini51_cpu_type mini51_cpu[] = {
+	{ "MINI51LAN", 0x00205100, MINI51_BANKS_MINI51(4*1024) },
+	{ "MINI51ZAN", 0x00205103, MINI51_BANKS_MINI51(4*1024) },
+	{ "MINI51TAN", 0x00205104, MINI51_BANKS_MINI51(4*1024) },
+	{ "MINI52LAN", 0x00205200, MINI51_BANKS_MINI51(8*1024) },
+	{ "MINI52ZAN", 0x00205203, MINI51_BANKS_MINI51(8*1024) },
+	{ "MINI52TAN", 0x00205204, MINI51_BANKS_MINI51(8*1024) },
+	{ "MINI54LAN", 0x00205400, MINI51_BANKS_MINI51(16*1024) },
+	{ "MINI54ZAN", 0x00205403, MINI51_BANKS_MINI51(16*1024) },
+	{ "MINI54TAN", 0x00205404, MINI51_BANKS_MINI51(16*1024) },
+
+	{ "M052LBN",   0x10005200, MINI51_BANKS_M051(8*1024) },
+	{ "M054LBN",   0x10005400, MINI51_BANKS_M051(16*1024) },
+	{ "M058LBN",   0x10005800, MINI51_BANKS_M051(32*1024) },
+	{ "M0516LBN",  0x10005A00, MINI51_BANKS_M051(64*1024) },
+	{ "M052ZBN",   0x10005203, MINI51_BANKS_M051(8*1024) },
+	{ "M054ZBN",   0x10005403, MINI51_BANKS_M051(16*1024) },
+	{ "M058ZBN",   0x10005803, MINI51_BANKS_M051(32*1024) },
+	{ "M0516ZBN",  0x10005A03, MINI51_BANKS_M051(64*1024) },
+	{ "M052LDN",   0x20005200, MINI51_BANKS_M051(8*1024) },
+	{ "M054LDN",   0x20005400, MINI51_BANKS_M051(16*1024) },
+	{ "M058LDN",   0x20005800, MINI51_BANKS_M051(32*1024) },
+	{ "M0516LDN",  0x20005A00, MINI51_BANKS_M051(64*1024) },
+	{ "M052ZDN",   0x20005203, MINI51_BANKS_M051(8*1024) },
+	{ "M054ZDN",   0x20005403, MINI51_BANKS_M051(16*1024) },
+	{ "M058ZDN",   0x20005803, MINI51_BANKS_M051(32*1024) },
+	{ "M0516ZDN",  0x20005A03, MINI51_BANKS_M051(64*1024) },
+	{ "M052LDE",   0x30005200, MINI51_BANKS_M051(8*1024) },
+	{ "M054LDE",   0x30005400, MINI51_BANKS_M051(16*1024) },
+	{ "M058LDE",   0x30005800, MINI51_BANKS_M051(32*1024) },
+	{ "M0516LDE",  0x30005A00, MINI51_BANKS_M051(64*1024) },
+	{ "M052ZDE",   0x30005203, MINI51_BANKS_M051(8*1024) },
+	{ "M054ZDE",   0x30005403, MINI51_BANKS_M051(16*1024) },
+	{ "M058ZDE",   0x30005803, MINI51_BANKS_M051(32*1024) },
+	{ "M0516ZDE",  0x30005A03, MINI51_BANKS_M051(64*1024) },
+};
+
+struct mini51_flash_bank {
+	bool probed;
+	const struct mini51_cpu_type *cpu;
 };
 
 /* Private methods */
 
-static int mini51_unlock_reg(struct flash_bank *bank)
+static int mini51_unlock_reg(struct target *target)
 {
 	int status;
-	struct target *target = bank->target;
-
 	status = target_write_u32(target, REGLOCKADDR, 0x59);
 	if (status != ERROR_OK)
 		return status;
@@ -131,86 +207,125 @@ static int mini51_unlock_reg(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int mini51_reboot_with_source(struct flash_bank *bank,
-				enum mini51_boot_source new_source,
-				enum mini51_boot_source *prev_source)
+
+static int mini51_get_part_id(struct target *target, uint32_t *part_id)
 {
-	uint32_t ispcon;
-	uint32_t isprtc1;
-	bool mini51_reboot = false;
-	int status;
-	int timeout = MINI51_TIMEOUT;
-
-	/* Read current boot source */
-	struct target *target = bank->target;
-	status = target_read_u32(target, ISPCON, &ispcon);
-	if (status != ERROR_OK)
-		return status;
-
-	*prev_source = (ispcon >> 1) & 1;
-
-	if ((new_source == APROM) && (*prev_source != APROM)) {
-		ispcon &= ~ISPCON_BS_LDROM;
-		mini51_reboot = true;
-	} else if ((new_source == LDROM) && (*prev_source != LDROM)) {
-		ispcon |= ISPCON_BS_LDROM;
-		mini51_reboot = true;
-	}
-
-	if (mini51_reboot) {
-		mini51_unlock_reg(bank);
-		status = target_write_u32(target, ISPCON, ispcon);
-		if (status != ERROR_OK)
-			return status;
-
-		status = target_write_u32(target, IPRSTC1, IPRSTC_CPU_RST);
-		if (status != ERROR_OK)
-			return status;
-
-		do {
-			target_read_u32(target, IPRSTC1, &isprtc1);
-			timeout--;
-		} while ((isprtc1 & IPRSTC_CPU_RST) && timeout > 0);
-
-		if (timeout == 0) {
-			LOG_WARNING("Mini51 flash driver: timeout attempting to reboot\n");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-	}
-
-	return ERROR_OK;
+	int retu = target_read_u32(target, PART_ID_REG, part_id);
+	LOG_INFO("device id = 0x%08" PRIx32 "", *part_id);
+	return retu;
 }
 
-static int mini51_get_part_id(struct flash_bank *bank, uint32_t *part_id)
-{
-	return target_read_u32(bank->target, PART_ID_REG, part_id);
-}
-
-static int mini51_get_flash_size(struct flash_bank *bank, uint32_t *flash_size)
+static int mini51_get_cpu_type(struct target *target, const struct mini51_cpu_type** cpu)
 {
 	uint32_t part_id;
 	int status;
 
-	status = mini51_get_part_id(bank, &part_id);
-	if (status != ERROR_OK)
-		return status;
+	status = mini51_get_part_id(target, &part_id);
+	ENSURE_OK(status);
 
-	switch (part_id & PART_ID_MAIN_MASK) {
-		case MINI51:
-			*flash_size = 4 * MINI51_KB;
-			break;
-		case MINI52:
-			*flash_size = 8 * MINI51_KB;
-			break;
-		case MINI54:
-			*flash_size = 16 * MINI51_KB;
-			break;
-		default:
-			*flash_size = 0;
-			break;
+	for (size_t i = 0; i < sizeof(mini51_cpu)/sizeof(mini51_cpu[0]); i++) {
+		if (part_id == mini51_cpu[i].ppid) {
+			*cpu = &mini51_cpu[i];
+			LOG_INFO("device name = %s", (*cpu)->name);
+			return ERROR_OK;
+		}
 	}
 
-	return ERROR_OK;
+	return ERROR_FLASH_OPERATION_FAILED;
+}
+
+static int mini51_get_flash_size(struct flash_bank *bank, const struct mini51_cpu_type *cpu, uint32_t *flash_size)
+{
+	for (size_t i = 0; i < cpu->n_banks; i++) {
+		if (bank->base == cpu->bank[i].base) {
+			*flash_size = cpu->bank[i].size;
+			LOG_INFO("bank base = 0x%08" PRIx32 ", size = 0x%08" PRIx32 "", bank->base, *flash_size);
+			return ERROR_OK;
+		}
+	}
+	return ERROR_FLASH_OPERATION_FAILED;
+}
+
+static int mini51_isp_execute(struct target *target)
+{
+	int status;
+	uint32_t ispcon;
+	int timeout;
+	uint32_t isptrg;
+
+	/* start ISP operation */
+	status = target_write_u32(target, ISPTRG, ISPTRG_ISPGO);
+	ENSURE_OK(status);
+
+	/* Wait for for command to finish executing */
+	timeout = MINI51_TIMEOUT;
+	do {
+		target_read_u32(target, ISPTRG, &isptrg);
+		timeout--;
+	} while ((isptrg & ISPTRG_ISPGO) && (timeout > 0));
+	if (timeout == 0) {
+		LOG_WARNING("Mini51 flash driver: Timeout executing flash command\n");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	/* Check for errors */
+	status = target_read_u32(target, ISPCON, &ispcon);
+	ENSURE_OK(status);
+	if (ispcon & ISPCON_ISPFF) {
+		LOG_WARNING("Mini51 flash driver: operation failed\n");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	return status;
+}
+
+static int mini51_isp_execute_cmd(struct target *target, uint32_t cmd, uint32_t address, uint32_t data)
+{
+	int status;
+	status = target_write_u32(target, ISPDAT, data);
+	ENSURE_OK(status);
+	status = target_write_u32(target, ISPADR, address);
+	ENSURE_OK(status);
+	status = target_write_u32(target, ISPCMD, cmd);
+	ENSURE_OK(status);
+
+	status = mini51_isp_execute(target);
+	return status;
+}
+
+static int mini51_isp_execute_cmd_read(struct target *target, uint32_t cmd, uint32_t address, uint32_t *data)
+{
+	int status;
+	status = target_write_u32(target, ISPADR, address);
+	ENSURE_OK(status);
+	status = target_write_u32(target, ISPCMD, cmd);
+	ENSURE_OK(status);
+
+	status = mini51_isp_execute(target);
+	ENSURE_OK(status);
+
+	status = target_read_u32(target, ISPDAT, data);
+	ENSURE_OK(status);
+
+	return status;
+}
+
+static int mini51_isp_enable(struct target *target)
+{
+	int status;
+	uint32_t ispcon;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	status = mini51_unlock_reg(target);
+	ENSURE_OK(status);
+	status = target_read_u32(target, ISPCON, &ispcon);
+	ENSURE_OK(status);
+	ispcon |= ISPCON_ISPEN | ISPCON_LDUEN | ISPCON_APUEN | ISPCON_CFGUEN;
+	status = target_write_u32(target, ISPCON, ispcon);
+	return status;
 }
 
 /* Public (API) methods */
@@ -232,74 +347,45 @@ static int mini51_protect_check(struct flash_bank *bank)
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
+static int mini51_read(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
+{
+	int status;
+	uint32_t ispdat;
+	struct target *target = bank->target;
+
+	if ((offset & 0x3) || (count & 0x3)) {
+		LOG_WARNING("Mini51 flash driver: unaligned access not supported\n");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	status = mini51_isp_enable(target);
+	ENSURE_OK(status);
+
+	for (uint32_t i = offset; i < offset + count; i += 4) {
+		status = mini51_isp_execute_cmd_read(target, ISPCMD_READ, bank->base + i, &ispdat);
+		memcpy(buffer, &ispdat, sizeof(ispdat));
+		ENSURE_OK(status);
+		buffer += sizeof(ispdat);
+	}
+
+	return ERROR_OK;
+}
+
+
 static int mini51_erase(struct flash_bank *bank, int first, int last)
 {
 	int status;
-	int timeout;
-	uint32_t ispcon;
-	uint32_t isptrg;
-	enum mini51_boot_source new_source;
-	enum mini51_boot_source prev_source;
 	struct target *target = bank->target;
 
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	/* TODO: add support for erasing the LDROM */
-	new_source = LDROM;
-	status = mini51_reboot_with_source(bank, new_source, &prev_source);
-	if (status != ERROR_OK)
-		return status;
-
 	/* Enable ISP */
-	status = target_read_u32(target, ISPCON, &ispcon);
-	if (status != ERROR_OK)
-		return status;
-	ispcon |= ISPCON_ISPEN;
-	status = target_write_u32(target, ISPCON, ispcon);
+	status = mini51_isp_enable(target);
+	ENSURE_OK(status);
 
 	for (int page_start = first; page_start <= last; page_start++) {
 		/* Set up erase command */
-		status = target_write_u32(target, ISPADR, page_start*MINI51_PAGE_SIZE);
-		if (status != ERROR_OK)
-			return status;
-		status = target_write_u32(target, ISPCMD, ISPCMD_ERASE);
-		if (status != ERROR_OK)
-			return status;
-
-		/* Erase the selected page */
-		status = target_write_u32(target, ISPTRG, ISPTRG_ISPGO);
-		if (status != ERROR_OK)
-			return status;
-
-		/* Wait for for command to finish executing */
-		timeout = MINI51_TIMEOUT;
-		do {
-			target_read_u32(target, ISPTRG, &isptrg);
-			timeout--;
-		} while ((isptrg & ISPTRG_ISPGO) && (timeout > 0));
-		if (timeout == 0) {
-			LOG_WARNING("Mini51 flash driver: Timeout erasing flash\n");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-
-		/* Check for errors */
-		status = target_read_u32(target, ISPCON, &ispcon);
-		if (status != ERROR_OK)
-			return status;
-		if (ispcon & ISPCON_ISPFF) {
-			LOG_WARNING("Mini51 flash driver: Erase operation failed\n");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-	}
-
-	/* Reboot from previous source */
-	if (prev_source != new_source) {
-		status = mini51_reboot_with_source(bank, prev_source, &new_source);
-		if (status != ERROR_OK)
-			return status;
+		uint32_t address = bank->base + page_start*MINI51_PAGE_SIZE;
+		status = mini51_isp_execute_cmd(target, ISPCMD_ERASE, address, 0);
+		ENSURE_OK(status);
 	}
 
 	return ERROR_OK;
@@ -315,81 +401,22 @@ static int mini51_protect(struct flash_bank *bank, int set, int first, int last)
 static int mini51_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int status;
-	int timeout;
-	uint32_t ispcon;
-	uint32_t isptrg;
 	uint32_t ispdat;
-	enum mini51_boot_source new_source;
-	enum mini51_boot_source prev_source;
 	struct target *target = bank->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	if ((offset & 0x3) || (count & 0x3)) {
 		LOG_WARNING("Mini51 flash driver: unaligned access not supported\n");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	/* TODO: add support for writing to LDROM */
-	new_source = LDROM;
-	status = mini51_reboot_with_source(bank, new_source, &prev_source);
-	if (status != ERROR_OK)
-		return status;
-
-	/* Enable ISP */
-	status = target_read_u32(target, ISPCON, &ispcon);
-	if (status != ERROR_OK)
-		return status;
-	ispcon |= ISPCON_ISPEN;
-	status = target_write_u32(target, ISPCON, ispcon);
+	status = mini51_isp_enable(target);
+	ENSURE_OK(status);
 
 	for (uint32_t i = offset; i < offset + count; i += 4) {
-		/* Set up program command */
-		status = target_write_u32(target, ISPADR, i);
-		if (status != ERROR_OK)
-			return status;
-		status = target_write_u32(target, ISPCMD, ISPCMD_PROGRAM);
-		if (status != ERROR_OK)
-			return status;
 		memcpy(&ispdat, buffer, sizeof(ispdat));
+		status = mini51_isp_execute_cmd(target, ISPCMD_PROGRAM, bank->base + i, ispdat);
+		ENSURE_OK(status);
 		buffer += sizeof(ispdat);
-		status = target_write_u32(target, ISPDAT, ispdat);
-		if (status != ERROR_OK)
-			return status;
-
-		/* Write the selected word */
-		status = target_write_u32(target, ISPTRG, ISPTRG_ISPGO);
-		if (status != ERROR_OK)
-			return status;
-
-		/* Wait for for command to finish executing */
-		timeout = MINI51_TIMEOUT;
-		do {
-			target_read_u32(target, ISPTRG, &isptrg);
-			timeout--;
-		} while ((isptrg & ISPTRG_ISPGO) && (timeout > 0));
-		if (timeout == 0) {
-			LOG_WARNING("Mini51 flash driver: Timeout programming flash\n");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-
-		/* Check for errors */
-		status = target_read_u32(target, ISPCON, &ispcon);
-		if (status != ERROR_OK)
-			return status;
-		if (ispcon & ISPCON_ISPFF) {
-			LOG_WARNING("Mini51 flash driver: Programming operation failed\n");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-	}
-
-	if (prev_source != new_source) {
-		status = mini51_reboot_with_source(bank, prev_source, &new_source);
-		if (status != ERROR_OK)
-			return status;
 	}
 
 	return ERROR_OK;
@@ -398,19 +425,26 @@ static int mini51_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t
 static int mini51_probe(struct flash_bank *bank)
 {
 	uint32_t flash_size;
-	int retval;
+	int status;
 	int num_pages;
 	uint32_t offset = 0;
+	const struct mini51_cpu_type *cpu;
+	struct target *target = bank->target;
 
-	retval = mini51_get_flash_size(bank, &flash_size);
-	if (retval != ERROR_OK || flash_size == 0) {
+	status = mini51_get_cpu_type(target, &cpu);
+	if (status != ERROR_OK) {
 		LOG_WARNING("Mini51 flash driver: Failed to detect a known part\n");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	status = mini51_get_flash_size(bank, cpu, &flash_size);
+	if (status != ERROR_OK) {
+		LOG_WARNING("Mini51 flash driver: Failed to detect flash size\n");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	num_pages = flash_size / MINI51_PAGE_SIZE;
 
-	bank->base = MINI51_APROM_BASE;
 	bank->num_sectors = num_pages;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
 	bank->size = flash_size;
@@ -425,6 +459,7 @@ static int mini51_probe(struct flash_bank *bank)
 
 	struct mini51_flash_bank *mini51_info = bank->driver_priv;
 	mini51_info->probed = true;
+	mini51_info->cpu = cpu;
 
 	return ERROR_OK;
 }
@@ -437,13 +472,111 @@ static int mini51_auto_probe(struct flash_bank *bank)
 	return mini51_probe(bank);
 }
 
+COMMAND_HANDLER(mini51_handle_read_isp_command)
+{
+	uint32_t address;
+	uint32_t ispdat;
+	int status;
+
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	status = mini51_isp_enable(target);
+	ENSURE_OK(status);
+	status = mini51_isp_execute_cmd_read(target, ISPCMD_READ, address, &ispdat);
+	ENSURE_OK(status);
+	LOG_INFO("0x%08" PRIx32 ": 0x%08" PRIx32, address, ispdat);
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(mini51_handle_write_isp_command)
+{
+	uint32_t address;
+	uint32_t ispdat;
+	int status;
+
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], ispdat);
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	status = mini51_isp_enable(target);
+	ENSURE_OK(status);
+	status = mini51_isp_execute_cmd(target, ISPCMD_PROGRAM, address, ispdat);
+	ENSURE_OK(status);
+	LOG_INFO("0x%08" PRIx32 ": 0x%08" PRIx32, address, ispdat);
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(mini51_handle_chip_erase_command)
+{
+	int status;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	status = mini51_isp_enable(target);
+	ENSURE_OK(status);
+	/* Write one to undocumented flash control register */
+	status = target_write_u32(target, ISPUNKNOWN, 1);
+	ENSURE_OK(status);
+
+	status = mini51_isp_execute_cmd(target, ISPCMD_CHIP_ERASE, 0, 0);
+	ENSURE_OK(status);
+	return ERROR_OK;
+}
+
+static const struct command_registration mini51_exec_command_handlers[] = {
+	{
+		.name = "read_isp",
+		.handler = mini51_handle_read_isp_command,
+		.usage = "address",
+		.mode = COMMAND_EXEC,
+		.help = "read flash through ISP.",
+	},
+	{
+		.name = "write_isp",
+		.handler = mini51_handle_write_isp_command,
+		.usage = "address value",
+		.mode = COMMAND_EXEC,
+		.help = "write flash through ISP.",
+	},
+	{
+		.name = "chip_erase",
+		.handler = mini51_handle_chip_erase_command,
+		.mode = COMMAND_EXEC,
+		.help = "chip erase.",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration mini51_command_handlers[] = {
+	{
+		.name = "mini51",
+		.mode = COMMAND_ANY,
+		.help = "mini51 flash command group",
+		.usage = "",
+		.chain = mini51_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 struct flash_driver mini51_flash = {
 	.name = "mini51",
+	.commands = mini51_command_handlers,
 	.flash_bank_command = mini51_flash_bank_command,
 	.erase = mini51_erase,
 	.protect = mini51_protect,
 	.write = mini51_write,
-	.read = default_flash_read,
+	.read = mini51_read,
 	.probe = mini51_probe,
 	.auto_probe = mini51_auto_probe,
 	.erase_check = default_flash_blank_check,
