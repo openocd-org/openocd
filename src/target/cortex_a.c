@@ -146,14 +146,14 @@ static int cortex_a_mmu_modify(struct target *target, int enable)
 					cortex_a->cp15_control_reg_curr);
 		}
 	} else {
-		if (cortex_a->cp15_control_reg_curr & 0x4U) {
-			/*  data cache is active */
-			cortex_a->cp15_control_reg_curr &= ~0x4U;
-			/* flush data cache armv7 function to be called */
-			if (armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache)
-				armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache(target);
-		}
 		if ((cortex_a->cp15_control_reg_curr & 0x1U)) {
+			if (cortex_a->cp15_control_reg_curr & 0x4U) {
+				/* data cache is active */
+				cortex_a->cp15_control_reg_curr &= ~0x4U;
+				/* flush data cache armv7 function to be called */
+				if (armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache)
+					armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache(target);
+			}
 			cortex_a->cp15_control_reg_curr &= ~0x1U;
 			retval = armv7a->arm.mcr(target, 15,
 					0, 0,	/* op1, op2 */
