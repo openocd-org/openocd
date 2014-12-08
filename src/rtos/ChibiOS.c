@@ -91,7 +91,7 @@ struct ChibiOS_params {
 	const struct rtos_register_stacking *stacking_info;
 };
 
-static const struct ChibiOS_params ChibiOS_params_list[] = {
+static struct ChibiOS_params ChibiOS_params_list[] = {
 	{
 	"cortex_m",							/* target_name */
 	0,
