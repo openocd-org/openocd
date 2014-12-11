@@ -24,6 +24,8 @@
 #ifndef BITBANG_H
 #define BITBANG_H
 
+#include <jtag/swd.h>
+
 struct bitbang_interface {
 	/* low level callbacks (for bitbang)
 	 */
@@ -31,10 +33,18 @@ struct bitbang_interface {
 	void (*write)(int tck, int tms, int tdi);
 	void (*reset)(int trst, int srst);
 	void (*blink)(int on);
+	int (*swdio_read)(void);
+	void (*swdio_drive)(bool on);
 };
+
+const struct swd_driver bitbang_swd;
+
+extern bool swd_mode;
 
 int bitbang_execute_queue(void);
 
 extern struct bitbang_interface *bitbang_interface;
+void bitbang_switch_to_swd(void);
+int bitbang_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq);
 
 #endif /* BITBANG_H */
