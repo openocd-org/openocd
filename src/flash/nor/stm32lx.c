@@ -307,9 +307,6 @@ static int stm32lx_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first == 0) && (last == (bank->num_sectors - 1)))
-		return stm32lx_mass_erase(bank);
-
 	/*
 	 * Loop over the selected sectors and erase them
 	 */
