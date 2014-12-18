@@ -8,7 +8,8 @@
  *   LPC1100 variant and auto-probing support Copyright (C) 2014           *
  *   by Cosmin Gorgovan cosmin [at] linux-geek [dot] org                   *
  *                                                                         *
- *   LPC800/LPC1500 support Copyright (C) 2013/2014 by Nemui Trinomius     *
+ *   LPC800/LPC1500/LPC54100 support Copyright (C) 2013/2014               *
+ *   by Nemui Trinomius                                                    *
  *   nemuisan_kawausogasuki@live.jp                                        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -39,7 +40,7 @@
 
 /**
  * @file
- * flash programming support for NXP LPC8xx,LPC1xxx and LPC2xxx devices.
+ * flash programming support for NXP LPC8xx,LPC1xxx,LPC43xx,LP5410x and LPC2xxx devices.
  *
  * @todo Provide a way to update CCLK after declaring the flash bank. The value which is correct after chip reset will
  * rarely still work right after the clocks switch to use the PLL (e.g. 4MHz --> 100 MHz).
@@ -85,6 +86,9 @@
  * lpc1500:
  * - 15x7 | 8 | 9 (tested with LPC1549)
  *
+ * lpc54100:
+ * - 54101 | 2 (tested with LPC54102)
+ *
  * The auto variant auto-detects parts from the following series:
  * - 11xx
  * - 11Axx
@@ -96,6 +100,8 @@
  * - 134x
  * - 175x
  * - 176x
+ * - 81x
+ * - 82x
  */
 
 /* Part IDs for autodetection */
@@ -213,6 +219,18 @@
 #define LPC1787        0x281D3747
 #define LPC1788        0x281D3F47
 
+#define LPC810_021     0x00008100
+#define LPC811_001     0x00008110
+#define LPC812_101     0x00008120
+#define LPC812_101_1   0x00008121
+#define LPC812_101_2   0x00008122
+#define LPC812_101_3   0x00008123
+
+#define LPC822_101     0x00008221
+#define LPC822_101_1   0x00008222
+#define LPC824_201     0x00008241
+#define LPC824_201_1   0x00008242
+
 #define IAP_CODE_LEN 0x34
 
 typedef enum {
@@ -223,6 +241,7 @@ typedef enum {
 	lpc800,
 	lpc1100,
 	lpc1500,
+	lpc54100,
 	lpc_auto,
 } lpc2000_variant;
 
@@ -277,6 +296,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	if (lpc2000_info->variant == lpc2000_v1) {
 		lpc2000_info->cmd51_dst_boundary = 512;
+		lpc2000_info->cmd51_can_64b = 0;
 		lpc2000_info->cmd51_can_256b = 0;
 		lpc2000_info->cmd51_can_8192b = 1;
 		lpc2000_info->checksum_vector = 5;
@@ -324,6 +344,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 	} else if (lpc2000_info->variant == lpc2000_v2) {
 		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_64b = 0;
 		lpc2000_info->cmd51_can_256b = 1;
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 5;
@@ -392,6 +413,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 	} else if (lpc2000_info->variant == lpc1700) {
 		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_64b = 0;
 		lpc2000_info->cmd51_can_256b = 1;
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
@@ -443,6 +465,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 	} else if (lpc2000_info->variant == lpc4300) {
 		lpc2000_info->cmd51_dst_boundary = 512;
+		lpc2000_info->cmd51_can_64b = 0;
 		lpc2000_info->cmd51_can_256b = 0;
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
@@ -480,20 +503,22 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		lpc2000_info->cmd51_can_256b = 0;
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
-		lpc2000_info->iap_max_stack = 148;
-		lpc2000_info->cmd51_max_buffer = 1024;
+		lpc2000_info->iap_max_stack = 208;		/* 148byte for LPC81x,208byte for LPC82x. */
+		lpc2000_info->cmd51_max_buffer = 256;	/* smallest MCU in the series, LPC810, has 1 kB of SRAM */
 
 		switch (bank->size) {
 			case 4 * 1024:
-				lpc2000_info->cmd51_max_buffer = 256;
 				bank->num_sectors = 4;
 				break;
 			case 8 * 1024:
-				lpc2000_info->cmd51_max_buffer = 512;
 				bank->num_sectors = 8;
 				break;
 			case 16 * 1024:
 				bank->num_sectors = 16;
+				break;
+			case 32 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024; /* For LPC824, has 8kB of SRAM */
+				bank->num_sectors = 32;
 				break;
 			default:
 				LOG_ERROR("BUG: unknown bank->size encountered");
@@ -513,6 +538,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	} else if (lpc2000_info->variant == lpc1100) {
 		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_64b = 0;
 		lpc2000_info->cmd51_can_256b = 1;
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
@@ -538,6 +564,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	} else if (lpc2000_info->variant == lpc1500) {
 		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_64b = 0;
 		lpc2000_info->cmd51_can_256b = 1;
 		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
@@ -569,6 +596,37 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			bank->sectors[i].is_protected = 1;
 		}
 
+	} else if (lpc2000_info->variant == lpc54100) {
+		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_64b = 0;
+		lpc2000_info->cmd51_can_256b = 1;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
+		lpc2000_info->iap_max_stack = 128;
+
+		switch (bank->size) {
+			case 256 * 1024:
+				bank->num_sectors = 8;
+				break;
+			case 512 * 1024:
+				bank->num_sectors = 16;
+				break;
+			default:
+				LOG_ERROR("BUG: unknown bank->size encountered");
+				exit(-1);
+		}
+
+		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
+
+		for (int i = 0; i < bank->num_sectors; i++) {
+			bank->sectors[i].offset = offset;
+			/* all sectors are 32kB-sized */
+			bank->sectors[i].size = 32 * 1024;
+			offset += bank->sectors[i].size;
+			bank->sectors[i].is_erased = -1;
+			bank->sectors[i].is_protected = 1;
+		}
+
 	} else {
 		LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
 		exit(-1);
@@ -582,7 +640,8 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
  * 0x0 to 0x7: jump gate (BX to thumb state, b -2 to wait)
  * 0x8 to 0x1f: command parameter table (1+5 words)
  * 0x20 to 0x33: command result table (1+4 words)
- * 0x34 to 0xb3|0x104: stack (only 128b needed for lpc1xxx/2000, 208 for lpc43xx and 148b for lpc8xx)
+ * 0x34 to 0xb3|0x104: stack
+ *        (128b needed for lpc1xxx/2000/5410x, 208b for lpc43xx/lpc82x and 148b for lpc81x)
  */
 
 static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working_area **iap_working_area)
@@ -604,6 +663,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 		case lpc1500:
 		case lpc1700:
 		case lpc4300:
+		case lpc54100:
 		case lpc_auto:
 			target_buffer_set_u32(target, jump_gate, ARMV4_5_T_BX(12));
 			target_buffer_set_u32(target, jump_gate + 4, ARMV5_T_BKPT(0));
@@ -626,7 +686,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 	return retval;
 }
 
-/* call LPC8xx/LPC1xxx/LPC4xxx/LPC2000 IAP function */
+/* call LPC8xx/LPC1xxx/LPC4xxx/LPC5410x/LPC2000 IAP function */
 
 static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_working_area, int code,
 		uint32_t param_table[5], uint32_t result_table[4])
@@ -635,7 +695,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	struct target *target = bank->target;
 
 	struct arm_algorithm arm_algo;	/* for LPC2000 */
-	struct armv7m_algorithm armv7m_info;	/* for LPC8xx/LPC1xxx/LPC4xxx */
+	struct armv7m_algorithm armv7m_info;	/* for LPC8xx/LPC1xxx/LPC4xxx/LPC5410x */
 	uint32_t iap_entry_point = 0;	/* to make compiler happier */
 
 	switch (lpc2000_info->variant) {
@@ -648,6 +708,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 			iap_entry_point = 0x1fff1ff1;
 			break;
 		case lpc1500:
+		case lpc54100:
 			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 			armv7m_info.core_mode = ARM_MODE_THREAD;
 			iap_entry_point = 0x03000205;
@@ -702,6 +763,7 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 		case lpc1500:
 		case lpc1700:
 		case lpc4300:
+		case lpc54100:
 		case lpc_auto:
 			/* IAP stack */
 			init_reg_param(&reg_params[3], "sp", 32, PARAM_OUT);
@@ -835,6 +897,8 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		lpc2000_info->variant = lpc1100;
 	} else if (strcmp(CMD_ARGV[6], "lpc1500") == 0) {
 		lpc2000_info->variant = lpc1500;
+	} else if (strcmp(CMD_ARGV[6], "lpc54100") == 0) {
+		lpc2000_info->variant = lpc54100;
 	} else if (strcmp(CMD_ARGV[6], "auto") == 0) {
 		lpc2000_info->variant = lpc_auto;
 	} else {
@@ -1341,6 +1405,32 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC1788:
 			lpc2000_info->variant = lpc1700;
 			bank->size = 512 * 1024;
+			break;
+
+		case LPC810_021:
+			lpc2000_info->variant = lpc800;
+			bank->size = 4 * 1024;
+			break;
+
+		case LPC811_001:
+			lpc2000_info->variant = lpc800;
+			bank->size = 8 * 1024;
+			break;
+
+		case LPC812_101:
+		case LPC812_101_1:
+		case LPC812_101_2:
+		case LPC812_101_3:
+		case LPC822_101:
+		case LPC822_101_1:
+			lpc2000_info->variant = lpc800;
+			bank->size = 16 * 1024;
+			break;
+
+		case LPC824_201:
+		case LPC824_201_1:
+			lpc2000_info->variant = lpc800;
+			bank->size = 32 * 1024;
 			break;
 
 		default:
