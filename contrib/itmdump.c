@@ -130,7 +130,7 @@ static bool read_varlen(FILE *f, int c, unsigned *value)
 
 	*value =  (buf[3] << 24)
 		+ (buf[2] << 16)
-		+ (buf[2] << 8)
+		+ (buf[1] << 8)
 		+ (buf[0] << 0);
 	return true;
 
