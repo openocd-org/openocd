@@ -146,7 +146,7 @@ static void show_hard(FILE *f, int c)
 	unsigned size;
 	char *label;
 
-	printf("DWT - ", type);
+	printf("DWT - ");
 
 	if (!read_varlen(f, c, &value))
 		return;
@@ -216,7 +216,7 @@ static void show_hard(FILE *f, int c)
 		}
 		break;
 	default:
-		printf("UNDEFINED");
+		printf("UNDEFINED, rawtype: %x", type);
 		break;
 	}
 
