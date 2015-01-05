@@ -47,6 +47,9 @@ static struct service *services;
 /* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
 static int shutdown_openocd;
 
+/* store received signal to exit application by killing ourselves */
+static int last_signal;
+
 /* set the polling period to 100ms */
 static int polling_period = 100;
 
@@ -505,12 +508,15 @@ BOOL WINAPI ControlHandler(DWORD dwCtrlType)
 	shutdown_openocd = 1;
 	return TRUE;
 }
+#endif
 
 void sig_handler(int sig)
 {
+	/* store only first signal that hits us */
+	if (!last_signal)
+		last_signal = sig;
 	shutdown_openocd = 1;
 }
-#endif
 
 int server_preinit(void)
 {
@@ -532,11 +538,11 @@ int server_preinit(void)
 	/* register ctrl-c handler */
 	SetConsoleCtrlHandler(ControlHandler, TRUE);
 
+	signal(SIGBREAK, sig_handler);
+#endif
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
-	signal(SIGBREAK, sig_handler);
 	signal(SIGABRT, sig_handler);
-#endif
 
 	return ERROR_OK;
 }
@@ -557,9 +563,21 @@ int server_quit(void)
 #ifdef _WIN32
 	WSACleanup();
 	SetConsoleCtrlHandler(ControlHandler, FALSE);
-#endif
 
 	return ERROR_OK;
+#endif
+
+	/* return signal number so we can kill ourselves */
+	return last_signal;
+}
+
+void exit_on_signal(int sig)
+{
+#ifndef _WIN32
+	/* bring back default system handler and kill yourself */
+	signal(sig, SIG_DFL);
+	kill(getpid(), sig);
+#endif
 }
 
 int connection_write(struct connection *connection, const void *data, int len)

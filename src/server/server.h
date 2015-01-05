@@ -78,6 +78,7 @@ int add_service(char *name, const char *port,
 int server_preinit(void);
 int server_init(struct command_context *cmd_ctx);
 int server_quit(void);
+void exit_on_signal(int);
 
 int server_loop(struct command_context *command_context);
 
