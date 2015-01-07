@@ -288,12 +288,11 @@ communication between developers:
 
 @uref{https://lists.sourceforge.net/mailman/listinfo/openocd-devel}
 
-@section OpenOCD Bug Database
+@section OpenOCD Bug Tracker
 
-During the 0.4.x release cycle the OpenOCD project team began
-using Trac for its bug database:
+The OpenOCD Bug Tracker is hosted on SourceForge:
 
-@uref{https://sourceforge.net/apps/trac/openocd}
+@uref{https://sourceforge.net/p/openocd/tickets/}
 
 
 @node Debug Adapter Hardware
