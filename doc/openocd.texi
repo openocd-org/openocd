@@ -1447,49 +1447,49 @@ When a chip has multiple TAPs (maybe it has both ARM and DSP cores),
 the target config file defines all of them.
 @example
 $ ls target
-aduc702x.cfg                       lpc1763.cfg
-am335x.cfg                         lpc1764.cfg
-amdm37x.cfg                        lpc1765.cfg
-ar71xx.cfg                         lpc1766.cfg
-at32ap7000.cfg                     lpc1767.cfg
-at91r40008.cfg                     lpc1768.cfg
-at91rm9200.cfg                     lpc1769.cfg
-at91sam3ax_4x.cfg                  lpc1788.cfg
-at91sam3ax_8x.cfg                  lpc17xx.cfg
-at91sam3ax_xx.cfg                  lpc1850.cfg
-at91sam3nXX.cfg                    lpc2103.cfg
-at91sam3sXX.cfg                    lpc2124.cfg
-at91sam3u1c.cfg                    lpc2129.cfg
-at91sam3u1e.cfg                    lpc2148.cfg
-at91sam3u2c.cfg                    lpc2294.cfg
-at91sam3u2e.cfg                    lpc2378.cfg
-at91sam3u4c.cfg                    lpc2460.cfg
-at91sam3u4e.cfg                    lpc2478.cfg
-at91sam3uxx.cfg                    lpc2900.cfg
-at91sam3XXX.cfg                    lpc2xxx.cfg
-at91sam4sd32x.cfg                  lpc3131.cfg
-at91sam4sXX.cfg                    lpc3250.cfg
-at91sam4XXX.cfg                    lpc4350.cfg
-at91sam7se512.cfg                  lpc4350.cfg.orig
-at91sam7sx.cfg                     mc13224v.cfg
-at91sam7x256.cfg                   nuc910.cfg
-at91sam7x512.cfg                   omap2420.cfg
-at91sam9260.cfg                    omap3530.cfg
-at91sam9260_ext_RAM_ext_flash.cfg  omap4430.cfg
-at91sam9261.cfg                    omap4460.cfg
-at91sam9263.cfg                    omap5912.cfg
-at91sam9.cfg                       omapl138.cfg
-at91sam9g10.cfg                    pic32mx.cfg
-at91sam9g20.cfg                    pxa255.cfg
-at91sam9g45.cfg                    pxa270.cfg
-at91sam9rl.cfg                     pxa3xx.cfg
-atmega128.cfg                      readme.txt
-avr32.cfg                          samsung_s3c2410.cfg
-c100.cfg                           samsung_s3c2440.cfg
-c100config.tcl                     samsung_s3c2450.cfg
-c100helper.tcl                     samsung_s3c4510.cfg
-c100regs.tcl                       samsung_s3c6410.cfg
-cs351x.cfg                         sharp_lh79532.cfg
+aduc702x.cfg                       lpc1764.cfg
+am335x.cfg                         lpc1765.cfg
+amdm37x.cfg                        lpc1766.cfg
+ar71xx.cfg                         lpc1767.cfg
+at32ap7000.cfg                     lpc1768.cfg
+at91r40008.cfg                     lpc1769.cfg
+at91rm9200.cfg                     lpc1788.cfg
+at91sam3ax_4x.cfg                  lpc17xx.cfg
+at91sam3ax_8x.cfg                  lpc1850.cfg
+at91sam3ax_xx.cfg                  lpc2103.cfg
+at91sam3nXX.cfg                    lpc2124.cfg
+at91sam3sXX.cfg                    lpc2129.cfg
+at91sam3u1c.cfg                    lpc2148.cfg
+at91sam3u1e.cfg                    lpc2294.cfg
+at91sam3u2c.cfg                    lpc2378.cfg
+at91sam3u2e.cfg                    lpc2460.cfg
+at91sam3u4c.cfg                    lpc2478.cfg
+at91sam3u4e.cfg                    lpc2900.cfg
+at91sam3uxx.cfg                    lpc2xxx.cfg
+at91sam3XXX.cfg                    lpc3131.cfg
+at91sam4sd32x.cfg                  lpc3250.cfg
+at91sam4sXX.cfg                    lpc4350.cfg
+at91sam4XXX.cfg                    lpc4350.cfg.orig
+at91sam7se512.cfg                  mc13224v.cfg
+at91sam7sx.cfg                     nuc910.cfg
+at91sam7x256.cfg                   omap2420.cfg
+at91sam7x512.cfg                   omap3530.cfg
+at91sam9260.cfg                    omap4430.cfg
+at91sam9260_ext_RAM_ext_flash.cfg  omap4460.cfg
+at91sam9261.cfg                    omap5912.cfg
+at91sam9263.cfg                    omapl138.cfg
+at91sam9.cfg                       pic32mx.cfg
+at91sam9g10.cfg                    pxa255.cfg
+at91sam9g20.cfg                    pxa270.cfg
+at91sam9g45.cfg                    pxa3xx.cfg
+at91sam9rl.cfg                     readme.txt
+atmega128.cfg                      samsung_s3c2410.cfg
+avr32.cfg                          samsung_s3c2440.cfg
+c100.cfg                           samsung_s3c2450.cfg
+c100config.tcl                     samsung_s3c4510.cfg
+c100helper.tcl                     samsung_s3c6410.cfg
+c100regs.tcl                       sharp_lh79532.cfg
+cs351x.cfg                         sim3x.cfg
 davinci.cfg                        smp8634.cfg
 dragonite.cfg                      spear3xx.cfg
 dsp56321.cfg                       stellaris.cfg
@@ -1524,6 +1524,7 @@ lpc1754.cfg                        ti_dm6446.cfg
 lpc1756.cfg                        tmpa900.cfg
 lpc1758.cfg                        tmpa910.cfg
 lpc1759.cfg                        u8500.cfg
+lpc1763.cfg
 @end example
 @item @emph{more} ... browse for other library files which may be useful.
 For example, there are various generic and CPU-specific utilities.
@@ -5718,6 +5719,30 @@ correct bank config, it can currently be one of the following:
 @example
 flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
 @end example
+@end deffn
+
+@deffn {Flash Driver} sim3x
+All members of the SiM3 microcontroller family from Silicon Laboratories
+include internal flash and use ARM Cortex M3 cores. It supports both JTAG
+and SWD interface.
+The @var{sim3x} driver tries to probe the device to auto detect the MCU.
+If this failes, it will use the @var{size} parameter as the size of flash bank.
+
+@example
+flash bank $_FLASHNAME sim3x 0 $_CPUROMSIZE 0 0 $_TARGETNAME
+@end example
+
+There are 2 commands defined in the @var{sim3x} driver:
+
+@deffn Command {sim3x mass_erase}
+Erases the complete flash. This is used to unlock the flash.
+And this command is only possible when using the SWD interface.
+@end deffn
+
+@deffn Command {sim3x lock}
+Lock the flash. To unlock use the @command{sim3x mass_erase} command.
+@end deffn
+
 @end deffn
 
 @subsection str9xpec driver

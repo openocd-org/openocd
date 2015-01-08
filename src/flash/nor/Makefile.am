@@ -45,7 +45,8 @@ NOR_DRIVERS = \
 	nuc1x.c \
 	nrf51.c \
 	mrvlqspi.c \
-	psoc4.c
+	psoc4.c \
+	sim3x.c
 
 noinst_HEADERS = \
 	core.h \
