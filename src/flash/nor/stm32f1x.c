@@ -1040,6 +1040,21 @@ COMMAND_HANDLER(stm32x_handle_part_id_command)
 }
 #endif
 
+static const char *get_stm32f0_revision(uint16_t rev_id)
+{
+	const char *rev_str = NULL;
+
+	switch (rev_id) {
+	case 0x1000:
+		rev_str = "1.0";
+		break;
+	case 0x2000:
+		rev_str = "2.0";
+		break;
+	}
+	return rev_str;
+}
+
 static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	uint32_t dbgmcu_idcode;
@@ -1219,72 +1234,27 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	case 0x444:
 		device_str = "STM32F03x";
-
-		switch (rev_id) {
-		case 0x1000:
-			rev_str = "1.0";
-			break;
-
-		case 0x2000:
-			rev_str = "2.0";
-			break;
-		}
+		rev_str = get_stm32f0_revision(rev_id);
 		break;
 
 	case 0x440:
 		device_str = "STM32F05x";
-
-		switch (rev_id) {
-		case 0x1000:
-			rev_str = "1.0";
-			break;
-
-		case 0x2000:
-			rev_str = "2.0";
-			break;
-		}
+		rev_str = get_stm32f0_revision(rev_id);
 		break;
 
 	case 0x445:
 		device_str = "STM32F04x";
-
-		switch (rev_id) {
-		case 0x1000:
-			rev_str = "1.0";
-			break;
-
-		case 0x2000:
-			rev_str = "2.0";
-			break;
-		}
+		rev_str = get_stm32f0_revision(rev_id);
 		break;
 
 	case 0x448:
 		device_str = "STM32F07x";
-
-		switch (rev_id) {
-		case 0x1000:
-			rev_str = "1.0";
-			break;
-
-		case 0x2000:
-			rev_str = "2.0";
-			break;
-		}
+		rev_str = get_stm32f0_revision(rev_id);
 		break;
 
 	case 0x442:
 		device_str = "STM32F09x";
-
-		switch (rev_id) {
-		case 0x1000:
-			rev_str = "1.0";
-			break;
-
-		case 0x2000:
-			rev_str = "2.0";
-			break;
-		}
+		rev_str = get_stm32f0_revision(rev_id);
 		break;
 
 	default:
