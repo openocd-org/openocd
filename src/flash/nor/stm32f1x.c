@@ -1273,6 +1273,20 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		}
 		break;
 
+	case 0x442:
+		device_str = "STM32F09x";
+
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "1.0";
+			break;
+
+		case 0x2000:
+			rev_str = "2.0";
+			break;
+		}
+		break;
+
 	default:
 		snprintf(buf, buf_size, "Cannot identify target as a STM32F0/1/3\n");
 		return ERROR_FAIL;
