@@ -886,11 +886,7 @@ void jtag_sleep(uint32_t us)
 		alive_sleep((us+999)/1000);
 }
 
-/* Maximum number of enabled JTAG devices we expect in the scan chain,
- * plus one (to detect garbage at the end).  Devices that don't support
- * IDCODE take up fewer bits, possibly allowing a few more devices.
- */
-#define JTAG_MAX_CHAIN_SIZE 20
+#define JTAG_MAX_AUTO_TAPS 20
 
 #define EXTRACT_MFG(X)  (((X) & 0xffe) >> 1)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
@@ -913,7 +909,7 @@ static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcod
 	};
 
 	/* initialize to the end of chain ID value */
-	for (unsigned i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
+	for (unsigned i = 0; i < num_idcode; i++)
 		buf_set_u32(idcode_buffer, i * 32, 32, END_OF_CHAIN_FLAG);
 
 	jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value, TAP_DRPAUSE);
@@ -998,21 +994,16 @@ static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 
 static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 {
-	uint32_t idcode = tap->idcode;
 
-	/* ignore expected BYPASS codes; warn otherwise */
-	if (0 == tap->expected_ids_cnt && !idcode)
+	if (tap->expected_ids_cnt == 0 || !tap->hasidcode)
 		return true;
 
 	/* optionally ignore the JTAG version field - bits 28-31 of IDCODE */
 	uint32_t mask = tap->ignore_version ? ~(0xf << 28) : ~0;
-
-	idcode &= mask;
+	uint32_t idcode = tap->idcode & mask;
 
 	/* Loop over the expected identification codes and test for a match */
-	unsigned ii, limit = tap->expected_ids_cnt;
-
-	for (ii = 0; ii < limit; ii++) {
+	for (unsigned ii = 0; ii < tap->expected_ids_cnt; ii++) {
 		uint32_t expected = tap->expected_ids[ii] & mask;
 
 		if (idcode == expected)
@@ -1026,10 +1017,10 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 	/* If none of the expected ids matched, warn */
 	jtag_examine_chain_display(LOG_LVL_WARNING, "UNEXPECTED",
 		tap->dotted_name, tap->idcode);
-	for (ii = 0; ii < limit; ii++) {
+	for (unsigned ii = 0; ii < tap->expected_ids_cnt; ii++) {
 		char msg[32];
 
-		snprintf(msg, sizeof(msg), "expected %u of %u", ii + 1, limit);
+		snprintf(msg, sizeof(msg), "expected %u of %u", ii + 1, tap->expected_ids_cnt);
 		jtag_examine_chain_display(LOG_LVL_ERROR, msg,
 			tap->dotted_name, tap->expected_ids[ii]);
 	}
@@ -1041,130 +1032,108 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
  */
 static int jtag_examine_chain(void)
 {
-	uint8_t idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
-	unsigned bit_count;
 	int retval;
-	int tapcount = 0;
-	bool autoprobe = false;
+	unsigned max_taps = jtag_tap_count();
+
+	/* Autoprobe up to this many. */
+	if (max_taps < JTAG_MAX_AUTO_TAPS)
+		max_taps = JTAG_MAX_AUTO_TAPS;
+
+	/* Add room for end-of-chain marker. */
+	max_taps++;
+
+	uint8_t *idcode_buffer = malloc(max_taps * 4);
+	if (idcode_buffer == NULL)
+		return ERROR_JTAG_INIT_FAILED;
 
 	/* DR scan to collect BYPASS or IDCODE register contents.
 	 * Then make sure the scan data has both ones and zeroes.
 	 */
 	LOG_DEBUG("DR scan interrogation for IDCODE/BYPASS");
-	retval = jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
+	retval = jtag_examine_chain_execute(idcode_buffer, max_taps);
 	if (retval != ERROR_OK)
-		return retval;
-	if (!jtag_examine_chain_check(idcode_buffer, JTAG_MAX_CHAIN_SIZE))
-		return ERROR_JTAG_INIT_FAILED;
+		goto out;
+	if (!jtag_examine_chain_check(idcode_buffer, max_taps)) {
+		retval = ERROR_JTAG_INIT_FAILED;
+		goto out;
+	}
 
-	/* point at the 1st tap */
+	/* Point at the 1st predefined tap, if any */
 	struct jtag_tap *tap = jtag_tap_next_enabled(NULL);
 
-	if (!tap)
-		autoprobe = true;
-
-	for (bit_count = 0;
-	     tap && bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;
-	     tap = jtag_tap_next_enabled(tap)) {
+	unsigned bit_count = 0;
+	unsigned autocount = 0;
+	for (unsigned i = 0; i < max_taps; i++) {
+		assert(bit_count < max_taps * 32);
 		uint32_t idcode = buf_get_u32(idcode_buffer, bit_count, 32);
+
+		/* No predefined TAP? Auto-probe. */
+		if (tap == NULL) {
+			/* Is there another TAP? */
+			if (jtag_idcode_is_final(idcode))
+				break;
+
+			/* Default everything in this TAP except IR length.
+			 *
+			 * REVISIT create a jtag_alloc(chip, tap) routine, and
+			 * share it with jim_newtap_cmd().
+			 */
+			tap = calloc(1, sizeof *tap);
+			if (!tap) {
+				retval = ERROR_FAIL;
+				goto out;
+			}
+
+			tap->chip = alloc_printf("auto%u", autocount++);
+			tap->tapname = strdup("tap");
+			tap->dotted_name = alloc_printf("%s.%s", tap->chip, tap->tapname);
+
+			tap->ir_length = 0; /* ... signifying irlen autoprobe */
+			tap->ir_capture_mask = 0x03;
+			tap->ir_capture_value = 0x01;
+
+			tap->enabled = true;
+
+			jtag_tap_init(tap);
+		}
 
 		if ((idcode & 1) == 0) {
 			/* Zero for LSB indicates a device in bypass */
-			LOG_INFO("TAP %s does not have IDCODE",
-				tap->dotted_name);
-			idcode = 0;
+			LOG_INFO("TAP %s does not have IDCODE", tap->dotted_name);
 			tap->hasidcode = false;
+			tap->idcode = 0;
 
 			bit_count += 1;
 		} else {
 			/* Friendly devices support IDCODE */
 			tap->hasidcode = true;
-			jtag_examine_chain_display(LOG_LVL_INFO,
-				"tap/device found",
-				tap->dotted_name, idcode);
+			tap->idcode = idcode;
+			jtag_examine_chain_display(LOG_LVL_INFO, "tap/device found", tap->dotted_name, idcode);
 
 			bit_count += 32;
 		}
-		tap->idcode = idcode;
 
 		/* ensure the TAP ID matches what was expected */
 		if (!jtag_examine_chain_match_tap(tap))
 			retval = ERROR_JTAG_INIT_SOFT_FAIL;
-	}
 
-	/* Fail if too many TAPs were enabled for us to verify them all. */
-	if (tap) {
-		LOG_ERROR("Too many TAPs enabled; '%s' ignored.",
-			tap->dotted_name);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	/* if autoprobing, the tap list is still empty ... populate it! */
-	while (autoprobe && bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31) {
-		uint32_t idcode;
-		char buf[12];
-
-		/* Is there another TAP? */
-		idcode = buf_get_u32(idcode_buffer, bit_count, 32);
-		if (jtag_idcode_is_final(idcode))
-			break;
-
-		/* Default everything in this TAP except IR length.
-		 *
-		 * REVISIT create a jtag_alloc(chip, tap) routine, and
-		 * share it with jim_newtap_cmd().
-		 */
-		tap = calloc(1, sizeof *tap);
-		if (!tap)
-			return ERROR_FAIL;
-
-		sprintf(buf, "auto%d", tapcount++);
-		tap->chip = strdup(buf);
-		tap->tapname = strdup("tap");
-
-		sprintf(buf, "%s.%s", tap->chip, tap->tapname);
-		tap->dotted_name = strdup(buf);
-
-		/* tap->ir_length == 0 ... signifying irlen autoprobe */
-		tap->ir_capture_mask = 0x03;
-		tap->ir_capture_value = 0x01;
-
-		tap->enabled = true;
-
-		if ((idcode & 1) == 0) {
-			bit_count += 1;
-			tap->hasidcode = false;
-		} else {
-			bit_count += 32;
-			tap->hasidcode = true;
-			tap->idcode = idcode;
-
-			tap->expected_ids_cnt = 1;
-			tap->expected_ids = malloc(sizeof(uint32_t));
-			tap->expected_ids[0] = idcode;
-		}
-
-		LOG_WARNING("AUTO %s - use \"jtag newtap "
-			"%s %s -expected-id 0x%8.8" PRIx32 " ...\"",
-			tap->dotted_name, tap->chip, tap->tapname,
-			tap->idcode);
-
-		jtag_tap_init(tap);
+		tap = jtag_tap_next_enabled(tap);
 	}
 
 	/* After those IDCODE or BYPASS register values should be
 	 * only the data we fed into the scan chain.
 	 */
-	if (jtag_examine_chain_end(idcode_buffer, bit_count,
-		    8 * sizeof(idcode_buffer))) {
-		LOG_ERROR("double-check your JTAG setup (interface, "
-			"speed, missing TAPs, ...)");
-		return ERROR_JTAG_INIT_FAILED;
+	if (jtag_examine_chain_end(idcode_buffer, bit_count, max_taps * 32)) {
+		LOG_ERROR("double-check your JTAG setup (interface, speed, ...)");
+		retval = ERROR_JTAG_INIT_FAILED;
+		goto out;
 	}
 
 	/* Return success or, for backwards compatibility if only
 	 * some IDCODE values mismatched, a soft/continuable fault.
 	 */
+out:
+	free(idcode_buffer);
 	return retval;
 }
 
@@ -1227,7 +1196,7 @@ static int jtag_validate_ircapture(void)
 		 * least two bits.  Guessing will fail if (a) any TAP does
 		 * not conform to the JTAG spec; or (b) when the upper bits
 		 * captured from some conforming TAP are nonzero.  Or if
-		 * (c) an IR length is longer than 32 bits -- which is only
+		 * (c) an IR length is longer than JTAG_IRLEN_MAX bits,
 		 * an implementation limit, which could someday be raised.
 		 *
 		 * REVISIT optimization:  if there's a *single* TAP we can
@@ -1242,11 +1211,12 @@ static int jtag_validate_ircapture(void)
 		if (tap->ir_length == 0) {
 			tap->ir_length = 2;
 			while ((val = buf_get_u64(ir_test, chain_pos, tap->ir_length + 1)) == 1
-					&& tap->ir_length <= 64) {
+					&& tap->ir_length < JTAG_IRLEN_MAX) {
 				tap->ir_length++;
 			}
-			LOG_WARNING("AUTO %s - use \"... -irlen %d\"",
-				jtag_tap_name(tap), tap->ir_length);
+			LOG_WARNING("AUTO %s - use \"jtag newtap " "%s %s -irlen %d "
+					"-expected-id 0x%08" PRIx32 "\"",
+					tap->dotted_name, tap->chip, tap->tapname, tap->ir_length, tap->idcode);
 		}
 
 		/* Validate the two LSBs, which must be 01 per JTAG spec.
