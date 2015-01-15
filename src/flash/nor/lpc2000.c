@@ -183,6 +183,16 @@
 #define LPC11U37H_401  0x00007C44
 #define LPC11U37_501   0x00007C40
 
+#define LPC11E66       0x0000DCC1
+#define LPC11E67       0x0000BC81
+#define LPC11E68       0x00007C01
+
+#define LPC11U66       0x0000DCC8
+#define LPC11U67_1     0x0000BC88
+#define LPC11U67_2     0x0000BC80
+#define LPC11U68_1     0x00007C08
+#define LPC11U68_2     0x00007C00
+
 #define LPC1311        0x2C42502B
 #define LPC1311_1      0x1816902B
 #define LPC1313        0x2C40102B
@@ -1350,6 +1360,8 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC1115_303_1:
 		case LPC11U35_401:
 		case LPC11U35_501:
+		case LPC11E66:
+		case LPC11U66:
 		case LPC1317:
 		case LPC1347:
 			lpc2000_info->variant = lpc1100;
@@ -1372,6 +1384,10 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC11U37_401:
 		case LPC11U37H_401:
 		case LPC11U37_501:
+		case LPC11E67:
+		case LPC11E68:
+		case LPC11U67_1:
+		case LPC11U67_2:
 			lpc2000_info->variant = lpc1100;
 			bank->size = 128 * 1024;
 			break;
@@ -1381,6 +1397,12 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC1774:
 			lpc2000_info->variant = lpc1700;
 			bank->size = 128 * 1024;
+			break;
+
+		case LPC11U68_1:
+		case LPC11U68_2:
+			lpc2000_info->variant = lpc1100;
+			bank->size = 256 * 1024;
 			break;
 
 		case LPC1756:
