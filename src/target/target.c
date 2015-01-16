@@ -88,6 +88,7 @@ extern struct target_type dragonite_target;
 extern struct target_type xscale_target;
 extern struct target_type cortexm_target;
 extern struct target_type cortexa_target;
+extern struct target_type aarch64_target;
 extern struct target_type cortexr4_target;
 extern struct target_type arm11_target;
 extern struct target_type ls1_sap_target;
@@ -135,6 +136,9 @@ static struct target_type *target_types[] = {
 	&or1k_target,
 	&quark_x10xx_target,
 	&quark_d20xx_target,
+#if BUILD_TARGET64
+	&aarch64_target,
+#endif
 	NULL,
 };
 
