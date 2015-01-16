@@ -207,11 +207,15 @@ struct arm_reg {
 };
 
 struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm);
+struct reg_cache *armv8_build_reg_cache(struct target *target);
 
 extern const struct command_registration arm_command_handlers[];
 
 int arm_arch_state(struct target *target);
 int arm_get_gdb_reg_list(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class);
+int armv8_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);
 
@@ -238,6 +242,7 @@ int arm_blank_check_memory(struct target *target,
 
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
+struct reg *armv8_reg_current(struct arm *arm, unsigned regnum);
 
 extern struct reg arm_gdb_dummy_fp_reg;
 extern struct reg arm_gdb_dummy_fps_reg;

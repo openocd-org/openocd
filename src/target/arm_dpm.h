@@ -75,9 +75,16 @@ struct arm_dpm {
 	int (*instr_write_data_dcc)(struct arm_dpm *,
 			uint32_t opcode, uint32_t data);
 
+	int (*instr_write_data_dcc_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t data);
+
 	/** Runs one instruction, writing data to R0 before execution. */
 	int (*instr_write_data_r0)(struct arm_dpm *,
 			uint32_t opcode, uint32_t data);
+
+	/** Runs one instruction, writing data to R0 before execution. */
+	int (*instr_write_data_r0_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t data);
 
 	/** Optional core-specific operation invoked after CPSR writes. */
 	int (*instr_cpsr_sync)(struct arm_dpm *dpm);

@@ -289,10 +289,15 @@ static int dpm_write_reg64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 	switch (regnum) {
 		case 0 ... 30:
 			i = 0xd5330400 + regnum;
-			retval = dpm->instr_write_data_dcc(dpm, i, value);
+			retval = dpm->instr_write_data_dcc_64(dpm, i, value);
 			break;
-
+		case 32: /* PC */
+			i = 0xd51b4520;
+			retval = dpm->instr_write_data_r0_64(dpm, i, value);
+			break;
 		default:
+			LOG_DEBUG("register %s (%16.16llx) not defined", r->name,
+				  (unsigned long long)value);
 			break;
 	}
 
@@ -344,6 +349,9 @@ static int arm_dpm_read_current_registers_i(struct arm_dpm *dpm)
 
 	/* update core mode and state, plus shadow mapping for R8..R14 */
 	arm_set_cpsr(arm, cpsr);
+	if (core_state == ARM_STATE_AARCH64)
+		/* arm_set_cpsr changes core_state, restore it for now */
+		arm->core_state = ARM_STATE_AARCH64;
 
 	core_regs = arm->core_cache->num_regs;
 
@@ -550,7 +558,7 @@ static int arm_dpm_write_dirty_registers_64(struct arm_dpm *dpm)
 	 */
 
 	/* check everything except our scratch register R0 */
-	for (unsigned i = 1; i < 32; i++) {
+	for (unsigned i = 1; i <= 32; i++) {
 		struct arm_reg *r;
 		unsigned regnum;
 
@@ -1096,7 +1104,7 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 {
 	struct arm *arm = dpm->arm;
 	struct target *target = arm->target;
-	struct reg_cache *cache;
+	struct reg_cache *cache = 0;
 
 	arm->dpm = dpm;
 
@@ -1105,11 +1113,16 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 	arm->read_core_reg = arm->read_core_reg ? : arm_dpm_read_core_reg;
 	arm->write_core_reg = arm->write_core_reg ? : arm_dpm_write_core_reg;
 
-	cache = arm_build_reg_cache(target, arm);
+	if (arm->core_state == ARM_STATE_AARCH64) {
+		cache = armv8_build_reg_cache(target);
+		target->reg_cache = cache;
+	} else {
+		cache = arm_build_reg_cache(target, arm);
+		*register_get_last_cache_p(&target->reg_cache) = cache;
+	}
+
 	if (!cache)
 		return ERROR_FAIL;
-
-	*register_get_last_cache_p(&target->reg_cache) = cache;
 
 	/* coprocessor access setup */
 	arm->mrc = dpm_mrc;
