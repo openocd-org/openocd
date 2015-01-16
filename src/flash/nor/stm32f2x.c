@@ -344,8 +344,8 @@ static int stm32x_write_options(struct flash_bank *bank)
 
 	/* rebuild option data */
 	optiondata = stm32x_info->option_bytes.user_options;
-	buf_set_u32(&optiondata, 8, 8, stm32x_info->option_bytes.RDP);
-	buf_set_u32(&optiondata, 16, 12, stm32x_info->option_bytes.protection);
+	optiondata |= stm32x_info->option_bytes.RDP << 8;
+	optiondata |= (stm32x_info->option_bytes.protection & 0x0fff) << 16;
 
 	/* program options */
 	retval = target_write_u32(target, STM32_FLASH_OPTCR, optiondata);
@@ -355,7 +355,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (stm32x_info->has_large_mem) {
 
 		uint32_t optiondata2 = 0;
-		buf_set_u32(&optiondata2, 16, 12, stm32x_info->option_bytes.protection >> 12);
+		optiondata2 |= (stm32x_info->option_bytes.protection & 0x00fff000) << 4;
 		retval = target_write_u32(target, STM32_FLASH_OPTCR1, optiondata2);
 		if (retval != ERROR_OK)
 			return retval;
