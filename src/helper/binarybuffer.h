@@ -39,7 +39,7 @@
  * @param num The number of bits from @c value to copy (1-32).
  * @param value Up to 32 bits that will be copied to _buffer.
  */
-static inline void buf_set_u32(void *_buffer,
+static inline void buf_set_u32(uint8_t *_buffer,
 	unsigned first, unsigned num, uint32_t value)
 {
 	uint8_t *buffer = _buffer;
@@ -68,7 +68,7 @@ static inline void buf_set_u32(void *_buffer,
  * @param num The number of bits from @c value to copy (1-64).
  * @param value Up to 64 bits that will be copied to _buffer.
  */
-static inline void buf_set_u64(void *_buffer,
+static inline void buf_set_u64(uint8_t *_buffer,
 	unsigned first, unsigned num, uint64_t value)
 {
 	uint8_t *buffer = _buffer;
@@ -106,7 +106,7 @@ static inline void buf_set_u64(void *_buffer,
  * @param num The number of bits from @c _buffer to read (1-32).
  * @returns Up to 32-bits that were read from @c _buffer.
  */
-static inline uint32_t buf_get_u32(const void *_buffer,
+static inline uint32_t buf_get_u32(const uint8_t *_buffer,
 	unsigned first, unsigned num)
 {
 	const uint8_t *buffer = _buffer;
@@ -135,7 +135,7 @@ static inline uint32_t buf_get_u32(const void *_buffer,
  * @param num The number of bits from @c _buffer to read (1-64).
  * @returns Up to 64-bits that were read from @c _buffer.
  */
-static inline uint64_t buf_get_u64(const void *_buffer,
+static inline uint64_t buf_get_u64(const uint8_t *_buffer,
 	unsigned first, unsigned num)
 {
 	const uint8_t *buffer = _buffer;

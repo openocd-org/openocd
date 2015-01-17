@@ -965,7 +965,7 @@ static int ftdi_swd_run_queue(struct adiv5_dap *dap)
 	}
 
 	for (size_t i = 0; i < swd_cmd_queue_length; i++) {
-		int ack = buf_get_u32(&swd_cmd_queue[i].trn_ack_data_parity_trn, 1, 3);
+		int ack = buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn, 1, 3);
 
 		LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
 				ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
