@@ -150,6 +150,9 @@ int hl_interface_init_reset(void)
 
 static int hl_interface_khz(int khz, int *jtag_speed)
 {
+	if (hl_if.layout->api->speed == NULL)
+		return ERROR_OK;
+
 	*jtag_speed = hl_if.layout->api->speed(hl_if.handle, khz, true);
 	return ERROR_OK;
 }
