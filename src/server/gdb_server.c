@@ -1356,7 +1356,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 {
 	struct target *target = get_target_from_connection(connection);
 	char *separator;
-	uint32_t addr = 0;
+	uint64_t addr = 0;
 	uint32_t len = 0;
 
 	uint8_t *buffer;
@@ -1367,7 +1367,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 	/* skip command character */
 	packet++;
 
-	addr = strtoul(packet, &separator, 16);
+	addr = strtoull(packet, &separator, 16);
 
 	if (*separator != ',') {
 		LOG_ERROR("incomplete read memory packet received, dropping connection");
@@ -1384,7 +1384,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 
 	buffer = malloc(len);
 
-	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
+	LOG_DEBUG("addr: 0x%16.16" PRIx64 ", len: 0x%8.8" PRIx32 "", addr, len);
 
 	retval = target_read_buffer(target, addr, len, buffer);
 
@@ -1427,7 +1427,7 @@ static int gdb_write_memory_packet(struct connection *connection,
 {
 	struct target *target = get_target_from_connection(connection);
 	char *separator;
-	uint32_t addr = 0;
+	uint64_t addr = 0;
 	uint32_t len = 0;
 
 	uint8_t *buffer;
@@ -1436,7 +1436,7 @@ static int gdb_write_memory_packet(struct connection *connection,
 	/* skip command character */
 	packet++;
 
-	addr = strtoul(packet, &separator, 16);
+	addr = strtoull(packet, &separator, 16);
 
 	if (*separator != ',') {
 		LOG_ERROR("incomplete write memory packet received, dropping connection");
@@ -1452,7 +1452,7 @@ static int gdb_write_memory_packet(struct connection *connection,
 
 	buffer = malloc(len);
 
-	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
+	LOG_DEBUG("addr: 0x%" PRIx64 ", len: 0x%8.8" PRIx32 "", addr, len);
 
 	if (unhexify((char *)buffer, separator, len) != (int)len)
 		LOG_ERROR("unable to decode memory packet");
@@ -1474,7 +1474,7 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 {
 	struct target *target = get_target_from_connection(connection);
 	char *separator;
-	uint32_t addr = 0;
+	uint64_t addr = 0;
 	uint32_t len = 0;
 
 	int retval = ERROR_OK;
@@ -1482,7 +1482,7 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 	/* skip command character */
 	packet++;
 
-	addr = strtoul(packet, &separator, 16);
+	addr = strtoull(packet, &separator, 16);
 
 	if (*separator != ',') {
 		LOG_ERROR("incomplete write memory binary packet received, dropping connection");
@@ -1516,7 +1516,7 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 	}
 
 	if (len) {
-		LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
+		LOG_DEBUG("addr: 0x%" PRIx64 ", len: 0x%8.8" PRIx32 "", addr, len);
 
 		retval = target_write_buffer(target, addr, len, (uint8_t *)separator);
 		if (retval != ERROR_OK)
@@ -1531,13 +1531,13 @@ static int gdb_step_continue_packet(struct connection *connection,
 {
 	struct target *target = get_target_from_connection(connection);
 	int current = 0;
-	uint32_t address = 0x0;
+	uint64_t address = 0x0;
 	int retval = ERROR_OK;
 
 	LOG_DEBUG("-");
 
 	if (packet_size > 1)
-		address = strtoul(packet + 1, NULL, 16);
+		address = strtoull(packet + 1, NULL, 16);
 	else
 		current = 1;
 
@@ -1561,7 +1561,7 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 	int type;
 	enum breakpoint_type bp_type = BKPT_SOFT /* dummy init to avoid warning */;
 	enum watchpoint_rw wp_type = WPT_READ /* dummy init to avoid warning */;
-	uint32_t address;
+	uint64_t address;
 	uint32_t size;
 	char *separator;
 	int retval;
@@ -1593,7 +1593,7 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	address = strtoul(separator + 1, &separator, 16);
+	address = strtoull(separator + 1, &separator, 16);
 
 	if (*separator != ',') {
 		LOG_ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
