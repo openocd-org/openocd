@@ -64,9 +64,9 @@ int gdb_read_smp_packet(struct connection *connection,
 		if (strncmp(packet, "jc", 2) == 0) {
 			const uint32_t len = sizeof(target->gdb_service->core[0]);
 			char hex_buffer[len * 2 + 1];
-			char buffer[len];
+			uint8_t buffer[len];
 			buf_set_u32(buffer, 0, len * 8, target->gdb_service->core[0]);
-			int pkt_len = hexify(hex_buffer, buffer, sizeof(buffer), sizeof(hex_buffer));
+			int pkt_len = hexify(hex_buffer, (char *)buffer, sizeof(buffer), sizeof(hex_buffer));
 
 			retval = gdb_put_packet(connection, hex_buffer, pkt_len);
 		}

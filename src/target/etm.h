@@ -72,7 +72,7 @@ enum {
 };
 
 struct etm_reg {
-	uint32_t value;
+	uint8_t value[4];
 	const struct etm_reg_info *reg_info;
 	struct arm_jtag *jtag_info;
 };
