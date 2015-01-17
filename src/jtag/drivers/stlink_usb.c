@@ -1837,10 +1837,10 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	/* clock speed only supported by stlink/v2 and for firmware >= 22 */
 	if (h->version.stlink >= 2 && h->version.jtag >= 22) {
-		LOG_INFO("Supported clock speeds are:");
+		LOG_DEBUG("Supported clock speeds are:");
 
 		for (unsigned i = 0; i < ARRAY_SIZE(stlink_khz_to_speed_map); i++)
-			LOG_INFO("%d kHz", stlink_khz_to_speed_map[i].speed);
+			LOG_DEBUG("%d kHz", stlink_khz_to_speed_map[i].speed);
 
 		stlink_speed(h, param->initial_interface_speed, false);
 	}
