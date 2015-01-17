@@ -88,9 +88,18 @@ struct arm_dpm {
 	int (*instr_read_data_dcc)(struct arm_dpm *,
 			uint32_t opcode, uint32_t *data);
 
+	int (*instr_read_data_dcc_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t *data);
+
 	/** Runs one instruction, reading data from r0 after execution. */
 	int (*instr_read_data_r0)(struct arm_dpm *,
 			uint32_t opcode, uint32_t *data);
+
+	int (*instr_read_data_r0_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t *data);
+
+	struct reg *(*arm_reg_current)(struct arm *arm,
+			unsigned regnum);
 
 	/* BREAKPOINT/WATCHPOINT SUPPORT */
 
@@ -133,6 +142,7 @@ int arm_dpm_setup(struct arm_dpm *dpm);
 int arm_dpm_initialize(struct arm_dpm *dpm);
 
 int arm_dpm_read_current_registers(struct arm_dpm *);
+int arm_dpm_read_current_registers_64(struct arm_dpm *);
 int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
 
 

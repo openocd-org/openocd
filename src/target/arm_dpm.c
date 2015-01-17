@@ -132,11 +132,11 @@ int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 	return retval;
 }
 
-/* just read the register -- rely on the core mode being right */
-static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+
+static int dpm_read_reg32(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 {
 	uint32_t value;
-	int retval;
+	int retval = ERROR_FAIL;
 
 	switch (regnum) {
 		case 0 ... 14:
@@ -192,10 +192,57 @@ static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 	return retval;
 }
 
-/* just write the register -- rely on the core mode being right */
-static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+static int dpm_read_reg64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 {
-	int retval;
+	uint64_t value;
+	uint32_t i;
+	int retval = ERROR_FAIL;
+
+	switch (regnum) {
+		case 0 ... 30:
+			i = 0xd5130400 + regnum; /* msr dbgdtr_el0,reg */
+			retval = dpm->instr_read_data_dcc_64(dpm, i, &value);
+			break;
+		case 31: /* SP */
+			i = 0x910003e0;
+			retval = dpm->instr_read_data_r0_64(dpm, i, &value);
+			break;
+		case 32: /* PC */
+			i = 0xd53b4520;
+			retval = dpm->instr_read_data_r0_64(dpm, i, &value);
+			break;
+		case 33: /* CPSR */
+			i = 0xd53b4500;
+			retval = dpm->instr_read_data_r0_64(dpm, i, &value);
+			break;
+
+		default:
+			break;
+	}
+
+	if (retval == ERROR_OK) {
+		buf_set_u64(r->value, 0, 64, value);
+		r->valid = true;
+		r->dirty = false;
+		LOG_DEBUG("READ: %s, %16.16llx", r->name, (long long)value);
+	}
+
+	return retval;
+}
+
+
+/* just read the register -- rely on the core mode being right */
+static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	if (r->size == 64)
+		return dpm_read_reg64(dpm, r, regnum);
+	else
+		return dpm_read_reg32(dpm, r, regnum);
+}
+
+static int dpm_write_reg32(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	int retval = ERROR_FAIL;
 	uint32_t value = buf_get_u32(r->value, 0, 32);
 
 	switch (regnum) {
@@ -233,19 +280,46 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 	return retval;
 }
 
-/**
- * Read basic registers of the the current context:  R0 to R15, and CPSR;
- * sets the core mode (such as USR or IRQ) and state (such as ARM or Thumb).
- * In normal operation this is called on entry to halting debug state,
- * possibly after some other operations supporting restore of debug state
- * or making sure the CPU is fully idle (drain write buffer, etc).
- */
-int arm_dpm_read_current_registers(struct arm_dpm *dpm)
+static int dpm_write_reg64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	int retval = ERROR_FAIL;
+	uint32_t i;
+	uint64_t value = buf_get_u64(r->value, 0, 64);
+
+	switch (regnum) {
+		case 0 ... 30:
+			i = 0xd5330400 + regnum;
+			retval = dpm->instr_write_data_dcc(dpm, i, value);
+			break;
+
+		default:
+			break;
+	}
+
+	if (retval == ERROR_OK) {
+		r->dirty = false;
+		LOG_DEBUG("WRITE: %s, %16.16llx", r->name, (unsigned long long)value);
+	}
+
+	return retval;
+}
+
+/* just write the register -- rely on the core mode being right */
+static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	if (r->size == 64)
+		return dpm_write_reg64(dpm, r, regnum);
+	else
+		return dpm_write_reg32(dpm, r, regnum);
+}
+
+static int arm_dpm_read_current_registers_i(struct arm_dpm *dpm)
 {
 	struct arm *arm = dpm->arm;
-	uint32_t cpsr;
+	uint32_t cpsr, instr, core_regs;
 	int retval;
 	struct reg *r;
+	enum arm_state core_state = arm->core_state;
 
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
@@ -260,16 +334,22 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 	}
 	r->dirty = true;
 
-	retval = dpm->instr_read_data_r0(dpm, ARMV4_5_MRS(0, 0), &cpsr);
+	if (core_state == ARM_STATE_AARCH64)
+		instr = 0xd53b4500;  /* mrs x0, dspsr_el0 */
+	else
+		instr = ARMV4_5_MRS(0, 0);
+	retval = dpm->instr_read_data_r0(dpm, instr, &cpsr);
 	if (retval != ERROR_OK)
 		goto fail;
 
 	/* update core mode and state, plus shadow mapping for R8..R14 */
 	arm_set_cpsr(arm, cpsr);
 
+	core_regs = arm->core_cache->num_regs;
+
 	/* REVISIT we can probably avoid reading R1..R14, saving time... */
-	for (unsigned i = 1; i < 16; i++) {
-		r = arm_reg_current(arm, i);
+	for (unsigned i = 1; i < core_regs; i++) {
+		r = dpm->arm_reg_current(arm, i);
 		if (r->valid)
 			continue;
 
@@ -288,6 +368,23 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 fail:
 	/* (void) */ dpm->finish(dpm);
 	return retval;
+}
+
+/**
+ * Read basic registers of the the current context:  R0 to R15, and CPSR;
+ * sets the core mode (such as USR or IRQ) and state (such as ARM or Thumb).
+ * In normal operation this is called on entry to halting debug state,
+ * possibly after some other operations supporting restore of debug state
+ * or making sure the CPU is fully idle (drain write buffer, etc).
+ */
+int arm_dpm_read_current_registers(struct arm_dpm *dpm)
+{
+	return arm_dpm_read_current_registers_i(dpm);
+}
+
+int arm_dpm_read_current_registers_64(struct arm_dpm *dpm)
+{
+	return arm_dpm_read_current_registers_i(dpm);
 }
 
 /* Avoid needless I/O ... leave breakpoints and watchpoints alone
@@ -338,6 +435,147 @@ done:
 
 static int dpm_add_breakpoint(struct target *target, struct breakpoint *bp);
 
+
+static int arm_dpm_write_dirty_registers_32(struct arm_dpm *dpm)
+{
+	struct arm *arm = dpm->arm;
+	struct reg_cache *cache = arm->core_cache;
+	int retval;
+	bool did_write;
+
+	/* Scan the registers until we find one that's both dirty and
+	 * eligible for flushing.  Flush that and everything else that
+	 * shares the same core mode setting.  Typically this won't
+	 * actually find anything to do...
+	 */
+	do {
+		enum arm_mode mode = ARM_MODE_ANY;
+
+		did_write = false;
+
+		/* check everything except our scratch register R0 */
+		for (unsigned i = 1; i < cache->num_regs; i++) {
+			struct arm_reg *r;
+			unsigned regnum;
+
+			/* also skip PC, CPSR, and non-dirty */
+			if (i == 15)
+				continue;
+			if (arm->cpsr == cache->reg_list + i)
+				continue;
+			if (!cache->reg_list[i].dirty)
+				continue;
+
+			r = cache->reg_list[i].arch_info;
+			regnum = r->num;
+
+			/* may need to pick and set a mode */
+			if (!did_write) {
+				enum arm_mode tmode;
+
+				did_write = true;
+				mode = tmode = r->mode;
+
+				/* cope with special cases */
+				switch (regnum) {
+				case 8 ... 12:
+					/* r8..r12 "anything but FIQ" case;
+					 * we "know" core mode is accurate
+					 * since we haven't changed it yet
+					 */
+					if (arm->core_mode == ARM_MODE_FIQ
+					    && ARM_MODE_ANY
+					    != mode)
+						tmode = ARM_MODE_USR;
+					break;
+				case 16:
+					/* SPSR */
+					regnum++;
+					break;
+				}
+
+				/* REVISIT error checks */
+				if (tmode != ARM_MODE_ANY) {
+					retval = dpm_modeswitch(dpm, tmode);
+					if (retval != ERROR_OK)
+						goto done;
+				}
+			}
+			if (r->mode != mode)
+				continue;
+
+			retval = dpm_write_reg(dpm,
+					       &cache->reg_list[i],
+					       regnum);
+			if (retval != ERROR_OK)
+				goto done;
+		}
+
+	} while (did_write);
+
+	/* Restore original CPSR ... assuming either that we changed it,
+	 * or it's dirty.  Must write PC to ensure the return address is
+	 * defined, and must not write it before CPSR.
+	 */
+	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
+	if (retval != ERROR_OK)
+		goto done;
+	arm->cpsr->dirty = false;
+
+	retval = dpm_write_reg(dpm, arm->pc, 15);
+	if (retval != ERROR_OK)
+		goto done;
+	arm->pc->dirty = false;
+
+	/* flush R0 -- it's *very* dirty by now */
+	retval = dpm_write_reg(dpm, &cache->reg_list[0], 0);
+	if (retval != ERROR_OK)
+		goto done;
+	cache->reg_list[0].dirty = false;
+
+done:
+	return retval;
+}
+
+static int arm_dpm_write_dirty_registers_64(struct arm_dpm *dpm)
+{
+	struct arm *arm = dpm->arm;
+	struct reg_cache *cache = arm->core_cache;
+	int retval;
+
+	/* Scan the registers until we find one that's both dirty and
+	 * eligible for flushing.  Flush that and everything else that
+	 * shares the same core mode setting.  Typically this won't
+	 * actually find anything to do...
+	 */
+
+	/* check everything except our scratch register R0 */
+	for (unsigned i = 1; i < 32; i++) {
+		struct arm_reg *r;
+		unsigned regnum;
+
+		if (!cache->reg_list[i].dirty)
+			continue;
+
+		r = cache->reg_list[i].arch_info;
+		regnum = r->num;
+		retval = dpm_write_reg(dpm,
+				       &cache->reg_list[i],
+				       regnum);
+		if (retval != ERROR_OK)
+			goto done;
+	}
+
+	/* flush R0 -- it's *very* dirty by now */
+	retval = dpm_write_reg(dpm, &cache->reg_list[0], 0);
+	if (retval != ERROR_OK)
+		goto done;
+	cache->reg_list[0].dirty = false;
+
+done:
+	return retval;
+}
+
 /**
  * Writes all modified core registers for all processor modes.  In normal
  * operation this is called on exit from halting debug state.
@@ -351,7 +589,6 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	struct arm *arm = dpm->arm;
 	struct reg_cache *cache = arm->core_cache;
 	int retval;
-	bool did_write;
 
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
@@ -391,95 +628,10 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * be queued, and need (efficient/batched) flushing later.
 	 */
 
-	/* Scan the registers until we find one that's both dirty and
-	 * eligible for flushing.  Flush that and everything else that
-	 * shares the same core mode setting.  Typically this won't
-	 * actually find anything to do...
-	 */
-	do {
-		enum arm_mode mode = ARM_MODE_ANY;
-
-		did_write = false;
-
-		/* check everything except our scratch register R0 */
-		for (unsigned i = 1; i < cache->num_regs; i++) {
-			struct arm_reg *r;
-			unsigned regnum;
-
-			/* also skip PC, CPSR, and non-dirty */
-			if (i == 15)
-				continue;
-			if (arm->cpsr == cache->reg_list + i)
-				continue;
-			if (!cache->reg_list[i].dirty)
-				continue;
-
-			r = cache->reg_list[i].arch_info;
-			regnum = r->num;
-
-			/* may need to pick and set a mode */
-			if (!did_write) {
-				enum arm_mode tmode;
-
-				did_write = true;
-				mode = tmode = r->mode;
-
-				/* cope with special cases */
-				switch (regnum) {
-					case 8 ... 12:
-						/* r8..r12 "anything but FIQ" case;
-						 * we "know" core mode is accurate
-						 * since we haven't changed it yet
-						 */
-						if (arm->core_mode == ARM_MODE_FIQ
-							&& ARM_MODE_ANY
-							!= mode)
-							tmode = ARM_MODE_USR;
-						break;
-					case 16:
-						/* SPSR */
-						regnum++;
-						break;
-				}
-
-				/* REVISIT error checks */
-				if (tmode != ARM_MODE_ANY) {
-					retval = dpm_modeswitch(dpm, tmode);
-					if (retval != ERROR_OK)
-						goto done;
-				}
-			}
-			if (r->mode != mode)
-				continue;
-
-			retval = dpm_write_reg(dpm,
-					&cache->reg_list[i],
-					regnum);
-			if (retval != ERROR_OK)
-				goto done;
-		}
-
-	} while (did_write);
-
-	/* Restore original CPSR ... assuming either that we changed it,
-	 * or it's dirty.  Must write PC to ensure the return address is
-	 * defined, and must not write it before CPSR.
-	 */
-	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
-	if (retval != ERROR_OK)
-		goto done;
-	arm->cpsr->dirty = false;
-
-	retval = dpm_write_reg(dpm, arm->pc, 15);
-	if (retval != ERROR_OK)
-		goto done;
-	arm->pc->dirty = false;
-
-	/* flush R0 -- it's *very* dirty by now */
-	retval = dpm_write_reg(dpm, &cache->reg_list[0], 0);
-	if (retval != ERROR_OK)
-		goto done;
-	cache->reg_list[0].dirty = false;
+	if (cache->reg_list[0].size == 64)
+		retval = arm_dpm_write_dirty_registers_64(dpm);
+	else
+		retval = arm_dpm_write_dirty_registers_32(dpm);
 
 	/* (void) */ dpm->finish(dpm);
 done:
@@ -950,8 +1102,8 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 
 	/* register access setup */
 	arm->full_context = arm_dpm_full_context;
-	arm->read_core_reg = arm_dpm_read_core_reg;
-	arm->write_core_reg = arm_dpm_write_core_reg;
+	arm->read_core_reg = arm->read_core_reg ? : arm_dpm_read_core_reg;
+	arm->write_core_reg = arm->write_core_reg ? : arm_dpm_write_core_reg;
 
 	cache = arm_build_reg_cache(target, arm);
 	if (!cache)
@@ -973,12 +1125,21 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 	target->type->add_watchpoint = dpm_add_watchpoint;
 	target->type->remove_watchpoint = dpm_remove_watchpoint;
 
+
+	if (dpm->arm_reg_current == 0)
+		dpm->arm_reg_current = arm_reg_current;
+
 	/* FIXME add vector catch support */
 
-	dpm->nbp = 1 + ((dpm->didr >> 24) & 0xf);
-	dpm->dbp = calloc(dpm->nbp, sizeof *dpm->dbp);
+	if (arm->core_state == ARM_STATE_AARCH64) {
+		dpm->nbp = 1 + ((dpm->didr >> 24) & 0xf);
+		dpm->nwp = 1 + ((dpm->didr >> 28) & 0xf);
+	} else {
+		dpm->nbp = 1 + ((dpm->didr >> 12) & 0xf);
+		dpm->nwp = 1 + ((dpm->didr >> 20) & 0xf);
+	}
 
-	dpm->nwp = 1 + ((dpm->didr >> 28) & 0xf);
+	dpm->dbp = calloc(dpm->nbp, sizeof *dpm->dbp);
 	dpm->dwp = calloc(dpm->nwp, sizeof *dpm->dwp);
 
 	if (!dpm->dbp || !dpm->dwp) {
