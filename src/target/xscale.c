@@ -3245,8 +3245,8 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		}
-		*(uint32_t *)(dcsr_reg->value) &= ~DCSR_TRAP_MASK;
-		*(uint32_t *)(dcsr_reg->value) |= catch;
+		buf_set_u32(dcsr_reg->value, 0, 32,
+				(buf_get_u32(dcsr_reg->value, 0, 32) & ~DCSR_TRAP_MASK) | catch);
 		xscale_write_dcsr(target, -1, -1);
 	}
 
