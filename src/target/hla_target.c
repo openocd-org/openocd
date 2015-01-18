@@ -443,7 +443,7 @@ static int adapter_debug_entry(struct target *target)
 
 	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%08" PRIx32 ", target->state: %s",
 		arm_mode_name(arm->core_mode),
-		*(uint32_t *)(arm->pc->value),
+		buf_get_u32(arm->pc->value, 0, 32),
 		target_state_name(target));
 
 	return retval;
