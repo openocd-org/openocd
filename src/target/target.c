@@ -1819,7 +1819,7 @@ static int target_profiling_default(struct target *target, uint32_t *samples,
 	for (;;) {
 		target_poll(target);
 		if (target->state == TARGET_HALTED) {
-			uint32_t t = *((uint32_t *)reg->value);
+			uint32_t t = buf_get_u32(reg->value, 0, 32);
 			samples[sample_count++] = t;
 			/* current pc, addr = 0, do not handle breakpoints, not debugging */
 			retval = target_resume(target, 1, 0, 0, 0);
