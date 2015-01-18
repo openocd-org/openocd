@@ -202,7 +202,7 @@ struct arm_reg {
 	enum arm_mode mode;
 	struct target *target;
 	struct arm *arm;
-	uint32_t value;
+	uint8_t value[4];
 };
 
 struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm);

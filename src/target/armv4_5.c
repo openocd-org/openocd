@@ -605,10 +605,10 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 		reg_arch_info[i].target = target;
 		reg_arch_info[i].arm = arm;
 
-		reg_list[i].name = (char *) arm_core_regs[i].name;
+		reg_list[i].name = arm_core_regs[i].name;
 		reg_list[i].number = arm_core_regs[i].gdb_index;
 		reg_list[i].size = 32;
-		reg_list[i].value = &reg_arch_info[i].value;
+		reg_list[i].value = reg_arch_info[i].value;
 		reg_list[i].type = &arm_reg_type;
 		reg_list[i].arch_info = &reg_arch_info[i];
 		reg_list[i].exist = true;
