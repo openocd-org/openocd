@@ -86,32 +86,32 @@ static int nds32_get_core_reg(struct reg *reg)
 	}
 
 	if (reg->valid) {
+		uint32_t val = buf_get_u32(reg_arch_info->value, 0, 32);
 		LOG_DEBUG("reading register(cached) %" PRIi32 "(%s), value: 0x%8.8" PRIx32,
-				reg_arch_info->num, reg->name, reg_arch_info->value);
+				reg_arch_info->num, reg->name, val);
 		return ERROR_OK;
 	}
 
 	int mapped_regnum = nds32->register_map(nds32, reg_arch_info->num);
 
 	if (reg_arch_info->enable == false) {
-		reg_arch_info->value = NDS32_REGISTER_DISABLE;
+		buf_set_u32(reg_arch_info->value, 0, 32, NDS32_REGISTER_DISABLE);
 		retval = ERROR_FAIL;
 	} else {
-		if ((nds32->fpu_enable == false) &&
-			(NDS32_REG_TYPE_FPU == nds32_reg_type(mapped_regnum))) {
-			reg_arch_info->value = 0;
+		uint32_t val = 0;
+		if ((nds32->fpu_enable == false)
+				&& (NDS32_REG_TYPE_FPU == nds32_reg_type(mapped_regnum))) {
 			retval = ERROR_OK;
-		} else if ((nds32->audio_enable == false) &&
-			(NDS32_REG_TYPE_AUMR == nds32_reg_type(mapped_regnum))) {
-			reg_arch_info->value = 0;
+		} else if ((nds32->audio_enable == false)
+				&& (NDS32_REG_TYPE_AUMR == nds32_reg_type(mapped_regnum))) {
 			retval = ERROR_OK;
 		} else {
-			retval = aice_read_register(aice,
-					mapped_regnum, &(reg_arch_info->value));
+			retval = aice_read_register(aice, mapped_regnum, &val);
 		}
+		buf_set_u32(reg_arch_info->value, 0, 32, val);
 
 		LOG_DEBUG("reading register %" PRIi32 "(%s), value: 0x%8.8" PRIx32,
-				reg_arch_info->num, reg->name, reg_arch_info->value);
+				reg_arch_info->num, reg->name, val);
 	}
 
 	if (retval == ERROR_OK) {
@@ -139,17 +139,17 @@ static int nds32_get_core_reg_64(struct reg *reg)
 		return ERROR_OK;
 
 	if (reg_arch_info->enable == false) {
-		reg_arch_info->value_64 = NDS32_REGISTER_DISABLE;
+		buf_set_u64(reg_arch_info->value, 0, 64, NDS32_REGISTER_DISABLE);
 		retval = ERROR_FAIL;
 	} else {
-		if ((nds32->fpu_enable == false) &&
-			((FD0 <= reg_arch_info->num) && (reg_arch_info->num <= FD31))) {
-			reg_arch_info->value_64 = 0;
+		uint64_t val = 0;
+		if ((nds32->fpu_enable == false)
+				&& ((FD0 <= reg_arch_info->num) && (reg_arch_info->num <= FD31))) {
 			retval = ERROR_OK;
 		} else {
-			retval = aice_read_reg_64(aice, reg_arch_info->num,
-					&(reg_arch_info->value_64));
+			retval = aice_read_reg_64(aice, reg_arch_info->num, &val);
 		}
+		buf_set_u64(reg_arch_info->value, 0, 64, val);
 	}
 
 	if (retval == ERROR_OK) {
@@ -322,11 +322,13 @@ static int nds32_set_core_reg(struct reg *reg, uint8_t *buf)
 		buf_set_u32(reg->value, 0, 32, 0);
 	} else {
 		buf_set_u32(reg->value, 0, 32, value);
-		aice_write_register(aice, mapped_regnum, reg_arch_info->value);
+		uint32_t val = buf_get_u32(reg_arch_info->value, 0, 32);
+		aice_write_register(aice, mapped_regnum, val);
 
 		/* After set value to registers, read the value from target
 		 * to avoid W1C inconsistency. */
-		aice_read_register(aice, mapped_regnum, &(reg_arch_info->value));
+		aice_read_register(aice, mapped_regnum, &val);
+		buf_set_u32(reg_arch_info->value, 0, 32, val);
 	}
 
 	reg->valid = true;
@@ -426,14 +428,14 @@ static struct reg_cache *nds32_build_reg_cache(struct target *target,
 		reg_list[i].reg_data_type = calloc(sizeof(struct reg_data_type), 1);
 
 		if (FD0 <= reg_arch_info[i].num && reg_arch_info[i].num <= FD31) {
-			reg_list[i].value = &(reg_arch_info[i].value_64);
+			reg_list[i].value = reg_arch_info[i].value;
 			reg_list[i].type = &nds32_reg_access_type_64;
 
 			reg_list[i].reg_data_type->type = REG_TYPE_IEEE_DOUBLE;
 			reg_list[i].reg_data_type->id = "ieee_double";
 			reg_list[i].group = "float";
 		} else {
-			reg_list[i].value = &(reg_arch_info[i].value);
+			reg_list[i].value = reg_arch_info[i].value;
 			reg_list[i].type = &nds32_reg_access_type;
 			reg_list[i].group = "general";
 
@@ -1549,10 +1551,14 @@ int nds32_restore_context(struct target *target)
 						i, buf_get_u32(reg->value, 0, 32));
 
 				reg_arch_info = reg->arch_info;
-				if (FD0 <= reg_arch_info->num && reg_arch_info->num <= FD31)
-					aice_write_reg_64(aice, reg_arch_info->num, reg_arch_info->value_64);
-				else
-					aice_write_register(aice, reg_arch_info->num, reg_arch_info->value);
+				if (FD0 <= reg_arch_info->num && reg_arch_info->num <= FD31) {
+					uint64_t val = buf_get_u64(reg_arch_info->value, 0, 64);
+					aice_write_reg_64(aice, reg_arch_info->num, val);
+				} else {
+					uint32_t val = buf_get_u32(reg_arch_info->value, 0, 32);
+					aice_write_register(aice, reg_arch_info->num, val);
+				}
+
 				reg->valid = true;
 				reg->dirty = false;
 			}
