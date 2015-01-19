@@ -461,9 +461,6 @@ int ulink_write_firmware_section(struct ulink *device,
 	LOG_DEBUG("section %02i at addr 0x%04x (size 0x%04x)", section_index, addr,
 		size);
 
-	if (data == NULL)
-		return ERROR_FAIL;
-
 	/* Copy section contents to local buffer */
 	ret = image_read_section(firmware_image, section_index, 0, size, data,
 			&size_read);
