@@ -781,6 +781,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		break;
 	case 0x431:
 	case 0x433:
+	case 0x421:
 		max_flash_size_in_kb = 512;
 		break;
 	default:
@@ -929,7 +930,15 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 			break;
 		}
 		break;
+	case 0x421:
+		device_str = "STM32F446";
 
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "A";
+			break;
+		}
+		break;
 	case 0x423:
 	case 0x431:
 	case 0x433:
