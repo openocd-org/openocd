@@ -225,6 +225,7 @@ static int cortex_a_init_debug_access(struct target *target)
 							     0);
 		break;
 
+	case CORTEX_A5_PARTNUM:
 	case CORTEX_A8_PARTNUM:
 	case CORTEX_A9_PARTNUM:
 	default:
