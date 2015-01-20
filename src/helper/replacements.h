@@ -135,7 +135,6 @@ static inline unsigned usleep(unsigned int usecs)
 /* Windows specific */
 #ifdef _WIN32
 
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <time.h>
 
