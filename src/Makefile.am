@@ -74,7 +74,7 @@ libopenocd_la_LIBADD = \
 	$(top_builddir)/src/rtos/librtos.la \
 	$(top_builddir)/src/helper/libhelper.la \
 	$(LIBFTDI_LIBS) $(MINGWLDADD) \
-	$(HIDAPI_LIBS) $(LIBUSB1_LIBS) $(LIBUSB0_LIBS)
+	$(HIDAPI_LIBS) $(LIBUSB0_LIBS) $(LIBUSB1_LIBS)
 
 STARTUP_TCL_SRCS = \
 	$(srcdir)/helper/startup.tcl \
