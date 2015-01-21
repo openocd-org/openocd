@@ -163,8 +163,10 @@ static int cmsis_dap_usb_open(void)
 	int i;
 	struct hid_device_info *devs, *cur_dev;
 	unsigned short target_vid, target_pid;
+	wchar_t *target_serial = NULL;
 
 	bool found = false;
+	bool serial_found = false;
 
 	target_vid = 0;
 	target_pid = 0;
@@ -204,8 +206,10 @@ static int cmsis_dap_usb_open(void)
 			/* we have found an adapter, so exit further checks */
 			/* check serial number matches if given */
 			if (cmsis_dap_serial != NULL) {
-				if (wcscmp(cmsis_dap_serial, cur_dev->serial_number) == 0)
+				if (wcscmp(cmsis_dap_serial, cur_dev->serial_number) == 0) {
+					serial_found = true;
 					break;
+				}
 			} else
 				break;
 		}
@@ -216,6 +220,8 @@ static int cmsis_dap_usb_open(void)
 	if (NULL != cur_dev) {
 		target_vid = cur_dev->vendor_id;
 		target_pid = cur_dev->product_id;
+		if (serial_found)
+			target_serial = cmsis_dap_serial;
 	}
 
 	hid_free_enumeration(devs);
@@ -230,7 +236,7 @@ static int cmsis_dap_usb_open(void)
 		return ERROR_FAIL;
 	}
 
-	dev = hid_open(target_vid, target_pid, NULL);
+	dev = hid_open(target_vid, target_pid, target_serial);
 
 	if (dev == NULL) {
 		LOG_ERROR("unable to open CMSIS-DAP device");
