@@ -5777,6 +5777,22 @@ the flash clock.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} xmc4xxx
+All members of the XMC4xxx microcontroller family from Infineon.
+This driver does not require the chip and bus width to be specified.
+
+Some xmc4xxx-specific commands are defined:
+
+@deffn Command {xmc4xxx flash_password} bank_id passwd1 passwd2
+Saves flash protection passwords which are used to lock the user flash
+@end deffn
+
+@deffn Command {xmc4xxx flash_unprotect} bank_id user_level[0-1]
+Removes Flash write protection from the selected user bank
+@end deffn
+
+@end deffn
+
 @section NAND Flash Commands
 @cindex NAND
 

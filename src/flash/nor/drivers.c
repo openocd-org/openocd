@@ -62,6 +62,7 @@ extern struct flash_driver mrvlqspi_flash;
 extern struct flash_driver psoc4_flash;
 extern struct flash_driver sim3x_flash;
 extern struct flash_driver jtagspi_flash;
+extern struct flash_driver xmc4xxx_flash;
 
 /**
  * The list of built-in flash drivers.
@@ -108,6 +109,7 @@ static struct flash_driver *flash_drivers[] = {
 	&psoc4_flash,
 	&sim3x_flash,
 	&jtagspi_flash,
+	&xmc4xxx_flash,
 	NULL,
 };
 
