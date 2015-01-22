@@ -6415,7 +6415,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_bp_command,
 		.mode = COMMAND_EXEC,
 		.help = "list or set hardware or software breakpoint",
-		.usage = "<address> [<asid>]<length> ['hw'|'hw_ctx']",
+		.usage = "<address> [<asid>] <length> ['hw'|'hw_ctx']",
 	},
 	{
 		.name = "rbp",
