@@ -95,8 +95,8 @@
 /* option bytes */
 #define OPTION_BYTES_ADDRESS 0x1FF80000
 
-#define OPTION_BYTE_0_PR1 0x015500AA
-#define OPTION_BYTE_0_PR0 0x01FF0011
+#define OPTION_BYTE_0_PR1 0xFFFF0000
+#define OPTION_BYTE_0_PR0 0xFF5500AA
 
 static int stm32lx_unlock_program_memory(struct flash_bank *bank);
 static int stm32lx_lock_program_memory(struct flash_bank *bank);
@@ -1222,6 +1222,26 @@ static int stm32lx_wait_status_busy(struct flash_bank *bank, int timeout)
 	return retval;
 }
 
+static int stm32lx_obl_launch(struct flash_bank *bank)
+{
+	struct target *target = bank->target;
+	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
+	int retval;
+
+	/* This will fail as the target gets immediately rebooted */
+	target_write_u32(target, stm32lx_info->flash_base + FLASH_PECR,
+			 FLASH_PECR__OBL_LAUNCH);
+
+	size_t tries = 10;
+	do {
+		target_halt(target);
+		retval = target_poll(target);
+	} while (--tries > 0 &&
+		 (retval != ERROR_OK || target->state != TARGET_HALTED));
+
+	return tries ? ERROR_OK : ERROR_FAIL;
+}
+
 static int stm32lx_mass_erase(struct flash_bank *bank)
 {
 	int retval;
@@ -1240,15 +1260,30 @@ static int stm32lx_mass_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* mass erase flash memory, write 0x015500AA option byte address 0*/
-	/* pass the RDP privilege to 1 */
+	/* mass erase flash memory */
+	/* set the RDP protection level to 1 */
 	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR1);
+	if (retval != ERROR_OK)
+		return retval;
 
-	/* restore the RDP privilege to 0 */
+	retval = stm32lx_obl_launch(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32lx_unlock_options_bytes(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* set the RDP protection level to 0 */
 	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR0);
+	if (retval != ERROR_OK)
+		return retval;
 
-	/* the mass erase occur when the privilege go back to 0 */
 	retval = stm32lx_wait_status_busy(bank, 30000);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32lx_obl_launch(bank);
 	if (retval != ERROR_OK)
 		return retval;
 
