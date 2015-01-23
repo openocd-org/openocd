@@ -104,7 +104,7 @@ static int stm32lx_enable_write_half_page(struct flash_bank *bank);
 static int stm32lx_erase_sector(struct flash_bank *bank, int sector);
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank);
 static int stm32lx_mass_erase(struct flash_bank *bank);
-static int stm32lx_wait_status_busy(struct flash_bank *bank, int timeout);
+static int stm32lx_wait_until_bsy_clear_timeout(struct flash_bank *bank, int timeout);
 
 struct stm32lx_rev {
 	uint16_t rev;
@@ -1105,38 +1105,7 @@ static inline int stm32lx_get_flash_status(struct flash_bank *bank, uint32_t *st
 
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank)
 {
-	struct target *target = bank->target;
-	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
-	uint32_t status;
-	int retval = ERROR_OK;
-	int timeout = 100;
-
-	/* wait for busy to clear */
-	for (;;) {
-		retval = target_read_u32(target, stm32lx_info->flash_base + FLASH_SR, &status);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if ((status & FLASH_SR__BSY) == 0)
-			break;
-		if (timeout-- <= 0) {
-			LOG_ERROR("timed out waiting for flash");
-			return ERROR_FAIL;
-		}
-		alive_sleep(1);
-	}
-
-	if (status & FLASH_SR__WRPERR) {
-		LOG_ERROR("access denied / write protected");
-		retval = ERROR_FAIL;
-	}
-
-	if (status & FLASH_SR__PGAERR) {
-		LOG_ERROR("invalid program address");
-		retval = ERROR_FAIL;
-	}
-
-	return retval;
+	return stm32lx_wait_until_bsy_clear_timeout(bank, 100);
 }
 
 static int stm32lx_unlock_options_bytes(struct flash_bank *bank)
@@ -1182,17 +1151,15 @@ static int stm32lx_unlock_options_bytes(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int stm32lx_wait_status_busy(struct flash_bank *bank, int timeout)
+static int stm32lx_wait_until_bsy_clear_timeout(struct flash_bank *bank, int timeout)
 {
 	struct target *target = bank->target;
-	uint32_t status;
-
-	int retval = ERROR_OK;
 	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
+	uint32_t status;
+	int retval = ERROR_OK;
 
 	/* wait for busy to clear */
 	for (;;) {
-
 		retval = stm32lx_get_flash_status(bank, &status);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1209,7 +1176,12 @@ static int stm32lx_wait_status_busy(struct flash_bank *bank, int timeout)
 	}
 
 	if (status & FLASH_SR__WRPERR) {
-		LOG_ERROR("stm32lx device protected");
+		LOG_ERROR("access denied / write protected");
+		retval = ERROR_FAIL;
+	}
+
+	if (status & FLASH_SR__PGAERR) {
+		LOG_ERROR("invalid program address");
 		retval = ERROR_FAIL;
 	}
 
@@ -1279,7 +1251,7 @@ static int stm32lx_mass_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32lx_wait_status_busy(bank, 30000);
+	retval = stm32lx_wait_until_bsy_clear_timeout(bank, 30000);
 	if (retval != ERROR_OK)
 		return retval;
 
