@@ -136,17 +136,22 @@ struct stm32lx_flash_bank {
 };
 
 static const struct stm32lx_rev stm32_416_revs[] = {
-	{ 0x1000, "A" }, { 0x1008, "Y" }, { 0x1018, "X" }, { 0x1038, "W" },
-	{ 0x1078, "V" },
+	{ 0x1000, "A" }, { 0x1008, "Y" }, { 0x1038, "W" }, { 0x1078, "V" },
 };
 static const struct stm32lx_rev stm32_417_revs[] = {
 	{ 0x1000, "A" }, { 0x1008, "Z" },
 };
 static const struct stm32lx_rev stm32_427_revs[] = {
-	{ 0x1018, "A" },
+	{ 0x1000, "A" }, { 0x1018, "Y" }, { 0x1038, "X" },
+};
+static const struct stm32lx_rev stm32_429_revs[] = {
+	{ 0x1000, "A" }, { 0x1018, "Z" },
 };
 static const struct stm32lx_rev stm32_436_revs[] = {
 	{ 0x1000, "A" }, { 0x1008, "Z" }, { 0x1018, "Y" },
+};
+static const struct stm32lx_rev stm32_437_revs[] = {
+	{ 0x1000, "A" },
 };
 
 static const struct stm32lx_part_info stm32lx_parts[] = {
@@ -154,7 +159,7 @@ static const struct stm32lx_part_info stm32lx_parts[] = {
 		.id					= 0x416,
 		.revs				= stm32_416_revs,
 		.num_revs			= ARRAY_SIZE(stm32_416_revs),
-		.device_str			= "STM32L1xx (Low/Medium Density)",
+		.device_str			= "STM32L1xx (Cat.1 - Low/Medium Density)",
 		.page_size			= 256,
 		.pages_per_sector	= 16,
 		.max_flash_size_kb	= 128,
@@ -178,7 +183,7 @@ static const struct stm32lx_part_info stm32lx_parts[] = {
 		.id					= 0x427,
 		.revs				= stm32_427_revs,
 		.num_revs			= ARRAY_SIZE(stm32_427_revs),
-		.device_str			= "STM32L1xx (Medium+ Density)",
+		.device_str			= "STM32L1xx (Cat.3 - Medium+ Density)",
 		.page_size			= 256,
 		.pages_per_sector	= 16,
 		.max_flash_size_kb	= 256,
@@ -188,10 +193,22 @@ static const struct stm32lx_part_info stm32lx_parts[] = {
 		.fsize_base			= 0x1FF800CC,
 	},
 	{
+		.id					= 0x429,
+		.revs				= stm32_429_revs,
+		.num_revs			= ARRAY_SIZE(stm32_429_revs),
+		.device_str			= "STM32L1xx (Cat.2)",
+		.page_size			= 256,
+		.pages_per_sector	= 16,
+		.max_flash_size_kb	= 128,
+		.has_dual_banks		= false,
+		.flash_base			= 0x40023C00,
+		.fsize_base			= 0x1FF8004C,
+	},
+	{
 		.id					= 0x436,
 		.revs				= stm32_436_revs,
 		.num_revs			= ARRAY_SIZE(stm32_436_revs),
-		.device_str			= "STM32L1xx (Medium+/High Density)",
+		.device_str			= "STM32L1xx (Cat.4/Cat.3 - Medium+/High Density)",
 		.page_size			= 256,
 		.pages_per_sector	= 16,
 		.max_flash_size_kb	= 384,
@@ -202,7 +219,9 @@ static const struct stm32lx_part_info stm32lx_parts[] = {
 	},
 	{
 		.id					= 0x437,
-		.device_str			= "STM32L1xx (Medium+/High Density)",
+		.revs				= stm32_437_revs,
+		.num_revs			= ARRAY_SIZE(stm32_437_revs),
+		.device_str			= "STM32L1xx (Cat.5/Cat.6)",
 		.page_size			= 256,
 		.pages_per_sector	= 16,
 		.max_flash_size_kb	= 512,
