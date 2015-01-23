@@ -4922,7 +4922,7 @@ comamnd or the flash driver then it defaults to 0xff.
 @end deffn
 
 @anchor{program}
-@deffn Command {program} filename [verify] [reset] [offset]
+@deffn Command {program} filename [verify] [reset] [exit] [offset]
 This is a helper script that simplifies using OpenOCD as a standalone
 programmer. The only required parameter is @option{filename}, the others are optional.
 @xref{Flash Programming}.
@@ -5928,7 +5928,7 @@ Programming can be acheived by either using GDB @ref{programmingusinggdb,,Progra
 or using the cmds given in @ref{flashprogrammingcommands,,Flash Programming Commands}.
 
 @*To simplify using the flash cmds directly a jimtcl script is available that handles the programming and verify stage.
-OpenOCD will program/verify/reset the target and shutdown.
+OpenOCD will program/verify/reset the target and optionally shutdown.
 
 The script is executed as follows and by default the following actions will be peformed.
 @enumerate
@@ -5937,7 +5937,7 @@ The script is executed as follows and by default the following actions will be p
 @item @code{flash write_image} is called to erase and write any flash using the filename given.
 @item @code{verify_image} is called if @option{verify} parameter is given.
 @item @code{reset run} is called if @option{reset} parameter is given.
-@item OpenOCD is shutdown.
+@item OpenOCD is shutdown if @option{exit} parameter is given.
 @end enumerate
 
 An example of usage is given below. @xref{program}.
@@ -5946,11 +5946,11 @@ An example of usage is given below. @xref{program}.
 # program and verify using elf/hex/s19. verify and reset
 # are optional parameters
 openocd -f board/stm32f3discovery.cfg \
-	-c "program filename.elf verify reset"
+	-c "program filename.elf verify reset exit"
 
 # binary files need the flash address passing
 openocd -f board/stm32f3discovery.cfg \
-	-c "program filename.bin 0x08000000"
+	-c "program filename.bin exit 0x08000000"
 @end example
 
 @node NAND Flash Commands
