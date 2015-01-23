@@ -42,6 +42,7 @@ static void buspirate_path_move(int num_states, tap_state_t *path);
 static void buspirate_runtest(int num_cycles);
 static void buspirate_scan(bool ir_scan, enum scan_type type,
 	uint8_t *buffer, int scan_size, struct scan_command *command);
+static void buspirate_stableclocks(int num_cycles);
 
 #define CMD_UNKNOWN       0x00
 #define CMD_PORT_MODE     0x01
@@ -191,6 +192,10 @@ static int buspirate_execute_queue(void)
 			DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
 			buspirate_tap_execute();
 			jtag_sleep(cmd->cmd.sleep->us);
+				break;
+		case JTAG_STABLECLOCKS:
+			DEBUG_JTAG_IO("stable clock %i cycles", cmd->cmd.stableclocks->num_cycles);
+			buspirate_stableclocks(cmd->cmd.stableclocks->num_cycles);
 				break;
 		default:
 			LOG_ERROR("BUG: unknown JTAG command type encountered");
@@ -602,6 +607,16 @@ static void buspirate_scan(bool ir_scan, enum scan_type type,
 		buspirate_state_move();
 }
 
+static void buspirate_stableclocks(int num_cycles)
+{
+	int i;
+	int tms = (tap_get_state() == TAP_RESET ? 1 : 0);
+
+	buspirate_tap_make_space(0, num_cycles);
+
+	for (i = 0; i < num_cycles; i++)
+		buspirate_tap_append(tms, 0);
+}
 
 /************************* TAP related stuff **********/
 
