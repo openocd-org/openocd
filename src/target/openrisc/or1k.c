@@ -29,6 +29,7 @@
 #include <target/target.h>
 #include <target/breakpoints.h>
 #include <target/target_type.h>
+#include <helper/time_support.h>
 #include <helper/fileio.h>
 #include "or1k_tap.h"
 #include "or1k.h"
@@ -1205,6 +1206,53 @@ static int or1k_checksum_memory(struct target *target, uint32_t address,
 	return ERROR_FAIL;
 }
 
+static int or1k_profiling(struct target *target, uint32_t *samples,
+		uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
+{
+	struct timeval timeout, now;
+	struct or1k_common *or1k = target_to_or1k(target);
+	struct or1k_du *du_core = or1k_to_du(or1k);
+	int retval = ERROR_OK;
+
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, seconds, 0);
+
+	LOG_INFO("Starting or1k profiling. Sampling npc as fast as we can...");
+
+	/* Make sure the target is running */
+	target_poll(target);
+	if (target->state == TARGET_HALTED)
+		retval = target_resume(target, 1, 0, 0, 0);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Error while resuming target");
+		return retval;
+	}
+
+	uint32_t sample_count = 0;
+
+	for (;;) {
+		uint32_t reg_value;
+		retval = du_core->or1k_jtag_read_cpu(&or1k->jtag, GROUP0 + 16 /* NPC */, 1, &reg_value);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Error while reading NPC");
+			return retval;
+		}
+
+		samples[sample_count++] = reg_value;
+
+		gettimeofday(&now, NULL);
+		if ((sample_count >= max_num_samples) ||
+			((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec))) {
+			LOG_INFO("Profiling completed. %" PRIu32 " samples.", sample_count);
+			break;
+		}
+	}
+
+	*num_samples = sample_count;
+	return retval;
+}
+
 COMMAND_HANDLER(or1k_tap_select_command_handler)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -1406,4 +1454,6 @@ struct target_type or1k_target = {
 	.examine = or1k_examine,
 
 	.get_gdb_fileio_info = or1k_get_gdb_fileio_info,
+
+	.profiling = or1k_profiling,
 };
