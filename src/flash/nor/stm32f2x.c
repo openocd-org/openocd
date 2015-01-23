@@ -928,6 +928,14 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		case 0x1003:
 			rev_str = "Y";
 			break;
+
+		case 0x1007:
+			rev_str = "1";
+			break;
+
+		case 0x2001:
+			rev_str = "3";
+			break;
 		}
 		break;
 	case 0x421:
