@@ -5562,6 +5562,15 @@ the flash driver.
 @example
 flash bank $_FLASHNAME stm32lx 0 0x20000 0 0 $_TARGETNAME
 @end example
+
+Some stm32lx-specific commands are defined:
+
+@deffn Command {stm32lx mass_erase} num
+Mass erases the entire stm32lx device (all flash banks and EEPROM
+data). This is the only way to unlock a protected flash (unless RDP
+Level is 2 which can't be unlocked at all).
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} str7x
