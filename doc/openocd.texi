@@ -5551,16 +5551,18 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 
 @deffn {Flash Driver} stm32lx
 All members of the STM32L microcontroller families from ST Microelectronics
-include internal flash and use ARM Cortex-M3 cores.
+include internal flash and use ARM Cortex-M3 and Cortex-M0+ cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
 Note that some devices have been found that have a flash size register that contains
 an invalid value, to workaround this issue you can override the probed value used by
-the flash driver.
+the flash driver. If you use 0 as the bank base address, it tells the
+driver to autodetect the bank location assuming you're configuring the
+second bank.
 
 @example
-flash bank $_FLASHNAME stm32lx 0 0x20000 0 0 $_TARGETNAME
+flash bank $_FLASHNAME stm32lx 0x08000000 0x20000 0 0 $_TARGETNAME
 @end example
 
 Some stm32lx-specific commands are defined:

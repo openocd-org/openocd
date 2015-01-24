@@ -715,12 +715,12 @@ static int stm32lx_probe(struct flash_bank *bank)
 		 */
 		second_bank_base = base_address +
 			stm32lx_info->part_info->first_bank_size_kb * 1024;
-		if (bank->base == second_bank_base) {
+		if (bank->base == second_bank_base || !bank->base) {
 			/* This is the second bank  */
 			base_address = second_bank_base;
 			flash_size_in_kb = flash_size_in_kb -
 				stm32lx_info->part_info->first_bank_size_kb;
-		} else if (bank->base == 0 || bank->base == base_address) {
+		} else if (bank->base == base_address) {
 			/* This is the first bank */
 			flash_size_in_kb = stm32lx_info->part_info->first_bank_size_kb;
 		} else {
