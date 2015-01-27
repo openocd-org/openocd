@@ -39,7 +39,11 @@ If you are connecting a particular adapter with some specific target,
 you need to source both the jtag interface and the target configs,
 e.g.:
 
-  openocd -f interface/ftdi/jtagkey2.cfg -f target/ti_calypso.cfg
+  openocd -f interface/ftdi/jtagkey2.cfg -c "transport select jtag" \
+          -f target/ti_calypso.cfg
+
+  openocd -f interface/stlink-v2-1.cfg -c "transport select hla_swd" \
+          -f target/stm32l0.cfg
 
 NB: when using an FTDI-based adapter you should prefer configs in the
 ftdi directory; the old configs for the ft2232 are deprecated.
