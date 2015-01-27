@@ -5234,10 +5234,10 @@ supported.}
 @end deffn
 
 @deffn {Flash Driver} lpc2000
-All members of the LPC11(x)00 and LPC1300 microcontroller families and most members
-of the LPC1700, LPC1800, LPC2000 and LPC4300 microcontroller families from NXP
-include internal flash and use Cortex-M0 (LPC11(x)00), Cortex-M3 (LPC1300, LPC1700,
-LPC1800), Cortex-M4 (LPC4300) or ARM7TDMI (LPC2000) cores.
+This is the driver to support internal flash of all members of the
+LPC11(x)00 and LPC1300 microcontroller families and most members of
+the LPC800, LPC1500, LPC1700, LPC1800, LPC2000, LPC4300 and LPC54100
+microcontroller families from NXP.
 
 @quotation Note
 There are LPC2000 devices which are not supported by the @var{lpc2000}
@@ -5256,9 +5256,12 @@ which must appear in the following order:
 @option{lpc1700} (LPC175x and LPC176x)
 @option{lpc4300} - available also as @option{lpc1800} alias (LPC18x[2357] and
 LPC43x[2357])
+@option{lpc800} (LPC8xx)
 @option{lpc1100} (LPC11(x)xx and LPC13xx)
+@option{lpc1500} (LPC15xx)
+@option{lpc54100} (LPC541xx)
 or @option{auto} - automatically detects flash variant and size for LPC11(x)00,
-LPC1300 and LPC1700
+LPC8xx, LPC13xx and LPC17xx
 @item @var{clock_kHz} ... the frequency, in kiloHertz,
 at which the core is running
 @item @option{calc_checksum} ... optional (but you probably want to provide this!),
