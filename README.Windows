@@ -7,6 +7,9 @@ recommended as it doesn't provide enough C99 compatibility).
 Alternatively, one can cross-compile it using MinGW-w64 on a *nix
 host. See README for the generic instructions.
 
+Also, the MSYS2 project provides both ready-made binaries and an easy
+way to self-compile from their software repository out of the box.
+
 Native MinGW-w64/MSYS compilation
 -----------------------------
 
@@ -22,12 +25,20 @@ installation.
 USB adapters
 ------------
 
-You usually need to have WinUSB.sys (or libusbK.sys) driver installed
-for a USB-based adapter. Some vendor software (e.g. for ST-LINKv2)
-does it on its own. For the other cases the easiest way to assign
-WinUSB to a device is to use the latest Zadig installer:
+For the adapters that use a HID-based protocol, e.g. CMSIS-DAP, you do
+not need to perform any additional configuration.
+
+For all the others you usually need to have WinUSB.sys (or
+libusbK.sys) driver installed. Some vendor software (e.g. for
+ST-LINKv2) does it on its own. For the other cases the easiest way to
+assign WinUSB to a device is to use the latest Zadig installer:
 
   http://zadig.akeo.ie
+
+When using a composite USB device, it's often necessary to assign
+WinUSB.sys to the composite parent instead of the specific
+interface. To do that one needs to activate an advanced option in the
+Zadig installer.
 
 For the old drivers that use libusb-0.1 API you might need to link
 against libusb-win32 headers and install the corresponding driver with
