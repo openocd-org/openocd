@@ -129,62 +129,13 @@ struct nrf51_device_spec {
 };
 
 static const struct nrf51_device_spec nrf51_known_devices_table[] = {
+	/* nRF51822 Devices (IC rev 1). */
 	{
 		.hwid		= 0x001D,
 		.variant	= "QFAA",
 		.build_code	= "CA/C0",
 		.flash_size_kb	= 256,
 	},
-	{
-		.hwid		= 0x002A,
-		.variant	= "QFAA",
-		.build_code	= "FA",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0044,
-		.variant	= "QFAA",
-		.build_code	= "GC",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x003C,
-		.variant	= "QFAA",
-		.build_code	= "G0",
-		.flash_size_kb	= 256,
-	},
-
-	{
-		.hwid		= 0x0020,
-		.variant	= "CEAA",
-		.build_code	= "BA",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x002F,
-		.variant	= "CEAA",
-		.build_code	= "B0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0040,
-		.variant	= "CEAA",
-		.build_code	= "CA",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0047,
-		.variant	= "CEAA",
-		.build_code	= "DA",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x004D,
-		.variant	= "CEAA",
-		.build_code	= "D0",
-		.flash_size_kb	= 256,
-	},
-
 	{
 		.hwid		= 0x0026,
 		.variant	= "QFAB",
@@ -198,12 +149,193 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 		.flash_size_kb	= 128,
 	},
 	{
-		.hwid		= 0x004C,
-		.variant	= "QFAB",
+		.hwid		= 0x0020,
+		.variant	= "CEAA",
+		.build_code	= "BA",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x002F,
+		.variant	= "CEAA",
 		.build_code	= "B0",
-		.flash_size_kb	= 128,
+		.flash_size_kb	= 256,
 	},
 
+	/* nRF51822 Devices (IC rev 2). */
+	{
+		.hwid		= 0x002A,
+		.variant	= "QFAA",
+		.build_code	= "FA0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0044,
+		.variant	= "QFAA",
+		.build_code	= "GC0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x003C,
+		.variant	= "QFAA",
+		.build_code	= "Gx0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x004C,
+		.variant	= "QFAB",
+		.build_code	= "Bx0",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x0040,
+		.variant	= "CEAA",
+		.build_code	= "CA0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0047,
+		.variant	= "CEAA",
+		.build_code	= "DA0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x004D,
+		.variant	= "CEAA",
+		.build_code	= "D00",
+		.flash_size_kb	= 256,
+	},
+
+	/* nRF51822 Devices (IC rev 3). */
+	{
+		.hwid		= 0x0072,
+		.variant	= "QFAA",
+		.build_code	= "Hx0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x007B,
+		.variant	= "QFAB",
+		.build_code	= "Cx0",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x0083,
+		.variant	= "QFAC",
+		.build_code	= "Ax0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x007D,
+		.variant	= "CDAB",
+		.build_code	= "Ax0",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x0079,
+		.variant	= "CEAA",
+		.build_code	= "Ex0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0087,
+		.variant	= "CFAC",
+		.build_code	= "Ax0",
+		.flash_size_kb	= 256,
+	},
+
+	/* nRF51422 Devices (IC rev 1). */
+	{
+		.hwid		= 0x001E,
+		.variant	= "QFAA",
+		.build_code	= "CA",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0024,
+		.variant	= "QFAA",
+		.build_code	= "C0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0031,
+		.variant	= "CEAA",
+		.build_code	= "A0A",
+		.flash_size_kb	= 256,
+	},
+
+	/* nRF51422 Devices (IC rev 2). */
+	{
+		.hwid		= 0x002D,
+		.variant	= "QFAA",
+		.build_code	= "DAA",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x002E,
+		.variant	= "QFAA",
+		.build_code	= "Ex0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0061,
+		.variant	= "QFAB",
+		.build_code	= "A00",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x0050,
+		.variant	= "CEAA",
+		.build_code	= "Bx0",
+		.flash_size_kb	= 256,
+	},
+
+	/* nRF51422 Devices (IC rev 3). */
+	{
+		.hwid		= 0x0073,
+		.variant	= "QFAA",
+		.build_code	= "Fx0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x007C,
+		.variant	= "QFAB",
+		.build_code	= "Bx0",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x0085,
+		.variant	= "QFAC",
+		.build_code	= "Ax0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x007E,
+		.variant	= "CDAB",
+		.build_code	= "Ax0",
+		.flash_size_kb	= 128,
+	},
+	{
+		.hwid		= 0x007A,
+		.variant	= "CEAA",
+		.build_code	= "Cx0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0088,
+		.variant	= "CFAC",
+		.build_code	= "Ax0",
+		.flash_size_kb	= 256,
+	},
+
+	/* Some early nRF51-DK (PCA10028) & nRF51-Dongle (PCA10031) boards
+	   with built-in jlink seem to use engineering samples not listed
+	   in the nRF51 Series Compatibility Matrix V1.0. */
+	{
+		.hwid		= 0x0071,
+		.variant	= "QFAC",
+		.build_code	= "AB",
+		.flash_size_kb	= 256,
+	},
 };
 
 static int nrf51_bank_is_probed(struct flash_bank *bank)
