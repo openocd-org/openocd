@@ -148,7 +148,7 @@ int armv7m_restore_context(struct target *target)
 	if (armv7m->pre_restore_context)
 		armv7m->pre_restore_context(target);
 
-	for (i = ARMV7M_NUM_REGS - 1; i >= 0; i--) {
+	for (i = cache->num_regs - 1; i >= 0; i--) {
 		if (cache->reg_list[i].dirty) {
 			armv7m->arm.write_core_reg(target, &cache->reg_list[i], i,
 						   ARM_MODE_ANY, cache->reg_list[i].value);
@@ -302,7 +302,7 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 	int i;
 
 	if (reg_class == REG_CLASS_ALL)
-		*reg_list_size = ARMV7M_NUM_REGS;
+		*reg_list_size = armv7m->arm.core_cache->num_regs;
 	else
 		*reg_list_size = ARMV7M_NUM_CORE_REGS;
 
@@ -368,7 +368,7 @@ int armv7m_start_algorithm(struct target *target,
 
 	/* refresh core register cache
 	 * Not needed if core register cache is always consistent with target process state */
-	for (unsigned i = 0; i < ARMV7M_NUM_REGS; i++) {
+	for (unsigned i = 0; i < armv7m->arm.core_cache->num_regs; i++) {
 
 		armv7m_algorithm_info->context[i] = buf_get_u32(
 				armv7m->arm.core_cache->reg_list[i].value,
@@ -503,7 +503,7 @@ int armv7m_wait_algorithm(struct target *target,
 		}
 	}
 
-	for (int i = ARMV7M_NUM_REGS - 1; i >= 0; i--) {
+	for (int i = armv7m->arm.core_cache->num_regs - 1; i >= 0; i--) {
 		uint32_t regvalue;
 		regvalue = buf_get_u32(armv7m->arm.core_cache->reg_list[i].value, 0, 32);
 		if (regvalue != armv7m_algorithm_info->context[i]) {

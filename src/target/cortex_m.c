@@ -1885,6 +1885,17 @@ int cortex_m_examine(struct target *target)
 			armv7m->arm.is_armv6m = true;
 		}
 
+		if (armv7m->fp_feature != FPv4_SP &&
+		    armv7m->arm.core_cache->num_regs > ARMV7M_NUM_CORE_REGS_NOFP) {
+			/* free unavailable FPU registers */
+			size_t idx;
+			for (idx = ARMV7M_NUM_CORE_REGS_NOFP;
+			     idx < armv7m->arm.core_cache->num_regs;
+			     idx++)
+				free(armv7m->arm.core_cache->reg_list[idx].value);
+			armv7m->arm.core_cache->num_regs = ARMV7M_NUM_CORE_REGS_NOFP;
+		}
+
 		if (i == 4 || i == 3) {
 			/* Cortex-M3/M4 has 4096 bytes autoincrement range */
 			armv7m->dap.tar_autoincr_block = (1 << 12);
