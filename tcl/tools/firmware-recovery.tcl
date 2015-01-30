@@ -6,6 +6,7 @@ set known_boards {
     "asus-rt-n66u		ASUS RT-N66U"
     "linksys-wrt54gl		Linksys WRT54GL v1.1"
     "netgear-dg834v3		Netgear DG834G v3"
+    "tp-link_tl-mr3020		TP-LINK TL-MR3020"
     "bt-homehubv1		BT HomeHub v1"
 }
 
