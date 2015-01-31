@@ -256,6 +256,8 @@ static struct jlink *jlink_handle;
 static uint16_t vids[] = { 0x1366, 0x1366, 0x1366, 0x1366, 0x1366, 0 };
 static uint16_t pids[] = { 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0 };
 
+static char *jlink_serial;
+
 static uint32_t jlink_caps;
 static uint32_t jlink_hw_type;
 
@@ -1019,6 +1021,19 @@ COMMAND_HANDLER(jlink_pid_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(jlink_serial_command)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Need exactly one argument to jlink_serial");
+		return ERROR_FAIL;
+	}
+	if (jlink_serial)
+		free(jlink_serial);
+	jlink_serial = strdup(CMD_ARGV[0]);
+
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(jlink_handle_jlink_info_command)
 {
 	if (jlink_get_version_info() == ERROR_OK) {
@@ -1334,6 +1349,12 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.handler = &jlink_pid_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the pid of the interface we want to use",
+	},
+	{
+		.name = "serial",
+		.handler = &jlink_serial_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the serial number of the J-Link adapter we want to use"
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1744,7 +1765,7 @@ static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *ds
 static struct jlink *jlink_usb_open()
 {
 	struct jtag_libusb_device_handle *devh;
-	if (jtag_libusb_open(vids, pids, NULL, &devh) != ERROR_OK)
+	if (jtag_libusb_open(vids, pids, jlink_serial, &devh) != ERROR_OK)
 		return NULL;
 
 	/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS
@@ -1776,7 +1797,7 @@ static struct jlink *jlink_usb_open()
 	/* reopen jlink after usb_reset
 	 * on win32 this may take a second or two to re-enumerate */
 	int retval;
-	while ((retval = jtag_libusb_open(vids, pids, NULL, &devh)) != ERROR_OK) {
+	while ((retval = jtag_libusb_open(vids, pids, jlink_serial, &devh)) != ERROR_OK) {
 		usleep(1000);
 		timeout--;
 		if (!timeout)

@@ -2953,6 +2953,16 @@ Save the current configuration to the internal persistent storage.
 @deffn {Config} {jlink pid} val
 Set the USB PID of the interface. As a configuration command, it can be used only before 'init'.
 @end deffn
+@deffn {Config} {jlink serial} serial-number
+Set the @var{serial-number} of the interface, in case more than one adapter is connected to the host.
+If not specified, serial numbers are not considered.
+
+Note that there may be leading zeros in the @var{serial-number} string
+that will not show in the Segger software, but must be specified here.
+Debug level 3 output contains serial numbers if there is a mismatch.
+
+As a configuration command, it can be used only before 'init'.
+@end deffn
 @end deffn
 
 @deffn {Interface Driver} {parport}
