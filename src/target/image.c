@@ -788,6 +788,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		}
 	} else if (image->type == IMAGE_BUILDER) {
 		image->num_sections = 0;
+		image->base_address_set = 0;
 		image->sections = NULL;
 		image->type_private = NULL;
 	}
