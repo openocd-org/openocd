@@ -5409,7 +5409,13 @@ lpc2900 secure_jtag 0
 @end deffn
 
 @deffn {Flash Driver} ocl
-@emph{No idea what this is, other than using some arm7/arm9 core.}
+This driver is an implementation of the ``on chip flash loader''
+protocol proposed by Pavel Chromy.
+
+It is a minimalistic command-response protocol intended to be used
+over a DCC when communicating with an internal or external flash
+loader running from RAM. An example implementation for AT91SAM7x is
+available in @file{contrib/loaders/flash/at91sam7x/}.
 
 @example
 flash bank $_FLASHNAME ocl 0 0 0 0 $_TARGETNAME
