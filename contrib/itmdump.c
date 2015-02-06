@@ -105,7 +105,6 @@ static bool read_varlen(FILE *f, int c, unsigned *value)
 {
 	unsigned size;
 	unsigned char buf[4];
-	unsigned i;
 
 	*value = 0;
 
@@ -136,14 +135,13 @@ static bool read_varlen(FILE *f, int c, unsigned *value)
 
 err:
 	printf("(ERROR %d - %s)\n", errno, strerror(errno));
-	return;
+	return false;
 }
 
 static void show_hard(FILE *f, int c)
 {
 	unsigned type = c >> 3;
 	unsigned value;
-	unsigned size;
 	char *label;
 
 	printf("DWT - ");
@@ -241,9 +239,7 @@ struct {
 
 static void show_swit(FILE *f, int c)
 {
-	unsigned size;
 	unsigned port = c >> 3;
-	unsigned char buf[4];
 	unsigned value = 0;
 	unsigned i;
 
@@ -253,7 +249,7 @@ static void show_swit(FILE *f, int c)
 		return;
 	printf("%#08x", value);
 
-	for (i = 0; i <= sizeof(format) / sizeof(format[0]); i++) {
+	for (i = 0; i < sizeof(format) / sizeof(format[0]); i++) {
 		if (format[i].port == port) {
 			printf(", ");
 			format[i].show(port, value);
@@ -262,10 +258,6 @@ static void show_swit(FILE *f, int c)
 	}
 
 	printf("\n");
-	return;
-
-err:
-	printf("(ERROR %d - %s)\n", errno, strerror(errno));
 	return;
 }
 
@@ -367,7 +359,6 @@ int main(int argc, char **argv)
 			}
 			break;
 		default:
-usage:
 			fprintf(stderr, "usage: %s [-f input]",
 				basename(argv[0]));
 			return 1;
