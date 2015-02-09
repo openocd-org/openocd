@@ -685,7 +685,15 @@ static int default_check_reset(struct target *target)
 
 int target_examine_one(struct target *target)
 {
-	return target->type->examine(target);
+	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
+
+	int retval = target->type->examine(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
+
+	return ERROR_OK;
 }
 
 static int jtag_enable_callback(enum jtag_event event, void *priv)
@@ -697,15 +705,7 @@ static int jtag_enable_callback(enum jtag_event event, void *priv)
 
 	jtag_unregister_event_callback(jtag_enable_callback, target);
 
-	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
-
-	int retval = target_examine_one(target);
-	if (retval != ERROR_OK)
-		return retval;
-
-	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
-
-	return retval;
+	return target_examine_one(target);
 }
 
 /* Targets that correctly implement init + examine, i.e.
@@ -726,13 +726,9 @@ int target_examine(void)
 			continue;
 		}
 
-		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
-
 		retval = target_examine_one(target);
 		if (retval != ERROR_OK)
 			return retval;
-
-		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 	}
 	return retval;
 }
