@@ -217,6 +217,8 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_START, .name = "gdb-flash-erase-start" },
 	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_END  , .name = "gdb-flash-erase-end" },
 
+	{ .value = TARGET_EVENT_TRACE_CONFIG, .name = "trace-config" },
+
 	{ .name = NULL, .value = -1 }
 };
 

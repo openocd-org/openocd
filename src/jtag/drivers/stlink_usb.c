@@ -1031,16 +1031,16 @@ static int stlink_configure_target_trace_port(void *handle)
 	if (res != ERROR_OK)
 		goto out;
 	/* set the TPI clock prescaler */
-	res = stlink_usb_write_debug_reg(handle, TPI_ACPR, h->trace.prescale);
+	res = stlink_usb_write_debug_reg(handle, TPIU_ACPR, h->trace.prescale);
 	if (res != ERROR_OK)
 		goto out;
 	/* select the pin protocol.  The STLinkv2 only supports asynchronous
 	 * UART emulation (NRZ) mode, so that's what we pick. */
-	res = stlink_usb_write_debug_reg(handle, TPI_SPPR, 0x02);
+	res = stlink_usb_write_debug_reg(handle, TPIU_SPPR, 0x02);
 	if (res != ERROR_OK)
 		goto out;
 	/* disable continuous formatting */
-	res = stlink_usb_write_debug_reg(handle, TPI_FFCR, (1<<8));
+	res = stlink_usb_write_debug_reg(handle, TPIU_FFCR, (1<<8));
 	if (res != ERROR_OK)
 		goto out;
 
@@ -1059,7 +1059,7 @@ static int stlink_configure_target_trace_port(void *handle)
 	if (res != ERROR_OK)
 		goto out;
 	/* trace port enable (port 0) */
-	res = stlink_usb_write_debug_reg(handle, ITM_TER, (1<<0));
+	res = stlink_usb_write_debug_reg(handle, ITM_TER0, (1<<0));
 	if (res != ERROR_OK)
 		goto out;
 

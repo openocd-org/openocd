@@ -29,6 +29,7 @@
 
 #include "arm_adi_v5.h"
 #include "arm.h"
+#include "armv7m_trace.h"
 
 extern const int armv7m_psp_reg_map[];
 extern const int armv7m_msp_reg_map[];
@@ -152,6 +153,8 @@ struct armv7m_common {
 
 	/* stlink is a high level adapter, does not support all functions */
 	bool stlink;
+
+	struct armv7m_trace_config trace_config;
 
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target *target, uint32_t num, uint32_t *value);

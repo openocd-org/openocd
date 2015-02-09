@@ -772,6 +772,9 @@ static const struct command_registration adapter_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,
 	},
+	{
+		.chain = armv7m_trace_command_handlers,
+	},
 	COMMAND_REGISTRATION_DONE
 };
 

@@ -4641,6 +4641,8 @@ when reset disables PLLs needed to use a fast clock.
 @* After all targets have resumed
 @item @b{resumed}
 @* Target has resumed
+@item @b{trace-config}
+@* After target hardware trace configuration was changed
 @end itemize
 
 @node Flash Commands
@@ -7634,6 +7636,93 @@ If @var{value} is defined, first assigns that.
 @deffn Command {dap apcsw} [0 / 1]
 fix CSW_SPROT from register AP_REG_CSW on selected dap.
 Defaulting to 0.
+@end deffn
+
+@subsection ARMv7-M specific commands
+@cindex tracing
+@cindex SWO
+@cindex SWV
+@cindex TPIU
+@cindex ITM
+@cindex ETM
+
+@deffn Command {tpiu config} (@option{disable} | ((@option{external} | @option{internal @var{filename}}) @
+               (@option{sync @var{port_width}} | ((@option{manchester} | @option{uart}) @var{formatter_enable})) @
+               @var{TRACECLKIN_freq} [@var{trace_freq}]))
+
+ARMv7-M architecture provides several modules to generate debugging
+information internally (ITM, DWT and ETM). Their output is directed
+through TPIU to be captured externally either on an SWO pin (this
+configuration is called SWV) or on a synchronous parallel trace port.
+
+This command configures the TPIU module of the target and, if internal
+capture mode is selected, starts to capture trace output by using the
+debugger adapter features.
+
+Some targets require additional actions to be performed in the
+@b{trace-config} handler for trace port to be activated.
+
+Command options:
+@itemize @minus
+@item @option{disable} disable TPIU handling;
+@item @option{external} configure TPIU to let user capture trace
+output externally (with an additional UART or logic analyzer hardware);
+@item @option{internal @var{filename}} configure TPIU and debug adapter to
+gather trace data and append it to @var{filename} (which can be
+either a regular file or a named pipe);
+@item @option{sync @var{port_width}} use synchronous parallel trace output
+mode, and set port width to @var{port_width};
+@item @option{manchester} use asynchronous SWO mode with Manchester
+coding;
+@item @option{uart} use asynchronous SWO mode with NRZ (same as
+regular UART 8N1) coding;
+@item @var{formatter_enable} is @option{on} or @option{off} to enable
+or disable TPIU formatter which needs to be used when both ITM and ETM
+data is to be output via SWO;
+@item @var{TRACECLKIN_freq} this should be specified to match target's
+current TRACECLKIN frequency (usually the same as HCLK);
+@item @var{trace_freq} trace port frequency. Can be omitted in
+internal mode to let the adapter driver select the maximum supported
+rate automatically.
+@end itemize
+
+Example usage:
+@enumerate
+@item STM32L152 board is programmed with an application that configures
+PLL to provide core clock with 24MHz frequency; to use ITM output it's
+enough to:
+@example
+#include <libopencm3/cm3/itm.h>
+    ...
+    	ITM_STIM8(0) = c;
+    ...
+@end example
+(the most obvious way is to use the first stimulus port for printf,
+for that this ITM_STIM8 assignment can be used inside _write(); to make it
+blocking to avoid data loss, add @code{while (!(ITM_STIM8(0) &
+ITM_STIM_FIFOREADY));});
+@item An FT2232H UART is connected to the SWO pin of the board;
+@item Commands to configure UART for 12MHz baud rate:
+@example
+$ setserial /dev/ttyUSB1 spd_cust divisor 5
+$ stty -F /dev/ttyUSB1 38400
+@end example
+(FT2232H's base frequency is 60MHz, spd_cust allows to alias 38400
+baud with our custom divisor to get 12MHz)
+@item @code{itmdump -f /dev/ttyUSB1 -d1}
+@item @code{openocd -f interface/stlink-v2-1.cfg -c "transport select
+hla_swd" -f target/stm32l1.cfg -c "tpiu config external uart off
+24000000 12000000"}
+@end enumerate
+@end deffn
+
+@deffn Command {itm port} @var{port} (@option{0}|@option{1}|@option{on}|@option{off})
+Enable or disable trace output for ITM stimulus @var{port} (counting
+from 0). Port 0 is enabled on target creation automatically.
+@end deffn
+
+@deffn Command {itm ports} (@option{0}|@option{1}|@option{on}|@option{off})
+Enable or disable trace output for all ITM stimulus ports.
 @end deffn
 
 @subsection Cortex-M specific commands
