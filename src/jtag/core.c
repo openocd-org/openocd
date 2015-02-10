@@ -1824,3 +1824,25 @@ void adapter_deassert_reset(void)
 	else
 		LOG_ERROR("transport is not selected");
 }
+
+int adapter_config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
+			 uint32_t port_size, unsigned int *trace_freq)
+{
+	if (jtag->config_trace)
+		return jtag->config_trace(enabled, pin_protocol, port_size,
+					  trace_freq);
+	else if (enabled) {
+		LOG_ERROR("The selected interface does not support tracing");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+int adapter_poll_trace(uint8_t *buf, size_t *size)
+{
+	if (jtag->poll_trace)
+		return jtag->poll_trace(buf, size);
+
+	return ERROR_FAIL;
+}

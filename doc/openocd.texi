@@ -3119,13 +3119,6 @@ The vendor ID and product ID of the device.
 Execute a custom adapter-specific command. The @var{command} string is
 passed as is to the underlying adapter layout handler.
 @end deffn
-
-@deffn {Config Command} {trace} source_clock_hz [output_file_path]
-Enable SWO tracing (if supported). The source clock rate for the
-trace port must be specified, this is typically the CPU clock rate. If
-the optional output file is specified then raw trace data is appended
-to the file, and the file is created if it does not exist.
-@end deffn
 @end deffn
 
 @deffn {Interface Driver} {opendous}

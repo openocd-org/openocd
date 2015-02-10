@@ -15,6 +15,7 @@
 #ifndef ARMV7M_TRACE_H
 #define ARMV7M_TRACE_H
 
+#include <target/target.h>
 #include <command.h>
 
 /**

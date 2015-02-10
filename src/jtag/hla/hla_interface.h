@@ -46,10 +46,6 @@ struct hl_interface_param_s {
 	enum hl_transports transport;
 	/** */
 	bool connect_under_reset;
-	/** Output file for trace data (if any) */
-	FILE *trace_f;
-	/** Trace module source clock rate */
-	uint32_t trace_source_hz;
 	/** Initial interface clock clock speed */
 	int initial_interface_speed;
 };

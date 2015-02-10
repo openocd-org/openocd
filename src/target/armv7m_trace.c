@@ -20,6 +20,30 @@
 #include <target/armv7m.h>
 #include <target/cortex_m.h>
 #include <target/armv7m_trace.h>
+#include <jtag/interface.h>
+
+#define TRACE_BUF_SIZE	4096
+
+static int armv7m_poll_trace(void *target)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	uint8_t buf[TRACE_BUF_SIZE];
+	size_t size = sizeof(buf);
+	int retval;
+
+	retval = adapter_poll_trace(buf, &size);
+	if (retval != ERROR_OK || !size)
+		return retval;
+
+	if (fwrite(buf, 1, size, armv7m->trace_config.trace_file) == size)
+		fflush(armv7m->trace_config.trace_file);
+	else {
+		LOG_ERROR("Error writing to the trace destination file");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
 
 int armv7m_trace_tpiu_config(struct target *target)
 {
@@ -28,18 +52,37 @@ int armv7m_trace_tpiu_config(struct target *target)
 	int prescaler;
 	int retval;
 
+	target_unregister_timer_callback(armv7m_poll_trace, target);
+
+
+	retval = adapter_config_trace(trace_config->config_type == INTERNAL,
+				      trace_config->pin_protocol,
+				      trace_config->port_size,
+				      &trace_config->trace_freq);
+	if (retval != ERROR_OK)
+		return retval;
+
 	if (!trace_config->trace_freq) {
 		LOG_ERROR("Trace port frequency is 0, can't enable TPIU");
 		return ERROR_FAIL;
 	}
 
-	if (trace_config->traceclkin_freq % trace_config->trace_freq) {
-		LOG_ERROR("Can not calculate an integer divisor to get %u trace port frequency from %u TRACECLKIN frequency",
-			  trace_config->trace_freq, trace_config->traceclkin_freq);
-		return ERROR_FAIL;
-	}
-
 	prescaler = trace_config->traceclkin_freq / trace_config->trace_freq;
+
+	if (trace_config->traceclkin_freq % trace_config->trace_freq) {
+		prescaler++;
+		int trace_freq = trace_config->traceclkin_freq / prescaler;
+		LOG_INFO("Can not obtain %u trace port frequency from %u TRACECLKIN frequency, using %u instead",
+			  trace_config->trace_freq, trace_config->traceclkin_freq,
+			  trace_freq);
+		trace_config->trace_freq = trace_freq;
+		retval = adapter_config_trace(trace_config->config_type == INTERNAL,
+					      trace_config->pin_protocol,
+					      trace_config->port_size,
+					      &trace_config->trace_freq);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	retval = target_write_u32(target, TPIU_CSPSR, 1 << trace_config->port_size);
 	if (retval != ERROR_OK)
@@ -64,6 +107,9 @@ int armv7m_trace_tpiu_config(struct target *target)
 	retval = target_write_u32(target, TPIU_FFCR, ffcr);
 	if (retval != ERROR_OK)
 		return retval;
+
+	if (trace_config->config_type == INTERNAL)
+		target_register_timer_callback(armv7m_poll_trace, 1, 1, target);
 
 	target_call_event_callbacks(target, TARGET_EVENT_TRACE_CONFIG);
 
