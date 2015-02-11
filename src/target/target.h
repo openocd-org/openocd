@@ -294,6 +294,7 @@ struct target_timer_callback {
 	int (*callback)(void *priv);
 	int time_ms;
 	int periodic;
+	bool removed;
 	struct timeval when;
 	void *priv;
 	struct target_timer_callback *next;

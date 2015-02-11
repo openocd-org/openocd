@@ -1378,6 +1378,7 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 	(*callbacks_p)->callback = callback;
 	(*callbacks_p)->periodic = periodic;
 	(*callbacks_p)->time_ms = time_ms;
+	(*callbacks_p)->removed = false;
 
 	gettimeofday(&now, NULL);
 	(*callbacks_p)->when.tv_usec = now.tv_usec + (time_ms % 1000) * 1000;
@@ -1438,24 +1439,18 @@ int target_unregister_reset_callback(int (*callback)(struct target *target,
 
 int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 {
-	struct target_timer_callback **p = &target_timer_callbacks;
-	struct target_timer_callback *c = target_timer_callbacks;
-
 	if (callback == NULL)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	while (c) {
-		struct target_timer_callback *next = c->next;
+	for (struct target_timer_callback *c = target_timer_callbacks;
+	     c; c = c->next) {
 		if ((c->callback == callback) && (c->priv == priv)) {
-			*p = next;
-			free(c);
+			c->removed = true;
 			return ERROR_OK;
-		} else
-			p = &(c->next);
-		c = next;
+		}
 	}
 
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 int target_call_event_callbacks(struct target *target, enum target_event event)
@@ -1522,31 +1517,44 @@ static int target_call_timer_callback(struct target_timer_callback *cb,
 
 static int target_call_timer_callbacks_check_time(int checktime)
 {
+	static bool callback_processing;
+
+	/* Do not allow nesting */
+	if (callback_processing)
+		return ERROR_OK;
+
+	callback_processing = true;
+
 	keep_alive();
 
 	struct timeval now;
 	gettimeofday(&now, NULL);
 
-	struct target_timer_callback *callback = target_timer_callbacks;
-	while (callback) {
-		/* cleaning up may unregister and free this callback */
-		struct target_timer_callback *next_callback = callback->next;
-
-		bool call_it = callback->callback &&
-			((!checktime && callback->periodic) ||
-			  now.tv_sec > callback->when.tv_sec ||
-			 (now.tv_sec == callback->when.tv_sec &&
-			  now.tv_usec >= callback->when.tv_usec));
-
-		if (call_it) {
-			int retval = target_call_timer_callback(callback, &now);
-			if (retval != ERROR_OK)
-				return retval;
+	/* Store an address of the place containing a pointer to the
+	 * next item; initially, that's a standalone "root of the
+	 * list" variable. */
+	struct target_timer_callback **callback = &target_timer_callbacks;
+	while (*callback) {
+		if ((*callback)->removed) {
+			struct target_timer_callback *p = *callback;
+			*callback = (*callback)->next;
+			free(p);
+			continue;
 		}
 
-		callback = next_callback;
+		bool call_it = (*callback)->callback &&
+			((!checktime && (*callback)->periodic) ||
+			 now.tv_sec > (*callback)->when.tv_sec ||
+			 (now.tv_sec == (*callback)->when.tv_sec &&
+			  now.tv_usec >= (*callback)->when.tv_usec));
+
+		if (call_it)
+			target_call_timer_callback(*callback, &now);
+
+		callback = &(*callback)->next;
 	}
 
+	callback_processing = false;
 	return ERROR_OK;
 }
 
