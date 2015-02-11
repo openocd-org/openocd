@@ -72,6 +72,14 @@ struct reg_cache **register_get_last_cache_p(struct reg_cache **first)
 	return cache_p;
 }
 
+void register_unlink_cache(struct reg_cache **cache_p, const struct reg_cache *cache)
+{
+	while (*cache_p && *cache_p != cache)
+		cache_p = &((*cache_p)->next);
+	if (*cache_p)
+		*cache_p = cache->next;
+}
+
 /** Marks the contents of the register cache as invalid (and clean). */
 void register_cache_invalidate(struct reg_cache *cache)
 {

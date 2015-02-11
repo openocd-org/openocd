@@ -61,6 +61,7 @@
 /* forward declarations */
 static int cortex_m_store_core_reg_u32(struct target *target,
 		uint32_t num, uint32_t value);
+static void cortex_m_dwt_free(struct target *target);
 
 static int cortexm_dap_read_coreregister_u32(struct target *target,
 	uint32_t *value, int regnum)
@@ -1833,6 +1834,27 @@ fail1:
 	 */
 }
 
+static void cortex_m_dwt_free(struct target *target)
+{
+	struct cortex_m_common *cm = target_to_cm(target);
+	struct reg_cache *cache = cm->dwt_cache;
+
+	free(cm->dwt_comparator_list);
+	cm->dwt_comparator_list = NULL;
+
+	if (cache) {
+		register_unlink_cache(&target->reg_cache, cache);
+
+		if (cache->reg_list) {
+			for (size_t i = 0; i < cache->num_regs; i++)
+				free(cache->reg_list[i].arch_info);
+			free(cache->reg_list);
+		}
+		free(cache);
+	}
+	cm->dwt_cache = NULL;
+}
+
 #define MVFR0 0xe000ef40
 #define MVFR1 0xe000ef44
 
@@ -1910,6 +1932,7 @@ int cortex_m_examine(struct target *target)
 		cortex_m->fp_num_code = ((fpcr >> 8) & 0x70) | ((fpcr >> 4) & 0xF);
 		cortex_m->fp_num_lit = (fpcr >> 8) & 0xF;
 		cortex_m->fp_code_available = cortex_m->fp_num_code;
+		free(cortex_m->fp_comparator_list);
 		cortex_m->fp_comparator_list = calloc(
 				cortex_m->fp_num_code + cortex_m->fp_num_lit,
 				sizeof(struct cortex_m_fp_comparator));
@@ -1928,6 +1951,7 @@ int cortex_m_examine(struct target *target)
 			cortex_m->fp_num_lit);
 
 		/* Setup DWT */
+		cortex_m_dwt_free(target);
 		cortex_m_dwt_setup(cortex_m, target);
 
 		/* These hardware breakpoints only work for code in flash! */
