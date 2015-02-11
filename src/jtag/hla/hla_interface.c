@@ -124,6 +124,9 @@ static int hl_interface_quit(void)
 	}
 	hl_if.param.trace_source_hz = 0;
 
+	if (hl_if.layout->api->close)
+		hl_if.layout->api->close(hl_if.handle);
+
 	return ERROR_OK;
 }
 
