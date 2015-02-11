@@ -780,6 +780,7 @@ struct target_type hla_target = {
 	.deprecated_name = "stm32_stlink",
 
 	.init_target = adapter_init_target,
+	.deinit_target = cortex_m_deinit_target,
 	.target_create = adapter_target_create,
 	.examine = cortex_m_examine,
 	.commands = adapter_command_handlers,

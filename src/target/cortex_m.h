@@ -210,5 +210,6 @@ int cortex_m_remove_watchpoint(struct target *target, struct watchpoint *watchpo
 void cortex_m_enable_breakpoints(struct target *target);
 void cortex_m_enable_watchpoints(struct target *target);
 void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target);
+void cortex_m_deinit_target(struct target *target);
 
 #endif /* CORTEX_M_H */

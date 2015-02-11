@@ -559,6 +559,7 @@ int server_init(struct command_context *cmd_ctx)
 int server_quit(void)
 {
 	remove_services();
+	target_quit();
 
 #ifdef _WIN32
 	WSACleanup();

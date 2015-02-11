@@ -1800,6 +1800,31 @@ int target_free_working_area(struct target *target, struct working_area *area)
 	return target_free_working_area_restore(target, area, 1);
 }
 
+void target_quit(void)
+{
+	struct target_event_callback *pe = target_event_callbacks;
+	while (pe) {
+		struct target_event_callback *t = pe->next;
+		free(pe);
+		pe = t;
+	}
+	target_event_callbacks = NULL;
+
+	struct target_timer_callback *pt = target_timer_callbacks;
+	while (pt) {
+		struct target_timer_callback *t = pt->next;
+		free(pt);
+		pt = t;
+	}
+	target_timer_callbacks = NULL;
+
+	for (struct target *target = all_targets;
+	     target; target = target->next) {
+		if (target->type->deinit_target)
+			target->type->deinit_target(target);
+	}
+}
+
 /* free resources and restore memory, if restoring memory fails,
  * free up resources anyway
  */

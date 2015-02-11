@@ -1685,6 +1685,15 @@ static int cortex_m_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+void cortex_m_deinit_target(struct target *target)
+{
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+
+	free(cortex_m->fp_comparator_list);
+	cortex_m_dwt_free(target);
+	free(cortex_m);
+}
+
 /* REVISIT cache valid/dirty bits are unmaintained.  We could set "valid"
  * on r/w if the core is not running, and clear on resume or reset ... or
  * at least, in a post_restore_context() method.
@@ -2362,4 +2371,5 @@ struct target_type cortexm_target = {
 	.target_create = cortex_m_target_create,
 	.init_target = cortex_m_init_target,
 	.examine = cortex_m_examine,
+	.deinit_target = cortex_m_deinit_target,
 };

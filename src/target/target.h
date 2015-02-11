@@ -615,6 +615,11 @@ int target_free_working_area(struct target *target, struct working_area *area);
 void target_free_all_working_areas(struct target *target);
 uint32_t target_get_working_area_avail(struct target *target);
 
+/**
+ * Free all the resources allocated by targets and the target layer
+ */
+void target_quit(void);
+
 extern struct target *all_targets;
 
 uint64_t target_buffer_get_u64(struct target *target, const uint8_t *buffer);

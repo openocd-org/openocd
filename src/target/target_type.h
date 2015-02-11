@@ -225,6 +225,13 @@ struct target_type {
 	 * */
 	int (*init_target)(struct command_context *cmd_ctx, struct target *target);
 
+	/**
+	 * Free all the resources allocated by the target.
+	 *
+	 * @param target The target to deinit
+	 */
+	void (*deinit_target)(struct target *target);
+
 	/* translate from virtual to physical address. Default implementation is successful
 	 * no-op(i.e. virtual==physical).
 	 */
