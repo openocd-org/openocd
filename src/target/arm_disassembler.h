@@ -84,9 +84,14 @@ enum arm_instruction_type {
 	/* Miscellaneous instructions */
 	ARM_CLZ,
 
+	/* Exception return instructions */
+	ARM_ERET,
+
 	/* Exception generating instructions */
 	ARM_BKPT,
 	ARM_SWI,
+	ARM_HVC,
+	ARM_SMC,
 
 	/* Coprocessor instructions */
 	ARM_CDP,

@@ -1403,17 +1403,46 @@ static int evaluate_misc_instr(uint32_t opcode,
 				Rn);
 	}
 
-	/* Software breakpoints */
+	/* exception return */
+	if ((opcode & 0x0000000f0) == 0x00000060) {
+		if (((opcode & 0x600000) >> 21) == 3)
+			instruction->type = ARM_ERET;
+		snprintf(instruction->text,
+				128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tERET",
+				address,
+				opcode);
+	}
+
+	/* exception generate instructions */
 	if ((opcode & 0x0000000f0) == 0x00000070) {
-		uint32_t immediate;
-		instruction->type = ARM_BKPT;
-		immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
+		uint32_t immediate = 0;
+		char *mnemonic = NULL;
+
+		switch ((opcode & 0x600000) >> 21) {
+			case 0x1:
+				instruction->type = ARM_BKPT;
+				mnemonic = "BRKT";
+				immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
+				break;
+			case 0x2:
+				instruction->type = ARM_HVC;
+				mnemonic = "HVC";
+				immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
+				break;
+			case 0x3:
+				instruction->type = ARM_SMC;
+				mnemonic = "SMC";
+				immediate = (opcode & 0xf);
+				break;
+		}
 
 		snprintf(instruction->text,
 				128,
-				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBKPT 0x%4.4" PRIx32 "",
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t%s 0x%4.4" PRIx32 "",
 				address,
 				opcode,
+				mnemonic,
 				immediate);
 	}
 
