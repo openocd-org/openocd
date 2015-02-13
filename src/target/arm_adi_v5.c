@@ -1234,6 +1234,18 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				type = "Cortex-M3 FBP";
 				full = "(Flash Patch and Breakpoint)";
 				break;
+			case 0x008:
+				type = "Cortex-M0 SCS";
+				full = "(System Control Space)";
+				break;
+			case 0x00a:
+				type = "Cortex-M0 DWT";
+				full = "(Data Watchpoint and Trace)";
+				break;
+			case 0x00b:
+				type = "Cortex-M0 BPU";
+				full = "(Breakpoint Unit)";
+				break;
 			case 0x00c:
 				type = "Cortex-M4 SCS";
 				full = "(System Control Space)";
