@@ -1664,14 +1664,14 @@ static int stlink_speed(void *handle, int khz, bool query)
 }
 
 /** */
-static int stlink_usb_close(void *fd)
+static int stlink_usb_close(void *handle)
 {
-	struct stlink_usb_handle_s *h = fd;
+	struct stlink_usb_handle_s *h = handle;
 
-	if (h->fd)
+	if (h && h->fd)
 		jtag_libusb_close(h->fd);
 
-	free(fd);
+	free(h);
 
 	return ERROR_OK;
 }
