@@ -5480,12 +5480,12 @@ standard @command{flash erase_address} command.}
 flash bank $_FLASHNAME stellaris 0 0 0 0 $_TARGETNAME
 @end example
 
-@deffn Command {stellaris recover bank_id}
-Performs the @emph{Recovering a "Locked" Device} procedure to
-restore the flash specified by @var{bank_id} and its associated
-nonvolatile registers to their factory default values (erased).
-This is the only way to remove flash protection or re-enable
-debugging if that capability has been disabled.
+@deffn Command {stellaris recover}
+Performs the @emph{Recovering a "Locked" Device} procedure to restore
+the flash and its associated nonvolatile registers to their factory
+default values (erased). This is the only way to remove flash
+protection or re-enable debugging if that capability has been
+disabled.
 
 Note that the final "power cycle the chip" step in this procedure
 must be performed by hand, since OpenOCD can't do it.
