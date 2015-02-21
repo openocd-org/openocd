@@ -23,6 +23,7 @@
 #endif
 
 #include "tcl_server.h"
+#include <target/target.h>
 
 #define TCL_SERVER_VERSION		"TCL Server 0.1"
 #define TCL_MAX_LINE			(4096)
@@ -32,6 +33,8 @@ struct tcl_connection {
 	int tc_lineoffset;
 	char tc_line[TCL_MAX_LINE];
 	int tc_outerror;/* flag an output error */
+	enum target_state tc_laststate;
+	bool tc_notify;
 };
 
 static char *tcl_port;
@@ -41,6 +44,48 @@ static int tcl_new_connection(struct connection *connection);
 static int tcl_input(struct connection *connection);
 static int tcl_output(struct connection *connection, const void *buf, ssize_t len);
 static int tcl_closed(struct connection *connection);
+
+static int tcl_target_callback_event_handler(struct target *target,
+		enum target_event event, void *priv)
+{
+	struct connection *connection = priv;
+	struct tcl_connection *tclc;
+	char buf[256];
+
+	tclc = connection->priv;
+
+	if (tclc->tc_notify) {
+		snprintf(buf, sizeof(buf), "type target_event event %s\r\n\x1a", target_event_name(event));
+		tcl_output(connection, buf, strlen(buf));
+	}
+
+	if (tclc->tc_laststate != target->state) {
+		tclc->tc_laststate = target->state;
+		if (tclc->tc_notify) {
+			snprintf(buf, sizeof(buf), "type target_state state %s\r\n\x1a", target_state_name(target));
+			tcl_output(connection, buf, strlen(buf));
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static int tcl_target_callback_reset_handler(struct target *target,
+		enum target_reset_mode reset_mode, void *priv)
+{
+	struct connection *connection = priv;
+	struct tcl_connection *tclc;
+	char buf[256];
+
+	tclc = connection->priv;
+
+	if (tclc->tc_notify) {
+		snprintf(buf, sizeof(buf), "type target_reset mode %s\r\n\x1a", target_reset_mode_name(reset_mode));
+		tcl_output(connection, buf, strlen(buf));
+	}
+
+	return ERROR_OK;
+}
 
 /* write data out to a socket.
  *
@@ -77,6 +122,17 @@ static int tcl_new_connection(struct connection *connection)
 
 	memset(tclc, 0, sizeof(struct tcl_connection));
 	connection->priv = tclc;
+
+	struct target *target = get_current_target(connection->cmd_ctx);
+	if (target != NULL)
+		tclc->tc_laststate = target->state;
+
+	/* store the connection object on cmd_ctx so we can access it from command handlers */
+	connection->cmd_ctx->output_handler_priv = connection;
+
+	target_register_event_callback(tcl_target_callback_event_handler, connection);
+	target_register_reset_callback(tcl_target_callback_reset_handler, connection);
+
 	return ERROR_OK;
 }
 
@@ -127,10 +183,8 @@ static int tcl_input(struct connection *connection)
 #undef ESTR
 		} else {
 			tclc->tc_line[tclc->tc_lineoffset-1] = '\0';
-			LOG_DEBUG("Executing script:\n %s", tclc->tc_line);
-			retval = Jim_Eval_Named(interp, tclc->tc_line, "remote:connection", 1);
+			retval = command_run_line(connection->cmd_ctx, tclc->tc_line);
 			result = Jim_GetString(Jim_GetResult(interp), &reslen);
-			LOG_DEBUG("Result: %d\n %s", retval, result);
 			retval = tcl_output(connection, result, reslen);
 			if (retval != ERROR_OK)
 				return retval;
@@ -152,6 +206,10 @@ static int tcl_closed(struct connection *connection)
 		free(connection->priv);
 		connection->priv = NULL;
 	}
+
+	target_unregister_event_callback(tcl_target_callback_event_handler, connection);
+	target_unregister_reset_callback(tcl_target_callback_reset_handler, connection);
+
 	return ERROR_OK;
 }
 
@@ -172,6 +230,23 @@ COMMAND_HANDLER(handle_tcl_port_command)
 	return CALL_COMMAND_HANDLER(server_pipe_command, &tcl_port);
 }
 
+COMMAND_HANDLER(handle_tcl_notifications_command)
+{
+	struct connection *connection = NULL;
+	struct tcl_connection *tclc = NULL;
+
+	if (CMD_CTX->output_handler_priv != NULL)
+		connection = CMD_CTX->output_handler_priv;
+
+	if (connection != NULL && !strcmp(connection->service->name, "tcl")) {
+		tclc = connection->priv;
+		return CALL_COMMAND_HANDLER(handle_command_parse_bool, &tclc->tc_notify, "Target Notification output is");
+	} else {
+		LOG_ERROR("%s: can only be called from the tcl server", CMD_NAME);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+}
+
 static const struct command_registration tcl_command_handlers[] = {
 	{
 		.name = "tcl_port",
@@ -181,6 +256,13 @@ static const struct command_registration tcl_command_handlers[] = {
 			"for incoming Tcl syntax.  "
 			"Read help on 'gdb_port'.",
 		.usage = "[port_num]",
+	},
+	{
+		.name = "tcl_notifications",
+		.handler = handle_tcl_notifications_command,
+		.mode = COMMAND_EXEC,
+		.help = "Target Notification output",
+		.usage = "[on|off]",
 	},
 	COMMAND_REGISTRATION_DONE
 };

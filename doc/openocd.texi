@@ -8642,6 +8642,28 @@ Remember that most of the OpenOCD commands need to be prefixed with
 
 See @file{contrib/rpc_examples/} for specific client implementations.
 
+@section Tcl RPC server notifications
+@cindex RPC Notifications
+
+Notifications are sent asynchronously to other commands being executed over
+the RPC server, so the port must be polled continuously.
+
+Target event, state and reset notifications are emitted as Tcl associative arrays
+in the following format.
+
+@verbatim
+type target_event event [event-name]
+type target_state state [state-name]
+type target_reset mode [reset-mode]
+@end verbatim
+
+@deffn {Command} tcl_notifications [on/off]
+Toggle output of target notifications to the current Tcl RPC server.
+Only available from the Tcl RPC server.
+Defaults to off.
+
+@end deffn
+
 @node FAQ
 @chapter FAQ
 @cindex faq

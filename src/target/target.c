@@ -139,6 +139,7 @@ static struct target_type *target_types[] = {
 struct target *all_targets;
 static struct target_event_callback *target_event_callbacks;
 static struct target_timer_callback *target_timer_callbacks;
+LIST_HEAD(target_reset_callback_list);
 static const int polling_interval = 100;
 
 static const Jim_Nvp nvp_assert[] = {
@@ -275,6 +276,28 @@ const char *target_state_name(struct target *t)
 	cp = Jim_Nvp_value2name_simple(nvp_target_state, t->state)->name;
 	if (!cp) {
 		LOG_ERROR("Invalid target state: %d", (int)(t->state));
+		cp = "(*BUG*unknown*BUG*)";
+	}
+	return cp;
+}
+
+const char *target_event_name(enum target_event event)
+{
+	const char *cp;
+	cp = Jim_Nvp_value2name_simple(nvp_target_event, event)->name;
+	if (!cp) {
+		LOG_ERROR("Invalid target event: %d", (int)(event));
+		cp = "(*BUG*unknown*BUG*)";
+	}
+	return cp;
+}
+
+const char *target_reset_mode_name(enum target_reset_mode reset_mode)
+{
+	const char *cp;
+	cp = Jim_Nvp_value2name_simple(nvp_reset_modes, reset_mode)->name;
+	if (!cp) {
+		LOG_ERROR("Invalid target reset mode: %d", (int)(reset_mode));
 		cp = "(*BUG*unknown*BUG*)";
 	}
 	return cp;
@@ -601,6 +624,10 @@ static int target_process_reset(struct command_context *cmd_ctx, enum target_res
 		return ERROR_FAIL;
 	}
 
+	struct target *target;
+	for (target = all_targets; target; target = target->next)
+		target_call_reset_callbacks(target, reset_mode);
+
 	/* disable polling during reset to make reset event scripts
 	 * more predictable, i.e. dr/irscan & pathmove in events will
 	 * not have JTAG operations injected into the middle of a sequence.
@@ -623,7 +650,6 @@ static int target_process_reset(struct command_context *cmd_ctx, enum target_res
 	/* We want any events to be processed before the prompt */
 	retval = target_call_timer_callbacks_now();
 
-	struct target *target;
 	for (target = all_targets; target; target = target->next) {
 		target->type->check_reset(target);
 		target->running_alg = false;
@@ -1312,6 +1338,28 @@ int target_register_event_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
+int target_register_reset_callback(int (*callback)(struct target *target,
+		enum target_reset_mode reset_mode, void *priv), void *priv)
+{
+	struct target_reset_callback *entry;
+
+	if (callback == NULL)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	entry = malloc(sizeof(struct target_reset_callback));
+	if (entry == NULL) {
+		LOG_ERROR("error allocating buffer for reset callback entry");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	entry->callback = callback;
+	entry->priv = priv;
+	list_add(&entry->list, &target_reset_callback_list);
+
+
+	return ERROR_OK;
+}
+
 int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv)
 {
 	struct target_timer_callback **callbacks_p = &target_timer_callbacks;
@@ -1369,6 +1417,25 @@ int target_unregister_event_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
+int target_unregister_reset_callback(int (*callback)(struct target *target,
+		enum target_reset_mode reset_mode, void *priv), void *priv)
+{
+	struct target_reset_callback *entry;
+
+	if (callback == NULL)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	list_for_each_entry(entry, &target_reset_callback_list, list) {
+		if (entry->callback == callback && entry->priv == priv) {
+			list_del(&entry->list);
+			free(entry);
+			break;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 {
 	struct target_timer_callback **p = &target_timer_callbacks;
@@ -1411,6 +1478,19 @@ int target_call_event_callbacks(struct target *target, enum target_event event)
 		callback->callback(target, event, callback->priv);
 		callback = next_callback;
 	}
+
+	return ERROR_OK;
+}
+
+int target_call_reset_callbacks(struct target *target, enum target_reset_mode reset_mode)
+{
+	struct target_reset_callback *callback;
+
+	LOG_DEBUG("target reset %i (%s)", reset_mode,
+			Jim_Nvp_value2name_simple(nvp_reset_modes, reset_mode)->name);
+
+	list_for_each_entry(callback, &target_reset_callback_list, list)
+		callback->callback(target, reset_mode, callback->priv);
 
 	return ERROR_OK;
 }

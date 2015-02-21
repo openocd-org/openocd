@@ -33,6 +33,8 @@
 #ifndef TARGET_H
 #define TARGET_H
 
+#include <helper/list.h>
+
 struct reg;
 struct trace;
 struct command_context;
@@ -282,6 +284,12 @@ struct target_event_callback {
 	struct target_event_callback *next;
 };
 
+struct target_reset_callback {
+	struct list_head list;
+	void *priv;
+	int (*callback)(struct target *target, enum target_reset_mode reset_mode, void *priv);
+};
+
 struct target_timer_callback {
 	int (*callback)(void *priv);
 	int time_ms;
@@ -303,6 +311,15 @@ int target_unregister_event_callback(
 		enum target_event event, void *priv),
 		void *priv);
 
+int target_register_reset_callback(
+		int (*callback)(struct target *target,
+		enum target_reset_mode reset_mode, void *priv),
+		void *priv);
+int target_unregister_reset_callback(
+		int (*callback)(struct target *target,
+		enum target_reset_mode reset_mode, void *priv),
+		void *priv);
+
 /* Poll the status of the target, detect any error conditions and report them.
  *
  * Also note that this fn will clear such error conditions, so a subsequent
@@ -320,6 +337,7 @@ int target_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution);
 int target_halt(struct target *target);
 int target_call_event_callbacks(struct target *target, enum target_event event);
+int target_call_reset_callbacks(struct target *target, enum target_reset_mode reset_mode);
 
 /**
  * The period is very approximate, the callback can happen much more often
@@ -564,6 +582,12 @@ int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, 
 
 /** Return the *name* of this targets current state */
 const char *target_state_name(struct target *target);
+
+/** Return the *name* of a target event enumeration value */
+const char *target_event_name(enum target_event event);
+
+/** Return the *name* of a target reset reason enumeration value */
+const char *target_reset_mode_name(enum target_reset_mode reset_mode);
 
 /* DANGER!!!!!
  *
