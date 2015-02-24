@@ -3088,6 +3088,7 @@ which are not currently documented here.
 @end quotation
 @end deffn
 
+@anchor{hla_interface}
 @deffn {Interface Driver} {hla}
 This is a driver that supports multiple High Level Adapters.
 This type of adapter does not expose some of the lower level api's
@@ -3170,11 +3171,20 @@ displays the names of the transports supported by this
 version of OpenOCD.
 @end deffn
 
-@deffn Command {transport select} transport_name
+@deffn Command {transport select} @option{transport_name}
 Select which of the supported transports to use in this OpenOCD session.
-The transport must be supported by the debug adapter hardware and by the
-version of OpenOCD you are using (including the adapter's driver).
-No arguments: returns name of session's selected transport.
+
+When invoked with @option{transport_name}, attempts to select the named
+transport.  The transport must be supported by the debug adapter
+hardware and by the version of OpenOCD you are using (including the
+adapter's driver).
+
+If no transport has been selected and no @option{transport_name} is
+provided, @command{transport select} auto-selects the first transport
+supported by the debug adapter.
+
+@command{transport select} always returns the name of the session's selected
+transport, if any.
 @end deffn
 
 @subsection JTAG Transport
@@ -3185,6 +3195,12 @@ JTAG transports expose a chain of one or more Test Access Points (TAPs),
 each of which must be explicitly declared.
 JTAG supports both debugging and boundary scan testing.
 Flash programming support is built on top of debug support.
+
+JTAG transport is selected with the command @command{transport select
+jtag}. Unless your adapter uses @ref{hla_interface,the hla interface
+driver}, in which case the command is @command{transport select
+hla_jtag}.
+
 @subsection SWD Transport
 @cindex SWD
 @cindex Serial Wire Debug
@@ -3194,6 +3210,12 @@ Debug Access Point (DAP, which must be explicitly declared.
 SWD is debug-oriented, and does not support boundary scan testing.
 Flash programming support is built on top of debug support.
 (Some processors support both JTAG and SWD.)
+
+SWD transport is selected with the command @command{transport select
+swd}. Unless your adapter uses @ref{hla_interface,the hla interface
+driver}, in which case the command is @command{transport select
+hla_swd}.
+
 @deffn Command {swd newdap} ...
 Declares a single DAP which uses SWD transport.
 Parameters are currently the same as "jtag newtap" but this is
@@ -3204,11 +3226,6 @@ Updates TRN (turnaraound delay) and prescaling.fields of the
 Wire Control Register (WCR).
 No parameters: displays current settings.
 @end deffn
-
-@subsection CMSIS-DAP Transport
-@cindex CMSIS-DAP
-CMSIS-DAP is an ARM-specific transport that is used to connect to
-compilant debuggers.
 
 @subsection SPI Transport
 @cindex SPI

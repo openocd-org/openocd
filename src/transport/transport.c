@@ -275,20 +275,28 @@ COMMAND_HANDLER(handle_transport_list)
  */
 static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
+	int res;
 	switch (argc) {
-		case 1:		/* return/display */
+		case 1:	/* autoselect if necessary, then return/display current config */
 			if (!session) {
-				LOG_ERROR("session transport was not selected. Use 'transport select <transport>'");
-				return JIM_ERR;
-			} else {
-				Jim_SetResultString(interp, session->name, -1);
-				return JIM_OK;
+				if (!allowed_transports) {
+					LOG_ERROR("Debug adapter does not support any transports? Check config file order.");
+					return JIM_ERR;
+				}
+				LOG_INFO("auto-selecting first available session transport \"%s\". "
+					 "To override use 'transport select <transport>'.", allowed_transports[0]);
+				res = transport_select(global_cmd_ctx, allowed_transports[0]);
+				if (res != JIM_OK)
+					return res;
 			}
+			Jim_SetResultString(interp, session->name, -1);
+			return JIM_OK;
 			break;
-		case 2:		/* assign */
+		case 2:	/* assign */
 			if (session) {
 				if (!strcmp(session->name, argv[1]->bytes)) {
 					LOG_WARNING("Transport \"%s\" was already selected", session->name);
+					Jim_SetResultString(interp, session->name, -1);
 					return JIM_OK;
 				} else {
 					LOG_ERROR("Can't change session's transport after the initial selection was made");
@@ -309,8 +317,13 @@ static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *a
 
 			for (unsigned i = 0; allowed_transports[i]; i++) {
 
-				if (strcmp(allowed_transports[i], argv[1]->bytes) == 0)
-					return transport_select(global_cmd_ctx, argv[1]->bytes);
+				if (strcmp(allowed_transports[i], argv[1]->bytes) == 0) {
+					if (transport_select(global_cmd_ctx, argv[1]->bytes) == ERROR_OK) {
+						Jim_SetResultString(interp, session->name, -1);
+						return JIM_OK;
+					}
+					return JIM_ERR;
+				}
 			}
 
 			LOG_ERROR("Debug adapter doesn't support '%s' transport", argv[1]->bytes);
