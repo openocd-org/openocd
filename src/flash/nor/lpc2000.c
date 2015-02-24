@@ -40,7 +40,7 @@
 
 /**
  * @file
- * flash programming support for NXP LPC8xx,LPC1xxx,LPC43xx,LP5410x and LPC2xxx devices.
+ * flash programming support for NXP LPC8xx,LPC1xxx,LPC4xxx,LP5410x and LPC2xxx devices.
  *
  * @todo Provide a way to update CCLK after declaring the flash bank. The value which is correct after chip reset will
  * rarely still work right after the clocks switch to use the PLL (e.g. 4MHz --> 100 MHz).
@@ -65,13 +65,20 @@
  * lpc1700:
  * - 175x
  * - 176x (tested with LPC1768)
+ * - 177x
+ * - 178x (tested with LPC1788)
  *
- * lpc4300 (also available as lpc1800 - alias)
+ * lpc4000: (lpc1700's alias)
+ * - 407x
+ * - 408x (tested with LPC4088)
+ *
+ * lpc4300: (also available as lpc1800 - alias)
  * - 43x2 | 3 | 5 | 7 (tested with LPC4337/LPC4357)
  * - 18x2 | 3 | 5 | 7
  *
  * lpc800:
  * - 810 | 1 | 2 (tested with LPC810/LPC811/LPC812)
+ * - 822 | 4 (tested with LPC824)
  *
  * lpc1100:
  * - 11xx
@@ -100,6 +107,10 @@
  * - 134x
  * - 175x
  * - 176x
+ * - 177x
+ * - 178x
+ * - 407x
+ * - 408x
  * - 81x
  * - 82x
  */
@@ -228,6 +239,12 @@
 #define LPC1786        0x281D1F43
 #define LPC1787        0x281D3747
 #define LPC1788        0x281D3F47
+
+#define LPC4072        0x47011121
+#define LPC4074        0x47011132
+#define LPC4076        0x47191F43
+#define LPC4078        0x47193F47
+#define LPC4088        0x481D3F47
 
 #define LPC810_021     0x00008100
 #define LPC811_001     0x00008110
@@ -467,7 +484,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		for (int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
-			/* sectors 0-15 are 4kB-sized, 16 and above are 32kB-sized for LPC17xx devices */
+			/* sectors 0-15 are 4kB-sized, 16 and above are 32kB-sized for LPC17xx/LPC40xx devices */
 			bank->sectors[i].size = (i < 16) ? 4 * 1024 : 32 * 1024;
 			offset += bank->sectors[i].size;
 			bank->sectors[i].is_erased = -1;
@@ -897,7 +914,7 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		lpc2000_info->variant = lpc2000_v1;
 	} else if (strcmp(CMD_ARGV[6], "lpc2000_v2") == 0) {
 		lpc2000_info->variant = lpc2000_v2;
-	} else if (strcmp(CMD_ARGV[6], "lpc1700") == 0) {
+	} else if (strcmp(CMD_ARGV[6], "lpc1700") == 0 || strcmp(CMD_ARGV[6], "lpc4000") == 0) {
 		lpc2000_info->variant = lpc1700;
 	} else if (strcmp(CMD_ARGV[6], "lpc1800") == 0 || strcmp(CMD_ARGV[6], "lpc4300") == 0) {
 		lpc2000_info->variant = lpc4300;
@@ -1369,6 +1386,7 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 			break;
 
 		case LPC1752:
+		case LPC4072:
 			lpc2000_info->variant = lpc1700;
 			bank->size = 64 * 1024;
 			break;
@@ -1395,6 +1413,7 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC1754:
 		case LPC1764:
 		case LPC1774:
+		case LPC4074:
 			lpc2000_info->variant = lpc1700;
 			bank->size = 128 * 1024;
 			break;
@@ -1412,6 +1431,7 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC1776:
 		case LPC1785:
 		case LPC1786:
+		case LPC4076:
 			lpc2000_info->variant = lpc1700;
 			bank->size = 256 * 1024;
 			break;
@@ -1425,6 +1445,8 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC1778:
 		case LPC1787:
 		case LPC1788:
+		case LPC4078:
+		case LPC4088:
 			lpc2000_info->variant = lpc1700;
 			bank->size = 512 * 1024;
 			break;
