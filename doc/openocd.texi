@@ -2515,7 +2515,8 @@ The driver uses a signal abstraction to enable Tcl configuration files to
 define outputs for one or several FTDI GPIO. These outputs can then be
 controlled using the @command{ftdi_set_signal} command. Special signal names
 are reserved for nTRST, nSRST and LED (for blink) so that they, if defined,
-will be used for their customary purpose.
+will be used for their customary purpose. Inputs can be read using the
+@command{ftdi_get_signal} command.
 
 Depending on the type of buffer attached to the FTDI GPIO, the outputs have to
 be controlled differently. In order to support tristateable signals such as
@@ -2582,7 +2583,7 @@ minimal impact on the target system. Avoid floating inputs, conflicting outputs
 and initially asserted reset signals.
 @end deffn
 
-@deffn {Config Command} {ftdi_layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
+@deffn {Config Command} {ftdi_layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-input}|@option{-ninput} input_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
 Creates a signal with the specified @var{name}, controlled by one or more FTDI
 GPIO pins via a range of possible buffer connections. The masks are FTDI GPIO
 register bitmasks to tell the driver the connection and type of the output
@@ -2590,7 +2591,9 @@ buffer driving the respective signal. @var{data_mask} is the bitmask for the
 pin(s) connected to the data input of the output buffer. @option{-ndata} is
 used with inverting data inputs and @option{-data} with non-inverting inputs.
 The @option{-oe} (or @option{-noe}) option tells where the output-enable (or
-not-output-enable) input to the output buffer is connected.
+not-output-enable) input to the output buffer is connected. The options
+@option{-input} and @option{-ninput} specify the bitmask for pins to be read
+with the method @command{ftdi_get_signal}.
 
 Both @var{data_mask} and @var{oe_mask} need not be specified. For example, a
 simple open-collector transistor driver would be specified with @option{-oe}
@@ -2618,6 +2621,10 @@ Set a previously defined signal to the specified level.
 @item @option{1}, drive high
 @item @option{z}, set to high-impedance
 @end itemize
+@end deffn
+
+@deffn {Command} {ftdi_get_signal} name
+Get the value of a previously defined signal.
 @end deffn
 
 @deffn {Command} {ftdi_tdo_sample_edge} @option{rising}|@option{falling}
