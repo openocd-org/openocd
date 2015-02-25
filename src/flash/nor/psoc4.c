@@ -82,7 +82,7 @@ struct psoc4_chip_details {
 	uint16_t id;
 	const char *type;
 	const char *package;
-	uint16_t flash_size_in_kb;
+	uint32_t flash_size_in_kb;
 };
 
 /* list of PSoC 4 chips
@@ -112,12 +112,12 @@ const struct psoc4_chip_details psoc4_devices[] = {
 
 
 struct psoc4_flash_bank {
-	uint16_t row_size;
+	uint32_t row_size;
 	uint32_t user_bank_size;
 	int probed;
 	uint32_t silicon_id;
 	uint8_t chip_protection;
-	uint16_t cmd_program_row;
+	uint8_t cmd_program_row;
 };
 
 
@@ -334,8 +334,8 @@ static int psoc4_get_silicon_id(struct target *target, uint32_t *silicon_id, uin
 	if (protection)
 			*protection = prot;
 
-	LOG_DEBUG("silicon id: 0x%" PRIx32 "", silicon);
-	LOG_DEBUG("protection: 0x%" PRIx8 "", prot);
+	LOG_DEBUG("silicon id: 0x%08" PRIx32 "", silicon);
+	LOG_DEBUG("protection: 0x%02" PRIx8 "", prot);
 	return retval;
 }
 
@@ -516,7 +516,7 @@ static int psoc4_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	if (offset & 0x1) {
-		LOG_ERROR("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
+		LOG_ERROR("offset 0x%08" PRIx32 " breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -542,7 +542,7 @@ static int psoc4_write(struct flash_bank *bank, const uint8_t *buffer,
 			memset(row_buffer + chunk_size, 0, psoc4_info->row_size - chunk_size);
 		}
 		memcpy(row_buffer + row_offset, buffer, chunk_size);
-		LOG_DEBUG("offset / row: 0x%" PRIx32 " / %d  size %d",
+		LOG_DEBUG("offset / row: 0x%08" PRIx32 " / %" PRIu32 ", size %" PRIu32 "",
 				offset, row_offset, chunk_size);
 
 		/* Call "Load Latch" system ROM API */
@@ -581,12 +581,11 @@ static int psoc4_probe(struct flash_bank *bank)
 {
 	struct psoc4_flash_bank *psoc4_info = bank->driver_priv;
 	struct target *target = bank->target;
-	int i;
-	uint16_t flash_size_in_kb = 0;
-	uint16_t max_flash_size_in_kb;
+	uint32_t flash_size_in_kb = 0;
+	uint32_t max_flash_size_in_kb;
 	uint32_t cpu_id;
 	uint32_t silicon_id;
-	int row_size;
+	uint32_t row_size;
 	uint32_t base_address = 0x00000000;
 	uint8_t protection;
 
@@ -622,10 +621,11 @@ static int psoc4_probe(struct flash_bank *bank)
 	if (retval == ERROR_OK) {
 		row_size = 128 * ((spcif_geometry >> 22) & 3);
 		flash_size_in_kb = (spcif_geometry & 0xffff) * 256 / 1024;
-		LOG_INFO("SPCIF geometry: %d kb flash, row %d bytes.", flash_size_in_kb, row_size);
+		LOG_INFO("SPCIF geometry: %" PRIu32 " kb flash, row %" PRIu32 " bytes.",
+			 flash_size_in_kb, row_size);
 	}
 
-	/* ST-Link v2 has some problem reading PSOC4_SPCIF_GEOMETRY
+	/* Early revisions of ST-Link v2 have some problem reading PSOC4_SPCIF_GEOMETRY
 		and an error is reported late. Dummy read gets this error. */
 	uint32_t dummy;
 	target_read_u32(target, PSOC4_CPUSS_SYSREQ, &dummy);
@@ -651,7 +651,7 @@ static int psoc4_probe(struct flash_bank *bank)
 	/* failed reading flash size or flash size invalid (early silicon),
 	 * default to max target family */
 	if (retval != ERROR_OK || flash_size_in_kb == 0xffff || flash_size_in_kb == 0) {
-		LOG_WARNING("PSoC 4 flash size failed, probe inaccurate - assuming %dk flash",
+		LOG_WARNING("PSoC 4 flash size failed, probe inaccurate - assuming %" PRIu32 " k flash",
 			max_flash_size_in_kb);
 		flash_size_in_kb = max_flash_size_in_kb;
 	}
@@ -663,13 +663,13 @@ static int psoc4_probe(struct flash_bank *bank)
 		flash_size_in_kb = psoc4_info->user_bank_size / 1024;
 	}
 
-	LOG_INFO("flash size = %d kbytes", flash_size_in_kb);
+	LOG_INFO("flash size = %" PRIu32 " kbytes", flash_size_in_kb);
 
 	/* did we assign flash size? */
 	assert(flash_size_in_kb != 0xffff);
 
 	/* calculate numbers of pages */
-	int num_rows = flash_size_in_kb * 1024 / row_size;
+	uint32_t num_rows = flash_size_in_kb * 1024 / row_size;
 
 	/* check that calculation result makes sense */
 	assert(num_rows > 0);
@@ -680,10 +680,11 @@ static int psoc4_probe(struct flash_bank *bank)
 	}
 
 	bank->base = base_address;
-	bank->size = (num_rows * row_size);
+	bank->size = num_rows * row_size;
 	bank->num_sectors = num_rows;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_rows);
 
+	uint32_t i;
 	for (i = 0; i < num_rows; i++) {
 		bank->sectors[i].offset = i * row_size;
 		bank->sectors[i].size = row_size;
@@ -691,7 +692,7 @@ static int psoc4_probe(struct flash_bank *bank)
 		bank->sectors[i].is_protected = 1;
 	}
 
-	LOG_INFO("flash bank set %d rows", num_rows);
+	LOG_INFO("flash bank set %" PRIu32 " rows", num_rows);
 	psoc4_info->probed = 1;
 
 	return ERROR_OK;
@@ -716,10 +717,11 @@ static int get_psoc4_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	const struct psoc4_chip_details *details = psoc4_details_by_id(psoc4_info->silicon_id);
 
-	if (details)
-		printed = snprintf(buf, buf_size, "PSoC 4 %s rev 0x%04" PRIx16 " package %s",
-				details->type, psoc4_info->silicon_id & 0xffff, details->package);
-	else
+	if (details) {
+		uint32_t chip_revision = psoc4_info->silicon_id & 0xffff;
+		printed = snprintf(buf, buf_size, "PSoC 4 %s rev 0x%04" PRIx32 " package %s",
+				details->type, chip_revision, details->package);
+	} else
 		printed = snprintf(buf, buf_size, "PSoC 4 silicon id 0x%08" PRIx32 "",
 				psoc4_info->silicon_id);
 
@@ -727,7 +729,8 @@ static int get_psoc4_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf_size -= printed;
 
 	const char *prot_txt = psoc4_decode_chip_protection(psoc4_info->chip_protection);
-	snprintf(buf, buf_size, " flash %d kb %s", bank->size / 1024, prot_txt);
+	uint32_t size_in_kb = bank->size / 1024;
+	snprintf(buf, buf_size, " flash %" PRIu32 " kb %s", size_in_kb, prot_txt);
 	return ERROR_OK;
 }
 
