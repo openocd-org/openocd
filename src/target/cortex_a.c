@@ -2390,7 +2390,6 @@ static int cortex_a_read_apb_ab_memory_fast(struct target *target,
 
 		/* Advance. */
 		buffer += (count - 1) * 4;
-		count = 1;
 	} else {
 		/* Issue the LDC instruction via a write to ITR. */
 		retval = cortex_a_exec_opcode(target, ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4), dscr);
