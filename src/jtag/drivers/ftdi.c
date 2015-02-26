@@ -662,6 +662,8 @@ static int ftdi_quit(void)
 {
 	mpsse_close(mpsse_ctx);
 
+	free(swd_cmd_queue);
+
 	return ERROR_OK;
 }
 
