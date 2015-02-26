@@ -516,7 +516,7 @@ static int get_stellaris_info(struct flash_bank *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf,
+	snprintf(buf,
 			   buf_size,
 			   "master clock: %ikHz%s, "
 			   "rcc is 0x%" PRIx32 ", rcc2 is 0x%" PRIx32 ", "
