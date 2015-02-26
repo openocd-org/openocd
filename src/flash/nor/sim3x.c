@@ -877,7 +877,6 @@ static int sim3x_flash_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	/* Print flash size */
 	printed = snprintf(buf, buf_size, " flash_size = %dKB", sim3x_info->flash_size_kb);
-	buf += printed;
 	buf_size -= printed;
 
 	if (buf_size <= 0)
