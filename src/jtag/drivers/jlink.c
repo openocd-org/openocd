@@ -195,6 +195,7 @@ static const char * const jlink_cap_str[] = {
 #define JLINK_HW_TYPE_FLASHER			2
 #define JLINK_HW_TYPE_JLINK_PRO			3
 #define JLINK_HW_TYPE_JLINK_LITE_ADI	5
+#define JLINK_HW_TYPE_JLINK_LITE_XMC4200	17
 #define JLINK_HW_TYPE_LPCLINK2			18
 
 /* Interface selection */
@@ -973,6 +974,9 @@ static int jlink_get_version_info(void)
 				break;
 			case JLINK_HW_TYPE_JLINK_LITE_ADI:
 				LOG_INFO("J-Link hw type J-Link Lite-ADI");
+				break;
+			case JLINK_HW_TYPE_JLINK_LITE_XMC4200:
+				LOG_INFO("J-Link hw type J-Link Lite-XMC4200");
 				break;
 			case JLINK_HW_TYPE_LPCLINK2:
 				LOG_INFO("J-Link hw type J-Link on LPC-Link2");
