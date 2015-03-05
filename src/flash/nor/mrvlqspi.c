@@ -161,7 +161,7 @@ static int mrvlqspi_set_ss_state(struct flash_bank *bank, bool state, int timeou
 				mrvlqspi_get_reg(bank, CNTL), &regval);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%x", regval);
+		LOG_DEBUG("status: 0x%08" PRIx32, regval);
 		if ((regval & XFER_RDY) == XFER_RDY)
 			break;
 		if (timeout-- <= 0) {
@@ -216,7 +216,7 @@ static int mrvlqspi_stop_transfer(struct flash_bank *bank)
 				mrvlqspi_get_reg(bank, CNTL), &regval);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%x", regval);
+		LOG_DEBUG("status: 0x%08" PRIx32, regval);
 		if ((regval & (XFER_RDY | WFIFO_EMPTY)) ==
 					(XFER_RDY | WFIFO_EMPTY))
 			break;
@@ -245,7 +245,7 @@ static int mrvlqspi_stop_transfer(struct flash_bank *bank)
 				mrvlqspi_get_reg(bank, CONF), &regval);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%x", regval);
+		LOG_DEBUG("status: 0x%08" PRIx32, regval);
 		if ((regval & XFER_START) == 0)
 			break;
 		if (timeout-- <= 0) {
@@ -286,7 +286,7 @@ static int mrvlqspi_fifo_flush(struct flash_bank *bank, int timeout)
 				mrvlqspi_get_reg(bank, CONF), &val);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%x", val);
+		LOG_DEBUG("status: 0x%08" PRIX32, val);
 		if ((val & FIFO_FLUSH) == 0)
 			break;
 		if (timeout-- <= 0) {
@@ -310,7 +310,7 @@ static int mrvlqspi_read_byte(struct flash_bank *bank, uint8_t *data)
 				mrvlqspi_get_reg(bank, CNTL), &val);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%x", val);
+		LOG_DEBUG("status: 0x%08" PRIx32, val);
 		if ((val & RFIFO_EMPTY) == 0)
 			break;
 		usleep(10);
@@ -455,7 +455,8 @@ static int mrvlqspi_read_id(struct flash_bank *bank, uint32_t *id)
 			return retval;
 	}
 
-	LOG_DEBUG("ID is 0x%x 0x%x 0x%x", id_buf[0], id_buf[1], id_buf[2]);
+	LOG_DEBUG("ID is 0x%02" PRIx8 " 0x%02" PRIx8 " 0x%02" PRIx8,
+					id_buf[0], id_buf[1], id_buf[2]);
 	retval = mrvlqspi_set_ss_state(bank, QSPI_SS_DISABLE, QSPI_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
@@ -854,11 +855,11 @@ static int mrvlqspi_probe(struct flash_bank *bank)
 		}
 
 	if (!mrvlqspi_info->dev) {
-		LOG_ERROR("Unknown flash device ID 0x%08x", id);
+		LOG_ERROR("Unknown flash device ID 0x%08" PRIx32, id);
 		return ERROR_FAIL;
 	}
 
-	LOG_INFO("Found flash device \'%s\' ID 0x%08x",
+	LOG_INFO("Found flash device \'%s\' ID 0x%08" PRIx32,
 		mrvlqspi_info->dev->name, mrvlqspi_info->dev->device_id);
 
 	/* Set correct size value */
@@ -918,7 +919,7 @@ int mrvlqspi_get_info(struct flash_bank *bank, char *buf, int buf_size)
 	}
 
 	snprintf(buf, buf_size, "\nQSPI flash information:\n"
-		"  Device \'%s\' ID 0x%08x\n",
+		"  Device \'%s\' ID 0x%08" PRIx32 "\n",
 		mrvlqspi_info->dev->name, mrvlqspi_info->dev->device_id);
 
 	return ERROR_OK;
