@@ -660,7 +660,10 @@ int command_run_line(struct command_context *context, char *line)
 		Jim_DeleteAssocData(interp, "context");
 	}
 	if (retcode == JIM_ERR) {
-		if (retval != ERROR_COMMAND_CLOSE_CONNECTION) {
+		if (retval == ERROR_COMMAND_CLOSE_CONNECTION) {
+			/* Shutdown request is not an error */
+			return ERROR_OK;
+		} else {
 			/* We do not print the connection closed error message */
 			Jim_MakeErrorMessage(interp);
 			LOG_USER("%s", Jim_GetString(Jim_GetResult(interp), NULL));
