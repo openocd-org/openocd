@@ -4369,7 +4369,7 @@ The value should normally correspond to a static mapping for the
 @anchor{rtostype}
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
 @var{rtos_type} can be one of @option{auto}|@option{eCos}|@option{ThreadX}|
-@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}
+@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}|@option{mqx}
 @xref{gdbrtossupport,,RTOS Support}.
 
 @end itemize
@@ -8585,6 +8585,7 @@ Currently supported rtos's include:
 @item @option{linux}
 @item @option{ChibiOS}
 @item @option{embKernel}
+@item @option{mqx}
 @end itemize
 
 @quotation Note
@@ -8608,6 +8609,8 @@ rlist, ch_debug, chSysInit.
 @item embKernel symbols
 Rtos::sCurrentTask, Rtos::sListReady, Rtos::sListSleep,
 Rtos::sListSuspended, Rtos::sMaxPriorities, Rtos::sCurrentTaskCount.
+@item mqx symbols
+_mqx_kernel_data, MQX_init_struct.
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for
