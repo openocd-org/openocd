@@ -7570,7 +7570,7 @@ Defaulting to 0.
 @cindex ITM
 @cindex ETM
 
-@deffn Command {tpiu config} (@option{disable} | ((@option{external} | @option{internal @var{filename}}) @
+@deffn Command {tpiu config} (@option{disable} | ((@option{external} | @option{internal (@var{filename} | -)}) @
                (@option{sync @var{port_width}} | ((@option{manchester} | @option{uart}) @var{formatter_enable})) @
                @var{TRACECLKIN_freq} [@var{trace_freq}]))
 
@@ -7594,6 +7594,8 @@ output externally (with an additional UART or logic analyzer hardware);
 @item @option{internal @var{filename}} configure TPIU and debug adapter to
 gather trace data and append it to @var{filename} (which can be
 either a regular file or a named pipe);
+@item @option{internal -} configure TPIU and debug adapter to
+gather trace data, but not write to any file. Useful in conjunction with the @command{tcl_trace} command;
 @item @option{sync @var{port_width}} use synchronous parallel trace output
 mode, and set port width to @var{port_width};
 @item @option{manchester} use asynchronous SWO mode with Manchester
@@ -8696,6 +8698,28 @@ type target_reset mode [reset-mode]
 Toggle output of target notifications to the current Tcl RPC server.
 Only available from the Tcl RPC server.
 Defaults to off.
+
+@end deffn
+
+@section Tcl RPC server trace output
+@cindex RPC trace output
+
+Trace data is sent asynchronously to other commands being executed over
+the RPC server, so the port must be polled continuously.
+
+Target trace data is emitted as a Tcl associative array in the following format.
+
+@verbatim
+type target_trace data [trace-data-hex-encoded]
+@end verbatim
+
+@deffn {Command} tcl_trace [on/off]
+Toggle output of target trace data to the current Tcl RPC server.
+Only available from the Tcl RPC server.
+Defaults to off.
+
+See an example application here:
+@url{https://github.com/apmorton/OpenOcdTraceUtil} [OpenOcdTraceUtil]
 
 @end deffn
 

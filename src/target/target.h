@@ -292,6 +292,12 @@ struct target_reset_callback {
 	int (*callback)(struct target *target, enum target_reset_mode reset_mode, void *priv);
 };
 
+struct target_trace_callback {
+	struct list_head list;
+	void *priv;
+	int (*callback)(struct target *target, size_t len, uint8_t *data, void *priv);
+};
+
 struct target_timer_callback {
 	int (*callback)(void *priv);
 	int time_ms;
@@ -323,6 +329,15 @@ int target_unregister_reset_callback(
 		enum target_reset_mode reset_mode, void *priv),
 		void *priv);
 
+int target_register_trace_callback(
+		int (*callback)(struct target *target,
+		size_t len, uint8_t *data, void *priv),
+		void *priv);
+int target_unregister_trace_callback(
+		int (*callback)(struct target *target,
+		size_t len, uint8_t *data, void *priv),
+		void *priv);
+
 /* Poll the status of the target, detect any error conditions and report them.
  *
  * Also note that this fn will clear such error conditions, so a subsequent
@@ -341,6 +356,7 @@ int target_resume(struct target *target, int current, uint32_t address,
 int target_halt(struct target *target);
 int target_call_event_callbacks(struct target *target, enum target_event event);
 int target_call_reset_callbacks(struct target *target, enum target_reset_mode reset_mode);
+int target_call_trace_callbacks(struct target *target, size_t len, uint8_t *data);
 
 /**
  * The period is very approximate, the callback can happen much more often

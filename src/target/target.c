@@ -140,6 +140,7 @@ struct target *all_targets;
 static struct target_event_callback *target_event_callbacks;
 static struct target_timer_callback *target_timer_callbacks;
 LIST_HEAD(target_reset_callback_list);
+LIST_HEAD(target_trace_callback_list);
 static const int polling_interval = 100;
 
 static const Jim_Nvp nvp_assert[] = {
@@ -1350,6 +1351,28 @@ int target_register_reset_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
+int target_register_trace_callback(int (*callback)(struct target *target,
+		size_t len, uint8_t *data, void *priv), void *priv)
+{
+	struct target_trace_callback *entry;
+
+	if (callback == NULL)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	entry = malloc(sizeof(struct target_trace_callback));
+	if (entry == NULL) {
+		LOG_ERROR("error allocating buffer for trace callback entry");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	entry->callback = callback;
+	entry->priv = priv;
+	list_add(&entry->list, &target_trace_callback_list);
+
+
+	return ERROR_OK;
+}
+
 int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv)
 {
 	struct target_timer_callback **callbacks_p = &target_timer_callbacks;
@@ -1427,6 +1450,25 @@ int target_unregister_reset_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
+int target_unregister_trace_callback(int (*callback)(struct target *target,
+		size_t len, uint8_t *data, void *priv), void *priv)
+{
+	struct target_trace_callback *entry;
+
+	if (callback == NULL)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	list_for_each_entry(entry, &target_trace_callback_list, list) {
+		if (entry->callback == callback && entry->priv == priv) {
+			list_del(&entry->list);
+			free(entry);
+			break;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 {
 	if (callback == NULL)
@@ -1476,6 +1518,16 @@ int target_call_reset_callbacks(struct target *target, enum target_reset_mode re
 
 	list_for_each_entry(callback, &target_reset_callback_list, list)
 		callback->callback(target, reset_mode, callback->priv);
+
+	return ERROR_OK;
+}
+
+int target_call_trace_callbacks(struct target *target, size_t len, uint8_t *data)
+{
+	struct target_trace_callback *callback;
+
+	list_for_each_entry(callback, &target_trace_callback_list, list)
+		callback->callback(target, len, data, callback->priv);
 
 	return ERROR_OK;
 }

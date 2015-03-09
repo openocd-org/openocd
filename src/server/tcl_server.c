@@ -24,6 +24,7 @@
 
 #include "tcl_server.h"
 #include <target/target.h>
+#include <helper/binarybuffer.h>
 
 #define TCL_SERVER_VERSION		"TCL Server 0.1"
 #define TCL_MAX_LINE			(4096)
@@ -35,6 +36,7 @@ struct tcl_connection {
 	int tc_outerror;/* flag an output error */
 	enum target_state tc_laststate;
 	bool tc_notify;
+	bool tc_trace;
 };
 
 static char *tcl_port;
@@ -87,6 +89,32 @@ static int tcl_target_callback_reset_handler(struct target *target,
 	return ERROR_OK;
 }
 
+static int tcl_target_callback_trace_handler(struct target *target,
+		size_t len, uint8_t *data, void *priv)
+{
+	struct connection *connection = priv;
+	struct tcl_connection *tclc;
+	char *header = "type target_trace data ";
+	char *trailer = "\r\n\x1a";
+	size_t hex_len = len * 2 + 1;
+	size_t max_len = hex_len + strlen(header) + strlen(trailer);
+	char *buf, *hex;
+
+	tclc = connection->priv;
+
+	if (tclc->tc_trace) {
+		hex = malloc(hex_len);
+		buf = malloc(max_len);
+		hexify(hex, (const char *)data, len, hex_len);
+		snprintf(buf, max_len, "%s%s%s", header, hex, trailer);
+		tcl_output(connection, buf, strlen(buf));
+		free(hex);
+		free(buf);
+	}
+
+	return ERROR_OK;
+}
+
 /* write data out to a socket.
  *
  * this is a blocking write, so the return value must equal the length, if
@@ -132,6 +160,7 @@ static int tcl_new_connection(struct connection *connection)
 
 	target_register_event_callback(tcl_target_callback_event_handler, connection);
 	target_register_reset_callback(tcl_target_callback_reset_handler, connection);
+	target_register_trace_callback(tcl_target_callback_trace_handler, connection);
 
 	return ERROR_OK;
 }
@@ -183,7 +212,7 @@ static int tcl_input(struct connection *connection)
 #undef ESTR
 		} else {
 			tclc->tc_line[tclc->tc_lineoffset-1] = '\0';
-			retval = command_run_line(connection->cmd_ctx, tclc->tc_line);
+			command_run_line(connection->cmd_ctx, tclc->tc_line);
 			result = Jim_GetString(Jim_GetResult(interp), &reslen);
 			retval = tcl_output(connection, result, reslen);
 			if (retval != ERROR_OK)
@@ -209,6 +238,7 @@ static int tcl_closed(struct connection *connection)
 
 	target_unregister_event_callback(tcl_target_callback_event_handler, connection);
 	target_unregister_reset_callback(tcl_target_callback_reset_handler, connection);
+	target_unregister_trace_callback(tcl_target_callback_trace_handler, connection);
 
 	return ERROR_OK;
 }
@@ -240,7 +270,24 @@ COMMAND_HANDLER(handle_tcl_notifications_command)
 
 	if (connection != NULL && !strcmp(connection->service->name, "tcl")) {
 		tclc = connection->priv;
-		return CALL_COMMAND_HANDLER(handle_command_parse_bool, &tclc->tc_notify, "Target Notification output is");
+		return CALL_COMMAND_HANDLER(handle_command_parse_bool, &tclc->tc_notify, "Target Notification output ");
+	} else {
+		LOG_ERROR("%s: can only be called from the tcl server", CMD_NAME);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+}
+
+COMMAND_HANDLER(handle_tcl_trace_command)
+{
+	struct connection *connection = NULL;
+	struct tcl_connection *tclc = NULL;
+
+	if (CMD_CTX->output_handler_priv != NULL)
+		connection = CMD_CTX->output_handler_priv;
+
+	if (connection != NULL && !strcmp(connection->service->name, "tcl")) {
+		tclc = connection->priv;
+		return CALL_COMMAND_HANDLER(handle_command_parse_bool, &tclc->tc_trace, "Target trace output ");
 	} else {
 		LOG_ERROR("%s: can only be called from the tcl server", CMD_NAME);
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -262,6 +309,13 @@ static const struct command_registration tcl_command_handlers[] = {
 		.handler = handle_tcl_notifications_command,
 		.mode = COMMAND_EXEC,
 		.help = "Target Notification output",
+		.usage = "[on|off]",
+	},
+	{
+		.name = "tcl_trace",
+		.handler = handle_tcl_trace_command,
+		.mode = COMMAND_EXEC,
+		.help = "Target trace output",
 		.usage = "[on|off]",
 	},
 	COMMAND_REGISTRATION_DONE
