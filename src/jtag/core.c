@@ -649,6 +649,12 @@ void swd_add_reset(int req_srst)
 			if (adapter_nsrst_delay)
 				jtag_add_sleep(adapter_nsrst_delay * 1000);
 		}
+
+		retval = jtag_execute_queue();
+		if (retval != ERROR_OK) {
+			LOG_ERROR("SRST timings error");
+			return;
+		}
 	}
 }
 
