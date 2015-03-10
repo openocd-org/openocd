@@ -128,6 +128,18 @@ struct nrf51_device_spec {
 	unsigned int flash_size_kb;
 };
 
+/* The known devices table below is derived from the "nRF51 Series
+ * Compatibility Matrix" document, which can be found by searching for
+ * ATTN-51 on the Nordic Semi website:
+ *
+ * http://www.nordicsemi.com/eng/content/search?SearchText=ATTN-51
+ *
+ * Up to date with Matrix v2.0, plus some additional HWIDs.
+ *
+ * The additional HWIDs apply where the build code in the matrix is
+ * shown as Gx0, Bx0, etc. In these cases the HWID in the matrix is
+ * for x==0, x!=0 means different (unspecified) HWIDs.
+ */
 static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 	/* nRF51822 Devices (IC rev 1). */
 	{
@@ -177,13 +189,13 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 	{
 		.hwid		= 0x003C,
 		.variant	= "QFAA",
-		.build_code	= "Gx0",
+		.build_code	= "G0",
 		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x004C,
 		.variant	= "QFAB",
-		.build_code	= "Bx0",
+		.build_code	= "B0",
 		.flash_size_kb	= 128,
 	},
 	{
@@ -209,37 +221,37 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 	{
 		.hwid		= 0x0072,
 		.variant	= "QFAA",
-		.build_code	= "Hx0",
+		.build_code	= "H0",
 		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x007B,
 		.variant	= "QFAB",
-		.build_code	= "Cx0",
+		.build_code	= "C0",
 		.flash_size_kb	= 128,
 	},
 	{
 		.hwid		= 0x0083,
 		.variant	= "QFAC",
-		.build_code	= "Ax0",
+		.build_code	= "A0",
 		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x007D,
 		.variant	= "CDAB",
-		.build_code	= "Ax0",
+		.build_code	= "A0",
 		.flash_size_kb	= 128,
 	},
 	{
 		.hwid		= 0x0079,
 		.variant	= "CEAA",
-		.build_code	= "Ex0",
+		.build_code	= "E0",
 		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x0087,
 		.variant	= "CFAC",
-		.build_code	= "Ax0",
+		.build_code	= "A0",
 		.flash_size_kb	= 256,
 	},
 
@@ -273,7 +285,7 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 	{
 		.hwid		= 0x002E,
 		.variant	= "QFAA",
-		.build_code	= "Ex0",
+		.build_code	= "E0",
 		.flash_size_kb	= 256,
 	},
 	{
@@ -285,7 +297,7 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 	{
 		.hwid		= 0x0050,
 		.variant	= "CEAA",
-		.build_code	= "Bx0",
+		.build_code	= "B0",
 		.flash_size_kb	= 256,
 	},
 
@@ -293,37 +305,43 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 	{
 		.hwid		= 0x0073,
 		.variant	= "QFAA",
-		.build_code	= "Fx0",
+		.build_code	= "F0",
 		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x007C,
 		.variant	= "QFAB",
-		.build_code	= "Bx0",
+		.build_code	= "B0",
 		.flash_size_kb	= 128,
 	},
 	{
 		.hwid		= 0x0085,
 		.variant	= "QFAC",
-		.build_code	= "Ax0",
+		.build_code	= "A0",
+		.flash_size_kb	= 256,
+	},
+	{
+		.hwid		= 0x0086,
+		.variant	= "QFAC",
+		.build_code	= "A1",
 		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x007E,
 		.variant	= "CDAB",
-		.build_code	= "Ax0",
+		.build_code	= "A0",
 		.flash_size_kb	= 128,
 	},
 	{
 		.hwid		= 0x007A,
 		.variant	= "CEAA",
-		.build_code	= "Cx0",
+		.build_code	= "C0",
 		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x0088,
 		.variant	= "CFAC",
-		.build_code	= "Ax0",
+		.build_code	= "A0",
 		.flash_size_kb	= 256,
 	},
 
