@@ -507,7 +507,12 @@ static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, cha
 
 static int ChibiOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 {
-	*symbol_list = ChibiOS_symbol_list;
+	*symbol_list = malloc(sizeof(ChibiOS_symbol_list));
+
+	if (*symbol_list == NULL)
+		return ERROR_FAIL;
+
+	memcpy(*symbol_list, ChibiOS_symbol_list, sizeof(ChibiOS_symbol_list));
 	return 0;
 }
 
