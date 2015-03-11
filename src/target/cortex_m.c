@@ -1053,12 +1053,6 @@ static int cortex_m_assert_reset(struct target *target)
 		 * This has the disadvantage of not resetting the peripherals, so a
 		 * reset-init event handler is needed to perform any peripheral resets.
 		 */
-		retval = mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
-				AIRCR_VECTKEY | ((reset_config == CORTEX_M_RESET_SYSRESETREQ)
-				? AIRCR_SYSRESETREQ : AIRCR_VECTRESET));
-		if (retval != ERROR_OK)
-			return retval;
-
 		LOG_DEBUG("Using Cortex-M %s", (reset_config == CORTEX_M_RESET_SYSRESETREQ)
 			? "SYSRESETREQ" : "VECTRESET");
 
@@ -1067,17 +1061,16 @@ static int cortex_m_assert_reset(struct target *target)
 				"handler to reset any peripherals or configure hardware srst support.");
 		}
 
-		/*
-		  SAM4L needs to execute security initalization
-		  startup sequence before AP access would be enabled.
-		  During the intialization CDBGPWRUPACK is pulled low and we
-		  need to wait for it to be set to 1 again.
-		*/
-		retval = dap_dp_poll_register(swjdp, DP_CTRL_STAT,
-					      CDBGPWRUPACK, CDBGPWRUPACK, 100);
+		retval = mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
+				AIRCR_VECTKEY | ((reset_config == CORTEX_M_RESET_SYSRESETREQ)
+				? AIRCR_SYSRESETREQ : AIRCR_VECTRESET));
+		if (retval != ERROR_OK)
+			LOG_DEBUG("Ignoring AP write error right after reset");
+
+		retval = ahbap_debugport_init(swjdp);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed waitnig for CDBGPWRUPACK");
-			return ERROR_FAIL;
+			LOG_ERROR("DP initialisation failed");
+			return retval;
 		}
 
 		{

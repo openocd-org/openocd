@@ -112,6 +112,8 @@ static int swd_connect(struct adiv5_dap *dap)
 	/* Note, debugport_init() does setup too */
 	jtag_interface->swd->switch_seq(dap, JTAG_TO_SWD);
 
+	dap->do_reconnect = false;
+
 	swd_queue_dp_read(dap, DP_IDCODE, &idcode);
 
 	/* force clear all sticky faults */
@@ -122,7 +124,8 @@ static int swd_connect(struct adiv5_dap *dap)
 	if (status == ERROR_OK) {
 		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
 		dap->do_reconnect = false;
-	}
+	} else
+		dap->do_reconnect = true;
 
 	return status;
 }
@@ -130,6 +133,14 @@ static int swd_connect(struct adiv5_dap *dap)
 static inline int check_sync(struct adiv5_dap *dap)
 {
 	return do_sync ? swd_run_inner(dap) : ERROR_OK;
+}
+
+static int swd_check_reconnect(struct adiv5_dap *dap)
+{
+	if (dap->do_reconnect)
+		return swd_connect(dap);
+
+	return ERROR_OK;
 }
 
 static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
@@ -165,6 +176,10 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
+	int retval = swd_check_reconnect(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
 	swd_queue_dp_bankselect(dap, reg);
 	swd->read_reg(dap, swd_cmd(true,  false, reg), data);
 
@@ -176,6 +191,10 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 {
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
+
+	int retval = swd_check_reconnect(dap);
+	if (retval != ERROR_OK)
+		return retval;
 
 	swd_finish_read(dap);
 	swd_queue_dp_bankselect(dap, reg);
@@ -204,11 +223,9 @@ static int swd_queue_ap_read(struct adiv5_dap *dap, unsigned reg,
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	if (dap->do_reconnect) {
-		int retval = swd_connect(dap);
-		if (retval != ERROR_OK)
-			return retval;
-	}
+	int retval = swd_check_reconnect(dap);
+	if (retval != ERROR_OK)
+		return retval;
 
 	swd_queue_ap_bankselect(dap, reg);
 	swd->read_reg(dap, swd_cmd(true,  true, reg), dap->last_read);
@@ -222,6 +239,10 @@ static int swd_queue_ap_write(struct adiv5_dap *dap, unsigned reg,
 {
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
+
+	int retval = swd_check_reconnect(dap);
+	if (retval != ERROR_OK)
+		return retval;
 
 	swd_finish_read(dap);
 	swd_queue_ap_bankselect(dap, reg);
