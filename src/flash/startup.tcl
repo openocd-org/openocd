@@ -8,8 +8,8 @@
 
 proc program_error {description exit} {
 	if {$exit == 1} {
-	        echo $description
-		shutdown
+		echo $description
+		shutdown error
 	}
 
 	error $description

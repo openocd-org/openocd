@@ -121,7 +121,7 @@ static int command_retval_set(Jim_Interp *interp, int retval)
 	if (return_retval != NULL)
 		*return_retval = retval;
 
-	return (retval == ERROR_OK) ? JIM_OK : JIM_ERR;
+	return (retval == ERROR_OK) ? JIM_OK : retval;
 }
 
 extern struct command_context *global_cmd_ctx;
@@ -659,24 +659,7 @@ int command_run_line(struct command_context *context, char *line)
 		}
 		Jim_DeleteAssocData(interp, "context");
 	}
-	if (retcode == JIM_ERR) {
-		if (retval == ERROR_COMMAND_CLOSE_CONNECTION) {
-			/* Shutdown request is not an error */
-			return ERROR_OK;
-		} else {
-			/* We do not print the connection closed error message */
-			Jim_MakeErrorMessage(interp);
-			LOG_USER("%s", Jim_GetString(Jim_GetResult(interp), NULL));
-		}
-		if (retval == ERROR_OK) {
-			/* It wasn't a low level OpenOCD command that failed */
-			return ERROR_FAIL;
-		}
-		return retval;
-	} else if (retcode == JIM_EXIT) {
-		/* ignore.
-		 * exit(Jim_GetExitCode(interp)); */
-	} else {
+	if (retcode == JIM_OK) {
 		const char *result;
 		int reslen;
 
@@ -696,7 +679,22 @@ int command_run_line(struct command_context *context, char *line)
 			LOG_USER_N("\n");
 		}
 		retval = ERROR_OK;
+	} else if (retcode == JIM_EXIT) {
+		/* ignore.
+		 * exit(Jim_GetExitCode(interp)); */
+	} else if (retcode == ERROR_COMMAND_CLOSE_CONNECTION) {
+		return retcode;
+	} else {
+		Jim_MakeErrorMessage(interp);
+		LOG_USER("%s", Jim_GetString(Jim_GetResult(interp), NULL));
+
+		if (retval == ERROR_OK) {
+			/* It wasn't a low level OpenOCD command that failed */
+			return ERROR_FAIL;
+		}
+		return retval;
 	}
+
 	return retval;
 }
 

@@ -44,7 +44,8 @@
 
 static struct service *services;
 
-/* shutdown_openocd == 1: exit the main event loop, and quit the debugger */
+/* shutdown_openocd == 1: exit the main event loop, and quit the
+ * debugger; 2: quit with non-zero return code */
 static int shutdown_openocd;
 
 /* store received signal to exit application by killing ourselves */
@@ -499,7 +500,7 @@ int server_loop(struct command_context *command_context)
 #endif
 	}
 
-	return ERROR_OK;
+	return shutdown_openocd != 2 ? ERROR_OK : ERROR_FAIL;
 }
 
 #ifdef _WIN32
@@ -607,6 +608,13 @@ COMMAND_HANDLER(handle_shutdown_command)
 	LOG_USER("shutdown command invoked");
 
 	shutdown_openocd = 1;
+
+	if (CMD_ARGC == 1) {
+		if (!strcmp(CMD_ARGV[0], "error")) {
+			shutdown_openocd = 2;
+			return ERROR_FAIL;
+		}
+	}
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }

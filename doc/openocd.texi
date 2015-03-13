@@ -6486,8 +6486,10 @@ Useful in connection with script files
 (@command{script} command and @command{target_name} configuration).
 @end deffn
 
-@deffn Command shutdown
-Close the OpenOCD daemon, disconnecting all clients (GDB, telnet, other).
+@deffn Command shutdown [@option{error}]
+Close the OpenOCD daemon, disconnecting all clients (GDB, telnet,
+other). If option @option{error} is used, OpenOCD will return a
+non-zero exit code to the parent process.
 @end deffn
 
 @anchor{debuglevel}
