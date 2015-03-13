@@ -642,6 +642,8 @@ extern const struct dap_ops jtag_dp_ops;
  */
 int ahbap_debugport_init(struct adiv5_dap *dap)
 {
+	/* check that we support packed transfers */
+	uint32_t csw, cfg;
 	int retval;
 
 	LOG_DEBUG(" ");
@@ -663,70 +665,74 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	dap_ap_select(dap, 0);
 	dap->last_read = NULL;
 
-	/* DP initialization */
+	for (size_t i = 0; i < 10; i++) {
+		/* DP initialization */
 
-	dap->dp_bank_value = 0;
+		dap->dp_bank_value = 0;
 
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-	if (retval != ERROR_OK)
-		return retval;
+		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+		if (retval != ERROR_OK)
+			continue;
 
-	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
-	if (retval != ERROR_OK)
-		return retval;
+		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
+		if (retval != ERROR_OK)
+			continue;
 
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-	if (retval != ERROR_OK)
-		return retval;
+		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+		if (retval != ERROR_OK)
+			continue;
 
-	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
-	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
-	if (retval != ERROR_OK)
-		return retval;
+		dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
+		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
+		if (retval != ERROR_OK)
+			continue;
 
-	/* Check that we have debug power domains activated */
-	LOG_DEBUG("DAP: wait CDBGPWRUPACK");
-	retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
-				      CDBGPWRUPACK, CDBGPWRUPACK,
-				      DAP_POWER_DOMAIN_TIMEOUT);
-	if (retval != ERROR_OK)
-		return retval;
+		/* Check that we have debug power domains activated */
+		LOG_DEBUG("DAP: wait CDBGPWRUPACK");
+		retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
+					      CDBGPWRUPACK, CDBGPWRUPACK,
+					      DAP_POWER_DOMAIN_TIMEOUT);
+		if (retval != ERROR_OK)
+			continue;
 
-	LOG_DEBUG("DAP: wait CSYSPWRUPACK");
-	retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
-				      CSYSPWRUPACK, CSYSPWRUPACK,
-				      DAP_POWER_DOMAIN_TIMEOUT);
-	if (retval != ERROR_OK)
-		return retval;
+		LOG_DEBUG("DAP: wait CSYSPWRUPACK");
+		retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
+					      CSYSPWRUPACK, CSYSPWRUPACK,
+					      DAP_POWER_DOMAIN_TIMEOUT);
+		if (retval != ERROR_OK)
+			continue;
 
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-	if (retval != ERROR_OK)
-		return retval;
-	/* With debug power on we can activate OVERRUN checking */
-	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
-	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-	if (retval != ERROR_OK)
-		return retval;
+		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+		if (retval != ERROR_OK)
+			continue;
+		/* With debug power on we can activate OVERRUN checking */
+		dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
+		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
+		if (retval != ERROR_OK)
+			continue;
+		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+		if (retval != ERROR_OK)
+			continue;
 
-	/* check that we support packed transfers */
-	uint32_t csw, cfg;
+		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
+		if (retval != ERROR_OK)
+			continue;
 
-	retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
-	if (retval != ERROR_OK)
-		return retval;
+		retval = dap_queue_ap_read(dap, AP_REG_CSW, &csw);
+		if (retval != ERROR_OK)
+			continue;
 
-	retval = dap_queue_ap_read(dap, AP_REG_CSW, &csw);
-	if (retval != ERROR_OK)
-		return retval;
+		retval = dap_queue_ap_read(dap, AP_REG_CFG, &cfg);
+		if (retval != ERROR_OK)
+			continue;
 
-	retval = dap_queue_ap_read(dap, AP_REG_CFG, &cfg);
-	if (retval != ERROR_OK)
-		return retval;
+		retval = dap_run(dap);
+		if (retval != ERROR_OK)
+			continue;
 
-	retval = dap_run(dap);
+		break;
+	}
+
 	if (retval != ERROR_OK)
 		return retval;
 

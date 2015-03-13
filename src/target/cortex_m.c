@@ -1107,6 +1107,17 @@ static int cortex_m_deassert_reset(struct target *target)
 	/* deassert reset lines */
 	adapter_deassert_reset();
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	if ((jtag_reset_config & RESET_HAS_SRST) &&
+	    !(jtag_reset_config & RESET_SRST_NO_GATING)) {
+		int retval = ahbap_debugport_init(target_to_cm(target)->armv7m.arm.dap);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("DP initialisation failed");
+			return retval;
+		}
+	}
+
 	return ERROR_OK;
 }
 
