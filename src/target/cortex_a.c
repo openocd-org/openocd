@@ -2871,8 +2871,11 @@ static int cortex_a_examine_first(struct target *target)
 		/* Lookup 0x15 -- Processor DAP */
 		retval = dap_lookup_cs_component(swjdp, 1, dbgbase, 0x15,
 				&armv7a->debug_base, &coreidx);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Can't detect %s's dbgbase from the ROM table; you need to specify it explicitly.",
+				  target->cmd_name);
 			return retval;
+		}
 		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32,
 			  coreidx, armv7a->debug_base);
 	} else
