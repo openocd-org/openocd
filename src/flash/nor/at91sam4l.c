@@ -24,13 +24,15 @@
 
 #include "imp.h"
 
+#include <target/cortex_m.h>
+
 /* At this time, the SAM4L Flash is available in these capacities:
  * ATSAM4Lx4xx: 256KB (512 pages)
  * ATSAM4Lx2xx: 128KB (256 pages)
  * ATSAM4Lx8xx: 512KB (1024 pages)
  */
 
-/* There are 16 lockable regions regardless of overall capacity.	The number
+/* There are 16 lockable regions regardless of overall capacity. The number
  * of pages per sector is therefore dependant on capacity. */
 #define SAM4L_NUM_SECTORS 16
 
@@ -74,6 +76,14 @@
 #define SAM4L_FCMD_HSDIS	17	/* High speed mode disable */
 
 #define SAM4L_FMCD_CMDKEY	0xA5UL	/* 'key' to issue commands, see 14.10.2 */
+
+
+/* SMAP registers and bits */
+#define SMAP_BASE 0x400A3000
+
+#define SMAP_SCR (SMAP_BASE + 8)
+#define SMAP_SCR_HCR (1 << 1)
+
 
 struct sam4l_chip_info {
 	uint32_t id;
@@ -633,21 +643,47 @@ static int sam4l_write(struct flash_bank *bank, const uint8_t *buffer,
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(sam4l_handle_info_command)
+
+COMMAND_HANDLER(sam4l_handle_reset_deassert)
 {
-	return ERROR_OK;
+	struct target *target = get_current_target(CMD_CTX);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct adiv5_dap *swjdp = armv7m->arm.dap;
+	int retval = ERROR_OK;
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	/* In case of sysresetreq, debug retains state set in cortex_m_assert_reset()
+	 * so we just release reset held by SMAP
+	 *
+	 * n_RESET (srst) clears the DP, so reenable debug and set vector catch here
+	 *
+	 * After vectreset SMAP release is not needed however makes no harm
+	 */
+	if (target->reset_halt && (jtag_reset_config & RESET_HAS_SRST)) {
+		retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
+		if (retval == ERROR_OK)
+			retval = mem_ap_write_atomic_u32(swjdp, DCB_DEMCR,
+				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+		/* do not return on error here, releasing SMAP reset is more important */
+	}
+
+	int retval2 = mem_ap_write_atomic_u32(swjdp, SMAP_SCR, SMAP_SCR_HCR);
+	if (retval2 != ERROR_OK)
+		return retval2;
+
+	return retval;
 }
 
 static const struct command_registration at91sam4l_exec_command_handlers[] = {
 	{
-		.name = "info",
-		.handler = sam4l_handle_info_command,
+		.name = "smap_reset_deassert",
+		.handler = sam4l_handle_reset_deassert,
 		.mode = COMMAND_EXEC,
-		.help = "Print information about the current at91sam4l chip"
-			"and its flash configuration.",
+		.help = "deasert internal reset held by SMAP"
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration at91sam4l_command_handlers[] = {
 	{
 		.name = "at91sam4l",

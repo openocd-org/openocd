@@ -5152,6 +5152,20 @@ Atmel include internal flash and use ARM's Cortex-M4 core.
 This driver uses the same cmd names/syntax as @xref{at91sam3}.
 @end deffn
 
+@deffn {Flash Driver} at91sam4l
+@cindex at91sam4l
+All members of the AT91SAM4L microcontroller family from
+Atmel include internal flash and use ARM's Cortex-M4 core.
+This driver uses the same cmd names/syntax as @xref{at91sam3}.
+
+The AT91SAM4L driver adds some additional commands:
+@deffn Command {at91sam4l smap_reset_deassert}
+This command releases internal reset held by SMAP
+and prepares reset vector catch in case of reset halt.
+Command is used internally in event event reset-deassert-post.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} at91sam7
 All members of the AT91SAM7 microcontroller family from Atmel include
 internal flash and use ARM7TDMI cores. The driver automatically
