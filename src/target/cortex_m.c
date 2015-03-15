@@ -992,34 +992,24 @@ static int cortex_m_assert_reset(struct target *target)
 	/* Enable debug requests */
 	int retval;
 	retval = mem_ap_read_atomic_u32(armv7m->debug_ap, DCB_DHCSR, &cortex_m->dcb_dhcsr);
-	if (retval != ERROR_OK)
-		return retval;
-	if (!(cortex_m->dcb_dhcsr & C_DEBUGEN)) {
+	/* Store important errors instead of failing and proceed to reset assert */
+
+	if (retval != ERROR_OK || !(cortex_m->dcb_dhcsr & C_DEBUGEN))
 		retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_DEBUGEN);
-		if (retval != ERROR_OK)
-			return retval;
-	}
 
 	/* If the processor is sleeping in a WFI or WFE instruction, the
 	 * C_HALT bit must be asserted to regain control */
-	if (cortex_m->dcb_dhcsr & S_SLEEP) {
+	if (retval == ERROR_OK && (cortex_m->dcb_dhcsr & S_SLEEP))
 		retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
-		if (retval != ERROR_OK)
-			return retval;
-	}
 
-	retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DCRDR, 0);
-	if (retval != ERROR_OK)
-		return retval;
+	mem_ap_write_u32(armv7m->debug_ap, DCB_DCRDR, 0);
+	/* Ignore less important errors */
 
 	if (!target->reset_halt) {
 		/* Set/Clear C_MASKINTS in a separate operation */
-		if (cortex_m->dcb_dhcsr & C_MASKINTS) {
-			retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DHCSR,
+		if (cortex_m->dcb_dhcsr & C_MASKINTS)
+			mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DHCSR,
 					DBGKEY | C_DEBUGEN | C_HALT);
-			if (retval != ERROR_OK)
-				return retval;
-		}
 
 		/* clear any debug flags before resuming */
 		cortex_m_clear_halt(target);
@@ -1033,16 +1023,20 @@ static int cortex_m_assert_reset(struct target *target)
 		 * bad vector table entries.  Should this include MMERR or
 		 * other flags too?
 		 */
-		retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DEMCR,
+		int retval2;
+		retval2 = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DEMCR,
 				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
-		if (retval != ERROR_OK)
-			return retval;
+		if (retval != ERROR_OK || retval2 != ERROR_OK)
+			LOG_INFO("AP write error, reset will not halt");
 	}
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
 		/* default to asserting srst */
 		if (!srst_asserted)
 			adapter_assert_reset();
+
+		/* srst is asserted, ignore AP access errors */
+		retval = ERROR_OK;
 	} else {
 		/* Use a standard Cortex-M3 software reset mechanism.
 		 * We default to using VECRESET as it is supported on all current cores.
@@ -1057,27 +1051,24 @@ static int cortex_m_assert_reset(struct target *target)
 				"handler to reset any peripherals or configure hardware srst support.");
 		}
 
-		retval = mem_ap_write_atomic_u32(armv7m->debug_ap, NVIC_AIRCR,
+		int retval3;
+		retval3 = mem_ap_write_atomic_u32(armv7m->debug_ap, NVIC_AIRCR,
 				AIRCR_VECTKEY | ((reset_config == CORTEX_M_RESET_SYSRESETREQ)
 				? AIRCR_SYSRESETREQ : AIRCR_VECTRESET));
-		if (retval != ERROR_OK)
+		if (retval3 != ERROR_OK)
 			LOG_DEBUG("Ignoring AP write error right after reset");
 
-		retval = dap_dp_init(armv7m->debug_ap->dap);
-		if (retval != ERROR_OK) {
+		retval3 = dap_dp_init(armv7m->debug_ap->dap);
+		if (retval3 != ERROR_OK)
 			LOG_ERROR("DP initialisation failed");
-			return retval;
-		}
 
-		{
+		else {
 			/* I do not know why this is necessary, but it
 			 * fixes strange effects (step/resume cause NMI
 			 * after reset) on LM3S6918 -- Michael Schwingen
 			 */
 			uint32_t tmp;
-			retval = mem_ap_read_atomic_u32(armv7m->debug_ap, NVIC_AIRCR, &tmp);
-			if (retval != ERROR_OK)
-				return retval;
+			mem_ap_read_atomic_u32(armv7m->debug_ap, NVIC_AIRCR, &tmp);
 		}
 	}
 
@@ -1085,6 +1076,10 @@ static int cortex_m_assert_reset(struct target *target)
 	jtag_add_sleep(50000);
 
 	register_cache_invalidate(cortex_m->armv7m.arm.core_cache);
+
+	/* now return stored error code if any */
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->reset_halt) {
 		retval = target_halt(target);

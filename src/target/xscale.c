@@ -1446,6 +1446,13 @@ static int xscale_assert_reset(struct target *target)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 
+	/* TODO: apply hw reset signal in not examined state */
+	if (!(target_was_examined(target))) {
+		LOG_WARNING("Reset is not asserted because the target is not examined.");
+		LOG_WARNING("Use a reset button or power cycle the target.");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
 

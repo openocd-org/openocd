@@ -875,6 +875,13 @@ int arm7_9_assert_reset(struct target *target)
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	bool use_event = false;
 
+	/* TODO: apply hw reset signal in not examined state */
+	if (!(target_was_examined(target))) {
+		LOG_WARNING("Reset is not asserted because the target is not examined.");
+		LOG_WARNING("Use a reset button or power cycle the target.");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
 	LOG_DEBUG("target->state: %s", target_state_name(target));
 
 	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT))

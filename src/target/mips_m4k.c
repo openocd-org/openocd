@@ -302,6 +302,13 @@ static int mips_m4k_assert_reset(struct target *target)
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
 
+	/* TODO: apply hw reset signal in not examined state */
+	if (!(target_was_examined(target))) {
+		LOG_WARNING("Reset is not asserted because the target is not examined.");
+		LOG_WARNING("Use a reset button or power cycle the target.");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
 

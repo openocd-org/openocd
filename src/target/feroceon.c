@@ -64,6 +64,13 @@ static int feroceon_assert_reset(struct target *target)
 	struct arm7_9_common *arm7_9 = arm->arch_info;
 	int ud = arm7_9->use_dbgrq;
 
+	/* TODO: apply hw reset signal in not examined state */
+	if (!(target_was_examined(target))) {
+		LOG_WARNING("Reset is not asserted because the target is not examined.");
+		LOG_WARNING("Use a reset button or power cycle the target.");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
 	arm7_9->use_dbgrq = 0;
 	if (target->reset_halt)
 		arm7_9_halt(target);

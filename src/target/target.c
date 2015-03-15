@@ -4920,10 +4920,7 @@ static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	struct target *target = Jim_CmdPrivData(goi.interp);
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
-	if (!(target_was_examined(target))) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_TARGET_NOT_EXAMINED;
-	}
+
 	if (!target->type->assert_reset || !target->type->deassert_reset) {
 		Jim_SetResultFormatted(interp,
 				"No target-specific reset for %s",

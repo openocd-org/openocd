@@ -1903,6 +1903,8 @@ static int cortex_a_assert_reset(struct target *target)
 
 	/* FIXME when halt is requested, make it work somehow... */
 
+	/* This function can be called in "target not examined" state */
+
 	/* Issue some kind of warm reset. */
 	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT))
 		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
