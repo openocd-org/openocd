@@ -992,7 +992,7 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			uint32_t c_cid0, c_cid1, c_cid2, c_cid3;
 			uint32_t c_pid0, c_pid1, c_pid2, c_pid3, c_pid4;
 			uint32_t component_base;
-			unsigned part_num;
+			uint32_t part_num;
 			const char *type, *full;
 
 			component_base = (dbgbase & 0xFFFFF000) + (romentry & 0xFFFFF000);

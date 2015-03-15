@@ -709,7 +709,7 @@ static int nrf51_erase_page(struct flash_bank *bank,
 
 	LOG_DEBUG("Erasing page at 0x%"PRIx32, sector->offset);
 	if (sector->is_protected) {
-		LOG_ERROR("Cannot erase protected sector at 0x%x", sector->offset);
+		LOG_ERROR("Cannot erase protected sector at 0x%" PRIx32, sector->offset);
 		return ERROR_FAIL;
 	}
 

@@ -976,8 +976,8 @@ COMMAND_HANDLER(samd_handle_bootloader_command)
 					nb = (2 << (8 - size)) * page_size;
 
 				/* There are 4 pages per row */
-				command_print(CMD_CTX, "Bootloader size is %u bytes (%u rows)",
-					   nb, nb / (page_size * 4));
+				command_print(CMD_CTX, "Bootloader size is %" PRIu32 " bytes (%" PRIu32 " rows)",
+					   nb, (uint32_t)(nb / (page_size * 4)));
 			}
 		}
 	}

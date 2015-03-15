@@ -1450,7 +1450,7 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 			break;
 
 		default:
-			LOG_ERROR("BUG: unknown Part ID encountered: 0x%x", part_id);
+			LOG_ERROR("BUG: unknown Part ID encountered: 0x%" PRIx32, part_id);
 			exit(-1);
 	}
 
@@ -1472,7 +1472,7 @@ static int lpc2000_probe(struct flash_bank *bank)
 			status = get_lpc2000_part_id(bank, &part_id);
 			if (status == LPC2000_CMD_SUCCESS)
 				LOG_INFO("If auto-detection fails for this part, please email "
-					"openocd-devel@lists.sourceforge.net, citing part id 0x%x.\n", part_id);
+					"openocd-devel@lists.sourceforge.net, citing part id 0x%" PRIx32 ".\n", part_id);
 		}
 
 		lpc2000_build_sector_list(bank);

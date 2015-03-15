@@ -238,7 +238,7 @@ static int cortex_a_init_debug_access(struct target *target)
 	   the registers in the Core Power Domain */
 	retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_PRSR, &dbg_osreg);
-	LOG_DEBUG("target->coreid %d DBGPRSR  0x%x ", target->coreid, dbg_osreg);
+	LOG_DEBUG("target->coreid %" PRId32 " DBGPRSR  0x%" PRIx32, target->coreid, dbg_osreg);
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -2954,7 +2954,7 @@ static int cortex_a_examine_first(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("target->coreid %d DBGPRSR  0x%" PRIx32, target->coreid, dbg_osreg);
+	LOG_DEBUG("target->coreid %" PRId32 " DBGPRSR  0x%" PRIx32, target->coreid, dbg_osreg);
 
 	armv7a->arm.core_type = ARM_MODE_MON;
 	retval = cortex_a_dpm_setup(cortex_a, didr);
