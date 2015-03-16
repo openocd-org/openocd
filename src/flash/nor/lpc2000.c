@@ -276,9 +276,6 @@ struct lpc2000_flash_bank {
 	lpc2000_variant variant;
 	uint32_t cclk;
 	int cmd51_dst_boundary;
-	int cmd51_can_64b;
-	int cmd51_can_256b;
-	int cmd51_can_8192b;
 	int calc_checksum;
 	uint32_t cmd51_max_buffer;
 	int checksum_vector;
@@ -323,9 +320,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	if (lpc2000_info->variant == lpc2000_v1) {
 		lpc2000_info->cmd51_dst_boundary = 512;
-		lpc2000_info->cmd51_can_64b = 0;
-		lpc2000_info->cmd51_can_256b = 0;
-		lpc2000_info->cmd51_can_8192b = 1;
 		lpc2000_info->checksum_vector = 5;
 		lpc2000_info->iap_max_stack = 128;
 
@@ -371,9 +365,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 	} else if (lpc2000_info->variant == lpc2000_v2) {
 		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_64b = 0;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 5;
 		lpc2000_info->iap_max_stack = 128;
 
@@ -440,9 +431,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 	} else if (lpc2000_info->variant == lpc1700) {
 		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_64b = 0;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 128;
 
@@ -492,9 +480,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		}
 	} else if (lpc2000_info->variant == lpc4300) {
 		lpc2000_info->cmd51_dst_boundary = 512;
-		lpc2000_info->cmd51_can_64b = 0;
-		lpc2000_info->cmd51_can_256b = 0;
-		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 208;
 
@@ -526,9 +511,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	} else if (lpc2000_info->variant == lpc800) {
 		lpc2000_info->cmd51_dst_boundary = 64;
-		lpc2000_info->cmd51_can_64b = 1;
-		lpc2000_info->cmd51_can_256b = 0;
-		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 208;		/* 148byte for LPC81x,208byte for LPC82x. */
 		lpc2000_info->cmd51_max_buffer = 256;	/* smallest MCU in the series, LPC810, has 1 kB of SRAM */
@@ -565,9 +547,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	} else if (lpc2000_info->variant == lpc1100) {
 		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_64b = 0;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 128;
 
@@ -591,9 +570,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	} else if (lpc2000_info->variant == lpc1500) {
 		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_64b = 0;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 128;
 
@@ -625,9 +601,6 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 	} else if (lpc2000_info->variant == lpc54100) {
 		lpc2000_info->cmd51_dst_boundary = 256;
-		lpc2000_info->cmd51_can_64b = 0;
-		lpc2000_info->cmd51_can_256b = 1;
-		lpc2000_info->cmd51_can_8192b = 0;
 		lpc2000_info->checksum_vector = 7;
 		lpc2000_info->iap_max_stack = 128;
 
@@ -1127,14 +1100,8 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 		uint32_t thisrun_bytes;
 		if (bytes_remaining >= lpc2000_info->cmd51_max_buffer)
 			thisrun_bytes = lpc2000_info->cmd51_max_buffer;
-		else if (bytes_remaining >= 1024)
-			thisrun_bytes = 1024;
-		else if ((bytes_remaining >= 512) || (!lpc2000_info->cmd51_can_256b))
-			thisrun_bytes = 512;
-		else if ((bytes_remaining >= 256) || (!lpc2000_info->cmd51_can_64b))
-			thisrun_bytes = 256;
 		else
-			thisrun_bytes = 64;
+			thisrun_bytes = lpc2000_info->cmd51_dst_boundary;
 
 		/* Prepare sectors */
 		param_table[0] = first_sector;
