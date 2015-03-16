@@ -242,8 +242,10 @@ static int vsllink_execute_queue(void)
 
 static int vsllink_speed(int speed)
 {
-	if (swd_mode)
+	if (swd_mode) {
+		vsllink_swd_frequency(NULL, speed * 1000);
 		return ERROR_OK;
+	}
 
 	versaloon_interface.adaptors.jtag_raw.config(0, (uint16_t)speed);
 	return versaloon_interface.adaptors.peripheral_commit();
