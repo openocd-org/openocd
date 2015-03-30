@@ -63,6 +63,7 @@
 /* Known identifiers */
 #define SAMD_PROCESSOR_M0	0x01
 #define SAMD_FAMILY_D		0x00
+#define SAMD_FAMILY_L		0x01
 #define SAMD_SERIES_20		0x00
 #define SAMD_SERIES_21		0x01
 #define SAMD_SERIES_10		0x02
@@ -149,6 +150,19 @@ static const struct samd_part samr21_parts[] = {
 	{ 0x1E, "SAMR21E16A",  64, 32 },
 };
 
+/* Known SAML21 parts. */
+static const struct samd_part saml21_parts[] = {
+	{ 0x00, "SAML21J18A", 256, 32 },
+	{ 0x01, "SAML21J17A", 128, 16 },
+	{ 0x02, "SAML21J16A", 64, 8 },
+	{ 0x05, "SAML21G18A", 256, 32 },
+	{ 0x06, "SAML21G17A", 128, 16 },
+	{ 0x07, "SAML21G16A", 64, 8 },
+	{ 0x0A, "SAML21E18A", 256, 32 },
+	{ 0x0B, "SAML21E17A", 128, 16 },
+	{ 0x0C, "SAML21E16A", 64, 8 },
+	{ 0x0D, "SAML21E15A", 32, 4 },
+};
 
 /* Each family of parts contains a parts table in the DEVSEL field of DID.  The
  * processor ID, family ID, and series ID are used to determine which exact
@@ -173,6 +187,8 @@ static const struct samd_family samd_families[] = {
 		samd10_parts, ARRAY_SIZE(samd10_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_11,
 		samd11_parts, ARRAY_SIZE(samd11_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_L, SAMD_SERIES_21,
+		saml21_parts, ARRAY_SIZE(saml21_parts) },
 };
 
 struct samd_info {
@@ -190,8 +206,8 @@ static struct samd_info *samd_chips;
 static const struct samd_part *samd_find_part(uint32_t id)
 {
 	uint8_t processor = (id >> 28);
-	uint8_t family = (id >> 24) & 0x0F;
-	uint8_t series = (id >> 16) & 0xFF;
+	uint8_t family = (id >> 23) & 0x1F;
+	uint8_t series = (id >> 16) & 0x3F;
 	uint8_t devsel = id & 0xFF;
 
 	for (unsigned i = 0; i < ARRAY_SIZE(samd_families); i++) {
