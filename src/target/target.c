@@ -1930,7 +1930,8 @@ int target_arch_state(struct target *target)
 		return ERROR_OK;
 	}
 
-	LOG_USER("target state: %s", target_state_name(target));
+	LOG_USER("%s: target state: %s", target_name(target),
+		 target_state_name(target));
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_OK;
