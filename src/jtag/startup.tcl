@@ -89,9 +89,8 @@ proc measure_clk {} {
 add_help_text measure_clk "Runs a test to measure the JTAG clk. Useful with RCLK / RTCK."
 
 proc default_to_jtag { f args } {
-	if [catch {transport select} current_transport] {
-		echo "Info : session transport was not selected, defaulting to JTAG"
-		transport select jtag
+	set current_transport [transport select]
+	if {[using_jtag]} {
 		eval $f $args
 	} {
 		error "session transport is \"$current_transport\" but your config requires JTAG"
