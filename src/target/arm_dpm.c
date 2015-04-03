@@ -167,6 +167,9 @@ static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 					/* core-specific ... ? */
 					LOG_WARNING("Jazelle PC adjustment unknown");
 					break;
+				case ARM_STATE_AARCH64:
+					LOG_ERROR("AARCH64: 32bit read requested");
+					break;
 			}
 			break;
 		default:
@@ -882,6 +885,7 @@ void arm_dpm_report_wfar(struct arm_dpm *dpm, uint32_t addr)
 			addr -= 4;
 			break;
 		case ARM_STATE_JAZELLE:
+		case ARM_STATE_AARCH64:
 			/* ?? */
 			break;
 	}
