@@ -482,6 +482,11 @@ static int mdr_probe(struct flash_bank *bank)
 	page_count = mdr_info->page_count;
 	page_size = bank->size / page_count;
 
+	if (bank->sectors) {
+		free(bank->sectors);
+		bank->sectors = NULL;
+	}
+
 	bank->num_sectors = page_count;
 	bank->sectors = malloc(sizeof(struct flash_sector) * page_count);
 
@@ -516,6 +521,8 @@ static int get_mdr_info(struct flash_bank *bank, char *buf, int buf_size)
 
 struct flash_driver mdr_flash = {
 	.name = "mdr",
+	.usage = "flash bank <name> mdr <base> <size> 0 0 <target#> <type> <page_count> <sec_count>\n"
+	"<type>: 0 for main memory, 1 for info memory",
 	.flash_bank_command = mdr_flash_bank_command,
 	.erase = mdr_erase,
 	.protect = mdr_protect,

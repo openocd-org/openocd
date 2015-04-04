@@ -5874,6 +5874,31 @@ flash bank $_FLASHNAME mrvlqspi 0x0 0 0 0 $_TARGETNAME 0x46010000
 
 @end deffn
 
+@deffn {Flash Driver} mdr
+This drivers handles the integrated NOR flash on Milandr Cortex-M
+based controllers. A known limitation is that the Info memory can't be
+read or verified as it's not memory mapped.
+
+@example
+flash bank <name> mdr <base> <size> 0 0 <target#> @var{type} @var{page_count} @var{sec_count}
+@end example
+
+@itemize @bullet
+@item @var{type} - 0 for main memory, 1 for info memory
+@item @var{page_count} - total number of pages
+@item @var{sec_count} - number of sector per page count
+@end itemize
+
+Example usage:
+@example
+if @{ [info exists IMEMORY] && [string equal $IMEMORY true] @} @{
+   flash bank $@{_CHIPNAME@}_info.flash mdr 0x00000000 0x01000 0 0 $_TARGETNAME 1 1 4
+@} else @{
+   flash bank $_CHIPNAME.flash mdr 0x00000000 0x20000 0 0 $_TARGETNAME 0 32 4
+@}
+@end example
+@end deffn
+
 @section mFlash
 
 @subsection mFlash Configuration
