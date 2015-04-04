@@ -1207,6 +1207,9 @@ static int get_lpc2000_part_id(struct flash_bank *bank, uint32_t *part_id)
 	   firmwares, so ignore it. */
 	lpc2000_iap_call(bank, iap_working_area, 54, param_table, result_table);
 
+	struct target *target = bank->target;
+	target_free_working_area(target, iap_working_area);
+
 	/* If the result is zero, the command probably didn't work out. */
 	if (result_table[0] == 0)
 		return LPC2000_INVALID_COMMAND;
