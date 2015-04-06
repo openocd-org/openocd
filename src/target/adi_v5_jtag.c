@@ -271,9 +271,8 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 		LOG_DEBUG("jtag-dp: CTRL/STAT error, 0x%" PRIx32, ctrlstat);
 		/* Check power to debug regions */
 		if ((ctrlstat & 0xf0000000) != 0xf0000000) {
-			retval = ahbap_debugport_init(dap);
-			if (retval != ERROR_OK)
-				return retval;
+			LOG_ERROR("Debug regions are unpowered, an unexpected reset might have happened");
+			return ERROR_JTAG_DEVICE_ERROR;
 		} else {
 			uint32_t mem_ap_csw, mem_ap_tar;
 
