@@ -170,7 +170,7 @@ controllers (LPC3180, Orion, S3C24xx, more) is included.
 
 The OpenOCD web site provides the latest public news from the community:
 
-@uref{http://openocd.sourceforge.net/}
+@uref{http://openocd.org/}
 
 @section Latest User's Guide:
 
@@ -178,11 +178,11 @@ The user's guide you are now reading may not be the latest one
 available. A version for more recent code may be available.
 Its HTML form is published regularly at:
 
-@uref{http://openocd.sourceforge.net/doc/html/index.html}
+@uref{http://openocd.org/doc/html/index.html}
 
 PDF form is likewise published at:
 
-@uref{http://openocd.sourceforge.net/doc/pdf/openocd.pdf}
+@uref{http://openocd.org/doc/pdf/openocd.pdf}
 
 @section OpenOCD User's Forum
 
@@ -256,7 +256,7 @@ providing a Doxygen reference manual. This document contains more
 technical information about the software internals, development
 processes, and similar documentation:
 
-@uref{http://openocd.sourceforge.net/doc/doxygen/html/index.html}
+@uref{http://openocd.org/doc/doxygen/html/index.html}
 
 This document is a work-in-progress, but contributions would be welcome
 to fill in the gaps. All of the source files are provided in-tree,
@@ -292,7 +292,7 @@ communication between developers:
 
 The OpenOCD Bug Tracker is hosted on SourceForge:
 
-@uref{https://sourceforge.net/p/openocd/tickets/}
+@uref{http://bugs.openocd.org/}
 
 
 @node Debug Adapter Hardware
@@ -735,7 +735,7 @@ If all goes well you'll see output something like
 @example
 Open On-Chip Debugger 0.4.0 (2010-01-14-15:06)
 For bug reports, read
-        http://openocd.sourceforge.net/doc/doxygen/bugs.html
+        http://openocd.org/doc/doxygen/bugs.html
 Info : JTAG tap: lm3s.cpu tap/device found: 0x3ba00477
        (mfg: 0x23b, part: 0xba00, ver: 0x3)
 @end example

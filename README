@@ -61,10 +61,10 @@ In addition to the in-tree documentation, the latest manuals may be
 viewed online at the following URLs:
 
   OpenOCD User's Guide:
-    http://openocd.sourceforge.net/doc/html/index.html
+    http://openocd.org/doc/html/index.html
 
   OpenOCD Developer's Manual:
-    http://openocd.sourceforge.net/doc/doxygen/html/index.html
+    http://openocd.org/doc/doxygen/html/index.html
 
 These reflect the latest development versions, so the following section
 introduces how to build the complete documentation from the package.

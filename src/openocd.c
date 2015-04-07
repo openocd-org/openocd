@@ -328,7 +328,7 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	LOG_OUTPUT("For bug reports, read\n\t"
-		"http://openocd.sourceforge.net/doc/doxygen/bugs.html"
+		"http://openocd.org/doc/doxygen/bugs.html"
 		"\n");
 
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);

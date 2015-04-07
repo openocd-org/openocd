@@ -6,11 +6,11 @@ posting a message with your report:
 
 	openocd-devel@lists.sourceforge.net
 
-Also, please check the Trac bug database to see if a ticket for
+Also, please check the bug database to see if a ticket for
 the bug has already been opened.  You might be asked to open
 such a ticket, or to update an existing ticket with more data.
 
-	https://sourceforge.net/apps/trac/openocd/
+	http://bugs.openocd.org/
 
 To minimize work for OpenOCD developers, you should try to include
 all of the information listed below.  If you feel that some of the
