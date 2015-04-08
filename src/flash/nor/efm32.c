@@ -47,6 +47,8 @@
 #define EFM_FAMILY_ID_LEOPARD_GECKO     74
 #define EFM_FAMILY_ID_WONDER_GECKO      75
 #define EFM_FAMILY_ID_ZERO_GECKO        76
+#define EZR_FAMILY_ID_WONDER_GECKO		120
+#define EZR_FAMILY_ID_LEOPARD_GECKO		121
 
 #define EFM32_FLASH_ERASE_TMO           100
 #define EFM32_FLASH_WDATAREADY_TMO      100
@@ -61,7 +63,7 @@
 #define EFM32_MSC_LOCK_BITS             (EFM32_MSC_INFO_BASE+0x4000)
 #define EFM32_MSC_DEV_INFO              (EFM32_MSC_INFO_BASE+0x8000)
 
-/* PAGE_SIZE is only present in Leopard and Giant Gecko MCUs */
+/* PAGE_SIZE is only present in Leopard, Giant and Wonder Gecko MCUs */
 #define EFM32_MSC_DI_PAGE_SIZE          (EFM32_MSC_DEV_INFO+0x1e7)
 #define EFM32_MSC_DI_FLASH_SZ           (EFM32_MSC_DEV_INFO+0x1f8)
 #define EFM32_MSC_DI_RAM_SZ             (EFM32_MSC_DEV_INFO+0x1fa)
@@ -202,7 +204,9 @@ static int efm32x_read_info(struct flash_bank *bank,
 			LOG_ERROR("Invalid page size %u", efm32_info->page_size);
 			return ERROR_FAIL;
 		}
-	} else if (EFM_FAMILY_ID_WONDER_GECKO == efm32_info->part_family) {
+	} else if (EFM_FAMILY_ID_WONDER_GECKO == efm32_info->part_family ||
+			EZR_FAMILY_ID_WONDER_GECKO == efm32_info->part_family ||
+			EZR_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family) {
 		uint8_t pg_size = 0;
 		ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE,
 			&pg_size);
@@ -846,9 +850,11 @@ static int efm32x_probe(struct flash_bank *bank)
 			LOG_INFO("Tiny Gecko MCU detected");
 			break;
 		case EFM_FAMILY_ID_LEOPARD_GECKO:
+		case EZR_FAMILY_ID_LEOPARD_GECKO:
 			LOG_INFO("Leopard Gecko MCU detected");
 			break;
 		case EFM_FAMILY_ID_WONDER_GECKO:
+		case EZR_FAMILY_ID_WONDER_GECKO:
 			LOG_INFO("Wonder Gecko MCU detected");
 			break;
 		case EFM_FAMILY_ID_ZERO_GECKO:
@@ -944,7 +950,15 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		return ret;
 	}
 
-	printed = snprintf(buf, buf_size, "EFM32 ");
+	switch (info.part_family) {
+		case EZR_FAMILY_ID_WONDER_GECKO:
+		case EZR_FAMILY_ID_LEOPARD_GECKO:
+			printed = snprintf(buf, buf_size, "EZR32 ");
+			break;
+		default:
+			printed = snprintf(buf, buf_size, "EFM32 ");
+	}
+
 	buf += printed;
 	buf_size -= printed;
 
@@ -962,9 +976,11 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 			printed = snprintf(buf, buf_size, "Tiny Gecko");
 			break;
 		case EFM_FAMILY_ID_LEOPARD_GECKO:
+		case EZR_FAMILY_ID_LEOPARD_GECKO:
 			printed = snprintf(buf, buf_size, "Leopard Gecko");
 			break;
 		case EFM_FAMILY_ID_WONDER_GECKO:
+		case EZR_FAMILY_ID_WONDER_GECKO:
 			printed = snprintf(buf, buf_size, "Wonder Gecko");
 			break;
 		case EFM_FAMILY_ID_ZERO_GECKO:
