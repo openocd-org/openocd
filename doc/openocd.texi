@@ -5859,13 +5859,19 @@ works only for chips that do not have factory pre-programmed region 0
 code.
 @end deffn
 
+@end deffn
+
 @deffn {Flash Driver} mrvlqspi
 This driver supports QSPI flash controller of Marvell's Wireless
 Microcontroller platform.
 
 The flash size is autodetected based on the table of known JEDEC IDs
 hardcoded in the OpenOCD sources.
-@end deffn
+
+@example
+flash bank $_FLASHNAME mrvlqspi 0x0 0 0 0 $_TARGETNAME 0x46010000
+@end example
+
 @end deffn
 
 @section mFlash
