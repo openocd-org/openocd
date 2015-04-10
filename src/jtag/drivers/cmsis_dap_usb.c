@@ -247,7 +247,7 @@ static int cmsis_dap_usb_open(void)
 	dev = hid_open(target_vid, target_pid, target_serial);
 
 	if (dev == NULL) {
-		LOG_ERROR("unable to open CMSIS-DAP device");
+		LOG_ERROR("unable to open CMSIS-DAP device 0x%x:0x%x", target_vid, target_pid);
 		return ERROR_FAIL;
 	}
 
