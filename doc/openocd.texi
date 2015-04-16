@@ -8617,7 +8617,7 @@ _tx_thread_current_ptr, _tx_thread_created_ptr, _tx_thread_created_count.
 @item FreeRTOS symbols
 pxCurrentTCB, pxReadyTasksLists, xDelayedTaskList1, xDelayedTaskList2,
 pxDelayedTaskList, pxOverflowDelayedTaskList, xPendingReadyList,
-xTasksWaitingTermination, xSuspendedTaskList, uxCurrentNumberOfTasks, uxTopUsedPriority.
+uxCurrentNumberOfTasks, uxTopUsedPriority.
 @item linux symbols
 init_task.
 @item ChibiOS symbols
@@ -8630,8 +8630,15 @@ _mqx_kernel_data, MQX_init_struct.
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for
-some, eg. FreeRTOS @option{xTasksWaitingTermination} is only exported
-if @option{INCLUDE_vTaskDelete} is defined during the build.
+some, eg. FreeRTOS, extra steps must be taken.
+
+These RTOSes may require additional OpenOCD-specific file to be linked
+along with the project:
+
+@table @code
+@item FreeRTOS
+contrib/rtos-helpers/FreeRTOS-openocd.c
+@end table
 
 @node Tcl Scripting API
 @chapter Tcl Scripting API

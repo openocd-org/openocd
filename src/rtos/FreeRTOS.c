@@ -135,7 +135,7 @@ static const struct symbols FreeRTOS_symbol_list[] = {
 	{ "xTasksWaitingTermination", true }, /* Only if INCLUDE_vTaskDelete */
 	{ "xSuspendedTaskList", true }, /* Only if INCLUDE_vTaskSuspend */
 	{ "uxCurrentNumberOfTasks", false },
-	{ "uxTopUsedPriority", false },
+	{ "uxTopUsedPriority", true }, /* Unavailable since v7.5.3 */
 	{ NULL, false }
 };
 
@@ -231,6 +231,10 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 	}
 
 	/* Find out how many lists are needed to be read from pxReadyTasksLists, */
+	if (rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address == 0) {
+		LOG_ERROR("FreeRTOS: uxTopUsedPriority is not defined, consult the OpenOCD manual for a work-around");
+		return ERROR_FAIL;
+	}
 	int64_t max_used_priority = 0;
 	retval = target_read_buffer(rtos->target,
 			rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address,
