@@ -119,19 +119,24 @@ enum FreeRTOS_symbol_values {
 	FreeRTOS_VAL_uxTopUsedPriority = 10,
 };
 
-static const char * const FreeRTOS_symbol_list[] = {
-	"pxCurrentTCB",
-	"pxReadyTasksLists",
-	"xDelayedTaskList1",
-	"xDelayedTaskList2",
-	"pxDelayedTaskList",
-	"pxOverflowDelayedTaskList",
-	"xPendingReadyList",
-	"xTasksWaitingTermination",
-	"xSuspendedTaskList",
-	"uxCurrentNumberOfTasks",
-	"uxTopUsedPriority",
-	NULL
+struct symbols {
+	const char *name;
+	bool optional;
+};
+
+static const struct symbols FreeRTOS_symbol_list[] = {
+	{ "pxCurrentTCB", false },
+	{ "pxReadyTasksLists", false },
+	{ "xDelayedTaskList1", false },
+	{ "xDelayedTaskList2", false },
+	{ "pxDelayedTaskList", false },
+	{ "pxOverflowDelayedTaskList", false },
+	{ "xPendingReadyList", false },
+	{ "xTasksWaitingTermination", true }, /* Only if INCLUDE_vTaskDelete */
+	{ "xSuspendedTaskList", true }, /* Only if INCLUDE_vTaskSuspend */
+	{ "uxCurrentNumberOfTasks", false },
+	{ "uxTopUsedPriority", false },
+	{ NULL, false }
 };
 
 /* TODO: */
@@ -418,8 +423,10 @@ static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]
 	*symbol_list = calloc(
 			ARRAY_SIZE(FreeRTOS_symbol_list), sizeof(symbol_table_elem_t));
 
-	for (i = 0; i < ARRAY_SIZE(FreeRTOS_symbol_list); i++)
-		(*symbol_list)[i].symbol_name = FreeRTOS_symbol_list[i];
+	for (i = 0; i < ARRAY_SIZE(FreeRTOS_symbol_list); i++) {
+		(*symbol_list)[i].symbol_name = FreeRTOS_symbol_list[i].name;
+		(*symbol_list)[i].optional = FreeRTOS_symbol_list[i].optional;
+	}
 
 	return 0;
 }
