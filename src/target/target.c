@@ -2522,29 +2522,27 @@ static int handle_target(void *priv)
 					target->backoff.times *= 2;
 					target->backoff.times++;
 				}
-				LOG_USER("Polling target %s failed, GDB will be halted. Polling again in %dms",
-						target_name(target),
-						target->backoff.times * polling_interval);
 
 				/* Tell GDB to halt the debugger. This allows the user to
 				 * run monitor commands to handle the situation.
 				 */
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
-				return retval;
 			}
-			/* Since we succeeded, we reset backoff count */
 			if (target->backoff.times > 0) {
-				LOG_USER("Polling target %s succeeded again, trying to reexamine", target_name(target));
+				LOG_USER("Polling target %s failed, trying to reexamine", target_name(target));
 				target_reset_examined(target);
 				retval = target_examine_one(target);
 				/* Target examination could have failed due to unstable connection,
 				 * but we set the examined flag anyway to repoll it later */
 				if (retval != ERROR_OK) {
 					target->examined = true;
+					LOG_USER("Examination failed, GDB will be halted. Polling again in %dms",
+						 target->backoff.times * polling_interval);
 					return retval;
 				}
 			}
 
+			/* Since we succeeded, we reset backoff count */
 			target->backoff.times = 0;
 		}
 	}
