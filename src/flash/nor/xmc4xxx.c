@@ -341,7 +341,7 @@ static int xmc4xxx_probe(struct flash_bank *bank)
 	}
 
 	/* Make sure this is a XMC4000 family device */
-	if ((devid & 0xF0000) != 0x40000) {
+	if ((devid & 0xF0000) != 0x40000 && devid != 0) {
 		LOG_ERROR("Platform ID doesn't match XMC4xxx: 0x%08" PRIx32, devid);
 		return ERROR_FAIL;
 	}
@@ -948,6 +948,13 @@ static int xmc4xxx_get_info_command(struct flash_bank *bank, char *buf, int buf_
 			rev_str = "AB";
 			break;
 		}
+		break;
+	case 0:
+		/* XMC4500 EES AA13 with date codes before GE212
+		 * had zero SCU_IDCHIP
+		 */
+		dev_str = "XMC4500 EES";
+		rev_str = "AA13";
 		break;
 	case 0x500:
 		dev_str = "XMC4500";
