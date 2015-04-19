@@ -2965,6 +2965,7 @@ static int cortex_a_examine_first(struct target *target)
 	cortex_a->brp_num = ((didr >> 24) & 0x0F) + 1;
 	cortex_a->brp_num_context = ((didr >> 20) & 0x0F) + 1;
 	cortex_a->brp_num_available = cortex_a->brp_num;
+	free(cortex_a->brp_list);
 	cortex_a->brp_list = calloc(cortex_a->brp_num, sizeof(struct cortex_a_brp));
 /*	cortex_a->brb_enabled = ????; */
 	for (i = 0; i < cortex_a->brp_num; i++) {
@@ -2988,9 +2989,8 @@ static int cortex_a_examine(struct target *target)
 {
 	int retval = ERROR_OK;
 
-	/* don't re-probe hardware after each reset */
-	if (!target_was_examined(target))
-		retval = cortex_a_examine_first(target);
+	/* Reestablish communication after target reset */
+	retval = cortex_a_examine_first(target);
 
 	/* Configure core debug access */
 	if (retval == ERROR_OK)
