@@ -473,7 +473,7 @@ int rtos_generic_stack_read(struct target *target,
 		LOG_ERROR("Error reading stack frame from thread");
 		return retval;
 	}
-	LOG_DEBUG("RTOS: Read stack frame at 0x%x\r\n", address);
+	LOG_DEBUG("RTOS: Read stack frame at 0x%" PRIx32, address);
 
 #if 0
 		LOG_OUTPUT("Stack Data :");

@@ -138,12 +138,12 @@ static int mqx_target_read_buffer(
 {
 	int status = mqx_valid_address_check(target->rtos, address);
 	if (status != ERROR_OK) {
-		LOG_WARNING("MQX RTOS - target address 0x%X is not allowed to read", address);
+		LOG_WARNING("MQX RTOS - target address 0x%" PRIx32 " is not allowed to read", address);
 		return status;
 	}
 	status = target_read_buffer(target, address, size, buffer);
 	if (status != ERROR_OK) {
-		LOG_ERROR("MQX RTOS - reading target address 0x%X failed", address);
+		LOG_ERROR("MQX RTOS - reading target address 0x%" PRIx32" failed", address);
 		return status;
 	}
 	return ERROR_OK;
@@ -181,7 +181,8 @@ static int mqx_get_member(
 		rtos->target, base_address + member_offset, member_width, result
 	);
 	if (status != ERROR_OK)
-		LOG_WARNING("MQX RTOS - cannot read \"%s\" at address 0x%X", member_name, base_address + member_offset);
+		LOG_WARNING("MQX RTOS - cannot read \"%s\" at address 0x%" PRIx32,
+			    member_name, (uint32_t)(base_address + member_offset));
 	return status;
 }
 
@@ -435,7 +436,7 @@ static int mqx_update_threads(
 		if (NULL == rtos->thread_details[i].extra_info_str)
 			return ERROR_FAIL;
 		snprintf(
-			rtos->thread_details[i].extra_info_str, extra_info_length, "%s : 0x%x : %u",
+			rtos->thread_details[i].extra_info_str, extra_info_length, "%s : 0x%"PRIx32 " : %" PRIu32,
 			state_name, task_addr, task_errno
 		);
 		/* set active thread */
