@@ -5240,6 +5240,24 @@ Command disables watchdog timer.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} fm4
+All members of the FM4 microcontroller family from Spansion (formerly Fujitsu)
+include internal flash and use ARM Cortex-M4 cores.
+The @var{fm4} driver uses a @var{family} parameter to select the
+correct bank config, it can currently be one of the following:
+@code{MB9BFx66}, @code{MB9BFx67}, @code{MB9BFx68},
+@code{S6E2Cx8}, @code{S6E2Cx9} or @code{S6E2CxA},
+with @code{x} treated as wildcard and otherwise case (and any trailing
+characters) ignored.
+
+@example
+flash bank $@{_FLASHNAME@}0 fm4 0x00000000 0 0 0 $_TARGETNAME S6E2CCAJ0A
+flash bank $@{_FLASHNAME@}1 fm4 0x00100000 0 0 0 $_TARGETNAME S6E2CCAJ0A
+@end example
+@emph{The current implementation is incomplete. Protection is not supported,
+nor is Chip Erase (only Sector Erase is implemented).}
+@end deffn
+
 @deffn {Flash Driver} lpc2000
 This is the driver to support internal flash of all members of the
 LPC11(x)00 and LPC1300 microcontroller families and most members of
