@@ -1074,6 +1074,7 @@ static int aarch64_debug_entry(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct adiv5_dap *swjdp = armv8->arm.dap;
+	uint32_t tmp;
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, aarch64->cpudbg_dscr);
 
@@ -1097,6 +1098,10 @@ static int aarch64_debug_entry(struct target *target)
 
 	/* Examine debug reason */
 	arm_dpm_report_dscr(&armv8->dpm, aarch64->cpudbg_dscr);
+	mem_ap_sel_read_atomic_u32(swjdp, armv8->debug_ap,
+				   armv8->debug_base + CPUDBG_DESR, &tmp);
+	if ((tmp & 0x7) == 0x4)
+		target->debug_reason = DBG_REASON_SINGLESTEP;
 
 	/* save address of instruction that triggered the watchpoint? */
 	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
@@ -1176,12 +1181,16 @@ static int aarch64_step(struct target *target, int current, target_ulong address
 	if (retval != ERROR_OK)
 		return retval;
 
+	target->debug_reason = DBG_REASON_SINGLESTEP;
 	retval = aarch64_resume(target, 1, address, 0, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
 	long long then = timeval_ms();
 	while (target->state != TARGET_HALTED) {
+		mem_ap_sel_read_atomic_u32(swjdp, armv8->debug_ap,
+			armv8->debug_base + CPUDBG_DESR, &tmp);
+		LOG_DEBUG("DESR = %#x", tmp);
 		retval = aarch64_poll(target);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1191,13 +1200,13 @@ static int aarch64_step(struct target *target, int current, target_ulong address
 		}
 	}
 
-	target->debug_reason = DBG_REASON_BREAKPOINT;
 	retval = mem_ap_sel_write_atomic_u32(swjdp, armv8->debug_ap,
 			armv8->debug_base + CPUDBG_DECR, (tmp&(~0x4)));
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (target->state != TARGET_HALTED)
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	if (target->state == TARGET_HALTED)
 		LOG_DEBUG("target stepped");
 
 	return ERROR_OK;
