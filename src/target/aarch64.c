@@ -1161,45 +1161,24 @@ static int aarch64_step(struct target *target, int current, target_ulong address
 	int handle_breakpoints)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm *arm = &armv8->arm;
-	struct breakpoint *breakpoint = NULL;
-	struct breakpoint stepbreakpoint;
-	struct reg *r;
+	struct adiv5_dap *swjdp = armv8->arm.dap;
 	int retval;
+	uint32_t tmp;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
-	r = arm->pc;
-	if (!current)
-		buf_set_u64(r->value, 0, 64, address);
-	else
-		address = buf_get_u64(r->value, 0, 64);
+	retval = mem_ap_sel_read_atomic_u32(swjdp, armv8->debug_ap,
+			armv8->debug_base + CPUDBG_DECR, &tmp);
+	if (retval != ERROR_OK)
+		return retval;
 
-	/* The front-end may request us not to handle breakpoints.
-	 * But since Cortex-A8 uses breakpoint for single step,
-	 * we MUST handle breakpoints.
-	 */
-	handle_breakpoints = 1;
-	if (handle_breakpoints) {
-		breakpoint = breakpoint_find(target, address);
-		if (breakpoint)
-			aarch64_unset_breakpoint(target, breakpoint);
-	}
-
-	/* Setup single step breakpoint */
-	stepbreakpoint.address = address;
-	stepbreakpoint.length = 4;
-	stepbreakpoint.type = BKPT_HARD;
-	stepbreakpoint.set = 0;
-
-	/* Break on IVA mismatch */
-	aarch64_set_breakpoint(target, &stepbreakpoint, 0x04);
-
-	target->debug_reason = DBG_REASON_SINGLESTEP;
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv8->debug_ap,
+			armv8->debug_base + CPUDBG_DECR, (tmp|0x4));
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = aarch64_resume(target, 1, address, 0, 0);
 	if (retval != ERROR_OK)
@@ -1216,12 +1195,11 @@ static int aarch64_step(struct target *target, int current, target_ulong address
 		}
 	}
 
-	aarch64_unset_breakpoint(target, &stepbreakpoint);
-
 	target->debug_reason = DBG_REASON_BREAKPOINT;
-
-	if (breakpoint)
-		aarch64_set_breakpoint(target, breakpoint, 0);
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv8->debug_ap,
+			armv8->debug_base + CPUDBG_DECR, (tmp&(~0x4)));
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (target->state != TARGET_HALTED)
 		LOG_DEBUG("target stepped");

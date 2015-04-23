@@ -163,6 +163,7 @@ target_to_armv8(struct target *target)
 /* register offsets from armv8.debug_base */
 
 #define CPUDBG_WFAR		0x018
+#define CPUDBG_DECR		0x024
 /* PCSR at 0x084 -or- 0x0a0 -or- both ... based on flags in DIDR */
 #define CPUDBG_DSCR		0x088
 #define CPUDBG_DRCR		0x090
