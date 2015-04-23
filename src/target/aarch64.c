@@ -1033,12 +1033,7 @@ static int aarch64_resume(struct target *target, int current,
 	target_ulong address, int handle_breakpoints, int debug_execution)
 {
 	int retval = 0;
-	uint64_t resume_addr;
-
-	if (address) {
-		LOG_DEBUG("resuming with custom address not supported");
-		return ERROR_FAIL;
-	}
+	uint64_t addr = address;
 
 	/* dummy resume for smp toggle in order to reduce gdb impact  */
 	if ((target->smp) && (target->gdb_service->core[1] != -1)) {
@@ -1049,7 +1044,8 @@ static int aarch64_resume(struct target *target, int current,
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 		return 0;
 	}
-	aarch64_internal_restore(target, current, &resume_addr, handle_breakpoints, debug_execution);
+	aarch64_internal_restore(target, current, &addr, handle_breakpoints,
+				 debug_execution);
 	if (target->smp) {
 		target->gdb_service->core[0] = -1;
 		retval = aarch64_restore_smp(target, handle_breakpoints);
@@ -1061,11 +1057,11 @@ static int aarch64_resume(struct target *target, int current,
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%" PRIx64, resume_addr);
+		LOG_DEBUG("target resumed at 0x%" PRIu64, addr);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%" PRIx64, resume_addr);
+		LOG_DEBUG("target debug resumed at 0x%" PRIu64, addr);
 	}
 
 	return ERROR_OK;
