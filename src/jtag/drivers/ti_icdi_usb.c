@@ -654,6 +654,9 @@ static int icdi_usb_close(void *handle)
 {
 	struct icdi_usb_handle_s *h = handle;
 
+	if (!h)
+		return ERROR_OK;
+
 	if (h->usb_dev)
 		libusb_close(h->usb_dev);
 
