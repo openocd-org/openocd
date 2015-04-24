@@ -7836,6 +7836,12 @@ Displays ID register from AP @var{num},
 defaulting to the currently selected AP.
 @end deffn
 
+@deffn Command {dap apreg} ap_num reg [value]
+Displays content of a register @var{reg} from AP @var{ap_num}
+or set a new value @var{value}.
+@var{reg} is byte address of a word register, 0, 4, 8 ... 0xfc.
+@end deffn
+
 @deffn Command {dap apsel} [num]
 Select AP @var{num}, defaulting to 0.
 @end deffn
