@@ -486,7 +486,7 @@ struct target *get_target(const char *id)
 }
 
 /* returns a pointer to the n-th configured target */
-static struct target *get_target_by_num(int num)
+struct target *get_target_by_num(int num)
 {
 	struct target *target = all_targets;
 
