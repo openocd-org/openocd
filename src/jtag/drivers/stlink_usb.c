@@ -974,7 +974,7 @@ static int stlink_usb_assert_srst(void *handle, int srst)
 
 	assert(handle != NULL);
 
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.stlink == 1)
 		return ERROR_COMMAND_NOTFOUND;
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
