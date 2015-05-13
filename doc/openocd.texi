@@ -2190,7 +2190,7 @@ use @option{enable} see these errors reported.
 
 @deffn {Config Command} gdb_target_description (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to send the target descriptions to gdb via qXfer:features:read packet.
-The default behaviour is @option{disable}.
+The default behaviour is @option{enable}.
 @end deffn
 
 @deffn {Command} gdb_save_tdesc
