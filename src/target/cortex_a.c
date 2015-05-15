@@ -2611,29 +2611,20 @@ static int cortex_a_read_phys_memory(struct target *target,
 	uint32_t count, uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
-	uint8_t apsel = swjdp->apsel;
+
 	LOG_DEBUG("Reading memory at real address 0x%" PRIx32 "; size %" PRId32 "; count %" PRId32,
 		address, size, count);
 
 	if (count && buffer) {
-
-		if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
-
-			/* read memory through AHB-AP */
-			retval = mem_ap_sel_read_buf(swjdp, armv7a->memory_ap, buffer, size, count, address);
-		} else {
-
-			/* read memory through APB-AP */
-			if (!armv7a->is_armv7r) {
-				/*  disable mmu */
-				retval = cortex_a_mmu_modify(target, 0);
-				if (retval != ERROR_OK)
-					return retval;
-			}
-			retval = cortex_a_read_apb_ab_memory(target, address, size, count, buffer);
+		/* read memory through APB-AP */
+		if (!armv7a->is_armv7r) {
+			/*  disable mmu */
+			retval = cortex_a_mmu_modify(target, 0);
+			if (retval != ERROR_OK)
+				return retval;
 		}
+		retval = cortex_a_read_apb_ab_memory(target, address, size, count, buffer);
 	}
 	return retval;
 }
@@ -2692,31 +2683,20 @@ static int cortex_a_write_phys_memory(struct target *target,
 	uint32_t count, const uint8_t *buffer)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
-	uint8_t apsel = swjdp->apsel;
 
 	LOG_DEBUG("Writing memory to real address 0x%" PRIx32 "; size %" PRId32 "; count %" PRId32, address,
 		size, count);
 
 	if (count && buffer) {
-
-		if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap)) {
-
-			/* write memory through AHB-AP */
-			retval = mem_ap_sel_write_buf(swjdp, armv7a->memory_ap, buffer, size, count, address);
-		} else {
-
-			/* write memory through APB-AP */
-			if (!armv7a->is_armv7r) {
-				retval = cortex_a_mmu_modify(target, 0);
-				if (retval != ERROR_OK)
-					return retval;
-			}
-			return cortex_a_write_apb_ab_memory(target, address, size, count, buffer);
+		/* write memory through APB-AP */
+		if (!armv7a->is_armv7r) {
+			retval = cortex_a_mmu_modify(target, 0);
+			if (retval != ERROR_OK)
+				return retval;
 		}
+		return cortex_a_write_apb_ab_memory(target, address, size, count, buffer);
 	}
-
 
 	/* REVISIT this op is generic ARMv7-A/R stuff */
 	if (retval == ERROR_OK && target->state == TARGET_HALTED) {
