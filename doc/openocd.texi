@@ -1296,65 +1296,17 @@ including developers and integrators of OpenOCD and any user who
 needs to get a new board working smoothly.
 It provides guidelines for creating those files.
 
-You should find the following directories under @t{$(INSTALLDIR)/scripts},
-with files including the ones listed here.
-Use them as-is where you can; or as models for new files.
+You should find the following directories under
+@t{$(INSTALLDIR)/scripts}, with config files maintained upstream. Use
+them as-is where you can; or as models for new files.
 @itemize @bullet
 @item @file{interface} ...
-These are for debug adapters.
-Files that configure JTAG adapters go here.
-@example
-$ ls interface -R
-interface/:
-altera-usb-blaster.cfg    hilscher_nxhx50_re.cfg     openocd-usb-hs.cfg
-arm-jtag-ew.cfg           hitex_str9-comstick.cfg    openrd.cfg
-at91rm9200.cfg            icebear.cfg                osbdm.cfg
-axm0432.cfg               jlink.cfg                  parport.cfg
-busblaster.cfg            jtagkey2.cfg               parport_dlc5.cfg
-buspirate.cfg             jtagkey2p.cfg              redbee-econotag.cfg
-calao-usb-a9260-c01.cfg   jtagkey.cfg                redbee-usb.cfg
-calao-usb-a9260-c02.cfg   jtagkey-tiny.cfg           rlink.cfg
-calao-usb-a9260.cfg       jtag-lock-pick_tiny_2.cfg  sheevaplug.cfg
-chameleon.cfg             kt-link.cfg                signalyzer.cfg
-cortino.cfg               lisa-l.cfg                 signalyzer-h2.cfg
-digilent-hs1.cfg          luminary.cfg               signalyzer-h4.cfg
-dlp-usb1232h.cfg          luminary-icdi.cfg          signalyzer-lite.cfg
-dummy.cfg                 luminary-lm3s811.cfg       stlink-v1.cfg
-estick.cfg                minimodule.cfg             stlink-v2.cfg
-flashlink.cfg             neodb.cfg                  stm32-stick.cfg
-flossjtag.cfg             ngxtech.cfg                sysfsgpio-raspberrypi.cfg
-flossjtag-noeeprom.cfg    olimex-arm-usb-ocd.cfg     ti-icdi.cfg
-flyswatter2.cfg           olimex-arm-usb-ocd-h.cfg   turtelizer2.cfg
-flyswatter.cfg            olimex-arm-usb-tiny-h.cfg  ulink.cfg
-ftdi                      olimex-jtag-tiny.cfg       usb-jtag.cfg
-hilscher_nxhx10_etm.cfg   oocdlink.cfg               usbprog.cfg
-hilscher_nxhx500_etm.cfg  opendous.cfg               vpaclink.cfg
-hilscher_nxhx500_re.cfg   opendous_ftdi.cfg          vsllink.cfg
-hilscher_nxhx50_etm.cfg   openocd-usb.cfg            xds100v2.cfg
-
-interface/ftdi:
-axm0432.cfg               hitex_str9-comstick.cfg    olimex-jtag-tiny.cfg
-calao-usb-a9260-c01.cfg   icebear.cfg                oocdlink.cfg
-calao-usb-a9260-c02.cfg   jtagkey2.cfg               opendous_ftdi.cfg
-cortino.cfg               jtagkey2p.cfg              openocd-usb.cfg
-dlp-usb1232h.cfg          jtagkey.cfg                openocd-usb-hs.cfg
-dp_busblaster.cfg         jtag-lock-pick_tiny_2.cfg  openrd.cfg
-flossjtag.cfg             kt-link.cfg                redbee-econotag.cfg
-flossjtag-noeeprom.cfg    lisa-l.cfg                 redbee-usb.cfg
-flyswatter2.cfg           luminary.cfg               sheevaplug.cfg
-flyswatter.cfg            luminary-icdi.cfg          signalyzer.cfg
-gw16042.cfg               luminary-lm3s811.cfg       signalyzer-lite.cfg
-hilscher_nxhx10_etm.cfg   minimodule.cfg             stm32-stick.cfg
-hilscher_nxhx500_etm.cfg  neodb.cfg                  turtelizer2-revB.cfg
-hilscher_nxhx500_re.cfg   ngxtech.cfg                turtelizer2-revC.cfg
-hilscher_nxhx50_etm.cfg   olimex-arm-usb-ocd.cfg     vpaclink.cfg
-hilscher_nxhx50_re.cfg    olimex-arm-usb-ocd-h.cfg   xds100v2.cfg
-hitex_lpc1768stick.cfg    olimex-arm-usb-tiny-h.cfg
-$
-@end example
+These are for debug adapters. Files that specify configuration to use
+specific JTAG, SWD and other adapters go here.
 @item @file{board} ...
-think Circuit Board, PWA, PCB, they go by many names. Board files
+Think Circuit Board, PWA, PCB, they go by many names. Board files
 contain initialization items that are specific to a board.
+
 They reuse target configuration files, since the same
 microprocessor chips are used on many boards,
 but support for external parts varies widely. For
@@ -1363,169 +1315,13 @@ of external flash and what address it uses. Any initialization
 sequence to enable that external flash or SDRAM should be found in the
 board file. Boards may also contain multiple targets: two CPUs; or
 a CPU and an FPGA.
-@example
-$ ls board
-actux3.cfg                        lpc1850_spifi_generic.cfg
-am3517evm.cfg                     lpc4350_spifi_generic.cfg
-arm_evaluator7t.cfg               lubbock.cfg
-at91cap7a-stk-sdram.cfg           mcb1700.cfg
-at91eb40a.cfg                     microchip_explorer16.cfg
-at91rm9200-dk.cfg                 mini2440.cfg
-at91rm9200-ek.cfg                 mini6410.cfg
-at91sam9261-ek.cfg                netgear-dg834v3.cfg
-at91sam9263-ek.cfg                olimex_LPC2378STK.cfg
-at91sam9g20-ek.cfg                olimex_lpc_h2148.cfg
-atmel_at91sam7s-ek.cfg            olimex_sam7_ex256.cfg
-atmel_at91sam9260-ek.cfg          olimex_sam9_l9260.cfg
-atmel_at91sam9rl-ek.cfg           olimex_stm32_h103.cfg
-atmel_sam3n_ek.cfg                olimex_stm32_h107.cfg
-atmel_sam3s_ek.cfg                olimex_stm32_p107.cfg
-atmel_sam3u_ek.cfg                omap2420_h4.cfg
-atmel_sam3x_ek.cfg                open-bldc.cfg
-atmel_sam4s_ek.cfg                openrd.cfg
-balloon3-cpu.cfg                  osk5912.cfg
-colibri.cfg                       phone_se_j100i.cfg
-crossbow_tech_imote2.cfg          phytec_lpc3250.cfg
-csb337.cfg                        pic-p32mx.cfg
-csb732.cfg                        propox_mmnet1001.cfg
-da850evm.cfg                      pxa255_sst.cfg
-digi_connectcore_wi-9c.cfg        redbee.cfg
-diolan_lpc4350-db1.cfg            rsc-w910.cfg
-dm355evm.cfg                      sheevaplug.cfg
-dm365evm.cfg                      smdk6410.cfg
-dm6446evm.cfg                     spear300evb.cfg
-efikamx.cfg                       spear300evb_mod.cfg
-eir.cfg                           spear310evb20.cfg
-ek-lm3s1968.cfg                   spear310evb20_mod.cfg
-ek-lm3s3748.cfg                   spear320cpu.cfg
-ek-lm3s6965.cfg                   spear320cpu_mod.cfg
-ek-lm3s811.cfg                    steval_pcc010.cfg
-ek-lm3s811-revb.cfg               stm320518_eval_stlink.cfg
-ek-lm3s8962.cfg                   stm32100b_eval.cfg
-ek-lm3s9b9x.cfg                   stm3210b_eval.cfg
-ek-lm3s9d92.cfg                   stm3210c_eval.cfg
-ek-lm4f120xl.cfg                  stm3210e_eval.cfg
-ek-lm4f232.cfg                    stm3220g_eval.cfg
-embedded-artists_lpc2478-32.cfg   stm3220g_eval_stlink.cfg
-ethernut3.cfg                     stm3241g_eval.cfg
-glyn_tonga2.cfg                   stm3241g_eval_stlink.cfg
-hammer.cfg                        stm32f0discovery.cfg
-hilscher_nxdb500sys.cfg           stm32f3discovery.cfg
-hilscher_nxeb500hmi.cfg           stm32f4discovery.cfg
-hilscher_nxhx10.cfg               stm32ldiscovery.cfg
-hilscher_nxhx500.cfg              stm32vldiscovery.cfg
-hilscher_nxhx50.cfg               str910-eval.cfg
-hilscher_nxsb100.cfg              telo.cfg
-hitex_lpc1768stick.cfg            ti_am335xevm.cfg
-hitex_lpc2929.cfg                 ti_beagleboard.cfg
-hitex_stm32-performancestick.cfg  ti_beagleboard_xm.cfg
-hitex_str9-comstick.cfg           ti_beaglebone.cfg
-iar_lpc1768.cfg                   ti_blaze.cfg
-iar_str912_sk.cfg                 ti_pandaboard.cfg
-icnova_imx53_sodimm.cfg           ti_pandaboard_es.cfg
-icnova_sam9g45_sodimm.cfg         topas910.cfg
-imx27ads.cfg                      topasa900.cfg
-imx27lnst.cfg                     twr-k60f120m.cfg
-imx28evk.cfg                      twr-k60n512.cfg
-imx31pdk.cfg                      tx25_stk5.cfg
-imx35pdk.cfg                      tx27_stk5.cfg
-imx53loco.cfg                     unknown_at91sam9260.cfg
-keil_mcb1700.cfg                  uptech_2410.cfg
-keil_mcb2140.cfg                  verdex.cfg
-kwikstik.cfg                      voipac.cfg
-linksys_nslu2.cfg                 voltcraft_dso-3062c.cfg
-lisa-l.cfg                        x300t.cfg
-logicpd_imx27.cfg                 zy1000.cfg
-$
-@end example
 @item @file{target} ...
-think chip. The ``target'' directory represents the JTAG TAPs
+Think chip. The ``target'' directory represents the JTAG TAPs
 on a chip
 which OpenOCD should control, not a board. Two common types of targets
 are ARM chips and FPGA or CPLD chips.
 When a chip has multiple TAPs (maybe it has both ARM and DSP cores),
 the target config file defines all of them.
-@example
-$ ls target
-aduc702x.cfg                       lpc1764.cfg
-am335x.cfg                         lpc1765.cfg
-amdm37x.cfg                        lpc1766.cfg
-ar71xx.cfg                         lpc1767.cfg
-at32ap7000.cfg                     lpc1768.cfg
-at91r40008.cfg                     lpc1769.cfg
-at91rm9200.cfg                     lpc1788.cfg
-at91sam3ax_4x.cfg                  lpc17xx.cfg
-at91sam3ax_8x.cfg                  lpc1850.cfg
-at91sam3ax_xx.cfg                  lpc2103.cfg
-at91sam3nXX.cfg                    lpc2124.cfg
-at91sam3sXX.cfg                    lpc2129.cfg
-at91sam3u1c.cfg                    lpc2148.cfg
-at91sam3u1e.cfg                    lpc2294.cfg
-at91sam3u2c.cfg                    lpc2378.cfg
-at91sam3u2e.cfg                    lpc2460.cfg
-at91sam3u4c.cfg                    lpc2478.cfg
-at91sam3u4e.cfg                    lpc2900.cfg
-at91sam3uxx.cfg                    lpc2xxx.cfg
-at91sam3XXX.cfg                    lpc3131.cfg
-at91sam4sd32x.cfg                  lpc3250.cfg
-at91sam4sXX.cfg                    lpc4350.cfg
-at91sam4XXX.cfg                    lpc4350.cfg.orig
-at91sam7se512.cfg                  mc13224v.cfg
-at91sam7sx.cfg                     nuc910.cfg
-at91sam7x256.cfg                   omap2420.cfg
-at91sam7x512.cfg                   omap3530.cfg
-at91sam9260.cfg                    omap4430.cfg
-at91sam9260_ext_RAM_ext_flash.cfg  omap4460.cfg
-at91sam9261.cfg                    omap5912.cfg
-at91sam9263.cfg                    omapl138.cfg
-at91sam9.cfg                       pic32mx.cfg
-at91sam9g10.cfg                    pxa255.cfg
-at91sam9g20.cfg                    pxa270.cfg
-at91sam9g45.cfg                    pxa3xx.cfg
-at91sam9rl.cfg                     readme.txt
-atmega128.cfg                      samsung_s3c2410.cfg
-avr32.cfg                          samsung_s3c2440.cfg
-c100.cfg                           samsung_s3c2450.cfg
-c100config.tcl                     samsung_s3c4510.cfg
-c100helper.tcl                     samsung_s3c6410.cfg
-c100regs.tcl                       sharp_lh79532.cfg
-cs351x.cfg                         sim3x.cfg
-davinci.cfg                        smp8634.cfg
-dragonite.cfg                      spear3xx.cfg
-dsp56321.cfg                       stellaris.cfg
-dsp568013.cfg                      stellaris_icdi.cfg
-dsp568037.cfg                      stm32f0x_stlink.cfg
-efm32_stlink.cfg                   stm32f1x.cfg
-epc9301.cfg                        stm32f1x_stlink.cfg
-faux.cfg                           stm32f2x.cfg
-feroceon.cfg                       stm32f2x_stlink.cfg
-fm3.cfg                            stm32f3x.cfg
-hilscher_netx10.cfg                stm32f3x_stlink.cfg
-hilscher_netx500.cfg               stm32f4x.cfg
-hilscher_netx50.cfg                stm32f4x_stlink.cfg
-icepick.cfg                        stm32l.cfg
-imx21.cfg                          stm32lx_dual_bank.cfg
-imx25.cfg                          stm32lx_stlink.cfg
-imx27.cfg                          stm32_stlink.cfg
-imx28.cfg                          stm32w108_stlink.cfg
-imx31.cfg                          stm32xl.cfg
-imx35.cfg                          str710.cfg
-imx51.cfg                          str730.cfg
-imx53.cfg                          str750.cfg
-imx6.cfg                           str912.cfg
-imx.cfg                            swj-dp.tcl
-is5114.cfg                         test_reset_syntax_error.cfg
-ixp42x.cfg                         test_syntax_error.cfg
-k40.cfg                            ti-ar7.cfg
-k60.cfg                            ti_calypso.cfg
-lpc1751.cfg                        ti_dm355.cfg
-lpc1752.cfg                        ti_dm365.cfg
-lpc1754.cfg                        ti_dm6446.cfg
-lpc1756.cfg                        tmpa900.cfg
-lpc1758.cfg                        tmpa910.cfg
-lpc1759.cfg                        u8500.cfg
-lpc1763.cfg
-@end example
 @item @emph{more} ... browse for other library files which may be useful.
 For example, there are various generic and CPU-specific utilities.
 @end itemize
