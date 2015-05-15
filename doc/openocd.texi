@@ -4933,6 +4933,9 @@ flash bank $_FLASHNAME aduc702x 0 0 0 0 $_TARGETNAME
 @anchor{at91samd}
 @deffn {Flash Driver} at91samd
 @cindex at91samd
+All members of the ATSAMD, ATSAMR, ATSAML and ATSAMC microcontroller
+families from Atmel include internal flash and use ARM's Cortex-M0+ core.
+This driver uses the same cmd names/syntax as @xref{at91sam3}.
 
 @deffn Command {at91samd chip-erase}
 Issues a complete Flash erase via the Device Service Unit (DSU). This can be
@@ -4978,6 +4981,12 @@ MCU reset. Setting the bootloader size to 0 disables bootloader protection.
 at91samd bootloader
 at91samd bootloader 16384
 @end example
+@end deffn
+
+@deffn Command {at91samd dsu_reset_deassert}
+This command releases internal reset held by DSU
+and prepares reset vector catch in case of reset halt.
+Command is used internally in event event reset-deassert-post.
 @end deffn
 
 @end deffn

@@ -25,6 +25,8 @@
 #include "imp.h"
 #include "helper/binarybuffer.h"
 
+#include <target/cortex_m.h>
+
 #define SAMD_NUM_SECTORS	16
 #define SAMD_PAGE_SIZE_MAX	1024
 
@@ -34,6 +36,7 @@
 #define SAMD_DSU			0x41002000	/* Device Service Unit */
 #define SAMD_NVMCTRL		0x41004000	/* Non-volatile memory controller */
 
+#define SAMD_DSU_STATUSA        1               /* DSU status register */
 #define SAMD_DSU_DID		0x18		/* Device ID register */
 
 #define SAMD_NVMCTRL_CTRLA		0x00	/* NVM control A register */
@@ -1038,7 +1041,46 @@ COMMAND_HANDLER(samd_handle_bootloader_command)
 	return res;
 }
 
+
+
+COMMAND_HANDLER(samd_handle_reset_deassert)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct adiv5_dap *swjdp = armv7m->arm.dap;
+	int retval = ERROR_OK;
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	/* In case of sysresetreq, debug retains state set in cortex_m_assert_reset()
+	 * so we just release reset held by DSU
+	 *
+	 * n_RESET (srst) clears the DP, so reenable debug and set vector catch here
+	 *
+	 * After vectreset DSU release is not needed however makes no harm
+	 */
+	if (target->reset_halt && (jtag_reset_config & RESET_HAS_SRST)) {
+		retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
+		if (retval == ERROR_OK)
+			retval = mem_ap_write_u32(swjdp, DCB_DEMCR,
+				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+		/* do not return on error here, releasing DSU reset is more important */
+	}
+
+	/* clear CPU Reset Phase Extension bit */
+	int retval2 = target_write_u8(target, SAMD_DSU + SAMD_DSU_STATUSA, (1<<1));
+	if (retval2 != ERROR_OK)
+		return retval2;
+
+	return retval;
+}
+
 static const struct command_registration at91samd_exec_command_handlers[] = {
+	{
+		.name = "dsu_reset_deassert",
+		.handler = samd_handle_reset_deassert,
+		.mode = COMMAND_EXEC,
+		.help = "deasert internal reset held by DSU"
+	},
 	{
 		.name = "info",
 		.handler = samd_handle_info_command,
