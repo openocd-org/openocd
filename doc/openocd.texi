@@ -73,7 +73,6 @@ Free Documentation License''.
 * CPU Configuration::                CPU Configuration
 * Flash Commands::                   Flash Commands
 * Flash Programming::                Flash Programming
-* NAND Flash Commands::              NAND Flash Commands
 * PLD/FPGA Commands::                PLD/FPGA Commands
 * General Commands::                 General Commands
 * Architecture and Core Commands::   Architecture and Core Commands
@@ -4715,6 +4714,26 @@ As noted above, the @command{flash bank} command requires a driver name,
 and allows driver-specific options and behaviors.
 Some drivers also activate driver-specific commands.
 
+@deffn {Flash Driver} virtual
+This is a special driver that maps a previously defined bank to another
+address. All bank settings will be copied from the master physical bank.
+
+The @var{virtual} driver defines one mandatory parameters,
+
+@itemize
+@item @var{master_bank} The bank that this virtual address refers to.
+@end itemize
+
+So in the following example addresses 0xbfc00000 and 0x9fc00000 refer to
+the flash bank defined at address 0x1fc00000. Any cmds executed on
+the virtual banks are actually performed on the physical banks.
+@example
+flash bank $_FLASHNAME pic32mx 0x1fc00000 0 0 0 $_TARGETNAME
+flash bank vbank0 virtual 0xbfc00000 0 0 0 $_TARGETNAME $_FLASHNAME
+flash bank vbank1 virtual 0x9fc00000 0 0 0 $_TARGETNAME $_FLASHNAME
+@end example
+@end deffn
+
 @subsection External Flash
 
 @deffn {Flash Driver} cfi
@@ -4807,6 +4826,19 @@ flash size, are detected automatically.
 
 @example
 flash bank $_FLASHNAME stmsmi 0xf8000000 0 0 0 $_TARGETNAME
+@end example
+
+@end deffn
+
+@deffn {Flash Driver} mrvlqspi
+This driver supports QSPI flash controller of Marvell's Wireless
+Microcontroller platform.
+
+The flash size is autodetected based on the table of known JEDEC IDs
+hardcoded in the OpenOCD sources.
+
+@example
+flash bank $_FLASHNAME mrvlqspi 0x0 0 0 0 $_TARGETNAME 0x46010000
 @end example
 
 @end deffn
@@ -5466,86 +5498,13 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 
 @end deffn
 
-@deffn {Flash Driver} tms470
-Most members of the TMS470 microcontroller family from Texas Instruments
-include internal flash and use ARM7TDMI cores.
-This driver doesn't require the chip and bus width to be specified.
-
-Some tms470-specific commands are defined:
-
-@deffn Command {tms470 flash_keyset} key0 key1 key2 key3
-Saves programming keys in a register, to enable flash erase and write commands.
-@end deffn
-
-@deffn Command {tms470 osc_mhz} clock_mhz
-Reports the clock speed, which is used to calculate timings.
-@end deffn
-
-@deffn Command {tms470 plldis} (0|1)
-Disables (@var{1}) or enables (@var{0}) use of the PLL to speed up
-the flash clock.
-@end deffn
-@end deffn
-
-@deffn {Flash Driver} virtual
-This is a special driver that maps a previously defined bank to another
-address. All bank settings will be copied from the master physical bank.
-
-The @var{virtual} driver defines one mandatory parameters,
-
-@itemize
-@item @var{master_bank} The bank that this virtual address refers to.
-@end itemize
-
-So in the following example addresses 0xbfc00000 and 0x9fc00000 refer to
-the flash bank defined at address 0x1fc00000. Any cmds executed on
-the virtual banks are actually performed on the physical banks.
-@example
-flash bank $_FLASHNAME pic32mx 0x1fc00000 0 0 0 $_TARGETNAME
-flash bank vbank0 virtual 0xbfc00000 0 0 0 $_TARGETNAME $_FLASHNAME
-flash bank vbank1 virtual 0x9fc00000 0 0 0 $_TARGETNAME $_FLASHNAME
-@end example
-@end deffn
-
-@deffn {Flash Driver} fm3
-All members of the FM3 microcontroller family from Fujitsu
-include internal flash and use ARM Cortex M3 cores.
-The @var{fm3} driver uses the @var{target} parameter to select the
-correct bank config, it can currently be one of the following:
-@code{mb9bfxx1.cpu}, @code{mb9bfxx2.cpu}, @code{mb9bfxx3.cpu},
-@code{mb9bfxx4.cpu}, @code{mb9bfxx5.cpu} or @code{mb9bfxx6.cpu}.
-
-@example
-flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
-@end example
-@end deffn
-
-@deffn {Flash Driver} sim3x
-All members of the SiM3 microcontroller family from Silicon Laboratories
-include internal flash and use ARM Cortex M3 cores. It supports both JTAG
-and SWD interface.
-The @var{sim3x} driver tries to probe the device to auto detect the MCU.
-If this failes, it will use the @var{size} parameter as the size of flash bank.
-
-@example
-flash bank $_FLASHNAME sim3x 0 $_CPUROMSIZE 0 0 $_TARGETNAME
-@end example
-
-There are 2 commands defined in the @var{sim3x} driver:
-
-@deffn Command {sim3x mass_erase}
-Erases the complete flash. This is used to unlock the flash.
-And this command is only possible when using the SWD interface.
-@end deffn
-
-@deffn Command {sim3x lock}
-Lock the flash. To unlock use the @command{sim3x mass_erase} command.
-@end deffn
-
-@end deffn
-
-@subsection str9xpec driver
+@deffn {Flash Driver} str9xpec
 @cindex str9xpec
+
+Only use this driver for locking/unlocking the device or configuring the option bytes.
+Use the standard str9 driver for programming.
+Before using the flash commands the turbo mode must be enabled using the
+@command{str9xpec enable_turbo} command.
 
 Here is some background info to help
 you better understand how this driver works. OpenOCD has two flash drivers for
@@ -5583,12 +5542,6 @@ The above example will read the str9 option bytes.
 When performing a unlock remember that you will not be able to halt the str9 - it
 has been locked. Halting the core is not required for the @option{str9xpec} driver
 as mentioned above, just issue the commands above manually or from a telnet prompt.
-
-@deffn {Flash Driver} str9xpec
-Only use this driver for locking/unlocking the device or configuring the option bytes.
-Use the standard str9 driver for programming.
-Before using the flash commands the turbo mode must be enabled using the
-@command{str9xpec enable_turbo} command.
 
 Several str9xpec-specific commands are defined:
 
@@ -5640,6 +5593,63 @@ unlock str9 device.
 
 @end deffn
 
+@deffn {Flash Driver} tms470
+Most members of the TMS470 microcontroller family from Texas Instruments
+include internal flash and use ARM7TDMI cores.
+This driver doesn't require the chip and bus width to be specified.
+
+Some tms470-specific commands are defined:
+
+@deffn Command {tms470 flash_keyset} key0 key1 key2 key3
+Saves programming keys in a register, to enable flash erase and write commands.
+@end deffn
+
+@deffn Command {tms470 osc_mhz} clock_mhz
+Reports the clock speed, which is used to calculate timings.
+@end deffn
+
+@deffn Command {tms470 plldis} (0|1)
+Disables (@var{1}) or enables (@var{0}) use of the PLL to speed up
+the flash clock.
+@end deffn
+@end deffn
+
+@deffn {Flash Driver} fm3
+All members of the FM3 microcontroller family from Fujitsu
+include internal flash and use ARM Cortex M3 cores.
+The @var{fm3} driver uses the @var{target} parameter to select the
+correct bank config, it can currently be one of the following:
+@code{mb9bfxx1.cpu}, @code{mb9bfxx2.cpu}, @code{mb9bfxx3.cpu},
+@code{mb9bfxx4.cpu}, @code{mb9bfxx5.cpu} or @code{mb9bfxx6.cpu}.
+
+@example
+flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
+@deffn {Flash Driver} sim3x
+All members of the SiM3 microcontroller family from Silicon Laboratories
+include internal flash and use ARM Cortex M3 cores. It supports both JTAG
+and SWD interface.
+The @var{sim3x} driver tries to probe the device to auto detect the MCU.
+If this failes, it will use the @var{size} parameter as the size of flash bank.
+
+@example
+flash bank $_FLASHNAME sim3x 0 $_CPUROMSIZE 0 0 $_TARGETNAME
+@end example
+
+There are 2 commands defined in the @var{sim3x} driver:
+
+@deffn Command {sim3x mass_erase}
+Erases the complete flash. This is used to unlock the flash.
+And this command is only possible when using the SWD interface.
+@end deffn
+
+@deffn Command {sim3x lock}
+Lock the flash. To unlock use the @command{sim3x mass_erase} command.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} nrf51
 All members of the nRF51 microcontroller families from Nordic Semiconductor
 include internal flash and use ARM Cortex-M0 core.
@@ -5656,19 +5666,6 @@ configuration registers as well. It must be noted that this command
 works only for chips that do not have factory pre-programmed region 0
 code.
 @end deffn
-
-@end deffn
-
-@deffn {Flash Driver} mrvlqspi
-This driver supports QSPI flash controller of Marvell's Wireless
-Microcontroller platform.
-
-The flash size is autodetected based on the table of known JEDEC IDs
-hardcoded in the OpenOCD sources.
-
-@example
-flash bank $_FLASHNAME mrvlqspi 0x0 0 0 0 $_TARGETNAME 0x46010000
-@end example
 
 @end deffn
 
@@ -5700,102 +5697,7 @@ if @{ [info exists IMEMORY] && [string equal $IMEMORY true] @} @{
 @end example
 @end deffn
 
-@section mFlash
-
-@subsection mFlash Configuration
-@cindex mFlash Configuration
-
-@deffn {Config Command} {mflash bank} soc base RST_pin target
-Configures a mflash for @var{soc} host bank at
-address @var{base}.
-The pin number format depends on the host GPIO naming convention.
-Currently, the mflash driver supports s3c2440 and pxa270.
-
-Example for s3c2440 mflash where @var{RST pin} is GPIO B1:
-
-@example
-mflash bank $_FLASHNAME s3c2440 0x10000000 1b 0
-@end example
-
-Example for pxa270 mflash where @var{RST pin} is GPIO 43:
-
-@example
-mflash bank $_FLASHNAME pxa270 0x08000000 43 0
-@end example
-@end deffn
-
-@subsection mFlash commands
-@cindex mFlash commands
-
-@deffn Command {mflash config pll} frequency
-Configure mflash PLL.
-The @var{frequency} is the mflash input frequency, in Hz.
-Issuing this command will erase mflash's whole internal nand and write new pll.
-After this command, mflash needs power-on-reset for normal operation.
-If pll was newly configured, storage and boot(optional) info also need to be update.
-@end deffn
-
-@deffn Command {mflash config boot}
-Configure bootable option.
-If bootable option is set, mflash offer the first 8 sectors
-(4kB) for boot.
-@end deffn
-
-@deffn Command {mflash config storage}
-Configure storage information.
-For the normal storage operation, this information must be
-written.
-@end deffn
-
-@deffn Command {mflash dump} num filename offset size
-Dump @var{size} bytes, starting at @var{offset} bytes from the
-beginning of the bank @var{num}, to the file named @var{filename}.
-@end deffn
-
-@deffn Command {mflash probe}
-Probe mflash.
-@end deffn
-
-@deffn Command {mflash write} num filename offset
-Write the binary file @var{filename} to mflash bank @var{num}, starting at
-@var{offset} bytes from the beginning of the bank.
-@end deffn
-
-@node Flash Programming
-@chapter Flash Programming
-
-OpenOCD implements numerous ways to program the target flash, whether internal or external.
-Programming can be acheived by either using GDB @ref{programmingusinggdb,,Programming using GDB},
-or using the cmds given in @ref{flashprogrammingcommands,,Flash Programming Commands}.
-
-@*To simplify using the flash cmds directly a jimtcl script is available that handles the programming and verify stage.
-OpenOCD will program/verify/reset the target and optionally shutdown.
-
-The script is executed as follows and by default the following actions will be peformed.
-@enumerate
-@item 'init' is executed.
-@item 'reset init' is called to reset and halt the target, any 'reset init' scripts are executed.
-@item @code{flash write_image} is called to erase and write any flash using the filename given.
-@item @code{verify_image} is called if @option{verify} parameter is given.
-@item @code{reset run} is called if @option{reset} parameter is given.
-@item OpenOCD is shutdown if @option{exit} parameter is given.
-@end enumerate
-
-An example of usage is given below. @xref{program}.
-
-@example
-# program and verify using elf/hex/s19. verify and reset
-# are optional parameters
-openocd -f board/stm32f3discovery.cfg \
-	-c "program filename.elf verify reset exit"
-
-# binary files need the flash address passing
-openocd -f board/stm32f3discovery.cfg \
-	-c "program filename.bin exit 0x08000000"
-@end example
-
-@node NAND Flash Commands
-@chapter NAND Flash Commands
+@section NAND Flash Commands
 @cindex NAND
 
 Compared to NOR or SPI flash, NAND devices are inexpensive
@@ -5859,7 +5761,7 @@ Some larger devices will work, since they are actually multi-chip
 modules with two smaller chips and individual chipselect lines.
 
 @anchor{nandconfiguration}
-@section NAND Configuration Commands
+@subsection NAND Configuration Commands
 @cindex NAND configuration
 
 NAND chips must be declared in configuration scripts,
@@ -5916,7 +5818,7 @@ You must (successfully) probe a device before you can use
 it with most other NAND commands.
 @end deffn
 
-@section Erasing, Reading, Writing to NAND Flash
+@subsection Erasing, Reading, Writing to NAND Flash
 
 @deffn Command {nand dump} num filename offset length [oob_option]
 @cindex NAND reading
@@ -6058,7 +5960,7 @@ hardward-computed ECC before the data is written. This limitation may
 be removed in a future release.
 @end deffn
 
-@section Other NAND commands
+@subsection Other NAND commands
 @cindex NAND other commands
 
 @deffn Command {nand check_bad_blocks} num [offset length]
@@ -6102,7 +6004,7 @@ with the wrong ECC data can cause them to be marked as bad.
 @end deffn
 
 @anchor{nanddriverlist}
-@section NAND Driver List
+@subsection NAND Driver List
 As noted above, the @command{nand device} command allows
 driver-specific options and behaviors.
 Some controllers also activate controller-specific commands.
@@ -6221,6 +6123,100 @@ At this writing, their drivers don't include @code{write_page}
 or @code{read_page} methods, so @command{nand raw_access} won't
 change any behavior.
 @end deffn
+
+@section mFlash
+
+@subsection mFlash Configuration
+@cindex mFlash Configuration
+
+@deffn {Config Command} {mflash bank} soc base RST_pin target
+Configures a mflash for @var{soc} host bank at
+address @var{base}.
+The pin number format depends on the host GPIO naming convention.
+Currently, the mflash driver supports s3c2440 and pxa270.
+
+Example for s3c2440 mflash where @var{RST pin} is GPIO B1:
+
+@example
+mflash bank $_FLASHNAME s3c2440 0x10000000 1b 0
+@end example
+
+Example for pxa270 mflash where @var{RST pin} is GPIO 43:
+
+@example
+mflash bank $_FLASHNAME pxa270 0x08000000 43 0
+@end example
+@end deffn
+
+@subsection mFlash commands
+@cindex mFlash commands
+
+@deffn Command {mflash config pll} frequency
+Configure mflash PLL.
+The @var{frequency} is the mflash input frequency, in Hz.
+Issuing this command will erase mflash's whole internal nand and write new pll.
+After this command, mflash needs power-on-reset for normal operation.
+If pll was newly configured, storage and boot(optional) info also need to be update.
+@end deffn
+
+@deffn Command {mflash config boot}
+Configure bootable option.
+If bootable option is set, mflash offer the first 8 sectors
+(4kB) for boot.
+@end deffn
+
+@deffn Command {mflash config storage}
+Configure storage information.
+For the normal storage operation, this information must be
+written.
+@end deffn
+
+@deffn Command {mflash dump} num filename offset size
+Dump @var{size} bytes, starting at @var{offset} bytes from the
+beginning of the bank @var{num}, to the file named @var{filename}.
+@end deffn
+
+@deffn Command {mflash probe}
+Probe mflash.
+@end deffn
+
+@deffn Command {mflash write} num filename offset
+Write the binary file @var{filename} to mflash bank @var{num}, starting at
+@var{offset} bytes from the beginning of the bank.
+@end deffn
+
+@node Flash Programming
+@chapter Flash Programming
+
+OpenOCD implements numerous ways to program the target flash, whether internal or external.
+Programming can be acheived by either using GDB @ref{programmingusinggdb,,Programming using GDB},
+or using the cmds given in @ref{flashprogrammingcommands,,Flash Programming Commands}.
+
+@*To simplify using the flash cmds directly a jimtcl script is available that handles the programming and verify stage.
+OpenOCD will program/verify/reset the target and optionally shutdown.
+
+The script is executed as follows and by default the following actions will be peformed.
+@enumerate
+@item 'init' is executed.
+@item 'reset init' is called to reset and halt the target, any 'reset init' scripts are executed.
+@item @code{flash write_image} is called to erase and write any flash using the filename given.
+@item @code{verify_image} is called if @option{verify} parameter is given.
+@item @code{reset run} is called if @option{reset} parameter is given.
+@item OpenOCD is shutdown if @option{exit} parameter is given.
+@end enumerate
+
+An example of usage is given below. @xref{program}.
+
+@example
+# program and verify using elf/hex/s19. verify and reset
+# are optional parameters
+openocd -f board/stm32f3discovery.cfg \
+	-c "program filename.elf verify reset exit"
+
+# binary files need the flash address passing
+openocd -f board/stm32f3discovery.cfg \
+	-c "program filename.bin exit 0x08000000"
+@end example
 
 @node PLD/FPGA Commands
 @chapter PLD/FPGA Commands
