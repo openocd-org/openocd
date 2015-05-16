@@ -2672,15 +2672,16 @@ usb_blaster_vid_pid 0x16C0 0x06AD
 @end example
 @end deffn
 
-@deffn {Command} {usb_blaster} (@option{pin6}|@option{pin8}) (@option{0}|@option{1})
-Sets the state of the unused GPIO pins on USB-Blasters (pins 6 and 8 on the
-female JTAG header). These pins can be used as SRST and/or TRST provided the
-appropriate connections are made on the target board.
+@deffn {Command} {usb_blaster_pin} (@option{pin6}|@option{pin8}) (@option{0}|@option{1}|@option{s}|@option{t})
+Sets the state or function of the unused GPIO pins on USB-Blasters
+(pins 6 and 8 on the female JTAG header). These pins can be used as
+SRST and/or TRST provided the appropriate connections are made on the
+target board.
 
-For example, to use pin 6 as SRST (as with an AVR board):
+For example, to use pin 6 as SRST:
 @example
-$_TARGETNAME configure -event reset-assert \
-      "usb_blaster pin6 1; wait 1; usb_blaster pin6 0"
+usb_blaster_pin pin6 s
+reset_config srst_only
 @end example
 @end deffn
 
