@@ -37,7 +37,7 @@ Target Layer:
 
 Flash Layer:
 	* nRF51 async loader to improve flashing performance and stability
-	* Cypress PSoC 41xx/42xx family flash driver
+	* Cypress PSoC 41xx/42xx and CCG1 families flash driver
 	* Silabs SiM3 family flash driver
 	* Marvell Wireless Microcontroller SPI flash driver
 	* Kinetis mass erase (part unsecuring) implemented
@@ -98,7 +98,7 @@ This release also contains a number of other important functional and
 cosmetic bugfixes. For more details about what has changed since the
 last release, see the git repository history:
 
-http://sourceforge.net/p/openocd/code/ci/v0.9.0-rc1/log/?path=
+http://sourceforge.net/p/openocd/code/ci/v0.9.0/log/?path=
 
 
 For older NEWS, see the NEWS files associated with each release
