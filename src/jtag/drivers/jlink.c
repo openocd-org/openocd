@@ -255,8 +255,8 @@ static enum tap_state jlink_last_state = TAP_RESET;
 static struct jlink *jlink_handle;
 
 /* pid could be specified at runtime */
-static uint16_t vids[] = { 0x1366, 0x1366, 0x1366, 0x1366, 0x1366, 0 };
-static uint16_t pids[] = { 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0 };
+static uint16_t vids[] = { 0x1366, 0x1366, 0x1366, 0x1366, 0x1366, 0x1366, 0 };
+static uint16_t pids[] = { 0x0101, 0x0102, 0x0103, 0x0104, 0x0105, 0x1015, 0 };
 
 static char *jlink_serial;
 
