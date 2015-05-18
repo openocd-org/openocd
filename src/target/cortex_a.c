@@ -2753,6 +2753,74 @@ static int cortex_a_write_memory(struct target *target, uint32_t address,
 	return retval;
 }
 
+static int cortex_a_read_buffer(struct target *target, uint32_t address,
+				uint32_t count, uint8_t *buffer)
+{
+	uint32_t size;
+
+	/* Align up to maximum 4 bytes. The loop condition makes sure the next pass
+	 * will have something to do with the size we leave to it. */
+	for (size = 1; size < 4 && count >= size * 2 + (address & size); size *= 2) {
+		if (address & size) {
+			int retval = target_read_memory(target, address, size, 1, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += size;
+			count -= size;
+			buffer += size;
+		}
+	}
+
+	/* Read the data with as large access size as possible. */
+	for (; size > 0; size /= 2) {
+		uint32_t aligned = count - count % size;
+		if (aligned > 0) {
+			int retval = target_read_memory(target, address, size, aligned / size, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += aligned;
+			count -= aligned;
+			buffer += aligned;
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static int cortex_a_write_buffer(struct target *target, uint32_t address,
+				 uint32_t count, const uint8_t *buffer)
+{
+	uint32_t size;
+
+	/* Align up to maximum 4 bytes. The loop condition makes sure the next pass
+	 * will have something to do with the size we leave to it. */
+	for (size = 1; size < 4 && count >= size * 2 + (address & size); size *= 2) {
+		if (address & size) {
+			int retval = target_write_memory(target, address, size, 1, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += size;
+			count -= size;
+			buffer += size;
+		}
+	}
+
+	/* Write the data with as large access size as possible. */
+	for (; size > 0; size /= 2) {
+		uint32_t aligned = count - count % size;
+		if (aligned > 0) {
+			int retval = target_write_memory(target, address, size, aligned / size, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+			address += aligned;
+			count -= aligned;
+			buffer += aligned;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static int cortex_a_handle_target_request(void *priv)
 {
 	struct target *target = priv;
@@ -3284,6 +3352,9 @@ struct target_type cortexa_target = {
 
 	.read_memory = cortex_a_read_memory,
 	.write_memory = cortex_a_write_memory,
+
+	.read_buffer = cortex_a_read_buffer,
+	.write_buffer = cortex_a_write_buffer,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
