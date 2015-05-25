@@ -8460,11 +8460,17 @@ Cyg_Thread::thread_list, Cyg_Scheduler_Base::current_thread.
 @item ThreadX symbols
 _tx_thread_current_ptr, _tx_thread_created_ptr, _tx_thread_created_count.
 @item FreeRTOS symbols
-@raggedright
+@c The following is taken from recent texinfo to provide compatibility
+@c with ancient versions that do not support @raggedright
+@tex
+\begingroup
+\rightskip0pt plus2em \spaceskip.3333em \xspaceskip.5em\relax
 pxCurrentTCB, pxReadyTasksLists, xDelayedTaskList1, xDelayedTaskList2,
 pxDelayedTaskList, pxOverflowDelayedTaskList, xPendingReadyList,
 uxCurrentNumberOfTasks, uxTopUsedPriority.
-@end raggedright
+\par
+\endgroup
+@end tex
 @item linux symbols
 init_task.
 @item ChibiOS symbols
