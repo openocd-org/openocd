@@ -1167,7 +1167,8 @@ static int xscale_resume(struct target *target, int current,
 			enum trace_mode saved_trace_mode;
 
 			/* there's a breakpoint at the current PC, we have to step over it */
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "",
+				(uint32_t)breakpoint->address);
 			xscale_unset_breakpoint(target, breakpoint);
 
 			/* calculate PC of next instruction */
@@ -1224,7 +1225,8 @@ static int xscale_resume(struct target *target, int current,
 			LOG_DEBUG("disable single-step");
 			xscale_disable_single_step(target);
 
-			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "",
+				(uint32_t)breakpoint->address);
 			xscale_set_breakpoint(target, breakpoint);
 		}
 	}

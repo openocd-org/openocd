@@ -350,7 +350,8 @@ static int avr32_ap7k_resume(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "",
+				(uint32_t)breakpoint->address);
 #if 0
 			avr32_ap7k_unset_breakpoint(target, breakpoint);
 			avr32_ap7k_single_step_core(target);

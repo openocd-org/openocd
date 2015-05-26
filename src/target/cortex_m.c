@@ -753,7 +753,7 @@ static int cortex_m_resume(struct target *target, int current,
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %" PRIu32 ")",
-				breakpoint->address,
+				(uint32_t)breakpoint->address,
 				breakpoint->unique_id);
 			cortex_m_unset_breakpoint(target, breakpoint);
 			cortex_m_single_step_core(target);
@@ -1195,7 +1195,7 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 	LOG_DEBUG("BPID: %" PRIu32 ", Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)",
 		breakpoint->unique_id,
 		(int)(breakpoint->type),
-		breakpoint->address,
+		(uint32_t)breakpoint->address,
 		breakpoint->length,
 		breakpoint->set);
 
@@ -1216,7 +1216,7 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 	LOG_DEBUG("BPID: %" PRIu32 ", Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)",
 		breakpoint->unique_id,
 		(int)(breakpoint->type),
-		breakpoint->address,
+		(uint32_t)breakpoint->address,
 		breakpoint->length,
 		breakpoint->set);
 

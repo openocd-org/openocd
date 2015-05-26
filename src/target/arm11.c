@@ -461,7 +461,7 @@ static int arm11_resume(struct target *target, int current,
 
 		for (bp = target->breakpoints; bp; bp = bp->next) {
 			if (bp->address == address) {
-				LOG_DEBUG("must step over %08" PRIx32 "", bp->address);
+				LOG_DEBUG("must step over %08" PRIx32 "", (uint32_t)bp->address);
 				arm11_step(target, 1, 0, 0);
 				break;
 			}
@@ -488,7 +488,7 @@ static int arm11_resume(struct target *target, int current,
 			CHECK_RETVAL(arm11_sc7_run(arm11, brp, ARRAY_SIZE(brp)));
 
 			LOG_DEBUG("Add BP %d at %08" PRIx32, brp_num,
-				bp->address);
+				(uint32_t)bp->address);
 
 			brp_num++;
 		}

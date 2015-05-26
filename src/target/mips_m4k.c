@@ -464,7 +464,8 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "",
+				(uint32_t)breakpoint->address);
 			mips_m4k_unset_breakpoint(target, breakpoint);
 			mips_m4k_single_step_core(target);
 			mips_m4k_set_breakpoint(target, breakpoint);
@@ -651,7 +652,8 @@ static int mips_m4k_set_breakpoint(struct target *target,
 				return retval;
 			if (verify != MIPS32_SDBBP) {
 				LOG_ERROR("Unable to set 32bit breakpoint at address %08" PRIx32
-						" - check that memory is read/writable", breakpoint->address);
+					" - check that memory is read/writable",
+					(uint32_t)breakpoint->address);
 				return ERROR_OK;
 			}
 		} else {
@@ -670,7 +672,8 @@ static int mips_m4k_set_breakpoint(struct target *target,
 				return retval;
 			if (verify != MIPS16_SDBBP) {
 				LOG_ERROR("Unable to set 16bit breakpoint at address %08" PRIx32
-						" - check that memory is read/writable", breakpoint->address);
+					" - check that memory is read/writable",
+					(uint32_t)breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -1172,7 +1175,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 			fast_data_area->address <= address + count) {
 		LOG_ERROR("fast_data (0x%8.8" PRIx32 ") is within write area "
 			  "(0x%8.8" PRIx32 "-0x%8.8" PRIx32 ").",
-			  fast_data_area->address, address, address + count);
+			  (uint32_t)fast_data_area->address, address, address + count);
 		LOG_ERROR("Change work-area-phys or load_image address!");
 		return ERROR_FAIL;
 	}

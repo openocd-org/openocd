@@ -858,7 +858,8 @@ static int or1k_resume_or_step(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("Unset breakpoint at 0x%08" PRIx32, breakpoint->address);
+			LOG_DEBUG("Unset breakpoint at 0x%08" PRIx32,
+				(uint32_t)breakpoint->address);
 			retval = or1k_remove_breakpoint(target, breakpoint);
 			if (retval != ERROR_OK)
 				return retval;
@@ -920,7 +921,7 @@ static int or1k_add_breakpoint(struct target *target,
 	uint8_t data;
 
 	LOG_DEBUG("Adding breakpoint: addr 0x%08" PRIx32 ", len %d, type %d, set: %d, id: %" PRId32,
-		  breakpoint->address, breakpoint->length, breakpoint->type,
+		  (uint32_t)breakpoint->address, breakpoint->length, breakpoint->type,
 		  breakpoint->set, breakpoint->unique_id);
 
 	/* Only support SW breakpoints for now. */
@@ -929,13 +930,13 @@ static int or1k_add_breakpoint(struct target *target,
 
 	/* Read and save the instruction */
 	int retval = du_core->or1k_jtag_read_memory(&or1k->jtag,
-					 breakpoint->address,
+					 (uint32_t)breakpoint->address,
 					 4,
 					 1,
 					 &data);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while reading the instruction at 0x%08" PRIx32,
-			   breakpoint->address);
+			   (uint32_t)breakpoint->address);
 		return retval;
 	}
 
@@ -956,13 +957,13 @@ static int or1k_add_breakpoint(struct target *target,
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while writing OR1K_TRAP_INSTR at 0x%08" PRIx32,
-			   breakpoint->address);
+			   (uint32_t)breakpoint->address);
 		return retval;
 	}
 
 	/* invalidate instruction cache */
 	retval = du_core->or1k_jtag_write_cpu(&or1k->jtag,
-			OR1K_ICBIR_CPU_REG_ADD, 1, &breakpoint->address);
+			OR1K_ICBIR_CPU_REG_ADD, 1, (uint32_t *)&breakpoint->address);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while invalidating the ICACHE");
 		return retval;
@@ -978,7 +979,7 @@ static int or1k_remove_breakpoint(struct target *target,
 	struct or1k_du *du_core = or1k_to_du(or1k);
 
 	LOG_DEBUG("Removing breakpoint: addr 0x%08" PRIx32 ", len %d, type %d, set: %d, id: %" PRId32,
-		  breakpoint->address, breakpoint->length, breakpoint->type,
+		  (uint32_t)breakpoint->address, breakpoint->length, breakpoint->type,
 		  breakpoint->set, breakpoint->unique_id);
 
 	/* Only support SW breakpoints for now. */
@@ -994,13 +995,13 @@ static int or1k_remove_breakpoint(struct target *target,
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while writing back the instruction at 0x%08" PRIx32,
-			   breakpoint->address);
+			   (uint32_t)breakpoint->address);
 		return retval;
 	}
 
 	/* invalidate instruction cache */
 	retval = du_core->or1k_jtag_write_cpu(&or1k->jtag,
-			OR1K_ICBIR_CPU_REG_ADD, 1, &breakpoint->address);
+			OR1K_ICBIR_CPU_REG_ADD, 1, (uint32_t *)&breakpoint->address);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while invalidating the ICACHE");
 		return retval;

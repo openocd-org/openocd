@@ -53,7 +53,7 @@ static int nds32_v3m_activate_hardware_breakpoint(struct target *target)
 				aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + brp_num, 0xA);
 
 			LOG_DEBUG("Add hardware BP %u at %08" PRIx32, brp_num,
-					bp->address);
+					(uint32_t)bp->address);
 
 			brp_num--;
 		} else {
@@ -81,7 +81,7 @@ static int nds32_v3m_deactivate_hardware_breakpoint(struct target *target)
 			return ERROR_FAIL;
 
 		LOG_DEBUG("Remove hardware BP %u at %08" PRIx32, brp_num,
-				bp->address);
+				(uint32_t)bp->address);
 
 		brp_num--;
 	}
@@ -128,7 +128,8 @@ static int nds32_v3m_activate_hardware_watchpoint(struct target *target)
 			aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + wp_num, wp_config);
 
 			LOG_DEBUG("Add hardware wathcpoint %" PRId32 " at %08" PRIx32
-					" mask %08" PRIx32, wp_num, wp->address, wp->mask);
+					" mask %08" PRIx32, wp_num,
+					(uint32_t)wp->address, wp->mask);
 
 			wp_num++;
 		} else if (nds32_v3m->nds32.global_stop) {
@@ -169,7 +170,8 @@ static int nds32_v3m_deactivate_hardware_watchpoint(struct target *target)
 			aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + wp_num, 0x0);
 
 			LOG_DEBUG("Remove hardware wathcpoint %" PRId32 " at %08" PRIx32
-					" mask %08" PRIx32, wp_num, wp->address, wp->mask);
+					" mask %08" PRIx32, wp_num,
+					(uint32_t)wp->address, wp->mask);
 			wp_num++;
 		} else if (nds32_v3m->nds32.global_stop) {
 			clean_global_stop = true;

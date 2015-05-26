@@ -105,7 +105,7 @@ static void arm7_9_assign_wp(struct arm7_9_common *arm7_9, struct breakpoint *br
 		LOG_ERROR("BUG: no hardware comparator available");
 	LOG_DEBUG("BPID: %" PRId32 " (0x%08" PRIx32 ") using hw wp: %d",
 			breakpoint->unique_id,
-			breakpoint->address,
+			(uint32_t)breakpoint->address,
 			breakpoint->set);
 }
 
@@ -191,7 +191,7 @@ static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *break
 
 	LOG_DEBUG("BPID: %" PRId32 ", Address: 0x%08" PRIx32 ", Type: %d",
 		breakpoint->unique_id,
-		breakpoint->address,
+		(uint32_t)breakpoint->address,
 		breakpoint->type);
 
 	if (target->state != TARGET_HALTED) {
@@ -247,7 +247,8 @@ static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *break
 				return retval;
 			if (verify != arm7_9->arm_bkpt) {
 				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08" PRIx32
-						" - check that memory is read/writable", breakpoint->address);
+						" - check that memory is read/writable",
+					(uint32_t)breakpoint->address);
 				return ERROR_OK;
 			}
 		} else {
@@ -267,7 +268,8 @@ static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *break
 				return retval;
 			if (verify != arm7_9->thumb_bkpt) {
 				LOG_ERROR("Unable to set thumb software breakpoint at address %08" PRIx32
-						" - check that memory is read/writable", breakpoint->address);
+						" - check that memory is read/writable",
+					(uint32_t)breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -303,7 +305,7 @@ static int arm7_9_unset_breakpoint(struct target *target, struct breakpoint *bre
 
 	LOG_DEBUG("BPID: %" PRId32 ", Address: 0x%08" PRIx32,
 		breakpoint->unique_id,
-		breakpoint->address);
+		(uint32_t)breakpoint->address);
 
 	if (!breakpoint->set) {
 		LOG_WARNING("breakpoint not set");
@@ -1720,7 +1722,7 @@ int arm7_9_resume(struct target *target,
 				buf_get_u32(arm->pc->value, 0, 32));
 		if (breakpoint != NULL) {
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (id: %" PRId32,
-				breakpoint->address,
+				(uint32_t)breakpoint->address,
 				breakpoint->unique_id);
 			retval = arm7_9_unset_breakpoint(target, breakpoint);
 			if (retval != ERROR_OK)
@@ -1778,7 +1780,8 @@ int arm7_9_resume(struct target *target,
 			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32,
 				buf_get_u32(arm->pc->value, 0, 32));
 
-			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "",
+				(uint32_t)breakpoint->address);
 			retval = arm7_9_set_breakpoint(target, breakpoint);
 			if (retval != ERROR_OK)
 				return retval;

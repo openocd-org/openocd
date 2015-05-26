@@ -645,7 +645,7 @@ static int adapter_resume(struct target *target, int current,
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
 			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %" PRIu32 ")",
-					breakpoint->address,
+					(uint32_t)breakpoint->address,
 					breakpoint->unique_id);
 			cortex_m_unset_breakpoint(target, breakpoint);
 

@@ -56,7 +56,7 @@ static int nds32_v3_activate_hardware_breakpoint(struct target *target)
 				aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + hbr_index, 0xA);
 
 			LOG_DEBUG("Add hardware BP %" PRId32 " at %08" PRIx32, hbr_index,
-					bp->address);
+				(uint32_t)bp->address);
 		} else {
 			return ERROR_FAIL;
 		}
@@ -84,7 +84,7 @@ static int nds32_v3_deactivate_hardware_breakpoint(struct target *target)
 		}
 
 		LOG_DEBUG("Remove hardware BP %" PRId32 " at %08" PRIx32, hbr_index,
-				bp->address);
+			(uint32_t)bp->address);
 	}
 
 	return ERROR_OK;
@@ -131,7 +131,7 @@ static int nds32_v3_activate_hardware_watchpoint(struct target *target)
 			aice_write_debug_reg(aice, NDS_EDM_SR_BPV0 + wp_num, 0);
 
 			LOG_DEBUG("Add hardware wathcpoint %" PRId32 " at %08" PRIx32 " mask %08" PRIx32,
-					wp_num, wp->address, wp->mask);
+				wp_num, (uint32_t)wp->address, wp->mask);
 
 			wp_num++;
 		} else if (nds32_v3->nds32.global_stop) {
@@ -173,7 +173,7 @@ static int nds32_v3_deactivate_hardware_watchpoint(struct target *target)
 
 			LOG_DEBUG("Remove hardware wathcpoint %" PRId32 " at %08" PRIx32
 					" mask %08" PRIx32, wp_num,
-					wp->address, wp->mask);
+					(uint32_t)wp->address, wp->mask);
 			wp_num++;
 		} else if (nds32_v3->nds32.global_stop) {
 			clean_global_stop = true;
