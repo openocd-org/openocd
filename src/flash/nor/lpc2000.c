@@ -213,6 +213,7 @@
 #define LPC1317        0x1A020525
 #define LPC1342        0x3D01402B
 #define LPC1343        0x3D00002B
+#define LPC1343_1      0x3000002B
 #define LPC1345        0x28010541
 #define LPC1346        0x08018542
 #define LPC1347        0x08020543
@@ -1317,6 +1318,7 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case LPC1313_1:
 		case LPC1315:
 		case LPC1343:
+		case LPC1343_1:
 		case LPC1345:
 			lpc2000_info->variant = lpc1100;
 			bank->size = 32 * 1024;
