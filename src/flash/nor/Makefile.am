@@ -9,6 +9,7 @@ libocdflashnor_la_SOURCES = \
 
 NOR_DRIVERS = \
 	aduc702x.c \
+	aducm360.c \
 	at91sam4.c \
 	at91sam4l.c \
 	at91samd.c \
