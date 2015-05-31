@@ -1021,6 +1021,10 @@ int target_read_memory(struct target *target,
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
+	if (!target->type->read_memory) {
+		LOG_ERROR("Target %s doesn't support read_memory", target_name(target));
+		return ERROR_FAIL;
+	}
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
@@ -1029,6 +1033,10 @@ int target_read_phys_memory(struct target *target,
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	if (!target->type->read_phys_memory) {
+		LOG_ERROR("Target %s doesn't support read_phys_memory", target_name(target));
 		return ERROR_FAIL;
 	}
 	return target->type->read_phys_memory(target, address, size, count, buffer);
@@ -1041,6 +1049,10 @@ int target_write_memory(struct target *target,
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
+	if (!target->type->write_memory) {
+		LOG_ERROR("Target %s doesn't support write_memory", target_name(target));
+		return ERROR_FAIL;
+	}
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
@@ -1049,6 +1061,10 @@ int target_write_phys_memory(struct target *target,
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	if (!target->type->write_phys_memory) {
+		LOG_ERROR("Target %s doesn't support write_phys_memory", target_name(target));
 		return ERROR_FAIL;
 	}
 	return target->type->write_phys_memory(target, address, size, count, buffer);
@@ -1172,20 +1188,6 @@ static void target_reset_examined(struct target *target)
 	target->examined = false;
 }
 
-static int err_read_phys_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
-{
-	LOG_ERROR("Not implemented: %s", __func__);
-	return ERROR_FAIL;
-}
-
-static int err_write_phys_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, const uint8_t *buffer)
-{
-	LOG_ERROR("Not implemented: %s", __func__);
-	return ERROR_FAIL;
-}
-
 static int handle_target(void *priv);
 
 static int target_init_one(struct command_context *cmd_ctx,
@@ -1212,16 +1214,6 @@ static int target_init_one(struct command_context *cmd_ctx,
 	 * implement it in stages, but warn if we need to do so.
 	 */
 	if (type->mmu) {
-		if (type->write_phys_memory == NULL) {
-			LOG_ERROR("type '%s' is missing write_phys_memory",
-					type->name);
-			type->write_phys_memory = err_write_phys_memory;
-		}
-		if (type->read_phys_memory == NULL) {
-			LOG_ERROR("type '%s' is missing read_phys_memory",
-					type->name);
-			type->read_phys_memory = err_read_phys_memory;
-		}
 		if (type->virt2phys == NULL) {
 			LOG_ERROR("type '%s' is missing virt2phys", type->name);
 			type->virt2phys = identity_virt2phys;
