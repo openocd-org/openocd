@@ -401,74 +401,6 @@ static int armv7a_handle_inner_cache_info_command(struct command_context *cmd_ct
 	return ERROR_OK;
 }
 
-static int _armv7a_flush_all_data(struct target *target)
-{
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->arm.dpm;
-	struct armv7a_cachesize *d_u_size =
-		&(armv7a->armv7a_mmu.armv7a_cache.d_u_size);
-	int32_t c_way, c_index = d_u_size->index;
-	int retval;
-	/*  check that cache data is on at target halt */
-	if (!armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled) {
-		LOG_INFO("flushed not performed :cache not on at target halt");
-		return ERROR_OK;
-	}
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-	do {
-		c_way = d_u_size->way;
-		do {
-			uint32_t value = (c_index << d_u_size->index_shift)
-				| (c_way << d_u_size->way_shift);
-			/*  DCCISW */
-			/* LOG_INFO ("%d %d %x",c_way,c_index,value); */
-			retval = dpm->instr_write_data_r0(dpm,
-					ARMV4_5_MCR(15, 0, 0, 7, 14, 2),
-					value);
-			if (retval != ERROR_OK)
-				goto done;
-			c_way -= 1;
-		} while (c_way >= 0);
-		c_index -= 1;
-	} while (c_index >= 0);
-	return retval;
-done:
-	LOG_ERROR("flushed failed");
-	dpm->finish(dpm);
-	return retval;
-}
-
-static int  armv7a_flush_all_data(struct target *target)
-{
-	int retval = ERROR_FAIL;
-	/*  check that armv7a_cache is correctly identify */
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	if (armv7a->armv7a_mmu.armv7a_cache.ctype == -1) {
-		LOG_ERROR("trying to flush un-identified cache");
-		return retval;
-	}
-
-	if (target->smp) {
-		/*  look if all the other target have been flushed in order to flush level
-		 *  2 */
-		struct target_list *head;
-		struct target *curr;
-		head = target->head;
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			if (curr->state == TARGET_HALTED) {
-				LOG_INFO("Wait flushing data l1 on core %" PRId32, curr->coreid);
-				retval = _armv7a_flush_all_data(curr);
-			}
-			head = head->next;
-		}
-	} else
-		retval = _armv7a_flush_all_data(target);
-	return retval;
-}
-
 /* L2 is not specific to armv7a  a specific file is needed */
 static int armv7a_l2x_flush_all_data(struct target *target)
 {
@@ -481,7 +413,7 @@ static int armv7a_l2x_flush_all_data(struct target *target)
 	uint32_t base = l2x_cache->base;
 	uint32_t l2_way = l2x_cache->way;
 	uint32_t l2_way_val = (1 << l2_way) - 1;
-	retval = armv7a_flush_all_data(target);
+	retval = armv7a_cache_auto_flush_all_data(target);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = target->type->write_phys_memory(target,
@@ -524,7 +456,7 @@ static int armv7a_handle_l2x_cache_info_command(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-
+/* FIXME: remove it */
 static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t way)
 {
 	struct armv7a_l2x_cache *l2x_cache;
@@ -564,6 +496,7 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	return JIM_OK;
 }
 
+/* FIXME: remove it */
 COMMAND_HANDLER(handle_cache_l2x)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -795,7 +728,7 @@ int armv7a_identify_cache(struct target *target)
 		armv7a->armv7a_mmu.armv7a_cache.display_cache_info =
 			armv7a_handle_inner_cache_info_command;
 		armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
-			armv7a_flush_all_data;
+			armv7a_cache_auto_flush_all_data;
 	}
 	armv7a->armv7a_mmu.armv7a_cache.ctype = 0;
 
