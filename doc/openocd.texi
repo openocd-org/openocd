@@ -2967,6 +2967,27 @@ pinout.
 
 @end deffn
 
+@deffn {Interface Driver} {openjtag}
+OpenJTAG compatible USB adapter.
+This defines some driver-specific commands:
+
+@deffn {Config Command} {openjtag_variant} variant
+Specifies the variant of the OpenJTAG adapter (see @uref{http://www.openjtag.org/}).
+Currently valid @var{variant} values include:
+
+@itemize @minus
+@item @b{standard} Standard variant (default).
+@item @b{cy7c65215} Cypress CY7C65215 Dual Channel USB-Serial Bridge Controller
+(see @uref{http://www.cypress.com/?rID=82870}).
+@end itemize
+@end deffn
+
+@deffn {Config Command} {openjtag_device_desc} string
+The USB device description string of the adapter.
+This value is only used with the standard variant.
+@end deffn
+@end deffn
+
 @section Transport Configuration
 @cindex Transport
 As noted earlier, depending on the version of OpenOCD you use,

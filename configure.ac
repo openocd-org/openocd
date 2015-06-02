@@ -1163,6 +1163,14 @@ PROCESS_ADAPTERS([USB_ADAPTERS], [$use_libusb1 = yes -o $use_libusb0 = yes], [li
 PROCESS_ADAPTERS([USB0_ADAPTERS], [$use_libusb0 = yes], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], [$use_hidapi = yes], [hidapi])
 
+if test $build_openjtag_ftd2xx = yes -o $build_openjtag_ftdi = yes; then
+	if test $use_libusb1 != yes -a $use_libusb0 != yes; then
+		AC_MSG_ERROR([libusb-1.x or libusb-0.1 is required for the OpenJTAG Programmer])
+		build_openjtag_ftd2xx=no
+		build_openjtag_ftdi=no
+	fi
+fi
+
 if test $enable_stlink != no -o $enable_ti_icdi != no; then
 	AC_DEFINE([BUILD_HLADAPTER], [1], [1 if you want the High Level JTAG driver.])
 else
