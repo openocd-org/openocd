@@ -233,7 +233,7 @@ Permissions delegation
 Running OpenOCD with root/administrative permissions is strongly
 discouraged for security reasons.
 
-For USB devices on GNU/Linux you should use the contrib/99-openocd.rules
+For USB devices on GNU/Linux you should use the contrib/60-openocd.rules
 file. It probably belongs somewhere in /etc/udev/rules.d, but
 consult your operating system documentation to be sure. Do not forget
 to add yourself to the "plugdev" group.
