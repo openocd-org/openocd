@@ -64,6 +64,7 @@
 #define SAMD_PROCESSOR_M0	0x01
 #define SAMD_FAMILY_D		0x00
 #define SAMD_FAMILY_L		0x01
+#define SAMD_FAMILY_C		0x02
 #define SAMD_SERIES_20		0x00
 #define SAMD_SERIES_21		0x01
 #define SAMD_SERIES_10		0x02
@@ -164,6 +165,38 @@ static const struct samd_part saml21_parts[] = {
 	{ 0x0D, "SAML21E15A", 32, 4 },
 };
 
+/* Known SAMC20 parts. */
+static const struct samd_part samc20_parts[] = {
+	{ 0x00, "SAMC20J18A", 256, 32 },
+	{ 0x01, "SAMC20J17A", 128, 16 },
+	{ 0x02, "SAMC20J16A", 64, 8 },
+	{ 0x03, "SAMC20J15A", 32, 4 },
+	{ 0x05, "SAMC20G18A", 256, 32 },
+	{ 0x06, "SAMC20G17A", 128, 16 },
+	{ 0x07, "SAMC20G16A", 64, 8 },
+	{ 0x08, "SAMC20G15A", 32, 4 },
+	{ 0x0A, "SAMC20E18A", 256, 32 },
+	{ 0x0B, "SAMC20E17A", 128, 16 },
+	{ 0x0C, "SAMC20E16A", 64, 8 },
+	{ 0x0D, "SAMC20E15A", 32, 4 },
+};
+
+/* Known SAMC21 parts. */
+static const struct samd_part samc21_parts[] = {
+	{ 0x00, "SAMC21J18A", 256, 32 },
+	{ 0x01, "SAMC21J17A", 128, 16 },
+	{ 0x02, "SAMC21J16A", 64, 8 },
+	{ 0x03, "SAMC21J15A", 32, 4 },
+	{ 0x05, "SAMC21G18A", 256, 32 },
+	{ 0x06, "SAMC21G17A", 128, 16 },
+	{ 0x07, "SAMC21G16A", 64, 8 },
+	{ 0x08, "SAMC21G15A", 32, 4 },
+	{ 0x0A, "SAMC21E18A", 256, 32 },
+	{ 0x0B, "SAMC21E17A", 128, 16 },
+	{ 0x0C, "SAMC21E16A", 64, 8 },
+	{ 0x0D, "SAMC21E15A", 32, 4 },
+};
+
 /* Each family of parts contains a parts table in the DEVSEL field of DID.  The
  * processor ID, family ID, and series ID are used to determine which exact
  * family this is and then we can use the corresponding table. */
@@ -189,6 +222,10 @@ static const struct samd_family samd_families[] = {
 		samd11_parts, ARRAY_SIZE(samd11_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_L, SAMD_SERIES_21,
 		saml21_parts, ARRAY_SIZE(saml21_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_C, SAMD_SERIES_20,
+		samc20_parts, ARRAY_SIZE(samc20_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_C, SAMD_SERIES_21,
+		samc21_parts, ARRAY_SIZE(samc21_parts) },
 };
 
 struct samd_info {
