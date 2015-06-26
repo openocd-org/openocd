@@ -864,14 +864,12 @@ static int sim3x_flash_info(struct flash_bank *bank, char *buf, int buf_size)
 				return ERROR_BUF_TOO_SMALL;
 
 			/* Package */
-			if (sim3x_info->device_package) {
-				printed = snprintf(buf, buf_size, "-G%s", sim3x_info->device_package);
-				buf += printed;
-				buf_size -= printed;
+			printed = snprintf(buf, buf_size, "-G%s", sim3x_info->device_package);
+			buf += printed;
+			buf_size -= printed;
 
-				if (buf_size <= 0)
-					return ERROR_BUF_TOO_SMALL;
-			}
+			if (buf_size <= 0)
+				return ERROR_BUF_TOO_SMALL;
 		}
 	}
 
