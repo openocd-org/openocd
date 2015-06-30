@@ -622,6 +622,34 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 	return cache;
 }
 
+void armv7m_free_reg_cache(struct target *target)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct arm *arm = &armv7m->arm;
+	struct reg_cache *cache;
+	struct reg *reg;
+	unsigned int i;
+
+	cache = arm->core_cache;
+
+	if (!cache)
+		return;
+
+	for (i = 0; i < cache->num_regs; i++) {
+		reg = &cache->reg_list[i];
+
+		free(reg->feature);
+		free(reg->reg_data_type);
+		free(reg->value);
+	}
+
+	free(cache->reg_list[0].arch_info);
+	free(cache->reg_list);
+	free(cache);
+
+	arm->core_cache = NULL;
+}
+
 static int armv7m_setup_semihosting(struct target *target, int enable)
 {
 	/* nothing todo for armv7m */
