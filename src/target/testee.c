@@ -44,18 +44,23 @@ static int testee_init(struct command_context *cmd_ctx, struct target *target)
 }
 static int testee_poll(struct target *target)
 {
+	if ((target->state == TARGET_RUNNING) || (target->state == TARGET_DEBUG_RUNNING))
+		target->state = TARGET_HALTED;
 	return ERROR_OK;
 }
 static int testee_halt(struct target *target)
 {
+	target->state = TARGET_HALTED;
 	return ERROR_OK;
 }
 static int testee_reset_assert(struct target *target)
 {
+	target->state = TARGET_RESET;
 	return ERROR_OK;
 }
 static int testee_reset_deassert(struct target *target)
 {
+	target->state = TARGET_RUNNING;
 	return ERROR_OK;
 }
 struct target_type testee_target = {
