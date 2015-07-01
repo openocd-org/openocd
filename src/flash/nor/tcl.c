@@ -610,6 +610,165 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	return retval;
 }
 
+COMMAND_HANDLER(handle_flash_read_bank_command)
+{
+	uint32_t offset;
+	uint8_t *buffer;
+	struct fileio fileio;
+	uint32_t length;
+	size_t written;
+
+	if (CMD_ARGC != 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct duration bench;
+	duration_start(&bench);
+
+	struct flash_bank *p;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+	if (ERROR_OK != retval)
+		return retval;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], length);
+
+	buffer = malloc(length);
+	if (buffer == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	retval = flash_driver_read(p, buffer, offset, length);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Read error");
+		free(buffer);
+		return retval;
+	}
+
+	retval = fileio_open(&fileio, CMD_ARGV[1], FILEIO_WRITE, FILEIO_BINARY);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not open file");
+		free(buffer);
+		return retval;
+	}
+
+	retval = fileio_write(&fileio, length, buffer, &written);
+	fileio_close(&fileio);
+	free(buffer);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not write file");
+		return ERROR_FAIL;
+	}
+
+	if (duration_measure(&bench) == ERROR_OK)
+		command_print(CMD_CTX, "wrote %ld bytes to file %s from flash bank %u"
+			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
+			(long)written, CMD_ARGV[1], p->bank_number, offset,
+			duration_elapsed(&bench), duration_kbps(&bench, written));
+
+	return retval;
+}
+
+
+COMMAND_HANDLER(handle_flash_verify_bank_command)
+{
+	uint32_t offset;
+	uint8_t *buffer_file, *buffer_flash;
+	struct fileio fileio;
+	size_t read_cnt;
+	int filesize;
+	int differ;
+
+	if (CMD_ARGC != 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct duration bench;
+	duration_start(&bench);
+
+	struct flash_bank *p;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+	if (ERROR_OK != retval)
+		return retval;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
+
+	retval = fileio_open(&fileio, CMD_ARGV[1], FILEIO_READ, FILEIO_BINARY);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not open file");
+		return retval;
+	}
+
+	retval = fileio_size(&fileio, &filesize);
+	if (retval != ERROR_OK) {
+		fileio_close(&fileio);
+		return retval;
+	}
+
+	buffer_file = malloc(filesize);
+	if (buffer_file == NULL) {
+		LOG_ERROR("Out of memory");
+		fileio_close(&fileio);
+		return ERROR_FAIL;
+	}
+
+	retval = fileio_read(&fileio, filesize, buffer_file, &read_cnt);
+	fileio_close(&fileio);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("File read failure");
+		free(buffer_file);
+		return retval;
+	}
+
+	if (read_cnt != (size_t) filesize) {
+		LOG_ERROR("Short read");
+		free(buffer_file);
+		return ERROR_FAIL;
+	}
+
+	buffer_flash = malloc(filesize);
+	if (buffer_flash == NULL) {
+		LOG_ERROR("Out of memory");
+		free(buffer_file);
+		return ERROR_FAIL;
+	}
+
+	retval = flash_driver_read(p, buffer_flash, offset, read_cnt);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Flash read error");
+		free(buffer_flash);
+		free(buffer_file);
+		return retval;
+	}
+
+	if (duration_measure(&bench) == ERROR_OK)
+		command_print(CMD_CTX, "read %ld bytes from file %s and flash bank %u"
+			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
+			(long)read_cnt, CMD_ARGV[1], p->bank_number, offset,
+			duration_elapsed(&bench), duration_kbps(&bench, read_cnt));
+
+	differ = memcmp(buffer_file, buffer_flash, read_cnt);
+	command_print(CMD_CTX, "contents %s", differ ? "differ" : "match");
+	if (differ) {
+		uint32_t t;
+		int diffs = 0;
+		for (t = 0; t < read_cnt; t++) {
+			if (buffer_flash[t] == buffer_file[t])
+				continue;
+			command_print(CMD_CTX, "diff %d address 0x%08x. Was 0x%02x instead of 0x%02x",
+					diffs, t + offset, buffer_flash[t], buffer_file[t]);
+			if (diffs++ >= 127) {
+				command_print(CMD_CTX, "More than 128 errors, the rest are not printed.");
+				break;
+			}
+			keep_alive();
+		}
+	}
+	free(buffer_flash);
+	free(buffer_file);
+
+	return differ ? ERROR_FAIL : ERROR_OK;
+}
+
 void flash_set_dirty(void)
 {
 	struct flash_bank *c;
@@ -725,6 +884,24 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.help = "Write an image to flash.  Optionally first unprotect "
 			"and/or erase the region to be used.  Allow optional "
 			"offset from beginning of bank (defaults to zero)",
+	},
+	{
+		.name = "read_bank",
+		.handler = handle_flash_read_bank_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id filename offset length",
+		.help = "Read binary data from flash bank to file, "
+			"starting at specified byte offset from the "
+			"beginning of the bank.",
+	},
+	{
+		.name = "verify_bank",
+		.handler = handle_flash_verify_bank_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id filename offset",
+		.help = "Read binary data from flash bank and file, "
+			"starting at specified byte offset from the "
+			"beginning of the bank. Compare the contents.",
 	},
 	{
 		.name = "protect",

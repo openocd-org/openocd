@@ -4644,6 +4644,18 @@ starting at @var{offset} bytes from the beginning of the bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
+@deffn Command {flash read_bank} num filename offset length
+Read @var{length} bytes from the flash bank @var{num} starting at @var{offset}
+and write the contents to the binary @file{filename}.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {flash verify_bank} num filename offset
+Compare the contents of the binary file @var{filename} with the contents of the
+flash @var{num} starting at @var{offset}. Fails if the contents do not match.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
 @deffn Command {flash write_image} [erase] [unlock] filename [offset] [type]
 Write the image @file{filename} to the current target's flash bank(s).
 Only loadable sections from the image are written.
