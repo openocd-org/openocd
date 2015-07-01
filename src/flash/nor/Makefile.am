@@ -19,6 +19,7 @@ NOR_DRIVERS = \
 	efm32.c \
 	em357.c \
 	faux.c \
+	jtagspi.c \
 	lpc2000.c \
 	lpc288x.c \
 	lpc2900.c \

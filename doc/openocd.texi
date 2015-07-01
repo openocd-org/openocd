@@ -4802,6 +4802,49 @@ flash bank $_FLASHNAME cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
 @c "cfi part_id" disabled
 @end deffn
 
+@deffn {Flash Driver} jtagspi
+@cindex Generic JTAG2SPI driver
+@cindex SPI
+@cindex jtagspi
+@cindex bscan_spi
+Several FPGAs and CPLDs can retrieve their configuration (bitstream) from a
+SPI flash connected to them. To access this flash from the host, the device
+is first programmed with a special proxy bitstream that
+exposes the SPI flash on the device's JTAG interface. The flash can then be
+accessed through JTAG.
+
+Since signaling between JTAG and SPI is compatible, all that is required for
+a proxy bitstream is to connect TDI-MOSI, TDO-MISO, TCK-CLK and activate
+the flash chip select when the JTAG state machine is in SHIFT-DR. Such
+a bitstream for several Xilinx FPGAs can be found in
+@file{contrib/loaders/flash/fpga/xilinx_bscan_spi.py}. It requires migen
+(@url{http://github.com/m-labs/migen}) and a Xilinx toolchain to build.
+
+This flash bank driver requires a target on a JTAG tap and will access that
+tap directly. Since no support from the target is needed, the target can be a
+"testee" dummy. Since the target does not expose the flash memory
+mapping, target commands that would otherwise be expected to access the flash
+will not work. These include all @command{*_image} and
+@command{$target_name m*} commands as well as @command{program}. Equivalent
+functionality is available through the @command{flash write_bank},
+@command{flash read_bank}, and @command{flash verify_bank} commands.
+
+@itemize
+@item @var{ir} ... is loaded into the JTAG IR to map the flash as the JTAG DR.
+For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
+@var{USER1} instruction.
+@item @var{dr_length} ... is the length of the DR register. This will be 1 for
+@file{xilinx_bscan_spi.py} bitstreams and most other cases.
+@end itemize
+
+@example
+target create $_TARGETNAME testee -chain-position $_CHIPNAME.fpga
+set _XILINX_USER1 0x02
+set _DR_LENGTH 1
+flash bank $_FLASHNAME spi 0x0 0 0 0 $_TARGETNAME $_XILINX_USER1 $_DR_LENGTH
+@end example
+@end deffn
+
 @deffn {Flash Driver} lpcspifi
 @cindex NXP SPI Flash Interface
 @cindex SPIFI
