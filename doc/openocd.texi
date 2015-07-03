@@ -6274,11 +6274,13 @@ Drivers may support PLD-specific options to the @command{pld device}
 definition command, and may also define commands usable only with
 that particular type of PLD.
 
-@deffn {FPGA Driver} virtex2
+@deffn {FPGA Driver} virtex2 [no_jstart]
 Virtex-II is a family of FPGAs sold by Xilinx.
 It supports the IEEE 1532 standard for In-System Configuration (ISC).
-No driver-specific PLD definition options are used,
-and one driver-specific command is defined.
+
+If @var{no_jstart} is non-zero, the JSTART instruction is not used after
+loading the bitstream. While required for Series2, Series3, and Series6, it
+breaks bitstream loading on Series7.
 
 @deffn {Command} {virtex2 read_stat} num
 Reads and displays the Virtex-II status register (STAT)

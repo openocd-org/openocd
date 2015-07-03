@@ -25,6 +25,7 @@
 
 struct virtex2_pld_device {
 	struct jtag_tap *tap;
+	int no_jstart;
 };
 
 #endif	/* VIRTEX2_H */
