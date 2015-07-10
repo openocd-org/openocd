@@ -52,52 +52,29 @@
  * variants also have FlexNVM and FlexRAM, which always appear
  * together.
  *
- * A given Kinetis chip may have 2 or 4 blocks of flash.  Here we map
+ * A given Kinetis chip may have 1, 2 or 4 blocks of flash.  Here we map
  * each block to a separate bank.  Each block size varies by chip and
  * may be determined by the read-only SIM_FCFG1 register.  The sector
- * size within each bank/block varies by the chip granularity as
- * described below.
+ * size within each bank/block varies by chip, and may be 1, 2 or 4k.
+ * The sector size may be different for flash and FlexNVM.
  *
- * Kinetis offers four different of flash granularities applicable
- * across the chip families.  The granularity is apparently reflected
- * by at least the reference manual suffix.  For example, for chip
- * MK60FN1M0VLQ12, reference manual K60P144M150SF3RM ends in "SF3RM",
- * where the "3" indicates there are four flash blocks with 4kiB
- * sectors.  All possible granularities are indicated below.
- *
- * The first half of the flash (1 or 2 blocks, depending on the
- * granularity) is always Program Flash and always starts at address
- * 0x00000000.  The "PFLSH" flag, bit 23 of the read-only SIM_FCFG2
- * register, determines whether the second half of the flash is also
- * Program Flash or FlexNVM+FlexRAM.  When PFLSH is set, the second
- * half of flash is Program Flash and is contiguous in the memory map
- * from the first half.  When PFLSH is clear, the second half of flash
- * is FlexNVM and always starts at address 0x10000000.  FlexRAM, which
- * is also present when PFLSH is clear, always starts at address
- * 0x14000000.
+ * The first half of the flash (1 or 2 blocks) is always Program Flash
+ * and always starts at address 0x00000000.  The "PFLSH" flag, bit 23
+ * of the read-only SIM_FCFG2 register, determines whether the second
+ * half of the flash is also Program Flash or FlexNVM+FlexRAM.  When
+ * PFLSH is set, the second from the first half.  When PFLSH is clear,
+ * the second half of flash is FlexNVM and always starts at address
+ * 0x10000000.  FlexRAM, which is also present when PFLSH is clear,
+ * always starts at address 0x14000000.
  *
  * The Flash Memory Module provides a register set where flash
  * commands are loaded to perform flash operations like erase and
  * program.  Different commands are available depending on whether
  * Program Flash or FlexNVM/FlexRAM is being manipulated.  Although
  * the commands used are quite consistent between flash blocks, the
- * parameters they accept differ according to the flash granularity.
- * Some Kinetis chips have different granularity between Program Flash
- * and FlexNVM/FlexRAM, so flash command arguments may differ between
- * blocks in the same chip.
+ * parameters they accept differ according to the flash sector size.
  *
  */
-
-static const struct {
-	unsigned pflash_sector_size_bytes;
-	unsigned nvm_sector_size_bytes;
-	unsigned num_blocks;
-} kinetis_flash_params[4] = {
-	{ 1<<10, 1<<10, 2 },
-	{ 2<<10, 1<<10, 2 },
-	{ 2<<10, 2<<10, 2 },
-	{ 4<<10, 4<<10, 4 }
-};
 
 /* Addressess */
 #define FLEXRAM		0x14000000
@@ -106,6 +83,7 @@ static const struct {
 #define FTFx_FCCOB3	0x40020004
 #define FTFx_FPROT3	0x40020010
 #define SIM_SDID	0x40048024
+#define SIM_SOPT1	0x40047000
 #define SIM_FCFG1	0x4004804c
 #define SIM_FCFG2	0x40048050
 
@@ -118,14 +96,14 @@ static const struct {
 #define FTFx_CMD_SETFLEXRAM 0x81
 #define FTFx_CMD_MASSERASE  0x44
 
-/* The Kinetis K series uses the following SDID layout :
+/* The older Kinetis K series uses the following SDID layout :
  * Bit 31-16 : 0
  * Bit 15-12 : REVID
  * Bit 11-7  : DIEID
  * Bit 6-4   : FAMID
  * Bit 3-0   : PINID
  *
- * The Kinetis KL series uses the following SDID layout :
+ * The newer Kinetis series uses the following SDID layout :
  * Bit 31-28 : FAMID
  * Bit 27-24 : SUBFAMID
  * Bit 23-20 : SERIESID
@@ -134,9 +112,12 @@ static const struct {
  * Bit 6-4   : Reserved (0)
  * Bit 3-0   : PINID
  *
- * SERIESID should be 1 for the KL-series so we assume that if
- * bits 31-16 are 0 then it's a K-series MCU.
+ * We assume that if bits 31-16 are 0 then it's an older
+ * K-series MCU.
  */
+
+#define KINETIS_SOPT1_RAMSIZE_MASK  0x0000F000
+#define KINETIS_SOPT1_RAMSIZE_K24FN1M 0x0000B000
 
 #define KINETIS_SDID_K_SERIES_MASK  0x0000FFFF
 
@@ -144,6 +125,7 @@ static const struct {
 #define KINETIS_SDID_DIEID_K_A	0x00000100
 #define KINETIS_SDID_DIEID_K_B	0x00000200
 #define KINETIS_SDID_DIEID_KL	0x00000000
+#define KINETIS_SDID_DIEID_K24FN1M	0x00000300 /* Detect Errata 7534 */
 
 /* We can't rely solely on the FAMID field to determine the MCU
  * type since some FAMID values identify multiple MCUs with
@@ -176,15 +158,35 @@ static const struct {
 #define KINETIS_K_SDID_K60_M150  0x000001C0
 #define KINETIS_K_SDID_K70_M150  0x000001D0
 
-#define KINETIS_KL_SDID_SERIESID_MASK 0x00F00000
-#define KINETIS_KL_SDID_SERIESID_KL   0x00100000
+#define KINETIS_SDID_SERIESID_MASK 0x00F00000
+#define KINETIS_SDID_SERIESID_K   0x00000000
+#define KINETIS_SDID_SERIESID_KL   0x00100000
+#define KINETIS_SDID_SERIESID_KW   0x00500000
+#define KINETIS_SDID_SERIESID_KV   0x00600000
+
+#define KINETIS_SDID_SUBFAMID_MASK  0x0F000000
+#define KINETIS_SDID_SUBFAMID_KX0   0x00000000
+#define KINETIS_SDID_SUBFAMID_KX1   0x01000000
+#define KINETIS_SDID_SUBFAMID_KX2   0x02000000
+#define KINETIS_SDID_SUBFAMID_KX3   0x03000000
+#define KINETIS_SDID_SUBFAMID_KX4   0x04000000
+#define KINETIS_SDID_SUBFAMID_KX5   0x05000000
+#define KINETIS_SDID_SUBFAMID_KX6   0x06000000
+
+#define KINETIS_SDID_FAMILYID_MASK  0xF0000000
+#define KINETIS_SDID_FAMILYID_K0X   0x00000000
+#define KINETIS_SDID_FAMILYID_K1X   0x10000000
+#define KINETIS_SDID_FAMILYID_K2X   0x20000000
+#define KINETIS_SDID_FAMILYID_K3X   0x30000000
+#define KINETIS_SDID_FAMILYID_K4X   0x40000000
+#define KINETIS_SDID_FAMILYID_K6X   0x60000000
+#define KINETIS_SDID_FAMILYID_K7X   0x70000000
 
 struct kinetis_flash_bank {
-	unsigned granularity;
 	unsigned bank_ordinal;
 	uint32_t sector_size;
+	uint32_t max_flash_prog_size;
 	uint32_t protection_size;
-	uint32_t klxx;
 
 	uint32_t sim_sdid;
 	uint32_t sim_fcfg1;
@@ -196,9 +198,13 @@ struct kinetis_flash_bank {
 		FC_FLEX_NVM,
 		FC_FLEX_RAM,
 	} flash_class;
+
+	enum {
+		FS_PROGRAM_SECTOR = 1,
+		FS_PROGRAM_LONGWORD = 2,
+		FS_PROGRAM_PHRASE = 4, /* Unsupported */
+	} flash_support;
 };
-
-
 
 #define MDM_REG_STAT		0x00
 #define MDM_REG_CTRL		0x04
@@ -872,10 +878,10 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (kinfo->klxx) {
+	if (!(kinfo->flash_support & FS_PROGRAM_SECTOR)) {
 		/* fallback to longword write */
 		fallback = 1;
-		LOG_WARNING("Kinetis L Series supports Program Longword execution only.");
+		LOG_WARNING("This device supports Program Longword execution only.");
 		LOG_DEBUG("flash write into PFLASH @08%" PRIX32, offset);
 
 	} else if (kinfo->flash_class == FC_FLEX_NVM) {
@@ -915,9 +921,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		 * Kinetis "chunk" is 16 bytes (128 bits).
 		 */
 		unsigned prog_section_chunk_bytes = kinfo->sector_size >> 8;
-		/* assume the NVM sector size is half the FlexRAM size */
-		unsigned prog_size_bytes = MIN(kinfo->sector_size,
-				kinetis_flash_params[kinfo->granularity].nvm_sector_size_bytes);
+		unsigned prog_size_bytes = kinfo->max_flash_prog_size;
 		for (i = 0; i < count; i += prog_size_bytes) {
 			uint8_t residual_buffer[16];
 			uint8_t ftfx_fstat;
@@ -990,8 +994,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 	}
 	/* program longword command, not supported in "SF3" devices */
-	else if ((kinfo->granularity != 3) || (kinfo->klxx)) {
-
+	else if (kinfo->flash_support & FS_PROGRAM_LONGWORD) {
 		if (count & 0x3) {
 			uint32_t old_count = count;
 			count = (old_count | 3) + 1;
@@ -1034,7 +1037,6 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 					return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}
-
 	} else {
 		LOG_ERROR("Flash write strategy not implemented");
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1049,8 +1051,8 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	uint32_t offset = 0;
 	uint8_t fcfg1_nvmsize, fcfg1_pfsize, fcfg1_eesize, fcfg2_pflsh;
 	uint32_t nvm_size = 0, pf_size = 0, ee_size = 0;
-	unsigned granularity, num_blocks = 0, num_pflash_blocks = 0, num_nvm_blocks = 0,
-		first_nvm_bank = 0, reassign = 0;
+	unsigned num_blocks = 0, num_pflash_blocks = 0, num_nvm_blocks = 0, first_nvm_bank = 0,
+			reassign = 0, pflash_sector_size_bytes = 0, nvm_sector_size_bytes = 0;
 	struct target *target = bank->target;
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 
@@ -1058,17 +1060,19 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	if (result != ERROR_OK)
 		return result;
 
-	kinfo->klxx = 0;
-
-	/* K-series MCU? */
 	if ((kinfo->sim_sdid & (~KINETIS_SDID_K_SERIES_MASK)) == 0) {
+		/* older K-series MCU */
 		uint32_t mcu_type = kinfo->sim_sdid & KINETIS_K_SDID_TYPE_MASK;
 
 		switch (mcu_type) {
 		case KINETIS_K_SDID_K10_M50:
 		case KINETIS_K_SDID_K20_M50:
 			/* 1kB sectors */
-			granularity = 0;
+			pflash_sector_size_bytes = 1<<10;
+			nvm_sector_size_bytes = 1<<10;
+			num_blocks = 2;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR;
+			kinfo->max_flash_prog_size = 1<<10;
 			break;
 		case KINETIS_K_SDID_K10_M72:
 		case KINETIS_K_SDID_K20_M72:
@@ -1078,7 +1082,11 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		case KINETIS_K_SDID_K40_M100:
 		case KINETIS_K_SDID_K50_M72:
 			/* 2kB sectors, 1kB FlexNVM sectors */
-			granularity = 1;
+			pflash_sector_size_bytes = 2<<10;
+			nvm_sector_size_bytes = 1<<10;
+			num_blocks = 2;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR;
+			kinfo->max_flash_prog_size = 1<<10;
 			break;
 		case KINETIS_K_SDID_K10_M100:
 		case KINETIS_K_SDID_K20_M100:
@@ -1090,7 +1098,11 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		case KINETIS_K_SDID_K53:
 		case KINETIS_K_SDID_K60_M100:
 			/* 2kB sectors */
-			granularity = 2;
+			pflash_sector_size_bytes = 2<<10;
+			nvm_sector_size_bytes = 2<<10;
+			num_blocks = 2;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR;
+			kinfo->max_flash_prog_size = 2<<10;
 			break;
 		case KINETIS_K_SDID_K10_M120:
 		case KINETIS_K_SDID_K20_M120:
@@ -1099,18 +1111,66 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		case KINETIS_K_SDID_K60_M150:
 		case KINETIS_K_SDID_K70_M150:
 			/* 4kB sectors */
-			granularity = 3;
+			pflash_sector_size_bytes = 4<<10;
+			nvm_sector_size_bytes = 4<<10;
+			num_blocks = 4;
+			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
+			kinfo->max_flash_prog_size = 4<<10;
 			break;
 		default:
 			LOG_ERROR("Unsupported K-family FAMID");
 			return ERROR_FLASH_OPER_UNSUPPORTED;
 		}
-	}
-	/* KL-series? */
-	else if ((kinfo->sim_sdid & KINETIS_KL_SDID_SERIESID_MASK) == KINETIS_KL_SDID_SERIESID_KL) {
-		kinfo->klxx = 1;
-		granularity = 0;
 	} else {
+		/* Newer K-series or KL series MCU */
+		switch (kinfo->sim_sdid & KINETIS_SDID_SERIESID_MASK) {
+		case KINETIS_SDID_SERIESID_K:
+			switch (kinfo->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX2: {
+				/* MK24FN1M reports as K22, this should detect it (according to errata note 1N83J) */
+				uint32_t sopt1;
+				result = target_read_u32(target, SIM_SOPT1, &sopt1);
+				if (result != ERROR_OK)
+					return result;
+
+				if (((kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K24FN1M) &&
+						((sopt1 & KINETIS_SOPT1_RAMSIZE_MASK) == KINETIS_SOPT1_RAMSIZE_K24FN1M)) {
+					/* MK24FN1M */
+					pflash_sector_size_bytes = 4<<10;
+					num_blocks = 2;
+					kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
+					kinfo->max_flash_prog_size = 1<<10;
+				} else {
+					/* K22 with new-style SDID? */
+					break;
+				}
+				break;
+			}
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX4:
+				/* K24FN256 */
+				pflash_sector_size_bytes = 4<<10;
+				num_blocks = 1;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD;
+				kinfo->max_flash_prog_size = 1<<10;
+				break;
+			default:
+				break;
+			}
+			break;
+		case KINETIS_SDID_SERIESID_KL:
+			/* KL-series */
+			pflash_sector_size_bytes = 1<<10;
+			nvm_sector_size_bytes = 1<<10;
+			num_blocks = 1;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD;
+			kinfo->max_flash_prog_size = 1<<10;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (pflash_sector_size_bytes == 0) {
 		LOG_ERROR("MCU is unsupported");
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
@@ -1141,9 +1201,10 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			nvm_size = 1 << (14 + (fcfg1_nvmsize >> 1));
 			break;
 		case 0x0f:
-			if (granularity == 3)
+			if (pflash_sector_size_bytes >= 4<<10)
 				nvm_size = 512<<10;
 			else
+				/* K20_100 */
 				nvm_size = 256<<10;
 			break;
 		default:
@@ -1180,7 +1241,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		pf_size = 1 << (14 + (fcfg1_pfsize >> 1));
 		break;
 	case 0x0f:
-		if (granularity == 3)
+		if (pflash_sector_size_bytes >= 4<<10)
 			pf_size = 1024<<10;
 		else if (fcfg2_pflsh)
 			pf_size = 512<<10;
@@ -1194,10 +1255,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 
 	LOG_DEBUG("FlexNVM: %" PRIu32 " PFlash: %" PRIu32 " FlexRAM: %" PRIu32 " PFLSH: %d",
 		  nvm_size, pf_size, ee_size, fcfg2_pflsh);
-	if (kinfo->klxx)
-		num_blocks = 1;
-	else
-		num_blocks = kinetis_flash_params[granularity].num_blocks;
 
 	num_pflash_blocks = num_blocks / (2 - fcfg2_pflsh);
 	first_nvm_bank = num_pflash_blocks;
@@ -1214,9 +1271,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		if (kinfo->bank_ordinal != (unsigned) bank->bank_number) {
 			LOG_WARNING("Flash ordinal/bank number mismatch");
 			reassign = 1;
-		} else if (kinfo->granularity != granularity) {
-			LOG_WARNING("Flash granularity mismatch");
-			reassign = 1;
 		} else {
 			switch (kinfo->flash_class) {
 			case FC_PFLASH:
@@ -1230,8 +1284,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 					 (0x00000000 + bank->size * kinfo->bank_ordinal)) {
 					LOG_WARNING("PFlash address range mismatch");
 					reassign = 1;
-				} else if (kinfo->sector_size !=
-						kinetis_flash_params[granularity].pflash_sector_size_bytes) {
+				} else if (kinfo->sector_size != pflash_sector_size_bytes) {
 					LOG_WARNING("PFlash sector size mismatch");
 					reassign = 1;
 				} else {
@@ -1251,8 +1304,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 						(0x10000000 + bank->size * kinfo->bank_ordinal)) {
 					LOG_WARNING("FlexNVM address range mismatch");
 					reassign = 1;
-				} else if (kinfo->sector_size !=
-						kinetis_flash_params[granularity].nvm_sector_size_bytes) {
+				} else if (kinfo->sector_size != nvm_sector_size_bytes) {
 					LOG_WARNING("FlexNVM sector size mismatch");
 					reassign = 1;
 				} else {
@@ -1270,8 +1322,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 				} else if (bank->base != FLEXRAM) {
 					LOG_WARNING("FlexRAM address mismatch");
 					reassign = 1;
-				} else if (kinfo->sector_size !=
-					 kinetis_flash_params[granularity].nvm_sector_size_bytes) {
+				} else if (kinfo->sector_size != nvm_sector_size_bytes) {
 					LOG_WARNING("FlexRAM sector size mismatch");
 					reassign = 1;
 				} else {
@@ -1293,21 +1344,19 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	if (!reassign)
 		return ERROR_OK;
 
-	kinfo->granularity = granularity;
-
 	if ((unsigned)bank->bank_number < num_pflash_blocks) {
 		/* pflash, banks start at address zero */
 		kinfo->flash_class = FC_PFLASH;
 		bank->size = (pf_size / num_pflash_blocks);
 		bank->base = 0x00000000 + bank->size * bank->bank_number;
-		kinfo->sector_size = kinetis_flash_params[granularity].pflash_sector_size_bytes;
+		kinfo->sector_size = pflash_sector_size_bytes;
 		kinfo->protection_size = pf_size / 32;
 	} else if ((unsigned)bank->bank_number < num_blocks) {
 		/* nvm, banks start at address 0x10000000 */
 		kinfo->flash_class = FC_FLEX_NVM;
 		bank->size = (nvm_size / num_nvm_blocks);
 		bank->base = 0x10000000 + bank->size * (bank->bank_number - first_nvm_bank);
-		kinfo->sector_size = kinetis_flash_params[granularity].nvm_sector_size_bytes;
+		kinfo->sector_size = nvm_sector_size_bytes;
 		kinfo->protection_size = 0; /* FIXME: TODO: depends on DEPART bits, chip */
 	} else if ((unsigned)bank->bank_number == num_blocks) {
 		LOG_ERROR("FlexRAM support not yet implemented");
