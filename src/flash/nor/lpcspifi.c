@@ -58,21 +58,6 @@ struct lpcspifi_flash_bank {
 	const struct flash_device *dev;
 };
 
-struct lpcspifi_target {
-	char *name;
-	uint32_t tap_idcode;
-	uint32_t spifi_base;
-	uint32_t ssp_base;
-	uint32_t io_base;
-	uint32_t ioconfig_base; /* base address for the port word pin registers */
-};
-
-static const struct lpcspifi_target target_devices[] = {
-	/* name,          tap_idcode, spifi_base, ssp_base,   io_base,    ioconfig_base */
-	{ "LPC43xx/18xx", 0x4ba00477, 0x14000000, 0x40083000, 0x400F4000, 0x40086000 },
-	{ NULL,           0,          0,          0,          0,          0 }
-};
-
 /* flash_bank lpcspifi <base> <size> <chip_width> <bus_width> <target>
  */
 FLASH_BANK_COMMAND_HANDLER(lpcspifi_flash_bank_command)
@@ -852,14 +837,9 @@ static int lpcspifi_read_flash_id(struct flash_bank *bank, uint32_t *id)
 
 static int lpcspifi_probe(struct flash_bank *bank)
 {
-	struct target *target = bank->target;
 	struct lpcspifi_flash_bank *lpcspifi_info = bank->driver_priv;
-	uint32_t ssp_base;
-	uint32_t io_base;
-	uint32_t ioconfig_base;
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
-	const struct lpcspifi_target *target_device;
 	int retval;
 
 	/* If we've already probed, we should be fine to skip this time. */
@@ -867,25 +847,10 @@ static int lpcspifi_probe(struct flash_bank *bank)
 		return ERROR_OK;
 	lpcspifi_info->probed = 0;
 
-	for (target_device = target_devices ; target_device->name ; ++target_device)
-		if (target_device->tap_idcode == target->tap->idcode)
-			break;
-	if (!target_device->name) {
-		LOG_ERROR("Device ID 0x%" PRIx32 " is not known as SPIFI capable",
-				target->tap->idcode);
-		return ERROR_FAIL;
-	}
-
-	ssp_base = target_device->ssp_base;
-	io_base = target_device->io_base;
-	ioconfig_base = target_device->ioconfig_base;
-	lpcspifi_info->ssp_base = ssp_base;
-	lpcspifi_info->io_base = io_base;
-	lpcspifi_info->ioconfig_base = ioconfig_base;
+	lpcspifi_info->ssp_base = 0x40083000;
+	lpcspifi_info->io_base = 0x400F4000;
+	lpcspifi_info->ioconfig_base = 0x40086000;
 	lpcspifi_info->bank_num = bank->bank_number;
-
-	LOG_DEBUG("Valid SPIFI on device %s at address 0x%" PRIx32,
-		target_device->name, bank->base);
 
 	/* read and decode flash ID; returns in SW mode */
 	retval = lpcspifi_read_flash_id(bank, &id);
