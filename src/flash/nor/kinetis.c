@@ -122,9 +122,12 @@
 #define KINETIS_SDID_K_SERIES_MASK  0x0000FFFF
 
 #define KINETIS_SDID_DIEID_MASK 0x00000F80
-#define KINETIS_SDID_DIEID_K_A	0x00000100
-#define KINETIS_SDID_DIEID_K_B	0x00000200
-#define KINETIS_SDID_DIEID_KL	0x00000000
+
+#define KINETIS_SDID_DIEID_K22FN128	0x00000680 /* smaller pflash with FTFA */
+#define KINETIS_SDID_DIEID_K22FN256	0x00000A80
+#define KINETIS_SDID_DIEID_K22FN512	0x00000E80
+#define KINETIS_SDID_DIEID_K24FN256	0x00000700
+
 #define KINETIS_SDID_DIEID_K24FN1M	0x00000300 /* Detect Errata 7534 */
 
 /* We can't rely solely on the FAMID field to determine the MCU
@@ -1102,10 +1105,17 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			num_blocks = 2;
 			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR;
 			break;
-		case KINETIS_K_SDID_K10_M120:
-		case KINETIS_K_SDID_K20_M120:
 		case KINETIS_K_SDID_K21_M120:
 		case KINETIS_K_SDID_K22_M120:
+			/* 4kB sectors (MK21FN1M0, MK21FX512, MK22FN1M0, MK22FX512) */
+			pflash_sector_size_bytes = 4<<10;
+			kinfo->max_flash_prog_size = 1<<10;
+			nvm_sector_size_bytes = 4<<10;
+			num_blocks = 2;
+			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
+			break;
+		case KINETIS_K_SDID_K10_M120:
+		case KINETIS_K_SDID_K20_M120:
 		case KINETIS_K_SDID_K60_M150:
 		case KINETIS_K_SDID_K70_M150:
 			/* 4kB sectors */
@@ -1116,13 +1126,19 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			break;
 		default:
 			LOG_ERROR("Unsupported K-family FAMID");
-			return ERROR_FLASH_OPER_UNSUPPORTED;
 		}
 	} else {
 		/* Newer K-series or KL series MCU */
 		switch (kinfo->sim_sdid & KINETIS_SDID_SERIESID_MASK) {
 		case KINETIS_SDID_SERIESID_K:
 			switch (kinfo->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
+			case KINETIS_SDID_FAMILYID_K0X | KINETIS_SDID_SUBFAMID_KX2:
+				/* K02FN64, K02FN128: FTFA, 2kB sectors */
+				pflash_sector_size_bytes = 2<<10;
+				num_blocks = 1;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD;
+				break;
+
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX2: {
 				/* MK24FN1M reports as K22, this should detect it (according to errata note 1N83J) */
 				uint32_t sopt1;
@@ -1137,20 +1153,59 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 					num_blocks = 2;
 					kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
 					kinfo->max_flash_prog_size = 1<<10;
-				} else {
-					/* K22 with new-style SDID? */
 					break;
 				}
+				if ((kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN128
+					|| (kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN256
+					|| (kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN512) {
+					/* K22 with new-style SDID - smaller pflash with FTFA, 2kB sectors */
+					pflash_sector_size_bytes = 2<<10;
+					num_blocks = 2;		/* 1 or 2 blocks */
+					kinfo->flash_support = FS_PROGRAM_LONGWORD;
+					break;
+				}
+				LOG_ERROR("Unsupported Kinetis K22 DIEID");
 				break;
 			}
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX4:
-				/* K24FN256 */
 				pflash_sector_size_bytes = 4<<10;
-				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD;
+				if ((kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K24FN256) {
+					/* K24FN256 - smaller pflash with FTFA */
+					num_blocks = 1;
+					kinfo->flash_support = FS_PROGRAM_LONGWORD;
+					break;
+				}
+				/* K24FN1M without errata 7534 */
+				num_blocks = 2;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
+				kinfo->max_flash_prog_size = 1<<10;
+				break;
+
+			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX3:
+			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX1:	/* errata 7534 - should be K63 */
+				/* K63FN1M0 */
+			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX4:
+			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX2:	/* errata 7534 - should be K64 */
+				/* K64FN1M0, K64FX512 */
+				pflash_sector_size_bytes = 4<<10;
+				nvm_sector_size_bytes = 4<<10;
+				kinfo->max_flash_prog_size = 1<<10;
+				num_blocks = 2;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
+				break;
+
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX6:
+				/* K26FN2M0 */
+			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX6:
+				/* K66FN2M0, K66FX1M0 */
+				pflash_sector_size_bytes = 4<<10;
+				nvm_sector_size_bytes = 4<<10;
+				kinfo->max_flash_prog_size = 1<<10;
+				num_blocks = 4;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
 				break;
 			default:
-				break;
+				LOG_ERROR("Unsupported Kinetis FAMILYID SUBFAMID");
 			}
 			break;
 		case KINETIS_SDID_SERIESID_KL:
@@ -1161,12 +1216,12 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			kinfo->flash_support = FS_PROGRAM_LONGWORD;
 			break;
 		default:
-			break;
+			LOG_ERROR("Unsupported K-series");
 		}
 	}
 
 	if (pflash_sector_size_bytes == 0) {
-		LOG_ERROR("MCU is unsupported");
+		LOG_ERROR("MCU is unsupported, SDID 0x%08" PRIx32, kinfo->sim_sdid);
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
