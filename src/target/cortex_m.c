@@ -1125,7 +1125,6 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 {
 	int retval;
 	int fp_num = 0;
-	uint32_t hilo;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct cortex_m_fp_comparator *comparator_list = cortex_m->fp_comparator_list;
 
@@ -1138,6 +1137,7 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
 
 	if (breakpoint->type == BKPT_HARD) {
+		uint32_t fpcr_value;
 		while (comparator_list[fp_num].used && (fp_num < cortex_m->fp_num_code))
 			fp_num++;
 		if (fp_num >= cortex_m->fp_num_code) {
@@ -1145,9 +1145,17 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 			return ERROR_FAIL;
 		}
 		breakpoint->set = fp_num + 1;
-		hilo = (breakpoint->address & 0x2) ? FPCR_REPLACE_BKPT_HIGH : FPCR_REPLACE_BKPT_LOW;
+		fpcr_value = breakpoint->address | 1;
+		if (cortex_m->fp_rev == 0) {
+			uint32_t hilo;
+			hilo = (breakpoint->address & 0x2) ? FPCR_REPLACE_BKPT_HIGH : FPCR_REPLACE_BKPT_LOW;
+			fpcr_value = (fpcr_value & 0x1FFFFFFC) | hilo | 1;
+		} else if (cortex_m->fp_rev > 1) {
+			LOG_ERROR("Unhandled Cortex-M Flash Patch Breakpoint architecture revision");
+			return ERROR_FAIL;
+		}
 		comparator_list[fp_num].used = 1;
-		comparator_list[fp_num].fpcr_value = (breakpoint->address & 0x1FFFFFFC) | hilo | 1;
+		comparator_list[fp_num].fpcr_value = fpcr_value;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address,
 			comparator_list[fp_num].fpcr_value);
 		LOG_DEBUG("fpc_num %i fpcr_value 0x%" PRIx32 "",
@@ -1962,6 +1970,9 @@ int cortex_m_examine(struct target *target)
 		cortex_m->fp_num_code = ((fpcr >> 8) & 0x70) | ((fpcr >> 4) & 0xF);
 		cortex_m->fp_num_lit = (fpcr >> 8) & 0xF;
 		cortex_m->fp_code_available = cortex_m->fp_num_code;
+		/* Detect flash patch revision, see RM DDI 0403E.b page C1-817.
+		   Revision is zero base, fp_rev == 1 means Rev.2 ! */
+		cortex_m->fp_rev = (fpcr >> 28) & 0xf;
 		free(cortex_m->fp_comparator_list);
 		cortex_m->fp_comparator_list = calloc(
 				cortex_m->fp_num_code + cortex_m->fp_num_lit,
