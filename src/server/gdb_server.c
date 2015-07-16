@@ -1159,6 +1159,9 @@ static int gdb_get_registers_packet(struct connection *connection,
 	assert(reg_packet_size > 0);
 
 	reg_packet = malloc(reg_packet_size + 1); /* plus one for string termination null */
+	if (reg_packet == NULL)
+		return ERROR_FAIL;
+
 	reg_packet_p = reg_packet;
 
 	for (i = 0; i < reg_list_size; i++) {
