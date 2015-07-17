@@ -55,6 +55,11 @@
 
 #define CORTEX_A_PADDRDBG_CPU_SHIFT 13
 
+enum cortex_a_isrmasking_mode {
+	CORTEX_A_ISRMASK_OFF,
+	CORTEX_A_ISRMASK_ON,
+};
+
 struct cortex_a_brp {
 	int used;
 	int type;
@@ -90,6 +95,8 @@ struct cortex_a_common {
 	uint32_t ctypr;
 	uint32_t ttypr;
 	uint32_t didr;
+
+	enum cortex_a_isrmasking_mode isrmasking_mode;
 
 	struct armv7a_common armv7a_common;
 

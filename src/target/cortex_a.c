@@ -1323,9 +1323,31 @@ static int cortex_a_post_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
+int cortex_a_set_dscr_bits(struct target *target, unsigned long bit_mask, unsigned long value)
+{
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct adiv5_dap *swjdp = armv7a->arm.dap;
+	uint32_t dscr;
+
+	/* Read DSCR */
+	int retval = mem_ap_sel_read_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (ERROR_OK != retval)
+		return retval;
+
+	dscr |= (value & bit_mask);
+	dscr &= (value | (~bit_mask));
+
+	/* write new DSCR */
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, dscr);
+	return retval;
+}
+
 static int cortex_a_step(struct target *target, int current, uint32_t address,
 	int handle_breakpoints)
 {
+	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *arm = &armv7a->arm;
 	struct breakpoint *breakpoint = NULL;
@@ -1363,6 +1385,13 @@ static int cortex_a_step(struct target *target, int current, uint32_t address,
 	stepbreakpoint.type = BKPT_HARD;
 	stepbreakpoint.set = 0;
 
+	/* Disable interrupts during single step if requested */
+	if (cortex_a->isrmasking_mode == CORTEX_A_ISRMASK_ON) {
+		retval = cortex_a_set_dscr_bits(target, DSCR_INT_DIS, DSCR_INT_DIS);
+		if (ERROR_OK != retval)
+			return retval;
+	}
+
 	/* Break on IVA mismatch */
 	cortex_a_set_breakpoint(target, &stepbreakpoint, 0x04);
 
@@ -1384,6 +1413,14 @@ static int cortex_a_step(struct target *target, int current, uint32_t address,
 	}
 
 	cortex_a_unset_breakpoint(target, &stepbreakpoint);
+
+	/* Re-enable interrupts if they were disabled */
+	if (cortex_a->isrmasking_mode == CORTEX_A_ISRMASK_ON) {
+		retval = cortex_a_set_dscr_bits(target, DSCR_INT_DIS, 0);
+		if (ERROR_OK != retval)
+			return retval;
+	}
+
 
 	target->debug_reason = DBG_REASON_BREAKPOINT;
 
@@ -3193,6 +3230,37 @@ COMMAND_HANDLER(cortex_a_handle_smp_gdb_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_cortex_a_mask_interrupts_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
+
+	static const Jim_Nvp nvp_maskisr_modes[] = {
+		{ .name = "off", .value = CORTEX_A_ISRMASK_OFF },
+		{ .name = "on", .value = CORTEX_A_ISRMASK_ON },
+		{ .name = NULL, .value = -1 },
+	};
+	const Jim_Nvp *n;
+
+	if (target->state != TARGET_HALTED) {
+		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_OK;
+	}
+
+	if (CMD_ARGC > 0) {
+		n = Jim_Nvp_name2value_simple(nvp_maskisr_modes, CMD_ARGV[0]);
+		if (n->name == NULL)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		cortex_a->isrmasking_mode = n->value;
+
+	}
+
+	n = Jim_Nvp_value2name_simple(nvp_maskisr_modes, cortex_a->isrmasking_mode);
+	command_print(CMD_CTX, "cortex_a interrupt mask %s", n->name);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration cortex_a_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
@@ -3226,6 +3294,13 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "display/fix current core played to gdb",
 		.usage = "",
+	},
+	{
+		.name = "maskisr",
+		.handler = handle_cortex_a_mask_interrupts_command,
+		.mode = COMMAND_EXEC,
+		.help = "mask cortex_a interrupts",
+		.usage = "['on'|'off']",
 	},
 
 
@@ -3305,6 +3380,13 @@ static const struct command_registration cortex_r4_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Initialize core debug",
 		.usage = "",
+	},
+	{
+		.name = "maskisr",
+		.handler = handle_cortex_a_mask_interrupts_command,
+		.mode = COMMAND_EXEC,
+		.help = "mask cortex_r4 interrupts",
+		.usage = "['on'|'off']",
 	},
 
 	COMMAND_REGISTRATION_DONE

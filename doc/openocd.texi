@@ -7537,6 +7537,10 @@ Enable SMP mode
 Display/set the current core displayed in GDB
 @end deffn
 
+@deffn Command {cortex_a maskisr} [@option{on}|@option{off}]
+Selects whether interrupts will be processed when single stepping
+@end deffn
+
 
 @deffn Command {cache_config l2x}  [base way]
 configure l2x cache
@@ -7549,6 +7553,10 @@ configure l2x cache
 @deffn Command {cortex_r dbginit}
 Initialize core debug
 Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
+@end deffn
+
+@deffn Command {cortex_r maskisr} [@option{on}|@option{off}]
+Selects whether interrupts will be processed when single stepping
 @end deffn
 
 
