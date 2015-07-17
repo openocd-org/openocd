@@ -7615,6 +7615,10 @@ Initialize core debug
 Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
 @end deffn
 
+@deffn Command {cortex_r maskisr} [@option{on}|@option{off}]
+Selects whether interrupts will be processed when single stepping
+@end deffn
+
 
 @subsection ARMv7-M specific commands
 @cindex tracing
