@@ -7505,6 +7505,55 @@ fix CSW_SPROT from register AP_REG_CSW on selected dap.
 Defaulting to 0.
 @end deffn
 
+@deffn Command {dap ti_be_32_quirks} [@option{enable}]
+Set/get quirks mode for TI TMS450/TMS570 processors
+Disabled by default
+@end deffn
+
+
+
+
+@subsection ARMv7-A specific commands
+@cindex Cortex-A
+
+@deffn Command {cortex_a cache_info}
+display information about target caches
+@end deffn
+
+@deffn Command {cortex_a dbginit}
+Initialize core debug
+Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
+@end deffn
+
+@deffn Command {cortex_a smp_off}
+Disable SMP mode
+@end deffn
+
+@deffn Command {cortex_a smp_on}
+Enable SMP mode
+@end deffn
+
+@deffn Command {cortex_a smp_gdb} [core_id]
+Display/set the current core displayed in GDB
+@end deffn
+
+
+@deffn Command {cache_config l2x}  [base way]
+configure l2x cache
+@end deffn
+
+
+@subsection ARMv7-R specific commands
+@cindex Cortex-R
+
+@deffn Command {cortex_r dbginit}
+Initialize core debug
+Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
+@end deffn
+
+
+
+
 @subsection ARMv7-M specific commands
 @cindex tracing
 @cindex SWO
