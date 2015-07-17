@@ -3494,13 +3494,6 @@ struct target_type cortexa_target = {
 
 static const struct command_registration cortex_r4_exec_command_handlers[] = {
 	{
-		.name = "cache_info",
-		.handler = cortex_a_handle_cache_info_command,
-		.mode = COMMAND_EXEC,
-		.help = "display information about target caches",
-		.usage = "",
-	},
-	{
 		.name = "dbginit",
 		.handler = cortex_a_handle_dbginit_command,
 		.mode = COMMAND_EXEC,
@@ -3522,7 +3515,7 @@ static const struct command_registration cortex_r4_command_handlers[] = {
 		.chain = arm_command_handlers,
 	},
 	{
-		.chain = armv7a_command_handlers,
+		.chain = dap_command_handlers,
 	},
 	{
 		.name = "cortex_r4",
