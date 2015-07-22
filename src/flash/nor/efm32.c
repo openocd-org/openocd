@@ -47,6 +47,7 @@
 #define EFM_FAMILY_ID_LEOPARD_GECKO     74
 #define EFM_FAMILY_ID_WONDER_GECKO      75
 #define EFM_FAMILY_ID_ZERO_GECKO        76
+#define EFM_FAMILY_ID_HAPPY_GECKO       77
 #define EZR_FAMILY_ID_WONDER_GECKO		120
 #define EZR_FAMILY_ID_LEOPARD_GECKO		121
 
@@ -178,7 +179,8 @@ static int efm32x_read_info(struct flash_bank *bank,
 	if (EFM_FAMILY_ID_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_TINY_GECKO == efm32_info->part_family)
 		efm32_info->page_size = 512;
-	else if (EFM_FAMILY_ID_ZERO_GECKO == efm32_info->part_family)
+	else if (EFM_FAMILY_ID_ZERO_GECKO == efm32_info->part_family ||
+		 EFM_FAMILY_ID_HAPPY_GECKO == efm32_info->part_family)
 		efm32_info->page_size = 1024;
 	else if (EFM_FAMILY_ID_GIANT_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family) {
@@ -859,6 +861,9 @@ static int efm32x_probe(struct flash_bank *bank)
 			break;
 		case EFM_FAMILY_ID_ZERO_GECKO:
 			LOG_INFO("Zero Gecko MCU detected");
+			break;
+		case EFM_FAMILY_ID_HAPPY_GECKO:
+			LOG_INFO("Happy Gecko MCU detected");
 			break;
 		default:
 			LOG_ERROR("Unsupported MCU family %d",
