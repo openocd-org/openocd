@@ -387,7 +387,7 @@ static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned reg,
 
 	int ret;
 	uint32_t regval;
-	LOG_DEBUG("DAP: poll %x, mask 0x08%" PRIx32 ", value 0x%08" PRIx32,
+	LOG_DEBUG("DAP: poll %x, mask 0x%08" PRIx32 ", value 0x%08" PRIx32,
 		  reg, mask, value);
 	do {
 		ret = dap_dp_read_atomic(dap, reg, &regval);
