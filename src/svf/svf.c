@@ -216,6 +216,7 @@ static int svf_read_command_from_file(FILE *fd);
 static int svf_check_tdo(void);
 static int svf_add_check_para(uint8_t enabled, int buffer_offset, int bit_len);
 static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str);
+static int svf_execute_tap(void);
 
 static FILE *svf_fd;
 static char *svf_read_line;
@@ -276,6 +277,9 @@ static void svf_hexbuf_print(int dbg_lvl, const char *file, unsigned line,
 static int svf_realloc_buffers(size_t len)
 {
 	void *ptr;
+
+	if (svf_execute_tap() != ERROR_OK)
+		return ERROR_FAIL;
 
 	ptr = realloc(svf_tdi_buffer, len);
 	if (!ptr)
