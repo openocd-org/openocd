@@ -115,8 +115,8 @@ static int adi_jtag_dp_scan(struct adiv5_dap *dap,
 	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5 spec.
 	 */
 	if ((instr == JTAG_DP_APACC)
-			&& ((reg_addr == AP_REG_DRW)
-				|| ((reg_addr & 0xF0) == AP_REG_BD0))
+			&& ((reg_addr == MEM_AP_REG_DRW)
+				|| ((reg_addr & 0xF0) == MEM_AP_REG_BD0))
 			&& (dap->memaccess_tck != 0))
 		jtag_add_runtest(dap->memaccess_tck,
 				TAP_IDLE);
@@ -314,12 +314,12 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 			LOG_DEBUG("jtag-dp: CTRL/STAT 0x%" PRIx32, ctrlstat);
 
 			retval = dap_queue_ap_read(dap,
-					AP_REG_CSW, &mem_ap_csw);
+					MEM_AP_REG_CSW, &mem_ap_csw);
 			if (retval != ERROR_OK)
 				return retval;
 
 			retval = dap_queue_ap_read(dap,
-					AP_REG_TAR, &mem_ap_tar);
+					MEM_AP_REG_TAR, &mem_ap_tar);
 			if (retval != ERROR_OK)
 				return retval;
 
