@@ -63,6 +63,9 @@
 #define SAMD_NVM_CMD_SSB	0x45		/* Set Security Bit */
 #define SAMD_NVM_CMD_INVALL	0x46		/* Invalidate all caches */
 
+/* NVMCTRL bits */
+#define SAMD_NVM_CTRLB_MANW 0x80
+
 /* Known identifiers */
 #define SAMD_PROCESSOR_M0	0x01
 #define SAMD_FAMILY_D		0x00
@@ -72,6 +75,12 @@
 #define SAMD_SERIES_21		0x01
 #define SAMD_SERIES_10		0x02
 #define SAMD_SERIES_11		0x03
+
+/* Device ID macros */
+#define SAMD_GET_PROCESSOR(id) (id >> 28)
+#define SAMD_GET_FAMILY(id) (((id >> 23) & 0x1F))
+#define SAMD_GET_SERIES(id) (((id >> 16) & 0x3F))
+#define SAMD_GET_DEVSEL(id) (id & 0xFF)
 
 struct samd_part {
 	uint8_t id;
@@ -166,6 +175,16 @@ static const struct samd_part saml21_parts[] = {
 	{ 0x0B, "SAML21E17A", 128, 16 },
 	{ 0x0C, "SAML21E16A", 64, 8 },
 	{ 0x0D, "SAML21E15A", 32, 4 },
+	{ 0x0F, "SAML21J18B", 256, 32 },
+	{ 0x10, "SAML21J17B", 128, 16 },
+	{ 0x11, "SAML21J16B", 64, 8 },
+	{ 0x14, "SAML21G18B", 256, 32 },
+	{ 0x15, "SAML21G17B", 128, 16 },
+	{ 0x16, "SAML21G16B", 64, 8 },
+	{ 0x19, "SAML21E18B", 256, 32 },
+	{ 0x1A, "SAML21E17B", 128, 16 },
+	{ 0x1B, "SAML21E16B", 64, 8 },
+	{ 0x1C, "SAML21E15B", 32, 4 },
 };
 
 /* Known SAMC20 parts. */
@@ -236,6 +255,7 @@ struct samd_info {
 	int num_pages;
 	int sector_size;
 
+	bool manual_wp;
 	bool probed;
 	struct target *target;
 	struct samd_info *next;
@@ -243,12 +263,14 @@ struct samd_info {
 
 static struct samd_info *samd_chips;
 
+
+
 static const struct samd_part *samd_find_part(uint32_t id)
 {
-	uint8_t processor = (id >> 28);
-	uint8_t family = (id >> 23) & 0x1F;
-	uint8_t series = (id >> 16) & 0x3F;
-	uint8_t devsel = id & 0xFF;
+	uint8_t processor = SAMD_GET_PROCESSOR(id);
+	uint8_t family = SAMD_GET_FAMILY(id);
+	uint8_t series = SAMD_GET_SERIES(id);
+	uint8_t devsel = SAMD_GET_DEVSEL(id);
 
 	for (unsigned i = 0; i < ARRAY_SIZE(samd_families); i++) {
 		if (samd_families[i].processor == processor &&
@@ -361,6 +383,9 @@ static int samd_probe(struct flash_bank *bank)
 	}
 
 	samd_protect_check(bank);
+
+	/* By default we do not need to send page write commands */
+	chip->manual_wp = false;
 
 	/* Done */
 	chip->probed = true;
@@ -714,6 +739,16 @@ static int samd_write_row(struct flash_bank *bank, uint32_t address,
 			return res;
 		}
 
+		/* For some devices automatic page write is not default so we need
+		 * to issue a write page CMD to the NVM */
+		if (chip->manual_wp == true) {
+			res = samd_issue_nvmctrl_command(bank->target, SAMD_NVM_CMD_WP);
+			if (res != ERROR_OK) {
+				LOG_ERROR("%s: %d", __func__, __LINE__);
+				return res;
+			}
+		}
+
 		/* Access through AHB is stalled while flash is being programmed */
 		usleep(200);
 
@@ -767,6 +802,7 @@ static int samd_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	int res;
+	uint32_t nvm_ctrlb;
 	uint32_t address;
 	uint32_t nb = 0;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
@@ -782,6 +818,18 @@ static int samd_write(struct flash_bank *bank, const uint8_t *buffer,
 		if (samd_probe(bank) != ERROR_OK)
 			return ERROR_FLASH_BANK_NOT_PROBED;
 	}
+
+	/* Check if we need to do manual page write commands */
+	res = target_read_u32(bank->target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB, &nvm_ctrlb);
+
+	if (res != ERROR_OK)
+		return res;
+
+	if (nvm_ctrlb & SAMD_NVM_CTRLB_MANW)
+		chip->manual_wp = true;
+	else
+		chip->manual_wp = false;
+
 
 	if (offset % row_size) {
 		/* We're starting at an unaligned offset so we'll write a partial row
