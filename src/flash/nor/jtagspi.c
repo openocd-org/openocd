@@ -272,7 +272,7 @@ static int jtagspi_erase(struct flash_bank *bank, int first, int last)
 {
 	int sector;
 	struct jtagspi_flash_bank *info = bank->driver_priv;
-	int retval;
+	int retval = ERROR_OK;
 
 	LOG_DEBUG("erase from sector %d to sector %d", first, last);
 
