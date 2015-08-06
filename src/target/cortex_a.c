@@ -2978,7 +2978,7 @@ static int cortex_a_examine_first(struct target *target)
 			return retval;
 		}
 		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32,
-			  coreidx, armv7a->debug_base);
+			  target->coreid, armv7a->debug_base);
 	} else
 		armv7a->debug_base = target->dbgbase;
 
