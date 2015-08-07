@@ -50,6 +50,9 @@ static inline void buf_set_u32(uint8_t *_buffer,
 		buffer[1] = (value >> 8) & 0xff;
 		buffer[0] = (value >> 0) & 0xff;
 	} else {
+//		unsigned i;
+//		for (i = 0; i < DIV_ROUND_UP(num, 8); i++)
+//			buffer[i] = 0x0;
 		for (unsigned i = first; i < first + num; i++) {
 			if (((value >> (i - first)) & 1) == 1)
 				buffer[i / 8] |= 1 << (i % 8);
@@ -88,6 +91,8 @@ static inline void buf_set_u64(uint8_t *_buffer,
 		buffer[1] = (value >> 8) & 0xff;
 		buffer[0] = (value >> 0) & 0xff;
 	} else {
+//		for (unsigned i = 0; i < DIV_ROUND_UP(num, 8); i++)
+//			buffer[i] = 0x00;
 		for (unsigned i = first; i < first + num; i++) {
 			if (((value >> (i - first)) & 1) == 1)
 				buffer[i / 8] |= 1 << (i % 8);
