@@ -273,6 +273,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 	if ((CMD_ARGC > 2) && (strcmp(CMD_ARGV[2], "quiet") == 0))
 		verbose = 0;
 
+	LOG_WARNING("XSVF support in OpenOCD is limited. Consider using SVF instead");
 	LOG_USER("xsvf processing file: \"%s\"", filename);
 
 	while (read(xsvf_fd, &opcode, 1) > 0) {
