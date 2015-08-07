@@ -222,6 +222,9 @@ void jtag_tap_add(struct jtag_tap *t)
 	}
 	*tap = t;
 	t->abs_chain_position = jtag_num_taps;
+
+LOG_DEBUG("Alamy: tap at %p, count=%d, enabled=%d",
+	t, t->abs_chain_position, t->enabled);
 }
 
 /* returns a pointer to the n-th device in the scan chain */
@@ -359,7 +362,9 @@ void jtag_add_ir_scan_noverify(struct jtag_tap *active, const struct scan_field 
 {
 	jtag_prelude(state);
 
+// jtag_dump_queue(__func__, __LINE__); --- after
 	int retval = interface_jtag_add_ir_scan(active, in_fields, state);
+// jtag_dump_queue(__func__, __LINE__); --- before
 	jtag_set_error(retval);
 }
 
@@ -424,8 +429,11 @@ static void jtag_add_scan_check(struct jtag_tap *active, void (*jtag_add_scan)(
 		tap_state_t state),
 	int in_num_fields, struct scan_field *in_fields, tap_state_t state)
 {
+// jtag_dump_queue(__func__, __LINE__); --- after
+//LOG_DEBUG("in_num_fields = %d", in_num_fields);
 	jtag_add_scan(active, in_num_fields, in_fields, state);
 
+// jtag_dump_queue(__func__, __LINE__); --- before
 	for (int i = 0; i < in_num_fields; i++) {
 		if ((in_fields[i].check_value != NULL) && (in_fields[i].in_value != NULL)) {
 			/* this is synchronous for a minidriver */
@@ -866,6 +874,12 @@ int jtag_execute_queue(void)
 	return jtag_error_clear();
 }
 
+extern void bitbang_dump_queue(const char *func, int line);
+void jtag_dump_queue(const char *func, int line)
+{
+	bitbang_dump_queue(func, line);
+}
+
 static int jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	struct jtag_tap *tap = priv;
@@ -1077,6 +1091,7 @@ static int jtag_examine_chain(void)
 		assert(bit_count < max_taps * 32);
 		uint32_t idcode = buf_get_u32(idcode_buffer, bit_count, 32);
 
+		LOG_DEBUG("tap %d/%d at %p, idcode=0x%08x", i, max_taps, tap, idcode);
 		/* No predefined TAP? Auto-probe. */
 		if (tap == NULL) {
 			/* Is there another TAP? */
@@ -1369,12 +1384,15 @@ int adapter_init(struct command_context *cmd_ctx)
 	int requested_khz = jtag_get_speed_khz();
 	int actual_khz = requested_khz;
 	int jtag_speed_var = 0;
+LOG_DEBUG("req_khz=%d, act_khz=%d, jtag_spd=%d", requested_khz, actual_khz, jtag_speed_var);
 	retval = jtag_get_speed(&jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
+LOG_DEBUG("req_khz=%d, act_khz=%d, jtag_spd=%d", requested_khz, actual_khz, jtag_speed_var);
 	retval = jtag->speed(jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
+LOG_DEBUG("req_khz=%d, act_khz=%d, jtag_spd=%d", requested_khz, actual_khz, jtag_speed_var);
 	retval = jtag_get_speed_readable(&actual_khz);
 	if (ERROR_OK != retval)
 		LOG_INFO("adapter-specific clock speed value %d", jtag_speed_var);
@@ -1389,6 +1407,7 @@ int adapter_init(struct command_context *cmd_ctx)
 	} else
 		LOG_INFO("RCLK (adaptive clock speed)");
 
+LOG_DEBUG("req_khz=%d, act_khz=%d, jtag_spd=%d", requested_khz, actual_khz, jtag_speed_var);
 	return ERROR_OK;
 }
 
@@ -1597,10 +1616,11 @@ unsigned jtag_get_speed_khz(void)
 
 static int adapter_khz_to_speed(unsigned khz, int *speed)
 {
-	LOG_DEBUG("convert khz to interface specific speed value");
+	LOG_DEBUG("convert khz (%d) to interface specific speed value", khz);
 	speed_khz = khz;
+	LOG_DEBUG("jtag interface %s set up", (jtag ? "has" : "not"));
 	if (jtag != NULL) {
-		LOG_DEBUG("have interface set up");
+//		LOG_DEBUG("have interface set up");
 		int speed_div1;
 		int retval = jtag->khz(jtag_get_speed_khz(), &speed_div1);
 		if (ERROR_OK != retval)
@@ -1630,7 +1650,7 @@ static int jtag_set_speed(int speed)
 
 int jtag_config_khz(unsigned khz)
 {
-	LOG_DEBUG("handle jtag khz");
+	LOG_DEBUG("handle adapter khz (%d)", khz);
 	clock_mode = CLOCK_MODE_KHZ;
 	int speed = 0;
 	int retval = adapter_khz_to_speed(khz, &speed);
@@ -1639,7 +1659,7 @@ int jtag_config_khz(unsigned khz)
 
 int jtag_config_rclk(unsigned fallback_speed_khz)
 {
-	LOG_DEBUG("handle jtag rclk");
+	LOG_DEBUG("handle jtag rclk (%d)", fallback_speed_khz);
 	clock_mode = CLOCK_MODE_RCLK;
 	rclk_fallback_speed_khz = fallback_speed_khz;
 	int speed = 0;
@@ -1728,6 +1748,7 @@ int jtag_get_srst(void)
 
 void jtag_set_nsrst_delay(unsigned delay)
 {
+	LOG_DEBUG("adapter_nsrst_delay = %d", delay);
 	adapter_nsrst_delay = delay;
 }
 unsigned jtag_get_nsrst_delay(void)
@@ -1736,6 +1757,7 @@ unsigned jtag_get_nsrst_delay(void)
 }
 void jtag_set_ntrst_delay(unsigned delay)
 {
+	LOG_DEBUG("jtag_ntrst_delay = %d", delay);
 	jtag_ntrst_delay = delay;
 }
 unsigned jtag_get_ntrst_delay(void)

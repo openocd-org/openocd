@@ -243,6 +243,61 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 	}
 }
 
+void bitbang_dump_queue(const char *func, int line)
+{
+	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
+
+	LOG_DEBUG("----- command queue (begin) %s:%d -----", func, line);
+	while (cmd) {
+		switch (cmd->type) {
+			case JTAG_SCAN: {
+				struct scan_command *scmd;
+
+				scmd = cmd->cmd.scan;
+
+				LOG_DEBUG("JTAG_SCAN: %s scan end in %s, fields=%d",
+					(scmd->ir_scan) ? "IR" : "DR",
+					tap_state_name(scmd->end_state),
+					scmd->num_fields);
+#if 0
+				for (int i = 0; i < scmd->num_fields; i++) {
+//					int cvrt_bits = (scmd->fields[i].num_bits > DEBUG_JTAG_IOZ)
+//						? DEBUG_JTAG_IOZ : scmd->fields[i].num_bits;
+//					char *char_buf = buf_to_str(scmd->fields[i].out_value,
+//						cvrt_bits, 16);
+//					LOG_DEBUG("fields[%i].out_value[%i]: 0x%x", i,
+//						scmd->fields[i].num_bits,
+//						*(scmd->fields[i].out_value));
+					uint8_t *pv = (uint8_t *)(scmd->fields[i].out_value);
+					LOG_DEBUG("fields[%d].out_value = 0x%x", i, *pv);
+//					free(char_buf);
+				}
+#endif
+				break;
+			}
+			case JTAG_TLR_RESET:
+				LOG_DEBUG("JTAG_TLR_RESET");		break;
+			case JTAG_RUNTEST:
+				LOG_DEBUG("JTAG_RUNTEST");		break;
+			case JTAG_RESET:
+				LOG_DEBUG("JTAG_RESET");		break;
+			case JTAG_PATHMOVE:
+				LOG_DEBUG("JTAG_PATHMOVE");		break;
+			case JTAG_SLEEP:
+				LOG_DEBUG("JTAG_SLEEP");		break;
+			case JTAG_STABLECLOCKS:
+				LOG_DEBUG("JTAG_STABLECLOCKS");		break;
+			case JTAG_TMS:
+				LOG_DEBUG("JTAG_TMS");			break;
+			default:
+				LOG_DEBUG("JTAG_xxx = %d", cmd->type);	break;
+		} /* end of switch(cmd->type) */
+
+		cmd = cmd->next;
+	} /* end of while(cmd) */
+	LOG_DEBUG("----- command queue (end) -----");
+}
+
 int bitbang_execute_queue(void)
 {
 	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */

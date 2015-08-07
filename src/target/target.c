@@ -723,6 +723,7 @@ int target_examine(void)
 	int retval = ERROR_OK;
 	struct target *target;
 
+//LOG_DEBUG("Alamy");
 	for (target = all_targets; target; target = target->next) {
 		/* defer examination, but don't skip it */
 		if (!target->tap->enabled) {

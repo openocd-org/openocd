@@ -98,12 +98,13 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active,
 
 	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap)) {
 		/* search the input field list for fields for the current TAP */
-
+//LOG_DEBUG("tap at %p is %s", tap, (tap == active) ? "active" : "bypass");
 		if (tap == active) {
 			/* if TAP is listed in input fields, copy the value */
 			tap->bypass = 0;
 
 			cmd_queue_scan_field_clone(field, in_fields);
+//LOG_DEBUG("out_value = 0x%x -> 0x%x", *(in_fields->out_value), *(field->out_value));
 		} else {
 			/* if a TAP isn't listed in input fields, set it to BYPASS */
 
@@ -113,7 +114,6 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active,
 			field->out_value = buf_set_ones(cmd_queue_alloc(DIV_ROUND_UP(tap->ir_length, 8)), tap->ir_length);
 			field->in_value = NULL; /* do not collect input for tap's in bypass */
 		}
-
 		/* update device information */
 		buf_cpy(field->out_value, tap->cur_instr, tap->ir_length);
 
