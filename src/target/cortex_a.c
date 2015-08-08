@@ -53,6 +53,7 @@
 #include "target_request.h"
 #include "target_type.h"
 #include "arm_opcodes.h"
+#include "arm_semihosting.h"
 #include <helper/time_support.h>
 
 static int cortex_a_poll(struct target *target);
@@ -915,6 +916,10 @@ static int cortex_a_poll(struct target *target)
 					if (retval != ERROR_OK)
 						return retval;
 				}
+
+				if (arm_semihosting(target, &retval) != 0)
+					return retval;
+
 				target_call_event_callbacks(target,
 					TARGET_EVENT_HALTED);
 			}
@@ -1201,7 +1206,7 @@ static int cortex_a_resume(struct target *target, int current,
 static int cortex_a_debug_entry(struct target *target)
 {
 	int i;
-	uint32_t regfile[16], cpsr, dscr;
+	uint32_t regfile[16], cpsr, spsr, dscr;
 	int retval = ERROR_OK;
 	struct working_area *regfile_working_area = NULL;
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
@@ -1250,6 +1255,7 @@ static int cortex_a_debug_entry(struct target *target)
 	if (cortex_a->fast_reg_read)
 		target_alloc_working_area(target, 64, &regfile_working_area);
 
+
 	/* First load register acessible through core debug port*/
 	if (!regfile_working_area)
 		retval = arm_dpm_read_current_registers(&armv7a->dpm);
@@ -1293,6 +1299,17 @@ static int cortex_a_debug_entry(struct target *target)
 		buf_set_u32(reg->value, 0, 32, regfile[ARM_PC]);
 		reg->dirty = reg->valid;
 	}
+
+	/* read Saved PSR */
+	retval = cortex_a_dap_read_coreregister_u32(target, &spsr, 17);
+	/*  store current spsr */
+	if (retval != ERROR_OK)
+		return retval;
+
+	reg = arm->spsr;
+	buf_set_u32(reg->value, 0, 32, spsr);
+	reg->valid = 1;
+	reg->dirty = 0;
 
 #if 0
 /* TODO, Move this */
@@ -2953,6 +2970,7 @@ static int cortex_a_examine_first(struct target *target)
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
+
 	int i;
 	int retval = ERROR_OK;
 	uint32_t didr, ctypr, ttypr, cpuid, dbg_osreg;

@@ -39,8 +39,10 @@
 #include "armv4_5.h"
 #include "arm7_9_common.h"
 #include "armv7m.h"
+#include "armv7a.h"
 #include "cortex_m.h"
 #include "register.h"
+#include "arm_opcodes.h"
 #include "arm_semihosting.h"
 #include <helper/binarybuffer.h>
 #include <helper/log.h>
@@ -415,7 +417,8 @@ static int do_semihosting(struct target *target)
 	/* REVISIT this looks wrong ... ARM11 and Cortex-A8
 	 * should work this way at least sometimes.
 	 */
-	if (is_arm7_9(target_to_arm7_9(target))) {
+	if (is_arm7_9(target_to_arm7_9(target)) ||
+	    is_armv7a(target_to_armv7a(target))) {
 		uint32_t spsr;
 
 		/* return value in R0 */
@@ -468,20 +471,42 @@ static int do_semihosting(struct target *target)
 int arm_semihosting(struct target *target, int *retval)
 {
 	struct arm *arm = target_to_arm(target);
+	struct armv7a_common *armv7a = target_to_armv7a(target);
 	uint32_t pc, lr, spsr;
 	struct reg *r;
 
 	if (!arm->is_semihosting)
 		return 0;
 
-	if (is_arm7_9(target_to_arm7_9(target))) {
+	if (is_arm7_9(target_to_arm7_9(target)) ||
+	    is_armv7a(armv7a)) {
+		uint32_t vbar = 0x00000000;
+
 		if (arm->core_mode != ARM_MODE_SVC)
 			return 0;
+
+		if (is_armv7a(armv7a)) {
+			struct arm_dpm *dpm = armv7a->arm.dpm;
+
+			*retval = dpm->prepare(dpm);
+			if (*retval == ERROR_OK) {
+				*retval = dpm->instr_read_data_r0(dpm,
+								 ARMV4_5_MRC(15, 0, 0, 12, 0, 0),
+								 &vbar);
+
+				dpm->finish(dpm);
+
+				if (*retval != ERROR_OK)
+					return 1;
+			} else {
+				return 1;
+			}
+		}
 
 		/* Check for PC == 0x00000008 or 0xffff0008: Supervisor Call vector. */
 		r = arm->pc;
 		pc = buf_get_u32(r->value, 0, 32);
-		if (pc != 0x00000008 && pc != 0xffff0008)
+		if (pc != (vbar + 0x00000008) && pc != 0xffff0008)
 			return 0;
 
 		r = arm_reg_current(arm, 14);
