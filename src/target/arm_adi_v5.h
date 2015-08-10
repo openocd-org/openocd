@@ -403,7 +403,7 @@ static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned reg,
 
 	if (!timeout) {
 		LOG_DEBUG("DAP: poll %x timeout", reg);
-		return ERROR_FAIL;
+		return ERROR_WAIT;
 	} else {
 		return ERROR_OK;
 	}
