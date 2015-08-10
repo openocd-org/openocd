@@ -34,12 +34,6 @@
 #include <helper/list.h>
 #include "arm_jtag.h"
 
-/* FIXME remove these JTAG-specific decls when mem_ap_read_buf_u32()
- * is no longer JTAG-specific
- */
-#define JTAG_DP_DPACC		0xA
-#define JTAG_DP_APACC		0xB
-
 /* three-bit ACK values for SWD access (sent LSB first) */
 #define SWD_ACK_OK    0x1
 #define SWD_ACK_WAIT  0x2
