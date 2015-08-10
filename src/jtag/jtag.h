@@ -36,7 +36,7 @@
 #endif
 
 #ifndef DEBUG_JTAG_IOZ
-#define DEBUG_JTAG_IOZ 64
+#define DEBUG_JTAG_IOZ 128
 #endif
 
 /*-----</Macros>-------------------------------------------------*/
