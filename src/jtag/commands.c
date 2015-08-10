@@ -58,6 +58,29 @@ void jtag_queue_command(struct jtag_command *cmd)
 	assert(NULL == *last_cmd);
 	*last_cmd = cmd;
 
+if ((cmd->type == JTAG_SCAN) && (cmd->cmd.scan->ir_scan)) {
+	struct scan_command *s_cmd = cmd->cmd.scan;
+	int i;
+
+	LOG_DEBUG("%s num_fields: %i",
+		s_cmd->ir_scan ? "IRSCAN" : "DRSCAN",
+		s_cmd->num_fields);
+
+	for (i = 0; i < s_cmd->num_fields; i++) {
+		if (s_cmd->fields[i].out_value) {
+			int cvrt_bits = (s_cmd->fields[i].num_bits > DEBUG_JTAG_IOZ)
+					? DEBUG_JTAG_IOZ : s_cmd->fields[i].num_bits;
+			char *char_buf = buf_to_str(s_cmd->fields[i].out_value,
+					cvrt_bits, 16);
+
+			LOG_DEBUG("fields[%i].out_value[%i/%i]: 0x%s", i,
+					cvrt_bits, s_cmd->fields[i].num_bits,
+					char_buf);
+			free(char_buf);
+		}
+	}
+} /* end of debugging */
+
 	/* store location where the next command pointer will be stored */
 	next_command_pointer = &cmd->next;
 }
