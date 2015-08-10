@@ -190,13 +190,14 @@ int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 	for (i = 0; i < cmd->num_fields; i++) {
 		if (cmd->fields[i].out_value) {
 #ifdef _DEBUG_JTAG_IO_
+			int num_bits = cmd->fields[i].num_bits;
+			int cvrt_bits = (num_bits > DEBUG_JTAG_IOZ)
+					? DEBUG_JTAG_IOZ : num_bits;
 			char *char_buf = buf_to_str(cmd->fields[i].out_value,
-				(cmd->fields[i].num_bits > DEBUG_JTAG_IOZ)
-					? DEBUG_JTAG_IOZ
-					: cmd->fields[i].num_bits, 16);
+					cvrt_bits, 16);
 
-			LOG_DEBUG("fields[%i].out_value[%i]: 0x%s", i,
-					cmd->fields[i].num_bits, char_buf);
+			LOG_DEBUG("fields[%i].out_value[%i/%i]: 0x%s", i,
+					cvrt_bits, num_bits, char_buf);
 			free(char_buf);
 #endif
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer,
@@ -233,13 +234,12 @@ int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 					malloc(DIV_ROUND_UP(num_bits, 8)), 0, num_bits);
 
 #ifdef _DEBUG_JTAG_IO_
-			char *char_buf = buf_to_str(captured,
-					(num_bits > DEBUG_JTAG_IOZ)
-						? DEBUG_JTAG_IOZ
-						: num_bits, 16);
+			int cvrt_bits = (num_bits > DEBUG_JTAG_IOZ)
+					? DEBUG_JTAG_IOZ : num_bits;
+			char *char_buf = buf_to_str(captured, cvrt_bits, 16);
 
-			LOG_DEBUG("fields[%i].in_value[%i]: 0x%s",
-					i, num_bits, char_buf);
+			LOG_DEBUG("fields[%i].in_value[%i/%i]: 0x%s",
+					i, cvrt_bits, num_bits, char_buf);
 			free(char_buf);
 #endif
 
