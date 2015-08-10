@@ -243,8 +243,7 @@ int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 			free(char_buf);
 #endif
 
-			if (cmd->fields[i].in_value)
-				buf_cpy(captured, cmd->fields[i].in_value, num_bits);
+			buf_cpy(captured, cmd->fields[i].in_value, num_bits);
 
 			free(captured);
 		}
