@@ -97,7 +97,7 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
 
 static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 {
-	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
+	csw = csw | CSW_DBG_SW_ENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
 		ap->csw_default;
 
 	if (csw != ap->csw_value) {
@@ -171,7 +171,7 @@ int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
 	 */
-	retval = mem_ap_setup_transfer(ap, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = mem_ap_setup_transfer(ap, CSW_SIZE_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
@@ -222,7 +222,7 @@ int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
-	retval = mem_ap_setup_transfer(ap, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = mem_ap_setup_transfer(ap, CSW_SIZE_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
@@ -289,13 +289,13 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 	 * address increment. */
 
 	if (size == 4) {
-		csw_size = CSW_32BIT;
+		csw_size = CSW_SIZE_32BIT;
 		addr_xor = 0;
 	} else if (size == 2) {
-		csw_size = CSW_16BIT;
+		csw_size = CSW_SIZE_16BIT;
 		addr_xor = dap->ti_be_32_quirks ? 2 : 0;
 	} else if (size == 1) {
-		csw_size = CSW_8BIT;
+		csw_size = CSW_SIZE_8BIT;
 		addr_xor = dap->ti_be_32_quirks ? 3 : 0;
 	} else {
 		return ERROR_TARGET_UNALIGNED_ACCESS;
@@ -414,11 +414,11 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 	 * so avoid them. */
 
 	if (size == 4)
-		csw_size = CSW_32BIT;
+		csw_size = CSW_SIZE_32BIT;
 	else if (size == 2)
-		csw_size = CSW_16BIT;
+		csw_size = CSW_SIZE_16BIT;
 	else if (size == 1)
-		csw_size = CSW_8BIT;
+		csw_size = CSW_SIZE_8BIT;
 	else
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
@@ -685,7 +685,7 @@ int mem_ap_init(struct adiv5_ap *ap)
 	int retval;
 	struct adiv5_dap *dap = ap->dap;
 
-	retval = mem_ap_setup_transfer(ap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
+	retval = mem_ap_setup_transfer(ap, CSW_SIZE_8BIT | CSW_ADDRINC_PACKED, 0);
 	if (retval != ERROR_OK)
 		return retval;
 

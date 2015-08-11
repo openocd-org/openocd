@@ -107,21 +107,30 @@
 #define AP_REG_IDR			0xFC		/* RO: Identification Register */
 
 /* Fields of the MEM-AP's CSW register */
-#define CSW_8BIT		0
-#define CSW_16BIT		1
-#define CSW_32BIT		2
-#define CSW_ADDRINC_MASK    (3UL << 4)
-#define CSW_ADDRINC_OFF     0UL
-#define CSW_ADDRINC_SINGLE  (1UL << 4)
-#define CSW_ADDRINC_PACKED  (2UL << 4)
-#define CSW_DEVICE_EN       (1UL << 6)
-#define CSW_TRIN_PROG       (1UL << 7)
-#define CSW_SPIDEN          (1UL << 23)
+#define CSW_SIZE_MASK		(7UL << 0)
+#define CSW_SIZE_8BIT		(0)			/*       Byte (  8-bits) */
+#define CSW_SIZE_16BIT		(1)			/*   Halfword ( 16-bits) */
+#define CSW_SIZE_32BIT		(2)			/*       Word ( 32-bits) */
+#define CSW_SIZE_64BIT		(3)			/* Doubleword ( 64-bits) */
+#define CSW_SIZE_128BIT		(4)			/*          - (128-bits) */
+#define CSW_SIZE_256BIT		(5)			/*          - (256-bits) */
+
+#define CSW_ADDRINC_MASK	(3UL << 4)
+#define CSW_ADDRINC_OFF		(0UL << 4)
+#define CSW_ADDRINC_SINGLE	(1UL << 4)
+#define CSW_ADDRINC_PACKED	(2UL << 4)
+#define CSW_DEVICE_EN		(1UL << 6)
+#define CSW_TRIN_PROG		(1UL << 7)	/* Transfer in Progress */
+#define CSW_MODE_MASK		(0xF << 8)
+#define CSW_MODE_BASIC		(0UL << 8)
+#define CSW_MODE_BARRIER	(1UL << 8)
+#define CSW_TYPE_MASK		(0xF << 12)
+#define CSW_SPID_EN		(1UL << 23)
 /* 30:24 - implementation-defined! */
-#define CSW_HPROT           (1UL << 25) /* ? */
-#define CSW_MASTER_DEBUG    (1UL << 29) /* ? */
-#define CSW_SPROT           (1UL << 30)
-#define CSW_DBGSWENABLE     (1UL << 31)
+#define CSW_HPROT		(1UL << 25) /* ? */
+#define CSW_MASTER_DEBUG	(1UL << 29) /* ? */
+#define CSW_SPROT		(1UL << 30)
+#define CSW_DBG_SW_ENABLE	(1UL << 31)
 
 /* Fields of the MEM-AP's IDR register */
 #define IDR_REV     (0xFUL << 28)
