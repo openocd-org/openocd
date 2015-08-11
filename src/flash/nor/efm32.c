@@ -228,6 +228,70 @@ static int efm32x_read_info(struct flash_bank *bank,
 	return ERROR_OK;
 }
 
+/*
+ * Helper to create a human friendly string describing a part
+ */
+static int efm32x_decode_info(struct efm32_info *info, char *buf, int buf_size)
+{
+	int printed = 0;
+
+	switch (info->part_family) {
+		case EZR_FAMILY_ID_WONDER_GECKO:
+		case EZR_FAMILY_ID_LEOPARD_GECKO:
+			printed = snprintf(buf, buf_size, "EZR32 ");
+			break;
+		default:
+			printed = snprintf(buf, buf_size, "EFM32 ");
+	}
+
+	buf += printed;
+	buf_size -= printed;
+
+	if (0 >= buf_size)
+		return ERROR_BUF_TOO_SMALL;
+
+	switch (info->part_family) {
+		case EFM_FAMILY_ID_GECKO:
+			printed = snprintf(buf, buf_size, "Gecko");
+			break;
+		case EFM_FAMILY_ID_GIANT_GECKO:
+			printed = snprintf(buf, buf_size, "Giant Gecko");
+			break;
+		case EFM_FAMILY_ID_TINY_GECKO:
+			printed = snprintf(buf, buf_size, "Tiny Gecko");
+			break;
+		case EFM_FAMILY_ID_LEOPARD_GECKO:
+		case EZR_FAMILY_ID_LEOPARD_GECKO:
+			printed = snprintf(buf, buf_size, "Leopard Gecko");
+			break;
+		case EFM_FAMILY_ID_WONDER_GECKO:
+		case EZR_FAMILY_ID_WONDER_GECKO:
+			printed = snprintf(buf, buf_size, "Wonder Gecko");
+			break;
+		case EFM_FAMILY_ID_ZERO_GECKO:
+			printed = snprintf(buf, buf_size, "Zero Gecko");
+			break;
+		case EFM_FAMILY_ID_HAPPY_GECKO:
+			printed = snprintf(buf, buf_size, "Happy Gecko");
+			break;
+	}
+
+	buf += printed;
+	buf_size -= printed;
+
+	if (0 >= buf_size)
+		return ERROR_BUF_TOO_SMALL;
+
+	printed = snprintf(buf, buf_size, " - Rev: %d", info->prod_rev);
+	buf += printed;
+	buf_size -= printed;
+
+	if (0 >= buf_size)
+		return ERROR_BUF_TOO_SMALL;
+
+	return ERROR_OK;
+}
+
 /* flash bank efm32 <base> <size> 0 0 <target#>
  */
 FLASH_BANK_COMMAND_HANDLER(efm32x_flash_bank_command)
@@ -833,6 +897,7 @@ static int efm32x_probe(struct flash_bank *bank)
 	int ret;
 	int i;
 	uint32_t base_address = 0x00000000;
+	char buf[256];
 
 	efm32x_info->probed = 0;
 	memset(efm32x_info->lb_page, 0xff, LOCKBITS_PAGE_SZ);
@@ -841,36 +906,11 @@ static int efm32x_probe(struct flash_bank *bank)
 	if (ERROR_OK != ret)
 		return ret;
 
-	switch (efm32_mcu_info.part_family) {
-		case EFM_FAMILY_ID_GECKO:
-			LOG_INFO("Gecko MCU detected");
-			break;
-		case EFM_FAMILY_ID_GIANT_GECKO:
-			LOG_INFO("Giant Gecko MCU detected");
-			break;
-		case EFM_FAMILY_ID_TINY_GECKO:
-			LOG_INFO("Tiny Gecko MCU detected");
-			break;
-		case EFM_FAMILY_ID_LEOPARD_GECKO:
-		case EZR_FAMILY_ID_LEOPARD_GECKO:
-			LOG_INFO("Leopard Gecko MCU detected");
-			break;
-		case EFM_FAMILY_ID_WONDER_GECKO:
-		case EZR_FAMILY_ID_WONDER_GECKO:
-			LOG_INFO("Wonder Gecko MCU detected");
-			break;
-		case EFM_FAMILY_ID_ZERO_GECKO:
-			LOG_INFO("Zero Gecko MCU detected");
-			break;
-		case EFM_FAMILY_ID_HAPPY_GECKO:
-			LOG_INFO("Happy Gecko MCU detected");
-			break;
-		default:
-			LOG_ERROR("Unsupported MCU family %d",
-				efm32_mcu_info.part_family);
-			return ERROR_FAIL;
-	}
+	ret = efm32x_decode_info(&efm32_mcu_info, buf, sizeof(buf));
+	if (ERROR_OK != ret)
+		return ret;
 
+	LOG_INFO("detected part: %s", buf);
 	LOG_INFO("flash size = %dkbytes", efm32_mcu_info.flash_sz_kib);
 	LOG_INFO("flash page size = %dbytes", efm32_mcu_info.page_size);
 
@@ -947,7 +987,6 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct efm32_info info;
 	int ret = 0;
-	int printed = 0;
 
 	ret = efm32x_read_info(bank, &info);
 	if (ERROR_OK != ret) {
@@ -955,61 +994,7 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		return ret;
 	}
 
-	switch (info.part_family) {
-		case EZR_FAMILY_ID_WONDER_GECKO:
-		case EZR_FAMILY_ID_LEOPARD_GECKO:
-			printed = snprintf(buf, buf_size, "EZR32 ");
-			break;
-		default:
-			printed = snprintf(buf, buf_size, "EFM32 ");
-	}
-
-	buf += printed;
-	buf_size -= printed;
-
-	if (0 >= buf_size)
-		return ERROR_BUF_TOO_SMALL;
-
-	switch (info.part_family) {
-		case EFM_FAMILY_ID_GECKO:
-			printed = snprintf(buf, buf_size, "Gecko");
-			break;
-		case EFM_FAMILY_ID_GIANT_GECKO:
-			printed = snprintf(buf, buf_size, "Giant Gecko");
-			break;
-		case EFM_FAMILY_ID_TINY_GECKO:
-			printed = snprintf(buf, buf_size, "Tiny Gecko");
-			break;
-		case EFM_FAMILY_ID_LEOPARD_GECKO:
-		case EZR_FAMILY_ID_LEOPARD_GECKO:
-			printed = snprintf(buf, buf_size, "Leopard Gecko");
-			break;
-		case EFM_FAMILY_ID_WONDER_GECKO:
-		case EZR_FAMILY_ID_WONDER_GECKO:
-			printed = snprintf(buf, buf_size, "Wonder Gecko");
-			break;
-		case EFM_FAMILY_ID_ZERO_GECKO:
-			printed = snprintf(buf, buf_size, "Zero Gecko");
-			break;
-		case EFM_FAMILY_ID_HAPPY_GECKO:
-			printed = snprintf(buf, buf_size, "Happy Gecko");
-			break;
-	}
-
-	buf += printed;
-	buf_size -= printed;
-
-	if (0 >= buf_size)
-		return ERROR_BUF_TOO_SMALL;
-
-	printed = snprintf(buf, buf_size, " - Rev: %d", info.prod_rev);
-	buf += printed;
-	buf_size -= printed;
-
-	if (0 >= buf_size)
-		return ERROR_BUF_TOO_SMALL;
-
-	return ERROR_OK;
+	return efm32x_decode_info(&info, buf, buf_size);
 }
 
 static const struct command_registration efm32x_exec_command_handlers[] = {
