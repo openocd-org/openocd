@@ -259,7 +259,7 @@ static void svf_hexbuf_print(int dbg_lvl, const char *file, unsigned line,
 	int msbits = bit_len % 8;
 
 	/* allocate 2 bytes per hex digit */
-	char *prbuf = malloc((byte_len * 2) + 1);
+	char *prbuf = malloc((byte_len * 2) + 2 + 1);
 	if (!prbuf)
 		return;
 
@@ -1034,6 +1034,19 @@ XXR_common:
 			}
 			i_tmp = xxr_para_tmp->len;
 			xxr_para_tmp->len = atoi(argus[1]);
+			/* If we are to enlarge the buffers, all parts of xxr_para_tmp
+			 * need to be freed */
+			if (i_tmp < xxr_para_tmp->len) {
+				free(xxr_para_tmp->tdi);
+				xxr_para_tmp->tdi = NULL;
+				free(xxr_para_tmp->tdo);
+				xxr_para_tmp->tdo = NULL;
+				free(xxr_para_tmp->mask);
+				xxr_para_tmp->mask = NULL;
+				free(xxr_para_tmp->smask);
+				xxr_para_tmp->smask = NULL;
+			}
+
 			LOG_DEBUG("\tlength = %d", xxr_para_tmp->len);
 			xxr_para_tmp->data_mask = 0;
 			for (i = 2; i < num_of_argu; i += 2) {
