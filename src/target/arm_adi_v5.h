@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2014 by Alamy Liu                                       *
+ *   alamy.liu@gmail.com                                                   *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -51,14 +54,17 @@
  */
 #define DP_IDCODE		BANK_REG(0x0, 0x0)	/* SWD: read */
 #define DP_ABORT		BANK_REG(0x0, 0x0)	/* SWD: write */
-#define DP_CTRL_STAT		BANK_REG(0x0, 0x4)	/* r/w */
+#define DP_CTRL_STAT	BANK_REG(0x0, 0x4)	/* r/w */
 #define DP_RESEND		BANK_REG(0x0, 0x8)	/* SWD: read */
 #define DP_SELECT		BANK_REG(0x0, 0x8)	/* JTAG: r/w; SWD: write */
 #define DP_RDBUFF		BANK_REG(0x0, 0xC)	/* read-only */
-#define DP_WCR			BANK_REG(0x1, 0x4)	/* SWD: r/w */
+#define DP_TARGETSEL	BANK_REG(0x0, 0xC)	/* SWD/DPv2: wo */
+#define DP_DLCR			BANK_REG(0x1, 0x4)	/* SWD: rw */
+#define DP_TARGETID		BANK_REG(0x2, 0x4)	/* SWD/DPv2: ro */
+#define DP_EVENTSTAT	BANK_REG(0x4, 0x4)	/* SWD/DPv2: ro */
+#define DP_DLPIDR		BANK_REG(0x3, 0x4)	/* SWD/DPv2: ro */
 
-#define WCR_TO_TRN(wcr) ((uint32_t)(1 + (3 & ((wcr)) >> 8)))	/* 1..4 clocks */
-#define WCR_TO_PRESCALE(wcr) ((uint32_t)(7 & ((wcr))))		/* impl defined */
+#define	DLCR_TO_TRN(dlcr)	((uint32_t)(1 + ((3 & (dlcr)) >> 8)))	/* 1..4 clocks */
 
 /* Fields of the DP's AP ABORT register */
 #define DAPABORT        (1UL << 0)

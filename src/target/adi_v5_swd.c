@@ -343,40 +343,26 @@ int dap_to_swd(struct target *target)
 	return retval;
 }
 
-COMMAND_HANDLER(handle_swd_wcr)
+COMMAND_HANDLER(handle_swd_dlcr)
 {
 	int retval;
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm *arm = target_to_arm(target);
 	struct adiv5_dap *dap = arm->dap;
-	uint32_t wcr;
-	unsigned trn, scale = 0;
+	uint32_t dlcr;
+	unsigned trn;
 
 	switch (CMD_ARGC) {
 	/* no-args: just dump state */
 	case 0:
-		/*retval = swd_queue_dp_read(dap, DP_WCR, &wcr); */
-		retval = dap_queue_dp_read(dap, DP_WCR, &wcr);
-		if (retval == ERROR_OK)
-			dap->ops->run(dap);
+		retval = dap_dp_read_atomic(dap, DP_DLCR, &dlcr);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("can't read WCR?");
+			LOG_ERROR("can't read DLCR?");
 			return retval;
 		}
 
-		command_print(CMD_CTX,
-			"turnaround=%" PRIu32 ", prescale=%" PRIu32,
-			WCR_TO_TRN(wcr),
-			WCR_TO_PRESCALE(wcr));
-	return ERROR_OK;
-
-	case 2:		/* TRN and prescale */
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], scale);
-		if (scale > 7) {
-			LOG_ERROR("prescale %d is too big", scale);
-			return ERROR_FAIL;
-		}
-		/* FALL THROUGH */
+		command_print(CMD_CTX, "turnaround=%" PRIu32, DLCR_TO_TRN(dlcr));
+		return ERROR_OK;
 
 	case 1:		/* TRN only */
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], trn);
@@ -385,12 +371,25 @@ COMMAND_HANDLER(handle_swd_wcr)
 			return ERROR_FAIL;
 		}
 
-		wcr = ((trn - 1) << 8) | scale;
+		/* TURNROUND, bits[9:8]: Turnaround tristate period */
+		dlcr = ((trn - 1) << 8);
+
+		/* WIREMODE, bits[7:6] = 0b01: Synchronous, no oversampling */
+		/* Other value are reserved */
+		dlcr |= 0x1 << 6;
+
 		/* FIXME
-		 * write WCR ...
-		 * then, re-init adapter with new TRN
+		 * write DLCR (Data link Control Register) ...
+		 * then, re-init adapter with new Turnaround tristate period.
 		 */
-		LOG_ERROR("can't yet modify WCR");
+		/*
+		retval = dap_dp_write_atomic(dap, DP_DLCR, &dlcr);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("can't write DLCR");
+			return retval;
+		}
+		*/
+		LOG_ERROR("can't yet modify DLCR");
 		return ERROR_FAIL;
 
 	default:	/* too many arguments */
@@ -413,11 +412,11 @@ static const struct command_registration swd_commands[] = {
 		.help = "declare a new SWD DAP"
 	},
 	{
-		.name = "wcr",
-		.handler = handle_swd_wcr,
+		.name = "dlcr",
+		.handler = handle_swd_dlcr,
 		.mode = COMMAND_ANY,
-		.help = "display or update DAP's WCR register",
-		.usage = "turnaround (1..4), prescale (0..7)",
+		.help = "display or update DAP's DLCR register",
+		.usage = "turnaround (1..4)",
 	},
 
 	/* REVISIT -- add a command for SWV trace on/off */
