@@ -47,6 +47,7 @@
 #define EFM_FAMILY_ID_LEOPARD_GECKO     74
 #define EFM_FAMILY_ID_WONDER_GECKO      75
 #define EFM_FAMILY_ID_ZERO_GECKO        76
+#define EFM_FAMILY_ID_HAPPY_GECKO	77
 #define EZR_FAMILY_ID_WONDER_GECKO		120
 #define EZR_FAMILY_ID_LEOPARD_GECKO		121
 
@@ -149,7 +150,7 @@ static int efm32x_read_info(struct flash_bank *bank,
 	} else if (((cpuid >> 4) & 0xfff) == 0xc24) {
 		/* Cortex M4 device(WONDER GECKO) */
 	} else if (((cpuid >> 4) & 0xfff) == 0xc60) {
-		/* Cortex M0plus device(ZERO GECKO) */
+		/* Cortex M0plus device */
 	} else {
 		LOG_ERROR("Target is not Cortex-Mx Device");
 		return ERROR_FAIL;
@@ -178,7 +179,8 @@ static int efm32x_read_info(struct flash_bank *bank,
 	if (EFM_FAMILY_ID_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_TINY_GECKO == efm32_info->part_family)
 		efm32_info->page_size = 512;
-	else if (EFM_FAMILY_ID_ZERO_GECKO == efm32_info->part_family)
+	else if (EFM_FAMILY_ID_ZERO_GECKO == efm32_info->part_family ||
+			EFM_FAMILY_ID_HAPPY_GECKO == efm32_info->part_family)
 		efm32_info->page_size = 1024;
 	else if (EFM_FAMILY_ID_GIANT_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family) {
@@ -860,6 +862,9 @@ static int efm32x_probe(struct flash_bank *bank)
 		case EFM_FAMILY_ID_ZERO_GECKO:
 			LOG_INFO("Zero Gecko MCU detected");
 			break;
+		case EFM_FAMILY_ID_HAPPY_GECKO:
+			LOG_INFO("Happy Gecko MCU detected");
+			break;
 		default:
 			LOG_ERROR("Unsupported MCU family %d",
 				efm32_mcu_info.part_family);
@@ -985,6 +990,9 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 			break;
 		case EFM_FAMILY_ID_ZERO_GECKO:
 			printed = snprintf(buf, buf_size, "Zero Gecko");
+			break;
+		case EFM_FAMILY_ID_HAPPY_GECKO:
+			printed = snprintf(buf, buf_size, "Happy Gecko");
 			break;
 	}
 
