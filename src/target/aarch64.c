@@ -1628,7 +1628,7 @@ static int aarch64_remove_breakpoint(struct target *target, struct breakpoint *b
 }
 
 /*
- * Cortex-A8 Reset functions
+ * AArch64 Reset functions
  */
 
 static int aarch64_assert_reset(struct target *target)
@@ -2571,9 +2571,9 @@ static const struct command_registration aarch64_command_handlers[] = {
 		.chain = armv8_command_handlers,
 	},
 	{
-		.name = "cortex_a",
+		.name = "aarch64",
 		.mode = COMMAND_ANY,
-		.help = "Cortex-A command group",
+		.help = "AArch64 command group",
 		.usage = "",
 		.chain = aarch64_exec_command_handlers,
 	},
