@@ -209,10 +209,12 @@ static int adi_jtag_dp_scan_cmd(struct adiv5_dap *dap, struct dap_cmd *cmd, uint
 	struct jtag_tap *tap = dap->tap;
 	int retval;
 
+// jtag_dump_queue(__func__, __LINE__); --- after
 	retval = arm_jtag_set_instr(tap, cmd->instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 
+// jtag_dump_queue(__func__, __LINE__); --- before
 	/* Scan out a read or write operation using some DP or AP register.
 	 * For APACC access with any sticky error flag set, this is discarded.
 	 */
@@ -315,10 +317,12 @@ static int adi_jtag_dp_scan_u32(struct adiv5_dap *dap,
 
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
 
+// jtag_dump_queue(__func__, __LINE__); --- after this
 	retval = adi_jtag_dp_scan(dap, instr, reg_addr, RnW,
 			out_value_buf, (uint8_t *)invalue, memaccess_tck, ack);
 	if (retval != ERROR_OK)
 		return retval;
+// jtag_dump_queue(__func__, __LINE__); --- before this
 
 	if (invalue)
 		jtag_add_callback(arm_le_to_h_u32,
@@ -346,12 +350,14 @@ static int adi_jtag_scan_inout_check_u32(struct adiv5_dap *dap,
 {
 	int retval;
 
+// jtag_dump_queue(__func__, __LINE__); --- after this
 	/* Issue the read or write */
 	retval = adi_jtag_dp_scan_u32(dap, instr, reg_addr,
 			RnW, outvalue, NULL, memaccess_tck, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 
+// jtag_dump_queue(__func__, __LINE__); --- before this
 	/* For reads,  collect posted value; RDBUFF has no other effect.
 	 * Assumes read gets acked with OK/FAULT, and CTRL_STAT says "OK".
 	 */
@@ -586,6 +592,8 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 			LOG_DEBUG("JTAG-DP STICKY OVERRUN");
 
 		/* Clear Sticky Error Bits */
+//			LOG_DEBUG("Clear sticky error bits by writing 0x%lx",
+//				dap->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR);
 		retval = adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
 				DP_CTRL_STAT, DPAP_WRITE,
 				dap->dp_ctrl_stat | SSTICKYERR, NULL, 0);
@@ -641,6 +649,7 @@ static int jtag_ap_q_read(struct adiv5_ap *ap, unsigned reg,
 		uint32_t *data)
 {
 	int retval = jtag_ap_q_bankselect(ap, reg);
+//	LOG_DEBUG("reg=0x%02x, jtag_ap_q_bankselect()=%d", reg, retval);
 	if (retval != ERROR_OK)
 		return retval;
 
