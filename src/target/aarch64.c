@@ -73,6 +73,7 @@ static int aarch64_check_address(struct target *target, uint32_t address)
 	/* TODO */
 	return ERROR_OK;
 }
+
 /*  modify system_control_reg in order to enable or disable mmu for :
  *  - virt2phys address conversion
  *  - read or write memory in phys or virt address */
@@ -294,6 +295,7 @@ static int aarch64_read_dcc(struct aarch64_common *a8, uint32_t *data,
 
 	return retval;
 }
+
 static int aarch64_read_dcc_64(struct aarch64_common *a8, uint64_t *data,
 	uint32_t *dscr_p)
 {
@@ -675,6 +677,7 @@ static int aarch64_dpm_setup(struct aarch64_common *a8, uint32_t debug)
 
 	return retval;
 }
+
 static struct target *get_aarch64(struct target *target, int32_t coreid)
 {
 	struct target_list *head;
@@ -2559,6 +2562,7 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration aarch64_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,
