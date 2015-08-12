@@ -132,6 +132,30 @@
 #define CSW_SPROT		(1UL << 30)
 #define CSW_DBG_SW_ENABLE	(1UL << 31)
 
+/* Bit definition of AP_REG_IDR (0xFC)
+ *
+ * Revision				bits[31:28]
+ * JEP106 continuation code		bits[27:24], 4-bits
+ * JEP106 identity code			bits[23:17], 7-bits
+ * Class				bits[16:13]
+ * (reserved, SBZ)			bits[12: 8]
+ * AP identification			bits[ 7: 0]
+ *   Variant	bits[7:4]
+ *   Type		bits[3:0]
+ */
+#define IDR_ID_TYPE_SHIFT       (0)
+#define IDR_ID_TYPE_MASK        (0xF << IDR_ID_TYPE_SHIFT)
+#define IDR_ID_VART_SHIFT       (4)
+#define IDR_ID_VART_MASK        (0xF << IDR_ID_VART_SHIFT)
+#define IDR_CLASS_SHIFT         (13)
+#define IDR_CLASS_MASK          (0xF << IDR_CLASS_SHIFT)
+#define IDR_JEP106_ID_SHIFT     (17)
+#define IDR_JEP106_ID_MASK      (0x7F << IDR_JEP106_ID_SHIFT)
+#define IDR_JEP106_CONT_SHIFT   (24)
+#define IDR_JEP106_CONT_MASK    (0xF << IDR_JEP106_CONT_SHIFT)
+#define IDR_REV_SHIFT           (28)
+#define IDR_REV_MASK            (0xF << IDR_REV_SHIFT)
+
 /* Fields of the MEM-AP's IDR register */
 #define IDR_REV     (0xFUL << 28)
 #define IDR_JEP106  (0x7FFUL << 17)
