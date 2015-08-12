@@ -844,7 +844,7 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 	if (ap >= 256)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	ap_old = dap->ap_current;
+	ap_old = dap_ap_get_select(dap);
 	dap_ap_select(dap, ap);
 
 	retval = dap_queue_ap_read(dap, AP_REG_BASE, dbgbase);
@@ -873,7 +873,7 @@ int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	*addr = 0;
-	ap_old = dap->ap_current;
+	ap_old = dap_ap_get_select(dap);
 	dap_ap_select(dap, ap);
 
 	do {
@@ -1408,7 +1408,7 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	if (retval != ERROR_OK)
 		return retval;
 
-	ap_old = dap->ap_current;
+	ap_old = dap_ap_get_select(dap);
 	dap_ap_select(dap, ap);
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */

@@ -959,7 +959,7 @@ COMMAND_HANDLER(sim3x_mass_erase)
 		return ERROR_FAIL;
 	}
 
-	const uint8_t origninal_ap = dap->ap_current >> 24;
+	const uint8_t origninal_ap = dap_ap_get_select(dap);
 	dap_ap_select(dap, SIM3X_AP);
 
 	ret = ap_read_register(dap, SIM3X_AP_ID, &val);
@@ -1017,7 +1017,7 @@ COMMAND_HANDLER(sim3x_lock)
 			return ERROR_FAIL;
 		}
 	} else {
-		const uint8_t origninal_ap = dap->ap_current >> 24;
+		const uint8_t origninal_ap = dap_ap_get_select(dap);
 		dap_ap_select(dap, SIM3X_AP);
 
 		/* check SIM3X_AP_ID */
