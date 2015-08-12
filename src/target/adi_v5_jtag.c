@@ -43,11 +43,22 @@
 
 /*#define DEBUG_WAIT*/
 
-/* JTAG instructions/registers for JTAG-DP and SWJ-DP */
-#define JTAG_DP_ABORT		0x8
-#define JTAG_DP_DPACC		0xA
-#define JTAG_DP_APACC		0xB
-#define JTAG_DP_IDCODE		0xE
+/* JTAG instructions/registers (4-bit) for JTAG-DP and SWJ-DP */
+/*					 IR value  DR scan len
+					---------  ----------- */
+#define JTAG_DP_ABORT		(0x8)	/* 0b1000  35 */
+#define JTAG_DP_DPACC		(0xA)	/* 0b1010  35 */
+#define JTAG_DP_APACC		(0xB)	/* 0b1011  35 */
+#define JTAG_DP_IDCODE		(0xE)	/* 0b1110  32 */
+#define JTAG_DP_BYPASS		(0xF)	/* 0b1111   1 */
+/* recommended implementation defined IR instruction for IEEE 1149.1-compliance */
+#define JTAG_DP_EXTEST		(0x0)	/* 0b0000 */
+#define JTAG_DP_SAMPLE		(0x1)	/* 0b0001 */
+#define JTAG_DP_PRELOAD		(0x2)	/* 0b0010 */
+#define JTAG_DP_INTEST		(0x4)	/* 0b0100 (not required) */
+#define JTAG_DP_CLAMP		(0x5)	/* 0b0101 (not required) */
+#define JTAG_DP_HIGHZ		(0x6)	/* 0b0110 (not required) */
+#define JTAG_DP_CLAMPZ		(0x7)	/* 0b0111 (not required) */
 
 /* three-bit ACK values for DPACC and APACC reads */
 #define JTAG_ACK_OK_FAULT	0x2
