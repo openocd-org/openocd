@@ -2202,6 +2202,10 @@ static int aarch64_examine_first(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+#if 0
+	/* Alamy: This code is not perfect to detect every platform */
+	/*  Juno r1 (ARMv8) has AXI-AP & APB-AP, not AHB-AP */
+
 	/* Search for the APB-AB - it is needed for access to debug registers */
 	retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
 	if (retval != ERROR_OK) {
@@ -2217,6 +2221,7 @@ static int aarch64_examine_first(struct target *target)
 	} else {
 		armv8->memory_ap_available = true;
 	}
+#endif
 
 
 	if (!target->dbgbase_set) {
