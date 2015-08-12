@@ -97,6 +97,12 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
 
 static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 {
+	/* Alamy ***** WARNING *****
+	 *	CSW register has different bit/field definition in AHB/APB/AXI bus
+	 *  We should
+	 *  a) Get rid of CSW_MASTER_DEBUG / CSW_HPROT
+	 *  b) Different code for different bus (AHB/APB/AXI)
+	 */
 	csw = csw | CSW_DBG_SW_ENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
 		ap->csw_default;
 
