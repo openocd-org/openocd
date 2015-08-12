@@ -421,6 +421,63 @@ static inline int dap_dp_read_atomic(struct adiv5_dap *dap, unsigned reg,
 	return dap_run(dap);
 }
 
+static inline int dap_dp_write_atomic(struct adiv5_dap *dap, unsigned reg,
+				      uint32_t value)
+{
+	int retval;
+
+	retval = dap_queue_dp_write(dap, reg, value);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dap_run(dap);
+}
+
+static inline int dap_dp_reg_set_bits(
+	struct adiv5_dap *dap, unsigned reg, uint32_t bit_mask)
+{
+	int rc;
+	uint32_t regval = 0;	/* CAUTION: Must clear it, or garbage data
+				   in stack will pollute read data.
+				   Didn't dig the reason, but verified */
+
+	/*   In the case that this function is invoked by dap_power_on() to
+	 * clear error bits, dap_queue_dp_read() should be used,
+	 * not dap_dp_read_atomic().  Thus, dap_power_on() is designed in he way
+	 * to clear error bits directly.
+	 *
+	 * Reason:
+	 *   This is a two steps function: READ-(set)-WRITE.
+	 * Error bits (SSTICKYERR | SSTICKYCMP | SSTICKYORUN) might have been
+	 * there when we READ it (that's why we want to clear it).
+	 * With dap_dp_read_aotmic() function call, jtagdp_transaction_endcheck()
+	 * will throw ERROR_JTAG_DEVICE_ERROR before we have a chance to clear
+	 * it (Write 1 to clear).
+	 */
+	rc = dap_queue_dp_read(dap, reg, &regval);
+	if (rc != ERROR_OK)
+		return rc;
+
+	regval |= bit_mask;
+
+	return dap_dp_write_atomic(dap, reg, regval);
+}
+
+static inline int dap_dp_reg_clear_bits(
+	struct adiv5_dap *dap, unsigned reg, uint32_t bit_mask)
+{
+	int rc;
+	uint32_t regval = 0;	/* CAUTION: Must clear to zero */
+
+	rc = dap_queue_dp_read(dap, reg, &regval);
+	if (rc != ERROR_OK)
+		return rc;
+
+	regval &= ~bit_mask;
+
+	return dap_dp_write_atomic(dap, reg, regval);
+}
+
 static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned reg,
 				       uint32_t mask, uint32_t value, int timeout)
 {
