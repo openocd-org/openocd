@@ -314,15 +314,18 @@ struct dap_ops {
 };
 
 /*
- * Access Port classes
+ * Access Port classes (IDR[16:13])
  */
 enum ap_class {
 	AP_CLASS_NONE   = 0x00000,  /* No class defined */
 	AP_CLASS_MEM_AP = 0x10000,  /* MEM-AP */
+
+	AP_CLASS_JTAG = 0x0,	/* No defined class (JTAG-AP) */
+	AP_CLASS_MEM  = 0x8	/* MEM-AP (AHB, APB, AXI) */
 };
 
 /*
- * Access Port types
+ * Access Port types (IDR[3:0])
  */
 enum ap_type {
 	AP_TYPE_JTAG_AP = 0x0,  /* JTAG-AP - JTAG master for controlling other JTAG devices */
