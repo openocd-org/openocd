@@ -571,7 +571,7 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 
 	/* Check for STICKYERR */
 	if (ctrlstat & SSTICKYERR) {
-		LOG_DEBUG("jtag-dp: CTRL/STAT 0x%" PRIx32, ctrlstat);
+		LOG_DEBUG("jtag-dp: CTRL/STAT 0x%08" PRIx32, ctrlstat);
 		/* Check power to debug regions */
 		if ((ctrlstat & (CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) !=
 						(CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) {
