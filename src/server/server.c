@@ -145,7 +145,8 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 		;
 	*p = c;
 
-	service->max_connections--;
+	if (service->max_connections != CONNECTION_LIMIT_UNLIMITED)
+		service->max_connections--;
 
 	return ERROR_OK;
 }
@@ -172,7 +173,9 @@ static int remove_connection(struct service *service, struct connection *connect
 			*p = c->next;
 			free(c);
 
-			service->max_connections++;
+			if (service->max_connections != CONNECTION_LIMIT_UNLIMITED)
+				service->max_connections++;
+
 			break;
 		}
 
@@ -446,7 +449,7 @@ int server_loop(struct command_context *command_context)
 			/* handle new connections on listeners */
 			if ((service->fd != -1)
 			    && (FD_ISSET(service->fd, &read_fds))) {
-				if (service->max_connections > 0)
+				if (service->max_connections != 0)
 					add_connection(service, command_context);
 				else {
 					if (service->type == CONNECTION_TCP) {

@@ -625,7 +625,7 @@ int telnet_init(char *banner)
 
 	return add_service("telnet",
 		telnet_port,
-		1,
+		CONNECTION_LIMIT_UNLIMITED,
 		telnet_new_connection,
 		telnet_input,
 		telnet_connection_closed,

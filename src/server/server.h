@@ -39,6 +39,8 @@ enum connection_type {
 	CONNECTION_STDINOUT
 };
 
+#define CONNECTION_LIMIT_UNLIMITED		(-1)
+
 struct connection {
 	int fd;
 	int fd_out;	/* When using pipes we're writing to a different fd */
