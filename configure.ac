@@ -511,6 +511,10 @@ AC_ARG_ENABLE([internal-libjaylink],
   [Disable building internal libjaylink]),
   [use_internal_libjaylink=$enableval], [use_internal_libjaylink=yes])
 
+AC_ARG_ENABLE([target64],
+  AS_HELP_STRING([--enable-target64], [Enable building support 64-bit address])
+  [build_target64=$enableval], [build_target64=no])
+
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
 if test $build_zy1000 = yes; then
@@ -757,6 +761,12 @@ if test $build_bitq = yes; then
   AC_DEFINE([BUILD_BITQ], [1], [1 if you want a bitq interface.])
 else
   AC_DEFINE([BUILD_BITQ], [0], [0 if you don't want a bitq interface.])
+fi
+
+if test $build_target64 = yes; then
+  AC_DEFINE([BUILD_TARGET64], [1], [1 if you want 64bit addresses.])
+else
+  AC_DEFINE([BUILD_TARGET64], [0], [0 if you don't want 64bit addresses.])
 fi
 
 AC_DEFINE([BUILD_OPENJTAG], [0], [0 if you don't want the OpenJTAG driver.])
@@ -1230,6 +1240,7 @@ AM_CONDITIONAL([IS_WIN32], [test $is_win32 = yes])
 AM_CONDITIONAL([IS_DARWIN], [test $is_darwin = yes])
 AM_CONDITIONAL([BITQ], [test $build_bitq = yes])
 AM_CONDITIONAL([CMSIS_DAP], [test $use_hidapi = yes])
+AM_CONDITIONAL([TARGET64], [test $build_target64 = yes])
 
 AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = yes])
 AM_CONDITIONAL([MINIDRIVER_DUMMY], [test $build_minidriver_dummy = yes])

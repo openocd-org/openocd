@@ -305,6 +305,8 @@ static inline int parity_u32(uint32_t x)
 #define PRId8 PRId32
 #define SCNx64 "llx"
 #define PRIx64 "llx"
+#define PRId64 "lld"
+#define PRIu64 "llu"
 
 typedef CYG_ADDRWORD intptr_t;
 typedef int64_t intmax_t;
