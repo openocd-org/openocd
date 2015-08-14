@@ -693,7 +693,7 @@ done:
  */
 
 static int dpm_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
-	uint32_t addr, uint32_t length)
+	uintmax_t addr, uint32_t length)
 {
 	uint32_t control;
 

@@ -547,6 +547,7 @@ int target_poll(struct target *target)
 int target_halt(struct target *target)
 {
 	int retval;
+
 	/* We can't poll until after examine */
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -593,7 +594,7 @@ int target_halt(struct target *target)
  * hand the infrastructure for running such helpers might use this
  * procedure but rely on hardware breakpoint to detect termination.)
  */
-int target_resume(struct target *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
+int target_resume(struct target *target, int current, uintmax_t address, int handle_breakpoints, int debug_execution)
 {
 	int retval;
 
@@ -623,6 +624,7 @@ static int target_process_reset(struct command_context *cmd_ctx, enum target_res
 	char buf[100];
 	int retval;
 	Jim_Nvp *n;
+
 	n = Jim_Nvp_value2name_simple(nvp_reset_modes, reset_mode);
 	if (n->name == NULL) {
 		LOG_ERROR("invalid reset mode");
@@ -772,7 +774,7 @@ static int target_soft_reset_halt(struct target *target)
 int target_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_param,
-		uint32_t entry_point, uint32_t exit_point,
+		uintmax_t entry_point, uintmax_t exit_point,
 		int timeout_ms, void *arch_info)
 {
 	int retval = ERROR_FAIL;
@@ -808,7 +810,7 @@ done:
 int target_start_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
-		uint32_t entry_point, uint32_t exit_point,
+		uintmax_t entry_point, uintmax_t exit_point,
 		void *arch_info)
 {
 	int retval = ERROR_FAIL;
@@ -846,7 +848,7 @@ done:
 int target_wait_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
-		uint32_t exit_point, int timeout_ms,
+		uintmax_t exit_point, int timeout_ms,
 		void *arch_info)
 {
 	int retval = ERROR_FAIL;
@@ -933,7 +935,7 @@ int target_run_flash_async_algorithm(struct target *target,
 			break;
 		}
 
-		LOG_DEBUG("offs 0x%zx count 0x%" PRIx32 " wp 0x%" PRIx32 " rp 0x%" PRIx32,
+		LOG_DEBUG("offs 0x%zx count 0x%" PRIx32 " wp 0x%" PRIX32 " rp 0x%" PRIX32,
 			(size_t) (buffer - buffer_orig), count, wp, rp);
 
 		if (rp == 0) {
@@ -943,7 +945,7 @@ int target_run_flash_async_algorithm(struct target *target,
 		}
 
 		if (((rp - fifo_start_addr) & (block_size - 1)) || rp < fifo_start_addr || rp >= fifo_end_addr) {
-			LOG_ERROR("corrupted fifo read pointer 0x%" PRIx32, rp);
+			LOG_ERROR("corrupted fifo read pointer 0x%" PRIX32, rp);
 			break;
 		}
 
@@ -1019,7 +1021,7 @@ int target_run_flash_async_algorithm(struct target *target,
 }
 
 int target_read_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+		uintmax_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -1029,11 +1031,12 @@ int target_read_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support read_memory", target_name(target));
 		return ERROR_FAIL;
 	}
+	/* Alamy: Wrapper for target->type64->read_memory() ? */
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
 int target_read_phys_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
+		uintmax_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -1043,11 +1046,12 @@ int target_read_phys_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support read_phys_memory", target_name(target));
 		return ERROR_FAIL;
 	}
+	/* Alamy: Wrapper for target->type64->read_phys_memory() ? */
 	return target->type->read_phys_memory(target, address, size, count, buffer);
 }
 
 int target_write_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
+		uintmax_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -1057,11 +1061,12 @@ int target_write_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support write_memory", target_name(target));
 		return ERROR_FAIL;
 	}
+	/* Alamy: Wrapper for target->type64->write_memory() ? */
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
 int target_write_phys_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
+		uint64_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -1071,6 +1076,7 @@ int target_write_phys_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support write_phys_memory", target_name(target));
 		return ERROR_FAIL;
 	}
+	/* Alamy: Wrapper for target->type64->write_phys_memory() */
 	return target->type->write_phys_memory(target, address, size, count, buffer);
 }
 
@@ -1149,8 +1155,9 @@ int target_get_gdb_reg_list(struct target *target,
 	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
 }
 int target_step(struct target *target,
-		int current, uint32_t address, int handle_breakpoints)
+		int current, uintmax_t address, int handle_breakpoints)
 {
+	/* Alamy: Wrapper for target->type64->step() ? */
 	return target->type->step(target, current, address, handle_breakpoints);
 }
 
@@ -1172,14 +1179,20 @@ int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, 
 	return target->type->gdb_fileio_end(target, retcode, fileio_errno, ctrl_c);
 }
 
-int target_profiling(struct target *target, uint32_t *samples,
+int target_profiling(struct target *target, uintmax_t *samples,
 			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
 {
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target %s is not halted", target->cmd_name);
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	return target->type->profiling(target, samples, max_num_samples,
+	return (is_aarch64(target))
+		? ERROR_FAIL	/* Alamy: Wrapper for 32/64-bit state */
+/*
+		? target->type64->profiling(target, samples, max_num_samples,
+			num_samples, seconds)
+*/
+		: target->type->profiling(target, (uint32_t *)samples, max_num_samples,
 			num_samples, seconds);
 }
 
@@ -1539,6 +1552,7 @@ static int target_timer_callback_periodic_restart(
 		struct target_timer_callback *cb, struct timeval *now)
 {
 	int time_ms = cb->time_ms;
+
 	cb->when.tv_usec = now->tv_usec + (time_ms % 1000) * 1000;
 	time_ms -= (time_ms % 1000);
 	cb->when.tv_sec = now->tv_sec + time_ms / 1000;
@@ -1620,9 +1634,11 @@ static void print_wa_layout(struct target *target)
 	struct working_area *c = target->working_areas;
 
 	while (c) {
-		LOG_DEBUG("%c%c 0x%08"PRIx32"-0x%08"PRIx32" (%"PRIu32" bytes)",
+		LOG_DEBUG("%c%c 0x%.*"PRIXMAX"-0x%.*"PRIXMAX" (%"PRIu32" bytes)",
 			c->backup ? 'b' : ' ', c->free ? ' ' : '*',
-			c->address, c->address + c->size - 1, c->size);
+			addr_fmt_width(target), c->address,
+			addr_fmt_width(target), c->address + c->size - 1,
+			c->size);
 		c = c->next;
 	}
 }
@@ -1705,8 +1721,8 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 		if (!enabled) {
 			if (target->working_area_phys_spec) {
 				LOG_DEBUG("MMU disabled, using physical "
-					"address for working memory 0x%08"PRIx32,
-					target->working_area_phys);
+					"address for working memory 0x%.*"PRIXMAX,
+					addr_fmt_width(target), target->working_area_phys);
 				target->working_area = target->working_area_phys;
 			} else {
 				LOG_ERROR("No working memory available. "
@@ -1716,8 +1732,8 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 		} else {
 			if (target->working_area_virt_spec) {
 				LOG_DEBUG("MMU enabled, using virtual "
-					"address for working memory 0x%08"PRIx32,
-					target->working_area_virt);
+					"address for working memory 0x%.*"PRIXMAX,
+					addr_fmt_width(target), target->working_area_virt);
 				target->working_area = target->working_area_virt;
 			} else {
 				LOG_ERROR("No working memory available. "
@@ -1759,7 +1775,9 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 	/* Split the working area into the requested size */
 	target_split_working_area(c, size);
 
-	LOG_DEBUG("allocated new working area of %"PRIu32" bytes at address 0x%08"PRIx32, size, c->address);
+	LOG_DEBUG("allocated new working area of %"PRIu32" bytes at address 0x%.*"PRIXMAX,
+		size,
+		addr_fmt_width(target), c->address);
 
 	if (target->backup_working_area) {
 		if (c->backup == NULL) {
@@ -1803,8 +1821,9 @@ static int target_restore_working_area(struct target *target, struct working_are
 	if (target->backup_working_area && area->backup != NULL) {
 		retval = target_write_memory(target, area->address, 4, area->size / 4, area->backup);
 		if (retval != ERROR_OK)
-			LOG_ERROR("failed to restore %"PRIu32" bytes of working area at address 0x%08"PRIx32,
-					area->size, area->address);
+			LOG_ERROR("failed to restore %"PRIu32" bytes of working area at address 0x%.*"PRIXMAX,
+				area->size,
+				addr_fmt_width(target), area->address);
 	}
 
 	return retval;
@@ -1827,8 +1846,9 @@ static int target_free_working_area_restore(struct target *target, struct workin
 
 	area->free = true;
 
-	LOG_DEBUG("freed %"PRIu32" bytes of working area at address 0x%08"PRIx32,
-			area->size, area->address);
+	LOG_DEBUG("freed %"PRIu32" bytes of working area at address 0x%.*"PRIXMAX,
+		area->size,
+		addr_fmt_width(target), area->address);
 
 	/* mark user pointer invalid */
 	/* TODO: Is this really safe? It points to some previous caller's memory.
@@ -1852,6 +1872,7 @@ int target_free_working_area(struct target *target, struct working_area *area)
 void target_quit(void)
 {
 	struct target_event_callback *pe = target_event_callbacks;
+
 	while (pe) {
 		struct target_event_callback *t = pe->next;
 		free(pe);
@@ -1928,6 +1949,7 @@ uint32_t target_get_working_area_avail(struct target *target)
 int target_arch_state(struct target *target)
 {
 	int retval;
+
 	if (target == NULL) {
 		LOG_USER("No target has been configured");
 		return ERROR_OK;
@@ -2012,10 +2034,11 @@ static int target_profiling_default(struct target *target, uint32_t *samples,
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_write_buffer(struct target *target, uint32_t address, uint32_t size, const uint8_t *buffer)
+int target_write_buffer(struct target *target, uintmax_t address, uint32_t size, const uint8_t *buffer)
 {
-	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x",
-			(int)size, (unsigned)address);
+	LOG_DEBUG("writing buffer of %i byte at 0x%.*" PRIXMAX,
+			(int)size,
+			addr_fmt_width(target), address);
 
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -2027,13 +2050,18 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
 
 	if ((address + size - 1) < address) {
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address + size wrapped(0x%08x, 0x%08x)",
-				  (unsigned)address,
-				  (unsigned)size);
+		LOG_ERROR("address + size wrapped(0x%.*" PRIXMAX ", 0x%08x)",
+				addr_fmt_width(target), address,
+				(unsigned)size);
 		return ERROR_FAIL;
 	}
 
-	return target->type->write_buffer(target, address, size, buffer);
+	return (is_aarch64(target))
+		? ERROR_FAIL	/* Alamy: Wrapper for 32/64-bit state */
+/*
+		? target->type64->write_buffer(target, address, size, buffer)
+*/
+		: target->type->write_buffer(target, address, size, buffer);
 }
 
 static int target_write_buffer_default(struct target *target, uint32_t address, uint32_t count, const uint8_t *buffer)
@@ -2073,10 +2101,10 @@ static int target_write_buffer_default(struct target *target, uint32_t address, 
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_read_buffer(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
+int target_read_buffer(struct target *target, uintmax_t address, uint32_t size, uint8_t *buffer)
 {
-	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
-			  (int)size, (unsigned)address);
+	LOG_DEBUG("reading buffer of %i byte at 0x%.*" PRIXMAX,
+			  (int)size, addr_fmt_width(target), address);
 
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -2088,12 +2116,13 @@ int target_read_buffer(struct target *target, uint32_t address, uint32_t size, u
 
 	if ((address + size - 1) < address) {
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address + size wrapped(0x%08" PRIx32 ", 0x%08" PRIx32 ")",
-				  address,
-				  size);
+		LOG_ERROR("address + size wrapped(0x%.*" PRIXMAX ", 0x%08" PRIx32 ")",
+				addr_fmt_width(target), address,
+				size);
 		return ERROR_FAIL;
 	}
 
+	/* Alamy: Wrapper for target->type64->read_buffer() ? */
 	return target->type->read_buffer(target, address, size, buffer);
 }
 
@@ -2130,12 +2159,13 @@ static int target_read_buffer_default(struct target *target, uint32_t address, u
 	return ERROR_OK;
 }
 
-int target_checksum_memory(struct target *target, uint32_t address, uint32_t size, uint32_t* crc)
+int target_checksum_memory(struct target *target, uintmax_t address, uint32_t size, uint32_t* crc)
 {
 	uint8_t *buffer;
 	int retval;
 	uint32_t i;
 	uint32_t checksum = 0;
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -2170,9 +2200,10 @@ int target_checksum_memory(struct target *target, uint32_t address, uint32_t siz
 	return retval;
 }
 
-int target_blank_check_memory(struct target *target, uint32_t address, uint32_t size, uint32_t* blank)
+int target_blank_check_memory(struct target *target, uintmax_t address, uint32_t size, uint32_t* blank)
 {
 	int retval;
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -2186,9 +2217,10 @@ int target_blank_check_memory(struct target *target, uint32_t address, uint32_t 
 	return retval;
 }
 
-int target_read_u64(struct target *target, uint64_t address, uint64_t *value)
+int target_read_u64(struct target *target, uintmax_t address, uint64_t *value)
 {
 	uint8_t value_buf[8];
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -2198,21 +2230,22 @@ int target_read_u64(struct target *target, uint64_t address, uint64_t *value)
 
 	if (retval == ERROR_OK) {
 		*value = target_buffer_get_u64(target, value_buf);
-		LOG_DEBUG("address: 0x%" PRIx64 ", value: 0x%16.16" PRIx64 "",
-				  address,
-				  *value);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%16.16" PRIx64 "",
+				addr_fmt_width(target), address,
+				*value);
 	} else {
 		*value = 0x0;
-		LOG_DEBUG("address: 0x%" PRIx64 " failed",
-				  address);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX " failed",
+				addr_fmt_width(target), address);
 	}
 
 	return retval;
 }
 
-int target_read_u32(struct target *target, uint32_t address, uint32_t *value)
+int target_read_u32(struct target *target, uintmax_t address, uint32_t *value)
 {
 	uint8_t value_buf[4];
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -2222,21 +2255,22 @@ int target_read_u32(struct target *target, uint32_t address, uint32_t *value)
 
 	if (retval == ERROR_OK) {
 		*value = target_buffer_get_u32(target, value_buf);
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8" PRIx32 "",
-				  address,
-				  *value);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%8.8" PRIx32 "",
+				addr_fmt_width(target), address,
+				*value);
 	} else {
 		*value = 0x0;
-		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed",
-				  address);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX " failed",
+				addr_fmt_width(target), address);
 	}
 
 	return retval;
 }
 
-int target_read_u16(struct target *target, uint32_t address, uint16_t *value)
+int target_read_u16(struct target *target, uintmax_t address, uint16_t *value)
 {
 	uint8_t value_buf[2];
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -2246,19 +2280,19 @@ int target_read_u16(struct target *target, uint32_t address, uint16_t *value)
 
 	if (retval == ERROR_OK) {
 		*value = target_buffer_get_u16(target, value_buf);
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%4.4x",
-				  address,
-				  *value);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%4.4x",
+				addr_fmt_width(target), address,
+				*value);
 	} else {
 		*value = 0x0;
-		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed",
-				  address);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX " failed",
+				addr_fmt_width(target), address);
 	}
 
 	return retval;
 }
 
-int target_read_u8(struct target *target, uint32_t address, uint8_t *value)
+int target_read_u8(struct target *target, uintmax_t address, uint8_t *value)
 {
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -2268,30 +2302,31 @@ int target_read_u8(struct target *target, uint32_t address, uint8_t *value)
 	int retval = target_read_memory(target, address, 1, 1, value);
 
 	if (retval == ERROR_OK) {
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x",
-				  address,
-				  *value);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%2.2x",
+				addr_fmt_width(target), address,
+				*value);
 	} else {
 		*value = 0x0;
-		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed",
-				  address);
+		LOG_DEBUG("address: 0x%.*" PRIXMAX " failed",
+				addr_fmt_width(target), address);
 	}
 
 	return retval;
 }
 
-int target_write_u64(struct target *target, uint64_t address, uint64_t value)
+int target_write_u64(struct target *target, uintmax_t address, uint64_t value)
 {
 	int retval;
 	uint8_t value_buf[8];
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%" PRIx64 ", value: 0x%16.16" PRIx64 "",
-			  address,
-			  value);
+	LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%16.16" PRIx64 "",
+			addr_fmt_width(target), address,
+			value);
 
 	target_buffer_set_u64(target, value_buf, value);
 	retval = target_write_memory(target, address, 8, 1, value_buf);
@@ -2301,18 +2336,19 @@ int target_write_u64(struct target *target, uint64_t address, uint64_t value)
 	return retval;
 }
 
-int target_write_u32(struct target *target, uint32_t address, uint32_t value)
+int target_write_u32(struct target *target, uintmax_t address, uint32_t value)
 {
 	int retval;
 	uint8_t value_buf[4];
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8" PRIx32 "",
-			  address,
-			  value);
+	LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%8.8" PRIx32 "",
+			addr_fmt_width(target), address,
+			value);
 
 	target_buffer_set_u32(target, value_buf, value);
 	retval = target_write_memory(target, address, 4, 1, value_buf);
@@ -2322,18 +2358,19 @@ int target_write_u32(struct target *target, uint32_t address, uint32_t value)
 	return retval;
 }
 
-int target_write_u16(struct target *target, uint32_t address, uint16_t value)
+int target_write_u16(struct target *target, uintmax_t address, uint16_t value)
 {
 	int retval;
 	uint8_t value_buf[2];
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8x",
-			  address,
-			  value);
+	LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%8.8x",
+			addr_fmt_width(target), address,
+			value);
 
 	target_buffer_set_u16(target, value_buf, value);
 	retval = target_write_memory(target, address, 2, 1, value_buf);
@@ -2343,16 +2380,18 @@ int target_write_u16(struct target *target, uint32_t address, uint16_t value)
 	return retval;
 }
 
-int target_write_u8(struct target *target, uint32_t address, uint8_t value)
+int target_write_u8(struct target *target, uintmax_t address, uint8_t value)
 {
 	int retval;
+
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x",
-			  address, value);
+	LOG_DEBUG("address: 0x%.*" PRIXMAX ", value: 0x%2.2x",
+			addr_fmt_width(target), address,
+			value);
 
 	retval = target_write_memory(target, address, 1, 1, &value);
 	if (retval != ERROR_OK)
@@ -2364,6 +2403,7 @@ int target_write_u8(struct target *target, uint32_t address, uint8_t value)
 static int find_target(struct command_context *cmd_ctx, const char *name)
 {
 	struct target *target = get_target(name);
+
 	if (target == NULL) {
 		LOG_ERROR("Target: %s is unknown, try one of:\n", name);
 		return ERROR_FAIL;
@@ -2383,6 +2423,7 @@ static int find_target(struct command_context *cmd_ctx, const char *name)
 COMMAND_HANDLER(handle_targets_command)
 {
 	int retval = ERROR_OK;
+
 	if (CMD_ARGC == 1) {
 		retval = find_target(CMD_CTX, CMD_ARGV[0]);
 		if (retval == ERROR_OK) {
@@ -2856,6 +2897,7 @@ COMMAND_HANDLER(handle_reset_command)
 COMMAND_HANDLER(handle_resume_command)
 {
 	int current = 1;
+
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -2864,9 +2906,9 @@ COMMAND_HANDLER(handle_resume_command)
 	/* with no CMD_ARGV, resume from current pc, addr = 0,
 	 * with one arguments, addr = CMD_ARGV[0],
 	 * handle breakpoints, not debugging */
-	uint32_t addr = 0;
+	uintmax_t addr = 0;
 	if (CMD_ARGC == 1) {
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+		COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
 		current = 0;
 	}
 
@@ -2883,20 +2925,21 @@ COMMAND_HANDLER(handle_step_command)
 	/* with no CMD_ARGV, step from current pc, addr = 0,
 	 * with one argument addr = CMD_ARGV[0],
 	 * handle breakpoints, debugging */
-	uint32_t addr = 0;
+	uintmax_t addr = 0;
 	int current_pc = 1;
 	if (CMD_ARGC == 1) {
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+		COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
 		current_pc = 0;
 	}
 
 	struct target *target = get_current_target(CMD_CTX);
 
+	/* Alamy: Wrapper for target->type64->step() ? */
 	return target->type->step(target, current_pc, addr, 1);
 }
 
 static void handle_md_output(struct command_context *cmd_ctx,
-		struct target *target, uint32_t address, unsigned size,
+		struct target *target, uintmax_t address, unsigned size,
 		unsigned count, const uint8_t *buffer)
 {
 	const unsigned line_bytecnt = 32;
@@ -2907,6 +2950,7 @@ static void handle_md_output(struct command_context *cmd_ctx,
 
 	const char *value_fmt;
 	switch (size) {
+	/* Alamy: case 8 ? */
 	case 4:
 		value_fmt = "%8.8x ";
 		break;
@@ -2926,13 +2970,14 @@ static void handle_md_output(struct command_context *cmd_ctx,
 		if (i % line_modulo == 0) {
 			output_len += snprintf(output + output_len,
 					sizeof(output) - output_len,
-					"0x%8.8x: ",
-					(unsigned)(address + (i*size)));
+					"0x%.*" PRIXMAX ": ",
+					addr_fmt_width(target), (address + (i*size)));
 		}
 
 		uint32_t value = 0;
 		const uint8_t *value_ptr = buffer + i * size;
 		switch (size) {
+		/* Alamy: case 8 ? */
 		case 4:
 			value = target_buffer_get_u32(target, value_ptr);
 			break;
@@ -2960,6 +3005,7 @@ COMMAND_HANDLER(handle_md_command)
 
 	unsigned size = 0;
 	switch (CMD_NAME[2]) {
+	/* Alamy: size = 8 ? */
 	case 'w':
 		size = 4;
 		break;
@@ -2975,7 +3021,7 @@ COMMAND_HANDLER(handle_md_command)
 
 	bool physical = strcmp(CMD_ARGV[0], "phys") == 0;
 	int (*fn)(struct target *target,
-			uint32_t address, uint32_t size_value, uint32_t count, uint8_t *buffer);
+			uintmax_t address, uint32_t size_value, uint32_t count, uint8_t *buffer);
 	if (physical) {
 		CMD_ARGC--;
 		CMD_ARGV++;
@@ -2985,8 +3031,8 @@ COMMAND_HANDLER(handle_md_command)
 	if ((CMD_ARGC < 1) || (CMD_ARGC > 2))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	uintmax_t address;
+	COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], address);
 
 	unsigned count = 1;
 	if (CMD_ARGC == 2)
@@ -3005,14 +3051,14 @@ COMMAND_HANDLER(handle_md_command)
 }
 
 typedef int (*target_write_fn)(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+		uintmax_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 static int target_fill_mem(struct target *target,
-		uint32_t address,
+		uintmax_t address,
 		target_write_fn fn,
 		unsigned data_size,
 		/* value */
-		uint32_t b,
+		uintmax_t b,
 		/* count */
 		unsigned c)
 {
@@ -3027,14 +3073,15 @@ static int target_fill_mem(struct target *target,
 
 	for (unsigned i = 0; i < chunk_size; i++) {
 		switch (data_size) {
+		/* Alamy: case 8 ? */
 		case 4:
-			target_buffer_set_u32(target, target_buf + i * data_size, b);
+			target_buffer_set_u32(target, target_buf + i * data_size, (uint32_t)b);
 			break;
 		case 2:
-			target_buffer_set_u16(target, target_buf + i * data_size, b);
+			target_buffer_set_u16(target, target_buf + i * data_size, (uint16_t)b);
 			break;
 		case 1:
-			target_buffer_set_u8(target, target_buf + i * data_size, b);
+			target_buffer_set_u8(target, target_buf + i * data_size, (uint8_t)b);
 			break;
 		default:
 			exit(-1);
@@ -3075,11 +3122,11 @@ COMMAND_HANDLER(handle_mw_command)
 	if ((CMD_ARGC < 2) || (CMD_ARGC > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	uintmax_t address;
+	COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], address);
 
-	uint32_t value;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+	uintmax_t value;
+	COMMAND_PARSE_NUMBER(umax, CMD_ARGV[1], value);
 
 	unsigned count = 1;
 	if (CMD_ARGC == 3)
@@ -3088,6 +3135,7 @@ COMMAND_HANDLER(handle_mw_command)
 	struct target *target = get_current_target(CMD_CTX);
 	unsigned wordsize;
 	switch (CMD_NAME[2]) {
+		/* Alamy: wordsize = 8 ? */
 		case 'w':
 			wordsize = 4;
 			break;
@@ -3142,7 +3190,7 @@ COMMAND_HANDLER(handle_load_image_command)
 	size_t buf_cnt;
 	uint32_t image_size;
 	uint32_t min_address = 0;
-	uint32_t max_address = 0xffffffff;
+	uint32_t max_address = UINT32_MAX;
 	int i;
 	struct image image;
 
@@ -3200,7 +3248,7 @@ COMMAND_HANDLER(handle_load_image_command)
 				break;
 			}
 			image_size += length;
-			command_print(CMD_CTX, "%u bytes written at address 0x%8.8" PRIx32 "",
+			command_print(CMD_CTX, "%u bytes written at address 0x%.8" PRIX32 "",
 					(unsigned int)length,
 					image.sections[i].base_address + offset);
 		}
@@ -3225,14 +3273,15 @@ COMMAND_HANDLER(handle_dump_image_command)
 	struct fileio fileio;
 	uint8_t *buffer;
 	int retval, retvaltemp;
-	uint32_t address, size;
+	uintmax_t address;
+	uint32_t size;
 	struct duration bench;
 	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], address);
+	COMMAND_PARSE_NUMBER(umax, CMD_ARGV[1], address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], size);
 
 	uint32_t buf_size = (size > 4096) ? 4096 : size;
@@ -3308,8 +3357,8 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 	duration_start(&bench);
 
 	if (CMD_ARGC >= 2) {
-		uint32_t addr;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], addr);
+		uintmax_t addr;
+		COMMAND_PARSE_NUMBER(umax, CMD_ARGV[1], addr);
 		image.base_address = addr;
 		image.base_address_set = 1;
 	} else {
@@ -3376,11 +3425,11 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 					for (t = 0; t < buf_cnt; t++) {
 						if (data[t] != buffer[t]) {
 							command_print(CMD_CTX,
-										  "diff %d address 0x%08x. Was 0x%02x instead of 0x%02x",
-										  diffs,
-										  (unsigned)(t + image.sections[i].base_address),
-										  data[t],
-										  buffer[t]);
+									"diff %d address 0x%.8" PRIX32 ". Was 0x%02x instead of 0x%02x",
+									diffs,
+									(unsigned)(t + image.sections[i].base_address),
+									data[t],
+									buffer[t]);
 							if (diffs++ >= 127) {
 								command_print(CMD_CTX, "More than 128 errors, the rest are not printed.");
 								free(data);
@@ -3394,9 +3443,9 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 				free(data);
 			}
 		} else {
-			command_print(CMD_CTX, "address 0x%08" PRIx32 " length 0x%08zx",
-						  image.sections[i].base_address,
-						  buf_cnt);
+			command_print(CMD_CTX, "address 0x%.8" PRIX32 " length 0x%08zx",
+					image.sections[i].base_address,
+					buf_cnt);
 		}
 
 		free(buffer);
@@ -3436,26 +3485,26 @@ static int handle_bp_command_list(struct command_context *cmd_ctx)
 		if (breakpoint->type == BKPT_SOFT) {
 			char *buf = buf_to_str(breakpoint->orig_instr,
 					breakpoint->length, 16);
-			command_print(cmd_ctx, "IVA breakpoint: 0x%8.8" PRIx32 ", 0x%x, %i, 0x%s",
-					breakpoint->address,
+			command_print(cmd_ctx, "IVA breakpoint: 0x%.*" PRIXMAX ", 0x%x, %i, 0x%s",
+					addr_fmt_width(target), breakpoint->address,
 					breakpoint->length,
 					breakpoint->set, buf);
 			free(buf);
 		} else {
 			if ((breakpoint->address == 0) && (breakpoint->asid != 0))
-				command_print(cmd_ctx, "Context breakpoint: 0x%8.8" PRIx32 ", 0x%x, %i",
-							breakpoint->asid,
-							breakpoint->length, breakpoint->set);
+				command_print(cmd_ctx, "Context breakpoint: 0x%.*" PRIXMAX ", 0x%x, %i",
+						addr_fmt_width(target), breakpoint->asid,
+						breakpoint->length, breakpoint->set);
 			else if ((breakpoint->address != 0) && (breakpoint->asid != 0)) {
-				command_print(cmd_ctx, "Hybrid breakpoint(IVA): 0x%8.8" PRIx32 ", 0x%x, %i",
-							breakpoint->address,
-							breakpoint->length, breakpoint->set);
-				command_print(cmd_ctx, "\t|--->linked with ContextID: 0x%8.8" PRIx32,
-							breakpoint->asid);
+				command_print(cmd_ctx, "Hybrid breakpoint(IVA): 0x%.*" PRIXMAX ", 0x%x, %i",
+						addr_fmt_width(target), breakpoint->address,
+						breakpoint->length, breakpoint->set);
+				command_print(cmd_ctx, "\t|--->linked with ContextID: 0x%.*" PRIXMAX,
+						addr_fmt_width(target), breakpoint->asid);
 			} else
-				command_print(cmd_ctx, "Breakpoint(IVA): 0x%8.8" PRIx32 ", 0x%x, %i",
-							breakpoint->address,
-							breakpoint->length, breakpoint->set);
+				command_print(cmd_ctx, "Breakpoint(IVA): 0x%.*" PRIXMAX ", 0x%x, %i",
+						addr_fmt_width(target), breakpoint->address,
+						breakpoint->length, breakpoint->set);
 		}
 
 		breakpoint = breakpoint->next;
@@ -3464,7 +3513,7 @@ static int handle_bp_command_list(struct command_context *cmd_ctx)
 }
 
 static int handle_bp_command_set(struct command_context *cmd_ctx,
-		uint32_t addr, uint32_t asid, uint32_t length, int hw)
+		uintmax_t addr, uintmax_t asid, uint32_t length, int hw)
 {
 	struct target *target = get_current_target(cmd_ctx);
 	int retval;
@@ -3472,7 +3521,8 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 	if (asid == 0) {
 		retval = breakpoint_add(target, addr, length, hw);
 		if (ERROR_OK == retval)
-			command_print(cmd_ctx, "breakpoint set at 0x%8.8" PRIx32 "", addr);
+			command_print(cmd_ctx, "breakpoint set at 0x%.*" PRIXMAX "",
+					addr_fmt_width(target), addr);
 		else {
 			LOG_ERROR("Failure setting breakpoint, the same address(IVA) is already used");
 			return retval;
@@ -3484,7 +3534,8 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 		}
 		retval = context_breakpoint_add(target, asid, length, hw);
 		if (ERROR_OK == retval)
-			command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
+			command_print(cmd_ctx, "Context breakpoint set at 0x%.*" PRIXMAX "",
+					addr_fmt_width(target), asid);
 		else {
 			LOG_ERROR("Failure setting breakpoint, the same address(CONTEXTID) is already used");
 			return retval;
@@ -3496,7 +3547,8 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 		}
 		retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
 		if (ERROR_OK == retval)
-			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
+			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%.*" PRIXMAX "",
+					addr_fmt_width(target), asid);
 		else {
 			LOG_ERROR("Failure setting breakpoint, the same address is already used");
 			return retval;
@@ -3507,8 +3559,8 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 
 COMMAND_HANDLER(handle_bp_command)
 {
-	uint32_t addr;
-	uint32_t asid;
+	uintmax_t addr;
+	uintmax_t asid;
 	uint32_t length;
 	int hw = BKPT_SOFT;
 
@@ -3518,14 +3570,14 @@ COMMAND_HANDLER(handle_bp_command)
 
 		case 2:
 			asid = 0;
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+			COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
 
 		case 3:
 			if (strcmp(CMD_ARGV[2], "hw") == 0) {
 				hw = BKPT_HARD;
-				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+				COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
 
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 
@@ -3533,7 +3585,7 @@ COMMAND_HANDLER(handle_bp_command)
 				return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
 			} else if (strcmp(CMD_ARGV[2], "hw_ctx") == 0) {
 				hw = BKPT_HARD;
-				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], asid);
+				COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], asid);
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 				addr = 0;
 				return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
@@ -3541,8 +3593,8 @@ COMMAND_HANDLER(handle_bp_command)
 
 		case 4:
 			hw = BKPT_HARD;
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], asid);
+			COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
+			COMMAND_PARSE_NUMBER(umax, CMD_ARGV[1], asid);
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], length);
 			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
 
@@ -3556,8 +3608,8 @@ COMMAND_HANDLER(handle_rbp_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t addr;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+	uintmax_t addr;
+	COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
 
 	struct target *target = get_current_target(CMD_CTX);
 	breakpoint_remove(target, addr);
@@ -3573,11 +3625,11 @@ COMMAND_HANDLER(handle_wp_command)
 		struct watchpoint *watchpoint = target->watchpoints;
 
 		while (watchpoint) {
-			command_print(CMD_CTX, "address: 0x%8.8" PRIx32
+			command_print(CMD_CTX, "address: 0x%.*" PRIXMAX
 					", len: 0x%8.8" PRIx32
 					", r/w/a: %i, value: 0x%8.8" PRIx32
 					", mask: 0x%8.8" PRIx32,
-					watchpoint->address,
+					addr_fmt_width(target), watchpoint->address,
 					watchpoint->length,
 					(int)watchpoint->rw,
 					watchpoint->value,
@@ -3588,7 +3640,7 @@ COMMAND_HANDLER(handle_wp_command)
 	}
 
 	enum watchpoint_rw type = WPT_ACCESS;
-	uint32_t addr = 0;
+	uintmax_t addr = 0;
 	uint32_t length = 0;
 	uint32_t data_value = 0x0;
 	uint32_t data_mask = 0xffffffff;
@@ -3618,7 +3670,7 @@ COMMAND_HANDLER(handle_wp_command)
 		/* fall through */
 	case 2:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+		COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
 		break;
 
 	default:
@@ -3638,8 +3690,8 @@ COMMAND_HANDLER(handle_rwp_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t addr;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+	uintmax_t addr;
+	COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], addr);
 
 	struct target *target = get_current_target(CMD_CTX);
 	watchpoint_remove(target, addr);
@@ -3658,14 +3710,26 @@ COMMAND_HANDLER(handle_virt2phys_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t va;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], va);
-	uint32_t pa;
+	uintmax_t va;
+	COMMAND_PARSE_NUMBER(umax, CMD_ARGV[0], va);
+	uintmax_t pa;
+	uint32_t pa32;
 
 	struct target *target = get_current_target(CMD_CTX);
-	int retval = target->type->virt2phys(target, va, &pa);
+	/* Alamy: Wrapper for target->type64->virt2phys() ? */
+	int retval = ERROR_FAIL;
+	if (is_aarch64(target)) {
+		retval = ERROR_FAIL;
+/*
+		retval = target->type64->virt2phys(target, va, &pa);
+*/
+	} else {
+		retval = target->type->virt2phys(target, va, &pa32);
+		pa = pa32;
+	}
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "Physical address 0x%08" PRIx32 "", pa);
+		command_print(CMD_CTX, "Physical address 0x%.*" PRIXMAX "",
+				addr_fmt_width(target), pa);
 
 	return retval;
 }
@@ -3693,8 +3757,8 @@ static void writeString(FILE *f, char *s)
 typedef unsigned char UNIT[2];  /* unit of profiling */
 
 /* Dump a gmon.out histogram file. */
-static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filename, bool with_range,
-			uint32_t start_address, uint32_t end_address, struct target *target)
+static void write_gmon(uintmax_t *samples, uint32_t sampleNum, const char *filename, bool with_range,
+			uintmax_t start_address, uintmax_t end_address, struct target *target)
 {
 	uint32_t i;
 	FILE *f = fopen(filename, "w");
@@ -3710,8 +3774,8 @@ static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filena
 	writeData(f, &zero, 1);
 
 	/* figure out bucket size */
-	uint32_t min;
-	uint32_t max;
+	uintmax_t min;
+	uintmax_t max;
 	if (with_range) {
 		min = start_address;
 		max = end_address;
@@ -3746,7 +3810,7 @@ static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filena
 	}
 	memset(buckets, 0, sizeof(int) * numBuckets);
 	for (i = 0; i < sampleNum; i++) {
-		uint32_t address = samples[i];
+		uintmax_t address = samples[i];
 
 		if ((address < min) || (max <= address))
 			continue;
@@ -3805,7 +3869,7 @@ COMMAND_HANDLER(handle_profile_command)
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
 
-	uint32_t *samples = malloc(sizeof(uint32_t) * MAX_PROFILE_SAMPLE_NUM);
+	uintmax_t *samples = malloc(sizeof(uintmax_t) * MAX_PROFILE_SAMPLE_NUM);
 	if (samples == NULL) {
 		LOG_ERROR("No memory to store samples.");
 		return ERROR_FAIL;
@@ -3844,13 +3908,13 @@ COMMAND_HANDLER(handle_profile_command)
 		return retval;
 	}
 
-	uint32_t start_address = 0;
-	uint32_t end_address = 0;
+	uintmax_t start_address = 0;
+	uintmax_t end_address = 0;
 	bool with_range = false;
 	if (CMD_ARGC == 4) {
 		with_range = true;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], start_address);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], end_address);
+		COMMAND_PARSE_NUMBER(umax, CMD_ARGV[2], start_address);
+		COMMAND_PARSE_NUMBER(umax, CMD_ARGV[3], end_address);
 	}
 
 	write_gmon(samples, num_of_samples, CMD_ARGV[1],
@@ -3908,19 +3972,20 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 static int target_mem2array(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv)
 {
 	long l;
+	jim_wide w;
 	uint32_t width;
 	int len;
-	uint32_t addr;
+	uintmax_t addr;
 	uint32_t count;
 	uint32_t v;
 	const char *varname;
 	int  n, e, retval;
 	uint32_t i;
 
-	/* argv[1] = name of array to receive the data
-	 * argv[2] = desired width
-	 * argv[3] = memory address
-	 * argv[4] = count of times to read
+	/* argv[0] = name of array to receive the data
+	 * argv[1] = desired width
+	 * argv[2] = memory address
+	 * argv[3] = count of times to read
 	 */
 	if (argc != 4) {
 		Jim_WrongNumArgs(interp, 1, argv, "varname width addr nelems");
@@ -3934,8 +3999,13 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	if (e != JIM_OK)
 		return e;
 
-	e = Jim_GetLong(interp, argv[2], &l);
-	addr = l;
+	if (is_aarch64(target)) {
+		e = Jim_GetWide(interp, argv[2], &w);
+		addr = w;
+	} else {
+		e = Jim_GetLong(interp, argv[2], &l);
+		addr = l;
+	}
 	if (e != JIM_OK)
 		return e;
 	e = Jim_GetLong(interp, argv[3], &l);
@@ -3976,13 +4046,13 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 
 	if ((width == 1) ||
 		((width == 2) && ((addr & 1) == 0)) ||
-		((width == 4) && ((addr & 3) == 0))) {
+		((width == 4) && ((addr & 3) == 0))) {	/* Alamy: width == 8 ? */
 		/* all is well */
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		sprintf(buf, "mem2array address: 0x%08" PRIx32 " is not aligned for %" PRId32 " byte reads",
-				addr,
+		sprintf(buf, "mem2array address: 0x%.*" PRIXMAX " is not aligned for %" PRId32 " byte reads",
+				addr_fmt_width(target), addr,
 				width);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), buf , NULL);
 		return JIM_ERR;
@@ -4010,10 +4080,10 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 		retval = target_read_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("mem2array: Read @ 0x%08x, w=%d, cnt=%d, failed",
-					  (unsigned int)addr,
-					  (int)width,
-					  (int)count);
+			LOG_ERROR("mem2array: Read @ 0x%.*" PRIXMAX ", w=%d, cnt=%d, failed",
+					addr_fmt_width(target), addr,
+					(int)width,
+					(int)count);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: cannot read memory", NULL);
 			e = JIM_ERR;
@@ -4022,6 +4092,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 			v = 0; /* shut up gcc */
 			for (i = 0; i < count ; i++, n++) {
 				switch (width) {
+					/* Alamy: case 8 ? */
 					case 4:
 						v = target_buffer_get_u32(target, &buffer[i*width]);
 						break;
@@ -4097,19 +4168,20 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv)
 {
 	long l;
+	jim_wide w;
 	uint32_t width;
 	int len;
-	uint32_t addr;
+	uintmax_t addr;
 	uint32_t count;
 	uint32_t v;
 	const char *varname;
 	int  n, e, retval;
 	uint32_t i;
 
-	/* argv[1] = name of array to get the data
-	 * argv[2] = desired width
-	 * argv[3] = memory address
-	 * argv[4] = count to write
+	/* argv[0] = name of array to get the data
+	 * argv[1] = desired width
+	 * argv[2] = memory address
+	 * argv[3] = count to write
 	 */
 	if (argc != 4) {
 		Jim_WrongNumArgs(interp, 0, argv, "varname width addr nelems");
@@ -4123,8 +4195,13 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 	if (e != JIM_OK)
 		return e;
 
-	e = Jim_GetLong(interp, argv[2], &l);
-	addr = l;
+	if (is_aarch64(target)) {
+		e = Jim_GetWide(interp, argv[2], &w);
+		addr = w;
+	} else {
+		e = Jim_GetLong(interp, argv[2], &l);
+		addr = l;
+	}
 	if (e != JIM_OK)
 		return e;
 	e = Jim_GetLong(interp, argv[3], &l);
@@ -4132,6 +4209,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 	if (e != JIM_OK)
 		return e;
 	switch (width) {
+		/* Alamy: case 64 ? */
 		case 8:
 			width = 1;
 			break;
@@ -4169,13 +4247,13 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 
 	if ((width == 1) ||
 		((width == 2) && ((addr & 1) == 0)) ||
-		((width == 4) && ((addr & 3) == 0))) {
+		((width == 4) && ((addr & 3) == 0))) {	/* Alamy: width = 8 ? */
 		/* all is well */
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		sprintf(buf, "array2mem address: 0x%08x is not aligned for %d byte reads",
-				(unsigned int)addr,
+		sprintf(buf, "array2mem address: 0x%.*" PRIXMAX " is not aligned for %d byte reads",
+				addr_fmt_width(target), addr,
 				(int)width);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), buf , NULL);
 		return JIM_ERR;
@@ -4204,6 +4282,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 		for (i = 0; i < count; i++, n++) {
 			get_int_array_element(interp, varname, n, &v);
 			switch (width) {
+			/* Alamy: case 8 ? */
 			case 4:
 				target_buffer_set_u32(target, &buffer[i * width], v);
 				break;
@@ -4220,10 +4299,10 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 		retval = target_write_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("array2mem: Write @ 0x%08x, w=%d, cnt=%d, failed",
-					  (unsigned int)addr,
-					  (int)width,
-					  (int)count);
+			LOG_ERROR("array2mem: Write @ 0x%.*" PRIXMAX ", w=%d, cnt=%d, failed",
+					addr_fmt_width(target), addr,
+					(int)width,
+					(int)count);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "array2mem: cannot read memory", NULL);
 			e = JIM_ERR;
@@ -4653,6 +4732,7 @@ static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	struct target *target = Jim_CmdPrivData(goi.interp);
 	unsigned data_size;
+	/* Alamy: double words ? */
 	if (strcasecmp(cmd_name, "mww") == 0)
 		data_size = 4;
 	else if (strcasecmp(cmd_name, "mwh") == 0)
@@ -4709,7 +4789,7 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 
 	int (*fn)(struct target *target,
-			uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+			uintmax_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	fn = target_read_memory;
 
 	int e;
@@ -4767,12 +4847,15 @@ static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		e = fn(target, addr, dwidth, y / dwidth, target_buf);
 
 		if (e != ERROR_OK) {
-			Jim_SetResultFormatted(interp, "error reading target @ 0x%08lx", (long)addr);
+			Jim_SetResultFormatted(interp, "error reading target @ 0x%.*" PRIXMAX,
+				addr_fmt_width(target), addr);
 			return JIM_ERR;
 		}
 
-		command_print_sameline(NULL, "0x%08x ", (int)(addr));
+		command_print_sameline(NULL, "0x%.*" PRIXMAX " ",
+			addr_fmt_width(target), addr);
 		switch (dwidth) {
+		/* Alamy: case 8 ? */
 		case 4:
 			for (x = 0; x < 16 && x < y; x += 4) {
 				z = target_buffer_get_u32(target, &(target_buf[x]));
@@ -5267,6 +5350,7 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	/* allocate memory for each unique target type */
 	target->type = calloc(1, sizeof(struct target_type));
+	/* target->type64 = calloc(1, sizeof(struct target_type64)); */	/* Alamy */
 
 	memcpy(target->type, target_types[x], sizeof(struct target_type));
 
@@ -5536,10 +5620,9 @@ static const struct command_registration target_subcommand_handlers[] = {
 };
 
 struct FastLoad {
-	uint32_t address;
+	uintmax_t address;
 	uint8_t *data;
 	int length;
-
 };
 
 static int fastload_num;
@@ -5564,7 +5647,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	size_t buf_cnt;
 	uint32_t image_size;
 	uint32_t min_address = 0;
-	uint32_t max_address = 0xffffffff;
+	uint32_t max_address = UINT32_MAX;
 	int i;
 
 	struct image image;
@@ -5635,9 +5718,9 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 			fastload[i].length = length;
 
 			image_size += length;
-			command_print(CMD_CTX, "%u bytes written at address 0x%8.8x",
-						  (unsigned int)length,
-						  ((unsigned int)(image.sections[i].base_address + offset)));
+			command_print(CMD_CTX, "%u bytes written at address 0x%.8" PRIX32,
+					(unsigned int)length,
+					image.sections[i].base_address + offset);
 		}
 
 		free(buffer);
@@ -5675,9 +5758,9 @@ COMMAND_HANDLER(handle_fast_load_command)
 	int retval = ERROR_OK;
 	for (i = 0; i < fastload_num; i++) {
 		struct target *target = get_current_target(CMD_CTX);
-		command_print(CMD_CTX, "Write to 0x%08x, length 0x%08x",
-					  (unsigned int)(fastload[i].address),
-					  (unsigned int)(fastload[i].length));
+		command_print(CMD_CTX, "Write to 0x%.*" PRIXMAX ", length 0x%08x",
+				addr_fmt_width(target), fastload[i].address,
+				(unsigned int)(fastload[i].length));
 		retval = target_write_buffer(target, fastload[i].address, fastload[i].length, fastload[i].data);
 		if (retval != ERROR_OK)
 			break;
@@ -6034,6 +6117,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.help =	"step one instruction from current PC or address",
 		.usage = "[address]",
 	},
+	/* Alamy: "mdd" command */
 	{
 		.name = "mdw",
 		.handler = handle_md_command,
@@ -6055,6 +6139,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.help = "display memory bytes",
 		.usage = "['phys'] address [count]",
 	},
+	/* Alamy: "mwd" command */
 	{
 		.name = "mww",
 		.handler = handle_mw_command,

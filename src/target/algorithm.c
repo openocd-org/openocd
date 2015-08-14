@@ -25,7 +25,7 @@
 #include "algorithm.h"
 #include <helper/binarybuffer.h>
 
-void init_mem_param(struct mem_param *param, uint32_t address, uint32_t size, enum param_direction direction)
+void init_mem_param(struct mem_param *param, uintmax_t address, uint32_t size, enum param_direction direction)
 {
 	param->address = address;
 	param->size = size;

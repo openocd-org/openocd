@@ -353,12 +353,15 @@ int parse_llong(const char *str, long long *ul);
 		int parse ## name(const char *str, type * ul)
 
 DECLARE_PARSE_WRAPPER(_uint, unsigned);
+DECLARE_PARSE_WRAPPER(_umax, uintmax_t);
 DECLARE_PARSE_WRAPPER(_u64, uint64_t);
 DECLARE_PARSE_WRAPPER(_u32, uint32_t);
 DECLARE_PARSE_WRAPPER(_u16, uint16_t);
 DECLARE_PARSE_WRAPPER(_u8, uint8_t);
 
 DECLARE_PARSE_WRAPPER(_int, int);
+DECLARE_PARSE_WRAPPER(_smax, intmax_t);
+DECLARE_PARSE_WRAPPER(_s64, int64_t);
 DECLARE_PARSE_WRAPPER(_s32, int32_t);
 DECLARE_PARSE_WRAPPER(_s16, int16_t);
 DECLARE_PARSE_WRAPPER(_s8, int8_t);

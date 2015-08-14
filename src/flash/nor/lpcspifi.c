@@ -203,8 +203,8 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 		return retval;
 	}
 
-	LOG_DEBUG("Writing algorithm to working area at 0x%08" PRIx32,
-		spifi_init_algorithm->address);
+	LOG_DEBUG("Writing algorithm to working area at 0x%.*" PRIXMAX,
+		addr_fmt_width(target), spifi_init_algorithm->address);
 	/* Write algorithm to working area */
 	retval = target_write_buffer(target,
 		spifi_init_algorithm->address,

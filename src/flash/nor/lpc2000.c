@@ -681,8 +681,8 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 
 	int retval = target_write_memory(target, (*iap_working_area)->address, 4, 2, jump_gate);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Write memory at address 0x%8.8" PRIx32 " failed (check work_area definition)",
-				(*iap_working_area)->address);
+		LOG_ERROR("Write memory at address 0x%.*" PRIXMAX " failed (check work_area definition)",
+				addr_fmt_width(target), (*iap_working_area)->address);
 		target_free_working_area(target, *iap_working_area);
 	}
 

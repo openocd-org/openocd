@@ -95,7 +95,7 @@ enum target_endianness {
 };
 
 struct working_area {
-	uint32_t address;
+	uintmax_t address;
 	uint32_t size;
 	bool free;
 	uint8_t *backup;
@@ -127,6 +127,7 @@ enum target_register_class {
 /* target_type.h contains the full definition of struct target_type */
 struct target {
 	struct target_type *type;			/* target type definition (name, access functions) */
+	struct target_type_64 *type64;		/* target type for aarch64 */
 	const char *cmd_name;				/* tcl Name of target */
 	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;				/* where on the jtag chain is this */
@@ -155,9 +156,9 @@ struct target {
 	uint32_t working_area;				/* working area (initialised RAM). Evaluated
 										 * upon first allocation from virtual/physical address. */
 	bool working_area_virt_spec;		/* virtual address specified? */
-	uint32_t working_area_virt;			/* virtual address */
+	uintmax_t working_area_virt;		/* virtual address */
 	bool working_area_phys_spec;		/* virtual address specified? */
-	uint32_t working_area_phys;			/* physical address */
+	uintmax_t working_area_phys;		/* physical address */
 	uint32_t working_area_size;			/* size in bytes */
 	uint32_t backup_working_area;		/* whether the content of the working area has to be preserved */
 	struct working_area *working_areas;/* list of allocated working areas */
@@ -172,6 +173,7 @@ struct target {
 	struct debug_msg_receiver *dbgmsg;	/* list of debug message receivers */
 	uint32_t dbg_msg_enabled;			/* debug message status */
 	void *arch_info;					/* architecture specific information */
+	bool is_aarch64;					/* ARMv8: Indicating AArch64 state */
 	struct target *next;				/* next target in list */
 
 	int display;						/* display async info in telnet session. Do not display
@@ -216,6 +218,19 @@ struct gdb_fileio_info {
 static inline const char *target_name(struct target *target)
 {
 	return target->cmd_name;
+}
+
+static inline bool is_aarch64(struct target *target)
+{
+	return target->is_aarch64;
+}
+
+/* Print address in 16 hexs format for 64-bit state
+ *           and in  8 hexs format for 32-bit state
+ */
+static inline int addr_fmt_width(struct target *target)
+{
+	return (target->is_aarch64 ? 16 : 8);
 }
 
 const char *debug_reason_name(struct target *t);
@@ -351,7 +366,7 @@ int target_unregister_trace_callback(
  * yet it is possible to detect error conditions.
  */
 int target_poll(struct target *target);
-int target_resume(struct target *target, int current, uint32_t address,
+int target_resume(struct target *target, int current, uintmax_t address,
 		int handle_breakpoints, int debug_execution);
 int target_halt(struct target *target);
 int target_call_event_callbacks(struct target *target, enum target_event event);
@@ -472,7 +487,7 @@ int target_get_gdb_reg_list(struct target *target,
  * This routine is a wrapper for target->type->step.
  */
 int target_step(struct target *target,
-		int current, uint32_t address, int handle_breakpoints);
+		int current, uintmax_t address, int handle_breakpoints);
 /**
  * Run an algorithm on the @a target given.
  *
@@ -481,7 +496,7 @@ int target_step(struct target *target,
 int target_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_param,
-		uint32_t entry_point, uint32_t exit_point,
+		uintmax_t entry_point, uintmax_t exit_point,
 		int timeout_ms, void *arch_info);
 
 /**
@@ -492,7 +507,7 @@ int target_run_algorithm(struct target *target,
 int target_start_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
-		uint32_t entry_point, uint32_t exit_point,
+		uintmax_t entry_point, uintmax_t exit_point,
 		void *arch_info);
 
 /**
@@ -503,7 +518,7 @@ int target_start_algorithm(struct target *target,
 int target_wait_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
-		uint32_t exit_point, int timeout_ms,
+		uintmax_t exit_point, int timeout_ms,
 		void *arch_info);
 
 /**
@@ -525,9 +540,9 @@ int target_run_flash_async_algorithm(struct target *target,
  * This routine is a wrapper for target->type->read_memory.
  */
 int target_read_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+		uintmax_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int target_read_phys_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+		uintmax_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 /**
  * Write @a count items of @a size bytes to the memory of @a target at
  * the @a address given. @a address must be aligned to @a size
@@ -546,9 +561,9 @@ int target_read_phys_memory(struct target *target,
  * This routine is wrapper for target->type->write_memory.
  */
 int target_write_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+		uintmax_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 int target_write_phys_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
+		uintmax_t address, uint32_t size, uint32_t count, const uint8_t *buffer);
 
 /*
  * Write to target memory using the virtual address.
@@ -575,13 +590,13 @@ int target_write_phys_memory(struct target *target,
  * peripheral registers which do not support byte operations.
  */
 int target_write_buffer(struct target *target,
-		uint32_t address, uint32_t size, const uint8_t *buffer);
+		uintmax_t address, uint32_t size, const uint8_t *buffer);
 int target_read_buffer(struct target *target,
-		uint32_t address, uint32_t size, uint8_t *buffer);
+		uintmax_t address, uint32_t size, uint8_t *buffer);
 int target_checksum_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t *crc);
+		uintmax_t address, uint32_t size, uint32_t *crc);
 int target_blank_check_memory(struct target *target,
-		uint32_t address, uint32_t size, uint32_t *blank);
+		uintmax_t address, uint32_t size, uint32_t *blank);
 int target_wait_state(struct target *target, enum target_state state, int ms);
 
 /**
@@ -657,14 +672,14 @@ void target_buffer_set_u64_array(struct target *target, uint8_t *buffer, uint32_
 void target_buffer_set_u32_array(struct target *target, uint8_t *buffer, uint32_t count, const uint32_t *srcbuf);
 void target_buffer_set_u16_array(struct target *target, uint8_t *buffer, uint32_t count, const uint16_t *srcbuf);
 
-int target_read_u64(struct target *target, uint64_t address, uint64_t *value);
-int target_read_u32(struct target *target, uint32_t address, uint32_t *value);
-int target_read_u16(struct target *target, uint32_t address, uint16_t *value);
-int target_read_u8(struct target *target, uint32_t address, uint8_t *value);
-int target_write_u64(struct target *target, uint64_t address, uint64_t value);
-int target_write_u32(struct target *target, uint32_t address, uint32_t value);
-int target_write_u16(struct target *target, uint32_t address, uint16_t value);
-int target_write_u8(struct target *target, uint32_t address, uint8_t value);
+int target_read_u64(struct target *target, uintmax_t address, uint64_t *value);
+int target_read_u32(struct target *target, uintmax_t address, uint32_t *value);
+int target_read_u16(struct target *target, uintmax_t address, uint16_t *value);
+int target_read_u8(struct target *target, uintmax_t address, uint8_t *value);
+int target_write_u64(struct target *target, uintmax_t address, uint64_t value);
+int target_write_u32(struct target *target, uintmax_t address, uint32_t value);
+int target_write_u16(struct target *target, uintmax_t address, uint16_t value);
+int target_write_u8(struct target *target, uintmax_t address, uint8_t value);
 
 /* Issues USER() statements with target state information */
 int target_arch_state(struct target *target);

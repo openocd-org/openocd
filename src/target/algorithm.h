@@ -28,7 +28,7 @@ enum param_direction {
 };
 
 struct mem_param {
-	uint32_t address;
+	uintmax_t address;
 	uint32_t size;
 	uint8_t *value;
 	enum param_direction direction;
@@ -42,7 +42,7 @@ struct reg_param {
 };
 
 void init_mem_param(struct mem_param *param,
-		uint32_t address, uint32_t size, enum param_direction dir);
+		uintmax_t address, uint32_t size, enum param_direction dir);
 void destroy_mem_param(struct mem_param *param);
 
 void init_reg_param(struct reg_param *param,
