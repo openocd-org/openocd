@@ -56,6 +56,7 @@ wait_fifo:
 	str		r6, [r4, #STM32_FLASH_CR_OFFSET]
 	ldrh 	r6, [r7], #0x02						/* read one half-word from src, increment ptr */
 	strh 	r6, [r2], #0x02						/* write one half-word from src, increment ptr */
+	dsb
 busy:
 	ldr 	r6, [r4, #STM32_FLASH_SR_OFFSET]
 	tst 	r6, #0x10000						/* BSY (bit16) == 1 => operation in progress */

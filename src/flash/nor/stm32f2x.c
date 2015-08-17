@@ -517,10 +517,11 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		0x47, 0x45,					/* cmp		r7, r8 */
 		0xF7, 0xD0,					/* beq		wait_fifo */
 
-		0xDF, 0xF8, 0x30, 0x60,		/* ldr		r6, STM32_PROG16 */
+		0xDF, 0xF8, 0x34, 0x60,		/* ldr		r6, STM32_PROG16 */
 		0x26, 0x61,					/* str		r6, [r4, #STM32_FLASH_CR_OFFSET] */
 		0x37, 0xF8, 0x02, 0x6B,		/* ldrh		r6, [r7], #0x02 */
 		0x22, 0xF8, 0x02, 0x6B,		/* strh		r6, [r2], #0x02 */
+		0xBF, 0xF3, 0x4F, 0x8F,		/* dsb		sy */
 									/* busy: */
 		0xE6, 0x68,					/* ldr		r6, [r4, #STM32_FLASH_SR_OFFSET] */
 		0x16, 0xF4, 0x80, 0x3F,		/* tst		r6, #0x10000 */
@@ -534,7 +535,7 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		0x47, 0x60,					/* str		r7, [r0, #4] */
 		0x01, 0x3B,					/* subs		r3, r3, #1 */
 		0x13, 0xB1,					/* cbz		r3, exit */
-		0xE1, 0xE7,					/* b		wait_fifo */
+		0xDF, 0xE7,					/* b		wait_fifo */
 									/* error: */
 		0x00, 0x21,					/* movs		r1, #0 */
 		0x41, 0x60,					/* str		r1, [r0, #4] */
