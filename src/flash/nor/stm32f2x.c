@@ -59,16 +59,20 @@
  * To reduce testing complexity and dangers of regressions,
  * a seperate file is used for stm32fx2x.
  *
- * 1mByte part with 4 x 16, 1 x 64, 7 x 128kBytes sectors
+ * Sector sizes in kiBytes:
+ * 1 MiByte part with 4 x 16, 1 x 64, 7 x 128.
+ * 2 MiByte part with 4 x 16, 1 x 64, 7 x 128, 4 x 16, 1 x 64, 7 x 128.
+ * 1 MiByte STM32F42x/43x part with DB1M Option set:
+ *                    4 x 16, 1 x 64, 3 x 128, 4 x 16, 1 x 64, 3 x 128.
  *
- * What's the protection page size???
+ * Protection size is sector size.
  *
  * Tested with STM3220F-EVAL board.
  *
- * STM32F21xx series for reference.
+ * STM32F4xx series for reference.
  *
- * RM0033
- * http://www.st.com/internet/mcu/product/250192.jsp
+ * RM0090
+ * http://www.st.com/web/en/resource/technical/document/reference_manual/DM00031020.pdf
  *
  * PM0059
  * www.st.com/internet/com/TECHNICAL_RESOURCES/TECHNICAL_LITERATURE/
@@ -140,6 +144,7 @@
 #define OPT_RDRSTSTOP  3
 #define OPT_RDRSTSTDBY 4
 #define OPT_BFB2       5	/* dual flash bank only */
+#define OPT_DB1M       14	/* 1 MiB devices dual flash bank option */
 
 /* register unlock keys */
 
@@ -807,10 +812,6 @@ static int stm32x_probe(struct flash_bank *bank)
 		flash_size_in_kb = stm32x_info->user_bank_size / 1024;
 	}
 
-	/* only devices with > 1024kB have dual banks */
-	if (flash_size_in_kb > 1024)
-		stm32x_info->has_large_mem = true;
-
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
 	/* did we assign flash size? */
@@ -819,7 +820,25 @@ static int stm32x_probe(struct flash_bank *bank)
 	/* calculate numbers of pages */
 	int num_pages = (flash_size_in_kb / 128) + 4;
 
-	/* check for larger 2048 bytes devices */
+	/* Devices with > 1024 kiByte always are dual-banked */
+	if (flash_size_in_kb > 1024)
+		stm32x_info->has_large_mem = true;
+
+	/* F42x/43x 1024 kiByte devices have a dual bank option */
+	if ((device_id & 0xfff) == 0x419 && (flash_size_in_kb == 1024)) {
+		uint32_t optiondata;
+		retval = target_read_u32(target, STM32_FLASH_OPTCR, &optiondata);
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("unable to read option bytes");
+			return retval;
+		}
+		if (optiondata & (1 << OPT_DB1M)) {
+			stm32x_info->has_large_mem = true;
+			LOG_INFO("Dual Bank 1024 kiB STM32F42x/43x found");
+		}
+	}
+
+	/* check for dual-banked devices */
 	if (stm32x_info->has_large_mem)
 		num_pages += 4;
 
@@ -840,19 +859,21 @@ static int stm32x_probe(struct flash_bank *bank)
 	setup_sector(bank, 0, 4, 16 * 1024);
 	setup_sector(bank, 4, 1, 64 * 1024);
 
-	/* dynamic memory */
-	setup_sector(bank, 4 + 1, MIN(12, num_pages) - 5, 128 * 1024);
-
 	if (stm32x_info->has_large_mem) {
-
-		/* fixed memory for larger devices */
-		setup_sector(bank, 12, 4, 16 * 1024);
-		setup_sector(bank, 16, 1, 64 * 1024);
-
-		/* dynamic memory for larger devices */
-		setup_sector(bank, 16 + 1, num_pages - 5 - 12, 128 * 1024);
+		if (flash_size_in_kb == 1024) {
+			setup_sector(bank,  5, 3, 128 * 1024);
+			setup_sector(bank, 12, 4,  16 * 1024);
+			setup_sector(bank, 16, 1,  64 * 1024);
+			setup_sector(bank, 17, 3, 128 * 1024);
+		} else {
+			setup_sector(bank,  5, 7, 128 * 1024);
+			setup_sector(bank, 12, 4,  16 * 1024);
+			setup_sector(bank, 16, 1,  64 * 1024);
+			setup_sector(bank, 17, 7, 128 * 1024);
+		}
+	} else {
+		setup_sector(bank, 4 + 1, MIN(12, num_pages) - 5, 128 * 1024);
 	}
-
 	for (i = 0; i < num_pages; i++) {
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = 0;
