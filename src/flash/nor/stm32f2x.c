@@ -65,6 +65,9 @@
  * 1 MiByte STM32F42x/43x part with DB1M Option set:
  *                    4 x 16, 1 x 64, 3 x 128, 4 x 16, 1 x 64, 3 x 128.
  *
+ * STM32F7
+ * 1 MiByte part with 4 x 32, 1 x 128, 3 x 256.
+ *
  * Protection size is sector size.
  *
  * Tested with STM3220F-EVAL board.
@@ -77,6 +80,11 @@
  * PM0059
  * www.st.com/internet/com/TECHNICAL_RESOURCES/TECHNICAL_LITERATURE/
  * PROGRAMMING_MANUAL/CD00233952.pdf
+ *
+ * STM32F7xx series for reference.
+ *
+ * RM0385
+ * http://www.st.com/web/en/resource/technical/document/reference_manual/DM00124865.pdf
  *
  * STM32F1x series - notice that this code was copy, pasted and knocked
  * into a stm32f2x driver, so in case something has been converted or
@@ -759,6 +767,8 @@ static int stm32x_probe(struct flash_bank *bank)
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	int i;
 	uint16_t flash_size_in_kb;
+	uint32_t flash_size_reg = 0x1FFF7A22;
+	uint16_t max_sector_size_in_kb = 128;
 	uint16_t max_flash_size_in_kb;
 	uint32_t device_id;
 	uint32_t base_address = 0x08000000;
@@ -789,13 +799,18 @@ static int stm32x_probe(struct flash_bank *bank)
 	case 0x421:
 		max_flash_size_in_kb = 512;
 		break;
+	case 0x449:
+		max_flash_size_in_kb = 1024;
+		max_sector_size_in_kb = 256;
+		flash_size_reg = 0x1FF0F442;
+		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
 	}
 
 	/* get flash size from target. */
-	retval = target_read_u16(target, 0x1FFF7A22, &flash_size_in_kb);
+	retval = target_read_u16(target, flash_size_reg, &flash_size_in_kb);
 
 	/* failed reading flash size or flash size invalid (early silicon),
 	 * default to max target family */
@@ -818,7 +833,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	assert(flash_size_in_kb != 0xffff);
 
 	/* calculate numbers of pages */
-	int num_pages = (flash_size_in_kb / 128) + 4;
+	int num_pages = (flash_size_in_kb / max_sector_size_in_kb) + 4;
 
 	/* Devices with > 1024 kiByte always are dual-banked */
 	if (flash_size_in_kb > 1024)
@@ -856,8 +871,8 @@ static int stm32x_probe(struct flash_bank *bank)
 	bank->size = 0;
 
 	/* fixed memory */
-	setup_sector(bank, 0, 4, 16 * 1024);
-	setup_sector(bank, 4, 1, 64 * 1024);
+	setup_sector(bank, 0, 4, (max_sector_size_in_kb / 8) * 1024);
+	setup_sector(bank, 4, 1, (max_sector_size_in_kb / 2) * 1024);
 
 	if (stm32x_info->has_large_mem) {
 		if (flash_size_in_kb == 1024) {
@@ -872,7 +887,8 @@ static int stm32x_probe(struct flash_bank *bank)
 			setup_sector(bank, 17, 7, 128 * 1024);
 		}
 	} else {
-		setup_sector(bank, 4 + 1, MIN(12, num_pages) - 5, 128 * 1024);
+		setup_sector(bank, 4 + 1, MIN(12, num_pages) - 5,
+					 max_sector_size_in_kb * 1024);
 	}
 	for (i = 0; i < num_pages; i++) {
 		bank->sectors[i].is_erased = -1;
@@ -984,8 +1000,22 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		}
 		break;
 
+	case 0x449:
+		device_str = "STM32F7[4|5]x";
+
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "A";
+			break;
+
+		case 0x1001:
+			rev_str = "Z";
+			break;
+		}
+		break;
+
 	default:
-		snprintf(buf, buf_size, "Cannot identify target as a STM32F2/4\n");
+		snprintf(buf, buf_size, "Cannot identify target as a STM32F2/4/7\n");
 		return ERROR_FAIL;
 	}
 
