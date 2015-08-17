@@ -26,6 +26,7 @@
 #include "register.h"
 #include "target_request.h"
 #include "target_type.h"
+#include "target_type64.h"
 #include "arm_opcodes.h"
 #include <helper/time_support.h>
 
@@ -42,7 +43,7 @@ static int aarch64_unset_breakpoint(struct target *target,
 	struct breakpoint *breakpoint);
 static int aarch64_mmu(struct target *target, int *enabled);
 static int aarch64_virt2phys(struct target *target,
-	target_ulong virt, target_ulong *phys);
+	uint64_t virt, uint64_t *phys);
 static int aarch64_read_apb_ab_memory(struct target *target,
 	uint64_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 static int aarch64_instr_write_data_r0(struct arm_dpm *dpm,
@@ -1030,7 +1031,7 @@ static int aarch64_restore_smp(struct target *target, int handle_breakpoints)
 }
 
 static int aarch64_resume(struct target *target, int current,
-	target_ulong address, int handle_breakpoints, int debug_execution)
+	uint64_t address, int handle_breakpoints, int debug_execution)
 {
 	int retval = 0;
 	uint64_t addr = address;
@@ -1057,11 +1058,11 @@ static int aarch64_resume(struct target *target, int current,
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%" PRIu64, addr);
+		LOG_DEBUG("target resumed at 0x%.16" PRIX64, addr);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%" PRIu64, addr);
+		LOG_DEBUG("target debug resumed at 0x%.16" PRIX64, addr);
 	}
 
 	return ERROR_OK;
@@ -1158,7 +1159,7 @@ static int aarch64_post_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
-static int aarch64_step(struct target *target, int current, target_ulong address,
+static int aarch64_step(struct target *target, int current, uint64_t address,
 	int handle_breakpoints)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
@@ -1284,7 +1285,7 @@ static int aarch64_set_breakpoint(struct target *target,
 				brp_list[brp_i].control);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%" PRIXX, brp_i,
+		LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%.16" PRIx64, brp_i,
 			brp_list[brp_i].control,
 			brp_list[brp_i].value);
 
@@ -1362,9 +1363,8 @@ static int aarch64_set_context_breakpoint(struct target *target,
 			brp_list[brp_i].control);
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%" PRIXX, brp_i,
-		brp_list[brp_i].control,
-		brp_list[brp_i].value);
+	LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%.16" PRIx64,
+		brp_i, brp_list[brp_i].control, brp_list[brp_i].value);
 	return ERROR_OK;
 
 }
@@ -1470,8 +1470,8 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 				LOG_DEBUG("Invalid BRP number in breakpoint");
 				return ERROR_OK;
 			}
-			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%" PRIXX, brp_i,
-				brp_list[brp_i].control, brp_list[brp_i].value);
+			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%.16" PRIx64,
+				brp_i, brp_list[brp_i].control, brp_list[brp_i].value);
 			brp_list[brp_i].used = 0;
 			brp_list[brp_i].value = 0;
 			brp_list[brp_i].control = 0;
@@ -1484,8 +1484,8 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 				LOG_DEBUG("Invalid BRP number in breakpoint");
 				return ERROR_OK;
 			}
-			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%" PRIXX, brp_j,
-				brp_list[brp_j].control, brp_list[brp_j].value);
+			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%.16" PRIx64,
+				brp_j, brp_list[brp_j].control, brp_list[brp_j].value);
 			brp_list[brp_j].used = 0;
 			brp_list[brp_j].value = 0;
 			brp_list[brp_j].control = 0;
@@ -1504,8 +1504,8 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 				LOG_DEBUG("Invalid BRP number in breakpoint");
 				return ERROR_OK;
 			}
-			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%" PRIXX, brp_i,
-				brp_list[brp_i].control, brp_list[brp_i].value);
+			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%.16" PRIx64,
+				brp_i, brp_list[brp_i].control, brp_list[brp_i].value);
 			brp_list[brp_i].used = 0;
 			brp_list[brp_i].value = 0;
 			brp_list[brp_i].control = 0;
@@ -1917,15 +1917,15 @@ error_free_buff_r:
 }
 
 static int aarch64_read_phys_memory(struct target *target,
-	target_ulong address, uint32_t size,
+	uint64_t address, uint32_t size,
 	uint32_t count, uint8_t *buffer)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct adiv5_dap *swjdp = armv8->arm.dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
-	LOG_DEBUG("Reading memory at real address 0x%" PRIXX "; size %" PRId32 "; count %" PRId32,
-		address, size, count);
+	LOG_DEBUG("Reading memory at real address 0x%.16" PRIX64 "; size %" PRId32
+		"; count %" PRId32, address, size, count);
 
 	if (count && buffer) {
 
@@ -1944,18 +1944,18 @@ static int aarch64_read_phys_memory(struct target *target,
 	return retval;
 }
 
-static int aarch64_read_memory(struct target *target, target_ulong address,
+static int aarch64_read_memory(struct target *target, uint64_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int mmu_enabled = 0;
-	target_ulong virt, phys;
+	uint64_t virt, phys;
 	int retval;
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct adiv5_dap *swjdp = armv8->arm.dap;
 	uint8_t apsel = swjdp->apsel;
 
 	/* aarch64 handles unaligned memory access */
-	LOG_DEBUG("Reading memory at address 0x%" PRIXX "; size %" PRId32
+	LOG_DEBUG("Reading memory at address 0x%.16" PRIX64 "; size %" PRId32
 		  "; count %" PRId32, address, size, count);
 
 	/* determine if MMU was enabled on target stop */
@@ -1972,8 +1972,8 @@ static int aarch64_read_memory(struct target *target, target_ulong address,
 			if (retval != ERROR_OK)
 				return retval;
 
-			LOG_DEBUG("Reading at virtual address. Translating v:0x%"
-				  PRIXX " to r:0x%" PRIXX, virt, phys);
+			LOG_DEBUG("Reading at virtual address. Translating virt:0x%.16"
+				PRIX64 " to phys:0x%.16" PRIX64, virt, phys);
 			address = phys;
 		}
 		retval = aarch64_read_phys_memory(target, address, size, count,
@@ -1996,7 +1996,7 @@ static int aarch64_read_memory(struct target *target, target_ulong address,
 }
 
 static int aarch64_write_phys_memory(struct target *target,
-	target_ulong address, uint32_t size,
+	uint64_t address, uint32_t size,
 	uint32_t count, const uint8_t *buffer)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
@@ -2004,8 +2004,8 @@ static int aarch64_write_phys_memory(struct target *target,
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	uint8_t apsel = swjdp->apsel;
 
-	LOG_DEBUG("Writing memory to real address 0x%" PRIXX "; size %" PRId32 "; count %" PRId32, address,
-		size, count);
+	LOG_DEBUG("Writing memory to real address 0x%.16" PRIX64 "; size %" PRId32
+		"; count %" PRId32, address, size, count);
 
 	if (count && buffer) {
 
@@ -2083,18 +2083,18 @@ static int aarch64_write_phys_memory(struct target *target,
 	return retval;
 }
 
-static int aarch64_write_memory(struct target *target, target_ulong address,
+static int aarch64_write_memory(struct target *target, uint64_t address,
 	uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	int mmu_enabled = 0;
-	target_ulong virt, phys;
+	uint64_t virt, phys;
 	int retval;
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct adiv5_dap *swjdp = armv8->arm.dap;
 	uint8_t apsel = swjdp->apsel;
 
 	/* aarch64 handles unaligned memory access */
-	LOG_DEBUG("Writing memory at address 0x%" PRIXX "; size %" PRId32
+	LOG_DEBUG("Writing memory at address 0x%.16" PRIX64 "; size %" PRId32
 		  "; count %" PRId32, address, size, count);
 
 	/* determine if MMU was enabled on target stop */
@@ -2105,16 +2105,16 @@ static int aarch64_write_memory(struct target *target, target_ulong address,
 	}
 
 	if (armv8->memory_ap_available && (apsel == armv8->memory_ap)) {
-		LOG_DEBUG("Writing memory to address 0x%" PRIXX "; size %"
-			  PRId32 "; count %" PRId32, address, size, count);
+		LOG_DEBUG("Writing memory to address 0x%.16" PRIX64 "; size %"
+			PRId32 "; count %" PRId32, address, size, count);
 		if (mmu_enabled) {
 			virt = address;
 			retval = aarch64_virt2phys(target, virt, &phys);
 			if (retval != ERROR_OK)
 				return retval;
 
-			LOG_DEBUG("Writing to virtual address. Translating v:0x%"
-				  PRIXX " to r:0x%" PRIXX, virt, phys);
+			LOG_DEBUG("Writing to virtual address. Translating virt:0x%.16"
+				PRIX64 " to phys:0x%.16" PRIX64, virt, phys);
 			address = phys;
 		}
 		retval = aarch64_write_phys_memory(target, address, size,
@@ -2404,8 +2404,8 @@ static int aarch64_mmu(struct target *target, int *enabled)
 	return ERROR_OK;
 }
 
-static int aarch64_virt2phys(struct target *target, target_ulong virt,
-			     target_ulong *phys)
+static int aarch64_virt2phys(struct target *target, uint64_t virt,
+			     uint64_t *phys)
 {
 	int retval = ERROR_FAIL;
 	struct armv8_common *armv8 = target_to_armv8(target);
@@ -2562,7 +2562,7 @@ static const struct command_registration aarch64_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct target_type aarch64_target = {
+struct target_type_64 aarch64_target = {
 	.name = "aarch64",
 
 	.poll = aarch64_poll,
@@ -2581,10 +2581,12 @@ struct target_type aarch64_target = {
 	.read_memory = aarch64_read_memory,
 	.write_memory = aarch64_write_memory,
 
+#if 0	/* Alamy: Enable later */
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
 
 	.run_algorithm = armv4_5_run_algorithm,
+#endif
 
 	.add_breakpoint = aarch64_add_breakpoint,
 	.add_context_breakpoint = aarch64_add_context_breakpoint,

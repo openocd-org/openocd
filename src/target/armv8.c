@@ -60,7 +60,7 @@ static int armv8_read_core_reg(struct target *target, struct reg *r,
 
 #if 0
 static int armv8_write_core_reg(struct target *target, struct reg *r,
-	int num, enum arm_mode mode, target_ulong value)
+	int num, enum arm_mode mode, uint64_t value)
 {
 	int retval;
 	struct arm_reg *armv8_core_reg;
@@ -226,8 +226,8 @@ done:
 }
 
 /*  V8 method VA TO PA  */
-int armv8_mmu_translate_va_pa(struct target *target, target_ulong va,
-	target_ulong *val, int meminfo)
+int armv8_mmu_translate_va_pa(struct target *target, uint64_t va,
+	uint64_t *val, int meminfo)
 {
 	return ERROR_OK;
 }

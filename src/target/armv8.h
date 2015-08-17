@@ -116,7 +116,7 @@ struct armv8_mmu_common {
 	uint32_t ttbr0_mask;/*  masked to be used  */
 	uint32_t os_border;
 
-	int (*read_physical_memory)(struct target *target, target_ulong address,
+	int (*read_physical_memory)(struct target *target, uint64_t address,
 			uint32_t size, uint32_t count, uint8_t *buffer);
 	struct armv8_cache_common armv8_cache;
 	uint32_t mmu_enabled;
@@ -193,8 +193,8 @@ target_to_armv8(struct target *target)
 int armv8_arch_state(struct target *target);
 int armv8_identify_cache(struct target *target);
 int armv8_init_arch_info(struct target *target, struct armv8_common *armv8);
-int armv8_mmu_translate_va_pa(struct target *target, target_ulong va,
-		target_ulong *val, int meminfo);
+int armv8_mmu_translate_va_pa(struct target *target, uint64_t va,
+		uint64_t *val, int meminfo);
 int armv8_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val);
 
 int armv8_handle_cache_info_command(struct command_context *cmd_ctx,

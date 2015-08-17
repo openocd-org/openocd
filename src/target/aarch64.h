@@ -39,7 +39,7 @@
 struct aarch64_brp {
 	int used;
 	int type;
-	target_ulong value;
+	uint64_t value;
 	uint32_t control;
 	uint8_t BRPn;
 };
