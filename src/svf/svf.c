@@ -223,7 +223,7 @@ static char *svf_read_line;
 static size_t svf_read_line_size;
 static char *svf_command_buffer;
 static size_t svf_command_buffer_size;
-static int svf_line_number = 1;
+static int svf_line_number;
 static int svf_getline(char **lineptr, size_t *n, FILE *stream);
 
 #define SVF_MAX_BUFFER_SIZE_TO_COMMIT   (1024 * 1024)
@@ -417,7 +417,7 @@ COMMAND_HANDLER(handle_svf_command)
 	time_measure_ms = timeval_ms();
 
 	/* init */
-	svf_line_number = 1;
+	svf_line_number = 0;
 	svf_command_buffer_size = 0;
 
 	svf_check_tdo_para_index = 0;
