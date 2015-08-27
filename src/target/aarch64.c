@@ -374,7 +374,8 @@ static int aarch64_dpm_prepare(struct arm_dpm *dpm)
 
 		/* Clear sticky error */
 		retval = mem_ap_sel_write_u32(swjdp, a8->armv8_common.debug_ap,
-			a8->armv8_common.debug_base + CPUDBG_DRCR, DRCR_CSE);
+			a8->armv8_common.debug_base + ARMV8_REG_EDRCR_OFST,
+			ARMV8_EDRCR_CSE);
 		if (retval != ERROR_OK)
 			return retval;
 

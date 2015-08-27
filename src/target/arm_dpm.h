@@ -206,14 +206,24 @@ void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 #define DSCR_EXT_DCC_STALL_MODE       (0x1 << 20)
 #define DSCR_EXT_DCC_FAST_MODE        (0x2 << 20)  /* bits 22, 23 are reserved */
 
-
-
-
-
 /* DRCR (debug run control register) bits */
 #define DRCR_HALT				(1 << 0)
 #define DRCR_RESTART			(1 << 1)
 #define DRCR_CLEAR_EXCEPTIONS	(1 << 2)
+
+
+/* ------------------------------ ARMv8 ------------------------------
+ * DDI0487A.f (ID032515)	ARM Architecture Reference Manual
+ *							ARMv8, for ARMv8-A architecture profile
+ */
+
+/* Fields of the EDRCR register */
+
+#define ARMV8_REG_EDRCR_OFST		(0x090)
+#define ARMV8_EDRCR_CSE				(1 << 2)	/* Clear Sticky Error */
+#define ARMV8_EDRCR_CSPA			(1 << 3)	/* Clear Sticky Pipeline Advance */
+#define ARMV8_EDRCR_CBRRQ			(1 << 4)	/* Allow imprecise entry to Debug state */
+
 
 void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dcsr);
 
