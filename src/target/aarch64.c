@@ -653,14 +653,16 @@ static int aarch64_dpm_setup(struct aarch64_common *a8, uint32_t debug)
 	dpm->instr_read_data_r0 = aarch64_instr_read_data_r0;
 	dpm->instr_read_data_r0_64 = aarch64_instr_read_data_r0_64;
 
-	dpm->arm_reg_current = armv8_reg_current;
-
 	dpm->bpwp_enable = aarch64_bpwp_enable;
 	dpm->bpwp_disable = aarch64_bpwp_disable;
 
 	retval = arm_dpm_setup(dpm);
-	if (retval == ERROR_OK)
-		retval = arm_dpm_initialize(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	dpm->arm_reg_current = armv8_reg_current;
+
+	retval = arm_dpm_initialize(dpm);
 
 	return retval;
 }
