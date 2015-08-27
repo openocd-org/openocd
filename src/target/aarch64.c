@@ -895,6 +895,8 @@ static int aarch64_internal_restore(struct target *target, int current,
 	 */
 	switch (arm->core_state) {
 		case ARM_STATE_ARM:
+			resume_pc &= 0xFFFFFFFC;
+			break;
 		case ARM_STATE_AARCH64:
 			resume_pc &= 0xFFFFFFFFFFFFFFFC;
 			break;
