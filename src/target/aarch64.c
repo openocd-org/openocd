@@ -367,10 +367,18 @@ static int aarch64_dpm_prepare(struct arm_dpm *dpm)
 	if (dscr & DSCR_DTR_RX_FULL) {
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
 		/* Clear DCCRX */
-		retval = aarch64_exec_opcode(
-				a8->armv8_common.arm.target,
-				0xd5130400,
-				&dscr);
+		retval = mem_ap_sel_read_u32(swjdp, a8->armv8_common.debug_ap,
+			a8->armv8_common.debug_base + CPUDBG_DTRRX, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* Clear sticky error */
+		retval = mem_ap_sel_write_u32(swjdp, a8->armv8_common.debug_ap,
+			a8->armv8_common.debug_base + CPUDBG_DRCR, DRCR_CSE);
+		if (retval != ERROR_OK)
+			return retval;
+
+		retval = dap_run(swjdp);
 		if (retval != ERROR_OK)
 			return retval;
 	}
