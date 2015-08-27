@@ -249,8 +249,8 @@ static int aarch64_write_dcc(struct aarch64_common *a8, uint32_t data)
 static int aarch64_write_dcc_64(struct aarch64_common *a8, uint64_t data)
 {
 	int ret;
-	LOG_DEBUG("write DCC 0x%08" PRIx32, (unsigned)data);
-	LOG_DEBUG("write DCC 0x%08" PRIx32, (unsigned)(data >> 32));
+	LOG_DEBUG("write DCC(lo) 0x%08" PRIx32, (unsigned)data);
+	LOG_DEBUG("write DCC(hi) 0x%08" PRIx32, (unsigned)(data >> 32));
 	ret = mem_ap_sel_write_u32(a8->armv8_common.arm.dap,
 		a8->armv8_common.debug_ap, a8->armv8_common.debug_base + CPUDBG_DTRRX, data);
 	ret += mem_ap_sel_write_u32(a8->armv8_common.arm.dap,
@@ -913,7 +913,7 @@ static int aarch64_internal_restore(struct target *target, int current,
 	buf_set_u64(arm->pc->value, 0, 64, resume_pc);
 	arm->pc->dirty = 1;
 	arm->pc->valid = 1;
-#if 0
+#if 0	/* Alamy */
 	/* restore dpm_mode at system halt */
 	dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 #endif
@@ -1725,7 +1725,7 @@ static int aarch64_write_apb_ab_memory(struct target *target,
 		return retval;
 
 	/* This algorithm comes from either :
-	 * Cortex-A8 TRM Example 12-25
+	 * Cortex-A TRM Example 12-25
 	 * Cortex-R4 TRM Example 11-26
 	 * (slight differences)
 	 */
