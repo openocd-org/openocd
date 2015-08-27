@@ -11,6 +11,9 @@
  *   Copyright (C) 2015 by Marc Schink                                     *
  *   openocd-dev@marcschink.de                                             *
  *                                                                         *
+ *   Copyright (C) 2015 by Paul Fertser                                    *
+ *   fercerpav@gmail.com                                                   *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -83,9 +86,8 @@ static struct device_config tmp_config;
 static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
 static void jlink_path_move(int num_states, tap_state_t *path);
+static void jlink_stableclocks(int num_cycles);
 static void jlink_runtest(int num_cycles);
-static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
-		int scan_size, struct scan_command *command);
 static void jlink_reset(int trst, int srst);
 static int jlink_swd_run_queue(void);
 static void jlink_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk);
@@ -93,17 +95,37 @@ static int jlink_swd_switch_seq(enum swd_special_seq seq);
 
 /* J-Link tap buffer functions */
 static void jlink_tap_init(void);
-static int jlink_tap_execute(void);
-static void jlink_tap_ensure_space(int scans, int bits);
-static void jlink_tap_append_step(int tms, int tdi);
-static void jlink_tap_append_scan(int length, uint8_t *buffer,
-		struct scan_command *command);
+static int jlink_flush(void);
+/**
+ * Queue data to go out and in, flushing the queue as many times as
+ * necessary.
+ *
+ * @param out A pointer to TDI data, if NULL, old stale data will be used.
+ * @param out_offset A bit offset for TDI data.
+ * @param tms_out A pointer to TMS data, if NULL, zeroes will be emitted.
+ * @param tms_offset A bit offset for TMS data.
+ * @param in A pointer to store TDO data to, if NULL the data will be discarded.
+ * @param in_offset A bit offset for TDO data.
+ * @param length Amount of bits to transfer out and in.
+ *
+ * @retval This function doesn't return any value.
+ */
+static void jlink_clock_data(const uint8_t *out, unsigned out_offset,
+			     const uint8_t *tms_out, unsigned tms_offset,
+			     uint8_t *in, unsigned in_offset,
+			     unsigned length);
 
 static enum tap_state jlink_last_state = TAP_RESET;
 static int queued_retval;
 
 /***************************************************************************/
 /* External interface implementation */
+
+static void jlink_execute_stableclocks(struct jtag_command *cmd)
+{
+	DEBUG_JTAG_IO("stableclocks %i cycles", cmd->cmd.runtest->num_cycles);
+	jlink_stableclocks(cmd->cmd.runtest->num_cycles);
+}
 
 static void jlink_execute_runtest(struct jtag_command *cmd)
 {
@@ -133,19 +155,95 @@ static void jlink_execute_pathmove(struct jtag_command *cmd)
 
 static void jlink_execute_scan(struct jtag_command *cmd)
 {
-	int scan_size;
-	enum scan_type type;
-	uint8_t *buffer;
+	DEBUG_JTAG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
+		jtag_scan_type(cmd->cmd.scan));
 
-	DEBUG_JTAG_IO("scan end in %s", tap_state_name(cmd->cmd.scan->end_state));
+	/* Make sure there are no trailing fields with num_bits == 0, or the logic below will fail. */
+	while (cmd->cmd.scan->num_fields > 0
+			&& cmd->cmd.scan->fields[cmd->cmd.scan->num_fields - 1].num_bits == 0) {
+		cmd->cmd.scan->num_fields--;
+		LOG_DEBUG("discarding trailing empty field");
+	}
+
+	if (cmd->cmd.scan->num_fields == 0) {
+		LOG_DEBUG("empty scan, doing nothing");
+		return;
+	}
+
+	if (cmd->cmd.scan->ir_scan) {
+		if (tap_get_state() != TAP_IRSHIFT) {
+			jlink_end_state(TAP_IRSHIFT);
+			jlink_state_move();
+		}
+	} else {
+		if (tap_get_state() != TAP_DRSHIFT) {
+			jlink_end_state(TAP_DRSHIFT);
+			jlink_state_move();
+		}
+	}
 
 	jlink_end_state(cmd->cmd.scan->end_state);
 
-	scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
-	DEBUG_JTAG_IO("scan input, length = %d", scan_size);
+	struct scan_field *field = cmd->cmd.scan->fields;
+	unsigned scan_size = 0;
 
-	type = jtag_scan_type(cmd->cmd.scan);
-	jlink_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
+	for (int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
+		scan_size += field->num_bits;
+		DEBUG_JTAG_IO("%s%s field %d/%d %d bits",
+			field->in_value ? "in" : "",
+			field->out_value ? "out" : "",
+			i,
+			cmd->cmd.scan->num_fields,
+			field->num_bits);
+
+		if (i == cmd->cmd.scan->num_fields - 1 && tap_get_state() != tap_get_end_state()) {
+			/* Last field, and we're leaving IRSHIFT/DRSHIFT. Clock last bit during tap
+			 * movement. This last field can't have length zero, it was checked above. */
+			jlink_clock_data(field->out_value,
+					 0,
+					 NULL,
+					 0,
+					 field->in_value,
+					 0,
+					 field->num_bits - 1);
+			uint8_t last_bit = 0;
+			if (field->out_value)
+				bit_copy(&last_bit, 0, field->out_value, field->num_bits - 1, 1);
+			uint8_t tms_bits = 0x01;
+			jlink_clock_data(&last_bit,
+					 0,
+					 &tms_bits,
+					 0,
+					 field->in_value,
+					 field->num_bits - 1,
+					 1);
+			tap_set_state(tap_state_transition(tap_get_state(), 1));
+			jlink_clock_data(&last_bit,
+					 0,
+					 &tms_bits,
+					 1,
+					 NULL,
+					 0,
+					 1);
+			tap_set_state(tap_state_transition(tap_get_state(), 0));
+		} else
+			jlink_clock_data(field->out_value,
+					 0,
+					 NULL,
+					 0,
+					 field->in_value,
+					 0,
+					 field->num_bits);
+	}
+
+	if (tap_get_state() != tap_get_end_state()) {
+		jlink_end_state(tap_get_end_state());
+		jlink_state_move();
+	}
+
+	DEBUG_JTAG_IO("%s scan, %i bits, end in %s",
+		(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
+		tap_state_name(tap_get_end_state()));
 }
 
 static void jlink_execute_reset(struct jtag_command *cmd)
@@ -153,21 +251,24 @@ static void jlink_execute_reset(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst,
 		cmd->cmd.reset->srst);
 
-	jlink_tap_execute();
+	jlink_flush();
 	jlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-	jlink_tap_execute();
+	jlink_flush();
 }
 
 static void jlink_execute_sleep(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("sleep %" PRIi32 "", cmd->cmd.sleep->us);
-	jlink_tap_execute();
+	jlink_flush();
 	jtag_sleep(cmd->cmd.sleep->us);
 }
 
 static int jlink_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
+		case JTAG_STABLECLOCKS:
+			jlink_execute_stableclocks(cmd);
+			break;
 		case JTAG_RUNTEST:
 			jlink_execute_runtest(cmd);
 			break;
@@ -208,7 +309,7 @@ static int jlink_execute_queue(void)
 		cmd = cmd->next;
 	}
 
-	return jlink_tap_execute();
+	return jlink_flush();
 }
 
 static int jlink_speed(int speed)
@@ -597,10 +698,10 @@ static int jlink_init(void)
 		 * if the first tap move is not divisible by 8, so we send a TLR on
 		 * first power up.
 		 */
-		for (i = 0; i < 8; i++)
-			jlink_tap_append_step(1, 0);
+		uint8_t tms = 0xff;
+		jlink_clock_data(NULL, 0, &tms, 0, NULL, 0, 8);
 
-		jlink_tap_execute();
+		jlink_flush();
 	}
 
 	return ERROR_OK;
@@ -648,18 +749,13 @@ static void jlink_end_state(tap_state_t state)
 /* Goes to the end state. */
 static void jlink_state_move(void)
 {
-	int i;
-	int tms = 0;
 	uint8_t tms_scan;
 	uint8_t tms_scan_bits;
 
 	tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	tms_scan_bits = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
-	for (i = 0; i < tms_scan_bits; i++) {
-		tms = (tms_scan >> i) & 1;
-		jlink_tap_append_step(tms, 0);
-	}
+	jlink_clock_data(NULL, 0, &tms_scan, 0, NULL, 0, tms_scan_bits);
 
 	tap_set_state(tap_get_end_state());
 }
@@ -667,12 +763,13 @@ static void jlink_state_move(void)
 static void jlink_path_move(int num_states, tap_state_t *path)
 {
 	int i;
+	uint8_t tms = 0xff;
 
 	for (i = 0; i < num_states; i++) {
 		if (path[i] == tap_state_transition(tap_get_state(), false))
-			jlink_tap_append_step(0, 0);
+			jlink_clock_data(NULL, 0, NULL, 0, NULL, 0, 1);
 		else if (path[i] == tap_state_transition(tap_get_state(), true))
-			jlink_tap_append_step(1, 0);
+			jlink_clock_data(NULL, 0, &tms, 0, NULL, 0, 1);
 		else {
 			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition.",
 				tap_state_name(tap_get_state()), tap_state_name(path[i]));
@@ -685,13 +782,19 @@ static void jlink_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-static void jlink_runtest(int num_cycles)
+static void jlink_stableclocks(int num_cycles)
 {
 	int i;
 
-	tap_state_t saved_end_state = tap_get_end_state();
+	uint8_t tms = tap_get_state() == TAP_RESET;
+	/* Execute num_cycles. */
+	for (i = 0; i < num_cycles; i++)
+		jlink_clock_data(NULL, 0, &tms, 0, NULL, 0, 1);
+}
 
-	jlink_tap_ensure_space(1, num_cycles + 16);
+static void jlink_runtest(int num_cycles)
+{
+	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* Only do a state_move when we're not already in IDLE. */
 	if (tap_get_state() != TAP_IDLE) {
@@ -700,42 +803,10 @@ static void jlink_runtest(int num_cycles)
 		/* num_cycles--; */
 	}
 
-	/* Execute num_cycles. */
-	for (i = 0; i < num_cycles; i++)
-		jlink_tap_append_step(0, 0);
+	jlink_stableclocks(num_cycles);
 
 	/* Finish in end_state. */
 	jlink_end_state(saved_end_state);
-
-	if (tap_get_state() != tap_get_end_state())
-		jlink_state_move();
-}
-
-static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
-		int scan_size, struct scan_command *command)
-{
-	tap_state_t saved_end_state;
-
-	jlink_tap_ensure_space(1, scan_size + 16);
-
-	saved_end_state = tap_get_end_state();
-
-	/* Move to appropriate scan state. */
-	jlink_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
-
-	/* Only move if we're not already there. */
-	if (tap_get_state() != tap_get_end_state())
-		jlink_state_move();
-
-	jlink_end_state(saved_end_state);
-
-	/* Scan. */
-	jlink_tap_append_scan(scan_size, buffer, command);
-
-	/* We are in Exit1, go to Pause. */
-	jlink_tap_append_step(0, 0);
-
-	tap_set_state(ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE);
 
 	if (tap_get_state() != tap_get_end_state())
 		jlink_state_move();
@@ -1596,10 +1667,14 @@ static uint8_t tdi_buffer[JLINK_TAP_BUFFER_SIZE];
 static uint8_t tdo_buffer[JLINK_TAP_BUFFER_SIZE];
 
 struct pending_scan_result {
-	int first; /* First bit position in tdo_buffer to read. */
-	int length; /* Number of bits to read. */
-	struct scan_command *command; /* Corresponding scan command. */
+	/** First bit position in tdo_buffer to read. */
+	unsigned first;
+	/** Number of bits to read. */
+	unsigned length;
+	/** Location to store the result */
 	void *buffer;
+	/** Offset in the destination buffer */
+	unsigned buffer_offset;
 };
 
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -1611,78 +1686,58 @@ static void jlink_tap_init(void)
 {
 	tap_length = 0;
 	pending_scan_results_length = 0;
+	memset(tms_buffer, 0, sizeof(tdi_buffer));
 }
 
-static void jlink_tap_ensure_space(int scans, int bits)
+static void jlink_clock_data(const uint8_t *out, unsigned out_offset,
+			     const uint8_t *tms_out, unsigned tms_offset,
+			     uint8_t *in, unsigned in_offset,
+			     unsigned length)
 {
-	int available_scans = MAX_PENDING_SCAN_RESULTS - pending_scan_results_length;
-	int available_bits = JLINK_TAP_BUFFER_SIZE * 8 - tap_length - 32;
+	do {
+		unsigned available_length = JLINK_TAP_BUFFER_SIZE - tap_length / 8;
 
-	if (scans > available_scans || bits > available_bits)
-		jlink_tap_execute();
+		if (!available_length ||
+		    (in && pending_scan_results_length == MAX_PENDING_SCAN_RESULTS)) {
+			if (jlink_flush() != ERROR_OK)
+				return;
+			available_length = JLINK_TAP_BUFFER_SIZE;
+		}
+
+		struct pending_scan_result *pending_scan_result =
+			&pending_scan_results_buffer[pending_scan_results_length];
+
+		unsigned scan_length = length > available_length ?
+			available_length : length;
+
+		if (out)
+			buf_set_buf(out, out_offset, tdi_buffer, tap_length, scan_length);
+		if (tms_out)
+			buf_set_buf(tms_out, tms_offset, tms_buffer, tap_length, scan_length);
+
+		if (in) {
+			pending_scan_result->first = tap_length;
+			pending_scan_result->length = scan_length;
+			pending_scan_result->buffer = in;
+			pending_scan_result->buffer_offset = in_offset;
+			pending_scan_results_length++;
+		}
+
+		tap_length += scan_length;
+		out_offset += scan_length;
+		tms_offset += scan_length;
+		in_offset += scan_length;
+		length -= scan_length;
+	} while (length > 0);
 }
 
-static void jlink_tap_append_step(int tms, int tdi)
-{
-	int index_var = tap_length / 8;
-
-	assert(index_var < JLINK_TAP_BUFFER_SIZE);
-
-	int bit_index = tap_length % 8;
-	uint8_t bit = 1 << bit_index;
-
-	/* We do not pad TMS, so be sure to initialize all bits. */
-	if (0 == bit_index)
-		tms_buffer[index_var] = tdi_buffer[index_var] = 0;
-
-	if (tms)
-		tms_buffer[index_var] |= bit;
-	else
-		tms_buffer[index_var] &= ~bit;
-
-	if (tdi)
-		tdi_buffer[index_var] |= bit;
-	else
-		tdi_buffer[index_var] &= ~bit;
-
-	tap_length++;
-}
-
-static void jlink_tap_append_scan(int length, uint8_t *buffer,
-		struct scan_command *command)
-{
-	struct pending_scan_result *pending_scan_result =
-		&pending_scan_results_buffer[pending_scan_results_length];
-	int i;
-
-	pending_scan_result->first = tap_length;
-	pending_scan_result->length = length;
-	pending_scan_result->command = command;
-	pending_scan_result->buffer = buffer;
-
-	for (i = 0; i < length; i++) {
-		int tms = (i < (length - 1)) ? 0 : 1;
-		int tdi = (buffer[i / 8] & (1 << (i % 8))) != 0;
-		jlink_tap_append_step(tms, tdi);
-	}
-
-	pending_scan_results_length++;
-}
-
-/*
- * Pad and send a tap sequence to the device, and receive the answer. For the
- * purpose of padding we assume that we are in idle or pause state.
- */
-static int jlink_tap_execute(void)
+static int jlink_flush(void)
 {
 	int i;
 	int ret;
 
 	if (!tap_length)
 		return ERROR_OK;
-
-	jlink_last_state = jtag_debug_state_machine(tms_buffer, tdi_buffer,
-		tap_length, jlink_last_state);
 
 	jlink_last_state = jtag_debug_state_machine(tms_buffer, tdi_buffer,
 		tap_length, jlink_last_state);
@@ -1697,24 +1752,12 @@ static int jlink_tap_execute(void)
 	}
 
 	for (i = 0; i < pending_scan_results_length; i++) {
-		struct pending_scan_result *pending_scan_result = &pending_scan_results_buffer[i];
-		uint8_t *buffer = pending_scan_result->buffer;
-		int length = pending_scan_result->length;
-		int first = pending_scan_result->first;
-		struct scan_command *command = pending_scan_result->command;
+		struct pending_scan_result *p = &pending_scan_results_buffer[i];
 
-		/* Copy to buffer. */
-		buf_set_buf(tdo_buffer, first, buffer, 0, length);
+		buf_set_buf(tdo_buffer, p->first, p->buffer,
+			    p->buffer_offset, p->length);
 
-		DEBUG_JTAG_IO("Pending scan result, length = %d.", length);
-
-		if (jtag_read_buffer(buffer, command) != ERROR_OK) {
-			jlink_tap_init();
-			return ERROR_JTAG_QUEUE_FAILED;
-		}
-
-		if (pending_scan_result->buffer != NULL)
-			free(pending_scan_result->buffer);
+		DEBUG_JTAG_IO("Pending scan result, length = %d.", p->length);
 	}
 
 	jlink_tap_init();
