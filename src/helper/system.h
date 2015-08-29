@@ -56,8 +56,8 @@
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
+#ifdef HAVE_POLL_H
+#include <poll.h>
 #endif
 
 #ifdef __ECOS

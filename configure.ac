@@ -106,11 +106,11 @@ AC_CHECK_HEADERS([netinet/tcp.h], [], [], [dnl
 # include <sys/socket.h>
 #endif
 ])
+AC_CHECK_HEADERS([poll.h])
 AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_HEADERS([strings.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/param.h])
-AC_CHECK_HEADERS([sys/poll.h])
 AC_CHECK_HEADERS([sys/select.h])
 AC_CHECK_HEADERS([sys/stat.h])
 AC_CHECK_HEADERS([sys/time.h])
