@@ -5068,6 +5068,13 @@ Command is used internally in event event reset-deassert-post.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} atsamv
+@cindex atsamv
+All members of the ATSAMV, ATSAMS, and ATSAME families from
+Atmel include internal flash and use ARM's Cortex-M7 core.
+This driver uses the same cmd names/syntax as @xref{at91sam3}.
+@end deffn
+
 @deffn {Flash Driver} at91sam7
 All members of the AT91SAM7 microcontroller family from Atmel include
 internal flash and use ARM7TDMI cores. The driver automatically
