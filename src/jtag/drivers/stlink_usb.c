@@ -390,7 +390,7 @@ static int stlink_usb_error_check(void *handle)
 			LOG_DEBUG("wait status SWD_AP_WAIT (0x%x)", STLINK_SWD_AP_WAIT);
 			return ERROR_WAIT;
 		case STLINK_SWD_DP_WAIT:
-			LOG_DEBUG("wait status SWD_DP_WAIT (0x%x)", STLINK_SWD_AP_WAIT);
+			LOG_DEBUG("wait status SWD_DP_WAIT (0x%x)", STLINK_SWD_DP_WAIT);
 			return ERROR_WAIT;
 		case STLINK_JTAG_WRITE_ERROR:
 			LOG_DEBUG("Write error");
