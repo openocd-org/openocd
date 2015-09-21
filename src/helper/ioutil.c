@@ -53,7 +53,7 @@
 
 /* loads a file and returns a pointer to it in memory. The file contains
  * a 0 byte(sentinel) after len bytes - the length of the file. */
-static int loadFile(const char *fileName, char **data, size_t *len)
+static int load_file(const char *fileName, char **data, size_t *len)
 {
 	/* ensure returned length is always sane */
 	*len = 0;
@@ -113,7 +113,7 @@ COMMAND_HANDLER(handle_cat_command)
 	char *data;
 	size_t len;
 
-	int retval = loadFile(CMD_ARGV[0], &data, &len);
+	int retval = load_file(CMD_ARGV[0], &data, &len);
 	if (retval == ERROR_OK) {
 		command_print(CMD_CTX, "%s", data);
 		free(data);
@@ -198,7 +198,7 @@ COMMAND_HANDLER(handle_cp_command)
 	char *data;
 	size_t len;
 
-	int retval = loadFile(CMD_ARGV[0], &data, &len);
+	int retval = load_file(CMD_ARGV[0], &data, &len);
 	if (retval != ERROR_OK)
 		return retval;
 
