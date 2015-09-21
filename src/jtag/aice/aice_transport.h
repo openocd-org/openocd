@@ -16,9 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef _AICE_TRANSPORT_
-#define _AICE_TRANSPORT_
+#ifndef OPENOCD_JTAG_AICE_AICE_TRANSPORT_H
+#define OPENOCD_JTAG_AICE_AICE_TRANSPORT_H
 
 extern const char *aice_transports[];
 
-#endif
+#endif /* OPENOCD_JTAG_AICE_AICE_TRANSPORT_H */

@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef MPSSE_H_
-#define MPSSE_H_
+#ifndef OPENOCD_JTAG_DRIVERS_MPSSE_H
+#define OPENOCD_JTAG_DRIVERS_MPSSE_H
 
 #include <stdbool.h>
 #include "helper/binarybuffer.h"
@@ -75,4 +75,4 @@ int mpsse_set_frequency(struct mpsse_ctx *ctx, int frequency);
 int mpsse_flush(struct mpsse_ctx *ctx);
 void mpsse_purge(struct mpsse_ctx *ctx);
 
-#endif /* MPSSE_H_ */
+#endif /* OPENOCD_JTAG_DRIVERS_MPSSE_H */

@@ -15,8 +15,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
-#ifndef __NDS32_TLB_H__
-#define __NDS32_TLB_H__
+
+#ifndef OPENOCD_TARGET_NDS32_TLB_H
+#define OPENOCD_TARGET_NDS32_TLB_H
 
 #include "nds32.h"
 
@@ -43,4 +44,4 @@ extern int nds32_probe_tlb(struct nds32 *nds32, const uint32_t virtual_address,
 extern int nds32_walk_page_table(struct nds32 *nds32, const uint32_t virtual_address,
 		uint32_t *physical_address);
 
-#endif
+#endif /* OPENOCD_TARGET_NDS32_TLB_H */

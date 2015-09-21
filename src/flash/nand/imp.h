@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FLASH_NAND_IMP_H
-#define FLASH_NAND_IMP_H
+#ifndef OPENOCD_FLASH_NAND_IMP_H
+#define OPENOCD_FLASH_NAND_IMP_H
 
 #include "core.h"
 #include "driver.h"
@@ -35,4 +35,4 @@ int nand_probe(struct nand_device *nand);
 int nand_erase(struct nand_device *nand, int first_block, int last_block);
 int nand_build_bbt(struct nand_device *nand, int first, int last);
 
-#endif	/* FLASH_NAND_IMP_H */
+#endif /* OPENOCD_FLASH_NAND_IMP_H */

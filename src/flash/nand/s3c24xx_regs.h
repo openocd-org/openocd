@@ -20,8 +20,8 @@
  * S3C2410 NAND register definitions
  */
 
-#ifndef __ASM_ARM_REGS_NAND
-#define __ASM_ARM_REGS_NAND
+#ifndef OPENOCD_FLASH_NAND_S3C24XX_REGS_H
+#define OPENOCD_FLASH_NAND_S3C24XX_REGS_H
 
 #define S3C2410_NFREG(x) (x)
 
@@ -126,5 +126,4 @@
 #define S3C2412_NFECCERR_MULTIBIT	(2)
 #define S3C2412_NFECCERR_ECCAREA	(3)
 
-#endif /* __ASM_ARM_REGS_NAND */
-
+#endif /* OPENOCD_FLASH_NAND_S3C24XX_REGS_H */

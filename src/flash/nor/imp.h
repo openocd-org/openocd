@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FLASH_NOR_IMP_H
-#define FLASH_NOR_IMP_H
+#ifndef OPENOCD_FLASH_NOR_IMP_H
+#define OPENOCD_FLASH_NOR_IMP_H
 
 /* this is an internal header */
 #include "core.h"
@@ -46,4 +46,4 @@ int flash_driver_read(struct flash_bank *bank,
 int flash_write_unlock(struct target *target, struct image *image,
 		uint32_t *written, int erase, bool unlock);
 
-#endif /* FLASH_NOR_IMP_H */
+#endif /* OPENOCD_FLASH_NOR_IMP_H */

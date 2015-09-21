@@ -16,11 +16,11 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ETM_DUMMY_H
-#define ETM_DUMMY_H
+#ifndef OPENOCD_TARGET_ETM_DUMMY_H
+#define OPENOCD_TARGET_ETM_DUMMY_H
 
 #include "etm.h"
 
 extern struct etm_capture_driver etm_dummy_capture_driver;
 
-#endif /* ETB_H */
+#endif /* OPENOCD_TARGET_ETM_DUMMY_H */

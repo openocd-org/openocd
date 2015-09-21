@@ -16,6 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#ifndef OPENOCD_TARGET_SMP_H
+#define OPENOCD_TARGET_SMP_H
+
 #include "server/server.h"
 
 int gdb_read_smp_packet(struct connection *connection,
@@ -23,3 +26,4 @@ int gdb_read_smp_packet(struct connection *connection,
 int gdb_write_smp_packet(struct connection *connection,
 		char const *packet, int packet_size);
 
+#endif /* OPENOCD_TARGET_SMP_H */

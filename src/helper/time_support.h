@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef TIME_SUPPORT_H
-#define TIME_SUPPORT_H
+#ifndef OPENOCD_HELPER_TIME_SUPPORT_H
+#define OPENOCD_HELPER_TIME_SUPPORT_H
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -57,4 +57,4 @@ float duration_elapsed(const struct duration *duration);
 /** @returns KB/sec for the elapsed @a duration and @a count bytes. */
 float duration_kbps(const struct duration *duration, size_t count);
 
-#endif	/* TIME_SUPPORT_H */
+#endif /* OPENOCD_HELPER_TIME_SUPPORT_H */

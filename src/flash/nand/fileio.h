@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FLASH_NAND_FILEIO_H
-#define FLASH_NAND_FILEIO_H
+#ifndef OPENOCD_FLASH_NAND_FILEIO_H
+#define OPENOCD_FLASH_NAND_FILEIO_H
 
 #include <helper/time_support.h>
 #include <helper/fileio.h>
@@ -53,4 +53,4 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 
 int nand_fileio_read(struct nand_device *nand, struct nand_fileio_state *s);
 
-#endif	/* FLASH_NAND_FILEIO_H */
+#endif /* OPENOCD_FLASH_NAND_FILEIO_H */

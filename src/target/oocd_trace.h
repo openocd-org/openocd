@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef OOCD_TRACE_H
-#define OOCD_TRACE_H
+#ifndef OPENOCD_TARGET_OOCD_TRACE_H
+#define OPENOCD_TARGET_OOCD_TRACE_H
 
 #include <termios.h>
 
@@ -50,4 +50,4 @@ struct oocd_trace {
 
 extern struct etm_capture_driver oocd_trace_capture_driver;
 
-#endif /* OOCD_TRACE_TRACE_H */
+#endif /* OPENOCD_TARGET_OOCD_TRACE_H */

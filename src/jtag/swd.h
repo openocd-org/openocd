@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef SWD_H
-#define SWD_H
+#ifndef OPENOCD_JTAG_SWD_H
+#define OPENOCD_JTAG_SWD_H
 
 #include <target/arm_adi_v5.h>
 
@@ -213,4 +213,4 @@ void swd_add_reset(int req_srst);
 
 bool transport_is_swd(void);
 
-#endif /* SWD_H */
+#endif /* OPENOCD_JTAG_SWD_H */

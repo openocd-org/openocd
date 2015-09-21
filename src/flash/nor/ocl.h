@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef OCL_H
-#define OCL_H
+#ifndef OPENOCD_FLASH_NOR_OCL_H
+#define OPENOCD_FLASH_NOR_OCL_H
 
 /* command/response mask */
 #define OCL_CMD_MASK 0xFFFF0000L
@@ -36,4 +36,4 @@
 
 #define OCL_CHKS_INIT 0xC100CD0CL
 
-#endif /* OCL_H */
+#endif /* OPENOCD_FLASH_NOR_OCL_H */

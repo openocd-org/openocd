@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef __NDS32_DISASSEMBLER_H__
-#define __NDS32_DISASSEMBLER_H__
+#ifndef OPENOCD_TARGET_NDS32_DISASSEMBLER_H
+#define OPENOCD_TARGET_NDS32_DISASSEMBLER_H
 
 #include <target/nds32.h>
 
@@ -53,4 +53,4 @@ int nds32_read_opcode(struct nds32 *nds32, uint32_t address, uint32_t *value);
 int nds32_evaluate_opcode(struct nds32 *nds32, uint32_t opcode, uint32_t address,
 		struct nds32_instruction *instruction);
 
-#endif /* __NDS32_DISASSEMBLER_H__ */
+#endif /* OPENOCD_TARGET_NDS32_DISASSEMBLER_H */

@@ -19,10 +19,10 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef _HL_TCL_
-#define _HL_TCL_
+#ifndef OPENOCD_JTAG_HLA_HLA_TCL_H
+#define OPENOCD_JTAG_HLA_HLA_TCL_H
 
 /** */
 int jim_hl_newtap(Jim_Interp *interp, int argc, Jim_Obj * const *argv);
 
-#endif /* _HL_TCL_ */
+#endif /* OPENOCD_JTAG_HLA_HLA_TCL_H */

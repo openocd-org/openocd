@@ -16,6 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#ifndef OPENOCD_JTAG_DRIVERS_RLINK_EP1_CMD_H
+#define OPENOCD_JTAG_DRIVERS_RLINK_EP1_CMD_H
+
 /*
  * Command opcodes that can be sent over endpoint 1.
  * This codifies information provided by Rob Brown <rob@cobbleware.com>.
@@ -53,3 +56,5 @@
 #define EP1_CMD_MEMORY_WRITE			(0x29)
 #define EP1_CMD_GET_FWREV				(0xfe)
 #define EP1_CMD_GET_SERIAL				(0xff)
+
+#endif /* OPENOCD_JTAG_DRIVERS_RLINK_EP1_CMD_H */

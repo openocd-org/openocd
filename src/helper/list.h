@@ -1,5 +1,5 @@
-#ifndef _LINUX_LIST_H
-#define _LINUX_LIST_H
+#ifndef OPENOCD_HELPER_LIST_H
+#define OPENOCD_HELPER_LIST_H
 
 /* begin local changes */
 #include <helper/types.h>
@@ -734,4 +734,4 @@ static inline void hlist_move_list(struct hlist_head *old,
 	     ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1; }); \
 	     pos = n)
 
-#endif
+#endif /* OPENOCD_HELPER_LIST_H */

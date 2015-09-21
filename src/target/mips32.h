@@ -21,8 +21,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef MIPS32_H
-#define MIPS32_H
+#ifndef OPENOCD_TARGET_MIPS32_H
+#define OPENOCD_TARGET_MIPS32_H
 
 #include "target.h"
 #include "mips32_pracc.h"
@@ -249,4 +249,4 @@ int mips32_checksum_memory(struct target *target, uint32_t address,
 int mips32_blank_check_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *blank);
 
-#endif	/*MIPS32_H*/
+#endif /* OPENOCD_TARGET_MIPS32_H */

@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM920T_H
-#define ARM920T_H
+#ifndef OPENOCD_TARGET_ARM920T_H
+#define OPENOCD_TARGET_ARM920T_H
 
 #include "arm9tdmi.h"
 #include "armv4_5_mmu.h"
@@ -68,4 +68,4 @@ int arm920t_enable_mmu_caches(struct target *target,
 
 extern const struct command_registration arm920t_command_handlers[];
 
-#endif /* ARM920T_H */
+#endif /* OPENOCD_TARGET_ARM920T_H */

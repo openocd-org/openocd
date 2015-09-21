@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FILEIO_H
-#define FILEIO_H
+#ifndef OPENOCD_HELPER_FILEIO_H
+#define OPENOCD_HELPER_FILEIO_H
 
 #define FILEIO_MAX_ERROR_STRING		(128)
 
@@ -66,4 +66,4 @@ int fileio_size(struct fileio *fileio, size_t *size);
 #define ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN		(-1204)
 #define ERROR_FILEIO_OPERATION_NOT_SUPPORTED	(-1205)
 
-#endif	/* FILEIO_H */
+#endif /* OPENOCD_HELPER_FILEIO_H */

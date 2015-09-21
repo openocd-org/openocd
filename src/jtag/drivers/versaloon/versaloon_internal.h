@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef __VERSALOON_INTERNAL_H_INCLUDED__
-#define __VERSALOON_INTERNAL_H_INCLUDED__
+#ifndef OPENOCD_JTAG_DRIVERS_VERSALOON_VERSALOON_INTERNAL_H
+#define OPENOCD_JTAG_DRIVERS_VERSALOON_VERSALOON_INTERNAL_H
 
 #define VERSALOON_PRODUCTSTRING_INDEX	2
 #define VERSALOON_SERIALSTRING_INDEX	3
@@ -107,4 +107,4 @@ extern uint8_t *versaloon_buf;
 extern uint8_t *versaloon_cmd_buf;
 extern uint16_t versaloon_buf_size;
 
-#endif /* __VERSALOON_INTERNAL_H_INCLUDED__ */
+#endif /* OPENOCD_JTAG_DRIVERS_VERSALOON_VERSALOON_INTERNAL_H */

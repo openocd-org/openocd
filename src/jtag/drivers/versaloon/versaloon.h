@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef __VERSALOON_H_INCLUDED__
-#define __VERSALOON_H_INCLUDED__
+#ifndef OPENOCD_JTAG_DRIVERS_VERSALOON_VERSALOON_H
+#define OPENOCD_JTAG_DRIVERS_VERSALOON_VERSALOON_H
 
 #include <libusb.h>
 
@@ -109,5 +109,4 @@ struct versaloon_interface_t {
 extern struct versaloon_interface_t versaloon_interface;
 extern libusb_device_handle *versaloon_usb_device_handle;
 
-#endif /* __VERSALOON_H_INCLUDED__ */
-
+#endif /* OPENOCD_JTAG_DRIVERS_VERSALOON_VERSALOON_H */

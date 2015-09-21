@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef LPC3180_NAND_CONTROLLER_H
-#define LPC3180_NAND_CONTROLLER_H
+#ifndef OPENOCD_FLASH_NAND_LPC3180_H
+#define OPENOCD_FLASH_NAND_LPC3180_H
 
 enum lpc3180_selected_controller {
 	LPC3180_NO_CONTROLLER,
@@ -34,4 +34,4 @@ struct lpc3180_nand_controller {
 	uint32_t sw_wp_upper_bound;
 };
 
-#endif	/*LPC3180_NAND_CONTROLLER_H */
+#endif /* OPENOCD_FLASH_NAND_LPC3180_H */

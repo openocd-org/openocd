@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FLASH_COMMON_H
-#define FLASH_COMMON_H
+#ifndef OPENOCD_FLASH_COMMON_H
+#define OPENOCD_FLASH_COMMON_H
 
 #include <helper/log.h>
 
@@ -45,4 +45,4 @@ bool flash_driver_name_matches(const char *name, const char *expected);
 #define ERROR_FLASH_BANK_NOT_PROBED			(-907)
 #define ERROR_FLASH_OPER_UNSUPPORTED		(-908)
 
-#endif	/* FLASH_COMMON_H */
+#endif /* OPENOCD_FLASH_COMMON_H */

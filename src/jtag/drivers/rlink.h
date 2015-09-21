@@ -16,6 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#ifndef OPENOCD_JTAG_DRIVERS_RLINK_H
+#define OPENOCD_JTAG_DRIVERS_RLINK_H
+
 struct rlink_speed_table {
 	uint8_t const *dtc;
 	uint16_t dtc_size;
@@ -25,3 +28,5 @@ struct rlink_speed_table {
 
 extern const struct rlink_speed_table rlink_speed_table[];
 extern const size_t rlink_speed_table_size;
+
+#endif /* OPENOCD_JTAG_DRIVERS_RLINK_H */

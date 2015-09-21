@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef _HL_TRANSPORT
-#define _HL_TRANSPORT
+#ifndef OPENOCD_JTAG_HLA_HLA_TRANSPORT_H
+#define OPENOCD_JTAG_HLA_HLA_TRANSPORT_H
 
 enum hl_transports {
 	HL_TRANSPORT_UNKNOWN = 0,
@@ -29,4 +29,4 @@ enum hl_transports {
 	HL_TRANSPORT_SWIM
 };
 
-#endif /* _HL_TRANSPORT */
+#endif /* OPENOCD_JTAG_HLA_HLA_TRANSPORT_H */

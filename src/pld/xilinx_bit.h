@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef XILINX_BIT_H
-#define XILINX_BIT_H
+#ifndef OPENOCD_PLD_XILINX_BIT_H
+#define OPENOCD_PLD_XILINX_BIT_H
 
 struct xilinx_bit_file {
 	uint8_t unknown_header[13];
@@ -31,4 +31,4 @@ struct xilinx_bit_file {
 
 int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename);
 
-#endif	/* XILINX_BIT_H */
+#endif /* OPENOCD_PLD_XILINX_BIT_H */

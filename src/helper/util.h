@@ -15,11 +15,11 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef HELPER_UTILS_H
-#define HELPER_UTILS_H
+#ifndef OPENOCD_HELPER_UTIL_H
+#define OPENOCD_HELPER_UTIL_H
 
 struct command_context;
 
 int util_init(struct command_context *cmd_ctx);
 
-#endif	/* HELPER_UTILS_H */
+#endif /* OPENOCD_HELPER_UTIL_H */

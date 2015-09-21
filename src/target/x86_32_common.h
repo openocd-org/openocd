@@ -29,8 +29,8 @@
  * This is the interface to the x86 32 bit memory and breakpoint operations.
  */
 
-#ifndef X86_32_COMMON_H
-#define X86_32_COMMON_H
+#ifndef OPENOCD_TARGET_X86_32_COMMON_H
+#define OPENOCD_TARGET_X86_32_COMMON_H
 
 #include <jtag/jtag.h>
 #include <helper/command.h>
@@ -327,4 +327,4 @@ int x86_32_common_remove_breakpoint(struct target *t, struct breakpoint *bp);
 int x86_32_common_add_watchpoint(struct target *t, struct watchpoint *wp);
 int x86_32_common_remove_watchpoint(struct target *t, struct watchpoint *wp);
 
-#endif /* X86_32_COMMON_H */
+#endif /* OPENOCD_TARGET_X86_32_COMMON_H */

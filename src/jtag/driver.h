@@ -16,11 +16,11 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef JTAG_DRIVER_H
-#define JTAG_DRIVER_H
+#ifndef OPENOCD_JTAG_DRIVER_H
+#define OPENOCD_JTAG_DRIVER_H
 
 struct command_context;
 
 int interface_register_commands(struct command_context *ctx);
 
-#endif /* JTAG_DRIVER_H */
+#endif /* OPENOCD_JTAG_DRIVER_H */

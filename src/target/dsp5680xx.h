@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef DSP5680XX_H
-#define DSP5680XX_H
+#ifndef OPENOCD_TARGET_DSP5680XX_H
+#define OPENOCD_TARGET_DSP5680XX_H
 
 #include <jtag/jtag.h>
 
@@ -379,4 +379,4 @@ int dsp5680xx_f_lock(struct target *target);
  */
 int dsp5680xx_f_unlock(struct target *target);
 
-#endif /* DSP5680XX_H */
+#endif /* OPENOCD_TARGET_DSP5680XX_H */

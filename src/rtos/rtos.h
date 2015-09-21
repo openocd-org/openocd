@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef RTOS_H
-#define RTOS_H
+#ifndef OPENOCD_RTOS_RTOS_H
+#define OPENOCD_RTOS_RTOS_H
 
 #include "server/server.h"
 #include <jim-nvp.h>
@@ -109,4 +109,4 @@ int rtos_smp_init(struct target *target);
 /*  function for handling symbol access */
 int rtos_qsymbol(struct connection *connection, char const *packet, int packet_size);
 
-#endif	/* RTOS_H */
+#endif /* OPENOCD_RTOS_RTOS_H */

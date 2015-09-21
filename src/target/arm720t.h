@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM720T_H
-#define ARM720T_H
+#ifndef OPENOCD_TARGET_ARM720T_H
+#define OPENOCD_TARGET_ARM720T_H
 
 #include "arm7tdmi.h"
 #include "armv4_5_mmu.h"
@@ -38,4 +38,4 @@ static inline struct arm720t_common *target_to_arm720(struct target *target)
 	return container_of(target->arch_info, struct arm720t_common, arm7_9_common.arm);
 }
 
-#endif /* ARM720T_H */
+#endif /* OPENOCD_TARGET_ARM720T_H */

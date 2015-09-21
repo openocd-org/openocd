@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef TARGET_TYPE_H
-#define TARGET_TYPE_H
+#ifndef OPENOCD_TARGET_TARGET_TYPE_H
+#define OPENOCD_TARGET_TARGET_TYPE_H
 
 #include <jim-nvp.h>
 
@@ -276,4 +276,4 @@ struct target_type {
 			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
 };
 
-#endif /* TARGET_TYPE_H */
+#endif /* OPENOCD_TARGET_TARGET_TYPE_H */

@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef NON_CFI_H
-#define NON_CFI_H
+#ifndef OPENOCD_FLASH_NOR_NON_CFI_H
+#define OPENOCD_FLASH_NOR_NON_CFI_H
 
 struct non_cfi {
 	uint16_t mfr;
@@ -33,4 +33,4 @@ struct non_cfi {
 
 void cfi_fixup_non_cfi(struct flash_bank *bank);
 
-#endif /* NON_CFI_H */
+#endif /* OPENOCD_FLASH_NOR_NON_CFI_H */

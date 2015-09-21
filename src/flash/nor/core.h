@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FLASH_NOR_CORE_H
-#define FLASH_NOR_CORE_H
+#ifndef OPENOCD_FLASH_NOR_CORE_H
+#define OPENOCD_FLASH_NOR_CORE_H
 
 #include <flash/common.h>
 
@@ -206,4 +206,4 @@ struct flash_bank *get_flash_bank_by_num_noprobe(int num);
 int get_flash_bank_by_addr(struct target *target, uint32_t addr, bool check,
 		struct flash_bank **result_bank);
 
-#endif /* FLASH_NOR_CORE_H */
+#endif /* OPENOCD_FLASH_NOR_CORE_H */

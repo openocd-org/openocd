@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef PLD_H
-#define PLD_H
+#ifndef OPENOCD_PLD_PLD_H
+#define OPENOCD_PLD_PLD_H
 
 #include <helper/command.h>
 
@@ -49,4 +49,4 @@ struct pld_device *get_pld_device_by_num(int num);
 #define ERROR_PLD_DEVICE_INVALID        (-1000)
 #define ERROR_PLD_FILE_LOAD_FAILED      (-1001)
 
-#endif	/* PLD_H */
+#endif /* OPENOCD_PLD_PLD_H */

@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef AVR32_AP7K
-#define AVR32_AP7K
+#ifndef OPENOCD_TARGET_AVR32_AP7K_H
+#define OPENOCD_TARGET_AVR32_AP7K_H
 
 struct target;
 
@@ -40,4 +40,4 @@ struct avr32_core_reg {
 	struct avr32_ap7k_common *avr32_common;
 };
 
-#endif	/*AVR32_AP7K*/
+#endif /* OPENOCD_TARGET_AVR32_AP7K_H */

@@ -25,8 +25,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef CORTEX_A_H
-#define CORTEX_A_H
+#ifndef OPENOCD_TARGET_CORTEX_A_H
+#define OPENOCD_TARGET_CORTEX_A_H
 
 #include "armv7a.h"
 
@@ -114,4 +114,4 @@ target_to_cortex_a(struct target *target)
 	return container_of(target->arch_info, struct cortex_a_common, armv7a_common.arm);
 }
 
-#endif /* CORTEX_A_H */
+#endif /* OPENOCD_TARGET_CORTEX_A_H */

@@ -18,8 +18,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FLASH_NAND_DRIVER_H
-#define FLASH_NAND_DRIVER_H
+#ifndef OPENOCD_FLASH_NAND_DRIVER_H
+#define OPENOCD_FLASH_NAND_DRIVER_H
 
 struct nand_device;
 
@@ -100,4 +100,4 @@ typedef int (*nand_driver_walker_t)(struct nand_flash_controller *c, void *);
  */
 int nand_driver_walk(nand_driver_walker_t f, void *x);
 
-#endif	/* FLASH_NAND_DRIVER_H */
+#endif /* OPENOCD_FLASH_NAND_DRIVER_H */

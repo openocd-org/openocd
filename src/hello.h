@@ -26,4 +26,4 @@ struct command_registration;
  */
 extern const struct command_registration hello_command_handlers[];
 
-#endif	/* OPENOCD_HELLO_H */
+#endif /* OPENOCD_HELLO_H */

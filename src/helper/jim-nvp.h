@@ -41,8 +41,8 @@
  * official policies, either expressed or implied, of the Jim Tcl Project.
  */
 
-#ifndef JIM_NVP_H
-#define JIM_NVP_H
+#ifndef OPENOCD_HELPER_JIM_NVP_H
+#define OPENOCD_HELPER_JIM_NVP_H
 
 #include <jim.h>
 
@@ -326,4 +326,4 @@ void Jim_GetOpt_NvpUnknown(Jim_GetOptInfo *goi, const Jim_Nvp *lookup, int hadpr
  */
 int Jim_GetOpt_Enum(Jim_GetOptInfo *goi, const char *const *lookup, int *puthere);
 
-#endif
+#endif /* OPENOCD_HELPER_JIM_NVP_H */

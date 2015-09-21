@@ -14,8 +14,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef INCLUDED_RTOS_STANDARD_STACKINGS_H_
-#define INCLUDED_RTOS_STANDARD_STACKINGS_H_
+#ifndef OPENOCD_RTOS_RTOS_ECOS_STACKINGS_H
+#define OPENOCD_RTOS_RTOS_ECOS_STACKINGS_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -25,4 +25,4 @@
 
 extern const struct rtos_register_stacking rtos_eCos_Cortex_M3_stacking;
 
-#endif	/* ifndef INCLUDED_RTOS_STANDARD_STACKINGS_H_ */
+#endif /* OPENOCD_RTOS_RTOS_ECOS_STACKINGS_H */

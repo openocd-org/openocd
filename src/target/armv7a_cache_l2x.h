@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM7A_CACHE_L2X_H
-#define ARM7A_CACHE_L2X_H
+#ifndef OPENOCD_TARGET_ARM7A_CACHE_L2X_H
+#define OPENOCD_TARGET_ARM7A_CACHE_L2X_H
 
 #define L2X0_CACHE_LINE_SIZE		32
 
@@ -155,4 +155,4 @@ int armv7a_l2x_cache_flush_virt(struct target *target, uint32_t virt,
 					uint32_t size);
 int arm7a_l2x_flush_all_data(struct target *target);
 
-#endif
+#endif /* OPENOCD_TARGET_ARM7A_CACHE_L2X_H */

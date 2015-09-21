@@ -15,8 +15,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
-#ifndef _AICE_PIPE_H_
-#define _AICE_PIPE_H_
+
+#ifndef OPENOCD_JTAG_AICE_AICE_PIPE_H
+#define OPENOCD_JTAG_AICE_AICE_PIPE_H
 
 #include <helper/types.h>
 
@@ -27,4 +28,4 @@
 
 extern struct aice_port_api_s aice_pipe;
 
-#endif
+#endif /* OPENOCD_JTAG_AICE_AICE_PIPE_H */

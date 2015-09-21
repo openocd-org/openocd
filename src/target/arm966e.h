@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM966E_H
-#define ARM966E_H
+#ifndef OPENOCD_TARGET_ARM966E_H
+#define OPENOCD_TARGET_ARM966E_H
 
 #include "arm9tdmi.h"
 
@@ -45,4 +45,4 @@ int arm966e_write_cp15(struct target *target, int reg_addr, uint32_t value);
 
 extern const struct command_registration arm966e_command_handlers[];
 
-#endif /* ARM966E_H */
+#endif /* OPENOCD_TARGET_ARM966E_H */

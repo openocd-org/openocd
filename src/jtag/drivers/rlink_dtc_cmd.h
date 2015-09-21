@@ -16,6 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#ifndef OPENOCD_JTAG_DRIVERS_RLINK_DTC_CMD_H
+#define OPENOCD_JTAG_DRIVERS_RLINK_DTC_CMD_H
+
 /* A command position with the high nybble of 0x0 is reserved for an error condition.
  * If executed, it stops the DTC and raises the ERROR flag */
 
@@ -69,3 +72,5 @@
 /* A shared status byte is updated with bit 0 set when this has happened,
  * and it is cleared when a new command buffer becomes ready.
  * The host can poll that byte to see when it is safe to read a reply. */
+
+#endif /* OPENOCD_JTAG_DRIVERS_RLINK_DTC_CMD_H */

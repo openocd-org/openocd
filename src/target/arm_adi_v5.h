@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM_ADI_V5_H
-#define ARM_ADI_V5_H
+#ifndef OPENOCD_TARGET_ARM_ADI_V5_H
+#define OPENOCD_TARGET_ARM_ADI_V5_H
 
 /**
  * @file
@@ -504,4 +504,4 @@ int dap_to_jtag(struct target *target);
 
 extern const struct command_registration dap_command_handlers[];
 
-#endif
+#endif /* OPENOCD_TARGET_ARM_ADI_V5_H */

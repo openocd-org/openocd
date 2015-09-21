@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef COMMAND_H
-#define COMMAND_H
+#ifndef OPENOCD_HELPER_COMMAND_H
+#define OPENOCD_HELPER_COMMAND_H
 
 #include <jim-nvp.h>
 
@@ -415,4 +415,4 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label);
 void script_debug(Jim_Interp *interp, const char *cmd,
 		  unsigned argc, Jim_Obj * const *argv);
 
-#endif	/* COMMAND_H */
+#endif /* OPENOCD_HELPER_COMMAND_H */

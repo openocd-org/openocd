@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef OPENOCD_H
-#define OPENOCD_H
+#ifndef OPENOCD_OPENOCD_H
+#define OPENOCD_OPENOCD_H
 
 /**
  * Different applications can define this entry point to override
@@ -29,4 +29,4 @@
  */
 int openocd_main(int argc, char *argv[]);
 
-#endif
+#endif /* OPENOCD_OPENOCD_H */

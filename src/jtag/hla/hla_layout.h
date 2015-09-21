@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef _HL_LAYOUT_H
-#define _HL_LAYOUT_H
+#ifndef OPENOCD_JTAG_HLA_HLA_LAYOUT_H
+#define OPENOCD_JTAG_HLA_HLA_LAYOUT_H
 
 #include <target/armv7m_trace.h>
 
@@ -125,4 +125,4 @@ const struct hl_layout *hl_layout_get_list(void);
 /** */
 int hl_layout_init(struct hl_interface_s *adapter);
 
-#endif /* _HL_LAYOUT_H */
+#endif /* OPENOCD_JTAG_HLA_HLA_LAYOUT_H */

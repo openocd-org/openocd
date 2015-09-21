@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef _HL_INTERFACE
-#define _HL_INTERFACE
+#ifndef OPENOCD_JTAG_HLA_HLA_INTERFACE_H
+#define OPENOCD_JTAG_HLA_HLA_INTERFACE_H
 
 /** */
 struct target;
@@ -65,4 +65,4 @@ int hl_interface_init_target(struct target *t);
 int hl_interface_init_reset(void);
 int hl_interface_override_target(const char **targetname);
 
-#endif /* _HL_INTERFACE */
+#endif /* OPENOCD_JTAG_HLA_HLA_INTERFACE_H */

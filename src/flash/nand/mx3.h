@@ -17,6 +17,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#ifndef OPENOCD_FLASH_NAND_MX3_H
+#define OPENOCD_FLASH_NAND_MX3_H
+
 /*
  * Freescale iMX3* OpenOCD NAND Flash controller support.
  *
@@ -105,3 +108,5 @@ struct mx3_nf_controller {
 	enum mx_nf_finalize_action fin;
 	struct mx3_nf_flags flags;
 };
+
+#endif /* OPENOCD_FLASH_NAND_MX3_H */

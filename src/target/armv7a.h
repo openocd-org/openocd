@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARMV7A_H
-#define ARMV7A_H
+#ifndef OPENOCD_TARGET_ARMV7A_H
+#define OPENOCD_TARGET_ARMV7A_H
 
 #include "arm_adi_v5.h"
 #include "armv7a_cache.h"
@@ -184,4 +184,4 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 
 extern const struct command_registration armv7a_command_handlers[];
 
-#endif /* ARMV4_5_H */
+#endif /* OPENOCD_TARGET_ARMV7A_H */

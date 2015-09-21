@@ -21,8 +21,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef MIPS32_DMAACC_H
-#define MIPS32_DMAACC_H
+#ifndef OPENOCD_TARGET_MIPS32_DMAACC_H
+#define OPENOCD_TARGET_MIPS32_DMAACC_H
 
 #include "mips_ejtag.h"
 
@@ -38,4 +38,4 @@ int mips32_dmaacc_read_mem(struct mips_ejtag *ejtag_info,
 int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, const void *buf);
 
-#endif
+#endif /* OPENOCD_TARGET_MIPS32_DMAACC_H */

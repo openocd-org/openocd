@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef BITBANG_H
-#define BITBANG_H
+#ifndef OPENOCD_JTAG_DRIVERS_BITBANG_H
+#define OPENOCD_JTAG_DRIVERS_BITBANG_H
 
 #include <jtag/swd.h>
 
@@ -45,4 +45,4 @@ extern struct bitbang_interface *bitbang_interface;
 void bitbang_switch_to_swd(void);
 int bitbang_swd_switch_seq(enum swd_special_seq seq);
 
-#endif /* BITBANG_H */
+#endif /* OPENOCD_JTAG_DRIVERS_BITBANG_H */

@@ -25,8 +25,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef GDB_SERVER_H
-#define GDB_SERVER_H
+#ifndef OPENOCD_SERVER_GDB_SERVER_H
+#define OPENOCD_SERVER_GDB_SERVER_H
 
 struct image;
 struct reg;
@@ -48,4 +48,4 @@ static inline struct target *get_target_from_connection(struct connection *conne
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)
 #define ERROR_GDB_TIMEOUT (-801)
 
-#endif	/* GDB_SERVER_H */
+#endif /* OPENOCD_SERVER_GDB_SERVER_H */

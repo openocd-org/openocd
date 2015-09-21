@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef MINIDRIVER_H
-#define MINIDRIVER_H
+#ifndef OPENOCD_JTAG_MINIDRIVER_H
+#define OPENOCD_JTAG_MINIDRIVER_H
 
 /**
  * @page jtagminidriver JTAG Mini-Driver
@@ -87,4 +87,4 @@ int interface_jtag_execute_queue(void);
  */
 int default_interface_jtag_execute_queue(void);
 
-#endif /* MINIDRIVER_H */
+#endif /* OPENOCD_JTAG_MINIDRIVER_H */

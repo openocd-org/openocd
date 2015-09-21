@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARMV7M_COMMON_H
-#define ARMV7M_COMMON_H
+#ifndef OPENOCD_TARGET_ARMV7M_H
+#define OPENOCD_TARGET_ARMV7M_H
 
 #include "arm_adi_v5.h"
 #include "arm.h"
@@ -229,4 +229,4 @@ int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found);
 
 extern const struct command_registration armv7m_command_handlers[];
 
-#endif /* ARMV7M_H */
+#endif /* OPENOCD_TARGET_ARMV7M_H */

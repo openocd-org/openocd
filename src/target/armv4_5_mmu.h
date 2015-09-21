@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARMV4_5_MMU_H
-#define ARMV4_5_MMU_H
+#ifndef OPENOCD_TARGET_ARMV4_5_MMU_H
+#define OPENOCD_TARGET_ARMV4_5_MMU_H
 
 #include "armv4_5_cache.h"
 
@@ -53,4 +53,4 @@ enum {
 	ARMV4_5_MMU_R_BIT = 0x200
 };
 
-#endif /* ARMV4_5_MMU_H */
+#endif /* OPENOCD_TARGET_ARMV4_5_MMU_H */

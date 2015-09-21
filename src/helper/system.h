@@ -18,8 +18,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef SYSTEM_H
-#define SYSTEM_H
+#ifndef OPENOCD_HELPER_SYSTEM_H
+#define OPENOCD_HELPER_SYSTEM_H
 
 /* standard C library header files */
 #include <stdio.h>
@@ -86,4 +86,4 @@
 #define false   0
 #endif
 
-#endif	/* SYSTEM_H */
+#endif /* OPENOCD_HELPER_SYSTEM_H */

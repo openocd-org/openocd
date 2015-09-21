@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef JTAG_COMMANDS_H
-#define JTAG_COMMANDS_H
+#ifndef OPENOCD_JTAG_COMMANDS_H
+#define OPENOCD_JTAG_COMMANDS_H
 
 /**
  * The inferred type of a scan_command_s structure, indicating whether
@@ -173,4 +173,4 @@ int jtag_scan_size(const struct scan_command *cmd);
 int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd);
 int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer);
 
-#endif /* JTAG_COMMANDS_H */
+#endif /* OPENOCD_JTAG_COMMANDS_H */

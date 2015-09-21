@@ -16,6 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#ifndef OPENOCD_JTAG_DRIVERS_RLINK_ST7_H
+#define OPENOCD_JTAG_DRIVERS_RLINK_ST7_H
+
 #define ST7_FOSC		(12 * 1000000)
 
 /* This is not a complete enumeration of ST7 registers, but it is sufficient for this interface driver. */
@@ -110,3 +113,5 @@
 #define ST7_PF5			(1 << 5)
 #define ST7_PF6			(1 << 6)
 #define ST7_PF7			(1 << 7)
+
+#endif /* OPENOCD_JTAG_DRIVERS_RLINK_ST7_H */

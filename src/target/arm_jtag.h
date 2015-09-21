@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM_JTAG
-#define ARM_JTAG
+#ifndef OPENOCD_TARGET_ARM_JTAG_H
+#define OPENOCD_TARGET_ARM_JTAG_H
 
 #include <jtag/jtag.h>
 
@@ -75,4 +75,4 @@ static inline void arm_le_to_h_u32(jtag_callback_data_t arg)
 	*((uint32_t *)arg) = le_to_h_u32(in);
 }
 
-#endif /* ARM_JTAG */
+#endif /* OPENOCD_TARGET_ARM_JTAG_H */

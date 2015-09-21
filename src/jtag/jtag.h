@@ -19,8 +19,8 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 ***************************************************************************/
 
-#ifndef JTAG_H
-#define JTAG_H
+#ifndef OPENOCD_JTAG_JTAG_H
+#define OPENOCD_JTAG_JTAG_H
 
 #include <helper/binarybuffer.h>
 #include <helper/log.h>
@@ -646,4 +646,4 @@ bool transport_is_jtag(void);
 
 int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
-#endif /* JTAG_H */
+#endif /* OPENOCD_JTAG_JTAG_H */

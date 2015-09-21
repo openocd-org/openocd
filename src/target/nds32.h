@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef __NDS32_H__
-#define __NDS32_H__
+#ifndef OPENOCD_TARGET_NDS32_H
+#define OPENOCD_TARGET_NDS32_H
 
 #include <jtag/jtag.h>
 #include "target.h"
@@ -454,4 +454,4 @@ static inline bool nds32_reach_max_interrupt_level(struct nds32 *nds32)
 	return nds32->max_interrupt_level == nds32->current_interrupt_level;
 }
 
-#endif /* __NDS32_H__ */
+#endif /* OPENOCD_TARGET_NDS32_H */

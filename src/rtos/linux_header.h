@@ -1,3 +1,6 @@
+#ifndef OPENOCD_RTOS_LINUX_HEADER_H
+#define OPENOCD_RTOS_LINUX_HEADER_H
+
 /*  gdb script to update the header file
   according to kernel version and build option
   before executing function awareness
@@ -30,3 +33,5 @@ define awareness
 #define CPU_CONT 0x1c
 #define PREEMPT 0x4
 #define MM_CTX 0x160
+
+#endif /* OPENOCD_RTOS_LINUX_HEADER_H */

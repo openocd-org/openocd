@@ -15,8 +15,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
-#ifndef __NDS32_AICE_H__
-#define __NDS32_AICE_H__
+
+#ifndef OPENOCD_TARGET_NDS32_AICE_H
+#define OPENOCD_TARGET_NDS32_AICE_H
 
 #include <jtag/aice/aice_port.h>
 
@@ -157,4 +158,4 @@ static inline int aice_set_data_endian(struct aice_port_s *aice,
 	return aice->port->api->set_data_endian(aice->coreid, target_data_endian);
 }
 
-#endif
+#endif /* OPENOCD_TARGET_NDS32_AICE_H */

@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef AVR32_MEM
-#define AVR32_MEM
+#ifndef OPENOCD_TARGET_AVR32_MEM_H
+#define OPENOCD_TARGET_AVR32_MEM_H
 
 int avr32_jtag_read_memory32(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, uint32_t *buffer);
@@ -32,4 +32,4 @@ int avr32_jtag_write_memory16(struct avr32_jtag *jtag_info,
 int avr32_jtag_write_memory8(struct avr32_jtag *jtag_info,
 		uint32_t addr, int count, const uint8_t *buffer);
 
-#endif /* AVR32_MEM */
+#endif /* OPENOCD_TARGET_AVR32_MEM_H */

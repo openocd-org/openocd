@@ -18,8 +18,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM11_H
-#define ARM11_H
+#ifndef OPENOCD_TARGET_ARM11_H
+#define OPENOCD_TARGET_ARM11_H
 
 #include "arm.h"
 #include "arm_dpm.h"
@@ -111,4 +111,4 @@ enum arm11_sc7 {
 	ARM11_SC7_WCR0                          = 112,
 };
 
-#endif	/* ARM11_H */
+#endif /* OPENOCD_TARGET_ARM11_H */

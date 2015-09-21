@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TRANSPORT_H
-#define TRANSPORT_H
+#ifndef OPENOCD_TRANSPORT_TRANSPORT_H
+#define OPENOCD_TRANSPORT_TRANSPORT_H
 
 #include "helper/command.h"
 
@@ -90,4 +90,4 @@ int allow_transports(struct command_context *ctx, const char * const *vector);
 
 bool transports_are_declared(void);
 
-#endif
+#endif /* OPENOCD_TRANSPORT_TRANSPORT_H */

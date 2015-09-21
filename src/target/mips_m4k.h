@@ -21,8 +21,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef MIPS_M4K_H
-#define MIPS_M4K_H
+#ifndef OPENOCD_TARGET_MIPS_M4K_H
+#define OPENOCD_TARGET_MIPS_M4K_H
 
 struct target;
 
@@ -43,4 +43,4 @@ target_to_m4k(struct target *target)
 
 extern const struct command_registration mips_m4k_command_handlers[];
 
-#endif	/*MIPS_M4K_H*/
+#endif /* OPENOCD_TARGET_MIPS_M4K_H */

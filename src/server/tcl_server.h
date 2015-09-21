@@ -15,12 +15,12 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef _TCL_SERVER_H_
-#define _TCL_SERVER_H_
+#ifndef OPENOCD_SERVER_TCL_SERVER_H
+#define OPENOCD_SERVER_TCL_SERVER_H
 
 #include <server/server.h>
 
 int tcl_init(void);
 int tcl_register_commands(struct command_context *cmd_ctx);
 
-#endif	/* _TCL_SERVER_H_ */
+#endif /* OPENOCD_SERVER_TCL_SERVER_H */

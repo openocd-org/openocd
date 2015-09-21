@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARMV4_5_H
-#define ARMV4_5_H
+#ifndef OPENOCD_TARGET_ARMV4_5_H
+#define OPENOCD_TARGET_ARMV4_5_H
 
 /* This stuff "knows" that its callers aren't talking
  * to microcontroller profile (current Cortex-M) parts.
@@ -46,4 +46,4 @@ extern const int armv4_5_core_reg_map[8][17];
 /* offset into armv4_5 core register cache -- OBSOLETE, DO NOT USE! */
 enum { ARMV4_5_CPSR = 31, };
 
-#endif /* ARMV4_5_H */
+#endif /* OPENOCD_TARGET_ARMV4_5_H */

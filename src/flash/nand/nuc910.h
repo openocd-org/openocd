@@ -20,8 +20,8 @@
  * NAND controller interface for Nuvoton NUC910
  */
 
-#ifndef NUC910_H
-#define NUC910_H
+#ifndef OPENOCD_FLASH_NAND_NUC910_H
+#define OPENOCD_FLASH_NAND_NUC910_H
 
 #define NUC910_FMICSR	0xB000D000
 #define NUC910_SMCSR	0xB000D0A0
@@ -54,5 +54,4 @@
 
 /* ECC4 Correction Status (ECC4ST) */
 
-#endif /* NUC910_H */
-
+#endif /* OPENOCD_FLASH_NAND_NUC910_H */

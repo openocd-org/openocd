@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __ARM_NANDIO_H
-#define __ARM_NANDIO_H
+#ifndef OPENOCD_FLASH_NAND_ARM_IO_H
+#define OPENOCD_FLASH_NAND_ARM_IO_H
 
 /**
  * Available operational states the arm_nand_data struct can be in.
@@ -52,4 +52,4 @@ struct arm_nand_data {
 int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size);
 int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size);
 
-#endif	/* __ARM_NANDIO_H */
+#endif /* OPENOCD_FLASH_NAND_ARM_IO_H */

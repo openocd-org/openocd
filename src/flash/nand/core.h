@@ -21,8 +21,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef FLASH_NAND_CORE_H
-#define FLASH_NAND_CORE_H
+#ifndef OPENOCD_FLASH_NAND_CORE_H
+#define OPENOCD_FLASH_NAND_CORE_H
 
 #include <flash/common.h>
 
@@ -229,4 +229,4 @@ COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 #define         ERROR_NAND_ERROR_CORRECTION_FAILED      (-1105)
 #define         ERROR_NAND_NO_BUFFER                    (-1106)
 
-#endif	/* FLASH_NAND_CORE_H */
+#endif /* OPENOCD_FLASH_NAND_CORE_H */

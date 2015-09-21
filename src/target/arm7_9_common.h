@@ -25,8 +25,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM7_9_COMMON_H
-#define ARM7_9_COMMON_H
+#ifndef OPENOCD_TARGET_ARM7_9_COMMON_H
+#define OPENOCD_TARGET_ARM7_9_COMMON_H
 
 #include "arm.h"
 #include "arm_jtag.h"
@@ -192,4 +192,4 @@ int arm7_9_endianness_callback(jtag_callback_data_t pu8_in,
 		jtag_callback_data_t i_size, jtag_callback_data_t i_be,
 		jtag_callback_data_t i_flip);
 
-#endif /* ARM7_9_COMMON_H */
+#endif /* OPENOCD_TARGET_ARM7_9_COMMON_H */

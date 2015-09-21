@@ -17,8 +17,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef MINIDRIVER_IMP_H
-#define MINIDRIVER_IMP_H
+#ifndef OPENOCD_JTAG_MINIDRIVER_MINIDRIVER_IMP_H
+#define OPENOCD_JTAG_MINIDRIVER_MINIDRIVER_IMP_H
 
 #include <jtag/jtag_minidriver.h>
 
@@ -27,4 +27,4 @@
 #define jtag_add_callback4(callback, in, data1, data2, data3) \
 	interface_jtag_add_callback4(callback, in, data1, data2, data3)
 
-#endif /* MINIDRIVER_IMP_H */
+#endif /* OPENOCD_JTAG_MINIDRIVER_MINIDRIVER_IMP_H */

@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef BREAKPOINTS_H
-#define BREAKPOINTS_H
+#ifndef OPENOCD_TARGET_BREAKPOINTS_H
+#define OPENOCD_TARGET_BREAKPOINTS_H
 
 struct target;
 
@@ -73,4 +73,4 @@ void watchpoint_remove(struct target *target, uint32_t address);
 /* report type and address of just hit watchpoint */
 int watchpoint_hit(struct target *target, enum watchpoint_rw *rw, uint32_t *address);
 
-#endif /* BREAKPOINTS_H */
+#endif /* OPENOCD_TARGET_BREAKPOINTS_H */

@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM_SIMULATOR_H
-#define ARM_SIMULATOR_H
+#ifndef OPENOCD_TARGET_ARM_SIMULATOR_H
+#define OPENOCD_TARGET_ARM_SIMULATOR_H
 
 struct target;
 
@@ -36,4 +36,4 @@ struct arm_sim_interface {
 /* armv4_5 version */
 int arm_simulate_step(struct target *target, uint32_t *dry_run_pc);
 
-#endif /* ARM_SIMULATOR_H */
+#endif /* OPENOCD_TARGET_ARM_SIMULATOR_H */

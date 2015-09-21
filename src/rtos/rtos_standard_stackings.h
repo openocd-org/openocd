@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef INCLUDED_RTOS_STANDARD_STACKINGS_H_
-#define INCLUDED_RTOS_STANDARD_STACKINGS_H_
+#ifndef OPENOCD_RTOS_RTOS_STANDARD_STACKINGS_H
+#define OPENOCD_RTOS_RTOS_STANDARD_STACKINGS_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -37,4 +37,4 @@ int64_t rtos_Cortex_M_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
 	int64_t stack_ptr, size_t xpsr_offset);
 
-#endif	/* ifndef INCLUDED_RTOS_STANDARD_STACKINGS_H_ */
+#endif /* OPENOCD_RTOS_RTOS_STANDARD_STACKINGS_H */

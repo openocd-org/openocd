@@ -16,10 +16,11 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef __NDS32_CMD_H__
-#define __NDS32_CMD_H__
+#ifndef OPENOCD_TARGET_NDS32_CMD_H
+#define OPENOCD_TARGET_NDS32_CMD_H
+
 #include <helper/command.h>
 
 extern const struct command_registration nds32_command_handlers[];
 
-#endif /* __NDS32_CMD_H__ */
+#endif /* OPENOCD_TARGET_NDS32_CMD_H */

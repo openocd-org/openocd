@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ALGORITHM_H
-#define ALGORITHM_H
+#ifndef OPENOCD_TARGET_ALGORITHM_H
+#define OPENOCD_TARGET_ALGORITHM_H
 
 enum param_direction {
 	PARAM_IN,
@@ -47,4 +47,4 @@ void init_reg_param(struct reg_param *param,
 		char *reg_name, uint32_t size, enum param_direction dir);
 void destroy_reg_param(struct reg_param *param);
 
-#endif /* ALGORITHM_H */
+#endif /* OPENOCD_TARGET_ALGORITHM_H */

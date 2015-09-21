@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef OPENOCD_SERVER_SERVER_H
+#define OPENOCD_SERVER_SERVER_H
 
 #include <helper/log.h>
 
@@ -109,4 +109,4 @@ COMMAND_HELPER(server_port_command, unsigned short *out);
 #define ERROR_SERVER_REMOTE_CLOSED		(-400)
 #define ERROR_CONNECTION_REJECTED		(-401)
 
-#endif	/* SERVER_H */
+#endif /* OPENOCD_SERVER_SERVER_H */

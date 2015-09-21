@@ -72,6 +72,25 @@ Finally, try to avoid lines of code that are longer than than 72-80 columns:
 - use underline characters between consecutive words in identifiers
   (e.g. @c more_than_one_word).
 
+@section style_include_guards Include Guards
+
+Every header file should have a unique include guard to prevent multiple
+inclusion.
+To guarantee uniqueness, an include guard should be based on the filename and
+the full path in the project source tree.
+
+For the header file src/helper/jim-nvp.h, the include guard would look like
+this:
+
+@code
+#ifndef OPENOCD_HELPER_JIM_NVP_H
+#define OPENOCD_HELPER_JIM_NVP_H
+
+/* Your code here. */
+
+#endif /* OPENOCD_HELPER_JIM_NVP_H */
+@endcode
+
 @section stylec99 C99 Rules
 
 - inline functions

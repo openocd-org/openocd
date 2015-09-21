@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ETB_H
-#define ETB_H
+#ifndef OPENOCD_TARGET_ETB_H
+#define OPENOCD_TARGET_ETB_H
 
 /* ETB registers */
 enum {
@@ -55,4 +55,4 @@ extern struct etm_capture_driver etb_capture_driver;
 
 struct reg_cache *etb_build_reg_cache(struct etb *etb);
 
-#endif /* ETB_H */
+#endif /* OPENOCD_TARGET_ETB_H */

@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef REGISTER_H
-#define REGISTER_H
+#ifndef OPENOCD_TARGET_REGISTER_H
+#define OPENOCD_TARGET_REGISTER_H
 
 struct target;
 
@@ -149,4 +149,4 @@ void register_cache_invalidate(struct reg_cache *cache);
 
 void register_init_dummy(struct reg *reg);
 
-#endif /* REGISTER_H */
+#endif /* OPENOCD_TARGET_REGISTER_H */

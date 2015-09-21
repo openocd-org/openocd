@@ -22,8 +22,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARM_H
-#define ARM_H
+#ifndef OPENOCD_TARGET_ARM_H
+#define OPENOCD_TARGET_ARM_H
 
 #include <helper/command.h>
 #include "target.h"
@@ -240,4 +240,4 @@ struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
 extern struct reg arm_gdb_dummy_fp_reg;
 extern struct reg arm_gdb_dummy_fps_reg;
 
-#endif /* ARM_H */
+#endif /* OPENOCD_TARGET_ARM_H */

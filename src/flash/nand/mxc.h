@@ -1,4 +1,3 @@
-
 /***************************************************************************
  *   Copyright (C) 2009 by Alexei Babich                                   *
  *   Rezonans plc., Chelyabinsk, Russia                                    *
@@ -20,6 +19,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
+
+#ifndef OPENOCD_FLASH_NAND_MXC_H
+#define OPENOCD_FLASH_NAND_MXC_H
 
 /*
  * Freescale iMX OpenOCD NAND Flash controller support.
@@ -162,3 +164,5 @@ struct mxc_nf_controller {
 	enum mxc_nf_finalize_action fin;
 	struct mxc_nf_flags flags;
 };
+
+#endif /* OPENOCD_FLASH_NAND_MXC_H */

@@ -15,8 +15,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
-#ifndef __NDS32_V3_COMMON_H__
-#define __NDS32_V3_COMMON_H__
+
+#ifndef OPENOCD_TARGET_NDS32_V3_COMMON_H
+#define OPENOCD_TARGET_NDS32_V3_COMMON_H
 
 #include "target.h"
 
@@ -57,4 +58,4 @@ int nds32_v3_write_memory(struct target *target, uint32_t address,
 int nds32_v3_init_target(struct command_context *cmd_ctx,
 		struct target *target);
 
-#endif	/* __NDS32_V3_COMMON_H__ */
+#endif /* OPENOCD_TARGET_NDS32_V3_COMMON_H */

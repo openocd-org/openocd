@@ -16,9 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM_SEMIHOSTING_H
-#define ARM_SEMIHOSTING_H
+#ifndef OPENOCD_TARGET_ARM_SEMIHOSTING_H
+#define OPENOCD_TARGET_ARM_SEMIHOSTING_H
 
 int arm_semihosting(struct target *target, int *retval);
 
-#endif
+#endif /* OPENOCD_TARGET_ARM_SEMIHOSTING_H */

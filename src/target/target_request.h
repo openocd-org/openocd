@@ -22,8 +22,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef TARGET_REQUEST_H
-#define TARGET_REQUEST_H
+#ifndef OPENOCD_TARGET_TARGET_REQUEST_H
+#define OPENOCD_TARGET_TARGET_REQUEST_H
 
 struct target;
 struct command_context;
@@ -52,4 +52,4 @@ int target_request_register_commands(struct command_context *cmd_ctx);
  */
 bool target_got_message(void);
 
-#endif /* TARGET_REQUEST_H */
+#endif /* OPENOCD_TARGET_TARGET_REQUEST_H */

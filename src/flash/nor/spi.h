@@ -19,6 +19,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
+#ifndef OPENOCD_FLASH_NOR_SPI_H
+#define OPENOCD_FLASH_NOR_SPI_H
+
 /* data structure to maintain flash ids from different vendors */
 struct flash_device {
 	char *name;
@@ -54,3 +57,5 @@ extern const struct flash_device flash_devices[];
 #define SPIFLASH_PAGE_PROGRAM	0x02 /* Page Program */
 #define SPIFLASH_FAST_READ		0x0B /* Fast Read */
 #define SPIFLASH_READ			0x03 /* Normal Read */
+
+#endif /* OPENOCD_FLASH_NOR_SPI_H */

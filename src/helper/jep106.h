@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef JEP106_H
-#define JEP106_H
+#ifndef OPENOCD_HELPER_JEP106_H
+#define OPENOCD_HELPER_JEP106_H
 
 /**
  * Get the manufacturer name associated with a JEP106 ID.
@@ -29,4 +29,4 @@
  */
 const char *jep106_manufacturer(unsigned bank, unsigned id);
 
-#endif
+#endif /* OPENOCD_HELPER_JEP106_H */

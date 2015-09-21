@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM7TDMI_H
-#define ARM7TDMI_H
+#ifndef OPENOCD_TARGET_ARM7TDMI_H
+#define OPENOCD_TARGET_ARM7TDMI_H
 
 #include "embeddedice.h"
 
@@ -29,4 +29,4 @@ int arm7tdmi_init_arch_info(struct target *target,
 int arm7tdmi_init_target(struct command_context *cmd_ctx,
 		struct target *target);
 
-#endif /* ARM7TDMI_H */
+#endif /* OPENOCD_TARGET_ARM7TDMI_H */

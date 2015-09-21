@@ -17,8 +17,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef _FTD2XX_COMMON_H
-#define _FTD2XX_COMMON_H
+#ifndef OPENOCD_JTAG_DRIVERS_FTD2XX_COMMON_H
+#define OPENOCD_JTAG_DRIVERS_FTD2XX_COMMON_H
 
 #if ((BUILD_FT2232_FTD2XX == 1) || (BUILD_PRESTO_FTD2XX == 1) || (BUILD_USB_BLASTER_FTD2XX == 1))
 #include <ftd2xx.h>
@@ -52,4 +52,4 @@ static const char *ftd2xx_status_string(FT_STATUS status)
 }
 
 #endif
-#endif /* _FTD2XX_COMMON_H */
+#endif /* OPENOCD_JTAG_DRIVERS_FTD2XX_COMMON_H */

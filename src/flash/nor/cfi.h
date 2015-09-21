@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef CFI_H
-#define CFI_H
+#ifndef OPENOCD_FLASH_NOR_CFI_H
+#define OPENOCD_FLASH_NOR_CFI_H
 
 #define CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7 0xE0 /* DQ5..DQ7 */
 #define CFI_STATUS_POLL_MASK_DQ6_DQ7     0xC0 /* DQ6..DQ7 */
@@ -159,4 +159,4 @@ struct cfi_fixup {
 #define CFI_MFR_ANY		0xffff
 #define CFI_ID_ANY		0xffff
 
-#endif /* CFI_H */
+#endif /* OPENOCD_FLASH_NOR_CFI_H */

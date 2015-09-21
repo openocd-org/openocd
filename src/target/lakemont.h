@@ -29,8 +29,9 @@
  * This is the interface to the probemode operations for Lakemont 1 (LMT1).
  */
 
-#ifndef LAKEMONT_H
-#define LAKEMONT_H
+#ifndef OPENOCD_TARGET_LAKEMONT_H
+#define OPENOCD_TARGET_LAKEMONT_H
+
 #include <jtag/jtag.h>
 #include <helper/types.h>
 
@@ -102,4 +103,4 @@ int lakemont_reset_assert(struct target *t);
 int lakemont_reset_deassert(struct target *t);
 int lakemont_update_after_probemode_entry(struct target *t);
 
-#endif /* LAKEMONT_H */
+#endif /* OPENOCD_TARGET_LAKEMONT_H */

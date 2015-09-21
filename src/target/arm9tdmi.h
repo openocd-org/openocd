@@ -19,8 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARM9TDMI_H
-#define ARM9TDMI_H
+#ifndef OPENOCD_TARGET_ARM9TDMI_H
+#define OPENOCD_TARGET_ARM9TDMI_H
 
 #include "embeddedice.h"
 
@@ -53,4 +53,4 @@ void arm9tdmi_branch_resume(struct target *target);
 void arm9tdmi_enable_single_step(struct target *target, uint32_t next_pc);
 void arm9tdmi_disable_single_step(struct target *target);
 
-#endif /* ARM9TDMI_H */
+#endif /* OPENOCD_TARGET_ARM9TDMI_H */

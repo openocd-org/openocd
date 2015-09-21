@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef ARMV4_5_CACHE_H
-#define ARMV4_5_CACHE_H
+#ifndef OPENOCD_TARGET_ARMV4_5_CACHE_H
+#define OPENOCD_TARGET_ARMV4_5_CACHE_H
 
 struct command_context;
 
@@ -52,4 +52,4 @@ enum {
 	ARMV4_5_CACHE_RR_BIT = 0x5000,
 };
 
-#endif /* ARMV4_5_CACHE_H */
+#endif /* OPENOCD_TARGET_ARMV4_5_CACHE_H */
