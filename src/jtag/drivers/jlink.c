@@ -216,11 +216,23 @@ static int jlink_execute_queue(void)
 static int jlink_speed(int speed)
 {
 	int ret;
+	uint32_t freq;
+	uint16_t div;
+	int max_speed;
 
-	if (speed > JLINK_MAX_SPEED) {
-		LOG_INFO("Reduce speed from %d kHz to %d kHz (maximum).", speed,
-			JLINK_MAX_SPEED);
-		speed = JLINK_MAX_SPEED;
+	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_SPEEDS)) {
+		ret = jaylink_get_speeds(devh, &freq, &div);
+
+		if (ret != JAYLINK_OK) {
+			LOG_ERROR("jaylink_get_speeds() failed: %s.",
+				jaylink_strerror_name(ret));
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+
+		freq = freq / 1000;
+		max_speed = freq / div;
+	} else {
+		max_speed = JLINK_MAX_SPEED;
 	}
 
 	if (!speed) {
@@ -230,6 +242,10 @@ static int jlink_speed(int speed)
 		}
 
 		speed = JAYLINK_SPEED_ADAPTIVE_CLOCKING;
+	} else if (speed > max_speed) {
+		LOG_INFO("Reduced speed from %d kHz to %d kHz (maximum).", speed,
+			max_speed);
+		speed = max_speed;
 	}
 
 	ret = jaylink_set_speed(devh, speed);
