@@ -1072,7 +1072,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			nvm_sector_size_bytes = 1<<10;
 			num_blocks = 2;
 			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR;
-			kinfo->max_flash_prog_size = 1<<10;
 			break;
 		case KINETIS_K_SDID_K10_M72:
 		case KINETIS_K_SDID_K20_M72:
@@ -1102,7 +1101,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			nvm_sector_size_bytes = 2<<10;
 			num_blocks = 2;
 			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR;
-			kinfo->max_flash_prog_size = 2<<10;
 			break;
 		case KINETIS_K_SDID_K10_M120:
 		case KINETIS_K_SDID_K20_M120:
@@ -1115,7 +1113,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			nvm_sector_size_bytes = 4<<10;
 			num_blocks = 4;
 			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
-			kinfo->max_flash_prog_size = 4<<10;
 			break;
 		default:
 			LOG_ERROR("Unsupported K-family FAMID");
@@ -1151,7 +1148,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 				pflash_sector_size_bytes = 4<<10;
 				num_blocks = 1;
 				kinfo->flash_support = FS_PROGRAM_LONGWORD;
-				kinfo->max_flash_prog_size = 1<<10;
 				break;
 			default:
 				break;
@@ -1163,7 +1159,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			nvm_sector_size_bytes = 1<<10;
 			num_blocks = 1;
 			kinfo->flash_support = FS_PROGRAM_LONGWORD;
-			kinfo->max_flash_prog_size = 1<<10;
 			break;
 		default:
 			break;
@@ -1370,6 +1365,17 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	if (bank->sectors) {
 		free(bank->sectors);
 		bank->sectors = NULL;
+	}
+
+	if (kinfo->sector_size == 0) {
+		LOG_ERROR("Unknown sector size for bank %d", bank->bank_number);
+		return ERROR_FLASH_BANK_INVALID;
+	}
+
+	if (kinfo->flash_support & FS_PROGRAM_SECTOR
+			 && kinfo->max_flash_prog_size == 0) {
+		kinfo->max_flash_prog_size = kinfo->sector_size;
+		/* Program section size is equal to sector size by default */
 	}
 
 	bank->num_sectors = bank->size / kinfo->sector_size;
