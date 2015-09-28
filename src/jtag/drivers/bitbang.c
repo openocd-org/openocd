@@ -459,7 +459,7 @@ static void bitbang_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *v
 			if (value)
 				*value = data;
 			if (cmd & SWD_CMD_APnDP)
-				bitbang_exchange(true, NULL, 0, dap->memaccess_tck);
+				bitbang_exchange(true, NULL, 0, dap->ap[dap_ap_get_select(dap)].memaccess_tck);
 			return;
 		 case SWD_ACK_WAIT:
 			LOG_DEBUG("SWD_ACK_WAIT");
@@ -511,7 +511,7 @@ static void bitbang_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t v
 		switch (ack) {
 		 case SWD_ACK_OK:
 			if (cmd & SWD_CMD_APnDP)
-				bitbang_exchange(true, NULL, 0, dap->memaccess_tck);
+				bitbang_exchange(true, NULL, 0, dap->ap[dap_ap_get_select(dap)].memaccess_tck);
 			return;
 		 case SWD_ACK_WAIT:
 			LOG_DEBUG("SWD_ACK_WAIT");

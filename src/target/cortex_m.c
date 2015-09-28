@@ -1903,6 +1903,9 @@ int cortex_m_examine(struct target *target)
 	struct adiv5_dap *swjdp = cortex_m->armv7m.arm.dap;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
+	/* Leave (only) generic DAP stuff for debugport_init(); */
+	swjdp->ap[armv7m->debug_ap].memaccess_tck = 8;
+
 	/* stlink shares the examine handler but does not support
 	 * all its calls */
 	if (!armv7m->stlink) {
@@ -1957,7 +1960,7 @@ int cortex_m_examine(struct target *target)
 
 		if (i == 4 || i == 3) {
 			/* Cortex-M3/M4 has 4096 bytes autoincrement range */
-			armv7m->dap.tar_autoincr_block = (1 << 12);
+			swjdp->ap[armv7m->debug_ap].tar_autoincr_block = (1 << 12);
 		}
 
 		/* Configure trace modules */
@@ -2106,24 +2109,26 @@ static int cortex_m_init_arch_info(struct target *target,
 
 	armv7m_init_arch_info(target, armv7m);
 
-	/* prepare JTAG information for the new target */
-	cortex_m->jtag_info.tap = tap;
-	cortex_m->jtag_info.scann_size = 4;
+	/*  tap has no dap initialized */
+	if (!tap->dap) {
+		tap->dap = dap_init();
+
+		/* prepare JTAG information for the new target */
+		cortex_m->jtag_info.tap = tap;
+		cortex_m->jtag_info.scann_size = 4;
+
+		/* Leave (only) generic DAP stuff for debugport_init() */
+		tap->dap->jtag_info = &cortex_m->jtag_info;
+	}
 
 	/* default reset mode is to use srst if fitted
 	 * if not it will use CORTEX_M3_RESET_VECTRESET */
 	cortex_m->soft_reset_config = CORTEX_M_RESET_VECTRESET;
 
-	armv7m->arm.dap = &armv7m->dap;
+	armv7m->arm.dap = tap->dap;
 
 	/* Leave (only) generic DAP stuff for debugport_init(); */
-	armv7m->dap.jtag_info = &cortex_m->jtag_info;
-	armv7m->dap.memaccess_tck = 8;
-
-	/* Cortex-M3/M4 has 4096 bytes autoincrement range
-	 * but set a safe default to 1024 to support Cortex-M0
-	 * this will be changed in cortex_m3_examine if a M3/M4 is detected */
-	armv7m->dap.tar_autoincr_block = (1 << 10);
+	tap->dap->ap[dap_ap_get_select(tap->dap)].memaccess_tck = 8;
 
 	/* register arch-specific functions */
 	armv7m->examine_debug_reason = cortex_m_examine_debug_reason;

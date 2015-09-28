@@ -123,10 +123,51 @@
 #define CSW_DBGSWENABLE     (1UL << 31)
 
 /**
+ * This represents an ARM Debug Interface (v5) Access Port (AP).
+ * Most common is a MEM-AP, for memory access.
+ */
+struct adiv5_ap {
+	/**
+	 * Default value for (MEM-AP) AP_REG_CSW register.
+	 */
+	uint32_t csw_default;
+
+	/**
+	 * Cache for (MEM-AP) AP_REG_CSW register value.  This is written to
+	 * configure an access mode, such as autoincrementing AP_REG_TAR during
+	 * word access.  "-1" indicates no cached value.
+	 */
+	uint32_t csw_value;
+
+	/**
+	 * Cache for (MEM-AP) AP_REG_TAR register value This is written to
+	 * configure the address being read or written
+	 * "-1" indicates no cached value.
+	 */
+	uint32_t tar_value;
+
+	/**
+	 * Configures how many extra tck clocks are added after starting a
+	 * MEM-AP access before we try to read its status (and/or result).
+	 */
+	uint32_t memaccess_tck;
+
+	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
+	uint32_t tar_autoincr_block;
+
+	/* true if packed transfers are supported by the MEM-AP */
+	bool packed_transfers;
+
+	/* true if unaligned memory access is not supported by the MEM-AP */
+	bool unaligned_access_bad;
+};
+
+
+/**
  * This represents an ARM Debug Interface (v5) Debug Access Port (DAP).
  * A DAP has two types of component:  one Debug Port (DP), which is a
  * transport agent; and at least one Access Port (AP), controlling
- * resource access.  Most common is a MEM-AP, for memory access.
+ * resource access.
  *
  * There are two basic DP transports: JTAG, and ARM's low pin-count SWD.
  * Accordingly, this interface is responsible for hiding the transport
@@ -145,7 +186,9 @@ struct adiv5_dap {
 	/* Control config */
 	uint32_t dp_ctrl_stat;
 
-	uint32_t apcsw[256];
+	struct adiv5_ap ap[256];
+
+	/* The current manually selected AP by the "dap apsel" command */
 	uint32_t apsel;
 
 	/**
@@ -171,20 +214,6 @@ struct adiv5_dap {
 	 */
 	uint32_t dp_bank_value;
 
-	/**
-	 * Cache for (MEM-AP) AP_REG_CSW register value.  This is written to
-	 * configure an access mode, such as autoincrementing AP_REG_TAR during
-	 * word access.  "-1" indicates no cached value.
-	 */
-	uint32_t ap_csw_value;
-
-	/**
-	 * Cache for (MEM-AP) AP_REG_TAR register value This is written to
-	 * configure the address being read or written
-	 * "-1" indicates no cached value.
-	 */
-	uint32_t ap_tar_value;
-
 	/* information about current pending SWjDP-AHBAP transaction */
 	uint8_t  ack;
 
@@ -193,21 +222,6 @@ struct adiv5_dap {
 	 * for use with posted AP read sequence optimization.
 	 */
 	uint32_t *last_read;
-
-	/**
-	 * Configures how many extra tck clocks are added after starting a
-	 * MEM-AP access before we try to read its status (and/or result).
-	 */
-	uint32_t	memaccess_tck;
-
-	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
-	uint32_t tar_autoincr_block;
-
-	/* true if packed transfers are supported by the MEM-AP */
-	bool packed_transfers;
-
-	/* true if unaligned memory access is not supported by the MEM-AP */
-	bool unaligned_access_bad;
 
 	/* The TI TMS470 and TMS570 series processors use a BE-32 memory ordering
 	 * despite lack of support in the ARMv7 architecture. Memory access through
@@ -446,6 +460,9 @@ int mem_ap_sel_read_buf_noincr(struct adiv5_dap *swjdp, uint8_t ap,
 		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
 int mem_ap_sel_write_buf_noincr(struct adiv5_dap *swjdp, uint8_t ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
+
+/* Create DAP struct */
+struct adiv5_dap *dap_init(void);
 
 /* Initialisation of the debug system, power domains and registers */
 int ahbap_debugport_init(struct adiv5_dap *swjdp, uint8_t apsel);

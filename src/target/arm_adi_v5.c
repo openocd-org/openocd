@@ -113,34 +113,33 @@ void dap_ap_select(struct adiv5_dap *dap, uint8_t ap)
 		 * Values MUST BE UPDATED BEFORE AP ACCESS.
 		 */
 		dap->ap_bank_value = -1;
-		dap->ap_csw_value = -1;
-		dap->ap_tar_value = -1;
 	}
 }
 
 static int dap_setup_accessport_csw(struct adiv5_dap *dap, uint32_t csw)
 {
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
-		dap->apcsw[dap->ap_current >> 24];
+		dap->ap[dap_ap_get_select(dap)].csw_default;
 
-	if (csw != dap->ap_csw_value) {
+	if (csw != dap->ap[dap_ap_get_select(dap)].csw_value) {
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
 		int retval = dap_queue_ap_write(dap, MEM_AP_REG_CSW, csw);
 		if (retval != ERROR_OK)
 			return retval;
-		dap->ap_csw_value = csw;
+		dap->ap[dap_ap_get_select(dap)].csw_value = csw;
 	}
 	return ERROR_OK;
 }
 
 static int dap_setup_accessport_tar(struct adiv5_dap *dap, uint32_t tar)
 {
-	if (tar != dap->ap_tar_value || dap->ap_csw_value & CSW_ADDRINC_MASK) {
+	if (tar != dap->ap[dap_ap_get_select(dap)].tar_value ||
+			(dap->ap[dap_ap_get_select(dap)].csw_value & CSW_ADDRINC_MASK)) {
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
 		int retval = dap_queue_ap_write(dap, MEM_AP_REG_TAR, tar);
 		if (retval != ERROR_OK)
 			return retval;
-		dap->ap_tar_value = tar;
+		dap->ap[dap_ap_get_select(dap)].tar_value = tar;
 	}
 	return ERROR_OK;
 }
@@ -292,6 +291,7 @@ static int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 static int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, uint32_t count,
 		uint32_t address, bool addrinc)
 {
+	struct adiv5_ap *ap = &dap->ap[dap_ap_get_select(dap)];
 	size_t nbytes = size * count;
 	const uint32_t csw_addrincr = addrinc ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
 	uint32_t csw_size;
@@ -324,7 +324,7 @@ static int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t s
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
-	if (dap->unaligned_access_bad && (address % size != 0))
+	if (ap->unaligned_access_bad && (address % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	retval = dap_setup_accessport_tar(dap, address ^ addr_xor);
@@ -335,8 +335,8 @@ static int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t s
 		uint32_t this_size = size;
 
 		/* Select packed transfer if possible */
-		if (addrinc && dap->packed_transfers && nbytes >= 4
-				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
+		if (addrinc && ap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
 			retval = dap_setup_accessport_csw(dap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
@@ -384,7 +384,7 @@ static int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t s
 			break;
 
 		/* Rewrite TAR if it wrapped or we're xoring addresses */
-		if (addrinc && (addr_xor || (address % dap->tar_autoincr_block < size && nbytes > 0))) {
+		if (addrinc && (addr_xor || (address % ap->tar_autoincr_block < size && nbytes > 0))) {
 			retval = dap_setup_accessport_tar(dap, address ^ addr_xor);
 			if (retval != ERROR_OK)
 				break;
@@ -422,6 +422,7 @@ static int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t s
 static int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t count,
 		uint32_t adr, bool addrinc)
 {
+	struct adiv5_ap *ap = &dap->ap[dap_ap_get_select(dap)];
 	size_t nbytes = size * count;
 	const uint32_t csw_addrincr = addrinc ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
 	uint32_t csw_size;
@@ -444,7 +445,7 @@ static int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, ui
 	else
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	if (dap->unaligned_access_bad && (adr % size != 0))
+	if (ap->unaligned_access_bad && (adr % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	/* Allocate buffer to hold the sequence of DRW reads that will be made. This is a significant
@@ -470,8 +471,8 @@ static int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, ui
 		uint32_t this_size = size;
 
 		/* Select packed transfer if possible */
-		if (addrinc && dap->packed_transfers && nbytes >= 4
-				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
+		if (addrinc && ap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
 			retval = dap_setup_accessport_csw(dap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
@@ -488,7 +489,7 @@ static int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, ui
 		address += this_size;
 
 		/* Rewrite TAR if it wrapped */
-		if (addrinc && address % dap->tar_autoincr_block < size && nbytes > 0) {
+		if (addrinc && address % ap->tar_autoincr_block < size && nbytes > 0) {
 			retval = dap_setup_accessport_tar(dap, address);
 			if (retval != ERROR_OK)
 				break;
@@ -522,8 +523,8 @@ static int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, ui
 	while (nbytes > 0) {
 		uint32_t this_size = size;
 
-		if (addrinc && dap->packed_transfers && nbytes >= 4
-				&& max_tar_block_size(dap->tar_autoincr_block, address) >= 4) {
+		if (addrinc && ap->packed_transfers && nbytes >= 4
+				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
 		}
 
@@ -629,6 +630,23 @@ extern const struct dap_ops jtag_dp_ops;
 /*--------------------------------------------------------------------------*/
 
 /**
+ * Create a new DAP
+ */
+struct adiv5_dap *dap_init(void)
+{
+	struct adiv5_dap *dap = calloc(1, sizeof(struct adiv5_dap));
+	int i;
+	/* Set up with safe defaults */
+	for (i = 0; i <= 255; i++) {
+		/* memaccess_tck max is 255 */
+		dap->ap[i].memaccess_tck = 255;
+		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
+		dap->ap[i].tar_autoincr_block = (1<<10);
+	}
+	return dap;
+}
+
+/**
  * Initialize a DAP.  This sets up the power domains, prepares the DP
  * for further use, and arranges to use AP #0 for all AP operations
  * until dap_ap-select() changes that policy.
@@ -645,6 +663,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap, uint8_t apsel)
 	/* check that we support packed transfers */
 	uint32_t csw, cfg;
 	int retval;
+	struct adiv5_ap *ap = &dap->ap[apsel];
 
 	LOG_DEBUG(" ");
 
@@ -737,17 +756,17 @@ int ahbap_debugport_init(struct adiv5_dap *dap, uint8_t apsel)
 		return retval;
 
 	if (csw & CSW_ADDRINC_PACKED)
-		dap->packed_transfers = true;
+		ap->packed_transfers = true;
 	else
-		dap->packed_transfers = false;
+		ap->packed_transfers = false;
 
 	/* Packed transfers on TI BE-32 processors do not work correctly in
 	 * many cases. */
 	if (dap->ti_be_32_quirks)
-		dap->packed_transfers = false;
+		ap->packed_transfers = false;
 
 	LOG_DEBUG("MEM_AP Packed Transfers: %s",
-			dap->packed_transfers ? "enabled" : "disabled");
+			ap->packed_transfers ? "enabled" : "disabled");
 
 	/* The ARM ADI spec leaves implementation-defined whether unaligned
 	 * memory accesses work, only work partially, or cause a sticky error.
@@ -755,7 +774,7 @@ int ahbap_debugport_init(struct adiv5_dap *dap, uint8_t apsel)
 	 * and unaligned writes seem to cause a sticky error.
 	 * TODO: it would be nice to have a way to detect whether unaligned
 	 * operations are supported on other processors. */
-	dap->unaligned_access_bad = dap->ti_be_32_quirks;
+	ap->unaligned_access_bad = dap->ti_be_32_quirks;
 
 	LOG_DEBUG("MEM_AP CFG: large data %d, long address %d, big-endian %d",
 			!!(cfg & 0x04), !!(cfg & 0x02), !!(cfg & 0x01));
@@ -1521,7 +1540,7 @@ COMMAND_HANDLER(dap_memaccess_command)
 
 	switch (CMD_ARGC) {
 	case 0:
-		memaccess_tck = dap->memaccess_tck;
+		memaccess_tck = dap->ap[dap->apsel].memaccess_tck;
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], memaccess_tck);
@@ -1529,10 +1548,10 @@ COMMAND_HANDLER(dap_memaccess_command)
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	dap->memaccess_tck = memaccess_tck;
+	dap->ap[dap->apsel].memaccess_tck = memaccess_tck;
 
 	command_print(CMD_CTX, "memory bus access delay set to %" PRIi32 " tck",
-			dap->memaccess_tck);
+			dap->ap[dap->apsel].memaccess_tck);
 
 	return ERROR_OK;
 }
@@ -1582,7 +1601,7 @@ COMMAND_HANDLER(dap_apcsw_command)
 	struct arm *arm = target_to_arm(target);
 	struct adiv5_dap *dap = arm->dap;
 
-	uint32_t apcsw = dap->apcsw[dap->apsel], sprot = 0;
+	uint32_t apcsw = dap->ap[dap->apsel].csw_default, sprot = 0;
 
 	switch (CMD_ARGC) {
 	case 0:
@@ -1602,7 +1621,7 @@ COMMAND_HANDLER(dap_apcsw_command)
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	dap->apcsw[dap->apsel] = apcsw;
+	dap->ap[dap->apsel].csw_default = apcsw;
 
 	return 0;
 }

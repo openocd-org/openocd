@@ -3119,30 +3119,24 @@ static int cortex_a_init_arch_info(struct target *target,
 	struct cortex_a_common *cortex_a, struct jtag_tap *tap)
 {
 	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
-	struct adiv5_dap *dap = &armv7a->dap;
-
-	armv7a->arm.dap = dap;
 
 	/* Setup struct cortex_a_common */
 	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
+
 	/*  tap has no dap initialized */
 	if (!tap->dap) {
-		armv7a->arm.dap = dap;
-		/* Setup struct cortex_a_common */
+		tap->dap = dap_init();
 
 		/* prepare JTAG information for the new target */
 		cortex_a->jtag_info.tap = tap;
 		cortex_a->jtag_info.scann_size = 4;
 
 		/* Leave (only) generic DAP stuff for debugport_init() */
-		dap->jtag_info = &cortex_a->jtag_info;
+		tap->dap->jtag_info = &cortex_a->jtag_info;
+	}
 
-		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
-		dap->tar_autoincr_block = (1 << 10);
-		dap->memaccess_tck = 80;
-		tap->dap = dap;
-	} else
-		armv7a->arm.dap = tap->dap;
+	tap->dap->ap[dap_ap_get_select(tap->dap)].memaccess_tck = 80;
+	armv7a->arm.dap = tap->dap;
 
 	cortex_a->fast_reg_read = 0;
 

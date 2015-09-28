@@ -104,8 +104,6 @@ struct armv7a_common {
 	int common_magic;
 	struct reg_cache *core_cache;
 
-	struct adiv5_dap dap;
-
 	/* Core Debug Unit */
 	struct arm_dpm dpm;
 	uint32_t debug_base;

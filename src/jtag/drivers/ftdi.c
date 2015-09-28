@@ -1057,7 +1057,7 @@ static void ftdi_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst
 
 	/* Insert idle cycles after AP accesses to avoid WAIT */
 	if (cmd & SWD_CMD_APnDP)
-		mpsse_clock_data_out(mpsse_ctx, NULL, 0, dap->memaccess_tck, SWD_MODE);
+		mpsse_clock_data_out(mpsse_ctx, NULL, 0, dap->ap[dap_ap_get_select(dap)].memaccess_tck, SWD_MODE);
 
 }
 
