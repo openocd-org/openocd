@@ -1187,7 +1187,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	int result, i;
 	uint32_t offset = 0;
 	uint8_t fcfg1_nvmsize, fcfg1_pfsize, fcfg1_eesize, fcfg1_depart;
-	uint8_t fcfg2_pflsh;
+	uint8_t fcfg2_maxaddr0, fcfg2_pflsh, fcfg2_maxaddr1;
 	uint32_t nvm_size = 0, pf_size = 0, df_size = 0, ee_size = 0;
 	unsigned num_blocks = 0, num_pflash_blocks = 0, num_nvm_blocks = 0, first_nvm_bank = 0,
 			pflash_sector_size_bytes = 0, nvm_sector_size_bytes = 0;
@@ -1297,7 +1297,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 					|| (kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN512) {
 					/* K22 with new-style SDID - smaller pflash with FTFA, 2kB sectors */
 					pflash_sector_size_bytes = 2<<10;
-					num_blocks = 2;		/* 1 or 2 blocks */
+					/* autodetect 1 or 2 blocks */
 					kinfo->flash_support = FS_PROGRAM_LONGWORD;
 					break;
 				}
@@ -1349,7 +1349,7 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 			/* KL-series */
 			pflash_sector_size_bytes = 1<<10;
 			nvm_sector_size_bytes = 1<<10;
-			num_blocks = 1;
+			/* autodetect 1 or 2 blocks */
 			kinfo->flash_support = FS_PROGRAM_LONGWORD;
 			break;
 		default:
@@ -1379,6 +1379,18 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	fcfg1_depart = (uint8_t)((kinfo->sim_fcfg1 >> 8) & 0x0f);
 
 	fcfg2_pflsh = (uint8_t)((kinfo->sim_fcfg2 >> 23) & 0x01);
+	fcfg2_maxaddr0 = (uint8_t)((kinfo->sim_fcfg2 >> 24) & 0x7f);
+	fcfg2_maxaddr1 = (uint8_t)((kinfo->sim_fcfg2 >> 16) & 0x7f);
+
+	if (num_blocks == 0)
+		num_blocks = fcfg2_maxaddr1 ? 2 : 1;
+	else if (fcfg2_maxaddr1 == 0 && num_blocks >= 2) {
+		num_blocks = 1;
+		LOG_WARNING("MAXADDR1 is zero, number of flash banks adjusted to 1");
+	} else if (fcfg2_maxaddr1 != 0 && num_blocks == 1) {
+		num_blocks = 2;
+		LOG_WARNING("MAXADDR1 is non zero, number of flash banks adjusted to 2");
+	}
 
 	/* when the PFLSH bit is set, there is no FlexNVM/FlexRAM */
 	if (!fcfg2_pflsh) {
@@ -1455,12 +1467,22 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		pf_size = 1 << (14 + (fcfg1_pfsize >> 1));
 		break;
 	case 0x0f:
-		if (pflash_sector_size_bytes >= 4<<10)
-			pf_size = 1024<<10;
-		else if (fcfg2_pflsh)
-			pf_size = 512<<10;
+		/* a peculiar case: Freescale states different sizes for 0xf
+		 * K02P64M100SFARM	128 KB ... duplicate of code 0x7
+		 * K22P121M120SF8RM	256 KB ... duplicate of code 0x9
+		 * K22P121M120SF7RM	512 KB ... duplicate of code 0xb
+		 * K22P100M120SF5RM	1024 KB ... duplicate of code 0xd
+		 * K26P169M180SF5RM	2048 KB ... the only unique value
+		 * fcfg2_maxaddr0 seems to be the only clue to pf_size
+		 * Checking fcfg2_maxaddr0 later in this routine is pointless then
+		 */
+		if (fcfg2_pflsh)
+			pf_size = ((uint32_t)fcfg2_maxaddr0 << 13) * num_blocks;
 		else
-			pf_size = 256<<10;
+			pf_size = ((uint32_t)fcfg2_maxaddr0 << 13) * num_blocks / 2;
+		if (pf_size != 2048<<10)
+			LOG_WARNING("SIM_FCFG1 PFSIZE = 0xf: please check if pflash is %u KB", pf_size>>10);
+
 		break;
 	default:
 		pf_size = 0;
@@ -1530,6 +1552,20 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 		LOG_ERROR("Cannot determine parameters for bank %d, only %d banks on device",
 				bank->bank_number, num_blocks);
 		return ERROR_FLASH_BANK_INVALID;
+	}
+
+	if (bank->bank_number == 0 && ((uint32_t)fcfg2_maxaddr0 << 13) != bank->size)
+		LOG_WARNING("MAXADDR0 0x%02" PRIx8 " check failed,"
+				" please report to OpenOCD mailing list", fcfg2_maxaddr0);
+	if (fcfg2_pflsh) {
+		if (bank->bank_number == 1 && ((uint32_t)fcfg2_maxaddr1 << 13) != bank->size)
+			LOG_WARNING("MAXADDR1 0x%02" PRIx8 " check failed,"
+				" please report to OpenOCD mailing list", fcfg2_maxaddr1);
+	} else {
+		if ((unsigned)bank->bank_number == first_nvm_bank
+				&& ((uint32_t)fcfg2_maxaddr1 << 13) != df_size)
+			LOG_WARNING("FlexNVM MAXADDR1 0x%02" PRIx8 " check failed,"
+				" please report to OpenOCD mailing list", fcfg2_maxaddr1);
 	}
 
 	if (bank->sectors) {
