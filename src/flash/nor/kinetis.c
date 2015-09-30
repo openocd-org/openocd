@@ -86,6 +86,7 @@
 #define SIM_SOPT1	0x40047000
 #define SIM_FCFG1	0x4004804c
 #define SIM_FCFG2	0x40048050
+#define WDOG_STCTRH	0x40052000
 
 /* Commands */
 #define FTFx_CMD_BLOCKSTAT  0x00
@@ -507,6 +508,110 @@ FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 
 	return ERROR_OK;
 }
+
+/* Disable the watchdog on Kinetis devices */
+int kinetis_disable_wdog(struct target *target, uint32_t sim_sdid)
+{
+	struct working_area *wdog_algorithm;
+	struct armv7m_algorithm armv7m_info;
+	uint16_t wdog;
+	int retval;
+
+	static const uint8_t kinetis_unlock_wdog_code[] = {
+		/* WDOG_UNLOCK = 0xC520 */
+		0x4f, 0xf4, 0x00, 0x53,    /* mov.w   r3, #8192     ; 0x2000  */
+		0xc4, 0xf2, 0x05, 0x03,    /* movt    r3, #16389    ; 0x4005  */
+		0x4c, 0xf2, 0x20, 0x52,   /* movw    r2, #50464    ; 0xc520  */
+		0xda, 0x81,               /* strh    r2, [r3, #14]  */
+
+		/* WDOG_UNLOCK = 0xD928 */
+		0x4f, 0xf4, 0x00, 0x53,   /* mov.w   r3, #8192     ; 0x2000  */
+		0xc4, 0xf2, 0x05, 0x03,   /* movt    r3, #16389    ; 0x4005  */
+		0x4d, 0xf6, 0x28, 0x12,   /* movw    r2, #55592    ; 0xd928  */
+		0xda, 0x81,               /* strh    r2, [r3, #14]  */
+
+		/* WDOG_SCR = 0x1d2 */
+		0x4f, 0xf4, 0x00, 0x53,   /* mov.w   r3, #8192     ; 0x2000  */
+		0xc4, 0xf2, 0x05, 0x03,   /* movt    r3, #16389    ; 0x4005  */
+		0x4f, 0xf4, 0xe9, 0x72,   /* mov.w   r2, #466      ; 0x1d2  */
+		0x1a, 0x80,               /* strh    r2, [r3, #0]  */
+
+		/* END */
+		0x00, 0xBE,               /* bkpt #0 */
+	};
+
+	/* Decide whether the connected device needs watchdog disabling.
+	 * Disable for all Kx devices, i.e., return if it is a KLx */
+
+	if ((sim_sdid & KINETIS_SDID_SERIESID_MASK) == KINETIS_SDID_SERIESID_KL)
+		return ERROR_OK;
+
+	/* The connected device requires watchdog disabling. */
+	retval = target_read_u16(target, WDOG_STCTRH, &wdog);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((wdog & 0x1) == 0) {
+		/* watchdog already disabled */
+		return ERROR_OK;
+	}
+	LOG_INFO("Disabling Kinetis watchdog (initial WDOG_STCTRLH = 0x%x)", wdog);
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	retval = target_alloc_working_area(target, sizeof(kinetis_unlock_wdog_code), &wdog_algorithm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_buffer(target, wdog_algorithm->address,
+			sizeof(kinetis_unlock_wdog_code), (uint8_t *)kinetis_unlock_wdog_code);
+	if (retval != ERROR_OK) {
+		target_free_working_area(target, wdog_algorithm);
+		return retval;
+	}
+
+	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+	armv7m_info.core_mode = ARM_MODE_THREAD;
+
+	retval = target_run_algorithm(target, 0, NULL, 0, NULL, wdog_algorithm->address,
+			wdog_algorithm->address + (sizeof(kinetis_unlock_wdog_code) - 2),
+			10000, &armv7m_info);
+
+	if (retval != ERROR_OK)
+		LOG_ERROR("error executing kinetis wdog unlock algorithm");
+
+	retval = target_read_u16(target, WDOG_STCTRH, &wdog);
+	if (retval != ERROR_OK)
+		return retval;
+	LOG_INFO("WDOG_STCTRLH = 0x%x", wdog);
+
+	target_free_working_area(target, wdog_algorithm);
+
+	return retval;
+}
+
+COMMAND_HANDLER(kinetis_disable_wdog_handler)
+{
+	int result;
+	uint32_t sim_sdid;
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (CMD_ARGC > 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	result = target_read_u32(target, SIM_SDID, &sim_sdid);
+	if (result != ERROR_OK) {
+		LOG_ERROR("Failed to read SIMSDID");
+		return result;
+	}
+
+	result = kinetis_disable_wdog(target, sim_sdid);
+	return result;
+}
+
 
 /* Kinetis Program-LongWord Microcodes */
 static const uint8_t kinetis_flash_write_code[] = {
@@ -1014,6 +1119,8 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 
 		uint32_t words_remaining = count / 4;
+
+		kinetis_disable_wdog(bank->target, kinfo->sim_sdid);
 
 		/* try using a block write */
 		int retval = kinetis_write_block(bank, buffer, offset, words_remaining);
@@ -1564,6 +1671,13 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 		.help = "",
 		.usage = "",
 		.chain = kinetis_securtiy_command_handlers,
+	},
+	{
+		.name = "disable_wdog",
+		.mode = COMMAND_EXEC,
+		.help = "Disable the watchdog timer",
+		.usage = "",
+		.handler = kinetis_disable_wdog_handler,
 	},
 	COMMAND_REGISTRATION_DONE
 };
