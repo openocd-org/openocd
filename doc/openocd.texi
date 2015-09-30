@@ -2702,6 +2702,26 @@ Reset the current configuration.
 @deffn {Command} {jlink config write}
 Write the current configuration to the internal persistent storage.
 @end deffn
+@deffn {Command} {jlink emucom write <channel> <data>}
+Write data to an EMUCOM channel. The data needs to be encoded as hexadecimal
+pairs.
+
+The following example shows how to write the three bytes 0xaa, 0x0b and 0x23 to
+the EMUCOM channel 0x10:
+@example
+> jlink emucom write 0x10 aa0b23
+@end example
+@end deffn
+@deffn {Command} {jlink emucom read <channel> <length>}
+Read data from an EMUCOM channel. The read data is encoded as hexadecimal
+pairs.
+
+The following example shows how to read 4 bytes from the EMUCOM channel 0x0:
+@example
+> jlink emucom read 0x0 4
+77a90000
+@end example
+@end deffn
 @deffn {Config} {jlink usb} <@option{0} to @option{3}>
 Set the USB address of the interface, in case more than one adapter is connected
 to the host. If not specified, USB addresses are not considered. Device
