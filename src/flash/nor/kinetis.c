@@ -984,11 +984,41 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
+static int kinetis_make_ram_ready(struct target *target)
+{
+	int result;
+	uint8_t ftfx_fstat;
+	uint8_t ftfx_fcnfg;
+
+	/* check if ram ready */
+	result = target_read_memory(target, FTFx_FCNFG, 1, 1, &ftfx_fcnfg);
+	if (result != ERROR_OK)
+		return result;
+
+	if (ftfx_fcnfg & (1 << 1))
+		return ERROR_OK;	/* ram ready */
+
+	/* make flex ram available */
+	result = kinetis_ftfx_command(target, FTFx_CMD_SETFLEXRAM, 0x00ff0000,
+				 0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
+	if (result != ERROR_OK)
+		return ERROR_FLASH_OPERATION_FAILED;
+
+	/* check again */
+	result = target_read_memory(target, FTFx_FCNFG, 1, 1, &ftfx_fcnfg);
+	if (result != ERROR_OK)
+		return result;
+
+	if (ftfx_fcnfg & (1 << 1))
+		return ERROR_OK;	/* ram ready */
+
+	return ERROR_FLASH_OPERATION_FAILED;
+}
+
 static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 			 uint32_t offset, uint32_t count)
 {
 	unsigned int i, result, fallback = 0;
-	uint8_t buf[8];
 	uint32_t wc;
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 	uint8_t *new_buffer = NULL;
@@ -1002,35 +1032,15 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		/* fallback to longword write */
 		fallback = 1;
 		LOG_WARNING("This device supports Program Longword execution only.");
-		LOG_DEBUG("flash write into PFLASH @08%" PRIX32, offset);
-
-	} else if (kinfo->flash_class == FC_FLEX_NVM) {
-		uint8_t ftfx_fstat;
-
-		LOG_DEBUG("flash write into FlexNVM @%08" PRIX32, offset);
-
-		/* make flex ram available */
-		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SETFLEXRAM, 0x00ff0000,
-				0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
-
-		if (result != ERROR_OK)
-			return ERROR_FLASH_OPERATION_FAILED;
-
-		/* check if ram ready */
-		result = target_read_memory(bank->target, FTFx_FCNFG, 1, 1, buf);
-
-		if (result != ERROR_OK)
-			return result;
-
-		if (!(buf[0] & (1 << 1))) {
-			/* fallback to longword write */
-			fallback = 1;
-
-			LOG_WARNING("ram not ready, fallback to slow longword write (FCNFG: %02X)", buf[0]);
-		}
 	} else {
-		LOG_DEBUG("flash write into PFLASH @08%" PRIX32, offset);
+		result = kinetis_make_ram_ready(bank->target);
+		if (result != ERROR_OK) {
+			fallback = 1;
+			LOG_WARNING("FlexRAM not ready, fallback to slow longword write.");
+		}
 	}
+
+	LOG_DEBUG("flash write @08%" PRIX32, offset);
 
 
 	/* program section command */
