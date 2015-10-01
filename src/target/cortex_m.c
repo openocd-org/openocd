@@ -1865,6 +1865,7 @@ static void cortex_m_dwt_free(struct target *target)
 
 	free(cm->dwt_comparator_list);
 	cm->dwt_comparator_list = NULL;
+	cm->dwt_num_comp = 0;
 
 	if (cache) {
 		register_unlink_cache(&target->reg_cache, cache);
