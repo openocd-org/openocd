@@ -874,7 +874,7 @@ static int kinetis_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int kinetis_ftfx_command(struct flash_bank *bank, uint8_t fcmd, uint32_t faddr,
+static int kinetis_ftfx_command(struct target *target, uint8_t fcmd, uint32_t faddr,
 				uint8_t fccob4, uint8_t fccob5, uint8_t fccob6, uint8_t fccob7,
 				uint8_t fccob8, uint8_t fccob9, uint8_t fccoba, uint8_t fccobb,
 				uint8_t *ftfx_fstat)
@@ -888,7 +888,7 @@ static int kinetis_ftfx_command(struct flash_bank *bank, uint8_t fcmd, uint32_t 
 	/* wait for done */
 	for (i = 0; i < 50; i++) {
 		result =
-			target_read_memory(bank->target, FTFx_FSTAT, 1, 1, &buffer);
+			target_read_memory(target, FTFx_FSTAT, 1, 1, &buffer);
 
 		if (result != ERROR_OK)
 			return result;
@@ -903,26 +903,26 @@ static int kinetis_ftfx_command(struct flash_bank *bank, uint8_t fcmd, uint32_t 
 		/* reset error flags */
 		buffer = 0x30;
 		result =
-			target_write_memory(bank->target, FTFx_FSTAT, 1, 1, &buffer);
+			target_write_memory(target, FTFx_FSTAT, 1, 1, &buffer);
 		if (result != ERROR_OK)
 			return result;
 	}
 
-	result = target_write_memory(bank->target, FTFx_FCCOB3, 4, 3, command);
+	result = target_write_memory(target, FTFx_FCCOB3, 4, 3, command);
 
 	if (result != ERROR_OK)
 		return result;
 
 	/* start command */
 	buffer = 0x80;
-	result = target_write_memory(bank->target, FTFx_FSTAT, 1, 1, &buffer);
+	result = target_write_memory(target, FTFx_FSTAT, 1, 1, &buffer);
 	if (result != ERROR_OK)
 		return result;
 
 	/* wait for done */
 	for (i = 0; i < 240; i++) { /* Need longtime for "Mass Erase" Command Nemui Changed */
 		result =
-			target_read_memory(bank->target, FTFx_FSTAT, 1, 1, ftfx_fstat);
+			target_read_memory(target, FTFx_FSTAT, 1, 1, ftfx_fstat);
 
 		if (result != ERROR_OK)
 			return result;
@@ -943,27 +943,6 @@ static int kinetis_ftfx_command(struct flash_bank *bank, uint8_t fcmd, uint32_t 
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(kinetis_securing_test)
-{
-	int result;
-	uint8_t ftfx_fstat;
-	struct target *target = get_current_target(CMD_CTX);
-	struct flash_bank *bank = NULL;
-
-	result = get_flash_bank_by_addr(target, 0x00000000, true, &bank);
-	if (result != ERROR_OK)
-		return result;
-
-	assert(bank != NULL);
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	return kinetis_ftfx_command(bank, FTFx_CMD_SECTERASE, bank->base + 0x00000400,
-				      0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
-}
 
 static int kinetis_erase(struct flash_bank *bank, int first, int last)
 {
@@ -986,7 +965,7 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	for (i = first; i <= last; i++) {
 		uint8_t ftfx_fstat;
 		/* set command and sector address */
-		result = kinetis_ftfx_command(bank, FTFx_CMD_SECTERASE, kinfo->prog_base + bank->sectors[i].offset,
+		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTERASE, kinfo->prog_base + bank->sectors[i].offset,
 				0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
 
 		if (result != ERROR_OK) {
@@ -1031,7 +1010,8 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		LOG_DEBUG("flash write into FlexNVM @%08" PRIX32, offset);
 
 		/* make flex ram available */
-		result = kinetis_ftfx_command(bank, FTFx_CMD_SETFLEXRAM, 0x00ff0000, 0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
+		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SETFLEXRAM, 0x00ff0000,
+				0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
 
 		if (result != ERROR_OK)
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -1126,7 +1106,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 			}
 
 			/* execute section-write command */
-			result = kinetis_ftfx_command(bank, FTFx_CMD_SECTWRITE, kinfo->prog_base + offset + i,
+			result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTWRITE, kinfo->prog_base + offset + i,
 					section_count>>8, section_count, 0, 0,
 					0, 0, 0, 0,  &ftfx_fstat);
 
@@ -1172,7 +1152,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 				uint8_t padding[4] = {0xff, 0xff, 0xff, 0xff};
 				memcpy(padding, buffer + i, MIN(4, count-i));
 
-				result = kinetis_ftfx_command(bank, FTFx_CMD_LWORDPROG, kinfo->prog_base + offset + i,
+				result = kinetis_ftfx_command(bank->target, FTFx_CMD_LWORDPROG, kinfo->prog_base + offset + i,
 						padding[3], padding[2], padding[1], padding[0],
 						0, 0, 0, 0,  &ftfx_fstat);
 
@@ -1633,7 +1613,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 
 		if (!block_dirty) {
 			/* check if whole bank is blank */
-			result = kinetis_ftfx_command(bank, FTFx_CMD_BLOCKSTAT, kinfo->prog_base,
+			result = kinetis_ftfx_command(bank->target, FTFx_CMD_BLOCKSTAT, kinfo->prog_base,
 							 0, 0, 0, 0,  0, 0, 0, 0, &ftfx_fstat);
 
 			if (result != ERROR_OK || (ftfx_fstat & 0x01))
@@ -1645,7 +1625,8 @@ static int kinetis_blank_check(struct flash_bank *bank)
 			int i;
 			for (i = 0; i < bank->num_sectors; i++) {
 				/* normal margin */
-				result = kinetis_ftfx_command(bank, FTFx_CMD_SECTSTAT, kinfo->prog_base + bank->sectors[i].offset,
+				result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTSTAT,
+						kinfo->prog_base + bank->sectors[i].offset,
 						1, 0, 0, 0,  0, 0, 0, 0, &ftfx_fstat);
 
 				if (result == ERROR_OK) {
@@ -1684,13 +1665,6 @@ static const struct command_registration kinetis_securtiy_command_handlers[] = {
 		.usage = "",
 		.handler = kinetis_mdm_mass_erase,
 	},
-	{
-		.name = "test_securing",
-		.mode = COMMAND_EXEC,
-		.help = "",
-		.usage = "",
-		.handler = kinetis_securing_test,
-	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1716,7 +1690,7 @@ static const struct command_registration kinetis_command_handler[] = {
 	{
 		.name = "kinetis",
 		.mode = COMMAND_ANY,
-		.help = "kinetis NAND flash controller commands",
+		.help = "kinetis flash controller commands",
 		.usage = "",
 		.chain = kinetis_exec_command_handlers,
 	},
