@@ -109,10 +109,10 @@ int fileio_open(struct fileio *fileio_p,
 	enum fileio_access access_type,
 	enum fileio_type type)
 {
-	int retval = ERROR_OK;
+	int retval;
+	struct fileio_internal *fileio;
 
-	struct fileio_internal *fileio = malloc(sizeof(struct fileio_internal));
-	fileio_p->fp = fileio;
+	fileio = malloc(sizeof(struct fileio_internal));
 
 	fileio->type = type;
 	fileio->access = access_type;
@@ -120,7 +120,15 @@ int fileio_open(struct fileio *fileio_p,
 
 	retval = fileio_open_local(fileio);
 
-	return retval;
+	if (retval != ERROR_OK) {
+		free(fileio->url);
+		free(fileio);
+		return retval;
+	}
+
+	fileio_p->fp = fileio;
+
+	return ERROR_OK;
 }
 
 static inline int fileio_close_local(struct fileio_internal *fileio)
