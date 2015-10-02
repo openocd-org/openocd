@@ -11,6 +11,9 @@
  *   Copyright (C) 2013 Nemui Trinomius                                    *
  *   nemuisan_kawausogasuki@live.jp                                        *
  *                                                                         *
+ *   Copyright (C) 2015 Tomas Vanek                                        *
+ *   vanekt@fbl.cz                                                         *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -96,8 +99,9 @@
 #define FTFx_CMD_LWORDPROG  0x06
 #define FTFx_CMD_SECTERASE  0x09
 #define FTFx_CMD_SECTWRITE  0x0b
-#define FTFx_CMD_SETFLEXRAM 0x81
 #define FTFx_CMD_MASSERASE  0x44
+#define FTFx_CMD_PGMPART    0x80
+#define FTFx_CMD_SETFLEXRAM 0x81
 
 /* The older Kinetis K series uses the following SDID layout :
  * Bit 31-16 : 0
@@ -1660,6 +1664,146 @@ static int kinetis_blank_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
+
+COMMAND_HANDLER(kinetis_nvm_partition)
+{
+	int result, i;
+	unsigned long par, log2 = 0, ee1 = 0, ee2 = 0;
+	enum { SHOW_INFO, DF_SIZE, EEBKP_SIZE } sz_type = SHOW_INFO;
+	bool enable;
+	uint8_t ftfx_fstat;
+	uint8_t load_flex_ram = 1;
+	uint8_t ee_size_code = 0x3f;
+	uint8_t flex_nvm_partition_code = 0;
+	uint8_t ee_split = 3;
+	struct target *target = get_current_target(CMD_CTX);
+	struct flash_bank *bank;
+	struct kinetis_flash_bank *kinfo;
+	uint32_t sim_fcfg1;
+
+	if (CMD_ARGC >= 2) {
+		if (strcmp(CMD_ARGV[0], "dataflash") == 0)
+			sz_type = DF_SIZE;
+		else if (strcmp(CMD_ARGV[0], "eebkp") == 0)
+			sz_type = EEBKP_SIZE;
+
+		par = strtoul(CMD_ARGV[1], NULL, 10);
+		while (par >> (log2 + 3))
+			log2++;
+	}
+	switch (sz_type) {
+	case SHOW_INFO:
+		result = target_read_u32(target, SIM_FCFG1, &sim_fcfg1);
+		if (result != ERROR_OK)
+			return result;
+
+		flex_nvm_partition_code = (uint8_t)((sim_fcfg1 >> 8) & 0x0f);
+		switch (flex_nvm_partition_code) {
+		case 0:
+			command_print(CMD_CTX, "No EEPROM backup, data flash only");
+			break;
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+			command_print(CMD_CTX, "EEPROM backup %d KB", 4 << flex_nvm_partition_code);
+			break;
+		case 8:
+			command_print(CMD_CTX, "No data flash, EEPROM backup only");
+			break;
+		case 0x9:
+		case 0xA:
+		case 0xB:
+		case 0xC:
+		case 0xD:
+		case 0xE:
+			command_print(CMD_CTX, "data flash %d KB", 4 << (flex_nvm_partition_code & 7));
+			break;
+		case 0xf:
+			command_print(CMD_CTX, "No EEPROM backup, data flash only (DEPART not set)");
+			break;
+		default:
+			command_print(CMD_CTX, "Unsupported EEPROM backup size code 0x%02" PRIx8, flex_nvm_partition_code);
+		}
+		return ERROR_OK;
+
+	case DF_SIZE:
+		flex_nvm_partition_code = 0x8 | log2;
+		break;
+
+	case EEBKP_SIZE:
+		flex_nvm_partition_code = log2;
+		break;
+	}
+
+	if (CMD_ARGC == 3)
+		ee1 = ee2 = strtoul(CMD_ARGV[2], NULL, 10) / 2;
+	else if (CMD_ARGC >= 4) {
+		ee1 = strtoul(CMD_ARGV[2], NULL, 10);
+		ee2 = strtoul(CMD_ARGV[3], NULL, 10);
+	}
+
+	enable = ee1 + ee2 > 0;
+	if (enable) {
+		for (log2 = 2; ; log2++) {
+			if (ee1 + ee2 == (16u << 10) >> log2)
+				break;
+			if (ee1 + ee2 > (16u << 10) >> log2 || log2 >= 9) {
+				LOG_ERROR("Unsupported EEPROM size");
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+		}
+
+		if (ee1 * 3 == ee2)
+			ee_split = 1;
+		else if (ee1 * 7 == ee2)
+			ee_split = 0;
+		else if (ee1 != ee2) {
+			LOG_ERROR("Unsupported EEPROM sizes ratio");
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+
+		ee_size_code = log2 | ee_split << 4;
+	}
+
+	if (CMD_ARGC >= 5)
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[4], enable);
+	if (enable)
+		load_flex_ram = 0;
+
+	LOG_INFO("DEPART 0x%" PRIx8 ", EEPROM size code 0x%" PRIx8,
+		 flex_nvm_partition_code, ee_size_code);
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	result = kinetis_ftfx_command(target, FTFx_CMD_PGMPART, load_flex_ram,
+				      ee_size_code, flex_nvm_partition_code, 0, 0,
+				      0, 0, 0, 0,  &ftfx_fstat);
+	if (result != ERROR_OK)
+		return result;
+
+	command_print(CMD_CTX, "FlexNVM partition set. Please reset MCU.");
+
+	for (i = 1; i < 4; i++) {
+		bank = get_flash_bank_by_num_noprobe(i);
+		if (bank == NULL)
+			break;
+
+		kinfo = bank->driver_priv;
+		if (kinfo && kinfo->flash_class == FC_FLEX_NVM)
+			kinfo->probed = false;	/* re-probe before next use */
+	}
+
+	command_print(CMD_CTX, "FlexNVM banks will be re-probed to set new data flash size.");
+	return ERROR_OK;
+}
+
+
 static const struct command_registration kinetis_securtiy_command_handlers[] = {
 	{
 		.name = "check_security",
@@ -1692,6 +1836,14 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 		.help = "Disable the watchdog timer",
 		.usage = "",
 		.handler = kinetis_disable_wdog_handler,
+	},
+	{
+		.name = "nvm_partition",
+		.mode = COMMAND_EXEC,
+		.help = "Show/set data flash or EEPROM backup size in kilobytes,"
+			" set two EEPROM sizes in bytes and FlexRAM loading during reset",
+		.usage = "('info'|'dataflash' size|'eebkp' size) [eesize1 eesize2] ['on'|'off']",
+		.handler = kinetis_nvm_partition,
 	},
 	COMMAND_REGISTRATION_DONE
 };
