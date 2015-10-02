@@ -1054,7 +1054,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 				unsigned residual_bc = (count-i) % prog_section_chunk_bytes;
 
 				/* number of complete words to copy directly from buffer */
-				wc = (count - i) / 4;
+				wc = (count - i - residual_bc) / 4;
 
 				/* number of total sections to write, including residual */
 				section_count = DIV_ROUND_UP((count-i), prog_section_chunk_bytes);
