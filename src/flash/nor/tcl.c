@@ -573,7 +573,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	if (fileio_open(&fileio, CMD_ARGV[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		return ERROR_OK;
 
-	int filesize;
+	size_t filesize;
 	retval = fileio_size(&fileio, &filesize);
 	if (retval != ERROR_OK) {
 		fileio_close(&fileio);
@@ -599,9 +599,9 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	buffer = NULL;
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK)) {
-		command_print(CMD_CTX, "wrote %ld bytes from file %s to flash bank %u"
+		command_print(CMD_CTX, "wrote %zu bytes from file %s to flash bank %u"
 			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-			(long)filesize, CMD_ARGV[1], p->bank_number, offset,
+			filesize, CMD_ARGV[1], p->bank_number, offset,
 			duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
 
@@ -676,7 +676,7 @@ COMMAND_HANDLER(handle_flash_verify_bank_command)
 	uint8_t *buffer_file, *buffer_flash;
 	struct fileio fileio;
 	size_t read_cnt;
-	int filesize;
+	size_t filesize;
 	int differ;
 
 	if (CMD_ARGC != 3)
@@ -719,7 +719,7 @@ COMMAND_HANDLER(handle_flash_verify_bank_command)
 		return retval;
 	}
 
-	if (read_cnt != (size_t) filesize) {
+	if (read_cnt != filesize) {
 		LOG_ERROR("Short read");
 		free(buffer_file);
 		return ERROR_FAIL;

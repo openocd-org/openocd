@@ -761,7 +761,7 @@ COMMAND_HANDLER(mg_write_cmd)
 	if (ret != ERROR_OK)
 		return ret;
 
-	int filesize;
+	size_t filesize;
 	buffer = malloc(MG_FILEIO_CHUNK);
 	if (!buffer) {
 		fileio_close(&fileio);
@@ -801,8 +801,8 @@ COMMAND_HANDLER(mg_write_cmd)
 	}
 
 	if (duration_measure(&bench) == ERROR_OK) {
-		command_print(CMD_CTX, "wrote %ld bytes from file %s "
-			"in %fs (%0.3f kB/s)", (long)filesize, CMD_ARGV[1],
+		command_print(CMD_CTX, "wrote %zu bytes from file %s "
+			"in %fs (%0.3f kB/s)", filesize, CMD_ARGV[1],
 			duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
 

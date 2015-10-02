@@ -130,7 +130,7 @@ static int image_ihex_buffer_complete_inner(struct image *image,
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
 
-	int filesize;
+	size_t filesize;
 	int retval;
 	retval = fileio_size(fileio, &filesize);
 	if (retval != ERROR_OK)
@@ -520,7 +520,7 @@ static int image_mot_buffer_complete_inner(struct image *image,
 	 * so we locally hold them until parsing is finished */
 
 	int retval;
-	int filesize;
+	size_t filesize;
 	retval = fileio_size(fileio, &filesize);
 	if (retval != ERROR_OK)
 		return retval;
@@ -707,7 +707,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		retval = fileio_open(&image_binary->fileio, url, FILEIO_READ, FILEIO_BINARY);
 		if (retval != ERROR_OK)
 			return retval;
-		int filesize;
+		size_t filesize;
 		retval = fileio_size(&image_binary->fileio, &filesize);
 		if (retval != ERROR_OK) {
 			fileio_close(&image_binary->fileio);

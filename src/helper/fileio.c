@@ -34,7 +34,7 @@
 
 struct fileio_internal {
 	char *url;
-	ssize_t size;
+	size_t size;
 	enum fileio_type type;
 	enum fileio_access access;
 	FILE *file;
@@ -44,6 +44,7 @@ static inline int fileio_close_local(struct fileio_internal *fileio);
 static inline int fileio_open_local(struct fileio_internal *fileio)
 {
 	char file_access[4];
+	ssize_t file_size;
 
 	switch (fileio->access) {
 		case FILEIO_READ:
@@ -78,6 +79,8 @@ static inline int fileio_open_local(struct fileio_internal *fileio)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
+	file_size = 0;
+
 	if ((fileio->access != FILEIO_WRITE) || (fileio->access == FILEIO_READWRITE)) {
 		/* NB! Here we use fseek() instead of stat(), since stat is a
 		 * more advanced operation that might not apply to e.g. a disk path
@@ -86,16 +89,17 @@ static inline int fileio_open_local(struct fileio_internal *fileio)
 
 		result = fseek(fileio->file, 0, SEEK_END);
 
-		fileio->size = ftell(fileio->file);
+		file_size = ftell(fileio->file);
 
 		result2 = fseek(fileio->file, 0, SEEK_SET);
 
-		if ((fileio->size < 0) || (result < 0) || (result2 < 0)) {
+		if ((file_size < 0) || (result < 0) || (result2 < 0)) {
 			fileio_close_local(fileio);
 			return ERROR_FILEIO_OPERATION_FAILED;
 		}
-	} else
-		fileio->size = 0x0;
+	}
+
+	fileio->size = file_size;
 
 	return ERROR_OK;
 }
@@ -245,9 +249,10 @@ int fileio_write_u32(struct fileio *fileio_p, uint32_t data)
  * Avoiding the seek on startup opens up for using streams.
  *
  */
-int fileio_size(struct fileio *fileio_p, int *size)
+int fileio_size(struct fileio *fileio_p, size_t *size)
 {
 	struct fileio_internal *fileio = fileio_p->fp;
 	*size = fileio->size;
+
 	return ERROR_OK;
 }

@@ -62,7 +62,7 @@ int fileio_write(struct fileio *fileio,
 
 int fileio_read_u32(struct fileio *fileio, uint32_t *data);
 int fileio_write_u32(struct fileio *fileio, uint32_t data);
-int fileio_size(struct fileio *fileio, int *size);
+int fileio_size(struct fileio *fileio, size_t *size);
 
 #define ERROR_FILEIO_LOCATION_UNKNOWN			(-1200)
 #define ERROR_FILEIO_NOT_FOUND					(-1201)

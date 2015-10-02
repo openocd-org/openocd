@@ -168,7 +168,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 		return retval;
 
 	if (!need_size) {
-		int filesize;
+		size_t filesize;
 		retval = fileio_size(&state->fileio, &filesize);
 		if (retval != ERROR_OK)
 			return retval;

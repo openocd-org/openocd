@@ -1788,7 +1788,7 @@ COMMAND_HANDLER(handle_etm_load_command)
 	if (fileio_open(&file, CMD_ARGV[0], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		return ERROR_FAIL;
 
-	int filesize;
+	size_t filesize;
 	int retval = fileio_size(&file, &filesize);
 	if (retval != ERROR_OK) {
 		fileio_close(&file);
