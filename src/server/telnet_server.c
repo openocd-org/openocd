@@ -303,6 +303,30 @@ static void telnet_history_down(struct connection *connection)
 	telnet_history_go(connection, next_history);
 }
 
+static void telnet_move_cursor(struct connection *connection, size_t pos)
+{
+	struct telnet_connection *tc;
+	size_t tmp;
+
+	tc = connection->priv;
+
+	if (pos < tc->line_cursor) {
+		tmp = tc->line_cursor - pos;
+
+		for (size_t i = 0; i < tmp; i += 16)
+			telnet_write(connection, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
+				MIN(tmp - i, 16));
+	} else {
+		tmp = pos - tc->line_cursor;
+
+		for (size_t i = 0; i < tmp; i += 16)
+			telnet_write(connection, tc->line + tc->line_cursor + i,
+				MIN(tmp - i, 16));
+	}
+
+	tc->line_cursor = pos;
+}
+
 static int telnet_input(struct connection *connection)
 {
 	int bytes_read;
@@ -482,6 +506,10 @@ static int telnet_input(struct connection *connection)
 							telnet_history_up(connection);
 						else if (*buf_p == CTRL('N'))		/* cursor down */
 							telnet_history_down(connection);
+						else if (*buf_p == CTRL('A'))
+							telnet_move_cursor(connection, 0);
+						else if (*buf_p == CTRL('E'))
+							telnet_move_cursor(connection, t_con->line_size);
 						else
 							LOG_DEBUG("unhandled nonprintable: %2.2x", *buf_p);
 					}
