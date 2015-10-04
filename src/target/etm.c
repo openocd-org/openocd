@@ -1701,7 +1701,7 @@ COMMAND_HANDLER(handle_etm_image_command)
 
 COMMAND_HANDLER(handle_etm_dump_command)
 {
-	struct fileio file;
+	struct fileio *file;
 	struct target *target;
 	struct arm *arm;
 	struct etm_context *etm_ctx;
@@ -1741,24 +1741,24 @@ COMMAND_HANDLER(handle_etm_dump_command)
 	if (fileio_open(&file, CMD_ARGV[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 		return ERROR_FAIL;
 
-	fileio_write_u32(&file, etm_ctx->capture_status);
-	fileio_write_u32(&file, etm_ctx->control);
-	fileio_write_u32(&file, etm_ctx->trace_depth);
+	fileio_write_u32(file, etm_ctx->capture_status);
+	fileio_write_u32(file, etm_ctx->control);
+	fileio_write_u32(file, etm_ctx->trace_depth);
 
 	for (i = 0; i < etm_ctx->trace_depth; i++) {
-		fileio_write_u32(&file, etm_ctx->trace_data[i].pipestat);
-		fileio_write_u32(&file, etm_ctx->trace_data[i].packet);
-		fileio_write_u32(&file, etm_ctx->trace_data[i].flags);
+		fileio_write_u32(file, etm_ctx->trace_data[i].pipestat);
+		fileio_write_u32(file, etm_ctx->trace_data[i].packet);
+		fileio_write_u32(file, etm_ctx->trace_data[i].flags);
 	}
 
-	fileio_close(&file);
+	fileio_close(file);
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_etm_load_command)
 {
-	struct fileio file;
+	struct fileio *file;
 	struct target *target;
 	struct arm *arm;
 	struct etm_context *etm_ctx;
@@ -1789,15 +1789,15 @@ COMMAND_HANDLER(handle_etm_load_command)
 		return ERROR_FAIL;
 
 	size_t filesize;
-	int retval = fileio_size(&file, &filesize);
+	int retval = fileio_size(file, &filesize);
 	if (retval != ERROR_OK) {
-		fileio_close(&file);
+		fileio_close(file);
 		return retval;
 	}
 
 	if (filesize % 4) {
 		command_print(CMD_CTX, "size isn't a multiple of 4, no valid trace data");
-		fileio_close(&file);
+		fileio_close(file);
 		return ERROR_FAIL;
 	}
 
@@ -1808,28 +1808,28 @@ COMMAND_HANDLER(handle_etm_load_command)
 
 	{
 		uint32_t tmp;
-		fileio_read_u32(&file, &tmp); etm_ctx->capture_status = tmp;
-		fileio_read_u32(&file, &tmp); etm_ctx->control = tmp;
-		fileio_read_u32(&file, &etm_ctx->trace_depth);
+		fileio_read_u32(file, &tmp); etm_ctx->capture_status = tmp;
+		fileio_read_u32(file, &tmp); etm_ctx->control = tmp;
+		fileio_read_u32(file, &etm_ctx->trace_depth);
 	}
 	etm_ctx->trace_data = malloc(sizeof(struct etmv1_trace_data) * etm_ctx->trace_depth);
 	if (etm_ctx->trace_data == NULL) {
 		command_print(CMD_CTX, "not enough memory to perform operation");
-		fileio_close(&file);
+		fileio_close(file);
 		return ERROR_FAIL;
 	}
 
 	for (i = 0; i < etm_ctx->trace_depth; i++) {
 		uint32_t pipestat, packet, flags;
-		fileio_read_u32(&file, &pipestat);
-		fileio_read_u32(&file, &packet);
-		fileio_read_u32(&file, &flags);
+		fileio_read_u32(file, &pipestat);
+		fileio_read_u32(file, &packet);
+		fileio_read_u32(file, &flags);
 		etm_ctx->trace_data[i].pipestat = pipestat & 0xff;
 		etm_ctx->trace_data[i].packet = packet & 0xffff;
 		etm_ctx->trace_data[i].flags = flags;
 	}
 
-	fileio_close(&file);
+	fileio_close(file);
 
 	return ERROR_OK;
 }

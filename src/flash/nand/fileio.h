@@ -37,7 +37,7 @@ struct nand_fileio_state {
 	const int *eccpos;
 
 	bool file_opened;
-	struct fileio fileio;
+	struct fileio *fileio;
 
 	struct duration bench;
 };

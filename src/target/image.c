@@ -47,7 +47,7 @@
 static int autodetect_image_type(struct image *image, const char *url)
 {
 	int retval;
-	struct fileio fileio;
+	struct fileio *fileio;
 	size_t read_bytes;
 	uint8_t buffer[9];
 
@@ -55,13 +55,13 @@ static int autodetect_image_type(struct image *image, const char *url)
 	retval = fileio_open(&fileio, url, FILEIO_READ, FILEIO_BINARY);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = fileio_read(&fileio, 9, buffer, &read_bytes);
+	retval = fileio_read(fileio, 9, buffer, &read_bytes);
 
 	if (retval == ERROR_OK) {
 		if (read_bytes != 9)
 			retval = ERROR_FILEIO_OPERATION_FAILED;
 	}
-	fileio_close(&fileio);
+	fileio_close(fileio);
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -122,7 +122,7 @@ static int image_ihex_buffer_complete_inner(struct image *image,
 	struct imagesection *section)
 {
 	struct image_ihex *ihex = image->type_private;
-	struct fileio *fileio = &ihex->fileio;
+	struct fileio *fileio = ihex->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
 	int i;
@@ -352,7 +352,7 @@ static int image_elf_read_headers(struct image *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	retval = fileio_read(&elf->fileio, sizeof(Elf32_Ehdr), (uint8_t *)elf->header, &read_bytes);
+	retval = fileio_read(elf->fileio, sizeof(Elf32_Ehdr), (uint8_t *)elf->header, &read_bytes);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("cannot read ELF file header, read failed");
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -384,7 +384,7 @@ static int image_elf_read_headers(struct image *image)
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
-	retval = fileio_seek(&elf->fileio, field32(elf, elf->header->e_phoff));
+	retval = fileio_seek(elf->fileio, field32(elf, elf->header->e_phoff));
 	if (retval != ERROR_OK) {
 		LOG_ERROR("cannot seek to ELF program header table, read failed");
 		return retval;
@@ -396,7 +396,7 @@ static int image_elf_read_headers(struct image *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr),
+	retval = fileio_read(elf->fileio, elf->segment_count*sizeof(Elf32_Phdr),
 			(uint8_t *)elf->segments, &read_bytes);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("cannot read ELF segment headers, read failed");
@@ -486,12 +486,12 @@ static int image_elf_read_section(struct image *image,
 		LOG_DEBUG("read elf: size = 0x%zu at 0x%" PRIx32 "", read_size,
 			field32(elf, segment->p_offset) + offset);
 		/* read initialized area of the segment */
-		retval = fileio_seek(&elf->fileio, field32(elf, segment->p_offset) + offset);
+		retval = fileio_seek(elf->fileio, field32(elf, segment->p_offset) + offset);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("cannot find ELF segment content, seek failed");
 			return retval;
 		}
-		retval = fileio_read(&elf->fileio, read_size, buffer, &really_read);
+		retval = fileio_read(elf->fileio, read_size, buffer, &really_read);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("cannot read ELF segment content, read failed");
 			return retval;
@@ -511,7 +511,7 @@ static int image_mot_buffer_complete_inner(struct image *image,
 	struct imagesection *section)
 {
 	struct image_mot *mot = image->type_private;
-	struct fileio *fileio = &mot->fileio;
+	struct fileio *fileio = mot->fileio;
 	uint32_t full_address = 0x0;
 	uint32_t cooked_bytes;
 	int i;
@@ -708,9 +708,9 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		if (retval != ERROR_OK)
 			return retval;
 		size_t filesize;
-		retval = fileio_size(&image_binary->fileio, &filesize);
+		retval = fileio_size(image_binary->fileio, &filesize);
 		if (retval != ERROR_OK) {
-			fileio_close(&image_binary->fileio);
+			fileio_close(image_binary->fileio);
 			return retval;
 		}
 
@@ -732,7 +732,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		if (retval != ERROR_OK) {
 			LOG_ERROR(
 				"failed buffering IHEX image, check daemon output for additional information");
-			fileio_close(&image_ihex->fileio);
+			fileio_close(image_ihex->fileio);
 			return retval;
 		}
 	} else if (image->type == IMAGE_ELF) {
@@ -746,7 +746,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 
 		retval = image_elf_read_headers(image);
 		if (retval != ERROR_OK) {
-			fileio_close(&image_elf->fileio);
+			fileio_close(image_elf->fileio);
 			return retval;
 		}
 	} else if (image->type == IMAGE_MEMORY) {
@@ -783,7 +783,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		if (retval != ERROR_OK) {
 			LOG_ERROR(
 				"failed buffering S19 image, check daemon output for additional information");
-			fileio_close(&image_mot->fileio);
+			fileio_close(image_mot->fileio);
 			return retval;
 		}
 	} else if (image->type == IMAGE_BUILDER) {
@@ -835,12 +835,12 @@ int image_read_section(struct image *image,
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
 		/* seek to offset */
-		retval = fileio_seek(&image_binary->fileio, offset);
+		retval = fileio_seek(image_binary->fileio, offset);
 		if (retval != ERROR_OK)
 			return retval;
 
 		/* return requested bytes */
-		retval = fileio_read(&image_binary->fileio, size, buffer, size_read);
+		retval = fileio_read(image_binary->fileio, size, buffer, size_read);
 		if (retval != ERROR_OK)
 			return retval;
 	} else if (image->type == IMAGE_IHEX) {
@@ -945,11 +945,11 @@ void image_close(struct image *image)
 	if (image->type == IMAGE_BINARY) {
 		struct image_binary *image_binary = image->type_private;
 
-		fileio_close(&image_binary->fileio);
+		fileio_close(image_binary->fileio);
 	} else if (image->type == IMAGE_IHEX) {
 		struct image_ihex *image_ihex = image->type_private;
 
-		fileio_close(&image_ihex->fileio);
+		fileio_close(image_ihex->fileio);
 
 		if (image_ihex->buffer) {
 			free(image_ihex->buffer);
@@ -958,7 +958,7 @@ void image_close(struct image *image)
 	} else if (image->type == IMAGE_ELF) {
 		struct image_elf *image_elf = image->type_private;
 
-		fileio_close(&image_elf->fileio);
+		fileio_close(image_elf->fileio);
 
 		if (image_elf->header) {
 			free(image_elf->header);
@@ -979,7 +979,7 @@ void image_close(struct image *image)
 	} else if (image->type == IMAGE_SRECORD) {
 		struct image_mot *image_mot = image->type_private;
 
-		fileio_close(&image_mot->fileio);
+		fileio_close(image_mot->fileio);
 
 		if (image_mot->buffer) {
 			free(image_mot->buffer);

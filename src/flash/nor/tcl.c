@@ -555,7 +555,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 {
 	uint32_t offset;
 	uint8_t *buffer;
-	struct fileio fileio;
+	struct fileio *fileio;
 
 	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -574,22 +574,22 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 		return ERROR_OK;
 
 	size_t filesize;
-	retval = fileio_size(&fileio, &filesize);
+	retval = fileio_size(fileio, &filesize);
 	if (retval != ERROR_OK) {
-		fileio_close(&fileio);
+		fileio_close(fileio);
 		return retval;
 	}
 
 	buffer = malloc(filesize);
 	if (buffer == NULL) {
-		fileio_close(&fileio);
+		fileio_close(fileio);
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
 	size_t buf_cnt;
-	if (fileio_read(&fileio, filesize, buffer, &buf_cnt) != ERROR_OK) {
+	if (fileio_read(fileio, filesize, buffer, &buf_cnt) != ERROR_OK) {
 		free(buffer);
-		fileio_close(&fileio);
+		fileio_close(fileio);
 		return ERROR_OK;
 	}
 
@@ -605,7 +605,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 			duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
 
-	fileio_close(&fileio);
+	fileio_close(fileio);
 
 	return retval;
 }
@@ -614,7 +614,7 @@ COMMAND_HANDLER(handle_flash_read_bank_command)
 {
 	uint32_t offset;
 	uint8_t *buffer;
-	struct fileio fileio;
+	struct fileio *fileio;
 	uint32_t length;
 	size_t written;
 
@@ -652,8 +652,8 @@ COMMAND_HANDLER(handle_flash_read_bank_command)
 		return retval;
 	}
 
-	retval = fileio_write(&fileio, length, buffer, &written);
-	fileio_close(&fileio);
+	retval = fileio_write(fileio, length, buffer, &written);
+	fileio_close(fileio);
 	free(buffer);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Could not write file");
@@ -674,7 +674,7 @@ COMMAND_HANDLER(handle_flash_verify_bank_command)
 {
 	uint32_t offset;
 	uint8_t *buffer_file, *buffer_flash;
-	struct fileio fileio;
+	struct fileio *fileio;
 	size_t read_cnt;
 	size_t filesize;
 	int differ;
@@ -698,21 +698,21 @@ COMMAND_HANDLER(handle_flash_verify_bank_command)
 		return retval;
 	}
 
-	retval = fileio_size(&fileio, &filesize);
+	retval = fileio_size(fileio, &filesize);
 	if (retval != ERROR_OK) {
-		fileio_close(&fileio);
+		fileio_close(fileio);
 		return retval;
 	}
 
 	buffer_file = malloc(filesize);
 	if (buffer_file == NULL) {
 		LOG_ERROR("Out of memory");
-		fileio_close(&fileio);
+		fileio_close(fileio);
 		return ERROR_FAIL;
 	}
 
-	retval = fileio_read(&fileio, filesize, buffer_file, &read_cnt);
-	fileio_close(&fileio);
+	retval = fileio_read(fileio, filesize, buffer_file, &read_cnt);
+	fileio_close(fileio);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("File read failure");
 		free(buffer_file);

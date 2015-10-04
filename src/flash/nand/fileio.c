@@ -99,7 +99,7 @@ int nand_fileio_start(struct command_context *cmd_ctx,
 int nand_fileio_cleanup(struct nand_fileio_state *state)
 {
 	if (state->file_opened)
-		fileio_close(&state->fileio);
+		fileio_close(state->fileio);
 
 	if (state->oob) {
 		free(state->oob);
@@ -169,7 +169,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 
 	if (!need_size) {
 		size_t filesize;
-		retval = fileio_size(&state->fileio, &filesize);
+		retval = fileio_size(state->fileio, &filesize);
 		if (retval != ERROR_OK)
 			return retval;
 		state->size = filesize;
@@ -190,7 +190,7 @@ int nand_fileio_read(struct nand_device *nand, struct nand_fileio_state *s)
 	size_t one_read;
 
 	if (NULL != s->page) {
-		fileio_read(&s->fileio, s->page_size, s->page, &one_read);
+		fileio_read(s->fileio, s->page_size, s->page, &one_read);
 		if (one_read < s->page_size)
 			memset(s->page + one_read, 0xff, s->page_size - one_read);
 		total_read += one_read;
@@ -219,7 +219,7 @@ int nand_fileio_read(struct nand_device *nand, struct nand_fileio_state *s)
 			ecc += 10;
 		}
 	} else if (NULL != s->oob)   {
-		fileio_read(&s->fileio, s->oob_size, s->oob, &one_read);
+		fileio_read(s->fileio, s->oob_size, s->oob, &one_read);
 		if (one_read < s->oob_size)
 			memset(s->oob + one_read, 0xff, s->oob_size - one_read);
 		total_read += one_read;

@@ -43,13 +43,10 @@ enum fileio_access {
 	FILEIO_APPENDREAD,	/* open for writing, position at end, allow reading */
 };
 
-struct fileio {
-	/* The structure is opaque */
-	struct fileio_internal *fp;
-};
+struct fileio;
 
-int fileio_open(struct fileio *fileio,
-		const char *url, enum fileio_access access_type, enum fileio_type type);
+int fileio_open(struct fileio **fileio, const char *url,
+		enum fileio_access access_type, enum fileio_type type);
 int fileio_close(struct fileio *fileio);
 
 int fileio_seek(struct fileio *fileio, size_t position);

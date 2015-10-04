@@ -556,7 +556,7 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	target_write_u32(target, FCTR, FCTR_FS_CS | FCTR_FS_WEB);
 
 	/* Try and open the file */
-	struct fileio fileio;
+	struct fileio *fileio;
 	const char *filename = CMD_ARGV[1];
 	int ret = fileio_open(&fileio, filename, FILEIO_WRITE, FILEIO_BINARY);
 	if (ret != ERROR_OK) {
@@ -565,14 +565,14 @@ COMMAND_HANDLER(lpc2900_handle_read_custom_command)
 	}
 
 	size_t nwritten;
-	ret = fileio_write(&fileio, sizeof(customer), customer, &nwritten);
+	ret = fileio_write(fileio, sizeof(customer), customer, &nwritten);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Write operation to file %s failed", filename);
-		fileio_close(&fileio);
+		fileio_close(fileio);
 		return ret;
 	}
 
-	fileio_close(&fileio);
+	fileio_close(fileio);
 
 	return ERROR_OK;
 }

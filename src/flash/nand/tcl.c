@@ -360,16 +360,16 @@ COMMAND_HANDLER(handle_nand_dump_command)
 		}
 
 		if (NULL != s.page)
-			fileio_write(&s.fileio, s.page_size, s.page, &size_written);
+			fileio_write(s.fileio, s.page_size, s.page, &size_written);
 
 		if (NULL != s.oob)
-			fileio_write(&s.fileio, s.oob_size, s.oob, &size_written);
+			fileio_write(s.fileio, s.oob_size, s.oob, &size_written);
 
 		s.size -= nand->page_size;
 		s.address += nand->page_size;
 	}
 
-	retval = fileio_size(&s.fileio, &filesize);
+	retval = fileio_size(s.fileio, &filesize);
 	if (retval != ERROR_OK)
 		return retval;
 

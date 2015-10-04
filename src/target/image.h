@@ -66,11 +66,11 @@ struct image {
 };
 
 struct image_binary {
-	struct fileio fileio;
+	struct fileio *fileio;
 };
 
 struct image_ihex {
-	struct fileio fileio;
+	struct fileio *fileio;
 	uint8_t *buffer;
 };
 
@@ -81,7 +81,7 @@ struct image_memory {
 };
 
 struct image_elf {
-	struct fileio fileio;
+	struct fileio *fileio;
 	Elf32_Ehdr *header;
 	Elf32_Phdr *segments;
 	uint32_t segment_count;
@@ -89,7 +89,7 @@ struct image_elf {
 };
 
 struct image_mot {
-	struct fileio fileio;
+	struct fileio *fileio;
 	uint8_t *buffer;
 };
 

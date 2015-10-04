@@ -3425,7 +3425,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct xscale_trace_data *trace_data;
-	struct fileio file;
+	struct fileio *file;
 	int retval;
 
 	retval = xscale_verify_pointer(CMD_CTX, xscale);
@@ -3453,19 +3453,19 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 	while (trace_data) {
 		int i;
 
-		fileio_write_u32(&file, trace_data->chkpt0);
-		fileio_write_u32(&file, trace_data->chkpt1);
-		fileio_write_u32(&file, trace_data->last_instruction);
-		fileio_write_u32(&file, trace_data->depth);
+		fileio_write_u32(file, trace_data->chkpt0);
+		fileio_write_u32(file, trace_data->chkpt1);
+		fileio_write_u32(file, trace_data->last_instruction);
+		fileio_write_u32(file, trace_data->depth);
 
 		for (i = 0; i < trace_data->depth; i++)
-			fileio_write_u32(&file, trace_data->entries[i].data |
+			fileio_write_u32(file, trace_data->entries[i].data |
 				((trace_data->entries[i].type & 0xffff) << 16));
 
 		trace_data = trace_data->next;
 	}
 
-	fileio_close(&file);
+	fileio_close(file);
 
 	return ERROR_OK;
 }

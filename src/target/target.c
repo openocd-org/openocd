@@ -3221,7 +3221,7 @@ COMMAND_HANDLER(handle_load_image_command)
 
 COMMAND_HANDLER(handle_dump_image_command)
 {
-	struct fileio fileio;
+	struct fileio *fileio;
 	uint8_t *buffer;
 	int retval, retvaltemp;
 	uint32_t address, size;
@@ -3254,7 +3254,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 		if (retval != ERROR_OK)
 			break;
 
-		retval = fileio_write(&fileio, this_run_size, buffer, &size_written);
+		retval = fileio_write(fileio, this_run_size, buffer, &size_written);
 		if (retval != ERROR_OK)
 			break;
 
@@ -3266,7 +3266,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK)) {
 		size_t filesize;
-		retval = fileio_size(&fileio, &filesize);
+		retval = fileio_size(fileio, &filesize);
 		if (retval != ERROR_OK)
 			return retval;
 		command_print(CMD_CTX,
@@ -3274,7 +3274,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 				duration_elapsed(&bench), duration_kbps(&bench, filesize));
 	}
 
-	retvaltemp = fileio_close(&fileio);
+	retvaltemp = fileio_close(fileio);
 	if (retvaltemp != ERROR_OK)
 		return retvaltemp;
 

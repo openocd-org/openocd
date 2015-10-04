@@ -32,7 +32,7 @@
 #include "configuration.h"
 #include "fileio.h"
 
-struct fileio_internal {
+struct fileio {
 	char *url;
 	size_t size;
 	enum fileio_type type;
@@ -40,8 +40,22 @@ struct fileio_internal {
 	FILE *file;
 };
 
-static inline int fileio_close_local(struct fileio_internal *fileio);
-static inline int fileio_open_local(struct fileio_internal *fileio)
+static inline int fileio_close_local(struct fileio *fileio)
+{
+	int retval = fclose(fileio->file);
+	if (retval != 0) {
+		if (retval == EBADF)
+			LOG_ERROR("BUG: fileio->file not a valid file descriptor");
+		else
+			LOG_ERROR("couldn't close %s: %s", fileio->url, strerror(errno));
+
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static inline int fileio_open_local(struct fileio *fileio)
 {
 	char file_access[4];
 	ssize_t file_size;
@@ -104,69 +118,49 @@ static inline int fileio_open_local(struct fileio_internal *fileio)
 	return ERROR_OK;
 }
 
-int fileio_open(struct fileio *fileio_p,
-	const char *url,
-	enum fileio_access access_type,
-	enum fileio_type type)
+int fileio_open(struct fileio **fileio, const char *url,
+		enum fileio_access access_type, enum fileio_type type)
 {
 	int retval;
-	struct fileio_internal *fileio;
+	struct fileio *tmp;
 
-	fileio = malloc(sizeof(struct fileio_internal));
+	tmp = malloc(sizeof(struct fileio));
 
-	fileio->type = type;
-	fileio->access = access_type;
-	fileio->url = strdup(url);
+	tmp->type = type;
+	tmp->access = access_type;
+	tmp->url = strdup(url);
 
-	retval = fileio_open_local(fileio);
+	retval = fileio_open_local(tmp);
 
 	if (retval != ERROR_OK) {
-		free(fileio->url);
-		free(fileio);
+		free(tmp->url);
+		free(tmp);
 		return retval;
 	}
 
-	fileio_p->fp = fileio;
+	*fileio = tmp;
 
 	return ERROR_OK;
 }
 
-static inline int fileio_close_local(struct fileio_internal *fileio)
-{
-	int retval = fclose(fileio->file);
-	if (retval != 0) {
-		if (retval == EBADF)
-			LOG_ERROR("BUG: fileio_local->file not a valid file descriptor");
-		else
-			LOG_ERROR("couldn't close %s: %s", fileio->url, strerror(errno));
-
-		return ERROR_FILEIO_OPERATION_FAILED;
-	}
-
-	return ERROR_OK;
-}
-
-int fileio_close(struct fileio *fileio_p)
+int fileio_close(struct fileio *fileio)
 {
 	int retval;
-	struct fileio_internal *fileio = fileio_p->fp;
 
 	retval = fileio_close_local(fileio);
 
 	free(fileio->url);
-	fileio->url = NULL;
-
 	free(fileio);
-	fileio_p->fp = NULL;
 
 	return retval;
 }
 
-int fileio_seek(struct fileio *fileio_p, size_t position)
+int fileio_seek(struct fileio *fileio, size_t position)
 {
 	int retval;
-	struct fileio_internal *fileio = fileio_p->fp;
+
 	retval = fseek(fileio->file, position, SEEK_SET);
+
 	if (retval != 0) {
 		LOG_ERROR("couldn't seek file %s: %s", fileio->url, strerror(errno));
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -175,36 +169,40 @@ int fileio_seek(struct fileio *fileio_p, size_t position)
 	return ERROR_OK;
 }
 
-static int fileio_local_read(struct fileio_internal *fileio,
-	size_t size, void *buffer, size_t *size_read)
+static int fileio_local_read(struct fileio *fileio, size_t size, void *buffer,
+		size_t *size_read)
 {
-	ssize_t retval = fread(buffer, 1, size, fileio->file);
+	ssize_t retval;
+
+	retval = fread(buffer, 1, size, fileio->file);
 	*size_read = (retval >= 0) ? retval : 0;
+
 	return (retval < 0) ? retval : ERROR_OK;
 }
 
-int fileio_read(struct fileio *fileio_p, size_t size, void *buffer,
-	size_t *size_read)
+int fileio_read(struct fileio *fileio, size_t size, void *buffer,
+		size_t *size_read)
 {
-	struct fileio_internal *fileio = fileio_p->fp;
 	return fileio_local_read(fileio, size, buffer, size_read);
 }
 
-int fileio_read_u32(struct fileio *fileio_p, uint32_t *data)
+int fileio_read_u32(struct fileio *fileio, uint32_t *data)
 {
+	int retval;
 	uint8_t buf[4];
 	size_t size_read;
-	struct fileio_internal *fileio = fileio_p->fp;
-	int retval = fileio_local_read(fileio, sizeof(uint32_t), buf, &size_read);
+
+	retval = fileio_local_read(fileio, sizeof(uint32_t), buf, &size_read);
+
 	if (ERROR_OK == retval && sizeof(uint32_t) != size_read)
 		retval = -EIO;
 	if (ERROR_OK == retval)
 		*data = be_to_h_u32(buf);
+
 	return retval;
 }
 
-static int fileio_local_fgets(struct fileio_internal *fileio,
-	size_t size, void *buffer)
+static int fileio_local_fgets(struct fileio *fileio, size_t size, void *buffer)
 {
 	if (fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -212,36 +210,44 @@ static int fileio_local_fgets(struct fileio_internal *fileio,
 	return ERROR_OK;
 }
 
-int fileio_fgets(struct fileio *fileio_p, size_t size, void *buffer)
+int fileio_fgets(struct fileio *fileio, size_t size, void *buffer)
 {
-	struct fileio_internal *fileio = fileio_p->fp;
 	return fileio_local_fgets(fileio, size, buffer);
 }
 
-static int fileio_local_write(struct fileio_internal *fileio,
-	size_t size, const void *buffer, size_t *size_written)
+static int fileio_local_write(struct fileio *fileio, size_t size,
+		const void *buffer, size_t *size_written)
 {
-	ssize_t retval = fwrite(buffer, 1, size, fileio->file);
+	ssize_t retval;
+
+	retval = fwrite(buffer, 1, size, fileio->file);
 	*size_written = (retval >= 0) ? retval : 0;
+
 	return (retval < 0) ? retval : ERROR_OK;
 }
 
-int fileio_write(struct fileio *fileio_p,
-	size_t size, const void *buffer, size_t *size_written)
+int fileio_write(struct fileio *fileio, size_t size, const void *buffer,
+		size_t *size_written)
 {
-	struct fileio_internal *fileio = fileio_p->fp;
-	int retval = fileio_local_write(fileio, size, buffer, size_written);
+	int retval;
+
+	retval = fileio_local_write(fileio, size, buffer, size_written);
+
 	if (retval == ERROR_OK)
 		fileio->size += *size_written;
+
 	return retval;
 }
 
-int fileio_write_u32(struct fileio *fileio_p, uint32_t data)
+int fileio_write_u32(struct fileio *fileio, uint32_t data)
 {
+	int retval;
 	uint8_t buf[4];
 	h_u32_to_be(buf, data);
 	size_t size_written;
-	int retval = fileio_write(fileio_p, 4, buf, &size_written);
+
+	retval = fileio_write(fileio, 4, buf, &size_written);
+
 	if (ERROR_OK == retval && size_written != sizeof(uint32_t))
 		retval = -EIO;
 
@@ -257,9 +263,8 @@ int fileio_write_u32(struct fileio *fileio_p, uint32_t data)
  * Avoiding the seek on startup opens up for using streams.
  *
  */
-int fileio_size(struct fileio *fileio_p, size_t *size)
+int fileio_size(struct fileio *fileio, size_t *size)
 {
-	struct fileio_internal *fileio = fileio_p->fp;
 	*size = fileio->size;
 
 	return ERROR_OK;
