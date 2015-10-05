@@ -141,11 +141,60 @@ int64_t rtos_generic_stack_align8(struct target *target,
 			stacking, stack_ptr, 8);
 }
 
+/* The Cortex M3 will indicate that an alignment adjustment
+ * has been done on the stack by setting bit 9 of the stacked xPSR
+ * register.  In this case, we can just add an extra 4 bytes to get
+ * to the program stack.  Note that some places in the ARM documentation
+ * make this a little unclear but the padding takes place before the
+ * normal exception stacking - so xPSR is always available at a fixed
+ * location.
+ *
+ * Relevant documentation:
+ *    Cortex-M series processors -> Cortex-M3 -> Revision: xxx ->
+ *        Cortex-M3 Devices Generic User Guide -> The Cortex-M3 Processor ->
+ *        Exception Model -> Exception entry and return -> Exception entry
+ *    Cortex-M series processors -> Cortex-M3 -> Revision: xxx ->
+ *        Cortex-M3 Devices Generic User Guide -> Cortex-M3 Peripherals ->
+ *        System control block -> Configuration and Control Register (STKALIGN)
+ *
+ * This is just a helper function for use in the calculate_process_stack
+ * function for a given architecture/rtos.
+ */
+int64_t rtos_Cortex_M_stack_align(struct target *target,
+	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
+	int64_t stack_ptr, size_t xpsr_offset)
+{
+	const uint32_t ALIGN_NEEDED = (1 << 9);
+	uint32_t xpsr;
+	int64_t new_stack_ptr;
+
+	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
+		stacking->stack_registers_size;
+	xpsr = (target->endianness == TARGET_LITTLE_ENDIAN) ?
+			le_to_h_u32(&stack_data[xpsr_offset]) :
+			be_to_h_u32(&stack_data[xpsr_offset]);
+	if ((xpsr & ALIGN_NEEDED) != 0) {
+		LOG_DEBUG("XPSR(0x%08" PRIx32 ") indicated stack alignment was necessary\r\n",
+			xpsr);
+		new_stack_ptr -= (stacking->stack_growth_direction * 4);
+	}
+	return new_stack_ptr;
+}
+
+static int64_t rtos_standard_Cortex_M3_stack_align(struct target *target,
+	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
+	int64_t stack_ptr)
+{
+	const int XPSR_OFFSET = 0x3c;
+	return rtos_Cortex_M_stack_align(target, stack_data, stacking,
+		stack_ptr, XPSR_OFFSET);
+}
+
 const struct rtos_register_stacking rtos_standard_Cortex_M3_stacking = {
 	0x40,					/* stack_registers_size */
 	-1,						/* stack_growth_direction */
 	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
-	rtos_generic_stack_align8,	/* stack_alignment */
+	rtos_standard_Cortex_M3_stack_align,	/* stack_alignment */
 	rtos_standard_Cortex_M3_stack_offsets	/* register_offsets */
 };
 
