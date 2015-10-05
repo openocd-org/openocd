@@ -83,7 +83,15 @@ struct rtos_register_stacking {
 	unsigned char stack_registers_size;
 	signed char stack_growth_direction;
 	unsigned char num_output_registers;
-	unsigned char stack_alignment;
+	/* Some targets require evaluating the stack to determine the
+	 * actual stack pointer for a process.  If this field is NULL,
+	 * just use stacking->stack_registers_size * stack_growth_direction
+	 * to calculate adjustment.
+	 */
+	int64_t (*calculate_process_stack)(struct target *target,
+		const uint8_t *stack_data,
+		const struct rtos_register_stacking *stacking,
+		int64_t stack_ptr);
 	const struct stack_register_offset *register_offsets;
 };
 

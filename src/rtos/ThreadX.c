@@ -117,14 +117,14 @@ const struct rtos_register_stacking rtos_threadx_arm926ejs_stacking[] = {
 	ARM926EJS_REGISTERS_SIZE_SOLICITED,	/* stack_registers_size */
 	-1,									/* stack_growth_direction */
 	17,									/* num_output_registers */
-	0,									/* stack_alignment */
+	NULL,								/* stack_alignment */
 	rtos_threadx_arm926ejs_stack_offsets_solicited	/* register_offsets */
 },
 {
 	ARM926EJS_REGISTERS_SIZE_INTERRUPT,	/* stack_registers_size */
 	-1,									/* stack_growth_direction */
 	17,									/* num_output_registers */
-	0,									/* stack_alignment */
+	NULL,								/* stack_alignment */
 	rtos_threadx_arm926ejs_stack_offsets_interrupt	/* register_offsets */
 },
 };

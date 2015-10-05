@@ -485,13 +485,12 @@ int rtos_generic_stack_read(struct target *target,
 		list_size += stacking->register_offsets[i].width_bits/8;
 	*hex_reg_list = malloc(list_size*2 + 1);
 	tmp_str_ptr = *hex_reg_list;
-	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
-		stacking->stack_registers_size;
-	if (stacking->stack_alignment != 0) {
-		/* Align new stack pointer to x byte boundary */
-		new_stack_ptr =
-			(new_stack_ptr & (~((int64_t) stacking->stack_alignment - 1))) +
-			((stacking->stack_growth_direction == -1) ? stacking->stack_alignment : 0);
+	if (stacking->calculate_process_stack != NULL) {
+		new_stack_ptr = stacking->calculate_process_stack(target,
+				stack_data, stacking, stack_ptr);
+	} else {
+		new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
+			stacking->stack_registers_size;
 	}
 	for (i = 0; i < stacking->num_output_registers; i++) {
 		int j;

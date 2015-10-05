@@ -113,11 +113,39 @@ static const struct stack_register_offset rtos_standard_NDS32_N1068_stack_offset
 	{ 0x10, 32 },		/* IFC_LP */
 };
 
+static int64_t rtos_generic_stack_align(struct target *target,
+	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
+	int64_t stack_ptr, int align)
+{
+	int64_t new_stack_ptr;
+	int64_t aligned_stack_ptr;
+	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
+		stacking->stack_registers_size;
+	aligned_stack_ptr = new_stack_ptr & ~((int64_t)align - 1);
+	if (aligned_stack_ptr != new_stack_ptr &&
+		stacking->stack_growth_direction == -1) {
+		/* If we have a downward growing stack, the simple alignment code
+		 * above results in a wrong result (since it rounds down to nearest
+		 * alignment).  We want to round up so add an extra align.
+		 */
+		aligned_stack_ptr += (int64_t)align;
+	}
+	return aligned_stack_ptr;
+}
+
+int64_t rtos_generic_stack_align8(struct target *target,
+	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
+	int64_t stack_ptr)
+{
+	return rtos_generic_stack_align(target, stack_data,
+			stacking, stack_ptr, 8);
+}
+
 const struct rtos_register_stacking rtos_standard_Cortex_M3_stacking = {
 	0x40,					/* stack_registers_size */
 	-1,						/* stack_growth_direction */
 	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
-	8,						/* stack_alignment */
+	rtos_generic_stack_align8,	/* stack_alignment */
 	rtos_standard_Cortex_M3_stack_offsets	/* register_offsets */
 };
 
@@ -125,7 +153,7 @@ const struct rtos_register_stacking rtos_standard_Cortex_R4_stacking = {
 	0x48,				/* stack_registers_size */
 	-1,					/* stack_growth_direction */
 	26,					/* num_output_registers */
-	8,					/* stack_alignment */
+	rtos_generic_stack_align8,	/* stack_alignment */
 	rtos_standard_Cortex_R4_stack_offsets	/* register_offsets */
 };
 
@@ -133,6 +161,6 @@ const struct rtos_register_stacking rtos_standard_NDS32_N1068_stacking = {
 	0x90,				/* stack_registers_size */
 	-1,					/* stack_growth_direction */
 	32,					/* num_output_registers */
-	8,					/* stack_alignment */
+	rtos_generic_stack_align8,	/* stack_alignment */
 	rtos_standard_NDS32_N1068_stack_offsets	/* register_offsets */
 };
