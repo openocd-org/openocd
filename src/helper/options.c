@@ -113,6 +113,12 @@ static void add_default_dirs(void)
 			free(path);
 		}
 	}
+
+	path = getenv("OPENOCD_SCRIPTS");
+
+	if (path)
+		add_script_search_dir(path);
+
 #ifdef _WIN32
 	const char *appdata = getenv("APPDATA");
 
