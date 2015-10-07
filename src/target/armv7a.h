@@ -81,6 +81,7 @@ struct armv7a_mmu_common {
 	int32_t ttbr1_used; /*  -1 not initialized, 0 no ttbr1 1 ttbr1 used and  */
 	uint32_t ttbr0_mask;/*  masked to be used  */
 	uint32_t os_border;
+	uint32_t ttbcr;
 
 	int (*read_physical_memory)(struct target *target, uint32_t address, uint32_t size,
 			uint32_t count, uint8_t *buffer);

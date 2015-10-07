@@ -154,10 +154,11 @@ static int armv7a_read_ttbcr(struct target *target)
 	if (retval != ERROR_OK)
 		goto done;
 
-	LOG_INFO("ttbcr %" PRIx32 "ttbr0 %" PRIx32 "ttbr1 %" PRIx32, ttbcr, ttbr0, ttbr1);
+	LOG_INFO("ttbcr %" PRIx32 " ttbr0 %" PRIx32 " ttbr1 %" PRIx32, ttbcr, ttbr0, ttbr1);
 
 	armv7a->armv7a_mmu.ttbr1_used = ((ttbcr & 0x7) != 0) ? 1 : 0;
 	armv7a->armv7a_mmu.ttbr0_mask = 0;
+	armv7a->armv7a_mmu.ttbcr = ttbcr;
 
 	retval = armv7a_read_midr(target);
 	if (retval != ERROR_OK)
@@ -199,17 +200,27 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t ttb = 0;	/*  default ttb0 */
-	if (armv7a->armv7a_mmu.ttbr1_used == -1)
+	uint32_t ttbcr;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+
+	/*  MRC p15,0,<Rt>,c2,c0,2 ; Read CP15 Translation Table Base Control Register*/
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 2, 0, 2),
+			&ttbcr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	/* if ttbcr has changed, re-read the information */
+	if (armv7a->armv7a_mmu.ttbcr != ttbcr)
 		armv7a_read_ttbcr(target);
 	if ((armv7a->armv7a_mmu.ttbr1_used) &&
 		(va > (0xffffffff & armv7a->armv7a_mmu.ttbr0_mask))) {
 		/*  select ttb 1 */
 		ttb = 1;
 	}
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-
 	/*  MRC p15,0,<Rt>,c2,c0,ttb */
 	retval = dpm->instr_read_data_r0(dpm,
 			ARMV4_5_MRC(15, 0, 0, 2, 0, ttb),
