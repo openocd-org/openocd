@@ -34,6 +34,7 @@
 #include "jtag/interface.h"
 #include "imp.h"
 #include <helper/binarybuffer.h>
+#include <target/target_type.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 #include <target/cortex_m.h>
@@ -383,10 +384,15 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (jtag_get_reset_config() & RESET_HAS_SRST)
-		adapter_deassert_reset();
-
 	dap_ap_select(dap, original_ap);
+
+	if (jtag_get_reset_config() & RESET_HAS_SRST) {
+		/* halt MCU otherwise it loops in hard fault - WDOG reset cycle */
+		target->reset_halt = true;
+		target->type->assert_reset(target);
+		target->type->deassert_reset(target);
+	}
+
 	return ERROR_OK;
 }
 
@@ -462,6 +468,31 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 	if (retval != ERROR_OK) {
 		LOG_ERROR("MDM: failed to read MDM_REG_STAT");
 		goto fail;
+	}
+
+	if ((val & (MDM_STAT_SYSSEC | MDM_STAT_CORE_HALTED)) == MDM_STAT_SYSSEC) {
+		LOG_WARNING("MDM: Secured MCU state detected however it may be a false alarm");
+		LOG_WARNING("MDM: Halting target to detect secured state reliably");
+
+		dap_ap_select(dap, origninal_ap);
+		retval = target_halt(target);
+		if (retval == ERROR_OK)
+			retval = target_wait_state(target, TARGET_HALTED, 100);
+
+		if (retval != ERROR_OK) {
+			LOG_WARNING("MDM: Target not halted, trying reset halt");
+			target->reset_halt = true;
+			target->type->assert_reset(target);
+			target->type->deassert_reset(target);
+		}
+
+		/* re-read status */
+		dap_ap_select(dap, 1);
+		retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &val);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("MDM: failed to read MDM_REG_STAT");
+			goto fail;
+		}
 	}
 
 	if (val & MDM_STAT_SYSSEC) {
