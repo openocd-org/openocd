@@ -77,11 +77,11 @@ struct armv7a_cache_common {
 
 struct armv7a_mmu_common {
 	/* following field mmu working way */
-	int32_t ttbr0_used;
-	int32_t ttbr1_used; /*  -1 not initialized, 0 no ttbr1 1 ttbr1 used and  */
-	uint32_t ttbr0_mask;/*  masked to be used  */
+	int32_t cached;     /* 0: not initialized, 1: initialized */
+	uint32_t ttbcr;     /* cache for ttbcr register */
+	uint32_t ttbr_mask[2];
+	uint32_t ttbr_range[2];
 	uint32_t os_border;
-	uint32_t ttbcr;
 
 	int (*read_physical_memory)(struct target *target, uint32_t address, uint32_t size,
 			uint32_t count, uint8_t *buffer);
