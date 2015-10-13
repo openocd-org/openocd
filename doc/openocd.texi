@@ -5380,6 +5380,66 @@ if @{ [info exists IMEMORY] && [string equal $IMEMORY true] @} @{
 @end example
 @end deffn
 
+@deffn {Flash Driver} niietcm4
+This drivers handles the integrated NOR flash on NIIET Cortex-M4
+based controllers. Flash size and sector layout are auto-configured by the driver.
+Main flash memory is called "Bootflash" and has main region and info region.
+Info region is NOT memory mapped by default,
+but it can replace first part of main region if needed.
+Full erase, single and block writes are supported for both main and info regions.
+There is additional not memory mapped flash called "Userflash", which
+also have division into regions: main and info.
+Purpose of userflash - to store system and user settings.
+Driver has special commands to perform operations with this memmory.
+
+@example
+flash bank $_FLASHNAME niietcm4 0 0 0 0 $_TARGETNAME
+@end example
+
+Some niietcm4-specific commands are defined:
+
+@deffn Command {niietcm4 uflash_read_byte} bank ('main'|'info') address
+Read byte from main or info userflash region.
+@end deffn
+
+@deffn Command {niietcm4 uflash_write_byte} bank ('main'|'info') address value
+Write byte to main or info userflash region.
+@end deffn
+
+@deffn Command {niietcm4 uflash_full_erase} bank
+Erase all userflash including info region.
+@end deffn
+
+@deffn Command {niietcm4 uflash_erase} bank ('main'|'info') first_sector last_sector
+Erase sectors of main or info userflash region, starting at sector first up to and including last.
+@end deffn
+
+@deffn Command {niietcm4 uflash_protect_check} bank ('main'|'info')
+Check sectors protect.
+@end deffn
+
+@deffn Command {niietcm4 uflash_protect} bank ('main'|'info') first_sector last_sector ('on'|'off')
+Protect sectors of main or info userflash region, starting at sector first up to and including last.
+@end deffn
+
+@deffn Command {niietcm4 bflash_info_remap} bank ('on'|'off')
+Enable remapping bootflash info region to 0x00000000 (or 0x40000000 if external memory boot used).
+@end deffn
+
+@deffn Command {niietcm4 extmem_cfg} bank ('gpioa'|'gpiob'|'gpioc'|'gpiod'|'gpioe'|'gpiof'|'gpiog'|'gpioh') pin_num ('func1'|'func3')
+Configure external memory interface for boot.
+@end deffn
+
+@deffn Command {niietcm4 service_mode_erase} bank
+Perform emergency erase of all flash (bootflash and userflash).
+@end deffn
+
+@deffn Command {niietcm4 driver_info} bank
+Show information about flash driver.
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} nrf51
 All members of the nRF51 microcontroller families from Nordic Semiconductor
 include internal flash and use ARM Cortex-M0 core.
