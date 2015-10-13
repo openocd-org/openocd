@@ -5182,6 +5182,64 @@ flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} kinetis
+@cindex kinetis
+Kx and KLx members of the Kinetis microcontroller family from Freescale include
+internal flash and use ARM Cortex M0+ or M4 cores. The driver automatically
+recognizes flash size and a number of flash banks (1-4) using the chip
+identification register, and autoconfigures itself.
+
+@example
+flash bank $_FLASHNAME kinetis 0 0 0 0 $_TARGETNAME
+@end example
+
+@deffn Command {kinetis mdm check_security}
+Checks status of device security lock. Used internally in examine-end event.
+@end deffn
+
+@deffn Command {kinetis mdm mass_erase}
+Issues a complete Flash erase via the MDM-AP.
+This can be used to erase a chip back to its factory state.
+Command removes security lock from a device (use of SRST highly recommended).
+It does not require the processor to be halted.
+@end deffn
+
+@deffn Command {kinetis nvm_partition}
+For FlexNVM devices only (KxxDX and KxxFX).
+Command shows or sets data flash or EEPROM backup size in kilobytes,
+sets two EEPROM blocks sizes in bytes and enables/disables loading
+of EEPROM contents to FlexRAM during reset.
+
+For details see device reference manual, Flash Memory Module,
+Program Partition command.
+
+Setting is possible only once after mass_erase.
+Reset the device after partition setting.
+
+Show partition size:
+@example
+kinetis nvm_partition info
+@end example
+
+Set 32 KB data flash, rest of FlexNVM is EEPROM backup. EEPROM has two blocks
+of 512 and 1536 bytes and its contents is loaded to FlexRAM during reset:
+@example
+kinetis nvm_partition dataflash 32 512 1536 on
+@end example
+
+Set 16 KB EEPROM backup, rest of FlexNVM is a data flash. EEPROM has two blocks
+of 1024 bytes and its contents is not loaded to FlexRAM during reset:
+@example
+kinetis nvm_partition eebkp 16 1024 1024 off
+@end example
+@end deffn
+
+@deffn Command {kinetis disable_wdog}
+For Kx devices only (KLx has different COP watchdog, it is not supported).
+Command disables watchdog timer.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} lpc2000
 This is the driver to support internal flash of all members of the
 LPC11(x)00 and LPC1300 microcontroller families and most members of
