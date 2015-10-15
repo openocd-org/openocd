@@ -46,7 +46,7 @@ static int arm7a_l2x_sanity_check(struct target *target)
 /*
  * clean and invalidate complete l2x cache
  */
-static int arm7a_l2x_flush_all_data(struct target *target)
+int arm7a_l2x_flush_all_data(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)

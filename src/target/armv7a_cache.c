@@ -127,7 +127,8 @@ int armv7a_cache_auto_flush_all_data(struct target *target)
 	} else
 		retval = armv7a_l1_d_cache_clean_inval_all(target);
 
-	/* FIXME: do l2x flushing here */
+	/* do outer cache flushing after inner caches have been flushed */
+	retval = arm7a_l2x_flush_all_data(target);
 
 	return retval;
 }

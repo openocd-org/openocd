@@ -401,61 +401,6 @@ static int armv7a_handle_inner_cache_info_command(struct command_context *cmd_ct
 	return ERROR_OK;
 }
 
-/* L2 is not specific to armv7a  a specific file is needed */
-static int armv7a_l2x_flush_all_data(struct target *target)
-{
-
-#define L2X0_CLEAN_INV_WAY              0x7FC
-	int retval = ERROR_FAIL;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
-	uint32_t base = l2x_cache->base;
-	uint32_t l2_way = l2x_cache->way;
-	uint32_t l2_way_val = (1 << l2_way) - 1;
-	retval = armv7a_cache_auto_flush_all_data(target);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = target->type->write_phys_memory(target,
-			(uint32_t)(base+(uint32_t)L2X0_CLEAN_INV_WAY),
-			(uint32_t)4,
-			(uint32_t)1,
-			(uint8_t *)&l2_way_val);
-	return retval;
-}
-
-static int armv7a_handle_l2x_cache_info_command(struct command_context *cmd_ctx,
-	struct armv7a_cache_common *armv7a_cache)
-{
-
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a_cache->outer_cache);
-
-	if (armv7a_cache->ctype == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
-		return ERROR_OK;
-	}
-
-	command_print(cmd_ctx,
-		"L1 D-Cache: linelen %" PRIi32 ", associativity %" PRIi32 ", nsets %" PRIi32 ", cachesize %" PRId32 " KBytes",
-		armv7a_cache->d_u_size.linelen,
-		armv7a_cache->d_u_size.associativity,
-		armv7a_cache->d_u_size.nsets,
-		armv7a_cache->d_u_size.cachesize);
-
-	command_print(cmd_ctx,
-		"L1 I-Cache: linelen %" PRIi32 ", associativity %" PRIi32 ", nsets %" PRIi32 ", cachesize %" PRId32 " KBytes",
-		armv7a_cache->i_size.linelen,
-		armv7a_cache->i_size.associativity,
-		armv7a_cache->i_size.nsets,
-		armv7a_cache->i_size.cachesize);
-	command_print(cmd_ctx, "L2 unified cache Base Address 0x%" PRIx32 ", %" PRId32 " ways",
-		l2x_cache->base, l2x_cache->way);
-
-
-	return ERROR_OK;
-}
-
 /* FIXME: remove it */
 static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t way)
 {
@@ -472,11 +417,6 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	if (armv7a->armv7a_mmu.armv7a_cache.outer_cache)
 		LOG_INFO("outer cache already initialized\n");
 	armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
-	/*  initialize l1 / l2x cache function  */
-	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache
-		= armv7a_l2x_flush_all_data;
-	armv7a->armv7a_mmu.armv7a_cache.display_cache_info =
-		armv7a_handle_l2x_cache_info_command;
 	/*  initialize all target in this cluster (smp target)
 	 *  l2 cache must be configured after smp declaration */
 	while (head != (struct target_list *)NULL) {
@@ -486,10 +426,6 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 			if (armv7a->armv7a_mmu.armv7a_cache.outer_cache)
 				LOG_ERROR("smp target : outer cache already initialized\n");
 			armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
-			armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
-				armv7a_l2x_flush_all_data;
-			armv7a->armv7a_mmu.armv7a_cache.display_cache_info =
-				armv7a_handle_l2x_cache_info_command;
 		}
 		head = head->next;
 	}
@@ -518,6 +454,9 @@ COMMAND_HANDLER(handle_cache_l2x)
 int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 	struct armv7a_cache_common *armv7a_cache)
 {
+	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
+		(armv7a_cache->outer_cache);
+
 	if (armv7a_cache->ctype == -1) {
 		command_print(cmd_ctx, "cache not yet identified");
 		return ERROR_OK;
@@ -525,6 +464,10 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 
 	if (armv7a_cache->display_cache_info)
 		armv7a_cache->display_cache_info(cmd_ctx, armv7a_cache);
+	if (l2x_cache != NULL)
+		command_print(cmd_ctx, "Outer unified cache Base Address 0x%" PRIx32 ", %" PRId32 " ways",
+			l2x_cache->base, l2x_cache->way);
+
 	return ERROR_OK;
 }
 
