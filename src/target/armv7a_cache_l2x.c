@@ -29,7 +29,7 @@ static int arm7a_l2x_sanity_check(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.l2_cache);
+		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("%s: target not halted", __func__);
@@ -50,7 +50,7 @@ static int arm7a_l2x_flush_all_data(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.l2_cache);
+		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
 	uint32_t l2_way_val;
 	int retval;
 
@@ -70,7 +70,7 @@ int armv7a_l2x_cache_flush_virt(struct target *target, uint32_t virt,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.l2_cache);
+		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
 	/* FIXME: different controllers have different linelen? */
 	uint32_t i, linelen = 32;
 	int retval;
@@ -106,7 +106,7 @@ static int armv7a_l2x_cache_inval_virt(struct target *target, uint32_t virt,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.l2_cache);
+		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
 	/* FIXME: different controllers have different linelen */
 	uint32_t i, linelen = 32;
 	int retval;
@@ -142,7 +142,7 @@ static int armv7a_l2x_cache_clean_virt(struct target *target, uint32_t virt,
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.l2_cache);
+		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
 	/* FIXME: different controllers have different linelen */
 	uint32_t i, linelen = 32;
 	int retval;
@@ -177,7 +177,7 @@ static int arm7a_handle_l2x_cache_info_command(struct command_context *cmd_ctx,
 	struct armv7a_cache_common *armv7a_cache)
 {
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a_cache->l2_cache);
+		(armv7a_cache->outer_cache);
 
 	if (armv7a_cache->ctype == -1) {
 		command_print(cmd_ctx, "cache not yet identified");
@@ -198,7 +198,7 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	struct target *curr;
 
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	if (armv7a->armv7a_mmu.armv7a_cache.l2_cache) {
+	if (armv7a->armv7a_mmu.armv7a_cache.outer_cache) {
 		LOG_ERROR("L2 cache was already initialised\n");
 		return ERROR_FAIL;
 	}
@@ -206,7 +206,7 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	l2x_cache = calloc(1, sizeof(struct armv7a_l2x_cache));
 	l2x_cache->base = base;
 	l2x_cache->way = way;
-	armv7a->armv7a_mmu.armv7a_cache.l2_cache = l2x_cache;
+	armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
 
 	/*  initialize all targets in this cluster (smp target)
 	 *  l2 cache must be configured after smp declaration */
@@ -214,11 +214,11 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 		curr = head->target;
 		if (curr != target) {
 			armv7a = target_to_armv7a(curr);
-			if (armv7a->armv7a_mmu.armv7a_cache.l2_cache) {
+			if (armv7a->armv7a_mmu.armv7a_cache.outer_cache) {
 				LOG_ERROR("smp target : cache l2 already initialized\n");
 				return ERROR_FAIL;
 			}
-			armv7a->armv7a_mmu.armv7a_cache.l2_cache = l2x_cache;
+			armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
 		}
 		head = head->next;
 	}

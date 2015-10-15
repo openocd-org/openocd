@@ -409,7 +409,7 @@ static int armv7a_l2x_flush_all_data(struct target *target)
 	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.l2_cache);
+		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
 	uint32_t base = l2x_cache->base;
 	uint32_t l2_way = l2x_cache->way;
 	uint32_t l2_way_val = (1 << l2_way) - 1;
@@ -429,7 +429,7 @@ static int armv7a_handle_l2x_cache_info_command(struct command_context *cmd_ctx,
 {
 
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a_cache->l2_cache);
+		(armv7a_cache->outer_cache);
 
 	if (armv7a_cache->ctype == -1) {
 		command_print(cmd_ctx, "cache not yet identified");
@@ -469,9 +469,9 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	l2x_cache->way = way;
 	/*LOG_INFO("cache l2 initialized base %x  way %d",
 	l2x_cache->base,l2x_cache->way);*/
-	if (armv7a->armv7a_mmu.armv7a_cache.l2_cache)
-		LOG_INFO("cache l2 already initialized\n");
-	armv7a->armv7a_mmu.armv7a_cache.l2_cache = l2x_cache;
+	if (armv7a->armv7a_mmu.armv7a_cache.outer_cache)
+		LOG_INFO("outer cache already initialized\n");
+	armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
 	/*  initialize l1 / l2x cache function  */
 	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache
 		= armv7a_l2x_flush_all_data;
@@ -483,9 +483,9 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 		curr = head->target;
 		if (curr != target) {
 			armv7a = target_to_armv7a(curr);
-			if (armv7a->armv7a_mmu.armv7a_cache.l2_cache)
-				LOG_ERROR("smp target : cache l2 already initialized\n");
-			armv7a->armv7a_mmu.armv7a_cache.l2_cache = l2x_cache;
+			if (armv7a->armv7a_mmu.armv7a_cache.outer_cache)
+				LOG_ERROR("smp target : outer cache already initialized\n");
+			armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
 			armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
 				armv7a_l2x_flush_all_data;
 			armv7a->armv7a_mmu.armv7a_cache.display_cache_info =
@@ -748,8 +748,8 @@ int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 	armv7a->arm.target = target;
 	armv7a->arm.common_magic = ARM_COMMON_MAGIC;
 	armv7a->common_magic = ARMV7_COMMON_MAGIC;
-	armv7a->armv7a_mmu.armv7a_cache.l2_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.ctype = -1;
+	armv7a->armv7a_mmu.armv7a_cache.outer_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.display_cache_info = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.auto_cache_enabled = 1;
