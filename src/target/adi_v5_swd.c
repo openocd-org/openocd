@@ -107,6 +107,18 @@ static int swd_connect(struct adiv5_dap *dap)
 	 * MUST READ DPIDR
 	 */
 
+	/* Check if we should reset srst already when connecting, but not if reconnecting. */
+	if (!dap->do_reconnect) {
+		enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+		if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
+			if (jtag_reset_config & RESET_SRST_NO_GATING)
+				swd_add_reset(1);
+			else
+				LOG_WARNING("\'srst_nogate\' reset_config option is required");
+		}
+	}
+
 	/* Note, debugport_init() does setup too */
 	jtag_interface->swd->switch_seq(JTAG_TO_SWD);
 
@@ -412,6 +424,8 @@ static int swd_init(struct command_context *ctx)
 	/* Force the DAP's ops vector for SWD mode.
 	 * messy - is there a better way? */
 	arm->dap->ops = &swd_dap_ops;
+	/* First connect after init is not reconnecting. */
+	dap->do_reconnect = false;
 
 	return swd_connect(dap);
 }
