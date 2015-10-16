@@ -5127,6 +5127,19 @@ flash bank $_FLASHNAME efm32 0 0 0 0 $_TARGETNAME
 supported.}
 @end deffn
 
+@deffn {Flash Driver} fm3
+All members of the FM3 microcontroller family from Fujitsu
+include internal flash and use ARM Cortex M3 cores.
+The @var{fm3} driver uses the @var{target} parameter to select the
+correct bank config, it can currently be one of the following:
+@code{mb9bfxx1.cpu}, @code{mb9bfxx2.cpu}, @code{mb9bfxx3.cpu},
+@code{mb9bfxx4.cpu}, @code{mb9bfxx5.cpu} or @code{mb9bfxx6.cpu}.
+
+@example
+flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
 @deffn {Flash Driver} lpc2000
 This is the driver to support internal flash of all members of the
 LPC11(x)00 and LPC1300 microcontroller families and most members of
@@ -5317,6 +5330,53 @@ lpc2900 secure_jtag 0
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} mdr
+This drivers handles the integrated NOR flash on Milandr Cortex-M
+based controllers. A known limitation is that the Info memory can't be
+read or verified as it's not memory mapped.
+
+@example
+flash bank <name> mdr <base> <size> \
+      0 0 <target#> @var{type} @var{page_count} @var{sec_count}
+@end example
+
+@itemize @bullet
+@item @var{type} - 0 for main memory, 1 for info memory
+@item @var{page_count} - total number of pages
+@item @var{sec_count} - number of sector per page count
+@end itemize
+
+Example usage:
+@example
+if @{ [info exists IMEMORY] && [string equal $IMEMORY true] @} @{
+   flash bank $@{_CHIPNAME@}_info.flash mdr 0x00000000 0x01000 \
+         0 0 $_TARGETNAME 1 1 4
+@} else @{
+   flash bank $_CHIPNAME.flash mdr 0x00000000 0x20000 \
+         0 0 $_TARGETNAME 0 32 4
+@}
+@end example
+@end deffn
+
+@deffn {Flash Driver} nrf51
+All members of the nRF51 microcontroller families from Nordic Semiconductor
+include internal flash and use ARM Cortex-M0 core.
+
+@example
+flash bank $_FLASHNAME nrf51 0 0x00000000 0 0 $_TARGETNAME
+@end example
+
+Some nrf51-specific commands are defined:
+
+@deffn Command {nrf51 mass_erase}
+Erases the contents of the code memory and user information
+configuration registers as well. It must be noted that this command
+works only for chips that do not have factory pre-programmed region 0
+code.
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} ocl
 This driver is an implementation of the ``on chip flash loader''
 protocol proposed by Pavel Chromy.
@@ -5386,6 +5446,29 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 Erases the contents of the flash memory, protection and security lock.
 
 The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+@end deffn
+
+@deffn {Flash Driver} sim3x
+All members of the SiM3 microcontroller family from Silicon Laboratories
+include internal flash and use ARM Cortex M3 cores. It supports both JTAG
+and SWD interface.
+The @var{sim3x} driver tries to probe the device to auto detect the MCU.
+If this failes, it will use the @var{size} parameter as the size of flash bank.
+
+@example
+flash bank $_FLASHNAME sim3x 0 $_CPUROMSIZE 0 0 $_TARGETNAME
+@end example
+
+There are 2 commands defined in the @var{sim3x} driver:
+
+@deffn Command {sim3x mass_erase}
+Erases the complete flash. This is used to unlock the flash.
+And this command is only possible when using the SWD interface.
+@end deffn
+
+@deffn Command {sim3x lock}
+Lock the flash. To unlock use the @command{sim3x mass_erase} command.
 @end deffn
 @end deffn
 
@@ -5679,89 +5762,6 @@ Reports the clock speed, which is used to calculate timings.
 Disables (@var{1}) or enables (@var{0}) use of the PLL to speed up
 the flash clock.
 @end deffn
-@end deffn
-
-@deffn {Flash Driver} fm3
-All members of the FM3 microcontroller family from Fujitsu
-include internal flash and use ARM Cortex M3 cores.
-The @var{fm3} driver uses the @var{target} parameter to select the
-correct bank config, it can currently be one of the following:
-@code{mb9bfxx1.cpu}, @code{mb9bfxx2.cpu}, @code{mb9bfxx3.cpu},
-@code{mb9bfxx4.cpu}, @code{mb9bfxx5.cpu} or @code{mb9bfxx6.cpu}.
-
-@example
-flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
-@end example
-@end deffn
-
-@deffn {Flash Driver} sim3x
-All members of the SiM3 microcontroller family from Silicon Laboratories
-include internal flash and use ARM Cortex M3 cores. It supports both JTAG
-and SWD interface.
-The @var{sim3x} driver tries to probe the device to auto detect the MCU.
-If this failes, it will use the @var{size} parameter as the size of flash bank.
-
-@example
-flash bank $_FLASHNAME sim3x 0 $_CPUROMSIZE 0 0 $_TARGETNAME
-@end example
-
-There are 2 commands defined in the @var{sim3x} driver:
-
-@deffn Command {sim3x mass_erase}
-Erases the complete flash. This is used to unlock the flash.
-And this command is only possible when using the SWD interface.
-@end deffn
-
-@deffn Command {sim3x lock}
-Lock the flash. To unlock use the @command{sim3x mass_erase} command.
-@end deffn
-@end deffn
-
-@deffn {Flash Driver} nrf51
-All members of the nRF51 microcontroller families from Nordic Semiconductor
-include internal flash and use ARM Cortex-M0 core.
-
-@example
-flash bank $_FLASHNAME nrf51 0 0x00000000 0 0 $_TARGETNAME
-@end example
-
-Some nrf51-specific commands are defined:
-
-@deffn Command {nrf51 mass_erase}
-Erases the contents of the code memory and user information
-configuration registers as well. It must be noted that this command
-works only for chips that do not have factory pre-programmed region 0
-code.
-@end deffn
-
-@end deffn
-
-@deffn {Flash Driver} mdr
-This drivers handles the integrated NOR flash on Milandr Cortex-M
-based controllers. A known limitation is that the Info memory can't be
-read or verified as it's not memory mapped.
-
-@example
-flash bank <name> mdr <base> <size> \
-      0 0 <target#> @var{type} @var{page_count} @var{sec_count}
-@end example
-
-@itemize @bullet
-@item @var{type} - 0 for main memory, 1 for info memory
-@item @var{page_count} - total number of pages
-@item @var{sec_count} - number of sector per page count
-@end itemize
-
-Example usage:
-@example
-if @{ [info exists IMEMORY] && [string equal $IMEMORY true] @} @{
-   flash bank $@{_CHIPNAME@}_info.flash mdr 0x00000000 0x01000 \
-         0 0 $_TARGETNAME 1 1 4
-@} else @{
-   flash bank $_CHIPNAME.flash mdr 0x00000000 0x20000 \
-         0 0 $_TARGETNAME 0 32 4
-@}
-@end example
 @end deffn
 
 @section NAND Flash Commands
