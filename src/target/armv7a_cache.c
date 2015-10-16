@@ -35,7 +35,7 @@ static int armv7a_l1_d_cache_sanity_check(struct target *target)
 
 	/*  check that cache data is on at target halt */
 	if (!armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled) {
-		LOG_DEBUG("l1 data cache is not enabled");
+		LOG_DEBUG("data cache is not enabled");
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -53,7 +53,7 @@ static int armv7a_l1_i_cache_sanity_check(struct target *target)
 
 	/*  check that cache data is on at target halt */
 	if (!armv7a->armv7a_mmu.armv7a_cache.i_cache_enabled) {
-		LOG_DEBUG("l1 data cache is not enabled");
+		LOG_DEBUG("instruction cache is not enabled");
 		return ERROR_TARGET_INVALID;
 	}
 
