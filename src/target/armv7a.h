@@ -84,8 +84,6 @@ struct armv7a_cache_common {
 	/* outer unified cache if some */
 	void *outer_cache;
 	int (*flush_all_data_cache)(struct target *target);
-	int (*display_cache_info)(struct command_context *cmd_ctx,
-			struct armv7a_cache_common *armv7a_cache);
 };
 
 struct armv7a_mmu_common {

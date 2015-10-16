@@ -376,49 +376,6 @@ done:
 	return retval;
 }
 
-static int armv7a_handle_inner_cache_info_command(struct command_context *cmd_ctx,
-	struct armv7a_cache_common *armv7a_cache)
-{
-	int cl;
-
-	if (armv7a_cache->info == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
-		return ERROR_OK;
-	}
-
-	for (cl = 0; cl < armv7a_cache->loc; cl++) {
-		struct armv7a_arch_cache *arch = &(armv7a_cache->arch[cl]);
-
-		if (arch->ctype & 1) {
-			command_print(cmd_ctx,
-				"L%d I-Cache: linelen %" PRIi32
-				", associativity %" PRIi32
-				", nsets %" PRIi32
-				", cachesize %" PRId32 " KBytes",
-				cl+1,
-				arch->i_size.linelen,
-				arch->i_size.associativity,
-				arch->i_size.nsets,
-				arch->i_size.cachesize);
-		}
-
-		if (arch->ctype >= 2) {
-			command_print(cmd_ctx,
-				"L%d D-Cache: linelen %" PRIi32
-				", associativity %" PRIi32
-				", nsets %" PRIi32
-				", cachesize %" PRId32 " KBytes",
-				cl+1,
-				arch->d_u_size.linelen,
-				arch->d_u_size.associativity,
-				arch->d_u_size.nsets,
-				arch->d_u_size.cachesize);
-		}
-	}
-
-	return ERROR_OK;
-}
-
 /* FIXME: remove it */
 static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t way)
 {
@@ -475,13 +432,43 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
 		(armv7a_cache->outer_cache);
 
+	int cl;
+
 	if (armv7a_cache->info == -1) {
 		command_print(cmd_ctx, "cache not yet identified");
 		return ERROR_OK;
 	}
 
-	if (armv7a_cache->display_cache_info)
-		armv7a_cache->display_cache_info(cmd_ctx, armv7a_cache);
+	for (cl = 0; cl < armv7a_cache->loc; cl++) {
+		struct armv7a_arch_cache *arch = &(armv7a_cache->arch[cl]);
+
+		if (arch->ctype & 1) {
+			command_print(cmd_ctx,
+				"L%d I-Cache: linelen %" PRIi32
+				", associativity %" PRIi32
+				", nsets %" PRIi32
+				", cachesize %" PRId32 " KBytes",
+				cl+1,
+				arch->i_size.linelen,
+				arch->i_size.associativity,
+				arch->i_size.nsets,
+				arch->i_size.cachesize);
+		}
+
+		if (arch->ctype >= 2) {
+			command_print(cmd_ctx,
+				"L%d D-Cache: linelen %" PRIi32
+				", associativity %" PRIi32
+				", nsets %" PRIi32
+				", cachesize %" PRId32 " KBytes",
+				cl+1,
+				arch->d_u_size.linelen,
+				arch->d_u_size.associativity,
+				arch->d_u_size.nsets,
+				arch->d_u_size.cachesize);
+		}
+	}
+
 	if (l2x_cache != NULL)
 		command_print(cmd_ctx, "Outer unified cache Base Address 0x%" PRIx32 ", %" PRId32 " ways",
 			l2x_cache->base, l2x_cache->way);
@@ -689,8 +676,6 @@ int armv7a_identify_cache(struct target *target)
 
 	/*  if no l2 cache initialize l1 data cache flush function function */
 	if (armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache == NULL) {
-		armv7a->armv7a_mmu.armv7a_cache.display_cache_info =
-			armv7a_handle_inner_cache_info_command;
 		armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
 			armv7a_cache_auto_flush_all_data;
 	}
@@ -715,7 +700,6 @@ int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 	armv7a->armv7a_mmu.armv7a_cache.info = -1;
 	armv7a->armv7a_mmu.armv7a_cache.outer_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache = NULL;
-	armv7a->armv7a_mmu.armv7a_cache.display_cache_info = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.auto_cache_enabled = 1;
 	return ERROR_OK;
 }
