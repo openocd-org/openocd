@@ -1305,7 +1305,7 @@ static int cortex_a_post_debug_entry(struct target *target)
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, cortex_a->cp15_control_reg);
 	cortex_a->cp15_control_reg_curr = cortex_a->cp15_control_reg;
 
-	if (armv7a->armv7a_mmu.armv7a_cache.ctype == -1)
+	if (armv7a->armv7a_mmu.armv7a_cache.info == -1)
 		armv7a_identify_cache(target);
 
 	if (armv7a->is_armv7r) {

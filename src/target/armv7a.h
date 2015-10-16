@@ -63,12 +63,20 @@ struct armv7a_cachesize {
 	uint32_t way_shift;
 };
 
-struct armv7a_cache_common {
-	int ctype;
+/* information about one architecture cache at any level */
+struct armv7a_arch_cache {
+	int ctype;				/* cache type, CLIDR encoding */
 	struct armv7a_cachesize d_u_size;	/* data cache */
 	struct armv7a_cachesize i_size;		/* instruction cache */
+};
+
+/* common cache information */
+struct armv7a_cache_common {
+	int info;				/* -1 invalid, else valid */
+	int loc;				/* level of coherency */
 	uint32_t dminline;			/* minimum d-cache linelen */
 	uint32_t iminline;			/* minimum i-cache linelen */
+	struct armv7a_arch_cache arch[6];	/* cache info, L1 - L7 */
 	int i_cache_enabled;
 	int d_u_cache_enabled;
 	int auto_cache_enabled;			/* openocd automatic

@@ -30,4 +30,9 @@ int armv7a_cache_auto_flush_all_data(struct target *target);
 
 extern const struct command_registration arm7a_cache_command_handlers[];
 
+/* CLIDR cache types */
+#define CACHE_LEVEL_HAS_UNIFIED_CACHE	0x4
+#define CACHE_LEVEL_HAS_D_CACHE		0x2
+#define CACHE_LEVEL_HAS_I_CACHE		0x1
+
 #endif

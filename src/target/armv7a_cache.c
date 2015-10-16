@@ -60,28 +60,17 @@ static int armv7a_l1_i_cache_sanity_check(struct target *target)
 	return ERROR_OK;
 }
 
-static int armv7a_l1_d_cache_clean_inval_all(struct target *target)
+static int armv7a_l1_d_cache_flush_level(struct arm_dpm *dpm, struct armv7a_cachesize *size, int cl)
 {
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->arm.dpm;
-	struct armv7a_cachesize *d_u_size =
-		&(armv7a->armv7a_mmu.armv7a_cache.d_u_size);
-	int32_t c_way, c_index = d_u_size->index;
-	int retval;
+	int retval = ERROR_OK;
+	int32_t c_way, c_index = size->index;
 
-	retval = armv7a_l1_d_cache_sanity_check(target);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-
+	LOG_DEBUG("cl %" PRId32, cl);
 	do {
-		c_way = d_u_size->way;
+		c_way = size->way;
 		do {
-			uint32_t value = (c_index << d_u_size->index_shift)
-				| (c_way << d_u_size->way_shift);
+			uint32_t value = (c_index << size->index_shift)
+				| (c_way << size->way_shift) | (cl << 1);
 			/*
 			 * DCCISW - Clean and invalidate data cache
 			 * line by Set/Way.
@@ -96,6 +85,35 @@ static int armv7a_l1_d_cache_clean_inval_all(struct target *target)
 		c_index -= 1;
 	} while (c_index >= 0);
 
+ done:
+	return retval;
+}
+
+static int armv7a_l1_d_cache_clean_inval_all(struct target *target)
+{
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct armv7a_cache_common *cache = &(armv7a->armv7a_mmu.armv7a_cache);
+	struct arm_dpm *dpm = armv7a->arm.dpm;
+	int cl;
+	int retval;
+
+	retval = armv7a_l1_d_cache_sanity_check(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+
+	for (cl = 0; cl < cache->loc; cl++) {
+		/* skip i-only caches */
+		if (cache->arch[cl].ctype < CACHE_LEVEL_HAS_D_CACHE)
+			continue;
+
+		armv7a_l1_d_cache_flush_level(dpm, &cache->arch[cl].d_u_size, cl);
+	}
+
+	retval = dpm->finish(dpm);
 	return retval;
 
 done:

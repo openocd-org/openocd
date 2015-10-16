@@ -379,24 +379,42 @@ done:
 static int armv7a_handle_inner_cache_info_command(struct command_context *cmd_ctx,
 	struct armv7a_cache_common *armv7a_cache)
 {
-	if (armv7a_cache->ctype == -1) {
+	int cl;
+
+	if (armv7a_cache->info == -1) {
 		command_print(cmd_ctx, "cache not yet identified");
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx,
-		"D-Cache: linelen %" PRIi32 ", associativity %" PRIi32 ", nsets %" PRIi32 ", cachesize %" PRId32 " KBytes",
-		armv7a_cache->d_u_size.linelen,
-		armv7a_cache->d_u_size.associativity,
-		armv7a_cache->d_u_size.nsets,
-		armv7a_cache->d_u_size.cachesize);
+	for (cl = 0; cl < armv7a_cache->loc; cl++) {
+		struct armv7a_arch_cache *arch = &(armv7a_cache->arch[cl]);
 
-	command_print(cmd_ctx,
-		"I-Cache: linelen %" PRIi32 ", associativity %" PRIi32 ", nsets %" PRIi32 ", cachesize %" PRId32 " KBytes",
-		armv7a_cache->i_size.linelen,
-		armv7a_cache->i_size.associativity,
-		armv7a_cache->i_size.nsets,
-		armv7a_cache->i_size.cachesize);
+		if (arch->ctype & 1) {
+			command_print(cmd_ctx,
+				"L%d I-Cache: linelen %" PRIi32
+				", associativity %" PRIi32
+				", nsets %" PRIi32
+				", cachesize %" PRId32 " KBytes",
+				cl+1,
+				arch->i_size.linelen,
+				arch->i_size.associativity,
+				arch->i_size.nsets,
+				arch->i_size.cachesize);
+		}
+
+		if (arch->ctype >= 2) {
+			command_print(cmd_ctx,
+				"L%d D-Cache: linelen %" PRIi32
+				", associativity %" PRIi32
+				", nsets %" PRIi32
+				", cachesize %" PRId32 " KBytes",
+				cl+1,
+				arch->d_u_size.linelen,
+				arch->d_u_size.associativity,
+				arch->d_u_size.nsets,
+				arch->d_u_size.cachesize);
+		}
+	}
 
 	return ERROR_OK;
 }
@@ -457,7 +475,7 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
 		(armv7a_cache->outer_cache);
 
-	if (armv7a_cache->ctype == -1) {
+	if (armv7a_cache->info == -1) {
 		command_print(cmd_ctx, "cache not yet identified");
 		return ERROR_OK;
 	}
@@ -517,17 +535,61 @@ done:
 
 }
 
+static int get_cache_info(struct arm_dpm *dpm, int cl, int ct, uint32_t *cache_reg)
+{
+	int retval = ERROR_OK;
+
+	/*  select cache level */
+	retval = dpm->instr_write_data_r0(dpm,
+			ARMV4_5_MCR(15, 2, 0, 0, 0, 0),
+			(cl << 1) | (ct == 1 ? 1 : 0));
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 1, 0, 0, 0, 0),
+			cache_reg);
+ done:
+	return retval;
+}
+
+static struct armv7a_cachesize decode_cache_reg(uint32_t cache_reg)
+{
+	struct armv7a_cachesize size;
+	int i = 0;
+
+	size.linelen = 16 << (cache_reg & 0x7);
+	size.associativity = ((cache_reg >> 3) & 0x3ff) + 1;
+	size.nsets = ((cache_reg >> 13) & 0x7fff) + 1;
+	size.cachesize = size.linelen * size.associativity * size.nsets / 1024;
+
+	/*  compute info for set way operation on cache */
+	size.index_shift = (cache_reg & 0x7) + 4;
+	size.index = (cache_reg >> 13) & 0x7fff;
+	size.way = ((cache_reg >> 3) & 0x3ff);
+
+	while (((size.way << i) & 0x80000000) == 0)
+		i++;
+	size.way_shift = i;
+
+	return size;
+}
+
 int armv7a_identify_cache(struct target *target)
 {
 	/*  read cache descriptor */
 	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
-	uint32_t cache_selected, clidr, ctr;
-	uint32_t cache_i_reg, cache_d_reg;
-	struct armv7a_cache_common *cache = &(armv7a->armv7a_mmu.armv7a_cache);
+	uint32_t csselr, clidr, ctr;
+	uint32_t cache_reg;
+	int cl, ctype;
+	struct armv7a_cache_common *cache =
+		&(armv7a->armv7a_mmu.armv7a_cache);
+
 	if (!armv7a->is_armv7r)
 		armv7a_read_ttbcr(target);
+
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
@@ -552,120 +614,79 @@ int armv7a_identify_cache(struct target *target)
 			&clidr);
 	if (retval != ERROR_OK)
 		goto done;
-	clidr = (clidr & 0x7000000) >> 23;
-	LOG_INFO("number of cache level %" PRIx32, (uint32_t)(clidr / 2));
-	if ((clidr / 2) > 1) {
-		/* FIXME not supported present in cortex A8 and later */
-		/*  in cortex A7, A15 */
-		LOG_ERROR("cache l2 present :not supported");
-	}
-	/*  retrieve selected cache
+
+	cache->loc = (clidr & 0x7000000) >> 24;
+	LOG_DEBUG("Number of cache levels to PoC %" PRId32, cache->loc);
+
+	/*  retrieve selected cache for later restore
 	 *  MRC p15, 2,<Rd>, c0, c0, 0; Read CSSELR */
 	retval = dpm->instr_read_data_r0(dpm,
 			ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
-			&cache_selected);
+			&csselr);
 	if (retval != ERROR_OK)
 		goto done;
 
-	retval = armv7a->arm.mrc(target, 15,
-			2, 0,	/* op1, op2 */
-			0, 0,	/* CRn, CRm */
-			&cache_selected);
-	if (retval != ERROR_OK)
-		goto done;
-	/* select instruction cache
-	 *  MCR p15, 2,<Rd>, c0, c0, 0; Write CSSELR
-	 *  [0]  : 1 instruction cache selection , 0 data cache selection */
-	retval = dpm->instr_write_data_r0(dpm,
-			ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
-			1);
-	if (retval != ERROR_OK)
-		goto done;
+	/* retrieve all available inner caches */
+	for (cl = 0; cl < cache->loc; clidr >>= 3, cl++) {
 
-	/* read CCSIDR
-	 * MRC P15,1,<RT>,C0, C0,0 ;on cortex A9 read CCSIDR
-	 * [2:0] line size  001 eight word per line
-	 * [27:13] NumSet 0x7f 16KB, 0xff 32Kbytes, 0x1ff 64Kbytes */
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 1, 0, 0, 0, 0),
-			&cache_i_reg);
-	if (retval != ERROR_OK)
-		goto done;
+		/* isolate cache type at current level */
+		ctype = clidr & 7;
 
-	/*  select data cache*/
-	retval = dpm->instr_write_data_r0(dpm,
-			ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
-			0);
-	if (retval != ERROR_OK)
-		goto done;
+		/* skip reserved values */
+		if (ctype > CACHE_LEVEL_HAS_UNIFIED_CACHE)
+			continue;
 
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 1, 0, 0, 0, 0),
-			&cache_d_reg);
-	if (retval != ERROR_OK)
-		goto done;
+		/* separate d or unified d/i cache at this level ? */
+		if (ctype & (CACHE_LEVEL_HAS_UNIFIED_CACHE | CACHE_LEVEL_HAS_D_CACHE)) {
+			/* retrieve d-cache info */
+			retval = get_cache_info(dpm, cl, 0, &cache_reg);
+			if (retval != ERROR_OK)
+				goto done;
+			cache->arch[cl].d_u_size = decode_cache_reg(cache_reg);
+
+			LOG_DEBUG("data/unified cache index %d << %d, way %d << %d",
+					cache->arch[cl].d_u_size.index,
+					cache->arch[cl].d_u_size.index_shift,
+					cache->arch[cl].d_u_size.way,
+					cache->arch[cl].d_u_size.way_shift);
+
+			LOG_DEBUG("cacheline %d bytes %d KBytes asso %d ways",
+					cache->arch[cl].d_u_size.linelen,
+					cache->arch[cl].d_u_size.cachesize,
+					cache->arch[cl].d_u_size.associativity);
+		}
+
+		/* separate i-cache at this level ? */
+		if (ctype & CACHE_LEVEL_HAS_I_CACHE) {
+			/* retrieve i-cache info */
+			retval = get_cache_info(dpm, cl, 1, &cache_reg);
+			if (retval != ERROR_OK)
+				goto done;
+			cache->arch[cl].i_size = decode_cache_reg(cache_reg);
+
+			LOG_DEBUG("instruction cache index %d << %d, way %d << %d",
+					cache->arch[cl].i_size.index,
+					cache->arch[cl].i_size.index_shift,
+					cache->arch[cl].i_size.way,
+					cache->arch[cl].i_size.way_shift);
+
+			LOG_DEBUG("cacheline %d bytes %d KBytes asso %d ways",
+					cache->arch[cl].i_size.linelen,
+					cache->arch[cl].i_size.cachesize,
+					cache->arch[cl].i_size.associativity);
+		}
+
+		cache->arch[cl].ctype = ctype;
+	}
 
 	/*  restore selected cache  */
 	dpm->instr_write_data_r0(dpm,
 		ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
-		cache_selected);
+		csselr);
 
 	if (retval != ERROR_OK)
 		goto done;
-	dpm->finish(dpm);
 
-	/* put fake type */
-	cache->d_u_size.linelen = 16 << (cache_d_reg & 0x7);
-	cache->d_u_size.cachesize = (((cache_d_reg >> 13) & 0x7fff)+1)/8;
-	cache->d_u_size.nsets = (cache_d_reg >> 13) & 0x7fff;
-	cache->d_u_size.associativity = ((cache_d_reg >> 3) & 0x3ff) + 1;
-	/*  compute info for set way operation on cache */
-	cache->d_u_size.index_shift = (cache_d_reg & 0x7) + 4;
-	cache->d_u_size.index = (cache_d_reg >> 13) & 0x7fff;
-	cache->d_u_size.way = ((cache_d_reg >> 3) & 0x3ff);
-	cache->d_u_size.way_shift = cache->d_u_size.way + 1;
-	{
-		int i = 0;
-		while (((cache->d_u_size.way_shift >> i) & 1) != 1)
-			i++;
-		cache->d_u_size.way_shift = 32-i;
-	}
-#if 0
-	LOG_INFO("data cache index %d << %d, way %d << %d",
-			cache->d_u_size.index, cache->d_u_size.index_shift,
-			cache->d_u_size.way,
-			cache->d_u_size.way_shift);
-
-	LOG_INFO("data cache %d bytes %d KBytes asso %d ways",
-			cache->d_u_size.linelen,
-			cache->d_u_size.cachesize,
-			cache->d_u_size.associativity);
-#endif
-	cache->i_size.linelen = 16 << (cache_i_reg & 0x7);
-	cache->i_size.associativity = ((cache_i_reg >> 3) & 0x3ff) + 1;
-	cache->i_size.nsets = (cache_i_reg >> 13) & 0x7fff;
-	cache->i_size.cachesize = (((cache_i_reg >> 13) & 0x7fff)+1)/8;
-	/*  compute info for set way operation on cache */
-	cache->i_size.index_shift = (cache_i_reg & 0x7) + 4;
-	cache->i_size.index = (cache_i_reg >> 13) & 0x7fff;
-	cache->i_size.way = ((cache_i_reg >> 3) & 0x3ff);
-	cache->i_size.way_shift = cache->i_size.way + 1;
-	{
-		int i = 0;
-		while (((cache->i_size.way_shift >> i) & 1) != 1)
-			i++;
-		cache->i_size.way_shift = 32-i;
-	}
-#if 0
-	LOG_INFO("instruction cache index %d << %d, way %d << %d",
-			cache->i_size.index, cache->i_size.index_shift,
-			cache->i_size.way, cache->i_size.way_shift);
-
-	LOG_INFO("instruction cache %d bytes %d KBytes asso %d ways",
-			cache->i_size.linelen,
-			cache->i_size.cachesize,
-			cache->i_size.associativity);
-#endif
 	/*  if no l2 cache initialize l1 data cache flush function function */
 	if (armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache == NULL) {
 		armv7a->armv7a_mmu.armv7a_cache.display_cache_info =
@@ -673,8 +694,8 @@ int armv7a_identify_cache(struct target *target)
 		armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
 			armv7a_cache_auto_flush_all_data;
 	}
-	armv7a->armv7a_mmu.armv7a_cache.ctype = 0;
 
+	armv7a->armv7a_mmu.armv7a_cache.info = 1;
 done:
 	dpm->finish(dpm);
 	armv7a_read_mpidr(target);
@@ -691,7 +712,7 @@ int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 	armv7a->arm.target = target;
 	armv7a->arm.common_magic = ARM_COMMON_MAGIC;
 	armv7a->common_magic = ARMV7_COMMON_MAGIC;
-	armv7a->armv7a_mmu.armv7a_cache.ctype = -1;
+	armv7a->armv7a_mmu.armv7a_cache.info = -1;
 	armv7a->armv7a_mmu.armv7a_cache.outer_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.display_cache_info = NULL;
