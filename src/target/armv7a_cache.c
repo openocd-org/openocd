@@ -223,6 +223,41 @@ done:
 	return retval;
 }
 
+int armv7a_l1_d_cache_flush_virt(struct target *target, uint32_t virt,
+					unsigned int size)
+{
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct arm_dpm *dpm = armv7a->arm.dpm;
+	struct armv7a_cache_common *armv7a_cache = &armv7a->armv7a_mmu.armv7a_cache;
+	uint32_t i, linelen = armv7a_cache->dminline;
+	int retval;
+
+	retval = armv7a_l1_d_cache_sanity_check(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+
+	for (i = 0; i < size; i += linelen) {
+		uint32_t offs = virt + i;
+
+		/* DCCIMVAC */
+		retval = dpm->instr_write_data_r0(dpm,
+				ARMV4_5_MCR(15, 0, 0, 7, 14, 1), offs);
+		if (retval != ERROR_OK)
+			goto done;
+	}
+	return retval;
+
+done:
+	LOG_ERROR("d-cache invalidate failed");
+	dpm->finish(dpm);
+
+	return retval;
+}
+
 int armv7a_l1_i_cache_inval_all(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
