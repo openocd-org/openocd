@@ -2754,9 +2754,11 @@ static int cortex_a_write_memory(struct target *target, uint32_t address,
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	retval = cortex_a_write_apb_ab_memory(target, address, size, count, buffer);
 
+	/* memory writes bypass the caches, must flush before writing */
 	armv7a_cache_auto_flush_on_write(target, address, size * count);
+
+	retval = cortex_a_write_apb_ab_memory(target, address, size, count, buffer);
 
 	return retval;
 }
