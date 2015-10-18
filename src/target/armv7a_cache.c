@@ -152,7 +152,7 @@ int armv7a_cache_auto_flush_all_data(struct target *target)
 }
 
 
-static int armv7a_l1_d_cache_inval_virt(struct target *target, uint32_t virt,
+int armv7a_l1_d_cache_inval_virt(struct target *target, uint32_t virt,
 					uint32_t size)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
