@@ -2126,6 +2126,11 @@ The GDB port for the first target will be the base port, the
 second target will listen on gdb_port + 1, and so on.
 When not specified during the configuration stage,
 the port @var{number} defaults to 3333.
+
+Note: when using "gdb_port pipe", increasing the default remote timeout in
+gdb (with 'set remotetimeout') is recommended. An insufficient timeout may
+cause initialization to fail with "Unknown remote qXfer reply: OK".
+
 @end deffn
 
 @deffn {Command} tcl_port [number]
