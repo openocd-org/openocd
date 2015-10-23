@@ -790,6 +790,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		max_flash_size_in_kb = 1024;
 		break;
 	case 0x419:
+	case 0x434:
 		max_flash_size_in_kb = 2048;
 		break;
 	case 0x423:
@@ -952,6 +953,7 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	case 0x413:
 	case 0x419:
+	case 0x434:
 		device_str = "STM32F4xx";
 
 		switch (rev_id) {
