@@ -30,6 +30,8 @@ struct cfi_flash_bank {
 	int not_cfi;
 	int probed;
 
+	enum target_endianness endianness;
+
 	uint16_t manufacturer;
 	uint16_t device_id;
 

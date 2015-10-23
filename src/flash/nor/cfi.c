@@ -136,6 +136,7 @@ static inline uint32_t flash_address(struct flash_bank *bank, int sector, uint32
 static void cfi_command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
 {
 	int i;
+	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 
 	/* clear whole buffer, to ensure bits that exceed the bus_width
 	 * are set to zero
@@ -143,7 +144,7 @@ static void cfi_command(struct flash_bank *bank, uint8_t cmd, uint8_t *cmd_buf)
 	for (i = 0; i < CFI_MAX_BUS_WIDTH; i++)
 		cmd_buf[i] = 0;
 
-	if (bank->target->endianness == TARGET_LITTLE_ENDIAN) {
+	if (cfi_info->endianness == TARGET_LITTLE_ENDIAN) {
 		for (i = bank->bus_width; i > 0; i--)
 			*cmd_buf++ = (i & (bank->chip_width - 1)) ? 0x0 : cmd;
 	} else {
@@ -167,6 +168,7 @@ static int cfi_send_command(struct flash_bank *bank, uint8_t cmd, uint32_t addre
 static int cfi_query_u8(struct flash_bank *bank, int sector, uint32_t offset, uint8_t *val)
 {
 	struct target *target = bank->target;
+	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	uint8_t data[CFI_MAX_BUS_WIDTH];
 
 	int retval;
@@ -175,7 +177,7 @@ static int cfi_query_u8(struct flash_bank *bank, int sector, uint32_t offset, ui
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
+	if (cfi_info->endianness == TARGET_LITTLE_ENDIAN)
 		*val = data[0];
 	else
 		*val = data[bank->bus_width - 1];
@@ -190,6 +192,7 @@ static int cfi_query_u8(struct flash_bank *bank, int sector, uint32_t offset, ui
 static int cfi_get_u8(struct flash_bank *bank, int sector, uint32_t offset, uint8_t *val)
 {
 	struct target *target = bank->target;
+	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 	uint8_t data[CFI_MAX_BUS_WIDTH];
 	int i;
 
@@ -199,7 +202,7 @@ static int cfi_get_u8(struct flash_bank *bank, int sector, uint32_t offset, uint
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (bank->target->endianness == TARGET_LITTLE_ENDIAN) {
+	if (cfi_info->endianness == TARGET_LITTLE_ENDIAN) {
 		for (i = 0; i < bank->bus_width / bank->chip_width; i++)
 			data[0] |= data[i];
 
@@ -236,7 +239,7 @@ static int cfi_query_u16(struct flash_bank *bank, int sector, uint32_t offset, u
 			return retval;
 	}
 
-	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
+	if (cfi_info->endianness == TARGET_LITTLE_ENDIAN)
 		*val = data[0] | data[bank->bus_width] << 8;
 	else
 		*val = data[bank->bus_width - 1] | data[(2 * bank->bus_width) - 1] << 8;
@@ -266,7 +269,7 @@ static int cfi_query_u32(struct flash_bank *bank, int sector, uint32_t offset, u
 			return retval;
 	}
 
-	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
+	if (cfi_info->endianness == TARGET_LITTLE_ENDIAN)
 		*val = data[0] | data[bank->bus_width] << 8 |
 			data[bank->bus_width * 2] << 16 | data[bank->bus_width * 3] << 24;
 	else
@@ -803,6 +806,7 @@ static int cfi_intel_info(struct flash_bank *bank, char *buf, int buf_size)
 FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 {
 	struct cfi_flash_bank *cfi_info;
+	int bus_swap = 0;
 
 	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -836,9 +840,18 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	for (unsigned i = 6; i < CMD_ARGC; i++) {
 		if (strcmp(CMD_ARGV[i], "x16_as_x8") == 0)
 			cfi_info->x16_as_x8 = 1;
+		else if (strcmp(CMD_ARGV[i], "bus_swap") == 0)
+			bus_swap = 1;
 		else if (strcmp(CMD_ARGV[i], "jedec_probe") == 0)
 			cfi_info->jedec_probe = 1;
 	}
+
+	if (bus_swap)
+		cfi_info->endianness =
+			bank->target->endianness == TARGET_LITTLE_ENDIAN ?
+			TARGET_BIG_ENDIAN : TARGET_LITTLE_ENDIAN;
+	else
+		cfi_info->endianness = bank->target->endianness;
 
 	/* bank wasn't probed yet */
 	cfi_info->qry[0] = 0xff;
