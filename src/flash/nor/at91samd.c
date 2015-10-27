@@ -255,7 +255,6 @@ struct samd_info {
 	int num_pages;
 	int sector_size;
 
-	bool manual_wp;
 	bool probed;
 	struct target *target;
 	struct samd_info *next;
@@ -384,9 +383,6 @@ static int samd_probe(struct flash_bank *bank)
 
 	samd_protect_check(bank);
 
-	/* By default we do not need to send page write commands */
-	chip->manual_wp = false;
-
 	/* Done */
 	chip->probed = true;
 
@@ -433,35 +429,16 @@ static bool samd_check_error(struct target *target)
 
 static int samd_issue_nvmctrl_command(struct target *target, uint16_t cmd)
 {
+	int res;
+
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* Read current configuration. */
-	uint16_t tmp = 0;
-	int res = target_read_u16(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB,
-			&tmp);
-	if (res != ERROR_OK)
-		return res;
-
-	/* Set cache disable. */
-	res = target_write_u16(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB,
-			tmp | (1<<18));
-	if (res != ERROR_OK)
-		return res;
-
 	/* Issue the NVM command */
-	int res_cmd = target_write_u16(target,
+	res = target_write_u16(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA, SAMD_NVM_CMD(cmd));
-
-	/* Try to restore configuration, regardless of NVM command write
-	 * status. */
-	res = target_write_u16(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB, tmp);
-
-	if (res_cmd != ERROR_OK)
-		return res_cmd;
-
 	if (res != ERROR_OK)
 		return res;
 
@@ -671,132 +648,19 @@ static int samd_erase(struct flash_bank *bank, int first, int last)
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
-		if (bank->sectors[s].is_erased != 1) {
-			/* For each row in that sector */
-			for (int r = s * rows_in_sector; r < (s + 1) * rows_in_sector; r++) {
-				res = samd_erase_row(bank->target, r * chip->page_size * 4);
-				if (res != ERROR_OK) {
-					LOG_ERROR("SAMD: failed to erase sector %d", s);
-					return res;
-				}
+		/* For each row in that sector */
+		for (int r = s * rows_in_sector; r < (s + 1) * rows_in_sector; r++) {
+			res = samd_erase_row(bank->target, r * chip->page_size * 4);
+			if (res != ERROR_OK) {
+				LOG_ERROR("SAMD: failed to erase sector %d", s);
+				return res;
 			}
-
-			bank->sectors[s].is_erased = 1;
 		}
 	}
 
 	return ERROR_OK;
 }
 
-static struct flash_sector *samd_find_sector_by_address(struct flash_bank *bank, uint32_t address)
-{
-	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
-
-	for (int i = 0; i < bank->num_sectors; i++) {
-		if (bank->sectors[i].offset <= address &&
-		    address < bank->sectors[i].offset + chip->sector_size)
-			return &bank->sectors[i];
-	}
-	return NULL;
-}
-
-/* Write an entire row (four pages) from host buffer 'buf' to row-aligned
- * 'address' in the Flash. */
-static int samd_write_row(struct flash_bank *bank, uint32_t address,
-		const uint8_t *buf)
-{
-	int res;
-	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
-
-	struct flash_sector *sector = samd_find_sector_by_address(bank, address);
-
-	if (!sector) {
-		LOG_ERROR("Can't find sector corresponding to address 0x%08" PRIx32, address);
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	if (sector->is_protected) {
-		LOG_ERROR("Trying to write to a protected sector at 0x%08" PRIx32, address);
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	/* Erase the row that we'll be writing to */
-	res = samd_erase_row(bank->target, address);
-	if (res != ERROR_OK)
-		return res;
-
-	/* Now write the pages in this row. */
-	for (unsigned int i = 0; i < 4; i++) {
-		bool error;
-
-		/* Write the page contents to the target's page buffer.  A page write
-		 * is issued automatically once the last location is written in the
-		 * page buffer (ie: a complete page has been written out). */
-		res = target_write_memory(bank->target, address, 4,
-				chip->page_size / 4, buf);
-		if (res != ERROR_OK) {
-			LOG_ERROR("%s: %d", __func__, __LINE__);
-			return res;
-		}
-
-		/* For some devices automatic page write is not default so we need
-		 * to issue a write page CMD to the NVM */
-		if (chip->manual_wp == true) {
-			res = samd_issue_nvmctrl_command(bank->target, SAMD_NVM_CMD_WP);
-			if (res != ERROR_OK) {
-				LOG_ERROR("%s: %d", __func__, __LINE__);
-				return res;
-			}
-		}
-
-		/* Access through AHB is stalled while flash is being programmed */
-		usleep(200);
-
-		error = samd_check_error(bank->target);
-		if (error)
-			return ERROR_FAIL;
-
-		/* Next page */
-		address += chip->page_size;
-		buf += chip->page_size;
-	}
-
-	sector->is_erased = 0;
-
-	return res;
-}
-
-/* Write partial contents into row-aligned 'address' on the Flash from host
- * buffer 'buf' by writing 'nb' of 'buf' at 'row_offset' into the Flash row. */
-static int samd_write_row_partial(struct flash_bank *bank, uint32_t address,
-		const uint8_t *buf, uint32_t row_offset, uint32_t nb)
-{
-	int res;
-	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
-	uint32_t row_size = chip->page_size * 4;
-	uint8_t *rb = malloc(row_size);
-	if (!rb)
-		return ERROR_FAIL;
-
-	assert(row_offset + nb < row_size);
-	assert((address % row_size) == 0);
-
-	/* Retrieve the full row contents from Flash */
-	res = target_read_memory(bank->target, address, 4, row_size / 4, rb);
-	if (res != ERROR_OK) {
-		free(rb);
-		return res;
-	}
-
-	/* Insert our partial row over the data from Flash */
-	memcpy(rb + (row_offset % row_size), buf, nb);
-
-	/* Write the row back out */
-	res = samd_write_row(bank, address, rb);
-	free(rb);
-
-	return res;
-}
 
 static int samd_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
@@ -804,13 +668,15 @@ static int samd_write(struct flash_bank *bank, const uint8_t *buffer,
 	int res;
 	uint32_t nvm_ctrlb;
 	uint32_t address;
-	uint32_t nb = 0;
+	uint32_t pg_offset;
+	uint32_t nb;
+	uint32_t nw;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
-	uint32_t row_size = chip->page_size * 4;
+	uint8_t *pb = NULL;
+	bool manual_wp;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
-
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -826,66 +692,93 @@ static int samd_write(struct flash_bank *bank, const uint8_t *buffer,
 		return res;
 
 	if (nvm_ctrlb & SAMD_NVM_CTRLB_MANW)
-		chip->manual_wp = true;
+		manual_wp = true;
 	else
-		chip->manual_wp = false;
+		manual_wp = false;
 
+	res = samd_issue_nvmctrl_command(bank->target, SAMD_NVM_CMD_PBC);
+	if (res != ERROR_OK) {
+		LOG_ERROR("%s: %d", __func__, __LINE__);
+		return res;
+	}
 
-	if (offset % row_size) {
-		/* We're starting at an unaligned offset so we'll write a partial row
-		 * comprising that offset and up to the end of that row. */
-		nb = row_size - (offset % row_size);
-		if (nb > count)
+	while (count) {
+		nb = chip->page_size - offset % chip->page_size;
+		if (count < nb)
 			nb = count;
-	} else if (count < row_size) {
-		/* We're writing an aligned but partial row. */
-		nb = count;
-	}
 
-	address = (offset / row_size) * row_size + bank->base;
+		address = bank->base + offset;
+		pg_offset = offset % chip->page_size;
 
-	if (nb > 0) {
-		res = samd_write_row_partial(bank, address, buffer,
-				offset % row_size, nb);
-		if (res != ERROR_OK)
-			return res;
-
-		/* We're done with the row contents */
-		count -= nb;
-		offset += nb;
-		buffer += row_size;
-	}
-
-	/* There's at least one aligned row to write out. */
-	if (count >= row_size) {
-		int nr = count / row_size + ((count % row_size) ? 1 : 0);
-		unsigned int r = 0;
-
-		for (unsigned int i = address / row_size;
-				(i < (address / row_size) + nr) && count > 0; i++) {
-			address = (i * row_size) + bank->base;
-
-			if (count >= row_size) {
-				res = samd_write_row(bank, address, buffer + (r * row_size));
-				/* Advance one row */
-				offset += row_size;
-				count -= row_size;
-			} else {
-				res = samd_write_row_partial(bank, address,
-						buffer + (r * row_size), 0, count);
-				/* We're done after this. */
-				offset += count;
-				count = 0;
+		if (offset % 4 || (offset + nb) % 4) {
+			/* Either start or end of write is not word aligned */
+			if (!pb) {
+				pb = malloc(chip->page_size);
+				if (!pb)
+					return ERROR_FAIL;
 			}
 
-			r++;
+			/* Set temporary page buffer to 0xff and overwrite the relevant part */
+			memset(pb, 0xff, chip->page_size);
+			memcpy(pb + pg_offset, buffer, nb);
 
-			if (res != ERROR_OK)
-				return res;
+			/* Align start address to a word boundary */
+			address -= offset % 4;
+			pg_offset -= offset % 4;
+			assert(pg_offset % 4 == 0);
+
+			/* Extend length to whole words */
+			nw = (nb + offset % 4 + 3) / 4;
+			assert(pg_offset + 4 * nw <= chip->page_size);
+
+			/* Now we have original data extended by 0xff bytes
+			 * to the nearest word boundary on both start and end */
+			res = target_write_memory(bank->target, address, 4, nw, pb + pg_offset);
+		} else {
+			assert(nb % 4 == 0);
+			nw = nb / 4;
+			assert(pg_offset + 4 * nw <= chip->page_size);
+
+			/* Word aligned data, use direct write from buffer */
+			res = target_write_memory(bank->target, address, 4, nw, buffer);
 		}
+		if (res != ERROR_OK) {
+			LOG_ERROR("%s: %d", __func__, __LINE__);
+			goto free_pb;
+		}
+
+		/* Devices with errata 13134 have automatic page write enabled by default
+		 * For other devices issue a write page CMD to the NVM
+		 * If the page has not been written up to the last word
+		 * then issue CMD_WP always */
+		if (manual_wp || pg_offset + 4 * nw < chip->page_size) {
+			res = samd_issue_nvmctrl_command(bank->target, SAMD_NVM_CMD_WP);
+			if (res != ERROR_OK) {
+				LOG_ERROR("%s: %d", __func__, __LINE__);
+				goto free_pb;
+			}
+		}
+
+		/* Access through AHB is stalled while flash is being programmed */
+		usleep(200);
+
+		if (samd_check_error(bank->target)) {
+			LOG_ERROR("%s: write failed at address 0x%08" PRIx32, __func__, address);
+			res = ERROR_FAIL;
+			goto free_pb;
+		}
+
+		/* We're done with the page contents */
+		count -= nb;
+		offset += nb;
+		buffer += nb;
 	}
 
-	return ERROR_OK;
+free_pb:
+	if (pb)
+		free(pb);
+
+	return res;
 }
 
 FLASH_BANK_COMMAND_HANDLER(samd_flash_bank_command)
