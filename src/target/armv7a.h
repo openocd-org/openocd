@@ -172,6 +172,7 @@ target_to_armv7a(struct target *target)
 
 /* See ARMv7a arch spec section C10.7 */
 #define CPUDBG_DSCCR		0x028
+#define CPUDBG_DSMCR		0x02C
 
 /* See ARMv7a arch spec section C10.8 */
 #define CPUDBG_AUTHSTATUS	0xFB8

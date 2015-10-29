@@ -243,6 +243,18 @@ static int cortex_a_init_debug_access(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* Disable cacheline fills and force cache write-through in debug state */
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCCR, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Disable TLB lookup and refill/eviction in debug state */
+	retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSMCR, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Enabling of instruction execution in debug mode is done in debug_entry code */
 
 	/* Resync breakpoint registers */
