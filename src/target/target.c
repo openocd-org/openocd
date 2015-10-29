@@ -729,6 +729,9 @@ int target_examine(void)
 			continue;
 		}
 
+		if (target->defer_examine)
+			continue;
+
 		retval = target_examine_one(target);
 		if (retval != ERROR_OK)
 			return retval;
@@ -4285,6 +4288,7 @@ enum target_cfg_param {
 	TCFG_CHAIN_POSITION,
 	TCFG_DBGBASE,
 	TCFG_RTOS,
+	TCFG_DEFER_EXAMINE,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
@@ -4299,6 +4303,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
 	{ .name = "-rtos",             .value = TCFG_RTOS },
+	{ .name = "-defer-examine",    .value = TCFG_DEFER_EXAMINE },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -4573,6 +4578,21 @@ no_params:
 			}
 			/* loop for more */
 			break;
+
+		case TCFG_DEFER_EXAMINE:
+			/* DEFER_EXAMINE */
+			if (goi->isconfigure) {
+				e = Jim_GetOpt_Wide(goi, &w);
+				if (e != JIM_OK)
+					return e;
+				/* make this exactly 1 or 0 */
+				target->defer_examine = (!!w);
+			} else {
+				if (goi->argc != 0)
+					goto no_params;
+			}
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->defer_examine));
+			/* loop for more e*/
 		}
 	} /* while (goi->argc) */
 
@@ -4843,13 +4863,33 @@ static int jim_target_tap_disabled(Jim_Interp *interp)
 
 static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
+	bool allow_defer = false;
+
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
+	if (goi.argc > 1) {
+		const char *cmd_name = Jim_GetString(argv[0], NULL);
+		Jim_SetResultFormatted(goi.interp,
+				"usage: %s ['allow-defer']", cmd_name);
 		return JIM_ERR;
 	}
+	if (strcmp(Jim_GetString(argv[1], NULL), "allow-defer") == 0) {
+		/* consume it */
+		struct Jim_Obj *obj;
+		int e = Jim_GetOpt_Obj(&goi, &obj);
+		if (e != JIM_OK)
+			return e;
+		allow_defer = true;
+	}
+
 	struct target *target = Jim_CmdPrivData(interp);
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
+
+	if (allow_defer && target->defer_examine) {
+		LOG_DEBUG("deferring arp_examine");
+		return JIM_OK;
+	}
 
 	int e = target->type->examine(target);
 	if (e != ERROR_OK)
@@ -5137,6 +5177,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_examine,
 		.help = "used internally for reset processing",
+		.usage = "arp_examine ['allow-defer']",
 	},
 	{
 		.name = "arp_halt_gdb",
