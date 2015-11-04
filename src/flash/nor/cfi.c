@@ -1213,7 +1213,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		arm_algo.core_state = ARM_STATE_ARM;
 	} else {
 		LOG_ERROR("Unknown architecture");
-		return ERROR_FAIL;
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	cfi_intel_clear_status_register(bank);
@@ -1811,7 +1811,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, const uint8_t *buff
 		arm_algo = &armv4_5_algo;
 	} else {
 		LOG_ERROR("Unknown architecture");
-		return ERROR_FAIL;
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	int target_code_size = 0;
