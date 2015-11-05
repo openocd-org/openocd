@@ -714,6 +714,9 @@ static int cmsis_dap_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq 
 	unsigned int s_len;
 	int retval;
 
+	/* First disconnect before connecting, Atmel EDBG needs it for SAMD/R/L/C */
+	cmsis_dap_cmd_DAP_Disconnect();
+
 	/* When we are reconnecting, DAP_Connect needs to be rerun, at
 	 * least on Keil ULINK-ME */
 	retval = cmsis_dap_cmd_DAP_Connect(seq == LINE_RESET || seq == JTAG_TO_SWD ?
