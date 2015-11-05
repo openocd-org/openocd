@@ -351,6 +351,15 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 		.flash_size_kb	= 256,
 	},
 
+	/* mdbt40
+	   no idea if variant and build code are correct */
+	{
+		.hwid		= 0x0057,
+		.variant	= "QFAA",
+		.build_code	= "G2",
+		.flash_size_kb	= 256,
+	},
+
 	/* Some early nRF51-DK (PCA10028) & nRF51-Dongle (PCA10031) boards
 	   with built-in jlink seem to use engineering samples not listed
 	   in the nRF51 Series Compatibility Matrix V1.0. */
