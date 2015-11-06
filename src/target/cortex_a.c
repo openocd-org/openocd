@@ -2996,9 +2996,13 @@ static int cortex_a_examine_first(struct target *target)
 	LOG_DEBUG("target->coreid %" PRId32 " DBGPRSR  0x%" PRIx32, target->coreid, dbg_osreg);
 
 	armv7a->arm.core_type = ARM_MODE_MON;
-	retval = cortex_a_dpm_setup(cortex_a, didr);
-	if (retval != ERROR_OK)
-		return retval;
+
+	/* Avoid recreating the registers cache */
+	if (!target_was_examined(target)) {
+		retval = cortex_a_dpm_setup(cortex_a, didr);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	/* Setup Breakpoint Register Pairs */
 	cortex_a->brp_num = ((didr >> 24) & 0x0F) + 1;
