@@ -119,7 +119,7 @@ Wiggler, XDS100v2, Xverve.
 Debug targets
 -------------
 
-ARM11, ARM7, ARM9, AVR32, Cortex-A, Cortex-R, Cortex-M,
+ARM11, ARM7, ARM9, AVR32, Cortex-A, Cortex-R, Cortex-M, LS102x-SAP,
 Feroceon/Dragonite, DSP563xx, DSP5680xx, FA526, MIPS EJTAG, NDS32,
 XScale, Intel Quark.
 
