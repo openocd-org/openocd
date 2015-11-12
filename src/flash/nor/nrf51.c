@@ -237,6 +237,12 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 		.flash_size_kb	= 256,
 	},
 	{
+		.hwid		= 0x0084,
+		.variant	= "QFAC",
+		.build_code	= "A1",
+		.flash_size_kb	= 256,
+	},
+	{
 		.hwid		= 0x007D,
 		.variant	= "CDAB",
 		.build_code	= "A0",
@@ -313,12 +319,6 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 		.variant	= "QFAB",
 		.build_code	= "B0",
 		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0084,
-		.variant	= "QFAC",
-		.build_code	= "A1",
-		.flash_size_kb	= 256,
 	},
 	{
 		.hwid		= 0x0085,
