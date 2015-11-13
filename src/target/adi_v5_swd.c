@@ -259,8 +259,6 @@ static int swd_run(struct adiv5_dap *dap)
 }
 
 const struct dap_ops swd_dap_ops = {
-	.is_swd = true,
-
 	.queue_dp_read = swd_queue_dp_read,
 	.queue_dp_write = swd_queue_dp_write,
 	.queue_ap_read = swd_queue_ap_read,

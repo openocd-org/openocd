@@ -244,11 +244,6 @@ struct adiv5_dap {
  * available until run().
  */
 struct dap_ops {
-	/** If the DAP transport isn't SWD, it must be JTAG.  Upper level
-	 * code may need to care about the difference in some cases.
-	 */
-	bool	is_swd;
-
 	/** DP register read. */
 	int (*queue_dp_read)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t *data);
