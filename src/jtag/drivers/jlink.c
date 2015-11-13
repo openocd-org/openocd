@@ -87,11 +87,9 @@ static void jlink_runtest(int num_cycles);
 static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 		int scan_size, struct scan_command *command);
 static void jlink_reset(int trst, int srst);
-static int jlink_swd_run_queue(struct adiv5_dap *dap);
-static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd,
-		uint32_t *dst, uint32_t data);
-static int jlink_swd_switch_seq(struct adiv5_dap *dap,
-		enum swd_special_seq seq);
+static int jlink_swd_run_queue(void);
+static void jlink_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk);
+static int jlink_swd_switch_seq(enum swd_special_seq seq);
 
 /* J-Link tap buffer functions */
 static void jlink_tap_init(void);
@@ -1568,22 +1566,19 @@ static int jlink_swd_init(void)
 	return ERROR_OK;
 }
 
-static void jlink_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd,
-		uint32_t value)
+static void jlink_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RnW));
-	jlink_swd_queue_cmd(dap, cmd, NULL, value);
+	jlink_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
 }
 
-static void jlink_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd,
-		uint32_t *value)
+static void jlink_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RnW);
-	jlink_swd_queue_cmd(dap, cmd, value, 0);
+	jlink_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
 }
 
-static int_least32_t jlink_swd_frequency(struct adiv5_dap *dap,
-		int_least32_t hz)
+static int_least32_t jlink_swd_frequency(int_least32_t hz)
 {
 	if (hz > 0)
 		jlink_speed(hz / 1000);
@@ -1762,7 +1757,7 @@ static void jlink_queue_data_in(uint32_t len)
 	tap_length += len;
 }
 
-static int jlink_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
+static int jlink_swd_switch_seq(enum swd_special_seq seq)
 {
 	const uint8_t *s;
 	unsigned int s_len;
@@ -1793,7 +1788,7 @@ static int jlink_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
 	return ERROR_OK;
 }
 
-static int jlink_swd_run_queue(struct adiv5_dap *dap)
+static int jlink_swd_run_queue(void)
 {
 	int i;
 	int ret;
@@ -1849,14 +1844,13 @@ skip:
 	return ret;
 }
 
-static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd,
-		uint32_t *dst, uint32_t data)
+static void jlink_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk)
 {
 	uint8_t data_parity_trn[DIV_ROUND_UP(32 + 1, 8)];
-	if (tap_length + 46 + 8 + dap->ap[dap_ap_get_select(dap)].memaccess_tck >= sizeof(tdi_buffer) * 8 ||
+	if (tap_length + 46 + 8 + ap_delay_clk >= sizeof(tdi_buffer) * 8 ||
 	    pending_scan_results_length == MAX_PENDING_SCAN_RESULTS) {
 		/* Not enough room in the queue. Run the queue. */
-		queued_retval = jlink_swd_run_queue(dap);
+		queued_retval = jlink_swd_run_queue();
 	}
 
 	if (queued_retval != ERROR_OK)
@@ -1889,7 +1883,7 @@ static void jlink_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd,
 
 	/* Insert idle cycles after AP accesses to avoid WAIT. */
 	if (cmd & SWD_CMD_APnDP)
-		jlink_queue_data_out(NULL, dap->ap[dap_ap_get_select(dap)].memaccess_tck);
+		jlink_queue_data_out(NULL, ap_delay_clk);
 }
 
 static const struct swd_driver jlink_swd = {

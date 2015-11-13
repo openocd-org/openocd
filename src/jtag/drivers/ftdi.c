@@ -128,7 +128,7 @@ static uint16_t direction;
 static uint16_t jtag_output_init;
 static uint16_t jtag_direction_init;
 
-static int ftdi_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq);
+static int ftdi_swd_switch_seq(enum swd_special_seq seq);
 
 static struct signal *find_signal_by_name(const char *name)
 {
@@ -941,7 +941,7 @@ static void ftdi_swd_swdio_en(bool enable)
  * @param dap
  * @return
  */
-static int ftdi_swd_run_queue(struct adiv5_dap *dap)
+static int ftdi_swd_run_queue(void)
 {
 	LOG_DEBUG("Executing %zu queued transactions", swd_cmd_queue_length);
 	int retval;
@@ -1008,13 +1008,13 @@ skip:
 	return retval;
 }
 
-static void ftdi_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst, uint32_t data)
+static void ftdi_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk)
 {
 	if (swd_cmd_queue_length >= swd_cmd_queue_alloced) {
 		/* Not enough room in the queue. Run the queue and increase its size for next time.
 		 * Note that it's not possible to avoid running the queue here, because mpsse contains
 		 * pointers into the queue which may be invalid after the realloc. */
-		queued_retval = ftdi_swd_run_queue(dap);
+		queued_retval = ftdi_swd_run_queue();
 		struct swd_cmd_queue_entry *q = realloc(swd_cmd_queue, swd_cmd_queue_alloced * 2 * sizeof(*swd_cmd_queue));
 		if (q != NULL) {
 			swd_cmd_queue = q;
@@ -1057,23 +1057,23 @@ static void ftdi_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst
 
 	/* Insert idle cycles after AP accesses to avoid WAIT */
 	if (cmd & SWD_CMD_APnDP)
-		mpsse_clock_data_out(mpsse_ctx, NULL, 0, dap->ap[dap_ap_get_select(dap)].memaccess_tck, SWD_MODE);
+		mpsse_clock_data_out(mpsse_ctx, NULL, 0, ap_delay_clk, SWD_MODE);
 
 }
 
-static void ftdi_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value)
+static void ftdi_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RnW);
-	ftdi_swd_queue_cmd(dap, cmd, value, 0);
+	ftdi_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
 }
 
-static void ftdi_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t value)
+static void ftdi_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RnW));
-	ftdi_swd_queue_cmd(dap, cmd, NULL, value);
+	ftdi_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
 }
 
-static int_least32_t ftdi_swd_frequency(struct adiv5_dap *dap, int_least32_t hz)
+static int_least32_t ftdi_swd_frequency(int_least32_t hz)
 {
 	if (hz > 0)
 		freq = mpsse_set_frequency(mpsse_ctx, hz);
@@ -1081,7 +1081,7 @@ static int_least32_t ftdi_swd_frequency(struct adiv5_dap *dap, int_least32_t hz)
 	return freq;
 }
 
-static int ftdi_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
+static int ftdi_swd_switch_seq(enum swd_special_seq seq)
 {
 	switch (seq) {
 	case LINE_RESET:

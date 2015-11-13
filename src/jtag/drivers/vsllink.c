@@ -72,10 +72,8 @@ static void vsllink_tap_append_scan(int length, uint8_t *buffer,
 		struct scan_command *command);
 
 /* VSLLink SWD functions */
-static int_least32_t vsllink_swd_frequency(struct adiv5_dap *dap,
-		int_least32_t hz);
-static int vsllink_swd_switch_seq(struct adiv5_dap *dap,
-		enum swd_special_seq seq);
+static int_least32_t vsllink_swd_frequency(int_least32_t hz);
+static int vsllink_swd_switch_seq(enum swd_special_seq seq);
 
 /* VSLLink lowlevel functions */
 struct vsllink {
@@ -243,7 +241,7 @@ static int vsllink_execute_queue(void)
 static int vsllink_speed(int speed)
 {
 	if (swd_mode) {
-		vsllink_swd_frequency(NULL, speed * 1000);
+		vsllink_swd_frequency(speed * 1000);
 		return ERROR_OK;
 	}
 
@@ -349,8 +347,8 @@ static int vsllink_init(void)
 		versaloon_interface.adaptors.gpio.config(0, GPIO_TRST, 0,
 			GPIO_TRST, GPIO_TRST);
 		versaloon_interface.adaptors.swd.init(0);
-		vsllink_swd_frequency(NULL, jtag_get_speed_khz() * 1000);
-		vsllink_swd_switch_seq(NULL, JTAG_TO_SWD);
+		vsllink_swd_frequency(jtag_get_speed_khz() * 1000);
+		vsllink_swd_switch_seq(JTAG_TO_SWD);
 
 	} else {
 		/* malloc buffer size for tap */
@@ -730,8 +728,7 @@ static int vsllink_swd_init(void)
 	return ERROR_OK;
 }
 
-static int_least32_t vsllink_swd_frequency(struct adiv5_dap *dap,
-		int_least32_t hz)
+static int_least32_t vsllink_swd_frequency(int_least32_t hz)
 {
 	const int_least32_t delay2hz[] = {
 		1850000, 235000, 130000, 102000, 85000, 72000
@@ -764,8 +761,7 @@ static int_least32_t vsllink_swd_frequency(struct adiv5_dap *dap,
 	return hz;
 }
 
-static int vsllink_swd_switch_seq(struct adiv5_dap *dap,
-		enum swd_special_seq seq)
+static int vsllink_swd_switch_seq(enum swd_special_seq seq)
 {
 	switch (seq) {
 	case LINE_RESET:
@@ -791,19 +787,17 @@ static int vsllink_swd_switch_seq(struct adiv5_dap *dap,
 	return ERROR_OK;
 }
 
-static void vsllink_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd,
-		uint32_t *value)
+static void vsllink_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	versaloon_interface.adaptors.swd.transact(0, cmd, value, NULL);
 }
 
-static void vsllink_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd,
-		uint32_t value)
+static void vsllink_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	versaloon_interface.adaptors.swd.transact(0, cmd, &value, NULL);
 }
 
-static int vsllink_swd_run_queue(struct adiv5_dap *dap)
+static int vsllink_swd_run_queue(void)
 {
 	return versaloon_interface.adaptors.peripheral_commit();
 }

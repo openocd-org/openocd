@@ -515,7 +515,7 @@ static int cmsis_dap_cmd_DAP_Delay(uint16_t delay_us)
 }
 #endif
 
-static int cmsis_dap_swd_run_queue(struct adiv5_dap *dap)
+static int cmsis_dap_swd_run_queue(void)
 {
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
 
@@ -619,11 +619,11 @@ skip:
 	return retval;
 }
 
-static void cmsis_dap_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t *dst, uint32_t data)
+static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 {
 	if (pending_transfer_count == pending_queue_len) {
 		/* Not enough room in the queue. Run the queue. */
-		queued_retval = cmsis_dap_swd_run_queue(dap);
+		queued_retval = cmsis_dap_swd_run_queue();
 	}
 
 	if (queued_retval != ERROR_OK)
@@ -638,16 +638,16 @@ static void cmsis_dap_swd_queue_cmd(struct adiv5_dap *dap, uint8_t cmd, uint32_t
 	pending_transfer_count++;
 }
 
-static void cmsis_dap_swd_write_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t value)
+static void cmsis_dap_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RnW));
-	cmsis_dap_swd_queue_cmd(dap, cmd, NULL, value);
+	cmsis_dap_swd_queue_cmd(cmd, NULL, value);
 }
 
-static void cmsis_dap_swd_read_reg(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value)
+static void cmsis_dap_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RnW);
-	cmsis_dap_swd_queue_cmd(dap, cmd, value, 0);
+	cmsis_dap_swd_queue_cmd(cmd, value, 0);
 }
 
 static int cmsis_dap_get_version_info(void)
@@ -707,7 +707,7 @@ static int cmsis_dap_get_status(void)
 	return retval;
 }
 
-static int cmsis_dap_swd_switch_seq(struct adiv5_dap *dap, enum swd_special_seq seq)
+static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 {
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
 	const uint8_t *s;
@@ -1002,7 +1002,7 @@ static int cmsis_dap_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static int_least32_t cmsis_dap_swd_frequency(struct adiv5_dap *dap, int_least32_t hz)
+static int_least32_t cmsis_dap_swd_frequency(int_least32_t hz)
 {
 	if (hz > 0)
 		cmsis_dap_speed(hz / 1000);

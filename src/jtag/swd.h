@@ -153,48 +153,47 @@ struct swd_driver {
 	 * queued transactions are executed. If the frequency is lowered, it may
 	 * apply immediately.
 	 *
-	 * @param dap The DAP controlled by the SWD link.
 	 * @param hz The desired frequency in Hz.
 	 * @return The actual resulting frequency after rounding.
 	 */
-	int_least32_t (*frequency)(struct adiv5_dap *dap, int_least32_t hz);
+	int_least32_t (*frequency)(int_least32_t hz);
 
 	/**
 	 * Queue a special SWDIO sequence.
 	 *
-	 * @param dap The DAP controlled by the SWD link.
 	 * @param seq The special sequence to generate.
 	 * @return ERROR_OK if the sequence was queued, negative error if the
 	 * sequence is unsupported.
 	 */
-	int (*switch_seq)(struct adiv5_dap *dap, enum swd_special_seq seq);
+	int (*switch_seq)(enum swd_special_seq seq);
 
 	/**
 	 * Queued read of an AP or DP register.
 	 *
-	 * @param dap The DAP controlled by the SWD link.
 	 * @param Command byte with APnDP/RnW/addr/parity bits
 	 * @param Where to store value to read from register
+	 * @param ap_delay_hint Number of idle cycles that may be
+	 * needed after an AP access to avoid WAITs
 	 */
-	void (*read_reg)(struct adiv5_dap *dap, uint8_t cmd, uint32_t *value);
+	void (*read_reg)(uint8_t cmd, uint32_t *value, uint32_t ap_delay_hint);
 
 	/**
 	 * Queued write of an AP or DP register.
 	 *
-	 * @param dap The DAP controlled by the SWD link.
 	 * @param Command byte with APnDP/RnW/addr/parity bits
 	 * @param Value to be written to the register
+	 * @param ap_delay_hint Number of idle cycles that may be
+	 * needed after an AP access to avoid WAITs
 	 */
-	void (*write_reg)(struct adiv5_dap *dap, uint8_t cmd, uint32_t value);
+	void (*write_reg)(uint8_t cmd, uint32_t value, uint32_t ap_delay_hint);
 
 	/**
 	 * Execute any queued transactions and collect the result.
 	 *
-	 * @param dap The DAP controlled by the SWD link.
 	 * @return ERROR_OK on success, Ack response code on WAIT/FAULT
 	 * or negative error code on other kinds of failure.
 	 */
-	int (*run)(struct adiv5_dap *dap);
+	int (*run)(void);
 
 	/**
 	 * Configures data collection from the Single-wire
@@ -208,7 +207,7 @@ struct swd_driver {
 	 *
 	 * @return ERROR_OK on success, else a negative fault code.
 	 */
-	int *(*trace)(struct adiv5_dap *dap, bool swo);
+	int *(*trace)(bool swo);
 };
 
 int swd_init_reset(struct command_context *cmd_ctx);

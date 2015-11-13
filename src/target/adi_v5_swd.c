@@ -63,7 +63,7 @@ static void swd_finish_read(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = jtag_interface->swd;
 	if (dap->last_read != NULL) {
-		swd->read_reg(dap, swd_cmd(true, false, DP_RDBUFF), dap->last_read);
+		swd->read_reg(swd_cmd(true, false, DP_RDBUFF), dap->last_read, 0);
 		dap->last_read = NULL;
 	}
 }
@@ -78,8 +78,8 @@ static void swd_clear_sticky_errors(struct adiv5_dap *dap)
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	swd->write_reg(dap, swd_cmd(false,  false, DP_ABORT),
-		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+	swd->write_reg(swd_cmd(false,  false, DP_ABORT),
+		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
 }
 
 static int swd_run_inner(struct adiv5_dap *dap)
@@ -87,7 +87,7 @@ static int swd_run_inner(struct adiv5_dap *dap)
 	const struct swd_driver *swd = jtag_interface->swd;
 	int retval;
 
-	retval = swd->run(dap);
+	retval = swd->run();
 
 	if (retval != ERROR_OK) {
 		/* fault response */
@@ -110,7 +110,7 @@ static int swd_connect(struct adiv5_dap *dap)
 	 */
 
 	/* Note, debugport_init() does setup too */
-	jtag_interface->swd->switch_seq(dap, JTAG_TO_SWD);
+	jtag_interface->swd->switch_seq(JTAG_TO_SWD);
 
 	dap->do_reconnect = false;
 
@@ -148,8 +148,8 @@ static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 	const struct swd_driver *swd = jtag_interface->swd;
 	assert(swd);
 
-	swd->write_reg(dap, swd_cmd(false,  false, DP_ABORT),
-		DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+	swd->write_reg(swd_cmd(false,  false, DP_ABORT),
+		DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
 	return check_sync(dap);
 }
 
@@ -181,7 +181,7 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 		return retval;
 
 	swd_queue_dp_bankselect(dap, reg);
-	swd->read_reg(dap, swd_cmd(true,  false, reg), data);
+	swd->read_reg(swd_cmd(true,  false, reg), data, 0);
 
 	return check_sync(dap);
 }
@@ -198,7 +198,7 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 
 	swd_finish_read(dap);
 	swd_queue_dp_bankselect(dap, reg);
-	swd->write_reg(dap, swd_cmd(false,  false, reg), data);
+	swd->write_reg(swd_cmd(false,  false, reg), data, 0);
 
 	return check_sync(dap);
 }
@@ -228,7 +228,7 @@ static int swd_queue_ap_read(struct adiv5_dap *dap, unsigned reg,
 		return retval;
 
 	swd_queue_ap_bankselect(dap, reg);
-	swd->read_reg(dap, swd_cmd(true,  true, reg), dap->last_read);
+	swd->read_reg(swd_cmd(true,  true, reg), dap->last_read, dap->ap[dap_ap_get_select(dap)].memaccess_tck);
 	dap->last_read = data;
 
 	return check_sync(dap);
@@ -246,7 +246,7 @@ static int swd_queue_ap_write(struct adiv5_dap *dap, unsigned reg,
 
 	swd_finish_read(dap);
 	swd_queue_ap_bankselect(dap, reg);
-	swd->write_reg(dap, swd_cmd(false,  true, reg), data);
+	swd->write_reg(swd_cmd(false,  true, reg), data, dap->ap[dap_ap_get_select(dap)].memaccess_tck);
 
 	return check_sync(dap);
 }

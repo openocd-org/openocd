@@ -663,9 +663,9 @@ static int sysfsgpio_init(void)
 
 	if (sysfsgpio_swd_mode_possible()) {
 		if (swd_mode)
-			bitbang_swd_switch_seq(NULL, JTAG_TO_SWD);
+			bitbang_swd_switch_seq(JTAG_TO_SWD);
 		else
-			bitbang_swd_switch_seq(NULL, SWD_TO_JTAG);
+			bitbang_swd_switch_seq(SWD_TO_JTAG);
 	}
 
 	return ERROR_OK;
