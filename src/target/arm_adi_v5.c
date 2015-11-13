@@ -638,6 +638,8 @@ struct adiv5_dap *dap_init(void)
 	int i;
 	/* Set up with safe defaults */
 	for (i = 0; i <= 255; i++) {
+		dap->ap[i].dap = dap;
+		dap->ap[i].ap_num = i;
 		/* memaccess_tck max is 255 */
 		dap->ap[i].memaccess_tck = 255;
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */

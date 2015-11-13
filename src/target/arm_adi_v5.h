@@ -128,6 +128,16 @@
  */
 struct adiv5_ap {
 	/**
+	 * DAP this AP belongs to.
+	 */
+	struct adiv5_dap *dap;
+
+	/**
+	 * Number of this AP.
+	 */
+	uint8_t ap_num;
+
+	/**
 	 * Default value for (MEM-AP) AP_REG_CSW register.
 	 */
 	uint32_t csw_default;
