@@ -164,7 +164,6 @@ enum cortex_m_isrmasking_mode {
 
 struct cortex_m_common {
 	int common_magic;
-	struct arm_jtag jtag_info;
 
 	/* Context information */
 	uint32_t dcb_dhcsr;

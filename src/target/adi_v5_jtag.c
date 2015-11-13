@@ -81,12 +81,12 @@ static int adi_jtag_dp_scan(struct adiv5_dap *dap,
 		uint8_t instr, uint8_t reg_addr, uint8_t RnW,
 		uint8_t *outvalue, uint8_t *invalue, uint8_t *ack)
 {
-	struct arm_jtag *jtag_info = dap->jtag_info;
+	struct jtag_tap *tap = dap->tap;
 	struct scan_field fields[2];
 	uint8_t out_addr_buf;
 	int retval;
 
-	retval = arm_jtag_set_instr(jtag_info, instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(tap, instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -107,7 +107,7 @@ static int adi_jtag_dp_scan(struct adiv5_dap *dap,
 	fields[1].out_value = outvalue;
 	fields[1].in_value = invalue;
 
-	jtag_add_dr_scan(jtag_info->tap, 2, fields, TAP_IDLE);
+	jtag_add_dr_scan(tap, 2, fields, TAP_IDLE);
 
 	/* Add specified number of tck clocks after starting memory bus
 	 * access, giving the hardware time to complete the access.

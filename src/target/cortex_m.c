@@ -2104,7 +2104,6 @@ static int cortex_m_handle_target_request(void *priv)
 static int cortex_m_init_arch_info(struct target *target,
 	struct cortex_m_common *cortex_m, struct jtag_tap *tap)
 {
-	int retval;
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 
 	armv7m_init_arch_info(target, armv7m);
@@ -2113,12 +2112,8 @@ static int cortex_m_init_arch_info(struct target *target,
 	if (!tap->dap) {
 		tap->dap = dap_init();
 
-		/* prepare JTAG information for the new target */
-		cortex_m->jtag_info.tap = tap;
-		cortex_m->jtag_info.scann_size = 4;
-
 		/* Leave (only) generic DAP stuff for debugport_init() */
-		tap->dap->jtag_info = &cortex_m->jtag_info;
+		tap->dap->tap = tap;
 	}
 
 	/* default reset mode is to use srst if fitted
@@ -2141,10 +2136,6 @@ static int cortex_m_init_arch_info(struct target *target,
 	armv7m->store_core_reg_u32 = cortex_m_store_core_reg_u32;
 
 	target_register_timer_callback(cortex_m_handle_target_request, 1, 1, target);
-
-	retval = arm_jtag_setup_connection(&cortex_m->jtag_info);
-	if (retval != ERROR_OK)
-		return retval;
 
 	return ERROR_OK;
 }

@@ -628,11 +628,11 @@ int arm7_9_execute_sys_speed(struct target *target)
 	/* set RESTART instruction */
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
-		retval = arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		retval = arm_jtag_set_instr(jtag_info->tap, 0xf, NULL, TAP_IDLE);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	retval = arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info->tap, 0x4, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -682,11 +682,11 @@ static int arm7_9_execute_fast_sys_speed(struct target *target)
 	/* set RESTART instruction */
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
-		retval = arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		retval = arm_jtag_set_instr(jtag_info->tap, 0xf, NULL, TAP_IDLE);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	retval = arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info->tap, 0x4, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1639,11 +1639,11 @@ static int arm7_9_restart_core(struct target *target)
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
 
-		retval = arm_jtag_set_instr(jtag_info, 0xf, NULL, TAP_IDLE);
+		retval = arm_jtag_set_instr(jtag_info->tap, 0xf, NULL, TAP_IDLE);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	retval = arm_jtag_set_instr(jtag_info, 0x4, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info->tap, 0x4, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 

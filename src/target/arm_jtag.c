@@ -31,11 +31,9 @@
 #define _ARM_JTAG_SCAN_N_CHECK_
 #endif
 
-int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info,
+int arm_jtag_set_instr_inner(struct jtag_tap *tap,
 		uint32_t new_instr, void *no_verify_capture, tap_state_t end_state)
 {
-	struct jtag_tap *tap;
-	tap = jtag_info->tap;
 	struct scan_field field;
 	uint8_t t[4];
 
@@ -64,7 +62,7 @@ int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, ta
 	buf_set_u32(out_value, 0, jtag_info->scann_size, new_scan_chain);
 	struct scan_field field = { .num_bits = jtag_info->scann_size, .out_value = out_value, };
 
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL, end_state);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->scann_instr, NULL, end_state);
 	if (retval != ERROR_OK)
 		return retval;
 

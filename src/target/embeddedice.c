@@ -349,7 +349,7 @@ int embeddedice_read_reg_w_check(struct reg *reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = arm_jtag_set_instr(ice_reg->jtag_info,
+	retval = arm_jtag_set_instr(ice_reg->jtag_info->tap,
 			ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
@@ -415,7 +415,7 @@ int embeddedice_receive(struct arm_jtag *jtag_info, uint32_t *data, uint32_t siz
 	retval = arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -502,7 +502,7 @@ void embeddedice_write_reg(struct reg *reg, uint32_t value)
 
 	arm_jtag_scann(ice_reg->jtag_info, 0x2, TAP_IDLE);
 
-	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
+	arm_jtag_set_instr(ice_reg->jtag_info->tap, ice_reg->jtag_info->intest_instr, NULL, TAP_IDLE);
 
 	uint8_t reg_addr = ice_reg->addr & 0x1f;
 	embeddedice_write_reg_inner(ice_reg->jtag_info->tap, reg_addr, value);
@@ -536,7 +536,7 @@ int embeddedice_send(struct arm_jtag *jtag_info, uint32_t *data, uint32_t size)
 	retval = arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -593,7 +593,7 @@ int embeddedice_handshake(struct arm_jtag *jtag_info, int hsbit, uint32_t timeou
 	retval = arm_jtag_scann(jtag_info, 0x2, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_IDLE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_IDLE);
 	if (retval != ERROR_OK)
 		return retval;
 

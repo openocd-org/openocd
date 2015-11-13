@@ -3127,12 +3127,8 @@ static int cortex_a_init_arch_info(struct target *target,
 	if (!tap->dap) {
 		tap->dap = dap_init();
 
-		/* prepare JTAG information for the new target */
-		cortex_a->jtag_info.tap = tap;
-		cortex_a->jtag_info.scann_size = 4;
-
 		/* Leave (only) generic DAP stuff for debugport_init() */
-		tap->dap->jtag_info = &cortex_a->jtag_info;
+		tap->dap->tap = tap;
 	}
 
 	tap->dap->ap[dap_ap_get_select(tap->dap)].memaccess_tck = 80;

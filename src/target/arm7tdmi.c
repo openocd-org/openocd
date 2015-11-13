@@ -66,7 +66,7 @@ static int arm7tdmi_examine_debug_reason(struct target *target)
 		retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1, TAP_DRPAUSE);
 		if (retval != ERROR_OK)
 			return retval;
-		retval = arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL, TAP_DRPAUSE);
+		retval = arm_jtag_set_instr(arm7_9->jtag_info.tap, arm7_9->jtag_info.intest_instr, NULL, TAP_DRPAUSE);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -126,7 +126,7 @@ static inline int arm7tdmi_clock_out(struct arm_jtag *jtag_info,
 	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -142,7 +142,7 @@ static int arm7tdmi_clock_data_in(struct arm_jtag *jtag_info, uint32_t *in)
 	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -187,7 +187,7 @@ static int arm7tdmi_clock_data_in_endianness(struct arm_jtag *jtag_info,
 	retval = arm_jtag_scann(jtag_info, 0x1, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
 

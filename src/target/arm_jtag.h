@@ -36,20 +36,16 @@ struct arm_jtag {
 	uint32_t intest_instr;
 };
 
-int arm_jtag_set_instr_inner(struct arm_jtag *jtag_info, uint32_t new_instr,
+int arm_jtag_set_instr_inner(struct jtag_tap *tap, uint32_t new_instr,
 		void *no_verify_capture,
 		tap_state_t end_state);
 
-static inline int arm_jtag_set_instr(struct arm_jtag *jtag_info,
+static inline int arm_jtag_set_instr(struct jtag_tap *tap,
 		uint32_t new_instr, void *no_verify_capture, tap_state_t end_state)
 {
 	/* inline most common code path */
-	struct jtag_tap *tap;
-	tap = jtag_info->tap;
-	assert(tap != NULL);
-
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
-		return arm_jtag_set_instr_inner(jtag_info, new_instr, no_verify_capture, end_state);
+		return arm_jtag_set_instr_inner(tap, new_instr, no_verify_capture, end_state);
 
 	return ERROR_OK;
 

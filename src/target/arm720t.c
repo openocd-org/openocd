@@ -58,7 +58,7 @@ static int arm720t_scan_cp15(struct target *target,
 	retval = arm_jtag_scann(jtag_info, 0xf, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
 

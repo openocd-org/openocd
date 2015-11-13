@@ -182,7 +182,7 @@ struct adiv5_ap {
 struct adiv5_dap {
 	const struct dap_ops *ops;
 
-	struct arm_jtag *jtag_info;
+	struct jtag_tap *tap;
 	/* Control config */
 	uint32_t dp_ctrl_stat;
 

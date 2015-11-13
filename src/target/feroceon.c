@@ -88,7 +88,7 @@ static int feroceon_dummy_clock_out(struct arm_jtag *jtag_info, uint32_t instr)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
+	retval = arm_jtag_set_instr(jtag_info->tap, jtag_info->intest_instr, NULL, TAP_DRPAUSE);
 	if (retval != ERROR_OK)
 		return retval;
 
