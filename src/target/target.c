@@ -731,6 +731,9 @@ int target_examine(void)
 			continue;
 		}
 
+		if (target->defer_examine)
+			continue;
+
 		retval = target_examine_one(target);
 		if (retval != ERROR_OK)
 			return retval;
@@ -4288,6 +4291,7 @@ enum target_cfg_param {
 	TCFG_CHAIN_POSITION,
 	TCFG_DBGBASE,
 	TCFG_RTOS,
+	TCFG_DEFER_EXAMINE,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
@@ -4302,6 +4306,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
 	{ .name = "-rtos",             .value = TCFG_RTOS },
+	{ .name = "-defer-examine",    .value = TCFG_DEFER_EXAMINE },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -4576,6 +4581,13 @@ no_params:
 			}
 			/* loop for more */
 			break;
+
+		case TCFG_DEFER_EXAMINE:
+			/* DEFER_EXAMINE */
+			target->defer_examine = true;
+			/* loop for more */
+			break;
+
 		}
 	} /* while (goi->argc) */
 
@@ -4590,12 +4602,9 @@ static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj * const *a
 
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
 	goi.isconfigure = !strcmp(Jim_GetString(argv[0], NULL), "configure");
-	int need_args = 1 + goi.isconfigure;
-	if (goi.argc < need_args) {
+	if (goi.argc < 1) {
 		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
-			goi.isconfigure
-				? "missing: -option VALUE ..."
-				: "missing: -option ...");
+				 "missing: -option ...");
 		return JIM_ERR;
 	}
 	struct target *target = Jim_CmdPrivData(goi.interp);
@@ -4846,17 +4855,55 @@ static int jim_target_tap_disabled(Jim_Interp *interp)
 
 static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
+	bool allow_defer = false;
+
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
+	if (goi.argc > 1) {
+		const char *cmd_name = Jim_GetString(argv[0], NULL);
+		Jim_SetResultFormatted(goi.interp,
+				"usage: %s ['allow-defer']", cmd_name);
 		return JIM_ERR;
 	}
+	if (goi.argc > 0 &&
+	    strcmp(Jim_GetString(argv[1], NULL), "allow-defer") == 0) {
+		/* consume it */
+		struct Jim_Obj *obj;
+		int e = Jim_GetOpt_Obj(&goi, &obj);
+		if (e != JIM_OK)
+			return e;
+		allow_defer = true;
+	}
+
 	struct target *target = Jim_CmdPrivData(interp);
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
 
+	if (allow_defer && target->defer_examine) {
+		LOG_INFO("Deferring arp_examine of %s", target_name(target));
+		LOG_INFO("Use arp_examine command to examine it manually!");
+		return JIM_OK;
+	}
+
 	int e = target->type->examine(target);
 	if (e != ERROR_OK)
 		return JIM_ERR;
+	return JIM_OK;
+}
+
+static int jim_target_was_examined(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+{
+	struct target *target = Jim_CmdPrivData(interp);
+
+	Jim_SetResultBool(interp, target_was_examined(target));
+	return JIM_OK;
+}
+
+static int jim_target_examine_deferred(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+{
+	struct target *target = Jim_CmdPrivData(interp);
+
+	Jim_SetResultBool(interp, target->defer_examine);
 	return JIM_OK;
 }
 
@@ -4927,6 +4974,10 @@ static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 				target_name(target));
 		return JIM_ERR;
 	}
+
+	if (target->defer_examine)
+		target_reset_examined(target);
+
 	/* determine if we should halt or not. */
 	target->reset_halt = !!a;
 	/* When this happens - all workareas are invalid. */
@@ -5137,6 +5188,21 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_examine,
 		.help = "used internally for reset processing",
+		.usage = "arp_examine ['allow-defer']",
+	},
+	{
+		.name = "was_examined",
+		.mode = COMMAND_EXEC,
+		.jim_handler = jim_target_was_examined,
+		.help = "used internally for reset processing",
+		.usage = "was_examined",
+	},
+	{
+		.name = "examine_deferred",
+		.mode = COMMAND_EXEC,
+		.jim_handler = jim_target_examine_deferred,
+		.help = "used internally for reset processing",
+		.usage = "examine_deferred",
 	},
 	{
 		.name = "arp_halt_gdb",
