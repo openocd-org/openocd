@@ -65,7 +65,7 @@ proc ocd_process_reset_inner { MODE } {
 	foreach t $targets {
 		if {![using_jtag] || [jtag tapisenabled [$t cget -chain-position]]} {
 			$t invoke-event examine-start
-			set err [catch "$t arp_examine"]
+			set err [catch "$t arp_examine allow-defer"]
 			if { $err == 0 } {
 				$t invoke-event examine-end
 			}
@@ -111,6 +111,12 @@ proc ocd_process_reset_inner { MODE } {
 				continue
 			}
 
+			# don't wait for targets where examination is deferred
+			# they can not be halted anyway at this point
+			if { ![$t was_examined] && [$t examine_deferred] } {
+				continue
+			}
+
 			# Wait upto 1 second for target to halt.  Why 1sec? Cause
 			# the JTAG tap reset signal might be hooked to a slow
 			# resistor/capacitor circuit - and it might take a while
@@ -132,6 +138,12 @@ proc ocd_process_reset_inner { MODE } {
 	if { 0 == [string compare init $MODE] } {
 		foreach t $targets {
 			if {[using_jtag] && ![jtag tapisenabled [$t cget -chain-position]]} {
+				continue
+			}
+
+			# don't wait for targets where examination is deferred
+			# they can not be halted anyway at this point
+			if { ![$t was_examined] && [$t examine_deferred] } {
 				continue
 			}
 
