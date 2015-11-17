@@ -132,6 +132,9 @@ struct target {
 	struct jtag_tap *tap;				/* where on the jtag chain is this */
 	int32_t coreid;						/* which device on the TAP? */
 
+	/** Should we defer examine to later */
+	bool defer_examine;
+
 	/**
 	 * Indicates whether this target has been examined.
 	 *
