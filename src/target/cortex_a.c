@@ -132,34 +132,34 @@ static int cortex_a_mmu_modify(struct target *target, int enable)
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	int retval = ERROR_OK;
+	int need_write = 0;
+
 	if (enable) {
 		/*  if mmu enabled at target stop and mmu not enable */
 		if (!(cortex_a->cp15_control_reg & 0x1U)) {
 			LOG_ERROR("trying to enable mmu on target stopped with mmu disable");
 			return ERROR_FAIL;
 		}
-		if (!(cortex_a->cp15_control_reg_curr & 0x1U)) {
+		if ((cortex_a->cp15_control_reg_curr & 0x1U) == 0) {
 			cortex_a->cp15_control_reg_curr |= 0x1U;
-			retval = armv7a->arm.mcr(target, 15,
-					0, 0,	/* op1, op2 */
-					1, 0,	/* CRn, CRm */
-					cortex_a->cp15_control_reg_curr);
+			need_write = 1;
 		}
 	} else {
-		if ((cortex_a->cp15_control_reg_curr & 0x1U)) {
-			if (cortex_a->cp15_control_reg_curr & 0x4U) {
-				/* data cache is active */
-				cortex_a->cp15_control_reg_curr &= ~0x4U;
-				/* flush data cache armv7 function to be called */
-				if (armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache)
-					armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache(target);
-			}
+		if ((cortex_a->cp15_control_reg_curr & 0x1U) == 0x1U) {
 			cortex_a->cp15_control_reg_curr &= ~0x1U;
-			retval = armv7a->arm.mcr(target, 15,
-					0, 0,	/* op1, op2 */
-					1, 0,	/* CRn, CRm */
-					cortex_a->cp15_control_reg_curr);
+			need_write = 1;
 		}
+	}
+
+	if (need_write) {
+		LOG_DEBUG("%s, writing cp15 ctrl: %" PRIx32,
+			enable ? "enable mmu" : "disable mmu",
+			cortex_a->cp15_control_reg_curr);
+
+		retval = armv7a->arm.mcr(target, 15,
+				0, 0,	/* op1, op2 */
+				1, 0,	/* CRn, CRm */
+				cortex_a->cp15_control_reg_curr);
 	}
 	return retval;
 }
