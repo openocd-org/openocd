@@ -378,6 +378,7 @@ COMMAND_HANDLER(handle_svf_command)
 	/* parse command line */
 	svf_quiet = 0;
 	svf_nil = 0;
+	svf_progress_enabled = 0;
 	svf_ignore_error = 0;
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		if (strcmp(CMD_ARGV[i], "-tap") == 0) {
