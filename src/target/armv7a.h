@@ -92,7 +92,6 @@ struct armv7a_mmu_common {
 	uint32_t ttbcr;     /* cache for ttbcr register */
 	uint32_t ttbr_mask[2];
 	uint32_t ttbr_range[2];
-	uint32_t os_border;
 
 	int (*read_physical_memory)(struct target *target, uint32_t address, uint32_t size,
 			uint32_t count, uint8_t *buffer);

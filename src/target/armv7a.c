@@ -172,13 +172,6 @@ static int armv7a_read_ttbcr(struct target *target)
 		  armv7a->armv7a_mmu.ttbr_mask[0],
 		  armv7a->armv7a_mmu.ttbr_mask[1]);
 
-	/* FIXME: default is hard coded LINUX border  */
-	armv7a->armv7a_mmu.os_border = 0xc0000000;
-	if (ttbcr_n != 0) {
-		LOG_INFO("SVC access above %" PRIx32,
-			armv7a->armv7a_mmu.ttbr_range[0] + 1);
-		armv7a->armv7a_mmu.os_border = armv7a->armv7a_mmu.ttbr_range[0] + 1;
-	}
 done:
 	dpm->finish(dpm);
 	return retval;
