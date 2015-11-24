@@ -106,6 +106,7 @@ static int cortex_a_restore_cp15_control_reg(struct target *target)
 static int cortex_a_prep_memaccess(struct target *target, int phys_access)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	int mmu_enabled = 0;
 
 	if (phys_access == 0) {
@@ -113,6 +114,12 @@ static int cortex_a_prep_memaccess(struct target *target, int phys_access)
 		cortex_a_mmu(target, &mmu_enabled);
 		if (mmu_enabled)
 			cortex_a_mmu_modify(target, 1);
+		if (cortex_a->dacrfixup_mode == CORTEX_A_DACRFIXUP_ON) {
+			/* overwrite DACR to all-manager */
+			armv7a->arm.mcr(target, 15,
+					0, 0, 3, 0,
+					0xFFFFFFFF);
+		}
 	} else {
 		cortex_a_mmu(target, &mmu_enabled);
 		if (mmu_enabled)
@@ -129,8 +136,15 @@ static int cortex_a_prep_memaccess(struct target *target, int phys_access)
 static int cortex_a_post_memaccess(struct target *target, int phys_access)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
+	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 
 	if (phys_access == 0) {
+		if (cortex_a->dacrfixup_mode == CORTEX_A_DACRFIXUP_ON) {
+			/* restore */
+			armv7a->arm.mcr(target, 15,
+					0, 0, 3, 0,
+					cortex_a->cp15_dacr_reg);
+		}
 		dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
 	} else {
 		int mmu_enabled = 0;
@@ -1040,6 +1054,7 @@ static int cortex_a_internal_restore(struct target *target, int current,
 	buf_set_u32(arm->pc->value, 0, 32, resume_pc);
 	arm->pc->dirty = 1;
 	arm->pc->valid = 1;
+
 	/* restore dpm_mode at system halt */
 	dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
 	/* called it now before restoring context because it uses cpu
@@ -1336,6 +1351,16 @@ static int cortex_a_post_debug_entry(struct target *target)
 		(cortex_a->cp15_control_reg & 0x1000U) ? 1 : 0;
 	cortex_a->curr_mode = armv7a->arm.core_mode;
 
+	/* switch to SVC mode to read DACR */
+	dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
+	armv7a->arm.mrc(target, 15,
+			0, 0, 3, 0,
+			&cortex_a->cp15_dacr_reg);
+
+	LOG_DEBUG("cp15_dacr_reg: %8.8" PRIx32,
+			cortex_a->cp15_dacr_reg);
+
+	dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
 	return ERROR_OK;
 }
 
@@ -3325,6 +3350,32 @@ COMMAND_HANDLER(handle_cortex_a_mask_interrupts_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_cortex_a_dacrfixup_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
+
+	static const Jim_Nvp nvp_dacrfixup_modes[] = {
+		{ .name = "off", .value = CORTEX_A_DACRFIXUP_OFF },
+		{ .name = "on", .value = CORTEX_A_DACRFIXUP_ON },
+		{ .name = NULL, .value = -1 },
+	};
+	const Jim_Nvp *n;
+
+	if (CMD_ARGC > 0) {
+		n = Jim_Nvp_name2value_simple(nvp_dacrfixup_modes, CMD_ARGV[0]);
+		if (n->name == NULL)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		cortex_a->dacrfixup_mode = n->value;
+
+	}
+
+	n = Jim_Nvp_value2name_simple(nvp_dacrfixup_modes, cortex_a->dacrfixup_mode);
+	command_print(CMD_CTX, "cortex_a domain access control fixup %s", n->name);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration cortex_a_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
@@ -3366,7 +3417,14 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 		.help = "mask cortex_a interrupts",
 		.usage = "['on'|'off']",
 	},
-
+	{
+		.name = "dacrfixup",
+		.handler = handle_cortex_a_dacrfixup_command,
+		.mode = COMMAND_EXEC,
+		.help = "set domain access control (DACR) to all-manager "
+			"on memory access",
+		.usage = "['on'|'off']",
+	},
 
 	COMMAND_REGISTRATION_DONE
 };

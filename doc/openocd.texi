@@ -7678,6 +7678,13 @@ Disabled by default
 display information about target caches
 @end deffn
 
+@deffn Command {cortex_a dacrfixup [@option{on}|@option{off}]}
+Work around issues with software breakpoints when the program text is
+mapped read-only by the operating system. This option sets the CP15 DACR
+to "all-manager" to bypass MMU permission checks on memory access.
+Defaults to 'off'.
+@end deffn
+
 @deffn Command {cortex_a dbginit}
 Initialize core debug
 Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
