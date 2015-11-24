@@ -210,7 +210,7 @@ static int sysfsgpio_swdio_read(void)
 		return 0;
 	}
 
-	return buf[0] == '1';
+	return buf[0] != '0';
 }
 
 static void sysfsgpio_swdio_write(int swclk, int swdio)
@@ -259,7 +259,7 @@ static int sysfsgpio_read(void)
 		return 0;
 	}
 
-	return buf[0] == '1';
+	return buf[0] != '0';
 }
 
 /*
