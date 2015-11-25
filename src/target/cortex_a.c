@@ -2451,7 +2451,7 @@ static int cortex_a_read_apb_ab_memory_fast(struct target *target,
 	 */
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
-	uint32_t new_dscr, u32;
+	uint32_t u32;
 	int retval;
 
 	/* Switch to non-blocking mode if not already in that mode. */
@@ -2459,19 +2459,24 @@ static int cortex_a_read_apb_ab_memory_fast(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (count > 1) {
-		/* Consecutively issue the LDC instruction via a write to ITR and
-		 * change to fast mode, in a single bulk copy since DSCR == ITR + 4.
-		 * The instruction is issued into the core before the mode switch. */
-		uint8_t command[8];
-		target_buffer_set_u32(target, command, ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4));
-		new_dscr = (*dscr & ~DSCR_EXT_DCC_MASK) | DSCR_EXT_DCC_FAST_MODE;
-		target_buffer_set_u32(target, command + 4, new_dscr);
-		retval = mem_ap_sel_write_buf(swjdp, armv7a->debug_ap, command, 4, 2,
-				armv7a->debug_base + CPUDBG_ITR);
+	/* Issue the LDC instruction via a write to ITR. */
+	retval = cortex_a_exec_opcode(target, ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4), dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	count--;
+
+	if (count > 0) {
+		/* Switch to fast mode if not already in that mode. */
+		retval = cortex_a_set_dcc_mode(target, DSCR_EXT_DCC_FAST_MODE, dscr);
 		if (retval != ERROR_OK)
 			return retval;
-		*dscr = new_dscr;
+
+		/* Latch LDC instruction. */
+		retval = mem_ap_sel_write_atomic_u32(swjdp, armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_ITR, ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4));
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* Read the value transferred to DTRTX into the buffer. Due to fast
 		 * mode rules, this blocks until the instruction finishes executing and
@@ -2480,26 +2485,21 @@ static int cortex_a_read_apb_ab_memory_fast(struct target *target,
 		 * word from memory and issues the read instruction for the last word.
 		 */
 		retval = mem_ap_sel_read_buf_noincr(swjdp, armv7a->debug_ap, buffer,
-				4, count - 1, armv7a->debug_base + CPUDBG_DTRTX);
+				4, count, armv7a->debug_base + CPUDBG_DTRTX);
 		if (retval != ERROR_OK)
 			return retval;
 
 		/* Advance. */
-		buffer += (count - 1) * 4;
-	} else {
-		/* Issue the LDC instruction via a write to ITR. */
-		retval = cortex_a_exec_opcode(target, ARMV4_5_LDC(0, 1, 0, 1, 14, 5, 0, 4), dscr);
-		if (retval != ERROR_OK)
-			return retval;
+		buffer += count * 4;
 	}
-
-	/* Switch to non-blocking mode if not already in that mode. */
-	retval = cortex_a_set_dcc_mode(target, DSCR_EXT_DCC_NON_BLOCKING, dscr);
-	if (retval != ERROR_OK)
-		return retval;
 
 	/* Wait for last issued instruction to complete. */
 	retval = cortex_a_wait_instrcmpl(target, dscr, false);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Switch to non-blocking mode if not already in that mode. */
+	retval = cortex_a_set_dcc_mode(target, DSCR_EXT_DCC_NON_BLOCKING, dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
