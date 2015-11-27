@@ -4819,6 +4819,8 @@ The CFI driver can accept the following optional parameters, in any order:
 like AM29LV010 and similar types.
 @item @var{x16_as_x8} ... when a 16-bit flash is hooked up to an 8-bit bus.
 @item @var{bus_swap} ... when data bytes in a 16-bit flash needs to be swapped.
+@item @var{data_swap} ... when data bytes in a 16-bit flash needs to be
+swapped when writing data values (ie. not CFI commands).
 @end itemize
 
 To configure two adjacent banks of 16 MBytes each, both sixteen bits (two bytes)

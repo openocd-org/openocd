@@ -834,10 +834,13 @@ FLASH_BANK_COMMAND_HANDLER(cfi_flash_bank_command)
 	cfi_info->x16_as_x8 = 0;
 	cfi_info->jedec_probe = 0;
 	cfi_info->not_cfi = 0;
+	cfi_info->data_swap = 0;
 
 	for (unsigned i = 6; i < CMD_ARGC; i++) {
 		if (strcmp(CMD_ARGV[i], "x16_as_x8") == 0)
 			cfi_info->x16_as_x8 = 1;
+		else if (strcmp(CMD_ARGV[i], "data_swap") == 0)
+			cfi_info->data_swap = 1;
 		else if (strcmp(CMD_ARGV[i], "bus_swap") == 0)
 			bus_swap = 1;
 		else if (strcmp(CMD_ARGV[i], "jedec_probe") == 0)
@@ -2331,6 +2334,8 @@ static int cfi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t of
 	int blk_count;	/* number of bus_width bytes for block copy */
 	uint8_t current_word[CFI_MAX_BUS_WIDTH * 4];	/* word (bus_width size) currently being
 							 *programmed */
+	uint8_t *swapped_buffer = NULL;
+	const uint8_t *real_buffer = NULL;
 	int i;
 	int retval;
 
@@ -2357,13 +2362,35 @@ static int cfi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t of
 			return retval;
 
 		/* replace only bytes that must be written */
-		for (i = align; (i < bank->bus_width) && (count > 0); i++, count--)
-			current_word[i] = *buffer++;
+		for (i = align;
+		     (i < bank->bus_width) && (count > 0);
+		     i++, count--)
+			if (cfi_info->data_swap)
+				/* data bytes are swapped (reverse endianness) */
+				current_word[bank->bus_width - i] = *buffer++;
+			else
+				current_word[i] = *buffer++;
 
 		retval = cfi_write_word(bank, current_word, write_p);
 		if (retval != ERROR_OK)
 			return retval;
 		write_p += bank->bus_width;
+	}
+
+	if (cfi_info->data_swap && count) {
+		swapped_buffer = malloc(count & ~(bank->bus_width - 1));
+		switch (bank->bus_width) {
+		case 2:
+			buf_bswap16(swapped_buffer, buffer,
+				    count & ~(bank->bus_width - 1));
+			break;
+		case 4:
+			buf_bswap32(swapped_buffer, buffer,
+				    count & ~(bank->bus_width - 1));
+			break;
+		}
+		real_buffer = buffer;
+		buffer = swapped_buffer;
 	}
 
 	/* handle blocks of bus_size aligned bytes */
@@ -2435,6 +2462,11 @@ static int cfi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t of
 			return retval;
 	}
 
+	if (swapped_buffer) {
+		buffer = real_buffer + (buffer - swapped_buffer);
+		free(swapped_buffer);
+	}
+
 	/* return to read array mode, so we can read from flash again for padding */
 	retval = cfi_reset(bank);
 	if (retval != ERROR_OK)
@@ -2451,7 +2483,11 @@ static int cfi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t of
 
 		/* replace only bytes that must be written */
 		for (i = 0; (i < bank->bus_width) && (count > 0); i++, count--)
-			current_word[i] = *buffer++;
+			if (cfi_info->data_swap)
+				/* data bytes are swapped (reverse endianness) */
+				current_word[bank->bus_width - i] = *buffer++;
+			else
+				current_word[i] = *buffer++;
 
 		retval = cfi_write_word(bank, current_word, write_p);
 		if (retval != ERROR_OK)
