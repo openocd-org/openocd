@@ -628,16 +628,8 @@ int xmc4xxx_blank_check_memory(struct target *target,
 	struct armv7m_algorithm armv7m_info;
 	int retval;
 
-	/* see contrib/loaders/erase_check/armv7m_0_erase_check.s for src */
-
 	static const uint8_t erase_check_code[] = {
-		/* loop: */
-		0x03, 0x78,		/* ldrb	r3, [r0] */
-		0x01, 0x30,		/* adds	r0, #1 */
-		0x1A, 0x43,		/* orrs	r2, r2, r3 */
-		0x01, 0x39,		/* subs	r1, r1, #1 */
-		0xFA, 0xD1,		/* bne	loop */
-		0x00, 0xBE		/* bkpt	#0 */
+#include "../../../contrib/loaders/erase_check/armv7m_0_erase_check.inc"
 	};
 
 	/* make sure we have a working area */
