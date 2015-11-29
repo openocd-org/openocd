@@ -181,6 +181,7 @@
 
 /* Flash controller configuration values */
 #define FLASH_ID_XMC4500        0xA2
+#define FLASH_ID_XMC4800        0x92
 #define FLASH_ID_XMC4100_4200   0x9C
 #define FLASH_ID_XMC4400        0x9F
 
@@ -251,6 +252,10 @@ static const unsigned int sector_capacity_12[12] = {
 	16, 16, 16, 16, 16, 16, 16, 16, 128, 256, 256, 256
 };
 
+static const unsigned int sector_capacity_16[16] = {
+	16, 16, 16, 16, 16, 16, 16, 16, 128, 256, 256, 256, 256, 256, 256, 256
+};
+
 static int xmc4xxx_write_command_sequence(struct flash_bank *bank,
 					 struct xmc4xxx_command_seq *seq,
 					 int seq_len)
@@ -284,6 +289,9 @@ static int xmc4xxx_load_bank_layout(struct flash_bank *bank)
 		break;
 	case 12:
 		capacity = sector_capacity_12;
+		break;
+	case 16:
+		capacity = sector_capacity_16;
 		break;
 	default:
 		LOG_ERROR("Unexpected number of sectors, %d\n",
@@ -372,6 +380,10 @@ static int xmc4xxx_probe(struct flash_bank *bank)
 	case FLASH_ID_XMC4500:
 		bank->num_sectors = 12;
 		LOG_DEBUG("XMC4xxx: XMC4500 detected.");
+		break;
+	case FLASH_ID_XMC4800:
+		bank->num_sectors = 16;
+		LOG_DEBUG("XMC4xxx: XMC4800 detected.");
 		break;
 	default:
 		LOG_ERROR("XMC4xxx: Unexpected flash ID. got %02" PRIx8,
@@ -968,6 +980,15 @@ static int xmc4xxx_get_info_command(struct flash_bank *bank, char *buf, int buf_
 			break;
 		case 0x4:
 			rev_str = "AC";
+			break;
+		}
+		break;
+	case 0x800:
+		dev_str = "XMC4800";
+
+		switch (rev_id) {
+		case 0x1:
+			rev_str = "EES-AA";
 			break;
 		}
 		break;
