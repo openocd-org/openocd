@@ -239,15 +239,15 @@ struct xmc4xxx_command_seq {
 };
 
 /* Sector capacities.  See section 8 of xmc4x00_rm */
-static unsigned int sector_capacity_8[] = {
+static const unsigned int sector_capacity_8[8] = {
 	16, 16, 16, 16, 16, 16, 16, 128
 };
 
-static unsigned int sector_capacity_9[] = {
+static const unsigned int sector_capacity_9[9] = {
 	16, 16, 16, 16, 16, 16, 16, 128, 256
 };
 
-static unsigned int sector_capacity_12[] = {
+static const unsigned int sector_capacity_12[12] = {
 	16, 16, 16, 16, 16, 16, 16, 16, 128, 256, 256, 256
 };
 
@@ -269,7 +269,7 @@ static int xmc4xxx_write_command_sequence(struct flash_bank *bank,
 
 static int xmc4xxx_load_bank_layout(struct flash_bank *bank)
 {
-	unsigned int *capacity = NULL;
+	const unsigned int *capacity = NULL;
 
 	/* At this point, we know which flash controller ID we're
 	 * talking to and simply need to fill out the bank structure accordingly */
