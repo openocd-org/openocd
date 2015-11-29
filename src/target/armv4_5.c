@@ -1523,30 +1523,24 @@ int arm_blank_check_memory(struct target *target,
 	uint32_t i;
 	uint32_t exit_var = 0;
 
-	/* see contrib/loaders/erase_check/armv4_5_erase_check.s for src */
-
-	static const uint32_t check_code[] = {
-		/* loop: */
-		0xe4d03001,		/* ldrb r3, [r0], #1 */
-		0xe0022003,		/* and r2, r2, r3    */
-		0xe2511001,		/* subs r1, r1, #1   */
-		0x1afffffb,		/* bne loop          */
-		/* end: */
-		0xe1200070,		/* bkpt #0 */
+	static const uint8_t check_code_le[] = {
+#include "../../contrib/loaders/erase_check/armv4_5_erase_check.inc"
 	};
+
+	assert(sizeof(check_code_le) % 4 == 0);
 
 	/* make sure we have a working area */
 	retval = target_alloc_working_area(target,
-			sizeof(check_code), &check_algorithm);
+			sizeof(check_code_le), &check_algorithm);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* convert code into a buffer in target endianness */
-	for (i = 0; i < ARRAY_SIZE(check_code); i++) {
+	for (i = 0; i < ARRAY_SIZE(check_code_le) / 4; i++) {
 		retval = target_write_u32(target,
 				check_algorithm->address
 				+ i * sizeof(uint32_t),
-				check_code[i]);
+				le_to_h_u32(&check_code_le[i * 4]));
 		if (retval != ERROR_OK)
 			goto cleanup;
 	}
@@ -1566,7 +1560,7 @@ int arm_blank_check_memory(struct target *target,
 
 	/* armv4 must exit using a hardware breakpoint */
 	if (arm->is_armv4)
-		exit_var = check_algorithm->address + sizeof(check_code) - 4;
+		exit_var = check_algorithm->address + sizeof(check_code_le) - 4;
 
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			check_algorithm->address,

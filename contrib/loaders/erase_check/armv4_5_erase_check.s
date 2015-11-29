@@ -36,6 +36,4 @@ loop:
 end:
 	bkpt	#0
 
-CRC32XOR:	.word	0x04c11db7
-
 	.end
