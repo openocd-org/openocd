@@ -51,8 +51,8 @@
  * r4 = flash base
  *
  * Clobbered:
+ * r5 - rp
  * r6 - temp
- * r7 - rp
  * r8 - wp, tmp
  */
 
@@ -63,18 +63,18 @@ wait_fifo:
 	ldr 	r8, [r0, #0]	/* read wp */
 	cmp 	r8, #0		/* abort if wp == 0 */
 	beq 	exit
-	ldr 	r7, [r0, #4]	/* read rp */
-	subs	r6, r8, r7	/* number of bytes available for read in r6*/
+	ldr 	r5, [r0, #4]	/* read rp */
+	subs	r6, r8, r5	/* number of bytes available for read in r6*/
 	cmp 	r6, #7		/* wait until 8 bytes are available */
 	bcc 	wait_fifo
 
 	ldr	r6, STM32_PROG
 	str	r6, [r4, #STM32_FLASH_CR_OFFSET]
-	ldr 	r6, [r7], #0x04	/* read one word from src, increment ptr */
+	ldr 	r6, [r5], #0x04	/* read one word from src, increment ptr */
 	str 	r6, [r2], #0x04	/* write one word to dst, increment ptr */
-	ldr 	r6, [r7], #0x04	/* read one word from src, increment ptr */
+	ldr 	r6, [r5], #0x04	/* read one word from src, increment ptr */
 	str 	r6, [r2], #0x04	/* write one word to dst, increment ptr */
-        dsb
+	dsb
 busy:
 	ldr 	r6, [r4, #STM32_FLASH_SR_OFFSET]
 	tst 	r6, #0x10000	/* BSY (bit16) == 1 => operation in progress */
@@ -82,10 +82,10 @@ busy:
 	tst	r6, #0xfa	/* PGSERR | PGPERR | PGAERR | WRPERR | PROGERR*/
 	bne	error		/* fail... */
 
-	cmp 	r7, r1		/* wrap rp at end of buffer */
+	cmp 	r5, r1		/* wrap rp at end of buffer */
 	it  	cs
-	addcs	r7, r0, #8	/* skip loader args */
-	str 	r7, [r0, #4]	/* store rp */
+	addcs	r5, r0, #8	/* skip loader args */
+	str 	r5, [r0, #4]	/* store rp */
 	subs	r3, r3, #1	/* decrement dword count */
 	cbz 	r3, exit	/* loop if not done */
 	b	wait_fifo
