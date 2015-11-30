@@ -51,9 +51,9 @@
  * r4 = flash base
  *
  * Clobbered:
- * r5 - rp
- * r6 - temp
- * r8 - wp, tmp
+ * r5   - rp
+ * r6/7 - temp (64-bit)
+ * r8   - wp, tmp
  */
 
 #define STM32_FLASH_CR_OFFSET	0x14	/* offset of CR register in FLASH struct */
@@ -70,10 +70,8 @@ wait_fifo:
 
 	ldr	r6, STM32_PROG
 	str	r6, [r4, #STM32_FLASH_CR_OFFSET]
-	ldr 	r6, [r5], #0x04	/* read one word from src, increment ptr */
-	str 	r6, [r2], #0x04	/* write one word to dst, increment ptr */
-	ldr 	r6, [r5], #0x04	/* read one word from src, increment ptr */
-	str 	r6, [r2], #0x04	/* write one word to dst, increment ptr */
+	ldrd 	r6, [r5], #0x08	/* read one word from src, increment ptr */
+	strd 	r6, [r2], #0x08	/* write one word to dst, increment ptr */
 	dsb
 busy:
 	ldr 	r6, [r4, #STM32_FLASH_SR_OFFSET]
