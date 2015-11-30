@@ -65,7 +65,10 @@ wait_fifo:
 	beq 	exit
 	ldr 	r5, [r0, #4]	/* read rp */
 	subs	r6, r8, r5	/* number of bytes available for read in r6*/
-	cmp 	r6, #7		/* wait until 8 bytes are available */
+	itt 	mi              /* if wrapped around*/
+	addmi	r6, r1          /* add size of buffer */
+	submi	r6, r0
+	cmp 	r6, #8		/* wait until 8 bytes are available */
 	bcc 	wait_fifo
 
 	ldr	r6, STM32_PROG
