@@ -422,16 +422,6 @@ void dap_ap_select(struct adiv5_dap *dap, uint8_t ap);
 int dap_setup_accessport(struct adiv5_dap *swjdp,
 		uint32_t csw, uint32_t tar);
 
-/* Queued MEM-AP memory mapped single word transfers */
-int mem_ap_read_u32(struct adiv5_dap *swjdp, uint32_t address, uint32_t *value);
-int mem_ap_write_u32(struct adiv5_dap *swjdp, uint32_t address, uint32_t value);
-
-/* Synchronous MEM-AP memory mapped single word transfers */
-int mem_ap_read_atomic_u32(struct adiv5_dap *swjdp,
-		uint32_t address, uint32_t *value);
-int mem_ap_write_atomic_u32(struct adiv5_dap *swjdp,
-		uint32_t address, uint32_t value);
-
 /* Queued MEM-AP memory mapped single word transfers with selection of ap */
 int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t *value);
@@ -443,12 +433,6 @@ int mem_ap_sel_read_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t *value);
 int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
 		uint32_t address, uint32_t value);
-
-/* Synchronous MEM-AP memory mapped bus block transfers */
-int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size,
-		uint32_t count, uint32_t address, bool addrinc);
-int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size,
-		uint32_t count, uint32_t address, bool addrinc);
 
 /* Synchronous MEM-AP memory mapped bus block transfers with selection of ap */
 int mem_ap_sel_read_buf(struct adiv5_dap *swjdp, uint8_t ap,
@@ -464,7 +448,7 @@ int mem_ap_sel_write_buf_noincr(struct adiv5_dap *swjdp, uint8_t ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
 
 /* Initialisation of the debug system, power domains and registers */
-int ahbap_debugport_init(struct adiv5_dap *swjdp);
+int ahbap_debugport_init(struct adiv5_dap *swjdp, uint8_t apsel);
 
 /* Probe the AP for ROM Table location */
 int dap_get_debugbase(struct adiv5_dap *dap, int ap,

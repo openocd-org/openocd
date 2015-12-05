@@ -187,7 +187,7 @@ int dap_setup_accessport(struct adiv5_dap *dap, uint32_t csw, uint32_t tar)
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-int mem_ap_read_u32(struct adiv5_dap *dap, uint32_t address,
+static int mem_ap_read_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t *value)
 {
 	int retval;
@@ -215,7 +215,7 @@ int mem_ap_read_u32(struct adiv5_dap *dap, uint32_t address,
  * @return ERROR_OK for success; *value holds the result.
  * Otherwise a fault code.
  */
-int mem_ap_read_atomic_u32(struct adiv5_dap *dap, uint32_t address,
+static int mem_ap_read_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t *value)
 {
 	int retval;
@@ -238,7 +238,7 @@ int mem_ap_read_atomic_u32(struct adiv5_dap *dap, uint32_t address,
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-int mem_ap_write_u32(struct adiv5_dap *dap, uint32_t address,
+static int mem_ap_write_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t value)
 {
 	int retval;
@@ -266,7 +266,7 @@ int mem_ap_write_u32(struct adiv5_dap *dap, uint32_t address,
  *
  * @return ERROR_OK for success; the data was written.  Otherwise a fault code.
  */
-int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
+static int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
 		uint32_t value)
 {
 	int retval = mem_ap_write_u32(dap, address, value);
@@ -289,7 +289,7 @@ int mem_ap_write_atomic_u32(struct adiv5_dap *dap, uint32_t address,
  *  should normally be true, except when writing to e.g. a FIFO.
  * @return ERROR_OK on success, otherwise an error code.
  */
-int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, uint32_t count,
+static int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, uint32_t count,
 		uint32_t address, bool addrinc)
 {
 	size_t nbytes = size * count;
@@ -419,7 +419,7 @@ int mem_ap_write(struct adiv5_dap *dap, const uint8_t *buffer, uint32_t size, ui
  *  should normally be true, except when reading from e.g. a FIFO.
  * @return ERROR_OK on success, otherwise an error code.
  */
-int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t count,
+static int mem_ap_read(struct adiv5_dap *dap, uint8_t *buffer, uint32_t size, uint32_t count,
 		uint32_t adr, bool addrinc)
 {
 	size_t nbytes = size * count;
@@ -640,7 +640,7 @@ extern const struct dap_ops jtag_dp_ops;
  * in layering.  (JTAG is useful without any debug target; but not SWD.)
  * And this may not even use an AHB-AP ... e.g. DAP-Lite uses an APB-AP.
  */
-int ahbap_debugport_init(struct adiv5_dap *dap)
+int ahbap_debugport_init(struct adiv5_dap *dap, uint8_t apsel)
 {
 	/* check that we support packed transfers */
 	uint32_t csw, cfg;
@@ -661,8 +661,8 @@ int ahbap_debugport_init(struct adiv5_dap *dap)
 	 * Should we probe, or take a hint from the caller?
 	 * Presumably we can ignore the possibility of multiple APs.
 	 */
-	dap->ap_current = !0;
-	dap_ap_select(dap, 0);
+	dap->ap_current = -1;
+	dap_ap_select(dap, apsel);
 	dap->last_read = NULL;
 
 	for (size_t i = 0; i < 10; i++) {

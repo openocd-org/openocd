@@ -2938,7 +2938,7 @@ static int cortex_a_examine_first(struct target *target)
 	/* We do one extra read to ensure DAP is configured,
 	 * we call ahbap_debugport_init(swjdp) instead
 	 */
-	retval = ahbap_debugport_init(swjdp);
+	retval = ahbap_debugport_init(swjdp, 0);
 	if (retval != ERROR_OK)
 		return retval;
 

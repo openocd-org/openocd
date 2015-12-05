@@ -660,14 +660,14 @@ COMMAND_HANDLER(sam4l_handle_reset_deassert)
 	 * After vectreset SMAP release is not needed however makes no harm
 	 */
 	if (target->reset_halt && (jtag_reset_config & RESET_HAS_SRST)) {
-		retval = mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
+		retval = mem_ap_sel_write_u32(swjdp, armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
 		if (retval == ERROR_OK)
-			retval = mem_ap_write_atomic_u32(swjdp, DCB_DEMCR,
+			retval = mem_ap_sel_write_atomic_u32(swjdp, armv7m->debug_ap, DCB_DEMCR,
 				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 		/* do not return on error here, releasing SMAP reset is more important */
 	}
 
-	int retval2 = mem_ap_write_atomic_u32(swjdp, SMAP_SCR, SMAP_SCR_HCR);
+	int retval2 = mem_ap_sel_write_atomic_u32(swjdp, armv7m->debug_ap, SMAP_SCR, SMAP_SCR_HCR);
 	if (retval2 != ERROR_OK)
 		return retval2;
 
