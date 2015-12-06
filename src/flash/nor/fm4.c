@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2015 Andreas Färber
  *
+ * Based on S6E2DH_MN709-00013 for S6E2DH/DF/D5/D3 series
  * Based on S6E2CC_MN709-00007 for S6E2CC/C5/C4/C3/C2/C1 series
  * Based on MB9B560R_MN709-00005 for MB9BFx66/x67/x68 series
  * Based on MB9B560L_MN709-00006 for MB9BFx64/x65/x66 series
@@ -36,6 +37,8 @@ enum fm4_variant {
 	s6e2cx8,
 	s6e2cx9,
 	s6e2cxa,
+
+	s6e2dx,
 };
 
 struct fm4_flash_bank {
@@ -458,6 +461,32 @@ static int s6e2cc_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
+static int s6e2dh_probe(struct flash_bank *bank)
+{
+	uint32_t flash_addr = bank->base;
+	int i;
+
+	bank->num_sectors = 10;
+	bank->sectors = calloc(bank->num_sectors,
+				sizeof(struct flash_sector));
+	for (i = 0; i < bank->num_sectors; i++) {
+		if (i < 4)
+			bank->sectors[i].size = 8 * 1024;
+		else if (i == 4)
+			bank->sectors[i].size = 32 * 1024;
+		else
+			bank->sectors[i].size = 64 * 1024;
+		bank->sectors[i].offset = flash_addr - bank->base;
+		bank->sectors[i].is_erased = -1;
+		bank->sectors[i].is_protected = -1;
+
+		bank->size += bank->sectors[i].size;
+		flash_addr += bank->sectors[i].size;
+	}
+
+	return ERROR_OK;
+}
+
 static int fm4_probe(struct flash_bank *bank)
 {
 	struct fm4_flash_bank *fm4_bank = bank->driver_priv;
@@ -483,6 +512,9 @@ static int fm4_probe(struct flash_bank *bank)
 	case s6e2cx9:
 	case s6e2cxa:
 		retval = s6e2cc_probe(bank);
+		break;
+	case s6e2dx:
+		retval = s6e2dh_probe(bank);
 		break;
 	default:
 		return ERROR_FLASH_OPER_UNSUPPORTED;
@@ -544,6 +576,9 @@ static int fm4_get_info_command(struct flash_bank *bank, char *buf, int buf_size
 		break;
 	case s6e2cxa:
 		name = "S6E2CxA";
+		break;
+	case s6e2dx:
+		name = "S6E2Dx";
 		break;
 	default:
 		name = "unknown";
@@ -645,7 +680,10 @@ FLASH_BANK_COMMAND_HANDLER(fm4_flash_bank_command)
 		ret = mb9bf_bank_setup(bank, variant);
 	else if (fm4_name_match(variant, "S6E2Cx"))
 		ret = s6e2cc_bank_setup(bank, variant);
-	else {
+	else if (fm4_name_match(variant, "S6E2Dx")) {
+		fm4_bank->variant = s6e2dx;
+		ret = ERROR_OK;
+	} else {
 		LOG_WARNING("Family %s not recognized.", variant);
 		ret = ERROR_FLASH_OPER_UNSUPPORTED;
 	}
