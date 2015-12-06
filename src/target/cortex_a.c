@@ -2935,19 +2935,20 @@ static int cortex_a_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t didr, ctypr, ttypr, cpuid, dbg_osreg;
 
-	/* We do one extra read to ensure DAP is configured,
-	 * we call ahbap_debugport_init(swjdp) instead
-	 */
-	retval = ahbap_debugport_init(swjdp, 0);
-	if (retval != ERROR_OK)
-		return retval;
-
 	/* Search for the APB-AB - it is needed for access to debug registers */
 	retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Could not find APB-AP for debug access");
 		return retval;
 	}
+
+	/* We do one extra read to ensure DAP is configured,
+	 * we call ahbap_debugport_init(swjdp) instead
+	 */
+	retval = ahbap_debugport_init(swjdp, armv7a->debug_ap);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Search for the AHB-AB */
 	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7a->memory_ap);
 	if (retval != ERROR_OK) {
