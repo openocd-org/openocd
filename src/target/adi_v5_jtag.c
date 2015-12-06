@@ -274,21 +274,6 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 			LOG_ERROR("Debug regions are unpowered, an unexpected reset might have happened");
 			return ERROR_JTAG_DEVICE_ERROR;
 		} else {
-			uint32_t mem_ap_csw, mem_ap_tar;
-
-			/* Maybe print information about last intended
-			 * MEM-AP access; but not if autoincrementing.
-			 * *Real* CSW and TAR values are always shown.
-			 */
-			if (dap->ap[dap_ap_get_select(dap)].tar_value != (uint32_t) -1)
-				LOG_DEBUG("MEM-AP Cached values: "
-					"ap_bank 0x%" PRIx32
-					", ap_csw 0x%" PRIx32
-					", ap_tar 0x%" PRIx32,
-					dap->ap_bank_value,
-					dap->ap[dap_ap_get_select(dap)].csw_value,
-					dap->ap[dap_ap_get_select(dap)].tar_value);
-
 			if (ctrlstat & SSTICKYORUN)
 				LOG_ERROR("JTAG-DP OVERRUN - check clock, "
 					"memaccess, or reduce jtag speed");
@@ -312,23 +297,6 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 				return retval;
 
 			LOG_DEBUG("jtag-dp: CTRL/STAT 0x%" PRIx32, ctrlstat);
-
-			retval = dap_queue_ap_read(dap,
-					MEM_AP_REG_CSW, &mem_ap_csw);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = dap_queue_ap_read(dap,
-					MEM_AP_REG_TAR, &mem_ap_tar);
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = jtag_execute_queue();
-			if (retval != ERROR_OK)
-				return retval;
-			LOG_ERROR("MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%"
-					PRIx32, mem_ap_csw, mem_ap_tar);
-
 		}
 		retval = jtag_execute_queue();
 		if (retval != ERROR_OK)
