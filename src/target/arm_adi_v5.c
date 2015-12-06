@@ -123,7 +123,7 @@ static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 
 	if (csw != ap->csw_value) {
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
-		int retval = dap_queue_ap_write(ap->dap, MEM_AP_REG_CSW, csw);
+		int retval = dap_queue_ap_write(ap, MEM_AP_REG_CSW, csw);
 		if (retval != ERROR_OK)
 			return retval;
 		ap->csw_value = csw;
@@ -136,7 +136,7 @@ static int mem_ap_setup_tar(struct adiv5_ap *ap, uint32_t tar)
 	if (tar != ap->tar_value ||
 			(ap->csw_value & CSW_ADDRINC_MASK)) {
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
-		int retval = dap_queue_ap_write(ap->dap, MEM_AP_REG_TAR, tar);
+		int retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR, tar);
 		if (retval != ERROR_OK)
 			return retval;
 		ap->tar_value = tar;
@@ -189,8 +189,6 @@ int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
 {
 	int retval;
 
-	dap_ap_select(ap->dap, ap->ap_num);
-
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
 	 */
@@ -199,7 +197,7 @@ int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_queue_ap_read(ap->dap, MEM_AP_REG_BD0 | (address & 0xC), value);
+	return dap_queue_ap_read(ap, MEM_AP_REG_BD0 | (address & 0xC), value);
 }
 
 /**
@@ -242,8 +240,6 @@ int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
 {
 	int retval;
 
-	dap_ap_select(ap->dap, ap->ap_num);
-
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
@@ -252,7 +248,7 @@ int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_queue_ap_write(ap->dap, MEM_AP_REG_BD0 | (address & 0xC),
+	return dap_queue_ap_write(ap, MEM_AP_REG_BD0 | (address & 0xC),
 			value);
 }
 
@@ -329,8 +325,6 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 	if (ap->unaligned_access_bad && (address % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	dap_ap_select(ap->dap, ap->ap_num);
-
 	retval = mem_ap_setup_tar(ap, address ^ addr_xor);
 	if (retval != ERROR_OK)
 		return retval;
@@ -383,7 +377,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 		nbytes -= this_size;
 
-		retval = dap_queue_ap_write(dap, MEM_AP_REG_DRW, outvalue);
+		retval = dap_queue_ap_write(ap, MEM_AP_REG_DRW, outvalue);
 		if (retval != ERROR_OK)
 			break;
 
@@ -401,7 +395,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 	if (retval != ERROR_OK) {
 		uint32_t tar;
-		if (dap_queue_ap_read(dap, MEM_AP_REG_TAR, &tar) == ERROR_OK
+		if (dap_queue_ap_read(ap, MEM_AP_REG_TAR, &tar) == ERROR_OK
 				&& dap_run(dap) == ERROR_OK)
 			LOG_ERROR("Failed to write memory at 0x%08"PRIx32, tar);
 		else
@@ -462,8 +456,6 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		return ERROR_FAIL;
 	}
 
-	dap_ap_select(ap->dap, ap->ap_num);
-
 	retval = mem_ap_setup_tar(ap, address);
 	if (retval != ERROR_OK) {
 		free(read_buf);
@@ -487,7 +479,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		if (retval != ERROR_OK)
 			break;
 
-		retval = dap_queue_ap_read(dap, MEM_AP_REG_DRW, read_ptr++);
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_DRW, read_ptr++);
 		if (retval != ERROR_OK)
 			break;
 
@@ -514,7 +506,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 	 * at least give the caller what we have. */
 	if (retval != ERROR_OK) {
 		uint32_t tar;
-		if (dap_queue_ap_read(dap, MEM_AP_REG_TAR, &tar) == ERROR_OK
+		if (dap_queue_ap_read(ap, MEM_AP_REG_TAR, &tar) == ERROR_OK
 				&& dap_run(dap) == ERROR_OK) {
 			LOG_ERROR("Failed to read memory at 0x%08"PRIx32, tar);
 			if (nbytes > tar - address)
@@ -719,17 +711,15 @@ int mem_ap_init(struct adiv5_ap *ap)
 	int retval;
 	struct adiv5_dap *dap = ap->dap;
 
-	dap_ap_select(dap, ap->ap_num);
-
 	retval = mem_ap_setup_transfer(ap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_queue_ap_read(dap, MEM_AP_REG_CSW, &csw);
+	retval = dap_queue_ap_read(ap, MEM_AP_REG_CSW, &csw);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_queue_ap_read(dap, MEM_AP_REG_CFG, &cfg);
+	retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG, &cfg);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -793,9 +783,8 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 
 		/* read the IDR register of the Access Port */
 		uint32_t id_val = 0;
-		dap_ap_select(dap, ap_num);
 
-		int retval = dap_queue_ap_read(dap, AP_REG_IDR, &id_val);
+		int retval = dap_queue_ap_read(dap_ap(dap, ap_num), AP_REG_IDR, &id_val);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -844,12 +833,10 @@ int dap_get_debugbase(struct adiv5_ap *ap,
 	struct adiv5_dap *dap = ap->dap;
 	int retval;
 
-	dap_ap_select(dap, ap->ap_num);
-
-	retval = dap_queue_ap_read(dap, MEM_AP_REG_BASE, dbgbase);
+	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, dbgbase);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = dap_queue_ap_read(dap, AP_REG_IDR, apid);
+	retval = dap_queue_ap_read(ap, AP_REG_IDR, apid);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);
@@ -1485,14 +1472,12 @@ COMMAND_HANDLER(dap_baseaddr_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	dap_ap_select(dap, apsel);
-
 	/* NOTE:  assumes we're talking to a MEM-AP, which
 	 * has a base address.  There are other kinds of AP,
 	 * though they're not common for now.  This should
 	 * use the ID register to verify it's a MEM-AP.
 	 */
-	retval = dap_queue_ap_read(dap, MEM_AP_REG_BASE, &baseaddr);
+	retval = dap_queue_ap_read(dap_ap(dap, apsel), MEM_AP_REG_BASE, &baseaddr);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);
@@ -1554,9 +1539,8 @@ COMMAND_HANDLER(dap_apsel_command)
 	}
 
 	dap->apsel = apsel;
-	dap_ap_select(dap, apsel);
 
-	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	retval = dap_queue_ap_read(dap_ap(dap, apsel), AP_REG_IDR, &apid);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);
@@ -1625,9 +1609,7 @@ COMMAND_HANDLER(dap_apid_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	dap_ap_select(dap, apsel);
-
-	retval = dap_queue_ap_read(dap, AP_REG_IDR, &apid);
+	retval = dap_queue_ap_read(dap_ap(dap, apsel), AP_REG_IDR, &apid);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);

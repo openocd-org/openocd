@@ -245,9 +245,7 @@ static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint3
 	int retval;
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
 
-	dap_ap_select(dap, 1);
-
-	retval = dap_queue_ap_write(dap, reg, value);
+	retval = dap_queue_ap_write(dap_ap(dap, 1), reg, value);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a write request");
 		return retval;
@@ -267,9 +265,7 @@ static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32
 {
 	int retval;
 
-	dap_ap_select(dap, 1);
-
-	retval = dap_queue_ap_read(dap, reg, result);
+	retval = dap_queue_ap_read(dap_ap(dap, 1), reg, result);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a read request");
 		return retval;

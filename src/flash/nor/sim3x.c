@@ -893,9 +893,7 @@ static int ap_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value
 	int retval;
 	LOG_DEBUG("DAP_REG[0x%02x] <- %08" PRIX32, reg, value);
 
-	dap_ap_select(dap, SIM3X_AP);
-
-	retval = dap_queue_ap_write(dap, reg, value);
+	retval = dap_queue_ap_write(dap_ap(dap, SIM3X_AP), reg, value);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("DAP: failed to queue a write request");
 		return retval;
@@ -914,9 +912,7 @@ static int ap_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *resul
 {
 	int retval;
 
-	dap_ap_select(dap, SIM3X_AP);
-
-	retval = dap_queue_ap_read(dap, reg, result);
+	retval = dap_queue_ap_read(dap_ap(dap, SIM3X_AP), reg, result);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("DAP: failed to queue a read request");
 		return retval;

@@ -302,6 +302,9 @@ enum ap_type {
 	AP_TYPE_AXI_AP  = 0x4,  /* AXI Memory-AP */
 };
 
+/* AP selection applies to future AP transactions */
+void dap_ap_select(struct adiv5_dap *dap, uint8_t ap);
+
 /**
  * Queue a DP register read.
  * Note that not all DP registers are readable; also, that JTAG and SWD
@@ -342,34 +345,36 @@ static inline int dap_queue_dp_write(struct adiv5_dap *dap,
 /**
  * Queue an AP register read.
  *
- * @param dap The DAP used for reading.
+ * @param ap The AP used for reading.
  * @param reg The number of the AP register being read.
  * @param data Pointer saying where to store the register's value
  * (in host endianness).
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_ap_read(struct adiv5_dap *dap,
+static inline int dap_queue_ap_read(struct adiv5_ap *ap,
 		unsigned reg, uint32_t *data)
 {
-	assert(dap->ops != NULL);
-	return dap->ops->queue_ap_read(dap, reg, data);
+	assert(ap->dap->ops != NULL);
+	dap_ap_select(ap->dap, ap->ap_num);
+	return ap->dap->ops->queue_ap_read(ap->dap, reg, data);
 }
 
 /**
  * Queue an AP register write.
  *
- * @param dap The DAP used for writing.
+ * @param ap The AP used for writing.
  * @param reg The number of the AP register being written.
  * @param data Value being written (host endianness)
  *
  * @return ERROR_OK for success, else a fault code.
  */
-static inline int dap_queue_ap_write(struct adiv5_dap *dap,
+static inline int dap_queue_ap_write(struct adiv5_ap *ap,
 		unsigned reg, uint32_t data)
 {
-	assert(dap->ops != NULL);
-	return dap->ops->queue_ap_write(dap, reg, data);
+	assert(ap->dap->ops != NULL);
+	dap_ap_select(ap->dap, ap->ap_num);
+	return ap->dap->ops->queue_ap_write(ap->dap, reg, data);
 }
 
 /**
@@ -452,9 +457,6 @@ static inline uint8_t dap_ap_get_select(struct adiv5_dap *swjdp)
 	return (uint8_t)(swjdp->ap_current >> 24);
 }
 
-/* AP selection applies to future AP transactions */
-void dap_ap_select(struct adiv5_dap *dap, uint8_t ap);
-
 /* Queued MEM-AP memory mapped single word transfers. */
 int mem_ap_read_u32(struct adiv5_ap *ap,
 		uint32_t address, uint32_t *value);
@@ -494,6 +496,11 @@ int dap_get_debugbase(struct adiv5_ap *ap,
 int dap_find_ap(struct adiv5_dap *dap,
 			enum ap_type type_to_find,
 			struct adiv5_ap **ap_out);
+
+static inline struct adiv5_ap *dap_ap(struct adiv5_dap *dap, uint8_t ap_num)
+{
+	return &dap->ap[ap_num];
+}
 
 /* Lookup CoreSight component */
 int dap_lookup_cs_component(struct adiv5_ap *ap,
