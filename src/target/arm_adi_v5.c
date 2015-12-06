@@ -1541,7 +1541,7 @@ COMMAND_HANDLER(dap_apsel_command)
 
 	switch (CMD_ARGC) {
 	case 0:
-		apsel = 0;
+		apsel = dap->apsel;
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
