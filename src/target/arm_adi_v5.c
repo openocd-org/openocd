@@ -116,30 +116,30 @@ void dap_ap_select(struct adiv5_dap *dap, uint8_t ap)
 	}
 }
 
-static int dap_setup_accessport_csw(struct adiv5_dap *dap, uint32_t csw)
+static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 {
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
-		dap->ap[dap_ap_get_select(dap)].csw_default;
+		ap->csw_default;
 
-	if (csw != dap->ap[dap_ap_get_select(dap)].csw_value) {
+	if (csw != ap->csw_value) {
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
-		int retval = dap_queue_ap_write(dap, MEM_AP_REG_CSW, csw);
+		int retval = dap_queue_ap_write(ap->dap, MEM_AP_REG_CSW, csw);
 		if (retval != ERROR_OK)
 			return retval;
-		dap->ap[dap_ap_get_select(dap)].csw_value = csw;
+		ap->csw_value = csw;
 	}
 	return ERROR_OK;
 }
 
-static int dap_setup_accessport_tar(struct adiv5_dap *dap, uint32_t tar)
+static int mem_ap_setup_tar(struct adiv5_ap *ap, uint32_t tar)
 {
-	if (tar != dap->ap[dap_ap_get_select(dap)].tar_value ||
-			(dap->ap[dap_ap_get_select(dap)].csw_value & CSW_ADDRINC_MASK)) {
+	if (tar != ap->tar_value ||
+			(ap->csw_value & CSW_ADDRINC_MASK)) {
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
-		int retval = dap_queue_ap_write(dap, MEM_AP_REG_TAR, tar);
+		int retval = dap_queue_ap_write(ap->dap, MEM_AP_REG_TAR, tar);
 		if (retval != ERROR_OK)
 			return retval;
-		dap->ap[dap_ap_get_select(dap)].tar_value = tar;
+		ap->tar_value = tar;
 	}
 	return ERROR_OK;
 }
@@ -153,9 +153,7 @@ static int dap_setup_accessport_tar(struct adiv5_dap *dap, uint32_t tar)
  * If the CSW is configured for it, the TAR may be automatically
  * incremented after each transfer.
  *
- * @todo Rename to reflect it being specifically a MEM-AP function.
- *
- * @param dap The DAP connected to the MEM-AP.
+ * @param ap The MEM-AP.
  * @param csw MEM-AP Control/Status Word (CSW) register to assign.  If this
  *	matches the cached value, the register is not changed.
  * @param tar MEM-AP Transfer Address Register (TAR) to assign.  If this
@@ -163,13 +161,13 @@ static int dap_setup_accessport_tar(struct adiv5_dap *dap, uint32_t tar)
  *
  * @return ERROR_OK if the transaction was properly queued, else a fault code.
  */
-int dap_setup_accessport(struct adiv5_dap *dap, uint32_t csw, uint32_t tar)
+static int mem_ap_setup_transfer(struct adiv5_ap *ap, uint32_t csw, uint32_t tar)
 {
 	int retval;
-	retval = dap_setup_accessport_csw(dap, csw);
+	retval = mem_ap_setup_csw(ap, csw);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = dap_setup_accessport_tar(dap, tar);
+	retval = mem_ap_setup_tar(ap, tar);
 	if (retval != ERROR_OK)
 		return retval;
 	return ERROR_OK;
@@ -194,7 +192,7 @@ static int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
 	 */
-	retval = dap_setup_accessport(ap->dap, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = mem_ap_setup_transfer(ap, CSW_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
@@ -245,7 +243,7 @@ static int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
-	retval = dap_setup_accessport(ap->dap, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = mem_ap_setup_transfer(ap, CSW_32BIT | CSW_ADDRINC_OFF,
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
@@ -327,7 +325,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 	if (ap->unaligned_access_bad && (address % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	retval = dap_setup_accessport_tar(dap, address ^ addr_xor);
+	retval = mem_ap_setup_tar(ap, address ^ addr_xor);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -338,9 +336,9 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 		if (addrinc && ap->packed_transfers && nbytes >= 4
 				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
-			retval = dap_setup_accessport_csw(dap, csw_size | CSW_ADDRINC_PACKED);
+			retval = mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
-			retval = dap_setup_accessport_csw(dap, csw_size | csw_addrincr);
+			retval = mem_ap_setup_csw(ap, csw_size | csw_addrincr);
 		}
 
 		if (retval != ERROR_OK)
@@ -385,7 +383,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 		/* Rewrite TAR if it wrapped or we're xoring addresses */
 		if (addrinc && (addr_xor || (address % ap->tar_autoincr_block < size && nbytes > 0))) {
-			retval = dap_setup_accessport_tar(dap, address ^ addr_xor);
+			retval = mem_ap_setup_tar(ap, address ^ addr_xor);
 			if (retval != ERROR_OK)
 				break;
 		}
@@ -458,7 +456,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		return ERROR_FAIL;
 	}
 
-	retval = dap_setup_accessport_tar(dap, address);
+	retval = mem_ap_setup_tar(ap, address);
 	if (retval != ERROR_OK) {
 		free(read_buf);
 		return retval;
@@ -474,9 +472,9 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		if (addrinc && ap->packed_transfers && nbytes >= 4
 				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
-			retval = dap_setup_accessport_csw(dap, csw_size | CSW_ADDRINC_PACKED);
+			retval = mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
-			retval = dap_setup_accessport_csw(dap, csw_size | csw_addrincr);
+			retval = mem_ap_setup_csw(ap, csw_size | csw_addrincr);
 		}
 		if (retval != ERROR_OK)
 			break;
@@ -490,7 +488,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 
 		/* Rewrite TAR if it wrapped */
 		if (addrinc && address % ap->tar_autoincr_block < size && nbytes > 0) {
-			retval = dap_setup_accessport_tar(dap, address);
+			retval = mem_ap_setup_tar(ap, address);
 			if (retval != ERROR_OK)
 				break;
 		}
@@ -750,7 +748,7 @@ int mem_ap_init(struct adiv5_ap *ap)
 
 	dap_ap_select(dap, ap->ap_num);
 
-	retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
+	retval = mem_ap_setup_transfer(ap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
 	if (retval != ERROR_OK)
 		return retval;
 

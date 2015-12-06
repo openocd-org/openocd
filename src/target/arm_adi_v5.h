@@ -455,10 +455,6 @@ static inline uint8_t dap_ap_get_select(struct adiv5_dap *swjdp)
 /* AP selection applies to future AP transactions */
 void dap_ap_select(struct adiv5_dap *dap, uint8_t ap);
 
-/* Queued AP transactions */
-int dap_setup_accessport(struct adiv5_dap *swjdp,
-		uint32_t csw, uint32_t tar);
-
 /* Queued MEM-AP memory mapped single word transfers with selection of ap */
 int mem_ap_sel_read_u32(struct adiv5_ap *ap,
 		uint32_t address, uint32_t *value);
