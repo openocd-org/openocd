@@ -5,6 +5,7 @@
  *
  * Based on S6E2CC_MN709-00007 for S6E2CC/C5/C4/C3/C2/C1 series
  * Based on MB9B560R_MN709-00005 for MB9BFx66/x67/x68 series
+ * Based on MB9B560L_MN709-00006 for MB9BFx64/x65/x66 series
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,6 +27,8 @@
 #define WDG_LCK (WDG_BASE + 0xC00)
 
 enum fm4_variant {
+	mb9bfx64,
+	mb9bfx65,
 	mb9bfx66,
 	mb9bfx67,
 	mb9bfx68,
@@ -342,6 +345,12 @@ static int mb9bf_probe(struct flash_bank *bank)
 	int i;
 
 	switch (fm4_bank->variant) {
+	case mb9bfx64:
+		bank->num_sectors = 8;
+		break;
+	case mb9bfx65:
+		bank->num_sectors = 10;
+		break;
 	case mb9bfx66:
 		bank->num_sectors = 12;
 		break;
@@ -463,6 +472,8 @@ static int fm4_probe(struct flash_bank *bank)
 	}
 
 	switch (fm4_bank->variant) {
+	case mb9bfx64:
+	case mb9bfx65:
 	case mb9bfx66:
 	case mb9bfx67:
 	case mb9bfx68:
@@ -510,6 +521,12 @@ static int fm4_get_info_command(struct flash_bank *bank, char *buf, int buf_size
 	}
 
 	switch (fm4_bank->variant) {
+	case mb9bfx64:
+		name = "MB9BFx64";
+		break;
+	case mb9bfx65:
+		name = "MB9BFx65";
+		break;
 	case mb9bfx66:
 		name = "MB9BFx66";
 		break;
@@ -568,7 +585,11 @@ static int mb9bf_bank_setup(struct flash_bank *bank, const char *variant)
 {
 	struct fm4_flash_bank *fm4_bank = bank->driver_priv;
 
-	if (fm4_name_match(variant, "MB9BFx66")) {
+	if (fm4_name_match(variant, "MB9BFx64")) {
+		fm4_bank->variant = mb9bfx64;
+	} else if (fm4_name_match(variant, "MB9BFx65")) {
+		fm4_bank->variant = mb9bfx65;
+	} else if (fm4_name_match(variant, "MB9BFx66")) {
 		fm4_bank->variant = mb9bfx66;
 	} else if (fm4_name_match(variant, "MB9BFx67")) {
 		fm4_bank->variant = mb9bfx67;
