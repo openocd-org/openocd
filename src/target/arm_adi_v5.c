@@ -825,9 +825,10 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, uint8_t *ap_nu
 		 * 31-28 : Revision
 		 * 27-24 : JEDEC bank (0x4 for ARM)
 		 * 23-17 : JEDEC code (0x3B for ARM)
-		 * 16    : Mem-AP
-		 * 15-8  : Reserved
-		 *  7-0  : AP Identity (1=AHB-AP 2=APB-AP 0x10=JTAG-AP)
+		 * 16-13 : Class (0b1000=Mem-AP)
+		 * 12-8  : Reserved
+		 *  7-4  : AP Variant (non-zero for JTAG-AP)
+		 *  3-0  : AP Type (0=JTAG-AP 1=AHB-AP 2=APB-AP 4=AXI-AP)
 		 */
 
 		/* Reading register for a non-existant AP should not cause an error,
@@ -835,11 +836,12 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, uint8_t *ap_nu
 		 */
 		if ((retval == ERROR_OK) &&                  /* Register read success */
 			((id_val & 0x0FFF0000) == 0x04770000) && /* Jedec codes match */
-			((id_val & 0xFF) == type_to_find)) {     /* type matches*/
+			((id_val & 0xF) == type_to_find)) {      /* type matches*/
 
 			LOG_DEBUG("Found %s at AP index: %d (IDR=0x%08" PRIX32 ")",
 						(type_to_find == AP_TYPE_AHB_AP)  ? "AHB-AP"  :
 						(type_to_find == AP_TYPE_APB_AP)  ? "APB-AP"  :
+						(type_to_find == AP_TYPE_AXI_AP)  ? "AXI-AP"  :
 						(type_to_find == AP_TYPE_JTAG_AP) ? "JTAG-AP" : "Unknown",
 						ap, id_val);
 
@@ -851,6 +853,7 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, uint8_t *ap_nu
 	LOG_DEBUG("No %s found",
 				(type_to_find == AP_TYPE_AHB_AP)  ? "AHB-AP"  :
 				(type_to_find == AP_TYPE_APB_AP)  ? "APB-AP"  :
+				(type_to_find == AP_TYPE_AXI_AP)  ? "AXI-AP"  :
 				(type_to_find == AP_TYPE_JTAG_AP) ? "JTAG-AP" : "Unknown");
 	return ERROR_FAIL;
 }

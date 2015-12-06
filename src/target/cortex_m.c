@@ -1903,6 +1903,13 @@ int cortex_m_examine(struct target *target)
 	struct adiv5_dap *swjdp = cortex_m->armv7m.arm.dap;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
+	/* Search for the MEM-AP */
+	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not find MEM-AP to control the core");
+		return retval;
+	}
+
 	/* Leave (only) generic DAP stuff for debugport_init(); */
 	swjdp->ap[armv7m->debug_ap].memaccess_tck = 8;
 

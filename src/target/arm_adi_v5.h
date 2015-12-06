@@ -279,9 +279,10 @@ struct dap_ops {
  * Access Port types
  */
 enum ap_type {
-	AP_TYPE_AHB_AP  = 0x01,  /* AHB Memory-AP */
-	AP_TYPE_APB_AP  = 0x02,  /* APB Memory-AP */
-	AP_TYPE_JTAG_AP = 0x10   /* JTAG-AP - JTAG master for controlling other JTAG devices */
+	AP_TYPE_JTAG_AP = 0x0,  /* JTAG-AP - JTAG master for controlling other JTAG devices */
+	AP_TYPE_AHB_AP  = 0x1,  /* AHB Memory-AP */
+	AP_TYPE_APB_AP  = 0x2,  /* APB Memory-AP */
+	AP_TYPE_AXI_AP  = 0x4,  /* AXI Memory-AP */
 };
 
 /**
