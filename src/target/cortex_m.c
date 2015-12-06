@@ -2122,9 +2122,6 @@ static int cortex_m_init_arch_info(struct target *target,
 
 	armv7m->arm.dap = tap->dap;
 
-	/* Leave (only) generic DAP stuff for debugport_init(); */
-	tap->dap->ap[dap_ap_get_select(tap->dap)].memaccess_tck = 8;
-
 	/* register arch-specific functions */
 	armv7m->examine_debug_reason = cortex_m_examine_debug_reason;
 

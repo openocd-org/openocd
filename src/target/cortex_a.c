@@ -2929,6 +2929,8 @@ static int cortex_a_examine_first(struct target *target)
 		return retval;
 	}
 
+	armv7a->debug_ap->memaccess_tck = 80;
+
 	/* Search for the AHB-AB.
 	 * REVISIT: We should search for AXI-AP as well and make sure the AP's MEMTYPE says it
 	 * can access system memory. */
@@ -3117,7 +3119,6 @@ static int cortex_a_init_arch_info(struct target *target,
 		tap->dap->tap = tap;
 	}
 
-	tap->dap->ap[dap_ap_get_select(tap->dap)].memaccess_tck = 80;
 	armv7a->arm.dap = tap->dap;
 
 	cortex_a->fast_reg_read = 0;
