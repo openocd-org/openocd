@@ -122,6 +122,15 @@
 #define CSW_SPROT           (1UL << 30)
 #define CSW_DBGSWENABLE     (1UL << 31)
 
+/* Fields of the MEM-AP's IDR register */
+#define IDR_REV     (0xFUL << 28)
+#define IDR_JEP106  (0x7FFUL << 17)
+#define IDR_CLASS   (0xFUL << 13)
+#define IDR_VARIANT (0xFUL << 4)
+#define IDR_TYPE    (0xFUL << 0)
+
+#define IDR_JEP106_ARM 0x04760000
+
 /**
  * This represents an ARM Debug Interface (v5) Access Port (AP).
  * Most common is a MEM-AP, for memory access.
@@ -273,6 +282,14 @@ struct dap_ops {
 
 	/** Executes all queued DAP operations. */
 	int (*run)(struct adiv5_dap *dap);
+};
+
+/*
+ * Access Port classes
+ */
+enum ap_class {
+	AP_CLASS_NONE   = 0x00000,  /* No class defined */
+	AP_CLASS_MEM_AP = 0x10000,  /* MEM-AP */
 };
 
 /*

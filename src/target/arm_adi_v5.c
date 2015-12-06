@@ -835,8 +835,8 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 		 * but just to be sure, try to continue searching if an error does happen.
 		 */
 		if ((retval == ERROR_OK) &&                  /* Register read success */
-			((id_val & 0x0FFF0000) == 0x04770000) && /* Jedec codes match */
-			((id_val & 0xF) == type_to_find)) {      /* type matches*/
+			((id_val & IDR_JEP106) == IDR_JEP106_ARM) && /* Jedec codes match */
+			((id_val & IDR_TYPE) == type_to_find)) {      /* type matches*/
 
 			LOG_DEBUG("Found %s at AP index: %d (IDR=0x%08" PRIX32 ")",
 						(type_to_find == AP_TYPE_AHB_AP)  ? "AHB-AP"  :
@@ -1417,53 +1417,53 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 static int dap_info_command(struct command_context *cmd_ctx,
 		struct adiv5_ap *ap)
 {
-	struct adiv5_dap *dap = ap->dap;
 	int retval;
 	uint32_t dbgbase, apid;
 	int romtable_present = 0;
 	uint8_t mem_ap;
-	uint32_t ap_old;
 
+	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
 	if (retval != ERROR_OK)
 		return retval;
 
-	ap_old = dap_ap_get_select(dap);
-	dap_ap_select(dap, ap->ap_num);
-
-	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-	mem_ap = ((apid&0x10000) && ((apid&0x0F) != 0));
 	command_print(cmd_ctx, "AP ID register 0x%8.8" PRIx32, apid);
-	if (apid) {
-		switch (apid&0x0F) {
-			case 0:
-				command_print(cmd_ctx, "\tType is JTAG-AP");
-				break;
-			case 1:
-				command_print(cmd_ctx, "\tType is MEM-AP AHB");
-				break;
-			case 2:
-				command_print(cmd_ctx, "\tType is MEM-AP APB");
-				break;
-			default:
-				command_print(cmd_ctx, "\tUnknown AP type");
-				break;
-		}
-
-		/* NOTE: a MEM-AP may have a single CoreSight component that's
-		 * not a ROM table ... or have no such components at all.
-		 */
-		if (mem_ap)
-			command_print(cmd_ctx, "AP BASE 0x%8.8" PRIx32, dbgbase);
-	} else
+	if (apid == 0) {
 		command_print(cmd_ctx, "No AP found at this ap 0x%x", ap->ap_num);
+		return ERROR_FAIL;
+	}
 
-	romtable_present = ((mem_ap) && (dbgbase != 0xFFFFFFFF));
-	if (romtable_present)
-		dap_rom_display(cmd_ctx, ap, dbgbase, 0);
-	else
-		command_print(cmd_ctx, "\tNo ROM table present");
-	dap_ap_select(dap, ap_old);
+	switch (apid & (IDR_JEP106 | IDR_TYPE)) {
+	case IDR_JEP106_ARM | AP_TYPE_JTAG_AP:
+		command_print(cmd_ctx, "\tType is JTAG-AP");
+		break;
+	case IDR_JEP106_ARM | AP_TYPE_AHB_AP:
+		command_print(cmd_ctx, "\tType is MEM-AP AHB");
+		break;
+	case IDR_JEP106_ARM | AP_TYPE_APB_AP:
+		command_print(cmd_ctx, "\tType is MEM-AP APB");
+		break;
+	case IDR_JEP106_ARM | AP_TYPE_AXI_AP:
+		command_print(cmd_ctx, "\tType is MEM-AP AXI");
+		break;
+	default:
+		command_print(cmd_ctx, "\tUnknown AP type");
+		break;
+	}
+
+	/* NOTE: a MEM-AP may have a single CoreSight component that's
+	 * not a ROM table ... or have no such components at all.
+	 */
+	mem_ap = (apid & IDR_CLASS) == AP_CLASS_MEM_AP;
+	if (mem_ap) {
+		command_print(cmd_ctx, "MEM-AP BASE 0x%8.8" PRIx32, dbgbase);
+
+		romtable_present = dbgbase != 0xFFFFFFFF;
+		if (romtable_present)
+			dap_rom_display(cmd_ctx, ap, dbgbase, 0);
+		else
+			command_print(cmd_ctx, "\tNo ROM table present");
+	}
 
 	return ERROR_OK;
 }
