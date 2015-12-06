@@ -1063,7 +1063,7 @@ static int cortex_m_assert_reset(struct target *target)
 		if (retval != ERROR_OK)
 			LOG_DEBUG("Ignoring AP write error right after reset");
 
-		retval = ahbap_debugport_init(armv7m->debug_ap);
+		retval = dap_dp_init(armv7m->debug_ap->dap);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("DP initialisation failed");
 			return retval;
@@ -1109,7 +1109,7 @@ static int cortex_m_deassert_reset(struct target *target)
 
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
 	    !(jtag_reset_config & RESET_SRST_NO_GATING)) {
-		int retval = ahbap_debugport_init(armv7m->debug_ap);
+		int retval = dap_dp_init(armv7m->debug_ap->dap);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("DP initialisation failed");
 			return retval;
@@ -1891,6 +1891,12 @@ int cortex_m_examine(struct target *target)
 	struct adiv5_dap *swjdp = cortex_m->armv7m.arm.dap;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
+	retval = dap_dp_init(swjdp);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not initialize the debug port");
+		return retval;
+	}
+
 	/* Search for the MEM-AP */
 	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
 	if (retval != ERROR_OK) {
@@ -1904,7 +1910,7 @@ int cortex_m_examine(struct target *target)
 	/* stlink shares the examine handler but does not support
 	 * all its calls */
 	if (!armv7m->stlink) {
-		retval = ahbap_debugport_init(armv7m->debug_ap);
+		retval = mem_ap_init(armv7m->debug_ap);
 		if (retval != ERROR_OK)
 			return retval;
 	}

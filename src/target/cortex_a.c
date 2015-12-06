@@ -2910,6 +2910,12 @@ static int cortex_a_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t didr, ctypr, ttypr, cpuid, dbg_osreg;
 
+	retval = dap_dp_init(swjdp);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not initialize the debug port");
+		return retval;
+	}
+
 	/* Search for the APB-AB - it is needed for access to debug registers */
 	retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
 	if (retval != ERROR_OK) {
@@ -2917,23 +2923,27 @@ static int cortex_a_examine_first(struct target *target)
 		return retval;
 	}
 
-	/* We do one extra read to ensure DAP is configured,
-	 * we call ahbap_debugport_init(swjdp) instead
-	 */
-	retval = ahbap_debugport_init(armv7a->debug_ap);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* Search for the AHB-AB */
-	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7a->memory_ap);
+	retval = mem_ap_init(armv7a->debug_ap);
 	if (retval != ERROR_OK) {
-		/* AHB-AP not found - use APB-AP */
-		LOG_DEBUG("Could not find AHB-AP - using APB-AP for memory access");
-		armv7a->memory_ap_available = false;
-	} else {
-		armv7a->memory_ap_available = true;
+		LOG_ERROR("Could not initialize the APB-AP");
+		return retval;
 	}
 
+	/* Search for the AHB-AB.
+	 * REVISIT: We should search for AXI-AP as well and make sure the AP's MEMTYPE says it
+	 * can access system memory. */
+	armv7a->memory_ap_available = false;
+	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7a->memory_ap);
+	if (retval == ERROR_OK) {
+		retval = mem_ap_init(armv7a->memory_ap);
+		if (retval == ERROR_OK)
+			armv7a->memory_ap_available = true;
+		else
+			LOG_WARNING("Could not initialize AHB-AP for memory access - using APB-AP");
+	} else {
+		/* AHB-AP not found - use APB-AP */
+		LOG_DEBUG("Could not find AHB-AP - using APB-AP for memory access");
+	}
 
 	if (!target->dbgbase_set) {
 		uint32_t dbgbase;

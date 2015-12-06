@@ -112,7 +112,9 @@ static int swd_connect(struct adiv5_dap *dap)
 	/* Note, debugport_init() does setup too */
 	jtag_interface->swd->switch_seq(JTAG_TO_SWD);
 
+	/* Make sure we don't try to perform any other accesses before the DPIDR read. */
 	dap->do_reconnect = false;
+	dap->dp_bank_value = 0;
 
 	swd_queue_dp_read(dap, DP_IDCODE, &idcode);
 

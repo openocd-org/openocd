@@ -645,45 +645,33 @@ struct adiv5_dap *dap_init(void)
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
 		dap->ap[i].tar_autoincr_block = (1<<10);
 	}
+	dap->ap_current = -1;
+	dap->ap_bank_value = -1;
+	dap->dp_bank_value = -1;
 	return dap;
 }
 
 /**
  * Initialize a DAP.  This sets up the power domains, prepares the DP
- * for further use, and arranges to use AP #0 for all AP operations
- * until dap_ap-select() changes that policy.
+ * for further use and activates overrun checking.
  *
  * @param dap The DAP being initialized.
- *
- * @todo Rename this.  We also need an initialization scheme which account
- * for SWD transports not just JTAG; that will need to address differences
- * in layering.  (JTAG is useful without any debug target; but not SWD.)
- * And this may not even use an AHB-AP ... e.g. DAP-Lite uses an APB-AP.
  */
-int ahbap_debugport_init(struct adiv5_ap *ap)
+int dap_dp_init(struct adiv5_dap *dap)
 {
-	/* check that we support packed transfers */
-	uint32_t csw, cfg;
 	int retval;
-	struct adiv5_dap *dap = ap->dap;
 
 	LOG_DEBUG(" ");
-
 	/* JTAG-DP or SWJ-DP, in JTAG mode
 	 * ... for SWD mode this is patched as part
 	 * of link switchover
+	 * FIXME: This should already be setup by the respective transport specific DAP creation.
 	 */
 	if (!dap->ops)
 		dap->ops = &jtag_dp_ops;
 
-	/* Default MEM-AP setup.
-	 *
-	 * REVISIT AP #0 may be an inappropriate default for this.
-	 * Should we probe, or take a hint from the caller?
-	 * Presumably we can ignore the possibility of multiple APs.
-	 */
 	dap->ap_current = -1;
-	dap_ap_select(dap, ap->ap_num);
+	dap->ap_bank_value = -1;
 	dap->last_read = NULL;
 
 	for (size_t i = 0; i < 10; i++) {
@@ -726,24 +714,13 @@ int ahbap_debugport_init(struct adiv5_ap *ap)
 		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 		if (retval != ERROR_OK)
 			continue;
+
 		/* With debug power on we can activate OVERRUN checking */
 		dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
 		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
 		if (retval != ERROR_OK)
 			continue;
 		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-		if (retval != ERROR_OK)
-			continue;
-
-		retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
-		if (retval != ERROR_OK)
-			continue;
-
-		retval = dap_queue_ap_read(dap, MEM_AP_REG_CSW, &csw);
-		if (retval != ERROR_OK)
-			continue;
-
-		retval = dap_queue_ap_read(dap, MEM_AP_REG_CFG, &cfg);
 		if (retval != ERROR_OK)
 			continue;
 
@@ -754,6 +731,38 @@ int ahbap_debugport_init(struct adiv5_ap *ap)
 		break;
 	}
 
+	return retval;
+}
+
+/**
+ * Initialize a DAP.  This sets up the power domains, prepares the DP
+ * for further use, and arranges to use AP #0 for all AP operations
+ * until dap_ap-select() changes that policy.
+ *
+ * @param ap The MEM-AP being initialized.
+ */
+int mem_ap_init(struct adiv5_ap *ap)
+{
+	/* check that we support packed transfers */
+	uint32_t csw, cfg;
+	int retval;
+	struct adiv5_dap *dap = ap->dap;
+
+	dap_ap_select(dap, ap->ap_num);
+
+	retval = dap_setup_accessport(dap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_ap_read(dap, MEM_AP_REG_CSW, &csw);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_ap_read(dap, MEM_AP_REG_CFG, &cfg);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
 

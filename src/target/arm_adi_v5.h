@@ -488,7 +488,8 @@ int mem_ap_sel_write_buf_noincr(struct adiv5_ap *ap,
 struct adiv5_dap *dap_init(void);
 
 /* Initialisation of the debug system, power domains and registers */
-int ahbap_debugport_init(struct adiv5_ap *ap);
+int dap_dp_init(struct adiv5_dap *dap);
+int mem_ap_init(struct adiv5_ap *ap);
 
 /* Probe the AP for ROM Table location */
 int dap_get_debugbase(struct adiv5_ap *ap,
