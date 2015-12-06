@@ -245,6 +245,8 @@ static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint3
 	int retval;
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
 
+	dap_ap_select(dap, 1);
+
 	retval = dap_queue_ap_write(dap, reg, value);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a write request");
@@ -264,6 +266,9 @@ static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint3
 static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
 {
 	int retval;
+
+	dap_ap_select(dap, 1);
+
 	retval = dap_queue_ap_read(dap, reg, result);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a read request");
@@ -316,7 +321,6 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	}
 
 	int retval;
-	const uint8_t original_ap = dap_ap_get_select(dap);
 
 	/*
 	 * ... Power on the processor, or if power has already been
@@ -332,8 +336,6 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	else
 		LOG_WARNING("Attempting mass erase without hardware reset. This is not reliable; "
 			    "it's recommended you connect SRST and use ``reset_config srst_only''.");
-
-	dap_ap_select(dap, 1);
 
 	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, MEM_CTRL_SYS_RES_REQ);
 	if (retval != ERROR_OK)
@@ -384,8 +386,6 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	if (retval != ERROR_OK)
 		return retval;
 
-	dap_ap_select(dap, original_ap);
-
 	if (jtag_get_reset_config() & RESET_HAS_SRST) {
 		/* halt MCU otherwise it loops in hard fault - WDOG reset cycle */
 		target->reset_halt = true;
@@ -420,10 +420,6 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 
 	uint32_t val;
 	int retval;
-	const uint8_t origninal_ap = dap_ap_get_select(dap);
-
-	dap_ap_select(dap, 1);
-
 
 	/*
 	 * ... The MDM-AP ID register can be read to verify that the
@@ -474,7 +470,6 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		LOG_WARNING("MDM: Secured MCU state detected however it may be a false alarm");
 		LOG_WARNING("MDM: Halting target to detect secured state reliably");
 
-		dap_ap_select(dap, origninal_ap);
 		retval = target_halt(target);
 		if (retval == ERROR_OK)
 			retval = target_wait_state(target, TARGET_HALTED, 100);
@@ -487,7 +482,6 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		}
 
 		/* re-read status */
-		dap_ap_select(dap, 1);
 		retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &val);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("MDM: failed to read MDM_REG_STAT");
@@ -511,8 +505,6 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		LOG_INFO("MDM: Chip is unsecured. Continuing.");
 		jtag_poll_set_enabled(true);
 	}
-
-	dap_ap_select(dap, origninal_ap);
 
 	return ERROR_OK;
 

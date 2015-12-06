@@ -842,10 +842,8 @@ int dap_get_debugbase(struct adiv5_ap *ap,
 			uint32_t *dbgbase, uint32_t *apid)
 {
 	struct adiv5_dap *dap = ap->dap;
-	uint32_t ap_old;
 	int retval;
 
-	ap_old = dap_ap_get_select(dap);
 	dap_ap_select(dap, ap->ap_num);
 
 	retval = dap_queue_ap_read(dap, MEM_AP_REG_BASE, dbgbase);
@@ -858,21 +856,16 @@ int dap_get_debugbase(struct adiv5_ap *ap,
 	if (retval != ERROR_OK)
 		return retval;
 
-	dap_ap_select(dap, ap_old);
-
 	return ERROR_OK;
 }
 
 int dap_lookup_cs_component(struct adiv5_ap *ap,
 			uint32_t dbgbase, uint8_t type, uint32_t *addr, int32_t *idx)
 {
-	struct adiv5_dap *dap = ap->dap;
-	uint32_t ap_old;
 	uint32_t romentry, entry_offset = 0, component_base, devtype;
 	int retval;
 
 	*addr = 0;
-	ap_old = dap_ap_get_select(dap);
 
 	do {
 		retval = mem_ap_read_atomic_u32(ap, (dbgbase&0xFFFFF000) |
@@ -915,8 +908,6 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 		}
 		entry_offset += 4;
 	} while (romentry > 0);
-
-	dap_ap_select(dap, ap_old);
 
 	if (!*addr)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
