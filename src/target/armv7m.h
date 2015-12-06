@@ -148,7 +148,7 @@ struct armv7m_common {
 	int exception_number;
 
 	/* AP this processor is connected to in the DAP */
-	uint8_t debug_ap;
+	struct adiv5_ap *debug_ap;
 
 	int fp_feature;
 	uint32_t demcr;

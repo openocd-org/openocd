@@ -804,16 +804,16 @@ static bool is_dap_cid_ok(uint32_t cid3, uint32_t cid2, uint32_t cid1, uint32_t 
 /*
  * This function checks the ID for each access port to find the requested Access Port type
  */
-int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, uint8_t *ap_num_out)
+int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_ap **ap_out)
 {
-	int ap;
+	int ap_num;
 
 	/* Maximum AP number is 255 since the SELECT register is 8 bits */
-	for (ap = 0; ap <= 255; ap++) {
+	for (ap_num = 0; ap_num <= 255; ap_num++) {
 
 		/* read the IDR register of the Access Port */
 		uint32_t id_val = 0;
-		dap_ap_select(dap, ap);
+		dap_ap_select(dap, ap_num);
 
 		int retval = dap_queue_ap_read(dap, AP_REG_IDR, &id_val);
 		if (retval != ERROR_OK)
@@ -843,9 +843,9 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, uint8_t *ap_nu
 						(type_to_find == AP_TYPE_APB_AP)  ? "APB-AP"  :
 						(type_to_find == AP_TYPE_AXI_AP)  ? "AXI-AP"  :
 						(type_to_find == AP_TYPE_JTAG_AP) ? "JTAG-AP" : "Unknown",
-						ap, id_val);
+						ap_num, id_val);
 
-			*ap_num_out = ap;
+			*ap_out = &dap->ap[ap_num];
 			return ERROR_OK;
 		}
 	}

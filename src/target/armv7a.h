@@ -107,8 +107,8 @@ struct armv7a_common {
 	/* Core Debug Unit */
 	struct arm_dpm dpm;
 	uint32_t debug_base;
-	uint8_t debug_ap;
-	uint8_t memory_ap;
+	struct adiv5_ap *debug_ap;
+	struct adiv5_ap *memory_ap;
 	bool memory_ap_available;
 	/* mdir */
 	uint8_t multi_processor_system;

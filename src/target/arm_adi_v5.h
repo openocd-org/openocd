@@ -480,7 +480,7 @@ int dap_get_debugbase(struct adiv5_dap *dap, int ap,
 /* Probe Access Ports to find a particular type */
 int dap_find_ap(struct adiv5_dap *dap,
 			enum ap_type type_to_find,
-			uint8_t *ap_num_out);
+			struct adiv5_ap **ap_out);
 
 /* Lookup CoreSight component */
 int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
