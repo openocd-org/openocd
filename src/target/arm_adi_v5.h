@@ -443,38 +443,38 @@ int dap_setup_accessport(struct adiv5_dap *swjdp,
 		uint32_t csw, uint32_t tar);
 
 /* Queued MEM-AP memory mapped single word transfers with selection of ap */
-int mem_ap_sel_read_u32(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_read_u32(struct adiv5_ap *ap,
 		uint32_t address, uint32_t *value);
-int mem_ap_sel_write_u32(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_write_u32(struct adiv5_ap *ap,
 		uint32_t address, uint32_t value);
 
 /* Synchronous MEM-AP memory mapped single word transfers with selection of ap */
-int mem_ap_sel_read_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_read_atomic_u32(struct adiv5_ap *ap,
 		uint32_t address, uint32_t *value);
-int mem_ap_sel_write_atomic_u32(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_write_atomic_u32(struct adiv5_ap *ap,
 		uint32_t address, uint32_t value);
 
 /* Synchronous MEM-AP memory mapped bus block transfers with selection of ap */
-int mem_ap_sel_read_buf(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_read_buf(struct adiv5_ap *ap,
 		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
-int mem_ap_sel_write_buf(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_write_buf(struct adiv5_ap *ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
 
 /* Synchronous, non-incrementing buffer functions for accessing fifos, with
  * selection of ap */
-int mem_ap_sel_read_buf_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_read_buf_noincr(struct adiv5_ap *ap,
 		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
-int mem_ap_sel_write_buf_noincr(struct adiv5_dap *swjdp, uint8_t ap,
+int mem_ap_sel_write_buf_noincr(struct adiv5_ap *ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
 
 /* Create DAP struct */
 struct adiv5_dap *dap_init(void);
 
 /* Initialisation of the debug system, power domains and registers */
-int ahbap_debugport_init(struct adiv5_dap *swjdp, uint8_t apsel);
+int ahbap_debugport_init(struct adiv5_ap *ap);
 
 /* Probe the AP for ROM Table location */
-int dap_get_debugbase(struct adiv5_dap *dap, int ap,
+int dap_get_debugbase(struct adiv5_ap *ap,
 			uint32_t *dbgbase, uint32_t *apid);
 
 /* Probe Access Ports to find a particular type */
@@ -483,7 +483,7 @@ int dap_find_ap(struct adiv5_dap *dap,
 			struct adiv5_ap **ap_out);
 
 /* Lookup CoreSight component */
-int dap_lookup_cs_component(struct adiv5_dap *dap, int ap,
+int dap_lookup_cs_component(struct adiv5_ap *ap,
 			uint32_t dbgbase, uint8_t type, uint32_t *addr, int32_t *idx);
 
 struct target;

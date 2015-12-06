@@ -648,7 +648,6 @@ COMMAND_HANDLER(sam4l_handle_reset_deassert)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct adiv5_dap *swjdp = armv7m->arm.dap;
 	int retval = ERROR_OK;
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
@@ -660,14 +659,14 @@ COMMAND_HANDLER(sam4l_handle_reset_deassert)
 	 * After vectreset SMAP release is not needed however makes no harm
 	 */
 	if (target->reset_halt && (jtag_reset_config & RESET_HAS_SRST)) {
-		retval = mem_ap_sel_write_u32(swjdp, armv7m->debug_ap->ap_num, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
+		retval = mem_ap_sel_write_u32(armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
 		if (retval == ERROR_OK)
-			retval = mem_ap_sel_write_atomic_u32(swjdp, armv7m->debug_ap->ap_num, DCB_DEMCR,
+			retval = mem_ap_sel_write_atomic_u32(armv7m->debug_ap, DCB_DEMCR,
 				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 		/* do not return on error here, releasing SMAP reset is more important */
 	}
 
-	int retval2 = mem_ap_sel_write_atomic_u32(swjdp, armv7m->debug_ap->ap_num, SMAP_SCR, SMAP_SCR_HCR);
+	int retval2 = mem_ap_sel_write_atomic_u32(armv7m->debug_ap, SMAP_SCR, SMAP_SCR_HCR);
 	if (retval2 != ERROR_OK)
 		return retval2;
 
