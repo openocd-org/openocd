@@ -131,6 +131,11 @@
 
 #define IDR_JEP106_ARM 0x04760000
 
+#define DP_SELECT_APSEL 0xFF000000
+#define DP_SELECT_APBANK 0x000000F0
+#define DP_SELECT_DPBANK 0x0000000F
+#define DP_SELECT_INVALID 0x00FFFF00 /* Reserved bits one */
+
 /**
  * This represents an ARM Debug Interface (v5) Access Port (AP).
  * Most common is a MEM-AP, for memory access.
@@ -211,27 +216,10 @@ struct adiv5_dap {
 	uint32_t apsel;
 
 	/**
-	 * Cache for DP_SELECT bits identifying the current AP.  A DAP may
-	 * connect to multiple APs, such as one MEM-AP for general access,
-	 * another reserved for accessing debug modules, and a JTAG-DP.
-	 * "-1" indicates no cached value.
+	 * Cache for DP_SELECT register. A value of DP_SELECT_INVALID
+	 * indicates no cached value and forces rewrite of the register.
 	 */
-	uint32_t ap_current;
-
-	/**
-	 * Cache for DP_SELECT bits identifying the current four-word AP
-	 * register bank.  This caches AP register addresss bits 7:4; JTAG
-	 * and SWD access primitves pass address bits 3:2; bits 1:0 are zero.
-	 * "-1" indicates no cached value.
-	 */
-	uint32_t ap_bank_value;
-
-	/**
-	 * Cache for DP_SELECT bits identifying the current four-word DP
-	 * register bank.  This caches DP register addresss bits 7:4; JTAG
-	 * and SWD access primitves pass address bits 3:2; bits 1:0 are zero.
-	 */
-	uint32_t dp_bank_value;
+	uint32_t select;
 
 	/* information about current pending SWjDP-AHBAP transaction */
 	uint8_t  ack;
@@ -271,10 +259,10 @@ struct dap_ops {
 			uint32_t data);
 
 	/** AP register read. */
-	int (*queue_ap_read)(struct adiv5_dap *dap, unsigned reg,
+	int (*queue_ap_read)(struct adiv5_ap *ap, unsigned reg,
 			uint32_t *data);
 	/** AP register write. */
-	int (*queue_ap_write)(struct adiv5_dap *dap, unsigned reg,
+	int (*queue_ap_write)(struct adiv5_ap *ap, unsigned reg,
 			uint32_t data);
 
 	/** AP operation abort. */
@@ -301,9 +289,6 @@ enum ap_type {
 	AP_TYPE_APB_AP  = 0x2,  /* APB Memory-AP */
 	AP_TYPE_AXI_AP  = 0x4,  /* AXI Memory-AP */
 };
-
-/* AP selection applies to future AP transactions */
-void dap_ap_select(struct adiv5_dap *dap, uint8_t ap);
 
 /**
  * Queue a DP register read.
@@ -356,8 +341,7 @@ static inline int dap_queue_ap_read(struct adiv5_ap *ap,
 		unsigned reg, uint32_t *data)
 {
 	assert(ap->dap->ops != NULL);
-	dap_ap_select(ap->dap, ap->ap_num);
-	return ap->dap->ops->queue_ap_read(ap->dap, reg, data);
+	return ap->dap->ops->queue_ap_read(ap, reg, data);
 }
 
 /**
@@ -373,8 +357,7 @@ static inline int dap_queue_ap_write(struct adiv5_ap *ap,
 		unsigned reg, uint32_t data)
 {
 	assert(ap->dap->ops != NULL);
-	dap_ap_select(ap->dap, ap->ap_num);
-	return ap->dap->ops->queue_ap_write(ap->dap, reg, data);
+	return ap->dap->ops->queue_ap_write(ap, reg, data);
 }
 
 /**
@@ -449,12 +432,6 @@ static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned reg,
 	} else {
 		return ERROR_OK;
 	}
-}
-
-/** Accessor for currently selected DAP-AP number (0..255) */
-static inline uint8_t dap_ap_get_select(struct adiv5_dap *swjdp)
-{
-	return (uint8_t)(swjdp->ap_current >> 24);
 }
 
 /* Queued MEM-AP memory mapped single word transfers. */

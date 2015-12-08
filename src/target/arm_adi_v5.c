@@ -94,28 +94,6 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, uint32_t address
  *                                                                         *
 ***************************************************************************/
 
-/**
- * Select one of the APs connected to the specified DAP.  The
- * selection is implicitly used with future AP transactions.
- * This is a NOP if the specified AP is already selected.
- *
- * @param dap The DAP
- * @param apsel Number of the AP to (implicitly) use with further
- *	transactions.  This normally identifies a MEM-AP.
- */
-void dap_ap_select(struct adiv5_dap *dap, uint8_t ap)
-{
-	uint32_t new_ap = (ap << 24) & 0xFF000000;
-
-	if (new_ap != dap->ap_current) {
-		dap->ap_current = new_ap;
-		/* Switching AP invalidates cached values.
-		 * Values MUST BE UPDATED BEFORE AP ACCESS.
-		 */
-		dap->ap_bank_value = -1;
-	}
-}
-
 static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 {
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT |
@@ -608,9 +586,6 @@ struct adiv5_dap *dap_init(void)
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
 		dap->ap[i].tar_autoincr_block = (1<<10);
 	}
-	dap->ap_current = -1;
-	dap->ap_bank_value = -1;
-	dap->dp_bank_value = -1;
 	return dap;
 }
 
@@ -633,14 +608,11 @@ int dap_dp_init(struct adiv5_dap *dap)
 	if (!dap->ops)
 		dap->ops = &jtag_dp_ops;
 
-	dap->ap_current = -1;
-	dap->ap_bank_value = -1;
+	dap->select = DP_SELECT_INVALID;
 	dap->last_read = NULL;
 
 	for (size_t i = 0; i < 10; i++) {
 		/* DP initialization */
-
-		dap->dp_bank_value = 0;
 
 		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 		if (retval != ERROR_OK)
