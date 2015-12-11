@@ -76,6 +76,7 @@
 #include "arm.h"
 #include "arm_adi_v5.h"
 #include <helper/time_support.h>
+#include <helper/list.h>
 
 /* ARM ADI Specification requires at least 10 bits used for TAR autoincrement  */
 
@@ -586,6 +587,7 @@ struct adiv5_dap *dap_init(void)
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
 		dap->ap[i].tar_autoincr_block = (1<<10);
 	}
+	INIT_LIST_HEAD(&dap->cmd_journal);
 	return dap;
 }
 

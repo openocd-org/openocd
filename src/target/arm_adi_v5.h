@@ -31,6 +31,7 @@
  * resources accessed through a MEM-AP.
  */
 
+#include <helper/list.h>
 #include "arm_jtag.h"
 
 /* FIXME remove these JTAG-specific decls when mem_ap_read_buf_u32()
@@ -205,6 +206,9 @@ struct adiv5_ap {
  */
 struct adiv5_dap {
 	const struct dap_ops *ops;
+
+	/* dap transaction list for WAIT support */
+	struct list_head cmd_journal;
 
 	struct jtag_tap *tap;
 	/* Control config */
