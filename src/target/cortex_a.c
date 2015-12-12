@@ -3074,6 +3074,9 @@ static int cortex_a_examine_first(struct target *target)
 
 	LOG_DEBUG("Configured %i hw breakpoints", cortex_a->brp_num);
 
+	/* select debug_ap as default */
+	swjdp->apsel = armv7a->debug_ap->ap_num;
+
 	target_set_examined(target);
 	return ERROR_OK;
 }
