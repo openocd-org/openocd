@@ -846,7 +846,7 @@ static int jim_nds32_read_edm_sr(Jim_Interp *interp, int argc, Jim_Obj * const *
 	}
 
 	int e;
-	char *edm_sr_name;
+	const char *edm_sr_name;
 	int edm_sr_name_len;
 	e = Jim_GetOpt_String(&goi, &edm_sr_name, &edm_sr_name_len);
 	if (e != JIM_OK)
@@ -892,7 +892,7 @@ static int jim_nds32_write_edm_sr(Jim_Interp *interp, int argc, Jim_Obj * const 
 	}
 
 	int e;
-	char *edm_sr_name;
+	const char *edm_sr_name;
 	int edm_sr_name_len;
 	e = Jim_GetOpt_String(&goi, &edm_sr_name, &edm_sr_name_len);
 	if (e != JIM_OK)

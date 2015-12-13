@@ -245,7 +245,7 @@ int Jim_GetOpt_Obj(Jim_GetOptInfo *goi, Jim_Obj **puthere);
  * \param puthere - where param is put
  * \param len     - return its length
  */
-int Jim_GetOpt_String(Jim_GetOptInfo *goi, char **puthere, int *len);
+int Jim_GetOpt_String(Jim_GetOptInfo *goi, const char **puthere, int *len);
 
 /** Remove argv[0] as double.
  *

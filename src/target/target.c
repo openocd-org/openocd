@@ -5186,7 +5186,6 @@ static int target_create(Jim_GetOptInfo *goi)
 	Jim_Obj *new_cmd;
 	Jim_Cmd *cmd;
 	const char *cp;
-	char *cp2;
 	int e;
 	int x;
 	struct target *target;
@@ -5211,10 +5210,9 @@ static int target_create(Jim_GetOptInfo *goi)
 	}
 
 	/* TYPE */
-	e = Jim_GetOpt_String(goi, &cp2, NULL);
+	e = Jim_GetOpt_String(goi, &cp, NULL);
 	if (e != JIM_OK)
 		return e;
-	cp = cp2;
 	struct transport *tr = get_current_transport();
 	if (tr->override_target) {
 		e = tr->override_target(&cp);

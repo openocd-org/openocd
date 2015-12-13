@@ -104,7 +104,7 @@ static int os_alloc_create(struct target *target, struct rtos_type *ostype)
 int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 {
 	int x;
-	char *cp;
+	const char *cp;
 	struct Jim_Obj *res;
 
 	if (!goi->isconfigure && goi->argc != 0) {

@@ -205,7 +205,7 @@ int Jim_GetOpt_Obj(Jim_GetOptInfo *goi, Jim_Obj **puthere)
 		return JIM_ERR;
 }
 
-int Jim_GetOpt_String(Jim_GetOptInfo *goi, char **puthere, int *len)
+int Jim_GetOpt_String(Jim_GetOptInfo *goi, const char **puthere, int *len)
 {
 	int r;
 	Jim_Obj *o;
@@ -215,8 +215,7 @@ int Jim_GetOpt_String(Jim_GetOptInfo *goi, char **puthere, int *len)
 	if (r == JIM_OK) {
 		cp = Jim_GetString(o, len);
 		if (puthere) {
-			/* remove const */
-			*puthere = (char *)(cp);
+			*puthere = cp;
 		}
 	}
 	return r;

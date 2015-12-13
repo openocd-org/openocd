@@ -533,11 +533,13 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 		free(pTap);
 		return JIM_ERR;
 	}
-	Jim_GetOpt_String(goi, &cp, NULL);
-	pTap->chip = strdup(cp);
 
-	Jim_GetOpt_String(goi, &cp, NULL);
-	pTap->tapname = strdup(cp);
+	const char *tmp;
+	Jim_GetOpt_String(goi, &tmp, NULL);
+	pTap->chip = strdup(tmp);
+
+	Jim_GetOpt_String(goi, &tmp, NULL);
+	pTap->tapname = strdup(tmp);
 
 	/* name + dot + name + null */
 	x = strlen(pTap->chip) + 1 + strlen(pTap->tapname) + 1;
