@@ -155,7 +155,7 @@ static int niietcm4_opstatus_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	int retval;
-	int timeout = 100;
+	int timeout = 5000;
 
 	uint32_t flash_status;
 	retval = target_read_u32(target, FCIS, &flash_status);
@@ -192,7 +192,7 @@ static int niietcm4_uopstatus_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	int retval;
-	int timeout = 100;
+	int timeout = 5000;
 
 	uint32_t uflash_status;
 	retval = target_read_u32(target, UFCIS, &uflash_status);
@@ -1048,7 +1048,7 @@ FLASH_BANK_COMMAND_HANDLER(niietcm4_flash_bank_command)
 {
 	struct niietcm4_flash_bank *niietcm4_info;
 
-	if (CMD_ARGC < 7)
+	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	niietcm4_info = malloc(sizeof(struct niietcm4_flash_bank));
@@ -1370,15 +1370,36 @@ static int niietcm4_write(struct flash_bank *bank, const uint8_t *buffer,
 {
 	struct target *target = bank->target;
 	struct niietcm4_flash_bank *niietcm4_info = bank->driver_priv;
+	uint8_t *new_buffer = NULL;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset & 0x3) {
-		LOG_ERROR("offset 0x%" PRIx32 " breaks required 4-byte alignment", offset);
+	if (offset & 0xF) {
+		LOG_ERROR("offset 0x%" PRIx32 " breaks required 4-word alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+	}
+
+	/* If there's an odd number of words, the data has to be padded. Duplicate
+	 * the buffer and use the normal code path with a single block write since
+	 * it's probably cheaper than to special case the last odd write using
+	 * discrete accesses. */
+
+	int rem = count % 16;
+	if (rem) {
+		new_buffer = malloc(count + 16 - rem);
+		if (new_buffer == NULL) {
+			LOG_ERROR("Odd number of words to write and no memory for padding buffer");
+			return ERROR_FAIL;
+		}
+		LOG_INFO("Odd number of words to write, padding with 0xFFFFFFFF");
+		buffer = memcpy(new_buffer, buffer, count);
+		while (rem < 16) {
+			new_buffer[count++] = 0xff;
+			rem++;
+		}
 	}
 
 	int retval;
@@ -1406,45 +1427,46 @@ static int niietcm4_write(struct flash_bank *bank, const uint8_t *buffer,
 			flash_addr = offset + i;
 			retval = target_write_u32(target, FMA, flash_addr);
 			if (retval != ERROR_OK)
-				return retval;
+				goto free_buffer;
 
-			/* if there's an odd number of bytes, the data has to be padded */
-			uint8_t padding[16] = { 0xff, 0xff, 0xff, 0xff,
-									0xff, 0xff, 0xff, 0xff,
-									0xff, 0xff, 0xff, 0xff,
-									0xff, 0xff, 0xff, 0xff};
-			memcpy(padding, buffer + i, MIN(16, count-i));
+			/* Prepare data (4 words) */
+			uint32_t value[4];
+			memcpy(&value, buffer + i*16, 4*sizeof(uint32_t));
 
 			/* place in reg 16 bytes of data */
-			flash_data = (padding[3]<<24) | (padding[2]<<16) | (padding[1]<<8) | padding[0];
+			flash_data = value[0];
 			retval = target_write_u32(target, FMD1, flash_data);
 			if (retval != ERROR_OK)
-				return retval;
-			flash_data = (padding[7]<<24) | (padding[6]<<16) | (padding[5]<<8) | padding[4];
+				goto free_buffer;
+			flash_data = value[1];
 			retval = target_write_u32(target, FMD2, flash_data);
 			if (retval != ERROR_OK)
-				return retval;
-			flash_data = (padding[11]<<24) | (padding[10]<<16) | (padding[9]<<8) | padding[8];
+				goto free_buffer;
+			flash_data = value[2];
 			retval = target_write_u32(target, FMD3, flash_data);
 			if (retval != ERROR_OK)
-				return retval;
-			flash_data = (padding[15]<<24) | (padding[14]<<16) | (padding[13]<<8) | padding[12];
+				goto free_buffer;
+			flash_data = value[3];
 			retval = target_write_u32(target, FMD4, flash_data);
 			if (retval != ERROR_OK)
-				return retval;
+				goto free_buffer;
 
 			/* write start */
 			retval = target_write_u32(target, FMC, flash_cmd);
 			if (retval != ERROR_OK)
-				return retval;
+				goto free_buffer;
 
 			/* status check */
 			retval = niietcm4_opstatus_check(bank);
 			if (retval != ERROR_OK)
-				return retval;
+				goto free_buffer;
 		}
 
 	}
+
+free_buffer:
+	if (new_buffer)
+		free(new_buffer);
 
 	return retval;
 }
