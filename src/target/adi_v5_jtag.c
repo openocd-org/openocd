@@ -153,14 +153,13 @@ static int adi_jtag_dp_scan_u32(struct adiv5_dap *dap,
 	return retval;
 }
 
-/**
- * Utility to write AP registers.
- */
-static inline int adi_jtag_ap_write_check(struct adiv5_ap *ap,
-		uint8_t reg_addr, uint8_t *outvalue)
+static void adi_jtag_finish_read(struct adiv5_dap *dap)
 {
-	return adi_jtag_dp_scan(ap->dap, JTAG_DP_APACC, reg_addr, DPAP_WRITE,
-			outvalue, NULL, NULL, ap->memaccess_tck);
+	if (dap->last_read != NULL) {
+		adi_jtag_dp_scan_u32(dap, JTAG_DP_DPACC,
+				DP_RDBUFF, DPAP_READ, 0, dap->last_read, &dap->ack, 0);
+		dap->last_read = NULL;
+	}
 }
 
 static int adi_jtag_scan_inout_check_u32(struct adiv5_dap *dap,
@@ -314,15 +313,19 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 static int jtag_dp_q_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
-	return adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
-			reg, DPAP_READ, 0, data, 0);
+	int retval =  adi_jtag_dp_scan_u32(dap, JTAG_DP_DPACC, reg,
+			DPAP_READ, 0, dap->last_read, &dap->ack, 0);
+	dap->last_read = data;
+	return retval;
 }
 
 static int jtag_dp_q_write(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
-	return adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
-			reg, DPAP_WRITE, data, NULL, 0);
+	int retval =  adi_jtag_dp_scan_u32(dap, JTAG_DP_DPACC,
+			reg, DPAP_WRITE, data, dap->last_read, &dap->ack, 0);
+	dap->last_read = NULL;
+	return retval;
 }
 
 /** Select the AP register bank matching bits 7:4 of reg. */
@@ -343,26 +346,29 @@ static int jtag_ap_q_read(struct adiv5_ap *ap, unsigned reg,
 		uint32_t *data)
 {
 	int retval = jtag_ap_q_bankselect(ap, reg);
-
 	if (retval != ERROR_OK)
 		return retval;
 
-	return adi_jtag_scan_inout_check_u32(ap->dap, JTAG_DP_APACC, reg,
-			DPAP_READ, 0, data, ap->memaccess_tck);
+	retval =  adi_jtag_dp_scan_u32(ap->dap, JTAG_DP_APACC, reg,
+			DPAP_READ, 0, ap->dap->last_read, &ap->dap->ack,
+			ap->memaccess_tck);
+	ap->dap->last_read = data;
+
+	return retval;
 }
 
 static int jtag_ap_q_write(struct adiv5_ap *ap, unsigned reg,
 		uint32_t data)
 {
-	uint8_t out_value_buf[4];
-
 	int retval = jtag_ap_q_bankselect(ap, reg);
 	if (retval != ERROR_OK)
 		return retval;
 
-	buf_set_u32(out_value_buf, 0, 32, data);
-
-	return adi_jtag_ap_write_check(ap, reg, out_value_buf);
+	retval =  adi_jtag_dp_scan_u32(ap->dap, JTAG_DP_APACC, reg,
+			DPAP_WRITE, data, ap->dap->last_read, &ap->dap->ack,
+			ap->memaccess_tck);
+	ap->dap->last_read = NULL;
+	return retval;
 }
 
 static int jtag_ap_q_abort(struct adiv5_dap *dap, uint8_t *ack)
@@ -374,6 +380,7 @@ static int jtag_ap_q_abort(struct adiv5_dap *dap, uint8_t *ack)
 
 static int jtag_dp_run(struct adiv5_dap *dap)
 {
+	adi_jtag_finish_read(dap);
 	return jtagdp_transaction_endcheck(dap);
 }
 
