@@ -6,4 +6,4 @@
 	url = http://repo.or.cz/r/jimtcl.git
 [submodule "src/jtag/drivers/libjaylink"]
 	path = src/jtag/drivers/libjaylink
-	url = git://repo.or.cz/libjaylink.git
+	url = http://repo.or.cz/r/libjaylink.git
