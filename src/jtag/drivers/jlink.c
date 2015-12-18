@@ -51,9 +51,9 @@ static uint8_t caps[JAYLINK_DEV_EXT_CAPS_SIZE];
 
 static uint32_t serial_number;
 static bool use_serial_number;
-static uint8_t usb_address;
+static enum jaylink_usb_address usb_address;
 static bool use_usb_address;
-static uint8_t iface = JAYLINK_TIF_JTAG;
+static enum jaylink_target_interface iface = JAYLINK_TIF_JTAG;
 static bool trace_enabled;
 
 #define JLINK_MAX_SPEED			12000
@@ -420,7 +420,7 @@ static int select_interface(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	ret = jaylink_select_interface(devh, iface);
+	ret = jaylink_select_interface(devh, iface, NULL);
 
 	if (ret < 0) {
 		LOG_ERROR("jaylink_select_interface() failed: %s.",
@@ -513,6 +513,8 @@ static int jlink_init(void)
 	char *firmware_version;
 	struct jaylink_hardware_version hwver;
 	struct jaylink_hardware_status hwstatus;
+	enum jaylink_usb_address address;
+	size_t length;
 
 	ret = jaylink_init(&jayctx);
 
@@ -537,24 +539,42 @@ static int jlink_init(void)
 		LOG_INFO("No device selected, using first device.");
 
 	for (i = 0; devs[i]; i++) {
-		jaylink_device_get_serial_number(devs[i], &tmp);
-		ret = jaylink_device_get_usb_address(devs[i]);
+		if (use_serial_number) {
+			ret = jaylink_device_get_serial_number(devs[i], &tmp);
 
-		if (use_usb_address && usb_address != ret)
-			continue;
+			if (ret == JAYLINK_ERR_NOT_AVAILABLE) {
+				continue;
+			} else if (ret != JAYLINK_OK) {
+				LOG_WARNING("jaylink_device_get_serial_number() failed: %s.",
+					jaylink_strerror_name(ret));
+				continue;
+			}
 
-		if (use_serial_number && tmp != serial_number)
-			continue;
+			if (serial_number != tmp)
+				continue;
+		}
+
+		if (use_usb_address) {
+			ret = jaylink_device_get_usb_address(devs[i], &address);
+
+			if (ret != JAYLINK_OK) {
+				LOG_WARNING("jaylink_device_get_usb_address() failed: %s.",
+					jaylink_strerror_name(ret));
+				continue;
+			}
+
+			if (usb_address != address)
+				continue;
+		}
 
 		ret = jaylink_open(devs[i], &devh);
 
-		if (ret != JAYLINK_OK) {
-			LOG_ERROR("Failed to open device: %s.", jaylink_strerror_name(ret));
-			continue;
+		if (ret == JAYLINK_OK) {
+			found_device = true;
+			break;
 		}
 
-		found_device = true;
-		break;
+		LOG_ERROR("Failed to open device: %s.", jaylink_strerror_name(ret));
 	}
 
 	jaylink_free_device_list(devs, 1);
@@ -570,19 +590,19 @@ static int jlink_init(void)
 	 * some devices are known to be sensitive regarding the order.
 	 */
 
-	ret = jaylink_get_firmware_version(devh, &firmware_version);
+	ret = jaylink_get_firmware_version(devh, &firmware_version, &length);
 
-	if (ret > 0) {
-		LOG_INFO("%s", firmware_version);
-		free(firmware_version);
-	} else if (!ret) {
-		LOG_WARNING("Device responds empty firmware version string.");
-	} else {
+	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_get_firmware_version() failed: %s.",
 			jaylink_strerror_name(ret));
 		jaylink_close(devh);
 		jaylink_exit(jayctx);
 		return ERROR_JTAG_INIT_FAILED;
+	} else if (length > 0) {
+		LOG_INFO("%s", firmware_version);
+		free(firmware_version);
+	} else {
+		LOG_WARNING("Device responds empty firmware version string.");
 	}
 
 	memset(caps, 0, JAYLINK_DEV_EXT_CAPS_SIZE);
@@ -832,20 +852,24 @@ static void jlink_reset(int trst, int srst)
 
 COMMAND_HANDLER(jlink_usb_command)
 {
+	int tmp;
+
 	if (CMD_ARGC != 1) {
 		command_print(CMD_CTX, "Need exactly one argument for jlink usb.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if (sscanf(CMD_ARGV[0], "%" SCNd8, &usb_address) != 1) {
+	if (sscanf(CMD_ARGV[0], "%i", &tmp) != 1) {
 		command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
-	if (usb_address > JAYLINK_USB_ADDRESS_3) {
+	if (tmp < JAYLINK_USB_ADDRESS_0 || tmp > JAYLINK_USB_ADDRESS_3) {
 		command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
+
+	usb_address = tmp;
 
 	use_serial_number = false;
 	use_usb_address = true;
@@ -1133,15 +1157,17 @@ static uint32_t calculate_trace_buffer_size(void)
 	return tmp & 0xffffff00;
 }
 
-static bool check_trace_freq(uint32_t freq, uint32_t divider, uint32_t trace_freq)
+static bool check_trace_freq(struct jaylink_swo_speed speed,
+		uint32_t trace_freq)
 {
 	double min;
 	double deviation;
+	uint32_t divider;
 
-	min = fabs(1.0 - (freq / ((double)trace_freq * divider)));
+	min = fabs(1.0 - (speed.freq / ((double)trace_freq * speed.min_div)));
 
-	while (freq / divider > 0) {
-		deviation = fabs(1.0 - (freq / ((double)trace_freq * divider)));
+	for (divider = speed.min_div; divider < speed.max_div; divider++) {
+		deviation = fabs(1.0 - (speed.freq / ((double)trace_freq * divider)));
 
 		if (deviation < 0.03) {
 			LOG_DEBUG("Found suitable frequency divider %u with deviation of "
@@ -1151,8 +1177,6 @@ static bool check_trace_freq(uint32_t freq, uint32_t divider, uint32_t trace_fre
 
 		if (deviation < min)
 			min = deviation;
-
-		divider++;
 	}
 
 	LOG_ERROR("Selected trace frequency is not supported by the device. "
@@ -1168,8 +1192,7 @@ static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
 {
 	int ret;
 	uint32_t buffer_size;
-	uint32_t freq;
-	uint32_t divider;
+	struct jaylink_swo_speed speed;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SWO)) {
 		LOG_ERROR("Trace capturing is not supported by the device.");
@@ -1208,7 +1231,7 @@ static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
 		return ERROR_FAIL;
 	}
 
-	ret = jaylink_swo_get_speeds(devh, JAYLINK_SWO_MODE_UART, &freq, &divider);
+	ret = jaylink_swo_get_speeds(devh, JAYLINK_SWO_MODE_UART, &speed);
 
 	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_swo_get_speeds() failed: %s.",
@@ -1217,9 +1240,9 @@ static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
 	}
 
 	if (!*trace_freq)
-		*trace_freq = freq / divider;
+		*trace_freq = speed.freq / speed.min_div;
 
-	if (!check_trace_freq(freq, divider, *trace_freq))
+	if (!check_trace_freq(speed, *trace_freq))
 		return ERROR_FAIL;
 
 	LOG_DEBUG("Using %u bytes device memory for trace capturing.", buffer_size);
