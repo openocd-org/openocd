@@ -2109,7 +2109,7 @@ communicate via pipes(stdin/out or named pipes). The name
 the normal use cases.
 
 No arguments reports GDB port. "pipe" means listen to stdin
-output to stdout, an integer is base port number, "disable"
+output to stdout, an integer is base port number, "disabled"
 disables the gdb server.
 
 When using "pipe", also use log_output to redirect the log
