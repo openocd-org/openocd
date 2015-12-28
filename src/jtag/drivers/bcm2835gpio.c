@@ -196,7 +196,7 @@ COMMAND_HANDLER(bcm2835gpio_handle_jtag_gpionums)
 	}
 
 	command_print(CMD_CTX,
-			"BCM2835 GPIO config: tck = %d, tms = %d, tdi = %d, tdi = %d",
+			"BCM2835 GPIO config: tck = %d, tms = %d, tdi = %d, tdo = %d",
 			tck_gpio, tms_gpio, tdi_gpio, tdo_gpio);
 
 	return ERROR_OK;
