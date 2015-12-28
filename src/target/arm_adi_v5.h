@@ -274,6 +274,10 @@ struct dap_ops {
 
 	/** Executes all queued DAP operations. */
 	int (*run)(struct adiv5_dap *dap);
+
+	/** Executes all queued DAP operations but doesn't check
+	 * sticky error conditions */
+	int (*sync)(struct adiv5_dap *dap);
 };
 
 /*
@@ -395,6 +399,14 @@ static inline int dap_run(struct adiv5_dap *dap)
 {
 	assert(dap->ops != NULL);
 	return dap->ops->run(dap);
+}
+
+static inline int dap_sync(struct adiv5_dap *dap)
+{
+	assert(dap->ops != NULL);
+	if (dap->ops->sync)
+		return dap->ops->sync(dap);
+	return ERROR_OK;
 }
 
 static inline int dap_dp_read_atomic(struct adiv5_dap *dap, unsigned reg,

@@ -679,6 +679,11 @@ static int jtag_dp_run(struct adiv5_dap *dap)
 	return (retval2 != ERROR_OK) ? retval2 : retval;
 }
 
+static int jtag_dp_sync(struct adiv5_dap *dap)
+{
+	return jtagdp_overrun_check(dap);
+}
+
 /* FIXME don't export ... just initialize as
  * part of DAP setup
 */
@@ -689,6 +694,7 @@ const struct dap_ops jtag_dp_ops = {
 	.queue_ap_write      = jtag_ap_q_write,
 	.queue_ap_abort      = jtag_ap_q_abort,
 	.run                 = jtag_dp_run,
+	.sync                = jtag_dp_sync,
 };
 
 
