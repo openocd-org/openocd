@@ -176,7 +176,7 @@ static int mem_ap_setup_transfer(struct adiv5_ap *ap, uint32_t csw, uint32_t tar
 /**
  * Asynchronous (queued) read of a word from memory or a system register.
  *
- * @param dap The DAP connected to the MEM-AP performing the read.
+ * @param ap The MEM-AP to access.
  * @param address Address of the 32-bit word to read; it must be
  *	readable by the currently selected MEM-AP.
  * @param value points to where the word will be stored when the
@@ -184,10 +184,12 @@ static int mem_ap_setup_transfer(struct adiv5_ap *ap, uint32_t csw, uint32_t tar
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-static int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
+int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
 		uint32_t *value)
 {
 	int retval;
+
+	dap_ap_select(ap->dap, ap->ap_num);
 
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
@@ -204,7 +206,7 @@ static int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
  * Synchronous read of a word from memory or a system register.
  * As a side effect, this flushes any queued transactions.
  *
- * @param dap The DAP connected to the MEM-AP performing the read.
+ * @param ap The MEM-AP to access.
  * @param address Address of the 32-bit word to read; it must be
  *	readable by the currently selected MEM-AP.
  * @param value points to where the result will be stored.
@@ -212,7 +214,7 @@ static int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
  * @return ERROR_OK for success; *value holds the result.
  * Otherwise a fault code.
  */
-static int mem_ap_read_atomic_u32(struct adiv5_ap *ap, uint32_t address,
+int mem_ap_read_atomic_u32(struct adiv5_ap *ap, uint32_t address,
 		uint32_t *value)
 {
 	int retval;
@@ -227,7 +229,7 @@ static int mem_ap_read_atomic_u32(struct adiv5_ap *ap, uint32_t address,
 /**
  * Asynchronous (queued) write of a word to memory or a system register.
  *
- * @param dap The DAP connected to the MEM-AP.
+ * @param ap The MEM-AP to access.
  * @param address Address to be written; it must be writable by
  *	the currently selected MEM-AP.
  * @param value Word that will be written to the address when transaction
@@ -235,10 +237,12 @@ static int mem_ap_read_atomic_u32(struct adiv5_ap *ap, uint32_t address,
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-static int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
+int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
 		uint32_t value)
 {
 	int retval;
+
+	dap_ap_select(ap->dap, ap->ap_num);
 
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
@@ -256,14 +260,14 @@ static int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
  * Synchronous write of a word to memory or a system register.
  * As a side effect, this flushes any queued transactions.
  *
- * @param dap The DAP connected to the MEM-AP.
+ * @param ap The MEM-AP to access.
  * @param address Address to be written; it must be writable by
  *	the currently selected MEM-AP.
  * @param value Word that will be written.
  *
  * @return ERROR_OK for success; the data was written.  Otherwise a fault code.
  */
-static int mem_ap_write_atomic_u32(struct adiv5_ap *ap, uint32_t address,
+int mem_ap_write_atomic_u32(struct adiv5_ap *ap, uint32_t address,
 		uint32_t value)
 {
 	int retval = mem_ap_write_u32(ap, address, value);
@@ -277,7 +281,7 @@ static int mem_ap_write_atomic_u32(struct adiv5_ap *ap, uint32_t address,
 /**
  * Synchronous write of a block of memory, using a specific access size.
  *
- * @param dap The DAP connected to the MEM-AP.
+ * @param ap The MEM-AP to access.
  * @param buffer The data buffer to write. No particular alignment is assumed.
  * @param size Which access size to use, in bytes. 1, 2 or 4.
  * @param count The number of writes to do (in size units, not bytes).
@@ -324,6 +328,8 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 	if (ap->unaligned_access_bad && (address % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
+
+	dap_ap_select(ap->dap, ap->ap_num);
 
 	retval = mem_ap_setup_tar(ap, address ^ addr_xor);
 	if (retval != ERROR_OK)
@@ -408,7 +414,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 /**
  * Synchronous read of a block of memory, using a specific access size.
  *
- * @param dap The DAP connected to the MEM-AP.
+ * @param ap The MEM-AP to access.
  * @param buffer The data buffer to receive the data. No particular alignment is assumed.
  * @param size Which access size to use, in bytes. 1, 2 or 4.
  * @param count The number of reads to do (in size units, not bytes).
@@ -455,6 +461,8 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		LOG_ERROR("Failed to allocate read buffer");
 		return ERROR_FAIL;
 	}
+
+	dap_ap_select(ap->dap, ap->ap_num);
 
 	retval = mem_ap_setup_tar(ap, address);
 	if (retval != ERROR_OK) {
@@ -556,62 +564,27 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 	return retval;
 }
 
-/*--------------------------------------------------------------------*/
-/*          Wrapping function with selection of AP                    */
-/*--------------------------------------------------------------------*/
-int mem_ap_sel_read_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t *value)
-{
-	dap_ap_select(ap->dap, ap->ap_num);
-	return mem_ap_read_u32(ap, address, value);
-}
-
-int mem_ap_sel_write_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t value)
-{
-	dap_ap_select(ap->dap, ap->ap_num);
-	return mem_ap_write_u32(ap, address, value);
-}
-
-int mem_ap_sel_read_atomic_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t *value)
-{
-	dap_ap_select(ap->dap, ap->ap_num);
-	return mem_ap_read_atomic_u32(ap, address, value);
-}
-
-int mem_ap_sel_write_atomic_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t value)
-{
-	dap_ap_select(ap->dap, ap->ap_num);
-	return mem_ap_write_atomic_u32(ap, address, value);
-}
-
-int mem_ap_sel_read_buf(struct adiv5_ap *ap,
+int mem_ap_read_buf(struct adiv5_ap *ap,
 		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
-	dap_ap_select(ap->dap, ap->ap_num);
 	return mem_ap_read(ap, buffer, size, count, address, true);
 }
 
-int mem_ap_sel_write_buf(struct adiv5_ap *ap,
+int mem_ap_write_buf(struct adiv5_ap *ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
-	dap_ap_select(ap->dap, ap->ap_num);
 	return mem_ap_write(ap, buffer, size, count, address, true);
 }
 
-int mem_ap_sel_read_buf_noincr(struct adiv5_ap *ap,
+int mem_ap_read_buf_noincr(struct adiv5_ap *ap,
 		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
-	dap_ap_select(ap->dap, ap->ap_num);
 	return mem_ap_read(ap, buffer, size, count, address, false);
 }
 
-int mem_ap_sel_write_buf_noincr(struct adiv5_ap *ap,
+int mem_ap_write_buf_noincr(struct adiv5_ap *ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address)
 {
-	dap_ap_select(ap->dap, ap->ap_num);
 	return mem_ap_write(ap, buffer, size, count, address, false);
 }
 
@@ -902,7 +875,7 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 	ap_old = dap_ap_get_select(dap);
 
 	do {
-		retval = mem_ap_sel_read_atomic_u32(ap, (dbgbase&0xFFFFF000) |
+		retval = mem_ap_read_atomic_u32(ap, (dbgbase&0xFFFFF000) |
 						entry_offset, &romentry);
 		if (retval != ERROR_OK)
 			return retval;
@@ -912,7 +885,7 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 
 		if (romentry & 0x1) {
 			uint32_t c_cid1;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base | 0xff4, &c_cid1);
+			retval = mem_ap_read_atomic_u32(ap, component_base | 0xff4, &c_cid1);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't read component with base address 0x%" PRIx32
 					  ", the corresponding core might be turned off", component_base);
@@ -927,7 +900,7 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 					return retval;
 			}
 
-			retval = mem_ap_sel_read_atomic_u32(ap,
+			retval = mem_ap_read_atomic_u32(ap,
 					(component_base & 0xfffff000) | 0xfcc,
 					&devtype);
 			if (retval != ERROR_OK)
@@ -975,19 +948,19 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 		command_print(cmd_ctx, "\t%sROM table in legacy format", tabs);
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-	retval = mem_ap_sel_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
+	retval = mem_ap_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_sel_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
+	retval = mem_ap_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_sel_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
+	retval = mem_ap_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_sel_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
+	retval = mem_ap_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_sel_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
+	retval = mem_ap_read_u32(ap, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);
@@ -1009,7 +982,7 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 
 	/* Now we read ROM table entries from dbgbase&0xFFFFF000) | 0x000 until we get 0x00000000 */
 	for (entry_offset = 0; ; entry_offset += 4) {
-		retval = mem_ap_sel_read_atomic_u32(ap, (dbgbase&0xFFFFF000) | entry_offset, &romentry);
+		retval = mem_ap_read_atomic_u32(ap, (dbgbase&0xFFFFF000) | entry_offset, &romentry);
 		if (retval != ERROR_OK)
 			return retval;
 		command_print(cmd_ctx, "\t%sROMTABLE[0x%x] = 0x%" PRIx32 "",
@@ -1024,43 +997,43 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			component_base = (dbgbase & 0xFFFFF000) + (romentry & 0xFFFFF000);
 
 			/* IDs are in last 4K section */
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFE0, &c_pid0);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFE0, &c_pid0);
 			if (retval != ERROR_OK) {
 				command_print(cmd_ctx, "\t%s\tCan't read component with base address 0x%" PRIx32
 					      ", the corresponding core might be turned off", tabs, component_base);
 				continue;
 			}
 			c_pid0 &= 0xff;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFE4, &c_pid1);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFE4, &c_pid1);
 			if (retval != ERROR_OK)
 				return retval;
 			c_pid1 &= 0xff;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFE8, &c_pid2);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFE8, &c_pid2);
 			if (retval != ERROR_OK)
 				return retval;
 			c_pid2 &= 0xff;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFEC, &c_pid3);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFEC, &c_pid3);
 			if (retval != ERROR_OK)
 				return retval;
 			c_pid3 &= 0xff;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFD0, &c_pid4);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFD0, &c_pid4);
 			if (retval != ERROR_OK)
 				return retval;
 			c_pid4 &= 0xff;
 
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFF0, &c_cid0);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFF0, &c_cid0);
 			if (retval != ERROR_OK)
 				return retval;
 			c_cid0 &= 0xff;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFF4, &c_cid1);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFF4, &c_cid1);
 			if (retval != ERROR_OK)
 				return retval;
 			c_cid1 &= 0xff;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFF8, &c_cid2);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFF8, &c_cid2);
 			if (retval != ERROR_OK)
 				return retval;
 			c_cid2 &= 0xff;
-			retval = mem_ap_sel_read_atomic_u32(ap, component_base + 0xFFC, &c_cid3);
+			retval = mem_ap_read_atomic_u32(ap, component_base + 0xFFC, &c_cid3);
 			if (retval != ERROR_OK)
 				return retval;
 			c_cid3 &= 0xff;
@@ -1080,7 +1053,7 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 				unsigned minor;
 				const char *major = "Reserved", *subtype = "Reserved";
 
-				retval = mem_ap_sel_read_atomic_u32(ap,
+				retval = mem_ap_read_atomic_u32(ap,
 						(component_base & 0xfffff000) | 0xfcc,
 						&devtype);
 				if (retval != ERROR_OK)
