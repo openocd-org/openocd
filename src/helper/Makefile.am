@@ -17,6 +17,7 @@ libhelper_la_SOURCES = \
 	replacements.c \
 	fileio.c \
 	util.c \
+	jep106.c \
 	jim-nvp.c
 
 if IOUTIL
@@ -45,6 +46,9 @@ noinst_HEADERS = \
 	fileio.h \
 	system.h \
 	bin2char.sh \
+	jep106.h \
+	jep106.inc \
+	update_jep106.pl \
 	jim-nvp.h
 
 EXTRA_DIST = startup.tcl
