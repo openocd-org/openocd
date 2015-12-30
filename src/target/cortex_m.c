@@ -1891,25 +1891,25 @@ int cortex_m_examine(struct target *target)
 	struct adiv5_dap *swjdp = cortex_m->armv7m.arm.dap;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
-	retval = dap_dp_init(swjdp);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("Could not initialize the debug port");
-		return retval;
-	}
-
-	/* Search for the MEM-AP */
-	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("Could not find MEM-AP to control the core");
-		return retval;
-	}
-
-	/* Leave (only) generic DAP stuff for debugport_init(); */
-	armv7m->debug_ap->memaccess_tck = 8;
-
 	/* stlink shares the examine handler but does not support
 	 * all its calls */
 	if (!armv7m->stlink) {
+		retval = dap_dp_init(swjdp);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Could not initialize the debug port");
+			return retval;
+		}
+
+		/* Search for the MEM-AP */
+		retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Could not find MEM-AP to control the core");
+			return retval;
+		}
+
+		/* Leave (only) generic DAP stuff for debugport_init(); */
+		armv7m->debug_ap->memaccess_tck = 8;
+
 		retval = mem_ap_init(armv7m->debug_ap);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1959,7 +1959,7 @@ int cortex_m_examine(struct target *target)
 			armv7m->arm.core_cache->num_regs = ARMV7M_NUM_CORE_REGS_NOFP;
 		}
 
-		if (i == 4 || i == 3) {
+		if ((i == 4 || i == 3) && !armv7m->stlink) {
 			/* Cortex-M3/M4 has 4096 bytes autoincrement range */
 			armv7m->debug_ap->tar_autoincr_block = (1 << 12);
 		}
