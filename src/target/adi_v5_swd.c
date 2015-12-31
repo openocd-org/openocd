@@ -162,15 +162,15 @@ static void swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned reg)
 		return;
 
 	uint32_t select_dp_bank = (reg & 0x000000F0) >> 4;
-	uint32_t select = select_dp_bank
+	uint32_t sel = select_dp_bank
 			| (dap->select & (DP_SELECT_APSEL | DP_SELECT_APBANK));
 
-	if (select == dap->select)
+	if (sel == dap->select)
 		return;
 
-	dap->select = select;
+	dap->select = sel;
 
-	swd_queue_dp_write(dap, DP_SELECT, select);
+	swd_queue_dp_write(dap, DP_SELECT, sel);
 }
 
 static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
@@ -210,16 +210,16 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 static void swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned reg)
 {
 	struct adiv5_dap *dap = ap->dap;
-	uint32_t select = ((uint32_t)ap->ap_num << 24)
+	uint32_t sel = ((uint32_t)ap->ap_num << 24)
 			| (reg & 0x000000F0)
 			| (dap->select & DP_SELECT_DPBANK);
 
-	if (select == dap->select)
+	if (sel == dap->select)
 		return;
 
-	dap->select = select;
+	dap->select = sel;
 
-	swd_queue_dp_write(dap, DP_SELECT, select);
+	swd_queue_dp_write(dap, DP_SELECT, sel);
 }
 
 static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned reg,

@@ -333,14 +333,14 @@ static int jtag_dp_q_write(struct adiv5_dap *dap, unsigned reg,
 static int jtag_ap_q_bankselect(struct adiv5_ap *ap, unsigned reg)
 {
 	struct adiv5_dap *dap = ap->dap;
-	uint32_t select = ((uint32_t)ap->ap_num << 24) | (reg & 0x000000F0);
+	uint32_t sel = ((uint32_t)ap->ap_num << 24) | (reg & 0x000000F0);
 
-	if (select == dap->select)
+	if (sel == dap->select)
 		return ERROR_OK;
 
-	dap->select = select;
+	dap->select = sel;
 
-	return jtag_dp_q_write(dap, DP_SELECT, select);
+	return jtag_dp_q_write(dap, DP_SELECT, sel);
 }
 
 static int jtag_ap_q_read(struct adiv5_ap *ap, unsigned reg,
