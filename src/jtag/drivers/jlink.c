@@ -215,11 +215,11 @@ static int jlink_speed(int speed)
 {
 	int ret;
 	uint32_t freq;
-	uint16_t div;
+	uint16_t divider;
 	int max_speed;
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_SPEEDS)) {
-		ret = jaylink_get_speeds(devh, &freq, &div);
+		ret = jaylink_get_speeds(devh, &freq, &divider);
 
 		if (ret != JAYLINK_OK) {
 			LOG_ERROR("jaylink_get_speeds() failed: %s.",
@@ -228,7 +228,7 @@ static int jlink_speed(int speed)
 		}
 
 		freq = freq / 1000;
-		max_speed = freq / div;
+		max_speed = freq / divider;
 	} else {
 		max_speed = JLINK_MAX_SPEED;
 	}
@@ -1062,26 +1062,26 @@ static uint32_t calculate_trace_buffer_size(void)
 	return tmp & 0xffffff00;
 }
 
-static bool check_trace_freq(uint32_t freq, uint32_t div, uint32_t trace_freq)
+static bool check_trace_freq(uint32_t freq, uint32_t divider, uint32_t trace_freq)
 {
 	double min;
 	double deviation;
 
-	min = fabs(1.0 - (freq / ((double)trace_freq * div)));
+	min = fabs(1.0 - (freq / ((double)trace_freq * divider)));
 
-	while (freq / div > 0) {
-		deviation = fabs(1.0 - (freq / ((double)trace_freq * div)));
+	while (freq / divider > 0) {
+		deviation = fabs(1.0 - (freq / ((double)trace_freq * divider)));
 
 		if (deviation < 0.03) {
 			LOG_DEBUG("Found suitable frequency divider %u with deviation of "
-				"%.02f %%.", div, deviation);
+				"%.02f %%.", divider, deviation);
 			return true;
 		}
 
 		if (deviation < min)
 			min = deviation;
 
-		div++;
+		divider++;
 	}
 
 	LOG_ERROR("Selected trace frequency is not supported by the device. "
@@ -1098,7 +1098,7 @@ static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
 	int ret;
 	uint32_t buffer_size;
 	uint32_t freq;
-	uint32_t div;
+	uint32_t divider;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SWO)) {
 		LOG_ERROR("Trace capturing is not supported by the device.");
@@ -1137,7 +1137,7 @@ static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
 		return ERROR_FAIL;
 	}
 
-	ret = jaylink_swo_get_speeds(devh, JAYLINK_SWO_MODE_UART, &freq, &div);
+	ret = jaylink_swo_get_speeds(devh, JAYLINK_SWO_MODE_UART, &freq, &divider);
 
 	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_swo_get_speeds() failed: %s.",
@@ -1146,9 +1146,9 @@ static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
 	}
 
 	if (!*trace_freq)
-		*trace_freq = freq / div;
+		*trace_freq = freq / divider;
 
-	if (!check_trace_freq(freq, div, *trace_freq))
+	if (!check_trace_freq(freq, divider, *trace_freq))
 		return ERROR_FAIL;
 
 	LOG_DEBUG("Using %u bytes device memory for trace capturing.", buffer_size);
