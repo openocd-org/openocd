@@ -50,7 +50,7 @@
 
 /* pic32mx configuration register locations */
 
-#define PIC32MX_DEVCFG0_1_2	0xBFC00BFC
+#define PIC32MX_DEVCFG0_1xx_2xx	0xBFC00BFC
 #define PIC32MX_DEVCFG0		0xBFC02FFC
 #define PIC32MX_DEVCFG1		0xBFC02FF8
 #define PIC32MX_DEVCFG2		0xBFC02FF4
@@ -91,7 +91,8 @@
 #define NVMKEY1			0xAA996655
 #define NVMKEY2			0x556699AA
 
-#define MX_1_2			1	/* PIC32mx1xx/2xx */
+#define MX_1xx_2xx			1	/* PIC32mx1xx/2xx */
+#define MX_17x_27x			2	/* PIC32mx17x/27x */
 
 struct pic32mx_flash_bank {
 	int probed;
@@ -99,7 +100,7 @@ struct pic32mx_flash_bank {
 };
 
 /*
- * DEVID values as per PIC32MX Flash Programming Specification Rev J
+ * DEVID values as per PIC32MX Flash Programming Specification Rev N
  */
 
 static const struct pic32mx_devs_s {
@@ -118,6 +119,8 @@ static const struct pic32mx_devs_s {
 	{0x04D06053, "150F128B"},
 	{0x04D08053, "150F128C"},
 	{0x04D0A053, "150F128D"},
+	{0x06610053, "170F256B"},
+	{0x0661A053, "170F256D"},
 	{0x04A01053, "210F016B"},
 	{0x04A03053, "210F016C"},
 	{0x04A05053, "210F016D"},
@@ -130,6 +133,24 @@ static const struct pic32mx_devs_s {
 	{0x04D00053, "250F128B"},
 	{0x04D02053, "250F128C"},
 	{0x04D04053, "250F128D"},
+	{0x06600053, "270F256B"},
+	{0x0660A053, "270F256D"},
+	{0x05600053, "330F064H"},
+	{0x05601053, "330F064L"},
+	{0x05602053, "430F064H"},
+	{0x05603053, "430F064L"},
+	{0x0570C053, "350F128H"},
+	{0x0570D053, "350F128L"},
+	{0x0570E053, "450F128H"},
+	{0x0570F053, "450F128L"},
+	{0x05704053, "350F256H"},
+	{0x05705053, "350F256L"},
+	{0x05706053, "450F256H"},
+	{0x05707053, "450F256L"},
+	{0x05808053, "370F512H"},
+	{0x05809053, "370F512L"},
+	{0x0580A053, "470F512H"},
+	{0x0580B053, "470F512L"},
 	{0x00938053, "360F512L"},
 	{0x00934053, "360F256L"},
 	{0x0092D053, "340F128L"},
@@ -258,10 +279,15 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (pic32mx_info->dev_type == MX_1_2)
-		config0_address = PIC32MX_DEVCFG0_1_2;
-	else
+	switch (pic32mx_info->dev_type) {
+	case	MX_1xx_2xx:
+	case	MX_17x_27x:
+		config0_address = PIC32MX_DEVCFG0_1xx_2xx;
+		break;
+	default:
 		config0_address = PIC32MX_DEVCFG0;
+		break;
+	}
 
 	target_read_u32(target, config0_address, &devcfg0);
 
@@ -274,10 +300,17 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 			num_pages = 0xffff;		/* All pages protected */
 	} else {
 		/* pgm flash */
-		if (pic32mx_info->dev_type == MX_1_2)
-			num_pages = (~devcfg0 >> 10) & 0x3f;
-		else
+		switch (pic32mx_info->dev_type) {
+		case	MX_1xx_2xx:
+			num_pages = (~devcfg0 >> 10) & 0x7f;
+			break;
+		case	MX_17x_27x:
+			num_pages = (~devcfg0 >> 10) & 0x1ff;
+			break;
+		default:
 			num_pages = (~devcfg0 >> 12) & 0xff;
+			break;
+		}
 	}
 
 	for (s = 0; s < bank->num_sectors && s < num_pages; s++)
@@ -431,20 +464,24 @@ static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	/* Change values for counters and row size, depending on variant */
-	if (pic32mx_info->dev_type == MX_1_2) {
+	switch (pic32mx_info->dev_type) {
+	case	MX_1xx_2xx:
+	case	MX_17x_27x:
 		/* 128 byte row */
 		pic32mx_flash_write_code[8] = 0x2CD30020;
 		pic32mx_flash_write_code[14] = 0x24840080;
 		pic32mx_flash_write_code[15] = 0x24A50080;
 		pic32mx_flash_write_code[17] = 0x24C6FFE0;
 		row_size = 128;
-	} else {
+		break;
+	default:
 		/* 512 byte row */
 		pic32mx_flash_write_code[8] = 0x2CD30080;
 		pic32mx_flash_write_code[14] = 0x24840200;
 		pic32mx_flash_write_code[15] = 0x24A50200;
 		pic32mx_flash_write_code[17] = 0x24C6FF80;
 		row_size = 512;
+		break;
 	}
 
 	uint8_t code[sizeof(pic32mx_flash_write_code)];
@@ -680,17 +717,21 @@ static int pic32mx_probe(struct flash_bank *bank)
 	/* Check for PIC32mx1xx/2xx */
 	for (i = 0; pic32mx_devs[i].name != NULL; i++) {
 		if (pic32mx_devs[i].devid == (device_id & 0x0fffffff)) {
-			if ((*(pic32mx_devs[i].name) == '1') || (*(pic32mx_devs[i].name) == '2'))
-				pic32mx_info->dev_type = MX_1_2;
+			if ((pic32mx_devs[i].name[0] == '1') || (pic32mx_devs[i].name[0] == '2'))
+				pic32mx_info->dev_type = (pic32mx_devs[i].name[1] == '7') ? MX_17x_27x : MX_1xx_2xx;
 			break;
 		}
 	}
 
-	if (pic32mx_info->dev_type == MX_1_2)
+	switch (pic32mx_info->dev_type) {
+	case	MX_1xx_2xx:
+	case	MX_17x_27x:
 		page_size = 1024;
-	else
+		break;
+	default:
 		page_size = 4096;
-
+		break;
+	}
 
 	if (Virt2Phys(bank->base) == PIC32MX_PHYS_BOOT_FLASH) {
 		/* 0x1FC00000: Boot flash size */
@@ -704,20 +745,29 @@ static int pic32mx_probe(struct flash_bank *bank)
 		}
 #else
 		/* fixed 12k boot bank - see comments above */
-		if (pic32mx_info->dev_type == MX_1_2)
+		switch (pic32mx_info->dev_type) {
+		case	MX_1xx_2xx:
+		case	MX_17x_27x:
 			num_pages = (3 * 1024);
-		else
+			break;
+		default:
 			num_pages = (12 * 1024);
+			break;
+		}
 #endif
 	} else {
 		/* read the flash size from the device */
 		if (target_read_u32(target, PIC32MX_BMXPFMSZ, &num_pages) != ERROR_OK) {
-			if (pic32mx_info->dev_type == MX_1_2) {
+			switch (pic32mx_info->dev_type) {
+			case	MX_1xx_2xx:
+			case	MX_17x_27x:
 				LOG_WARNING("PIC32MX flash size failed, probe inaccurate - assuming 32k flash");
 				num_pages = (32 * 1024);
-			} else {
+				break;
+			default:
 				LOG_WARNING("PIC32MX flash size failed, probe inaccurate - assuming 512k flash");
 				num_pages = (512 * 1024);
+				break;
 			}
 		}
 	}
