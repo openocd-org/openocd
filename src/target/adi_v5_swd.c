@@ -123,6 +123,8 @@ static int swd_connect(struct adiv5_dap *dap)
 
 	status = swd_run_inner(dap);
 
+	dap->select = DP_SELECT_INVALID;
+
 	if (status == ERROR_OK) {
 		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
 		dap->do_reconnect = false;
