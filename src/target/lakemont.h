@@ -1,5 +1,5 @@
 /*
- * Copyright(c) 2013 Intel Corporation.
+ * Copyright(c) 2013-2016 Intel Corporation.
  *
  * Adrian Burns (adrian.burns@intel.com)
  * Thomas Faust (thomas.faust@intel.com)
@@ -101,5 +101,6 @@ int lakemont_step(struct target *t, int current,
 			uint32_t address, int handle_breakpoints);
 int lakemont_reset_assert(struct target *t);
 int lakemont_reset_deassert(struct target *t);
+int lakemont_update_after_probemode_entry(struct target *t);
 
 #endif /* LAKEMONT_H */

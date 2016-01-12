@@ -1,11 +1,12 @@
 /*
- * Copyright(c) 2013 Intel Corporation.
+ * Copyright(c) 2013-2016 Intel Corporation.
  *
  * Adrian Burns (adrian.burns@intel.com)
  * Thomas Faust (thomas.faust@intel.com)
  * Ivan De Cesaris (ivan.de.cesaris@intel.com)
  * Julien Carreno (julien.carreno@intel.com)
  * Jeffrey Maxwell (jeffrey.r.maxwell@intel.com)
+ * Jessica Gomez (jessica.gomez.hernandez@intel.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -498,6 +499,12 @@ static int halt_prep(struct target *t)
 	if (write_hw_reg(t, DSAR, PM_DSAR, 0) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("write DSAR 0x%08" PRIx32, PM_DSAR);
+	if (write_hw_reg(t, CSB, PM_DSB, 0) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("write %s 0x%08" PRIx32, regs[CSB].name, PM_DSB);
+	if (write_hw_reg(t, CSL, PM_DSL, 0) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("write %s 0x%08" PRIx32, regs[CSL].name, PM_DSL);
 	if (write_hw_reg(t, DR7, PM_DR7, 0) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("write DR7 0x%08" PRIx32, PM_DR7);
@@ -511,8 +518,7 @@ static int halt_prep(struct target *t)
 	LOG_DEBUG("EFLAGS = 0x%08" PRIx32 ", VM86 = %d, IF = %d", eflags,
 			eflags & EFLAGS_VM86 ? 1 : 0,
 			eflags & EFLAGS_IF ? 1 : 0);
-	if (eflags & EFLAGS_VM86
-		|| eflags & EFLAGS_IF) {
+	if ((eflags & EFLAGS_VM86) || (eflags & EFLAGS_IF)) {
 		x86_32->pm_regs[I(EFLAGS)] = eflags & ~(EFLAGS_VM86 | EFLAGS_IF);
 		if (write_hw_reg(t, EFLAGS, x86_32->pm_regs[I(EFLAGS)], 0) != ERROR_OK)
 			return ERROR_FAIL;
@@ -530,14 +536,14 @@ static int halt_prep(struct target *t)
 		LOG_DEBUG("write CSAR_CPL to 0 0x%08" PRIx32, x86_32->pm_regs[I(CSAR)]);
 	}
 	if (ssar & SSAR_DPL) {
-		x86_32->pm_regs[I(SSAR)] = ssar & ~CSAR_DPL;
+		x86_32->pm_regs[I(SSAR)] = ssar & ~SSAR_DPL;
 		if (write_hw_reg(t, SSAR, x86_32->pm_regs[I(SSAR)], 0) != ERROR_OK)
 			return ERROR_FAIL;
 		LOG_DEBUG("write SSAR_CPL to 0 0x%08" PRIx32, x86_32->pm_regs[I(SSAR)]);
 	}
 
-	/* if cache's are enabled, disable and flush */
-	if (!(cr0 & CR0_CD)) {
+	/* if cache's are enabled, disable and flush, depending on the core version */
+	if (!(x86_32->core_type == LMT3_5) && !(cr0 & CR0_CD)) {
 		LOG_DEBUG("caching enabled CR0 = 0x%08" PRIx32, cr0);
 		if (cr0 & CR0_PG) {
 			x86_32->pm_regs[I(CR0)] = cr0 & ~CR0_PG;
@@ -563,6 +569,13 @@ static int do_halt(struct target *t)
 	t->state = TARGET_DEBUG_RUNNING;
 	if (enter_probemode(t) != ERROR_OK)
 		return ERROR_FAIL;
+
+	return lakemont_update_after_probemode_entry(t);
+}
+
+/* we need to expose the update to be able to complete the reset at SoC level */
+int lakemont_update_after_probemode_entry(struct target *t)
+{
 	if (save_context(t) != ERROR_OK)
 		return ERROR_FAIL;
 	if (halt_prep(t) != ERROR_OK)
@@ -677,15 +690,15 @@ static int write_hw_reg(struct target *t, int reg, uint32_t regval, uint8_t cach
 			arch_info->op,
 			regval);
 
-	scan.out[0] = RDWRPDR;
 	x86_32->flush = 0; /* dont flush scans till we have a batch */
-	if (irscan(t, scan.out, NULL, LMT_IRLEN) != ERROR_OK)
-		return ERROR_FAIL;
-	if (drscan(t, reg_buf, scan.out, PDR_SIZE) != ERROR_OK)
-		return ERROR_FAIL;
 	if (submit_reg_pir(t, reg) != ERROR_OK)
 		return ERROR_FAIL;
 	if (submit_instruction_pir(t, SRAMACCESS) != ERROR_OK)
+		return ERROR_FAIL;
+	scan.out[0] = RDWRPDR;
+	if (irscan(t, scan.out, NULL, LMT_IRLEN) != ERROR_OK)
+		return ERROR_FAIL;
+	if (drscan(t, reg_buf, scan.out, PDR_SIZE) != ERROR_OK)
 		return ERROR_FAIL;
 	x86_32->flush = 1;
 	if (submit_instruction_pir(t, PDR2SRAM) != ERROR_OK)

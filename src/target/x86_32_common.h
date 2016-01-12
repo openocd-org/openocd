@@ -1,5 +1,5 @@
 /*
- * Copyright(c) 2013 Intel Corporation.
+ * Copyright(c) 2013-2016 Intel Corporation.
  *
  * Adrian Burns (adrian.burns@intel.com)
  * Thomas Faust (thomas.faust@intel.com)
@@ -196,6 +196,11 @@ enum {
 	WBINVD,
 };
 
+enum x86_core_type {
+	LMT1,
+	LMT3_5
+};
+
 struct swbp_mem_patch {
 	uint8_t orig_byte;
 	uint32_t swbp_unique_id;
@@ -209,6 +214,7 @@ struct swbp_mem_patch {
 struct x86_32_common {
 	uint32_t common_magic;
 	void *arch_info;
+	enum x86_core_type core_type;
 	struct reg_cache *cache;
 	struct jtag_tap *curr_tap;
 	uint32_t stored_pc;

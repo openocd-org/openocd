@@ -1,11 +1,8 @@
 /*
- * Copyright(c) 2013-2016 Intel Corporation.
+ * Copyright(c) 2015-2016 Intel Corporation.
  *
- * Adrian Burns (adrian.burns@intel.com)
- * Thomas Faust (thomas.faust@intel.com)
+ * Jessica Gomez (jessica.gomez.hernandez@intel.com)
  * Ivan De Cesaris (ivan.de.cesaris@intel.com)
- * Julien Carreno (julien.carreno@intel.com)
- * Jeffrey Maxwell (jeffrey.r.maxwell@intel.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,28 +14,18 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
- *
  * Contact Information:
  * Intel Corporation
  */
 
 /*
  * @file
- * Debugger for Intel Quark SoC X1000
- * Intel Quark X10xx is the first product in the Quark family of SoCs.
- * It is an IA-32 (Pentium x86 ISA) compatible SoC. The core CPU in the
- * X10xx is codenamed Lakemont. Lakemont version 1 (LMT1) is used in X10xx.
+ * Debugger for Intel Quark D20xx
  * The CPU TAP (Lakemont TAP) is used for software debug and the CLTAP is
  * used for SoC level operations.
- * Useful docs are here: https://communities.intel.com/community/makers/documentation
- * Intel Quark SoC X1000 OpenOCD/GDB/Eclipse App Note (web search for doc num 330015)
- * Intel Quark SoC X1000 Debug Operations User Guide (web search for doc num 329866)
- * Intel Quark SoC X1000 Datasheet (web search for doc num 329676)
  *
- * This file implements any Quark SoC specific features such as resetbreak (TODO)
+ * Reference document:
+ * Intel Quark microcontroller D2000 Debug Operations (web search for doc num 333241)
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,10 +36,11 @@
 
 #include "target.h"
 #include "target_type.h"
+#include "breakpoints.h"
 #include "lakemont.h"
 #include "x86_32_common.h"
 
-int quark_x10xx_target_create(struct target *t, Jim_Interp *interp)
+int quark_d20xx_target_create(struct target *t, Jim_Interp *interp)
 {
 	struct x86_32_common *x86_32 = calloc(1, sizeof(struct x86_32_common));
 	if (x86_32 == NULL) {
@@ -61,20 +49,45 @@ int quark_x10xx_target_create(struct target *t, Jim_Interp *interp)
 	}
 	x86_32_common_init_arch_info(t, x86_32);
 	lakemont_init_arch_info(t, x86_32);
-	x86_32->core_type = LMT1;
+	x86_32->core_type = LMT3_5;
 	return ERROR_OK;
 }
 
-int quark_x10xx_init_target(struct command_context *cmd_ctx, struct target *t)
+int quark_d20xx_init_target(struct command_context *cmd_ctx, struct target *t)
 {
 	return lakemont_init_target(cmd_ctx, t);
 }
 
-struct target_type quark_x10xx_target = {
-	.name = "quark_x10xx",
-	/* Quark X1000 SoC */
-	.target_create = quark_x10xx_target_create,
-	.init_target = quark_x10xx_init_target,
+static int quark_d20xx_reset_deassert(struct target *t)
+{
+	int retval;
+
+	/* Can't detect if a warm reset happened while halted but we can make the
+	 * openocd and target state consistent here if in probe mode already
+	 */
+	if (!check_not_halted(t)) {
+		retval = lakemont_update_after_probemode_entry(t);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("%s core state update fail", __func__);
+			return retval;
+		}
+		/* resume target if reset mode is run */
+		if (!t->reset_halt) {
+			retval = lakemont_resume(t, 1, 0, 0, 0);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("%s could not resume target", __func__);
+				return retval;
+			}
+		}
+	}
+
+	return ERROR_OK;
+}
+
+struct target_type quark_d20xx_target = {
+	.name = "quark_d20xx",
+	.target_create = quark_d20xx_target_create,
+	.init_target = quark_d20xx_init_target,
 	/* lakemont probemode specific code */
 	.poll = lakemont_poll,
 	.arch_state = lakemont_arch_state,
@@ -82,7 +95,7 @@ struct target_type quark_x10xx_target = {
 	.resume = lakemont_resume,
 	.step = lakemont_step,
 	.assert_reset = lakemont_reset_assert,
-	.deassert_reset = lakemont_reset_deassert,
+	.deassert_reset = quark_d20xx_reset_deassert,
 	/* common x86 code */
 	.commands = x86_32_command_handlers,
 	.get_gdb_reg_list = x86_32_get_gdb_reg_list,
