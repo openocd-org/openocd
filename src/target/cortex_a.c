@@ -299,7 +299,7 @@ static int cortex_a_wait_instrcmpl(struct target *target, uint32_t *dscr, bool f
 	 * Writes final value of DSCR into *dscr. Pass force to force always
 	 * reading DSCR at least once. */
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	while ((*dscr & DSCR_INSTR_COMP) == 0 || force) {
 		force = false;
 		int retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
@@ -342,7 +342,7 @@ static int cortex_a_exec_opcode(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	do {
 		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
@@ -431,7 +431,7 @@ static int cortex_a_dap_read_coreregister_u32(struct target *target,
 	}
 
 	/* Wait for DTRRXfull then read DTRRTX */
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
 		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
@@ -574,7 +574,7 @@ static int cortex_a_read_dcc(struct cortex_a_common *a, uint32_t *data,
 		dscr = *dscr_p;
 
 	/* Wait for DTRRXfull */
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
 		retval = mem_ap_read_atomic_u32(a->armv7a_common.debug_ap,
 				a->armv7a_common.debug_base + CPUDBG_DSCR,
@@ -606,7 +606,7 @@ static int cortex_a_dpm_prepare(struct arm_dpm *dpm)
 	int retval;
 
 	/* set up invariant:  INSTR_COMP is set after ever DPM operation */
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	for (;; ) {
 		retval = mem_ap_read_atomic_u32(a->armv7a_common.debug_ap,
 				a->armv7a_common.debug_base + CPUDBG_DSCR,
@@ -974,7 +974,7 @@ static int cortex_a_halt(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	for (;; ) {
 		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
@@ -1121,7 +1121,7 @@ static int cortex_a_internal_restart(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	for (;; ) {
 		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
@@ -1443,7 +1443,7 @@ static int cortex_a_step(struct target *target, int current, uint32_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	while (target->state != TARGET_HALTED) {
 		retval = cortex_a_poll(target);
 		if (retval != ERROR_OK)
@@ -1977,7 +1977,7 @@ static int cortex_a_wait_dscr_bits(struct target *target, uint32_t mask,
 {
 	/* Waits until the specified bit(s) of DSCR take on a specified value. */
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	int retval;
 
 	while ((*dscr & mask) != value) {
@@ -2908,6 +2908,7 @@ static int cortex_a_handle_target_request(void *priv)
 				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 
 		/* check if we have data */
+		int64_t then = timeval_ms();
 		while ((dscr & DSCR_DTR_TX_FULL) && (retval == ERROR_OK)) {
 			retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 					armv7a->debug_base + CPUDBG_DTRTX, &request);
@@ -2915,6 +2916,10 @@ static int cortex_a_handle_target_request(void *priv)
 				target_request(target, request);
 				retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 						armv7a->debug_base + CPUDBG_DSCR, &dscr);
+			}
+			if (timeval_ms() > then + 1000) {
+				LOG_ERROR("Timeout waiting for dtr tx full");
+				return ERROR_FAIL;
 			}
 		}
 	}
