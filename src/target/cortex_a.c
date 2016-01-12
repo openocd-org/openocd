@@ -2305,7 +2305,7 @@ out:
 	/* Wait until DTRRX is empty (according to ARMv7-A/-R architecture manual
 	 * section C8.4.3, checking InstrCmpl_l is not sufficient; one must also
 	 * check RXfull_l). Most of the time this will be free because RXfull_l
-	 * will be cleared immediately and cached in dscr. However, don’t do this
+	 * will be cleared immediately and cached in dscr. However, don't do this
 	 * if there is fault, because then the instruction might not have completed
 	 * successfully. */
 	if (!(dscr & DSCR_STICKY_ABORT_PRECISE)) {
