@@ -3522,8 +3522,8 @@ struct target_type cortexr4_target = {
 	/* REVISIT allow exporting VFP3 registers ... */
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
-	.read_memory = cortex_a_read_memory,
-	.write_memory = cortex_a_write_memory,
+	.read_memory = cortex_a_read_phys_memory,
+	.write_memory = cortex_a_write_phys_memory,
 
 	.checksum_memory = arm_checksum_memory,
 	.blank_check_memory = arm_blank_check_memory,
