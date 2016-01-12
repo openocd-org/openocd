@@ -140,6 +140,12 @@ static const struct {
 		.n_indices = ARRAY_SIZE(arm_mon_indices),
 		.indices = arm_mon_indices,
 	},
+	{
+		.name = "Secure Monitor ARM1176JZF-S",
+		.psr = ARM_MODE_1176_MON,
+		.n_indices = ARRAY_SIZE(arm_mon_indices),
+		.indices = arm_mon_indices,
+	},
 
 	/* These special modes are currently only supported
 	 * by ARMv6M and ARMv7M profiles */
@@ -199,6 +205,7 @@ int arm_mode_to_number(enum arm_mode mode)
 		case ARM_MODE_SYS:
 			return 6;
 		case ARM_MODE_MON:
+		case ARM_MODE_1176_MON:
 			return 7;
 		default:
 			LOG_ERROR("invalid mode value encountered %d", mode);

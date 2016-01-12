@@ -61,6 +61,7 @@ enum arm_mode {
 	ARM_MODE_MON = 22,
 	ARM_MODE_ABT = 23,
 	ARM_MODE_UND = 27,
+	ARM_MODE_1176_MON = 28,
 	ARM_MODE_SYS = 31,
 
 	ARM_MODE_THREAD = 0,
