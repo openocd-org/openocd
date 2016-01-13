@@ -3636,14 +3636,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 
 				data = malloc(buf_cnt);
 
-				/* Can we use 32bit word accesses? */
-				int size = 1;
-				int count = buf_cnt;
-				if ((count % 4) == 0) {
-					size *= 4;
-					count /= 4;
-				}
-				retval = target_read_memory(target, image.sections[i].base_address, size, count, data);
+				retval = target_read_buffer(target, image.sections[i].base_address, buf_cnt, data);
 				if (retval == ERROR_OK) {
 					uint32_t t;
 					for (t = 0; t < buf_cnt; t++) {
