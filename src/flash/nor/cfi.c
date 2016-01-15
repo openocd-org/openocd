@@ -1529,16 +1529,16 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, const uint8_t 
 	}
 	;
 
-	init_reg_param(&reg_params[0], "a0", 32, PARAM_OUT);
-	init_reg_param(&reg_params[1], "a1", 32, PARAM_OUT);
-	init_reg_param(&reg_params[2], "a2", 32, PARAM_OUT);
-	init_reg_param(&reg_params[3], "a3", 32, PARAM_OUT);
-	init_reg_param(&reg_params[4], "t0", 32, PARAM_OUT);
-	init_reg_param(&reg_params[5], "t1", 32, PARAM_IN);
-	init_reg_param(&reg_params[6], "t4", 32, PARAM_OUT);
-	init_reg_param(&reg_params[7], "t5", 32, PARAM_OUT);
-	init_reg_param(&reg_params[8], "t6", 32, PARAM_OUT);
-	init_reg_param(&reg_params[9], "t7", 32, PARAM_OUT);
+	init_reg_param(&reg_params[0], "r4", 32, PARAM_OUT);
+	init_reg_param(&reg_params[1], "r5", 32, PARAM_OUT);
+	init_reg_param(&reg_params[2], "r6", 32, PARAM_OUT);
+	init_reg_param(&reg_params[3], "r7", 32, PARAM_OUT);
+	init_reg_param(&reg_params[4], "r8", 32, PARAM_OUT);
+	init_reg_param(&reg_params[5], "r9", 32, PARAM_IN);
+	init_reg_param(&reg_params[6], "r12", 32, PARAM_OUT);
+	init_reg_param(&reg_params[7], "r13", 32, PARAM_OUT);
+	init_reg_param(&reg_params[8], "r14", 32, PARAM_OUT);
+	init_reg_param(&reg_params[9], "r15", 32, PARAM_OUT);
 
 	while (count > 0) {
 		uint32_t thisrun_count = (count > buffer_size) ? buffer_size : count;

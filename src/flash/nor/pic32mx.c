@@ -472,9 +472,9 @@ static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
 	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
 
-	init_reg_param(&reg_params[0], "a0", 32, PARAM_IN_OUT);
-	init_reg_param(&reg_params[1], "a1", 32, PARAM_OUT);
-	init_reg_param(&reg_params[2], "a2", 32, PARAM_OUT);
+	init_reg_param(&reg_params[0], "r4", 32, PARAM_IN_OUT);
+	init_reg_param(&reg_params[1], "r5", 32, PARAM_OUT);
+	init_reg_param(&reg_params[2], "r6", 32, PARAM_OUT);
 
 	int row_offset = offset % row_size;
 	uint8_t *new_buffer = NULL;
