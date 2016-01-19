@@ -2610,8 +2610,22 @@ Set a previously defined signal to the specified level.
 @end itemize
 @end deffn
 
+@deffn {Command} {ftdi_tdo_sample_edge} @option{rising}|@option{falling}
+Configure TCK edge at which the adapter samples the value of the TDO signal
+
+Due to signal propagation delays, sampling TDO on rising TCK can become quite
+peculiar at high JTAG clock speeds. However, FTDI chips offer a possiblity to sample
+TDO on falling edge of TCK. With some board/adapter configurations, this may increase
+stability at higher JTAG clocks.
+@itemize @minus
+@item @option{rising}, sample TDO on rising edge of TCK - this is the default
+@item @option{falling}, sample TDO on falling edge of TCK
+@end itemize
+@end deffn
+
 For example adapter definitions, see the configuration files shipped in the
 @file{interface/ftdi} directory.
+
 @end deffn
 
 @deffn {Interface Driver} {remote_bitbang}
