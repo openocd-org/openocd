@@ -624,9 +624,8 @@ int telnet_init(char *banner)
 		return ERROR_OK;
 	}
 
-	struct telnet_service *telnet_service;
-
-	telnet_service = malloc(sizeof(struct telnet_service));
+	struct telnet_service *telnet_service =
+		malloc(sizeof(struct telnet_service));
 
 	if (!telnet_service) {
 		LOG_ERROR("Failed to allocate telnet service.");
@@ -635,13 +634,16 @@ int telnet_init(char *banner)
 
 	telnet_service->banner = banner;
 
-	return add_service("telnet",
-		telnet_port,
-		CONNECTION_LIMIT_UNLIMITED,
-		telnet_new_connection,
-		telnet_input,
-		telnet_connection_closed,
+	int ret = add_service("telnet", telnet_port, CONNECTION_LIMIT_UNLIMITED,
+		telnet_new_connection, telnet_input, telnet_connection_closed,
 		telnet_service);
+
+	if (ret != ERROR_OK) {
+		free(telnet_service);
+		return ret;
+	}
+
+	return ERROR_OK;
 }
 
 /* daemon configuration command telnet_port */
