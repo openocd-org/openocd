@@ -459,7 +459,7 @@ static int openjtag_init_cy7c65215(void)
 
 	ret = jtag_libusb_choose_interface(usbh, &ep_in, &ep_out,
 									   CY7C65215_JTAG_CLASS,
-									   CY7C65215_JTAG_SUBCLASS, -1);
+									   CY7C65215_JTAG_SUBCLASS, -1, LIBUSB_TRANSFER_TYPE_BULK);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("unable to claim JTAG interface");
 		goto err;
