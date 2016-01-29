@@ -214,12 +214,14 @@ static int cmsis_dap_usb_open(void)
 			/* we have found an adapter, so exit further checks */
 			/* check serial number matches if given */
 			if (cmsis_dap_serial != NULL) {
-				if (wcscmp(cmsis_dap_serial, cur_dev->serial_number) == 0) {
+				if ((cur_dev->serial_number != NULL) && wcscmp(cmsis_dap_serial, cur_dev->serial_number) == 0) {
 					serial_found = true;
 					break;
 				}
 			} else
 				break;
+
+			found = false;
 		}
 
 		cur_dev = cur_dev->next;
