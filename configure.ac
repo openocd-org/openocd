@@ -129,6 +129,9 @@ m4_define([USB0_ADAPTERS],
 m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP]]])
 
+m4_define([HIDAPI_USB1_ADAPTERS],
+	[[[kitprog], [Cypress KitProg Programmer], [KITPROG]]])
+
 m4_define([LIBFTDI_ADAPTERS],
 	[[[usb_blaster], [Altera USB-Blaster Compatible], [USB_BLASTER]],
 	[[presto], [ASIX Presto Adapter], [PRESTO]],
@@ -243,6 +246,7 @@ AC_ARG_ADAPTERS([
   USB_ADAPTERS,
   USB0_ADAPTERS,
   HIDAPI_ADAPTERS,
+  HIDAPI_USB1_ADAPTERS,
   LIBFTDI_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
@@ -638,6 +642,7 @@ PROCESS_ADAPTERS([USB1_ADAPTERS], ["x$use_libusb1" = "xyes"], [libusb-1.x])
 PROCESS_ADAPTERS([USB_ADAPTERS], ["x$use_libusb1" = "xyes" -o "x$use_libusb0" = "xyes"], [libusb-1.x or libusb-0.1])
 PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
+PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_libusb1" = "xyes" -a "x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libusb-1.x or libjaylink-0.1])
 
@@ -768,7 +773,8 @@ echo
 echo OpenOCD configuration summary
 echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS,
-	HIDAPI_ADAPTERS, LIBFTDI_ADAPTERS, LIBJAYLINK_ADAPTERS],
+	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
+	LIBJAYLINK_ADAPTERS],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	AS_CASE([$ADAPTER_VAR([adapter])],
 		[auto], [

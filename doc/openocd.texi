@@ -2742,6 +2742,62 @@ As a configuration command, it can be used only before 'init'.
 @end deffn
 @end deffn
 
+@deffn {Interface Driver} {kitprog}
+This driver is for Cypress Semiconductor's KitProg adapters. The KitProg is an
+SWD-only adapter that is designed to be used with Cypress's PSoC and PRoC device
+families, but it is possible to use it with some other devices. If you are using
+this adapter with a PSoC or a PRoC, you may need to add
+@command{kitprog_init_acquire_psoc} or @command{kitprog acquire_psoc} to your
+configuration script.
+
+Note that this driver is for the proprietary KitProg protocol, not the CMSIS-DAP
+mode introduced in firmware 2.14. If the KitProg is in CMSIS-DAP mode, it cannot
+be used with this driver, and must either be used with the cmsis-dap driver or
+switched back to KitProg mode. See the Cypress KitProg User Guide for
+instructions on how to switch KitProg modes.
+
+Known limitations:
+@itemize @bullet
+@item The frequency of SWCLK cannot be configured, and varies between 1.6 MHz
+and 2.7 MHz.
+@item For firmware versions below 2.14, "JTAG to SWD" sequences are replaced by
+"SWD line reset" in the driver. This is for two reasons. First, the KitProg does
+not support sending arbitrary SWD sequences, and only firmware 2.14 and later
+implement both "JTAG to SWD" and "SWD line reset" in firmware. Earlier firmware
+versions only implement "SWD line reset". Second, due to a firmware quirk, an
+SWD sequence must be sent after every target reset in order to re-establish
+communications with the target.
+@item Due in part to the limitation above, KitProg devices with firmware below
+version 2.14 will need to use @command{kitprog_init_acquire_psoc} in order to
+communicate with PSoC 5LP devices. This is because, assuming debug is not
+disabled on the PSoC, the PSoC 5LP needs its JTAG interface switched to SWD
+mode before communication can begin, but prior to firmware 2.14, "JTAG to SWD"
+could only be sent with an acquisition sequence.
+@end itemize
+
+@deffn {Config Command} {kitprog_init_acquire_psoc}
+Indicate that a PSoC acquisition sequence needs to be run during adapter init.
+Please be aware that the acquisition sequence hard-resets the target.
+@end deffn
+
+@deffn {Config Command} {kitprog_serial} serial
+Select a KitProg device by its @var{serial}. If left unspecified, the first
+device detected by OpenOCD will be used.
+@end deffn
+
+@deffn {Command} {kitprog acquire_psoc}
+Run a PSoC acquisition sequence immediately. Typically, this should not be used
+outside of the target-specific configuration scripts since it hard-resets the
+target as a side-effect.
+This is necessary for "reset halt" on some PSoC 4 series devices.
+@end deffn
+
+@deffn {Command} {kitprog info}
+Display various adapter information, such as the hardware version, firmware
+version, and target voltage.
+@end deffn
+@end deffn
+
 @deffn {Interface Driver} {parport}
 Supports PC parallel port bit-banging cables:
 Wigglers, PLD download cable, and more.
