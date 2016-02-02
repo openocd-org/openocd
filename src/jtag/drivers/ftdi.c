@@ -91,6 +91,7 @@
 
 static char *ftdi_device_desc;
 static char *ftdi_serial;
+static char *ftdi_location;
 static uint8_t ftdi_channel;
 static uint8_t ftdi_jtag_mode = JTAG_MODE;
 
@@ -631,7 +632,7 @@ static int ftdi_initialize(void)
 
 	for (int i = 0; ftdi_vid[i] || ftdi_pid[i]; i++) {
 		mpsse_ctx = mpsse_open(&ftdi_vid[i], &ftdi_pid[i], ftdi_device_desc,
-				ftdi_serial, ftdi_channel);
+				ftdi_serial, ftdi_location, ftdi_channel);
 		if (mpsse_ctx)
 			break;
 	}
@@ -691,6 +692,19 @@ COMMAND_HANDLER(ftdi_handle_serial_command)
 		if (ftdi_serial)
 			free(ftdi_serial);
 		ftdi_serial = strdup(CMD_ARGV[0]);
+	} else {
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ftdi_handle_location_command)
+{
+	if (CMD_ARGC == 1) {
+		if (ftdi_location)
+			free(ftdi_location);
+		ftdi_location = strdup(CMD_ARGV[0]);
 	} else {
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -874,6 +888,13 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the serial number of the FTDI device",
 		.usage = "serial_string",
+	},
+	{
+		.name = "ftdi_location",
+		.handler = &ftdi_handle_location_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the USB bus location of the FTDI device",
+		.usage = "<bus>:port[,port]...",
 	},
 	{
 		.name = "ftdi_channel",

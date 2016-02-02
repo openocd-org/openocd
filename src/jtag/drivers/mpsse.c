@@ -104,12 +104,65 @@ static bool string_descriptor_equal(libusb_device_handle *device, uint8_t str_in
 	return strncmp(string, desc_string, sizeof(desc_string)) == 0;
 }
 
+static bool device_location_equal(libusb_device *device, const char *location)
+{
+	char *loc = strdup(location);
+	uint8_t port_path[7];
+	int path_step, path_len;
+	uint8_t dev_bus = libusb_get_bus_number(device);
+	char *ptr;
+	bool result = false;
+
+	path_len = libusb_get_port_numbers(device, port_path, 7);
+	if (path_len == LIBUSB_ERROR_OVERFLOW) {
+		LOG_ERROR("cannot determine path to usb device! (more than 7 ports in path)");
+		goto done;
+	}
+
+	LOG_DEBUG("device path has %i steps", path_len);
+
+	ptr = strtok(loc, ":");
+	if (ptr == NULL) {
+		LOG_DEBUG("no ':' in path");
+		goto done;
+	}
+	if (atoi(ptr) != dev_bus) {
+		LOG_DEBUG("bus mismatch");
+		goto done;
+	}
+
+	path_step = 0;
+	while (path_step < 7) {
+		ptr = strtok(NULL, ",");
+		if (ptr == NULL) {
+			LOG_DEBUG("no more tokens in path at step %i", path_step);
+			break;
+		}
+
+		if (path_step < path_len
+			&& atoi(ptr) != port_path[path_step]) {
+			LOG_DEBUG("path mismatch at step %i", path_step);
+			break;
+		}
+
+		path_step++;
+	};
+
+	/* walked the full path, all elements match */
+	if (path_step == path_len)
+		result = true;
+
+ done:
+	free(loc);
+	return result;
+}
+
 /* Helper to open a libusb device that matches vid, pid, product string and/or serial string.
  * Set any field to 0 as a wildcard. If the device is found true is returned, with ctx containing
  * the already opened handle. ctx->interface must be set to the desired interface (channel) number
  * prior to calling this function. */
 static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, const uint16_t *pid,
-	const char *product, const char *serial)
+	const char *product, const char *serial, const char *location)
 {
 	libusb_device **list;
 	struct libusb_device_descriptor desc;
@@ -138,6 +191,11 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 		if (err != LIBUSB_SUCCESS) {
 			LOG_ERROR("libusb_open() failed with %s",
 				  libusb_error_name(err));
+			continue;
+		}
+
+		if (location && !device_location_equal(device, location)) {
+			libusb_close(ctx->usb_dev);
 			continue;
 		}
 
@@ -263,7 +321,7 @@ error:
 }
 
 struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const char *description,
-	const char *serial, int channel)
+	const char *serial, const char *location, int channel)
 {
 	struct mpsse_ctx *ctx = calloc(1, sizeof(*ctx));
 	int err;
@@ -292,16 +350,17 @@ struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const cha
 		goto error;
 	}
 
-	if (!open_matching_device(ctx, vid, pid, description, serial)) {
+	if (!open_matching_device(ctx, vid, pid, description, serial, location)) {
 		/* Four hex digits plus terminating zero each */
 		char vidstr[5];
 		char pidstr[5];
-		LOG_ERROR("unable to open ftdi device with vid %s, pid %s, description '%s' and "
-				"serial '%s'",
+		LOG_ERROR("unable to open ftdi device with vid %s, pid %s, description '%s', "
+				"serial '%s' at bus location '%s'",
 				vid ? sprintf(vidstr, "%04x", *vid), vidstr : "*",
 				pid ? sprintf(pidstr, "%04x", *pid), pidstr : "*",
 				description ? description : "*",
-				serial ? serial : "*");
+				serial ? serial : "*",
+				location ? location : "*");
 		ctx->usb_dev = 0;
 		goto error;
 	}
