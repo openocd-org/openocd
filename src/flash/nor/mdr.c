@@ -474,6 +474,100 @@ free_buffer:
 	return retval;
 }
 
+static int mdr_read(struct flash_bank *bank, uint8_t *buffer,
+		    uint32_t offset, uint32_t count)
+{
+	struct target *target = bank->target;
+	struct mdr_flash_bank *mdr_info = bank->driver_priv;
+	int retval, retval2;
+
+	if (!mdr_info->mem_type)
+		return default_flash_read(bank, buffer, offset, count);
+
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	if (offset & 0x3) {
+		LOG_ERROR("offset 0x%" PRIx32 " breaks required 4-byte alignment", offset);
+		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+	}
+
+	if (count & 0x3) {
+		LOG_ERROR("count 0x%" PRIx32 " breaks required 4-byte alignment", count);
+		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+	}
+
+	uint32_t flash_cmd, cur_per_clock;
+
+	retval = target_read_u32(target, MD_PER_CLOCK, &cur_per_clock);
+	if (retval != ERROR_OK)
+		goto err;
+
+	if (!(cur_per_clock & MD_PER_CLOCK_RST_CLK)) {
+		/* Something's very wrong if the RST_CLK module is not clocked */
+		LOG_ERROR("Target needs reset before flash operations");
+		retval = ERROR_FLASH_OPERATION_FAILED;
+		goto err;
+	}
+
+	retval = target_write_u32(target, MD_PER_CLOCK, cur_per_clock | MD_PER_CLOCK_EEPROM);
+	if (retval != ERROR_OK)
+		goto err;
+
+	retval = target_write_u32(target, FLASH_KEY, KEY);
+	if (retval != ERROR_OK)
+		goto err;
+
+	retval = target_read_u32(target, FLASH_CMD, &flash_cmd);
+	if (retval != ERROR_OK)
+		goto err_lock;
+
+	/* Switch on register access */
+	flash_cmd = (flash_cmd & FLASH_DELAY_MASK) | FLASH_CON | FLASH_IFREN;
+	retval = target_write_u32(target, FLASH_CMD, flash_cmd);
+	if (retval != ERROR_OK)
+		goto reset_pg_and_lock;
+
+	for (uint32_t i = 0; i < count; i += 4) {
+		retval = target_write_u32(target, FLASH_ADR, offset + i);
+		if (retval != ERROR_OK)
+			goto reset_pg_and_lock;
+
+		retval = target_write_u32(target, FLASH_CMD, flash_cmd |
+					  FLASH_XE | FLASH_YE | FLASH_SE);
+		if (retval != ERROR_OK)
+			goto reset_pg_and_lock;
+
+		uint32_t buf;
+		retval = target_read_u32(target, FLASH_DO, &buf);
+		if (retval != ERROR_OK)
+			goto reset_pg_and_lock;
+
+		buf_set_u32(buffer, i * 8, 32, buf);
+
+		retval = target_write_u32(target, FLASH_CMD, flash_cmd);
+		if (retval != ERROR_OK)
+			goto reset_pg_and_lock;
+
+	}
+
+reset_pg_and_lock:
+	flash_cmd &= FLASH_DELAY_MASK;
+	retval2 = target_write_u32(target, FLASH_CMD, flash_cmd);
+	if (retval == ERROR_OK)
+		retval = retval2;
+
+err_lock:
+	retval2 = target_write_u32(target, FLASH_KEY, 0);
+	if (retval == ERROR_OK)
+		retval = retval2;
+
+err:
+	return retval;
+}
+
 static int mdr_probe(struct flash_bank *bank)
 {
 	struct mdr_flash_bank *mdr_info = bank->driver_priv;
@@ -527,7 +621,7 @@ struct flash_driver mdr_flash = {
 	.erase = mdr_erase,
 	.protect = mdr_protect,
 	.write = mdr_write,
-	.read = default_flash_read,
+	.read = mdr_read,
 	.probe = mdr_probe,
 	.auto_probe = mdr_auto_probe,
 	.erase_check = default_flash_blank_check,
