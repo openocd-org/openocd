@@ -103,6 +103,8 @@ static int stm32lx_lock_program_memory(struct flash_bank *bank);
 static int stm32lx_enable_write_half_page(struct flash_bank *bank);
 static int stm32lx_erase_sector(struct flash_bank *bank, int sector);
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank);
+static int stm32lx_lock(struct flash_bank *bank);
+static int stm32lx_unlock(struct flash_bank *bank);
 static int stm32lx_mass_erase(struct flash_bank *bank);
 static int stm32lx_wait_until_bsy_clear_timeout(struct flash_bank *bank, int timeout);
 
@@ -328,6 +330,46 @@ COMMAND_HANDLER(stm32lx_handle_mass_erase_command)
 	} else {
 		command_print(CMD_CTX, "stm32lx mass erase failed");
 	}
+
+	return retval;
+}
+
+COMMAND_HANDLER(stm32lx_handle_lock_command)
+{
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = stm32lx_lock(bank);
+
+	if (retval == ERROR_OK)
+		command_print(CMD_CTX, "STM32Lx locked, takes effect after power cycle.");
+	else
+		command_print(CMD_CTX, "STM32Lx lock failed");
+
+	return retval;
+}
+
+COMMAND_HANDLER(stm32lx_handle_unlock_command)
+{
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = stm32lx_unlock(bank);
+
+	if (retval == ERROR_OK)
+		command_print(CMD_CTX, "STM32Lx unlocked, takes effect after power cycle.");
+	else
+		command_print(CMD_CTX, "STM32Lx unlock failed");
 
 	return retval;
 }
@@ -945,6 +987,20 @@ static const struct command_registration stm32lx_exec_command_handlers[] = {
 		.usage = "bank_id",
 		.help = "Erase entire flash device. including available EEPROM",
 	},
+	{
+		.name = "lock",
+		.handler = stm32lx_handle_lock_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Increase the readout protection to Level 1.",
+	},
+	{
+		.name = "unlock",
+		.handler = stm32lx_handle_unlock_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Lower the readout protection from Level 1 to 0.",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1278,6 +1334,54 @@ static int stm32lx_obl_launch(struct flash_bank *bank)
 	return tries ? ERROR_OK : ERROR_FAIL;
 }
 
+static int stm32lx_lock(struct flash_bank *bank)
+{
+	int retval;
+	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	retval = stm32lx_unlock_options_bytes(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* set the RDP protection level to 1 */
+	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR1);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
+static int stm32lx_unlock(struct flash_bank *bank)
+{
+	int retval;
+	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	retval = stm32lx_unlock_options_bytes(bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* set the RDP protection level to 0 */
+	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32lx_wait_until_bsy_clear_timeout(bank, 30000);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
 static int stm32lx_mass_erase(struct flash_bank *bank)
 {
 	int retval;
@@ -1292,13 +1396,7 @@ static int stm32lx_mass_erase(struct flash_bank *bank)
 
 	stm32lx_info = bank->driver_priv;
 
-	retval = stm32lx_unlock_options_bytes(bank);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* mass erase flash memory */
-	/* set the RDP protection level to 1 */
-	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR1);
+	retval = stm32lx_lock(bank);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1306,16 +1404,7 @@ static int stm32lx_mass_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32lx_unlock_options_bytes(bank);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* set the RDP protection level to 0 */
-	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR0);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = stm32lx_wait_until_bsy_clear_timeout(bank, 30000);
+	retval = stm32lx_unlock(bank);
 	if (retval != ERROR_OK)
 		return retval;
 
