@@ -1912,7 +1912,9 @@ static int cortex_a_assert_reset(struct target *target)
 		/* REVISIT handle "pulls" cases, if there's
 		 * hardware that needs them to work.
 		 */
-		jtag_add_reset(0, 1);
+		if (target->reset_halt)
+			if (jtag_get_reset_config() & RESET_SRST_NO_GATING)
+				jtag_add_reset(0, 1);
 	} else {
 		LOG_ERROR("%s: how to reset?", target_name(target));
 		return ERROR_FAIL;
