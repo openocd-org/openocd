@@ -112,9 +112,9 @@ static int swd_connect(struct adiv5_dap *dap)
 	/* Note, debugport_init() does setup too */
 	jtag_interface->swd->switch_seq(JTAG_TO_SWD);
 
-	/* Make sure we don't try to perform any other accesses before the DPIDR read. */
+	/* Clear link state, including the SELECT cache. */
 	dap->do_reconnect = false;
-	dap->select = 0;
+	dap->select = DP_SELECT_INVALID;
 
 	swd_queue_dp_read(dap, DP_IDCODE, &idcode);
 
@@ -122,8 +122,6 @@ static int swd_connect(struct adiv5_dap *dap)
 	swd_clear_sticky_errors(dap);
 
 	status = swd_run_inner(dap);
-
-	dap->select = DP_SELECT_INVALID;
 
 	if (status == ERROR_OK) {
 		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
@@ -160,7 +158,8 @@ static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 /** Select the DP register bank matching bits 7:4 of reg. */
 static void swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned reg)
 {
-	if (reg == DP_SELECT)
+	/* Only register address 4 is banked. */
+	if ((reg & 0xf) != 4)
 		return;
 
 	uint32_t select_dp_bank = (reg & 0x000000F0) >> 4;
