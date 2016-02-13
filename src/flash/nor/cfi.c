@@ -2002,7 +2002,9 @@ static int cfi_intel_write_word(struct flash_bank *bank, uint8_t *word, uint32_t
 
 	uint8_t status;
 	retval = cfi_intel_wait_status_busy(bank, cfi_info->word_write_timeout, &status);
-	if (retval != 0x80) {
+	if (retval != ERROR_OK)
+		return retval;
+	if (status != 0x80) {
 		retval = cfi_send_command(bank, 0xff, flash_address(bank, 0, 0x0));
 		if (retval != ERROR_OK)
 			return retval;
