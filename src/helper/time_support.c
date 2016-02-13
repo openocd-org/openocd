@@ -78,14 +78,14 @@ int duration_measure(struct duration *duration)
 	return retval;
 }
 
-float duration_elapsed(struct duration *duration)
+float duration_elapsed(const struct duration *duration)
 {
 	float t = duration->elapsed.tv_sec;
 	t += (float)duration->elapsed.tv_usec / 1000000.0;
 	return t;
 }
 
-float duration_kbps(struct duration *duration, size_t count)
+float duration_kbps(const struct duration *duration, size_t count)
 {
 	return count / (1024.0 * duration_elapsed(duration));
 }
