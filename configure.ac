@@ -752,7 +752,6 @@ AM_CONDITIONAL([IS_MINGW], [test $is_mingw = yes])
 AM_CONDITIONAL([IS_WIN32], [test $is_win32 = yes])
 AM_CONDITIONAL([IS_DARWIN], [test $is_darwin = yes])
 AM_CONDITIONAL([BITQ], [test $build_bitq = yes])
-AM_CONDITIONAL([CMSIS_DAP], [test $use_hidapi = yes])
 AM_CONDITIONAL([USE_LIBFTDI], [test $use_libftdi = yes])
 
 AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = yes])
