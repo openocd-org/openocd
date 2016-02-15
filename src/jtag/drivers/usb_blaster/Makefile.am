@@ -7,12 +7,8 @@ libocdusbblaster_la_SOURCES = $(USB_BLASTER_SRC)
 
 USB_BLASTER_SRC = usb_blaster.c
 
-if USB_BLASTER_LIBFTDI
+if USB_BLASTER
 USB_BLASTER_SRC += ublast_access_ftdi.c
-endif
-
-if USB_BLASTER_FTD2XX
-USB_BLASTER_SRC += ublast_access_ftd2xx.c
 endif
 
 if USB_BLASTER_2

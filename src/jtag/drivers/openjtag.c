@@ -1,6 +1,6 @@
 /*******************************************************************************
  *   Driver for OpenJTAG Project (www.openjtag.org)                            *
- *   Compatible with libftdi and ftd2xx drivers.                               *
+ *   Compatible with libftdi driver.                                           *
  *                                                                             *
  *   Copyright (C) 2010 by Ivan Meleca <mileca@gmail.com>                      *
  *                                                                             *
@@ -66,19 +66,8 @@ typedef enum openjtag_tap_state {
 	OPENJTAG_TAP_UPDATE_IR  = 15,
 } openjtag_tap_state_t;
 
-#if (BUILD_OPENJTAG_FTD2XX == 1 && BUILD_OPENJTAG_LIBFTDI == 1)
-#error "BUILD_OPENJTAG_FTD2XX && BUILD_OPENJTAG_LIBFTDI "
-	   "are mutually exclusive"
-#elif (BUILD_OPENJTAG_FTD2XX != 1 && BUILD_OPENJTAG_LIBFTDI != 1)
-#error "BUILD_OPENJTAG_FTD2XX || BUILD_OPENJTAG_LIBFTDI must be chosen"
-#endif
-
 /* OPENJTAG access library includes */
-#if BUILD_OPENJTAG_FTD2XX == 1
-#include <ftd2xx.h>
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 #include <ftdi.h>
-#endif
 
 /* OpenJTAG vid/pid */
 static uint16_t openjtag_vid = 0x0403;
@@ -86,12 +75,7 @@ static uint16_t openjtag_pid = 0x6001;
 
 static char *openjtag_device_desc;
 
-#if BUILD_OPENJTAG_FTD2XX == 1
-static FT_HANDLE ftdih;
-
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 static struct ftdi_context ftdic;
-#endif
 
 #define OPENJTAG_BUFFER_SIZE        504
 #define OPENJTAG_MAX_PENDING_RESULTS    256
@@ -204,23 +188,6 @@ static int8_t openjtag_get_tap_state(int8_t state)
 static int openjtag_buf_write(
 	uint8_t *buf, int size, uint32_t *bytes_written)
 {
-#if BUILD_OPENJTAG_FTD2XX == 1
-	FT_STATUS status;
-	DWORD dw_bytes_written;
-
-#ifdef _DEBUG_USB_COMMS_
-	openjtag_debug_buffer(buf, size, DEBUG_TYPE_WRITE);
-#endif
-
-	status = FT_Write(ftdih, buf, size, &dw_bytes_written);
-	if (status != FT_OK) {
-		*bytes_written = dw_bytes_written;
-		LOG_ERROR("FT_Write returned: %u", status);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	*bytes_written = dw_bytes_written;
-	return ERROR_OK;
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	int retval;
 #ifdef _DEBUG_USB_COMMS_
 	openjtag_debug_buffer(buf, size, DEBUG_TYPE_WRITE);
@@ -236,36 +203,10 @@ static int openjtag_buf_write(
 	*bytes_written += retval;
 
 	return ERROR_OK;
-#endif
 }
 
 static int openjtag_buf_read(uint8_t *buf, uint32_t qty, uint32_t *bytes_read)
 {
-
-#if BUILD_OPENJTAG_FTD2XX == 1
-	DWORD dw_bytes_read;
-	FT_STATUS status;
-	int timeout = 50;
-
-	*bytes_read = 0;
-	while (qty && (*bytes_read < qty) && timeout--) {
-
-		status = FT_Read(ftdih, buf + *bytes_read,
-				qty - *bytes_read, &dw_bytes_read);
-		if (status != FT_OK) {
-			*bytes_read = dw_bytes_read;
-			LOG_ERROR("FT_Read returned: %u", status);
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-		*bytes_read += dw_bytes_read;
-	}
-
-#ifdef _DEBUG_USB_COMMS_
-	openjtag_debug_buffer(buf, *bytes_read, DEBUG_TYPE_READ);
-#endif
-
-	return ERROR_OK;
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	int retval;
 	int timeout = 5;
 
@@ -287,7 +228,6 @@ static int openjtag_buf_read(uint8_t *buf, uint32_t qty, uint32_t *bytes_read)
 	openjtag_debug_buffer(buf, *bytes_read, DEBUG_TYPE_READ);
 #endif
 
-#endif
 	return ERROR_OK;
 }
 
@@ -339,105 +279,19 @@ static int openjtag_init(void)
 {
 	uint8_t latency_timer;
 
-#if BUILD_OPENJTAG_FTD2XX == 1
-	FT_STATUS status;
-#endif
+	usb_tx_buf_offs = 0;
+	usb_rx_buf_len = 0;
+	openjtag_scan_result_count = 0;
 
-usb_tx_buf_offs = 0;
-usb_rx_buf_len = 0;
-openjtag_scan_result_count = 0;
-
-#if BUILD_OPENJTAG_FTD2XX == 1
-	LOG_DEBUG("'openjtag' interface using FTD2XX");
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	LOG_DEBUG("'openjtag' interface using libftdi");
-#endif
 
-/* Open by device description */
-if (openjtag_device_desc == NULL) {
-	LOG_WARNING("no openjtag device description specified, "
+	/* Open by device description */
+	if (openjtag_device_desc == NULL) {
+		LOG_WARNING("no openjtag device description specified, "
 				"using default 'Open JTAG Project'");
-	openjtag_device_desc = "Open JTAG Project";
-}
-
-#if BUILD_OPENJTAG_FTD2XX == 1
-
-#if IS_WIN32 == 0
-	/* Add non-standard Vid/Pid to the linux driver */
-	status = FT_SetVIDPID(openjtag_vid, openjtag_pid);
-	if (status != FT_OK) {
-		LOG_WARNING("couldn't add %4.4x:%4.4x",
-			openjtag_vid, openjtag_pid);
-	}
-#endif
-
-	status = FT_OpenEx(openjtag_device_desc, FT_OPEN_BY_DESCRIPTION,
-			&ftdih);
-	if (status != FT_OK) {
-		DWORD num_devices;
-
-		LOG_ERROR("unable to open ftdi device: %u", status);
-		status = FT_ListDevices(&num_devices, NULL,
-				FT_LIST_NUMBER_ONLY);
-		if (status == FT_OK) {
-			char **desc_array = malloc(sizeof(char *)
-						* (num_devices + 1));
-			unsigned int i;
-
-			for (i = 0; i < num_devices; i++)
-				desc_array[i] = malloc(64);
-			desc_array[num_devices] = NULL;
-
-			status = FT_ListDevices(desc_array, &num_devices,
-				FT_LIST_ALL | FT_OPEN_BY_DESCRIPTION);
-
-			if (status == FT_OK) {
-				LOG_ERROR("ListDevices: %u\n", num_devices);
-				for (i = 0; i < num_devices; i++)
-					LOG_ERROR("%i: %s", i, desc_array[i]);
-			}
-
-			for (i = 0; i < num_devices; i++)
-				free(desc_array[i]);
-			free(desc_array);
-		} else {
-			LOG_ERROR("ListDevices: NONE\n");
-		}
-		return ERROR_JTAG_INIT_FAILED;
+		openjtag_device_desc = "Open JTAG Project";
 	}
 
-	status = FT_SetLatencyTimer(ftdih, 2);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to set latency timer: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	status = FT_GetLatencyTimer(ftdih, &latency_timer);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to get latency timer: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-	LOG_DEBUG("current latency timer: %i", latency_timer);
-
-	status = FT_SetBitMode(ftdih, 0x00, 0x40);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to disable bit i/o mode: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	status = FT_SetTimeouts(ftdih, 50, 0);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to set timeouts: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to FT_Purge() %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
@@ -470,18 +324,11 @@ if (openjtag_device_desc == NULL) {
 			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-#endif
 
-#if BUILD_OPENJTAG_FTD2XX == 1
-	status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX);
-	if (status != FT_OK)
-		return ERROR_JTAG_INIT_FAILED;
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	if (ftdi_usb_purge_buffers(&ftdic) < 0) {
 		LOG_ERROR("ftdi_purge_buffers: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
-#endif
 
 	/* OpenJTAG speed */
 	openjtag_sendcommand(0xE0); /*Start at slowest adapter speed*/
@@ -494,12 +341,8 @@ if (openjtag_device_desc == NULL) {
 
 static int openjtag_quit(void)
 {
-#if BUILD_OPENJTAG_FTD2XX == 1
-	FT_Close(ftdih);
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	ftdi_usb_close(&ftdic);
 	ftdi_deinit(&ftdic);
-#endif
 
 	return ERROR_OK;
 }

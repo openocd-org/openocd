@@ -85,7 +85,7 @@ endif
 if BITQ
 DRIVERFILES += bitq.c
 endif
-if PRESTO_DRIVER
+if PRESTO
 DRIVERFILES += presto.c
 endif
 if USBPROG
@@ -145,7 +145,6 @@ endif
 noinst_HEADERS = \
 	bitbang.h \
 	bitq.h \
-	ftd2xx_common.h \
 	libusb0_common.h \
 	libusb1_common.h \
 	libusb_common.h \

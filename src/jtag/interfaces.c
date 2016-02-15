@@ -54,7 +54,7 @@ extern struct jtag_interface dummy_interface;
 #if BUILD_FTDI == 1
 extern struct jtag_interface ftdi_interface;
 #endif
-#if BUILD_USB_BLASTER_LIBFTDI == 1 || BUILD_USB_BLASTER_FTD2XX == 1 || BUILD_USB_BLASTER_2 == 1
+#if BUILD_USB_BLASTER == 1 || BUILD_USB_BLASTER_2 == 1
 extern struct jtag_interface usb_blaster_interface;
 #endif
 #if BUILD_JTAG_VPI == 1
@@ -72,7 +72,7 @@ extern struct jtag_interface at91rm9200_interface;
 #if BUILD_GW16012 == 1
 extern struct jtag_interface gw16012_interface;
 #endif
-#if BUILD_PRESTO_LIBFTDI == 1 || BUILD_PRESTO_FTD2XX == 1
+#if BUILD_PRESTO
 extern struct jtag_interface presto_interface;
 #endif
 #if BUILD_USBPROG == 1
@@ -147,7 +147,7 @@ struct jtag_interface *jtag_interfaces[] = {
 #if BUILD_FTDI == 1
 		&ftdi_interface,
 #endif
-#if BUILD_USB_BLASTER_LIBFTDI == 1 || BUILD_USB_BLASTER_FTD2XX == 1 || BUILD_USB_BLASTER_2 == 1
+#if BUILD_USB_BLASTER || BUILD_USB_BLASTER_2 == 1
 		&usb_blaster_interface,
 #endif
 #if BUILD_JTAG_VPI == 1
@@ -165,7 +165,7 @@ struct jtag_interface *jtag_interfaces[] = {
 #if BUILD_GW16012 == 1
 		&gw16012_interface,
 #endif
-#if BUILD_PRESTO_LIBFTDI == 1 || BUILD_PRESTO_FTD2XX == 1
+#if BUILD_PRESTO
 		&presto_interface,
 #endif
 #if BUILD_USBPROG == 1

@@ -181,10 +181,6 @@ suggestions:
   particular hardware;
 - Use "ftdi" interface adapter driver for the FTDI-based devices.
 
-As a PACKAGER, never link against the FTD2XX library, as the resulting
-binaries can't be legally distributed, due to the restrictions of the
-GPL.
-
 
 ================
 Building OpenOCD
@@ -226,10 +222,8 @@ libusb-0.1 or libusb-compat-0.1. A compatible implementation, such as
 FreeBSD's, additionally needs the corresponding .pc files.
 
 USB-Blaster, ASIX Presto and OpenJTAG interface adapter
-drivers need either one of:
+drivers need:
   - libftdi: http://www.intra2net.com/en/developer/libftdi/index.php
-  - ftd2xx: http://www.ftdichip.com/Drivers/D2XX.htm (proprietary,
-    GPL-incompatible)
 
 CMSIS-DAP support needs HIDAPI library.
 
@@ -300,40 +294,6 @@ The same is true for the --enable-parport-giveio option, you have to
 use both the --enable-parport AND the --enable-parport-giveio option
 if you want to use giveio instead of ioperm parallel port access
 method.
-
-Using FTDI's FTD2XX
--------------------
-
-The (closed source) FTDICHIP.COM solution is faster than libftdi on
-Windows. That is the motivation for supporting it even though its
-licensing restricts it to non-redistributable OpenOCD binaries, and it
-is not available for all operating systems used with OpenOCD. You may,
-however, build such copies for personal use.
-
-The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
-TAR.GZ file. You must unpack them ``some where'' convenient. As of this
-writing FTDICHIP does not supply means to install these files "in an
-appropriate place."
-
-You should use the following ./configure options to make use of
-FTD2XX:
-
-  --with-ftd2xx-win32-zipdir
-                          Where (CYGWIN/MINGW) the zip file from ftdichip.com
-                          was unpacked <default=search>
-  --with-ftd2xx-linux-tardir
-                          Where (Linux/Unix) the tar file from ftdichip.com
-                          was unpacked <default=search>
-  --with-ftd2xx-lib=(static|shared)
-                          Use static or shared ftd2xx libs (default is static)
-
-Remember, this library is binary-only, while OpenOCD is licenced
-according to GNU GPLv2 without any exceptions. That means that
-_distributing_ copies of OpenOCD built with the FTDI code would
-violate the OpenOCD licensing terms.
-
-Note that on Linux there is no good reason to use these FTDI binaries;
-they are no faster (on Linux) than libftdi, and cause licensing issues.
 
 
 ==========================
