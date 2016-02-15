@@ -45,9 +45,6 @@ e.g.:
   openocd -f interface/stlink-v2-1.cfg -c "transport select hla_swd" \
           -f target/stm32l0.cfg
 
-NB: when using an FTDI-based adapter you should prefer configs in the
-ftdi directory; the old configs for the ft2232 are deprecated.
-
 After OpenOCD startup, connect GDB with
 
   (gdb) target extended-remote localhost:3333
@@ -228,7 +225,7 @@ USB-based adapters depend on libusb-1.0 and some older drivers require
 libusb-0.1 or libusb-compat-0.1. A compatible implementation, such as
 FreeBSD's, additionally needs the corresponding .pc files.
 
-USB-Blaster, ASIX Presto, OpenJTAG and ft2232 interface adapter
+USB-Blaster, ASIX Presto and OpenJTAG interface adapter
 drivers need either one of:
   - libftdi: http://www.intra2net.com/en/developer/libftdi/index.php
   - ftd2xx: http://www.ftdichip.com/Drivers/D2XX.htm (proprietary,

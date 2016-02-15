@@ -60,9 +60,6 @@ endif
 if DUMMY
 DRIVERFILES += dummy.c
 endif
-if FT2232_DRIVER
-DRIVERFILES += ft2232.c
-endif
 if FTDI
 DRIVERFILES += ftdi.c mpsse.c
 endif

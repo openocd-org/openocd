@@ -898,7 +898,7 @@ using a Signalyzer FT2232-based JTAG adapter to talk to
 a board with an Atmel AT91SAM7X256 microcontroller:
 
 @example
-source [find interface/signalyzer.cfg]
+source [find interface/ftdi/signalyzer.cfg]
 
 # GDB can also flash my flash!
 gdb_memory_map enable
@@ -910,7 +910,7 @@ source [find target/sam7x256.cfg]
 Here is the command line equivalent of that configuration:
 
 @example
-openocd -f interface/signalyzer.cfg \
+openocd -f interface/ftdi/signalyzer.cfg \
         -c "gdb_memory_map enable" \
         -c "gdb_flash_program enable" \
         -f target/sam7x256.cfg
@@ -2403,109 +2403,12 @@ A dummy software-only driver for debugging.
 Cirrus Logic EP93xx based single-board computer bit-banging (in development)
 @end deffn
 
-@deffn {Interface Driver} {ft2232}
-FTDI FT2232 (USB) based devices over one of the userspace libraries.
-
-Note that this driver has several flaws and the @command{ftdi} driver is
-recommended as its replacement.
-
-These interfaces have several commands, used to configure the driver
-before initializing the JTAG scan chain:
-
-@deffn {Config Command} {ft2232_device_desc} description
-Provides the USB device description (the @emph{iProduct string})
-of the FTDI FT2232 device. If not
-specified, the FTDI default value is used. This setting is only valid
-if compiled with FTD2XX support.
-@end deffn
-
-@deffn {Config Command} {ft2232_serial} serial-number
-Specifies the @var{serial-number} of the FTDI FT2232 device to use,
-in case the vendor provides unique IDs and more than one FT2232 device
-is connected to the host.
-If not specified, serial numbers are not considered.
-(Note that USB serial numbers can be arbitrary Unicode strings,
-and are not restricted to containing only decimal digits.)
-@end deffn
-
-@deffn {Config Command} {ft2232_layout} name
-Each vendor's FT2232 device can use different GPIO signals
-to control output-enables, reset signals, and LEDs.
-Currently valid layout @var{name} values include:
-@itemize @minus
-@item @b{axm0432_jtag} Axiom AXM-0432
-@item @b{comstick} Hitex STR9 comstick
-@item @b{cortino} Hitex Cortino JTAG interface
-@item @b{evb_lm3s811} TI/Luminary Micro EVB_LM3S811 as a JTAG interface,
-either for the local Cortex-M3 (SRST only)
-or in a passthrough mode (neither SRST nor TRST)
-This layout can not support the SWO trace mechanism, and should be
-used only for older boards (before rev C).
-@item @b{luminary_icdi} This layout should be used with most TI/Luminary
-eval boards, including Rev C LM3S811 eval boards and the eponymous
-ICDI boards, to debug either the local Cortex-M3 or in passthrough mode
-to debug some other target. It can support the SWO trace mechanism.
-@item @b{flyswatter} Tin Can Tools Flyswatter
-@item @b{icebear} ICEbear JTAG adapter from Section 5
-@item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
-@item @b{jtagkey2} Amontec JTAGkey2 (and compatibles)
-@item @b{m5960} American Microsystems M5960
-@item @b{olimex-jtag} Olimex ARM-USB-OCD and ARM-USB-Tiny
-@item @b{oocdlink} OOCDLink
-@c oocdlink ~= jtagkey_prototype_v1
-@item @b{redbee-econotag} Integrated with a Redbee development board.
-@item @b{redbee-usb} Integrated with a Redbee USB-stick development board.
-@item @b{sheevaplug} Marvell Sheevaplug development kit
-@item @b{signalyzer} Xverve Signalyzer
-@item @b{stm32stick} Hitex STM32 Performance Stick
-@item @b{turtelizer2} egnite Software turtelizer2
-@item @b{usbjtag} "USBJTAG-1" layout described in the OpenOCD diploma thesis
-@end itemize
-@end deffn
-
-@deffn {Config Command} {ft2232_vid_pid} [vid pid]+
-The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
-default values are used.
-Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
-@example
-ft2232_vid_pid 0x0403 0xcff8 0x15ba 0x0003
-@end example
-@end deffn
-
-@deffn {Config Command} {ft2232_latency} ms
-On some systems using FT2232 based JTAG interfaces the FT_Read function call in
-ft2232_read() fails to return the expected number of bytes. This can be caused by
-USB communication delays and has proved hard to reproduce and debug. Setting the
-FT2232 latency timer to a larger value increases delays for short USB packets but it
-also reduces the risk of timeouts before receiving the expected number of bytes.
-The OpenOCD default value is 2 and for some systems a value of 10 has proved useful.
-@end deffn
-
-@deffn {Config Command} {ft2232_channel} channel
-Used to select the channel of the ft2232 chip to use (between 1 and 4).
-The default value is 1.
-@end deffn
-
-For example, the interface config file for a
-Turtelizer JTAG Adapter looks something like this:
-
-@example
-interface ft2232
-ft2232_device_desc "Turtelizer JTAG/RS232 Adapter"
-ft2232_layout turtelizer2
-ft2232_vid_pid 0x0403 0xbdc8
-@end example
-@end deffn
-
 @deffn {Interface Driver} {ftdi}
 This driver is for adapters using the MPSSE (Multi-Protocol Synchronous Serial
 Engine) mode built into many FTDI chips, such as the FT2232, FT4232 and FT232H.
-It is a complete rewrite to address a large number of problems with the ft2232
-interface driver.
 
 The driver is using libusb-1.0 in asynchronous mode to talk to the FTDI device,
-bypassing intermediate libraries like libftdi of D2XX. Performance-wise it is
-consistently faster than the ft2232 driver, sometimes several times faster.
+bypassing intermediate libraries like libftdi of D2XX.
 
 A major improvement of this driver is that support for new FTDI based adapters
 can be added competely through configuration files, without the need to patch
@@ -9343,16 +9246,6 @@ Amontec JTAGkey to. Apparently, some computers do not provide a USB power
 supply stable enough for the Amontec JTAGkey to be operated.
 
 @b{Laptops running on battery have this problem too...}
-
-@item @b{USB Power} When using the Amontec JTAGkey, sometimes OpenOCD crashes with the
-following error messages: "Error: ft2232.c:201 ft2232_read(): FT_Read returned:
-4" and "Error: ft2232.c:365 ft2232_send_and_recv(): couldn't read from FT2232".
-What does that mean and what might be the reason for this?
-
-First of all, the reason might be the USB power supply. Try using a self-powered
-hub instead of a direct connection to your computer. Secondly, the error code 4
-corresponds to an FT_IO_ERROR, which means that the driver for the FTDI USB
-chip ran into some sort of error - this points us to a USB problem.
 
 @item @b{GDB Disconnects} When using the Amontec JTAGkey, sometimes OpenOCD crashes with the following
 error message: "Error: gdb_server.c:101 gdb_get_char(): read: 10054".
