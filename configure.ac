@@ -574,12 +574,6 @@ else
   AC_DEFINE([PARPORT_USE_GIVEIO], [0], [0 if you don't want parport to use giveio.])
 fi
 
-if test $build_bitbang = yes; then
-  AC_DEFINE([BUILD_BITBANG], [1], [1 if you want a bitbang interface.])
-else
-  AC_DEFINE([BUILD_BITBANG], [0], [0 if you don't want a bitbang interface.])
-fi
-
 if test $build_jtag_vpi = yes; then
   AC_DEFINE([BUILD_JTAG_VPI], [1], [1 if you want JTAG VPI.])
 else
@@ -596,12 +590,6 @@ if test $build_gw16012 = yes; then
   AC_DEFINE([BUILD_GW16012], [1], [1 if you want the Gateworks GW16012 driver.])
 else
   AC_DEFINE([BUILD_GW16012], [0], [0 if you don't want the Gateworks GW16012 driver.])
-fi
-
-if test $build_bitq = yes; then
-  AC_DEFINE([BUILD_BITQ], [1], [1 if you want a bitq interface.])
-else
-  AC_DEFINE([BUILD_BITQ], [0], [0 if you don't want a bitq interface.])
 fi
 
 if test $build_oocd_trace = yes; then
