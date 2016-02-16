@@ -7,10 +7,10 @@ m4_include([config_subdir.m4])dnl
 
 # check for makeinfo before calling AM_INIT_AUTOMAKE
 AC_CHECK_PROG([MAKEINFO], [makeinfo], [makeinfo])
-if test "x$MAKEINFO" = "x"; then
+AS_IF([test "x$MAKEINFO" = "x"], [
   MAKEINFO='echo makeinfo missing; true'
   AC_MSG_WARN([Info documentation will not be built.])
-fi
+])
 AC_SUBST([MAKEINFO])
 
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip subdir-objects])
@@ -143,20 +143,13 @@ AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([usleep])
 AC_CHECK_FUNCS([vasprintf])
 
-build_bitbang=no
-build_bitq=no
-is_cygwin=no
-is_mingw=no
-is_win32=no
-is_darwin=no
-
 # guess-rev.sh only exists in the repository, not in the released archives
 AC_MSG_CHECKING([whether to build a release])
-if test -x $srcdir/guess-rev.sh ; then
+AS_IF([test -x "$srcdir/guess-rev.sh"], [
   build_release=no
-else
+], [
   build_release=yes
-fi
+])
 AC_MSG_RESULT([$build_release])
 
 # Adapter drivers
@@ -258,21 +251,21 @@ AC_ARG_ENABLE([verbose_usb_comms],
 
 AC_MSG_CHECKING([whether to enable verbose JTAG I/O messages]);
 AC_MSG_RESULT([$debug_jtag_io])
-if test $debug_jtag_io = yes; then
+AS_IF([test "x$debug_jtag_io" = "xyes"], [
   AC_DEFINE([_DEBUG_JTAG_IO_],[1], [Print verbose JTAG I/O messages])
-fi
+])
 
 AC_MSG_CHECKING([whether to enable verbose USB I/O messages]);
 AC_MSG_RESULT([$debug_usb_io])
-if test $debug_usb_io = yes; then
+AS_IF([test "x$debug_usb_io" = "xyes"], [
   AC_DEFINE([_DEBUG_USB_IO_],[1], [Print verbose USB I/O messages])
-fi
+])
 
 AC_MSG_CHECKING([whether to enable verbose USB communication messages]);
 AC_MSG_RESULT([$debug_usb_comms])
-if test $debug_usb_comms = yes; then
+AS_IF([test "x$debug_usb_comms" = "xyes"], [
   AC_DEFINE([_DEBUG_USB_COMMS_],[1], [Print verbose USB communication messages])
-fi
+])
 
 debug_malloc=no
 AC_ARG_ENABLE([malloc_logging],
@@ -282,9 +275,9 @@ AC_ARG_ENABLE([malloc_logging],
 
 AC_MSG_CHECKING([whether to enable malloc free space logging]);
 AC_MSG_RESULT([$debug_malloc])
-if test $debug_malloc = yes; then
+AS_IF([test "x$debug_malloc" = "xyes"], [
   AC_DEFINE([_DEBUG_FREE_SPACE_],[1], [Include malloc free space in logging])
-fi
+])
 
 AC_ARG_ENABLE([dummy],
   AS_HELP_STRING([--enable-dummy], [Enable building the dummy port driver]),
@@ -342,8 +335,8 @@ AC_ARG_ENABLE([ioutil],
   AS_HELP_STRING([--enable-ioutil], [Enable ioutil functions - useful for standalone OpenOCD implementations]),
   [build_ioutil=$enableval], [build_ioutil=no])
 
-case "${host_cpu}" in
-  arm*)
+AS_CASE(["${host_cpu}"],
+  [arm*], [
     AC_ARG_ENABLE([ep93xx],
       AS_HELP_STRING([--enable-ep93xx], [Enable building support for EP93xx based SBCs]),
       [build_ep93xx=$enableval], [build_ep93xx=no])
@@ -355,14 +348,12 @@ case "${host_cpu}" in
     AC_ARG_ENABLE([bcm2835gpio],
       AS_HELP_STRING([--enable-bcm2835gpio], [Enable building support for bitbanging on BCM2835 (as found in Raspberry Pi)]),
       [build_bcm2835gpio=$enableval], [build_bcm2835gpio=no])
-    ;;
-
-  *)
+  ],
+  [
     build_ep93xx=no
     build_at91rm9200=no
     build_bcm2835gpio=no
-    ;;
-esac
+])
 
 AC_ARG_ENABLE([gw16012],
   AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
@@ -396,14 +387,14 @@ AC_ARG_ENABLE([internal-libjaylink],
 
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
-if test $build_zy1000 = yes; then
-  if test $build_minidriver = yes; then
+AS_IF([test "x$build_zy1000" = "xyes"], [
+  AS_IF([test "x$build_minidriver" = "xyes"], [
     AC_MSG_ERROR([Multiple minidriver options have been enabled.])
-  fi
+  ])
   AC_DEFINE([HAVE_JTAG_MINIDRIVER_H], [1],
       [Define to 1 if you have the <jtag_minidriver.h> header file.])
   build_minidriver=yes
-fi
+])
 AC_MSG_RESULT([$build_zy1000])
 
 AC_ARG_ENABLE([remote-bitbang],
@@ -411,220 +402,217 @@ AC_ARG_ENABLE([remote-bitbang],
   [build_remote_bitbang=$enableval], [build_remote_bitbang=no])
 
 AC_MSG_CHECKING([whether to enable dummy minidriver])
-if test $build_minidriver_dummy = yes; then
-  if test $build_minidriver = yes; then
+AS_IF([test "x$build_minidriver_dummy" = "xyes"], [
+  AS_IF([test "x$build_minidriver" = "xyes"], [
     AC_MSG_ERROR([Multiple minidriver options have been enabled.])
-  fi
+  ])
   build_minidriver=yes
   AC_DEFINE([BUILD_MINIDRIVER_DUMMY], [1], [Use the dummy minidriver.])
   AC_DEFINE([HAVE_JTAG_MINIDRIVER_H], [1],
       [Define to 1 if you have the <jtag_minidriver.h> header file.])
-fi
+])
 AC_MSG_RESULT([$build_minidriver_dummy])
 
 AC_MSG_CHECKING([whether standard drivers can be built])
-if test "$build_minidriver" = yes; then
+AS_IF([test "x$build_minidriver" = "xyes"], [
   AC_MSG_RESULT([no])
   AC_MSG_WARN([Using the minidriver disables all other drivers.])
   sleep 2
-else
+], [
   AC_MSG_RESULT([yes])
-fi
+])
 
-case "${host_cpu}" in
-  i?86|x86*)
-    ;;
-  *)
-    if test x$parport_use_ppdev = xno; then
+AS_CASE(["${host_cpu}"],
+  [i?86|x86*], [],
+  [
+    AS_IF([test "x$parport_use_ppdev" = "xno"], [
       AC_MSG_WARN([--disable-parport-ppdev is not supported by the host CPU])
-    fi
+    ])
     parport_use_ppdev=yes
-    ;;
-esac
+])
 
-case $host in
-  *-cygwin*)
+AS_CASE([$host],
+  [*-cygwin*], [
     is_win32=yes
     parport_use_ppdev=no
 
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[return __MINGW32__;]])],
       [is_mingw=yes],[is_mingw=no])
-    if test $is_mingw = yes; then
+    AS_IF([test "x$is_mingw" = "xyes"], [
       AC_DEFINE([IS_MINGW], [1], [1 if building for MinGW.])
-      if test x$parport_use_giveio = xno; then
+      AS_IF([test "x$parport_use_giveio" = "xno"], [
         AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
-      fi
+      ])
       parport_use_giveio=yes
       is_cygwin=no
-    else
+    ], [
       is_cygwin=yes
       AC_DEFINE([IS_CYGWIN], [1], [1 if building for Cygwin.])
       # sys/io.h needed under cygwin for parport access
-      if test $build_parport = yes; then
+      AS_IF([test "x$build_parport" = "xyes"], [
         AC_CHECK_HEADERS([sys/io.h],[],AC_MSG_ERROR([Please install the cygwin ioperm package]))
-      fi
-    fi
+      ])
+    ])
 
     AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
     AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
-    ;;
-  *-mingw* | *-msys*)
+  ],
+  [*-mingw* | *-msys*], [
     is_mingw=yes
     is_win32=yes
     parport_use_ppdev=no
 
-    if test x$parport_use_giveio = xno; then
+    AS_IF([test "x$parport_use_giveio" = "xno"], [
       AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
-    fi
+    ])
     parport_use_giveio=yes
 
-    if test x$build_buspirate = xyes; then
+    AS_IF([test "x$build_buspirate" = "xyes"], [
       AC_MSG_ERROR([buspirate currently not supported by MinGW32 hosts])
-    fi
+    ])
 
     CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO"
 
     AC_DEFINE([IS_MINGW], [1], [1 if building for MinGW.])
     AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
     AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
-    ;;
-  *darwin*)
+  ],
+  [*darwin*], [
     is_darwin=yes
 
-    if test x$parport_use_giveio = xyes; then
+    AS_IF([test "x$parport_use_giveio" = "xyes"], [
       AC_MSG_WARN([--enable-parport-giveio cannot be used by Darwin hosts])
-    fi
+    ])
     parport_use_giveio=no
 
     AC_DEFINE([IS_CYGWIN], [0], [0 if not building for Cygwin.])
     AC_DEFINE([IS_WIN32], [0], [0 if not building for Win32.])
     AC_DEFINE([IS_DARWIN], [1], [1 if building for Darwin.])
-    ;;
-  *)
-    if test x$parport_use_giveio = xyes; then
+  ],
+  [
+    AS_IF([test "x$parport_use_giveio" = "xyes"], [
       AC_MSG_WARN([--enable-parport-giveio cannot be used by ]$host[ hosts])
-    fi
+    ])
     parport_use_giveio=no
     AC_DEFINE([IS_CYGWIN], [0], [0 if not building for Cygwin.])
     AC_DEFINE([IS_WIN32], [0], [0 if not building for Win32.])
     AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
-    ;;
-esac
+])
 
-if test $is_win32 = yes; then
+AS_IF([test "x$is_win32" = "xyes"], [
     AC_DEFINE([WIN32_LEAN_AND_MEAN], [1], [1 to exclude old conflicting definitions when building on Windows])
-fi
+])
 
-if test $build_parport = yes; then
+AS_IF([test "x$build_parport" = "xyes"], [
   build_bitbang=yes
   AC_DEFINE([BUILD_PARPORT], [1], [1 if you want parport.])
-else
+], [
   AC_DEFINE([BUILD_PARPORT], [0], [0 if you don't want parport.])
-fi
+])
 
-if test $build_dummy = yes; then
+AS_IF([test "x$build_dummy" = "xyes"], [
   build_bitbang=yes
   AC_DEFINE([BUILD_DUMMY], [1], [1 if you want dummy driver.])
-else
+], [
   AC_DEFINE([BUILD_DUMMY], [0], [0 if you don't want dummy driver.])
-fi
+])
 
-if test $build_ep93xx = yes; then
+AS_IF([test "x$build_ep93xx" = "xyes"], [
   build_bitbang=yes
   AC_DEFINE([BUILD_EP93XX], [1], [1 if you want ep93xx.])
-else
+], [
   AC_DEFINE([BUILD_EP93XX], [0], [0 if you don't want ep93xx.])
-fi
+])
 
-if test $build_zy1000 = yes; then
+AS_IF([test "x$build_zy1000" = "xyes"], [
   AC_DEFINE([BUILD_ZY1000], [1], [1 if you want ZY1000.])
-else
+], [
   AC_DEFINE([BUILD_ZY1000], [0], [0 if you don't want ZY1000.])
-fi
+])
 
-if test $build_zy1000_master = yes; then
+AS_IF([test "x$build_zy1000_master" = "xyes"], [
   AC_DEFINE([BUILD_ZY1000_MASTER], [1], [1 if you want ZY1000 JTAG master registers.])
-else
+], [
   AC_DEFINE([BUILD_ZY1000_MASTER], [0], [0 if you don't want ZY1000 JTAG master registers.])
-fi
+])
 
-if test $build_at91rm9200 = yes; then
+AS_IF([test "x$build_at91rm9200" = "xyes"], [
   build_bitbang=yes
   AC_DEFINE([BUILD_AT91RM9200], [1], [1 if you want at91rm9200.])
-else
+], [
   AC_DEFINE([BUILD_AT91RM9200], [0], [0 if you don't want at91rm9200.])
-fi
+])
 
-if test $build_bcm2835gpio = yes; then
+AS_IF([test "x$build_bcm2835gpio" = "xyes"], [
   build_bitbang=yes
   AC_DEFINE([BUILD_BCM2835GPIO], [1], [1 if you want bcm2835gpio.])
-else
+], [
   AC_DEFINE([BUILD_BCM2835GPIO], [0], [0 if you don't want bcm2835gpio.])
-fi
+])
 
-if test x$parport_use_ppdev = xyes; then
+AS_IF([test "x$parport_use_ppdev" = "xyes"], [
   AC_DEFINE([PARPORT_USE_PPDEV], [1], [1 if you want parport to use ppdev.])
-else
+], [
   AC_DEFINE([PARPORT_USE_PPDEV], [0], [0 if you don't want parport to use ppdev.])
-fi
+])
 
-if test x$parport_use_giveio = xyes; then
+AS_IF([test "x$parport_use_giveio" = "xyes"], [
   AC_DEFINE([PARPORT_USE_GIVEIO], [1], [1 if you want parport to use giveio.])
-else
+], [
   AC_DEFINE([PARPORT_USE_GIVEIO], [0], [0 if you don't want parport to use giveio.])
-fi
+])
 
-if test $build_jtag_vpi = yes; then
+AS_IF([test "x$build_jtag_vpi" = "xyes"], [
   AC_DEFINE([BUILD_JTAG_VPI], [1], [1 if you want JTAG VPI.])
-else
+], [
   AC_DEFINE([BUILD_JTAG_VPI], [0], [0 if you don't want JTAG VPI.])
-fi
+])
 
-if test $build_amtjtagaccel = yes; then
+AS_IF([test "x$build_amtjtagaccel" = "xyes"], [
   AC_DEFINE([BUILD_AMTJTAGACCEL], [1], [1 if you want the Amontec JTAG-Accelerator driver.])
-else
+], [
   AC_DEFINE([BUILD_AMTJTAGACCEL], [0], [0 if you don't want the Amontec JTAG-Accelerator driver.])
-fi
+])
 
-if test $build_gw16012 = yes; then
+AS_IF([test "x$build_gw16012" = "xyes"], [
   AC_DEFINE([BUILD_GW16012], [1], [1 if you want the Gateworks GW16012 driver.])
-else
+], [
   AC_DEFINE([BUILD_GW16012], [0], [0 if you don't want the Gateworks GW16012 driver.])
-fi
+])
 
-if test $build_oocd_trace = yes; then
+AS_IF([test "x$build_oocd_trace" = "xyes"], [
   AC_DEFINE([BUILD_OOCD_TRACE], [1], [1 if you want the OpenOCD+trace ETM capture driver.])
-else
+], [
   AC_DEFINE([BUILD_OOCD_TRACE], [0], [0 if you don't want the OpenOCD+trace ETM capture driver.])
-fi
+])
 
-if test $build_buspirate = yes; then
+AS_IF([test "x$build_buspirate" = "xyes"], [
   AC_DEFINE([BUILD_BUSPIRATE], [1], [1 if you want the Buspirate JTAG driver.])
-else
+], [
   AC_DEFINE([BUILD_BUSPIRATE], [0], [0 if you don't want the Buspirate JTAG driver.])
-fi
+])
 
-if test $use_internal_jimtcl = yes; then
-  if test -f "$srcdir/jimtcl/configure.ac"; then
+AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
+  AS_IF([test -f "$srcdir/jimtcl/configure.ac"], [
     AX_CONFIG_SUBDIR_OPTION([jimtcl], [--disable-install-jim])
-  else
+  ], [
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
-  fi
-fi
+  ])
+])
 
-if test $build_remote_bitbang = yes; then
+AS_IF([test "x$build_remote_bitbang" = "xyes"], [
   build_bitbang=yes
   AC_DEFINE([BUILD_REMOTE_BITBANG], [1], [1 if you want the Remote Bitbang JTAG driver.])
-else
+], [
   AC_DEFINE([BUILD_REMOTE_BITBANG], [0], [0 if you don't want the Remote Bitbang JTAG driver.])
-fi
+])
 
-if test $build_sysfsgpio = yes; then
+AS_IF([test "x$build_sysfsgpio" = "xyes"], [
   build_bitbang=yes
   AC_DEFINE([BUILD_SYSFSGPIO], [1], [1 if you want the SysfsGPIO driver.])
-else
+], [
   AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
-fi
+])
 
 PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 	use_libusb1=yes
@@ -661,92 +649,92 @@ PKG_CHECK_MODULES([libjaylink], [libjaylink >= 0.1],
 
 m4_define([PROCESS_ADAPTERS], [
   m4_foreach([adapter], [$1], [
-	if test $2; then
-		if test $ADAPTER_VAR([adapter]) != no; then
+	AS_IF([test $2], [
+		AS_IF([test "x$ADAPTER_VAR([adapter])" != "xno"], [
 			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [1], [1 if you want the ]ADAPTER_DESC([adapter]).)
-		else
+		], [
 			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [0], [0 if you do not want the ]ADAPTER_DESC([adapter]).)
-		fi
-	else
-		if test $ADAPTER_VAR([adapter]) = yes; then
+		])
+	], [
+		AS_IF([test "x$ADAPTER_VAR([adapter])" = "xyes"], [
 			AC_MSG_ERROR([$3 is required for the ADAPTER_DESC([adapter])])
-		fi
+		])
 		ADAPTER_VAR([adapter])=no
-	fi
-	AM_CONDITIONAL(ADAPTER_SYM([adapter]), [test $ADAPTER_VAR([adapter]) != no])
+	])
+	AM_CONDITIONAL(ADAPTER_SYM([adapter]), [test "x$ADAPTER_VAR([adapter])" != "xno"])
   ])
 ])
 
-PROCESS_ADAPTERS([USB1_ADAPTERS], [$use_libusb1 = yes], [libusb-1.x])
-PROCESS_ADAPTERS([USB_ADAPTERS], [$use_libusb1 = yes -o $use_libusb0 = yes], [libusb-1.x or libusb-0.1])
-PROCESS_ADAPTERS([USB0_ADAPTERS], [$use_libusb0 = yes], [libusb-0.1])
-PROCESS_ADAPTERS([HIDAPI_ADAPTERS], [$use_hidapi = yes], [hidapi])
-PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], [$use_libftdi = yes], [libftdi])
-PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], [$use_libusb1 = yes -a $use_internal_libjaylink = yes -o $HAVE_LIBJAYLINK = yes], [libusb-1.x or libjaylink-0.1])
+PROCESS_ADAPTERS([USB1_ADAPTERS], ["x$use_libusb1" = "xyes"], [libusb-1.x])
+PROCESS_ADAPTERS([USB_ADAPTERS], ["x$use_libusb1" = "xyes" -o "x$use_libusb0" = "xyes"], [libusb-1.x or libusb-0.1])
+PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
+PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
+PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
+PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_libusb1" = "xyes" -a "x$use_internal_libjaylink" = "xyes" -o "x$HAVE_LIBJAYLINK" = "xyes"], [libusb-1.x or libjaylink-0.1])
 
-if test $build_openjtag = yes; then
-	if test $use_libusb1 != yes -a $use_libusb0 != yes; then
-		AC_MSG_ERROR([libusb-1.x or libusb-0.1 is required for the OpenJTAG Programmer])
-		build_openjtag=no
-	fi
-fi
+AS_IF([test "x$build_openjtag" = "xyes"], [
+  AS_IF([test "x$use_libusb1" != "xyes" -a "x$use_libusb0" != "xyes"], [
+    AC_MSG_ERROR([libusb-1.x or libusb-0.1 is required for the OpenJTAG Programmer])
+    build_openjtag=no
+  ])
+])
 
-if test $enable_stlink != no -o $enable_ti_icdi != no; then
+AS_IF([test "x$enable_stlink" != "xno" -o "x$enable_ti_icdi" != "xno"], [
 	AC_DEFINE([BUILD_HLADAPTER], [1], [1 if you want the High Level JTAG driver.])
-else
+], [
 	AC_DEFINE([BUILD_HLADAPTER], [0], [0 if you want the High Level JTAG driver.])
-fi
-AM_CONDITIONAL([HLADAPTER], [test $enable_stlink != no -o $enable_ti_icdi != no])
+])
+AM_CONDITIONAL([HLADAPTER], [test "x$enable_stlink" != "xno" -o "x$enable_ti_icdi" != "xno"])
 
-if test $enable_jlink != no; then
-  if test $use_internal_libjaylink = yes; then
-    if test -f "$srcdir/src/jtag/drivers/libjaylink/configure.ac"; then
+AS_IF([test "x$enable_jlink" != "xno"], [
+  AS_IF([test "x$use_internal_libjaylink" = "xyes"], [
+    AS_IF([test -f "$srcdir/src/jtag/drivers/libjaylink/configure.ac"], [
       AX_CONFIG_SUBDIR_OPTION([src/jtag/drivers/libjaylink],
 		[--enable-subproject-build])
-    else
+    ], [
       AC_MSG_ERROR([Internal libjaylink not found, run either 'git submodule init' and 'git submodule update' or disable internal libjaylink with --disable-internal-libjaylink.])
-    fi
-  fi
-fi
+    ])
+  ])
+])
 
 # Presto needs the bitq module
-if test $enable_presto != no; then
+AS_IF([test "x$enable_presto" != "xno"], [
   build_bitq=yes
-fi
+])
 
-AM_CONDITIONAL([RELEASE], [test $build_release = yes])
-AM_CONDITIONAL([PARPORT], [test $build_parport = yes])
-AM_CONDITIONAL([DUMMY], [test $build_dummy = yes])
-AM_CONDITIONAL([GIVEIO], [test x$parport_use_giveio = xyes])
-AM_CONDITIONAL([EP93XX], [test $build_ep93xx = yes])
-AM_CONDITIONAL([ZY1000], [test $build_zy1000 = yes])
-AM_CONDITIONAL([ZY1000_MASTER], [test $build_zy1000_master = yes])
-AM_CONDITIONAL([IOUTIL], [test $build_ioutil = yes])
-AM_CONDITIONAL([AT91RM9200], [test $build_at91rm9200 = yes])
-AM_CONDITIONAL([BCM2835GPIO], [test $build_bcm2835gpio = yes])
-AM_CONDITIONAL([BITBANG], [test $build_bitbang = yes])
-AM_CONDITIONAL([JTAG_VPI], [test $build_jtag_vpi = yes -o $build_jtag_vpi = yes])
-AM_CONDITIONAL([USB_BLASTER_DRIVER], [test $enable_usb_blaster != no -o $enable_usb_blaster_2 != no])
-AM_CONDITIONAL([AMTJTAGACCEL], [test $build_amtjtagaccel = yes])
-AM_CONDITIONAL([GW16012], [test $build_gw16012 = yes])
-AM_CONDITIONAL([OOCD_TRACE], [test $build_oocd_trace = yes])
-AM_CONDITIONAL([REMOTE_BITBANG], [test $build_remote_bitbang = yes])
-AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
-AM_CONDITIONAL([SYSFSGPIO], [test $build_sysfsgpio = yes])
-AM_CONDITIONAL([USE_LIBUSB0], [test $use_libusb0 = yes])
-AM_CONDITIONAL([USE_LIBUSB1], [test $use_libusb1 = yes])
-AM_CONDITIONAL([IS_CYGWIN], [test $is_cygwin = yes])
-AM_CONDITIONAL([IS_MINGW], [test $is_mingw = yes])
-AM_CONDITIONAL([IS_WIN32], [test $is_win32 = yes])
-AM_CONDITIONAL([IS_DARWIN], [test $is_darwin = yes])
-AM_CONDITIONAL([BITQ], [test $build_bitq = yes])
-AM_CONDITIONAL([USE_LIBFTDI], [test $use_libftdi = yes])
+AM_CONDITIONAL([RELEASE], [test "x$build_release" = "xyes"])
+AM_CONDITIONAL([PARPORT], [test "x$build_parport" = "xyes"])
+AM_CONDITIONAL([DUMMY], [test "x$build_dummy" = "xyes"])
+AM_CONDITIONAL([GIVEIO], [test "x$parport_use_giveio" = "xyes"])
+AM_CONDITIONAL([EP93XX], [test "x$build_ep93xx" = "xyes"])
+AM_CONDITIONAL([ZY1000], [test "x$build_zy1000" = "xyes"])
+AM_CONDITIONAL([ZY1000_MASTER], [test "x$build_zy1000_master" = "xyes"])
+AM_CONDITIONAL([IOUTIL], [test "x$build_ioutil" = "xyes"])
+AM_CONDITIONAL([AT91RM9200], [test "x$build_at91rm9200" = "xyes"])
+AM_CONDITIONAL([BCM2835GPIO], [test "x$build_bcm2835gpio" = "xyes"])
+AM_CONDITIONAL([BITBANG], [test "x$build_bitbang" = "xyes"])
+AM_CONDITIONAL([JTAG_VPI], [test "x$build_jtag_vpi" = "xyes" -o "x$build_jtag_vpi" = "xyes"])
+AM_CONDITIONAL([USB_BLASTER_DRIVER], [test "x$enable_usb_blaster" != "xno" -o "x$enable_usb_blaster_2" != "xno"])
+AM_CONDITIONAL([AMTJTAGACCEL], [test "x$build_amtjtagaccel" = "xyes"])
+AM_CONDITIONAL([GW16012], [test "x$build_gw16012" = "xyes"])
+AM_CONDITIONAL([OOCD_TRACE], [test "x$build_oocd_trace" = "xyes"])
+AM_CONDITIONAL([REMOTE_BITBANG], [test "x$build_remote_bitbang" = "xyes"])
+AM_CONDITIONAL([BUSPIRATE], [test "x$build_buspirate" = "xyes"])
+AM_CONDITIONAL([SYSFSGPIO], [test "x$build_sysfsgpio" = "xyes"])
+AM_CONDITIONAL([USE_LIBUSB0], [test "x$use_libusb0" = "xyes"])
+AM_CONDITIONAL([USE_LIBUSB1], [test "x$use_libusb1" = "xyes"])
+AM_CONDITIONAL([IS_CYGWIN], [test "x$is_cygwin" = "xyes"])
+AM_CONDITIONAL([IS_MINGW], [test "x$is_mingw" = "xyes"])
+AM_CONDITIONAL([IS_WIN32], [test "x$is_win32" = "xyes"])
+AM_CONDITIONAL([IS_DARWIN], [test "x$is_darwin" = "xyes"])
+AM_CONDITIONAL([BITQ], [test "x$build_bitq" = "xyes"])
+AM_CONDITIONAL([USE_LIBFTDI], [test "x$use_libftdi" = "xyes"])
 
-AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = yes])
-AM_CONDITIONAL([MINIDRIVER_DUMMY], [test $build_minidriver_dummy = yes])
+AM_CONDITIONAL([MINIDRIVER], [test "x$build_minidriver" = "xyes"])
+AM_CONDITIONAL([MINIDRIVER_DUMMY], [test "x$build_minidriver_dummy" = "xyes"])
 
-AM_CONDITIONAL([INTERNAL_JIMTCL], [test $use_internal_jimtcl = yes])
-AM_CONDITIONAL([INTERNAL_LIBJAYLINK], [test $use_internal_libjaylink = yes])
+AM_CONDITIONAL([INTERNAL_JIMTCL], [test "x$use_internal_jimtcl" = "xyes"])
+AM_CONDITIONAL([INTERNAL_LIBJAYLINK], [test "x$use_internal_libjaylink" = "xyes"])
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
@@ -775,28 +763,28 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     AC_MSG_RESULT([${has_environ}])
   ])
 
-if test "${has_environ}" != "yes" ; then
+AS_IF([test "x${has_environ}" != "xyes" ], [
   AC_MSG_FAILURE([Could not find 'environ' in unistd.h or available libraries.])
-fi
+])
 
 AC_DEFINE([_GNU_SOURCE],[1],[Use GNU C library extensions (e.g. stdndup).])
 
 # set default gcc warnings
 GCC_WARNINGS="-Wall -Wstrict-prototypes -Wformat-security -Wshadow"
-if test "${gcc_wextra}" = yes; then
+AS_IF([test "x${gcc_wextra}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Wextra -Wno-unused-parameter"
   GCC_WARNINGS="${GCC_WARNINGS} -Wbad-function-cast"
   GCC_WARNINGS="${GCC_WARNINGS} -Wcast-align"
   GCC_WARNINGS="${GCC_WARNINGS} -Wredundant-decls"
-fi
-if test "${gcc_werror}" = yes; then
+])
+AS_IF([test "x${gcc_werror}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Werror"
-fi
+])
 
 # overide default gcc cflags
-if test $gcc_warnings = yes; then
+AS_IF([test "x$gcc_warnings" = "xyes"], [
   CFLAGS="$CFLAGS $GCC_WARNINGS"
-fi
+])
 
 AC_CONFIG_FILES([
   Makefile
@@ -829,16 +817,15 @@ echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS,
 	HIDAPI_ADAPTERS, LIBFTDI_ADAPTERS, LIBJAYLINK_ADAPTERS],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
-	case $ADAPTER_VAR([adapter]) in
-		auto)
+	AS_CASE([$ADAPTER_VAR([adapter])],
+		[auto], [
 			echo "$s"yes '(auto)'
-			;;
-		yes)
+		],
+		[yes], [
 			echo "$s"yes
-			;;
-		no)
+		],
+		[no], [
 			echo "$s"no
-			;;
-	esac
+	])
 ])
 echo
