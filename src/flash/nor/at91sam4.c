@@ -296,6 +296,173 @@ static const struct sam4_chip_details all_sam4_details[] = {
 		},
 	},
 
+	/* Start at91sam4n* series */
+	/*atsam4n8a - LQFP48/QFN48*/
+	{
+		.chipid_cidr    = 0x293B0AE0,
+		.name           = "at91sam4n8a",
+		.total_flash_size     = 512 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6,	/* workaround silicon bug */
+			.present = 1,
+			.size_bytes =  512 * 1024,
+			.nsectors   =  64,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	/*atsam4n8b - LQFP64/QFN64*/
+	{
+		.chipid_cidr    = 0x294B0AE0,
+		.name           = "at91sam4n8b",
+		.total_flash_size     = 512 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6,	/* workaround silicon bug */
+			.present = 1,
+			.size_bytes =  512 * 1024,
+			.nsectors   =  64,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	/*atsam4n8c - LQFP100/TFBGA100/VFBGA100*/
+	{
+		.chipid_cidr    = 0x295B0AE0,
+		.name           = "at91sam4n8c",
+		.total_flash_size     = 512 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6,	/* workaround silicon bug */
+			.present = 1,
+			.size_bytes =  512 * 1024,
+			.nsectors   =  64,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	/*atsam4n16b - LQFP64/QFN64*/
+	{
+		.chipid_cidr    = 0x29460CE0,
+		.name           = "at91sam4n16b",
+		.total_flash_size     = 1024 * 1024,
+		.total_sram_size      = 80 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6,	/* workaround silicon bug */
+			.present = 1,
+			.size_bytes =  1024 * 1024,
+			.nsectors   =  128,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	/*atsam4n16c - LQFP100/TFBGA100/VFBGA100*/
+	{
+		.chipid_cidr    = 0x29560CE0,
+		.name           = "at91sam4n16c",
+		.total_flash_size     = 1024 * 1024,
+		.total_sram_size      = 80 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 6,	/* workaround silicon bug */
+			.present = 1,
+			.size_bytes =  1024 * 1024,
+			.nsectors   =  128,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
 	/* Start at91sam4s* series */
 	/*atsam4s16c - LQFP100/BGA100*/
 	{
