@@ -99,14 +99,14 @@ static int swd_run_inner(struct adiv5_dap *dap)
 
 static int swd_connect(struct adiv5_dap *dap)
 {
-	uint32_t idcode;
+	uint32_t dpidr;
 	int status;
 
 	/* FIXME validate transport config ... is the
 	 * configured DAP present (check IDCODE)?
 	 * Is *only* one DAP configured?
 	 *
-	 * MUST READ IDCODE
+	 * MUST READ DPIDR
 	 */
 
 	/* Note, debugport_init() does setup too */
@@ -116,7 +116,7 @@ static int swd_connect(struct adiv5_dap *dap)
 	dap->do_reconnect = false;
 	dap->select = DP_SELECT_INVALID;
 
-	swd_queue_dp_read(dap, DP_IDCODE, &idcode);
+	swd_queue_dp_read(dap, DP_DPIDR, &dpidr);
 
 	/* force clear all sticky faults */
 	swd_clear_sticky_errors(dap);
@@ -124,7 +124,7 @@ static int swd_connect(struct adiv5_dap *dap)
 	status = swd_run_inner(dap);
 
 	if (status == ERROR_OK) {
-		LOG_INFO("SWD IDCODE %#8.8" PRIx32, idcode);
+		LOG_INFO("SWD DPIDR %#8.8" PRIx32, dpidr);
 		dap->do_reconnect = false;
 	} else
 		dap->do_reconnect = true;
@@ -342,61 +342,6 @@ int dap_to_swd(struct target *target)
 	return retval;
 }
 
-COMMAND_HANDLER(handle_swd_wcr)
-{
-	int retval;
-	struct target *target = get_current_target(CMD_CTX);
-	struct arm *arm = target_to_arm(target);
-	struct adiv5_dap *dap = arm->dap;
-	uint32_t wcr;
-	unsigned trn, scale = 0;
-
-	switch (CMD_ARGC) {
-	/* no-args: just dump state */
-	case 0:
-		/*retval = swd_queue_dp_read(dap, DP_WCR, &wcr); */
-		retval = dap_queue_dp_read(dap, DP_WCR, &wcr);
-		if (retval == ERROR_OK)
-			dap->ops->run(dap);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("can't read WCR?");
-			return retval;
-		}
-
-		command_print(CMD_CTX,
-			"turnaround=%" PRIu32 ", prescale=%" PRIu32,
-			WCR_TO_TRN(wcr),
-			WCR_TO_PRESCALE(wcr));
-	return ERROR_OK;
-
-	case 2:		/* TRN and prescale */
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], scale);
-		if (scale > 7) {
-			LOG_ERROR("prescale %d is too big", scale);
-			return ERROR_FAIL;
-		}
-		/* FALL THROUGH */
-
-	case 1:		/* TRN only */
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], trn);
-		if (trn < 1 || trn > 4) {
-			LOG_ERROR("turnaround %d is invalid", trn);
-			return ERROR_FAIL;
-		}
-
-		wcr = ((trn - 1) << 8) | scale;
-		/* FIXME
-		 * write WCR ...
-		 * then, re-init adapter with new TRN
-		 */
-		LOG_ERROR("can't yet modify WCR");
-		return ERROR_FAIL;
-
-	default:	/* too many arguments */
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-}
-
 static const struct command_registration swd_commands[] = {
 	{
 		/*
@@ -411,15 +356,6 @@ static const struct command_registration swd_commands[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "declare a new SWD DAP"
 	},
-	{
-		.name = "wcr",
-		.handler = handle_swd_wcr,
-		.mode = COMMAND_ANY,
-		.help = "display or update DAP's WCR register",
-		.usage = "turnaround (1..4), prescale (0..7)",
-	},
-
-	/* REVISIT -- add a command for SWV trace on/off */
 	COMMAND_REGISTRATION_DONE
 };
 
