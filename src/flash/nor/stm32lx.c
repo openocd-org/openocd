@@ -740,6 +740,8 @@ static int stm32lx_probe(struct flash_bank *bank)
 	if (!stm32lx_info->part_info) {
 		LOG_WARNING("Cannot identify target as a STM32L family.");
 		return ERROR_FAIL;
+	} else {
+		LOG_INFO("Device: %s", stm32lx_info->part_info->device_str);
 	}
 
 	stm32lx_info->flash_base = stm32lx_info->part_info->flash_base;
