@@ -139,7 +139,10 @@ static const struct stm32lx_rev stm32_416_revs[] = {
 	{ 0x1000, "A" }, { 0x1008, "Y" }, { 0x1038, "W" }, { 0x1078, "V" },
 };
 static const struct stm32lx_rev stm32_417_revs[] = {
-	{ 0x1000, "A" }, { 0x1008, "Z" },
+	{ 0x1000, "A" }, { 0x1008, "Z" }, { 0x1018, "Y" }, { 0x1038, "X" }
+};
+static const struct stm32lx_rev stm32_425_revs[] = {
+	{ 0x1000, "A" }, { 0x2000, "B" }, { 0x2008, "Y" },
 };
 static const struct stm32lx_rev stm32_427_revs[] = {
 	{ 0x1000, "A" }, { 0x1018, "Y" }, { 0x1038, "X" },
@@ -152,6 +155,12 @@ static const struct stm32lx_rev stm32_436_revs[] = {
 };
 static const struct stm32lx_rev stm32_437_revs[] = {
 	{ 0x1000, "A" },
+};
+static const struct stm32lx_rev stm32_447_revs[] = {
+	{ 0x1000, "A" }, { 0x2000, "B" }, { 0x2008, "Z" },
+};
+static const struct stm32lx_rev stm32_457_revs[] = {
+	{ 0x1000, "A" }, { 0x1008, "Z" },
 };
 
 static const struct stm32lx_part_info stm32lx_parts[] = {
@@ -171,10 +180,22 @@ static const struct stm32lx_part_info stm32lx_parts[] = {
 		.id					= 0x417,
 		.revs				= stm32_417_revs,
 		.num_revs			= ARRAY_SIZE(stm32_417_revs),
-		.device_str			= "STM32L0xx",
+		.device_str			= "STM32L0xx (Cat. 3)",
 		.page_size			= 128,
 		.pages_per_sector	= 32,
 		.max_flash_size_kb	= 64,
+		.has_dual_banks		= false,
+		.flash_base			= 0x40022000,
+		.fsize_base			= 0x1FF8007C,
+	},
+	{
+		.id					= 0x425,
+		.revs				= stm32_425_revs,
+		.num_revs			= ARRAY_SIZE(stm32_425_revs),
+		.device_str			= "STM32L0xx (Cat. 2)",
+		.page_size			= 128,
+		.pages_per_sector	= 32,
+		.max_flash_size_kb	= 32,
 		.has_dual_banks		= false,
 		.flash_base			= 0x40022000,
 		.fsize_base			= 0x1FF8007C,
@@ -229,6 +250,31 @@ static const struct stm32lx_part_info stm32lx_parts[] = {
 		.has_dual_banks		= true,
 		.flash_base			= 0x40023C00,
 		.fsize_base			= 0x1FF800CC,
+	},
+	{
+		.id					= 0x447,
+		.revs				= stm32_447_revs,
+		.num_revs			= ARRAY_SIZE(stm32_447_revs),
+		.device_str			= "STM32L0xx (Cat.5)",
+		.page_size			= 128,
+		.pages_per_sector	= 32,
+		.max_flash_size_kb	= 192,
+		.first_bank_size_kb	= 128,
+		.has_dual_banks		= true,
+		.flash_base			= 0x40022000,
+		.fsize_base			= 0x1FF8007C,
+	},
+	{
+		.id					= 0x457,
+		.revs				= stm32_457_revs,
+		.num_revs			= ARRAY_SIZE(stm32_457_revs),
+		.device_str			= "STM32L0xx (Cat.1)",
+		.page_size			= 128,
+		.pages_per_sector	= 32,
+		.max_flash_size_kb	= 16,
+		.has_dual_banks		= false,
+		.flash_base			= 0x40022000,
+		.fsize_base			= 0x1FF8007C,
 	},
 };
 
