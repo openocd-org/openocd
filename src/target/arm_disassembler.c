@@ -278,7 +278,7 @@ static int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode,
 	uint8_t cp_num = (opcode & 0xf00) >> 8;
 
 	/* MCRR or MRRC */
-	if (((opcode & 0x0ff00000) == 0x0c400000) || ((opcode & 0x0ff00000) == 0x0c400000)) {
+	if (((opcode & 0x0ff00000) == 0x0c400000) || ((opcode & 0x0ff00000) == 0x0c500000)) {
 		uint8_t cp_opcode, Rd, Rn, CRm;
 		char *mnemonic;
 
