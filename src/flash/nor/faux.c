@@ -50,7 +50,7 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 		return ERROR_FAIL;
 	}
 	info->memory = malloc(bank->size);
-	if (info == NULL) {
+	if (info->memory == NULL) {
 		free(info);
 		LOG_ERROR("no memory for flash bank info");
 		return ERROR_FAIL;
