@@ -540,7 +540,6 @@ void cfi_fixup_non_cfi(struct flash_bank *bank)
 
 		pri_ext->SiliconRevision = 0x0;
 		pri_ext->EraseSuspend = 0x0;
-		pri_ext->EraseSuspend = 0x0;
 		pri_ext->BlkProt = 0x0;
 		pri_ext->TmpBlkUnprotect = 0x0;
 		pri_ext->BlkProtUnprot = 0x0;
