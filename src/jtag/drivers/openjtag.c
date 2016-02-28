@@ -471,7 +471,7 @@ if (openjtag_device_desc == NULL) {
 		LOG_ERROR("Can't set baud rate to max: %s",
 			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
-	};
+	}
 #endif
 
 #if BUILD_OPENJTAG_FTD2XX == 1

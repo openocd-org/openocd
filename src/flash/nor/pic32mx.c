@@ -430,7 +430,7 @@ static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
 
 	/* Change values for counters and row size, depending on variant */
 	if (pic32mx_info->dev_type == MX_1_2) {

@@ -221,7 +221,7 @@ static int psoc4_sysreq(struct target *target, uint8_t cmd, uint16_t cmd_param,
 			&sysreq_wait_algorithm) != ERROR_OK) {
 		LOG_DEBUG("no working area for sysreq code");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
 
 	/* Write the code */
 	retval = target_write_buffer(target,

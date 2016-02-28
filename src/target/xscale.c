@@ -1573,7 +1573,6 @@ static int xscale_deassert_reset(struct target *target)
 
 			address += buf_cnt;
 		}
-		;
 
 		retval = xscale_load_ic(target, 0x0,
 				xscale->low_vectors);

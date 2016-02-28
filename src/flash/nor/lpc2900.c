@@ -1160,7 +1160,6 @@ static int lpc2900_write(struct flash_bank *bank, const uint8_t *buffer,
 			break;
 		}
 	}
-	;
 
 	if (warea) {
 		struct reg_param reg_params[5];

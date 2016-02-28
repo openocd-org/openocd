@@ -391,7 +391,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, const uint8_t *buff
 			&write_algorithm) != ERROR_OK) {
 		LOG_DEBUG("no working area for block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
 
 	/* Write the flashing code */
 	retval = target_write_buffer(target,

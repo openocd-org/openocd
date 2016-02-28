@@ -390,7 +390,7 @@ static int str9x_write_block(struct flash_bank *bank,
 			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
 
 	uint8_t code[sizeof(str9x_flash_write_code)];
 	target_buffer_set_u32_array(target, code, ARRAY_SIZE(str9x_flash_write_code),

@@ -1003,12 +1003,12 @@ static int dsp5680xx_poll(struct target *target)
 			 __func__);
 		target->state = TARGET_UNKNOWN;
 		return ERROR_TARGET_FAILURE;
-	};
+	}
 	if (target->state == TARGET_UNKNOWN) {
 		LOG_ERROR("%s: Target status invalid - communication failure",
 			  __func__);
 		return ERROR_TARGET_FAILURE;
-	};
+	}
 	return ERROR_OK;
 }
 

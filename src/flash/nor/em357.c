@@ -502,7 +502,6 @@ static int em357_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	;
 
 	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(em357_flash_write_code), em357_flash_write_code);

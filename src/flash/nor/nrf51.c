@@ -587,7 +587,7 @@ static int nrf51_protect(struct flash_bank *bank, int set, int first, int last)
 	if ((ppfc & 0xFF) == 0x00) {
 		LOG_ERROR("Code region 0 size was pre-programmed at the factory, can't change flash protection settings");
 		return ERROR_FAIL;
-	};
+	}
 
 	res = target_read_u32(chip->target, NRF51_UICR_CLENR0,
 			      &clenr0);
@@ -767,7 +767,7 @@ static int nrf51_erase_page(struct flash_bank *bank,
 
 			LOG_ERROR("The chip was not pre-programmed with SoftDevice stack and UICR cannot be erased separately. Please issue mass erase before trying to write to this region");
 			return ERROR_FAIL;
-		};
+		}
 
 		res = nrf51_nvmc_generic_erase(chip,
 					       NRF51_NVMC_ERASEUICR,
@@ -1148,7 +1148,7 @@ COMMAND_HANDLER(nrf51_handle_mass_erase_command)
 		LOG_ERROR("Code region 0 size was pre-programmed at the factory, "
 			  "mass erase command won't work.");
 		return ERROR_FAIL;
-	};
+	}
 
 	res = nrf51_erase_all(chip);
 	if (res != ERROR_OK) {

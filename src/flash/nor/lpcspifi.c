@@ -698,7 +698,7 @@ static int lpcspifi_write(struct flash_bank *bank, const uint8_t *buffer,
 			" a working area > %zdB in order to write to SPIFI flash.",
 			sizeof(lpcspifi_flash_write_code));
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
 
 	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(lpcspifi_flash_write_code),
@@ -734,7 +734,7 @@ static int lpcspifi_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (target_alloc_working_area(target, fifo_size, &fifo) != ERROR_OK) {
 		target_free_working_area(target, write_algorithm);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;

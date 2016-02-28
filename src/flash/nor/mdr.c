@@ -255,7 +255,7 @@ static int mdr_write_block(struct flash_bank *bank, const uint8_t *buffer,
 			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	};
+	}
 
 	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(mdr32fx_flash_write_code), mdr32fx_flash_write_code);
@@ -274,7 +274,7 @@ static int mdr_write_block(struct flash_bank *bank, const uint8_t *buffer,
 			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-	};
+	}
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);	/* flash base (in), status (out) */
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);	/* count (32bit) */
