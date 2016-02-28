@@ -602,7 +602,7 @@ static void stellaris_read_clock_info(struct flash_bank *bank)
 	LOG_DEBUG("Stellaris PLLCFG %" PRIx32 "", pllcfg);
 
 	stellaris_info->rcc = rcc;
-	stellaris_info->rcc = rcc2;
+	stellaris_info->rcc2 = rcc2;
 
 	sysdiv = (rcc >> 23) & 0xF;
 	usesysdiv = (rcc >> 22) & 0x1;
