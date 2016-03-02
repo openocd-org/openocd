@@ -135,9 +135,19 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_ERR_OK            0x80
 #define STLINK_DEBUG_ERR_FAULT         0x81
 #define STLINK_SWD_AP_WAIT             0x10
+#define STLINK_SWD_AP_FAULT            0x11
+#define STLINK_SWD_AP_ERROR            0x12
+#define STLINK_SWD_AP_PARITY_ERROR     0x13
 #define STLINK_JTAG_WRITE_ERROR        0x0c
 #define STLINK_JTAG_WRITE_VERIF_ERROR  0x0d
 #define STLINK_SWD_DP_WAIT             0x14
+#define STLINK_SWD_DP_FAULT            0x15
+#define STLINK_SWD_DP_ERROR            0x16
+#define STLINK_SWD_DP_PARITY_ERROR     0x17
+
+#define STLINK_SWD_AP_WDATA_ERROR      0x18
+#define STLINK_SWD_AP_STICKY_ERROR     0x19
+#define STLINK_SWD_AP_STICKYORUN_ERROR 0x1a
 
 #define STLINK_CORE_RUNNING            0x80
 #define STLINK_CORE_HALTED             0x81
@@ -397,6 +407,38 @@ static int stlink_usb_error_check(void *handle)
 			return ERROR_FAIL;
 		case STLINK_JTAG_WRITE_VERIF_ERROR:
 			LOG_DEBUG("Verify error");
+			return ERROR_FAIL;
+		case STLINK_SWD_AP_FAULT:
+			/* git://git.ac6.fr/openocd commit 657e3e885b9ee10
+			 * returns ERROR_OK with the comment:
+			 * Change in error status when reading outside RAM.
+			 * This fix allows CDT plugin to visualize memory.
+			 */
+			LOG_DEBUG("STLINK_SWD_AP_FAULT");
+			return ERROR_FAIL;
+		case STLINK_SWD_AP_ERROR:
+			LOG_DEBUG("STLINK_SWD_AP_ERROR");
+			return ERROR_FAIL;
+		case STLINK_SWD_AP_PARITY_ERROR:
+			LOG_DEBUG("STLINK_SWD_AP_PARITY_ERROR");
+			return ERROR_FAIL;
+		case STLINK_SWD_DP_FAULT:
+			LOG_DEBUG("STLINK_SWD_DP_FAULT");
+			return ERROR_FAIL;
+		case STLINK_SWD_DP_ERROR:
+			LOG_DEBUG("STLINK_SWD_DP_ERROR");
+			return ERROR_FAIL;
+		case STLINK_SWD_DP_PARITY_ERROR:
+			LOG_DEBUG("STLINK_SWD_DP_PARITY_ERROR");
+			return ERROR_FAIL;
+		case STLINK_SWD_AP_WDATA_ERROR:
+			LOG_DEBUG("STLINK_SWD_AP_WDATA_ERROR");
+			return ERROR_FAIL;
+		case STLINK_SWD_AP_STICKY_ERROR:
+			LOG_DEBUG("STLINK_SWD_AP_STICKY_ERROR");
+			return ERROR_FAIL;
+		case STLINK_SWD_AP_STICKYORUN_ERROR:
+			LOG_DEBUG("STLINK_SWD_AP_STICKYORUN_ERROR");
 			return ERROR_FAIL;
 		default:
 			LOG_DEBUG("unknown/unexpected STLINK status code 0x%x", h->databuf[0]);
