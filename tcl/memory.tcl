@@ -131,3 +131,57 @@ proc memwrite8 {ADDR DATA} {
 	error "memwrite8: $msg"
     }
 }
+
+proc memread32_phys {ADDR} {
+    set foo(0) 0
+    if ![ catch { mem2array foo 32 $ADDR 1 phys } msg ] {
+	return $foo(0)
+    } else {
+	error "memread32: $msg"
+    }
+}
+
+proc memread16_phys {ADDR} {
+    set foo(0) 0
+    if ![ catch { mem2array foo 16 $ADDR 1 phys } msg ] {
+	return $foo(0)
+    } else {
+	error "memread16: $msg"
+    }
+}
+
+proc memread8_phys {ADDR} {
+    set foo(0) 0
+    if ![ catch { mem2array foo 8 $ADDR 1 phys } msg ] {
+	return $foo(0)
+    } else {
+	error "memread8: $msg"
+    }
+}
+
+proc memwrite32_phys {ADDR DATA} {
+    set foo(0) $DATA
+    if ![ catch { array2mem foo 32 $ADDR 1 phys } msg ] {
+	return $foo(0)
+    } else {
+	error "memwrite32: $msg"
+    }
+}
+
+proc memwrite16_phys {ADDR DATA} {
+    set foo(0) $DATA
+    if ![ catch { array2mem foo 16 $ADDR 1 phys } msg ] {
+	return $foo(0)
+    } else {
+	error "memwrite16: $msg"
+    }
+}
+
+proc memwrite8_phys {ADDR DATA} {
+    set foo(0) $DATA
+    if ![ catch { array2mem foo 8 $ADDR 1 phys } msg ] {
+	return $foo(0)
+    } else {
+	error "memwrite8: $msg"
+    }
+}
