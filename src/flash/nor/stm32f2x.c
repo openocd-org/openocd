@@ -1114,6 +1114,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 static int stm32x_mass_erase(struct flash_bank *bank)
 {
 	int retval;
+	uint32_t flash_mer;
 	struct target *target = bank->target;
 	struct stm32x_flash_bank *stm32x_info = NULL;
 
@@ -1130,13 +1131,14 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 
 	/* mass erase flash memory */
 	if (stm32x_info->has_large_mem)
-		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER | FLASH_MER1);
+		flash_mer = FLASH_MER | FLASH_MER1;
 	else
-		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_MER);
+		flash_mer = FLASH_MER;
+	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), flash_mer);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR),
-		FLASH_MER | FLASH_STRT);
+		flash_mer | FLASH_STRT);
 	if (retval != ERROR_OK)
 		return retval;
 
