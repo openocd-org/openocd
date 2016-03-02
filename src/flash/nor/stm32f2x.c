@@ -787,6 +787,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	switch (device_id & 0xfff) {
 	case 0x411:
 	case 0x413:
+	case 0x441:
 		max_flash_size_in_kb = 1024;
 		break;
 	case 0x419:
@@ -800,6 +801,9 @@ static int stm32x_probe(struct flash_bank *bank)
 	case 0x433:
 	case 0x421:
 		max_flash_size_in_kb = 512;
+		break;
+	case 0x458:
+		max_flash_size_in_kb = 128;
 		break;
 	case 0x449:
 		max_flash_size_in_kb = 1024;
@@ -953,7 +957,6 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	case 0x413:
 	case 0x419:
-	case 0x434:
 		device_str = "STM32F4xx";
 
 		switch (rev_id) {
@@ -990,6 +993,8 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	case 0x423:
 	case 0x431:
 	case 0x433:
+	case 0x458:
+	case 0x441:
 		device_str = "STM32F4xx (Low Power)";
 
 		switch (rev_id) {
@@ -1013,6 +1018,15 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 
 		case 0x1001:
 			rev_str = "Z";
+			break;
+		}
+		break;
+	case 0x434:
+		device_str = "STM32F46x/F47x";
+
+		switch (rev_id) {
+		case 0x1000:
+			rev_str = "A";
 			break;
 		}
 		break;
