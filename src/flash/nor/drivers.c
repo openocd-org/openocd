@@ -55,6 +55,7 @@ extern struct flash_driver dsp5680xx_flash;
 extern struct flash_driver fm3_flash;
 extern struct flash_driver fm4_flash;
 extern struct flash_driver kinetis_flash;
+extern struct flash_driver kinetis_ke_flash;
 extern struct flash_driver efm32_flash;
 extern struct flash_driver mdr_flash;
 extern struct flash_driver numicro_flash;
@@ -104,6 +105,7 @@ static struct flash_driver *flash_drivers[] = {
 	&fm4_flash,
 	&dsp5680xx_flash,
 	&kinetis_flash,
+	&kinetis_ke_flash,
 	&efm32_flash,
 	&mdr_flash,
 	&numicro_flash,

@@ -5248,6 +5248,33 @@ Command disables watchdog timer.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} kinetis_ke
+@cindex kinetis_ke
+KE members of the Kinetis microcontroller family from Freescale include
+internal flash and use ARM Cortex M0+. The driver automatically recognizes
+the KE family and sub-family using the chip identification register, and
+autoconfigures itself.
+
+@example
+flash bank $_FLASHNAME kinetis_ke 0 0 0 0 $_TARGETNAME
+@end example
+
+@deffn Command {kinetis_ke mdm check_security}
+Checks status of device security lock. Used internally in examine-end event.
+@end deffn
+
+@deffn Command {kinetis_ke mdm mass_erase}
+Issues a complete Flash erase via the MDM-AP.
+This can be used to erase a chip back to its factory state.
+Command removes security lock from a device (use of SRST highly recommended).
+It does not require the processor to be halted.
+@end deffn
+
+@deffn Command {kinetis_ke disable_wdog}
+Command disables watchdog timer.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} fm4
 All members of the FM4 microcontroller family from Spansion (formerly Fujitsu)
 include internal flash and use ARM Cortex-M4 cores.

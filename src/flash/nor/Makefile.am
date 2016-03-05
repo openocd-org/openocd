@@ -46,6 +46,7 @@ NOR_DRIVERS = \
 	fm4.c \
 	dsp5680xx_flash.c \
 	kinetis.c \
+	kinetis_ke.c \
 	numicro.c \
 	nrf51.c \
 	mrvlqspi.c \
