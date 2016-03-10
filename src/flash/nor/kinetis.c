@@ -1247,7 +1247,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 	return ERROR_OK;
 }
 
-static int kinetis_read_part_info(struct flash_bank *bank)
+static int kinetis_probe(struct flash_bank *bank)
 {
 	int result, i;
 	uint32_t offset = 0;
@@ -1667,16 +1667,6 @@ static int kinetis_read_part_info(struct flash_bank *bank)
 	kinfo->probed = true;
 
 	return ERROR_OK;
-}
-
-static int kinetis_probe(struct flash_bank *bank)
-{
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_WARNING("Cannot communicate... target not halted.");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	return kinetis_read_part_info(bank);
 }
 
 static int kinetis_auto_probe(struct flash_bank *bank)
