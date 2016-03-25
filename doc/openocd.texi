@@ -5175,6 +5175,14 @@ autoconfigures itself.
 @example
 flash bank $_FLASHNAME efm32 0 0 0 0 $_TARGETNAME
 @end example
+A special feature of efm32 controllers is that it is possible to completely disable the
+debug interface by writing the correct values to the 'Debug Lock Word'. OpenOCD supports
+this via the following command:
+@example
+efm32 debuglock num
+@end example
+The @var{num} parameter is a value shown by @command{flash banks}.
+Note that in order for this command to take effect, the target needs to be reset.
 @emph{The current implementation is incomplete. Unprotecting flash pages is not
 supported.}
 @end deffn

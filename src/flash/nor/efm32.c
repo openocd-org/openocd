@@ -25,9 +25,7 @@
  *   GNU General Public License for more details.                          *
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ *   along with this program.                                              *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -997,7 +995,50 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 	return efm32x_decode_info(&info, buf, buf_size);
 }
 
+COMMAND_HANDLER(efm32x_handle_debuglock_command)
+{
+	struct target *target = NULL;
+
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	struct efm32x_flash_bank *efm32x_info = bank->driver_priv;
+
+	target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	uint32_t *ptr;
+	ptr = efm32x_info->lb_page + 127;
+	*ptr = 0;
+
+	retval = efm32x_write_lock_data(bank);
+	if (ERROR_OK != retval) {
+		LOG_ERROR("Failed to write LB page");
+		return retval;
+	}
+
+	command_print(CMD_CTX, "efm32x debug interface locked, reset the device to apply");
+
+	return ERROR_OK;
+}
+
 static const struct command_registration efm32x_exec_command_handlers[] = {
+	{
+		.name = "debuglock",
+		.handler = efm32x_handle_debuglock_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Lock the debug interface of the device.",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
