@@ -217,7 +217,7 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 					 field->num_bits - 1,
 					 1);
 			tap_set_state(tap_state_transition(tap_get_state(), 1));
-			jlink_clock_data(&last_bit,
+			jlink_clock_data(NULL,
 					 0,
 					 &tms_bits,
 					 1,
@@ -1708,7 +1708,8 @@ static void jlink_tap_init(void)
 {
 	tap_length = 0;
 	pending_scan_results_length = 0;
-	memset(tms_buffer, 0, sizeof(tdi_buffer));
+	memset(tms_buffer, 0, sizeof(tms_buffer));
+	memset(tdi_buffer, 0, sizeof(tdi_buffer));
 }
 
 static void jlink_clock_data(const uint8_t *out, unsigned out_offset,
