@@ -699,6 +699,7 @@ COMMAND_HANDLER(ftdi_handle_serial_command)
 	return ERROR_OK;
 }
 
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
 COMMAND_HANDLER(ftdi_handle_location_command)
 {
 	if (CMD_ARGC == 1) {
@@ -711,6 +712,7 @@ COMMAND_HANDLER(ftdi_handle_location_command)
 
 	return ERROR_OK;
 }
+#endif
 
 COMMAND_HANDLER(ftdi_handle_channel_command)
 {
@@ -889,6 +891,7 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.help = "set the serial number of the FTDI device",
 		.usage = "serial_string",
 	},
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
 	{
 		.name = "ftdi_location",
 		.handler = &ftdi_handle_location_command,
@@ -896,6 +899,7 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.help = "set the USB bus location of the FTDI device",
 		.usage = "<bus>:port[,port]...",
 	},
+#endif
 	{
 		.name = "ftdi_channel",
 		.handler = &ftdi_handle_channel_command,

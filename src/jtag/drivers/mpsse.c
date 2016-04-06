@@ -106,12 +106,13 @@ static bool string_descriptor_equal(libusb_device_handle *device, uint8_t str_in
 
 static bool device_location_equal(libusb_device *device, const char *location)
 {
+	bool result = false;
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
 	char *loc = strdup(location);
 	uint8_t port_path[7];
 	int path_step, path_len;
 	uint8_t dev_bus = libusb_get_bus_number(device);
 	char *ptr;
-	bool result = false;
 
 	path_len = libusb_get_port_numbers(device, port_path, 7);
 	if (path_len == LIBUSB_ERROR_OVERFLOW) {
@@ -154,6 +155,7 @@ static bool device_location_equal(libusb_device *device, const char *location)
 
  done:
 	free(loc);
+#endif
 	return result;
 }
 

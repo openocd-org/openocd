@@ -1142,6 +1142,8 @@ PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 		[AC_MSG_WARN([libusb-1.x older than 1.0.9 detected, consider updating])])
 	LIBUSB1_CFLAGS=`echo $LIBUSB1_CFLAGS | sed 's/-I/-isystem /'`
 	AC_MSG_NOTICE([libusb-1.0 header bug workaround: LIBUSB1_CFLAGS changed to "$LIBUSB1_CFLAGS"])
+	PKG_CHECK_EXISTS([libusb-1.0 >= 1.0.16],
+		[AC_DEFINE([HAVE_LIBUSB_GET_PORT_NUMBERS], [1], [Define if your libusb has libusb_get_port_numbers()])])
   ], [
 	use_libusb1=no
 	AC_MSG_WARN([libusb-1.x not found, trying legacy libusb-0.1 as a fallback; consider installing libusb-1.x instead])

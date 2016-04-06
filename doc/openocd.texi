@@ -2564,6 +2564,8 @@ roots at @var{bus} and walks down the physical ports, with each
 @var{port} option specifying a deeper level in the bus topology, the last
 @var{port} denoting where the target adapter is actually plugged.
 The USB bus topology can be queried with the command @emph{lsusb -t}.
+
+This command is only available if your libusb1 is at least version 1.0.16.
 @end deffn
 
 @deffn {Config Command} {ftdi_channel} channel
