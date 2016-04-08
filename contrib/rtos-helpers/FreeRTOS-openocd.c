@@ -17,4 +17,4 @@
 #define USED
 #endif
 
-const int USED uxTopUsedPriority = configMAX_PRIORITIES;
+const int USED uxTopUsedPriority = configMAX_PRIORITIES - 1;
