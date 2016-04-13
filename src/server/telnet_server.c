@@ -54,7 +54,7 @@ static int telnet_write(struct connection *connection, const void *data,
 
 	if (connection_write(connection, data, len) == len)
 		return ERROR_OK;
-	t_con->closed = 1;
+	t_con->closed = true;
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
@@ -101,29 +101,36 @@ static void telnet_log_callback(void *priv, const char *file, unsigned line,
 {
 	struct connection *connection = priv;
 	struct telnet_connection *t_con = connection->priv;
-	int i;
+	size_t i;
+	size_t tmp;
 
-	/* if there is no prompt, simply output the message */
-	if (t_con->line_cursor < 0) {
+	/* If the prompt is not visible, simply output the message. */
+	if (!t_con->prompt_visible) {
 		telnet_outputline(connection, string);
 		return;
 	}
 
-	/* clear the command line */
-	for (i = strlen(t_con->prompt) + t_con->line_size; i > 0; i -= 16)
-		telnet_write(connection, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", i > 16 ? 16 : i);
-	for (i = strlen(t_con->prompt) + t_con->line_size; i > 0; i -= 16)
-		telnet_write(connection, "                ", i > 16 ? 16 : i);
-	for (i = strlen(t_con->prompt) + t_con->line_size; i > 0; i -= 16)
-		telnet_write(connection, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", i > 16 ? 16 : i);
+	/* Clear the command line. */
+	tmp = strlen(t_con->prompt) + t_con->line_size;
 
-	/* output the message */
+	for (i = 0; i < tmp; i += 16)
+		telnet_write(connection, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
+			MIN(tmp - i, 16));
+
+	for (i = 0; i < tmp; i += 16)
+		telnet_write(connection, "                ", MIN(tmp - i, 16));
+
+	for (i = 0; i < tmp; i += 16)
+		telnet_write(connection, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
+			MIN(tmp - i, 16));
+
 	telnet_outputline(connection, string);
 
-	/* put the command line to its previous state */
+	/* Put the command line to its previous state. */
 	telnet_prompt(connection);
 	telnet_write(connection, t_con->line, t_con->line_size);
-	for (i = t_con->line_size; i > t_con->line_cursor; i--)
+
+	for (i = t_con->line_cursor; i < t_con->line_size; i++)
 		telnet_write(connection, "\b", 1);
 }
 
@@ -219,10 +226,11 @@ static int telnet_new_connection(struct connection *connection)
 	connection->priv = telnet_connection;
 
 	/* initialize telnet connection information */
-	telnet_connection->closed = 0;
+	telnet_connection->closed = false;
 	telnet_connection->line_size = 0;
 	telnet_connection->line_cursor = 0;
 	telnet_connection->prompt = strdup("> ");
+	telnet_connection->prompt_visible = true;
 	telnet_connection->state = TELNET_STATE_DATA;
 
 	/* output goes through telnet connection */
@@ -289,7 +297,7 @@ static void telnet_history_up(struct connection *connection)
 {
 	struct telnet_connection *t_con = connection->priv;
 
-	int last_history = (t_con->current_history > 0) ?
+	size_t last_history = (t_con->current_history > 0) ?
 				t_con->current_history - 1 :
 				TELNET_LINE_HISTORY_SIZE-1;
 	telnet_history_go(connection, last_history);
@@ -298,8 +306,9 @@ static void telnet_history_up(struct connection *connection)
 static void telnet_history_down(struct connection *connection)
 {
 	struct telnet_connection *t_con = connection->priv;
+	size_t next_history;
 
-	int next_history = (t_con->current_history + 1) % TELNET_LINE_HISTORY_SIZE;
+	next_history = (t_con->current_history + 1) % TELNET_LINE_HISTORY_SIZE;
 	telnet_history_go(connection, next_history);
 }
 
@@ -363,7 +372,7 @@ static int telnet_input(struct connection *connection)
 							t_con->line[t_con->line_size++] = *buf_p;
 							t_con->line_cursor++;
 						} else {
-							int i;
+							size_t i;
 							memmove(t_con->line + t_con->line_cursor + 1,
 									t_con->line + t_con->line_cursor,
 									t_con->line_size - t_con->line_cursor);
@@ -398,7 +407,7 @@ static int telnet_input(struct connection *connection)
 							telnet_write(connection, "\r\n\x00", 3);
 
 							if (strcmp(t_con->line, "history") == 0) {
-								int i;
+								size_t i;
 								for (i = 1; i < TELNET_LINE_HISTORY_SIZE; i++) {
 									/* the t_con->next_history line contains empty string
 									 * (unless NULL), thus it is not printed */
@@ -444,7 +453,7 @@ static int telnet_input(struct connection *connection)
 							t_con->line_size = 0;
 
 							/* to suppress prompt in log callback during command execution */
-							t_con->line_cursor = -1;
+							t_con->prompt_visible = false;
 
 							if (strcmp(t_con->line, "shutdown") == 0)
 								telnet_save_history(t_con);
@@ -452,6 +461,7 @@ static int telnet_input(struct connection *connection)
 							retval = command_run_line(command_context, t_con->line);
 
 							t_con->line_cursor = 0;
+							t_con->prompt_visible = true;
 
 							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 								return ERROR_SERVER_REMOTE_CLOSED;
@@ -466,7 +476,7 @@ static int telnet_input(struct connection *connection)
 						} else if ((*buf_p == 0x7f) || (*buf_p == 0x8)) {	/* delete character */
 							if (t_con->line_cursor > 0) {
 								if (t_con->line_cursor != t_con->line_size) {
-									int i;
+									size_t i;
 									telnet_write(connection, "\b", 1);
 									t_con->line_cursor--;
 									t_con->line_size--;
@@ -566,7 +576,7 @@ static int telnet_input(struct connection *connection)
 					/* Remove character */
 					if (*buf_p == '~') {
 						if (t_con->line_cursor < t_con->line_size) {
-							int i;
+							size_t i;
 							t_con->line_size--;
 							/* remove char from line buffer */
 							memmove(t_con->line + t_con->line_cursor,
