@@ -841,17 +841,6 @@ static int cmsis_dap_swd_open(void)
 {
 	int retval;
 
-	if (cmsis_dap_handle == NULL) {
-		/* SWD init */
-		retval = cmsis_dap_usb_open();
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = cmsis_dap_get_caps_info();
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
 	if (!(cmsis_dap_handle->caps & INFO_CAPS_SWD)) {
 		LOG_ERROR("CMSIS-DAP: SWD not supported");
 		return ERROR_JTAG_DEVICE_ERROR;
@@ -872,6 +861,14 @@ static int cmsis_dap_init(void)
 	int retval;
 	uint8_t *data;
 
+	retval = cmsis_dap_usb_open();
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = cmsis_dap_get_caps_info();
+	if (retval != ERROR_OK)
+		return retval;
+
 	if (swd_mode) {
 		retval = cmsis_dap_swd_open();
 		if (retval != ERROR_OK)
@@ -879,16 +876,6 @@ static int cmsis_dap_init(void)
 	}
 
 	if (cmsis_dap_handle == NULL) {
-
-		/* JTAG init */
-		retval = cmsis_dap_usb_open();
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = cmsis_dap_get_caps_info();
-		if (retval != ERROR_OK)
-			return retval;
-
 		/* Connect in JTAG mode */
 		if (!(cmsis_dap_handle->caps & INFO_CAPS_JTAG)) {
 			LOG_ERROR("CMSIS-DAP: JTAG not supported");
