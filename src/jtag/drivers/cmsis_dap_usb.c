@@ -729,6 +729,20 @@ static void cmsis_dap_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_del
 	cmsis_dap_swd_queue_cmd(cmd, value, 0);
 }
 
+static int cmsis_dap_get_serial_info(void)
+{
+	uint8_t *data;
+
+	int retval = cmsis_dap_cmd_DAP_Info(INFO_ID_SERNUM, &data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (data[0]) /* strlen */
+		LOG_INFO("CMSIS-DAP: Serial# = %s", &data[1]);
+
+	return ERROR_OK;
+}
+
 static int cmsis_dap_get_version_info(void)
 {
 	uint8_t *data;
@@ -870,6 +884,10 @@ static int cmsis_dap_init(void)
 		return retval;
 
 	retval = cmsis_dap_get_version_info();
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = cmsis_dap_get_serial_info();
 	if (retval != ERROR_OK)
 		return retval;
 
