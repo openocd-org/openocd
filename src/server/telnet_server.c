@@ -207,9 +207,16 @@ static void telnet_save_history(struct telnet_connection *t_con)
 
 static int telnet_new_connection(struct connection *connection)
 {
-	struct telnet_connection *telnet_connection = malloc(sizeof(struct telnet_connection));
+	struct telnet_connection *telnet_connection;
 	struct telnet_service *telnet_service = connection->service->priv;
 	int i;
+
+	telnet_connection = malloc(sizeof(struct telnet_connection));
+
+	if (!telnet_connection) {
+		LOG_ERROR("Failed to allocate telnet connection.");
+		return ERROR_FAIL;
+	}
 
 	connection->priv = telnet_connection;
 
@@ -619,7 +626,14 @@ int telnet_init(char *banner)
 		return ERROR_OK;
 	}
 
-	struct telnet_service *telnet_service = malloc(sizeof(struct telnet_service));
+	struct telnet_service *telnet_service;
+
+	telnet_service = malloc(sizeof(struct telnet_service));
+
+	if (!telnet_service) {
+		LOG_ERROR("Failed to allocate telnet service.");
+		return ERROR_FAIL;
+	}
 
 	telnet_service->banner = banner;
 
