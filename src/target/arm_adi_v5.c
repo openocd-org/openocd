@@ -972,6 +972,7 @@ static const struct {
 	{ ARM_ID, 0x00c, "Cortex-M4 SCS",    "(System Control Space)", },
 	{ ARM_ID, 0x00d, "CoreSight ETM11",  "(Embedded Trace)", },
 	{ ARM_ID, 0x490, "Cortex-A15 GIC",   "(Generic Interrupt Controller)", },
+	{ ARM_ID, 0x4c0, "Cortex-M0+ ROM",   "(ROM Table)", },
 	{ ARM_ID, 0x4c7, "Cortex-M7 PPB",    "(Private Peripheral Bus ROM Table)", },
 	{ ARM_ID, 0x906, "CoreSight CTI",    "(Cross Trigger)", },
 	{ ARM_ID, 0x907, "CoreSight ETB",    "(Trace Buffer)", },
@@ -989,6 +990,7 @@ static const struct {
 	{ ARM_ID, 0x925, "Cortex-M4 ETM",    "(Embedded Trace)", },
 	{ ARM_ID, 0x930, "Cortex-R4 ETM",    "(Embedded Trace)", },
 	{ ARM_ID, 0x931, "Cortex-R5 ETM",    "(Embedded Trace)", },
+	{ ARM_ID, 0x932, "CoreSight MTB-M0+", "(Micro Trace Buffer)", },
 	{ ARM_ID, 0x941, "CoreSight TPIU-Lite", "(Trace Port Interface Unit)", },
 	{ ARM_ID, 0x950, "Cortex-A9 PTM", "(Program Trace Macrocell)", },
 	{ ARM_ID, 0x955, "Cortex-A5 ETM", "(Embedded Trace)", },
@@ -1026,6 +1028,8 @@ static const struct {
 	/* legacy comment: 0x113: what? */
 	{ ANY_ID,  0x120, "TI SDTI",         "(System Debug Trace Interface)", }, /* from OMAP3 memmap */
 	{ ANY_ID,  0x343, "TI DAPCTL",       "", }, /* from OMAP3 memmap */
+	/* Atmel */
+	{ 0x09f, 0xcd0, "Atmel CPU with DSU", "(CPU)" },
 };
 
 static int dap_rom_display(struct command_context *cmd_ctx,
