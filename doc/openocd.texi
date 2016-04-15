@@ -5000,7 +5000,7 @@ The value should normally correspond to a static mapping for the
 @var{rtos_type} can be one of @option{auto}, @option{none}, @option{eCos},
 @option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
 @option{embKernel}, @option{mqx}, @option{uCOS-III}, @option{nuttx},
-@option{RIOT}, @option{Zephyr}
+@option{RIOT}, @option{Zephyr}, @option{rtkernel}
 @xref{gdbrtossupport,,RTOS Support}.
 
 @item @code{-defer-examine} -- skip target examination at initial JTAG chain
@@ -11867,6 +11867,7 @@ Currently supported rtos's include:
 @item @option{RIOT}
 @item @option{hwthread} (This is not an actual RTOS. @xref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.)
 @item @option{Zephyr}
+@item @option{rtkernel}
 @end itemize
 
 At any time, it's possible to drop the selected RTOS using:
@@ -11908,6 +11909,8 @@ _tcb_name_offset.
 @end raggedright
 @item Zephyr symbols
 _kernel, _kernel_openocd_offsets, _kernel_openocd_size_t_size
+@item rtkernel symbols
+Multiple struct offsets.
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for
