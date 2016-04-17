@@ -5977,6 +5977,11 @@ the flash clock.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} xmc1xxx
+All members of the XMC1xxx microcontroller family from Infineon.
+This driver does not require the chip and bus width to be specified.
+@end deffn
+
 @deffn {Flash Driver} xmc4xxx
 All members of the XMC4xxx microcontroller family from Infineon.
 This driver does not require the chip and bus width to be specified.

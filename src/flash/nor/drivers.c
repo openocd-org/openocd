@@ -65,6 +65,7 @@ extern struct flash_driver str9x_flash;
 extern struct flash_driver str9xpec_flash;
 extern struct flash_driver tms470_flash;
 extern struct flash_driver virtual_flash;
+extern struct flash_driver xmc1xxx_flash;
 extern struct flash_driver xmc4xxx_flash;
 
 /**
@@ -115,6 +116,7 @@ static struct flash_driver *flash_drivers[] = {
 	&str9xpec_flash,
 	&tms470_flash,
 	&virtual_flash,
+	&xmc1xxx_flash,
 	&xmc4xxx_flash,
 	NULL,
 };

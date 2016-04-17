@@ -53,6 +53,7 @@ NOR_DRIVERS = \
 	str9xpec.c \
 	tms470.c \
 	virtual.c \
+	xmc1xxx.c \
 	xmc4xxx.c
 
 noinst_HEADERS = \
