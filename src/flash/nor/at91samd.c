@@ -151,6 +151,7 @@ static const struct samd_part samd21_parts[] = {
 	{ 0xC, "SAMD21E16A", 64, 8 },
 	{ 0xD, "SAMD21E15A", 32, 4 },
 	{ 0xE, "SAMD21E14A", 16, 2 },
+	{ 0x26, "SAMD21E16B", 64, 8 },
 };
 
 /* Known SAMR21 parts. */
@@ -342,7 +343,7 @@ static int samd_probe(struct flash_bank *bank)
 
 	part = samd_find_part(id);
 	if (part == NULL) {
-		LOG_ERROR("Couldn't find part correspoding to DID %08" PRIx32, id);
+		LOG_ERROR("Couldn't find part corresponding to DID %08" PRIx32, id);
 		return ERROR_FAIL;
 	}
 
@@ -601,7 +602,7 @@ static int samd_protect(struct flash_bank *bank, int set, int first, int last)
 
 	/* We've now applied our changes, however they will be undone by the next
 	 * reset unless we also apply them to the LOCK bits in the User Page.  The
-	 * LOCK bits start at bit 48, correspoding to Sector 0 and end with bit 63,
+	 * LOCK bits start at bit 48, corresponding to Sector 0 and end with bit 63,
 	 * corresponding to Sector 15.  A '1' means unlocked and a '0' means
 	 * locked.  See Table 9-3 in the SAMD20 datasheet for more details. */
 
