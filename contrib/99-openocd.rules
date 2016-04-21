@@ -71,6 +71,9 @@ ATTRS{idVendor}=="0640", ATTRS{idProduct}=="002c", MODE="664", GROUP="plugdev"
 # Hitex STM32-PerformanceStick
 ATTRS{idVendor}=="0640", ATTRS{idProduct}=="002d", MODE="664", GROUP="plugdev"
 
+# Altera USB Blaster
+ATTRS{idVendor}=="09fb", ATTRS{idProduct}=="6001", MODE="664", GROUP="plugdev"
+
 # Amontec JTAGkey-HiSpeed
 ATTRS{idVendor}=="0fbb", ATTRS{idProduct}=="1000", MODE="664", GROUP="plugdev"
 
