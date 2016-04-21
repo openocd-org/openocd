@@ -152,7 +152,13 @@ static const struct samd_part samd21_parts[] = {
 	{ 0xC, "SAMD21E16A", 64, 8 },
 	{ 0xD, "SAMD21E15A", 32, 4 },
 	{ 0xE, "SAMD21E14A", 16, 2 },
+    /* Below are B Variants (Table 3-7 from rev I of datasheet) */
+	{ 0x20, "SAMD21J16B", 64, 8 },
+	{ 0x21, "SAMD21J15B", 32, 4 },
+	{ 0x23, "SAMD21G16B", 64, 8 },
+	{ 0x24, "SAMD21G15B", 32, 4 },
 	{ 0x26, "SAMD21E16B", 64, 8 },
+	{ 0x27, "SAMD21E15B", 32, 4 },
 };
 
 /* Known SAMR21 parts. */
