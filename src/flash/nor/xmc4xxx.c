@@ -620,7 +620,7 @@ static int xmc4xxx_enter_page_mode(struct flash_bank *bank)
  * implement our own */
 
 /** Checks whether a memory region is zeroed. */
-int xmc4xxx_blank_check_memory(struct target *target,
+static int xmc4xxx_blank_check_memory(struct target *target,
 	uint32_t address, uint32_t count, uint32_t *blank)
 {
 	struct working_area *erase_check_algorithm;
@@ -680,7 +680,7 @@ static int xmc4xxx_flash_blank_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	int i;
-	int retval;
+	int retval = ERROR_OK;
 	uint32_t blank;
 
 	if (bank->target->state != TARGET_HALTED) {
@@ -704,7 +704,7 @@ static int xmc4xxx_flash_blank_check(struct flash_bank *bank)
 			bank->sectors[i].is_erased = 0;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int xmc4xxx_write_page(struct flash_bank *bank, const uint8_t *pg_buf,
