@@ -73,6 +73,7 @@
 #define SAMD_FAMILY_C		0x02
 #define SAMD_SERIES_20		0x00
 #define SAMD_SERIES_21		0x01
+#define SAMD_SERIES_22		0x02
 #define SAMD_SERIES_10		0x02
 #define SAMD_SERIES_11		0x03
 
@@ -188,6 +189,19 @@ static const struct samd_part saml21_parts[] = {
 	{ 0x1C, "SAML21E15B", 32, 4 },
 };
 
+/* Known SAML22 parts. */
+static const struct samd_part saml22_parts[] = {
+	{ 0x00, "SAML22N18A", 256, 32 },
+	{ 0x01, "SAML22N17A", 128, 16 },
+	{ 0x02, "SAML22N16A", 64, 8 },
+	{ 0x05, "SAML22J18A", 256, 32 },
+	{ 0x06, "SAML22J17A", 128, 16 },
+	{ 0x07, "SAML22J16A", 64, 8 },
+	{ 0x0A, "SAML22G18A", 256, 32 },
+	{ 0x0B, "SAML22G17A", 128, 16 },
+	{ 0x0C, "SAML22G16A", 64, 8 },
+};
+
 /* Known SAMC20 parts. */
 static const struct samd_part samc20_parts[] = {
 	{ 0x00, "SAMC20J18A", 256, 32 },
@@ -245,6 +259,8 @@ static const struct samd_family samd_families[] = {
 		samd11_parts, ARRAY_SIZE(samd11_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_L, SAMD_SERIES_21,
 		saml21_parts, ARRAY_SIZE(saml21_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_L, SAMD_SERIES_22,
+		saml22_parts, ARRAY_SIZE(saml22_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_C, SAMD_SERIES_20,
 		samc20_parts, ARRAY_SIZE(samc20_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_C, SAMD_SERIES_21,
