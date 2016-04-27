@@ -74,6 +74,7 @@
 #define SAMD_SERIES_22		0x02
 #define SAMD_SERIES_10		0x02
 #define SAMD_SERIES_11		0x03
+#define SAMD_SERIES_09		0x04
 
 /* Device ID macros */
 #define SAMD_GET_PROCESSOR(id) (id >> 28)
@@ -86,6 +87,13 @@ struct samd_part {
 	const char *name;
 	uint32_t flash_kb;
 	uint32_t ram_kb;
+};
+
+/* Known SAMD09 parts. DID reset values missing in RM, see
+ * https://github.com/avrxml/asf/blob/master/sam0/utils/cmsis/samd09/include/ */
+static const struct samd_part samd09_parts[] = {
+	{ 0x0, "SAMD09D14A", 16, 4 },
+	{ 0x7, "SAMD09C13A", 8, 4 },
 };
 
 /* Known SAMD10 parts */
@@ -257,6 +265,8 @@ static const struct samd_family samd_families[] = {
 		samd21_parts, ARRAY_SIZE(samd21_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
 		samr21_parts, ARRAY_SIZE(samr21_parts) },
+	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_09,
+		samd09_parts, ARRAY_SIZE(samd09_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_10,
 		samd10_parts, ARRAY_SIZE(samd10_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_11,
