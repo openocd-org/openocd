@@ -715,6 +715,7 @@ struct flash_driver fm4_flash = {
 	.probe = fm4_probe,
 	.auto_probe = fm4_auto_probe,
 	.protect_check = fm4_protect_check,
+	.read = default_flash_read,
 	.erase = fm4_flash_erase,
 	.erase_check = default_flash_blank_check,
 	.write = fm4_flash_write,
