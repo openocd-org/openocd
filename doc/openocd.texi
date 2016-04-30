@@ -6142,6 +6142,32 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} psoc5lp
+All members of the PSoC 5LP microcontroller family from Cypress
+include internal program flash and use ARM Cortex-M3 cores.
+The driver probes for a number of these chips and autoconfigures itself,
+apart from the base address.
+
+@example
+flash bank $_FLASHNAME psoc5lp 0x00000000 0 0 0 $_TARGETNAME
+@end example
+
+@b{Note:} PSoC 5LP chips can be configured to have ECC enabled or disabled.
+@quotation Attention
+If flash operations are performed in ECC-disabled mode, they will also affect
+the ECC flash region. Erasing a 16k flash sector in the 0x00000000 area will
+then also erase the corresponding 2k data bytes in the 0x48000000 area.
+Writing to the ECC data bytes in ECC-disabled mode is not implemented.
+@end quotation
+
+Commands defined in the @var{psoc5lp} driver:
+
+@deffn Command {psoc5lp mass_erase}
+Erases all flash data and ECC/configuration bytes, all flash protection rows,
+and all row latches in all flash arrays on the device.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} psoc6
 Supports PSoC6 (CY8C6xxx) family of Cypress microcontrollers.
 PSoC6 is a dual-core device with CM0+ and CM4 cores. Both cores share
