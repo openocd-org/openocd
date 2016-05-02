@@ -6168,6 +6168,17 @@ and all row latches in all flash arrays on the device.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} psoc5lp_eeprom
+All members of the PSoC 5LP microcontroller family from Cypress
+include internal EEPROM and use ARM Cortex-M3 cores.
+The driver probes for a number of these chips and autoconfigures itself,
+apart from the base address.
+
+@example
+flash bank $_CHIPNAME.eeprom psoc5lp_eeprom 0x40008000 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
 @deffn {Flash Driver} psoc6
 Supports PSoC6 (CY8C6xxx) family of Cypress microcontrollers.
 PSoC6 is a dual-core device with CM0+ and CM4 cores. Both cores share
