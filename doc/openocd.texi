@@ -6179,6 +6179,31 @@ flash bank $_CHIPNAME.eeprom psoc5lp_eeprom 0x40008000 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} psoc5lp_nvl
+All members of the PSoC 5LP microcontroller family from Cypress
+include internal Nonvolatile Latches and use ARM Cortex-M3 cores.
+The driver probes for a number of these chips and autoconfigures itself.
+
+@example
+flash bank $_CHIPNAME.nvl psoc5lp_nvl 0 0 0 0 $_TARGETNAME
+@end example
+
+PSoC 5LP chips have multiple NV Latches:
+
+@itemize
+@item Device Configuration NV Latch - 4 bytes
+@item Write Once (WO) NV Latch - 4 bytes
+@end itemize
+
+@b{Note:} This driver only implements the Device Configuration NVL.
+
+The @var{psoc5lp} driver reads the ECC mode from Device Configuration NVL.
+@quotation Attention
+Switching ECC mode via write to Device Configuration NVL will require a reset
+after successful write.
+@end quotation
+@end deffn
+
 @deffn {Flash Driver} psoc6
 Supports PSoC6 (CY8C6xxx) family of Cypress microcontrollers.
 PSoC6 is a dual-core device with CM0+ and CM4 cores. Both cores share

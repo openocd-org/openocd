@@ -29,6 +29,7 @@
 #define PM_ACT_CFG12            0x400043AC
 #define SPC_CPU_DATA            0x40004720
 #define SPC_SR                  0x40004722
+#define PRT1_PC2                0x4000500A
 #define PHUB_CH0_BASIC_CFG      0x40007010
 #define PHUB_CH0_ACTION         0x40007014
 #define PHUB_CH0_BASIC_STATUS   0x40007018
@@ -44,6 +45,11 @@
 #define PHUB_TDMEM1_ORIG_TD0    0x40007808
 #define PHUB_TDMEM1_ORIG_TD1    0x4000780C
 #define PANTHER_DEVICE_ID       0x4008001C
+
+/* NVL is not actually mapped to the Cortex-M address space
+ * As we need a base addess different from other banks in the device
+ * we use the address of NVL programming data in Cypress images */
+#define NVL_META_BASE			0x90000000
 
 #define PM_ACT_CFG12_EN_EE (1 << 4)
 
@@ -359,6 +365,31 @@ static int psoc5lp_spc_busy_wait_idle(struct target *target)
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
+static int psoc5lp_spc_load_byte(struct target *target,
+	uint8_t array_id, uint8_t offset, uint8_t value)
+{
+	int retval;
+
+	retval = psoc5lp_spc_write_opcode(target, SPC_LOAD_BYTE);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u8(target, SPC_CPU_DATA, array_id);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u8(target, SPC_CPU_DATA, offset);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u8(target, SPC_CPU_DATA, value);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = psoc5lp_spc_busy_wait_idle(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
 static int psoc5lp_spc_load_row(struct target *target,
 	uint8_t array_id, const uint8_t *data, unsigned row_size)
 {
@@ -436,6 +467,25 @@ static int psoc5lp_spc_write_row(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 	retval = target_write_u8(target, SPC_CPU_DATA, temp[1]);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = psoc5lp_spc_busy_wait_idle(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
+static int psoc5lp_spc_write_user_nvl(struct target *target,
+	uint8_t array_id)
+{
+	int retval;
+
+	retval = psoc5lp_spc_write_opcode(target, SPC_WRITE_USER_NVL);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u8(target, SPC_CPU_DATA, array_id);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -544,6 +594,272 @@ static int psoc5lp_spc_get_temp(struct target *target, uint8_t samples,
 
 	return ERROR_OK;
 }
+
+static int psoc5lp_spc_read_volatile_byte(struct target *target,
+	uint8_t array_id, uint8_t offset, uint8_t *data)
+{
+	int retval;
+
+	retval = psoc5lp_spc_write_opcode(target, SPC_READ_VOLATILE_BYTE);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u8(target, SPC_CPU_DATA, array_id);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u8(target, SPC_CPU_DATA, offset);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = psoc5lp_spc_busy_wait_data(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_read_u8(target, SPC_CPU_DATA, data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = psoc5lp_spc_busy_wait_idle(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
+/*
+ * NV Latch
+ */
+
+struct psoc5lp_nvl_flash_bank {
+	bool probed;
+	const struct psoc5lp_device *device;
+};
+
+static int psoc5lp_nvl_read(struct flash_bank *bank,
+	uint8_t *buffer, uint32_t offset, uint32_t count)
+{
+	int retval;
+
+	retval = psoc5lp_spc_enable_clock(bank->target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	while (count > 0) {
+		retval = psoc5lp_spc_read_byte(bank->target,
+				SPC_ARRAY_NVL_USER, offset, buffer);
+		if (retval != ERROR_OK)
+			return retval;
+		buffer++;
+		offset++;
+		count--;
+	}
+
+	return ERROR_OK;
+}
+
+static int psoc5lp_nvl_erase(struct flash_bank *bank, int first, int last)
+{
+	LOG_WARNING("There is no erase operation for NV Latches");
+	return ERROR_FLASH_OPER_UNSUPPORTED;
+}
+
+static int psoc5lp_nvl_erase_check(struct flash_bank *bank)
+{
+	int i;
+
+	for (i = 0; i < bank->num_sectors; i++)
+		bank->sectors[i].is_erased = 0;
+
+	return ERROR_OK;
+}
+
+static int psoc5lp_nvl_write(struct flash_bank *bank,
+	const uint8_t *buffer, uint32_t offset, uint32_t byte_count)
+{
+	struct target *target = bank->target;
+	uint8_t *current_data, val;
+	bool write_required = false, pullup_needed = false, ecc_changed = false;
+	uint32_t i;
+	int retval;
+
+	if (offset != 0 || byte_count != bank->size) {
+		LOG_ERROR("NVL can only be written in whole");
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+	}
+
+	current_data = calloc(1, bank->size);
+	if (!current_data)
+		return ERROR_FAIL;
+	retval = psoc5lp_nvl_read(bank, current_data, offset, byte_count);
+	if (retval != ERROR_OK) {
+		free(current_data);
+		return retval;
+	}
+	for (i = offset; i < byte_count; i++) {
+		if (current_data[i] != buffer[i]) {
+			write_required = true;
+			break;
+		}
+	}
+	if (((buffer[2] & 0x80) == 0x80) && ((current_data[0] & 0x0C) != 0x08))
+		pullup_needed = true;
+	if (((buffer[3] ^ current_data[3]) & 0x08) == 0x08)
+		ecc_changed = true;
+	free(current_data);
+
+	if (!write_required) {
+		LOG_INFO("Unchanged, skipping NVL write");
+		return ERROR_OK;
+	}
+	if (pullup_needed) {
+		retval = target_read_u8(target, PRT1_PC2, &val);
+		if (retval != ERROR_OK)
+			return retval;
+		val &= 0xF0;
+		val |= 0x05;
+		retval = target_write_u8(target, PRT1_PC2, val);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	for (i = offset; i < byte_count; i++) {
+		retval = psoc5lp_spc_load_byte(target,
+				SPC_ARRAY_NVL_USER, i, buffer[i]);
+		if (retval != ERROR_OK)
+			return retval;
+
+		retval = psoc5lp_spc_read_volatile_byte(target,
+				SPC_ARRAY_NVL_USER, i, &val);
+		if (retval != ERROR_OK)
+			return retval;
+		if (val != buffer[i]) {
+			LOG_ERROR("Failed to load NVL byte %" PRIu32 ": "
+				"expected 0x%02" PRIx8 ", read 0x%02" PRIx8,
+				i, buffer[i], val);
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+	}
+
+	retval = psoc5lp_spc_write_user_nvl(target, SPC_ARRAY_NVL_USER);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (ecc_changed) {
+		retval = target_call_reset_callbacks(target, RESET_INIT);
+		if (retval != ERROR_OK)
+			LOG_WARNING("Reset failed after enabling or disabling ECC");
+	}
+
+	return ERROR_OK;
+}
+
+static int psoc5lp_nvl_protect_check(struct flash_bank *bank)
+{
+	int i;
+
+	for (i = 0; i < bank->num_sectors; i++)
+		bank->sectors[i].is_protected = -1;
+
+	return ERROR_OK;
+}
+
+static int psoc5lp_nvl_get_info_command(struct flash_bank *bank,
+	char *buf, int buf_size)
+{
+	struct psoc5lp_nvl_flash_bank *psoc_nvl_bank = bank->driver_priv;
+	char part_number[PART_NUMBER_LEN];
+
+	psoc5lp_get_part_number(psoc_nvl_bank->device, part_number);
+
+	snprintf(buf, buf_size, "%s", part_number);
+
+	return ERROR_OK;
+}
+
+static int psoc5lp_nvl_probe(struct flash_bank *bank)
+{
+	struct psoc5lp_nvl_flash_bank *psoc_nvl_bank = bank->driver_priv;
+	int retval;
+
+	if (psoc_nvl_bank->probed)
+		return ERROR_OK;
+
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	retval = psoc5lp_find_device(bank->target, &psoc_nvl_bank->device);
+	if (retval != ERROR_OK)
+		return retval;
+
+	bank->base = NVL_META_BASE;
+	bank->size = 4;
+	bank->num_sectors = 1;
+	bank->sectors = calloc(bank->num_sectors,
+			       sizeof(struct flash_sector));
+	bank->sectors[0].offset = 0;
+	bank->sectors[0].size = 4;
+	bank->sectors[0].is_erased = -1;
+	bank->sectors[0].is_protected = -1;
+
+	psoc_nvl_bank->probed = true;
+
+	return ERROR_OK;
+}
+
+static int psoc5lp_nvl_auto_probe(struct flash_bank *bank)
+{
+	struct psoc5lp_nvl_flash_bank *psoc_nvl_bank = bank->driver_priv;
+
+	if (psoc_nvl_bank->probed)
+		return ERROR_OK;
+
+	return psoc5lp_nvl_probe(bank);
+}
+
+FLASH_BANK_COMMAND_HANDLER(psoc5lp_nvl_flash_bank_command)
+{
+	struct psoc5lp_nvl_flash_bank *psoc_nvl_bank;
+
+	psoc_nvl_bank = malloc(sizeof(struct psoc5lp_nvl_flash_bank));
+	if (!psoc_nvl_bank)
+		return ERROR_FLASH_OPERATION_FAILED;
+
+	psoc_nvl_bank->probed = false;
+
+	bank->driver_priv = psoc_nvl_bank;
+
+	return ERROR_OK;
+}
+
+static const struct command_registration psoc5lp_nvl_exec_command_handlers[] = {
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration psoc5lp_nvl_command_handlers[] = {
+	{
+		.name = "psoc5lp_nvl",
+		.mode = COMMAND_ANY,
+		.help = "PSoC 5LP NV Latch command group",
+		.usage = "",
+		.chain = psoc5lp_nvl_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+struct flash_driver psoc5lp_nvl_flash = {
+	.name = "psoc5lp_nvl",
+	.commands = psoc5lp_nvl_command_handlers,
+	.flash_bank_command = psoc5lp_nvl_flash_bank_command,
+	.info = psoc5lp_nvl_get_info_command,
+	.probe = psoc5lp_nvl_probe,
+	.auto_probe = psoc5lp_nvl_auto_probe,
+	.protect_check = psoc5lp_nvl_protect_check,
+	.read = psoc5lp_nvl_read,
+	.erase = psoc5lp_nvl_erase,
+	.erase_check = psoc5lp_nvl_erase_check,
+	.write = psoc5lp_nvl_write,
+};
 
 /*
  * EEPROM
