@@ -1040,6 +1040,7 @@ static const struct {
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",  "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",  "(Debug Unit)", },
 	{ 0x0E5,  0x000, "SHARC+/Blackfin+", "", },
+	{ 0x0F0,  0x440, "Qualcomm QDSS Component v1", "(Qualcomm Designed CoreSight Component v1)", },
 	/* legacy comment: 0x113: what? */
 	{ ANY_ID,  0x120, "TI SDTI",         "(System Debug Trace Interface)", }, /* from OMAP3 memmap */
 	{ ANY_ID,  0x343, "TI DAPCTL",       "", }, /* from OMAP3 memmap */
