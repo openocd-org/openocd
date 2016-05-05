@@ -1923,6 +1923,13 @@ int cortex_m_examine(struct target *target)
 
 		LOG_DEBUG("Cortex-M%d r%" PRId8 "p%" PRId8 " processor detected",
 				i, (uint8_t)((cpuid >> 20) & 0xf), (uint8_t)((cpuid >> 0) & 0xf));
+		if (i == 7) {
+			uint8_t rev, patch;
+			rev = (cpuid >> 20) & 0xf;
+			patch = (cpuid >> 0) & 0xf;
+			if ((rev == 0) && (patch < 2))
+				LOG_WARNING("Silicon bug: single stepping will enter pending exception handler!");
+		}
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
 		/* test for floating point feature on cortex-m4 */
