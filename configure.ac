@@ -585,7 +585,7 @@ case $host in
     AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
     AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
     ;;
-  *-mingw*)
+  *-mingw* | *-msys*)
     is_mingw=yes
     is_win32=yes
     parport_use_ppdev=no
