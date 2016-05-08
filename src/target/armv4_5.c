@@ -1551,7 +1551,7 @@ int arm_blank_check_memory(struct target *target,
 				+ i * sizeof(uint32_t),
 				check_code[i]);
 		if (retval != ERROR_OK)
-			return retval;
+			goto cleanup;
 	}
 
 	arm_algo.common_magic = ARM_COMMON_MAGIC;
@@ -1575,23 +1575,18 @@ int arm_blank_check_memory(struct target *target,
 			check_algorithm->address,
 			exit_var,
 			10000, &arm_algo);
-	if (retval != ERROR_OK) {
-		destroy_reg_param(&reg_params[0]);
-		destroy_reg_param(&reg_params[1]);
-		destroy_reg_param(&reg_params[2]);
-		target_free_working_area(target, check_algorithm);
-		return retval;
-	}
 
-	*blank = buf_get_u32(reg_params[2].value, 0, 32);
+	if (retval == ERROR_OK)
+		*blank = buf_get_u32(reg_params[2].value, 0, 32);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 
+cleanup:
 	target_free_working_area(target, check_algorithm);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int arm_full_context(struct target *target)
