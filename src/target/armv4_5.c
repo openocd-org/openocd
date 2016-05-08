@@ -1467,7 +1467,7 @@ int arm_checksum_memory(struct target *target,
 				crc_algorithm->address + i * sizeof(uint32_t),
 				arm_crc_code[i]);
 		if (retval != ERROR_OK)
-			return retval;
+			goto cleanup;
 	}
 
 	arm_algo.common_magic = ARM_COMMON_MAGIC;
@@ -1491,22 +1491,19 @@ int arm_checksum_memory(struct target *target,
 			crc_algorithm->address,
 			exit_var,
 			timeout, &arm_algo);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("error executing ARM crc algorithm");
-		destroy_reg_param(&reg_params[0]);
-		destroy_reg_param(&reg_params[1]);
-		target_free_working_area(target, crc_algorithm);
-		return retval;
-	}
 
-	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+	if (retval == ERROR_OK)
+		*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+	else
+		LOG_ERROR("error executing ARM crc algorithm");
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 
+cleanup:
 	target_free_working_area(target, crc_algorithm);
 
-	return ERROR_OK;
+	return retval;
 }
 
 /**
