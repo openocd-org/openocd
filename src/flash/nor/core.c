@@ -288,7 +288,7 @@ static int default_flash_mem_blank_check(struct flash_bank *bank)
 				goto done;
 
 			for (nBytes = 0; nBytes < chunk; nBytes++) {
-				if (buffer[nBytes] != 0xFF) {
+				if (buffer[nBytes] != bank->erased_value) {
 					bank->sectors[i].is_erased = 0;
 					break;
 				}
@@ -319,12 +319,12 @@ int default_flash_blank_check(struct flash_bank *bank)
 		uint32_t address = bank->base + bank->sectors[i].offset;
 		uint32_t size = bank->sectors[i].size;
 
-		retval = target_blank_check_memory(target, address, size, &blank);
+		retval = target_blank_check_memory(target, address, size, &blank, bank->erased_value);
 		if (retval != ERROR_OK) {
 			fast_check = 0;
 			break;
 		}
-		if (blank == 0xFF)
+		if (blank == bank->erased_value)
 			bank->sectors[i].is_erased = 1;
 		else
 			bank->sectors[i].is_erased = 0;

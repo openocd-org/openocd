@@ -44,6 +44,7 @@ static void virtual_update_bank_info(struct flash_bank *bank)
 	bank->size = master_bank->size;
 	bank->chip_width = master_bank->chip_width;
 	bank->bus_width = master_bank->bus_width;
+	bank->erased_value = master_bank->erased_value;
 	bank->default_padded_value = master_bank->default_padded_value;
 	bank->num_sectors = master_bank->num_sectors;
 	bank->sectors = master_bank->sectors;

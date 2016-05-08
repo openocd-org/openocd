@@ -1486,7 +1486,7 @@ cleanup:
  *
  */
 int arm_blank_check_memory(struct target *target,
-	uint32_t address, uint32_t count, uint32_t *blank)
+	uint32_t address, uint32_t count, uint32_t *blank, uint8_t erased_value)
 {
 	struct working_area *check_algorithm;
 	struct reg_param reg_params[3];
@@ -1501,6 +1501,12 @@ int arm_blank_check_memory(struct target *target,
 	};
 
 	assert(sizeof(check_code_le) % 4 == 0);
+
+	if (erased_value != 0xff) {
+		LOG_ERROR("Erase value 0x%02" PRIx8 " not yet supported for ARMv4/v5 targets",
+			erased_value);
+		return ERROR_FAIL;
+	}
 
 	/* make sure we have a working area */
 	retval = target_alloc_working_area(target,
@@ -1529,7 +1535,7 @@ int arm_blank_check_memory(struct target *target,
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
-	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
+	buf_set_u32(reg_params[2].value, 0, 32, erased_value);
 
 	/* armv4 must exit using a hardware breakpoint */
 	if (arm->is_armv4)

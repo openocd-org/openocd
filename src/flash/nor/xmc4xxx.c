@@ -319,8 +319,8 @@ static int xmc4xxx_load_bank_layout(struct flash_bank *bank)
 	}
 
 	/* This part doesn't follow the typical standard of 0xff
-	 * being the default padding value.*/
-	bank->default_padded_value = 0x00;
+	 * being the erased value.*/
+	bank->default_padded_value = bank->erased_value = 0x00;
 
 	return ERROR_OK;
 }
@@ -615,99 +615,6 @@ static int xmc4xxx_enter_page_mode(struct flash_bank *bank)
 	}
 
 	return res;
-}
-
-/* The logical erase value of an xmc4xxx memory cell is 0x00,
- * therefore, we cannot use the built in flash blank check and must
- * implement our own */
-
-/** Checks whether a memory region is zeroed. */
-static int xmc4xxx_blank_check_memory(struct target *target,
-	uint32_t address, uint32_t count, uint32_t *blank)
-{
-	struct working_area *erase_check_algorithm;
-	struct reg_param reg_params[3];
-	struct armv7m_algorithm armv7m_info;
-	int retval;
-
-	static const uint8_t erase_check_code[] = {
-#include "../../../contrib/loaders/erase_check/armv7m_0_erase_check.inc"
-	};
-
-	/* make sure we have a working area */
-	if (target_alloc_working_area(target, sizeof(erase_check_code),
-		&erase_check_algorithm) != ERROR_OK)
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-
-	retval = target_write_buffer(target, erase_check_algorithm->address,
-			sizeof(erase_check_code), (uint8_t *)erase_check_code);
-	if (retval != ERROR_OK)
-		goto cleanup;
-
-	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARM_MODE_THREAD;
-
-	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
-	buf_set_u32(reg_params[0].value, 0, 32, address);
-
-	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
-	buf_set_u32(reg_params[1].value, 0, 32, count);
-
-	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
-	buf_set_u32(reg_params[2].value, 0, 32, 0x00);
-
-	retval = target_run_algorithm(target,
-				      0,
-				      NULL,
-				      3,
-				      reg_params,
-				      erase_check_algorithm->address,
-				      erase_check_algorithm->address + (sizeof(erase_check_code) - 2),
-				      10000,
-				      &armv7m_info);
-
-	if (retval == ERROR_OK)
-		*blank = buf_get_u32(reg_params[2].value, 0, 32);
-
-	destroy_reg_param(&reg_params[0]);
-	destroy_reg_param(&reg_params[1]);
-	destroy_reg_param(&reg_params[2]);
-
-cleanup:
-	target_free_working_area(target, erase_check_algorithm);
-
-	return retval;
-}
-
-static int xmc4xxx_flash_blank_check(struct flash_bank *bank)
-{
-	struct target *target = bank->target;
-	int i;
-	int retval = ERROR_OK;
-	uint32_t blank;
-
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	for (i = 0; i < bank->num_sectors; i++) {
-		uint32_t address = bank->base + bank->sectors[i].offset;
-		uint32_t size = bank->sectors[i].size;
-
-		LOG_DEBUG("Erase checking 0x%08"PRIx32, address);
-		retval = xmc4xxx_blank_check_memory(target, address, size, &blank);
-
-		if (retval != ERROR_OK)
-			break;
-
-		if (blank == 0x00)
-			bank->sectors[i].is_erased = 1;
-		else
-			bank->sectors[i].is_erased = 0;
-	}
-
-	return retval;
 }
 
 static int xmc4xxx_write_page(struct flash_bank *bank, const uint8_t *pg_buf,
@@ -1439,7 +1346,7 @@ struct flash_driver xmc4xxx_flash = {
 	.read = default_flash_read,
 	.probe = xmc4xxx_probe,
 	.auto_probe = xmc4xxx_probe,
-	.erase_check = xmc4xxx_flash_blank_check,
+	.erase_check = default_flash_blank_check,
 	.info = xmc4xxx_get_info_command,
 	.protect_check = xmc4xxx_protect_check,
 	.protect = xmc4xxx_protect,

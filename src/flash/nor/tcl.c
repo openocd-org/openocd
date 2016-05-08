@@ -1012,7 +1012,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], c->size);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], c->chip_width);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[4], c->bus_width);
-	c->default_padded_value = 0xff;
+	c->default_padded_value = c->erased_value = 0xff;
 	c->num_sectors = 0;
 	c->sectors = NULL;
 	c->num_prot_blocks = 0;

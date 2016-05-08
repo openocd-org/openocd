@@ -232,7 +232,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 int arm_checksum_memory(struct target *target,
 		uint32_t address, uint32_t count, uint32_t *checksum);
 int arm_blank_check_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t *blank);
+		uint32_t address, uint32_t count, uint32_t *blank, uint8_t erased_value);
 
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);

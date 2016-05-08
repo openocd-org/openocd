@@ -300,7 +300,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 	stm32lx_info->user_bank_size = bank->size;
 
 	/* the stm32l erased value is 0x00 */
-	bank->default_padded_value = 0x00;
+	bank->default_padded_value = bank->erased_value = 0x00;
 
 	return ERROR_OK;
 }
@@ -884,56 +884,6 @@ static int stm32lx_auto_probe(struct flash_bank *bank)
 	return stm32lx_probe(bank);
 }
 
-static int stm32lx_erase_check(struct flash_bank *bank)
-{
-	struct target *target = bank->target;
-	const int buffer_size = 4096;
-	int i;
-	uint32_t nBytes;
-	int retval = ERROR_OK;
-
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	uint8_t *buffer = malloc(buffer_size);
-	if (buffer == NULL) {
-		LOG_ERROR("failed to allocate read buffer");
-		return ERROR_FAIL;
-	}
-
-	for (i = 0; i < bank->num_sectors; i++) {
-		uint32_t j;
-		bank->sectors[i].is_erased = 1;
-
-		/* Loop chunk by chunk over the sector */
-		for (j = 0; j < bank->sectors[i].size; j += buffer_size) {
-			uint32_t chunk;
-			chunk = buffer_size;
-			if (chunk > (j - bank->sectors[i].size))
-				chunk = (j - bank->sectors[i].size);
-
-			retval = target_read_memory(target, bank->base
-					+ bank->sectors[i].offset + j, 4, chunk / 4, buffer);
-			if (retval != ERROR_OK)
-				break;
-
-			for (nBytes = 0; nBytes < chunk; nBytes++) {
-				if (buffer[nBytes] != 0x00) {
-					bank->sectors[i].is_erased = 0;
-					break;
-				}
-			}
-		}
-		if (retval != ERROR_OK)
-			break;
-	}
-	free(buffer);
-
-	return retval;
-}
-
 /* This method must return a string displaying information about the bank */
 static int stm32lx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 {
@@ -1022,7 +972,7 @@ struct flash_driver stm32lx_flash = {
 		.read = default_flash_read,
 		.probe = stm32lx_probe,
 		.auto_probe = stm32lx_auto_probe,
-		.erase_check = stm32lx_erase_check,
+		.erase_check = default_flash_blank_check,
 		.protect_check = stm32lx_protect_check,
 		.info = stm32lx_get_info,
 };
