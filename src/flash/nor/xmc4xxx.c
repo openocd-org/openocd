@@ -640,7 +640,7 @@ static int xmc4xxx_blank_check_memory(struct target *target,
 	retval = target_write_buffer(target, erase_check_algorithm->address,
 			sizeof(erase_check_code), (uint8_t *)erase_check_code);
 	if (retval != ERROR_OK)
-		return retval;
+		goto cleanup;
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;
@@ -671,6 +671,7 @@ static int xmc4xxx_blank_check_memory(struct target *target,
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 
+cleanup:
 	target_free_working_area(target, erase_check_algorithm);
 
 	return retval;
