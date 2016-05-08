@@ -1425,47 +1425,22 @@ int arm_checksum_memory(struct target *target,
 	uint32_t i;
 	uint32_t exit_var = 0;
 
-	/* see contrib/loaders/checksum/armv4_5_crc.s for src */
-
-	static const uint32_t arm_crc_code[] = {
-		0xE1A02000,		/* mov		r2, r0 */
-		0xE3E00000,		/* mov		r0, #0xffffffff */
-		0xE1A03001,		/* mov		r3, r1 */
-		0xE3A04000,		/* mov		r4, #0 */
-		0xEA00000B,		/* b		ncomp */
-		/* nbyte: */
-		0xE7D21004,		/* ldrb	r1, [r2, r4] */
-		0xE59F7030,		/* ldr		r7, CRC32XOR */
-		0xE0200C01,		/* eor		r0, r0, r1, asl 24 */
-		0xE3A05000,		/* mov		r5, #0 */
-		/* loop: */
-		0xE3500000,		/* cmp		r0, #0 */
-		0xE1A06080,		/* mov		r6, r0, asl #1 */
-		0xE2855001,		/* add		r5, r5, #1 */
-		0xE1A00006,		/* mov		r0, r6 */
-		0xB0260007,		/* eorlt	r0, r6, r7 */
-		0xE3550008,		/* cmp		r5, #8 */
-		0x1AFFFFF8,		/* bne		loop */
-		0xE2844001,		/* add		r4, r4, #1 */
-		/* ncomp: */
-		0xE1540003,		/* cmp		r4, r3 */
-		0x1AFFFFF1,		/* bne		nbyte */
-		/* end: */
-		0xe1200070,		/* bkpt		#0 */
-		/* CRC32XOR: */
-		0x04C11DB7		/* .word 0x04C11DB7 */
+	static const uint8_t arm_crc_code_le[] = {
+#include "../../contrib/loaders/checksum/armv4_5_crc.inc"
 	};
 
+	assert(sizeof(arm_crc_code_le) % 4 == 0);
+
 	retval = target_alloc_working_area(target,
-			sizeof(arm_crc_code), &crc_algorithm);
+			sizeof(arm_crc_code_le), &crc_algorithm);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* convert code into a buffer in target endianness */
-	for (i = 0; i < ARRAY_SIZE(arm_crc_code); i++) {
+	for (i = 0; i < ARRAY_SIZE(arm_crc_code_le) / 4; i++) {
 		retval = target_write_u32(target,
 				crc_algorithm->address + i * sizeof(uint32_t),
-				arm_crc_code[i]);
+				le_to_h_u32(&arm_crc_code_le[i * 4]));
 		if (retval != ERROR_OK)
 			goto cleanup;
 	}
@@ -1485,7 +1460,7 @@ int arm_checksum_memory(struct target *target,
 
 	/* armv4 must exit using a hardware breakpoint */
 	if (arm->is_armv4)
-		exit_var = crc_algorithm->address + sizeof(arm_crc_code) - 8;
+		exit_var = crc_algorithm->address + sizeof(arm_crc_code_le) - 8;
 
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
 			crc_algorithm->address,
