@@ -23,8 +23,8 @@
 /*** Debug Bus registers. ***/
 
 #define DMCONTROL		0x10
-#define DMCONTROL_HALTNOT	(1<<33)
-#define DMCONTROL_INTERRUPT	(1<<32)
+#define DMCONTROL_HALTNOT	(1L<<33)
+#define DMCONTROL_INTERRUPT	(1L<<32)
 #define DMCONTROL_BUSERROR	(7<<19)
 #define DMCONTROL_SERIAL	(3<<16)
 #define DMCONTROL_AUTOINCREMENT	(1<<15)
@@ -61,7 +61,15 @@ typedef struct {
 	uint16_t dbus_address;
 	/* Number of words in Debug RAM. */
 	unsigned int dramsize;
+	/* Our local copy of Debug RAM. */
+	uint32_t *dram;
+	/* One bit for every word in dram. If the bit is set, then we're
+	 * confident that the value we have matches the one in actual Debug
+	 * RAM. */
+	uint64_t dram_valid;
 } riscv_info_t;
+
+/*** Utility functions. ***/
 
 static uint64_t dbus_scan(struct target *target, uint16_t address,
 		uint64_t data_out, bool read, bool write)
@@ -130,17 +138,31 @@ static uint32_t dtminfo_read(struct target *target)
 	return buf_get_u32(field.in_value, 0, 32);
 }
 
+/*** OpenOCD target functions. ***/
+
 static int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	target->arch_info = calloc(1, sizeof(riscv_info_t));
+	if (!target->arch_info)
+		return ERROR_FAIL;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->dbus_address = DBUS_ADDRESS_UNKNOWN;
 
 	return ERROR_OK;
 }
 
-int riscv_examine(struct target *target)
+static void riscv_deinit_target(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	if (info->dram) {
+		free(info->dram);
+	}
+	free(info);
+	target->arch_info = NULL;
+}
+
+static int riscv_examine(struct target *target)
 {
 	if (target_was_examined(target)) {
 		return ERROR_OK;
@@ -151,11 +173,47 @@ int riscv_examine(struct target *target)
 
 	info->addrbits = get_field(dtminfo, DTMINFO_ADDRBITS);
 
-	/* TODO: Figure out size of debug RAM, and allocate it. */
-	uint64_t dminfo = dbus_read(target, DMINFO, 0);
+	uint32_t dminfo = dbus_read(target, DMINFO, 0);
 	info->dramsize = get_field(dminfo, DMINFO_DRAMSIZE) + 1;
+	info->dram = malloc(info->dramsize * 4);
+	if (!info->dram)
+		return ERROR_FAIL;
+	info->dram_valid = 0;
+
+	if (get_field(dminfo, DMINFO_AUTHTYPE) != 0) {
+		LOG_ERROR("Authentication required by RISC-V core but not "
+				"supported by OpenOCD. dminfo=0x%x", dminfo);
+		return ERROR_FAIL;
+	}
 
 	target_set_examined(target);
+
+	return ERROR_OK;
+}
+
+static int riscv_poll(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	uint64_t value;
+	if (info->dbus_address < 0x10 || info->dbus_address == DMCONTROL) {
+		value = dbus_read(target, info->dbus_address, 0);
+	} else {
+		value = dbus_read(target, 0, 0);
+	}
+
+	bool haltnot = get_field(value, DMCONTROL_HALTNOT);
+	bool interrupt = get_field(value, DMCONTROL_INTERRUPT);
+
+	if (haltnot && interrupt) {
+		target->state = TARGET_DEBUG_RUNNING;
+	} else if (haltnot && !interrupt) {
+		target->state = TARGET_HALTED;
+	} else if (!haltnot && interrupt) {
+		// Target is halting. There is no state for that, so don't change anything.
+	} else if (!haltnot && !interrupt) {
+		target->state = TARGET_RUNNING;
+	}
 
 	return ERROR_OK;
 }
@@ -164,5 +222,12 @@ struct target_type riscv_target = {
 	.name = "riscv",
 
 	.init_target = riscv_init_target,
+	.deinit_target = riscv_deinit_target,
 	.examine = riscv_examine,
+
+	/* poll current target status */
+	.poll = riscv_poll,
+
+	/* TODO: */
+	/* .virt2phys = riscv_virt2phys, */
 };
