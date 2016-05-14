@@ -136,7 +136,7 @@ INTEL_IA32_SRC = \
 	x86_32_common.c
 
 RISCV_SRC = \
-	riscv.c
+	riscv/riscv.c
 
 noinst_HEADERS = \
 	algorithm.h \

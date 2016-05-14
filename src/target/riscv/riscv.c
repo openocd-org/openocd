@@ -8,9 +8,15 @@
 #include "target_type.h"
 #include "log.h"
 #include "jtag/jtag.h"
+#include "opcodes.h"
 
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
+
+#define DEBUG_ROM_START         0x800
+#define DEBUG_ROM_RESUME        (DEBUG_ROM_START + 4)
+#define DEBUG_ROM_EXCEPTION     (DEBUG_ROM_START + 8)
+#define DEBUG_RAM_START         0x400
 
 /*** JTAG registers. ***/
 
@@ -108,6 +114,11 @@ static uint64_t dbus_read(struct target *target, uint16_t address, uint16_t next
 	return dbus_scan(target, next_address, 0, true, false);
 }
 
+static uint64_t dbus_write(struct target *target, uint16_t address, uint64_t value)
+{
+	return dbus_scan(target, address, value, false, true);
+}
+
 static uint32_t dtminfo_read(struct target *target)
 {
 	struct scan_field field;
@@ -136,6 +147,30 @@ static uint32_t dtminfo_read(struct target *target)
 	jtag_add_ir_scan(target->tap, &field, TAP_DRSELECT);
 
 	return buf_get_u32(field.in_value, 0, 32);
+}
+
+static void dram_write32(struct target *target, unsigned int index, uint32_t value,
+		bool set_interrupt)
+{
+	// TODO: check cache to see this even needs doing.
+	uint16_t address;
+	if (index < 0x10)
+		address = index;
+	else
+		address = 0x40 + index - 0x10;
+	uint64_t dbus_value = DMCONTROL_HALTNOT | value;
+	if (set_interrupt)
+		dbus_value |= DMCONTROL_INTERRUPT;
+	dbus_write(target, address, dbus_value);
+}
+
+/* Write instruction that jumps from the specified word in Debug RAM to resume
+ * in Debug ROM. */
+static void dram_write_jump(struct target *target, unsigned int index, bool set_interrupt)
+{
+	dram_write32(target, index,
+			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))),
+			set_interrupt);
 }
 
 /*** OpenOCD target functions. ***/
@@ -218,6 +253,14 @@ static int riscv_poll(struct target *target)
 	return ERROR_OK;
 }
 
+static int riscv_halt(struct target *target)
+{
+	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
+	dram_write_jump(target, 1, true);
+
+	return ERROR_OK;
+}
+
 struct target_type riscv_target = {
 	.name = "riscv",
 
@@ -227,6 +270,8 @@ struct target_type riscv_target = {
 
 	/* poll current target status */
 	.poll = riscv_poll,
+
+	.halt = riscv_halt,
 
 	/* TODO: */
 	/* .virt2phys = riscv_virt2phys, */
