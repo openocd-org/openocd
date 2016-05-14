@@ -5246,6 +5246,24 @@ flash bank $_FLASHNAME fm3 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} fm4
+All members of the FM4 microcontroller family from Spansion (formerly Fujitsu)
+include internal flash and use ARM Cortex-M4 cores.
+The @var{fm4} driver uses a @var{family} parameter to select the
+correct bank config, it can currently be one of the following:
+@code{MB9BFx64}, @code{MB9BFx65}, @code{MB9BFx66}, @code{MB9BFx67}, @code{MB9BFx68},
+@code{S6E2Cx8}, @code{S6E2Cx9}, @code{S6E2CxA} or @code{S6E2Dx},
+with @code{x} treated as wildcard and otherwise case (and any trailing
+characters) ignored.
+
+@example
+flash bank $@{_FLASHNAME@}0 fm4 0x00000000 0 0 0 $_TARGETNAME S6E2CCAJ0A
+flash bank $@{_FLASHNAME@}1 fm4 0x00100000 0 0 0 $_TARGETNAME S6E2CCAJ0A
+@end example
+@emph{The current implementation is incomplete. Protection is not supported,
+nor is Chip Erase (only Sector Erase is implemented).}
+@end deffn
+
 @deffn {Flash Driver} kinetis
 @cindex kinetis
 Kx and KLx members of the Kinetis microcontroller family from Freescale include
@@ -5329,24 +5347,6 @@ It does not require the processor to be halted.
 @deffn Command {kinetis_ke disable_wdog}
 Command disables watchdog timer.
 @end deffn
-@end deffn
-
-@deffn {Flash Driver} fm4
-All members of the FM4 microcontroller family from Spansion (formerly Fujitsu)
-include internal flash and use ARM Cortex-M4 cores.
-The @var{fm4} driver uses a @var{family} parameter to select the
-correct bank config, it can currently be one of the following:
-@code{MB9BFx64}, @code{MB9BFx65}, @code{MB9BFx66}, @code{MB9BFx67}, @code{MB9BFx68},
-@code{S6E2Cx8}, @code{S6E2Cx9}, @code{S6E2CxA} or @code{S6E2Dx},
-with @code{x} treated as wildcard and otherwise case (and any trailing
-characters) ignored.
-
-@example
-flash bank $@{_FLASHNAME@}0 fm4 0x00000000 0 0 0 $_TARGETNAME S6E2CCAJ0A
-flash bank $@{_FLASHNAME@}1 fm4 0x00100000 0 0 0 $_TARGETNAME S6E2CCAJ0A
-@end example
-@emph{The current implementation is incomplete. Protection is not supported,
-nor is Chip Erase (only Sector Erase is implemented).}
 @end deffn
 
 @deffn {Flash Driver} lpc2000
