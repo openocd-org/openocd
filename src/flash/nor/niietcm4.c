@@ -1719,7 +1719,7 @@ static int niietcm4_auto_probe(struct flash_bank *bank)
 static int get_niietcm4_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct niietcm4_flash_bank *niietcm4_info = bank->driver_priv;
-	LOG_INFO("\nNIIET Cortex M4F %s\n%s", niietcm4_info->chip_name, niietcm4_info->chip_brief);
+	LOG_INFO("\nNIIET Cortex-M4F %s\n%s", niietcm4_info->chip_name, niietcm4_info->chip_brief);
 	snprintf(buf, buf_size, " ");
 
 	return ERROR_OK;

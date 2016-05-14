@@ -355,7 +355,7 @@ static int samv_probe(struct flash_bank *bank)
 
 	uint8_t eproc = (device_id >> 5) & 0x7;
 	if (eproc != 0) {
-		LOG_ERROR("unexpected eproc code: %d was expecting 0 (cortex-m7)", eproc);
+		LOG_ERROR("unexpected eproc code: %d was expecting 0 (Cortex-M7)", eproc);
 		return ERROR_FAIL;
 	}
 

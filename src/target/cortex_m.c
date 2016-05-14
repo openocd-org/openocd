@@ -1932,7 +1932,7 @@ int cortex_m_examine(struct target *target)
 		}
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
-		/* test for floating point feature on cortex-m4 */
+		/* test for floating point feature on Cortex-M4 */
 		if (i == 4) {
 			target_read_u32(target, MVFR0, &mvfr0);
 			target_read_u32(target, MVFR1, &mvfr1);

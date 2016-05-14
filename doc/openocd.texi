@@ -995,7 +995,7 @@ For example, there may be configuration files for your JTAG adapter
 and target chip, but you need a new board-specific config file
 giving access to your particular flash chips.
 Or you might need to write another target chip configuration file
-for a new chip built around the Cortex M3 core.
+for a new chip built around the Cortex-M3 core.
 
 @quotation Note
 When you write new configuration files, please submit
@@ -5215,7 +5215,7 @@ The AVR 8-bit microcontrollers from Atmel integrate flash memory.
 
 @deffn {Flash Driver} efm32
 All members of the EFM32 microcontroller family from Energy Micro include
-internal flash and use ARM Cortex M3 cores. The driver automatically recognizes
+internal flash and use ARM Cortex-M3 cores. The driver automatically recognizes
 a number of these chips using the chip identification register, and
 autoconfigures itself.
 @example
@@ -5235,7 +5235,7 @@ supported.}
 
 @deffn {Flash Driver} fm3
 All members of the FM3 microcontroller family from Fujitsu
-include internal flash and use ARM Cortex M3 cores.
+include internal flash and use ARM Cortex-M3 cores.
 The @var{fm3} driver uses the @var{target} parameter to select the
 correct bank config, it can currently be one of the following:
 @code{mb9bfxx1.cpu}, @code{mb9bfxx2.cpu}, @code{mb9bfxx3.cpu},
@@ -5267,7 +5267,7 @@ nor is Chip Erase (only Sector Erase is implemented).}
 @deffn {Flash Driver} kinetis
 @cindex kinetis
 Kx and KLx members of the Kinetis microcontroller family from Freescale include
-internal flash and use ARM Cortex M0+ or M4 cores. The driver automatically
+internal flash and use ARM Cortex-M0+ or M4 cores. The driver automatically
 recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
 
@@ -5325,7 +5325,7 @@ Command disables watchdog timer.
 @deffn {Flash Driver} kinetis_ke
 @cindex kinetis_ke
 KE members of the Kinetis microcontroller family from Freescale include
-internal flash and use ARM Cortex M0+. The driver automatically recognizes
+internal flash and use ARM Cortex-M0+. The driver automatically recognizes
 the KE family and sub-family using the chip identification register, and
 autoconfigures itself.
 
@@ -5686,7 +5686,7 @@ This will remove any Code Protection.
 
 @deffn {Flash Driver} psoc4
 All members of the PSoC 41xx/42xx microcontroller family from Cypress
-include internal flash and use ARM Cortex M0 cores.
+include internal flash and use ARM Cortex-M0 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
@@ -5720,7 +5720,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 
 @deffn {Flash Driver} sim3x
 All members of the SiM3 microcontroller family from Silicon Laboratories
-include internal flash and use ARM Cortex M3 cores. It supports both JTAG
+include internal flash and use ARM Cortex-M3 cores. It supports both JTAG
 and SWD interface.
 The @var{sim3x} driver tries to probe the device to auto detect the MCU.
 If this failes, it will use the @var{size} parameter as the size of flash bank.

@@ -430,7 +430,7 @@ static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, ch
 										thread_id + param->thread_stack_offset,
 										stack_ptr);
 
-	/* Check for armv7m with *enabled* FPU, i.e. a Cortex M4F */
+	/* Check for armv7m with *enabled* FPU, i.e. a Cortex-M4F */
 	int cm4_fpu_enabled = 0;
 	struct armv7m_common *armv7m_target = target_to_armv7m(rtos->target);
 	if (is_armv7m(armv7m_target)) {

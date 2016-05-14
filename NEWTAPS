@@ -77,7 +77,7 @@ This is always a 32bit hex number.
 Examples:
     0x1f0f0f0f - is an old ARM7TDMI
     0x3f0f0f0f - is a newer ARM7TDMI
-    0x3ba00477 - is an ARM cortex M3
+    0x3ba00477 - is an ARM Cortex-M3
 
 Some chips have multiple JTAG taps - be sure to list
 each one individually - ORDER is important!

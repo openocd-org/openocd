@@ -18,7 +18,7 @@
  *   michel.jaouen@stericsson.com : smp minimum support                    *
  *                                                                         *
  *   Copyright (C) Broadcom 2012                                           *
- *   ehunter@broadcom.com : Cortex R4 support                              *
+ *   ehunter@broadcom.com : Cortex-R4 support                              *
  *                                                                         *
  *   Copyright (C) 2013 Kamal Dasu                                         *
  *   kdasu.kdev@gmail.com                                                  *
@@ -2664,7 +2664,7 @@ out:
 /*
  * Cortex-A Memory access
  *
- * This is same Cortex M3 but we must also use the correct
+ * This is same Cortex-M3 but we must also use the correct
  * ap number for every access.
  */
 

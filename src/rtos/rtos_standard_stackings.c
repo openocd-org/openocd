@@ -182,7 +182,7 @@ int64_t rtos_generic_stack_align8(struct target *target,
 			stacking, stack_ptr, 8);
 }
 
-/* The Cortex M3 will indicate that an alignment adjustment
+/* The Cortex-M3 will indicate that an alignment adjustment
  * has been done on the stack by setting bit 9 of the stacked xPSR
  * register.  In this case, we can just add an extra 4 bytes to get
  * to the program stack.  Note that some places in the ARM documentation

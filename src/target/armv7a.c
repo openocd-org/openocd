@@ -177,7 +177,7 @@ done:
 	return retval;
 }
 
-/*  method adapted to cortex A : reused arm v4 v5 method*/
+/*  method adapted to Cortex-A : reused ARM v4 v5 method */
 int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 {
 	uint32_t first_lvl_descriptor = 0x0;

@@ -1407,11 +1407,11 @@ static const char *const eproc_names[] = {
 	_unknown,					/* 0 */
 	"arm946es",					/* 1 */
 	"arm7tdmi",					/* 2 */
-	"cortex-m3",				/* 3 */
+	"Cortex-M3",				/* 3 */
 	"arm920t",					/* 4 */
 	"arm926ejs",				/* 5 */
-	"cortex-a5",				/* 6 */
-	"cortex-m4",				/* 7 */
+	"Cortex-A5",				/* 6 */
+	"Cortex-M4",				/* 7 */
 	_unknown,					/* 8 */
 	_unknown,					/* 9 */
 	_unknown,					/* 10 */

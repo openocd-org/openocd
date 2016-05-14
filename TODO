@@ -170,9 +170,9 @@ https://lists.berlios.de/pipermail/openocd-development/2009-October/011506.html
   garabage.
   - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
 - Thumb2 single stepping: ARM1156T2 needs simulator support
-- Cortex A8 support (ML)
+- Cortex-A8 support (ML)
   - add target implementation (ML)
-- Cortex M3 support
+- Cortex-M3 support
   - when stepping, only write dirtied registers (be faster)
   - when connecting to halted core, fetch registers (startup is quirky)
 - Generic ARM run_algorithm() interface

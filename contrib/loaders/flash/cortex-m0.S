@@ -27,8 +27,8 @@
 
 /* Written for NRF51822 (src/flash/nor/nrf51.c) however the NRF NVMC is
  * very generic (CPU blocks during flash writes), so this is actually
- * just a generic word-oriented copy routine for cortex-m0 (also
- * suitable for cortex m0plus/m3/m4.)
+ * just a generic word-oriented copy routine for Cortex-M0 (also
+ * suitable for Cortex-M0+/M3/M4.)
  *
  * To assemble:
  * arm-none-eabi-gcc -c cortex-m0.S
