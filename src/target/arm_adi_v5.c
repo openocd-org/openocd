@@ -1040,6 +1040,7 @@ static const struct {
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",           "(Debug Unit)", },
 	{ 0x09f,  0xcd0, "Atmel CPU with DSU",         "(CPU)" },
+	{ 0x0c1,  0x1ed, "XMC1000 ROM",                "(ROM Table)" },
 	{ 0x0E5,  0x000, "SHARC+/Blackfin+",           "", },
 	{ 0x0F0,  0x440, "Qualcomm QDSS Component v1", "(Qualcomm Designed CoreSight Component v1)", },
 	/* legacy comment: 0x113: what? */
