@@ -1039,6 +1039,7 @@ static const struct {
 	{ ARM_ID, 0xd03, "Cortex-A53 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",           "(Debug Unit)", },
+	{ 0x097,  0x9af, "MSP432 ROM",                 "(ROM Table)" },
 	{ 0x09f,  0xcd0, "Atmel CPU with DSU",         "(CPU)" },
 	{ 0x0c1,  0x1db, "XMC4500 ROM",                "(ROM Table)" },
 	{ 0x0c1,  0x1df, "XMC4700/4800 ROM",           "(ROM Table)" },
