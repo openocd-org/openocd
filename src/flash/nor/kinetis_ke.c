@@ -1241,7 +1241,7 @@ static int kinetis_ke_blank_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static const struct command_registration kinetis_ke_securtiy_command_handlers[] = {
+static const struct command_registration kinetis_ke_security_command_handlers[] = {
 	{
 		.name = "check_security",
 		.mode = COMMAND_EXEC,
@@ -1272,7 +1272,7 @@ static const struct command_registration kinetis_ke_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "",
 		.usage = "",
-		.chain = kinetis_ke_securtiy_command_handlers,
+		.chain = kinetis_ke_security_command_handlers,
 	},
 	{
 		.name = "disable_wdog",

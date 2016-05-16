@@ -1920,7 +1920,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 }
 
 
-static const struct command_registration kinetis_securtiy_command_handlers[] = {
+static const struct command_registration kinetis_security_command_handlers[] = {
 	{
 		.name = "check_security",
 		.mode = COMMAND_EXEC,
@@ -1944,7 +1944,7 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "",
 		.usage = "",
-		.chain = kinetis_securtiy_command_handlers,
+		.chain = kinetis_security_command_handlers,
 	},
 	{
 		.name = "disable_wdog",
