@@ -1,5 +1,6 @@
 #include "encoding.h"
 
+#define ZERO	0
 #define S0      8
 #define S1      9
 
@@ -24,6 +25,31 @@ static uint32_t csrsi(unsigned int csr, uint16_t imm) {
   return (csr << 20) |
     (bits(imm, 4, 0) << 15) |
     MATCH_CSRRSI;
+}
+
+static uint32_t sw(unsigned int src, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 5) << 25) |
+    (src << 20) |
+    (base << 15) |
+    (bits(offset, 4, 0) << 7) |
+    MATCH_SW;
+}
+
+static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm)
+{
+  return (bits(imm, 11, 0) << 20) |
+    (src << 15) |
+    (dest << 7) |
+    MATCH_XORI;
+}
+
+static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt)
+{
+	return (bits(shamt, 4, 0) << 20) |
+		(src << 15) |
+		(dest << 7) |
+		MATCH_SRLI;
 }
 
 /*
@@ -62,15 +88,6 @@ static uint32_t sh(unsigned int src, unsigned int base, uint16_t offset)
     (base << 15) |
     (bits(offset, 4, 0) << 7) |
     MATCH_SH;
-}
-
-static uint32_t sw(unsigned int src, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 5) << 25) |
-    (src << 20) |
-    (base << 15) |
-    (bits(offset, 4, 0) << 7) |
-    MATCH_SW;
 }
 
 static uint32_t sd(unsigned int src, unsigned int base, uint16_t offset)

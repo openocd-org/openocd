@@ -77,12 +77,23 @@ typedef struct {
 
 /*** Utility functions. ***/
 
+static uint8_t ir_dtminfo[1] = {DTMINFO};
+static struct scan_field scan_dtminfo = {
+	.in_value = NULL,
+	.out_value = ir_dtminfo
+};
+static uint8_t ir_dbus[1] = {DBUS};
+static struct scan_field scan_dbus = {
+	.in_value = NULL,
+	.out_value = ir_dbus
+};
+
 static uint64_t dbus_scan(struct target *target, uint16_t address,
 		uint64_t data_out, bool read, bool write)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	struct scan_field field;
-	uint8_t in[8];
+	uint8_t in[8] = {0};
 	uint8_t out[8];
 
 	assert(info->addrbits != 0);
@@ -90,16 +101,20 @@ static uint64_t dbus_scan(struct target *target, uint16_t address,
 	// TODO: max bits is 32?
 	field.num_bits = info->addrbits + 35;
 	field.out_value = out;
-	if (read) {
-		field.in_value = in;
-	}
+	field.in_value = in;
 	buf_set_u64(out, 0, 34, data_out);
 	buf_set_u64(out, 34, info->addrbits, address);
 	buf_set_u64(out, info->addrbits + 34, 1, write);
 
 	/* Assume dbus is already selected. */
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_DRUPDATE);
+	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
 	info->dbus_address = address;
+
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("dbus_scan failed jtag scan");
+		return retval;
+	}
 
 	return buf_get_u64(in, 0, 34);
 }
@@ -123,28 +138,25 @@ static uint32_t dtminfo_read(struct target *target)
 {
 	struct scan_field field;
 	uint8_t in[4];
-	uint8_t out[4];
 
-	field.num_bits = target->tap->ir_length;
-	field.out_value = out;
-	field.in_value = NULL;
-	buf_set_u32(out, 0, field.num_bits, DTMINFO);
-	jtag_add_ir_scan(target->tap, &field, TAP_DRSELECT);
+	jtag_add_ir_scan(target->tap, &scan_dtminfo, TAP_IDLE);
 
 	field.num_bits = 32;
 	field.out_value = NULL;
 	field.in_value = in;
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_DRUPDATE);
+	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
+
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("dbus_scan failed jtag scan");
+		return retval;
+	}
 
 	/* Always return to dbus. */
 	/* TODO: Can we rely on IR not being messed with between calls into
 	 * RISCV code?  Eg. what happens if there are multiple cores and some
 	 * other core is accessed? */
-	field.num_bits = target->tap->ir_length;
-	field.out_value = out;
-	field.in_value = NULL;
-	buf_set_u32(out, 0, field.num_bits, DBUS);
-	jtag_add_ir_scan(target->tap, &field, TAP_DRSELECT);
+	jtag_add_ir_scan(target->tap, &scan_dbus, TAP_IDLE);
 
 	return buf_get_u32(field.in_value, 0, 32);
 }
@@ -178,17 +190,22 @@ static void dram_write_jump(struct target *target, unsigned int index, bool set_
 static int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
+	LOG_DEBUG("riscv_init_target()");
 	target->arch_info = calloc(1, sizeof(riscv_info_t));
 	if (!target->arch_info)
 		return ERROR_FAIL;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->dbus_address = DBUS_ADDRESS_UNKNOWN;
 
+	scan_dtminfo.num_bits = target->tap->ir_length;
+	scan_dbus.num_bits = target->tap->ir_length;
+
 	return ERROR_OK;
 }
 
 static void riscv_deinit_target(struct target *target)
 {
+	LOG_DEBUG("riscv_deinit_target()");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	if (info->dram) {
 		free(info->dram);
@@ -199,6 +216,7 @@ static void riscv_deinit_target(struct target *target)
 
 static int riscv_examine(struct target *target)
 {
+	LOG_DEBUG("riscv_examine()");
 	if (target_was_examined(target)) {
 		return ERROR_OK;
 	}
@@ -221,6 +239,21 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	// TODO: Figure out XLEN.
+	//  	xori	s1, zero, -1	0xffffffff	0xffffffff:ffffffff	0xffffffff:ffffffff:ffffffff:ffffffff
+	//  	srli	s1, s1, 31		0x00000001  0x00000001:ffffffff 0x00000001:ffffffff:ffffffff:ffffffff
+	//  	sw		s1, debug_ram
+	//  	srli	s1, s1, 31		0x00000000  0x00000000:00000003 0x00000000:00000003:ffffffff:ffffffff
+	//  	sw		s1, debug_ram + 4
+	//  	jump back
+
+	dram_write32(target, 0, xori(S1, ZERO, -1), false);
+	dram_write32(target, 1, srli(S1, S1, 31), false);
+	dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START), false);
+	dram_write32(target, 3, srli(S1, S1, 31), false);
+	dram_write32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
+	dram_write_jump(target, 5, true);
+
 	target_set_examined(target);
 
 	return ERROR_OK;
@@ -228,6 +261,7 @@ static int riscv_examine(struct target *target)
 
 static int riscv_poll(struct target *target)
 {
+	LOG_DEBUG("riscv_poll()");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
 	uint64_t value;
@@ -255,9 +289,22 @@ static int riscv_poll(struct target *target)
 
 static int riscv_halt(struct target *target)
 {
+	LOG_DEBUG("riscv_halt()");
 	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
 	dram_write_jump(target, 1, true);
 
+	return ERROR_OK;
+}
+
+static int riscv_assert_reset(struct target *target)
+{
+	// TODO
+	return ERROR_OK;
+}
+
+static int riscv_deassert_reset(struct target *target)
+{
+	// TODO
 	return ERROR_OK;
 }
 
@@ -272,6 +319,9 @@ struct target_type riscv_target = {
 	.poll = riscv_poll,
 
 	.halt = riscv_halt,
+
+	.assert_reset = riscv_assert_reset,
+	.deassert_reset = riscv_deassert_reset,
 
 	/* TODO: */
 	/* .virt2phys = riscv_virt2phys, */
