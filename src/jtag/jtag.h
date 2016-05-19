@@ -107,7 +107,7 @@ extern tap_state_t cmd_queue_cur_state;
  * jtag_add_dr_scan_check() to validate the value that was scanned out.
  */
 struct scan_field {
-	/** The number of bits this field specifies (up to 32) */
+	/** The number of bits this field specifies */
 	int num_bits;
 	/** A pointer to value to be scanned into the device */
 	const uint8_t *out_value;
