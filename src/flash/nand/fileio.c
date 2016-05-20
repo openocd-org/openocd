@@ -134,7 +134,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 
 	if (NULL == nand->device) {
 		command_print(CMD_CTX, "#%s: not probed", CMD_ARGV[0]);
-		return ERROR_OK;
+		return ERROR_NAND_DEVICE_NOT_PROBED;
 	}
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], state->address);
