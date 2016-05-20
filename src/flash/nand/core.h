@@ -68,7 +68,7 @@ struct nand_device {
 	int address_cycles;
 	int page_size;
 	int erase_size;
-	int use_raw;
+	bool use_raw;
 	int num_blocks;
 	struct nand_block *blocks;
 	struct nand_device *next;

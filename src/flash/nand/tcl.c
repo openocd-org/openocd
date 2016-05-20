@@ -547,7 +547,7 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 	c->bus_width = 0;
 	c->address_cycles = 0;
 	c->page_size = 0;
-	c->use_raw = 0;
+	c->use_raw = false;
 	c->next = NULL;
 
 	retval = CALL_COMMAND_HANDLER(controller->nand_device_command, c);
