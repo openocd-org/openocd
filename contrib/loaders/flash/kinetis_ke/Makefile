@@ -4,10 +4,12 @@ CROSS_COMPILE ?= arm-none-eabi-
 AS      = $(CROSS_COMPILE)as
 OBJCOPY = $(CROSS_COMPILE)objcopy
 
+AFLAGS = -EL
+
 all: kinetis_ke_flash.inc kinetis_ke_watchdog.inc
 
 %.elf: %.s
-	$(AS) $< -o $@
+	$(AS) $(AFLAGS) $< -o $@
 
 %.bin: %.elf
 	$(OBJCOPY) -Obinary $< $@

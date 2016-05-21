@@ -6,6 +6,8 @@ CC=$(CROSS_COMPILE)gcc
 OBJCOPY=$(CROSS_COMPILE)objcopy
 OBJDUMP=$(CROSS_COMPILE)objdump
 
+CFLAGS = -static -nostartfiles -mlittle-endian -Wa,-EL
+
 all: erase.inc erase_check.inc write.inc
 
 .PHONY: clean
@@ -15,7 +17,7 @@ all: erase.inc erase_check.inc write.inc
 erase.elf erase_check.elf write.elf: xmc1xxx.S
 
 %.elf: %.S
-	$(CC) -static -nostartfiles $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 %.lst: %.elf
 	$(OBJDUMP) -S $< > $@
