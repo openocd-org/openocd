@@ -160,6 +160,7 @@ COMMAND_HANDLER(handle_flash_probe_command)
 
 COMMAND_HANDLER(handle_flash_erase_check_command)
 {
+	bool blank = true;
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -185,10 +186,11 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 		if (p->sectors[j].is_erased == 0)
 			erase_state = "not erased";
 		else if (p->sectors[j].is_erased == 1)
-			erase_state = "erased";
+			continue;
 		else
 			erase_state = "erase state unknown";
 
+		blank = false;
 		command_print(CMD_CTX,
 			"\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
 			j,
@@ -198,6 +200,8 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 			erase_state);
 	}
 
+	if (blank)
+		command_print(CMD_CTX, "\tBank is erased");
 	return retval;
 }
 
