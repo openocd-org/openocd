@@ -71,6 +71,7 @@ install-sh
 libtool
 ltmain.sh
 Makefile
+!contrib/loaders/**/Makefile
 mdate-sh
 missing
 stamp-h1

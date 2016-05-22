@@ -1,0 +1,33 @@
+.PHONY: arm clean-arm
+
+all: arm
+
+common_dirs = \
+	checksum \
+	erase_check \
+	flash/kinetis_ke \
+	watchdog
+
+ARM_CROSS_COMPILE ?= arm-none-eabi-
+
+arm_dirs = \
+	flash/fm4 \
+	flash/xmc1xxx
+
+arm:
+	for d in $(common_dirs); do \
+		$(MAKE) -C $$d arm; \
+	done
+	for d in $(arm_dirs); do \
+		$(MAKE) -C $$d all CROSS_COMPILE=$(ARM_CROSS_COMPILE); \
+	done
+
+clean-arm:
+	for d in $(arm_dirs); do \
+		$(MAKE) -C $$d clean; \
+	done
+
+clean: clean-arm
+	for d in $(common_dirs); do \
+		$(MAKE) -C $$d clean; \
+	done
