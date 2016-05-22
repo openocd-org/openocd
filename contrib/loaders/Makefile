@@ -5,13 +5,13 @@ all: arm
 common_dirs = \
 	checksum \
 	erase_check \
-	flash/kinetis_ke \
 	watchdog
 
 ARM_CROSS_COMPILE ?= arm-none-eabi-
 
 arm_dirs = \
 	flash/fm4 \
+	flash/kinetis_ke \
 	flash/xmc1xxx
 
 arm:
