@@ -599,6 +599,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
 	int i;
 	uint16_t flash_size_in_kb = 0xffff;
+	uint16_t max_flash_size_in_kb;
 	uint32_t device_id;
 	uint32_t options;
 	uint32_t base_address = 0x08000000;
@@ -614,6 +615,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	/* set max flash size depending on family */
 	switch (device_id & 0xfff) {
 	case 0x415:
+		max_flash_size_in_kb = 1024;
 		break;
 	default:
 		LOG_WARNING("Cannot identify target as a STM32L4 family.");
@@ -623,6 +625,19 @@ static int stm32l4_probe(struct flash_bank *bank)
 	/* get flash size from target. */
 	retval = target_read_u16(target, FLASH_SIZE_REG, &flash_size_in_kb);
 
+	/* failed reading flash size or flash size invalid (early silicon),
+	 * default to max target family */
+	if (retval != ERROR_OK || flash_size_in_kb == 0xffff || flash_size_in_kb == 0) {
+		LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming %dk flash",
+			max_flash_size_in_kb);
+		flash_size_in_kb = max_flash_size_in_kb;
+	}
+
+	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
+
+	/* did we assign flash size? */
+	assert(flash_size_in_kb != 0xffff);
+
 	/* get options to for DUAL BANK. */
 	retval = target_read_u32(target, STM32_FLASH_OPTR, &options);
 
@@ -631,8 +646,6 @@ static int stm32l4_probe(struct flash_bank *bank)
 		stm32l4_info->option_bytes.bank_b_start = 256;
 	else
 		stm32l4_info->option_bytes.bank_b_start = flash_size_in_kb << 9;
-
-	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
 	/* did we assign flash size? */
 	assert((flash_size_in_kb != 0xffff) && flash_size_in_kb);
