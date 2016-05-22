@@ -266,7 +266,9 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	}
 
 	reply_len = snprintf(reply, sizeof(reply), "qSymbol:");
-	reply_len += hexify(reply + reply_len, next_sym->symbol_name, 0, sizeof(reply) - reply_len);
+	reply_len += hexify(reply + reply_len,
+		(const uint8_t *)next_sym->symbol_name, strlen(next_sym->symbol_name),
+		sizeof(reply) - reply_len);
 
 done:
 	gdb_put_packet(connection, reply, reply_len);
@@ -321,7 +323,8 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 				(size_t) (tmp_str_ptr - tmp_str));
 
 			char *hex_str = malloc(strlen(tmp_str) * 2 + 1);
-			int pkt_len = hexify(hex_str, tmp_str, 0, strlen(tmp_str) * 2 + 1);
+			size_t pkt_len = hexify(hex_str, (const uint8_t *)tmp_str,
+				strlen(tmp_str), strlen(tmp_str) * 2 + 1);
 
 			gdb_put_packet(connection, hex_str, pkt_len);
 			free(hex_str);

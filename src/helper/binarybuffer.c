@@ -45,6 +45,11 @@ static const unsigned char bit_reverse_table256[] = {
 	0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF
 };
 
+static const char hex_digits[] = {
+	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+	'a', 'b', 'c', 'd', 'e', 'f'
+};
+
 void *buf_cpy(const void *from, void *_to, unsigned size)
 {
 	if (NULL == from || NULL == _to)
@@ -407,18 +412,34 @@ size_t unhexify(uint8_t *bin, const char *hex, size_t count)
 	return i / 2;
 }
 
-int hexify(char *hex, const char *bin, int count, int out_maxlen)
+/**
+ * Convert binary data into a string of hexadecimal pairs.
+ *
+ * @param[out] hex Buffer to store string of hexadecimal pairs. The buffer size
+ *                 must be at least @p length.
+ * @param[in] bin Buffer with binary data to convert into hexadecimal pairs.
+ * @param[in] count Number of bytes to convert.
+ * @param[in] length Maximum number of characters, including null-terminator,
+ *                   to store into @p hex.
+ *
+ * @returns The length of the converted string excluding null-terminator.
+ */
+size_t hexify(char *hex, const uint8_t *bin, size_t count, size_t length)
 {
-	int i, cmd_len = 0;
+	size_t i;
+	uint8_t tmp;
 
-	/* May use a length, or a null-terminated string as input. */
-	if (count == 0)
-		count = strlen(bin);
+	if (!length)
+		return 0;
 
-	for (i = 0; i < count; i++)
-		cmd_len += snprintf(hex + cmd_len, out_maxlen - cmd_len, "%02x", bin[i] & 0xff);
+	for (i = 0; i < length - 1 && i < 2 * count; i++) {
+		tmp = (bin[i / 2] >> (4 * ((i + 1) % 2))) & 0x0f;
+		hex[i] = hex_digits[tmp];
+	}
 
-	return cmd_len;
+	hex[i] = 0;
+
+	return i;
 }
 
 void buffer_shr(void *_buf, unsigned buf_len, unsigned count)

@@ -1229,7 +1229,8 @@ int linux_thread_extra_info(struct target *target,
 			sprintf(tmp_str_ptr, "%s", name);
 			sprintf(tmp_str_ptr, "%s", temp->name);
 			char *hex_str = calloc(1, strlen(tmp_str) * 2 + 1);
-			int pkt_len = hexify(hex_str, tmp_str, 0, strlen(tmp_str) * 2 + 1);
+			size_t pkt_len = hexify(hex_str, (const uint8_t *)tmp_str,
+				strlen(tmp_str), strlen(tmp_str) * 2 + 1);
 			gdb_put_packet(connection, hex_str, pkt_len);
 			free(hex_str);
 			free(tmp_str);

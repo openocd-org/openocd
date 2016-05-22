@@ -242,7 +242,8 @@ static int icdi_send_remote_cmd(void *handle, const char *data)
 	struct icdi_usb_handle_s *h = handle;
 
 	size_t cmd_len = sprintf(h->write_buffer, PACKET_START "qRcmd,");
-	cmd_len += hexify(h->write_buffer + cmd_len, data, 0, h->max_packet - cmd_len);
+	cmd_len += hexify(h->write_buffer + cmd_len, (const uint8_t *)data,
+		strlen(data), h->max_packet - cmd_len);
 
 	return icdi_send_packet(handle, cmd_len);
 }
@@ -512,7 +513,7 @@ static int icdi_usb_write_reg(void *handle, int num, uint32_t val)
 	h_u32_to_le(buf, val);
 
 	int cmd_len = snprintf(cmd, sizeof(cmd), "P%x=", num);
-	hexify(cmd + cmd_len, (const char *)buf, 4, sizeof(cmd));
+	hexify(cmd + cmd_len, buf, 4, sizeof(cmd));
 
 	result = icdi_send_cmd(handle, cmd);
 	if (result != ERROR_OK)

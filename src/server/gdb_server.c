@@ -697,7 +697,8 @@ static int gdb_output_con(struct connection *connection, const char *line)
 		return ERROR_GDB_BUFFER_TOO_SMALL;
 
 	hex_buffer[0] = 'O';
-	int pkt_len = hexify(hex_buffer + 1, line, bin_size, bin_size * 2 + 1);
+	size_t pkt_len = hexify(hex_buffer + 1, (const uint8_t *)line, bin_size,
+		bin_size * 2 + 1);
 	int retval = gdb_put_packet(connection, hex_buffer, pkt_len + 1);
 
 	free(hex_buffer);
@@ -1407,7 +1408,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 	if (retval == ERROR_OK) {
 		hex_buffer = malloc(len * 2 + 1);
 
-		int pkt_len = hexify(hex_buffer, (char *)buffer, len, len * 2 + 1);
+		size_t pkt_len = hexify(hex_buffer, buffer, len, len * 2 + 1);
 
 		gdb_put_packet(connection, hex_buffer, pkt_len);
 

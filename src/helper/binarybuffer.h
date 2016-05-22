@@ -235,7 +235,7 @@ void bit_copy_discard(struct bit_copy_queue *q);
 /* functions to convert to/from hex encoded buffer
  * used in ti-icdi driver and gdb server */
 size_t unhexify(uint8_t *bin, const char *hex, size_t count);
-int hexify(char *hex, const char *bin, int count, int out_maxlen);
+size_t hexify(char *hex, const uint8_t *bin, size_t count, size_t out_maxlen);
 void buffer_shr(void *_buf, unsigned buf_len, unsigned count);
 
 #endif /* OPENOCD_HELPER_BINARYBUFFER_H */
