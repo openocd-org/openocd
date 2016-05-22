@@ -1449,7 +1449,7 @@ static int gdb_write_memory_packet(struct connection *connection,
 
 	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
-	if (unhexify((char *)buffer, separator, len) != (int)len)
+	if (unhexify(buffer, separator, len) != len)
 		LOG_ERROR("unable to decode memory packet");
 
 	retval = target_write_buffer(target, addr, len, buffer);
@@ -2277,7 +2277,7 @@ static int gdb_query_packet(struct connection *connection,
 		if (packet_size > 6) {
 			char *cmd;
 			cmd = malloc((packet_size - 6) / 2 + 1);
-			int len = unhexify(cmd, packet + 6, (packet_size - 6) / 2);
+			size_t len = unhexify((uint8_t *)cmd, packet + 6, (packet_size - 6) / 2);
 			cmd[len] = 0;
 
 			/* We want to print all debug output to GDB connection */

@@ -266,7 +266,7 @@ static int icdi_get_cmd_result(void *handle)
 
 	if (h->read_buffer[offset] == 'E') {
 		/* get error code */
-		char result;
+		uint8_t result;
 		if (unhexify(&result, h->read_buffer + offset + 1, 1) != 1)
 			return ERROR_FAIL;
 		return result;
@@ -328,7 +328,7 @@ static int icdi_usb_version(void *handle)
 	}
 
 	/* convert reply */
-	if (unhexify(version, h->read_buffer + 2, 4) != 4) {
+	if (unhexify((uint8_t *)version, h->read_buffer + 2, 4) != 4) {
 		LOG_WARNING("unable to get ICDI version");
 		return ERROR_OK;
 	}
@@ -495,7 +495,7 @@ static int icdi_usb_read_reg(void *handle, int num, uint32_t *val)
 
 	/* convert result */
 	uint8_t buf[4];
-	if (unhexify((char *)buf, h->read_buffer + 2, 4) != 4) {
+	if (unhexify(buf, h->read_buffer + 2, 4) != 4) {
 		LOG_ERROR("failed to convert result");
 		return ERROR_FAIL;
 	}

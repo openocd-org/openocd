@@ -213,7 +213,7 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 		goto done;
 
 	/* Decode any symbol name in the packet*/
-	int len = unhexify(cur_sym, strchr(packet + 8, ':') + 1, strlen(strchr(packet + 8, ':') + 1));
+	size_t len = unhexify((uint8_t *)cur_sym, strchr(packet + 8, ':') + 1, strlen(strchr(packet + 8, ':') + 1));
 	cur_sym[len] = 0;
 
 	if ((strcmp(packet, "qSymbol::") != 0) &&               /* GDB is not offering symbol lookup for the first time */

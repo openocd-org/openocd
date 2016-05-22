@@ -369,17 +369,42 @@ void bit_copy_discard(struct bit_copy_queue *q)
 	}
 }
 
-int unhexify(char *bin, const char *hex, int count)
+/**
+ * Convert a string of hexadecimal pairs into its binary
+ * representation.
+ *
+ * @param[out] bin Buffer to store binary representation. The buffer size must
+ *                 be at least @p count.
+ * @param[in] hex String with hexadecimal pairs to convert into its binary
+ *                representation.
+ * @param[in] count Number of hexadecimal pairs to convert.
+ *
+ * @return The number of converted hexadecimal pairs.
+ */
+size_t unhexify(uint8_t *bin, const char *hex, size_t count)
 {
-	int i, tmp;
+	size_t i;
+	char tmp;
 
-	for (i = 0; i < count; i++) {
-		if (sscanf(hex + (2 * i), "%02x", &tmp) != 1)
-			return i;
-		bin[i] = tmp;
+	if (!bin || !hex)
+		return 0;
+
+	memset(bin, 0, count);
+
+	for (i = 0; i < 2 * count; i++) {
+		if (hex[i] >= 'a' && hex[i] <= 'f')
+			tmp = hex[i] - 'a' + 10;
+		else if (hex[i] >= 'A' && hex[i] <= 'F')
+			tmp = hex[i] - 'A' + 10;
+		else if (hex[i] >= '0' && hex[i] <= '9')
+			tmp = hex[i] - '0';
+		else
+			return i / 2;
+
+		bin[i / 2] |= tmp << (4 * ((i + 1) % 2));
 	}
 
-	return i;
+	return i / 2;
 }
 
 int hexify(char *hex, const char *bin, int count, int out_maxlen)
