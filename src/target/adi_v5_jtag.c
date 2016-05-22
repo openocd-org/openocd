@@ -357,7 +357,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 	int retval;
 	struct dap_cmd *el, *tmp, *prev = NULL;
 	int found_wait = 0;
-	uint64_t time_now;
+	int64_t time_now;
 	LIST_HEAD(replay_list);
 
 	/* make sure all queued transactions are complete */

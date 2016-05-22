@@ -361,7 +361,7 @@ COMMAND_HANDLER(handle_svf_command)
 #define SVF_MAX_NUM_OF_OPTIONS 5
 	int command_num = 0;
 	int ret = ERROR_OK;
-	long long time_measure_ms;
+	int64_t time_measure_ms;
 	int time_measure_s, time_measure_m;
 
 	/* use NULL to indicate a "plain" svf file which accounts for
@@ -535,7 +535,7 @@ COMMAND_HANDLER(handle_svf_command)
 	time_measure_s %= 60;
 	if (time_measure_ms < 1000)
 		command_print(CMD_CTX,
-			"\r\nTime used: %dm%ds%lldms ",
+			"\r\nTime used: %dm%ds%" PRId64 "ms ",
 			time_measure_m,
 			time_measure_s,
 			time_measure_ms);

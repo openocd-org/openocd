@@ -174,7 +174,7 @@ static int aice_pipe_write(const void *buffer, int count)
 static int aice_pipe_read(void *buffer, int count)
 {
 	int n;
-	long long then, cur;
+	int64_t then, cur;
 
 	then = timeval_ms();
 

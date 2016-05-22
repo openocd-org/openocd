@@ -106,7 +106,7 @@ static int ssp_setcs(struct target *target, uint32_t io_base, unsigned int value
  * and the controller is idle. */
 static int poll_ssp_busy(struct target *target, uint32_t ssp_base, int timeout)
 {
-	long long endtime;
+	int64_t endtime;
 	uint32_t value;
 	int retval;
 
@@ -325,7 +325,7 @@ static int wait_till_ready(struct flash_bank *bank, int timeout)
 {
 	uint32_t status;
 	int retval;
-	long long endtime;
+	int64_t endtime;
 
 	endtime = timeval_ms() + timeout;
 	do {

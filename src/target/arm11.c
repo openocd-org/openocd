@@ -390,7 +390,7 @@ static int arm11_halt(struct target *target)
 			break;
 
 
-		long long then = 0;
+		int64_t then = 0;
 		if (i == 1000)
 			then = timeval_ms();
 		if (i >= 1000) {
@@ -512,7 +512,7 @@ static int arm11_resume(struct target *target, int current,
 			break;
 
 
-		long long then = 0;
+		int64_t then = 0;
 		if (i == 1000)
 			then = timeval_ms();
 		if (i >= 1000) {

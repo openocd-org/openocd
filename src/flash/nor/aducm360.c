@@ -551,7 +551,7 @@ static int aducm360_check_flash_completion(struct target *target, unsigned int t
 {
 	uint32_t v = 1;
 
-	long long endtime = timeval_ms() + timeout_ms;
+	int64_t endtime = timeval_ms() + timeout_ms;
 	while (1) {
 		target_read_u32(target, ADUCM360_FLASH_BASE+ADUCM360_FLASH_FEESTA, &v);
 		if ((v & 0x00000001) == 0)

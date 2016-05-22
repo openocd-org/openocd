@@ -175,7 +175,7 @@ struct target {
 	int display;						/* display async info in telnet session. Do not display
 										 * lots of halted/resumed info when stepping in debugger. */
 	bool halt_issued;					/* did we transition to halted state? */
-	long long halt_issued_time;			/* Note time when halt was issued */
+	int64_t halt_issued_time;			/* Note time when halt was issued */
 
 	bool dbgbase_set;					/* By default the debug base is not set */
 	uint32_t dbgbase;					/* Really a Cortex-A specific option, but there is no

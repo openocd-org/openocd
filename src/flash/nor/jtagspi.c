@@ -210,14 +210,14 @@ static void jtagspi_read_status(struct flash_bank *bank, uint32_t *status)
 static int jtagspi_wait(struct flash_bank *bank, int timeout_ms)
 {
 	uint32_t status;
-	long long t0 = timeval_ms();
-	long long dt;
+	int64_t t0 = timeval_ms();
+	int64_t dt;
 
 	do {
 		dt = timeval_ms() - t0;
 		jtagspi_read_status(bank, &status);
 		if ((status & SPIFLASH_BSY_BIT) == 0) {
-			LOG_DEBUG("waited %lld ms", dt);
+			LOG_DEBUG("waited %" PRId64 " ms", dt);
 			return ERROR_OK;
 		}
 		alive_sleep(1);
@@ -244,14 +244,14 @@ static int jtagspi_bulk_erase(struct flash_bank *bank)
 {
 	struct jtagspi_flash_bank *info = bank->driver_priv;
 	int retval;
-	long long t0 = timeval_ms();
+	int64_t t0 = timeval_ms();
 
 	retval = jtagspi_write_enable(bank);
 	if (retval != ERROR_OK)
 		return retval;
 	jtagspi_cmd(bank, info->dev->chip_erase_cmd, NULL, NULL, 0);
 	retval = jtagspi_wait(bank, bank->num_sectors*JTAGSPI_MAX_TIMEOUT);
-	LOG_INFO("took %lld ms", timeval_ms() - t0);
+	LOG_INFO("took %" PRId64 " ms", timeval_ms() - t0);
 	return retval;
 }
 
@@ -259,14 +259,14 @@ static int jtagspi_sector_erase(struct flash_bank *bank, int sector)
 {
 	struct jtagspi_flash_bank *info = bank->driver_priv;
 	int retval;
-	long long t0 = timeval_ms();
+	int64_t t0 = timeval_ms();
 
 	retval = jtagspi_write_enable(bank);
 	if (retval != ERROR_OK)
 		return retval;
 	jtagspi_cmd(bank, info->dev->erase_cmd, &bank->sectors[sector].offset, NULL, 0);
 	retval = jtagspi_wait(bank, JTAGSPI_MAX_TIMEOUT);
-	LOG_INFO("sector %d took %lld ms", sector, timeval_ms() - t0);
+	LOG_INFO("sector %d took %" PRId64 " ms", sector, timeval_ms() - t0);
 	return retval;
 }
 

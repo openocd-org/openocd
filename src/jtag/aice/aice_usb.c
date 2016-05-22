@@ -1856,7 +1856,7 @@ static int aice_check_dbger(uint32_t coreid, uint32_t expect_status)
 		if ((i % 30) == 0)
 			keep_alive();
 
-		long long then = 0;
+		int64_t then = 0;
 		if (i == aice_count_to_check_dbger)
 			then = timeval_ms();
 		if (i >= aice_count_to_check_dbger) {
@@ -2997,7 +2997,7 @@ static int aice_usb_step(uint32_t coreid)
 		if (AICE_TARGET_HALTED == state)
 			break;
 
-		long long then = 0;
+		int64_t then = 0;
 		if (i == 30)
 			then = timeval_ms();
 

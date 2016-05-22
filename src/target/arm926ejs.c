@@ -87,7 +87,7 @@ static int arm926ejs_cp15_read(struct target *target, uint32_t op1, uint32_t op2
 
 	jtag_add_dr_scan(jtag_info->tap, 4, fields, TAP_IDLE);
 
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 
 	for (;;) {
 		/* rescan with NOP, to wait for the access to complete */
@@ -173,7 +173,7 @@ static int arm926ejs_cp15_write(struct target *target, uint32_t op1, uint32_t op
 
 	jtag_add_dr_scan(jtag_info->tap, 4, fields, TAP_IDLE);
 
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 
 	for (;;) {
 		/* rescan with NOP, to wait for the access to complete */
@@ -546,7 +546,7 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	int timeout;
 	while (!(timeout = ((timeval_ms()-then) > 1000))) {
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0) {

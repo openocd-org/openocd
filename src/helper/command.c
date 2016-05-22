@@ -1173,8 +1173,8 @@ COMMAND_HANDLER(handle_sleep_command)
 		return retval;
 
 	if (!busy) {
-		long long then = timeval_ms();
-		while (timeval_ms() - then < (long long)duration) {
+		int64_t then = timeval_ms();
+		while (timeval_ms() - then < (int64_t)duration) {
 			target_call_timer_callbacks_now();
 			usleep(1000);
 		}

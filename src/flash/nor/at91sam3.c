@@ -2175,7 +2175,7 @@ static int EFC_PerformCommand(struct sam3_bank_private *pPrivate,
 
 	int r;
 	uint32_t v;
-	long long ms_now, ms_end;
+	int64_t ms_now, ms_end;
 
 	/* default */
 	if (status)

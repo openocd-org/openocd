@@ -160,7 +160,7 @@ FLASH_BANK_COMMAND_HANDLER(stmsmi_flash_bank_command)
 /* timeout in ms */
 static int poll_tff(struct target *target, uint32_t io_base, int timeout)
 {
-	long long endtime;
+	int64_t endtime;
 
 	if (SMI_READ_REG(SMI_SR) & SMI_TFF)
 		return ERROR_OK;
@@ -211,7 +211,7 @@ static int wait_till_ready(struct flash_bank *bank, int timeout)
 {
 	uint32_t status;
 	int retval;
-	long long endtime;
+	int64_t endtime;
 
 	endtime = timeval_ms() + timeout;
 	do {

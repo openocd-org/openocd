@@ -31,7 +31,7 @@
 /* simple and low overhead fetching of ms counter. Use only
  * the difference between ms counters returned from this fn.
  */
-int64_t timeval_ms()
+int64_t timeval_ms(void)
 {
 	struct timeval now;
 	int retval = gettimeofday(&now, NULL);

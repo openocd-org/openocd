@@ -145,8 +145,8 @@ static int zy1000_power_dropout(int *dropout)
 static void waitSRST(bool asserted)
 {
 	bool first = true;
-	long long start = 0;
-	long total = 0;
+	int64_t start = 0;
+	int64_t total = 0;
 	const char *mode = asserted ? "assert" : "deassert";
 
 	for (;; ) {
@@ -167,7 +167,7 @@ static void waitSRST(bool asserted)
 		keep_alive();
 
 		if (total > 5000) {
-			LOG_ERROR("SRST took too long to %s: %dms", mode, (int)total);
+			LOG_ERROR("SRST took too long to %s: %" PRId64 "ms", mode, total);
 			break;
 		}
 	}

@@ -1247,7 +1247,7 @@ COMMAND_HANDLER(handle_wait_srst_deassert)
 
 	LOG_USER("Waiting for srst assert + deassert for at most %dms", timeout_ms);
 	int asserted_yet;
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 	while (jtag_srst_asserted(&asserted_yet) == ERROR_OK) {
 		if ((timeval_ms() - then) > timeout_ms) {
 			LOG_ERROR("Timed out");

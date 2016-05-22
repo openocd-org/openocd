@@ -634,8 +634,8 @@ int arm7_9_execute_sys_speed(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
-	int timeout;
+	int64_t then = timeval_ms();
+	bool timeout;
 	while (!(timeout = ((timeval_ms()-then) > 1000))) {
 		/* read debug status register */
 		embeddedice_read_reg(dbg_stat);

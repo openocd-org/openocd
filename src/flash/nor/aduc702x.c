@@ -371,7 +371,7 @@ static int aduc702x_check_flash_completion(struct target *target, unsigned int t
 {
 	uint8_t v = 4;
 
-	long long endtime = timeval_ms() + timeout_ms;
+	int64_t endtime = timeval_ms() + timeout_ms;
 	while (1) {
 		target_read_u8(target, ADUC702x_FLASH + ADUC702x_FLASH_FEESTA, &v);
 		if ((v & 4) == 0)

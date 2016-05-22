@@ -86,7 +86,7 @@ struct mips32_pracc_context {
 static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 {
 	uint32_t ejtag_ctrl;
-	long long then = timeval_ms();
+	int64_t then = timeval_ms();
 
 	/* wait for the PrAcc to become "1" */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
@@ -100,7 +100,7 @@ static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 		if (ejtag_ctrl & EJTAG_CTRL_PRACC)
 			break;
 
-		int timeout = timeval_ms() - then;
+		int64_t timeout = timeval_ms() - then;
 		if (timeout > 1000) {
 			LOG_DEBUG("DEBUGMODULE: No memory access in progress!");
 			return ERROR_JTAG_DEVICE_ERROR;
