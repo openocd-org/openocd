@@ -52,13 +52,13 @@ static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt)
 		MATCH_SRLI;
 }
 
-/*
 static uint32_t csrci(unsigned int csr, uint16_t imm) {
   return (csr << 20) |
     (bits(imm, 4, 0) << 15) |
     MATCH_CSRRCI;
 }
 
+/*
 static uint32_t csrr(unsigned int rd, unsigned int csr) {
   return (csr << 20) | (rd << 7) | MATCH_CSRRS;
 }

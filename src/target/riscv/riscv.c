@@ -92,7 +92,12 @@ typedef struct {
 	 * confident that the value we have matches the one in actual Debug
 	 * RAM. */
 	uint64_t dram_valid;
+	uint32_t dcsr;
 } riscv_info_t;
+
+/*** Necessary prototypes. ***/
+
+static int riscv_poll(struct target *target);
 
 /*** Utility functions. ***/
 
@@ -246,6 +251,51 @@ static void dram_write_jump(struct target *target, unsigned int index, bool set_
 			set_interrupt);
 }
 
+static int wait_until_halted(struct target *target)
+{
+	do {
+		int result = riscv_poll(target);
+		if (result != ERROR_OK) {
+			return result;
+		}
+	} while (target->state != TARGET_HALTED);
+	return ERROR_OK;
+}
+
+static int resume(struct target *target, int current, uint32_t address,
+		int handle_breakpoints, int debug_execution, bool step)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	if (!current) {
+		if (info->xlen > 32) {
+			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
+					info->xlen);
+		}
+		LOG_ERROR("TODO: current is false");
+		return ERROR_FAIL;
+	}
+
+	if (handle_breakpoints) {
+		LOG_ERROR("TODO: handle_breakpoints is true");
+		return ERROR_FAIL;
+	}
+
+	if (debug_execution) {
+		LOG_ERROR("TODO: debug_execution is true");
+		return ERROR_FAIL;
+	}
+
+	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
+	if (step) {
+		dram_write32(target, 1, csrsi(CSR_DCSR, DCSR_STEP), false);
+	} else {
+		dram_write32(target, 1, csrci(CSR_DCSR, DCSR_STEP), false);
+	}
+	dram_write_jump(target, 2, true);
+
+	return ERROR_OK;
+}
+
 /*** OpenOCD target functions. ***/
 
 static int riscv_init_target(struct command_context *cmd_ctx,
@@ -301,20 +351,15 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	// TODO: Figure out XLEN.
-	//  	xori	s1, zero, -1	0xffffffff	0xffffffff:ffffffff	0xffffffff:ffffffff:ffffffff:ffffffff
-	//  	srli	s1, s1, 31		0x00000001  0x00000001:ffffffff 0x00000001:ffffffff:ffffffff:ffffffff
-	//  	sw		s1, debug_ram
-	//  	srli	s1, s1, 31		0x00000000  0x00000000:00000003 0x00000000:00000003:ffffffff:ffffffff
-	//  	sw		s1, debug_ram + 4
-	//  	jump back
-
+	// Figure out XLEN.
 	dram_write32(target, 0, xori(S1, ZERO, -1), false);
+	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
 	dram_write32(target, 1, srli(S1, S1, 31), false);
+	// 0x00000001  0x00000001:ffffffff  0x00000001:ffffffff:ffffffff:ffffffff
 	dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START), false);
 	dram_write32(target, 3, srli(S1, S1, 31), false);
+	// 0x00000000  0x00000000:00000003  0x00000000:00000003:ffffffff:ffffffff
 	dram_write32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
-	dram_write_jump(target, 5, true);
 
 	// Check that we can actually read/write dram.
 	dram_check32(target, 0, xori(S1, ZERO, -1));
@@ -322,6 +367,25 @@ static int riscv_examine(struct target *target)
 	dram_check32(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
 	dram_check32(target, 3, srli(S1, S1, 31));
 	dram_check32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
+
+	// Execute.
+	dram_write_jump(target, 5, true);
+
+	wait_until_halted(target);
+
+	uint32_t word0 = dram_read32(target, 0, false);
+	uint32_t word1 = dram_read32(target, 1, false);
+	if (word0 == 1 && word1 == 0) {
+		info->xlen = 32;
+	} else if (word0 == 0xffffffff && word1 == 3) {
+		info->xlen = 64;
+	} else if (word0 == 0xffffffff && word1 == 0xffffffff) {
+		info->xlen = 128;
+	} else {
+		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x",
+				word0, word1);
+		return ERROR_FAIL;
+	}
 
 	target_set_examined(target);
 
@@ -365,6 +429,19 @@ static int riscv_halt(struct target *target)
 	return ERROR_OK;
 }
 
+static int riscv_resume(struct target *target, int current, uint32_t address,
+		int handle_breakpoints, int debug_execution)
+{
+		return resume(target, current, address, handle_breakpoints,
+						debug_execution, false);
+}
+
+static int riscv_step(struct target *target, int current, uint32_t address,
+		int handle_breakpoints)
+{
+		return resume(target, current, address, handle_breakpoints, 0, true);
+}
+
 static int riscv_assert_reset(struct target *target)
 {
 	// TODO
@@ -388,6 +465,8 @@ struct target_type riscv_target = {
 	.poll = riscv_poll,
 
 	.halt = riscv_halt,
+	.resume = riscv_resume,
+	.step = riscv_step,
 
 	.assert_reset = riscv_assert_reset,
 	.deassert_reset = riscv_deassert_reset,
