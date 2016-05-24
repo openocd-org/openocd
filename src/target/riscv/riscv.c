@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <time.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -46,8 +47,8 @@ typedef enum {
 /*** Debug Bus registers. ***/
 
 #define DMCONTROL				0x10
-#define DMCONTROL_HALTNOT		(1L<<33)
-#define DMCONTROL_INTERRUPT		(1L<<32)
+#define DMCONTROL_INTERRUPT		(1L<<33)
+#define DMCONTROL_HALTNOT		(1L<<32)
 #define DMCONTROL_BUSERROR		(7<<19)
 #define DMCONTROL_SERIAL		(3<<16)
 #define DMCONTROL_AUTOINCREMENT	(1<<15)
@@ -94,6 +95,11 @@ typedef struct {
 	uint64_t dram_valid;
 	uint32_t dcsr;
 } riscv_info_t;
+
+typedef struct {
+	bool haltnot;
+	bool interrupt;
+} bits_t;
 
 /*** Necessary prototypes. ***/
 
@@ -172,11 +178,13 @@ static uint64_t dbus_read(struct target *target, uint16_t address, uint16_t next
 	if (result != DBUS_RESULT_SUCCESS) {
 		LOG_ERROR("dbus_read failed read at 0x%x; result=%d\n", address, result);
 	}
+	LOG_DEBUG("address=0x%x, value=0x%lx", address, value);
 	return value;
 }
 
 static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 {
+	LOG_DEBUG("address=0x%x, value=0x%lx", address, value);
 	dbus_result_t result = DBUS_RESULT_BUSY;
 	while (result == DBUS_RESULT_BUSY) {
 		result = dbus_scan(target, NULL, DBUS_OP_WRITE, address, value);
@@ -242,6 +250,25 @@ static void dram_check32(struct target *target, unsigned int index,
 	}
 }
 
+/* Read the haltnot and interrupt bits. */
+static bits_t read_bits(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	uint64_t value;
+	if (info->dbus_address < 0x10 || info->dbus_address == DMCONTROL) {
+		value = dbus_read(target, info->dbus_address, 0);
+	} else {
+		value = dbus_read(target, 0, 0);
+	}
+
+	bits_t result = {
+		.haltnot = get_field(value, DMCONTROL_HALTNOT),
+		.interrupt = get_field(value, DMCONTROL_INTERRUPT)
+	};
+	return result;
+}
+
 /* Write instruction that jumps from the specified word in Debug RAM to resume
  * in Debug ROM. */
 static void dram_write_jump(struct target *target, unsigned int index, bool set_interrupt)
@@ -251,15 +278,37 @@ static void dram_write_jump(struct target *target, unsigned int index, bool set_
 			set_interrupt);
 }
 
-static int wait_until_halted(struct target *target)
+static int wait_for_state(struct target *target, enum target_state state)
 {
-	do {
+	time_t start = time(NULL);
+	while (1) {
 		int result = riscv_poll(target);
 		if (result != ERROR_OK) {
 			return result;
 		}
-	} while (target->state != TARGET_HALTED);
-	return ERROR_OK;
+		if (target->state == state) {
+			return ERROR_OK;
+		}
+		if (time(NULL) - start > 2) {
+			LOG_ERROR("Timed out waiting for state %d.", state);
+			return ERROR_FAIL;
+		}
+	}
+}
+
+static int wait_for_debugint_clear(struct target *target)
+{
+	time_t start = time(NULL);
+	while (1) {
+		bits_t bits = read_bits(target);
+		if (!bits.interrupt) {
+			return ERROR_OK;
+		}
+		if (time(NULL) - start > 2) {
+			LOG_ERROR("Timed out waiting for debug int to clear.");
+			return ERROR_FAIL;
+		}
+	}
 }
 
 static int resume(struct target *target, int current, uint32_t address,
@@ -371,7 +420,10 @@ static int riscv_examine(struct target *target)
 	// Execute.
 	dram_write_jump(target, 5, true);
 
-	wait_until_halted(target);
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
 
 	uint32_t word0 = dram_read32(target, 0, false);
 	uint32_t word1 = dram_read32(target, 1, false);
@@ -394,26 +446,15 @@ static int riscv_examine(struct target *target)
 
 static int riscv_poll(struct target *target)
 {
-	LOG_DEBUG("riscv_poll()");
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	bits_t bits = read_bits(target);
 
-	uint64_t value;
-	if (info->dbus_address < 0x10 || info->dbus_address == DMCONTROL) {
-		value = dbus_read(target, info->dbus_address, 0);
-	} else {
-		value = dbus_read(target, 0, 0);
-	}
-
-	bool haltnot = get_field(value, DMCONTROL_HALTNOT);
-	bool interrupt = get_field(value, DMCONTROL_INTERRUPT);
-
-	if (haltnot && interrupt) {
+	if (bits.haltnot && bits.interrupt) {
 		target->state = TARGET_DEBUG_RUNNING;
-	} else if (haltnot && !interrupt) {
+	} else if (bits.haltnot && !bits.interrupt) {
 		target->state = TARGET_HALTED;
-	} else if (!haltnot && interrupt) {
+	} else if (!bits.haltnot && bits.interrupt) {
 		// Target is halting. There is no state for that, so don't change anything.
-	} else if (!haltnot && !interrupt) {
+	} else if (!bits.haltnot && !bits.interrupt) {
 		target->state = TARGET_RUNNING;
 	}
 
@@ -432,26 +473,53 @@ static int riscv_halt(struct target *target)
 static int riscv_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution)
 {
-		return resume(target, current, address, handle_breakpoints,
-						debug_execution, false);
+	return resume(target, current, address, handle_breakpoints,
+			debug_execution, false);
 }
 
 static int riscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
-		return resume(target, current, address, handle_breakpoints, 0, true);
+	return resume(target, current, address, handle_breakpoints, 0, true);
 }
 
 static int riscv_assert_reset(struct target *target)
 {
-	// TODO
+	// TODO: Maybe what I implemented here is more like soft_reset_halt()?
+
+	// The only assumption we can make is that the TAP was reset.
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+
+	// Not sure what we should do when there are multiple cores.
+	// Here just reset the single hart we're talking to.
+	uint32_t dcsr = DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS |
+		DCSR_EBREAKU | DCSR_HALT;
+	if (target->reset_halt) {
+		dcsr |= DCSR_NDRESET;
+	} else {
+		dcsr |= DCSR_FULLRESET;
+	}
+	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	dram_write32(target, 1, csrw(S0, CSR_DCSR), false);
+	// We shouldn't actually need the jump because a reset should happen.
+	dram_write_jump(target, 2, false);
+	dram_write32(target, 4, dcsr, true);
+
+	target->state = TARGET_RESET;
+
 	return ERROR_OK;
 }
 
 static int riscv_deassert_reset(struct target *target)
 {
-	// TODO
-	return ERROR_OK;
+	if (target->reset_halt) {
+		return wait_for_state(target, TARGET_HALTED);
+	} else {
+		return wait_for_state(target, TARGET_RUNNING);
+	}
 }
 
 struct target_type riscv_target = {

@@ -36,6 +36,14 @@ static uint32_t sw(unsigned int src, unsigned int base, uint16_t offset)
     MATCH_SW;
 }
 
+static uint32_t lw(unsigned int rd, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 0) << 20) |
+    (base << 15) |
+    (bits(rd, 4, 0) << 7) |
+    MATCH_LW;
+}
+
 static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm)
 {
   return (bits(imm, 11, 0) << 20) |
@@ -58,13 +66,13 @@ static uint32_t csrci(unsigned int csr, uint16_t imm) {
     MATCH_CSRRCI;
 }
 
+static uint32_t csrw(unsigned int source, unsigned int csr) {
+  return (csr << 20) | (source << 15) | MATCH_CSRRW;
+}
+
 /*
 static uint32_t csrr(unsigned int rd, unsigned int csr) {
   return (csr << 20) | (rd << 7) | MATCH_CSRRS;
-}
-
-static uint32_t csrw(unsigned int source, unsigned int csr) {
-  return (csr << 20) | (source << 15) | MATCH_CSRRW;
 }
 
 static uint32_t fence_i(void)
@@ -105,14 +113,6 @@ static uint32_t ld(unsigned int rd, unsigned int base, uint16_t offset)
     (base << 15) |
     (bits(rd, 4, 0) << 7) |
     MATCH_LD;
-}
-
-static uint32_t lw(unsigned int rd, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 0) << 20) |
-    (base << 15) |
-    (bits(rd, 4, 0) << 7) |
-    MATCH_LW;
 }
 
 static uint32_t lh(unsigned int rd, unsigned int base, uint16_t offset)
