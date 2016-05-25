@@ -469,6 +469,13 @@ free_buffer:
 	if (new_buffer)
 		free(new_buffer);
 
+	/* read some bytes bytes to flush buffer in flash accelerator.
+	 * See errata for 1986VE1T and 1986VE3. Error 0007 */
+	if ((retval == ERROR_OK) && (!mdr_info->mem_type)) {
+		uint32_t tmp;
+		target_checksum_memory(bank->target, bank->base, 64, &tmp);
+	}
+
 	return retval;
 }
 
