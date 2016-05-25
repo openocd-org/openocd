@@ -35,11 +35,11 @@ typedef enum {
 	DBUS_OP_CONDITIONAL_WRITE = 3
 } dbus_op_t;
 typedef enum {
-	DBUS_RESULT_SUCCESS = 0,
-	DBUS_RESULT_NO_WRITE = 1,
-	DBUS_RESULT_FAILED = 2,
-	DBUS_RESULT_BUSY = 3
-} dbus_result_t;
+	DBUS_STATUS_SUCCESS = 0,
+	DBUS_STATUS_NO_WRITE = 1,
+	DBUS_STATUS_FAILED = 2,
+	DBUS_STATUS_BUSY = 3
+} dbus_status_t;
 #define DBUS_DATA_START				2
 #define DBUS_DATA_SIZE				34
 #define DBUS_ADDRESS_START			36
@@ -126,7 +126,7 @@ static uint16_t dram_address(unsigned int index)
 		return 0x40 + index - 0x10;
 }
 
-static dbus_result_t dbus_scan(struct target *target, uint64_t *data_in,
+static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 		dbus_op_t op, uint16_t address, uint64_t data_out)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
@@ -165,18 +165,18 @@ static uint64_t dbus_read(struct target *target, uint16_t address, uint16_t next
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	uint64_t value;
 
-	dbus_result_t result = DBUS_RESULT_BUSY;
+	dbus_status_t status = DBUS_STATUS_BUSY;
 	if (address != info->dbus_address || info->dbus_op == DBUS_OP_NOP) {
-		while (result == DBUS_RESULT_BUSY) {
-			result = dbus_scan(target, NULL, DBUS_OP_READ, address, 0);
+		while (status == DBUS_STATUS_BUSY) {
+			status = dbus_scan(target, NULL, DBUS_OP_READ, address, 0);
 		}
 	}
-	result = DBUS_RESULT_BUSY;
-	while (result == DBUS_RESULT_BUSY) {
-		result = dbus_scan(target, &value, DBUS_OP_READ, next_address, 0);
+	status = DBUS_STATUS_BUSY;
+	while (status == DBUS_STATUS_BUSY) {
+		status = dbus_scan(target, &value, DBUS_OP_READ, next_address, 0);
 	}
-	if (result != DBUS_RESULT_SUCCESS) {
-		LOG_ERROR("dbus_read failed read at 0x%x; result=%d\n", address, result);
+	if (status != DBUS_STATUS_SUCCESS) {
+		LOG_ERROR("dbus_read failed read at 0x%x; status=%d\n", address, status);
 	}
 	LOG_DEBUG("address=0x%x, value=0x%lx", address, value);
 	return value;
@@ -185,13 +185,13 @@ static uint64_t dbus_read(struct target *target, uint16_t address, uint16_t next
 static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 {
 	LOG_DEBUG("address=0x%x, value=0x%lx", address, value);
-	dbus_result_t result = DBUS_RESULT_BUSY;
-	while (result == DBUS_RESULT_BUSY) {
-		result = dbus_scan(target, NULL, DBUS_OP_WRITE, address, value);
+	dbus_status_t status = DBUS_STATUS_BUSY;
+	while (status == DBUS_STATUS_BUSY) {
+		status = dbus_scan(target, NULL, DBUS_OP_WRITE, address, value);
 	}
-	if (result != DBUS_RESULT_SUCCESS) {
-		LOG_ERROR("dbus_write failed write 0x%lx to 0x%x; result=%d\n", value,
-				address, result);
+	if (status != DBUS_STATUS_SUCCESS) {
+		LOG_ERROR("dbus_write failed write 0x%lx to 0x%x; status=%d\n", value,
+				address, status);
 	}
 }
 
@@ -522,6 +522,71 @@ static int riscv_deassert_reset(struct target *target)
 	}
 }
 
+static int riscv_read_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	// Plain implementation, where we write the address each time.
+	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	switch (size) {
+		case 1:
+			dram_write32(target, 1, lb(S1, S0, 0), false);
+			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			break;
+		case 2:
+			dram_write32(target, 1, lh(S1, S0, 0), false);
+			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			break;
+		case 4:
+			dram_write32(target, 1, lw(S1, S0, 0), false);
+			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			break;
+		default:
+			LOG_ERROR("Unsupported size for read_memory: %d", size);
+			return ERROR_FAIL;
+	}
+	dram_write_jump(target, 3, false);
+
+	uint32_t i = 0;
+	while (i <= count) {
+		uint64_t scan_result;
+		// Write the next address, set interrupt, and read the previous value.
+		uint64_t interrupt = 0;
+		if (i < count) {
+			interrupt = DMCONTROL_INTERRUPT;
+		}
+		dbus_status_t status = dbus_scan(target, &scan_result, DBUS_OP_CONDITIONAL_WRITE,
+				4, DMCONTROL_HALTNOT | interrupt | (address + i * size));
+		if (status == DBUS_STATUS_SUCCESS) {
+			if (i > 0) {
+				uint32_t offset = size * (i-1);
+				switch (size) {
+					case 1:
+						buffer[offset] = scan_result & 0xff;
+						break;
+					case 2:
+						buffer[offset] = scan_result & 0xff;
+						buffer[offset + 1] = (scan_result >> 8) & 0xff;
+						break;
+					case 4:
+						buffer[offset] = scan_result & 0xff;
+						buffer[offset + 1] = (scan_result >> 8) & 0xff;
+						buffer[offset + 2] = (scan_result >> 16) & 0xff;
+						buffer[offset + 3] = (scan_result >> 24) & 0xff;
+						break;
+				}
+			}
+			i++;
+		} else if (status == DBUS_STATUS_NO_WRITE || status == DBUS_STATUS_BUSY) {
+			// Need to retry the access that failed, which was the previous one.
+		} else if (status == DBUS_STATUS_FAILED) {
+			LOG_ERROR("dbus write failed!");
+			return ERROR_FAIL;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 struct target_type riscv_target = {
 	.name = "riscv",
 
@@ -538,6 +603,8 @@ struct target_type riscv_target = {
 
 	.assert_reset = riscv_assert_reset,
 	.deassert_reset = riscv_deassert_reset,
+
+	.read_memory = riscv_read_memory,
 
 	/* TODO: */
 	/* .virt2phys = riscv_virt2phys, */

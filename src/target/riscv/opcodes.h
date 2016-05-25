@@ -44,6 +44,22 @@ static uint32_t lw(unsigned int rd, unsigned int base, uint16_t offset)
     MATCH_LW;
 }
 
+static uint32_t lh(unsigned int rd, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 0) << 20) |
+    (base << 15) |
+    (bits(rd, 4, 0) << 7) |
+    MATCH_LH;
+}
+
+static uint32_t lb(unsigned int rd, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 0) << 20) |
+    (base << 15) |
+    (bits(rd, 4, 0) << 7) |
+    MATCH_LB;
+}
+
 static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm)
 {
   return (bits(imm, 11, 0) << 20) |
@@ -113,22 +129,6 @@ static uint32_t ld(unsigned int rd, unsigned int base, uint16_t offset)
     (base << 15) |
     (bits(rd, 4, 0) << 7) |
     MATCH_LD;
-}
-
-static uint32_t lh(unsigned int rd, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 0) << 20) |
-    (base << 15) |
-    (bits(rd, 4, 0) << 7) |
-    MATCH_LH;
-}
-
-static uint32_t lb(unsigned int rd, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 0) << 20) |
-    (base << 15) |
-    (bits(rd, 4, 0) << 7) |
-    MATCH_LB;
 }
 
 static uint32_t fsd(unsigned int src, unsigned int base, uint16_t offset)
