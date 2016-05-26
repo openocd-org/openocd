@@ -541,7 +541,7 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
 			break;
 		default:
-			LOG_ERROR("Unsupported size for read_memory: %d", size);
+			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
 	dram_write_jump(target, 3, false);
@@ -587,6 +587,82 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
+static int riscv_write_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer)
+{
+	// TODO: save/restore T0
+
+	// Set up the address.
+	dram_write32(target, 0, lw(T0, ZERO, DEBUG_RAM_START + 16), false);
+	dram_write_jump(target, 1, false);
+	dram_write32(target, 4, address, true);
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+
+	switch (size) {
+		case 1:
+			dram_write32(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16), false);
+			dram_write32(target, 1, sb(S0, T0, 0), false);
+			break;
+		case 2:
+			dram_write32(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16), false);
+			dram_write32(target, 1, sh(S0, T0, 0), false);
+			break;
+		case 4:
+			dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+			dram_write32(target, 1, sw(S0, T0, 0), false);
+			break;
+		default:
+			LOG_ERROR("Unsupported size: %d", size);
+			return ERROR_FAIL;
+	}
+	dram_write32(target, 2, addi(T0, T0, size), false);
+	dram_write_jump(target, 3, false);
+
+	uint32_t i = 0;
+	while (i < count) {
+		// Write the next value and set interrupt.
+		uint32_t value;
+		uint32_t offset = size * i;
+		switch (size) {
+			case 1:
+				value = buffer[offset];
+				break;
+			case 2:
+				value = buffer[offset] |
+					(buffer[offset+1] << 8);
+				break;
+			case 4:
+				value = buffer[offset] |
+					((uint32_t) buffer[offset+1] << 8) |
+					((uint32_t) buffer[offset+2] << 16) |
+					((uint32_t) buffer[offset+3] << 24);
+				break;
+			default:
+				return ERROR_FAIL;
+		}
+
+		dbus_status_t status = dbus_scan(target, NULL, DBUS_OP_CONDITIONAL_WRITE,
+				4, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
+		if (status == DBUS_STATUS_SUCCESS) {
+			i++;
+		} else if (status == DBUS_STATUS_NO_WRITE) {
+			// Need to retry the access that failed, which was the previous one.
+			i--;
+		} else if (status == DBUS_STATUS_BUSY) {
+			// This operation may still complete. Retry the current access.
+		} else if (status == DBUS_STATUS_FAILED) {
+			LOG_ERROR("dbus write failed!");
+			return ERROR_FAIL;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 struct target_type riscv_target = {
 	.name = "riscv",
 
@@ -605,7 +681,7 @@ struct target_type riscv_target = {
 	.deassert_reset = riscv_deassert_reset,
 
 	.read_memory = riscv_read_memory,
+	.write_memory = riscv_write_memory,
 
-	/* TODO: */
-	/* .virt2phys = riscv_virt2phys, */
+	//.get_gdb_reg_list = riscv_get_gdb_reg_list,
 };

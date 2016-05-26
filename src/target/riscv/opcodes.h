@@ -1,6 +1,7 @@
 #include "encoding.h"
 
 #define ZERO	0
+#define T0      5
 #define S0      8
 #define S1      9
 
@@ -34,6 +35,24 @@ static uint32_t sw(unsigned int src, unsigned int base, uint16_t offset)
     (base << 15) |
     (bits(offset, 4, 0) << 7) |
     MATCH_SW;
+}
+
+static uint32_t sh(unsigned int src, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 5) << 25) |
+    (src << 20) |
+    (base << 15) |
+    (bits(offset, 4, 0) << 7) |
+    MATCH_SH;
+}
+
+static uint32_t sb(unsigned int src, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 5) << 25) |
+    (src << 20) |
+    (base << 15) |
+    (bits(offset, 4, 0) << 7) |
+    MATCH_SB;
 }
 
 static uint32_t lw(unsigned int rd, unsigned int base, uint16_t offset)
@@ -86,6 +105,14 @@ static uint32_t csrw(unsigned int source, unsigned int csr) {
   return (csr << 20) | (source << 15) | MATCH_CSRRW;
 }
 
+static uint32_t addi(unsigned int dest, unsigned int src, uint16_t imm)
+{
+  return (bits(imm, 11, 0) << 20) |
+    (src << 15) |
+    (dest << 7) |
+    MATCH_ADDI;
+}
+
 /*
 static uint32_t csrr(unsigned int rd, unsigned int csr) {
   return (csr << 20) | (rd << 7) | MATCH_CSRRS;
@@ -94,24 +121,6 @@ static uint32_t csrr(unsigned int rd, unsigned int csr) {
 static uint32_t fence_i(void)
 {
   return MATCH_FENCE_I;
-}
-
-static uint32_t sb(unsigned int src, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 5) << 25) |
-    (src << 20) |
-    (base << 15) |
-    (bits(offset, 4, 0) << 7) |
-    MATCH_SB;
-}
-
-static uint32_t sh(unsigned int src, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 5) << 25) |
-    (src << 20) |
-    (base << 15) |
-    (bits(offset, 4, 0) << 7) |
-    MATCH_SH;
 }
 
 static uint32_t sd(unsigned int src, unsigned int base, uint16_t offset)
@@ -147,14 +156,6 @@ static uint32_t fld(unsigned int src, unsigned int base, uint16_t offset)
     (base << 15) |
     (bits(offset, 4, 0) << 7) |
     MATCH_FLD;
-}
-
-static uint32_t addi(unsigned int dest, unsigned int src, uint16_t imm)
-{
-  return (bits(imm, 11, 0) << 20) |
-    (src << 15) |
-    (dest << 7) |
-    MATCH_ADDI;
 }
 
 static uint32_t ori(unsigned int dest, unsigned int src, uint16_t imm)
