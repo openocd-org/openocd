@@ -321,6 +321,10 @@ static int wait_for_state(struct target *target, enum target_state state)
 static int wait_for_debugint_clear(struct target *target)
 {
 	time_t start = time(NULL);
+	// Throw away the results of the first read, since they'll contain the
+	// result of the read that happened just before debugint was set. (Assuming
+	// the last scan before calling this function was one that sets debugint.)
+	read_bits(target);
 	while (1) {
 		bits_t bits = read_bits(target);
 		if (!bits.interrupt) {
