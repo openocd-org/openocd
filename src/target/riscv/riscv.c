@@ -198,13 +198,15 @@ static uint64_t dbus_read(struct target *target, uint16_t address, uint16_t next
 	if (status != DBUS_STATUS_SUCCESS) {
 		LOG_ERROR("dbus_read failed read at 0x%x; status=%d\n", address, status);
 	}
-	LOG_DEBUG("address=0x%x, value=0x%lx", address, value);
+	LOG_DEBUG("address=0x%x, value=0x%01x:%08x", address,
+			(uint32_t) (value >> 32), (uint32_t) value);
 	return value;
 }
 
 static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 {
-	LOG_DEBUG("address=0x%x, value=0x%lx", address, value);
+	LOG_DEBUG("address=0x%x, value=0x%01x:%08x", address,
+			(uint32_t) (value >> 32), (uint32_t) value);
 	dbus_status_t status = DBUS_STATUS_BUSY;
 	while (status == DBUS_STATUS_BUSY) {
 		status = dbus_scan(target, NULL, DBUS_OP_WRITE, address, value);
