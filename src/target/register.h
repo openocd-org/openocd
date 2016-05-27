@@ -114,17 +114,29 @@ struct reg_data_type {
 };
 
 struct reg {
+	/** Canonical name of the register. */
 	const char *name;
+	/** Number that gdb uses to access this register. */
 	uint32_t number;
+	/* TODO */
 	struct reg_feature *feature;
+	/* TODO: When true, the caller will save this register before running any algorithm. */
 	bool caller_save;
+	/* TODO */
 	void *value;
+	/* The stored value needs to be written to the target. */
 	bool dirty;
+	/* When true, value is valid. */
 	bool valid;
+	/* When false, the register doesn't actually exist in the target. */
 	bool exist;
+	/* Size of the register in bits. */
 	uint32_t size;
+	/* TODO */
 	struct reg_data_type *reg_data_type;
+	/* TODO */
 	const char *group;
+	/* Pointer to architecture-specific info for this register. */
 	void *arch_info;
 	const struct reg_arch_type *type;
 };
