@@ -10,6 +10,7 @@
 #include "log.h"
 #include "jtag/jtag.h"
 #include "opcodes.h"
+#include "register.h"
 
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
@@ -75,6 +76,20 @@ typedef enum {
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
 
+// gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
+// its source tree. We must interpret the numbers the same here.
+enum {
+	REG_XPR0 = 0,
+	REG_XPR31 = 31,
+	REG_PC = 32,
+	REG_FPR0 = 33,
+	REG_FPR31 = 64,
+	REG_CSR0 = 65,
+	REG_CSR4095 = 4160,
+	REG_END = 4161,
+	REG_COUNT
+};
+
 typedef struct {
 	/* Number of address bits in the dbus register. */
 	uint8_t addrbits;
@@ -94,6 +109,11 @@ typedef struct {
 	 * RAM. */
 	uint64_t dram_valid;
 	uint32_t dcsr;
+
+	struct reg *reg_list;
+	/* Single buffer that contains all register names, instead of calling
+	 * malloc for each register. Needs to be freed when reg_list is freed. */
+	char *reg_names;
 } riscv_info_t;
 
 typedef struct {
@@ -360,6 +380,26 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 
 	select_dtminfo.num_bits = target->tap->ir_length;
 	select_dbus.num_bits = target->tap->ir_length;
+
+	const unsigned int max_reg_name_len = 12;
+	info->reg_list = calloc(REG_COUNT, sizeof(struct reg));
+
+	info->reg_names = malloc(REG_COUNT * max_reg_name_len);
+	char *reg_name = info->reg_names;
+
+	// TODO TODO
+	for (unsigned int i = 0; i < REG_COUNT; i++) {
+		struct reg *r = &info->reg_list[i];
+		r->number = i;
+		r->caller_save = true;
+		if (i <= REG_XPR31) {
+			sprintf(reg_name, "x%d", i);
+			r->name = reg_name;
+			// TODO r->feature = "general";
+		}
+		reg_name += strlen(reg_name) + 1;
+		assert(reg_name < info->reg_names + REG_COUNT * max_reg_name_len);
+	}
 
 	return ERROR_OK;
 }
@@ -663,6 +703,32 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
+static int riscv_get_gdb_reg_list(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	LOG_DEBUG("reg_class=%d", reg_class);
+
+	switch (reg_class) {
+		case REG_CLASS_GENERAL:
+			*reg_list_size = 32;
+			break;
+		case REG_CLASS_ALL:
+			*reg_list_size = REG_COUNT;
+			break;
+		default:
+			LOG_ERROR("Unsupported reg_class: %d", reg_class);
+			return ERROR_FAIL;
+	}
+
+	*reg_list = calloc(*reg_list_size, sizeof(struct reg *));
+	memcpy(reg_list, info->reg_list, *reg_list_size * sizeof(struct reg *));
+
+	return ERROR_OK;
+}
+
 struct target_type riscv_target = {
 	.name = "riscv",
 
@@ -683,5 +749,5 @@ struct target_type riscv_target = {
 	.read_memory = riscv_read_memory,
 	.write_memory = riscv_write_memory,
 
-	//.get_gdb_reg_list = riscv_get_gdb_reg_list,
+	.get_gdb_reg_list = riscv_get_gdb_reg_list,
 };
