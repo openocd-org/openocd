@@ -108,7 +108,6 @@ enum nrf51_nvmc_config_bits {
 
 struct nrf51_info {
 	uint32_t code_page_size;
-	uint32_t code_memory_size;
 
 	struct {
 		bool probed;
@@ -641,29 +640,29 @@ static int nrf51_probe(struct flash_bank *bank)
 			LOG_WARNING("Unknown device (HWID 0x%08" PRIx32 ")", hwid);
 	}
 
-
 	if (bank->base == NRF51_FLASH_BASE) {
+		/* The value stored in NRF51_FICR_CODEPAGESIZE is the number of bytes in one page of FLASH. */
 		res = target_read_u32(chip->target, NRF51_FICR_CODEPAGESIZE,
-				      &chip->code_page_size);
+				&chip->code_page_size);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read code page size");
 			return res;
 		}
 
+		/* Note the register name is misleading,
+		 * NRF51_FICR_CODESIZE is the number of pages in flash memory, not the number of bytes! */
 		res = target_read_u32(chip->target, NRF51_FICR_CODESIZE,
-				      &chip->code_memory_size);
+				(uint32_t *) &bank->num_sectors);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read code memory size");
 			return res;
 		}
 
-		if (spec && chip->code_memory_size != spec->flash_size_kb) {
-			LOG_ERROR("Chip's reported Flash capacity does not match expected one");
-			return ERROR_FAIL;
-		}
+		bank->size = bank->num_sectors * chip->code_page_size;
 
-		bank->size = chip->code_memory_size * 1024;
-		bank->num_sectors = bank->size / chip->code_page_size;
+		if (spec && bank->size / 1024 != spec->flash_size_kb)
+			LOG_WARNING("Chip's reported Flash capacity does not match expected one");
+
 		bank->sectors = calloc(bank->num_sectors,
 				       sizeof((bank->sectors)[0]));
 		if (!bank->sectors)
@@ -1272,7 +1271,7 @@ static int nrf51_info(struct flash_bank *bank, char *buf, int buf_size)
 		 "reset value for XTALFREQ: %"PRIx32"\n"
 		 "firmware id: 0x%04"PRIx32,
 		 ficr[0].value,
-		 ficr[1].value,
+		 (ficr[1].value * ficr[0].value) / 1024,
 		 (ficr[2].value == 0xFFFFFFFF) ? 0 : ficr[2].value / 1024,
 		 ((ficr[3].value & 0xFF) == 0x00) ? "present" : "not present",
 		 ficr[4].value,
