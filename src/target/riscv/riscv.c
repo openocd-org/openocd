@@ -114,6 +114,8 @@ typedef struct {
 	/* Single buffer that contains all register names, instead of calling
 	 * malloc for each register. Needs to be freed when reg_list is freed. */
 	char *reg_names;
+	/* Single buffer that contains all register values. */
+	void *reg_values;
 } riscv_info_t;
 
 typedef struct {
@@ -371,6 +373,26 @@ static int resume(struct target *target, int current, uint32_t address,
 	return ERROR_OK;
 }
 
+/** Update register sizes based on xlen. */
+static void update_reg_list(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	if (info->reg_values) {
+		free(info->reg_values);
+	}
+	info->reg_values = malloc(REG_COUNT * info->xlen / 4);
+
+	for (unsigned int i = 0; i < REG_COUNT; i++) {
+		struct reg *r = &info->reg_list[i];
+		r->value = info->reg_values + i * info->xlen / 4;
+		r->size = info->xlen;
+		if (r->dirty) {
+			LOG_ERROR("Register %d was dirty. Its value is lost.", i);
+		}
+		r->valid = false;
+	}
+}
+
 /*** OpenOCD target functions. ***/
 
 static int riscv_init_target(struct command_context *cmd_ctx,
@@ -392,20 +414,27 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 
 	info->reg_names = malloc(REG_COUNT * max_reg_name_len);
 	char *reg_name = info->reg_names;
+	info->reg_values = NULL;
+
+	static struct reg_feature feature_general = {"general"};
 
 	// TODO TODO
 	for (unsigned int i = 0; i < REG_COUNT; i++) {
 		struct reg *r = &info->reg_list[i];
 		r->number = i;
 		r->caller_save = true;
+		r->dirty = false;
+		r->valid = false;
+		r->exist = true;
 		if (i <= REG_XPR31) {
 			sprintf(reg_name, "x%d", i);
 			r->name = reg_name;
-			// TODO r->feature = "general";
+			r->feature = &feature_general;
 		}
 		reg_name += strlen(reg_name) + 1;
 		assert(reg_name < info->reg_names + REG_COUNT * max_reg_name_len);
 	}
+	update_reg_list(target);
 
 	return ERROR_OK;
 }
@@ -468,7 +497,7 @@ static int riscv_examine(struct target *target)
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
+		// TODO: return ERROR_FAIL;
 	}
 
 	uint32_t word0 = dram_read32(target, 0, false);
@@ -482,8 +511,10 @@ static int riscv_examine(struct target *target)
 	} else {
 		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x",
 				word0, word1);
-		return ERROR_FAIL;
+		// TODO: return ERROR_FAIL;
 	}
+	// Update register list to match discovered XLEN.
+	update_reg_list(target);
 
 	target_set_examined(target);
 

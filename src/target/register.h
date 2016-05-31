@@ -118,11 +118,12 @@ struct reg {
 	const char *name;
 	/** Number that gdb uses to access this register. */
 	uint32_t number;
-	/* TODO */
+	/* TODO. This should probably be const. */
 	struct reg_feature *feature;
 	/* TODO: When true, the caller will save this register before running any algorithm. */
 	bool caller_save;
-	/* TODO */
+	/* Pointer to place where the value is stored, in the format understood by
+	 * the binarybuffer.h functions. */
 	void *value;
 	/* The stored value needs to be written to the target. */
 	bool dirty;
@@ -132,9 +133,11 @@ struct reg {
 	bool exist;
 	/* Size of the register in bits. */
 	uint32_t size;
-	/* TODO */
+	/* Used for generating XML description of registers. Can be set to NULL for
+	 * targets that don't use that. */
 	struct reg_data_type *reg_data_type;
-	/* TODO */
+	/* Used for generating XML description of registers. Can be set to NULL for
+	 * targets that don't use that. */
 	const char *group;
 	/* Pointer to architecture-specific info for this register. */
 	void *arch_info;
