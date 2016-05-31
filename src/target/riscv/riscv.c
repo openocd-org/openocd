@@ -12,6 +12,13 @@
 #include "opcodes.h"
 #include "register.h"
 
+/**
+ * Since almost everything can be accomplish by scanning the dbus register, all
+ * functions here assume dbus is already selected. The exception are functions
+ * called directly by OpenOCD, which can't assume anything about what's
+ * currently in IR. They should set IR to dbus explicitly.
+ */
+
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
@@ -238,9 +245,6 @@ static uint32_t dtminfo_read(struct target *target)
 	}
 
 	/* Always return to dbus. */
-	/* TODO: Can we rely on IR not being messed with between calls into
-	 * RISCV code?  Eg. what happens if there are multiple cores and some
-	 * other core is accessed? */
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	return buf_get_u32(field.in_value, 0, 32);
@@ -457,6 +461,8 @@ static int riscv_examine(struct target *target)
 		return ERROR_OK;
 	}
 
+	// Don't need to select dbus, since the first thing we do is read dtminfo.
+
 	uint32_t dtminfo = dtminfo_read(target);
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
@@ -523,6 +529,7 @@ static int riscv_examine(struct target *target)
 
 static int riscv_poll(struct target *target)
 {
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	bits_t bits = read_bits(target);
 
 	if (bits.haltnot && bits.interrupt) {
@@ -541,6 +548,7 @@ static int riscv_poll(struct target *target)
 static int riscv_halt(struct target *target)
 {
 	LOG_DEBUG("riscv_halt()");
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
 	dram_write_jump(target, 1, true);
 
@@ -550,6 +558,7 @@ static int riscv_halt(struct target *target)
 static int riscv_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution)
 {
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	return resume(target, current, address, handle_breakpoints,
 			debug_execution, false);
 }
@@ -557,12 +566,15 @@ static int riscv_resume(struct target *target, int current, uint32_t address,
 static int riscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	return resume(target, current, address, handle_breakpoints, 0, true);
 }
 
 static int riscv_assert_reset(struct target *target)
 {
 	// TODO: Maybe what I implemented here is more like soft_reset_halt()?
+
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	// The only assumption we can make is that the TAP was reset.
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
@@ -592,6 +604,7 @@ static int riscv_assert_reset(struct target *target)
 
 static int riscv_deassert_reset(struct target *target)
 {
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	if (target->reset_halt) {
 		return wait_for_state(target, TARGET_HALTED);
 	} else {
@@ -602,6 +615,7 @@ static int riscv_deassert_reset(struct target *target)
 static int riscv_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	// Plain implementation, where we write the address each time.
 	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
 	switch (size) {
@@ -667,6 +681,7 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 static int riscv_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	// TODO: save/restore T0
 
 	// Set up the address.
