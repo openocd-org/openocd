@@ -430,10 +430,32 @@ static void ftdi_execute_pathmove(struct jtag_command *cmd)
 	tap_set_end_state(tap_get_state());
 }
 
+#ifdef _DEBUG_JTAG_IO_
+static void debug_jtag_io_value(const char *prefix, const uint8_t *value,
+		unsigned int num_bits)
+{
+	if (!value) {
+		return;
+	}
+
+	char buf[80];
+	unsigned int chars = (num_bits + 3) / 4;
+	for (unsigned int i = 0; i < chars && i < 79; i++) {
+		int start_bit = 4 * (chars - i - 1);
+		sprintf(buf + i, "%01x", buf_get_u32(value, start_bit, 4));
+	}
+	DEBUG_JTAG_IO("  %s%s", prefix, buf);
+}
+#endif
+
 static void ftdi_execute_scan(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
 		jtag_scan_type(cmd->cmd.scan));
+#ifdef _DEBUG_JTAG_IO_
+	debug_jtag_io_value("  out=", cmd->cmd.scan->fields->out_value,
+			cmd->cmd.scan->fields->num_bits);
+#endif
 
 	/* Make sure there are no trailing fields with num_bits == 0, or the logic below will fail. */
 	while (cmd->cmd.scan->num_fields > 0
@@ -515,6 +537,11 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("%s scan, %i bits, end in %s",
 		(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
 		tap_state_name(tap_get_end_state()));
+
+#ifdef _DEBUG_JTAG_IO_
+	debug_jtag_io_value("   in=", cmd->cmd.scan->fields->in_value,
+			cmd->cmd.scan->fields->num_bits);
+#endif
 }
 
 static void ftdi_execute_reset(struct jtag_command *cmd)
