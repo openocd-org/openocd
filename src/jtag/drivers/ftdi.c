@@ -438,13 +438,21 @@ static void debug_jtag_io_value(const char *prefix, const uint8_t *value,
 		return;
 	}
 
-	char buf[80];
+	char buf[33];
+	char *bufp = buf;
 	unsigned int chars = (num_bits + 3) / 4;
-	for (unsigned int i = 0; i < chars && i < 79; i++) {
+	for (unsigned int i = 0; i < chars; i++) {
+		if (i && (i % 32) == 0) {
+			DEBUG_JTAG_IO("  %s%s", prefix, buf);
+			bufp = buf;
+		}
 		int start_bit = 4 * (chars - i - 1);
-		sprintf(buf + i, "%01x", buf_get_u32(value, start_bit, 4));
+		sprintf(bufp, "%01x", buf_get_u32(value, start_bit, 4));
+		bufp++;
 	}
-	DEBUG_JTAG_IO("  %s%s", prefix, buf);
+	if (bufp != buf) {
+		DEBUG_JTAG_IO("  %s%s", prefix, buf);
+	}
 }
 #endif
 
