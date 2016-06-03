@@ -186,6 +186,11 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 	if (data_in) {
 		*data_in = buf_get_u64(in, DBUS_DATA_START, DBUS_DATA_SIZE);
 	}
+
+	LOG_DEBUG("dbus scan %d bits 0x%03x:%08x -> 0x%03x:%08x",
+			field.num_bits,
+			buf_get_u32(out, 32, 32), buf_get_u32(out, 0, 32),
+			buf_get_u32(in, 32, 32), buf_get_u32(in, 0, 32));
 	return buf_get_u64(in, DBUS_OP_START, DBUS_OP_SIZE);
 }
 
@@ -268,14 +273,16 @@ static void dram_write32(struct target *target, unsigned int index, uint32_t val
 	dbus_write(target, dram_address(index), dbus_value);
 }
 
-static void dram_check32(struct target *target, unsigned int index,
+static int dram_check32(struct target *target, unsigned int index,
 		uint32_t expected)
 {
 	uint32_t actual = dram_read32(target, index, false);
 	if (expected != actual) {
 		LOG_ERROR("Wrote 0x%x to Debug RAM at %d, but read back 0x%x",
 				expected, index, actual);
+		return ERROR_FAIL;
 	}
+	return ERROR_OK;
 }
 
 /* Read the haltnot and interrupt bits. */
@@ -469,6 +476,26 @@ static int riscv_examine(struct target *target)
 	info->addrbits = get_field(dtminfo, DTMINFO_ADDRBITS);
 
 	uint32_t dminfo = dbus_read(target, DMINFO, 0);
+	LOG_DEBUG("dminfo: 0x%08x", dminfo);
+	LOG_DEBUG("  abussize=0x%x", get_field(dminfo, DMINFO_ABUSSIZE));
+	LOG_DEBUG("  serialcount=0x%x", get_field(dminfo, DMINFO_SERIALCOUNT));
+	LOG_DEBUG("  access128=%d", get_field(dminfo, DMINFO_ACCESS128));
+	LOG_DEBUG("  access64=%d", get_field(dminfo, DMINFO_ACCESS64));
+	LOG_DEBUG("  access32=%d", get_field(dminfo, DMINFO_ACCESS32));
+	LOG_DEBUG("  access16=%d", get_field(dminfo, DMINFO_ACCESS16));
+	LOG_DEBUG("  access8=%d", get_field(dminfo, DMINFO_ACCESS8));
+	LOG_DEBUG("  dramsize=0x%x", get_field(dminfo, DMINFO_DRAMSIZE));
+	LOG_DEBUG("  authenticated=0x%x", get_field(dminfo, DMINFO_AUTHENTICATED));
+	LOG_DEBUG("  authbusy=0x%x", get_field(dminfo, DMINFO_AUTHBUSY));
+	LOG_DEBUG("  authtype=0x%x", get_field(dminfo, DMINFO_AUTHTYPE));
+	LOG_DEBUG("  version=0x%x", get_field(dminfo, DMINFO_VERSION));
+
+	if (get_field(dminfo, DMINFO_VERSION) != 1) {
+		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d",
+				get_field(dminfo, DMINFO_VERSION));
+		return ERROR_FAIL;
+	}
+
 	info->dramsize = get_field(dminfo, DMINFO_DRAMSIZE) + 1;
 	info->dram = malloc(info->dramsize * 4);
 	if (!info->dram)
@@ -492,11 +519,15 @@ static int riscv_examine(struct target *target)
 	dram_write32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
 
 	// Check that we can actually read/write dram.
-	dram_check32(target, 0, xori(S1, ZERO, -1));
-	dram_check32(target, 1, srli(S1, S1, 31));
-	dram_check32(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
-	dram_check32(target, 3, srli(S1, S1, 31));
-	dram_check32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
+	int error = 0;
+	error += dram_check32(target, 0, xori(S1, ZERO, -1));
+	error += dram_check32(target, 1, srli(S1, S1, 31));
+	error += dram_check32(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
+	error += dram_check32(target, 3, srli(S1, S1, 31));
+	error += dram_check32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
+	if (error != 5 * ERROR_OK) {
+		return ERROR_FAIL;
+	}
 
 	// Execute.
 	dram_write_jump(target, 5, true);
