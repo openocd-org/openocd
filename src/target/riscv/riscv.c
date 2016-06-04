@@ -255,8 +255,7 @@ static uint32_t dtminfo_read(struct target *target)
 	return buf_get_u32(field.in_value, 0, 32);
 }
 
-static uint32_t dram_read32(struct target *target, unsigned int index,
-		bool set_interrupt)
+static uint32_t dram_read32(struct target *target, unsigned int index)
 {
 	// TODO: check cache to see if this even needs doing.
 	uint16_t address = dram_address(index);
@@ -276,7 +275,7 @@ static void dram_write32(struct target *target, unsigned int index, uint32_t val
 static int dram_check32(struct target *target, unsigned int index,
 		uint32_t expected)
 {
-	uint32_t actual = dram_read32(target, index, false);
+	uint32_t actual = dram_read32(target, index);
 	if (expected != actual) {
 		LOG_ERROR("Wrote 0x%x to Debug RAM at %d, but read back 0x%x",
 				expected, index, actual);
@@ -493,7 +492,7 @@ static int riscv_examine(struct target *target)
 	if (get_field(dminfo, DMINFO_VERSION) != 1) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d",
 				get_field(dminfo, DMINFO_VERSION));
-		return ERROR_FAIL;
+		//TODO return ERROR_FAIL;
 	}
 
 	info->dramsize = get_field(dminfo, DMINFO_DRAMSIZE) + 1;
@@ -505,7 +504,7 @@ static int riscv_examine(struct target *target)
 	if (get_field(dminfo, DMINFO_AUTHTYPE) != 0) {
 		LOG_ERROR("Authentication required by RISC-V core but not "
 				"supported by OpenOCD. dminfo=0x%x", dminfo);
-		return ERROR_FAIL;
+		//TODO return ERROR_FAIL;
 	}
 
 	// Figure out XLEN.
@@ -529,16 +528,45 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	dram_write32(target, 5, nop(), false);
 	// Execute.
-	dram_write_jump(target, 5, true);
+	dram_write_jump(target, 6, true);
+	//dram_read32(target, 5);
+	//dbus_scan(target, NULL, DBUS_OP_NOP, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT);
+
+#if 0
+	// light up LED and hang
+	dram_write32(target, 0, lui(S0, 0x70002), false);
+	dram_write32(target, 1, li(S1, 0xa0), false);
+	dram_write32(target, 2, sw(S1, S0, 0xa0), false);
+	dram_write32(target, 3, jal(0, 0), true);
+#endif
+
+#if 0
+	// Jump right back.
+	dram_write_jump(target, 0, false);
+	dram_write_jump(target, 0, true);
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		// TODO: return ERROR_FAIL;
+	}
+#endif
+
+#if 0
+	// Clear the first word in debug RAM
+	dram_write32(target, 0, sw(ZERO, ZERO, DEBUG_RAM_START), false);
+	dram_write32(target, 1, 0x0ff0000f, false);
+	dram_write_jump(target, 2, true);
+#endif
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		// TODO: return ERROR_FAIL;
 	}
 
-	uint32_t word0 = dram_read32(target, 0, false);
-	uint32_t word1 = dram_read32(target, 1, false);
+	uint32_t word0 = dram_read32(target, 0);
+	uint32_t word1 = dram_read32(target, 1);
 	if (word0 == 1 && word1 == 0) {
 		info->xlen = 32;
 	} else if (word0 == 0xffffffff && word1 == 3) {

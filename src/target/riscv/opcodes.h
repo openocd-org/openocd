@@ -114,6 +114,18 @@ static uint32_t addi(unsigned int dest, unsigned int src, uint16_t imm)
 }
 
 /*
+static uint32_t li(unsigned int dest, uint16_t imm)
+{
+	return addi(dest, 0, imm);
+}
+
+static uint32_t lui(unsigned int dest, uint32_t imm)
+{
+  return (bits(imm, 19, 0) << 12) |
+    (dest << 7) |
+    MATCH_LUI;
+}
+
 static uint32_t csrr(unsigned int rd, unsigned int csr) {
   return (csr << 20) | (rd << 7) | MATCH_CSRRS;
 }
@@ -165,9 +177,9 @@ static uint32_t ori(unsigned int dest, unsigned int src, uint16_t imm)
     (dest << 7) |
     MATCH_ORI;
 }
+*/
 
 static uint32_t nop(void)
 {
   return addi(0, 0, 0);
 }
-*/
