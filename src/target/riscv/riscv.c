@@ -187,10 +187,16 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 		*data_in = buf_get_u64(in, DBUS_DATA_START, DBUS_DATA_SIZE);
 	}
 
-	LOG_DEBUG("dbus scan %d bits 0x%03x:%08x -> 0x%03x:%08x",
+	static const char *op_string[] = {"nop", "r", "w", "cw"};
+	static const char *status_string[] = {"+", "nw", "F", "b"};
+	LOG_DEBUG("dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x",
 			field.num_bits,
-			buf_get_u32(out, 32, 32), buf_get_u32(out, 0, 32),
-			buf_get_u32(in, 32, 32), buf_get_u32(in, 0, 32));
+			op_string[buf_get_u32(out, 0, 2)],
+			buf_get_u32(out, 34, 2), buf_get_u32(out, 2, 32),
+			buf_get_u32(out, 36, info->addrbits),
+			status_string[buf_get_u32(in, 0, 2)],
+			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
+			buf_get_u32(in, 36, info->addrbits));
 	return buf_get_u64(in, DBUS_OP_START, DBUS_OP_SIZE);
 }
 
@@ -405,6 +411,38 @@ static void update_reg_list(struct target *target)
 
 /*** OpenOCD target functions. ***/
 
+static int register_get(struct reg *reg)
+{
+	struct target *target = (struct target *) reg->arch_info;
+
+	if (reg->number == REG_PC) {
+		dram_write32(target, 0, csrr(S0, CSR_DPC), false);
+		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
+		dram_write_jump(target, 2, true);
+	} else {
+		return ERROR_FAIL;
+	}
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+
+	buf_set_u32(reg->value, 0, 32, dram_read32(target, 0));
+
+	return ERROR_OK;
+}
+
+static int register_set(struct reg *reg, uint8_t *buf)
+{
+	return ERROR_FAIL;
+}
+
+static struct reg_arch_type riscv_reg_arch_type = {
+	.get = register_get,
+	.set = register_set
+};
+
 static int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -426,9 +464,6 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	char *reg_name = info->reg_names;
 	info->reg_values = NULL;
 
-	static struct reg_feature feature_general = {"general"};
-
-	// TODO TODO
 	for (unsigned int i = 0; i < REG_COUNT; i++) {
 		struct reg *r = &info->reg_list[i];
 		r->number = i;
@@ -436,10 +471,19 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 		r->dirty = false;
 		r->valid = false;
 		r->exist = true;
+		r->type = &riscv_reg_arch_type;
+		r->arch_info = target;
 		if (i <= REG_XPR31) {
 			sprintf(reg_name, "x%d", i);
+		} else if (i == REG_PC) {
+			sprintf(reg_name, "pc");
+		} else if (i >= REG_FPR0 && i <= REG_FPR31) {
+			sprintf(reg_name, "f%d", i - REG_FPR0);
+		} else if (i >= REG_CSR0 && i <= REG_CSR4095) {
+			sprintf(reg_name, "csr%d", i - REG_CSR0);
+		}
+		if (reg_name[0]) {
 			r->name = reg_name;
-			r->feature = &feature_general;
 		}
 		reg_name += strlen(reg_name) + 1;
 		assert(reg_name < info->reg_names + REG_COUNT * max_reg_name_len);
@@ -460,6 +504,96 @@ static void riscv_deinit_target(struct target *target)
 	target->arch_info = NULL;
 }
 
+#if 0
+static void megan_sequence(struct target *target)
+{
+	uint64_t data;
+	// [RISCV]: DBUS Input = (Addr: 11, Data: 3aaaaaaaa Op: 1)
+	// [RISCV]:        DBUS Result = 00xxxxxxxxx  (Addr: 00, Data: xxxxxxxxx Res: x)
+	dbus_scan(target, &data, DBUS_OP_READ, 0x11, 0x3aaaaaaaa);
+	// [RISCV]: Reading DMINFO
+	// [RISCV]: DBUS Input = (Addr: 11, Data: 3aaaaaaaa Op: 1)
+	// [RISCV]:        DBUS Result = 1100000f084  (Addr: 11, Data: 000003c21 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_READ, 0x11, 0x3aaaaaaaa);
+
+	// extra, to actually read dminfo
+	dbus_scan(target, &data, DBUS_OP_READ, 0x11, 0x3aaaaaaaa);
+
+	// [RISCV]:WRITING Debug RAM (interrupt is not set)
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 0fff04493 Op: 2)
+	// [RISCV]:        DBUS Result = 1100000f084  (Addr: 11, Data: 000003c21 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_WRITE, 0, 0x0fff04493);
+	// [RISCV]: DBUS Input = (Addr: 01, Data: 001f4d493 Op: 2)
+	// [RISCV]:        DBUS Result = 003ee1643dc  (Addr: 00, Data: 0fb8590f7 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_WRITE, 1, 0x001f4d493);
+	// [RISCV]: DBUS Input = (Addr: 02, Data: 040902023 Op: 2)
+	// [RISCV]:        DBUS Result = 013ee1643dc  (Addr: 01, Data: 0fb8590f7 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_WRITE, 2, 0x040902023);
+	// [RISCV]: DBUS Input = (Addr: 03, Data: 001f4d493 Op: 2)
+	// [RISCV]:        DBUS Result = 023ee1643dc  (Addr: 02, Data: 0fb8590f7 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_WRITE, 3, 0x001f4d493);
+	// [RISCV]: DBUS Input = (Addr: 04, Data: 040902223 Op: 2)
+	// [RISCV]:        DBUS Result = 033ee1643dc  (Addr: 03, Data: 0fb8590f7 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_WRITE, 4, 0x040902223);
+	// [RISCV]:On last write to  Debug RAM, interrupt is set.
+	// [RISCV]: DBUS Input = (Addr: 05, Data: 23f00006f Op: 2)
+	// [RISCV]:        DBUS Result = 043ee1643dc  (Addr: 04, Data: 0fb8590f7 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_WRITE, 5, 0x23f00006f);
+	// [RISCV]: Performing "priming" read from Debug RAM
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
+	// [RISCV]:        DBUS Result = 053ee1643dc  (Addr: 05, Data: 0fb8590f7 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
+	// [RISCV]: Polling until INTERRUPT is not set
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
+	// [RISCV]:        DBUS Result = 00fffc1124c  (Addr: 00, Data: 3fff04493 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
+	// [RISCV]:        DBUS Result = 00fffc1124c  (Addr: 00, Data: 3fff04493 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
+	// [RISCV]:        DBUS Result = 00c00000004  (Addr: 00, Data: 300000001 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
+	// [RISCV]:        DBUS Result = 00400000004  (Addr: 00, Data: 100000001 Res: 0)
+	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
+	// [RISCV]:READING Debug RAM (interrupt is not set)
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 00400000004  (Addr: 00, Data: 100000001 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 01, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 00400000004  (Addr: 00, Data: 100000001 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 02, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 01400000000  (Addr: 01, Data: 100000000 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 03, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0250240808c  (Addr: 02, Data: 140902023 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 04, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 03407d3524c  (Addr: 03, Data: 101f4d493 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 05, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0450240888c  (Addr: 04, Data: 140902223 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 06, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 054fc0001bc  (Addr: 05, Data: 13f00006f Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 07, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0642a1643dc  (Addr: 06, Data: 10a8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 08, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 077ee17e7dc  (Addr: 07, Data: 1fb85f9f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 09, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 087ee1643dc  (Addr: 08, Data: 1fb8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 0a, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 097ee1643dc  (Addr: 09, Data: 1fb8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 0b, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0a7ee1643dc  (Addr: 0a, Data: 1fb8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 0c, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0b7ee1643dc  (Addr: 0b, Data: 1fb8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 0d, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0c7ee1643dc  (Addr: 0c, Data: 1fb8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 0e, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0d7ee1643dc  (Addr: 0d, Data: 1fb8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 0f, Data: 0babecafe Op: 1)
+	// [RISCV]:        DBUS Result = 0e7ee1643dc  (Addr: 0e, Data: 1fb8590f7 Res: 0)
+	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
+	// [RISCV]:        DBUS Result = 0f56cfc76d8  (Addr: 0f, Data: 15b3f1db6 Res: 0)
+}
+#endif
+
 static int riscv_examine(struct target *target)
 {
 	LOG_DEBUG("riscv_examine()");
@@ -475,6 +609,8 @@ static int riscv_examine(struct target *target)
 	info->addrbits = get_field(dtminfo, DTMINFO_ADDRBITS);
 
 	uint32_t dminfo = dbus_read(target, DMINFO, 0);
+	// TODO: need to read dminfo twice to get the correct value.
+	dminfo = dbus_read(target, DMINFO, 0);
 	LOG_DEBUG("dminfo: 0x%08x", dminfo);
 	LOG_DEBUG("  abussize=0x%x", get_field(dminfo, DMINFO_ABUSSIZE));
 	LOG_DEBUG("  serialcount=0x%x", get_field(dminfo, DMINFO_SERIALCOUNT));
@@ -492,7 +628,7 @@ static int riscv_examine(struct target *target)
 	if (get_field(dminfo, DMINFO_VERSION) != 1) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d",
 				get_field(dminfo, DMINFO_VERSION));
-		//TODO return ERROR_FAIL;
+		return ERROR_FAIL;
 	}
 
 	info->dramsize = get_field(dminfo, DMINFO_DRAMSIZE) + 1;
@@ -504,7 +640,7 @@ static int riscv_examine(struct target *target)
 	if (get_field(dminfo, DMINFO_AUTHTYPE) != 0) {
 		LOG_ERROR("Authentication required by RISC-V core but not "
 				"supported by OpenOCD. dminfo=0x%x", dminfo);
-		//TODO return ERROR_FAIL;
+		return ERROR_FAIL;
 	}
 
 	// Figure out XLEN.
@@ -528,41 +664,14 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	// TODO: Doesn't work with this extra nop.
 	dram_write32(target, 5, nop(), false);
 	// Execute.
 	dram_write_jump(target, 6, true);
-	//dram_read32(target, 5);
-	//dbus_scan(target, NULL, DBUS_OP_NOP, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT);
-
-#if 0
-	// light up LED and hang
-	dram_write32(target, 0, lui(S0, 0x70002), false);
-	dram_write32(target, 1, li(S1, 0xa0), false);
-	dram_write32(target, 2, sw(S1, S0, 0xa0), false);
-	dram_write32(target, 3, jal(0, 0), true);
-#endif
-
-#if 0
-	// Jump right back.
-	dram_write_jump(target, 0, false);
-	dram_write_jump(target, 0, true);
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
-		// TODO: return ERROR_FAIL;
-	}
-#endif
-
-#if 0
-	// Clear the first word in debug RAM
-	dram_write32(target, 0, sw(ZERO, ZERO, DEBUG_RAM_START), false);
-	dram_write32(target, 1, 0x0ff0000f, false);
-	dram_write_jump(target, 2, true);
-#endif
-
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		// TODO: return ERROR_FAIL;
+		return ERROR_FAIL;
 	}
 
 	uint32_t word0 = dram_read32(target, 0);
@@ -576,8 +685,10 @@ static int riscv_examine(struct target *target)
 	} else {
 		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x",
 				word0, word1);
-		// TODO: return ERROR_FAIL;
+		return ERROR_FAIL;
 	}
+	LOG_DEBUG("Discovered XLEN is %d", info->xlen);
+
 	// Update register list to match discovered XLEN.
 	update_reg_list(target);
 
@@ -835,7 +946,12 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	}
 
 	*reg_list = calloc(*reg_list_size, sizeof(struct reg *));
-	memcpy(reg_list, info->reg_list, *reg_list_size * sizeof(struct reg *));
+	if (!*reg_list) {
+		return ERROR_FAIL;
+	}
+	for (int i = 0; i < *reg_list_size; i++) {
+		(*reg_list)[i] = &info->reg_list[i];
+	}
 
 	return ERROR_OK;
 }

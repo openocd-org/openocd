@@ -113,6 +113,10 @@ static uint32_t addi(unsigned int dest, unsigned int src, uint16_t imm)
     MATCH_ADDI;
 }
 
+static uint32_t csrr(unsigned int rd, unsigned int csr) {
+  return (csr << 20) | (rd << 7) | MATCH_CSRRS;
+}
+
 /*
 static uint32_t li(unsigned int dest, uint16_t imm)
 {
@@ -124,10 +128,6 @@ static uint32_t lui(unsigned int dest, uint32_t imm)
   return (bits(imm, 19, 0) << 12) |
     (dest << 7) |
     MATCH_LUI;
-}
-
-static uint32_t csrr(unsigned int rd, unsigned int csr) {
-  return (csr << 20) | (rd << 7) | MATCH_CSRRS;
 }
 
 static uint32_t fence_i(void)
