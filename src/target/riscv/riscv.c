@@ -174,6 +174,7 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
+	jtag_add_runtest(1, TAP_IDLE);
 	info->dbus_address = address;
 	info->dbus_op = op;
 
@@ -218,15 +219,11 @@ static uint64_t dbus_read(struct target *target, uint16_t address, uint16_t next
 	if (status != DBUS_STATUS_SUCCESS) {
 		LOG_ERROR("dbus_read failed read at 0x%x; status=%d\n", address, status);
 	}
-	LOG_DEBUG("address=0x%x, value=0x%01x:%08x", address,
-			(uint32_t) (value >> 32), (uint32_t) value);
 	return value;
 }
 
 static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 {
-	LOG_DEBUG("address=0x%x, value=0x%01x:%08x", address,
-			(uint32_t) (value >> 32), (uint32_t) value);
 	dbus_status_t status = DBUS_STATUS_BUSY;
 	while (status == DBUS_STATUS_BUSY) {
 		status = dbus_scan(target, NULL, DBUS_OP_WRITE, address, value);
@@ -304,7 +301,7 @@ static bits_t read_bits(struct target *target)
 	}
 
 	// Cycle through addresses, so we have more debug info.
-	next_address = (next_address + 1) % (info->dramsize + 1);
+	next_address = (next_address + 1) % 8;
 
 	bits_t result = {
 		.haltnot = get_field(value, DMCONTROL_HALTNOT),
