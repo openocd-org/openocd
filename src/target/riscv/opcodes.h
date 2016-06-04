@@ -117,6 +117,15 @@ static uint32_t csrr(unsigned int rd, unsigned int csr) {
   return (csr << 20) | (rd << 7) | MATCH_CSRRS;
 }
 
+static uint32_t fsw(unsigned int src, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 5) << 25) |
+    (bits(src, 4, 0) << 20) |
+    (base << 15) |
+    (bits(offset, 4, 0) << 7) |
+    MATCH_FSW;
+}
+
 /*
 static uint32_t li(unsigned int dest, uint16_t imm)
 {

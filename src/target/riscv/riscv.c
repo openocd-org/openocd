@@ -294,13 +294,17 @@ static int dram_check32(struct target *target, unsigned int index,
 static bits_t read_bits(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	static int next_address = 0;
 
 	uint64_t value;
 	if (info->dbus_address < 0x10 || info->dbus_address == DMCONTROL) {
-		value = dbus_read(target, info->dbus_address, 0);
+		value = dbus_read(target, info->dbus_address, next_address);
 	} else {
-		value = dbus_read(target, 0, 0);
+		value = dbus_read(target, 0, next_address);
 	}
+
+	// Cycle through addresses, so we have more debug info.
+	next_address = (next_address + 1) % (info->dramsize + 1);
 
 	bits_t result = {
 		.haltnot = get_field(value, DMCONTROL_HALTNOT),
@@ -415,11 +419,22 @@ static int register_get(struct reg *reg)
 {
 	struct target *target = (struct target *) reg->arch_info;
 
-	if (reg->number == REG_PC) {
+	if (reg->number <= REG_XPR31) {
+		dram_write32(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START), false);
+		dram_write_jump(target, 1, true);
+	} else if (reg->number == REG_PC) {
 		dram_write32(target, 0, csrr(S0, CSR_DPC), false);
 		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
 		dram_write_jump(target, 2, true);
+	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
+		dram_write32(target, 0, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START), false);
+		dram_write_jump(target, 1, true);
+	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
+		dram_write32(target, 0, csrr(S0, reg->number - REG_CSR0), false);
+		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
+		dram_write_jump(target, 2, true);
 	} else {
+		LOG_ERROR("Don't know how to read register %d (%s)", reg->number, reg->name);
 		return ERROR_FAIL;
 	}
 
@@ -428,7 +443,9 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	buf_set_u32(reg->value, 0, 32, dram_read32(target, 0));
+	uint32_t value = dram_read32(target, 0);
+	LOG_DEBUG("%s=0x%x", reg->name, value);
+	buf_set_u32(reg->value, 0, 32, value);
 
 	return ERROR_OK;
 }
@@ -664,10 +681,14 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	// TODO: Doesn't work with this extra nop.
-	dram_write32(target, 5, nop(), false);
 	// Execute.
+#if 1
+	// TODO: Doesn't work without this extra nop.
+	dram_write32(target, 5, nop(), false);
 	dram_write_jump(target, 6, true);
+#else
+	dram_write_jump(target, 5, true);
+#endif
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");

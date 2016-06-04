@@ -33,7 +33,7 @@
 #define SSTATUS32_SD        0x80000000
 #define SSTATUS64_SD        0x8000000000000000
 
-#define DCSR_XDEBUGVER      (3<<30)
+#define DCSR_XDEBUGVER      (3U<<30)
 #define DCSR_NDRESET        (1<<29)
 #define DCSR_FULLRESET      (1<<28)
 #define DCSR_HWBPCOUNT      (0xfff<<16)
@@ -49,12 +49,12 @@
 #define DCSR_STEP           (1<<2)
 #define DCSR_PRV            (3<<0)
 
-#define DCSR_CAUSE_NONE     (0<<6)
-#define DCSR_CAUSE_SWBP     (1<<6)
-#define DCSR_CAUSE_HWBP     (2<<6)
-#define DCSR_CAUSE_DEBUGINT (3<<6)
-#define DCSR_CAUSE_STEP     (4<<6)
-#define DCSR_CAUSE_HALT     (5<<6)
+#define DCSR_CAUSE_NONE     0
+#define DCSR_CAUSE_SWBP     1
+#define DCSR_CAUSE_HWBP     2
+#define DCSR_CAUSE_DEBUGINT 3
+#define DCSR_CAUSE_STEP     4
+#define DCSR_CAUSE_HALT     5
 
 #define MIP_SSIP            (1 << IRQ_S_SOFT)
 #define MIP_HSIP            (1 << IRQ_H_SOFT)
@@ -62,6 +62,9 @@
 #define MIP_STIP            (1 << IRQ_S_TIMER)
 #define MIP_HTIP            (1 << IRQ_H_TIMER)
 #define MIP_MTIP            (1 << IRQ_M_TIMER)
+#define MIP_SEIP            (1 << IRQ_S_EXT)
+#define MIP_HEIP            (1 << IRQ_H_EXT)
+#define MIP_MEIP            (1 << IRQ_M_EXT)
 
 #define SIP_SSIP MIP_SSIP
 #define SIP_STIP MIP_STIP
@@ -84,9 +87,9 @@
 #define IRQ_S_TIMER  5
 #define IRQ_H_TIMER  6
 #define IRQ_M_TIMER  7
-#define IRQ_S_DEV    9
-#define IRQ_H_DEV    10
-#define IRQ_M_DEV    11
+#define IRQ_S_EXT    9
+#define IRQ_H_EXT    10
+#define IRQ_M_EXT    11
 #define IRQ_COP      12
 #define IRQ_HOST     13
 
@@ -383,7 +386,7 @@
 #define MASK_HRET  0xffffffff
 #define MATCH_MRET 0x30200073
 #define MASK_MRET  0xffffffff
-#define MATCH_DRET 0x79200073
+#define MATCH_DRET 0x7b200073
 #define MASK_DRET  0xffffffff
 #define MATCH_SFENCE_VM 0x10400073
 #define MASK_SFENCE_VM  0xfff07fff
@@ -686,7 +689,6 @@
 #define CSR_MCAUSE 0x342
 #define CSR_MBADADDR 0x343
 #define CSR_MIP 0x344
-#define CSR_MIPI 0x345
 #define CSR_MUCOUNTEREN 0x310
 #define CSR_MSCOUNTEREN 0x311
 #define CSR_MUCYCLE_DELTA 0x700
@@ -695,9 +697,9 @@
 #define CSR_MSCYCLE_DELTA 0x704
 #define CSR_MSTIME_DELTA 0x705
 #define CSR_MSINSTRET_DELTA 0x706
-#define CSR_DCSR 0x790
-#define CSR_DPC 0x791
-#define CSR_DSCRATCH 0x792
+#define CSR_DCSR 0x7b0
+#define CSR_DPC 0x7b1
+#define CSR_DSCRATCH 0x7b2
 #define CSR_MCYCLE 0xf00
 #define CSR_MTIME 0xf01
 #define CSR_MINSTRET 0xf02
@@ -706,8 +708,6 @@
 #define CSR_MARCHID 0xf12
 #define CSR_MIMPID 0xf13
 #define CSR_MHARTID 0xf14
-#define CSR_MTOHOST 0x7c0
-#define CSR_MFROMHOST 0x7c1
 #define CSR_MRESET 0x7c2
 #define CSR_CYCLEH 0xc80
 #define CSR_TIMEH 0xc81
@@ -995,7 +995,6 @@ DECLARE_CSR(mepc, CSR_MEPC)
 DECLARE_CSR(mcause, CSR_MCAUSE)
 DECLARE_CSR(mbadaddr, CSR_MBADADDR)
 DECLARE_CSR(mip, CSR_MIP)
-DECLARE_CSR(mipi, CSR_MIPI)
 DECLARE_CSR(mucounteren, CSR_MUCOUNTEREN)
 DECLARE_CSR(mscounteren, CSR_MSCOUNTEREN)
 DECLARE_CSR(mucycle_delta, CSR_MUCYCLE_DELTA)
@@ -1015,8 +1014,6 @@ DECLARE_CSR(mvendorid, CSR_MVENDORID)
 DECLARE_CSR(marchid, CSR_MARCHID)
 DECLARE_CSR(mimpid, CSR_MIMPID)
 DECLARE_CSR(mhartid, CSR_MHARTID)
-DECLARE_CSR(mtohost, CSR_MTOHOST)
-DECLARE_CSR(mfromhost, CSR_MFROMHOST)
 DECLARE_CSR(mreset, CSR_MRESET)
 DECLARE_CSR(cycleh, CSR_CYCLEH)
 DECLARE_CSR(timeh, CSR_TIMEH)
