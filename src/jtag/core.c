@@ -836,7 +836,111 @@ int default_interface_jtag_execute_queue(void)
 		return ERROR_FAIL;
 	}
 
-	return jtag->execute_queue();
+	int result = jtag->execute_queue();
+
+	struct jtag_command *cmd = jtag_command_queue;
+	while (debug_level >= LOG_LVL_DEBUG && cmd) {
+		switch (cmd->type) {
+			case JTAG_SCAN:
+				LOG_DEBUG("JTAG %s SCAN to %s",
+						cmd->cmd.scan->ir_scan ? "IR" : "DR",
+						tap_state_name(cmd->cmd.scan->end_state));
+				for (int i = 0; i < cmd->cmd.scan->num_fields; i++) {
+					struct scan_field *field = cmd->cmd.scan->fields + i;
+					if (field->out_value) {
+						char *str = buf_to_str(field->out_value, field->num_bits, 16);
+						LOG_DEBUG("  %db out: %s", field->num_bits, str);
+						free(str);
+					}
+					if (field->in_value) {
+						char *str = buf_to_str(field->in_value, field->num_bits, 16);
+						LOG_DEBUG("  %db  in: %s", field->num_bits, str);
+						free(str);
+					}
+					if (field->check_value) {
+						char *str = buf_to_str(field->check_value, field->num_bits, 16);
+						LOG_DEBUG("  %db check: %s", field->num_bits, str);
+						free(str);
+					}
+					if (field->check_mask) {
+						char *str = buf_to_str(field->check_mask, field->num_bits, 16);
+						LOG_DEBUG("  %db mask: %s", field->num_bits, str);
+						free(str);
+					}
+				}
+				uint8_t *buf = NULL;
+				int scan_bits = jtag_build_buffer(cmd->cmd.scan, &buf);
+				char *str_out = buf_to_str(buf, scan_bits, 16);
+				free(buf);
+				LOG_DEBUG("vvv jtag_scan(%d, %d, %d'h%s, %d); // %s",
+						cmd->cmd.scan->ir_scan,
+						scan_bits,
+						scan_bits, str_out,
+						cmd->cmd.scan->end_state, tap_state_name(cmd->cmd.scan->end_state));
+				free(str_out);
+
+				struct scan_field *last_field = cmd->cmd.scan->fields + cmd->cmd.scan->num_fields - 1;
+				if (last_field->in_value) {
+					char *str_in = buf_to_str(last_field->in_value, last_field->num_bits, 16);
+					LOG_DEBUG("vvv jtag_check_tdo(%d, %d'h%s);",
+							last_field->num_bits,
+							last_field->num_bits, str_in);
+					free(str_in);
+				}
+				break;
+			case JTAG_TLR_RESET:
+				LOG_DEBUG("JTAG TLR RESET to %s",
+						tap_state_name(cmd->cmd.statemove->end_state));
+				LOG_DEBUG("vvv jtag_tlr_reset(%d); // %s",
+						cmd->cmd.statemove->end_state, 
+						tap_state_name(cmd->cmd.statemove->end_state));
+				break;
+			case JTAG_RUNTEST:
+				LOG_DEBUG("JTAG RUNTEST %d cycles to %s",
+						cmd->cmd.runtest->num_cycles,
+						tap_state_name(cmd->cmd.runtest->end_state));
+				LOG_DEBUG("vvv jtag_runtest(%d, %d); // %s",
+						cmd->cmd.runtest->num_cycles,
+						cmd->cmd.runtest->end_state,
+						tap_state_name(cmd->cmd.runtest->end_state));
+				break;
+			case JTAG_RESET:
+				{
+					const char *reset_str[3] = {
+						"leave", "deassert", "assert"
+					};
+					LOG_DEBUG("JTAG RESET %s TRST, %s SRST",
+							reset_str[cmd->cmd.reset->trst + 1],
+							reset_str[cmd->cmd.reset->srst + 1]);
+					LOG_DEBUG("vvv jtag_reset(%d, %d);",
+							cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				}
+				break;
+			case JTAG_PATHMOVE:
+				LOG_DEBUG("JTAG PATHMOVE (TODO)");
+				abort();
+				break;
+			case JTAG_SLEEP:
+				LOG_DEBUG("JTAG SLEEP (TODO)");
+				abort();
+				break;
+			case JTAG_STABLECLOCKS:
+				LOG_DEBUG("JTAG STABLECLOCKS (TODO)");
+				abort();
+				break;
+			case JTAG_TMS:
+				LOG_DEBUG("JTAG STABLECLOCKS (TODO)");
+				abort();
+				break;
+			default:
+				LOG_ERROR("Unknown JTAG command: %d", cmd->type);
+				abort();
+				break;
+		}
+		cmd = cmd->next;
+	}
+
+	return result;
 }
 
 void jtag_execute_queue_noclear(void)
