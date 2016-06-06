@@ -201,7 +201,6 @@ m4_define([ADAPTER_OPT], [m4_translit(ADAPTER_ARG($1), [_], [-])])
 
 m4_define([USB1_ADAPTERS],
 	[[[ftdi], [MPSSE mode of FTDI based devices], [FTDI]],
-	[[jlink], [Segger J-Link JTAG Programmer], [JLINK]],
 	[[stlink], [ST-Link JTAG Programmer], [HLADAPTER_STLINK]],
 	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]],
 	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
@@ -220,6 +219,9 @@ m4_define([USB0_ADAPTERS],
 
 m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP]]])
+
+m4_define([LIBJAYLINK_ADAPTERS],
+	[[[jlink], [Segger J-Link JTAG Programmer], [JLINK]]])
 
 #========================================
 # FTD2XXX support comes in 4 forms.
@@ -379,7 +381,7 @@ m4_define([AC_ARG_ADAPTERS], [
   ])
 ])
 
-AC_ARG_ADAPTERS([USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS, HIDAPI_ADAPTERS], [auto])
+AC_ARG_ADAPTERS([USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS, HIDAPI_ADAPTERS, LIBJAYLINK_ADAPTERS], [auto])
 
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
@@ -792,19 +794,6 @@ if test $use_internal_jimtcl = yes; then
   fi
 fi
 
-if test $use_internal_libjaylink = yes; then
-  if test -f "$srcdir/src/jtag/drivers/libjaylink/configure.ac"; then
-    ( cd $srcdir/src/jtag/drivers/libjaylink/ && ./autogen.sh )
-    AX_CONFIG_SUBDIR_OPTION([src/jtag/drivers/libjaylink],
-		[--enable-subproject-build])
-  else
-    AC_MSG_ERROR([Internal libjaylink not found, run either 'git submodule init' and 'git submodule update' or disable internal libjaylink with --disable-internal-libjaylink.])
-  fi
-else
-  PKG_CHECK_MODULES([libjaylink], [libjaylink >= 0.1],
-	[CFLAGS="$CFLAGS $libjaylink_CFLAGS"; LIBS="$LIBS $libjaylink_LIBS"; HAVE_LIBJAYLINK=yes], [HAVE_LIBJAYLINK=no])
-fi
-
 if test $build_remote_bitbang = yes; then
   build_bitbang=yes
   AC_DEFINE([BUILD_REMOTE_BITBANG], [1], [1 if you want the Remote Bitbang JTAG driver.])
@@ -1160,6 +1149,9 @@ for hidapi_lib in hidapi hidapi-hidraw hidapi-libusb; do
 	])
 done
 
+PKG_CHECK_MODULES([libjaylink], [libjaylink >= 0.1],
+	[HAVE_LIBJAYLINK=yes], [HAVE_LIBJAYLINK=no])
+
 m4_define([PROCESS_ADAPTERS], [
   m4_foreach([adapter], [$1], [
 	if test $2; then
@@ -1182,6 +1174,7 @@ PROCESS_ADAPTERS([USB1_ADAPTERS], [$use_libusb1 = yes], [libusb-1.x])
 PROCESS_ADAPTERS([USB_ADAPTERS], [$use_libusb1 = yes -o $use_libusb0 = yes], [libusb-1.x or libusb-0.1])
 PROCESS_ADAPTERS([USB0_ADAPTERS], [$use_libusb0 = yes], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], [$use_hidapi = yes], [hidapi])
+PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], [$use_libusb1 = yes -a $use_internal_libjaylink = yes -o $HAVE_LIBJAYLINK = yes], [libusb-1.x or libjaylink-0.1])
 
 if test $enable_stlink != no -o $enable_ti_icdi != no; then
 	AC_DEFINE([BUILD_HLADAPTER], [1], [1 if you want the High Level JTAG driver.])
@@ -1190,11 +1183,15 @@ else
 fi
 AM_CONDITIONAL([HLADAPTER], [test $enable_stlink != no -o $enable_ti_icdi != no])
 
-# Disable J-Link driver if internal libjaylink is disabled and libjaylink was
-# not found by pkg-config.
 if test $enable_jlink != no; then
-  if test $use_internal_libjaylink$HAVE_LIBJAYLINK = nono; then
-      enable_jlink=no
+  if test $use_internal_libjaylink = yes; then
+    if test -f "$srcdir/src/jtag/drivers/libjaylink/configure.ac"; then
+      ( cd $srcdir/src/jtag/drivers/libjaylink/ && ./autogen.sh )
+      AX_CONFIG_SUBDIR_OPTION([src/jtag/drivers/libjaylink],
+		[--enable-subproject-build])
+    else
+      AC_MSG_ERROR([Internal libjaylink not found, run either 'git submodule init' and 'git submodule update' or disable internal libjaylink with --disable-internal-libjaylink.])
+    fi
   fi
 fi
 
@@ -1317,7 +1314,8 @@ echo
 echo
 echo OpenOCD configuration summary
 echo --------------------------------------------------
-m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS, HIDAPI_ADAPTERS],
+m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS,
+	HIDAPI_ADAPTERS, LIBJAYLINK_ADAPTERS],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	case $ADAPTER_VAR([adapter]) in
 		auto)

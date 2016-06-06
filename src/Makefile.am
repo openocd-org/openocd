@@ -76,6 +76,10 @@ libopenocd_la_LIBADD = \
 	$(LIBFTDI_LIBS) $(MINGWLDADD) \
 	$(HIDAPI_LIBS) $(LIBUSB0_LIBS) $(LIBUSB1_LIBS)
 
+if !INTERNAL_LIBJAYLINK
+libopenocd_la_LIBADD += $(libjaylink_LIBS)
+endif
+
 STARTUP_TCL_SRCS = \
 	$(srcdir)/helper/startup.tcl \
 	$(srcdir)/jtag/startup.tcl \
