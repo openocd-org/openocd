@@ -230,6 +230,7 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 
 	static const char *op_string[] = {"nop", "r", "w", "cw"};
 	static const char *status_string[] = {"+", "nw", "F", "b"};
+	/*
 	LOG_DEBUG("vvv $display(\"hardware: dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x\");",
 			field.num_bits,
 			op_string[buf_get_u32(out, 0, 2)],
@@ -238,7 +239,7 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 			status_string[buf_get_u32(in, 0, 2)],
 			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
 			buf_get_u32(in, 36, info->addrbits));
-	/*
+			*/
 	LOG_DEBUG("dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x",
 			field.num_bits,
 			op_string[buf_get_u32(out, 0, 2)],
@@ -247,7 +248,6 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 			status_string[buf_get_u32(in, 0, 2)],
 			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
 			buf_get_u32(in, 36, info->addrbits));
-			*/
 
 	//debug_scan(target);
 
@@ -313,21 +313,31 @@ static uint32_t dtminfo_read(struct target *target)
 
 static uint32_t dram_read32(struct target *target, unsigned int index)
 {
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	// TODO: check cache to see if this even needs doing.
 	uint16_t address = dram_address(index);
-	return dbus_read(target, address, address);
+	uint32_t value = dbus_read(target, address, address);
+	info->dram_valid |= (1<<index);
+	info->dram[index] = value;
+	return value;
 }
 
 static void dram_write32(struct target *target, unsigned int index, uint32_t value,
 		bool set_interrupt)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	// TODO: check cache to see if this even needs doing.
+
+	if (info->dram_valid & (1<<index) && info->dram[index] == value) {
+		LOG_DEBUG("DRAM cache hit: 0x%x @%d", value, index);
+		return;
+	}
+
 	uint64_t dbus_value = DMCONTROL_HALTNOT | value;
 	if (set_interrupt)
 		dbus_value |= DMCONTROL_INTERRUPT;
 	dbus_write(target, dram_address(index), dbus_value);
 	info->dram_valid |= (1<<index);
+	info->dram[index] = value;
 }
 
 #if 1
@@ -479,9 +489,13 @@ static void update_reg_list(struct target *target)
 static int register_get(struct reg *reg)
 {
 	struct target *target = (struct target *) reg->arch_info;
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
 	// TODO: S0 and S1
-	if (reg->number <= REG_XPR31) {
+	if (reg->number == ZERO) {
+		buf_set_u64(reg->value, 0, info->xlen, 0);
+		return ERROR_OK;
+	} else if (reg->number <= REG_XPR31) {
 		dram_write32(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START), false);
 		dram_write_jump(target, 1, true);
 	} else if (reg->number == REG_PC) {
@@ -1128,9 +1142,6 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-	// TODO: save/restore T0
-
-	// Set up the address.
 
 	// Write program.
 	dram_write32(target, 0, lw(S1, ZERO, DEBUG_RAM_START + 16), false);
