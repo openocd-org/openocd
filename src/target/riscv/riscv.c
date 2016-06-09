@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdlib.h>
 #include <time.h>
 
 #ifdef HAVE_CONFIG_H
@@ -146,6 +147,12 @@ static struct scan_field select_dbus = {
 	.in_value = NULL,
 	.out_value = ir_dbus
 };
+static uint8_t ir_debug[1] = {0x5};
+static struct scan_field select_debug = {
+	.in_value = NULL,
+	.out_value = ir_debug
+};
+#define DEBUG_LENGTH	264
 
 static uint16_t dram_address(unsigned int index)
 {
@@ -155,19 +162,52 @@ static uint16_t dram_address(unsigned int index)
 		return 0x40 + index - 0x10;
 }
 
+#if 0
+static int debug_scan(struct target *target)
+{
+	uint8_t in[DIV_ROUND_UP(DEBUG_LENGTH, 8)];
+	jtag_add_ir_scan(target->tap, &select_debug, TAP_IDLE);
+
+	struct scan_field field;
+	field.num_bits = DEBUG_LENGTH;
+	field.out_value = NULL;
+	field.check_value = NULL;
+	field.check_mask = NULL;
+	field.in_value = in;
+	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
+
+	/* Always return to dbus. */
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
+	jtag_execute_queue();
+
+	LOG_DEBUG("  debug_pc=0x%x", buf_get_u32(in, 0, 32));
+	LOG_DEBUG("  last_returned_data=0x%x", buf_get_u32(in, 32, 32));
+	LOG_DEBUG("  last_returned_pc=0x%x", buf_get_u32(in, 64, 32));
+	LOG_DEBUG("  last_requested_pc=0x%x", buf_get_u32(in, 96, 32));
+	LOG_DEBUG("  last_committed_instruction=0x%x", buf_get_u32(in, 128, 32));
+	LOG_DEBUG("  last_committed_pc=0x%x", buf_get_u32(in, 160, 32));
+	LOG_DEBUG("  last_committed_time=0x%lx", buf_get_u64(in, 192, 64));
+	LOG_DEBUG("  3bits=0x%x", buf_get_u32(in, 256, 3));
+
+	return 0;
+}
+#endif
+
 static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 		dbus_op_t op, uint16_t address, uint64_t data_out)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	struct scan_field field;
 	uint8_t in[8] = {0};
 	uint8_t out[8];
+	struct scan_field field = {
+		.num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE,
+		.out_value = out,
+		.in_value = in
+	};
 
 	assert(info->addrbits != 0);
 
-	field.num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
-	field.out_value = out;
-	field.in_value = in;
 	buf_set_u64(out, DBUS_OP_START, DBUS_OP_SIZE, op);
 	buf_set_u64(out, DBUS_DATA_START, DBUS_DATA_SIZE, data_out);
 	buf_set_u64(out, DBUS_ADDRESS_START, info->addrbits, address);
@@ -190,6 +230,15 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 
 	static const char *op_string[] = {"nop", "r", "w", "cw"};
 	static const char *status_string[] = {"+", "nw", "F", "b"};
+	LOG_DEBUG("vvv $display(\"hardware: dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x\");",
+			field.num_bits,
+			op_string[buf_get_u32(out, 0, 2)],
+			buf_get_u32(out, 34, 2), buf_get_u32(out, 2, 32),
+			buf_get_u32(out, 36, info->addrbits),
+			status_string[buf_get_u32(in, 0, 2)],
+			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
+			buf_get_u32(in, 36, info->addrbits));
+	/*
 	LOG_DEBUG("dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x",
 			field.num_bits,
 			op_string[buf_get_u32(out, 0, 2)],
@@ -198,6 +247,10 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 			status_string[buf_get_u32(in, 0, 2)],
 			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
 			buf_get_u32(in, 36, info->addrbits));
+			*/
+
+	//debug_scan(target);
+
 	return buf_get_u64(in, DBUS_OP_START, DBUS_OP_SIZE);
 }
 
@@ -277,7 +330,7 @@ static void dram_write32(struct target *target, unsigned int index, uint32_t val
 	info->dram_valid |= (1<<index);
 }
 
-#if 0
+#if 1
 static int dram_check32(struct target *target, unsigned int index,
 		uint32_t expected)
 {
@@ -515,11 +568,12 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 
 	select_dtminfo.num_bits = target->tap->ir_length;
 	select_dbus.num_bits = target->tap->ir_length;
+	select_debug.num_bits = target->tap->ir_length;
 
 	const unsigned int max_reg_name_len = 12;
 	info->reg_list = calloc(REG_COUNT, sizeof(struct reg));
 
-	info->reg_names = malloc(REG_COUNT * max_reg_name_len);
+	info->reg_names = calloc(1, REG_COUNT * max_reg_name_len);
 	char *reg_name = info->reg_names;
 	info->reg_values = NULL;
 
@@ -655,6 +709,26 @@ static void megan_sequence(struct target *target)
 }
 #endif
 
+#if 0
+static void dram_test(struct target *target)
+{
+	uint32_t shadow[16];
+
+	for (int j = 0; j < 100; j++) {
+		LOG_DEBUG("Round %d", j);
+		for (int i = 0; i < 16; i++) {
+			shadow[i] = random();
+			dram_write32(target, i, shadow[i], false);
+		}
+		for (int i = 0; i < 16; i++) {
+			if (dram_check32(target, i, shadow[i]) != ERROR_OK) {
+				LOG_ERROR("Mismatch! j=%d i=%d", j, i);
+			}
+		}
+	}
+}
+#endif
+
 static int riscv_examine(struct target *target)
 {
 	LOG_DEBUG("riscv_examine()");
@@ -703,7 +777,8 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-#if 0
+	//dram_test(target);
+
 	// Figure out XLEN.
 	dram_write32(target, 0, xori(S1, ZERO, -1), false);
 	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
@@ -734,66 +809,13 @@ static int riscv_examine(struct target *target)
 	dram_write_jump(target, 5, true);
 #endif
 
+	dram_write32(target, info->dramsize - 1, 0xdeadbeef, false);
+
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
-#else
 
-#if 1
-	// Blue blue red
-	dram_write32(target, 1, nop(), false);
-	dram_write32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
-	dram_write_jump(target, 0, true);
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
-#endif
-
-#if 0
-	// no effect
-	dram_write32(target, 1, ~nop(), false);
-	dram_write32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
-	dram_write_jump(target, 0, true);
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
-#endif
-
-	srli(0,0,0);nop();	// TODO
-
-#if 0
-	// Blue blue red red
-	dram_write32(target, 0, nop(), false);
-	dram_write32(target, 1, nop(), false);
-	dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START), false);
-	dram_write32(target, 3, srli(S1, S1, 31), false);
-	dram_write32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
-	dram_write_jump(target, 5, true);
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
-#endif
-
-#if 0
-	// Blue off red red
-	dram_write32(target, 0, nop(), false);
-	dram_write32(target, 1, sw(S1, ZERO, DEBUG_RAM_START), false);
-	dram_write32(target, 2, srli(S1, S1, 31), false);
-	dram_write32(target, 3, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
-	dram_write_jump(target, 4, true);
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
-#endif
-
-#endif
-
-#if 0
 	uint32_t word0 = dram_read32(target, 0);
 	uint32_t word1 = dram_read32(target, 1);
 	if (word0 == 1 && word1 == 0) {
@@ -803,42 +825,15 @@ static int riscv_examine(struct target *target)
 	} else if (word0 == 0xffffffff && word1 == 0xffffffff) {
 		info->xlen = 128;
 	} else {
-		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x",
-				word0, word1);
+		uint32_t exception = dram_read32(target, info->dramsize-1);
+		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x, exception=0x%x",
+				word0, word1, exception);
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("Discovered XLEN is %d", info->xlen);
-#else
-	info->xlen = 32;
-#endif
 
 	// Update register list to match discovered XLEN.
 	update_reg_list(target);
-
-	// TODO
-	// smoke test
-	//dram_write32(target, 4, 0x700020a0, false);
-	//dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-	//dram_write32(target, 1, sw(ZERO, S0, 0), false);
-	//dram_write32(target, 2, jal(ZERO, 0), true);
-	//dram_write_jump(target, 2, true);
-
-	li(0,0);	// TODO: remove
-
-	dram_write32(target, 0, lui(S0, 0x70002), false);
-	dram_write32(target, 1, lui(S1, 0xccccc), false);
-	dram_write32(target, 2, sw(S1, S0, 0xa0), false);
-	dram_write32(target, 3, jal(ZERO, 0), true);
-	//  400:    70002437              lui    s0,0x70002
-	//  404:    0a000493              li    s1,160
-	//  408:    0a942023              sw    s1,160(s0) # 700020a0 <debug_ram+0x70001ca0>
-	//  40c:    0000006f              j    40c <debug_ram+0xc>
-
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
-	dram_read32(target, 4);
 
 	target_set_examined(target);
 
@@ -938,6 +933,8 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
+#if 0
 	// Plain implementation, where we write the address each time.
 	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
 	switch (size) {
@@ -996,6 +993,54 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 			return ERROR_FAIL;
 		}
 	}
+#else
+	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	switch (size) {
+		case 1:
+			dram_write32(target, 1, lb(S1, S0, 0), false);
+			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			break;
+		case 2:
+			dram_write32(target, 1, lh(S1, S0, 0), false);
+			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			break;
+		case 4:
+			dram_write32(target, 1, lw(S1, S0, 0), false);
+			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			break;
+		default:
+			LOG_ERROR("Unsupported size: %d", size);
+			return ERROR_FAIL;
+	}
+	dram_write_jump(target, 3, false);
+
+	for (unsigned int i = 0; i < count; i++) {
+		dram_write32(target, 4, address + i * size, true);
+
+		if (wait_for_debugint_clear(target) != ERROR_OK) {
+			LOG_ERROR("Debug interrupt didn't clear.");
+			return ERROR_FAIL;
+		}
+
+		uint32_t value = dram_read32(target, 4);
+		unsigned int offset = i * size;
+		switch (size) {
+			case 1:
+				buffer[offset] = value & 0xff;
+				break;
+			case 2:
+				buffer[offset] = value & 0xff;
+				buffer[offset + 1] = (value >> 8) & 0xff;
+				break;
+			case 4:
+				buffer[offset] = value & 0xff;
+				buffer[offset + 1] = (value >> 8) & 0xff;
+				buffer[offset + 2] = (value >> 16) & 0xff;
+				buffer[offset + 3] = (value >> 24) & 0xff;
+				break;
+		}
+	}
+#endif
 
 	return ERROR_OK;
 }

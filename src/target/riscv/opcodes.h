@@ -119,6 +119,7 @@ static uint32_t flw(unsigned int src, unsigned int base, uint16_t offset)
     MATCH_FLW;
 }
 
+/*
 static uint32_t li(unsigned int dest, uint16_t imm)
 {
 	return addi(dest, 0, imm);
@@ -131,7 +132,6 @@ static uint32_t lui(unsigned int dest, uint32_t imm)
     MATCH_LUI;
 }
 
-/*
 static uint32_t fence_i(void)
 {
   return MATCH_FENCE_I;
@@ -179,6 +179,7 @@ static uint32_t ori(unsigned int dest, unsigned int src, uint16_t imm)
     (dest << 7) |
     MATCH_ORI;
 }
+*/
 
 static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm)
 {
@@ -187,7 +188,6 @@ static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm)
     (dest << 7) |
     MATCH_XORI;
 }
-*/
 
 static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt)
 {
