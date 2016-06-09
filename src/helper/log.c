@@ -104,7 +104,7 @@ static void log_forward(const char *file, unsigned line, const char *function, c
 	}
 }
 
-/* The log_puts() serves to somewhat different goals:
+/* The log_puts() serves two somewhat different goals:
  *
  * - logging
  * - feeding low-level info to the user in GDB or Telnet
