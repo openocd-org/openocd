@@ -120,6 +120,7 @@ typedef struct {
 	 * RAM. */
 	uint64_t dram_valid;
 	uint32_t dcsr;
+	uint32_t dpc;
 
 	struct reg *reg_list;
 	/* Single buffer that contains all register names, instead of calling
@@ -497,6 +498,13 @@ static int resume(struct target *target, int current, uint32_t address,
 		return ERROR_FAIL;
 	}
 
+	// TODO: check if dpc is dirty (which also is true if an exception was hit
+	// at any time)
+	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	dram_write32(target, 1, csrw(S0, CSR_DPC), false);
+	dram_write_jump(target, 2, false);
+	dram_write32(target, 4, info->dpc, true);
+
 	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
 	info->dcsr &= ~DCSR_HALT;
 
@@ -570,9 +578,9 @@ static int register_get(struct reg *reg)
 		dram_write_jump(target, 1, false);
 		dram_write32(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START), true);
 	} else if (reg->number == REG_PC) {
-		dram_write32(target, 0, csrr(S0, CSR_DPC), false);
-		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
-		dram_write_jump(target, 2, true);
+		buf_set_u32(reg->value, 0, 32, info->dpc);
+		LOG_DEBUG("%s=0x%x (cached)", reg->name, value);
+		return ERROR_OK;
 	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
 		dram_write32(target, 0, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START), false);
 		dram_write_jump(target, 1, true);
@@ -587,6 +595,13 @@ static int register_get(struct reg *reg)
 
 	if (wait_and_read(target, &value, 0) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+
+	uint32_t exception = dram_read32(target, info->dramsize-1);
+	if (exception) {
+		LOG_ERROR("Got exception 0x%x when reading register %d", exception,
+				reg->number);
 		return ERROR_FAIL;
 	}
 
@@ -615,9 +630,8 @@ static int register_write(struct target *target, unsigned int number,
 		dram_write32(target, 0, lw(number - REG_XPR0, ZERO, DEBUG_RAM_START + 16), false);
 		dram_write_jump(target, 1, false);
 	} else if (number == REG_PC) {
-		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-		dram_write32(target, 1, csrw(S0, CSR_DPC), false);
-		dram_write_jump(target, 2, false);
+		info->dpc = value;
+		return ERROR_OK;
 	} else if (number >= REG_FPR0 && number <= REG_FPR31) {
 		dram_write32(target, 0, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16), false);
 		dram_write_jump(target, 1, false);
@@ -741,16 +755,13 @@ static int riscv_halt(struct target *target)
 static int riscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	// Hardware single step doesn't exist yet.
 #if 0
 	return resume(target, current, address, handle_breakpoints, 0, true);
 #else
-	uint32_t dpc;
-	if (read_csr(target, &dpc, CSR_DPC) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-	uint32_t next_pc = dpc + 4;
+	uint32_t next_pc = info->dpc + 4;
 	// TODO: write better next pc prediction code
 	if (breakpoint_add(target, next_pc, 4, BKPT_SOFT) != ERROR_OK) {
 		return ERROR_FAIL;
@@ -959,8 +970,7 @@ static int handle_halt(struct target *target)
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	target->state = TARGET_HALTED;
 
-	uint32_t dpc;
-	if (read_csr(target, &dpc, CSR_DPC) != ERROR_OK) {
+	if (read_csr(target, &info->dpc, CSR_DPC) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -988,7 +998,7 @@ static int handle_halt(struct target *target)
 
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_DEBUG("halted at 0x%x", dpc);
+	LOG_DEBUG("halted at 0x%x", info->dpc);
 
 	return ERROR_OK;
 }
