@@ -330,12 +330,14 @@ static void dram_write32(struct target *target, unsigned int index, uint32_t val
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
+#if 1
 	if (!set_interrupt &&
 			info->dram_valid & (1<<index) &&
 			info->dram[index] == value) {
 		LOG_DEBUG("DRAM cache hit: 0x%x @%d", value, index);
 		return;
 	}
+#endif
 
 	uint64_t dbus_value = DMCONTROL_HALTNOT | value;
 	if (set_interrupt)
@@ -426,6 +428,28 @@ static int wait_for_debugint_clear(struct target *target)
 	while (1) {
 		bits_t bits = read_bits(target);
 		if (!bits.interrupt) {
+			return ERROR_OK;
+		}
+		if (time(NULL) - start > 2) {
+			LOG_ERROR("Timed out waiting for debug int to clear.");
+			return ERROR_FAIL;
+		}
+	}
+}
+
+static int wait_and_read(struct target *target, uint32_t *data, uint16_t address)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	time_t start = time(NULL);
+	// Throw away the results of the first read, since they'll contain the
+	// result of the read that happened just before debugint was set. (Assuming
+	// the last scan before calling this function was one that sets debugint.)
+	dbus_read(target, info->dbus_address, address);
+
+	while (1) {
+		uint64_t dbus_value = dbus_read(target, info->dbus_address, address);
+		*data = dbus_value;
+		if (!get_field(dbus_value, DMCONTROL_INTERRUPT)) {
 			return ERROR_OK;
 		}
 		if (time(NULL) - start > 2) {
@@ -534,14 +558,23 @@ static int register_get(struct reg *reg)
 {
 	struct target *target = (struct target *) reg->arch_info;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	uint32_t value = 0;
 
-	// TODO: S0 and S1
-	if (reg->number == ZERO) {
-		buf_set_u64(reg->value, 0, info->xlen, 0);
+	if (reg->number == S0) {
+		dram_write32(target, 0, csrr(S0, CSR_DSCRATCH), false);
+		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
+		dram_write_jump(target, 2, true);
+	} else if (reg->number == S1) {
+		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4), false);
+		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
+		dram_write_jump(target, 2, true);
+	} else if (reg->number == ZERO) {
+		buf_set_u64(reg->value, 0, info->xlen, value);
+		LOG_DEBUG("%s=0x%x", reg->name, value);
 		return ERROR_OK;
 	} else if (reg->number <= REG_XPR31) {
-		dram_write32(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START), false);
-		dram_write_jump(target, 1, true);
+		dram_write_jump(target, 1, false);
+		dram_write32(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START), true);
 	} else if (reg->number == REG_PC) {
 		dram_write32(target, 0, csrr(S0, CSR_DPC), false);
 		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
@@ -558,14 +591,15 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_and_read(target, &value, 0) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
 
-	uint32_t value = dram_read32(target, 0);
 	LOG_DEBUG("%s=0x%x", reg->name, value);
 	buf_set_u32(reg->value, 0, 32, value);
+
+	info->dram_valid &= ~1;
 
 	return ERROR_OK;
 }
@@ -573,13 +607,21 @@ static int register_get(struct reg *reg)
 static int register_set(struct reg *reg, uint8_t *buf)
 {
 	struct target *target = (struct target *) reg->arch_info;
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	LOG_DEBUG("write 0x%x to %s", value, reg->name);
 
-	// TODO: S0 and S1
-	if (reg->number <= REG_XPR31) {
+	if (reg->number == S0) {
+		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+		dram_write32(target, 1, csrw(S0, CSR_DSCRATCH), false);
+		dram_write_jump(target, 2, false);
+	} else if (reg->number == S1) {
+		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4), false);
+		dram_write_jump(target, 2, false);
+	} else if (reg->number <= REG_XPR31) {
 		dram_write32(target, 0, lw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START + 16), false);
 		dram_write_jump(target, 1, false);
 	} else if (reg->number == REG_PC) {
@@ -677,6 +719,53 @@ static void riscv_deinit_target(struct target *target)
 	target->arch_info = NULL;
 }
 
+static int riscv_halt(struct target *target)
+{
+	LOG_DEBUG("riscv_halt()");
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
+	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
+	dram_write32(target, 1, csrr(S0, CSR_MHARTID), false);
+	dram_write32(target, 2, sw(S0, ZERO, SETHALTNOT), false);
+	dram_write_jump(target, 3, true);
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+static int riscv_step(struct target *target, int current, uint32_t address,
+		int handle_breakpoints)
+{
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	// Hardware single step doesn't exist yet.
+#if 0
+	return resume(target, current, address, handle_breakpoints, 0, true);
+#else
+	uint32_t dpc;
+	if (read_csr(target, &dpc, CSR_DPC) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	uint32_t next_pc = dpc + 4;
+	// TODO: write better next pc prediction code
+	if (breakpoint_add(target, next_pc, 4, BKPT_SOFT) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	if (resume(target, current, address, handle_breakpoints, 0, false) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	while (target->state == TARGET_RUNNING) {
+		riscv_poll(target);
+	}
+	breakpoint_remove(target, next_pc);
+
+	return ERROR_OK;
+#endif
+}
+
 #if 0
 static void dram_test(struct target *target)
 {
@@ -741,6 +830,22 @@ static void write_constants(struct target *target)
 }
 #endif
 
+#if 0
+static void test_s1(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	riscv_halt(target);
+	riscv_poll(target);
+
+	dram_write32(target, info->dramsize - 1, 0xdeadbed, false);
+	dram_read32(target, info->dramsize - 1);
+	riscv_step(target, true, 0, 0);
+	dram_read32(target, info->dramsize - 1);
+
+	exit(0);
+}
+#endif 
+
 static int riscv_examine(struct target *target)
 {
 	LOG_DEBUG("riscv_examine()");
@@ -789,10 +894,6 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	//write_constants(target);
-	//light_leds(target);
-	//dram_test(target);
-
 	// Figure out XLEN.
 	dram_write32(target, 0, xori(S1, ZERO, -1), false);
 	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
@@ -816,13 +917,7 @@ static int riscv_examine(struct target *target)
 	}
 
 	// Execute.
-#if 1
-	// TODO: Doesn't work without this extra nop.
-	dram_write32(target, 5, nop(), false);
-	dram_write_jump(target, 6, true);
-#else
 	dram_write_jump(target, 5, true);
-#endif
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
@@ -850,6 +945,48 @@ static int riscv_examine(struct target *target)
 
 	target_set_examined(target);
 
+	//write_constants(target);
+	//light_leds(target);
+	//dram_test(target);
+	//test_s1(target);
+
+	return ERROR_OK;
+}
+
+static int handle_halt(struct target *target)
+{
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	target->state = TARGET_HALTED;
+
+	uint32_t dpc;
+	if (read_csr(target, &dpc, CSR_DPC) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	uint32_t dcsr;
+	if (read_csr(target, &dcsr, CSR_DCSR) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	int cause = get_field(dcsr, DCSR_CAUSE);
+	switch (cause) {
+		case DCSR_CAUSE_SWBP:
+		case DCSR_CAUSE_HWBP:
+			target->debug_reason = DBG_REASON_BREAKPOINT;
+			break;
+		case DCSR_CAUSE_DEBUGINT:
+			target->debug_reason = DBG_REASON_DBGRQ;
+			break;
+		case DCSR_CAUSE_STEP:
+			target->debug_reason = DBG_REASON_SINGLESTEP;
+			break;
+		case DCSR_CAUSE_HALT:
+		default:
+			LOG_ERROR("Invalid halt cause %d in DCSR (0x%x)",
+					cause, dcsr);
+	}
+
+	LOG_DEBUG("halted at 0x%x", dpc);
+
 	return ERROR_OK;
 }
 
@@ -863,16 +1000,8 @@ static int riscv_poll(struct target *target)
 		LOG_DEBUG("debug running");
 	} else if (bits.haltnot && !bits.interrupt) {
 		if (target->state != TARGET_HALTED) {
-			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+			return handle_halt(target);
 		}
-		target->state = TARGET_HALTED;
-
-		uint32_t dpc;
-		if (read_csr(target, &dpc, CSR_DPC) != ERROR_OK) {
-			return ERROR_FAIL;
-		}
-
-		LOG_DEBUG("halted at 0x%x", dpc);
 	} else if (!bits.haltnot && bits.interrupt) {
 		// Target is halting. There is no state for that, so don't change anything.
 		LOG_DEBUG("halting");
@@ -884,37 +1013,12 @@ static int riscv_poll(struct target *target)
 	return ERROR_OK;
 }
 
-static int riscv_halt(struct target *target)
-{
-	LOG_DEBUG("riscv_halt()");
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-
-	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
-	dram_write32(target, 1, csrr(S0, CSR_MHARTID), false);
-	dram_write32(target, 2, sw(S0, ZERO, SETHALTNOT), false);
-	dram_write_jump(target, 3, true);
-
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
-}
-
 static int riscv_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	return resume(target, current, address, handle_breakpoints,
 			debug_execution, false);
-}
-
-static int riscv_step(struct target *target, int current, uint32_t address,
-		int handle_breakpoints)
-{
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-	return resume(target, current, address, handle_breakpoints, 0, true);
 }
 
 static int riscv_assert_reset(struct target *target)

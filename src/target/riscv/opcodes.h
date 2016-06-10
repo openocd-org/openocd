@@ -182,6 +182,11 @@ static uint32_t ori(unsigned int dest, unsigned int src, uint16_t imm)
     (dest << 7) |
     MATCH_ORI;
 }
+
+static uint32_t nop(void)
+{
+  return addi(0, 0, 0);
+}
 */
 
 static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm)
@@ -198,9 +203,4 @@ static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt)
 		(src << 15) |
 		(dest << 7) |
 		MATCH_SRLI;
-}
-
-static uint32_t nop(void)
-{
-  return addi(0, 0, 0);
 }
