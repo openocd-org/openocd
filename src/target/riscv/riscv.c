@@ -1158,12 +1158,12 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	for (unsigned int i = 0; i < count; i++) {
 		dram_write32(target, 4, address + i * size, true);
 
-		if (wait_for_debugint_clear(target) != ERROR_OK) {
+                uint32_t value;
+		if (wait_and_read(target, &value, 4) != ERROR_OK) {
 			LOG_ERROR("Debug interrupt didn't clear.");
 			return ERROR_FAIL;
 		}
 
-		uint32_t value = dram_read32(target, 4);
 		unsigned int offset = i * size;
 		switch (size) {
 			case 1:
