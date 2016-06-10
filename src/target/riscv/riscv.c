@@ -24,6 +24,21 @@
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
+#define CSR_TDRSELECT			0x7a0
+#define CSR_TDRDATA1			0x7a1
+#define CSR_TDRDATA2			0x7a2
+#define CSR_TDRDATA3			0x7a3
+
+#define CSR_BPCONTROL_X			(1<<0)
+#define CSR_BPCONTROL_W			(1<<1)
+#define CSR_BPCONTROL_R			(1<<2)
+#define CSR_BPCONTROL_U			(1<<3)
+#define CSR_BPCONTROL_S			(1<<4)
+#define CSR_BPCONTROL_H			(1<<5)
+#define CSR_BPCONTROL_M			(1<<6)
+#define CSR_BPCONTROL_BPMATCH	(0xf<<7)
+#define CSR_BPCONTROL_BPACTION	(0xff<<11)
+
 #define DEBUG_ROM_START         0x800
 #define DEBUG_ROM_RESUME        (DEBUG_ROM_START + 4)
 #define DEBUG_ROM_EXCEPTION     (DEBUG_ROM_START + 8)
@@ -101,6 +116,8 @@ enum {
 	REG_COUNT
 };
 
+#define MAX_HWBPS	16
+
 typedef struct {
 	/* Number of address bits in the dbus register. */
 	uint8_t addrbits;
@@ -128,6 +145,10 @@ typedef struct {
 	char *reg_names;
 	/* Single buffer that contains all register values. */
 	void *reg_values;
+
+	// For each physical hwbp, contains ~0 if the hwbp is available, or the
+	// unique_id of the breakpoint that is using it.
+	uint32_t hwbp_unique_id[MAX_HWBPS];
 } riscv_info_t;
 
 typedef struct {
@@ -475,6 +496,21 @@ static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 	return ERROR_OK;
 }
 
+static int write_csr(struct target *target, uint32_t csr, uint32_t value)
+{
+	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	dram_write32(target, 1, csrw(S0, csr), false);
+	dram_write_jump(target, 2, false);
+	dram_write32(target, 4, value, true);
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 static int resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution, bool step)
 {
@@ -719,6 +755,8 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	update_reg_list(target);
 
 	info->dram_valid = 0;
+
+	memset(info->hwbp_unique_id, 0xff, sizeof(info->hwbp_unique_id));
 
 	return ERROR_OK;
 }
@@ -1370,28 +1408,74 @@ static int riscv_get_gdb_reg_list(struct target *target,
 
 int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
-    if (breakpoint->type != BKPT_SOFT) {
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	if (breakpoint->type == BKPT_SOFT) {
+		if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
+					breakpoint->orig_instr) != ERROR_OK) {
+			LOG_ERROR("Failed to read original instruction at 0x%x",
+					breakpoint->address);
+			return ERROR_FAIL;
+		}
+
+		int retval;
+		if (breakpoint->length == 4) {
+			retval = target_write_u32(target, breakpoint->address, ebreak());
+		} else {
+			retval = target_write_u16(target, breakpoint->address, ebreak_c());
+		}
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%x",
+					breakpoint->length, breakpoint->address);
+			return ERROR_FAIL;
+		}
+
+	} else if (breakpoint->type == BKPT_HARD) {
+		int i;
+		uint32_t tdrdata1;
+		for (i = 0; i < MAX_HWBPS; i++) {
+			if (info->hwbp_unique_id[i] == ~0U) {
+				write_csr(target, CSR_TDRSELECT, i);
+				read_csr(target, &tdrdata1, CSR_TDRDATA1);
+				if ((tdrdata1 >> (info->xlen - 4)) == 1) {
+					break;
+				}
+			}
+		}
+		if (i >= MAX_HWBPS) {
+			LOG_ERROR("Couldn't find an available hardware breakpoint.");
+			return ERROR_FAIL;
+		}
+		LOG_DEBUG("Start using resource %d for bp %d", i, breakpoint->unique_id);
+
+		tdrdata1 |= CSR_BPCONTROL_X;
+		tdrdata1 |= CSR_BPCONTROL_U;
+		tdrdata1 |= CSR_BPCONTROL_S;
+		tdrdata1 |= CSR_BPCONTROL_H;
+		tdrdata1 |= CSR_BPCONTROL_M;
+		write_csr(target, CSR_TDRDATA1, tdrdata1);
+		write_csr(target, CSR_TDRDATA2, breakpoint->address);
+
+		uint32_t tdrdata1_rb;
+		read_csr(target, &tdrdata1_rb, CSR_TDRDATA1);
+		LOG_DEBUG("tdrdata1=0x%x", tdrdata1_rb);
+
+		if (!(tdrdata1_rb & CSR_BPCONTROL_X)) {
+			LOG_ERROR("Breakpoint %d doesn't support execute", i);
+			return ERROR_FAIL;
+		}
+
+		info->hwbp_unique_id[i] = breakpoint->unique_id;
+
+		for (i = 0; i < 4; i++) {
+			uint32_t v[2];
+			write_csr(target, CSR_TDRSELECT, i);
+			read_csr(target, &v[0], CSR_TDRDATA1);
+			read_csr(target, &v[1], CSR_TDRDATA2);
+			LOG_DEBUG("%d  tdrdata1=0x%x  tdrdata2=0x%x", i, v[0], v[1]);
+		}
+	} else {
         LOG_INFO("OpenOCD only supports software breakpoints.");
         return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-    }
-
-    if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
-                breakpoint->orig_instr) != ERROR_OK) {
-        LOG_ERROR("Failed to read original instruction at 0x%x",
-                breakpoint->address);
-        return ERROR_FAIL;
-    }
-
-    int retval;
-    if (breakpoint->length == 4) {
-        retval = target_write_u32(target, breakpoint->address, ebreak());
-    } else {
-        retval = target_write_u16(target, breakpoint->address, ebreak_c());
-    }
-    if (retval != ERROR_OK) {
-        LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%x",
-                breakpoint->length, breakpoint->address);
-        return ERROR_FAIL;
     }
 
     breakpoint->set = true;
@@ -1401,17 +1485,38 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 
 static int riscv_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
-    if (breakpoint->type != BKPT_SOFT) {
-        LOG_INFO("OpenOCD only supports software breakpoints.");
-        return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-    }
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
-				breakpoint->orig_instr) != ERROR_OK) {
-		LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at 0x%x",
-				breakpoint->length, breakpoint->address);
-		return ERROR_FAIL;
+    if (breakpoint->type == BKPT_SOFT) {
+		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
+					breakpoint->orig_instr) != ERROR_OK) {
+			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at 0x%x",
+					breakpoint->length, breakpoint->address);
+			return ERROR_FAIL;
+		}
+
+	} else if (breakpoint->type == BKPT_HARD) {
+		int i;
+		for (i = 0; i < MAX_HWBPS; i++) {
+			if (info->hwbp_unique_id[i] == breakpoint->unique_id) {
+				break;
+			}
+		}
+		if (i >= MAX_HWBPS) {
+			LOG_ERROR("Couldn't find the hardware resources used by hardware breakpoint.");
+			return ERROR_FAIL;
+		}
+		LOG_DEBUG("Stop using resource %d for bp %d", i, breakpoint->unique_id);
+		write_csr(target, CSR_TDRSELECT, i);
+		write_csr(target, CSR_TDRDATA1, 0);
+		info->hwbp_unique_id[i] = ~0U;
+
+	} else {
+		LOG_INFO("OpenOCD only supports software breakpoints.");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
+
+	breakpoint->set = false;
 
 	return ERROR_OK;
 }
