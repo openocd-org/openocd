@@ -1432,9 +1432,20 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	} else if (breakpoint->type == BKPT_HARD) {
 		int i;
 		uint32_t tdrdata1;
+		uint32_t tdrselect, tdrselect_rb;
 		for (i = 0; i < MAX_HWBPS; i++) {
 			if (info->hwbp_unique_id[i] == ~0U) {
-				write_csr(target, CSR_TDRSELECT, i);
+				// TODO 0x80000000 is a hack until the core supports proper
+				// debug hwbps.
+				tdrselect = 0x80000000 | i;
+				write_csr(target, CSR_TDRSELECT, tdrselect);
+				read_csr(target, &tdrselect_rb, CSR_TDRSELECT);
+				if (tdrselect_rb != tdrselect) {
+					// We've run out of breakpoints.
+					LOG_ERROR("Couldn't find an available hardware breakpoint. "
+							"(0x%x != 0x%x)", tdrselect, tdrselect_rb);
+					return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+				}
 				read_csr(target, &tdrdata1, CSR_TDRDATA1);
 				if ((tdrdata1 >> (info->xlen - 4)) == 1) {
 					break;
@@ -1443,7 +1454,7 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 		}
 		if (i >= MAX_HWBPS) {
 			LOG_ERROR("Couldn't find an available hardware breakpoint.");
-			return ERROR_FAIL;
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		LOG_DEBUG("Start using resource %d for bp %d", i, breakpoint->unique_id);
 
@@ -1461,20 +1472,22 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 
 		if (!(tdrdata1_rb & CSR_BPCONTROL_X)) {
 			LOG_ERROR("Breakpoint %d doesn't support execute", i);
-			return ERROR_FAIL;
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 
 		info->hwbp_unique_id[i] = breakpoint->unique_id;
 
 		for (i = 0; i < 4; i++) {
-			uint32_t v[2];
-			write_csr(target, CSR_TDRSELECT, i);
-			read_csr(target, &v[0], CSR_TDRDATA1);
-			read_csr(target, &v[1], CSR_TDRDATA2);
-			LOG_DEBUG("%d  tdrdata1=0x%x  tdrdata2=0x%x", i, v[0], v[1]);
+			uint32_t v[3];
+			write_csr(target, CSR_TDRSELECT, 0x80000000 | i);
+			read_csr(target, &v[0], CSR_TDRSELECT);
+			read_csr(target, &v[1], CSR_TDRDATA1);
+			read_csr(target, &v[2], CSR_TDRDATA2);
+			LOG_DEBUG("%d  tdrselect=0x%x  tdrdata1=0x%x  tdrdata2=0x%x", i,
+					v[0], v[1], v[2]);
 		}
 	} else {
-        LOG_INFO("OpenOCD only supports software breakpoints.");
+        LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
         return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
     }
 
@@ -1507,12 +1520,12 @@ static int riscv_remove_breakpoint(struct target *target, struct breakpoint *bre
 			return ERROR_FAIL;
 		}
 		LOG_DEBUG("Stop using resource %d for bp %d", i, breakpoint->unique_id);
-		write_csr(target, CSR_TDRSELECT, i);
+		write_csr(target, CSR_TDRSELECT, 0x80000000 | i);
 		write_csr(target, CSR_TDRDATA1, 0);
 		info->hwbp_unique_id[i] = ~0U;
 
 	} else {
-		LOG_INFO("OpenOCD only supports software breakpoints.");
+		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
