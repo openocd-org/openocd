@@ -862,6 +862,9 @@ static int riscv_poll(struct target *target)
 		target->state = TARGET_DEBUG_RUNNING;
 		LOG_DEBUG("debug running");
 	} else if (bits.haltnot && !bits.interrupt) {
+		if (target->state != TARGET_HALTED) {
+			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		}
 		target->state = TARGET_HALTED;
 
 		uint32_t dpc;
@@ -1277,6 +1280,23 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
     return ERROR_OK;
 }
 
+static int riscv_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
+{
+    if (breakpoint->type != BKPT_SOFT) {
+        LOG_INFO("OpenOCD only supports software breakpoints.");
+        return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+    }
+
+	if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
+				breakpoint->orig_instr) != ERROR_OK) {
+		LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at 0x%x",
+				breakpoint->length, breakpoint->address);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 struct target_type riscv_target =
 {
 	.name = "riscv",
@@ -1301,4 +1321,5 @@ struct target_type riscv_target =
 	.get_gdb_reg_list = riscv_get_gdb_reg_list,
 
 	.add_breakpoint = riscv_add_breakpoint,
+	.remove_breakpoint = riscv_remove_breakpoint,
 };
