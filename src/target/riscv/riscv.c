@@ -962,7 +962,6 @@ static int riscv_examine(struct target *target)
 
 static int handle_halt(struct target *target)
 {
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	target->state = TARGET_HALTED;
 
 	uint32_t dpc;
@@ -975,6 +974,7 @@ static int handle_halt(struct target *target)
 		return ERROR_FAIL;
 	}
 	int cause = get_field(dcsr, DCSR_CAUSE);
+        LOG_DEBUG("halt cause is %d; dcsr=0x%x", cause, dcsr);
 	switch (cause) {
 		case DCSR_CAUSE_SWBP:
 		case DCSR_CAUSE_HWBP:
@@ -991,6 +991,8 @@ static int handle_halt(struct target *target)
 			LOG_ERROR("Invalid halt cause %d in DCSR (0x%x)",
 					cause, dcsr);
 	}
+
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
 	LOG_DEBUG("halted at 0x%x", dpc);
 
