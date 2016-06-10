@@ -79,12 +79,6 @@ static uint32_t lb(unsigned int rd, unsigned int base, uint16_t offset)
     MATCH_LB;
 }
 
-static uint32_t csrci(unsigned int csr, uint16_t imm) {
-  return (csr << 20) |
-    (bits(imm, 4, 0) << 15) |
-    MATCH_CSRRCI;
-}
-
 static uint32_t csrw(unsigned int source, unsigned int csr) {
   return (csr << 20) | (source << 15) | MATCH_CSRRW;
 }
@@ -119,17 +113,26 @@ static uint32_t flw(unsigned int src, unsigned int base, uint16_t offset)
     MATCH_FLW;
 }
 
-/*
-static uint32_t li(unsigned int dest, uint16_t imm)
-{
-	return addi(dest, 0, imm);
-}
+static uint32_t ebreak(void) { return MATCH_EBREAK; }
+static uint32_t ebreak_c(void) { return MATCH_C_EBREAK; }
 
+/*
 static uint32_t lui(unsigned int dest, uint32_t imm)
 {
   return (bits(imm, 19, 0) << 12) |
     (dest << 7) |
     MATCH_LUI;
+}
+
+static uint32_t csrci(unsigned int csr, uint16_t imm) {
+  return (csr << 20) |
+    (bits(imm, 4, 0) << 15) |
+    MATCH_CSRRCI;
+}
+
+static uint32_t li(unsigned int dest, uint16_t imm)
+{
+	return addi(dest, 0, imm);
 }
 
 static uint32_t fence_i(void)

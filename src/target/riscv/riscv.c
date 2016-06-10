@@ -12,6 +12,7 @@
 #include "jtag/jtag.h"
 #include "opcodes.h"
 #include "register.h"
+#include "breakpoints.h"
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -27,6 +28,8 @@
 #define DEBUG_ROM_RESUME        (DEBUG_ROM_START + 4)
 #define DEBUG_ROM_EXCEPTION     (DEBUG_ROM_START + 8)
 #define DEBUG_RAM_START         0x400
+
+#define SETHALTNOT				0x10c
 
 /*** JTAG registers. ***/
 
@@ -230,7 +233,6 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 
 	static const char *op_string[] = {"nop", "r", "w", "cw"};
 	static const char *status_string[] = {"+", "nw", "F", "b"};
-	/*
 	LOG_DEBUG("vvv $display(\"hardware: dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x\");",
 			field.num_bits,
 			op_string[buf_get_u32(out, 0, 2)],
@@ -239,7 +241,7 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 			status_string[buf_get_u32(in, 0, 2)],
 			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
 			buf_get_u32(in, 36, info->addrbits));
-			*/
+	/*
 	LOG_DEBUG("dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x",
 			field.num_bits,
 			op_string[buf_get_u32(out, 0, 2)],
@@ -248,6 +250,7 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 			status_string[buf_get_u32(in, 0, 2)],
 			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
 			buf_get_u32(in, 36, info->addrbits));
+			*/
 
 	//debug_scan(target);
 
@@ -327,7 +330,9 @@ static void dram_write32(struct target *target, unsigned int index, uint32_t val
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	if (info->dram_valid & (1<<index) && info->dram[index] == value) {
+	if (!set_interrupt &&
+			info->dram_valid & (1<<index) &&
+			info->dram[index] == value) {
 		LOG_DEBUG("DRAM cache hit: 0x%x @%d", value, index);
 		return;
 	}
@@ -430,6 +435,21 @@ static int wait_for_debugint_clear(struct target *target)
 	}
 }
 
+static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
+{
+	dram_write32(target, 0, csrr(S0, csr), false);
+	dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	dram_write_jump(target, 2, true);
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+	*value = dram_read32(target, 4);
+
+	return ERROR_OK;
+}
+
 static int resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution, bool step)
 {
@@ -453,13 +473,37 @@ static int resume(struct target *target, int current, uint32_t address,
 		return ERROR_FAIL;
 	}
 
-	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
-	if (step) {
-		dram_write32(target, 1, csrsi(CSR_DCSR, DCSR_STEP), false);
-	} else {
-		dram_write32(target, 1, csrci(CSR_DCSR, DCSR_STEP), false);
+	uint32_t dcsr;
+	if (read_csr(target, &dcsr, CSR_DCSR) != ERROR_OK) {
+		return ERROR_FAIL;
 	}
-	dram_write_jump(target, 2, true);
+
+	LOG_DEBUG("DCSR=0x%x", dcsr);
+	dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
+	dcsr &= ~DCSR_HALT;
+
+	if (step) {
+		dcsr |= DCSR_STEP;
+	} else {
+		dcsr &= ~DCSR_STEP;
+	}
+
+	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	dram_write32(target, 1, csrw(S0, CSR_DCSR), false);
+	dram_write_jump(target, 2, false);
+
+	// Write DCSR value, set interrupt and clear haltnot.
+	uint64_t dbus_value = DMCONTROL_INTERRUPT | dcsr;
+	dbus_write(target, dram_address(4), dbus_value);
+	info->dram_valid |= (1<<4);
+	info->dram[4] = dcsr;
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
+
+	target->state = TARGET_RUNNING;
 
 	return ERROR_OK;
 }
@@ -634,96 +678,6 @@ static void riscv_deinit_target(struct target *target)
 }
 
 #if 0
-static void megan_sequence(struct target *target)
-{
-	uint64_t data;
-	// [RISCV]: DBUS Input = (Addr: 11, Data: 3aaaaaaaa Op: 1)
-	// [RISCV]:        DBUS Result = 00xxxxxxxxx  (Addr: 00, Data: xxxxxxxxx Res: x)
-	dbus_scan(target, &data, DBUS_OP_READ, 0x11, 0x3aaaaaaaa);
-	// [RISCV]: Reading DMINFO
-	// [RISCV]: DBUS Input = (Addr: 11, Data: 3aaaaaaaa Op: 1)
-	// [RISCV]:        DBUS Result = 1100000f084  (Addr: 11, Data: 000003c21 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_READ, 0x11, 0x3aaaaaaaa);
-
-	// extra, to actually read dminfo
-	dbus_scan(target, &data, DBUS_OP_READ, 0x11, 0x3aaaaaaaa);
-
-	// [RISCV]:WRITING Debug RAM (interrupt is not set)
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 0fff04493 Op: 2)
-	// [RISCV]:        DBUS Result = 1100000f084  (Addr: 11, Data: 000003c21 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_WRITE, 0, 0x0fff04493);
-	// [RISCV]: DBUS Input = (Addr: 01, Data: 001f4d493 Op: 2)
-	// [RISCV]:        DBUS Result = 003ee1643dc  (Addr: 00, Data: 0fb8590f7 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_WRITE, 1, 0x001f4d493);
-	// [RISCV]: DBUS Input = (Addr: 02, Data: 040902023 Op: 2)
-	// [RISCV]:        DBUS Result = 013ee1643dc  (Addr: 01, Data: 0fb8590f7 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_WRITE, 2, 0x040902023);
-	// [RISCV]: DBUS Input = (Addr: 03, Data: 001f4d493 Op: 2)
-	// [RISCV]:        DBUS Result = 023ee1643dc  (Addr: 02, Data: 0fb8590f7 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_WRITE, 3, 0x001f4d493);
-	// [RISCV]: DBUS Input = (Addr: 04, Data: 040902223 Op: 2)
-	// [RISCV]:        DBUS Result = 033ee1643dc  (Addr: 03, Data: 0fb8590f7 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_WRITE, 4, 0x040902223);
-	// [RISCV]:On last write to  Debug RAM, interrupt is set.
-	// [RISCV]: DBUS Input = (Addr: 05, Data: 23f00006f Op: 2)
-	// [RISCV]:        DBUS Result = 043ee1643dc  (Addr: 04, Data: 0fb8590f7 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_WRITE, 5, 0x23f00006f);
-	// [RISCV]: Performing "priming" read from Debug RAM
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
-	// [RISCV]:        DBUS Result = 053ee1643dc  (Addr: 05, Data: 0fb8590f7 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
-	// [RISCV]: Polling until INTERRUPT is not set
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
-	// [RISCV]:        DBUS Result = 00fffc1124c  (Addr: 00, Data: 3fff04493 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
-	// [RISCV]:        DBUS Result = 00fffc1124c  (Addr: 00, Data: 3fff04493 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
-	// [RISCV]:        DBUS Result = 00c00000004  (Addr: 00, Data: 300000001 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
-	// [RISCV]:        DBUS Result = 00400000004  (Addr: 00, Data: 100000001 Res: 0)
-	dbus_scan(target, &data, DBUS_OP_READ, 0, 0);
-	// [RISCV]:READING Debug RAM (interrupt is not set)
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 00400000004  (Addr: 00, Data: 100000001 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 01, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 00400000004  (Addr: 00, Data: 100000001 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 02, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 01400000000  (Addr: 01, Data: 100000000 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 03, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0250240808c  (Addr: 02, Data: 140902023 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 04, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 03407d3524c  (Addr: 03, Data: 101f4d493 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 05, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0450240888c  (Addr: 04, Data: 140902223 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 06, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 054fc0001bc  (Addr: 05, Data: 13f00006f Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 07, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0642a1643dc  (Addr: 06, Data: 10a8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 08, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 077ee17e7dc  (Addr: 07, Data: 1fb85f9f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 09, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 087ee1643dc  (Addr: 08, Data: 1fb8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 0a, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 097ee1643dc  (Addr: 09, Data: 1fb8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 0b, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0a7ee1643dc  (Addr: 0a, Data: 1fb8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 0c, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0b7ee1643dc  (Addr: 0b, Data: 1fb8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 0d, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0c7ee1643dc  (Addr: 0c, Data: 1fb8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 0e, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0d7ee1643dc  (Addr: 0d, Data: 1fb8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 0f, Data: 0babecafe Op: 1)
-	// [RISCV]:        DBUS Result = 0e7ee1643dc  (Addr: 0e, Data: 1fb8590f7 Res: 0)
-	// [RISCV]: DBUS Input = (Addr: 00, Data: 000000000 Op: 1)
-	// [RISCV]:        DBUS Result = 0f56cfc76d8  (Addr: 0f, Data: 15b3f1db6 Res: 0)
-}
-#endif
-
-#if 0
 static void dram_test(struct target *target)
 {
 	uint32_t shadow[16];
@@ -739,6 +693,50 @@ static void dram_test(struct target *target)
 				LOG_ERROR("Mismatch! j=%d i=%d", j, i);
 			}
 		}
+	}
+}
+#endif
+
+#if 0
+static void light_leds(struct target *target)
+{
+	dram_write32(target, 0, lui(S0, 0x70002), false);
+	dram_write32(target, 1, lui(S1, 0xccccc), false);
+	dram_write32(target, 2, sw(S1, S0, 0xa0), false);
+	dram_write32(target, 3, jal(ZERO, 0), true);
+}
+#endif
+
+static void dump_debug_ram(struct target *target)
+{
+	for (unsigned int i = 0; i < 16; i++) {
+		uint32_t value = dram_read32(target, i);
+		LOG_ERROR("Debug RAM 0x%x: 0x%08x", i, value);
+	}
+}
+
+#if 0
+static void write_constants(struct target *target)
+{
+	dram_write32(target, 0, lui(S0, 0x70002), false);
+	dram_write32(target, 1, lui(S1, 0xccccc), false);
+	dram_write32(target, 2, sw(S0, ZERO, DEBUG_RAM_START + 0), false);
+	dram_write32(target, 3, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
+	dram_write_jump(target, 4, true);
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+	}
+
+	uint32_t word0 = dram_read32(target, 0);
+	uint32_t word1 = dram_read32(target, 1);
+	if (word0 != 0x70002000) {
+		LOG_ERROR("Value at word 0 should be 0x%x but is 0x%x",
+				0x70002000, word0);
+	}
+	if (word1 != 0x70002000) {
+		LOG_ERROR("Value at word 1 should be 0x%x but is 0x%x",
+				0x70002000, word1);
 	}
 }
 #endif
@@ -791,6 +789,8 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	//write_constants(target);
+	//light_leds(target);
 	//dram_test(target);
 
 	// Figure out XLEN.
@@ -811,6 +811,7 @@ static int riscv_examine(struct target *target)
 	error += dram_check32(target, 3, srli(S1, S1, 31));
 	error += dram_check32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
 	if (error != 5 * ERROR_OK) {
+		dump_debug_ram(target);
 		return ERROR_FAIL;
 	}
 
@@ -822,8 +823,6 @@ static int riscv_examine(struct target *target)
 #else
 	dram_write_jump(target, 5, true);
 #endif
-
-	dram_write32(target, info->dramsize - 1, 0xdeadbeef, false);
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
@@ -864,7 +863,13 @@ static int riscv_poll(struct target *target)
 		LOG_DEBUG("debug running");
 	} else if (bits.haltnot && !bits.interrupt) {
 		target->state = TARGET_HALTED;
-		LOG_DEBUG("halted");
+
+		uint32_t dpc;
+		if (read_csr(target, &dpc, CSR_DPC) != ERROR_OK) {
+			return ERROR_FAIL;
+		}
+
+		LOG_DEBUG("halted at 0x%x", dpc);
 	} else if (!bits.haltnot && bits.interrupt) {
 		// Target is halting. There is no state for that, so don't change anything.
 		LOG_DEBUG("halting");
@@ -880,8 +885,16 @@ static int riscv_halt(struct target *target)
 {
 	LOG_DEBUG("riscv_halt()");
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
 	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
-	dram_write_jump(target, 1, true);
+	dram_write32(target, 1, csrr(S0, CSR_MHARTID), false);
+	dram_write32(target, 2, sw(S0, ZERO, SETHALTNOT), false);
+	dram_write_jump(target, 3, true);
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		return ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
@@ -1059,10 +1072,11 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-#if 0
+#if 1
 static int riscv_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	// TODO: save/restore T0
 
@@ -1132,6 +1146,8 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 			LOG_ERROR("dbus write failed!");
 			return ERROR_FAIL;
 		}
+		info->dram_valid |= (1<<4);
+		info->dram[4] = value;
 	}
 
 	return ERROR_OK;
@@ -1230,7 +1246,39 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	return ERROR_OK;
 }
 
-struct target_type riscv_target = {
+int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
+{
+    if (breakpoint->type != BKPT_SOFT) {
+        LOG_INFO("OpenOCD only supports software breakpoints.");
+        return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+    }
+
+    if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
+                breakpoint->orig_instr) != ERROR_OK) {
+        LOG_ERROR("Failed to read original instruction at 0x%x",
+                breakpoint->address);
+        return ERROR_FAIL;
+    }
+
+    int retval;
+    if (breakpoint->length == 4) {
+        retval = target_write_u32(target, breakpoint->address, ebreak());
+    } else {
+        retval = target_write_u16(target, breakpoint->address, ebreak_c());
+    }
+    if (retval != ERROR_OK) {
+        LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%x",
+                breakpoint->length, breakpoint->address);
+        return ERROR_FAIL;
+    }
+
+    breakpoint->set = true;
+
+    return ERROR_OK;
+}
+
+struct target_type riscv_target =
+{
 	.name = "riscv",
 
 	.init_target = riscv_init_target,
@@ -1251,4 +1299,6 @@ struct target_type riscv_target = {
 	.write_memory = riscv_write_memory,
 
 	.get_gdb_reg_list = riscv_get_gdb_reg_list,
+
+	.add_breakpoint = riscv_add_breakpoint,
 };

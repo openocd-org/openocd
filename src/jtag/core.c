@@ -838,6 +838,7 @@ int default_interface_jtag_execute_queue(void)
 
 	int result = jtag->execute_queue();
 
+#if 0
 	// TODO: I like these better than some of the other JTAG debug statements,
 	// but having both is silly.
 	struct jtag_command *cmd = jtag_command_queue;
@@ -946,6 +947,7 @@ int default_interface_jtag_execute_queue(void)
 		}
 		cmd = cmd->next;
 	}
+#endif
 
 	return result;
 }
