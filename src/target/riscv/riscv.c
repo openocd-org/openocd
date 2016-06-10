@@ -604,39 +604,35 @@ static int register_get(struct reg *reg)
 	return ERROR_OK;
 }
 
-static int register_set(struct reg *reg, uint8_t *buf)
+static int register_write(struct target *target, unsigned int number,
+		uint32_t value)
 {
-	struct target *target = (struct target *) reg->arch_info;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	uint32_t value = buf_get_u32(buf, 0, 32);
-
-	LOG_DEBUG("write 0x%x to %s", value, reg->name);
-
-	if (reg->number == S0) {
+	if (number == S0) {
 		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
 		dram_write32(target, 1, csrw(S0, CSR_DSCRATCH), false);
 		dram_write_jump(target, 2, false);
-	} else if (reg->number == S1) {
+	} else if (number == S1) {
 		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
 		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4), false);
 		dram_write_jump(target, 2, false);
-	} else if (reg->number <= REG_XPR31) {
-		dram_write32(target, 0, lw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START + 16), false);
+	} else if (number <= REG_XPR31) {
+		dram_write32(target, 0, lw(number - REG_XPR0, ZERO, DEBUG_RAM_START + 16), false);
 		dram_write_jump(target, 1, false);
-	} else if (reg->number == REG_PC) {
+	} else if (number == REG_PC) {
 		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
 		dram_write32(target, 1, csrw(S0, CSR_DPC), false);
 		dram_write_jump(target, 2, false);
-	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
-		dram_write32(target, 0, flw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16), false);
+	} else if (number >= REG_FPR0 && number <= REG_FPR31) {
+		dram_write32(target, 0, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16), false);
 		dram_write_jump(target, 1, false);
-	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
+	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
 		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-		dram_write32(target, 1, csrw(S0, reg->number - REG_CSR0), false);
+		dram_write32(target, 1, csrw(S0, number - REG_CSR0), false);
 		dram_write_jump(target, 2, false);
 	} else {
-		LOG_ERROR("Don't know how to read register %d (%s)", reg->number, reg->name);
+		LOG_ERROR("Don't know how to read register %d", number);
 		return ERROR_FAIL;
 	}
 
@@ -648,6 +644,17 @@ static int register_set(struct reg *reg, uint8_t *buf)
 	}
 
 	return ERROR_OK;
+}
+
+static int register_set(struct reg *reg, uint8_t *buf)
+{
+	struct target *target = (struct target *) reg->arch_info;
+
+	uint32_t value = buf_get_u32(buf, 0, 32);
+
+	LOG_DEBUG("write 0x%x to %s", value, reg->name);
+
+	return register_write(target, reg->number, value);
 }
 
 static struct reg_arch_type riscv_reg_arch_type = {
@@ -1185,14 +1192,15 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-	// TODO: save/restore T0
 
 	// Set up the address.
-	dram_write32(target, 0, lw(T0, ZERO, DEBUG_RAM_START + 16), false);
-	dram_write_jump(target, 1, false);
+	dram_write32(target, 0, sw(T0, ZERO, DEBUG_RAM_START + 20), false);
+	dram_write32(target, 1, lw(T0, ZERO, DEBUG_RAM_START + 16), false);
+	dram_write_jump(target, 2, false);
 	dram_write32(target, 4, address, true);
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	uint32_t t0;
+	if (wait_and_read(target, &t0, 5) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
@@ -1257,7 +1265,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		info->dram[4] = value;
 	}
 
-	return ERROR_OK;
+	return register_write(target, T0, t0);
 }
 #else
 /** Inefficient implementation that doesn't require conditional writes. */
