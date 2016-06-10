@@ -497,19 +497,13 @@ static int resume(struct target *target, int current, uint32_t address,
 		return ERROR_FAIL;
 	}
 
-	uint32_t dcsr;
-	if (read_csr(target, &dcsr, CSR_DCSR) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-
-	LOG_DEBUG("DCSR=0x%x", dcsr);
-	dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
-	dcsr &= ~DCSR_HALT;
+	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
+	info->dcsr &= ~DCSR_HALT;
 
 	if (step) {
-		dcsr |= DCSR_STEP;
+		info->dcsr |= DCSR_STEP;
 	} else {
-		dcsr &= ~DCSR_STEP;
+		info->dcsr &= ~DCSR_STEP;
 	}
 
 	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
@@ -517,10 +511,10 @@ static int resume(struct target *target, int current, uint32_t address,
 	dram_write_jump(target, 2, false);
 
 	// Write DCSR value, set interrupt and clear haltnot.
-	uint64_t dbus_value = DMCONTROL_INTERRUPT | dcsr;
+	uint64_t dbus_value = DMCONTROL_INTERRUPT | info->dcsr;
 	dbus_write(target, dram_address(4), dbus_value);
 	info->dram_valid |= (1<<4);
-	info->dram[4] = dcsr;
+	info->dram[4] = info->dcsr;
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
@@ -962,6 +956,7 @@ static int riscv_examine(struct target *target)
 
 static int handle_halt(struct target *target)
 {
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	target->state = TARGET_HALTED;
 
 	uint32_t dpc;
@@ -969,12 +964,11 @@ static int handle_halt(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	uint32_t dcsr;
-	if (read_csr(target, &dcsr, CSR_DCSR) != ERROR_OK) {
+	if (read_csr(target, &info->dcsr, CSR_DCSR) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
-	int cause = get_field(dcsr, DCSR_CAUSE);
-        LOG_DEBUG("halt cause is %d; dcsr=0x%x", cause, dcsr);
+	int cause = get_field(info->dcsr, DCSR_CAUSE);
+	LOG_DEBUG("halt cause is %d; dcsr=0x%x", cause, info->dcsr);
 	switch (cause) {
 		case DCSR_CAUSE_SWBP:
 		case DCSR_CAUSE_HWBP:
@@ -989,7 +983,7 @@ static int handle_halt(struct target *target)
 		case DCSR_CAUSE_HALT:
 		default:
 			LOG_ERROR("Invalid halt cause %d in DCSR (0x%x)",
-					cause, dcsr);
+					cause, info->dcsr);
 	}
 
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -1032,6 +1026,7 @@ static int riscv_resume(struct target *target, int current, uint32_t address,
 
 static int riscv_assert_reset(struct target *target)
 {
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	// TODO: Maybe what I implemented here is more like soft_reset_halt()?
 
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
@@ -1044,18 +1039,18 @@ static int riscv_assert_reset(struct target *target)
 
 	// Not sure what we should do when there are multiple cores.
 	// Here just reset the single hart we're talking to.
-	uint32_t dcsr = DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS |
+	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS |
 		DCSR_EBREAKU | DCSR_HALT;
 	if (target->reset_halt) {
-		dcsr |= DCSR_NDRESET;
+		info->dcsr |= DCSR_NDRESET;
 	} else {
-		dcsr |= DCSR_FULLRESET;
+		info->dcsr |= DCSR_FULLRESET;
 	}
 	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
 	dram_write32(target, 1, csrw(S0, CSR_DCSR), false);
 	// We shouldn't actually need the jump because a reset should happen.
 	dram_write_jump(target, 2, false);
-	dram_write32(target, 4, dcsr, true);
+	dram_write32(target, 4, info->dcsr, true);
 
 	target->state = TARGET_RESET;
 
