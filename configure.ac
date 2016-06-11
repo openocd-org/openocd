@@ -221,7 +221,7 @@ m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP]]])
 
 m4_define([LIBJAYLINK_ADAPTERS],
-	[[[jlink], [Segger J-Link JTAG Programmer], [JLINK]]])
+	[[[jlink], [SEGGER J-Link Programmer], [JLINK]]])
 
 #========================================
 # FTD2XXX support comes in 4 forms.
