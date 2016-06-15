@@ -74,8 +74,8 @@ typedef enum {
 /*** Debug Bus registers. ***/
 
 #define DMCONTROL				0x10
-#define DMCONTROL_INTERRUPT		(1L<<33)
-#define DMCONTROL_HALTNOT		(1L<<32)
+#define DMCONTROL_INTERRUPT		(((uint64_t)1)<<33)
+#define DMCONTROL_HALTNOT		(((uint64_t)1)<<32)
 #define DMCONTROL_BUSERROR		(7<<19)
 #define DMCONTROL_SERIAL		(3<<16)
 #define DMCONTROL_AUTOINCREMENT	(1<<15)
@@ -307,8 +307,8 @@ static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 		status = dbus_scan(target, NULL, DBUS_OP_WRITE, address, value);
 	}
 	if (status != DBUS_STATUS_SUCCESS) {
-		LOG_ERROR("dbus_write failed write 0x%lx to 0x%x; status=%d\n", value,
-				address, status);
+		LOG_ERROR("dbus_write failed write 0x%" PRIx64 " to 0x%x; status=%d\n",
+				value, address, status);
 	}
 }
 
