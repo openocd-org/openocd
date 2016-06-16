@@ -116,7 +116,14 @@ enum {
 	REG_COUNT
 };
 
-#define MAX_HWBPS	16
+#define MAX_HWBPS			16
+#define DRAM_CACHE_SIZE		16
+
+struct memory_cache_line {
+	uint32_t data;
+	bool valid;
+	bool dirty;
+};
 
 typedef struct {
 	/* Number of address bits in the dbus register. */
@@ -130,14 +137,10 @@ typedef struct {
 	dbus_op_t dbus_op;
 	/* Number of words in Debug RAM. */
 	unsigned int dramsize;
-	/* Our local copy of Debug RAM. */
-	uint32_t *dram;
-	/* One bit for every word in dram. If the bit is set, then we're
-	 * confident that the value we have matches the one in actual Debug
-	 * RAM. */
-	uint64_t dram_valid;
 	uint32_t dcsr;
 	uint32_t dpc;
+
+	struct memory_cache_line dram_cache[DRAM_CACHE_SIZE];
 
 	struct reg *reg_list;
 	/* Single buffer that contains all register names, instead of calling
@@ -279,7 +282,8 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 	return buf_get_u64(in, DBUS_OP_START, DBUS_OP_SIZE);
 }
 
-static uint64_t dbus_read(struct target *target, uint16_t address, uint16_t next_address)
+static uint64_t dbus_read(struct target *target, uint16_t address,
+		uint16_t next_address)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	uint64_t value;
@@ -338,38 +342,125 @@ static uint32_t dtminfo_read(struct target *target)
 
 static uint32_t dram_read32(struct target *target, unsigned int index)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	// TODO: check cache to see if this even needs doing.
 	uint16_t address = dram_address(index);
 	uint32_t value = dbus_read(target, address, address);
-	info->dram_valid |= (1<<index);
-	info->dram[index] = value;
 	return value;
 }
 
 static void dram_write32(struct target *target, unsigned int index, uint32_t value,
 		bool set_interrupt)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-
-#if 1
-	if (!set_interrupt &&
-			info->dram_valid & (1<<index) &&
-			info->dram[index] == value) {
-		LOG_DEBUG("DRAM cache hit: 0x%x @%d", value, index);
-		return;
-	}
-#endif
-
 	uint64_t dbus_value = DMCONTROL_HALTNOT | value;
 	if (set_interrupt)
 		dbus_value |= DMCONTROL_INTERRUPT;
 	dbus_write(target, dram_address(index), dbus_value);
-	info->dram_valid |= (1<<index);
-	info->dram[index] = value;
 }
 
-#if 1
+/** Read the haltnot and interrupt bits. */
+static bits_t read_bits(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	static int next_address = 0;
+
+	uint64_t value;
+	if (info->dbus_address < 0x10 || info->dbus_address == DMCONTROL) {
+		value = dbus_read(target, info->dbus_address, next_address);
+	} else {
+		value = dbus_read(target, 0, next_address);
+	}
+
+	bits_t result = {
+		.haltnot = get_field(value, DMCONTROL_HALTNOT),
+		.interrupt = get_field(value, DMCONTROL_INTERRUPT)
+	};
+	return result;
+}
+
+static int wait_for_debugint_clear(struct target *target)
+{
+	time_t start = time(NULL);
+	// Throw away the results of the first read, since they'll contain the
+	// result of the read that happened just before debugint was set. (Assuming
+	// the last scan before calling this function was one that sets debugint.)
+	read_bits(target);
+	while (1) {
+		bits_t bits = read_bits(target);
+		if (!bits.interrupt) {
+			return ERROR_OK;
+		}
+		if (time(NULL) - start > 2) {
+			LOG_ERROR("Timed out waiting for debug int to clear.");
+			return ERROR_FAIL;
+		}
+	}
+}
+
+static void cache_set(struct target *target, unsigned int index, uint32_t data)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	if (info->dram_cache[index].valid &&
+			info->dram_cache[index].data == data) {
+		// This is already preset on the target.
+		LOG_DEBUG("Cache hit at 0x%x for data 0x%x", index, data);
+		return;
+	}
+	info->dram_cache[index].data = data;
+	info->dram_cache[index].valid = true;
+	info->dram_cache[index].dirty = true;
+}
+
+static void cache_set_jump(struct target *target, unsigned int index)
+{
+	cache_set(target, index,
+			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))));
+}
+
+static void dump_debug_ram(struct target *target)
+{
+	for (unsigned int i = 0; i < 16; i++) {
+		uint32_t value = dram_read32(target, i);
+		LOG_ERROR("Debug RAM 0x%x: 0x%08x", i, value);
+	}
+}
+
+/** Run the program written to the debug RAM cache. */
+static int cache_run(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	unsigned int last = DRAM_CACHE_SIZE;
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		if (info->dram_cache[i].dirty) {
+			last = i;
+			break;
+		}
+	}
+
+	if (last == DRAM_CACHE_SIZE) {
+		// Nothing needs to be written to RAM.
+		dram_write32(target, DMCONTROL, 0, true);
+
+	} else {
+		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+			if (i != last && info->dram_cache[i].dirty) {
+				dram_write32(target, i, info->dram_cache[i].data, false);
+				info->dram_cache[i].dirty = false;
+			}
+		}
+		dram_write32(target, last, info->dram_cache[last].data, true);
+		info->dram_cache[last].dirty = false;
+	}
+
+	if (wait_for_debugint_clear(target) != ERROR_OK) {
+		LOG_ERROR("Debug interrupt didn't clear.");
+		dump_debug_ram(target);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+#if 0
 static int dram_check32(struct target *target, unsigned int index,
 		uint32_t expected)
 {
@@ -383,35 +474,6 @@ static int dram_check32(struct target *target, unsigned int index,
 	return ERROR_OK;
 }
 #endif
-
-/* Read the haltnot and interrupt bits. */
-static bits_t read_bits(struct target *target)
-{
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	static int next_address = 0;
-
-	uint64_t value;
-	if (info->dbus_address < 0x10 || info->dbus_address == DMCONTROL) {
-		value = dbus_read(target, info->dbus_address, next_address);
-	} else {
-		value = dbus_read(target, 0, next_address);
-	}
-
-	if (info->dram_valid) {
-		// Cycle through addresses, so we have more debug info. Only look at
-		// ones that we've written, to reduce data mismatch between real life
-		// and simulation.
-		do {
-			next_address = (next_address + 1) % 64;
-		} while (!(info->dram_valid & (1<<next_address)));
-	}
-
-	bits_t result = {
-		.haltnot = get_field(value, DMCONTROL_HALTNOT),
-		.interrupt = get_field(value, DMCONTROL_INTERRUPT)
-	};
-	return result;
-}
 
 /* Write instruction that jumps from the specified word in Debug RAM to resume
  * in Debug ROM. */
@@ -435,25 +497,6 @@ static int wait_for_state(struct target *target, enum target_state state)
 		}
 		if (time(NULL) - start > 2) {
 			LOG_ERROR("Timed out waiting for state %d.", state);
-			return ERROR_FAIL;
-		}
-	}
-}
-
-static int wait_for_debugint_clear(struct target *target)
-{
-	time_t start = time(NULL);
-	// Throw away the results of the first read, since they'll contain the
-	// result of the read that happened just before debugint was set. (Assuming
-	// the last scan before calling this function was one that sets debugint.)
-	read_bits(target);
-	while (1) {
-		bits_t bits = read_bits(target);
-		if (!bits.interrupt) {
-			return ERROR_OK;
-		}
-		if (time(NULL) - start > 2) {
-			LOG_ERROR("Timed out waiting for debug int to clear.");
 			return ERROR_FAIL;
 		}
 	}
@@ -557,8 +600,6 @@ static int resume(struct target *target, int current, uint32_t address,
 	// Write DCSR value, set interrupt and clear haltnot.
 	uint64_t dbus_value = DMCONTROL_INTERRUPT | info->dcsr;
 	dbus_write(target, dram_address(4), dbus_value);
-	info->dram_valid |= (1<<4);
-	info->dram[4] = info->dcsr;
 
 	if (wait_for_debugint_clear(target) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
@@ -643,8 +684,6 @@ static int register_get(struct reg *reg)
 
 	LOG_DEBUG("%s=0x%x", reg->name, value);
 	buf_set_u32(reg->value, 0, 32, value);
-
-	info->dram_valid &= ~1;
 
 	return ERROR_OK;
 }
@@ -754,8 +793,6 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	}
 	update_reg_list(target);
 
-	info->dram_valid = 0;
-
 	memset(info->hwbp_unique_id, 0xff, sizeof(info->hwbp_unique_id));
 
 	return ERROR_OK;
@@ -765,9 +802,6 @@ static void riscv_deinit_target(struct target *target)
 {
 	LOG_DEBUG("riscv_deinit_target()");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	if (info->dram) {
-		free(info->dram);
-	}
 	free(info);
 	target->arch_info = NULL;
 }
@@ -846,14 +880,6 @@ static void light_leds(struct target *target)
 }
 #endif
 
-static void dump_debug_ram(struct target *target)
-{
-	for (unsigned int i = 0; i < 16; i++) {
-		uint32_t value = dram_read32(target, i);
-		LOG_ERROR("Debug RAM 0x%x: 0x%08x", i, value);
-	}
-}
-
 #if 0
 static void write_constants(struct target *target)
 {
@@ -911,8 +937,6 @@ static int riscv_examine(struct target *target)
 	info->addrbits = get_field(dtminfo, DTMINFO_ADDRBITS);
 
 	uint32_t dminfo = dbus_read(target, DMINFO, 0);
-	// TODO: need to read dminfo twice to get the correct value.
-	dminfo = dbus_read(target, DMINFO, 0);
 	LOG_DEBUG("dminfo: 0x%08x", dminfo);
 	LOG_DEBUG("  abussize=0x%x", get_field(dminfo, DMINFO_ABUSSIZE));
 	LOG_DEBUG("  serialcount=0x%x", get_field(dminfo, DMINFO_SERIALCOUNT));
@@ -928,15 +952,12 @@ static int riscv_examine(struct target *target)
 	LOG_DEBUG("  version=0x%x", get_field(dminfo, DMINFO_VERSION));
 
 	if (get_field(dminfo, DMINFO_VERSION) != 1) {
-		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d",
-				get_field(dminfo, DMINFO_VERSION));
+		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d "
+				"(dminfo=0x%x)", get_field(dminfo, DMINFO_VERSION), dminfo);
 		return ERROR_FAIL;
 	}
 
 	info->dramsize = get_field(dminfo, DMINFO_DRAMSIZE) + 1;
-	info->dram = malloc(info->dramsize * 4);
-	if (!info->dram)
-		return ERROR_FAIL;
 
 	if (get_field(dminfo, DMINFO_AUTHTYPE) != 0) {
 		LOG_ERROR("Authentication required by RISC-V core but not "
@@ -945,15 +966,20 @@ static int riscv_examine(struct target *target)
 	}
 
 	// Figure out XLEN.
-	dram_write32(target, 0, xori(S1, ZERO, -1), false);
+	cache_set(target, 0, xori(S1, ZERO, -1));
 	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
-	dram_write32(target, 1, srli(S1, S1, 31), false);
+	cache_set(target, 1, srli(S1, S1, 31));
 	// 0x00000001  0x00000001:ffffffff  0x00000001:ffffffff:ffffffff:ffffffff
-	dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START), false);
-	dram_write32(target, 3, srli(S1, S1, 31), false);
+	cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
+	cache_set(target, 3, srli(S1, S1, 31));
 	// 0x00000000  0x00000000:00000003  0x00000000:00000003:ffffffff:ffffffff
-	dram_write32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
+	cache_set(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
+	cache_set_jump(target, 5);
 
+	cache_run(target);
+
+#if 0
+	// TODO
 	// Check that we can actually read/write dram.
 	int error = 0;
 	error += dram_check32(target, 0, xori(S1, ZERO, -1));
@@ -965,14 +991,7 @@ static int riscv_examine(struct target *target)
 		dump_debug_ram(target);
 		return ERROR_FAIL;
 	}
-
-	// Execute.
-	dram_write_jump(target, 5, true);
-
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
+#endif
 
 	uint32_t word0 = dram_read32(target, 0);
 	uint32_t word1 = dram_read32(target, 1);
@@ -1235,7 +1254,6 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 static int riscv_write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	// Set up the address.
@@ -1306,8 +1324,6 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 			LOG_ERROR("dbus write failed!");
 			return ERROR_FAIL;
 		}
-		info->dram_valid |= (1<<4);
-		info->dram[4] = value;
 	}
 
 	return register_write(target, T0, t0);
@@ -1534,6 +1550,11 @@ static int riscv_remove_breakpoint(struct target *target, struct breakpoint *bre
 	return ERROR_OK;
 }
 
+int riscv_arch_state(struct target *target)
+{
+	return ERROR_OK;
+}
+
 struct target_type riscv_target =
 {
 	.name = "riscv",
@@ -1559,4 +1580,6 @@ struct target_type riscv_target =
 
 	.add_breakpoint = riscv_add_breakpoint,
 	.remove_breakpoint = riscv_remove_breakpoint,
+
+	.arch_state = riscv_arch_state,
 };
