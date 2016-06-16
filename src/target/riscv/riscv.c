@@ -827,12 +827,12 @@ static int riscv_halt(struct target *target)
 static int riscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 	// Hardware single step doesn't exist yet.
-#if 0
+#if 1
 	return resume(target, current, address, handle_breakpoints, 0, true);
 #else
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	uint32_t next_pc = info->dpc + 4;
 	// TODO: write better next pc prediction code
 	if (breakpoint_add(target, next_pc, 4, BKPT_SOFT) != ERROR_OK) {
