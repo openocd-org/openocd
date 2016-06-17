@@ -152,6 +152,17 @@ typedef struct {
 	// For each physical hwbp, contains ~0 if the hwbp is available, or the
 	// unique_id of the breakpoint that is using it.
 	uint32_t hwbp_unique_id[MAX_HWBPS];
+
+	// This value is incremented every time a dbus access comes back as "busy".
+	// It's used to determine how many run-test/idle cycles to feed the target
+	// in between accesses.
+	unsigned int dbus_busy_count;
+
+	// This value is incremented every time we read the debug interrupt as
+	// high.  It's used to add extra run-test/idle cycles after setting debug
+	// interrupt high, so ideally we never have to perform a whole extra scan
+	// before the interrupt is cleared.
+	unsigned int interrupt_high_count;
 } riscv_info_t;
 
 typedef struct {
@@ -376,13 +387,16 @@ static bits_t read_bits(struct target *target)
 	return result;
 }
 
-static int wait_for_debugint_clear(struct target *target)
+static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 {
 	time_t start = time(NULL);
-	// Throw away the results of the first read, since they'll contain the
-	// result of the read that happened just before debugint was set. (Assuming
-	// the last scan before calling this function was one that sets debugint.)
-	read_bits(target);
+	if (ignore_first) {
+		// Throw away the results of the first read, since they'll contain the
+		// result of the read that happened just before debugint was set.
+		// (Assuming the last scan before calling this function was one that
+		// sets debugint.)
+		read_bits(target);
+	}
 	while (1) {
 		bits_t bits = read_bits(target);
 		if (!bits.interrupt) {
@@ -424,15 +438,15 @@ static void dump_debug_ram(struct target *target)
 }
 
 /** Run the program written to the debug RAM cache. */
-static int cache_run(struct target *target)
+static int cache_run(struct target *target, unsigned int address)
 {
+	LOG_DEBUG("enter");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-
+#if 0
 	unsigned int last = DRAM_CACHE_SIZE;
 	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
 		if (info->dram_cache[i].dirty) {
 			last = i;
-			break;
 		}
 	}
 
@@ -442,6 +456,7 @@ static int cache_run(struct target *target)
 
 	} else {
 		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+
 			if (i != last && info->dram_cache[i].dirty) {
 				dram_write32(target, i, info->dram_cache[i].data, false);
 				info->dram_cache[i].dirty = false;
@@ -450,12 +465,159 @@ static int cache_run(struct target *target)
 		dram_write32(target, last, info->dram_cache[last].data, true);
 		info->dram_cache[last].dirty = false;
 	}
-
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		dump_debug_ram(target);
 		return ERROR_FAIL;
 	}
+
+#else
+	uint8_t in[(DRAM_CACHE_SIZE + 2) * 8] = {0};
+	uint8_t out[(DRAM_CACHE_SIZE + 2) * 8];
+	struct scan_field field[DRAM_CACHE_SIZE + 2];
+
+	unsigned int last = DRAM_CACHE_SIZE;
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		if (info->dram_cache[i].dirty) {
+			last = i;
+		}
+	}
+
+	unsigned int scan = 0;
+
+	if (last == DRAM_CACHE_SIZE) {
+		// Nothing needs to be written to RAM.
+		dram_write32(target, DMCONTROL, 0, true);
+
+	} else {
+		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+			if (info->dram_cache[i].dirty) {
+				field[scan].num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
+				field[scan].out_value = out + 8*scan;
+				field[scan].in_value = in + 8*scan;
+
+				buf_set_u64(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE, DBUS_OP_WRITE);
+				if (i == last) {
+					buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE,
+							DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT | info->dram_cache[i].data);
+				} else {
+					buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE,
+							DMCONTROL_HALTNOT | info->dram_cache[i].data);
+				}
+				buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, i);
+
+				jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
+				jtag_add_runtest(1 + info->dbus_busy_count / 10, TAP_IDLE);
+
+				LOG_DEBUG("write scan=%d result=%d data=%09lx address=%02x",
+						scan,
+						buf_get_u32(out + 8*i, DBUS_OP_START, DBUS_OP_SIZE),
+						buf_get_u64(out + 8*i, DBUS_DATA_START, DBUS_DATA_SIZE),
+						buf_get_u32(out + 8*i, DBUS_ADDRESS_START, info->addrbits));
+
+				scan++;
+			}
+		}
+	}
+
+	// Throw away the results of the first read, since it'll contain the result
+	// of the read that happened just before debugint was set.
+	field[scan].num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
+	field[scan].out_value = out + 8*scan;
+	field[scan].in_value = NULL;
+
+	buf_set_u64(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE, DBUS_OP_READ);
+	buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE, DMCONTROL_HALTNOT | 0);
+	buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, address);
+
+	jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
+	jtag_add_runtest(1 + info->dbus_busy_count / 10 + info->interrupt_high_count / 10, TAP_IDLE);
+	scan++;
+
+
+	// This scan contains the results of the read the caller requested, as well
+	// as an interrupt bit worth looking at.
+	field[scan].num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
+	field[scan].out_value = out + 8*scan;
+	field[scan].in_value = in + 8*scan;
+
+	buf_set_u64(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE, DBUS_OP_READ);
+	buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE, DMCONTROL_HALTNOT | 0);
+	buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, address);
+
+	jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
+	jtag_add_runtest(1 + info->dbus_busy_count / 10, TAP_IDLE);
+	scan++;
+
+
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("JTAG execute failed.");
+		return retval;
+	}
+
+	int errors = 0;
+	for (unsigned int i = 0; i < scan; i++) {
+		dbus_status_t status = buf_get_u32(in + 8*i, DBUS_OP_START, DBUS_OP_SIZE);
+		switch (status) {
+			case DBUS_STATUS_SUCCESS:
+				break;
+			case DBUS_STATUS_NO_WRITE:
+				LOG_ERROR("Got no-write response to unconditional write. Hardware error?");
+				return ERROR_FAIL;
+			case DBUS_STATUS_FAILED:
+				LOG_ERROR("Debug RAM write failed. Hardware error?");
+				return ERROR_FAIL;
+			case DBUS_STATUS_BUSY:
+				errors++;
+				break;
+		}
+		LOG_DEBUG("read scan=%d result=%d data=%09lx address=%02x",
+				i,
+				buf_get_u32(in + 8*i, DBUS_OP_START, DBUS_OP_SIZE),
+				buf_get_u64(in + 8*i, DBUS_DATA_START, DBUS_DATA_SIZE),
+				buf_get_u32(in + 8*i, DBUS_ADDRESS_START, info->addrbits));
+	}
+
+	if (errors) {
+		LOG_INFO("Target couldn't handle our write speed. Slowing down...");
+		info->dbus_busy_count++;
+
+		// Try again, using the slow careful code.
+		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+			if (i != last && info->dram_cache[i].dirty) {
+				dram_write32(target, i, info->dram_cache[i].data, false);
+				info->dram_cache[i].dirty = false;
+			}
+		}
+		dram_write32(target, last, info->dram_cache[last].data, true);
+		info->dram_cache[last].dirty = false;
+
+		if (wait_for_debugint_clear(target, true) != ERROR_OK) {
+			LOG_ERROR("Debug interrupt didn't clear.");
+			dump_debug_ram(target);
+			return ERROR_FAIL;
+		}
+
+	} else {
+		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+			info->dram_cache[i].dirty = false;
+		}
+
+		int interrupt = buf_get_u32(in + 8*(scan-1), DBUS_DATA_START + 33, 1);
+		if (interrupt) {
+			info->interrupt_high_count++;
+			// Slow path wait for it to clear.
+			if (wait_for_debugint_clear(target, false) != ERROR_OK) {
+				LOG_ERROR("Debug interrupt didn't clear.");
+				dump_debug_ram(target);
+				return ERROR_FAIL;
+			}
+		}
+	}
+
+#endif
+	LOG_DEBUG("exit");
 
 	return ERROR_OK;
 }
@@ -530,7 +692,7 @@ static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 	dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16), false);
 	dram_write_jump(target, 2, true);
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
@@ -546,7 +708,7 @@ static int write_csr(struct target *target, uint32_t csr, uint32_t value)
 	dram_write_jump(target, 2, false);
 	dram_write32(target, 4, value, true);
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
@@ -601,7 +763,7 @@ static int resume(struct target *target, int current, uint32_t address,
 	uint64_t dbus_value = DMCONTROL_INTERRUPT | info->dcsr;
 	dbus_write(target, dram_address(4), dbus_value);
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
@@ -721,7 +883,7 @@ static int register_write(struct target *target, unsigned int number,
 
 	dram_write32(target, 4, value, true);
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
@@ -816,7 +978,7 @@ static int riscv_halt(struct target *target)
 	dram_write32(target, 2, sw(S0, ZERO, SETHALTNOT), false);
 	dram_write_jump(target, 3, true);
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
@@ -889,7 +1051,7 @@ static void write_constants(struct target *target)
 	dram_write32(target, 3, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
 	dram_write_jump(target, 4, true);
 
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 	}
 
@@ -932,8 +1094,22 @@ static int riscv_examine(struct target *target)
 	// Don't need to select dbus, since the first thing we do is read dtminfo.
 
 	uint32_t dtminfo = dtminfo_read(target);
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	LOG_DEBUG("dtminfo=0x%x", dtminfo);
+	LOG_DEBUG("  addrbits=%d", get_field(dtminfo, DTMINFO_ADDRBITS));
+	LOG_DEBUG("  version=%d", get_field(dtminfo, DTMINFO_VERSION));
+	// TODO: Add support for the idle field, once it's implemented in the FPGA
+	// image.
+	if (dtminfo == 0) {
+		LOG_ERROR("dtminfo is 0. Check JTAG connectivity/board power.");
+		return ERROR_FAIL;
+	}
+	if (get_field(dtminfo, DTMINFO_VERSION) != 0) {
+		LOG_ERROR("Unsupported DTM version %d. (dtminfo=0x%x)",
+				get_field(dtminfo, DTMINFO_VERSION), dtminfo);
+		return ERROR_FAIL;
+	}
 
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->addrbits = get_field(dtminfo, DTMINFO_ADDRBITS);
 
 	uint32_t dminfo = dbus_read(target, DMINFO, 0);
@@ -976,7 +1152,7 @@ static int riscv_examine(struct target *target)
 	cache_set(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
 	cache_set_jump(target, 5);
 
-	cache_run(target);
+	cache_run(target, 0);
 
 #if 0
 	// TODO
@@ -1005,6 +1181,7 @@ static int riscv_examine(struct target *target)
 		uint32_t exception = dram_read32(target, info->dramsize-1);
 		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x, exception=0x%x",
 				word0, word1, exception);
+		dump_debug_ram(target);
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("Discovered XLEN is %d", info->xlen);
@@ -1099,7 +1276,7 @@ static int riscv_assert_reset(struct target *target)
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	// The only assumption we can make is that the TAP was reset.
-	if (wait_for_debugint_clear(target) != ERROR_OK) {
+	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
 		return ERROR_FAIL;
 	}
@@ -1381,7 +1558,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		dram_write32(target, 4, address + offset, false);
 		dram_write32(target, 5, value, true);
 
-		if (wait_for_debugint_clear(target) != ERROR_OK) {
+		if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 			LOG_ERROR("Debug interrupt didn't clear.");
 			return ERROR_FAIL;
 		}
