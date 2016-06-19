@@ -130,11 +130,6 @@ typedef struct {
 	uint8_t addrbits;
 	/* Width of a GPR (and many other things) in bits. */
 	uint8_t xlen;
-	/* Last value we wrote to DBUS_ADDRESS (eg. the address of the register
-	 * whose value will be read the next time we scan dbus). */
-	uint16_t dbus_address;
-	/* Last op we wrote to dbus. */
-	dbus_op_t dbus_op;
 	/* Number of words in Debug RAM. */
 	unsigned int dramsize;
 	uint32_t dcsr;
@@ -233,8 +228,8 @@ static int debug_scan(struct target *target)
 }
 #endif
 
-static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
-		dbus_op_t op, uint16_t address, uint64_t data_out)
+static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
+		uint64_t *data_in, dbus_op_t op, uint16_t address_out, uint64_t data_out)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	uint8_t in[8] = {0};
@@ -249,13 +244,11 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 
 	buf_set_u64(out, DBUS_OP_START, DBUS_OP_SIZE, op);
 	buf_set_u64(out, DBUS_DATA_START, DBUS_DATA_SIZE, data_out);
-	buf_set_u64(out, DBUS_ADDRESS_START, info->addrbits, address);
+	buf_set_u64(out, DBUS_ADDRESS_START, info->addrbits, address_out);
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
 	jtag_add_runtest(1, TAP_IDLE);
-	info->dbus_address = address;
-	info->dbus_op = op;
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
@@ -267,8 +260,13 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 		*data_in = buf_get_u64(in, DBUS_DATA_START, DBUS_DATA_SIZE);
 	}
 
+	if (address_in) {
+		*address_in = buf_get_u32(in, DBUS_ADDRESS_START, info->addrbits);
+	}
+
 	static const char *op_string[] = {"nop", "r", "w", "cw"};
 	static const char *status_string[] = {"+", "nw", "F", "b"};
+	/*
 	LOG_DEBUG("vvv $display(\"hardware: dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x\");",
 			field.num_bits,
 			op_string[buf_get_u32(out, 0, 2)],
@@ -277,7 +275,7 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 			status_string[buf_get_u32(in, 0, 2)],
 			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
 			buf_get_u32(in, 36, info->addrbits));
-	/*
+			*/
 	LOG_DEBUG("dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x",
 			field.num_bits,
 			op_string[buf_get_u32(out, 0, 2)],
@@ -286,32 +284,24 @@ static dbus_status_t dbus_scan(struct target *target, uint64_t *data_in,
 			status_string[buf_get_u32(in, 0, 2)],
 			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
 			buf_get_u32(in, 36, info->addrbits));
-			*/
 
 	//debug_scan(target);
 
-	return buf_get_u64(in, DBUS_OP_START, DBUS_OP_SIZE);
+	return buf_get_u32(in, DBUS_OP_START, DBUS_OP_SIZE);
 }
 
-static uint64_t dbus_read(struct target *target, uint16_t address,
-		uint16_t next_address)
+static uint64_t dbus_read(struct target *target, uint16_t address)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	uint64_t value;
+	dbus_status_t status;
+	uint16_t address_in;
 
-	dbus_status_t status = DBUS_STATUS_BUSY;
-	if (address != info->dbus_address || info->dbus_op == DBUS_OP_NOP) {
-		while (status == DBUS_STATUS_BUSY) {
-			status = dbus_scan(target, NULL, DBUS_OP_READ, address, 0);
-		}
-	}
-	status = DBUS_STATUS_BUSY;
-	while (status == DBUS_STATUS_BUSY) {
-		status = dbus_scan(target, &value, DBUS_OP_READ, next_address, 0);
-	}
-	if (status != DBUS_STATUS_SUCCESS) {
-		LOG_ERROR("dbus_read failed read at 0x%x; status=%d\n", address, status);
-	}
+	do {
+		do {
+			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
+		} while (status == DBUS_STATUS_BUSY);
+	} while (address_in != address);
+
 	return value;
 }
 
@@ -319,7 +309,7 @@ static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 {
 	dbus_status_t status = DBUS_STATUS_BUSY;
 	while (status == DBUS_STATUS_BUSY) {
-		status = dbus_scan(target, NULL, DBUS_OP_WRITE, address, value);
+		status = dbus_scan(target, NULL, NULL, DBUS_OP_WRITE, address, value);
 	}
 	if (status != DBUS_STATUS_SUCCESS) {
 		LOG_ERROR("dbus_write failed write 0x%" PRIx64 " to 0x%x; status=%d\n",
@@ -354,7 +344,7 @@ static uint32_t dtminfo_read(struct target *target)
 static uint32_t dram_read32(struct target *target, unsigned int index)
 {
 	uint16_t address = dram_address(index);
-	uint32_t value = dbus_read(target, address, address);
+	uint32_t value = dbus_read(target, address);
 	return value;
 }
 
@@ -370,15 +360,15 @@ static void dram_write32(struct target *target, unsigned int index, uint32_t val
 /** Read the haltnot and interrupt bits. */
 static bits_t read_bits(struct target *target)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	static int next_address = 0;
-
 	uint64_t value;
-	if (info->dbus_address < 0x10 || info->dbus_address == DMCONTROL) {
-		value = dbus_read(target, info->dbus_address, next_address);
-	} else {
-		value = dbus_read(target, 0, next_address);
-	}
+	dbus_status_t status;
+	uint16_t address_in;
+
+	do {
+		do {
+			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, 0, 0);
+		} while (status == DBUS_STATUS_BUSY);
+	} while (address_in > 0x10 && address_in != DMCONTROL);
 
 	bits_t result = {
 		.haltnot = get_field(value, DMCONTROL_HALTNOT),
@@ -437,41 +427,10 @@ static void dump_debug_ram(struct target *target)
 	}
 }
 
-/** Run the program written to the debug RAM cache. */
-static int cache_run(struct target *target, unsigned int address)
+static int cache_run_maybe(struct target *target, unsigned int address, bool run)
 {
 	LOG_DEBUG("enter");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-#if 0
-	unsigned int last = DRAM_CACHE_SIZE;
-	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
-		if (info->dram_cache[i].dirty) {
-			last = i;
-		}
-	}
-
-	if (last == DRAM_CACHE_SIZE) {
-		// Nothing needs to be written to RAM.
-		dram_write32(target, DMCONTROL, 0, true);
-
-	} else {
-		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
-
-			if (i != last && info->dram_cache[i].dirty) {
-				dram_write32(target, i, info->dram_cache[i].data, false);
-				info->dram_cache[i].dirty = false;
-			}
-		}
-		dram_write32(target, last, info->dram_cache[last].data, true);
-		info->dram_cache[last].dirty = false;
-	}
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		dump_debug_ram(target);
-		return ERROR_FAIL;
-	}
-
-#else
 	uint8_t in[(DRAM_CACHE_SIZE + 2) * 8] = {0};
 	uint8_t out[(DRAM_CACHE_SIZE + 2) * 8];
 	struct scan_field field[DRAM_CACHE_SIZE + 2];
@@ -479,6 +438,7 @@ static int cache_run(struct target *target, unsigned int address)
 	unsigned int last = DRAM_CACHE_SIZE;
 	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
 		if (info->dram_cache[i].dirty) {
+			assert(i < info->dramsize);
 			last = i;
 		}
 	}
@@ -497,7 +457,7 @@ static int cache_run(struct target *target, unsigned int address)
 				field[scan].in_value = in + 8*scan;
 
 				buf_set_u64(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE, DBUS_OP_WRITE);
-				if (i == last) {
+				if (i == last && run) {
 					buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE,
 							DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT | info->dram_cache[i].data);
 				} else {
@@ -511,9 +471,9 @@ static int cache_run(struct target *target, unsigned int address)
 
 				LOG_DEBUG("write scan=%d result=%d data=%09lx address=%02x",
 						scan,
-						buf_get_u32(out + 8*i, DBUS_OP_START, DBUS_OP_SIZE),
-						buf_get_u64(out + 8*i, DBUS_DATA_START, DBUS_DATA_SIZE),
-						buf_get_u32(out + 8*i, DBUS_ADDRESS_START, info->addrbits));
+						buf_get_u32(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE),
+						buf_get_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE),
+						buf_get_u32(out + 8*scan, DBUS_ADDRESS_START, info->addrbits));
 
 				scan++;
 			}
@@ -585,13 +545,13 @@ static int cache_run(struct target *target, unsigned int address)
 
 		// Try again, using the slow careful code.
 		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
-			if (i != last && info->dram_cache[i].dirty) {
+			if (i == last && run) {
+				dram_write32(target, last, info->dram_cache[last].data, true);
+			} else {
 				dram_write32(target, i, info->dram_cache[i].data, false);
-				info->dram_cache[i].dirty = false;
 			}
+			info->dram_cache[i].dirty = false;
 		}
-		dram_write32(target, last, info->dram_cache[last].data, true);
-		info->dram_cache[last].dirty = false;
 
 		if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 			LOG_ERROR("Debug interrupt didn't clear.");
@@ -600,10 +560,6 @@ static int cache_run(struct target *target, unsigned int address)
 		}
 
 	} else {
-		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
-			info->dram_cache[i].dirty = false;
-		}
-
 		int interrupt = buf_get_u32(in + 8*(scan-1), DBUS_DATA_START + 33, 1);
 		if (interrupt) {
 			info->interrupt_high_count++;
@@ -616,10 +572,33 @@ static int cache_run(struct target *target, unsigned int address)
 		}
 	}
 
-#endif
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		if (i >= 4) {
+			info->dram_cache[i].valid = false;
+		} else {
+			info->dram_cache[i].dirty = false;
+		}
+	}
+
 	LOG_DEBUG("exit");
 
 	return ERROR_OK;
+}
+
+/** Run the program written to the debug RAM cache. */
+static int cache_run(struct target *target, unsigned int address)
+{
+	return cache_run_maybe(target, address, true);
+}
+
+/* Call this if the code you just ran writes to debug RAM entries 0 through 3. */
+static void cache_invalidate(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		info->dram_cache[i].valid = false;
+		info->dram_cache[i].dirty = false;
+	}
 }
 
 #if 0
@@ -666,15 +645,14 @@ static int wait_for_state(struct target *target, enum target_state state)
 
 static int wait_and_read(struct target *target, uint32_t *data, uint16_t address)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	time_t start = time(NULL);
 	// Throw away the results of the first read, since they'll contain the
 	// result of the read that happened just before debugint was set. (Assuming
 	// the last scan before calling this function was one that sets debugint.)
-	dbus_read(target, info->dbus_address, address);
+	dbus_scan(target, NULL, NULL, DBUS_OP_READ, address, 0);
 
 	while (1) {
-		uint64_t dbus_value = dbus_read(target, info->dbus_address, address);
+		uint64_t dbus_value = dbus_read(target, address);
 		*data = dbus_value;
 		if (!get_field(dbus_value, DMCONTROL_INTERRUPT)) {
 			return ERROR_OK;
@@ -688,12 +666,10 @@ static int wait_and_read(struct target *target, uint32_t *data, uint16_t address
 
 static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 {
-	dram_write32(target, 0, csrr(S0, csr), false);
-	dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16), false);
-	dram_write_jump(target, 2, true);
-
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
+	cache_set(target, 0, csrr(S0, csr));
+	cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set_jump(target, 2);
+	if (cache_run(target, 4) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 	*value = dram_read32(target, 4);
@@ -703,13 +679,11 @@ static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 
 static int write_csr(struct target *target, uint32_t csr, uint32_t value)
 {
-	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-	dram_write32(target, 1, csrw(S0, csr), false);
-	dram_write_jump(target, 2, false);
-	dram_write32(target, 4, value, true);
-
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
+	cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set(target, 1, csrw(S0, csr));
+	cache_set_jump(target, 2);
+	cache_set(target, 4, value);
+	if (cache_run(target, 4) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -741,10 +715,13 @@ static int resume(struct target *target, int current, uint32_t address,
 
 	// TODO: check if dpc is dirty (which also is true if an exception was hit
 	// at any time)
-	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-	dram_write32(target, 1, csrw(S0, CSR_DPC), false);
-	dram_write_jump(target, 2, false);
-	dram_write32(target, 4, info->dpc, true);
+	cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set(target, 1, csrw(S0, CSR_DPC));
+	cache_set_jump(target, 2);
+	cache_set(target, 4, info->dpc);
+	if (cache_run(target, 4) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
 
 	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
 	info->dcsr &= ~DCSR_HALT;
@@ -762,6 +739,8 @@ static int resume(struct target *target, int current, uint32_t address,
 	// Write DCSR value, set interrupt and clear haltnot.
 	uint64_t dbus_value = DMCONTROL_INTERRUPT | info->dcsr;
 	dbus_write(target, dram_address(4), dbus_value);
+
+	cache_invalidate(target);
 
 	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 		LOG_ERROR("Debug interrupt didn't clear.");
@@ -799,43 +778,43 @@ static int register_get(struct reg *reg)
 {
 	struct target *target = (struct target *) reg->arch_info;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	uint32_t value = 0;
 
 	if (reg->number == S0) {
-		dram_write32(target, 0, csrr(S0, CSR_DSCRATCH), false);
-		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
-		dram_write_jump(target, 2, true);
+		cache_set(target, 0, csrr(S0, CSR_DSCRATCH));
+		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set_jump(target, 2);
 	} else if (reg->number == S1) {
-		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4), false);
-		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
-		dram_write_jump(target, 2, true);
+		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4));
+		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set_jump(target, 2);
 	} else if (reg->number == ZERO) {
-		buf_set_u64(reg->value, 0, info->xlen, value);
-		LOG_DEBUG("%s=0x%x", reg->name, value);
+		buf_set_u64(reg->value, 0, info->xlen, 0);
+		LOG_DEBUG("%s=0x%x", reg->name, 0);
 		return ERROR_OK;
 	} else if (reg->number <= REG_XPR31) {
-		dram_write_jump(target, 1, false);
-		dram_write32(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START), true);
+		cache_set(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START + 16));
+		cache_set_jump(target, 1);
 	} else if (reg->number == REG_PC) {
 		buf_set_u32(reg->value, 0, 32, info->dpc);
-		LOG_DEBUG("%s=0x%x (cached)", reg->name, value);
+		LOG_DEBUG("%s=0x%x (cached)", reg->name, info->dpc);
 		return ERROR_OK;
 	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
-		dram_write32(target, 0, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START), false);
-		dram_write_jump(target, 1, true);
+		cache_set(target, 0, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		cache_set_jump(target, 1);
 	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
-		dram_write32(target, 0, csrr(S0, reg->number - REG_CSR0), false);
-		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START), false);
-		dram_write_jump(target, 2, true);
+		cache_set(target, 0, csrr(S0, reg->number - REG_CSR0));
+		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set_jump(target, 2);
 	} else {
 		LOG_ERROR("Don't know how to read register %d (%s)", reg->number, reg->name);
 		return ERROR_FAIL;
 	}
 
-	if (wait_and_read(target, &value, 0) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
+	if (cache_run(target, 4) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
+
+	uint32_t value = dram_read32(target, 4);
 
 	uint32_t exception = dram_read32(target, info->dramsize-1);
 	if (exception) {
@@ -856,35 +835,33 @@ static int register_write(struct target *target, unsigned int number,
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
 	if (number == S0) {
-		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-		dram_write32(target, 1, csrw(S0, CSR_DSCRATCH), false);
-		dram_write_jump(target, 2, false);
+		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set(target, 1, csrw(S0, CSR_DSCRATCH));
+		cache_set_jump(target, 2);
 	} else if (number == S1) {
-		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-		dram_write32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4), false);
-		dram_write_jump(target, 2, false);
+		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4));
+		cache_set_jump(target, 2);
 	} else if (number <= REG_XPR31) {
-		dram_write32(target, 0, lw(number - REG_XPR0, ZERO, DEBUG_RAM_START + 16), false);
-		dram_write_jump(target, 1, false);
+		cache_set(target, 0, lw(number - REG_XPR0, ZERO, DEBUG_RAM_START + 16));
+		cache_set_jump(target, 1);
 	} else if (number == REG_PC) {
 		info->dpc = value;
 		return ERROR_OK;
 	} else if (number >= REG_FPR0 && number <= REG_FPR31) {
-		dram_write32(target, 0, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16), false);
-		dram_write_jump(target, 1, false);
+		cache_set(target, 0, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		cache_set_jump(target, 1);
 	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
-		dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-		dram_write32(target, 1, csrw(S0, number - REG_CSR0), false);
-		dram_write_jump(target, 2, false);
+		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set(target, 1, csrw(S0, number - REG_CSR0));
+		cache_set_jump(target, 2);
 	} else {
 		LOG_ERROR("Don't know how to read register %d", number);
 		return ERROR_FAIL;
 	}
 
-	dram_write32(target, 4, value, true);
-
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
+	cache_set(target, 4, value);
+	if (cache_run(target, 4) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -915,8 +892,6 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	if (!target->arch_info)
 		return ERROR_FAIL;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	info->dbus_address = DBUS_ADDRESS_UNKNOWN;
-	info->dbus_op = DBUS_OP_NOP;
 
 	select_dtminfo.num_bits = target->tap->ir_length;
 	select_dbus.num_bits = target->tap->ir_length;
@@ -973,13 +948,13 @@ static int riscv_halt(struct target *target)
 	LOG_DEBUG("riscv_halt()");
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-	dram_write32(target, 0, csrsi(CSR_DCSR, DCSR_HALT), false);
-	dram_write32(target, 1, csrr(S0, CSR_MHARTID), false);
-	dram_write32(target, 2, sw(S0, ZERO, SETHALTNOT), false);
-	dram_write_jump(target, 3, true);
+	cache_set(target, 0, csrsi(CSR_DCSR, DCSR_HALT));
+	cache_set(target, 1, csrr(S0, CSR_MHARTID));
+	cache_set(target, 2, sw(S0, ZERO, SETHALTNOT));
+	cache_set_jump(target, 3);
 
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
+	if (cache_run(target, 4) != ERROR_OK) {
+		LOG_ERROR("cache_run() failed.");
 		return ERROR_FAIL;
 	}
 
@@ -1112,7 +1087,7 @@ static int riscv_examine(struct target *target)
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->addrbits = get_field(dtminfo, DTMINFO_ADDRBITS);
 
-	uint32_t dminfo = dbus_read(target, DMINFO, 0);
+	uint32_t dminfo = dbus_read(target, DMINFO);
 	LOG_DEBUG("dminfo: 0x%08x", dminfo);
 	LOG_DEBUG("  abussize=0x%x", get_field(dminfo, DMINFO_ABUSSIZE));
 	LOG_DEBUG("  serialcount=0x%x", get_field(dminfo, DMINFO_SERIALCOUNT));
@@ -1153,6 +1128,7 @@ static int riscv_examine(struct target *target)
 	cache_set_jump(target, 5);
 
 	cache_run(target, 0);
+	cache_invalidate(target);
 
 #if 0
 	// TODO
@@ -1295,6 +1271,7 @@ static int riscv_assert_reset(struct target *target)
 	// We shouldn't actually need the jump because a reset should happen.
 	dram_write_jump(target, 2, false);
 	dram_write32(target, 4, info->dcsr, true);
+	cache_invalidate(target);
 
 	target->state = TARGET_RESET;
 
@@ -1376,25 +1353,26 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 		}
 	}
 #else
-	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
+	cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
 	switch (size) {
 		case 1:
-			dram_write32(target, 1, lb(S1, S0, 0), false);
-			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			cache_set(target, 1, lb(S1, S0, 0));
+			cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
 			break;
 		case 2:
-			dram_write32(target, 1, lh(S1, S0, 0), false);
-			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			cache_set(target, 1, lh(S1, S0, 0));
+			cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
 			break;
 		case 4:
-			dram_write32(target, 1, lw(S1, S0, 0), false);
-			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
+			cache_set(target, 1, lw(S1, S0, 0));
+			cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
 			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
-	dram_write_jump(target, 3, false);
+	cache_set_jump(target, 3);
+	cache_run_maybe(target, 4, false);
 
 	for (unsigned int i = 0; i < count; i++) {
 		dram_write32(target, 4, address + i * size, true);
@@ -1434,36 +1412,36 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	// Set up the address.
-	dram_write32(target, 0, sw(T0, ZERO, DEBUG_RAM_START + 20), false);
-	dram_write32(target, 1, lw(T0, ZERO, DEBUG_RAM_START + 16), false);
-	dram_write_jump(target, 2, false);
-	dram_write32(target, 4, address, true);
-
-	uint32_t t0;
-	if (wait_and_read(target, &t0, 5) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
+	cache_set(target, 0, sw(T0, ZERO, DEBUG_RAM_START + 20));
+	cache_set(target, 1, lw(T0, ZERO, DEBUG_RAM_START + 16));
+	cache_set_jump(target, 2);
+	cache_set(target, 4, address);
+	if (cache_run(target, 5) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
+	uint32_t t0 = dram_read32(target, 5);
+
 	switch (size) {
 		case 1:
-			dram_write32(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16), false);
-			dram_write32(target, 1, sb(S0, T0, 0), false);
+			cache_set(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16));
+			cache_set(target, 1, sb(S0, T0, 0));
 			break;
 		case 2:
-			dram_write32(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16), false);
-			dram_write32(target, 1, sh(S0, T0, 0), false);
+			cache_set(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16));
+			cache_set(target, 1, sh(S0, T0, 0));
 			break;
 		case 4:
-			dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-			dram_write32(target, 1, sw(S0, T0, 0), false);
+			cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+			cache_set(target, 1, sw(S0, T0, 0));
 			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
-	dram_write32(target, 2, addi(T0, T0, size), false);
-	dram_write_jump(target, 3, false);
+	cache_set(target, 2, addi(T0, T0, size));
+	cache_set_jump(target, 3);
+	cache_run_maybe(target, 4, false);
 
 	uint32_t i = 0;
 	while (i < count) {
@@ -1488,8 +1466,9 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 				return ERROR_FAIL;
 		}
 
-		dbus_status_t status = dbus_scan(target, NULL, DBUS_OP_CONDITIONAL_WRITE,
-				4, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
+		dbus_status_t status = dbus_scan(target, NULL, NULL,
+				DBUS_OP_CONDITIONAL_WRITE, 4,
+				DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
 		if (status == DBUS_STATUS_SUCCESS) {
 			i++;
 		} else if (status == DBUS_STATUS_NO_WRITE) {
