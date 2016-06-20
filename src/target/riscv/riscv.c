@@ -468,7 +468,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, i);
 
 				jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
-				jtag_add_runtest(1 + info->dbus_busy_count / 10, TAP_IDLE);
+				jtag_add_runtest(1 + info->dbus_busy_count, TAP_IDLE);
 
 				LOG_DEBUG("write scan=%d result=%d data=%09lx address=%02x",
 						scan,
@@ -492,7 +492,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, address);
 
 	jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
-	jtag_add_runtest(1 + info->dbus_busy_count / 10 + info->interrupt_high_count / 10, TAP_IDLE);
+	jtag_add_runtest(1 + info->dbus_busy_count + info->interrupt_high_count, TAP_IDLE);
 	scan++;
 
 
@@ -507,7 +507,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, address);
 
 	jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
-	jtag_add_runtest(1 + info->dbus_busy_count / 10, TAP_IDLE);
+	jtag_add_runtest(1 + info->dbus_busy_count, TAP_IDLE);
 	scan++;
 
 
@@ -682,6 +682,17 @@ static int write_csr(struct target *target, uint32_t csr, uint32_t value)
 		return ERROR_FAIL;
 	}
 
+	return ERROR_OK;
+}
+
+static int write_gpr(struct target *target, unsigned int gpr, uint32_t value)
+{
+	cache_set(target, 0, lw(gpr, ZERO, DEBUG_RAM_START + 16));
+	cache_set_jump(target, 1);
+	cache_set(target, 4, value);
+	if (cache_write(target, 4, true) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
 	return ERROR_OK;
 }
 
@@ -1400,23 +1411,36 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-#if 1
-static int riscv_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, const uint8_t *buffer)
+static void add_dbus_scan(struct target *target, struct scan_field *field,
+		uint8_t *out_value, uint8_t *in_value, dbus_op_t op, uint16_t address, 
+		uint64_t data)
 {
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	// Set up the address.
-	cache_set(target, 0, sw(T0, ZERO, DEBUG_RAM_START + 20));
-	cache_set(target, 1, lw(T0, ZERO, DEBUG_RAM_START + 16));
-	cache_set_jump(target, 2);
-	cache_set(target, 4, address);
-	if (cache_write(target, 5, true) != ERROR_OK) {
-		return ERROR_FAIL;
+	LOG_DEBUG("op=%d address=0x%02x data=0x%09lx", op, address, data);
+
+	field->num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
+	field->in_value = in_value;
+	field->out_value = out_value;
+
+	buf_set_u64(out_value, DBUS_OP_START, DBUS_OP_SIZE, op);
+	buf_set_u64(out_value, DBUS_DATA_START, DBUS_DATA_SIZE, data);
+	buf_set_u64(out_value, DBUS_ADDRESS_START, info->addrbits, address);
+
+	jtag_add_dr_scan(target->tap, 1, field, TAP_IDLE);
+
+	// TODO: 1 should come from the dtminfo register
+	int idle_count = 1 + info->dbus_busy_count;
+	if (data & DMCONTROL_INTERRUPT) {
+		idle_count += info->interrupt_high_count;
 	}
 
-	uint32_t t0 = dram_read32(target, 5);
+	jtag_add_runtest(idle_count, TAP_IDLE);
+}
 
+#if 1
+static int setup_write_memory(struct target *target, uint32_t size)
+{
 	switch (size) {
 		case 1:
 			cache_set(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16));
@@ -1438,46 +1462,137 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	cache_set_jump(target, 3);
 	cache_write(target, 4, false);
 
+	return ERROR_OK;
+}
+
+static int riscv_write_memory(struct target *target, uint32_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
+	// Set up the address.
+	cache_set(target, 0, sw(T0, ZERO, DEBUG_RAM_START + 20));
+	cache_set(target, 1, lw(T0, ZERO, DEBUG_RAM_START + 16));
+	cache_set_jump(target, 2);
+	cache_set(target, 4, address);
+	if (cache_write(target, 5, true) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	uint32_t t0 = dram_read32(target, 5);
+
+	if (setup_write_memory(target, size) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+#define MAX_BATCH_SIZE 256
+	uint8_t *in = malloc(MAX_BATCH_SIZE * 8);
+	uint8_t *out = malloc(MAX_BATCH_SIZE * 8);
+	struct scan_field *field = calloc(MAX_BATCH_SIZE, sizeof(struct scan_field));
+
 	uint32_t i = 0;
-	while (i < count) {
-		// Write the next value and set interrupt.
-		uint32_t value;
-		uint32_t offset = size * i;
-		switch (size) {
-			case 1:
-				value = buffer[offset];
-				break;
-			case 2:
-				value = buffer[offset] |
-					(buffer[offset+1] << 8);
-				break;
-			case 4:
-				value = buffer[offset] |
-					((uint32_t) buffer[offset+1] << 8) |
-					((uint32_t) buffer[offset+2] << 16) |
-					((uint32_t) buffer[offset+3] << 24);
-				break;
-			default:
-				return ERROR_FAIL;
+	while (i < count + 1) {
+		unsigned int batch_size = MIN(count + 1 - i, MAX_BATCH_SIZE);
+
+		for (unsigned int j = 0; j < batch_size; j++) {
+			if (i + j == count) {
+				// Just insert a read so we can confirm that the last scan
+				// succeeded.
+
+				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
+						DBUS_OP_READ, info->dramsize-1, DMCONTROL_HALTNOT | 0);
+			} else {
+				// Write the next value and set interrupt.
+				uint32_t value;
+				uint32_t offset = size * (i + j);
+				switch (size) {
+					case 1:
+						value = buffer[offset];
+						break;
+					case 2:
+						value = buffer[offset] |
+							(buffer[offset+1] << 8);
+						break;
+					case 4:
+						value = buffer[offset] |
+							((uint32_t) buffer[offset+1] << 8) |
+							((uint32_t) buffer[offset+2] << 16) |
+							((uint32_t) buffer[offset+3] << 24);
+						break;
+					default:
+						goto error;
+				}
+
+				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
+						DBUS_OP_CONDITIONAL_WRITE, 4, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
+			}
 		}
 
-		dbus_status_t status = dbus_scan(target, NULL, NULL,
-				DBUS_OP_CONDITIONAL_WRITE, 4,
-				DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
-		if (status == DBUS_STATUS_SUCCESS) {
-			i++;
-		} else if (status == DBUS_STATUS_NO_WRITE) {
-			// Need to retry the access that failed, which was the previous one.
-			i--;
-		} else if (status == DBUS_STATUS_BUSY) {
-			// This operation may still complete. Retry the current access.
-		} else if (status == DBUS_STATUS_FAILED) {
-			LOG_ERROR("dbus write failed!");
-			return ERROR_FAIL;
+		int retval = jtag_execute_queue();
+		if (retval != ERROR_OK) {
+			LOG_ERROR("JTAG execute failed: %d", retval);
+			goto error;
+		}
+
+		int dbus_busy = 0;
+		int execute_busy = 0;
+		for (unsigned int j = 0; j < batch_size; j++) {
+			dbus_status_t status = buf_get_u32(in + 8*j, DBUS_OP_START, DBUS_OP_SIZE);
+			switch (status) {
+				case DBUS_STATUS_SUCCESS:
+					break;
+				case DBUS_STATUS_NO_WRITE:
+					execute_busy++;
+					break;
+				case DBUS_STATUS_FAILED:
+					LOG_ERROR("Debug RAM write failed. Hardware error?");
+					goto error;
+				case DBUS_STATUS_BUSY:
+					dbus_busy++;
+					break;
+			}
+			LOG_DEBUG("j=%d data=%09lx", j, buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
+		}
+		if (dbus_busy) {
+			info->dbus_busy_count++;
+			LOG_INFO("Increment dbus_busy_count to %d", info->dbus_busy_count);
+		}
+		if (execute_busy) {
+			info->interrupt_high_count++;
+			LOG_INFO("Increment interrupt_high_count to %d", info->interrupt_high_count);
+		}
+		if (dbus_busy || execute_busy) {
+			wait_for_debugint_clear(target, false);
+
+			// Retry.
+			// Set t0 back to what it should have been at the beginning of this
+			// batch.
+			LOG_INFO("Retrying memory write starting from 0x%x with more delays", address + size * i);
+
+			if (write_gpr(target, T0, address + size * i) != ERROR_OK) {
+				goto error;
+			}
+
+			if (setup_write_memory(target, size) != ERROR_OK) {
+				goto error;
+			}
+		} else {
+			i += batch_size;
 		}
 	}
 
+	free(in);
+	free(out);
+	free(field);
+
 	return register_write(target, T0, t0);
+
+error:
+	free(in);
+	free(out);
+	free(field);
+	return ERROR_FAIL;
 }
 #else
 /** Inefficient implementation that doesn't require conditional writes. */
