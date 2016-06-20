@@ -427,7 +427,8 @@ static void dump_debug_ram(struct target *target)
 	}
 }
 
-static int cache_run_maybe(struct target *target, unsigned int address, bool run)
+/** Write cache to the target, and optionally run the program. */
+static int cache_write(struct target *target, unsigned int address, bool run)
 {
 	LOG_DEBUG("enter");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
@@ -585,12 +586,6 @@ static int cache_run_maybe(struct target *target, unsigned int address, bool run
 	return ERROR_OK;
 }
 
-/** Run the program written to the debug RAM cache. */
-static int cache_run(struct target *target, unsigned int address)
-{
-	return cache_run_maybe(target, address, true);
-}
-
 /* Call this if the code you just ran writes to debug RAM entries 0 through 3. */
 static void cache_invalidate(struct target *target)
 {
@@ -669,7 +664,7 @@ static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 	cache_set(target, 0, csrr(S0, csr));
 	cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
 	cache_set_jump(target, 2);
-	if (cache_run(target, 4) != ERROR_OK) {
+	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 	*value = dram_read32(target, 4);
@@ -683,7 +678,7 @@ static int write_csr(struct target *target, uint32_t csr, uint32_t value)
 	cache_set(target, 1, csrw(S0, csr));
 	cache_set_jump(target, 2);
 	cache_set(target, 4, value);
-	if (cache_run(target, 4) != ERROR_OK) {
+	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -719,7 +714,7 @@ static int resume(struct target *target, int current, uint32_t address,
 	cache_set(target, 1, csrw(S0, CSR_DPC));
 	cache_set_jump(target, 2);
 	cache_set(target, 4, info->dpc);
-	if (cache_run(target, 4) != ERROR_OK) {
+	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -810,7 +805,7 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	if (cache_run(target, 4) != ERROR_OK) {
+	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -861,7 +856,7 @@ static int register_write(struct target *target, unsigned int number,
 	}
 
 	cache_set(target, 4, value);
-	if (cache_run(target, 4) != ERROR_OK) {
+	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -953,8 +948,8 @@ static int riscv_halt(struct target *target)
 	cache_set(target, 2, sw(S0, ZERO, SETHALTNOT));
 	cache_set_jump(target, 3);
 
-	if (cache_run(target, 4) != ERROR_OK) {
-		LOG_ERROR("cache_run() failed.");
+	if (cache_write(target, 4, true) != ERROR_OK) {
+		LOG_ERROR("cache_write() failed.");
 		return ERROR_FAIL;
 	}
 
@@ -1127,7 +1122,7 @@ static int riscv_examine(struct target *target)
 	cache_set(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
 	cache_set_jump(target, 5);
 
-	cache_run(target, 0);
+	cache_write(target, 0, true);
 	cache_invalidate(target);
 
 #if 0
@@ -1372,7 +1367,7 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 			return ERROR_FAIL;
 	}
 	cache_set_jump(target, 3);
-	cache_run_maybe(target, 4, false);
+	cache_write(target, 4, false);
 
 	for (unsigned int i = 0; i < count; i++) {
 		dram_write32(target, 4, address + i * size, true);
@@ -1416,7 +1411,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	cache_set(target, 1, lw(T0, ZERO, DEBUG_RAM_START + 16));
 	cache_set_jump(target, 2);
 	cache_set(target, 4, address);
-	if (cache_run(target, 5) != ERROR_OK) {
+	if (cache_write(target, 5, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -1441,7 +1436,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	}
 	cache_set(target, 2, addi(T0, T0, size));
 	cache_set_jump(target, 3);
-	cache_run_maybe(target, 4, false);
+	cache_write(target, 4, false);
 
 	uint32_t i = 0;
 	while (i < count) {
