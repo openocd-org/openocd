@@ -406,7 +406,6 @@ static void cache_set(struct target *target, unsigned int index, uint32_t data)
 			info->dram_cache[index].data == data) {
 		// This is already preset on the target.
 		LOG_DEBUG("Cache hit at 0x%x for data 0x%x", index, data);
-		assert(dram_read32(target, index) == info->dram_cache[index].data);
 		return;
 	}
 	info->dram_cache[index].data = data;
@@ -473,7 +472,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 	if (last == DRAM_CACHE_SIZE) {
 		// Nothing needs to be written to RAM.
-		dram_write32(target, DMCONTROL, 0, true);
+		dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT);
 
 	} else {
 		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
@@ -697,7 +696,7 @@ static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
-	*value = dram_read32(target, 4);
+	*value = cache_get32(target, 4);
 
 	return ERROR_OK;
 }
@@ -1181,8 +1180,8 @@ static int riscv_examine(struct target *target)
 	}
 #endif
 
-	uint32_t word0 = dram_read32(target, 0);
-	uint32_t word1 = dram_read32(target, 1);
+	uint32_t word0 = cache_get32(target, 0);
+	uint32_t word1 = cache_get32(target, 1);
 	if (word0 == 1 && word1 == 0) {
 		info->xlen = 32;
 	} else if (word0 == 0xffffffff && word1 == 3) {
@@ -1190,7 +1189,7 @@ static int riscv_examine(struct target *target)
 	} else if (word0 == 0xffffffff && word1 == 0xffffffff) {
 		info->xlen = 128;
 	} else {
-		uint32_t exception = dram_read32(target, info->dramsize-1);
+		uint32_t exception = cache_get32(target, info->dramsize-1);
 		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x, exception=0x%x",
 				word0, word1, exception);
 		dump_debug_ram(target);
@@ -1510,7 +1509,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		return ERROR_FAIL;
 	}
 
-	uint32_t t0 = dram_read32(target, 5);
+	uint32_t t0 = cache_get32(target, 5);
 
 	if (setup_write_memory(target, size) != ERROR_OK) {
 		return ERROR_FAIL;
