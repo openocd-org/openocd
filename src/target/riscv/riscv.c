@@ -406,6 +406,7 @@ static void cache_set(struct target *target, unsigned int index, uint32_t data)
 			info->dram_cache[index].data == data) {
 		// This is already preset on the target.
 		LOG_DEBUG("Cache hit at 0x%x for data 0x%x", index, data);
+		assert(dram_read32(target, index) == info->dram_cache[index].data);
 		return;
 	}
 	info->dram_cache[index].data = data;
@@ -424,6 +425,30 @@ static void dump_debug_ram(struct target *target)
 	for (unsigned int i = 0; i < 16; i++) {
 		uint32_t value = dram_read32(target, i);
 		LOG_ERROR("Debug RAM 0x%x: 0x%08x", i, value);
+	}
+}
+
+/* Call this if the code you just ran writes to debug RAM entries 0 through 3. */
+static void cache_invalidate(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		info->dram_cache[i].valid = false;
+		info->dram_cache[i].dirty = false;
+	}
+}
+
+/* Called by cache_write() after the program has run. Also call this if you're
+ * running programs without calling cache_write(). */
+static void cache_clean(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		if (i >= 4) {
+			info->dram_cache[i].valid = false;
+		} else {
+			info->dram_cache[i].dirty = false;
+		}
 	}
 }
 
@@ -553,6 +578,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 			}
 			info->dram_cache[i].dirty = false;
 		}
+		cache_clean(target);
 
 		if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 			LOG_ERROR("Debug interrupt didn't clear.");
@@ -561,6 +587,8 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		}
 
 	} else {
+		cache_clean(target);
+
 		int interrupt = buf_get_u32(in + 8*(scan-1), DBUS_DATA_START + 33, 1);
 		if (interrupt) {
 			info->interrupt_high_count++;
@@ -570,14 +598,16 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				dump_debug_ram(target);
 				return ERROR_FAIL;
 			}
-		}
-	}
-
-	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
-		if (i >= 4) {
-			info->dram_cache[i].valid = false;
 		} else {
-			info->dram_cache[i].dirty = false;
+			// We read a useful value in that last scan.
+			unsigned int read_addr = buf_get_u32(in + 8*(scan-1), DBUS_ADDRESS_START, info->addrbits);
+			if (read_addr != address) {
+				LOG_INFO("Got data from 0x%x but expected it from 0x%x",
+						read_addr, address);
+			}
+			info->dram_cache[read_addr].data =
+				buf_get_u64(in + 8*(scan-1), DBUS_DATA_START, DBUS_DATA_SIZE);
+			info->dram_cache[read_addr].valid = true;
 		}
 	}
 
@@ -586,14 +616,14 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	return ERROR_OK;
 }
 
-/* Call this if the code you just ran writes to debug RAM entries 0 through 3. */
-static void cache_invalidate(struct target *target)
+uint32_t cache_get32(struct target *target, unsigned int address)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
-		info->dram_cache[i].valid = false;
-		info->dram_cache[i].dirty = false;
+	if (!info->dram_cache[address].valid) {
+		info->dram_cache[address].data = dram_read32(target, address);
+		info->dram_cache[address].valid = true;
 	}
+	return info->dram_cache[address].data;
 }
 
 #if 0
@@ -820,9 +850,9 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	uint32_t value = dram_read32(target, 4);
+	uint32_t value = cache_get32(target, 4);
 
-	uint32_t exception = dram_read32(target, info->dramsize-1);
+	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
 		LOG_ERROR("Got exception 0x%x when reading register %d", exception,
 				reg->number);
@@ -1570,6 +1600,8 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 			// batch.
 			LOG_INFO("Retrying memory write starting from 0x%x with more delays", address + size * i);
 
+			cache_clean(target);
+
 			if (write_gpr(target, T0, address + size * i) != ERROR_OK) {
 				goto error;
 			}
@@ -1586,6 +1618,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	free(out);
 	free(field);
 
+	cache_clean(target);
 	return register_write(target, T0, t0);
 
 error:
