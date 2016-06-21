@@ -1790,16 +1790,6 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 		}
 
 		info->hwbp_unique_id[i] = breakpoint->unique_id;
-
-		for (i = 0; i < 4; i++) {
-			uint32_t v[3];
-			write_csr(target, CSR_TDRSELECT, 0x80000000 | i);
-			read_csr(target, &v[0], CSR_TDRSELECT);
-			read_csr(target, &v[1], CSR_TDRDATA1);
-			read_csr(target, &v[2], CSR_TDRDATA2);
-			LOG_DEBUG("%d  tdrselect=0x%x  tdrdata1=0x%x  tdrdata2=0x%x", i,
-					v[0], v[1], v[2]);
-		}
 	} else {
         LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
         return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
