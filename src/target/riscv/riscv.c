@@ -221,7 +221,7 @@ static int debug_scan(struct target *target)
 	LOG_DEBUG("  last_requested_pc=0x%x", buf_get_u32(in, 96, 32));
 	LOG_DEBUG("  last_committed_instruction=0x%x", buf_get_u32(in, 128, 32));
 	LOG_DEBUG("  last_committed_pc=0x%x", buf_get_u32(in, 160, 32));
-	LOG_DEBUG("  last_committed_time=0x%lx", buf_get_u64(in, 192, 64));
+	LOG_DEBUG("  last_committed_time=0x%" PRIx64, buf_get_u64(in, 192, 64));
 	LOG_DEBUG("  3bits=0x%x", buf_get_u32(in, 256, 3));
 
 	return 0;
@@ -470,7 +470,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
 				jtag_add_runtest(1 + info->dbus_busy_count, TAP_IDLE);
 
-				LOG_DEBUG("write scan=%d result=%d data=%09lx address=%02x",
+				LOG_DEBUG("write scan=%d result=%d data=%09" PRIx64 " address=%02x",
 						scan,
 						buf_get_u32(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE),
 						buf_get_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE),
@@ -533,7 +533,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				errors++;
 				break;
 		}
-		LOG_DEBUG("read scan=%d result=%d data=%09lx address=%02x",
+		LOG_DEBUG("read scan=%d result=%d data=%09" PRIx64 " address=%02x",
 				i,
 				buf_get_u32(in + 8*i, DBUS_OP_START, DBUS_OP_SIZE),
 				buf_get_u64(in + 8*i, DBUS_DATA_START, DBUS_DATA_SIZE),
@@ -1417,7 +1417,7 @@ static void add_dbus_scan(struct target *target, struct scan_field *field,
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	LOG_DEBUG("op=%d address=0x%02x data=0x%09lx", op, address, data);
+	LOG_DEBUG("op=%d address=0x%02x data=0x%09" PRIx64, op, address, data);
 
 	field->num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
 	field->in_value = in_value;
@@ -1552,7 +1552,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 					dbus_busy++;
 					break;
 			}
-			LOG_DEBUG("j=%d data=%09lx", j, buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
+			LOG_DEBUG("j=%d data=%09" PRIx64, j, buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
 		}
 		if (dbus_busy) {
 			info->dbus_busy_count++;
