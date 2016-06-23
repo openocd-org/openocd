@@ -24,6 +24,8 @@
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
+#define DIM(x)		(sizeof(x)/sizeof(*x))
+
 #define CSR_TDRSELECT			0x7a0
 #define CSR_TDRDATA1			0x7a1
 #define CSR_TDRDATA2			0x7a2
@@ -70,6 +72,12 @@ typedef enum {
 #define DBUS_DATA_START				2
 #define DBUS_DATA_SIZE				34
 #define DBUS_ADDRESS_START			36
+
+typedef enum {
+	RE_OK,
+	RE_FAIL,
+	RE_AGAIN
+} riscv_error_t;
 
 /*** Debug Bus registers. ***/
 
@@ -151,13 +159,16 @@ typedef struct {
 	// This value is incremented every time a dbus access comes back as "busy".
 	// It's used to determine how many run-test/idle cycles to feed the target
 	// in between accesses.
-	unsigned int dbus_busy_count;
+	unsigned int dbus_busy_delay;
 
 	// This value is incremented every time we read the debug interrupt as
 	// high.  It's used to add extra run-test/idle cycles after setting debug
 	// interrupt high, so ideally we never have to perform a whole extra scan
 	// before the interrupt is cleared.
-	unsigned int interrupt_high_count;
+	unsigned int interrupt_high_delay;
+
+	// This cache is write-through, and always valid when the target is halted.
+	uint32_t gpr_cache[32];
 } riscv_info_t;
 
 typedef struct {
@@ -227,6 +238,47 @@ static int debug_scan(struct target *target)
 	return 0;
 }
 #endif
+
+static void increase_dbus_busy_delay(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	info->dbus_busy_delay++;
+	LOG_INFO("Increment dbus_busy_delay to %d", info->dbus_busy_delay);
+}
+
+static void increase_interrupt_high_delay(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	info->interrupt_high_delay++;
+	LOG_INFO("Increment interrupt_high_delay to %d", info->interrupt_high_delay);
+}
+
+static void add_dbus_scan(struct target *target, struct scan_field *field,
+		uint8_t *out_value, uint8_t *in_value, dbus_op_t op, uint16_t address, 
+		uint64_t data)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	LOG_DEBUG("op=%d address=0x%02x data=0x%09" PRIx64, op, address, data);
+
+	field->num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
+	field->in_value = in_value;
+	field->out_value = out_value;
+
+	buf_set_u64(out_value, DBUS_OP_START, DBUS_OP_SIZE, op);
+	buf_set_u64(out_value, DBUS_DATA_START, DBUS_DATA_SIZE, data);
+	buf_set_u64(out_value, DBUS_ADDRESS_START, info->addrbits, address);
+
+	jtag_add_dr_scan(target->tap, 1, field, TAP_IDLE);
+
+	// TODO: 1 should come from the dtminfo register
+	int idle_count = 1 + info->dbus_busy_delay;
+	if (data & DMCONTROL_INTERRUPT) {
+		idle_count += info->interrupt_high_delay;
+	}
+
+	jtag_add_runtest(idle_count, TAP_IDLE);
+}
 
 static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 		uint64_t *data_in, dbus_op_t op, uint16_t address_out, uint64_t data_out)
@@ -477,28 +529,12 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	} else {
 		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
 			if (info->dram_cache[i].dirty) {
-				field[scan].num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
-				field[scan].out_value = out + 8*scan;
-				field[scan].in_value = in + 8*scan;
-
-				buf_set_u64(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE, DBUS_OP_WRITE);
+				uint64_t data = DMCONTROL_HALTNOT | info->dram_cache[i].data;
 				if (i == last && run) {
-					buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE,
-							DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT | info->dram_cache[i].data);
-				} else {
-					buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE,
-							DMCONTROL_HALTNOT | info->dram_cache[i].data);
+					data |= DMCONTROL_INTERRUPT;
 				}
-				buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, i);
-
-				jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
-				jtag_add_runtest(1 + info->dbus_busy_count, TAP_IDLE);
-
-				LOG_DEBUG("write scan=%d result=%d data=%09" PRIx64 " address=%02x",
-						scan,
-						buf_get_u32(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE),
-						buf_get_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE),
-						buf_get_u32(out + 8*scan, DBUS_ADDRESS_START, info->addrbits));
+				add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+						DBUS_OP_WRITE, i, data);
 
 				scan++;
 			}
@@ -507,33 +543,15 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 	// Throw away the results of the first read, since it'll contain the result
 	// of the read that happened just before debugint was set.
-	field[scan].num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
-	field[scan].out_value = out + 8*scan;
-	field[scan].in_value = NULL;
-
-	buf_set_u64(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE, DBUS_OP_READ);
-	buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE, DMCONTROL_HALTNOT | 0);
-	buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, address);
-
-	jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
-	jtag_add_runtest(1 + info->dbus_busy_count + info->interrupt_high_count, TAP_IDLE);
+	add_dbus_scan(target, &field[scan], out + 8*scan, NULL, DBUS_OP_READ,
+			address, DMCONTROL_HALTNOT);
 	scan++;
-
 
 	// This scan contains the results of the read the caller requested, as well
 	// as an interrupt bit worth looking at.
-	field[scan].num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
-	field[scan].out_value = out + 8*scan;
-	field[scan].in_value = in + 8*scan;
-
-	buf_set_u64(out + 8*scan, DBUS_OP_START, DBUS_OP_SIZE, DBUS_OP_READ);
-	buf_set_u64(out + 8*scan, DBUS_DATA_START, DBUS_DATA_SIZE, DMCONTROL_HALTNOT | 0);
-	buf_set_u64(out + 8*scan, DBUS_ADDRESS_START, info->addrbits, address);
-
-	jtag_add_dr_scan(target->tap, 1, &field[scan], TAP_IDLE);
-	jtag_add_runtest(1 + info->dbus_busy_count, TAP_IDLE);
+	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan, DBUS_OP_READ,
+			address, DMCONTROL_HALTNOT);
 	scan++;
-
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
@@ -565,8 +583,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	}
 
 	if (errors) {
-		LOG_INFO("Target couldn't handle our write speed. Slowing down...");
-		info->dbus_busy_count++;
+		increase_dbus_busy_delay(target);
 
 		// Try again, using the slow careful code.
 		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
@@ -590,7 +607,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 		int interrupt = buf_get_u32(in + 8*(scan-1), DBUS_DATA_START + 33, 1);
 		if (interrupt) {
-			info->interrupt_high_count++;
+			increase_interrupt_high_delay(target);
 			// Slow path wait for it to clear.
 			if (wait_for_debugint_clear(target, false) != ERROR_OK) {
 				LOG_ERROR("Debug interrupt didn't clear.");
@@ -783,6 +800,9 @@ static int resume(struct target *target, int current, uint32_t address,
 	}
 
 	target->state = TARGET_RUNNING;
+	for (unsigned int i = 0; i < 32; i++) {
+		info->gpr_cache[i] = 0xbadbad;
+	}
 
 	return ERROR_OK;
 }
@@ -814,21 +834,10 @@ static int register_get(struct reg *reg)
 	struct target *target = (struct target *) reg->arch_info;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	if (reg->number == S0) {
-		cache_set(target, 0, csrr(S0, CSR_DSCRATCH));
-		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
-		cache_set_jump(target, 2);
-	} else if (reg->number == S1) {
-		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4));
-		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
-		cache_set_jump(target, 2);
-	} else if (reg->number == ZERO) {
-		buf_set_u64(reg->value, 0, info->xlen, 0);
-		LOG_DEBUG("%s=0x%x", reg->name, 0);
+	if (reg->number <= REG_XPR31) {
+		buf_set_u64(reg->value, 0, info->xlen, info->gpr_cache[reg->number]);
+		LOG_DEBUG("%s=0x%x", reg->name, info->gpr_cache[reg->number]);
 		return ERROR_OK;
-	} else if (reg->number <= REG_XPR31) {
-		cache_set(target, 0, sw(reg->number - REG_XPR0, ZERO, DEBUG_RAM_START + 16));
-		cache_set_jump(target, 1);
 	} else if (reg->number == REG_PC) {
 		buf_set_u32(reg->value, 0, 32, info->dpc);
 		LOG_DEBUG("%s=0x%x (cached)", reg->name, info->dpc);
@@ -850,6 +859,11 @@ static int register_get(struct reg *reg)
 	}
 
 	uint32_t value = cache_get32(target, 4);
+	if (reg->number < 32 && info->gpr_cache[reg->number] != value) {
+		LOG_ERROR("cached value for %s is 0x%x but just read 0x%x",
+				reg->name, info->gpr_cache[reg->number], value);
+		assert(info->gpr_cache[reg->number] == value);
+	}
 
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
@@ -906,10 +920,12 @@ static int register_write(struct target *target, unsigned int number,
 static int register_set(struct reg *reg, uint8_t *buf)
 {
 	struct target *target = (struct target *) reg->arch_info;
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	LOG_DEBUG("write 0x%x to %s", value, reg->name);
+	info->gpr_cache[reg->number] = value;
 
 	return register_write(target, reg->number, value);
 }
@@ -1210,18 +1226,202 @@ static int riscv_examine(struct target *target)
 	return ERROR_OK;
 }
 
+static riscv_error_t handle_halt_routine(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	const unsigned int max_scan = 256;
+	uint8_t *in = malloc(max_scan * 8);
+	uint8_t *out = malloc(max_scan * 8);
+	struct scan_field *field = calloc(max_scan, sizeof(struct scan_field));
+	unsigned int scan = 0;
+
+	// Read all GPRs as fast as we can, because gdb is going to ask for them
+	// anyway. Reading them one at a time is much slower.
+	// TODO
+
+	// Write the jump back to address 1.
+	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+			DBUS_OP_WRITE, 1, DMCONTROL_HALTNOT |
+			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*1))));
+	scan++;
+	for (int reg = 1; reg < 32; reg++) {
+		if (reg == S0 || reg == S1) {
+			continue;
+		}
+
+		// Write store instruction.
+		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+				DBUS_OP_WRITE, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT |
+				sw(reg, ZERO, DEBUG_RAM_START + 16));
+		scan++;
+
+		// Read value.
+		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+				DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
+		scan++;
+		assert(scan < max_scan);
+	}
+
+	// Write store of s0 at index 1.
+	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+			DBUS_OP_WRITE, 1, DMCONTROL_HALTNOT |
+			sw(S0, ZERO, DEBUG_RAM_START + 16));
+	scan++;
+	// Write jump at index 2.
+	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+			DBUS_OP_WRITE, 2, DMCONTROL_HALTNOT |
+			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*2))));
+		cache_set(target, 0, csrr(S0, CSR_DSCRATCH));
+	scan++;
+
+	// Read S1 from debug RAM
+	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+			DBUS_OP_WRITE, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT |
+			lw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4));
+	scan++;
+	// Read value.
+	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+			DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
+	scan++;
+
+	// Read S0 from dscratch
+	unsigned int csr[] = {CSR_DSCRATCH, CSR_DPC, CSR_DCSR};
+	for (unsigned int i = 0; i < DIM(csr); i++) {
+		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+				DBUS_OP_WRITE, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT |
+				csrr(S0, csr[i]));
+		scan++;
+		// Read value.
+		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+				DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
+		scan++;
+		assert(scan < max_scan);
+	}
+
+	// Final read to get the last value out.
+	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+			DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
+	scan++;
+	assert(scan < max_scan);
+
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("JTAG execute failed: %d", retval);
+		goto error;
+	}
+
+	unsigned int dbus_busy = 0;
+	unsigned int interrupt_set = 0;
+	unsigned result = 0;
+	info->gpr_cache[0] = 0;
+	// The first scan result is the result from something old we don't care
+	// about.
+	for (unsigned int i = 1; i < scan && dbus_busy == 0; i++) {
+		dbus_status_t status = buf_get_u32(in + 8*i, DBUS_OP_START, DBUS_OP_SIZE);
+		uint64_t data = buf_get_u64(in + 8*i, DBUS_DATA_START, DBUS_DATA_SIZE);
+		uint32_t address = buf_get_u32(in + 8*i, DBUS_ADDRESS_START, info->addrbits);
+		LOG_DEBUG("read scan=%d result=%d data=%09" PRIx64 " address=%02x",
+				i, status, data, address);
+		switch (status) {
+			case DBUS_STATUS_SUCCESS:
+				break;
+			case DBUS_STATUS_NO_WRITE:
+				LOG_ERROR("Got no-write response without conditional write. Hardware error?");
+				goto error;
+			case DBUS_STATUS_FAILED:
+				LOG_ERROR("Debug access failed. Hardware error?");
+				goto error;
+			case DBUS_STATUS_BUSY:
+				dbus_busy++;
+				break;
+		}
+		if (data & DMCONTROL_INTERRUPT) {
+			interrupt_set++;
+			break;
+		}
+		if (address == 4) {
+			switch (result) {
+				case 0: info->gpr_cache[1] = data; break;
+				case 1: info->gpr_cache[2] = data; break;
+				case 2: info->gpr_cache[3] = data; break;
+				case 3: info->gpr_cache[4] = data; break;
+				case 4: info->gpr_cache[5] = data; break;
+				case 5: info->gpr_cache[6] = data; break;
+				case 6: info->gpr_cache[7] = data; break;
+						// S0
+						// S1
+				case 7: info->gpr_cache[10] = data; break;
+				case 8: info->gpr_cache[11] = data; break;
+				case 9: info->gpr_cache[12] = data; break;
+				case 10: info->gpr_cache[13] = data; break;
+				case 11: info->gpr_cache[14] = data; break;
+				case 12: info->gpr_cache[15] = data; break;
+				case 13: info->gpr_cache[16] = data; break;
+				case 14: info->gpr_cache[17] = data; break;
+				case 15: info->gpr_cache[18] = data; break;
+				case 16: info->gpr_cache[19] = data; break;
+				case 17: info->gpr_cache[20] = data; break;
+				case 18: info->gpr_cache[21] = data; break;
+				case 19: info->gpr_cache[22] = data; break;
+				case 20: info->gpr_cache[23] = data; break;
+				case 21: info->gpr_cache[24] = data; break;
+				case 22: info->gpr_cache[25] = data; break;
+				case 23: info->gpr_cache[26] = data; break;
+				case 24: info->gpr_cache[27] = data; break;
+				case 25: info->gpr_cache[28] = data; break;
+				case 26: info->gpr_cache[29] = data; break;
+				case 27: info->gpr_cache[30] = data; break;
+				case 28: info->gpr_cache[31] = data; break;
+				case 29: info->gpr_cache[S1] = data; break;
+				case 30: info->gpr_cache[S0] = data; break;
+				case 31: info->dpc = data; break;
+				case 32: info->dcsr = data; break;
+				default:
+						 assert(0);
+			}
+			result++;
+		}
+	}
+
+	free(in);
+	free(out);
+	free(field);
+
+	cache_invalidate(target);
+
+	if (dbus_busy) {
+		increase_dbus_busy_delay(target);
+		return RE_AGAIN;
+	}
+	if (interrupt_set) {
+		increase_interrupt_high_delay(target);
+		return RE_AGAIN;
+	}
+
+	return RE_OK;
+
+error:
+	free(in);
+	free(out);
+	free(field);
+	return RE_FAIL;
+}
+
 static int handle_halt(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	target->state = TARGET_HALTED;
 
-	if (read_csr(target, &info->dpc, CSR_DPC) != ERROR_OK) {
+	riscv_error_t re;
+	do {
+		re = handle_halt_routine(target);
+	} while (re == RE_AGAIN);
+	if (re != RE_OK) {
+		LOG_ERROR("handle_halt_routine failed");
 		return ERROR_FAIL;
 	}
 
-	if (read_csr(target, &info->dcsr, CSR_DCSR) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
 	int cause = get_field(info->dcsr, DCSR_CAUSE);
 	LOG_DEBUG("halt cause is %d; dcsr=0x%x", cause, info->dcsr);
 	switch (cause) {
@@ -1440,33 +1640,6 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-static void add_dbus_scan(struct target *target, struct scan_field *field,
-		uint8_t *out_value, uint8_t *in_value, dbus_op_t op, uint16_t address, 
-		uint64_t data)
-{
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-
-	LOG_DEBUG("op=%d address=0x%02x data=0x%09" PRIx64, op, address, data);
-
-	field->num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
-	field->in_value = in_value;
-	field->out_value = out_value;
-
-	buf_set_u64(out_value, DBUS_OP_START, DBUS_OP_SIZE, op);
-	buf_set_u64(out_value, DBUS_DATA_START, DBUS_DATA_SIZE, data);
-	buf_set_u64(out_value, DBUS_ADDRESS_START, info->addrbits, address);
-
-	jtag_add_dr_scan(target->tap, 1, field, TAP_IDLE);
-
-	// TODO: 1 should come from the dtminfo register
-	int idle_count = 1 + info->dbus_busy_count;
-	if (data & DMCONTROL_INTERRUPT) {
-		idle_count += info->interrupt_high_count;
-	}
-
-	jtag_add_runtest(idle_count, TAP_IDLE);
-}
-
 #if 1
 static int setup_write_memory(struct target *target, uint32_t size)
 {
@@ -1515,14 +1688,14 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		return ERROR_FAIL;
 	}
 
-#define MAX_BATCH_SIZE 256
-	uint8_t *in = malloc(MAX_BATCH_SIZE * 8);
-	uint8_t *out = malloc(MAX_BATCH_SIZE * 8);
-	struct scan_field *field = calloc(MAX_BATCH_SIZE, sizeof(struct scan_field));
+	const int max_batch_size = 256;
+	uint8_t *in = malloc(max_batch_size * 8);
+	uint8_t *out = malloc(max_batch_size * 8);
+	struct scan_field *field = calloc(max_batch_size, sizeof(struct scan_field));
 
 	uint32_t i = 0;
 	while (i < count + 1) {
-		unsigned int batch_size = MIN(count + 1 - i, MAX_BATCH_SIZE);
+		unsigned int batch_size = MIN(count + 1 - i, max_batch_size);
 
 		for (unsigned int j = 0; j < batch_size; j++) {
 			if (i + j == count) {
@@ -1584,12 +1757,10 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 			LOG_DEBUG("j=%d data=%09" PRIx64, j, buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
 		}
 		if (dbus_busy) {
-			info->dbus_busy_count++;
-			LOG_INFO("Increment dbus_busy_count to %d", info->dbus_busy_count);
+			increase_dbus_busy_delay(target);
 		}
 		if (execute_busy) {
-			info->interrupt_high_count++;
-			LOG_INFO("Increment interrupt_high_count to %d", info->interrupt_high_count);
+			increase_interrupt_high_delay(target);
 		}
 		if (dbus_busy || execute_busy) {
 			wait_for_debugint_clear(target, false);
