@@ -1875,6 +1875,11 @@ static void cortex_m_dwt_free(struct target *target)
 #define MVFR0_DEFAULT_M4 0x10110021
 #define MVFR1_DEFAULT_M4 0x11000011
 
+#define MVFR0_DEFAULT_M7_SP 0x10110021
+#define MVFR0_DEFAULT_M7_DP 0x10110221
+#define MVFR1_DEFAULT_M7_SP 0x11000011
+#define MVFR1_DEFAULT_M7_DP 0x12000011
+
 int cortex_m_examine(struct target *target)
 {
 	int retval;
@@ -1930,21 +1935,33 @@ int cortex_m_examine(struct target *target)
 		}
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
-		/* test for floating point feature on Cortex-M4 */
 		if (i == 4) {
 			target_read_u32(target, MVFR0, &mvfr0);
 			target_read_u32(target, MVFR1, &mvfr1);
 
+			/* test for floating point feature on Cortex-M4 */
 			if ((mvfr0 == MVFR0_DEFAULT_M4) && (mvfr1 == MVFR1_DEFAULT_M4)) {
 				LOG_DEBUG("Cortex-M%d floating point feature FPv4_SP found", i);
 				armv7m->fp_feature = FPv4_SP;
+			}
+		} else if (i == 7) {
+			target_read_u32(target, MVFR0, &mvfr0);
+			target_read_u32(target, MVFR1, &mvfr1);
+
+			/* test for floating point features on Cortex-M7 */
+			if ((mvfr0 == MVFR0_DEFAULT_M7_SP) && (mvfr1 == MVFR1_DEFAULT_M7_SP)) {
+				LOG_DEBUG("Cortex-M%d floating point feature FPv5_SP found", i);
+				armv7m->fp_feature = FPv5_SP;
+			} else if ((mvfr0 == MVFR0_DEFAULT_M7_DP) && (mvfr1 == MVFR1_DEFAULT_M7_DP)) {
+				LOG_DEBUG("Cortex-M%d floating point feature FPv5_DP found", i);
+				armv7m->fp_feature = FPv5_DP;
 			}
 		} else if (i == 0) {
 			/* Cortex-M0 does not support unaligned memory access */
 			armv7m->arm.is_armv6m = true;
 		}
 
-		if (armv7m->fp_feature != FPv4_SP &&
+		if (armv7m->fp_feature == FP_NONE &&
 		    armv7m->arm.core_cache->num_regs > ARMV7M_NUM_CORE_REGS_NOFP) {
 			/* free unavailable FPU registers */
 			size_t idx;
@@ -1959,8 +1976,9 @@ int cortex_m_examine(struct target *target)
 			armv7m->arm.core_cache->num_regs = ARMV7M_NUM_CORE_REGS_NOFP;
 		}
 
-		if ((i == 4 || i == 3) && !armv7m->stlink) {
-			/* Cortex-M3/M4 has 4096 bytes autoincrement range */
+		if ((i == 3 || i == 4 || i == 7) && !armv7m->stlink) {
+			/* Cortex-M3/M4/M7 have at least 4096 bytes autoincrement range,
+			 * s. ARM IHI 0031C: MEM-AP 7.2.2 */
 			armv7m->debug_ap->tar_autoincr_block = (1 << 12);
 		}
 
