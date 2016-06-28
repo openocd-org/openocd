@@ -1754,7 +1754,8 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 					dbus_busy++;
 					break;
 			}
-			LOG_DEBUG("j=%d data=%09" PRIx64, j, buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
+			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status,
+					buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
 		}
 		if (dbus_busy) {
 			increase_dbus_busy_delay(target);
