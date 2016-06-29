@@ -418,10 +418,32 @@ static uint32_t arm11_nextpc(struct arm11_common *arm11, int current, uint32_t a
 {
 	void *value = arm11->arm.pc->value;
 
-	if (!current)
-		buf_set_u32(value, 0, 32, address);
-	else
+	/* use the current program counter */
+	if (current)
 		address = buf_get_u32(value, 0, 32);
+
+	/* Make sure that the gdb thumb fixup does not
+	 * kill the return address
+	 */
+	switch (arm11->arm.core_state) {
+		case ARM_STATE_ARM:
+			address &= 0xFFFFFFFC;
+			break;
+		case ARM_STATE_THUMB:
+			/* When the return address is loaded into PC
+			 * bit 0 must be 1 to stay in Thumb state
+			 */
+			address |= 0x1;
+			break;
+
+		/* catch-all for JAZELLE and THUMB_EE */
+		default:
+			break;
+	}
+
+	buf_set_u32(value, 0, 32, address);
+	arm11->arm.pc->dirty = 1;
+	arm11->arm.pc->valid = 1;
 
 	return address;
 }

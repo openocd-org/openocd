@@ -229,6 +229,18 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 }
 
 /**
+ * Write to program counter and switch the core state (arm/thumb) according to
+ * the address.
+ */
+static int dpm_write_pc_core_state(struct arm_dpm *dpm, struct reg *r)
+{
+	uint32_t value = buf_get_u32(r->value, 0, 32);
+
+	/* read r0 from DCC; then "BX r0" */
+	return dpm->instr_write_data_r0(dpm, ARMV4_5_BX(0), value);
+}
+
+/**
  * Read basic registers of the the current context:  R0 to R15, and CPSR;
  * sets the core mode (such as USR or IRQ) and state (such as ARM or Thumb).
  * In normal operation this is called on entry to halting debug state,
@@ -465,6 +477,19 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 		goto done;
 	arm->cpsr->dirty = false;
 
+	/* restore the PC, make sure to also switch the core state
+	 * to whatever it was set to with "arm core_state" command.
+	 * target code will have set PC to an appropriate resume address.
+	 */
+	retval = dpm_write_pc_core_state(dpm, arm->pc);
+	if (retval != ERROR_OK)
+		goto done;
+	/* on Cortex-A5 (as found on NXP VF610 SoC), BX instruction
+	 * executed in debug state doesn't appear to set the PC,
+	 * explicitly set it with a "MOV pc, r0". This doesn't influence
+	 * CPSR on Cortex-A9 so it should be OK. Maybe due to different
+	 * debug version?
+	 */
 	retval = dpm_write_reg(dpm, arm->pc, 15);
 	if (retval != ERROR_OK)
 		goto done;
