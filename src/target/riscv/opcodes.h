@@ -116,6 +116,11 @@ static uint32_t flw(unsigned int src, unsigned int base, uint16_t offset)
 static uint32_t ebreak(void) { return MATCH_EBREAK; }
 static uint32_t ebreak_c(void) { return MATCH_C_EBREAK; }
 
+static uint32_t fence_i(void)
+{
+  return MATCH_FENCE_I;
+}
+
 /*
 static uint32_t lui(unsigned int dest, uint32_t imm)
 {
@@ -133,11 +138,6 @@ static uint32_t csrci(unsigned int csr, uint16_t imm) {
 static uint32_t li(unsigned int dest, uint16_t imm)
 {
 	return addi(dest, 0, imm);
-}
-
-static uint32_t fence_i(void)
-{
-  return MATCH_FENCE_I;
 }
 
 static uint32_t sd(unsigned int src, unsigned int base, uint16_t offset)

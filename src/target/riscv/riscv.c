@@ -786,7 +786,8 @@ static int resume(struct target *target, int current, uint32_t address,
 
 	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
 	dram_write32(target, 1, csrw(S0, CSR_DCSR), false);
-	dram_write_jump(target, 2, false);
+	dram_write32(target, 2, fence_i(), false);
+	dram_write_jump(target, 3, false);
 
 	// Write DCSR value, set interrupt and clear haltnot.
 	uint64_t dbus_value = DMCONTROL_INTERRUPT | info->dcsr;
@@ -1016,10 +1017,10 @@ static int riscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-	// Hardware single step doesn't exist yet.
 #if 1
 	return resume(target, current, address, handle_breakpoints, 0, true);
 #else
+	// Hardware single step doesn't exist yet.
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	uint32_t next_pc = info->dpc + 4;
 	// TODO: write better next pc prediction code
