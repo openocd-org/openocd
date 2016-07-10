@@ -245,14 +245,14 @@ struct kinetis_flash_bank {
 #define MDM_STAT_CORE_SLEEPDEEP	(1<<17)
 #define MDM_STAT_CORESLEEPING	(1<<18)
 
-#define MEM_CTRL_FMEIP		(1<<0)
-#define MEM_CTRL_DBG_DIS	(1<<1)
-#define MEM_CTRL_DBG_REQ	(1<<2)
-#define MEM_CTRL_SYS_RES_REQ	(1<<3)
-#define MEM_CTRL_CORE_HOLD_RES	(1<<4)
-#define MEM_CTRL_VLLSX_DBG_REQ	(1<<5)
-#define MEM_CTRL_VLLSX_DBG_ACK	(1<<6)
-#define MEM_CTRL_VLLSX_STAT_ACK	(1<<7)
+#define MDM_CTRL_FMEIP		(1<<0)
+#define MDM_CTRL_DBG_DIS	(1<<1)
+#define MDM_CTRL_DBG_REQ	(1<<2)
+#define MDM_CTRL_SYS_RES_REQ	(1<<3)
+#define MDM_CTRL_CORE_HOLD_RES	(1<<4)
+#define MDM_CTRL_VLLSX_DBG_REQ	(1<<5)
+#define MDM_CTRL_VLLSX_DBG_ACK	(1<<6)
+#define MDM_CTRL_VLLSX_STAT_ACK	(1<<7)
 
 #define MDM_ACCESS_TIMEOUT	3000 /* iterations */
 
@@ -316,10 +316,113 @@ static int kinetis_mdm_poll_register(struct adiv5_dap *dap, unsigned reg, uint32
 }
 
 /*
+ * This command can be used to break a watchdog reset loop when
+ * connecting to an unsecured target. Unlike other commands, halt will
+ * automatically retry as it does not know how far into the boot process
+ * it is when the command is called.
+ */
+COMMAND_HANDLER(kinetis_mdm_halt)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+	int retval;
+	int tries = 0;
+	uint32_t stat;
+
+	if (!dap) {
+		LOG_ERROR("Cannot perform halt with a high-level adapter");
+		return ERROR_FAIL;
+	}
+
+	while (true) {
+		tries++;
+
+		kinetis_mdm_write_register(dap, MDM_REG_CTRL, MDM_CTRL_CORE_HOLD_RES);
+
+		alive_sleep(1);
+
+		retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &stat);
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("MDM: failed to read MDM_REG_STAT");
+			continue;
+		}
+
+		/* Repeat setting MDM_CTRL_CORE_HOLD_RES until system is out of
+		 * reset with flash ready and without security
+		 */
+		if ((stat & (MDM_STAT_FREADY | MDM_STAT_SYSSEC | MDM_STAT_SYSRES))
+				== (MDM_STAT_FREADY | MDM_STAT_SYSRES))
+			break;
+
+		if (tries > MDM_ACCESS_TIMEOUT) {
+			LOG_ERROR("MDM: halt timed out");
+			return ERROR_FAIL;
+		}
+	}
+
+	LOG_DEBUG("MDM: halt succeded after %d attempts.", tries);
+
+	target_poll(target);
+	/* enable polling in case kinetis_check_flash_security_status disabled it */
+	jtag_poll_set_enabled(true);
+
+	alive_sleep(100);
+
+	target->reset_halt = true;
+	target->type->assert_reset(target);
+
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, 0);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to clear MDM_REG_CTRL");
+		return retval;
+	}
+
+	target->type->deassert_reset(target);
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(kinetis_mdm_reset)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+	int retval;
+
+	if (!dap) {
+		LOG_ERROR("Cannot perform reset with a high-level adapter");
+		return ERROR_FAIL;
+	}
+
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, MDM_CTRL_SYS_RES_REQ);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to write MDM_REG_CTRL");
+		return retval;
+	}
+
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT, MDM_STAT_SYSRES, 0);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to assert reset");
+		return retval;
+	}
+
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, 0);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to clear MDM_REG_CTRL");
+		return retval;
+	}
+
+	return ERROR_OK;
+}
+
+/*
  * This function implements the procedure to mass erase the flash via
  * SWD/JTAG on Kinetis K and L series of devices as it is described in
  * AN4835 "Production Flash Programming Best Practices for Kinetis K-
- * and L-series MCUs" Section 4.2.1
+ * and L-series MCUs" Section 4.2.1. To prevent a watchdog reset loop,
+ * the core remains halted after this function completes as suggested
+ * by the application note.
  */
 COMMAND_HANDLER(kinetis_mdm_mass_erase)
 {
@@ -342,26 +445,53 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	 * establishing communication...
 	 */
 
-	/* assert SRST */
-	if (jtag_get_reset_config() & RESET_HAS_SRST)
+	/* assert SRST if configured */
+	bool has_srst = jtag_get_reset_config() & RESET_HAS_SRST;
+	if (has_srst)
 		adapter_assert_reset();
-	else
-		LOG_WARNING("Attempting mass erase without hardware reset. This is not reliable; "
-			    "it's recommended you connect SRST and use ``reset_config srst_only''.");
 
-	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, MEM_CTRL_SYS_RES_REQ);
-	if (retval != ERROR_OK)
-		return retval;
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, MDM_CTRL_SYS_RES_REQ);
+	if (retval != ERROR_OK && !has_srst) {
+		LOG_ERROR("MDM: failed to assert reset");
+		goto deassert_reset_and_exit;
+	}
 
 	/*
-	 * ... Read the MDM-AP status register until the Flash Ready bit sets...
+	 * ... Read the MDM-AP status register Mass Erase Enable bit to
+	 * determine if the mass erase command is enabled. If Mass Erase
+	 * Enable = 0, then mass erase is disabled and the processor
+	 * cannot be erased or unsecured. If Mass Erase Enable = 1, then
+	 * the mass erase command can be used...
+	 */
+	uint32_t stat;
+
+	retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &stat);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to read MDM_REG_STAT");
+		goto deassert_reset_and_exit;
+	}
+
+	if (!(stat & MDM_STAT_FMEEN)) {
+		LOG_ERROR("MDM: mass erase is disabled");
+		goto deassert_reset_and_exit;
+	}
+
+	if ((stat & MDM_STAT_SYSSEC) && !(jtag_get_reset_config() & RESET_HAS_SRST)) {
+		LOG_ERROR("Mass erase of a secured MCU is not possible without hardware reset.");
+		LOG_INFO("Connect SRST and use 'reset_config srst_only'.");
+		goto deassert_reset_and_exit;
+	}
+
+	/*
+	 * ... Read the MDM-AP status register until the Flash Ready bit sets
+	 * and System Reset is asserted...
 	 */
 	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT,
 					   MDM_STAT_FREADY | MDM_STAT_SYSRES,
 					   MDM_STAT_FREADY);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("MDM : flash ready timeout");
-		return retval;
+		LOG_ERROR("MDM: flash ready / system reset timeout");
+		goto deassert_reset_and_exit;
 	}
 
 	/*
@@ -369,43 +499,48 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	 * Erase in Progress bit. This will start the mass erase
 	 * process...
 	 */
-	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL,
-					    MEM_CTRL_SYS_RES_REQ | MEM_CTRL_FMEIP);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* As a sanity check make sure that device started mass erase procedure */
-	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT,
-					   MDM_STAT_FMEACK, MDM_STAT_FMEACK);
-	if (retval != ERROR_OK)
-		return retval;
+	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, MDM_CTRL_SYS_RES_REQ | MDM_CTRL_FMEIP);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: failed to start mass erase");
+		goto deassert_reset_and_exit;
+	}
 
 	/*
 	 * ... Read the MDM-AP control register until the Flash Mass
 	 * Erase in Progress bit clears...
 	 */
-	retval = kinetis_mdm_poll_register(dap, MDM_REG_CTRL,
-					   MEM_CTRL_FMEIP,
-					   0);
-	if (retval != ERROR_OK)
-		return retval;
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_CTRL, MDM_CTRL_FMEIP, 0);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("MDM: mass erase timeout");
+		goto deassert_reset_and_exit;
+	}
+
+	target_poll(target);
+	/* enable polling in case kinetis_check_flash_security_status disabled it */
+	jtag_poll_set_enabled(true);
+
+	alive_sleep(100);
+
+	target->reset_halt = true;
+	target->type->assert_reset(target);
 
 	/*
 	 * ... Negate the RESET signal or clear the System Reset Request
-	 * bit in the MDM-AP control register...
+	 * bit in the MDM-AP control register.
 	 */
 	retval = kinetis_mdm_write_register(dap, MDM_REG_CTRL, 0);
 	if (retval != ERROR_OK)
-		return retval;
+		LOG_ERROR("MDM: failed to clear MDM_REG_CTRL");
 
-	if (jtag_get_reset_config() & RESET_HAS_SRST) {
-		/* halt MCU otherwise it loops in hard fault - WDOG reset cycle */
-		target->reset_halt = true;
-		target->type->assert_reset(target);
-		target->type->deassert_reset(target);
-	}
+	target->type->deassert_reset(target);
 
-	return ERROR_OK;
+	return retval;
+
+deassert_reset_and_exit:
+	kinetis_mdm_write_register(dap, MDM_REG_CTRL, 0);
+	if (has_srst)
+		adapter_deassert_reset();
+	return retval;
 }
 
 static const uint32_t kinetis_known_mdm_ids[] = {
@@ -1922,16 +2057,29 @@ static const struct command_registration kinetis_security_command_handlers[] = {
 	{
 		.name = "check_security",
 		.mode = COMMAND_EXEC,
-		.help = "",
+		.help = "Check status of device security lock",
 		.usage = "",
 		.handler = kinetis_check_flash_security_status,
 	},
 	{
+		.name = "halt",
+		.mode = COMMAND_EXEC,
+		.help = "Issue a halt via the MDM-AP",
+		.usage = "",
+		.handler = kinetis_mdm_halt,
+	},
+	{
 		.name = "mass_erase",
 		.mode = COMMAND_EXEC,
-		.help = "",
+		.help = "Issue a complete flash erase via the MDM-AP",
 		.usage = "",
 		.handler = kinetis_mdm_mass_erase,
+	},
+	{	.name = "reset",
+		.mode = COMMAND_EXEC,
+		.help = "Issue a reset via the MDM-AP",
+		.usage = "",
+		.handler = kinetis_mdm_reset,
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1940,7 +2088,7 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 	{
 		.name = "mdm",
 		.mode = COMMAND_ANY,
-		.help = "",
+		.help = "MDM-AP command group",
 		.usage = "",
 		.chain = kinetis_security_command_handlers,
 	},
@@ -1966,7 +2114,7 @@ static const struct command_registration kinetis_command_handler[] = {
 	{
 		.name = "kinetis",
 		.mode = COMMAND_ANY,
-		.help = "kinetis flash controller commands",
+		.help = "Kinetis flash controller commands",
 		.usage = "",
 		.chain = kinetis_exec_command_handlers,
 	},
