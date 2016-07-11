@@ -6731,6 +6731,11 @@ the initial log output channel is stderr.
 Add @var{directory} to the file/script search path.
 @end deffn
 
+@deffn Command bindto [name]
+Specify address by name on which to listen for incoming TCP/IP connections.
+By default, OpenOCD will listen on all available interfaces.
+@end deffn
+
 @anchor{targetstatehandling}
 @section Target State handling
 @cindex reset
