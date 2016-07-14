@@ -50,6 +50,7 @@
 #include "breakpoints.h"
 #include "cortex_a.h"
 #include "register.h"
+#include "armv7a_mmu.h"
 #include "target_request.h"
 #include "target_type.h"
 #include "arm_opcodes.h"
@@ -3120,6 +3121,9 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 		.help = "set domain access control (DACR) to all-manager "
 			"on memory access",
 		.usage = "['on'|'off']",
+	},
+	{
+		.chain = armv7a_mmu_command_handlers,
 	},
 
 	COMMAND_REGISTRATION_DONE

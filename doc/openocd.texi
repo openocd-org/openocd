@@ -8766,6 +8766,12 @@ Selects whether interrupts will be processed when single stepping
 configure l2x cache
 @end deffn
 
+@deffn Command {cortex_a mmu dump} [@option{0}|@option{1}|@option{addr} address [@option{num_entries}]]
+Dump the MMU translation table from TTB0 or TTB1 register, or from physical
+memory location @var{address}. When dumping the table from @var{address}, print at most
+@var{num_entries} page table entries. @var{num_entries} is optional, if omitted, the maximum
+possible (4096) entries are printed.
+@end deffn
 
 @subsection ARMv7-R specific commands
 @cindex Cortex-R
