@@ -70,9 +70,18 @@ COMMAND_HANDLER(handle_flash_info_command)
 	struct flash_bank *p;
 	int j = 0;
 	int retval;
+	bool show_sectors = false;
+	bool prot_block_available;
 
-	if (CMD_ARGC != 1)
+	if (CMD_ARGC < 1 || CMD_ARGC > 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 2) {
+		if (strcmp("sectors", CMD_ARGV[1]) == 0)
+			show_sectors = true;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
 	if (retval != ERROR_OK)
@@ -80,6 +89,8 @@ COMMAND_HANDLER(handle_flash_info_command)
 
 	if (p != NULL) {
 		char buf[1024];
+		int num_blocks;
+		struct flash_sector *block_array;
 
 		/* attempt auto probe */
 		retval = p->driver->auto_probe(p);
@@ -100,22 +111,32 @@ COMMAND_HANDLER(handle_flash_info_command)
 			p->size,
 			p->bus_width,
 			p->chip_width);
-		for (j = 0; j < p->num_sectors; j++) {
-			char *protect_state;
 
-			if (p->sectors[j].is_protected == 0)
+		prot_block_available = p->num_prot_blocks && p->prot_blocks;
+		if (!show_sectors && prot_block_available) {
+			block_array = p->prot_blocks;
+			num_blocks = p->num_prot_blocks;
+		} else {
+			block_array = p->sectors;
+			num_blocks = p->num_sectors;
+		}
+
+		for (j = 0; j < num_blocks; j++) {
+			char *protect_state = "";
+
+			if (block_array[j].is_protected == 0)
 				protect_state = "not protected";
-			else if (p->sectors[j].is_protected == 1)
+			else if (block_array[j].is_protected == 1)
 				protect_state = "protected";
-			else
+			else if (!show_sectors || !prot_block_available)
 				protect_state = "protection state unknown";
 
 			command_print(CMD_CTX,
 				"\t#%3i: 0x%8.8" PRIx32 " (0x%" PRIx32 " %" PRIi32 "kB) %s",
 				j,
-				p->sectors[j].offset,
-				p->sectors[j].size,
-				p->sectors[j].size >> 10,
+				block_array[j].offset,
+				block_array[j].size,
+				block_array[j].size >> 10,
 				protect_state);
 		}
 
@@ -333,21 +354,27 @@ COMMAND_HANDLER(handle_flash_protect_command)
 
 	struct flash_bank *p;
 	int retval;
+	int num_blocks;
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
 	if (retval != ERROR_OK)
 		return retval;
 
+	if (p->num_prot_blocks)
+		num_blocks = p->num_prot_blocks;
+	else
+		num_blocks = p->num_sectors;
+
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], first);
 	if (strcmp(CMD_ARGV[2], "last") == 0)
-		last = p->num_sectors - 1;
+		last = num_blocks - 1;
 	else
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], last);
 
 	bool set;
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[3], set);
 
-	retval = flash_check_sector_parameters(CMD_CTX, first, last, p->num_sectors);
+	retval = flash_check_sector_parameters(CMD_CTX, first, last, num_blocks);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -813,7 +840,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "info",
 		.handler = handle_flash_info_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
+		.usage = "bank_id ['sectors']",
 		.help = "Print information about a flash bank.",
 	},
 	{
@@ -988,6 +1015,8 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	c->default_padded_value = 0xff;
 	c->num_sectors = 0;
 	c->sectors = NULL;
+	c->num_prot_blocks = 0;
+	c->prot_blocks = NULL;
 	c->next = NULL;
 
 	int retval;

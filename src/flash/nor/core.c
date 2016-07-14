@@ -343,8 +343,9 @@ int default_flash_blank_check(struct flash_bank *bank)
  * and address.  Maps an address range to a set of sectors, and issues
  * the callback() on that set ... e.g. to erase or unprotect its members.
  *
- * (Note a current bad assumption:  that protection operates on the same
- * size sectors as erase operations use.)
+ * Parameter iterate_protect_blocks switches iteration of protect block
+ * instead of erase sectors. If there is no protect blocks array, sectors
+ * are used in iteration, so compatibility for old flash drivers is retained.
  *
  * The "pad_reason" parameter is a kind of boolean:  when it's NULL, the
  * range must fit those sectors exactly.  This is clearly safe; it can't
@@ -355,13 +356,16 @@ int default_flash_blank_check(struct flash_bank *bank)
  */
 static int flash_iterate_address_range_inner(struct target *target,
 	char *pad_reason, uint32_t addr, uint32_t length,
+	bool iterate_protect_blocks,
 	int (*callback)(struct flash_bank *bank, int first, int last))
 {
 	struct flash_bank *c;
+	struct flash_sector *block_array;
 	uint32_t last_addr = addr + length;	/* first address AFTER end */
 	int first = -1;
 	int last = -1;
 	int i;
+	int num_blocks;
 
 	int retval = get_flash_bank_by_addr(target, addr, true, &c);
 	if (retval != ERROR_OK)
@@ -388,13 +392,21 @@ static int flash_iterate_address_range_inner(struct target *target,
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
-	/** @todo: handle erasures that cross into adjacent banks */
-
 	addr -= c->base;
 	last_addr -= c->base;
 
-	for (i = 0; i < c->num_sectors; i++) {
-		struct flash_sector *f = c->sectors + i;
+	if (iterate_protect_blocks && c->prot_blocks && c->num_prot_blocks) {
+		block_array = c->prot_blocks;
+		num_blocks = c->num_prot_blocks;
+	} else {
+		block_array = c->sectors;
+		num_blocks = c->num_sectors;
+		iterate_protect_blocks = false;
+	}
+
+
+	for (i = 0; i < num_blocks; i++) {
+		struct flash_sector *f = &block_array[i];
 		uint32_t end = f->offset + f->size;
 
 		/* start only on a sector boundary */
@@ -472,6 +484,7 @@ static int flash_iterate_address_range_inner(struct target *target,
  */
 static int flash_iterate_address_range(struct target *target,
 	char *pad_reason, uint32_t addr, uint32_t length,
+	bool iterate_protect_blocks,
 	int (*callback)(struct flash_bank *bank, int first, int last))
 {
 	struct flash_bank *c;
@@ -491,6 +504,7 @@ static int flash_iterate_address_range(struct target *target,
 		}
 		retval = flash_iterate_address_range_inner(target,
 				pad_reason, addr, cur_length,
+				iterate_protect_blocks,
 				callback);
 		if (retval != ERROR_OK)
 			break;
@@ -506,7 +520,7 @@ int flash_erase_address_range(struct target *target,
 	bool pad, uint32_t addr, uint32_t length)
 {
 	return flash_iterate_address_range(target, pad ? "erase" : NULL,
-		addr, length, &flash_driver_erase);
+		addr, length, false, &flash_driver_erase);
 }
 
 static int flash_driver_unprotect(struct flash_bank *bank, int first, int last)
@@ -521,7 +535,7 @@ int flash_unlock_address_range(struct target *target, uint32_t addr, uint32_t le
 	 * and doesn't restore it.
 	 */
 	return flash_iterate_address_range(target, "unprotect",
-		addr, length, &flash_driver_unprotect);
+		addr, length, true, &flash_driver_unprotect);
 }
 
 static int compare_section(const void *a, const void *b)
@@ -761,4 +775,23 @@ int flash_write(struct target *target, struct image *image,
 	uint32_t *written, int erase)
 {
 	return flash_write_unlock(target, image, written, erase, false);
+}
+
+struct flash_sector *alloc_block_array(uint32_t offset, uint32_t size, int num_blocks)
+{
+	int i;
+
+	struct flash_sector *array = calloc(num_blocks, sizeof(struct flash_sector));
+	if (array == NULL)
+		return NULL;
+
+	for (i = 0; i < num_blocks; i++) {
+		array[i].offset = offset;
+		array[i].size = size;
+		array[i].is_erased = -1;
+		array[i].is_protected = -1;
+		offset += size;
+	}
+
+	return array;
 }
