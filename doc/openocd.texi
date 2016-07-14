@@ -4739,8 +4739,10 @@ and display that status.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {flash info} num
-Print info about flash bank @var{num}
+@deffn Command {flash info} num [sectors]
+Print info about flash bank @var{num}, a list of protection blocks
+and their status. Use @option{sectors} to show a list of sectors instead.
+
 The @var{num} parameter is a value shown by @command{flash banks}.
 This command will first query the hardware, it does not print cached
 and possibly stale information.
