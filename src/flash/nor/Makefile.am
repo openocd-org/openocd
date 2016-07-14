@@ -35,6 +35,7 @@ NOR_DRIVERS = \
 	%D%/lpc288x.c \
 	%D%/lpc2900.c \
 	%D%/lpcspifi.c \
+	%D%/max32xxx.c \
 	%D%/mdr.c \
 	%D%/msp432.c \
 	%D%/mrvlqspi.c \
