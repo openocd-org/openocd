@@ -3229,6 +3229,20 @@ static int cortex_a_virt2phys(struct target *target,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
+	int mmu_enabled;
+
+	/*
+	 * If the MMU was not enabled at debug entry, there is no
+	 * way of knowing if there was ever a valid configuration
+	 * for it and thus it's not safe to enable it. In this case,
+	 * just return the virtual address as physical.
+	 */
+	cortex_a_mmu(target, &mmu_enabled);
+	if (!mmu_enabled) {
+		*phys = virt;
+		return ERROR_OK;
+	}
+
 	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap->ap_num)) {
 		uint32_t ret;
 		retval = armv7a_mmu_translate_va(target,
