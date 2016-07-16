@@ -34,6 +34,7 @@ extern struct rtos_type Linux_os;
 extern struct rtos_type ChibiOS_rtos;
 extern struct rtos_type embKernel_rtos;
 extern struct rtos_type mqx_rtos;
+extern struct rtos_type uCOS_III_rtos;
 
 static struct rtos_type *rtos_types[] = {
 	&ThreadX_rtos,
@@ -43,6 +44,7 @@ static struct rtos_type *rtos_types[] = {
 	&ChibiOS_rtos,
 	&embKernel_rtos,
 	&mqx_rtos,
+	&uCOS_III_rtos,
 	NULL
 };
 
@@ -400,9 +402,14 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 	} else if (packet[0] == 'H') {	/* Set current thread ( 'c' for step and continue, 'g' for
 					 * all other operations ) */
 		if ((packet[1] == 'g') && (target->rtos != NULL)) {
-			sscanf(packet, "Hg%16" SCNx64, &target->rtos->current_threadid);
-			LOG_DEBUG("RTOS: GDB requested to set current thread to 0x%" PRIx64 "\r\n",
-										target->rtos->current_threadid);
+			threadid_t threadid;
+			sscanf(packet, "Hg%16" SCNx64, &threadid);
+			LOG_DEBUG("RTOS: GDB requested to set current thread to 0x%" PRIx64, threadid);
+			/* threadid of 0 indicates target should choose */
+			if (threadid == 0)
+				target->rtos->current_threadid = target->rtos->current_thread;
+			else
+				target->rtos->current_threadid = threadid;
 		}
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
@@ -426,9 +433,13 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 										current_threadid,
 										target->rtos->current_thread);
 
-		target->rtos->type->get_thread_reg_list(target->rtos,
-			current_threadid,
-			&hex_reg_list);
+		int retval = target->rtos->type->get_thread_reg_list(target->rtos,
+				current_threadid,
+				&hex_reg_list);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("RTOS: failed to get register list");
+			return retval;
+		}
 
 		if (hex_reg_list != NULL) {
 			gdb_put_packet(connection, hex_reg_list, strlen(hex_reg_list));
@@ -546,5 +557,7 @@ void rtos_free_threadlist(struct rtos *rtos)
 		free(rtos->thread_details);
 		rtos->thread_details = NULL;
 		rtos->thread_count = 0;
+		rtos->current_threadid = -1;
+		rtos->current_thread = 0;
 	}
 }

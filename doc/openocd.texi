@@ -4123,7 +4123,8 @@ The value should normally correspond to a static mapping for the
 @anchor{rtostype}
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
 @var{rtos_type} can be one of @option{auto}|@option{eCos}|@option{ThreadX}|
-@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}|@option{mqx}
+@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}|@option{mqx}|
+@option{uCOS-III}
 @xref{gdbrtossupport,,RTOS Support}.
 
 @item @code{-defer-examine} -- skip target examination at initial JTAG chain
@@ -8833,6 +8834,7 @@ Currently supported rtos's include:
 @item @option{ChibiOS}
 @item @option{embKernel}
 @item @option{mqx}
+@item @option{uCOS-III}
 @end itemize
 
 @quotation Note
@@ -8866,10 +8868,12 @@ Rtos::sCurrentTask, Rtos::sListReady, Rtos::sListSleep,
 Rtos::sListSuspended, Rtos::sMaxPriorities, Rtos::sCurrentTaskCount.
 @item mqx symbols
 _mqx_kernel_data, MQX_init_struct.
+@item uC/OS-III symbols
+OSRunning, OSTCBCurPtr, OSTaskDbgListPtr, OSTaskQty
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for
-some, eg. FreeRTOS, extra steps must be taken.
+some, eg. FreeRTOS and uC/OS-III, extra steps must be taken.
 
 These RTOSes may require additional OpenOCD-specific file to be linked
 along with the project:
@@ -8877,6 +8881,8 @@ along with the project:
 @table @code
 @item FreeRTOS
 contrib/rtos-helpers/FreeRTOS-openocd.c
+@item uC/OS-III
+contrib/rtos-helpers/uCOS-III-openocd.c
 @end table
 
 @node Tcl Scripting API
