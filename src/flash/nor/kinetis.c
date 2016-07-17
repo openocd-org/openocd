@@ -227,6 +227,8 @@ struct kinetis_flash_bank {
 	} flash_support;
 };
 
+#define MDM_AP			1
+
 #define MDM_REG_STAT		0x00
 #define MDM_REG_CTRL		0x04
 #define MDM_REG_ID		0xfc
@@ -261,7 +263,7 @@ static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint3
 	int retval;
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
 
-	retval = dap_queue_ap_write(dap_ap(dap, 1), reg, value);
+	retval = dap_queue_ap_write(dap_ap(dap, MDM_AP), reg, value);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a write request");
 		return retval;
@@ -281,7 +283,7 @@ static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32
 {
 	int retval;
 
-	retval = dap_queue_ap_read(dap_ap(dap, 1), reg, result);
+	retval = dap_queue_ap_read(dap_ap(dap, MDM_AP), reg, result);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a read request");
 		return retval;
@@ -575,8 +577,11 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 	retval = kinetis_mdm_read_register(dap, MDM_REG_ID, &val);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("MDM: failed to read ID register");
-		goto fail;
+		return ERROR_OK;
 	}
+
+	if (val == 0)
+		return ERROR_OK;
 
 	bool found = false;
 	for (size_t i = 0; i < ARRAY_SIZE(kinetis_known_mdm_ids); i++) {
@@ -590,17 +595,6 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		LOG_WARNING("MDM: unknown ID %08" PRIX32, val);
 
 	/*
-	 * ... Read the MDM-AP status register until the Flash Ready bit sets...
-	 */
-	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT,
-					   MDM_STAT_FREADY,
-					   MDM_STAT_FREADY);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("MDM: flash ready timeout");
-		goto fail;
-	}
-
-	/*
 	 * ... Read the System Security bit to determine if security is enabled.
 	 * If System Security = 0, then proceed. If System Security = 1, then
 	 * communication with the internals of the processor, including the
@@ -610,33 +604,40 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 	retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &val);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("MDM: failed to read MDM_REG_STAT");
-		goto fail;
+		return ERROR_OK;
 	}
 
-	if ((val & (MDM_STAT_SYSSEC | MDM_STAT_CORE_HALTED)) == MDM_STAT_SYSSEC) {
-		LOG_WARNING("MDM: Secured MCU state detected however it may be a false alarm");
-		LOG_WARNING("MDM: Halting target to detect secured state reliably");
+	/*
+	 * System Security bit is also active for short time during reset.
+	 * If a MCU has blank flash and runs in RESET/WDOG loop,
+	 * System Security bit is active most of time!
+	 * We should observe Flash Ready bit and read status several times
+	 * to avoid false detection of secured MCU
+	 */
+	int secured_score = 0, flash_not_ready_score = 0;
 
-		retval = target_halt(target);
-		if (retval == ERROR_OK)
-			retval = target_wait_state(target, TARGET_HALTED, 100);
+	if ((val & (MDM_STAT_SYSSEC | MDM_STAT_FREADY)) != MDM_STAT_FREADY) {
+		uint32_t stats[32];
+		int i;
 
-		if (retval != ERROR_OK) {
-			LOG_WARNING("MDM: Target not halted, trying reset halt");
-			target->reset_halt = true;
-			target->type->assert_reset(target);
-			target->type->deassert_reset(target);
+		for (i = 0; i < 32; i++) {
+			stats[i] = MDM_STAT_FREADY;
+			dap_queue_ap_read(dap_ap(dap, MDM_AP), MDM_REG_STAT, &stats[i]);
 		}
-
-		/* re-read status */
-		retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &val);
+		retval = dap_run(dap);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("MDM: failed to read MDM_REG_STAT");
-			goto fail;
+			LOG_DEBUG("MDM: dap_run failed when validating secured state");
+			return ERROR_OK;
+		}
+		for (i = 0; i < 32; i++) {
+			if (stats[i] & MDM_STAT_SYSSEC)
+				secured_score++;
+			if (!(stats[i] & MDM_STAT_FREADY))
+				flash_not_ready_score++;
 		}
 	}
 
-	if (val & MDM_STAT_SYSSEC) {
+	if (flash_not_ready_score <= 8 && secured_score > 24) {
 		jtag_poll_set_enabled(false);
 
 		LOG_WARNING("*********** ATTENTION! ATTENTION! ATTENTION! ATTENTION! **********");
@@ -648,17 +649,22 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		LOG_WARNING("**** command, power cycle the MCU and restart OpenOCD.        ****");
 		LOG_WARNING("****                                                          ****");
 		LOG_WARNING("*********** ATTENTION! ATTENTION! ATTENTION! ATTENTION! **********");
+
+	} else if (flash_not_ready_score > 24) {
+		jtag_poll_set_enabled(false);
+		LOG_WARNING("**** Your Kinetis MCU is probably locked-up in RESET/WDOG loop. ****");
+		LOG_WARNING("**** Common reason is a blank flash (at least a reset vector).  ****");
+		LOG_WARNING("**** Issue 'kinetis mdm halt' command or if SRST is connected   ****");
+		LOG_WARNING("**** and configured, use 'reset halt'                           ****");
+		LOG_WARNING("**** If MCU cannot be halted, it is likely secured and running  ****");
+		LOG_WARNING("**** in RESET/WDOG loop. Issue 'kinetis mdm mass_erase'         ****");
+
 	} else {
 		LOG_INFO("MDM: Chip is unsecured. Continuing.");
 		jtag_poll_set_enabled(true);
 	}
 
 	return ERROR_OK;
-
-fail:
-	LOG_ERROR("MDM: Failed to check security status of the MCU. Cannot proceed further");
-	jtag_poll_set_enabled(false);
-	return retval;
 }
 
 FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
