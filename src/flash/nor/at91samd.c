@@ -423,39 +423,43 @@ static int samd_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static bool samd_check_error(struct target *target)
+static int samd_check_error(struct target *target)
 {
-	int ret;
-	bool error;
+	int ret, ret2;
 	uint16_t status;
 
 	ret = target_read_u16(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_STATUS, &status);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Can't read NVM status");
-		return true;
+		return ret;
 	}
 
-	if (status & 0x001C) {
-		if (status & (1 << 4)) /* NVME */
-			LOG_ERROR("SAMD: NVM Error");
-		if (status & (1 << 3)) /* LOCKE */
-			LOG_ERROR("SAMD: NVM lock error");
-		if (status & (1 << 2)) /* PROGE */
-			LOG_ERROR("SAMD: NVM programming error");
+	if ((status & 0x001C) == 0)
+		return ERROR_OK;
 
-		error = true;
-	} else {
-		error = false;
+	if (status & (1 << 4)) { /* NVME */
+		LOG_ERROR("SAMD: NVM Error");
+		ret = ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	if (status & (1 << 3)) { /* LOCKE */
+		LOG_ERROR("SAMD: NVM lock error");
+		ret = ERROR_FLASH_PROTECTED;
+	}
+
+	if (status & (1 << 2)) { /* PROGE */
+		LOG_ERROR("SAMD: NVM programming error");
+		ret = ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
 	/* Clear the error conditions by writing a one to them */
-	ret = target_write_u16(target,
+	ret2 = target_write_u16(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_STATUS, status);
-	if (ret != ERROR_OK)
+	if (ret2 != ERROR_OK)
 		LOG_ERROR("Can't clear NVM error conditions");
 
-	return error;
+	return ret;
 }
 
 static int samd_issue_nvmctrl_command(struct target *target, uint16_t cmd)
@@ -474,10 +478,7 @@ static int samd_issue_nvmctrl_command(struct target *target, uint16_t cmd)
 		return res;
 
 	/* Check to see if the NVM command resulted in an error condition. */
-	if (samd_check_error(target))
-		return ERROR_FAIL;
-
-	return ERROR_OK;
+	return samd_check_error(target);
 }
 
 static int samd_erase_row(struct target *target, uint32_t address)
@@ -531,11 +532,18 @@ static int samd_modify_user_row(struct target *target, uint32_t value,
 		uint8_t startb, uint8_t endb)
 {
 	int res;
+	uint32_t nvm_ctrlb;
+	bool manual_wp = true;
 
 	if (is_user_row_reserved_bit(startb) || is_user_row_reserved_bit(endb)) {
 		LOG_ERROR("Can't modify bits in the requested range");
 		return ERROR_FAIL;
 	}
+
+	/* Check if we need to do manual page write commands */
+	res = target_read_u32(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB, &nvm_ctrlb);
+	if (res == ERROR_OK)
+		manual_wp = (nvm_ctrlb & SAMD_NVM_CTRLB_MANW) != 0;
 
 	/* Retrieve the MCU's page size, in bytes. This is also the size of the
 	 * entire User Row. */
@@ -559,8 +567,8 @@ static int samd_modify_user_row(struct target *target, uint32_t value,
 	if (!buf)
 		return ERROR_FAIL;
 
-	/* Read the user row (comprising one page) by half-words. */
-	res = target_read_memory(target, SAMD_USER_ROW, 2, page_size / 2, buf);
+	/* Read the user row (comprising one page) by words. */
+	res = target_read_memory(target, SAMD_USER_ROW, 4, page_size / 4, buf);
 	if (res != ERROR_OK)
 		goto out_user_row;
 
@@ -579,19 +587,17 @@ static int samd_modify_user_row(struct target *target, uint32_t value,
 	/* Modify */
 	buf_set_u32(buf, startb, endb - startb + 1, value);
 
-	/* Write the page buffer back out to the target.  A Flash write will be
-	 * triggered automatically. */
+	/* Write the page buffer back out to the target. */
 	res = target_write_memory(target, SAMD_USER_ROW, 4, page_size / 4, buf);
 	if (res != ERROR_OK)
 		goto out_user_row;
 
-	if (samd_check_error(target)) {
-		res = ERROR_FAIL;
-		goto out_user_row;
+	if (manual_wp) {
+		/* Trigger flash write */
+		res = samd_issue_nvmctrl_command(target, SAMD_NVM_CMD_WAP);
+	} else {
+		res = samd_check_error(target);
 	}
-
-	/* Success */
-	res = ERROR_OK;
 
 out_user_row:
 	free(buf);
@@ -784,18 +790,15 @@ static int samd_write(struct flash_bank *bank, const uint8_t *buffer,
 		 * then issue CMD_WP always */
 		if (manual_wp || pg_offset + 4 * nw < chip->page_size) {
 			res = samd_issue_nvmctrl_command(bank->target, SAMD_NVM_CMD_WP);
-			if (res != ERROR_OK) {
-				LOG_ERROR("%s: %d", __func__, __LINE__);
-				goto free_pb;
-			}
+		} else {
+			/* Access through AHB is stalled while flash is being programmed */
+			usleep(200);
+
+			res = samd_check_error(bank->target);
 		}
 
-		/* Access through AHB is stalled while flash is being programmed */
-		usleep(200);
-
-		if (samd_check_error(bank->target)) {
+		if (res != ERROR_OK) {
 			LOG_ERROR("%s: write failed at address 0x%08" PRIx32, __func__, address);
-			res = ERROR_FAIL;
 			goto free_pb;
 		}
 

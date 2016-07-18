@@ -44,5 +44,6 @@ bool flash_driver_name_matches(const char *name, const char *expected);
 #define ERROR_FLASH_SECTOR_NOT_ERASED		(-906)
 #define ERROR_FLASH_BANK_NOT_PROBED			(-907)
 #define ERROR_FLASH_OPER_UNSUPPORTED		(-908)
+#define ERROR_FLASH_PROTECTED			(-909)
 
 #endif /* OPENOCD_FLASH_COMMON_H */
