@@ -131,4 +131,7 @@ ATTRS{idVendor}=="c251", ATTRS{idProduct}=="2710", MODE="664", GROUP="plugdev"
 # CMSIS-DAP compatible adapters
 ATTRS{product}=="*CMSIS-DAP*", MODE="664", GROUP="plugdev"
 
+# Cypress SuperSpeed Explorer Kit
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="0007", MODE="664", GROUP="plugdev"
+
 LABEL="openocd_rules_end"
