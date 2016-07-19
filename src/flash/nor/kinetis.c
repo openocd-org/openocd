@@ -35,6 +35,7 @@
 #include "jtag/interface.h"
 #include "imp.h"
 #include <helper/binarybuffer.h>
+#include <helper/time_support.h>
 #include <target/target_type.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
@@ -256,7 +257,7 @@ struct kinetis_flash_bank {
 #define MDM_CTRL_VLLSX_DBG_ACK	(1<<6)
 #define MDM_CTRL_VLLSX_STAT_ACK	(1<<7)
 
-#define MDM_ACCESS_TIMEOUT	3000 /* iterations */
+#define MDM_ACCESS_TIMEOUT	500 /* msec */
 
 static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
 {
@@ -299,11 +300,12 @@ static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32
 	return ERROR_OK;
 }
 
-static int kinetis_mdm_poll_register(struct adiv5_dap *dap, unsigned reg, uint32_t mask, uint32_t value)
+static int kinetis_mdm_poll_register(struct adiv5_dap *dap, unsigned reg,
+			uint32_t mask, uint32_t value, uint32_t timeout_ms)
 {
 	uint32_t val;
 	int retval;
-	int timeout = MDM_ACCESS_TIMEOUT;
+	int64_t ms_timeout = timeval_ms() + timeout_ms;
 
 	do {
 		retval = kinetis_mdm_read_register(dap, reg, &val);
@@ -311,7 +313,7 @@ static int kinetis_mdm_poll_register(struct adiv5_dap *dap, unsigned reg, uint32
 			return retval;
 
 		alive_sleep(1);
-	} while (timeout--);
+	} while (timeval_ms() < ms_timeout);
 
 	LOG_DEBUG("MDM: polling timed out");
 	return ERROR_FAIL;
@@ -331,6 +333,7 @@ COMMAND_HANDLER(kinetis_mdm_halt)
 	int retval;
 	int tries = 0;
 	uint32_t stat;
+	int64_t ms_timeout = timeval_ms() + MDM_ACCESS_TIMEOUT;
 
 	if (!dap) {
 		LOG_ERROR("Cannot perform halt with a high-level adapter");
@@ -357,7 +360,7 @@ COMMAND_HANDLER(kinetis_mdm_halt)
 				== (MDM_STAT_FREADY | MDM_STAT_SYSRES))
 			break;
 
-		if (tries > MDM_ACCESS_TIMEOUT) {
+		if (timeval_ms() >= ms_timeout) {
 			LOG_ERROR("MDM: halt timed out");
 			return ERROR_FAIL;
 		}
@@ -403,7 +406,7 @@ COMMAND_HANDLER(kinetis_mdm_reset)
 		return retval;
 	}
 
-	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT, MDM_STAT_SYSRES, 0);
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT, MDM_STAT_SYSRES, 0, 500);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("MDM: failed to assert reset");
 		return retval;
@@ -459,42 +462,61 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	}
 
 	/*
-	 * ... Read the MDM-AP status register Mass Erase Enable bit to
-	 * determine if the mass erase command is enabled. If Mass Erase
-	 * Enable = 0, then mass erase is disabled and the processor
-	 * cannot be erased or unsecured. If Mass Erase Enable = 1, then
-	 * the mass erase command can be used...
+	 * ... Read the MDM-AP status register repeatedly and wait for
+	 * stable conditions suitable for mass erase:
+	 * - mass erase is enabled
+	 * - flash is ready
+	 * - reset is finished
+	 *
+	 * Mass erase is started as soon as all conditions are met in 32
+	 * subsequent status reads.
+	 *
+	 * In case of not stable conditions (RESET/WDOG loop in secured device)
+	 * the user is asked for manual pressing of RESET button
+	 * as a last resort.
 	 */
-	uint32_t stat;
+	int cnt_mass_erase_disabled = 0;
+	int cnt_ready = 0;
+	int64_t ms_start = timeval_ms();
+	bool man_reset_requested = false;
 
-	retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &stat);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("MDM: failed to read MDM_REG_STAT");
-		goto deassert_reset_and_exit;
-	}
+	do {
+		uint32_t stat = 0;
+		int64_t ms_elapsed = timeval_ms() - ms_start;
 
-	if (!(stat & MDM_STAT_FMEEN)) {
-		LOG_ERROR("MDM: mass erase is disabled");
-		goto deassert_reset_and_exit;
-	}
+		if (!man_reset_requested && ms_elapsed > 100) {
+			LOG_INFO("MDM: Press RESET button now if possible.");
+			man_reset_requested = true;
+		}
 
-	if ((stat & MDM_STAT_SYSSEC) && !(jtag_get_reset_config() & RESET_HAS_SRST)) {
-		LOG_ERROR("Mass erase of a secured MCU is not possible without hardware reset.");
-		LOG_INFO("Connect SRST and use 'reset_config srst_only'.");
-		goto deassert_reset_and_exit;
-	}
+		if (ms_elapsed > 3000) {
+			LOG_ERROR("MDM: waiting for mass erase conditions timed out.");
+			LOG_INFO("Mass erase of a secured MCU is not possible without hardware reset.");
+			LOG_INFO("Connect SRST, use 'reset_config srst_only' and retry.");
+			goto deassert_reset_and_exit;
+		}
+		retval = kinetis_mdm_read_register(dap, MDM_REG_STAT, &stat);
+		if (retval != ERROR_OK) {
+			cnt_ready = 0;
+			continue;
+		}
 
-	/*
-	 * ... Read the MDM-AP status register until the Flash Ready bit sets
-	 * and System Reset is asserted...
-	 */
-	retval = kinetis_mdm_poll_register(dap, MDM_REG_STAT,
-					   MDM_STAT_FREADY | MDM_STAT_SYSRES,
-					   MDM_STAT_FREADY);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("MDM: flash ready / system reset timeout");
-		goto deassert_reset_and_exit;
-	}
+		if (!(stat & MDM_STAT_FMEEN)) {
+			cnt_ready = 0;
+			cnt_mass_erase_disabled++;
+			if (cnt_mass_erase_disabled > 10) {
+				LOG_ERROR("MDM: mass erase is disabled");
+				goto deassert_reset_and_exit;
+			}
+			continue;
+		}
+
+		if ((stat & (MDM_STAT_FREADY | MDM_STAT_SYSRES)) == MDM_STAT_FREADY)
+			cnt_ready++;
+		else
+			cnt_ready = 0;
+
+	} while (cnt_ready < 32);
 
 	/*
 	 * ... Write the MDM-AP control register to set the Flash Mass
@@ -510,8 +532,10 @@ COMMAND_HANDLER(kinetis_mdm_mass_erase)
 	/*
 	 * ... Read the MDM-AP control register until the Flash Mass
 	 * Erase in Progress bit clears...
+	 * Data sheed defines erase time <3.6 sec/512kB flash block.
+	 * The biggest device has 4 pflash blocks => timeout 16 sec.
 	 */
-	retval = kinetis_mdm_poll_register(dap, MDM_REG_CTRL, MDM_CTRL_FMEIP, 0);
+	retval = kinetis_mdm_poll_register(dap, MDM_REG_CTRL, MDM_CTRL_FMEIP, 0, 16000);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("MDM: mass erase timeout");
 		goto deassert_reset_and_exit;
@@ -1018,6 +1042,7 @@ static int kinetis_ftfx_command(struct target *target, uint8_t fcmd, uint32_t fa
 			fccobb, fccoba, fccob9, fccob8};
 	int result, i;
 	uint8_t buffer;
+	int64_t ms_timeout = timeval_ms() + 250;
 
 	/* wait for done */
 	for (i = 0; i < 50; i++) {
@@ -1054,7 +1079,7 @@ static int kinetis_ftfx_command(struct target *target, uint8_t fcmd, uint32_t fa
 		return result;
 
 	/* wait for done */
-	for (i = 0; i < 240; i++) { /* Need longtime for "Mass Erase" Command Nemui Changed */
+	do {
 		result =
 			target_read_memory(target, FTFx_FSTAT, 1, 1, ftfx_fstat);
 
@@ -1063,7 +1088,8 @@ static int kinetis_ftfx_command(struct target *target, uint8_t fcmd, uint32_t fa
 
 		if (*ftfx_fstat & 0x80)
 			break;
-	}
+
+	} while (timeval_ms() < ms_timeout);
 
 	if ((*ftfx_fstat & 0xf0) != 0x80) {
 		LOG_ERROR
