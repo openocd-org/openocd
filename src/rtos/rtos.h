@@ -39,7 +39,6 @@ typedef struct symbol_table_elem_struct {
 struct thread_detail {
 	threadid_t threadid;
 	bool exists;
-	char *display_str;
 	char *thread_name_str;
 	char *extra_info_str;
 };

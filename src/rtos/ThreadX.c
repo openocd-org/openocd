@@ -319,7 +319,6 @@ static int ThreadX_update_threads(struct rtos *rtos)
 				sizeof(struct thread_detail) * thread_list_size);
 		rtos->thread_details->threadid = 1;
 		rtos->thread_details->exists = true;
-		rtos->thread_details->display_str = NULL;
 		rtos->thread_details->extra_info_str = NULL;
 		rtos->thread_details->thread_name_str = malloc(sizeof(tmp_str));
 		strcpy(rtos->thread_details->thread_name_str, tmp_str);
@@ -413,8 +412,6 @@ static int ThreadX_update_threads(struct rtos *rtos)
 		strcpy(rtos->thread_details[tasks_found].extra_info_str, state_desc);
 
 		rtos->thread_details[tasks_found].exists = true;
-
-		rtos->thread_details[tasks_found].display_str = NULL;
 
 		tasks_found++;
 		prev_thread_ptr = thread_ptr;
@@ -595,8 +592,6 @@ static int ThreadX_get_thread_detail(struct rtos *rtos,
 	detail->extra_info_str = malloc(strlen(state_desc)+1);
 
 	detail->exists = true;
-
-	detail->display_str = NULL;
 
 	return 0;
 }

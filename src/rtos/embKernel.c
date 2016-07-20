@@ -143,7 +143,6 @@ static int embKernel_get_tasks_details(struct rtos *rtos, int64_t iterable, cons
 		return retval;
 	details->threadid = (threadid_t) task;
 	details->exists = true;
-	details->display_str = NULL;
 
 	int64_t name_ptr = 0;
 	retval = target_read_buffer(rtos->target, task + param->thread_name_offset, param->pointer_width,

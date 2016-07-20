@@ -357,7 +357,6 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 				sizeof(struct thread_detail));
 		rtos->thread_details->threadid = 1;
 		rtos->thread_details->exists = true;
-		rtos->thread_details->display_str = NULL;
 
 		rtos->thread_details->extra_info_str = malloc(
 				sizeof(tmp_thread_extra_info));
@@ -448,7 +447,6 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		strcpy(curr_thrd_details->extra_info_str, state_desc);
 
 		curr_thrd_details->exists = true;
-		curr_thrd_details->display_str = NULL;
 
 		curr_thrd_details++;
 	}

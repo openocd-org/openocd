@@ -296,28 +296,20 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 			struct thread_detail *detail = &target->rtos->thread_details[found];
 
 			int str_size = 0;
-			if (detail->display_str != NULL)
-				str_size += strlen(detail->display_str);
 			if (detail->thread_name_str != NULL)
 				str_size += strlen(detail->thread_name_str);
 			if (detail->extra_info_str != NULL)
 				str_size += strlen(detail->extra_info_str);
 
-			char *tmp_str = calloc(str_size + 7, sizeof(char));
+			char *tmp_str = calloc(str_size + 4, sizeof(char));
 			char *tmp_str_ptr = tmp_str;
 
-			if (detail->display_str != NULL)
-				tmp_str_ptr += sprintf(tmp_str_ptr, "%s", detail->display_str);
-			if (detail->thread_name_str != NULL) {
-				if (tmp_str_ptr != tmp_str)
-					tmp_str_ptr += sprintf(tmp_str_ptr, " : ");
+			if (detail->thread_name_str != NULL)
 				tmp_str_ptr += sprintf(tmp_str_ptr, "%s", detail->thread_name_str);
-			}
 			if (detail->extra_info_str != NULL) {
 				if (tmp_str_ptr != tmp_str)
 					tmp_str_ptr += sprintf(tmp_str_ptr, " : ");
-				tmp_str_ptr +=
-					sprintf(tmp_str_ptr, " : %s", detail->extra_info_str);
+				tmp_str_ptr += sprintf(tmp_str_ptr, "%s", detail->extra_info_str);
 			}
 
 			assert(strlen(tmp_str) ==
@@ -545,7 +537,6 @@ void rtos_free_threadlist(struct rtos *rtos)
 
 		for (j = 0; j < rtos->thread_count; j++) {
 			struct thread_detail *current_thread = &rtos->thread_details[j];
-			free(current_thread->display_str);
 			free(current_thread->thread_name_str);
 			free(current_thread->extra_info_str);
 		}

@@ -423,7 +423,6 @@ static int mqx_update_threads(
 		/* setup thread details struct */
 		rtos->thread_details[i].threadid = task_id;
 		rtos->thread_details[i].exists = true;
-		rtos->thread_details[i].display_str = NULL;
 		/* set thread name */
 		rtos->thread_details[i].thread_name_str = malloc(strlen((void *)task_name) + 1);
 		if (NULL == rtos->thread_details[i].thread_name_str)

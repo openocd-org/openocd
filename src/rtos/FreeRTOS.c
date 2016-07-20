@@ -221,7 +221,6 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 		}
 		rtos->thread_details->threadid = 1;
 		rtos->thread_details->exists = true;
-		rtos->thread_details->display_str = NULL;
 		rtos->thread_details->extra_info_str = NULL;
 		rtos->thread_details->thread_name_str = malloc(sizeof(tmp_str));
 		strcpy(rtos->thread_details->thread_name_str, tmp_str);
@@ -360,7 +359,6 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 			rtos->thread_details[tasks_found].thread_name_str =
 				malloc(strlen(tmp_str)+1);
 			strcpy(rtos->thread_details[tasks_found].thread_name_str, tmp_str);
-			rtos->thread_details[tasks_found].display_str = NULL;
 			rtos->thread_details[tasks_found].exists = true;
 
 			if (rtos->thread_details[tasks_found].threadid == rtos->current_thread) {
