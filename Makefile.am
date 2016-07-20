@@ -59,6 +59,7 @@ EXTRA_DIST += \
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
 
+if BUILD_DOC
 docs: pdf html doxygen
 
 Doxyfile: $(srcdir)/Doxyfile.in
@@ -87,6 +88,7 @@ doxygen::
 $(THE_MANUAL): %.pdf: %.tex
 	-cd $$(dirname $*) && pdflatex $$(basename $*)
 	-cd $$(dirname $*) && pdflatex $$(basename $*)
+endif
 
 TCL_PATH = tcl
 # command to find paths of script files, relative to TCL_PATH
@@ -141,4 +143,7 @@ MAINTAINERCLEANFILES = \
 	%D%/texinfo.tex
 
 include src/Makefile.am
+
+if BUILD_DOC
 include doc/Makefile.am
+endif

@@ -5,14 +5,6 @@ AC_CONFIG_SRCDIR([src/openocd.c])
 
 m4_include([config_subdir.m4])dnl
 
-# check for makeinfo before calling AM_INIT_AUTOMAKE
-AC_CHECK_PROG([MAKEINFO], [makeinfo], [makeinfo])
-AS_IF([test "x$MAKEINFO" = "x"], [
-  MAKEINFO='echo makeinfo missing; true'
-  AC_MSG_WARN([Info documentation will not be built.])
-])
-AC_SUBST([MAKEINFO])
-
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip subdir-objects])
 
 AC_CONFIG_HEADERS([config.h])
@@ -138,21 +130,42 @@ m4_define([LIBJAYLINK_ADAPTERS],
 	[[[jlink], [SEGGER J-Link Programmer], [JLINK]]])
 
 
-AC_ARG_ENABLE([doxygen-html],
-  AS_HELP_STRING([--disable-doxygen-html],
-    [Disable building Doxygen manual as HTML.]),
-  [doxygen_as_html=$enableval], [doxygen_as_html=yes])
-AC_SUBST([doxygen_as_html])
-AC_MSG_CHECKING([whether to build Doxygen as HTML])
-AC_MSG_RESULT([$doxygen_as_html])
+AC_ARG_ENABLE([doc],
+  AS_HELP_STRING([--disable-doc],
+    [Disable documentation and manpage generation]),
+    enable_doc=$enableval], [enable_doc=yes])
+AM_CONDITIONAL([BUILD_DOC],[test "x$enable_doc" = xyes])
 
-AC_ARG_ENABLE([doxygen-pdf],
-  AS_HELP_STRING([--enable-doxygen-pdf],
-    [Enable building Doxygen manual as PDF.]),
-  [doxygen_as_pdf=$enableval], [doxygen_as_pdf=no])
+AS_IF([test "x$enable_doc" = xyes],[
+  # check for makeinfo before calling AM_INIT_AUTOMAKE
+  AC_CHECK_PROG([MAKEINFO], [makeinfo], [makeinfo])
+  AS_IF([test "x$MAKEINFO" = "x"], [
+    MAKEINFO='echo makeinfo missing; true'
+    AC_MSG_WARN([Info documentation will not be built.])
+  ])
+
+  AC_ARG_ENABLE([doxygen-html],
+    AS_HELP_STRING([--disable-doxygen-html],
+      [Disable building Doxygen manual as HTML.]),
+    [doxygen_as_html=$enableval], [doxygen_as_html=yes])
+  AC_MSG_CHECKING([whether to build Doxygen as HTML])
+  AC_MSG_RESULT([$doxygen_as_html])
+
+  AC_ARG_ENABLE([doxygen-pdf],
+    AS_HELP_STRING([--enable-doxygen-pdf],
+      [Enable building Doxygen manual as PDF.]),
+    [doxygen_as_pdf=$enableval], [doxygen_as_pdf=no])
+  AC_MSG_CHECKING([whether to build Doxygen as PDF])
+  AC_MSG_RESULT([$doxygen_as_pdf])
+  ],
+  [
+  MAKEINFO='echo makeinfo disabled; true'
+  doxygen_as_html=no
+  doxygen_as_pdf=no
+  ])
+AC_SUBST([MAKEINFO])
+AC_SUBST([doxygen_as_html])
 AC_SUBST([doxygen_as_pdf])
-AC_MSG_CHECKING([whether to build Doxygen as PDF])
-AC_MSG_RESULT([$doxygen_as_pdf])
 
 AC_ARG_ENABLE([gccwarnings],
   AS_HELP_STRING([--disable-gccwarnings], [Disable compiler warnings]),
