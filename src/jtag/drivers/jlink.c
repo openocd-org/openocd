@@ -314,12 +314,11 @@ static int jlink_execute_queue(void)
 static int jlink_speed(int speed)
 {
 	int ret;
-	uint32_t freq;
-	uint16_t divider;
 	int max_speed;
+	struct jaylink_speed j_speed;
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_SPEEDS)) {
-		ret = jaylink_get_speeds(devh, &freq, &divider);
+		ret = jaylink_get_speeds(devh, &j_speed);
 
 		if (ret != JAYLINK_OK) {
 			LOG_ERROR("jaylink_get_speeds() failed: %s.",
@@ -327,8 +326,8 @@ static int jlink_speed(int speed)
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		freq = freq / 1000;
-		max_speed = freq / divider;
+		j_speed.freq = j_speed.freq / 1000;
+		max_speed = j_speed.freq / j_speed.div;
 	} else {
 		max_speed = JLINK_MAX_SPEED;
 	}
@@ -435,13 +434,14 @@ static int jlink_register(void)
 	int ret;
 	int i;
 	bool handle_found;
+	size_t count;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_REGISTER))
 		return ERROR_OK;
 
-	ret = jaylink_register(devh, &conn, connlist, NULL, NULL);
+	ret = jaylink_register(devh, &conn, connlist, &count, NULL, NULL);
 
-	if (ret < 0) {
+	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_register() failed: %s.",
 			jaylink_strerror_name(ret));
 		return ERROR_FAIL;
@@ -449,7 +449,7 @@ static int jlink_register(void)
 
 	handle_found = false;
 
-	for (i = 0; i < ret; i++) {
+	for (i = 0; i < count; i++) {
 		if (connlist[i].handle == conn.handle) {
 			handle_found = true;
 			break;
@@ -506,6 +506,7 @@ static int jlink_init(void)
 {
 	int ret;
 	struct jaylink_device **devs;
+	size_t devs_count;
 	unsigned int i;
 	bool found_device;
 	uint32_t tmp;
@@ -523,9 +524,9 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	ret = jaylink_get_device_list(jayctx, &devs);
+	ret = jaylink_get_devices(jayctx, &devs, &devs_count);
 
-	if (ret < 0) {
+	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_get_device_list() failed: %s.",
 			jaylink_strerror_name(ret));
 		jaylink_exit(jayctx);
@@ -537,7 +538,7 @@ static int jlink_init(void)
 	if (!use_serial_number && !use_usb_address)
 		LOG_INFO("No device selected, using first device.");
 
-	for (i = 0; devs[i]; i++) {
+	for (i = 0; i < devs_count; i++) {
 		if (use_serial_number) {
 			ret = jaylink_device_get_serial_number(devs[i], &tmp);
 
@@ -576,7 +577,7 @@ static int jlink_init(void)
 		LOG_ERROR("Failed to open device: %s.", jaylink_strerror_name(ret));
 	}
 
-	jaylink_free_device_list(devs, 1);
+	jaylink_free_devices(devs, 1);
 
 	if (!found_device) {
 		LOG_ERROR("No J-Link device found.");
@@ -729,6 +730,7 @@ static int jlink_init(void)
 static int jlink_quit(void)
 {
 	int ret;
+	size_t count;
 
 	if (trace_enabled) {
 		ret = jaylink_swo_stop(devh);
@@ -739,9 +741,9 @@ static int jlink_quit(void)
 	}
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_REGISTER)) {
-		ret = jaylink_unregister(devh, &conn, connlist, NULL, NULL);
+		ret = jaylink_unregister(devh, &conn, connlist, &count, NULL, NULL);
 
-		if (ret < 0)
+		if (ret != JAYLINK_OK)
 			LOG_ERROR("jaylink_unregister() failed: %s.",
 				jaylink_strerror_name(ret));
 	}
