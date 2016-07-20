@@ -505,6 +505,7 @@ static int jlink_init(void)
 {
 	int ret;
 	struct jaylink_device **devs;
+	size_t devs_count;
 	unsigned int i;
 	bool found_device;
 	uint32_t tmp;
@@ -522,9 +523,9 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	ret = jaylink_get_device_list(jayctx, &devs);
+	ret = jaylink_get_devices(jayctx, &devs, &devs_count);
 
-	if (ret < 0) {
+	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_get_device_list() failed: %s.",
 			jaylink_strerror_name(ret));
 		jaylink_exit(jayctx);
@@ -536,7 +537,7 @@ static int jlink_init(void)
 	if (!use_serial_number && !use_usb_address)
 		LOG_INFO("No device selected, using first device.");
 
-	for (i = 0; devs[i]; i++) {
+	for (i = 0; i < devs_count; i++) {
 		if (use_serial_number) {
 			ret = jaylink_device_get_serial_number(devs[i], &tmp);
 
@@ -575,7 +576,7 @@ static int jlink_init(void)
 		LOG_ERROR("Failed to open device: %s.", jaylink_strerror_name(ret));
 	}
 
-	jaylink_free_device_list(devs, 1);
+	jaylink_free_devices(devs, 1);
 
 	if (!found_device) {
 		LOG_ERROR("No J-Link device found.");
