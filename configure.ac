@@ -279,21 +279,33 @@ AC_ARG_WITH(ftd2xx-lib,
   with_ftd2xx_lib=static
   ])
 
-AC_ARG_ENABLE([doxygen-html],
-  AS_HELP_STRING([--disable-doxygen-html],
-    [Disable building Doxygen manual as HTML.]),
-  [doxygen_as_html=$enableval], [doxygen_as_html=yes])
-AC_SUBST([doxygen_as_html])
-AC_MSG_CHECKING([whether to build Doxygen as HTML])
-AC_MSG_RESULT([$doxygen_as_html])
+AC_ARG_ENABLE([doc],
+  AS_HELP_STRING([--disable-doc],
+    [Disable documentation and manpage generation]),
+    enable_doc=$enableval], [enable_doc=yes])
+AM_CONDITIONAL([BUILD_DOC],[test "x$enable_doc" = xyes])
 
-AC_ARG_ENABLE([doxygen-pdf],
-  AS_HELP_STRING([--enable-doxygen-pdf],
-    [Enable building Doxygen manual as PDF.]),
-  [doxygen_as_pdf=$enableval], [doxygen_as_pdf=no])
-AC_SUBST([doxygen_as_pdf])
-AC_MSG_CHECKING([whether to build Doxygen as PDF])
-AC_MSG_RESULT([$doxygen_as_pdf])
+AS_IF([test "x$enable_doc" = xyes],[
+  AC_ARG_ENABLE([doxygen-html],
+    AS_HELP_STRING([--disable-doxygen-html],
+      [Disable building Doxygen manual as HTML.]),
+    [doxygen_as_html=$enableval], [doxygen_as_html=yes])
+  AC_SUBST([doxygen_as_html])
+  AC_MSG_CHECKING([whether to build Doxygen as HTML])
+  AC_MSG_RESULT([$doxygen_as_html])
+
+  AC_ARG_ENABLE([doxygen-pdf],
+    AS_HELP_STRING([--enable-doxygen-pdf],
+      [Enable building Doxygen manual as PDF.]),
+    [doxygen_as_pdf=$enableval], [doxygen_as_pdf=no])
+  AC_SUBST([doxygen_as_pdf])
+  AC_MSG_CHECKING([whether to build Doxygen as PDF])
+  AC_MSG_RESULT([$doxygen_as_pdf])
+  ],
+  [
+  doxygen_as_html=no
+  doxygen_as_pdf=no
+  ])
 
 AC_ARG_ENABLE([gccwarnings],
   AS_HELP_STRING([--disable-gccwarnings], [Disable compiler warnings]),

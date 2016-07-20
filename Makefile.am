@@ -18,7 +18,10 @@ else
 SUBDIRS =
 endif
 
-SUBDIRS += src doc
+SUBDIRS += src
+if BUILD_DOC
+SUBDIRS += doc
+endif
 
 EXTRA_DIST = \
 	BUGS \
