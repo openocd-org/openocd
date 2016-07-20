@@ -434,13 +434,14 @@ static int jlink_register(void)
 	int ret;
 	int i;
 	bool handle_found;
+	size_t count;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_REGISTER))
 		return ERROR_OK;
 
-	ret = jaylink_register(devh, &conn, connlist, NULL, NULL);
+	ret = jaylink_register(devh, &conn, connlist, &count, NULL, NULL);
 
-	if (ret < 0) {
+	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_register() failed: %s.",
 			jaylink_strerror_name(ret));
 		return ERROR_FAIL;
@@ -448,7 +449,7 @@ static int jlink_register(void)
 
 	handle_found = false;
 
-	for (i = 0; i < ret; i++) {
+	for (i = 0; i < count; i++) {
 		if (connlist[i].handle == conn.handle) {
 			handle_found = true;
 			break;
@@ -729,6 +730,7 @@ static int jlink_init(void)
 static int jlink_quit(void)
 {
 	int ret;
+	size_t count;
 
 	if (trace_enabled) {
 		ret = jaylink_swo_stop(devh);
@@ -739,9 +741,9 @@ static int jlink_quit(void)
 	}
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_REGISTER)) {
-		ret = jaylink_unregister(devh, &conn, connlist, NULL, NULL);
+		ret = jaylink_unregister(devh, &conn, connlist, &count, NULL, NULL);
 
-		if (ret < 0)
+		if (ret != JAYLINK_OK)
 			LOG_ERROR("jaylink_unregister() failed: %s.",
 				jaylink_strerror_name(ret));
 	}
