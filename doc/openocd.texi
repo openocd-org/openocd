@@ -8871,7 +8871,11 @@ end
 @anchor{gdbrtossupport}
 
 OpenOCD includes RTOS support, this will however need enabling as it defaults to disabled.
-It can be enabled by passing @option{-rtos} arg to the target @xref{rtostype,,RTOS Type}.
+It can be enabled by passing @option{-rtos} arg to the target. @xref{rtostype,,RTOS Type}.
+
+@xref{Threads, Debugging Programs with Multiple Threads,
+Debugging Programs with Multiple Threads, gdb, GDB manual}, for details about relevant
+GDB commands.
 
 @* An example setup is below:
 
