@@ -314,12 +314,11 @@ static int jlink_execute_queue(void)
 static int jlink_speed(int speed)
 {
 	int ret;
-	uint32_t freq;
-	uint16_t divider;
 	int max_speed;
+	struct jaylink_speed j_speed;
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_SPEEDS)) {
-		ret = jaylink_get_speeds(devh, &freq, &divider);
+		ret = jaylink_get_speeds(devh, &j_speed);
 
 		if (ret != JAYLINK_OK) {
 			LOG_ERROR("jaylink_get_speeds() failed: %s.",
@@ -327,8 +326,8 @@ static int jlink_speed(int speed)
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		freq = freq / 1000;
-		max_speed = freq / divider;
+		j_speed.freq = j_speed.freq / 1000;
+		max_speed = j_speed.freq / j_speed.div;
 	} else {
 		max_speed = JLINK_MAX_SPEED;
 	}
