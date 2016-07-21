@@ -684,6 +684,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 	}
 }
 
+#if 0
 static int wait_and_read(struct target *target, uint32_t *data, uint16_t address)
 {
 	time_t start = time(NULL);
@@ -704,6 +705,7 @@ static int wait_and_read(struct target *target, uint32_t *data, uint16_t address
 		}
 	}
 }
+#endif
 
 static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 {
@@ -1529,66 +1531,6 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-#if 0
-	// Plain implementation, where we write the address each time.
-	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-	switch (size) {
-		case 1:
-			dram_write32(target, 1, lb(S1, S0, 0), false);
-			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
-			break;
-		case 2:
-			dram_write32(target, 1, lh(S1, S0, 0), false);
-			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
-			break;
-		case 4:
-			dram_write32(target, 1, lw(S1, S0, 0), false);
-			dram_write32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16), false);
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
-	}
-	dram_write_jump(target, 3, false);
-
-	uint32_t i = 0;
-	while (i <= count) {
-		uint64_t scan_result;
-		// Write the next address, set interrupt, and read the previous value.
-		uint64_t interrupt = 0;
-		if (i < count) {
-			interrupt = DMCONTROL_INTERRUPT;
-		}
-		dbus_status_t status = dbus_scan(target, &scan_result, DBUS_OP_CONDITIONAL_WRITE,
-				4, DMCONTROL_HALTNOT | interrupt | (address + i * size));
-		if (status == DBUS_STATUS_SUCCESS) {
-			if (i > 0) {
-				uint32_t offset = size * (i-1);
-				switch (size) {
-					case 1:
-						buffer[offset] = scan_result & 0xff;
-						break;
-					case 2:
-						buffer[offset] = scan_result & 0xff;
-						buffer[offset + 1] = (scan_result >> 8) & 0xff;
-						break;
-					case 4:
-						buffer[offset] = scan_result & 0xff;
-						buffer[offset + 1] = (scan_result >> 8) & 0xff;
-						buffer[offset + 2] = (scan_result >> 16) & 0xff;
-						buffer[offset + 3] = (scan_result >> 24) & 0xff;
-						break;
-				}
-			}
-			i++;
-		} else if (status == DBUS_STATUS_NO_WRITE || status == DBUS_STATUS_BUSY) {
-			// Need to retry the access that failed, which was the previous one.
-		} else if (status == DBUS_STATUS_FAILED) {
-			LOG_ERROR("dbus write failed!");
-			return ERROR_FAIL;
-		}
-	}
-#else
 	cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
 	switch (size) {
 		case 1:
@@ -1610,10 +1552,107 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	cache_set_jump(target, 3);
 	cache_write(target, 4, false);
 
+#if 1
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	const int max_batch_size = 256;
+	uint8_t *in = malloc(max_batch_size * 8);
+	uint8_t *out = malloc(max_batch_size * 8);
+	struct scan_field *field = calloc(max_batch_size, sizeof(struct scan_field));
+
+	uint32_t i = 0;
+	while (i < count + 2) {
+		unsigned int batch_size = MIN(count + 2 - i, max_batch_size);
+
+		for (unsigned int j = 0; j < batch_size; j++) {
+			if (i + j == count) {
+				// Just insert a read so we can scan out the last value.
+				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
+						DBUS_OP_READ, 4, DMCONTROL_HALTNOT | 0);
+			} else if (i + j == count + 1) {
+				// And check for errors.
+				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
+						DBUS_OP_READ, info->dramsize-1, DMCONTROL_HALTNOT | 0);
+			} else {
+				// Write the next address and set interrupt.
+				uint32_t offset = size * (i + j);
+				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
+						DBUS_OP_WRITE, 4,
+						DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | (address + offset));
+			}
+		}
+
+		int retval = jtag_execute_queue();
+		if (retval != ERROR_OK) {
+			LOG_ERROR("JTAG execute failed: %d", retval);
+			goto error;
+		}
+
+		int dbus_busy = 0;
+		for (unsigned int j = 0; j < batch_size; j++) {
+			dbus_status_t status = buf_get_u32(in + 8*j, DBUS_OP_START, DBUS_OP_SIZE);
+			switch (status) {
+				case DBUS_STATUS_SUCCESS:
+					break;
+				case DBUS_STATUS_NO_WRITE:
+					LOG_ERROR("Got no-write status without conditional write.");
+					goto error;
+				case DBUS_STATUS_FAILED:
+					LOG_ERROR("Debug RAM write failed. Hardware error?");
+					goto error;
+				case DBUS_STATUS_BUSY:
+					dbus_busy++;
+					break;
+			}
+			if (i + j > 1) {
+				uint32_t data = buf_get_u32(in + 8*j, DBUS_DATA_START, 32);
+				uint32_t offset = size * (i + j - 2);
+				switch (size) {
+					case 1:
+						buffer[offset] = data;
+						break;
+					case 2:
+						buffer[offset] = data;
+						buffer[offset+1] = data >> 8;
+						break;
+					case 4:
+						buffer[offset] = data;
+						buffer[offset+1] = data >> 8;
+						buffer[offset+2] = data >> 16;
+						buffer[offset+3] = data >> 24;
+						break;
+				}
+			}
+			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status,
+					buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
+		}
+		if (dbus_busy) {
+			increase_dbus_busy_delay(target);
+
+			wait_for_debugint_clear(target, false);
+
+			// Retry.
+			LOG_INFO("Retrying memory read starting from 0x%x with more delays", address + size * i);
+		} else {
+			i += batch_size;
+		}
+	}
+
+	free(in);
+	free(out);
+	free(field);
+	cache_clean(target);
+	return ERROR_OK;
+
+error:
+	free(in);
+	free(out);
+	free(field);
+	return ERROR_FAIL;
+#else
 	for (unsigned int i = 0; i < count; i++) {
 		dram_write32(target, 4, address + i * size, true);
 
-                uint32_t value;
+		uint32_t value;
 		if (wait_and_read(target, &value, 4) != ERROR_OK) {
 			LOG_ERROR("Debug interrupt didn't clear.");
 			return ERROR_FAIL;
@@ -1636,9 +1675,9 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 				break;
 		}
 	}
-#endif
 
 	return ERROR_OK;
+#endif
 }
 
 #if 1
