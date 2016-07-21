@@ -1014,6 +1014,15 @@ int target_run_flash_async_algorithm(struct target *target,
 		retval = retval2;
 	}
 
+	if (retval == ERROR_OK) {
+		/* check if algorithm set rp = 0 after fifo writer loop finished */
+		retval = target_read_u32(target, rp_addr, &rp);
+		if (retval == ERROR_OK && rp == 0) {
+			LOG_ERROR("flash write algorithm aborted by target");
+			retval = ERROR_FLASH_OPERATION_FAILED;
+		}
+	}
+
 	return retval;
 }
 
