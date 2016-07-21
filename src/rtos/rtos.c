@@ -306,14 +306,14 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 			if (detail->extra_info_str != NULL)
 				str_size += strlen(detail->extra_info_str);
 
-			char *tmp_str = calloc(str_size + 4, sizeof(char));
+			char *tmp_str = calloc(str_size + 9, sizeof(char));
 			char *tmp_str_ptr = tmp_str;
 
 			if (detail->thread_name_str != NULL)
-				tmp_str_ptr += sprintf(tmp_str_ptr, "%s", detail->thread_name_str);
+				tmp_str_ptr += sprintf(tmp_str_ptr, "Name: %s", detail->thread_name_str);
 			if (detail->extra_info_str != NULL) {
 				if (tmp_str_ptr != tmp_str)
-					tmp_str_ptr += sprintf(tmp_str_ptr, " : ");
+					tmp_str_ptr += sprintf(tmp_str_ptr, ", ");
 				tmp_str_ptr += sprintf(tmp_str_ptr, "%s", detail->extra_info_str);
 			}
 
