@@ -794,6 +794,54 @@ COMMAND_HANDLER(kinetis_disable_wdog_handler)
 }
 
 
+static int kinetis_ftfx_decode_error(uint8_t fstat)
+{
+	if (fstat & 0x20) {
+		LOG_ERROR("Flash operation failed, illegal command");
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+
+	} else if (fstat & 0x10)
+		LOG_ERROR("Flash operation failed, protection violated");
+
+	else if (fstat & 0x40)
+		LOG_ERROR("Flash operation failed, read collision");
+
+	else if (fstat & 0x80)
+		return ERROR_OK;
+
+	else
+		LOG_ERROR("Flash operation timed out");
+
+	return ERROR_FLASH_OPERATION_FAILED;
+}
+
+
+static int kinetis_ftfx_prepare(struct target *target)
+{
+	int result, i;
+	uint8_t fstat;
+
+	/* wait until busy */
+	for (i = 0; i < 50; i++) {
+		result = target_read_u8(target, FTFx_FSTAT, &fstat);
+		if (result != ERROR_OK)
+			return result;
+
+		if (fstat & 0x80)
+			break;
+	}
+
+	if ((fstat & 0x80) == 0) {
+		LOG_ERROR("Flash controller is busy");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	if (fstat != 0x80) {
+		/* reset error flags */
+		result = target_write_u8(target, FTFx_FSTAT, 0x70);
+	}
+	return result;
+}
+
 /* Kinetis Program-LongWord Microcodes */
 static const uint8_t kinetis_flash_write_code[] = {
 	/* Params:
@@ -885,14 +933,6 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	/* Increase buffer_size if needed */
 	if (buffer_size < (target->working_area_size/2))
 		buffer_size = (target->working_area_size/2);
-
-	LOG_INFO("Kinetis: FLASH Write ...");
-
-	/* check code alignment */
-	if (offset & 0x1) {
-		LOG_WARNING("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
-		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
-	}
 
 	/* allocate working area with flash programming code */
 	if (target_alloc_working_area(target, sizeof(kinetis_flash_write_code),
@@ -987,23 +1027,19 @@ static int kinetis_protect_check(struct flash_bank *bank)
 	}
 
 	if (kinfo->flash_class == FC_PFLASH) {
-		uint8_t buffer[4];
 
 		/* read protection register */
-		result = target_read_memory(bank->target, FTFx_FPROT3, 1, 4, buffer);
-
+		result = target_read_u32(bank->target, FTFx_FPROT3, &fprot);
 		if (result != ERROR_OK)
 			return result;
 
-		fprot = target_buffer_get_u32(bank->target, buffer);
 		/* Every bit protects 1/32 of the full flash (not necessarily just this bank) */
 
 	} else if (kinfo->flash_class == FC_FLEX_NVM) {
 		uint8_t fdprot;
 
 		/* read protection register */
-		result = target_read_memory(bank->target, FTFx_FDPROT, 1, 1, &fdprot);
-
+		result = target_read_u8(bank->target, FTFx_FDPROT, &fdprot);
 		if (result != ERROR_OK)
 			return result;
 
@@ -1040,64 +1076,41 @@ static int kinetis_ftfx_command(struct target *target, uint8_t fcmd, uint32_t fa
 	uint8_t command[12] = {faddr & 0xff, (faddr >> 8) & 0xff, (faddr >> 16) & 0xff, fcmd,
 			fccob7, fccob6, fccob5, fccob4,
 			fccobb, fccoba, fccob9, fccob8};
-	int result, i;
-	uint8_t buffer;
+	int result;
+	uint8_t fstat;
 	int64_t ms_timeout = timeval_ms() + 250;
 
-	/* wait for done */
-	for (i = 0; i < 50; i++) {
-		result =
-			target_read_memory(target, FTFx_FSTAT, 1, 1, &buffer);
-
-		if (result != ERROR_OK)
-			return result;
-
-		if (buffer & 0x80)
-			break;
-
-		buffer = 0x00;
-	}
-
-	if (buffer != 0x80) {
-		/* reset error flags */
-		buffer = 0x30;
-		result =
-			target_write_memory(target, FTFx_FSTAT, 1, 1, &buffer);
-		if (result != ERROR_OK)
-			return result;
-	}
-
 	result = target_write_memory(target, FTFx_FCCOB3, 4, 3, command);
-
 	if (result != ERROR_OK)
 		return result;
 
 	/* start command */
-	buffer = 0x80;
-	result = target_write_memory(target, FTFx_FSTAT, 1, 1, &buffer);
+	result = target_write_u8(target, FTFx_FSTAT, 0x80);
 	if (result != ERROR_OK)
 		return result;
 
 	/* wait for done */
 	do {
-		result =
-			target_read_memory(target, FTFx_FSTAT, 1, 1, ftfx_fstat);
+		result = target_read_u8(target, FTFx_FSTAT, &fstat);
 
 		if (result != ERROR_OK)
 			return result;
 
-		if (*ftfx_fstat & 0x80)
+		if (fstat & 0x80)
 			break;
 
 	} while (timeval_ms() < ms_timeout);
 
-	if ((*ftfx_fstat & 0xf0) != 0x80) {
-		LOG_ERROR
-			("ftfx command failed FSTAT: %02X FCCOB: %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
-			 *ftfx_fstat, command[3], command[2], command[1], command[0],
+	if (ftfx_fstat)
+		*ftfx_fstat = fstat;
+
+	if ((fstat & 0xf0) != 0x80) {
+		LOG_DEBUG("ftfx command failed FSTAT: %02X FCCOB: %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
+			 fstat, command[3], command[2], command[1], command[0],
 			 command[7], command[6], command[5], command[4],
 			 command[11], command[10], command[9], command[8]);
-		return ERROR_FLASH_OPERATION_FAILED;
+
+		return kinetis_ftfx_decode_error(fstat);
 	}
 
 	return ERROR_OK;
@@ -1167,6 +1180,11 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	if (result != ERROR_OK)
 		return result;
 
+	/* reset error flags */
+	result = kinetis_ftfx_prepare(bank->target);
+	if (result != ERROR_OK)
+		return result;
+
 	if ((first > bank->num_sectors) || (last > bank->num_sectors))
 		return ERROR_FLASH_OPERATION_FAILED;
 
@@ -1176,10 +1194,9 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	 * block.  Should be quicker.
 	 */
 	for (i = first; i <= last; i++) {
-		uint8_t ftfx_fstat;
 		/* set command and sector address */
 		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTERASE, kinfo->prog_base + bank->sectors[i].offset,
-				0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
+				0, 0, 0, 0,  0, 0, 0, 0,  NULL);
 
 		if (result != ERROR_OK) {
 			LOG_WARNING("erase sector %d failed", i);
@@ -1202,11 +1219,10 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 static int kinetis_make_ram_ready(struct target *target)
 {
 	int result;
-	uint8_t ftfx_fstat;
 	uint8_t ftfx_fcnfg;
 
 	/* check if ram ready */
-	result = target_read_memory(target, FTFx_FCNFG, 1, 1, &ftfx_fcnfg);
+	result = target_read_u8(target, FTFx_FCNFG, &ftfx_fcnfg);
 	if (result != ERROR_OK)
 		return result;
 
@@ -1215,12 +1231,12 @@ static int kinetis_make_ram_ready(struct target *target)
 
 	/* make flex ram available */
 	result = kinetis_ftfx_command(target, FTFx_CMD_SETFLEXRAM, 0x00ff0000,
-				 0, 0, 0, 0,  0, 0, 0, 0,  &ftfx_fstat);
+				 0, 0, 0, 0,  0, 0, 0, 0,  NULL);
 	if (result != ERROR_OK)
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* check again */
-	result = target_read_memory(target, FTFx_FCNFG, 1, 1, &ftfx_fcnfg);
+	result = target_read_u8(target, FTFx_FCNFG, &ftfx_fcnfg);
 	if (result != ERROR_OK)
 		return result;
 
@@ -1233,12 +1249,17 @@ static int kinetis_make_ram_ready(struct target *target)
 static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 			 uint32_t offset, uint32_t count)
 {
-	unsigned int i, result, fallback = 0;
+	unsigned int i;
+	int result, fallback = 0;
 	uint32_t wc;
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
-	uint8_t *new_buffer = NULL;
 
 	result = kinetis_check_run_mode(bank->target);
+	if (result != ERROR_OK)
+		return result;
+
+	/* reset error flags */
+	result = kinetis_ftfx_prepare(bank->target);
 	if (result != ERROR_OK)
 		return result;
 
@@ -1254,7 +1275,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 	}
 
-	LOG_DEBUG("flash write @08%" PRIX32, offset);
+	LOG_DEBUG("flash write @08%" PRIx32, bank->base + offset);
 
 
 	/* program section command */
@@ -1338,8 +1359,16 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 				return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
-	/* program longword command, not supported in "SF3" devices */
 	else if (kinfo->flash_support & FS_PROGRAM_LONGWORD) {
+		/* program longword command, not supported in FTFE */
+		uint8_t *new_buffer = NULL;
+
+		/* check word alignment */
+		if (offset & 0x3) {
+			LOG_ERROR("offset 0x%" PRIx32 " breaks the required alignment", offset);
+			return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+		}
+
 		if (count & 0x3) {
 			uint32_t old_count = count;
 			count = (old_count | 3) + 1;
@@ -1351,7 +1380,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 			}
 			LOG_INFO("odd number of bytes to write (%" PRIu32 "), extending to %" PRIu32 " "
 				"and padding with 0xff", old_count, count);
-			memset(new_buffer, 0xff, count);
+			memset(new_buffer + old_count, 0xff, count - old_count);
 			buffer = memcpy(new_buffer, buffer, old_count);
 		}
 
@@ -1360,38 +1389,46 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		kinetis_disable_wdog(bank->target, kinfo->sim_sdid);
 
 		/* try using a block write */
-		int retval = kinetis_write_block(bank, buffer, offset, words_remaining);
+		result = kinetis_write_block(bank, buffer, offset, words_remaining);
 
-		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
+		if (result == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 			/* if block write failed (no sufficient working area),
 			 * we use normal (slow) single word accesses */
 			LOG_WARNING("couldn't use block writes, falling back to single "
 				"memory accesses");
 
-			for (i = 0; i < count; i += 4) {
+			while (words_remaining) {
 				uint8_t ftfx_fstat;
 
-				LOG_DEBUG("write longword @ %08" PRIX32, (uint32_t)(offset + i));
+				LOG_DEBUG("write longword @ %08" PRIx32, (uint32_t)(bank->base + offset));
 
-				uint8_t padding[4] = {0xff, 0xff, 0xff, 0xff};
-				memcpy(padding, buffer + i, MIN(4, count-i));
-
-				result = kinetis_ftfx_command(bank->target, FTFx_CMD_LWORDPROG, kinfo->prog_base + offset + i,
-						padding[3], padding[2], padding[1], padding[0],
+				result = kinetis_ftfx_command(bank->target, FTFx_CMD_LWORDPROG, kinfo->prog_base + offset,
+						buffer[3], buffer[2], buffer[1], buffer[0],
 						0, 0, 0, 0,  &ftfx_fstat);
 
-				if (result != ERROR_OK)
-					return ERROR_FLASH_OPERATION_FAILED;
+				if (result != ERROR_OK) {
+					LOG_ERROR("Error writing longword at %08" PRIx32, bank->base + offset);
+					break;
+				}
+
+				if (ftfx_fstat & 0x01)
+					LOG_ERROR("Flash write error at %08" PRIx32, bank->base + offset);
+
+				buffer += 4;
+				offset += 4;
+				words_remaining--;
 			}
 		}
+		free(new_buffer);
 	} else {
 		LOG_ERROR("Flash write strategy not implemented");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	kinetis_invalidate_flash_cache(bank);
-	return ERROR_OK;
+	return result;
 }
+
 
 static int kinetis_probe(struct flash_bank *bank)
 {
@@ -1896,6 +1933,11 @@ static int kinetis_blank_check(struct flash_bank *bank)
 	if (result != ERROR_OK)
 		return result;
 
+	/* reset error flags */
+	result = kinetis_ftfx_prepare(bank->target);
+	if (result != ERROR_OK)
+		return result;
+
 	if (kinfo->flash_class == FC_PFLASH || kinfo->flash_class == FC_FLEX_NVM) {
 		bool block_dirty = false;
 		uint8_t ftfx_fstat;
@@ -1953,7 +1995,6 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	unsigned long par, log2 = 0, ee1 = 0, ee2 = 0;
 	enum { SHOW_INFO, DF_SIZE, EEBKP_SIZE } sz_type = SHOW_INFO;
 	bool enable;
-	uint8_t ftfx_fstat;
 	uint8_t load_flex_ram = 1;
 	uint8_t ee_size_code = 0x3f;
 	uint8_t flex_nvm_partition_code = 0;
@@ -2062,9 +2103,14 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	if (result != ERROR_OK)
 		return result;
 
+	/* reset error flags */
+	result = kinetis_ftfx_prepare(target);
+	if (result != ERROR_OK)
+		return result;
+
 	result = kinetis_ftfx_command(target, FTFx_CMD_PGMPART, load_flex_ram,
 				      ee_size_code, flex_nvm_partition_code, 0, 0,
-				      0, 0, 0, 0,  &ftfx_fstat);
+				      0, 0, 0, 0,  NULL);
 	if (result != ERROR_OK)
 		return result;
 
