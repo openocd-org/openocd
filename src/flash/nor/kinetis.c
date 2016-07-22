@@ -865,65 +865,7 @@ static int kinetis_ftfx_prepare(struct target *target)
 
 /* Kinetis Program-LongWord Microcodes */
 static const uint8_t kinetis_flash_write_code[] = {
-	/* Params:
-	 * r0 - workarea buffer
-	* r1 - target address
-	* r2 - wordcount
-	* Clobbered:
-	* r4 - tmp
-	* r5 - tmp
-	* r6 - tmp
-	* r7 - tmp
-	*/
-
-							/* .L1: */
-						/* for(register uint32_t i=0;i<wcount;i++){ */
-	0x04, 0x1C,					/* mov    r4, r0          */
-	0x00, 0x23,					/* mov    r3, #0          */
-							/* .L2: */
-	0x0E, 0x1A,					/* sub    r6, r1, r0      */
-	0xA6, 0x19,					/* add    r6, r4, r6      */
-	0x93, 0x42,					/* cmp    r3, r2          */
-	0x16, 0xD0,					/* beq    .L9             */
-							/* .L5: */
-						/* while((FTFx_FSTAT&FTFA_FSTAT_CCIF_MASK) != FTFA_FSTAT_CCIF_MASK){}; */
-	0x0B, 0x4D,					/* ldr    r5, .L10        */
-	0x2F, 0x78,					/* ldrb   r7, [r5]        */
-	0x7F, 0xB2,					/* sxtb   r7, r7          */
-	0x00, 0x2F,					/* cmp    r7, #0          */
-	0xFA, 0xDA,					/* bge    .L5             */
-						/* FTFx_FSTAT = FTFA_FSTAT_ACCERR_MASK|FTFA_FSTAT_FPVIOL_MASK|FTFA_FSTAT_RDCO */
-	0x70, 0x27,					/* mov    r7, #112        */
-	0x2F, 0x70,					/* strb   r7, [r5]        */
-						/* FTFx_FCCOB3 = faddr; */
-	0x09, 0x4F,					/* ldr    r7, .L10+4      */
-	0x3E, 0x60,					/* str    r6, [r7]        */
-	0x06, 0x27,					/* mov    r7, #6          */
-						/* FTFx_FCCOB0 = 0x06;  */
-	0x08, 0x4E,					/* ldr    r6, .L10+8      */
-	0x37, 0x70,					/* strb   r7, [r6]        */
-						/* FTFx_FCCOB7 = *pLW;  */
-	0x80, 0xCC,					/* ldmia  r4!, {r7}       */
-	0x08, 0x4E,					/* ldr    r6, .L10+12     */
-	0x37, 0x60,					/* str    r7, [r6]        */
-						/* FTFx_FSTAT = FTFA_FSTAT_CCIF_MASK; */
-	0x80, 0x27,					/* mov    r7, #128        */
-	0x2F, 0x70,					/* strb   r7, [r5]        */
-							/* .L4: */
-						/* while((FTFx_FSTAT&FTFA_FSTAT_CCIF_MASK) != FTFA_FSTAT_CCIF_MASK){}; */
-	0x2E, 0x78,					/* ldrb    r6, [r5]       */
-	0x77, 0xB2,					/* sxtb    r7, r6         */
-	0x00, 0x2F,					/* cmp     r7, #0         */
-	0xFB, 0xDA,					/* bge     .L4            */
-	0x01, 0x33,					/* add     r3, r3, #1     */
-	0xE4, 0xE7,					/* b       .L2            */
-							/* .L9: */
-	0x00, 0xBE,					/* bkpt #0                */
-							/* .L10: */
-	0x00, 0x00, 0x02, 0x40,		/* .word    1073872896    */
-	0x04, 0x00, 0x02, 0x40,		/* .word    1073872900    */
-	0x07, 0x00, 0x02, 0x40,		/* .word    1073872903    */
-	0x08, 0x00, 0x02, 0x40,		/* .word    1073872904    */
+#include "../../../contrib/loaders/flash/kinetis/kinetis_flash.inc"
 };
 
 /* Program LongWord Block Write */
@@ -936,20 +878,11 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	struct working_area *source;
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 	uint32_t address = kinfo->prog_base + offset;
-	struct reg_param reg_params[3];
+	uint32_t end_address;
+	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
-	int retval = ERROR_OK;
-
-	/* Params:
-	 * r0 - workarea buffer
-	 * r1 - target address
-	 * r2 - wordcount
-	 * Clobbered:
-	 * r4 - tmp
-	 * r5 - tmp
-	 * r6 - tmp
-	 * r7 - tmp
-	 */
+	int retval;
+	uint8_t fstat;
 
 	/* Increase buffer_size if needed */
 	if (buffer_size < (target->working_area_size/2))
@@ -982,35 +915,39 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;
 
-	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT); /* *pLW (*buffer) */
-	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT); /* faddr */
-	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT); /* number of words to program */
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT); /* address */
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT); /* word count */
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
+	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
+	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
 
-	/* write code buffer and use Flash programming code within kinetis       */
-	/* Set breakpoint to 0 with time-out of 1000 ms                          */
-	while (wcount > 0) {
-		uint32_t thisrun_count = (wcount > (buffer_size / 4)) ? (buffer_size / 4) : wcount;
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+	buf_set_u32(reg_params[1].value, 0, 32, wcount);
+	buf_set_u32(reg_params[2].value, 0, 32, source->address);
+	buf_set_u32(reg_params[3].value, 0, 32, source->address + source->size);
+	buf_set_u32(reg_params[4].value, 0, 32, FTFx_FSTAT);
 
-		retval = target_write_buffer(target, source->address, thisrun_count * 4, buffer);
-		if (retval != ERROR_OK)
-			break;
+	retval = target_run_flash_async_algorithm(target, buffer, wcount, 4,
+						0, NULL,
+						5, reg_params,
+						source->address, source->size,
+						write_algorithm->address, 0,
+						&armv7m_info);
 
-		buf_set_u32(reg_params[0].value, 0, 32, source->address);
-		buf_set_u32(reg_params[1].value, 0, 32, address);
-		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
+	if (retval == ERROR_FLASH_OPERATION_FAILED) {
+		end_address = buf_get_u32(reg_params[0].value, 0, 32);
 
-		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-				write_algorithm->address, 0, 100000, &armv7m_info);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Error executing kinetis Flash programming algorithm");
-			retval = ERROR_FLASH_OPERATION_FAILED;
-			break;
+		LOG_ERROR("Error writing flash at %08" PRIx32, end_address);
+
+		retval = target_read_u8(target, FTFx_FSTAT, &fstat);
+		if (retval == ERROR_OK) {
+			retval = kinetis_ftfx_decode_error(fstat);
+
+			/* reset error flags */
+			target_write_u8(target, FTFx_FSTAT, 0x70);
 		}
-
-		buffer += thisrun_count * 4;
-		address += thisrun_count * 4;
-		wcount -= thisrun_count;
-	}
+	} else if (retval != ERROR_OK)
+		LOG_ERROR("Error executing kinetis Flash programming algorithm");
 
 	target_free_working_area(target, source);
 	target_free_working_area(target, write_algorithm);
@@ -1018,6 +955,8 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
+	destroy_reg_param(&reg_params[3]);
+	destroy_reg_param(&reg_params[4]);
 
 	return retval;
 }
