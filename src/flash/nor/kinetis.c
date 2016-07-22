@@ -80,6 +80,13 @@
  */
 
 /* Addressess */
+#define FCF_ADDRESS	0x00000400
+#define FCF_FPROT	0x8
+#define FCF_FSEC	0xc
+#define FCF_FOPT	0xd
+#define FCF_FDPROT	0xf
+#define FCF_SIZE	0x10
+
 #define FLEXRAM		0x14000000
 
 #define FMC_PFB01CR	0x4001f004
@@ -258,6 +265,17 @@ struct kinetis_flash_bank {
 #define MDM_CTRL_VLLSX_STAT_ACK	(1<<7)
 
 #define MDM_ACCESS_TIMEOUT	500 /* msec */
+
+
+static bool allow_fcf_writes;
+static uint8_t fcf_fopt = 0xff;
+
+
+struct flash_driver kinetis_flash;
+static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
+			uint32_t offset, uint32_t count);
+static int kinetis_auto_probe(struct flash_bank *bank);
+
 
 static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
 {
@@ -1003,15 +1021,26 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 
 static int kinetis_protect(struct flash_bank *bank, int set, int first, int last)
 {
-	LOG_WARNING("kinetis_protect not supported yet");
-	/* FIXME: TODO */
+	int i;
 
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
+	if (allow_fcf_writes) {
+		LOG_ERROR("Protection setting is possible with 'kinetis fcf_source protection' only!");
+		return ERROR_FAIL;
 	}
 
-	return ERROR_FLASH_BANK_INVALID;
+	if (!bank->prot_blocks || bank->num_prot_blocks == 0) {
+		LOG_ERROR("No protection possible for current bank!");
+		return ERROR_FLASH_BANK_INVALID;
+	}
+
+	for (i = first; i < bank->num_prot_blocks && i <= last; i++)
+		bank->prot_blocks[i].is_protected = set;
+
+	LOG_INFO("Protection bits will be written at the next FCF sector erase or write.");
+	LOG_INFO("Do not issue 'flash info' command until protection is written,");
+	LOG_INFO("doing so would re-read protection status from MCU.");
+
+	return ERROR_OK;
 }
 
 static int kinetis_protect_check(struct flash_bank *bank)
@@ -1019,12 +1048,7 @@ static int kinetis_protect_check(struct flash_bank *bank)
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 	int result;
 	int i, b;
-	uint32_t fprot, psec;
-
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
+	uint32_t fprot;
 
 	if (kinfo->flash_class == FC_PFLASH) {
 
@@ -1051,20 +1075,71 @@ static int kinetis_protect_check(struct flash_bank *bank)
 	}
 
 	b = kinfo->protection_block;
-	for (psec = 0, i = 0; i < bank->num_sectors; i++) {
+	for (i = 0; i < bank->num_prot_blocks; i++) {
 		if ((fprot >> b) & 1)
-			bank->sectors[i].is_protected = 0;
+			bank->prot_blocks[i].is_protected = 0;
 		else
-			bank->sectors[i].is_protected = 1;
+			bank->prot_blocks[i].is_protected = 1;
 
-		psec += bank->sectors[i].size;
+		b++;
+	}
 
-		if (psec >= kinfo->protection_size) {
-			psec = 0;
-			b++;
+	return ERROR_OK;
+}
+
+
+static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
+{
+	uint32_t fprot = 0xffffffff;
+	uint8_t fsec = 0xfe;		 /* set MCU unsecure */
+	uint8_t fdprot = 0xff;
+	int i;
+	uint32_t pflash_bit;
+	uint8_t dflash_bit;
+	struct flash_bank *bank_iter;
+	struct kinetis_flash_bank *kinfo;
+
+	memset(fcf, 0xff, FCF_SIZE);
+
+	pflash_bit = 1;
+	dflash_bit = 1;
+
+	/* iterate over all kinetis banks */
+	/* current bank is bank 0, it contains FCF */
+	for (bank_iter = bank; bank_iter; bank_iter = bank_iter->next) {
+		if (bank_iter->driver != &kinetis_flash
+		    || bank_iter->target != bank->target)
+			continue;
+
+		kinetis_auto_probe(bank_iter);
+
+		kinfo = bank->driver_priv;
+		if (!kinfo)
+			continue;
+
+		if (kinfo->flash_class == FC_PFLASH) {
+			for (i = 0; i < bank_iter->num_prot_blocks; i++) {
+				if (bank_iter->prot_blocks[i].is_protected == 1)
+					fprot &= ~pflash_bit;
+
+				pflash_bit <<= 1;
+			}
+
+		} else if (kinfo->flash_class == FC_FLEX_NVM) {
+			for (i = 0; i < bank_iter->num_prot_blocks; i++) {
+				if (bank_iter->prot_blocks[i].is_protected == 1)
+					fdprot &= ~dflash_bit;
+
+				dflash_bit <<= 1;
+			}
+
 		}
 	}
 
+	target_buffer_set_u32(bank->target, fcf + FCF_FPROT, fprot);
+	fcf[FCF_FSEC] = fsec;
+	fcf[FCF_FOPT] = fcf_fopt;
+	fcf[FCF_FDPROT] = fdprot;
 	return ERROR_OK;
 }
 
@@ -1204,14 +1279,26 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 		}
 
 		bank->sectors[i].is_erased = 1;
+
+		if (bank->base == 0
+			&& bank->sectors[i].offset <= FCF_ADDRESS
+			&& bank->sectors[i].offset + bank->sectors[i].size > FCF_ADDRESS + FCF_SIZE) {
+			if (allow_fcf_writes) {
+				LOG_WARNING("Flash Configuration Field erased, DO NOT reset or power off the device");
+				LOG_WARNING("until correct FCF is programmed or MCU gets security lock.");
+			} else {
+				uint8_t fcf_buffer[FCF_SIZE];
+
+				kinetis_fill_fcf(bank, fcf_buffer);
+				result = kinetis_write_inner(bank, fcf_buffer, FCF_ADDRESS, FCF_SIZE);
+				if (result != ERROR_OK)
+					LOG_WARNING("Flash Configuration Field write failed");
+				bank->sectors[i].is_erased = 0;
+			}
+		}
 	}
 
 	kinetis_invalidate_flash_cache(bank);
-
-	if (first == 0) {
-		LOG_WARNING
-			("flash configuration field erased, please reset the device");
-	}
 
 	return ERROR_OK;
 }
@@ -1246,22 +1333,94 @@ static int kinetis_make_ram_ready(struct target *target)
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
+
+static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer,
 			 uint32_t offset, uint32_t count)
 {
-	unsigned int i;
-	int result, fallback = 0;
-	uint32_t wc;
+	int result;
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	uint8_t *buffer_aligned = NULL;
+	/*
+	 * Kinetis uses different terms for the granularity of
+	 * sector writes, e.g. "phrase" or "128 bits".  We use
+	 * the generic term "chunk". The largest possible
+	 * Kinetis "chunk" is 16 bytes (128 bits).
+	 */
+	uint32_t prog_section_chunk_bytes = kinfo->sector_size >> 8;
+	uint32_t prog_size_bytes = kinfo->max_flash_prog_size;
 
-	result = kinetis_check_run_mode(bank->target);
-	if (result != ERROR_OK)
-		return result;
+	while (count > 0) {
+		uint32_t size = prog_size_bytes - offset % prog_size_bytes;
+		uint32_t align_begin = offset % prog_section_chunk_bytes;
+		uint32_t align_end;
+		uint32_t size_aligned;
+		uint16_t chunk_count;
+		uint8_t ftfx_fstat;
 
-	/* reset error flags */
-	result = kinetis_ftfx_prepare(bank->target);
-	if (result != ERROR_OK)
-		return result;
+		if (size > count)
+			size = count;
+
+		align_end = (align_begin + size) % prog_section_chunk_bytes;
+		if (align_end)
+			align_end = prog_section_chunk_bytes - align_end;
+
+		size_aligned = align_begin + size + align_end;
+		chunk_count = size_aligned / prog_section_chunk_bytes;
+
+		if (size != size_aligned) {
+			/* aligned section: the first, the last or the only */
+			if (!buffer_aligned)
+				buffer_aligned = malloc(prog_size_bytes);
+
+			memset(buffer_aligned, 0xff, size_aligned);
+			memcpy(buffer_aligned + align_begin, buffer, size);
+
+			result = target_write_memory(bank->target, FLEXRAM,
+						4, size_aligned / 4, buffer_aligned);
+
+			LOG_DEBUG("section @ %08" PRIx32 " aligned begin %" PRIu32 ", end %" PRIu32,
+					bank->base + offset, align_begin, align_end);
+		} else
+			result = target_write_memory(bank->target, FLEXRAM,
+						4, size_aligned / 4, buffer);
+
+		LOG_DEBUG("write section @ %08" PRIx32 " with length %" PRIu32 " bytes",
+			  bank->base + offset, size);
+
+		if (result != ERROR_OK) {
+			LOG_ERROR("target_write_memory failed");
+			break;
+		}
+
+		/* execute section-write command */
+		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTWRITE,
+				kinfo->prog_base + offset - align_begin,
+				chunk_count>>8, chunk_count, 0, 0,
+				0, 0, 0, 0,  &ftfx_fstat);
+
+		if (result != ERROR_OK) {
+			LOG_ERROR("Error writing section at %08" PRIx32, bank->base + offset);
+			break;
+		}
+
+		if (ftfx_fstat & 0x01)
+			LOG_ERROR("Flash write error at %08" PRIx32, bank->base + offset);
+
+		buffer += size;
+		offset += size;
+		count -= size;
+	}
+
+	free(buffer_aligned);
+	return result;
+}
+
+
+static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
+			 uint32_t offset, uint32_t count)
+{
+	int result, fallback = 0;
+	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 
 	if (!(kinfo->flash_support & FS_PROGRAM_SECTOR)) {
 		/* fallback to longword write */
@@ -1277,87 +1436,9 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 
 	LOG_DEBUG("flash write @08%" PRIx32, bank->base + offset);
 
-
-	/* program section command */
 	if (fallback == 0) {
-		/*
-		 * Kinetis uses different terms for the granularity of
-		 * sector writes, e.g. "phrase" or "128 bits".  We use
-		 * the generic term "chunk". The largest possible
-		 * Kinetis "chunk" is 16 bytes (128 bits).
-		 */
-		unsigned prog_section_chunk_bytes = kinfo->sector_size >> 8;
-		unsigned prog_size_bytes = kinfo->max_flash_prog_size;
-		for (i = 0; i < count; i += prog_size_bytes) {
-			uint8_t residual_buffer[16];
-			uint8_t ftfx_fstat;
-			uint32_t section_count = prog_size_bytes / prog_section_chunk_bytes;
-			uint32_t residual_wc = 0;
-
-			/*
-			 * Assume the word count covers an entire
-			 * sector.
-			 */
-			wc = prog_size_bytes / 4;
-
-			/*
-			 * If bytes to be programmed are less than the
-			 * full sector, then determine the number of
-			 * full-words to program, and put together the
-			 * residual buffer so that a full "section"
-			 * may always be programmed.
-			 */
-			if ((count - i) < prog_size_bytes) {
-				/* number of bytes to program beyond full section */
-				unsigned residual_bc = (count-i) % prog_section_chunk_bytes;
-
-				/* number of complete words to copy directly from buffer */
-				wc = (count - i - residual_bc) / 4;
-
-				/* number of total sections to write, including residual */
-				section_count = DIV_ROUND_UP((count-i), prog_section_chunk_bytes);
-
-				/* any residual bytes delivers a whole residual section */
-				residual_wc = (residual_bc ? prog_section_chunk_bytes : 0)/4;
-
-				/* clear residual buffer then populate residual bytes */
-				(void) memset(residual_buffer, 0xff, prog_section_chunk_bytes);
-				(void) memcpy(residual_buffer, &buffer[i+4*wc], residual_bc);
-			}
-
-			LOG_DEBUG("write section @ %08" PRIX32 " with length %" PRIu32 " bytes",
-				  offset + i, (uint32_t)wc*4);
-
-			/* write data to flexram as whole-words */
-			result = target_write_memory(bank->target, FLEXRAM, 4, wc,
-					buffer + i);
-
-			if (result != ERROR_OK) {
-				LOG_ERROR("target_write_memory failed");
-				return result;
-			}
-
-			/* write the residual words to the flexram */
-			if (residual_wc) {
-				result = target_write_memory(bank->target,
-						FLEXRAM+4*wc,
-						4, residual_wc,
-						residual_buffer);
-
-				if (result != ERROR_OK) {
-					LOG_ERROR("target_write_memory failed");
-					return result;
-				}
-			}
-
-			/* execute section-write command */
-			result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTWRITE, kinfo->prog_base + offset + i,
-					section_count>>8, section_count, 0, 0,
-					0, 0, 0, 0,  &ftfx_fstat);
-
-			if (result != ERROR_OK)
-				return ERROR_FLASH_OPERATION_FAILED;
-		}
+		/* program section command */
+		kinetis_write_sections(bank, buffer, offset, count);
 	}
 	else if (kinfo->flash_support & FS_PROGRAM_LONGWORD) {
 		/* program longword command, not supported in FTFE */
@@ -1430,10 +1511,74 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 }
 
 
+static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
+			 uint32_t offset, uint32_t count)
+{
+	int result;
+	bool set_fcf = false;
+	int sect = 0;
+
+	result = kinetis_check_run_mode(bank->target);
+	if (result != ERROR_OK)
+		return result;
+
+	/* reset error flags */
+	result = kinetis_ftfx_prepare(bank->target);
+	if (result != ERROR_OK)
+		return result;
+
+	if (bank->base == 0 && !allow_fcf_writes) {
+		if (bank->sectors[1].offset <= FCF_ADDRESS)
+			sect = 1;	/* 1kb sector, FCF in 2nd sector */
+
+		if (offset < bank->sectors[sect].offset + bank->sectors[sect].size
+			&& offset + count > bank->sectors[sect].offset)
+			set_fcf = true; /* write to any part of sector with FCF */
+	}
+
+	if (set_fcf) {
+		uint8_t fcf_buffer[FCF_SIZE];
+		uint8_t fcf_current[FCF_SIZE];
+
+		kinetis_fill_fcf(bank, fcf_buffer);
+
+		if (offset < FCF_ADDRESS) {
+			/* write part preceding FCF */
+			result = kinetis_write_inner(bank, buffer, offset, FCF_ADDRESS - offset);
+			if (result != ERROR_OK)
+				return result;
+		}
+
+		result = target_read_memory(bank->target, FCF_ADDRESS, 4, FCF_SIZE / 4, fcf_current);
+		if (result == ERROR_OK && memcmp(fcf_current, fcf_buffer, FCF_SIZE) == 0)
+			set_fcf = false;
+
+		if (set_fcf) {
+			/* write FCF if differs from flash - eliminate multiple writes */
+			result = kinetis_write_inner(bank, fcf_buffer, FCF_ADDRESS, FCF_SIZE);
+			if (result != ERROR_OK)
+				return result;
+		}
+
+		LOG_WARNING("Flash Configuration Field written.");
+		LOG_WARNING("Reset or power off the device to make settings effective.");
+
+		if (offset + count > FCF_ADDRESS + FCF_SIZE) {
+			uint32_t delta = FCF_ADDRESS + FCF_SIZE - offset;
+			/* write part after FCF */
+			result = kinetis_write_inner(bank, buffer + delta, FCF_ADDRESS + FCF_SIZE, count - delta);
+		}
+		return result;
+
+	} else
+		/* no FCF fiddling, normal write */
+		return kinetis_write_inner(bank, buffer, offset, count);
+}
+
+
 static int kinetis_probe(struct flash_bank *bank)
 {
 	int result, i;
-	uint32_t offset = 0;
 	uint8_t fcfg1_nvmsize, fcfg1_pfsize, fcfg1_eesize, fcfg1_depart;
 	uint8_t fcfg2_maxaddr0, fcfg2_pflsh, fcfg2_maxaddr1;
 	uint32_t nvm_size = 0, pf_size = 0, df_size = 0, ee_size = 0;
@@ -1802,7 +1947,8 @@ static int kinetis_probe(struct flash_bank *bank)
 		 * parts with more than 32K of PFlash. For parts with
 		 * less the protection unit is set to 1024 bytes */
 		kinfo->protection_size = MAX(pf_size / 32, 1024);
-		kinfo->protection_block = (32 / num_pflash_blocks) * bank->bank_number;
+		bank->num_prot_blocks = 32 / num_pflash_blocks;
+		kinfo->protection_block = bank->num_prot_blocks * bank->bank_number;
 
 	} else if ((unsigned)bank->bank_number < num_blocks) {
 		/* nvm, banks start at address 0x10000000 */
@@ -1824,7 +1970,8 @@ static int kinetis_probe(struct flash_bank *bank)
 			else
 				kinfo->protection_size = nvm_size / 8;	/* TODO: verify on SF1, not documented in RM */
 		}
-		kinfo->protection_block = (8 / num_nvm_blocks) * nvm_ord;
+		bank->num_prot_blocks = 8 / num_nvm_blocks;
+		kinfo->protection_block = bank->num_prot_blocks * nvm_ord;
 
 		/* EEPROM backup part of FlexNVM is not accessible, use df_size as a limit */
 		if (df_size > bank->size * nvm_ord)
@@ -1865,6 +2012,10 @@ static int kinetis_probe(struct flash_bank *bank)
 		free(bank->sectors);
 		bank->sectors = NULL;
 	}
+	if (bank->prot_blocks) {
+		free(bank->prot_blocks);
+		bank->prot_blocks = NULL;
+	}
 
 	if (kinfo->sector_size == 0) {
 		LOG_ERROR("Unknown sector size for bank %d", bank->bank_number);
@@ -1881,15 +2032,16 @@ static int kinetis_probe(struct flash_bank *bank)
 
 	if (bank->num_sectors > 0) {
 		/* FlexNVM bank can be used for EEPROM backup therefore zero sized */
-		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
+		bank->sectors = alloc_block_array(0, kinfo->sector_size, bank->num_sectors);
+		if (!bank->sectors)
+			return ERROR_FAIL;
 
-		for (i = 0; i < bank->num_sectors; i++) {
-			bank->sectors[i].offset = offset;
-			bank->sectors[i].size = kinfo->sector_size;
-			offset += kinfo->sector_size;
-			bank->sectors[i].is_erased = -1;
-			bank->sectors[i].is_protected = 1;
-		}
+		bank->prot_blocks = alloc_block_array(0, kinfo->protection_size, bank->num_prot_blocks);
+		if (!bank->prot_blocks)
+			return ERROR_FAIL;
+
+	} else {
+		bank->num_prot_blocks = 0;
 	}
 
 	kinfo->probed = true;
@@ -2130,6 +2282,45 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(kinetis_fcf_source_handler)
+{
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 1) {
+		if (strcmp(CMD_ARGV[0], "write") == 0)
+			allow_fcf_writes = true;
+		else if (strcmp(CMD_ARGV[0], "protection") == 0)
+			allow_fcf_writes = false;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (allow_fcf_writes) {
+		command_print(CMD_CTX, "Arbitrary Flash Configuration Field writes enabled.");
+		command_print(CMD_CTX, "Protection info writes to FCF disabled.");
+		LOG_WARNING("BEWARE: incorrect flash configuration may permanently lock the device.");
+	} else {
+		command_print(CMD_CTX, "Protection info writes to Flash Configuration Field enabled.");
+		command_print(CMD_CTX, "Arbitrary FCF writes disabled. Mode safe from unwanted locking of the device.");
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(kinetis_fopt_handler)
+{
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 1)
+		fcf_fopt = (uint8_t)strtoul(CMD_ARGV[0], NULL, 0);
+	else
+		command_print(CMD_CTX, "FCF_FOPT 0x%02" PRIx8, fcf_fopt);
+
+	return ERROR_OK;
+}
+
 
 static const struct command_registration kinetis_security_command_handlers[] = {
 	{
@@ -2184,6 +2375,21 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 			" set two EEPROM sizes in bytes and FlexRAM loading during reset",
 		.usage = "('info'|'dataflash' size|'eebkp' size) [eesize1 eesize2] ['on'|'off']",
 		.handler = kinetis_nvm_partition,
+	},
+	{
+		.name = "fcf_source",
+		.mode = COMMAND_EXEC,
+		.help = "Use protection as a source for Flash Configuration Field or allow writing arbitrary values to the FCF"
+			" Mode 'protection' is safe from unwanted locking of the device.",
+		.usage = "['protection'|'write']",
+		.handler = kinetis_fcf_source_handler,
+	},
+	{
+		.name = "fopt",
+		.mode = COMMAND_EXEC,
+		.help = "FCF_FOPT value source in 'kinetis fcf_source protection' mode",
+		.usage = "[num]",
+		.handler = kinetis_fopt_handler,
 	},
 	COMMAND_REGISTRATION_DONE
 };
