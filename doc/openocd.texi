@@ -5288,6 +5288,23 @@ identification register, and autoconfigures itself.
 flash bank $_FLASHNAME kinetis 0 0 0 0 $_TARGETNAME
 @end example
 
+@deffn Command {kinetis fcf_source} [protection|write]
+Select what source is used when writing to a Flash Configuration Field.
+@option{protection} mode builds FCF content from protection bits previously
+set by 'flash protect' command.
+This mode is default. MCU is protected from unwanted locking by immediate
+writing FCF after erase of relevant sector.
+@option{write} mode enables direct write to FCF.
+Protection cannot be set by 'flash protect' command. FCF is written along
+with the rest of a flash image.
+@emph{BEWARE: Incorrect flash configuration may permanently lock the device!}
+@end deffn
+
+@deffn Command {kinetis fopt} [num]
+Set value to write to FOPT byte of Flash Configuration Field.
+Used in kinetis 'fcf_source protection' mode only.
+@end deffn
+
 @deffn Command {kinetis mdm check_security}
 Checks status of device security lock. Used internally in examine-end event.
 @end deffn
