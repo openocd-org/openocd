@@ -7404,6 +7404,17 @@ requests by using a special SVC instruction that is trapped at the
 Supervisor Call vector by OpenOCD.
 @end deffn
 
+@deffn Command {arm semihosting_fileio} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
+Display status of semihosting fileio, after optionally changing that
+status.
+
+Enabling this option forwards semihosting I/O to GDB process using the
+File-I/O remote protocol extension. This is especially useful for
+interacting with remote files or displaying console messages in the
+debugger.
+@end deffn
+
 @section ARMv4 and ARMv5 Architecture
 @cindex ARMv4
 @cindex ARMv5

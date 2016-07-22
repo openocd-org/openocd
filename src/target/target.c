@@ -1944,12 +1944,9 @@ int target_arch_state(struct target *target)
 {
 	int retval;
 	if (target == NULL) {
-		LOG_USER("No target has been configured");
+		LOG_WARNING("No target has been configured");
 		return ERROR_OK;
 	}
-
-	LOG_USER("%s: target state: %s", target_name(target),
-		 target_state_name(target));
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_OK;

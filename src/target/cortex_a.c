@@ -3103,6 +3103,7 @@ static int cortex_a_init_target(struct command_context *cmd_ctx,
 	struct target *target)
 {
 	/* examine_first() does a bunch of this */
+	arm_semihosting_init(target);
 	return ERROR_OK;
 }
 

@@ -666,14 +666,19 @@ int arm_arch_state(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	/* avoid filling log waiting for fileio reply */
+	if (arm->semihosting_hit_fileio)
+		return ERROR_OK;
+
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
-		"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "%s",
+		"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "%s%s",
 		arm_state_strings[arm->core_state],
 		debug_reason_name(target),
 		arm_mode_name(arm->core_mode),
 		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u32(arm->pc->value, 0, 32),
-		arm->is_semihosting ? ", semihosting" : "");
+		arm->is_semihosting ? ", semihosting" : "",
+		arm->is_semihosting_fileio ? " fileio" : "");
 
 	return ERROR_OK;
 }
@@ -1055,6 +1060,37 @@ COMMAND_HANDLER(handle_arm_semihosting_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_arm_semihosting_fileio_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (target == NULL) {
+		LOG_ERROR("No target selected");
+		return ERROR_FAIL;
+	}
+
+	struct arm *arm = target_to_arm(target);
+
+	if (!is_arm(arm)) {
+		command_print(CMD_CTX, "current target isn't an ARM");
+		return ERROR_FAIL;
+	}
+
+	if (!arm->is_semihosting) {
+		command_print(CMD_CTX, "semihosting is not enabled");
+		return ERROR_FAIL;
+	}
+
+	if (CMD_ARGC > 0)
+		COMMAND_PARSE_ENABLE(CMD_ARGV[0], arm->is_semihosting_fileio);
+
+	command_print(CMD_CTX, "semihosting fileio is %s",
+		arm->is_semihosting_fileio
+		? "enabled" : "disabled");
+
+	return ERROR_OK;
+}
+
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
 		.name = "reg",
@@ -1096,6 +1132,13 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting operations",
+	},
+	{
+		"semihosting_fileio",
+		.handler = handle_arm_semihosting_fileio_command,
+		.mode = COMMAND_EXEC,
+		.usage = "['enable'|'disable']",
+		.help = "activate support for semihosting fileio operations",
 	},
 
 	COMMAND_REGISTRATION_DONE

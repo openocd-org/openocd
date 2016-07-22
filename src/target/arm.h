@@ -130,6 +130,18 @@ struct arm {
 	/** Flag reporting whether semihosting is active. */
 	bool is_semihosting;
 
+	/** Flag reporting whether semihosting fileio is active. */
+	bool is_semihosting_fileio;
+
+	/** Flag reporting whether semihosting fileio operation is active. */
+	bool semihosting_hit_fileio;
+
+	/** Current semihosting operation. */
+	int semihosting_op;
+
+	/** Current semihosting result. */
+	int semihosting_result;
+
 	/** Value to be returned by semihosting SYS_ERRNO request. */
 	int semihosting_errno;
 

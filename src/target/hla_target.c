@@ -341,7 +341,7 @@ static int adapter_init_target(struct command_context *cmd_ctx,
 	LOG_DEBUG("%s", __func__);
 
 	armv7m_build_reg_cache(target);
-
+	arm_semihosting_init(target);
 	return ERROR_OK;
 }
 
