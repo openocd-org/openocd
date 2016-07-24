@@ -1186,7 +1186,6 @@ AM_CONDITIONAL([HLADAPTER], [test $enable_stlink != no -o $enable_ti_icdi != no]
 if test $enable_jlink != no; then
   if test $use_internal_libjaylink = yes; then
     if test -f "$srcdir/src/jtag/drivers/libjaylink/configure.ac"; then
-      ( cd $srcdir/src/jtag/drivers/libjaylink/ && ./autogen.sh )
       AX_CONFIG_SUBDIR_OPTION([src/jtag/drivers/libjaylink],
 		[--enable-subproject-build])
     else
