@@ -207,38 +207,6 @@ static uint16_t dram_address(unsigned int index)
 		return 0x40 + index - 0x10;
 }
 
-#if 0
-static int debug_scan(struct target *target)
-{
-	uint8_t in[DIV_ROUND_UP(DEBUG_LENGTH, 8)];
-	jtag_add_ir_scan(target->tap, &select_debug, TAP_IDLE);
-
-	struct scan_field field;
-	field.num_bits = DEBUG_LENGTH;
-	field.out_value = NULL;
-	field.check_value = NULL;
-	field.check_mask = NULL;
-	field.in_value = in;
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-
-	/* Always return to dbus. */
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-
-	jtag_execute_queue();
-
-	LOG_DEBUG("  debug_pc=0x%x", buf_get_u32(in, 0, 32));
-	LOG_DEBUG("  last_returned_data=0x%x", buf_get_u32(in, 32, 32));
-	LOG_DEBUG("  last_returned_pc=0x%x", buf_get_u32(in, 64, 32));
-	LOG_DEBUG("  last_requested_pc=0x%x", buf_get_u32(in, 96, 32));
-	LOG_DEBUG("  last_committed_instruction=0x%x", buf_get_u32(in, 128, 32));
-	LOG_DEBUG("  last_committed_pc=0x%x", buf_get_u32(in, 160, 32));
-	LOG_DEBUG("  last_committed_time=0x%" PRIx64, buf_get_u64(in, 192, 64));
-	LOG_DEBUG("  3bits=0x%x", buf_get_u32(in, 256, 3));
-
-	return 0;
-}
-#endif
-
 static void increase_dbus_busy_delay(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
@@ -451,6 +419,19 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 	}
 }
 
+static int dram_check32(struct target *target, unsigned int index,
+               uint32_t expected)
+{
+	uint16_t address = dram_address(index);
+	uint32_t actual = dbus_read(target, address);
+	if (expected != actual) {
+		LOG_ERROR("Wrote 0x%x to Debug RAM at %d, but read back 0x%x",
+				expected, index, actual);
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 static void cache_set(struct target *target, unsigned int index, uint32_t data)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
@@ -501,6 +482,27 @@ static void cache_clean(struct target *target)
 			info->dram_cache[i].dirty = false;
 		}
 	}
+}
+
+static int cache_check(struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	int error = 0;
+
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		if (info->dram_cache[i].valid && !info->dram_cache[i].dirty) {
+			if (dram_check32(target, i, info->dram_cache[i].data) != ERROR_OK) {
+				error++;
+			}
+		}
+	}
+
+	if (error) {
+		dump_debug_ram(target);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
 }
 
 /** Write cache to the target, and optionally run the program. */
@@ -642,21 +644,6 @@ uint32_t cache_get32(struct target *target, unsigned int address)
 	return info->dram_cache[address].data;
 }
 
-#if 0
-static int dram_check32(struct target *target, unsigned int index,
-		uint32_t expected)
-{
-	uint16_t address = dram_address(index);
-	uint32_t actual = dbus_read(target, address, address + 1);
-	if (expected != actual) {
-		LOG_ERROR("Wrote 0x%x to Debug RAM at %d, but read back 0x%x",
-				expected, index, actual);
-		return ERROR_FAIL;
-	}
-	return ERROR_OK;
-}
-#endif
-
 /* Write instruction that jumps from the specified word in Debug RAM to resume
  * in Debug ROM. */
 static void dram_write_jump(struct target *target, unsigned int index, bool set_interrupt)
@@ -683,29 +670,6 @@ static int wait_for_state(struct target *target, enum target_state state)
 		}
 	}
 }
-
-#if 0
-static int wait_and_read(struct target *target, uint32_t *data, uint16_t address)
-{
-	time_t start = time(NULL);
-	// Throw away the results of the first read, since they'll contain the
-	// result of the read that happened just before debugint was set. (Assuming
-	// the last scan before calling this function was one that sets debugint.)
-	dbus_scan(target, NULL, NULL, DBUS_OP_READ, address, 0);
-
-	while (1) {
-		uint64_t dbus_value = dbus_read(target, address);
-		*data = dbus_value;
-		if (!get_field(dbus_value, DMCONTROL_INTERRUPT)) {
-			return ERROR_OK;
-		}
-		if (time(NULL) - start > 2) {
-			LOG_ERROR("Timed out waiting for debug int to clear.");
-			return ERROR_FAIL;
-		}
-	}
-}
-#endif
 
 static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 {
@@ -1019,99 +983,8 @@ static int riscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-#if 1
 	return resume(target, current, address, handle_breakpoints, 0, true);
-#else
-	// Hardware single step doesn't exist yet.
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	uint32_t next_pc = info->dpc + 4;
-	// TODO: write better next pc prediction code
-	if (breakpoint_add(target, next_pc, 4, BKPT_SOFT) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-	if (resume(target, current, address, handle_breakpoints, 0, false) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-	while (target->state == TARGET_RUNNING) {
-		riscv_poll(target);
-	}
-	breakpoint_remove(target, next_pc);
-
-	return ERROR_OK;
-#endif
 }
-
-#if 0
-static void dram_test(struct target *target)
-{
-	uint32_t shadow[16];
-
-	for (int j = 0; j < 100; j++) {
-		LOG_DEBUG("Round %d", j);
-		for (int i = 0; i < 16; i++) {
-			shadow[i] = random();
-			dram_write32(target, i, shadow[i], false);
-		}
-		for (int i = 0; i < 16; i++) {
-			if (dram_check32(target, i, shadow[i]) != ERROR_OK) {
-				LOG_ERROR("Mismatch! j=%d i=%d", j, i);
-			}
-		}
-	}
-}
-#endif
-
-#if 0
-static void light_leds(struct target *target)
-{
-	dram_write32(target, 0, lui(S0, 0x70002), false);
-	dram_write32(target, 1, lui(S1, 0xccccc), false);
-	dram_write32(target, 2, sw(S1, S0, 0xa0), false);
-	dram_write32(target, 3, jal(ZERO, 0), true);
-}
-#endif
-
-#if 0
-static void write_constants(struct target *target)
-{
-	dram_write32(target, 0, lui(S0, 0x70002), false);
-	dram_write32(target, 1, lui(S1, 0xccccc), false);
-	dram_write32(target, 2, sw(S0, ZERO, DEBUG_RAM_START + 0), false);
-	dram_write32(target, 3, sw(S1, ZERO, DEBUG_RAM_START + 4), false);
-	dram_write_jump(target, 4, true);
-
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-	}
-
-	uint32_t word0 = dram_read32(target, 0);
-	uint32_t word1 = dram_read32(target, 1);
-	if (word0 != 0x70002000) {
-		LOG_ERROR("Value at word 0 should be 0x%x but is 0x%x",
-				0x70002000, word0);
-	}
-	if (word1 != 0x70002000) {
-		LOG_ERROR("Value at word 1 should be 0x%x but is 0x%x",
-				0x70002000, word1);
-	}
-}
-#endif
-
-#if 0
-static void test_s1(struct target *target)
-{
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	riscv_halt(target);
-	riscv_poll(target);
-
-	dram_write32(target, info->dramsize - 1, 0xdeadbed, false);
-	dram_read32(target, info->dramsize - 1);
-	riscv_step(target, true, 0, 0);
-	dram_read32(target, info->dramsize - 1);
-
-	exit(0);
-}
-#endif 
 
 static int riscv_examine(struct target *target)
 {
@@ -1181,23 +1054,15 @@ static int riscv_examine(struct target *target)
 	cache_set(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
 	cache_set_jump(target, 5);
 
-	cache_write(target, 0, true);
-	cache_invalidate(target);
+	cache_write(target, 0, false);
 
-#if 0
-	// TODO
 	// Check that we can actually read/write dram.
-	int error = 0;
-	error += dram_check32(target, 0, xori(S1, ZERO, -1));
-	error += dram_check32(target, 1, srli(S1, S1, 31));
-	error += dram_check32(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
-	error += dram_check32(target, 3, srli(S1, S1, 31));
-	error += dram_check32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
-	if (error != 5 * ERROR_OK) {
-		dump_debug_ram(target);
+	if (cache_check(target) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
-#endif
+
+	cache_write(target, 0, true);
+	cache_invalidate(target);
 
 	uint32_t word0 = cache_get32(target, 0);
 	uint32_t word1 = cache_get32(target, 1);
@@ -1552,7 +1417,6 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	cache_set_jump(target, 3);
 	cache_write(target, 4, false);
 
-#if 1
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	const int max_batch_size = 256;
 	uint8_t *in = malloc(max_batch_size * 8);
@@ -1648,39 +1512,8 @@ error:
 	free(out);
 	free(field);
 	return ERROR_FAIL;
-#else
-	for (unsigned int i = 0; i < count; i++) {
-		dram_write32(target, 4, address + i * size, true);
-
-		uint32_t value;
-		if (wait_and_read(target, &value, 4) != ERROR_OK) {
-			LOG_ERROR("Debug interrupt didn't clear.");
-			return ERROR_FAIL;
-		}
-
-		unsigned int offset = i * size;
-		switch (size) {
-			case 1:
-				buffer[offset] = value & 0xff;
-				break;
-			case 2:
-				buffer[offset] = value & 0xff;
-				buffer[offset + 1] = (value >> 8) & 0xff;
-				break;
-			case 4:
-				buffer[offset] = value & 0xff;
-				buffer[offset + 1] = (value >> 8) & 0xff;
-				buffer[offset + 2] = (value >> 16) & 0xff;
-				buffer[offset + 3] = (value >> 24) & 0xff;
-				break;
-		}
-	}
-
-	return ERROR_OK;
-#endif
 }
 
-#if 1
 static int setup_write_memory(struct target *target, uint32_t size)
 {
 	switch (size) {
@@ -1838,68 +1671,6 @@ error:
 	free(field);
 	return ERROR_FAIL;
 }
-#else
-/** Inefficient implementation that doesn't require conditional writes. */
-static int riscv_write_memory(struct target *target, uint32_t address,
-		uint32_t size, uint32_t count, const uint8_t *buffer)
-{
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-
-	// Write program.
-	dram_write32(target, 0, lw(S1, ZERO, DEBUG_RAM_START + 16), false);
-	switch (size) {
-		case 1:
-			dram_write32(target, 1, lb(S0, ZERO, DEBUG_RAM_START + 20), false);
-			dram_write32(target, 2, sb(S0, S1, 0), false);
-			break;
-		case 2:
-			dram_write32(target, 1, lh(S0, ZERO, DEBUG_RAM_START + 20), false);
-			dram_write32(target, 2, sh(S0, S1, 0), false);
-			break;
-		case 4:
-			dram_write32(target, 1, lw(S0, ZERO, DEBUG_RAM_START + 20), false);
-			dram_write32(target, 2, sw(S0, S1, 0), false);
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
-	}
-	dram_write_jump(target, 3, false);
-
-	for (uint32_t i = 0; i < count; i++) {
-		// Write the next value and set interrupt.
-		uint32_t value;
-		uint32_t offset = size * i;
-		switch (size) {
-			case 1:
-				value = buffer[offset];
-				break;
-			case 2:
-				value = buffer[offset] |
-					(buffer[offset+1] << 8);
-				break;
-			case 4:
-				value = buffer[offset] |
-					((uint32_t) buffer[offset+1] << 8) |
-					((uint32_t) buffer[offset+2] << 16) |
-					((uint32_t) buffer[offset+3] << 24);
-				break;
-			default:
-				return ERROR_FAIL;
-		}
-
-		dram_write32(target, 4, address + offset, false);
-		dram_write32(target, 5, value, true);
-
-		if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-			LOG_ERROR("Debug interrupt didn't clear.");
-			return ERROR_FAIL;
-		}
-	}
-
-	return ERROR_OK;
-}
-#endif
 
 static int riscv_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
