@@ -1018,9 +1018,14 @@ COMMAND_HANDLER(samd_handle_bootloader_command)
 COMMAND_HANDLER(samd_handle_reset_deassert)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int retval = ERROR_OK;
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	/* If the target has been unresponsive before, try to re-establish
+	 * communication now - CPU is held in reset by DSU, DAP is working */
+	if (!target_was_examined(target))
+		target_examine_one(target);
+	target_poll(target);
 
 	/* In case of sysresetreq, debug retains state set in cortex_m_assert_reset()
 	 * so we just release reset held by DSU
@@ -1030,9 +1035,9 @@ COMMAND_HANDLER(samd_handle_reset_deassert)
 	 * After vectreset DSU release is not needed however makes no harm
 	 */
 	if (target->reset_halt && (jtag_reset_config & RESET_HAS_SRST)) {
-		retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
+		retval = target_write_u32(target, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
 		if (retval == ERROR_OK)
-			retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DEMCR,
+			retval = target_write_u32(target, DCB_DEMCR,
 				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 		/* do not return on error here, releasing DSU reset is more important */
 	}
