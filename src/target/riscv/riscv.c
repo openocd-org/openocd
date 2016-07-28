@@ -120,7 +120,7 @@ enum {
 	REG_FPR31 = 64,
 	REG_CSR0 = 65,
 	REG_CSR4095 = 4160,
-	REG_END = 4161,
+	REG_PRIV = 4161,
 	REG_COUNT
 };
 
@@ -786,9 +786,13 @@ static void update_reg_list(struct target *target)
 	for (unsigned int i = 0; i < REG_COUNT; i++) {
 		struct reg *r = &info->reg_list[i];
 		r->value = info->reg_values + i * info->xlen / 4;
-		r->size = info->xlen;
 		if (r->dirty) {
 			LOG_ERROR("Register %d was dirty. Its value is lost.", i);
+		}
+		if (i == REG_PRIV) {
+			r->size = 8;
+		} else {
+			r->size = info->xlen;
 		}
 		r->valid = false;
 	}
@@ -816,6 +820,10 @@ static int register_get(struct reg *reg)
 		cache_set(target, 0, csrr(S0, reg->number - REG_CSR0));
 		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
 		cache_set_jump(target, 2);
+	} else if (reg->number == REG_PRIV) {
+		buf_set_u64(reg->value, 0, 8, get_field(info->dcsr, DCSR_PRV));
+		LOG_DEBUG("%s=%d (cached)", reg->name, get_field(info->dcsr, DCSR_PRV));
+		return ERROR_OK;
 	} else {
 		LOG_ERROR("Don't know how to read register %d (%s)", reg->number, reg->name);
 		return ERROR_FAIL;
@@ -871,6 +879,9 @@ static int register_write(struct target *target, unsigned int number,
 		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
 		cache_set(target, 1, csrw(S0, number - REG_CSR0));
 		cache_set_jump(target, 2);
+	} else if (number == REG_PRIV) {
+		info->dcsr = set_field(info->dcsr, DCSR_PRV, value);
+		return ERROR_OK;
 	} else {
 		LOG_ERROR("Don't know how to read register %d", number);
 		return ERROR_FAIL;
@@ -892,7 +903,9 @@ static int register_set(struct reg *reg, uint8_t *buf)
 	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	LOG_DEBUG("write 0x%x to %s", value, reg->name);
-	info->gpr_cache[reg->number] = value;
+	if (reg->number <= REG_XPR31) {
+		info->gpr_cache[reg->number] = value;
+	}
 
 	return register_write(target, reg->number, value);
 }
@@ -939,6 +952,8 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 			sprintf(reg_name, "f%d", i - REG_FPR0);
 		} else if (i >= REG_CSR0 && i <= REG_CSR4095) {
 			sprintf(reg_name, "csr%d", i - REG_CSR0);
+		} else if (i == REG_PRIV) {
+			sprintf(reg_name, "priv");
 		}
 		if (reg_name[0]) {
 			r->name = reg_name;
