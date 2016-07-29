@@ -1468,6 +1468,7 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 		}
 
 		int dbus_busy = 0;
+		int execute_busy = 0;
 		for (unsigned int j = 0; j < batch_size; j++) {
 			dbus_status_t status = buf_get_u32(in + 8*j, DBUS_OP_START, DBUS_OP_SIZE);
 			switch (status) {
@@ -1484,6 +1485,9 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 					break;
 			}
 			uint64_t data = buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE);
+			if (data & DMCONTROL_INTERRUPT) {
+				execute_busy++;
+			}
 			if (i + j == count + 2) {
 				result_value = data;
 			} else if (i + j > 1) {
@@ -1508,11 +1512,16 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 		}
 		if (dbus_busy) {
 			increase_dbus_busy_delay(target);
-
+		}
+		if (execute_busy) {
+			increase_interrupt_high_delay(target);
+		}
+		if (dbus_busy || execute_busy) {
 			wait_for_debugint_clear(target, false);
 
 			// Retry.
-			LOG_INFO("Retrying memory read starting from 0x%x with more delays", address + size * i);
+			LOG_INFO("Retrying memory read starting from 0x%x with more delays",
+					address + size * i);
 		} else {
 			i += batch_size;
 		}
