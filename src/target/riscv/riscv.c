@@ -1438,19 +1438,20 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	uint8_t *out = malloc(max_batch_size * 8);
 	struct scan_field *field = calloc(max_batch_size, sizeof(struct scan_field));
 
+	uint32_t result_value = 0x777;
 	uint32_t i = 0;
-	while (i < count + 2) {
-		unsigned int batch_size = MIN(count + 2 - i, max_batch_size);
+	while (i < count + 3) {
+		unsigned int batch_size = MIN(count + 3 - i, max_batch_size);
 
 		for (unsigned int j = 0; j < batch_size; j++) {
 			if (i + j == count) {
 				// Just insert a read so we can scan out the last value.
 				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_READ, 4, DMCONTROL_HALTNOT | 0);
-			} else if (i + j == count + 1) {
+						DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
+			} else if (i + j >= count + 1) {
 				// And check for errors.
 				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_READ, info->dramsize-1, DMCONTROL_HALTNOT | 0);
+						DBUS_OP_READ, info->dramsize-1, DMCONTROL_HALTNOT);
 			} else {
 				// Write the next address and set interrupt.
 				uint32_t offset = size * (i + j);
@@ -1482,8 +1483,10 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 					dbus_busy++;
 					break;
 			}
-			if (i + j > 1) {
-				uint32_t data = buf_get_u32(in + 8*j, DBUS_DATA_START, 32);
+			uint64_t data = buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE);
+			if (i + j == count + 2) {
+				result_value = data;
+			} else if (i + j > 1) {
 				uint32_t offset = size * (i + j - 2);
 				switch (size) {
 					case 1:
@@ -1501,8 +1504,7 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 						break;
 				}
 			}
-			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status,
-					buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
+			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status, data);
 		}
 		if (dbus_busy) {
 			increase_dbus_busy_delay(target);
@@ -1516,6 +1518,17 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 		}
 	}
 
+	if (result_value != 0) {
+		LOG_ERROR("Core got an exception (0x%x) while reading from 0x%x",
+				result_value, address + size * (count-1));
+		if (count > 1) {
+			LOG_ERROR("(It may have failed between 0x%x and 0x%x as well, but we "
+					"didn't check then.)",
+					address, address + size * (count-2) + size - 1);
+		}
+		goto error;
+	}
+
 	free(in);
 	free(out);
 	free(field);
@@ -1526,6 +1539,7 @@ error:
 	free(in);
 	free(out);
 	free(field);
+	cache_clean(target);
 	return ERROR_FAIL;
 }
 
@@ -1581,15 +1595,14 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	uint8_t *out = malloc(max_batch_size * 8);
 	struct scan_field *field = calloc(max_batch_size, sizeof(struct scan_field));
 
+	uint32_t result_value = 0x777;
 	uint32_t i = 0;
-	while (i < count + 1) {
-		unsigned int batch_size = MIN(count + 1 - i, max_batch_size);
+	while (i < count + 2) {
+		unsigned int batch_size = MIN(count + 2 - i, max_batch_size);
 
 		for (unsigned int j = 0; j < batch_size; j++) {
-			if (i + j == count) {
-				// Just insert a read so we can confirm that the last scan
-				// succeeded.
-
+			if (i + j >= count) {
+				// Check for an exception.
 				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
 						DBUS_OP_READ, info->dramsize-1, DMCONTROL_HALTNOT | 0);
 			} else {
@@ -1628,7 +1641,8 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		int dbus_busy = 0;
 		int execute_busy = 0;
 		for (unsigned int j = 0; j < batch_size; j++) {
-			dbus_status_t status = buf_get_u32(in + 8*j, DBUS_OP_START, DBUS_OP_SIZE);
+			dbus_status_t status = buf_get_u32(in + 8*j, DBUS_OP_START,
+					DBUS_OP_SIZE);
 			switch (status) {
 				case DBUS_STATUS_SUCCESS:
 					break;
@@ -1642,8 +1656,11 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 					dbus_busy++;
 					break;
 			}
-			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status,
-					buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE));
+			uint64_t data = buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE);
+			if (i + j == count + 1) {
+				result_value = data;
+			}
+			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status, data);
 		}
 		if (dbus_busy) {
 			increase_dbus_busy_delay(target);
@@ -1673,6 +1690,17 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		}
 	}
 
+	if (result_value != 0) {
+		LOG_ERROR("Core got an exception (0x%x) while writing to 0x%x",
+				result_value, address + size * (count-1));
+		if (count > 1) {
+			LOG_ERROR("(It may have failed between 0x%x and 0x%x as well, but we "
+					"didn't check then.)",
+					address, address + size * (count-2) + size - 1);
+		}
+		goto error;
+	}
+
 	free(in);
 	free(out);
 	free(field);
@@ -1684,6 +1712,7 @@ error:
 	free(in);
 	free(out);
 	free(field);
+	cache_clean(target);
 	return ERROR_FAIL;
 }
 
