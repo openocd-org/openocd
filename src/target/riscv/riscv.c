@@ -60,12 +60,10 @@
 typedef enum {
 	DBUS_OP_NOP = 0,
 	DBUS_OP_READ = 1,
-	DBUS_OP_WRITE = 2,
-	DBUS_OP_CONDITIONAL_WRITE = 3
+	DBUS_OP_WRITE = 2
 } dbus_op_t;
 typedef enum {
 	DBUS_STATUS_SUCCESS = 0,
-	DBUS_STATUS_NO_WRITE = 1,
 	DBUS_STATUS_FAILED = 2,
 	DBUS_STATUS_BUSY = 3
 } dbus_status_t;
@@ -567,15 +565,15 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		switch (status) {
 			case DBUS_STATUS_SUCCESS:
 				break;
-			case DBUS_STATUS_NO_WRITE:
-				LOG_ERROR("Got no-write response to unconditional write. Hardware error?");
-				return ERROR_FAIL;
 			case DBUS_STATUS_FAILED:
 				LOG_ERROR("Debug RAM write failed. Hardware error?");
 				return ERROR_FAIL;
 			case DBUS_STATUS_BUSY:
 				errors++;
 				break;
+			default:
+				LOG_ERROR("Got invalid bus access status: %d", status);
+				return ERROR_FAIL;
 		}
 		LOG_DEBUG("read scan=%d result=%d data=%09" PRIx64 " address=%02x",
 				i,
@@ -1209,15 +1207,15 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		switch (status) {
 			case DBUS_STATUS_SUCCESS:
 				break;
-			case DBUS_STATUS_NO_WRITE:
-				LOG_ERROR("Got no-write response without conditional write. Hardware error?");
-				goto error;
 			case DBUS_STATUS_FAILED:
 				LOG_ERROR("Debug access failed. Hardware error?");
 				goto error;
 			case DBUS_STATUS_BUSY:
 				dbus_busy++;
 				break;
+			default:
+				LOG_ERROR("Got invalid bus access status: %d", status);
+				return ERROR_FAIL;
 		}
 		if (data & DMCONTROL_INTERRUPT) {
 			interrupt_set++;
@@ -1474,15 +1472,15 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 			switch (status) {
 				case DBUS_STATUS_SUCCESS:
 					break;
-				case DBUS_STATUS_NO_WRITE:
-					LOG_ERROR("Got no-write status without conditional write.");
-					goto error;
 				case DBUS_STATUS_FAILED:
 					LOG_ERROR("Debug RAM write failed. Hardware error?");
 					goto error;
 				case DBUS_STATUS_BUSY:
 					dbus_busy++;
 					break;
+				default:
+					LOG_ERROR("Got invalid bus access status: %d", status);
+					return ERROR_FAIL;
 			}
 			uint64_t data = buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE);
 			if (data & DMCONTROL_INTERRUPT) {
@@ -1637,7 +1635,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 				}
 
 				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_CONDITIONAL_WRITE, 4, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
+						DBUS_OP_WRITE, 4, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
 			}
 		}
 
@@ -1655,15 +1653,19 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 			switch (status) {
 				case DBUS_STATUS_SUCCESS:
 					break;
-				case DBUS_STATUS_NO_WRITE:
-					execute_busy++;
-					break;
 				case DBUS_STATUS_FAILED:
 					LOG_ERROR("Debug RAM write failed. Hardware error?");
 					goto error;
 				case DBUS_STATUS_BUSY:
 					dbus_busy++;
 					break;
+				default:
+					LOG_ERROR("Got invalid bus access status: %d", status);
+					return ERROR_FAIL;
+			}
+			int interrupt = buf_get_u32(in + 8*j, DBUS_DATA_START + 33, 1);
+			if (interrupt) {
+				execute_busy++;
 			}
 			uint64_t data = buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE);
 			if (i + j == count + 1) {
