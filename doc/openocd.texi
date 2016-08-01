@@ -4999,6 +4999,45 @@ flash bank $_FLASHNAME mrvlqspi 0x0 0 0 0 $_TARGETNAME 0x46010000
 
 @end deffn
 
+@deffn {Flash Driver} ath79
+@cindex Atheros ath79 SPI driver
+@cindex ath79
+Members of ATH79 SoC family from Atheros include a SPI interface with 3
+chip selects.
+On reset a SPI flash connected to the first chip select (CS0) is made
+directly read-accessible in the CPU address space (up to 16MBytes)
+and is usually used to store the bootloader and operating system.
+Normal OpenOCD commands like @command{mdw} can be used to display
+the flash content while it is in memory-mapped mode (only the first
+4MBytes are accessible without additional configuration on reset).
+
+The setup command only requires the @var{base} parameter in order
+to identify the memory bank. The actual value for the base address
+is not otherwise used by the driver. However the mapping is passed
+to gdb. Thus for the memory mapped flash (chipselect CS0) the base
+address should be the actual memory mapped base address. For unmapped
+chipselects (CS1 and CS2) care should be taken to use a base address
+that does not overlap with real memory regions.
+Additional information, like flash size, are detected automatically.
+An optional additional parameter sets the chipselect for the bank,
+with the default CS0.
+CS1 and CS2 require additional GPIO setup before they can be used
+since the alternate function must be enabled on the GPIO pin
+CS1/CS2 is routed to on the given SoC.
+
+@example
+flash bank $_FLASHNAME ath79 0 0 0 0 $_TARGETNAME
+
+# When using multiple chipselects the base should be different for each,
+# otherwise the write_image command is not able to distinguish the
+# banks.
+flash bank flash0 ath79 0x00000000 0 0 0 $_TARGETNAME cs0
+flash bank flash1 ath79 0x10000000 0 0 0 $_TARGETNAME cs1
+flash bank flash2 ath79 0x20000000 0 0 0 $_TARGETNAME cs2
+@end example
+
+@end deffn
+
 @subsection Internal Flash (Microcontrollers)
 
 @deffn {Flash Driver} aduc702x

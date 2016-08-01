@@ -15,6 +15,7 @@ NOR_DRIVERS = \
 	%D%/at91samd.c \
 	%D%/at91sam3.c \
 	%D%/at91sam7.c \
+	%D%/ath79.c \
 	%D%/atsamv.c \
 	%D%/avrf.c \
 	%D%/cfi.c \
