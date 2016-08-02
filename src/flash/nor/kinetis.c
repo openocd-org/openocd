@@ -207,6 +207,7 @@
 #define KINETIS_SDID_FAMILYID_K4X   0x40000000
 #define KINETIS_SDID_FAMILYID_K6X   0x60000000
 #define KINETIS_SDID_FAMILYID_K7X   0x70000000
+#define KINETIS_SDID_FAMILYID_K8X   0x80000000
 
 struct kinetis_flash_bank {
 	bool probed;
@@ -1679,6 +1680,16 @@ static int kinetis_probe(struct flash_bank *bank)
 				num_blocks = 4;
 				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 				break;
+
+			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX0:
+			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX1:
+			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX2:
+				/* K80FN256, K81FN256, K82FN256 */
+				pflash_sector_size_bytes = 4<<10;
+				num_blocks = 1;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+				break;
+
 			default:
 				LOG_ERROR("Unsupported Kinetis FAMILYID SUBFAMID");
 			}
