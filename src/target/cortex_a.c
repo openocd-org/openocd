@@ -853,7 +853,8 @@ static int cortex_a_halt_smp(struct target *target)
 	head = target->head;
 	while (head != (struct target_list *)NULL) {
 		curr = head->target;
-		if ((curr != target) && (curr->state != TARGET_HALTED))
+		if ((curr != target) && (curr->state != TARGET_HALTED)
+			&& target_was_examined(curr))
 			retval += cortex_a_halt(curr);
 		head = head->next;
 	}
@@ -1156,7 +1157,8 @@ static int cortex_a_restore_smp(struct target *target, int handle_breakpoints)
 	head = target->head;
 	while (head != (struct target_list *)NULL) {
 		curr = head->target;
-		if ((curr != target) && (curr->state != TARGET_RUNNING)) {
+		if ((curr != target) && (curr->state != TARGET_RUNNING)
+			&& target_was_examined(curr)) {
 			/*  resume current address , not in step mode */
 			retval += cortex_a_internal_restore(curr, 1, &address,
 					handle_breakpoints, 0);
@@ -1936,7 +1938,8 @@ static int cortex_a_assert_reset(struct target *target)
 	}
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv7a->arm.core_cache);
+	if (target_was_examined(target))
+		register_cache_invalidate(armv7a->arm.core_cache);
 
 	target->state = TARGET_RESET;
 
@@ -1952,17 +1955,22 @@ static int cortex_a_deassert_reset(struct target *target)
 	/* be certain SRST is off */
 	jtag_add_reset(0, 0);
 
-	retval = cortex_a_poll(target);
-	if (retval != ERROR_OK)
-		return retval;
+	if (target_was_examined(target)) {
+		retval = cortex_a_poll(target);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	if (target->reset_halt) {
 		if (target->state != TARGET_HALTED) {
 			LOG_WARNING("%s: ran after reset and before halt ...",
 				target_name(target));
-			retval = target_halt(target);
-			if (retval != ERROR_OK)
-				return retval;
+			if (target_was_examined(target)) {
+				retval = target_halt(target);
+				if (retval != ERROR_OK)
+					return retval;
+			} else
+				target->state = TARGET_UNKNOWN;
 		}
 	}
 
