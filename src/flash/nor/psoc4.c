@@ -105,12 +105,12 @@ const struct psoc4_chip_details psoc4_devices[] = {
 	/* 4100 series */
 	{ 0x0410, "CY8C4124PVI-432", "SSOP-28", .flash_size_in_kb = 16 },
 	{ 0x0411, "CY8C4124PVI-442", "SSOP-28", .flash_size_in_kb = 16 },
-	{ 0x0416, "CY8C4124LQI-443", "QFN-40",  .flash_size_in_kb = 16 },
+	{ 0x041C, "CY8C4124LQI-443", "QFN-40",  .flash_size_in_kb = 16 },
 	{ 0x041A, "CY8C4124AXI-443", "TQFP-44", .flash_size_in_kb = 16 },
 	{ 0x041B, "CY8C4125AXI-473", "TQFP-44", .flash_size_in_kb = 32 },
 	{ 0x0412, "CY8C4125PVI-482", "SSOP-28", .flash_size_in_kb = 32 },
 	{ 0x0417, "CY8C4125LQI-483", "QFN-40",  .flash_size_in_kb = 32 },
-	{ 0x041C, "CY8C4125AXI-483", "TQFP-44", .flash_size_in_kb = 32 },
+	{ 0x0416, "CY8C4125AXI-483", "TQFP-44", .flash_size_in_kb = 32 },
 
 	/* CCG1 series */
 	{ 0x0490, "CYPD1103-35FNXI", "CSP-35",  .flash_size_in_kb = 32 },
