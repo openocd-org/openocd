@@ -2097,7 +2097,7 @@ only during configuration (before those ports are opened).
 
 For reasons including security, you may wish to prevent remote
 access using one or more of these ports.
-In such cases, just specify the relevant port number as zero.
+In such cases, just specify the relevant port number as "disabled".
 If you disable all access through TCP/IP, you will need to
 use the command line @option{-pipe} option.
 
@@ -2140,7 +2140,7 @@ output from the Tcl engine.
 Intended as a machine interface.
 When not specified during the configuration stage,
 the port @var{number} defaults to 6666.
-
+When specified as "disabled", this service is not activated.
 @end deffn
 
 @deffn {Command} telnet_port [number]
@@ -2149,7 +2149,7 @@ port on which to listen for incoming telnet connections.
 This port is intended for interaction with one human through TCL commands.
 When not specified during the configuration stage,
 the port @var{number} defaults to 4444.
-When specified as zero, this port is not activated.
+When specified as "disabled", this service is not activated.
 @end deffn
 
 @anchor{gdbconfiguration}
