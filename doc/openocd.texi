@@ -66,7 +66,7 @@ Free Documentation License''.
 * Running::                          Running OpenOCD
 * OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
-* Daemon Configuration::             Daemon Configuration
+* Server Configuration::             Server Configuration
 * Debug Adapter Configuration::      Debug Adapter Configuration
 * Reset Configuration::              Reset Configuration
 * TAP Declaration::                  TAP Declaration
@@ -752,13 +752,13 @@ on the command line or, if there were no @option{-c command} or
 At the end of the configuration stage it verifies the JTAG scan
 chain defined using those commands; your configuration should
 ensure that this always succeeds.
-Normally, OpenOCD then starts running as a daemon.
+Normally, OpenOCD then starts running as a server.
 Alternatively, commands may be used to terminate the configuration
 stage early, perform work (such as updating some flash memory),
-and then shut down without acting as a daemon.
+and then shut down without acting as a server.
 
-Once OpenOCD starts running as a daemon, it waits for connections from
-clients (Telnet, GDB, Other) and processes the commands issued through
+Once OpenOCD starts running as a server, it waits for connections from
+clients (Telnet, GDB, RPC) and processes the commands issued through
 those channels.
 
 If you are having problems, you can enable internal debug messages via
@@ -775,7 +775,7 @@ informational messages, warnings and errors. You can also change this
 setting from within a telnet or gdb session using @command{debug_level<n>}
 (@pxref{debuglevel,,debug_level}).
 
-You can redirect all output from the daemon to a file using the
+You can redirect all output from the server to a file using the
 @option{-l <logfile>} switch.
 
 Note! OpenOCD will launch the GDB & telnet server even if it can not
@@ -1994,8 +1994,8 @@ proc setc15 @{regs value@} @{
 
 
 
-@node Daemon Configuration
-@chapter Daemon Configuration
+@node Server Configuration
+@chapter Server Configuration
 @cindex initialization
 The commands here are commonly found in the openocd.cfg file and are
 used to specify what TCP/IP ports are used, and how GDB should be
@@ -6715,7 +6715,7 @@ port is 5555.
 @end itemize
 
 
-@section Daemon Commands
+@section Server Commands
 
 @deffn {Command} exit
 Exits the current telnet session.
@@ -6741,7 +6741,7 @@ Useful in connection with script files
 @end deffn
 
 @deffn Command shutdown [@option{error}]
-Close the OpenOCD daemon, disconnecting all clients (GDB, telnet,
+Close the OpenOCD server, disconnecting all clients (GDB, telnet,
 other). If option @option{error} is used, OpenOCD will return a
 non-zero exit code to the parent process.
 @end deffn
