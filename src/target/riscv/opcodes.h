@@ -37,6 +37,15 @@ static uint32_t sw(unsigned int src, unsigned int base, uint16_t offset)
     MATCH_SW;
 }
 
+static uint32_t sd(unsigned int src, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 5) << 25) |
+    (src << 20) |
+    (base << 15) |
+    (bits(offset, 4, 0) << 7) |
+    MATCH_SD;
+}
+
 static uint32_t sh(unsigned int src, unsigned int base, uint16_t offset)
 {
   return (bits(offset, 11, 5) << 25) |
@@ -53,6 +62,14 @@ static uint32_t sb(unsigned int src, unsigned int base, uint16_t offset)
     (base << 15) |
     (bits(offset, 4, 0) << 7) |
     MATCH_SB;
+}
+
+static uint32_t ld(unsigned int rd, unsigned int base, uint16_t offset)
+{
+  return (bits(offset, 11, 0) << 20) |
+    (base << 15) |
+    (bits(rd, 4, 0) << 7) |
+    MATCH_LD;
 }
 
 static uint32_t lw(unsigned int rd, unsigned int base, uint16_t offset)
@@ -140,23 +157,6 @@ static uint32_t li(unsigned int dest, uint16_t imm)
 	return addi(dest, 0, imm);
 }
 
-static uint32_t sd(unsigned int src, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 5) << 25) |
-    (bits(src, 4, 0) << 20) |
-    (base << 15) |
-    (bits(offset, 4, 0) << 7) |
-    MATCH_SD;
-}
-
-static uint32_t ld(unsigned int rd, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 0) << 20) |
-    (base << 15) |
-    (bits(rd, 4, 0) << 7) |
-    MATCH_LD;
-}
-
 static uint32_t fsd(unsigned int src, unsigned int base, uint16_t offset)
 {
   return (bits(offset, 11, 5) << 25) |
@@ -164,15 +164,6 @@ static uint32_t fsd(unsigned int src, unsigned int base, uint16_t offset)
     (base << 15) |
     (bits(offset, 4, 0) << 7) |
     MATCH_FSD;
-}
-
-static uint32_t fld(unsigned int src, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 5) << 25) |
-    (bits(src, 4, 0) << 20) |
-    (base << 15) |
-    (bits(offset, 4, 0) << 7) |
-    MATCH_FLD;
 }
 
 static uint32_t ori(unsigned int dest, unsigned int src, uint16_t imm)

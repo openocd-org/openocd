@@ -77,6 +77,12 @@ typedef enum {
 	RE_AGAIN
 } riscv_error_t;
 
+typedef enum slot {
+	SLOT0,
+	SLOT1,
+	SLOT_LAST,
+} slot_t;
+
 /*** Debug Bus registers. ***/
 
 #define DMCONTROL				0x10
@@ -138,8 +144,8 @@ typedef struct {
 	uint8_t xlen;
 	/* Number of words in Debug RAM. */
 	unsigned int dramsize;
-	uint32_t dcsr;
-	uint32_t dpc;
+	uint64_t dcsr;
+	uint64_t dpc;
 
 	struct memory_cache_line dram_cache[DRAM_CACHE_SIZE];
 
@@ -166,7 +172,7 @@ typedef struct {
 	unsigned int interrupt_high_delay;
 
 	// This cache is write-through, and always valid when the target is halted.
-	uint32_t gpr_cache[32];
+	uint64_t gpr_cache[32];
 } riscv_info_t;
 
 typedef struct {
@@ -197,6 +203,68 @@ static struct scan_field select_debug = {
 };
 #define DEBUG_LENGTH	264
 
+static uint32_t load(const struct target *target, unsigned int rd,
+		unsigned int base, uint16_t offset)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	switch (info->xlen) {
+		case 32:
+			return lw(rd, base, offset);
+		case 64:
+			return ld(rd, base, offset);
+	}
+	assert(0);
+}
+
+static uint32_t store(const struct target *target, unsigned int src,
+		unsigned int base, uint16_t offset)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	switch (info->xlen) {
+		case 32:
+			return sw(src, base, offset);
+		case 64:
+			return sd(src, base, offset);
+	}
+	assert(0);
+}
+
+static unsigned int slot_offset(const struct target *target, slot_t slot)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	switch (info->xlen) {
+		case 32:
+			switch (slot) {
+				case SLOT0: return 4;
+				case SLOT1: return 5;
+				case SLOT_LAST: return info->dramsize-1;
+			}
+		case 64:
+			switch (slot) {
+				case SLOT0: return 4;
+				case SLOT1: return 6;
+				case SLOT_LAST: return info->dramsize-2;
+			}
+	}
+	LOG_ERROR("slot_offset called with xlen=%d, slot=%d",
+			info->xlen, slot);
+	assert(0);
+}
+
+static uint32_t load_slot(const struct target *target, unsigned int dest,
+		slot_t slot)
+{
+	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	return load(target, dest, ZERO, offset);
+}
+
+static uint32_t store_slot(const struct target *target, unsigned int src,
+		slot_t slot)
+{
+	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	return store(target, src, ZERO, offset);
+}
+
 static uint16_t dram_address(unsigned int index)
 {
 	if (index < 0x10)
@@ -219,7 +287,7 @@ static void increase_interrupt_high_delay(struct target *target)
 	LOG_INFO("Increment interrupt_high_delay to %d", info->interrupt_high_delay);
 }
 
-static void add_dbus_scan(struct target *target, struct scan_field *field,
+static void add_dbus_scan(const struct target *target, struct scan_field *field,
 		uint8_t *out_value, uint8_t *in_value, dbus_op_t op, uint16_t address, 
 		uint64_t data)
 {
@@ -430,7 +498,7 @@ static int dram_check32(struct target *target, unsigned int index,
 	return ERROR_OK;
 }
 
-static void cache_set(struct target *target, unsigned int index, uint32_t data)
+static void cache_set32(struct target *target, unsigned int index, uint32_t data)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	if (info->dram_cache[index].valid &&
@@ -444,10 +512,34 @@ static void cache_set(struct target *target, unsigned int index, uint32_t data)
 	info->dram_cache[index].dirty = true;
 }
 
+static void cache_set(struct target *target, slot_t slot, uint64_t data)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	unsigned int offset = slot_offset(target, slot);
+	cache_set32(target, offset, data);
+	if (info->xlen > 32) {
+		cache_set32(target, offset + 1, data >> 32);
+	}
+}
+
 static void cache_set_jump(struct target *target, unsigned int index)
 {
-	cache_set(target, index,
+	cache_set32(target, index,
 			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))));
+}
+
+static void cache_set_load(struct target *target, unsigned int index,
+		unsigned int reg, slot_t slot)
+{
+	uint16_t offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	cache_set32(target, index, load(target, reg, ZERO, offset));
+}
+
+static void cache_set_store(struct target *target, unsigned int index,
+		unsigned int reg, slot_t slot)
+{
+	uint16_t offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	cache_set32(target, index, store(target, reg, ZERO, offset));
 }
 
 static void dump_debug_ram(struct target *target)
@@ -642,6 +734,17 @@ uint32_t cache_get32(struct target *target, unsigned int address)
 	return info->dram_cache[address].data;
 }
 
+uint64_t cache_get(struct target *target, slot_t slot)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	unsigned int offset = slot_offset(target, slot);
+	uint64_t value = cache_get32(target, offset);
+	if (info->xlen > 32) {
+		value |= ((uint64_t) cache_get32(target, offset + 1)) << 32;
+	}
+	return value;
+}
+
 /* Write instruction that jumps from the specified word in Debug RAM to resume
  * in Debug ROM. */
 static void dram_write_jump(struct target *target, unsigned int index, bool set_interrupt)
@@ -671,8 +774,8 @@ static int wait_for_state(struct target *target, enum target_state state)
 
 static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 {
-	cache_set(target, 0, csrr(S0, csr));
-	cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set32(target, 0, csrr(S0, csr));
+	cache_set32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
 	cache_set_jump(target, 2);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
@@ -684,10 +787,10 @@ static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
 
 static int write_csr(struct target *target, uint32_t csr, uint32_t value)
 {
-	cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-	cache_set(target, 1, csrw(S0, csr));
+	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set32(target, 1, csrw(S0, csr));
 	cache_set_jump(target, 2);
-	cache_set(target, 4, value);
+	cache_set32(target, 4, value);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
@@ -695,11 +798,11 @@ static int write_csr(struct target *target, uint32_t csr, uint32_t value)
 	return ERROR_OK;
 }
 
-static int write_gpr(struct target *target, unsigned int gpr, uint32_t value)
+static int write_gpr(struct target *target, unsigned int gpr, uint64_t value)
 {
-	cache_set(target, 0, lw(gpr, ZERO, DEBUG_RAM_START + 16));
+	cache_set_load(target, 0, gpr, SLOT0);
 	cache_set_jump(target, 1);
-	cache_set(target, 4, value);
+	cache_set(target, SLOT0, value);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
@@ -731,10 +834,10 @@ static int resume(struct target *target, int current, uint32_t address,
 
 	// TODO: check if dpc is dirty (which also is true if an exception was hit
 	// at any time)
-	cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-	cache_set(target, 1, csrw(S0, CSR_DPC));
+	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set32(target, 1, csrw(S0, CSR_DPC));
 	cache_set_jump(target, 2);
-	cache_set(target, 4, info->dpc);
+	cache_set32(target, 4, info->dpc);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
@@ -796,6 +899,116 @@ static void update_reg_list(struct target *target)
 	}
 }
 
+/*** scans "class" ***/
+
+typedef struct {
+	// Number of scans that space is reserved for.
+	unsigned int scan_count;
+	// Size reserved in memory for each scan, in bytes.
+	unsigned int scan_size;
+	unsigned int next_scan;
+	uint8_t *in;
+	uint8_t *out;
+	struct scan_field *field;
+	const struct target *target;
+} scans_t;
+
+static scans_t *scans_new(struct target *target, unsigned int scan_count)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	scans_t *scans = malloc(sizeof(scans_t));
+	scans->scan_count = scan_count;
+	scans->scan_size = 2 + info->xlen / 8;
+	scans->next_scan = 0;
+	scans->in = malloc(scans->scan_size * scans->scan_count);
+	scans->out = malloc(scans->scan_size * scans->scan_count);
+	scans->field = calloc(scans->scan_count, sizeof(struct scan_field));
+	scans->target = target;
+	return scans;
+}
+
+static scans_t *scans_delete(scans_t *scans)
+{
+	free(scans->field);
+	free(scans->out);
+	free(scans->in);
+	free(scans);
+	return NULL;
+}
+
+static void scans_add_write(scans_t *scans, uint16_t address, uint32_t data,
+		bool set_interrupt)
+{
+	const unsigned int i = scans->next_scan;
+	add_dbus_scan(scans->target, &scans->field[i], scans->out + scans->scan_size * i,
+			scans->in + scans->scan_size * i, DBUS_OP_WRITE, address,
+			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT | data);
+	scans->next_scan++;
+	assert(scans->next_scan < scans->scan_count);
+}
+
+static void scans_add_write_jump(scans_t *scans, uint16_t address,
+		bool set_interrupt)
+{
+	scans_add_write(scans, address,
+			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*address))),
+			set_interrupt);
+}
+
+static void scans_add_write_load(scans_t *scans, uint16_t address,
+		unsigned int reg, slot_t slot, bool set_interrupt)
+{
+	scans_add_write(scans, address, load_slot(scans->target, reg, slot),
+			set_interrupt);
+}
+
+static void scans_add_write_store(scans_t *scans, uint16_t address,
+		unsigned int reg, slot_t slot, bool set_interrupt)
+{
+	scans_add_write(scans, address, store_slot(scans->target, reg, slot),
+			set_interrupt);
+}
+
+static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrupt)
+{
+	const unsigned int i = scans->next_scan;
+	add_dbus_scan(scans->target, &scans->field[i],
+			scans->out + scans->scan_size * i,
+			scans->in + scans->scan_size * i, DBUS_OP_READ, address,
+			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT);
+	scans->next_scan++;
+	assert(scans->next_scan < scans->scan_count);
+}
+
+static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
+{
+	const struct target *target = scans->target;
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	switch (info->xlen) {
+		case 32:
+			scans_add_read32(scans, slot_offset(target, slot), set_interrupt);
+			break;
+		case 64:
+			scans_add_read32(scans, slot_offset(target, slot), false);
+			scans_add_read32(scans, slot_offset(target, slot) + 1, set_interrupt);
+			break;
+	}
+}
+
+static uint32_t scans_get_u32(scans_t *scans, unsigned int index,
+		unsigned first, unsigned num)
+{
+	return buf_get_u32(scans->in + scans->scan_size * index, first, num);
+}
+
+static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
+		unsigned first, unsigned num)
+{
+	return buf_get_u64(scans->in + scans->scan_size * index, first, num);
+}
+
+/*** end of scans class ***/
+
 /*** OpenOCD target functions. ***/
 
 static int register_get(struct reg *reg)
@@ -805,22 +1018,23 @@ static int register_get(struct reg *reg)
 
 	if (reg->number <= REG_XPR31) {
 		buf_set_u64(reg->value, 0, info->xlen, info->gpr_cache[reg->number]);
-		LOG_DEBUG("%s=0x%x", reg->name, info->gpr_cache[reg->number]);
+		LOG_DEBUG("%s=0x%" PRIx64, reg->name, info->gpr_cache[reg->number]);
 		return ERROR_OK;
 	} else if (reg->number == REG_PC) {
 		buf_set_u32(reg->value, 0, 32, info->dpc);
-		LOG_DEBUG("%s=0x%x (cached)", reg->name, info->dpc);
+		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
 		return ERROR_OK;
 	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
-		cache_set(target, 0, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		cache_set32(target, 0, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
 		cache_set_jump(target, 1);
 	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
-		cache_set(target, 0, csrr(S0, reg->number - REG_CSR0));
-		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set32(target, 0, csrr(S0, reg->number - REG_CSR0));
+		cache_set32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
 		cache_set_jump(target, 2);
 	} else if (reg->number == REG_PRIV) {
 		buf_set_u64(reg->value, 0, 8, get_field(info->dcsr, DCSR_PRV));
-		LOG_DEBUG("%s=%d (cached)", reg->name, get_field(info->dcsr, DCSR_PRV));
+		LOG_DEBUG("%s=%d (cached)", reg->name,
+				(int) get_field(info->dcsr, DCSR_PRV));
 		return ERROR_OK;
 	} else {
 		LOG_ERROR("Don't know how to read register %d (%s)", reg->number, reg->name);
@@ -833,7 +1047,7 @@ static int register_get(struct reg *reg)
 
 	uint32_t value = cache_get32(target, 4);
 	if (reg->number < 32 && info->gpr_cache[reg->number] != value) {
-		LOG_ERROR("cached value for %s is 0x%x but just read 0x%x",
+		LOG_ERROR("cached value for %s is 0x%" PRIx64 " but just read 0x%x",
 				reg->name, info->gpr_cache[reg->number], value);
 		assert(info->gpr_cache[reg->number] == value);
 	}
@@ -852,40 +1066,41 @@ static int register_get(struct reg *reg)
 }
 
 static int register_write(struct target *target, unsigned int number,
-		uint32_t value)
+		uint64_t value)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
 	if (number == S0) {
-		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-		cache_set(target, 1, csrw(S0, CSR_DSCRATCH));
+		cache_set_load(target, 0, S0, SLOT0);
+		cache_set32(target, 1, csrw(S0, CSR_DSCRATCH));
 		cache_set_jump(target, 2);
 	} else if (number == S1) {
-		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-		cache_set(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4));
+		cache_set_load(target, 0, S0, SLOT0);
+		cache_set_store(target, 1, S0, SLOT_LAST);
 		cache_set_jump(target, 2);
 	} else if (number <= REG_XPR31) {
-		cache_set(target, 0, lw(number - REG_XPR0, ZERO, DEBUG_RAM_START + 16));
+		cache_set_load(target, 0, number - REG_XPR0, SLOT0);
 		cache_set_jump(target, 1);
 	} else if (number == REG_PC) {
 		info->dpc = value;
 		return ERROR_OK;
 	} else if (number >= REG_FPR0 && number <= REG_FPR31) {
-		cache_set(target, 0, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		// TODO: fld
+		cache_set32(target, 0, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
 		cache_set_jump(target, 1);
 	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
-		cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-		cache_set(target, 1, csrw(S0, number - REG_CSR0));
+		cache_set_load(target, 0, S0, SLOT0);
+		cache_set32(target, 1, csrw(S0, number - REG_CSR0));
 		cache_set_jump(target, 2);
 	} else if (number == REG_PRIV) {
 		info->dcsr = set_field(info->dcsr, DCSR_PRV, value);
 		return ERROR_OK;
 	} else {
-		LOG_ERROR("Don't know how to read register %d", number);
+		LOG_ERROR("Don't know how to write register %d", number);
 		return ERROR_FAIL;
 	}
 
-	cache_set(target, 4, value);
+	cache_set(target, SLOT0, value);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
@@ -898,9 +1113,9 @@ static int register_set(struct reg *reg, uint8_t *buf)
 	struct target *target = (struct target *) reg->arch_info;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	uint32_t value = buf_get_u32(buf, 0, 32);
+	uint64_t value = buf_get_u64(buf, 0, info->xlen);
 
-	LOG_DEBUG("write 0x%x to %s", value, reg->name);
+	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
 	if (reg->number <= REG_XPR31) {
 		info->gpr_cache[reg->number] = value;
 	}
@@ -979,9 +1194,9 @@ static int riscv_halt(struct target *target)
 	LOG_DEBUG("riscv_halt()");
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-	cache_set(target, 0, csrsi(CSR_DCSR, DCSR_HALT));
-	cache_set(target, 1, csrr(S0, CSR_MHARTID));
-	cache_set(target, 2, sw(S0, ZERO, SETHALTNOT));
+	cache_set32(target, 0, csrsi(CSR_DCSR, DCSR_HALT));
+	cache_set32(target, 1, csrr(S0, CSR_MHARTID));
+	cache_set32(target, 2, sw(S0, ZERO, SETHALTNOT));
 	cache_set_jump(target, 3);
 
 	if (cache_write(target, 4, true) != ERROR_OK) {
@@ -1057,14 +1272,14 @@ static int riscv_examine(struct target *target)
 	}
 
 	// Figure out XLEN.
-	cache_set(target, 0, xori(S1, ZERO, -1));
+	cache_set32(target, 0, xori(S1, ZERO, -1));
 	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
-	cache_set(target, 1, srli(S1, S1, 31));
+	cache_set32(target, 1, srli(S1, S1, 31));
 	// 0x00000001  0x00000001:ffffffff  0x00000001:ffffffff:ffffffff:ffffffff
-	cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
-	cache_set(target, 3, srli(S1, S1, 31));
+	cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
+	cache_set32(target, 3, srli(S1, S1, 31));
 	// 0x00000000  0x00000000:00000003  0x00000000:00000003:ffffffff:ffffffff
-	cache_set(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
+	cache_set32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
 	cache_set_jump(target, 5);
 
 	cache_write(target, 0, false);
@@ -1111,80 +1326,44 @@ static riscv_error_t handle_halt_routine(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	const unsigned int max_scan = 256;
-	uint8_t *in = malloc(max_scan * 8);
-	uint8_t *out = malloc(max_scan * 8);
-	struct scan_field *field = calloc(max_scan, sizeof(struct scan_field));
-	unsigned int scan = 0;
+	scans_t *scans = scans_new(target, 256);
 
 	// Read all GPRs as fast as we can, because gdb is going to ask for them
 	// anyway. Reading them one at a time is much slower.
-	// TODO
 
 	// Write the jump back to address 1.
-	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-			DBUS_OP_WRITE, 1, DMCONTROL_HALTNOT |
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*1))));
-	scan++;
+	scans_add_write_jump(scans, 1, false);
 	for (int reg = 1; reg < 32; reg++) {
 		if (reg == S0 || reg == S1) {
 			continue;
 		}
 
 		// Write store instruction.
-		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-				DBUS_OP_WRITE, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT |
-				sw(reg, ZERO, DEBUG_RAM_START + 16));
-		scan++;
+		scans_add_write_store(scans, 0, reg, SLOT0, true);
 
 		// Read value.
-		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-				DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
-		scan++;
-		assert(scan < max_scan);
+		scans_add_read(scans, SLOT0, false);
 	}
 
 	// Write store of s0 at index 1.
-	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-			DBUS_OP_WRITE, 1, DMCONTROL_HALTNOT |
-			sw(S0, ZERO, DEBUG_RAM_START + 16));
-	scan++;
+	scans_add_write_store(scans, 1, S0, SLOT0, false);
 	// Write jump at index 2.
-	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-			DBUS_OP_WRITE, 2, DMCONTROL_HALTNOT |
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*2))));
-		cache_set(target, 0, csrr(S0, CSR_DSCRATCH));
-	scan++;
+	scans_add_write_jump(scans, 2, false);
 
 	// Read S1 from debug RAM
-	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-			DBUS_OP_WRITE, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT |
-			lw(S0, ZERO, DEBUG_RAM_START + 4 * info->dramsize - 4));
-	scan++;
+	scans_add_write_load(scans, 0, S0, SLOT_LAST, true);
 	// Read value.
-	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-			DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
-	scan++;
+	scans_add_read(scans, SLOT0, false);
 
 	// Read S0 from dscratch
 	unsigned int csr[] = {CSR_DSCRATCH, CSR_DPC, CSR_DCSR};
 	for (unsigned int i = 0; i < DIM(csr); i++) {
-		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-				DBUS_OP_WRITE, 0, DMCONTROL_INTERRUPT | DMCONTROL_HALTNOT |
-				csrr(S0, csr[i]));
-		scan++;
-		// Read value.
-		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-				DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
-		scan++;
-		assert(scan < max_scan);
+		scans_add_write(scans, 0, csrr(S0, csr[i]), true);
+		scans_add_read(scans, SLOT0, false);
 	}
 
 	// Final read to get the last value out.
-	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-			DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
-	scan++;
-	assert(scan < max_scan);
+	scans_add_read32(scans, 4, false);
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
@@ -1198,10 +1377,10 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	info->gpr_cache[0] = 0;
 	// The first scan result is the result from something old we don't care
 	// about.
-	for (unsigned int i = 1; i < scan && dbus_busy == 0; i++) {
-		dbus_status_t status = buf_get_u32(in + 8*i, DBUS_OP_START, DBUS_OP_SIZE);
-		uint64_t data = buf_get_u64(in + 8*i, DBUS_DATA_START, DBUS_DATA_SIZE);
-		uint32_t address = buf_get_u32(in + 8*i, DBUS_ADDRESS_START, info->addrbits);
+	for (unsigned int i = 1; i < scans->next_scan && dbus_busy == 0; i++) {
+		dbus_status_t status = scans_get_u32(scans, i, DBUS_OP_START, DBUS_OP_SIZE);
+		uint64_t data = scans_get_u64(scans, i, DBUS_DATA_START, DBUS_DATA_SIZE);
+		uint32_t address = scans_get_u32(scans, i, DBUS_ADDRESS_START, info->addrbits);
 		LOG_DEBUG("read scan=%d result=%d data=%09" PRIx64 " address=%02x",
 				i, status, data, address);
 		switch (status) {
@@ -1221,53 +1400,62 @@ static riscv_error_t handle_halt_routine(struct target *target)
 			interrupt_set++;
 			break;
 		}
-		if (address == 4) {
+		if (address == 4 || address == 5) {
+			uint64_t *vptr = NULL;
 			switch (result) {
-				case 0: info->gpr_cache[1] = data; break;
-				case 1: info->gpr_cache[2] = data; break;
-				case 2: info->gpr_cache[3] = data; break;
-				case 3: info->gpr_cache[4] = data; break;
-				case 4: info->gpr_cache[5] = data; break;
-				case 5: info->gpr_cache[6] = data; break;
-				case 6: info->gpr_cache[7] = data; break;
+				case 0: vptr = &info->gpr_cache[1]; break;
+				case 1: vptr = &info->gpr_cache[2]; break;
+				case 2: vptr = &info->gpr_cache[3]; break;
+				case 3: vptr = &info->gpr_cache[4]; break;
+				case 4: vptr = &info->gpr_cache[5]; break;
+				case 5: vptr = &info->gpr_cache[6]; break;
+				case 6: vptr = &info->gpr_cache[7]; break;
 						// S0
 						// S1
-				case 7: info->gpr_cache[10] = data; break;
-				case 8: info->gpr_cache[11] = data; break;
-				case 9: info->gpr_cache[12] = data; break;
-				case 10: info->gpr_cache[13] = data; break;
-				case 11: info->gpr_cache[14] = data; break;
-				case 12: info->gpr_cache[15] = data; break;
-				case 13: info->gpr_cache[16] = data; break;
-				case 14: info->gpr_cache[17] = data; break;
-				case 15: info->gpr_cache[18] = data; break;
-				case 16: info->gpr_cache[19] = data; break;
-				case 17: info->gpr_cache[20] = data; break;
-				case 18: info->gpr_cache[21] = data; break;
-				case 19: info->gpr_cache[22] = data; break;
-				case 20: info->gpr_cache[23] = data; break;
-				case 21: info->gpr_cache[24] = data; break;
-				case 22: info->gpr_cache[25] = data; break;
-				case 23: info->gpr_cache[26] = data; break;
-				case 24: info->gpr_cache[27] = data; break;
-				case 25: info->gpr_cache[28] = data; break;
-				case 26: info->gpr_cache[29] = data; break;
-				case 27: info->gpr_cache[30] = data; break;
-				case 28: info->gpr_cache[31] = data; break;
-				case 29: info->gpr_cache[S1] = data; break;
-				case 30: info->gpr_cache[S0] = data; break;
-				case 31: info->dpc = data; break;
-				case 32: info->dcsr = data; break;
+				case 7: vptr = &info->gpr_cache[10]; break;
+				case 8: vptr = &info->gpr_cache[11]; break;
+				case 9: vptr = &info->gpr_cache[12]; break;
+				case 10: vptr = &info->gpr_cache[13]; break;
+				case 11: vptr = &info->gpr_cache[14]; break;
+				case 12: vptr = &info->gpr_cache[15]; break;
+				case 13: vptr = &info->gpr_cache[16]; break;
+				case 14: vptr = &info->gpr_cache[17]; break;
+				case 15: vptr = &info->gpr_cache[18]; break;
+				case 16: vptr = &info->gpr_cache[19]; break;
+				case 17: vptr = &info->gpr_cache[20]; break;
+				case 18: vptr = &info->gpr_cache[21]; break;
+				case 19: vptr = &info->gpr_cache[22]; break;
+				case 20: vptr = &info->gpr_cache[23]; break;
+				case 21: vptr = &info->gpr_cache[24]; break;
+				case 22: vptr = &info->gpr_cache[25]; break;
+				case 23: vptr = &info->gpr_cache[26]; break;
+				case 24: vptr = &info->gpr_cache[27]; break;
+				case 25: vptr = &info->gpr_cache[28]; break;
+				case 26: vptr = &info->gpr_cache[29]; break;
+				case 27: vptr = &info->gpr_cache[30]; break;
+				case 28: vptr = &info->gpr_cache[31]; break;
+				case 29: vptr = &info->gpr_cache[S1]; break;
+				case 30: vptr = &info->gpr_cache[S0]; break;
+				case 31: vptr = &info->dpc; break;
+				case 32: vptr = &info->dcsr; break;
 				default:
 						 assert(0);
 			}
-			result++;
+			if (info->xlen == 32) {
+				*vptr = data & 0xffffffff;
+				result++;
+			} else if (info->xlen == 64) {
+				if (address == 4) {
+					*vptr = data & 0xffffffff;
+				} else if (address == 5) {
+					*vptr |= (data & 0xffffffff) << 32;
+					result++;
+				}
+			}
 		}
 	}
 
-	free(in);
-	free(out);
-	free(field);
+	scans = scans_delete(scans);
 
 	cache_invalidate(target);
 
@@ -1283,9 +1471,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	return RE_OK;
 
 error:
-	free(in);
-	free(out);
-	free(field);
+	scans = scans_delete(scans);
 	return RE_FAIL;
 }
 
@@ -1304,7 +1490,7 @@ static int handle_halt(struct target *target)
 	}
 
 	int cause = get_field(info->dcsr, DCSR_CAUSE);
-	LOG_DEBUG("halt cause is %d; dcsr=0x%x", cause, info->dcsr);
+	LOG_DEBUG("halt cause is %d; dcsr=0x%" PRIx64, cause, info->dcsr);
 	switch (cause) {
 		case DCSR_CAUSE_SWBP:
 		case DCSR_CAUSE_HWBP:
@@ -1318,13 +1504,13 @@ static int handle_halt(struct target *target)
 			break;
 		case DCSR_CAUSE_HALT:
 		default:
-			LOG_ERROR("Invalid halt cause %d in DCSR (0x%x)",
+			LOG_ERROR("Invalid halt cause %d in DCSR (0x%" PRIx64 ")",
 					cause, info->dcsr);
 	}
 
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_DEBUG("halted at 0x%x", info->dpc);
+	LOG_DEBUG("halted at 0x%" PRIx64, info->dpc);
 
 	return ERROR_OK;
 }
@@ -1409,19 +1595,19 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-	cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
 	switch (size) {
 		case 1:
-			cache_set(target, 1, lb(S1, S0, 0));
-			cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+			cache_set32(target, 1, lb(S1, S0, 0));
+			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
 			break;
 		case 2:
-			cache_set(target, 1, lh(S1, S0, 0));
-			cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+			cache_set32(target, 1, lh(S1, S0, 0));
+			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
 			break;
 		case 4:
-			cache_set(target, 1, lw(S1, S0, 0));
-			cache_set(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+			cache_set32(target, 1, lw(S1, S0, 0));
+			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
 			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
@@ -1554,22 +1740,22 @@ static int setup_write_memory(struct target *target, uint32_t size)
 {
 	switch (size) {
 		case 1:
-			cache_set(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set(target, 1, sb(S0, T0, 0));
+			cache_set32(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16));
+			cache_set32(target, 1, sb(S0, T0, 0));
 			break;
 		case 2:
-			cache_set(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set(target, 1, sh(S0, T0, 0));
+			cache_set32(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16));
+			cache_set32(target, 1, sh(S0, T0, 0));
 			break;
 		case 4:
-			cache_set(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set(target, 1, sw(S0, T0, 0));
+			cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+			cache_set32(target, 1, sw(S0, T0, 0));
 			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
-	cache_set(target, 2, addi(T0, T0, size));
+	cache_set32(target, 2, addi(T0, T0, size));
 	cache_set_jump(target, 3);
 	cache_write(target, 4, false);
 
@@ -1583,15 +1769,16 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	// Set up the address.
-	cache_set(target, 0, sw(T0, ZERO, DEBUG_RAM_START + 20));
-	cache_set(target, 1, lw(T0, ZERO, DEBUG_RAM_START + 16));
+	cache_set_store(target, 0, T0, SLOT1);
+	cache_set_load(target, 1, T0, SLOT0);
 	cache_set_jump(target, 2);
-	cache_set(target, 4, address);
+	cache_set(target, SLOT0, address);
 	if (cache_write(target, 5, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
-	uint32_t t0 = cache_get32(target, 5);
+	uint64_t t0 = cache_get(target, SLOT1);
+	LOG_DEBUG("t0 is 0x%" PRIx64, t0);
 
 	if (setup_write_memory(target, size) != ERROR_OK) {
 		return ERROR_FAIL;
