@@ -5408,14 +5408,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->halt_issued			= false;
 
 	/* initialize trace information */
-	target->trace_info = malloc(sizeof(struct trace));
-	target->trace_info->num_trace_points         = 0;
-	target->trace_info->trace_points_size        = 0;
-	target->trace_info->trace_points             = NULL;
-	target->trace_info->trace_history_size       = 0;
-	target->trace_info->trace_history            = NULL;
-	target->trace_info->trace_history_pos        = 0;
-	target->trace_info->trace_history_overflowed = 0;
+	target->trace_info = calloc(1, sizeof(struct trace));
 
 	target->dbgmsg          = NULL;
 	target->dbg_msg_enabled = 0;
