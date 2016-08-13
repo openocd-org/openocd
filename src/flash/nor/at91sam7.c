@@ -371,10 +371,9 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 	if (at91sam7_info->cidr != 0) {
 		/* flash already configured, update clock and check for protected sectors */
-		struct flash_bank *fb = bank;
-		struct flash_bank *t_bank = bank;
-
-		while (t_bank) {
+		for (struct flash_bank *t_bank = bank; t_bank; t_bank = t_bank->next) {
+			if (t_bank->target != target)
+				continue;
 			/* re-calculate master clock frequency */
 			at91sam7_read_clock_info(t_bank);
 
@@ -383,9 +382,6 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 			/* check protect state */
 			at91sam7_protect_check(t_bank);
-
-			t_bank = fb->next;
-			fb = t_bank;
 		}
 
 		return ERROR_OK;
@@ -400,9 +396,10 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 	if (at91sam7_info->flash_autodetection == 0) {
 		/* banks and sectors are already created, based on data from input file */
-		struct flash_bank *fb = bank;
-		struct flash_bank *t_bank = bank;
-		while (t_bank) {
+		for (struct flash_bank *t_bank = bank; t_bank; t_bank = t_bank->next) {
+			if (t_bank->target != target)
+				continue;
+
 			at91sam7_info = t_bank->driver_priv;
 
 			at91sam7_info->cidr = cidr;
@@ -423,9 +420,6 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 			/* check protect state */
 			at91sam7_protect_check(t_bank);
-
-			t_bank = fb->next;
-			fb = t_bank;
 		}
 
 		return ERROR_OK;
