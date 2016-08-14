@@ -125,7 +125,7 @@ static int nds32_v3m_activate_hardware_watchpoint(struct target *target)
 			/* enable watchpoint */
 			aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + wp_num, wp_config);
 
-			LOG_DEBUG("Add hardware wathcpoint %" PRId32 " at %08" PRIx32
+			LOG_DEBUG("Add hardware watchpoint %" PRId32 " at %08" PRIx32
 					" mask %08" PRIx32, wp_num, wp->address, wp->mask);
 
 			wp_num++;
@@ -166,7 +166,7 @@ static int nds32_v3m_deactivate_hardware_watchpoint(struct target *target)
 			/* disable watchpoint */
 			aice_write_debug_reg(aice, NDS_EDM_SR_BPC0 + wp_num, 0x0);
 
-			LOG_DEBUG("Remove hardware wathcpoint %" PRId32 " at %08" PRIx32
+			LOG_DEBUG("Remove hardware watchpoint %" PRId32 " at %08" PRIx32
 					" mask %08" PRIx32, wp_num, wp->address, wp->mask);
 			wp_num++;
 		} else if (nds32_v3m->nds32.global_stop) {
