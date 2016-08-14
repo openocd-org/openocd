@@ -48,7 +48,7 @@ static int read_mem(struct target *t, uint32_t size,
 			uint32_t addr, uint8_t *buf);
 static int write_mem(struct target *t, uint32_t size,
 			uint32_t addr, const uint8_t *buf);
-static int calcaddr_pyhsfromlin(struct target *t, uint32_t addr,
+static int calcaddr_physfromlin(struct target *t, uint32_t addr,
 			uint32_t *physaddr);
 static int read_phys_mem(struct target *t, uint32_t phys_address,
 			uint32_t size, uint32_t count, uint8_t *buffer);
@@ -134,7 +134,7 @@ int x86_32_common_virt2phys(struct target *t, uint32_t address, uint32_t *physic
 
 	} else {
 		/* target halted in protected mode */
-		if (calcaddr_pyhsfromlin(t, address, physical) != ERROR_OK) {
+		if (calcaddr_physfromlin(t, address, physical) != ERROR_OK) {
 			LOG_ERROR("%s failed to calculate physical address from 0x%08" PRIx32,
 					__func__, address);
 			return ERROR_FAIL;
@@ -444,7 +444,7 @@ static int write_mem(struct target *t, uint32_t size,
 	return retval;
 }
 
-int calcaddr_pyhsfromlin(struct target *t, uint32_t addr, uint32_t *physaddr)
+int calcaddr_physfromlin(struct target *t, uint32_t addr, uint32_t *physaddr)
 {
 	uint8_t entry_buffer[8];
 
@@ -592,7 +592,7 @@ int x86_32_common_read_memory(struct target *t, uint32_t addr,
 			return retval;
 		}
 		uint32_t physaddr = 0;
-		if (calcaddr_pyhsfromlin(t, addr, &physaddr) != ERROR_OK) {
+		if (calcaddr_physfromlin(t, addr, &physaddr) != ERROR_OK) {
 			LOG_ERROR("%s failed to calculate physical address from 0x%08" PRIx32, __func__, addr);
 			retval = ERROR_FAIL;
 		}
@@ -646,7 +646,7 @@ int x86_32_common_write_memory(struct target *t, uint32_t addr,
 			return retval;
 		}
 		uint32_t physaddr = 0;
-		if (calcaddr_pyhsfromlin(t, addr, &physaddr) != ERROR_OK) {
+		if (calcaddr_physfromlin(t, addr, &physaddr) != ERROR_OK) {
 			LOG_ERROR("%s failed to calculate physical address from 0x%08" PRIx32,
 					__func__, addr);
 			retval = ERROR_FAIL;
@@ -1016,7 +1016,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 	uint8_t opcode = SW_BP_OPCODE;
 	uint8_t readback;
 
-	if (calcaddr_pyhsfromlin(t, bp->address, &physaddr) != ERROR_OK)
+	if (calcaddr_physfromlin(t, bp->address, &physaddr) != ERROR_OK)
 		return ERROR_FAIL;
 	if (read_phys_mem(t, physaddr, 1, 1, bp->orig_instr))
 		return ERROR_FAIL;
@@ -1072,7 +1072,7 @@ static int unset_swbp(struct target *t, struct breakpoint *bp)
 	uint8_t current_instr;
 
 	/* check that user program has not modified breakpoint instruction */
-	if (calcaddr_pyhsfromlin(t, bp->address, &physaddr) != ERROR_OK)
+	if (calcaddr_physfromlin(t, bp->address, &physaddr) != ERROR_OK)
 		return ERROR_FAIL;
 	if (read_phys_mem(t, physaddr, 1, 1, &current_instr))
 		return ERROR_FAIL;
