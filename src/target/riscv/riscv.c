@@ -834,10 +834,10 @@ static int resume(struct target *target, int current, uint32_t address,
 
 	// TODO: check if dpc is dirty (which also is true if an exception was hit
 	// at any time)
-	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set_load(target, 0, S0, SLOT0);
 	cache_set32(target, 1, csrw(S0, CSR_DPC));
 	cache_set_jump(target, 2);
-	cache_set32(target, 4, info->dpc);
+	cache_set(target, SLOT0, info->dpc);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
