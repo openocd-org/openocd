@@ -297,8 +297,8 @@ static int flash_check_sector_parameters(struct command_context *cmd_ctx,
 	}
 
 	if (!(last <= (num_sectors - 1))) {
-		command_print(cmd_ctx, "ERROR: last sector must be <= %d",
-			(int) num_sectors - 1);
+		command_print(cmd_ctx, "ERROR: last sector must be <= %" PRIu32,
+			num_sectors - 1);
 		return ERROR_FAIL;
 	}
 
@@ -380,10 +380,9 @@ COMMAND_HANDLER(handle_flash_protect_command)
 
 	retval = flash_driver_protect(p, set, first, last);
 	if (retval == ERROR_OK) {
-		command_print(CMD_CTX, "%s protection for sectors %i "
-			"through %i on flash bank %d",
-			(set) ? "set" : "cleared", (int) first,
-			(int) last, p->bank_number);
+		command_print(CMD_CTX, "%s protection for sectors %" PRIu32
+			" through %" PRIu32 " on flash bank %d",
+			(set) ? "set" : "cleared", first, last, p->bank_number);
 	}
 
 	return retval;
@@ -690,9 +689,9 @@ COMMAND_HANDLER(handle_flash_read_bank_command)
 	}
 
 	if (duration_measure(&bench) == ERROR_OK)
-		command_print(CMD_CTX, "wrote %ld bytes to file %s from flash bank %u"
+		command_print(CMD_CTX, "wrote %zd bytes to file %s from flash bank %u"
 			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-			(long)written, CMD_ARGV[1], p->bank_number, offset,
+			written, CMD_ARGV[1], p->bank_number, offset,
 			duration_elapsed(&bench), duration_kbps(&bench, written));
 
 	return retval;
@@ -770,9 +769,9 @@ COMMAND_HANDLER(handle_flash_verify_bank_command)
 	}
 
 	if (duration_measure(&bench) == ERROR_OK)
-		command_print(CMD_CTX, "read %ld bytes from file %s and flash bank %u"
+		command_print(CMD_CTX, "read %zd bytes from file %s and flash bank %u"
 			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-			(long)read_cnt, CMD_ARGV[1], p->bank_number, offset,
+			read_cnt, CMD_ARGV[1], p->bank_number, offset,
 			duration_elapsed(&bench), duration_kbps(&bench, read_cnt));
 
 	differ = memcmp(buffer_file, buffer_flash, read_cnt);
