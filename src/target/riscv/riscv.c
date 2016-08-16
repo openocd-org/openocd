@@ -772,25 +772,25 @@ static int wait_for_state(struct target *target, enum target_state state)
 	}
 }
 
-static int read_csr(struct target *target, uint32_t *value, uint32_t csr)
+static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 {
 	cache_set32(target, 0, csrr(S0, csr));
-	cache_set32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set_store(target, 1, S0, SLOT0);
 	cache_set_jump(target, 2);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
-	*value = cache_get32(target, 4);
+	*value = cache_get(target, SLOT0);
 
 	return ERROR_OK;
 }
 
-static int write_csr(struct target *target, uint32_t csr, uint32_t value)
+static int write_csr(struct target *target, uint32_t csr, uint64_t value)
 {
-	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	cache_set_load(target, 0, S0, SLOT0);
 	cache_set32(target, 1, csrw(S0, csr));
 	cache_set_jump(target, 2);
-	cache_set32(target, 4, value);
+	cache_set(target, SLOT0, value);
 	if (cache_write(target, 4, true) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
@@ -1029,7 +1029,7 @@ static int register_get(struct reg *reg)
 		cache_set_jump(target, 1);
 	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
 		cache_set32(target, 0, csrr(S0, reg->number - REG_CSR0));
-		cache_set32(target, 1, sw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set_store(target, 1, S0, SLOT0);
 		cache_set_jump(target, 2);
 	} else if (reg->number == REG_PRIV) {
 		buf_set_u64(reg->value, 0, 8, get_field(info->dcsr, DCSR_PRV));
@@ -1045,9 +1045,9 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	uint32_t value = cache_get32(target, 4);
+	uint64_t value = cache_get(target, SLOT0);
 	if (reg->number < 32 && info->gpr_cache[reg->number] != value) {
-		LOG_ERROR("cached value for %s is 0x%" PRIx64 " but just read 0x%x",
+		LOG_ERROR("cached value for %s is 0x%" PRIx64 " but just read 0x%" PRIx64,
 				reg->name, info->gpr_cache[reg->number], value);
 		assert(info->gpr_cache[reg->number] == value);
 	}
@@ -1059,8 +1059,8 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("%s=0x%x", reg->name, value);
-	buf_set_u32(reg->value, 0, 32, value);
+	LOG_DEBUG("%s=0x%" PRIx64, reg->name, value);
+	buf_set_u64(reg->value, 0, info->xlen, value);
 
 	return ERROR_OK;
 }
@@ -1970,8 +1970,8 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 
 	} else if (breakpoint->type == BKPT_HARD) {
 		int i;
-		uint32_t tdrdata1;
-		uint32_t tdrselect, tdrselect_rb;
+		uint64_t tdrdata1;
+		uint64_t tdrselect, tdrselect_rb;
 		for (i = 0; i < MAX_HWBPS; i++) {
 			if (info->hwbp_unique_id[i] == ~0U) {
 				// TODO 0x80000000 is a hack until the core supports proper
@@ -1982,7 +1982,8 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 				if (tdrselect_rb != tdrselect) {
 					// We've run out of breakpoints.
 					LOG_ERROR("Couldn't find an available hardware breakpoint. "
-							"(0x%x != 0x%x)", tdrselect, tdrselect_rb);
+							"(0x%" PRIx64 " != 0x%" PRIx64 ")", tdrselect,
+							tdrselect_rb);
 					return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 				}
 				read_csr(target, &tdrdata1, CSR_TDRDATA1);
@@ -2005,9 +2006,9 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 		write_csr(target, CSR_TDRDATA1, tdrdata1);
 		write_csr(target, CSR_TDRDATA2, breakpoint->address);
 
-		uint32_t tdrdata1_rb;
+		uint64_t tdrdata1_rb;
 		read_csr(target, &tdrdata1_rb, CSR_TDRDATA1);
-		LOG_DEBUG("tdrdata1=0x%x", tdrdata1_rb);
+		LOG_DEBUG("tdrdata1=0x%" PRIx64, tdrdata1_rb);
 
 		if (!(tdrdata1_rb & CSR_BPCONTROL_X)) {
 			LOG_ERROR("Breakpoint %d doesn't support execute", i);
