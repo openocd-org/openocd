@@ -550,7 +550,7 @@ AS_IF([test "x$build_buspirate" = "xyes"], [
 
 AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
   AS_IF([test -f "$srcdir/jimtcl/configure.ac"], [
-    AX_CONFIG_SUBDIR_OPTION([jimtcl], [--disable-install-jim])
+    AX_CONFIG_SUBDIR_OPTION([jimtcl], [--disable-install-jim --with-ext="eventloop array clock regexp stdlib tclcompat" --without-ext="default"])
   ], [
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
   ])
