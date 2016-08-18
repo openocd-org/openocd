@@ -468,8 +468,8 @@ static int bcm2835gpio_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	/* set 16mA drive strength */
-	pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5a000018 + 7;
+	/* set 4mA drive strength, slew rate limited, hysteresis on */
+	pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5a000008 + 1;
 
 	tdo_gpio_mode = MODE_GPIO(tdo_gpio);
 	tdi_gpio_mode = MODE_GPIO(tdi_gpio);
