@@ -2022,8 +2022,8 @@ static int target_profiling_default(struct target *target, uint32_t *samples,
  */
 int target_write_buffer(struct target *target, uint32_t address, uint32_t size, const uint8_t *buffer)
 {
-	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x",
-			(int)size, (unsigned)address);
+	LOG_DEBUG("writing buffer of %" PRIi32 " byte at 0x%8.8" PRIx32,
+			  size, address);
 
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -2035,9 +2035,9 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
 
 	if ((address + size - 1) < address) {
 		/* GDB can request this when e.g. PC is 0xfffffffc */
-		LOG_ERROR("address + size wrapped (0x%08x, 0x%08x)",
-				  (unsigned)address,
-				  (unsigned)size);
+		LOG_ERROR("address + size wrapped (0x%08" PRIx32 ", 0x%08" PRIx32 ")",
+				  address,
+				  size);
 		return ERROR_FAIL;
 	}
 
@@ -2083,8 +2083,8 @@ static int target_write_buffer_default(struct target *target, uint32_t address, 
  */
 int target_read_buffer(struct target *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
-	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
-			  (int)size, (unsigned)address);
+	LOG_DEBUG("reading buffer of %" PRIi32 " byte at 0x%8.8" PRIx32,
+			  size, address);
 
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
@@ -2153,7 +2153,7 @@ int target_checksum_memory(struct target *target, uint32_t address, uint32_t siz
 	if (retval != ERROR_OK) {
 		buffer = malloc(size);
 		if (buffer == NULL) {
-			LOG_ERROR("error allocating buffer for section (%d bytes)", (int)size);
+			LOG_ERROR("error allocating buffer for section (%" PRId32 " bytes)", size);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 		retval = target_read_buffer(target, address, size, buffer);
@@ -2254,7 +2254,7 @@ int target_read_u16(struct target *target, uint32_t address, uint16_t *value)
 
 	if (retval == ERROR_OK) {
 		*value = target_buffer_get_u16(target, value_buf);
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%4.4x",
+		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%4.4" PRIx16,
 				  address,
 				  *value);
 	} else {
@@ -2276,7 +2276,7 @@ int target_read_u8(struct target *target, uint32_t address, uint8_t *value)
 	int retval = target_read_memory(target, address, 1, 1, value);
 
 	if (retval == ERROR_OK) {
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x",
+		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2" PRIx8,
 				  address,
 				  *value);
 	} else {
@@ -2339,7 +2339,7 @@ int target_write_u16(struct target *target, uint32_t address, uint16_t value)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8x",
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8" PRIx16,
 			  address,
 			  value);
 
@@ -2359,7 +2359,7 @@ int target_write_u8(struct target *target, uint32_t address, uint8_t value)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x",
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2" PRIx8,
 			  address, value);
 
 	retval = target_write_memory(target, address, 1, 1, &value);
@@ -4031,10 +4031,10 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 			retval = target_read_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("mem2array: Read @ 0x%08x, w=%d, cnt=%d, failed",
-					  (unsigned int)addr,
-					  (int)width,
-					  (int)count);
+			LOG_ERROR("mem2array: Read @ 0x%08" PRIx32 ", w=%" PRId32 ", cnt=%" PRId32 ", failed",
+					  addr,
+					  width,
+					  count);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: cannot read memory", NULL);
 			e = JIM_ERR;
@@ -4205,9 +4205,9 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		sprintf(buf, "array2mem address: 0x%08x is not aligned for %d byte reads",
-				(unsigned int)addr,
-				(int)width);
+		sprintf(buf, "array2mem address: 0x%08" PRIx32 " is not aligned for %" PRId32 " byte reads",
+				addr,
+				width);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), buf, NULL);
 		return JIM_ERR;
 	}
@@ -4254,10 +4254,10 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 			retval = target_write_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("array2mem: Write @ 0x%08x, w=%d, cnt=%d, failed",
-					  (unsigned int)addr,
-					  (int)width,
-					  (int)count);
+			LOG_ERROR("array2mem: Write @ 0x%08" PRIx32 ", w=%" PRId32 ", cnt=%" PRId32 ", failed",
+					  addr,
+					  width,
+					  count);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "array2mem: cannot read memory", NULL);
 			e = JIM_ERR;
