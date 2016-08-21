@@ -154,7 +154,7 @@ struct target {
 										 * upon first allocation from virtual/physical address. */
 	bool working_area_virt_spec;		/* virtual address specified? */
 	uint32_t working_area_virt;			/* virtual address */
-	bool working_area_phys_spec;		/* virtual address specified? */
+	bool working_area_phys_spec;		/* physical address specified? */
 	uint32_t working_area_phys;			/* physical address */
 	uint32_t working_area_size;			/* size in bytes */
 	uint32_t backup_working_area;		/* whether the content of the working area has to be preserved */
