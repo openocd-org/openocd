@@ -2034,8 +2034,8 @@ int target_write_buffer(struct target *target, uint32_t address, uint32_t size, 
 		return ERROR_OK;
 
 	if ((address + size - 1) < address) {
-		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address + size wrapped(0x%08x, 0x%08x)",
+		/* GDB can request this when e.g. PC is 0xfffffffc */
+		LOG_ERROR("address + size wrapped (0x%08x, 0x%08x)",
 				  (unsigned)address,
 				  (unsigned)size);
 		return ERROR_FAIL;
@@ -2095,8 +2095,8 @@ int target_read_buffer(struct target *target, uint32_t address, uint32_t size, u
 		return ERROR_OK;
 
 	if ((address + size - 1) < address) {
-		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address + size wrapped(0x%08" PRIx32 ", 0x%08" PRIx32 ")",
+		/* GDB can request this when e.g. PC is 0xfffffffc */
+		LOG_ERROR("address + size wrapped (0x%08" PRIx32 ", 0x%08" PRIx32 ")",
 				  address,
 				  size);
 		return ERROR_FAIL;
@@ -4002,7 +4002,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 		sprintf(buf, "mem2array address: 0x%08" PRIx32 " is not aligned for %" PRId32 " byte reads",
 				addr,
 				width);
-		Jim_AppendStrings(interp, Jim_GetResult(interp), buf , NULL);
+		Jim_AppendStrings(interp, Jim_GetResult(interp), buf, NULL);
 		return JIM_ERR;
 	}
 
@@ -4208,7 +4208,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 		sprintf(buf, "array2mem address: 0x%08x is not aligned for %d byte reads",
 				(unsigned int)addr,
 				(int)width);
-		Jim_AppendStrings(interp, Jim_GetResult(interp), buf , NULL);
+		Jim_AppendStrings(interp, Jim_GetResult(interp), buf, NULL);
 		return JIM_ERR;
 	}
 
