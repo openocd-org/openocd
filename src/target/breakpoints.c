@@ -403,7 +403,7 @@ int watchpoint_add(struct target *target, uint32_t address, uint32_t length,
 				|| watchpoint->mask != mask
 				|| watchpoint->rw != rw) {
 				LOG_ERROR("address 0x%8.8" PRIx32
-					"already has watchpoint %d",
+					" already has watchpoint %d",
 					address, watchpoint->unique_id);
 				return ERROR_FAIL;
 			}
