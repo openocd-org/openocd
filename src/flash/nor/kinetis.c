@@ -609,6 +609,9 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		return ERROR_OK;
 	}
 
+	if (!dap->ops)
+		return ERROR_OK;	/* too early to check, in JTAG mode ops may not be initialised */
+
 	uint32_t val;
 	int retval;
 
@@ -623,7 +626,7 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 	}
 
 	if (val == 0)
-		return ERROR_OK;
+		return ERROR_OK;	/* dap not yet initialised */
 
 	bool found = false;
 	for (size_t i = 0; i < ARRAY_SIZE(kinetis_known_mdm_ids); i++) {
