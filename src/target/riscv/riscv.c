@@ -504,9 +504,10 @@ static void cache_set32(struct target *target, unsigned int index, uint32_t data
 	if (info->dram_cache[index].valid &&
 			info->dram_cache[index].data == data) {
 		// This is already preset on the target.
-		LOG_DEBUG("Cache hit at 0x%x for data 0x%x", index, data);
+		LOG_DEBUG("cache[0x%x] = 0x%x (hit)", index, data);
 		return;
 	}
+	LOG_DEBUG("cache[0x%x] = 0x%x", index, data);
 	info->dram_cache[index].data = data;
 	info->dram_cache[index].valid = true;
 	info->dram_cache[index].dirty = true;
@@ -568,9 +569,8 @@ static void cache_clean(struct target *target)
 	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
 		if (i >= 4) {
 			info->dram_cache[i].valid = false;
-		} else {
-			info->dram_cache[i].dirty = false;
 		}
+		info->dram_cache[i].dirty = false;
 	}
 }
 
