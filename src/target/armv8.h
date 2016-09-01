@@ -139,7 +139,6 @@ struct armv8_common {
 	uint8_t multi_processor_system;
 	uint8_t cluster_id;
 	uint8_t cpu_id;
-	bool is_armv7r;
 
 	/* armv8 aarch64 need below information for page translation */
 	uint8_t va_size;

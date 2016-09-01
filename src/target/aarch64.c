@@ -2152,11 +2152,9 @@ static int aarch64_read_memory(struct target *target, target_addr_t address,
 		size, count);
 
 	/* determine if MMU was enabled on target stop */
-	if (!armv8->is_armv7r) {
-		retval = aarch64_mmu(target, &mmu_enabled);
-		if (retval != ERROR_OK)
-			return retval;
-	}
+	retval = aarch64_mmu(target, &mmu_enabled);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (armv8->memory_ap_available && (apsel == armv8->memory_ap->ap_num)) {
 		if (mmu_enabled) {
@@ -2209,15 +2207,12 @@ static int aarch64_write_phys_memory(struct target *target,
 		} else {
 
 			/* write memory through APB-AP */
-			if (!armv8->is_armv7r) {
-				retval = aarch64_mmu_modify(target, 0);
-				if (retval != ERROR_OK)
-					return retval;
-			}
+			retval = aarch64_mmu_modify(target, 0);
+			if (retval != ERROR_OK)
+				return retval;
 			return aarch64_write_apb_ap_memory(target, address, size, count, buffer);
 		}
 	}
-
 
 	/* REVISIT this op is generic ARMv7-A/R stuff */
 	if (retval == ERROR_OK && target->state == TARGET_HALTED) {
@@ -2291,11 +2286,9 @@ static int aarch64_write_memory(struct target *target, target_addr_t address,
 		  "; count %" PRId32, address, size, count);
 
 	/* determine if MMU was enabled on target stop */
-	if (!armv8->is_armv7r) {
-		retval = aarch64_mmu(target, &mmu_enabled);
-		if (retval != ERROR_OK)
-			return retval;
-	}
+	retval = aarch64_mmu(target, &mmu_enabled);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (armv8->memory_ap_available && (apsel == armv8->memory_ap->ap_num)) {
 		LOG_DEBUG("Writing memory to address 0x%" TARGET_PRIxADDR "; size %"
@@ -2579,8 +2572,6 @@ static int aarch64_init_arch_info(struct target *target,
 static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct aarch64_common *aarch64 = calloc(1, sizeof(struct aarch64_common));
-
-	aarch64->armv8_common.is_armv7r = false;
 
 	return aarch64_init_arch_info(target, aarch64, target->tap);
 }
