@@ -234,26 +234,26 @@ static inline struct aarch64_common *dpm_to_a8(struct arm_dpm *dpm)
 	return container_of(dpm, struct aarch64_common, armv8_common.dpm);
 }
 
-static int aarch64_write_dcc(struct aarch64_common *a8, uint32_t data)
+static int aarch64_write_dcc(struct armv8_common *armv8, uint32_t data)
 {
 	LOG_DEBUG("write DCC 0x%08" PRIx32, data);
-	return mem_ap_write_u32(a8->armv8_common.debug_ap,
-				a8->armv8_common.debug_base + CPUDBG_DTRRX, data);
+	return mem_ap_write_u32(armv8->debug_ap,
+				armv8->debug_base + CPUDBG_DTRRX, data);
 }
 
-static int aarch64_write_dcc_64(struct aarch64_common *a8, uint64_t data)
+static int aarch64_write_dcc_64(struct armv8_common *armv8, uint64_t data)
 {
 	int ret;
-	LOG_DEBUG("write DCC 0x%08" PRIx32, (unsigned)data);
-	LOG_DEBUG("write DCC 0x%08" PRIx32, (unsigned)(data >> 32));
-	ret = mem_ap_write_u32(a8->armv8_common.debug_ap,
-			       a8->armv8_common.debug_base + CPUDBG_DTRRX, data);
-	ret += mem_ap_write_u32(a8->armv8_common.debug_ap,
-				a8->armv8_common.debug_base + CPUDBG_DTRTX, data >> 32);
+	LOG_DEBUG("write DCC Low word0x%08" PRIx32, (unsigned)data);
+	LOG_DEBUG("write DCC High word 0x%08" PRIx32, (unsigned)(data >> 32));
+	ret = mem_ap_write_u32(armv8->debug_ap,
+			       armv8->debug_base + CPUDBG_DTRRX, data);
+	ret += mem_ap_write_u32(armv8->debug_ap,
+				armv8->debug_base + CPUDBG_DTRTX, data >> 32);
 	return ret;
 }
 
-static int aarch64_read_dcc(struct aarch64_common *a8, uint32_t *data,
+static int aarch64_read_dcc(struct armv8_common *armv8, uint32_t *data,
 	uint32_t *dscr_p)
 {
 	uint32_t dscr = DSCR_INSTR_COMP;
@@ -265,8 +265,8 @@ static int aarch64_read_dcc(struct aarch64_common *a8, uint32_t *data,
 	/* Wait for DTRRXfull */
 	long long then = timeval_ms();
 	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
-		retval = mem_ap_read_atomic_u32(a8->armv8_common.debug_ap,
-				a8->armv8_common.debug_base + CPUDBG_DSCR,
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUDBG_DSCR,
 				&dscr);
 		if (retval != ERROR_OK)
 			return retval;
@@ -276,8 +276,8 @@ static int aarch64_read_dcc(struct aarch64_common *a8, uint32_t *data,
 		}
 	}
 
-	retval = mem_ap_read_atomic_u32(a8->armv8_common.debug_ap,
-					    a8->armv8_common.debug_base + CPUDBG_DTRTX,
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					    armv8->debug_base + CPUDBG_DTRTX,
 					    data);
 	if (retval != ERROR_OK)
 		return retval;
@@ -288,7 +288,8 @@ static int aarch64_read_dcc(struct aarch64_common *a8, uint32_t *data,
 
 	return retval;
 }
-static int aarch64_read_dcc_64(struct aarch64_common *a8, uint64_t *data,
+
+static int aarch64_read_dcc_64(struct armv8_common *armv8, uint64_t *data,
 	uint32_t *dscr_p)
 {
 	uint32_t dscr = DSCR_INSTR_COMP;
@@ -301,8 +302,8 @@ static int aarch64_read_dcc_64(struct aarch64_common *a8, uint64_t *data,
 	/* Wait for DTRRXfull */
 	long long then = timeval_ms();
 	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
-		retval = mem_ap_read_atomic_u32(a8->armv8_common.debug_ap,
-				a8->armv8_common.debug_base + CPUDBG_DSCR,
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUDBG_DSCR,
 				&dscr);
 		if (retval != ERROR_OK)
 			return retval;
@@ -312,14 +313,14 @@ static int aarch64_read_dcc_64(struct aarch64_common *a8, uint64_t *data,
 		}
 	}
 
-	retval = mem_ap_read_atomic_u32(a8->armv8_common.debug_ap,
-					    a8->armv8_common.debug_base + CPUDBG_DTRTX,
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					    armv8->debug_base + CPUDBG_DTRTX,
 					    (uint32_t *)data);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = mem_ap_read_atomic_u32(a8->armv8_common.debug_ap,
-					    a8->armv8_common.debug_base + CPUDBG_DTRRX,
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					    armv8->debug_base + CPUDBG_DTRRX,
 					    &higher);
 	if (retval != ERROR_OK)
 		return retval;
@@ -395,7 +396,7 @@ static int aarch64_instr_write_data_dcc(struct arm_dpm *dpm,
 	int retval;
 	uint32_t dscr = DSCR_INSTR_COMP;
 
-	retval = aarch64_write_dcc(a8, data);
+	retval = aarch64_write_dcc(&a8->armv8_common, data);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -412,7 +413,7 @@ static int aarch64_instr_write_data_dcc_64(struct arm_dpm *dpm,
 	int retval;
 	uint32_t dscr = DSCR_INSTR_COMP;
 
-	retval = aarch64_write_dcc_64(a8, data);
+	retval = aarch64_write_dcc_64(&a8->armv8_common, data);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -429,7 +430,7 @@ static int aarch64_instr_write_data_r0(struct arm_dpm *dpm,
 	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
-	retval = aarch64_write_dcc(a8, data);
+	retval = aarch64_write_dcc(&a8->armv8_common, data);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -456,7 +457,7 @@ static int aarch64_instr_write_data_r0_64(struct arm_dpm *dpm,
 	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
-	retval = aarch64_write_dcc_64(a8, data);
+	retval = aarch64_write_dcc_64(&a8->armv8_common, data);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -502,7 +503,7 @@ static int aarch64_instr_read_data_dcc(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return aarch64_read_dcc(a8, data, &dscr);
+	return aarch64_read_dcc(&a8->armv8_common, data, &dscr);
 }
 
 static int aarch64_instr_read_data_dcc_64(struct arm_dpm *dpm,
@@ -520,7 +521,7 @@ static int aarch64_instr_read_data_dcc_64(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return aarch64_read_dcc_64(a8, data, &dscr);
+	return aarch64_read_dcc_64(&a8->armv8_common, data, &dscr);
 }
 
 static int aarch64_instr_read_data_r0(struct arm_dpm *dpm,
@@ -546,7 +547,7 @@ static int aarch64_instr_read_data_r0(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return aarch64_read_dcc(a8, data, &dscr);
+	return aarch64_read_dcc(&a8->armv8_common, data, &dscr);
 }
 
 static int aarch64_instr_read_data_r0_64(struct arm_dpm *dpm,
@@ -572,7 +573,7 @@ static int aarch64_instr_read_data_r0_64(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return aarch64_read_dcc_64(a8, data, &dscr);
+	return aarch64_read_dcc_64(&a8->armv8_common, data, &dscr);
 }
 
 static int aarch64_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
