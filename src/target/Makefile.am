@@ -155,6 +155,7 @@ INTEL_IA32_SRC = \
 	%D%/armv7m.h \
 	%D%/armv7m_trace.h \
 	%D%/armv8.h \
+	%D%/armv8_opcodes.h \
 	%D%/avrt.h \
 	%D%/dsp563xx.h \
 	%D%/dsp563xx_once.h \
