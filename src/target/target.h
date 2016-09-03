@@ -185,6 +185,11 @@ struct target {
 	uint32_t dbgbase;					/* Really a Cortex-A specific option, but there is no
 										 * system in place to support target specific options
 										 * currently. */
+
+	 bool ctibase_set;					 /* By default the debug base is not set */
+	 uint32_t ctibase;					 /* Really a Cortex-A specific option, but there is no
+										  * system in place to support target specific options
+										  * currently. */
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
 										 * and must be detected when symbols are offered */
