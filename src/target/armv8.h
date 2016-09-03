@@ -23,7 +23,7 @@
 #include "arm.h"
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
-#include "arm_dpm.h"
+#include "armv8_dpm.h"
 
 enum {
 	ARMV8_R0,
@@ -197,6 +197,8 @@ int armv8_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val);
 
 int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 		struct armv8_cache_common *armv8_cache);
+
+void armv8_set_cpsr(struct arm *arm, uint32_t cpsr);
 
 extern const struct command_registration armv8_command_handlers[];
 

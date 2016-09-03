@@ -66,6 +66,15 @@ enum arm_mode {
 	ARM_MODE_USER_THREAD = 1,
 	ARM_MODE_HANDLER = 2,
 
+	/* shift left 4 bits for armv8 64 */
+	ARMV8_64_EL0T = 0x0F,
+	ARMV8_64_EL1T = 0x4F,
+	ARMV8_64_EL1H = 0x5F,
+	ARMV8_64_EL2T = 0x8F,
+	ARMV8_64_EL2H = 0x9F,
+	ARMV8_64_EL3T = 0xCF,
+	ARMV8_64_EL3H = 0xDF,
+
 	ARM_MODE_ANY = -1
 };
 
@@ -176,6 +185,18 @@ struct arm {
 
 	/** Write coprocessor register.  */
 	int (*mcr)(struct target *target, int cpnum,
+			uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm,
+			uint32_t value);
+
+	/** Read coprocessor register.  */
+	int (*mrs)(struct target *target, uint32_t op0,
+			uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm,
+			uint32_t *value);
+
+	/** Write coprocessor register.  */
+	int (*msr)(struct target *target, uint32_t cpnum,
 			uint32_t op1, uint32_t op2,
 			uint32_t CRn, uint32_t CRm,
 			uint32_t value);

@@ -59,13 +59,16 @@ struct arm_dpm {
 	struct arm *arm;
 
 	/** Cache of DIDR */
-	uint32_t didr;
+	uint64_t didr;
 
 	/** Invoke before a series of instruction operations */
 	int (*prepare)(struct arm_dpm *);
 
 	/** Invoke after a series of instruction operations */
 	int (*finish)(struct arm_dpm *);
+
+	/** Runs one instruction. */
+	int (*instr_execute)(struct arm_dpm *, uint32_t opcode);
 
 	/* WRITE TO CPU */
 

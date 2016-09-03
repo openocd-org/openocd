@@ -38,6 +38,105 @@
 #include "target.h"
 #include "target_type.h"
 
+static const char * const armv8_state_strings[] = {
+	"ARM", "Thumb", "Jazelle", "ThumbEE", "ARM64",
+};
+
+static const struct {
+	const char *name;
+	unsigned psr;
+	/* For user and system modes, these list indices for all registers.
+	 * otherwise they're just indices for the shadow registers and SPSR.
+	 */
+	unsigned short n_indices;
+	const uint8_t *indices;
+} armv8_mode_data[] = {
+	/* These special modes are currently only supported
+	 * by ARMv6M and ARMv7M profiles */
+	{
+		.name = "EL0T",
+		.psr = ARMV8_64_EL0T,
+	},
+	{
+		.name = "EL1T",
+		.psr = ARMV8_64_EL1T,
+	},
+	{
+		.name = "EL1H",
+		.psr = ARMV8_64_EL1H,
+	},
+	{
+		.name = "EL2T",
+		.psr = ARMV8_64_EL2T,
+	},
+	{
+		.name = "EL2H",
+		.psr = ARMV8_64_EL2H,
+	},
+	{
+		.name = "EL3T",
+		.psr = ARMV8_64_EL3T,
+	},
+	{
+		.name = "EL3H",
+		.psr = ARMV8_64_EL3H,
+	},
+};
+
+/** Map PSR mode bits to the name of an ARM processor operating mode. */
+const char *armv8_mode_name(unsigned psr_mode)
+{
+	for (unsigned i = 0; i < ARRAY_SIZE(armv8_mode_data); i++) {
+		if (armv8_mode_data[i].psr == psr_mode)
+			return armv8_mode_data[i].name;
+	}
+	LOG_ERROR("unrecognized psr mode: %#02x", psr_mode);
+	return "UNRECOGNIZED";
+}
+
+int armv8_mode_to_number(enum arm_mode mode)
+{
+	switch (mode) {
+		case ARM_MODE_ANY:
+		/* map MODE_ANY to user mode */
+		case ARM_MODE_USR:
+			return 0;
+		case ARM_MODE_FIQ:
+			return 1;
+		case ARM_MODE_IRQ:
+			return 2;
+		case ARM_MODE_SVC:
+			return 3;
+		case ARM_MODE_ABT:
+			return 4;
+		case ARM_MODE_UND:
+			return 5;
+		case ARM_MODE_SYS:
+			return 6;
+		case ARM_MODE_MON:
+			return 7;
+		case ARMV8_64_EL0T:
+			return 8;
+		case ARMV8_64_EL1T:
+			return 9;
+		case ARMV8_64_EL1H:
+			return 10;
+		case ARMV8_64_EL2T:
+			return 11;
+		case ARMV8_64_EL2H:
+			return 12;
+		case ARMV8_64_EL3T:
+			return 13;
+		case ARMV8_64_EL3H:
+			return 14;
+
+		default:
+			LOG_ERROR("invalid mode value encountered %d", mode);
+			return -1;
+	}
+}
+
+
 static int armv8_read_core_reg(struct target *target, struct reg *r,
 	int num, enum arm_mode mode)
 {
@@ -86,6 +185,81 @@ static int armv8_write_core_reg(struct target *target, struct reg *r,
 	return ERROR_OK;
 }
 #endif
+/**
+ * Configures host-side ARM records to reflect the specified CPSR.
+ * Later, code can use arm_reg_current() to map register numbers
+ * according to how they are exposed by this mode.
+ */
+void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
+{
+	uint32_t mode = cpsr & 0x1F;
+
+	/* NOTE:  this may be called very early, before the register
+	 * cache is set up.  We can't defend against many errors, in
+	 * particular against CPSRs that aren't valid *here* ...
+	 */
+	if (arm->cpsr) {
+		buf_set_u32(arm->cpsr->value, 0, 32, cpsr);
+		arm->cpsr->valid = 1;
+		arm->cpsr->dirty = 0;
+	}
+
+	/* Older ARMs won't have the J bit */
+	enum arm_state state = 0xFF;
+
+	if (((cpsr & 0x10) >> 4) == 0) {
+		state = ARM_STATE_AARCH64;
+	} else {
+		if (cpsr & (1 << 5)) {	/* T */
+			if (cpsr & (1 << 24)) { /* J */
+				LOG_WARNING("ThumbEE -- incomplete support");
+				state = ARM_STATE_THUMB_EE;
+			} else
+				state = ARM_STATE_THUMB;
+		} else {
+			if (cpsr & (1 << 24)) { /* J */
+				LOG_ERROR("Jazelle state handling is BROKEN!");
+				state = ARM_STATE_JAZELLE;
+			} else
+				state = ARM_STATE_ARM;
+		}
+	}
+	arm->core_state = state;
+	if (arm->core_state == ARM_STATE_AARCH64) {
+		switch (mode) {
+			case SYSTEM_AAR64_MODE_EL0t:
+				arm->core_mode = ARMV8_64_EL0T;
+			break;
+			case SYSTEM_AAR64_MODE_EL1t:
+				arm->core_mode = ARMV8_64_EL0T;
+			break;
+			case SYSTEM_AAR64_MODE_EL1h:
+				arm->core_mode = ARMV8_64_EL1H;
+			break;
+			case SYSTEM_AAR64_MODE_EL2t:
+				arm->core_mode = ARMV8_64_EL2T;
+			break;
+			case SYSTEM_AAR64_MODE_EL2h:
+				arm->core_mode = ARMV8_64_EL2H;
+			break;
+			case SYSTEM_AAR64_MODE_EL3t:
+				arm->core_mode = ARMV8_64_EL3T;
+			break;
+			case SYSTEM_AAR64_MODE_EL3h:
+				arm->core_mode = ARMV8_64_EL3H;
+			break;
+			default:
+				LOG_DEBUG("unknow mode 0x%x", (unsigned) (mode));
+			break;
+		}
+	} else {
+		arm->core_mode = mode;
+	}
+
+	LOG_DEBUG("set CPSR %#8.8x: %s mode, %s state", (unsigned) cpsr,
+		armv8_mode_name(arm->core_mode),
+		armv8_state_strings[arm->core_state]);
+}
 
 static void armv8_show_fault_registers(struct target *target)
 {

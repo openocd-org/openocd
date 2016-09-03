@@ -376,6 +376,18 @@ static int aarch64_dpm_finish(struct arm_dpm *dpm)
 	return ERROR_OK;
 }
 
+static int aarch64_instr_execute(struct arm_dpm *dpm,
+	uint32_t opcode)
+{
+	struct aarch64_common *a8 = dpm_to_a8(dpm);
+	uint32_t dscr = DSCR_ITE;
+
+	return aarch64_exec_opcode(
+			a8->armv8_common.arm.target,
+			opcode,
+			&dscr);
+}
+
 static int aarch64_instr_write_data_dcc(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t data)
 {
@@ -638,6 +650,7 @@ static int aarch64_dpm_setup(struct aarch64_common *a8, uint32_t debug)
 	dpm->prepare = aarch64_dpm_prepare;
 	dpm->finish = aarch64_dpm_finish;
 
+	dpm->instr_execute = aarch64_instr_execute;
 	dpm->instr_write_data_dcc = aarch64_instr_write_data_dcc;
 	dpm->instr_write_data_dcc_64 = aarch64_instr_write_data_dcc_64;
 	dpm->instr_write_data_r0 = aarch64_instr_write_data_r0;
@@ -654,9 +667,9 @@ static int aarch64_dpm_setup(struct aarch64_common *a8, uint32_t debug)
 	dpm->bpwp_enable = aarch64_bpwp_enable;
 	dpm->bpwp_disable = aarch64_bpwp_disable;
 
-	retval = arm_dpm_setup(dpm);
+	retval = armv8_dpm_setup(dpm);
 	if (retval == ERROR_OK)
-		retval = arm_dpm_initialize(dpm);
+		retval = armv8_dpm_initialize(dpm);
 
 	return retval;
 }
@@ -879,6 +892,8 @@ static int aarch64_internal_restore(struct target *target, int current,
 	 */
 	switch (arm->core_state) {
 		case ARM_STATE_ARM:
+			resume_pc &= 0xFFFFFFFC;
+			break;
 		case ARM_STATE_AARCH64:
 			resume_pc &= 0xFFFFFFFFFFFFFFFC;
 			break;
@@ -897,10 +912,8 @@ static int aarch64_internal_restore(struct target *target, int current,
 	buf_set_u64(arm->pc->value, 0, 64, resume_pc);
 	arm->pc->dirty = 1;
 	arm->pc->valid = 1;
-#if 0
-	/* restore dpm_mode at system halt */
-	dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
-#endif
+	dpmv8_modeswitch(&armv8->dpm, ARM_MODE_ANY);
+
 	/* called it now before restoring context because it uses cpu
 	 * register r0 for restoring system control register */
 	retval = aarch64_restore_system_control_reg(target);
@@ -1104,7 +1117,7 @@ static int aarch64_debug_entry(struct target *target)
 		arm_dpm_report_wfar(&armv8->dpm, wfar);
 	}
 
-	retval = arm_dpm_read_current_registers_64(&armv8->dpm);
+	retval = armv8_dpm_read_current_registers(&armv8->dpm);
 
 	if (armv8->post_debug_entry) {
 		retval = armv8->post_debug_entry(target);
@@ -1209,9 +1222,8 @@ static int aarch64_restore_context(struct target *target, bool bpwp)
 	if (armv8->pre_restore_context)
 		armv8->pre_restore_context(target);
 
-	return arm_dpm_write_dirty_registers(&armv8->dpm, bpwp);
+	return armv8_dpm_write_dirty_registers(&armv8->dpm, bpwp);
 
-	return ERROR_OK;
 }
 
 /*

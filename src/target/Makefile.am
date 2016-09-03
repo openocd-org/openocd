@@ -74,6 +74,7 @@ ARMV7_SRC = \
 	%D%/ls1_sap.c
 
 ARMV8_SRC = \
+	%D%/armv8_dpm.c \
 	%D%/aarch64.c \
 	%D%/armv8.c
 
@@ -155,6 +156,7 @@ INTEL_IA32_SRC = \
 	%D%/armv7m.h \
 	%D%/armv7m_trace.h \
 	%D%/armv8.h \
+	%D%/armv8_dpm.h \
 	%D%/armv8_opcodes.h \
 	%D%/avrt.h \
 	%D%/dsp563xx.h \
