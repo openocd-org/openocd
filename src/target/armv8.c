@@ -33,6 +33,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "armv8_opcodes.h"
 #include "arm_opcodes.h"
 #include "target.h"
 #include "target_type.h"
@@ -351,7 +352,7 @@ static int armv8_read_mpidr(struct target *target)
 	/* MRC p15,0,<Rd>,c0,c0,5; read Multiprocessor ID register*/
 
 	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 0, 0, 0, 0, 5),
+			ARMV8_MRS(SYSTEM_MPIDR, 0),
 			&mpidr);
 	if (retval != ERROR_OK)
 		goto done;
