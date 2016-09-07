@@ -595,7 +595,9 @@ static int cache_check(struct target *target)
 	return ERROR_OK;
 }
 
-/** Write cache to the target, and optionally run the program. */
+/** Write cache to the target, and optionally run the program.
+ * Then read the value at address into the cache, assuming address < 128. */
+#define CACHE_NO_READ	128
 static int cache_write(struct target *target, unsigned int address, bool run)
 {
 	LOG_DEBUG("enter");
@@ -633,17 +635,19 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		}
 	}
 
-	// Throw away the results of the first read, since it'll contain the result
-	// of the read that happened just before debugint was set.
-	add_dbus_scan(target, &field[scan], out + 8*scan, NULL, DBUS_OP_READ,
-			address, DMCONTROL_HALTNOT);
-	scan++;
+	if (run || address < CACHE_NO_READ) {
+		// Throw away the results of the first read, since it'll contain the
+		// result of the read that happened just before debugint was set.
+		add_dbus_scan(target, &field[scan], out + 8*scan, NULL, DBUS_OP_READ,
+				address, DMCONTROL_HALTNOT);
+		scan++;
 
-	// This scan contains the results of the read the caller requested, as well
-	// as an interrupt bit worth looking at.
-	add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan, DBUS_OP_READ,
-			address, DMCONTROL_HALTNOT);
-	scan++;
+		// This scan contains the results of the read the caller requested, as
+		// well as an interrupt bit worth looking at.
+		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
+				DBUS_OP_READ, address, DMCONTROL_HALTNOT);
+		scan++;
+	}
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
@@ -697,25 +701,28 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	} else {
 		cache_clean(target);
 
-		int interrupt = buf_get_u32(in + 8*(scan-1), DBUS_DATA_START + 33, 1);
-		if (interrupt) {
-			increase_interrupt_high_delay(target);
-			// Slow path wait for it to clear.
-			if (wait_for_debugint_clear(target, false) != ERROR_OK) {
-				LOG_ERROR("Debug interrupt didn't clear.");
-				dump_debug_ram(target);
-				return ERROR_FAIL;
+		if (run || address < CACHE_NO_READ) {
+			int interrupt = buf_get_u32(in + 8*(scan-1), DBUS_DATA_START + 33, 1);
+			if (interrupt) {
+				increase_interrupt_high_delay(target);
+				// Slow path wait for it to clear.
+				if (wait_for_debugint_clear(target, false) != ERROR_OK) {
+					LOG_ERROR("Debug interrupt didn't clear.");
+					dump_debug_ram(target);
+					return ERROR_FAIL;
+				}
+			} else {
+				// We read a useful value in that last scan.
+				unsigned int read_addr = buf_get_u32(in + 8*(scan-1),
+						DBUS_ADDRESS_START, info->addrbits);
+				if (read_addr != address) {
+					LOG_INFO("Got data from 0x%x but expected it from 0x%x",
+							read_addr, address);
+				}
+				info->dram_cache[read_addr].data =
+					buf_get_u64(in + 8*(scan-1), DBUS_DATA_START, DBUS_DATA_SIZE);
+				info->dram_cache[read_addr].valid = true;
 			}
-		} else {
-			// We read a useful value in that last scan.
-			unsigned int read_addr = buf_get_u32(in + 8*(scan-1), DBUS_ADDRESS_START, info->addrbits);
-			if (read_addr != address) {
-				LOG_INFO("Got data from 0x%x but expected it from 0x%x",
-						read_addr, address);
-			}
-			info->dram_cache[read_addr].data =
-				buf_get_u64(in + 8*(scan-1), DBUS_DATA_START, DBUS_DATA_SIZE);
-			info->dram_cache[read_addr].valid = true;
 		}
 	}
 
@@ -747,7 +754,8 @@ uint64_t cache_get(struct target *target, slot_t slot)
 
 /* Write instruction that jumps from the specified word in Debug RAM to resume
  * in Debug ROM. */
-static void dram_write_jump(struct target *target, unsigned int index, bool set_interrupt)
+static void dram_write_jump(struct target *target, unsigned int index,
+		bool set_interrupt)
 {
 	dram_write32(target, index,
 			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))),
@@ -1614,7 +1622,7 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 			return ERROR_FAIL;
 	}
 	cache_set_jump(target, 3);
-	cache_write(target, 4, false);
+	cache_write(target, CACHE_NO_READ, false);
 
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	const int max_batch_size = 256;
