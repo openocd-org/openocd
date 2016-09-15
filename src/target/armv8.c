@@ -382,7 +382,7 @@ done:
 	return retval;
 }
 
-static int armv8_4K_translate(struct target *target,  uint32_t va, uint32_t *val)
+static int armv8_4K_translate(struct target *target,  target_addr_t va, target_addr_t *val)
 {
 	LOG_ERROR("4K page Address translation need to add");
 	return ERROR_FAIL;
@@ -390,7 +390,7 @@ static int armv8_4K_translate(struct target *target,  uint32_t va, uint32_t *val
 
 
 /*  method adapted to cortex A : reused arm v4 v5 method*/
-int armv8_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
+int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr_t *val)
 {
 	int retval = ERROR_FAIL;
 	struct armv8_common *armv8 = target_to_armv8(target);

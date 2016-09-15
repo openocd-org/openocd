@@ -131,10 +131,8 @@ struct armv8_common {
 	struct arm_dpm dpm;
 	uint32_t debug_base;
 	uint32_t cti_base;
-
 	struct adiv5_ap *debug_ap;
-	struct adiv5_ap *memory_ap;
-	bool memory_ap_available;
+
 	/* mdir */
 	uint8_t multi_processor_system;
 	uint8_t cluster_id;
@@ -245,7 +243,7 @@ int armv8_identify_cache(struct target *target);
 int armv8_init_arch_info(struct target *target, struct armv8_common *armv8);
 int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 		target_addr_t *val, int meminfo);
-int armv8_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val);
+int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr_t *val);
 
 int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 		struct armv8_cache_common *armv8_cache);

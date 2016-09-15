@@ -2113,26 +2113,16 @@ static int aarch64_read_phys_memory(struct target *target,
 	target_addr_t address, uint32_t size,
 	uint32_t count, uint8_t *buffer)
 {
-	struct armv8_common *armv8 = target_to_armv8(target);
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
-	struct adiv5_dap *swjdp = armv8->arm.dap;
-	uint8_t apsel = swjdp->apsel;
 	LOG_DEBUG("Reading memory at real address 0x%" TARGET_PRIxADDR "; size %" PRId32 "; count %" PRId32,
 		address, size, count);
 
 	if (count && buffer) {
-
-		if (armv8->memory_ap_available && (apsel == armv8->memory_ap->ap_num)) {
-
-			/* read memory through AHB-AP */
-			retval = mem_ap_read_buf(armv8->memory_ap, buffer, size, count, address);
-		} else {
-			/* read memory through APB-AP */
-			retval = aarch64_mmu_modify(target, 0);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = aarch64_read_apb_ap_memory(target, address, size, count, buffer);
-		}
+		/* read memory through APB-AP */
+		retval = aarch64_mmu_modify(target, 0);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = aarch64_read_apb_ap_memory(target, address, size, count, buffer);
 	}
 	return retval;
 }
@@ -2141,11 +2131,7 @@ static int aarch64_read_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int mmu_enabled = 0;
-	target_addr_t virt, phys;
 	int retval;
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct adiv5_dap *swjdp = armv8->arm.dap;
-	uint8_t apsel = swjdp->apsel;
 
 	/* aarch64 handles unaligned memory access */
 	LOG_DEBUG("Reading memory at address 0x%" TARGET_PRIxADDR "; size %" PRId32 "; count %" PRId32, address,
@@ -2156,116 +2142,33 @@ static int aarch64_read_memory(struct target *target, target_addr_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (armv8->memory_ap_available && (apsel == armv8->memory_ap->ap_num)) {
-		if (mmu_enabled) {
-			virt = address;
-			retval = aarch64_virt2phys(target, virt, &phys);
-			if (retval != ERROR_OK)
-				return retval;
-
-			LOG_DEBUG("Reading at virtual address. Translating v:0x%" TARGET_PRIxADDR " to r:0x%" TARGET_PRIxADDR,
-				  virt, phys);
-			address = phys;
-		}
-		retval = aarch64_read_phys_memory(target, address, size, count,
-						  buffer);
-	} else {
-		if (mmu_enabled) {
-			retval = aarch64_check_address(target, address);
-			if (retval != ERROR_OK)
-				return retval;
-			/* enable MMU as we could have disabled it for phys
-			   access */
-			retval = aarch64_mmu_modify(target, 1);
-			if (retval != ERROR_OK)
-				return retval;
-		}
-		retval = aarch64_read_apb_ap_memory(target, address, size,
-						    count, buffer);
+	if (mmu_enabled) {
+		retval = aarch64_check_address(target, address);
+		if (retval != ERROR_OK)
+			return retval;
+		/* enable MMU as we could have disabled it for phys access */
+		retval = aarch64_mmu_modify(target, 1);
+		if (retval != ERROR_OK)
+			return retval;
 	}
-	return retval;
+	return aarch64_read_apb_ap_memory(target, address, size, count, buffer);
 }
 
 static int aarch64_write_phys_memory(struct target *target,
 	target_addr_t address, uint32_t size,
 	uint32_t count, const uint8_t *buffer)
 {
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct adiv5_dap *swjdp = armv8->arm.dap;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
-	uint8_t apsel = swjdp->apsel;
 
 	LOG_DEBUG("Writing memory to real address 0x%" TARGET_PRIxADDR "; size %" PRId32 "; count %" PRId32, address,
 		size, count);
 
 	if (count && buffer) {
-
-		if (armv8->memory_ap_available && (apsel == armv8->memory_ap->ap_num)) {
-
-			/* write memory through AHB-AP */
-			retval = mem_ap_write_buf(armv8->memory_ap, buffer, size, count, address);
-		} else {
-
-			/* write memory through APB-AP */
-			retval = aarch64_mmu_modify(target, 0);
-			if (retval != ERROR_OK)
-				return retval;
-			return aarch64_write_apb_ap_memory(target, address, size, count, buffer);
-		}
-	}
-
-	/* REVISIT this op is generic ARMv7-A/R stuff */
-	if (retval == ERROR_OK && target->state == TARGET_HALTED) {
-		struct arm_dpm *dpm = armv8->arm.dpm;
-
-		retval = dpm->prepare(dpm);
+		/* write memory through APB-AP */
+		retval = aarch64_mmu_modify(target, 0);
 		if (retval != ERROR_OK)
 			return retval;
-
-		/* The Cache handling will NOT work with MMU active, the
-		 * wrong addresses will be invalidated!
-		 *
-		 * For both ICache and DCache, walk all cache lines in the
-		 * address range. Cortex-A has fixed 64 byte line length.
-		 *
-		 * REVISIT per ARMv7, these may trigger watchpoints ...
-		 */
-
-		/* invalidate I-Cache */
-		if (armv8->armv8_mmu.armv8_cache.i_cache_enabled) {
-			/* ICIMVAU - Invalidate Cache single entry
-			 * with MVA to PoU
-			 *      MCR p15, 0, r0, c7, c5, 1
-			 */
-			for (uint32_t cacheline = 0;
-				cacheline < size * count;
-				cacheline += 64) {
-				retval = dpm->instr_write_data_r0(dpm,
-						ARMV8_MSR_GP(SYSTEM_ICIVAU, 0),
-						address + cacheline);
-				if (retval != ERROR_OK)
-					return retval;
-			}
-		}
-
-		/* invalidate D-Cache */
-		if (armv8->armv8_mmu.armv8_cache.d_u_cache_enabled) {
-			/* DCIMVAC - Invalidate data Cache line
-			 * with MVA to PoC
-			 *      MCR p15, 0, r0, c7, c6, 1
-			 */
-			for (uint32_t cacheline = 0;
-				cacheline < size * count;
-				cacheline += 64) {
-				retval = dpm->instr_write_data_r0(dpm,
-						ARMV8_MSR_GP(SYSTEM_DCCVAU, 0),
-						address + cacheline);
-				if (retval != ERROR_OK)
-					return retval;
-			}
-		}
-
-		/* (void) */ dpm->finish(dpm);
+		return aarch64_write_apb_ap_memory(target, address, size, count, buffer);
 	}
 
 	return retval;
@@ -2275,11 +2178,7 @@ static int aarch64_write_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	int mmu_enabled = 0;
-	target_addr_t virt, phys;
 	int retval;
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct adiv5_dap *swjdp = armv8->arm.dap;
-	uint8_t apsel = swjdp->apsel;
 
 	/* aarch64 handles unaligned memory access */
 	LOG_DEBUG("Writing memory at address 0x%" TARGET_PRIxADDR "; size %" PRId32
@@ -2290,34 +2189,16 @@ static int aarch64_write_memory(struct target *target, target_addr_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (armv8->memory_ap_available && (apsel == armv8->memory_ap->ap_num)) {
-		LOG_DEBUG("Writing memory to address 0x%" TARGET_PRIxADDR "; size %"
-			  PRId32 "; count %" PRId32, address, size, count);
-		if (mmu_enabled) {
-			virt = address;
-			retval = aarch64_virt2phys(target, virt, &phys);
-			if (retval != ERROR_OK)
-				return retval;
-
-			LOG_DEBUG("Writing to virtual address. Translating v:0x%"
-				  TARGET_PRIxADDR " to r:0x%" TARGET_PRIxADDR, virt, phys);
-			address = phys;
-		}
-		retval = aarch64_write_phys_memory(target, address, size,
-				count, buffer);
-	} else {
-		if (mmu_enabled) {
-			retval = aarch64_check_address(target, address);
-			if (retval != ERROR_OK)
-				return retval;
-			/* enable MMU as we could have disabled it for phys access */
-			retval = aarch64_mmu_modify(target, 1);
-			if (retval != ERROR_OK)
-				return retval;
-		}
-		retval = aarch64_write_apb_ap_memory(target, address, size, count, buffer);
+	if (mmu_enabled) {
+		retval = aarch64_check_address(target, address);
+		if (retval != ERROR_OK)
+			return retval;
+		/* enable MMU as we could have disabled it for phys access */
+		retval = aarch64_mmu_modify(target, 1);
+		if (retval != ERROR_OK)
+			return retval;
 	}
-	return retval;
+	return aarch64_write_apb_ap_memory(target, address, size, count, buffer);
 }
 
 static int aarch64_handle_target_request(void *priv)
@@ -2385,20 +2266,6 @@ static int aarch64_examine_first(struct target *target)
 	}
 
 	armv8->debug_ap->memaccess_tck = 80;
-
-	/* Search for the AHB-AB */
-	armv8->memory_ap_available = false;
-	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv8->memory_ap);
-	if (retval == ERROR_OK) {
-		retval = mem_ap_init(armv8->memory_ap);
-		if (retval == ERROR_OK)
-			armv8->memory_ap_available = true;
-	}
-	if (retval != ERROR_OK) {
-		/* AHB-AP not found or unavailable - use the CPU */
-		LOG_DEBUG("No AHB-AP available for memory access");
-	}
-
 
 	if (!target->dbgbase_set) {
 		uint32_t dbgbase;
@@ -2590,22 +2457,7 @@ static int aarch64_mmu(struct target *target, int *enabled)
 static int aarch64_virt2phys(struct target *target, target_addr_t virt,
 			     target_addr_t *phys)
 {
-	int retval = ERROR_FAIL;
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct adiv5_dap *swjdp = armv8->arm.dap;
-	uint8_t apsel = swjdp->apsel;
-	if (armv8->memory_ap_available && (apsel == armv8->memory_ap->ap_num)) {
-		uint32_t ret;
-		retval = armv8_mmu_translate_va(target,
-				virt, &ret);
-		if (retval != ERROR_OK)
-			goto done;
-		*phys = ret;
-	} else {
-		LOG_ERROR("AAR64 processor not support translate va to pa");
-	}
-done:
-	return retval;
+	return armv8_mmu_translate_va(target, virt, phys);
 }
 
 COMMAND_HANDLER(aarch64_handle_cache_info_command)
