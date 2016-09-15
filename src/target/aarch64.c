@@ -1264,7 +1264,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 		return retval;
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
-	retval = aarch64_resume(target, 1, address, 0, 0);
+	retval = aarch64_resume(target, current, address, 0, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
