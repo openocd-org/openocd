@@ -95,8 +95,6 @@
 #define SYSTEM_TTBR0_EL3		0b1111000100000000
 #define SYSTEM_TTBR1_EL1		0b1100000100000001
 
-
-
 #define ARMV8_MRS_DSPSR(Rt)	(0xd53b4500 | (Rt))
 #define ARMV8_MSR_DSPSR(Rt)	(0xd51b4500 | (Rt))
 #define ARMV8_MRS_DLR(Rt)	(0xd53b4520 | (Rt))
@@ -105,11 +103,23 @@
 /* T32 ITR format */
 #define T32_FMTITR(instr) (((instr & 0x0000FFFF) << 16) | ((instr & 0xFFFF0000) >> 16))
 
+/* T32 instruction to access coprocessor registers */
+#define ARMV8_MCR_T1(cp, CRn, opc1, CRm, opc2, Rt) ARMV4_5_MCR(cp, opc1, Rt, CRn, CRm, opc2)
+#define ARMV8_MRC_T1(cp, CRn, opc1, CRm, opc2, Rt) ARMV4_5_MRC(cp, opc1, Rt, CRn, CRm, opc2)
+
+/* T32 instructions to access DSPSR and DLR */
+#define ARMV8_MRC_DSPSR(Rt) ARMV8_MRC_T1(15, 4, 3, 5, 0, Rt)
+#define ARMV8_MCR_DSPSR(Rt) ARMV8_MCR_T1(15, 4, 3, 5, 0, Rt)
+#define ARMV8_MRC_DLR(Rt)	ARMV8_MRC_T1(15, 4, 3, 5, 1, Rt)
+#define ARMV8_MCR_DLR(Rt)	ARMV8_MCR_T1(15, 4, 3, 5, 1, Rt)
+
 #define ARMV8_DCPS1(IM)	(0xd4a00001 | (((IM) & 0xFFFF) << 5))
 #define ARMV8_DCPS2(IM)	(0xd4a00002 | (((IM) & 0xFFFF) << 5))
 #define ARMV8_DCPS3(IM)	(0xd4a00003 | (((IM) & 0xFFFF) << 5))
 
-#define DSB_SY				0xd5033F9F
+#define ARMV8_DSB_SY				0xd5033F9F
+#define ARMV8_DSB_SY_T1				0xf3bf8f4f
+
 #define ARMV8_MRS(System, Rt)	(0xd5300000 | ((System) << 5) | (Rt))
 /* ARM V8 Move to system register. */
 #define ARMV8_MSR_GP(System, Rt) \
@@ -128,4 +138,21 @@
 
 #define ARMV8_SYS(System, Rt) (0xD5080000 | ((System) << 5) | Rt)
 
-#endif /* __ARM_OPCODES_H */
+enum armv8_opcode {
+	READ_REG_CLIDR,
+	READ_REG_CSSELR,
+	READ_REG_CCSIDR,
+	WRITE_REG_CSSELR,
+	READ_REG_MPIDR,
+	READ_REG_DTRRX,
+	WRITE_REG_DTRTX,
+	WRITE_REG_DSPSR,
+	READ_REG_DSPSR,
+	ARMV8_OPC_DSB_SY,
+	ARMV8_OPC_NUM,
+};
+
+extern uint32_t armv8_opcode(struct armv8_common *armv8, enum armv8_opcode);
+extern void armv8_select_opcodes(struct armv8_common *armv8, bool state_is_aarch64);
+
+#endif /* OPENOCD_TARGET_ARMV8_OPCODES_H */

@@ -164,6 +164,7 @@ static int dpmv8_msr(struct target *target, uint32_t op0,
  */
 int dpmv8_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 {
+	struct armv8_common *armv8 = (struct armv8_common *)dpm->arm->arch_info;
 	int retval;
 	uint32_t cpsr;
 
@@ -199,12 +200,92 @@ int dpmv8_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 	}
 
 
-	retval = dpm->instr_write_data_r0(dpm, ARMV8_MSR_DSPSR(0), cpsr);
+	retval = dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_DSPSR), cpsr);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (dpm->instr_cpsr_sync)
 		retval = dpm->instr_cpsr_sync(dpm);
+
+	return retval;
+}
+
+static int dpmv8_read_reg32(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	uint32_t value;
+	int retval = ERROR_FAIL;
+	bool valid = true;
+
+	switch (regnum) {
+	case 0 ... 14:
+		/* return via DCC:  "MCR p14, 0, Rnum, c0, c5, 0" */
+		retval = dpm->instr_read_data_dcc(dpm,
+			T32_FMTITR(ARMV4_5_MCR(14, 0, regnum, 0, 5, 0)),
+			&value);
+		break;
+		case ARMV8_R31:
+			retval = dpm->instr_read_data_dcc(dpm,
+				T32_FMTITR(ARMV4_5_MCR(14, 0, 13, 0, 5, 0)),
+				&value);
+				break;
+		case ARMV8_PC:
+			retval = dpm->instr_read_data_r0(dpm,
+				T32_FMTITR(ARMV8_MRC_DLR(0)),
+				&value);
+			break;
+		case ARMV8_xPSR:
+			retval = dpm->instr_read_data_r0(dpm,
+				T32_FMTITR(ARMV8_MRC_DSPSR(0)),
+				&value);
+			break;
+		default:
+			LOG_DEBUG("READ: %s ignored", r->name);
+			retval = ERROR_OK;
+			value = 0xFFFFFFFF;
+			valid = false;
+			break;
+	}
+
+	if (retval == ERROR_OK) {
+		r->valid = valid;
+		r->dirty = false;
+		buf_set_u64(r->value, 0, 32, value);
+		LOG_DEBUG("READ: %s, %8.8x", r->name, (unsigned) value);
+	}
+	return retval;
+}
+
+static int dpmv8_write_reg32(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	int retval;
+	uint64_t value = buf_get_u64(r->value, 0, 32);
+
+	switch (regnum) {
+		case 0 ... 14:
+			/* load register from DCC:  "MRC p14, 0, Rnum, c0, c5, 0" */
+			retval = dpm->instr_write_data_dcc(dpm,
+					T32_FMTITR(ARMV4_5_MRC(14, 0, regnum, 0, 5, 0)), value);
+			break;
+		case ARMV8_PC:/* PC
+			 * read r0 from DCC; then "MOV pc, r0" */
+			retval = dpm->instr_write_data_r0(dpm,
+					T32_FMTITR(ARMV8_MCR_DLR(0)), value);
+			break;
+		case ARMV8_xPSR: /* CPSR */
+			/* read r0 from DCC, then "MCR r0, DSPSR" */
+			retval = dpm->instr_write_data_r0(dpm,
+					T32_FMTITR(ARMV8_MCR_DSPSR(0)), value);
+			break;
+		default:
+			retval = ERROR_OK;
+			LOG_DEBUG("WRITE: %s ignored", r->name);
+			break;
+	}
+
+	if (retval == ERROR_OK) {
+		r->dirty = false;
+		LOG_DEBUG("WRITE: %s, %8.8x", r->name, (unsigned) value);
+	}
 
 	return retval;
 }
@@ -222,20 +303,21 @@ static int dpmv8_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 				ARMV8_MSR_GP(SYSTEM_DBG_DBGDTR_EL0, regnum),
 				&value_64);
 			break;
-		case 31:
+		case ARMV8_R31:
 			retval = dpm->instr_read_data_r0_64(dpm,
 				ARMV8_MOVFSP_64(0),
 				&value_64);
 			break;
-		case 32:
+		case ARMV8_PC:
 			retval = dpm->instr_read_data_r0_64(dpm,
 				ARMV8_MRS_DLR(0),
 				&value_64);
 			break;
-		case 33:
+		case ARMV8_xPSR:
 			retval = dpm->instr_read_data_r0(dpm,
 				ARMV8_MRS_DSPSR(0),
 				&value);
+			break;
 		default:
 			LOG_DEBUG("READ: %s fail", r->name);
 			break;
@@ -244,11 +326,13 @@ static int dpmv8_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 	if (retval == ERROR_OK) {
 		r->valid = true;
 		r->dirty = false;
-		buf_set_u64(r->value, 0, 32, value_64);
-		if (r->size == 64)
+		if (r->size == 64) {
+			buf_set_u64(r->value, 0, 64, value_64);
 			LOG_DEBUG("READ: %s, %16.8llx", r->name, (unsigned long long) value_64);
-		else
+		} else {
+			buf_set_u32(r->value, 0, 32, value);
 			LOG_DEBUG("READ: %s, %8.8x", r->name, (unsigned) value);
+		}
 	}
 	return retval;
 }
@@ -267,23 +351,24 @@ static int dpmv8_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 				ARMV8_MRS(SYSTEM_DBG_DBGDTR_EL0, regnum),
 				value_64);
 			break;
-		case 31:
+		case ARMV8_R31:
 			value_64 = buf_get_u64(r->value, 0, 64);
 			retval = dpm->instr_write_data_r0_64(dpm,
 				ARMV8_MOVTSP_64(0),
 				value_64);
 			break;
-		case 32:
+		case ARMV8_PC:
 			value_64 = buf_get_u64(r->value, 0, 64);
 			retval = dpm->instr_write_data_r0_64(dpm,
 				ARMV8_MSR_DLR(0),
 				value_64);
 			break;
-		case 33:
+		case ARMV8_xPSR:
 			value = buf_get_u32(r->value, 0, 32);
 			retval = dpm->instr_write_data_r0(dpm,
 				ARMV8_MSR_DSPSR(0),
 				value);
+			break;
 		default:
 			LOG_DEBUG("write: %s fail", r->name);
 			break;
@@ -301,6 +386,36 @@ static int dpmv8_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 	return retval;
 }
 
+static inline enum arm_state dpm_get_core_state(uint32_t dscr)
+{
+	int el = (dscr >> 8) & 0x3;
+	int rw = (dscr >> 10) & 0xF;
+
+	LOG_DEBUG("EL:%i, RW:0x%x", el, rw);
+
+	/* DSCR.RW = 0b1111 - all EL are using AArch64 state */
+	if (rw == 0xF)
+		return ARM_STATE_AARCH64;
+
+	/* DSCR.RW = 0b1110 - all EL > 0 are using AArch64 state */
+	if (rw == 0xE && el > 0)
+		return ARM_STATE_AARCH64;
+
+	/* DSCR.RW = 0b110x - all EL > 1 are using Aarch64 state */
+	if ((rw & 0xE) == 0xC && el > 1)
+		return ARM_STATE_AARCH64;
+
+	/* DSCR.RW = 0b10xx - all EL > 2 are using Aarch64 state */
+	if ((rw & 0xC) == 0x8 && el > 2)
+		return ARM_STATE_AARCH64;
+
+	/* DSCR.RW = 0b0xxx - all EL are using AArch32 state */
+	if ((rw & 0x8) == 0)
+		return ARM_STATE_ARM;
+
+	return ARM_STATE_ARM;
+}
+
 /**
  * Read basic registers of the the current context:  R0 to R15, and CPSR;
  * sets the core mode (such as USR or IRQ) and state (such as ARM or Thumb).
@@ -311,7 +426,10 @@ static int dpmv8_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 {
 	struct arm *arm = dpm->arm;
+	struct armv8_common *armv8 = (struct armv8_common *)arm->arch_info;
+	enum arm_state core_state;
 	uint32_t cpsr;
+
 	int retval;
 	struct reg *r;
 
@@ -319,16 +437,22 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 	if (retval != ERROR_OK)
 		return retval;
 
+	core_state = dpm_get_core_state(dpm->dscr);
+
+	armv8_select_opcodes(armv8, core_state);
+
 	/* read R0 first (it's used for scratch), then CPSR */
 	r = arm->core_cache->reg_list + 0;
 	if (!r->valid) {
-		retval = dpmv8_read_reg(dpm, r, 0);
+		retval = core_state == ARM_STATE_AARCH64 ?
+					dpmv8_read_reg(dpm, r, 0) : dpmv8_read_reg32(dpm, r, 0);
 		if (retval != ERROR_OK)
 			goto fail;
 	}
 	r->dirty = true;
+
 	/* read cpsr to r0 and get it back */
-	retval = dpm->instr_read_data_r0(dpm, ARMV8_MRS_DSPSR(0), &cpsr);
+	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_DSPSR), &cpsr);
 	if (retval != ERROR_OK)
 		goto fail;
 
@@ -341,7 +465,9 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 		if (r->valid)
 			continue;
 
-		retval = dpmv8_read_reg(dpm, r, i);
+		retval = core_state == ARM_STATE_AARCH64 ?
+					dpmv8_read_reg(dpm, r, i) : dpmv8_read_reg32(dpm, r, i);
+
 		if (retval != ERROR_OK)
 			goto fail;
 	}
@@ -419,6 +545,7 @@ int armv8_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	struct arm *arm = dpm->arm;
 	struct reg_cache *cache = arm->core_cache;
 	int retval;
+	bool is_aarch64 = arm->core_state == ARM_STATE_AARCH64;
 
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
@@ -480,9 +607,8 @@ int armv8_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 		r = cache->reg_list[i].arch_info;
 		regnum = r->num;
 
-		retval = dpmv8_write_reg(dpm,
-				&cache->reg_list[i],
-				regnum);
+		retval = is_aarch64 ? dpmv8_write_reg(dpm, &cache->reg_list[i], regnum)
+				: dpmv8_write_reg32(dpm, &cache->reg_list[i], regnum);
 		if (retval != ERROR_OK)
 			goto done;
 	}
@@ -497,13 +623,15 @@ int armv8_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 		goto done;
 	arm->cpsr->dirty = false;
 
-	retval = dpmv8_write_reg(dpm, arm->pc, (arm->core_cache->num_regs - 2));
+	retval = is_aarch64 ? dpmv8_write_reg(dpm, arm->pc, (arm->core_cache->num_regs - 2))
+			: dpmv8_write_reg32(dpm, arm->pc, (arm->core_cache->num_regs - 2));
 	if (retval != ERROR_OK)
 		goto done;
 	arm->pc->dirty = false;
 
 	/* flush R0 -- it's *very* dirty by now */
-	retval = dpmv8_write_reg(dpm, &cache->reg_list[0], 0);
+	retval = is_aarch64 ? dpmv8_write_reg(dpm, &cache->reg_list[0], 0)
+			: dpmv8_write_reg32(dpm, &cache->reg_list[0], 0);
 	if (retval != ERROR_OK)
 		goto done;
 	cache->reg_list[0].dirty = false;
@@ -538,7 +666,8 @@ static int armv8_dpm_read_core_reg(struct target *target, struct reg *r,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dpmv8_read_reg(dpm, r, regnum);
+	retval = arm->core_state == ARM_STATE_AARCH64 ?
+			dpmv8_read_reg(dpm, r, regnum) : dpmv8_read_reg32(dpm, r, regnum);
 	if (retval != ERROR_OK)
 		goto fail;
 
@@ -566,7 +695,9 @@ static int armv8_dpm_write_core_reg(struct target *target, struct reg *r,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dpmv8_write_reg(dpm, r, regnum);
+	retval = arm->core_state == ARM_STATE_AARCH64 ?
+			dpmv8_write_reg(dpm, r, regnum) : dpmv8_write_reg32(dpm, r, regnum);
+
 	/* always clean up, regardless of error */
 
 	/* (void) */ dpm->finish(dpm);

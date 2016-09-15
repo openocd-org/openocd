@@ -90,7 +90,10 @@ static int aarch64_restore_system_control_reg(struct target *target)
 					return retval;
 			break;
 			default:
-				LOG_DEBUG("unknow cpu state 0x%x" PRIx32, armv8->arm.core_state);
+				retval = armv8->arm.mcr(target, 15, 0, 0, 1, 0, aarch64->system_control_reg);
+				if (retval != ERROR_OK)
+					return retval;
+				break;
 			}
 	}
 	return retval;
@@ -531,6 +534,7 @@ static int aarch64_instr_write_data_r0(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t data)
 {
 	struct aarch64_common *a8 = dpm_to_a8(dpm);
+
 	uint32_t dscr = DSCR_ITE;
 	int retval;
 
@@ -539,9 +543,7 @@ static int aarch64_instr_write_data_r0(struct arm_dpm *dpm,
 		return retval;
 
 	retval = aarch64_exec_opcode(
-			a8->armv8_common.arm.target,
-			ARMV8_MRS(SYSTEM_DBG_DTRRX_EL0, 0),
-			&dscr);
+			a8->armv8_common.arm.target, armv8_opcode(&a8->armv8_common, READ_REG_DTRRX), &dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -584,12 +586,11 @@ static int aarch64_instr_write_data_r0_64(struct arm_dpm *dpm,
 static int aarch64_instr_cpsr_sync(struct arm_dpm *dpm)
 {
 	struct target *target = dpm->arm->target;
+	struct armv8_common *armv8 = target_to_armv8(target);
 	uint32_t dscr = DSCR_ITE;
 
 	/* "Prefetch flush" after modifying execution status in CPSR */
-	return aarch64_exec_opcode(target,
-			DSB_SY,
-			&dscr);
+	return aarch64_exec_opcode(target, armv8_opcode(armv8, ARMV8_OPC_DSB_SY), &dscr);
 }
 
 static int aarch64_instr_read_data_dcc(struct arm_dpm *dpm,
@@ -645,9 +646,7 @@ static int aarch64_instr_read_data_r0(struct arm_dpm *dpm,
 
 	/* write R0 to DCC */
 	retval = aarch64_exec_opcode(
-			a8->armv8_common.arm.target,
-			ARMV8_MSR_GP(SYSTEM_DBG_DTRTX_EL0, 0),  /* msr dbgdtr_el0, x0 */
-			&dscr);
+			a8->armv8_common.arm.target, armv8_opcode(&a8->armv8_common, WRITE_REG_DTRTX), &dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -999,20 +998,6 @@ static int aarch64_internal_restore(struct target *target, int current,
 	/* registers are now invalid */
 	register_cache_invalidate(arm->core_cache);
 
-#if 0
-	/* the front-end may request us not to handle breakpoints */
-	if (handle_breakpoints) {
-		/* Single step past breakpoint at current address */
-		breakpoint = breakpoint_find(target, resume_pc);
-		if (breakpoint) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
-			cortex_m3_unset_breakpoint(target, breakpoint);
-			cortex_m3_single_step_core(target);
-			cortex_m3_set_breakpoint(target, breakpoint);
-		}
-	}
-#endif
-
 	return retval;
 }
 
@@ -1202,8 +1187,10 @@ static int aarch64_post_debug_entry(struct target *target)
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	int retval;
 
+	/* clear sticky errors */
 	mem_ap_write_atomic_u32(armv8->debug_ap,
-				    armv8->debug_base + CPUV8_DBG_DRCR, 1<<2);
+				    armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
+
 	switch (armv8->arm.core_mode) {
 		case ARMV8_64_EL0T:
 		case ARMV8_64_EL1T:
@@ -1234,8 +1221,12 @@ static int aarch64_post_debug_entry(struct target *target)
 				return retval;
 		break;
 		default:
-			LOG_DEBUG("unknow cpu state 0x%x" PRIx32, armv8->arm.core_state);
+			retval = armv8->arm.mrc(target, 15, 0, 0, 1, 0, &aarch64->system_control_reg);
+			if (retval != ERROR_OK)
+				return retval;
+			break;
 	}
+
 	LOG_DEBUG("System_register: %8.8" PRIx32, aarch64->system_control_reg);
 	aarch64->system_control_reg_curr = aarch64->system_control_reg;
 

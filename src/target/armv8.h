@@ -116,6 +116,10 @@ struct armv8_mmu_common {
 	uint64_t ttbr0_mask;/*  masked to be used  */
 	uint32_t os_border;
 
+	uint32_t ttbcr;     /* cache for ttbcr register */
+	uint32_t ttbr_mask[2];
+	uint32_t ttbr_range[2];
+
 	int (*read_physical_memory)(struct target *target, target_addr_t address,
 			uint32_t size, uint32_t count, uint8_t *buffer);
 	struct armv8_cache_common armv8_cache;
@@ -133,6 +137,8 @@ struct armv8_common {
 	uint32_t cti_base;
 	struct adiv5_ap *debug_ap;
 
+	const uint32_t *opcodes;
+
 	/* mdir */
 	uint8_t multi_processor_system;
 	uint8_t cluster_id;
@@ -144,7 +150,6 @@ struct armv8_common {
 	uint32_t page_size;
 	uint64_t ttbr_base;
 
-	/* cache specific to V7 Memory Management Unit compatible with v4_5*/
 	struct armv8_mmu_common armv8_mmu;
 
 	/* Direct processor core register read and writes */

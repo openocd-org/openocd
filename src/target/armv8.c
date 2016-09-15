@@ -38,7 +38,7 @@
 #include "target_type.h"
 
 static const char * const armv8_state_strings[] = {
-	"ARM", "Thumb", "Jazelle", "ThumbEE", "ARM64",
+	"AArch32", "Thumb", "Jazelle", "ThumbEE", "AArch64",
 };
 
 static const struct {
@@ -52,6 +52,30 @@ static const struct {
 } armv8_mode_data[] = {
 	/* These special modes are currently only supported
 	 * by ARMv6M and ARMv7M profiles */
+	{
+		.name = "USR",
+		.psr = ARM_MODE_USR,
+	},
+	{
+		.name = "FIQ",
+		.psr = ARM_MODE_FIQ,
+	},
+	{
+		.name = "IRQ",
+		.psr = ARM_MODE_IRQ,
+	},
+	{
+		.name = "SVC",
+		.psr = ARM_MODE_SVC,
+	},
+	{
+		.name = "MON",
+		.psr = ARM_MODE_MON,
+	},
+	{
+		.name = "ABT",
+		.psr = ARM_MODE_ABT,
+	},
 	{
 		.name = "EL0T",
 		.psr = ARMV8_64_EL0T,
@@ -260,9 +284,59 @@ void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
 		armv8_state_strings[arm->core_state]);
 }
 
+static void armv8_show_fault_registers32(struct armv8_common *armv8)
+{
+	uint32_t dfsr, ifsr, dfar, ifar;
+	struct arm_dpm *dpm = armv8->arm.dpm;
+	int retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return;
+
+	/* ARMV4_5_MRC(cpnum, op1, r0, CRn, CRm, op2) */
+
+	/* c5/c0 - {data, instruction} fault status registers */
+	retval = dpm->instr_read_data_r0(dpm,
+			T32_FMTITR(ARMV4_5_MRC(15, 0, 0, 5, 0, 0)),
+			&dfsr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm,
+			T32_FMTITR(ARMV4_5_MRC(15, 0, 0, 5, 0, 1)),
+			&ifsr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	/* c6/c0 - {data, instruction} fault address registers */
+	retval = dpm->instr_read_data_r0(dpm,
+			T32_FMTITR(ARMV4_5_MRC(15, 0, 0, 6, 0, 0)),
+			&dfar);
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm,
+			T32_FMTITR(ARMV4_5_MRC(15, 0, 0, 6, 0, 2)),
+			&ifar);
+	if (retval != ERROR_OK)
+		goto done;
+
+	LOG_USER("Data fault registers        DFSR: %8.8" PRIx32
+		", DFAR: %8.8" PRIx32, dfsr, dfar);
+	LOG_USER("Instruction fault registers IFSR: %8.8" PRIx32
+		", IFAR: %8.8" PRIx32, ifsr, ifar);
+
+done:
+	/* (void) */ dpm->finish(dpm);
+}
+
 static void armv8_show_fault_registers(struct target *target)
 {
-	/* TODO */
+	struct armv8_common *armv8 = target_to_armv8(target);
+
+	if (armv8->arm.core_state != ARM_STATE_AARCH64)
+		armv8_show_fault_registers32(armv8);
 }
 
 static uint8_t armv8_pa_size(uint32_t ps)
@@ -292,6 +366,45 @@ static uint8_t armv8_pa_size(uint32_t ps)
 			break;
 	}
 	return ret;
+}
+
+static int armv8_read_ttbcr32(struct target *target)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	struct arm_dpm *dpm = armv8->arm.dpm;
+	uint32_t ttbcr, ttbcr_n;
+	int retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+	/*  MRC p15,0,<Rt>,c2,c0,2 ; Read CP15 Translation Table Base Control Register*/
+	retval = dpm->instr_read_data_r0(dpm,
+			T32_FMTITR(ARMV4_5_MRC(15, 0, 0, 2, 0, 2)),
+			&ttbcr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	LOG_DEBUG("ttbcr %" PRIx32, ttbcr);
+
+	ttbcr_n = ttbcr & 0x7;
+	armv8->armv8_mmu.ttbcr = ttbcr;
+
+	/*
+	 * ARM Architecture Reference Manual (ARMv7-A and ARMv7-Redition),
+	 * document # ARM DDI 0406C
+	 */
+	armv8->armv8_mmu.ttbr_range[0]  = 0xffffffff >> ttbcr_n;
+	armv8->armv8_mmu.ttbr_range[1] = 0xffffffff;
+	armv8->armv8_mmu.ttbr_mask[0] = 0xffffffff << (14 - ttbcr_n);
+	armv8->armv8_mmu.ttbr_mask[1] = 0xffffffff << 14;
+
+	LOG_DEBUG("ttbr1 %s, ttbr0_mask %" PRIx32 " ttbr1_mask %" PRIx32,
+		  (ttbcr_n != 0) ? "used" : "not used",
+		  armv8->armv8_mmu.ttbr_mask[0],
+		  armv8->armv8_mmu.ttbr_mask[1]);
+
+done:
+	dpm->finish(dpm);
+	return retval;
 }
 
 static int armv8_read_ttbcr(struct target *target)
@@ -528,14 +641,13 @@ static int armv8_read_mpidr(struct target *target)
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
 	uint32_t mpidr;
+
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
 	/* MRC p15,0,<Rd>,c0,c0,5; read Multiprocessor ID register*/
 
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_MPIDR, 0),
-			&mpidr);
+	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
 	if (retval != ERROR_OK)
 		goto done;
 	if (mpidr & 1<<31) {
@@ -566,18 +678,21 @@ int armv8_identify_cache(struct target *target)
 	uint32_t cache_selected, clidr;
 	uint32_t cache_i_reg, cache_d_reg;
 	struct armv8_cache_common *cache = &(armv8->armv8_mmu.armv8_cache);
-	armv8_read_ttbcr(target);
-	retval = dpm->prepare(dpm);
+	int is_aarch64 = armv8->arm.core_state == ARM_STATE_AARCH64;
 
+	retval = is_aarch64 ? armv8_read_ttbcr(target) : armv8_read_ttbcr32(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
-	/*	retrieve CLIDR
-	 *	mrc p15, 1, r0, c0, c0, 1		@ read clidr */
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_CLIDR, 0),
-			&clidr);
+
+	/*	retrieve CLIDR */
+	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CLIDR), &clidr);
 	if (retval != ERROR_OK)
 		goto done;
+
 	clidr = (clidr & 0x7000000) >> 23;
 	LOG_INFO("number of cache level %" PRIx32, (uint32_t)(clidr / 2));
 	if ((clidr / 2) > 1) {
@@ -586,18 +701,13 @@ int armv8_identify_cache(struct target *target)
 		LOG_ERROR("cache l2 present :not supported");
 	}
 	/*	retrieve selected cache*/
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_CSSELR, 0),
-			&cache_selected);
+	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CSSELR), &cache_selected);
 	if (retval != ERROR_OK)
 		goto done;
 
-
 	/* select instruction cache
 	 *	[0]  : 1 instruction cache selection , 0 data cache selection */
-	retval = dpm->instr_write_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_CSSELR, 0),
-			1);
+	retval = dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_CSSELR), 1);
 	if (retval != ERROR_OK)
 		goto done;
 
@@ -605,30 +715,21 @@ int armv8_identify_cache(struct target *target)
 	 * MRC P15,1,<RT>,C0, C0,0 ;on cortex A9 read CCSIDR
 	 * [2:0] line size	001 eight word per line
 	 * [27:13] NumSet 0x7f 16KB, 0xff 32Kbytes, 0x1ff 64Kbytes */
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_CCSIDR, 0),
-			&cache_i_reg);
+	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CCSIDR), &cache_i_reg);
 	if (retval != ERROR_OK)
 		goto done;
 
 	/*	select data cache*/
-	retval = dpm->instr_write_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_CSSELR, 0),
-			0);
+	retval = dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_CSSELR), 0);
 	if (retval != ERROR_OK)
 		goto done;
 
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_CCSIDR, 0),
-			&cache_d_reg);
+	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CCSIDR), &cache_d_reg);
 	if (retval != ERROR_OK)
 		goto done;
 
 	/*	restore selected cache	*/
-	dpm->instr_write_data_r0(dpm,
-		ARMV8_MRS(SYSTEM_CSSELR, 0),
-		cache_selected);
-
+	dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_CSSELR), cache_selected);
 	if (retval != ERROR_OK)
 		goto done;
 	dpm->finish(dpm);
@@ -770,6 +871,7 @@ int armv8_arch_state(struct target *target)
 
 	if (arm->core_mode == ARM_MODE_ABT)
 		armv8_show_fault_registers(target);
+
 	if (target->debug_reason == DBG_REASON_WATCHPOINT)
 		LOG_USER("Watchpoint triggered at PC %#08x",
 			(unsigned) armv8->dpm.wp_pc);
