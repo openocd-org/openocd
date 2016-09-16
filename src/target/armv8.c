@@ -724,6 +724,27 @@ int armv8_init_arch_info(struct target *target, struct armv8_common *armv8)
 	return ERROR_OK;
 }
 
+int armv8_aarch64_state(struct target *target)
+{
+	struct arm *arm = target_to_arm(target);
+
+	if (arm->common_magic != ARM_COMMON_MAGIC) {
+		LOG_ERROR("BUG: called for a non-ARM target");
+		return ERROR_FAIL;
+	}
+
+	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
+		"cpsr: 0x%8.8" PRIx32 " pc: 0x%" PRIx64 "%s",
+		armv8_state_strings[arm->core_state],
+		debug_reason_name(target),
+		armv8_mode_name(arm->core_mode),
+		buf_get_u32(arm->cpsr->value, 0, 32),
+		buf_get_u64(arm->pc->value, 0, 64),
+		arm->is_semihosting ? ", semihosting" : "");
+
+	return ERROR_OK;
+}
+
 int armv8_arch_state(struct target *target)
 {
 	static const char * const state[] = {
@@ -738,18 +759,15 @@ int armv8_arch_state(struct target *target)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	arm_arch_state(target);
+	if (arm->core_state == ARM_STATE_AARCH64)
+		armv8_aarch64_state(target);
+	else
+		arm_arch_state(target);
 
-	if (armv8->is_armv7r) {
-		LOG_USER("D-Cache: %s, I-Cache: %s",
-			state[armv8->armv8_mmu.armv8_cache.d_u_cache_enabled],
-			state[armv8->armv8_mmu.armv8_cache.i_cache_enabled]);
-	} else {
-		LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s",
-			state[armv8->armv8_mmu.mmu_enabled],
-			state[armv8->armv8_mmu.armv8_cache.d_u_cache_enabled],
-			state[armv8->armv8_mmu.armv8_cache.i_cache_enabled]);
-	}
+	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s",
+		state[armv8->armv8_mmu.mmu_enabled],
+		state[armv8->armv8_mmu.armv8_cache.d_u_cache_enabled],
+		state[armv8->armv8_mmu.armv8_cache.i_cache_enabled]);
 
 	if (arm->core_mode == ARM_MODE_ABT)
 		armv8_show_fault_registers(target);
