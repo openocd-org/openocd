@@ -1140,49 +1140,45 @@ static int aarch64_resume(struct target *target, int current,
 
 static int aarch64_debug_entry(struct target *target)
 {
-	uint32_t dscr;
 	int retval = ERROR_OK;
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = target_to_armv8(target);
-	uint32_t tmp;
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, aarch64->cpudbg_dscr);
-
-	/* REVISIT surely we should not re-read DSCR !! */
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
-	if (retval != ERROR_OK)
-		return retval;
 
 	/* REVISIT see A8 TRM 12.11.4 steps 2..3 -- make sure that any
 	 * imprecise data aborts get discarded by issuing a Data
 	 * Synchronization Barrier:  ARMV4_5_MCR(15, 0, 0, 7, 10, 4).
 	 */
 
-	/* Enable the ITR execution once we are in debug mode */
-	dscr |= DSCR_ITR_EN;
+	/* make sure to clear all sticky errors */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, dscr);
+			armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Examine debug reason */
-	arm_dpm_report_dscr(&armv8->dpm, aarch64->cpudbg_dscr);
-	mem_ap_read_atomic_u32(armv8->debug_ap,
-				   armv8->debug_base + CPUV8_DBG_EDESR, &tmp);
-	if ((tmp & 0x7) == 0x4)
-		target->debug_reason = DBG_REASON_SINGLESTEP;
+	armv8_dpm_report_dscr(&armv8->dpm, aarch64->cpudbg_dscr);
 
 	/* save address of instruction that triggered the watchpoint? */
 	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
-		uint32_t wfar;
+		uint32_t tmp;
+		uint64_t wfar = 0;
 
 		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_WFAR0,
-				&wfar);
+				armv8->debug_base + CPUV8_DBG_WFAR1,
+				&tmp);
 		if (retval != ERROR_OK)
 			return retval;
-		arm_dpm_report_wfar(&armv8->dpm, wfar);
+		wfar = tmp;
+		wfar = (wfar << 32);
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_WFAR0,
+				&tmp);
+		if (retval != ERROR_OK)
+			return retval;
+		wfar |= tmp;
+		armv8_dpm_report_wfar(&armv8->dpm, wfar);
 	}
 
 	retval = armv8_dpm_read_current_registers(&armv8->dpm);

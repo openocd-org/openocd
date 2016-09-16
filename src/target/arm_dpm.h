@@ -138,7 +138,7 @@ struct arm_dpm {
 	struct dpm_wp *dwp;
 
 	/** Address of the instruction which triggered a watchpoint. */
-	uint32_t wp_pc;
+	target_addr_t wp_pc;
 
 	/** Recent value of DSCR. */
 	uint32_t dscr;
