@@ -930,20 +930,16 @@ void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 
 	/* Examine debug reason */
 	switch (DSCR_ENTRY(dscr)) {
-		case 6:	/* Data abort (v6 only) */
-		case 7:	/* Prefetch abort (v6 only) */
-		/* FALL THROUGH -- assume a v6 core in abort mode */
-		case 0:	/* HALT request from debugger */
-		case 4:	/* EDBGRQ */
+		case DSCR_ENTRY_HALT_REQ:	/* HALT request from debugger */
+		case DSCR_ENTRY_EXT_DBG_REQ:	/* EDBGRQ */
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
-		case 1:	/* HW breakpoint */
-		case 3:	/* SW BKPT */
-		case 5:	/* vector catch */
+		case DSCR_ENTRY_BREAKPOINT:	/* HW breakpoint */
+		case DSCR_ENTRY_BKPT_INSTR:	/* vector catch */
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
-		case 2:	/* asynch watchpoint */
-		case 10:/* precise watchpoint */
+		case DSCR_ENTRY_IMPRECISE_WATCHPT:	/* asynch watchpoint */
+		case DSCR_ENTRY_PRECISE_WATCHPT:/* precise watchpoint */
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 			break;
 		default:

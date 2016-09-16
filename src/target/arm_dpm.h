@@ -186,21 +186,21 @@ void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 #define DSCR_DTR_TX_FULL            (0x1 << 29)
 #define DSCR_DTR_RX_FULL            (0x1 << 30) /* bit 31 is reserved */
 
-#define DSCR_ENTRY(dscr)            (((dscr) >> 2) & 0xf)
-#define DSCR_RUN_MODE(dscr)         ((dscr) & (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED))
+#define DSCR_ENTRY(dscr)            ((dscr) & 0x3f)
+#define DSCR_RUN_MODE(dscr)         ((dscr) & 0x03)
 
 
 /* Methods of entry into debug mode */
-#define DSCR_ENTRY_HALT_REQ           (0x0 << 2)
-#define DSCR_ENTRY_BREAKPOINT         (0x1 << 2)
-#define DSCR_ENTRY_IMPRECISE_WATCHPT  (0x2 << 2)
-#define DSCR_ENTRY_BKPT_INSTR         (0x3 << 2)
-#define DSCR_ENTRY_EXT_DBG_REQ        (0x4 << 2)
-#define DSCR_ENTRY_VECT_CATCH         (0x5 << 2)
-#define DSCR_ENTRY_D_SIDE_ABORT       (0x6 << 2)  /* v6 only */
-#define DSCR_ENTRY_I_SIDE_ABORT       (0x7 << 2)  /* v6 only */
-#define DSCR_ENTRY_OS_UNLOCK          (0x8 << 2)
-#define DSCR_ENTRY_PRECISE_WATCHPT    (0xA << 2)
+#define DSCR_ENTRY_HALT_REQ           (0x03)
+#define DSCR_ENTRY_BREAKPOINT         (0x07)
+#define DSCR_ENTRY_IMPRECISE_WATCHPT  (0x0B)
+#define DSCR_ENTRY_BKPT_INSTR         (0x0F)
+#define DSCR_ENTRY_EXT_DBG_REQ        (0x13)
+#define DSCR_ENTRY_VECT_CATCH         (0x17)
+#define DSCR_ENTRY_D_SIDE_ABORT       (0x1B)  /* v6 only */
+#define DSCR_ENTRY_I_SIDE_ABORT       (0x1F)  /* v6 only */
+#define DSCR_ENTRY_OS_UNLOCK          (0x23)
+#define DSCR_ENTRY_PRECISE_WATCHPT    (0x2B)
 
 /* DTR modes */
 #define DSCR_EXT_DCC_NON_BLOCKING     (0x0 << 20)

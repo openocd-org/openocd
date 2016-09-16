@@ -879,12 +879,8 @@ static int cortex_a_poll(struct target *target)
 					TARGET_EVENT_DEBUG_HALTED);
 			}
 		}
-	} else if (DSCR_RUN_MODE(dscr) == DSCR_CORE_RESTARTED)
+	} else
 		target->state = TARGET_RUNNING;
-	else {
-		LOG_DEBUG("Unknown target state dscr = 0x%08" PRIx32, dscr);
-		target->state = TARGET_UNKNOWN;
-	}
 
 	return retval;
 }

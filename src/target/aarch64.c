@@ -835,7 +835,7 @@ static int aarch64_poll(struct target *target)
 		return retval;
 	aarch64->cpudbg_dscr = dscr;
 
-	if (DSCR_RUN_MODE(dscr) == (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED)) {
+	if (DSCR_RUN_MODE(dscr) == 0x3) {
 		if (prev_target_state != TARGET_HALTED) {
 			/* We have a halting debug event */
 			LOG_DEBUG("Target halted");
@@ -870,12 +870,8 @@ static int aarch64_poll(struct target *target)
 					TARGET_EVENT_DEBUG_HALTED);
 			}
 		}
-	} else if (DSCR_RUN_MODE(dscr) == DSCR_CORE_RESTARTED)
+	} else
 		target->state = TARGET_RUNNING;
-	else {
-		LOG_DEBUG("Unknown target state dscr = 0x%08" PRIx32, dscr);
-		target->state = TARGET_UNKNOWN;
-	}
 
 	return retval;
 }
