@@ -796,59 +796,49 @@ static int aarch64_halt(struct target *target)
 	uint32_t dscr;
 	struct armv8_common *armv8 = target_to_armv8(target);
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0, &dscr);
+	/* enable CTI*/
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0, 1);
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0, &dscr);
+			armv8->cti_base + CTI_CTR, 1);
+	if (retval != ERROR_OK)
+		return retval;
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x140, &dscr);
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x140, 6);
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x140, &dscr);
+			armv8->cti_base + CTI_GATE, 3);
+	if (retval != ERROR_OK)
+		return retval;
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0xa0, &dscr);
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0xa0, 5);
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0xa0, &dscr);
+			armv8->cti_base + CTI_OUTEN0, 1);
+	if (retval != ERROR_OK)
+		return retval;
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0xa4, &dscr);
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0xa4, 2);
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0xa4, &dscr);
-
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x20, &dscr);
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x20, 4);
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x20, &dscr);
+			armv8->cti_base + CTI_OUTEN1, 2);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/*
-	 * enter halting debug mode
+	 * add HDE in halting debug mode
 	 */
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
-#	/* STATUS */
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x134, &dscr);
-
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x1c, &dscr);
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x1c, 1);
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x1c, &dscr);
+			armv8->debug_base + CPUV8_DBG_DSCR, dscr | DSCR_HDE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->cti_base + CTI_APPPULSE, 1);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->cti_base + CTI_INACK, 1);
+	if (retval != ERROR_OK)
+		return retval;
 
 
 	long long then = timeval_ms();
@@ -857,7 +847,7 @@ static int aarch64_halt(struct target *target)
 				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
 			return retval;
-		if ((dscr & DSCR_CORE_HALTED) != 0)
+		if ((dscr & DSCRV8_HALT_MASK) != 0)
 			break;
 		if (timeval_ms() > then + 1000) {
 			LOG_ERROR("Timeout waiting for halt");
@@ -969,23 +959,7 @@ static int aarch64_internal_restart(struct target *target)
 		LOG_ERROR("DSCR InstrCompl must be set before leaving debug!");
 
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, dscr & ~DSCR_ITR_EN);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DRCR, DRCR_RESTART |
-			DRCR_CLEAR_EXCEPTIONS);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x10, 1);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x10000 + 0x1c, 2);
+			armv8->cti_base + CTI_APPPULSE, 2);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -995,7 +969,7 @@ static int aarch64_internal_restart(struct target *target)
 				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
 			return retval;
-		if ((dscr & DSCR_CORE_RESTARTED) != 0)
+		if ((dscr & DSCR_HDE) != 0)
 			break;
 		if (timeval_ms() > then + 1000) {
 			LOG_ERROR("Timeout waiting for resume");
@@ -1061,11 +1035,11 @@ static int aarch64_resume(struct target *target, int current,
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%" PRIu64, addr);
+		LOG_DEBUG("target resumed at 0x%" PRIx64, addr);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%" PRIu64, addr);
+		LOG_DEBUG("target debug resumed at 0x%" PRIx64, addr);
 	}
 
 	return ERROR_OK;
@@ -2315,6 +2289,12 @@ static int aarch64_examine_first(struct target *target)
 			  coreidx, armv8->debug_base);
 	} else
 		armv8->debug_base = target->dbgbase;
+
+	LOG_DEBUG("Target ctibase is 0x%x", target->ctibase);
+	if (target->ctibase == 0)
+		armv8->cti_base = target->ctibase = armv8->debug_base + 0x1000;
+	else
+		armv8->cti_base = target->ctibase;
 
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_LOCKACCESS, 0xC5ACCE55);

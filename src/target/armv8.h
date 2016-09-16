@@ -130,6 +130,8 @@ struct armv8_common {
 	/* Core Debug Unit */
 	struct arm_dpm dpm;
 	uint32_t debug_base;
+	uint32_t cti_base;
+
 	struct adiv5_ap *debug_ap;
 	struct adiv5_ap *memory_ap;
 	bool memory_ap_available;
@@ -190,6 +192,35 @@ target_to_armv8(struct target *target)
 #define CPUV8_DBG_OSLAR		0x300
 
 #define CPUV8_DBG_AUTHSTATUS	0xFB8
+
+/*define CTI(cross trigger interface)*/
+#define CTI_CTR				0x0
+#define CTI_INACK			0x10
+#define CTI_APPSET			0x14
+#define CTI_APPCLEAR		0x18
+#define CTI_APPPULSE		0x1C
+#define CTI_INEN0			0x20
+#define CTI_INEN1			0x24
+#define CTI_INEN2			0x28
+#define CTI_INEN3			0x2C
+#define CTI_INEN4			0x30
+#define CTI_INEN5			0x34
+#define CTI_INEN6			0x38
+#define CTI_INEN7			0x3C
+#define CTI_OUTEN0			0xA0
+#define CTI_OUTEN1			0xA4
+#define CTI_OUTEN2			0xA8
+#define CTI_OUTEN3			0xAC
+#define CTI_OUTEN4			0xB0
+#define CTI_OUTEN5			0xB4
+#define CTI_OUTEN6			0xB8
+#define CTI_OUTEN7			0xBC
+#define CTI_TRIN_STATUS		0x130
+#define CTI_TROUT_STATUS	0x134
+#define CTI_CHIN_STATUS		0x138
+#define CTI_CHOU_STATUS		0x13C
+#define CTI_GATE			0x140
+#define CTI_UNLOCK			0xFB0
 
 
 int armv8_arch_state(struct target *target);
