@@ -228,6 +228,18 @@ target_to_armv8(struct target *target)
 #define CTI_GATE			0x140
 #define CTI_UNLOCK			0xFB0
 
+#define PAGE_SIZE_4KB				0x1000
+#define PAGE_SIZE_4KB_LEVEL0_BITS	39
+#define PAGE_SIZE_4KB_LEVEL1_BITS	30
+#define PAGE_SIZE_4KB_LEVEL2_BITS	21
+#define PAGE_SIZE_4KB_LEVEL3_BITS	12
+
+#define PAGE_SIZE_4KB_LEVEL0_MASK	((0x1FFULL) << PAGE_SIZE_4KB_LEVEL0_BITS)
+#define PAGE_SIZE_4KB_LEVEL1_MASK	((0x1FFULL) << PAGE_SIZE_4KB_LEVEL1_BITS)
+#define PAGE_SIZE_4KB_LEVEL2_MASK	((0x1FFULL) << PAGE_SIZE_4KB_LEVEL2_BITS)
+#define PAGE_SIZE_4KB_LEVEL3_MASK	((0x1FFULL) << PAGE_SIZE_4KB_LEVEL3_BITS)
+
+#define PAGE_SIZE_4KB_TRBBASE_MASK	0xFFFFFFFFF000
 
 int armv8_arch_state(struct target *target);
 int armv8_identify_cache(struct target *target);

@@ -383,104 +383,30 @@ done:
 	return retval;
 }
 
+static int armv8_4K_translate(struct target *target,  uint32_t va, uint32_t *val)
+{
+	LOG_ERROR("4K page Address translation need to add");
+	return ERROR_FAIL;
+}
+
 
 /*  method adapted to cortex A : reused arm v4 v5 method*/
 int armv8_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 {
-	uint32_t first_lvl_descriptor = 0x0;
-	uint32_t second_lvl_descriptor = 0x0;
-	int retval;
+	int retval = ERROR_FAIL;
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
-	uint32_t ttb = 0;	/*  default ttb0 */
-	if (armv8->armv8_mmu.ttbr1_used == -1)
-		armv8_read_ttbcr(target);
-	if ((armv8->armv8_mmu.ttbr1_used) &&
-		(va > (0xffffffff & armv8->armv8_mmu.ttbr0_mask))) {
-		/*  select ttb 1 */
-		ttb = 1;
-	}
+
 	retval = dpm->prepare(dpm);
+	retval += armv8_read_ttbcr(target);
 	if (retval != ERROR_OK)
 		goto done;
-
-	/*  MRC p15,0,<Rt>,c2,c0,ttb */
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 0, 0, 2, 0, ttb),
-			&ttb);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = armv8->armv8_mmu.read_physical_memory(target,
-			(ttb & 0xffffc000) | ((va & 0xfff00000) >> 18),
-			4, 1, (uint8_t *)&first_lvl_descriptor);
-	if (retval != ERROR_OK)
-		return retval;
-	first_lvl_descriptor = target_buffer_get_u32(target, (uint8_t *)
-			&first_lvl_descriptor);
-	/*  reuse armv4_5 piece of code, specific armv8 changes may come later */
-	LOG_DEBUG("1st lvl desc: %8.8" PRIx32 "", first_lvl_descriptor);
-
-	if ((first_lvl_descriptor & 0x3) == 0) {
-		LOG_ERROR("Address translation failure");
-		return ERROR_TARGET_TRANSLATION_FAULT;
-	}
-
-
-	if ((first_lvl_descriptor & 0x3) == 2) {
-		/* section descriptor */
-		*val = (first_lvl_descriptor & 0xfff00000) | (va & 0x000fffff);
-		return ERROR_OK;
-	}
-
-	if ((first_lvl_descriptor & 0x3) == 1) {
-		/* coarse page table */
-		retval = armv8->armv8_mmu.read_physical_memory(target,
-				(first_lvl_descriptor & 0xfffffc00) | ((va & 0x000ff000) >> 10),
-				4, 1, (uint8_t *)&second_lvl_descriptor);
-		if (retval != ERROR_OK)
-			return retval;
-	} else if ((first_lvl_descriptor & 0x3) == 3)   {
-		/* fine page table */
-		retval = armv8->armv8_mmu.read_physical_memory(target,
-				(first_lvl_descriptor & 0xfffff000) | ((va & 0x000ffc00) >> 8),
-				4, 1, (uint8_t *)&second_lvl_descriptor);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	second_lvl_descriptor = target_buffer_get_u32(target, (uint8_t *)
-			&second_lvl_descriptor);
-
-	LOG_DEBUG("2nd lvl desc: %8.8" PRIx32 "", second_lvl_descriptor);
-
-	if ((second_lvl_descriptor & 0x3) == 0) {
-		LOG_ERROR("Address translation failure");
-		return ERROR_TARGET_TRANSLATION_FAULT;
-	}
-
-	if ((second_lvl_descriptor & 0x3) == 1) {
-		/* large page descriptor */
-		*val = (second_lvl_descriptor & 0xffff0000) | (va & 0x0000ffff);
-		return ERROR_OK;
-	}
-
-	if ((second_lvl_descriptor & 0x3) == 2) {
-		/* small page descriptor */
-		*val = (second_lvl_descriptor & 0xfffff000) | (va & 0x00000fff);
-		return ERROR_OK;
-	}
-
-	if ((second_lvl_descriptor & 0x3) == 3) {
-		*val = (second_lvl_descriptor & 0xfffffc00) | (va & 0x000003ff);
-		return ERROR_OK;
-	}
-
-	/* should not happen */
-	LOG_ERROR("Address translation failure");
-	return ERROR_TARGET_TRANSLATION_FAULT;
+	if (armv8->page_size == 0)
+		return armv8_4K_translate(target, va, val);
 
 done:
-	return retval;
+	dpm->finish(dpm);
+	return ERROR_FAIL;
 }
 
 /*  V8 method VA TO PA  */

@@ -2623,12 +2623,8 @@ static int aarch64_virt2phys(struct target *target, target_addr_t virt,
 		if (retval != ERROR_OK)
 			goto done;
 		*phys = ret;
-	} else {/*  use this method if armv8->memory_ap not selected
-		 *  mmu must be enable in order to get a correct translation */
-		retval = aarch64_mmu_modify(target, 1);
-		if (retval != ERROR_OK)
-			goto done;
-		retval = armv8_mmu_translate_va_pa(target, virt,  phys, 1);
+	} else {
+		LOG_ERROR("AAR64 processor not support translate va to pa");
 	}
 done:
 	return retval;
