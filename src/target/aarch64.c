@@ -1369,7 +1369,7 @@ static int aarch64_set_breakpoint(struct target *target,
 
 	} else if (breakpoint->type == BKPT_SOFT) {
 		uint8_t code[4];
-		buf_set_u32(code, 0, 32, ARMV8_BKPT(0x11));
+		buf_set_u32(code, 0, 32, ARMV8_HLT(0x11));
 		retval = target_read_memory(target,
 				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
 				breakpoint->length, 1,

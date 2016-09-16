@@ -116,7 +116,10 @@
 /* ARM V8 Move immediate to process state field. */
 #define ARMV8_MSR_IM(Op1, CRm, Op2) \
 	(0xd500401f | ((Op1) << 16)  | ((CRm) << 8) | ((Op2) << 5))
+
 #define ARMV8_BKPT(Im) (0xD4200000 | ((Im & 0xffff) << 5))
+#define ARMV8_HLT(Im) (0x0D4400000 | ((Im & 0xffff) << 5))
+
 #define ARMV8_MOVFSP_64(Rt) ((1 << 31) | 0x11000000 | (0x1f << 5) | (Rt))
 #define ARMV8_MOVTSP_64(Rt) ((1 << 31) | 0x11000000 | (Rt << 5) | (0x1F))
 #define ARMV8_MOVFSP_32(Rt) (0x11000000 | (0x1f << 5) | (Rt))

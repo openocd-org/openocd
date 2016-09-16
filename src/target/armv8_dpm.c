@@ -869,7 +869,6 @@ void armv8_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 	/* Examine debug reason */
 	switch (DSCR_ENTRY(dscr)) {
 		/* FALL THROUGH -- assume a v6 core in abort mode */
-		case DSCRV8_ENTRY_HLT:	/* HALT request from debugger */
 		case DSCRV8_ENTRY_EXT_DEBUG:	/* EDBGRQ */
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
@@ -878,7 +877,8 @@ void armv8_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 		case DSCRV8_ENTRY_HALT_STEP:
 			target->debug_reason = DBG_REASON_SINGLESTEP;
 			break;
-		case DSCRV8_ENTRY_BKPT:	/* SW BKPT */
+		case DSCRV8_ENTRY_HLT:	/* HLT instruction (software breakpoint) */
+		case DSCRV8_ENTRY_BKPT:	/* SW BKPT (?) */
 		case DSCRV8_ENTRY_RESET_CATCH:	/* Reset catch */
 		case DSCRV8_ENTRY_OS_UNLOCK:  /*OS unlock catch*/
 		case DSCRV8_ENTRY_EXCEPTION_CATCH:  /*exception catch*/
