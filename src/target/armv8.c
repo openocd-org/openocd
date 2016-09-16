@@ -845,14 +845,20 @@ static int armv8_set_core_reg(struct reg *reg, uint8_t *buf)
 {
 	struct arm_reg *armv8_reg = reg->arch_info;
 	struct target *target = armv8_reg->target;
+	struct arm *arm = target_to_arm(target);
 	uint64_t value = buf_get_u64(buf, 0, 64);
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	buf_set_u64(reg->value, 0, 64, value);
+	if (reg == arm->cpsr) {
+		armv8_set_cpsr(arm, (uint32_t)value);
+	} else {
+		buf_set_u64(reg->value, 0, 64, value);
+		reg->valid = 1;
+	}
+
 	reg->dirty = 1;
-	reg->valid = 1;
 
 	return ERROR_OK;
 }
