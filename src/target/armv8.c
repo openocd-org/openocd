@@ -634,23 +634,22 @@ done:
 
 int armv8_identify_cache(struct target *target)
 {
-	/*  read cache descriptor */
+	/*	read cache descriptor */
 	int retval = ERROR_FAIL;
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
 	uint32_t cache_selected, clidr;
 	uint32_t cache_i_reg, cache_d_reg;
 	struct armv8_cache_common *cache = &(armv8->armv8_mmu.armv8_cache);
-	if (!armv8->is_armv7r)
-		armv8_read_ttbcr(target);
+	armv8_read_ttbcr(target);
 	retval = dpm->prepare(dpm);
 
 	if (retval != ERROR_OK)
 		goto done;
-	/*  retrieve CLIDR
-	 *  mrc	p15, 1, r0, c0, c0, 1		@ read clidr */
+	/*	retrieve CLIDR
+	 *	mrc p15, 1, r0, c0, c0, 1		@ read clidr */
 	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 1, 0, 0, 0, 1),
+			ARMV8_MRS(SYSTEM_CLIDR, 0),
 			&clidr);
 	if (retval != ERROR_OK)
 		goto done;
@@ -658,58 +657,51 @@ int armv8_identify_cache(struct target *target)
 	LOG_INFO("number of cache level %" PRIx32, (uint32_t)(clidr / 2));
 	if ((clidr / 2) > 1) {
 		/* FIXME not supported present in cortex A8 and later */
-		/*  in cortex A7, A15 */
+		/*	in cortex A7, A15 */
 		LOG_ERROR("cache l2 present :not supported");
 	}
-	/*  retrieve selected cache
-	 *  MRC p15, 2,<Rd>, c0, c0, 0; Read CSSELR */
+	/*	retrieve selected cache*/
 	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
+			ARMV8_MRS(SYSTEM_CSSELR, 0),
 			&cache_selected);
 	if (retval != ERROR_OK)
 		goto done;
 
-	retval = armv8->arm.mrc(target, 15,
-			2, 0,	/* op1, op2 */
-			0, 0,	/* CRn, CRm */
-			&cache_selected);
-	if (retval != ERROR_OK)
-		goto done;
+
 	/* select instruction cache
-	 *  MCR p15, 2,<Rd>, c0, c0, 0; Write CSSELR
-	 *  [0]  : 1 instruction cache selection , 0 data cache selection */
+	 *	[0]  : 1 instruction cache selection , 0 data cache selection */
 	retval = dpm->instr_write_data_r0(dpm,
-			ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
+			ARMV8_MRS(SYSTEM_CSSELR, 0),
 			1);
 	if (retval != ERROR_OK)
 		goto done;
 
 	/* read CCSIDR
 	 * MRC P15,1,<RT>,C0, C0,0 ;on cortex A9 read CCSIDR
-	 * [2:0] line size  001 eight word per line
+	 * [2:0] line size	001 eight word per line
 	 * [27:13] NumSet 0x7f 16KB, 0xff 32Kbytes, 0x1ff 64Kbytes */
 	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 1, 0, 0, 0, 0),
+			ARMV8_MRS(SYSTEM_CCSIDR, 0),
 			&cache_i_reg);
 	if (retval != ERROR_OK)
 		goto done;
 
-	/*  select data cache*/
+	/*	select data cache*/
 	retval = dpm->instr_write_data_r0(dpm,
-			ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
+			ARMV8_MRS(SYSTEM_CSSELR, 0),
 			0);
 	if (retval != ERROR_OK)
 		goto done;
 
 	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 1, 0, 0, 0, 0),
+			ARMV8_MRS(SYSTEM_CCSIDR, 0),
 			&cache_d_reg);
 	if (retval != ERROR_OK)
 		goto done;
 
-	/*  restore selected cache  */
+	/*	restore selected cache	*/
 	dpm->instr_write_data_r0(dpm,
-		ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
+		ARMV8_MRS(SYSTEM_CSSELR, 0),
 		cache_selected);
 
 	if (retval != ERROR_OK)
