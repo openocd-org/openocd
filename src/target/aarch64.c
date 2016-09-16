@@ -529,7 +529,7 @@ static int aarch64_instr_write_data_r0(struct arm_dpm *dpm,
 
 	retval = aarch64_exec_opcode(
 			a8->armv8_common.arm.target,
-			0xd5330500,
+			ARMV8_MRS(SYSTEM_DBG_DTRRX_EL0, 0),
 			&dscr);
 	if (retval != ERROR_OK)
 		return retval;
@@ -556,7 +556,7 @@ static int aarch64_instr_write_data_r0_64(struct arm_dpm *dpm,
 
 	retval = aarch64_exec_opcode(
 			a8->armv8_common.arm.target,
-			0xd5330400,
+			ARMV8_MRS(SYSTEM_DBG_DBGDTR_EL0, 0),
 			&dscr);
 	if (retval != ERROR_OK)
 		return retval;
@@ -577,7 +577,7 @@ static int aarch64_instr_cpsr_sync(struct arm_dpm *dpm)
 
 	/* "Prefetch flush" after modifying execution status in CPSR */
 	return aarch64_exec_opcode(target,
-			ARMV4_5_MCR(15, 0, 0, 7, 5, 4),
+			DSB_SY,
 			&dscr);
 }
 
@@ -635,7 +635,7 @@ static int aarch64_instr_read_data_r0(struct arm_dpm *dpm,
 	/* write R0 to DCC */
 	retval = aarch64_exec_opcode(
 			a8->armv8_common.arm.target,
-			0xd5130400,  /* msr dbgdtr_el0, x0 */
+			ARMV8_MSR_GP(SYSTEM_DBG_DTRTX_EL0, 0),  /* msr dbgdtr_el0, x0 */
 			&dscr);
 	if (retval != ERROR_OK)
 		return retval;
@@ -661,7 +661,7 @@ static int aarch64_instr_read_data_r0_64(struct arm_dpm *dpm,
 	/* write R0 to DCC */
 	retval = aarch64_exec_opcode(
 			a8->armv8_common.arm.target,
-			0xd5130400,  /* msr dbgdtr_el0, x0 */
+			ARMV8_MSR_GP(SYSTEM_DBG_DBGDTR_EL0, 0),  /* msr dbgdtr_el0, x0 */
 			&dscr);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1384,8 +1384,7 @@ static int aarch64_set_breakpoint(struct target *target,
 
 	} else if (breakpoint->type == BKPT_SOFT) {
 		uint8_t code[4];
-		buf_set_u32(code, 0, 32, 0xD4400000);
-
+		buf_set_u32(code, 0, 32, ARMV8_BKPT(0x11));
 		retval = target_read_memory(target,
 				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
 				breakpoint->length, 1,
