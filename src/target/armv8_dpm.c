@@ -874,11 +874,14 @@ void armv8_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
 		case DSCRV8_ENTRY_HALT_STEP_EXECLU:	/* HALT step */
+		case DSCRV8_ENTRY_HALT_STEP_NORMAL: /* Halt step*/
+		case DSCRV8_ENTRY_HALT_STEP:
+			target->debug_reason = DBG_REASON_SINGLESTEP;
+			break;
 		case DSCRV8_ENTRY_BKPT:	/* SW BKPT */
 		case DSCRV8_ENTRY_RESET_CATCH:	/* Reset catch */
 		case DSCRV8_ENTRY_OS_UNLOCK:  /*OS unlock catch*/
 		case DSCRV8_ENTRY_EXCEPTION_CATCH:  /*exception catch*/
-		case DSCRV8_ENTRY_HALT_STEP_NORMAL: /* Halt step*/
 		case DSCRV8_ENTRY_SW_ACCESS_DBG: /*SW access dbg register*/
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;

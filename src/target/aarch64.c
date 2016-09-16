@@ -1246,7 +1246,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	int retval;
-	uint32_t tmp;
+	uint32_t edecr;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
@@ -1254,25 +1254,26 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	}
 
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_EDECR, &tmp);
+			armv8->debug_base + CPUV8_DBG_EDECR, &edecr);
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* make sure EDECR.SS is not set when restoring the register */
+	edecr &= ~0x4;
+
+	/* set EDECR.SS to enter hardware step mode */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_EDECR, (tmp|0x4));
+			armv8->debug_base + CPUV8_DBG_EDECR, (edecr|0x4));
 	if (retval != ERROR_OK)
 		return retval;
 
-	target->debug_reason = DBG_REASON_SINGLESTEP;
+	/* resume the target */
 	retval = aarch64_resume(target, current, address, 0, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
 	long long then = timeval_ms();
 	while (target->state != TARGET_HALTED) {
-		mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_EDESR, &tmp);
-		LOG_DEBUG("DESR = %#x", tmp);
 		retval = aarch64_poll(target);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1282,14 +1283,11 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 		}
 	}
 
+	/* restore EDECR */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_EDECR, (tmp&(~0x4)));
+			armv8->debug_base + CPUV8_DBG_EDECR, edecr);
 	if (retval != ERROR_OK)
 		return retval;
-
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-	if (target->state == TARGET_HALTED)
-		LOG_DEBUG("target stepped");
 
 	return ERROR_OK;
 }
