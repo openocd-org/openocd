@@ -908,7 +908,7 @@ struct reg *armv8_reg_current(struct arm *arm, unsigned regnum)
 {
 	struct reg *r;
 
-	if (regnum > 33)
+	if (regnum > (ARMV8_LAST_REG - 1))
 		return NULL;
 
 	r = arm->core_cache->reg_list + regnum;
@@ -933,14 +933,13 @@ int armv8_get_gdb_reg_list(struct target *target,
 	switch (reg_class) {
 	case REG_CLASS_GENERAL:
 	case REG_CLASS_ALL:
-		*reg_list_size = 34;
+		*reg_list_size = ARMV8_LAST_REG;
 		*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
-		for (i = 0; i < *reg_list_size; i++)
+		for (i = 0; i < ARMV8_LAST_REG; i++)
 				(*reg_list)[i] = armv8_reg_current(arm, i);
 
 		return ERROR_OK;
-		break;
 
 	default:
 		LOG_ERROR("not a valid register class type in query.");
