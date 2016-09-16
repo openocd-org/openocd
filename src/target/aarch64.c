@@ -690,8 +690,8 @@ static int aarch64_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 		default:
 			return ERROR_FAIL;
 	}
-	vr += 4 * index_t;
-	cr += 4 * index_t;
+	vr += 16 * index_t;
+	cr += 16 * index_t;
 
 	LOG_DEBUG("A8: bpwp enable, vr %08x cr %08x",
 		(unsigned) vr, (unsigned) cr);
@@ -707,9 +707,6 @@ static int aarch64_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 
 static int aarch64_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
 {
-	return ERROR_OK;
-
-#if 0
 	struct aarch64_common *a = dpm_to_a8(dpm);
 	uint32_t cr;
 
@@ -724,13 +721,13 @@ static int aarch64_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
 		default:
 			return ERROR_FAIL;
 	}
-	cr += 4 * index_t;
+	cr += 16 * index_t;
 
 	LOG_DEBUG("A: bpwp disable, cr %08x", (unsigned) cr);
 
 	/* clear control register */
 	return aarch64_dap_write_memap_register_u32(dpm->arm->target, cr, 0);
-#endif
+
 }
 
 static int aarch64_dpm_setup(struct aarch64_common *a8, uint32_t debug)
