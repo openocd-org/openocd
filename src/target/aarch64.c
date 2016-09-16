@@ -360,10 +360,14 @@ static int aarch64_dpm_prepare(struct arm_dpm *dpm)
 	if (dscr & DSCR_DTR_RX_FULL) {
 		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
 		/* Clear DCCRX */
-		retval = aarch64_exec_opcode(
-				a8->armv8_common.arm.target,
-				0xd5130400,
-				&dscr);
+		retval = mem_ap_read_u32(a8->armv8_common.debug_ap,
+			a8->armv8_common.debug_base + CPUV8_DBG_DTRRX, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* Clear sticky error */
+		retval = mem_ap_write_u32(a8->armv8_common.debug_ap,
+			a8->armv8_common.debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 		if (retval != ERROR_OK)
 			return retval;
 	}
