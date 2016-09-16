@@ -730,7 +730,7 @@ static int aarch64_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
 
 }
 
-static int aarch64_dpm_setup(struct aarch64_common *a8, uint32_t debug)
+static int aarch64_dpm_setup(struct aarch64_common *a8, uint64_t debug)
 {
 	struct arm_dpm *dpm = &a8->armv8_common.dpm;
 	int retval;
@@ -2368,9 +2368,12 @@ static int aarch64_examine_first(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct adiv5_dap *swjdp = armv8->arm.dap;
-	int retval = ERROR_OK;
-	uint32_t pfr, debug, ctypr, ttypr, cpuid;
 	int i;
+	int retval = ERROR_OK;
+	uint64_t debug, ttypr;
+	uint32_t cpuid;
+	uint32_t tmp0, tmp1;
+	debug = ttypr = cpuid = 0;
 
 	/* We do one extra read to ensure DAP is configured,
 	 * we call ahbap_debugport_init(swjdp) instead
@@ -2421,91 +2424,79 @@ static int aarch64_examine_first(struct target *target)
 				&armv8->debug_base, &coreidx);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32,
-			  coreidx, armv8->debug_base);
+		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32
+				" apid: %08" PRIx32, coreidx, armv8->debug_base, apid);
 	} else
 		armv8->debug_base = target->dbgbase;
 
-	LOG_DEBUG("Target ctibase is 0x%x", target->ctibase);
-	if (target->ctibase == 0)
-		armv8->cti_base = target->ctibase = armv8->debug_base + 0x1000;
-	else
-		armv8->cti_base = target->ctibase;
-
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_LOCKACCESS, 0xC5ACCE55);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("LOCK debug access fail");
+		return retval;
+	}
+
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_OSLAR, 0);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "oslock");
 		return retval;
 	}
 
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x88, &cpuid);
-	LOG_DEBUG("0x88 = %x", cpuid);
-
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x314, &cpuid);
-	LOG_DEBUG("0x314 = %x", cpuid);
-
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + 0x310, &cpuid);
-	LOG_DEBUG("0x310 = %x", cpuid);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUDBG_CPUID, &cpuid);
+			armv8->debug_base + CPUV8_DBG_MAINID0, &cpuid);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "CPUID");
 		return retval;
 	}
 
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUDBG_CTYPR, &ctypr);
+			armv8->debug_base + CPUV8_DBG_MEMFEATURE0, &tmp0);
+	retval += mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_MEMFEATURE0 + 4, &tmp1);
 	if (retval != ERROR_OK) {
-		LOG_DEBUG("Examine %s failed", "CTYPR");
+		LOG_DEBUG("Examine %s failed", "Memory Model Type");
 		return retval;
 	}
+	ttypr |= tmp1;
+	ttypr = (ttypr << 32) | tmp0;
 
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUDBG_TTYPR, &ttypr);
-	if (retval != ERROR_OK) {
-		LOG_DEBUG("Examine %s failed", "TTYPR");
-		return retval;
-	}
-
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + ID_AA64PFR0_EL1, &pfr);
+			armv8->debug_base + CPUV8_DBG_DBGFEATURE0, &tmp0);
+	retval += mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DBGFEATURE0 + 4, &tmp1);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "ID_AA64DFR0_EL1");
 		return retval;
 	}
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + ID_AA64DFR0_EL1, &debug);
-	if (retval != ERROR_OK) {
-		LOG_DEBUG("Examine %s failed", "ID_AA64DFR0_EL1");
-		return retval;
-	}
+	debug |= tmp1;
+	debug = (debug << 32) | tmp0;
 
 	LOG_DEBUG("cpuid = 0x%08" PRIx32, cpuid);
-	LOG_DEBUG("ctypr = 0x%08" PRIx32, ctypr);
-	LOG_DEBUG("ttypr = 0x%08" PRIx32, ttypr);
-	LOG_DEBUG("ID_AA64PFR0_EL1 = 0x%08" PRIx32, pfr);
-	LOG_DEBUG("ID_AA64DFR0_EL1 = 0x%08" PRIx32, debug);
+	LOG_DEBUG("ttypr = 0x%08" PRIx64, ttypr);
+	LOG_DEBUG("debug = 0x%08" PRIx64, debug);
+
+	if (target->ctibase == 0) {
+		/* assume a v8 rom table layout */
+		armv8->cti_base = target->ctibase = armv8->debug_base + 0x10000;
+		LOG_INFO("Target ctibase is not set, assuming 0x%0" PRIx32, target->ctibase);
+	} else
+		armv8->cti_base = target->ctibase;
+
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->cti_base + CTI_UNLOCK , 0xC5ACCE55);
+	if (retval != ERROR_OK)
+		return retval;
+
 
 	armv8->arm.core_type = ARM_MODE_MON;
-	armv8->arm.core_state = ARM_STATE_AARCH64;
 	retval = aarch64_dpm_setup(aarch64, debug);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Setup Breakpoint Register Pairs */
-	aarch64->brp_num = ((debug >> 12) & 0x0F) + 1;
-	aarch64->brp_num_context = ((debug >> 28) & 0x0F) + 1;
-
-	/* hack - no context bpt support yet */
-	aarch64->brp_num_context = 0;
-
+	aarch64->brp_num = (uint32_t)((debug >> 12) & 0x0F) + 1;
+	aarch64->brp_num_context = (uint32_t)((debug >> 28) & 0x0F) + 1;
 	aarch64->brp_num_available = aarch64->brp_num;
 	aarch64->brp_list = calloc(aarch64->brp_num, sizeof(struct aarch64_brp));
 	for (i = 0; i < aarch64->brp_num; i++) {
