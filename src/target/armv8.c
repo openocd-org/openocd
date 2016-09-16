@@ -34,7 +34,6 @@
 #include <unistd.h>
 
 #include "armv8_opcodes.h"
-#include "arm_opcodes.h"
 #include "target.h"
 #include "target_type.h"
 
@@ -465,7 +464,7 @@ static int _armv8_flush_all_data(struct target *target)
 			/*  DCCISW */
 			/* LOG_INFO ("%d %d %x",c_way,c_index,value); */
 			retval = dpm->instr_write_data_r0(dpm,
-					ARMV4_5_MCR(15, 0, 0, 7, 14, 2),
+					ARMV8_MSR_GP(SYSTEM_DCCISW, 0),
 					value);
 			if (retval != ERROR_OK)
 				goto done;

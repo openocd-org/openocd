@@ -2235,7 +2235,7 @@ static int aarch64_write_phys_memory(struct target *target,
 		 * wrong addresses will be invalidated!
 		 *
 		 * For both ICache and DCache, walk all cache lines in the
-		 * address range. Cortex-A8 has fixed 64 byte line length.
+		 * address range. Cortex-A has fixed 64 byte line length.
 		 *
 		 * REVISIT per ARMv7, these may trigger watchpoints ...
 		 */
@@ -2246,12 +2246,12 @@ static int aarch64_write_phys_memory(struct target *target,
 			 * with MVA to PoU
 			 *      MCR p15, 0, r0, c7, c5, 1
 			 */
-			for (uint32_t cacheline = address;
-				cacheline < address + size * count;
+			for (uint32_t cacheline = 0;
+				cacheline < size * count;
 				cacheline += 64) {
 				retval = dpm->instr_write_data_r0(dpm,
-						ARMV4_5_MCR(15, 0, 0, 7, 5, 1),
-						cacheline);
+						ARMV8_MSR_GP(SYSTEM_ICIVAU, 0),
+						address + cacheline);
 				if (retval != ERROR_OK)
 					return retval;
 			}
@@ -2263,12 +2263,12 @@ static int aarch64_write_phys_memory(struct target *target,
 			 * with MVA to PoC
 			 *      MCR p15, 0, r0, c7, c6, 1
 			 */
-			for (uint32_t cacheline = address;
-				cacheline < address + size * count;
+			for (uint32_t cacheline = 0;
+				cacheline < size * count;
 				cacheline += 64) {
 				retval = dpm->instr_write_data_r0(dpm,
-						ARMV4_5_MCR(15, 0, 0, 7, 6, 1),
-						cacheline);
+						ARMV8_MSR_GP(SYSTEM_DCCVAU, 0),
+						address + cacheline);
 				if (retval != ERROR_OK)
 					return retval;
 			}
