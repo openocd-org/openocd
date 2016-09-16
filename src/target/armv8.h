@@ -113,7 +113,7 @@ struct armv8_cache_common {
 struct armv8_mmu_common {
 	/* following field mmu working way */
 	int32_t ttbr1_used; /*  -1 not initialized, 0 no ttbr1 1 ttbr1 used and  */
-	uint32_t ttbr0_mask;/*  masked to be used  */
+	uint64_t ttbr0_mask;/*  masked to be used  */
 	uint32_t os_border;
 
 	int (*read_physical_memory)(struct target *target, target_addr_t address,
@@ -140,6 +140,12 @@ struct armv8_common {
 	uint8_t cluster_id;
 	uint8_t cpu_id;
 	bool is_armv7r;
+
+	/* armv8 aarch64 need below information for page translation */
+	uint8_t va_size;
+	uint8_t pa_size;
+	uint32_t page_size;
+	uint64_t ttbr_base;
 
 	/* cache specific to V7 Memory Management Unit compatible with v4_5*/
 	struct armv8_mmu_common armv8_mmu;

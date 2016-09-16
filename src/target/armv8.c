@@ -266,31 +266,114 @@ static void armv8_show_fault_registers(struct target *target)
 	/* TODO */
 }
 
+static uint8_t armv8_pa_size(uint32_t ps)
+{
+	uint8_t ret = 0;
+	switch (ps) {
+		case 0:
+			ret = 32;
+			break;
+		case 1:
+			ret = 36;
+			break;
+		case 2:
+			ret = 40;
+			break;
+		case 3:
+			ret = 42;
+			break;
+		case 4:
+			ret = 44;
+			break;
+		case 5:
+			ret = 48;
+			break;
+		default:
+			LOG_INFO("Unknow physicall address size");
+			break;
+	}
+	return ret;
+}
+
 static int armv8_read_ttbcr(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
+	struct arm *arm = &armv8->arm;
 	uint32_t ttbcr;
+	uint64_t ttbcr_64;
+
 	int retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
-	/*  MRC p15,0,<Rt>,c2,c0,2 ; Read CP15 Translation Table Base Control Register*/
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 0, 0, 2, 0, 2),
-			&ttbcr);
+
+	/* claaer ttrr1_used and ttbr0_mask */
+	memset(&armv8->armv8_mmu.ttbr1_used, 0, sizeof(armv8->armv8_mmu.ttbr1_used));
+	memset(&armv8->armv8_mmu.ttbr0_mask, 0, sizeof(armv8->armv8_mmu.ttbr0_mask));
+
+	switch (arm->core_mode) {
+		case ARMV8_64_EL3H:
+		case ARMV8_64_EL3T:
+			retval = dpm->instr_read_data_r0(dpm,
+					ARMV8_MRS(SYSTEM_TCR_EL3, 0),
+					&ttbcr);
+			retval += dpm->instr_read_data_r0_64(dpm,
+					ARMV8_MRS(SYSTEM_TTBR0_EL3, 0),
+					&armv8->ttbr_base);
+			if (retval != ERROR_OK)
+				goto done;
+			armv8->va_size = 64 - (ttbcr & 0x3F);
+			armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
+			armv8->page_size = (ttbcr >> 14) & 3;
+			break;
+		case ARMV8_64_EL2T:
+		case ARMV8_64_EL2H:
+			retval = dpm->instr_read_data_r0(dpm,
+					ARMV8_MRS(SYSTEM_TCR_EL2, 0),
+					&ttbcr);
+			retval += dpm->instr_read_data_r0_64(dpm,
+					ARMV8_MRS(SYSTEM_TTBR0_EL2, 0),
+					&armv8->ttbr_base);
+			if (retval != ERROR_OK)
+				goto done;
+			armv8->va_size = 64 - (ttbcr & 0x3F);
+			armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
+			armv8->page_size = (ttbcr >> 14) & 3;
+			break;
+		case ARMV8_64_EL0T:
+		case ARMV8_64_EL1T:
+		case ARMV8_64_EL1H:
+			retval = dpm->instr_read_data_r0_64(dpm,
+					ARMV8_MRS(SYSTEM_TCR_EL1, 0),
+					&ttbcr_64);
+			armv8->va_size = 64 - (ttbcr_64 & 0x3F);
+			armv8->pa_size = armv8_pa_size((ttbcr_64 >> 32) & 7);
+			armv8->page_size = (ttbcr_64 >> 14) & 3;
+			armv8->armv8_mmu.ttbr1_used = (((ttbcr_64 >> 16) & 0x3F) != 0) ? 1 : 0;
+			armv8->armv8_mmu.ttbr0_mask  = 0x0000FFFFFFFFFFFF;
+			retval += dpm->instr_read_data_r0_64(dpm,
+					ARMV8_MRS(SYSTEM_TTBR0_EL1 | (armv8->armv8_mmu.ttbr1_used), 0),
+					&armv8->ttbr_base);
+			if (retval != ERROR_OK)
+				goto done;
+			break;
+		default:
+			LOG_ERROR("unknow core state");
+			retval = ERROR_FAIL;
+			break;
+	}
 	if (retval != ERROR_OK)
 		goto done;
-	armv8->armv8_mmu.ttbr1_used = ((ttbcr & 0x7) != 0) ? 1 : 0;
-	armv8->armv8_mmu.ttbr0_mask  = 7 << (32 - ((ttbcr & 0x7)));
+
 #if 0
-	LOG_INFO("ttb1 %s ,ttb0_mask %x",
+	LOG_INFO("ttb1 %s ,ttb0_mask %llx",
 		armv8->armv8_mmu.ttbr1_used ? "used" : "not used",
 		armv8->armv8_mmu.ttbr0_mask);
 #endif
 	if (armv8->armv8_mmu.ttbr1_used == 1) {
-		LOG_INFO("SVC access above %" PRIx32,
-			 (uint32_t)(0xffffffff & armv8->armv8_mmu.ttbr0_mask));
-		armv8->armv8_mmu.os_border = 0xffffffff & armv8->armv8_mmu.ttbr0_mask;
+		LOG_INFO("TTBR0 access above %" PRIx64,
+			 (uint64_t)(armv8->armv8_mmu.ttbr0_mask));
+		armv8->armv8_mmu.os_border = armv8->armv8_mmu.ttbr0_mask;
 	} else {
 		/*  fix me , default is hard coded LINUX border  */
 		armv8->armv8_mmu.os_border = 0xc0000000;
