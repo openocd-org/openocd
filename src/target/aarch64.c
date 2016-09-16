@@ -1571,6 +1571,16 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 					brp_list[brp_i].control);
 			if (retval != ERROR_OK)
 				return retval;
+			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
+					+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_i].BRPn,
+					(uint32_t)brp_list[brp_i].value);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
+					+ CPUV8_DBG_BVR_BASE + 4 + 16 * brp_list[brp_i].BRPn,
+					(uint32_t)brp_list[brp_i].value);
+			if (retval != ERROR_OK)
+				return retval;
 			if ((brp_j < 0) || (brp_j >= aarch64->brp_num)) {
 				LOG_DEBUG("Invalid BRP number in breakpoint");
 				return ERROR_OK;
@@ -1585,6 +1595,17 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 					brp_list[brp_j].control);
 			if (retval != ERROR_OK)
 				return retval;
+			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
+					+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_j].BRPn,
+					(uint32_t)brp_list[brp_j].value);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
+					+ CPUV8_DBG_BVR_BASE + 4 + 16 * brp_list[brp_j].BRPn,
+					(uint32_t)brp_list[brp_j].value);
+			if (retval != ERROR_OK)
+				return retval;
+
 			breakpoint->linked_BRP = 0;
 			breakpoint->set = 0;
 			return ERROR_OK;
@@ -1608,6 +1629,12 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
 					+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_i].BRPn,
 					brp_list[brp_i].value);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
+					+ CPUV8_DBG_BVR_BASE + 4 + 16 * brp_list[brp_i].BRPn,
+					(uint32_t)brp_list[brp_i].value);
 			if (retval != ERROR_OK)
 				return retval;
 			breakpoint->set = 0;
