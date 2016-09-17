@@ -1348,18 +1348,19 @@ static int aarch64_set_context_breakpoint(struct target *target,
 
 	breakpoint->set = brp_i + 1;
 	control = ((matchmode & 0x7) << 20)
+		| (1 << 13)
 		| (byte_addr_select << 5)
 		| (3 << 1) | 1;
 	brp_list[brp_i].used = 1;
 	brp_list[brp_i].value = (breakpoint->asid);
 	brp_list[brp_i].control = control;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-			+ CPUV8_DBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
+			+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_i].BRPn,
 			brp_list[brp_i].value);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-			+ CPUV8_DBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
+			+ CPUV8_DBG_BCR_BASE + 16 * brp_list[brp_i].BRPn,
 			brp_list[brp_i].control);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1420,30 +1421,36 @@ static int aarch64_set_hybrid_breakpoint(struct target *target, struct breakpoin
 	brp_list[brp_1].value = (breakpoint->asid);
 	brp_list[brp_1].control = control_CTX;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-			+ CPUV8_DBG_BVR_BASE + 4 * brp_list[brp_1].BRPn,
+			+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_1].BRPn,
 			brp_list[brp_1].value);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-			+ CPUV8_DBG_BCR_BASE + 4 * brp_list[brp_1].BRPn,
+			+ CPUV8_DBG_BCR_BASE + 16 * brp_list[brp_1].BRPn,
 			brp_list[brp_1].control);
 	if (retval != ERROR_OK)
 		return retval;
 
 	control_IVA = ((IVA_machmode & 0x7) << 20)
 		| (brp_1 << 16)
+		| (1 << 13)
 		| (IVA_byte_addr_select << 5)
 		| (3 << 1) | 1;
 	brp_list[brp_2].used = 1;
-	brp_list[brp_2].value = (breakpoint->address & 0xFFFFFFFC);
+	brp_list[brp_2].value = breakpoint->address & 0xFFFFFFFFFFFFFFFC;
 	brp_list[brp_2].control = control_IVA;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-			+ CPUV8_DBG_BVR_BASE + 4 * brp_list[brp_2].BRPn,
-			brp_list[brp_2].value);
+			+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_2].BRPn,
+			brp_list[brp_2].value & 0xFFFFFFFF);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-			+ CPUV8_DBG_BCR_BASE + 4 * brp_list[brp_2].BRPn,
+			+ CPUV8_DBG_BVR_BASE + 4 + 16 * brp_list[brp_2].BRPn,
+			brp_list[brp_2].value >> 32);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
+			+ CPUV8_DBG_BCR_BASE + 16 * brp_list[brp_2].BRPn,
 			brp_list[brp_2].control);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1511,12 +1518,12 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 			brp_list[brp_i].value = 0;
 			brp_list[brp_i].control = 0;
 			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-					+ CPUV8_DBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
+					+ CPUV8_DBG_BCR_BASE + 16 * brp_list[brp_i].BRPn,
 					brp_list[brp_i].control);
 			if (retval != ERROR_OK)
 				return retval;
 			retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
-					+ CPUV8_DBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
+					+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_i].BRPn,
 					brp_list[brp_i].value);
 			if (retval != ERROR_OK)
 				return retval;
