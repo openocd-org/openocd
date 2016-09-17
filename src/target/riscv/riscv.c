@@ -414,6 +414,122 @@ static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 	}
 }
 
+/*** scans "class" ***/
+
+typedef struct {
+	// Number of scans that space is reserved for.
+	unsigned int scan_count;
+	// Size reserved in memory for each scan, in bytes.
+	unsigned int scan_size;
+	unsigned int next_scan;
+	uint8_t *in;
+	uint8_t *out;
+	struct scan_field *field;
+	const struct target *target;
+} scans_t;
+
+static scans_t *scans_new(struct target *target, unsigned int scan_count)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	scans_t *scans = malloc(sizeof(scans_t));
+	scans->scan_count = scan_count;
+	scans->scan_size = 2 + info->xlen / 8;
+	scans->next_scan = 0;
+	scans->in = malloc(scans->scan_size * scans->scan_count);
+	scans->out = malloc(scans->scan_size * scans->scan_count);
+	scans->field = calloc(scans->scan_count, sizeof(struct scan_field));
+	scans->target = target;
+	return scans;
+}
+
+static scans_t *scans_delete(scans_t *scans)
+{
+	assert(scans);
+	free(scans->field);
+	free(scans->out);
+	free(scans->in);
+	free(scans);
+	return NULL;
+}
+
+static void scans_reset(scans_t *scans)
+{
+	scans->next_scan = 0;
+}
+
+static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
+		bool set_interrupt)
+{
+	const unsigned int i = scans->next_scan;
+	add_dbus_scan(scans->target, &scans->field[i], scans->out + scans->scan_size * i,
+			scans->in + scans->scan_size * i, DBUS_OP_WRITE, address,
+			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT | data);
+	scans->next_scan++;
+	assert(scans->next_scan <= scans->scan_count);
+}
+
+static void scans_add_write_jump(scans_t *scans, uint16_t address,
+		bool set_interrupt)
+{
+	scans_add_write32(scans, address,
+			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*address))),
+			set_interrupt);
+}
+
+static void scans_add_write_load(scans_t *scans, uint16_t address,
+		unsigned int reg, slot_t slot, bool set_interrupt)
+{
+	scans_add_write32(scans, address, load_slot(scans->target, reg, slot),
+			set_interrupt);
+}
+
+static void scans_add_write_store(scans_t *scans, uint16_t address,
+		unsigned int reg, slot_t slot, bool set_interrupt)
+{
+	scans_add_write32(scans, address, store_slot(scans->target, reg, slot),
+			set_interrupt);
+}
+
+static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrupt)
+{
+	const unsigned int i = scans->next_scan;
+	add_dbus_scan(scans->target, &scans->field[i],
+			scans->out + scans->scan_size * i,
+			scans->in + scans->scan_size * i, DBUS_OP_READ, address,
+			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT);
+	scans->next_scan++;
+	assert(scans->next_scan < scans->scan_count);
+}
+
+static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
+{
+	const struct target *target = scans->target;
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	switch (info->xlen) {
+		case 32:
+			scans_add_read32(scans, slot_offset(target, slot), set_interrupt);
+			break;
+		case 64:
+			scans_add_read32(scans, slot_offset(target, slot), false);
+			scans_add_read32(scans, slot_offset(target, slot) + 1, set_interrupt);
+			break;
+	}
+}
+
+static uint32_t scans_get_u32(scans_t *scans, unsigned int index,
+		unsigned first, unsigned num)
+{
+	return buf_get_u32(scans->in + scans->scan_size * index, first, num);
+}
+
+static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
+		unsigned first, unsigned num)
+{
+	return buf_get_u64(scans->in + scans->scan_size * index, first, num);
+}
+
+/*** end of scans class ***/
+
 static uint32_t dtminfo_read(struct target *target)
 {
 	struct scan_field field;
@@ -613,9 +729,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 {
 	LOG_DEBUG("enter");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	uint8_t in[(DRAM_CACHE_SIZE + 2) * 8] = {0};
-	uint8_t out[(DRAM_CACHE_SIZE + 2) * 8];
-	struct scan_field field[DRAM_CACHE_SIZE + 2];
+	scans_t *scans = scans_new(target, DRAM_CACHE_SIZE + 2);
 
 	unsigned int last = DRAM_CACHE_SIZE;
 	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
@@ -625,8 +739,6 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		}
 	}
 
-	unsigned int scan = 0;
-
 	if (last == DRAM_CACHE_SIZE) {
 		// Nothing needs to be written to RAM.
 		dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT);
@@ -634,14 +746,9 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	} else {
 		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
 			if (info->dram_cache[i].dirty) {
-				uint64_t data = DMCONTROL_HALTNOT | info->dram_cache[i].data;
-				if (i == last && run) {
-					data |= DMCONTROL_INTERRUPT;
-				}
-				add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-						DBUS_OP_WRITE, i, data);
-
-				scan++;
+				bool set_interrupt = (i == last && run);
+				scans_add_write32(scans, i, info->dram_cache[i].data,
+						set_interrupt);
 			}
 		}
 	}
@@ -649,15 +756,11 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	if (run || address < CACHE_NO_READ) {
 		// Throw away the results of the first read, since it'll contain the
 		// result of the read that happened just before debugint was set.
-		add_dbus_scan(target, &field[scan], out + 8*scan, NULL, DBUS_OP_READ,
-				address, DMCONTROL_HALTNOT);
-		scan++;
+		scans_add_read32(scans, address, false);
 
 		// This scan contains the results of the read the caller requested, as
 		// well as an interrupt bit worth looking at.
-		add_dbus_scan(target, &field[scan], out + 8*scan, in + 8*scan,
-				DBUS_OP_READ, address, DMCONTROL_HALTNOT);
-		scan++;
+		scans_add_read32(scans, address, false);
 	}
 
 	int retval = jtag_execute_queue();
@@ -667,8 +770,9 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	}
 
 	int errors = 0;
-	for (unsigned int i = 0; i < scan; i++) {
-		dbus_status_t status = buf_get_u32(in + 8*i, DBUS_OP_START, DBUS_OP_SIZE);
+	for (unsigned int i = 0; i < scans->next_scan; i++) {
+		dbus_status_t status = scans_get_u32(scans, i, DBUS_OP_START,
+				DBUS_OP_SIZE);
 		switch (status) {
 			case DBUS_STATUS_SUCCESS:
 				break;
@@ -682,11 +786,6 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				LOG_ERROR("Got invalid bus access status: %d", status);
 				return ERROR_FAIL;
 		}
-		LOG_DEBUG("read scan=%d result=%d data=%09" PRIx64 " address=%02x",
-				i,
-				buf_get_u32(in + 8*i, DBUS_OP_START, DBUS_OP_SIZE),
-				buf_get_u64(in + 8*i, DBUS_DATA_START, DBUS_DATA_SIZE),
-				buf_get_u32(in + 8*i, DBUS_ADDRESS_START, info->addrbits));
 	}
 
 	if (errors) {
@@ -713,7 +812,8 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		cache_clean(target);
 
 		if (run || address < CACHE_NO_READ) {
-			int interrupt = buf_get_u32(in + 8*(scan-1), DBUS_DATA_START + 33, 1);
+			int interrupt = scans_get_u32(scans, scans->next_scan-1,
+					DBUS_DATA_START + 33, 1);
 			if (interrupt) {
 				increase_interrupt_high_delay(target);
 				// Slow path wait for it to clear.
@@ -724,19 +824,20 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				}
 			} else {
 				// We read a useful value in that last scan.
-				unsigned int read_addr = buf_get_u32(in + 8*(scan-1),
+				unsigned int read_addr = scans_get_u32(scans, scans->next_scan-1,
 						DBUS_ADDRESS_START, info->addrbits);
 				if (read_addr != address) {
 					LOG_INFO("Got data from 0x%x but expected it from 0x%x",
 							read_addr, address);
 				}
 				info->dram_cache[read_addr].data =
-					buf_get_u64(in + 8*(scan-1), DBUS_DATA_START, DBUS_DATA_SIZE);
+					scans_get_u32(scans, scans->next_scan-1, DBUS_DATA_START, 32);
 				info->dram_cache[read_addr].valid = true;
 			}
 		}
 	}
 
+	scans_delete(scans);
 	LOG_DEBUG("exit");
 
 	return ERROR_OK;
@@ -978,116 +1079,6 @@ static void update_reg_list(struct target *target)
 		r->valid = false;
 	}
 }
-
-/*** scans "class" ***/
-
-typedef struct {
-	// Number of scans that space is reserved for.
-	unsigned int scan_count;
-	// Size reserved in memory for each scan, in bytes.
-	unsigned int scan_size;
-	unsigned int next_scan;
-	uint8_t *in;
-	uint8_t *out;
-	struct scan_field *field;
-	const struct target *target;
-} scans_t;
-
-static scans_t *scans_new(struct target *target, unsigned int scan_count)
-{
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	scans_t *scans = malloc(sizeof(scans_t));
-	scans->scan_count = scan_count;
-	scans->scan_size = 2 + info->xlen / 8;
-	scans->next_scan = 0;
-	scans->in = malloc(scans->scan_size * scans->scan_count);
-	scans->out = malloc(scans->scan_size * scans->scan_count);
-	scans->field = calloc(scans->scan_count, sizeof(struct scan_field));
-	scans->target = target;
-	return scans;
-}
-
-static scans_t *scans_delete(scans_t *scans)
-{
-	free(scans->field);
-	free(scans->out);
-	free(scans->in);
-	free(scans);
-	return NULL;
-}
-
-static void scans_add_write(scans_t *scans, uint16_t address, uint32_t data,
-		bool set_interrupt)
-{
-	const unsigned int i = scans->next_scan;
-	add_dbus_scan(scans->target, &scans->field[i], scans->out + scans->scan_size * i,
-			scans->in + scans->scan_size * i, DBUS_OP_WRITE, address,
-			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT | data);
-	scans->next_scan++;
-	assert(scans->next_scan < scans->scan_count);
-}
-
-static void scans_add_write_jump(scans_t *scans, uint16_t address,
-		bool set_interrupt)
-{
-	scans_add_write(scans, address,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*address))),
-			set_interrupt);
-}
-
-static void scans_add_write_load(scans_t *scans, uint16_t address,
-		unsigned int reg, slot_t slot, bool set_interrupt)
-{
-	scans_add_write(scans, address, load_slot(scans->target, reg, slot),
-			set_interrupt);
-}
-
-static void scans_add_write_store(scans_t *scans, uint16_t address,
-		unsigned int reg, slot_t slot, bool set_interrupt)
-{
-	scans_add_write(scans, address, store_slot(scans->target, reg, slot),
-			set_interrupt);
-}
-
-static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrupt)
-{
-	const unsigned int i = scans->next_scan;
-	add_dbus_scan(scans->target, &scans->field[i],
-			scans->out + scans->scan_size * i,
-			scans->in + scans->scan_size * i, DBUS_OP_READ, address,
-			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT);
-	scans->next_scan++;
-	assert(scans->next_scan < scans->scan_count);
-}
-
-static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
-{
-	const struct target *target = scans->target;
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	switch (info->xlen) {
-		case 32:
-			scans_add_read32(scans, slot_offset(target, slot), set_interrupt);
-			break;
-		case 64:
-			scans_add_read32(scans, slot_offset(target, slot), false);
-			scans_add_read32(scans, slot_offset(target, slot) + 1, set_interrupt);
-			break;
-	}
-}
-
-static uint32_t scans_get_u32(scans_t *scans, unsigned int index,
-		unsigned first, unsigned num)
-{
-	return buf_get_u32(scans->in + scans->scan_size * index, first, num);
-}
-
-static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
-		unsigned first, unsigned num)
-{
-	return buf_get_u64(scans->in + scans->scan_size * index, first, num);
-}
-
-/*** end of scans class ***/
 
 /*** OpenOCD target functions. ***/
 
@@ -1730,7 +1721,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	// Read S0 from dscratch
 	unsigned int csr[] = {CSR_DSCRATCH, CSR_DPC, CSR_DCSR};
 	for (unsigned int i = 0; i < DIM(csr); i++) {
-		scans_add_write(scans, 0, csrr(S0, csr[i]), true);
+		scans_add_write32(scans, 0, csrr(S0, csr[i]), true);
 		scans_add_read(scans, SLOT0, false);
 	}
 
@@ -2013,30 +2004,25 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	const int max_batch_size = 256;
-	uint8_t *in = malloc(max_batch_size * 8);
-	uint8_t *out = malloc(max_batch_size * 8);
-	struct scan_field *field = calloc(max_batch_size, sizeof(struct scan_field));
+	scans_t *scans = scans_new(target, max_batch_size);
 
 	uint32_t result_value = 0x777;
 	uint32_t i = 0;
 	while (i < count + 3) {
 		unsigned int batch_size = MIN(count + 3 - i, max_batch_size);
+		scans_reset(scans);
 
 		for (unsigned int j = 0; j < batch_size; j++) {
 			if (i + j == count) {
 				// Just insert a read so we can scan out the last value.
-				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_READ, 4, DMCONTROL_HALTNOT);
+				scans_add_read32(scans, 4, false);
 			} else if (i + j >= count + 1) {
 				// And check for errors.
-				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_READ, info->dramsize-1, DMCONTROL_HALTNOT);
+				scans_add_read32(scans, info->dramsize-1, false);
 			} else {
 				// Write the next address and set interrupt.
 				uint32_t offset = size * (i + j);
-				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_WRITE, 4,
-						DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | (address + offset));
+				scans_add_write32(scans, 4, address + offset, true);
 			}
 		}
 
@@ -2049,7 +2035,8 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 		int dbus_busy = 0;
 		int execute_busy = 0;
 		for (unsigned int j = 0; j < batch_size; j++) {
-			dbus_status_t status = buf_get_u32(in + 8*j, DBUS_OP_START, DBUS_OP_SIZE);
+			dbus_status_t status = scans_get_u32(scans, j, DBUS_OP_START,
+					DBUS_OP_SIZE);
 			switch (status) {
 				case DBUS_STATUS_SUCCESS:
 					break;
@@ -2063,7 +2050,8 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 					LOG_ERROR("Got invalid bus access status: %d", status);
 					return ERROR_FAIL;
 			}
-			uint64_t data = buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE);
+			uint64_t data = scans_get_u64(scans, j, DBUS_DATA_START,
+					DBUS_DATA_SIZE);
 			if (data & DMCONTROL_INTERRUPT) {
 				execute_busy++;
 			}
@@ -2117,16 +2105,12 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 		goto error;
 	}
 
-	free(in);
-	free(out);
-	free(field);
+	scans_delete(scans);
 	cache_clean(target);
 	return ERROR_OK;
 
 error:
-	free(in);
-	free(out);
-	free(field);
+	scans_delete(scans);
 	cache_clean(target);
 	return ERROR_FAIL;
 }
@@ -2180,20 +2164,18 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 	}
 
 	const int max_batch_size = 256;
-	uint8_t *in = malloc(max_batch_size * 8);
-	uint8_t *out = malloc(max_batch_size * 8);
-	struct scan_field *field = calloc(max_batch_size, sizeof(struct scan_field));
+	scans_t *scans = scans_new(target, max_batch_size);
 
 	uint32_t result_value = 0x777;
 	uint32_t i = 0;
 	while (i < count + 2) {
 		unsigned int batch_size = MIN(count + 2 - i, max_batch_size);
+		scans_reset(scans);
 
 		for (unsigned int j = 0; j < batch_size; j++) {
 			if (i + j >= count) {
 				// Check for an exception.
-				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_READ, info->dramsize-1, DMCONTROL_HALTNOT | 0);
+				scans_add_read32(scans, info->dramsize-1, false);
 			} else {
 				// Write the next value and set interrupt.
 				uint32_t value;
@@ -2216,8 +2198,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 						goto error;
 				}
 
-				add_dbus_scan(target, &field[j], out + 8*j, in + 8*j,
-						DBUS_OP_WRITE, 4, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT | value);
+				scans_add_write32(scans, 4, value, true);
 			}
 		}
 
@@ -2230,7 +2211,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		int dbus_busy = 0;
 		int execute_busy = 0;
 		for (unsigned int j = 0; j < batch_size; j++) {
-			dbus_status_t status = buf_get_u32(in + 8*j, DBUS_OP_START,
+			dbus_status_t status = scans_get_u32(scans, j, DBUS_OP_START,
 					DBUS_OP_SIZE);
 			switch (status) {
 				case DBUS_STATUS_SUCCESS:
@@ -2245,15 +2226,13 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 					LOG_ERROR("Got invalid bus access status: %d", status);
 					return ERROR_FAIL;
 			}
-			int interrupt = buf_get_u32(in + 8*j, DBUS_DATA_START + 33, 1);
+			int interrupt = scans_get_u32(scans, j, DBUS_DATA_START + 33, 1);
 			if (interrupt) {
 				execute_busy++;
 			}
-			uint64_t data = buf_get_u64(in + 8*j, DBUS_DATA_START, DBUS_DATA_SIZE);
 			if (i + j == count + 1) {
-				result_value = data;
+				result_value = scans_get_u32(scans, j, DBUS_DATA_START, 32);
 			}
-			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status, data);
 		}
 		if (dbus_busy) {
 			increase_dbus_busy_delay(target);
@@ -2267,7 +2246,8 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 			// Retry.
 			// Set t0 back to what it should have been at the beginning of this
 			// batch.
-			LOG_INFO("Retrying memory write starting from 0x%x with more delays", address + size * i);
+			LOG_INFO("Retrying memory write starting from 0x%x with more delays",
+					address + size * i);
 
 			cache_clean(target);
 
@@ -2294,17 +2274,11 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 		goto error;
 	}
 
-	free(in);
-	free(out);
-	free(field);
-
 	cache_clean(target);
 	return register_write(target, T0, t0);
 
 error:
-	free(in);
-	free(out);
-	free(field);
+	scans_delete(scans);
 	cache_clean(target);
 	return ERROR_FAIL;
 }
