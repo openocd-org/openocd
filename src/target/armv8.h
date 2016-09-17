@@ -159,34 +159,38 @@ target_to_armv8(struct target *target)
 }
 
 /* register offsets from armv8.debug_base */
+#define CPUV8_DBG_MAINID0		0xD00
+#define CPUV8_DBG_CPUFEATURE0	0xD20
+#define CPUV8_DBG_DBGFEATURE0	0xD28
+#define CPUV8_DBG_MEMFEATURE0	0xD38
 
-#define CPUDBG_WFAR		0x018
-#define CPUDBG_DESR		0x020
-#define CPUDBG_DECR		0x024
-/* PCSR at 0x084 -or- 0x0a0 -or- both ... based on flags in DIDR */
-#define CPUDBG_DSCR		0x088
-#define CPUDBG_DRCR		0x090
-#define CPUDBG_PRCR		0x310
-#define CPUDBG_PRSR		0x314
+#define CPUV8_DBG_LOCKACCESS 0xFB0
+#define CPUV8_DBG_LOCKSTATUS 0xFB4
 
-#define CPUDBG_DTRRX		0x080
-#define CPUDBG_ITR		0x084
-#define CPUDBG_DTRTX		0x08c
+#define CPUV8_DBG_EDESR		0x20
+#define CPUV8_DBG_EDECR		0x24
+#define CPUV8_DBG_WFAR0		0x30
+#define CPUV8_DBG_WFAR1		0x34
+#define CPUV8_DBG_DSCR		0x088
+#define CPUV8_DBG_DRCR		0x090
+#define CPUV8_DBG_PRCR		0x310
+#define CPUV8_DBG_PRSR		0x314
 
-#define CPUDBG_BVR_BASE		0x400
-#define CPUDBG_BCR_BASE		0x408
-#define CPUDBG_WVR_BASE		0x180
-#define CPUDBG_WCR_BASE		0x1C0
-#define CPUDBG_VCR		0x01C
+#define CPUV8_DBG_DTRRX		0x080
+#define CPUV8_DBG_ITR		0x084
+#define CPUV8_DBG_SCR		0x088
+#define CPUV8_DBG_DTRTX		0x08c
 
-#define CPUDBG_OSLAR		0x300
-#define CPUDBG_OSLSR		0x304
-#define CPUDBG_OSSRR		0x308
-#define CPUDBG_ECR		0x024
+#define CPUV8_DBG_BVR_BASE	0x400
+#define CPUV8_DBG_BCR_BASE	0x408
+#define CPUV8_DBG_WVR_BASE	0x800
+#define CPUV8_DBG_WCR_BASE	0x808
+#define CPUV8_DBG_VCR		0x01C
 
-#define CPUDBG_DSCCR		0x028
+#define CPUV8_DBG_OSLAR		0x300
 
-#define CPUDBG_AUTHSTATUS	0xFB8
+#define CPUV8_DBG_AUTHSTATUS	0xFB8
+
 
 int armv8_arch_state(struct target *target);
 int armv8_identify_cache(struct target *target);
