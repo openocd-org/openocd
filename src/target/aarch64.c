@@ -1241,6 +1241,28 @@ static int aarch64_post_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
+static int aarch64_set_dscr_bits(struct target *target, unsigned long bit_mask, unsigned long value)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	uint32_t dscr;
+
+	/* Read DSCR */
+	int retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+	if (ERROR_OK != retval)
+		return retval;
+
+	/* clear bitfield */
+	dscr &= ~bit_mask;
+	/* put new value */
+	dscr |= value & bit_mask;
+
+	/* write new DSCR */
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DSCR, dscr);
+	return retval;
+}
+
 static int aarch64_step(struct target *target, int current, target_addr_t address,
 	int handle_breakpoints)
 {
@@ -1267,6 +1289,11 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* disable interrupts while stepping */
+	retval = aarch64_set_dscr_bits(target, 0x3 << 22, 0x3 << 22);
+	if (retval != ERROR_OK)
+		return ERROR_OK;
+
 	/* resume the target */
 	retval = aarch64_resume(target, current, address, 0, 0);
 	if (retval != ERROR_OK)
@@ -1288,6 +1315,11 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 			armv8->debug_base + CPUV8_DBG_EDECR, edecr);
 	if (retval != ERROR_OK)
 		return retval;
+
+	/* restore interrupts */
+	retval = aarch64_set_dscr_bits(target, 0x3 << 22, 0);
+	if (retval != ERROR_OK)
+		return ERROR_OK;
 
 	return ERROR_OK;
 }
