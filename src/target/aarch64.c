@@ -27,6 +27,7 @@
 #include "target_request.h"
 #include "target_type.h"
 #include "armv8_opcodes.h"
+#include "armv8_cache.h"
 #include <helper/time_support.h>
 
 static int aarch64_poll(struct target *target);
@@ -1401,6 +1402,7 @@ static int aarch64_set_breakpoint(struct target *target,
 
 	} else if (breakpoint->type == BKPT_SOFT) {
 		uint8_t code[4];
+
 		buf_set_u32(code, 0, 32, ARMV8_HLT(0x11));
 		retval = target_read_memory(target,
 				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
@@ -1408,11 +1410,25 @@ static int aarch64_set_breakpoint(struct target *target,
 				breakpoint->orig_instr);
 		if (retval != ERROR_OK)
 			return retval;
+
+		armv8_cache_d_inner_flush_virt(armv8,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->length);
+
 		retval = target_write_memory(target,
 				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
 				breakpoint->length, 1, code);
 		if (retval != ERROR_OK)
 			return retval;
+
+		armv8_cache_d_inner_flush_virt(armv8,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->length);
+
+		armv8_cache_i_inner_inval_virt(armv8,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->length);
+
 		breakpoint->set = 0x11;	/* Any nice value but 0 */
 	}
 
@@ -1668,6 +1684,11 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 		}
 	} else {
 		/* restore original instruction (kept in target endianness) */
+
+		armv8_cache_d_inner_flush_virt(armv8,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->length);
+
 		if (breakpoint->length == 4) {
 			retval = target_write_memory(target,
 					breakpoint->address & 0xFFFFFFFFFFFFFFFE,
@@ -1681,6 +1702,14 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 			if (retval != ERROR_OK)
 				return retval;
 		}
+
+		armv8_cache_d_inner_flush_virt(armv8,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->length);
+
+		armv8_cache_i_inner_inval_virt(armv8,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->length);
 	}
 	breakpoint->set = 0;
 
