@@ -76,7 +76,8 @@ ARMV7_SRC = \
 ARMV8_SRC = \
 	%D%/armv8_dpm.c \
 	%D%/aarch64.c \
-	%D%/armv8.c
+	%D%/armv8.c \
+	%D%/armv8_cache.c
 
 ARM_DEBUG_SRC = \
 	%D%/arm_dpm.c \
@@ -158,6 +159,7 @@ INTEL_IA32_SRC = \
 	%D%/armv8.h \
 	%D%/armv8_dpm.h \
 	%D%/armv8_opcodes.h \
+	%D%/armv8_cache.h \
 	%D%/avrt.h \
 	%D%/dsp563xx.h \
 	%D%/dsp563xx_once.h \
