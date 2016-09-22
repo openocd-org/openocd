@@ -37,6 +37,8 @@
 #include "target.h"
 #include "target_type.h"
 
+#define __unused __attribute__((unused))
+
 static const char * const armv8_state_strings[] = {
 	"AArch32", "Thumb", "Jazelle", "ThumbEE", "AArch64",
 };
@@ -208,6 +210,38 @@ static int armv8_write_core_reg(struct target *target, struct reg *r,
 	return ERROR_OK;
 }
 #endif
+
+/*  retrieve core id cluster id  */
+int armv8_read_mpidr(struct armv8_common *armv8)
+{
+	int retval = ERROR_FAIL;
+	struct arm_dpm *dpm = armv8->arm.dpm;
+	uint32_t mpidr;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
+	if (retval != ERROR_OK)
+		goto done;
+	if (mpidr & 1<<31) {
+		armv8->multi_processor_system = (mpidr >> 30) & 1;
+		armv8->cluster_id = (mpidr >> 8) & 0xf;
+		armv8->cpu_id = mpidr & 0x3;
+		LOG_INFO("%s cluster %x core %x %s", target_name(armv8->arm.target),
+			armv8->cluster_id,
+			armv8->cpu_id,
+			armv8->multi_processor_system == 0 ? "multi core" : "mono core");
+
+	} else
+		LOG_ERROR("mpdir not in multiprocessor format");
+
+done:
+	dpm->finish(dpm);
+	return retval;
+}
+
 /**
  * Configures host-side ARM records to reflect the specified CPSR.
  * Later, code can use arm_reg_current() to map register numbers
@@ -368,7 +402,7 @@ static uint8_t armv8_pa_size(uint32_t ps)
 	return ret;
 }
 
-static int armv8_read_ttbcr32(struct target *target)
+static __unused int armv8_read_ttbcr32(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
@@ -528,103 +562,10 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 	return ERROR_OK;
 }
 
-static int armv8_handle_inner_cache_info_command(struct command_context *cmd_ctx,
-	struct armv8_cache_common *armv8_cache)
-{
-	if (armv8_cache->ctype == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
-		return ERROR_OK;
-	}
-
-	command_print(cmd_ctx,
-		"D-Cache: linelen %" PRIi32 ", associativity %" PRIi32 ", nsets %" PRIi32 ", cachesize %" PRId32 " KBytes",
-		armv8_cache->d_u_size.linelen,
-		armv8_cache->d_u_size.associativity,
-		armv8_cache->d_u_size.nsets,
-		armv8_cache->d_u_size.cachesize);
-
-	command_print(cmd_ctx,
-		"I-Cache: linelen %" PRIi32 ", associativity %" PRIi32 ", nsets %" PRIi32 ", cachesize %" PRId32 " KBytes",
-		armv8_cache->i_size.linelen,
-		armv8_cache->i_size.associativity,
-		armv8_cache->i_size.nsets,
-		armv8_cache->i_size.cachesize);
-
-	return ERROR_OK;
-}
-
-static int _armv8_flush_all_data(struct target *target)
-{
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm_dpm *dpm = armv8->arm.dpm;
-	struct armv8_cachesize *d_u_size =
-		&(armv8->armv8_mmu.armv8_cache.d_u_size);
-	int32_t c_way, c_index = d_u_size->index;
-	int retval;
-	/*  check that cache data is on at target halt */
-	if (!armv8->armv8_mmu.armv8_cache.d_u_cache_enabled) {
-		LOG_INFO("flushed not performed :cache not on at target halt");
-		return ERROR_OK;
-	}
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-	do {
-		c_way = d_u_size->way;
-		do {
-			uint32_t value = (c_index << d_u_size->index_shift)
-				| (c_way << d_u_size->way_shift);
-			/*  DCCISW */
-			/* LOG_INFO ("%d %d %x",c_way,c_index,value); */
-			retval = dpm->instr_write_data_r0(dpm,
-					ARMV8_MSR_GP(SYSTEM_DCCISW, 0),
-					value);
-			if (retval != ERROR_OK)
-				goto done;
-			c_way -= 1;
-		} while (c_way >= 0);
-		c_index -= 1;
-	} while (c_index >= 0);
-	return retval;
-done:
-	LOG_ERROR("flushed failed");
-	dpm->finish(dpm);
-	return retval;
-}
-
-static int  armv8_flush_all_data(struct target *target)
-{
-	int retval = ERROR_FAIL;
-	/*  check that armv8_cache is correctly identify */
-	struct armv8_common *armv8 = target_to_armv8(target);
-	if (armv8->armv8_mmu.armv8_cache.ctype == -1) {
-		LOG_ERROR("trying to flush un-identified cache");
-		return retval;
-	}
-
-	if (target->smp) {
-		/*  look if all the other target have been flushed in order to flush level
-		 *  2 */
-		struct target_list *head;
-		struct target *curr;
-		head = target->head;
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			if (curr->state == TARGET_HALTED) {
-				LOG_INFO("Wait flushing data l1 on core %" PRId32, curr->coreid);
-				retval = _armv8_flush_all_data(curr);
-			}
-			head = head->next;
-		}
-	} else
-		retval = _armv8_flush_all_data(target);
-	return retval;
-}
-
 int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 	struct armv8_cache_common *armv8_cache)
 {
-	if (armv8_cache->ctype == -1) {
+	if (armv8_cache->info == -1) {
 		command_print(cmd_ctx, "cache not yet identified");
 		return ERROR_OK;
 	}
@@ -632,174 +573,6 @@ int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 	if (armv8_cache->display_cache_info)
 		armv8_cache->display_cache_info(cmd_ctx, armv8_cache);
 	return ERROR_OK;
-}
-
-/*  retrieve core id cluster id  */
-static int armv8_read_mpidr(struct target *target)
-{
-	int retval = ERROR_FAIL;
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm_dpm *dpm = armv8->arm.dpm;
-	uint32_t mpidr;
-
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-	/* MRC p15,0,<Rd>,c0,c0,5; read Multiprocessor ID register*/
-
-	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
-	if (retval != ERROR_OK)
-		goto done;
-	if (mpidr & 1<<31) {
-		armv8->multi_processor_system = (mpidr >> 30) & 1;
-		armv8->cluster_id = (mpidr >> 8) & 0xf;
-		armv8->cpu_id = mpidr & 0x3;
-		LOG_INFO("%s cluster %x core %x %s", target_name(target),
-			armv8->cluster_id,
-			armv8->cpu_id,
-			armv8->multi_processor_system == 0 ? "multi core" : "mono core");
-
-	} else
-		LOG_ERROR("mpdir not in multiprocessor format");
-
-done:
-	dpm->finish(dpm);
-	return retval;
-
-
-}
-
-int armv8_identify_cache(struct target *target)
-{
-	/*	read cache descriptor */
-	int retval = ERROR_FAIL;
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm_dpm *dpm = armv8->arm.dpm;
-	uint32_t cache_selected, clidr;
-	uint32_t cache_i_reg, cache_d_reg;
-	struct armv8_cache_common *cache = &(armv8->armv8_mmu.armv8_cache);
-	int is_aarch64 = armv8->arm.core_state == ARM_STATE_AARCH64;
-
-	retval = is_aarch64 ? armv8_read_ttbcr(target) : armv8_read_ttbcr32(target);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/*	retrieve CLIDR */
-	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CLIDR), &clidr);
-	if (retval != ERROR_OK)
-		goto done;
-
-	clidr = (clidr & 0x7000000) >> 23;
-	LOG_INFO("number of cache level %" PRIx32, (uint32_t)(clidr / 2));
-	if ((clidr / 2) > 1) {
-		/* FIXME not supported present in cortex A8 and later */
-		/*	in cortex A7, A15 */
-		LOG_ERROR("cache l2 present :not supported");
-	}
-	/*	retrieve selected cache*/
-	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CSSELR), &cache_selected);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/* select instruction cache
-	 *	[0]  : 1 instruction cache selection , 0 data cache selection */
-	retval = dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_CSSELR), 1);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/* read CCSIDR
-	 * MRC P15,1,<RT>,C0, C0,0 ;on cortex A9 read CCSIDR
-	 * [2:0] line size	001 eight word per line
-	 * [27:13] NumSet 0x7f 16KB, 0xff 32Kbytes, 0x1ff 64Kbytes */
-	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CCSIDR), &cache_i_reg);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/*	select data cache*/
-	retval = dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_CSSELR), 0);
-	if (retval != ERROR_OK)
-		goto done;
-
-	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_CCSIDR), &cache_d_reg);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/*	restore selected cache	*/
-	dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_CSSELR), cache_selected);
-	if (retval != ERROR_OK)
-		goto done;
-	dpm->finish(dpm);
-
-	/* put fake type */
-	cache->d_u_size.linelen = 16 << (cache_d_reg & 0x7);
-	cache->d_u_size.cachesize = (((cache_d_reg >> 13) & 0x7fff)+1)/8;
-	cache->d_u_size.nsets = (cache_d_reg >> 13) & 0x7fff;
-	cache->d_u_size.associativity = ((cache_d_reg >> 3) & 0x3ff) + 1;
-	/*  compute info for set way operation on cache */
-	cache->d_u_size.index_shift = (cache_d_reg & 0x7) + 4;
-	cache->d_u_size.index = (cache_d_reg >> 13) & 0x7fff;
-	cache->d_u_size.way = ((cache_d_reg >> 3) & 0x3ff);
-	cache->d_u_size.way_shift = cache->d_u_size.way + 1;
-	{
-		int i = 0;
-		while (((cache->d_u_size.way_shift >> i) & 1) != 1)
-			i++;
-		cache->d_u_size.way_shift = 32-i;
-	}
-#if 0
-	LOG_INFO("data cache index %d << %d, way %d << %d",
-			cache->d_u_size.index, cache->d_u_size.index_shift,
-			cache->d_u_size.way,
-			cache->d_u_size.way_shift);
-
-	LOG_INFO("data cache %d bytes %d KBytes asso %d ways",
-			cache->d_u_size.linelen,
-			cache->d_u_size.cachesize,
-			cache->d_u_size.associativity);
-#endif
-	cache->i_size.linelen = 16 << (cache_i_reg & 0x7);
-	cache->i_size.associativity = ((cache_i_reg >> 3) & 0x3ff) + 1;
-	cache->i_size.nsets = (cache_i_reg >> 13) & 0x7fff;
-	cache->i_size.cachesize = (((cache_i_reg >> 13) & 0x7fff)+1)/8;
-	/*  compute info for set way operation on cache */
-	cache->i_size.index_shift = (cache_i_reg & 0x7) + 4;
-	cache->i_size.index = (cache_i_reg >> 13) & 0x7fff;
-	cache->i_size.way = ((cache_i_reg >> 3) & 0x3ff);
-	cache->i_size.way_shift = cache->i_size.way + 1;
-	{
-		int i = 0;
-		while (((cache->i_size.way_shift >> i) & 1) != 1)
-			i++;
-		cache->i_size.way_shift = 32-i;
-	}
-#if 0
-	LOG_INFO("instruction cache index %d << %d, way %d << %d",
-			cache->i_size.index, cache->i_size.index_shift,
-			cache->i_size.way, cache->i_size.way_shift);
-
-	LOG_INFO("instruction cache %d bytes %d KBytes asso %d ways",
-			cache->i_size.linelen,
-			cache->i_size.cachesize,
-			cache->i_size.associativity);
-#endif
-	/*  if no l2 cache initialize l1 data cache flush function function */
-	if (armv8->armv8_mmu.armv8_cache.flush_all_data_cache == NULL) {
-		armv8->armv8_mmu.armv8_cache.display_cache_info =
-			armv8_handle_inner_cache_info_command;
-		armv8->armv8_mmu.armv8_cache.flush_all_data_cache =
-			armv8_flush_all_data;
-	}
-	armv8->armv8_mmu.armv8_cache.ctype = 0;
-
-done:
-	dpm->finish(dpm);
-	armv8_read_mpidr(target);
-	return retval;
-
 }
 
 int armv8_init_arch_info(struct target *target, struct armv8_common *armv8)
@@ -818,7 +591,7 @@ int armv8_init_arch_info(struct target *target, struct armv8_common *armv8)
 #endif
 
 	armv8->armv8_mmu.armv8_cache.l2_cache = NULL;
-	armv8->armv8_mmu.armv8_cache.ctype = -1;
+	armv8->armv8_mmu.armv8_cache.info = -1;
 	armv8->armv8_mmu.armv8_cache.flush_all_data_cache = NULL;
 	armv8->armv8_mmu.armv8_cache.display_cache_info = NULL;
 	return ERROR_OK;

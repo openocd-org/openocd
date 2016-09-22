@@ -97,12 +97,22 @@ struct armv8_cachesize {
 	uint32_t way_shift;
 };
 
-struct armv8_cache_common {
-	int ctype;
+/* information about one architecture cache at any level */
+struct armv8_arch_cache {
+	int ctype;				/* cache type, CLIDR encoding */
 	struct armv8_cachesize d_u_size;	/* data cache */
 	struct armv8_cachesize i_size;		/* instruction cache */
+};
+
+struct armv8_cache_common {
+	int info;
+	int loc;
+	uint32_t iminline;
+	uint32_t dminline;
+	struct armv8_arch_cache arch[6];	/* cache info, L1 - L7 */
 	int i_cache_enabled;
 	int d_u_cache_enabled;
+
 	/* l2 external unified cache if some */
 	void *l2_cache;
 	int (*flush_all_data_cache)(struct target *target);
@@ -249,7 +259,8 @@ target_to_armv8(struct target *target)
 #define PAGE_SIZE_4KB_TRBBASE_MASK	0xFFFFFFFFF000
 
 int armv8_arch_state(struct target *target);
-int armv8_identify_cache(struct target *target);
+int armv8_read_mpidr(struct armv8_common *armv8);
+int armv8_identify_cache(struct armv8_common *armv8);
 int armv8_init_arch_info(struct target *target, struct armv8_common *armv8);
 int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 		target_addr_t *val, int meminfo);

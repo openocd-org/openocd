@@ -735,8 +735,10 @@ static int aarch64_post_debug_entry(struct target *target)
 	LOG_DEBUG("System_register: %8.8" PRIx32, aarch64->system_control_reg);
 	aarch64->system_control_reg_curr = aarch64->system_control_reg;
 
-	if (armv8->armv8_mmu.armv8_cache.ctype == -1)
-		armv8_identify_cache(target);
+	if (armv8->armv8_mmu.armv8_cache.info == -1) {
+		armv8_identify_cache(armv8);
+		armv8_read_mpidr(armv8);
+	}
 
 	armv8->armv8_mmu.mmu_enabled =
 			(aarch64->system_control_reg & 0x1U) ? 1 : 0;
