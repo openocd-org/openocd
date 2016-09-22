@@ -26,6 +26,8 @@
 #include "target_type.h"
 #include "armv8_opcodes.h"
 
+#include "helper/time_support.h"
+
 
 /**
  * @file
@@ -41,6 +43,410 @@
  */
 
 /*----------------------------------------------------------------------*/
+
+static int dpmv8_write_dcc(struct armv8_common *armv8, uint32_t data)
+{
+	LOG_DEBUG("write DCC 0x%08" PRIx32, data);
+	return mem_ap_write_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DTRRX, data);
+}
+
+static int dpmv8_write_dcc_64(struct armv8_common *armv8, uint64_t data)
+{
+	int ret;
+	LOG_DEBUG("write DCC Low word 0x%08" PRIx32, (unsigned)data);
+	LOG_DEBUG("write DCC High word 0x%08" PRIx32, (unsigned)(data >> 32));
+	ret = mem_ap_write_u32(armv8->debug_ap,
+			       armv8->debug_base + CPUV8_DBG_DTRRX, data);
+	ret += mem_ap_write_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DTRTX, data >> 32);
+	return ret;
+}
+
+static int dpmv8_read_dcc(struct armv8_common *armv8, uint32_t *data,
+	uint32_t *dscr_p)
+{
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	if (dscr_p)
+		dscr = *dscr_p;
+
+	/* Wait for DTRRXfull */
+	long long then = timeval_ms();
+	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DSCR,
+				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
+		if (timeval_ms() > then + 1000) {
+			LOG_ERROR("Timeout waiting for read dcc");
+			return ERROR_FAIL;
+		}
+	}
+
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					    armv8->debug_base + CPUV8_DBG_DTRTX,
+					    data);
+	if (retval != ERROR_OK)
+		return retval;
+	LOG_DEBUG("read DCC 0x%08" PRIx32, *data);
+
+	if (dscr_p)
+		*dscr_p = dscr;
+
+	return retval;
+}
+
+static int dpmv8_read_dcc_64(struct armv8_common *armv8, uint64_t *data,
+	uint32_t *dscr_p)
+{
+	uint32_t dscr = DSCR_ITE;
+	uint32_t higher;
+	int retval;
+
+	if (dscr_p)
+		dscr = *dscr_p;
+
+	/* Wait for DTRRXfull */
+	long long then = timeval_ms();
+	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DSCR,
+				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
+		if (timeval_ms() > then + 1000) {
+			LOG_ERROR("Timeout waiting for read dcc");
+			return ERROR_FAIL;
+		}
+	}
+
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					    armv8->debug_base + CPUV8_DBG_DTRTX,
+					    (uint32_t *)data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					    armv8->debug_base + CPUV8_DBG_DTRRX,
+					    &higher);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*data = *(uint32_t *)data | (uint64_t)higher << 32;
+	LOG_DEBUG("read DCC 0x%16.16" PRIx64, *data);
+
+	if (dscr_p)
+		*dscr_p = dscr;
+
+	return retval;
+}
+
+static int dpmv8_dpm_prepare(struct arm_dpm *dpm)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr;
+	int retval;
+
+	/* set up invariant:  INSTR_COMP is set after ever DPM operation */
+	long long then = timeval_ms();
+	for (;; ) {
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DSCR,
+				&dscr);
+		if (retval != ERROR_OK)
+			return retval;
+		if ((dscr & DSCR_ITE) != 0)
+			break;
+		if (timeval_ms() > then + 1000) {
+			LOG_ERROR("Timeout waiting for dpm prepare");
+			return ERROR_FAIL;
+		}
+	}
+
+	/* this "should never happen" ... */
+	if (dscr & DSCR_DTR_RX_FULL) {
+		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
+		/* Clear DCCRX */
+		retval = mem_ap_read_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DTRRX, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* Clear sticky error */
+		retval = mem_ap_write_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	return retval;
+}
+
+static int dpmv8_dpm_finish(struct arm_dpm *dpm)
+{
+	/* REVISIT what could be done here? */
+	return ERROR_OK;
+}
+
+static int dpmv8_exec_opcode(struct arm_dpm *dpm,
+	uint32_t opcode, uint32_t *p_dscr)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
+
+	if (p_dscr)
+		dscr = *p_dscr;
+
+	/* Wait for InstrCompl bit to be set */
+	long long then = timeval_ms();
+	while ((dscr & DSCR_ITE) == 0) {
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Could not read DSCR register, opcode = 0x%08" PRIx32, opcode);
+			return retval;
+		}
+		if (timeval_ms() > then + 1000) {
+			LOG_ERROR("Timeout waiting for aarch64_exec_opcode");
+			return ERROR_FAIL;
+		}
+	}
+
+	retval = mem_ap_write_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_ITR, opcode);
+	if (retval != ERROR_OK)
+		return retval;
+
+	then = timeval_ms();
+	do {
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Could not read DSCR register");
+			return retval;
+		}
+		if (timeval_ms() > then + 1000) {
+			LOG_ERROR("Timeout waiting for aarch64_exec_opcode");
+			return ERROR_FAIL;
+		}
+	} while ((dscr & DSCR_ITE) == 0);	/* Wait for InstrCompl bit to be set */
+
+	if (p_dscr)
+		*p_dscr = dscr;
+
+	return retval;
+}
+
+static int dpmv8_instr_execute(struct arm_dpm *dpm, uint32_t opcode)
+{
+	return dpmv8_exec_opcode(dpm, opcode, NULL);
+}
+
+static int dpmv8_instr_write_data_dcc(struct arm_dpm *dpm,
+	uint32_t opcode, uint32_t data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	int retval;
+
+	retval = dpmv8_write_dcc(armv8, data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dpmv8_exec_opcode(dpm, opcode, 0);
+}
+
+static int dpmv8_instr_write_data_dcc_64(struct arm_dpm *dpm,
+	uint32_t opcode, uint64_t data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	int retval;
+
+	retval = dpmv8_write_dcc_64(armv8, data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dpmv8_exec_opcode(dpm, opcode, 0);
+}
+
+static int dpmv8_instr_write_data_r0(struct arm_dpm *dpm,
+	uint32_t opcode, uint32_t data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	retval = dpmv8_write_dcc(armv8, data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dpmv8_exec_opcode(dpm, armv8_opcode(armv8, READ_REG_DTRRX), &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* then the opcode, taking data from R0 */
+	return dpmv8_exec_opcode(dpm, opcode, &dscr);
+}
+
+static int dpmv8_instr_write_data_r0_64(struct arm_dpm *dpm,
+	uint32_t opcode, uint64_t data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	retval = dpmv8_write_dcc_64(armv8, data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dpmv8_exec_opcode(dpm, ARMV8_MRS(SYSTEM_DBG_DBGDTR_EL0, 0), &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* then the opcode, taking data from R0 */
+	return dpmv8_exec_opcode(dpm, opcode, &dscr);
+}
+
+static int dpmv8_instr_cpsr_sync(struct arm_dpm *dpm)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	/* "Prefetch flush" after modifying execution status in CPSR */
+	return dpmv8_exec_opcode(dpm, armv8_opcode(armv8, ARMV8_OPC_DSB_SY), NULL);
+}
+
+static int dpmv8_instr_read_data_dcc(struct arm_dpm *dpm,
+	uint32_t opcode, uint32_t *data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	/* the opcode, writing data to DCC */
+	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dpmv8_read_dcc(armv8, data, &dscr);
+}
+
+static int dpmv8_instr_read_data_dcc_64(struct arm_dpm *dpm,
+	uint32_t opcode, uint64_t *data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	/* the opcode, writing data to DCC */
+	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dpmv8_read_dcc_64(armv8, data, &dscr);
+}
+
+static int dpmv8_instr_read_data_r0(struct arm_dpm *dpm,
+	uint32_t opcode, uint32_t *data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	/* the opcode, writing data to R0 */
+	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* write R0 to DCC */
+	retval = dpmv8_exec_opcode(dpm, armv8_opcode(armv8, WRITE_REG_DTRTX), &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dpmv8_read_dcc(armv8, data, &dscr);
+}
+
+static int dpmv8_instr_read_data_r0_64(struct arm_dpm *dpm,
+	uint32_t opcode, uint64_t *data)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t dscr = DSCR_ITE;
+	int retval;
+
+	/* the opcode, writing data to R0 */
+	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* write R0 to DCC */
+	retval = dpmv8_exec_opcode(dpm, ARMV8_MSR_GP(SYSTEM_DBG_DBGDTR_EL0, 0), &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return dpmv8_read_dcc_64(armv8, data, &dscr);
+}
+
+#if 0
+static int dpmv8_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
+	target_addr_t addr, uint32_t control)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t vr = armv8->debug_base;
+	uint32_t cr = armv8->debug_base;
+	int retval;
+
+	switch (index_t) {
+		case 0 ... 15:	/* breakpoints */
+			vr += CPUV8_DBG_BVR_BASE;
+			cr += CPUV8_DBG_BCR_BASE;
+			break;
+		case 16 ... 31:	/* watchpoints */
+			vr += CPUV8_DBG_WVR_BASE;
+			cr += CPUV8_DBG_WCR_BASE;
+			index_t -= 16;
+			break;
+		default:
+			return ERROR_FAIL;
+	}
+	vr += 16 * index_t;
+	cr += 16 * index_t;
+
+	LOG_DEBUG("A8: bpwp enable, vr %08x cr %08x",
+		(unsigned) vr, (unsigned) cr);
+
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap, vr, addr);
+	if (retval != ERROR_OK)
+		return retval;
+	return mem_ap_write_atomic_u32(armv8->debug_ap, cr, control);
+}
+#endif
+
+static int dpmv8_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	uint32_t cr;
+
+	switch (index_t) {
+		case 0 ... 15:
+			cr = armv8->debug_base + CPUV8_DBG_BCR_BASE;
+			break;
+		case 16 ... 31:
+			cr = armv8->debug_base + CPUV8_DBG_WCR_BASE;
+			index_t -= 16;
+			break;
+		default:
+			return ERROR_FAIL;
+	}
+	cr += 16 * index_t;
+
+	LOG_DEBUG("A: bpwp disable, cr %08x", (unsigned) cr);
+
+	/* clear control register */
+	return mem_ap_write_atomic_u32(armv8->debug_ap, cr, 0);
+}
 
 /*
  * Coprocessor support
@@ -1061,6 +1467,27 @@ int armv8_dpm_setup(struct arm_dpm *dpm)
 	arm->mcr = dpmv8_mcr;
 	arm->mrs = dpmv8_mrs;
 	arm->msr = dpmv8_msr;
+
+	dpm->prepare = dpmv8_dpm_prepare;
+	dpm->finish = dpmv8_dpm_finish;
+
+	dpm->instr_execute = dpmv8_instr_execute;
+	dpm->instr_write_data_dcc = dpmv8_instr_write_data_dcc;
+	dpm->instr_write_data_dcc_64 = dpmv8_instr_write_data_dcc_64;
+	dpm->instr_write_data_r0 = dpmv8_instr_write_data_r0;
+	dpm->instr_write_data_r0_64 = dpmv8_instr_write_data_r0_64;
+	dpm->instr_cpsr_sync = dpmv8_instr_cpsr_sync;
+
+	dpm->instr_read_data_dcc = dpmv8_instr_read_data_dcc;
+	dpm->instr_read_data_dcc_64 = dpmv8_instr_read_data_dcc_64;
+	dpm->instr_read_data_r0 = dpmv8_instr_read_data_r0;
+	dpm->instr_read_data_r0_64 = dpmv8_instr_read_data_r0_64;
+
+	dpm->arm_reg_current = armv8_reg_current;
+
+/*	dpm->bpwp_enable = dpmv8_bpwp_enable; */
+	dpm->bpwp_disable = dpmv8_bpwp_disable;
+
 	/* breakpoint setup -- optional until it works everywhere */
 	if (!target->type->add_breakpoint) {
 		target->type->add_breakpoint = dpmv8_add_breakpoint;
