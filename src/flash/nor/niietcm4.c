@@ -230,7 +230,8 @@ static int niietcm4_uopstatus_check(struct flash_bank *bank)
 static int niietcm4_dump_uflash_page(struct flash_bank *bank, uint32_t *dump, int page_num, int mem_type)
 {
 	struct target *target = bank->target;
-	int i, retval;
+	int i;
+	int retval = ERROR_OK;
 
 	uint32_t uflash_cmd;
 	if (mem_type == INFO_MEM_TYPE)
@@ -265,7 +266,8 @@ static int niietcm4_dump_uflash_page(struct flash_bank *bank, uint32_t *dump, in
 static int niietcm4_load_uflash_page(struct flash_bank *bank, uint32_t *dump, int page_num, int mem_type)
 {
 	struct target *target = bank->target;
-	int i, retval;
+	int i;
+	int retval = ERROR_OK;
 
 	uint32_t uflash_cmd;
 	if (mem_type == INFO_MEM_TYPE)

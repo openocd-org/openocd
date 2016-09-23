@@ -1337,7 +1337,7 @@ static int kinetis_make_ram_ready(struct target *target)
 static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer,
 			 uint32_t offset, uint32_t count)
 {
-	int result;
+	int result = ERROR_OK;
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 	uint8_t *buffer_aligned = NULL;
 	/*
