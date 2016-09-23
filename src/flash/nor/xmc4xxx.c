@@ -998,11 +998,6 @@ static int xmc4xxx_flash_unprotect(struct flash_bank *bank, int32_t level)
 	uint32_t addr;
 	int res;
 
-	if ((level < 0) || (level > 1)) {
-		LOG_ERROR("Invalid user level. Must be 0-1");
-		return ERROR_FAIL;
-	}
-
 	switch (level) {
 	case 0:
 		addr = UCB0_BASE;
@@ -1010,6 +1005,9 @@ static int xmc4xxx_flash_unprotect(struct flash_bank *bank, int32_t level)
 	case 1:
 		addr = UCB1_BASE;
 		break;
+	default:
+		LOG_ERROR("Invalid user level. Must be 0-1");
+		return ERROR_FAIL;
 	}
 
 	res = xmc4xxx_erase_sector(bank, addr, true);
