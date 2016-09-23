@@ -299,12 +299,10 @@ static void increase_interrupt_high_delay(struct target *target)
 }
 
 static void add_dbus_scan(const struct target *target, struct scan_field *field,
-		uint8_t *out_value, uint8_t *in_value, dbus_op_t op, uint16_t address, 
-		uint64_t data)
+		uint8_t *out_value, uint8_t *in_value, dbus_op_t op,
+		uint16_t address, uint64_t data)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-
-	LOG_DEBUG("op=%d address=0x%02x data=0x%09" PRIx64, op, address, data);
 
 	field->num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
 	field->in_value = in_value;
@@ -323,6 +321,37 @@ static void add_dbus_scan(const struct target *target, struct scan_field *field,
 	}
 
 	jtag_add_runtest(idle_count, TAP_IDLE);
+}
+
+static void dump_field(const struct scan_field *field)
+{
+	static const char *op_string[] = {"nop", "r", "w", "?"};
+	static const char *status_string[] = {"+", "?", "F", "b"};
+
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
+
+	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
+	unsigned int out_op = (out >> DBUS_OP_START) & ((1 << DBUS_OP_SIZE) - 1);
+	char out_interrupt = ((out >> DBUS_DATA_START) & DMCONTROL_INTERRUPT) ? 'i' : '.';
+	char out_haltnot = ((out >> DBUS_DATA_START) & DMCONTROL_HALTNOT) ? 'h' : '.';
+	unsigned int out_data = out >> 2;
+	unsigned int out_address = out >> DBUS_ADDRESS_START;
+	uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+	unsigned int in_op = (in >> DBUS_OP_START) & ((1 << DBUS_OP_SIZE) - 1);
+	char in_interrupt = ((in >> DBUS_DATA_START) & DMCONTROL_INTERRUPT) ? 'i' : '.';
+	char in_haltnot = ((in >> DBUS_DATA_START) & DMCONTROL_HALTNOT) ? 'h' : '.';
+	unsigned int in_data = in >> 2;
+	unsigned int in_address = in >> DBUS_ADDRESS_START;
+
+	log_printf_lf(LOG_LVL_DEBUG,
+			__FILE__, __LINE__, "scan",
+			"%db %s %c%c:%08x @%02x -> %s %c%c:%08x @%02x",
+			field->num_bits,
+			op_string[out_op], out_interrupt, out_haltnot, out_data,
+			out_address,
+			status_string[in_op], in_interrupt, in_haltnot, in_data,
+			in_address);
 }
 
 static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
@@ -361,28 +390,7 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 		*address_in = buf_get_u32(in, DBUS_ADDRESS_START, info->addrbits);
 	}
 
-	static const char *op_string[] = {"nop", "r", "w", "cw"};
-	static const char *status_string[] = {"+", "nw", "F", "b"};
-	/*
-	LOG_DEBUG("vvv $display(\"hardware: dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x\");",
-			field.num_bits,
-			op_string[buf_get_u32(out, 0, 2)],
-			buf_get_u32(out, 34, 2), buf_get_u32(out, 2, 32),
-			buf_get_u32(out, 36, info->addrbits),
-			status_string[buf_get_u32(in, 0, 2)],
-			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
-			buf_get_u32(in, 36, info->addrbits));
-			*/
-	LOG_DEBUG("dbus scan %db %s %01x:%08x @%02x -> %s %01x:%08x @%02x",
-			field.num_bits,
-			op_string[buf_get_u32(out, 0, 2)],
-			buf_get_u32(out, 34, 2), buf_get_u32(out, 2, 32),
-			buf_get_u32(out, 36, info->addrbits),
-			status_string[buf_get_u32(in, 0, 2)],
-			buf_get_u32(in, 34, 2), buf_get_u32(in, 2, 32),
-			buf_get_u32(in, 36, info->addrbits));
-
-	//debug_scan(target);
+	dump_field(&field);
 
 	return buf_get_u32(in, DBUS_OP_START, DBUS_OP_SIZE);
 }
@@ -433,10 +441,14 @@ static scans_t *scans_new(struct target *target, unsigned int scan_count)
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	scans_t *scans = malloc(sizeof(scans_t));
 	scans->scan_count = scan_count;
-	scans->scan_size = 2 + info->xlen / 8;
+	// This code also gets called before xlen is detected.
+	if (info->xlen)
+		scans->scan_size = 2 + info->xlen / 8;
+	else
+		scans->scan_size = 2 + 128 / 8;
 	scans->next_scan = 0;
-	scans->in = malloc(scans->scan_size * scans->scan_count);
-	scans->out = malloc(scans->scan_size * scans->scan_count);
+	scans->in = calloc(scans->scan_size, scans->scan_count);
+	scans->out = calloc(scans->scan_size, scans->scan_count);
 	scans->field = calloc(scans->scan_count, sizeof(struct scan_field));
 	scans->target = target;
 	return scans;
@@ -457,12 +469,33 @@ static void scans_reset(scans_t *scans)
 	scans->next_scan = 0;
 }
 
+static void scans_dump(scans_t *scans)
+{
+	for (unsigned int i = 0; i < scans->next_scan; i++) {
+		dump_field(&scans->field[i]);
+	}
+}
+
+static int scans_execute(scans_t *scans)
+{
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("dtminfo_read failed jtag scan");
+		return retval;
+	}
+
+	scans_dump(scans);
+
+	return ERROR_OK;
+}
+
 static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
 		bool set_interrupt)
 {
 	const unsigned int i = scans->next_scan;
-	add_dbus_scan(scans->target, &scans->field[i], scans->out + scans->scan_size * i,
-			scans->in + scans->scan_size * i, DBUS_OP_WRITE, address,
+	int data_offset = scans->scan_size * i;
+	add_dbus_scan(scans->target, &scans->field[i], scans->out + data_offset,
+			scans->in + data_offset, DBUS_OP_WRITE, address,
 			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT | data);
 	scans->next_scan++;
 	assert(scans->next_scan <= scans->scan_count);
@@ -493,9 +526,9 @@ static void scans_add_write_store(scans_t *scans, uint16_t address,
 static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrupt)
 {
 	const unsigned int i = scans->next_scan;
-	add_dbus_scan(scans->target, &scans->field[i],
-			scans->out + scans->scan_size * i,
-			scans->in + scans->scan_size * i, DBUS_OP_READ, address,
+	int data_offset = scans->scan_size * i;
+	add_dbus_scan(scans->target, &scans->field[i], scans->out + data_offset,
+			scans->in + data_offset, DBUS_OP_READ, address,
 			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT);
 	scans->next_scan++;
 	assert(scans->next_scan < scans->scan_count);
@@ -763,7 +796,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		scans_add_read32(scans, address, false);
 	}
 
-	int retval = jtag_execute_queue();
+	int retval = scans_execute(scans);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("JTAG execute failed.");
 		return retval;
@@ -1728,7 +1761,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	// Final read to get the last value out.
 	scans_add_read32(scans, 4, false);
 
-	int retval = jtag_execute_queue();
+	int retval = scans_execute(scans);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("JTAG execute failed: %d", retval);
 		goto error;
@@ -1746,8 +1779,6 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		uint64_t data = scans_get_u64(scans, i, DBUS_DATA_START, DBUS_DATA_SIZE);
 		uint32_t address = scans_get_u32(scans, i, DBUS_ADDRESS_START,
 				info->addrbits);
-		LOG_DEBUG("read scan=%d result=%d data=%09" PRIx64 " address=%02x",
-				i, status, data, address);
 		switch (status) {
 			case DBUS_STATUS_SUCCESS:
 				break;
@@ -1890,7 +1921,15 @@ static int handle_halt(struct target *target, bool announce)
 static int poll_target(struct target *target, bool announce)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
+	// Inhibit debug logging during poll(), which isn't usually interesting and
+	// just fills up the screen/logs with clutter.
+	int old_debug_level = debug_level;
+	if (debug_level >= LOG_LVL_DEBUG) {
+		debug_level = LOG_LVL_INFO;
+	}
 	bits_t bits = read_bits(target);
+	debug_level = old_debug_level;
 
 	if (bits.haltnot && bits.interrupt) {
 		target->state = TARGET_DEBUG_RUNNING;
@@ -2026,7 +2065,7 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 			}
 		}
 
-		int retval = jtag_execute_queue();
+		int retval = scans_execute(scans);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("JTAG execute failed: %d", retval);
 			goto error;
@@ -2202,7 +2241,7 @@ static int riscv_write_memory(struct target *target, uint32_t address,
 			}
 		}
 
-		int retval = jtag_execute_queue();
+		int retval = scans_execute(scans);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("JTAG execute failed: %d", retval);
 			goto error;
