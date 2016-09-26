@@ -861,7 +861,6 @@ static int aarch64_set_breakpoint(struct target *target,
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct aarch64_brp *brp_list = aarch64->brp_list;
-	uint32_t dscr;
 
 	if (breakpoint->set) {
 		LOG_WARNING("breakpoint already set");
@@ -940,12 +939,8 @@ static int aarch64_set_breakpoint(struct target *target,
 		breakpoint->set = 0x11;	/* Any nice value but 0 */
 	}
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-					armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
 	/* Ensure that halting debug mode is enable */
-	dscr = dscr | DSCR_HDE;
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-					 armv8->debug_base + CPUV8_DBG_DSCR, dscr);
+	retval = aarch64_set_dscr_bits(target, DSCR_HDE, DSCR_HDE);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Failed to set DSCR.HDE");
 		return retval;
