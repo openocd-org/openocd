@@ -441,7 +441,7 @@ done:
 	return retval;
 }
 
-static int armv8_read_ttbcr(struct target *target)
+static __unused int armv8_read_ttbcr(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
@@ -511,48 +511,18 @@ static int armv8_read_ttbcr(struct target *target)
 	if (retval != ERROR_OK)
 		goto done;
 
-#if 0
-	LOG_INFO("ttb1 %s ,ttb0_mask %llx",
-		armv8->armv8_mmu.ttbr1_used ? "used" : "not used",
-		armv8->armv8_mmu.ttbr0_mask);
-#endif
-	if (armv8->armv8_mmu.ttbr1_used == 1) {
-		LOG_INFO("TTBR0 access above %" PRIx64,
-			 (uint64_t)(armv8->armv8_mmu.ttbr0_mask));
-		armv8->armv8_mmu.os_border = armv8->armv8_mmu.ttbr0_mask;
-	} else {
-		/*  fix me , default is hard coded LINUX border  */
-		armv8->armv8_mmu.os_border = 0xc0000000;
-	}
+	if (armv8->armv8_mmu.ttbr1_used == 1)
+		LOG_INFO("TTBR0 access above %" PRIx64, (uint64_t)(armv8->armv8_mmu.ttbr0_mask));
+
 done:
 	dpm->finish(dpm);
 	return retval;
 }
 
-static int armv8_4K_translate(struct target *target,  target_addr_t va, target_addr_t *val)
-{
-	LOG_ERROR("4K page Address translation need to add");
-	return ERROR_FAIL;
-}
-
-
 /*  method adapted to cortex A : reused arm v4 v5 method*/
 int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr_t *val)
 {
-	int retval = ERROR_FAIL;
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm_dpm *dpm = armv8->arm.dpm;
-
-	retval = dpm->prepare(dpm);
-	retval += armv8_read_ttbcr(target);
-	if (retval != ERROR_OK)
-		goto done;
-	if (armv8->page_size == 0)
-		return armv8_4K_translate(target, va, val);
-
-done:
-	dpm->finish(dpm);
-	return ERROR_FAIL;
+	return ERROR_OK;
 }
 
 /*  V8 method VA TO PA  */

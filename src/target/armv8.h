@@ -124,7 +124,6 @@ struct armv8_mmu_common {
 	/* following field mmu working way */
 	int32_t ttbr1_used; /*  -1 not initialized, 0 no ttbr1 1 ttbr1 used and  */
 	uint64_t ttbr0_mask;/*  masked to be used  */
-	uint32_t os_border;
 
 	uint32_t ttbcr;     /* cache for ttbcr register */
 	uint32_t ttbr_mask[2];
