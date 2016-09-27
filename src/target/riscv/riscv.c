@@ -46,9 +46,10 @@
 
 /*** JTAG registers. ***/
 
-#define DTMINFO					0x10
-#define DTMINFO_ADDRBITS		(0xf<<4)
-#define DTMINFO_VERSION			(0xf)
+#define DTMCONTROL					0x10
+#define DTMCONTROL_DBUS_RESET		(1<<16)
+#define DTMCONTROL_ADDRBITS			(0xf<<4)
+#define DTMCONTROL_VERSION			(0xf)
 
 #define DBUS						0x11
 #define DBUS_OP_START				0
@@ -197,10 +198,10 @@ static int poll_target(struct target *target, bool announce);
 
 /*** Utility functions. ***/
 
-static uint8_t ir_dtminfo[1] = {DTMINFO};
-static struct scan_field select_dtminfo = {
+static uint8_t ir_dtmcontrol[1] = {DTMCONTROL};
+static struct scan_field select_dtmcontrol = {
 	.in_value = NULL,
-	.out_value = ir_dtminfo
+	.out_value = ir_dtmcontrol
 };
 static uint8_t ir_dbus[1] = {DBUS};
 static struct scan_field select_dbus = {
@@ -284,11 +285,43 @@ static uint16_t dram_address(unsigned int index)
 		return 0x40 + index - 0x10;
 }
 
+static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
+{
+	struct scan_field field;
+	uint8_t in_value[4];
+	uint8_t out_value[4];
+
+	buf_set_u32(out_value, 0, 32, out);
+
+	jtag_add_ir_scan(target->tap, &select_dtmcontrol, TAP_IDLE);
+
+	field.num_bits = 32;
+	field.out_value = out_value;
+	field.in_value = in_value;
+	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
+
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("failed jtag scan: %d", retval);
+		return retval;
+	}
+
+	/* Always return to dbus. */
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
+	uint32_t in = buf_get_u32(field.in_value, 0, 32);
+	LOG_DEBUG("DTMCONTROL: 0x%x -> 0x%x", out, in);
+
+	return in;
+}
+
 static void increase_dbus_busy_delay(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->dbus_busy_delay++;
 	LOG_INFO("Increment dbus_busy_delay to %d", info->dbus_busy_delay);
+
+	dtmcontrol_scan(target, DTMCONTROL_DBUS_RESET);
 }
 
 static void increase_interrupt_high_delay(struct target *target)
@@ -314,7 +347,7 @@ static void add_dbus_scan(const struct target *target, struct scan_field *field,
 
 	jtag_add_dr_scan(target->tap, 1, field, TAP_IDLE);
 
-	// TODO: 1 should come from the dtminfo register
+	// TODO: 1 should come from the dtmcontrol register
 	int idle_count = 1 + info->dbus_busy_delay;
 	if (data & DMCONTROL_INTERRUPT) {
 		idle_count += info->interrupt_high_delay;
@@ -480,7 +513,7 @@ static int scans_execute(scans_t *scans)
 {
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		LOG_ERROR("dtminfo_read failed jtag scan");
+		LOG_ERROR("failed jtag scan: %d", retval);
 		return retval;
 	}
 
@@ -562,30 +595,6 @@ static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
 }
 
 /*** end of scans class ***/
-
-static uint32_t dtminfo_read(struct target *target)
-{
-	struct scan_field field;
-	uint8_t in[4];
-
-	jtag_add_ir_scan(target->tap, &select_dtminfo, TAP_IDLE);
-
-	field.num_bits = 32;
-	field.out_value = NULL;
-	field.in_value = in;
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-
-	int retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("dtminfo_read failed jtag scan");
-		return retval;
-	}
-
-	/* Always return to dbus. */
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-
-	return buf_get_u32(field.in_value, 0, 32);
-}
 
 static uint32_t dram_read32(struct target *target, unsigned int index)
 {
@@ -825,7 +834,8 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		increase_dbus_busy_delay(target);
 
 		// Try again, using the slow careful code.
-		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		// Write all RAM, just to be extra cautious.
+		for (unsigned int i = 0; i < info->dramsize; i++) {
 			if (i == last && run) {
 				dram_write32(target, last, info->dram_cache[last].data, true);
 			} else {
@@ -1245,7 +1255,7 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 		return ERROR_FAIL;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	select_dtminfo.num_bits = target->tap->ir_length;
+	select_dtmcontrol.num_bits = target->tap->ir_length;
 	select_dbus.num_bits = target->tap->ir_length;
 	select_debug.num_bits = target->tap->ir_length;
 
@@ -1617,26 +1627,26 @@ static int riscv_examine(struct target *target)
 		return ERROR_OK;
 	}
 
-	// Don't need to select dbus, since the first thing we do is read dtminfo.
+	// Don't need to select dbus, since the first thing we do is read dtmcontrol.
 
-	uint32_t dtminfo = dtminfo_read(target);
-	LOG_DEBUG("dtminfo=0x%x", dtminfo);
-	LOG_DEBUG("  addrbits=%d", get_field(dtminfo, DTMINFO_ADDRBITS));
-	LOG_DEBUG("  version=%d", get_field(dtminfo, DTMINFO_VERSION));
+	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
+	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
+	LOG_DEBUG("  addrbits=%d", get_field(dtmcontrol, DTMCONTROL_ADDRBITS));
+	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTMCONTROL_VERSION));
 	// TODO: Add support for the idle field, once it's implemented in the FPGA
 	// image.
-	if (dtminfo == 0) {
-		LOG_ERROR("dtminfo is 0. Check JTAG connectivity/board power.");
+	if (dtmcontrol == 0) {
+		LOG_ERROR("dtmcontrol is 0. Check JTAG connectivity/board power.");
 		return ERROR_FAIL;
 	}
-	if (get_field(dtminfo, DTMINFO_VERSION) != 0) {
-		LOG_ERROR("Unsupported DTM version %d. (dtminfo=0x%x)",
-				get_field(dtminfo, DTMINFO_VERSION), dtminfo);
+	if (get_field(dtmcontrol, DTMCONTROL_VERSION) != 0) {
+		LOG_ERROR("Unsupported DTM version %d. (dtmcontrol=0x%x)",
+				get_field(dtmcontrol, DTMCONTROL_VERSION), dtmcontrol);
 		return ERROR_FAIL;
 	}
 
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	info->addrbits = get_field(dtminfo, DTMINFO_ADDRBITS);
+	info->addrbits = get_field(dtmcontrol, DTMCONTROL_ADDRBITS);
 
 	uint32_t dminfo = dbus_read(target, DMINFO);
 	LOG_DEBUG("dminfo: 0x%08x", dminfo);
