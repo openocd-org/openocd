@@ -48,6 +48,7 @@
 
 #define DTMCONTROL					0x10
 #define DTMCONTROL_DBUS_RESET		(1<<16)
+#define DTMCONTROL_IDLE				(7<<10)
 #define DTMCONTROL_ADDRBITS			(0xf<<4)
 #define DTMCONTROL_VERSION			(0xf)
 
@@ -169,6 +170,10 @@ typedef struct {
 	// unique_id of the breakpoint/watchpoint that is using it.
 	int trigger_unique_id[MAX_HWBPS];
 
+	// Number of run-test/idle cycles the target requests we do after each dbus
+	// access.
+	unsigned int dtmcontrol_idle;
+
 	// This value is incremented every time a dbus access comes back as "busy".
 	// It's used to determine how many run-test/idle cycles to feed the target
 	// in between accesses.
@@ -208,10 +213,10 @@ static struct scan_field select_dbus = {
 	.in_value = NULL,
 	.out_value = ir_dbus
 };
-static uint8_t ir_debug[1] = {0x5};
-static struct scan_field select_debug = {
+static uint8_t ir_idcode[1] = {0x1};
+static struct scan_field select_idcode = {
 	.in_value = NULL,
-	.out_value = ir_debug
+	.out_value = ir_idcode
 };
 #define DEBUG_LENGTH	264
 
@@ -315,11 +320,40 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 	return in;
 }
 
+static uint32_t idcode_scan(struct target *target)
+{
+	struct scan_field field;
+	uint8_t in_value[4];
+
+	jtag_add_ir_scan(target->tap, &select_idcode, TAP_IDLE);
+
+	field.num_bits = 32;
+	field.out_value = NULL;
+	field.in_value = in_value;
+	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
+
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("failed jtag scan: %d", retval);
+		return retval;
+	}
+
+	/* Always return to dbus. */
+	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+
+	uint32_t in = buf_get_u32(field.in_value, 0, 32);
+	LOG_DEBUG("IDCODE: 0x0 -> 0x%x", in);
+
+	return in;
+}
+
 static void increase_dbus_busy_delay(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->dbus_busy_delay++;
-	LOG_INFO("Increment dbus_busy_delay to %d", info->dbus_busy_delay);
+	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
+			info->dtmcontrol_idle, info->dbus_busy_delay,
+			info->interrupt_high_delay);
 
 	dtmcontrol_scan(target, DTMCONTROL_DBUS_RESET);
 }
@@ -328,7 +362,9 @@ static void increase_interrupt_high_delay(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->interrupt_high_delay++;
-	LOG_INFO("Increment interrupt_high_delay to %d", info->interrupt_high_delay);
+	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
+			info->dtmcontrol_idle, info->dbus_busy_delay,
+			info->interrupt_high_delay);
 }
 
 static void add_dbus_scan(const struct target *target, struct scan_field *field,
@@ -347,13 +383,14 @@ static void add_dbus_scan(const struct target *target, struct scan_field *field,
 
 	jtag_add_dr_scan(target->tap, 1, field, TAP_IDLE);
 
-	// TODO: 1 should come from the dtmcontrol register
-	int idle_count = 1 + info->dbus_busy_delay;
+	int idle_count = info->dtmcontrol_idle + info->dbus_busy_delay;
 	if (data & DMCONTROL_INTERRUPT) {
 		idle_count += info->interrupt_high_delay;
 	}
 
-	jtag_add_runtest(idle_count, TAP_IDLE);
+	if (idle_count) {
+		jtag_add_runtest(idle_count, TAP_IDLE);
+	}
 }
 
 static void dump_field(const struct scan_field *field)
@@ -407,7 +444,9 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-	jtag_add_runtest(1, TAP_IDLE);
+	if (info->dtmcontrol_idle) {
+		jtag_add_runtest(info->dtmcontrol_idle, TAP_IDLE);
+	}
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
@@ -670,7 +709,7 @@ static int dram_check32(struct target *target, unsigned int index,
 static void cache_set32(struct target *target, unsigned int index, uint32_t data)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	if (false && info->dram_cache[index].valid &&
+	if (info->dram_cache[index].valid &&
 			info->dram_cache[index].data == data) {
 		// This is already preset on the target.
 		LOG_DEBUG("cache[0x%x] = 0x%x (hit)", index, data);
@@ -714,7 +753,7 @@ static void cache_set_store(struct target *target, unsigned int index,
 
 static void dump_debug_ram(struct target *target)
 {
-	for (unsigned int i = 0; i < 16; i++) {
+	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
 		uint32_t value = dram_read32(target, i);
 		LOG_ERROR("Debug RAM 0x%x: 0x%08x", i, value);
 	}
@@ -843,7 +882,9 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 			}
 			info->dram_cache[i].dirty = false;
 		}
-		cache_clean(target);
+		if (run) {
+			cache_clean(target);
+		}
 
 		if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 			LOG_ERROR("Debug interrupt didn't clear.");
@@ -852,7 +893,13 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		}
 
 	} else {
-		cache_clean(target);
+		if (run) {
+			cache_clean(target);
+		} else {
+			for (unsigned int i = 0; i < info->dramsize; i++) {
+				info->dram_cache[i].dirty = false;
+			}
+		}
 
 		if (run || address < CACHE_NO_READ) {
 			int interrupt = scans_get_u32(scans, scans->next_scan-1,
@@ -1257,7 +1304,7 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 
 	select_dtmcontrol.num_bits = target->tap->ir_length;
 	select_dbus.num_bits = target->tap->ir_length;
-	select_debug.num_bits = target->tap->ir_length;
+	select_idcode.num_bits = target->tap->ir_length;
 
 	const unsigned int max_reg_name_len = 12;
 	info->reg_list = calloc(REG_COUNT, sizeof(struct reg));
@@ -1633,8 +1680,7 @@ static int riscv_examine(struct target *target)
 	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
 	LOG_DEBUG("  addrbits=%d", get_field(dtmcontrol, DTMCONTROL_ADDRBITS));
 	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTMCONTROL_VERSION));
-	// TODO: Add support for the idle field, once it's implemented in the FPGA
-	// image.
+	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTMCONTROL_IDLE));
 	if (dtmcontrol == 0) {
 		LOG_ERROR("dtmcontrol is 0. Check JTAG connectivity/board power.");
 		return ERROR_FAIL;
@@ -1647,6 +1693,13 @@ static int riscv_examine(struct target *target)
 
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	info->addrbits = get_field(dtmcontrol, DTMCONTROL_ADDRBITS);
+	info->dtmcontrol_idle = get_field(dtmcontrol, DTMCONTROL_IDLE);
+	if (info->dtmcontrol_idle == 0) {
+		// Some old SiFive cores don't set idle but need it to be 1.
+		uint32_t idcode = idcode_scan(target);
+		if (idcode == 0x10e31913)
+			info->dtmcontrol_idle = 1;
+	}
 
 	uint32_t dminfo = dbus_read(target, DMINFO);
 	LOG_DEBUG("dminfo: 0x%08x", dminfo);
@@ -1677,7 +1730,7 @@ static int riscv_examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	// Figure out XLEN.
+	// Figure out XLEN, and test writing all of Debug RAM while we're at it.
 	cache_set32(target, 0, xori(S1, ZERO, -1));
 	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
 	cache_set32(target, 1, srli(S1, S1, 31));
@@ -1687,6 +1740,9 @@ static int riscv_examine(struct target *target)
 	// 0x00000000  0x00000000:00000003  0x00000000:00000003:ffffffff:ffffffff
 	cache_set32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
 	cache_set_jump(target, 5);
+	for (unsigned i = 6; i < info->dramsize; i++) {
+		cache_set32(target, i, i * 0x01020304);
+	}
 
 	cache_write(target, 0, false);
 
