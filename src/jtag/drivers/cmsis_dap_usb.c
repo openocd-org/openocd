@@ -118,6 +118,13 @@ static bool swd_mode;
  * Bit 7: nRESET
  */
 
+#define SWJ_PIN_TCK               (1<<0)
+#define SWJ_PIN_TMS               (1<<1)
+#define SWJ_PIN_TDI               (1<<2)
+#define SWJ_PIN_TDO               (1<<3)
+#define SWJ_PIN_TRST              (1<<5)
+#define SWJ_PIN_SRST              (1<<7)
+
 /* CMSIS-DAP SWD Commands */
 #define CMD_DAP_SWD_CONFIGURE     0x13
 
@@ -764,12 +771,12 @@ static int cmsis_dap_get_status(void)
 
 	if (retval == ERROR_OK) {
 		LOG_INFO("SWCLK/TCK = %d SWDIO/TMS = %d TDI = %d TDO = %d nTRST = %d nRESET = %d",
-			(d & (0x01 << 0)) ? 1 : 0,	/* Bit 0: SWCLK/TCK */
-			(d & (0x01 << 1)) ? 1 : 0,	/* Bit 1: SWDIO/TMS */
-			(d & (0x01 << 2)) ? 1 : 0,	/* Bit 2: TDI */
-			(d & (0x01 << 3)) ? 1 : 0,	/* Bit 3: TDO */
-			(d & (0x01 << 5)) ? 1 : 0,	/* Bit 5: nTRST */
-			(d & (0x01 << 7)) ? 1 : 0);	/* Bit 7: nRESET */
+			(d & SWJ_PIN_TCK) ? 1 : 0,
+			(d & SWJ_PIN_TMS) ? 1 : 0,
+			(d & SWJ_PIN_TDI) ? 1 : 0,
+			(d & SWJ_PIN_TDO) ? 1 : 0,
+			(d & SWJ_PIN_TRST) ? 1 : 0,
+			(d & SWJ_PIN_SRST) ? 1 : 0);
 	}
 
 	return retval;
@@ -990,8 +997,17 @@ static int cmsis_dap_quit(void)
 
 static void cmsis_dap_execute_reset(struct jtag_command *cmd)
 {
-	int retval = cmsis_dap_cmd_DAP_SWJ_Pins(cmd->cmd.reset->srst ? 0 : (1 << 7), \
-			(1 << 7), 0, NULL);
+	/* Set both TRST and SRST even if they're not enabled as
+	 * there's no way to tristate them */
+	uint8_t pins = 0;
+
+	if (!cmd->cmd.reset->srst)
+		pins |= SWJ_PIN_SRST;
+	if (!cmd->cmd.reset->trst)
+		pins |= SWJ_PIN_TRST;
+
+	int retval = cmsis_dap_cmd_DAP_SWJ_Pins(pins,
+			SWJ_PIN_TRST | SWJ_PIN_SRST, 0, NULL);
 	if (retval != ERROR_OK)
 		LOG_ERROR("CMSIS-DAP: Interface reset failed");
 }
