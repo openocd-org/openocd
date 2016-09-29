@@ -170,6 +170,8 @@ typedef struct {
 	// unique_id of the breakpoint/watchpoint that is using it.
 	int trigger_unique_id[MAX_HWBPS];
 
+	unsigned int trigger_count;
+
 	// Number of run-test/idle cycles the target requests we do after each dbus
 	// access.
 	unsigned int dtmcontrol_idle;
@@ -189,6 +191,7 @@ typedef struct {
 	uint64_t gpr_cache[32];
 
 	bool need_strict_step;
+	bool never_halted;
 } riscv_info_t;
 
 typedef struct {
@@ -1017,12 +1020,14 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 		return ERROR_FAIL;
 	}
 	*value = cache_get(target, SLOT0);
+	LOG_DEBUG("csr 0x%x = 0x%" PRIx64, csr, *value);
 
 	return ERROR_OK;
 }
 
 static int write_csr(struct target *target, uint32_t csr, uint64_t value)
 {
+	LOG_DEBUG("csr 0x%x <- 0x%" PRIx64, csr, value);
 	cache_set_load(target, 0, S0, SLOT0);
 	cache_set32(target, 1, csrw(S0, csr));
 	cache_set_jump(target, 2);
@@ -1404,23 +1409,13 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 	maybe_read_tselect(target);
 
-	int i;
-	for (i = 0; i < MAX_HWBPS; i++) {
+	unsigned int i;
+	for (i = 0; i < info->trigger_count; i++) {
 		if (info->trigger_unique_id[i] != -1) {
 			continue;
 		}
 
-		uint64_t tselect = i;
-		write_csr(target, CSR_TSELECT, tselect);
-		uint64_t tselect_rb;
-		read_csr(target, &tselect_rb, CSR_TSELECT);
-		if (tselect_rb != tselect) {
-			// We've run out of breakpoints.
-			LOG_ERROR("Couldn't find an available hardware trigger. "
-					"(0x%" PRIx64 " != 0x%" PRIx64 ")", tselect,
-					tselect_rb);
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
+		write_csr(target, CSR_TSELECT, i);
 
 		uint64_t tdata1;
 		read_csr(target, &tdata1, CSR_TDATA1);
@@ -1476,7 +1471,7 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 		info->trigger_unique_id[i] = trigger->unique_id;
 		break;
 	}
-	if (i >= MAX_HWBPS) {
+	if (i >= info->trigger_count) {
 		LOG_ERROR("Couldn't find an available hardware trigger.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
@@ -1490,13 +1485,13 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 
 	maybe_read_tselect(target);
 
-	int i;
-	for (i = 0; i < MAX_HWBPS; i++) {
+	unsigned int i;
+	for (i = 0; i < info->trigger_count; i++) {
 		if (info->trigger_unique_id[i] == trigger->unique_id) {
 			break;
 		}
 	}
-	if (i >= MAX_HWBPS) {
+	if (i >= info->trigger_count) {
 		LOG_ERROR("Couldn't find the hardware resources used by hardware "
 				"trigger.");
 		return ERROR_FAIL;
@@ -1800,12 +1795,14 @@ static int riscv_examine(struct target *target)
 	// Update register list to match discovered XLEN.
 	update_reg_list(target);
 
-	target_set_examined(target);
-
 	if (read_csr(target, &info->misa, CSR_MISA) != ERROR_OK) {
 		LOG_ERROR("Failed to read misa.");
 		return ERROR_FAIL;
 	}
+
+	info->never_halted = true;
+
+	target_set_examined(target);
 
 	return ERROR_OK;
 }
@@ -1999,6 +1996,32 @@ static int handle_halt(struct target *target, bool announce)
 		default:
 			LOG_ERROR("Invalid halt cause %d in DCSR (0x%" PRIx64 ")",
 					cause, info->dcsr);
+	}
+
+	if (info->never_halted) {
+		info->never_halted = false;
+
+		// Disable any hardware triggers that have dmode set. We can't have set
+		// them ourselves. Maybe they're left over from some killed debug
+		// session.
+		// Count the number of triggers while we're at it.
+
+		int result = maybe_read_tselect(target);
+		if (result != ERROR_OK)
+			return result;
+		for (info->trigger_count = 0; info->trigger_count < MAX_HWBPS; info->trigger_count++) {
+			write_csr(target, CSR_TSELECT, info->trigger_count);
+			uint64_t tselect_rb;
+			read_csr(target, &tselect_rb, CSR_TSELECT);
+			if (info->trigger_count != tselect_rb)
+				break;
+			uint64_t tdata1;
+			read_csr(target, &tdata1, CSR_TDATA1);
+			if ((tdata1 & MCONTROL_DMODE(info->xlen)) &&
+					(tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD))) {
+				write_csr(target, CSR_TDATA1, 0);
+			}
+		}
 	}
 
 	if (announce) {
