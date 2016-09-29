@@ -613,13 +613,13 @@ static void scans_add_write_store(scans_t *scans, uint16_t address,
 
 static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrupt)
 {
+	assert(scans->next_scan < scans->scan_count);
 	const unsigned int i = scans->next_scan;
 	int data_offset = scans->scan_size * i;
 	add_dbus_scan(scans->target, &scans->field[i], scans->out + data_offset,
 			scans->in + data_offset, DBUS_OP_READ, address,
 			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT);
 	scans->next_scan++;
-	assert(scans->next_scan < scans->scan_count);
 }
 
 static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
@@ -792,7 +792,7 @@ static void dump_debug_ram(struct target *target)
 static void cache_invalidate(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+	for (unsigned int i = 0; i < info->dramsize; i++) {
 		info->dram_cache[i].valid = false;
 		info->dram_cache[i].dirty = false;
 	}
@@ -803,7 +803,7 @@ static void cache_invalidate(struct target *target)
 static void cache_clean(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+	for (unsigned int i = 0; i < info->dramsize; i++) {
 		if (i >= 4) {
 			info->dram_cache[i].valid = false;
 		}
@@ -816,7 +816,7 @@ static int cache_check(struct target *target)
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	int error = 0;
 
-	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+	for (unsigned int i = 0; i < info->dramsize; i++) {
 		if (info->dram_cache[i].valid && !info->dram_cache[i].dirty) {
 			if (dram_check32(target, i, info->dram_cache[i].data) != ERROR_OK) {
 				error++;
@@ -839,22 +839,22 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 {
 	LOG_DEBUG("enter");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	scans_t *scans = scans_new(target, DRAM_CACHE_SIZE + 2);
+	scans_t *scans = scans_new(target, info->dramsize + 2);
 
-	unsigned int last = DRAM_CACHE_SIZE;
-	for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+	unsigned int last = info->dramsize;
+	for (unsigned int i = 0; i < info->dramsize; i++) {
 		if (info->dram_cache[i].dirty) {
 			assert(i < info->dramsize);
 			last = i;
 		}
 	}
 
-	if (last == DRAM_CACHE_SIZE) {
+	if (last == info->dramsize) {
 		// Nothing needs to be written to RAM.
 		dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT);
 
 	} else {
-		for (unsigned int i = 0; i < DRAM_CACHE_SIZE; i++) {
+		for (unsigned int i = 0; i < info->dramsize; i++) {
 			if (info->dram_cache[i].dirty) {
 				bool set_interrupt = (i == last && run);
 				scans_add_write32(scans, i, info->dram_cache[i].data,
