@@ -225,6 +225,11 @@ target_to_armv8(struct target *target)
 #define CTI_GATE			0x140
 #define CTI_UNLOCK			0xFB0
 
+#define CTI_CHNL(x)			(1 << x)
+#define CTI_TRIG_HALT		0
+#define CTI_TRIG_RESUME		1
+#define CTI_TRIG(n)			(1 << CTI_TRIG_##n)
+
 #define PAGE_SIZE_4KB				0x1000
 #define PAGE_SIZE_4KB_LEVEL0_BITS	39
 #define PAGE_SIZE_4KB_LEVEL1_BITS	30

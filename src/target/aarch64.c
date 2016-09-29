@@ -212,19 +212,6 @@ static int aarch64_init_debug_access(struct target *target)
 
 	LOG_DEBUG(" ");
 
-	/* Unlocking the debug registers for modification
-	 * The debugport might be uninitialised so try twice */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			     armv8->debug_base + CPUV8_DBG_LOCKACCESS, 0xC5ACCE55);
-	if (retval != ERROR_OK) {
-		/* try again */
-		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			     armv8->debug_base + CPUV8_DBG_LOCKACCESS, 0xC5ACCE55);
-		if (retval == ERROR_OK)
-			LOG_USER("Locking debug access failed on first, but succeeded on second try.");
-	}
-	if (retval != ERROR_OK)
-		return retval;
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
@@ -232,7 +219,30 @@ static int aarch64_init_debug_access(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* Enabling of instruction execution in debug mode is done in debug_entry code */
+	/*
+	 * Static CTI configuration:
+	 * Channel 0 -> trigger outputs HALT request to PE
+	 * Channel 1 -> trigger outputs Resume request to PE
+	 * Gate all channel trigger events from entering the CTM
+	 */
+
+	/* Enable CTI */
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->cti_base + CTI_CTR, 1);
+	/* By default, gate all channel triggers to and from the CTM */
+	if (retval == ERROR_OK)
+		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->cti_base + CTI_GATE, 0);
+	/* output halt requests to PE on channel 0 trigger */
+	if (retval == ERROR_OK)
+		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->cti_base + CTI_OUTEN0, CTI_CHNL(0));
+	/* output restart requests to PE on channel 1 trigger */
+	if (retval == ERROR_OK)
+		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->cti_base + CTI_OUTEN1, CTI_CHNL(1));
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Resync breakpoint registers */
 
@@ -783,16 +793,27 @@ static int aarch64_halt(struct target *target);
 
 static int aarch64_halt_smp(struct target *target)
 {
-	int retval = 0;
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
+	int retval = ERROR_OK;
+	struct target_list *head = target->head;
+
 	while (head != (struct target_list *)NULL) {
-		curr = head->target;
-		if ((curr != target) && (curr->state != TARGET_HALTED))
-			retval += aarch64_halt(curr);
+		struct target *curr = head->target;
+		struct armv8_common *armv8 = target_to_armv8(curr);
+
+		/* open the gate for channel 0 to let HALT requests pass to the CTM */
+		if (curr->smp)
+			retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+					armv8->cti_base + CTI_GATE, CTI_CHNL(0));
+		if (retval != ERROR_OK)
+			break;
+
 		head = head->next;
 	}
+
+	/* halt the target PE */
+	if (retval == ERROR_OK)
+		retval = aarch64_halt(target);
+
 	return retval;
 }
 
@@ -883,50 +904,22 @@ static int aarch64_halt(struct target *target)
 	uint32_t dscr;
 	struct armv8_common *armv8 = target_to_armv8(target);
 
-	/* enable CTI*/
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_CTR, 1);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_GATE, 3);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_OUTEN0, 1);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_OUTEN1, 2);
-	if (retval != ERROR_OK)
-		return retval;
-
 	/*
 	 * add HDE in halting debug mode
 	 */
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+	if (retval == ERROR_OK)
+		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DSCR, dscr | DSCR_HDE);
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* trigger an event on channel 0, this outputs a halt request to the PE */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, dscr | DSCR_HDE);
+			armv8->cti_base + CTI_APPPULSE, CTI_CHNL(0));
 	if (retval != ERROR_OK)
 		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_APPPULSE, 1);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_INACK, 1);
-	if (retval != ERROR_OK)
-		return retval;
-
 
 	long long then = timeval_ms();
 	for (;; ) {
@@ -1023,7 +1016,7 @@ static int aarch64_internal_restore(struct target *target, int current,
 	return retval;
 }
 
-static int aarch64_internal_restart(struct target *target)
+static int aarch64_internal_restart(struct target *target, bool slave_pe)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm *arm = &armv8->arm;
@@ -1045,22 +1038,39 @@ static int aarch64_internal_restart(struct target *target)
 	if ((dscr & DSCR_ITE) == 0)
 		LOG_ERROR("DSCR InstrCompl must be set before leaving debug!");
 
+	/* make sure to acknowledge the halt event before resuming */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_APPPULSE, 2);
+			armv8->cti_base + CTI_INACK, CTI_TRIG(HALT));
+
+	/*
+	 * open the CTI gate for channel 1 so that the restart events
+	 * get passed along to all PEs
+	 */
+	if (retval == ERROR_OK)
+		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->cti_base + CTI_GATE, CTI_CHNL(1));
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
-	for (;; ) {
-		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+	if (!slave_pe) {
+		/* trigger an event on channel 1, generates a restart request to the PE */
+		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->cti_base + CTI_APPPULSE, CTI_CHNL(1));
 		if (retval != ERROR_OK)
 			return retval;
-		if ((dscr & DSCR_HDE) != 0)
-			break;
-		if (timeval_ms() > then + 1000) {
-			LOG_ERROR("Timeout waiting for resume");
-			return ERROR_FAIL;
+
+		long long then = timeval_ms();
+		for (;; ) {
+			retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+			if (retval != ERROR_OK)
+				return retval;
+			if ((dscr & DSCR_HDE) != 0)
+				break;
+			if (timeval_ms() > then + 1000) {
+				LOG_ERROR("Timeout waiting for resume");
+				return ERROR_FAIL;
+			}
 		}
 	}
 
@@ -1086,7 +1096,7 @@ static int aarch64_restore_smp(struct target *target, int handle_breakpoints)
 			/*  resume current address , not in step mode */
 			retval += aarch64_internal_restore(curr, 1, &address,
 					handle_breakpoints, 0);
-			retval += aarch64_internal_restart(curr);
+			retval += aarch64_internal_restart(curr, true);
 		}
 		head = head->next;
 
@@ -1117,7 +1127,7 @@ static int aarch64_resume(struct target *target, int current,
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	aarch64_internal_restart(target);
+	aarch64_internal_restart(target, false);
 
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
@@ -2397,12 +2407,6 @@ static int aarch64_examine_first(struct target *target)
 		LOG_INFO("Target ctibase is not set, assuming 0x%0" PRIx32, target->ctibase);
 	} else
 		armv8->cti_base = target->ctibase;
-
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_UNLOCK , 0xC5ACCE55);
-	if (retval != ERROR_OK)
-		return retval;
-
 
 	armv8->arm.core_type = ARM_MODE_MON;
 	retval = aarch64_dpm_setup(aarch64, debug);
