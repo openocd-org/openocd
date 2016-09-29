@@ -444,8 +444,11 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-	if (info->dtmcontrol_idle) {
-		jtag_add_runtest(info->dtmcontrol_idle, TAP_IDLE);
+
+	int idle_count = info->dtmcontrol_idle + info->dbus_busy_delay;
+
+	if (idle_count) {
+		jtag_add_runtest(idle_count, TAP_IDLE);
 	}
 
 	int retval = jtag_execute_queue();
@@ -473,11 +476,18 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 	dbus_status_t status;
 	uint16_t address_in;
 
+	unsigned i = 0;
 	do {
-		do {
-			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
-		} while (status == DBUS_STATUS_BUSY);
-	} while (address_in != address);
+		status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
+		if (status == DBUS_STATUS_BUSY) {
+			increase_dbus_busy_delay(target);
+		}
+	} while (((status == DBUS_STATUS_BUSY) || (address_in != address)) &&
+			i++ < 256);
+
+	if (status != DBUS_STATUS_SUCCESS) {
+		LOG_ERROR("failed read from 0x%x; value=0x%" PRIx64 ", status=%d\n", address, value, status);
+	}
 
 	return value;
 }
@@ -485,12 +495,15 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 {
 	dbus_status_t status = DBUS_STATUS_BUSY;
-	while (status == DBUS_STATUS_BUSY) {
+	unsigned i = 0;
+	while (status == DBUS_STATUS_BUSY && i++ < 256) {
 		status = dbus_scan(target, NULL, NULL, DBUS_OP_WRITE, address, value);
+		if (status == DBUS_STATUS_BUSY) {
+			increase_dbus_busy_delay(target);
+		}
 	}
 	if (status != DBUS_STATUS_SUCCESS) {
-		LOG_ERROR("dbus_write failed write 0x%" PRIx64 " to 0x%x; status=%d\n",
-				value, address, status);
+		LOG_ERROR("failed to write 0x%" PRIx64 " to 0x%x; status=%d\n", value, address, status);
 	}
 }
 
@@ -659,9 +672,22 @@ static bits_t read_bits(struct target *target)
 	uint16_t address_in;
 
 	do {
+		unsigned i = 0;
 		do {
 			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, 0, 0);
-		} while (status == DBUS_STATUS_BUSY);
+			if (status == DBUS_STATUS_BUSY) {
+				increase_dbus_busy_delay(target);
+			}
+		} while (status == DBUS_STATUS_BUSY && i++ < 256);
+
+		if (i >= 256) {
+			LOG_ERROR("Failed to read from 0x%x; status=%d", address_in, status);
+			bits_t err_result = {
+				.haltnot = 0,
+				.interrupt = 0
+			};
+			return err_result;
+		}
 	} while (address_in > 0x10 && address_in != DMCONTROL);
 
 	bits_t result = {
@@ -694,7 +720,7 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 }
 
 static int dram_check32(struct target *target, unsigned int index,
-               uint32_t expected)
+		uint32_t expected)
 {
 	uint16_t address = dram_address(index);
 	uint32_t actual = dbus_read(target, address);
@@ -1542,19 +1568,19 @@ static int riscv_add_breakpoint(struct target *target,
 		}
 
 	} else {
-        LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
-        return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-    }
+		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
 
-    breakpoint->set = true;
+	breakpoint->set = true;
 
-    return ERROR_OK;
+	return ERROR_OK;
 }
 
 static int riscv_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-    if (breakpoint->type == BKPT_SOFT) {
+	if (breakpoint->type == BKPT_SOFT) {
 		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
 					breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
