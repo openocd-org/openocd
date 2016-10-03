@@ -2249,10 +2249,10 @@ static int riscv_read_memory(struct target *target, uint32_t address,
 	}
 
 	if (result_value != 0) {
-		LOG_ERROR("Core got an exception (0x%x) while reading from 0x%x",
+		LOG_USER("Core got an exception (0x%x) while reading from 0x%x",
 				result_value, address + size * (count-1));
 		if (count > 1) {
-			LOG_ERROR("(It may have failed between 0x%x and 0x%x as well, but we "
+			LOG_USER("(It may have failed between 0x%x and 0x%x as well, but we "
 					"didn't check then.)",
 					address, address + size * (count-2) + size - 1);
 		}
