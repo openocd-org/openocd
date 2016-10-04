@@ -698,7 +698,7 @@ static int get_stm32l4_info(struct flash_bank *bank, char *buf, int buf_size)
 	if (retval != ERROR_OK)
 		return retval;
 
-	uint16_t device_id = dbgmcu_idcode & 0xffff;
+	uint16_t device_id = dbgmcu_idcode & 0xfff;
 	uint8_t rev_id = dbgmcu_idcode >> 28;
 	uint8_t rev_minor = 0;
 	int i;
@@ -713,7 +713,7 @@ static int get_stm32l4_info(struct flash_bank *bank, char *buf, int buf_size)
 	const char *device_str;
 
 	switch (device_id) {
-	case 0x6415:
+	case 0x415:
 		device_str = "STM32L4xx";
 		break;
 
