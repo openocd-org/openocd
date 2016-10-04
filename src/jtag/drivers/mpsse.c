@@ -247,8 +247,8 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 	err = libusb_detach_kernel_driver(ctx->usb_dev, ctx->interface);
 	if (err != LIBUSB_SUCCESS && err != LIBUSB_ERROR_NOT_FOUND
 			&& err != LIBUSB_ERROR_NOT_SUPPORTED) {
-		LOG_ERROR("libusb_detach_kernel_driver() failed with %s", libusb_error_name(err));
-		goto error;
+		LOG_WARNING("libusb_detach_kernel_driver() failed with %s, trying to continue anyway",
+			libusb_error_name(err));
 	}
 
 	err = libusb_claim_interface(ctx->usb_dev, ctx->interface);
