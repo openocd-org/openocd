@@ -1473,6 +1473,10 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 	uint32_t len = 0;
 
 	int retval = ERROR_OK;
+	/* Packets larger than fast_limit bytes will be acknowledged instantly on
+	 * the assumption that we're in a download and it's important to go as fast
+	 * as possible. */
+	uint32_t fast_limit = 8;
 
 	/* skip command character */
 	packet++;
@@ -1493,19 +1497,23 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 
 	struct gdb_connection *gdb_connection = connection->priv;
 
-	if (gdb_connection->mem_write_error) {
+	if (gdb_connection->mem_write_error)
 		retval = ERROR_FAIL;
+
+	if (retval == ERROR_OK) {
+		if (len >= fast_limit) {
+			/* By replying the packet *immediately* GDB will send us a new packet
+			 * while we write the last one to the target.
+			 * We only do this for larger writes, so that users who do something like:
+			 * p *((int*)0xdeadbeef)=8675309
+			 * will get immediate feedback that that write failed.
+			 */
+			gdb_put_packet(connection, "OK", 2);
+		}
+	} else {
+		retval = gdb_error(connection, retval);
 		/* now that we have reported the memory write error, we can clear the condition */
 		gdb_connection->mem_write_error = false;
-	}
-
-	/* By replying the packet *immediately* GDB will send us a new packet
-	 * while we write the last one to the target.
-	 */
-	if (retval == ERROR_OK)
-		gdb_put_packet(connection, "OK", 2);
-	else {
-		retval = gdb_error(connection, retval);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1516,6 +1524,15 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 		retval = target_write_buffer(target, addr, len, (uint8_t *)separator);
 		if (retval != ERROR_OK)
 			gdb_connection->mem_write_error = true;
+	}
+
+	if (len < fast_limit) {
+		if (retval != ERROR_OK) {
+			gdb_error(connection, retval);
+			gdb_connection->mem_write_error = false;
+		} else {
+			gdb_put_packet(connection, "OK", 2);
+		}
 	}
 
 	return ERROR_OK;
