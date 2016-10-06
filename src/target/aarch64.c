@@ -698,6 +698,8 @@ static int aarch64_post_debug_entry(struct target *target)
 
 	switch (armv8->arm.core_mode) {
 		case ARMV8_64_EL0T:
+			dpmv8_modeswitch(&armv8->dpm, ARMV8_64_EL1T);
+			/* fall through */
 		case ARMV8_64_EL1T:
 		case ARMV8_64_EL1H:
 			retval = armv8->arm.mrs(target, 3, /*op 0*/
@@ -725,12 +727,19 @@ static int aarch64_post_debug_entry(struct target *target)
 			if (retval != ERROR_OK)
 				return retval;
 		break;
-		default:
+
+		case ARM_MODE_SVC:
 			retval = armv8->arm.mrc(target, 15, 0, 0, 1, 0, &aarch64->system_control_reg);
 			if (retval != ERROR_OK)
 				return retval;
 			break;
+
+		default:
+			LOG_INFO("cannot read system control register in this mode");
+			break;
 	}
+
+	dpmv8_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 
 	LOG_DEBUG("System_register: %8.8" PRIx32, aarch64->system_control_reg);
 	aarch64->system_control_reg_curr = aarch64->system_control_reg;
