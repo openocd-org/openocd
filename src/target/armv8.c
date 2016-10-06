@@ -431,56 +431,53 @@ static __unused int armv8_read_ttbcr(struct target *target)
 	memset(&armv8->armv8_mmu.ttbr1_used, 0, sizeof(armv8->armv8_mmu.ttbr1_used));
 	memset(&armv8->armv8_mmu.ttbr0_mask, 0, sizeof(armv8->armv8_mmu.ttbr0_mask));
 
-	switch (arm->core_mode) {
-		case ARMV8_64_EL3H:
-		case ARMV8_64_EL3T:
-			retval = dpm->instr_read_data_r0(dpm,
-					ARMV8_MRS(SYSTEM_TCR_EL3, 0),
-					&ttbcr);
-			retval += dpm->instr_read_data_r0_64(dpm,
-					ARMV8_MRS(SYSTEM_TTBR0_EL3, 0),
-					&armv8->ttbr_base);
-			if (retval != ERROR_OK)
-				goto done;
-			armv8->va_size = 64 - (ttbcr & 0x3F);
-			armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
-			armv8->page_size = (ttbcr >> 14) & 3;
-			break;
-		case ARMV8_64_EL2T:
-		case ARMV8_64_EL2H:
-			retval = dpm->instr_read_data_r0(dpm,
-					ARMV8_MRS(SYSTEM_TCR_EL2, 0),
-					&ttbcr);
-			retval += dpm->instr_read_data_r0_64(dpm,
-					ARMV8_MRS(SYSTEM_TTBR0_EL2, 0),
-					&armv8->ttbr_base);
-			if (retval != ERROR_OK)
-				goto done;
-			armv8->va_size = 64 - (ttbcr & 0x3F);
-			armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
-			armv8->page_size = (ttbcr >> 14) & 3;
-			break;
-		case ARMV8_64_EL0T:
-		case ARMV8_64_EL1T:
-		case ARMV8_64_EL1H:
-			retval = dpm->instr_read_data_r0_64(dpm,
-					ARMV8_MRS(SYSTEM_TCR_EL1, 0),
-					&ttbcr_64);
-			armv8->va_size = 64 - (ttbcr_64 & 0x3F);
-			armv8->pa_size = armv8_pa_size((ttbcr_64 >> 32) & 7);
-			armv8->page_size = (ttbcr_64 >> 14) & 3;
-			armv8->armv8_mmu.ttbr1_used = (((ttbcr_64 >> 16) & 0x3F) != 0) ? 1 : 0;
-			armv8->armv8_mmu.ttbr0_mask  = 0x0000FFFFFFFFFFFF;
-			retval += dpm->instr_read_data_r0_64(dpm,
-					ARMV8_MRS(SYSTEM_TTBR0_EL1 | (armv8->armv8_mmu.ttbr1_used), 0),
-					&armv8->ttbr_base);
-			if (retval != ERROR_OK)
-				goto done;
-			break;
-		default:
-			LOG_ERROR("unknow core state");
-			retval = ERROR_FAIL;
-			break;
+	switch (armv8_curel_from_core_mode(arm)) {
+	case SYSTEM_CUREL_EL3:
+		retval = dpm->instr_read_data_r0(dpm,
+				ARMV8_MRS(SYSTEM_TCR_EL3, 0),
+				&ttbcr);
+		retval += dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TTBR0_EL3, 0),
+				&armv8->ttbr_base);
+		if (retval != ERROR_OK)
+			goto done;
+		armv8->va_size = 64 - (ttbcr & 0x3F);
+		armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
+		armv8->page_size = (ttbcr >> 14) & 3;
+		break;
+	case SYSTEM_CUREL_EL2:
+		retval = dpm->instr_read_data_r0(dpm,
+				ARMV8_MRS(SYSTEM_TCR_EL2, 0),
+				&ttbcr);
+		retval += dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TTBR0_EL2, 0),
+				&armv8->ttbr_base);
+		if (retval != ERROR_OK)
+			goto done;
+		armv8->va_size = 64 - (ttbcr & 0x3F);
+		armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
+		armv8->page_size = (ttbcr >> 14) & 3;
+		break;
+	case SYSTEM_CUREL_EL0:
+	case SYSTEM_CUREL_EL1:
+		retval = dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TCR_EL1, 0),
+				&ttbcr_64);
+		armv8->va_size = 64 - (ttbcr_64 & 0x3F);
+		armv8->pa_size = armv8_pa_size((ttbcr_64 >> 32) & 7);
+		armv8->page_size = (ttbcr_64 >> 14) & 3;
+		armv8->armv8_mmu.ttbr1_used = (((ttbcr_64 >> 16) & 0x3F) != 0) ? 1 : 0;
+		armv8->armv8_mmu.ttbr0_mask  = 0x0000FFFFFFFFFFFF;
+		retval += dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TTBR0_EL1 | (armv8->armv8_mmu.ttbr1_used), 0),
+				&armv8->ttbr_base);
+		if (retval != ERROR_OK)
+			goto done;
+		break;
+	default:
+		LOG_ERROR("unknow core state");
+		retval = ERROR_FAIL;
+		break;
 	}
 	if (retval != ERROR_OK)
 		goto done;
