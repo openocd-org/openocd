@@ -282,36 +282,10 @@ void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
 		}
 	}
 	arm->core_state = state;
-	if (arm->core_state == ARM_STATE_AARCH64) {
-		switch (mode) {
-			case SYSTEM_AAR64_MODE_EL0t:
-				arm->core_mode = ARMV8_64_EL0T;
-			break;
-			case SYSTEM_AAR64_MODE_EL1t:
-				arm->core_mode = ARMV8_64_EL0T;
-			break;
-			case SYSTEM_AAR64_MODE_EL1h:
-				arm->core_mode = ARMV8_64_EL1H;
-			break;
-			case SYSTEM_AAR64_MODE_EL2t:
-				arm->core_mode = ARMV8_64_EL2T;
-			break;
-			case SYSTEM_AAR64_MODE_EL2h:
-				arm->core_mode = ARMV8_64_EL2H;
-			break;
-			case SYSTEM_AAR64_MODE_EL3t:
-				arm->core_mode = ARMV8_64_EL3T;
-			break;
-			case SYSTEM_AAR64_MODE_EL3h:
-				arm->core_mode = ARMV8_64_EL3H;
-			break;
-			default:
-				LOG_DEBUG("unknow mode 0x%x", (unsigned) (mode));
-			break;
-		}
-	} else {
+	if (arm->core_state == ARM_STATE_AARCH64)
+		arm->core_mode = (mode << 4) | 0xf;
+	else
 		arm->core_mode = mode;
-	}
 
 	LOG_DEBUG("set CPSR %#8.8x: %s mode, %s state", (unsigned) cpsr,
 		armv8_mode_name(arm->core_mode),
