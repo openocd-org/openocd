@@ -143,6 +143,9 @@ struct arm_dpm {
 	/** Recent value of DSCR. */
 	uint32_t dscr;
 
+	/** Recent exception level on armv8 */
+	unsigned int last_el;
+
 	/* FIXME -- read/write DCSR methods and symbols */
 };
 
@@ -150,9 +153,7 @@ int arm_dpm_setup(struct arm_dpm *dpm);
 int arm_dpm_initialize(struct arm_dpm *dpm);
 
 int arm_dpm_read_current_registers(struct arm_dpm *);
-int arm_dpm_read_current_registers_64(struct arm_dpm *);
 int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
-
 
 int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
 

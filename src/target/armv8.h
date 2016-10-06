@@ -26,7 +26,7 @@
 #include "armv8_dpm.h"
 
 enum {
-	ARMV8_R0,
+	ARMV8_R0 = 0,
 	ARMV8_R1,
 	ARMV8_R2,
 	ARMV8_R3,
@@ -57,10 +57,22 @@ enum {
 	ARMV8_R28,
 	ARMV8_R29,
 	ARMV8_R30,
-	ARMV8_R31,
 
+	ARMV8_SP = 31,
 	ARMV8_PC = 32,
 	ARMV8_xPSR = 33,
+
+	ARMV8_ELR_EL1 = 34,
+	ARMV8_ESR_EL1 = 35,
+	ARMV8_SPSR_EL1 = 36,
+
+	ARMV8_ELR_EL2 = 37,
+	ARMV8_ESR_EL2 = 38,
+	ARMV8_SPSR_EL2 = 39,
+
+	ARMV8_ELR_EL3 = 40,
+	ARMV8_ESR_EL3 = 41,
+	ARMV8_SPSR_EL3 = 42,
 
 	ARMV8_LAST_REG,
 };
@@ -162,8 +174,8 @@ struct armv8_common {
 	struct armv8_mmu_common armv8_mmu;
 
 	/* Direct processor core register read and writes */
-	int (*load_core_reg_u64)(struct target *target, uint32_t num, uint64_t *value);
-	int (*store_core_reg_u64)(struct target *target, uint32_t num, uint64_t value);
+	int (*read_reg_u64)(struct armv8_common *armv8, int num, uint64_t *value);
+	int (*write_reg_u64)(struct armv8_common *armv8, int num, uint64_t value);
 
 	int (*examine_debug_reason)(struct target *target);
 	int (*post_debug_entry)(struct target *target);
@@ -270,10 +282,32 @@ int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 
 void armv8_set_cpsr(struct arm *arm, uint32_t cpsr);
 
-static inline int armv8_curel_from_core_mode(struct arm *arm)
+static inline unsigned int armv8_curel_from_core_mode(enum arm_mode core_mode)
 {
-	return (arm->core_mode >> 6) & 3;
+	switch (core_mode) {
+	/* Aarch32 modes */
+	case ARM_MODE_USR:
+		return 0;
+	case ARM_MODE_SVC:
+	case ARM_MODE_ABT: /* FIXME: EL3? */
+	case ARM_MODE_IRQ: /* FIXME: EL3? */
+	case ARM_MODE_FIQ: /* FIXME: EL3? */
+	case ARM_MODE_UND: /* FIXME: EL3? */
+	case ARM_MODE_SYS: /* FIXME: EL3? */
+		return 1;
+	/* case ARM_MODE_HYP:
+	 *     return 2;
+	 */
+	case ARM_MODE_MON:
+		return 3;
+	/* all Aarch64 modes */
+	default:
+		return (core_mode >> 6) & 3;
+	}
 }
+
+void armv8_select_reg_access(struct armv8_common *armv8, bool is_aarch64);
+
 extern const struct command_registration armv8_command_handlers[];
 
 #endif

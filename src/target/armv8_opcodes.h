@@ -66,7 +66,6 @@
 
 #define SYSTEM_ISR_EL1			0b1100011000001000
 
-
 #define SYSTEM_DBG_DSPSR_EL0    0b1101101000101000
 #define SYSTEM_DBG_DLR_EL0		0b1101101000101001
 #define SYSTEM_DBG_DTRRX_EL0	0b1001100000101000
@@ -103,13 +102,18 @@
 #define SYSTEM_ATS1E2R			0b0110001111000000
 #define SYSTEM_ATS1E3R			0b0111001111000000
 
+/* fault status and fault address */
+#define SYSTEM_FAR_EL1			0b1100001100000000
+#define SYSTEM_FAR_EL2			0b1110001100000000
+#define SYSTEM_FAR_EL3			0b1111001100000000
+#define SYSTEM_ESR_EL1			0b1100001010010000
+#define SYSTEM_ESR_EL2			0b1110001010010000
+#define SYSTEM_ESR_EL3			0b1111001010010000
+
 #define ARMV8_MRS_DSPSR(Rt)	(0xd53b4500 | (Rt))
 #define ARMV8_MSR_DSPSR(Rt)	(0xd51b4500 | (Rt))
 #define ARMV8_MRS_DLR(Rt)	(0xd53b4520 | (Rt))
 #define ARMV8_MSR_DLR(Rt)	(0xd51b4520 | (Rt))
-
-/* T32 ITR format */
-#define T32_FMTITR(instr) (((instr & 0x0000FFFF) << 16) | ((instr & 0xFFFF0000) >> 16))
 
 /* T32 instruction to access coprocessor registers */
 #define ARMV8_MCR_T1(cp, CRn, opc1, CRm, opc2, Rt) ARMV4_5_MCR(cp, opc1, Rt, CRn, CRm, opc2)
@@ -135,6 +139,11 @@
 /* ARM V8 Move immediate to process state field. */
 #define ARMV8_MSR_IM(Op1, CRm, Op2) \
 	(0xd500401f | ((Op1) << 16)  | ((CRm) << 8) | ((Op2) << 5))
+
+#define ARMV8_MRS_T1(R, M1, Rd, M) (0xF3E08020 | (R << 20) | (M1 << 16) | (Rd << 8) | (M << 4))
+#define ARMV8_MRS_xPSR_T1(R, Rd) (0xF3EF8000 | (R << 20) | (Rd << 8))
+#define ARMV8_MSR_GP_T1(R, M1, Rd, M) (0xF3808020 | (R << 20) | (M1 << 8) | (Rd << 16) | (M << 4))
+#define ARMV8_MSR_GP_xPSR_T1(R, Rn, mask) (0xF3808000 | (R << 20) | (Rn << 16) | (mask << 8))
 
 #define ARMV8_BKPT(Im) (0xD4200000 | ((Im & 0xffff) << 5))
 #define ARMV8_HLT(Im) (0x0D4400000 | ((Im & 0xffff) << 5))

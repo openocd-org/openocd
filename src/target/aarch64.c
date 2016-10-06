@@ -637,13 +637,15 @@ static int aarch64_debug_entry(struct target *target)
 	int retval = ERROR_OK;
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = target_to_armv8(target);
+	struct arm_dpm *dpm = &armv8->dpm;
+	enum arm_state core_state;
 
-	LOG_DEBUG("dscr = 0x%08" PRIx32, aarch64->cpudbg_dscr);
+	LOG_DEBUG("%s dscr = 0x%08" PRIx32, target_name(target), aarch64->cpudbg_dscr);
 
-	/* REVISIT see A8 TRM 12.11.4 steps 2..3 -- make sure that any
-	 * imprecise data aborts get discarded by issuing a Data
-	 * Synchronization Barrier:  ARMV4_5_MCR(15, 0, 0, 7, 10, 4).
-	 */
+	dpm->dscr = aarch64->cpudbg_dscr;
+	core_state = armv8_dpm_get_core_state(dpm);
+	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
+	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
 
 	/* make sure to clear all sticky errors */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
@@ -677,11 +679,8 @@ static int aarch64_debug_entry(struct target *target)
 
 	retval = armv8_dpm_read_current_registers(&armv8->dpm);
 
-	if (armv8->post_debug_entry) {
+	if (retval == ERROR_OK && armv8->post_debug_entry)
 		retval = armv8->post_debug_entry(target);
-		if (retval != ERROR_OK)
-			return retval;
-	}
 
 	return retval;
 }
@@ -1457,7 +1456,7 @@ static int aarch64_write_apb_ap_memory(struct target *target,
 		/* Step 1.a+b - Write the address for read access into DBGDTRRX */
 		/* Step 1.c   - Copy value from DTR to R0 using instruction mrc DBGDTRTXint, r0 */
 		dpm->instr_write_data_dcc(dpm,
-				T32_FMTITR(ARMV4_5_MRC(14, 0, 0, 0, 5, 0)), address & ~0x3ULL);
+				ARMV4_5_MRC(14, 0, 0, 0, 5, 0), address & ~0x3ULL);
 
 	}
 	/* Step 1.d   - Change DCC to memory mode */
@@ -1486,6 +1485,8 @@ static int aarch64_write_apb_ap_memory(struct target *target,
 				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
 	if (retval != ERROR_OK)
 		goto error_free_buff_w;
+
+	dpm->dscr = dscr;
 	if (dscr & (DSCR_ERR | DSCR_SYS_ERROR_PEND)) {
 		/* Abort occurred - clear it and exit */
 		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);
@@ -1586,9 +1587,9 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 		/* Step 1.a+b - Write the address for read access into DBGDTRRXint */
 		/* Step 1.c   - Copy value from DTR to R0 using instruction mrc DBGDTRTXint, r0 */
 		retval += dpm->instr_write_data_dcc(dpm,
-				T32_FMTITR(ARMV4_5_MRC(14, 0, 0, 0, 5, 0)), address & ~0x3ULL);
+				ARMV4_5_MRC(14, 0, 0, 0, 5, 0), address & ~0x3ULL);
 		/* Step 1.d - Dummy operation to ensure EDSCR.Txfull == 1 */
-		retval += dpm->instr_execute(dpm, T32_FMTITR(ARMV4_5_MCR(14, 0, 0, 0, 5, 0)));
+		retval += dpm->instr_execute(dpm, ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
 		/* Step 1.e - Change DCC to memory mode */
 		dscr = dscr | DSCR_MA;
 		retval +=  mem_ap_write_atomic_u32(armv8->debug_ap,
@@ -1648,6 +1649,9 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
 	if (retval != ERROR_OK)
 		goto error_free_buff_r;
+
+	dpm->dscr = dscr;
+
 	if (dscr & (DSCR_ERR | DSCR_SYS_ERROR_PEND)) {
 		/* Abort occurred - clear it and exit */
 		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);

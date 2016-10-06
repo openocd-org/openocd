@@ -111,5 +111,6 @@ void armv8_dpm_report_wfar(struct arm_dpm *, uint64_t wfar);
 #define PRSR_SDR				(1 << 11)
 
 void armv8_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dcsr);
+enum arm_state armv8_dpm_get_core_state(struct arm_dpm *dpm);
 
 #endif /* OPENOCD_TARGET_ARM_DPM_H */
