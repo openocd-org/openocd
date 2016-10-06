@@ -202,12 +202,6 @@ static int dpmv8_dpm_prepare(struct arm_dpm *dpm)
 			armv8->debug_base + CPUV8_DBG_DTRRX, &dscr);
 		if (retval != ERROR_OK)
 			return retval;
-
-		/* Clear sticky error */
-		retval = mem_ap_write_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
-		if (retval != ERROR_OK)
-			return retval;
 	}
 
 	return retval;
@@ -276,9 +270,6 @@ static int dpmv8_exec_opcode(struct arm_dpm *dpm,
 
 	if (dscr & DSCR_ERR) {
 		LOG_ERROR("Opcode 0x%08"PRIx32", DSCR.ERR=1, DSCR.EL=%i", opcode, dpm->last_el);
-		/* clear the sticky error condition */
-		mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 		armv8_dpm_handle_exception(dpm);
 		retval = ERROR_FAIL;
 	}
@@ -1352,6 +1343,10 @@ void armv8_dpm_handle_exception(struct arm_dpm *dpm)
 		LOG_ERROR("%s: EL %i is invalid, DSCR corrupted?", __func__, el);
 		return;
 	}
+
+	/* Clear sticky error */
+	mem_ap_write_u32(armv8->debug_ap,
+		armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 
 	armv8->read_reg_u64(armv8, ARMV8_xPSR, &dlr);
 	dspsr = dlr;

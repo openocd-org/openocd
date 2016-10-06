@@ -538,7 +538,9 @@ static int aarch64_internal_restart(struct target *target, bool slave_pe)
 		return retval;
 
 	if ((dscr & DSCR_ITE) == 0)
-		LOG_ERROR("DSCR InstrCompl must be set before leaving debug!");
+		LOG_ERROR("DSCR.ITE must be set before leaving debug!");
+	if ((dscr & DSCR_ERR) != 0)
+		LOG_ERROR("DSCR.ERR must be cleared before leaving debug!");
 
 	/* make sure to acknowledge the halt event before resuming */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
@@ -708,10 +710,6 @@ static int aarch64_post_debug_entry(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	int retval;
-
-	/* clear sticky errors */
-	mem_ap_write_atomic_u32(armv8->debug_ap,
-				    armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 
 	switch (armv8->arm.core_mode) {
 		case ARMV8_64_EL0T:
@@ -1389,13 +1387,6 @@ static int aarch64_write_apb_ap_memory(struct target *target,
 	reg = armv8_reg_current(arm, 0);
 	reg->dirty = true;
 
-	/*  clear any abort  */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
-	if (retval != ERROR_OK)
-		return retval;
-
-
 	/* This algorithm comes from DDI0487A.g, chapter J9.1 */
 
 	/* The algorithm only copies 32 bit words, so the buffer
@@ -1486,8 +1477,6 @@ static int aarch64_write_apb_ap_memory(struct target *target,
 	if (dscr & (DSCR_ERR | DSCR_SYS_ERROR_PEND)) {
 		/* Abort occurred - clear it and exit */
 		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);
-		mem_ap_write_atomic_u32(armv8->debug_ap,
-					armv8->debug_base + CPUV8_DBG_DRCR, 1<<2);
 		armv8_dpm_handle_exception(dpm);
 		goto error_free_buff_w;
 	}
@@ -1546,12 +1535,6 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 
 	reg = armv8_reg_current(arm, 0);
 	reg->dirty = true;
-
-	/*	clear any abort  */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
-	if (retval != ERROR_OK)
-		goto error_free_buff_r;
 
 	/* Read DSCR */
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
@@ -1652,8 +1635,6 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 	if (dscr & (DSCR_ERR | DSCR_SYS_ERROR_PEND)) {
 		/* Abort occurred - clear it and exit */
 		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);
-		mem_ap_write_atomic_u32(armv8->debug_ap,
-					armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 		armv8_dpm_handle_exception(dpm);
 		goto error_free_buff_r;
 	}
