@@ -270,6 +270,10 @@ int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 
 void armv8_set_cpsr(struct arm *arm, uint32_t cpsr);
 
+static inline int armv8_curel_from_core_mode(struct arm *arm)
+{
+	return (arm->core_mode >> 6) & 3;
+}
 extern const struct command_registration armv8_command_handlers[];
 
 #endif

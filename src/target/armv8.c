@@ -529,7 +529,83 @@ int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr
 int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 	target_addr_t *val, int meminfo)
 {
-	return ERROR_OK;
+	struct armv8_common *armv8 = target_to_armv8(target);
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = &armv8->dpm;
+	uint32_t retval;
+	uint32_t instr = 0;
+	uint64_t par;
+
+	static const char * const shared_name[] = {
+			"Non-", "UNDEFINED ", "Outer ", "Inner "
+	};
+
+	static const char * const secure_name[] = {
+			"Secure", "Not Secure"
+	};
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	switch (armv8_curel_from_core_mode(arm)) {
+	case SYSTEM_CUREL_EL0:
+		instr = ARMV8_SYS(SYSTEM_ATS12E0R, 0);
+		/* can only execute instruction at EL2 */
+		dpmv8_modeswitch(dpm, ARMV8_64_EL2T);
+		break;
+	case SYSTEM_CUREL_EL1:
+		instr = ARMV8_SYS(SYSTEM_ATS12E1R, 0);
+		/* can only execute instruction at EL2 */
+		dpmv8_modeswitch(dpm, ARMV8_64_EL2T);
+		break;
+	case SYSTEM_CUREL_EL2:
+		instr = ARMV8_SYS(SYSTEM_ATS1E2R, 0);
+		break;
+	case SYSTEM_CUREL_EL3:
+		instr = ARMV8_SYS(SYSTEM_ATS1E3R, 0);
+		break;
+
+	default:
+		break;
+	};
+
+	/* write VA to R0 and execute translation instruction */
+	retval = dpm->instr_write_data_r0_64(dpm, instr, (uint64_t)va);
+	/* read result from PAR_EL1 */
+	if (retval == ERROR_OK)
+		retval = dpm->instr_read_data_r0_64(dpm, ARMV8_MRS(SYSTEM_PAR_EL1, 0), &par);
+
+	dpm->finish(dpm);
+
+	/* switch back to saved PE mode */
+	dpmv8_modeswitch(dpm, ARM_MODE_ANY);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (par & 1) {
+		LOG_ERROR("Address translation failed at stage %i, FST=%x, PTW=%i",
+				((int)(par >> 9) & 1)+1, (int)(par >> 1) & 0x3f, (int)(par >> 8) & 1);
+
+		*val = 0;
+		retval = ERROR_FAIL;
+	} else {
+		*val = (par & 0xFFFFFFFFF000UL) | (va & 0xFFF);
+		if (meminfo) {
+			int SH = (par >> 7) & 3;
+			int NS = (par >> 9) & 1;
+			int ATTR = (par >> 56) & 0xFF;
+
+			char *memtype = (ATTR & 0xF0) == 0 ? "Device Memory" : "Normal Memory";
+
+			LOG_USER("%sshareable, %s",
+					shared_name[SH], secure_name[NS]);
+			LOG_USER("%s", memtype);
+		}
+	}
+
+	return retval;
 }
 
 int armv8_handle_cache_info_command(struct command_context *cmd_ctx,

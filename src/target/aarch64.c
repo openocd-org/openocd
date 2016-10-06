@@ -2011,7 +2011,7 @@ static int aarch64_mmu(struct target *target, int *enabled)
 static int aarch64_virt2phys(struct target *target, target_addr_t virt,
 			     target_addr_t *phys)
 {
-	return armv8_mmu_translate_va(target, virt, phys);
+	return armv8_mmu_translate_va_pa(target, virt, phys, 1);
 }
 
 COMMAND_HANDLER(aarch64_handle_cache_info_command)
