@@ -1975,7 +1975,6 @@ static int handle_halt(struct target *target, bool announce)
 	}
 
 	int cause = get_field(info->dcsr, DCSR_CAUSE);
-	LOG_DEBUG("halt cause is %d; dcsr=0x%" PRIx64, cause, info->dcsr);
 	switch (cause) {
 		case DCSR_CAUSE_SWBP:
 			target->debug_reason = DBG_REASON_BREAKPOINT;
@@ -2028,7 +2027,19 @@ static int handle_halt(struct target *target, bool announce)
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	}
 
-	LOG_DEBUG("halted at 0x%" PRIx64, info->dpc);
+	const char *cause_string[] = {
+		"none",
+		"software breakpoint",
+		"hardware trigger",
+		"debug interrupt",
+		"step",
+		"halt"
+	};
+	// This is logged to the user so that gdb will show it when a user types
+	// 'monitor reset init'. At that time gdb appears to have the pc cached
+	// still so if a user manually inspects the pc it will still have the old
+	// value.
+	LOG_USER("halted at 0x%" PRIx64 " due to %s", info->dpc, cause_string[cause]);
 
 	return ERROR_OK;
 }
