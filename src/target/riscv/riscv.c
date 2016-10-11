@@ -111,6 +111,7 @@ typedef enum slot {
 /*** Info about the core being debugged. ***/
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
+#define WALL_CLOCK_TIMEOUT		2
 
 // gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
 // its source tree. We must interpret the numbers the same here.
@@ -715,7 +716,7 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 		if (!bits.interrupt) {
 			return ERROR_OK;
 		}
-		if (time(NULL) - start > 2) {
+		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
 			LOG_ERROR("Timed out waiting for debug int to clear.");
 			return ERROR_FAIL;
 		}
@@ -1004,7 +1005,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 		if (target->state == state) {
 			return ERROR_OK;
 		}
-		if (time(NULL) - start > 2) {
+		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
 			LOG_ERROR("Timed out waiting for state %d.", state);
 			return ERROR_FAIL;
 		}
@@ -1142,7 +1143,7 @@ static int full_step(struct target *target, bool announce)
 			return result;
 		if (target->state != TARGET_DEBUG_RUNNING)
 			break;
-		if (time(NULL) - start > 2) {
+		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
 			LOG_ERROR("Timed out waiting for step to complete.");
 			return ERROR_FAIL;
 		}
