@@ -2070,7 +2070,6 @@ static int poll_target(struct target *target, bool announce)
 		LOG_DEBUG("halting");
 	} else if (!bits.haltnot && !bits.interrupt) {
 		target->state = TARGET_RUNNING;
-		LOG_DEBUG("running");
 	}
 
 	return ERROR_OK;
