@@ -1803,7 +1803,13 @@ static int riscv_examine(struct target *target)
 
 	info->never_halted = true;
 
+	int result = riscv_poll(target);
+	if (result != ERROR_OK) {
+		return result;
+	}
+
 	target_set_examined(target);
+	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64, info->xlen, info->misa);
 
 	return ERROR_OK;
 }
