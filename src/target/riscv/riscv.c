@@ -1079,7 +1079,7 @@ static int execute_resume(struct target *target, bool step)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
-	LOG_DEBUG("resume(step=%d)", step);
+	LOG_DEBUG("step=%d", step);
 
 	maybe_write_tselect(target);
 
@@ -1145,25 +1145,8 @@ static int full_step(struct target *target, bool announce)
 	return ERROR_OK;
 }
 
-static int resume(struct target *target, int current, uint32_t address,
-		int handle_breakpoints, int debug_execution, bool step)
+static int resume(struct target *target, int debug_execution, bool step)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-
-	if (!current) {
-		if (info->xlen > 32) {
-			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
-					info->xlen);
-		}
-		LOG_ERROR("TODO: current is false");
-		return ERROR_FAIL;
-	}
-
-	if (handle_breakpoints) {
-		LOG_ERROR("TODO: handle_breakpoints is true");
-		return ERROR_FAIL;
-	}
-
 	if (debug_execution) {
 		LOG_ERROR("TODO: debug_execution is true");
 		return ERROR_FAIL;
@@ -1688,12 +1671,22 @@ static int riscv_step(struct target *target, int current, uint32_t address,
 
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-	if (info->need_strict_step) {
+	if (!current) {
+		if (info->xlen > 32) {
+			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
+					info->xlen);
+		}
+		int result = register_write(target, REG_PC, address);
+		if (result != ERROR_OK)
+			return result;
+	}
+
+	if (info->need_strict_step || handle_breakpoints) {
 		int result = strict_step(target, true);
 		if (result != ERROR_OK)
 			return result;
 	} else {
-		return resume(target, current, address, handle_breakpoints, 0, true);
+		return resume(target, 0, true);
 	}
 
 	return ERROR_OK;
@@ -2109,14 +2102,23 @@ static int riscv_resume(struct target *target, int current, uint32_t address,
 
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-	if (info->need_strict_step) {
+	if (!current) {
+		if (info->xlen > 32) {
+			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
+					info->xlen);
+		}
+		int result = register_write(target, REG_PC, address);
+		if (result != ERROR_OK)
+			return result;
+	}
+
+	if (info->need_strict_step || handle_breakpoints) {
 		int result = strict_step(target, false);
 		if (result != ERROR_OK)
 			return result;
 	}
 
-	return resume(target, current, address, handle_breakpoints,
-			debug_execution, false);
+	return resume(target, debug_execution, false);
 }
 
 static int riscv_assert_reset(struct target *target)
