@@ -737,6 +737,8 @@ static __unused int armv8_read_ttbcr(struct target *target)
 		armv8->page_size = (ttbcr >> 14) & 3;
 		break;
 	case SYSTEM_CUREL_EL0:
+		armv8_dpm_modeswitch(dpm, ARMV8_64_EL1H);
+		/* fall through */
 	case SYSTEM_CUREL_EL1:
 		retval = dpm->instr_read_data_r0_64(dpm,
 				ARMV8_MRS(SYSTEM_TCR_EL1, 0),
@@ -764,6 +766,7 @@ static __unused int armv8_read_ttbcr(struct target *target)
 		LOG_INFO("TTBR0 access above %" PRIx64, (uint64_t)(armv8->armv8_mmu.ttbr0_mask));
 
 done:
+	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 	dpm->finish(dpm);
 	return retval;
 }
