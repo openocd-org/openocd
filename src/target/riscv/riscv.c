@@ -160,7 +160,6 @@ typedef struct {
 
 	struct memory_cache_line dram_cache[DRAM_CACHE_SIZE];
 
-	struct reg *reg_list;
 	/* Single buffer that contains all register names, instead of calling
 	 * malloc for each register. Needs to be freed when reg_list is freed. */
 	char *reg_names;
@@ -187,9 +186,6 @@ typedef struct {
 	// interrupt high, so ideally we never have to perform a whole extra scan
 	// before the interrupt is cleared.
 	unsigned int interrupt_high_delay;
-
-	// This cache is write-through, and always valid when the target is halted.
-	uint64_t gpr_cache[32];
 
 	bool need_strict_step;
 	bool never_halted;
@@ -1123,9 +1119,7 @@ static int execute_resume(struct target *target, bool step)
 	}
 
 	target->state = TARGET_RUNNING;
-	for (unsigned int i = 0; i < 32; i++) {
-		info->gpr_cache[i] = 0xbadbad;
-	}
+	register_cache_invalidate(target->reg_cache);
 
 	return ERROR_OK;
 }
@@ -1188,7 +1182,7 @@ static void update_reg_list(struct target *target)
 	info->reg_values = malloc(REG_COUNT * info->xlen / 4);
 
 	for (unsigned int i = 0; i < REG_COUNT; i++) {
-		struct reg *r = &info->reg_list[i];
+		struct reg *r = &target->reg_cache->reg_list[i];
 		r->value = info->reg_values + i * info->xlen / 4;
 		if (r->dirty) {
 			LOG_ERROR("Register %d was dirty. Its value is lost.", i);
@@ -1202,6 +1196,24 @@ static void update_reg_list(struct target *target)
 	}
 }
 
+static uint64_t reg_cache_get(struct target *target, unsigned int number)
+{
+	struct reg *r = &target->reg_cache->reg_list[number];
+	assert(r->valid);
+	uint64_t value = buf_get_u64(r->value, 0, r->size);
+	LOG_DEBUG("%s = 0x%" PRIx64, r->name, value);
+	return value;
+}
+
+static void reg_cache_set(struct target *target, unsigned int number,
+		uint64_t value)
+{
+	struct reg *r = &target->reg_cache->reg_list[number];
+	LOG_DEBUG("%s <= 0x%" PRIx64, r->name, value);
+	r->valid = true;
+	buf_set_u64(r->value, 0, r->size, value);
+}
+
 /*** OpenOCD target functions. ***/
 
 static int register_get(struct reg *reg)
@@ -1212,8 +1224,8 @@ static int register_get(struct reg *reg)
 	maybe_write_tselect(target);
 
 	if (reg->number <= REG_XPR31) {
-		buf_set_u64(reg->value, 0, info->xlen, info->gpr_cache[reg->number]);
-		LOG_DEBUG("%s=0x%" PRIx64, reg->name, info->gpr_cache[reg->number]);
+		buf_set_u64(reg->value, 0, info->xlen, reg_cache_get(target, reg->number));
+		LOG_DEBUG("%s=0x%" PRIx64, reg->name, reg_cache_get(target, reg->number));
 		return ERROR_OK;
 	} else if (reg->number == REG_PC) {
 		buf_set_u32(reg->value, 0, 32, info->dpc);
@@ -1240,13 +1252,6 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	uint64_t value = cache_get(target, SLOT0);
-	if (reg->number < 32 && info->gpr_cache[reg->number] != value) {
-		LOG_ERROR("cached value for %s is 0x%" PRIx64 " but just read 0x%" PRIx64,
-				reg->name, info->gpr_cache[reg->number], value);
-		assert(info->gpr_cache[reg->number] == value);
-	}
-
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
 		LOG_ERROR("Got exception 0x%x when reading register %d", exception,
@@ -1254,6 +1259,7 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
+	uint64_t value = cache_get(target, SLOT0);
 	LOG_DEBUG("%s=0x%" PRIx64, reg->name, value);
 	buf_set_u64(reg->value, 0, info->xlen, value);
 
@@ -1313,9 +1319,9 @@ static int register_set(struct reg *reg, uint8_t *buf)
 	uint64_t value = buf_get_u64(buf, 0, info->xlen);
 
 	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
-	if (reg->number <= REG_XPR31) {
-		info->gpr_cache[reg->number] = value;
-	}
+	struct reg *r = &target->reg_cache->reg_list[reg->number];
+	r->valid = true;
+	memcpy(r->value, buf, (r->size + 7) / 8);
 
 	return register_write(target, reg->number, value);
 }
@@ -1338,15 +1344,19 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	select_dbus.num_bits = target->tap->ir_length;
 	select_idcode.num_bits = target->tap->ir_length;
 
-	const unsigned int max_reg_name_len = 12;
-	info->reg_list = calloc(REG_COUNT, sizeof(struct reg));
+	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
+	target->reg_cache->name = "RISC-V registers";
+	target->reg_cache->num_regs = REG_COUNT;
 
+	target->reg_cache->reg_list = calloc(REG_COUNT, sizeof(struct reg));
+
+	const unsigned int max_reg_name_len = 12;
 	info->reg_names = calloc(1, REG_COUNT * max_reg_name_len);
 	char *reg_name = info->reg_names;
 	info->reg_values = NULL;
 
 	for (unsigned int i = 0; i < REG_COUNT; i++) {
-		struct reg *r = &info->reg_list[i];
+		struct reg *r = &target->reg_cache->reg_list[i];
 		r->number = i;
 		r->caller_save = true;
 		r->dirty = false;
@@ -1866,7 +1876,8 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	unsigned int dbus_busy = 0;
 	unsigned int interrupt_set = 0;
 	unsigned result = 0;
-	info->gpr_cache[0] = 0;
+	uint64_t value = 0;
+	reg_cache_set(target, 0, 0);
 	// The first scan result is the result from something old we don't care
 	// about.
 	for (unsigned int i = 1; i < scans->next_scan && dbus_busy == 0; i++) {
@@ -1893,59 +1904,64 @@ static riscv_error_t handle_halt_routine(struct target *target)
 			break;
 		}
 		if (address == 4 || address == 5) {
-			uint64_t *vptr = NULL;
+			unsigned int reg;
 			switch (result) {
-				case 0: vptr = &info->gpr_cache[1]; break;
-				case 1: vptr = &info->gpr_cache[2]; break;
-				case 2: vptr = &info->gpr_cache[3]; break;
-				case 3: vptr = &info->gpr_cache[4]; break;
-				case 4: vptr = &info->gpr_cache[5]; break;
-				case 5: vptr = &info->gpr_cache[6]; break;
-				case 6: vptr = &info->gpr_cache[7]; break;
+				case 0: reg = 1; break;
+				case 1: reg = 2; break;
+				case 2: reg = 3; break;
+				case 3: reg = 4; break;
+				case 4: reg = 5; break;
+				case 5: reg = 6; break;
+				case 6: reg = 7; break;
 						// S0
 						// S1
-				case 7: vptr = &info->gpr_cache[10]; break;
-				case 8: vptr = &info->gpr_cache[11]; break;
-				case 9: vptr = &info->gpr_cache[12]; break;
-				case 10: vptr = &info->gpr_cache[13]; break;
-				case 11: vptr = &info->gpr_cache[14]; break;
-				case 12: vptr = &info->gpr_cache[15]; break;
-				case 13: vptr = &info->gpr_cache[16]; break;
-				case 14: vptr = &info->gpr_cache[17]; break;
-				case 15: vptr = &info->gpr_cache[18]; break;
-				case 16: vptr = &info->gpr_cache[19]; break;
-				case 17: vptr = &info->gpr_cache[20]; break;
-				case 18: vptr = &info->gpr_cache[21]; break;
-				case 19: vptr = &info->gpr_cache[22]; break;
-				case 20: vptr = &info->gpr_cache[23]; break;
-				case 21: vptr = &info->gpr_cache[24]; break;
-				case 22: vptr = &info->gpr_cache[25]; break;
-				case 23: vptr = &info->gpr_cache[26]; break;
-				case 24: vptr = &info->gpr_cache[27]; break;
-				case 25: vptr = &info->gpr_cache[28]; break;
-				case 26: vptr = &info->gpr_cache[29]; break;
-				case 27: vptr = &info->gpr_cache[30]; break;
-				case 28: vptr = &info->gpr_cache[31]; break;
-				case 29: vptr = &info->gpr_cache[S1]; break;
-				case 30: vptr = &info->gpr_cache[S0]; break;
-				case 31: vptr = &info->dpc; break;
-				case 32: vptr = &info->dcsr; break;
+				case 7: reg = 10; break;
+				case 8: reg = 11; break;
+				case 9: reg = 12; break;
+				case 10: reg = 13; break;
+				case 11: reg = 14; break;
+				case 12: reg = 15; break;
+				case 13: reg = 16; break;
+				case 14: reg = 17; break;
+				case 15: reg = 18; break;
+				case 16: reg = 19; break;
+				case 17: reg = 20; break;
+				case 18: reg = 21; break;
+				case 19: reg = 22; break;
+				case 20: reg = 23; break;
+				case 21: reg = 24; break;
+				case 22: reg = 25; break;
+				case 23: reg = 26; break;
+				case 24: reg = 27; break;
+				case 25: reg = 28; break;
+				case 26: reg = 29; break;
+				case 27: reg = 30; break;
+				case 28: reg = 31; break;
+				case 29: reg = S1; break;
+				case 30: reg = S0; break;
+				case 31: reg = CSR_DPC; break;
+				case 32: reg = CSR_DCSR; break;
 				default:
 						 assert(0);
 			}
 			if (info->xlen == 32) {
-				*vptr = data & 0xffffffff;
+				reg_cache_set(target, reg, data & 0xffffffff);
 				result++;
 			} else if (info->xlen == 64) {
 				if (address == 4) {
-					*vptr = data & 0xffffffff;
+					value = data & 0xffffffff;
 				} else if (address == 5) {
-					*vptr |= (data & 0xffffffff) << 32;
+					reg_cache_set(target, reg, ((data & 0xffffffff) << 32) | value);
+					value = 0;
 					result++;
 				}
 			}
 		}
 	}
+
+	// TODO: get rid of those 2 variables and talk to the cache directly.
+	info->dpc = reg_cache_get(target, CSR_DPC);
+	info->dcsr = reg_cache_get(target, CSR_DCSR);
 
 	scans = scans_delete(scans);
 
@@ -2458,8 +2474,6 @@ static int riscv_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-
 	LOG_DEBUG("reg_class=%d", reg_class);
 
 	switch (reg_class) {
@@ -2479,7 +2493,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 		return ERROR_FAIL;
 	}
 	for (int i = 0; i < *reg_list_size; i++) {
-		(*reg_list)[i] = &info->reg_list[i];
+		(*reg_list)[i] = &target->reg_cache->reg_list[i];
 	}
 
 	return ERROR_OK;
