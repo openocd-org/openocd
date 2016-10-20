@@ -279,6 +279,28 @@ static int aarch64_dpm_setup(struct aarch64_common *a8, uint64_t debug)
 	return retval;
 }
 
+static int aarch64_set_dscr_bits(struct target *target, unsigned long bit_mask, unsigned long value)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	uint32_t dscr;
+
+	/* Read DSCR */
+	int retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+	if (ERROR_OK != retval)
+		return retval;
+
+	/* clear bitfield */
+	dscr &= ~bit_mask;
+	/* put new value */
+	dscr |= value & bit_mask;
+
+	/* write new DSCR */
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DSCR, dscr);
+	return retval;
+}
+
 static struct target *get_aarch64(struct target *target, int32_t coreid)
 {
 	struct target_list *head;
@@ -305,9 +327,12 @@ static int aarch64_halt_smp(struct target *target)
 		struct armv8_common *armv8 = target_to_armv8(curr);
 
 		/* open the gate for channel 0 to let HALT requests pass to the CTM */
-		if (curr->smp)
+		if (curr->smp) {
 			retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 					armv8->cti_base + CTI_GATE, CTI_CHNL(0));
+			if (retval == ERROR_OK)
+				retval = aarch64_set_dscr_bits(curr, DSCR_HDE, DSCR_HDE);
+		}
 		if (retval != ERROR_OK)
 			break;
 
@@ -411,11 +436,7 @@ static int aarch64_halt(struct target *target)
 	/*
 	 * add HDE in halting debug mode
 	 */
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
-	if (retval == ERROR_OK)
-		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_DSCR, dscr | DSCR_HDE);
+	retval = aarch64_set_dscr_bits(target, DSCR_HDE, DSCR_HDE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -756,28 +777,6 @@ static int aarch64_post_debug_entry(struct target *target)
 		(aarch64->system_control_reg & 0x1000U) ? 1 : 0;
 	aarch64->curr_mode = armv8->arm.core_mode;
 	return ERROR_OK;
-}
-
-static int aarch64_set_dscr_bits(struct target *target, unsigned long bit_mask, unsigned long value)
-{
-	struct armv8_common *armv8 = target_to_armv8(target);
-	uint32_t dscr;
-
-	/* Read DSCR */
-	int retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
-	if (ERROR_OK != retval)
-		return retval;
-
-	/* clear bitfield */
-	dscr &= ~bit_mask;
-	/* put new value */
-	dscr |= value & bit_mask;
-
-	/* write new DSCR */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, dscr);
-	return retval;
 }
 
 static int aarch64_step(struct target *target, int current, target_addr_t address,
