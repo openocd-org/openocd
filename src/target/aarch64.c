@@ -2126,9 +2126,6 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 };
 static const struct command_registration aarch64_command_handlers[] = {
 	{
-		.chain = arm_command_handlers,
-	},
-	{
 		.chain = armv8_command_handlers,
 	},
 	{
