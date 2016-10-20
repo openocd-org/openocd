@@ -279,6 +279,7 @@ static int dpmv8_exec_opcode(struct arm_dpm *dpm,
 		/* clear the sticky error condition */
 		mem_ap_write_atomic_u32(armv8->debug_ap,
 				armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
+		armv8_dpm_handle_exception(dpm);
 		retval = ERROR_FAIL;
 	}
 
@@ -668,6 +669,9 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 	if (target_el > dpm->last_el) {
 		retval = dpm->instr_execute(dpm,
 				armv8_opcode(armv8, ARMV8_OPC_DCPS) | target_el);
+
+		/* DCPS clobbers registers just like an exception taken */
+		armv8_dpm_handle_exception(dpm);
 	} else {
 		core_state = armv8_dpm_get_core_state(dpm);
 		if (core_state != ARM_STATE_AARCH64) {
@@ -1309,6 +1313,59 @@ void armv8_dpm_report_wfar(struct arm_dpm *dpm, uint64_t addr)
 			break;
 	}
 	dpm->wp_pc = addr;
+}
+
+/*
+ * Handle exceptions taken in debug state. This happens mostly for memory
+ * accesses that violated a MMU policy. Taking an exception while in debug
+ * state clobbers certain state registers on the target exception level.
+ * Just mark those registers dirty so that they get restored on resume.
+ * This works both for Aarch32 and Aarch64 states.
+ *
+ * This function must not perform any actions that trigger another exception
+ * or a recursion will happen.
+ */
+void armv8_dpm_handle_exception(struct arm_dpm *dpm)
+{
+	struct armv8_common *armv8 = dpm->arm->arch_info;
+	struct reg_cache *cache = dpm->arm->core_cache;
+	enum arm_state core_state;
+	uint64_t dlr;
+	uint32_t dspsr;
+	unsigned int el;
+
+	static const int clobbered_regs_by_el[3][5] = {
+		{ ARMV8_PC, ARMV8_xPSR, ARMV8_ELR_EL1, ARMV8_ESR_EL1, ARMV8_SPSR_EL1 },
+		{ ARMV8_PC, ARMV8_xPSR, ARMV8_ELR_EL2, ARMV8_ESR_EL2, ARMV8_SPSR_EL2 },
+		{ ARMV8_PC, ARMV8_xPSR, ARMV8_ELR_EL3, ARMV8_ESR_EL3, ARMV8_SPSR_EL3 },
+	};
+
+	el = (dpm->dscr >> 8) & 3;
+
+	/* safety check, must not happen since EL0 cannot be a target for an exception */
+	if (el < SYSTEM_CUREL_EL1 || el > SYSTEM_CUREL_EL3) {
+		LOG_ERROR("%s: EL %i is invalid, DSCR corrupted?", __func__, el);
+		return;
+	}
+
+	armv8->read_reg_u64(armv8, ARMV8_xPSR, &dlr);
+	dspsr = dlr;
+	armv8->read_reg_u64(armv8, ARMV8_PC, &dlr);
+
+	LOG_DEBUG("Exception taken to EL %i, DLR=0x%016"PRIx64" DSPSR=0x%08"PRIx32,
+			el, dlr, dspsr);
+
+	/* mark all clobbered registers as dirty */
+	for (int i = 0; i < 5; i++)
+		cache->reg_list[clobbered_regs_by_el[el-1][i]].dirty = true;
+
+	/*
+	 * re-evaluate the core state, we might be in Aarch64 state now
+	 * we rely on dpm->dscr being up-to-date
+	 */
+	core_state = armv8_dpm_get_core_state(dpm);
+	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
+	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
 }
 
 /*----------------------------------------------------------------------*/

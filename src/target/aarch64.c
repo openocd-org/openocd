@@ -1492,6 +1492,7 @@ static int aarch64_write_apb_ap_memory(struct target *target,
 		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);
 		mem_ap_write_atomic_u32(armv8->debug_ap,
 					armv8->debug_base + CPUV8_DBG_DRCR, 1<<2);
+		armv8_dpm_handle_exception(dpm);
 		goto error_free_buff_w;
 	}
 
@@ -1657,6 +1658,7 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 		LOG_ERROR("abort occurred - dscr = 0x%08" PRIx32, dscr);
 		mem_ap_write_atomic_u32(armv8->debug_ap,
 					armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
+		armv8_dpm_handle_exception(dpm);
 		goto error_free_buff_r;
 	}
 
