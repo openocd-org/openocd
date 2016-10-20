@@ -504,25 +504,16 @@ static int aarch64_internal_restore(struct target *target, int current,
 			LOG_ERROR("How do I resume into Jazelle state??");
 			return ERROR_FAIL;
 	}
-	LOG_DEBUG("resume pc = 0x%16" PRIx64, resume_pc);
+	LOG_DEBUG("resume pc = 0x%016" PRIx64, resume_pc);
 	buf_set_u64(arm->pc->value, 0, 64, resume_pc);
 	arm->pc->dirty = 1;
 	arm->pc->valid = 1;
-	armv8_dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 
 	/* called it now before restoring context because it uses cpu
 	 * register r0 for restoring system control register */
 	retval = aarch64_restore_system_control_reg(target);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = aarch64_restore_context(target, handle_breakpoints);
-	if (retval != ERROR_OK)
-		return retval;
-	target->debug_reason = DBG_REASON_NOTHALTED;
-	target->state = TARGET_RUNNING;
-
-	/* registers are now invalid */
-	register_cache_invalidate(arm->core_cache);
+	if (retval == ERROR_OK)
+		retval = aarch64_restore_context(target, handle_breakpoints);
 
 	return retval;
 }
