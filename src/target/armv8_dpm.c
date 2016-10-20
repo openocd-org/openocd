@@ -79,8 +79,7 @@ static int dpmv8_write_dcc(struct armv8_common *armv8, uint32_t data)
 static int dpmv8_write_dcc_64(struct armv8_common *armv8, uint64_t data)
 {
 	int ret;
-	LOG_DEBUG("write DCC Low word 0x%08" PRIx32, (unsigned)data);
-	LOG_DEBUG("write DCC High word 0x%08" PRIx32, (unsigned)(data >> 32));
+	LOG_DEBUG("write DCC 0x%016" PRIx64, data);
 	ret = mem_ap_write_u32(armv8->debug_ap,
 			       armv8->debug_base + CPUV8_DBG_DTRRX, data);
 	ret += mem_ap_write_u32(armv8->debug_ap,
@@ -143,7 +142,7 @@ static int dpmv8_read_dcc_64(struct armv8_common *armv8, uint64_t *data,
 		if (retval != ERROR_OK)
 			return retval;
 		if (timeval_ms() > then + 1000) {
-			LOG_ERROR("Timeout waiting for read dcc");
+			LOG_ERROR("Timeout waiting for DTR_TX_FULL, dscr = 0x%08" PRIx32, dscr);
 			return ERROR_FAIL;
 		}
 	}
@@ -1305,7 +1304,7 @@ void armv8_dpm_report_wfar(struct arm_dpm *dpm, uint64_t addr)
 			/* ?? */
 			break;
 		default:
-			LOG_DEBUG("Unknow core_state");
+			LOG_DEBUG("Unknown core_state");
 			break;
 	}
 	dpm->wp_pc = addr;

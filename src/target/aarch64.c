@@ -389,7 +389,7 @@ static int aarch64_poll(struct target *target)
 	if (DSCR_RUN_MODE(dscr) == 0x3) {
 		if (prev_target_state != TARGET_HALTED) {
 			/* We have a halting debug event */
-			LOG_DEBUG("Target halted");
+			LOG_DEBUG("Target %s halted", target_name(target));
 			target->state = TARGET_HALTED;
 			if ((prev_target_state == TARGET_RUNNING)
 				|| (prev_target_state == TARGET_UNKNOWN)
@@ -839,13 +839,12 @@ static int aarch64_restore_context(struct target *target, bool bpwp)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 
-	LOG_DEBUG(" ");
+	LOG_DEBUG("%s", target_name(target));
 
 	if (armv8->pre_restore_context)
 		armv8->pre_restore_context(target);
 
 	return armv8_dpm_write_dirty_registers(&armv8->dpm, bpwp);
-
 }
 
 /*
@@ -1367,8 +1366,9 @@ static int aarch64_write_apb_ap_memory(struct target *target,
 	uint32_t dscr;
 	uint8_t *tmp_buff = NULL;
 
-	LOG_DEBUG("Writing APB-AP memory address 0x%" PRIx64 " size %"  PRIu32 " count%"  PRIu32,
+	LOG_DEBUG("Writing APB-AP memory address 0x%" PRIx64 " size %"  PRIu32 " count %"  PRIu32,
 			  address, size, count);
+
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -1517,8 +1517,9 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 	uint8_t *u8buf_ptr;
 	uint32_t value;
 
-	LOG_DEBUG("Reading APB-AP memory address 0x%" TARGET_PRIxADDR " size %"	PRIu32 " count%"  PRIu32,
+	LOG_DEBUG("Reading APB-AP memory address 0x%" TARGET_PRIxADDR " size %"	PRIu32 " count %"  PRIu32,
 			  address, size, count);
+
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
