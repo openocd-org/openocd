@@ -82,7 +82,8 @@ static int dpmv8_write_dcc_64(struct armv8_common *armv8, uint64_t data)
 	LOG_DEBUG("write DCC 0x%016" PRIx64, data);
 	ret = mem_ap_write_u32(armv8->debug_ap,
 			       armv8->debug_base + CPUV8_DBG_DTRRX, data);
-	ret += mem_ap_write_u32(armv8->debug_ap,
+	if (ret == ERROR_OK)
+		ret = mem_ap_write_u32(armv8->debug_ap,
 				armv8->debug_base + CPUV8_DBG_DTRTX, data >> 32);
 	return ret;
 }
@@ -174,7 +175,7 @@ static int dpmv8_dpm_prepare(struct arm_dpm *dpm)
 	uint32_t dscr;
 	int retval;
 
-	/* set up invariant:  INSTR_COMP is set after ever DPM operation */
+	/* set up invariant:  ITE is set after ever DPM operation */
 	long long then = timeval_ms();
 	for (;; ) {
 		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
@@ -216,7 +217,7 @@ static int dpmv8_exec_opcode(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t *p_dscr)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
-	uint32_t dscr = DSCR_ITE;
+	uint32_t dscr = dpm->dscr;
 	int retval;
 
 	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
@@ -333,19 +334,18 @@ static int dpmv8_instr_write_data_r0_64(struct arm_dpm *dpm,
 	uint32_t opcode, uint64_t data)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
-	uint32_t dscr = DSCR_ITE;
 	int retval;
 
+	/* transfer data from DCC to R0 */
 	retval = dpmv8_write_dcc_64(armv8, data);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = dpmv8_exec_opcode(dpm, ARMV8_MRS(SYSTEM_DBG_DBGDTR_EL0, 0), &dscr);
-	if (retval != ERROR_OK)
-		return retval;
+	if (retval == ERROR_OK)
+		retval = dpmv8_exec_opcode(dpm, ARMV8_MRS(SYSTEM_DBG_DBGDTR_EL0, 0), &dpm->dscr);
 
 	/* then the opcode, taking data from R0 */
-	return dpmv8_exec_opcode(dpm, opcode, &dscr);
+	if (retval == ERROR_OK)
+		retval = dpmv8_exec_opcode(dpm, opcode, &dpm->dscr);
+
+	return retval;
 }
 
 static int dpmv8_instr_cpsr_sync(struct arm_dpm *dpm)
@@ -364,70 +364,66 @@ static int dpmv8_instr_read_data_dcc(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t *data)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
-	uint32_t dscr = DSCR_ITE;
 	int retval;
 
 	/* the opcode, writing data to DCC */
-	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	retval = dpmv8_exec_opcode(dpm, opcode, &dpm->dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_read_dcc(armv8, data, &dscr);
+	return dpmv8_read_dcc(armv8, data, &dpm->dscr);
 }
 
 static int dpmv8_instr_read_data_dcc_64(struct arm_dpm *dpm,
 	uint32_t opcode, uint64_t *data)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
-	uint32_t dscr = DSCR_ITE;
 	int retval;
 
 	/* the opcode, writing data to DCC */
-	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	retval = dpmv8_exec_opcode(dpm, opcode, &dpm->dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_read_dcc_64(armv8, data, &dscr);
+	return dpmv8_read_dcc_64(armv8, data, &dpm->dscr);
 }
 
 static int dpmv8_instr_read_data_r0(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t *data)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
-	uint32_t dscr = DSCR_ITE;
 	int retval;
 
 	/* the opcode, writing data to R0 */
-	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	retval = dpmv8_exec_opcode(dpm, opcode, &dpm->dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* write R0 to DCC */
-	retval = dpmv8_exec_opcode(dpm, armv8_opcode(armv8, WRITE_REG_DTRTX), &dscr);
+	retval = dpmv8_exec_opcode(dpm, armv8_opcode(armv8, WRITE_REG_DTRTX), &dpm->dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_read_dcc(armv8, data, &dscr);
+	return dpmv8_read_dcc(armv8, data, &dpm->dscr);
 }
 
 static int dpmv8_instr_read_data_r0_64(struct arm_dpm *dpm,
 	uint32_t opcode, uint64_t *data)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
-	uint32_t dscr = DSCR_ITE;
 	int retval;
 
 	/* the opcode, writing data to R0 */
-	retval = dpmv8_exec_opcode(dpm, opcode, &dscr);
+	retval = dpmv8_exec_opcode(dpm, opcode, &dpm->dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* write R0 to DCC */
-	retval = dpmv8_exec_opcode(dpm, ARMV8_MSR_GP(SYSTEM_DBG_DBGDTR_EL0, 0), &dscr);
+	retval = dpmv8_exec_opcode(dpm, ARMV8_MSR_GP(SYSTEM_DBG_DBGDTR_EL0, 0), &dpm->dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_read_dcc_64(armv8, data, &dscr);
+	return dpmv8_read_dcc_64(armv8, data, &dpm->dscr);
 }
 
 #if 0
