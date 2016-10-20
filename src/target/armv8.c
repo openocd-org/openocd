@@ -46,11 +46,6 @@ static const char * const armv8_state_strings[] = {
 static const struct {
 	const char *name;
 	unsigned psr;
-	/* For user and system modes, these list indices for all registers.
-	 * otherwise they're just indices for the shadow registers and SPSR.
-	 */
-	unsigned short n_indices;
-	const uint8_t *indices;
 } armv8_mode_data[] = {
 	/* These special modes are currently only supported
 	 * by ARMv6M and ARMv7M profiles */
