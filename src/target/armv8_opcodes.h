@@ -135,6 +135,8 @@
 
 #define ARMV8_DSB_SY				0xd5033F9F
 #define ARMV8_DSB_SY_T1				0xf3bf8f4f
+#define ARMV8_ISB				0xd5033fdf
+#define ARMV8_ISB_SY_T1				0xf3bf8f6f
 
 #define ARMV8_MRS(System, Rt)	(0xd5300000 | ((System) << 5) | (Rt))
 /* ARM V8 Move to system register. */
@@ -173,6 +175,7 @@ enum armv8_opcode {
 	ARMV8_OPC_DSB_SY,
 	ARMV8_OPC_DCPS,
 	ARMV8_OPC_DRPS,
+	ARMV8_OPC_ISB_SY,
 	ARMV8_OPC_NUM,
 };
 

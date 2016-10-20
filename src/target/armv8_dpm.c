@@ -360,9 +360,14 @@ static int dpmv8_instr_write_data_r0_64(struct arm_dpm *dpm,
 
 static int dpmv8_instr_cpsr_sync(struct arm_dpm *dpm)
 {
+	int retval;
 	struct armv8_common *armv8 = dpm->arm->arch_info;
+
 	/* "Prefetch flush" after modifying execution status in CPSR */
-	return dpmv8_exec_opcode(dpm, armv8_opcode(armv8, ARMV8_OPC_DSB_SY), NULL);
+	retval = dpmv8_exec_opcode(dpm, armv8_opcode(armv8, ARMV8_OPC_DSB_SY), &dpm->dscr);
+	if (retval == ERROR_OK)
+		dpmv8_exec_opcode(dpm, armv8_opcode(armv8, ARMV8_OPC_ISB_SY), &dpm->dscr);
+	return retval;
 }
 
 static int dpmv8_instr_read_data_dcc(struct arm_dpm *dpm,

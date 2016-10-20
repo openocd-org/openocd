@@ -37,6 +37,7 @@ static const uint32_t a64_opcodes[ARMV8_OPC_NUM] = {
 		[ARMV8_OPC_DSB_SY]	= ARMV8_DSB_SY,
 		[ARMV8_OPC_DCPS]	= ARMV8_DCPS(0, 11),
 		[ARMV8_OPC_DRPS]	= ARMV8_DRPS,
+		[ARMV8_OPC_ISB_SY]	= ARMV8_ISB,
 };
 
 static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
@@ -53,6 +54,7 @@ static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
 		[ARMV8_OPC_DSB_SY]	= ARMV8_DSB_SY_T1,
 		[ARMV8_OPC_DCPS]	= ARMV8_DCPS_T1(0),
 		[ARMV8_OPC_DRPS]	= ARMV8_ERET_T1,
+		[ARMV8_OPC_ISB_SY]	= ARMV8_ISB_SY_T1,
 };
 
 void armv8_select_opcodes(struct armv8_common *armv8, bool state_is_aarch64)

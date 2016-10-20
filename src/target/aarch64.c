@@ -663,11 +663,16 @@ static int aarch64_debug_entry(struct target *target)
 	/* make sure to clear all sticky errors */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
+
+	/* discard async exceptions */
+	if (retval == ERROR_OK)
+		retval = dpm->instr_cpsr_sync(dpm);
+
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Examine debug reason */
-	armv8_dpm_report_dscr(&armv8->dpm, aarch64->cpudbg_dscr);
+	armv8_dpm_report_dscr(dpm, aarch64->cpudbg_dscr);
 
 	/* save address of instruction that triggered the watchpoint? */
 	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
