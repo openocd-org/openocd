@@ -32,7 +32,7 @@ int armv8_dpm_setup(struct arm_dpm *dpm);
 int armv8_dpm_initialize(struct arm_dpm *dpm);
 
 int armv8_dpm_read_current_registers(struct arm_dpm *);
-int dpmv8_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
+int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
 
 
 int armv8_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);

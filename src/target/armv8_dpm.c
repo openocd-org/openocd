@@ -610,53 +610,103 @@ static int dpmv8_msr(struct target *target, uint32_t op0,
  * Register access utilities
  */
 
-/* Toggles between recorded core mode (USR, SVC, etc) and a temporary one.
- * Routines *must* restore the original mode before returning!!
- */
-int dpmv8_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
+int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 {
 	struct armv8_common *armv8 = (struct armv8_common *)dpm->arm->arch_info;
-	int retval;
+	int retval = ERROR_OK;
+	unsigned int target_el;
+	enum arm_state core_state;
 	uint32_t cpsr;
 
 	/* restore previous mode */
-	if (mode == ARM_MODE_ANY)
+	if (mode == ARM_MODE_ANY) {
 		cpsr = buf_get_u32(dpm->arm->cpsr->value, 0, 32);
 
-	/* else force to the specified mode */
-	else
-		cpsr = mode >> 4;
+		LOG_DEBUG("restoring mode, cpsr = 0x%08"PRIx32, cpsr);
 
-	switch ((cpsr & 0xC) >> 2) {
-			case SYSTEM_CUREL_EL1:
-				retval = dpm->instr_execute(dpm, ARMV8_DCPS1(11));
-				if (retval != ERROR_OK)
-					return retval;
-				break;
-			case SYSTEM_CUREL_EL2:
-				retval = dpm->instr_execute(dpm, ARMV8_DCPS2(11));
-				if (retval != ERROR_OK)
-					return retval;
-				break;
-			break;
-			case SYSTEM_CUREL_EL3:
-				retval = dpm->instr_execute(dpm, ARMV8_DCPS3(11));
-				if (retval != ERROR_OK)
-					return retval;
-				break;
-			break;
-			default:
-				LOG_DEBUG("unknow mode 0x%x", (unsigned) ((cpsr & 0xC) >> 2));
-				break;
+	} else {
+		LOG_DEBUG("setting mode 0x%"PRIx32, mode);
+
+		/* else force to the specified mode */
+		if (is_arm_mode(mode))
+			cpsr = mode;
+		else
+			cpsr = mode >> 4;
 	}
 
+	switch (cpsr & 0x1f) {
+	/* aarch32 modes */
+	case ARM_MODE_USR:
+		target_el = 0;
+		break;
+	case ARM_MODE_SVC:
+	case ARM_MODE_ABT:
+	case ARM_MODE_IRQ:
+	case ARM_MODE_FIQ:
+		target_el = 1;
+		break;
+	/*
+	 * TODO: handle ARM_MODE_HYP
+	 * case ARM_MODE_HYP:
+	 *      target_el = 2;
+	 *      break;
+	 */
+	case ARM_MODE_MON:
+		target_el = 3;
+		break;
+	/* aarch64 modes */
+	default:
+		target_el = (cpsr >> 2) & 3;
+	}
 
-	retval = dpm->instr_write_data_r0(dpm, armv8_opcode(armv8, WRITE_REG_DSPSR), cpsr);
-	if (retval != ERROR_OK)
-		return retval;
+	if (target_el > SYSTEM_CUREL_EL3) {
+		LOG_ERROR("%s: Invalid target exception level %i", __func__, target_el);
+		return ERROR_FAIL;
+	}
 
-	if (dpm->instr_cpsr_sync)
-		retval = dpm->instr_cpsr_sync(dpm);
+	LOG_DEBUG("target_el = %i, last_el = %i", target_el, dpm->last_el);
+	if (target_el > dpm->last_el) {
+		retval = dpm->instr_execute(dpm,
+				armv8_opcode(armv8, ARMV8_OPC_DCPS) | target_el);
+	} else {
+		core_state = armv8_dpm_get_core_state(dpm);
+		if (core_state != ARM_STATE_AARCH64) {
+			/* cannot do DRPS/ERET when already in EL0 */
+			if (dpm->last_el != 0) {
+				/* load SPSR with the desired mode and execute DRPS */
+				LOG_DEBUG("SPSR = 0x%08"PRIx32, cpsr);
+				retval = dpm->instr_write_data_r0(dpm,
+						ARMV8_MSR_GP_xPSR_T1(1, 0, 15), cpsr);
+				if (retval == ERROR_OK)
+					retval = dpm->instr_execute(dpm, armv8_opcode(armv8, ARMV8_OPC_DRPS));
+			}
+		} else {
+			/*
+			 * need to execute multiple DRPS instructions until target_el
+			 * is reached
+			 */
+			while (retval == ERROR_OK && dpm->last_el != target_el) {
+				unsigned int cur_el = dpm->last_el;
+				retval = dpm->instr_execute(dpm, armv8_opcode(armv8, ARMV8_OPC_DRPS));
+				if (cur_el == dpm->last_el) {
+					LOG_INFO("Cannot reach EL %i, SPSR corrupted?", target_el);
+					break;
+				}
+			}
+		}
+
+		/* On executing DRPS, DSPSR and DLR become UNKNOWN, mark them as dirty */
+		dpm->arm->cpsr->dirty = true;
+		dpm->arm->pc->dirty = true;
+
+		/*
+		 * re-evaluate the core state, we might be in Aarch32 state now
+		 * we rely on dpm->dscr being up-to-date
+		 */
+		core_state = armv8_dpm_get_core_state(dpm);
+		armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
+		armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
+	}
 
 	return retval;
 }
@@ -875,7 +925,7 @@ int armv8_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 */
 
 	/* Restore original core mode and state */
-	retval = dpmv8_modeswitch(dpm, ARM_MODE_ANY);
+	retval = armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 	if (retval != ERROR_OK)
 		goto done;
 
@@ -1022,9 +1072,9 @@ static int armv8_dpm_full_context(struct target *target)
 				 * in FIQ mode we need to patch mode.
 				 */
 				if (mode != ARM_MODE_ANY)
-					retval = dpmv8_modeswitch(dpm, mode);
+					retval = armv8_dpm_modeswitch(dpm, mode);
 				else
-					retval = dpmv8_modeswitch(dpm, ARM_MODE_USR);
+					retval = armv8_dpm_modeswitch(dpm, ARM_MODE_USR);
 
 				if (retval != ERROR_OK)
 					goto done;
@@ -1042,7 +1092,7 @@ static int armv8_dpm_full_context(struct target *target)
 
 	} while (did_read);
 
-	retval = dpmv8_modeswitch(dpm, ARM_MODE_ANY);
+	retval = armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 	/* (void) */ dpm->finish(dpm);
 done:
 	return retval;

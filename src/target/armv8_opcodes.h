@@ -125,9 +125,13 @@
 #define ARMV8_MRC_DLR(Rt)	ARMV8_MRC_T1(15, 4, 3, 5, 1, Rt)
 #define ARMV8_MCR_DLR(Rt)	ARMV8_MCR_T1(15, 4, 3, 5, 1, Rt)
 
-#define ARMV8_DCPS1(IM)	(0xd4a00001 | (((IM) & 0xFFFF) << 5))
-#define ARMV8_DCPS2(IM)	(0xd4a00002 | (((IM) & 0xFFFF) << 5))
-#define ARMV8_DCPS3(IM)	(0xd4a00003 | (((IM) & 0xFFFF) << 5))
+#define ARMV8_DCPS1(IM)		(0xd4a00001 | (((IM) & 0xFFFF) << 5))
+#define ARMV8_DCPS2(IM)		(0xd4a00002 | (((IM) & 0xFFFF) << 5))
+#define ARMV8_DCPS3(IM)		(0xd4a00003 | (((IM) & 0xFFFF) << 5))
+#define ARMV8_DCPS(EL, IM)	(0xd4a00000 | (((IM) & 0xFFFF) << 5) | EL)
+#define ARMV8_DCPS_T1(EL)	(0xf78f8000 | EL)
+#define ARMV8_DRPS		0xd6bf03e0
+#define ARMV8_ERET_T1		0xf3de8f00
 
 #define ARMV8_DSB_SY				0xd5033F9F
 #define ARMV8_DSB_SY_T1				0xf3bf8f4f
@@ -166,6 +170,8 @@ enum armv8_opcode {
 	WRITE_REG_DSPSR,
 	READ_REG_DSPSR,
 	ARMV8_OPC_DSB_SY,
+	ARMV8_OPC_DCPS,
+	ARMV8_OPC_DRPS,
 	ARMV8_OPC_NUM,
 };
 

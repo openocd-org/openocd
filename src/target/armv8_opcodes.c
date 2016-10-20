@@ -33,7 +33,9 @@ static const uint32_t a64_opcodes[ARMV8_OPC_NUM] = {
 		[WRITE_REG_DTRTX]	= ARMV8_MSR_GP(SYSTEM_DBG_DTRTX_EL0, 0),
 		[WRITE_REG_DSPSR]	= ARMV8_MSR_DSPSR(0),
 		[READ_REG_DSPSR]	= ARMV8_MRS_DSPSR(0),
-		[ARMV8_OPC_DSB_SY]  = ARMV8_DSB_SY,
+		[ARMV8_OPC_DSB_SY]	= ARMV8_DSB_SY,
+		[ARMV8_OPC_DCPS]	= ARMV8_DCPS(0, 11),
+		[ARMV8_OPC_DRPS]	= ARMV8_DRPS,
 };
 
 static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
@@ -47,6 +49,8 @@ static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
 		[WRITE_REG_DSPSR]	= ARMV8_MCR_DSPSR(0),
 		[READ_REG_DSPSR]	= ARMV8_MRC_DSPSR(0),
 		[ARMV8_OPC_DSB_SY]	= ARMV8_DSB_SY_T1,
+		[ARMV8_OPC_DCPS]	= ARMV8_DCPS_T1(0),
+		[ARMV8_OPC_DRPS]	= ARMV8_ERET_T1,
 };
 
 void armv8_select_opcodes(struct armv8_common *armv8, bool state_is_aarch64)

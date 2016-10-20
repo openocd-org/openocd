@@ -487,7 +487,7 @@ static int aarch64_internal_restore(struct target *target, int current,
 	buf_set_u64(arm->pc->value, 0, 64, resume_pc);
 	arm->pc->dirty = 1;
 	arm->pc->valid = 1;
-	dpmv8_modeswitch(&armv8->dpm, ARM_MODE_ANY);
+	armv8_dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 
 	/* called it now before restoring context because it uses cpu
 	 * register r0 for restoring system control register */
@@ -697,7 +697,7 @@ static int aarch64_post_debug_entry(struct target *target)
 
 	switch (armv8->arm.core_mode) {
 		case ARMV8_64_EL0T:
-			dpmv8_modeswitch(&armv8->dpm, ARMV8_64_EL1T);
+			armv8_dpm_modeswitch(&armv8->dpm, ARMV8_64_EL1H);
 			/* fall through */
 		case ARMV8_64_EL1T:
 		case ARMV8_64_EL1H:
@@ -738,7 +738,7 @@ static int aarch64_post_debug_entry(struct target *target)
 			break;
 	}
 
-	dpmv8_modeswitch(&armv8->dpm, ARM_MODE_ANY);
+	armv8_dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 
 	LOG_DEBUG("System_register: %8.8" PRIx32, aarch64->system_control_reg);
 	aarch64->system_control_reg_curr = aarch64->system_control_reg;

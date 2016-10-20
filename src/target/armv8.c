@@ -781,6 +781,7 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm *arm = target_to_arm(target);
 	struct arm_dpm *dpm = &armv8->dpm;
+	enum arm_mode target_mode = ARM_MODE_ANY;
 	uint32_t retval;
 	uint32_t instr = 0;
 	uint64_t par;
@@ -801,12 +802,12 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 	case SYSTEM_CUREL_EL0:
 		instr = ARMV8_SYS(SYSTEM_ATS12E0R, 0);
 		/* can only execute instruction at EL2 */
-		dpmv8_modeswitch(dpm, ARMV8_64_EL2T);
+		target_mode = ARMV8_64_EL2H;
 		break;
 	case SYSTEM_CUREL_EL1:
 		instr = ARMV8_SYS(SYSTEM_ATS12E1R, 0);
 		/* can only execute instruction at EL2 */
-		dpmv8_modeswitch(dpm, ARMV8_64_EL2T);
+		target_mode = ARMV8_64_EL2H;
 		break;
 	case SYSTEM_CUREL_EL2:
 		instr = ARMV8_SYS(SYSTEM_ATS1E2R, 0);
@@ -819,16 +820,23 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 		break;
 	};
 
+	if (target_mode != ARM_MODE_ANY)
+		armv8_dpm_modeswitch(dpm, target_mode);
+
 	/* write VA to R0 and execute translation instruction */
 	retval = dpm->instr_write_data_r0_64(dpm, instr, (uint64_t)va);
 	/* read result from PAR_EL1 */
 	if (retval == ERROR_OK)
 		retval = dpm->instr_read_data_r0_64(dpm, ARMV8_MRS(SYSTEM_PAR_EL1, 0), &par);
 
+	/* switch back to saved PE mode */
+	if (target_mode != ARM_MODE_ANY)
+		armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
+
 	dpm->finish(dpm);
 
-	/* switch back to saved PE mode */
-	dpmv8_modeswitch(dpm, ARM_MODE_ANY);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (retval != ERROR_OK)
 		return retval;
