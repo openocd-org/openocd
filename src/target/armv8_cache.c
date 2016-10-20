@@ -266,17 +266,18 @@ static int  armv8_flush_all_data(struct target *target)
 
 static int get_cache_info(struct arm_dpm *dpm, int cl, int ct, uint32_t *cache_reg)
 {
+	struct armv8_common *armv8 = dpm->arm->arch_info;
 	int retval = ERROR_OK;
 
 	/*  select cache level */
 	retval = dpm->instr_write_data_r0(dpm,
-			ARMV8_MSR_GP(SYSTEM_CSSELR, 0),
+			armv8_opcode(armv8, WRITE_REG_CSSELR),
 			(cl << 1) | (ct == 1 ? 1 : 0));
 	if (retval != ERROR_OK)
 		goto done;
 
 	retval = dpm->instr_read_data_r0(dpm,
-			ARMV8_MRS(SYSTEM_CCSIDR, 0),
+			armv8_opcode(armv8, READ_REG_CCSIDR),
 			cache_reg);
  done:
 	return retval;
@@ -319,7 +320,8 @@ int armv8_identify_cache(struct armv8_common *armv8)
 		goto done;
 
 	/* retrieve CTR */
-	retval = dpm->instr_read_data_r0(dpm, ARMV8_MRS(SYSTEM_CTR, 0), &ctr);
+	retval = dpm->instr_read_data_r0(dpm,
+			armv8_opcode(armv8, READ_REG_CTR), &ctr);
 	if (retval != ERROR_OK)
 		goto done;
 
@@ -329,7 +331,8 @@ int armv8_identify_cache(struct armv8_common *armv8)
 		 ctr, cache->iminline, cache->dminline);
 
 	/*  retrieve CLIDR */
-	retval = dpm->instr_read_data_r0(dpm, ARMV8_MRS(SYSTEM_CLIDR, 0), &clidr);
+	retval = dpm->instr_read_data_r0(dpm,
+			armv8_opcode(armv8, READ_REG_CLIDR), &clidr);
 	if (retval != ERROR_OK)
 		goto done;
 
@@ -338,7 +341,8 @@ int armv8_identify_cache(struct armv8_common *armv8)
 
 	/*  retrieve selected cache for later restore
 	 *  MRC p15, 2,<Rd>, c0, c0, 0; Read CSSELR */
-	retval = dpm->instr_read_data_r0(dpm, ARMV8_MRS(SYSTEM_CSSELR, 0), &csselr);
+	retval = dpm->instr_read_data_r0(dpm,
+			armv8_opcode(armv8, READ_REG_CSSELR), &csselr);
 	if (retval != ERROR_OK)
 		goto done;
 
@@ -396,7 +400,8 @@ int armv8_identify_cache(struct armv8_common *armv8)
 	}
 
 	/*  restore selected cache  */
-	dpm->instr_write_data_r0(dpm, ARMV8_MSR_GP(SYSTEM_CSSELR, 0), csselr);
+	dpm->instr_write_data_r0(dpm,
+			armv8_opcode(armv8, WRITE_REG_CSSELR), csselr);
 	if (retval != ERROR_OK)
 		goto done;
 

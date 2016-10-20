@@ -24,6 +24,7 @@
 #include "armv8_opcodes.h"
 
 static const uint32_t a64_opcodes[ARMV8_OPC_NUM] = {
+		[READ_REG_CTR]		= ARMV8_MRS(SYSTEM_CTR, 0),
 		[READ_REG_CLIDR]	= ARMV8_MRS(SYSTEM_CLIDR, 0),
 		[READ_REG_CSSELR]	= ARMV8_MRS(SYSTEM_CSSELR, 0),
 		[READ_REG_CCSIDR]	= ARMV8_MRS(SYSTEM_CCSIDR, 0),
@@ -39,6 +40,7 @@ static const uint32_t a64_opcodes[ARMV8_OPC_NUM] = {
 };
 
 static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
+		[READ_REG_CTR]		= ARMV4_5_MRC(15, 0, 0, 0, 0, 1),
 		[READ_REG_CLIDR]	= ARMV4_5_MRC(15, 1, 0, 0, 0, 1),
 		[READ_REG_CSSELR]	= ARMV4_5_MRC(15, 2, 0, 0, 0, 0),
 		[READ_REG_CCSIDR]	= ARMV4_5_MRC(15, 1, 0, 0, 0, 0),

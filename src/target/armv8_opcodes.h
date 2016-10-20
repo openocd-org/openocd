@@ -160,6 +160,7 @@
 #define ARMV8_SYS(System, Rt) (0xD5080000 | ((System) << 5) | Rt)
 
 enum armv8_opcode {
+	READ_REG_CTR,
 	READ_REG_CLIDR,
 	READ_REG_CSSELR,
 	READ_REG_CCSIDR,
