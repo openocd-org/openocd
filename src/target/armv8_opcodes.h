@@ -17,11 +17,6 @@
 
 #include "arm_opcodes.h"
 
-/* ARM V8 Move from system register to general purpose register
- * R = 1: SPSR R = 0: CPSR
- * Rn: target register
- */
-#define SYSTEM_CUREL			0b1100001000010010
 #define SYSTEM_CUREL_MASK		0xC0
 #define SYSTEM_CUREL_SHIFT		6
 #define SYSTEM_CUREL_EL0		0x0
