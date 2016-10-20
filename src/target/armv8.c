@@ -1012,12 +1012,39 @@ static const struct {
 	{ ARMV8_SPSR_EL3, "SPSR_EL3", 32, ARMV8_64_EL3H, REG_TYPE_UINT32, "banked", "net.sourceforge.openocd.banked" },
 };
 
-#define ARMV8_NUM_REGS ARRAY_SIZE(armv8_regs)
+static const struct {
+	unsigned id;
+	const char *name;
+	unsigned bits;
+	enum arm_mode mode;
+	enum reg_type type;
+	const char *group;
+	const char *feature;
+} armv8_regs32[] = {
+	{ ARMV8_R0,  "r0",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R1,  "r1",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R2,  "r2",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R3,  "r3",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R4,  "r4",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R5,  "r5",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R6,  "r6",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R7,  "r7",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R8,  "r8",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R9,  "r9",  32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R10, "r10", 32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R11, "r11", 32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R12, "r12", 32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R13, "sp", 32, ARM_MODE_ANY, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_R14, "lr",  32, ARM_MODE_ANY, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_PC, "pc",   32, ARM_MODE_ANY, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_xPSR, "cpsr", 32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+};
 
+#define ARMV8_NUM_REGS ARRAY_SIZE(armv8_regs)
+#define ARMV8_NUM_REGS32 ARRAY_SIZE(armv8_regs32)
 
 static int armv8_get_core_reg(struct reg *reg)
 {
-	int retval;
 	struct arm_reg *armv8_reg = reg->arch_info;
 	struct target *target = armv8_reg->target;
 	struct arm *arm = target_to_arm(target);
@@ -1025,9 +1052,7 @@ static int armv8_get_core_reg(struct reg *reg)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	retval = arm->read_core_reg(target, reg, armv8_reg->num, arm->core_mode);
-
-	return retval;
+	return arm->read_core_reg(target, reg, armv8_reg->num, arm->core_mode);
 }
 
 static int armv8_set_core_reg(struct reg *reg, uint8_t *buf)
@@ -1057,25 +1082,83 @@ static const struct reg_arch_type armv8_reg_type = {
 	.set = armv8_set_core_reg,
 };
 
+static int armv8_get_core_reg32(struct reg *reg)
+{
+	struct arm_reg *armv8_reg = reg->arch_info;
+	struct target *target = armv8_reg->target;
+	struct arm *arm = target_to_arm(target);
+	struct reg_cache *cache = arm->core_cache;
+	struct reg *reg64;
+	int retval;
+
+	LOG_DEBUG("reg.name:%s number:%i arm.num:%i value:0x%08" PRIx64,
+			reg->name, reg->number, armv8_reg->num, buf_get_u64(reg->value, 0, 32));
+
+	/* get the corresponding Aarch64 register */
+	reg64 = cache->reg_list + armv8_reg->num;
+	if (reg64->valid) {
+		reg->valid = true;
+		return ERROR_OK;
+	}
+
+	retval = arm->read_core_reg(target, reg, armv8_reg->num, arm->core_mode);
+	if (retval == ERROR_OK)
+		reg->valid = reg64->valid;
+
+	return retval;
+}
+
+static int armv8_set_core_reg32(struct reg *reg, uint8_t *buf)
+{
+	struct arm_reg *armv8_reg = reg->arch_info;
+	struct target *target = armv8_reg->target;
+	struct arm *arm = target_to_arm(target);
+	struct reg_cache *cache = arm->core_cache;
+	struct reg *reg64 = cache->reg_list + armv8_reg->num;
+	uint32_t value = buf_get_u32(buf, 0, 32);
+
+	if (target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
+
+	if (reg64 == arm->cpsr) {
+		armv8_set_cpsr(arm, value);
+	} else {
+		buf_set_u32(reg->value, 0, 32, value);
+		reg->valid = 1;
+		reg64->valid = 1;
+	}
+
+	reg64->dirty = 1;
+
+	return ERROR_OK;
+}
+
+static const struct reg_arch_type armv8_reg32_type = {
+	.get = armv8_get_core_reg32,
+	.set = armv8_set_core_reg32,
+};
+
 /** Builds cache of architecturally defined registers.  */
 struct reg_cache *armv8_build_reg_cache(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm *arm = &armv8->arm;
 	int num_regs = ARMV8_NUM_REGS;
+	int num_regs32 = ARMV8_NUM_REGS32;
 	struct reg_cache **cache_p = register_get_last_cache_p(&target->reg_cache);
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
+	struct reg_cache *cache32 = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
+	struct reg *reg_list32 = calloc(num_regs32, sizeof(struct reg));
 	struct arm_reg *arch_info = calloc(num_regs, sizeof(struct arm_reg));
 	struct reg_feature *feature;
 	int i;
 
 	/* Build the process context cache */
-	cache->name = "arm v8 registers";
-	cache->next = NULL;
+	cache->name = "Aarch64 registers";
+	cache->next = cache32;
 	cache->reg_list = reg_list;
 	cache->num_regs = num_regs;
-	(*cache_p) = cache;
 
 	for (i = 0; i < num_regs; i++) {
 		arch_info[i].num = armv8_regs[i].id;
@@ -1086,8 +1169,6 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 		reg_list[i].name = armv8_regs[i].name;
 		reg_list[i].size = armv8_regs[i].bits;
 		reg_list[i].value = calloc(1, 8);
-		reg_list[i].dirty = 0;
-		reg_list[i].valid = 0;
 		reg_list[i].type = &armv8_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
 
@@ -1114,6 +1195,38 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 	arm->pc = reg_list + ARMV8_PC;
 	arm->core_cache = cache;
 
+	/* shadow cache for ARM mode registers */
+	cache32->name = "Aarch32 registers";
+	cache32->next = NULL;
+	cache32->reg_list = reg_list32;
+	cache32->num_regs = num_regs32;
+
+	for (i = 0; i < num_regs32; i++) {
+		reg_list32[i].name = armv8_regs32[i].name;
+		reg_list32[i].size = armv8_regs32[i].bits;
+		reg_list32[i].value = &arch_info[armv8_regs32[i].id].value[0];
+		reg_list32[i].type = &armv8_reg32_type;
+		reg_list32[i].arch_info = &arch_info[armv8_regs32[i].id];
+		reg_list32[i].group = armv8_regs32[i].group;
+		reg_list32[i].number = i;
+		reg_list32[i].exist = true;
+		reg_list32[i].caller_save = true;
+
+		feature = calloc(1, sizeof(struct reg_feature));
+		if (feature) {
+			feature->name = armv8_regs32[i].feature;
+			reg_list32[i].feature = feature;
+		} else
+			LOG_ERROR("unable to allocate feature list");
+
+		reg_list32[i].reg_data_type = calloc(1, sizeof(struct reg_data_type));
+		if (reg_list32[i].reg_data_type)
+			reg_list32[i].reg_data_type->type = armv8_regs32[i].type;
+		else
+			LOG_ERROR("unable to allocate reg type list");
+	}
+
+	(*cache_p) = cache;
 	return cache;
 }
 
@@ -1143,27 +1256,50 @@ int armv8_get_gdb_reg_list(struct target *target,
 	struct arm *arm = target_to_arm(target);
 	int i;
 
-	switch (reg_class) {
-	case REG_CLASS_GENERAL:
-		*reg_list_size = ARMV8_ELR_EL1;
-		*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+	if (arm->core_state == ARM_STATE_AARCH64) {
 
-		for (i = 0; i < *reg_list_size; i++)
-				(*reg_list)[i] = armv8_reg_current(arm, i);
+		LOG_DEBUG("Creating Aarch64 register list");
 
-		return ERROR_OK;
-	case REG_CLASS_ALL:
-		*reg_list_size = ARMV8_LAST_REG;
-		*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+		switch (reg_class) {
+		case REG_CLASS_GENERAL:
+			*reg_list_size = ARMV8_ELR_EL1;
+			*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
-		for (i = 0; i < *reg_list_size; i++)
-				(*reg_list)[i] = armv8_reg_current(arm, i);
+			for (i = 0; i < *reg_list_size; i++)
+					(*reg_list)[i] = armv8_reg_current(arm, i);
+			return ERROR_OK;
 
-		return ERROR_OK;
+		case REG_CLASS_ALL:
+			*reg_list_size = ARMV8_LAST_REG;
+			*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
-	default:
-		LOG_ERROR("not a valid register class type in query.");
-		return ERROR_FAIL;
-		break;
+			for (i = 0; i < *reg_list_size; i++)
+					(*reg_list)[i] = armv8_reg_current(arm, i);
+
+			return ERROR_OK;
+
+		default:
+			LOG_ERROR("not a valid register class type in query.");
+			return ERROR_FAIL;
+		}
+	} else {
+		struct reg_cache *cache32 = arm->core_cache->next;
+
+		LOG_DEBUG("Creating Aarch32 register list");
+
+		switch (reg_class) {
+		case REG_CLASS_GENERAL:
+		case REG_CLASS_ALL:
+			*reg_list_size = cache32->num_regs;
+			*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+
+			for (i = 0; i < *reg_list_size; i++)
+				(*reg_list)[i] = cache32->reg_list + i;
+
+			return ERROR_OK;
+		default:
+			LOG_ERROR("not a valid register class type in query.");
+			return ERROR_FAIL;
+		}
 	}
 }

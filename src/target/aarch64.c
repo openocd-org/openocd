@@ -590,6 +590,7 @@ static int aarch64_internal_restart(struct target *target, bool slave_pe)
 
 	/* registers are now invalid */
 	register_cache_invalidate(arm->core_cache);
+	register_cache_invalidate(arm->core_cache->next);
 
 	return ERROR_OK;
 }
