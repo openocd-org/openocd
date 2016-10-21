@@ -624,6 +624,10 @@ static int aarch64_resume(struct target *target, int current,
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 		return 0;
 	}
+
+	if (target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
+
 	aarch64_internal_restore(target, current, &addr, handle_breakpoints,
 				 debug_execution);
 	if (target->smp) {
