@@ -1316,7 +1316,8 @@ static int aarch64_assert_reset(struct target *target)
 	}
 
 	/* registers are now invalid */
-	register_cache_invalidate(armv8->arm.core_cache);
+	if (target_was_examined(target))
+		register_cache_invalidate(armv8->arm.core_cache);
 
 	target->state = TARGET_RESET;
 
@@ -1331,6 +1332,9 @@ static int aarch64_deassert_reset(struct target *target)
 
 	/* be certain SRST is off */
 	jtag_add_reset(0, 0);
+
+	if (!target_was_examined(target))
+		return ERROR_OK;
 
 	retval = aarch64_poll(target);
 	if (retval != ERROR_OK)
