@@ -21,6 +21,41 @@
  * currently in IR. They should set IR to dbus explicitly.
  */
 
+/**
+ * Code structure
+ *
+ * At the bottom of the stack are the OpenOCD JTAG functions:
+ * 		jtag_add_[id]r_scan
+ * 		jtag_execute_query
+ * 		jtag_add_runtest
+ *
+ * There are a few functions to just instantly shift a register and get its
+ * value:
+ * 		dtmcontrol_scan
+ * 		idcode_scan
+ * 		dbus_scan
+ *
+ * Because doing one scan and waiting for the result is slow, most functions
+ * batch up a bunch of dbus writes and then execute them all at once. They use
+ * the scans "class" for this:
+ * 		scans_new
+ * 		scans_delete
+ * 		scans_execute
+ * 		scans_add_...
+ * Usually you new(), call a bunch of add functions, then execute() and look
+ * at the results by calling scans_get...()
+ *
+ * Optimized functions will directly use the scans class above, but slightly
+ * lazier code will use the cache functions that in turn use the scans
+ * functions:
+ * 		cache_get...
+ * 		cache_set...
+ * 		cache_write
+ * cache_set... update a local structure, which is then synced to the target
+ * with cache_write(). Only Debug RAM words that are actually changed are sent
+ * to the target. Afterwards use cache_get... to read results.
+ */
+
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
@@ -574,6 +609,7 @@ static int scans_execute(scans_t *scans)
 	return ERROR_OK;
 }
 
+/** Add a 32-bit dbus write to the scans structure. */
 static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
 		bool set_interrupt)
 {
@@ -586,6 +622,8 @@ static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
 	assert(scans->next_scan <= scans->scan_count);
 }
 
+/** Add a 32-bit dbus write for an instruction that jumps to the beginning of
+ * debug RAM. */
 static void scans_add_write_jump(scans_t *scans, uint16_t address,
 		bool set_interrupt)
 {
@@ -594,6 +632,8 @@ static void scans_add_write_jump(scans_t *scans, uint16_t address,
 			set_interrupt);
 }
 
+/** Add a 32-bit dbus write for an instruction that loads from the indicated
+ * slot. */
 static void scans_add_write_load(scans_t *scans, uint16_t address,
 		unsigned int reg, slot_t slot, bool set_interrupt)
 {
@@ -601,6 +641,8 @@ static void scans_add_write_load(scans_t *scans, uint16_t address,
 			set_interrupt);
 }
 
+/** Add a 32-bit dbus write for an instruction that stores to the indicated
+ * slot. */
 static void scans_add_write_store(scans_t *scans, uint16_t address,
 		unsigned int reg, slot_t slot, bool set_interrupt)
 {
@@ -608,6 +650,7 @@ static void scans_add_write_store(scans_t *scans, uint16_t address,
 			set_interrupt);
 }
 
+/** Add a 32-bit dbus read. */
 static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrupt)
 {
 	assert(scans->next_scan < scans->scan_count);
@@ -619,6 +662,7 @@ static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrup
 	scans->next_scan++;
 }
 
+/** Add one or more scans to read the indicated slot. */
 static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
 {
 	const struct target *target = scans->target;
