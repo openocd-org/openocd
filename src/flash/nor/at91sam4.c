@@ -65,8 +65,9 @@
 
 #define REG_NAME_WIDTH  (12)
 
-/* at91sam4s/at91sam4e series (has always one flash bank)*/
+/* at91sam4s/at91sam4e/at91sam4c series (has always one flash bank)*/
 #define FLASH_BANK_BASE_S   0x00400000
+#define FLASH_BANK_BASE_C   0x01000000
 
 /* at91sam4sd series (two one flash banks), first bank address */
 #define FLASH_BANK0_BASE_SD FLASH_BANK_BASE_S
@@ -74,6 +75,10 @@
 #define FLASH_BANK1_BASE_1024K_SD (FLASH_BANK0_BASE_SD+(1024*1024/2))
 /* at91sam4sd32x, second bank address */
 #define FLASH_BANK1_BASE_2048K_SD (FLASH_BANK0_BASE_SD+(2048*1024/2))
+
+/* at91sam4c32x, first and second bank address */
+#define FLASH_BANK0_BASE_C32 FLASH_BANK_BASE_C
+#define FLASH_BANK1_BASE_C32 (FLASH_BANK_BASE_C+(2048*1024/2))
 
 #define         AT91C_EFC_FCMD_GETD                 (0x0)	/* (EFC) Get Flash Descriptor */
 #define         AT91C_EFC_FCMD_WP                   (0x1)	/* (EFC) Write Page */
@@ -258,6 +263,188 @@ static struct sam4_chip *get_current_sam4(struct command_context *cmd_ctx)
 
 /* these are used to *initialize* the "pChip->details" structure. */
 static const struct sam4_chip_details all_sam4_details[] = {
+	/* Start at91sam4c* series */
+	/* at91sam4c32e - LQFP144 */
+	{
+		.chipid_cidr    = 0xA66D0EE0,
+		.name           = "at91sam4c32e",
+		.total_flash_size     = 2024 * 1024,
+		.total_sram_size      = 256 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+/*		.bank[0] = { */
+		{
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_C32,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+/*		.bank[1] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_C32,
+				.controller_address = 0x400e0c00,
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+		},
+	},
+	/* at91sam4c32c - LQFP100 */
+	{
+		.chipid_cidr    = 0xA64D0EE0,
+		.name           = "at91sam4c32c",
+		.total_flash_size     = 2024 * 1024,
+		.total_sram_size      = 256 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+/*		.bank[0] = { */
+		{
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_C32,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+/*		.bank[1] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_C32,
+				.controller_address = 0x400e0c00,
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+		},
+	},
+	/* at91sam4c16c - LQFP100 */
+	{
+		.chipid_cidr    = 0xA64C0CE0,
+		.name           = "at91sam4c16c",
+		.total_flash_size     = 1024 * 1024,
+		.total_sram_size      = 128 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_C,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  1024 * 1024,
+			.nsectors   =  128,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	/* at91sam4c8c - LQFP100 */
+	{
+		.chipid_cidr    = 0xA64C0AE0,
+		.name           = "at91sam4c8c",
+		.total_flash_size     = 512 * 1024,
+		.total_sram_size      = 128 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_C,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  512 * 1024,
+			.nsectors   =  64,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+	/* at91sam4c4c (rev B) - LQFP100 */
+	{
+		.chipid_cidr    = 0xA64C0CE5,
+		.name           = "at91sam4c4c",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 128 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_C,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  256 * 1024,
+			.nsectors   =  32,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
 
 	/* Start at91sam4e* series */
 	/*atsam4e16e - LQFP144/LFBGA144*/
@@ -1402,7 +1589,7 @@ static uint32_t sam4_reg_fieldname(struct sam4_chip *pChip,
 
 static const char _unknown[] = "unknown";
 static const char *const eproc_names[] = {
-	_unknown,					/* 0 */
+	"Cortex-M7",				/* 0 */
 	"arm946es",					/* 1 */
 	"arm7tdmi",					/* 2 */
 	"Cortex-M3",				/* 3 */
@@ -1430,7 +1617,7 @@ static const char *const nvpsize[] = {
 	"64K bytes",				/*  5 */
 	_unknown,					/*  6 */
 	"128K bytes",				/*  7 */
-	_unknown,					/*  8 */
+	"160K bytes",				/*  8 */
 	"256K bytes",				/*  9 */
 	"512K bytes",				/* 10 */
 	_unknown,					/* 11 */
@@ -1478,6 +1665,8 @@ static const struct archnames { unsigned value; const char *name; } archnames[] 
 	{ 0x60,  "AT91SAM7Axx Series"                                           },
 	{ 0x61,  "AT91SAM7AQxx Series"                                          },
 	{ 0x63,  "AT91x63 Series"                                                       },
+	{ 0x64,  "SAM4CxxC (100-pin version)"                                           },
+	{ 0x66,  "SAM4CxxE (144-pin version)"                                           },
 	{ 0x70,  "AT91SAM7Sxx Series"                                           },
 	{ 0x71,  "AT91SAM7XCxx Series"                                          },
 	{ 0x72,  "AT91SAM7SExx Series"                                          },
@@ -1975,15 +2164,17 @@ FLASH_BANK_COMMAND_HANDLER(sam4_flash_bank_command)
 		/* at91sam4s series only has bank 0*/
 		/* at91sam4sd series has the same address for bank 0 (FLASH_BANK0_BASE_SD)*/
 		case FLASH_BANK_BASE_S:
+		case FLASH_BANK_BASE_C:
 			bank->driver_priv = &(pChip->details.bank[0]);
 			bank->bank_number = 0;
 			pChip->details.bank[0].pChip = pChip;
 			pChip->details.bank[0].pBank = bank;
 			break;
 
-		/* Bank 1 of at91sam4sd series */
+		/* Bank 1 of at91sam4sd/at91sam4c32 series */
 		case FLASH_BANK1_BASE_1024K_SD:
 		case FLASH_BANK1_BASE_2048K_SD:
+		case FLASH_BANK1_BASE_C32:
 			bank->driver_priv = &(pChip->details.bank[1]);
 			bank->bank_number = 1;
 			pChip->details.bank[1].pChip = pChip;
