@@ -666,7 +666,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  1024 * 1024,
 			.nsectors   =  128,
@@ -682,7 +682,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 		  },
 		},
 	},
-	/*atsam4s16b - LQFP64/QFN64*/
+	/*atsam4s16b - LQFP64/QFN64/WLCSP64*/
 	{
 		.chipid_cidr    = 0x289C0CE0,
 		.name           = "at91sam4s16b",
@@ -699,7 +699,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  1024 * 1024,
 			.nsectors   =  128,
@@ -732,7 +732,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  1024 * 1024,
 			.nsectors   =  128,
@@ -765,7 +765,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  1024 * 1024,
 			.nsectors   =  128,
@@ -798,7 +798,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  512 * 1024,
 			.nsectors   =  64,
@@ -814,7 +814,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 		  },
 		},
 	},
-	/*atsam4s8b - LQFP64/BGA64*/
+	/*atsam4s8b - LQFP64/QFN64/WLCSP64*/
 	{
 		.chipid_cidr    = 0x289C0AE0,
 		.name           = "at91sam4s8b",
@@ -831,7 +831,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  512 * 1024,
 			.nsectors   =  64,
@@ -864,7 +864,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  512 * 1024,
 			.nsectors   =  64,
@@ -881,10 +881,10 @@ static const struct sam4_chip_details all_sam4_details[] = {
 		},
 	},
 
-	/*atsam4s4a - LQFP48/BGA48*/
+	/*atsam4s4c - LQFP100/BGA100*/
 	{
-		.chipid_cidr    = 0x288b09e0,
-		.name           = "at91sam4s4a",
+		.chipid_cidr    = 0x28ab09e0,
+		.name           = "at91sam4s4c",
 		.total_flash_size     = 256 * 1024,
 		.total_sram_size      = 64 * 1024,
 		.n_gpnvms       = 2,
@@ -898,7 +898,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 			.bank_number = 0,
 			.base_address = FLASH_BANK_BASE_S,
 			.controller_address = 0x400e0a00,
-			.flash_wait_states = 6,	/* workaround silicon bug */
+			.flash_wait_states = 5,
 			.present = 1,
 			.size_bytes =  256 * 1024,
 			.nsectors   =  32,
@@ -915,7 +915,177 @@ static const struct sam4_chip_details all_sam4_details[] = {
 		},
 	},
 
-	/*at91sam4sd32c*/
+	/*atsam4s4b - LQFP64/QFN64/WLCSP64*/
+	{
+		.chipid_cidr    = 0x289b09e0,
+		.name           = "at91sam4s4b",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  256 * 1024,
+			.nsectors   =  32,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
+	/*atsam4s4a - LQFP48/QFN48*/
+	{
+		.chipid_cidr    = 0x288b09e0,
+		.name           = "at91sam4s4a",
+		.total_flash_size     = 256 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  256 * 1024,
+			.nsectors   =  32,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
+	/*atsam4s2c - LQFP100/BGA100*/
+	{
+		.chipid_cidr    = 0x28ab07e0,
+		.name           = "at91sam4s2c",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  128 * 1024,
+			.nsectors   =  16,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
+	/*atsam4s2b - LQPF64/QFN64/WLCSP64*/
+	{
+		.chipid_cidr    = 0x289b07e0,
+		.name           = "at91sam4s2b",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  128 * 1024,
+			.nsectors   =  16,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
+	/*atsam4s2a - LQFP48/QFN48*/
+	{
+		.chipid_cidr    = 0x288b07e0,
+		.name           = "at91sam4s2a",
+		.total_flash_size     = 128 * 1024,
+		.total_sram_size      = 64 * 1024,
+		.n_gpnvms       = 2,
+		.n_banks        = 1,
+		{
+/*		.bank[0] = {*/
+		  {
+			.probed = 0,
+			.pChip  = NULL,
+			.pBank  = NULL,
+			.bank_number = 0,
+			.base_address = FLASH_BANK_BASE_S,
+			.controller_address = 0x400e0a00,
+			.flash_wait_states = 5,
+			.present = 1,
+			.size_bytes =  128 * 1024,
+			.nsectors   =  16,
+			.sector_size = 8192,
+			.page_size   = 512,
+		  },
+/*		.bank[1] = {*/
+		  {
+			.present = 0,
+			.probed = 0,
+			.bank_number = 1,
+
+		  },
+		},
+	},
+
+	/*at91sam4sd32c  - LQFP100/BGA100*/
 	{
 		.chipid_cidr    = 0x29a70ee0,
 		.name           = "at91sam4sd32c",
@@ -933,7 +1103,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 				.bank_number = 0,
 				.base_address = FLASH_BANK0_BASE_SD,
 				.controller_address = 0x400e0a00,
-				.flash_wait_states = 6,	/* workaround silicon bug */
+				.flash_wait_states = 5,
 				.present = 1,
 				.size_bytes =  1024 * 1024,
 				.nsectors   =  128,
@@ -949,7 +1119,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 				.bank_number = 1,
 				.base_address = FLASH_BANK1_BASE_2048K_SD,
 				.controller_address = 0x400e0c00,
-				.flash_wait_states = 6,	/* workaround silicon bug */
+				.flash_wait_states = 5,
 				.present = 1,
 				.size_bytes =  1024 * 1024,
 				.nsectors   =  128,
@@ -959,7 +1129,51 @@ static const struct sam4_chip_details all_sam4_details[] = {
 		},
 	},
 
-	/*at91sam4sd16c*/
+	/*at91sam4sd32b  - LQFP64/BGA64*/
+	{
+		.chipid_cidr    = 0x29970ee0,
+		.name           = "at91sam4sd32b",
+		.total_flash_size     = 2048 * 1024,
+		.total_sram_size      = 160 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+
+/*		.bank[0] = { */
+		{
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+
+/*		.bank[1] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_2048K_SD,
+				.controller_address = 0x400e0c00,
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  1024 * 1024,
+				.nsectors   =  128,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+		},
+	},
+
+	/*at91sam4sd16c - LQFP100/BGA100*/
 	{
 		.chipid_cidr    = 0x29a70ce0,
 		.name           = "at91sam4sd16c",
@@ -977,7 +1191,7 @@ static const struct sam4_chip_details all_sam4_details[] = {
 				.bank_number = 0,
 				.base_address = FLASH_BANK0_BASE_SD,
 				.controller_address = 0x400e0a00,
-				.flash_wait_states = 6,	/* workaround silicon bug */
+				.flash_wait_states = 5,
 				.present = 1,
 				.size_bytes =  512 * 1024,
 				.nsectors   =  64,
@@ -993,7 +1207,51 @@ static const struct sam4_chip_details all_sam4_details[] = {
 				.bank_number = 1,
 				.base_address = FLASH_BANK1_BASE_1024K_SD,
 				.controller_address = 0x400e0c00,
-				.flash_wait_states = 6,	/* workaround silicon bug */
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  512 * 1024,
+				.nsectors   =  64,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+		},
+	},
+
+	/*at91sam4sd16b - LQFP64/BGA64*/
+	{
+		.chipid_cidr    = 0x29970ce0,
+		.name           = "at91sam4sd16b",
+		.total_flash_size     = 1024 * 1024,
+		.total_sram_size      = 160 * 1024,
+		.n_gpnvms       = 3,
+		.n_banks        = 2,
+
+/*		.bank[0] = { */
+		{
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 0,
+				.base_address = FLASH_BANK0_BASE_SD,
+				.controller_address = 0x400e0a00,
+				.flash_wait_states = 5,
+				.present = 1,
+				.size_bytes =  512 * 1024,
+				.nsectors   =  64,
+				.sector_size = 8192,
+				.page_size   = 512,
+			},
+
+/*		.bank[1] = { */
+			{
+				.probed = 0,
+				.pChip  = NULL,
+				.pBank  = NULL,
+				.bank_number = 1,
+				.base_address = FLASH_BANK1_BASE_1024K_SD,
+				.controller_address = 0x400e0c00,
+				.flash_wait_states = 5,
 				.present = 1,
 				.size_bytes =  512 * 1024,
 				.nsectors   =  64,
