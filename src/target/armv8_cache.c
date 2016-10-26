@@ -49,8 +49,9 @@ static int armv8_i_cache_sanity_check(struct armv8_common *armv8)
 	return ERROR_TARGET_INVALID;
 }
 
-static int armv8_cache_d_inner_flush_level(struct arm_dpm *dpm, struct armv8_cachesize *size, int cl)
+static int armv8_cache_d_inner_flush_level(struct armv8_common *armv8, struct armv8_cachesize *size, int cl)
 {
+	struct arm_dpm *dpm = armv8->arm.dpm;
 	int retval = ERROR_OK;
 	int32_t c_way, c_index = size->index;
 
@@ -65,7 +66,7 @@ static int armv8_cache_d_inner_flush_level(struct arm_dpm *dpm, struct armv8_cac
 			 * line by Set/Way.
 			 */
 			retval = dpm->instr_write_data_r0(dpm,
-					ARMV8_SYS(SYSTEM_DCCISW, 0), value);
+					armv8_opcode(armv8, ARMV8_OPC_DCCISW), value);
 			if (retval != ERROR_OK)
 				goto done;
 			c_way -= 1;
@@ -97,7 +98,7 @@ static int armv8_cache_d_inner_clean_inval_all(struct armv8_common *armv8)
 		if (cache->arch[cl].ctype < CACHE_LEVEL_HAS_D_CACHE)
 			continue;
 
-		armv8_cache_d_inner_flush_level(dpm, &cache->arch[cl].d_u_size, cl);
+		armv8_cache_d_inner_flush_level(armv8, &cache->arch[cl].d_u_size, cl);
 	}
 
 	retval = dpm->finish(dpm);
@@ -133,7 +134,7 @@ int armv8_cache_d_inner_flush_virt(struct armv8_common *armv8, target_addr_t va,
 		/* DC CIVAC */
 		/* Aarch32: DCCIMVAC: ARMV4_5_MCR(15, 0, 0, 7, 14, 1) */
 		retval = dpm->instr_write_data_r0_64(dpm,
-				ARMV8_SYS(SYSTEM_DCCIVAC, 0), va_line);
+				armv8_opcode(armv8, ARMV8_OPC_DCCIVAC), va_line);
 		if (retval != ERROR_OK)
 			goto done;
 		va_line += linelen;
@@ -171,7 +172,7 @@ int armv8_cache_i_inner_inval_virt(struct armv8_common *armv8, target_addr_t va,
 	while (va_line < va_end) {
 		/* IC IVAU - Invalidate instruction cache by VA to PoU. */
 		retval = dpm->instr_write_data_r0_64(dpm,
-				ARMV8_SYS(SYSTEM_ICIVAU, 0), va_line);
+				armv8_opcode(armv8, ARMV8_OPC_ICIVAU), va_line);
 		if (retval != ERROR_OK)
 			goto done;
 		va_line += linelen;

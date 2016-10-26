@@ -336,6 +336,9 @@ static int dpmv8_instr_write_data_r0_64(struct arm_dpm *dpm,
 	struct armv8_common *armv8 = dpm->arm->arch_info;
 	int retval;
 
+	if (dpm->arm->core_state != ARM_STATE_AARCH64)
+		return dpmv8_instr_write_data_r0(dpm, opcode, data);
+
 	/* transfer data from DCC to R0 */
 	retval = dpmv8_write_dcc_64(armv8, data);
 	if (retval == ERROR_OK)
@@ -412,6 +415,14 @@ static int dpmv8_instr_read_data_r0_64(struct arm_dpm *dpm,
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
 	int retval;
+
+	if (dpm->arm->core_state != ARM_STATE_AARCH64) {
+		uint32_t tmp;
+		retval = dpmv8_instr_read_data_r0(dpm, opcode, &tmp);
+		if (retval == ERROR_OK)
+			*data = tmp;
+		return retval;
+	}
 
 	/* the opcode, writing data to R0 */
 	retval = dpmv8_exec_opcode(dpm, opcode, &dpm->dscr);

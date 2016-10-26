@@ -148,6 +148,7 @@
 
 #define ARMV8_BKPT(Im) (0xD4200000 | ((Im & 0xffff) << 5))
 #define ARMV8_HLT(Im) (0x0D4400000 | ((Im & 0xffff) << 5))
+#define ARMV8_HLT_A1(Im) (0xE1000070 | ((Im & 0xFFF0) << 4) | (Im & 0xF))
 
 #define ARMV8_MOVFSP_64(Rt) ((1 << 31) | 0x11000000 | (0x1f << 5) | (Rt))
 #define ARMV8_MOVTSP_64(Rt) ((1 << 31) | 0x11000000 | (Rt << 5) | (0x1F))
@@ -171,6 +172,10 @@ enum armv8_opcode {
 	ARMV8_OPC_DCPS,
 	ARMV8_OPC_DRPS,
 	ARMV8_OPC_ISB_SY,
+	ARMV8_OPC_DCCISW,
+	ARMV8_OPC_DCCIVAC,
+	ARMV8_OPC_ICIVAU,
+	ARMV8_OPC_HLT,
 	ARMV8_OPC_NUM,
 };
 
