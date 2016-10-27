@@ -385,7 +385,7 @@ static uint32_t idcode_scan(struct target *target)
 static void increase_dbus_busy_delay(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	info->dbus_busy_delay++;
+	info->dbus_busy_delay += info->dbus_busy_delay / 10 + 1;
 	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
 			info->dtmcontrol_idle, info->dbus_busy_delay,
 			info->interrupt_high_delay);
@@ -396,7 +396,7 @@ static void increase_dbus_busy_delay(struct target *target)
 static void increase_interrupt_high_delay(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	info->interrupt_high_delay++;
+	info->interrupt_high_delay += info->interrupt_high_delay / 10 + 1;
 	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
 			info->dtmcontrol_idle, info->dbus_busy_delay,
 			info->interrupt_high_delay);
@@ -1226,7 +1226,10 @@ static void update_reg_list(struct target *target)
 static uint64_t reg_cache_get(struct target *target, unsigned int number)
 {
 	struct reg *r = &target->reg_cache->reg_list[number];
-	assert(r->valid);
+	if (!r->valid) {
+		LOG_ERROR("Register cache entry for %d is invalid!", number);
+		assert(r->valid);
+	}
 	uint64_t value = buf_get_u64(r->value, 0, r->size);
 	LOG_DEBUG("%s = 0x%" PRIx64, r->name, value);
 	return value;
@@ -1996,14 +1999,6 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		}
 	}
 
-	// TODO: get rid of those 2 variables and talk to the cache directly.
-	info->dpc = reg_cache_get(target, CSR_DPC);
-	info->dcsr = reg_cache_get(target, CSR_DCSR);
-
-	scans = scans_delete(scans);
-
-	cache_invalidate(target);
-
 	if (dbus_busy) {
 		increase_dbus_busy_delay(target);
 		return RE_AGAIN;
@@ -2012,6 +2007,14 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		increase_interrupt_high_delay(target);
 		return RE_AGAIN;
 	}
+
+	// TODO: get rid of those 2 variables and talk to the cache directly.
+	info->dpc = reg_cache_get(target, CSR_DPC);
+	info->dcsr = reg_cache_get(target, CSR_DCSR);
+
+	scans = scans_delete(scans);
+
+	cache_invalidate(target);
 
 	return RE_OK;
 
