@@ -157,6 +157,7 @@ enum {
 	REG_FPR0 = 33,
 	REG_FPR31 = 64,
 	REG_CSR0 = 65,
+	REG_MSTATUS = CSR_MSTATUS + REG_CSR0,
 	REG_CSR4095 = 4160,
 	REG_PRIV = 4161,
 	REG_COUNT
@@ -192,6 +193,10 @@ typedef struct {
 	uint64_t misa;
 	uint64_t tselect;
 	bool tselect_dirty;
+	/* The value that mstatus actually has on the target right now. This is not
+	 * the value we present to the user. That one may be stored in the
+	 * reg_cache. */
+	uint64_t mstatus_actual;
 
 	struct memory_cache_line dram_cache[DRAM_CACHE_SIZE];
 
@@ -235,6 +240,7 @@ typedef struct {
 
 static int riscv_poll(struct target *target);
 static int poll_target(struct target *target, bool announce);
+static int register_get(struct reg *reg);
 
 /*** Utility functions. ***/
 
@@ -885,7 +891,6 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	unsigned int last = info->dramsize;
 	for (unsigned int i = 0; i < info->dramsize; i++) {
 		if (info->dram_cache[i].dirty) {
-			assert(i < info->dramsize);
 			last = i;
 		}
 	}
@@ -1137,6 +1142,20 @@ static int execute_resume(struct target *target, bool step)
 		return ERROR_FAIL;
 	}
 
+	struct reg *mstatus_reg = &target->reg_cache->reg_list[REG_MSTATUS];
+	if (mstatus_reg->valid) {
+		uint64_t mstatus_user = buf_get_u64(mstatus_reg->value, 0, info->xlen);
+		if (mstatus_user != info->mstatus_actual) {
+			cache_set_load(target, 0, S0, SLOT0);
+			cache_set32(target, 1, csrw(S0, CSR_MSTATUS));
+			cache_set_jump(target, 2);
+			cache_set(target, SLOT0, mstatus_user);
+			if (cache_write(target, 4, true) != ERROR_OK) {
+				return ERROR_FAIL;
+			}
+		}
+	}
+
 	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
 	info->dcsr &= ~DCSR_HALT;
 
@@ -1244,6 +1263,19 @@ static void reg_cache_set(struct target *target, unsigned int number,
 	buf_set_u64(r->value, 0, r->size, value);
 }
 
+static int update_mstatus_actual(struct target *target)
+{
+	struct reg *mstatus_reg = &target->reg_cache->reg_list[REG_MSTATUS];
+	if (mstatus_reg->valid) {
+		// We previously made it valid.
+		return ERROR_OK;
+	}
+
+	// Force reading the register. In that process mstatus_actual will be
+	// updated.
+	return register_get(&target->reg_cache->reg_list[REG_MSTATUS]);
+}
+
 /*** OpenOCD target functions. ***/
 
 static int register_get(struct reg *reg)
@@ -1262,8 +1294,24 @@ static int register_get(struct reg *reg)
 		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
 		return ERROR_OK;
 	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
-		cache_set32(target, 0, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
-		cache_set_jump(target, 1);
+		int result = update_mstatus_actual(target);
+		if (result != ERROR_OK) {
+			return result;
+		}
+		unsigned i = 0;
+		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
+			info->mstatus_actual = set_field(info->mstatus_actual, MSTATUS_FS, 1);
+			cache_set_load(target, i++, S0, SLOT1);
+			cache_set32(target, i++, csrw(S0, CSR_MSTATUS));
+			cache_set(target, SLOT1, info->mstatus_actual);
+		}
+
+		if (info->xlen == 32) {
+			cache_set32(target, i++, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		} else {
+			cache_set32(target, i++, fsd(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		}
+		cache_set_jump(target, i++);
 	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
 		cache_set32(target, 0, csrr(S0, reg->number - REG_CSR0));
 		cache_set_store(target, 1, S0, SLOT0);
@@ -1286,12 +1334,18 @@ static int register_get(struct reg *reg)
 	if (exception) {
 		LOG_ERROR("Got exception 0x%x when reading register %d", exception,
 				reg->number);
+		buf_set_u64(reg->value, 0, info->xlen, ~0);
 		return ERROR_FAIL;
 	}
 
 	uint64_t value = cache_get(target, SLOT0);
 	LOG_DEBUG("%s=0x%" PRIx64, reg->name, value);
 	buf_set_u64(reg->value, 0, info->xlen, value);
+
+	if (reg->number == REG_MSTATUS) {
+		info->mstatus_actual = value;
+		reg->valid = true;
+	}
 
 	return ERROR_OK;
 }
@@ -1318,13 +1372,32 @@ static int register_write(struct target *target, unsigned int number,
 		info->dpc = value;
 		return ERROR_OK;
 	} else if (number >= REG_FPR0 && number <= REG_FPR31) {
-		// TODO: fld
-		cache_set32(target, 0, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
-		cache_set_jump(target, 1);
+		int result = update_mstatus_actual(target);
+		if (result != ERROR_OK) {
+			return result;
+		}
+		unsigned i = 0;
+		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
+			info->mstatus_actual = set_field(info->mstatus_actual, MSTATUS_FS, 1);
+			cache_set_load(target, i++, S0, SLOT1);
+			cache_set32(target, i++, csrw(S0, CSR_MSTATUS));
+			cache_set(target, SLOT1, info->mstatus_actual);
+		}
+
+		if (info->xlen == 32) {
+			cache_set32(target, i++, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		} else {
+			cache_set32(target, i++, fld(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+		}
+		cache_set_jump(target, i++);
 	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
 		cache_set_load(target, 0, S0, SLOT0);
 		cache_set32(target, 1, csrw(S0, number - REG_CSR0));
 		cache_set_jump(target, 2);
+
+		if (number == REG_MSTATUS) {
+			info->mstatus_actual = value;
+		}
 	} else if (number == REG_PRIV) {
 		info->dcsr = set_field(info->dcsr, DCSR_PRV, value);
 		return ERROR_OK;
@@ -1334,7 +1407,14 @@ static int register_write(struct target *target, unsigned int number,
 	}
 
 	cache_set(target, SLOT0, value);
-	if (cache_write(target, 4, true) != ERROR_OK) {
+	if (cache_write(target, info->dramsize - 1, true) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	uint32_t exception = cache_get32(target, info->dramsize-1);
+	if (exception) {
+		LOG_ERROR("Got exception 0x%x when writing register %d", exception,
+				number);
 		return ERROR_FAIL;
 	}
 
