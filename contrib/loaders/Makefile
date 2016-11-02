@@ -12,7 +12,8 @@ ARM_CROSS_COMPILE ?= arm-none-eabi-
 arm_dirs = \
 	flash/fm4 \
 	flash/kinetis_ke \
-	flash/xmc1xxx
+	flash/xmc1xxx \
+	debug/xscale
 
 arm:
 	for d in $(common_dirs); do \

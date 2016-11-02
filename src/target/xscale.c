@@ -73,7 +73,7 @@ static int xscale_read_trace(struct target *);
  * mini-ICache, which is 2K of code writable only via JTAG.
  */
 static const uint8_t xscale_debug_handler[] = {
-#include "xscale_debug.inc"
+#include "../../contrib/loaders/debug/xscale/debug_handler.inc"
 };
 
 static const char *const xscale_reg_list[] = {

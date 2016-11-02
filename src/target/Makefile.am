@@ -9,19 +9,6 @@ endif
 SUBDIRS = openrisc
 libtarget_la_LIBADD = $(top_builddir)/src/target/openrisc/libopenrisc.la
 
-BIN2C		= $(top_srcdir)/src/helper/bin2char.sh
-
-DEBUG_HANDLER	= $(srcdir)/xscale/debug_handler.bin
-EXTRA_DIST = \
-	startup.tcl \
-	$(wildcard $(srcdir)/xscale/*)
-
-DEBUG_HEADER	= xscale_debug.inc
-BUILT_SOURCES = $(DEBUG_HEADER)
-CLEANFILES = $(DEBUG_HEADER)
-
-$(DEBUG_HEADER): $(DEBUG_HANDLER) $(BIN2C)
-	$(BIN2C) < $< > $@ || { rm -f $@; false; }
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libtarget.la
