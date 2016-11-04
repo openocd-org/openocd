@@ -38,7 +38,7 @@ noinst_HEADERS = \
 	hello.h \
 	openocd.h
 
-libopenocd_la_CPPFLAGS = -DPKGBLDDATE=\"`date +%F-%R`\"
+libopenocd_la_CPPFLAGS =
 
 # banner output includes RELSTR appended to $VERSION from the configure script
 # guess-rev.sh returns either a repository version ID or "-snapshot"
@@ -48,6 +48,7 @@ libopenocd_la_CPPFLAGS += -DGITVERSION=\"\"
 else
 libopenocd_la_CPPFLAGS += -DRELSTR=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
 libopenocd_la_CPPFLAGS += -DGITVERSION=\"`cd $(top_srcdir) && git describe`\"
+libopenocd_la_CPPFLAGS += -DPKGBLDDATE=\"`date +%F-%R`\"
 endif
 
 # add default CPPFLAGS

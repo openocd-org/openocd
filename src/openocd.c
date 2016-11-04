@@ -45,8 +45,13 @@
 #include <strings.h>
 #endif
 
+#ifdef PKGBLDDATE
 #define OPENOCD_VERSION	\
 	"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
+#else
+#define OPENOCD_VERSION	\
+	"Open On-Chip Debugger " VERSION RELSTR
+#endif
 
 static const char openocd_startup_tcl[] = {
 #include "startup_tcl.inc"
