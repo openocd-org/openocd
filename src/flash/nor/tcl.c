@@ -707,7 +707,7 @@ COMMAND_HANDLER(handle_flash_verify_bank_command)
 	size_t filesize;
 	int differ;
 
-	if (CMD_ARGC != 3)
+	if (CMD_ARGC < 2 || CMD_ARGC > 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct duration bench;
@@ -718,7 +718,16 @@ COMMAND_HANDLER(handle_flash_verify_bank_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
+	offset = 0;
+
+	if (CMD_ARGC > 2)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
+
+	if (offset > p->size) {
+		LOG_ERROR("Offset 0x%8.8" PRIx32 " is out of range of the flash bank",
+			offset);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
 
 	retval = fileio_open(&fileio, CMD_ARGV[1], FILEIO_READ, FILEIO_BINARY);
 	if (retval != ERROR_OK) {
@@ -926,10 +935,10 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "verify_bank",
 		.handler = handle_flash_verify_bank_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename offset",
-		.help = "Read binary data from flash bank and file, "
-			"starting at specified byte offset from the "
-			"beginning of the bank. Compare the contents.",
+		.usage = "bank_id filename [offset]",
+		.help = "Compare the contents of a file with the contents of the "
+			"flash bank. Allow optional offset from beginning of the bank "
+			"(defaults to zero).",
 	},
 	{
 		.name = "protect",

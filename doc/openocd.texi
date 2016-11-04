@@ -4656,9 +4656,10 @@ and write the contents to the binary @file{filename}.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {flash verify_bank} num filename offset
+@deffn Command {flash verify_bank} num filename [offset]
 Compare the contents of the binary file @var{filename} with the contents of the
-flash @var{num} starting at @var{offset}. Fails if the contents do not match.
+flash bank @var{num} starting at @var{offset}. If @var{offset} is omitted,
+start at the beginning of the flash bank. Fail if the contents do not match.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
