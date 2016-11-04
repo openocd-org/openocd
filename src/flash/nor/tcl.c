@@ -583,6 +583,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 {
 	uint32_t offset;
 	uint8_t *buffer;
+	size_t length;
 	struct fileio *fileio;
 
 	if (CMD_ARGC < 2 || CMD_ARGC > 3)
@@ -617,20 +618,38 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 		return retval;
 	}
 
-	buffer = malloc(filesize);
+	length = MIN(filesize, p->size - offset);
+
+	if (!length) {
+		LOG_INFO("Nothing to write to flash bank");
+		fileio_close(fileio);
+		return ERROR_OK;
+	}
+
+	if (length != filesize)
+		LOG_INFO("File content exceeds flash bank size. Only writing the "
+			"first %zu bytes of the file", length);
+
+	buffer = malloc(length);
 	if (buffer == NULL) {
 		fileio_close(fileio);
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
 	size_t buf_cnt;
-	if (fileio_read(fileio, filesize, buffer, &buf_cnt) != ERROR_OK) {
+	if (fileio_read(fileio, length, buffer, &buf_cnt) != ERROR_OK) {
 		free(buffer);
 		fileio_close(fileio);
 		return ERROR_FAIL;
 	}
 
-	retval = flash_driver_write(p, buffer, offset, buf_cnt);
+	if (buf_cnt != length) {
+		LOG_ERROR("Short read");
+		free(buffer);
+		return ERROR_FAIL;
+	}
+
+	retval = flash_driver_write(p, buffer, offset, length);
 
 	free(buffer);
 	buffer = NULL;
@@ -638,8 +657,8 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK)) {
 		command_print(CMD_CTX, "wrote %zu bytes from file %s to flash bank %u"
 			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-			filesize, CMD_ARGV[1], p->bank_number, offset,
-			duration_elapsed(&bench), duration_kbps(&bench, filesize));
+			length, CMD_ARGV[1], p->bank_number, offset,
+			duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
 
 	fileio_close(fileio);
