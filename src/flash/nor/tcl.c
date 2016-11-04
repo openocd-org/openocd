@@ -674,7 +674,7 @@ COMMAND_HANDLER(handle_flash_read_bank_command)
 	uint32_t length;
 	size_t written;
 
-	if (CMD_ARGC != 4)
+	if (CMD_ARGC < 2 || CMD_ARGC > 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct duration bench;
@@ -682,11 +682,31 @@ COMMAND_HANDLER(handle_flash_read_bank_command)
 
 	struct flash_bank *p;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+
 	if (ERROR_OK != retval)
 		return retval;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], length);
+	offset = 0;
+
+	if (CMD_ARGC > 2)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
+
+	if (offset > p->size) {
+		LOG_ERROR("Offset 0x%8.8" PRIx32 " is out of range of the flash bank",
+			offset);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	length = p->size - offset;
+
+	if (CMD_ARGC > 3)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], length);
+
+	if (offset + length > p->size) {
+		LOG_ERROR("Length of %" PRIu32 " bytes with offset 0x%8.8" PRIx32
+			" is out of range of the flash bank", length, offset);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
 
 	buffer = malloc(length);
 	if (buffer == NULL) {
@@ -966,10 +986,9 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "read_bank",
 		.handler = handle_flash_read_bank_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename offset length",
-		.help = "Read binary data from flash bank to file, "
-			"starting at specified byte offset from the "
-			"beginning of the bank.",
+		.usage = "bank_id filename [offset [length]]",
+		.help = "Read binary data from flash bank to file. Allow optional "
+			"offset from beginning of the bank (defaults to zero).",
 	},
 	{
 		.name = "verify_bank",

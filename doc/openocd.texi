@@ -4722,9 +4722,11 @@ is omitted, start at the beginning of the flash bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {flash read_bank} num filename offset length
+@deffn Command {flash read_bank} num filename [offset [length]]
 Read @var{length} bytes from the flash bank @var{num} starting at @var{offset}
-and write the contents to the binary @file{filename}.
+and write the contents to the binary @file{filename}. If @var{offset} is
+omitted, start at the beginning of the flash bank. If @var{length} is omitted,
+read the remaining bytes from the flash bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
