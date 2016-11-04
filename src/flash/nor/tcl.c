@@ -585,7 +585,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	uint8_t *buffer;
 	struct fileio *fileio;
 
-	if (CMD_ARGC != 3)
+	if (CMD_ARGC < 2 || CMD_ARGC > 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct duration bench;
@@ -596,7 +596,16 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
+	offset = 0;
+
+	if (CMD_ARGC > 2)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
+
+	if (offset > p->size) {
+		LOG_ERROR("Offset 0x%8.8" PRIx32 " is out of range of the flash bank",
+			offset);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
 
 	if (fileio_open(&fileio, CMD_ARGV[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		return ERROR_FAIL;
@@ -921,10 +930,9 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "write_bank",
 		.handler = handle_flash_write_bank_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename offset",
-		.help = "Write binary data from file to flash bank, "
-			"starting at specified byte offset from the "
-			"beginning of the bank.",
+		.usage = "bank_id filename [offset]",
+		.help = "Write binary data from file to flash bank. Allow optional "
+			"offset from beginning of the bank (defaults to zero).",
 	},
 	{
 		.name = "write_image",

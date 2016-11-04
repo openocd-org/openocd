@@ -4715,9 +4715,10 @@ each block, and the specified length must stay within that bank.
 @end deffn
 @comment no current checks for errors if fill blocks touch multiple banks!
 
-@deffn Command {flash write_bank} num filename offset
+@deffn Command {flash write_bank} num filename [offset]
 Write the binary @file{filename} to flash bank @var{num},
-starting at @var{offset} bytes from the beginning of the bank.
+starting at @var{offset} bytes from the beginning of the bank. If @var{offset}
+is omitted, start at the beginning of the flash bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
