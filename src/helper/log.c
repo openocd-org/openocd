@@ -251,9 +251,15 @@ COMMAND_HANDLER(handle_log_output_command)
 {
 	if (CMD_ARGC == 1) {
 		FILE *file = fopen(CMD_ARGV[0], "w");
-
-		if (file)
-			log_output = file;
+		if (file == NULL) {
+			LOG_ERROR("failed to open output log '%s'", CMD_ARGV[0]);
+			return ERROR_FAIL;
+		}
+		if (log_output != stderr && log_output != NULL) {
+			/* Close previous log file, if it was open and wasn't stderr. */
+			fclose(log_output);
+		}
+		log_output = file;
 	}
 
 	return ERROR_OK;
