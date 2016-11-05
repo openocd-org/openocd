@@ -291,7 +291,16 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 				LOG_WARNING("deprecated option: -p/--pipe. Use '-c \"gdb_port pipe; "
 						"log_output openocd.log\"' instead.");
 				break;
+			default:  /* '?' */
+				/* getopt will emit an error message, all we have to do is bail. */
+				return ERROR_FAIL;
 		}
+	}
+
+	if (optind < argc) {
+		/* Catch extra arguments on the command line. */
+		LOG_OUTPUT("Unexpected command line argument: %s\n", argv[optind]);
+		return ERROR_FAIL;
 	}
 
 	if (help_flag) {
