@@ -471,7 +471,7 @@ AS_CASE([$host],
       AC_MSG_ERROR([buspirate currently not supported by MinGW32 hosts])
     ])
 
-    CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO"
+    AC_SUBST([HOST_CPPFLAGS], [-D__USE_MINGW_ANSI_STDIO])
 
     AC_DEFINE([IS_MINGW], [1], [1 if building for MinGW.])
     AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
@@ -785,7 +785,7 @@ AS_IF([test "x${gcc_werror}" = "xyes"], [
 
 # overide default gcc cflags
 AS_IF([test "x$gcc_warnings" = "xyes"], [
-  CFLAGS="$CFLAGS $GCC_WARNINGS"
+  AC_SUBST([GCC_WARNINGS], [$GCC_WARNINGS])
 ])
 
 AC_CONFIG_FILES([
