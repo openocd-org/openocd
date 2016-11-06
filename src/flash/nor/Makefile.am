@@ -1,69 +1,66 @@
-include $(top_srcdir)/common.mk
-
-noinst_LTLIBRARIES = libocdflashnor.la
-libocdflashnor_la_SOURCES = \
-	core.c \
-	tcl.c \
+noinst_LTLIBRARIES += %D%/libocdflashnor.la
+%C%_libocdflashnor_la_SOURCES = \
+	%D%/core.c \
+	%D%/tcl.c \
 	$(NOR_DRIVERS) \
-	drivers.c
+	%D%/drivers.c \
+	$(NORHEADERS)
 
 NOR_DRIVERS = \
-	aduc702x.c \
-	aducm360.c \
-	ambiqmicro.c \
-	at91sam4.c \
-	at91sam4l.c \
-	at91samd.c \
-	at91sam3.c \
-	at91sam7.c \
-	atsamv.c \
-	avrf.c \
-	cfi.c \
-	dsp5680xx_flash.c \
-	efm32.c \
-	em357.c \
-	faux.c \
-	fm3.c \
-	fm4.c \
-	jtagspi.c \
-	kinetis.c \
-	kinetis_ke.c \
-	lpc2000.c \
-	lpc288x.c \
-	lpc2900.c \
-	lpcspifi.c \
-	mdr.c \
-	mrvlqspi.c \
-	niietcm4.c \
-	non_cfi.c \
-	nrf51.c \
-	numicro.c \
-	ocl.c \
-	pic32mx.c \
-	psoc4.c \
-	sim3x.c \
-	spi.c \
-	stmsmi.c \
-	stellaris.c \
-	stm32f1x.c \
-	stm32f2x.c \
-	stm32lx.c \
-	stm32l4x.c \
-	str7x.c \
-	str9x.c \
-	str9xpec.c \
-	tms470.c \
-	virtual.c \
-	xmc1xxx.c \
-	xmc4xxx.c
+	%D%/aduc702x.c \
+	%D%/aducm360.c \
+	%D%/ambiqmicro.c \
+	%D%/at91sam4.c \
+	%D%/at91sam4l.c \
+	%D%/at91samd.c \
+	%D%/at91sam3.c \
+	%D%/at91sam7.c \
+	%D%/atsamv.c \
+	%D%/avrf.c \
+	%D%/cfi.c \
+	%D%/dsp5680xx_flash.c \
+	%D%/efm32.c \
+	%D%/em357.c \
+	%D%/faux.c \
+	%D%/fm3.c \
+	%D%/fm4.c \
+	%D%/jtagspi.c \
+	%D%/kinetis.c \
+	%D%/kinetis_ke.c \
+	%D%/lpc2000.c \
+	%D%/lpc288x.c \
+	%D%/lpc2900.c \
+	%D%/lpcspifi.c \
+	%D%/mdr.c \
+	%D%/mrvlqspi.c \
+	%D%/niietcm4.c \
+	%D%/non_cfi.c \
+	%D%/nrf51.c \
+	%D%/numicro.c \
+	%D%/ocl.c \
+	%D%/pic32mx.c \
+	%D%/psoc4.c \
+	%D%/sim3x.c \
+	%D%/spi.c \
+	%D%/stmsmi.c \
+	%D%/stellaris.c \
+	%D%/stm32f1x.c \
+	%D%/stm32f2x.c \
+	%D%/stm32lx.c \
+	%D%/stm32l4x.c \
+	%D%/str7x.c \
+	%D%/str9x.c \
+	%D%/str9xpec.c \
+	%D%/tms470.c \
+	%D%/virtual.c \
+	%D%/xmc1xxx.c \
+	%D%/xmc4xxx.c
 
-noinst_HEADERS = \
-	core.h \
-	cfi.h \
-	driver.h \
-	imp.h \
-	non_cfi.h \
-	ocl.h \
-	spi.h
-
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+NORHEADERS = \
+	%D%/core.h \
+	%D%/cfi.h \
+	%D%/driver.h \
+	%D%/imp.h \
+	%D%/non_cfi.h \
+	%D%/ocl.h \
+	%D%/spi.h

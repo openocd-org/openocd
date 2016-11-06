@@ -1,20 +1,13 @@
-include $(top_srcdir)/common.mk
+noinst_LTLIBRARIES += %D%/libocdusbblaster.la
+%C%_libocdusbblaster_la_SOURCES = $(USB_BLASTER_SRC)
+%C%_libocdusbblaster_la_CPPFLAGS = -I$(top_srcdir)/src/jtag/drivers $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS) $(LIBFTDI_CFLAGS)
 
-AM_CPPFLAGS += -I$(top_srcdir)/src/jtag/drivers $(LIBUSB1_CFLAGS) $(LIBFTDI_CFLAGS)
-
-noinst_LTLIBRARIES = libocdusbblaster.la
-libocdusbblaster_la_SOURCES = $(USB_BLASTER_SRC)
-
-USB_BLASTER_SRC = usb_blaster.c
+USB_BLASTER_SRC = %D%/usb_blaster.c %D%/ublast_access.h
 
 if USB_BLASTER
-USB_BLASTER_SRC += ublast_access_ftdi.c
+USB_BLASTER_SRC += %D%/ublast_access_ftdi.c
 endif
 
 if USB_BLASTER_2
-USB_BLASTER_SRC += ublast2_access_libusb.c
+USB_BLASTER_SRC += %D%/ublast2_access_libusb.c
 endif
-
-noinst_HEADERS = ublast_access.h
-
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

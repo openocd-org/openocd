@@ -19,6 +19,8 @@
 #ifndef OPENOCD_TARGET_BREAKPOINTS_H
 #define OPENOCD_TARGET_BREAKPOINTS_H
 
+#include <stdint.h>
+
 struct target;
 
 enum breakpoint_type {

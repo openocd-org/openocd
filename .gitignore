@@ -52,8 +52,8 @@ doc/openocd.pg
 doc/openocd.toc
 doc/openocd.tp
 doc/openocd.vr
-doc/texinfo.tex
 doc/version.texi
+texinfo.tex
 src/openocd
 src/openocd.exe
 

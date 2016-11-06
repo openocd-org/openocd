@@ -214,7 +214,7 @@ You'll also need:
 Additionally, for building from git:
 
 - autoconf >= 2.64
-- automake >= 1.9
+- automake >= 1.14
 - texinfo
 
 USB-based adapters depend on libusb-1.0 and some older drivers require

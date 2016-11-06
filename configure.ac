@@ -794,25 +794,6 @@ AS_IF([test "x$gcc_warnings" = "xyes"], [
 
 AC_CONFIG_FILES([
   Makefile
-  src/Makefile
-  src/helper/Makefile
-  src/jtag/Makefile
-  src/jtag/drivers/Makefile
-  src/jtag/drivers/usb_blaster/Makefile
-  src/jtag/hla/Makefile
-  src/jtag/aice/Makefile
-  src/transport/Makefile
-  src/target/openrisc/Makefile
-  src/xsvf/Makefile
-  src/svf/Makefile
-  src/target/Makefile
-  src/rtos/Makefile
-  src/server/Makefile
-  src/flash/Makefile
-  src/flash/nor/Makefile
-  src/flash/nand/Makefile
-  src/pld/Makefile
-  doc/Makefile
 ])
 AC_OUTPUT
 
