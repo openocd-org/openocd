@@ -190,6 +190,11 @@ m4_define([USB0_ADAPTERS],
 m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP]]])
 
+m4_define([LIBFTDI_ADAPTERS],
+	[[[usb_blaster], [Altera USB-Blaster Compatible], [USB_BLASTER]],
+	[[presto], [ASIX Presto Adapter], [PRESTO]],
+	[[openjtag], [OpenJTAG Adapter], [OPENJTAG]]])
+
 m4_define([LIBJAYLINK_ADAPTERS],
 	[[[jlink], [SEGGER J-Link Programmer], [JLINK]]])
 
@@ -294,7 +299,14 @@ m4_define([AC_ARG_ADAPTERS], [
   ])
 ])
 
-AC_ARG_ADAPTERS([USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS, HIDAPI_ADAPTERS, LIBJAYLINK_ADAPTERS], [auto])
+AC_ARG_ADAPTERS([
+  USB1_ADAPTERS,
+  USB_ADAPTERS,
+  USB0_ADAPTERS,
+  HIDAPI_ADAPTERS,
+  LIBFTDI_ADAPTERS,
+  LIBJAYLINK_ADAPTERS
+  ],[auto])
 
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
@@ -313,10 +325,6 @@ AC_ARG_ENABLE([parport_giveio],
 AC_ARG_ENABLE([jtag_vpi],
   AS_HELP_STRING([--enable-jtag_vpi], [Enable building support for JTAG VPI]),
   [build_jtag_vpi=$enableval], [build_jtag_vpi=no])
-
-AC_ARG_ENABLE([usb_blaster_libftdi],
-  AS_HELP_STRING([--enable-usb_blaster_libftdi], [Enable building support for the Altera USB-Blaster using the libftdi driver]),
-  [build_usb_blaster=$enableval], [build_usb_blaster=no])
 
 AC_ARG_ENABLE([amtjtagaccel],
   AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]),
@@ -359,14 +367,6 @@ esac
 AC_ARG_ENABLE([gw16012],
   AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
   [build_gw16012=$enableval], [build_gw16012=no])
-
-AC_ARG_ENABLE([presto_libftdi],
-  AS_HELP_STRING([--enable-presto_libftdi], [Enable building support for ASIX Presto Programmer using the libftdi library]),
-  [build_presto=$enableval], [build_presto=no])
-
-AC_ARG_ENABLE([openjtag_ftdi],
-  AS_HELP_STRING([--enable-openjtag_ftdi], [Enable building support for the OpenJTAG Programmer with libftdi library]),
-  [build_openjtag=$enableval], [build_openjtag=no])
 
 AC_ARG_ENABLE([oocd_trace],
   AS_HELP_STRING([--enable-oocd_trace],
@@ -580,12 +580,6 @@ else
   AC_DEFINE([BUILD_BITBANG], [0], [0 if you don't want a bitbang interface.])
 fi
 
-if test $build_usb_blaster = yes; then
-  AC_DEFINE([BUILD_USB_BLASTER], [1], [1 if you want libftdi usb_blaster.])
-else
-  AC_DEFINE([BUILD_USB_BLASTER], [0], [0 if you don't want libftdi usb_blaster.])
-fi
-
 if test $build_jtag_vpi = yes; then
   AC_DEFINE([BUILD_JTAG_VPI], [1], [1 if you want JTAG VPI.])
 else
@@ -604,24 +598,10 @@ else
   AC_DEFINE([BUILD_GW16012], [0], [0 if you don't want the Gateworks GW16012 driver.])
 fi
 
-if test $build_presto = yes; then
-  build_bitq=yes
-  AC_DEFINE([BUILD_PRESTO], [1], [1 if you want the ASIX PRESTO driver using libftdi.])
-else
-  AC_DEFINE([BUILD_PRESTO], [0], [0 if you don't want the ASIX PRESTO driver using libftdi.])
-fi
-
 if test $build_bitq = yes; then
   AC_DEFINE([BUILD_BITQ], [1], [1 if you want a bitq interface.])
 else
   AC_DEFINE([BUILD_BITQ], [0], [0 if you don't want a bitq interface.])
-fi
-
-
-if test $build_openjtag = yes; then
-  AC_DEFINE([BUILD_OPENJTAG], [1], [1 if you want the OpenJTAG driver.])
-else
-  AC_DEFINE([BUILD_OPENJTAG], [0], [0 if you don't want the OpenJTAG driver.])
 fi
 
 if test $build_oocd_trace = yes; then
@@ -658,77 +638,6 @@ else
   AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
 fi
 
-if test $build_usb_blaster = yes -o $build_openjtag = yes -o $build_presto = yes; then
-
-  # we can have libftdi or libftdi1, so check it and use the latest one
-  PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [use_libftdi=yes], [use_libftdi=no])
-  if test $use_libftdi = no; then
-	PKG_CHECK_MODULES([LIBFTDI], [libftdi], [use_libftdi=yes], [use_libftdi=no])
-  fi
-  if test $use_libftdi = no; then
-	AC_MSG_ERROR([The libftdi driver is not present on your system.])
-  fi
-
-  #
-  # Try to build a small program.
-  AC_MSG_CHECKING([Build & Link with libftdi...])
-
-  LDFLAGS_SAVE=$LDFLAGS
-  CFLAGS_SAVE=$CFLAGS
-  LIBS_SAVE=$LIBS
-  _LDFLAGS=`eval echo $LDFLAGS`
-  _CFLAGS=`eval echo $CFLAGS`
-  _LIBS=`eval echo $LIBS`
-  LDFLAGS=$_LDFLAGS
-  CFLAGS="$_CFLAGS $LIBFTDI_CFLAGS"
-  LIBS="$_LIBS $LIBFTDI_LIBS"
-
-  AC_RUN_IFELSE([AC_LANG_PROGRAM([[
-#include <stdio.h>
-#include <ftdi.h>
-  ]], [[
-  struct ftdi_context *p;
-  p = ftdi_new();
-  if( p != NULL ){
-      return 0;
-  } else {
-      fprintf( stderr, "calling ftdi_new() failed\n");
-      return 1;
-        }
-    ]])], [
-      AC_MSG_RESULT([Success])
-    ], [
-      AC_MSG_ERROR([Cannot build & run test program using libftdi])
-    ], [
-      AC_MSG_RESULT([Skipping as we are cross-compiling, trying build only])
-      AC_SEARCH_LIBS([ftdi_new], [], [], [AC_MSG_ERROR([Cannot link with libftdi])])
-    ])
-
-AC_MSG_CHECKING([for libftdi FT232H device support])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include <stdio.h>
-#include <ftdi.h>
-  ]], [[
-enum ftdi_chip_type x = TYPE_232H;
-    ]])], [
-      AC_DEFINE([HAS_ENUM_FT232H], [1],
-        [Support FT232H with libftdi.])
-      has_enum_ft232h=yes
-    ], [
-      has_enum_ft232h=no
-    ])
-    AC_MSG_RESULT([$has_enum_ft232h])
-
-    if test $has_enum_ft232h = no; then
-      AC_MSG_WARN([You need a newer libftdi version (0.20 or later).])
-    fi
-
-  # Restore the 'unexpanded ldflags'
-  LDFLAGS=$LDFLAGS_SAVE
-  CFLAGS=$CFLAGS_SAVE
-  LIBS=$LIBS_SAVE
-fi
-
 PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 	use_libusb1=yes
 	AC_DEFINE([HAVE_LIBUSB1], [1], [Define if you have libusb-1.x])
@@ -755,6 +664,10 @@ for hidapi_lib in hidapi hidapi-hidraw hidapi-libusb; do
 	])
 done
 
+PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [use_libftdi=yes], [
+	PKG_CHECK_MODULES([LIBFTDI], [libftdi], [use_libftdi=yes], [use_libftdi=no])
+])
+
 PKG_CHECK_MODULES([libjaylink], [libjaylink >= 0.1],
 	[HAVE_LIBJAYLINK=yes], [HAVE_LIBJAYLINK=no])
 
@@ -780,6 +693,7 @@ PROCESS_ADAPTERS([USB1_ADAPTERS], [$use_libusb1 = yes], [libusb-1.x])
 PROCESS_ADAPTERS([USB_ADAPTERS], [$use_libusb1 = yes -o $use_libusb0 = yes], [libusb-1.x or libusb-0.1])
 PROCESS_ADAPTERS([USB0_ADAPTERS], [$use_libusb0 = yes], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], [$use_hidapi = yes], [hidapi])
+PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], [$use_libftdi = yes], [libftdi])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], [$use_libusb1 = yes -a $use_internal_libjaylink = yes -o $HAVE_LIBJAYLINK = yes], [libusb-1.x or libjaylink-0.1])
 
 if test $build_openjtag = yes; then
@@ -807,6 +721,11 @@ if test $enable_jlink != no; then
   fi
 fi
 
+# Presto needs the bitq module
+if test $enable_presto != no; then
+  build_bitq=yes
+fi
+
 AM_CONDITIONAL([RELEASE], [test $build_release = yes])
 AM_CONDITIONAL([PARPORT], [test $build_parport = yes])
 AM_CONDITIONAL([DUMMY], [test $build_dummy = yes])
@@ -819,12 +738,9 @@ AM_CONDITIONAL([AT91RM9200], [test $build_at91rm9200 = yes])
 AM_CONDITIONAL([BCM2835GPIO], [test $build_bcm2835gpio = yes])
 AM_CONDITIONAL([BITBANG], [test $build_bitbang = yes])
 AM_CONDITIONAL([JTAG_VPI], [test $build_jtag_vpi = yes -o $build_jtag_vpi = yes])
-AM_CONDITIONAL([USB_BLASTER_DRIVER], [test $build_usb_blaster = yes -o $enable_usb_blaster_2 != no])
-AM_CONDITIONAL([USB_BLASTER], [test $build_usb_blaster = yes])
+AM_CONDITIONAL([USB_BLASTER_DRIVER], [test $enable_usb_blaster != no -o $enable_usb_blaster_2 != no])
 AM_CONDITIONAL([AMTJTAGACCEL], [test $build_amtjtagaccel = yes])
 AM_CONDITIONAL([GW16012], [test $build_gw16012 = yes])
-AM_CONDITIONAL([PRESTO], [test $build_presto = yes])
-AM_CONDITIONAL([OPENJTAG], [test $build_openjtag = yes])
 AM_CONDITIONAL([OOCD_TRACE], [test $build_oocd_trace = yes])
 AM_CONDITIONAL([REMOTE_BITBANG], [test $build_remote_bitbang = yes])
 AM_CONDITIONAL([BUSPIRATE], [test $build_buspirate = yes])
@@ -837,6 +753,7 @@ AM_CONDITIONAL([IS_WIN32], [test $is_win32 = yes])
 AM_CONDITIONAL([IS_DARWIN], [test $is_darwin = yes])
 AM_CONDITIONAL([BITQ], [test $build_bitq = yes])
 AM_CONDITIONAL([CMSIS_DAP], [test $use_hidapi = yes])
+AM_CONDITIONAL([USE_LIBFTDI], [test $use_libftdi = yes])
 
 AM_CONDITIONAL([MINIDRIVER], [test $build_minidriver = yes])
 AM_CONDITIONAL([MINIDRIVER_DUMMY], [test $build_minidriver_dummy = yes])
@@ -923,7 +840,7 @@ echo
 echo OpenOCD configuration summary
 echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS,
-	HIDAPI_ADAPTERS, LIBJAYLINK_ADAPTERS],
+	HIDAPI_ADAPTERS, LIBFTDI_ADAPTERS, LIBJAYLINK_ADAPTERS],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	case $ADAPTER_VAR([adapter]) in
 		auto)
