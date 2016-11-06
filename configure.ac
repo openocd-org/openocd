@@ -644,8 +644,8 @@ PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [use_libftdi=yes], [
 	PKG_CHECK_MODULES([LIBFTDI], [libftdi], [use_libftdi=yes], [use_libftdi=no])
 ])
 
-PKG_CHECK_MODULES([libjaylink], [libjaylink >= 0.1],
-	[HAVE_LIBJAYLINK=yes], [HAVE_LIBJAYLINK=no])
+PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.1],
+	[use_libjaylink=yes], [use_libjaylink=no])
 
 m4_define([PROCESS_ADAPTERS], [
   m4_foreach([adapter], [$1], [
@@ -670,7 +670,7 @@ PROCESS_ADAPTERS([USB_ADAPTERS], ["x$use_libusb1" = "xyes" -o "x$use_libusb0" = 
 PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
-PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_libusb1" = "xyes" -a "x$use_internal_libjaylink" = "xyes" -o "x$HAVE_LIBJAYLINK" = "xyes"], [libusb-1.x or libjaylink-0.1])
+PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_libusb1" = "xyes" -a "x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libusb-1.x or libjaylink-0.1])
 
 AS_IF([test "x$build_openjtag" = "xyes"], [
   AS_IF([test "x$use_libusb1" != "xyes" -a "x$use_libusb0" != "xyes"], [

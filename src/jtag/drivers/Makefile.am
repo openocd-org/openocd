@@ -33,7 +33,7 @@ noinst_LTLIBRARIES += libjaylink_internal.la
 libocdjtagdrivers_la_LIBADD += libjaylink_internal.la
 else
 DRIVERFILES += jlink.c
-libocdjtagdrivers_la_CPPFLAGS += $(libjaylink_CFLAGS)
+libocdjtagdrivers_la_CPPFLAGS += $(LIBJAYLINK_CFLAGS)
 endif
 endif
 

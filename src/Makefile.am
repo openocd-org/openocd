@@ -78,7 +78,7 @@ libopenocd_la_LIBADD = \
 	$(HIDAPI_LIBS) $(LIBUSB0_LIBS) $(LIBUSB1_LIBS)
 
 if !INTERNAL_LIBJAYLINK
-libopenocd_la_LIBADD += $(libjaylink_LIBS)
+libopenocd_la_LIBADD += $(LIBJAYLINK_LIBS)
 endif
 
 STARTUP_TCL_SRCS = \
