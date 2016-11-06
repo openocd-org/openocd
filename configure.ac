@@ -439,7 +439,6 @@ AS_CASE([$host],
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[return __MINGW32__;]])],
       [is_mingw=yes],[is_mingw=no])
     AS_IF([test "x$is_mingw" = "xyes"], [
-      AC_DEFINE([IS_MINGW], [1], [1 if building for MinGW.])
       AS_IF([test "x$parport_use_giveio" = "xno"], [
         AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
       ])
@@ -447,15 +446,11 @@ AS_CASE([$host],
       is_cygwin=no
     ], [
       is_cygwin=yes
-      AC_DEFINE([IS_CYGWIN], [1], [1 if building for Cygwin.])
       # sys/io.h needed under cygwin for parport access
       AS_IF([test "x$build_parport" = "xyes"], [
         AC_CHECK_HEADERS([sys/io.h],[],AC_MSG_ERROR([Please install the cygwin ioperm package]))
       ])
     ])
-
-    AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
-    AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
   ],
   [*-mingw* | *-msys*], [
     is_mingw=yes
@@ -472,10 +467,6 @@ AS_CASE([$host],
     ])
 
     AC_SUBST([HOST_CPPFLAGS], [-D__USE_MINGW_ANSI_STDIO])
-
-    AC_DEFINE([IS_MINGW], [1], [1 if building for MinGW.])
-    AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
-    AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
   ],
   [*darwin*], [
     is_darwin=yes
@@ -484,23 +475,36 @@ AS_CASE([$host],
       AC_MSG_WARN([--enable-parport-giveio cannot be used by Darwin hosts])
     ])
     parport_use_giveio=no
-
-    AC_DEFINE([IS_CYGWIN], [0], [0 if not building for Cygwin.])
-    AC_DEFINE([IS_WIN32], [0], [0 if not building for Win32.])
-    AC_DEFINE([IS_DARWIN], [1], [1 if building for Darwin.])
   ],
   [
     AS_IF([test "x$parport_use_giveio" = "xyes"], [
       AC_MSG_WARN([--enable-parport-giveio cannot be used by ]$host[ hosts])
     ])
     parport_use_giveio=no
+])
+
+AS_IF([test "x$is_cygwin" = "xyes"], [
+    AC_DEFINE([IS_CYGWIN], [1], [1 if building for Cygwin.])
+], [
     AC_DEFINE([IS_CYGWIN], [0], [0 if not building for Cygwin.])
-    AC_DEFINE([IS_WIN32], [0], [0 if not building for Win32.])
-    AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
+])
+
+AS_IF([test "x$is_mingw" = "xyes"], [
+    AC_DEFINE([IS_MINGW], [1], [1 if building for Mingw.])
+], [
+    AC_DEFINE([IS_MINGW], [0], [0 if not building for Mingw.])
 ])
 
 AS_IF([test "x$is_win32" = "xyes"], [
-    AC_DEFINE([WIN32_LEAN_AND_MEAN], [1], [1 to exclude old conflicting definitions when building on Windows])
+    AC_DEFINE([IS_WIN32], [1], [1 if building for Win32.])
+], [
+    AC_DEFINE([IS_WIN32], [0], [0 if not building for Win32.])
+])
+
+AS_IF([test "x$is_darwin" = "xyes"], [
+    AC_DEFINE([IS_DARWIN], [1], [1 if building for Darwin.])
+], [
+    AC_DEFINE([IS_DARWIN], [0], [0 if not building for Darwin.])
 ])
 
 AS_IF([test "x$build_parport" = "xyes"], [
