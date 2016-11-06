@@ -729,6 +729,8 @@ AM_CONDITIONAL([IS_WIN32], [test "x$is_win32" = "xyes"])
 AM_CONDITIONAL([IS_DARWIN], [test "x$is_darwin" = "xyes"])
 AM_CONDITIONAL([BITQ], [test "x$build_bitq" = "xyes"])
 AM_CONDITIONAL([USE_LIBFTDI], [test "x$use_libftdi" = "xyes"])
+AM_CONDITIONAL([USE_HIDAPI], [test "x$use_hidapi" = "xyes"])
+AM_CONDITIONAL([USE_LIBJAYLINK], [test "x$use_libjaylink" = "xyes"])
 
 AM_CONDITIONAL([MINIDRIVER], [test "x$build_minidriver" = "xyes"])
 AM_CONDITIONAL([MINIDRIVER_DUMMY], [test "x$build_minidriver_dummy" = "xyes"])
