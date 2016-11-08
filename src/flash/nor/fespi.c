@@ -185,19 +185,15 @@ FLASH_BANK_COMMAND_HANDLER(fespi_flash_bank_command)
 	return ERROR_OK;
 }
 
-//!!! TODO: Clean up the use of this function.
-//    Should just change the direction for this file's use.
-static int fespi_fmt (struct flash_bank * bank, bool dir) {
+static int fespi_set_dir (struct flash_bank * bank, bool dir) {
   struct target *target = bank->target;
   struct fespi_flash_bank *fespi_info = bank->driver_priv;
   uint32_t ctrl_base = fespi_info->ctrl_base;
 
   FESPI_WRITE_REG(FESPI_REG_FMT,
-		  FESPI_FMT_PROTO(FESPI_PROTO_S) |
-		  FESPI_FMT_PROTO(FESPI_ENDIAN_MSB) |
-		  FESPI_FMT_DIR(dir) |
-		  FESPI_FMT_LEN(8));
-
+		  (FESPI_READ_REG(FESPI_REG_FMT) & ~(FESPI_FMT_DIR(0xFFFFFFFF))) |
+		  FESPI_FMT_DIR(dir));
+  				   
   return ERROR_OK;
   
 }
@@ -246,7 +242,7 @@ static int fespi_wip (struct flash_bank * bank, int timeout) {
   int64_t endtime;
   
   
-  fespi_fmt(bank, FESPI_DIR_RX);
+  fespi_set_dir(bank, FESPI_DIR_RX);
 
   FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
   endtime = timeval_ms() + timeout;
@@ -255,16 +251,16 @@ static int fespi_wip (struct flash_bank * bank, int timeout) {
   fespi_rx(bank);
   
   do {
-    
+   
+    alive_sleep(1);
+ 
     fespi_tx(bank, 0);
     if ((fespi_rx(bank) & SPIFLASH_BSY_BIT) == 0) {
       FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
-      fespi_fmt(bank, FESPI_DIR_TX);
+      fespi_set_dir(bank, FESPI_DIR_TX);
       return ERROR_OK;
     }
     
-    alive_sleep(1);
-
   } while (timeval_ms() < endtime);
 
   LOG_ERROR("timeout");
@@ -497,12 +493,29 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
    retval = fespi_wip(bank, FESPI_PROBE_TIMEOUT);
    if (retval != ERROR_OK)
      return retval;
-      
+
+   fespi_set_dir(bank, FESPI_DIR_RX);
+   
    /* Send SPI command "read ID" */
+   FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
+  
    fespi_tx(bank, SPIFLASH_READ_ID);
-    
+   /* Send dummy bytes to actually read the ID.*/
+   fespi_tx(bank, 0);
+   fespi_tx(bank, 0);
+   fespi_tx(bank, 0);
+      
    /* read ID from Receive Register */
-   *id = fespi_rx(bank) & 0x00ffffff;
+   *id = 0;
+   fespi_rx(bank);
+   *id = fespi_rx(bank);
+   *id |= (fespi_rx(bank) << 8);
+   *id |= (fespi_rx(bank) << 16);
+
+   FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
+
+   fespi_set_dir(bank, FESPI_DIR_TX);
+  
    return ERROR_OK;
  }
 
@@ -536,6 +549,13 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	     target_device->name, bank->base);
    
    /* read and decode flash ID; returns in SW mode */
+   // TODO!!! Pass these arguments in to the driver
+   // Elsewhere this driver assumes these are set this way,
+   // but should really save and restore at the entry points.
+   FESPI_WRITE_REG(FESPI_REG_SCKDIV, 3);
+   FESPI_WRITE_REG(FESPI_REG_TXCTRL, FESPI_TXWM(1));
+   fespi_set_dir(bank, FESPI_DIR_TX);
+   
    retval = fespi_read_flash_id(bank, &id);
 
    FESPI_ENABLE_HW_MODE();
