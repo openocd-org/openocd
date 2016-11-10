@@ -6984,6 +6984,13 @@ The file format may optionally be specified
 This will first attempt a comparison using a CRC checksum, if this fails it will try a binary compare.
 @end deffn
 
+@deffn Command {verify_image_checksum} filename address [@option{bin}|@option{ihex}|@option{elf}]
+Verify @var{filename} against target memory starting at @var{address}.
+The file format may optionally be specified
+(@option{bin}, @option{ihex}, or @option{elf})
+This perform a comparison using a CRC checksum only
+@end deffn
+
 
 @section Breakpoint and Watchpoint commands
 @cindex breakpoint

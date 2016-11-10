@@ -3299,7 +3299,13 @@ COMMAND_HANDLER(handle_dump_image_command)
 	return retval;
 }
 
-static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
+enum verify_mode {
+	IMAGE_TEST = 0,
+	IMAGE_VERIFY = 1,
+	IMAGE_CHECKSUM_ONLY = 2
+};
+
+static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode verify)
 {
 	uint8_t *buffer;
 	size_t buf_cnt;
@@ -3357,7 +3363,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 			break;
 		}
 
-		if (verify) {
+		if (verify >= IMAGE_VERIFY) {
 			/* calculate checksum of image */
 			retval = image_calculate_checksum(buffer, buf_cnt, &checksum);
 			if (retval != ERROR_OK) {
@@ -3370,7 +3376,12 @@ static COMMAND_HELPER(handle_verify_image_command_internal, int verify)
 				free(buffer);
 				break;
 			}
-
+			if ((checksum != mem_checksum) && (verify == IMAGE_CHECKSUM_ONLY)) {
+				LOG_ERROR("checksum mismatch");
+				free(buffer);
+				retval = ERROR_FAIL;
+				goto done;
+			}
 			if (checksum != mem_checksum) {
 				/* failed crc checksum, fall back to a binary compare */
 				uint8_t *data;
@@ -3435,14 +3446,19 @@ done:
 	return retval;
 }
 
+COMMAND_HANDLER(handle_verify_image_checksum_command)
+{
+	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, IMAGE_CHECKSUM_ONLY);
+}
+
 COMMAND_HANDLER(handle_verify_image_command)
 {
-	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 1);
+	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, IMAGE_VERIFY);
 }
 
 COMMAND_HANDLER(handle_test_image_command)
 {
-	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, 0);
+	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, IMAGE_TEST);
 }
 
 static int handle_bp_command_list(struct command_context *cmd_ctx)
@@ -6217,6 +6233,12 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_dump_image_command,
 		.mode = COMMAND_EXEC,
 		.usage = "filename address size",
+	},
+	{
+		.name = "verify_image_checksum",
+		.handler = handle_verify_image_checksum_command,
+		.mode = COMMAND_EXEC,
+		.usage = "filename [offset [type]]",
 	},
 	{
 		.name = "verify_image",
