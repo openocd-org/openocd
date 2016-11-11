@@ -612,60 +612,58 @@ int dap_dp_init(struct adiv5_dap *dap)
 	dap->select = DP_SELECT_INVALID;
 	dap->last_read = NULL;
 
-	for (size_t i = 0; i < 10; i++) {
+	for (size_t i = 0; i < 30; i++) {
 		/* DP initialization */
 
-		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-		if (retval != ERROR_OK)
-			continue;
-
-		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
-		if (retval != ERROR_OK)
-			continue;
-
-		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-		if (retval != ERROR_OK)
-			continue;
-
-		dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
-		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
-		if (retval != ERROR_OK)
-			continue;
-
-		/* Check that we have debug power domains activated */
-		LOG_DEBUG("DAP: wait CDBGPWRUPACK");
-		retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
-					      CDBGPWRUPACK, CDBGPWRUPACK,
-					      DAP_POWER_DOMAIN_TIMEOUT);
-		if (retval != ERROR_OK)
-			continue;
-
-		LOG_DEBUG("DAP: wait CSYSPWRUPACK");
-		retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
-					      CSYSPWRUPACK, CSYSPWRUPACK,
-					      DAP_POWER_DOMAIN_TIMEOUT);
-		if (retval != ERROR_OK)
-			continue;
-
-		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-		if (retval != ERROR_OK)
-			continue;
-
-		/* With debug power on we can activate OVERRUN checking */
-		dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
-		retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
-		if (retval != ERROR_OK)
-			continue;
-		retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
-		if (retval != ERROR_OK)
-			continue;
-
-		retval = dap_run(dap);
-		if (retval != ERROR_OK)
-			continue;
-
-		break;
+		retval = dap_dp_read_atomic(dap, DP_CTRL_STAT, NULL);
+		if (retval == ERROR_OK)
+			break;
 	}
+
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Check that we have debug power domains activated */
+	LOG_DEBUG("DAP: wait CDBGPWRUPACK");
+	retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
+				      CDBGPWRUPACK, CDBGPWRUPACK,
+				      DAP_POWER_DOMAIN_TIMEOUT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("DAP: wait CSYSPWRUPACK");
+	retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
+				      CSYSPWRUPACK, CSYSPWRUPACK,
+				      DAP_POWER_DOMAIN_TIMEOUT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* With debug power on we can activate OVERRUN checking */
+	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_run(dap);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return retval;
 }
