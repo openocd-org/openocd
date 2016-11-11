@@ -104,6 +104,7 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 	int x;
 	const char *cp;
 	struct Jim_Obj *res;
+	int e;
 
 	if (!goi->isconfigure && goi->argc != 0) {
 		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "NO PARAMS");
@@ -112,7 +113,9 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 
 	os_free(target);
 
-	Jim_GetOpt_String(goi, &cp, NULL);
+	e = Jim_GetOpt_String(goi, &cp, NULL);
+	if (e != JIM_OK)
+		return e;
 
 	if (0 == strcmp(cp, "auto")) {
 		/* Auto detect tries to look up all symbols for each RTOS,
