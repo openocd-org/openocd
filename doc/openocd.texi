@@ -4126,6 +4126,10 @@ The value should normally correspond to a static mapping for the
 @option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}|@option{mqx}
 @xref{gdbrtossupport,,RTOS Support}.
 
+@item @code{-defer-examine} -- skip target examination at initial JTAG chain
+scan and after a reset. A manual call to arp_examine is required to
+access the target for debugging.
+
 @end itemize
 @end deffn
 
@@ -4162,7 +4166,7 @@ omap3530.cpu  mww 0x5555 123
 
 The commands supported by OpenOCD target objects are:
 
-@deffn Command {$target_name arp_examine}
+@deffn Command {$target_name arp_examine} @option{allow-defer}
 @deffnx Command {$target_name arp_halt}
 @deffnx Command {$target_name arp_poll}
 @deffnx Command {$target_name arp_reset}
