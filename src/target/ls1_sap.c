@@ -127,7 +127,7 @@ static void ls1_sap_set_addr_high(struct jtag_tap *tap, uint16_t addr_high)
 }
 
 static void ls1_sap_memory_cmd(struct jtag_tap *tap, uint32_t address,
-			       int32_t size, int read)
+			       int32_t size, bool rnw)
 {
 	struct scan_field field;
 	uint8_t cmd[8];
@@ -138,7 +138,7 @@ static void ls1_sap_memory_cmd(struct jtag_tap *tap, uint32_t address,
 	field.out_value = cmd;
 	buf_set_u64(cmd, 0, 9, 0);
 	buf_set_u64(cmd, 9, 3, size);
-	buf_set_u64(cmd, 12, 1, !!read);
+	buf_set_u64(cmd, 12, 1, rnw);
 	buf_set_u64(cmd, 13, 3, 0);
 	buf_set_u64(cmd, 16, 32, address);
 	buf_set_u64(cmd, 48, 16, 0);
@@ -190,7 +190,7 @@ static int ls1_sap_read_memory(struct target *target, uint32_t address,
 	ls1_sap_set_addr_high(target->tap, 0);
 
 	while (count--) {
-		ls1_sap_memory_cmd(target->tap, address, size, 1);
+		ls1_sap_memory_cmd(target->tap, address, size, true);
 		ls1_sap_memory_read(target->tap, size, buffer);
 		address += size;
 		buffer += size;
@@ -213,7 +213,7 @@ static int ls1_sap_write_memory(struct target *target, uint32_t address,
 	ls1_sap_set_addr_high(target->tap, 0);
 
 	while (count--) {
-		ls1_sap_memory_cmd(target->tap, address, size, 0);
+		ls1_sap_memory_cmd(target->tap, address, size, false);
 		ls1_sap_memory_write(target->tap, size, buffer);
 		address += size;
 		buffer += size;
