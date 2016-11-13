@@ -1359,6 +1359,41 @@ static int dap_info_command(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+int adiv5_jim_configure(struct target *target, Jim_GetOptInfo *goi)
+{
+	struct adiv5_private_config *pc;
+	const char *arg;
+	jim_wide ap_num;
+	int e;
+
+	/* check if argv[0] is for us */
+	arg = Jim_GetString(goi->argv[0], NULL);
+	if (strcmp(arg, "-ap-num"))
+		return JIM_CONTINUE;
+
+	e = Jim_GetOpt_String(goi, &arg, NULL);
+	if (e != JIM_OK)
+		return e;
+
+	if (goi->argc == 0) {
+		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-ap-num ?ap-number? ...");
+		return JIM_ERR;
+	}
+
+	e = Jim_GetOpt_Wide(goi, &ap_num);
+	if (e != JIM_OK)
+		return e;
+
+	if (target->private_config == NULL) {
+		pc = calloc(1, sizeof(struct adiv5_private_config));
+		target->private_config = pc;
+		pc->ap_num = ap_num;
+	}
+
+
+	return JIM_OK;
+}
+
 COMMAND_HANDLER(handle_dap_info_command)
 {
 	struct target *target = get_current_target(CMD_CTX);

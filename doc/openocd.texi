@@ -4152,6 +4152,10 @@ The value should normally correspond to a static mapping for the
 scan and after a reset. A manual call to arp_examine is required to
 access the target for debugging.
 
+@item @code{-ap-num} @var{ap_number} -- set DAP access port for target,
+@var{ap_number} is the numeric index of the DAP AP the target is connected to.
+Use this option with systems where multiple, independent cores are connected
+to separate access ports of the same DAP.
 @end itemize
 @end deffn
 

@@ -504,4 +504,10 @@ int dap_to_jtag(struct target *target);
 
 extern const struct command_registration dap_command_handlers[];
 
+struct adiv5_private_config {
+	int ap_num;
+};
+
+extern int adiv5_jim_configure(struct target *target, Jim_GetOptInfo *goi);
+
 #endif /* OPENOCD_TARGET_ARM_ADI_V5_H */

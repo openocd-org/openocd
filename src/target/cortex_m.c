@@ -1709,6 +1709,7 @@ void cortex_m_deinit_target(struct target *target)
 	cortex_m_dwt_free(target);
 	armv7m_free_reg_cache(target);
 
+	free(target->private_config);
 	free(cortex_m);
 }
 
@@ -1912,11 +1913,15 @@ int cortex_m_examine(struct target *target)
 			return retval;
 		}
 
-		/* Search for the MEM-AP */
-		retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Could not find MEM-AP to control the core");
-			return retval;
+		if (cortex_m->apsel < 0) {
+			/* Search for the MEM-AP */
+			retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not find MEM-AP to control the core");
+				return retval;
+			}
+		} else {
+			armv7m->debug_ap = dap_ap(swjdp, cortex_m->apsel);
 		}
 
 		/* Leave (only) generic DAP stuff for debugport_init(); */
@@ -2180,6 +2185,13 @@ static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 	cortex_m->common_magic = CORTEX_M_COMMON_MAGIC;
 	cortex_m_init_arch_info(target, cortex_m, target->tap);
 
+	if (target->private_config != NULL) {
+		struct adiv5_private_config *pc =
+				(struct adiv5_private_config *)target->private_config;
+		cortex_m->apsel = pc->ap_num;
+	} else
+		cortex_m->apsel = -1;
+
 	return ERROR_OK;
 }
 
@@ -2441,6 +2453,7 @@ struct target_type cortexm_target = {
 
 	.commands = cortex_m_command_handlers,
 	.target_create = cortex_m_target_create,
+	.target_jim_configure = adiv5_jim_configure,
 	.init_target = cortex_m_init_target,
 	.examine = cortex_m_examine,
 	.deinit_target = cortex_m_deinit_target,
