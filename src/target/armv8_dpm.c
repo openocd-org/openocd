@@ -71,7 +71,6 @@ enum arm_state armv8_dpm_get_core_state(struct arm_dpm *dpm)
 
 static int dpmv8_write_dcc(struct armv8_common *armv8, uint32_t data)
 {
-	LOG_DEBUG("write DCC 0x%08" PRIx32, data);
 	return mem_ap_write_u32(armv8->debug_ap,
 				armv8->debug_base + CPUV8_DBG_DTRRX, data);
 }
@@ -79,7 +78,6 @@ static int dpmv8_write_dcc(struct armv8_common *armv8, uint32_t data)
 static int dpmv8_write_dcc_64(struct armv8_common *armv8, uint64_t data)
 {
 	int ret;
-	LOG_DEBUG("write DCC 0x%016" PRIx64, data);
 	ret = mem_ap_write_u32(armv8->debug_ap,
 			       armv8->debug_base + CPUV8_DBG_DTRRX, data);
 	if (ret == ERROR_OK)
@@ -116,7 +114,6 @@ static int dpmv8_read_dcc(struct armv8_common *armv8, uint32_t *data,
 					    data);
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("read DCC 0x%08" PRIx32, *data);
 
 	if (dscr_p)
 		*dscr_p = dscr;
@@ -161,7 +158,6 @@ static int dpmv8_read_dcc_64(struct armv8_common *armv8, uint64_t *data,
 		return retval;
 
 	*data = *(uint32_t *)data | (uint64_t)higher << 32;
-	LOG_DEBUG("read DCC 0x%16.16" PRIx64, *data);
 
 	if (dscr_p)
 		*dscr_p = dscr;
@@ -219,8 +215,6 @@ static int dpmv8_exec_opcode(struct arm_dpm *dpm,
 	struct armv8_common *armv8 = dpm->arm->arch_info;
 	uint32_t dscr = dpm->dscr;
 	int retval;
-
-	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
 
 	if (p_dscr)
 		dscr = *p_dscr;

@@ -1086,9 +1086,6 @@ static int armv8_get_core_reg32(struct reg *reg)
 	struct reg *reg64;
 	int retval;
 
-	LOG_DEBUG("reg.name:%s number:%i arm.num:%i value:0x%08" PRIx64,
-			reg->name, reg->number, armv8_reg->num, buf_get_u64(reg->value, 0, 32));
-
 	/* get the corresponding Aarch64 register */
 	reg64 = cache->reg_list + armv8_reg->num;
 	if (reg64->valid) {

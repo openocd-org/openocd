@@ -1333,9 +1333,6 @@ static int aarch64_write_apb_ap_memory(struct target *target,
 	uint32_t dscr;
 	uint8_t *tmp_buff = NULL;
 
-	LOG_DEBUG("Writing APB-AP memory address 0x%" PRIx64 " size %"  PRIu32 " count %"  PRIu32,
-			  address, size, count);
-
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -1484,9 +1481,6 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 	uint8_t *u8buf_ptr;
 	uint32_t value;
 
-	LOG_DEBUG("Reading APB-AP memory address 0x%" TARGET_PRIxADDR " size %"	PRIu32 " count %"  PRIu32,
-			  address, size, count);
-
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -1634,8 +1628,6 @@ static int aarch64_read_phys_memory(struct target *target,
 	uint32_t count, uint8_t *buffer)
 {
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
-	LOG_DEBUG("Reading memory at real address 0x%" TARGET_PRIxADDR "; size %" PRId32 "; count %" PRId32,
-		address, size, count);
 
 	if (count && buffer) {
 		/* read memory through APB-AP */
@@ -1652,10 +1644,6 @@ static int aarch64_read_memory(struct target *target, target_addr_t address,
 {
 	int mmu_enabled = 0;
 	int retval;
-
-	/* aarch64 handles unaligned memory access */
-	LOG_DEBUG("Reading memory at address 0x%" TARGET_PRIxADDR "; size %" PRId32 "; count %" PRId32, address,
-		size, count);
 
 	/* determine if MMU was enabled on target stop */
 	retval = aarch64_mmu(target, &mmu_enabled);
@@ -1680,9 +1668,6 @@ static int aarch64_write_phys_memory(struct target *target,
 {
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
-	LOG_DEBUG("Writing memory to real address 0x%" TARGET_PRIxADDR "; size %" PRId32 "; count %" PRId32, address,
-		size, count);
-
 	if (count && buffer) {
 		/* write memory through APB-AP */
 		retval = aarch64_mmu_modify(target, 0);
@@ -1699,10 +1684,6 @@ static int aarch64_write_memory(struct target *target, target_addr_t address,
 {
 	int mmu_enabled = 0;
 	int retval;
-
-	/* aarch64 handles unaligned memory access */
-	LOG_DEBUG("Writing memory at address 0x%" TARGET_PRIxADDR "; size %" PRId32
-		  "; count %" PRId32, address, size, count);
 
 	/* determine if MMU was enabled on target stop */
 	retval = aarch64_mmu(target, &mmu_enabled);
