@@ -49,7 +49,9 @@ static int aarch64_read_apb_ap_memory(struct target *target,
 
 static int aarch64_restore_system_control_reg(struct target *target)
 {
+	enum arm_mode target_mode = ARM_MODE_ANY;
 	int retval = ERROR_OK;
+	uint32_t instr;
 
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = target_to_armv8(target);
@@ -59,41 +61,45 @@ static int aarch64_restore_system_control_reg(struct target *target)
 		/* LOG_INFO("cp15_control_reg: %8.8" PRIx32, cortex_v8->cp15_control_reg); */
 
 		switch (armv8->arm.core_mode) {
-			case ARMV8_64_EL0T:
-			case ARMV8_64_EL1T:
-			case ARMV8_64_EL1H:
-				retval = armv8->arm.msr(target, 3, /*op 0*/
-						0, 1,	/* op1, op2 */
-						0, 0,	/* CRn, CRm */
-						aarch64->system_control_reg);
-				if (retval != ERROR_OK)
-					return retval;
+		case ARMV8_64_EL0T:
+			target_mode = ARMV8_64_EL1H;
+			/* fall through */
+		case ARMV8_64_EL1T:
+		case ARMV8_64_EL1H:
+			instr = ARMV8_MSR_GP(SYSTEM_SCTLR_EL1, 0);
 			break;
-			case ARMV8_64_EL2T:
-			case ARMV8_64_EL2H:
-				retval = armv8->arm.msr(target, 3, /*op 0*/
-						4, 1,	/* op1, op2 */
-						0, 0,	/* CRn, CRm */
-						aarch64->system_control_reg);
-				if (retval != ERROR_OK)
-					return retval;
+		case ARMV8_64_EL2T:
+		case ARMV8_64_EL2H:
+			instr = ARMV8_MSR_GP(SYSTEM_SCTLR_EL2, 0);
 			break;
-			case ARMV8_64_EL3H:
-			case ARMV8_64_EL3T:
-				retval = armv8->arm.msr(target, 3, /*op 0*/
-						6, 1,	/* op1, op2 */
-						0, 0,	/* CRn, CRm */
-						aarch64->system_control_reg);
-				if (retval != ERROR_OK)
-					return retval;
+		case ARMV8_64_EL3H:
+		case ARMV8_64_EL3T:
+			instr = ARMV8_MSR_GP(SYSTEM_SCTLR_EL3, 0);
 			break;
-			default:
-				retval = armv8->arm.mcr(target, 15, 0, 0, 1, 0, aarch64->system_control_reg);
-				if (retval != ERROR_OK)
-					return retval;
-				break;
-			}
+
+		case ARM_MODE_SVC:
+		case ARM_MODE_ABT:
+		case ARM_MODE_FIQ:
+		case ARM_MODE_IRQ:
+			instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
+			break;
+
+		default:
+			LOG_INFO("cannot read system control register in this mode");
+			return ERROR_FAIL;
+		}
+
+		if (target_mode != ARM_MODE_ANY)
+			armv8_dpm_modeswitch(&armv8->dpm, target_mode);
+
+		retval = armv8->dpm.instr_write_data_r0(&armv8->dpm, instr, aarch64->system_control_reg);
+		if (retval != ERROR_OK)
+			return retval;
+
+		if (target_mode != ARM_MODE_ANY)
+			armv8_dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 	}
+
 	return retval;
 }
 
@@ -112,6 +118,7 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	int retval = ERROR_OK;
+	uint32_t instr = 0;
 
 	if (enable) {
 		/*	if mmu enabled at target stop and mmu not enable */
@@ -119,86 +126,42 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 			LOG_ERROR("trying to enable mmu on target stopped with mmu disable");
 			return ERROR_FAIL;
 		}
-		if (!(aarch64->system_control_reg_curr & 0x1U)) {
+		if (!(aarch64->system_control_reg_curr & 0x1U))
 			aarch64->system_control_reg_curr |= 0x1U;
-			switch (armv8->arm.core_mode) {
-				case ARMV8_64_EL0T:
-				case ARMV8_64_EL1T:
-				case ARMV8_64_EL1H:
-					retval = armv8->arm.msr(target, 3, /*op 0*/
-							0, 0,	/* op1, op2 */
-							1, 0,	/* CRn, CRm */
-							aarch64->system_control_reg_curr);
-					if (retval != ERROR_OK)
-						return retval;
-				break;
-				case ARMV8_64_EL2T:
-				case ARMV8_64_EL2H:
-					retval = armv8->arm.msr(target, 3, /*op 0*/
-							4, 0,	/* op1, op2 */
-							1, 0,	/* CRn, CRm */
-							aarch64->system_control_reg_curr);
-					if (retval != ERROR_OK)
-						return retval;
-				break;
-				case ARMV8_64_EL3H:
-				case ARMV8_64_EL3T:
-					retval = armv8->arm.msr(target, 3, /*op 0*/
-							6, 0,	/* op1, op2 */
-							1, 0,	/* CRn, CRm */
-							aarch64->system_control_reg_curr);
-					if (retval != ERROR_OK)
-						return retval;
-				break;
-				default:
-					LOG_DEBUG("unknow cpu state 0x%x" PRIx32, armv8->arm.core_state);
-			}
-		}
 	} else {
 		if (aarch64->system_control_reg_curr & 0x4U) {
 			/*  data cache is active */
 			aarch64->system_control_reg_curr &= ~0x4U;
-			/* flush data cache armv7 function to be called */
+			/* flush data cache armv8 function to be called */
 			if (armv8->armv8_mmu.armv8_cache.flush_all_data_cache)
 				armv8->armv8_mmu.armv8_cache.flush_all_data_cache(target);
 		}
 		if ((aarch64->system_control_reg_curr & 0x1U)) {
 			aarch64->system_control_reg_curr &= ~0x1U;
-			switch (armv8->arm.core_mode) {
-				case ARMV8_64_EL0T:
-				case ARMV8_64_EL1T:
-				case ARMV8_64_EL1H:
-					retval = armv8->arm.msr(target, 3, /*op 0*/
-							0, 0,	/* op1, op2 */
-							1, 0,	/* CRn, CRm */
-							aarch64->system_control_reg_curr);
-					if (retval != ERROR_OK)
-						return retval;
-					break;
-				case ARMV8_64_EL2T:
-				case ARMV8_64_EL2H:
-					retval = armv8->arm.msr(target, 3, /*op 0*/
-							4, 0,	/* op1, op2 */
-							1, 0,	/* CRn, CRm */
-							aarch64->system_control_reg_curr);
-					if (retval != ERROR_OK)
-						return retval;
-					break;
-				case ARMV8_64_EL3H:
-				case ARMV8_64_EL3T:
-					retval = armv8->arm.msr(target, 3, /*op 0*/
-							6, 0,	/* op1, op2 */
-							1, 0,	/* CRn, CRm */
-							aarch64->system_control_reg_curr);
-					if (retval != ERROR_OK)
-						return retval;
-					break;
-				default:
-					LOG_DEBUG("unknow cpu state 0x%x" PRIx32, armv8->arm.core_state);
-					break;
-			}
 		}
 	}
+
+	switch (armv8->arm.core_mode) {
+	case ARMV8_64_EL0T:
+	case ARMV8_64_EL1T:
+	case ARMV8_64_EL1H:
+		instr = ARMV8_MSR_GP(SYSTEM_SCTLR_EL1, 0);
+		break;
+	case ARMV8_64_EL2T:
+	case ARMV8_64_EL2H:
+		instr = ARMV8_MSR_GP(SYSTEM_SCTLR_EL2, 0);
+		break;
+	case ARMV8_64_EL3H:
+	case ARMV8_64_EL3T:
+		instr = ARMV8_MSR_GP(SYSTEM_SCTLR_EL3, 0);
+		break;
+	default:
+		LOG_DEBUG("unknown cpu state 0x%x" PRIx32, armv8->arm.core_state);
+		break;
+	}
+
+	retval = armv8->dpm.instr_write_data_r0(&armv8->dpm, instr,
+				aarch64->system_control_reg_curr);
 	return retval;
 }
 
@@ -714,51 +677,47 @@ static int aarch64_post_debug_entry(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	int retval;
+	enum arm_mode target_mode = ARM_MODE_ANY;
+	uint32_t instr;
 
 	switch (armv8->arm.core_mode) {
-		case ARMV8_64_EL0T:
-			armv8_dpm_modeswitch(&armv8->dpm, ARMV8_64_EL1H);
-			/* fall through */
-		case ARMV8_64_EL1T:
-		case ARMV8_64_EL1H:
-			retval = armv8->arm.mrs(target, 3, /*op 0*/
-					0, 0,	/* op1, op2 */
-					1, 0,	/* CRn, CRm */
-					&aarch64->system_control_reg);
-			if (retval != ERROR_OK)
-				return retval;
+	case ARMV8_64_EL0T:
+		target_mode = ARMV8_64_EL1H;
+		/* fall through */
+	case ARMV8_64_EL1T:
+	case ARMV8_64_EL1H:
+		instr = ARMV8_MRS(SYSTEM_SCTLR_EL1, 0);
 		break;
-		case ARMV8_64_EL2T:
-		case ARMV8_64_EL2H:
-			retval = armv8->arm.mrs(target, 3, /*op 0*/
-					4, 0,	/* op1, op2 */
-					1, 0,	/* CRn, CRm */
-					&aarch64->system_control_reg);
-			if (retval != ERROR_OK)
-				return retval;
+	case ARMV8_64_EL2T:
+	case ARMV8_64_EL2H:
+		instr = ARMV8_MRS(SYSTEM_SCTLR_EL2, 0);
 		break;
-		case ARMV8_64_EL3H:
-		case ARMV8_64_EL3T:
-			retval = armv8->arm.mrs(target, 3, /*op 0*/
-					6, 0,	/* op1, op2 */
-					1, 0,	/* CRn, CRm */
-					&aarch64->system_control_reg);
-			if (retval != ERROR_OK)
-				return retval;
+	case ARMV8_64_EL3H:
+	case ARMV8_64_EL3T:
+		instr = ARMV8_MRS(SYSTEM_SCTLR_EL3, 0);
 		break;
 
-		case ARM_MODE_SVC:
-			retval = armv8->arm.mrc(target, 15, 0, 0, 1, 0, &aarch64->system_control_reg);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
+	case ARM_MODE_SVC:
+	case ARM_MODE_ABT:
+	case ARM_MODE_FIQ:
+	case ARM_MODE_IRQ:
+		instr = ARMV4_5_MRC(15, 0, 0, 1, 0, 0);
+		break;
 
-		default:
-			LOG_INFO("cannot read system control register in this mode");
-			break;
+	default:
+		LOG_INFO("cannot read system control register in this mode");
+		return ERROR_FAIL;
 	}
 
-	armv8_dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
+	if (target_mode != ARM_MODE_ANY)
+		armv8_dpm_modeswitch(&armv8->dpm, target_mode);
+
+	retval = armv8->dpm.instr_read_data_r0(&armv8->dpm, instr, &aarch64->system_control_reg);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (target_mode != ARM_MODE_ANY)
+		armv8_dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 
 	LOG_DEBUG("System_register: %8.8" PRIx32, aarch64->system_control_reg);
 	aarch64->system_control_reg_curr = aarch64->system_control_reg;
