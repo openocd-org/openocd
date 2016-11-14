@@ -551,62 +551,6 @@ static int dpmv8_mcr(struct target *target, int cpnum,
 	return retval;
 }
 
-static int dpmv8_mrs(struct target *target, uint32_t op0,
-	uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
-	uint32_t *value)
-{
-	struct arm *arm = target_to_arm(target);
-	struct arm_dpm *dpm = arm->dpm;
-	int retval;
-	uint32_t op_code;
-
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		return retval;
-	op_code = ((op0 & 0x3) << 19 | (op1 & 0x7) << 16 | (CRn & 0xF) << 12 |\
-				(CRm & 0xF) << 8 | (op2 & 0x7) << 5);
-	op_code >>= 5;
-	LOG_DEBUG("MRS p%d, %d, r0, c%d, c%d, %d", (int)op0,
-		(int) op1, (int) CRn,
-		(int) CRm, (int) op2);
-	/* read coprocessor register into R0; return via DCC */
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV8_MRS(op_code, 0),
-			value);
-
-	/* (void) */ dpm->finish(dpm);
-	return retval;
-}
-
-static int dpmv8_msr(struct target *target, uint32_t op0,
-	uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
-	uint32_t value)
-{
-	struct arm *arm = target_to_arm(target);
-	struct arm_dpm *dpm = arm->dpm;
-	int retval;
-	uint32_t op_code;
-
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		return retval;
-
-	op_code = ((op0 & 0x3) << 19 | (op1 & 0x7) << 16 | (CRn & 0xF) << 12 |\
-				(CRm & 0xF) << 8 | (op2 & 0x7) << 5);
-	op_code >>= 5;
-	LOG_DEBUG("MSR p%d, %d, r0, c%d, c%d, %d", (int)op0,
-		(int) op1, (int) CRn,
-		(int) CRm, (int) op2);
-
-	/* read DCC into r0; then write coprocessor register from R0 */
-	retval = dpm->instr_write_data_r0(dpm,
-			ARMV8_MSR_GP(op_code, 0),
-			value);
-
-	/* (void) */ dpm->finish(dpm);
-	return retval;
-}
-
 /*----------------------------------------------------------------------*/
 
 /*
@@ -1449,8 +1393,6 @@ int armv8_dpm_setup(struct arm_dpm *dpm)
 	/* coprocessor access setup */
 	arm->mrc = dpmv8_mrc;
 	arm->mcr = dpmv8_mcr;
-	arm->mrs = dpmv8_mrs;
-	arm->msr = dpmv8_msr;
 
 	dpm->prepare = dpmv8_dpm_prepare;
 	dpm->finish = dpmv8_dpm_finish;
