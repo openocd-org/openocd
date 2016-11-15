@@ -51,17 +51,11 @@ enum arm_state armv8_dpm_get_core_state(struct arm_dpm *dpm)
 {
 	int el = (dpm->dscr >> 8) & 0x3;
 	int rw = (dpm->dscr >> 10) & 0xF;
-	int pos;
 
 	dpm->last_el = el;
 
-	/* find the first '0' in DSCR.RW */
-	for (pos = 3; pos >= 0; pos--) {
-		if ((rw & (1 << pos)) == 0)
-			break;
-	}
-
-	if (el > pos)
+	/* In Debug state, each bit gives the current Execution state of each EL */
+	if ((rw >> el) & 0b1)
 		return ARM_STATE_AARCH64;
 
 	return ARM_STATE_ARM;
