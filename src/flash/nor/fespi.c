@@ -198,7 +198,7 @@ static int fespi_set_dir (struct flash_bank * bank, bool dir) {
   
 }
 
-static int fespi_flush(struct flash_bank *bank) {
+static int fespi_txwm_wait(struct flash_bank *bank) {
   struct target *target = bank->target;
   struct fespi_flash_bank *fespi_info = bank->driver_priv;
   uint32_t ctrl_base = fespi_info->ctrl_base;
@@ -241,7 +241,6 @@ static int fespi_wip (struct flash_bank * bank, int timeout) {
 
   int64_t endtime;
   
-  
   fespi_set_dir(bank, FESPI_DIR_RX);
 
   FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
@@ -276,7 +275,7 @@ static int fespi_erase_sector(struct flash_bank *bank, int sector)
   int retval;
   
   fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
-  fespi_flush(bank);
+  fespi_txwm_wait(bank);
   
   FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
   fespi_tx(bank, fespi_info->dev->erase_cmd);
@@ -284,7 +283,7 @@ static int fespi_erase_sector(struct flash_bank *bank, int sector)
   fespi_tx(bank, sector >> 16);
   fespi_tx(bank, sector >> 8);
   fespi_tx(bank, sector);
-  fespi_flush(bank);
+  fespi_txwm_wait(bank);
   FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
   retval = fespi_wip(bank, FESPI_MAX_TIMEOUT);
@@ -325,7 +324,17 @@ static int fespi_erase(struct flash_bank *bank, int first, int last)
       return ERROR_FAIL;
     }
   }
-  
+        
+   fespi_txwm_wait(bank);
+   
+   /* Disable Hardware accesses*/
+   FESPI_DISABLE_HW_MODE();
+
+   /* poll WIP */
+   retval = fespi_wip(bank, FESPI_PROBE_TIMEOUT);
+   if (retval != ERROR_OK)
+     return retval;
+
   for (sector = first; sector <= last; sector++) {
     retval = fespi_erase_sector(bank, sector);
     if (retval != ERROR_OK)
@@ -349,7 +358,6 @@ static int fespi_protect(struct flash_bank *bank, int set,
 }
 
 /* This should write something less than or equal to a  page.*/
- 
 static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t len)
 {
@@ -364,8 +372,14 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	LOG_DEBUG("%s: offset=0x%08" PRIx32 " len=0x%08" PRIx32,
 		  __func__, offset, len);
 
+
+	printf("%s: offset=0x%08" PRIx32 " len=0x%08" PRIx32,
+	       __func__, offset, len);
+
+
+	
 	fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
-	fespi_flush(bank);
+	fespi_txwm_wait(bank);
 
 	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
 
@@ -379,7 +393,7 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	  fespi_tx(bank, buffer[ii]);
 	}
 
-	fespi_flush(bank);
+	fespi_txwm_wait(bank);
 
 	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 		
@@ -423,6 +437,16 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
   }
   
   page_size = fespi_info->dev->pagesize;
+  
+  fespi_txwm_wait(bank);
+  
+  /* Disable Hardware accesses*/
+  FESPI_DISABLE_HW_MODE();
+  
+  /* poll WIP */
+  retval = fespi_wip(bank, FESPI_PROBE_TIMEOUT);
+  if (retval != ERROR_OK)
+    return retval;
   
   /* unaligned buffer head */
   if (count > 0 && (offset & 3) != 0) {
@@ -484,7 +508,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
      return ERROR_TARGET_NOT_HALTED;
    }
       
-   fespi_flush(bank);
+   fespi_txwm_wait(bank);
    
    /* Disable Hardware accesses*/
    FESPI_DISABLE_HW_MODE();
@@ -555,7 +579,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
    FESPI_WRITE_REG(FESPI_REG_SCKDIV, 3);
    FESPI_WRITE_REG(FESPI_REG_TXCTRL, FESPI_TXWM(1));
    fespi_set_dir(bank, FESPI_DIR_TX);
-   
+
    retval = fespi_read_flash_id(bank, &id);
 
    FESPI_ENABLE_HW_MODE();
