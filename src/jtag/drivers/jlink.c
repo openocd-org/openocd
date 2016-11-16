@@ -674,7 +674,7 @@ static int jlink_init(void)
 		}
 	}
 
-	jtag_command_version = JAYLINK_JTAG_V2;
+	jtag_command_version = JAYLINK_JTAG_VERSION_2;
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_HW_VERSION)) {
 		ret = jaylink_get_hardware_version(devh, &hwver);
@@ -690,7 +690,7 @@ static int jlink_init(void)
 		LOG_INFO("Hardware version: %u.%02u", hwver.major, hwver.minor);
 
 		if (hwver.major >= 5)
-			jtag_command_version = JAYLINK_JTAG_V3;
+			jtag_command_version = JAYLINK_JTAG_VERSION_3;
 	}
 
 	if (iface == JAYLINK_TIF_SWD) {
@@ -1008,10 +1008,10 @@ COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
 
 	if (!CMD_ARGC) {
 		switch (jtag_command_version) {
-			case JAYLINK_JTAG_V2:
+			case JAYLINK_JTAG_VERSION_2:
 				version = 2;
 				break;
-			case JAYLINK_JTAG_V3:
+			case JAYLINK_JTAG_VERSION_3:
 				version = 3;
 				break;
 			default:
@@ -1027,10 +1027,10 @@ COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
 
 		switch (tmp) {
 			case 2:
-				jtag_command_version = JAYLINK_JTAG_V2;
+				jtag_command_version = JAYLINK_JTAG_VERSION_2;
 				break;
 			case 3:
-				jtag_command_version = JAYLINK_JTAG_V3;
+				jtag_command_version = JAYLINK_JTAG_VERSION_3;
 				break;
 			default:
 				command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
