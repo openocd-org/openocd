@@ -7,12 +7,14 @@
 #endif
 
 #include "target.h"
+#include "target/algorithm.h"
 #include "target_type.h"
 #include "log.h"
 #include "jtag/jtag.h"
 #include "opcodes.h"
 #include "register.h"
 #include "breakpoints.h"
+#include "helper/time_support.h"
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -1291,6 +1293,7 @@ static int register_get(struct reg *reg)
 		return ERROR_OK;
 	} else if (reg->number == REG_PC) {
 		buf_set_u32(reg->value, 0, 32, info->dpc);
+		reg->valid = true;
 		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
 		return ERROR_OK;
 	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
@@ -2628,8 +2631,111 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	return ERROR_OK;
 }
 
-int riscv_arch_state(struct target *target)
+static int riscv_arch_state(struct target *target)
 {
+	return ERROR_OK;
+}
+
+// Algorithm must end with a software breakpoint instruction.
+static int riscv_run_algorithm(struct target *target, int num_mem_params,
+		struct mem_param *mem_params, int num_reg_params,
+		struct reg_param *reg_params, uint32_t entry_point,
+		uint32_t exit_point, int timeout_ms, void *arch_info)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	if (num_mem_params > 0) {
+		LOG_ERROR("Memory parameters are not supported for RISC-V algorithms.");
+		return ERROR_FAIL;
+	}
+
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/// Save registers
+	if (register_get(&target->reg_cache->reg_list[REG_PC]) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	uint64_t saved_pc = reg_cache_get(target, REG_PC);
+
+	uint64_t saved_regs[32];
+	for (int i = 0; i < num_reg_params; i++) {
+		LOG_DEBUG("save %s", reg_params[i].reg_name);
+		struct reg *r = register_get_by_name(target->reg_cache, reg_params[i].reg_name, 0);
+		if (!r) {
+			LOG_ERROR("Couldn't find register named '%s'", reg_params[i].reg_name);
+			return ERROR_FAIL;
+		}
+
+		if (r->size != reg_params[i].size) {
+			LOG_ERROR("Register %s is %d bits instead of %d bits.",
+					reg_params[i].reg_name, r->size, reg_params[i].size);
+			return ERROR_FAIL;
+		}
+
+		if (r->number > REG_XPR31) {
+			LOG_ERROR("Only GPRs can be use as argument registers.");
+			return ERROR_FAIL;
+		}
+
+		if (register_get(r) != ERROR_OK) {
+			return ERROR_FAIL;
+		}
+		saved_regs[r->number] = buf_get_u64(r->value, 0, info->xlen);
+		if (register_set(r, reg_params[i].value) != ERROR_OK) {
+			return ERROR_FAIL;
+		}
+	}
+
+	/// Run algorithm
+	LOG_DEBUG("resume at 0x%x", entry_point);
+	if (riscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	int64_t start = timeval_ms();
+	while (target->state != TARGET_HALTED) {
+		LOG_DEBUG("poll()");
+		int64_t now = timeval_ms();
+		if (now - start > timeout_ms) {
+			LOG_ERROR("Algorithm timed out after %d ms.", timeout_ms);
+			return ERROR_TARGET_TIMEOUT;
+		}
+
+		int result = riscv_poll(target);
+		if (result != ERROR_OK) {
+			return result;
+		}
+	}
+
+	if (register_get(&target->reg_cache->reg_list[REG_PC]) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	uint64_t final_pc = reg_cache_get(target, REG_PC);
+	if (final_pc != exit_point) {
+		LOG_ERROR("PC ended up at 0x%" PRIx64 " instead of 0x%" PRIx32,
+				final_pc, exit_point);
+		return ERROR_FAIL;
+	}
+
+	/// Restore registers
+	uint8_t buf[8];
+	buf_set_u64(buf, 0, info->xlen, saved_pc);
+	if (register_set(&target->reg_cache->reg_list[REG_PC], buf) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	for (int i = 0; i < num_reg_params; i++) {
+		LOG_DEBUG("restore %s", reg_params[i].reg_name);
+		struct reg *r = register_get_by_name(target->reg_cache, reg_params[i].reg_name, 0);
+		buf_set_u64(buf, 0, info->xlen, saved_regs[r->number]);
+		if (register_set(r, buf) != ERROR_OK) {
+			return ERROR_FAIL;
+		}
+	}
+
 	return ERROR_OK;
 }
 
@@ -2663,4 +2769,6 @@ struct target_type riscv_target =
 	.remove_watchpoint = riscv_remove_watchpoint,
 
 	.arch_state = riscv_arch_state,
+
+	.run_algorithm = riscv_run_algorithm,
 };
