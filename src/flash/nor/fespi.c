@@ -531,6 +531,16 @@ unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
 					offset += size + 2;
 					break;
 				}
+			case STEP_WRITE_REG:
+				assert(offset + 3 < target_size);
+				memcpy(target + offset, as->steps[s], 3);
+				offset += 3;
+				break;
+			case STEP_TXWM_WAIT:
+				assert(offset + 1 < target_size);
+				memcpy(target + offset, as->steps[s], 1);
+				offset += 1;
+				break;
 			default:
 				assert(0);
 		}
@@ -567,6 +577,31 @@ void as_add_tx(struct algorithm_steps *as, unsigned count, const uint8_t *data)
 	}
 }
 
+void as_add_tx1(struct algorithm_steps *as, uint8_t byte)
+{
+	uint8_t data[1];
+	data[0] = byte;
+	as_add_tx(as, 1, data);
+}
+
+void as_add_write_reg(struct algorithm_steps *as, uint8_t offset, uint8_t data)
+{
+	assert(as->used < as->size);
+	as->steps[as->used] = malloc(3);
+	as->steps[as->used][0] = STEP_WRITE_REG;
+	as->steps[as->used][1] = offset;
+	as->steps[as->used][2] = data;
+	as->used++;
+}
+
+void as_add_txwm_wait(struct algorithm_steps *as)
+{
+	assert(as->used < as->size);
+	as->steps[as->used] = malloc(1);
+	as->steps[as->used][0] = STEP_TXWM_WAIT;
+	as->used++;
+}
+
 /* This should write something less than or equal to a  page.*/
 static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t chip_offset, uint32_t len,
@@ -598,12 +633,12 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 		data_wa_size /= 2;
 	}
 
-	fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
-	fespi_txwm_wait(bank);
-
-	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
-
 	struct algorithm_steps *as = as_new(100);
+
+	as_add_tx1(as, SPIFLASH_WRITE_ENABLE);
+	as_add_txwm_wait(as);
+	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
+
 	uint8_t setup[] = {
 		SPIFLASH_PAGE_PROGRAM,
 		chip_offset >> 16,
@@ -611,7 +646,10 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 		chip_offset,
 	};
 	as_add_tx(as, sizeof(setup), setup);
+
 	as_add_tx(as, len, buffer);
+	as_add_txwm_wait(as);
+	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
 	uint8_t *data_buf = malloc(data_wa->size);
 
@@ -641,9 +679,6 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	target_free_working_area(target, data_wa);
-
-	fespi_txwm_wait(bank);
-	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
 	return ERROR_OK;
 
