@@ -221,8 +221,8 @@ static int fespi_tx(struct flash_bank *bank, uint8_t in){
 	return ERROR_OK;
 }
 
-static uint8_t fespi_rx(struct flash_bank * bank) {
-
+static uint8_t fespi_rx(struct flash_bank * bank)
+{
 	struct target *target = bank->target;
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t ctrl_base = fespi_info->ctrl_base;
@@ -231,11 +231,11 @@ static uint8_t fespi_rx(struct flash_bank * bank) {
 	while ((out = (int32_t) FESPI_READ_REG(FESPI_REG_RXFIFO)) < 0);
 
 	return out & 0xFF;
-
 }
 
 //TODO!!! Why don't we need to call this after writing?
-static int fespi_wip (struct flash_bank * bank, int timeout) {
+static int fespi_wip (struct flash_bank * bank, int timeout)
+{
 	struct target *target = bank->target;
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t ctrl_base = fespi_info->ctrl_base;
@@ -265,7 +265,6 @@ static int fespi_wip (struct flash_bank * bank, int timeout) {
 
 	LOG_ERROR("timeout");
 	return ERROR_FAIL;
-
 }
 
 static int fespi_erase_sector(struct flash_bank *bank, int sector)
@@ -390,6 +389,184 @@ static int slow_fespi_write_buffer(struct flash_bank *bank,
 	return ERROR_OK;
 }
 
+/*
+ * Here's the source for the algorithm.
+ * You can turn it into the array below using:
+	sed -n '/ALGO_START$/,/ALGO_END/ p' fespi.c | \
+		riscv32-unknown-elf-gcc -x assembler-with-cpp - -nostdlib -nostartfiles -o tmp.o && \
+		riscv32-unknown-elf-objcopy -O binary tmp.o algorithm.bin && \
+		xxd -i algorithm.bin
+
+// ALGO_START
+// Register offsets
+#define FESPI_REG_TXFIFO          0x48
+#define FESPI_REG_IP              0x74
+
+// Fields
+#define FESPI_IP_TXWM             0x1
+
+// To enter, jump to the start of command_table (ie. offset 0).
+//      a0 - FESPI base address
+//      a1 - start address of buffer
+
+// The buffer contains a "program" in byte sequences. The first byte in a
+// sequence determines the operation. Some operation will read more data from
+// the program, while some will not. The operation byte is the offset into
+// command_table, so eg. 4 means exit, 8 means transmit, and so on.
+
+_start:
+command_table:
+        j       main            // 0
+        ebreak                  // 4
+        j       tx              // 8
+        j       txwm_wait       // 12
+        j       write_reg       // 16
+
+// Execute the program.
+main:
+        lbu     t0, 0(a1)
+        addi    a1, a1, 1
+        la      t1, command_table
+        add     t0, t0, t1
+        jr      t0
+
+// Read 1 byte the contains the number of bytes to transmit. Then read those
+// bytes from the program and transmit them one by one.
+tx:
+        lbu     t1, 0(a1)       // read number of bytes to transmit
+        addi    a1, a1, 1
+1:      lw      t0, FESPI_REG_TXFIFO(a0)        // wait for FIFO clear
+        bltz    t0, 1b
+        lbu     t0, 0(a1)       // Load byte to write
+        sw      t0, FESPI_REG_TXFIFO(a0)
+        addi    a1, a1, 1
+        addi    t1, t1, -1
+        bgtz    t1, 1b
+        j       main
+
+// Wait until TXWM is set.
+txwm_wait:
+1:      lw      t0, FESPI_REG_IP(a0)
+        andi    t0, t0, FESPI_IP_TXWM
+        beqz    t0, 1b
+        j       main
+
+// Read 1 byte that contains the offset of the register to write, and 1 byte
+// that contains the data to write.
+write_reg:
+        lbu     t0, 0(a1)       // read register to write
+        add     t0, t0, a0
+        lbu     t1, 1(a1)       // read value to write
+        addi    a1, a1, 2
+        sw      t1, 0(t0)
+        j       main
+// ALGO_END
+ */
+static const uint8_t algorithm_bin[] = {
+  0x6f, 0x00, 0x40, 0x01, 0x73, 0x00, 0x10, 0x00, 0x6f, 0x00, 0x40, 0x02,
+  0x6f, 0x00, 0x80, 0x04, 0x6f, 0x00, 0x40, 0x05, 0x83, 0xc2, 0x05, 0x00,
+  0x93, 0x85, 0x15, 0x00, 0x17, 0x03, 0x00, 0x00, 0x13, 0x03, 0x43, 0xfe,
+  0xb3, 0x82, 0x62, 0x00, 0x67, 0x80, 0x02, 0x00, 0x03, 0xc3, 0x05, 0x00,
+  0x93, 0x85, 0x15, 0x00, 0x83, 0x22, 0x85, 0x04, 0xe3, 0xce, 0x02, 0xfe,
+  0x83, 0xc2, 0x05, 0x00, 0x23, 0x24, 0x55, 0x04, 0x93, 0x85, 0x15, 0x00,
+  0x13, 0x03, 0xf3, 0xff, 0xe3, 0x44, 0x60, 0xfe, 0x6f, 0xf0, 0x5f, 0xfc,
+  0x83, 0x22, 0x45, 0x07, 0x93, 0xf2, 0x12, 0x00, 0xe3, 0x8c, 0x02, 0xfe,
+  0x6f, 0xf0, 0x5f, 0xfb, 0x83, 0xc2, 0x05, 0x00, 0xb3, 0x82, 0xa2, 0x00,
+  0x03, 0xc3, 0x15, 0x00, 0x93, 0x85, 0x25, 0x00, 0x23, 0xa0, 0x62, 0x00,
+  0x6f, 0xf0, 0xdf, 0xf9
+};
+#define STEP_EXIT			4
+#define STEP_TX				8
+#define STEP_TXWM_WAIT		12
+#define STEP_WRITE_REG		16
+#define STEP_NOP			0xff
+
+struct algorithm_steps {
+	unsigned size;
+	unsigned used;
+	uint8_t **steps;
+};
+
+struct algorithm_steps *as_new(unsigned size)
+{
+	struct algorithm_steps *as = calloc(1, sizeof(struct algorithm_steps));
+	as->size = size;
+	as->steps = calloc(size, sizeof(as->steps[0]));
+	return as;
+}
+
+struct algorithm_steps *as_delete(struct algorithm_steps *as)
+{
+	for (unsigned step = 0; step < as->used; step++) {
+		free(as->steps[step]);
+		as->steps[step] = NULL;
+	}
+	free(as);
+	return NULL;
+}
+
+int as_empty(struct algorithm_steps *as)
+{
+	for (unsigned s = 0; s < as->used; s++) {
+		if (as->steps[s][0] != STEP_NOP)
+			return 0;
+	}
+	return 1;
+}
+
+// Return size of compiled program.
+unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
+		unsigned target_size)
+{
+	unsigned offset = 0;
+	for (unsigned s = 0; s < as->used; s++) {
+		switch (as->steps[s][0]) {
+			case STEP_NOP:
+				break;
+			case STEP_TX:
+				{
+					unsigned size = as->steps[s][1];
+					assert(offset + size + 3 < target_size);
+					memcpy(target + offset, as->steps[s], size + 2);
+					offset += size + 2;
+					break;
+				}
+			default:
+				assert(0);
+		}
+		as->steps[s][0] = STEP_NOP;
+	}
+	assert(offset + 1 < target_size);
+	target[offset++] = STEP_EXIT;
+
+	LOG_DEBUG("%d-byte program:", offset);
+	for (unsigned i = 0; i < offset;) {
+		char buf[80];
+		for (unsigned x = 0; i < offset && x < 16; x++, i++) {
+			sprintf(buf + x*3, "%02x ", target[i]);
+		}
+		LOG_DEBUG("%s", buf);
+	}
+
+	return offset;
+}
+
+void as_add_tx(struct algorithm_steps *as, unsigned count, const uint8_t *data)
+{
+	LOG_DEBUG("count=%d", count);
+	while (count > 0) {
+		unsigned step_count = MIN(count, 255);
+		assert(as->used < as->size);
+		as->steps[as->used] = malloc(step_count + 1);
+		as->steps[as->used][0] = STEP_TX;
+		as->steps[as->used][1] = step_count;
+		memcpy(as->steps[as->used] + 2, data, step_count);
+		as->used++;
+		data += step_count;
+		count -= step_count;
+	}
+}
+
 /* This should write something less than or equal to a  page.*/
 static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t chip_offset, uint32_t len,
@@ -407,7 +584,7 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	struct working_area *data_wa;
-	unsigned data_wa_size = len + 4;
+	unsigned data_wa_size = 2 * len;
 	while (1) {
 		if (data_wa_size < 128) {
 			LOG_WARNING("Couldn't allocate data working area.");
@@ -426,51 +603,41 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 
 	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
 
-	// Make the biggest possible block of txdata so we can write it in the
-	// minimum number of operations.
-	uint8_t *tx_data = malloc(4 + len);
-	if (!tx_data) {
-		LOG_ERROR("Couldn't allocate tx_data.");
-		return ERROR_FAIL;
-	}
+	struct algorithm_steps *as = as_new(100);
+	uint8_t setup[] = {
+		SPIFLASH_PAGE_PROGRAM,
+		chip_offset >> 16,
+		chip_offset >> 8,
+		chip_offset,
+	};
+	as_add_tx(as, sizeof(setup), setup);
+	as_add_tx(as, len, buffer);
 
-	tx_data[0] = SPIFLASH_PAGE_PROGRAM;
-	tx_data[1] = chip_offset >> 16;
-	tx_data[2] = chip_offset >> 8;
-	tx_data[3] = chip_offset;
-	memcpy(tx_data + 4, buffer, len);
-	len += 4;
+	uint8_t *data_buf = malloc(data_wa->size);
 
-	struct reg_param reg_params[3];
+	struct reg_param reg_params[2];
 	init_reg_param(&reg_params[0], "x10", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "x11", 32, PARAM_OUT);
-	init_reg_param(&reg_params[2], "x12", 32, PARAM_OUT);
-	buf_set_u32(reg_params[0].value, 0, 32, ctrl_base + FESPI_REG_TXFIFO);
+	buf_set_u32(reg_params[0].value, 0, 32, ctrl_base);
 	buf_set_u32(reg_params[1].value, 0, 32, data_wa->address);
-	unsigned offset = 0;
-	while (len > 0) {
-		unsigned bytes = MIN(len, data_wa->size);
-		buf_set_u32(reg_params[2].value, 0, 32, bytes);
+	while (!as_empty(as)) {
+		unsigned bytes = as_compile(as, data_buf, data_wa->size);
 		int retval = target_write_buffer(target, data_wa->address, bytes,
-				tx_data + offset);
+				data_buf);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to write data to 0x%x: %d", data_wa->address,
 					retval);
 			goto error;
 		}
 
-		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-				algorithm_wa->address, 
-				algorithm_wa->address + algorithm_wa->size - 4,
+		retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
+				algorithm_wa->address, algorithm_wa->address + 4,
 				10000, NULL);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to execute algorithm at 0x%x: %d", algorithm_wa->address,
 					retval);
 			goto error;
 		}
-
-		len -= bytes;
-		offset += bytes;
 	}
 
 	target_free_working_area(target, data_wa);
@@ -523,30 +690,14 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	struct working_area *algorithm_wa;
-	static const uint32_t riscv_write_buffer_code[] = {
-		// a0 - address of FESPI_REG_TXFIFO
-		// a1 - start address of buffer
-		// a2 - size of buffer, in bytes
-		/*  0 */ 0x00052283, //         	lw		t0,0(a0)
-		/*  4 */ 0xfe02cee3, //         	bltz	t0,0
-		/*  8 */ 0x00058283, //         	lb		t0,0(a1)
-		/*  c */ 0x00552023, //         	sw		t0,0(a0)
-		/* 10 */ 0x00158593, //         	addi	a1,a1,1
-		/* 14 */ 0xfff60613, //         	addi	a2,a2,-1
-		/* 18 */ 0xfec044e3, //         	bgtz	a2,0
-		/* 1c */ 0x00100073, //         	ebreak
-	};
-	if (target_alloc_working_area(target, sizeof(riscv_write_buffer_code),
+	if (target_alloc_working_area(target, sizeof(algorithm_bin),
 				&algorithm_wa) != ERROR_OK) {
 		LOG_WARNING("Couldn't allocate %ld-byte working area.",
-				sizeof(riscv_write_buffer_code));
+				sizeof(algorithm_bin));
 		algorithm_wa = NULL;
 	} else {
-		uint8_t code[sizeof(riscv_write_buffer_code)];
-		target_buffer_set_u32_array(target, code,
-				ARRAY_SIZE(riscv_write_buffer_code), riscv_write_buffer_code);
 		retval = target_write_buffer(target, algorithm_wa->address,
-				sizeof(code), code);
+				sizeof(algorithm_bin), algorithm_bin);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to write code to 0x%x: %d", algorithm_wa->address,
 					retval);
