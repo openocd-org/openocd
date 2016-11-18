@@ -545,6 +545,9 @@ static int jlink_init(void)
 	enum jaylink_usb_address address;
 	size_t length;
 
+	LOG_DEBUG("Using libjaylink %s (compiled with %s).",
+		jaylink_version_package_get_string(), JAYLINK_VERSION_PACKAGE_STRING);
+
 	ret = jaylink_init(&jayctx);
 
 	if (ret != JAYLINK_OK) {
