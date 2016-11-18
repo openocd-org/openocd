@@ -2701,6 +2701,8 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		int64_t now = timeval_ms();
 		if (now - start > timeout_ms) {
 			LOG_ERROR("Algorithm timed out after %d ms.", timeout_ms);
+			riscv_halt(target);
+			riscv_poll(target);
 			return ERROR_TARGET_TIMEOUT;
 		}
 

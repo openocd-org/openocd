@@ -16,7 +16,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-/* The Freedeom E SPI controller is a SPI bus controller
+/* The Freedem E SPI controller is a SPI bus controller
  * specifically designed for SPI Flash Memories on Freedom E platforms.
  * 
  * Two working modes are available:
@@ -28,7 +28,7 @@
 
 /* ATTENTION:
  * To have flash memory mapped in CPU memory space, the controller
- * has have  "HW mode" enabled.
+ * must have "HW mode" enabled.
  * 1) The command "reset init" has to initialize the controller and put
  *    it in HW mode (this is actually the default out of reset for Freedom E systems).
  * 2) every command in this file have to return to prompt in HW mode. */
@@ -251,7 +251,6 @@ static int fespi_wip (struct flash_bank * bank, int timeout)
 	fespi_rx(bank);
 
 	do {
-
 		alive_sleep(1);
 
 		fespi_tx(bank, 0);
@@ -260,7 +259,6 @@ static int fespi_wip (struct flash_bank * bank, int timeout)
 			fespi_set_dir(bank, FESPI_DIR_TX);
 			return ERROR_OK;
 		}
-
 	} while (timeval_ms() < endtime);
 
 	LOG_ERROR("timeout");
@@ -386,6 +384,8 @@ static int slow_fespi_write_buffer(struct flash_bank *bank,
 
 	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
+	keep_alive();
+
 	return ERROR_OK;
 }
 
@@ -398,12 +398,18 @@ static int slow_fespi_write_buffer(struct flash_bank *bank,
 		xxd -i algorithm.bin
 
 // ALGO_START
+#define SPIFLASH_READ_STATUS	0x05 // Read Status Register
+#define SPIFLASH_BSY_BIT		0x00000001 // WIP Bit of SPI SR on SMI SR
+
 // Register offsets
+#define FESPI_REG_FMT             0x40
 #define FESPI_REG_TXFIFO          0x48
+#define FESPI_REG_RXFIFO          0x4c
 #define FESPI_REG_IP              0x74
 
 // Fields
 #define FESPI_IP_TXWM             0x1
+#define FESPI_FMT_DIR(x)          (((x) & 0x1) << 3)
 
 // To enter, jump to the start of command_table (ie. offset 0).
 //      a0 - FESPI base address
@@ -414,6 +420,7 @@ static int slow_fespi_write_buffer(struct flash_bank *bank,
 // the program, while some will not. The operation byte is the offset into
 // command_table, so eg. 4 means exit, 8 means transmit, and so on.
 
+		.global _start
 _start:
 command_table:
         j       main            // 0
@@ -421,6 +428,8 @@ command_table:
         j       tx              // 8
         j       txwm_wait       // 12
         j       write_reg       // 16
+		j		wip_wait		// 20
+		j		set_dir 		// 24
 
 // Execute the program.
 main:
@@ -460,25 +469,63 @@ write_reg:
         addi    a1, a1, 2
         sw      t1, 0(t0)
         j       main
+
+wip_wait:
+		li		a2, SPIFLASH_READ_STATUS
+        jal		txrx_byte
+		// discard first result
+1:		li		a2, 0
+        jal		txrx_byte
+		andi	t0, a2, SPIFLASH_BSY_BIT
+		bnez	t0, 1b
+		j		main
+
+txrx_byte:	// transmit the byte in a2, receive a bit into a2
+		lw      t0, FESPI_REG_TXFIFO(a0)        // wait for FIFO clear
+        bltz    t0, txrx_byte
+        sw      a2, FESPI_REG_TXFIFO(a0)
+1:		lw		a2, FESPI_REG_RXFIFO(a0)
+		bltz	a2, 1b
+		ret
+
+set_dir:
+		lw		t0, FESPI_REG_FMT(a0)
+		li		t1, ~(FESPI_FMT_DIR(0xFFFFFFFF))
+		and		t0, t0, t1
+        lbu     t1, 0(a1)       // read value to OR in
+        addi    a1, a1, 1
+		or		t0, t0, t1
+		sw		t0, FESPI_REG_FMT(a0)
+		j		main
+
 // ALGO_END
  */
 static const uint8_t algorithm_bin[] = {
-  0x6f, 0x00, 0x40, 0x01, 0x73, 0x00, 0x10, 0x00, 0x6f, 0x00, 0x40, 0x02,
-  0x6f, 0x00, 0x80, 0x04, 0x6f, 0x00, 0x40, 0x05, 0x83, 0xc2, 0x05, 0x00,
-  0x93, 0x85, 0x15, 0x00, 0x17, 0x03, 0x00, 0x00, 0x13, 0x03, 0x43, 0xfe,
-  0xb3, 0x82, 0x62, 0x00, 0x67, 0x80, 0x02, 0x00, 0x03, 0xc3, 0x05, 0x00,
-  0x93, 0x85, 0x15, 0x00, 0x83, 0x22, 0x85, 0x04, 0xe3, 0xce, 0x02, 0xfe,
-  0x83, 0xc2, 0x05, 0x00, 0x23, 0x24, 0x55, 0x04, 0x93, 0x85, 0x15, 0x00,
-  0x13, 0x03, 0xf3, 0xff, 0xe3, 0x44, 0x60, 0xfe, 0x6f, 0xf0, 0x5f, 0xfc,
-  0x83, 0x22, 0x45, 0x07, 0x93, 0xf2, 0x12, 0x00, 0xe3, 0x8c, 0x02, 0xfe,
-  0x6f, 0xf0, 0x5f, 0xfb, 0x83, 0xc2, 0x05, 0x00, 0xb3, 0x82, 0xa2, 0x00,
-  0x03, 0xc3, 0x15, 0x00, 0x93, 0x85, 0x25, 0x00, 0x23, 0xa0, 0x62, 0x00,
-  0x6f, 0xf0, 0xdf, 0xf9
+  0x6f, 0x00, 0xc0, 0x01, 0x73, 0x00, 0x10, 0x00, 0x6f, 0x00, 0xc0, 0x02,
+  0x6f, 0x00, 0x00, 0x05, 0x6f, 0x00, 0xc0, 0x05, 0x6f, 0x00, 0x00, 0x07,
+  0x6f, 0x00, 0x00, 0x0a, 0x83, 0xc2, 0x05, 0x00, 0x93, 0x85, 0x15, 0x00,
+  0x17, 0x03, 0x00, 0x00, 0x13, 0x03, 0xc3, 0xfd, 0xb3, 0x82, 0x62, 0x00,
+  0x67, 0x80, 0x02, 0x00, 0x03, 0xc3, 0x05, 0x00, 0x93, 0x85, 0x15, 0x00,
+  0x83, 0x22, 0x85, 0x04, 0xe3, 0xce, 0x02, 0xfe, 0x83, 0xc2, 0x05, 0x00,
+  0x23, 0x24, 0x55, 0x04, 0x93, 0x85, 0x15, 0x00, 0x13, 0x03, 0xf3, 0xff,
+  0xe3, 0x44, 0x60, 0xfe, 0x6f, 0xf0, 0x5f, 0xfc, 0x83, 0x22, 0x45, 0x07,
+  0x93, 0xf2, 0x12, 0x00, 0xe3, 0x8c, 0x02, 0xfe, 0x6f, 0xf0, 0x5f, 0xfb,
+  0x83, 0xc2, 0x05, 0x00, 0xb3, 0x82, 0xa2, 0x00, 0x03, 0xc3, 0x15, 0x00,
+  0x93, 0x85, 0x25, 0x00, 0x23, 0xa0, 0x62, 0x00, 0x6f, 0xf0, 0xdf, 0xf9,
+  0x13, 0x06, 0x50, 0x00, 0xef, 0x00, 0x80, 0x01, 0x13, 0x06, 0x00, 0x00,
+  0xef, 0x00, 0x00, 0x01, 0x93, 0x72, 0x16, 0x00, 0xe3, 0x9a, 0x02, 0xfe,
+  0x6f, 0xf0, 0x1f, 0xf8, 0x83, 0x22, 0x85, 0x04, 0xe3, 0xce, 0x02, 0xfe,
+  0x23, 0x24, 0xc5, 0x04, 0x03, 0x26, 0xc5, 0x04, 0xe3, 0x4e, 0x06, 0xfe,
+  0x67, 0x80, 0x00, 0x00, 0x83, 0x22, 0x05, 0x04, 0x13, 0x03, 0x70, 0xff,
+  0xb3, 0xf2, 0x62, 0x00, 0x03, 0xc3, 0x05, 0x00, 0x93, 0x85, 0x15, 0x00,
+  0xb3, 0xe2, 0x62, 0x00, 0x23, 0x20, 0x55, 0x04, 0x6f, 0xf0, 0x9f, 0xf4
 };
 #define STEP_EXIT			4
 #define STEP_TX				8
 #define STEP_TXWM_WAIT		12
 #define STEP_WRITE_REG		16
+#define STEP_WIP_WAIT		20
+#define STEP_SET_DIR		24
 #define STEP_NOP			0xff
 
 struct algorithm_steps {
@@ -519,32 +566,53 @@ unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
 		unsigned target_size)
 {
 	unsigned offset = 0;
-	for (unsigned s = 0; s < as->used; s++) {
+	bool finish_early = false;
+	for (unsigned s = 0; s < as->used && !finish_early; s++) {
+		unsigned bytes_left = target_size - offset;
 		switch (as->steps[s][0]) {
 			case STEP_NOP:
 				break;
 			case STEP_TX:
 				{
 					unsigned size = as->steps[s][1];
-					assert(offset + size + 3 < target_size);
+					if (size + 3 > bytes_left) {
+						finish_early = true;
+						break;
+					}
 					memcpy(target + offset, as->steps[s], size + 2);
 					offset += size + 2;
 					break;
 				}
 			case STEP_WRITE_REG:
-				assert(offset + 3 < target_size);
+				if (4 > bytes_left) {
+					finish_early = true;
+					break;
+				}
 				memcpy(target + offset, as->steps[s], 3);
 				offset += 3;
 				break;
+			case STEP_SET_DIR:
+				if (3 > bytes_left) {
+					finish_early = true;
+					break;
+				}
+				memcpy(target + offset, as->steps[s], 2);
+				offset += 2;
+				break;
 			case STEP_TXWM_WAIT:
-				assert(offset + 1 < target_size);
+			case STEP_WIP_WAIT:
+				if (2 > bytes_left) {
+					finish_early = true;
+					break;
+				}
 				memcpy(target + offset, as->steps[s], 1);
 				offset += 1;
 				break;
 			default:
 				assert(0);
 		}
-		as->steps[s][0] = STEP_NOP;
+		if (!finish_early)
+			as->steps[s][0] = STEP_NOP;
 	}
 	assert(offset + 1 < target_size);
 	target[offset++] = STEP_EXIT;
@@ -602,39 +670,27 @@ void as_add_txwm_wait(struct algorithm_steps *as)
 	as->used++;
 }
 
-/* This should write something less than or equal to a  page.*/
-static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
-		uint32_t chip_offset, uint32_t len,
-		struct working_area *algorithm_wa)
+void as_add_wip_wait(struct algorithm_steps *as)
 {
-	struct target *target = bank->target;
-	struct fespi_flash_bank *fespi_info = bank->driver_priv;
-	uint32_t ctrl_base = fespi_info->ctrl_base;
+	assert(as->used < as->size);
+	as->steps[as->used] = malloc(1);
+	as->steps[as->used][0] = STEP_WIP_WAIT;
+	as->used++;
+}
 
-	LOG_DEBUG("%s: chip_offset=0x%08" PRIx32 " len=0x%08" PRIx32,
-			__func__, chip_offset, len);
+void as_add_set_dir(struct algorithm_steps *as, bool dir)
+{
+	assert(as->used < as->size);
+	as->steps[as->used] = malloc(2);
+	as->steps[as->used][0] = STEP_SET_DIR;
+	as->steps[as->used][1] = FESPI_FMT_DIR(dir);
+	as->used++;
+}
 
-	if (!algorithm_wa) {
-		return slow_fespi_write_buffer(bank, buffer, chip_offset, len);
-	}
-
-	struct working_area *data_wa;
-	unsigned data_wa_size = 2 * len;
-	while (1) {
-		if (data_wa_size < 128) {
-			LOG_WARNING("Couldn't allocate data working area.");
-			return slow_fespi_write_buffer(bank, buffer, chip_offset, len);
-		}
-		if (target_alloc_working_area_try(target, data_wa_size, &data_wa) ==
-				ERROR_OK) {
-			break;
-		}
-
-		data_wa_size /= 2;
-	}
-
-	struct algorithm_steps *as = as_new(100);
-
+/* This should write something less than or equal to a page.*/
+static int steps_add_buffer_write(struct algorithm_steps *as,
+		const uint8_t *buffer, uint32_t chip_offset, uint32_t len)
+{
 	as_add_tx1(as, SPIFLASH_WRITE_ENABLE);
 	as_add_txwm_wait(as);
 	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
@@ -651,6 +707,23 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	as_add_txwm_wait(as);
 	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
+	// fespi_wip()
+	as_add_set_dir(as, FESPI_DIR_RX);
+	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
+	as_add_wip_wait(as);
+	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
+	as_add_set_dir(as, FESPI_DIR_TX);
+
+	return ERROR_OK;
+}
+
+static int steps_execute(struct algorithm_steps *as,
+		struct flash_bank *bank, struct working_area *algorithm_wa,
+		struct working_area *data_wa)
+{
+	struct target *target = bank->target;
+	struct fespi_flash_bank *fespi_info = bank->driver_priv;
+	uint32_t ctrl_base = fespi_info->ctrl_base;
 	uint8_t *data_buf = malloc(data_wa->size);
 
 	struct reg_param reg_params[2];
@@ -659,13 +732,14 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 	buf_set_u32(reg_params[0].value, 0, 32, ctrl_base);
 	buf_set_u32(reg_params[1].value, 0, 32, data_wa->address);
 	while (!as_empty(as)) {
+		keep_alive();
 		unsigned bytes = as_compile(as, data_buf, data_wa->size);
 		int retval = target_write_buffer(target, data_wa->address, bytes,
 				data_buf);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to write data to 0x%x: %d", data_wa->address,
 					retval);
-			goto error;
+			return retval;
 		}
 
 		retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
@@ -674,18 +748,11 @@ static int fespi_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to execute algorithm at 0x%x: %d", algorithm_wa->address,
 					retval);
-			goto error;
+			return retval;
 		}
 	}
 
-	target_free_working_area(target, data_wa);
-
 	return ERROR_OK;
-
-error:
-	target_free_working_area(target, data_wa);
-	LOG_ERROR("Falling back to slow write.");
-	return slow_fespi_write_buffer(bank, buffer, chip_offset, len);
 }
 
 static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
@@ -741,6 +808,22 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 	}
 
+	struct working_area *data_wa = NULL;
+	unsigned data_wa_size = 2 * count;
+	while (1) {
+		if (data_wa_size < 128) {
+			LOG_WARNING("Couldn't allocate data working area.");
+			target_free_working_area(target, algorithm_wa);
+			algorithm_wa = NULL;
+		}
+		if (target_alloc_working_area_try(target, data_wa_size, &data_wa) ==
+				ERROR_OK) {
+			break;
+		}
+
+		data_wa_size /= 2;
+	}
+
 	page_size = fespi_info->dev->pagesize;
 
 	fespi_txwm_wait(bank);
@@ -753,13 +836,18 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
+	struct algorithm_steps *as = as_new(count / 16);
+
 	/* unaligned buffer head */
 	if (count > 0 && (offset & 3) != 0) {
 		cur_count = 4 - (offset & 3);
 		if (cur_count > count)
 			cur_count = count;
-		retval = fespi_write_buffer(bank, buffer, offset,
-				cur_count, algorithm_wa);
+		if (algorithm_wa) {
+			retval = steps_add_buffer_write(as, buffer, offset, cur_count);
+		} else {
+			retval = slow_fespi_write_buffer(bank, buffer, offset, cur_count);
+		}
 		if (retval != ERROR_OK)
 			goto err;
 		offset += cur_count;
@@ -776,8 +864,11 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		else
 			cur_count = count & ~3;
 
-		retval = fespi_write_buffer(bank, buffer, offset,
-				cur_count, algorithm_wa);
+		if (algorithm_wa) {
+			retval = steps_add_buffer_write(as, buffer, offset, cur_count);
+		} else {
+			retval = slow_fespi_write_buffer(bank, buffer, offset, cur_count);
+		}
 		if (retval != ERROR_OK)
 			goto err;
 
@@ -785,16 +876,26 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		buffer += cur_count;
 		offset += cur_count;
 		count -= cur_count;
-
-		keep_alive();
 	}
 
 	/* buffer tail */
-	if (count > 0)
-		retval = fespi_write_buffer(bank, buffer, offset, count, algorithm_wa);
+	if (count > 0) {
+		if (algorithm_wa) {
+			retval = steps_add_buffer_write(as, buffer, offset, count);
+		} else {
+			retval = slow_fespi_write_buffer(bank, buffer, offset, count);
+		}
+		if (retval != ERROR_OK)
+			goto err;
+	}
+
+	if (algorithm_wa) {
+		retval = steps_execute(as, bank, algorithm_wa, data_wa);
+	}
 
 err:
 	if (algorithm_wa) {
+		target_free_working_area(target, data_wa);
 		target_free_working_area(target, algorithm_wa);
 	}
 
