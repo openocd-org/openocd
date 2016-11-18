@@ -45,67 +45,11 @@ AC_SEARCH_LIBS([ioperm], [ioperm])
 AC_SEARCH_LIBS([dlopen], [dl])
 
 AC_CHECK_HEADERS([sys/socket.h])
-AC_CHECK_HEADERS([arpa/inet.h], [], [], [dnl
-#include <stdio.h>
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# ifdef HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-# include <sys/socket.h>
-#endif
-])
 AC_CHECK_HEADERS([elf.h])
 AC_CHECK_HEADERS([dirent.h])
 AC_CHECK_HEADERS([fcntl.h])
-AC_CHECK_HEADERS([ifaddrs.h], [], [], [dnl
-#include <stdio.h>
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# ifdef HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-# include <sys/socket.h>
-#endif
-])
 AC_CHECK_HEADERS([malloc.h])
 AC_CHECK_HEADERS([netdb.h])
-AC_CHECK_HEADERS([netinet/in.h], [], [], [dnl
-#include <stdio.h>
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# ifdef HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-# include <sys/socket.h>
-#endif
-])
-AC_CHECK_HEADERS([netinet/tcp.h], [], [], [dnl
-#include <stdio.h>
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# ifdef HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-# include <sys/socket.h>
-#endif
-])
 AC_CHECK_HEADERS([poll.h])
 AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_HEADERS([strings.h])
@@ -116,7 +60,7 @@ AC_CHECK_HEADERS([sys/stat.h])
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/types.h])
 AC_CHECK_HEADERS([unistd.h])
-AC_CHECK_HEADERS([net/if.h], [], [], [dnl
+AC_CHECK_HEADERS([arpa/inet.h ifaddrs.h netinet/in.h netinet/tcp.h net/if.h], [], [], [dnl
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
