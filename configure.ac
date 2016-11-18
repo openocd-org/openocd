@@ -316,6 +316,14 @@ AC_ARG_ENABLE([sysfsgpio],
   AS_HELP_STRING([--enable-sysfsgpio], [Enable building support for programming driven via sysfs gpios.]),
   [build_sysfsgpio=$enableval], [build_sysfsgpio=no])
 
+AS_CASE([$host_os],
+  [linux*], [],
+  [
+    AS_IF([test "x$build_sysfsgpio" = "xyes"], [
+      AC_MSG_ERROR([sysfsgpio is only available on linux])
+    ])
+])
+
 AC_ARG_ENABLE([minidriver_dummy],
   AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
   [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
