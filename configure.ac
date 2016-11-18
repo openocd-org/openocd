@@ -760,3 +760,26 @@ m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS,
 	])
 ])
 echo
+
+AS_IF([test "x$build_oocd_trace" = "xyes"], [
+  echo 'WARNING! Deprecated configure option (--enable-oocd_trace)'
+  echo 'The oocd_trace driver is deprecated and will be removed in the next release.'
+  echo 'If you regularly use this driver, please report to the OpenOCD Mailing List.'
+  echo
+])
+
+AS_IF([test "x$build_zy1000" = "xyes" -o "x$build_zy1000_master" = "xyes"], [
+  echo 'WARNING! Deprecated configure option (--enable-zy1000, --enable-zy1000-master)'
+  echo 'Support for the ZY1000 platform is deprecated and will be removed in the next'
+  echo 'release. If you regularly use this platform, please report to the OpenOCD'
+  echo 'Mailing List.'
+  echo
+])
+
+AS_IF([test "x$build_ioutil" = "xyes"], [
+  echo 'WARNING! Deprecated configure option (--enable-ioutil)'
+  echo 'Support for the ioutil functions is deprecated and will be removed in the next'
+  echo 'release. If you regularly depend on this functionality, please report to the'
+  echo 'OpenOCD Mailing List.'
+  echo
+])
