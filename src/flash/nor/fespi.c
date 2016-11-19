@@ -614,7 +614,7 @@ unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
 		if (!finish_early)
 			as->steps[s][0] = STEP_NOP;
 	}
-	assert(offset + 1 < target_size);
+	assert(offset + 1 <= target_size);
 	target[offset++] = STEP_EXIT;
 
 	LOG_DEBUG("%d-byte program:", offset);
