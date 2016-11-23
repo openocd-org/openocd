@@ -16,7 +16,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-/* The Freedem E SPI controller is a SPI bus controller
+/* The Freedom E SPI controller is a SPI bus controller
  * specifically designed for SPI Flash Memories on Freedom E platforms.
  * 
  * Two working modes are available:
