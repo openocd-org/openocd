@@ -198,4 +198,25 @@ void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 
 void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dcsr);
 
+/* PRCR (Device Power-down and Reset Control Register) bits */
+#define PRCR_DEBUG_NO_POWER_DOWN         (1 << 0)
+#define PRCR_WARM_RESET                  (1 << 1)
+#define PRCR_HOLD_NON_DEBUG_RESET        (1 << 2)
+
+/* PRSR (Device Power-down and Reset Status Register) bits */
+#define PRSR_POWERUP_STATUS              (1 << 0)
+#define PRSR_STICKY_POWERDOWN_STATUS     (1 << 1)
+#define PRSR_RESET_STATUS                (1 << 2)
+#define PRSR_STICKY_RESET_STATUS         (1 << 3)
+#define PRSR_HALTED                      (1 << 4)  /* v7.1 Debug only */
+#define PRSR_OSLK                        (1 << 5)  /* v7.1 Debug only */
+#define PRSR_DLK                         (1 << 6)  /* v7.1 Debug only */
+
+/* OSLSR (OS Lock Status Register) bits */
+#define OSLSR_OSLM0                      (1 << 0)
+#define OSLSR_OSLK                       (1 << 1)
+#define OSLSR_nTT                        (1 << 2)
+#define OSLSR_OSLM1                      (1 << 3)
+#define OSLSR_OSLM                       (OSLSR_OSLM0|OSLSR_OSLM1)
+
 #endif /* OPENOCD_TARGET_ARM_DPM_H */
