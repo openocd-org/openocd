@@ -722,22 +722,29 @@ static bits_t read_bits(struct target *target)
 	uint64_t value;
 	dbus_status_t status;
 	uint16_t address_in;
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+
+	bits_t err_result = {
+		.haltnot = 0,
+		.interrupt = 0
+	};
 
 	do {
 		unsigned i = 0;
 		do {
 			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, 0, 0);
 			if (status == DBUS_STATUS_BUSY) {
+				if (address_in == (1<<info->addrbits) - 1 &&
+						value == (1ULL<<DBUS_DATA_SIZE) - 1) {
+					LOG_ERROR("TDO seems to be stuck high.");
+					return err_result;
+				}
 				increase_dbus_busy_delay(target);
 			}
 		} while (status == DBUS_STATUS_BUSY && i++ < 256);
 
 		if (i >= 256) {
 			LOG_ERROR("Failed to read from 0x%x; status=%d", address_in, status);
-			bits_t err_result = {
-				.haltnot = 0,
-				.interrupt = 0
-			};
 			return err_result;
 		}
 	} while (address_in > 0x10 && address_in != DMCONTROL);
