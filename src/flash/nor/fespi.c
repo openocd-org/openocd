@@ -204,7 +204,18 @@ static int fespi_txwm_wait(struct flash_bank *bank) {
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t ctrl_base = fespi_info->ctrl_base;
 
-	while (!(FESPI_READ_REG(FESPI_REG_IP) & FESPI_IP_TXWM));
+	int64_t start = timeval_ms();
+
+	while (1) {
+		if (FESPI_READ_REG(FESPI_REG_IP) & FESPI_IP_TXWM) {
+			break;
+		}
+		int64_t now = timeval_ms();
+		if (now - start > 1000) {
+			LOG_ERROR("ip.txwm didn't get set.");
+			return ERROR_TARGET_TIMEOUT;
+		}
+	}
 
 	return ERROR_OK;
 
@@ -221,16 +232,30 @@ static int fespi_tx(struct flash_bank *bank, uint8_t in){
 	return ERROR_OK;
 }
 
-static uint8_t fespi_rx(struct flash_bank * bank)
+static int fespi_rx(struct flash_bank *bank, uint8_t *out)
 {
 	struct target *target = bank->target;
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t ctrl_base = fespi_info->ctrl_base;
 
-	int32_t out;
-	while ((out = (int32_t) FESPI_READ_REG(FESPI_REG_RXFIFO)) < 0);
+	int64_t start = timeval_ms();
+	int32_t value;
 
-	return out & 0xFF;
+	while (1) {
+		value = (int32_t) FESPI_READ_REG(FESPI_REG_RXFIFO);
+		if (value >= 0)
+			break;
+		int64_t now = timeval_ms();
+		if (now - start > 1000) {
+			LOG_ERROR("rxfifo didn't go positive (value=0x%x).", value);
+			return ERROR_TARGET_TIMEOUT;
+		}
+	}
+
+	if (out) {
+		*out = value & 0xff;
+	}
+	return ERROR_OK;
 }
 
 //TODO!!! Why don't we need to call this after writing?
@@ -248,13 +273,17 @@ static int fespi_wip (struct flash_bank * bank, int timeout)
 	endtime = timeval_ms() + timeout;
 
 	fespi_tx(bank, SPIFLASH_READ_STATUS);
-	fespi_rx(bank);
+	if (fespi_rx(bank, NULL) != ERROR_OK)
+		return ERROR_FAIL;
 
 	do {
 		alive_sleep(1);
 
 		fespi_tx(bank, 0);
-		if ((fespi_rx(bank) & SPIFLASH_BSY_BIT) == 0) {
+		uint8_t rx;
+		if (fespi_rx(bank, &rx) != ERROR_OK)
+			return ERROR_FAIL;
+		if ((rx & SPIFLASH_BSY_BIT) == 0) {
 			FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 			fespi_set_dir(bank, FESPI_DIR_TX);
 			return ERROR_OK;
@@ -941,10 +970,18 @@ static int fespi_read_flash_id(struct flash_bank *bank, uint32_t *id)
 
 	/* read ID from Receive Register */
 	*id = 0;
-	fespi_rx(bank);
-	*id = fespi_rx(bank);
-	*id |= (fespi_rx(bank) << 8);
-	*id |= (fespi_rx(bank) << 16);
+	if (fespi_rx(bank, NULL) != ERROR_OK)
+		return ERROR_FAIL;
+	uint8_t rx;
+	if (fespi_rx(bank, &rx) != ERROR_OK)
+		return ERROR_FAIL;
+	*id = rx;
+	if (fespi_rx(bank, &rx) != ERROR_OK)
+		return ERROR_FAIL;
+	*id |= (rx << 8);
+	if (fespi_rx(bank, &rx) != ERROR_OK)
+		return ERROR_FAIL;
+	*id |= (rx << 16);
 
 	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
