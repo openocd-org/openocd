@@ -1093,7 +1093,7 @@ static int armv8_get_core_reg32(struct reg *reg)
 		return ERROR_OK;
 	}
 
-	retval = arm->read_core_reg(target, reg, armv8_reg->num, arm->core_mode);
+	retval = arm->read_core_reg(target, reg64, armv8_reg->num, arm->core_mode);
 	if (retval == ERROR_OK)
 		reg->valid = reg64->valid;
 
@@ -1108,9 +1108,6 @@ static int armv8_set_core_reg32(struct reg *reg, uint8_t *buf)
 	struct reg_cache *cache = arm->core_cache;
 	struct reg *reg64 = cache->reg_list + armv8_reg->num;
 	uint32_t value = buf_get_u32(buf, 0, 32);
-
-	if (target->state != TARGET_HALTED)
-		return ERROR_TARGET_NOT_HALTED;
 
 	if (reg64 == arm->cpsr) {
 		armv8_set_cpsr(arm, value);
@@ -1250,7 +1247,7 @@ int armv8_get_gdb_reg_list(struct target *target,
 
 	if (arm->core_state == ARM_STATE_AARCH64) {
 
-		LOG_DEBUG("Creating Aarch64 register list");
+		LOG_DEBUG("Creating Aarch64 register list for target %s", target_name(target));
 
 		switch (reg_class) {
 		case REG_CLASS_GENERAL:
@@ -1277,7 +1274,7 @@ int armv8_get_gdb_reg_list(struct target *target,
 	} else {
 		struct reg_cache *cache32 = arm->core_cache->next;
 
-		LOG_DEBUG("Creating Aarch32 register list");
+		LOG_DEBUG("Creating Aarch32 register list for target %s", target_name(target));
 
 		switch (reg_class) {
 		case REG_CLASS_GENERAL:
