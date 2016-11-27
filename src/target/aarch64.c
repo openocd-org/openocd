@@ -103,13 +103,6 @@ static int aarch64_restore_system_control_reg(struct target *target)
 	return retval;
 }
 
-/*  check address before aarch64_apb read write access with mmu on
- *  remove apb predictible data abort */
-static int aarch64_check_address(struct target *target, uint32_t address)
-{
-	/* TODO */
-	return ERROR_OK;
-}
 /*  modify system_control_reg in order to enable or disable mmu for :
  *  - virt2phys address conversion
  *  - read or write memory in phys or virt address */
@@ -1651,9 +1644,6 @@ static int aarch64_read_memory(struct target *target, target_addr_t address,
 		return retval;
 
 	if (mmu_enabled) {
-		retval = aarch64_check_address(target, address);
-		if (retval != ERROR_OK)
-			return retval;
 		/* enable MMU as we could have disabled it for phys access */
 		retval = aarch64_mmu_modify(target, 1);
 		if (retval != ERROR_OK)
@@ -1691,9 +1681,6 @@ static int aarch64_write_memory(struct target *target, target_addr_t address,
 		return retval;
 
 	if (mmu_enabled) {
-		retval = aarch64_check_address(target, address);
-		if (retval != ERROR_OK)
-			return retval;
 		/* enable MMU as we could have disabled it for phys access */
 		retval = aarch64_mmu_modify(target, 1);
 		if (retval != ERROR_OK)
