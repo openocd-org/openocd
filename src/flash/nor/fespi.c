@@ -226,7 +226,19 @@ static int fespi_tx(struct flash_bank *bank, uint8_t in){
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t ctrl_base = fespi_info->ctrl_base;
 
-	while ((int32_t) FESPI_READ_REG(FESPI_REG_TXFIFO) < 0);
+	int64_t start = timeval_ms();
+
+	while (1) {
+		if ((int32_t) FESPI_READ_REG(FESPI_REG_TXFIFO) >= 0) {
+			break;
+		}
+		int64_t now = timeval_ms();
+		if (now - start > 1000) {
+			LOG_ERROR("txfifo stayed negative.");
+			return ERROR_TARGET_TIMEOUT;
+		}
+	}
+
 	FESPI_WRITE_REG(FESPI_REG_TXFIFO, in);
 
 	return ERROR_OK;
