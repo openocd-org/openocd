@@ -1032,10 +1032,6 @@ static int fespi_probe(struct flash_bank *bank)
 			target_device->name, bank->base);
 
 	/* read and decode flash ID; returns in SW mode */
-	// TODO!!! Pass these arguments in to the driver
-	// Elsewhere this driver assumes these are set this way,
-	// but should really save and restore at the entry points.
-	FESPI_WRITE_REG(FESPI_REG_SCKDIV, 3);
 	FESPI_WRITE_REG(FESPI_REG_TXCTRL, FESPI_TXWM(1));
 	fespi_set_dir(bank, FESPI_DIR_TX);
 
