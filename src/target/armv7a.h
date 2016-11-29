@@ -48,7 +48,6 @@ struct armv7a_l2x_cache {
 };
 
 struct armv7a_cachesize {
-	uint32_t level_num;
 	/*  cache dimensionning */
 	uint32_t linelen;
 	uint32_t associativity;
