@@ -89,6 +89,7 @@
 
 #define FLEXRAM		0x14000000
 
+#define MSCM_OCMDR0	0x40001400
 #define FMC_PFB01CR	0x4001f004
 #define FTFx_FSTAT	0x40020000
 #define FTFx_FCNFG	0x40020001
@@ -187,6 +188,7 @@
 #define KINETIS_SDID_SERIESID_MASK 0x00F00000
 #define KINETIS_SDID_SERIESID_K   0x00000000
 #define KINETIS_SDID_SERIESID_KL   0x00100000
+#define KINETIS_SDID_SERIESID_KE   0x00200000
 #define KINETIS_SDID_SERIESID_KW   0x00500000
 #define KINETIS_SDID_SERIESID_KV   0x00600000
 
@@ -198,6 +200,8 @@
 #define KINETIS_SDID_SUBFAMID_KX4   0x04000000
 #define KINETIS_SDID_SUBFAMID_KX5   0x05000000
 #define KINETIS_SDID_SUBFAMID_KX6   0x06000000
+#define KINETIS_SDID_SUBFAMID_KX7   0x07000000
+#define KINETIS_SDID_SUBFAMID_KX8   0x08000000
 
 #define KINETIS_SDID_FAMILYID_MASK  0xF0000000
 #define KINETIS_SDID_FAMILYID_K0X   0x00000000
@@ -208,6 +212,11 @@
 #define KINETIS_SDID_FAMILYID_K6X   0x60000000
 #define KINETIS_SDID_FAMILYID_K7X   0x70000000
 #define KINETIS_SDID_FAMILYID_K8X   0x80000000
+
+/* The field originally named DIEID has new name/meaning on KE1x */
+#define KINETIS_SDID_PROJECTID_MASK  KINETIS_SDID_DIEID_MASK
+#define KINETIS_SDID_PROJECTID_KE1xF 0x00000080
+#define KINETIS_SDID_PROJECTID_KE1xZ 0x00000100
 
 struct kinetis_flash_bank {
 	bool probed;
@@ -232,9 +241,10 @@ struct kinetis_flash_bank {
 	enum {
 		FS_PROGRAM_SECTOR = 1,
 		FS_PROGRAM_LONGWORD = 2,
-		FS_PROGRAM_PHRASE = 4, /* Unsupported */
-		FS_INVALIDATE_CACHE_K = 8,
-		FS_INVALIDATE_CACHE_L = 0x10,
+		FS_PROGRAM_PHRASE = 4,		/* Unsupported */
+		FS_INVALIDATE_CACHE_K = 8,	/* using FMC->PFB0CR/PFB01CR */
+		FS_INVALIDATE_CACHE_L = 0x10,	/* using MCM->PLACR */
+		FS_INVALIDATE_CACHE_MSCM = 0x20,
 	} flash_support;
 };
 
@@ -1184,9 +1194,16 @@ static void kinetis_invalidate_flash_cache(struct flash_bank *bank)
 
 	if (kinfo->flash_support & FS_INVALIDATE_CACHE_K)
 		target_write_u8(bank->target, FMC_PFB01CR + 2, 0xf0);
+		/* Set CINV_WAY bits - request invalidate of all cache ways */
+		/* FMC_PFB0CR has same address and CINV_WAY bits as FMC_PFB01CR */
 
 	else if (kinfo->flash_support & FS_INVALIDATE_CACHE_L)
 		target_write_u8(bank->target, MCM_PLACR + 1, 0x04);
+		/* set bit CFCC - Clear Flash Controller Cache */
+
+	else if (kinfo->flash_support & FS_INVALIDATE_CACHE_MSCM)
+		target_write_u32(bank->target, MSCM_OCMDR0, 0x30);
+		/* disable data prefetch and flash speculate */
 
 	return;
 }
@@ -1740,6 +1757,36 @@ static int kinetis_probe(struct flash_bank *bank)
 
 			default:
 				LOG_ERROR("Unsupported KV FAMILYID SUBFAMID");
+			}
+			break;
+
+		case KINETIS_SDID_SERIESID_KE:
+			/* KE1x-series */
+			switch (kinfo->sim_sdid &
+				(KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK | KINETIS_SDID_PROJECTID_MASK)) {
+			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX4 | KINETIS_SDID_PROJECTID_KE1xZ:
+			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX5 | KINETIS_SDID_PROJECTID_KE1xZ:
+				/* KE1xZ: FTFE, 2kB sectors */
+				pflash_sector_size_bytes = 2<<10;
+				nvm_sector_size_bytes = 2<<10;
+				kinfo->max_flash_prog_size = 1<<9;
+				num_blocks = 2;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_L;
+				break;
+
+			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX4 | KINETIS_SDID_PROJECTID_KE1xF:
+			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX6 | KINETIS_SDID_PROJECTID_KE1xF:
+			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX8 | KINETIS_SDID_PROJECTID_KE1xF:
+				/* KE1xF: FTFE, 4kB sectors */
+				pflash_sector_size_bytes = 4<<10;
+				nvm_sector_size_bytes = 2<<10;
+				kinfo->max_flash_prog_size = 1<<10;
+				num_blocks = 2;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_MSCM;
+				break;
+
+			default:
+				LOG_ERROR("Unsupported KE FAMILYID SUBFAMID");
 			}
 			break;
 

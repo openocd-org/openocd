@@ -5361,10 +5361,12 @@ nor is Chip Erase (only Sector Erase is implemented).}
 
 @deffn {Flash Driver} kinetis
 @cindex kinetis
-Kx and KLx members of the Kinetis microcontroller family from Freescale include
+Kx, KLx, KVx and KE1x members of the Kinetis microcontroller family
+from NXP (former Freescale) include
 internal flash and use ARM Cortex-M0+ or M4 cores. The driver automatically
 recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
+Use kinetis_ke driver for KE0x devices.
 
 @example
 flash bank $_FLASHNAME kinetis 0 0 0 0 $_TARGETNAME
