@@ -835,7 +835,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct working_area *algorithm_wa;
 	if (target_alloc_working_area(target, sizeof(algorithm_bin),
 				&algorithm_wa) != ERROR_OK) {
-		LOG_WARNING("Couldn't allocate %ld-byte working area.",
+		LOG_WARNING("Couldn't allocate %zd-byte working area.",
 				sizeof(algorithm_bin));
 		algorithm_wa = NULL;
 	} else {
