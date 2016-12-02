@@ -1615,6 +1615,33 @@ static int evaluate_misc_instr(uint32_t opcode,
 	return ERROR_OK;
 }
 
+static int evaluate_mov_imm(uint32_t opcode,
+			      uint32_t address, struct arm_instruction *instruction)
+{
+	uint16_t immediate;
+	uint8_t Rd;
+	bool T;
+
+	Rd = (opcode & 0xf000) >> 12;
+	T = opcode & 0x00400000;
+	immediate = (opcode & 0xf0000) >> 4 | (opcode & 0xfff);
+
+	instruction->type = ARM_MOV;
+	instruction->info.data_proc.Rd = Rd;
+
+	snprintf(instruction->text,
+		 128,
+		 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMOV%s%s r%i, #0x%" PRIx16,
+		 address,
+		 opcode,
+		 T ? "T" : "W",
+		 COND(opcode),
+		 Rd,
+		 immediate);
+
+	return ERROR_OK;
+}
+
 static int evaluate_data_proc(uint32_t opcode,
 			      uint32_t address, struct arm_instruction *instruction)
 {
@@ -1891,16 +1918,9 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
 
 	/* catch opcodes with [27:25] = b001 */
 	if ((opcode & 0x0e000000) == 0x02000000) {
-		/* Undefined instruction */
-		if ((opcode & 0x0fb00000) == 0x03000000) {
-			instruction->type = ARM_UNDEFINED_INSTRUCTION;
-			snprintf(instruction->text,
-					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEFINED INSTRUCTION",
-					address,
-					opcode);
-			return ERROR_OK;
-		}
+		/* 16-bit immediate load */
+		if ((opcode & 0x0fb00000) == 0x03000000)
+			return evaluate_mov_imm(opcode, address, instruction);
 
 		/* Move immediate to status register */
 		if ((opcode & 0x0fb00000) == 0x03200000)
