@@ -2896,12 +2896,26 @@ static int t2ev_b_bl(uint32_t opcode, uint32_t address,
 	address += 4;
 	address += offset << 1;
 
-	instruction->type = (opcode & (1 << 14)) ? ARM_BL : ARM_B;
+	char *inst;
+	switch ((opcode >> 12) & 0x5) {
+	case 0x1:
+		inst = "B.W";
+		instruction->type = ARM_B;
+		break;
+	case 0x4:
+		inst = "BLX";
+		instruction->type = ARM_BLX;
+		break;
+	case 0x5:
+		inst = "BL";
+		instruction->type = ARM_BL;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 	instruction->info.b_bl_bx_blx.reg_operand = -1;
 	instruction->info.b_bl_bx_blx.target_address = address;
-	sprintf(cp, "%s\t%#8.8" PRIx32,
-			(opcode & (1 << 14)) ? "BL" : "B.W",
-			address);
+	sprintf(cp, "%s\t%#8.8" PRIx32, inst, address);
 
 	return ERROR_OK;
 }
@@ -3078,10 +3092,9 @@ static int t2ev_b_misc(uint32_t opcode, uint32_t address,
 
 	switch ((opcode >> 12) & 0x5) {
 		case 0x1:
+		case 0x4:
 		case 0x5:
 			return t2ev_b_bl(opcode, address, instruction, cp);
-		case 0x4:
-			goto undef;
 		case 0:
 			if (((opcode >> 23) & 0x07) != 0x07)
 				return t2ev_cond_b(opcode, address, instruction, cp);
