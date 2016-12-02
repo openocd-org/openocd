@@ -106,6 +106,7 @@ enum arm_instruction_type {
 	ARM_MCRR,
 	ARM_MRRC,
 	ARM_PLD,
+	ARM_DSB,
 	ARM_QADD,
 	ARM_QDADD,
 	ARM_QSUB,

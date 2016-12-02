@@ -129,6 +129,47 @@ static int evaluate_pld(uint32_t opcode,
 
 		return ERROR_OK;
 	}
+	/* DSB */
+	if ((opcode & 0x07f000f0) == 0x05700040) {
+		instruction->type = ARM_DSB;
+
+		char *opt;
+		switch (opcode & 0x0000000f) {
+		case 0xf:
+			opt = "SY";
+			break;
+		case 0xe:
+			opt = "ST";
+			break;
+		case 0xb:
+			opt = "ISH";
+			break;
+		case 0xa:
+			opt = "ISHST";
+			break;
+		case 0x7:
+			opt = "NSH";
+			break;
+		case 0x6:
+			opt = "NSHST";
+			break;
+		case 0x3:
+			opt = "OSH";
+			break;
+		case 0x2:
+			opt = "OSHST";
+			break;
+		default:
+			opt = "UNK";
+		}
+
+		snprintf(instruction->text,
+				128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDSB %s",
+				address, opcode, opt);
+
+		return ERROR_OK;
+	}
 	return evaluate_unknown(opcode, address, instruction);
 }
 
