@@ -170,6 +170,18 @@ static int evaluate_pld(uint32_t opcode,
 
 		return ERROR_OK;
 	}
+	/* ISB */
+	if ((opcode & 0x07f000f0) == 0x05700060) {
+		instruction->type = ARM_ISB;
+
+		snprintf(instruction->text,
+				128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tISB %s",
+				address, opcode,
+				((opcode & 0x0000000f) == 0xf) ? "SY" : "UNK");
+
+		return ERROR_OK;
+	}
 	return evaluate_unknown(opcode, address, instruction);
 }
 
