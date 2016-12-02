@@ -132,7 +132,7 @@ typedef enum slot {
 #define DMCONTROL_FULLRESET		1
 
 #define DMINFO					0x11
-#define DMINFO_ABUSSIZE			(0x7f<<25)
+#define DMINFO_ABUSSIZE			(0x7fU<<25)
 #define DMINFO_SERIALCOUNT		(0xf<<21)
 #define DMINFO_ACCESS128		(1<<20)
 #define DMINFO_ACCESS64			(1<<19)
