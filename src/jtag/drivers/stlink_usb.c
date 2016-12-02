@@ -2883,10 +2883,13 @@ error_open:
 	return ERROR_FAIL;
 }
 
-int stlink_config_trace(void *handle, bool enabled, enum tpiu_pin_protocol pin_protocol,
-			uint32_t port_size, unsigned int *trace_freq)
+int stlink_config_trace(void *handle, bool enabled,
+		enum tpiu_pin_protocol pin_protocol, uint32_t port_size,
+		unsigned int *trace_freq, unsigned int traceclkin_freq,
+		uint16_t *prescaler)
 {
 	struct stlink_usb_handle_s *h = handle;
+	uint16_t presc;
 
 	if (enabled && (!(h->version.flags & STLINK_F_HAS_TRACE) ||
 			pin_protocol != TPIU_PIN_PROTOCOL_ASYNC_UART)) {
@@ -2909,6 +2912,19 @@ int stlink_config_trace(void *handle, bool enabled, enum tpiu_pin_protocol pin_p
 
 	if (!*trace_freq)
 		*trace_freq = STLINK_TRACE_MAX_HZ;
+
+	presc = traceclkin_freq / *trace_freq;
+
+	if (traceclkin_freq % *trace_freq > 0)
+		presc++;
+
+	if (presc > TPIU_ACPR_MAX_SWOSCALER) {
+		LOG_ERROR("SWO frequency is not suitable. Please choose a different "
+			"frequency.");
+		return ERROR_FAIL;
+	}
+
+	*prescaler = presc;
 	h->trace.source_hz = *trace_freq;
 
 	return stlink_usb_trace_enable(h);

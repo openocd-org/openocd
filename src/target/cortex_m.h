@@ -86,6 +86,9 @@
 #define TPIU_FFCR	0xE0040304
 #define TPIU_FSCR	0xE0040308
 
+/* Maximum SWO prescaler value. */
+#define TPIU_ACPR_MAX_SWOSCALER	0x1fff
+
 /* DCB_DHCSR bit and field definitions */
 #define DBGKEY		(0xA05F << 16)
 #define C_DEBUGEN	(1 << 0)

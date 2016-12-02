@@ -39,6 +39,7 @@
 #include <jtag/swd.h>
 #include <jtag/commands.h>
 #include <jtag/drivers/jtag_usb_common.h>
+#include <target/cortex_m.h>
 
 #include <libjaylink/libjaylink.h>
 
@@ -61,6 +62,9 @@ static bool trace_enabled;
 #define JLINK_TAP_BUFFER_SIZE	2048
 
 static unsigned int swd_buffer_size = JLINK_TAP_BUFFER_SIZE;
+
+/* Maximum SWO frequency deviation. */
+#define SWO_MAX_FREQ_DEV	0.03
 
 /* 256 byte non-volatile memory */
 struct device_config {
@@ -1267,42 +1271,63 @@ static uint32_t calculate_trace_buffer_size(void)
 	return tmp & 0xffffff00;
 }
 
-static bool check_trace_freq(struct jaylink_swo_speed speed,
-		uint32_t trace_freq)
+static bool calculate_swo_prescaler(unsigned int traceclkin_freq,
+		uint32_t trace_freq, uint16_t *prescaler)
 {
-	double min;
+	unsigned int presc;
 	double deviation;
+
+	presc = ((1.0 - SWO_MAX_FREQ_DEV) * traceclkin_freq) / trace_freq + 1;
+
+	if (presc > TPIU_ACPR_MAX_SWOSCALER)
+		return false;
+
+	deviation = fabs(1.0 - ((double)trace_freq * presc / traceclkin_freq));
+
+	if (deviation > SWO_MAX_FREQ_DEV)
+		return false;
+
+	*prescaler = presc;
+
+	return true;
+}
+
+static bool detect_swo_freq_and_prescaler(struct jaylink_swo_speed speed,
+		unsigned int traceclkin_freq, uint32_t *trace_freq,
+		uint16_t *prescaler)
+{
 	uint32_t divider;
+	unsigned int presc;
+	double deviation;
 
-	min = fabs(1.0 - (speed.freq / ((double)trace_freq * speed.min_div)));
+	for (divider = speed.min_div; divider <= speed.max_div; divider++) {
+		*trace_freq = speed.freq / divider;
+		presc = ((1.0 - SWO_MAX_FREQ_DEV) * traceclkin_freq) / *trace_freq + 1;
 
-	for (divider = speed.min_div; divider < speed.max_div; divider++) {
-		deviation = fabs(1.0 - (speed.freq / ((double)trace_freq * divider)));
+		if (presc > TPIU_ACPR_MAX_SWOSCALER)
+			break;
 
-		if (deviation < 0.03) {
-			LOG_DEBUG("Found suitable frequency divider %u with deviation of "
-				"%.02f %%.", divider, deviation);
+		deviation = fabs(1.0 - ((double)*trace_freq * presc / traceclkin_freq));
+
+		if (deviation <= SWO_MAX_FREQ_DEV) {
+			*prescaler = presc;
 			return true;
 		}
-
-		if (deviation < min)
-			min = deviation;
 	}
-
-	LOG_ERROR("Selected trace frequency is not supported by the device. "
-		"Please choose a different trace frequency.");
-	LOG_ERROR("Maximum permitted deviation is 3.00 %%, but only %.02f %% "
-		"could be achieved.", min * 100);
 
 	return false;
 }
 
 static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
-		uint32_t port_size, unsigned int *trace_freq)
+		uint32_t port_size, unsigned int *trace_freq,
+		unsigned int traceclkin_freq, uint16_t *prescaler)
 {
 	int ret;
 	uint32_t buffer_size;
 	struct jaylink_swo_speed speed;
+	uint32_t divider;
+	uint32_t min_freq;
+	uint32_t max_freq;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SWO)) {
 		LOG_ERROR("Trace capturing is not supported by the device.");
@@ -1349,13 +1374,45 @@ static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		return ERROR_FAIL;
 	}
 
-	if (!*trace_freq)
-		*trace_freq = speed.freq / speed.min_div;
+	if (*trace_freq > 0) {
+		divider = speed.freq / *trace_freq;
+		min_freq = speed.freq / speed.max_div;
+		max_freq = speed.freq / speed.min_div;
 
-	if (!check_trace_freq(speed, *trace_freq))
-		return ERROR_FAIL;
+		if (*trace_freq > max_freq) {
+			LOG_INFO("Given SWO frequency too high, using %u Hz instead.",
+				max_freq);
+			*trace_freq = max_freq;
+		} else if (*trace_freq < min_freq) {
+			LOG_INFO("Given SWO frequency too low, using %u Hz instead.",
+				min_freq);
+			*trace_freq = min_freq;
+		} else if (*trace_freq != speed.freq / divider) {
+			*trace_freq = speed.freq / divider;
 
-	LOG_DEBUG("Using %u bytes device memory for trace capturing.", buffer_size);
+			LOG_INFO("Given SWO frequency is not supported by the device, "
+				"using %u Hz instead.", *trace_freq);
+		}
+
+		if (!calculate_swo_prescaler(traceclkin_freq, *trace_freq,
+				prescaler)) {
+			LOG_ERROR("SWO frequency is not suitable. Please choose a "
+				"different frequency or use auto-detection.");
+			return ERROR_FAIL;
+		}
+	} else {
+		LOG_INFO("Trying to auto-detect SWO frequency.");
+
+		if (!detect_swo_freq_and_prescaler(speed, traceclkin_freq, trace_freq,
+				prescaler)) {
+			LOG_ERROR("Maximum permitted frequency deviation of %.02f %% "
+				"could not be achieved.", SWO_MAX_FREQ_DEV);
+			LOG_ERROR("Auto-detection of SWO frequency failed.");
+			return ERROR_FAIL;
+		}
+
+		LOG_INFO("Using SWO frequency of %u Hz.", *trace_freq);
+	}
 
 	ret = jaylink_swo_start(devh, JAYLINK_SWO_MODE_UART, *trace_freq,
 		buffer_size);
@@ -1364,6 +1421,9 @@ static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		LOG_ERROR("jaylink_start_swo() failed: %s.", jaylink_strerror(ret));
 		return ERROR_FAIL;
 	}
+
+	LOG_DEBUG("Using %u bytes device memory for trace capturing.",
+		buffer_size);
 
 	/*
 	 * Adjust the SWD transaction buffer size as starting SWO capturing

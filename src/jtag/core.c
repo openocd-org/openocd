@@ -1918,12 +1918,13 @@ void adapter_deassert_reset(void)
 }
 
 int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
-			 uint32_t port_size, unsigned int *trace_freq)
+		uint32_t port_size, unsigned int *trace_freq,
+		unsigned int traceclkin_freq, uint16_t *prescaler)
 {
-	if (jtag->config_trace)
-		return jtag->config_trace(enabled, pin_protocol, port_size,
-					  trace_freq);
-	else if (enabled) {
+	if (jtag->config_trace) {
+		return jtag->config_trace(enabled, pin_protocol, port_size, trace_freq,
+			traceclkin_freq, prescaler);
+	} else if (enabled) {
 		LOG_ERROR("The selected interface does not support tracing");
 		return ERROR_FAIL;
 	}

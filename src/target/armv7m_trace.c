@@ -56,39 +56,21 @@ int armv7m_trace_tpiu_config(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct armv7m_trace_config *trace_config = &armv7m->trace_config;
-	int prescaler;
+	uint16_t prescaler;
 	int retval;
 
 	target_unregister_timer_callback(armv7m_poll_trace, target);
 
-
 	retval = adapter_config_trace(trace_config->config_type == TRACE_CONFIG_TYPE_INTERNAL,
-				      trace_config->pin_protocol,
-				      trace_config->port_size,
-				      &trace_config->trace_freq);
+		trace_config->pin_protocol, trace_config->port_size,
+		&trace_config->trace_freq, trace_config->traceclkin_freq, &prescaler);
+
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (!trace_config->trace_freq) {
 		LOG_ERROR("Trace port frequency is 0, can't enable TPIU");
 		return ERROR_FAIL;
-	}
-
-	prescaler = trace_config->traceclkin_freq / trace_config->trace_freq;
-
-	if (trace_config->traceclkin_freq % trace_config->trace_freq) {
-		prescaler++;
-		int trace_freq = trace_config->traceclkin_freq / prescaler;
-		LOG_INFO("Can not obtain %u trace port frequency from %u TRACECLKIN frequency, using %u instead",
-			  trace_config->trace_freq, trace_config->traceclkin_freq,
-			  trace_freq);
-		trace_config->trace_freq = trace_freq;
-		retval = adapter_config_trace(trace_config->config_type == TRACE_CONFIG_TYPE_INTERNAL,
-					      trace_config->pin_protocol,
-					      trace_config->port_size,
-					      &trace_config->trace_freq);
-		if (retval != ERROR_OK)
-			return retval;
 	}
 
 	retval = target_write_u32(target, TPIU_CSPSR, 1 << trace_config->port_size);
