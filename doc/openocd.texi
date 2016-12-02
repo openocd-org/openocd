@@ -5448,10 +5448,11 @@ Command disables watchdog timer.
 
 @deffn {Flash Driver} kinetis_ke
 @cindex kinetis_ke
-KE members of the Kinetis microcontroller family from Freescale include
+KE0x members of the Kinetis microcontroller family from Freescale include
 internal flash and use ARM Cortex-M0+. The driver automatically recognizes
-the KE family and sub-family using the chip identification register, and
+the KE0x sub-family using the chip identification register, and
 autoconfigures itself.
+Use kinetis (not kinetis_ke) driver for KE1x devices.
 
 @example
 flash bank $_FLASHNAME kinetis_ke 0 0 0 0 $_TARGETNAME
