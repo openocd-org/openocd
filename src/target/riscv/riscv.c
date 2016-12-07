@@ -2748,6 +2748,33 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	return ERROR_OK;
 }
 
+/* Should run code on the target to perform CRC of 
+memory. Not yet implemented.
+*/
+
+int riscv_checksum_memory(struct target *target,
+			  uint32_t address, uint32_t count,
+			  uint32_t* checksum) {
+  *checksum = 0xFFFFFFFF;
+  return  ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+}
+
+/* Should run code on the target to check whether a memory
+block holds all-ones (because this is generally called on
+NOR flash which is 1 when "blank")
+Not yet implemented.
+*/
+
+int riscv_blank_check_memory(struct target * target,
+			    uint32_t address,
+			    uint32_t count,
+			    uint32_t * blank) {
+  *blank = 0;
+
+  return  ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+}
+
 struct target_type riscv_target =
 {
 	.name = "riscv",
@@ -2768,6 +2795,9 @@ struct target_type riscv_target =
 
 	.read_memory = riscv_read_memory,
 	.write_memory = riscv_write_memory,
+
+	.blank_check_memory = riscv_blank_check_memory,
+	.checksum_memory = riscv_checksum_memory,
 
 	.get_gdb_reg_list = riscv_get_gdb_reg_list,
 
