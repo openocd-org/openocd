@@ -2194,7 +2194,7 @@ error_open:
 	return ERROR_FAIL;
 }
 
-int stlink_config_trace(void *handle, bool enabled, enum tpio_pin_protocol pin_protocol,
+int stlink_config_trace(void *handle, bool enabled, enum tpiu_pin_protocol pin_protocol,
 			uint32_t port_size, unsigned int *trace_freq)
 {
 	struct stlink_usb_handle_s *h = handle;

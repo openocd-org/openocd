@@ -1263,7 +1263,7 @@ static bool check_trace_freq(struct jaylink_swo_speed speed,
 	return false;
 }
 
-static int config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
+static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		uint32_t port_size, unsigned int *trace_freq)
 {
 	int ret;

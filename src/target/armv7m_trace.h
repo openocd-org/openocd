@@ -32,7 +32,7 @@ enum trace_config_type {
 	INTERNAL	/**< trace output is handled by OpenOCD adapter driver */
 };
 
-enum tpio_pin_protocol {
+enum tpiu_pin_protocol {
 	SYNC,			/**< synchronous trace output */
 	ASYNC_MANCHESTER,	/**< asynchronous output with Manchester coding */
 	ASYNC_UART		/**< asynchronous output with NRZ coding */
@@ -50,7 +50,7 @@ struct armv7m_trace_config {
 	enum trace_config_type config_type;
 
 	/** Currently active trace output mode */
-	enum tpio_pin_protocol pin_protocol;
+	enum tpiu_pin_protocol pin_protocol;
 	/** TPIU formatter enable/disable (in async mode) */
 	bool formatter;
 	/** Synchronous output port width */
