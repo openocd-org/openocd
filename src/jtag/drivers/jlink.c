@@ -1275,7 +1275,7 @@ static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		return ERROR_FAIL;
 	}
 
-	if (pin_protocol != ASYNC_UART) {
+	if (pin_protocol != TPIU_PIN_PROTOCOL_ASYNC_UART) {
 		LOG_ERROR("Selected pin protocol is not supported.");
 		return ERROR_FAIL;
 	}

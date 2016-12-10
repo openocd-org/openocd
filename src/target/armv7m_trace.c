@@ -62,7 +62,7 @@ int armv7m_trace_tpiu_config(struct target *target)
 	target_unregister_timer_callback(armv7m_poll_trace, target);
 
 
-	retval = adapter_config_trace(trace_config->config_type == INTERNAL,
+	retval = adapter_config_trace(trace_config->config_type == TRACE_CONFIG_TYPE_INTERNAL,
 				      trace_config->pin_protocol,
 				      trace_config->port_size,
 				      &trace_config->trace_freq);
@@ -83,7 +83,7 @@ int armv7m_trace_tpiu_config(struct target *target)
 			  trace_config->trace_freq, trace_config->traceclkin_freq,
 			  trace_freq);
 		trace_config->trace_freq = trace_freq;
-		retval = adapter_config_trace(trace_config->config_type == INTERNAL,
+		retval = adapter_config_trace(trace_config->config_type == TRACE_CONFIG_TYPE_INTERNAL,
 					      trace_config->pin_protocol,
 					      trace_config->port_size,
 					      &trace_config->trace_freq);
@@ -115,7 +115,7 @@ int armv7m_trace_tpiu_config(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (trace_config->config_type == INTERNAL)
+	if (trace_config->config_type == TRACE_CONFIG_TYPE_INTERNAL)
 		target_register_timer_callback(armv7m_poll_trace, 1, 1, target);
 
 	target_call_event_callbacks(target, TARGET_EVENT_TRACE_CONFIG);
@@ -173,7 +173,7 @@ COMMAND_HANDLER(handle_tpiu_config_command)
 		if (CMD_ARGC == cmd_idx + 1) {
 			close_trace_file(armv7m);
 
-			armv7m->trace_config.config_type = DISABLED;
+			armv7m->trace_config.config_type = TRACE_CONFIG_TYPE_DISABLED;
 			if (CMD_CTX->mode == COMMAND_EXEC)
 				return armv7m_trace_tpiu_config(target);
 			else
@@ -183,13 +183,13 @@ COMMAND_HANDLER(handle_tpiu_config_command)
 		   !strcmp(CMD_ARGV[cmd_idx], "internal")) {
 		close_trace_file(armv7m);
 
-		armv7m->trace_config.config_type = EXTERNAL;
+		armv7m->trace_config.config_type = TRACE_CONFIG_TYPE_EXTERNAL;
 		if (!strcmp(CMD_ARGV[cmd_idx], "internal")) {
 			cmd_idx++;
 			if (CMD_ARGC == cmd_idx)
 				return ERROR_COMMAND_SYNTAX_ERROR;
 
-			armv7m->trace_config.config_type = INTERNAL;
+			armv7m->trace_config.config_type = TRACE_CONFIG_TYPE_INTERNAL;
 
 			if (strcmp(CMD_ARGV[cmd_idx], "-") != 0) {
 				armv7m->trace_config.trace_file = fopen(CMD_ARGV[cmd_idx], "ab");
@@ -204,7 +204,7 @@ COMMAND_HANDLER(handle_tpiu_config_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
 		if (!strcmp(CMD_ARGV[cmd_idx], "sync")) {
-			armv7m->trace_config.pin_protocol = SYNC;
+			armv7m->trace_config.pin_protocol = TPIU_PIN_PROTOCOL_SYNC;
 
 			cmd_idx++;
 			if (CMD_ARGC == cmd_idx)
@@ -213,9 +213,9 @@ COMMAND_HANDLER(handle_tpiu_config_command)
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[cmd_idx], armv7m->trace_config.port_size);
 		} else {
 			if (!strcmp(CMD_ARGV[cmd_idx], "manchester"))
-				armv7m->trace_config.pin_protocol = ASYNC_MANCHESTER;
+				armv7m->trace_config.pin_protocol = TPIU_PIN_PROTOCOL_ASYNC_MANCHESTER;
 			else if (!strcmp(CMD_ARGV[cmd_idx], "uart"))
-				armv7m->trace_config.pin_protocol = ASYNC_UART;
+				armv7m->trace_config.pin_protocol = TPIU_PIN_PROTOCOL_ASYNC_UART;
 			else
 				return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -237,7 +237,7 @@ COMMAND_HANDLER(handle_tpiu_config_command)
 			COMMAND_PARSE_NUMBER(uint, CMD_ARGV[cmd_idx], armv7m->trace_config.trace_freq);
 			cmd_idx++;
 		} else {
-			if (armv7m->trace_config.config_type != INTERNAL) {
+			if (armv7m->trace_config.config_type != TRACE_CONFIG_TYPE_INTERNAL) {
 				LOG_ERROR("Trace port frequency can't be omitted in external capture mode");
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}

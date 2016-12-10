@@ -27,15 +27,15 @@
  */
 
 enum trace_config_type {
-	DISABLED,	/**< tracing is disabled */
-	EXTERNAL,	/**< trace output is captured externally */
-	INTERNAL	/**< trace output is handled by OpenOCD adapter driver */
+	TRACE_CONFIG_TYPE_DISABLED,	/**< tracing is disabled */
+	TRACE_CONFIG_TYPE_EXTERNAL,	/**< trace output is captured externally */
+	TRACE_CONFIG_TYPE_INTERNAL	/**< trace output is handled by OpenOCD adapter driver */
 };
 
 enum tpiu_pin_protocol {
-	SYNC,			/**< synchronous trace output */
-	ASYNC_MANCHESTER,	/**< asynchronous output with Manchester coding */
-	ASYNC_UART		/**< asynchronous output with NRZ coding */
+	TPIU_PIN_PROTOCOL_SYNC,			/**< synchronous trace output */
+	TPIU_PIN_PROTOCOL_ASYNC_MANCHESTER,	/**< asynchronous output with Manchester coding */
+	TPIU_PIN_PROTOCOL_ASYNC_UART		/**< asynchronous output with NRZ coding */
 };
 
 enum itm_ts_prescaler {
