@@ -4926,6 +4926,52 @@ flash bank $_FLASHNAME spi 0x0 0 0 0 \
 @end example
 @end deffn
 
+@deffn {Flash Driver} xcf
+@cindex Xilinx Platform flash driver
+@cindex xcf
+Xilinx FPGAs can be configured from specialized flash ICs named Platform Flash.
+It is (almost) regular NOR flash with erase sectors, program pages, etc. The
+only difference is special registers controlling its FPGA specific behavior.
+They must be properly configured for successful FPGA loading using
+additional @var{xcf} driver command:
+
+@deffn Command {xcf ccb} <bank_id>
+command accepts additional parameters:
+@itemize
+@item @var{external|internal} ... selects clock source.
+@item @var{serial|parallel} ... selects serial or parallel data bus mode.
+@item @var{slave|master} ... selects slave of master mode for flash device.
+@item @var{40|20} ... selects clock frequency in MHz for internal clock
+in master mode.
+@end itemize
+@example
+xcf ccb 0 external parallel slave 40
+@end example
+All of them must be specified even if clock frequency is pointless
+in slave mode. If only bank id specified than command prints current
+CCB register value. Note: there is no need to write this register
+every time you erase/program data sectors because it stores in
+dedicated sector.
+@end deffn
+
+@deffn Command {xcf configure} <bank_id>
+Initiates FPGA loading procedure. Useful if your board has no "configure"
+button.
+@example
+xcf configure 0
+@end example
+@end deffn
+
+Additional driver notes:
+@itemize
+@item Only single revision supported.
+@item Driver automatically detects need of bit reverse, but
+only "bin" (raw binary, do not confuse it with "bit") and "mcs"
+(Intel hex) file types supported.
+@item For additional info check xapp972.pdf and ug380.pdf.
+@end itemize
+@end deffn
+
 @deffn {Flash Driver} lpcspifi
 @cindex NXP SPI Flash Interface
 @cindex SPIFI
