@@ -1241,16 +1241,18 @@ static int cortex_a_debug_entry(struct target *target)
 		reg->dirty = reg->valid;
 	}
 
-	/* read Saved PSR */
-	retval = cortex_a_dap_read_coreregister_u32(target, &spsr, 17);
-	/*  store current spsr */
-	if (retval != ERROR_OK)
-		return retval;
+	if (arm->spsr) {
+		/* read Saved PSR */
+		retval = cortex_a_dap_read_coreregister_u32(target, &spsr, 17);
+		/*  store current spsr */
+		if (retval != ERROR_OK)
+			return retval;
 
-	reg = arm->spsr;
-	buf_set_u32(reg->value, 0, 32, spsr);
-	reg->valid = 1;
-	reg->dirty = 0;
+		reg = arm->spsr;
+		buf_set_u32(reg->value, 0, 32, spsr);
+		reg->valid = 1;
+		reg->dirty = 0;
+	}
 
 #if 0
 /* TODO, Move this */
