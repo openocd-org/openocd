@@ -2066,7 +2066,7 @@ static int ulink_khz(int khz, int *jtag_speed)
 	}
 
 #ifdef _DEBUG_JTAG_IO_
-	long f_tck, f_tms, f_scan_in, f_scan_out, f_scan_io;
+	long f_tck = 0, f_tms = 0, f_scan_in = 0, f_scan_out = 0, f_scan_io = 0;
 
 	ulink_calculate_frequency(DELAY_CLOCK_TCK, ulink_handle->delay_clock_tck,
 		&f_tck);
