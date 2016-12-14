@@ -124,13 +124,13 @@ static int queued_retval;
 
 static void jlink_execute_stableclocks(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("stableclocks %i cycles", cmd->cmd.runtest->num_cycles);
+	LOG_DEBUG_IO("stableclocks %i cycles", cmd->cmd.runtest->num_cycles);
 	jlink_stableclocks(cmd->cmd.runtest->num_cycles);
 }
 
 static void jlink_execute_runtest(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
+	LOG_DEBUG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
 		cmd->cmd.runtest->end_state);
 
 	jlink_end_state(cmd->cmd.runtest->end_state);
@@ -139,7 +139,7 @@ static void jlink_execute_runtest(struct jtag_command *cmd)
 
 static void jlink_execute_statemove(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
+	LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
 	jlink_end_state(cmd->cmd.statemove->end_state);
 	jlink_state_move();
@@ -147,7 +147,7 @@ static void jlink_execute_statemove(struct jtag_command *cmd)
 
 static void jlink_execute_pathmove(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("pathmove: %i states, end in %i",
+	LOG_DEBUG_IO("pathmove: %i states, end in %i",
 		cmd->cmd.pathmove->num_states,
 		cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
@@ -156,7 +156,7 @@ static void jlink_execute_pathmove(struct jtag_command *cmd)
 
 static void jlink_execute_scan(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
+	LOG_DEBUG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
 		jtag_scan_type(cmd->cmd.scan));
 
 	/* Make sure there are no trailing fields with num_bits == 0, or the logic below will fail. */
@@ -190,7 +190,7 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 
 	for (int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
-		DEBUG_JTAG_IO("%s%s field %d/%d %d bits",
+		LOG_DEBUG_IO("%s%s field %d/%d %d bits",
 			field->in_value ? "in" : "",
 			field->out_value ? "out" : "",
 			i,
@@ -242,14 +242,14 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 		jlink_state_move();
 	}
 
-	DEBUG_JTAG_IO("%s scan, %i bits, end in %s",
+	LOG_DEBUG_IO("%s scan, %i bits, end in %s",
 		(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
 		tap_state_name(tap_get_end_state()));
 }
 
 static void jlink_execute_reset(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst,
+	LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst,
 		cmd->cmd.reset->srst);
 
 	jlink_flush();
@@ -259,7 +259,7 @@ static void jlink_execute_reset(struct jtag_command *cmd)
 
 static void jlink_execute_sleep(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("sleep %" PRIi32 "", cmd->cmd.sleep->us);
+	LOG_DEBUG_IO("sleep %" PRIi32 "", cmd->cmd.sleep->us);
 	jlink_flush();
 	jtag_sleep(cmd->cmd.sleep->us);
 }
@@ -2038,7 +2038,7 @@ static int jlink_flush(void)
 		buf_set_buf(tdo_buffer, p->first, p->buffer,
 			    p->buffer_offset, p->length);
 
-		DEBUG_JTAG_IO("Pending scan result, length = %d.", p->length);
+		LOG_DEBUG_IO("Pending scan result, length = %d.", p->length);
 	}
 
 	jlink_tap_init();

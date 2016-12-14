@@ -675,7 +675,7 @@ static int syncbb_execute_tms(struct jtag_command *cmd)
 	unsigned num_bits = cmd->cmd.tms->num_bits;
 	const uint8_t *bits = cmd->cmd.tms->bits;
 
-	DEBUG_JTAG_IO("TMS: %d bits", num_bits);
+	LOG_DEBUG_IO("TMS: %d bits", num_bits);
 
 	int tms = 0;
 	for (unsigned i = 0; i < num_bits; i++) {

@@ -150,7 +150,7 @@ static int aice_execute_reset(struct jtag_command *cmd)
 	static int last_trst;
 	int retval = ERROR_OK;
 
-	DEBUG_JTAG_IO("reset trst: %d", cmd->cmd.reset->trst);
+	LOG_DEBUG_IO("reset trst: %d", cmd->cmd.reset->trst);
 
 	if (cmd->cmd.reset->trst != last_trst) {
 		if (cmd->cmd.reset->trst)

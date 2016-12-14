@@ -25,14 +25,6 @@
 #include <helper/binarybuffer.h>
 #include <helper/log.h>
 
-#ifdef _DEBUG_JTAG_IO_
-#define DEBUG_JTAG_IO(expr ...) \
-	do { if (1) LOG_DEBUG(expr); } while (0)
-#else
-#define DEBUG_JTAG_IO(expr ...) \
-	do { if (0) LOG_DEBUG(expr); } while (0)
-#endif
-
 #ifndef DEBUG_JTAG_IOZ
 #define DEBUG_JTAG_IOZ 64
 #endif

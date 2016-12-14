@@ -400,7 +400,7 @@ static int aice_usb_write(uint8_t *out_buffer, int out_length)
 	result = usb_bulk_write_ex(aice_handler.usb_handle, aice_handler.usb_write_ep,
 			(char *)out_buffer, out_length, AICE_USB_TIMEOUT);
 
-	DEBUG_JTAG_IO("aice_usb_write, out_length = %i, result = %i",
+	LOG_DEBUG_IO("aice_usb_write, out_length = %i, result = %i",
 			out_length, result);
 
 	return result;
@@ -412,7 +412,7 @@ static int aice_usb_read(uint8_t *in_buffer, int expected_size)
 	int32_t result = usb_bulk_read_ex(aice_handler.usb_handle, aice_handler.usb_read_ep,
 			(char *)in_buffer, expected_size, AICE_USB_TIMEOUT);
 
-	DEBUG_JTAG_IO("aice_usb_read, result = %" PRId32, result);
+	LOG_DEBUG_IO("aice_usb_read, result = %" PRId32, result);
 
 	return result;
 }

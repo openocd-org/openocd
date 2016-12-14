@@ -171,7 +171,7 @@ static int buspirate_execute_queue(void)
 	while (cmd) {
 		switch (cmd->type) {
 		case JTAG_RUNTEST:
-			DEBUG_JTAG_IO("runtest %i cycles, end in %s",
+			LOG_DEBUG_IO("runtest %i cycles, end in %s",
 				cmd->cmd.runtest->num_cycles,
 				tap_state_name(cmd->cmd.runtest
 					->end_state));
@@ -181,7 +181,7 @@ static int buspirate_execute_queue(void)
 					->num_cycles);
 			break;
 		case JTAG_TLR_RESET:
-			DEBUG_JTAG_IO("statemove end in %s",
+			LOG_DEBUG_IO("statemove end in %s",
 				tap_state_name(cmd->cmd.statemove
 						->end_state));
 			buspirate_end_state(cmd->cmd.statemove
@@ -189,7 +189,7 @@ static int buspirate_execute_queue(void)
 			buspirate_state_move();
 			break;
 		case JTAG_PATHMOVE:
-			DEBUG_JTAG_IO("pathmove: %i states, end in %s",
+			LOG_DEBUG_IO("pathmove: %i states, end in %s",
 				cmd->cmd.pathmove->num_states,
 				tap_state_name(cmd->cmd.pathmove
 					->path[cmd->cmd.pathmove
@@ -199,7 +199,7 @@ static int buspirate_execute_queue(void)
 					cmd->cmd.pathmove->path);
 			break;
 		case JTAG_SCAN:
-			DEBUG_JTAG_IO("scan end in %s",
+			LOG_DEBUG_IO("scan end in %s",
 				tap_state_name(cmd->cmd.scan
 					->end_state));
 
@@ -214,7 +214,7 @@ static int buspirate_execute_queue(void)
 
 			break;
 		case JTAG_RESET:
-			DEBUG_JTAG_IO("reset trst: %i srst %i",
+			LOG_DEBUG_IO("reset trst: %i srst %i",
 				cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
 			/* flush buffers, so we can reset */
@@ -226,12 +226,12 @@ static int buspirate_execute_queue(void)
 					cmd->cmd.reset->srst);
 			break;
 		case JTAG_SLEEP:
-			DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
+			LOG_DEBUG_IO("sleep %i", cmd->cmd.sleep->us);
 			buspirate_tap_execute();
 			jtag_sleep(cmd->cmd.sleep->us);
 				break;
 		case JTAG_STABLECLOCKS:
-			DEBUG_JTAG_IO("stable clock %i cycles", cmd->cmd.stableclocks->num_cycles);
+			LOG_DEBUG_IO("stable clock %i cycles", cmd->cmd.stableclocks->num_cycles);
 			buspirate_stableclocks(cmd->cmd.stableclocks->num_cycles);
 				break;
 		default:
@@ -624,7 +624,7 @@ static void buspirate_runtest(int num_cycles)
 	for (i = 0; i < num_cycles; i++)
 		buspirate_tap_append(0, 0);
 
-	DEBUG_JTAG_IO("runtest: cur_state %s end_state %s",
+	LOG_DEBUG_IO("runtest: cur_state %s end_state %s",
 			tap_state_name(tap_get_state()),
 			tap_state_name(tap_get_end_state()));
 
