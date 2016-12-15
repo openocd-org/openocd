@@ -22,7 +22,12 @@
 #ifndef OPENOCD_HELPER_TYPES_H
 #define OPENOCD_HELPER_TYPES_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stddef.h>
+#include <assert.h>
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
