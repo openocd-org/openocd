@@ -25,6 +25,10 @@
 #ifndef OPENOCD_SERVER_SERVER_H
 #define OPENOCD_SERVER_SERVER_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <helper/log.h>
 
 #ifdef HAVE_NETINET_IN_H
