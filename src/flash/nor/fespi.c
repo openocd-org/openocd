@@ -877,7 +877,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
-	struct algorithm_steps *as = as_new(count / 16);
+	struct algorithm_steps *as = as_new(count / 4);
 
 	/* unaligned buffer head */
 	if (count > 0 && (offset & 3) != 0) {
