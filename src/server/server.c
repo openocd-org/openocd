@@ -364,6 +364,35 @@ static void remove_connections(struct service *service)
 	}
 }
 
+int remove_service(const char *name, const char *port)
+{
+	struct service *tmp;
+	struct service *prev;
+
+	prev = services;
+
+	for (tmp = services; tmp; prev = tmp, tmp = tmp->next) {
+		if (!strcmp(tmp->name, name) && !strcmp(tmp->port, port)) {
+			remove_connections(tmp);
+
+			if (tmp == services)
+				services = tmp->next;
+			else
+				prev->next = tmp->next;
+
+			if (tmp->type != CONNECTION_STDINOUT)
+				close_socket(tmp->fd);
+
+			free(tmp->priv);
+			free_service(tmp);
+
+			return ERROR_OK;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static int remove_services(void)
 {
 	struct service *c = services;
