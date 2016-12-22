@@ -936,10 +936,11 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "protect",
 		.handler = handle_flash_protect_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id first_sector [last_sector|'last'] "
+		.usage = "bank_id first_block [last_block|'last'] "
 			"('on'|'off')",
-		.help = "Turn protection on or off for a range of sectors "
-			"in a given flash bank.",
+		.help = "Turn protection on or off for a range of protection "
+			"blocks or sectors in a given flash bank. "
+			"See 'flash info' output for a list of blocks.",
 	},
 	{
 		.name = "padded_value",

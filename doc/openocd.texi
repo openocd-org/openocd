@@ -4714,12 +4714,15 @@ and possibly stale information.
 
 @anchor{flashprotect}
 @deffn Command {flash protect} num first last (@option{on}|@option{off})
-Enable (@option{on}) or disable (@option{off}) protection of flash sectors
-in flash bank @var{num}, starting at sector @var{first}
+Enable (@option{on}) or disable (@option{off}) protection of flash blocks
+in flash bank @var{num}, starting at protection block @var{first}
 and continuing up to and including @var{last}.
-Providing a @var{last} sector of @option{last}
+Providing a @var{last} block of @option{last}
 specifies "to the end of the flash bank".
 The @var{num} parameter is a value shown by @command{flash banks}.
+The protection block is usually identical to a flash sector.
+Some devices may utilize a protection block distinct from flash sector.
+See @command{flash info} for a list of protection blocks.
 @end deffn
 
 @deffn Command {flash padded_value} num value

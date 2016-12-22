@@ -50,10 +50,17 @@ int flash_driver_erase(struct flash_bank *bank, int first, int last)
 int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	int retval;
+	int num_blocks;
+
+	if (bank->num_prot_blocks)
+		num_blocks = bank->num_prot_blocks;
+	else
+		num_blocks = bank->num_sectors;
+
 
 	/* callers may not supply illegal parameters ... */
-	if (first < 0 || first > last || last >= bank->num_sectors) {
-		LOG_ERROR("illegal sector range");
+	if (first < 0 || first > last || last >= num_blocks) {
+		LOG_ERROR("illegal protection block range");
 		return ERROR_FAIL;
 	}
 
@@ -69,11 +76,11 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	 * the target could have reset, power cycled, been hot plugged,
 	 * the application could have run, etc.
 	 *
-	 * Drivers only receive valid sector range.
+	 * Drivers only receive valid protection block range.
 	 */
 	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
-		LOG_ERROR("failed setting protection for areas %d to %d", first, last);
+		LOG_ERROR("failed setting protection for blocks %d to %d", first, last);
 
 	return retval;
 }
