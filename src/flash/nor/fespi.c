@@ -676,7 +676,7 @@ void as_add_tx(struct algorithm_steps *as, unsigned count, const uint8_t *data)
 	while (count > 0) {
 		unsigned step_count = MIN(count, 255);
 		assert(as->used < as->size);
-		as->steps[as->used] = malloc(step_count + 1);
+		as->steps[as->used] = malloc(step_count + 2);
 		as->steps[as->used][0] = STEP_TX;
 		as->steps[as->used][1] = step_count;
 		memcpy(as->steps[as->used] + 2, data, step_count);
