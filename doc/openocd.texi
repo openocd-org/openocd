@@ -4163,9 +4163,9 @@ The value should normally correspond to a static mapping for the
 
 @anchor{rtostype}
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
-@var{rtos_type} can be one of @option{auto}|@option{eCos}|@option{ThreadX}|
-@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}|@option{mqx}|
-@option{uCOS-III}
+@var{rtos_type} can be one of @option{auto}, @option{eCos},
+@option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
+@option{embKernel}, @option{mqx}, @option{uCOS-III}
 @xref{gdbrtossupport,,RTOS Support}.
 
 @item @code{-defer-examine} -- skip target examination at initial JTAG chain
@@ -4752,8 +4752,10 @@ the flash bank defined at address 0x1fc00000. Any cmds executed on
 the virtual banks are actually performed on the physical banks.
 @example
 flash bank $_FLASHNAME pic32mx 0x1fc00000 0 0 0 $_TARGETNAME
-flash bank vbank0 virtual 0xbfc00000 0 0 0 $_TARGETNAME $_FLASHNAME
-flash bank vbank1 virtual 0x9fc00000 0 0 0 $_TARGETNAME $_FLASHNAME
+flash bank vbank0 virtual 0xbfc00000 0 0 0 \
+           $_TARGETNAME $_FLASHNAME
+flash bank vbank1 virtual 0x9fc00000 0 0 0 \
+           $_TARGETNAME $_FLASHNAME
 @end example
 @end deffn
 
@@ -4819,8 +4821,8 @@ Since signaling between JTAG and SPI is compatible, all that is required for
 a proxy bitstream is to connect TDI-MOSI, TDO-MISO, TCK-CLK and activate
 the flash chip select when the JTAG state machine is in SHIFT-DR. Such
 a bitstream for several Xilinx FPGAs can be found in
-@file{contrib/loaders/flash/fpga/xilinx_bscan_spi.py}. It requires migen
-(@url{http://github.com/m-labs/migen}) and a Xilinx toolchain to build.
+@file{contrib/loaders/flash/fpga/xilinx_bscan_spi.py}. It requires
+@uref{https://github.com/m-labs/migen, migen} and a Xilinx toolchain to build.
 
 This flash bank driver requires a target on a JTAG tap and will access that
 tap directly. Since no support from the target is needed, the target can be a
@@ -4843,7 +4845,8 @@ For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
 target create $_TARGETNAME testee -chain-position $_CHIPNAME.fpga
 set _XILINX_USER1 0x02
 set _DR_LENGTH 1
-flash bank $_FLASHNAME spi 0x0 0 0 0 $_TARGETNAME $_XILINX_USER1 $_DR_LENGTH
+flash bank $_FLASHNAME spi 0x0 0 0 0 \
+           $_TARGETNAME $_XILINX_USER1 $_DR_LENGTH
 @end example
 @end deffn
 
@@ -4949,7 +4952,8 @@ and the second bank starts after the first.
 # Flash bank 0
 flash bank $_FLASHNAME ambiqmicro 0 0x00040000 0 0 $_TARGETNAME
 # Flash bank 1 - same size as bank0, starts after bank 0.
-flash bank $_FLASHNAME ambiqmicro 0x00040000 0x00040000 0 0 $_TARGETNAME
+flash bank $_FLASHNAME ambiqmicro 0x00040000 0x00040000 0 0 \
+           $_TARGETNAME
 @end example
 
 Flash is programmed using custom entry points into the bootloader.
@@ -5223,8 +5227,10 @@ with @code{x} treated as wildcard and otherwise case (and any trailing
 characters) ignored.
 
 @example
-flash bank $@{_FLASHNAME@}0 fm4 0x00000000 0 0 0 $_TARGETNAME S6E2CCAJ0A
-flash bank $@{_FLASHNAME@}1 fm4 0x00100000 0 0 0 $_TARGETNAME S6E2CCAJ0A
+flash bank $@{_FLASHNAME@}0 fm4 0x00000000 0 0 0 \
+           $_TARGETNAME S6E2CCAJ0A
+flash bank $@{_FLASHNAME@}1 fm4 0x00100000 0 0 0 \
+           $_TARGETNAME S6E2CCAJ0A
 @end example
 @emph{The current implementation is incomplete. Protection is not supported,
 nor is Chip Erase (only Sector Erase is implemented).}
