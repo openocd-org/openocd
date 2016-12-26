@@ -356,6 +356,7 @@ static const struct kinetis_type kinetis_types_old[] = {
 
 static bool allow_fcf_writes;
 static uint8_t fcf_fopt = 0xff;
+static bool create_banks;
 
 
 struct flash_driver kinetis_flash;
@@ -858,6 +859,87 @@ FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 
 	return ERROR_OK;
 }
+
+
+static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
+{
+	unsigned bank_idx;
+	unsigned num_blocks;
+	struct kinetis_flash_bank *k_bank;
+	struct flash_bank *bank;
+	char base_name[80], name[80], num[4];
+	char *class, *p;
+
+	num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
+	if (num_blocks > KINETIS_MAX_BANKS) {
+		LOG_ERROR("Only %u Kinetis flash banks are supported", KINETIS_MAX_BANKS);
+		return ERROR_FAIL;
+	}
+
+	bank = k_chip->banks[0].bank;
+	if (bank && bank->name) {
+		strncpy(base_name, bank->name, sizeof(base_name));
+		p = strstr(base_name, ".pflash");
+		if (p) {
+			*p = '\0';
+			if (k_chip->num_pflash_blocks > 1) {
+				/* rename first bank if numbering is needed */
+				snprintf(name, sizeof(name), "%s.pflash0", base_name);
+				free((void *)bank->name);
+				bank->name = strdup(name);
+			}
+		}
+	} else {
+		strncpy(base_name, target_name(k_chip->target), sizeof(base_name));
+		p = strstr(base_name, ".cpu");
+		if (p)
+			*p = '\0';
+	}
+
+	for (bank_idx = 1; bank_idx < num_blocks; bank_idx++) {
+		k_bank = &(k_chip->banks[bank_idx]);
+		bank = k_bank->bank;
+
+		if (bank)
+			continue;
+
+		num[0] = '\0';
+
+		if (bank_idx < k_chip->num_pflash_blocks) {
+			class = "pflash";
+			if (k_chip->num_pflash_blocks > 1)
+				snprintf(num, sizeof(num), "%u", bank_idx);
+		} else {
+			class = "flexnvm";
+			if (k_chip->num_nvm_blocks > 1)
+				snprintf(num, sizeof(num), "%u",
+					 bank_idx - k_chip->num_pflash_blocks);
+		}
+
+		bank = calloc(sizeof(struct flash_bank), 1);
+		if (bank == NULL)
+			return ERROR_FAIL;
+
+		bank->target = k_chip->target;
+		bank->driver = &kinetis_flash;
+		bank->default_padded_value = bank->erased_value = 0xff;
+
+		snprintf(name, sizeof(name), "%s.%s%s",
+			 base_name, class, num);
+		bank->name = strdup(name);
+
+		bank->driver_priv = k_bank = &(k_chip->banks[k_chip->num_banks]);
+		k_bank->k_chip = k_chip;
+		k_bank->bank_number = bank_idx;
+		k_bank->bank = bank;
+		if (k_chip->num_banks <= bank_idx)
+			k_chip->num_banks = bank_idx + 1;
+
+		flash_bank_add(bank);
+	}
+	return ERROR_OK;
+}
+
 
 /* Disable the watchdog on Kinetis devices */
 int kinetis_disable_wdog(struct target *target, uint32_t sim_sdid)
@@ -2176,6 +2258,10 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 	}
 
 	k_chip->probed = true;
+
+	if (create_banks)
+		kinetis_create_missing_banks(k_chip);
+
 	return ERROR_OK;
 }
 
@@ -2596,6 +2682,16 @@ COMMAND_HANDLER(kinetis_fopt_handler)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(kinetis_create_banks_handler)
+{
+	if (CMD_ARGC > 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	create_banks = true;
+
+	return ERROR_OK;
+}
+
 
 static const struct command_registration kinetis_security_command_handlers[] = {
 	{
@@ -2665,6 +2761,12 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 		.help = "FCF_FOPT value source in 'kinetis fcf_source protection' mode",
 		.usage = "[num]",
 		.handler = kinetis_fopt_handler,
+	},
+	{
+		.name = "create_banks",
+		.mode = COMMAND_CONFIG,
+		.help = "Driver creates additional banks if device with two/four flash blocks is probed",
+		.handler = kinetis_create_banks_handler,
 	},
 	COMMAND_REGISTRATION_DONE
 };

@@ -5372,6 +5372,12 @@ Use kinetis_ke driver for KE0x devices.
 flash bank $_FLASHNAME kinetis 0 0 0 0 $_TARGETNAME
 @end example
 
+@deffn Command {kinetis create_banks}
+Configuration command enables automatic creation of additional flash banks
+based on real flash layout of device. Banks are created during device probe.
+Use 'flash probe 0' to force probe.
+@end deffn
+
 @deffn Command {kinetis fcf_source} [protection|write]
 Select what source is used when writing to a Flash Configuration Field.
 @option{protection} mode builds FCF content from protection bits previously
