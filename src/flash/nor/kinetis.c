@@ -192,6 +192,7 @@
 #define KINETIS_SDID_SERIESID_KW   0x00500000
 #define KINETIS_SDID_SERIESID_KV   0x00600000
 
+#define KINETIS_SDID_SUBFAMID_SHIFT 24
 #define KINETIS_SDID_SUBFAMID_MASK  0x0F000000
 #define KINETIS_SDID_SUBFAMID_KX0   0x00000000
 #define KINETIS_SDID_SUBFAMID_KX1   0x01000000
@@ -203,6 +204,7 @@
 #define KINETIS_SDID_SUBFAMID_KX7   0x07000000
 #define KINETIS_SDID_SUBFAMID_KX8   0x08000000
 
+#define KINETIS_SDID_FAMILYID_SHIFT 28
 #define KINETIS_SDID_FAMILYID_MASK  0xF0000000
 #define KINETIS_SDID_FAMILYID_K0X   0x00000000
 #define KINETIS_SDID_FAMILYID_K1X   0x10000000
@@ -221,12 +223,15 @@
 #define KINETIS_SDID_PROJECTID_KE1xZ 0x00000100
 
 struct kinetis_flash_bank {
+	struct kinetis_chip *k_chip;
 	bool probed;
+	unsigned bank_number;		/* bank number in particular chip */
+	struct flash_bank *bank;
+
 	uint32_t sector_size;
-	uint32_t max_flash_prog_size;
 	uint32_t protection_size;
 	uint32_t prog_base;		/* base address for FTFx operations */
-					/* same as bank->base for pflash, differs for FlexNVM */
+					/* usually same as bank->base for pflash, differs for FlexNVM */
 	uint32_t protection_block;	/* number of first protection block in this bank */
 
 	enum {
@@ -235,6 +240,31 @@ struct kinetis_flash_bank {
 		FC_FLEX_NVM,
 		FC_FLEX_RAM,
 	} flash_class;
+};
+
+#define KINETIS_MAX_BANKS 4u
+
+struct kinetis_chip {
+	struct target *target;
+	bool probed;
+
+	uint32_t sim_sdid;
+	uint32_t sim_fcfg1;
+	uint32_t sim_fcfg2;
+	uint32_t fcfg2_maxaddr0_shifted;
+	uint32_t fcfg2_maxaddr1_shifted;
+
+	unsigned num_pflash_blocks, num_nvm_blocks;
+	unsigned pflash_sector_size, nvm_sector_size;
+	unsigned max_flash_prog_size;
+
+	uint32_t pflash_base;
+	uint32_t pflash_size;
+	uint32_t nvm_base;
+	uint32_t nvm_size;		/* whole FlexNVM */
+	uint32_t dflash_size;		/* accessible rest of FlexNVM if EEPROM backup uses part of FlexNVM */
+
+	uint32_t progr_accel_ram;
 
 	enum {
 		FS_PROGRAM_SECTOR = 1,
@@ -247,13 +277,50 @@ struct kinetis_flash_bank {
 		FS_WIDTH_256BIT = 0x80,
 	} flash_support;
 
-	/* device parameters - should be same for all probed banks of one device */
-	uint32_t sim_sdid;
-	uint32_t sim_fcfg1;
-	uint32_t sim_fcfg2;
+	char name[40];
 
-	uint32_t progr_accel_ram;
+	unsigned num_banks;
+	struct kinetis_flash_bank banks[KINETIS_MAX_BANKS];
 };
+
+struct kinetis_type {
+	uint32_t sdid;
+	char *name;
+};
+
+static const struct kinetis_type kinetis_types_old[] = {
+	{ KINETIS_K_SDID_K10_M50,  "MK10D%s5" },
+	{ KINETIS_K_SDID_K10_M72,  "MK10D%s7" },
+	{ KINETIS_K_SDID_K10_M100, "MK10D%s10" },
+	{ KINETIS_K_SDID_K10_M120, "MK10F%s12" },
+	{ KINETIS_K_SDID_K11,      "MK11D%s5" },
+	{ KINETIS_K_SDID_K12,      "MK12D%s5" },
+
+	{ KINETIS_K_SDID_K20_M50,  "MK20D%s5" },
+	{ KINETIS_K_SDID_K20_M72,  "MK20D%s7" },
+	{ KINETIS_K_SDID_K20_M100, "MK20D%s10" },
+	{ KINETIS_K_SDID_K20_M120, "MK20F%s12" },
+	{ KINETIS_K_SDID_K21_M50,  "MK21D%s5" },
+	{ KINETIS_K_SDID_K21_M120, "MK21F%s12" },
+	{ KINETIS_K_SDID_K22_M50,  "MK22D%s5" },
+	{ KINETIS_K_SDID_K22_M120, "MK22F%s12" },
+
+	{ KINETIS_K_SDID_K30_M72,  "MK30D%s7" },
+	{ KINETIS_K_SDID_K30_M100, "MK30D%s10" },
+
+	{ KINETIS_K_SDID_K40_M72,  "MK40D%s7" },
+	{ KINETIS_K_SDID_K40_M100, "MK40D%s10" },
+
+	{ KINETIS_K_SDID_K50_M72,  "MK50D%s7" },
+	{ KINETIS_K_SDID_K51_M72,  "MK51D%s7" },
+	{ KINETIS_K_SDID_K53,      "MK53D%s10" },
+
+	{ KINETIS_K_SDID_K60_M100, "MK60D%s10" },
+	{ KINETIS_K_SDID_K60_M150, "MK60F%s15" },
+
+	{ KINETIS_K_SDID_K70_M150, "MK70F%s15" },
+};
+
 
 #define MDM_AP			1
 
@@ -733,20 +800,61 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 	return ERROR_OK;
 }
 
+
+static struct kinetis_chip *kinetis_get_chip(struct target *target)
+{
+	struct flash_bank *bank_iter;
+	struct kinetis_flash_bank *k_bank;
+
+	/* iterate over all kinetis banks */
+	for (bank_iter = flash_bank_list(); bank_iter; bank_iter = bank_iter->next) {
+		if (bank_iter->driver != &kinetis_flash
+		    || bank_iter->target != target)
+			continue;
+
+		k_bank = bank_iter->driver_priv;
+		if (!k_bank)
+			continue;
+
+		if (k_bank->k_chip)
+			return k_bank->k_chip;
+	}
+	return NULL;
+}
+
 FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 {
-	struct kinetis_flash_bank *bank_info;
+	struct target *target = bank->target;
+	struct kinetis_chip *k_chip;
+	struct kinetis_flash_bank *k_bank;
 
 	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	LOG_INFO("add flash_bank kinetis %s", bank->name);
 
-	bank_info = malloc(sizeof(struct kinetis_flash_bank));
+	k_chip = kinetis_get_chip(target);
 
-	memset(bank_info, 0, sizeof(struct kinetis_flash_bank));
+	if (k_chip == NULL) {
+		k_chip = calloc(sizeof(struct kinetis_chip), 1);
+		if (k_chip == NULL) {
+			LOG_ERROR("No memory");
+			return ERROR_FAIL;
+		}
 
-	bank->driver_priv = bank_info;
+		k_chip->target = target;
+	}
+
+	if (k_chip->num_banks >= KINETIS_MAX_BANKS) {
+		LOG_ERROR("Only %u Kinetis flash banks are supported", KINETIS_MAX_BANKS);
+		return ERROR_FAIL;
+	}
+
+	bank->driver_priv = k_bank = &(k_chip->banks[k_chip->num_banks]);
+	k_bank->k_chip = k_chip;
+	k_bank->bank_number = k_chip->num_banks;
+	k_bank->bank = bank;
+	k_chip->num_banks++;
 
 	return ERROR_OK;
 }
@@ -903,8 +1011,8 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t buffer_size = 2048;		/* Default minimum value */
 	struct working_area *write_algorithm;
 	struct working_area *source;
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
-	uint32_t address = kinfo->prog_base + offset;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	uint32_t address = k_bank->prog_base + offset;
 	uint32_t end_address;
 	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
@@ -1014,12 +1122,12 @@ static int kinetis_protect(struct flash_bank *bank, int set, int first, int last
 
 static int kinetis_protect_check(struct flash_bank *bank)
 {
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 	int result;
 	int i, b;
 	uint32_t fprot;
 
-	if (kinfo->flash_class == FC_PFLASH) {
+	if (k_bank->flash_class == FC_PFLASH) {
 
 		/* read protection register */
 		result = target_read_u32(bank->target, FTFx_FPROT3, &fprot);
@@ -1028,7 +1136,7 @@ static int kinetis_protect_check(struct flash_bank *bank)
 
 		/* Every bit protects 1/32 of the full flash (not necessarily just this bank) */
 
-	} else if (kinfo->flash_class == FC_FLEX_NVM) {
+	} else if (k_bank->flash_class == FC_FLEX_NVM) {
 		uint8_t fdprot;
 
 		/* read protection register */
@@ -1043,7 +1151,7 @@ static int kinetis_protect_check(struct flash_bank *bank)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	b = kinfo->protection_block;
+	b = k_bank->protection_block;
 	for (i = 0; i < bank->num_prot_blocks; i++) {
 		if ((fprot >> b) & 1)
 			bank->prot_blocks[i].is_protected = 0;
@@ -1063,10 +1171,13 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 	uint8_t fsec = 0xfe;		 /* set MCU unsecure */
 	uint8_t fdprot = 0xff;
 	int i;
+	unsigned bank_idx;
+	unsigned num_blocks;
 	uint32_t pflash_bit;
 	uint8_t dflash_bit;
 	struct flash_bank *bank_iter;
-	struct kinetis_flash_bank *kinfo;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
 
 	memset(fcf, 0xff, FCF_SIZE);
 
@@ -1075,18 +1186,19 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 
 	/* iterate over all kinetis banks */
 	/* current bank is bank 0, it contains FCF */
-	for (bank_iter = bank; bank_iter; bank_iter = bank_iter->next) {
-		if (bank_iter->driver != &kinetis_flash
-		    || bank_iter->target != bank->target)
+	num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
+	for (bank_idx = 0; bank_idx < num_blocks; bank_idx++) {
+		k_bank = &(k_chip->banks[bank_idx]);
+		bank_iter = k_bank->bank;
+
+		if (bank_iter == NULL) {
+			LOG_WARNING("Missing bank %u configuration, FCF protection flags may be incomplette", bank_idx);
 			continue;
+		}
 
 		kinetis_auto_probe(bank_iter);
 
-		kinfo = bank->driver_priv;
-		if (!kinfo)
-			continue;
-
-		if (kinfo->flash_class == FC_PFLASH) {
+		if (k_bank->flash_class == FC_PFLASH) {
 			for (i = 0; i < bank_iter->num_prot_blocks; i++) {
 				if (bank_iter->prot_blocks[i].is_protected == 1)
 					fprot &= ~pflash_bit;
@@ -1094,7 +1206,7 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 				pflash_bit <<= 1;
 			}
 
-		} else if (kinfo->flash_class == FC_FLEX_NVM) {
+		} else if (k_bank->flash_class == FC_FLEX_NVM) {
 			for (i = 0; i < bank_iter->num_prot_blocks; i++) {
 				if (bank_iter->prot_blocks[i].is_protected == 1)
 					fdprot &= ~dflash_bit;
@@ -1202,21 +1314,21 @@ static int kinetis_check_run_mode(struct target *target)
 }
 
 
-static void kinetis_invalidate_flash_cache(struct flash_bank *bank)
+static void kinetis_invalidate_flash_cache(struct kinetis_chip *k_chip)
 {
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct target *target = k_chip->target;
 
-	if (kinfo->flash_support & FS_INVALIDATE_CACHE_K)
-		target_write_u8(bank->target, FMC_PFB01CR + 2, 0xf0);
+	if (k_chip->flash_support & FS_INVALIDATE_CACHE_K)
+		target_write_u8(target, FMC_PFB01CR + 2, 0xf0);
 		/* Set CINV_WAY bits - request invalidate of all cache ways */
 		/* FMC_PFB0CR has same address and CINV_WAY bits as FMC_PFB01CR */
 
-	else if (kinfo->flash_support & FS_INVALIDATE_CACHE_L)
-		target_write_u8(bank->target, MCM_PLACR + 1, 0x04);
+	else if (k_chip->flash_support & FS_INVALIDATE_CACHE_L)
+		target_write_u8(target, MCM_PLACR + 1, 0x04);
 		/* set bit CFCC - Clear Flash Controller Cache */
 
-	else if (kinfo->flash_support & FS_INVALIDATE_CACHE_MSCM)
-		target_write_u32(bank->target, MSCM_OCMDR0, 0x30);
+	else if (k_chip->flash_support & FS_INVALIDATE_CACHE_MSCM)
+		target_write_u32(target, MSCM_OCMDR0, 0x30);
 		/* disable data prefetch and flash speculate */
 
 	return;
@@ -1226,7 +1338,7 @@ static void kinetis_invalidate_flash_cache(struct flash_bank *bank)
 static int kinetis_erase(struct flash_bank *bank, int first, int last)
 {
 	int result, i;
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 
 	result = kinetis_check_run_mode(bank->target);
 	if (result != ERROR_OK)
@@ -1247,7 +1359,7 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	 */
 	for (i = first; i <= last; i++) {
 		/* set command and sector address */
-		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTERASE, kinfo->prog_base + bank->sectors[i].offset,
+		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTERASE, k_bank->prog_base + bank->sectors[i].offset,
 				0, 0, 0, 0,  0, 0, 0, 0,  NULL);
 
 		if (result != ERROR_OK) {
@@ -1257,7 +1369,7 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 
 		bank->sectors[i].is_erased = 1;
 
-		if (kinfo->prog_base == 0
+		if (k_bank->prog_base == 0
 			&& bank->sectors[i].offset <= FCF_ADDRESS
 			&& bank->sectors[i].offset + bank->sectors[i].size > FCF_ADDRESS + FCF_SIZE) {
 			if (allow_fcf_writes) {
@@ -1275,7 +1387,7 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 		}
 	}
 
-	kinetis_invalidate_flash_cache(bank);
+	kinetis_invalidate_flash_cache(k_bank->k_chip);
 
 	return ERROR_OK;
 }
@@ -1315,7 +1427,8 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 			 uint32_t offset, uint32_t count)
 {
 	int result = ERROR_OK;
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
 	uint8_t *buffer_aligned = NULL;
 	/*
 	 * Kinetis uses different terms for the granularity of
@@ -1323,8 +1436,8 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 	 * the generic term "chunk". The largest possible
 	 * Kinetis "chunk" is 16 bytes (128 bits).
 	 */
-	uint32_t prog_section_chunk_bytes = kinfo->sector_size >> 8;
-	uint32_t prog_size_bytes = kinfo->max_flash_prog_size;
+	uint32_t prog_section_chunk_bytes = k_bank->sector_size >> 8;
+	uint32_t prog_size_bytes = k_chip->max_flash_prog_size;
 
 	while (count > 0) {
 		uint32_t size = prog_size_bytes - offset % prog_size_bytes;
@@ -1352,13 +1465,13 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 			memset(buffer_aligned, 0xff, size_aligned);
 			memcpy(buffer_aligned + align_begin, buffer, size);
 
-			result = target_write_memory(bank->target, kinfo->progr_accel_ram,
+			result = target_write_memory(bank->target, k_chip->progr_accel_ram,
 						4, size_aligned / 4, buffer_aligned);
 
 			LOG_DEBUG("section @ %08" PRIx32 " aligned begin %" PRIu32 ", end %" PRIu32,
 					bank->base + offset, align_begin, align_end);
 		} else
-			result = target_write_memory(bank->target, kinfo->progr_accel_ram,
+			result = target_write_memory(bank->target, k_chip->progr_accel_ram,
 						4, size_aligned / 4, buffer);
 
 		LOG_DEBUG("write section @ %08" PRIx32 " with length %" PRIu32 " bytes",
@@ -1371,7 +1484,7 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 
 		/* execute section-write command */
 		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTWRITE,
-				kinfo->prog_base + offset - align_begin,
+				k_bank->prog_base + offset - align_begin,
 				chunk_count>>8, chunk_count, 0, 0,
 				0, 0, 0, 0,  &ftfx_fstat);
 
@@ -1382,8 +1495,8 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 
 		if (ftfx_fstat & 0x01) {
 			LOG_ERROR("Flash write error at %08" PRIx32, bank->base + offset);
-			if (kinfo->prog_base == 0 && offset == FCF_ADDRESS + FCF_SIZE
-					&& (kinfo->flash_support & FS_WIDTH_256BIT)) {
+			if (k_bank->prog_base == 0 && offset == FCF_ADDRESS + FCF_SIZE
+					&& (k_chip->flash_support & FS_WIDTH_256BIT)) {
 				LOG_ERROR("Flash write immediately after the end of Flash Config Field shows error");
 				LOG_ERROR("because the flash memory is 256 bits wide (data were written correctly).");
 				LOG_ERROR("Either change the linker script to add a gap of 16 bytes after FCF");
@@ -1405,9 +1518,10 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 			 uint32_t offset, uint32_t count)
 {
 	int result, fallback = 0;
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
 
-	if (!(kinfo->flash_support & FS_PROGRAM_SECTOR)) {
+	if (!(k_chip->flash_support & FS_PROGRAM_SECTOR)) {
 		/* fallback to longword write */
 		fallback = 1;
 		LOG_INFO("This device supports Program Longword execution only.");
@@ -1424,8 +1538,7 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 	if (fallback == 0) {
 		/* program section command */
 		kinetis_write_sections(bank, buffer, offset, count);
-	}
-	else if (kinfo->flash_support & FS_PROGRAM_LONGWORD) {
+	} else if (k_chip->flash_support & FS_PROGRAM_LONGWORD) {
 		/* program longword command, not supported in FTFE */
 		uint8_t *new_buffer = NULL;
 
@@ -1452,7 +1565,7 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 
 		uint32_t words_remaining = count / 4;
 
-		kinetis_disable_wdog(bank->target, kinfo->sim_sdid);
+		kinetis_disable_wdog(bank->target, k_chip->sim_sdid);
 
 		/* try using a block write */
 		result = kinetis_write_block(bank, buffer, offset, words_remaining);
@@ -1468,7 +1581,7 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 
 				LOG_DEBUG("write longword @ %08" PRIx32, (uint32_t)(bank->base + offset));
 
-				result = kinetis_ftfx_command(bank->target, FTFx_CMD_LWORDPROG, kinfo->prog_base + offset,
+				result = kinetis_ftfx_command(bank->target, FTFx_CMD_LWORDPROG, k_bank->prog_base + offset,
 						buffer[3], buffer[2], buffer[1], buffer[0],
 						0, 0, 0, 0,  &ftfx_fstat);
 
@@ -1491,7 +1604,7 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	kinetis_invalidate_flash_cache(bank);
+	kinetis_invalidate_flash_cache(k_chip);
 	return result;
 }
 
@@ -1502,7 +1615,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 	int result;
 	bool set_fcf = false;
 	int sect = 0;
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 
 	result = kinetis_check_run_mode(bank->target);
 	if (result != ERROR_OK)
@@ -1513,7 +1626,7 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (result != ERROR_OK)
 		return result;
 
-	if (kinfo->prog_base == 0 && !allow_fcf_writes) {
+	if (k_bank->prog_base == 0 && !allow_fcf_writes) {
 		if (bank->sectors[1].offset <= FCF_ADDRESS)
 			sect = 1;	/* 1kb sector, FCF in 2nd sector */
 
@@ -1562,37 +1675,49 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 }
 
 
-static int kinetis_probe(struct flash_bank *bank)
+static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 {
-	int result, i;
+	int result;
 	uint8_t fcfg1_nvmsize, fcfg1_pfsize, fcfg1_eesize, fcfg1_depart;
-	uint8_t fcfg2_maxaddr0, fcfg2_pflsh, fcfg2_maxaddr1;
-	uint32_t nvm_size = 0, pf_size = 0, df_size = 0, ee_size = 0;
-	unsigned num_blocks = 0, num_pflash_blocks = 0, num_nvm_blocks = 0, first_nvm_bank = 0,
-			pflash_sector_size_bytes = 0, nvm_sector_size_bytes = 0;
+	uint8_t fcfg2_pflsh;
+	uint32_t ee_size = 0;
+	uint32_t pflash_size_k, nvm_size_k, dflash_size_k;
+	uint32_t pflash_size_m;
+	unsigned num_blocks = 0;
 	unsigned maxaddr_shift = 13;
-	struct target *target = bank->target;
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct target *target = k_chip->target;
 
-	kinfo->probed = false;
-	kinfo->progr_accel_ram = FLEXRAM;
+	unsigned familyid = 0, subfamid = 0;
+	unsigned cpu_mhz = 120;
+	unsigned idx;
+	bool use_nvm_marking = false;
+	char flash_marking[8], nvm_marking[2];
+	char name[40];
 
-	result = target_read_u32(target, SIM_SDID, &kinfo->sim_sdid);
+	k_chip->probed = false;
+	k_chip->pflash_sector_size = 0;
+	k_chip->pflash_base = 0;
+	k_chip->nvm_base = 0x10000000;
+	k_chip->progr_accel_ram = FLEXRAM;
+
+	name[0] = '\0';
+
+	result = target_read_u32(target, SIM_SDID, &k_chip->sim_sdid);
 	if (result != ERROR_OK)
 		return result;
 
-	if ((kinfo->sim_sdid & (~KINETIS_SDID_K_SERIES_MASK)) == 0) {
+	if ((k_chip->sim_sdid & (~KINETIS_SDID_K_SERIES_MASK)) == 0) {
 		/* older K-series MCU */
-		uint32_t mcu_type = kinfo->sim_sdid & KINETIS_K_SDID_TYPE_MASK;
+		uint32_t mcu_type = k_chip->sim_sdid & KINETIS_K_SDID_TYPE_MASK;
 
 		switch (mcu_type) {
 		case KINETIS_K_SDID_K10_M50:
 		case KINETIS_K_SDID_K20_M50:
 			/* 1kB sectors */
-			pflash_sector_size_bytes = 1<<10;
-			nvm_sector_size_bytes = 1<<10;
+			k_chip->pflash_sector_size = 1<<10;
+			k_chip->nvm_sector_size = 1<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+			k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		case KINETIS_K_SDID_K10_M72:
 		case KINETIS_K_SDID_K20_M72:
@@ -1602,11 +1727,11 @@ static int kinetis_probe(struct flash_bank *bank)
 		case KINETIS_K_SDID_K40_M100:
 		case KINETIS_K_SDID_K50_M72:
 			/* 2kB sectors, 1kB FlexNVM sectors */
-			pflash_sector_size_bytes = 2<<10;
-			nvm_sector_size_bytes = 1<<10;
+			k_chip->pflash_sector_size = 2<<10;
+			k_chip->nvm_sector_size = 1<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
-			kinfo->max_flash_prog_size = 1<<10;
+			k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+			k_chip->max_flash_prog_size = 1<<10;
 			break;
 		case KINETIS_K_SDID_K10_M100:
 		case KINETIS_K_SDID_K20_M100:
@@ -1618,43 +1743,57 @@ static int kinetis_probe(struct flash_bank *bank)
 		case KINETIS_K_SDID_K53:
 		case KINETIS_K_SDID_K60_M100:
 			/* 2kB sectors */
-			pflash_sector_size_bytes = 2<<10;
-			nvm_sector_size_bytes = 2<<10;
+			k_chip->pflash_sector_size = 2<<10;
+			k_chip->nvm_sector_size = 2<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+			k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		case KINETIS_K_SDID_K21_M120:
 		case KINETIS_K_SDID_K22_M120:
 			/* 4kB sectors (MK21FN1M0, MK21FX512, MK22FN1M0, MK22FX512) */
-			pflash_sector_size_bytes = 4<<10;
-			kinfo->max_flash_prog_size = 1<<10;
-			nvm_sector_size_bytes = 4<<10;
+			k_chip->pflash_sector_size = 4<<10;
+			k_chip->max_flash_prog_size = 1<<10;
+			k_chip->nvm_sector_size = 4<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+			k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		case KINETIS_K_SDID_K10_M120:
 		case KINETIS_K_SDID_K20_M120:
 		case KINETIS_K_SDID_K60_M150:
 		case KINETIS_K_SDID_K70_M150:
 			/* 4kB sectors */
-			pflash_sector_size_bytes = 4<<10;
-			nvm_sector_size_bytes = 4<<10;
+			k_chip->pflash_sector_size = 4<<10;
+			k_chip->nvm_sector_size = 4<<10;
 			num_blocks = 4;
-			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+			k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		default:
 			LOG_ERROR("Unsupported K-family FAMID");
 		}
+
+		for (idx = 0; idx < ARRAY_SIZE(kinetis_types_old); idx++) {
+			if (kinetis_types_old[idx].sdid == mcu_type) {
+				strcpy(name, kinetis_types_old[idx].name);
+				use_nvm_marking = true;
+				break;
+			}
+		}
+
 	} else {
 		/* Newer K-series or KL series MCU */
-		switch (kinfo->sim_sdid & KINETIS_SDID_SERIESID_MASK) {
+		familyid = (k_chip->sim_sdid & KINETIS_SDID_FAMILYID_MASK) >> KINETIS_SDID_FAMILYID_SHIFT;
+		subfamid = (k_chip->sim_sdid & KINETIS_SDID_SUBFAMID_MASK) >> KINETIS_SDID_SUBFAMID_SHIFT;
+
+		switch (k_chip->sim_sdid & KINETIS_SDID_SERIESID_MASK) {
 		case KINETIS_SDID_SERIESID_K:
-			switch (kinfo->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
+			use_nvm_marking = true;
+			switch (k_chip->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
 			case KINETIS_SDID_FAMILYID_K0X | KINETIS_SDID_SUBFAMID_KX2:
 				/* K02FN64, K02FN128: FTFA, 2kB sectors */
-				pflash_sector_size_bytes = 2<<10;
+				k_chip->pflash_sector_size = 2<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+				k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+				cpu_mhz = 100;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX2: {
@@ -1664,171 +1803,203 @@ static int kinetis_probe(struct flash_bank *bank)
 				if (result != ERROR_OK)
 					return result;
 
-				if (((kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K24FN1M) &&
+				if (((k_chip->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K24FN1M) &&
 						((sopt1 & KINETIS_SOPT1_RAMSIZE_MASK) == KINETIS_SOPT1_RAMSIZE_K24FN1M)) {
 					/* MK24FN1M */
-					pflash_sector_size_bytes = 4<<10;
+					k_chip->pflash_sector_size = 4<<10;
 					num_blocks = 2;
-					kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
-					kinfo->max_flash_prog_size = 1<<10;
+					k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+					k_chip->max_flash_prog_size = 1<<10;
+					subfamid = 4; /* errata 1N83J fix */
 					break;
 				}
-				if ((kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN128
-					|| (kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN256
-					|| (kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN512) {
+				if ((k_chip->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN128
+					|| (k_chip->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN256
+					|| (k_chip->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K22FN512) {
 					/* K22 with new-style SDID - smaller pflash with FTFA, 2kB sectors */
-					pflash_sector_size_bytes = 2<<10;
+					k_chip->pflash_sector_size = 2<<10;
 					/* autodetect 1 or 2 blocks */
-					kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+					k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 					break;
 				}
 				LOG_ERROR("Unsupported Kinetis K22 DIEID");
 				break;
 			}
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX4:
-				pflash_sector_size_bytes = 4<<10;
-				if ((kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K24FN256) {
+				k_chip->pflash_sector_size = 4<<10;
+				if ((k_chip->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K24FN256) {
 					/* K24FN256 - smaller pflash with FTFA */
 					num_blocks = 1;
-					kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+					k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 					break;
 				}
 				/* K24FN1M without errata 7534 */
 				num_blocks = 2;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
-				kinfo->max_flash_prog_size = 1<<10;
+				k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+				k_chip->max_flash_prog_size = 1<<10;
 				break;
 
-			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX3:
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX1:	/* errata 7534 - should be K63 */
+			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX2:	/* errata 7534 - should be K64 */
+				subfamid += 2; /* errata 7534 fix */
+			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX3:
 				/* K63FN1M0 */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX4:
-			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX2:	/* errata 7534 - should be K64 */
 				/* K64FN1M0, K64FX512 */
-				pflash_sector_size_bytes = 4<<10;
-				nvm_sector_size_bytes = 4<<10;
-				kinfo->max_flash_prog_size = 1<<10;
+				k_chip->pflash_sector_size = 4<<10;
+				k_chip->nvm_sector_size = 4<<10;
+				k_chip->max_flash_prog_size = 1<<10;
 				num_blocks = 2;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+				k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX6:
 				/* K26FN2M0 */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX6:
 				/* K66FN2M0, K66FX1M0 */
-				pflash_sector_size_bytes = 4<<10;
-				nvm_sector_size_bytes = 4<<10;
-				kinfo->max_flash_prog_size = 1<<10;
+				k_chip->pflash_sector_size = 4<<10;
+				k_chip->nvm_sector_size = 4<<10;
+				k_chip->max_flash_prog_size = 1<<10;
 				num_blocks = 4;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+				k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
+				cpu_mhz = 180;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX0:
 			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX1:
 			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX2:
 				/* K80FN256, K81FN256, K82FN256 */
-				pflash_sector_size_bytes = 4<<10;
+				k_chip->pflash_sector_size = 4<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K | FS_NO_CMD_BLOCKSTAT;
+				k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K | FS_NO_CMD_BLOCKSTAT;
+				cpu_mhz = 150;
 				break;
 
 			case KINETIS_SDID_FAMILYID_KL8X | KINETIS_SDID_SUBFAMID_KX1:
 			case KINETIS_SDID_FAMILYID_KL8X | KINETIS_SDID_SUBFAMID_KX2:
 				/* KL81Z128, KL82Z128 */
-				pflash_sector_size_bytes = 2<<10;
+				k_chip->pflash_sector_size = 2<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L | FS_NO_CMD_BLOCKSTAT;
+				k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L | FS_NO_CMD_BLOCKSTAT;
+				use_nvm_marking = false;
+				snprintf(name, sizeof(name), "MKL8%uZ%%s7",
+					 subfamid);
 				break;
 
 			default:
 				LOG_ERROR("Unsupported Kinetis FAMILYID SUBFAMID");
 			}
+
+			if (name[0] == '\0')
+				snprintf(name, sizeof(name), "MK%u%uF%%s%u",
+					 familyid, subfamid, cpu_mhz / 10);
 			break;
 
 		case KINETIS_SDID_SERIESID_KL:
 			/* KL-series */
-			pflash_sector_size_bytes = 1<<10;
-			nvm_sector_size_bytes = 1<<10;
+			k_chip->pflash_sector_size = 1<<10;
+			k_chip->nvm_sector_size = 1<<10;
 			/* autodetect 1 or 2 blocks */
-			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
+			k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
+
+			cpu_mhz = 48;
+			if (subfamid == 3 && (familyid == 1 || familyid == 2))
+				subfamid = 7;
+			snprintf(name, sizeof(name), "MKL%u%uZ%%s%u",
+				 familyid, subfamid, cpu_mhz / 10);
 			break;
 
 		case KINETIS_SDID_SERIESID_KV:
 			/* KV-series */
-			switch (kinfo->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
+			switch (k_chip->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX0:
 				/* KV10: FTFA, 1kB sectors */
-				pflash_sector_size_bytes = 1<<10;
+				k_chip->pflash_sector_size = 1<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
+				k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
+				strcpy(name, "MKV10Z%s7");
 				break;
 
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX1:
 				/* KV11: FTFA, 2kB sectors */
-				pflash_sector_size_bytes = 2<<10;
+				k_chip->pflash_sector_size = 2<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
+				k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
+				strcpy(name, "MKV11Z%s7");
 				break;
 
 			case KINETIS_SDID_FAMILYID_K3X | KINETIS_SDID_SUBFAMID_KX0:
 				/* KV30: FTFA, 2kB sectors, 1 block */
 			case KINETIS_SDID_FAMILYID_K3X | KINETIS_SDID_SUBFAMID_KX1:
 				/* KV31: FTFA, 2kB sectors, 2 blocks */
-				pflash_sector_size_bytes = 2<<10;
+				k_chip->pflash_sector_size = 2<<10;
 				/* autodetect 1 or 2 blocks */
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+				k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K4X | KINETIS_SDID_SUBFAMID_KX2:
 			case KINETIS_SDID_FAMILYID_K4X | KINETIS_SDID_SUBFAMID_KX4:
 			case KINETIS_SDID_FAMILYID_K4X | KINETIS_SDID_SUBFAMID_KX6:
 				/* KV4x: FTFA, 4kB sectors */
-				pflash_sector_size_bytes = 4<<10;
+				k_chip->pflash_sector_size = 4<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+				k_chip->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+				cpu_mhz = 168;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K5X | KINETIS_SDID_SUBFAMID_KX6:
 			case KINETIS_SDID_FAMILYID_K5X | KINETIS_SDID_SUBFAMID_KX8:
 				/* KV5x: FTFE, 8kB sectors */
-				pflash_sector_size_bytes = 8<<10;
-				maxaddr_shift = 14;
-				kinfo->max_flash_prog_size = 1<<10;
+				k_chip->pflash_sector_size = 8<<10;
+				k_chip->max_flash_prog_size = 1<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_WIDTH_256BIT;
-				bank->base = 0x10000000;
-				kinfo->prog_base = 0;
-				kinfo->progr_accel_ram = 0x18000000;
+				maxaddr_shift = 14;
+				k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_WIDTH_256BIT;
+				k_chip->pflash_base = 0x10000000;
+				k_chip->progr_accel_ram = 0x18000000;
+				cpu_mhz = 240;
 				break;
 
 			default:
 				LOG_ERROR("Unsupported KV FAMILYID SUBFAMID");
 			}
+
+			if (name[0] == '\0')
+				snprintf(name, sizeof(name), "MKV%u%uF%%s%u",
+					 familyid, subfamid, cpu_mhz / 10);
 			break;
 
 		case KINETIS_SDID_SERIESID_KE:
 			/* KE1x-series */
-			switch (kinfo->sim_sdid &
+			switch (k_chip->sim_sdid &
 				(KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK | KINETIS_SDID_PROJECTID_MASK)) {
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX4 | KINETIS_SDID_PROJECTID_KE1xZ:
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX5 | KINETIS_SDID_PROJECTID_KE1xZ:
 				/* KE1xZ: FTFE, 2kB sectors */
-				pflash_sector_size_bytes = 2<<10;
-				nvm_sector_size_bytes = 2<<10;
-				kinfo->max_flash_prog_size = 1<<9;
+				k_chip->pflash_sector_size = 2<<10;
+				k_chip->nvm_sector_size = 2<<10;
+				k_chip->max_flash_prog_size = 1<<9;
 				num_blocks = 2;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_L;
+				k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_L;
+
+				cpu_mhz = 72;
+				snprintf(name, sizeof(name), "MKE%u%uZ%%s%u",
+					 familyid, subfamid, cpu_mhz / 10);
 				break;
 
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX4 | KINETIS_SDID_PROJECTID_KE1xF:
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX6 | KINETIS_SDID_PROJECTID_KE1xF:
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX8 | KINETIS_SDID_PROJECTID_KE1xF:
 				/* KE1xF: FTFE, 4kB sectors */
-				pflash_sector_size_bytes = 4<<10;
-				nvm_sector_size_bytes = 2<<10;
-				kinfo->max_flash_prog_size = 1<<10;
+				k_chip->pflash_sector_size = 4<<10;
+				k_chip->nvm_sector_size = 2<<10;
+				k_chip->max_flash_prog_size = 1<<10;
 				num_blocks = 2;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_MSCM;
+				k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_MSCM;
+
+				cpu_mhz = 168;
+				snprintf(name, sizeof(name), "MKE%u%uF%%s%u",
+					 familyid, subfamid, cpu_mhz / 10);
 				break;
 
 			default:
@@ -1841,37 +2012,37 @@ static int kinetis_probe(struct flash_bank *bank)
 		}
 	}
 
-	if (pflash_sector_size_bytes == 0) {
-		LOG_ERROR("MCU is unsupported, SDID 0x%08" PRIx32, kinfo->sim_sdid);
+	if (k_chip->pflash_sector_size == 0) {
+		LOG_ERROR("MCU is unsupported, SDID 0x%08" PRIx32, k_chip->sim_sdid);
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
-	result = target_read_u32(target, SIM_FCFG1, &kinfo->sim_fcfg1);
+	result = target_read_u32(target, SIM_FCFG1, &k_chip->sim_fcfg1);
 	if (result != ERROR_OK)
 		return result;
 
-	result = target_read_u32(target, SIM_FCFG2, &kinfo->sim_fcfg2);
+	result = target_read_u32(target, SIM_FCFG2, &k_chip->sim_fcfg2);
 	if (result != ERROR_OK)
 		return result;
 
-	LOG_DEBUG("SDID: 0x%08" PRIX32 " FCFG1: 0x%08" PRIX32 " FCFG2: 0x%08" PRIX32, kinfo->sim_sdid,
-			kinfo->sim_fcfg1, kinfo->sim_fcfg2);
+	LOG_DEBUG("SDID: 0x%08" PRIX32 " FCFG1: 0x%08" PRIX32 " FCFG2: 0x%08" PRIX32, k_chip->sim_sdid,
+			k_chip->sim_fcfg1, k_chip->sim_fcfg2);
 
-	fcfg1_nvmsize = (uint8_t)((kinfo->sim_fcfg1 >> 28) & 0x0f);
-	fcfg1_pfsize = (uint8_t)((kinfo->sim_fcfg1 >> 24) & 0x0f);
-	fcfg1_eesize = (uint8_t)((kinfo->sim_fcfg1 >> 16) & 0x0f);
-	fcfg1_depart = (uint8_t)((kinfo->sim_fcfg1 >> 8) & 0x0f);
+	fcfg1_nvmsize = (uint8_t)((k_chip->sim_fcfg1 >> 28) & 0x0f);
+	fcfg1_pfsize = (uint8_t)((k_chip->sim_fcfg1 >> 24) & 0x0f);
+	fcfg1_eesize = (uint8_t)((k_chip->sim_fcfg1 >> 16) & 0x0f);
+	fcfg1_depart = (uint8_t)((k_chip->sim_fcfg1 >> 8) & 0x0f);
 
-	fcfg2_pflsh = (uint8_t)((kinfo->sim_fcfg2 >> 23) & 0x01);
-	fcfg2_maxaddr0 = (uint8_t)((kinfo->sim_fcfg2 >> 24) & 0x7f);
-	fcfg2_maxaddr1 = (uint8_t)((kinfo->sim_fcfg2 >> 16) & 0x7f);
+	fcfg2_pflsh = (uint8_t)((k_chip->sim_fcfg2 >> 23) & 0x01);
+	k_chip->fcfg2_maxaddr0_shifted = ((k_chip->sim_fcfg2 >> 24) & 0x7f) << maxaddr_shift;
+	k_chip->fcfg2_maxaddr1_shifted = ((k_chip->sim_fcfg2 >> 16) & 0x7f) << maxaddr_shift;
 
 	if (num_blocks == 0)
-		num_blocks = fcfg2_maxaddr1 ? 2 : 1;
-	else if (fcfg2_maxaddr1 == 0 && num_blocks >= 2) {
+		num_blocks = k_chip->fcfg2_maxaddr1_shifted ? 2 : 1;
+	else if (k_chip->fcfg2_maxaddr1_shifted == 0 && num_blocks >= 2) {
 		num_blocks = 1;
 		LOG_WARNING("MAXADDR1 is zero, number of flash banks adjusted to 1");
-	} else if (fcfg2_maxaddr1 != 0 && num_blocks == 1) {
+	} else if (k_chip->fcfg2_maxaddr1_shifted != 0 && num_blocks == 1) {
 		num_blocks = 2;
 		LOG_WARNING("MAXADDR1 is non zero, number of flash banks adjusted to 2");
 	}
@@ -1884,17 +2055,17 @@ static int kinetis_probe(struct flash_bank *bank)
 		case 0x07:
 		case 0x09:
 		case 0x0b:
-			nvm_size = 1 << (14 + (fcfg1_nvmsize >> 1));
+			k_chip->nvm_size = 1 << (14 + (fcfg1_nvmsize >> 1));
 			break;
 		case 0x0f:
-			if (pflash_sector_size_bytes >= 4<<10)
-				nvm_size = 512<<10;
+			if (k_chip->pflash_sector_size >= 4<<10)
+				k_chip->nvm_size = 512<<10;
 			else
 				/* K20_100 */
-				nvm_size = 256<<10;
+				k_chip->nvm_size = 256<<10;
 			break;
 		default:
-			nvm_size = 0;
+			k_chip->nvm_size = 0;
 			break;
 		}
 
@@ -1923,20 +2094,20 @@ static int kinetis_probe(struct flash_bank *bank)
 		case 0x04:
 		case 0x05:
 		case 0x06:
-			df_size = nvm_size - (4096 << fcfg1_depart);
+			k_chip->dflash_size = k_chip->nvm_size - (4096 << fcfg1_depart);
 			break;
 		case 0x08:
-			df_size = 0;
+			k_chip->dflash_size = 0;
 			break;
 		case 0x09:
 		case 0x0a:
 		case 0x0b:
 		case 0x0c:
 		case 0x0d:
-			df_size = 4096 << (fcfg1_depart & 0x7);
+			k_chip->dflash_size = 4096 << (fcfg1_depart & 0x7);
 			break;
 		default:
-			df_size = nvm_size;
+			k_chip->dflash_size = k_chip->nvm_size;
 			break;
 		}
 	}
@@ -1948,7 +2119,7 @@ static int kinetis_probe(struct flash_bank *bank)
 	case 0x09:
 	case 0x0b:
 	case 0x0d:
-		pf_size = 1 << (14 + (fcfg1_pfsize >> 1));
+		k_chip->pflash_size = 1 << (14 + (fcfg1_pfsize >> 1));
 		break;
 	case 0x0f:
 		/* a peculiar case: Freescale states different sizes for 0xf
@@ -1957,104 +2128,155 @@ static int kinetis_probe(struct flash_bank *bank)
 		 * K22P121M120SF7RM	512 KB ... duplicate of code 0xb
 		 * K22P100M120SF5RM	1024 KB ... duplicate of code 0xd
 		 * K26P169M180SF5RM	2048 KB ... the only unique value
-		 * fcfg2_maxaddr0 seems to be the only clue to pf_size
-		 * Checking fcfg2_maxaddr0 later in this routine is pointless then
+		 * fcfg2_maxaddr0 seems to be the only clue to pflash_size
+		 * Checking fcfg2_maxaddr0 in bank probe is pointless then
 		 */
 		if (fcfg2_pflsh)
-			pf_size = ((uint32_t)fcfg2_maxaddr0 << maxaddr_shift) * num_blocks;
+			k_chip->pflash_size = k_chip->fcfg2_maxaddr0_shifted * num_blocks;
 		else
-			pf_size = ((uint32_t)fcfg2_maxaddr0 << maxaddr_shift) * num_blocks / 2;
-		if (pf_size != 2048<<10)
-			LOG_WARNING("SIM_FCFG1 PFSIZE = 0xf: please check if pflash is %u KB", pf_size>>10);
+			k_chip->pflash_size = k_chip->fcfg2_maxaddr0_shifted * num_blocks / 2;
+		if (k_chip->pflash_size != 2048<<10)
+			LOG_WARNING("SIM_FCFG1 PFSIZE = 0xf: please check if pflash is %u KB", k_chip->pflash_size>>10);
 
 		break;
 	default:
-		pf_size = 0;
+		k_chip->pflash_size = 0;
 		break;
 	}
 
-	LOG_DEBUG("FlexNVM: %" PRIu32 " PFlash: %" PRIu32 " FlexRAM: %" PRIu32 " PFLSH: %d",
-		  nvm_size, pf_size, ee_size, fcfg2_pflsh);
+	if (k_chip->flash_support & FS_PROGRAM_SECTOR && k_chip->max_flash_prog_size == 0) {
+		k_chip->max_flash_prog_size = k_chip->pflash_sector_size;
+		/* Program section size is equal to sector size by default */
+	}
 
-	num_pflash_blocks = num_blocks / (2 - fcfg2_pflsh);
-	first_nvm_bank = num_pflash_blocks;
-	num_nvm_blocks = num_blocks - num_pflash_blocks;
+	k_chip->num_pflash_blocks = num_blocks / (2 - fcfg2_pflsh);
+	k_chip->num_nvm_blocks = num_blocks - k_chip->num_pflash_blocks;
 
-	LOG_DEBUG("%d blocks total: %d PFlash, %d FlexNVM",
-			num_blocks, num_pflash_blocks, num_nvm_blocks);
+	if (use_nvm_marking) {
+		nvm_marking[0] = k_chip->num_nvm_blocks ? 'X' : 'N';
+		nvm_marking[1] = '\0';
+	} else
+		nvm_marking[0] = '\0';
 
-	LOG_INFO("Probing flash info for bank %d", bank->bank_number);
+	pflash_size_k = k_chip->pflash_size / 1024;
+	pflash_size_m = pflash_size_k / 1024;
+	if (pflash_size_m)
+		snprintf(flash_marking, sizeof(flash_marking), "%s%" PRIu32 "M0xxx", nvm_marking, pflash_size_m);
+	else
+		snprintf(flash_marking, sizeof(flash_marking), "%s%" PRIu32 "xxx", nvm_marking, pflash_size_k);
 
-	if ((unsigned)bank->bank_number < num_pflash_blocks) {
+	snprintf(k_chip->name, sizeof(k_chip->name), name, flash_marking);
+	LOG_INFO("Kinetis %s detected: %u flash blocks", k_chip->name, num_blocks);
+	LOG_INFO("%u PFlash banks: %" PRIu32 "k total", k_chip->num_pflash_blocks, pflash_size_k);
+	if (k_chip->num_nvm_blocks) {
+		nvm_size_k = k_chip->nvm_size / 1024;
+		dflash_size_k = k_chip->dflash_size / 1024;
+		LOG_INFO("%u FlexNVM banks: %" PRIu32 "k total, %" PRIu32 "k available as data flash, %" PRIu32 "bytes FlexRAM",
+			 k_chip->num_nvm_blocks, nvm_size_k, dflash_size_k, ee_size);
+	}
+
+	k_chip->probed = true;
+	return ERROR_OK;
+}
+
+static int kinetis_probe(struct flash_bank *bank)
+{
+	int result, i;
+	uint8_t fcfg2_maxaddr0, fcfg2_pflsh, fcfg2_maxaddr1;
+	unsigned num_blocks, first_nvm_bank;
+	uint32_t size_k;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
+
+	k_bank->probed = false;
+
+	if (!k_chip->probed) {
+		result = kinetis_probe_chip(k_chip);
+		if (result != ERROR_OK)
+			return result;
+	}
+
+	num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
+	first_nvm_bank = k_chip->num_pflash_blocks;
+
+	if (k_bank->bank_number < k_chip->num_pflash_blocks) {
 		/* pflash, banks start at address zero */
-		kinfo->flash_class = FC_PFLASH;
-		bank->size = (pf_size / num_pflash_blocks);
-		if (bank->base == 0) {
-			bank->base = 0x00000000 + bank->size * bank->bank_number;
-			kinfo->prog_base = bank->base;
-		}
-		kinfo->sector_size = pflash_sector_size_bytes;
+		k_bank->flash_class = FC_PFLASH;
+		bank->size = (k_chip->pflash_size / k_chip->num_pflash_blocks);
+		bank->base = k_chip->pflash_base + bank->size * k_bank->bank_number;
+		k_bank->prog_base = 0x00000000 + bank->size * k_bank->bank_number;
+		k_bank->sector_size = k_chip->pflash_sector_size;
 		/* pflash is divided into 32 protection areas for
 		 * parts with more than 32K of PFlash. For parts with
 		 * less the protection unit is set to 1024 bytes */
-		kinfo->protection_size = MAX(pf_size / 32, 1024);
-		bank->num_prot_blocks = 32 / num_pflash_blocks;
-		kinfo->protection_block = bank->num_prot_blocks * bank->bank_number;
+		k_bank->protection_size = MAX(k_chip->pflash_size / 32, 1024);
+		bank->num_prot_blocks = 32 / k_chip->num_pflash_blocks;
+		k_bank->protection_block = bank->num_prot_blocks * k_bank->bank_number;
 
-	} else if ((unsigned)bank->bank_number < num_blocks) {
+		size_k = bank->size / 1024;
+		LOG_DEBUG("Kinetis bank %u: %" PRIu32 "k PFlash, FTFx base 0x%08" PRIx32 ", sect %u",
+			 k_bank->bank_number, size_k, k_bank->prog_base, k_bank->sector_size);
+
+	} else if (k_bank->bank_number < num_blocks) {
 		/* nvm, banks start at address 0x10000000 */
-		unsigned nvm_ord = bank->bank_number - first_nvm_bank;
+		unsigned nvm_ord = k_bank->bank_number - first_nvm_bank;
 		uint32_t limit;
 
-		kinfo->flash_class = FC_FLEX_NVM;
-		bank->size = (nvm_size / num_nvm_blocks);
-		bank->base = 0x10000000 + bank->size * nvm_ord;
-		kinfo->prog_base = 0x00800000 + bank->size * nvm_ord;
-		kinfo->sector_size = nvm_sector_size_bytes;
-		if (df_size == 0) {
-			kinfo->protection_size = 0;
+		k_bank->flash_class = FC_FLEX_NVM;
+		bank->size = k_chip->nvm_size / k_chip->num_nvm_blocks;
+		bank->base = k_chip->nvm_base + bank->size * nvm_ord;
+		k_bank->prog_base = 0x00800000 + bank->size * nvm_ord;
+		k_bank->sector_size = k_chip->nvm_sector_size;
+		if (k_chip->dflash_size == 0) {
+			k_bank->protection_size = 0;
 		} else {
-			for (i = df_size; ~i & 1; i >>= 1)
+			for (i = k_chip->dflash_size; ~i & 1; i >>= 1)
 				;
 			if (i == 1)
-				kinfo->protection_size = df_size / 8;	/* data flash size = 2^^n */
+				k_bank->protection_size = k_chip->dflash_size / 8;	/* data flash size = 2^^n */
 			else
-				kinfo->protection_size = nvm_size / 8;	/* TODO: verify on SF1, not documented in RM */
+				k_bank->protection_size = k_chip->nvm_size / 8;	/* TODO: verify on SF1, not documented in RM */
 		}
-		bank->num_prot_blocks = 8 / num_nvm_blocks;
-		kinfo->protection_block = bank->num_prot_blocks * nvm_ord;
+		bank->num_prot_blocks = 8 / k_chip->num_nvm_blocks;
+		k_bank->protection_block = bank->num_prot_blocks * nvm_ord;
 
-		/* EEPROM backup part of FlexNVM is not accessible, use df_size as a limit */
-		if (df_size > bank->size * nvm_ord)
-			limit = df_size - bank->size * nvm_ord;
+		/* EEPROM backup part of FlexNVM is not accessible, use dflash_size as a limit */
+		if (k_chip->dflash_size > bank->size * nvm_ord)
+			limit = k_chip->dflash_size - bank->size * nvm_ord;
 		else
 			limit = 0;
 
 		if (bank->size > limit) {
 			bank->size = limit;
 			LOG_DEBUG("FlexNVM bank %d limited to 0x%08" PRIx32 " due to active EEPROM backup",
-				bank->bank_number, limit);
+				k_bank->bank_number, limit);
 		}
 
-	} else if ((unsigned)bank->bank_number == num_blocks) {
-		LOG_ERROR("FlexRAM support not yet implemented");
-		return ERROR_FLASH_OPER_UNSUPPORTED;
+		size_k = bank->size / 1024;
+		LOG_DEBUG("Kinetis bank %u: %" PRIu32 "k FlexNVM, FTFx base 0x%08" PRIx32 ", sect %u",
+			 k_bank->bank_number, size_k, k_bank->prog_base, k_bank->sector_size);
+
 	} else {
 		LOG_ERROR("Cannot determine parameters for bank %d, only %d banks on device",
-				bank->bank_number, num_blocks);
+				k_bank->bank_number, num_blocks);
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	if (bank->bank_number == 0 && ((uint32_t)fcfg2_maxaddr0 << maxaddr_shift) != bank->size)
+	fcfg2_pflsh = (uint8_t)((k_chip->sim_fcfg2 >> 23) & 0x01);
+	fcfg2_maxaddr0 = (uint8_t)((k_chip->sim_fcfg2 >> 24) & 0x7f);
+	fcfg2_maxaddr1 = (uint8_t)((k_chip->sim_fcfg2 >> 16) & 0x7f);
+
+	if (k_bank->bank_number == 0 && k_chip->fcfg2_maxaddr0_shifted != bank->size)
 		LOG_WARNING("MAXADDR0 0x%02" PRIx8 " check failed,"
 				" please report to OpenOCD mailing list", fcfg2_maxaddr0);
+
 	if (fcfg2_pflsh) {
-		if (bank->bank_number == 1 && ((uint32_t)fcfg2_maxaddr1 << maxaddr_shift) != bank->size)
+		if (k_bank->bank_number == 1 && k_chip->fcfg2_maxaddr1_shifted != bank->size)
 			LOG_WARNING("MAXADDR1 0x%02" PRIx8 " check failed,"
 				" please report to OpenOCD mailing list", fcfg2_maxaddr1);
 	} else {
-		if ((unsigned)bank->bank_number == first_nvm_bank
-				&& ((uint32_t)fcfg2_maxaddr1 << maxaddr_shift) != df_size)
+		if (k_bank->bank_number == first_nvm_bank
+				&& k_chip->fcfg2_maxaddr1_shifted != k_chip->dflash_size)
 			LOG_WARNING("FlexNVM MAXADDR1 0x%02" PRIx8 " check failed,"
 				" please report to OpenOCD mailing list", fcfg2_maxaddr1);
 	}
@@ -2068,26 +2290,20 @@ static int kinetis_probe(struct flash_bank *bank)
 		bank->prot_blocks = NULL;
 	}
 
-	if (kinfo->sector_size == 0) {
+	if (k_bank->sector_size == 0) {
 		LOG_ERROR("Unknown sector size for bank %d", bank->bank_number);
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	if (kinfo->flash_support & FS_PROGRAM_SECTOR
-			 && kinfo->max_flash_prog_size == 0) {
-		kinfo->max_flash_prog_size = kinfo->sector_size;
-		/* Program section size is equal to sector size by default */
-	}
-
-	bank->num_sectors = bank->size / kinfo->sector_size;
+	bank->num_sectors = bank->size / k_bank->sector_size;
 
 	if (bank->num_sectors > 0) {
 		/* FlexNVM bank can be used for EEPROM backup therefore zero sized */
-		bank->sectors = alloc_block_array(0, kinfo->sector_size, bank->num_sectors);
+		bank->sectors = alloc_block_array(0, k_bank->sector_size, bank->num_sectors);
 		if (!bank->sectors)
 			return ERROR_FAIL;
 
-		bank->prot_blocks = alloc_block_array(0, kinfo->protection_size, bank->num_prot_blocks);
+		bank->prot_blocks = alloc_block_array(0, k_bank->protection_size, bank->num_prot_blocks);
 		if (!bank->prot_blocks)
 			return ERROR_FAIL;
 
@@ -2095,16 +2311,16 @@ static int kinetis_probe(struct flash_bank *bank)
 		bank->num_prot_blocks = 0;
 	}
 
-	kinfo->probed = true;
+	k_bank->probed = true;
 
 	return ERROR_OK;
 }
 
 static int kinetis_auto_probe(struct flash_bank *bank)
 {
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 
-	if (kinfo && kinfo->probed)
+	if (k_bank && k_bank->probed)
 		return ERROR_OK;
 
 	return kinetis_probe(bank);
@@ -2116,19 +2332,23 @@ static int kinetis_info(struct flash_bank *bank, char *buf, int buf_size)
 		"(ANY)", "PFlash", "FlexNVM", "FlexRAM"
 	};
 
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
+	uint32_t size_k = bank->size / 1024;
 
-	(void) snprintf(buf, buf_size,
-			"%s driver for %s flash bank %s at 0x%8.8" PRIx32 "",
-			bank->driver->name, bank_class_names[kinfo->flash_class],
-			bank->name, bank->base);
+	snprintf(buf, buf_size,
+		"%s %s: %" PRIu32 "k %s bank %s at 0x%08" PRIx32,
+		bank->driver->name, k_chip->name,
+		size_k, bank_class_names[k_bank->flash_class],
+		bank->name, bank->base);
 
 	return ERROR_OK;
 }
 
 static int kinetis_blank_check(struct flash_bank *bank)
 {
-	struct kinetis_flash_bank *kinfo = bank->driver_priv;
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
 	int result;
 
 	/* suprisingly blank check does not work in VLPR and HSRUN modes */
@@ -2141,13 +2361,13 @@ static int kinetis_blank_check(struct flash_bank *bank)
 	if (result != ERROR_OK)
 		return result;
 
-	if (kinfo->flash_class == FC_PFLASH || kinfo->flash_class == FC_FLEX_NVM) {
+	if (k_bank->flash_class == FC_PFLASH || k_bank->flash_class == FC_FLEX_NVM) {
 		bool block_dirty = true;
-		bool use_block_cmd = !(kinfo->flash_support & FS_NO_CMD_BLOCKSTAT);
+		bool use_block_cmd = !(k_chip->flash_support & FS_NO_CMD_BLOCKSTAT);
 		uint8_t ftfx_fstat;
 
-		if (use_block_cmd && kinfo->flash_class == FC_FLEX_NVM) {
-			uint8_t fcfg1_depart = (uint8_t)((kinfo->sim_fcfg1 >> 8) & 0x0f);
+		if (use_block_cmd && k_bank->flash_class == FC_FLEX_NVM) {
+			uint8_t fcfg1_depart = (uint8_t)((k_chip->sim_fcfg1 >> 8) & 0x0f);
 			/* block operation cannot be used on FlexNVM when EEPROM backup partition is set */
 			if (fcfg1_depart != 0xf && fcfg1_depart != 0)
 				use_block_cmd = false;
@@ -2155,7 +2375,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 
 		if (use_block_cmd) {
 			/* check if whole bank is blank */
-			result = kinetis_ftfx_command(bank->target, FTFx_CMD_BLOCKSTAT, kinfo->prog_base,
+			result = kinetis_ftfx_command(bank->target, FTFx_CMD_BLOCKSTAT, k_bank->prog_base,
 							 0, 0, 0, 0,  0, 0, 0, 0, &ftfx_fstat);
 
 			if (result != ERROR_OK)
@@ -2170,7 +2390,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 			for (i = 0; i < bank->num_sectors; i++) {
 				/* normal margin */
 				result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTSTAT,
-						kinfo->prog_base + bank->sectors[i].offset,
+						k_bank->prog_base + bank->sectors[i].offset,
 						1, 0, 0, 0,  0, 0, 0, 0, &ftfx_fstat);
 
 				if (result == ERROR_OK) {
@@ -2198,7 +2418,9 @@ static int kinetis_blank_check(struct flash_bank *bank)
 
 COMMAND_HANDLER(kinetis_nvm_partition)
 {
-	int result, i;
+	int result;
+	unsigned bank_idx;
+	unsigned num_blocks, first_nvm_bank;
 	unsigned long par, log2 = 0, ee1 = 0, ee2 = 0;
 	enum { SHOW_INFO, DF_SIZE, EEBKP_SIZE } sz_type = SHOW_INFO;
 	bool enable;
@@ -2207,8 +2429,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	uint8_t flex_nvm_partition_code = 0;
 	uint8_t ee_split = 3;
 	struct target *target = get_current_target(CMD_CTX);
-	struct flash_bank *bank;
-	struct kinetis_flash_bank *kinfo;
+	struct kinetis_chip *k_chip;
 	uint32_t sim_fcfg1;
 
 	if (CMD_ARGC >= 2) {
@@ -2323,14 +2544,13 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 
 	command_print(CMD_CTX, "FlexNVM partition set. Please reset MCU.");
 
-	for (i = 1; i < 4; i++) {
-		bank = get_flash_bank_by_num_noprobe(i);
-		if (bank == NULL)
-			break;
-
-		kinfo = bank->driver_priv;
-		if (kinfo && kinfo->flash_class == FC_FLEX_NVM)
-			kinfo->probed = false;	/* re-probe before next use */
+	k_chip = kinetis_get_chip(target);
+	if (k_chip) {
+		first_nvm_bank = k_chip->num_pflash_blocks;
+		num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
+		for (bank_idx = first_nvm_bank; bank_idx < num_blocks; bank_idx++)
+			k_chip->banks[bank_idx].probed = false;	/* re-probe before next use */
+		k_chip->probed = false;
 	}
 
 	command_print(CMD_CTX, "FlexNVM banks will be re-probed to set new data flash size.");
