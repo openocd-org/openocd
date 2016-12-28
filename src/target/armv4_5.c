@@ -1091,6 +1091,42 @@ COMMAND_HANDLER(handle_arm_semihosting_fileio_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_arm_semihosting_cmdline)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	unsigned int i;
+
+	if (target == NULL) {
+		LOG_ERROR("No target selected");
+		return ERROR_FAIL;
+	}
+
+	struct arm *arm = target_to_arm(target);
+
+	if (!is_arm(arm)) {
+		command_print(CMD_CTX, "current target isn't an ARM");
+		return ERROR_FAIL;
+	}
+
+	if (!arm->setup_semihosting) {
+		command_print(CMD_CTX, "semihosting not supported for current target");
+		return ERROR_FAIL;
+	}
+
+	free(arm->semihosting_cmdline);
+	arm->semihosting_cmdline = CMD_ARGC > 0 ? strdup(CMD_ARGV[0]) : NULL;
+
+	for (i = 1; i < CMD_ARGC; i++) {
+		char *cmdline = alloc_printf("%s %s", arm->semihosting_cmdline, CMD_ARGV[i]);
+		if (cmdline == NULL)
+			break;
+		free(arm->semihosting_cmdline);
+		arm->semihosting_cmdline = cmdline;
+	}
+
+	return ERROR_OK;
+}
+
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
 		.name = "reg",
@@ -1132,6 +1168,13 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting operations",
+	},
+	{
+		"semihosting_cmdline",
+		.handler = handle_arm_semihosting_cmdline,
+		.mode = COMMAND_EXEC,
+		.usage = "arguments",
+		.help = "command line arguments to be passed to program",
 	},
 	{
 		"semihosting_fileio",

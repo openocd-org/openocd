@@ -7604,6 +7604,20 @@ requests by using a special SVC instruction that is trapped at the
 Supervisor Call vector by OpenOCD.
 @end deffn
 
+@deffn Command {arm semihosting_cmdline} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
+Set the command line to be passed to the debuggee.
+
+@example
+arm semihosting_cmdline argv0 argv1 argv2 ...
+@end example
+
+This option lets one set the command line arguments to be passed to
+the program. The first argument (argv0) is the program name in a
+standard C environment (argv[0]). Depending on the program (not much
+programs look at argv[0]), argv0 is ignored and can be any string.
+@end deffn
+
 @deffn Command {arm semihosting_fileio} [@option{enable}|@option{disable}]
 @cindex ARM semihosting
 Display status of semihosting fileio, after optionally changing that
