@@ -592,10 +592,6 @@ static int sysfsgpio_init(void)
 			LOG_INFO("JTAG and SWD modes enabled");
 		else
 			LOG_INFO("JTAG only mode enabled (specify swclk and swdio gpio to add SWD mode)");
-		if (!is_gpio_valid(trst_gpio) && !is_gpio_valid(srst_gpio)) {
-			LOG_ERROR("Require at least one of trst or srst gpios to be specified");
-			return ERROR_JTAG_INIT_FAILED;
-		}
 	} else if (sysfsgpio_swd_mode_possible()) {
 		LOG_INFO("SWD only mode enabled (specify tck, tms, tdi and tdo gpios to add JTAG mode)");
 	} else {
