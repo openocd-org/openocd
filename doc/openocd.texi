@@ -2408,11 +2408,10 @@ This driver is for adapters using the MPSSE (Multi-Protocol Synchronous Serial
 Engine) mode built into many FTDI chips, such as the FT2232, FT4232 and FT232H.
 
 The driver is using libusb-1.0 in asynchronous mode to talk to the FTDI device,
-bypassing intermediate libraries like libftdi of D2XX.
+bypassing intermediate libraries like libftdi or D2XX.
 
-A major improvement of this driver is that support for new FTDI based adapters
-can be added competely through configuration files, without the need to patch
-and rebuild OpenOCD.
+Support for new FTDI based adapters can be added competely through
+configuration files, without the need to patch and rebuild OpenOCD.
 
 The driver uses a signal abstraction to enable Tcl configuration files to
 define outputs for one or several FTDI GPIO. These outputs can then be
@@ -2420,6 +2419,12 @@ controlled using the @command{ftdi_set_signal} command. Special signal names
 are reserved for nTRST, nSRST and LED (for blink) so that they, if defined,
 will be used for their customary purpose. Inputs can be read using the
 @command{ftdi_get_signal} command.
+
+To support SWD, a signal named SWD_EN must be defined. It is set to 1 when the
+SWD protocol is selected. When set, the adapter should route the SWDIO pin to
+the data input. An SWDIO_OE signal, if defined, will be set to 1 or 0 as
+required by the protocol, to tell the adapter to drive the data output onto
+the SWDIO pin or keep the SWDIO pin Hi-Z, respectively.
 
 Depending on the type of buffer attached to the FTDI GPIO, the outputs have to
 be controlled differently. In order to support tristateable signals such as
@@ -2439,9 +2444,8 @@ These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
 @deffn {Config Command} {ftdi_vid_pid} [vid pid]+
-The vendor ID and product ID of the adapter. If not specified, the FTDI
-default values are used.
-Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
+The vendor ID and product ID of the adapter. Up to eight
+[@var{vid}, @var{pid}] pairs may be given, e.g.
 @example
 ftdi_vid_pid 0x0403 0xcff8 0x15ba 0x0003
 @end example
