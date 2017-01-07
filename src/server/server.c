@@ -345,6 +345,21 @@ int add_service(char *name,
 	return ERROR_OK;
 }
 
+static void remove_connections(struct service *service)
+{
+	struct connection *connection;
+
+	connection = service->connections;
+
+	while (connection) {
+		struct connection *tmp;
+
+		tmp = connection->next;
+		remove_connection(service, connection);
+		connection = tmp;
+	}
+}
+
 static int remove_services(void)
 {
 	struct service *c = services;
@@ -352,6 +367,8 @@ static int remove_services(void)
 	/* loop service */
 	while (c) {
 		struct service *next = c->next;
+
+		remove_connections(c);
 
 		if (c->name)
 			free(c->name);
