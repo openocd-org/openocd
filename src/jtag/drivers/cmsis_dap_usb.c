@@ -821,7 +821,13 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 		return ERROR_FAIL;
 	}
 
-	return cmsis_dap_cmd_DAP_SWJ_Sequence(s_len, s);
+	retval = cmsis_dap_cmd_DAP_SWJ_Sequence(s_len, s);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Atmel EDBG needs renew clock setting after SWJ_Sequence
+	 * otherwise default frequency is used */
+	return cmsis_dap_cmd_DAP_SWJ_Clock(jtag_get_speed_khz());
 }
 
 static int cmsis_dap_swd_open(void)
