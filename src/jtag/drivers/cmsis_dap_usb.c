@@ -1499,13 +1499,11 @@ static int cmsis_dap_execute_queue(void)
 
 static int cmsis_dap_speed(int speed)
 {
-	if (speed > DAP_MAX_CLOCK) {
-		LOG_INFO("reduce speed request: %dkHz to %dkHz maximum", speed, DAP_MAX_CLOCK);
-		speed = DAP_MAX_CLOCK;
-	}
+	if (speed > DAP_MAX_CLOCK)
+		LOG_INFO("High speed (adapter_khz %d) may be limited by adapter firmware.", speed);
 
 	if (speed == 0) {
-		LOG_INFO("RTCK not supported");
+		LOG_ERROR("RTCK not supported. Set nonzero adapter_khz.");
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 	}
 
