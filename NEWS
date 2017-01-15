@@ -3,7 +3,7 @@ source archive release.
 
 JTAG Layer:
 	* New driver for J-Link adapters based on libjaylink
-          (including support for FPGA configuration and EMUCOM)
+          (including support for FPGA configuration, SWO and EMUCOM)
 	* FTDI improvements to work at 30MHz clock
 	* BCM2835 native driver SWD and Raspberry Pi2 support
 	* BCM2835 is set to 4ma drive, slow slew rate
@@ -144,7 +144,7 @@ This release also contains a number of other important functional and
 cosmetic bugfixes. For more details about what has changed since the
 last release, see the git repository history:
 
-http://sourceforge.net/p/openocd/code/ci/v0.10.0-rc1/log/?path=
+http://sourceforge.net/p/openocd/code/ci/v0.10.0-rc2/log/?path=
 
 
 For older NEWS, see the NEWS files associated with each release
