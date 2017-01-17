@@ -58,11 +58,11 @@
 /*
  * Helper func to determine if gpio number valid
  *
- * Assume here that there will be less than 1000 gpios on a system
+ * Assume here that gpio numbers won't go above 2500 on a system
  */
 static int is_gpio_valid(int gpio)
 {
-	return gpio >= 0 && gpio < 1000;
+	return gpio >= 0 && gpio < 2500;
 }
 
 /*
