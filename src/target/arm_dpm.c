@@ -972,11 +972,14 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 	arm->read_core_reg = arm_dpm_read_core_reg;
 	arm->write_core_reg = arm_dpm_write_core_reg;
 
-	cache = arm_build_reg_cache(target, arm);
-	if (!cache)
-		return ERROR_FAIL;
+	/* avoid duplicating the register cache */
+	if (arm->core_cache == NULL) {
+		cache = arm_build_reg_cache(target, arm);
+		if (!cache)
+			return ERROR_FAIL;
 
-	*register_get_last_cache_p(&target->reg_cache) = cache;
+		*register_get_last_cache_p(&target->reg_cache) = cache;
+	}
 
 	/* coprocessor access setup */
 	arm->mrc = dpm_mrc;
