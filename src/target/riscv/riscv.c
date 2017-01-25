@@ -2696,6 +2696,18 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		}
 	}
 
+
+	// Disable Interrupts before attempting to run the algorithm.
+	// Is it possible/desirable to do this in the calling code instead?
+	uint64_t current_mstatus;
+
+	register_get(&target->reg_cache->reg_list[REG_MSTATUS]);
+	current_mstatus = info->mstatus_actual;
+	current_mstatus = current_mstatus & ~((uint64_t) 0x8);
+	register_set((&target->reg_cache->reg_list[REG_MSTATUS]), (uint8_t*) &current_mstatus);
+	info->mstatus_actual = current_mstatus;
+
+
 	/// Run algorithm
 	LOG_DEBUG("resume at 0x%x", entry_point);
 	if (riscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK) {
