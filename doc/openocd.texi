@@ -2948,8 +2948,8 @@ Specifies the serial number of the adapter.
 Specifies the adapter layout to use.
 @end deffn
 
-@deffn {Config Command} {hla_vid_pid} vid pid
-The vendor ID and product ID of the device.
+@deffn {Config Command} {hla_vid_pid} [vid pid]+
+Pairs of vendor IDs and product IDs of the device.
 @end deffn
 
 @deffn {Command} {hla_command} command
