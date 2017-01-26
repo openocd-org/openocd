@@ -2696,6 +2696,19 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		}
 	}
 
+
+	// Disable Interrupts before attempting to run the algorithm.
+	uint64_t current_mstatus;
+	uint8_t mstatus_bytes[8];
+
+	LOG_DEBUG("Disabling Interrupts");
+	register_get(&target->reg_cache->reg_list[REG_MSTATUS]);
+	current_mstatus = buf_get_u64(target->reg_cache->reg_list[REG_MSTATUS].value, 0, info->xlen);
+	uint64_t ie_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
+	buf_set_u64(mstatus_bytes, 0, info->xlen, set_field(current_mstatus, ie_mask, 0));
+
+	register_set(&target->reg_cache->reg_list[REG_MSTATUS], mstatus_bytes);
+
 	/// Run algorithm
 	LOG_DEBUG("resume at 0x%x", entry_point);
 	if (riscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK) {
@@ -2728,6 +2741,11 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 				final_pc, exit_point);
 		return ERROR_FAIL;
 	}
+
+	// Restore Interrupts
+	LOG_DEBUG("Restoring Interrupts");
+	buf_set_u64(mstatus_bytes, 0, info->xlen, current_mstatus);
+	register_set(&target->reg_cache->reg_list[REG_MSTATUS], mstatus_bytes);
 
 	/// Restore registers
 	uint8_t buf[8];
