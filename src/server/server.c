@@ -505,7 +505,7 @@ int server_loop(struct command_context *command_context)
 		for (service = services; service; service = service->next) {
 			/* handle new connections on listeners */
 			if ((service->fd != -1)
-			    && (FD_ISSET(service->fd, &read_fds))) {
+				&& (FD_ISSET(service->fd, &read_fds))) {
 				if (service->max_connections != 0)
 					add_connection(service, command_context);
 				else {
@@ -563,21 +563,36 @@ int server_loop(struct command_context *command_context)
 	return shutdown_openocd != 2 ? ERROR_OK : ERROR_FAIL;
 }
 
+void sig_handler(int sig)
+{
+	/* store only first signal that hits us */
+	if (!shutdown_openocd) {
+		last_signal = sig;
+		shutdown_openocd = 1;
+		LOG_DEBUG("Terminating on Signal %d", sig);
+	} else
+		LOG_DEBUG("Ignored extra Signal %d", sig);
+}
+
+
 #ifdef _WIN32
 BOOL WINAPI ControlHandler(DWORD dwCtrlType)
 {
 	shutdown_openocd = 1;
 	return TRUE;
 }
+#else
+static void sigkey_handler(int sig)
+{
+	/* ignore keystroke generated signals if not in foreground process group */
+
+	if (tcgetpgrp(STDIN_FILENO) > 0)
+		sig_handler(sig);
+	else
+		LOG_DEBUG("Ignored Signal %d", sig);
+}
 #endif
 
-void sig_handler(int sig)
-{
-	/* store only first signal that hits us */
-	if (!last_signal)
-		last_signal = sig;
-	shutdown_openocd = 1;
-}
 
 int server_preinit(void)
 {
@@ -600,8 +615,13 @@ int server_preinit(void)
 	SetConsoleCtrlHandler(ControlHandler, TRUE);
 
 	signal(SIGBREAK, sig_handler);
-#endif
 	signal(SIGINT, sig_handler);
+#else
+	signal(SIGHUP, sig_handler);
+	signal(SIGPIPE, sig_handler);
+	signal(SIGQUIT, sigkey_handler);
+	signal(SIGINT, sigkey_handler);
+#endif
 	signal(SIGTERM, sig_handler);
 	signal(SIGABRT, sig_handler);
 
@@ -743,7 +763,7 @@ static const struct command_registration server_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "[name]",
 		.help = "Specify address by name on which to listen for "
-		    "incoming TCP/IP connections",
+			"incoming TCP/IP connections",
 	},
 	COMMAND_REGISTRATION_DONE
 };
