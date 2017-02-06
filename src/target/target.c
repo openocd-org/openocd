@@ -2614,6 +2614,7 @@ COMMAND_HANDLER(handle_reg_command)
 	struct reg *reg = NULL;
 	unsigned count = 0;
 	char *value;
+	int retval;
 
 	LOG_DEBUG("-");
 
@@ -2699,8 +2700,13 @@ COMMAND_HANDLER(handle_reg_command)
 		if ((CMD_ARGC == 2) && (strcmp(CMD_ARGV[1], "force") == 0))
 			reg->valid = 0;
 
-		if (reg->valid == 0)
-			reg->type->get(reg);
+		if (reg->valid == 0) {
+			retval = reg->type->get(reg);
+			if (retval != ERROR_OK) {
+				LOG_DEBUG("Couldn't get register.");
+				return retval;
+			}
+		}
 		value = buf_to_str(reg->value, reg->size, 16);
 		command_print(CMD_CTX, "%s (/%i): 0x%s", reg->name, (int)(reg->size), value);
 		free(value);
@@ -2714,7 +2720,12 @@ COMMAND_HANDLER(handle_reg_command)
 			return ERROR_FAIL;
 		str_to_buf(CMD_ARGV[1], strlen(CMD_ARGV[1]), buf, reg->size, 0);
 
-		reg->type->set(reg, buf);
+		retval = reg->type->set(reg, buf);
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("Couldn't set register.");
+			free (buf);
+			return retval;
+		}
 
 		value = buf_to_str(reg->value, reg->size, 16);
 		command_print(CMD_CTX, "%s (/%i): 0x%s", reg->name, (int)(reg->size), value);
