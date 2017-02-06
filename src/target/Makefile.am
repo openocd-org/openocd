@@ -136,6 +136,8 @@ INTEL_IA32_SRC = \
 	x86_32_common.c
 
 RISCV_SRC = \
+	riscv/riscv-011.c \
+	riscv/riscv-013.c \
 	riscv/riscv.c
 
 noinst_HEADERS = \
