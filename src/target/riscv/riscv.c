@@ -494,11 +494,15 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	uint8_t mstatus_bytes[8];
 
 	LOG_DEBUG("Disabling Interrupts");
-	struct reg *reg_mstatus = register_get_by_name(target->reg_cache, "mstatus", 1);
+	char mstatus_name[20];
+	sprintf(mstatus_name, "csr%d", CSR_MSTATUS);
+	struct reg *reg_mstatus = register_get_by_name(target->reg_cache,
+			mstatus_name, 1);
 	reg_mstatus->type->get(reg_mstatus);
 	current_mstatus = buf_get_u64(reg_mstatus->value, 0, reg_mstatus->size);
 	uint64_t ie_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
-	buf_set_u64(mstatus_bytes, 0, info->xlen, set_field(current_mstatus, ie_mask, 0));
+	buf_set_u64(mstatus_bytes, 0, info->xlen, set_field(current_mstatus,
+				ie_mask, 0));
 
 	reg_mstatus->type->set(reg_mstatus, mstatus_bytes);
 
