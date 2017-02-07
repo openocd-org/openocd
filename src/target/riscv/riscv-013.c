@@ -108,8 +108,8 @@ typedef enum {
 	DBUS_STATUS_BUSY = 3
 } dbus_status_t;
 #define DBUS_DATA_START				2
-#define DBUS_DATA_SIZE				34
-#define DBUS_ADDRESS_START			36
+#define DBUS_DATA_SIZE				32
+#define DBUS_ADDRESS_START			34
 
 typedef enum {
 	RE_OK,
@@ -1441,10 +1441,6 @@ static int init_target(struct command_context *cmd_ctx,
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
 	riscv013_info_t *info = get_info(target);
-
-	select_dtmcontrol.num_bits = target->tap->ir_length;
-	select_dbus.num_bits = target->tap->ir_length;
-	select_idcode.num_bits = target->tap->ir_length;
 
 	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
 	target->reg_cache->name = "RISC-V registers";

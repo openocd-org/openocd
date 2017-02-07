@@ -1442,10 +1442,6 @@ static int init_target(struct command_context *cmd_ctx,
 		return ERROR_FAIL;
 	riscv011_info_t *info = get_info(target);
 
-	select_dtmcontrol.num_bits = target->tap->ir_length;
-	select_dbus.num_bits = target->tap->ir_length;
-	select_idcode.num_bits = target->tap->ir_length;
-
 	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
 	target->reg_cache->name = "RISC-V registers";
 	target->reg_cache->num_regs = REG_COUNT;
