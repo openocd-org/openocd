@@ -5,6 +5,13 @@
 #define S0      8
 #define S1      9
 
+/*
+ * Disabling the warning we get when some opcodes functions aren't used.  Not
+ * every user of this file uses every function, and it doesn't make sense to
+ * make them global. I suppose they could be macros.
+ */
+#pragma GCC diagnostic ignored "-Wunused-function"
+
 static uint32_t bits(uint32_t value, unsigned int hi, unsigned int lo) {
   return (value >> lo) & ((1 << (hi+1-lo)) - 1);
 }
