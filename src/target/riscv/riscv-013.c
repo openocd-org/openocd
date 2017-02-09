@@ -20,6 +20,7 @@
 #include "breakpoints.h"
 #include "helper/time_support.h"
 #include "riscv.h"
+#include "debug_defines.h"
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -88,12 +89,6 @@
 
 /*** JTAG registers. ***/
 
-#define DTMCONTROL					0x10
-#define DTMCONTROL_DBUS_RESET		(1<<16)
-#define DTMCONTROL_IDLE				(7<<10)
-#define DTMCONTROL_ADDRBITS			(0xf<<4)
-#define DTMCONTROL_VERSION			(0xf)
-
 #define DBUS						0x11
 #define DBUS_OP_START				0
 #define DBUS_OP_SIZE				2
@@ -135,20 +130,6 @@ typedef enum slot {
 #define DMCONTROL_HARTID		(0x3ff<<2)
 #define DMCONTROL_NDRESET		(1<<1)
 #define DMCONTROL_FULLRESET		1
-
-#define DMINFO					0x11
-#define DMINFO_ABUSSIZE			(0x7fU<<25)
-#define DMINFO_SERIALCOUNT		(0xf<<21)
-#define DMINFO_ACCESS128		(1<<20)
-#define DMINFO_ACCESS64			(1<<19)
-#define DMINFO_ACCESS32			(1<<18)
-#define DMINFO_ACCESS16			(1<<17)
-#define DMINFO_ACCESS8			(1<<16)
-#define DMINFO_DRAMSIZE			(0x3f<<10)
-#define DMINFO_AUTHENTICATED	(1<<5)
-#define DMINFO_AUTHBUSY			(1<<4)
-#define DMINFO_AUTHTYPE			(3<<2)
-#define DMINFO_VERSION			3
 
 /*** Info about the core being debugged. ***/
 
@@ -192,7 +173,7 @@ typedef struct {
 	/* Number of address bits in the dbus register. */
 	uint8_t addrbits;
 	/* Number of words in Debug RAM. */
-	unsigned int dramsize;
+	unsigned int dramsize;	// TODO: remove
 	uint64_t dcsr;
 	uint64_t dpc;
 	uint64_t misa;
@@ -366,7 +347,7 @@ static void increase_dbus_busy_delay(struct target *target)
 			info->dtmcontrol_idle, info->dbus_busy_delay,
 			info->interrupt_high_delay);
 
-	dtmcontrol_scan(target, DTMCONTROL_DBUS_RESET);
+	dtmcontrol_scan(target, DTM_DTMCONTROL_DBUSRESET);
 }
 
 static void increase_interrupt_high_delay(struct target *target)
@@ -493,7 +474,7 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 		if (status == DBUS_STATUS_BUSY) {
 			increase_dbus_busy_delay(target);
 		}
-	} while (((status == DBUS_STATUS_BUSY) || (address_in != address)) &&
+	} while (((status != DBUS_STATUS_SUCCESS) || (address_in != address)) &&
 			i++ < 256);
 
 	if (status != DBUS_STATUS_SUCCESS) {
@@ -1795,22 +1776,24 @@ static int examine(struct target *target)
 
 	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
 	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
-	LOG_DEBUG("  addrbits=%d", get_field(dtmcontrol, DTMCONTROL_ADDRBITS));
-	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTMCONTROL_VERSION));
-	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTMCONTROL_IDLE));
+	LOG_DEBUG("  dbusreset=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DBUSRESET));
+	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTM_DTMCONTROL_IDLE));
+	LOG_DEBUG("  dbusstat=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DBUSSTAT));
+	LOG_DEBUG("  abits=%d", get_field(dtmcontrol, DTM_DTMCONTROL_ABITS));
+	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTM_DTMCONTROL_VERSION));
 	if (dtmcontrol == 0) {
 		LOG_ERROR("dtmcontrol is 0. Check JTAG connectivity/board power.");
 		return ERROR_FAIL;
 	}
-	if (get_field(dtmcontrol, DTMCONTROL_VERSION) != 1) {
+	if (get_field(dtmcontrol, DTM_DTMCONTROL_VERSION) != 1) {
 		LOG_ERROR("Unsupported DTM version %d. (dtmcontrol=0x%x)",
-				get_field(dtmcontrol, DTMCONTROL_VERSION), dtmcontrol);
+				get_field(dtmcontrol, DTM_DTMCONTROL_VERSION), dtmcontrol);
 		return ERROR_FAIL;
 	}
 
 	riscv013_info_t *info = get_info(target);
-	info->addrbits = get_field(dtmcontrol, DTMCONTROL_ADDRBITS);
-	info->dtmcontrol_idle = get_field(dtmcontrol, DTMCONTROL_IDLE);
+	info->addrbits = get_field(dtmcontrol, DTM_DTMCONTROL_ABITS);
+	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCONTROL_IDLE);
 	if (info->dtmcontrol_idle == 0) {
 		// Some old SiFive cores don't set idle but need it to be 1.
 		uint32_t idcode = idcode_scan(target);
@@ -1818,32 +1801,27 @@ static int examine(struct target *target)
 			info->dtmcontrol_idle = 1;
 	}
 
-	uint32_t dminfo = dbus_read(target, DMINFO);
-	LOG_DEBUG("dminfo: 0x%08x", dminfo);
-	LOG_DEBUG("  abussize=0x%x", get_field(dminfo, DMINFO_ABUSSIZE));
-	LOG_DEBUG("  serialcount=0x%x", get_field(dminfo, DMINFO_SERIALCOUNT));
-	LOG_DEBUG("  access128=%d", get_field(dminfo, DMINFO_ACCESS128));
-	LOG_DEBUG("  access64=%d", get_field(dminfo, DMINFO_ACCESS64));
-	LOG_DEBUG("  access32=%d", get_field(dminfo, DMINFO_ACCESS32));
-	LOG_DEBUG("  access16=%d", get_field(dminfo, DMINFO_ACCESS16));
-	LOG_DEBUG("  access8=%d", get_field(dminfo, DMINFO_ACCESS8));
-	LOG_DEBUG("  dramsize=0x%x", get_field(dminfo, DMINFO_DRAMSIZE));
-	LOG_DEBUG("  authenticated=0x%x", get_field(dminfo, DMINFO_AUTHENTICATED));
-	LOG_DEBUG("  authbusy=0x%x", get_field(dminfo, DMINFO_AUTHBUSY));
-	LOG_DEBUG("  authtype=0x%x", get_field(dminfo, DMINFO_AUTHTYPE));
-	LOG_DEBUG("  version=0x%x", get_field(dminfo, DMINFO_VERSION));
+	uint32_t dmcontrol = dbus_read(target, DMI_DMCONTROL);
+	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
+	LOG_DEBUG("  halt=%d", get_field(dmcontrol, DMI_DMCONTROL_HALT));
+	LOG_DEBUG("  reset=%d", get_field(dmcontrol, DMI_DMCONTROL_RESET));
+	LOG_DEBUG("  dmactive=%d", get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE));
+	LOG_DEBUG("  hartid=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTID));
+	LOG_DEBUG("  haltsum=%d", get_field(dmcontrol, DMI_DMCONTROL_HALTSUM));
+	LOG_DEBUG("  authenticated=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED));
+	LOG_DEBUG("  authbusy=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHBUSY));
+	LOG_DEBUG("  authtype=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHTYPE));
+	LOG_DEBUG("  version=%d", get_field(dmcontrol, DMI_DMCONTROL_VERSION));
 
-	if (get_field(dminfo, DMINFO_VERSION) != 1) {
+	if (get_field(dmcontrol, DMI_DMCONTROL_VERSION) != 1) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d "
-				"(dminfo=0x%x)", get_field(dminfo, DMINFO_VERSION), dminfo);
+				"(dmcontrol=0x%x)", get_field(dmcontrol, DMI_DMCONTROL_VERSION), dmcontrol);
 		return ERROR_FAIL;
 	}
 
-	info->dramsize = get_field(dminfo, DMINFO_DRAMSIZE) + 1;
-
-	if (get_field(dminfo, DMINFO_AUTHTYPE) != 0) {
+	if (!get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED)) {
 		LOG_ERROR("Authentication required by RISC-V core but not "
-				"supported by OpenOCD. dminfo=0x%x", dminfo);
+				"supported by OpenOCD. dmcontrol=0x%x", dmcontrol);
 		return ERROR_FAIL;
 	}
 
