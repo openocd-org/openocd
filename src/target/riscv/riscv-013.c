@@ -171,7 +171,12 @@ struct memory_cache_line {
 
 typedef struct {
 	/* Number of address bits in the dbus register. */
-	uint8_t addrbits;
+	unsigned abits;
+	/* Number of abstract command data registers. */
+	unsigned datacount;
+	/* Number of words in the Program Buffer. */
+	unsigned progsize;
+	/* Number of Program Buffer registers. */
 	/* Number of words in Debug RAM. */
 	unsigned int dramsize;	// TODO: remove
 	uint64_t dcsr;
@@ -365,13 +370,13 @@ static void add_dbus_scan(const struct target *target, struct scan_field *field,
 {
 	riscv013_info_t *info = get_info(target);
 
-	field->num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
+	field->num_bits = info->abits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
 	field->in_value = in_value;
 	field->out_value = out_value;
 
 	buf_set_u64(out_value, DBUS_OP_START, DBUS_OP_SIZE, op);
 	buf_set_u64(out_value, DBUS_DATA_START, DBUS_DATA_SIZE, data);
-	buf_set_u64(out_value, DBUS_ADDRESS_START, info->addrbits, address);
+	buf_set_u64(out_value, DBUS_ADDRESS_START, info->abits, address);
 
 	jtag_add_dr_scan(target->tap, 1, field, TAP_IDLE);
 
@@ -394,26 +399,20 @@ static void dump_field(const struct scan_field *field)
 		return;
 
 	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
-	unsigned int out_op = (out >> DBUS_OP_START) & ((1 << DBUS_OP_SIZE) - 1);
-	char out_interrupt = ((out >> DBUS_DATA_START) & DMCONTROL_INTERRUPT) ? 'i' : '.';
-	char out_haltnot = ((out >> DBUS_DATA_START) & DMCONTROL_HALTNOT) ? 'h' : '.';
-	unsigned int out_data = out >> 2;
-	unsigned int out_address = out >> DBUS_ADDRESS_START;
+	unsigned int out_op = get_field(out, DTM_DBUS_OP);
+	unsigned int out_data = get_field(out, DTM_DBUS_DATA);
+	unsigned int out_address = out >> DTM_DBUS_ADDRESS_OFFSET;
 	uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-	unsigned int in_op = (in >> DBUS_OP_START) & ((1 << DBUS_OP_SIZE) - 1);
-	char in_interrupt = ((in >> DBUS_DATA_START) & DMCONTROL_INTERRUPT) ? 'i' : '.';
-	char in_haltnot = ((in >> DBUS_DATA_START) & DMCONTROL_HALTNOT) ? 'h' : '.';
-	unsigned int in_data = in >> 2;
-	unsigned int in_address = in >> DBUS_ADDRESS_START;
+	unsigned int in_op = get_field(in, DTM_DBUS_OP);
+	unsigned int in_data = get_field(in, DTM_DBUS_DATA);
+	unsigned int in_address = in >> DTM_DBUS_ADDRESS_OFFSET;
 
 	log_printf_lf(LOG_LVL_DEBUG,
 			__FILE__, __LINE__, "scan",
-			"%db %s %c%c:%08x @%02x -> %s %c%c:%08x @%02x",
+			"%db %s %08x @%02x -> %s %08x @%02x",
 			field->num_bits,
-			op_string[out_op], out_interrupt, out_haltnot, out_data,
-			out_address,
-			status_string[in_op], in_interrupt, in_haltnot, in_data,
-			in_address);
+			op_string[out_op], out_data, out_address,
+			status_string[in_op], in_data, in_address);
 }
 
 static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
@@ -423,16 +422,16 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 	uint8_t in[8] = {0};
 	uint8_t out[8];
 	struct scan_field field = {
-		.num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE,
+		.num_bits = info->abits + DBUS_OP_SIZE + DBUS_DATA_SIZE,
 		.out_value = out,
 		.in_value = in
 	};
 
-	assert(info->addrbits != 0);
+	assert(info->abits != 0);
 
 	buf_set_u64(out, DBUS_OP_START, DBUS_OP_SIZE, op);
 	buf_set_u64(out, DBUS_DATA_START, DBUS_DATA_SIZE, data_out);
-	buf_set_u64(out, DBUS_ADDRESS_START, info->addrbits, address_out);
+	buf_set_u64(out, DBUS_ADDRESS_START, info->abits, address_out);
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
@@ -454,7 +453,7 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 	}
 
 	if (address_in) {
-		*address_in = buf_get_u32(in, DBUS_ADDRESS_START, info->addrbits);
+		*address_in = buf_get_u32(in, DBUS_ADDRESS_START, info->abits);
 	}
 
 	dump_field(&field);
@@ -478,7 +477,8 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 			i++ < 256);
 
 	if (status != DBUS_STATUS_SUCCESS) {
-		LOG_ERROR("failed read from 0x%x; value=0x%" PRIx64 ", status=%d\n", address, value, status);
+		LOG_ERROR("failed read from 0x%x; value=0x%" PRIx64 ", status=%d\n",
+				address, value, status);
 	}
 
 	return value;
@@ -681,7 +681,7 @@ static bits_t read_bits(struct target *target)
 		do {
 			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, 0, 0);
 			if (status == DBUS_STATUS_BUSY) {
-				if (address_in == (1<<info->addrbits) - 1 &&
+				if (address_in == (1<<info->abits) - 1 &&
 						value == (1ULL<<DBUS_DATA_SIZE) - 1) {
 					LOG_ERROR("TDO seems to be stuck high.");
 					return err_result;
@@ -945,7 +945,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 			} else {
 				// We read a useful value in that last scan.
 				unsigned int read_addr = scans_get_u32(scans, scans->next_scan-1,
-						DBUS_ADDRESS_START, info->addrbits);
+						DBUS_ADDRESS_START, info->abits);
 				if (read_addr != address) {
 					LOG_INFO("Got data from 0x%x but expected it from 0x%x",
 							read_addr, address);
@@ -1792,7 +1792,7 @@ static int examine(struct target *target)
 	}
 
 	riscv013_info_t *info = get_info(target);
-	info->addrbits = get_field(dtmcontrol, DTM_DTMCONTROL_ABITS);
+	info->abits = get_field(dtmcontrol, DTM_DTMCONTROL_ABITS);
 	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCONTROL_IDLE);
 	if (info->dtmcontrol_idle == 0) {
 		// Some old SiFive cores don't set idle but need it to be 1.
@@ -1807,7 +1807,6 @@ static int examine(struct target *target)
 	LOG_DEBUG("  reset=%d", get_field(dmcontrol, DMI_DMCONTROL_RESET));
 	LOG_DEBUG("  dmactive=%d", get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE));
 	LOG_DEBUG("  hartid=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTID));
-	LOG_DEBUG("  haltsum=%d", get_field(dmcontrol, DMI_DMCONTROL_HALTSUM));
 	LOG_DEBUG("  authenticated=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED));
 	LOG_DEBUG("  authbusy=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHBUSY));
 	LOG_DEBUG("  authtype=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHTYPE));
@@ -1823,6 +1822,48 @@ static int examine(struct target *target)
 		LOG_ERROR("Authentication required by RISC-V core but not "
 				"supported by OpenOCD. dmcontrol=0x%x", dmcontrol);
 		return ERROR_FAIL;
+	}
+
+	// Check that abstract data registers are accessible.
+	uint32_t abstractcs = dbus_read(target, DMI_ABSTRACTCS);
+	info->datacount = get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT);
+	LOG_DEBUG("abstractcs=0x%x", abstractcs);
+	LOG_DEBUG("  datacount=%d", info->datacount);
+
+	uint32_t accesscs = dbus_read(target, DMI_ACCESSCS);
+	info->progsize = get_field(abstractcs, DMI_ACCESSCS_PROGSIZE);
+	LOG_DEBUG("accesscs=0x%x", accesscs);
+	LOG_DEBUG("  progsize=%d", info->progsize);
+
+	uint32_t value = 0x53467665;
+	for (unsigned i = 0; i < info->datacount; i++) {
+		dbus_write(target, DMI_DATA0 + i, value);
+		value += 0x52534335;
+	}
+
+	for (unsigned i = 0; i < info->progsize; i++) {
+		dbus_write(target, DMI_IBUF0 + i, value);
+		value += 0x52534335;
+	}
+
+	value = 0x53467665;
+	for (unsigned i = 0; i < info->datacount; i++) {
+		uint32_t check = dbus_read(target, DMI_DATA0 + i);
+		if (check != value) {
+			LOG_ERROR("Wrote 0x%x to dbus address 0x%x but got back 0x%x",
+					value, DMI_DATA0 + i, check);
+			return ERROR_FAIL;
+		}
+		value += 0x52534335;
+	}
+	for (unsigned i = 0; i < info->progsize; i++) {
+		uint32_t check = dbus_read(target, DMI_IBUF0 + i);
+		if (check != value) {
+			LOG_ERROR("Wrote 0x%x to dbus address 0x%x but got back 0x%x",
+					value, DMI_IBUF0 + i, check);
+			return ERROR_FAIL;
+		}
+		value += 0x52534335;
 	}
 
 	// Figure out XLEN, and test writing all of Debug RAM while we're at it.
@@ -1949,7 +1990,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 				DBUS_OP_SIZE);
 		uint64_t data = scans_get_u64(scans, i, DBUS_DATA_START, DBUS_DATA_SIZE);
 		uint32_t address = scans_get_u32(scans, i, DBUS_ADDRESS_START,
-				info->addrbits);
+				info->abits);
 		switch (status) {
 			case DBUS_STATUS_SUCCESS:
 				break;
