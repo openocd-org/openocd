@@ -1803,10 +1803,11 @@ static int examine(struct target *target)
 
 	uint32_t dmcontrol = dbus_read(target, DMI_DMCONTROL);
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
-	LOG_DEBUG("  halt=%d", get_field(dmcontrol, DMI_DMCONTROL_HALT));
+	LOG_DEBUG("  haltreq=%d", get_field(dmcontrol, DMI_DMCONTROL_HALTREQ));
 	LOG_DEBUG("  reset=%d", get_field(dmcontrol, DMI_DMCONTROL_RESET));
 	LOG_DEBUG("  dmactive=%d", get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE));
-	LOG_DEBUG("  hartid=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTID));
+	LOG_DEBUG("  hartstatus=%d", get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS));
+	LOG_DEBUG("  hartsel=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTSEL));
 	LOG_DEBUG("  authenticated=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED));
 	LOG_DEBUG("  authbusy=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHBUSY));
 	LOG_DEBUG("  authtype=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHTYPE));
@@ -1864,6 +1865,17 @@ static int examine(struct target *target)
 			return ERROR_FAIL;
 		}
 		value += 0x52534335;
+	}
+
+	dbus_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
+	for (unsigned i = 0; i < 256; i++) {
+		dmcontrol = dbus_read(target, DMI_DMCONTROL);
+		if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 0)
+			break;
+	}
+	if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) != 0) {
+		LOG_ERROR("hart didn't halt; dmcontrol=0x%x", dmcontrol);
+		return ERROR_FAIL;
 	}
 
 	// Figure out XLEN, and test writing all of Debug RAM while we're at it.
