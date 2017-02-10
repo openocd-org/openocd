@@ -2703,8 +2703,8 @@ COMMAND_HANDLER(handle_reg_command)
 		if (reg->valid == 0) {
 			retval = reg->type->get(reg);
 			if (retval != ERROR_OK) {
-				LOG_DEBUG("Couldn't get register.");
-				return retval;
+			    LOG_DEBUG("Couldn't get register %s.", reg->name);
+			    return retval;
 			}
 		}
 		value = buf_to_str(reg->value, reg->size, 16);
@@ -2722,7 +2722,7 @@ COMMAND_HANDLER(handle_reg_command)
 
 		retval = reg->type->set(reg, buf);
 		if (retval != ERROR_OK) {
-			LOG_DEBUG("Couldn't set register.");
+		        LOG_DEBUG("Couldn't set register %s.", reg->name);
 			free (buf);
 			return retval;
 		}
