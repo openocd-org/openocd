@@ -223,33 +223,6 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 	return in;
 }
 
-static uint32_t idcode_scan(struct target *target)
-{
-	struct scan_field field;
-	uint8_t in_value[4];
-
-	jtag_add_ir_scan(target->tap, &select_idcode, TAP_IDLE);
-
-	field.num_bits = 32;
-	field.out_value = NULL;
-	field.in_value = in_value;
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-
-	int retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("failed jtag scan: %d", retval);
-		return retval;
-	}
-
-	/* Always return to dbus. */
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-
-	uint32_t in = buf_get_u32(field.in_value, 0, 32);
-	LOG_DEBUG("IDCODE: 0x0 -> 0x%x", in);
-
-	return in;
-}
-
 static struct target_type *get_target_type(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;

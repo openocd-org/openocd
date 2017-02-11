@@ -468,6 +468,7 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 	uint16_t address_in;
 
 	unsigned i = 0;
+	dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
 	do {
 		status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
 		if (status == DBUS_STATUS_BUSY) {
@@ -725,19 +726,6 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 	}
 }
 
-static int dram_check32(struct target *target, unsigned int index,
-		uint32_t expected)
-{
-	uint16_t address = dram_address(index);
-	uint32_t actual = dbus_read(target, address);
-	if (expected != actual) {
-		LOG_ERROR("Wrote 0x%x to Debug RAM at %d, but read back 0x%x",
-				expected, index, actual);
-		return ERROR_FAIL;
-	}
-	return ERROR_OK;
-}
-
 static void cache_set32(struct target *target, unsigned int index, uint32_t data)
 {
 	riscv013_info_t *info = get_info(target);
@@ -811,27 +799,6 @@ static void cache_clean(struct target *target)
 		}
 		info->dram_cache[i].dirty = false;
 	}
-}
-
-static int cache_check(struct target *target)
-{
-	riscv013_info_t *info = get_info(target);
-	int error = 0;
-
-	for (unsigned int i = 0; i < info->dramsize; i++) {
-		if (info->dram_cache[i].valid && !info->dram_cache[i].dirty) {
-			if (dram_check32(target, i, info->dram_cache[i].data) != ERROR_OK) {
-				error++;
-			}
-		}
-	}
-
-	if (error) {
-		dump_debug_ram(target);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
 }
 
 /** Write cache to the target, and optionally run the program.
@@ -1770,6 +1737,70 @@ static int step(struct target *target, int current, uint32_t address,
 	return ERROR_OK;
 }
 
+static int abstract_read_register(struct target *target,
+		unsigned reg_number, 
+		unsigned width,
+		uint64_t *result)
+{
+	uint32_t command = 0;
+	switch (width) {
+		case 32:
+			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 2);
+			break;
+		case 64:
+			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
+			break;
+		case 128:
+			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 4);
+			break;
+		default:
+			LOG_ERROR("Unsupported register width: %d", width);
+			return ERROR_FAIL;
+	}
+
+	if (reg_number <= REG_XPR31) {
+		command |= reg_number + 0x1000 - REG_XPR0;
+	} else if (reg_number >= REG_CSR0 && reg_number <= REG_CSR4095) {
+		command |= reg_number - REG_CSR0;
+	} else if (reg_number >= REG_FPR0 && reg_number <= REG_FPR31) {
+		command |= reg_number + 0x1020 - REG_FPR0;
+	}
+
+	dbus_write(target, DMI_COMMAND, command);
+
+	uint32_t abstractcs;
+	for (unsigned i = 0; i < 256; i++) {
+		abstractcs = dbus_read(target, DMI_ABSTRACTCS);
+		if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY) == 0)
+			break;
+	}
+	if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
+		LOG_ERROR("Abstract command 0x%x never completed (abstractcs=0x%x)",
+				command, abstractcs);
+		return ERROR_FAIL;
+	}
+	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
+		LOG_DEBUG("Abstract command 0x%x ended in error (abstractcs=0x%x)",
+				command, abstractcs);
+		return ERROR_FAIL;
+	}
+
+	if (result) {
+		*result = 0;
+		switch (width) {
+			case 128:
+				LOG_WARNING("Ignoring top 64 bits from 128-bit register read.");
+			case 64:
+				*result |= ((uint64_t) dbus_read(target, DMI_DATA0)) << 32;
+			case 32:
+				*result |= dbus_read(target, DMI_DATA0);
+				break;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static int examine(struct target *target)
 {
 	// Don't need to select dbus, since the first thing we do is read dtmcontrol.
@@ -1802,6 +1833,17 @@ static int examine(struct target *target)
 	}
 
 	uint32_t dmcontrol = dbus_read(target, DMI_DMCONTROL);
+	if (get_field(dmcontrol, DMI_DMCONTROL_VERSION) != 1) {
+		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d "
+				"(dmcontrol=0x%x)", get_field(dmcontrol, DMI_DMCONTROL_VERSION), dmcontrol);
+		return ERROR_FAIL;
+	}
+
+	// Reset the Debug Module.
+	dbus_write(target, DMI_DMCONTROL, 0);
+	dbus_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+	dmcontrol = dbus_read(target, DMI_DMCONTROL);
+
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
 	LOG_DEBUG("  haltreq=%d", get_field(dmcontrol, DMI_DMCONTROL_HALTREQ));
 	LOG_DEBUG("  reset=%d", get_field(dmcontrol, DMI_DMCONTROL_RESET));
@@ -1813,9 +1855,9 @@ static int examine(struct target *target)
 	LOG_DEBUG("  authtype=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHTYPE));
 	LOG_DEBUG("  version=%d", get_field(dmcontrol, DMI_DMCONTROL_VERSION));
 
-	if (get_field(dmcontrol, DMI_DMCONTROL_VERSION) != 1) {
-		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d "
-				"(dmcontrol=0x%x)", get_field(dmcontrol, DMI_DMCONTROL_VERSION), dmcontrol);
+	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
+		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
+				dmcontrol);
 		return ERROR_FAIL;
 	}
 
@@ -1878,46 +1920,15 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	// Figure out XLEN, and test writing all of Debug RAM while we're at it.
-	cache_set32(target, 0, xori(S1, ZERO, -1));
-	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
-	cache_set32(target, 1, srli(S1, S1, 31));
-	// 0x00000001  0x00000001:ffffffff  0x00000001:ffffffff:ffffffff:ffffffff
-	cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START));
-	cache_set32(target, 3, srli(S1, S1, 31));
-	// 0x00000000  0x00000000:00000003  0x00000000:00000003:ffffffff:ffffffff
-	cache_set32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
-	cache_set_jump(target, 5);
-	for (unsigned i = 6; i < info->dramsize; i++) {
-		cache_set32(target, i, i * 0x01020304);
-	}
-
-	cache_write(target, 0, false);
-
-	// Check that we can actually read/write dram.
-	if (cache_check(target) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-
-	cache_write(target, 0, true);
-	cache_invalidate(target);
-
-	uint32_t word0 = cache_get32(target, 0);
-	uint32_t word1 = cache_get32(target, 1);
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
-	if (word0 == 1 && word1 == 0) {
-		generic_info->xlen = 32;
-	} else if (word0 == 0xffffffff && word1 == 3) {
-		generic_info->xlen = 64;
-	} else if (word0 == 0xffffffff && word1 == 0xffffffff) {
+	if (abstract_read_register(target, 15, 128, NULL) == ERROR_OK) {
 		generic_info->xlen = 128;
-	} else {
-		uint32_t exception = cache_get32(target, info->dramsize-1);
-		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x, exception=0x%x",
-				word0, word1, exception);
-		dump_debug_ram(target);
-		return ERROR_FAIL;
+	} else if (abstract_read_register(target, 15, 64, NULL) == ERROR_OK) {
+		generic_info->xlen = 64;
+	} else if (abstract_read_register(target, 15, 32, NULL) == ERROR_OK) {
+		generic_info->xlen = 32;
 	}
+
 	LOG_DEBUG("Discovered XLEN is %d", xlen(target));
 
 	// Update register list to match discovered XLEN.
