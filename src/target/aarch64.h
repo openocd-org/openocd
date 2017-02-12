@@ -16,8 +16,8 @@
  *   Free Software Foundation, Inc.,                                       *
  ***************************************************************************/
 
-#ifndef AARCH64_H
-#define AARCH64_H
+#ifndef OPENOCD_TARGET_AARCH64_H
+#define OPENOCD_TARGET_AARCH64_H
 
 #include "armv8.h"
 
@@ -75,4 +75,4 @@ target_to_aarch64(struct target *target)
 	return container_of(target->arch_info, struct aarch64_common, armv8_common.arm);
 }
 
-#endif /* AARCH64_H */
+#endif /* OPENOCD_TARGET_AARCH64_H */

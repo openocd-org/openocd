@@ -310,4 +310,4 @@ void armv8_select_reg_access(struct armv8_common *armv8, bool is_aarch64);
 
 extern const struct command_registration armv8_command_handlers[];
 
-#endif
+#endif /* OPENOCD_TARGET_ARMV8_H */
