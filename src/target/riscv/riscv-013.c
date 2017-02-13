@@ -41,7 +41,7 @@
  * value:
  * 		dtmcontrol_scan
  * 		idcode_scan
- * 		dbus_scan
+ * 		dmi_scan
  *
  * Because doing one scan and waiting for the result is slow, most functions
  * batch up a bunch of dbus writes and then execute them all at once. They use
@@ -90,21 +90,21 @@
 /*** JTAG registers. ***/
 
 #define DBUS						0x11
-#define DBUS_OP_START				0
-#define DBUS_OP_SIZE				2
+#define DMI_OP_START				0
+#define DMI_OP_SIZE				2
 typedef enum {
-	DBUS_OP_NOP = 0,
-	DBUS_OP_READ = 1,
-	DBUS_OP_WRITE = 2
-} dbus_op_t;
+	DMI_OP_NOP = 0,
+	DMI_OP_READ = 1,
+	DMI_OP_WRITE = 2
+} dmi_op_t;
 typedef enum {
-	DBUS_STATUS_SUCCESS = 0,
-	DBUS_STATUS_FAILED = 2,
-	DBUS_STATUS_BUSY = 3
-} dbus_status_t;
-#define DBUS_DATA_START				2
-#define DBUS_DATA_SIZE				32
-#define DBUS_ADDRESS_START			34
+	DMI_STATUS_SUCCESS = 0,
+	DMI_STATUS_FAILED = 2,
+	DMI_STATUS_BUSY = 3
+} dmi_status_t;
+#define DMI_DATA_START				2
+#define DMI_DATA_SIZE				32
+#define DMI_ADDRESS_START			34
 
 typedef enum {
 	RE_OK,
@@ -133,7 +133,7 @@ typedef enum slot {
 
 /*** Info about the core being debugged. ***/
 
-#define DBUS_ADDRESS_UNKNOWN	0xffff
+#define DMI_ADDRESS_UNKNOWN	0xffff
 #define WALL_CLOCK_TIMEOUT		2
 
 // gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
@@ -210,7 +210,7 @@ typedef struct {
 	// This value is incremented every time a dbus access comes back as "busy".
 	// It's used to determine how many run-test/idle cycles to feed the target
 	// in between accesses.
-	unsigned int dbus_busy_delay;
+	unsigned int dmi_busy_delay;
 
 	// This value is incremented every time we read the debug interrupt as
 	// high.  It's used to add extra run-test/idle cycles after setting debug
@@ -344,43 +344,43 @@ static uint32_t idcode_scan(struct target *target)
 	return in;
 }
 
-static void increase_dbus_busy_delay(struct target *target)
+static void increase_dmi_busy_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
-	info->dbus_busy_delay += info->dbus_busy_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
-			info->dtmcontrol_idle, info->dbus_busy_delay,
+	info->dmi_busy_delay += info->dmi_busy_delay / 10 + 1;
+	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, interrupt_high_delay=%d",
+			info->dtmcontrol_idle, info->dmi_busy_delay,
 			info->interrupt_high_delay);
 
-	dtmcontrol_scan(target, DTM_DTMCONTROL_DBUSRESET);
+	dtmcontrol_scan(target, DTM_DTMCONTROL_DMIRESET);
 }
 
 static void increase_interrupt_high_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
 	info->interrupt_high_delay += info->interrupt_high_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
-			info->dtmcontrol_idle, info->dbus_busy_delay,
+	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, interrupt_high_delay=%d",
+			info->dtmcontrol_idle, info->dmi_busy_delay,
 			info->interrupt_high_delay);
 }
 
-static void add_dbus_scan(const struct target *target, struct scan_field *field,
-		uint8_t *out_value, uint8_t *in_value, dbus_op_t op,
+static void add_dmi_scan(const struct target *target, struct scan_field *field,
+		uint8_t *out_value, uint8_t *in_value, dmi_op_t op,
 		uint16_t address, uint64_t data)
 {
 	riscv013_info_t *info = get_info(target);
 
-	field->num_bits = info->abits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
+	field->num_bits = info->abits + DMI_OP_SIZE + DMI_DATA_SIZE;
 	field->in_value = in_value;
 	field->out_value = out_value;
 
-	buf_set_u64(out_value, DBUS_OP_START, DBUS_OP_SIZE, op);
-	buf_set_u64(out_value, DBUS_DATA_START, DBUS_DATA_SIZE, data);
-	buf_set_u64(out_value, DBUS_ADDRESS_START, info->abits, address);
+	buf_set_u64(out_value, DMI_OP_START, DMI_OP_SIZE, op);
+	buf_set_u64(out_value, DMI_DATA_START, DMI_DATA_SIZE, data);
+	buf_set_u64(out_value, DMI_ADDRESS_START, info->abits, address);
 
 	jtag_add_dr_scan(target->tap, 1, field, TAP_IDLE);
 
-	int idle_count = info->dtmcontrol_idle + info->dbus_busy_delay;
+	int idle_count = info->dtmcontrol_idle + info->dmi_busy_delay;
 	if (data & DMCONTROL_INTERRUPT) {
 		idle_count += info->interrupt_high_delay;
 	}
@@ -399,13 +399,13 @@ static void dump_field(const struct scan_field *field)
 		return;
 
 	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
-	unsigned int out_op = get_field(out, DTM_DBUS_OP);
-	unsigned int out_data = get_field(out, DTM_DBUS_DATA);
-	unsigned int out_address = out >> DTM_DBUS_ADDRESS_OFFSET;
+	unsigned int out_op = get_field(out, DTM_DMI_OP);
+	unsigned int out_data = get_field(out, DTM_DMI_DATA);
+	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
 	uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-	unsigned int in_op = get_field(in, DTM_DBUS_OP);
-	unsigned int in_data = get_field(in, DTM_DBUS_DATA);
-	unsigned int in_address = in >> DTM_DBUS_ADDRESS_OFFSET;
+	unsigned int in_op = get_field(in, DTM_DMI_OP);
+	unsigned int in_data = get_field(in, DTM_DMI_DATA);
+	unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
 	log_printf_lf(LOG_LVL_DEBUG,
 			__FILE__, __LINE__, "scan",
@@ -415,28 +415,28 @@ static void dump_field(const struct scan_field *field)
 			status_string[in_op], in_data, in_address);
 }
 
-static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
-		uint64_t *data_in, dbus_op_t op, uint16_t address_out, uint64_t data_out)
+static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
+		uint64_t *data_in, dmi_op_t op, uint16_t address_out, uint64_t data_out)
 {
 	riscv013_info_t *info = get_info(target);
 	uint8_t in[8] = {0};
 	uint8_t out[8];
 	struct scan_field field = {
-		.num_bits = info->abits + DBUS_OP_SIZE + DBUS_DATA_SIZE,
+		.num_bits = info->abits + DMI_OP_SIZE + DMI_DATA_SIZE,
 		.out_value = out,
 		.in_value = in
 	};
 
 	assert(info->abits != 0);
 
-	buf_set_u64(out, DBUS_OP_START, DBUS_OP_SIZE, op);
-	buf_set_u64(out, DBUS_DATA_START, DBUS_DATA_SIZE, data_out);
-	buf_set_u64(out, DBUS_ADDRESS_START, info->abits, address_out);
+	buf_set_u64(out, DMI_OP_START, DMI_OP_SIZE, op);
+	buf_set_u64(out, DMI_DATA_START, DMI_DATA_SIZE, data_out);
+	buf_set_u64(out, DMI_ADDRESS_START, info->abits, address_out);
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
 
-	int idle_count = info->dtmcontrol_idle + info->dbus_busy_delay;
+	int idle_count = info->dtmcontrol_idle + info->dmi_busy_delay;
 
 	if (idle_count) {
 		jtag_add_runtest(idle_count, TAP_IDLE);
@@ -444,40 +444,40 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		LOG_ERROR("dbus_scan failed jtag scan");
+		LOG_ERROR("dmi_scan failed jtag scan");
 		return retval;
 	}
 
 	if (data_in) {
-		*data_in = buf_get_u64(in, DBUS_DATA_START, DBUS_DATA_SIZE);
+		*data_in = buf_get_u64(in, DMI_DATA_START, DMI_DATA_SIZE);
 	}
 
 	if (address_in) {
-		*address_in = buf_get_u32(in, DBUS_ADDRESS_START, info->abits);
+		*address_in = buf_get_u32(in, DMI_ADDRESS_START, info->abits);
 	}
 
 	dump_field(&field);
 
-	return buf_get_u32(in, DBUS_OP_START, DBUS_OP_SIZE);
+	return buf_get_u32(in, DMI_OP_START, DMI_OP_SIZE);
 }
 
-static uint64_t dbus_read(struct target *target, uint16_t address)
+static uint64_t dmi_read(struct target *target, uint16_t address)
 {
 	uint64_t value;
-	dbus_status_t status;
+	dmi_status_t status;
 	uint16_t address_in;
 
 	unsigned i = 0;
-	dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
+	dmi_scan(target, &address_in, &value, DMI_OP_READ, address, 0);
 	do {
-		status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
-		if (status == DBUS_STATUS_BUSY) {
-			increase_dbus_busy_delay(target);
+		status = dmi_scan(target, &address_in, &value, DMI_OP_READ, address, 0);
+		if (status == DMI_STATUS_BUSY) {
+			increase_dmi_busy_delay(target);
 		}
-	} while (((status != DBUS_STATUS_SUCCESS) || (address_in != address)) &&
+	} while (((status != DMI_STATUS_SUCCESS) || (address_in != address)) &&
 			i++ < 256);
 
-	if (status != DBUS_STATUS_SUCCESS) {
+	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("failed read from 0x%x; value=0x%" PRIx64 ", status=%d\n",
 				address, value, status);
 	}
@@ -485,18 +485,18 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 	return value;
 }
 
-static void dbus_write(struct target *target, uint16_t address, uint64_t value)
+static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 {
-	dbus_status_t status = DBUS_STATUS_BUSY;
+	dmi_status_t status = DMI_STATUS_BUSY;
 	unsigned i = 0;
-	while (status == DBUS_STATUS_BUSY && i++ < 256) {
-		dbus_scan(target, NULL, NULL, DBUS_OP_WRITE, address, value);
-		status = dbus_scan(target, NULL, NULL, DBUS_OP_NOP, 0, 0);
-		if (status == DBUS_STATUS_BUSY) {
-			increase_dbus_busy_delay(target);
+	while (status == DMI_STATUS_BUSY && i++ < 256) {
+		dmi_scan(target, NULL, NULL, DMI_OP_WRITE, address, value);
+		status = dmi_scan(target, NULL, NULL, DMI_OP_NOP, 0, 0);
+		if (status == DMI_STATUS_BUSY) {
+			increase_dmi_busy_delay(target);
 		}
 	}
-	if (status != DBUS_STATUS_SUCCESS) {
+	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("failed to write 0x%" PRIx64 " to 0x%x; status=%d\n", value, address, status);
 	}
 }
@@ -573,8 +573,8 @@ static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
 {
 	const unsigned int i = scans->next_scan;
 	int data_offset = scans->scan_size * i;
-	add_dbus_scan(scans->target, &scans->field[i], scans->out + data_offset,
-			scans->in + data_offset, DBUS_OP_WRITE, address,
+	add_dmi_scan(scans->target, &scans->field[i], scans->out + data_offset,
+			scans->in + data_offset, DMI_OP_WRITE, address,
 			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT | data);
 	scans->next_scan++;
 	assert(scans->next_scan <= scans->scan_count);
@@ -614,8 +614,8 @@ static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrup
 	assert(scans->next_scan < scans->scan_count);
 	const unsigned int i = scans->next_scan;
 	int data_offset = scans->scan_size * i;
-	add_dbus_scan(scans->target, &scans->field[i], scans->out + data_offset,
-			scans->in + data_offset, DBUS_OP_READ, address,
+	add_dmi_scan(scans->target, &scans->field[i], scans->out + data_offset,
+			scans->in + data_offset, DMI_OP_READ, address,
 			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT);
 	scans->next_scan++;
 }
@@ -652,24 +652,24 @@ static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
 static uint32_t dram_read32(struct target *target, unsigned int index)
 {
 	uint16_t address = dram_address(index);
-	uint32_t value = dbus_read(target, address);
+	uint32_t value = dmi_read(target, address);
 	return value;
 }
 
 static void dram_write32(struct target *target, unsigned int index, uint32_t value,
 		bool set_interrupt)
 {
-	uint64_t dbus_value = DMCONTROL_HALTNOT | value;
+	uint64_t dmi_value = DMCONTROL_HALTNOT | value;
 	if (set_interrupt)
-		dbus_value |= DMCONTROL_INTERRUPT;
-	dbus_write(target, dram_address(index), dbus_value);
+		dmi_value |= DMCONTROL_INTERRUPT;
+	dmi_write(target, dram_address(index), dmi_value);
 }
 
 /** Read the haltnot and interrupt bits. */
 static bits_t read_bits(struct target *target)
 {
 	uint64_t value;
-	dbus_status_t status;
+	dmi_status_t status;
 	uint16_t address_in;
 	riscv013_info_t *info = get_info(target);
 
@@ -681,16 +681,16 @@ static bits_t read_bits(struct target *target)
 	do {
 		unsigned i = 0;
 		do {
-			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, 0, 0);
-			if (status == DBUS_STATUS_BUSY) {
+			status = dmi_scan(target, &address_in, &value, DMI_OP_READ, 0, 0);
+			if (status == DMI_STATUS_BUSY) {
 				if (address_in == (1<<info->abits) - 1 &&
-						value == (1ULL<<DBUS_DATA_SIZE) - 1) {
+						value == (1ULL<<DMI_DATA_SIZE) - 1) {
 					LOG_ERROR("TDO seems to be stuck high.");
 					return err_result;
 				}
-				increase_dbus_busy_delay(target);
+				increase_dmi_busy_delay(target);
 			}
-		} while (status == DBUS_STATUS_BUSY && i++ < 256);
+		} while (status == DMI_STATUS_BUSY && i++ < 256);
 
 		if (i >= 256) {
 			LOG_ERROR("Failed to read from 0x%x; status=%d", address_in, status);
@@ -820,7 +820,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 	if (last == info->dramsize) {
 		// Nothing needs to be written to RAM.
-		dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT);
+		dmi_write(target, DMCONTROL, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT);
 
 	} else {
 		for (unsigned int i = 0; i < info->dramsize; i++) {
@@ -850,15 +850,15 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 	int errors = 0;
 	for (unsigned int i = 0; i < scans->next_scan; i++) {
-		dbus_status_t status = scans_get_u32(scans, i, DBUS_OP_START,
-				DBUS_OP_SIZE);
+		dmi_status_t status = scans_get_u32(scans, i, DMI_OP_START,
+				DMI_OP_SIZE);
 		switch (status) {
-			case DBUS_STATUS_SUCCESS:
+			case DMI_STATUS_SUCCESS:
 				break;
-			case DBUS_STATUS_FAILED:
+			case DMI_STATUS_FAILED:
 				LOG_ERROR("Debug RAM write failed. Hardware error?");
 				return ERROR_FAIL;
-			case DBUS_STATUS_BUSY:
+			case DMI_STATUS_BUSY:
 				errors++;
 				break;
 			default:
@@ -868,7 +868,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 	}
 
 	if (errors) {
-		increase_dbus_busy_delay(target);
+		increase_dmi_busy_delay(target);
 
 		// Try again, using the slow careful code.
 		// Write all RAM, just to be extra cautious.
@@ -901,7 +901,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 		if (run || address < CACHE_NO_READ) {
 			int interrupt = scans_get_u32(scans, scans->next_scan-1,
-					DBUS_DATA_START + 33, 1);
+					DMI_DATA_START + 33, 1);
 			if (interrupt) {
 				increase_interrupt_high_delay(target);
 				// Slow path wait for it to clear.
@@ -913,13 +913,13 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 			} else {
 				// We read a useful value in that last scan.
 				unsigned int read_addr = scans_get_u32(scans, scans->next_scan-1,
-						DBUS_ADDRESS_START, info->abits);
+						DMI_ADDRESS_START, info->abits);
 				if (read_addr != address) {
 					LOG_INFO("Got data from 0x%x but expected it from 0x%x",
 							read_addr, address);
 				}
 				info->dram_cache[read_addr].data =
-					scans_get_u32(scans, scans->next_scan-1, DBUS_DATA_START, 32);
+					scans_get_u32(scans, scans->next_scan-1, DMI_DATA_START, 32);
 				info->dram_cache[read_addr].valid = true;
 			}
 		}
@@ -1093,8 +1093,8 @@ static int execute_resume(struct target *target, bool step)
 	dram_write_jump(target, 3, false);
 
 	// Write DCSR value, set interrupt and clear haltnot.
-	uint64_t dbus_value = DMCONTROL_INTERRUPT | info->dcsr;
-	dbus_write(target, dram_address(4), dbus_value);
+	uint64_t dmi_value = DMCONTROL_INTERRUPT | info->dcsr;
+	dmi_write(target, dram_address(4), dmi_value);
 
 	cache_invalidate(target);
 
@@ -1767,11 +1767,11 @@ static int abstract_read_register(struct target *target,
 		command |= reg_number + 0x1020 - REG_FPR0;
 	}
 
-	dbus_write(target, DMI_COMMAND, command);
+	dmi_write(target, DMI_COMMAND, command);
 
 	uint32_t abstractcs;
 	for (unsigned i = 0; i < 256; i++) {
-		abstractcs = dbus_read(target, DMI_ABSTRACTCS);
+		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY) == 0)
 			break;
 	}
@@ -1784,7 +1784,7 @@ static int abstract_read_register(struct target *target,
 		LOG_DEBUG("Abstract command 0x%x ended in error (abstractcs=0x%x)",
 				command, abstractcs);
 		// Clear the error.
-		dbus_write(target, DMI_ABSTRACTCS, 0);
+		dmi_write(target, DMI_ABSTRACTCS, 0);
 		return ERROR_FAIL;
 	}
 
@@ -1794,9 +1794,9 @@ static int abstract_read_register(struct target *target,
 			case 128:
 				LOG_WARNING("Ignoring top 64 bits from 128-bit register read.");
 			case 64:
-				*result |= ((uint64_t) dbus_read(target, DMI_DATA0)) << 32;
+				*result |= ((uint64_t) dmi_read(target, DMI_DATA0)) << 32;
 			case 32:
-				*result |= dbus_read(target, DMI_DATA0);
+				*result |= dmi_read(target, DMI_DATA0);
 				break;
 		}
 	}
@@ -1810,9 +1810,9 @@ static int examine(struct target *target)
 
 	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
 	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
-	LOG_DEBUG("  dbusreset=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DBUSRESET));
+	LOG_DEBUG("  dmireset=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DMIRESET));
 	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTM_DTMCONTROL_IDLE));
-	LOG_DEBUG("  dbusstat=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DBUSSTAT));
+	LOG_DEBUG("  dmistat=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DMISTAT));
 	LOG_DEBUG("  abits=%d", get_field(dtmcontrol, DTM_DTMCONTROL_ABITS));
 	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTM_DTMCONTROL_VERSION));
 	if (dtmcontrol == 0) {
@@ -1835,7 +1835,7 @@ static int examine(struct target *target)
 			info->dtmcontrol_idle = 1;
 	}
 
-	uint32_t dmcontrol = dbus_read(target, DMI_DMCONTROL);
+	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	if (get_field(dmcontrol, DMI_DMCONTROL_VERSION) != 1) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d "
 				"(dmcontrol=0x%x)", get_field(dmcontrol, DMI_DMCONTROL_VERSION), dmcontrol);
@@ -1843,9 +1843,9 @@ static int examine(struct target *target)
 	}
 
 	// Reset the Debug Module.
-	dbus_write(target, DMI_DMCONTROL, 0);
-	dbus_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
-	dmcontrol = dbus_read(target, DMI_DMCONTROL);
+	dmi_write(target, DMI_DMCONTROL, 0);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+	dmcontrol = dmi_read(target, DMI_DMCONTROL);
 
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
 	LOG_DEBUG("  haltreq=%d", get_field(dmcontrol, DMI_DMCONTROL_HALTREQ));
@@ -1871,30 +1871,30 @@ static int examine(struct target *target)
 	}
 
 	// Check that abstract data registers are accessible.
-	uint32_t abstractcs = dbus_read(target, DMI_ABSTRACTCS);
+	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 	info->datacount = get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT);
 	LOG_DEBUG("abstractcs=0x%x", abstractcs);
 	LOG_DEBUG("  datacount=%d", info->datacount);
 
-	uint32_t accesscs = dbus_read(target, DMI_ACCESSCS);
+	uint32_t accesscs = dmi_read(target, DMI_ACCESSCS);
 	info->progsize = get_field(abstractcs, DMI_ACCESSCS_PROGSIZE);
 	LOG_DEBUG("accesscs=0x%x", accesscs);
 	LOG_DEBUG("  progsize=%d", info->progsize);
 
 	uint32_t value = 0x53467665;
 	for (unsigned i = 0; i < info->datacount; i++) {
-		dbus_write(target, DMI_DATA0 + i, value);
+		dmi_write(target, DMI_DATA0 + i, value);
 		value += 0x52534335;
 	}
 
 	for (unsigned i = 0; i < info->progsize; i++) {
-		dbus_write(target, DMI_IBUF0 + i, value);
+		dmi_write(target, DMI_IBUF0 + i, value);
 		value += 0x52534335;
 	}
 
 	value = 0x53467665;
 	for (unsigned i = 0; i < info->datacount; i++) {
-		uint32_t check = dbus_read(target, DMI_DATA0 + i);
+		uint32_t check = dmi_read(target, DMI_DATA0 + i);
 		if (check != value) {
 			LOG_ERROR("Wrote 0x%x to dbus address 0x%x but got back 0x%x",
 					value, DMI_DATA0 + i, check);
@@ -1903,7 +1903,7 @@ static int examine(struct target *target)
 		value += 0x52534335;
 	}
 	for (unsigned i = 0; i < info->progsize; i++) {
-		uint32_t check = dbus_read(target, DMI_IBUF0 + i);
+		uint32_t check = dmi_read(target, DMI_IBUF0 + i);
 		if (check != value) {
 			LOG_ERROR("Wrote 0x%x to dbus address 0x%x but got back 0x%x",
 					value, DMI_IBUF0 + i, check);
@@ -1912,9 +1912,9 @@ static int examine(struct target *target)
 		value += 0x52534335;
 	}
 
-	dbus_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
 	for (unsigned i = 0; i < 256; i++) {
-		dmcontrol = dbus_read(target, DMI_DMCONTROL);
+		dmcontrol = dmi_read(target, DMI_DMCONTROL);
 		if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 0)
 			break;
 	}
@@ -2007,27 +2007,27 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		goto error;
 	}
 
-	unsigned int dbus_busy = 0;
+	unsigned int dmi_busy = 0;
 	unsigned int interrupt_set = 0;
 	unsigned result = 0;
 	uint64_t value = 0;
 	reg_cache_set(target, 0, 0);
 	// The first scan result is the result from something old we don't care
 	// about.
-	for (unsigned int i = 1; i < scans->next_scan && dbus_busy == 0; i++) {
-		dbus_status_t status = scans_get_u32(scans, i, DBUS_OP_START,
-				DBUS_OP_SIZE);
-		uint64_t data = scans_get_u64(scans, i, DBUS_DATA_START, DBUS_DATA_SIZE);
-		uint32_t address = scans_get_u32(scans, i, DBUS_ADDRESS_START,
+	for (unsigned int i = 1; i < scans->next_scan && dmi_busy == 0; i++) {
+		dmi_status_t status = scans_get_u32(scans, i, DMI_OP_START,
+				DMI_OP_SIZE);
+		uint64_t data = scans_get_u64(scans, i, DMI_DATA_START, DMI_DATA_SIZE);
+		uint32_t address = scans_get_u32(scans, i, DMI_ADDRESS_START,
 				info->abits);
 		switch (status) {
-			case DBUS_STATUS_SUCCESS:
+			case DMI_STATUS_SUCCESS:
 				break;
-			case DBUS_STATUS_FAILED:
+			case DMI_STATUS_FAILED:
 				LOG_ERROR("Debug access failed. Hardware error?");
 				goto error;
-			case DBUS_STATUS_BUSY:
-				dbus_busy++;
+			case DMI_STATUS_BUSY:
+				dmi_busy++;
 				break;
 			default:
 				LOG_ERROR("Got invalid bus access status: %d", status);
@@ -2093,8 +2093,8 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		}
 	}
 
-	if (dbus_busy) {
-		increase_dbus_busy_delay(target);
+	if (dmi_busy) {
+		increase_dmi_busy_delay(target);
 		return RE_AGAIN;
 	}
 	if (interrupt_set) {
@@ -2362,26 +2362,26 @@ static int read_memory(struct target *target, uint32_t address,
 			goto error;
 		}
 
-		int dbus_busy = 0;
+		int dmi_busy = 0;
 		int execute_busy = 0;
 		for (unsigned int j = 0; j < batch_size; j++) {
-			dbus_status_t status = scans_get_u32(scans, j, DBUS_OP_START,
-					DBUS_OP_SIZE);
+			dmi_status_t status = scans_get_u32(scans, j, DMI_OP_START,
+					DMI_OP_SIZE);
 			switch (status) {
-				case DBUS_STATUS_SUCCESS:
+				case DMI_STATUS_SUCCESS:
 					break;
-				case DBUS_STATUS_FAILED:
+				case DMI_STATUS_FAILED:
 					LOG_ERROR("Debug RAM write failed. Hardware error?");
 					goto error;
-				case DBUS_STATUS_BUSY:
-					dbus_busy++;
+				case DMI_STATUS_BUSY:
+					dmi_busy++;
 					break;
 				default:
 					LOG_ERROR("Got invalid bus access status: %d", status);
 					return ERROR_FAIL;
 			}
-			uint64_t data = scans_get_u64(scans, j, DBUS_DATA_START,
-					DBUS_DATA_SIZE);
+			uint64_t data = scans_get_u64(scans, j, DMI_DATA_START,
+					DMI_DATA_SIZE);
 			if (data & DMCONTROL_INTERRUPT) {
 				execute_busy++;
 			}
@@ -2407,13 +2407,13 @@ static int read_memory(struct target *target, uint32_t address,
 			}
 			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status, data);
 		}
-		if (dbus_busy) {
-			increase_dbus_busy_delay(target);
+		if (dmi_busy) {
+			increase_dmi_busy_delay(target);
 		}
 		if (execute_busy) {
 			increase_interrupt_high_delay(target);
 		}
-		if (dbus_busy || execute_busy) {
+		if (dmi_busy || execute_busy) {
 			wait_for_debugint_clear(target, false);
 
 			// Retry.
@@ -2538,39 +2538,39 @@ static int write_memory(struct target *target, uint32_t address,
 			goto error;
 		}
 
-		int dbus_busy = 0;
+		int dmi_busy = 0;
 		int execute_busy = 0;
 		for (unsigned int j = 0; j < batch_size; j++) {
-			dbus_status_t status = scans_get_u32(scans, j, DBUS_OP_START,
-					DBUS_OP_SIZE);
+			dmi_status_t status = scans_get_u32(scans, j, DMI_OP_START,
+					DMI_OP_SIZE);
 			switch (status) {
-				case DBUS_STATUS_SUCCESS:
+				case DMI_STATUS_SUCCESS:
 					break;
-				case DBUS_STATUS_FAILED:
+				case DMI_STATUS_FAILED:
 					LOG_ERROR("Debug RAM write failed. Hardware error?");
 					goto error;
-				case DBUS_STATUS_BUSY:
-					dbus_busy++;
+				case DMI_STATUS_BUSY:
+					dmi_busy++;
 					break;
 				default:
 					LOG_ERROR("Got invalid bus access status: %d", status);
 					return ERROR_FAIL;
 			}
-			int interrupt = scans_get_u32(scans, j, DBUS_DATA_START + 33, 1);
+			int interrupt = scans_get_u32(scans, j, DMI_DATA_START + 33, 1);
 			if (interrupt) {
 				execute_busy++;
 			}
 			if (i + j == count + 1) {
-				result_value = scans_get_u32(scans, j, DBUS_DATA_START, 32);
+				result_value = scans_get_u32(scans, j, DMI_DATA_START, 32);
 			}
 		}
-		if (dbus_busy) {
-			increase_dbus_busy_delay(target);
+		if (dmi_busy) {
+			increase_dmi_busy_delay(target);
 		}
 		if (execute_busy) {
 			increase_interrupt_high_delay(target);
 		}
-		if (dbus_busy || execute_busy) {
+		if (dmi_busy || execute_busy) {
 			wait_for_debugint_clear(target, false);
 
 			// Retry.
