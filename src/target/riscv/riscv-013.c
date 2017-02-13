@@ -490,7 +490,8 @@ static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 	dbus_status_t status = DBUS_STATUS_BUSY;
 	unsigned i = 0;
 	while (status == DBUS_STATUS_BUSY && i++ < 256) {
-		status = dbus_scan(target, NULL, NULL, DBUS_OP_WRITE, address, value);
+		dbus_scan(target, NULL, NULL, DBUS_OP_WRITE, address, value);
+		status = dbus_scan(target, NULL, NULL, DBUS_OP_NOP, 0, 0);
 		if (status == DBUS_STATUS_BUSY) {
 			increase_dbus_busy_delay(target);
 		}
@@ -1782,6 +1783,8 @@ static int abstract_read_register(struct target *target,
 	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
 		LOG_DEBUG("Abstract command 0x%x ended in error (abstractcs=0x%x)",
 				command, abstractcs);
+		// Clear the error.
+		dbus_write(target, DMI_ABSTRACTCS, 0);
 		return ERROR_FAIL;
 	}
 
@@ -1927,6 +1930,9 @@ static int examine(struct target *target)
 		generic_info->xlen = 64;
 	} else if (abstract_read_register(target, 15, 32, NULL) == ERROR_OK) {
 		generic_info->xlen = 32;
+	} else {
+		LOG_ERROR("Failed to discover size using abstract register reads.");
+		return ERROR_FAIL;
 	}
 
 	LOG_DEBUG("Discovered XLEN is %d", xlen(target));
