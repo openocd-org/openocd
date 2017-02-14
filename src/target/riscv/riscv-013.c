@@ -1146,6 +1146,7 @@ static int abstract_write_register(struct target *target,
 	return ERROR_OK;
 }
 
+/** csr is the CSR index between 0 and 4096. */
 static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 {
 	int result = abstract_read_register(target, csr, xlen(target), value);
@@ -1320,6 +1321,15 @@ static int resume(struct target *target, int debug_execution, bool step)
 	return execute_resume(target, step);
 }
 
+static void reg_cache_set(struct target *target, unsigned int number,
+		uint64_t value)
+{
+	struct reg *r = &target->reg_cache->reg_list[number];
+	LOG_DEBUG("%s <= 0x%" PRIx64, r->name, value);
+	r->valid = true;
+	buf_set_u64(r->value, 0, r->size, value);
+}
+
 /** Update register sizes based on xlen. */
 static void update_reg_list(struct target *target)
 {
@@ -1342,6 +1352,8 @@ static void update_reg_list(struct target *target)
 		}
 		r->valid = false;
 	}
+
+	reg_cache_set(target, ZERO, 0);
 }
 
 static uint64_t reg_cache_get(struct target *target, unsigned int number)
@@ -1354,15 +1366,6 @@ static uint64_t reg_cache_get(struct target *target, unsigned int number)
 	uint64_t value = buf_get_u64(r->value, 0, r->size);
 	LOG_DEBUG("%s = 0x%" PRIx64, r->name, value);
 	return value;
-}
-
-static void reg_cache_set(struct target *target, unsigned int number,
-		uint64_t value)
-{
-	struct reg *r = &target->reg_cache->reg_list[number];
-	LOG_DEBUG("%s <= 0x%" PRIx64, r->name, value);
-	r->valid = true;
-	buf_set_u64(r->value, 0, r->size, value);
 }
 
 static int update_mstatus_actual(struct target *target)
@@ -1387,6 +1390,8 @@ static int register_get(struct reg *reg)
 
 	maybe_write_tselect(target);
 
+	int result = ERROR_OK;
+	uint64_t value;
 	if (reg->number <= REG_XPR31) {
 		buf_set_u64(reg->value, 0, xlen(target), reg_cache_get(target, reg->number));
 		LOG_DEBUG("%s=0x%" PRIx64, reg->name, reg_cache_get(target, reg->number));
@@ -1397,7 +1402,7 @@ static int register_get(struct reg *reg)
 		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
 		return ERROR_OK;
 	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
-		int result = update_mstatus_actual(target);
+		result = update_mstatus_actual(target);
 		if (result != ERROR_OK) {
 			return result;
 		}
@@ -1416,9 +1421,7 @@ static int register_get(struct reg *reg)
 		}
 		cache_set_jump(target, i++);
 	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
-		cache_set32(target, 0, csrr(S0, reg->number - REG_CSR0));
-		cache_set_store(target, 1, S0, SLOT0);
-		cache_set_jump(target, 2);
+		result = read_csr(target, &value, reg->number - REG_CSR0);
 	} else if (reg->number == REG_PRIV) {
 		buf_set_u64(reg->value, 0, 8, get_field(info->dcsr, DCSR_PRV));
 		LOG_DEBUG("%s=%d (cached)", reg->name,
@@ -1429,19 +1432,9 @@ static int register_get(struct reg *reg)
 		return ERROR_FAIL;
 	}
 
-	if (cache_write(target, 4, true) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
+	if (result != ERROR_OK)
+		return result;
 
-	uint32_t exception = cache_get32(target, info->dramsize-1);
-	if (exception) {
-		LOG_ERROR("Got exception 0x%x when reading register %d", exception,
-				reg->number);
-		buf_set_u64(reg->value, 0, xlen(target), ~0);
-		return ERROR_FAIL;
-	}
-
-	uint64_t value = cache_get(target, SLOT0);
 	LOG_DEBUG("%s=0x%" PRIx64, reg->name, value);
 	buf_set_u64(reg->value, 0, xlen(target), value);
 
@@ -1548,15 +1541,7 @@ static int halt(struct target *target)
 	LOG_DEBUG("riscv_halt()");
 	select_dmi(target);
 
-	cache_set32(target, 0, csrsi(CSR_DCSR, DCSR_HALT));
-	cache_set32(target, 1, csrr(S0, CSR_MHARTID));
-	cache_set32(target, 2, sw(S0, ZERO, SETHALTNOT));
-	cache_set_jump(target, 3);
-
-	if (cache_write(target, 4, true) != ERROR_OK) {
-		LOG_ERROR("cache_write() failed.");
-		return ERROR_FAIL;
-	}
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
 
 	return ERROR_OK;
 }
@@ -1957,8 +1942,9 @@ static int examine(struct target *target)
 	}
 
 	// Reset the Debug Module.
-	dmi_write(target, DMI_DMCONTROL, 0);
-	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+	dmi_write(target, DMI_DMCONTROL, dmcontrol & DMI_DMCONTROL_HALTREQ);
+	dmi_write(target, DMI_DMCONTROL, (dmcontrol & DMI_DMCONTROL_HALTREQ) |
+			DMI_DMCONTROL_DMACTIVE);
 	dmcontrol = dmi_read(target, DMI_DMCONTROL);
 
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
