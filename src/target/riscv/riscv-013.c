@@ -265,20 +265,6 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 	assert(0);
 }
 
-static uint32_t load_slot(const struct target *target, unsigned int dest,
-		slot_t slot)
-{
-	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	return load(target, dest, ZERO, offset);
-}
-
-static uint32_t store_slot(const struct target *target, unsigned int src,
-		slot_t slot)
-{
-	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	return store(target, src, ZERO, offset);
-}
-
 static uint16_t dram_address(unsigned int index)
 {
 	if (index < 0x10)
@@ -594,34 +580,6 @@ static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
 	assert(scans->next_scan <= scans->scan_count);
 }
 
-/** Add a 32-bit dbus write for an instruction that jumps to the beginning of
- * debug RAM. */
-static void scans_add_write_jump(scans_t *scans, uint16_t address,
-		bool set_interrupt)
-{
-	scans_add_write32(scans, address,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*address))),
-			set_interrupt);
-}
-
-/** Add a 32-bit dbus write for an instruction that loads from the indicated
- * slot. */
-static void scans_add_write_load(scans_t *scans, uint16_t address,
-		unsigned int reg, slot_t slot, bool set_interrupt)
-{
-	scans_add_write32(scans, address, load_slot(scans->target, reg, slot),
-			set_interrupt);
-}
-
-/** Add a 32-bit dbus write for an instruction that stores to the indicated
- * slot. */
-static void scans_add_write_store(scans_t *scans, uint16_t address,
-		unsigned int reg, slot_t slot, bool set_interrupt)
-{
-	scans_add_write32(scans, address, store_slot(scans->target, reg, slot),
-			set_interrupt);
-}
-
 /** Add a 32-bit dbus read. */
 static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrupt)
 {
@@ -632,21 +590,6 @@ static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrup
 			scans->in + data_offset, DMI_OP_READ, address,
 			(set_interrupt ? DMCONTROL_INTERRUPT : 0) | DMCONTROL_HALTNOT);
 	scans->next_scan++;
-}
-
-/** Add one or more scans to read the indicated slot. */
-static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
-{
-	const struct target *target = scans->target;
-	switch (xlen(target)) {
-		case 32:
-			scans_add_read32(scans, slot_offset(target, slot), set_interrupt);
-			break;
-		case 64:
-			scans_add_read32(scans, slot_offset(target, slot), false);
-			scans_add_read32(scans, slot_offset(target, slot) + 1, set_interrupt);
-			break;
-	}
 }
 
 static uint32_t scans_get_u32(scans_t *scans, unsigned int index,
@@ -774,6 +717,13 @@ static void program_set_read(program_t *program, unsigned reg_num)
 {
 	program->write = false;
 	program->regno = reg_number_to_no(reg_num);
+}
+
+static void program_set_write(program_t *program, unsigned reg_num, uint64_t value)
+{
+	program->write = true;
+	program->regno = reg_number_to_no(reg_num);
+	program->write_value = value;
 }
 
 /*** end of program class ***/
@@ -1124,6 +1074,10 @@ static int execute_program(struct target *target, const program_t *program)
 
 	uint32_t command = 0;
 	if (program->write) {
+		if (get_field(command, AC_ACCESS_REGISTER_SIZE) > 2) {
+			dmi_write(target, DMI_DATA1, program->write_value >> 32);
+		}
+		dmi_write(target, DMI_DATA0, program->write_value);
 		command |= AC_ACCESS_REGISTER_WRITE | AC_ACCESS_REGISTER_POSTEXEC;
 	} else {
 		command |= AC_ACCESS_REGISTER_PREEXEC;
@@ -1152,13 +1106,41 @@ static int abstract_read_register(struct target *target,
 		*value = 0;
 		switch (width) {
 			case 128:
-				LOG_WARNING("Ignoring top 64 bits from 128-bit register read.");
+				LOG_ERROR("Ignoring top 64 bits from 128-bit register read.");
 			case 64:
-				*value |= ((uint64_t) dmi_read(target, DMI_DATA0)) << 32;
+				*value |= ((uint64_t) dmi_read(target, DMI_DATA1)) << 32;
 			case 32:
 				*value |= dmi_read(target, DMI_DATA0);
 				break;
 		}
+	}
+
+	return ERROR_OK;
+}
+
+static int abstract_write_register(struct target *target,
+		unsigned reg_number, 
+		unsigned width,
+		uint64_t value)
+{
+	uint32_t command = abstract_register_size(width);
+
+	command |= reg_number_to_no(reg_number);
+	command |= AC_ACCESS_REGISTER_WRITE;
+
+	switch (width) {
+		case 128:
+			LOG_ERROR("Ignoring top 64 bits from 128-bit register write.");
+		case 64:
+			dmi_write(target, DMI_DATA1, value >> 32);
+		case 32:
+			dmi_write(target, DMI_DATA0, value);
+			break;
+	}
+
+	int result = execute_abstract_command(target, command);
+	if (result != ERROR_OK) {
+		return result;
 	}
 
 	return ERROR_OK;
@@ -1190,15 +1172,19 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 static int write_csr(struct target *target, uint32_t csr, uint64_t value)
 {
 	LOG_DEBUG("csr 0x%x <- 0x%" PRIx64, csr, value);
-	cache_set_load(target, 0, S0, SLOT0);
-	cache_set32(target, 1, csrw(S0, csr));
-	cache_set_jump(target, 2);
-	cache_set(target, SLOT0, value);
-	if (cache_write(target, 4, true) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
+	int result = abstract_write_register(target, csr, xlen(target), value);
+	if (result == ERROR_OK)
+		return result;
 
-	return ERROR_OK;
+	// Fall back to program buffer.
+	program_t *program = program_new();
+	program_add32(program, csrw(S0, csr));
+	program_add32(program, ebreak());
+	program_set_write(program, S0, value);
+	result = execute_program(target, program);
+	program_delete(program);
+
+	return result;
 }
 
 static int write_gpr(struct target *target, unsigned int gpr, uint64_t value)
@@ -2120,159 +2106,32 @@ static riscv_error_t handle_halt_routine(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
 
-	scans_t *scans = scans_new(target, 256);
-
 	// Read all GPRs as fast as we can, because gdb is going to ask for them
 	// anyway. Reading them one at a time is much slower.
 
-	// Write the jump back to address 1.
-	scans_add_write_jump(scans, 1, false);
 	for (int reg = 1; reg < 32; reg++) {
-		if (reg == S0 || reg == S1) {
-			continue;
-		}
-
-		// Write store instruction.
-		scans_add_write_store(scans, 0, reg, SLOT0, true);
-
-		// Read value.
-		scans_add_read(scans, SLOT0, false);
+		uint64_t value;
+		int result = abstract_read_register(target, reg, xlen(target), &value);
+		if (result != ERROR_OK)
+			return result;
+		reg_cache_set(target, reg, value);
 	}
 
-	// Write store of s0 at index 1.
-	scans_add_write_store(scans, 1, S0, SLOT0, false);
-	// Write jump at index 2.
-	scans_add_write_jump(scans, 2, false);
-
-	// Read S1 from debug RAM
-	scans_add_write_load(scans, 0, S0, SLOT_LAST, true);
-	// Read value.
-	scans_add_read(scans, SLOT0, false);
-
-	// Read S0 from dscratch
-	unsigned int csr[] = {CSR_DSCRATCH, CSR_DPC, CSR_DCSR};
+	unsigned int csr[] = {CSR_DPC, CSR_DCSR};
 	for (unsigned int i = 0; i < DIM(csr); i++) {
-		scans_add_write32(scans, 0, csrr(S0, csr[i]), true);
-		scans_add_read(scans, SLOT0, false);
-	}
-
-	// Final read to get the last value out.
-	scans_add_read32(scans, 4, false);
-
-	int retval = scans_execute(scans);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("JTAG execute failed: %d", retval);
-		goto error;
-	}
-
-	unsigned int dmi_busy = 0;
-	unsigned int interrupt_set = 0;
-	unsigned result = 0;
-	uint64_t value = 0;
-	reg_cache_set(target, 0, 0);
-	// The first scan result is the result from something old we don't care
-	// about.
-	for (unsigned int i = 1; i < scans->next_scan && dmi_busy == 0; i++) {
-		dmi_status_t status = scans_get_u32(scans, i, DMI_OP_START,
-				DMI_OP_SIZE);
-		uint64_t data = scans_get_u64(scans, i, DMI_DATA_START, DMI_DATA_SIZE);
-		uint32_t address = scans_get_u32(scans, i, DMI_ADDRESS_START,
-				info->abits);
-		switch (status) {
-			case DMI_STATUS_SUCCESS:
-				break;
-			case DMI_STATUS_FAILED:
-				LOG_ERROR("Debug access failed. Hardware error?");
-				goto error;
-			case DMI_STATUS_BUSY:
-				dmi_busy++;
-				break;
-			default:
-				LOG_ERROR("Got invalid bus access status: %d", status);
-				return ERROR_FAIL;
-		}
-		if (data & DMCONTROL_INTERRUPT) {
-			interrupt_set++;
-			break;
-		}
-		if (address == 4 || address == 5) {
-			unsigned int reg;
-			switch (result) {
-				case 0: reg = 1; break;
-				case 1: reg = 2; break;
-				case 2: reg = 3; break;
-				case 3: reg = 4; break;
-				case 4: reg = 5; break;
-				case 5: reg = 6; break;
-				case 6: reg = 7; break;
-						// S0
-						// S1
-				case 7: reg = 10; break;
-				case 8: reg = 11; break;
-				case 9: reg = 12; break;
-				case 10: reg = 13; break;
-				case 11: reg = 14; break;
-				case 12: reg = 15; break;
-				case 13: reg = 16; break;
-				case 14: reg = 17; break;
-				case 15: reg = 18; break;
-				case 16: reg = 19; break;
-				case 17: reg = 20; break;
-				case 18: reg = 21; break;
-				case 19: reg = 22; break;
-				case 20: reg = 23; break;
-				case 21: reg = 24; break;
-				case 22: reg = 25; break;
-				case 23: reg = 26; break;
-				case 24: reg = 27; break;
-				case 25: reg = 28; break;
-				case 26: reg = 29; break;
-				case 27: reg = 30; break;
-				case 28: reg = 31; break;
-				case 29: reg = S1; break;
-				case 30: reg = S0; break;
-				case 31: reg = CSR_DPC; break;
-				case 32: reg = CSR_DCSR; break;
-				default:
-						 assert(0);
-			}
-			if (xlen(target) == 32) {
-				reg_cache_set(target, reg, data & 0xffffffff);
-				result++;
-			} else if (xlen(target) == 64) {
-				if (address == 4) {
-					value = data & 0xffffffff;
-				} else if (address == 5) {
-					reg_cache_set(target, reg, ((data & 0xffffffff) << 32) | value);
-					value = 0;
-					result++;
-				}
-			}
-		}
-	}
-
-	if (dmi_busy) {
-		increase_dmi_busy_delay(target);
-		return RE_AGAIN;
-	}
-	if (interrupt_set) {
-		increase_interrupt_high_delay(target);
-		return RE_AGAIN;
+		uint64_t value;
+		int reg = csr[i];
+		int result = read_csr(target, &value, reg);
+		if (result != ERROR_OK)
+			return result;
+		reg_cache_set(target, reg, value);
 	}
 
 	// TODO: get rid of those 2 variables and talk to the cache directly.
 	info->dpc = reg_cache_get(target, CSR_DPC);
 	info->dcsr = reg_cache_get(target, CSR_DCSR);
 
-	scans = scans_delete(scans);
-
-	cache_invalidate(target);
-
 	return RE_OK;
-
-error:
-	scans = scans_delete(scans);
-	return RE_FAIL;
 }
 
 static int handle_halt(struct target *target, bool announce)
@@ -2289,7 +2148,7 @@ static int handle_halt(struct target *target, bool announce)
 		return ERROR_FAIL;
 	}
 
-	int cause = get_field(info->dcsr, DCSR_CAUSE);
+	int cause = get_field(info->dcsr, CSR_DCSR_CAUSE);
 	switch (cause) {
 		case DCSR_CAUSE_SWBP:
 			target->debug_reason = DBG_REASON_BREAKPOINT;
@@ -2307,6 +2166,8 @@ static int handle_halt(struct target *target, bool announce)
 			target->debug_reason = DBG_REASON_SINGLESTEP;
 			break;
 		case DCSR_CAUSE_HALT:
+			target->debug_reason = DBG_REASON_DBGRQ;
+			break;
 		default:
 			LOG_ERROR("Invalid halt cause %d in DCSR (0x%" PRIx64 ")",
 					cause, info->dcsr);
@@ -2369,21 +2230,25 @@ static int poll_target(struct target *target, bool announce)
 	if (debug_level >= LOG_LVL_DEBUG) {
 		debug_level = LOG_LVL_INFO;
 	}
-	bits_t bits = read_bits(target);
+	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	debug_level = old_debug_level;
 
-	if (bits.haltnot && bits.interrupt) {
-		target->state = TARGET_DEBUG_RUNNING;
-		LOG_DEBUG("debug running");
-	} else if (bits.haltnot && !bits.interrupt) {
-		if (target->state != TARGET_HALTED) {
-			return handle_halt(target, announce);
-		}
-	} else if (!bits.haltnot && bits.interrupt) {
-		// Target is halting. There is no state for that, so don't change anything.
-		LOG_DEBUG("halting");
-	} else if (!bits.haltnot && !bits.interrupt) {
-		target->state = TARGET_RUNNING;
+	switch (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS)) {
+		case 0:
+			if (target->state != TARGET_HALTED) {
+				return handle_halt(target, announce);
+			}
+			break;
+		case 1:
+			target->state = TARGET_RUNNING;
+			break;
+		case 2:
+			// Could be unavailable for other reasons.
+			target->state = TARGET_RESET;
+			break;
+		case 3:
+			LOG_ERROR("Hart disappeared!");
+			return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
