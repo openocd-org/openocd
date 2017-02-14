@@ -287,6 +287,20 @@ static uint16_t dram_address(unsigned int index)
 		return 0x40 + index - 0x10;
 }
 
+static void select_dmi(struct target *target)
+{
+	static uint8_t ir_dmi[1] = {DTM_DMI};
+	struct scan_field field = {
+		.num_bits = target->tap->ir_length,
+		.out_value = ir_dmi,
+		.in_value = NULL,
+		.check_value = NULL,
+		.check_mask = NULL
+	};
+
+	jtag_add_ir_scan(target->tap, &field, TAP_IDLE);
+}
+
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
@@ -302,8 +316,8 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 	field.in_value = in_value;
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
 
-	/* Always return to dbus. */
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	/* Always return to dmi. */
+	select_dmi(target);
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
@@ -335,8 +349,8 @@ static uint32_t idcode_scan(struct target *target)
 		return retval;
 	}
 
-	/* Always return to dbus. */
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	/* Always return to dmi. */
+	select_dmi(target);
 
 	uint32_t in = buf_get_u32(field.in_value, 0, 32);
 	LOG_DEBUG("IDCODE: 0x0 -> 0x%x", in);
@@ -1546,7 +1560,7 @@ static struct reg_arch_type riscv_reg_arch_type = {
 static int halt(struct target *target)
 {
 	LOG_DEBUG("riscv_halt()");
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 
 	cache_set32(target, 0, csrsi(CSR_DCSR, DCSR_HALT));
 	cache_set32(target, 1, csrr(S0, CSR_MHARTID));
@@ -1895,7 +1909,7 @@ static int step(struct target *target, int current, uint32_t address,
 {
 	riscv013_info_t *info = get_info(target);
 
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 
 	if (!current) {
 		if (xlen(target) > 32) {
@@ -1972,6 +1986,8 @@ static int examine(struct target *target)
 	LOG_DEBUG("  authtype=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHTYPE));
 	LOG_DEBUG("  version=%d", get_field(dmcontrol, DMI_DMCONTROL_VERSION));
 
+	unsigned hartstatus = DMI_DMCONTROL_HARTSTATUS;
+
 	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
 				dmcontrol);
@@ -1981,6 +1997,16 @@ static int examine(struct target *target)
 	if (!get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED)) {
 		LOG_ERROR("Authentication required by RISC-V core but not "
 				"supported by OpenOCD. dmcontrol=0x%x", dmcontrol);
+		return ERROR_FAIL;
+	}
+
+	if (hartstatus == 2) {
+		LOG_ERROR("The hart is unavailable.");
+		return ERROR_FAIL;
+	}
+
+	if (hartstatus == 3) {
+		LOG_ERROR("The hart doesn't exist.");
 		return ERROR_FAIL;
 	}
 
@@ -2026,16 +2052,20 @@ static int examine(struct target *target)
 		value += 0x52534335;
 	}
 
-	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
-	for (unsigned i = 0; i < 256; i++) {
-		dmcontrol = dmi_read(target, DMI_DMCONTROL);
-		if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 0)
-			break;
+	if (hartstatus == 1) {
+		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
+		for (unsigned i = 0; i < 256; i++) {
+			dmcontrol = dmi_read(target, DMI_DMCONTROL);
+			if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 0)
+				break;
+		}
+		if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) != 0) {
+			LOG_ERROR("hart didn't halt; dmcontrol=0x%x", dmcontrol);
+			return ERROR_FAIL;
+		}
 	}
-	if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) != 0) {
-		LOG_ERROR("hart didn't halt; dmcontrol=0x%x", dmcontrol);
-		return ERROR_FAIL;
-	}
+
+	// TODO: do this using Quick Access, if supported.
 
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 	if (abstract_read_register(target, 15, 128, NULL) == ERROR_OK) {
@@ -2057,6 +2087,20 @@ static int examine(struct target *target)
 	if (read_csr(target, &info->misa, CSR_MISA) != ERROR_OK) {
 		LOG_ERROR("Failed to read misa.");
 		return ERROR_FAIL;
+	}
+
+	if (hartstatus == 1) {
+		// Resume if the hart had been running.
+		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+		for (unsigned i = 0; i < 256; i++) {
+			dmcontrol = dmi_read(target, DMI_DMCONTROL);
+			if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 1)
+				break;
+		}
+		if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) != 1) {
+			LOG_ERROR("hart didn't resume; dmcontrol=0x%x", dmcontrol);
+			return ERROR_FAIL;
+		}
 	}
 
 	info->never_halted = true;
@@ -2317,7 +2361,7 @@ static int handle_halt(struct target *target, bool announce)
 
 static int poll_target(struct target *target, bool announce)
 {
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 
 	// Inhibit debug logging during poll(), which isn't usually interesting and
 	// just fills up the screen/logs with clutter.
@@ -2355,7 +2399,7 @@ static int riscv013_resume(struct target *target, int current, uint32_t address,
 {
 	riscv013_info_t *info = get_info(target);
 
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 
 	if (!current) {
 		if (xlen(target) > 32) {
@@ -2381,7 +2425,7 @@ static int assert_reset(struct target *target)
 	riscv013_info_t *info = get_info(target);
 	// TODO: Maybe what I implemented here is more like soft_reset_halt()?
 
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 
 	// The only assumption we can make is that the TAP was reset.
 	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
@@ -2412,7 +2456,7 @@ static int assert_reset(struct target *target)
 
 static int deassert_reset(struct target *target)
 {
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 	if (target->reset_halt) {
 		return wait_for_state(target, TARGET_HALTED);
 	} else {
@@ -2423,7 +2467,7 @@ static int deassert_reset(struct target *target)
 static int read_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 
 	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
 	switch (size) {
@@ -2589,7 +2633,7 @@ static int write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	riscv013_info_t *info = get_info(target);
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	select_dmi(target);
 
 	// Set up the address.
 	cache_set_store(target, 0, T0, SLOT1);
