@@ -649,6 +649,121 @@ static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
 
 /*** end of scans class ***/
 
+/** Convert register number (internal OpenOCD number) to the number expected by
+ * the abstract command interface. */
+static unsigned reg_number_to_no(unsigned reg_num)
+{
+	if (reg_num <= REG_XPR31) {
+		return reg_num + 0x1000 - REG_XPR0;
+	} else if (reg_num >= REG_CSR0 && reg_num <= REG_CSR4095) {
+		return reg_num - REG_CSR0;
+	} else if (reg_num >= REG_FPR0 && reg_num <= REG_FPR31) {
+		return reg_num + 0x1020 - REG_FPR0;
+	} else {
+		return ~0;
+	}
+}
+
+uint32_t abstract_register_size(unsigned width)
+{
+	switch (width) {
+		case 32:
+			return set_field(0, AC_ACCESS_REGISTER_SIZE, 2);
+		case 64:
+			return set_field(0, AC_ACCESS_REGISTER_SIZE, 3);
+			break;
+		case 128:
+			return set_field(0, AC_ACCESS_REGISTER_SIZE, 4);
+			break;
+		default:
+			LOG_ERROR("Unsupported register width: %d", width);
+			return 0;
+	}
+}
+
+static int execute_abstract_command(struct target *target, uint32_t command)
+{
+	dmi_write(target, DMI_COMMAND, command);
+
+	uint32_t abstractcs;
+	for (unsigned i = 0; i < 256; i++) {
+		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+		if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY) == 0)
+			break;
+	}
+	if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
+		LOG_ERROR("Abstract command 0x%x never completed (abstractcs=0x%x)",
+				command, abstractcs);
+		return ERROR_FAIL;
+	}
+	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
+		const char *errors[8] = {
+			"none",
+			"busy",
+			"not supported",
+			"exception",
+			"halt/resume",
+			"reserved",
+			"reserved",
+			"other" };
+		LOG_DEBUG("Abstract command 0x%x ended in error '%s' (abstractcs=0x%x)",
+				command, errors[get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)],
+				abstractcs);
+		// Clear the error.
+		dmi_write(target, DMI_ABSTRACTCS, 0);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+/*** program "class" ***/
+/* This class allows a debug program to be built up piecemeal, and then be
+ * executed. If necessary, the program is split up to fit in the program
+ * buffer. */
+
+typedef struct {
+	uint8_t code[12 * 4];
+	unsigned length;
+	bool write;
+	unsigned regno;
+	uint64_t write_value;
+} program_t;
+
+static program_t *program_new(void)
+{
+	program_t *program = malloc(sizeof(program_t));
+	if (program) {
+		program->length = 0;
+		// Default to read zero.
+		program->write = false;
+		program->regno = 0x1000;
+	}
+	return program;
+}
+
+static void program_delete(program_t *program)
+{
+	free(program);
+}
+
+static void program_add32(program_t *program, uint32_t instruction)
+{
+	assert(program->length + 4 < sizeof(program->code));
+	program->code[program->length++] = instruction & 0xff;
+	program->code[program->length++] = (instruction >> 8) & 0xff;
+	program->code[program->length++] = (instruction >> 16) & 0xff;
+	program->code[program->length++] = (instruction >> 24) & 0xff;
+}
+
+static void program_set_read(program_t *program, unsigned reg_num)
+{
+	program->write = false;
+	program->regno = reg_number_to_no(reg_num);
+}
+
+/*** end of program class ***/
+
 static uint32_t dram_read32(struct target *target, unsigned int index)
 {
 	uint16_t address = dram_address(index);
@@ -979,15 +1094,80 @@ static int wait_for_state(struct target *target, enum target_state state)
 	}
 }
 
+static int execute_program(struct target *target, const program_t *program)
+{
+	riscv013_info_t *info = get_info(target);
+
+	assert(program->length <= info->progsize * 4);
+	for (unsigned i = 0; i < program->length; i += 4) {
+		uint32_t value =
+			program->code[i] |
+			((uint32_t) program->code[i+1] << 8) |
+			((uint32_t) program->code[i+2] << 16) |
+			((uint32_t) program->code[i+3] << 24);
+		dmi_write(target, DMI_IBUF0 + i / 4, value);
+	}
+
+	uint32_t command = 0;
+	if (program->write) {
+		command |= AC_ACCESS_REGISTER_WRITE | AC_ACCESS_REGISTER_POSTEXEC;
+	} else {
+		command |= AC_ACCESS_REGISTER_PREEXEC;
+	}
+	command |= abstract_register_size(xlen(target));
+	command |= program->regno;
+
+	return execute_abstract_command(target, command);
+}
+
+static int abstract_read_register(struct target *target,
+		unsigned reg_number, 
+		unsigned width,
+		uint64_t *value)
+{
+	uint32_t command = abstract_register_size(width);
+
+	command |= reg_number_to_no(reg_number);
+
+	int result = execute_abstract_command(target, command);
+	if (result != ERROR_OK) {
+		return result;
+	}
+
+	if (value) {
+		*value = 0;
+		switch (width) {
+			case 128:
+				LOG_WARNING("Ignoring top 64 bits from 128-bit register read.");
+			case 64:
+				*value |= ((uint64_t) dmi_read(target, DMI_DATA0)) << 32;
+			case 32:
+				*value |= dmi_read(target, DMI_DATA0);
+				break;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 {
-	cache_set32(target, 0, csrr(S0, csr));
-	cache_set_store(target, 1, S0, SLOT0);
-	cache_set_jump(target, 2);
-	if (cache_write(target, 4, true) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-	*value = cache_get(target, SLOT0);
+	int result = abstract_read_register(target, csr, xlen(target), value);
+	if (result == ERROR_OK)
+		return result;
+
+	// Fall back to program buffer.
+	program_t *program = program_new();
+	program_add32(program, csrr(S0, csr));
+	program_add32(program, ebreak());
+	program_set_read(program, S0);
+	execute_program(target, program);
+	program_delete(program);
+
+	result = abstract_read_register(target, S0, xlen(target), value);
+	if (result != ERROR_OK)
+		return result;
+
 	LOG_DEBUG("csr 0x%x = 0x%" PRIx64, csr, *value);
 
 	return ERROR_OK;
@@ -1733,72 +1913,6 @@ static int step(struct target *target, int current, uint32_t address,
 			return result;
 	} else {
 		return resume(target, 0, true);
-	}
-
-	return ERROR_OK;
-}
-
-static int abstract_read_register(struct target *target,
-		unsigned reg_number, 
-		unsigned width,
-		uint64_t *result)
-{
-	uint32_t command = 0;
-	switch (width) {
-		case 32:
-			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 2);
-			break;
-		case 64:
-			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
-			break;
-		case 128:
-			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 4);
-			break;
-		default:
-			LOG_ERROR("Unsupported register width: %d", width);
-			return ERROR_FAIL;
-	}
-
-	if (reg_number <= REG_XPR31) {
-		command |= reg_number + 0x1000 - REG_XPR0;
-	} else if (reg_number >= REG_CSR0 && reg_number <= REG_CSR4095) {
-		command |= reg_number - REG_CSR0;
-	} else if (reg_number >= REG_FPR0 && reg_number <= REG_FPR31) {
-		command |= reg_number + 0x1020 - REG_FPR0;
-	}
-
-	dmi_write(target, DMI_COMMAND, command);
-
-	uint32_t abstractcs;
-	for (unsigned i = 0; i < 256; i++) {
-		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-		if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY) == 0)
-			break;
-	}
-	if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
-		LOG_ERROR("Abstract command 0x%x never completed (abstractcs=0x%x)",
-				command, abstractcs);
-		return ERROR_FAIL;
-	}
-	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
-		LOG_DEBUG("Abstract command 0x%x ended in error (abstractcs=0x%x)",
-				command, abstractcs);
-		// Clear the error.
-		dmi_write(target, DMI_ABSTRACTCS, 0);
-		return ERROR_FAIL;
-	}
-
-	if (result) {
-		*result = 0;
-		switch (width) {
-			case 128:
-				LOG_WARNING("Ignoring top 64 bits from 128-bit register read.");
-			case 64:
-				*result |= ((uint64_t) dmi_read(target, DMI_DATA0)) << 32;
-			case 32:
-				*result |= dmi_read(target, DMI_DATA0);
-				break;
-		}
 	}
 
 	return ERROR_OK;
