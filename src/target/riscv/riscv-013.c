@@ -392,7 +392,7 @@ static void add_dmi_scan(const struct target *target, struct scan_field *field,
 
 static void dump_field(const struct scan_field *field)
 {
-	static const char *op_string[] = {"nop", "r", "w", "?"};
+	static const char *op_string[] = {"-", "r", "w", "?"};
 	static const char *status_string[] = {"+", "?", "F", "b"};
 
 	if (debug_level < LOG_LVL_DEBUG)
@@ -542,11 +542,6 @@ static scans_t *scans_delete(scans_t *scans)
 	return NULL;
 }
 
-static void scans_reset(scans_t *scans)
-{
-	scans->next_scan = 0;
-}
-
 static void scans_dump(scans_t *scans)
 {
 	for (unsigned int i = 0; i < scans->next_scan; i++) {
@@ -596,12 +591,6 @@ static uint32_t scans_get_u32(scans_t *scans, unsigned int index,
 		unsigned first, unsigned num)
 {
 	return buf_get_u32(scans->in + scans->scan_size * index, first, num);
-}
-
-static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
-		unsigned first, unsigned num)
-{
-	return buf_get_u64(scans->in + scans->scan_size * index, first, num);
 }
 
 /*** end of scans class ***/
@@ -782,6 +771,22 @@ static bits_t read_bits(struct target *target)
 		.interrupt = get_field(value, DMCONTROL_INTERRUPT)
 	};
 	return result;
+}
+
+static int wait_for_haltstatus(struct target *target, unsigned status)
+{
+	time_t start = time(NULL);
+	while (1) {
+		uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
+		unsigned s = get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS);
+		if (s == status)
+			return ERROR_OK;
+		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
+			LOG_ERROR("Timed out waiting for hart status to be %d (dmcontrol=0x%x)",
+					status, dmcontrol);
+			return ERROR_FAIL;
+		}
+	}
 }
 
 static int wait_for_debugint_clear(struct target *target, bool ignore_first)
@@ -1020,16 +1025,6 @@ static uint32_t cache_get32(struct target *target, unsigned int address)
 	return info->dram_cache[address].data;
 }
 
-static uint64_t cache_get(struct target *target, slot_t slot)
-{
-	unsigned int offset = slot_offset(target, slot);
-	uint64_t value = cache_get32(target, offset);
-	if (xlen(target) > 32) {
-		value |= ((uint64_t) cache_get32(target, offset + 1)) << 32;
-	}
-	return value;
-}
-
 /* Write instruction that jumps from the specified word in Debug RAM to resume
  * in Debug ROM. */
 static void dram_write_jump(struct target *target, unsigned int index,
@@ -1058,7 +1053,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 	}
 }
 
-static int execute_program(struct target *target, const program_t *program)
+static void write_program(struct target *target, const program_t *program)
 {
 	riscv013_info_t *info = get_info(target);
 
@@ -1071,6 +1066,11 @@ static int execute_program(struct target *target, const program_t *program)
 			((uint32_t) program->code[i+3] << 24);
 		dmi_write(target, DMI_IBUF0 + i / 4, value);
 	}
+}
+
+static int execute_program(struct target *target, const program_t *program)
+{
+	write_program(target, program);
 
 	uint32_t command = 0;
 	if (program->write) {
@@ -1188,17 +1188,6 @@ static int write_csr(struct target *target, uint32_t csr, uint64_t value)
 	return result;
 }
 
-static int write_gpr(struct target *target, unsigned int gpr, uint64_t value)
-{
-	cache_set_load(target, 0, gpr, SLOT0);
-	cache_set_jump(target, 1);
-	cache_set(target, SLOT0, value);
-	if (cache_write(target, 4, true) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-	return ERROR_OK;
-}
-
 static int maybe_read_tselect(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
@@ -1237,11 +1226,7 @@ static int execute_resume(struct target *target, bool step)
 
 	// TODO: check if dpc is dirty (which also is true if an exception was hit
 	// at any time)
-	cache_set_load(target, 0, S0, SLOT0);
-	cache_set32(target, 1, csrw(S0, CSR_DPC));
-	cache_set_jump(target, 2);
-	cache_set(target, SLOT0, info->dpc);
-	if (cache_write(target, 4, true) != ERROR_OK) {
+	if (write_csr(target, CSR_DPC, info->dpc) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -1249,11 +1234,7 @@ static int execute_resume(struct target *target, bool step)
 	if (mstatus_reg->valid) {
 		uint64_t mstatus_user = buf_get_u64(mstatus_reg->value, 0, xlen(target));
 		if (mstatus_user != info->mstatus_actual) {
-			cache_set_load(target, 0, S0, SLOT0);
-			cache_set32(target, 1, csrw(S0, CSR_MSTATUS));
-			cache_set_jump(target, 2);
-			cache_set(target, SLOT0, mstatus_user);
-			if (cache_write(target, 4, true) != ERROR_OK) {
+			if (write_csr(target, CSR_MSTATUS, mstatus_user) != ERROR_OK) {
 				return ERROR_FAIL;
 			}
 		}
@@ -1268,19 +1249,22 @@ static int execute_resume(struct target *target, bool step)
 		info->dcsr &= ~DCSR_STEP;
 	}
 
-	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-	dram_write32(target, 1, csrw(S0, CSR_DCSR), false);
-	dram_write32(target, 2, fence_i(), false);
-	dram_write_jump(target, 3, false);
+	if (write_csr(target, CSR_DCSR, info->dcsr) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
 
-	// Write DCSR value, set interrupt and clear haltnot.
-	uint64_t dmi_value = DMCONTROL_INTERRUPT | info->dcsr;
-	dmi_write(target, dram_address(4), dmi_value);
+	program_t *program = program_new();
+	program_add32(program, fence_i());
+	program_add32(program, ebreak());
+	if (execute_program(target, program) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	program_delete(program);
 
-	cache_invalidate(target);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE |
+			DMI_DMCONTROL_RESUMEREQ);
 
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
+	if (wait_for_haltstatus(target, 1) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -1942,9 +1926,8 @@ static int examine(struct target *target)
 	}
 
 	// Reset the Debug Module.
-	dmi_write(target, DMI_DMCONTROL, dmcontrol & DMI_DMCONTROL_HALTREQ);
-	dmi_write(target, DMI_DMCONTROL, (dmcontrol & DMI_DMCONTROL_HALTREQ) |
-			DMI_DMCONTROL_DMACTIVE);
+	dmi_write(target, DMI_DMCONTROL, 0);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
 	dmcontrol = dmi_read(target, DMI_DMCONTROL);
 
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
@@ -2063,7 +2046,8 @@ static int examine(struct target *target)
 
 	if (hartstatus == 1) {
 		// Resume if the hart had been running.
-		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE |
+				DMI_DMCONTROL_RESUMEREQ);
 		for (unsigned i = 0; i < 256; i++) {
 			dmcontrol = dmi_read(target, DMI_DMCONTROL);
 			if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 1)
@@ -2320,162 +2304,55 @@ static int read_memory(struct target *target, uint32_t address,
 {
 	select_dmi(target);
 
-	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+	abstract_write_register(target, S0, xlen(target), address);
+
+	program_t *program = program_new();
 	switch (size) {
 		case 1:
-			cache_set32(target, 1, lb(S1, S0, 0));
-			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+			program_add32(program, lb(S1, S0, 0));
 			break;
 		case 2:
-			cache_set32(target, 1, lh(S1, S0, 0));
-			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+			program_add32(program, lh(S1, S0, 0));
 			break;
 		case 4:
-			cache_set32(target, 1, lw(S1, S0, 0));
-			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+			program_add32(program, lw(S1, S0, 0));
 			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
-	cache_set_jump(target, 3);
-	cache_write(target, CACHE_NO_READ, false);
+	program_add32(program, addi(S0, S0, size));
+	program_add32(program, ebreak());
+	write_program(target, program);
+	program_delete(program);
 
-	riscv013_info_t *info = get_info(target);
-	const int max_batch_size = 256;
-	scans_t *scans = scans_new(target, max_batch_size);
+	execute_abstract_command(target,
+			AC_ACCESS_REGISTER_PREEXEC |
+			abstract_register_size(xlen(target)) | reg_number_to_no(S1));
+	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0);
 
-	uint32_t result_value = 0x777;
-	uint32_t i = 0;
-	while (i < count + 3) {
-		unsigned int batch_size = MIN(count + 3 - i, max_batch_size);
-		scans_reset(scans);
-
-		for (unsigned int j = 0; j < batch_size; j++) {
-			if (i + j == count) {
-				// Just insert a read so we can scan out the last value.
-				scans_add_read32(scans, 4, false);
-			} else if (i + j >= count + 1) {
-				// And check for errors.
-				scans_add_read32(scans, info->dramsize-1, false);
-			} else {
-				// Write the next address and set interrupt.
-				uint32_t offset = size * (i + j);
-				scans_add_write32(scans, 4, address + offset, true);
-			}
-		}
-
-		int retval = scans_execute(scans);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("JTAG execute failed: %d", retval);
-			goto error;
-		}
-
-		int dmi_busy = 0;
-		int execute_busy = 0;
-		for (unsigned int j = 0; j < batch_size; j++) {
-			dmi_status_t status = scans_get_u32(scans, j, DMI_OP_START,
-					DMI_OP_SIZE);
-			switch (status) {
-				case DMI_STATUS_SUCCESS:
-					break;
-				case DMI_STATUS_FAILED:
-					LOG_ERROR("Debug RAM write failed. Hardware error?");
-					goto error;
-				case DMI_STATUS_BUSY:
-					dmi_busy++;
-					break;
-				default:
-					LOG_ERROR("Got invalid bus access status: %d", status);
-					return ERROR_FAIL;
-			}
-			uint64_t data = scans_get_u64(scans, j, DMI_DATA_START,
-					DMI_DATA_SIZE);
-			if (data & DMCONTROL_INTERRUPT) {
-				execute_busy++;
-			}
-			if (i + j == count + 2) {
-				result_value = data;
-			} else if (i + j > 1) {
-				uint32_t offset = size * (i + j - 2);
-				switch (size) {
-					case 1:
-						buffer[offset] = data;
-						break;
-					case 2:
-						buffer[offset] = data;
-						buffer[offset+1] = data >> 8;
-						break;
-					case 4:
-						buffer[offset] = data;
-						buffer[offset+1] = data >> 8;
-						buffer[offset+2] = data >> 16;
-						buffer[offset+3] = data >> 24;
-						break;
-				}
-			}
-			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status, data);
-		}
-		if (dmi_busy) {
-			increase_dmi_busy_delay(target);
-		}
-		if (execute_busy) {
-			increase_interrupt_high_delay(target);
-		}
-		if (dmi_busy || execute_busy) {
-			wait_for_debugint_clear(target, false);
-
-			// Retry.
-			LOG_INFO("Retrying memory read starting from 0x%x with more delays",
-					address + size * i);
-		} else {
-			i += batch_size;
+	for (uint32_t i = 0; i < count; i++) {
+		uint32_t value = dmi_read(target, DMI_DATA0);
+		switch (size) {
+			case 1:
+				buffer[i] = value;
+				break;
+			case 2:
+				buffer[2*i] = value;
+				buffer[2*i+1] = value >> 8;
+				break;
+			case 4:
+				buffer[4*i] = value;
+				buffer[4*i+1] = value >> 8;
+				buffer[4*i+2] = value >> 16;
+				buffer[4*i+3] = value >> 24;
+				break;
+			default:
+				return ERROR_FAIL;
 		}
 	}
-
-	if (result_value != 0) {
-		LOG_USER("Core got an exception (0x%x) while reading from 0x%x",
-				result_value, address + size * (count-1));
-		if (count > 1) {
-			LOG_USER("(It may have failed between 0x%x and 0x%x as well, but we "
-					"didn't check then.)",
-					address, address + size * (count-2) + size - 1);
-		}
-		goto error;
-	}
-
-	scans_delete(scans);
-	cache_clean(target);
-	return ERROR_OK;
-
-error:
-	scans_delete(scans);
-	cache_clean(target);
-	return ERROR_FAIL;
-}
-
-static int setup_write_memory(struct target *target, uint32_t size)
-{
-	switch (size) {
-		case 1:
-			cache_set32(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set32(target, 1, sb(S0, T0, 0));
-			break;
-		case 2:
-			cache_set32(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set32(target, 1, sh(S0, T0, 0));
-			break;
-		case 4:
-			cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set32(target, 1, sw(S0, T0, 0));
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
-	}
-	cache_set32(target, 2, addi(T0, T0, size));
-	cache_set_jump(target, 3);
-	cache_write(target, 4, false);
+	dmi_write(target, DMI_ABSTRACTCS, 0);
+	// TODO: Check for errors.
 
 	return ERROR_OK;
 }
@@ -2483,143 +2360,61 @@ static int setup_write_memory(struct target *target, uint32_t size)
 static int write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	riscv013_info_t *info = get_info(target);
 	select_dmi(target);
 
-	// Set up the address.
-	cache_set_store(target, 0, T0, SLOT1);
-	cache_set_load(target, 1, T0, SLOT0);
-	cache_set_jump(target, 2);
-	cache_set(target, SLOT0, address);
-	if (cache_write(target, 5, true) != ERROR_OK) {
-		return ERROR_FAIL;
+	abstract_write_register(target, S0, xlen(target), address);
+
+	program_t *program = program_new();
+	switch (size) {
+		case 1:
+			program_add32(program, sb(S1, S0, 0));
+			break;
+		case 2:
+			program_add32(program, sh(S1, S0, 0));
+			break;
+		case 4:
+			program_add32(program, sw(S1, S0, 0));
+			break;
+		default:
+			LOG_ERROR("Unsupported size: %d", size);
+			return ERROR_FAIL;
 	}
+	program_add32(program, addi(S0, S0, size));
+	program_add32(program, ebreak());
+	write_program(target, program);
+	program_delete(program);
 
-	uint64_t t0 = cache_get(target, SLOT1);
-	LOG_DEBUG("t0 is 0x%" PRIx64, t0);
-
-	if (setup_write_memory(target, size) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-
-	const int max_batch_size = 256;
-	scans_t *scans = scans_new(target, max_batch_size);
-
-	uint32_t result_value = 0x777;
-	uint32_t i = 0;
-	while (i < count + 2) {
-		unsigned int batch_size = MIN(count + 2 - i, max_batch_size);
-		scans_reset(scans);
-
-		for (unsigned int j = 0; j < batch_size; j++) {
-			if (i + j >= count) {
-				// Check for an exception.
-				scans_add_read32(scans, info->dramsize-1, false);
-			} else {
-				// Write the next value and set interrupt.
-				uint32_t value;
-				uint32_t offset = size * (i + j);
-				switch (size) {
-					case 1:
-						value = buffer[offset];
-						break;
-					case 2:
-						value = buffer[offset] |
-							(buffer[offset+1] << 8);
-						break;
-					case 4:
-						value = buffer[offset] |
-							((uint32_t) buffer[offset+1] << 8) |
-							((uint32_t) buffer[offset+2] << 16) |
-							((uint32_t) buffer[offset+3] << 24);
-						break;
-					default:
-						goto error;
-				}
-
-				scans_add_write32(scans, 4, value, true);
-			}
+	for (uint32_t i = 0; i < count; i++) {
+		uint32_t value;
+		switch (size) {
+			case 1:
+				value = buffer[i];
+				break;
+			case 2:
+				value = buffer[2*i] | ((uint32_t) buffer[2*i+1] << 8);
+				break;
+			case 4:
+				value = buffer[4*i] |
+					((uint32_t) buffer[4*i+1] << 8) |
+					((uint32_t) buffer[4*i+2] << 8) |
+					((uint32_t) buffer[4*i+3] << 8);
+				break;
+			default:
+				return ERROR_FAIL;
 		}
+		dmi_write(target, DMI_DATA0, value);
 
-		int retval = scans_execute(scans);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("JTAG execute failed: %d", retval);
-			goto error;
-		}
-
-		int dmi_busy = 0;
-		int execute_busy = 0;
-		for (unsigned int j = 0; j < batch_size; j++) {
-			dmi_status_t status = scans_get_u32(scans, j, DMI_OP_START,
-					DMI_OP_SIZE);
-			switch (status) {
-				case DMI_STATUS_SUCCESS:
-					break;
-				case DMI_STATUS_FAILED:
-					LOG_ERROR("Debug RAM write failed. Hardware error?");
-					goto error;
-				case DMI_STATUS_BUSY:
-					dmi_busy++;
-					break;
-				default:
-					LOG_ERROR("Got invalid bus access status: %d", status);
-					return ERROR_FAIL;
-			}
-			int interrupt = scans_get_u32(scans, j, DMI_DATA_START + 33, 1);
-			if (interrupt) {
-				execute_busy++;
-			}
-			if (i + j == count + 1) {
-				result_value = scans_get_u32(scans, j, DMI_DATA_START, 32);
-			}
-		}
-		if (dmi_busy) {
-			increase_dmi_busy_delay(target);
-		}
-		if (execute_busy) {
-			increase_interrupt_high_delay(target);
-		}
-		if (dmi_busy || execute_busy) {
-			wait_for_debugint_clear(target, false);
-
-			// Retry.
-			// Set t0 back to what it should have been at the beginning of this
-			// batch.
-			LOG_INFO("Retrying memory write starting from 0x%x with more delays",
-					address + size * i);
-
-			cache_clean(target);
-
-			if (write_gpr(target, T0, address + size * i) != ERROR_OK) {
-				goto error;
-			}
-
-			if (setup_write_memory(target, size) != ERROR_OK) {
-				goto error;
-			}
-		} else {
-			i += batch_size;
+		if (i == 0) {
+			execute_abstract_command(target,
+					AC_ACCESS_REGISTER_WRITE | AC_ACCESS_REGISTER_POSTEXEC |
+					abstract_register_size(xlen(target)) | reg_number_to_no(S1));
+			dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0);
 		}
 	}
+	dmi_write(target, DMI_ABSTRACTCS, 0);
+	// TODO: Check for errors.
 
-	if (result_value != 0) {
-		LOG_ERROR("Core got an exception (0x%x) while writing to 0x%x",
-				result_value, address + size * (count-1));
-		if (count > 1) {
-			LOG_ERROR("(It may have failed between 0x%x and 0x%x as well, but we "
-					"didn't check then.)",
-					address, address + size * (count-2) + size - 1);
-		}
-		goto error;
-	}
-
-	cache_clean(target);
-	return register_write(target, T0, t0);
-
-error:
-	scans_delete(scans);
-	cache_clean(target);
-	return ERROR_FAIL;
+	return ERROR_OK;
 }
 
 static int arch_state(struct target *target)
