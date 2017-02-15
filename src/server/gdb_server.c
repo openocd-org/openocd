@@ -1163,8 +1163,15 @@ static int gdb_get_registers_packet(struct connection *connection,
 	reg_packet_p = reg_packet;
 
 	for (i = 0; i < reg_list_size; i++) {
-		if (!reg_list[i]->valid)
-			reg_list[i]->type->get(reg_list[i]);
+		if (!reg_list[i]->valid) {
+			retval = reg_list[i]->type->get(reg_list[i]);
+			if (retval != ERROR_OK) {
+				LOG_DEBUG("Couldn't get register %s.", reg_list[i]->name);
+				free(reg_packet);
+				free(reg_list);
+				return gdb_error(connection, retval);
+			}
+		}
 		gdb_str_to_target(target, reg_packet_p, reg_list[i]);
 		reg_packet_p += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
 	}
@@ -1225,7 +1232,13 @@ static int gdb_set_registers_packet(struct connection *connection,
 		bin_buf = malloc(DIV_ROUND_UP(reg_list[i]->size, 8));
 		gdb_target_to_reg(target, packet_p, chars, bin_buf);
 
-		reg_list[i]->type->set(reg_list[i], bin_buf);
+		retval = reg_list[i]->type->set(reg_list[i], bin_buf);
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("Couldn't set register %s.", reg_list[i]->name);
+			free(reg_list);
+			free(bin_buf);
+			return gdb_error(connection, retval);
+		}
 
 		/* advance packet pointer */
 		packet_p += chars;
@@ -1265,8 +1278,14 @@ static int gdb_get_register_packet(struct connection *connection,
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	if (!reg_list[reg_num]->valid)
-		reg_list[reg_num]->type->get(reg_list[reg_num]);
+	if (!reg_list[reg_num]->valid) {
+	        retval = reg_list[reg_num]->type->get(reg_list[reg_num]);
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("Couldn't get register %s.", reg_list[reg_num]->name);
+			free (reg_list);
+			return gdb_error(connection, retval);
+		}
+	}
 
 	reg_packet = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2 + 1); /* plus one for string termination null */
 
@@ -1320,7 +1339,13 @@ static int gdb_set_register_packet(struct connection *connection,
 
 	gdb_target_to_reg(target, separator + 1, chars, bin_buf);
 
-	reg_list[reg_num]->type->set(reg_list[reg_num], bin_buf);
+	retval = reg_list[reg_num]->type->set(reg_list[reg_num], bin_buf);
+	if (retval != ERROR_OK){
+		LOG_DEBUG("Couldn't set register %s.", reg_list[reg_num]->name);
+		free(bin_buf);
+		free(reg_list);
+		return gdb_error(connection, retval);
+	}
 
 	gdb_put_packet(connection, "OK", 2);
 
