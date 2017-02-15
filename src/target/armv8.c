@@ -1292,3 +1292,24 @@ int armv8_get_gdb_reg_list(struct target *target,
 		}
 	}
 }
+
+int armv8_set_dbgreg_bits(struct armv8_common *armv8, unsigned int reg, unsigned long mask, unsigned long value)
+{
+	uint32_t tmp;
+
+	/* Read register */
+	int retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + reg, &tmp);
+	if (ERROR_OK != retval)
+		return retval;
+
+	/* clear bitfield */
+	tmp &= ~mask;
+	/* put new value */
+	tmp |= value & mask;
+
+	/* write new value */
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + reg, tmp);
+	return retval;
+}

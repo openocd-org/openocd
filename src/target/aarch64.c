@@ -238,23 +238,7 @@ static int aarch64_dpm_setup(struct aarch64_common *a8, uint64_t debug)
 static int aarch64_set_dscr_bits(struct target *target, unsigned long bit_mask, unsigned long value)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
-	uint32_t dscr;
-
-	/* Read DSCR */
-	int retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
-	if (ERROR_OK != retval)
-		return retval;
-
-	/* clear bitfield */
-	dscr &= ~bit_mask;
-	/* put new value */
-	dscr |= value & bit_mask;
-
-	/* write new DSCR */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, dscr);
-	return retval;
+	return armv8_set_dbgreg_bits(armv8, CPUV8_DBG_DSCR, bit_mask, value);
 }
 
 static struct target *get_aarch64(struct target *target, int32_t coreid)
