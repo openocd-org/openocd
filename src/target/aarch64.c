@@ -169,6 +169,13 @@ static int aarch64_init_debug_access(struct target *target)
 
 	LOG_DEBUG(" ");
 
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_OSLAR, 0);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("Examine %s failed", "oslock");
+		return retval;
+	}
+
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
@@ -1256,8 +1263,10 @@ static int aarch64_assert_reset(struct target *target)
 	}
 
 	/* registers are now invalid */
-	if (target_was_examined(target))
+	if (target_was_examined(target)) {
 		register_cache_invalidate(armv8->arm.core_cache);
+		register_cache_invalidate(armv8->arm.core_cache->next);
+	}
 
 	target->state = TARGET_RESET;
 
@@ -1290,7 +1299,7 @@ static int aarch64_deassert_reset(struct target *target)
 		}
 	}
 
-	return ERROR_OK;
+	return aarch64_init_debug_access(target);
 }
 
 static int aarch64_write_apb_ap_memory(struct target *target,
