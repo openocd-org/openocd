@@ -131,6 +131,13 @@ typedef enum slot {
 #define DMCONTROL_NDRESET		(1<<1)
 #define DMCONTROL_FULLRESET		1
 
+#define CMDERR_NONE				0
+#define CMDERR_BUSY				1
+#define CMDERR_NOT_SUPPORTED	2
+#define CMDERR_EXCEPTION		3
+#define CMDERR_HALT_RESUME		4
+#define CMDERR_OTHER			7
+
 /*** Info about the core being debugged. ***/
 
 #define DMI_ADDRESS_UNKNOWN	0xffff
@@ -234,8 +241,6 @@ static int riscv013_poll(struct target *target);
 static int register_get(struct reg *reg);
 
 /*** Utility functions. ***/
-
-#define DEBUG_LENGTH	264
 
 static riscv013_info_t *get_info(const struct target *target)
 {
@@ -629,22 +634,31 @@ uint32_t abstract_register_size(unsigned width)
 	}
 }
 
+static int wait_for_idle(struct target *target, uint32_t *abstractcs)
+{
+	time_t start = time(NULL);
+	while (1) {
+		*abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+		if (get_field(*abstractcs, DMI_ABSTRACTCS_BUSY) == 0) {
+			return ERROR_OK;
+		}
+		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
+			LOG_ERROR("Timed out waiting for busy to go low. (abstractcs=0x%x)",
+					*abstractcs);
+			return ERROR_FAIL;
+		}
+	}
+}
+
 static int execute_abstract_command(struct target *target, uint32_t command)
 {
 	dmi_write(target, DMI_COMMAND, command);
 
 	uint32_t abstractcs;
-	for (unsigned i = 0; i < 256; i++) {
-		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-		if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY) == 0)
-			break;
-	}
-	if (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
-		LOG_ERROR("Abstract command 0x%x never completed (abstractcs=0x%x)",
-				command, abstractcs);
+	if (wait_for_idle(target, &abstractcs) != ERROR_OK)
 		return ERROR_FAIL;
-	}
-	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
+
+	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR) != CMDERR_NONE) {
 		const char *errors[8] = {
 			"none",
 			"busy",
@@ -773,22 +787,6 @@ static bits_t read_bits(struct target *target)
 		.interrupt = get_field(value, DMCONTROL_INTERRUPT)
 	};
 	return result;
-}
-
-static int wait_for_haltstatus(struct target *target, unsigned status)
-{
-	time_t start = time(NULL);
-	while (1) {
-		uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
-		unsigned s = get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS);
-		if (s == status)
-			return ERROR_OK;
-		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
-			LOG_ERROR("Timed out waiting for hart status to be %d (dmcontrol=0x%x)",
-					status, dmcontrol);
-			return ERROR_FAIL;
-		}
-	}
 }
 
 static int wait_for_debugint_clear(struct target *target, bool ignore_first)
@@ -1218,6 +1216,15 @@ static int maybe_write_tselect(struct target *target)
 	return ERROR_OK;
 }
 
+static void reg_cache_set(struct target *target, unsigned int number,
+		uint64_t value)
+{
+	struct reg *r = &target->reg_cache->reg_list[number];
+	LOG_DEBUG("%s <= 0x%" PRIx64, r->name, value);
+	r->valid = true;
+	buf_set_u64(r->value, 0, r->size, value);
+}
+
 static int execute_resume(struct target *target, bool step)
 {
 	riscv013_info_t *info = get_info(target);
@@ -1266,12 +1273,9 @@ static int execute_resume(struct target *target, bool step)
 	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE |
 			DMI_DMCONTROL_RESUMEREQ);
 
-	if (wait_for_haltstatus(target, 1) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-
 	target->state = TARGET_RUNNING;
 	register_cache_invalidate(target->reg_cache);
+	reg_cache_set(target, ZERO, 0);
 
 	return ERROR_OK;
 }
@@ -1307,15 +1311,6 @@ static int resume(struct target *target, int debug_execution, bool step)
 	return execute_resume(target, step);
 }
 
-static void reg_cache_set(struct target *target, unsigned int number,
-		uint64_t value)
-{
-	struct reg *r = &target->reg_cache->reg_list[number];
-	LOG_DEBUG("%s <= 0x%" PRIx64, r->name, value);
-	r->valid = true;
-	buf_set_u64(r->value, 0, r->size, value);
-}
-
 /** Update register sizes based on xlen. */
 static void update_reg_list(struct target *target)
 {
@@ -1336,10 +1331,12 @@ static void update_reg_list(struct target *target)
 		} else {
 			r->size = xlen(target);
 		}
-		r->valid = false;
+		if (i == ZERO) {
+			r->valid = true;
+		} else {
+			r->valid = false;
+		}
 	}
-
-	reg_cache_set(target, ZERO, 0);
 }
 
 static uint64_t reg_cache_get(struct target *target, unsigned int number)
@@ -2331,7 +2328,7 @@ static int read_memory(struct target *target, uint32_t address,
 	execute_abstract_command(target,
 			AC_ACCESS_REGISTER_PREEXEC |
 			abstract_register_size(xlen(target)) | reg_number_to_no(S1));
-	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0);
+	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR);
 
 	for (uint32_t i = 0; i < count; i++) {
 		uint32_t value = dmi_read(target, DMI_DATA0);
@@ -2414,13 +2411,20 @@ static int write_memory(struct target *target, uint32_t address,
 			execute_abstract_command(target,
 					AC_ACCESS_REGISTER_WRITE | AC_ACCESS_REGISTER_POSTEXEC |
 					abstract_register_size(xlen(target)) | reg_number_to_no(S1));
-			dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0);
+			dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR);
+		} else {
+			uint32_t abstractcs;
+			if (wait_for_idle(target, &abstractcs) != ERROR_OK)
+				return ERROR_FAIL;
+			if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR) != CMDERR_NONE)
+				return ERROR_FAIL;
 		}
 	}
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
 		// TODO: retry with more delay?
+		LOG_ERROR("cmderr=%d", get_field(abstractcs, DMI_ABSTRACTCS_CMDERR));
 		return ERROR_FAIL;
 	}
 
