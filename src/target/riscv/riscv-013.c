@@ -2396,8 +2396,8 @@ static int write_memory(struct target *target, uint32_t address,
 			case 4:
 				value = buffer[4*i] |
 					((uint32_t) buffer[4*i+1] << 8) |
-					((uint32_t) buffer[4*i+2] << 8) |
-					((uint32_t) buffer[4*i+3] << 8);
+					((uint32_t) buffer[4*i+2] << 16) |
+					((uint32_t) buffer[4*i+3] << 24);
 				break;
 			default:
 				return ERROR_FAIL;
