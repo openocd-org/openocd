@@ -468,14 +468,16 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 	uint16_t address_in;
 
 	unsigned i = 0;
-	dmi_scan(target, &address_in, &value, DMI_OP_READ, address, 0);
-	do {
+	for (i = 0; i < 256; i++) {
 		status = dmi_scan(target, &address_in, &value, DMI_OP_READ, address, 0);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
+		} else {
+			break;
 		}
-	} while (((status != DMI_STATUS_SUCCESS) || (address_in != address)) &&
-			i++ < 256);
+	}
+
+	status = dmi_scan(target, &address_in, &value, DMI_OP_NOP, address, 0);
 
 	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("failed read from 0x%x; value=0x%" PRIx64 ", status=%d\n",
