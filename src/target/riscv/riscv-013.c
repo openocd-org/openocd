@@ -2353,8 +2353,12 @@ static int read_memory(struct target *target, uint32_t address,
 				return ERROR_FAIL;
 		}
 	}
-	dmi_write(target, DMI_ABSTRACTCS, 0);
-	// TODO: Check for errors.
+	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
+		// TODO: retry with more delay?
+		return ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
@@ -2413,8 +2417,12 @@ static int write_memory(struct target *target, uint32_t address,
 			dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0);
 		}
 	}
-	dmi_write(target, DMI_ABSTRACTCS, 0);
-	// TODO: Check for errors.
+	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
+		// TODO: retry with more delay?
+		return ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
