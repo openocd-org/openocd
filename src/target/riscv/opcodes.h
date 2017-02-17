@@ -163,6 +163,38 @@ static uint32_t fld(unsigned int dest, unsigned int base, uint16_t offset)
     MATCH_FLD;
 }
 
+static uint32_t fmv_x_s(unsigned dest, unsigned src) __attribute__ ((unused));
+static uint32_t fmv_x_s(unsigned dest, unsigned src)
+{
+  return src << 15 |
+	  dest << 7 |
+	  MATCH_FMV_X_S;
+}
+
+static uint32_t fmv_x_d(unsigned dest, unsigned src) __attribute__ ((unused));
+static uint32_t fmv_x_d(unsigned dest, unsigned src)
+{
+  return src << 15 |
+	  dest << 7 |
+	  MATCH_FMV_X_D;
+}
+
+static uint32_t fmv_s_x(unsigned dest, unsigned src) __attribute__ ((unused));
+static uint32_t fmv_s_x(unsigned dest, unsigned src)
+{
+  return src << 15 |
+	  dest << 7 |
+	  MATCH_FMV_S_X;
+}
+
+static uint32_t fmv_d_x(unsigned dest, unsigned src) __attribute__ ((unused));
+static uint32_t fmv_d_x(unsigned dest, unsigned src)
+{
+  return src << 15 |
+	  dest << 7 |
+	  MATCH_FMV_D_X;
+}
+
 static uint32_t ebreak(void) __attribute__ ((unused));
 static uint32_t ebreak(void) { return MATCH_EBREAK; }
 static uint32_t ebreak_c(void) __attribute__ ((unused));
