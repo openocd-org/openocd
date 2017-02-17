@@ -117,6 +117,12 @@ enum {
 	REG_FPR0 = 33,
 	REG_FPR31 = 64,
 	REG_CSR0 = 65,
+	REG_TSELECT = CSR_TSELECT + REG_CSR0,
+	REG_TDATA1 = CSR_TDATA1 + REG_CSR0,
+	REG_TDATA2 = CSR_TDATA2 + REG_CSR0,
+	REG_MISA = CSR_MISA + REG_CSR0,
+	REG_DPC = CSR_DPC + REG_CSR0,
+	REG_DCSR = CSR_DCSR + REG_CSR0,
 	REG_MSTATUS = CSR_MSTATUS + REG_CSR0,
 	REG_CSR4095 = 4160,
 	REG_PRIV = 4161,
@@ -793,7 +799,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		return result;
 	}
 
-	result = abstract_read_register(target, value, S0, xlen(target));
+	result = register_read_direct(target, value, S0);
 	if (result != ERROR_OK)
 		return result;
 
@@ -847,7 +853,7 @@ static int maybe_read_tselect(struct target *target)
 	riscv013_info_t *info = get_info(target);
 
 	if (info->tselect_dirty) {
-		int result = register_read_direct(target, &info->tselect, CSR_TSELECT);
+		int result = register_read_direct(target, &info->tselect, REG_TSELECT);
 		if (result != ERROR_OK)
 			return result;
 		info->tselect_dirty = false;
@@ -861,7 +867,7 @@ static int maybe_write_tselect(struct target *target)
 	riscv013_info_t *info = get_info(target);
 
 	if (!info->tselect_dirty) {
-		int result = register_write_direct(target, CSR_TSELECT, info->tselect);
+		int result = register_write_direct(target, REG_TSELECT, info->tselect);
 		if (result != ERROR_OK)
 			return result;
 		info->tselect_dirty = true;
@@ -901,17 +907,15 @@ static int execute_resume(struct target *target, bool step)
 
 	// TODO: check if dpc is dirty (which also is true if an exception was hit
 	// at any time)
-	if (register_write_direct(target, CSR_DPC, info->dpc) != ERROR_OK) {
+	if (register_write_direct(target, REG_DPC, info->dpc) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
 	// Restore GPRs
-	if (abstract_write_register(target, S0, xlen(target),
-				reg_cache_get(target, S0)) != ERROR_OK) {
+	if (register_write_direct(target, S0, reg_cache_get(target, S0)) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
-	if (abstract_write_register(target, S1, xlen(target),
-				reg_cache_get(target, S1)) != ERROR_OK) {
+	if (register_write_direct(target, S1, reg_cache_get(target, S1)) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -919,7 +923,7 @@ static int execute_resume(struct target *target, bool step)
 	if (mstatus_reg->valid) {
 		uint64_t mstatus_user = buf_get_u64(mstatus_reg->value, 0, xlen(target));
 		if (mstatus_user != info->mstatus_actual) {
-			if (register_write_direct(target, CSR_MSTATUS, mstatus_user) != ERROR_OK) {
+			if (register_write_direct(target, REG_MSTATUS, mstatus_user) != ERROR_OK) {
 				return ERROR_FAIL;
 			}
 		}
@@ -934,7 +938,7 @@ static int execute_resume(struct target *target, bool step)
 		info->dcsr &= ~DCSR_STEP;
 	}
 
-	if (register_write_direct(target, CSR_DCSR, info->dcsr) != ERROR_OK) {
+	if (register_write_direct(target, REG_DCSR, info->dcsr) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -1186,10 +1190,10 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 			continue;
 		}
 
-		register_write_direct(target, CSR_TSELECT, i);
+		register_write_direct(target, REG_TSELECT, i);
 
 		uint64_t tdata1;
-		register_read_direct(target, &tdata1, CSR_TDATA1);
+		register_read_direct(target, &tdata1, REG_TDATA1);
 		int type = get_field(tdata1, MCONTROL_TYPE(xlen(target)));
 
 		if (type != 2) {
@@ -1221,21 +1225,21 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 		if (trigger->write)
 			tdata1 |= MCONTROL_STORE;
 
-		register_write_direct(target, CSR_TDATA1, tdata1);
+		register_write_direct(target, REG_TDATA1, tdata1);
 
 		uint64_t tdata1_rb;
-		register_read_direct(target, &tdata1_rb, CSR_TDATA1);
+		register_read_direct(target, &tdata1_rb, REG_TDATA1);
 		LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
 
 		if (tdata1 != tdata1_rb) {
 			LOG_DEBUG("Trigger %d doesn't support what we need; After writing 0x%"
 					PRIx64 " to tdata1 it contains 0x%" PRIx64,
 					i, tdata1, tdata1_rb);
-			register_write_direct(target, CSR_TDATA1, 0);
+			register_write_direct(target, REG_TDATA1, 0);
 			continue;
 		}
 
-		register_write_direct(target, CSR_TDATA2, trigger->address);
+		register_write_direct(target, REG_TDATA2, trigger->address);
 
 		LOG_DEBUG("Using resource %d for bp %d", i,
 				trigger->unique_id);
@@ -1268,8 +1272,8 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
-	register_write_direct(target, CSR_TSELECT, i);
-	register_write_direct(target, CSR_TDATA1, 0);
+	register_write_direct(target, REG_TSELECT, i);
+	register_write_direct(target, REG_TDATA1, 0);
 	info->trigger_unique_id[i] = -1;
 
 	return ERROR_OK;
@@ -1621,7 +1625,7 @@ static int examine(struct target *target)
 	// Update register list to match discovered XLEN.
 	update_reg_list(target);
 
-	if (register_read_direct(target, &info->misa, CSR_MISA) != ERROR_OK) {
+	if (register_read_direct(target, &info->misa, REG_MISA) != ERROR_OK) {
 		LOG_ERROR("Failed to read misa.");
 		return ERROR_FAIL;
 	}
@@ -1669,7 +1673,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		reg_cache_set(target, reg, value);
 	}
 
-	unsigned int csr[] = {CSR_DPC, CSR_DCSR};
+	unsigned int csr[] = {REG_DPC, REG_DCSR};
 	for (unsigned int i = 0; i < DIM(csr); i++) {
 		uint64_t value;
 		int reg = csr[i];
@@ -1680,8 +1684,8 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	}
 
 	// TODO: get rid of those 2 variables and talk to the cache directly.
-	info->dpc = reg_cache_get(target, CSR_DPC);
-	info->dcsr = reg_cache_get(target, CSR_DCSR);
+	info->dpc = reg_cache_get(target, REG_DPC);
+	info->dcsr = reg_cache_get(target, REG_DCSR);
 
 	return RE_OK;
 }
@@ -1737,16 +1741,16 @@ static int handle_halt(struct target *target, bool announce)
 		if (result != ERROR_OK)
 			return result;
 		for (info->trigger_count = 0; info->trigger_count < MAX_HWBPS; info->trigger_count++) {
-			register_write_direct(target, CSR_TSELECT, info->trigger_count);
+			register_write_direct(target, REG_TSELECT, info->trigger_count);
 			uint64_t tselect_rb;
-			register_read_direct(target, &tselect_rb, CSR_TSELECT);
+			register_read_direct(target, &tselect_rb, REG_TSELECT);
 			if (info->trigger_count != tselect_rb)
 				break;
 			uint64_t tdata1;
-			register_read_direct(target, &tdata1, CSR_TDATA1);
+			register_read_direct(target, &tdata1, REG_TDATA1);
 			if ((tdata1 & MCONTROL_DMODE(xlen(target))) &&
 					(tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD))) {
-				register_write_direct(target, CSR_TDATA1, 0);
+				register_write_direct(target, REG_TDATA1, 0);
 			}
 		}
 	}
