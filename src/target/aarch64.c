@@ -331,7 +331,6 @@ static int aarch64_poll(struct target *target)
 			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
 	if (retval != ERROR_OK)
 		return retval;
-	aarch64->cpudbg_dscr = dscr;
 
 	if (DSCR_RUN_MODE(dscr) == 0x3) {
 		if (prev_target_state != TARGET_HALTED) {
@@ -601,21 +600,27 @@ static int aarch64_resume(struct target *target, int current,
 static int aarch64_debug_entry(struct target *target)
 {
 	int retval = ERROR_OK;
-	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = &armv8->dpm;
 	enum arm_state core_state;
-
-	LOG_DEBUG("%s dscr = 0x%08" PRIx32, target_name(target), aarch64->cpudbg_dscr);
-
-	dpm->dscr = aarch64->cpudbg_dscr;
-	core_state = armv8_dpm_get_core_state(dpm);
-	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
-	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
+	uint32_t dscr;
 
 	/* make sure to clear all sticky errors */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("%s dscr = 0x%08" PRIx32, target_name(target), dscr);
+
+	dpm->dscr = dscr;
+	core_state = armv8_dpm_get_core_state(dpm);
+	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
+	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
 
 	/* discard async exceptions */
 	if (retval == ERROR_OK)
@@ -625,7 +630,7 @@ static int aarch64_debug_entry(struct target *target)
 		return retval;
 
 	/* Examine debug reason */
-	armv8_dpm_report_dscr(dpm, aarch64->cpudbg_dscr);
+	armv8_dpm_report_dscr(dpm, dscr);
 
 	/* save address of instruction that triggered the watchpoint? */
 	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
@@ -717,7 +722,6 @@ static int aarch64_post_debug_entry(struct target *target)
 		(aarch64->system_control_reg & 0x4U) ? 1 : 0;
 	armv8->armv8_mmu.armv8_cache.i_cache_enabled =
 		(aarch64->system_control_reg & 0x1000U) ? 1 : 0;
-	aarch64->curr_mode = armv8->arm.core_mode;
 	return ERROR_OK;
 }
 
@@ -1892,8 +1896,6 @@ static int aarch64_init_arch_info(struct target *target,
 	}
 
 	armv8->arm.dap = tap->dap;
-
-	aarch64->fast_reg_read = 0;
 
 	/* register arch-specific functions */
 	armv8->examine_debug_reason = NULL;

@@ -48,13 +48,8 @@ struct aarch64_common {
 	int common_magic;
 
 	/* Context information */
-	uint32_t cpudbg_dscr;
-
 	uint32_t system_control_reg;
 	uint32_t system_control_reg_curr;
-
-	enum arm_mode curr_mode;
-
 
 	/* Breakpoint register pairs */
 	int brp_num_context;
@@ -62,11 +57,7 @@ struct aarch64_common {
 	int brp_num_available;
 	struct aarch64_brp *brp_list;
 
-	/* Use aarch64_read_regs_through_mem for fast register reads */
-	int fast_reg_read;
-
 	struct armv8_common armv8_common;
-
 };
 
 static inline struct aarch64_common *
