@@ -2057,9 +2057,9 @@ static const struct command_registration aarch64_command_handlers[] = {
 		.chain = armv8_command_handlers,
 	},
 	{
-		.name = "cortex_a",
+		.name = "aarch64",
 		.mode = COMMAND_ANY,
-		.help = "Cortex-A command group",
+		.help = "Aarch64 command group",
 		.usage = "",
 		.chain = aarch64_exec_command_handlers,
 	},
@@ -2084,11 +2084,6 @@ struct target_type aarch64_target = {
 
 	.read_memory = aarch64_read_memory,
 	.write_memory = aarch64_write_memory,
-
-	.checksum_memory = arm_checksum_memory,
-	.blank_check_memory = arm_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
 
 	.add_breakpoint = aarch64_add_breakpoint,
 	.add_context_breakpoint = aarch64_add_context_breakpoint,
