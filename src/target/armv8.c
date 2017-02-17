@@ -408,8 +408,7 @@ static int armv8_write_reg32(struct armv8_common *armv8, int regnum, uint64_t va
 		break;
 	case ARMV8_SP:
 		retval = dpm->instr_write_data_dcc(dpm,
-			ARMV4_5_MRC(14, 0, 13, 0, 5, 0),
-			value);
+				ARMV4_5_MRC(14, 0, 13, 0, 5, 0), value);
 			break;
 	case ARMV8_PC:/* PC
 		 * read r0 from DCC; then "MOV pc, r0" */
@@ -505,10 +504,9 @@ int armv8_read_mpidr(struct armv8_common *armv8)
 		LOG_INFO("%s cluster %x core %x %s", target_name(armv8->arm.target),
 			armv8->cluster_id,
 			armv8->cpu_id,
-			armv8->multi_processor_system == 0 ? "multi core" : "mono core");
-
+			armv8->multi_processor_system == 0 ? "multi core" : "single core");
 	} else
-		LOG_ERROR("mpdir not in multiprocessor format");
+		LOG_ERROR("mpidr not in multiprocessor format");
 
 done:
 	dpm->finish(dpm);
@@ -612,7 +610,7 @@ done:
 	/* (void) */ dpm->finish(dpm);
 }
 
-static void armv8_show_fault_registers(struct target *target)
+static __unused void armv8_show_fault_registers(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 
@@ -832,9 +830,6 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 		armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 
 	dpm->finish(dpm);
-
-	if (retval != ERROR_OK)
-		return retval;
 
 	if (retval != ERROR_OK)
 		return retval;
