@@ -1312,6 +1312,8 @@ void armv8_dpm_handle_exception(struct arm_dpm *dpm)
 	core_state = armv8_dpm_get_core_state(dpm);
 	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
 	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
+
+	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 }
 
 /*----------------------------------------------------------------------*/
