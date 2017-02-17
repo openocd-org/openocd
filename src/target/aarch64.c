@@ -30,6 +30,18 @@
 #include "armv8_cache.h"
 #include <helper/time_support.h>
 
+#define __unused __attribute((unused))
+
+enum restart_mode {
+	RESTART_LAZY,
+	RESTART_SYNC,
+};
+
+enum halt_mode {
+	HALT_LAZY,
+	HALT_SYNC,
+};
+
 static int aarch64_poll(struct target *target);
 static int aarch64_debug_entry(struct target *target);
 static int aarch64_restore_context(struct target *target, bool bpwp);
@@ -46,6 +58,9 @@ static int aarch64_virt2phys(struct target *target,
 	target_addr_t virt, target_addr_t *phys);
 static int aarch64_read_apb_ap_memory(struct target *target,
 	uint64_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+
+#define foreach_smp_target(pos, head) \
+	for (pos = head; (pos != NULL); pos = pos->next)
 
 static int aarch64_restore_system_control_reg(struct target *target)
 {
@@ -191,27 +206,22 @@ static int aarch64_init_debug_access(struct target *target)
 	 */
 
 	/* Enable CTI */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_CTR, 1);
-	/* By default, gate all channel triggers to and from the CTM */
+	retval = arm_cti_enable(armv8->cti, true);
+	/* By default, gate all channel events to and from the CTM */
 	if (retval == ERROR_OK)
-		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->cti_base + CTI_GATE, 0);
-	/* output halt requests to PE on channel 0 trigger */
+		retval = arm_cti_write_reg(armv8->cti, CTI_GATE, 0);
+	/* output halt requests to PE on channel 0 event */
 	if (retval == ERROR_OK)
-		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->cti_base + CTI_OUTEN0, CTI_CHNL(0));
-	/* output restart requests to PE on channel 1 trigger */
+		retval = arm_cti_write_reg(armv8->cti, CTI_OUTEN0, CTI_CHNL(0));
+	/* output restart requests to PE on channel 1 event */
 	if (retval == ERROR_OK)
-		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->cti_base + CTI_OUTEN1, CTI_CHNL(1));
+		retval = arm_cti_write_reg(armv8->cti, CTI_OUTEN1, CTI_CHNL(1));
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Resync breakpoint registers */
 
-	/* Since this is likely called from init or reset, update target state information*/
-	return aarch64_poll(target);
+	return ERROR_OK;
 }
 
 /* Write to memory mapped registers directly with no cache or mmu handling */
@@ -248,123 +258,270 @@ static int aarch64_set_dscr_bits(struct target *target, unsigned long bit_mask, 
 	return armv8_set_dbgreg_bits(armv8, CPUV8_DBG_DSCR, bit_mask, value);
 }
 
-static struct target *get_aarch64(struct target *target, int32_t coreid)
+static int aarch64_check_state_one(struct target *target,
+		uint32_t mask, uint32_t val, int *p_result, uint32_t *p_prsr)
 {
-	struct target_list *head;
-	struct target *curr;
+	struct armv8_common *armv8 = target_to_armv8(target);
+	uint32_t prsr;
+	int retval;
 
-	head = target->head;
-	while (head != (struct target_list *)NULL) {
-		curr = head->target;
-		if ((curr->coreid == coreid) && (curr->state == TARGET_HALTED))
-			return curr;
-		head = head->next;
-	}
-	return target;
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_PRSR, &prsr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (p_prsr)
+		*p_prsr = prsr;
+
+	if (p_result)
+		*p_result = (prsr & mask) == (val & mask);
+
+	return ERROR_OK;
 }
-static int aarch64_halt(struct target *target);
 
-static int aarch64_halt_smp(struct target *target)
+static int aarch64_wait_halt_one(struct target *target)
+{
+	int retval = ERROR_OK;
+	uint32_t prsr;
+
+	int64_t then = timeval_ms();
+	for (;;) {
+		int halted;
+
+		retval = aarch64_check_state_one(target, PRSR_HALT, PRSR_HALT, &halted, &prsr);
+		if (retval != ERROR_OK || halted)
+			break;
+
+		if (timeval_ms() > then + 1000) {
+			retval = ERROR_TARGET_TIMEOUT;
+			LOG_DEBUG("target %s timeout, prsr=0x%08"PRIx32, target_name(target), prsr);
+			break;
+		}
+	}
+	return retval;
+}
+
+static int aarch64_prepare_halt_smp(struct target *target, bool exc_target, struct target **p_first)
 {
 	int retval = ERROR_OK;
 	struct target_list *head = target->head;
+	struct target *first = NULL;
 
-	while (head != (struct target_list *)NULL) {
+	LOG_DEBUG("target %s exc %i", target_name(target), exc_target);
+
+	while (head != NULL) {
 		struct target *curr = head->target;
 		struct armv8_common *armv8 = target_to_armv8(curr);
+		head = head->next;
+
+		if (exc_target && curr == target)
+			continue;
+		if (!target_was_examined(curr))
+			continue;
+		if (curr->state != TARGET_RUNNING)
+			continue;
+
+		/* HACK: mark this target as prepared for halting */
+		curr->debug_reason = DBG_REASON_DBGRQ;
 
 		/* open the gate for channel 0 to let HALT requests pass to the CTM */
-		if (curr->smp) {
-			retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-					armv8->cti_base + CTI_GATE, CTI_CHNL(0));
-			if (retval == ERROR_OK)
-				retval = aarch64_set_dscr_bits(curr, DSCR_HDE, DSCR_HDE);
-		}
+		retval = arm_cti_ungate_channel(armv8->cti, 0);
+		if (retval == ERROR_OK)
+			retval = aarch64_set_dscr_bits(curr, DSCR_HDE, DSCR_HDE);
 		if (retval != ERROR_OK)
 			break;
 
-		head = head->next;
+		LOG_DEBUG("target %s prepared", target_name(curr));
+
+		if (first == NULL)
+			first = curr;
 	}
+
+	if (p_first) {
+		if (exc_target && first)
+			*p_first = first;
+		else
+			*p_first = target;
+	}
+
+	return retval;
+}
+
+static int aarch64_halt_one(struct target *target, enum halt_mode mode)
+{
+	int retval = ERROR_OK;
+	struct armv8_common *armv8 = target_to_armv8(target);
+
+	LOG_DEBUG("%s", target_name(target));
+
+	/* allow Halting Debug Mode */
+	retval = aarch64_set_dscr_bits(target, DSCR_HDE, DSCR_HDE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* trigger an event on channel 0, this outputs a halt request to the PE */
+	retval = arm_cti_pulse_channel(armv8->cti, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (mode == HALT_SYNC) {
+		retval = aarch64_wait_halt_one(target);
+		if (retval != ERROR_OK) {
+			if (retval == ERROR_TARGET_TIMEOUT)
+				LOG_ERROR("Timeout waiting for target %s halt", target_name(target));
+			return retval;
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static int aarch64_halt_smp(struct target *target, bool exc_target)
+{
+	struct target *next = target;
+	int retval;
+
+	/* prepare halt on all PEs of the group */
+	retval = aarch64_prepare_halt_smp(target, exc_target, &next);
+
+	if (exc_target && next == target)
+		return retval;
 
 	/* halt the target PE */
 	if (retval == ERROR_OK)
-		retval = aarch64_halt(target);
+		retval = aarch64_halt_one(next, HALT_LAZY);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* wait for all PEs to halt */
+	int64_t then = timeval_ms();
+	for (;;) {
+		bool all_halted = true;
+		struct target_list *head;
+		struct target *curr;
+
+		foreach_smp_target(head, target->head) {
+			int halted;
+
+			curr = head->target;
+
+			if (!target_was_examined(curr))
+				continue;
+
+			retval = aarch64_check_state_one(curr, PRSR_HALT, PRSR_HALT, &halted, NULL);
+			if (retval != ERROR_OK || !halted) {
+				all_halted = false;
+				break;
+			}
+		}
+
+		if (all_halted)
+			break;
+
+		if (timeval_ms() > then + 1000) {
+			retval = ERROR_TARGET_TIMEOUT;
+			break;
+		}
+
+		/*
+		 * HACK: on Hi6220 there are 8 cores organized in 2 clusters
+		 * and it looks like the CTI's are not connected by a common
+		 * trigger matrix. It seems that we need to halt one core in each
+		 * cluster explicitly. So if we find that a core has not halted
+		 * yet, we trigger an explicit halt for the second cluster.
+		 */
+		retval = aarch64_halt_one(curr, HALT_LAZY);
+		if (retval != ERROR_OK)
+			break;
+	}
 
 	return retval;
 }
 
-static int update_halt_gdb(struct target *target)
+static int update_halt_gdb(struct target *target, enum target_debug_reason debug_reason)
 {
-	int retval = 0;
-	if (target->gdb_service && target->gdb_service->core[0] == -1) {
-		target->gdb_service->target = target;
-		target->gdb_service->core[0] = target->coreid;
-		retval += aarch64_halt_smp(target);
+	struct target *gdb_target = NULL;
+	struct target_list *head;
+	struct target *curr;
+
+	if (debug_reason == DBG_REASON_NOTHALTED) {
+		LOG_INFO("Halting remaining targets in SMP group");
+		aarch64_halt_smp(target, true);
 	}
-	return retval;
+
+	/* poll all targets in the group, but skip the target that serves GDB */
+	foreach_smp_target(head, target->head) {
+		curr = head->target;
+		/* skip calling context */
+		if (curr == target)
+			continue;
+		if (!target_was_examined(curr))
+			continue;
+		/* skip targets that were already halted */
+		if (curr->state == TARGET_HALTED)
+			continue;
+		/* remember the gdb_service->target */
+		if (curr->gdb_service != NULL)
+			gdb_target = curr->gdb_service->target;
+		/* skip it */
+		if (curr == gdb_target)
+			continue;
+
+		/* avoid recursion in aarch64_poll() */
+		curr->smp = 0;
+		aarch64_poll(curr);
+		curr->smp = 1;
+	}
+
+	/* after all targets were updated, poll the gdb serving target */
+	if (gdb_target != NULL && gdb_target != target)
+		aarch64_poll(gdb_target);
+
+	return ERROR_OK;
 }
 
 /*
- * Cortex-A8 Run control
+ * Aarch64 Run control
  */
 
 static int aarch64_poll(struct target *target)
 {
+	enum target_state prev_target_state;
 	int retval = ERROR_OK;
-	uint32_t dscr;
-	struct aarch64_common *aarch64 = target_to_aarch64(target);
-	struct armv8_common *armv8 = &aarch64->armv8_common;
-	enum target_state prev_target_state = target->state;
-	/*  toggle to another core is done by gdb as follow */
-	/*  maint packet J core_id */
-	/*  continue */
-	/*  the next polling trigger an halt event sent to gdb */
-	if ((target->state == TARGET_HALTED) && (target->smp) &&
-		(target->gdb_service) &&
-		(target->gdb_service->target == NULL)) {
-		target->gdb_service->target =
-			get_aarch64(target, target->gdb_service->core[1]);
-		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-		return retval;
-	}
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+	int halted;
+
+	retval = aarch64_check_state_one(target,
+				PRSR_HALT, PRSR_HALT, &halted, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (DSCR_RUN_MODE(dscr) == 0x3) {
+	if (halted) {
+		prev_target_state = target->state;
 		if (prev_target_state != TARGET_HALTED) {
+			enum target_debug_reason debug_reason = target->debug_reason;
+
 			/* We have a halting debug event */
-			LOG_DEBUG("Target %s halted", target_name(target));
 			target->state = TARGET_HALTED;
-			if ((prev_target_state == TARGET_RUNNING)
-				|| (prev_target_state == TARGET_UNKNOWN)
-				|| (prev_target_state == TARGET_RESET)) {
-				retval = aarch64_debug_entry(target);
-				if (retval != ERROR_OK)
-					return retval;
-				if (target->smp) {
-					retval = update_halt_gdb(target);
-					if (retval != ERROR_OK)
-						return retval;
-				}
-				target_call_event_callbacks(target,
-					TARGET_EVENT_HALTED);
-			}
-			if (prev_target_state == TARGET_DEBUG_RUNNING) {
-				LOG_DEBUG(" ");
+			LOG_DEBUG("Target %s halted", target_name(target));
+			retval = aarch64_debug_entry(target);
+			if (retval != ERROR_OK)
+				return retval;
 
-				retval = aarch64_debug_entry(target);
-				if (retval != ERROR_OK)
-					return retval;
-				if (target->smp) {
-					retval = update_halt_gdb(target);
-					if (retval != ERROR_OK)
-						return retval;
-				}
+			if (target->smp)
+				update_halt_gdb(target, debug_reason);
 
-				target_call_event_callbacks(target,
-					TARGET_EVENT_DEBUG_HALTED);
+			switch (prev_target_state) {
+			case TARGET_RUNNING:
+			case TARGET_UNKNOWN:
+			case TARGET_RESET:
+				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+				break;
+			case TARGET_DEBUG_RUNNING:
+				target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
+				break;
+			default:
+				break;
 			}
 		}
 	} else
@@ -375,49 +532,21 @@ static int aarch64_poll(struct target *target)
 
 static int aarch64_halt(struct target *target)
 {
-	int retval = ERROR_OK;
-	uint32_t dscr;
-	struct armv8_common *armv8 = target_to_armv8(target);
+	if (target->smp)
+		return aarch64_halt_smp(target, false);
 
-	/*
-	 * add HDE in halting debug mode
-	 */
-	retval = aarch64_set_dscr_bits(target, DSCR_HDE, DSCR_HDE);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* trigger an event on channel 0, this outputs a halt request to the PE */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_APPPULSE, CTI_CHNL(0));
-	if (retval != ERROR_OK)
-		return retval;
-
-	long long then = timeval_ms();
-	for (;; ) {
-		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
-		if (retval != ERROR_OK)
-			return retval;
-		if ((dscr & DSCRV8_HALT_MASK) != 0)
-			break;
-		if (timeval_ms() > then + 1000) {
-			LOG_ERROR("Timeout waiting for halt");
-			return ERROR_FAIL;
-		}
-	}
-
-	target->debug_reason = DBG_REASON_DBGRQ;
-
-	return ERROR_OK;
+	return aarch64_halt_one(target, HALT_SYNC);
 }
 
-static int aarch64_internal_restore(struct target *target, int current,
+static int aarch64_restore_one(struct target *target, int current,
 	uint64_t *address, int handle_breakpoints, int debug_execution)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm *arm = &armv8->arm;
 	int retval;
 	uint64_t resume_pc;
+
+	LOG_DEBUG("%s", target_name(target));
 
 	if (!debug_execution)
 		target_free_all_working_areas(target);
@@ -464,19 +593,19 @@ static int aarch64_internal_restore(struct target *target, int current,
 	return retval;
 }
 
-static int aarch64_internal_restart(struct target *target, bool slave_pe)
+/**
+ * prepare single target for restart
+ *
+ *
+ */
+static int aarch64_prepare_restart_one(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm *arm = &armv8->arm;
 	int retval;
 	uint32_t dscr;
-	/*
-	 * * Restart core and wait for it to be started.  Clear ITRen and sticky
-	 * * exception flags: see ARMv7 ARM, C5.9.
-	 *
-	 * REVISIT: for single stepping, we probably want to
-	 * disable IRQs by default, with optional override...
-	 */
+	uint32_t tmp;
+
+	LOG_DEBUG("%s", target_name(target));
 
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
@@ -488,70 +617,195 @@ static int aarch64_internal_restart(struct target *target, bool slave_pe)
 	if ((dscr & DSCR_ERR) != 0)
 		LOG_ERROR("DSCR.ERR must be cleared before leaving debug!");
 
-	/* make sure to acknowledge the halt event before resuming */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->cti_base + CTI_INACK, CTI_TRIG(HALT));
-
+	/* acknowledge a pending CTI halt event */
+	retval = arm_cti_ack_events(armv8->cti, CTI_TRIG(HALT));
 	/*
 	 * open the CTI gate for channel 1 so that the restart events
-	 * get passed along to all PEs
+	 * get passed along to all PEs. Also close gate for channel 0
+	 * to isolate the PE from halt events.
 	 */
 	if (retval == ERROR_OK)
+		retval = arm_cti_ungate_channel(armv8->cti, 1);
+	if (retval == ERROR_OK)
+		retval = arm_cti_gate_channel(armv8->cti, 0);
+
+	/* make sure that DSCR.HDE is set */
+	if (retval == ERROR_OK) {
+		dscr |= DSCR_HDE;
 		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->cti_base + CTI_GATE, CTI_CHNL(1));
+				armv8->debug_base + CPUV8_DBG_DSCR, dscr);
+	}
+
+	/* clear sticky bits in PRSR, SDR is now 0 */
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_PRSR, &tmp);
+
+	return retval;
+}
+
+static int aarch64_do_restart_one(struct target *target, enum restart_mode mode)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	int retval;
+
+	LOG_DEBUG("%s", target_name(target));
+
+	/* trigger an event on channel 1, generates a restart request to the PE */
+	retval = arm_cti_pulse_channel(armv8->cti, 1);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (!slave_pe) {
-		/* trigger an event on channel 1, generates a restart request to the PE */
-		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->cti_base + CTI_APPPULSE, CTI_CHNL(1));
-		if (retval != ERROR_OK)
-			return retval;
-
-		long long then = timeval_ms();
-		for (;; ) {
-			retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-					armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
-			if (retval != ERROR_OK)
-				return retval;
-			if ((dscr & DSCR_HDE) != 0)
+	if (mode == RESTART_SYNC) {
+		int64_t then = timeval_ms();
+		for (;;) {
+			int resumed;
+			/*
+			 * if PRSR.SDR is set now, the target did restart, even
+			 * if it's now already halted again (e.g. due to breakpoint)
+			 */
+			retval = aarch64_check_state_one(target,
+						PRSR_SDR, PRSR_SDR, &resumed, NULL);
+			if (retval != ERROR_OK || resumed)
 				break;
+
 			if (timeval_ms() > then + 1000) {
-				LOG_ERROR("Timeout waiting for resume");
-				return ERROR_FAIL;
+				LOG_ERROR("%s: Timeout waiting for resume"PRIx32, target_name(target));
+				retval = ERROR_TARGET_TIMEOUT;
+				break;
 			}
 		}
 	}
 
+	if (retval != ERROR_OK)
+		return retval;
+
 	target->debug_reason = DBG_REASON_NOTHALTED;
 	target->state = TARGET_RUNNING;
-
-	/* registers are now invalid */
-	register_cache_invalidate(arm->core_cache);
-	register_cache_invalidate(arm->core_cache->next);
 
 	return ERROR_OK;
 }
 
-static int aarch64_restore_smp(struct target *target, int handle_breakpoints)
+static int aarch64_restart_one(struct target *target, enum restart_mode mode)
 {
-	int retval = 0;
-	struct target_list *head;
-	struct target *curr;
-	uint64_t address;
-	head = target->head;
-	while (head != (struct target_list *)NULL) {
-		curr = head->target;
-		if ((curr != target) && (curr->state != TARGET_RUNNING)) {
-			/*  resume current address , not in step mode */
-			retval += aarch64_internal_restore(curr, 1, &address,
-					handle_breakpoints, 0);
-			retval += aarch64_internal_restart(curr, true);
-		}
-		head = head->next;
+	int retval;
 
+	LOG_DEBUG("%s", target_name(target));
+
+	retval = aarch64_prepare_restart_one(target);
+	if (retval == ERROR_OK)
+		retval = aarch64_do_restart_one(target, mode);
+
+	return retval;
+}
+
+/*
+ * prepare all but the current target for restart
+ */
+static int aarch64_prep_restart_smp(struct target *target, int handle_breakpoints, struct target **p_first)
+{
+	int retval = ERROR_OK;
+	struct target_list *head;
+	struct target *first = NULL;
+	uint64_t address;
+
+	foreach_smp_target(head, target->head) {
+		struct target *curr = head->target;
+
+		/* skip calling target */
+		if (curr == target)
+			continue;
+		if (!target_was_examined(curr))
+			continue;
+		if (curr->state != TARGET_HALTED)
+			continue;
+
+		/*  resume at current address, not in step mode */
+		retval = aarch64_restore_one(curr, 1, &address, handle_breakpoints, 0);
+		if (retval == ERROR_OK)
+			retval = aarch64_prepare_restart_one(curr);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("failed to restore target %s", target_name(curr));
+			break;
+		}
+		/* remember the first valid target in the group */
+		if (first == NULL)
+			first = curr;
 	}
+
+	if (p_first)
+		*p_first = first;
+
+	return retval;
+}
+
+
+static int aarch64_step_restart_smp(struct target *target)
+{
+	int retval = ERROR_OK;
+	struct target_list *head;
+	struct target *first = NULL;
+
+	LOG_DEBUG("%s", target_name(target));
+
+	retval = aarch64_prep_restart_smp(target, 0, &first);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (first != NULL)
+		retval = aarch64_do_restart_one(first, RESTART_LAZY);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("error restarting target %s", target_name(first));
+		return retval;
+	}
+
+	int64_t then = timeval_ms();
+	for (;;) {
+		struct target *curr = target;
+		bool all_resumed = true;
+
+		foreach_smp_target(head, target->head) {
+			uint32_t prsr;
+			int resumed;
+
+			curr = head->target;
+
+			if (curr == target)
+				continue;
+
+			retval = aarch64_check_state_one(curr,
+					PRSR_SDR, PRSR_SDR, &resumed, &prsr);
+			if (retval != ERROR_OK || (!resumed && (prsr & PRSR_HALT))) {
+				all_resumed = false;
+				break;
+			}
+
+			if (curr->state != TARGET_RUNNING) {
+				curr->state = TARGET_RUNNING;
+				curr->debug_reason = DBG_REASON_NOTHALTED;
+				target_call_event_callbacks(curr, TARGET_EVENT_RESUMED);
+			}
+		}
+
+		if (all_resumed)
+			break;
+
+		if (timeval_ms() > then + 1000) {
+			LOG_ERROR("%s: timeout waiting for target resume", __func__);
+			retval = ERROR_TARGET_TIMEOUT;
+			break;
+		}
+		/*
+		 * HACK: on Hi6220 there are 8 cores organized in 2 clusters
+		 * and it looks like the CTI's are not connected by a common
+		 * trigger matrix. It seems that we need to halt one core in each
+		 * cluster explicitly. So if we find that a core has not halted
+		 * yet, we trigger an explicit resume for the second cluster.
+		 */
+		retval = aarch64_do_restart_one(curr, RESTART_LAZY);
+		if (retval != ERROR_OK)
+			break;
+}
+
 	return retval;
 }
 
@@ -561,28 +815,86 @@ static int aarch64_resume(struct target *target, int current,
 	int retval = 0;
 	uint64_t addr = address;
 
-	/* dummy resume for smp toggle in order to reduce gdb impact  */
-	if ((target->smp) && (target->gdb_service->core[1] != -1)) {
-		/*   simulate a start and halt of target */
-		target->gdb_service->target = NULL;
-		target->gdb_service->core[0] = target->gdb_service->core[1];
-		/*  fake resume at next poll we play the  target core[1], see poll*/
-		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		return 0;
-	}
-
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	aarch64_internal_restore(target, current, &addr, handle_breakpoints,
-				 debug_execution);
+	/*
+	 * If this target is part of a SMP group, prepare the others
+	 * targets for resuming. This involves restoring the complete
+	 * target register context and setting up CTI gates to accept
+	 * resume events from the trigger matrix.
+	 */
 	if (target->smp) {
-		target->gdb_service->core[0] = -1;
-		retval = aarch64_restore_smp(target, handle_breakpoints);
+		retval = aarch64_prep_restart_smp(target, handle_breakpoints, NULL);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	aarch64_internal_restart(target, false);
+
+	/* all targets prepared, restore and restart the current target */
+	retval = aarch64_restore_one(target, current, &addr, handle_breakpoints,
+				 debug_execution);
+	if (retval == ERROR_OK)
+		retval = aarch64_restart_one(target, RESTART_SYNC);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (target->smp) {
+		int64_t then = timeval_ms();
+		for (;;) {
+			struct target *curr = target;
+			struct target_list *head;
+			bool all_resumed = true;
+
+			foreach_smp_target(head, target->head) {
+				uint32_t prsr;
+				int resumed;
+
+				curr = head->target;
+				if (curr == target)
+					continue;
+				if (!target_was_examined(curr))
+					continue;
+
+				retval = aarch64_check_state_one(curr,
+						PRSR_SDR, PRSR_SDR, &resumed, &prsr);
+				if (retval != ERROR_OK || (!resumed && (prsr & PRSR_HALT))) {
+					all_resumed = false;
+					break;
+				}
+
+				if (curr->state != TARGET_RUNNING) {
+					curr->state = TARGET_RUNNING;
+					curr->debug_reason = DBG_REASON_NOTHALTED;
+					target_call_event_callbacks(curr, TARGET_EVENT_RESUMED);
+				}
+			}
+
+			if (all_resumed)
+				break;
+
+			if (timeval_ms() > then + 1000) {
+				LOG_ERROR("%s: timeout waiting for target %s to resume", __func__, target_name(curr));
+				retval = ERROR_TARGET_TIMEOUT;
+				break;
+			}
+
+			/*
+			 * HACK: on Hi6220 there are 8 cores organized in 2 clusters
+			 * and it looks like the CTI's are not connected by a common
+			 * trigger matrix. It seems that we need to halt one core in each
+			 * cluster explicitly. So if we find that a core has not halted
+			 * yet, we trigger an explicit resume for the second cluster.
+			 */
+			retval = aarch64_do_restart_one(curr, RESTART_LAZY);
+			if (retval != ERROR_OK)
+				break;
+		}
+	}
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
@@ -622,10 +934,12 @@ static int aarch64_debug_entry(struct target *target)
 	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
 	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
 
+	/* close the CTI gate for all events */
+	if (retval == ERROR_OK)
+		retval = arm_cti_write_reg(armv8->cti, CTI_GATE, 0);
 	/* discard async exceptions */
 	if (retval == ERROR_OK)
 		retval = dpm->instr_cpsr_sync(dpm);
-
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -725,10 +1039,14 @@ static int aarch64_post_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
+/*
+ * single-step a target
+ */
 static int aarch64_step(struct target *target, int current, target_addr_t address,
 	int handle_breakpoints)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
+	int saved_retval = ERROR_OK;
 	int retval;
 	uint32_t edecr;
 
@@ -739,38 +1057,69 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_EDECR, &edecr);
-	if (retval != ERROR_OK)
-		return retval;
-
 	/* make sure EDECR.SS is not set when restoring the register */
-	edecr &= ~0x4;
 
-	/* set EDECR.SS to enter hardware step mode */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_EDECR, (edecr|0x4));
-	if (retval != ERROR_OK)
-		return retval;
-
+	if (retval == ERROR_OK) {
+		edecr &= ~0x4;
+		/* set EDECR.SS to enter hardware step mode */
+		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_EDECR, (edecr|0x4));
+	}
 	/* disable interrupts while stepping */
-	retval = aarch64_set_dscr_bits(target, 0x3 << 22, 0x3 << 22);
-	if (retval != ERROR_OK)
-		return ERROR_OK;
-
-	/* resume the target */
-	retval = aarch64_resume(target, current, address, 0, 0);
+	if (retval == ERROR_OK)
+		retval = aarch64_set_dscr_bits(target, 0x3 << 22, 0x3 << 22);
+	/* bail out if stepping setup has failed */
 	if (retval != ERROR_OK)
 		return retval;
 
-	long long then = timeval_ms();
-	while (target->state != TARGET_HALTED) {
-		retval = aarch64_poll(target);
-		if (retval != ERROR_OK)
+	if (target->smp && !handle_breakpoints) {
+		/*
+		 * isolate current target so that it doesn't get resumed
+		 * together with the others
+		 */
+		retval = arm_cti_gate_channel(armv8->cti, 1);
+		/* resume all other targets in the group */
+		if (retval == ERROR_OK)
+			retval = aarch64_step_restart_smp(target);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Failed to restart non-stepping targets in SMP group");
 			return retval;
+		}
+		LOG_DEBUG("Restarted all non-stepping targets in SMP group");
+	}
+
+	/* all other targets running, restore and restart the current target */
+	retval = aarch64_restore_one(target, current, &address, 0, 0);
+	if (retval == ERROR_OK)
+		retval = aarch64_restart_one(target, RESTART_LAZY);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("target step-resumed at 0x%" PRIx64, address);
+	if (!handle_breakpoints)
+		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+
+	int64_t then = timeval_ms();
+	for (;;) {
+		int stepped;
+		uint32_t prsr;
+
+		retval = aarch64_check_state_one(target,
+					PRSR_SDR|PRSR_HALT, PRSR_SDR|PRSR_HALT, &stepped, &prsr);
+		if (retval != ERROR_OK || stepped)
+			break;
+
 		if (timeval_ms() > then + 1000) {
-			LOG_ERROR("timeout waiting for target halt");
-			return ERROR_FAIL;
+			LOG_ERROR("timeout waiting for target %s halt after step",
+					target_name(target));
+			retval = ERROR_TARGET_TIMEOUT;
+			break;
 		}
 	}
+
+	if (retval == ERROR_TARGET_TIMEOUT)
+		saved_retval = retval;
 
 	/* restore EDECR */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
@@ -783,19 +1132,32 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	if (retval != ERROR_OK)
 		return ERROR_OK;
 
-	return ERROR_OK;
+	if (saved_retval != ERROR_OK)
+		return saved_retval;
+
+	return aarch64_poll(target);
 }
 
 static int aarch64_restore_context(struct target *target, bool bpwp)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
+	struct arm *arm = &armv8->arm;
+
+	int retval;
 
 	LOG_DEBUG("%s", target_name(target));
 
 	if (armv8->pre_restore_context)
 		armv8->pre_restore_context(target);
 
-	return armv8_dpm_write_dirty_registers(&armv8->dpm, bpwp);
+	retval = armv8_dpm_write_dirty_registers(&armv8->dpm, bpwp);
+	if (retval == ERROR_OK) {
+		/* registers are now invalid */
+		register_cache_invalidate(arm->core_cache);
+		register_cache_invalidate(arm->core_cache->next);
+	}
+
+	return retval;
 }
 
 /*
@@ -1723,6 +2085,7 @@ static int aarch64_examine_first(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct adiv5_dap *swjdp = armv8->arm.dap;
+	uint32_t cti_base;
 	int i;
 	int retval = ERROR_OK;
 	uint64_t debug, ttypr;
@@ -1730,9 +2093,6 @@ static int aarch64_examine_first(struct target *target)
 	uint32_t tmp0, tmp1;
 	debug = ttypr = cpuid = 0;
 
-	/* We do one extra read to ensure DAP is configured,
-	 * we call ahbap_debugport_init(swjdp) instead
-	 */
 	retval = dap_dp_init(swjdp);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1750,7 +2110,7 @@ static int aarch64_examine_first(struct target *target)
 		return retval;
 	}
 
-	armv8->debug_ap->memaccess_tck = 80;
+	armv8->debug_ap->memaccess_tck = 10;
 
 	if (!target->dbgbase_set) {
 		uint32_t dbgbase;
@@ -1770,10 +2130,29 @@ static int aarch64_examine_first(struct target *target)
 	} else
 		armv8->debug_base = target->dbgbase;
 
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_LOCKACCESS, 0xC5ACCE55);
+	uint32_t prsr;
+	int64_t then = timeval_ms();
+	do {
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_PRSR, &prsr);
+		if (retval == ERROR_OK) {
+			retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+					armv8->debug_base + CPUV8_DBG_PRCR, PRCR_COREPURQ|PRCR_CORENPDRQ);
+			if (retval != ERROR_OK) {
+				LOG_DEBUG("write to PRCR failed");
+				break;
+			}
+		}
+
+		if (timeval_ms() > then + 1000) {
+			retval = ERROR_TARGET_TIMEOUT;
+			break;
+		}
+
+	} while ((prsr & PRSR_PU) == 0);
+
 	if (retval != ERROR_OK) {
-		LOG_DEBUG("LOCK debug access fail");
+		LOG_ERROR("target %s: failed to set power state of the core.", target_name(target));
 		return retval;
 	}
 
@@ -1819,12 +2198,15 @@ static int aarch64_examine_first(struct target *target)
 
 	if (target->ctibase == 0) {
 		/* assume a v8 rom table layout */
-		armv8->cti_base = target->ctibase = armv8->debug_base + 0x10000;
-		LOG_INFO("Target ctibase is not set, assuming 0x%0" PRIx32, target->ctibase);
+		cti_base = armv8->debug_base + 0x10000;
+		LOG_INFO("Target ctibase is not set, assuming 0x%0" PRIx32, cti_base);
 	} else
-		armv8->cti_base = target->ctibase;
+		cti_base = target->ctibase;
 
-	armv8->arm.core_type = ARM_MODE_MON;
+	armv8->cti = arm_cti_create(armv8->debug_ap, cti_base);
+	if (armv8->cti == NULL)
+		return ERROR_FAIL;
+
 	retval = aarch64_dpm_setup(aarch64, debug);
 	if (retval != ERROR_OK)
 		return retval;
@@ -1846,6 +2228,9 @@ static int aarch64_examine_first(struct target *target)
 	}
 
 	LOG_DEBUG("Configured %i hw breakpoints", aarch64->brp_num);
+
+	target->state = TARGET_RUNNING;
+	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	target_set_examined(target);
 	return ERROR_OK;
@@ -1881,32 +2266,22 @@ static int aarch64_init_arch_info(struct target *target,
 	struct aarch64_common *aarch64, struct jtag_tap *tap)
 {
 	struct armv8_common *armv8 = &aarch64->armv8_common;
-	struct adiv5_dap *dap = armv8->arm.dap;
-
-	armv8->arm.dap = dap;
 
 	/* Setup struct aarch64_common */
 	aarch64->common_magic = AARCH64_COMMON_MAGIC;
 	/*  tap has no dap initialized */
 	if (!tap->dap) {
 		tap->dap = dap_init();
-
-		/* Leave (only) generic DAP stuff for debugport_init() */
 		tap->dap->tap = tap;
 	}
-
 	armv8->arm.dap = tap->dap;
 
 	/* register arch-specific functions */
 	armv8->examine_debug_reason = NULL;
-
 	armv8->post_debug_entry = aarch64_post_debug_entry;
-
 	armv8->pre_restore_context = NULL;
-
 	armv8->armv8_mmu.read_physical_memory = aarch64_read_phys_memory;
 
-	/* REVISIT v7a setup should be in a v7a-specific routine */
 	armv8_init_arch_info(target, armv8);
 	target_register_timer_callback(aarch64_handle_target_request, 1, 1, target);
 
@@ -1923,7 +2298,7 @@ static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 static int aarch64_mmu(struct target *target, int *enabled)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("%s: target not halted", __func__);
+		LOG_ERROR("%s: target %s not halted", __func__, target_name(target));
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -1994,27 +2369,6 @@ COMMAND_HANDLER(aarch64_handle_smp_on_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(aarch64_handle_smp_gdb_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	int retval = ERROR_OK;
-	struct target_list *head;
-	head = target->head;
-	if (head != (struct target_list *)NULL) {
-		if (CMD_ARGC == 1) {
-			int coreid = 0;
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], coreid);
-			if (ERROR_OK != retval)
-				return retval;
-			target->gdb_service->core[1] = coreid;
-
-		}
-		command_print(CMD_CTX, "gdb coreid  %" PRId32 " -> %" PRId32, target->gdb_service->core[0]
-			, target->gdb_service->core[1]);
-	}
-	return ERROR_OK;
-}
-
 static const struct command_registration aarch64_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
@@ -2043,14 +2397,6 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 		.help = "Restart smp handling",
 		.usage = "",
 	},
-	{
-		.name = "smp_gdb",
-		.handler = aarch64_handle_smp_gdb_command,
-		.mode = COMMAND_EXEC,
-		.help = "display/fix current core played to gdb",
-		.usage = "",
-	},
-
 
 	COMMAND_REGISTRATION_DONE
 };

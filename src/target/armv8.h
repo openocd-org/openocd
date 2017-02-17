@@ -24,6 +24,7 @@
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
 #include "armv8_dpm.h"
+#include "arm_cti.h"
 
 enum {
 	ARMV8_R0 = 0,
@@ -155,7 +156,6 @@ struct armv8_common {
 	/* Core Debug Unit */
 	struct arm_dpm dpm;
 	uint32_t debug_base;
-	uint32_t cti_base;
 	struct adiv5_ap *debug_ap;
 
 	const uint32_t *opcodes;
@@ -172,6 +172,8 @@ struct armv8_common {
 	uint64_t ttbr_base;
 
 	struct armv8_mmu_common armv8_mmu;
+
+	struct arm_cti *cti;
 
 	/* Direct processor core register read and writes */
 	int (*read_reg_u64)(struct armv8_common *armv8, int num, uint64_t *value);
@@ -221,40 +223,6 @@ target_to_armv8(struct target *target)
 #define CPUV8_DBG_OSLAR		0x300
 
 #define CPUV8_DBG_AUTHSTATUS	0xFB8
-
-/*define CTI(cross trigger interface)*/
-#define CTI_CTR				0x0
-#define CTI_INACK			0x10
-#define CTI_APPSET			0x14
-#define CTI_APPCLEAR		0x18
-#define CTI_APPPULSE		0x1C
-#define CTI_INEN0			0x20
-#define CTI_INEN1			0x24
-#define CTI_INEN2			0x28
-#define CTI_INEN3			0x2C
-#define CTI_INEN4			0x30
-#define CTI_INEN5			0x34
-#define CTI_INEN6			0x38
-#define CTI_INEN7			0x3C
-#define CTI_OUTEN0			0xA0
-#define CTI_OUTEN1			0xA4
-#define CTI_OUTEN2			0xA8
-#define CTI_OUTEN3			0xAC
-#define CTI_OUTEN4			0xB0
-#define CTI_OUTEN5			0xB4
-#define CTI_OUTEN6			0xB8
-#define CTI_OUTEN7			0xBC
-#define CTI_TRIN_STATUS		0x130
-#define CTI_TROUT_STATUS	0x134
-#define CTI_CHIN_STATUS		0x138
-#define CTI_CHOU_STATUS		0x13C
-#define CTI_GATE			0x140
-#define CTI_UNLOCK			0xFB0
-
-#define CTI_CHNL(x)			(1 << x)
-#define CTI_TRIG_HALT		0
-#define CTI_TRIG_RESUME		1
-#define CTI_TRIG(n)			(1 << CTI_TRIG_##n)
 
 #define PAGE_SIZE_4KB				0x1000
 #define PAGE_SIZE_4KB_LEVEL0_BITS	39

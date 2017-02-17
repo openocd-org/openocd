@@ -96,7 +96,7 @@ void armv8_dpm_report_wfar(struct arm_dpm *, uint64_t wfar);
 #define DRCR_RESTART			(1 << 1)
 #define DRCR_CLEAR_EXCEPTIONS	(1 << 2)
 
-/* PRCR (processor debug status register) bits */
+/* PRSR (processor debug status register) bits */
 #define PRSR_PU					(1 << 0)
 #define PRSR_SPD				(1 << 1)
 #define PRSR_RESET				(1 << 2)
@@ -109,6 +109,11 @@ void armv8_dpm_report_wfar(struct arm_dpm *, uint64_t wfar);
 #define PRSR_EPMAD				(1 << 9)
 #define PRSR_SPMAD				(1 << 10)
 #define PRSR_SDR				(1 << 11)
+
+/* PRCR (processor debug control register) bits */
+#define PRCR_CORENPDRQ			(1 << 0)
+#define PRCR_CWRR				(1 << 2)
+#define PRCR_COREPURQ			(1 << 3)
 
 void armv8_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dcsr);
 void armv8_dpm_handle_exception(struct arm_dpm *dpm);
