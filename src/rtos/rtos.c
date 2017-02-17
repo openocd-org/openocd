@@ -346,9 +346,11 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 		return ERROR_OK;
 	} else if (strncmp(packet, "qSymbol", 7) == 0) {
 		if (rtos_qsymbol(connection, packet, packet_size) == 1) {
-			target->rtos_auto_detect = false;
-			target->rtos->type->create(target);
-			target->rtos->type->update_threads(target->rtos);
+			if (target->rtos_auto_detect == true) {
+				target->rtos_auto_detect = false;
+				target->rtos->type->create(target);
+				target->rtos->type->update_threads(target->rtos);
+			}
 		}
 		return ERROR_OK;
 	} else if (strncmp(packet, "qfThreadInfo", 12) == 0) {
