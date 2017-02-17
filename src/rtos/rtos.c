@@ -57,6 +57,15 @@ int rtos_smp_init(struct target *target)
 	return ERROR_TARGET_INIT_FAILED;
 }
 
+static int rtos_target_for_threadid(struct connection *connection, int64_t threadid, struct target **t)
+{
+	struct target *curr = get_target_from_connection(connection);
+	if (t)
+		*t = curr;
+
+	return ERROR_OK;
+}
+
 static int os_alloc(struct target *target, struct rtos_type *ostype)
 {
 	struct rtos *os = target->rtos = calloc(1, sizeof(struct rtos));
@@ -72,6 +81,7 @@ static int os_alloc(struct target *target, struct rtos_type *ostype)
 
 	/* RTOS drivers can override the packet handler in _create(). */
 	os->gdb_thread_packet = rtos_thread_packet;
+	os->gdb_target_for_threadid = rtos_target_for_threadid;
 
 	return JIM_OK;
 }

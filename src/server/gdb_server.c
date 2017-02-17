@@ -764,8 +764,12 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 
 		current_thread[0] = '\0';
 		if (target->rtos != NULL) {
-			snprintf(current_thread, sizeof(current_thread), "thread:%016" PRIx64 ";", target->rtos->current_thread);
+			struct target *ct;
+			snprintf(current_thread, sizeof(current_thread), "thread:%016" PRIx64 ";",
+					target->rtos->current_thread);
 			target->rtos->current_threadid = target->rtos->current_thread;
+			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
+			signal_var = gdb_last_signal(ct);
 		}
 
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s%s",
@@ -2614,6 +2618,9 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 				parse = endp;
 			}
 
+			if (target->rtos != NULL)
+				target->rtos->gdb_target_for_threadid(connection, thread_id, &ct);
+
 			if (parse[0] == ';') {
 				++parse;
 				--packet_size;
@@ -3108,7 +3115,10 @@ static int gdb_input_inner(struct connection *connection)
 
 		if (gdb_con->ctrl_c) {
 			if (target->state == TARGET_RUNNING) {
-				retval = target_halt(target);
+				struct target *t = target;
+				if (target->rtos)
+					target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &t);
+				retval = target_halt(t);
 				if (retval != ERROR_OK)
 					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				gdb_con->ctrl_c = 0;
