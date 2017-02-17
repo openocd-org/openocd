@@ -718,13 +718,21 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 	cache = arm->core_cache;
 
 	/* read R0 first (it's used for scratch), then CPSR */
-	r = cache->reg_list + 0;
+	r = cache->reg_list + ARMV8_R0;
 	if (!r->valid) {
-		retval = dpmv8_read_reg(dpm, r, 0);
+		retval = dpmv8_read_reg(dpm, r, ARMV8_R0);
 		if (retval != ERROR_OK)
 			goto fail;
 	}
 	r->dirty = true;
+
+	/* read R1, too, it will be clobbered during memory access */
+	r = cache->reg_list + ARMV8_R1;
+	if (!r->valid) {
+		retval = dpmv8_read_reg(dpm, r, ARMV8_R1);
+		if (retval != ERROR_OK)
+			goto fail;
+	}
 
 	/* read cpsr to r0 and get it back */
 	retval = dpm->instr_read_data_r0(dpm,
@@ -735,7 +743,7 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 	/* update core mode and state */
 	armv8_set_cpsr(arm, cpsr);
 
-	for (unsigned int i = 1; i < cache->num_regs ; i++) {
+	for (unsigned int i = ARMV8_PC; i < cache->num_regs ; i++) {
 		struct arm_reg *arm_reg;
 
 		r = armv8_reg_current(arm, i);
