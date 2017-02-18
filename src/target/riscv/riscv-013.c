@@ -219,7 +219,7 @@ static riscv013_info_t *get_info(const struct target *target)
 	return (riscv013_info_t *) info->version_specific;
 }
 
-bool extension_supported(struct target *target, char letter)
+bool supports_extension(struct target *target, char letter)
 {
 	riscv013_info_t *info = get_info(target);
 	unsigned num;
@@ -769,43 +769,19 @@ static int abstract_write_register(struct target *target,
 	return ERROR_OK;
 }
 
-/** Actually read registers from the target right now. */
-static int register_read_direct(struct target *target, uint64_t *value, uint32_t number)
+static int update_mstatus_actual(struct target *target)
 {
-	int result = abstract_read_register(target, value, number, xlen(target));
-	if (result == ERROR_OK)
-		return result;
-
-	// Fall back to program buffer.
-	if (number >= REG_FPR0 && number <= REG_FPR31) {
-		program_t *program = program_new();
-		if (extension_supported(target, 'D')) {
-			program_add32(program, fmv_x_d(S0, number - REG_FPR0));
-		} else {
-			program_add32(program, fmv_x_s(S0, number - REG_FPR0));
-		}
-		program_add32(program, ebreak());
-		program_set_read(program, S0);
-		execute_program(target, program);
-		program_delete(program);
-	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
-		program_t *program = program_new();
-		program_add32(program, csrr(S0, number - REG_CSR0));
-		program_add32(program, ebreak());
-		program_set_read(program, S0);
-		execute_program(target, program);
-		program_delete(program);
-	} else {
-		return result;
+	struct reg *mstatus_reg = &target->reg_cache->reg_list[REG_MSTATUS];
+	if (mstatus_reg->valid) {
+		// We previously made it valid.
+		return ERROR_OK;
 	}
 
-	result = register_read_direct(target, value, S0);
-	if (result != ERROR_OK)
-		return result;
+	LOG_DEBUG("Reading mstatus");
 
-	LOG_DEBUG("register 0x%x = 0x%" PRIx64, number, *value);
-
-	return ERROR_OK;
+	// Force reading the register. In that process mstatus_actual will be
+	// updated.
+	return register_get(&target->reg_cache->reg_list[REG_MSTATUS]);
 }
 
 static int register_write_direct(struct target *target, unsigned number,
@@ -824,8 +800,20 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	// Fall back to program buffer.
 	if (number >= REG_FPR0 && number <= REG_FPR31) {
+		result = update_mstatus_actual(target);
+		if (result != ERROR_OK) {
+			return result;
+		}
+		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
+			result = register_write_direct(target, REG_MSTATUS, 
+					set_field(info->mstatus_actual, MSTATUS_FS, 1));
+			if (result != ERROR_OK)
+				return result;
+		}
+
 		program_t *program = program_new();
-		if (extension_supported(target, 'D')) {
+		// TODO: Fully support D extension on RV32.
+		if (supports_extension(target, 'D') && xlen(target) >= 64) {
 			program_add32(program, fmv_d_x(number - REG_FPR0, S0));
 		} else {
 			program_add32(program, fmv_s_x(number - REG_FPR0, S0));
@@ -846,6 +834,61 @@ static int register_write_direct(struct target *target, unsigned number,
 	}
 
 	return result;
+}
+
+/** Actually read registers from the target right now. */
+static int register_read_direct(struct target *target, uint64_t *value, uint32_t number)
+{
+	riscv013_info_t *info = get_info(target);
+	int result = abstract_read_register(target, value, number, xlen(target));
+	if (result == ERROR_OK)
+		return result;
+
+	// Fall back to program buffer.
+	if (number >= REG_FPR0 && number <= REG_FPR31) {
+		result = update_mstatus_actual(target);
+		if (result != ERROR_OK) {
+			return result;
+		}
+		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
+			result = register_write_direct(target, REG_MSTATUS,
+					set_field(info->mstatus_actual, MSTATUS_FS, 1));
+			if (result != ERROR_OK)
+				return result;
+		}
+		LOG_DEBUG("mstatus_actual=0x%lx", info->mstatus_actual);
+
+		program_t *program = program_new();
+		if (supports_extension(target, 'D') && xlen(target) >= 64) {
+			program_add32(program, fmv_x_d(S0, number - REG_FPR0));
+		} else {
+			program_add32(program, fmv_x_s(S0, number - REG_FPR0));
+		}
+		program_add32(program, ebreak());
+		program_set_read(program, S0);
+		result = execute_program(target, program);
+		program_delete(program);
+	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
+		program_t *program = program_new();
+		program_add32(program, csrr(S0, number - REG_CSR0));
+		program_add32(program, ebreak());
+		program_set_read(program, S0);
+		result = execute_program(target, program);
+		program_delete(program);
+	} else {
+		return result;
+	}
+
+	if (result != ERROR_OK)
+		return result;
+
+	result = register_read_direct(target, value, S0);
+	if (result != ERROR_OK)
+		return result;
+
+	LOG_DEBUG("register 0x%x = 0x%" PRIx64, number, *value);
+
+	return ERROR_OK;
 }
 
 static int maybe_read_tselect(struct target *target)
@@ -1067,21 +1110,12 @@ static int register_write(struct target *target, unsigned int number,
 
 	maybe_write_tselect(target);
 
-	if (number <= REG_XPR31) {
-		return abstract_write_register(target, number, xlen(target), value);
-	} else if (number == REG_PC) {
+	if (number == REG_PC) {
 		info->dpc = value;
-		return ERROR_OK;
-	} else if (number >= REG_FPR0 && number <= REG_FPR31) {
-		return abstract_write_register(target, number, xlen(target), value);
-	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
-		return register_write_direct(target, number, value);
 	} else if (number == REG_PRIV) {
 		info->dcsr = set_field(info->dcsr, DCSR_PRV, value);
-		return ERROR_OK;
 	} else {
-		LOG_ERROR("Don't know how to write register %d", number);
-		return ERROR_FAIL;
+		return register_write_direct(target, number, value);
 	}
 
 	return ERROR_OK;
