@@ -169,31 +169,24 @@ void mips_ejtag_drscan_32_out(struct mips_ejtag *ejtag_info, uint32_t data)
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 }
 
-int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint32_t *data)
+int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint8_t *data)
 {
-	struct jtag_tap *tap;
-	tap  = ejtag_info->tap;
-	assert(tap != NULL);
+	assert(ejtag_info->tap != NULL);
+	struct jtag_tap *tap = ejtag_info->tap;
 
 	struct scan_field field;
-	uint8_t t[4] = {0, 0, 0, 0}, r[4];
-	int retval;
-
 	field.num_bits = 8;
-	field.out_value = t;
-	buf_set_u32(t, 0, field.num_bits, *data);
-	field.in_value = r;
+
+	field.out_value = data;
+	field.in_value = data;
 
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
-	retval = jtag_execute_queue();
+	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
 		LOG_ERROR("register read failed");
 		return retval;
 	}
-
-	*data = buf_get_u32(field.in_value, 0, 32);
-
 	return ERROR_OK;
 }
 
