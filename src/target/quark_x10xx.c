@@ -51,7 +51,7 @@
 #include "lakemont.h"
 #include "x86_32_common.h"
 
-int quark_x10xx_target_create(struct target *t, Jim_Interp *interp)
+static int quark_x10xx_target_create(struct target *t, Jim_Interp *interp)
 {
 	struct x86_32_common *x86_32 = calloc(1, sizeof(struct x86_32_common));
 	if (x86_32 == NULL) {
@@ -64,7 +64,8 @@ int quark_x10xx_target_create(struct target *t, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-int quark_x10xx_init_target(struct command_context *cmd_ctx, struct target *t)
+static int quark_x10xx_init_target(struct command_context *cmd_ctx,
+		struct target *t)
 {
 	return lakemont_init_target(cmd_ctx, t);
 }
