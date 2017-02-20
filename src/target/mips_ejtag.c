@@ -28,20 +28,20 @@
 #include "mips_ejtag.h"
 #include "mips32_dmaacc.h"
 
-void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, int new_instr)
+void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, uint32_t new_instr)
 {
-	struct jtag_tap *tap;
+	assert(ejtag_info->tap != NULL);
+	struct jtag_tap *tap = ejtag_info->tap;
 
-	tap = ejtag_info->tap;
-	assert(tap != NULL);
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr) {
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr) {
 		struct scan_field field;
-		uint8_t t[4];
-
 		field.num_bits = tap->ir_length;
+
+		uint8_t t[4];
 		field.out_value = t;
 		buf_set_u32(t, 0, field.num_bits, new_instr);
+
 		field.in_value = NULL;
 
 		jtag_add_ir_scan(tap, &field, TAP_IDLE);
@@ -182,13 +182,12 @@ int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint8_t *data)
 
 void mips_ejtag_drscan_8_out(struct mips_ejtag *ejtag_info, uint8_t data)
 {
-	struct jtag_tap *tap;
-	tap  = ejtag_info->tap;
-	assert(tap != NULL);
+	assert(ejtag_info->tap != NULL);
+	struct jtag_tap *tap = ejtag_info->tap;
 
 	struct scan_field field;
-
 	field.num_bits = 8;
+
 	field.out_value = &data;
 	field.in_value = NULL;
 
@@ -427,22 +426,22 @@ int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 
 int mips_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, int write_t, uint32_t *data)
 {
-	struct jtag_tap *tap;
-
-	tap = ejtag_info->tap;
-	assert(tap != NULL);
+	assert(ejtag_info->tap != NULL);
+	struct jtag_tap *tap = ejtag_info->tap;
 
 	struct scan_field fields[2];
-	uint8_t spracc = 0;
-	uint8_t t[4] = {0, 0, 0, 0};
 
 	/* fastdata 1-bit register */
 	fields[0].num_bits = 1;
+
+	uint8_t spracc = 0;
 	fields[0].out_value = &spracc;
 	fields[0].in_value = NULL;
 
 	/* processor access data register 32 bit */
 	fields[1].num_bits = 32;
+
+	uint8_t t[4] = {0, 0, 0, 0};
 	fields[1].out_value = t;
 
 	if (write_t) {
