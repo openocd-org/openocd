@@ -954,14 +954,6 @@ static int execute_resume(struct target *target, bool step)
 		return ERROR_FAIL;
 	}
 
-	// Restore GPRs
-	if (register_write_direct(target, S0, reg_cache_get(target, S0)) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-	if (register_write_direct(target, S1, reg_cache_get(target, S1)) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-
 	struct reg *mstatus_reg = &target->reg_cache->reg_list[REG_MSTATUS];
 	if (mstatus_reg->valid) {
 		uint64_t mstatus_user = buf_get_u64(mstatus_reg->value, 0, xlen(target));
@@ -982,6 +974,14 @@ static int execute_resume(struct target *target, bool step)
 	}
 
 	if (register_write_direct(target, REG_DCSR, info->dcsr) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	// Restore GPRs
+	if (register_write_direct(target, S0, reg_cache_get(target, S0)) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+	if (register_write_direct(target, S1, reg_cache_get(target, S1)) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
