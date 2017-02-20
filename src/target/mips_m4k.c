@@ -1174,36 +1174,30 @@ static int mips_m4k_target_create(struct target *target, Jim_Interp *interp)
 
 static int mips_m4k_examine(struct target *target)
 {
-	int retval;
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
-	uint32_t idcode = 0;
 
 	if (!target_was_examined(target)) {
-		retval = mips_ejtag_get_idcode(ejtag_info, &idcode);
-		if (retval != ERROR_OK)
+		int retval = mips_ejtag_get_idcode(ejtag_info);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("idcode read failed");
 			return retval;
-		ejtag_info->idcode = idcode;
-
-		if (((idcode >> 1) & 0x7FF) == 0x29) {
+		}
+		if (((ejtag_info->idcode >> 1) & 0x7FF) == 0x29) {
 			/* we are using a pic32mx so select ejtag port
 			 * as it is not selected by default */
 			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
-			LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
+			LOG_DEBUG("PIC32 Detected - using EJTAG Interface");
 			mips_m4k->is_pic32mx = true;
 		}
 	}
 
 	/* init rest of ejtag interface */
-	retval = mips_ejtag_init(ejtag_info);
+	int retval = mips_ejtag_init(ejtag_info);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = mips32_examine(target);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ERROR_OK;
+	return mips32_examine(target);
 }
 
 static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,

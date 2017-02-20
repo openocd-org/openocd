@@ -48,54 +48,20 @@ void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, uint32_t new_instr)
 	}
 }
 
-int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode)
+int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info)
 {
-	struct scan_field field;
-	uint8_t r[4];
-
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE);
 
-	field.num_bits = 32;
-	field.out_value = NULL;
-	field.in_value = r;
-
-	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
-
-	int retval;
-	retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("register read failed");
-		return retval;
-	}
-
-	*idcode = buf_get_u32(field.in_value, 0, 32);
-
-	return ERROR_OK;
+	ejtag_info->idcode = 0;
+	return mips_ejtag_drscan_32(ejtag_info, &ejtag_info->idcode);
 }
 
-static int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info, uint32_t *impcode)
+int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info)
 {
-	struct scan_field field;
-	uint8_t r[4];
-
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE);
 
-	field.num_bits = 32;
-	field.out_value = NULL;
-	field.in_value = r;
-
-	jtag_add_dr_scan(ejtag_info->tap, 1, &field, TAP_IDLE);
-
-	int retval;
-	retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("register read failed");
-		return retval;
-	}
-
-	*impcode = buf_get_u32(field.in_value, 0, 32);
-
-	return ERROR_OK;
+	ejtag_info->impcode = 0;
+	return mips_ejtag_drscan_32(ejtag_info, &ejtag_info->impcode);
 }
 
 void mips_ejtag_add_scan_96(struct mips_ejtag *ejtag_info, uint32_t ctrl, uint32_t data, uint8_t *in_scan_buf)
@@ -368,12 +334,11 @@ static void ejtag_main_print_imp(struct mips_ejtag *ejtag_info)
 
 int mips_ejtag_init(struct mips_ejtag *ejtag_info)
 {
-	int retval;
-
-	retval = mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode);
-	if (retval != ERROR_OK)
+	int retval = mips_ejtag_get_impcode(ejtag_info);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("impcode read failed");
 		return retval;
-	LOG_DEBUG("impcode: 0x%8.8" PRIx32 "", ejtag_info->impcode);
+	}
 
 	/* get ejtag version */
 	ejtag_info->ejtag_version = ((ejtag_info->impcode >> 29) & 0x07);

@@ -219,7 +219,7 @@ struct mips_ejtag {
 void mips_ejtag_set_instr(struct mips_ejtag *ejtag_info, uint32_t new_instr);
 int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info);
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info);
-int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info, uint32_t *idcode);
+int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info);
 void mips_ejtag_add_scan_96(struct mips_ejtag *ejtag_info,
 			    uint32_t ctrl, uint32_t data, uint8_t *in_scan_buf);
 void mips_ejtag_drscan_32_out(struct mips_ejtag *ejtag_info, uint32_t data);
