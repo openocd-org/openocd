@@ -121,52 +121,42 @@ void mips_ejtag_add_scan_96(struct mips_ejtag *ejtag_info, uint32_t ctrl, uint32
 	keep_alive();
 }
 
-int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
+void mips_ejtag_drscan_32_queued(struct mips_ejtag *ejtag_info, uint32_t data_out, uint8_t *data_in)
 {
-	struct jtag_tap *tap;
-	tap  = ejtag_info->tap;
-	assert(tap != NULL);
+	assert(ejtag_info->tap != NULL);
+	struct jtag_tap *tap = ejtag_info->tap;
 
 	struct scan_field field;
-	uint8_t t[4], r[4];
-	int retval;
-
 	field.num_bits = 32;
-	field.out_value = t;
-	buf_set_u32(t, 0, field.num_bits, *data);
-	field.in_value = r;
 
+	uint8_t scan_out[4];
+	field.out_value = scan_out;
+	buf_set_u32(scan_out, 0, field.num_bits, data_out);
+
+	field.in_value = data_in;
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
-	retval = jtag_execute_queue();
+	keep_alive();
+}
+
+int mips_ejtag_drscan_32(struct mips_ejtag *ejtag_info, uint32_t *data)
+{
+	uint8_t scan_in[4];
+	mips_ejtag_drscan_32_queued(ejtag_info, *data, scan_in);
+
+	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
 		LOG_ERROR("register read failed");
 		return retval;
 	}
 
-	*data = buf_get_u32(field.in_value, 0, 32);
-
-	keep_alive();
-
+	*data = buf_get_u32(scan_in, 0, 32);
 	return ERROR_OK;
 }
 
 void mips_ejtag_drscan_32_out(struct mips_ejtag *ejtag_info, uint32_t data)
 {
-	uint8_t t[4];
-	struct jtag_tap *tap;
-	tap  = ejtag_info->tap;
-	assert(tap != NULL);
-
-	struct scan_field field;
-
-	field.num_bits = 32;
-	field.out_value = t;
-	buf_set_u32(t, 0, field.num_bits, data);
-
-	field.in_value = NULL;
-
-	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
+	mips_ejtag_drscan_32_queued(ejtag_info, data, NULL);
 }
 
 int mips_ejtag_drscan_8(struct mips_ejtag *ejtag_info, uint8_t *data)
