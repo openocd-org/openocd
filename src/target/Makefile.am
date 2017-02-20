@@ -75,7 +75,8 @@ ARMV7_SRC = \
 	%D%/cortex_m.c \
 	%D%/armv7a.c \
 	%D%/cortex_a.c \
-	%D%/ls1_sap.c
+	%D%/ls1_sap.c \
+	%D%/mem_ap.c
 
 ARMV8_SRC = \
 	%D%/armv8_dpm.c \
