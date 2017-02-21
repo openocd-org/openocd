@@ -1946,9 +1946,11 @@ static int read_memory(struct target *target, uint32_t address,
 	write_program(target, program);
 	program_delete(program);
 
-	execute_abstract_command(target,
+	if (execute_abstract_command(target,
 			AC_ACCESS_REGISTER_PREEXEC |
-			abstract_register_size(xlen(target)) | reg_number_to_no(S1));
+			abstract_register_size(xlen(target)) | reg_number_to_no(S1)) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR);
 
 	for (uint32_t i = 0; i < count; i++) {
@@ -2029,9 +2031,11 @@ static int write_memory(struct target *target, uint32_t address,
 		dmi_write(target, DMI_DATA0, value);
 
 		if (i == 0) {
-			execute_abstract_command(target,
+			if (execute_abstract_command(target,
 					AC_ACCESS_REGISTER_WRITE | AC_ACCESS_REGISTER_POSTEXEC |
-					abstract_register_size(xlen(target)) | reg_number_to_no(S1));
+					abstract_register_size(xlen(target)) | reg_number_to_no(S1)) != ERROR_OK) {
+				return ERROR_FAIL;
+			}
 			dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR);
 		} else {
 			uint32_t abstractcs;
