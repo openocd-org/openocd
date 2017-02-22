@@ -190,11 +190,12 @@ typedef struct {
 	// in between accesses.
 	unsigned int dmi_busy_delay;
 
-	// This value is incremented every time we read the debug interrupt as
-	// high.  It's used to add extra run-test/idle cycles after setting debug
-	// interrupt high, so ideally we never have to perform a whole extra scan
-	// before the interrupt is cleared.
-	unsigned int interrupt_high_delay;
+	// This value is increased every time we tried to execute two commands
+	// consecutively, and the second one failed because the previous hadn't
+	// completed yet.  It's used to add extra run-test/idle cycles after
+	// starting a command, so we don't have to waste time checking for busy to
+	// go low.
+	unsigned int ac_busy_delay;
 
 	bool need_strict_step;
 	bool never_halted;
@@ -205,6 +206,131 @@ typedef struct {
 	bool interrupt;
 } bits_t;
 
+static void dump_field(const struct scan_field *field)
+{
+	static const char *op_string[] = {"-", "r", "w", "?"};
+	static const char *status_string[] = {"+", "?", "F", "b"};
+
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
+
+	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
+	unsigned int out_op = get_field(out, DTM_DMI_OP);
+	unsigned int out_data = get_field(out, DTM_DMI_DATA);
+	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
+	uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+	unsigned int in_op = get_field(in, DTM_DMI_OP);
+	unsigned int in_data = get_field(in, DTM_DMI_DATA);
+	unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
+
+	log_printf_lf(LOG_LVL_DEBUG,
+			__FILE__, __LINE__, "scan",
+			"%db %s %08x @%02x -> %s %08x @%02x",
+			field->num_bits,
+			op_string[out_op], out_data, out_address,
+			status_string[in_op], in_data, in_address);
+}
+
+static riscv013_info_t *get_info(const struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	return (riscv013_info_t *) info->version_specific;
+}
+
+/*** scans "class" ***/
+
+typedef struct {
+	// Number of scans that space is reserved for.
+	unsigned int scan_count;
+	// Size reserved in memory for each scan, in bytes.
+	unsigned int scan_size;
+	unsigned int next_scan;
+	uint8_t *in;
+	uint8_t *out;
+	struct scan_field *field;
+	const struct target *target;
+} scans_t;
+
+static scans_t *scans_new(struct target *target, unsigned int scan_count)
+{
+	scans_t *scans = malloc(sizeof(scans_t));
+	scans->scan_count = scan_count;
+	// This code also gets called before xlen is detected.
+	if (xlen(target))
+		scans->scan_size = 2 + xlen(target) / 8;
+	else
+		scans->scan_size = 2 + 128 / 8;
+	scans->next_scan = 0;
+	scans->in = calloc(scans->scan_size, scans->scan_count);
+	scans->out = calloc(scans->scan_size, scans->scan_count);
+	scans->field = calloc(scans->scan_count, sizeof(struct scan_field));
+	scans->target = target;
+	return scans;
+}
+
+static scans_t *scans_delete(scans_t *scans)
+{
+	assert(scans);
+	free(scans->field);
+	free(scans->out);
+	free(scans->in);
+	free(scans);
+	return NULL;
+}
+
+static void scans_dump(scans_t *scans)
+{
+	for (unsigned int i = 0; i < scans->next_scan; i++) {
+		dump_field(&scans->field[i]);
+	}
+}
+
+static int scans_execute(scans_t *scans)
+{
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("failed jtag scan: %d", retval);
+		return retval;
+	}
+
+	scans_dump(scans);
+
+	return ERROR_OK;
+}
+
+static void scans_add_dmi_write(scans_t *scans, unsigned address,
+		uint32_t value, bool exec)
+{
+	riscv013_info_t *info = get_info(scans->target);
+	assert(scans->next_scan < scans->scan_count);
+	const unsigned int i = scans->next_scan;
+	int data_offset = scans->scan_size * i;
+	struct scan_field *field = scans->field + i;
+
+	uint8_t *out = scans->out + data_offset;
+	field->num_bits = info->abits + DMI_OP_SIZE + DMI_DATA_SIZE;
+	field->in_value = scans->in + data_offset;
+	field->out_value = out;
+
+	buf_set_u64(out, DMI_OP_START, DMI_OP_SIZE, DMI_OP_WRITE);
+	buf_set_u64(out, DMI_DATA_START, DMI_DATA_SIZE, value);
+	buf_set_u64(out, DMI_ADDRESS_START, info->abits, address);
+
+	/* Assume dbus is already selected. */
+	jtag_add_dr_scan(scans->target->tap, 1, field, TAP_IDLE);
+
+	int idle_count = info->dtmcontrol_idle + info->dmi_busy_delay;
+	if (exec)
+		idle_count += info->ac_busy_delay;
+
+	if (idle_count) {
+		jtag_add_runtest(idle_count, TAP_IDLE);
+	}
+
+	scans->next_scan++;
+}
+
+/*** end of scans class ***/
 /*** Necessary prototypes. ***/
 
 static int poll_target(struct target *target, bool announce);
@@ -212,12 +338,6 @@ static int riscv013_poll(struct target *target);
 static int register_get(struct reg *reg);
 
 /*** Utility functions. ***/
-
-static riscv013_info_t *get_info(const struct target *target)
-{
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	return (riscv013_info_t *) info->version_specific;
-}
 
 bool supports_extension(struct target *target, char letter)
 {
@@ -312,44 +432,33 @@ static uint32_t idcode_scan(struct target *target)
 	return in;
 }
 
+static void increase_ac_busy_delay(struct target *target)
+{
+	riscv013_info_t *info = get_info(target);
+	info->ac_busy_delay += info->ac_busy_delay / 10 + 1;
+	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
+			info->dtmcontrol_idle, info->dmi_busy_delay,
+			info->ac_busy_delay);
+}
+
 static void increase_dmi_busy_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
 	info->dmi_busy_delay += info->dmi_busy_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, interrupt_high_delay=%d",
+	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
 			info->dtmcontrol_idle, info->dmi_busy_delay,
-			info->interrupt_high_delay);
+			info->ac_busy_delay);
 
 	dtmcontrol_scan(target, DTM_DTMCONTROL_DMIRESET);
 }
 
-static void dump_field(const struct scan_field *field)
-{
-	static const char *op_string[] = {"-", "r", "w", "?"};
-	static const char *status_string[] = {"+", "?", "F", "b"};
-
-	if (debug_level < LOG_LVL_DEBUG)
-		return;
-
-	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
-	unsigned int out_op = get_field(out, DTM_DMI_OP);
-	unsigned int out_data = get_field(out, DTM_DMI_DATA);
-	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
-	uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-	unsigned int in_op = get_field(in, DTM_DMI_OP);
-	unsigned int in_data = get_field(in, DTM_DMI_DATA);
-	unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
-
-	log_printf_lf(LOG_LVL_DEBUG,
-			__FILE__, __LINE__, "scan",
-			"%db %s %08x @%02x -> %s %08x @%02x",
-			field->num_bits,
-			op_string[out_op], out_data, out_address,
-			status_string[in_op], in_data, in_address);
-}
-
+/**
+ * exec: If this is set, assume the scan results in an execution, so more
+ * run-test/idle cycles may be required.
+ */
 static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
-		uint64_t *data_in, dmi_op_t op, uint16_t address_out, uint64_t data_out)
+		uint64_t *data_in, dmi_op_t op, uint16_t address_out, uint64_t data_out,
+		bool exec)
 {
 	riscv013_info_t *info = get_info(target);
 	uint8_t in[8] = {0};
@@ -370,6 +479,8 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
 
 	int idle_count = info->dtmcontrol_idle + info->dmi_busy_delay;
+	if (exec)
+		idle_count += info->ac_busy_delay;
 
 	if (idle_count) {
 		jtag_add_runtest(idle_count, TAP_IDLE);
@@ -378,7 +489,7 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
 		LOG_ERROR("dmi_scan failed jtag scan");
-		return retval;
+		return DMI_STATUS_FAILED;
 	}
 
 	if (data_in) {
@@ -402,7 +513,8 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 
 	unsigned i = 0;
 	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, &address_in, &value, DMI_OP_READ, address, 0);
+		status = dmi_scan(target, &address_in, &value, DMI_OP_READ, address, 0,
+				false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
 		} else {
@@ -410,7 +522,8 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 		}
 	}
 
-	status = dmi_scan(target, &address_in, &value, DMI_OP_NOP, address, 0);
+	status = dmi_scan(target, &address_in, &value, DMI_OP_NOP, address, 0,
+			false);
 
 	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("failed read from 0x%x; value=0x%" PRIx64 ", status=%d\n",
@@ -425,8 +538,9 @@ static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 	dmi_status_t status = DMI_STATUS_BUSY;
 	unsigned i = 0;
 	while (status == DMI_STATUS_BUSY && i++ < 256) {
-		dmi_scan(target, NULL, NULL, DMI_OP_WRITE, address, value);
-		status = dmi_scan(target, NULL, NULL, DMI_OP_NOP, 0, 0);
+		dmi_scan(target, NULL, NULL, DMI_OP_WRITE, address, value,
+				address == DMI_COMMAND);
+		status = dmi_scan(target, NULL, NULL, DMI_OP_NOP, 0, 0, false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
 		}
@@ -592,7 +706,8 @@ static bits_t read_bits(struct target *target)
 	do {
 		unsigned i = 0;
 		do {
-			status = dmi_scan(target, &address_in, &value, DMI_OP_READ, 0, 0);
+			status = dmi_scan(target, &address_in, &value, DMI_OP_READ, 0, 0,
+					false);
 			if (status == DMI_STATUS_BUSY) {
 				if (address_in == (1<<info->abits) - 1 &&
 						value == (1ULL<<DMI_DATA_SIZE) - 1) {
@@ -1988,69 +2103,78 @@ static int write_memory(struct target *target, uint32_t address,
 {
 	select_dmi(target);
 
-	abstract_write_register(target, S0, xlen(target), address);
+	while (1) {
+		abstract_write_register(target, S0, xlen(target), address);
 
-	program_t *program = program_new();
-	switch (size) {
-		case 1:
-			program_add32(program, sb(S1, S0, 0));
-			break;
-		case 2:
-			program_add32(program, sh(S1, S0, 0));
-			break;
-		case 4:
-			program_add32(program, sw(S1, S0, 0));
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
-	}
-	program_add32(program, addi(S0, S0, size));
-	program_add32(program, ebreak());
-	write_program(target, program);
-	program_delete(program);
-
-	for (uint32_t i = 0; i < count; i++) {
-		uint32_t value;
+		program_t *program = program_new();
 		switch (size) {
 			case 1:
-				value = buffer[i];
+				program_add32(program, sb(S1, S0, 0));
 				break;
 			case 2:
-				value = buffer[2*i] | ((uint32_t) buffer[2*i+1] << 8);
+				program_add32(program, sh(S1, S0, 0));
 				break;
 			case 4:
-				value = buffer[4*i] |
-					((uint32_t) buffer[4*i+1] << 8) |
-					((uint32_t) buffer[4*i+2] << 16) |
-					((uint32_t) buffer[4*i+3] << 24);
+				program_add32(program, sw(S1, S0, 0));
 				break;
 			default:
+				LOG_ERROR("Unsupported size: %d", size);
 				return ERROR_FAIL;
 		}
-		dmi_write(target, DMI_DATA0, value);
+		program_add32(program, addi(S0, S0, size));
+		program_add32(program, ebreak());
+		write_program(target, program);
+		program_delete(program);
 
-		if (i == 0) {
-			if (execute_abstract_command(target,
-					AC_ACCESS_REGISTER_WRITE | AC_ACCESS_REGISTER_POSTEXEC |
-					abstract_register_size(xlen(target)) | reg_number_to_no(S1)) != ERROR_OK) {
-				return ERROR_FAIL;
+		scans_t *scans = scans_new(target, count + 10);
+		for (uint32_t i = 0; i < count; i++) {
+			uint32_t value;
+			switch (size) {
+				case 1:
+					value = buffer[i];
+					break;
+				case 2:
+					value = buffer[2*i] | ((uint32_t) buffer[2*i+1] << 8);
+					break;
+				case 4:
+					value = buffer[4*i] |
+						((uint32_t) buffer[4*i+1] << 8) |
+						((uint32_t) buffer[4*i+2] << 16) |
+						((uint32_t) buffer[4*i+3] << 24);
+					break;
+				default:
+					return ERROR_FAIL;
 			}
-			dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR);
-		} else {
-			uint32_t abstractcs;
-			if (wait_for_idle(target, &abstractcs) != ERROR_OK)
-				return ERROR_FAIL;
-			if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR) != CMDERR_NONE)
-				return ERROR_FAIL;
+			scans_add_dmi_write(scans, DMI_DATA0, value, true);
+
+			if (i == 0) {
+				scans_add_dmi_write(scans, DMI_COMMAND,
+						AC_ACCESS_REGISTER_WRITE | AC_ACCESS_REGISTER_POSTEXEC
+						| abstract_register_size(xlen(target)) |
+						reg_number_to_no(S1), true);
+				scans_add_dmi_write(scans, DMI_ABSTRACTCS,
+						DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR,
+						false);
+			}
 		}
-	}
-	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
-	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
-		// TODO: retry with more delay?
-		LOG_ERROR("cmderr=%d", get_field(abstractcs, DMI_ABSTRACTCS_CMDERR));
-		return ERROR_FAIL;
+		int result = scans_execute(scans);
+		scans_delete(scans);
+		scans = NULL;
+		if (result != ERROR_OK)
+			return result;
+
+		dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+		unsigned cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
+		if (cmderr == CMDERR_BUSY) {
+			dmi_write(target, DMI_ABSTRACTCS, 0);
+			increase_ac_busy_delay(target);
+		} else if (cmderr) {
+			LOG_ERROR("cmderr=%d", get_field(abstractcs, DMI_ABSTRACTCS_CMDERR));
+			return ERROR_FAIL;
+		} else {
+			break;
+		}
 	}
 
 	return ERROR_OK;
