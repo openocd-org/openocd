@@ -73,16 +73,6 @@
 #include "mips32.h"
 #include "mips32_pracc.h"
 
-struct mips32_pracc_context {
-	uint32_t *local_oparam;
-	int num_oparam;
-	const uint32_t *code;
-	int code_len;
-	uint32_t stack[32];
-	int stack_offset;
-	struct mips_ejtag *ejtag_info;
-};
-
 static int wait_for_pracc_rw(struct mips_ejtag *ejtag_info, uint32_t *ctrl)
 {
 	uint32_t ejtag_ctrl;
@@ -564,10 +554,10 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_r
 		goto exit;
 
 	pracc_add(&ctx, 0, MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR));			/* $15 = MIPS32_PRACC_BASE_ADDR */
-	pracc_add(&ctx, 0, MIPS32_MFC0(8, 0, 0) | (cp0_reg << 11) | cp0_sel);	/* move COP0 [cp0_reg select] to $8 */
+	pracc_add(&ctx, 0, MIPS32_MFC0(8, cp0_reg, cp0_sel));			/* move cp0 reg / sel to $8 */
 	pracc_add(&ctx, MIPS32_PRACC_PARAM_OUT,
 				MIPS32_SW(8, PRACC_OUT_OFFSET, 15));			/* store $8 to pracc_out */
-	pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));					/* move COP0 DeSave to $15 */
+	pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));					/* restore $15 from DeSave */
 	pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(ejtag_info->reg8)));		/* restore upper 16 bits  of $8 */
 	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));					/* jump to start */
 	pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)));		/* restore lower 16 bits of $8 */
@@ -576,23 +566,6 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t cp0_r
 exit:
 	pracc_queue_free(&ctx);
 	return ctx.retval;
-
-	/**
-	 * Note that our input parametes cp0_reg and cp0_sel
-	 * are numbers (not gprs) which make part of mfc0 instruction opcode.
-	 *
-	 * These are not fix, but can be different for each mips32_cp0_read() function call,
-	 * and that is why we must insert them directly into opcode,
-	 * i.e. we can not pass it on EJTAG microprogram stack (via param_in),
-	 * and put them into the gprs later from MIPS32_PRACC_STACK
-	 * because mfc0 do not use gpr as a parameter for the cp0_reg and select part,
-	 * but plain (immediate) number.
-	 *
-	 * MIPS32_MTC0 is implemented via MIPS32_R_INST macro.
-	 * In order to insert our parameters, we must change rd and funct fields.
-	 *
-	 * code[2] |= (cp0_reg << 11) | cp0_sel;   change rd and funct of MIPS32_R_INST macro
-	 **/
 }
 
 int mips32_cp0_write(struct mips_ejtag *ejtag_info, uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel)
@@ -602,24 +575,18 @@ int mips32_cp0_write(struct mips_ejtag *ejtag_info, uint32_t val, uint32_t cp0_r
 	if (ctx.retval != ERROR_OK)
 		goto exit;
 
-	pracc_add(&ctx, 0, MIPS32_LUI(15, UPPER16(val)));				/* Load val to $15 */
+	pracc_add(&ctx, 0, MIPS32_LUI(15, UPPER16(val)));			/* Load val to $15 */
 	pracc_add(&ctx, 0, MIPS32_ORI(15, 15, LOWER16(val)));
 
-	pracc_add(&ctx, 0, MIPS32_MTC0(15, 0, 0) | (cp0_reg << 11) | cp0_sel);	/* write cp0 reg / sel */
+	pracc_add(&ctx, 0, MIPS32_MTC0(15, cp0_reg, cp0_sel));			/* write $15 to cp0 reg / sel */
 
-	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));					/* jump to start */
-	pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));					/* move COP0 DeSave to $15 */
+	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));		/* jump to start */
+	pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));				/* restore $15 from DeSave */
 
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL);
 exit:
 	pracc_queue_free(&ctx);
 	return ctx.retval;
-
-	/**
-	 * Note that MIPS32_MTC0 macro is implemented via MIPS32_R_INST macro.
-	 * In order to insert our parameters, we must change rd and funct fields.
-	 * code[3] |= (cp0_reg << 11) | cp0_sel;   change rd and funct fields of MIPS32_R_INST macro
-	 **/
 }
 
 /**
@@ -956,9 +923,6 @@ int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));					/* jump to start */
 	pracc_add(&ctx, 0, MIPS32_MTC0(15, 31, 0));					/* load $15 in DeSave */
 
-	if (ejtag_info->mode == 0)
-		ctx.store_count++;	/* Needed by legacy code, due to offset from reg0 */
-
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, regs);
 
 	ejtag_info->reg8 = regs[8];	/* reg8 is saved but not restored, next called function should restore it */
@@ -1015,7 +979,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	};
 
 	int retval, i;
-	uint32_t val, ejtag_ctrl, address;
+	uint32_t val, ejtag_ctrl;
 
 	if (source->size < MIPS32_FASTDATA_HANDLER_SIZE)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -1054,19 +1018,13 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		mips_ejtag_drscan_32_out(ejtag_info, ejtag_ctrl);
 	}
 
-	/* wait PrAcc pending bit for FASTDATA write */
-	retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl);
+	/* wait PrAcc pending bit for FASTDATA write, read address */
+	retval = mips32_pracc_read_ctrl_addr(ejtag_info);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* next fetch to dmseg should be in FASTDATA_AREA, check */
-	address = 0;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
-	retval = mips_ejtag_drscan_32(ejtag_info, &address);
-	if (retval != ERROR_OK)
-		return retval;
-
-	if (address != MIPS32_PRACC_FASTDATA_AREA)
+	if (ejtag_info->pa_addr != MIPS32_PRACC_FASTDATA_AREA)
 		return ERROR_FAIL;
 
 	/* Send the load start address */
@@ -1100,17 +1058,11 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		return retval;
 	}
 
-	retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl);
+	retval = mips32_pracc_read_ctrl_addr(ejtag_info);
 	if (retval != ERROR_OK)
 		return retval;
 
-	address = 0;
-	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
-	retval = mips_ejtag_drscan_32(ejtag_info, &address);
-	if (retval != ERROR_OK)
-		return retval;
-
-	if (address != MIPS32_PRACC_TEXT)
+	if (ejtag_info->pa_addr != MIPS32_PRACC_TEXT)
 		LOG_ERROR("mini program did not return to start");
 
 	return retval;
