@@ -116,24 +116,21 @@ static int mips32_pracc_read_ctrl_addr(struct mips_ejtag *ejtag_info)
 }
 
 /* Finish processor access */
-static int mips32_pracc_finish(struct mips_ejtag *ejtag_info)
+static void mips32_pracc_finish(struct mips_ejtag *ejtag_info)
 {
 	uint32_t ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
 	mips_ejtag_drscan_32_out(ejtag_info, ctrl);
-
-	return jtag_execute_queue();
 }
 
 int mips32_pracc_clean_text_jump(struct mips_ejtag *ejtag_info)
 {
 	uint32_t jt_code = MIPS32_J((0x0FFFFFFF & MIPS32_PRACC_TEXT) >> 2);
-	int retval;
 
 	/* do 3 0/nops to clean pipeline before a jump to pracc text, NOP in delay slot */
 	for (int i = 0; i != 5; i++) {
 		/* Wait for pracc */
-		retval = wait_for_pracc_rw(ejtag_info, &ejtag_info->pa_ctrl);
+		int retval = wait_for_pracc_rw(ejtag_info, &ejtag_info->pa_ctrl);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -143,25 +140,21 @@ int mips32_pracc_clean_text_jump(struct mips_ejtag *ejtag_info)
 		mips_ejtag_drscan_32_out(ejtag_info, data);
 
 		/* finish pa */
-		retval = mips32_pracc_finish(ejtag_info);
-		if (retval != ERROR_OK)
-			return retval;
+		mips32_pracc_finish(ejtag_info);
 	}
 
 	if (ejtag_info->mode != 0)	/* async mode support only for MIPS ... */
 		return ERROR_OK;
 
 	for (int i = 0; i != 2; i++) {
-		retval = mips32_pracc_read_ctrl_addr(ejtag_info);
+		int retval = mips32_pracc_read_ctrl_addr(ejtag_info);
 		if (retval != ERROR_OK)
 			return retval;
 
 		if (ejtag_info->pa_addr != MIPS32_PRACC_TEXT) {		/* LEXRA/BMIPS ?, shift out another NOP, max 2 */
 			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);
 			mips_ejtag_drscan_32_out(ejtag_info, MIPS32_NOP);
-			retval = mips32_pracc_finish(ejtag_info);
-			if (retval != ERROR_OK)
-				return retval;
+			mips32_pracc_finish(ejtag_info);
 		} else
 			break;
 	}
@@ -298,12 +291,10 @@ int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ct
 			mips_ejtag_drscan_32_out(ejtag_info, instr);
 		}
 		/* finish processor access, let the processor eat! */
-		retval = mips32_pracc_finish(ejtag_info);
-		if (retval != ERROR_OK)
-			return retval;
+		mips32_pracc_finish(ejtag_info);
 
 		if (instr == MIPS32_DRET)	/* after leaving debug mode nothing to do */
-			return ERROR_OK;
+			return jtag_execute_queue();
 
 		if (store_pending == 0 && pass) {	/* store access done, but after passing pracc text */
 			LOG_DEBUG("warning: store access pass pracc text");
@@ -1013,9 +1004,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		mips_ejtag_drscan_32_out(ejtag_info, jmp_code[i]);
 
 		/* Clear the access pending bit (let the processor eat!) */
-		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
-		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
-		mips_ejtag_drscan_32_out(ejtag_info, ejtag_ctrl);
+		mips32_pracc_finish(ejtag_info);
 	}
 
 	/* wait PrAcc pending bit for FASTDATA write, read address */
