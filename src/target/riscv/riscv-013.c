@@ -218,17 +218,24 @@ static void dump_field(const struct scan_field *field)
 	unsigned int out_op = get_field(out, DTM_DMI_OP);
 	unsigned int out_data = get_field(out, DTM_DMI_DATA);
 	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
-	uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-	unsigned int in_op = get_field(in, DTM_DMI_OP);
-	unsigned int in_data = get_field(in, DTM_DMI_DATA);
-	unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
-	log_printf_lf(LOG_LVL_DEBUG,
-			__FILE__, __LINE__, "scan",
-			"%db %s %08x @%02x -> %s %08x @%02x",
-			field->num_bits,
-			op_string[out_op], out_data, out_address,
-			status_string[in_op], in_data, in_address);
+	if (field->in_value) {
+		uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+		unsigned int in_op = get_field(in, DTM_DMI_OP);
+		unsigned int in_data = get_field(in, DTM_DMI_DATA);
+		unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
+
+		log_printf_lf(LOG_LVL_DEBUG,
+				__FILE__, __LINE__, "scan",
+				"%db %s %08x @%02x -> %s %08x @%02x",
+				field->num_bits,
+				op_string[out_op], out_data, out_address,
+				status_string[in_op], in_data, in_address);
+	} else {
+		log_printf_lf(LOG_LVL_DEBUG,
+				__FILE__, __LINE__, "scan", "%db %s %08x @%02x -> ?",
+				field->num_bits, op_string[out_op], out_data, out_address);
+	}
 }
 
 static riscv013_info_t *get_info(const struct target *target)
@@ -309,7 +316,9 @@ static void scans_add_dmi_write(scans_t *scans, unsigned address,
 
 	uint8_t *out = scans->out + data_offset;
 	field->num_bits = info->abits + DMI_OP_SIZE + DMI_DATA_SIZE;
-	field->in_value = scans->in + data_offset;
+	// We gain a lot of speed in remote bitbang by not looking at the return
+	// value.
+	field->in_value = NULL;
 	field->out_value = out;
 
 	buf_set_u64(out, DMI_OP_START, DMI_OP_SIZE, DMI_OP_WRITE);
@@ -466,8 +475,11 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	struct scan_field field = {
 		.num_bits = info->abits + DMI_OP_SIZE + DMI_DATA_SIZE,
 		.out_value = out,
-		.in_value = in
 	};
+
+	if (address_in || data_in) {
+		field.in_value = in;
+	}
 
 	assert(info->abits != 0);
 
@@ -2098,6 +2110,23 @@ static int read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
+/**
+ * If there was a DMI error, clear that error and return 1.
+ * Otherwise return 0.
+ */
+static int check_dmi_error(struct target *target)
+{
+	dmi_status_t status = dmi_scan(target, NULL, NULL, DMI_OP_NOP, 0, 0,
+			false);
+	if (status != DMI_STATUS_SUCCESS) {
+		// Clear errors.
+		dtmcontrol_scan(target, DTM_DTMCONTROL_DMIRESET);
+		increase_dmi_busy_delay(target);
+		return 1;
+	}
+	return 0;
+}
+
 static int write_memory(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
@@ -2163,6 +2192,9 @@ static int write_memory(struct target *target, uint32_t address,
 		if (result != ERROR_OK)
 			return result;
 
+		int dmi_error = check_dmi_error(target);
+
+		// Clear autoexec.
 		dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		unsigned cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
@@ -2172,7 +2204,7 @@ static int write_memory(struct target *target, uint32_t address,
 		} else if (cmderr) {
 			LOG_ERROR("cmderr=%d", get_field(abstractcs, DMI_ABSTRACTCS_CMDERR));
 			return ERROR_FAIL;
-		} else {
+		} else if (!dmi_error) {
 			break;
 		}
 	}
