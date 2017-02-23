@@ -4004,6 +4004,7 @@ At this writing, the supported CPU types are:
 @item @code{cortex_a} -- this is an ARMv7 core with an MMU
 @item @code{cortex_m} -- this is an ARMv7 core, supporting only the
 compact Thumb2 instruction set.
+@item @code{aarch64} -- this is an ARMv8-A core with an MMU
 @item @code{dragonite} -- resembles arm966e
 @item @code{dsp563xx} -- implements Freescale's 24-bit DSP.
 (Support for this is still incomplete.)
@@ -4036,7 +4037,7 @@ The CPU name used by OpenOCD will reflect the CPU design that was
 licenced, not a vendor brand which incorporates that design.
 Name prefixes like arm7, arm9, arm11, and cortex
 reflect design generations;
-while names like ARMv4, ARMv5, ARMv6, and ARMv7
+while names like ARMv4, ARMv5, ARMv6, ARMv7 and ARMv8
 reflect an architecture version implemented by a CPU design.
 
 @anchor{targetconfiguration}
@@ -4180,6 +4181,10 @@ access the target for debugging.
 @var{ap_number} is the numeric index of the DAP AP the target is connected to.
 Use this option with systems where multiple, independent cores are connected
 to separate access ports of the same DAP.
+
+@item @code{-ctibase} @var{address} -- set base address of Cross-Trigger interface (CTI) connected
+to the target. Currently, only the @code{aarch64} target makes use of this option, where it is
+a mandatory configuration for the target run control.
 @end itemize
 @end deffn
 
@@ -7854,13 +7859,14 @@ coprocessor 14 register 7 itself) but all current ARM11
 cores @emph{except the ARM1176} use the same six bits.
 @end deffn
 
-@section ARMv7 Architecture
+@section ARMv7 and ARMv8 Architecture
 @cindex ARMv7
+@cindex ARMv8
 
-@subsection ARMv7 Debug Access Port (DAP) specific commands
+@subsection ARMv7 and ARMv8 Debug Access Port (DAP) specific commands
 @cindex Debug Access Port
 @cindex DAP
-These commands are specific to ARM architecture v7 Debug Access Port (DAP),
+These commands are specific to ARM architecture v7 and v8 Debug Access Port (DAP),
 included on Cortex-M and Cortex-A systems.
 They are available in addition to other core-specific commands that may be available.
 
@@ -8112,6 +8118,29 @@ This however has the disadvantage of only resetting the core, all peripherals
 are uneffected. A solution would be to use a @code{reset-init} event handler to manually reset
 the peripherals.
 @xref{targetevents,,Target Events}.
+@end deffn
+
+@subsection ARMv8-A specific commands
+@cindex ARMv8-A
+@cindex aarch64
+
+@deffn Command {aarch64 cache_info}
+Display information about target caches
+@end deffn
+
+@deffn Command {aarch64 dbginit}
+This command enables debugging by clearing the OS Lock and sticky power-down and reset
+indications. It also establishes the expected, basic cross-trigger configuration the aarch64
+target code relies on. In a configuration file, the command would typically be called from a
+@code{reset-end} or @code{reset-deassert-post} handler, to re-enable debugging after a system reset.
+However, normally it is not necessary to use the command at all.
+@end deffn
+
+@deffn Command {aarch64 smp_on|smp_off}
+Enable and disable SMP handling. The state of SMP handling influences the way targets in an SMP group
+are handled by the run control. With SMP handling enabled, issuing halt or resume to one core will trigger
+halting or resuming of all cores in the group. The command @code{target smp} defines which targets are in the SMP
+group. With SMP handling disabled, all targets need to be treated individually.
 @end deffn
 
 @section Intel Architecture
