@@ -321,6 +321,18 @@ inline void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t inst
 		ctx->store_count++;
 }
 
+inline void pracc_add_li32(struct pracc_queue_info *ctx, uint32_t reg_num, uint32_t data, bool optimize)
+{
+	if (LOWER16(data) == 0 && optimize)
+		pracc_add(ctx, 0, MIPS32_LUI(reg_num, UPPER16(data)));	/* load only upper value */
+	else if (UPPER16(data) == 0 && optimize)
+		pracc_add(ctx, 0, MIPS32_ORI(reg_num, 0, LOWER16(data)));	/* load only lower */
+	else {
+		pracc_add(ctx, 0, MIPS32_LUI(reg_num, UPPER16(data)));		/* load upper and lower */
+		pracc_add(ctx, 0, MIPS32_ORI(reg_num, reg_num, LOWER16(data)));
+	}
+}
+
 inline void pracc_queue_free(struct pracc_queue_info *ctx)
 {
 	if (ctx->code_count > ctx->max_code)	/* Only for internal check, will be erased */
@@ -438,8 +450,7 @@ int mips32_pracc_read_u32(struct mips_ejtag *ejtag_info, uint32_t addr, uint32_t
 	pracc_add(&ctx, 0, MIPS32_LW(8, LOWER16(addr), 8));				/* lw $8, LOWER16(addr)($8) */
 	pracc_add(&ctx, MIPS32_PRACC_PARAM_OUT,
 				MIPS32_SW(8, PRACC_OUT_OFFSET, 15));			/* sw $8,PRACC_OUT_OFFSET($15) */
-	pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(ejtag_info->reg8)));		/* restore upper 16 of $8 */
-	pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)));		/* restore lower 16 of $8 */
+	pracc_add_li32(&ctx, 8, ejtag_info->reg8, 0);				/* restore $8 */
 	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));					/* jump to start */
 	pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));					/* move COP0 DeSave to $15 */
 
@@ -499,10 +510,8 @@ int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size
 					  MIPS32_SW(8, PRACC_OUT_OFFSET + i * 4, 15));		/* store $8 at param out */
 			addr += size;
 		}
-		pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(ejtag_info->reg8)));		/* restore upper 16 bits of reg 8 */
-		pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)));	/* restore lower 16 bits of reg 8 */
-		pracc_add(&ctx, 0, MIPS32_LUI(9, UPPER16(ejtag_info->reg9)));		/* restore upper 16 bits of reg 9 */
-		pracc_add(&ctx, 0, MIPS32_ORI(9, 9, LOWER16(ejtag_info->reg9)));	/* restore lower 16 bits of reg 9 */
+		pracc_add_li32(&ctx, 8, ejtag_info->reg8, 0);				/* restore $8 */
+		pracc_add_li32(&ctx, 9, ejtag_info->reg9, 0);				/* restore $9 */
 
 		pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));				/* jump to start */
 		pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));					/* restore $15 from DeSave */
@@ -563,11 +572,9 @@ int mips32_cp0_write(struct mips_ejtag *ejtag_info, uint32_t val, uint32_t cp0_r
 	if (ctx.retval != ERROR_OK)
 		goto exit;
 
-	pracc_add(&ctx, 0, MIPS32_LUI(15, UPPER16(val)));			/* Load val to $15 */
-	pracc_add(&ctx, 0, MIPS32_ORI(15, 15, LOWER16(val)));
+	pracc_add_li32(&ctx, 15, val, 0);				/* Load val to $15 */
 
 	pracc_add(&ctx, 0, MIPS32_MTC0(15, cp0_reg, cp0_sel));			/* write $15 to cp0 reg / sel */
-
 	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));		/* jump to start */
 	pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));				/* restore $15 from DeSave */
 
@@ -621,8 +628,8 @@ static int mips32_pracc_synchronize_cache(struct mips_ejtag *ejtag_info,
 		pracc_add(&ctx, MIPS32_PRACC_PARAM_OUT,
 				MIPS32_SW(8, PRACC_OUT_OFFSET, 15));			/* store $8 to pracc_out */
 
-		pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(ejtag_info->reg8)));			/* restore upper 16 bits  of $8 */
-		pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)));		/* restore lower 16 bits of $8 */
+		pracc_add_li32(&ctx, 8, ejtag_info->reg8, 0);				/* restore $8 */
+
 		pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));					/* jump to start */
 		pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));					/* move COP0 DeSave to $15 */
 
@@ -732,15 +739,8 @@ static int mips32_pracc_write_mem_generic(struct mips_ejtag *ejtag_info,
 				last_upper_base_addr = upper_base_addr;
 			}
 
-			if (size == 4) {			/* for word writes check if one half word is 0 and load it accordingly */
-				if (LOWER16(*buf32) == 0)
-					pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(*buf32)));		/* load only upper value */
-				else if (UPPER16(*buf32) == 0)
-						pracc_add(&ctx, 0, MIPS32_ORI(8, 0, LOWER16(*buf32)));	/* load only lower */
-				else {
-					pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(*buf32)));		/* load upper and lower */
-					pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(*buf32)));
-				}
+			if (size == 4) {
+				pracc_add_li32(&ctx, 8, *buf32, 1);			/* load with li32, optimize */
 				pracc_add(&ctx, 0, MIPS32_SW(8, LOWER16(addr), 15));		/* store word to memory */
 				buf32++;
 
@@ -757,8 +757,7 @@ static int mips32_pracc_write_mem_generic(struct mips_ejtag *ejtag_info,
 			addr += size;
 		}
 
-		pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(ejtag_info->reg8)));		/* restore upper 16 bits of reg 8 */
-		pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)));	/* restore lower 16 bits of reg 8 */
+		pracc_add_li32(&ctx, 8, ejtag_info->reg8, 0);				/* restore $8 */
 
 		pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));				/* jump to start */
 		pracc_add(&ctx, 0, MIPS32_MFC0(15, 31, 0));				/* restore $15 from DeSave */
@@ -844,26 +843,17 @@ int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 	if (ctx.retval != ERROR_OK)
 		goto exit;
 
-	/* load registers 2 to 31 with lui and ori instructions, check if some instructions can be saved */
-	for (int i = 2; i < 32; i++) {
-		if (LOWER16((regs[i])) == 0)					/* if lower half word is 0, lui instruction only */
-			pracc_add(&ctx, 0, MIPS32_LUI(i, UPPER16((regs[i]))));
-		else if (UPPER16((regs[i])) == 0)					/* if upper half word is 0, ori with $0 only*/
-			pracc_add(&ctx, 0, MIPS32_ORI(i, 0, LOWER16((regs[i]))));
-		else {									/* default, load with lui and ori instructions */
-			pracc_add(&ctx, 0, MIPS32_LUI(i, UPPER16((regs[i]))));
-			pracc_add(&ctx, 0, MIPS32_ORI(i, i, LOWER16((regs[i]))));
-		}
-	}
+	/* load registers 2 to 31 with li32, optimize */
+	for (int i = 2; i < 32; i++)
+		pracc_add_li32(&ctx, i, regs[i], 1);
 
 	for (int i = 0; i != 6; i++) {
-		pracc_add(&ctx, 0, MIPS32_LUI(1, UPPER16((regs[i + 32]))));		/* load CPO value in $1, with lui and ori */
-		pracc_add(&ctx, 0, MIPS32_ORI(1, 1, LOWER16((regs[i + 32]))));
-		pracc_add(&ctx, 0, cp0_write_code[i]);					/* write value from $1 to CPO register */
+		pracc_add_li32(&ctx, 1, regs[i + 32], 0);	/* load CPO value in $1 */
+		pracc_add(&ctx, 0, cp0_write_code[i]);			/* write value from $1 to CPO register */
 	}
 	pracc_add(&ctx, 0, MIPS32_MTC0(15, 31, 0));				/* load $15 in DeSave */
 	pracc_add(&ctx, 0, MIPS32_LUI(1, UPPER16((regs[1]))));			/* load upper half word in $1 */
-	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));					/* jump to start */
+	pracc_add(&ctx, 0, MIPS32_B(NEG16(ctx.code_count + 1)));				/* jump to start */
 	pracc_add(&ctx, 0, MIPS32_ORI(1, 1, LOWER16((regs[1]))));		/* load lower half word in $1 */
 
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL);
