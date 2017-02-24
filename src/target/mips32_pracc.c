@@ -921,7 +921,6 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		int write_t, uint32_t addr, int count, uint32_t *buf)
 {
 	uint32_t handler_code[] = {
-		/* caution when editing, table is modified below */
 		/* r15 points to the start of this code */
 		MIPS32_SW(8, MIPS32_FASTDATA_HANDLER_SIZE - 4, 15),
 		MIPS32_SW(9, MIPS32_FASTDATA_HANDLER_SIZE - 8, 15),
@@ -930,13 +929,14 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		/* start of fastdata area in t0 */
 		MIPS32_LUI(8, UPPER16(MIPS32_PRACC_FASTDATA_AREA)),
 		MIPS32_ORI(8, 8, LOWER16(MIPS32_PRACC_FASTDATA_AREA)),
-		MIPS32_LW(9, 0, 8),								/* start addr in t1 */
-		MIPS32_LW(10, 0, 8),							/* end addr to t2 */
-														/* loop: */
-		/* 8 */ MIPS32_LW(11, 0, 0),					/* lw t3,[t8 | r9] */
-		/* 9 */ MIPS32_SW(11, 0, 0),					/* sw t3,[r9 | r8] */
-		MIPS32_BNE(10, 9, NEG16(3)),					/* bne $t2,t1,loop */
-		MIPS32_ADDI(9, 9, 4),							/* addi t1,t1,4 */
+		MIPS32_LW(9, 0, 8),						/* start addr in t1 */
+		MIPS32_LW(10, 0, 8),						/* end addr to t2 */
+					/* loop: */
+		write_t ? MIPS32_LW(11, 0, 8) : MIPS32_LW(11, 0, 9),	/* from xfer area : from memory */
+		write_t ? MIPS32_SW(11, 0, 9) : MIPS32_SW(11, 0, 8),	/* to memory      : to xfer area */
+
+		MIPS32_BNE(10, 9, NEG16(3)),			/* bne $t2,t1,loop */
+		MIPS32_ADDI(9, 9, 4),					/* addi t1,t1,4 */
 
 		MIPS32_LW(8, MIPS32_FASTDATA_HANDLER_SIZE - 4, 15),
 		MIPS32_LW(9, MIPS32_FASTDATA_HANDLER_SIZE - 8, 15),
@@ -949,25 +949,10 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 		MIPS32_MFC0(15, 31, 0),						/* move COP0 DeSave to $15 */
 	};
 
-	uint32_t jmp_code[] = {
-		/* 0 */ MIPS32_LUI(15, 0),		/* addr of working area added below */
-		/* 1 */ MIPS32_ORI(15, 15, 0),	/* addr of working area added below */
-		MIPS32_JR(15),					/* jump to ram program */
-		MIPS32_NOP,
-	};
-
 	if (source->size < MIPS32_FASTDATA_HANDLER_SIZE)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	if (write_t) {
-		handler_code[8] = MIPS32_LW(11, 0, 8);	/* load data from probe at fastdata area */
-		handler_code[9] = MIPS32_SW(11, 0, 9);	/* store data to RAM @ r9 */
-	} else {
-		handler_code[8] = MIPS32_LW(11, 0, 9);	/* load data from RAM @ r9 */
-		handler_code[9] = MIPS32_SW(11, 0, 8);	/* store data to probe at fastdata area */
-	}
-
-	/* write program into RAM */
+		/* write program into RAM */
 	if (write_t != ejtag_info->fast_access_save) {
 		mips32_pracc_write_mem(ejtag_info, source->address, 4, ARRAY_SIZE(handler_code), handler_code);
 		/* save previous operation to speed to any consecutive read/writes */
@@ -976,9 +961,14 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 
 	LOG_DEBUG("%s using 0x%.8" TARGET_PRIxADDR " for write handler", __func__, source->address);
 
-	jmp_code[0] |= UPPER16(source->address);
-	jmp_code[1] |= LOWER16(source->address);
+	uint32_t jmp_code[] = {
+		MIPS32_LUI(15, UPPER16(source->address)),		/* load addr of jump in $15 */
+		MIPS32_ORI(15, 15, LOWER16(source->address)),
+		MIPS32_JR(15),					/* jump to ram program */
+		MIPS32_NOP,
+	};
 
+	/* execute jump code, with no address check */
 	for (unsigned i = 0; i < ARRAY_SIZE(jmp_code); i++) {
 		int retval = wait_for_pracc_rw(ejtag_info);
 		if (retval != ERROR_OK)
@@ -1020,9 +1010,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 
 	for (int i = 0; i < count; i++) {
 		jtag_add_clocks(num_clocks);
-		retval = mips_ejtag_fastdata_scan(ejtag_info, write_t, buf++);
-		if (retval != ERROR_OK)
-			return retval;
+		mips_ejtag_fastdata_scan(ejtag_info, write_t, buf++);
 	}
 
 	retval = jtag_execute_queue();
