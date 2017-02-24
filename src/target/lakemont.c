@@ -444,6 +444,8 @@ static uint32_t get_tapstatus(struct target *t)
 static int enter_probemode(struct target *t)
 {
 	uint32_t tapstatus = 0;
+	int retries = 100;
+
 	tapstatus = get_tapstatus(t);
 	LOG_DEBUG("TS before PM enter = 0x%08" PRIx32, tapstatus);
 	if (tapstatus & TS_PM_BIT) {
@@ -456,15 +458,17 @@ static int enter_probemode(struct target *t)
 	scan.out[0] = 1;
 	if (drscan(t, scan.out, scan.in, 1) != ERROR_OK)
 		return ERROR_FAIL;
-	tapstatus = get_tapstatus(t);
-	LOG_DEBUG("TS after PM enter = 0x%08" PRIx32, tapstatus);
-	if ((tapstatus & TS_PM_BIT) && (!(tapstatus & TS_EN_PM_BIT)))
-		return ERROR_OK;
-	else {
-		LOG_ERROR("%s PM enter error, tapstatus = 0x%08" PRIx32
-				, __func__, tapstatus);
-		return ERROR_FAIL;
+
+	while (retries--) {
+		tapstatus = get_tapstatus(t);
+		LOG_DEBUG("TS after PM enter = 0x%08" PRIx32, tapstatus);
+		if ((tapstatus & TS_PM_BIT) && (!(tapstatus & TS_EN_PM_BIT)))
+			return ERROR_OK;
 	}
+
+	LOG_ERROR("%s PM enter error, tapstatus = 0x%08" PRIx32
+			, __func__, tapstatus);
+	return ERROR_FAIL;
 }
 
 static int exit_probemode(struct target *t)
