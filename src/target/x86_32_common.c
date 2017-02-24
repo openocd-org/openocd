@@ -1260,6 +1260,38 @@ static int unset_watchpoint(struct target *t, struct watchpoint *wp)
 	return ERROR_OK;
 }
 
+/* after reset breakpoints and watchpoints in memory are not valid anymore and
+ * debug registers are cleared.
+ * we can't afford to remove sw breakpoints using the default methods as the
+ * memory doesn't have the same layout yet and an access might crash the target,
+ * so we just clear the openocd breakpoints structures.
+ */
+void x86_32_common_reset_breakpoints_watchpoints(struct target *t)
+{
+	struct x86_32_common *x86_32 = target_to_x86_32(t);
+	struct x86_32_dbg_reg *debug_reg_list = x86_32->hw_break_list;
+	struct breakpoint *next_b;
+	struct watchpoint *next_w;
+
+	while (t->breakpoints) {
+		next_b = t->breakpoints->next;
+		free(t->breakpoints->orig_instr);
+		free(t->breakpoints);
+		t->breakpoints = next_b;
+	}
+
+	while (t->watchpoints) {
+		next_w = t->watchpoints->next;
+		free(t->watchpoints);
+		t->watchpoints = next_w;
+	}
+
+	for (int i = 0; i < x86_32->num_hw_bpoints; i++) {
+		debug_reg_list[i].used = 0;
+		debug_reg_list[i].bp_value = 0;
+	}
+}
+
 static int read_hw_reg_to_cache(struct target *t, int num)
 {
 	uint32_t reg_value;
