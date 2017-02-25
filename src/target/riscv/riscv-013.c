@@ -52,6 +52,12 @@
 
 #define SETHALTNOT				0x10c
 
+#define CSR_DCSR_CAUSE_SWBP		1
+#define CSR_DCSR_CAUSE_TRIGGER	2
+#define CSR_DCSR_CAUSE_DEBUGINT	3
+#define CSR_DCSR_CAUSE_STEP		4
+#define CSR_DCSR_CAUSE_HALT		5
+
 /*** JTAG registers. ***/
 
 #define DBUS						0x11
@@ -130,7 +136,6 @@ enum {
 };
 
 #define MAX_HWBPS			16
-#define DRAM_CACHE_SIZE		16
 
 struct trigger {
 	uint64_t address;
@@ -166,8 +171,6 @@ typedef struct {
 	 * the value we present to the user. That one may be stored in the
 	 * reg_cache. */
 	uint64_t mstatus_actual;
-
-	struct memory_cache_line dram_cache[DRAM_CACHE_SIZE];
 
 	/* Single buffer that contains all register names, instead of calling
 	 * malloc for each register. Needs to be freed when reg_list is freed. */
@@ -360,14 +363,6 @@ bool supports_extension(struct target *target, char letter)
 		return false;
 	}
 	return info->misa & (1 << num);
-}
-
-static uint16_t dram_address(unsigned int index)
-{
-	if (index < 0x10)
-		return index;
-	else
-		return 0x40 + index - 0x10;
 }
 
 static void select_dmi(struct target *target)
@@ -693,116 +688,6 @@ static void program_set_write(program_t *program, unsigned reg_num, uint64_t val
 
 /*** end of program class ***/
 
-static void dram_write32(struct target *target, unsigned int index, uint32_t value,
-		bool set_interrupt)
-{
-	uint64_t dmi_value = DMCONTROL_HALTNOT | value;
-	if (set_interrupt)
-		dmi_value |= DMCONTROL_INTERRUPT;
-	dmi_write(target, dram_address(index), dmi_value);
-}
-
-/** Read the haltnot and interrupt bits. */
-static bits_t read_bits(struct target *target)
-{
-	uint64_t value;
-	dmi_status_t status;
-	uint16_t address_in;
-	riscv013_info_t *info = get_info(target);
-
-	bits_t err_result = {
-		.haltnot = 0,
-		.interrupt = 0
-	};
-
-	do {
-		unsigned i = 0;
-		do {
-			status = dmi_scan(target, &address_in, &value, DMI_OP_READ, 0, 0,
-					false);
-			if (status == DMI_STATUS_BUSY) {
-				if (address_in == (1<<info->abits) - 1 &&
-						value == (1ULL<<DMI_DATA_SIZE) - 1) {
-					LOG_ERROR("TDO seems to be stuck high.");
-					return err_result;
-				}
-				increase_dmi_busy_delay(target);
-			}
-		} while (status == DMI_STATUS_BUSY && i++ < 256);
-
-		if (i >= 256) {
-			LOG_ERROR("Failed to read from 0x%x; status=%d", address_in, status);
-			return err_result;
-		}
-	} while (address_in > 0x10 && address_in != DMCONTROL);
-
-	bits_t result = {
-		.haltnot = get_field(value, DMCONTROL_HALTNOT),
-		.interrupt = get_field(value, DMCONTROL_INTERRUPT)
-	};
-	return result;
-}
-
-static int wait_for_debugint_clear(struct target *target, bool ignore_first)
-{
-	time_t start = time(NULL);
-	if (ignore_first) {
-		// Throw away the results of the first read, since they'll contain the
-		// result of the read that happened just before debugint was set.
-		// (Assuming the last scan before calling this function was one that
-		// sets debugint.)
-		read_bits(target);
-	}
-	while (1) {
-		bits_t bits = read_bits(target);
-		if (!bits.interrupt) {
-			return ERROR_OK;
-		}
-		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
-			LOG_ERROR("Timed out waiting for debug int to clear.");
-			return ERROR_FAIL;
-		}
-	}
-}
-
-/* Call this if the code you just ran writes to debug RAM entries 0 through 3. */
-static void cache_invalidate(struct target *target)
-{
-	riscv013_info_t *info = get_info(target);
-	for (unsigned int i = 0; i < info->dramsize; i++) {
-		info->dram_cache[i].valid = false;
-		info->dram_cache[i].dirty = false;
-	}
-}
-
-/* Write instruction that jumps from the specified word in Debug RAM to resume
- * in Debug ROM. */
-static void dram_write_jump(struct target *target, unsigned int index,
-		bool set_interrupt)
-{
-	dram_write32(target, index,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))),
-			set_interrupt);
-}
-
-static int wait_for_state(struct target *target, enum target_state state)
-{
-	time_t start = time(NULL);
-	while (1) {
-		int result = riscv013_poll(target);
-		if (result != ERROR_OK) {
-			return result;
-		}
-		if (target->state == state) {
-			return ERROR_OK;
-		}
-		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
-			LOG_ERROR("Timed out waiting for state %d.", state);
-			return ERROR_FAIL;
-		}
-	}
-}
-
 static void write_program(struct target *target, const program_t *program)
 {
 	riscv013_info_t *info = get_info(target);
@@ -1091,13 +976,13 @@ static int execute_resume(struct target *target, bool step)
 		}
 	}
 
-	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
-	info->dcsr &= ~DCSR_HALT;
+	info->dcsr |= CSR_DCSR_EBREAKM | CSR_DCSR_EBREAKH | CSR_DCSR_EBREAKS |
+		CSR_DCSR_EBREAKU;
 
 	if (step) {
-		info->dcsr |= DCSR_STEP;
+		info->dcsr |= CSR_DCSR_STEP;
 	} else {
-		info->dcsr &= ~DCSR_STEP;
+		info->dcsr &= ~CSR_DCSR_STEP;
 	}
 
 	if (register_write_direct(target, REG_DCSR, info->dcsr) != ERROR_OK) {
@@ -1208,9 +1093,9 @@ static int register_get(struct reg *reg)
 		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
 		return ERROR_OK;
 	} else if (reg->number == REG_PRIV) {
-		buf_set_u64(reg->value, 0, 8, get_field(info->dcsr, DCSR_PRV));
+		buf_set_u64(reg->value, 0, 8, get_field(info->dcsr, CSR_DCSR_PRV));
 		LOG_DEBUG("%s=%d (cached)", reg->name,
-				(int) get_field(info->dcsr, DCSR_PRV));
+				(int) get_field(info->dcsr, CSR_DCSR_PRV));
 		return ERROR_OK;
 	} else {
 		uint64_t value;
@@ -1240,7 +1125,7 @@ static int register_write(struct target *target, unsigned int number,
 	if (number == REG_PC) {
 		info->dpc = value;
 	} else if (number == REG_PRIV) {
-		info->dcsr = set_field(info->dcsr, DCSR_PRV, value);
+		info->dcsr = set_field(info->dcsr, CSR_DCSR_PRV, value);
 	} else {
 		return register_write_direct(target, number, value);
 	}
@@ -1870,26 +1755,26 @@ static int handle_halt(struct target *target, bool announce)
 
 	int cause = get_field(info->dcsr, CSR_DCSR_CAUSE);
 	switch (cause) {
-		case DCSR_CAUSE_SWBP:
+		case CSR_DCSR_CAUSE_SWBP:
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
-		case DCSR_CAUSE_HWBP:
+		case CSR_DCSR_CAUSE_TRIGGER:
 			target->debug_reason = DBG_REASON_WPTANDBKPT;
 			// If we halted because of a data trigger, gdb doesn't know to do
 			// the disable-breakpoints-step-enable-breakpoints dance.
 			info->need_strict_step = true;
 			break;
-		case DCSR_CAUSE_DEBUGINT:
+		case CSR_DCSR_CAUSE_DEBUGINT:
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
-		case DCSR_CAUSE_STEP:
+		case CSR_DCSR_CAUSE_STEP:
 			target->debug_reason = DBG_REASON_SINGLESTEP;
 			break;
-		case DCSR_CAUSE_HALT:
+		case CSR_DCSR_CAUSE_HALT:
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
 		default:
-			LOG_ERROR("Invalid halt cause %d in DCSR (0x%" PRIx64 ")",
+			LOG_ERROR("Invalid halt cause %d in CSR_DCSR (0x%" PRIx64 ")",
 					cause, info->dcsr);
 	}
 
@@ -2007,46 +1892,12 @@ static int riscv013_resume(struct target *target, int current, uint32_t address,
 
 static int assert_reset(struct target *target)
 {
-	riscv013_info_t *info = get_info(target);
-	// TODO: Maybe what I implemented here is more like soft_reset_halt()?
-
-	select_dmi(target);
-
-	// The only assumption we can make is that the TAP was reset.
-	if (wait_for_debugint_clear(target, true) != ERROR_OK) {
-		LOG_ERROR("Debug interrupt didn't clear.");
-		return ERROR_FAIL;
-	}
-
-	// Not sure what we should do when there are multiple cores.
-	// Here just reset the single hart we're talking to.
-	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS |
-		DCSR_EBREAKU | DCSR_HALT;
-	if (target->reset_halt) {
-		info->dcsr |= DCSR_NDRESET;
-	} else {
-		info->dcsr |= DCSR_FULLRESET;
-	}
-	dram_write32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16), false);
-	dram_write32(target, 1, csrw(S0, CSR_DCSR), false);
-	// We shouldn't actually need the jump because a reset should happen.
-	dram_write_jump(target, 2, false);
-	dram_write32(target, 4, info->dcsr, true);
-	cache_invalidate(target);
-
-	target->state = TARGET_RESET;
-
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 static int deassert_reset(struct target *target)
 {
-	select_dmi(target);
-	if (target->reset_halt) {
-		return wait_for_state(target, TARGET_HALTED);
-	} else {
-		return wait_for_state(target, TARGET_RUNNING);
-	}
+	return ERROR_FAIL;
 }
 
 static int read_memory(struct target *target, uint32_t address,
