@@ -814,7 +814,7 @@ static void write_program(struct target *target, const program_t *program)
 			((uint32_t) program->code[i+1] << 8) |
 			((uint32_t) program->code[i+2] << 16) |
 			((uint32_t) program->code[i+3] << 24);
-		dmi_write(target, DMI_IBUF0 + i / 4, value);
+		dmi_write(target, DMI_PROGBUF0 + i / 4, value);
 	}
 }
 
@@ -1272,7 +1272,8 @@ static int halt(struct target *target)
 	LOG_DEBUG("riscv_halt()");
 	select_dmi(target);
 
-	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ |
+			DMI_DMCONTROL_DMACTIVE);
 
 	return ERROR_OK;
 }
@@ -1679,13 +1680,14 @@ static int examine(struct target *target)
 
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
 	LOG_DEBUG("  haltreq=%d", get_field(dmcontrol, DMI_DMCONTROL_HALTREQ));
-	LOG_DEBUG("  reset=%d", get_field(dmcontrol, DMI_DMCONTROL_RESET));
-	LOG_DEBUG("  dmactive=%d", get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE));
+	LOG_DEBUG("  resumereq=%d", get_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ));
 	LOG_DEBUG("  hartstatus=%d", get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS));
 	LOG_DEBUG("  hartsel=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTSEL));
+	LOG_DEBUG("  hartreset=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTRESET));
+	LOG_DEBUG("  dmactive=%d", get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE));
+	LOG_DEBUG("  reset=%d", get_field(dmcontrol, DMI_DMCONTROL_RESET));
 	LOG_DEBUG("  authenticated=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED));
 	LOG_DEBUG("  authbusy=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHBUSY));
-	LOG_DEBUG("  authtype=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHTYPE));
 	LOG_DEBUG("  version=%d", get_field(dmcontrol, DMI_DMCONTROL_VERSION));
 
 	unsigned hartstatus = DMI_DMCONTROL_HARTSTATUS;
@@ -1718,8 +1720,8 @@ static int examine(struct target *target)
 	LOG_DEBUG("abstractcs=0x%x", abstractcs);
 	LOG_DEBUG("  datacount=%d", info->datacount);
 
-	uint32_t accesscs = dmi_read(target, DMI_ACCESSCS);
-	info->progsize = get_field(abstractcs, DMI_ACCESSCS_PROGSIZE);
+	uint32_t accesscs = dmi_read(target, DMI_PROGBUFCS);
+	info->progsize = get_field(abstractcs, DMI_PROGBUFCS_PROGSIZE);
 	LOG_DEBUG("accesscs=0x%x", accesscs);
 	LOG_DEBUG("  progsize=%d", info->progsize);
 
@@ -1730,7 +1732,7 @@ static int examine(struct target *target)
 	}
 
 	for (unsigned i = 0; i < info->progsize; i++) {
-		dmi_write(target, DMI_IBUF0 + i, value);
+		dmi_write(target, DMI_PROGBUF0 + i, value);
 		value += 0x52534335;
 	}
 
@@ -1745,17 +1747,18 @@ static int examine(struct target *target)
 		value += 0x52534335;
 	}
 	for (unsigned i = 0; i < info->progsize; i++) {
-		uint32_t check = dmi_read(target, DMI_IBUF0 + i);
+		uint32_t check = dmi_read(target, DMI_PROGBUF0 + i);
 		if (check != value) {
 			LOG_ERROR("Wrote 0x%x to dbus address 0x%x but got back 0x%x",
-					value, DMI_IBUF0 + i, check);
+					value, DMI_PROGBUF0 + i, check);
 			return ERROR_FAIL;
 		}
 		value += 0x52534335;
 	}
 
 	if (hartstatus == 1) {
-		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ | DMI_DMCONTROL_DMACTIVE);
+		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ |
+				DMI_DMCONTROL_DMACTIVE);
 		for (unsigned i = 0; i < 256; i++) {
 			dmcontrol = dmi_read(target, DMI_DMCONTROL);
 			if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 0)
