@@ -34,24 +34,6 @@
 
 #define DIM(x)		(sizeof(x)/sizeof(*x))
 
-// Constants for legacy SiFive hardware breakpoints.
-#define CSR_BPCONTROL_X			(1<<0)
-#define CSR_BPCONTROL_W			(1<<1)
-#define CSR_BPCONTROL_R			(1<<2)
-#define CSR_BPCONTROL_U			(1<<3)
-#define CSR_BPCONTROL_S			(1<<4)
-#define CSR_BPCONTROL_H			(1<<5)
-#define CSR_BPCONTROL_M			(1<<6)
-#define CSR_BPCONTROL_BPMATCH	(0xf<<7)
-#define CSR_BPCONTROL_BPACTION	(0xff<<11)
-
-#define DEBUG_ROM_START         0x800
-#define DEBUG_ROM_RESUME        (DEBUG_ROM_START + 4)
-#define DEBUG_ROM_EXCEPTION     (DEBUG_ROM_START + 8)
-#define DEBUG_RAM_START         0x400
-
-#define SETHALTNOT				0x10c
-
 #define CSR_DCSR_CAUSE_SWBP		1
 #define CSR_DCSR_CAUSE_TRIGGER	2
 #define CSR_DCSR_CAUSE_DEBUGINT	3
@@ -60,9 +42,6 @@
 
 /*** JTAG registers. ***/
 
-#define DBUS						0x11
-#define DMI_OP_START				0
-#define DMI_OP_SIZE				2
 typedef enum {
 	DMI_OP_NOP = 0,
 	DMI_OP_READ = 1,
@@ -73,9 +52,6 @@ typedef enum {
 	DMI_STATUS_FAILED = 2,
 	DMI_STATUS_BUSY = 3
 } dmi_status_t;
-#define DMI_DATA_START				2
-#define DMI_DATA_SIZE				32
-#define DMI_ADDRESS_START			34
 
 typedef enum {
 	RE_OK,
@@ -91,17 +67,6 @@ typedef enum slot {
 
 /*** Debug Bus registers. ***/
 
-#define DMCONTROL				0x10
-#define DMCONTROL_INTERRUPT		(((uint64_t)1)<<33)
-#define DMCONTROL_HALTNOT		(((uint64_t)1)<<32)
-#define DMCONTROL_BUSERROR		(7<<19)
-#define DMCONTROL_SERIAL		(3<<16)
-#define DMCONTROL_AUTOINCREMENT	(1<<15)
-#define DMCONTROL_ACCESS		(7<<12)
-#define DMCONTROL_HARTID		(0x3ff<<2)
-#define DMCONTROL_NDRESET		(1<<1)
-#define DMCONTROL_FULLRESET		1
-
 #define CMDERR_NONE				0
 #define CMDERR_BUSY				1
 #define CMDERR_NOT_SUPPORTED	2
@@ -111,7 +76,6 @@ typedef enum slot {
 
 /*** Info about the core being debugged. ***/
 
-#define DMI_ADDRESS_UNKNOWN	0xffff
 #define WALL_CLOCK_TIMEOUT		2
 
 // gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
@@ -318,15 +282,15 @@ static void scans_add_dmi_write(scans_t *scans, unsigned address,
 	struct scan_field *field = scans->field + i;
 
 	uint8_t *out = scans->out + data_offset;
-	field->num_bits = info->abits + DMI_OP_SIZE + DMI_DATA_SIZE;
+	field->num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH;
 	// We gain a lot of speed in remote bitbang by not looking at the return
 	// value.
 	field->in_value = NULL;
 	field->out_value = out;
 
-	buf_set_u64(out, DMI_OP_START, DMI_OP_SIZE, DMI_OP_WRITE);
-	buf_set_u64(out, DMI_DATA_START, DMI_DATA_SIZE, value);
-	buf_set_u64(out, DMI_ADDRESS_START, info->abits, address);
+	buf_set_u64(out, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_WRITE);
+	buf_set_u64(out, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, value);
+	buf_set_u64(out, DTM_DMI_ADDRESS_OFFSET, info->abits, address);
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(scans->target->tap, 1, field, TAP_IDLE);
@@ -468,7 +432,7 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	uint8_t in[8] = {0};
 	uint8_t out[8];
 	struct scan_field field = {
-		.num_bits = info->abits + DMI_OP_SIZE + DMI_DATA_SIZE,
+		.num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH,
 		.out_value = out,
 	};
 
@@ -478,9 +442,9 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 
 	assert(info->abits != 0);
 
-	buf_set_u64(out, DMI_OP_START, DMI_OP_SIZE, op);
-	buf_set_u64(out, DMI_DATA_START, DMI_DATA_SIZE, data_out);
-	buf_set_u64(out, DMI_ADDRESS_START, info->abits, address_out);
+	buf_set_u64(out, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, op);
+	buf_set_u64(out, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, data_out);
+	buf_set_u64(out, DTM_DMI_ADDRESS_OFFSET, info->abits, address_out);
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
@@ -500,16 +464,16 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	}
 
 	if (data_in) {
-		*data_in = buf_get_u64(in, DMI_DATA_START, DMI_DATA_SIZE);
+		*data_in = buf_get_u64(in, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH);
 	}
 
 	if (address_in) {
-		*address_in = buf_get_u32(in, DMI_ADDRESS_START, info->abits);
+		*address_in = buf_get_u32(in, DTM_DMI_ADDRESS_OFFSET, info->abits);
 	}
 
 	dump_field(&field);
 
-	return buf_get_u32(in, DMI_OP_START, DMI_OP_SIZE);
+	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
 static uint64_t dmi_read(struct target *target, uint16_t address)
