@@ -197,10 +197,8 @@ void mips_ejtag_drscan_8_out(struct mips_ejtag *ejtag_info, uint8_t data)
 /* Set (to enable) or clear (to disable stepping) the SSt bit (bit 8) in Cp0 Debug reg (reg 23, sel 0) */
 int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step)
 {
-	struct pracc_queue_info ctx = {.max_code = 7};
+	struct pracc_queue_info ctx;
 	pracc_queue_init(&ctx);
-	if (ctx.retval != ERROR_OK)
-		goto exit;
 
 	pracc_add(&ctx, 0, MIPS32_MFC0(8, 23, 0));			/* move COP0 Debug to $8 */
 	pracc_add(&ctx, 0, MIPS32_ORI(8, 8, 0x0100));			/* set SSt bit in debug reg */
@@ -213,7 +211,6 @@ int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step)
 	pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)));	/* restore lower 16 bits of $8 */
 
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL);
-exit:
 	pracc_queue_free(&ctx);
 	return ctx.retval;
 }
