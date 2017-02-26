@@ -42,12 +42,17 @@
 #define NEG16(v)						(((~(v)) + 1) & 0xFFFF)
 /*#define NEG18(v) (((~(v)) + 1) & 0x3FFFF)*/
 
+typedef struct {
+	uint32_t instr;
+	uint32_t addr;
+} pa_list;
+
 struct pracc_queue_info {
 	int retval;
 	const int max_code;
 	int code_count;
 	int store_count;
-	uint32_t *pracc_list;	/* Code and store addresses */
+	pa_list *pracc_list;	/* Code and store addresses at dmseg */
 };
 void pracc_queue_init(struct pracc_queue_info *ctx);
 void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t instr);

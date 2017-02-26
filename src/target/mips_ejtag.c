@@ -272,8 +272,8 @@ error:
 
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 {
-	uint32_t pracc_list[] = {MIPS32_DRET, 0};
-	struct pracc_queue_info ctx = {.max_code = 1, .pracc_list = pracc_list, .code_count = 1, .store_count = 0};
+	pa_list pracc_list = {.instr = MIPS32_DRET, .addr = 0};
+	struct pracc_queue_info ctx = {.max_code = 1, .pracc_list = &pracc_list, .code_count = 1, .store_count = 0};
 
 	/* execute our dret instruction */
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL);
