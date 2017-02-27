@@ -1049,6 +1049,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	int handle_breakpoints)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
+	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	int saved_retval = ERROR_OK;
 	int retval;
 	uint32_t edecr;
@@ -1069,7 +1070,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 				armv8->debug_base + CPUV8_DBG_EDECR, (edecr|0x4));
 	}
 	/* disable interrupts while stepping */
-	if (retval == ERROR_OK)
+	if (retval == ERROR_OK && aarch64->isrmasking_mode == AARCH64_ISRMASK_ON)
 		retval = aarch64_set_dscr_bits(target, 0x3 << 22, 0x3 << 22);
 	/* bail out if stepping setup has failed */
 	if (retval != ERROR_OK)
@@ -1113,7 +1114,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 		if (retval != ERROR_OK || stepped)
 			break;
 
-		if (timeval_ms() > then + 1000) {
+		if (timeval_ms() > then + 100) {
 			LOG_ERROR("timeout waiting for target %s halt after step",
 					target_name(target));
 			retval = ERROR_TARGET_TIMEOUT;
@@ -1121,8 +1122,14 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 		}
 	}
 
+	/*
+	 * At least on one SoC (Renesas R8A7795) stepping over a WFI instruction
+	 * causes a timeout. The core takes the step but doesn't complete it and so
+	 * debug state is never entered. However, you can manually halt the core
+	 * as an external debug even is also a WFI wakeup event.
+	 */
 	if (retval == ERROR_TARGET_TIMEOUT)
-		saved_retval = retval;
+		saved_retval = aarch64_halt_one(target, HALT_SYNC);
 
 	/* restore EDECR */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
@@ -1131,9 +1138,11 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 		return retval;
 
 	/* restore interrupts */
-	retval = aarch64_set_dscr_bits(target, 0x3 << 22, 0);
-	if (retval != ERROR_OK)
-		return ERROR_OK;
+	if (aarch64->isrmasking_mode == AARCH64_ISRMASK_ON) {
+		retval = aarch64_set_dscr_bits(target, 0x3 << 22, 0);
+		if (retval != ERROR_OK)
+			return ERROR_OK;
+	}
 
 	if (saved_retval != ERROR_OK)
 		return saved_retval;
@@ -2303,9 +2312,9 @@ static int aarch64_examine_first(struct target *target)
 
 	LOG_DEBUG("Configured %i hw breakpoints", aarch64->brp_num);
 
-	target->state = TARGET_RUNNING;
+	target->state = TARGET_UNKNOWN;
 	target->debug_reason = DBG_REASON_NOTHALTED;
-
+	aarch64->isrmasking_mode = AARCH64_ISRMASK_ON;
 	target_set_examined(target);
 	return ERROR_OK;
 }
@@ -2443,6 +2452,34 @@ COMMAND_HANDLER(aarch64_handle_smp_on_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(aarch64_mask_interrupts_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct aarch64_common *aarch64 = target_to_aarch64(target);
+
+	static const Jim_Nvp nvp_maskisr_modes[] = {
+		{ .name = "off", .value = AARCH64_ISRMASK_OFF },
+		{ .name = "on", .value = AARCH64_ISRMASK_ON },
+		{ .name = NULL, .value = -1 },
+	};
+	const Jim_Nvp *n;
+
+	if (CMD_ARGC > 0) {
+		n = Jim_Nvp_name2value_simple(nvp_maskisr_modes, CMD_ARGV[0]);
+		if (n->name == NULL) {
+			LOG_ERROR("Unknown parameter: %s - should be off or on", CMD_ARGV[0]);
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+
+		aarch64->isrmasking_mode = n->value;
+	}
+
+	n = Jim_Nvp_value2name_simple(nvp_maskisr_modes, aarch64->isrmasking_mode);
+	command_print(CMD_CTX, "aarch64 interrupt mask %s", n->name);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration aarch64_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
@@ -2470,6 +2507,13 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Restart smp handling",
 		.usage = "",
+	},
+	{
+		.name = "maskisr",
+		.handler = aarch64_mask_interrupts_command,
+		.mode = COMMAND_ANY,
+		.help = "mask aarch64 interrupts during single-step",
+		.usage = "['on'|'off']",
 	},
 
 	COMMAND_REGISTRATION_DONE

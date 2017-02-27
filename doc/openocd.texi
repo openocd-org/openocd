@@ -8418,6 +8418,11 @@ halting or resuming of all cores in the group. The command @code{target smp} def
 group. With SMP handling disabled, all targets need to be treated individually.
 @end deffn
 
+@deffn Command {aarch64 maskisr} [@option{on}|@option{off}]
+Selects whether interrupts will be processed when single stepping. The default configuration is
+@option{on}.
+@end deffn
+
 @section Intel Architecture
 
 Intel Quark X10xx is the first product in the Quark family of SoCs. It is an IA-32
