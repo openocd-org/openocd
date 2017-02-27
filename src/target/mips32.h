@@ -217,6 +217,101 @@ struct mips32_algorithm {
 #define MIPS32_SDBBP				0x7000003F	/* MIPS32_J_INST(MIPS32_OP_SPECIAL2, MIPS32_OP_SDBBP) */
 #define MIPS16_SDBBP				0xE801
 
+/*MICRO MIPS INSTRUCTIONS, see doc MD00582 */
+#define POOL32A					0X00u
+#define POOL32AXf				0x3Cu
+#define POOL32B					0x08u
+#define POOL32I					0x10u
+#define MMIPS32_OP_ADDI			0x04u
+#define MMIPS32_OP_ADDIU		0x0Cu
+#define MMIPS32_OP_ADDU			0x150u
+#define MMIPS32_OP_AND			0x250u
+#define MMIPS32_OP_ANDI			0x34u
+#define MMIPS32_OP_BEQ			0x25u
+#define MMIPS32_OP_BGTZ			0x06u
+#define MMIPS32_OP_BNE			0x2Du
+#define MMIPS32_OP_CACHE		0x06u
+#define MMIPS32_OP_J			0x35u
+#define MMIPS32_OP_JALR			0x03Cu
+#define MMIPS32_OP_LB			0x07u
+#define MMIPS32_OP_LBU			0x05u
+#define MMIPS32_OP_LHU			0x0Du
+#define MMIPS32_OP_LUI			0x0Du
+#define MMIPS32_OP_LW			0x3Fu
+#define MMIPS32_OP_MFC0			0x03u
+#define MMIPS32_OP_MTC0			0x0Bu
+#define MMIPS32_OP_MFLO			0x075u
+#define MMIPS32_OP_MFHI			0x035u
+#define MMIPS32_OP_MTLO			0x0F5u
+#define MMIPS32_OP_MTHI			0x0B5u
+#define MMIPS32_OP_MOVN			0x018u
+#define MMIPS32_OP_ORI			0x14u
+#define MMIPS32_OP_RDHWR		0x1ACu
+#define MMIPS32_OP_SB			0x06u
+#define MMIPS32_OP_SH			0x0Eu
+#define MMIPS32_OP_SW			0x3Eu
+#define MMIPS32_OP_SLTU			0x390u
+#define MMIPS32_OP_SLL			0x000u
+#define MMIPS32_OP_SLTI			0x24u
+#define MMIPS32_OP_SRL			0x040u
+#define MMIPS32_OP_SYNCI		0x10u
+#define MMIPS32_OP_XOR			0x310u
+#define MMIPS32_OP_XORI			0x1Cu
+
+#define MMIPS32_ADDI(tar, src, val)		MIPS32_I_INST(MMIPS32_OP_ADDI, tar, src, val)
+#define MMIPS32_ADDIU(tar, src, val)		MIPS32_I_INST(MMIPS32_OP_ADDIU, tar, src, val)
+#define MMIPS32_ADDU(dst, src, tar)		MIPS32_R_INST(POOL32A, tar, src, dst, 0, MMIPS32_OP_ADDU)
+#define MMIPS32_AND(dst, src, tar)		MIPS32_R_INST(POOL32A, tar, src, dst, 0, MMIPS32_OP_AND)
+#define MMIPS32_ANDI(tar, src, val)		MIPS32_I_INST(MMIPS32_OP_ANDI, tar, src, val)
+
+#define MMIPS32_B(off)				MMIPS32_BEQ(0, 0, off)
+#define MMIPS32_BEQ(src, tar, off)		MIPS32_I_INST(MMIPS32_OP_BEQ, tar, src, off)
+#define MMIPS32_BGTZ(reg, off)			MIPS32_I_INST(POOL32I, MMIPS32_OP_BGTZ, reg, off)
+#define MMIPS32_BNE(src, tar, off)		MIPS32_I_INST(MMIPS32_OP_BNE, tar, src, off)
+#define MMIPS32_CACHE(op, off, base)		MIPS32_R_INST(POOL32B, op, base, MMIPS32_OP_CACHE << 1, 0, off)
+
+#define MMIPS32_J(tar)				MIPS32_J_INST(MMIPS32_OP_J, (0x07FFFFFFu & (tar)) >> 1)
+#define MMIPS32_JR(reg)				MIPS32_R_INST(POOL32A, 0, reg, 0, MMIPS32_OP_JALR, POOL32AXf)
+#define MMIPS32_LB(reg, off, base)		MIPS32_I_INST(MMIPS32_OP_LB, reg, base, off)
+#define MMIPS32_LBU(reg, off, base)		MIPS32_I_INST(MMIPS32_OP_LBU, reg, base, off)
+#define MMIPS32_LHU(reg, off, base)		MIPS32_I_INST(MMIPS32_OP_LHU, reg, base, off)
+#define MMIPS32_LUI(reg, val)			MIPS32_I_INST(POOL32I, MMIPS32_OP_LUI, reg, val)
+#define MMIPS32_LW(reg, off, base)		MIPS32_I_INST(MMIPS32_OP_LW, reg, base, off)
+
+#define MMIPS32_MFC0(gpr, cpr, sel)		MIPS32_R_INST(POOL32A, gpr, cpr, sel, MMIPS32_OP_MFC0, POOL32AXf)
+#define MMIPS32_MFLO(reg)			MIPS32_R_INST(POOL32A, 0, reg, 0, MMIPS32_OP_MFLO, POOL32AXf)
+#define MMIPS32_MFHI(reg)			MIPS32_R_INST(POOL32A, 0, reg, 0, MMIPS32_OP_MFHI, POOL32AXf)
+#define MMIPS32_MTC0(gpr, cpr, sel)		MIPS32_R_INST(POOL32A, gpr, cpr, sel, MMIPS32_OP_MTC0, POOL32AXf)
+#define MMIPS32_MTLO(reg)			MIPS32_R_INST(POOL32A, 0, reg, 0, MMIPS32_OP_MTLO, POOL32AXf)
+#define MMIPS32_MTHI(reg)			MIPS32_R_INST(POOL32A, 0, reg, 0, MMIPS32_OP_MTHI, POOL32AXf)
+
+#define MMIPS32_MOVN(dst, src, tar)		MIPS32_R_INST(POOL32A, tar, src, dst, 0, MMIPS32_OP_MOVN)
+#define MMIPS32_NOP				0
+#define MMIPS32_ORI(tar, src, val)		MIPS32_I_INST(MMIPS32_OP_ORI, tar, src, val)
+#define MMIPS32_RDHWR(tar, dst)			MIPS32_R_INST(POOL32A, dst, tar, 0, MMIPS32_OP_RDHWR, POOL32AXf)
+#define MMIPS32_SB(reg, off, base)		MIPS32_I_INST(MMIPS32_OP_SB, reg, base, off)
+#define MMIPS32_SH(reg, off, base)		MIPS32_I_INST(MMIPS32_OP_SH, reg, base, off)
+#define MMIPS32_SW(reg, off, base)		MIPS32_I_INST(MMIPS32_OP_SW, reg, base, off)
+
+#define MMIPS32_SRL(reg, src, off)		MIPS32_R_INST(POOL32A, reg, src, off, 0, MMIPS32_OP_SRL)
+#define MMIPS32_SLTU(dst, src, tar)		MIPS32_R_INST(POOL32A, tar, src, dst, 0, MMIPS32_OP_SLTU)
+#define MMIPS32_SYNCI(off, base)		MIPS32_I_INST(POOL32I, MMIPS32_OP_SYNCI, base, off)
+#define MMIPS32_SLL(dst, src, sa)		MIPS32_R_INST(POOL32A, dst, src, sa, 0, MMIPS32_OP_SLL)
+#define MMIPS32_SLTI(tar, src, val)		MIPS32_I_INST(MMIPS32_OP_SLTI, tar, src, val)
+#define MMIPS32_SYNC				0x00001A7Cu /* MIPS32_R_INST(POOL32A, 0, 0, 0, 0x1ADu, POOL32AXf) */
+
+#define MMIPS32_XOR(reg, val1, val2)		MIPS32_R_INST(POOL32A, val1, val2, reg, 0, MMIPS32_OP_XOR)
+#define MMIPS32_XORI(tar, src, val)		MIPS32_I_INST(MMIPS32_OP_XORI, tar, src, val)
+
+#define MMIPS32_SYNCI_STEP	0x1u	/* reg num od address step size to be used with synci instruction */
+
+
+/* ejtag specific instructions */
+#define MMIPS32_DRET			0x0000E37Cu	/* MIPS32_R_INST(POOL32A, 0, 0, 0, 0x38D, POOL32AXf) */
+#define MMIPS32_SDBBP			0x0000DB7Cu	/* MIPS32_R_INST(POOL32A, 0, 0, 0, 0x1BD, POOL32AXf) */
+#define MMIPS16_SDBBP			0x46C0u		/* POOL16C instr */
+
+
 extern const struct command_registration mips32_command_handlers[];
 
 int mips32_arch_state(struct target *target);
