@@ -61,7 +61,7 @@ void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t instr);
 void pracc_add_li32(struct pracc_queue_info *ctx, uint32_t reg_num, uint32_t data, bool optimize);
 void pracc_queue_free(struct pracc_queue_info *ctx);
 int mips32_pracc_queue_exec(struct mips_ejtag *ejtag_info,
-			    struct pracc_queue_info *ctx, uint32_t *buf);
+			    struct pracc_queue_info *ctx, uint32_t *buf, bool check_last);
 
 int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
@@ -73,7 +73,8 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 
-int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ctx, uint32_t *param_out);
+int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ctx,
+				uint32_t *param_out, bool check_last);
 
 /**
  * \b mips32_cp0_read
