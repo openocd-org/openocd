@@ -125,7 +125,6 @@ typedef struct {
 	unsigned progsize;
 	/* Number of Program Buffer registers. */
 	/* Number of words in Debug RAM. */
-	unsigned int dramsize;	// TODO: remove
 	uint64_t dcsr;
 	uint64_t dpc;
 	uint64_t misa;
@@ -373,33 +372,6 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 	return in;
 }
 
-static uint32_t idcode_scan(struct target *target)
-{
-	struct scan_field field;
-	uint8_t in_value[4];
-
-	jtag_add_ir_scan(target->tap, &select_idcode, TAP_IDLE);
-
-	field.num_bits = 32;
-	field.out_value = NULL;
-	field.in_value = in_value;
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-
-	int retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("failed jtag scan: %d", retval);
-		return retval;
-	}
-
-	/* Always return to dmi. */
-	select_dmi(target);
-
-	uint32_t in = buf_get_u32(field.in_value, 0, 32);
-	LOG_DEBUG("IDCODE: 0x0 -> 0x%x", in);
-
-	return in;
-}
-
 static void increase_ac_busy_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
@@ -484,7 +456,7 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 
 	unsigned i = 0;
 	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, &address_in, &value, DMI_OP_READ, address, 0,
+		status = dmi_scan(target, NULL, NULL, DMI_OP_READ, address, 0,
 				false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
@@ -1508,12 +1480,6 @@ static int examine(struct target *target)
 	riscv013_info_t *info = get_info(target);
 	info->abits = get_field(dtmcontrol, DTM_DTMCONTROL_ABITS);
 	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCONTROL_IDLE);
-	if (info->dtmcontrol_idle == 0) {
-		// Some old SiFive cores don't set idle but need it to be 1.
-		uint32_t idcode = idcode_scan(target);
-		if (idcode == 0x10e31913)
-			info->dtmcontrol_idle = 1;
-	}
 
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	if (get_field(dmcontrol, DMI_DMCONTROL_VERSION) != 1) {
