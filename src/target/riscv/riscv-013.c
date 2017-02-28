@@ -1539,7 +1539,7 @@ static int examine(struct target *target)
 	LOG_DEBUG("  authbusy=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHBUSY));
 	LOG_DEBUG("  version=%d", get_field(dmcontrol, DMI_DMCONTROL_VERSION));
 
-	unsigned hartstatus = DMI_DMCONTROL_HARTSTATUS;
+	unsigned hartstatus = get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS);
 
 	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
@@ -1570,7 +1570,7 @@ static int examine(struct target *target)
 	LOG_DEBUG("  datacount=%d", info->datacount);
 
 	uint32_t accesscs = dmi_read(target, DMI_PROGBUFCS);
-	info->progsize = get_field(abstractcs, DMI_PROGBUFCS_PROGSIZE);
+	info->progsize = get_field(accesscs, DMI_PROGBUFCS_PROGSIZE);
 	LOG_DEBUG("accesscs=0x%x", accesscs);
 	LOG_DEBUG("  progsize=%d", info->progsize);
 
@@ -1606,6 +1606,7 @@ static int examine(struct target *target)
 	}
 
 	if (hartstatus == 1) {
+		LOG_DEBUG("Hart currently running. Requesting halt.\n");
 		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ |
 				DMI_DMCONTROL_DMACTIVE);
 		for (unsigned i = 0; i < 256; i++) {
@@ -1644,6 +1645,7 @@ static int examine(struct target *target)
 	}
 
 	if (hartstatus == 1) {
+		LOG_DEBUG("Resuming hart.\n");
 		// Resume if the hart had been running.
 		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE |
 				DMI_DMCONTROL_RESUMEREQ);
