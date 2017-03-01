@@ -923,6 +923,8 @@ static int aarch64_debug_entry(struct target *target)
 	if (retval == ERROR_OK)
 		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+	if (retval == ERROR_OK)
+		retval = arm_cti_ack_events(armv8->cti, CTI_TRIG(HALT));
 
 	if (retval != ERROR_OK)
 		return retval;
