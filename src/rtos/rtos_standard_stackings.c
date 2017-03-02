@@ -229,6 +229,25 @@ static int64_t rtos_standard_Cortex_M3_stack_align(struct target *target,
 		stack_ptr, XPSR_OFFSET);
 }
 
+static int64_t rtos_standard_Cortex_M4F_stack_align(struct target *target,
+	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
+	int64_t stack_ptr)
+{
+	const int XPSR_OFFSET = 0x40;
+	return rtos_Cortex_M_stack_align(target, stack_data, stacking,
+		stack_ptr, XPSR_OFFSET);
+}
+
+static int64_t rtos_standard_Cortex_M4F_FPU_stack_align(struct target *target,
+	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
+	int64_t stack_ptr)
+{
+	const int XPSR_OFFSET = 0x80;
+	return rtos_Cortex_M_stack_align(target, stack_data, stacking,
+		stack_ptr, XPSR_OFFSET);
+}
+
+
 const struct rtos_register_stacking rtos_standard_Cortex_M3_stacking = {
 	0x40,					/* stack_registers_size */
 	-1,						/* stack_growth_direction */
@@ -241,7 +260,7 @@ const struct rtos_register_stacking rtos_standard_Cortex_M4F_stacking = {
 	0x44,					/* stack_registers_size 4 more for LR*/
 	-1,						/* stack_growth_direction */
 	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
-	rtos_standard_Cortex_M3_stack_align,	/* stack_alignment */
+	rtos_standard_Cortex_M4F_stack_align,	/* stack_alignment */
 	rtos_standard_Cortex_M4F_stack_offsets	/* register_offsets */
 };
 
@@ -249,7 +268,7 @@ const struct rtos_register_stacking rtos_standard_Cortex_M4F_FPU_stacking = {
 	0xcc,					/* stack_registers_size 4 more for LR + 48 more for FPU S0-S15 register*/
 	-1,						/* stack_growth_direction */
 	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
-	rtos_standard_Cortex_M3_stack_align,	/* stack_alignment */
+	rtos_standard_Cortex_M4F_FPU_stack_align,	/* stack_alignment */
 	rtos_standard_Cortex_M4F_FPU_stack_offsets	/* register_offsets */
 };
 
