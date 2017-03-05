@@ -5989,16 +5989,21 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f2x options_read} num
-Reads and displays user options and (where implemented) boot_addr0 and boot_addr1.
+Reads and displays user options and (where implemented) boot_addr0, boot_addr1, optcr2.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f2x options_write} num user_options boot_addr0 boot_addr1
 Writes user options and (where implemented) boot_addr0 and boot_addr1 in raw format.
 Warning: The meaning of the various bits depends on the device, always check datasheet!
-The @var{num} parameter is a value shown by @command{flash banks}, user_options a
-12 bit value, consisting of bits 31-28 and 7-0 of FLASH_OPTCR, boot_addr0 and boot_addr1
-two halfwords (of FLASH_OPTCR1).
+The @var{num} parameter is a value shown by @command{flash banks}, @var{user_options} a
+12 bit value, consisting of bits 31-28 and 7-0 of FLASH_OPTCR, @var{boot_addr0} and
+@var{boot_addr1} two halfwords (of FLASH_OPTCR1).
+@end deffn
+
+@deffn Command {stm32f2x optcr2_write} num optcr2
+Writes FLASH_OPTCR2 options. Warning: Clearing PCROPi bits requires a full mass erase!
+The @var{num} parameter is a value shown by @command{flash banks}, @var{optcr2} a 32-bit word.
 @end deffn
 @end deffn
 
