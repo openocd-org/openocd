@@ -96,19 +96,25 @@
 #define FTFx_FCCOB3	0x40020004
 #define FTFx_FPROT3	0x40020010
 #define FTFx_FDPROT	0x40020017
-#define SIM_SDID	0x40048024
-#define SIM_SOPT1	0x40047000
-#define SIM_FCFG1	0x4004804c
-#define SIM_FCFG2	0x40048050
+#define SIM_BASE	0x40047000
+#define SIM_BASE_KL28	0x40074000
 #define SIM_COPC	0x40048100
+	/* SIM_COPC does not exist on devices with changed SIM_BASE */
 #define WDOG_BASE	0x40052000
 #define WDOG32_KE1X	0x40052000
 #define WDOG32_KL28	0x40076000
 #define SMC_PMCTRL	0x4007E001
 #define SMC_PMSTAT	0x4007E003
+#define SMC32_PMCTRL	0x4007E00C
+#define SMC32_PMSTAT	0x4007E014
 #define MCM_PLACR	0xF000300C
 
 /* Offsets */
+#define SIM_SOPT1_OFFSET    0x0000
+#define SIM_SDID_OFFSET	    0x1024
+#define SIM_FCFG1_OFFSET    0x104c
+#define SIM_FCFG2_OFFSET    0x1050
+
 #define WDOG_STCTRLH_OFFSET      0
 #define WDOG32_CS_OFFSET         0
 
@@ -272,6 +278,7 @@ struct kinetis_chip {
 	uint32_t dflash_size;		/* accessible rest of FlexNVM if EEPROM backup uses part of FlexNVM */
 
 	uint32_t progr_accel_ram;
+	uint32_t sim_base;
 
 	enum {
 		FS_PROGRAM_SECTOR = 1,
@@ -296,6 +303,11 @@ struct kinetis_chip {
 		KINETIS_WDOG32_KE1X,
 		KINETIS_WDOG32_KL28,
 	} watchdog_type;
+
+	enum {
+		KINETIS_SMC,
+		KINETIS_SMC32,
+	} sysmodectrlr_type;
 
 	char name[40];
 
@@ -844,11 +856,25 @@ static struct kinetis_chip *kinetis_get_chip(struct target *target)
 	return NULL;
 }
 
+static int kinetis_chip_options(struct kinetis_chip *k_chip, int argc, const char *argv[])
+{
+	int i;
+	for (i = 0; i < argc; i++) {
+		if (strcmp(argv[i], "-sim-base") == 0) {
+			if (i + 1 < argc)
+				k_chip->sim_base = strtoul(argv[++i], NULL, 0);
+		} else
+			LOG_ERROR("Unsupported flash bank option %s", argv[i]);
+	}
+	return ERROR_OK;
+}
+
 FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 {
 	struct target *target = bank->target;
 	struct kinetis_chip *k_chip;
 	struct kinetis_flash_bank *k_bank;
+	int retval;
 
 	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -865,6 +891,11 @@ FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 		}
 
 		k_chip->target = target;
+
+		/* only the first defined bank can define chip options */
+		retval = kinetis_chip_options(k_chip, CMD_ARGC - 6, CMD_ARGV + 6);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	if (k_chip->num_banks >= KINETIS_MAX_BANKS) {
@@ -1467,17 +1498,44 @@ static int kinetis_ftfx_command(struct target *target, uint8_t fcmd, uint32_t fa
 }
 
 
-static int kinetis_check_run_mode(struct target *target)
+static int kinetis_read_pmstat(struct kinetis_chip *k_chip, uint8_t *pmstat)
+{
+	int result;
+	uint32_t stat32;
+	struct target *target = k_chip->target;
+
+	switch (k_chip->sysmodectrlr_type) {
+	case KINETIS_SMC:
+		result = target_read_u8(target, SMC_PMSTAT, pmstat);
+		return result;
+
+	case KINETIS_SMC32:
+		result = target_read_u32(target, SMC32_PMSTAT, &stat32);
+		if (result == ERROR_OK)
+			*pmstat = stat32 & 0xff;
+		return result;
+	}
+	return ERROR_FAIL;
+}
+
+static int kinetis_check_run_mode(struct kinetis_chip *k_chip)
 {
 	int result, i;
-	uint8_t pmctrl, pmstat;
+	uint8_t pmstat;
+	struct target *target;
+
+	if (k_chip == NULL) {
+		LOG_ERROR("Chip not probed.");
+		return ERROR_FAIL;
+	}
+	target = k_chip->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	result = target_read_u8(target, SMC_PMSTAT, &pmstat);
+	result = kinetis_read_pmstat(k_chip, &pmstat);
 	if (result != ERROR_OK)
 		return result;
 
@@ -1487,13 +1545,21 @@ static int kinetis_check_run_mode(struct target *target)
 	if (pmstat == PM_STAT_VLPR) {
 		/* It is safe to switch from VLPR to RUN mode without changing clock */
 		LOG_INFO("Switching from VLPR to RUN mode.");
-		pmctrl = PM_CTRL_RUNM_RUN;
-		result = target_write_u8(target, SMC_PMCTRL, pmctrl);
+
+		switch (k_chip->sysmodectrlr_type) {
+		case KINETIS_SMC:
+			result = target_write_u8(target, SMC_PMCTRL, PM_CTRL_RUNM_RUN);
+			break;
+
+		case KINETIS_SMC32:
+			result = target_write_u32(target, SMC32_PMCTRL, PM_CTRL_RUNM_RUN);
+			break;
+		}
 		if (result != ERROR_OK)
 			return result;
 
 		for (i = 100; i; i--) {
-			result = target_read_u8(target, SMC_PMSTAT, &pmstat);
+			result = kinetis_read_pmstat(k_chip, &pmstat);
 			if (result != ERROR_OK)
 				return result;
 
@@ -1539,8 +1605,9 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 {
 	int result, i;
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
 
-	result = kinetis_check_run_mode(bank->target);
+	result = kinetis_check_run_mode(k_chip);
 	if (result != ERROR_OK)
 		return result;
 
@@ -1816,8 +1883,9 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 	bool set_fcf = false;
 	int sect = 0;
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	struct kinetis_chip *k_chip = k_bank->k_chip;
 
-	result = kinetis_check_run_mode(bank->target);
+	result = kinetis_check_run_mode(k_chip);
 	if (result != ERROR_OK)
 		return result;
 
@@ -1902,7 +1970,18 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 
 	name[0] = '\0';
 
-	result = target_read_u32(target, SIM_SDID, &k_chip->sim_sdid);
+	if (k_chip->sim_base)
+		result = target_read_u32(target, k_chip->sim_base + SIM_SDID_OFFSET, &k_chip->sim_sdid);
+	else {
+		result = target_read_u32(target, SIM_BASE + SIM_SDID_OFFSET, &k_chip->sim_sdid);
+		if (result == ERROR_OK)
+			k_chip->sim_base = SIM_BASE;
+		else {
+			result = target_read_u32(target, SIM_BASE_KL28 + SIM_SDID_OFFSET, &k_chip->sim_sdid);
+			if (result == ERROR_OK)
+				k_chip->sim_base = SIM_BASE_KL28;
+		}
+	}
 	if (result != ERROR_OK)
 		return result;
 
@@ -2004,7 +2083,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX2: {
 				/* MK24FN1M reports as K22, this should detect it (according to errata note 1N83J) */
 				uint32_t sopt1;
-				result = target_read_u32(target, SIM_SOPT1, &sopt1);
+				result = target_read_u32(target, k_chip->sim_base + SIM_SOPT1_OFFSET, &sopt1);
 				if (result != ERROR_OK)
 					return result;
 
@@ -2112,8 +2191,21 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 			k_chip->watchdog_type = KINETIS_WDOG_COP;
 
 			cpu_mhz = 48;
-			if (subfamid == 3 && (familyid == 1 || familyid == 2))
+			switch (k_chip->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
+			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX3:
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX3:
 				subfamid = 7;
+				break;
+
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX8:
+				cpu_mhz = 72;
+				k_chip->pflash_sector_size = 2<<10;
+				num_blocks = 2;
+				k_chip->watchdog_type = KINETIS_WDOG32_KL28;
+				k_chip->sysmodectrlr_type = KINETIS_SMC32;
+				break;
+			}
+
 			snprintf(name, sizeof(name), "MKL%u%uZ%%s%u",
 				 familyid, subfamid, cpu_mhz / 10);
 			break;
@@ -2234,11 +2326,11 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
-	result = target_read_u32(target, SIM_FCFG1, &k_chip->sim_fcfg1);
+	result = target_read_u32(target, k_chip->sim_base + SIM_FCFG1_OFFSET, &k_chip->sim_fcfg1);
 	if (result != ERROR_OK)
 		return result;
 
-	result = target_read_u32(target, SIM_FCFG2, &k_chip->sim_fcfg2);
+	result = target_read_u32(target, k_chip->sim_base + SIM_FCFG2_OFFSET, &k_chip->sim_fcfg2);
 	if (result != ERROR_OK)
 		return result;
 
@@ -2573,7 +2665,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 	int result;
 
 	/* suprisingly blank check does not work in VLPR and HSRUN modes */
-	result = kinetis_check_run_mode(bank->target);
+	result = kinetis_check_run_mode(k_chip);
 	if (result != ERROR_OK)
 		return result;
 
@@ -2653,6 +2745,8 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	struct kinetis_chip *k_chip;
 	uint32_t sim_fcfg1;
 
+	k_chip = kinetis_get_chip(target);
+
 	if (CMD_ARGC >= 2) {
 		if (strcmp(CMD_ARGV[0], "dataflash") == 0)
 			sz_type = DF_SIZE;
@@ -2665,7 +2759,11 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	}
 	switch (sz_type) {
 	case SHOW_INFO:
-		result = target_read_u32(target, SIM_FCFG1, &sim_fcfg1);
+		if (k_chip == NULL) {
+			LOG_ERROR("Chip not probed.");
+			return ERROR_FAIL;
+		}
+		result = target_read_u32(target, k_chip->sim_base + SIM_FCFG1_OFFSET, &sim_fcfg1);
 		if (result != ERROR_OK)
 			return result;
 
@@ -2748,7 +2846,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	LOG_INFO("DEPART 0x%" PRIx8 ", EEPROM size code 0x%" PRIx8,
 		 flex_nvm_partition_code, ee_size_code);
 
-	result = kinetis_check_run_mode(target);
+	result = kinetis_check_run_mode(k_chip);
 	if (result != ERROR_OK)
 		return result;
 
@@ -2765,7 +2863,6 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 
 	command_print(CMD_CTX, "FlexNVM partition set. Please reset MCU.");
 
-	k_chip = kinetis_get_chip(target);
 	if (k_chip) {
 		first_nvm_bank = k_chip->num_pflash_blocks;
 		num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;

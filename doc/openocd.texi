@@ -5368,6 +5368,11 @@ recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
 Use kinetis_ke driver for KE0x devices.
 
+The @var{kinetis} driver defines option:
+@itemize
+@item -sim-base @var{addr} ... base of System Integration Module where chip identification resides. Driver tries two known locations if option is omitted.
+@end itemize
+
 @example
 flash bank $_FLASHNAME kinetis 0 0 0 0 $_TARGETNAME
 @end example
