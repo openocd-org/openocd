@@ -1865,7 +1865,7 @@ static int read_memory(struct target *target, uint32_t address,
 		return ERROR_FAIL;
 	}
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR);
-
+        uint32_t abstractcs;
 	for (uint32_t i = 0; i < count; i++) {
 		uint32_t value = dmi_read(target, DMI_DATA0);
 		switch (size) {
@@ -1885,9 +1885,16 @@ static int read_memory(struct target *target, uint32_t address,
 			default:
 				return ERROR_FAIL;
 		}
-	}
+                // The above dmi_read started an abstract command. If we just
+                // immediately read here, we'll probably get a busy error. Wait for idle first,
+                // or otherwise take ac_command_busy into account (this defeats the purpose
+                // of autoexec, this whole code needs optimization).
+                if (wait_for_idle(target, &abstractcs) != ERROR_OK) {
+                  return ERROR_FAIL;
+                }
+        }
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
-	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+	abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
 		// TODO: retry with more delay?
 		return ERROR_FAIL;
