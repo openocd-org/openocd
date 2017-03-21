@@ -473,6 +473,13 @@ int target_hit_watchpoint(struct target *target,
 		struct watchpoint **watchpoint);
 
 /**
+ * Obtain the architecture for GDB.
+ *
+ * This routine is a wrapper for target->type->get_gdb_arch.
+ */
+const char *target_get_gdb_arch(struct target *target);
+
+/**
  * Obtain the registers for GDB.
  *
  * This routine is a wrapper for target->type->get_gdb_reg_list.
