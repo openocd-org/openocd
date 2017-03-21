@@ -367,7 +367,7 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 	}
 
 	uint32_t in = buf_get_u32(field.in_value, 0, 32);
-	LOG_DEBUG("DTMCONTROL: 0x%x -> 0x%x", out, in);
+	LOG_DEBUG("DTMCS: 0x%x -> 0x%x", out, in);
 
 	return in;
 }
@@ -389,7 +389,7 @@ static void increase_dmi_busy_delay(struct target *target)
 			info->dtmcontrol_idle, info->dmi_busy_delay,
 			info->ac_busy_delay);
 
-	dtmcontrol_scan(target, DTM_DTMCONTROL_DMIRESET);
+	dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
 }
 
 /**
@@ -1462,29 +1462,30 @@ static int examine(struct target *target)
 
 	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
 	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
-	LOG_DEBUG("  dmireset=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DMIRESET));
-	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTM_DTMCONTROL_IDLE));
-	LOG_DEBUG("  dmistat=%d", get_field(dtmcontrol, DTM_DTMCONTROL_DMISTAT));
-	LOG_DEBUG("  abits=%d", get_field(dtmcontrol, DTM_DTMCONTROL_ABITS));
-	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTM_DTMCONTROL_VERSION));
+	LOG_DEBUG("  dmireset=%d", get_field(dtmcontrol, DTM_DTMCS_DMIRESET));
+	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTM_DTMCS_IDLE));
+	LOG_DEBUG("  dmistat=%d", get_field(dtmcontrol, DTM_DTMCS_DMISTAT));
+	LOG_DEBUG("  abits=%d", get_field(dtmcontrol, DTM_DTMCS_ABITS));
+	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTM_DTMCS_VERSION));
 	if (dtmcontrol == 0) {
 		LOG_ERROR("dtmcontrol is 0. Check JTAG connectivity/board power.");
 		return ERROR_FAIL;
 	}
-	if (get_field(dtmcontrol, DTM_DTMCONTROL_VERSION) != 1) {
+	if (get_field(dtmcontrol, DTM_DTMCS_VERSION) != 1) {
 		LOG_ERROR("Unsupported DTM version %d. (dtmcontrol=0x%x)",
-				get_field(dtmcontrol, DTM_DTMCONTROL_VERSION), dtmcontrol);
+				get_field(dtmcontrol, DTM_DTMCS_VERSION), dtmcontrol);
 		return ERROR_FAIL;
 	}
 
 	riscv013_info_t *info = get_info(target);
-	info->abits = get_field(dtmcontrol, DTM_DTMCONTROL_ABITS);
-	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCONTROL_IDLE);
+	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
+	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
 
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
-	if (get_field(dmcontrol, DMI_DMCONTROL_VERSION) != 1) {
-		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d "
-				"(dmcontrol=0x%x)", get_field(dmcontrol, DMI_DMCONTROL_VERSION), dmcontrol);
+	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+	if (get_field(dmstatus, DMI_DMSTATUS_VERSIONLO) != 2) {
+		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
+				"(dmstatus=0x%x)", get_field(dmstatus, DMI_DMSTATUS_VERSIONLO), dmstatus);
 		return ERROR_FAIL;
 	}
 
@@ -1494,18 +1495,7 @@ static int examine(struct target *target)
 	dmcontrol = dmi_read(target, DMI_DMCONTROL);
 
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
-	LOG_DEBUG("  haltreq=%d", get_field(dmcontrol, DMI_DMCONTROL_HALTREQ));
-	LOG_DEBUG("  resumereq=%d", get_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ));
-	LOG_DEBUG("  hartstatus=%d", get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS));
-	LOG_DEBUG("  hartsel=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTSEL));
-	LOG_DEBUG("  hartreset=0x%x", get_field(dmcontrol, DMI_DMCONTROL_HARTRESET));
-	LOG_DEBUG("  dmactive=%d", get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE));
-	LOG_DEBUG("  reset=%d", get_field(dmcontrol, DMI_DMCONTROL_RESET));
-	LOG_DEBUG("  authenticated=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED));
-	LOG_DEBUG("  authbusy=%d", get_field(dmcontrol, DMI_DMCONTROL_AUTHBUSY));
-	LOG_DEBUG("  version=%d", get_field(dmcontrol, DMI_DMCONTROL_VERSION));
-
-	unsigned hartstatus = get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS);
+	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
 
 	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
@@ -1513,32 +1503,27 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	if (!get_field(dmcontrol, DMI_DMCONTROL_AUTHENTICATED)) {
+	if (!get_field(dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
 		LOG_ERROR("Authentication required by RISC-V core but not "
 				"supported by OpenOCD. dmcontrol=0x%x", dmcontrol);
 		return ERROR_FAIL;
 	}
 
-	if (hartstatus == 2) {
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
 		LOG_ERROR("The hart is unavailable.");
 		return ERROR_FAIL;
 	}
 
-	if (hartstatus == 3) {
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT)) {
 		LOG_ERROR("The hart doesn't exist.");
 		return ERROR_FAIL;
 	}
 
 	// Check that abstract data registers are accessible.
 	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-	info->datacount = get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT);
 	LOG_DEBUG("abstractcs=0x%x", abstractcs);
-	LOG_DEBUG("  datacount=%d", info->datacount);
-
-	uint32_t accesscs = dmi_read(target, DMI_PROGBUFCS);
-	info->progsize = get_field(accesscs, DMI_PROGBUFCS_PROGSIZE);
-	LOG_DEBUG("accesscs=0x%x", accesscs);
-	LOG_DEBUG("  progsize=%d", info->progsize);
+	info->datacount = get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT);
+	info->progsize = get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE);
 
 	uint32_t value = 0x53467665;
 	for (unsigned i = 0; i < info->datacount; i++) {
@@ -1571,17 +1556,20 @@ static int examine(struct target *target)
 		value += 0x52534335;
 	}
 
-	if (hartstatus == 1) {
+	bool should_attempt_resume = false;
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYRUNNING)) {
+		should_attempt_resume = true;
 		LOG_DEBUG("Hart currently running. Requesting halt.\n");
 		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ |
 				DMI_DMCONTROL_DMACTIVE);
 		for (unsigned i = 0; i < 256; i++) {
 			dmcontrol = dmi_read(target, DMI_DMCONTROL);
-			if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 0)
+			dmstatus = dmi_read(target, DMI_DMSTATUS);
+			if (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED))
 				break;
 		}
-		if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) != 0) {
-			LOG_ERROR("hart didn't halt; dmcontrol=0x%x", dmcontrol);
+		if (!get_field(dmstatus, DMI_DMSTATUS_ALLHALTED)) {
+			LOG_ERROR("hart didn't halt; dmstatus=0x%x", dmstatus);
 			return ERROR_FAIL;
 		}
 	}
@@ -1610,18 +1598,19 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	if (hartstatus == 1) {
+	if (should_attempt_resume) {
 		LOG_DEBUG("Resuming hart.\n");
 		// Resume if the hart had been running.
 		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE |
 				DMI_DMCONTROL_RESUMEREQ);
 		for (unsigned i = 0; i < 256; i++) {
 			dmcontrol = dmi_read(target, DMI_DMCONTROL);
-			if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) == 1)
+			dmstatus = dmi_read(target, DMI_DMSTATUS);
+			if (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING))
 				break;
 		}
-		if (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS) != 1) {
-			LOG_ERROR("hart didn't resume; dmcontrol=0x%x", dmcontrol);
+		if (!get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING)) {
+			LOG_ERROR("hart didn't resume; dmstatus=0x%x", dmstatus);
 			return ERROR_FAIL;
 		}
 	}
@@ -1767,25 +1756,29 @@ static int poll_target(struct target *target, bool announce)
 	if (debug_level >= LOG_LVL_DEBUG) {
 		debug_level = LOG_LVL_INFO;
 	}
-	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	debug_level = old_debug_level;
 
-	switch (get_field(dmcontrol, DMI_DMCONTROL_HARTSTATUS)) {
-		case 0:
-			if (target->state != TARGET_HALTED) {
-				return handle_halt(target, announce);
-			}
-			break;
-		case 1:
-			target->state = TARGET_RUNNING;
-			break;
-		case 2:
-			// Could be unavailable for other reasons.
-			target->state = TARGET_RESET;
-			break;
-		case 3:
-			LOG_ERROR("Hart disappeared!");
-			return ERROR_FAIL;
+	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+	if (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED)) {
+		if (target->state != TARGET_HALTED) {
+			return handle_halt(target, announce);
+		}
+		return ERROR_OK;
+	}
+
+	if (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING)) {
+		target->state = TARGET_RUNNING;
+		return ERROR_OK;
+	}
+
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
+		target->state = TARGET_RESET;
+		return ERROR_OK;
+	}
+
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT)) {
+		LOG_ERROR("Hart disappeared!");
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
@@ -1864,8 +1857,9 @@ static int read_memory(struct target *target, uint32_t address,
 			abstract_register_size(xlen(target)) | reg_number_to_no(S1)) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
-	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR);
-        uint32_t abstractcs;
+	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+	dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECPROGBUF_OFFSET);
+
 	for (uint32_t i = 0; i < count; i++) {
 		uint32_t value = dmi_read(target, DMI_DATA0);
 		switch (size) {
@@ -1913,7 +1907,7 @@ static int check_dmi_error(struct target *target)
 			false);
 	if (status != DMI_STATUS_SUCCESS) {
 		// Clear errors.
-		dtmcontrol_scan(target, DTM_DTMCONTROL_DMIRESET);
+		dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
 		increase_dmi_busy_delay(target);
 		return 1;
 	}
@@ -1975,7 +1969,10 @@ static int write_memory(struct target *target, uint32_t address,
 						| abstract_register_size(xlen(target)) |
 						reg_number_to_no(S1), true);
 				scans_add_dmi_write(scans, DMI_ABSTRACTCS,
-						DMI_ABSTRACTCS_AUTOEXEC0 | DMI_ABSTRACTCS_CMDERR,
+						DMI_ABSTRACTCS_CMDERR,
+						false);
+				scans_add_dmi_write(scans, DMI_ABSTRACTAUTO,
+						0x1 << DMI_ABSTRACTAUTO_AUTOEXECPROGBUF_OFFSET,
 						false);
 			}
 		}
