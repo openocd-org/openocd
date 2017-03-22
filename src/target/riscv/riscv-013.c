@@ -1888,6 +1888,7 @@ static int read_memory(struct target *target, uint32_t address,
                   return ERROR_FAIL;
                 }
         }
+	dmi_write(target, DMI_ABSTRACTAUTO, 0);
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 	abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
