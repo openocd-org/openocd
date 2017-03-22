@@ -1985,7 +1985,7 @@ static int write_memory(struct target *target, uint32_t address,
 		int dmi_error = check_dmi_error(target);
 
 		// Clear autoexec.
-		dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+		dmi_write(target, DMI_ABSTRACTAUTO, 0);
 		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		unsigned cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 		if (cmderr == CMDERR_BUSY) {
