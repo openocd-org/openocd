@@ -1860,6 +1860,7 @@ static int read_memory(struct target *target, uint32_t address,
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 	dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
 
+        uint32_t abstractcs;
 	for (uint32_t i = 0; i < count; i++) {
 		uint32_t value = dmi_read(target, DMI_DATA0);
 		switch (size) {
