@@ -1830,73 +1830,82 @@ static int read_memory(struct target *target, uint32_t address,
 {
 	select_dmi(target);
 
-	abstract_write_register(target, S0, xlen(target), address);
+        while (1) {
+          abstract_write_register(target, S0, xlen(target), address);
 
-	program_t *program = program_new();
-	switch (size) {
-		case 1:
-			program_add32(program, lb(S1, S0, 0));
-			break;
-		case 2:
-			program_add32(program, lh(S1, S0, 0));
-			break;
-		case 4:
-			program_add32(program, lw(S1, S0, 0));
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
-	}
-	program_add32(program, addi(S0, S0, size));
-	program_add32(program, ebreak());
-	write_program(target, program);
-	program_delete(program);
+          program_t *program = program_new();
+          switch (size) {
+          case 1:
+            program_add32(program, lb(S1, S0, 0));
+            break;
+          case 2:
+            program_add32(program, lh(S1, S0, 0));
+            break;
+          case 4:
+            program_add32(program, lw(S1, S0, 0));
+            break;
+          default:
+            LOG_ERROR("Unsupported size: %d", size);
+            return ERROR_FAIL;
+          }
+          program_add32(program, addi(S0, S0, size));
+          program_add32(program, ebreak());
+          write_program(target, program);
+          program_delete(program);
 
-	if (execute_abstract_command(target,
-			AC_ACCESS_REGISTER_PREEXEC |
-			abstract_register_size(xlen(target)) | reg_number_to_no(S1)) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
-	dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+          if (execute_abstract_command(target,
+                                       AC_ACCESS_REGISTER_PREEXEC |
+                                       abstract_register_size(xlen(target)) | reg_number_to_no(S1)) != ERROR_OK) {
+            return ERROR_FAIL;
+          }
+          dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+          dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
 
-        uint32_t abstractcs;
-	for (uint32_t i = 0; i < count; i++) {
-		uint32_t value = dmi_read(target, DMI_DATA0);
-		switch (size) {
-			case 1:
-				buffer[i] = value;
-				break;
-			case 2:
-				buffer[2*i] = value;
-				buffer[2*i+1] = value >> 8;
-				break;
-			case 4:
-				buffer[4*i] = value;
-				buffer[4*i+1] = value >> 8;
-				buffer[4*i+2] = value >> 16;
-				buffer[4*i+3] = value >> 24;
-				break;
-			default:
-				return ERROR_FAIL;
-		}
-                // The above dmi_read started an abstract command. If we just
-                // immediately read here, we'll probably get a busy error. Wait for idle first,
-                // or otherwise take ac_command_busy into account (this defeats the purpose
-                // of autoexec, this whole code needs optimization).
-                if (wait_for_idle(target, &abstractcs) != ERROR_OK) {
-                  return ERROR_FAIL;
-                }
+          uint32_t abstractcs;
+          for (uint32_t i = 0; i < count; i++) {
+            uint32_t value = dmi_read(target, DMI_DATA0);
+            switch (size) {
+            case 1:
+              buffer[i] = value;
+              break;
+            case 2:
+              buffer[2*i] = value;
+              buffer[2*i+1] = value >> 8;
+              break;
+            case 4:
+              buffer[4*i] = value;
+              buffer[4*i+1] = value >> 8;
+              buffer[4*i+2] = value >> 16;
+              buffer[4*i+3] = value >> 24;
+              break;
+            default:
+              return ERROR_FAIL;
+            }
+            // The above dmi_read started an abstract command. If we just
+            // immediately read here, we'll probably get a busy error. Wait for idle first,
+            // or otherwise take ac_command_busy into account (this defeats the purpose
+            // of autoexec, this whole code needs optimization).
+            if (wait_for_idle(target, &abstractcs) != ERROR_OK) {
+              return ERROR_FAIL;
+            }
+          }
+          dmi_write(target, DMI_ABSTRACTAUTO, 0);
+          dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+          abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+          unsigned cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
+          if (cmderr == CMDERR_BUSY) {
+            dmi_write(target, DMI_ABSTRACTCS, 0);
+            increase_ac_busy_delay(target);
+          } else if (cmderr) {
+            LOG_ERROR("cmderr=%d", get_field(abstractcs, DMI_ABSTRACTCS_CMDERR));
+            return ERROR_FAIL;
+          } else {
+            return ERROR_OK;
+          }
         }
-	dmi_write(target, DMI_ABSTRACTAUTO, 0);
-	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
-	abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-	if (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
-		// TODO: retry with more delay?
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
+        // Should not get here.
+        assert(0);
+        return ERROR_OK;
 }
 
 /**
