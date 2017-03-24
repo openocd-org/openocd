@@ -769,8 +769,8 @@ static int steps_execute(struct algorithm_steps *as,
 	uint8_t *data_buf = malloc(data_wa->size);
 
 	struct reg_param reg_params[2];
-	init_reg_param(&reg_params[0], "x10", 64, PARAM_OUT);
-	init_reg_param(&reg_params[1], "x11", 64, PARAM_OUT);
+	init_reg_param(&reg_params[0], "x10", 32, PARAM_OUT);
+	init_reg_param(&reg_params[1], "x11", 32, PARAM_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, ctrl_base);
 	buf_set_u32(reg_params[1].value, 0, 32, data_wa->address);
 	while (!as_empty(as)) {
