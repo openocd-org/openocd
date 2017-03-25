@@ -42,6 +42,7 @@
 #include <jtag/jtag.h>
 #include <helper/time_support.h>
 #include <target/algorithm.h>
+#include "target/riscv/riscv.h"
 
 /* Register offsets */
 
@@ -121,24 +122,28 @@
 
 
 #define FESPI_READ_REG(a) (_FESPI_READ_REG(a))
-#define _FESPI_READ_REG(a)			\
-{									\
+#define _FESPI_READ_REG(a)					\
+{								\
 	int __a;						\
-	uint32_t __v;					\
-									\
-	__a = target_read_u32(target, ctrl_base + (a), &__v); \
-	if (__a != ERROR_OK)			\
+	uint32_t __v;						\
+								\
+	__a = target_read_u32(target, ctrl_base + (a), &__v); 	\
+	if (__a != ERROR_OK) {					\
+		LOG_ERROR("FESPI_READ_REG error");		\
 		return __a;					\
+	}							\
 	__v;							\
 }
 
-#define FESPI_WRITE_REG(a, v)			\
-{									\
+#define FESPI_WRITE_REG(a, v)					\
+{								\
 	int __r;						\
-									\
-	__r = target_write_u32(target, ctrl_base + (a), (v)); \
-	if (__r != ERROR_OK)			\
+								\
+	__r = target_write_u32(target, ctrl_base + (a), (v)); 	\
+	if (__r != ERROR_OK) {					\
+		LOG_ERROR("FESPI_WRITE_REG error");		\
 		return __r;					\
+	}							\
 }
 
 #define FESPI_DISABLE_HW_MODE()	FESPI_WRITE_REG(FESPI_REG_FCTRL, \
@@ -779,12 +784,13 @@ static int steps_execute(struct algorithm_steps *as,
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t ctrl_base = fespi_info->ctrl_base;
 	uint8_t *data_buf = malloc(data_wa->size);
+	int xlen = riscv_xlen(target);
 
 	struct reg_param reg_params[2];
-	init_reg_param(&reg_params[0], "x10", 32, PARAM_OUT);
-	init_reg_param(&reg_params[1], "x11", 32, PARAM_OUT);
-	buf_set_u32(reg_params[0].value, 0, 32, ctrl_base);
-	buf_set_u32(reg_params[1].value, 0, 32, data_wa->address);
+	init_reg_param(&reg_params[0], "x10", xlen, PARAM_OUT);
+	init_reg_param(&reg_params[1], "x11", xlen, PARAM_OUT);
+	buf_set_u64(reg_params[0].value, 0, xlen, ctrl_base);
+	buf_set_u64(reg_params[1].value, 0, xlen, data_wa->address);
 	while (!as_empty(as)) {
 		keep_alive();
 		unsigned bytes = as_compile(as, data_buf, data_wa->size);

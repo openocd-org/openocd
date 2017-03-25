@@ -125,6 +125,16 @@ static uint32_t csrr(unsigned int rd, unsigned int csr) {
   return (csr << 20) | (rd << 7) | MATCH_CSRRS;
 }
 
+static uint32_t csrrs(unsigned int rd, unsigned int rs, unsigned int csr) __attribute__ ((unused));
+static uint32_t csrrs(unsigned int rd, unsigned int rs, unsigned int csr) {
+  return (csr << 20) | (rs << 15) | (rd << 7) | MATCH_CSRRS;
+}
+
+static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr) __attribute__ ((unused));
+static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr) {
+  return (csr << 20) | (rs << 15) | (rd << 7) | MATCH_CSRRW;
+}
+
 static uint32_t fsw(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
 static uint32_t fsw(unsigned int src, unsigned int base, uint16_t offset)
 {
@@ -206,7 +216,6 @@ static uint32_t fence_i(void)
   return MATCH_FENCE_I;
 }
 
-/*
 static uint32_t lui(unsigned int dest, uint32_t imm) __attribute__ ((unused));
 static uint32_t lui(unsigned int dest, uint32_t imm)
 {
@@ -215,6 +224,7 @@ static uint32_t lui(unsigned int dest, uint32_t imm)
     MATCH_LUI;
 }
 
+/*
 static uint32_t csrci(unsigned int csr, uint16_t imm) __attribute__ ((unused));
 static uint32_t csrci(unsigned int csr, uint16_t imm) {
   return (csr << 20) |
@@ -270,4 +280,16 @@ static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt)
 		(src << 15) |
 		(dest << 7) |
 		MATCH_SRLI;
+}
+
+static uint32_t fence(void) __attribute__((unused));
+static uint32_t fence(void)
+{
+	return MATCH_FENCE;
+}
+
+static uint32_t auipc(unsigned int dest) __attribute__((unused));
+static uint32_t auipc(unsigned int dest)
+{
+	return MATCH_AUIPC | (dest << 7);
 }

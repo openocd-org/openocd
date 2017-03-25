@@ -2445,6 +2445,13 @@ static int gdb_v_packet(struct connection *connection,
 	struct gdb_service *gdb_service = connection->service->priv;
 	int result;
 
+	struct target *target = get_target_from_connection(connection);
+	if (target->rtos != NULL && target->rtos->gdb_v_packet != NULL) {
+		int out = target->rtos->gdb_v_packet(connection, packet, packet_size);
+		if (out != GDB_THREAD_PACKET_NOT_CONSUMED)
+			return out;
+	}
+
 	/* if flash programming disabled - send a empty reply */
 
 	if (gdb_flash_program == 0) {
@@ -2643,7 +2650,7 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 	gdb_output_con(connection, string);
 }
 
-static void gdb_sig_halted(struct connection *connection)
+void gdb_sig_halted(struct connection *connection)
 {
 	char sig_reply[4];
 	snprintf(sig_reply, 4, "T%2.2x", 2);
@@ -3194,4 +3201,10 @@ int gdb_register_commands(struct command_context *cmd_ctx)
 	gdb_port = strdup("3333");
 	gdb_port_next = strdup("3333");
 	return register_commands(cmd_ctx, NULL, gdb_command_handlers);
+}
+
+void gdb_set_frontend_state_running(struct connection *connection)
+{
+	struct gdb_connection *gdb_con = connection->priv;
+	gdb_con->frontend_state = TARGET_RUNNING;
 }

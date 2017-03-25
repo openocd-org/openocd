@@ -20,6 +20,7 @@
 #include "breakpoints.h"
 #include "helper/time_support.h"
 #include "riscv.h"
+#include "asm.h"
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -260,7 +261,7 @@ static riscv011_info_t *get_info(const struct target *target)
 static unsigned int slot_offset(const struct target *target, slot_t slot)
 {
 	riscv011_info_t *info = get_info(target);
-	switch (xlen(target)) {
+	switch (riscv_xlen(target)) {
 		case 32:
 			switch (slot) {
 				case SLOT0: return 4;
@@ -275,7 +276,7 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 			}
 	}
 	LOG_ERROR("slot_offset called with xlen=%d, slot=%d",
-			xlen(target), slot);
+			riscv_xlen(target), slot);
 	assert(0);
 }
 
@@ -537,8 +538,8 @@ static scans_t *scans_new(struct target *target, unsigned int scan_count)
 	scans_t *scans = malloc(sizeof(scans_t));
 	scans->scan_count = scan_count;
 	// This code also gets called before xlen is detected.
-	if (xlen(target))
-		scans->scan_size = 2 + xlen(target) / 8;
+	if (riscv_xlen(target))
+		scans->scan_size = 2 + riscv_xlen(target) / 8;
 	else
 		scans->scan_size = 2 + 128 / 8;
 	scans->next_scan = 0;
@@ -641,7 +642,7 @@ static void scans_add_read32(scans_t *scans, uint16_t address, bool set_interrup
 static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
 {
 	const struct target *target = scans->target;
-	switch (xlen(target)) {
+	switch (riscv_xlen(target)) {
 		case 32:
 			scans_add_read32(scans, slot_offset(target, slot), set_interrupt);
 			break;
@@ -776,7 +777,7 @@ static void cache_set(struct target *target, slot_t slot, uint64_t data)
 {
 	unsigned int offset = slot_offset(target, slot);
 	cache_set32(target, offset, data);
-	if (xlen(target) > 32) {
+	if (riscv_xlen(target) > 32) {
 		cache_set32(target, offset + 1, data >> 32);
 	}
 }
@@ -996,7 +997,7 @@ static uint64_t cache_get(struct target *target, slot_t slot)
 {
 	unsigned int offset = slot_offset(target, slot);
 	uint64_t value = cache_get32(target, offset);
-	if (xlen(target) > 32) {
+	if (riscv_xlen(target) > 32) {
 		value |= ((uint64_t) cache_get32(target, offset + 1)) << 32;
 	}
 	return value;
@@ -1117,7 +1118,7 @@ static int execute_resume(struct target *target, bool step)
 
 	struct reg *mstatus_reg = &target->reg_cache->reg_list[REG_MSTATUS];
 	if (mstatus_reg->valid) {
-		uint64_t mstatus_user = buf_get_u64(mstatus_reg->value, 0, xlen(target));
+		uint64_t mstatus_user = buf_get_u64(mstatus_reg->value, 0, riscv_xlen(target));
 		if (mstatus_user != info->mstatus_actual) {
 			cache_set_load(target, 0, S0, SLOT0);
 			cache_set32(target, 1, csrw(S0, CSR_MSTATUS));
@@ -1198,18 +1199,18 @@ static void update_reg_list(struct target *target)
 	if (info->reg_values) {
 		free(info->reg_values);
 	}
-	info->reg_values = malloc(REG_COUNT * xlen(target) / 4);
+	info->reg_values = malloc(REG_COUNT * riscv_xlen(target) / 4);
 
 	for (unsigned int i = 0; i < REG_COUNT; i++) {
 		struct reg *r = &target->reg_cache->reg_list[i];
-		r->value = info->reg_values + i * xlen(target) / 4;
+		r->value = info->reg_values + i * riscv_xlen(target) / 4;
 		if (r->dirty) {
 			LOG_ERROR("Register %d was dirty. Its value is lost.", i);
 		}
 		if (i == REG_PRIV) {
 			r->size = 8;
 		} else {
-			r->size = xlen(target);
+			r->size = riscv_xlen(target);
 		}
 		r->valid = false;
 	}
@@ -1259,7 +1260,7 @@ static int register_get(struct reg *reg)
 	maybe_write_tselect(target);
 
 	if (reg->number <= REG_XPR31) {
-		buf_set_u64(reg->value, 0, xlen(target), reg_cache_get(target, reg->number));
+		buf_set_u64(reg->value, 0, riscv_xlen(target), reg_cache_get(target, reg->number));
 		LOG_DEBUG("%s=0x%" PRIx64, reg->name, reg_cache_get(target, reg->number));
 		return ERROR_OK;
 	} else if (reg->number == REG_PC) {
@@ -1280,7 +1281,7 @@ static int register_get(struct reg *reg)
 			cache_set(target, SLOT1, info->mstatus_actual);
 		}
 
-		if (xlen(target) == 32) {
+		if (riscv_xlen(target) == 32) {
 			cache_set32(target, i++, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
 		} else {
 			cache_set32(target, i++, fsd(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
@@ -1308,13 +1309,13 @@ static int register_get(struct reg *reg)
 	if (exception) {
 		LOG_ERROR("Got exception 0x%x when reading register %d", exception,
 				reg->number);
-		buf_set_u64(reg->value, 0, xlen(target), ~0);
+		buf_set_u64(reg->value, 0, riscv_xlen(target), ~0);
 		return ERROR_FAIL;
 	}
 
 	uint64_t value = cache_get(target, SLOT0);
 	LOG_DEBUG("%s=0x%" PRIx64, reg->name, value);
-	buf_set_u64(reg->value, 0, xlen(target), value);
+	buf_set_u64(reg->value, 0, riscv_xlen(target), value);
 
 	if (reg->number == REG_MSTATUS) {
 		info->mstatus_actual = value;
@@ -1358,7 +1359,7 @@ static int register_write(struct target *target, unsigned int number,
 			cache_set(target, SLOT1, info->mstatus_actual);
 		}
 
-		if (xlen(target) == 32) {
+		if (riscv_xlen(target) == 32) {
 			cache_set32(target, i++, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
 		} else {
 			cache_set32(target, i++, fld(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
@@ -1399,7 +1400,7 @@ static int register_set(struct reg *reg, uint8_t *buf)
 {
 	struct target *target = (struct target *) reg->arch_info;
 
-	uint64_t value = buf_get_u64(buf, 0, xlen(target));
+	uint64_t value = buf_get_u64(buf, 0, riscv_xlen(target));
 
 	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
 	struct reg *r = &target->reg_cache->reg_list[reg->number];
@@ -1437,6 +1438,7 @@ static int init_target(struct command_context *cmd_ctx,
 {
 	LOG_DEBUG("init");
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
+	generic_info->get_register = NULL;
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -1510,7 +1512,7 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 		uint64_t tdata1;
 		read_csr(target, &tdata1, CSR_TDATA1);
-		int type = get_field(tdata1, MCONTROL_TYPE(xlen(target)));
+		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
 
 		if (type != 2) {
 			continue;
@@ -1522,7 +1524,7 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 		}
 
 		// address/data match trigger
-		tdata1 |= MCONTROL_DMODE(xlen(target));
+		tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
 		tdata1 = set_field(tdata1, MCONTROL_ACTION,
 				MCONTROL_ACTION_DEBUG_MODE);
 		tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
@@ -1769,9 +1771,9 @@ static int step(struct target *target, int current, uint32_t address,
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	if (!current) {
-		if (xlen(target) > 32) {
+		if (riscv_xlen(target) > 32) {
 			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
-					xlen(target));
+					riscv_xlen(target));
 		}
 		int result = register_write(target, REG_PC, address);
 		if (result != ERROR_OK)
@@ -1807,6 +1809,9 @@ static int examine(struct target *target)
 				get_field(dtmcontrol, DTMCONTROL_VERSION), dtmcontrol);
 		return ERROR_FAIL;
 	}
+
+	RISCV_INFO(r);
+	r->hart_count = 1;
 
 	riscv011_info_t *info = get_info(target);
 	info->addrbits = get_field(dtmcontrol, DTMCONTROL_ADDRBITS);
@@ -1875,11 +1880,11 @@ static int examine(struct target *target)
 	uint32_t word1 = cache_get32(target, 1);
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 	if (word0 == 1 && word1 == 0) {
-		generic_info->xlen = 32;
+		generic_info->xlen[0] = 32;
 	} else if (word0 == 0xffffffff && word1 == 3) {
-		generic_info->xlen = 64;
+		generic_info->xlen[0] = 64;
 	} else if (word0 == 0xffffffff && word1 == 0xffffffff) {
-		generic_info->xlen = 128;
+		generic_info->xlen[0] = 128;
 	} else {
 		uint32_t exception = cache_get32(target, info->dramsize-1);
 		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x, exception=0x%x",
@@ -1887,7 +1892,7 @@ static int examine(struct target *target)
 		dump_debug_ram(target);
 		return ERROR_FAIL;
 	}
-	LOG_DEBUG("Discovered XLEN is %d", xlen(target));
+	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
 	// Update register list to match discovered XLEN.
 	update_reg_list(target);
@@ -1905,7 +1910,7 @@ static int examine(struct target *target)
 	}
 
 	target_set_examined(target);
-	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64, xlen(target), info->misa);
+	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64, riscv_xlen(target), info->misa);
 
 	return ERROR_OK;
 }
@@ -2030,10 +2035,10 @@ static riscv_error_t handle_halt_routine(struct target *target)
 				default:
 						 assert(0);
 			}
-			if (xlen(target) == 32) {
+			if (riscv_xlen(target) == 32) {
 				reg_cache_set(target, reg, data & 0xffffffff);
 				result++;
-			} else if (xlen(target) == 64) {
+			} else if (riscv_xlen(target) == 64) {
 				if (address == 4) {
 					value = data & 0xffffffff;
 				} else if (address == 5) {
@@ -2125,7 +2130,7 @@ static int handle_halt(struct target *target, bool announce)
 				break;
 			uint64_t tdata1;
 			read_csr(target, &tdata1, CSR_TDATA1);
-			if ((tdata1 & MCONTROL_DMODE(xlen(target))) &&
+			if ((tdata1 & MCONTROL_DMODE(riscv_xlen(target))) &&
 					(tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD))) {
 				write_csr(target, CSR_TDATA1, 0);
 			}
@@ -2196,9 +2201,9 @@ static int riscv011_resume(struct target *target, int current, uint32_t address,
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	if (!current) {
-		if (xlen(target) > 32) {
+		if (riscv_xlen(target) > 32) {
 			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
-					xlen(target));
+					riscv_xlen(target));
 		}
 		int result = register_write(target, REG_PC, address);
 		if (result != ERROR_OK)
