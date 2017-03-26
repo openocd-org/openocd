@@ -168,6 +168,7 @@ void *cmd_queue_alloc(size_t size);
 void jtag_queue_command(struct jtag_command *cmd);
 void jtag_command_queue_reset(void);
 
+void jtag_scan_field_clone(struct scan_field *dst, const struct scan_field *src);
 enum scan_type jtag_scan_type(const struct scan_command *cmd);
 int jtag_scan_size(const struct scan_command *cmd);
 int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd);
