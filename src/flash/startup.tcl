@@ -42,6 +42,7 @@ proc program {filename args} {
 
 	# start programming phase
 	echo "** Programming Started **"
+	set filename \{$filename\}
 	if {[info exists address]} {
 		set flash_args "$filename $address"
 	} else {
