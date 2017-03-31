@@ -1817,12 +1817,18 @@ static int riscv013_resume(struct target *target, int current, uint32_t address,
 
 static int assert_reset(struct target *target)
 {
-	return ERROR_FAIL;
+  select_dmi(target);
+  dmi_write(target, DMI_DMCONTROL,
+	    DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_NDMRESET);
+  return ERROR_OK;
 }
 
 static int deassert_reset(struct target *target)
 {
-	return ERROR_FAIL;
+  select_dmi(target);
+  dmi_write(target, DMI_DMCONTROL,
+	    DMI_DMCONTROL_DMACTIVE);
+  return ERROR_OK;
 }
 
 static int read_memory(struct target *target, uint32_t address,

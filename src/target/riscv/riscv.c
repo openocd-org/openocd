@@ -310,6 +310,7 @@ static int riscv_examine(struct target *target)
 {
 	LOG_DEBUG("riscv_examine()");
 	if (target_was_examined(target)) {
+	  LOG_DEBUG("Target was already examined.\n");
 		return ERROR_OK;
 	}
 
@@ -348,12 +349,14 @@ static int riscv_resume(struct target *target, int current, uint32_t address,
 
 static int riscv_assert_reset(struct target *target)
 {
+  LOG_DEBUG("RISCV ASSERT RESET");
 	struct target_type *tt = get_target_type(target);
 	return tt->assert_reset(target);
 }
 
 static int riscv_deassert_reset(struct target *target)
 {
+  LOG_DEBUG("RISCV DEASSERT RESET");
 	struct target_type *tt = get_target_type(target);
 	return tt->deassert_reset(target);
 }
