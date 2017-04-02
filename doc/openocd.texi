@@ -682,7 +682,8 @@ bash$ openocd --help
 --version    | -v       display OpenOCD version
 --file       | -f       use configuration file <name>
 --search     | -s       dir to search for config files and scripts
---debug      | -d       set debug level <0-3>
+--debug      | -d       set debug level to 3
+             | -d<n>    set debug level to <level>
 --log_output | -l       redirect log output to file <name>
 --command    | -c       run <command>
 @end verbatim
@@ -6849,12 +6850,13 @@ non-zero exit code to the parent process.
 @deffn Command debug_level [n]
 @cindex message level
 Display debug level.
-If @var{n} (from 0..3) is provided, then set it to that level.
+If @var{n} (from 0..4) is provided, then set it to that level.
 This affects the kind of messages sent to the server log.
 Level 0 is error messages only;
 level 1 adds warnings;
 level 2 adds informational messages;
-and level 3 adds debugging messages.
+level 3 adds debugging messages;
+and level 4 adds verbose low-level debug messages.
 The default is level 2, but that can be overridden on
 the command line along with the location of that log
 file (which is normally the server's standard output).

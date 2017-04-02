@@ -596,7 +596,7 @@ static int cmsis_dap_swd_run_queue(void)
 {
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
 
-	LOG_DEBUG("Executing %d queued transactions", pending_transfer_count);
+	LOG_DEBUG_IO("Executing %d queued transactions", pending_transfer_count);
 
 	if (queued_retval != ERROR_OK) {
 		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
@@ -616,7 +616,7 @@ static int cmsis_dap_swd_run_queue(void)
 		uint8_t cmd = pending_transfers[i].cmd;
 		uint32_t data = pending_transfers[i].data;
 
-		LOG_DEBUG("%s %s reg %x %"PRIx32,
+		LOG_DEBUG_IO("%s %s reg %x %"PRIx32,
 				cmd & SWD_CMD_APnDP ? "AP" : "DP",
 				cmd & SWD_CMD_RnW ? "read" : "write",
 			  (cmd & SWD_CMD_A32) >> 1, data);
@@ -674,7 +674,7 @@ static int cmsis_dap_swd_run_queue(void)
 			uint32_t tmp = data;
 			idx += 4;
 
-			LOG_DEBUG("Read result: %"PRIx32, data);
+			LOG_DEBUG_IO("Read result: %"PRIx32, data);
 
 			/* Imitate posted AP reads */
 			if ((pending_transfers[i].cmd & SWD_CMD_APnDP) ||
