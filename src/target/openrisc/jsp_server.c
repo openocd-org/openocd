@@ -184,13 +184,7 @@ static int jsp_input(struct connection *connection)
 
 static int jsp_connection_closed(struct connection *connection)
 {
-	struct telnet_connection *t_con = connection->priv;
 	struct jsp_service *jsp_service = connection->service->priv;
-
-	if (t_con->prompt) {
-		free(t_con->prompt);
-		t_con->prompt = NULL;
-	}
 
 	int retval = target_unregister_timer_callback(&jsp_poll_read, jsp_service);
 	if (ERROR_OK != retval)
