@@ -1868,11 +1868,24 @@ static int read_memory(struct target *target, uint32_t address,
           
           uint32_t abstractcs;
           for (uint32_t i = 0; i < count; i++) {
-            uint32_t value = dmi_read(target, DMI_DATA0);
+
             // On last iteration, turn off autoexec before reading the value
             // so that we don't inadvertently read too far into memory.
             if ((count > 1) && ((i + 1) == count)) {
               dmi_write(target, DMI_ABSTRACTAUTO, 0);
+            }
+
+            uint32_t value = dmi_read(target, DMI_DATA0);
+            // If autoexec was set, the above dmi_read started an abstract command.
+            // If we just immediately loop and do another read here,
+            // we'll probably get a busy error. Wait for idle first,
+            // or otherwise take ac_command_busy into account (this defeats the purpose
+            // of autoexec, this whole code needs optimization).
+            if ((count > 1) && ((i + 1) < count)) {
+              if (wait_for_idle(target, &abstractcs) != ERROR_OK) {
+                dmi_write(target, DMI_ABSTRACTAUTO, 0);
+                return ERROR_FAIL;
+              }
             }
             switch (size) {
             case 1:
@@ -1891,14 +1904,8 @@ static int read_memory(struct target *target, uint32_t address,
             default:
               return ERROR_FAIL;
             }
-            // The above dmi_read started an abstract command. If we just
-            // immediately read here, we'll probably get a busy error. Wait for idle first,
-            // or otherwise take ac_command_busy into account (this defeats the purpose
-            // of autoexec, this whole code needs optimization).
-            if (wait_for_idle(target, &abstractcs) != ERROR_OK) {
-              return ERROR_FAIL;
-            }
           }
+          
           abstractcs = dmi_read(target, DMI_ABSTRACTCS);
           unsigned cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
           if (cmderr == CMDERR_BUSY) {
