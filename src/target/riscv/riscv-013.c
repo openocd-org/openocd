@@ -1859,11 +1859,21 @@ static int read_memory(struct target *target, uint32_t address,
             return ERROR_FAIL;
           }
 
+          // Set up autoexec s.t. each read of the the result that was in S1
+          // will start another run of reading the address pointed to by S0,
+          // copying it to S1, and storing S1 into Data 0.
+          if (count > 1) {
+            dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+          }
+          
           uint32_t abstractcs;
           for (uint32_t i = 0; i < count; i++) {
             uint32_t value = dmi_read(target, DMI_DATA0);
-	    if (i == 0)
-              dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+            // On last iteration, turn off autoexec before reading the value
+            // so that we don't inadvertently read too far into memory.
+            if ((count > 1) && ((i + 1) == count)) {
+              dmi_write(target, DMI_ABSTRACTAUTO, 0);
+            }
             switch (size) {
             case 1:
               buffer[i] = value;
@@ -1889,8 +1899,7 @@ static int read_memory(struct target *target, uint32_t address,
               return ERROR_FAIL;
             }
           }
-          dmi_write(target, DMI_ABSTRACTAUTO, 0);
-	  abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+          abstractcs = dmi_read(target, DMI_ABSTRACTCS);
           unsigned cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
           if (cmderr == CMDERR_BUSY) {
 	    // Clear the error and wait longer.
