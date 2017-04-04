@@ -291,6 +291,13 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 		.build_code	= "A0",
 		.flash_size_kb	= 256,
 	},
+	{
+		.hwid		= 0x008F,
+		.part		= "51822",
+		.variant	= "QFAA",
+		.build_code	= "H1",
+		.flash_size_kb	= 256,
+	},
 
 	/* nRF51422 Devices (IC rev 1). */
 	{
