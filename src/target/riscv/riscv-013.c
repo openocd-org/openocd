@@ -1859,11 +1859,34 @@ static int read_memory(struct target *target, uint32_t address,
             return ERROR_FAIL;
           }
 
+          // Set up autoexec s.t. each read of the the result that was in S1
+          // will start another run of reading the address pointed to by S0,
+          // copying it to S1, and storing S1 into Data 0.
+          if (count > 1) {
+            dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+          }
+          
           uint32_t abstractcs;
           for (uint32_t i = 0; i < count; i++) {
+
+            // On last iteration, turn off autoexec before reading the value
+            // so that we don't inadvertently read too far into memory.
+            if ((count > 1) && ((i + 1) == count)) {
+              dmi_write(target, DMI_ABSTRACTAUTO, 0);
+            }
+
             uint32_t value = dmi_read(target, DMI_DATA0);
-	    if (i == 0)
-              dmi_write(target, DMI_ABSTRACTAUTO, 0x1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+            // If autoexec was set, the above dmi_read started an abstract command.
+            // If we just immediately loop and do another read here,
+            // we'll probably get a busy error. Wait for idle first,
+            // or otherwise take ac_command_busy into account (this defeats the purpose
+            // of autoexec, this whole code needs optimization).
+            if ((count > 1) && ((i + 1) < count)) {
+              if (wait_for_idle(target, &abstractcs) != ERROR_OK) {
+                dmi_write(target, DMI_ABSTRACTAUTO, 0);
+                return ERROR_FAIL;
+              }
+            }
             switch (size) {
             case 1:
               buffer[i] = value;
@@ -1881,16 +1904,9 @@ static int read_memory(struct target *target, uint32_t address,
             default:
               return ERROR_FAIL;
             }
-            // The above dmi_read started an abstract command. If we just
-            // immediately read here, we'll probably get a busy error. Wait for idle first,
-            // or otherwise take ac_command_busy into account (this defeats the purpose
-            // of autoexec, this whole code needs optimization).
-            if (wait_for_idle(target, &abstractcs) != ERROR_OK) {
-              return ERROR_FAIL;
-            }
           }
-          dmi_write(target, DMI_ABSTRACTAUTO, 0);
-	  abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+          
+          abstractcs = dmi_read(target, DMI_ABSTRACTCS);
           unsigned cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
           if (cmderr == CMDERR_BUSY) {
 	    // Clear the error and wait longer.
