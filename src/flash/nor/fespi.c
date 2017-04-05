@@ -314,21 +314,27 @@ static int fespi_erase_sector(struct flash_bank *bank, int sector)
 	uint32_t ctrl_base = fespi_info->ctrl_base;
 	int retval;
 
-	fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
-	fespi_txwm_wait(bank);
-
+	retval = fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
+	if (retval != ERROR_OK) {return retval;}
+	retval = fespi_txwm_wait(bank);
+	if (retval != ERROR_OK) {return retval;}
+	  
 	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
-	fespi_tx(bank, fespi_info->dev->erase_cmd);
+	retval = fespi_tx(bank, fespi_info->dev->erase_cmd);
+	if (retval != ERROR_OK) {return retval;}	
 	sector = bank->sectors[sector].offset;
-	fespi_tx(bank, sector >> 16);
-	fespi_tx(bank, sector >> 8);
-	fespi_tx(bank, sector);
-	fespi_txwm_wait(bank);
+	retval = fespi_tx(bank, sector >> 16);
+	if (retval != ERROR_OK) {return retval;}	
+	retval = fespi_tx(bank, sector >> 8);
+	if (retval != ERROR_OK) {return retval;}	
+	retval = fespi_tx(bank, sector);
+	if (retval != ERROR_OK) {return retval;}	
+	retval = fespi_txwm_wait(bank);
+	if (retval != ERROR_OK) {return retval;}	
 	FESPI_WRITE_REG(FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
 	retval = fespi_wip(bank, FESPI_MAX_TIMEOUT);
-	if (retval != ERROR_OK)
-		return retval;
+	if (retval != ERROR_OK){return retval;}
 
 	return ERROR_OK;
 }
@@ -365,14 +371,20 @@ static int fespi_erase(struct flash_bank *bank, int first, int last)
 		}
 	}
 
-	fespi_txwm_wait(bank);
+	
+	FESPI_WRITE_REG(FESPI_REG_TXCTRL, FESPI_TXWM(1));
+	retval = fespi_txwm_wait(bank);
+	if (retval != ERROR_OK){
+	  LOG_ERROR("WM Didn't go high before attempting.");
+	  return retval;
+	}
 
 	/* Disable Hardware accesses*/
 	FESPI_DISABLE_HW_MODE();
 
 	/* poll WIP */
 	retval = fespi_wip(bank, FESPI_PROBE_TIMEOUT);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) 
 		return retval;
 
 	for (sector = first; sector <= last; sector++) {
