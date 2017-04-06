@@ -206,20 +206,24 @@ static int cortex_a_init_debug_access(struct target *target)
 
 	/* lock memory-mapped access to debug registers to prevent
 	 * software interference */
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+	retval = mem_ap_write_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_LOCKACCESS, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Disable cacheline fills and force cache write-through in debug state */
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+	retval = mem_ap_write_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DSCCR, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Disable TLB lookup and refill/eviction in debug state */
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+	retval = mem_ap_write_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DSMCR, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_run(armv7a->debug_ap->dap);
 	if (retval != ERROR_OK)
 		return retval;
 
