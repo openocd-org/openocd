@@ -270,7 +270,7 @@ static inline unsigned int armv8_curel_from_core_mode(enum arm_mode core_mode)
 		return 3;
 	/* all Aarch64 modes */
 	default:
-		return (core_mode >> 6) & 3;
+		return (core_mode >> 2) & 3;
 	}
 }
 
