@@ -180,7 +180,7 @@ static int aarch64_init_debug_access(struct target *target)
 	int retval;
 	uint32_t dummy;
 
-	LOG_DEBUG(" ");
+	LOG_DEBUG("%s", target_name(target));
 
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_OSLAR, 0);
@@ -2173,7 +2173,7 @@ static int aarch64_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint64_t debug, ttypr;
 	uint32_t cpuid;
-	uint32_t tmp0, tmp1;
+	uint32_t tmp0, tmp1, tmp2, tmp3;
 	debug = ttypr = cpuid = 0;
 
 	retval = dap_dp_init(swjdp);
@@ -2213,32 +2213,6 @@ static int aarch64_examine_first(struct target *target)
 	} else
 		armv8->debug_base = target->dbgbase;
 
-	uint32_t prsr;
-	int64_t then = timeval_ms();
-	do {
-		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_PRSR, &prsr);
-		if (retval == ERROR_OK) {
-			retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-					armv8->debug_base + CPUV8_DBG_PRCR, PRCR_COREPURQ|PRCR_CORENPDRQ);
-			if (retval != ERROR_OK) {
-				LOG_DEBUG("write to PRCR failed");
-				break;
-			}
-		}
-
-		if (timeval_ms() > then + 1000) {
-			retval = ERROR_TARGET_TIMEOUT;
-			break;
-		}
-
-	} while ((prsr & PRSR_PU) == 0);
-
-	if (retval != ERROR_OK) {
-		LOG_ERROR("target %s: failed to set power state of the core.", target_name(target));
-		return retval;
-	}
-
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_OSLAR, 0);
 	if (retval != ERROR_OK) {
@@ -2246,34 +2220,40 @@ static int aarch64_examine_first(struct target *target)
 		return retval;
 	}
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+	retval = mem_ap_read_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_MAINID0, &cpuid);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "CPUID");
 		return retval;
 	}
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+	retval = mem_ap_read_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_MEMFEATURE0, &tmp0);
-	retval += mem_ap_read_atomic_u32(armv8->debug_ap,
+	retval += mem_ap_read_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_MEMFEATURE0 + 4, &tmp1);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "Memory Model Type");
 		return retval;
 	}
-	ttypr |= tmp1;
-	ttypr = (ttypr << 32) | tmp0;
-
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DBGFEATURE0, &tmp0);
-	retval += mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DBGFEATURE0 + 4, &tmp1);
+	retval = mem_ap_read_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DBGFEATURE0, &tmp2);
+	retval += mem_ap_read_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_DBGFEATURE0 + 4, &tmp3);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "ID_AA64DFR0_EL1");
 		return retval;
 	}
-	debug |= tmp1;
-	debug = (debug << 32) | tmp0;
+
+	retval = dap_run(armv8->debug_ap->dap);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("%s: examination failed\n", target_name(target));
+		return retval;
+	}
+
+	ttypr |= tmp1;
+	ttypr = (ttypr << 32) | tmp0;
+	debug |= tmp3;
+	debug = (debug << 32) | tmp2;
 
 	LOG_DEBUG("cpuid = 0x%08" PRIx32, cpuid);
 	LOG_DEBUG("ttypr = 0x%08" PRIx64, ttypr);
