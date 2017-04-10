@@ -4290,9 +4290,11 @@ access the target for debugging.
 Use this option with systems where multiple, independent cores are connected
 to separate access ports of the same DAP.
 
-@item @code{-ctibase} @var{address} -- set base address of Cross-Trigger interface (CTI) connected
-to the target. Currently, only the @code{aarch64} target makes use of this option, where it is
-a mandatory configuration for the target run control.
+@item @code{-cti} @var{cti_name} -- set Cross-Trigger Interface (CTI) connected
+to the target. Currently, only the @code{aarch64} target makes use of this option,
+where it is a mandatory configuration for the target run control.
+@xref{armcrosstrigger,,ARM Cross-Trigger Interface},
+for instruction on how to declare and control a CTI instance.
 @end itemize
 @end deffn
 
@@ -7781,6 +7783,50 @@ Reports whether the capture clock is locked or not.
 @end deffn
 @end deffn
 
+@anchor{armcrosstrigger}
+@section ARM Cross-Trigger Interface
+@cindex CTI
+
+The ARM Cross-Trigger Interface (CTI) is a generic CoreSight component
+that connects event sources like tracing components or CPU cores with each
+other through a common trigger matrix (CTM). For ARMv8 architecture, a
+CTI is mandatory for core run control and each core has an individual
+CTI instance attached to it. OpenOCD has limited support for CTI using
+the @emph{cti} group of commands.
+
+@deffn Command {cti create} @var{cti_name} -chain-position @var{tap_name} -ap-num @var{apn} -ctibase @var{base_address}
+Creates a CTI object @var{cti_name} on the JTAG tap @var{tap_name} on MEM-AP
+@var{apn} of the DAP reachable through @var{tap}. The @var{base_address} must match
+the base address of the CTI on the respective MEM-AP. All arguments are
+mandatory. This creates a new command (@command{@var{cti_name}}) which
+is used for various purposes including additional configuration.
+@end deffn
+
+@deffn Command {$cti_name enable} @option{on|off}
+Enable (@option{on}) or disable (@option{off}) the CTI.
+@end deffn
+
+@deffn Command {$cti_name dump}
+Displays a register dump of the CTI.
+@end deffn
+
+@deffn Command {$cti_name write } @var{reg_name} @var{value}
+Write @var{value} to the CTI register with the symbolic name @var{reg_name}.
+@end deffn
+
+@deffn Command {$cti_name read} @var{reg_name}
+Print the value read from the CTI register with the symbolic name @var{reg_name}.
+@end deffn
+
+@deffn Command {$cti_name testmode} @option{on|off}
+Enable (@option{on}) or disable (@option{off}) the integration test mode
+of the CTI.
+@end deffn
+
+@deffn Command {cti names}
+Prints a list of names of all CTI objects created. This command is mainly
+useful in TCL scripting.
+@end deffn
 
 @section Generic ARM
 @cindex ARM

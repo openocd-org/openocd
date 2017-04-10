@@ -37,6 +37,7 @@
 #include <flash/nand/core.h>
 #include <pld/pld.h>
 #include <flash/mflash.h>
+#include <target/arm_cti.h>
 
 #include <server/server.h>
 #include <server/gdb_server.h>
@@ -252,6 +253,7 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&nand_register_commands,
 		&pld_register_commands,
 		&mflash_register_commands,
+		&cti_register_commands,
 		NULL
 	};
 	for (unsigned i = 0; NULL != command_registrants[i]; i++) {

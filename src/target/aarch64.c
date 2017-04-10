@@ -40,6 +40,10 @@ enum halt_mode {
 	HALT_SYNC,
 };
 
+struct aarch64_private_config {
+	struct arm_cti *cti;
+};
+
 static int aarch64_poll(struct target *target);
 static int aarch64_debug_entry(struct target *target);
 static int aarch64_restore_context(struct target *target, bool bpwp);
@@ -2198,7 +2202,7 @@ static int aarch64_examine_first(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct adiv5_dap *swjdp = armv8->arm.dap;
-	uint32_t cti_base;
+	struct aarch64_private_config *pc;
 	int i;
 	int retval = ERROR_OK;
 	uint64_t debug, ttypr;
@@ -2289,16 +2293,14 @@ static int aarch64_examine_first(struct target *target)
 	LOG_DEBUG("ttypr = 0x%08" PRIx64, ttypr);
 	LOG_DEBUG("debug = 0x%08" PRIx64, debug);
 
-	if (target->ctibase == 0) {
-		/* assume a v8 rom table layout */
-		cti_base = armv8->debug_base + 0x10000;
-		LOG_INFO("Target ctibase is not set, assuming 0x%0" PRIx32, cti_base);
-	} else
-		cti_base = target->ctibase;
-
-	armv8->cti = arm_cti_create(armv8->debug_ap, cti_base);
-	if (armv8->cti == NULL)
+	if (target->private_config == NULL)
 		return ERROR_FAIL;
+
+	pc = (struct aarch64_private_config *)target->private_config;
+	if (pc->cti == NULL)
+		return ERROR_FAIL;
+
+	armv8->cti = pc->cti;
 
 	retval = aarch64_dpm_setup(aarch64, debug);
 	if (retval != ERROR_OK)
@@ -2403,6 +2405,63 @@ static int aarch64_virt2phys(struct target *target, target_addr_t virt,
 			     target_addr_t *phys)
 {
 	return armv8_mmu_translate_va_pa(target, virt, phys, 1);
+}
+
+static int aarch64_jim_configure(struct target *target, Jim_GetOptInfo *goi)
+{
+	struct aarch64_private_config *pc;
+	const char *arg;
+	int e;
+
+	/* check if argv[0] is for us */
+	arg = Jim_GetString(goi->argv[0], NULL);
+	if (strcmp(arg, "-cti"))
+		return JIM_CONTINUE;
+
+	/* pop the argument from argv */
+	e = Jim_GetOpt_String(goi, &arg, NULL);
+	if (e != JIM_OK)
+		return e;
+
+	/* check if we have another option */
+	if (goi->argc == 0) {
+		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-cti ?cti-name?");
+		return JIM_ERR;
+	}
+
+	pc = (struct aarch64_private_config *)target->private_config;
+
+	if (goi->isconfigure) {
+		Jim_Obj *o_cti;
+		struct arm_cti *cti;
+		e = Jim_GetOpt_Obj(goi, &o_cti);
+		if (e != JIM_OK)
+			return e;
+		cti = cti_instance_by_jim_obj(goi->interp, o_cti);
+		if (cti == NULL)
+			return JIM_ERR;
+
+		if (pc == NULL) {
+			pc = calloc(1, sizeof(struct aarch64_private_config));
+			target->private_config = pc;
+		}
+		pc->cti = cti;
+	} else {
+		if (goi->argc != 0) {
+			Jim_WrongNumArgs(goi->interp,
+					goi->argc, goi->argv,
+					"NO PARAMS");
+			return JIM_ERR;
+		}
+
+		if (pc == NULL || pc->cti == NULL) {
+			Jim_SetResultString(goi->interp, "CTI not configured", -1);
+			return JIM_ERR;
+		}
+		Jim_SetResultString(goi->interp, arm_cti_name(pc->cti), -1);
+	}
+
+	return JIM_OK;
 }
 
 COMMAND_HANDLER(aarch64_handle_cache_info_command)
@@ -2570,6 +2629,7 @@ struct target_type aarch64_target = {
 
 	.commands = aarch64_command_handlers,
 	.target_create = aarch64_target_create,
+	.target_jim_configure = aarch64_jim_configure,
 	.init_target = aarch64_init_target,
 	.examine = aarch64_examine,
 
