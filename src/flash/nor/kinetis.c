@@ -2210,6 +2210,45 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 				 familyid, subfamid, cpu_mhz / 10);
 			break;
 
+		case KINETIS_SDID_SERIESID_KW:
+			/* Newer KW-series (all KW series except KW2xD, KW01Z) */
+			cpu_mhz = 48;
+			switch (k_chip->sim_sdid & (KINETIS_SDID_FAMILYID_MASK | KINETIS_SDID_SUBFAMID_MASK)) {
+			case KINETIS_SDID_FAMILYID_K4X | KINETIS_SDID_SUBFAMID_KX0:
+				/* KW40Z */
+			case KINETIS_SDID_FAMILYID_K3X | KINETIS_SDID_SUBFAMID_KX0:
+				/* KW30Z */
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX0:
+				/* KW20Z */
+				/* FTFA, 1kB sectors */
+				k_chip->pflash_sector_size = 1<<10;
+				k_chip->nvm_sector_size = 1<<10;
+				/* autodetect 1 or 2 blocks */
+				k_chip->flash_support = FS_PROGRAM_LONGWORD;
+				k_chip->cache_type = KINETIS_CACHE_L;
+				k_chip->watchdog_type = KINETIS_WDOG_COP;
+				break;
+			case KINETIS_SDID_FAMILYID_K4X | KINETIS_SDID_SUBFAMID_KX1:
+				/* KW41Z */
+			case KINETIS_SDID_FAMILYID_K3X | KINETIS_SDID_SUBFAMID_KX1:
+				/* KW31Z */
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX1:
+				/* KW21Z */
+				/* FTFA, 2kB sectors */
+				k_chip->pflash_sector_size = 2<<10;
+				k_chip->nvm_sector_size = 2<<10;
+				/* autodetect 1 or 2 blocks */
+				k_chip->flash_support = FS_PROGRAM_LONGWORD;
+				k_chip->cache_type = KINETIS_CACHE_L;
+				k_chip->watchdog_type = KINETIS_WDOG_COP;
+				break;
+			default:
+				LOG_ERROR("Unsupported KW FAMILYID SUBFAMID");
+			}
+			snprintf(name, sizeof(name), "MKW%u%uZ%%s%u",
+					 familyid, subfamid, cpu_mhz / 10);
+			break;
+
 		case KINETIS_SDID_SERIESID_KV:
 			/* KV-series */
 			k_chip->watchdog_type = KINETIS_WDOG_K;
