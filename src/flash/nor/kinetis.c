@@ -1371,7 +1371,7 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 	if (!(kinfo->flash_support & FS_PROGRAM_SECTOR)) {
 		/* fallback to longword write */
 		fallback = 1;
-		LOG_WARNING("This device supports Program Longword execution only.");
+		LOG_INFO("This device supports Program Longword execution only.");
 	} else {
 		result = kinetis_make_ram_ready(bank->target);
 		if (result != ERROR_OK) {
