@@ -595,6 +595,9 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{bcm2835gpio}
 @* A BCM2835-based board (e.g. Raspberry Pi) using the GPIO pins of the expansion header.
 
+@item @b{imx_gpio}
+@* A NXP i.MX-based board (e.g. Wandboard) using the GPIO pins (should work on any i.MX processor).
+
 @item @b{jtag_vpi}
 @* A JTAG driver acting as a client for the JTAG VPI server interface.
 @* Link: @url{http://github.com/fjullien/jtag_vpi}
@@ -2991,6 +2994,18 @@ See @file{interface/raspberrypi-native.cfg} for a sample config and
 pinout.
 
 @end deffn
+
+@deffn {Interface Driver} {imx_gpio}
+i.MX SoC is present in many community boards. Wandboard is an example
+of the one which is most popular.
+
+This driver is mostly the same as bcm2835gpio.
+
+See @file{interface/imx-native.cfg} for a sample config and
+pinout.
+
+@end deffn
+
 
 @deffn {Interface Driver} {openjtag}
 OpenJTAG compatible USB adapter.
