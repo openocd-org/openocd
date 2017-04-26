@@ -341,6 +341,15 @@ static int oldriscv_poll(struct target *target)
 	return tt->poll(target);
 }
 
+static int old_or_new_riscv_poll(struct target *target)
+{
+	RISCV_INFO(r);
+	if (r->is_halted == NULL)
+		return oldriscv_poll(target);
+	else
+		return riscv_openocd_poll(target);
+}
+
 static int riscv_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution)
 {
@@ -506,11 +515,11 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 			LOG_ERROR("  now   = 0x%08x", (uint32_t) now);
 			LOG_ERROR("  start = 0x%08x", (uint32_t) start);
 			riscv_halt(target);
-			riscv_openocd_poll(target);
+			old_or_new_riscv_poll(target);
 			return ERROR_TARGET_TIMEOUT;
 		}
 
-		int result = riscv_openocd_poll(target);
+		int result = old_or_new_riscv_poll(target);
 		if (result != ERROR_OK) {
 			return result;
 		}
