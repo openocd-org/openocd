@@ -189,7 +189,9 @@ FLASH_BANK_COMMAND_HANDLER(fespi_flash_bank_command)
 	fespi_info->probed = 0;
 	fespi_info->ctrl_base = 0;
 	if (CMD_ARGC >= 6) {
-	  COMMAND_PARSE_NUMBER(int, CMD_ARGV[6], fespi_info->ctrl_base);
+          int temp;
+	  COMMAND_PARSE_NUMBER(int, CMD_ARGV[6], temp);
+          fespi_info->ctrl_base = (uint32_t) temp;
 	  LOG_DEBUG("ASSUMING FESPI device at ctrl_base = 0x%x", fespi_info->ctrl_base);
 	}
 
@@ -1049,8 +1051,7 @@ static int fespi_probe(struct flash_bank *bank)
 	    return ERROR_FAIL;
 	  }
 
-	  ctrl_base = target_device->ctrl_base;
-	  fespi_info->ctrl_base = ctrl_base;
+	  fespi_info->ctrl_base = target_device->ctrl_base;
 
 	  LOG_DEBUG("Valid FESPI on device %s at address 0x%" PRIx32,
 		    target_device->name, bank->base);
@@ -1060,6 +1061,7 @@ static int fespi_probe(struct flash_bank *bank)
 		    fespi_info->ctrl_base,
 		    bank->base);
 	}
+        ctrl_base = fespi_info->ctrl_base;
 
 	/* read and decode flash ID; returns in SW mode */
 	FESPI_WRITE_REG(FESPI_REG_TXCTRL, FESPI_TXWM(1));

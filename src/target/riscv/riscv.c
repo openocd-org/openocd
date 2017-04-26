@@ -503,8 +503,8 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		int64_t now = timeval_ms();
 		if (now - start > timeout_ms) {
 			LOG_ERROR("Algorithm timed out after %d ms.", timeout_ms);
-			LOG_ERROR("  now   = 0x%08x", now);
-			LOG_ERROR("  start = 0x%08x", start);
+			LOG_ERROR("  now   = 0x%08x", (uint32_t) now);
+			LOG_ERROR("  start = 0x%08x", (uint32_t) start);
 			riscv_halt(target);
 			riscv_openocd_poll(target);
 			return ERROR_TARGET_TIMEOUT;
