@@ -167,7 +167,6 @@ struct fespi_target {
 static const struct fespi_target target_devices[] = {
 	/* name,   tap_idcode, ctrl_base */
 	{ "Freedom E300 SPI Flash",  0x10e31913 , 0x10014000 },
-	{ "whatever", 0x00000001, 0x10014000 },
 	{ NULL,    0,           0          }
 };
 
@@ -188,6 +187,11 @@ FLASH_BANK_COMMAND_HANDLER(fespi_flash_bank_command)
 
 	bank->driver_priv = fespi_info;
 	fespi_info->probed = 0;
+	fespi_info->ctrl_base = 0;
+	if (CMD_ARGC >= 6) {
+	  COMMAND_PARSE_NUMBER(int, CMD_ARGV[6], fespi_info->ctrl_base);
+	  LOG_DEBUG("ASSUMING FESPI device at ctrl_base = 0x%x", fespi_info->ctrl_base);
+	}
 
 	return ERROR_OK;
 }
@@ -376,7 +380,6 @@ static int fespi_erase(struct flash_bank *bank, int first, int last)
 		}
 	}
 
-	
 	FESPI_WRITE_REG(FESPI_REG_TXCTRL, FESPI_TXWM(1));
 	retval = fespi_txwm_wait(bank);
 	if (retval != ERROR_OK){
@@ -1035,20 +1038,28 @@ static int fespi_probe(struct flash_bank *bank)
 		free(bank->sectors);
 	fespi_info->probed = 0;
 
-	for (target_device = target_devices ; target_device->name ; ++target_device)
-		if (target_device->tap_idcode == target->tap->idcode)
-			break;
-	if (!target_device->name) {
-		LOG_ERROR("Device ID 0x%" PRIx32 " is not known as FESPI capable",
-				target->tap->idcode);
-		return ERROR_FAIL;
+	if (fespi_info->ctrl_base == 0) {
+	  for (target_device = target_devices ; target_device->name ; ++target_device)
+	    if (target_device->tap_idcode == target->tap->idcode)
+	      break;
+
+	  if (!target_device->name) {
+	    LOG_ERROR("Device ID 0x%" PRIx32 " is not known as FESPI capable",
+		      target->tap->idcode);
+	    return ERROR_FAIL;
+	  }
+
+	  ctrl_base = target_device->ctrl_base;
+	  fespi_info->ctrl_base = ctrl_base;
+
+	  LOG_DEBUG("Valid FESPI on device %s at address 0x%" PRIx32,
+		    target_device->name, bank->base);
+
+	} else {
+	  LOG_DEBUG("Assuming FESPI as specified at address 0x%x with ctrl at 0x%x",
+		    fespi_info->ctrl_base,
+		    bank->base);
 	}
-
-	ctrl_base = target_device->ctrl_base;
-	fespi_info->ctrl_base = ctrl_base;
-
-	LOG_DEBUG("Valid FESPI on device %s at address 0x%" PRIx32,
-			target_device->name, bank->base);
 
 	/* read and decode flash ID; returns in SW mode */
 	FESPI_WRITE_REG(FESPI_REG_TXCTRL, FESPI_TXWM(1));
