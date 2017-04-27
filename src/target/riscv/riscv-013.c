@@ -1261,7 +1261,6 @@ static int read_memory(struct target *target, uint32_t address,
 	riscv_program_sw(&program, GDB_REGNO_S1, r_data);
 	riscv_program_sx(&program, GDB_REGNO_S0, r_addr);
 
-#if 1
 	/* The first round through the program's execution we use the regular
 	 * program execution mechanism. */
 	switch (riscv_xlen(target)) {
@@ -1305,31 +1304,6 @@ static int read_memory(struct target *target, uint32_t address,
 		LOG_ERROR("unsupported access size: %d", size);
 		return ERROR_FAIL;
 	}
-#else
-	/* The first round through the program's execution we use the regular
-	 * program execution mechanism. */
-	switch (riscv_xlen(target)) {
-	case 64:
-		riscv_program_write_ram(&program, r_addr + 4, ((riscv_addr_t)(address)) >> 32);
-	case 32:
-		riscv_program_write_ram(&program, r_addr, (riscv_addr_t)(address));
-		break;
-	default:
-		LOG_ERROR("unknown XLEN %d", riscv_xlen(target));
-		return ERROR_FAIL;
-	}
-
-	if (riscv_program_load(&program, target) != ERROR_OK) {
-		uint32_t acs = dmi_read(target, DMI_ABSTRACTCS);
-		LOG_ERROR("failed to execute program, abstractcs=0x%08x", acs);
-		riscv013_clear_abstract_error(target);
-		riscv_set_register(target, GDB_REGNO_S0, s0);
-		riscv_set_register(target, GDB_REGNO_S1, s1);
-		LOG_ERROR("  exiting with ERROR_FAIL");
-		return ERROR_FAIL;
-	}
-	uint32_t value;
-#endif
 
 	/* The rest of this program is designed to be fast so it reads various
 	 * DMI registers directly. */
@@ -1357,12 +1331,7 @@ static int read_memory(struct target *target, uint32_t address,
 			1024,
 			info->dmi_busy_delay + info->ac_busy_delay);
 
-#if 0
-		size_t reads = 1;
-		riscv_batch_add_dmi_read(batch, riscv013_debug_buffer_register(target, r_data));
-#else
 		size_t reads = 0;
-#endif
 		size_t rereads = reads;
 		for (riscv_addr_t i = start; i < count; ++i) {
 			size_t index = 
