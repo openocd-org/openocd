@@ -2804,6 +2804,8 @@ COMMAND_HANDLER(handle_reg_command)
 			for (i = 0, reg = cache->reg_list;
 					i < cache->num_regs;
 					i++, reg++, count++) {
+				if (reg->exist == false)
+					continue;
 				/* only print cached values if they are valid */
 				if (reg->valid) {
 					value = buf_to_str(reg->value,
@@ -2857,13 +2859,14 @@ COMMAND_HANDLER(handle_reg_command)
 		/* access a single register by its name */
 		reg = register_get_by_name(target->reg_cache, CMD_ARGV[0], 1);
 
-		if (!reg) {
-			command_print(CMD_CTX, "register %s not found in current target", CMD_ARGV[0]);
-			return ERROR_OK;
-		}
+		if (!reg)
+			goto not_found;
 	}
 
 	assert(reg != NULL); /* give clang a hint that we *know* reg is != NULL here */
+
+	if (!reg->exist)
+		goto not_found;
 
 	/* display a register */
 	if ((CMD_ARGC == 1) || ((CMD_ARGC == 2) && !((CMD_ARGV[1][0] >= '0')
@@ -2898,6 +2901,10 @@ COMMAND_HANDLER(handle_reg_command)
 	}
 
 	return ERROR_COMMAND_SYNTAX_ERROR;
+
+not_found:
+	command_print(CMD_CTX, "register %s not found in current target", CMD_ARGV[0]);
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_poll_command)
