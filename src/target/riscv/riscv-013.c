@@ -1223,7 +1223,7 @@ static int read_memory(struct target *target, uint32_t address,
 {
 	RISCV013_INFO(info);
 
-	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
+	LOG_DEBUG("reading %d words of %d bytes from 0x%08lx", count, size, (long)address);
 
 	select_dmi(target);
 	riscv_set_current_hartid(target, 0);
