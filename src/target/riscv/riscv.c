@@ -890,9 +890,10 @@ bool riscv_rtos_enabled(const struct target *target)
 void riscv_set_current_hartid(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
+	int previous_hartid = riscv_current_hartid(target);
 	r->current_hartid = hartid;
 	assert(riscv_rtos_enabled(target) || target->coreid == hartid);
-	int previous_hartid = riscv_current_hartid(target);
+	LOG_DEBUG("setting hartid to %d, was %d", hartid, previous_hartid);
 	if (riscv_rtos_enabled(target))
 		r->select_current_hart(target);
 
