@@ -1265,9 +1265,9 @@ static int read_memory(struct target *target, uint32_t address,
 	 * program execution mechanism. */
 	switch (riscv_xlen(target)) {
 	case 64:
-		riscv_program_write_ram(&program, r_addr + 4, (((riscv_addr_t)(address)) - size) >> 32);
+		riscv_program_write_ram(&program, r_addr + 4, (((riscv_addr_t) address) - size) >> 32);
 	case 32:
-		riscv_program_write_ram(&program, r_addr, (riscv_addr_t)(address) - size);
+		riscv_program_write_ram(&program, r_addr, ((riscv_addr_t) address) - size);
 		break;
 	default:
 		LOG_ERROR("unknown XLEN %d", riscv_xlen(target));
