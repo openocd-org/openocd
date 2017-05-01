@@ -1318,7 +1318,7 @@ static int read_memory(struct target *target, uint32_t address,
 	 * the data was all copied. */
 	riscv_addr_t cur_addr = 0xbadbeef;
 	riscv_addr_t fin_addr = address + (count * size);
-	riscv_addr_t prev_addr = 0;
+	riscv_addr_t prev_addr = address - size;
 	LOG_DEBUG("writing until final address 0x%016lx", fin_addr);
 	while (count > 1 && (cur_addr = riscv_read_debug_buffer_x(target, d_addr)) < fin_addr) {
 		LOG_DEBUG("transferring burst starting at address 0x%016lx (previous burst was 0x%016lx)", cur_addr, prev_addr);
