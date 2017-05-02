@@ -37,8 +37,6 @@
 #include "target.h"
 #include "target_type.h"
 
-#define __unused __attribute__((unused))
-
 static const char * const armv8_state_strings[] = {
 	"AArch32", "Thumb", "Jazelle", "ThumbEE", "AArch64",
 };
@@ -610,7 +608,7 @@ done:
 	/* (void) */ dpm->finish(dpm);
 }
 
-static __unused void armv8_show_fault_registers(struct target *target)
+static __attribute__((unused)) void armv8_show_fault_registers(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 
@@ -647,7 +645,7 @@ static uint8_t armv8_pa_size(uint32_t ps)
 	return ret;
 }
 
-static __unused int armv8_read_ttbcr32(struct target *target)
+static __attribute__((unused)) int armv8_read_ttbcr32(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
@@ -686,7 +684,7 @@ done:
 	return retval;
 }
 
-static __unused int armv8_read_ttbcr(struct target *target)
+static __attribute__((unused)) int armv8_read_ttbcr(struct target *target)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm_dpm *dpm = armv8->arm.dpm;
