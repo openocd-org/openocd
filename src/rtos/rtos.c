@@ -435,6 +435,68 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 	return GDB_THREAD_PACKET_NOT_CONSUMED;
 }
 
+static int rtos_put_gdb_reg_list(struct connection *connection,
+		struct rtos_reg *reg_list, int num_regs)
+{
+	size_t num_bytes = 1; /* NUL */
+	for (int i = 0; i < num_regs; ++i)
+		num_bytes += DIV_ROUND_UP(reg_list[i].size, 8) * 2;
+
+	char *hex = malloc(num_bytes);
+	char *hex_p = hex;
+
+	for (int i = 0; i < num_regs; ++i) {
+		size_t count = DIV_ROUND_UP(reg_list[i].size, 8);
+		size_t n = hexify(hex_p, reg_list[i].value, count, num_bytes);
+		hex_p += n;
+		num_bytes -= n;
+	}
+
+	gdb_put_packet(connection, hex, strlen(hex));
+	free(hex);
+
+	return ERROR_OK;
+}
+
+int rtos_get_gdb_reg(struct connection *connection, int reg_num)
+{
+	struct target *target = get_target_from_connection(connection);
+	int64_t current_threadid = target->rtos->current_threadid;
+	if ((target->rtos != NULL) && (current_threadid != -1) &&
+			(current_threadid != 0) &&
+			((current_threadid != target->rtos->current_thread) ||
+			(target->smp))) {	/* in smp several current thread are possible */
+		struct rtos_reg *reg_list;
+		int num_regs;
+
+		LOG_DEBUG("RTOS: getting register %d for thread 0x%" PRIx64
+				  ", target->rtos->current_thread=0x%" PRIx64 "\r\n",
+										reg_num,
+										current_threadid,
+										target->rtos->current_thread);
+
+		int retval = target->rtos->type->get_thread_reg_list(target->rtos,
+				current_threadid,
+				&reg_list,
+				&num_regs);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("RTOS: failed to get register list");
+			return retval;
+		}
+
+		for (int i = 0; i < num_regs; ++i) {
+			if (reg_list[i].number == (uint32_t)reg_num) {
+				rtos_put_gdb_reg_list(connection, reg_list + i, 1);
+				free(reg_list);
+				return ERROR_OK;
+			}
+		}
+
+		free(reg_list);
+	}
+	return ERROR_FAIL;
+}
+
 int rtos_get_gdb_reg_list(struct connection *connection)
 {
 	struct target *target = get_target_from_connection(connection);
@@ -443,7 +505,8 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 			(current_threadid != 0) &&
 			((current_threadid != target->rtos->current_thread) ||
 			(target->smp))) {	/* in smp several current thread are possible */
-		char *hex_reg_list;
+		struct rtos_reg *reg_list;
+		int num_regs;
 
 		LOG_DEBUG("RTOS: getting register list for thread 0x%" PRIx64
 				  ", target->rtos->current_thread=0x%" PRIx64 "\r\n",
@@ -452,17 +515,17 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 
 		int retval = target->rtos->type->get_thread_reg_list(target->rtos,
 				current_threadid,
-				&hex_reg_list);
+				&reg_list,
+				&num_regs);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("RTOS: failed to get register list");
 			return retval;
 		}
 
-		if (hex_reg_list != NULL) {
-			gdb_put_packet(connection, hex_reg_list, strlen(hex_reg_list));
-			free(hex_reg_list);
-			return ERROR_OK;
-		}
+		rtos_put_gdb_reg_list(connection, reg_list, num_regs);
+		free(reg_list);
+
+		return ERROR_OK;
 	}
 	return ERROR_FAIL;
 }
@@ -470,12 +533,9 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 int rtos_generic_stack_read(struct target *target,
 	const struct rtos_register_stacking *stacking,
 	int64_t stack_ptr,
-	char **hex_reg_list)
+	struct rtos_reg **reg_list,
+	int *num_regs)
 {
-	int list_size = 0;
-	char *tmp_str_ptr;
-	int64_t new_stack_ptr;
-	int i;
 	int retval;
 
 	if (stack_ptr == 0) {
@@ -502,10 +562,8 @@ int rtos_generic_stack_read(struct target *target,
 			LOG_OUTPUT("%02X", stack_data[i]);
 		LOG_OUTPUT("\r\n");
 #endif
-	for (i = 0; i < stacking->num_output_registers; i++)
-		list_size += stacking->register_offsets[i].width_bits/8;
-	*hex_reg_list = malloc(list_size*2 + 1);
-	tmp_str_ptr = *hex_reg_list;
+
+	int64_t new_stack_ptr;
 	if (stacking->calculate_process_stack != NULL) {
 		new_stack_ptr = stacking->calculate_process_stack(target,
 				stack_data, stacking, stack_ptr);
@@ -513,19 +571,21 @@ int rtos_generic_stack_read(struct target *target,
 		new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
 			stacking->stack_registers_size;
 	}
-	for (i = 0; i < stacking->num_output_registers; i++) {
-		int j;
-		for (j = 0; j < stacking->register_offsets[i].width_bits/8; j++) {
-			if (stacking->register_offsets[i].offset == -1)
-				tmp_str_ptr += sprintf(tmp_str_ptr, "%02x", 0);
-			else if (stacking->register_offsets[i].offset == -2)
-				tmp_str_ptr += sprintf(tmp_str_ptr, "%02x",
-						((uint8_t *)&new_stack_ptr)[j]);
-			else
-				tmp_str_ptr += sprintf(tmp_str_ptr, "%02x",
-						stack_data[stacking->register_offsets[i].offset + j]);
-		}
+
+	*reg_list = calloc(stacking->num_output_registers, sizeof(struct rtos_reg));
+	*num_regs = stacking->num_output_registers;
+
+	for (int i = 0; i < stacking->num_output_registers; ++i) {
+		(*reg_list)[i].number = stacking->register_offsets[i].number;
+		(*reg_list)[i].size = stacking->register_offsets[i].width_bits;
+
+		int offset = stacking->register_offsets[i].offset;
+		if (offset == -2)
+			buf_cpy(&new_stack_ptr, (*reg_list)[i].value, (*reg_list)[i].size);
+		else if (offset != -1)
+			buf_cpy(stack_data + offset, (*reg_list)[i].value, (*reg_list)[i].size);
 	}
+
 	free(stack_data);
 /*	LOG_OUTPUT("Output register string: %s\r\n", *hex_reg_list); */
 	return ERROR_OK;

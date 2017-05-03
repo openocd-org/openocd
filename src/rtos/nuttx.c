@@ -98,23 +98,23 @@ static char *task_state_str[] = {
 
 /* see arch/arm/include/armv7-m/irq_cmnvector.h */
 static const struct stack_register_offset nuttx_stack_offsets_cortex_m[] = {
-	{ 0x28, 32 },		/* r0   */
-	{ 0x2c, 32 },		/* r1   */
-	{ 0x30, 32 },		/* r2   */
-	{ 0x34, 32 },		/* r3   */
-	{ 0x08, 32 },		/* r4   */
-	{ 0x0c, 32 },		/* r5   */
-	{ 0x10, 32 },		/* r6   */
-	{ 0x14, 32 },		/* r7   */
-	{ 0x18, 32 },		/* r8   */
-	{ 0x1c, 32 },		/* r9   */
-	{ 0x20, 32 },		/* r10  */
-	{ 0x24, 32 },		/* r11  */
-	{ 0x38, 32 },		/* r12  */
-	{   0,  32 },		/* sp   */
-	{ 0x3c, 32 },		/* lr   */
-	{ 0x40, 32 },		/* pc   */
-	{ 0x44, 32 },		/* xPSR */
+	{ ARMV7M_R0,	0x28, 32 },		/* r0   */
+	{ ARMV7M_R1,	0x2c, 32 },		/* r1   */
+	{ ARMV7M_R2,	0x30, 32 },		/* r2   */
+	{ ARMV7M_R3,	0x34, 32 },		/* r3   */
+	{ ARMV7M_R4,	0x08, 32 },		/* r4   */
+	{ ARMV7M_R5,	0x0c, 32 },		/* r5   */
+	{ ARMV7M_R6,	0x10, 32 },		/* r6   */
+	{ ARMV7M_R7,	0x14, 32 },		/* r7   */
+	{ ARMV7M_R8,	0x18, 32 },		/* r8   */
+	{ ARMV7M_R9,	0x1c, 32 },		/* r9   */
+	{ ARMV7M_R10,	0x20, 32 },		/* r10  */
+	{ ARMV7M_R11,	0x24, 32 },		/* r11  */
+	{ ARMV7M_R12,	0x38, 32 },		/* r12  */
+	{ ARMV7M_R13,	  0,  32 },		/* sp   */
+	{ ARMV7M_R14,	0x3c, 32 },		/* lr   */
+	{ ARMV7M_PC,	0x40, 32 },		/* pc   */
+	{ ARMV7M_xPSR,	0x44, 32 },		/* xPSR */
 };
 
 
@@ -127,23 +127,23 @@ static const struct rtos_register_stacking nuttx_stacking_cortex_m = {
 };
 
 static const struct stack_register_offset nuttx_stack_offsets_cortex_m_fpu[] = {
-	{ 0x6c, 32 },		/* r0   */
-	{ 0x70, 32 },		/* r1   */
-	{ 0x74, 32 },		/* r2   */
-	{ 0x78, 32 },		/* r3   */
-	{ 0x08, 32 },		/* r4   */
-	{ 0x0c, 32 },		/* r5   */
-	{ 0x10, 32 },		/* r6   */
-	{ 0x14, 32 },		/* r7   */
-	{ 0x18, 32 },		/* r8   */
-	{ 0x1c, 32 },		/* r9   */
-	{ 0x20, 32 },		/* r10  */
-	{ 0x24, 32 },		/* r11  */
-	{ 0x7c, 32 },		/* r12  */
-	{   0,  32 },		/* sp   */
-	{ 0x80, 32 },		/* lr   */
-	{ 0x84, 32 },		/* pc   */
-	{ 0x88, 32 },		/* xPSR */
+	{ ARMV7M_R0,	0x6c, 32 },		/* r0   */
+	{ ARMV7M_R1,	0x70, 32 },		/* r1   */
+	{ ARMV7M_R2,	0x74, 32 },		/* r2   */
+	{ ARMV7M_R3,	0x78, 32 },		/* r3   */
+	{ ARMV7M_R4,	0x08, 32 },		/* r4   */
+	{ ARMV7M_R5,	0x0c, 32 },		/* r5   */
+	{ ARMV7M_R6,	0x10, 32 },		/* r6   */
+	{ ARMV7M_R7,	0x14, 32 },		/* r7   */
+	{ ARMV7M_R8,	0x18, 32 },		/* r8   */
+	{ ARMV7M_R9,	0x1c, 32 },		/* r9   */
+	{ ARMV7M_R10,	0x20, 32 },		/* r10  */
+	{ ARMV7M_R11,	0x24, 32 },		/* r11  */
+	{ ARMV7M_R12,	0x7c, 32 },		/* r12  */
+	{ ARMV7M_R13,	  0,  32 },		/* sp   */
+	{ ARMV7M_R14,	0x80, 32 },		/* lr   */
+	{ ARMV7M_PC,	0x84, 32 },		/* pc   */
+	{ ARMV7M_xPSR,	0x88, 32 },		/* xPSR */
 };
 
 static const struct rtos_register_stacking nuttx_stacking_cortex_m_fpu = {
@@ -344,10 +344,9 @@ static int nuttx_update_threads(struct rtos *rtos)
  * thread_id = tcb address;
  */
 static int nuttx_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
-	char **hex_reg_list) {
+	struct rtos_reg **reg_list, int *num_regs)
+{
 	int retval;
-
-	*hex_reg_list = NULL;
 
 	/* Check for armv7m with *enabled* FPU, i.e. a Cortex-M4F */
 	bool cm4_fpu_enabled = false;
@@ -378,7 +377,7 @@ static int nuttx_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		stacking = &nuttx_stacking_cortex_m;
 
 	return rtos_generic_stack_read(rtos->target, stacking,
-	    (uint32_t)thread_id + xcpreg_offset, hex_reg_list);
+	    (uint32_t)thread_id + xcpreg_offset, reg_list, num_regs);
 }
 
 static int nuttx_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
