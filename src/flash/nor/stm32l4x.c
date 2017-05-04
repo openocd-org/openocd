@@ -27,17 +27,21 @@
 
 /* STM32L4xxx series for reference.
  *
- * RM0351
- * http://www.st.com/st-web-ui/static/active/en/resource/technical/document/reference_manual/DM00083560.pdf
+ * RM0351 (STM32L4x5/STM32L4x6)
+ * http://www.st.com/resource/en/reference_manual/dm00083560.pdf
+ *
+ * RM0394 (STM32L43x/44x/45x/46x)
+ * http://www.st.com/resource/en/reference_manual/dm00151940.pdf
  *
  * STM32L476RG Datasheet (for erase timing)
- * http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00108832.pdf
+ * http://www.st.com/resource/en/datasheet/stm32l476rg.pdf
  *
- *
- * The device has normally two banks, but on 512 and 256 kiB devices an
- * option byte is available to map all sectors to the first bank.
+ * The RM0351 devices have normally two banks, but on 512 and 256 kiB devices
+ * an option byte is available to map all sectors to the first bank.
  * Both STM32 banks are treated as one OpenOCD bank, as other STM32 devices
  * handlers do!
+ *
+ * RM0394 devices have a single bank only.
  *
  */
 
@@ -618,6 +622,9 @@ static int stm32l4_probe(struct flash_bank *bank)
 	case 0x415:
 		max_flash_size_in_kb = 1024;
 		break;
+	case 0x462:
+		max_flash_size_in_kb = 512;
+		break;
 	case 0x435:
 		max_flash_size_in_kb = 256;
 		break;
@@ -725,8 +732,12 @@ static int get_stm32l4_info(struct flash_bank *bank, char *buf, int buf_size)
 		device_str = "STM32L475/476/486";
 		break;
 
+	case 0x462:
+		device_str = "STM32L45x/46x";
+		break;
+
 	case 0x435:
-		device_str = "STM32L43x";
+		device_str = "STM32L43x/44x";
 		break;
 
 	default:
