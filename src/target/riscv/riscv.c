@@ -414,6 +414,12 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	if (!*reg_list) {
 		return ERROR_FAIL;
 	}
+	
+	if (!target->reg_cache) {
+		LOG_ERROR("Target not initialized. Return ERROR_FAIL.");
+		return ERROR_FAIL;
+	}
+	
 	for (int i = 0; i < *reg_list_size; i++) {
 		assert(target->reg_cache->reg_list[i].size > 0);
 		(*reg_list)[i] = &target->reg_cache->reg_list[i];
