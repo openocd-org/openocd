@@ -58,6 +58,7 @@
 #define EJTAG_CTRL_DERR			(1 << 10)
 #define EJTAG_CTRL_DSTRT		(1 << 11)
 #define EJTAG_CTRL_JTAGBRK		(1 << 12)
+#define EJTAG_CTRL_DBGISA		(1 << 13)
 #define EJTAG_CTRL_SETDEV		(1 << 14)
 #define EJTAG_CTRL_PROBEN		(1 << 15)
 #define EJTAG_CTRL_PRRST		(1 << 16)
@@ -189,6 +190,8 @@ struct mips_ejtag {
 	uint32_t pa_ctrl;
 	uint32_t pa_addr;
 	unsigned int ejtag_version;
+	uint32_t isa;
+	uint32_t endianness;
 
 	/* Memory-Mapped Registers. This addresses are not same on different
 	 * EJTAG versions. */

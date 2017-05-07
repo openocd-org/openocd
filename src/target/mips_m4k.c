@@ -195,6 +195,8 @@ static int mips_m4k_poll(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	ejtag_info->isa = (ejtag_ctrl & EJTAG_CTRL_DBGISA) ? 1 : 0;
+
 	/* clear this bit before handling polling
 	 * as after reset registers will read zero */
 	if (ejtag_ctrl & EJTAG_CTRL_ROCC) {
@@ -648,14 +650,14 @@ static int mips_m4k_set_breakpoint(struct target *target,
 					breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
-			retval = target_write_u32(target, breakpoint->address, MIPS32_SDBBP);
+			retval = target_write_u32(target, breakpoint->address, MIPS32_SDBBP(ejtag_info->isa));
 			if (retval != ERROR_OK)
 				return retval;
 
 			retval = target_read_u32(target, breakpoint->address, &verify);
 			if (retval != ERROR_OK)
 				return retval;
-			if (verify != MIPS32_SDBBP) {
+			if (verify != MIPS32_SDBBP(ejtag_info->isa)) {
 				LOG_ERROR("Unable to set 32-bit breakpoint at address " TARGET_ADDR_FMT
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
@@ -667,14 +669,14 @@ static int mips_m4k_set_breakpoint(struct target *target,
 					breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
-			retval = target_write_u16(target, breakpoint->address, MIPS16_SDBBP);
+			retval = target_write_u16(target, breakpoint->address, MIPS16_SDBBP(ejtag_info->isa));
 			if (retval != ERROR_OK)
 				return retval;
 
 			retval = target_read_u16(target, breakpoint->address, &verify);
 			if (retval != ERROR_OK)
 				return retval;
-			if (verify != MIPS16_SDBBP) {
+			if (verify != MIPS16_SDBBP(ejtag_info->isa)) {
 				LOG_ERROR("Unable to set 16-bit breakpoint at address " TARGET_ADDR_FMT
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
@@ -735,7 +737,7 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 			 */
 			current_instr = target_buffer_get_u32(target, (uint8_t *)&current_instr);
 
-			if (current_instr == MIPS32_SDBBP) {
+			if (current_instr == MIPS32_SDBBP(ejtag_info->isa)) {
 				retval = target_write_memory(target, breakpoint->address, 4, 1,
 						breakpoint->orig_instr);
 				if (retval != ERROR_OK)
@@ -750,7 +752,7 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 			if (retval != ERROR_OK)
 				return retval;
 			current_instr = target_buffer_get_u16(target, (uint8_t *)&current_instr);
-			if (current_instr == MIPS16_SDBBP) {
+			if (current_instr == MIPS16_SDBBP(ejtag_info->isa)) {
 				retval = target_write_memory(target, breakpoint->address, 2, 1,
 						breakpoint->orig_instr);
 				if (retval != ERROR_OK)

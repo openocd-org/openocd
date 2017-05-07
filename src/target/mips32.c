@@ -383,9 +383,11 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 	mips32->ejtag_info.tap = tap;
 	mips32->read_core_reg = mips32_read_core_reg;
 	mips32->write_core_reg = mips32_write_core_reg;
-
-	mips32->ejtag_info.scan_delay = MIPS32_SCAN_DELAY_LEGACY_MODE;	/* Initial default value */
+	/* if unknown endianness defaults to little endian, 1 */
+	mips32->ejtag_info.endianness = target->endianness == TARGET_BIG_ENDIAN ? 0 : 1;
+	mips32->ejtag_info.scan_delay = MIPS32_SCAN_DELAY_LEGACY_MODE;
 	mips32->ejtag_info.mode = 0;			/* Initial default value */
+	mips32->ejtag_info.isa = 0;	/* isa on debug mips32, updated by poll function */
 
 	return ERROR_OK;
 }

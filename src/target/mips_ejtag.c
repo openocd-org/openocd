@@ -197,18 +197,18 @@ void mips_ejtag_drscan_8_out(struct mips_ejtag *ejtag_info, uint8_t data)
 /* Set (to enable) or clear (to disable stepping) the SSt bit (bit 8) in Cp0 Debug reg (reg 23, sel 0) */
 int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step)
 {
-	struct pracc_queue_info ctx;
+	struct pracc_queue_info ctx = {.ejtag_info = ejtag_info};
 	pracc_queue_init(&ctx);
 
-	pracc_add(&ctx, 0, MIPS32_MFC0(8, 23, 0));			/* move COP0 Debug to $8 */
-	pracc_add(&ctx, 0, MIPS32_ORI(8, 8, 0x0100));			/* set SSt bit in debug reg */
+	pracc_add(&ctx, 0, MIPS32_MFC0(ctx.isa, 8, 23, 0));			/* move COP0 Debug to $8 */
+	pracc_add(&ctx, 0, MIPS32_ORI(ctx.isa, 8, 8, 0x0100));			/* set SSt bit in debug reg */
 	if (!enable_step)
-		pracc_add(&ctx, 0, MIPS32_XORI(8, 8, 0x0100));		/* clear SSt bit in debug reg */
+		pracc_add(&ctx, 0, MIPS32_XORI(ctx.isa, 8, 8, 0x0100));		/* clear SSt bit in debug reg */
 
-	pracc_add(&ctx, 0, MIPS32_MTC0(8, 23, 0));			/* move $8 to COP0 Debug */
-	pracc_add(&ctx, 0, MIPS32_LUI(8, UPPER16(ejtag_info->reg8)));		/* restore upper 16 bits  of $8 */
-	pracc_add(&ctx, 0, MIPS32_B(NEG16((ctx.code_count + 1))));			/* jump to start */
-	pracc_add(&ctx, 0, MIPS32_ORI(8, 8, LOWER16(ejtag_info->reg8)));	/* restore lower 16 bits of $8 */
+	pracc_add(&ctx, 0, MIPS32_MTC0(ctx.isa, 8, 23, 0));			/* move $8 to COP0 Debug */
+	pracc_add(&ctx, 0, MIPS32_LUI(ctx.isa, 8, UPPER16(ejtag_info->reg8)));	/* restore upper 16 bits  of $8 */
+	pracc_add(&ctx, 0, MIPS32_B(ctx.isa, NEG16((ctx.code_count + 1) << ctx.isa)));		/* jump to start */
+	pracc_add(&ctx, 0, MIPS32_ORI(ctx.isa, 8, 8, LOWER16(ejtag_info->reg8))); /* restore lower 16 bits of $8 */
 
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL, 1);
 	pracc_queue_free(&ctx);
@@ -269,11 +269,11 @@ error:
 
 int mips_ejtag_exit_debug(struct mips_ejtag *ejtag_info)
 {
-	pa_list pracc_list = {.instr = MIPS32_DRET, .addr = 0};
+	pa_list pracc_list = {.instr = MIPS32_DRET(ejtag_info->isa), .addr = 0};
 	struct pracc_queue_info ctx = {.max_code = 1, .pracc_list = &pracc_list, .code_count = 1, .store_count = 0};
 
 	/* execute our dret instruction */
-	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL, 0);
+	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL, 0); /* shift out instr, omit last check */
 
 	/* pic32mx workaround, false pending at low core clock */
 	jtag_add_sleep(1000);

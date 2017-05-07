@@ -40,6 +40,7 @@
 #define UPPER16(uint32_t)				(uint32_t >> 16)
 #define LOWER16(uint32_t)				(uint32_t & 0xFFFF)
 #define NEG16(v)						(((~(v)) + 1) & 0xFFFF)
+#define SWAP16(v)				((LOWER16(v) << 16) | (UPPER16(v)))
 /*#define NEG18(v) (((~(v)) + 1) & 0x3FFFF)*/
 
 #define PRACC_BLOCK	128	/* 1 Kbyte */
@@ -50,12 +51,15 @@ typedef struct {
 } pa_list;
 
 struct pracc_queue_info {
+	struct mips_ejtag *ejtag_info;
+	unsigned isa;
 	int retval;
 	int code_count;
 	int store_count;
 	int max_code;		/* max intstructions with currently allocated memory */
 	pa_list *pracc_list;	/* Code and store addresses at dmseg */
 };
+
 void pracc_queue_init(struct pracc_queue_info *ctx);
 void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t instr);
 void pracc_add_li32(struct pracc_queue_info *ctx, uint32_t reg_num, uint32_t data, bool optimize);
@@ -107,5 +111,12 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info,
  */
 int mips32_cp0_write(struct mips_ejtag *ejtag_info,
 		uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel);
+
+inline void pracc_swap16_array(struct mips_ejtag *ejtag_info, uint32_t *buf, int count)
+{
+	if (ejtag_info->isa && ejtag_info->endianness)
+		for (int i = 0; i != count; i++)
+			buf[i] = SWAP16(buf[i]);
+}
 
 #endif /* OPENOCD_TARGET_MIPS32_PRACC_H */
