@@ -41,7 +41,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 static int mips_m4k_unset_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 static int mips_m4k_internal_restore(struct target *target, int current,
-		uint32_t address, int handle_breakpoints,
+		target_addr_t address, int handle_breakpoints,
 		int debug_execution);
 static int mips_m4k_halt(struct target *target);
 static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,
@@ -108,11 +108,14 @@ static int mips_m4k_debug_entry(struct target *target)
 	/* attempt to find halt reason */
 	mips_m4k_examine_debug_reason(target);
 
+	mips32_read_config_regs(target);
+
 	/* default to mips32 isa, it will be changed below if required */
 	mips32->isa_mode = MIPS32_ISA_MIPS32;
 
-	if (ejtag_info->impcode & EJTAG_IMP_MIPS16)
-		mips32->isa_mode = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1);
+	/* other than mips32 only and isa bit set ? */
+	if (mips32->isa_imp && buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1))
+		mips32->isa_mode = mips32->isa_imp == 2 ? MIPS32_ISA_MIPS16E : MIPS32_ISA_MMIPS32;
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 ", target->state: %s",
 			buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32),
@@ -431,7 +434,7 @@ static int mips_m4k_restore_smp(struct target *target, uint32_t address, int han
 }
 
 static int mips_m4k_internal_restore(struct target *target, int current,
-		uint32_t address, int handle_breakpoints, int debug_execution)
+		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -451,12 +454,13 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
+		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
 		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
 		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
 	}
 
-	if (ejtag_info->impcode & EJTAG_IMP_MIPS16)
+	if ((mips32->isa_imp > 1) &&  debug_execution)	/* if more than one isa supported */
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1, mips32->isa_mode);
 
 	if (!current)
@@ -544,6 +548,7 @@ static int mips_m4k_step(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
+		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
 		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
 		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;

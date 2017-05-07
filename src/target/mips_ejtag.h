@@ -183,6 +183,9 @@ struct mips_ejtag {
 	uint32_t idcode;
 	uint32_t ejtag_ctrl;
 	int fast_access_save;
+	uint32_t config_regs;	/* number of config registers read */
+	uint32_t config[4];	/* cp0 config to config3 */
+
 	uint32_t reg8;
 	uint32_t reg9;
 	unsigned scan_delay;

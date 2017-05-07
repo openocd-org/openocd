@@ -58,6 +58,9 @@
 #define MIPS32_CONFIG1_DL_SHIFT 10
 #define MIPS32_CONFIG1_DL_MASK (0x7 << MIPS32_CONFIG1_DL_SHIFT)
 
+#define MIPS32_CONFIG3_ISA_SHIFT	14
+#define MIPS32_CONFIG3_ISA_MASK		(3 << MIPS32_CONFIG3_ISA_SHIFT)
+
 #define MIPS32_ARCH_REL1 0x0
 #define MIPS32_ARCH_REL2 0x1
 
@@ -73,6 +76,14 @@ enum {
 enum mips32_isa_mode {
 	MIPS32_ISA_MIPS32 = 0,
 	MIPS32_ISA_MIPS16E = 1,
+	MIPS32_ISA_MMIPS32 = 3,
+};
+
+enum mips32_isa_imp {
+	MIPS32_ONLY = 0,
+	MMIPS32_ONLY = 1,
+	MIPS32_MIPS16 = 2,
+	MIPS32_MMIPS32 = 3,
 };
 
 struct mips32_comparator {
@@ -88,6 +99,7 @@ struct mips32_common {
 	struct mips_ejtag ejtag_info;
 	uint32_t core_regs[MIPS32NUMCOREREGS];
 	enum mips32_isa_mode isa_mode;
+	enum mips32_isa_imp isa_imp;
 
 	/* working area for fastdata access */
 	struct working_area *fast_data_area;
@@ -405,6 +417,8 @@ int mips32_configure_break_unit(struct target *target);
 int mips32_enable_interrupts(struct target *target, int enable);
 
 int mips32_examine(struct target *target);
+
+int mips32_read_config_regs(struct target *target);
 
 int mips32_register_commands(struct command_context *cmd_ctx);
 

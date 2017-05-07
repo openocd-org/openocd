@@ -34,7 +34,7 @@
 #include "register.h"
 
 static const char *mips_isa_strings[] = {
-	"MIPS32", "MIPS16"
+	"MIPS32", "MIPS16", "", "MICRO MIPS32",
 };
 
 #define MIPS32_GDB_DUMMY_FP_REG 1
@@ -375,6 +375,7 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;
 	mips32->fast_data_area = NULL;
+	mips32->isa_imp = MIPS32_ONLY;	/* default */
 
 	/* has breakpoint/watchpoint unit been scanned */
 	mips32->bp_scanned = 0;
@@ -388,7 +389,7 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 	mips32->ejtag_info.scan_delay = MIPS32_SCAN_DELAY_LEGACY_MODE;
 	mips32->ejtag_info.mode = 0;			/* Initial default value */
 	mips32->ejtag_info.isa = 0;	/* isa on debug mips32, updated by poll function */
-
+	mips32->ejtag_info.config_regs = 0;	/* no config register read */
 	return ERROR_OK;
 }
 
@@ -698,6 +699,50 @@ int mips32_enable_interrupts(struct target *target, int enable)
 	return ERROR_OK;
 }
 
+/* read config to config3 cp0 registers and log isa implementation */
+int mips32_read_config_regs(struct target *target)
+{
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+
+	if (ejtag_info->config_regs == 0)
+		for (int i = 0; i != 4; i++) {
+			int retval = mips32_cp0_read(ejtag_info, &ejtag_info->config[i], 16, i);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("isa info not available, failed to read cp0 config register: %" PRId32, i);
+				ejtag_info->config_regs = 0;
+				return retval;
+			}
+			ejtag_info->config_regs = i + 1;
+			if ((ejtag_info->config[i] & (1 << 31)) == 0)
+				break;	/* no more config registers implemented */
+		}
+	else
+		return ERROR_OK;	/* already succesfully read */
+
+	LOG_DEBUG("read  %"PRId32" config registers", ejtag_info->config_regs);
+
+	if (ejtag_info->impcode & EJTAG_IMP_MIPS16) {
+		mips32->isa_imp = MIPS32_MIPS16;
+		LOG_USER("MIPS32 with MIPS16 support implemented");
+
+	} else if (ejtag_info->config_regs >= 4) {	/* config3 implemented */
+		unsigned isa_imp = (ejtag_info->config[3] & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT;
+		if (isa_imp == 1) {
+			mips32->isa_imp = MMIPS32_ONLY;
+			LOG_USER("MICRO MIPS32 only implemented");
+
+		} else if (isa_imp != 0) {
+			mips32->isa_imp = MIPS32_MMIPS32;
+			LOG_USER("MIPS32 and MICRO MIPS32 implemented");
+		}
+	}
+
+	if (mips32->isa_imp == MIPS32_ONLY)	/* initial default value */
+		LOG_USER("MIPS32 only implemented");
+
+	return ERROR_OK;
+}
 int mips32_checksum_memory(struct target *target, target_addr_t address,
 		uint32_t count, uint32_t *checksum)
 {
@@ -756,7 +801,7 @@ int mips32_checksum_memory(struct target *target, target_addr_t address,
 		return retval;
 
 	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
-	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
+	mips32_info.isa_mode = isa ? MIPS32_ISA_MMIPS32 : MIPS32_ISA_MIPS32;	/* run isa as in debug mode */
 
 	init_reg_param(&reg_params[0], "r4", 32, PARAM_IN_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, address);
@@ -766,11 +811,8 @@ int mips32_checksum_memory(struct target *target, target_addr_t address,
 
 	int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
-	/* same isa as in debug mode */
-	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
-			crc_algorithm->address | isa,
-			(crc_algorithm->address + (sizeof(mips_crc_code) - 4)) | isa,
-			timeout, &mips32_info);
+	retval = target_run_algorithm(target, 0, NULL, 2, reg_params, crc_algorithm->address,
+				      crc_algorithm->address + (sizeof(mips_crc_code) - 4), timeout, &mips32_info);
 
 	if (retval == ERROR_OK)
 		*checksum = buf_get_u32(reg_params[0].value, 0, 32);
@@ -827,7 +869,7 @@ int mips32_blank_check_memory(struct target *target,
 		return retval;
 
 	mips32_info.common_magic = MIPS32_COMMON_MAGIC;
-	mips32_info.isa_mode = MIPS32_ISA_MIPS32;
+	mips32_info.isa_mode = isa ? MIPS32_ISA_MMIPS32 : MIPS32_ISA_MIPS32;
 
 	init_reg_param(&reg_params[0], "r4", 32, PARAM_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, address);
@@ -838,11 +880,8 @@ int mips32_blank_check_memory(struct target *target,
 	init_reg_param(&reg_params[2], "r6", 32, PARAM_IN_OUT);
 	buf_set_u32(reg_params[2].value, 0, 32, erased_value);
 
-	/* same isa as in debug mode */
-	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			erase_check_algorithm->address | isa,
-			(erase_check_algorithm->address + (sizeof(erase_check_code) - 4)) | isa,
-			10000, &mips32_info);
+	retval = target_run_algorithm(target, 0, NULL, 3, reg_params, erase_check_algorithm->address,
+			erase_check_algorithm->address + (sizeof(erase_check_code) - 4), 10000, &mips32_info);
 
 	if (retval == ERROR_OK)
 		*blank = buf_get_u32(reg_params[2].value, 0, 32);
