@@ -882,12 +882,45 @@ done:
 }
 
 /**
- * Executes a target-specific native code algorithm in the target.
- * It differs from target_run_algorithm in that the algorithm is asynchronous.
- * Because of this it requires an compliant algorithm:
- * see contrib/loaders/flash/stm32f1x.S for example.
+ * Streams data to a circular buffer on target intended for consumption by code
+ * running asynchronously on target.
+ *
+ * This is intended for applications where target-specific native code runs
+ * on the target, receives data from the circular buffer, does something with
+ * it (most likely writing it to a flash memory), and advances the circular
+ * buffer pointer.
+ *
+ * This assumes that the helper algorithm has already been loaded to the target,
+ * but has not been started yet. Given memory and register parameters are passed
+ * to the algorithm.
+ *
+ * The buffer is defined by (buffer_start, buffer_size) arguments and has the
+ * following format:
+ *
+ *     [buffer_start + 0, buffer_start + 4):
+ *         Write Pointer address (aka head). Written and updated by this
+ *         routine when new data is written to the circular buffer.
+ *     [buffer_start + 4, buffer_start + 8):
+ *         Read Pointer address (aka tail). Updated by code running on the
+ *         target after it consumes data.
+ *     [buffer_start + 8, buffer_start + buffer_size):
+ *         Circular buffer contents.
+ *
+ * See contrib/loaders/flash/stm32f1x.S for an example.
  *
  * @param target used to run the algorithm
+ * @param buffer address on the host where data to be sent is located
+ * @param count number of blocks to send
+ * @param block_size size in bytes of each block
+ * @param num_mem_params count of memory-based params to pass to algorithm
+ * @param mem_params memory-based params to pass to algorithm
+ * @param num_reg_params count of register-based params to pass to algorithm
+ * @param reg_params memory-based params to pass to algorithm
+ * @param buffer_start address on the target of the circular buffer structure
+ * @param buffer_size size of the circular buffer structure
+ * @param entry_point address on the target to execute to start the algorithm
+ * @param exit_point address at which to set a breakpoint to catch the
+ *     end of the algorithm; can be 0 if target triggers a breakpoint itself
  */
 
 int target_run_flash_async_algorithm(struct target *target,
