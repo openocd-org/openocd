@@ -59,6 +59,7 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
+static void riscv013_reset_current_hart(struct target *target);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -674,6 +675,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->fill_dmi_read_u64 = &riscv013_fill_dmi_read_u64;
 	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
 	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
+	generic_info->reset_current_hart = &riscv013_reset_current_hart;
 
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
@@ -1151,7 +1153,6 @@ static int examine(struct target *target)
 static int assert_reset(struct target *target)
 {
   /*FIXME -- this only works for single-hart.*/
-  assert(!riscv_rtos_enabled(target));
   RISCV_INFO(r);
   assert(r->current_hartid == 0);
 
@@ -1181,7 +1182,6 @@ static int deassert_reset(struct target *target)
   select_dmi(target);
 
   /*FIXME -- this only works for Single Hart*/
-  assert(!riscv_rtos_enabled(target));
   assert(r->current_hartid == 0);
 
   /*FIXME -- is there bookkeeping we need to do here*/
@@ -1849,6 +1849,28 @@ int riscv013_dmi_write_u64_bits(struct target *target)
 {
 	RISCV013_INFO(info);
 	return info->abits + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH;
+}
+
+void riscv013_reset_current_hart(struct target *target)
+{
+  RISCV_INFO(r);
+  RISCV013_INFO(info);
+
+  select_dmi(target);
+  uint32_t control = dmi_read(target, DMI_DMCONTROL);
+  control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
+  control = set_field(control, DMI_DMCONTROL_HALTREQ, 1);
+  dmi_write(target, DMI_DMCONTROL, control);
+
+  control = set_field(control, DMI_DMCONTROL_NDMRESET, 0);
+  dmi_write(target, DMI_DMCONTROL, control);
+
+  while (get_field(dmi_read(target, DMI_DMSTATUS), DMI_DMSTATUS_ALLHALTED) == 0);
+
+  control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
+  dmi_write(target, DMI_DMCONTROL, control);
+  return ERROR_OK;
+
 }
 
 /* Helper Functions. */

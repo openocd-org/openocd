@@ -592,43 +592,6 @@ int riscv_blank_check_memory(struct target * target,
   return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
-struct target_type riscv_target =
-{
-	.name = "riscv",
-
-	.init_target = riscv_init_target,
-	.deinit_target = riscv_deinit_target,
-	.examine = riscv_examine,
-
-	/* poll current target status */
-	.poll = oldriscv_poll,
-
-	.halt = riscv_halt,
-	.resume = riscv_resume,
-	.step = riscv_step,
-
-	.assert_reset = riscv_assert_reset,
-	.deassert_reset = riscv_deassert_reset,
-
-	.read_memory = riscv_read_memory,
-	.write_memory = riscv_write_memory,
-
-	.blank_check_memory = riscv_blank_check_memory,
-	.checksum_memory = riscv_checksum_memory,
-
-	.get_gdb_reg_list = riscv_get_gdb_reg_list,
-
-	.add_breakpoint = riscv_add_breakpoint,
-	.remove_breakpoint = riscv_remove_breakpoint,
-
-	.add_watchpoint = riscv_add_watchpoint,
-	.remove_watchpoint = riscv_remove_watchpoint,
-
-	.arch_state = riscv_arch_state,
-
-	.run_algorithm = riscv_run_algorithm,
-};
-
 /*** OpenOCD Helper Functions ***/
 
 /* 0 means nothing happened, 1 means the hart's state changed (and thus the
@@ -784,6 +747,65 @@ int riscv_openocd_step(
 	return out;
 }
 
+int riscv_openocd_assert_reset(struct target *target)
+{
+	LOG_DEBUG("asserting reset for all harts");
+	int out = riscv_reset_all_harts(target);
+	if (out != ERROR_OK) {
+		LOG_ERROR("unable to reset all harts");
+		return out;
+	}
+
+	return out;
+}
+
+int riscv_openocd_deassert_reset(struct target *target)
+{
+	LOG_DEBUG("deasserting reset for all harts");
+	if (target->reset_halt)
+		riscv_halt_all_harts(target);
+	else
+		riscv_resume_all_harts(target);
+	return ERROR_OK;
+}
+
+struct target_type riscv_target =
+{
+	.name = "riscv",
+
+	.init_target = riscv_init_target,
+	.deinit_target = riscv_deinit_target,
+	.examine = riscv_examine,
+
+	/* poll current target status */
+	.poll = old_or_new_riscv_poll,
+
+	.halt = riscv_openocd_halt,
+	.resume = riscv_openocd_resume,
+	.step = riscv_openocd_step,
+
+	.assert_reset = riscv_openocd_assert_reset,
+	.deassert_reset = riscv_openocd_deassert_reset,
+
+	.read_memory = riscv_read_memory,
+	.write_memory = riscv_write_memory,
+
+	.blank_check_memory = riscv_blank_check_memory,
+	.checksum_memory = riscv_checksum_memory,
+
+	.get_gdb_reg_list = riscv_get_gdb_reg_list,
+
+	.add_breakpoint = riscv_add_breakpoint,
+	.remove_breakpoint = riscv_remove_breakpoint,
+
+	.add_watchpoint = riscv_add_watchpoint,
+	.remove_watchpoint = riscv_remove_watchpoint,
+
+	.arch_state = riscv_arch_state,
+
+	.run_algorithm = riscv_run_algorithm,
+};
+
 /*** RISC-V Interface ***/
 
 void riscv_info_init(riscv_info_t *r)
@@ -851,6 +873,32 @@ int riscv_resume_one_hart(struct target *target, int hartid)
 
 	r->on_resume(target);
 	r->resume_current_hart(target);
+	return ERROR_OK;
+}
+
+int riscv_reset_all_harts(struct target *target)
+{
+	if (riscv_rtos_enabled(target)) {
+		for (int i = 0; i < riscv_count_harts(target); ++i)
+			riscv_reset_one_hart(target, i);
+	} else {
+		riscv_reset_one_hart(target, riscv_current_hartid(target));
+	}
+
+	return ERROR_OK;
+}
+
+int riscv_reset_one_hart(struct target *target, int hartid)
+{
+	RISCV_INFO(r);
+	LOG_DEBUG("resetting hart %d", hartid);
+	riscv_halt_one_hart(target, hartid);
+	riscv_set_current_hartid(target, hartid);
+	r->reset_current_hart(target);
+	/* At this point the hart must be halted.  On platforms that support
+	 * "reset halt" exactly we expect the hart to have been halted before
+	 * executing any instructions, while on older cores it'll just have
+	 * halted quickly. */
 	return ERROR_OK;
 }
 
