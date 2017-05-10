@@ -27,10 +27,10 @@
 
 #include <server/server.h>
 
-#define TELNET_BUFFER_SIZE (1024)
+#define TELNET_BUFFER_SIZE (10*1024)
 
 #define TELNET_LINE_HISTORY_SIZE (128)
-#define TELNET_LINE_MAX_SIZE (256)
+#define TELNET_LINE_MAX_SIZE (10*256)
 
 enum telnet_states {
 	TELNET_STATE_DATA,
