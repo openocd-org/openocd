@@ -29,7 +29,6 @@
 
 #define TELNET_BUFFER_SIZE (1024)
 
-#define TELNET_OPTION_MAX_SIZE (128)
 #define TELNET_LINE_HISTORY_SIZE (128)
 #define TELNET_LINE_MAX_SIZE (256)
 
@@ -51,8 +50,6 @@ struct telnet_connection {
 	char line[TELNET_LINE_MAX_SIZE];
 	int line_size;
 	int line_cursor;
-	char option[TELNET_OPTION_MAX_SIZE];
-	int option_size;
 	char last_escape;
 	char *history[TELNET_LINE_HISTORY_SIZE];
 	int next_history;
