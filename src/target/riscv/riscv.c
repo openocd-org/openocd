@@ -267,7 +267,7 @@ static void riscv_deinit_target(struct target *target)
 	target->arch_info = NULL;
 }
 
-static int riscv_halt(struct target *target)
+static int oldriscv_halt(struct target *target)
 {
 	struct target_type *tt = get_target_type(target);
 	return tt->halt(target);
@@ -301,12 +301,26 @@ static int riscv_remove_watchpoint(struct target *target,
 	return tt->remove_watchpoint(target, watchpoint);
 }
 
-static int riscv_step(struct target *target, int current, uint32_t address,
+static int oldriscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	struct target_type *tt = get_target_type(target);
 	return tt->step(target, current, address, handle_breakpoints);
 }
+
+static int old_or_new_riscv_step(
+        struct target *target,
+        int current,
+        uint32_t address,
+        int handle_breakpoints
+){
+	RISCV_INFO(r);
+	if (r->is_halted == NULL)
+		return oldriscv_step(target, current, address, handle_breakpoints);
+	else
+		return riscv_openocd_step(target, current, address, handle_breakpoints);
+}
+
 
 static int riscv_examine(struct target *target)
 {
@@ -350,7 +364,49 @@ static int old_or_new_riscv_poll(struct target *target)
 		return riscv_openocd_poll(target);
 }
 
-static int riscv_resume(struct target *target, int current, uint32_t address,
+static int old_or_new_riscv_halt(struct target *target)
+{
+	RISCV_INFO(r);
+	if (r->is_halted == NULL)
+		return oldriscv_halt(target);
+	else
+		return riscv_openocd_halt(target);
+}
+
+static int oldriscv_assert_reset(struct target *target)
+{
+  LOG_DEBUG("RISCV ASSERT RESET");
+	struct target_type *tt = get_target_type(target);
+	return tt->assert_reset(target);
+}
+
+static int oldriscv_deassert_reset(struct target *target)
+{
+  LOG_DEBUG("RISCV DEASSERT RESET");
+	struct target_type *tt = get_target_type(target);
+	return tt->deassert_reset(target);
+}
+
+
+static int old_or_new_riscv_assert_reset(struct target *target)
+{
+	RISCV_INFO(r);
+	if (r->is_halted == NULL)
+		return oldriscv_assert_reset(target);
+	else
+		return riscv_openocd_assert_reset(target);
+}
+
+static int old_or_new_riscv_deassert_reset(struct target *target)
+{
+	RISCV_INFO(r);
+	if (r->is_halted == NULL)
+		return oldriscv_deassert_reset(target);
+	else
+		return riscv_openocd_deassert_reset(target);
+}
+
+static int oldriscv_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution)
 {
 	struct target_type *tt = get_target_type(target);
@@ -358,18 +414,18 @@ static int riscv_resume(struct target *target, int current, uint32_t address,
 			debug_execution);
 }
 
-static int riscv_assert_reset(struct target *target)
-{
-  LOG_DEBUG("RISCV ASSERT RESET");
-	struct target_type *tt = get_target_type(target);
-	return tt->assert_reset(target);
-}
-
-static int riscv_deassert_reset(struct target *target)
-{
-  LOG_DEBUG("RISCV DEASSERT RESET");
-	struct target_type *tt = get_target_type(target);
-	return tt->deassert_reset(target);
+static int old_or_new_riscv_resume(
+        struct target *target,
+        int current,
+        uint32_t address,
+        int handle_breakpoints,
+        int debug_execution
+){
+	RISCV_INFO(r);
+	if (r->is_halted == NULL)
+		return oldriscv_resume(target, current, address, handle_breakpoints, debug_execution);
+	else
+		return riscv_openocd_resume(target, current, address, handle_breakpoints, debug_execution);
 }
 
 static int riscv_read_memory(struct target *target, uint32_t address,
@@ -508,7 +564,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 
 	/// Run algorithm
 	LOG_DEBUG("resume at 0x%x", entry_point);
-	if (riscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK) {
+	if (oldriscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
 
@@ -520,7 +576,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 			LOG_ERROR("Algorithm timed out after %d ms.", timeout_ms);
 			LOG_ERROR("  now   = 0x%08x", (uint32_t) now);
 			LOG_ERROR("  start = 0x%08x", (uint32_t) start);
-			riscv_halt(target);
+			oldriscv_halt(target);
 			old_or_new_riscv_poll(target);
 			return ERROR_TARGET_TIMEOUT;
 		}
@@ -780,12 +836,12 @@ struct target_type riscv_target =
 	/* poll current target status */
 	.poll = old_or_new_riscv_poll,
 
-	.halt = riscv_openocd_halt,
-	.resume = riscv_openocd_resume,
-	.step = riscv_openocd_step,
+	.halt = old_or_new_riscv_halt,
+	.resume = old_or_new_riscv_resume,
+	.step = old_or_new_riscv_step,
 
-	.assert_reset = riscv_openocd_assert_reset,
-	.deassert_reset = riscv_openocd_deassert_reset,
+	.assert_reset = old_or_new_riscv_assert_reset,
+	.deassert_reset = old_or_new_riscv_deassert_reset,
 
 	.read_memory = riscv_read_memory,
 	.write_memory = riscv_write_memory,
