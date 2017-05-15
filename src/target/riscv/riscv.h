@@ -127,6 +127,9 @@ int riscv_openocd_step(
 	int handle_breakpoints
 );
 
+int riscv_openocd_assert_reset(struct target *target);
+int riscv_openocd_deassert_reset(struct target *target);
+
 /*** RISC-V Interface ***/
 
 /* Initializes the shared RISC-V structure. */

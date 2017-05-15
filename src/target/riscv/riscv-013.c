@@ -1853,8 +1853,6 @@ int riscv013_dmi_write_u64_bits(struct target *target)
 
 void riscv013_reset_current_hart(struct target *target)
 {
-  RISCV_INFO(r);
-
   select_dmi(target);
   uint32_t control = dmi_read(target, DMI_DMCONTROL);
   control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
@@ -1868,7 +1866,6 @@ void riscv013_reset_current_hart(struct target *target)
 
   control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
   dmi_write(target, DMI_DMCONTROL, control);
-
 }
 
 /* Helper Functions. */
