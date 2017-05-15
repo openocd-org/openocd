@@ -1321,7 +1321,7 @@ static int read_memory(struct target *target, uint32_t address,
                 assert (cur_addr >= address);
                 struct riscv_batch *batch = riscv_batch_alloc(
 			target,
-			1024,
+			32,
 			info->dmi_busy_delay + info->ac_busy_delay);
 
 		size_t reads = 0;
@@ -1514,7 +1514,7 @@ static int write_memory(struct target *target, uint32_t address,
                 assert (cur_addr > address);
                 struct riscv_batch *batch = riscv_batch_alloc(
 			target,
-			1024,
+			32,
 			info->dmi_busy_delay + info->ac_busy_delay);
 
 		for (riscv_addr_t i = start; i < count; ++i) {
