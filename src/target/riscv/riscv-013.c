@@ -551,14 +551,6 @@ static int register_write_direct(struct target *target, unsigned number,
 		return exec_out;
 	}
 
-	assert(GDB_REGNO_XPR0 == 0);
-	if (number <= GDB_REGNO_XPR31) {
-		uint64_t written_value;
-		register_read_direct(target, &written_value, number);
-		LOG_DEBUG("attempted to write 0x%016lx, actually wrote 0x%016lx", value, written_value);
-		assert(value == written_value);
-	}
-
 	return ERROR_OK;
 }
 
