@@ -1378,6 +1378,8 @@ static int read_memory(struct target *target, uint32_t address,
                 // catches the case where no writes went through at all.
 
 		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+		while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY))
+			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		switch (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
 		case CMDERR_NONE:
 			LOG_DEBUG("successful (partial?) memory write");
@@ -1560,6 +1562,8 @@ static int write_memory(struct target *target, uint32_t address,
                 // catches the case where no writes went through at all.
 
 		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+		while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY))
+			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		switch (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
 		case CMDERR_NONE:
 			LOG_DEBUG("successful (partial?) memory write");
