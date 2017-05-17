@@ -991,7 +991,9 @@ static int gdb_new_connection(struct connection *connection)
 	}
 
 	gdb_actual_connections++;
-	LOG_DEBUG("New GDB Connection: %d, Target %s, state: %s",
+	log_printf_lf(all_targets->next != NULL ? LOG_LVL_INFO : LOG_LVL_DEBUG,
+			__FILE__, __LINE__, __func__,
+			"New GDB Connection: %d, Target %s, state: %s",
 			gdb_actual_connections,
 			target_name(target),
 			target_state_name(target));
