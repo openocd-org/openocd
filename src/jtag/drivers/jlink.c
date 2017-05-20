@@ -551,6 +551,11 @@ static int jlink_init(void)
 	LOG_DEBUG("Using libjaylink %s (compiled with %s).",
 		jaylink_version_package_get_string(), JAYLINK_VERSION_PACKAGE_STRING);
 
+	if (!jaylink_library_has_cap(JAYLINK_CAP_HIF_USB) && use_usb_address) {
+		LOG_ERROR("J-Link driver does not support USB devices.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
 	ret = jaylink_init(&jayctx);
 
 	if (ret != JAYLINK_OK) {
@@ -610,7 +615,9 @@ static int jlink_init(void)
 		if (use_usb_address) {
 			ret = jaylink_device_get_usb_address(devs[i], &address);
 
-			if (ret != JAYLINK_OK) {
+			if (ret == JAYLINK_ERR_NOT_SUPPORTED) {
+				continue;
+			} else if (ret != JAYLINK_OK) {
 				LOG_WARNING("jaylink_device_get_usb_address() failed: %s.",
 					jaylink_strerror_name(ret));
 				continue;

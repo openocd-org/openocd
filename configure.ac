@@ -655,7 +655,7 @@ PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
 PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
-PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_libusb1" = "xyes" -a "x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libusb-1.x or libjaylink-0.1])
+PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.1])
 
 AS_IF([test "x$build_openjtag" = "xyes"], [
   AS_IF([test "x$use_libusb1" != "xyes" -a "x$use_libusb0" != "xyes"], [
