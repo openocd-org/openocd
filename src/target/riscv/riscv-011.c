@@ -872,7 +872,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 	if (last == info->dramsize) {
 		// Nothing needs to be written to RAM.
-		dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | DMCONTROL_INTERRUPT);
+	        dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | (run ? DMCONTROL_INTERRUPT : 0));
 
 	} else {
 		for (unsigned int i = 0; i < info->dramsize; i++) {
