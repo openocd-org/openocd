@@ -211,4 +211,7 @@ void riscv_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t 
 void riscv_fill_dmi_read_u64(struct target *target, char *buf, int a);
 int riscv_dmi_write_u64_bits(struct target *target);
 
+/* Invalidates the register cache. */
+void riscv_invalidate_register_cache(struct target *target);
+
 #endif
