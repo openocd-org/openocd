@@ -241,7 +241,7 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 		riscv_set_rtos_hartid(target, threadid - 1);
 		riscv_step_rtos_hart(target);
 
-		gdb_put_packet(connection, "S02", 3);
+		gdb_put_packet(connection, "S05", 3);
 		return JIM_OK;
 	}
 
