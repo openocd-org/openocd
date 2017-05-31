@@ -136,9 +136,9 @@ static int ath79_spi_bitbang_codegen(struct ath79_flash_bank *ath79_info,
 
 	const uint32_t preamble1[] = {
 		/* $15 = MIPS32_PRACC_BASE_ADDR */
-		MIPS32_LUI(15, PRACC_UPPER_BASE_ADDR),
+		MIPS32_LUI(0, 15, PRACC_UPPER_BASE_ADDR),
 		/* $1 = io_base */
-		MIPS32_LUI(1, UPPER16(io_base)),
+		MIPS32_LUI(0, 1, UPPER16(io_base)),
 	};
 	ath79_pracc_addn(ctx, preamble1, ARRAY_SIZE(preamble1));
 	if (ath79_info->spi.pre_deselect) {
@@ -148,31 +148,31 @@ static int ath79_spi_bitbang_codegen(struct ath79_flash_bank *ath79_info,
 		ath79_info->spi.pre_deselect = 0;
 		const uint32_t pre_deselect[] = {
 			/* [$1 + FS] = 1  (enable flash io register access) */
-			MIPS32_LUI(2, UPPER16(1)),
-			MIPS32_ORI(2, 2, LOWER16(1)),
-			MIPS32_SW(2, ATH79_REG_FS, 1),
+			MIPS32_LUI(0, 2, UPPER16(1)),
+			MIPS32_ORI(0, 2, 2, LOWER16(1)),
+			MIPS32_SW(0, 2, ATH79_REG_FS, 1),
 			/* deselect flash just in case */
 			/* $2 = SPI_CS_DIS */
-			MIPS32_LUI(2, UPPER16(cs_high)),
-			MIPS32_ORI(2, 2, LOWER16(cs_high)),
+			MIPS32_LUI(0, 2, UPPER16(cs_high)),
+			MIPS32_ORI(0, 2, 2, LOWER16(cs_high)),
 			/* [$1 + WRITE] = $2 */
-			MIPS32_SW(2, ATH79_REG_WRITE, 1),
+			MIPS32_SW(0, 2, ATH79_REG_WRITE, 1),
 		};
 		ath79_pracc_addn(ctx, pre_deselect, ARRAY_SIZE(pre_deselect));
 	}
 	const uint32_t preamble2[] = {
 		/* t0 = CLOCK_LOW + 0-bit */
-		MIPS32_LUI(8, UPPER16((clock_low + 0))),
-		MIPS32_ORI(8, 8, LOWER16((clock_low + 0))),
+		MIPS32_LUI(0, 8, UPPER16((clock_low + 0))),
+		MIPS32_ORI(0, 8, 8, LOWER16((clock_low + 0))),
 		/* t1 = CLOCK_LOW + 1-bit */
-		MIPS32_LUI(9, UPPER16((clock_low + 1))),
-		MIPS32_ORI(9, 9, LOWER16((clock_low + 1))),
+		MIPS32_LUI(0, 9, UPPER16((clock_low + 1))),
+		MIPS32_ORI(0, 9, 9, LOWER16((clock_low + 1))),
 		/* t2 = CLOCK_HIGH + 0-bit */
-		MIPS32_LUI(10, UPPER16((clock_high + 0))),
-		MIPS32_ORI(10, 10, LOWER16((clock_high + 0))),
+		MIPS32_LUI(0, 10, UPPER16((clock_high + 0))),
+		MIPS32_ORI(0, 10, 10, LOWER16((clock_high + 0))),
 		/* t3 = CLOCK_HIGH + 1-bit */
-		MIPS32_LUI(11, UPPER16((clock_high + 1))),
-		MIPS32_ORI(11, 11, LOWER16((clock_high + 1))),
+		MIPS32_LUI(0, 11, UPPER16((clock_high + 1))),
+		MIPS32_ORI(0, 11, 11, LOWER16((clock_high + 1))),
 	};
 	ath79_pracc_addn(ctx, preamble2, ARRAY_SIZE(preamble2));
 
@@ -186,58 +186,58 @@ static int ath79_spi_bitbang_codegen(struct ath79_flash_bank *ath79_info,
 			if (bit) {
 				/* [$1 + WRITE] = t1 */
 				pracc_add(ctx, 0,
-					  MIPS32_SW(9, ATH79_REG_WRITE, 1));
+					  MIPS32_SW(0, 9, ATH79_REG_WRITE, 1));
 				/* [$1 + WRITE] = t3 */
 				pracc_add(ctx, 0,
-					  MIPS32_SW(11, ATH79_REG_WRITE, 1));
+					  MIPS32_SW(0, 11, ATH79_REG_WRITE, 1));
 			} else {
 				/* [$1 + WRITE] = t0 */
 				pracc_add(ctx, 0,
-					  MIPS32_SW(8, ATH79_REG_WRITE, 1));
+					  MIPS32_SW(0, 8, ATH79_REG_WRITE, 1));
 				/* [$1 + WRITE] = t2 */
 				pracc_add(ctx, 0,
-					  MIPS32_SW(10, ATH79_REG_WRITE, 1));
+					  MIPS32_SW(0, 10, ATH79_REG_WRITE, 1));
 			}
 		}
 		if (i % 4 == 3) {
 			/* $3 = [$1 + DATA] */
-			pracc_add(ctx, 0, MIPS32_LW(3, ATH79_REG_DATA, 1));
+			pracc_add(ctx, 0, MIPS32_LW(0, 3, ATH79_REG_DATA, 1));
 			/* [OUTi] = $3 */
 			pracc_add(ctx, MIPS32_PRACC_PARAM_OUT + pracc_out,
-				  MIPS32_SW(3, PRACC_OUT_OFFSET +
+				  MIPS32_SW(0, 3, PRACC_OUT_OFFSET +
 				 pracc_out, 15));
 			pracc_out += 4;
 		}
 	}
 	if (len & 3) { /* not a multiple of 4 bytes */
 		/* $3 = [$1 + DATA] */
-		pracc_add(ctx, 0, MIPS32_LW(3, ATH79_REG_DATA, 1));
+		pracc_add(ctx, 0, MIPS32_LW(0, 3, ATH79_REG_DATA, 1));
 		/* [OUTi] = $3 */
 		pracc_add(ctx, MIPS32_PRACC_PARAM_OUT + pracc_out,
-			  MIPS32_SW(3, PRACC_OUT_OFFSET + pracc_out, 15));
+			  MIPS32_SW(0, 3, PRACC_OUT_OFFSET + pracc_out, 15));
 		pracc_out += 4;
 	}
 
 	if (ath79_info->spi.post_deselect && !partial_xfer) {
 		const uint32_t post_deselect[] = {
 			/* $2 = SPI_CS_DIS */
-			MIPS32_LUI(2, UPPER16(cs_high)),
-			MIPS32_ORI(2, 2, LOWER16(cs_high)),
+			MIPS32_LUI(0, 2, UPPER16(cs_high)),
+			MIPS32_ORI(0, 2, 2, LOWER16(cs_high)),
 			/* [$1 + WRITE] = $2 */
-			MIPS32_SW(2, ATH79_REG_WRITE, 1),
+			MIPS32_SW(0, 2, ATH79_REG_WRITE, 1),
 
 			/* [$1 + FS] = 0  (disable flash io register access) */
-			MIPS32_XORI(2, 2, 0),
-			MIPS32_SW(2, ATH79_REG_FS, 1),
+			MIPS32_XORI(0, 2, 2, 0),
+			MIPS32_SW(0, 2, ATH79_REG_FS, 1),
 		};
 		ath79_pracc_addn(ctx, post_deselect, ARRAY_SIZE(post_deselect));
 	}
 
 	/* common pracc epilogue */
 	/* jump to start */
-	pracc_add(ctx, 0, MIPS32_B(NEG16(ctx->code_count + 1)));
+	pracc_add(ctx, 0, MIPS32_B(0, NEG16(ctx->code_count + 1)));
 	/* restore $15 from DeSave */
-	pracc_add(ctx, 0, MIPS32_MFC0(15, 31, 0));
+	pracc_add(ctx, 0, MIPS32_MFC0(0, 15, 31, 0));
 
 	return pracc_out / 4;
 }
@@ -259,9 +259,9 @@ static int ath79_spi_bitbang_chunk(struct flash_bank *bank,
 	const int pracc_loop_byte = 8 * 2 + 2;
 
 	struct pracc_queue_info ctx = {
-		.max_code = PRACC_MAX_INSTRUCTIONS
+		.ejtag_info = ejtag_info
 	};
-	int max_len = (ctx.max_code - pracc_pre_post) / pracc_loop_byte;
+	int max_len = (PRACC_MAX_INSTRUCTIONS - pracc_pre_post) / pracc_loop_byte;
 	int to_xfer = len > max_len ? max_len : len;
 	int partial_xfer = len != to_xfer;
 	int padded_len = (to_xfer + 3) & ~3;
@@ -274,14 +274,12 @@ static int ath79_spi_bitbang_chunk(struct flash_bank *bank,
 
 	*transferred = 0;
 	pracc_queue_init(&ctx);
-	if (ctx.retval != ERROR_OK)
-		goto exit;
 
 	LOG_DEBUG("ath79_spi_bitbang_bytes(%p, %08x, %p, %d)",
 		  target, ath79_info->io_base, data, len);
 
 	LOG_DEBUG("max code %d => max len %d. to_xfer %d",
-		  ctx.max_code, max_len, to_xfer);
+		  PRACC_MAX_INSTRUCTIONS, max_len, to_xfer);
 
 	pracc_words = ath79_spi_bitbang_codegen(
 		ath79_info, &ctx, data, to_xfer, partial_xfer);
@@ -289,7 +287,7 @@ static int ath79_spi_bitbang_chunk(struct flash_bank *bank,
 	LOG_DEBUG("Assembled %d instructions, %d stores",
 		  ctx.code_count, ctx.store_count);
 
-	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, out);
+	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, out, 1);
 	if (ctx.retval != ERROR_OK)
 		goto exit;
 
