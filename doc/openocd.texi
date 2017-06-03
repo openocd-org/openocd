@@ -6000,6 +6000,41 @@ if @{ [info exists IMEMORY] && [string equal $IMEMORY true] @} @{
 @end example
 @end deffn
 
+@deffn {Flash Driver} msp432
+All versions of the SimpleLink MSP432 microcontrollers from Texas
+Instruments include internal flash. The msp432 flash driver automatically
+recognizes the specific version's flash parameters and autoconfigures itself.
+Main program flash (starting at address 0) is flash bank 0. Information flash
+region on MSP432P4 versions (starting at address 0x200000) is flash bank 1.
+
+@example
+flash bank $_FLASHNAME msp432 0 0 0 0 $_TARGETNAME
+@end example
+
+@deffn Command {msp432 mass_erase} [main|all]
+Performs a complete erase of flash. By default, @command{mass_erase} will erase
+only the main program flash.
+
+On MSP432P4 versions, using @command{mass_erase all} will erase both the
+main program and information flash regions. To also erase the BSL in information
+flash, the user must first use the @command{bsl} command.
+@end deffn
+
+@deffn Command {msp432 bsl} [unlock|lock]
+On MSP432P4 versions, @command{bsl} unlocks and locks the bootstrap loader (BSL)
+region in information flash so that flash commands can erase or write the BSL.
+Leave the BSL locked to prevent accidentally corrupting the bootstrap loader.
+
+To erase and program the BSL:
+@example
+msp432 bsl unlock
+flash erase_address 0x202000 0x2000
+flash write_image bsl.bin 0x202000
+msp432 bsl lock
+@end example
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} niietcm4
 This drivers handles the integrated NOR flash on NIIET Cortex-M4
 based controllers. Flash size and sector layout are auto-configured by the driver.
