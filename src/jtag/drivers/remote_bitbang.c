@@ -131,7 +131,7 @@ static int remote_bitbang_init_tcp(void)
 {
 	struct addrinfo hints = { .ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM };
 	struct addrinfo *result, *rp;
-	int fd;
+	int fd = 0;
 
 	LOG_INFO("Connecting to %s:%s",
 			remote_bitbang_host ? remote_bitbang_host : "localhost",
