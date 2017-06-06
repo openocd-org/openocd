@@ -17,7 +17,7 @@ int riscv_program_lal(struct riscv_program *p, enum gdb_regno d, riscv_addr_t ad
 /* Program interface. */
 int riscv_program_init(struct riscv_program *p, struct target *target)
 {
-	LOG_DEBUG("riscv_program_init: p=0x%p", p);
+	LOG_DEBUG("riscv_program_init: p=%p", p);
 
 	memset(p, 0, sizeof(*p));
 	p->target = target;
@@ -73,13 +73,13 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	}
 
 	for (size_t i = 0; i < riscv_debug_buffer_size(p->target); ++i) {
-		LOG_DEBUG("Executing program 0x%p: debug_buffer[%02x] = DASM(0x%08lx)", p, (int)i, (long)p->debug_buffer[i]);
+		LOG_DEBUG("Executing program %p: debug_buffer[%02x] = DASM(0x%08lx)", p, (int)i, (long)p->debug_buffer[i]);
 		if (i <= p->instruction_count || i >= riscv_debug_buffer_size(p->target) - p->data_count)
 			riscv_write_debug_buffer(t, i, p->debug_buffer[i]);
 	}
 
 	if (riscv_execute_debug_buffer(t) != ERROR_OK) {
-		LOG_DEBUG("Unable to execute program 0x%p", p);
+		LOG_DEBUG("Unable to execute program %p", p);
 		return ERROR_FAIL;
 	}
 
@@ -474,7 +474,7 @@ int riscv_program_lal(struct riscv_program *p, enum gdb_regno d, riscv_addr_t ad
 
 int riscv_program_insert(struct riscv_program *p, riscv_insn_t i)
 {
-	LOG_DEBUG("instruction_count: %d (p=0x%p)", (int)p->instruction_count, p);
+	LOG_DEBUG("instruction_count: %d (p=%p)", (int)p->instruction_count, p);
 
 	if (p->instruction_count + p->data_count + 1 > riscv_debug_buffer_size(p->target)) {
 		LOG_DEBUG("Unable to insert instruction:");
