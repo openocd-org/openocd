@@ -273,7 +273,7 @@ int add_service(char *name,
 		c->sin.sin_port = htons(c->portnumber);
 
 		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1) {
-			LOG_ERROR("couldn't bind %s to socket: %s", name, strerror(errno));
+			LOG_ERROR("couldn't bind %s to socket on port %d: %s", name, c->portnumber, strerror(errno));
 			close_socket(c->fd);
 			free_service(c);
 			return ERROR_FAIL;
