@@ -367,9 +367,9 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 
 	unsigned i = 0;
 
-        // This first loop ensures that the read request was actually sent
-        // to the target. Note that if for some reason this stays busy,
-        // it is actually due to the Previous dmi_read or dmi_write.
+	// This first loop ensures that the read request was actually sent
+	// to the target. Note that if for some reason this stays busy,
+	// it is actually due to the Previous dmi_read or dmi_write.
 	for (i = 0; i < 256; i++) {
 		status = dmi_scan(target, NULL, NULL, DMI_OP_READ, address, 0,
 				  false);
@@ -378,35 +378,35 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed read from 0x%x, status=%d\n", address, status);
+			LOG_ERROR("failed read from 0x%x, status=%d", address, status);
 			break;
 		}
 	}
 
-        if (status != DMI_STATUS_SUCCESS) {
-                LOG_ERROR("Failed read from 0x%x; value=0x%" PRIx64 ", status=%d\n",
-                                address, value, status);
-                abort();
-        }
+	if (status != DMI_STATUS_SUCCESS) {
+		LOG_ERROR("Failed read from 0x%x; value=0x%" PRIx64 ", status=%d",
+				address, value, status);
+		abort();
+	}
 
-         // This second loop ensures that we got the read
-         // data back. Note that NOP can result in a 'busy' result as well, but
-         // that would be noticed on the next DMI access we do.
-         for (i = 0; i < 256; i++) {
-           status = dmi_scan(target, &address_in, &value, DMI_OP_NOP, address, 0,
-                             false);
-           if (status == DMI_STATUS_BUSY) {
-             increase_dmi_busy_delay(target);
-           } else if (status == DMI_STATUS_SUCCESS) {
-             break;
-           } else {
-             LOG_ERROR("failed read (NOP) at 0x%x, status=%d\n", address, status);
-             break;
-           }
-        }
+	// This second loop ensures that we got the read
+	// data back. Note that NOP can result in a 'busy' result as well, but
+	// that would be noticed on the next DMI access we do.
+	for (i = 0; i < 256; i++) {
+		status = dmi_scan(target, &address_in, &value, DMI_OP_NOP, address, 0,
+				false);
+		if (status == DMI_STATUS_BUSY) {
+			increase_dmi_busy_delay(target);
+		} else if (status == DMI_STATUS_SUCCESS) {
+			break;
+		} else {
+			LOG_ERROR("failed read (NOP) at 0x%x, status=%d\n", address, status);
+			break;
+		}
+	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%" PRIx64 ", status=%d\n",
+		LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%" PRIx64 ", status=%d",
 				address, value, status);
 		abort();
 	}
