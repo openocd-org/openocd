@@ -198,23 +198,18 @@ static void dump_field(const struct scan_field *field)
 	unsigned int out_data = get_field(out, DTM_DMI_DATA);
 	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
 
-	if (field->in_value) {
-		uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-		unsigned int in_op = get_field(in, DTM_DMI_OP);
-		unsigned int in_data = get_field(in, DTM_DMI_DATA);
-		unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
+        uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+        unsigned int in_op = get_field(in, DTM_DMI_OP);
+        unsigned int in_data = get_field(in, DTM_DMI_DATA);
+        unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
-		log_printf_lf(LOG_LVL_DEBUG,
-				__FILE__, __LINE__, "scan",
-				"%db %s %08x @%02x -> %s %08x @%02x",
-				field->num_bits,
-				op_string[out_op], out_data, out_address,
-				status_string[in_op], in_data, in_address);
-	} else {
-		log_printf_lf(LOG_LVL_DEBUG,
-				__FILE__, __LINE__, "scan", "%db %s %08x @%02x -> ?",
-				field->num_bits, op_string[out_op], out_data, out_address);
-	}
+        log_printf_lf(LOG_LVL_DEBUG,
+                      __FILE__, __LINE__, "scan",
+                      "%db %s %08x @%02x -> %s %08x @%02x",
+                      field->num_bits,
+                      op_string[out_op], out_data, out_address,
+                      status_string[in_op], in_data, in_address);
+
 }
 
 static riscv013_info_t *get_info(const struct target *target)
@@ -325,9 +320,10 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 		.out_value = out,
 	};
 
-	if (address_in || data_in) {
-		field.in_value = in;
-	}
+        // We need to always do this so that we can
+        // get the OP result, even if we don't care about
+        // the data itself.
+        field.in_value = in;
 
 	assert(info->abits != 0);
 
@@ -380,7 +376,7 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
         // it is actually due to the Previous dmi_read or dmi_write.
 	for (i = 0; i < 256; i++) {
 		status = dmi_scan(target, NULL, NULL, DMI_OP_READ, address, 0,
-				false);
+				  false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
 		} else if (status == DMI_STATUS_SUCCESS) {
