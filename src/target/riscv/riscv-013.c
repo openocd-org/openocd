@@ -318,12 +318,8 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	struct scan_field field = {
 		.num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH,
 		.out_value = out,
+                .in_value = in
 	};
-
-        // We need to always do this so that we can
-        // get the OP result, even if we don't care about
-        // the data itself.
-        field.in_value = in;
 
 	assert(info->abits != 0);
 
