@@ -20,7 +20,7 @@ extern struct target_type riscv013_target;
  */
 typedef uint64_t riscv_reg_t;
 typedef uint32_t riscv_insn_t;
-typedef  int64_t riscv_addr_t;
+typedef uint64_t riscv_addr_t;
 
 enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
@@ -83,8 +83,9 @@ typedef struct {
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
 	void (*debug_buffer_enter)(struct target *target, struct riscv_program *program);
 	void (*debug_buffer_leave)(struct target *target, struct riscv_program *program);
-	void (*write_debug_buffer)(struct target *target, int i, riscv_insn_t d);
-	riscv_insn_t (*read_debug_buffer)(struct target *target, int i);
+	void (*write_debug_buffer)(struct target *target, unsigned index,
+			riscv_insn_t d);
+	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned index);
 	int (*execute_debug_buffer)(struct target *target);
 	int (*dmi_write_u64_bits)(struct target *target);
 	void (*fill_dmi_write_u64)(struct target *target, char *buf, int a, uint64_t d);
@@ -115,7 +116,7 @@ int riscv_openocd_halt(struct target *target);
 int riscv_openocd_resume(
 	struct target *target,
 	int current,
-	uint32_t address,
+	target_addr_t address,
 	int handle_breakpoints, 
 	int debug_execution
 );
@@ -123,7 +124,7 @@ int riscv_openocd_resume(
 int riscv_openocd_step(
 	struct target *target,
 	int current,
-	uint32_t address,
+	target_addr_t address,
 	int handle_breakpoints
 );
 
