@@ -66,7 +66,7 @@ Free Documentation License''.
 * Running::                          Running OpenOCD
 * OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
-* Daemon Configuration::             Daemon Configuration
+* Server Configuration::             Server Configuration
 * Debug Adapter Configuration::      Debug Adapter Configuration
 * Reset Configuration::              Reset Configuration
 * TAP Declaration::                  TAP Declaration
@@ -595,6 +595,9 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{bcm2835gpio}
 @* A BCM2835-based board (e.g. Raspberry Pi) using the GPIO pins of the expansion header.
 
+@item @b{imx_gpio}
+@* A NXP i.MX-based board (e.g. Wandboard) using the GPIO pins (should work on any i.MX processor).
+
 @item @b{jtag_vpi}
 @* A JTAG driver acting as a client for the JTAG VPI server interface.
 @* Link: @url{http://github.com/fjullien/jtag_vpi}
@@ -752,13 +755,13 @@ on the command line or, if there were no @option{-c command} or
 At the end of the configuration stage it verifies the JTAG scan
 chain defined using those commands; your configuration should
 ensure that this always succeeds.
-Normally, OpenOCD then starts running as a daemon.
+Normally, OpenOCD then starts running as a server.
 Alternatively, commands may be used to terminate the configuration
 stage early, perform work (such as updating some flash memory),
-and then shut down without acting as a daemon.
+and then shut down without acting as a server.
 
-Once OpenOCD starts running as a daemon, it waits for connections from
-clients (Telnet, GDB, Other) and processes the commands issued through
+Once OpenOCD starts running as a server, it waits for connections from
+clients (Telnet, GDB, RPC) and processes the commands issued through
 those channels.
 
 If you are having problems, you can enable internal debug messages via
@@ -775,7 +778,7 @@ informational messages, warnings and errors. You can also change this
 setting from within a telnet or gdb session using @command{debug_level<n>}
 (@pxref{debuglevel,,debug_level}).
 
-You can redirect all output from the daemon to a file using the
+You can redirect all output from the server to a file using the
 @option{-l <logfile>} switch.
 
 Note! OpenOCD will launch the GDB & telnet server even if it can not
@@ -898,7 +901,7 @@ using a Signalyzer FT2232-based JTAG adapter to talk to
 a board with an Atmel AT91SAM7X256 microcontroller:
 
 @example
-source [find interface/signalyzer.cfg]
+source [find interface/ftdi/signalyzer.cfg]
 
 # GDB can also flash my flash!
 gdb_memory_map enable
@@ -910,7 +913,7 @@ source [find target/sam7x256.cfg]
 Here is the command line equivalent of that configuration:
 
 @example
-openocd -f interface/signalyzer.cfg \
+openocd -f interface/ftdi/signalyzer.cfg \
         -c "gdb_memory_map enable" \
         -c "gdb_flash_program enable" \
         -f target/sam7x256.cfg
@@ -1994,8 +1997,8 @@ proc setc15 @{regs value@} @{
 
 
 
-@node Daemon Configuration
-@chapter Daemon Configuration
+@node Server Configuration
+@chapter Server Configuration
 @cindex initialization
 The commands here are commonly found in the openocd.cfg file and are
 used to specify what TCP/IP ports are used, and how GDB should be
@@ -2109,7 +2112,7 @@ communicate via pipes(stdin/out or named pipes). The name
 the normal use cases.
 
 No arguments reports GDB port. "pipe" means listen to stdin
-output to stdout, an integer is base port number, "disable"
+output to stdout, an integer is base port number, "disabled"
 disables the gdb server.
 
 When using "pipe", also use log_output to redirect the log
@@ -2403,113 +2406,15 @@ A dummy software-only driver for debugging.
 Cirrus Logic EP93xx based single-board computer bit-banging (in development)
 @end deffn
 
-@deffn {Interface Driver} {ft2232}
-FTDI FT2232 (USB) based devices over one of the userspace libraries.
-
-Note that this driver has several flaws and the @command{ftdi} driver is
-recommended as its replacement.
-
-These interfaces have several commands, used to configure the driver
-before initializing the JTAG scan chain:
-
-@deffn {Config Command} {ft2232_device_desc} description
-Provides the USB device description (the @emph{iProduct string})
-of the FTDI FT2232 device. If not
-specified, the FTDI default value is used. This setting is only valid
-if compiled with FTD2XX support.
-@end deffn
-
-@deffn {Config Command} {ft2232_serial} serial-number
-Specifies the @var{serial-number} of the FTDI FT2232 device to use,
-in case the vendor provides unique IDs and more than one FT2232 device
-is connected to the host.
-If not specified, serial numbers are not considered.
-(Note that USB serial numbers can be arbitrary Unicode strings,
-and are not restricted to containing only decimal digits.)
-@end deffn
-
-@deffn {Config Command} {ft2232_layout} name
-Each vendor's FT2232 device can use different GPIO signals
-to control output-enables, reset signals, and LEDs.
-Currently valid layout @var{name} values include:
-@itemize @minus
-@item @b{axm0432_jtag} Axiom AXM-0432
-@item @b{comstick} Hitex STR9 comstick
-@item @b{cortino} Hitex Cortino JTAG interface
-@item @b{evb_lm3s811} TI/Luminary Micro EVB_LM3S811 as a JTAG interface,
-either for the local Cortex-M3 (SRST only)
-or in a passthrough mode (neither SRST nor TRST)
-This layout can not support the SWO trace mechanism, and should be
-used only for older boards (before rev C).
-@item @b{luminary_icdi} This layout should be used with most TI/Luminary
-eval boards, including Rev C LM3S811 eval boards and the eponymous
-ICDI boards, to debug either the local Cortex-M3 or in passthrough mode
-to debug some other target. It can support the SWO trace mechanism.
-@item @b{flyswatter} Tin Can Tools Flyswatter
-@item @b{icebear} ICEbear JTAG adapter from Section 5
-@item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
-@item @b{jtagkey2} Amontec JTAGkey2 (and compatibles)
-@item @b{m5960} American Microsystems M5960
-@item @b{olimex-jtag} Olimex ARM-USB-OCD and ARM-USB-Tiny
-@item @b{oocdlink} OOCDLink
-@c oocdlink ~= jtagkey_prototype_v1
-@item @b{redbee-econotag} Integrated with a Redbee development board.
-@item @b{redbee-usb} Integrated with a Redbee USB-stick development board.
-@item @b{sheevaplug} Marvell Sheevaplug development kit
-@item @b{signalyzer} Xverve Signalyzer
-@item @b{stm32stick} Hitex STM32 Performance Stick
-@item @b{turtelizer2} egnite Software turtelizer2
-@item @b{usbjtag} "USBJTAG-1" layout described in the OpenOCD diploma thesis
-@end itemize
-@end deffn
-
-@deffn {Config Command} {ft2232_vid_pid} [vid pid]+
-The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
-default values are used.
-Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
-@example
-ft2232_vid_pid 0x0403 0xcff8 0x15ba 0x0003
-@end example
-@end deffn
-
-@deffn {Config Command} {ft2232_latency} ms
-On some systems using FT2232 based JTAG interfaces the FT_Read function call in
-ft2232_read() fails to return the expected number of bytes. This can be caused by
-USB communication delays and has proved hard to reproduce and debug. Setting the
-FT2232 latency timer to a larger value increases delays for short USB packets but it
-also reduces the risk of timeouts before receiving the expected number of bytes.
-The OpenOCD default value is 2 and for some systems a value of 10 has proved useful.
-@end deffn
-
-@deffn {Config Command} {ft2232_channel} channel
-Used to select the channel of the ft2232 chip to use (between 1 and 4).
-The default value is 1.
-@end deffn
-
-For example, the interface config file for a
-Turtelizer JTAG Adapter looks something like this:
-
-@example
-interface ft2232
-ft2232_device_desc "Turtelizer JTAG/RS232 Adapter"
-ft2232_layout turtelizer2
-ft2232_vid_pid 0x0403 0xbdc8
-@end example
-@end deffn
-
 @deffn {Interface Driver} {ftdi}
 This driver is for adapters using the MPSSE (Multi-Protocol Synchronous Serial
 Engine) mode built into many FTDI chips, such as the FT2232, FT4232 and FT232H.
-It is a complete rewrite to address a large number of problems with the ft2232
-interface driver.
 
 The driver is using libusb-1.0 in asynchronous mode to talk to the FTDI device,
-bypassing intermediate libraries like libftdi of D2XX. Performance-wise it is
-consistently faster than the ft2232 driver, sometimes several times faster.
+bypassing intermediate libraries like libftdi or D2XX.
 
-A major improvement of this driver is that support for new FTDI based adapters
-can be added competely through configuration files, without the need to patch
-and rebuild OpenOCD.
+Support for new FTDI based adapters can be added competely through
+configuration files, without the need to patch and rebuild OpenOCD.
 
 The driver uses a signal abstraction to enable Tcl configuration files to
 define outputs for one or several FTDI GPIO. These outputs can then be
@@ -2517,6 +2422,12 @@ controlled using the @command{ftdi_set_signal} command. Special signal names
 are reserved for nTRST, nSRST and LED (for blink) so that they, if defined,
 will be used for their customary purpose. Inputs can be read using the
 @command{ftdi_get_signal} command.
+
+To support SWD, a signal named SWD_EN must be defined. It is set to 1 when the
+SWD protocol is selected. When set, the adapter should route the SWDIO pin to
+the data input. An SWDIO_OE signal, if defined, will be set to 1 or 0 as
+required by the protocol, to tell the adapter to drive the data output onto
+the SWDIO pin or keep the SWDIO pin Hi-Z, respectively.
 
 Depending on the type of buffer attached to the FTDI GPIO, the outputs have to
 be controlled differently. In order to support tristateable signals such as
@@ -2536,9 +2447,8 @@ These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
 @deffn {Config Command} {ftdi_vid_pid} [vid pid]+
-The vendor ID and product ID of the adapter. If not specified, the FTDI
-default values are used.
-Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
+The vendor ID and product ID of the adapter. Up to eight
+[@var{vid}, @var{pid}] pairs may be given, e.g.
 @example
 ftdi_vid_pid 0x0403 0xcff8 0x15ba 0x0003
 @end example
@@ -2721,7 +2631,7 @@ reset_config srst_only
 @end example
 @end deffn
 
-@deffn {Command} {usb_blaster_lowlevel_driver} (@option{ftdi}|@option{ftd2xx}|@option{ublast2})
+@deffn {Command} {usb_blaster_lowlevel_driver} (@option{ftdi}|@option{ublast2})
 Chooses the low level access method for the adapter. If not specified,
 @option{ftdi} is selected unless it wasn't enabled during the
 configure stage. USB-Blaster II needs @option{ublast2}.
@@ -2799,6 +2709,26 @@ Reset the current configuration.
 @deffn {Command} {jlink config write}
 Write the current configuration to the internal persistent storage.
 @end deffn
+@deffn {Command} {jlink emucom write <channel> <data>}
+Write data to an EMUCOM channel. The data needs to be encoded as hexadecimal
+pairs.
+
+The following example shows how to write the three bytes 0xaa, 0x0b and 0x23 to
+the EMUCOM channel 0x10:
+@example
+> jlink emucom write 0x10 aa0b23
+@end example
+@end deffn
+@deffn {Command} {jlink emucom read <channel> <length>}
+Read data from an EMUCOM channel. The read data is encoded as hexadecimal
+pairs.
+
+The following example shows how to read 4 bytes from the EMUCOM channel 0x0:
+@example
+> jlink emucom read 0x0 4
+77a90000
+@end example
+@end deffn
 @deffn {Config} {jlink usb} <@option{0} to @option{3}>
 Set the USB address of the interface, in case more than one adapter is connected
 to the host. If not specified, USB addresses are not considered. Device
@@ -2812,6 +2742,62 @@ Set the serial number of the interface, in case more than one adapter is
 connected to the host. If not specified, serial numbers are not considered.
 
 As a configuration command, it can be used only before 'init'.
+@end deffn
+@end deffn
+
+@deffn {Interface Driver} {kitprog}
+This driver is for Cypress Semiconductor's KitProg adapters. The KitProg is an
+SWD-only adapter that is designed to be used with Cypress's PSoC and PRoC device
+families, but it is possible to use it with some other devices. If you are using
+this adapter with a PSoC or a PRoC, you may need to add
+@command{kitprog_init_acquire_psoc} or @command{kitprog acquire_psoc} to your
+configuration script.
+
+Note that this driver is for the proprietary KitProg protocol, not the CMSIS-DAP
+mode introduced in firmware 2.14. If the KitProg is in CMSIS-DAP mode, it cannot
+be used with this driver, and must either be used with the cmsis-dap driver or
+switched back to KitProg mode. See the Cypress KitProg User Guide for
+instructions on how to switch KitProg modes.
+
+Known limitations:
+@itemize @bullet
+@item The frequency of SWCLK cannot be configured, and varies between 1.6 MHz
+and 2.7 MHz.
+@item For firmware versions below 2.14, "JTAG to SWD" sequences are replaced by
+"SWD line reset" in the driver. This is for two reasons. First, the KitProg does
+not support sending arbitrary SWD sequences, and only firmware 2.14 and later
+implement both "JTAG to SWD" and "SWD line reset" in firmware. Earlier firmware
+versions only implement "SWD line reset". Second, due to a firmware quirk, an
+SWD sequence must be sent after every target reset in order to re-establish
+communications with the target.
+@item Due in part to the limitation above, KitProg devices with firmware below
+version 2.14 will need to use @command{kitprog_init_acquire_psoc} in order to
+communicate with PSoC 5LP devices. This is because, assuming debug is not
+disabled on the PSoC, the PSoC 5LP needs its JTAG interface switched to SWD
+mode before communication can begin, but prior to firmware 2.14, "JTAG to SWD"
+could only be sent with an acquisition sequence.
+@end itemize
+
+@deffn {Config Command} {kitprog_init_acquire_psoc}
+Indicate that a PSoC acquisition sequence needs to be run during adapter init.
+Please be aware that the acquisition sequence hard-resets the target.
+@end deffn
+
+@deffn {Config Command} {kitprog_serial} serial
+Select a KitProg device by its @var{serial}. If left unspecified, the first
+device detected by OpenOCD will be used.
+@end deffn
+
+@deffn {Command} {kitprog acquire_psoc}
+Run a PSoC acquisition sequence immediately. Typically, this should not be used
+outside of the target-specific configuration scripts since it hard-resets the
+target as a side-effect.
+This is necessary for "reset halt" on some PSoC 4 series devices.
+@end deffn
+
+@deffn {Command} {kitprog info}
+Display various adapter information, such as the hardware version, firmware
+version, and target voltage.
 @end deffn
 @end deffn
 
@@ -3007,6 +2993,39 @@ configuration on exit.
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 pinout.
 
+@end deffn
+
+@deffn {Interface Driver} {imx_gpio}
+i.MX SoC is present in many community boards. Wandboard is an example
+of the one which is most popular.
+
+This driver is mostly the same as bcm2835gpio.
+
+See @file{interface/imx-native.cfg} for a sample config and
+pinout.
+
+@end deffn
+
+
+@deffn {Interface Driver} {openjtag}
+OpenJTAG compatible USB adapter.
+This defines some driver-specific commands:
+
+@deffn {Config Command} {openjtag_variant} variant
+Specifies the variant of the OpenJTAG adapter (see @uref{http://www.openjtag.org/}).
+Currently valid @var{variant} values include:
+
+@itemize @minus
+@item @b{standard} Standard variant (default).
+@item @b{cy7c65215} Cypress CY7C65215 Dual Channel USB-Serial Bridge Controller
+(see @uref{http://www.cypress.com/?rID=82870}).
+@end itemize
+@end deffn
+
+@deffn {Config Command} {openjtag_device_desc} string
+The USB device description string of the adapter.
+This value is only used with the standard variant.
+@end deffn
 @end deffn
 
 @section Transport Configuration
@@ -4056,6 +4075,7 @@ At this writing, the supported CPU types are:
 @item @code{cortex_a} -- this is an ARMv7 core with an MMU
 @item @code{cortex_m} -- this is an ARMv7 core, supporting only the
 compact Thumb2 instruction set.
+@item @code{aarch64} -- this is an ARMv8-A core with an MMU
 @item @code{dragonite} -- resembles arm966e
 @item @code{dsp563xx} -- implements Freescale's 24-bit DSP.
 (Support for this is still incomplete.)
@@ -4088,7 +4108,7 @@ The CPU name used by OpenOCD will reflect the CPU design that was
 licenced, not a vendor brand which incorporates that design.
 Name prefixes like arm7, arm9, arm11, and cortex
 reflect design generations;
-while names like ARMv4, ARMv5, ARMv6, and ARMv7
+while names like ARMv4, ARMv5, ARMv6, ARMv7 and ARMv8
 reflect an architecture version implemented by a CPU design.
 
 @anchor{targetconfiguration}
@@ -4219,10 +4239,23 @@ The value should normally correspond to a static mapping for the
 
 @anchor{rtostype}
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
-@var{rtos_type} can be one of @option{auto}|@option{eCos}|@option{ThreadX}|
-@option{FreeRTOS}|@option{linux}|@option{ChibiOS}|@option{embKernel}|@option{mqx}
+@var{rtos_type} can be one of @option{auto}, @option{eCos},
+@option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
+@option{embKernel}, @option{mqx}, @option{uCOS-III}
 @xref{gdbrtossupport,,RTOS Support}.
 
+@item @code{-defer-examine} -- skip target examination at initial JTAG chain
+scan and after a reset. A manual call to arp_examine is required to
+access the target for debugging.
+
+@item @code{-ap-num} @var{ap_number} -- set DAP access port for target,
+@var{ap_number} is the numeric index of the DAP AP the target is connected to.
+Use this option with systems where multiple, independent cores are connected
+to separate access ports of the same DAP.
+
+@item @code{-ctibase} @var{address} -- set base address of Cross-Trigger interface (CTI) connected
+to the target. Currently, only the @code{aarch64} target makes use of this option, where it is
+a mandatory configuration for the target run control.
 @end itemize
 @end deffn
 
@@ -4259,7 +4292,7 @@ omap3530.cpu  mww 0x5555 123
 
 The commands supported by OpenOCD target objects are:
 
-@deffn Command {$target_name arp_examine}
+@deffn Command {$target_name arp_examine} @option{allow-defer}
 @deffnx Command {$target_name arp_halt}
 @deffnx Command {$target_name arp_poll}
 @deffnx Command {$target_name arp_reset}
@@ -4694,9 +4727,10 @@ and write the contents to the binary @file{filename}.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {flash verify_bank} num filename offset
+@deffn Command {flash verify_bank} num filename [offset]
 Compare the contents of the binary file @var{filename} with the contents of the
-flash @var{num} starting at @var{offset}. Fails if the contents do not match.
+flash bank @var{num} starting at @var{offset}. If @var{offset} is omitted,
+start at the beginning of the flash bank. Fail if the contents do not match.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
@@ -4757,12 +4791,15 @@ and possibly stale information.
 
 @anchor{flashprotect}
 @deffn Command {flash protect} num first last (@option{on}|@option{off})
-Enable (@option{on}) or disable (@option{off}) protection of flash sectors
-in flash bank @var{num}, starting at sector @var{first}
+Enable (@option{on}) or disable (@option{off}) protection of flash blocks
+in flash bank @var{num}, starting at protection block @var{first}
 and continuing up to and including @var{last}.
-Providing a @var{last} sector of @option{last}
+Providing a @var{last} block of @option{last}
 specifies "to the end of the flash bank".
 The @var{num} parameter is a value shown by @command{flash banks}.
+The protection block is usually identical to a flash sector.
+Some devices may utilize a protection block distinct from flash sector.
+See @command{flash info} for a list of protection blocks.
 @end deffn
 
 @deffn Command {flash padded_value} num value
@@ -4799,8 +4836,10 @@ the flash bank defined at address 0x1fc00000. Any cmds executed on
 the virtual banks are actually performed on the physical banks.
 @example
 flash bank $_FLASHNAME pic32mx 0x1fc00000 0 0 0 $_TARGETNAME
-flash bank vbank0 virtual 0xbfc00000 0 0 0 $_TARGETNAME $_FLASHNAME
-flash bank vbank1 virtual 0x9fc00000 0 0 0 $_TARGETNAME $_FLASHNAME
+flash bank vbank0 virtual 0xbfc00000 0 0 0 \
+           $_TARGETNAME $_FLASHNAME
+flash bank vbank1 virtual 0x9fc00000 0 0 0 \
+           $_TARGETNAME $_FLASHNAME
 @end example
 @end deffn
 
@@ -4866,8 +4905,8 @@ Since signaling between JTAG and SPI is compatible, all that is required for
 a proxy bitstream is to connect TDI-MOSI, TDO-MISO, TCK-CLK and activate
 the flash chip select when the JTAG state machine is in SHIFT-DR. Such
 a bitstream for several Xilinx FPGAs can be found in
-@file{contrib/loaders/flash/fpga/xilinx_bscan_spi.py}. It requires migen
-(@url{http://github.com/m-labs/migen}) and a Xilinx toolchain to build.
+@file{contrib/loaders/flash/fpga/xilinx_bscan_spi.py}. It requires
+@uref{https://github.com/m-labs/migen, migen} and a Xilinx toolchain to build.
 
 This flash bank driver requires a target on a JTAG tap and will access that
 tap directly. Since no support from the target is needed, the target can be a
@@ -4890,7 +4929,8 @@ For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
 target create $_TARGETNAME testee -chain-position $_CHIPNAME.fpga
 set _XILINX_USER1 0x02
 set _DR_LENGTH 1
-flash bank $_FLASHNAME spi 0x0 0 0 0 $_TARGETNAME $_XILINX_USER1 $_DR_LENGTH
+flash bank $_FLASHNAME spi 0x0 0 0 0 \
+           $_TARGETNAME $_XILINX_USER1 $_DR_LENGTH
 @end example
 @end deffn
 
@@ -4959,6 +4999,45 @@ flash bank $_FLASHNAME mrvlqspi 0x0 0 0 0 $_TARGETNAME 0x46010000
 
 @end deffn
 
+@deffn {Flash Driver} ath79
+@cindex Atheros ath79 SPI driver
+@cindex ath79
+Members of ATH79 SoC family from Atheros include a SPI interface with 3
+chip selects.
+On reset a SPI flash connected to the first chip select (CS0) is made
+directly read-accessible in the CPU address space (up to 16MBytes)
+and is usually used to store the bootloader and operating system.
+Normal OpenOCD commands like @command{mdw} can be used to display
+the flash content while it is in memory-mapped mode (only the first
+4MBytes are accessible without additional configuration on reset).
+
+The setup command only requires the @var{base} parameter in order
+to identify the memory bank. The actual value for the base address
+is not otherwise used by the driver. However the mapping is passed
+to gdb. Thus for the memory mapped flash (chipselect CS0) the base
+address should be the actual memory mapped base address. For unmapped
+chipselects (CS1 and CS2) care should be taken to use a base address
+that does not overlap with real memory regions.
+Additional information, like flash size, are detected automatically.
+An optional additional parameter sets the chipselect for the bank,
+with the default CS0.
+CS1 and CS2 require additional GPIO setup before they can be used
+since the alternate function must be enabled on the GPIO pin
+CS1/CS2 is routed to on the given SoC.
+
+@example
+flash bank $_FLASHNAME ath79 0 0 0 0 $_TARGETNAME
+
+# When using multiple chipselects the base should be different for each,
+# otherwise the write_image command is not able to distinguish the
+# banks.
+flash bank flash0 ath79 0x00000000 0 0 0 $_TARGETNAME cs0
+flash bank flash1 ath79 0x10000000 0 0 0 $_TARGETNAME cs1
+flash bank flash2 ath79 0x20000000 0 0 0 $_TARGETNAME cs2
+@end example
+
+@end deffn
+
 @subsection Internal Flash (Microcontrollers)
 
 @deffn {Flash Driver} aduc702x
@@ -4996,7 +5075,8 @@ and the second bank starts after the first.
 # Flash bank 0
 flash bank $_FLASHNAME ambiqmicro 0 0x00040000 0 0 $_TARGETNAME
 # Flash bank 1 - same size as bank0, starts after bank 0.
-flash bank $_FLASHNAME ambiqmicro 0x00040000 0x00040000 0 0 $_TARGETNAME
+flash bank $_FLASHNAME ambiqmicro 0x00040000 0x00040000 0 0 \
+           $_TARGETNAME
 @end example
 
 Flash is programmed using custom entry points into the bootloader.
@@ -5270,8 +5350,10 @@ with @code{x} treated as wildcard and otherwise case (and any trailing
 characters) ignored.
 
 @example
-flash bank $@{_FLASHNAME@}0 fm4 0x00000000 0 0 0 $_TARGETNAME S6E2CCAJ0A
-flash bank $@{_FLASHNAME@}1 fm4 0x00100000 0 0 0 $_TARGETNAME S6E2CCAJ0A
+flash bank $@{_FLASHNAME@}0 fm4 0x00000000 0 0 0 \
+           $_TARGETNAME S6E2CCAJ0A
+flash bank $@{_FLASHNAME@}1 fm4 0x00100000 0 0 0 \
+           $_TARGETNAME S6E2CCAJ0A
 @end example
 @emph{The current implementation is incomplete. Protection is not supported,
 nor is Chip Erase (only Sector Erase is implemented).}
@@ -6715,7 +6797,7 @@ port is 5555.
 @end itemize
 
 
-@section Daemon Commands
+@section Server Commands
 
 @deffn {Command} exit
 Exits the current telnet session.
@@ -6741,7 +6823,7 @@ Useful in connection with script files
 @end deffn
 
 @deffn Command shutdown [@option{error}]
-Close the OpenOCD daemon, disconnecting all clients (GDB, telnet,
+Close the OpenOCD server, disconnecting all clients (GDB, telnet,
 other). If option @option{error} is used, OpenOCD will return a
 non-zero exit code to the parent process.
 @end deffn
@@ -7075,6 +7157,13 @@ Verify @var{filename} against target memory starting at @var{address}.
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 This will first attempt a comparison using a CRC checksum, if this fails it will try a binary compare.
+@end deffn
+
+@deffn Command {verify_image_checksum} filename address [@option{bin}|@option{ihex}|@option{elf}]
+Verify @var{filename} against target memory starting at @var{address}.
+The file format may optionally be specified
+(@option{bin}, @option{ihex}, or @option{elf})
+This perform a comparison using a CRC checksum only
 @end deffn
 
 
@@ -7489,6 +7578,17 @@ requests by using a special SVC instruction that is trapped at the
 Supervisor Call vector by OpenOCD.
 @end deffn
 
+@deffn Command {arm semihosting_fileio} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
+Display status of semihosting fileio, after optionally changing that
+status.
+
+Enabling this option forwards semihosting I/O to GDB process using the
+File-I/O remote protocol extension. This is especially useful for
+interacting with remote files or displaying console messages in the
+debugger.
+@end deffn
+
 @section ARMv4 and ARMv5 Architecture
 @cindex ARMv4
 @cindex ARMv5
@@ -7870,13 +7970,14 @@ coprocessor 14 register 7 itself) but all current ARM11
 cores @emph{except the ARM1176} use the same six bits.
 @end deffn
 
-@section ARMv7 Architecture
+@section ARMv7 and ARMv8 Architecture
 @cindex ARMv7
+@cindex ARMv8
 
-@subsection ARMv7 Debug Access Port (DAP) specific commands
+@subsection ARMv7 and ARMv8 Debug Access Port (DAP) specific commands
 @cindex Debug Access Port
 @cindex DAP
-These commands are specific to ARM architecture v7 Debug Access Port (DAP),
+These commands are specific to ARM architecture v7 and v8 Debug Access Port (DAP),
 included on Cortex-M and Cortex-A systems.
 They are available in addition to other core-specific commands that may be available.
 
@@ -8128,6 +8229,29 @@ This however has the disadvantage of only resetting the core, all peripherals
 are uneffected. A solution would be to use a @code{reset-init} event handler to manually reset
 the peripherals.
 @xref{targetevents,,Target Events}.
+@end deffn
+
+@subsection ARMv8-A specific commands
+@cindex ARMv8-A
+@cindex aarch64
+
+@deffn Command {aarch64 cache_info}
+Display information about target caches
+@end deffn
+
+@deffn Command {aarch64 dbginit}
+This command enables debugging by clearing the OS Lock and sticky power-down and reset
+indications. It also establishes the expected, basic cross-trigger configuration the aarch64
+target code relies on. In a configuration file, the command would typically be called from a
+@code{reset-end} or @code{reset-deassert-post} handler, to re-enable debugging after a system reset.
+However, normally it is not necessary to use the command at all.
+@end deffn
+
+@deffn Command {aarch64 smp_on|smp_off}
+Enable and disable SMP handling. The state of SMP handling influences the way targets in an SMP group
+are handled by the run control. With SMP handling enabled, issuing halt or resume to one core will trigger
+halting or resuming of all cores in the group. The command @code{target smp} defines which targets are in the SMP
+group. With SMP handling disabled, all targets need to be treated individually.
 @end deffn
 
 @section Intel Architecture
@@ -8900,7 +9024,11 @@ end
 @anchor{gdbrtossupport}
 
 OpenOCD includes RTOS support, this will however need enabling as it defaults to disabled.
-It can be enabled by passing @option{-rtos} arg to the target @xref{rtostype,,RTOS Type}.
+It can be enabled by passing @option{-rtos} arg to the target. @xref{rtostype,,RTOS Type}.
+
+@xref{Threads, Debugging Programs with Multiple Threads,
+Debugging Programs with Multiple Threads, gdb, GDB manual}, for details about relevant
+GDB commands.
 
 @* An example setup is below:
 
@@ -8919,6 +9047,7 @@ Currently supported rtos's include:
 @item @option{ChibiOS}
 @item @option{embKernel}
 @item @option{mqx}
+@item @option{uCOS-III}
 @end itemize
 
 @quotation Note
@@ -8952,10 +9081,12 @@ Rtos::sCurrentTask, Rtos::sListReady, Rtos::sListSleep,
 Rtos::sListSuspended, Rtos::sMaxPriorities, Rtos::sCurrentTaskCount.
 @item mqx symbols
 _mqx_kernel_data, MQX_init_struct.
+@item uC/OS-III symbols
+OSRunning, OSTCBCurPtr, OSTaskDbgListPtr, OSTaskQty
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for
-some, eg. FreeRTOS, extra steps must be taken.
+some, eg. FreeRTOS and uC/OS-III, extra steps must be taken.
 
 These RTOSes may require additional OpenOCD-specific file to be linked
 along with the project:
@@ -8963,6 +9094,8 @@ along with the project:
 @table @code
 @item FreeRTOS
 contrib/rtos-helpers/FreeRTOS-openocd.c
+@item uC/OS-III
+contrib/rtos-helpers/uCOS-III-openocd.c
 @end table
 
 @node Tcl Scripting API
@@ -9343,16 +9476,6 @@ Amontec JTAGkey to. Apparently, some computers do not provide a USB power
 supply stable enough for the Amontec JTAGkey to be operated.
 
 @b{Laptops running on battery have this problem too...}
-
-@item @b{USB Power} When using the Amontec JTAGkey, sometimes OpenOCD crashes with the
-following error messages: "Error: ft2232.c:201 ft2232_read(): FT_Read returned:
-4" and "Error: ft2232.c:365 ft2232_send_and_recv(): couldn't read from FT2232".
-What does that mean and what might be the reason for this?
-
-First of all, the reason might be the USB power supply. Try using a self-powered
-hub instead of a direct connection to your computer. Secondly, the error code 4
-corresponds to an FT_IO_ERROR, which means that the driver for the FTDI USB
-chip ran into some sort of error - this points us to a USB problem.
 
 @item @b{GDB Disconnects} When using the Amontec JTAGkey, sometimes OpenOCD crashes with the following
 error message: "Error: gdb_server.c:101 gdb_get_char(): read: 10054".

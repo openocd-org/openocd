@@ -5,22 +5,45 @@ AUTOMAKE_OPTIONS = gnu 1.6
 # make sure we pass the correct jimtcl flags to distcheck
 DISTCHECK_CONFIGURE_FLAGS = --disable-install-jim
 
+# do not run Jim Tcl tests (esp. during distcheck)
+check-recursive:
+	@true
+
 nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/dcc_stdio.c \
 	contrib/libdcc/dcc_stdio.h \
 	contrib/libdcc/example.c \
 	contrib/libdcc/README \
-	contrib/99-openocd.rules
+	contrib/60-openocd.rules
+
+SUBDIRS =
+DIST_SUBDIRS =
+bin_PROGRAMS =
+noinst_LTLIBRARIES =
+info_TEXINFOS =
+dist_man_MANS =
+EXTRA_DIST =
 
 if INTERNAL_JIMTCL
-SUBDIRS = jimtcl
-else
-SUBDIRS =
+SUBDIRS += jimtcl
+DIST_SUBDIRS += jimtcl
 endif
 
-SUBDIRS += src doc
+# common flags used in openocd build
+AM_CFLAGS = $(GCC_WARNINGS)
 
-EXTRA_DIST = \
+AM_CPPFLAGS = $(HOST_CPPFLAGS)\
+			  -I$(top_srcdir)/src \
+			  -I$(top_builddir)/src \
+			  -I$(top_srcdir)/src/helper \
+			  -DPKGDATADIR=\"$(pkgdatadir)\" \
+			  -DBINDIR=\"$(bindir)\"
+
+if INTERNAL_JIMTCL
+AM_CPPFLAGS += -I$(top_srcdir)/jimtcl \
+			   -I$(top_builddir)/jimtcl
+endif
+EXTRA_DIST += \
 	BUGS \
 	HACKING \
 	NEWTAPS \
@@ -96,17 +119,26 @@ distclean-local:
 
 DISTCLEANFILES = doxygen.log
 
+METASOURCES = AUTO
+
+BUILT_SOURCES =
+CLEANFILES =
+
 MAINTAINERCLEANFILES = \
-	$(srcdir)/INSTALL \
-	$(srcdir)/configure \
-	$(srcdir)/Makefile.in \
-	$(srcdir)/depcomp \
-	$(srcdir)/config.guess \
-	$(srcdir)/config.sub \
-	$(srcdir)/config.h.in \
-	$(srcdir)/config.h.in~ \
-	$(srcdir)/compile \
-	$(srcdir)/ltmain.sh \
-	$(srcdir)/missing \
-	$(srcdir)/aclocal.m4 \
-	$(srcdir)/install-sh
+	%D%/INSTALL \
+	%D%/configure \
+	%D%/Makefile.in \
+	%D%/depcomp \
+	%D%/config.guess \
+	%D%/config.sub \
+	%D%/config.h.in \
+	%D%/config.h.in~ \
+	%D%/compile \
+	%D%/ltmain.sh \
+	%D%/missing \
+	%D%/aclocal.m4 \
+	%D%/install-sh \
+	%D%/texinfo.tex
+
+include src/Makefile.am
+include doc/Makefile.am

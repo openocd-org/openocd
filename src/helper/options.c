@@ -29,6 +29,15 @@
 
 #include <getopt.h>
 
+#include <limits.h>
+#include <stdlib.h>
+#if IS_DARWIN
+#include <libproc.h>
+#endif
+#ifdef HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
+
 static int help_flag, version_flag;
 
 static const struct option long_options[] = {
@@ -50,52 +59,129 @@ int configuration_output_handler(struct command_context *context, const char *li
 	return ERROR_OK;
 }
 
-#ifdef _WIN32
-static char *find_suffix(const char *text, const char *suffix)
+/* Return the canonical path to the directory the openocd executable is in.
+ * The path should be absolute, use / as path separator and have all symlinks
+ * resolved. The returned string is malloc'd. */
+static char *find_exe_path(void)
 {
-	size_t text_len = strlen(text);
-	size_t suffix_len = strlen(suffix);
+	char *exepath = NULL;
 
-	if (suffix_len == 0)
-		return (char *)text + text_len;
+	do {
+#if IS_WIN32 && !IS_CYGWIN
+		exepath = malloc(MAX_PATH);
+		if (exepath == NULL)
+			break;
+		GetModuleFileName(NULL, exepath, MAX_PATH);
 
-	if (suffix_len > text_len || strncmp(text + text_len - suffix_len, suffix, suffix_len) != 0)
-		return NULL; /* Not a suffix of text */
+		/* Convert path separators to UNIX style, should work on Windows also. */
+		for (char *p = exepath; *p; p++) {
+			if (*p == '\\')
+				*p = '/';
+		}
 
-	return (char *)text + text_len - suffix_len;
-}
+#elif IS_DARWIN
+		exepath = malloc(PROC_PIDPATHINFO_MAXSIZE);
+		if (exepath == NULL)
+			break;
+		if (proc_pidpath(getpid(), exepath, PROC_PIDPATHINFO_MAXSIZE) <= 0) {
+			free(exepath);
+			exepath = NULL;
+		}
+
+#elif defined(CTL_KERN) && defined(KERN_PROC) && defined(KERN_PROC_PATHNAME) /* *BSD */
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
+		char *path = malloc(PATH_MAX);
+		if (path == NULL)
+			break;
+		int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+		size_t size = PATH_MAX;
+
+		if (sysctl(mib, (u_int)ARRAY_SIZE(mib), path, &size, NULL, 0) != 0)
+			break;
+
+#ifdef HAVE_REALPATH
+		exepath = realpath(path, NULL);
+		free(path);
+#else
+		exepath = path;
+#endif
+
+#elif defined(HAVE_REALPATH) /* Assume POSIX.1-2008 */
+		/* Try Unices in order of likelihood. */
+		exepath = realpath("/proc/self/exe", NULL); /* Linux/Cygwin */
+		if (exepath == NULL)
+			exepath = realpath("/proc/self/path/a.out", NULL); /* Solaris */
+		if (exepath == NULL)
+			exepath = realpath("/proc/curproc/file", NULL); /* FreeBSD (Should be covered above) */
+#endif
+	} while (0);
+
+	if (exepath != NULL) {
+		/* Strip executable file name, leaving path */
+		*strrchr(exepath, '/') = '\0';
+	} else {
+		LOG_WARNING("Could not determine executable path, using configured BINDIR.");
+		LOG_DEBUG("BINDIR = %s", BINDIR);
+#ifdef HAVE_REALPATH
+		exepath = realpath(BINDIR, NULL);
+#else
+		exepath = strdup(BINDIR);
+#endif
+	}
+
+	return exepath;
+}
+
+static char *find_relative_path(const char *from, const char *to)
+{
+	size_t i;
+
+	/* Skip common /-separated parts of from and to */
+	i = 0;
+	for (size_t n = 0; from[n] == to[n]; n++) {
+		if (from[n] == '\0') {
+			i = n;
+			break;
+		}
+		if (from[n] == '/')
+			i = n + 1;
+	}
+	from += i;
+	to += i;
+
+	/* Count number of /-separated non-empty parts of from */
+	i = 0;
+	while (from[0] != '\0') {
+		if (from[0] != '/')
+			i++;
+		char *next = strchr(from, '/');
+		if (next == NULL)
+			break;
+		from = next + 1;
+	}
+
+	/* Prepend that number of ../ in front of to */
+	char *relpath = malloc(i * 3 + strlen(to) + 1);
+	relpath[0] = '\0';
+	for (size_t n = 0; n < i; n++)
+		strcat(relpath, "../");
+	strcat(relpath, to);
+
+	return relpath;
+}
 
 static void add_default_dirs(void)
 {
-	const char *run_prefix;
 	char *path;
-
-#ifdef _WIN32
-	char strExePath[MAX_PATH];
-	GetModuleFileName(NULL, strExePath, MAX_PATH);
-
-	/* Strip executable file name, leaving path */
-	*strrchr(strExePath, '\\') = '\0';
-
-	/* Convert path separators to UNIX style, should work on Windows also. */
-	for (char *p = strExePath; *p; p++) {
-		if (*p == '\\')
-			*p = '/';
-	}
-
-	char *end_of_prefix = find_suffix(strExePath, BINDIR);
-	if (end_of_prefix != NULL)
-		*end_of_prefix = '\0';
-
-	run_prefix = strExePath;
-#else
-	run_prefix = "";
-#endif
+	char *exepath = find_exe_path();
+	char *bin2data = find_relative_path(BINDIR, PKGDATADIR);
 
 	LOG_DEBUG("bindir=%s", BINDIR);
 	LOG_DEBUG("pkgdatadir=%s", PKGDATADIR);
-	LOG_DEBUG("run_prefix=%s", run_prefix);
+	LOG_DEBUG("exepath=%s", exepath);
+	LOG_DEBUG("bin2data=%s", bin2data);
 
 	/*
 	 * The directory containing OpenOCD-supplied scripts should be
@@ -129,17 +215,20 @@ static void add_default_dirs(void)
 	}
 #endif
 
-	path = alloc_printf("%s%s%s", run_prefix, PKGDATADIR, "/site");
+	path = alloc_printf("%s/%s/%s", exepath, bin2data, "site");
 	if (path) {
 		add_script_search_dir(path);
 		free(path);
 	}
 
-	path = alloc_printf("%s%s%s", run_prefix, PKGDATADIR, "/scripts");
+	path = alloc_printf("%s/%s/%s", exepath, bin2data, "scripts");
 	if (path) {
 		add_script_search_dir(path);
 		free(path);
 	}
+
+	free(exepath);
+	free(bin2data);
 }
 
 int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
@@ -178,8 +267,10 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 			case 'd':		/* --debug | -d */
 			{
 				char *command = alloc_printf("debug_level %s", optarg ? optarg : "3");
-				command_run_line(cmd_ctx, command);
+				int retval = command_run_line(cmd_ctx, command);
 				free(command);
+				if (retval != ERROR_OK)
+					return retval;
 				break;
 			}
 			case 'l':		/* --log_output | -l */
@@ -200,7 +291,16 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 				LOG_WARNING("deprecated option: -p/--pipe. Use '-c \"gdb_port pipe; "
 						"log_output openocd.log\"' instead.");
 				break;
+			default:  /* '?' */
+				/* getopt will emit an error message, all we have to do is bail. */
+				return ERROR_FAIL;
 		}
+	}
+
+	if (optind < argc) {
+		/* Catch extra arguments on the command line. */
+		LOG_OUTPUT("Unexpected command line argument: %s\n", argv[optind]);
+		return ERROR_FAIL;
 	}
 
 	if (help_flag) {
@@ -209,7 +309,8 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 		LOG_OUTPUT("--version    | -v\tdisplay OpenOCD version\n");
 		LOG_OUTPUT("--file       | -f\tuse configuration file <name>\n");
 		LOG_OUTPUT("--search     | -s\tdir to search for config files and scripts\n");
-		LOG_OUTPUT("--debug      | -d\tset debug level <0-3>\n");
+		LOG_OUTPUT("--debug      | -d\tset debug level to 3\n");
+		LOG_OUTPUT("             | -d<n>\tset debug level to <level>\n");
 		LOG_OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
 		LOG_OUTPUT("--command    | -c\trun <command>\n");
 		exit(-1);

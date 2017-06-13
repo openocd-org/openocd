@@ -1,8 +1,8 @@
-include $(top_srcdir)/common.mk
-
-METASOURCES = AUTO
-noinst_LTLIBRARIES = libpld.la
-noinst_HEADERS = pld.h xilinx_bit.h virtex2.h
-libpld_la_SOURCES = pld.c xilinx_bit.c virtex2.c
-
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+noinst_LTLIBRARIES += %D%/libpld.la
+%C%_libpld_la_SOURCES = \
+	%D%/pld.c \
+	%D%/xilinx_bit.c \
+	%D%/virtex2.c \
+	%D%/pld.h \
+	%D%/xilinx_bit.h \
+	%D%/virtex2.h

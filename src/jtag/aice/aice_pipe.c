@@ -786,8 +786,8 @@ static int aice_pipe_memory_mode(uint32_t coreid, enum nds_memory_select mem_sel
 		return ERROR_FAIL;
 }
 
-static int aice_pipe_read_tlb(uint32_t coreid, uint32_t virtual_address,
-		uint32_t *physical_address)
+static int aice_pipe_read_tlb(uint32_t coreid, target_addr_t virtual_address,
+		target_addr_t *physical_address)
 {
 	char line[AICE_PIPE_MAXLINE];
 	char command[AICE_PIPE_MAXLINE];

@@ -440,11 +440,11 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 		if (threadState < CHIBIOS_NUM_STATES)
 			state_desc = ChibiOS_thread_states[threadState];
 		else
-			state_desc = "Unknown state";
+			state_desc = "Unknown";
 
 		curr_thrd_details->extra_info_str = malloc(strlen(
-					state_desc)+1);
-		strcpy(curr_thrd_details->extra_info_str, state_desc);
+					state_desc)+8);
+		sprintf(curr_thrd_details->extra_info_str, "State: %s", state_desc);
 
 		curr_thrd_details->exists = true;
 

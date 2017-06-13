@@ -4,7 +4,7 @@ Welcome to OpenOCD!
 OpenOCD provides on-chip programming and debugging support with a
 layered architecture of JTAG interface and TAP support including:
 
-- (X)SVF playback to faciliate automated boundary scan and FPGA/CPLD
+- (X)SVF playback to facilitate automated boundary scan and FPGA/CPLD
   programming;
 - debug target support (e.g. ARM, MIPS): single-stepping,
   breakpoints/watchpoints, gprof profiling, etc;
@@ -44,9 +44,6 @@ e.g.:
 
   openocd -f interface/stlink-v2-1.cfg -c "transport select hla_swd" \
           -f target/stm32l0.cfg
-
-NB: when using an FTDI-based adapter you should prefer configs in the
-ftdi directory; the old configs for the ft2232 are deprecated.
 
 After OpenOCD startup, connect GDB with
 
@@ -126,7 +123,7 @@ XScale, Intel Quark.
 Flash drivers
 -------------
 
-ADUC702x, AT91SAM, AVR, CFI, DSP5680xx, EFM32, EM357, FM3, FM4, Kinetis,
+ADUC702x, AT91SAM, ATH79, AVR, CFI, DSP5680xx, EFM32, EM357, FM3, FM4, Kinetis,
 LPC8xx/LPC1xxx/LPC2xxx/LPC541xx, LPC2900, LPCSPIFI, Marvell QSPI,
 Milandr, NIIET, NuMicro, PIC32mx, PSoC4, SiM3x, Stellaris, STM32, STMSMI,
 STR7x, STR9x, nRF51; NAND controllers of AT91SAM9, LPC3180, LPC32xx,
@@ -184,10 +181,6 @@ suggestions:
   particular hardware;
 - Use "ftdi" interface adapter driver for the FTDI-based devices.
 
-As a PACKAGER, never link against the FTD2XX library, as the resulting
-binaries can't be legally distributed, due to the restrictions of the
-GPL.
-
 
 ================
 Building OpenOCD
@@ -221,18 +214,16 @@ You'll also need:
 Additionally, for building from git:
 
 - autoconf >= 2.64
-- automake >= 1.9
+- automake >= 1.14
 - texinfo
 
 USB-based adapters depend on libusb-1.0 and some older drivers require
 libusb-0.1 or libusb-compat-0.1. A compatible implementation, such as
 FreeBSD's, additionally needs the corresponding .pc files.
 
-USB-Blaster, ASIX Presto, OpenJTAG and ft2232 interface adapter
-drivers need either one of:
+USB-Blaster, ASIX Presto and OpenJTAG interface adapter
+drivers need:
   - libftdi: http://www.intra2net.com/en/developer/libftdi/index.php
-  - ftd2xx: http://www.ftdichip.com/Drivers/D2XX.htm (proprietary,
-    GPL-incompatible)
 
 CMSIS-DAP support needs HIDAPI library.
 
@@ -242,7 +233,7 @@ Permissions delegation
 Running OpenOCD with root/administrative permissions is strongly
 discouraged for security reasons.
 
-For USB devices on GNU/Linux you should use the contrib/99-openocd.rules
+For USB devices on GNU/Linux you should use the contrib/60-openocd.rules
 file. It probably belongs somewhere in /etc/udev/rules.d, but
 consult your operating system documentation to be sure. Do not forget
 to add yourself to the "plugdev" group.
@@ -303,40 +294,6 @@ The same is true for the --enable-parport-giveio option, you have to
 use both the --enable-parport AND the --enable-parport-giveio option
 if you want to use giveio instead of ioperm parallel port access
 method.
-
-Using FTDI's FTD2XX
--------------------
-
-The (closed source) FTDICHIP.COM solution is faster than libftdi on
-Windows. That is the motivation for supporting it even though its
-licensing restricts it to non-redistributable OpenOCD binaries, and it
-is not available for all operating systems used with OpenOCD. You may,
-however, build such copies for personal use.
-
-The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
-TAR.GZ file. You must unpack them ``some where'' convenient. As of this
-writing FTDICHIP does not supply means to install these files "in an
-appropriate place."
-
-You should use the following ./configure options to make use of
-FTD2XX:
-
-  --with-ftd2xx-win32-zipdir
-                          Where (CYGWIN/MINGW) the zip file from ftdichip.com
-                          was unpacked <default=search>
-  --with-ftd2xx-linux-tardir
-                          Where (Linux/Unix) the tar file from ftdichip.com
-                          was unpacked <default=search>
-  --with-ftd2xx-lib=(static|shared)
-                          Use static or shared ftd2xx libs (default is static)
-
-Remember, this library is binary-only, while OpenOCD is licenced
-according to GNU GPLv2 without any exceptions. That means that
-_distributing_ copies of OpenOCD built with the FTDI code would
-violate the OpenOCD licensing terms.
-
-Note that on Linux there is no good reason to use these FTDI binaries;
-they are no faster (on Linux) than libftdi, and cause licensing issues.
 
 
 ==========================

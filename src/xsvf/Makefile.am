@@ -1,8 +1,2 @@
-include $(top_srcdir)/common.mk
-
-METASOURCES = AUTO
-noinst_LTLIBRARIES = libxsvf.la
-noinst_HEADERS = xsvf.h
-libxsvf_la_SOURCES = xsvf.c
-
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+noinst_LTLIBRARIES += %D%/libxsvf.la
+%C%_libxsvf_la_SOURCES = %D%/xsvf.c %D%/xsvf.h

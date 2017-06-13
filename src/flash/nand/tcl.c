@@ -254,7 +254,8 @@ COMMAND_HANDLER(handle_nand_write_command)
 		int bytes_read = nand_fileio_read(nand, &s);
 		if (bytes_read <= 0) {
 			command_print(CMD_CTX, "error while reading file");
-			return nand_fileio_cleanup(&s);
+			nand_fileio_cleanup(&s);
+			return ERROR_FAIL;
 		}
 		s.size -= bytes_read;
 
@@ -264,7 +265,8 @@ COMMAND_HANDLER(handle_nand_write_command)
 			command_print(CMD_CTX, "failed writing file %s "
 				"to NAND flash %s at offset 0x%8.8" PRIx32,
 				CMD_ARGV[1], CMD_ARGV[0], s.address);
-			return nand_fileio_cleanup(&s);
+			nand_fileio_cleanup(&s);
+			return retval;
 		}
 		s.address += s.page_size;
 	}

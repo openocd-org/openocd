@@ -318,7 +318,7 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 int armv7m_run_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
-	uint32_t entry_point, uint32_t exit_point,
+	target_addr_t entry_point, target_addr_t exit_point,
 	int timeout_ms, void *arch_info)
 {
 	int retval;
@@ -343,7 +343,7 @@ int armv7m_run_algorithm(struct target *target,
 int armv7m_start_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
-	uint32_t entry_point, uint32_t exit_point,
+	target_addr_t entry_point, target_addr_t exit_point,
 	void *arch_info)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -431,7 +431,7 @@ int armv7m_start_algorithm(struct target *target,
 int armv7m_wait_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
-	uint32_t exit_point, int timeout_ms,
+	target_addr_t exit_point, int timeout_ms,
 	void *arch_info)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -461,7 +461,7 @@ int armv7m_wait_algorithm(struct target *target,
 
 	armv7m->load_core_reg_u32(target, 15, &pc);
 	if (exit_point && (pc != exit_point)) {
-		LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 ", expected 0x%" PRIx32,
+		LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 ", expected 0x%" TARGET_PRIxADDR,
 			pc,
 			exit_point);
 		return ERROR_TARGET_TIMEOUT;
@@ -536,11 +536,15 @@ int armv7m_arch_state(struct target *target)
 	struct arm *arm = &armv7m->arm;
 	uint32_t ctrl, sp;
 
+	/* avoid filling log waiting for fileio reply */
+	if (arm->semihosting_hit_fileio)
+		return ERROR_OK;
+
 	ctrl = buf_get_u32(arm->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
 	sp = buf_get_u32(arm->core_cache->reg_list[ARMV7M_R13].value, 0, 32);
 
 	LOG_USER("target halted due to %s, current mode: %s %s\n"
-		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32 "%s",
+		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32 "%s%s",
 		debug_reason_name(target),
 		arm_mode_name(arm->core_mode),
 		armv7m_exception_string(armv7m->exception_number),
@@ -548,7 +552,8 @@ int armv7m_arch_state(struct target *target)
 		buf_get_u32(arm->pc->value, 0, 32),
 		(ctrl & 0x02) ? 'p' : 'm',
 		sp,
-		arm->is_semihosting ? ", semihosting" : "");
+		arm->is_semihosting ? ", semihosting" : "",
+		arm->is_semihosting_fileio ? " fileio" : "");
 
 	return ERROR_OK;
 }
@@ -677,7 +682,7 @@ int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 
 /** Generates a CRC32 checksum of a memory region. */
 int armv7m_checksum_memory(struct target *target,
-	uint32_t address, uint32_t count, uint32_t *checksum)
+	target_addr_t address, uint32_t count, uint32_t *checksum)
 {
 	struct working_area *crc_algorithm;
 	struct armv7m_algorithm armv7m_info;
@@ -726,26 +731,42 @@ cleanup:
 	return retval;
 }
 
-/** Checks whether a memory region is zeroed. */
+/** Checks whether a memory region is erased. */
 int armv7m_blank_check_memory(struct target *target,
-	uint32_t address, uint32_t count, uint32_t *blank)
+	target_addr_t address, uint32_t count, uint32_t *blank, uint8_t erased_value)
 {
 	struct working_area *erase_check_algorithm;
 	struct reg_param reg_params[3];
 	struct armv7m_algorithm armv7m_info;
+	const uint8_t *code;
+	uint32_t code_size;
 	int retval;
 
 	static const uint8_t erase_check_code[] = {
 #include "../../contrib/loaders/erase_check/armv7m_erase_check.inc"
 	};
+	static const uint8_t zero_erase_check_code[] = {
+#include "../../contrib/loaders/erase_check/armv7m_0_erase_check.inc"
+	};
+
+	switch (erased_value) {
+	case 0x00:
+		code = zero_erase_check_code;
+		code_size = sizeof(zero_erase_check_code);
+		break;
+	case 0xff:
+	default:
+		code = erase_check_code;
+		code_size = sizeof(erase_check_code);
+	}
 
 	/* make sure we have a working area */
-	if (target_alloc_working_area(target, sizeof(erase_check_code),
+	if (target_alloc_working_area(target, code_size,
 		&erase_check_algorithm) != ERROR_OK)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	retval = target_write_buffer(target, erase_check_algorithm->address,
-			sizeof(erase_check_code), (uint8_t *)erase_check_code);
+			code_size, code);
 	if (retval != ERROR_OK)
 		goto cleanup;
 
@@ -759,7 +780,7 @@ int armv7m_blank_check_memory(struct target *target,
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
-	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
+	buf_set_u32(reg_params[2].value, 0, 32, erased_value);
 
 	retval = target_run_algorithm(target,
 			0,
@@ -767,7 +788,7 @@ int armv7m_blank_check_memory(struct target *target,
 			3,
 			reg_params,
 			erase_check_algorithm->address,
-			erase_check_algorithm->address + (sizeof(erase_check_code) - 2),
+			erase_check_algorithm->address + (code_size - 2),
 			10000,
 			&armv7m_info);
 

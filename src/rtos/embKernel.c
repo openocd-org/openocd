@@ -168,11 +168,11 @@ static int embKernel_get_tasks_details(struct rtos *rtos, int64_t iterable, cons
 		return retval;
 	details->extra_info_str = malloc(EMBKERNEL_MAX_THREAD_NAME_STR_SIZE);
 	if (task == rtos->current_thread) {
-		snprintf(details->extra_info_str, EMBKERNEL_MAX_THREAD_NAME_STR_SIZE, "Pri=%u, Running",
+		snprintf(details->extra_info_str, EMBKERNEL_MAX_THREAD_NAME_STR_SIZE, "State: Running, Priority: %u",
 				(unsigned int) priority);
 	} else {
-		snprintf(details->extra_info_str, EMBKERNEL_MAX_THREAD_NAME_STR_SIZE, "Pri=%u, %s", (unsigned int) priority,
-				state_str);
+		snprintf(details->extra_info_str, EMBKERNEL_MAX_THREAD_NAME_STR_SIZE, "State: %s, Priority: %u",
+				state_str, (unsigned int) priority);
 	}
 
 	LOG_OUTPUT("Getting task details: iterable=0x%08X, task=0x%08X, name=%s\n", (unsigned int)iterable,

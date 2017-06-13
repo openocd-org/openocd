@@ -368,7 +368,7 @@ int nds32_v3_target_request_data(struct target *target,
 }
 
 int nds32_v3_checksum_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t *checksum)
+		target_addr_t address, uint32_t count, uint32_t *checksum)
 {
 	LOG_WARNING("Not implemented: %s", __func__);
 
@@ -434,8 +434,8 @@ int nds32_v3_run_algorithm(struct target *target,
 		struct mem_param *mem_params,
 		int num_reg_params,
 		struct reg_param *reg_params,
-		uint32_t entry_point,
-		uint32_t exit_point,
+		target_addr_t entry_point,
+		target_addr_t exit_point,
 		int timeout_ms,
 		void *arch_info)
 {
@@ -444,7 +444,7 @@ int nds32_v3_run_algorithm(struct target *target,
 	return ERROR_FAIL;
 }
 
-int nds32_v3_read_buffer(struct target *target, uint32_t address,
+int nds32_v3_read_buffer(struct target *target, target_addr_t address,
 		uint32_t size, uint8_t *buffer)
 {
 	struct nds32 *nds32 = target_to_nds32(target);
@@ -456,7 +456,7 @@ int nds32_v3_read_buffer(struct target *target, uint32_t address,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	uint32_t physical_address;
+	target_addr_t physical_address;
 	/* BUG: If access range crosses multiple pages, the translation will not correct
 	 * for second page or so. */
 
@@ -502,7 +502,7 @@ int nds32_v3_read_buffer(struct target *target, uint32_t address,
 	return result;
 }
 
-int nds32_v3_write_buffer(struct target *target, uint32_t address,
+int nds32_v3_write_buffer(struct target *target, target_addr_t address,
 		uint32_t size, const uint8_t *buffer)
 {
 	struct nds32 *nds32 = target_to_nds32(target);
@@ -514,7 +514,7 @@ int nds32_v3_write_buffer(struct target *target, uint32_t address,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	uint32_t physical_address;
+	target_addr_t physical_address;
 	/* BUG: If access range crosses multiple pages, the translation will not correct
 	 * for second page or so. */
 
@@ -564,7 +564,7 @@ int nds32_v3_write_buffer(struct target *target, uint32_t address,
 	return nds32_write_buffer(target, address, size, buffer);
 }
 
-int nds32_v3_read_memory(struct target *target, uint32_t address,
+int nds32_v3_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct nds32 *nds32 = target_to_nds32(target);
@@ -576,7 +576,7 @@ int nds32_v3_read_memory(struct target *target, uint32_t address,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	uint32_t physical_address;
+	target_addr_t physical_address;
 	/* BUG: If access range crosses multiple pages, the translation will not correct
 	 * for second page or so. */
 
@@ -622,7 +622,7 @@ int nds32_v3_read_memory(struct target *target, uint32_t address,
 	return result;
 }
 
-int nds32_v3_write_memory(struct target *target, uint32_t address,
+int nds32_v3_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct nds32 *nds32 = target_to_nds32(target);
@@ -634,7 +634,7 @@ int nds32_v3_write_memory(struct target *target, uint32_t address,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	uint32_t physical_address;
+	target_addr_t physical_address;
 	/* BUG: If access range crosses multiple pages, the translation will not correct
 	 * for second page or so. */
 

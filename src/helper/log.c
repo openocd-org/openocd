@@ -191,6 +191,30 @@ void log_printf(enum log_levels level,
 	va_end(ap);
 }
 
+void log_vprintf_lf(enum log_levels level, const char *file, unsigned line,
+		const char *function, const char *format, va_list args)
+{
+	char *tmp;
+
+	count++;
+
+	if (level > debug_level)
+		return;
+
+	tmp = alloc_vprintf(format, args);
+
+	if (!tmp)
+		return;
+
+	/*
+	 * Note: alloc_vprintf() guarantees that the buffer is at least one
+	 * character longer.
+	 */
+	strcat(tmp, "\n");
+	log_puts(level, file, line, function, tmp);
+	free(tmp);
+}
+
 void log_printf_lf(enum log_levels level,
 	const char *file,
 	unsigned line,
@@ -198,23 +222,10 @@ void log_printf_lf(enum log_levels level,
 	const char *format,
 	...)
 {
-	char *string;
 	va_list ap;
 
-	count++;
-	if (level > debug_level)
-		return;
-
 	va_start(ap, format);
-
-	string = alloc_vprintf(format, ap);
-	if (string != NULL) {
-		strcat(string, "\n");	/* alloc_vprintf guaranteed the buffer to be at least one
-					 *char longer */
-		log_puts(level, file, line, function, string);
-		free(string);
-	}
-
+	log_vprintf_lf(level, file, line, function, format, ap);
 	va_end(ap);
 }
 
@@ -240,9 +251,15 @@ COMMAND_HANDLER(handle_log_output_command)
 {
 	if (CMD_ARGC == 1) {
 		FILE *file = fopen(CMD_ARGV[0], "w");
-
-		if (file)
-			log_output = file;
+		if (file == NULL) {
+			LOG_ERROR("failed to open output log '%s'", CMD_ARGV[0]);
+			return ERROR_FAIL;
+		}
+		if (log_output != stderr && log_output != NULL) {
+			/* Close previous log file, if it was open and wasn't stderr. */
+			fclose(log_output);
+		}
+		log_output = file;
 	}
 
 	return ERROR_OK;

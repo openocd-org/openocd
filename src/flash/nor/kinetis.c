@@ -102,6 +102,7 @@
 #define WDOG_STCTRH	0x40052000
 #define SMC_PMCTRL	0x4007E001
 #define SMC_PMSTAT	0x4007E003
+#define MCM_PLACR	0xF000300C
 
 /* Values */
 #define PM_STAT_RUN		0x01
@@ -206,6 +207,7 @@
 #define KINETIS_SDID_FAMILYID_K4X   0x40000000
 #define KINETIS_SDID_FAMILYID_K6X   0x60000000
 #define KINETIS_SDID_FAMILYID_K7X   0x70000000
+#define KINETIS_SDID_FAMILYID_K8X   0x80000000
 
 struct kinetis_flash_bank {
 	bool probed;
@@ -231,7 +233,8 @@ struct kinetis_flash_bank {
 		FS_PROGRAM_SECTOR = 1,
 		FS_PROGRAM_LONGWORD = 2,
 		FS_PROGRAM_PHRASE = 4, /* Unsupported */
-		FS_INVALIDATE_CACHE = 8,
+		FS_INVALIDATE_CACHE_K = 8,
+		FS_INVALIDATE_CACHE_L = 0x10,
 	} flash_support;
 };
 
@@ -609,6 +612,9 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 		return ERROR_OK;
 	}
 
+	if (!dap->ops)
+		return ERROR_OK;	/* too early to check, in JTAG mode ops may not be initialised */
+
 	uint32_t val;
 	int retval;
 
@@ -623,7 +629,7 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 	}
 
 	if (val == 0)
-		return ERROR_OK;
+		return ERROR_OK;	/* dap not yet initialised */
 
 	bool found = false;
 	for (size_t i = 0; i < ARRAY_SIZE(kinetis_known_mdm_ids); i++) {
@@ -862,65 +868,7 @@ static int kinetis_ftfx_prepare(struct target *target)
 
 /* Kinetis Program-LongWord Microcodes */
 static const uint8_t kinetis_flash_write_code[] = {
-	/* Params:
-	 * r0 - workarea buffer
-	* r1 - target address
-	* r2 - wordcount
-	* Clobbered:
-	* r4 - tmp
-	* r5 - tmp
-	* r6 - tmp
-	* r7 - tmp
-	*/
-
-							/* .L1: */
-						/* for(register uint32_t i=0;i<wcount;i++){ */
-	0x04, 0x1C,					/* mov    r4, r0          */
-	0x00, 0x23,					/* mov    r3, #0          */
-							/* .L2: */
-	0x0E, 0x1A,					/* sub    r6, r1, r0      */
-	0xA6, 0x19,					/* add    r6, r4, r6      */
-	0x93, 0x42,					/* cmp    r3, r2          */
-	0x16, 0xD0,					/* beq    .L9             */
-							/* .L5: */
-						/* while((FTFx_FSTAT&FTFA_FSTAT_CCIF_MASK) != FTFA_FSTAT_CCIF_MASK){}; */
-	0x0B, 0x4D,					/* ldr    r5, .L10        */
-	0x2F, 0x78,					/* ldrb   r7, [r5]        */
-	0x7F, 0xB2,					/* sxtb   r7, r7          */
-	0x00, 0x2F,					/* cmp    r7, #0          */
-	0xFA, 0xDA,					/* bge    .L5             */
-						/* FTFx_FSTAT = FTFA_FSTAT_ACCERR_MASK|FTFA_FSTAT_FPVIOL_MASK|FTFA_FSTAT_RDCO */
-	0x70, 0x27,					/* mov    r7, #112        */
-	0x2F, 0x70,					/* strb   r7, [r5]        */
-						/* FTFx_FCCOB3 = faddr; */
-	0x09, 0x4F,					/* ldr    r7, .L10+4      */
-	0x3E, 0x60,					/* str    r6, [r7]        */
-	0x06, 0x27,					/* mov    r7, #6          */
-						/* FTFx_FCCOB0 = 0x06;  */
-	0x08, 0x4E,					/* ldr    r6, .L10+8      */
-	0x37, 0x70,					/* strb   r7, [r6]        */
-						/* FTFx_FCCOB7 = *pLW;  */
-	0x80, 0xCC,					/* ldmia  r4!, {r7}       */
-	0x08, 0x4E,					/* ldr    r6, .L10+12     */
-	0x37, 0x60,					/* str    r7, [r6]        */
-						/* FTFx_FSTAT = FTFA_FSTAT_CCIF_MASK; */
-	0x80, 0x27,					/* mov    r7, #128        */
-	0x2F, 0x70,					/* strb   r7, [r5]        */
-							/* .L4: */
-						/* while((FTFx_FSTAT&FTFA_FSTAT_CCIF_MASK) != FTFA_FSTAT_CCIF_MASK){}; */
-	0x2E, 0x78,					/* ldrb    r6, [r5]       */
-	0x77, 0xB2,					/* sxtb    r7, r6         */
-	0x00, 0x2F,					/* cmp     r7, #0         */
-	0xFB, 0xDA,					/* bge     .L4            */
-	0x01, 0x33,					/* add     r3, r3, #1     */
-	0xE4, 0xE7,					/* b       .L2            */
-							/* .L9: */
-	0x00, 0xBE,					/* bkpt #0                */
-							/* .L10: */
-	0x00, 0x00, 0x02, 0x40,		/* .word    1073872896    */
-	0x04, 0x00, 0x02, 0x40,		/* .word    1073872900    */
-	0x07, 0x00, 0x02, 0x40,		/* .word    1073872903    */
-	0x08, 0x00, 0x02, 0x40,		/* .word    1073872904    */
+#include "../../../contrib/loaders/flash/kinetis/kinetis_flash.inc"
 };
 
 /* Program LongWord Block Write */
@@ -933,20 +881,11 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	struct working_area *source;
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
 	uint32_t address = kinfo->prog_base + offset;
-	struct reg_param reg_params[3];
+	uint32_t end_address;
+	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
-	int retval = ERROR_OK;
-
-	/* Params:
-	 * r0 - workarea buffer
-	 * r1 - target address
-	 * r2 - wordcount
-	 * Clobbered:
-	 * r4 - tmp
-	 * r5 - tmp
-	 * r6 - tmp
-	 * r7 - tmp
-	 */
+	int retval;
+	uint8_t fstat;
 
 	/* Increase buffer_size if needed */
 	if (buffer_size < (target->working_area_size/2))
@@ -979,35 +918,39 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;
 
-	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT); /* *pLW (*buffer) */
-	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT); /* faddr */
-	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT); /* number of words to program */
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT); /* address */
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT); /* word count */
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
+	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
+	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
 
-	/* write code buffer and use Flash programming code within kinetis       */
-	/* Set breakpoint to 0 with time-out of 1000 ms                          */
-	while (wcount > 0) {
-		uint32_t thisrun_count = (wcount > (buffer_size / 4)) ? (buffer_size / 4) : wcount;
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+	buf_set_u32(reg_params[1].value, 0, 32, wcount);
+	buf_set_u32(reg_params[2].value, 0, 32, source->address);
+	buf_set_u32(reg_params[3].value, 0, 32, source->address + source->size);
+	buf_set_u32(reg_params[4].value, 0, 32, FTFx_FSTAT);
 
-		retval = target_write_buffer(target, source->address, thisrun_count * 4, buffer);
-		if (retval != ERROR_OK)
-			break;
+	retval = target_run_flash_async_algorithm(target, buffer, wcount, 4,
+						0, NULL,
+						5, reg_params,
+						source->address, source->size,
+						write_algorithm->address, 0,
+						&armv7m_info);
 
-		buf_set_u32(reg_params[0].value, 0, 32, source->address);
-		buf_set_u32(reg_params[1].value, 0, 32, address);
-		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
+	if (retval == ERROR_FLASH_OPERATION_FAILED) {
+		end_address = buf_get_u32(reg_params[0].value, 0, 32);
 
-		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-				write_algorithm->address, 0, 100000, &armv7m_info);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Error executing kinetis Flash programming algorithm");
-			retval = ERROR_FLASH_OPERATION_FAILED;
-			break;
+		LOG_ERROR("Error writing flash at %08" PRIx32, end_address);
+
+		retval = target_read_u8(target, FTFx_FSTAT, &fstat);
+		if (retval == ERROR_OK) {
+			retval = kinetis_ftfx_decode_error(fstat);
+
+			/* reset error flags */
+			target_write_u8(target, FTFx_FSTAT, 0x70);
 		}
-
-		buffer += thisrun_count * 4;
-		address += thisrun_count * 4;
-		wcount -= thisrun_count;
-	}
+	} else if (retval != ERROR_OK)
+		LOG_ERROR("Error executing kinetis Flash programming algorithm");
 
 	target_free_working_area(target, source);
 	target_free_working_area(target, write_algorithm);
@@ -1015,6 +958,8 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
+	destroy_reg_param(&reg_params[3]);
+	destroy_reg_param(&reg_params[4]);
 
 	return retval;
 }
@@ -1236,12 +1181,13 @@ static int kinetis_check_run_mode(struct target *target)
 static void kinetis_invalidate_flash_cache(struct flash_bank *bank)
 {
 	struct kinetis_flash_bank *kinfo = bank->driver_priv;
-	uint8_t pfb01cr_byte2 = 0xf0;
 
-	if (!(kinfo->flash_support & FS_INVALIDATE_CACHE))
-		return;
+	if (kinfo->flash_support & FS_INVALIDATE_CACHE_K)
+		target_write_u8(bank->target, FMC_PFB01CR + 2, 0xf0);
 
-	target_write_memory(bank->target, FMC_PFB01CR + 2, 1, 1, &pfb01cr_byte2);
+	else if (kinfo->flash_support & FS_INVALIDATE_CACHE_L)
+		target_write_u8(bank->target, MCM_PLACR + 1, 0x04);
+
 	return;
 }
 
@@ -1425,7 +1371,7 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 	if (!(kinfo->flash_support & FS_PROGRAM_SECTOR)) {
 		/* fallback to longword write */
 		fallback = 1;
-		LOG_WARNING("This device supports Program Longword execution only.");
+		LOG_INFO("This device supports Program Longword execution only.");
 	} else {
 		result = kinetis_make_ram_ready(bank->target);
 		if (result != ERROR_OK) {
@@ -1604,7 +1550,7 @@ static int kinetis_probe(struct flash_bank *bank)
 			pflash_sector_size_bytes = 1<<10;
 			nvm_sector_size_bytes = 1<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		case KINETIS_K_SDID_K10_M72:
 		case KINETIS_K_SDID_K20_M72:
@@ -1617,7 +1563,7 @@ static int kinetis_probe(struct flash_bank *bank)
 			pflash_sector_size_bytes = 2<<10;
 			nvm_sector_size_bytes = 1<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			kinfo->max_flash_prog_size = 1<<10;
 			break;
 		case KINETIS_K_SDID_K10_M100:
@@ -1633,7 +1579,7 @@ static int kinetis_probe(struct flash_bank *bank)
 			pflash_sector_size_bytes = 2<<10;
 			nvm_sector_size_bytes = 2<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		case KINETIS_K_SDID_K21_M120:
 		case KINETIS_K_SDID_K22_M120:
@@ -1642,7 +1588,7 @@ static int kinetis_probe(struct flash_bank *bank)
 			kinfo->max_flash_prog_size = 1<<10;
 			nvm_sector_size_bytes = 4<<10;
 			num_blocks = 2;
-			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		case KINETIS_K_SDID_K10_M120:
 		case KINETIS_K_SDID_K20_M120:
@@ -1652,7 +1598,7 @@ static int kinetis_probe(struct flash_bank *bank)
 			pflash_sector_size_bytes = 4<<10;
 			nvm_sector_size_bytes = 4<<10;
 			num_blocks = 4;
-			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+			kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 			break;
 		default:
 			LOG_ERROR("Unsupported K-family FAMID");
@@ -1666,7 +1612,7 @@ static int kinetis_probe(struct flash_bank *bank)
 				/* K02FN64, K02FN128: FTFA, 2kB sectors */
 				pflash_sector_size_bytes = 2<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX2: {
@@ -1681,7 +1627,7 @@ static int kinetis_probe(struct flash_bank *bank)
 					/* MK24FN1M */
 					pflash_sector_size_bytes = 4<<10;
 					num_blocks = 2;
-					kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+					kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 					kinfo->max_flash_prog_size = 1<<10;
 					break;
 				}
@@ -1691,7 +1637,7 @@ static int kinetis_probe(struct flash_bank *bank)
 					/* K22 with new-style SDID - smaller pflash with FTFA, 2kB sectors */
 					pflash_sector_size_bytes = 2<<10;
 					/* autodetect 1 or 2 blocks */
-					kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE;
+					kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 					break;
 				}
 				LOG_ERROR("Unsupported Kinetis K22 DIEID");
@@ -1702,12 +1648,12 @@ static int kinetis_probe(struct flash_bank *bank)
 				if ((kinfo->sim_sdid & (KINETIS_SDID_DIEID_MASK)) == KINETIS_SDID_DIEID_K24FN256) {
 					/* K24FN256 - smaller pflash with FTFA */
 					num_blocks = 1;
-					kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE;
+					kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 					break;
 				}
 				/* K24FN1M without errata 7534 */
 				num_blocks = 2;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 				kinfo->max_flash_prog_size = 1<<10;
 				break;
 
@@ -1721,7 +1667,7 @@ static int kinetis_probe(struct flash_bank *bank)
 				nvm_sector_size_bytes = 4<<10;
 				kinfo->max_flash_prog_size = 1<<10;
 				num_blocks = 2;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX6:
@@ -1732,8 +1678,18 @@ static int kinetis_probe(struct flash_bank *bank)
 				nvm_sector_size_bytes = 4<<10;
 				kinfo->max_flash_prog_size = 1<<10;
 				num_blocks = 4;
-				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE;
+				kinfo->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_INVALIDATE_CACHE_K;
 				break;
+
+			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX0:
+			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX1:
+			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX2:
+				/* K80FN256, K81FN256, K82FN256 */
+				pflash_sector_size_bytes = 4<<10;
+				num_blocks = 1;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
+				break;
+
 			default:
 				LOG_ERROR("Unsupported Kinetis FAMILYID SUBFAMID");
 			}
@@ -1744,7 +1700,7 @@ static int kinetis_probe(struct flash_bank *bank)
 			pflash_sector_size_bytes = 1<<10;
 			nvm_sector_size_bytes = 1<<10;
 			/* autodetect 1 or 2 blocks */
-			kinfo->flash_support = FS_PROGRAM_LONGWORD;
+			kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
 			break;
 
 		case KINETIS_SDID_SERIESID_KV:
@@ -1754,14 +1710,14 @@ static int kinetis_probe(struct flash_bank *bank)
 				/* KV10: FTFA, 1kB sectors */
 				pflash_sector_size_bytes = 1<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K1X | KINETIS_SDID_SUBFAMID_KX1:
 				/* KV11: FTFA, 2kB sectors */
 				pflash_sector_size_bytes = 2<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_L;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K3X | KINETIS_SDID_SUBFAMID_KX0:
@@ -1770,7 +1726,7 @@ static int kinetis_probe(struct flash_bank *bank)
 				/* KV31: FTFA, 2kB sectors, 2 blocks */
 				pflash_sector_size_bytes = 2<<10;
 				/* autodetect 1 or 2 blocks */
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 				break;
 
 			case KINETIS_SDID_FAMILYID_K4X | KINETIS_SDID_SUBFAMID_KX2:
@@ -1779,7 +1735,7 @@ static int kinetis_probe(struct flash_bank *bank)
 				/* KV4x: FTFA, 4kB sectors */
 				pflash_sector_size_bytes = 4<<10;
 				num_blocks = 1;
-				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE;
+				kinfo->flash_support = FS_PROGRAM_LONGWORD | FS_INVALIDATE_CACHE_K;
 				break;
 
 			default:

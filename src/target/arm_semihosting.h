@@ -19,6 +19,7 @@
 #ifndef OPENOCD_TARGET_ARM_SEMIHOSTING_H
 #define OPENOCD_TARGET_ARM_SEMIHOSTING_H
 
+int arm_semihosting_init(struct target *target);
 int arm_semihosting(struct target *target, int *retval);
 
 #endif /* OPENOCD_TARGET_ARM_SEMIHOSTING_H */

@@ -110,6 +110,9 @@
 #define FLASH_ERASE_TIMEOUT 10000
 #define FLASH_WRITE_TIMEOUT 5
 
+/* Mass erase time can be as high as 32 s in x8 mode. */
+#define FLASH_MASS_ERASE_TIMEOUT 33000
+
 #define STM32_FLASH_BASE    0x40023c00
 #define STM32_FLASH_ACR     0x40023c00
 #define STM32_FLASH_KEYR    0x40023c04
@@ -399,8 +402,8 @@ static int stm32x_write_options(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* wait for completion */
-	retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
+	/* wait for completion, this might trigger a security erase and take a while */
+	retval = stm32x_wait_status_busy(bank, FLASH_MASS_ERASE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1257,7 +1260,7 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32x_wait_status_busy(bank, 30000);
+	retval = stm32x_wait_status_busy(bank, FLASH_MASS_ERASE_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
 

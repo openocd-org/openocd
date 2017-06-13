@@ -1,27 +1,14 @@
-include $(top_srcdir)/common.mk
+noinst_LTLIBRARIES += %D%/libocdaice.la
 
-AM_CPPFLAGS += -I$(top_srcdir)/src/jtag/drivers $(LIBUSB1_CFLAGS) $(LIBUSB0_CFLAGS)
-
-noinst_LTLIBRARIES = libocdaice.la
-
-libocdaice_la_SOURCES = \
-	$(AICEFILES)
-
-AICEFILES =
-
-if AICE
-AICEFILES += aice_transport.c
-AICEFILES += aice_interface.c
-AICEFILES += aice_port.c
-AICEFILES += aice_usb.c
-AICEFILES += aice_pipe.c
-endif
-
-noinst_HEADERS = \
-	aice_transport.h \
-	aice_interface.h \
-	aice_port.h \
-	aice_usb.h \
-	aice_pipe.h
-
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+%C%_libocdaice_la_CPPFLAGS = -I$(top_srcdir)/src/jtag/drivers $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS) $(LIBUSB0_CFLAGS)
+%C%_libocdaice_la_SOURCES = \
+	%D%/aice_transport.c \
+	%D%/aice_interface.c \
+	%D%/aice_port.c \
+	%D%/aice_usb.c \
+	%D%/aice_pipe.c \
+	%D%/aice_transport.h \
+	%D%/aice_interface.h \
+	%D%/aice_port.h \
+	%D%/aice_usb.h \
+	%D%/aice_pipe.h

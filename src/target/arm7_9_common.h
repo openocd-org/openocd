@@ -122,13 +122,13 @@ struct arm7_9_common {
 	 * Used as a fallback when bulk writes are unavailable, or for writing data needed to
 	 * do the bulk writes.
 	 */
-	int (*write_memory)(struct target *target, uint32_t address,
+	int (*write_memory)(struct target *target, target_addr_t address,
 			uint32_t size, uint32_t count, const uint8_t *buffer);
 	/**
 	 * Write target memory in multiples of 4 bytes, optimized for
 	 * writing large quantities of data.
 	 */
-	int (*bulk_write_memory)(struct target *target, uint32_t address,
+	int (*bulk_write_memory)(struct target *target, target_addr_t address,
 			uint32_t count, const uint8_t *buffer);
 };
 
@@ -155,19 +155,19 @@ int arm7_9_early_halt(struct target *target);
 int arm7_9_soft_reset_halt(struct target *target);
 
 int arm7_9_halt(struct target *target);
-int arm7_9_resume(struct target *target, int current, uint32_t address,
+int arm7_9_resume(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints, int debug_execution);
-int arm7_9_step(struct target *target, int current, uint32_t address,
+int arm7_9_step(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints);
-int arm7_9_read_memory(struct target *target, uint32_t address,
+int arm7_9_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer);
-int arm7_9_write_memory(struct target *target, uint32_t address,
+int arm7_9_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
-int arm7_9_write_memory_opt(struct target *target, uint32_t address,
+int arm7_9_write_memory_opt(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
 int arm7_9_write_memory_no_opt(struct target *target, uint32_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
-int arm7_9_bulk_write_memory(struct target *target, uint32_t address,
+int arm7_9_bulk_write_memory(struct target *target, target_addr_t address,
 		uint32_t count, const uint8_t *buffer);
 
 int arm7_9_run_algorithm(struct target *target, int num_mem_params,

@@ -408,8 +408,8 @@ static int ThreadX_update_threads(struct rtos *rtos)
 			state_desc = "Unknown state";
 
 		rtos->thread_details[tasks_found].extra_info_str = malloc(strlen(
-					state_desc)+1);
-		strcpy(rtos->thread_details[tasks_found].extra_info_str, state_desc);
+					state_desc)+8);
+		sprintf(rtos->thread_details[tasks_found].extra_info_str, "State: %s", state_desc);
 
 		rtos->thread_details[tasks_found].exists = true;
 

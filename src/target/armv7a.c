@@ -679,11 +679,40 @@ done:
 
 }
 
+static int armv7a_setup_semihosting(struct target *target, int enable)
+{
+	struct armv7a_common *armv7a = target_to_armv7a(target);
+	uint32_t vcr;
+	int ret;
+
+	ret = mem_ap_read_atomic_u32(armv7a->debug_ap,
+					 armv7a->debug_base + CPUDBG_VCR,
+					 &vcr);
+	if (ret < 0) {
+		LOG_ERROR("Failed to read VCR register\n");
+		return ret;
+	}
+
+	if (enable)
+		vcr |= DBG_VCR_SVC_MASK;
+	else
+		vcr &= ~DBG_VCR_SVC_MASK;
+
+	ret = mem_ap_write_atomic_u32(armv7a->debug_ap,
+					  armv7a->debug_base + CPUDBG_VCR,
+					  vcr);
+	if (ret < 0)
+		LOG_ERROR("Failed to write VCR register\n");
+
+	return ret;
+}
+
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 {
 	struct arm *arm = &armv7a->arm;
 	arm->arch_info = armv7a;
 	target->arch_info = &armv7a->arm;
+	arm->setup_semihosting = armv7a_setup_semihosting;
 	/*  target is useful in all function arm v4 5 compatible */
 	armv7a->arm.target = target;
 	armv7a->arm.common_magic = ARM_COMMON_MAGIC;

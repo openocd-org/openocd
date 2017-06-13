@@ -93,9 +93,6 @@ interface support:
   -# rewrite implementation to use non-blocking I/O
 - J-Link driver:
   - fix to work with long scan chains, such as R.Doss's svf test.
-- FT2232 (libftdi):
-  - make performance comparable to alternatives (on Win32, D2XX is faster)
-  - make usability comparable to alternatives
 - Autodetect USB based adapters; this should be easy on Linux.  If there's
   more than one, list the options; otherwise, just select that one.
 

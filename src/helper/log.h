@@ -60,6 +60,8 @@ enum log_levels {
 void log_printf(enum log_levels level, const char *file, unsigned line,
 		const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
+void log_vprintf_lf(enum log_levels level, const char *file, unsigned line,
+		const char *function, const char *format, va_list args);
 void log_printf_lf(enum log_levels level, const char *file, unsigned line,
 		const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));

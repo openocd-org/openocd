@@ -69,12 +69,13 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
  * @param bclass `bInterfaceClass` to match, or -1 to ignore this field.
  * @param subclass `bInterfaceSubClass` to match, or -1 to ignore this field.
  * @param protocol `bInterfaceProtocol` to match, or -1 to ignore this field.
+ * @param trans_type `bmAttributes Bits 0..1 Transfer type` to match, or -1 to ignore this field.
  * @returns Returns ERROR_OK on success, ERROR_FAIL otherwise.
  */
 int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 		unsigned int *usb_read_ep,
 		unsigned int *usb_write_ep,
-		int bclass, int subclass, int protocol);
+		int bclass, int subclass, int protocol, int trans_type);
 int jtag_libusb_get_pid(struct jtag_libusb_device *dev, uint16_t *pid);
 
 #endif /* OPENOCD_JTAG_DRIVERS_LIBUSB1_COMMON_H */

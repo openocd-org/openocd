@@ -63,12 +63,12 @@ int arm7a_l2x_flush_all_data(struct target *target)
 
 	l2_way_val = (1 << l2x_cache->way) - 1;
 
-	return target_write_phys_memory(target,
+	return target_write_phys_u32(target,
 			l2x_cache->base + L2X0_CLEAN_INV_WAY,
-			4, 1, (uint8_t *)&l2_way_val);
+			l2_way_val);
 }
 
-int armv7a_l2x_cache_flush_virt(struct target *target, uint32_t virt,
+int armv7a_l2x_cache_flush_virt(struct target *target, target_addr_t virt,
 					uint32_t size)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -83,16 +83,15 @@ int armv7a_l2x_cache_flush_virt(struct target *target, uint32_t virt,
 		return retval;
 
 	for (i = 0; i < size; i += linelen) {
-		uint32_t pa, offs = virt + i;
+		target_addr_t pa, offs = virt + i;
 
 		/* FIXME: use less verbose virt2phys? */
 		retval = target->type->virt2phys(target, offs, &pa);
 		if (retval != ERROR_OK)
 			goto done;
 
-		retval = target_write_phys_memory(target,
-				l2x_cache->base + L2X0_CLEAN_INV_LINE_PA,
-				4, 1, (uint8_t *)&pa);
+		retval = target_write_phys_u32(target,
+				l2x_cache->base + L2X0_CLEAN_INV_LINE_PA, pa);
 		if (retval != ERROR_OK)
 			goto done;
 	}
@@ -104,7 +103,7 @@ done:
 	return retval;
 }
 
-static int armv7a_l2x_cache_inval_virt(struct target *target, uint32_t virt,
+static int armv7a_l2x_cache_inval_virt(struct target *target, target_addr_t virt,
 					uint32_t size)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -119,16 +118,15 @@ static int armv7a_l2x_cache_inval_virt(struct target *target, uint32_t virt,
 		return retval;
 
 	for (i = 0; i < size; i += linelen) {
-		uint32_t pa, offs = virt + i;
+		target_addr_t pa, offs = virt + i;
 
 		/* FIXME: use less verbose virt2phys? */
 		retval = target->type->virt2phys(target, offs, &pa);
 		if (retval != ERROR_OK)
 			goto done;
 
-		retval = target_write_phys_memory(target,
-				l2x_cache->base + L2X0_INV_LINE_PA,
-				4, 1, (uint8_t *)&pa);
+		retval = target_write_phys_u32(target,
+				l2x_cache->base + L2X0_INV_LINE_PA, pa);
 		if (retval != ERROR_OK)
 			goto done;
 	}
@@ -140,7 +138,7 @@ done:
 	return retval;
 }
 
-static int armv7a_l2x_cache_clean_virt(struct target *target, uint32_t virt,
+static int armv7a_l2x_cache_clean_virt(struct target *target, target_addr_t virt,
 					unsigned int size)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -155,16 +153,15 @@ static int armv7a_l2x_cache_clean_virt(struct target *target, uint32_t virt,
 		return retval;
 
 	for (i = 0; i < size; i += linelen) {
-		uint32_t pa, offs = virt + i;
+		target_addr_t pa, offs = virt + i;
 
 		/* FIXME: use less verbose virt2phys? */
 		retval = target->type->virt2phys(target, offs, &pa);
 		if (retval != ERROR_OK)
 			goto done;
 
-		retval = target_write_phys_memory(target,
-				l2x_cache->base + L2X0_CLEAN_LINE_PA,
-				4, 1, (uint8_t *)&pa);
+		retval = target_write_phys_u32(target,
+				l2x_cache->base + L2X0_CLEAN_LINE_PA, pa);
 		if (retval != ERROR_OK)
 			goto done;
 	}
@@ -252,7 +249,8 @@ COMMAND_HANDLER(arm7a_l2x_cache_flush_all_command)
 COMMAND_HANDLER(arm7a_l2x_cache_flush_virt_cmd)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	uint32_t virt, size;
+	target_addr_t virt;
+	uint32_t size;
 
 	if (CMD_ARGC == 0 || CMD_ARGC > 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -262,7 +260,7 @@ COMMAND_HANDLER(arm7a_l2x_cache_flush_virt_cmd)
 	else
 		size = 1;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], virt);
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], virt);
 
 	return armv7a_l2x_cache_flush_virt(target, virt, size);
 }
@@ -270,7 +268,8 @@ COMMAND_HANDLER(arm7a_l2x_cache_flush_virt_cmd)
 COMMAND_HANDLER(arm7a_l2x_cache_inval_virt_cmd)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	uint32_t virt, size;
+	target_addr_t virt;
+	uint32_t size;
 
 	if (CMD_ARGC == 0 || CMD_ARGC > 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -280,7 +279,7 @@ COMMAND_HANDLER(arm7a_l2x_cache_inval_virt_cmd)
 	else
 		size = 1;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], virt);
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], virt);
 
 	return armv7a_l2x_cache_inval_virt(target, virt, size);
 }
@@ -288,7 +287,8 @@ COMMAND_HANDLER(arm7a_l2x_cache_inval_virt_cmd)
 COMMAND_HANDLER(arm7a_l2x_cache_clean_virt_cmd)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	uint32_t virt, size;
+	target_addr_t virt;
+	uint32_t size;
 
 	if (CMD_ARGC == 0 || CMD_ARGC > 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -298,7 +298,7 @@ COMMAND_HANDLER(arm7a_l2x_cache_clean_virt_cmd)
 	else
 		size = 1;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], virt);
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], virt);
 
 	return armv7a_l2x_cache_clean_virt(target, virt, size);
 }

@@ -34,14 +34,7 @@
 #include "bitq.h"
 
 /* PRESTO access library includes */
-#if BUILD_PRESTO_FTD2XX == 1
-#include <ftd2xx.h>
-#include "ftd2xx_common.h"
-#elif BUILD_PRESTO_LIBFTDI == 1
 #include <ftdi.h>
-#else
-#error "BUG: either FTD2XX and LIBFTDI has to be used"
-#endif
 
 /* -------------------------------------------------------------------------- */
 
@@ -55,13 +48,8 @@
 #define BUFFER_SIZE (64*62)
 
 struct presto {
-#if BUILD_PRESTO_FTD2XX == 1
-	FT_HANDLE handle;
-	FT_STATUS status;
-#elif BUILD_PRESTO_LIBFTDI == 1
 	struct ftdi_context ftdic;
 	int retval;
-#endif
 
 	char serial[FT_DEVICE_SERNUM_LEN];
 
@@ -95,15 +83,6 @@ static uint8_t presto_init_seq[] = {
 
 static int presto_write(uint8_t *buf, uint32_t size)
 {
-#if BUILD_PRESTO_FTD2XX == 1
-	DWORD ftbytes;
-	presto->status = FT_Write(presto->handle, buf, size, &ftbytes);
-	if (presto->status != FT_OK) {
-		LOG_ERROR("FT_Write returned: %s", ftd2xx_status_string(presto->status));
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-#elif BUILD_PRESTO_LIBFTDI == 1
 	uint32_t ftbytes;
 	presto->retval = ftdi_write_data(&presto->ftdic, buf, size);
 	if (presto->retval < 0) {
@@ -111,7 +90,6 @@ static int presto_write(uint8_t *buf, uint32_t size)
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	ftbytes = presto->retval;
-#endif
 
 	if (ftbytes != size) {
 		LOG_ERROR("couldn't write the requested number of bytes to PRESTO (%u < %u)",
@@ -124,15 +102,6 @@ static int presto_write(uint8_t *buf, uint32_t size)
 
 static int presto_read(uint8_t *buf, uint32_t size)
 {
-#if BUILD_PRESTO_FTD2XX == 1
-	DWORD ftbytes;
-	presto->status = FT_Read(presto->handle, buf, size, &ftbytes);
-	if (presto->status != FT_OK) {
-		LOG_ERROR("FT_Read returned: %s", ftd2xx_status_string(presto->status));
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-#elif BUILD_PRESTO_LIBFTDI == 1
 	uint32_t ftbytes = 0;
 
 	struct timeval timeout, now;
@@ -152,7 +121,6 @@ static int presto_read(uint8_t *buf, uint32_t size)
 				((now.tv_sec == timeout.tv_sec) && (now.tv_usec > timeout.tv_usec)))
 			break;
 	}
-#endif
 
 	if (ftbytes != size) {
 		/* this is just a warning, there might have been timeout when detecting PRESTO,
@@ -165,150 +133,6 @@ static int presto_read(uint8_t *buf, uint32_t size)
 	return ERROR_OK;
 }
 
-#if BUILD_PRESTO_FTD2XX == 1
-static int presto_open_ftd2xx(char *req_serial)
-{
-	uint32_t i;
-	DWORD numdevs;
-	DWORD vidpid;
-	char devname[FT_DEVICE_NAME_LEN];
-	FT_DEVICE device;
-
-	BYTE presto_data;
-	DWORD ftbytes;
-
-	presto->handle = (FT_HANDLE)INVALID_HANDLE_VALUE;
-
-#if IS_WIN32 == 0
-	/* Add non-standard Vid/Pid to the linux driver */
-	presto->status = FT_SetVIDPID(PRESTO_VID, PRESTO_PID);
-	if (presto->status != FT_OK) {
-		LOG_ERROR("couldn't add PRESTO VID/PID");
-		exit(-1);
-	}
-#endif
-
-	presto->status = FT_ListDevices(&numdevs, NULL, FT_LIST_NUMBER_ONLY);
-	if (presto->status != FT_OK) {
-		LOG_ERROR("FT_ListDevices failed: %s", ftd2xx_status_string(presto->status));
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	LOG_DEBUG("FTDI devices available: %" PRIu32, (uint32_t)numdevs);
-	for (i = 0; i < numdevs; i++) {
-		presto->status = FT_Open(i, &(presto->handle));
-		if (presto->status != FT_OK) {
-			/* this is not fatal, the device may be legitimately open by other process,
-			 *hence debug message only */
-			LOG_DEBUG("FT_Open failed: %s", ftd2xx_status_string(presto->status));
-			continue;
-		}
-		LOG_DEBUG("FTDI device %i open", (int)i);
-
-		presto->status = FT_GetDeviceInfo(presto->handle, &device,
-				&vidpid, presto->serial, devname, NULL);
-		if (presto->status == FT_OK) {
-			if (vidpid == PRESTO_VID_PID && (req_serial == NULL ||
-					!strcmp(presto->serial, req_serial)))
-				break;
-		} else
-			LOG_DEBUG("FT_GetDeviceInfo failed: %s", ftd2xx_status_string(
-					presto->status));
-
-		LOG_DEBUG("FTDI device %i does not match, closing", (int)i);
-		FT_Close(presto->handle);
-		presto->handle = (FT_HANDLE)INVALID_HANDLE_VALUE;
-	}
-
-	if (presto->handle == (FT_HANDLE)INVALID_HANDLE_VALUE)
-		return ERROR_JTAG_DEVICE_ERROR;	/* presto not open, return */
-
-	presto->status = FT_SetLatencyTimer(presto->handle, 1);
-	if (presto->status != FT_OK)
-		return ERROR_JTAG_DEVICE_ERROR;
-
-	presto->status = FT_SetTimeouts(presto->handle, 100, 0);
-	if (presto->status != FT_OK)
-		return ERROR_JTAG_DEVICE_ERROR;
-
-	presto->status = FT_Purge(presto->handle, FT_PURGE_TX | FT_PURGE_RX);
-	if (presto->status != FT_OK)
-		return ERROR_JTAG_DEVICE_ERROR;
-
-	presto_data = 0xD0;
-	presto->status = FT_Write(presto->handle, &presto_data, 1, &ftbytes);
-	if (presto->status != FT_OK)
-		return ERROR_JTAG_DEVICE_ERROR;
-
-	/* delay between first write/read turnaround (after purge?) necessary
-	 * under Linux for unknown reason,
-	 * probably a bug in library threading */
-	usleep(100000);
-	presto->status = FT_Read(presto->handle, &presto_data, 1, &ftbytes);
-	if (presto->status != FT_OK)
-		return ERROR_JTAG_DEVICE_ERROR;
-
-	if (ftbytes != 1) {
-		LOG_DEBUG("PRESTO reset");
-
-		presto->status = FT_Purge(presto->handle, FT_PURGE_TX | FT_PURGE_RX);
-		if (presto->status != FT_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-		presto->status = FT_SetBitMode(presto->handle, 0x80, 1);
-		if (presto->status != FT_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-		presto->status = FT_SetBaudRate(presto->handle, 9600);
-		if (presto->status != FT_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-
-		presto_data = 0;
-		for (i = 0; i < 4 * 62; i++) {
-			presto->status = FT_Write(presto->handle, &presto_data, 1, &ftbytes);
-			if (presto->status != FT_OK)
-				return ERROR_JTAG_DEVICE_ERROR;
-		}
-		usleep(100000);
-
-		presto->status = FT_SetBitMode(presto->handle, 0x00, 0);
-		if (presto->status != FT_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-
-		presto->status = FT_Purge(presto->handle, FT_PURGE_TX | FT_PURGE_RX);
-		if (presto->status != FT_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-
-		presto_data = 0xD0;
-		presto->status = FT_Write(presto->handle, &presto_data, 1, &ftbytes);
-		if (presto->status != FT_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-
-		/* delay between first write/read turnaround (after purge?) necessary under Linux for unknown reason,
-		   probably a bug in library threading */
-		usleep(100000);
-		presto->status = FT_Read(presto->handle, &presto_data, 1, &ftbytes);
-		if (presto->status != FT_OK)
-			return ERROR_JTAG_DEVICE_ERROR;
-
-		if (ftbytes != 1) {
-			LOG_DEBUG("PRESTO not responding");
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-	}
-
-	presto->status = FT_SetTimeouts(presto->handle, 0, 0);
-	if (presto->status != FT_OK)
-		return ERROR_JTAG_DEVICE_ERROR;
-
-	presto->status = FT_Write(presto->handle, &presto_init_seq,
-			sizeof(presto_init_seq), &ftbytes);
-
-	if (presto->status != FT_OK || ftbytes != sizeof(presto_init_seq))
-		return ERROR_JTAG_DEVICE_ERROR;
-
-	return ERROR_OK;
-}
-
-#elif BUILD_PRESTO_LIBFTDI == 1
 static int presto_open_libftdi(char *req_serial)
 {
 	uint8_t presto_data;
@@ -371,7 +195,6 @@ static int presto_open_libftdi(char *req_serial)
 
 	return ERROR_OK;
 }
-#endif	/* BUILD_PRESTO_LIBFTDI == 1 */
 
 static int presto_open(char *req_serial)
 {
@@ -391,46 +214,13 @@ static int presto_open(char *req_serial)
 
 	presto->jtag_speed = 0;
 
-#if BUILD_PRESTO_FTD2XX == 1
-	return presto_open_ftd2xx(req_serial);
-#elif BUILD_PRESTO_LIBFTDI == 1
 	return presto_open_libftdi(req_serial);
-#endif
 }
 
 static int presto_close(void)
 {
 
 	int result = ERROR_OK;
-
-#if BUILD_PRESTO_FTD2XX == 1
-	DWORD ftbytes;
-
-	if (presto->handle == (FT_HANDLE)INVALID_HANDLE_VALUE)
-		return result;
-
-	presto->status = FT_Purge(presto->handle, FT_PURGE_TX | FT_PURGE_RX);
-	if (presto->status != FT_OK)
-		result = ERROR_JTAG_DEVICE_ERROR;
-
-	presto->status = FT_Write(presto->handle,
-			&presto_init_seq,
-			sizeof(presto_init_seq),
-			&ftbytes);
-	if (presto->status != FT_OK || ftbytes != sizeof(presto_init_seq))
-		result = ERROR_JTAG_DEVICE_ERROR;
-
-	presto->status = FT_SetLatencyTimer(presto->handle, 16);
-	if (presto->status != FT_OK)
-		result = ERROR_JTAG_DEVICE_ERROR;
-
-	presto->status = FT_Close(presto->handle);
-	if (presto->status != FT_OK)
-		result = ERROR_JTAG_DEVICE_ERROR;
-	else
-		presto->handle = (FT_HANDLE)INVALID_HANDLE_VALUE;
-
-#elif BUILD_PRESTO_LIBFTDI == 1
 
 	presto->retval = ftdi_write_data(&presto->ftdic, presto_init_seq, sizeof(presto_init_seq));
 	if (presto->retval != sizeof(presto_init_seq))
@@ -445,7 +235,6 @@ static int presto_close(void)
 		result = ERROR_JTAG_DEVICE_ERROR;
 	else
 		ftdi_deinit(&presto->ftdic);
-#endif
 
 	return result;
 }
@@ -455,11 +244,7 @@ static int presto_flush(void)
 	if (presto->buff_out_pos == 0)
 		return ERROR_OK;
 
-#if BUILD_PRESTO_FTD2XX == 1
-	if (presto->status != FT_OK) {
-#elif BUILD_PRESTO_LIBFTDI == 1
 	if (presto->retval < 0) {
-#endif
 		LOG_DEBUG("error in previous communication, canceling I/O operation");
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
@@ -502,13 +287,9 @@ static int presto_sendbyte(int data)
 	} else
 		return ERROR_JTAG_DEVICE_ERROR;
 
-#if BUILD_PRESTO_FTD2XX == 1
-	if (presto->buff_out_pos >= BUFFER_SIZE)
-#elif BUILD_PRESTO_LIBFTDI == 1
 	/* libftdi does not do background read, be sure that USB IN buffer does not overflow (128
 	 *bytes only!) */
 	if (presto->buff_out_pos >= BUFFER_SIZE || presto->buff_in_exp == 128)
-#endif
 		return presto_flush();
 
 	return ERROR_OK;
