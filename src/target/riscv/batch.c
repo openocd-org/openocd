@@ -123,34 +123,34 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 
 void dump_field(const struct scan_field *field)
 {
-        static const char *op_string[] = {"-", "r", "w", "?"};
-        static const char *status_string[] = {"+", "?", "F", "b"};
+	static const char *op_string[] = {"-", "r", "w", "?"};
+	static const char *status_string[] = {"+", "?", "F", "b"};
 
-        if (debug_level < LOG_LVL_DEBUG)
-                return;
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
 
 	assert(field->out_value != NULL);
-        uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
-        unsigned int out_op = get_field(out, DTM_DMI_OP);
-        unsigned int out_data = get_field(out, DTM_DMI_DATA);
-        unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
+	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
+	unsigned int out_op = get_field(out, DTM_DMI_OP);
+	unsigned int out_data = get_field(out, DTM_DMI_DATA);
+	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
 
-        if (field->in_value) {
-                uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-                unsigned int in_op = get_field(in, DTM_DMI_OP);
-                unsigned int in_data = get_field(in, DTM_DMI_DATA);
-                unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
+	if (field->in_value) {
+		uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+		unsigned int in_op = get_field(in, DTM_DMI_OP);
+		unsigned int in_data = get_field(in, DTM_DMI_DATA);
+		unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
-                log_printf_lf(LOG_LVL_DEBUG,
-                                __FILE__, __LINE__, __PRETTY_FUNCTION__,
-                                "%db %s %08x @%02x -> %s %08x @%02x [0x%p -> 0x%p]",
-                                field->num_bits,
-                                op_string[out_op], out_data, out_address,
-                                status_string[in_op], in_data, in_address,
+		log_printf_lf(LOG_LVL_DEBUG,
+				__FILE__, __LINE__, __PRETTY_FUNCTION__,
+				"%db %s %08x @%02x -> %s %08x @%02x [0x%p -> 0x%p]",
+				field->num_bits,
+				op_string[out_op], out_data, out_address,
+				status_string[in_op], in_data, in_address,
 				field->out_value, field->in_value);
-        } else {
-                log_printf_lf(LOG_LVL_DEBUG,
-                                __FILE__, __LINE__, __PRETTY_FUNCTION__, "%db %s %08x @%02x -> ?",
-                                field->num_bits, op_string[out_op], out_data, out_address);
-        }
+	} else {
+		log_printf_lf(LOG_LVL_DEBUG,
+				__FILE__, __LINE__, __PRETTY_FUNCTION__, "%db %s %08x @%02x -> ?",
+				field->num_bits, op_string[out_op], out_data, out_address);
+	}
 }
