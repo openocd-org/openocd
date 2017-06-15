@@ -737,6 +737,8 @@ int riscv_openocd_poll(struct target *target)
 
 int riscv_openocd_halt(struct target *target)
 {
+	RISCV_INFO(r);
+
 	LOG_DEBUG("halting all harts");
 
 	int out = riscv_halt_all_harts(target);
@@ -746,6 +748,11 @@ int riscv_openocd_halt(struct target *target)
 	}
 
 	register_cache_invalidate(target->reg_cache);
+	if (riscv_rtos_enabled(target)) {
+		target->rtos->current_threadid = r->rtos_hartid + 1;
+		target->rtos->current_thread = r->rtos_hartid + 1;
+	}
+
 	target->state = TARGET_HALTED;
 	target->debug_reason = DBG_REASON_DBGRQ;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
