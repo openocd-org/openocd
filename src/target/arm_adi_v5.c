@@ -111,15 +111,66 @@ static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 
 static int mem_ap_setup_tar(struct adiv5_ap *ap, uint32_t tar)
 {
-	if (tar != ap->tar_value ||
-			(ap->csw_value & CSW_ADDRINC_MASK)) {
+	if (!ap->tar_valid || tar != ap->tar_value) {
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
 		int retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR, tar);
 		if (retval != ERROR_OK)
 			return retval;
 		ap->tar_value = tar;
+		ap->tar_valid = true;
 	}
 	return ERROR_OK;
+}
+
+static int mem_ap_read_tar(struct adiv5_ap *ap, uint32_t *tar)
+{
+	int retval = dap_queue_ap_read(ap, MEM_AP_REG_TAR, tar);
+	if (retval != ERROR_OK) {
+		ap->tar_valid = false;
+		return retval;
+	}
+
+	retval = dap_run(ap->dap);
+	if (retval != ERROR_OK) {
+		ap->tar_valid = false;
+		return retval;
+	}
+
+	ap->tar_value = *tar;
+	ap->tar_valid = true;
+	return ERROR_OK;
+}
+
+static uint32_t mem_ap_get_tar_increment(struct adiv5_ap *ap)
+{
+	switch (ap->csw_value & CSW_ADDRINC_MASK) {
+	case CSW_ADDRINC_SINGLE:
+		switch (ap->csw_value & CSW_SIZE_MASK) {
+		case CSW_8BIT:
+			return 1;
+		case CSW_16BIT:
+			return 2;
+		case CSW_32BIT:
+			return 4;
+		}
+	case CSW_ADDRINC_PACKED:
+		return 4;
+	}
+	return 0;
+}
+
+/* mem_ap_update_tar_cache is called after an access to MEM_AP_REG_DRW
+ */
+static void mem_ap_update_tar_cache(struct adiv5_ap *ap)
+{
+	if (!ap->tar_valid)
+		return;
+
+	uint32_t inc = mem_ap_get_tar_increment(ap);
+	if (inc >= max_tar_block_size(ap->tar_autoincr_block, ap->tar_value))
+		ap->tar_valid = false;
+	else
+		ap->tar_value += inc;
 }
 
 /**
@@ -303,10 +354,6 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 	if (ap->unaligned_access_bad && (address % size != 0))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	retval = mem_ap_setup_tar(ap, address ^ addr_xor);
-	if (retval != ERROR_OK)
-		return retval;
-
 	while (nbytes > 0) {
 		uint32_t this_size = size;
 
@@ -321,6 +368,10 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 		if (retval != ERROR_OK)
 			break;
+
+		retval = mem_ap_setup_tar(ap, address ^ addr_xor);
+		if (retval != ERROR_OK)
+			return retval;
 
 		/* How many source bytes each transfer will consume, and their location in the DRW,
 		 * depends on the type of transfer and alignment. See ARM document IHI0031C. */
@@ -361,12 +412,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 		if (retval != ERROR_OK)
 			break;
 
-		/* Rewrite TAR if it wrapped or we're xoring addresses */
-		if (addrinc && (addr_xor || (address % ap->tar_autoincr_block < size && nbytes > 0))) {
-			retval = mem_ap_setup_tar(ap, address ^ addr_xor);
-			if (retval != ERROR_OK)
-				break;
-		}
+		mem_ap_update_tar_cache(ap);
 	}
 
 	/* REVISIT: Might want to have a queued version of this function that does not run. */
@@ -375,8 +421,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 	if (retval != ERROR_OK) {
 		uint32_t tar;
-		if (dap_queue_ap_read(ap, MEM_AP_REG_TAR, &tar) == ERROR_OK
-				&& dap_run(dap) == ERROR_OK)
+		if (mem_ap_read_tar(ap, &tar) == ERROR_OK)
 			LOG_ERROR("Failed to write memory at 0x%08"PRIx32, tar);
 		else
 			LOG_ERROR("Failed to write memory and, additionally, failed to find out where");
@@ -436,12 +481,6 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		return ERROR_FAIL;
 	}
 
-	retval = mem_ap_setup_tar(ap, address);
-	if (retval != ERROR_OK) {
-		free(read_buf);
-		return retval;
-	}
-
 	/* Queue up all reads. Each read will store the entire DRW word in the read buffer. How many
 	 * useful bytes it contains, and their location in the word, depends on the type of transfer
 	 * and alignment. */
@@ -459,6 +498,10 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		if (retval != ERROR_OK)
 			break;
 
+		retval = mem_ap_setup_tar(ap, address);
+		if (retval != ERROR_OK)
+			break;
+
 		retval = dap_queue_ap_read(ap, MEM_AP_REG_DRW, read_ptr++);
 		if (retval != ERROR_OK)
 			break;
@@ -466,12 +509,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		nbytes -= this_size;
 		address += this_size;
 
-		/* Rewrite TAR if it wrapped */
-		if (addrinc && address % ap->tar_autoincr_block < size && nbytes > 0) {
-			retval = mem_ap_setup_tar(ap, address);
-			if (retval != ERROR_OK)
-				break;
-		}
+		mem_ap_update_tar_cache(ap);
 	}
 
 	if (retval == ERROR_OK)
@@ -486,8 +524,8 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 	 * at least give the caller what we have. */
 	if (retval != ERROR_OK) {
 		uint32_t tar;
-		if (dap_queue_ap_read(ap, MEM_AP_REG_TAR, &tar) == ERROR_OK
-				&& dap_run(dap) == ERROR_OK) {
+		if (mem_ap_read_tar(ap, &tar) == ERROR_OK) {
+			/* TAR is incremented after failed transfer on some devices (eg Cortex-M4) */
 			LOG_ERROR("Failed to read memory at 0x%08"PRIx32, tar);
 			if (nbytes > tar - address)
 				nbytes = tar - address;
@@ -597,6 +635,22 @@ struct adiv5_dap *dap_init(void)
 }
 
 /**
+ * Invalidate cached DP select and cached TAR and CSW of all APs
+ */
+void dap_invalidate_cache(struct adiv5_dap *dap)
+{
+	dap->select = DP_SELECT_INVALID;
+	dap->last_read = NULL;
+
+	int i;
+	for (i = 0; i <= 255; i++) {
+		/* force csw and tar write on the next mem-ap access */
+		dap->ap[i].tar_valid = false;
+		dap->ap[i].csw_value = 0;
+	}
+}
+
+/**
  * Initialize a DAP.  This sets up the power domains, prepares the DP
  * for further use and activates overrun checking.
  *
@@ -615,8 +669,7 @@ int dap_dp_init(struct adiv5_dap *dap)
 	if (!dap->ops)
 		dap->ops = &jtag_dp_ops;
 
-	dap->select = DP_SELECT_INVALID;
-	dap->last_read = NULL;
+	dap_invalidate_cache(dap);
 
 	for (size_t i = 0; i < 30; i++) {
 		/* DP initialization */
@@ -688,6 +741,8 @@ int mem_ap_init(struct adiv5_ap *ap)
 	int retval;
 	struct adiv5_dap *dap = ap->dap;
 
+	ap->tar_valid = false;
+	ap->csw_value = 0;      /* force csw and tar write */
 	retval = mem_ap_setup_transfer(ap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
 	if (retval != ERROR_OK)
 		return retval;

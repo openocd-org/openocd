@@ -124,7 +124,7 @@ static int swd_connect(struct adiv5_dap *dap)
 
 	/* Clear link state, including the SELECT cache. */
 	dap->do_reconnect = false;
-	dap->select = DP_SELECT_INVALID;
+	dap_invalidate_cache(dap);
 
 	swd_queue_dp_read(dap, DP_DPIDR, &dpidr);
 

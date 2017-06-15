@@ -102,6 +102,7 @@
 #define AP_REG_IDR			0xFC		/* RO: Identification Register */
 
 /* Fields of the MEM-AP's CSW register */
+#define CSW_SIZE_MASK		7
 #define CSW_8BIT		0
 #define CSW_16BIT		1
 #define CSW_32BIT		2
@@ -180,6 +181,9 @@ struct adiv5_ap {
 
 	/* true if unaligned memory access is not supported by the MEM-AP */
 	bool unaligned_access_bad;
+
+	/* true if tar_value is in sync with TAR register */
+	bool tar_valid;
 };
 
 
@@ -475,6 +479,9 @@ struct adiv5_dap *dap_init(void);
 /* Initialisation of the debug system, power domains and registers */
 int dap_dp_init(struct adiv5_dap *dap);
 int mem_ap_init(struct adiv5_ap *ap);
+
+/* Invalidate cached DP select and cached TAR and CSW of all APs */
+void dap_invalidate_cache(struct adiv5_dap *dap);
 
 /* Probe the AP for ROM Table location */
 int dap_get_debugbase(struct adiv5_ap *ap,
