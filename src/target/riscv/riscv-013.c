@@ -1212,7 +1212,8 @@ static int read_memory(struct target *target, target_addr_t address,
 {
 	RISCV013_INFO(info);
 
-	LOG_DEBUG("reading %d words of %d bytes from 0x%08lx", count, size, (long)address);
+	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
+			size, address);
 
 	select_dmi(target);
 	riscv_set_current_hartid(target, 0);
@@ -1274,7 +1275,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	}
 
 	uint32_t value = riscv_program_read_ram(&program, r_data);
-	LOG_DEBUG("M[0x%08lx] reads 0x%08lx", (long)address, (long)value);
+	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08lx", address, (long)value);
 	switch (size) {
 	case 1:
 		buffer[0] = value;
@@ -1308,9 +1309,11 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_addr_t cur_addr = 0xbadbeef;
 	riscv_addr_t fin_addr = address + (count * size);
 	riscv_addr_t prev_addr = ((riscv_addr_t) address) - size;
-	LOG_DEBUG("writing until final address 0x%016lx", fin_addr);
+	LOG_DEBUG("writing until final address 0x%" PRIx64, fin_addr);
 	while (count > 1 && (cur_addr = riscv_read_debug_buffer_x(target, d_addr)) < fin_addr) {
-		LOG_DEBUG("transferring burst starting at address 0x%016lx (previous burst was 0x%016lx)", cur_addr, prev_addr);
+		LOG_DEBUG("transferring burst starting at address 0x%" TARGET_PRIxADDR
+				" (previous burst was 0x%" TARGET_PRIxADDR ")", cur_addr,
+				prev_addr);
 		assert(prev_addr < cur_addr);
 		prev_addr = cur_addr;
 		riscv_addr_t start = (cur_addr - address) / size;
