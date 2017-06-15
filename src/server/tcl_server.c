@@ -105,7 +105,7 @@ static int tcl_target_callback_trace_handler(struct target *target,
 	if (tclc->tc_trace) {
 		hex = malloc(hex_len);
 		buf = malloc(max_len);
-		hexify(hex, (const char *)data, len, hex_len);
+		hexify(hex, data, len, hex_len);
 		snprintf(buf, max_len, "%s%s%s", header, hex, trailer);
 		tcl_output(connection, buf, strlen(buf));
 		free(hex);

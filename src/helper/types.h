@@ -296,14 +296,21 @@ static inline int parity_u32(uint32_t x)
  */
 
 #if !defined(_STDINT_H)
-#define PRIx32 "x"
 #define PRId32 "d"
-#define SCNx32 "x"
 #define PRIi32 "i"
+#define PRIo32 "o"
 #define PRIu32 "u"
+#define PRIx32 "x"
+#define PRIX32 "X"
+#define SCNx32 "x"
 #define PRId8 PRId32
 #define SCNx64 "llx"
+#define PRId64 "lld"
+#define PRIi64 "lli"
+#define PRIo64 "llo"
+#define PRIu64 "llu"
 #define PRIx64 "llx"
+#define PRIX64 "llX"
 
 typedef CYG_ADDRWORD intptr_t;
 typedef int64_t intmax_t;
@@ -336,5 +343,24 @@ typedef uint64_t uintmax_t;
 
 
 #endif
+
+#if BUILD_TARGET64
+typedef uint64_t target_addr_t;
+#define TARGET_ADDR_MAX UINT64_MAX
+#define TARGET_PRIdADDR PRId64
+#define TARGET_PRIuADDR PRIu64
+#define TARGET_PRIoADDR PRIo64
+#define TARGET_PRIxADDR PRIx64
+#define TARGET_PRIXADDR PRIX64
+#else
+typedef uint32_t target_addr_t;
+#define TARGET_ADDR_MAX UINT32_MAX
+#define TARGET_PRIdADDR PRId32
+#define TARGET_PRIuADDR PRIu32
+#define TARGET_PRIoADDR PRIo32
+#define TARGET_PRIxADDR PRIx32
+#define TARGET_PRIXADDR PRIX32
+#endif
+#define TARGET_ADDR_FMT "0x%8.8" TARGET_PRIxADDR
 
 #endif /* OPENOCD_HELPER_TYPES_H */

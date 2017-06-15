@@ -334,7 +334,7 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
      configuring its contents, using them to build a copy of OpenOCD,
      and verifying that the result prints the correct release version
      in its startup banner.  (For example,
-     "configure --enable-ft2232_libftdi --enable-parport"
+     "configure --enable-parport"
      then "make" and run "src/openocd -v" as a sanity check.)
   -# Run <code>make docs</code> to create the
      documentation which will be published.

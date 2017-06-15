@@ -305,7 +305,7 @@ static int xmc1xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t blocks = MIN(block_count, data_workarea->size / NVM_BLOCK_SIZE);
 		uint32_t addr = bank->base + offset;
 
-		LOG_DEBUG("copying %" PRId32 " bytes to SRAM 0x%08" PRIx32,
+		LOG_DEBUG("copying %" PRId32 " bytes to SRAM 0x%08" TARGET_PRIxADDR,
 			MIN(blocks * NVM_BLOCK_SIZE, byte_count),
 			data_workarea->address);
 

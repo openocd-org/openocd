@@ -39,5 +39,12 @@ else
     git submodule update
 fi
 
+if [ -x src/jtag/drivers/libjaylink/autogen.sh ]; then
+    (
+    cd src/jtag/drivers/libjaylink
+    ./autogen.sh
+    )
+fi
+
 echo "Bootstrap complete. Quick build instructions:"
 echo "./configure ...."

@@ -48,7 +48,6 @@ struct armv7a_l2x_cache {
 };
 
 struct armv7a_cachesize {
-	uint32_t level_num;
 	/*  cache dimensionning */
 	uint32_t linelen;
 	uint32_t associativity;
@@ -91,7 +90,7 @@ struct armv7a_mmu_common {
 	uint32_t ttbr_mask[2];
 	uint32_t ttbr_range[2];
 
-	int (*read_physical_memory)(struct target *target, uint32_t address, uint32_t size,
+	int (*read_physical_memory)(struct target *target, target_addr_t address, uint32_t size,
 			uint32_t count, uint8_t *buffer);
 	struct armv7a_cache_common armv7a_cache;
 	uint32_t mmu_enabled;
@@ -134,6 +133,12 @@ target_to_armv7a(struct target *target)
 	return container_of(target->arch_info, struct armv7a_common, arm);
 }
 
+static inline bool is_armv7a(struct armv7a_common *armv7a)
+{
+	return armv7a->common_magic == ARMV7_COMMON_MAGIC;
+}
+
+
 /* register offsets from armv7a.debug_base */
 
 /* See ARMv7a arch spec section C10.2 */
@@ -171,6 +176,13 @@ target_to_armv7a(struct target *target)
 
 /* See ARMv7a arch spec section C10.8 */
 #define CPUDBG_AUTHSTATUS	0xFB8
+
+/* Masks for Vector Catch register */
+#define DBG_VCR_FIQ_MASK	((1 << 31) | (1 << 7))
+#define DBG_VCR_IRQ_MASK	((1 << 30) | (1 << 6))
+#define DBG_VCR_DATA_ABORT_MASK	((1 << 28) | (1 << 4))
+#define DBG_VCR_PREF_ABORT_MASK	((1 << 27) | (1 << 3))
+#define DBG_VCR_SVC_MASK	((1 << 26) | (1 << 2))
 
 int armv7a_arch_state(struct target *target);
 int armv7a_identify_cache(struct target *target);

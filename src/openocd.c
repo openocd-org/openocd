@@ -45,8 +45,13 @@
 #include <strings.h>
 #endif
 
+#ifdef PKGBLDDATE
 #define OPENOCD_VERSION	\
 	"Open On-Chip Debugger " VERSION RELSTR " (" PKGBLDDATE ")"
+#else
+#define OPENOCD_VERSION	\
+	"Open On-Chip Debugger " VERSION RELSTR
+#endif
 
 static const char openocd_startup_tcl[] = {
 #include "startup_tcl.inc"
@@ -292,8 +297,10 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 
 	if (init_at_startup) {
 		ret = command_run_line(cmd_ctx, "init");
-		if (ERROR_OK != ret)
+		if (ERROR_OK != ret) {
+			server_quit();
 			return ERROR_FAIL;
+		}
 	}
 
 	ret = server_loop(cmd_ctx);

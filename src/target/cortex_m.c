@@ -682,7 +682,7 @@ void cortex_m_enable_breakpoints(struct target *target)
 }
 
 static int cortex_m_resume(struct target *target, int current,
-	uint32_t address, int handle_breakpoints, int debug_execution)
+	target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct breakpoint *breakpoint = NULL;
@@ -750,7 +750,7 @@ static int cortex_m_resume(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %" PRIu32 ")",
+			LOG_DEBUG("unset breakpoint at " TARGET_ADDR_FMT " (ID: %" PRIu32 ")",
 				breakpoint->address,
 				breakpoint->unique_id);
 			cortex_m_unset_breakpoint(target, breakpoint);
@@ -782,7 +782,7 @@ static int cortex_m_resume(struct target *target, int current,
 
 /* int irqstepcount = 0; */
 static int cortex_m_step(struct target *target, int current,
-	uint32_t address, int handle_breakpoints)
+	target_addr_t address, int handle_breakpoints)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
@@ -981,6 +981,18 @@ static int cortex_m_assert_reset(struct target *target)
 
 	bool srst_asserted = false;
 
+	if (!target_was_examined(target)) {
+		if (jtag_reset_config & RESET_HAS_SRST) {
+			adapter_assert_reset();
+			if (target->reset_halt)
+				LOG_ERROR("Target not examined, will not halt after reset!");
+			return ERROR_OK;
+		} else {
+			LOG_ERROR("Target not examined, reset NOT asserted!");
+			return ERROR_FAIL;
+		}
+	}
+
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
 	    (jtag_reset_config & RESET_SRST_NO_GATING)) {
 		adapter_assert_reset();
@@ -1101,7 +1113,8 @@ static int cortex_m_deassert_reset(struct target *target)
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
-	    !(jtag_reset_config & RESET_SRST_NO_GATING)) {
+	    !(jtag_reset_config & RESET_SRST_NO_GATING) &&
+		target_was_examined(target)) {
 		int retval = dap_dp_init(armv7m->debug_ap->dap);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("DP initialisation failed");
@@ -1185,7 +1198,7 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		breakpoint->set = true;
 	}
 
-	LOG_DEBUG("BPID: %" PRIu32 ", Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)",
+	LOG_DEBUG("BPID: %" PRIu32 ", Type: %d, Address: " TARGET_ADDR_FMT " Length: %d (set=%d)",
 		breakpoint->unique_id,
 		(int)(breakpoint->type),
 		breakpoint->address,
@@ -1206,7 +1219,7 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 		return ERROR_OK;
 	}
 
-	LOG_DEBUG("BPID: %" PRIu32 ", Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)",
+	LOG_DEBUG("BPID: %" PRIu32 ", Type: %d, Address: " TARGET_ADDR_FMT " Length: %d (set=%d)",
 		breakpoint->unique_id,
 		(int)(breakpoint->type),
 		breakpoint->address,
@@ -1651,7 +1664,7 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 	return ERROR_OK;
 }
 
-static int cortex_m_read_memory(struct target *target, uint32_t address,
+static int cortex_m_read_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -1665,7 +1678,7 @@ static int cortex_m_read_memory(struct target *target, uint32_t address,
 	return mem_ap_read_buf(armv7m->debug_ap, buffer, size, count, address);
 }
 
-static int cortex_m_write_memory(struct target *target, uint32_t address,
+static int cortex_m_write_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -1683,6 +1696,7 @@ static int cortex_m_init_target(struct command_context *cmd_ctx,
 	struct target *target)
 {
 	armv7m_build_reg_cache(target);
+	arm_semihosting_init(target);
 	return ERROR_OK;
 }
 
@@ -1695,6 +1709,7 @@ void cortex_m_deinit_target(struct target *target)
 	cortex_m_dwt_free(target);
 	armv7m_free_reg_cache(target);
 
+	free(target->private_config);
 	free(cortex_m);
 }
 
@@ -1898,11 +1913,15 @@ int cortex_m_examine(struct target *target)
 			return retval;
 		}
 
-		/* Search for the MEM-AP */
-		retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Could not find MEM-AP to control the core");
-			return retval;
+		if (cortex_m->apsel < 0) {
+			/* Search for the MEM-AP */
+			retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not find MEM-AP to control the core");
+				return retval;
+			}
+		} else {
+			armv7m->debug_ap = dap_ap(swjdp, cortex_m->apsel);
 		}
 
 		/* Leave (only) generic DAP stuff for debugport_init(); */
@@ -1976,10 +1995,14 @@ int cortex_m_examine(struct target *target)
 			armv7m->arm.core_cache->num_regs = ARMV7M_NUM_CORE_REGS_NOFP;
 		}
 
-		if ((i == 3 || i == 4 || i == 7) && !armv7m->stlink) {
-			/* Cortex-M3/M4/M7 have at least 4096 bytes autoincrement range,
-			 * s. ARM IHI 0031C: MEM-AP 7.2.2 */
-			armv7m->debug_ap->tar_autoincr_block = (1 << 12);
+		if (!armv7m->stlink) {
+			if (i == 3 || i == 4)
+				/* Cortex-M3/M4 have 4096 bytes autoincrement range,
+				 * s. ARM IHI 0031C: MEM-AP 7.2.2 */
+				armv7m->debug_ap->tar_autoincr_block = (1 << 12);
+			else if (i == 7)
+				/* Cortex-M7 has only 1024 bytes autoincrement range */
+				armv7m->debug_ap->tar_autoincr_block = (1 << 10);
 		}
 
 		/* Configure trace modules */
@@ -2161,6 +2184,13 @@ static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 
 	cortex_m->common_magic = CORTEX_M_COMMON_MAGIC;
 	cortex_m_init_arch_info(target, cortex_m, target->tap);
+
+	if (target->private_config != NULL) {
+		struct adiv5_private_config *pc =
+				(struct adiv5_private_config *)target->private_config;
+		cortex_m->apsel = pc->ap_num;
+	} else
+		cortex_m->apsel = -1;
 
 	return ERROR_OK;
 }
@@ -2423,6 +2453,7 @@ struct target_type cortexm_target = {
 
 	.commands = cortex_m_command_handlers,
 	.target_create = cortex_m_target_create,
+	.target_jim_configure = adiv5_jim_configure,
 	.init_target = cortex_m_init_target,
 	.examine = cortex_m_examine,
 	.deinit_target = cortex_m_deinit_target,

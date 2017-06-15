@@ -362,7 +362,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 			rtos->thread_details[tasks_found].exists = true;
 
 			if (rtos->thread_details[tasks_found].threadid == rtos->current_thread) {
-				char running_str[] = "Running";
+				char running_str[] = "State: Running";
 				rtos->thread_details[tasks_found].extra_info_str = malloc(
 						sizeof(running_str));
 				strcpy(rtos->thread_details[tasks_found].extra_info_str,

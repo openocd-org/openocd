@@ -59,7 +59,7 @@ struct arm_dpm {
 	struct arm *arm;
 
 	/** Cache of DIDR */
-	uint32_t didr;
+	uint64_t didr;
 
 	/** Invoke before a series of instruction operations */
 	int (*prepare)(struct arm_dpm *);
@@ -67,15 +67,25 @@ struct arm_dpm {
 	/** Invoke after a series of instruction operations */
 	int (*finish)(struct arm_dpm *);
 
+	/** Runs one instruction. */
+	int (*instr_execute)(struct arm_dpm *, uint32_t opcode);
+
 	/* WRITE TO CPU */
 
 	/** Runs one instruction, writing data to DCC before execution. */
 	int (*instr_write_data_dcc)(struct arm_dpm *,
 			uint32_t opcode, uint32_t data);
 
+	int (*instr_write_data_dcc_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t data);
+
 	/** Runs one instruction, writing data to R0 before execution. */
 	int (*instr_write_data_r0)(struct arm_dpm *,
 			uint32_t opcode, uint32_t data);
+
+	/** Runs one instruction, writing data to R0 before execution. */
+	int (*instr_write_data_r0_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t data);
 
 	/** Optional core-specific operation invoked after CPSR writes. */
 	int (*instr_cpsr_sync)(struct arm_dpm *dpm);
@@ -86,9 +96,18 @@ struct arm_dpm {
 	int (*instr_read_data_dcc)(struct arm_dpm *,
 			uint32_t opcode, uint32_t *data);
 
+	int (*instr_read_data_dcc_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t *data);
+
 	/** Runs one instruction, reading data from r0 after execution. */
 	int (*instr_read_data_r0)(struct arm_dpm *,
 			uint32_t opcode, uint32_t *data);
+
+	int (*instr_read_data_r0_64)(struct arm_dpm *,
+			uint32_t opcode, uint64_t *data);
+
+	struct reg *(*arm_reg_current)(struct arm *arm,
+			unsigned regnum);
 
 	/* BREAKPOINT/WATCHPOINT SUPPORT */
 
@@ -119,10 +138,13 @@ struct arm_dpm {
 	struct dpm_wp *dwp;
 
 	/** Address of the instruction which triggered a watchpoint. */
-	uint32_t wp_pc;
+	target_addr_t wp_pc;
 
 	/** Recent value of DSCR. */
 	uint32_t dscr;
+
+	/** Recent exception level on armv8 */
+	unsigned int last_el;
 
 	/* FIXME -- read/write DCSR methods and symbols */
 };
@@ -132,7 +154,6 @@ int arm_dpm_initialize(struct arm_dpm *dpm);
 
 int arm_dpm_read_current_registers(struct arm_dpm *);
 int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
-
 
 int arm_dpm_write_dirty_registers(struct arm_dpm *, bool bpwp);
 
@@ -166,21 +187,21 @@ void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 #define DSCR_DTR_TX_FULL            (0x1 << 29)
 #define DSCR_DTR_RX_FULL            (0x1 << 30) /* bit 31 is reserved */
 
-#define DSCR_ENTRY(dscr)            (((dscr) >> 2) & 0xf)
-#define DSCR_RUN_MODE(dscr)         ((dscr) & (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED))
+#define DSCR_ENTRY(dscr)            ((dscr) & 0x3f)
+#define DSCR_RUN_MODE(dscr)         ((dscr) & 0x03)
 
 
 /* Methods of entry into debug mode */
-#define DSCR_ENTRY_HALT_REQ           (0x0 << 2)
-#define DSCR_ENTRY_BREAKPOINT         (0x1 << 2)
-#define DSCR_ENTRY_IMPRECISE_WATCHPT  (0x2 << 2)
-#define DSCR_ENTRY_BKPT_INSTR         (0x3 << 2)
-#define DSCR_ENTRY_EXT_DBG_REQ        (0x4 << 2)
-#define DSCR_ENTRY_VECT_CATCH         (0x5 << 2)
-#define DSCR_ENTRY_D_SIDE_ABORT       (0x6 << 2)  /* v6 only */
-#define DSCR_ENTRY_I_SIDE_ABORT       (0x7 << 2)  /* v6 only */
-#define DSCR_ENTRY_OS_UNLOCK          (0x8 << 2)
-#define DSCR_ENTRY_PRECISE_WATCHPT    (0xA << 2)
+#define DSCR_ENTRY_HALT_REQ           (0x03)
+#define DSCR_ENTRY_BREAKPOINT         (0x07)
+#define DSCR_ENTRY_IMPRECISE_WATCHPT  (0x0B)
+#define DSCR_ENTRY_BKPT_INSTR         (0x0F)
+#define DSCR_ENTRY_EXT_DBG_REQ        (0x13)
+#define DSCR_ENTRY_VECT_CATCH         (0x17)
+#define DSCR_ENTRY_D_SIDE_ABORT       (0x1B)  /* v6 only */
+#define DSCR_ENTRY_I_SIDE_ABORT       (0x1F)  /* v6 only */
+#define DSCR_ENTRY_OS_UNLOCK          (0x23)
+#define DSCR_ENTRY_PRECISE_WATCHPT    (0x2B)
 
 /* DTR modes */
 #define DSCR_EXT_DCC_NON_BLOCKING     (0x0 << 20)
@@ -197,5 +218,26 @@ void arm_dpm_report_wfar(struct arm_dpm *, uint32_t wfar);
 #define DRCR_CLEAR_EXCEPTIONS	(1 << 2)
 
 void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dcsr);
+
+/* PRCR (Device Power-down and Reset Control Register) bits */
+#define PRCR_DEBUG_NO_POWER_DOWN         (1 << 0)
+#define PRCR_WARM_RESET                  (1 << 1)
+#define PRCR_HOLD_NON_DEBUG_RESET        (1 << 2)
+
+/* PRSR (Device Power-down and Reset Status Register) bits */
+#define PRSR_POWERUP_STATUS              (1 << 0)
+#define PRSR_STICKY_POWERDOWN_STATUS     (1 << 1)
+#define PRSR_RESET_STATUS                (1 << 2)
+#define PRSR_STICKY_RESET_STATUS         (1 << 3)
+#define PRSR_HALTED                      (1 << 4)  /* v7.1 Debug only */
+#define PRSR_OSLK                        (1 << 5)  /* v7.1 Debug only */
+#define PRSR_DLK                         (1 << 6)  /* v7.1 Debug only */
+
+/* OSLSR (OS Lock Status Register) bits */
+#define OSLSR_OSLM0                      (1 << 0)
+#define OSLSR_OSLK                       (1 << 1)
+#define OSLSR_nTT                        (1 << 2)
+#define OSLSR_OSLM1                      (1 << 3)
+#define OSLSR_OSLM                       (OSLSR_OSLM0|OSLSR_OSLM1)
 
 #endif /* OPENOCD_TARGET_ARM_DPM_H */

@@ -11,13 +11,13 @@
 #include "config.h"
 #endif
 
-#include "target.h"
+#include "target/target.h"
 #include "target/algorithm.h"
-#include "target_type.h"
+#include "target/target_type.h"
 #include "log.h"
 #include "jtag/jtag.h"
-#include "register.h"
-#include "breakpoints.h"
+#include "target/register.h"
+#include "target/breakpoints.h"
 #include "helper/time_support.h"
 #include "riscv.h"
 #include "asm.h"
@@ -1630,7 +1630,7 @@ static int add_breakpoint(struct target *target,
 	if (breakpoint->type == BKPT_SOFT) {
 		if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
 					breakpoint->orig_instr) != ERROR_OK) {
-			LOG_ERROR("Failed to read original instruction at 0x%x",
+			LOG_ERROR("Failed to read original instruction at 0x%" TARGET_PRIxADDR,
 					breakpoint->address);
 			return ERROR_FAIL;
 		}
@@ -1642,8 +1642,8 @@ static int add_breakpoint(struct target *target,
 			retval = target_write_u16(target, breakpoint->address, ebreak_c());
 		}
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%x",
-					breakpoint->length, breakpoint->address);
+			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
+					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
 			return ERROR_FAIL;
 		}
 
@@ -1672,7 +1672,7 @@ static int remove_breakpoint(struct target *target,
 		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
 					breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
-					"0x%x", breakpoint->length, breakpoint->address);
+					"0x%" TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
 			return ERROR_FAIL;
 		}
 
@@ -1763,7 +1763,7 @@ static int strict_step(struct target *target, bool announce)
 	return ERROR_OK;
 }
 
-static int step(struct target *target, int current, uint32_t address,
+static int step(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints)
 {
 	riscv011_info_t *info = get_info(target);
@@ -2196,8 +2196,8 @@ static int riscv011_poll(struct target *target)
 	return poll_target(target, true);
 }
 
-static int riscv011_resume(struct target *target, int current, uint32_t address,
-		int handle_breakpoints, int debug_execution)
+static int riscv011_resume(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	riscv011_info_t *info = get_info(target);
 
@@ -2266,7 +2266,7 @@ static int deassert_reset(struct target *target)
 	}
 }
 
-static int read_memory(struct target *target, uint32_t address,
+static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
@@ -2377,18 +2377,19 @@ static int read_memory(struct target *target, uint32_t address,
 			wait_for_debugint_clear(target, false);
 
 			// Retry.
-			LOG_INFO("Retrying memory read starting from 0x%x with more delays",
-					address + size * i);
+			LOG_INFO("Retrying memory read starting from 0x%" TARGET_PRIxADDR
+					" with more delays", address + size * i);
 		} else {
 			i += batch_size;
 		}
 	}
 
 	if (result_value != 0) {
-		LOG_USER("Core got an exception (0x%x) while reading from 0x%x",
-				result_value, address + size * (count-1));
+		LOG_USER("Core got an exception (0x%x) while reading from 0x%"
+				TARGET_PRIxADDR, result_value, address + size * (count-1));
 		if (count > 1) {
-			LOG_USER("(It may have failed between 0x%x and 0x%x as well, but we "
+			LOG_USER("(It may have failed between 0x%" TARGET_PRIxADDR
+					" and 0x%" TARGET_PRIxADDR " as well, but we "
 					"didn't check then.)",
 					address, address + size * (count-2) + size - 1);
 		}
@@ -2431,7 +2432,7 @@ static int setup_write_memory(struct target *target, uint32_t size)
 	return ERROR_OK;
 }
 
-static int write_memory(struct target *target, uint32_t address,
+static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	riscv011_info_t *info = get_info(target);
@@ -2536,8 +2537,8 @@ static int write_memory(struct target *target, uint32_t address,
 			// Retry.
 			// Set t0 back to what it should have been at the beginning of this
 			// batch.
-			LOG_INFO("Retrying memory write starting from 0x%x with more delays",
-					address + size * i);
+			LOG_INFO("Retrying memory write starting from 0x%" TARGET_PRIxADDR
+					" with more delays", address + size * i);
 
 			cache_clean(target);
 
@@ -2554,10 +2555,11 @@ static int write_memory(struct target *target, uint32_t address,
 	}
 
 	if (result_value != 0) {
-		LOG_ERROR("Core got an exception (0x%x) while writing to 0x%x",
-				result_value, address + size * (count-1));
+		LOG_ERROR("Core got an exception (0x%x) while writing to 0x%"
+				TARGET_PRIxADDR, result_value, address + size * (count-1));
 		if (count > 1) {
-			LOG_ERROR("(It may have failed between 0x%x and 0x%x as well, but we "
+			LOG_ERROR("(It may have failed between 0x%" TARGET_PRIxADDR
+					" and 0x%" TARGET_PRIxADDR " as well, but we "
 					"didn't check then.)",
 					address, address + size * (count-2) + size - 1);
 		}

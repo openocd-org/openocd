@@ -6,13 +6,13 @@
 #include "config.h"
 #endif
 
-#include "target.h"
+#include "target/target.h"
 #include "target/algorithm.h"
-#include "target_type.h"
+#include "target/target_type.h"
 #include "log.h"
 #include "jtag/jtag.h"
-#include "register.h"
-#include "breakpoints.h"
+#include "target/register.h"
+#include "target/breakpoints.h"
 #include "helper/time_support.h"
 #include "riscv.h"
 #include "gdb_regs.h"
@@ -311,7 +311,7 @@ static int oldriscv_step(struct target *target, int current, uint32_t address,
 static int old_or_new_riscv_step(
         struct target *target,
         int current,
-        uint32_t address,
+        target_addr_t address,
         int handle_breakpoints
 ){
 	RISCV_INFO(r);
@@ -417,7 +417,7 @@ static int oldriscv_resume(struct target *target, int current, uint32_t address,
 static int old_or_new_riscv_resume(
         struct target *target,
         int current,
-        uint32_t address,
+        target_addr_t address,
         int handle_breakpoints,
         int debug_execution
 ){
@@ -428,14 +428,14 @@ static int old_or_new_riscv_resume(
 		return riscv_openocd_resume(target, current, address, handle_breakpoints, debug_execution);
 }
 
-static int riscv_read_memory(struct target *target, uint32_t address,
+static int riscv_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct target_type *tt = get_target_type(target);
 	return tt->read_memory(target, address, size, count, buffer);
 }
 
-static int riscv_write_memory(struct target *target, uint32_t address,
+static int riscv_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct target_type *tt = get_target_type(target);
@@ -493,8 +493,8 @@ static int riscv_arch_state(struct target *target)
 // Algorithm must end with a software breakpoint instruction.
 static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		struct mem_param *mem_params, int num_reg_params,
-		struct reg_param *reg_params, uint32_t entry_point,
-		uint32_t exit_point, int timeout_ms, void *arch_info)
+		struct reg_param *reg_params, target_addr_t entry_point,
+		target_addr_t exit_point, int timeout_ms, void *arch_info)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
@@ -563,7 +563,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	reg_mstatus->type->set(reg_mstatus, mstatus_bytes);
 
 	/// Run algorithm
-	LOG_DEBUG("resume at 0x%x", entry_point);
+	LOG_DEBUG("resume at 0x%" TARGET_PRIxADDR, entry_point);
 	if (oldriscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
@@ -592,8 +592,8 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	}
 	uint64_t final_pc = buf_get_u64(reg_pc->value, 0, reg_pc->size);
 	if (final_pc != exit_point) {
-		LOG_ERROR("PC ended up at 0x%" PRIx64 " instead of 0x%" PRIx32,
-				final_pc, exit_point);
+		LOG_ERROR("PC ended up at 0x%" PRIx64 " instead of 0x%"
+				TARGET_PRIxADDR, final_pc, exit_point);
 		return ERROR_FAIL;
 	}
 
@@ -626,7 +626,7 @@ memory. Not yet implemented.
 */
 
 static int riscv_checksum_memory(struct target *target,
-			  uint32_t address, uint32_t count,
+			  target_addr_t address, uint32_t count,
 			  uint32_t* checksum)
 {
   *checksum = 0xFFFFFFFF;
@@ -639,9 +639,10 @@ NOR flash which is 1 when "blank")
 Not yet implemented.
 */
 int riscv_blank_check_memory(struct target * target,
-			    uint32_t address,
+				target_addr_t address,
 			    uint32_t count,
-			    uint32_t * blank)
+			    uint32_t * blank,
+				uint8_t erased_value)
 {
   *blank = 0;
 
@@ -754,7 +755,7 @@ int riscv_openocd_halt(struct target *target)
 int riscv_openocd_resume(
         struct target *target,
         int current,
-        uint32_t address,
+        target_addr_t address,
         int handle_breakpoints,
         int debug_execution
 ) {
@@ -779,7 +780,7 @@ int riscv_openocd_resume(
 int riscv_openocd_step(
         struct target *target,
         int current,
-        uint32_t address,
+        target_addr_t address,
         int handle_breakpoints
 ) {
 	LOG_DEBUG("stepping rtos hart");
@@ -1149,7 +1150,7 @@ riscv_addr_t riscv_debug_buffer_addr(struct target *target)
 {
 	RISCV_INFO(r);
 	riscv_addr_t out = r->debug_buffer_addr[riscv_current_hartid(target)];
-	assert(out != -1);
+	assert((out & 3) == 0);
 	return out;
 }
 

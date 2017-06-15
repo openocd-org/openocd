@@ -456,10 +456,10 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	uint32_t *ptr = NULL;
 	int ret = 0;
 
-	assert(!(bank->num_sectors & 0x1f));
+	assert(bank->num_sectors > 0);
 
-	data_size = bank->num_sectors / 8; /* number of data bytes */
-	data_size /= 4; /* ...and data dwords */
+	/* calculate the number of 32-bit words to read (one lock bit per sector) */
+	data_size = (bank->num_sectors + 31) / 32;
 
 	ptr = efm32x_info->lb_page;
 

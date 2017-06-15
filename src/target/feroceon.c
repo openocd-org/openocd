@@ -460,7 +460,7 @@ static int feroceon_examine_debug_reason(struct target *target)
 }
 
 static int feroceon_bulk_write_memory(struct target *target,
-		uint32_t address, uint32_t count, const uint8_t *buffer)
+		target_addr_t address, uint32_t count, const uint8_t *buffer)
 {
 	int retval;
 	struct arm *arm = target->arch_info;
@@ -565,7 +565,7 @@ static int feroceon_bulk_write_memory(struct target *target,
 			buf_get_u32(arm->core_cache->reg_list[0].value, 0, 32);
 		if (endaddress != address + count*4) {
 			LOG_ERROR("DCC write failed,"
-				" expected end address 0x%08" PRIx32
+				" expected end address 0x%08" TARGET_PRIxADDR
 				" got 0x%0" PRIx32 "",
 				address + count*4, endaddress);
 			retval = ERROR_FAIL;

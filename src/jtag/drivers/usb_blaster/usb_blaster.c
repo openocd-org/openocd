@@ -147,11 +147,8 @@ struct drvs_map {
 };
 
 static struct drvs_map lowlevel_drivers_map[] = {
-#if BUILD_USB_BLASTER_LIBFTDI
+#if BUILD_USB_BLASTER
 	{ .name = "ftdi", .drv_register = ublast_register_ftdi },
-#endif
-#if BUILD_USB_BLASTER_FTD2XX
-	{ .name = "ftd2xx", .drv_register = ublast_register_ftd2xx },
 #endif
 #if BUILD_USB_BLASTER_2
 	{ .name = "ublast2", .drv_register = ublast2_register_libusb },
@@ -1048,8 +1045,8 @@ static const struct command_registration ublast_command_handlers[] = {
 		.name = "usb_blaster_lowlevel_driver",
 		.handler = ublast_handle_lowlevel_drv_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the lowlevel access for the USB Blaster (ftdi, ftd2xx, ublast2)",
-		.usage = "(ftdi|ftd2xx|ublast2)",
+		.help = "set the lowlevel access for the USB Blaster (ftdi, ublast2)",
+		.usage = "(ftdi|ublast2)",
 	},
 	{
 		.name = "usb_blaster_pin",

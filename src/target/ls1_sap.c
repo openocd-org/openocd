@@ -64,14 +64,14 @@ static int ls1_sap_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int ls1_sap_resume(struct target *target, int current, uint32_t address,
+static int ls1_sap_resume(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints, int debug_execution)
 {
 	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
-static int ls1_sap_step(struct target *target, int current, uint32_t address,
+static int ls1_sap_step(struct target *target, int current, target_addr_t address,
 				int handle_breakpoints)
 {
 	LOG_DEBUG("%s", __func__);
@@ -127,7 +127,7 @@ static void ls1_sap_set_addr_high(struct jtag_tap *tap, uint16_t addr_high)
 }
 
 static void ls1_sap_memory_cmd(struct jtag_tap *tap, uint32_t address,
-			       int32_t size, int read)
+			       int32_t size, bool rnw)
 {
 	struct scan_field field;
 	uint8_t cmd[8];
@@ -138,7 +138,7 @@ static void ls1_sap_memory_cmd(struct jtag_tap *tap, uint32_t address,
 	field.out_value = cmd;
 	buf_set_u64(cmd, 0, 9, 0);
 	buf_set_u64(cmd, 9, 3, size);
-	buf_set_u64(cmd, 12, 1, !!read);
+	buf_set_u64(cmd, 12, 1, rnw);
 	buf_set_u64(cmd, 13, 3, 0);
 	buf_set_u64(cmd, 16, 32, address);
 	buf_set_u64(cmd, 48, 16, 0);
@@ -178,10 +178,10 @@ static void ls1_sap_memory_write(struct jtag_tap *tap, uint32_t size,
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 }
 
-static int ls1_sap_read_memory(struct target *target, uint32_t address,
+static int ls1_sap_read_memory(struct target *target, target_addr_t address,
 			       uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	LOG_DEBUG("Reading memory at physical address 0x%" PRIx32
+	LOG_DEBUG("Reading memory at physical address 0x%" TARGET_PRIxADDR
 		  "; size %" PRId32 "; count %" PRId32, address, size, count);
 
 	if (count == 0 || buffer == NULL)
@@ -190,7 +190,7 @@ static int ls1_sap_read_memory(struct target *target, uint32_t address,
 	ls1_sap_set_addr_high(target->tap, 0);
 
 	while (count--) {
-		ls1_sap_memory_cmd(target->tap, address, size, 1);
+		ls1_sap_memory_cmd(target->tap, address, size, true);
 		ls1_sap_memory_read(target->tap, size, buffer);
 		address += size;
 		buffer += size;
@@ -199,11 +199,11 @@ static int ls1_sap_read_memory(struct target *target, uint32_t address,
 	return jtag_execute_queue();
 }
 
-static int ls1_sap_write_memory(struct target *target, uint32_t address,
+static int ls1_sap_write_memory(struct target *target, target_addr_t address,
 				uint32_t size, uint32_t count,
 				const uint8_t *buffer)
 {
-	LOG_DEBUG("Writing memory at physical address 0x%" PRIx32
+	LOG_DEBUG("Writing memory at physical address 0x%" TARGET_PRIxADDR
 		  "; size %" PRId32 "; count %" PRId32, address, size, count);
 
 
@@ -213,7 +213,7 @@ static int ls1_sap_write_memory(struct target *target, uint32_t address,
 	ls1_sap_set_addr_high(target->tap, 0);
 
 	while (count--) {
-		ls1_sap_memory_cmd(target->tap, address, size, 0);
+		ls1_sap_memory_cmd(target->tap, address, size, false);
 		ls1_sap_memory_write(target->tap, size, buffer);
 		address += size;
 		buffer += size;

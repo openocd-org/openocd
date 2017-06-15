@@ -41,10 +41,10 @@ static int mips_m4k_set_breakpoint(struct target *target,
 static int mips_m4k_unset_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 static int mips_m4k_internal_restore(struct target *target, int current,
-		uint32_t address, int handle_breakpoints,
+		target_addr_t address, int handle_breakpoints,
 		int debug_execution);
 static int mips_m4k_halt(struct target *target);
-static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
+static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,
 		uint32_t count, const uint8_t *buffer);
 
 static int mips_m4k_examine_debug_reason(struct target *target)
@@ -108,11 +108,14 @@ static int mips_m4k_debug_entry(struct target *target)
 	/* attempt to find halt reason */
 	mips_m4k_examine_debug_reason(target);
 
+	mips32_read_config_regs(target);
+
 	/* default to mips32 isa, it will be changed below if required */
 	mips32->isa_mode = MIPS32_ISA_MIPS32;
 
-	if (ejtag_info->impcode & EJTAG_IMP_MIPS16)
-		mips32->isa_mode = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1);
+	/* other than mips32 only and isa bit set ? */
+	if (mips32->isa_imp && buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1))
+		mips32->isa_mode = mips32->isa_imp == 2 ? MIPS32_ISA_MIPS16E : MIPS32_ISA_MMIPS32;
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 ", target->state: %s",
 			buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32),
@@ -194,6 +197,8 @@ static int mips_m4k_poll(struct target *target)
 	retval = mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (retval != ERROR_OK)
 		return retval;
+
+	ejtag_info->isa = (ejtag_ctrl & EJTAG_CTRL_DBGISA) ? 1 : 0;
 
 	/* clear this bit before handling polling
 	 * as after reset registers will read zero */
@@ -429,7 +434,7 @@ static int mips_m4k_restore_smp(struct target *target, uint32_t address, int han
 }
 
 static int mips_m4k_internal_restore(struct target *target, int current,
-		uint32_t address, int handle_breakpoints, int debug_execution)
+		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -449,12 +454,13 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
+		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
 		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
 		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
 	}
 
-	if (ejtag_info->impcode & EJTAG_IMP_MIPS16)
+	if ((mips32->isa_imp > 1) &&  debug_execution)	/* if more than one isa supported */
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1, mips32->isa_mode);
 
 	if (!current)
@@ -469,7 +475,8 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 		/* Single step past breakpoint at current address */
 		breakpoint = breakpoint_find(target, resume_pc);
 		if (breakpoint) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at " TARGET_ADDR_FMT "",
+					  breakpoint->address);
 			mips_m4k_unset_breakpoint(target, breakpoint);
 			mips_m4k_single_step_core(target);
 			mips_m4k_set_breakpoint(target, breakpoint);
@@ -500,7 +507,7 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 }
 
 static int mips_m4k_resume(struct target *target, int current,
-		uint32_t address, int handle_breakpoints, int debug_execution)
+		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	int retval = ERROR_OK;
 
@@ -527,7 +534,7 @@ static int mips_m4k_resume(struct target *target, int current,
 }
 
 static int mips_m4k_step(struct target *target, int current,
-		uint32_t address, int handle_breakpoints)
+		target_addr_t address, int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -541,6 +548,7 @@ static int mips_m4k_step(struct target *target, int current,
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
+		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
 		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
 		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
@@ -623,6 +631,11 @@ static int mips_m4k_set_breakpoint(struct target *target,
 		comparator_list[bp_num].used = 1;
 		comparator_list[bp_num].bp_value = breakpoint->address;
 
+		if (breakpoint->length != 4)			/* make sure isa bit set */
+			comparator_list[bp_num].bp_value |= 1;
+		else						/* make sure isa bit cleared */
+			comparator_list[bp_num].bp_value &= ~1;
+
 		/* EJTAG 2.0 uses 30bit IBA. First 2 bits are reserved.
 		 * Warning: there is no IB ASID registers in 2.0.
 		 * Do not set it! :) */
@@ -640,41 +653,77 @@ static int mips_m4k_set_breakpoint(struct target *target,
 				  bp_num, comparator_list[bp_num].bp_value);
 	} else if (breakpoint->type == BKPT_SOFT) {
 		LOG_DEBUG("bpid: %" PRIu32, breakpoint->unique_id);
-		if (breakpoint->length == 4) {
+
+		uint32_t isa_req = breakpoint->length & 1;	/* micro mips request bit */
+		uint32_t bplength = breakpoint->length & ~1;	/* drop micro mips request bit for length */
+		uint32_t bpaddr = breakpoint->address & ~1;	/* drop isa bit from address, if set */
+
+		if (bplength == 4) {
 			uint32_t verify = 0xffffffff;
+			uint32_t sdbbp32_instr = MIPS32_SDBBP(isa_req);
+			if (ejtag_info->endianness && isa_req)
+				sdbbp32_instr = SWAP16(sdbbp32_instr);
 
-			retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1,
-					breakpoint->orig_instr);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = target_write_u32(target, breakpoint->address, MIPS32_SDBBP);
-			if (retval != ERROR_OK)
-				return retval;
+			if ((breakpoint->address & 3) == 0) {	/* word alligned */
 
-			retval = target_read_u32(target, breakpoint->address, &verify);
-			if (retval != ERROR_OK)
-				return retval;
-			if (verify != MIPS32_SDBBP) {
-				LOG_ERROR("Unable to set 32bit breakpoint at address %08" PRIx32
-						" - check that memory is read/writable", breakpoint->address);
+				retval = target_read_memory(target, bpaddr, bplength, 1, breakpoint->orig_instr);
+				if (retval != ERROR_OK)
+					return retval;
+
+				retval = target_write_u32(target, bpaddr, sdbbp32_instr);
+				if (retval != ERROR_OK)
+					return retval;
+
+				retval = target_read_u32(target, bpaddr, &verify);
+				if (retval != ERROR_OK)
+					return retval;
+
+				if (verify != sdbbp32_instr)
+					verify = 0;
+
+			} else {	/* 16 bit aligned */
+				retval = target_read_memory(target, bpaddr, 2, 2, breakpoint->orig_instr);
+				if (retval != ERROR_OK)
+					return retval;
+
+				uint8_t sdbbp_buf[4];
+				target_buffer_set_u32(target, sdbbp_buf, sdbbp32_instr);
+
+				retval = target_write_memory(target, bpaddr, 2, 2, sdbbp_buf);
+				if (retval != ERROR_OK)
+					return retval;
+
+				retval = target_read_memory(target, bpaddr, 2, 2, sdbbp_buf);
+				if (retval != ERROR_OK)
+					return retval;
+
+				if (target_buffer_get_u32(target, sdbbp_buf) != sdbbp32_instr)
+					verify = 0;
+			}
+
+			if (verify == 0) {
+				LOG_ERROR("Unable to set 32bit breakpoint at address %08" PRIx64
+					" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
+
 		} else {
 			uint16_t verify = 0xffff;
 
-			retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1,
-					breakpoint->orig_instr);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = target_write_u16(target, breakpoint->address, MIPS16_SDBBP);
+			retval = target_read_memory(target, bpaddr, bplength, 1, breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
 
-			retval = target_read_u16(target, breakpoint->address, &verify);
+			retval = target_write_u16(target, bpaddr, MIPS16_SDBBP(isa_req));
 			if (retval != ERROR_OK)
 				return retval;
-			if (verify != MIPS16_SDBBP) {
-				LOG_ERROR("Unable to set 16bit breakpoint at address %08" PRIx32
+
+			retval = target_read_u16(target, bpaddr, &verify);
+			if (retval != ERROR_OK)
+				return retval;
+
+			if (verify != MIPS16_SDBBP(isa_req)) {
+				LOG_ERROR("Unable to set 16bit breakpoint at address %08" PRIx64
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
@@ -717,46 +766,58 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 
 	} else {
 		/* restore original instruction (kept in target endianness) */
+		uint32_t isa_req = breakpoint->length & 1;
+		uint32_t bplength = breakpoint->length & ~1;
+		uint8_t current_instr[4];
 		LOG_DEBUG("bpid: %" PRIu32, breakpoint->unique_id);
-		if (breakpoint->length == 4) {
-			uint32_t current_instr;
+		if (bplength == 4) {
+			uint32_t sdbbp32_instr =  MIPS32_SDBBP(isa_req);
+			if (ejtag_info->endianness && isa_req)
+				sdbbp32_instr = SWAP16(sdbbp32_instr);
 
-			/* check that user program has not modified breakpoint instruction */
-			retval = target_read_memory(target, breakpoint->address, 4, 1,
-					(uint8_t *)&current_instr);
-			if (retval != ERROR_OK)
-				return retval;
-
-			/**
-			 * target_read_memory() gets us data in _target_ endianess.
-			 * If we want to use this data on the host for comparisons with some macros
-			 * we must first transform it to _host_ endianess using target_buffer_get_u32().
-			 */
-			current_instr = target_buffer_get_u32(target, (uint8_t *)&current_instr);
-
-			if (current_instr == MIPS32_SDBBP) {
-				retval = target_write_memory(target, breakpoint->address, 4, 1,
-						breakpoint->orig_instr);
+			if ((breakpoint->address & 3) == 0) {		/* 32bit aligned */
+				/* check that user program has not modified breakpoint instruction */
+				retval = target_read_memory(target, breakpoint->address, 4, 1, current_instr);
 				if (retval != ERROR_OK)
 					return retval;
+				/**
+				* target_read_memory() gets us data in _target_ endianess.
+				* If we want to use this data on the host for comparisons with some macros
+				* we must first transform it to _host_ endianess using target_buffer_get_u16().
+				*/
+				if (sdbbp32_instr == target_buffer_get_u32(target, current_instr)) {
+					retval = target_write_memory(target, breakpoint->address, 4, 1,
+										breakpoint->orig_instr);
+					if (retval != ERROR_OK)
+						return retval;
+				}
+			} else {	/* 16bit alligned */
+				retval = target_read_memory(target, breakpoint->address, 2, 2, current_instr);
+				if (retval != ERROR_OK)
+					return retval;
+
+				if (sdbbp32_instr == target_buffer_get_u32(target, current_instr)) {
+					retval = target_write_memory(target, breakpoint->address, 2, 2,
+										breakpoint->orig_instr);
+					if (retval != ERROR_OK)
+						return retval;
+				}
 			}
 		} else {
-			uint16_t current_instr;
-
 			/* check that user program has not modified breakpoint instruction */
-			retval = target_read_memory(target, breakpoint->address, 2, 1,
-					(uint8_t *)&current_instr);
+			retval = target_read_memory(target, breakpoint->address, 2, 1, current_instr);
 			if (retval != ERROR_OK)
 				return retval;
-			current_instr = target_buffer_get_u16(target, (uint8_t *)&current_instr);
-			if (current_instr == MIPS16_SDBBP) {
+
+			if (target_buffer_get_u16(target, current_instr) == MIPS16_SDBBP(isa_req)) {
 				retval = target_write_memory(target, breakpoint->address, 2, 1,
-						breakpoint->orig_instr);
+									breakpoint->orig_instr);
 				if (retval != ERROR_OK)
 					return retval;
 			}
 		}
 	}
+
 	breakpoint->set = 0;
 
 	return ERROR_OK;
@@ -765,6 +826,12 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 static int mips_m4k_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
+
+	if ((breakpoint->length > 5 || breakpoint->length < 2) ||		/* out of range */
+		(breakpoint->length == 4 && (breakpoint->address & 2)) ||	/* mips32 unaligned */
+		(mips32->isa_imp == MIPS32_ONLY && breakpoint->length != 4) ||	/* misp32 specific */
+		((mips32->isa_imp & 1) != (breakpoint->length & 1)))		/* isa not implemented */
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	if (breakpoint->type == BKPT_HARD) {
 		if (mips32->num_inst_bpoints_avail < 1) {
@@ -949,13 +1016,13 @@ static void mips_m4k_enable_watchpoints(struct target *target)
 	}
 }
 
-static int mips_m4k_read_memory(struct target *target, uint32_t address,
+static int mips_m4k_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
 			address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -1008,13 +1075,13 @@ static int mips_m4k_read_memory(struct target *target, uint32_t address,
 	return retval;
 }
 
-static int mips_m4k_write_memory(struct target *target, uint32_t address,
+static int mips_m4k_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
 			address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -1107,39 +1174,33 @@ static int mips_m4k_target_create(struct target *target, Jim_Interp *interp)
 
 static int mips_m4k_examine(struct target *target)
 {
-	int retval;
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
-	uint32_t idcode = 0;
 
 	if (!target_was_examined(target)) {
-		retval = mips_ejtag_get_idcode(ejtag_info, &idcode);
-		if (retval != ERROR_OK)
+		int retval = mips_ejtag_get_idcode(ejtag_info);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("idcode read failed");
 			return retval;
-		ejtag_info->idcode = idcode;
-
-		if (((idcode >> 1) & 0x7FF) == 0x29) {
+		}
+		if (((ejtag_info->idcode >> 1) & 0x7FF) == 0x29) {
 			/* we are using a pic32mx so select ejtag port
 			 * as it is not selected by default */
 			mips_ejtag_set_instr(ejtag_info, MTAP_SW_ETAP);
-			LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
+			LOG_DEBUG("PIC32 Detected - using EJTAG Interface");
 			mips_m4k->is_pic32mx = true;
 		}
 	}
 
 	/* init rest of ejtag interface */
-	retval = mips_ejtag_init(ejtag_info);
+	int retval = mips_ejtag_init(ejtag_info);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = mips32_examine(target);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ERROR_OK;
+	return mips32_examine(target);
 }
 
-static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
+static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,
 		uint32_t count, const uint8_t *buffer)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -1148,7 +1209,8 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 	int retval;
 	int write_t = 1;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, count);
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", count: 0x%8.8" PRIx32 "",
+			  address, count);
 
 	/* check alignment */
 	if (address & 0x3u)
@@ -1175,8 +1237,8 @@ static int mips_m4k_bulk_write_memory(struct target *target, uint32_t address,
 
 	if (address <= fast_data_area->address + fast_data_area->size &&
 			fast_data_area->address <= address + count) {
-		LOG_ERROR("fast_data (0x%8.8" PRIx32 ") is within write area "
-			  "(0x%8.8" PRIx32 "-0x%8.8" PRIx32 ").",
+		LOG_ERROR("fast_data (" TARGET_ADDR_FMT ") is within write area "
+			  "(" TARGET_ADDR_FMT "-" TARGET_ADDR_FMT ").",
 			  fast_data_area->address, address, address + count);
 		LOG_ERROR("Change work-area-phys or load_image address!");
 		return ERROR_FAIL;
@@ -1339,7 +1401,7 @@ COMMAND_HANDLER(mips_m4k_handle_scan_delay_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(CMD_CTX, "scan delay: %d nsec", ejtag_info->scan_delay);
-	if (ejtag_info->scan_delay >= 2000000) {
+	if (ejtag_info->scan_delay >= MIPS32_SCAN_DELAY_LEGACY_MODE) {
 		ejtag_info->mode = 0;
 		command_print(CMD_CTX, "running in legacy mode");
 	} else {

@@ -729,7 +729,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		retval = image_ihex_buffer_complete(image);
 		if (retval != ERROR_OK) {
 			LOG_ERROR(
-				"failed buffering IHEX image, check daemon output for additional information");
+				"failed buffering IHEX image, check server output for additional information");
 			fileio_close(image_ihex->fileio);
 			return retval;
 		}
@@ -780,7 +780,7 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		retval = image_mot_buffer_complete(image);
 		if (retval != ERROR_OK) {
 			LOG_ERROR(
-				"failed buffering S19 image, check daemon output for additional information");
+				"failed buffering S19 image, check server output for additional information");
 			fileio_close(image_mot->fileio);
 			return retval;
 		}

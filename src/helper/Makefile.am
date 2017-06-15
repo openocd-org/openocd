@@ -1,56 +1,49 @@
-include $(top_srcdir)/common.mk
+noinst_LTLIBRARIES += %D%/libhelper.la
 
-METASOURCES = AUTO
-noinst_LTLIBRARIES = libhelper.la
+%C%_libhelper_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS)
 
-CONFIGFILES = options.c time_support_common.c
-
-libhelper_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBUSB1_CFLAGS)
-
-libhelper_la_SOURCES = \
-	binarybuffer.c \
-	$(CONFIGFILES) \
-	configuration.c \
-	log.c \
-	command.c \
-	time_support.c \
-	replacements.c \
-	fileio.c \
-	util.c \
-	jep106.c \
-	jim-nvp.c
+%C%_libhelper_la_SOURCES = \
+	%D%/binarybuffer.c \
+	%D%/options.c \
+	%D%/time_support_common.c \
+	%D%/configuration.c \
+	%D%/log.c \
+	%D%/command.c \
+	%D%/time_support.c \
+	%D%/replacements.c \
+	%D%/fileio.c \
+	%D%/util.c \
+	%D%/jep106.c \
+	%D%/jim-nvp.c \
+	%D%/binarybuffer.h \
+	%D%/configuration.h \
+	%D%/ioutil.h \
+	%D%/list.h \
+	%D%/util.h \
+	%D%/types.h \
+	%D%/log.h \
+	%D%/command.h \
+	%D%/time_support.h \
+	%D%/replacements.h \
+	%D%/fileio.h \
+	%D%/system.h \
+	%D%/jep106.h \
+	%D%/jep106.inc \
+	%D%/jim-nvp.h
 
 if IOUTIL
-libhelper_la_SOURCES += ioutil.c
+%C%_libhelper_la_SOURCES += %D%/ioutil.c
 else
-libhelper_la_SOURCES += ioutil_stubs.c
+%C%_libhelper_la_SOURCES += %D%/ioutil_stubs.c
 endif
 
-libhelper_la_CFLAGS =
+%C%_libhelper_la_CFLAGS = $(AM_CFLAGS)
 if IS_MINGW
 # FD_* macros are sloppy with their signs on MinGW32 platform
-libhelper_la_CFLAGS += -Wno-sign-compare
+%C%_libhelper_la_CFLAGS += -Wno-sign-compare
 endif
 
-noinst_HEADERS = \
-	binarybuffer.h \
-	configuration.h \
-	ioutil.h \
-	list.h \
-	util.h \
-	types.h \
-	log.h \
-	command.h \
-	time_support.h \
-	replacements.h \
-	fileio.h \
-	system.h \
-	bin2char.sh \
-	jep106.h \
-	jep106.inc \
-	update_jep106.pl \
-	jim-nvp.h
-
-EXTRA_DIST = startup.tcl
-
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+STARTUP_TCL_SRCS += %D%/startup.tcl
+EXTRA_DIST += \
+	%D%/bin2char.sh \
+	%D%/update_jep106.pl

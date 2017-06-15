@@ -1312,7 +1312,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	busy_pattern_val  = cfi_command_val(bank, 0x80);
 	error_pattern_val = cfi_command_val(bank, 0x7e);
 
-	LOG_DEBUG("Using target buffer at 0x%08" PRIx32 " and of size 0x%04" PRIx32,
+	LOG_DEBUG("Using target buffer at " TARGET_ADDR_FMT " and of size 0x%04" PRIx32,
 		source->address, buffer_size);
 
 	/* Programming main loop */
@@ -1424,50 +1424,50 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, const uint8_t 
 
 	static const uint32_t mips_word_16_code[] = {
 		/* start:	*/
-		MIPS32_LHU(9, 0, 4),			/* lhu $t1, ($a0)		; out = &saddr */
-		MIPS32_ADDI(4, 4, 2),			/* addi $a0, $a0, 2		; saddr += 2 */
-		MIPS32_SH(13, 0, 12),			/* sh $t5, ($t4)		; *fl_unl_addr1 = fl_unl_cmd1 */
-		MIPS32_SH(15, 0, 14),			/* sh $t7, ($t6)		; *fl_unl_addr2 = fl_unl_cmd2 */
-		MIPS32_SH(7, 0, 12),			/* sh $a3, ($t4)		; *fl_unl_addr1 = fl_write_cmd */
-		MIPS32_SH(9, 0, 5),				/* sh $t1, ($a1)		; *daddr = out */
+		MIPS32_LHU(0, 9, 0, 4),		/* lhu $t1, ($a0)		; out = &saddr */
+		MIPS32_ADDI(0, 4, 4, 2),	/* addi $a0, $a0, 2		; saddr += 2 */
+		MIPS32_SH(0, 13, 0, 12),	/* sh $t5, ($t4)		; *fl_unl_addr1 = fl_unl_cmd1 */
+		MIPS32_SH(0, 15, 0, 14),	/* sh $t7, ($t6)		; *fl_unl_addr2 = fl_unl_cmd2 */
+		MIPS32_SH(0, 7, 0, 12),		/* sh $a3, ($t4)		; *fl_unl_addr1 = fl_write_cmd */
+		MIPS32_SH(0, 9, 0, 5),		/* sh $t1, ($a1)		; *daddr = out */
 		MIPS32_NOP,						/* nop */
 		/* busy:	*/
-		MIPS32_LHU(10, 0, 5),			/* lhu $t2, ($a1)		; temp1 = *daddr */
-		MIPS32_XOR(11, 9, 10),			/* xor $t3, $a0, $t2	; temp2 = out ^ temp1; */
-		MIPS32_AND(11, 8, 11),			/* and $t3, $t0, $t3	; temp2 = temp2 & DQ7mask */
-		MIPS32_BNE(11, 8, 13),			/* bne $t3, $t0, cont	; if (temp2 != DQ7mask) goto cont */
-		MIPS32_NOP,						/* nop									*/
+		MIPS32_LHU(0, 10, 0, 5),		/* lhu $t2, ($a1)		; temp1 = *daddr */
+		MIPS32_XOR(0, 11, 9, 10),		/* xor $t3, $a0, $t2	; temp2 = out ^ temp1; */
+		MIPS32_AND(0, 11, 8, 11),		/* and $t3, $t0, $t3	; temp2 = temp2 & DQ7mask */
+		MIPS32_BNE(0, 11, 8, 13),		/* bne $t3, $t0, cont	; if (temp2 != DQ7mask) goto cont */
+		MIPS32_NOP,						/* nop					*/
 
-		MIPS32_SRL(10, 8, 2),			/* srl $t2,$t0,2		; temp1 = DQ7mask >> 2 */
-		MIPS32_AND(11, 10, 11),			/* and $t3, $t2, $t3	; temp2 = temp2 & temp1	*/
-		MIPS32_BNE(11, 10, NEG16(8)),	/* bne $t3, $t2, busy	; if (temp2 != temp1) goto busy	*/
-		MIPS32_NOP,						/* nop									*/
+		MIPS32_SRL(0, 10, 8, 2),		/* srl $t2,$t0,2		; temp1 = DQ7mask >> 2 */
+		MIPS32_AND(0, 11, 10, 11),			/* and $t3, $t2, $t3	; temp2 = temp2 & temp1	*/
+		MIPS32_BNE(0, 11, 10, NEG16(8)),	/* bne $t3, $t2, busy	; if (temp2 != temp1) goto busy	*/
+		MIPS32_NOP,						/* nop					*/
 
-		MIPS32_LHU(10, 0, 5),			/* lhu $t2, ($a1)		; temp1 = *daddr */
-		MIPS32_XOR(11, 9, 10),			/* xor $t3, $a0, $t2	; temp2 = out ^ temp1; */
-		MIPS32_AND(11, 8, 11),			/* and $t3, $t0, $t3	; temp2 = temp2 & DQ7mask */
-		MIPS32_BNE(11, 8, 4),			/* bne $t3, $t0, cont	; if (temp2 != DQ7mask) goto cont */
+		MIPS32_LHU(0, 10, 0, 5),		/* lhu $t2, ($a1)		; temp1 = *daddr */
+		MIPS32_XOR(0, 11, 9, 10),		/* xor $t3, $a0, $t2	; temp2 = out ^ temp1; */
+		MIPS32_AND(0, 11, 8, 11),		/* and $t3, $t0, $t3	; temp2 = temp2 & DQ7mask */
+		MIPS32_BNE(0, 11, 8, 4),		/* bne $t3, $t0, cont	; if (temp2 != DQ7mask) goto cont */
 		MIPS32_NOP,						/* nop */
 
-		MIPS32_XOR(9, 9, 9),			/* xor $t1, $t1, $t1	; out = 0 */
-		MIPS32_BEQ(9, 0, 11),			/* beq $t1, $zero, done	; if (out == 0) goto done */
+		MIPS32_XOR(0, 9, 9, 9),			/* xor $t1, $t1, $t1	; out = 0 */
+		MIPS32_BEQ(0, 9, 0, 11),			/* beq $t1, $zero, done	; if (out == 0) goto done */
 		MIPS32_NOP,						/* nop */
 		/* cont:	*/
-		MIPS32_ADDI(6, 6, NEG16(1)),	/* addi, $a2, $a2, -1	; numwrites-- */
-		MIPS32_BNE(6, 0, 5),			/* bne $a2, $zero, cont2	; if (numwrite != 0) goto cont2 */
+		MIPS32_ADDI(0, 6, 6, NEG16(1)),	/* addi, $a2, $a2, -1	; numwrites-- */
+		MIPS32_BNE(0, 6, 0, 5),		/* bne $a2, $zero, cont2	; if (numwrite != 0) goto cont2 */
 		MIPS32_NOP,						/* nop */
 
-		MIPS32_LUI(9, 0),				/* lui $t1, 0 */
-		MIPS32_ORI(9, 9, 0x80),			/* ori $t1, $t1, 0x80	; out = 0x80 */
+		MIPS32_LUI(0, 9, 0),				/* lui $t1, 0 */
+		MIPS32_ORI(0, 9, 9, 0x80),			/* ori $t1, $t1, 0x80	; out = 0x80 */
 
-		MIPS32_B(4),					/* b done			; goto done */
+		MIPS32_B(0, 4),					/* b done			; goto done */
 		MIPS32_NOP,						/* nop */
 		/* cont2:	*/
-		MIPS32_ADDI(5, 5, 2),			/* addi $a0, $a0, 2	; daddr += 2 */
-		MIPS32_B(NEG16(33)),			/* b start			; goto start */
+		MIPS32_ADDI(0, 5, 5, 2),			/* addi $a0, $a0, 2	; daddr += 2 */
+		MIPS32_B(0, NEG16(33)),			/* b start			; goto start */
 		MIPS32_NOP,						/* nop */
 		/* done: */
-		MIPS32_SDBBP,					/* sdbbp			; break(); */
+		MIPS32_SDBBP(0),					/* sdbbp			; break(); */
 	};
 
 	mips32_info.common_magic = MIPS32_COMMON_MAGIC;

@@ -50,10 +50,17 @@ int flash_driver_erase(struct flash_bank *bank, int first, int last)
 int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	int retval;
+	int num_blocks;
+
+	if (bank->num_prot_blocks)
+		num_blocks = bank->num_prot_blocks;
+	else
+		num_blocks = bank->num_sectors;
+
 
 	/* callers may not supply illegal parameters ... */
-	if (first < 0 || first > last || last >= bank->num_sectors) {
-		LOG_ERROR("illegal sector range");
+	if (first < 0 || first > last || last >= num_blocks) {
+		LOG_ERROR("illegal protection block range");
 		return ERROR_FAIL;
 	}
 
@@ -69,11 +76,11 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	 * the target could have reset, power cycled, been hot plugged,
 	 * the application could have run, etc.
 	 *
-	 * Drivers only receive valid sector range.
+	 * Drivers only receive valid protection block range.
 	 */
 	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
-		LOG_ERROR("failed setting protection for areas %d to %d", first, last);
+		LOG_ERROR("failed setting protection for blocks %d to %d", first, last);
 
 	return retval;
 }
@@ -288,7 +295,7 @@ static int default_flash_mem_blank_check(struct flash_bank *bank)
 				goto done;
 
 			for (nBytes = 0; nBytes < chunk; nBytes++) {
-				if (buffer[nBytes] != 0xFF) {
+				if (buffer[nBytes] != bank->erased_value) {
 					bank->sectors[i].is_erased = 0;
 					break;
 				}
@@ -319,12 +326,12 @@ int default_flash_blank_check(struct flash_bank *bank)
 		uint32_t address = bank->base + bank->sectors[i].offset;
 		uint32_t size = bank->sectors[i].size;
 
-		retval = target_blank_check_memory(target, address, size, &blank);
+		retval = target_blank_check_memory(target, address, size, &blank, bank->erased_value);
 		if (retval != ERROR_OK) {
 			fast_check = 0;
 			break;
 		}
-		if (blank == 0xFF)
+		if (blank == bank->erased_value)
 			bank->sectors[i].is_erased = 1;
 		else
 			bank->sectors[i].is_erased = 0;

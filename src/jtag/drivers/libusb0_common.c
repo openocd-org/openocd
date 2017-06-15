@@ -146,7 +146,7 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 		unsigned int *usb_read_ep,
 		unsigned int *usb_write_ep,
-		int bclass, int subclass, int protocol)
+		int bclass, int subclass, int protocol, int trans_type)
 {
 	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	struct usb_interface *iface = udev->config->interface;
@@ -157,7 +157,8 @@ int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 	for (int i = 0; i < desc->bNumEndpoints; i++) {
 		if ((bclass > 0 && desc->bInterfaceClass != bclass) ||
 		    (subclass > 0 && desc->bInterfaceSubClass != subclass) ||
-		    (protocol > 0 && desc->bInterfaceProtocol != protocol))
+		    (protocol > 0 && desc->bInterfaceProtocol != protocol) ||
+		    (trans_type > 0 && (desc->endpoint[i].bmAttributes & 0x3) != trans_type))
 			continue;
 
 		uint8_t epnum = desc->endpoint[i].bEndpointAddress;

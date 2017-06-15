@@ -97,8 +97,6 @@ struct cortex_a_common {
 	int fast_reg_read;
 
 	uint32_t cpuid;
-	uint32_t ctypr;
-	uint32_t ttypr;
 	uint32_t didr;
 
 	enum cortex_a_isrmasking_mode isrmasking_mode;

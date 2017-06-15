@@ -574,8 +574,6 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 		if ((ctrlstat & (CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) !=
 						(CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) {
 			LOG_ERROR("Debug regions are unpowered, an unexpected reset might have happened");
-			retval = ERROR_JTAG_DEVICE_ERROR;
-			goto done;
 		}
 
 		if (ctrlstat & SSTICKYERR)
@@ -590,10 +588,7 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 		if (retval != ERROR_OK)
 			goto done;
 
-		if (ctrlstat & SSTICKYERR) {
-			retval = ERROR_JTAG_DEVICE_ERROR;
-			goto done;
-		}
+		retval = ERROR_JTAG_DEVICE_ERROR;
 	}
 
  done:

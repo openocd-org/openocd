@@ -2,6 +2,10 @@
  *   Driver for OpenJTAG Project (www.openjtag.org)                            *
  *   Compatible with libftdi and ftd2xx drivers.                               *
  *                                                                             *
+ *   Cypress CY7C65215 support                                                 *
+ *   Copyright (C) 2015 Vianney le Clément de Saint-Marcq, Essensium NV        *
+ *                      <vianney.leclement@essensium.com>                      *
+ *                                                                             *
  *   Copyright (C) 2010 by Ivan Meleca <mileca@gmail.com>                      *
  *                                                                             *
  *   Copyright (C) 2013 by Ryan Corbin, GlueLogix Inc. <corbin.ryan@gmail.com> *
@@ -41,7 +45,18 @@
 
 #include <jtag/interface.h>
 #include <jtag/commands.h>
-#include "usb_common.h"
+#include "libusb_common.h"
+
+static enum {
+	OPENJTAG_VARIANT_STANDARD,
+	OPENJTAG_VARIANT_CY7C65215,
+} openjtag_variant = OPENJTAG_VARIANT_STANDARD;
+
+static const char * const openjtag_variant_names[] = {
+	"standard",
+	"cy7c65215",
+	NULL
+};
 
 /*
  * OpenJTAG-OpenOCD state conversion
@@ -66,19 +81,8 @@ typedef enum openjtag_tap_state {
 	OPENJTAG_TAP_UPDATE_IR  = 15,
 } openjtag_tap_state_t;
 
-#if (BUILD_OPENJTAG_FTD2XX == 1 && BUILD_OPENJTAG_LIBFTDI == 1)
-#error "BUILD_OPENJTAG_FTD2XX && BUILD_OPENJTAG_LIBFTDI "
-	   "are mutually exclusive"
-#elif (BUILD_OPENJTAG_FTD2XX != 1 && BUILD_OPENJTAG_LIBFTDI != 1)
-#error "BUILD_OPENJTAG_FTD2XX || BUILD_OPENJTAG_LIBFTDI must be chosen"
-#endif
-
 /* OPENJTAG access library includes */
-#if BUILD_OPENJTAG_FTD2XX == 1
-#include <ftd2xx.h>
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 #include <ftdi.h>
-#endif
 
 /* OpenJTAG vid/pid */
 static uint16_t openjtag_vid = 0x0403;
@@ -86,12 +90,7 @@ static uint16_t openjtag_pid = 0x6001;
 
 static char *openjtag_device_desc;
 
-#if BUILD_OPENJTAG_FTD2XX == 1
-static FT_HANDLE ftdih;
-
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 static struct ftdi_context ftdic;
-#endif
 
 #define OPENJTAG_BUFFER_SIZE        504
 #define OPENJTAG_MAX_PENDING_RESULTS    256
@@ -112,10 +111,24 @@ static uint8_t usb_rx_buf[OPENJTAG_BUFFER_SIZE];
 static struct openjtag_scan_result openjtag_scan_result_buffer[OPENJTAG_MAX_PENDING_RESULTS];
 static int openjtag_scan_result_count;
 
-/* Openocd usb handler */
-struct openocd {
-	struct usb_dev_handle *usb_handle;
-};
+static jtag_libusb_device_handle *usbh;
+
+/* CY7C65215 model only */
+#define CY7C65215_JTAG_REQUEST  0x40  /* bmRequestType: vendor host-to-device */
+#define CY7C65215_JTAG_ENABLE   0xD0  /* bRequest: enable JTAG */
+#define CY7C65215_JTAG_DISABLE  0xD1  /* bRequest: disable JTAG */
+#define CY7C65215_JTAG_READ     0xD2  /* bRequest: read buffer */
+#define CY7C65215_JTAG_WRITE    0xD3  /* bRequest: write buffer */
+
+#define CY7C65215_USB_TIMEOUT   100
+
+static const uint16_t cy7c65215_vids[] = {0x04b4, 0};
+static const uint16_t cy7c65215_pids[] = {0x0007, 0};
+
+#define CY7C65215_JTAG_CLASS     0xff
+#define CY7C65215_JTAG_SUBCLASS  0x04
+
+static unsigned int ep_in, ep_out;
 
 #ifdef _DEBUG_USB_COMMS_
 
@@ -201,26 +214,9 @@ static int8_t openjtag_get_tap_state(int8_t state)
 	}
 }
 
-static int openjtag_buf_write(
+static int openjtag_buf_write_standard(
 	uint8_t *buf, int size, uint32_t *bytes_written)
 {
-#if BUILD_OPENJTAG_FTD2XX == 1
-	FT_STATUS status;
-	DWORD dw_bytes_written;
-
-#ifdef _DEBUG_USB_COMMS_
-	openjtag_debug_buffer(buf, size, DEBUG_TYPE_WRITE);
-#endif
-
-	status = FT_Write(ftdih, buf, size, &dw_bytes_written);
-	if (status != FT_OK) {
-		*bytes_written = dw_bytes_written;
-		LOG_ERROR("FT_Write returned: %u", status);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	*bytes_written = dw_bytes_written;
-	return ERROR_OK;
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	int retval;
 #ifdef _DEBUG_USB_COMMS_
 	openjtag_debug_buffer(buf, size, DEBUG_TYPE_WRITE);
@@ -236,36 +232,56 @@ static int openjtag_buf_write(
 	*bytes_written += retval;
 
 	return ERROR_OK;
-#endif
 }
 
-static int openjtag_buf_read(uint8_t *buf, uint32_t qty, uint32_t *bytes_read)
+static int openjtag_buf_write_cy7c65215(
+	uint8_t *buf, int size, uint32_t *bytes_written)
 {
-
-#if BUILD_OPENJTAG_FTD2XX == 1
-	DWORD dw_bytes_read;
-	FT_STATUS status;
-	int timeout = 50;
-
-	*bytes_read = 0;
-	while (qty && (*bytes_read < qty) && timeout--) {
-
-		status = FT_Read(ftdih, buf + *bytes_read,
-				qty - *bytes_read, &dw_bytes_read);
-		if (status != FT_OK) {
-			*bytes_read = dw_bytes_read;
-			LOG_ERROR("FT_Read returned: %u", status);
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-		*bytes_read += dw_bytes_read;
-	}
+	int ret;
 
 #ifdef _DEBUG_USB_COMMS_
-	openjtag_debug_buffer(buf, *bytes_read, DEBUG_TYPE_READ);
+	openjtag_debug_buffer(buf, size, DEBUG_TYPE_WRITE);
 #endif
 
+	if (size == 0) {
+		*bytes_written = 0;
+		return ERROR_OK;
+	}
+
+	ret = jtag_libusb_control_transfer(usbh, CY7C65215_JTAG_REQUEST,
+									   CY7C65215_JTAG_WRITE, size, 0,
+									   NULL, 0, CY7C65215_USB_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERROR("vendor command failed, error %d", ret);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	ret = jtag_libusb_bulk_write(usbh, ep_out, (char *)buf, size,
+								 CY7C65215_USB_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERROR("bulk write failed, error %d", ret);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+	*bytes_written = ret;
+
 	return ERROR_OK;
-#elif BUILD_OPENJTAG_LIBFTDI == 1
+}
+
+static int openjtag_buf_write(
+	uint8_t *buf, int size, uint32_t *bytes_written)
+{
+	switch (openjtag_variant) {
+	case OPENJTAG_VARIANT_CY7C65215:
+		return openjtag_buf_write_cy7c65215(buf, size, bytes_written);
+	default:
+		return openjtag_buf_write_standard(buf, size, bytes_written);
+	}
+}
+
+static int openjtag_buf_read_standard(
+	uint8_t *buf, uint32_t qty, uint32_t *bytes_read)
+{
+
 	int retval;
 	int timeout = 5;
 
@@ -287,8 +303,51 @@ static int openjtag_buf_read(uint8_t *buf, uint32_t qty, uint32_t *bytes_read)
 	openjtag_debug_buffer(buf, *bytes_read, DEBUG_TYPE_READ);
 #endif
 
-#endif
 	return ERROR_OK;
+}
+
+static int openjtag_buf_read_cy7c65215(
+	uint8_t *buf, uint32_t qty, uint32_t *bytes_read)
+{
+	int ret;
+
+	if (qty == 0) {
+		*bytes_read = 0;
+		goto out;
+	}
+
+	ret = jtag_libusb_control_transfer(usbh, CY7C65215_JTAG_REQUEST,
+									   CY7C65215_JTAG_READ, qty, 0,
+									   NULL, 0, CY7C65215_USB_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERROR("vendor command failed, error %d", ret);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+
+	ret = jtag_libusb_bulk_read(usbh, ep_in, (char *)buf, qty,
+								CY7C65215_USB_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERROR("bulk read failed, error %d", ret);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+	*bytes_read = ret;
+
+out:
+#ifdef _DEBUG_USB_COMMS_
+	openjtag_debug_buffer(buf, *bytes_read, DEBUG_TYPE_READ);
+#endif
+
+	return ERROR_OK;
+}
+
+static int openjtag_buf_read(uint8_t *buf, uint32_t qty, uint32_t *bytes_read)
+{
+	switch (openjtag_variant) {
+	case OPENJTAG_VARIANT_CY7C65215:
+		return openjtag_buf_read_cy7c65215(buf, qty, bytes_read);
+	default:
+		return openjtag_buf_read_standard(buf, qty, bytes_read);
+	}
 }
 
 static int openjtag_sendcommand(uint8_t cmd)
@@ -335,109 +394,17 @@ static int openjtag_speed(int speed)
 	return ERROR_OK;
 }
 
-static int openjtag_init(void)
+static int openjtag_init_standard(void)
 {
 	uint8_t latency_timer;
 
-#if BUILD_OPENJTAG_FTD2XX == 1
-	FT_STATUS status;
-#endif
-
-usb_tx_buf_offs = 0;
-usb_rx_buf_len = 0;
-openjtag_scan_result_count = 0;
-
-#if BUILD_OPENJTAG_FTD2XX == 1
-	LOG_DEBUG("'openjtag' interface using FTD2XX");
-#elif BUILD_OPENJTAG_LIBFTDI == 1
-	LOG_DEBUG("'openjtag' interface using libftdi");
-#endif
-
-/* Open by device description */
-if (openjtag_device_desc == NULL) {
-	LOG_WARNING("no openjtag device description specified, "
+	/* Open by device description */
+	if (openjtag_device_desc == NULL) {
+		LOG_WARNING("no openjtag device description specified, "
 				"using default 'Open JTAG Project'");
-	openjtag_device_desc = "Open JTAG Project";
-}
-
-#if BUILD_OPENJTAG_FTD2XX == 1
-
-#if IS_WIN32 == 0
-	/* Add non-standard Vid/Pid to the linux driver */
-	status = FT_SetVIDPID(openjtag_vid, openjtag_pid);
-	if (status != FT_OK) {
-		LOG_WARNING("couldn't add %4.4x:%4.4x",
-			openjtag_vid, openjtag_pid);
-	}
-#endif
-
-	status = FT_OpenEx(openjtag_device_desc, FT_OPEN_BY_DESCRIPTION,
-			&ftdih);
-	if (status != FT_OK) {
-		DWORD num_devices;
-
-		LOG_ERROR("unable to open ftdi device: %u", status);
-		status = FT_ListDevices(&num_devices, NULL,
-				FT_LIST_NUMBER_ONLY);
-		if (status == FT_OK) {
-			char **desc_array = malloc(sizeof(char *)
-						* (num_devices + 1));
-			unsigned int i;
-
-			for (i = 0; i < num_devices; i++)
-				desc_array[i] = malloc(64);
-			desc_array[num_devices] = NULL;
-
-			status = FT_ListDevices(desc_array, &num_devices,
-				FT_LIST_ALL | FT_OPEN_BY_DESCRIPTION);
-
-			if (status == FT_OK) {
-				LOG_ERROR("ListDevices: %u\n", num_devices);
-				for (i = 0; i < num_devices; i++)
-					LOG_ERROR("%i: %s", i, desc_array[i]);
-			}
-
-			for (i = 0; i < num_devices; i++)
-				free(desc_array[i]);
-			free(desc_array);
-		} else {
-			LOG_ERROR("ListDevices: NONE\n");
-		}
-		return ERROR_JTAG_INIT_FAILED;
+		openjtag_device_desc = "Open JTAG Project";
 	}
 
-	status = FT_SetLatencyTimer(ftdih, 2);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to set latency timer: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	status = FT_GetLatencyTimer(ftdih, &latency_timer);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to get latency timer: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-	LOG_DEBUG("current latency timer: %i", latency_timer);
-
-	status = FT_SetBitMode(ftdih, 0x00, 0x40);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to disable bit i/o mode: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	status = FT_SetTimeouts(ftdih, 50, 0);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to set timeouts: %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX);
-	if (status != FT_OK) {
-		LOG_ERROR("unable to FT_Purge() %u", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
@@ -470,38 +437,107 @@ if (openjtag_device_desc == NULL) {
 			ftdi_get_error_string(&ftdic));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-#endif
 
-#if BUILD_OPENJTAG_FTD2XX == 1
-	status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX);
-	if (status != FT_OK)
-		return ERROR_JTAG_INIT_FAILED;
-#elif BUILD_OPENJTAG_LIBFTDI == 1
 	if (ftdi_usb_purge_buffers(&ftdic) < 0) {
 		LOG_ERROR("ftdi_purge_buffers: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
-#endif
 
-	/* OpenJTAG speed */
-	openjtag_sendcommand(0xE0); /*Start at slowest adapter speed*/
+	return ERROR_OK;
+}
 
-	/* MSB */
-	openjtag_sendcommand(0x75);
+static int openjtag_init_cy7c65215(void)
+{
+	int ret;
+
+	usbh = NULL;
+	ret = jtag_libusb_open(cy7c65215_vids, cy7c65215_pids, NULL, &usbh);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("unable to open cy7c65215 device");
+		goto err;
+	}
+
+	ret = jtag_libusb_choose_interface(usbh, &ep_in, &ep_out,
+									   CY7C65215_JTAG_CLASS,
+									   CY7C65215_JTAG_SUBCLASS, -1, LIBUSB_TRANSFER_TYPE_BULK);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("unable to claim JTAG interface");
+		goto err;
+	}
+
+	ret = jtag_libusb_control_transfer(usbh,
+									   CY7C65215_JTAG_REQUEST,
+									   CY7C65215_JTAG_ENABLE,
+									   0, 0, NULL, 0, CY7C65215_USB_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERROR("could not enable JTAG module");
+		goto err;
+	}
+
+	return ERROR_OK;
+
+err:
+	if (usbh != NULL)
+		jtag_libusb_close(usbh);
+	return ERROR_JTAG_INIT_FAILED;
+}
+
+static int openjtag_init(void)
+{
+	int ret;
+
+	usb_tx_buf_offs = 0;
+	usb_rx_buf_len = 0;
+	openjtag_scan_result_count = 0;
+
+	switch (openjtag_variant) {
+	case OPENJTAG_VARIANT_CY7C65215:
+		ret = openjtag_init_cy7c65215();
+		break;
+	default:
+		ret = openjtag_init_standard();
+	}
+	if (ret != ERROR_OK)
+		return ret;
+
+	openjtag_speed(375); /* Start at slowest adapter speed */
+	openjtag_sendcommand(0x75); /* MSB */
+
+	return ERROR_OK;
+}
+
+static int openjtag_quit_standard(void)
+{
+	ftdi_usb_close(&ftdic);
+	ftdi_deinit(&ftdic);
+
+	return ERROR_OK;
+}
+
+static int openjtag_quit_cy7c65215(void)
+{
+	int ret;
+
+	ret = jtag_libusb_control_transfer(usbh,
+									   CY7C65215_JTAG_REQUEST,
+									   CY7C65215_JTAG_DISABLE,
+									   0, 0, NULL, 0, CY7C65215_USB_TIMEOUT);
+	if (ret < 0)
+		LOG_WARNING("could not disable JTAG module");
+
+	jtag_libusb_close(usbh);
 
 	return ERROR_OK;
 }
 
 static int openjtag_quit(void)
 {
-#if BUILD_OPENJTAG_FTD2XX == 1
-	FT_Close(ftdih);
-#elif BUILD_OPENJTAG_LIBFTDI == 1
-	ftdi_usb_close(&ftdic);
-	ftdi_deinit(&ftdic);
-#endif
-
-	return ERROR_OK;
+	switch (openjtag_variant) {
+	case OPENJTAG_VARIANT_CY7C65215:
+		return openjtag_quit_cy7c65215();
+	default:
+		return openjtag_quit_standard();
+	}
 }
 
 static void openjtag_write_tap_buffer(void)
@@ -536,8 +572,8 @@ static int openjtag_execute_tap_queue(void)
 
 			uint8_t *buffer = openjtag_scan_result_buffer[res_count].buffer;
 
-			while (len) {
-				if (len <= 8) {
+			while (len > 0) {
+				if (len <= 8 && openjtag_variant != OPENJTAG_VARIANT_CY7C65215) {
 					DEBUG_JTAG_IO("bits < 8 buf = 0x%X, will be 0x%X",
 						usb_rx_buf[rx_offs], usb_rx_buf[rx_offs] >> (8 - len));
 					buffer[count] = usb_rx_buf[rx_offs] >> (8 - len);
@@ -724,11 +760,14 @@ static void openjtag_execute_runtest(struct jtag_command *cmd)
 	if (cmd->cmd.runtest->num_cycles > 16)
 		LOG_WARNING("num_cycles > 16 on run test");
 
-	uint8_t command;
-	command = 7;
-	command |= ((cmd->cmd.runtest->num_cycles - 1) & 0x0F) << 4;
+	if (openjtag_variant != OPENJTAG_VARIANT_CY7C65215 ||
+		cmd->cmd.runtest->num_cycles) {
+		uint8_t command;
+		command = 7;
+		command |= ((cmd->cmd.runtest->num_cycles - 1) & 0x0F) << 4;
 
-	openjtag_add_byte(command);
+		openjtag_add_byte(command);
+	}
 
 	tap_set_end_state(end_state);
 	if (tap_get_end_state() != tap_get_state()) {
@@ -816,6 +855,24 @@ COMMAND_HANDLER(openjtag_handle_device_desc_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(openjtag_handle_variant_command)
+{
+	if (CMD_ARGC == 1) {
+		const char * const *name = openjtag_variant_names;
+		int variant = 0;
+		for (; *name; name++, variant++) {
+			if (strcasecmp(CMD_ARGV[0], *name) == 0) {
+				openjtag_variant = variant;
+				return ERROR_OK;
+			}
+		}
+		LOG_ERROR("unknown openjtag variant '%s'", CMD_ARGV[0]);
+	} else {
+		LOG_ERROR("require exactly one argument to "
+				"openjtag_variant <variant>");
+	}
+	return ERROR_OK;
+}
 
 static const struct command_registration openjtag_command_handlers[] = {
 	{
@@ -824,6 +881,13 @@ static const struct command_registration openjtag_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB device description of the OpenJTAG",
 		.usage = "description-string",
+	},
+	{
+		.name = "openjtag_variant",
+		.handler = openjtag_handle_variant_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the OpenJTAG variant",
+		.usage = "variant-string",
 	},
 	COMMAND_REGISTRATION_DONE
 };

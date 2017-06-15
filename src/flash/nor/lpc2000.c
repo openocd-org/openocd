@@ -259,6 +259,8 @@
 
 #define IAP_CODE_LEN 0x34
 
+#define LPC11xx_REG_SECTORS	24
+
 typedef enum {
 	lpc2000_v1,
 	lpc2000_v2,
@@ -554,14 +556,21 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			exit(-1);
 		}
 		lpc2000_info->cmd51_max_buffer = 512; /* smallest MCU in the series, LPC1110, has 1 kB of SRAM */
-		bank->num_sectors = bank->size / 4096;
+		unsigned int large_sectors = 0;
+		unsigned int normal_sectors = bank->size / 4096;
+
+		if (normal_sectors > LPC11xx_REG_SECTORS) {
+			large_sectors = (normal_sectors - LPC11xx_REG_SECTORS) / 8;
+			normal_sectors = LPC11xx_REG_SECTORS;
+		}
+
+		bank->num_sectors = normal_sectors + large_sectors;
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
 		for (int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
-			/* all sectors are 4kB-sized */
-			bank->sectors[i].size = 4 * 1024;
+			bank->sectors[i].size = (i < LPC11xx_REG_SECTORS ? 4 : 32) * 1024;
 			offset += bank->sectors[i].size;
 			bank->sectors[i].is_erased = -1;
 			bank->sectors[i].is_protected = 1;
@@ -679,7 +688,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 
 	int retval = target_write_memory(target, (*iap_working_area)->address, 4, 2, jump_gate);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Write memory at address 0x%8.8" PRIx32 " failed (check work_area definition)",
+		LOG_ERROR("Write memory at address 0x%8.8" TARGET_PRIxADDR " failed (check work_area definition)",
 				(*iap_working_area)->address);
 		target_free_working_area(target, *iap_working_area);
 	}

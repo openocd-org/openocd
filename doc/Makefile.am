@@ -1,13 +1,11 @@
-info_TEXINFOS = openocd.texi
-openocd_TEXINFOS = fdl.texi
-man_MANS = openocd.1
-EXTRA_DIST = openocd.1 \
-	manual \
-	INSTALL.txt
+info_TEXINFOS += %D%/openocd.texi
+%C%_openocd_TEXINFOS = %D%/fdl.texi
 
-MAINTAINERCLEANFILES = \
-	$(srcdir)/Makefile.in \
-	$(srcdir)/mdate-sh \
-	$(srcdir)/stamp-vti \
-	$(srcdir)/version.texi \
-	$(srcdir)/texinfo.tex
+dist_man_MANS += %D%/openocd.1
+
+EXTRA_DIST += %D%/manual
+
+MAINTAINERCLEANFILES += \
+	%D%/mdate-sh \
+	%D%/stamp-vti \
+	%D%/version.texi

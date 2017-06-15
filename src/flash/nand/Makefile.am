@@ -1,46 +1,43 @@
-include $(top_srcdir)/common.mk
+noinst_LTLIBRARIES += %D%/libocdflashnand.la
 
-noinst_LTLIBRARIES = libocdflashnand.la
-
-libocdflashnand_la_SOURCES = \
-	ecc.c \
-	ecc_kw.c \
-	core.c \
-	fileio.c \
-	tcl.c \
-	arm_io.c \
+%C%_libocdflashnand_la_SOURCES = \
+	%D%/ecc.c \
+	%D%/ecc_kw.c \
+	%D%/core.c \
+	%D%/fileio.c \
+	%D%/tcl.c \
+	%D%/arm_io.c \
 	$(NAND_DRIVERS) \
-	driver.c
+	%D%/driver.c \
+	$(NANDHEADERS)
 
 NAND_DRIVERS = \
-	nonce.c \
-	davinci.c \
-	lpc3180.c \
-	lpc32xx.c \
-	mxc.c \
-	mx3.c \
-	orion.c \
-	s3c24xx.c \
-	s3c2410.c \
-	s3c2412.c \
-	s3c2440.c \
-	s3c2443.c \
-	s3c6400.c \
-	at91sam9.c \
-	nuc910.c
+	%D%/nonce.c \
+	%D%/davinci.c \
+	%D%/lpc3180.c \
+	%D%/lpc32xx.c \
+	%D%/mxc.c \
+	%D%/mx3.c \
+	%D%/orion.c \
+	%D%/s3c24xx.c \
+	%D%/s3c2410.c \
+	%D%/s3c2412.c \
+	%D%/s3c2440.c \
+	%D%/s3c2443.c \
+	%D%/s3c6400.c \
+	%D%/at91sam9.c \
+	%D%/nuc910.c
 
-noinst_HEADERS = \
-	arm_io.h \
-	core.h \
-	driver.h \
-	fileio.h \
-	imp.h \
-	lpc3180.h \
-	lpc32xx.h \
-	mxc.h \
-	mx3.h \
-	s3c24xx.h \
-	s3c24xx_regs.h \
-	nuc910.h
-
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+NANDHEADERS = \
+	%D%/arm_io.h \
+	%D%/core.h \
+	%D%/driver.h \
+	%D%/fileio.h \
+	%D%/imp.h \
+	%D%/lpc3180.h \
+	%D%/lpc32xx.h \
+	%D%/mxc.h \
+	%D%/mx3.h \
+	%D%/s3c24xx.h \
+	%D%/s3c24xx_regs.h \
+	%D%/nuc910.h

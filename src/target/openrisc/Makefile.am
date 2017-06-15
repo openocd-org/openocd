@@ -1,18 +1,12 @@
-include $(top_srcdir)/common.mk
-
-noinst_LTLIBRARIES = libopenrisc.la
-libopenrisc_la_SOURCES = $(OPENRISC_SRC)
-
-OPENRISC_SRC = \
-	or1k.c \
-	or1k_du_adv.c \
-	or1k_tap_mohor.c \
-	or1k_tap_vjtag.c \
-	or1k_tap_xilinx_bscan.c \
-	jsp_server.c
-
-noinst_HEADERS = \
-	or1k.h \
-	or1k_du.h \
-	or1k_tap.h \
-	jsp_server.h
+noinst_LTLIBRARIES += %D%/libopenrisc.la
+%C%_libopenrisc_la_SOURCES = \
+	%D%/or1k.c \
+	%D%/or1k_du_adv.c \
+	%D%/or1k_tap_mohor.c \
+	%D%/or1k_tap_vjtag.c \
+	%D%/or1k_tap_xilinx_bscan.c \
+	%D%/jsp_server.c \
+	%D%/or1k.h \
+	%D%/or1k_du.h \
+	%D%/or1k_tap.h \
+	%D%/jsp_server.h

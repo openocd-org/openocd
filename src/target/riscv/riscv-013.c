@@ -11,13 +11,13 @@
 #include "config.h"
 #endif
 
-#include "target.h"
+#include "target/target.h"
 #include "target/algorithm.h"
-#include "target_type.h"
+#include "target/target_type.h"
 #include "log.h"
 #include "jtag/jtag.h"
-#include "register.h"
-#include "breakpoints.h"
+#include "target/register.h"
+#include "target/breakpoints.h"
 #include "helper/time_support.h"
 #include "riscv.h"
 #include "debug_defines.h"
@@ -34,7 +34,8 @@ static riscv_addr_t riscv013_progbuf_addr(struct target *target);
 static riscv_addr_t riscv013_progbuf_size(struct target *target);
 static riscv_addr_t riscv013_data_size(struct target *target);
 static riscv_addr_t riscv013_data_addr(struct target *target);
-static void riscv013_set_autoexec(struct target *target, int offset, bool enabled);
+static void riscv013_set_autoexec(struct target *target, unsigned index,
+		bool enabled);
 static int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr);
 static void riscv013_clear_abstract_error(struct target *target);
 
@@ -52,8 +53,10 @@ static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
 static void riscv013_debug_buffer_enter(struct target *target, struct riscv_program *p);
 static void riscv013_debug_buffer_leave(struct target *target, struct riscv_program *p);
-static void riscv013_write_debug_buffer(struct target *target, int i, riscv_insn_t d);
-static riscv_insn_t riscv013_read_debug_buffer(struct target *target, int i);
+static void riscv013_write_debug_buffer(struct target *target, unsigned index,
+		riscv_insn_t d);
+static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned
+		index);
 static int riscv013_execute_debug_buffer(struct target *target);
 static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d);
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
@@ -862,8 +865,8 @@ static int add_breakpoint(struct target *target,
 	if (breakpoint->type == BKPT_SOFT) {
 		if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
 					breakpoint->orig_instr) != ERROR_OK) {
-			LOG_ERROR("Failed to read original instruction at 0x%x",
-					breakpoint->address);
+			LOG_ERROR("Failed to read original instruction at 0x%"
+					TARGET_PRIxADDR, breakpoint->address);
 			return ERROR_FAIL;
 		}
 
@@ -874,8 +877,8 @@ static int add_breakpoint(struct target *target,
 			retval = target_write_u16(target, breakpoint->address, ebreak_c());
 		}
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%x",
-					breakpoint->length, breakpoint->address);
+			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
+					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
 			return ERROR_FAIL;
 		}
 
@@ -903,7 +906,8 @@ static int remove_breakpoint(struct target *target,
 		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
 					breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
-					"0x%x", breakpoint->length, breakpoint->address);
+					"0x%" TARGET_PRIxADDR, breakpoint->length,
+					breakpoint->address);
 			return ERROR_FAIL;
 		}
 
@@ -1203,7 +1207,7 @@ static int deassert_reset(struct target *target)
   return ERROR_OK;
 }
 
-static int read_memory(struct target *target, uint32_t address,
+static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	RISCV013_INFO(info);
@@ -1397,7 +1401,7 @@ static int read_memory(struct target *target, uint32_t address,
 	return ERROR_OK;
 }
 
-static int write_memory(struct target *target, uint32_t address,
+static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	RISCV013_INFO(info);
@@ -1770,14 +1774,14 @@ void riscv013_debug_buffer_leave(struct target *target, struct riscv_program *pr
 {
 }
 
-void riscv013_write_debug_buffer(struct target *target, int index, riscv_insn_t data)
+void riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
 {
 	if (index >= riscv013_progbuf_size(target))
 		return dmi_write(target, DMI_DATA0 + index - riscv013_progbuf_size(target), data);
 	return dmi_write(target, DMI_PROGBUF0 + index, data);
 }
 
-riscv_insn_t riscv013_read_debug_buffer(struct target *target, int index)
+riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 {
 	if (index >= riscv013_progbuf_size(target))
 		return dmi_read(target, DMI_DATA0 + index - riscv013_progbuf_size(target));
@@ -1958,22 +1962,22 @@ riscv_addr_t riscv013_data_addr(struct target *target)
 	return info->data_addr;
 }
 
-void riscv013_set_autoexec(struct target *target, int offset, bool enabled)
+void riscv013_set_autoexec(struct target *target, unsigned index, bool enabled)
 {
-	if (offset >= riscv013_progbuf_size(target)) {
-		LOG_DEBUG("setting bit %d in AUTOEXECDATA to %d", offset, enabled);
+	if (index >= riscv013_progbuf_size(target)) {
+		LOG_DEBUG("setting bit %d in AUTOEXECDATA to %d", index, enabled);
 		uint32_t aa = dmi_read(target, DMI_ABSTRACTAUTO);
 		uint32_t aa_aed = get_field(aa, DMI_ABSTRACTAUTO_AUTOEXECDATA);
-		aa_aed &= ~(1 << (offset - riscv013_progbuf_size(target)));
-		aa_aed |= (enabled << (offset - riscv013_progbuf_size(target)));
+		aa_aed &= ~(1 << (index - riscv013_progbuf_size(target)));
+		aa_aed |= (enabled << (index - riscv013_progbuf_size(target)));
 		aa = set_field(aa, DMI_ABSTRACTAUTO_AUTOEXECDATA, aa_aed);
 		dmi_write(target, DMI_ABSTRACTAUTO, aa);
 	} else {
-		LOG_DEBUG("setting bit %d in AUTOEXECPROGBUF to %d", offset, enabled);
+		LOG_DEBUG("setting bit %d in AUTOEXECPROGBUF to %d", index, enabled);
 		uint32_t aa = dmi_read(target, DMI_ABSTRACTAUTO);
 		uint32_t aa_aed = get_field(aa, DMI_ABSTRACTAUTO_AUTOEXECPROGBUF);
-		aa_aed &= ~(1 << offset);
-		aa_aed |= (enabled << offset);
+		aa_aed &= ~(1 << index);
+		aa_aed |= (enabled << index);
 		aa = set_field(aa, DMI_ABSTRACTAUTO_AUTOEXECPROGBUF, aa_aed);
 		dmi_write(target, DMI_ABSTRACTAUTO, aa);
 	}

@@ -363,6 +363,9 @@ static int samv_probe(struct flash_bank *bank)
 
 	uint8_t nvm_size_code = (device_id >> 8) & 0xf;
 	switch (nvm_size_code) {
+		case 10:
+			bank->size = 512 * 1024;
+			break;
 		case 12:
 			bank->size = 1024 * 1024;
 			break;

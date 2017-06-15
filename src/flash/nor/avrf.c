@@ -66,6 +66,7 @@ static const struct avrf_type avft_chips_info[] = {
  *			eeprom_page_size, eeprom_page_num
  */
 	{"atmega128", 0x9702, 256, 512, 8, 512},
+	{"atmega128rfa1", 0xa701, 128, 512, 8, 512},
 	{"at90can128", 0x9781, 256, 512, 8, 512},
 	{"at90usb128", 0x9782, 256, 512, 8, 512},
 	{"atmega164p", 0x940a, 128, 128, 4, 128},
