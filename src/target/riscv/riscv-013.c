@@ -1097,15 +1097,12 @@ static int examine(struct target *target)
 			r->xlen[i] = 64;
 		}
 
-		LOG_DEBUG("hart %d has XLEN=%d", i, r->xlen[i]);
-		LOG_DEBUG("found program buffer at 0x%08lx", (long)(r->debug_buffer_addr[i]));
-
 		if (riscv_program_gah(&program64, r->debug_buffer_addr[i])) {
 			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx\n", i, 
 					(long)r->debug_buffer_addr[i]);
 			abort();
 		}
-		
+
 		/* Check to see if we can use the data words as an extended
 		 * program buffer or not. */
 		if (r->debug_buffer_addr[i] + (4 * r->debug_buffer_size[i]) == riscv013_data_addr(target)) {
@@ -1132,10 +1129,15 @@ static int examine(struct target *target)
 	riscv_resume_all_harts(target);
 	target_set_examined(target);
 
-	// This print is used by some regression suites to know when
-	// they can connect with gdb/telnet.
-	// We will need to update those suites if we want to remove this line.
-	LOG_INFO("Examined RISC-V core");
+	// Some regression suites rely on seeing 'Examined RISC-V core' to know
+	// when they can connect with gdb/telnet.
+	// We will need to update those suites if we want to change that text.
+	LOG_INFO("Examined RISC-V core; found %d harts",
+			riscv_count_harts(target));
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64, i,
+				r->xlen[i], r->debug_buffer_addr[i]);
+	}
 	return ERROR_OK;
 }
 
