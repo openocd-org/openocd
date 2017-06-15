@@ -221,7 +221,8 @@ int mem_ap_read_u32(struct adiv5_ap *ap, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
 	 */
-	retval = mem_ap_setup_transfer(ap, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = mem_ap_setup_transfer(ap,
+			CSW_32BIT | (ap->csw_value & CSW_ADDRINC_MASK),
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
@@ -272,7 +273,8 @@ int mem_ap_write_u32(struct adiv5_ap *ap, uint32_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
-	retval = mem_ap_setup_transfer(ap, CSW_32BIT | CSW_ADDRINC_OFF,
+	retval = mem_ap_setup_transfer(ap,
+			CSW_32BIT | (ap->csw_value & CSW_ADDRINC_MASK),
 			address & 0xFFFFFFF0);
 	if (retval != ERROR_OK)
 		return retval;
