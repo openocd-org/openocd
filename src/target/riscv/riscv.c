@@ -172,18 +172,18 @@ enum {
 
 uint8_t ir_dtmcontrol[1] = {DTMCONTROL};
 struct scan_field select_dtmcontrol = {
-       .in_value = NULL,
-       .out_value = ir_dtmcontrol
+	.in_value = NULL,
+	.out_value = ir_dtmcontrol
 };
 uint8_t ir_dbus[1] = {DBUS};
 struct scan_field select_dbus = {
-       .in_value = NULL,
-       .out_value = ir_dbus
+	.in_value = NULL,
+	.out_value = ir_dbus
 };
 uint8_t ir_idcode[1] = {0x1};
 struct scan_field select_idcode = {
-       .in_value = NULL,
-       .out_value = ir_idcode
+	.in_value = NULL,
+	.out_value = ir_idcode
 };
 
 struct trigger {
@@ -309,10 +309,10 @@ static int oldriscv_step(struct target *target, int current, uint32_t address,
 }
 
 static int old_or_new_riscv_step(
-        struct target *target,
-        int current,
-        target_addr_t address,
-        int handle_breakpoints
+		struct target *target,
+		int current,
+		target_addr_t address,
+		int handle_breakpoints
 ){
 	RISCV_INFO(r);
 	if (r->is_halted == NULL)
@@ -326,7 +326,7 @@ static int riscv_examine(struct target *target)
 {
 	LOG_DEBUG("riscv_examine()");
 	if (target_was_examined(target)) {
-	  LOG_DEBUG("Target was already examined.\n");
+		LOG_DEBUG("Target was already examined.\n");
 		return ERROR_OK;
 	}
 
@@ -375,14 +375,14 @@ static int old_or_new_riscv_halt(struct target *target)
 
 static int oldriscv_assert_reset(struct target *target)
 {
-  LOG_DEBUG("RISCV ASSERT RESET");
+	LOG_DEBUG("RISCV ASSERT RESET");
 	struct target_type *tt = get_target_type(target);
 	return tt->assert_reset(target);
 }
 
 static int oldriscv_deassert_reset(struct target *target)
 {
-  LOG_DEBUG("RISCV DEASSERT RESET");
+	LOG_DEBUG("RISCV DEASSERT RESET");
 	struct target_type *tt = get_target_type(target);
 	return tt->deassert_reset(target);
 }
@@ -415,11 +415,11 @@ static int oldriscv_resume(struct target *target, int current, uint32_t address,
 }
 
 static int old_or_new_riscv_resume(
-        struct target *target,
-        int current,
-        target_addr_t address,
-        int handle_breakpoints,
-        int debug_execution
+		struct target *target,
+		int current,
+		target_addr_t address,
+		int handle_breakpoints,
+		int debug_execution
 ){
 	RISCV_INFO(r);
 	if (r->is_halted == NULL)
@@ -626,11 +626,11 @@ memory. Not yet implemented.
 */
 
 static int riscv_checksum_memory(struct target *target,
-			  target_addr_t address, uint32_t count,
-			  uint32_t* checksum)
+		target_addr_t address, uint32_t count,
+		uint32_t* checksum)
 {
-  *checksum = 0xFFFFFFFF;
-  return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	*checksum = 0xFFFFFFFF;
+	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
 /* Should run code on the target to check whether a memory
@@ -640,13 +640,13 @@ Not yet implemented.
 */
 int riscv_blank_check_memory(struct target * target,
 				target_addr_t address,
-			    uint32_t count,
-			    uint32_t * blank,
+				uint32_t count,
+				uint32_t * blank,
 				uint8_t erased_value)
 {
-  *blank = 0;
+	*blank = 0;
 
-  return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
 /*** OpenOCD Helper Functions ***/
@@ -760,11 +760,11 @@ int riscv_openocd_halt(struct target *target)
 }
 
 int riscv_openocd_resume(
-        struct target *target,
-        int current,
-        target_addr_t address,
-        int handle_breakpoints,
-        int debug_execution
+		struct target *target,
+		int current,
+		target_addr_t address,
+		int handle_breakpoints,
+		int debug_execution
 ) {
 	LOG_DEBUG("resuming all harts");
 
@@ -785,10 +785,10 @@ int riscv_openocd_resume(
 }
 
 int riscv_openocd_step(
-        struct target *target,
-        int current,
-        target_addr_t address,
-        int handle_breakpoints
+		struct target *target,
+		int current,
+		target_addr_t address,
+		int handle_breakpoints
 ) {
 	LOG_DEBUG("stepping rtos hart");
 
@@ -1026,9 +1026,9 @@ void riscv_set_current_hartid(struct target *target, int hartid)
 
 	/* Avoid invalidating the register cache all the time. */
 	if (r->registers_initialized
-	    && (!riscv_rtos_enabled(target) || (previous_hartid == hartid))
-	    && target->reg_cache->reg_list[GDB_REGNO_XPR0].size == (long)riscv_xlen(target)
-	    && (!riscv_rtos_enabled(target) || (r->rtos_hartid != -1))) {
+			&& (!riscv_rtos_enabled(target) || (previous_hartid == hartid))
+			&& target->reg_cache->reg_list[GDB_REGNO_XPR0].size == (long)riscv_xlen(target)
+			&& (!riscv_rtos_enabled(target) || (r->rtos_hartid != -1))) {
 		LOG_DEBUG("registers already initialized, skipping");
 		return;
 	} else
