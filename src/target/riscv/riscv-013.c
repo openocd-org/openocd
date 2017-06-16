@@ -1895,7 +1895,7 @@ static void riscv013_step_or_resume_current_hart(struct target *target, bool ste
 	if (riscv_program_exec(&program, target) != ERROR_OK)
 		abort();
 
-	/* Issue the halt command, and then wait for the current hart to halt. */
+	/* Issue the resume command, and then wait for the current hart to resume. */
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
