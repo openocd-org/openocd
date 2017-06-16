@@ -84,7 +84,7 @@
 /*
 * 0: Version described in spec version 0.11.
 *
-* 1: Version described in spec version 0.12 (and later?), which
+* 1: Version described in spec version 0.13 (and later?), which
 * reduces the DMI data width to 32 bits.
 *
 * Other values are reserved for future use.
@@ -110,7 +110,12 @@
 /*
 * When the debugger writes this field, it has the following meaning:
 *
-* 0: Ignore \Fdata. (nop)
+* 0: Ignore \Fdata and \Faddress. (nop)
+*
+* Don't send anything over the DMI during Update-DR.
+* This operation should never result in a busy or error response.
+* The address and data reported in the following Capture-DR
+* are undefined.
 *
 * 1: Read from \Faddress. (read)
 *
@@ -151,13 +156,11 @@
 /*
 * 0: There is no external debug support.
 *
-* 1: External debug support exists as it is described in this document.
-*
-* Other values are reserved for future standards.
+* 4: External debug support exists as it is described in this document.
  */
-#define CSR_DCSR_XDEBUGVER_OFFSET           30
-#define CSR_DCSR_XDEBUGVER_LENGTH           2
-#define CSR_DCSR_XDEBUGVER                  (0x3 << CSR_DCSR_XDEBUGVER_OFFSET)
+#define CSR_DCSR_XDEBUGVER_OFFSET           28
+#define CSR_DCSR_XDEBUGVER_LENGTH           4
+#define CSR_DCSR_XDEBUGVER                  (0xf << CSR_DCSR_XDEBUGVER_OFFSET)
 /*
 * When 1, {\tt ebreak} instructions in Machine Mode enter Debug Mode.
  */
@@ -230,8 +233,11 @@
 #define CSR_DCSR_CAUSE                      (0x7 << CSR_DCSR_CAUSE_OFFSET)
 /*
 * When set and not in Debug Mode, the hart will only execute a single
-* instruction, and then enter Debug Mode. Interrupts are disabled
-* when this bit is set.
+* instruction and then enter Debug Mode.
+* Interrupts are disabled when this bit is set.
+* If the instruction does not complete due to an exception,
+* the hart will immediately enter Debug Mode before executing
+* the trap handler, with appropriate exception registers set.
  */
 #define CSR_DCSR_STEP_OFFSET                2
 #define CSR_DCSR_STEP_LENGTH                1
@@ -255,16 +261,6 @@
 #define CSR_DPC_DPC                         (((1L<<XLEN)-1) << CSR_DPC_DPC_OFFSET)
 #define CSR_DSCRATCH0                       0x7b2
 #define CSR_DSCRATCH1                       0x7b3
-#define CSR_PRIV                            virtual
-/*
-* Contains the privilege level the hart was operating in when Debug
-* Mode was entered. The encoding is described in Table
-* \ref{tab:privlevel}. A user can write this value to change the
-* hart's privilege level when exiting Debug Mode.
- */
-#define CSR_PRIV_PRV_OFFSET                 0
-#define CSR_PRIV_PRV_LENGTH                 2
-#define CSR_PRIV_PRV                        (0x3 << CSR_PRIV_PRV_OFFSET)
 #define CSR_TSELECT                         0x7a0
 #define CSR_TSELECT_INDEX_OFFSET            0
 #define CSR_TSELECT_INDEX_LENGTH            XLEN
@@ -485,28 +481,28 @@
 #define CSR_ICOUNT_COUNT_LENGTH             14
 #define CSR_ICOUNT_COUNT                    (0x3fffL << CSR_ICOUNT_COUNT_OFFSET)
 /*
-* When set, every instruction completed in M mode decrements \Fcount
+* When set, every instruction completed or exception taken in M mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_M_OFFSET                 9
 #define CSR_ICOUNT_M_LENGTH                 1
 #define CSR_ICOUNT_M                        (0x1L << CSR_ICOUNT_M_OFFSET)
 /*
-* When set, every instruction completed in H mode decrements \Fcount
+* When set, every instruction completed or exception taken in in H mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_H_OFFSET                 8
 #define CSR_ICOUNT_H_LENGTH                 1
 #define CSR_ICOUNT_H                        (0x1L << CSR_ICOUNT_H_OFFSET)
 /*
-* When set, every instruction completed in S mode decrements \Fcount
+* When set, every instruction completed or exception taken in S mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_S_OFFSET                 7
 #define CSR_ICOUNT_S_LENGTH                 1
 #define CSR_ICOUNT_S                        (0x1L << CSR_ICOUNT_S_OFFSET)
 /*
-* When set, every instruction completed in U mode decrements \Fcount
+* When set, every instruction completed or exception taken in U mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_U_OFFSET                 6
@@ -619,29 +615,24 @@
 #define DMI_DMSTATUS_CFGSTRVALID_LENGTH     1
 #define DMI_DMSTATUS_CFGSTRVALID            (0x1 << DMI_DMSTATUS_CFGSTRVALID_OFFSET)
 /*
-* Reserved for future use. Reads as 0.
- */
-#define DMI_DMSTATUS_VERSIONHI_OFFSET       2
-#define DMI_DMSTATUS_VERSIONHI_LENGTH       2
-#define DMI_DMSTATUS_VERSIONHI              (0x3 << DMI_DMSTATUS_VERSIONHI_OFFSET)
-/*
-* 00: There is no Debug Module present.
+* 0: There is no Debug Module present.
 *
-* 01: There is a Debug Module and it conforms to version 0.11 of this
+* 1: There is a Debug Module and it conforms to version 0.11 of this
 * specification.
 *
-* 10: There is a Debug Module and it conforms to version 0.13 of this
+* 2: There is a Debug Module and it conforms to version 0.13 of this
 * specification.
-*
-* 11: Reserved for future use.
  */
-#define DMI_DMSTATUS_VERSIONLO_OFFSET       0
-#define DMI_DMSTATUS_VERSIONLO_LENGTH       2
-#define DMI_DMSTATUS_VERSIONLO              (0x3 << DMI_DMSTATUS_VERSIONLO_OFFSET)
+#define DMI_DMSTATUS_VERSION_OFFSET         0
+#define DMI_DMSTATUS_VERSION_LENGTH         4
+#define DMI_DMSTATUS_VERSION                (0xf << DMI_DMSTATUS_VERSION_OFFSET)
 #define DMI_DMCONTROL                       0x10
 /*
-* Halt request signal for all currently selected harts. When set to 1, the
-* hart will halt if it is not currently halted.
+* Halt request signal for all currently selected harts. When set to
+* 1, each selected hart will halt if it is not currently halted.
+*
+* Writing 1 or 0 has no effect on a hart which is already halted, but
+* the bit should be cleared to 0 before the hart is resumed.
 * Setting both \Fhaltreq and \Fresumereq leads to undefined behavior.
 *
 * Writes apply to the new value of \Fhartsel and \Fhasel.
@@ -651,7 +642,7 @@
 #define DMI_DMCONTROL_HALTREQ               (0x1 << DMI_DMCONTROL_HALTREQ_OFFSET)
 /*
 * Resume request signal for all currently selected harts. When set to 1,
-* the hart will resume if it is currently halted.
+* each selected hart will resume if it is currently halted.
 * Setting both \Fhaltreq and \Fresumereq leads to undefined behavior.
 *
 * Writes apply to the new value of \Fhartsel and \Fhasel.
@@ -698,8 +689,11 @@
 #define DMI_DMCONTROL_HARTSEL               (0x3ff << DMI_DMCONTROL_HARTSEL_OFFSET)
 /*
 * This bit controls the reset signal from the DM to the rest of the
-* system. To perform a reset the debugger writes 1, and then writes 0
-* to deassert the reset.
+* system. To perform a system reset the debugger writes 1,
+* and then writes 0
+* to deassert the reset. This bit must not reset the Debug Module
+* registers. What it does reset is platform-specific (it may
+* reset nothing).
  */
 #define DMI_DMCONTROL_NDMRESET_OFFSET       1
 #define DMI_DMCONTROL_NDMRESET_LENGTH       1
@@ -717,8 +711,8 @@
 * Debug Module after power up, including the platform's system reset
 * or Debug Transport reset signals.
 *
-* A debugger should pulse this bit low to ensure that the Debug
-* Module is fully reset and ready to use.
+* A debugger may pulse this bit low to get the debug module into a
+* known state.
 *
 * Implementations may use this bit to aid debugging, for example by
 * preventing the Debug Module from being power gated while debugging
@@ -899,8 +893,9 @@
 *
 * 0 (none): No error.
 *
-* 1 (busy): An abstract command was executing while \Rcommand or one
-* of the {\tt data} registers was accessed.
+* 1 (busy): An abstract command was executing while \Rcommand,
+* \Rabstractcs, \Rabstractauto was written, or when one
+* of the {\tt data} or {\tt progbuf} registers was read or written.
 *
 * 2 (not supported): The requested command is not supported. A
 * command that is not supported while the hart is running may be
@@ -919,7 +914,7 @@
 #define DMI_ABSTRACTCS_CMDERR               (0x7 << DMI_ABSTRACTCS_CMDERR_OFFSET)
 /*
 * Number of {\tt data} registers that are implemented as part of the
-* abstract command interface. Valid sizes are 0 - 8.
+* abstract command interface. Valid sizes are 0 - 12.
  */
 #define DMI_ABSTRACTCS_DATACOUNT_OFFSET     0
 #define DMI_ABSTRACTCS_DATACOUNT_LENGTH     5
@@ -1138,7 +1133,7 @@
 *
 * 3: There was some other error (eg. alignment).
 *
-* 4: The system bus master was busy when a one of the
+* 4: The system bus master was busy when one of the
 * {\tt sbaddress} or {\tt sbdata} registers was written,
 * or the {\tt sbdata} register was read when it had
 * stale data.
@@ -1396,7 +1391,10 @@
 #define AC_ACCESS_REGISTER_WRITE_LENGTH     1
 #define AC_ACCESS_REGISTER_WRITE            (0x1 << AC_ACCESS_REGISTER_WRITE_OFFSET)
 /*
-* Number of the register to access, as described in Table~\ref{tab:regno}.
+* Number of the register to access, as described in
+* Table~\ref{tab:regno}.
+* \Rdpc may be used as an alias for PC if this command is
+* supported on a non-halted hart.
  */
 #define AC_ACCESS_REGISTER_REGNO_OFFSET     0
 #define AC_ACCESS_REGISTER_REGNO_LENGTH     16
@@ -1408,3 +1406,13 @@
 #define AC_QUICK_ACCESS_CMDTYPE_OFFSET      24
 #define AC_QUICK_ACCESS_CMDTYPE_LENGTH      8
 #define AC_QUICK_ACCESS_CMDTYPE             (0xff << AC_QUICK_ACCESS_CMDTYPE_OFFSET)
+#define VIRT_PRIV                           virtual
+/*
+* Contains the privilege level the hart was operating in when Debug
+* Mode was entered. The encoding is described in Table
+* \ref{tab:privlevel}. A user can write this value to change the
+* hart's privilege level when exiting Debug Mode.
+ */
+#define VIRT_PRIV_PRV_OFFSET                0
+#define VIRT_PRIV_PRV_LENGTH                2
+#define VIRT_PRIV_PRV                       (0x3 << VIRT_PRIV_PRV_OFFSET)
