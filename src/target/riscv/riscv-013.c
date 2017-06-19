@@ -1155,6 +1155,11 @@ static int examine(struct target *target)
 			r->xlen[i] = 64;
 		}
 
+		/* Display this as early as possible to help people who are using
+		 * really slow simulators. */
+		LOG_DEBUG(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64, i,
+				r->xlen[i], r->debug_buffer_addr[i]);
+
 		if (riscv_program_gah(&program64, r->debug_buffer_addr[i])) {
 			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx\n", i, 
 					(long)r->debug_buffer_addr[i]);
