@@ -1285,6 +1285,8 @@ static int read_memory(struct target *target, target_addr_t address,
 			size, address);
 
 	select_dmi(target);
+	/* There was a bug in the memory system and only accesses from hart 0 actually
+	 * worked correctly.  This should be obselete now. -palmer */
 	riscv_set_current_hartid(target, 0);
 
 	/* This program uses two temporary registers.  A word of data and the
@@ -1481,6 +1483,8 @@ static int write_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
 	select_dmi(target);
+	/* There was a bug in the memory system and only accesses from hart 0 actually
+	 * worked correctly.  This should be obselete now. -palmer */
 	riscv_set_current_hartid(target, 0);
 
 	/* This program uses two temporary registers.  A word of data and the
