@@ -20,6 +20,7 @@
 #include "target/breakpoints.h"
 #include "helper/time_support.h"
 #include "riscv.h"
+#include "rtos/riscv_debug.h"
 #include "debug_defines.h"
 #include "rtos/rtos.h"
 #include "program.h"
@@ -1192,14 +1193,19 @@ static int examine(struct target *target)
 	riscv_resume_all_harts(target);
 	target_set_examined(target);
 
+	if (target->rtos) {
+		riscv_update_threads(target->rtos);
+	}
+
 	// Some regression suites rely on seeing 'Examined RISC-V core' to know
 	// when they can connect with gdb/telnet.
 	// We will need to update those suites if we want to change that text.
 	LOG_INFO("Examined RISC-V core; found %d harts",
 			riscv_count_harts(target));
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64, i,
-				r->xlen[i], r->debug_buffer_addr[i]);
+		LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64
+				", %d triggers", i, r->xlen[i], r->debug_buffer_addr[i],
+				r->trigger_count[i]);
 	}
 	return ERROR_OK;
 }
