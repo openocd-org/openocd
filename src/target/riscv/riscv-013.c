@@ -188,6 +188,56 @@ typedef struct {
 	int progbuf_size, progbuf_addr, data_addr, data_size;
 } riscv013_info_t;
 
+static void decode_dmi(char *text, unsigned address, unsigned data)
+{
+	text[0] = 0;
+	switch (address) {
+		case DMI_DMSTATUS:
+			if (get_field(data, DMI_DMSTATUS_ALLRESUMEACK)) {
+				strcat(text, " allresumeack");
+			}
+			if (get_field(data, DMI_DMSTATUS_ANYRESUMEACK)) {
+				strcat(text, " anyresumeack");
+			}
+			if (get_field(data, DMI_DMSTATUS_ALLNONEXISTENT)) {
+				strcat(text, " allnonexistent");
+			}
+			if (get_field(data, DMI_DMSTATUS_ANYNONEXISTENT)) {
+				strcat(text, " anynonexistent");
+			}
+			if (get_field(data, DMI_DMSTATUS_ALLUNAVAIL)) {
+				strcat(text, " allunavail");
+			}
+			if (get_field(data, DMI_DMSTATUS_ANYUNAVAIL)) {
+				strcat(text, " anyunavail");
+			}
+			if (get_field(data, DMI_DMSTATUS_ALLRUNNING)) {
+				strcat(text, " allrunning");
+			}
+			if (get_field(data, DMI_DMSTATUS_ANYRUNNING)) {
+				strcat(text, " anyrunning");
+			}
+			if (get_field(data, DMI_DMSTATUS_ALLHALTED)) {
+				strcat(text, " allhalted");
+			}
+			if (get_field(data, DMI_DMSTATUS_ANYHALTED)) {
+				strcat(text, " anyhalted");
+			}
+			if (get_field(data, DMI_DMSTATUS_AUTHENTICATED)) {
+				strcat(text, " authenticated");
+			}
+			if (get_field(data, DMI_DMSTATUS_AUTHBUSY)) {
+				strcat(text, " authbusy");
+			}
+			if (get_field(data, DMI_DMSTATUS_CFGSTRVALID)) {
+				strcat(text, " cfgstrvalid");
+			}
+			sprintf(text + strlen(text), " version=%d", get_field(data,
+						DMI_DMSTATUS_VERSION));
+			break;
+	}
+}
+
 static void dump_field(const struct scan_field *field)
 {
 	static const char *op_string[] = {"-", "r", "w", "?"};
@@ -213,6 +263,14 @@ static void dump_field(const struct scan_field *field)
 			op_string[out_op], out_data, out_address,
 			status_string[in_op], in_data, in_address);
 
+	char out_text[500];
+	char in_text[500];
+	decode_dmi(out_text, out_address, out_data);
+	decode_dmi(in_text, in_address, in_data);
+	if (in_text[0] || out_text[0]) {
+		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, "scan", "%s -> %s",
+				out_text, in_text);
+	}
 }
 
 static riscv013_info_t *get_info(const struct target *target)
@@ -985,9 +1043,9 @@ static int examine(struct target *target)
 
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
-	if (get_field(dmstatus, DMI_DMSTATUS_VERSIONLO) != 2) {
+	if (get_field(dmstatus, DMI_DMSTATUS_VERSION) != 2) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
-				"(dmstatus=0x%x)", get_field(dmstatus, DMI_DMSTATUS_VERSIONLO), dmstatus);
+				"(dmstatus=0x%x)", get_field(dmstatus, DMI_DMSTATUS_VERSION), dmstatus);
 		return ERROR_FAIL;
 	}
 
@@ -1097,15 +1155,17 @@ static int examine(struct target *target)
 			r->xlen[i] = 64;
 		}
 
-		LOG_DEBUG("hart %d has XLEN=%d", i, r->xlen[i]);
-		LOG_DEBUG("found program buffer at 0x%08lx", (long)(r->debug_buffer_addr[i]));
+		/* Display this as early as possible to help people who are using
+		 * really slow simulators. */
+		LOG_DEBUG(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64, i,
+				r->xlen[i], r->debug_buffer_addr[i]);
 
 		if (riscv_program_gah(&program64, r->debug_buffer_addr[i])) {
 			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx\n", i, 
 					(long)r->debug_buffer_addr[i]);
 			abort();
 		}
-		
+
 		/* Check to see if we can use the data words as an extended
 		 * program buffer or not. */
 		if (r->debug_buffer_addr[i] + (4 * r->debug_buffer_size[i]) == riscv013_data_addr(target)) {
@@ -1132,10 +1192,15 @@ static int examine(struct target *target)
 	riscv_resume_all_harts(target);
 	target_set_examined(target);
 
-	// This print is used by some regression suites to know when
-	// they can connect with gdb/telnet.
-	// We will need to update those suites if we want to remove this line.
-	LOG_INFO("Examined RISC-V core");
+	// Some regression suites rely on seeing 'Examined RISC-V core' to know
+	// when they can connect with gdb/telnet.
+	// We will need to update those suites if we want to change that text.
+	LOG_INFO("Examined RISC-V core; found %d harts",
+			riscv_count_harts(target));
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64, i,
+				r->xlen[i], r->debug_buffer_addr[i]);
+	}
 	return ERROR_OK;
 }
 
@@ -1893,7 +1958,7 @@ static void riscv013_step_or_resume_current_hart(struct target *target, bool ste
 	if (riscv_program_exec(&program, target) != ERROR_OK)
 		abort();
 
-	/* Issue the halt command, and then wait for the current hart to halt. */
+	/* Issue the resume command, and then wait for the current hart to resume. */
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
