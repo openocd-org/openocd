@@ -20,6 +20,7 @@
 #include "target/breakpoints.h"
 #include "helper/time_support.h"
 #include "riscv.h"
+#include "rtos/riscv_debug.h"
 #include "debug_defines.h"
 #include "rtos/rtos.h"
 #include "program.h"
@@ -578,6 +579,10 @@ static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value)
 {
 	struct riscv_program program;
+
+	LOG_DEBUG("[%d] reg[0x%x] <- 0x%" PRIx64, riscv_current_hartid(target),
+			number, value);
+
 	riscv_program_init(&program, target);
 
 	riscv_addr_t input = riscv_program_alloc_d(&program);
@@ -640,7 +645,8 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	*value = 0;
 	*value |= ((uint64_t)(riscv_program_read_ram(&program, output + 4))) << 32;
 	*value |= riscv_program_read_ram(&program, output);
-	LOG_DEBUG("register 0x%x = 0x%" PRIx64, number, *value);
+	LOG_DEBUG("[%d] reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
+			number, *value);
 	return ERROR_OK;
 }
 
@@ -793,6 +799,14 @@ static void deinit_target(struct target *target)
 static int add_trigger(struct target *target, struct trigger *trigger)
 {
 	riscv013_info_t *info = get_info(target);
+
+	// While we're using threads to fake harts, both gdb and OpenOCD assume
+	// that hardware breakpoints are shared among threads. Make this true by
+	// setting the same breakpoints on all harts.
+
+	// Assume that all triggers are configured the same on all harts.
+	riscv_set_current_hartid(target, 0);
+
 	maybe_read_tselect(target);
 
 	int i;
@@ -816,41 +830,58 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 			continue;
 		}
 
-		// address/data match trigger
-		tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
-		tdata1 = set_field(tdata1, MCONTROL_ACTION,
-				MCONTROL_ACTION_DEBUG_MODE);
-		tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
-		tdata1 |= MCONTROL_M;
-		if (info->misa & (1 << ('H' - 'A')))
-			tdata1 |= MCONTROL_H;
-		if (info->misa & (1 << ('S' - 'A')))
-			tdata1 |= MCONTROL_S;
-		if (info->misa & (1 << ('U' - 'A')))
-			tdata1 |= MCONTROL_U;
-
-		if (trigger->execute)
-			tdata1 |= MCONTROL_EXECUTE;
-		if (trigger->read)
-			tdata1 |= MCONTROL_LOAD;
-		if (trigger->write)
-			tdata1 |= MCONTROL_STORE;
-
-		register_write_direct(target, GDB_REGNO_TDATA1, tdata1);
-
 		uint64_t tdata1_rb;
-		register_read_direct(target, &tdata1_rb, GDB_REGNO_TDATA1);
-		LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
+		for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+			riscv_set_current_hartid(target, hartid);
 
-		if (tdata1 != tdata1_rb) {
-			LOG_DEBUG("Trigger %d doesn't support what we need; After writing 0x%"
-					PRIx64 " to tdata1 it contains 0x%" PRIx64,
-					i, tdata1, tdata1_rb);
-			register_write_direct(target, GDB_REGNO_TDATA1, 0);
-			continue;
+			if (hartid > 0) {
+				register_write_direct(target, GDB_REGNO_TSELECT, i);
+			}
+
+			// address/data match trigger
+			tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
+			tdata1 = set_field(tdata1, MCONTROL_ACTION,
+					MCONTROL_ACTION_DEBUG_MODE);
+			tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
+			tdata1 |= MCONTROL_M;
+			if (info->misa & (1 << ('H' - 'A')))
+				tdata1 |= MCONTROL_H;
+			if (info->misa & (1 << ('S' - 'A')))
+				tdata1 |= MCONTROL_S;
+			if (info->misa & (1 << ('U' - 'A')))
+				tdata1 |= MCONTROL_U;
+
+			if (trigger->execute)
+				tdata1 |= MCONTROL_EXECUTE;
+			if (trigger->read)
+				tdata1 |= MCONTROL_LOAD;
+			if (trigger->write)
+				tdata1 |= MCONTROL_STORE;
+
+			register_write_direct(target, GDB_REGNO_TDATA1, tdata1);
+
+			register_read_direct(target, &tdata1_rb, GDB_REGNO_TDATA1);
+			LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
+
+			if (tdata1 != tdata1_rb) {
+				LOG_DEBUG("Trigger %d doesn't support what we need; After writing 0x%"
+						PRIx64 " to tdata1 it contains 0x%" PRIx64,
+						i, tdata1, tdata1_rb);
+				register_write_direct(target, GDB_REGNO_TDATA1, 0);
+				if (hartid > 0) {
+					LOG_ERROR("Setting hardware breakpoints requires "
+							"homogeneous harts.");
+					return ERROR_FAIL;
+				}
+				break;
+			}
+
+			register_write_direct(target, GDB_REGNO_TDATA2, trigger->address);
 		}
 
-		register_write_direct(target, GDB_REGNO_TDATA2, trigger->address);
+		if (tdata1 != tdata1_rb) {
+			continue;
+		}
 
 		LOG_DEBUG("Using resource %d for bp %d", i,
 				trigger->unique_id);
@@ -869,6 +900,9 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 {
 	riscv013_info_t *info = get_info(target);
 
+	// Assume that all triggers are configured the same on all harts.
+	riscv_set_current_hartid(target, 0);
+
 	maybe_read_tselect(target);
 
 	int i;
@@ -883,8 +917,11 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
-	register_write_direct(target, GDB_REGNO_TSELECT, i);
-	register_write_direct(target, GDB_REGNO_TDATA1, 0);
+	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		riscv_set_current_hartid(target, hartid);
+		register_write_direct(target, GDB_REGNO_TSELECT, i);
+		register_write_direct(target, GDB_REGNO_TDATA1, 0);
+	}
 	info->trigger_unique_id[i] = -1;
 
 	return ERROR_OK;
@@ -1192,14 +1229,19 @@ static int examine(struct target *target)
 	riscv_resume_all_harts(target);
 	target_set_examined(target);
 
+	if (target->rtos) {
+		riscv_update_threads(target->rtos);
+	}
+
 	// Some regression suites rely on seeing 'Examined RISC-V core' to know
 	// when they can connect with gdb/telnet.
 	// We will need to update those suites if we want to change that text.
 	LOG_INFO("Examined RISC-V core; found %d harts",
 			riscv_count_harts(target));
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64, i,
-				r->xlen[i], r->debug_buffer_addr[i]);
+		LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64
+				", %d triggers", i, r->xlen[i], r->debug_buffer_addr[i],
+				r->trigger_count[i]);
 	}
 	return ERROR_OK;
 }
@@ -1279,6 +1321,8 @@ static int read_memory(struct target *target, target_addr_t address,
 			size, address);
 
 	select_dmi(target);
+	/* There was a bug in the memory system and only accesses from hart 0 actually
+	 * worked correctly.  This should be obselete now. -palmer */
 	riscv_set_current_hartid(target, 0);
 
 	/* This program uses two temporary registers.  A word of data and the
@@ -1475,6 +1519,8 @@ static int write_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
 	select_dmi(target);
+	/* There was a bug in the memory system and only accesses from hart 0 actually
+	 * worked correctly.  This should be obselete now. -palmer */
 	riscv_set_current_hartid(target, 0);
 
 	/* This program uses two temporary registers.  A word of data and the
