@@ -448,11 +448,12 @@ static int riscv_get_gdb_reg_list(struct target *target,
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("reg_class=%d", reg_class);
-	LOG_DEBUG("riscv_get_gdb_reg_list: rtos_hartid=%d current_hartid=%d", r->rtos_hartid, r->current_hartid);
-	if (r->rtos_hartid != -1)
+	LOG_DEBUG("rtos_hartid=%d current_hartid=%d", r->rtos_hartid, r->current_hartid);
+
+	if (r->rtos_hartid != -1 && riscv_rtos_enabled(target))
 		riscv_set_current_hartid(target, r->rtos_hartid);
 	else
-		riscv_set_current_hartid(target, 0);
+		riscv_set_current_hartid(target, target->coreid);
 
 	switch (reg_class) {
 		case REG_CLASS_GENERAL:
