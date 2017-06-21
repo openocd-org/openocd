@@ -832,6 +832,9 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 		uint64_t tdata1_rb;
 		for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+			if (!riscv_hart_enabled(target, i))
+				continue;
+
 			riscv_set_current_hartid(target, hartid);
 
 			if (hartid > 0) {
@@ -918,6 +921,9 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 	}
 	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
 	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
 		riscv_set_current_hartid(target, hartid);
 		register_write_direct(target, GDB_REGNO_TSELECT, i);
 		register_write_direct(target, GDB_REGNO_TDATA1, 0);
