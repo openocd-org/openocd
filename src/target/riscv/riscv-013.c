@@ -1123,17 +1123,23 @@ static int examine(struct target *target)
 
 	/* Before doing anything else we must first enumerate the harts. */
 	RISCV_INFO(r);
-	if (riscv_rtos_enabled(target)) {
-		for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
-			riscv_set_current_hartid(target, i);
-			uint32_t s = dmi_read(target, DMI_DMSTATUS);
-			if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT))
-				break;
-			r->hart_count = i + 1;
+	int original_coreid = target->coreid;
+	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
+		/* Fake being a non-RTOS targeted to this core so we can see if
+		 * it exists.  This avoids the assertion in
+		 * riscv_set_current_hartid() that ensures non-RTOS targets
+		 * don't touch the harts they're not assigned to.  */
+		target->coreid = i;
+		r->hart_count = i + 1;
+		riscv_set_current_hartid(target, i);
+
+		uint32_t s = dmi_read(target, DMI_DMSTATUS);
+		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT)) {
+			r->hart_count--;
+			break;
 		}
-	} else {
-		r->hart_count = 1;
 	}
+	target->coreid = original_coreid;
 
 	LOG_DEBUG("Enumerated %d harts", r->hart_count);
 
@@ -1233,6 +1239,7 @@ static int examine(struct target *target)
 
 	/* Resumes all the harts, so the debugger can later pause them. */
 	riscv_resume_all_harts(target);
+	target->state = TARGET_RUNNING;
 	target_set_examined(target);
 
 	if (target->rtos) {
