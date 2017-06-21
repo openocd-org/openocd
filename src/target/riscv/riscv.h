@@ -215,4 +215,7 @@ int riscv_dmi_write_u64_bits(struct target *target);
 /* Invalidates the register cache. */
 void riscv_invalidate_register_cache(struct target *target);
 
+/* Returns TRUE when a hart is enabled in this target. */
+bool riscv_hart_enabled(struct target *target, int hartid);
+
 #endif

@@ -1143,6 +1143,9 @@ static int examine(struct target *target)
 	/* Find the address of the program buffer, which must be done without
 	 * knowing anything about the target. */
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
 		riscv_set_current_hartid(target, i);
 
 		/* Without knowing anything else we can at least mess with the
@@ -1213,6 +1216,9 @@ static int examine(struct target *target)
 
 	/* Then we check the number of triggers availiable to each hart. */
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
 		for (uint32_t t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
 			riscv_set_current_hartid(target, i);
 
