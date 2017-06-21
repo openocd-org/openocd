@@ -872,11 +872,12 @@ struct target_type riscv_target =
 
 /*** RISC-V Interface ***/
 
-void riscv_info_init(riscv_info_t *r)
+void riscv_info_init(struct target *target, riscv_info_t *r)
 {
 	memset(r, 0, sizeof(*r));
 	r->dtm_version = 1;
 	r->registers_initialized = false;
+	r->current_hartid = target->coreid;
 
 	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h) {
 		r->xlen[h] = -1;
@@ -1068,10 +1069,7 @@ void riscv_invalidate_register_cache(struct target *target)
 int riscv_current_hartid(const struct target *target)
 {
 	RISCV_INFO(r);
-	if (riscv_rtos_enabled(target))
-		return r->current_hartid;
-	else
-		return target->coreid;
+	return r->current_hartid;
 }
 
 void riscv_set_all_rtos_harts(struct target *target)

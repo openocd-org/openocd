@@ -706,7 +706,7 @@ static int init_target(struct command_context *cmd_ctx,
 	LOG_DEBUG("init");
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 
-	riscv_info_init(generic_info);
+	riscv_info_init(target, generic_info);
 	generic_info->get_register = &riscv013_get_register;
 	generic_info->set_register = &riscv013_set_register;
 	generic_info->select_current_hart = &riscv013_select_current_hart;
