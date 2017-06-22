@@ -3024,16 +3024,16 @@ static void handle_md_output(struct command_context *cmd_ctx,
 	const char *value_fmt;
 	switch (size) {
 	case 8:
-		value_fmt = "%16.16llx ";
+		value_fmt = "%16.16"PRIx64" ";
 		break;
 	case 4:
-		value_fmt = "%8.8x ";
+		value_fmt = "%8.8"PRIx64" ";
 		break;
 	case 2:
-		value_fmt = "%4.4x ";
+		value_fmt = "%4.4"PRIx64" ";
 		break;
 	case 1:
-		value_fmt = "%2.2x ";
+		value_fmt = "%2.2"PRIx64" ";
 		break;
 	default:
 		/* "can't happen", caller checked */
