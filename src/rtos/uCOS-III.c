@@ -300,6 +300,11 @@ static int uCOS_III_update_threads(struct rtos *rtos)
 		return retval;
 	}
 
+	if (rtos_running != 1 && rtos_running != 0) {
+		LOG_ERROR("uCOS-III: invalid RTOS running value");
+		return ERROR_FAIL;
+	}
+
 	if (!rtos_running) {
 		rtos->thread_details = calloc(1, sizeof(struct thread_detail));
 		if (rtos->thread_details == NULL) {
