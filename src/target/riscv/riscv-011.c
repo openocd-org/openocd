@@ -764,10 +764,10 @@ static void cache_set32(struct target *target, unsigned int index, uint32_t data
 	if (info->dram_cache[index].valid &&
 			info->dram_cache[index].data == data) {
 		// This is already preset on the target.
-		LOG_DEBUG("cache[0x%x] = 0x%x (hit)", index, data);
+		LOG_DEBUG("cache[0x%x] = 0x%08x: DASM(0x%x) (hit)", index, data, data);
 		return;
 	}
-	LOG_DEBUG("cache[0x%x] = 0x%x", index, data);
+	LOG_DEBUG("cache[0x%x] = 0x%08x: DASM(0x%x)", index, data, data);
 	info->dram_cache[index].data = data;
 	info->dram_cache[index].valid = true;
 	info->dram_cache[index].dirty = true;
@@ -1033,6 +1033,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 
 static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 {
+	riscv011_info_t *info = get_info(target);
 	cache_set32(target, 0, csrr(S0, csr));
 	cache_set_store(target, 1, S0, SLOT0);
 	cache_set_jump(target, 2);
@@ -1041,6 +1042,13 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 	}
 	*value = cache_get(target, SLOT0);
 	LOG_DEBUG("csr 0x%x = 0x%" PRIx64, csr, *value);
+
+	uint32_t exception = cache_get32(target, info->dramsize-1);
+	if (exception) {
+		LOG_ERROR("Got exception 0x%x when reading CSR 0x%x", exception, csr);
+		*value = ~0;
+		return ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
