@@ -1246,30 +1246,30 @@ int riscv_dmi_write_u64_bits(struct target *target)
 
 COMMAND_HANDLER(riscv_test_compliance) {
 
-  //struct target *target = get_current_target(CMD_CTX);
-  //TODO: Create methods to check it's really RISC-V.
-  //struct riscv_target * riscv = (struct riscv_target*) target;
-  
+  struct target *target = get_current_target(CMD_CTX);
+
+  RISCV_INFO(r);
+
   if (CMD_ARGC > 0) {
-    if (strcmp(CMD_ARGV[0], "foo") == 0)
-      LOG_ERROR("FOO!");
-    if (strcmp(CMD_ARGV[0], "bar") == 0)
-      LOG_DEBUG("BAR!");
+      LOG_ERROR("Command does not take any parameters.");
+      return ERROR_FAIL;
+  }
+
+  if (r->test_compliance) {
+    return r->test_compliance(target);
   } else {
+    LOG_ERROR("This target does not support this command (may implement an older version of the spec).");
     return ERROR_FAIL;
   }
-  
-  return ERROR_OK;
-  
 }
 
 static const struct command_registration riscv_exec_command_handlers[] = {
   {
-    .name = "riscv_test_compliance",
+    .name = "test_compliance",
     .handler = riscv_test_compliance,
     .mode = COMMAND_EXEC,
-    .usage = "['foo'|'bar']",
-    .help = "foos and bars"
+    .usage = "",
+    .help = "Runs a basic compliance test suite against the RISC-V Debug Spec."
   },
   COMMAND_REGISTRATION_DONE
 };

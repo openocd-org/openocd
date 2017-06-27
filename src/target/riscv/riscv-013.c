@@ -64,6 +64,7 @@ static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
 static void riscv013_reset_current_hart(struct target *target);
+static int  riscv013_test_compliance(struct target *target);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -728,7 +729,8 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
 	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
 	generic_info->reset_current_hart = &riscv013_reset_current_hart;
-
+	generic_info->test_compliance = &riscv013_test_compliance;
+	
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -2107,4 +2109,19 @@ void riscv013_clear_abstract_error(struct target *target)
 {
 	uint32_t acs = dmi_read(target, DMI_ABSTRACTCS);
 	dmi_write(target, DMI_ABSTRACTCS, acs);
+}
+
+int riscv013_test_compliance(struct target *target) {
+  LOG_INFO("Testing Compliance against RISC-V Debug Spec v0.13");
+
+  int total_tests = 0;
+  int passed_tests = 0;
+
+  LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
+
+  if (total_tests == passed_tests) {
+    return ERROR_OK;
+  } else {
+    return ERROR_FAIL;
+  }
 }

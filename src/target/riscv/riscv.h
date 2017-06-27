@@ -92,6 +92,7 @@ typedef struct {
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
 	void (*reset_current_hart)(struct target *target);
+        int (*test_compliance)(struct target *target);
 } riscv_info_t;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
