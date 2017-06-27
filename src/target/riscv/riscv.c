@@ -833,6 +833,9 @@ int riscv_openocd_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
+// Declared below
+const struct command_registration riscv_command_handlers[];
+
 struct target_type riscv_target =
 {
 	.name = "riscv",
@@ -868,6 +871,8 @@ struct target_type riscv_target =
 	.arch_state = riscv_arch_state,
 
 	.run_algorithm = riscv_run_algorithm,
+
+        .commands = riscv_command_handlers
 };
 
 /*** RISC-V Interface ***/
@@ -1236,3 +1241,46 @@ int riscv_dmi_write_u64_bits(struct target *target)
 	RISCV_INFO(r);
 	return r->dmi_write_u64_bits(target);
 }
+
+/* Command Handlers */
+
+COMMAND_HANDLER(riscv_test_compliance) {
+
+  //struct target *target = get_current_target(CMD_CTX);
+  //TODO: Create methods to check it's really RISC-V.
+  //struct riscv_target * riscv = (struct riscv_target*) target;
+  
+  if (CMD_ARGC > 0) {
+    if (strcmp(CMD_ARGV[0], "foo") == 0)
+      LOG_ERROR("FOO!");
+    if (strcmp(CMD_ARGV[0], "bar") == 0)
+      LOG_DEBUG("BAR!");
+  } else {
+    return ERROR_FAIL;
+  }
+  
+  return ERROR_OK;
+  
+}
+
+static const struct command_registration riscv_exec_command_handlers[] = {
+  {
+    .name = "riscv_test_compliance",
+    .handler = riscv_test_compliance,
+    .mode = COMMAND_EXEC,
+    .usage = "['foo'|'bar']",
+    .help = "foos and bars"
+  },
+  COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration riscv_command_handlers[] = {
+  {
+    .name = "riscv",
+    .mode = COMMAND_ANY,
+    .help = "RISC-V Command Group",
+    .usage = "",
+    .chain = riscv_exec_command_handlers
+  },
+  COMMAND_REGISTRATION_DONE
+};
