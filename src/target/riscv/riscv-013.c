@@ -2111,12 +2111,167 @@ void riscv013_clear_abstract_error(struct target *target)
 	dmi_write(target, DMI_ABSTRACTCS, acs);
 }
 
+#define COMPLIANCE_TEST(b, message) {		\
+    int pass = 0;				\
+    if (b) {					\
+      pass = 1;					\
+      passed_tests ++;				\
+    }									\
+    LOG_INFO("%s test %d (%s)\n", (pass) ? "PASSED":"FAILED",  total_tests, message); \
+    total_tests ++;							\
+  }
+   
 int riscv013_test_compliance(struct target *target) {
   LOG_INFO("Testing Compliance against RISC-V Debug Spec v0.13");
+
+  if (!riscv_rtos_enabled(target)) {
+    LOG_ERROR("Please run with -rtos riscv to run compliance test.");
+    return ERROR_FAIL;
+  }
 
   int total_tests = 0;
   int passed_tests = 0;
 
+  uint32_t dmcontrol_orig = dmi_read(target, DMI_DMCONTROL);
+  uint32_t dmcontrol;
+  uint32_t testvar;
+  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTSEL, RISCV_MAX_HARTS-1);
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  dmcontrol = dmi_read(target, DMI_DMCONTROL);
+  COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_HARTSEL) == (RISCV_MAX_HARTS-1), "DMCONTROL.hartsel should hold MAX_HARTS - 1");
+
+  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTSEL, 0);
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  dmcontrol = dmi_read(target, DMI_DMCONTROL);
+  COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_HARTSEL) == 0, "DMCONTROL.hartsel should hold Hart ID 0");
+
+  // hartreset
+  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 1);
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  dmcontrol = dmi_read(target, DMI_DMCONTROL);
+  testvar = get_field(dmcontrol, DMI_DMCONTROL_HARTRESET);
+  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 1);
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  dmcontrol = dmi_read(target, DMI_DMCONTROL);
+  COMPLIANCE_TEST(((testvar == 0) || (get_field(dmcontrol, DMI_DMCONTROL_HARTRESET)) == 0), "DMCONTROL.hartreset can be 0 or RW.");
+
+  // hasel
+  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 1);
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  dmcontrol = dmi_read(target, DMI_DMCONTROL);
+  testvar = get_field(dmcontrol, DMI_DMCONTROL_HASEL);
+  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 1);
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  dmcontrol = dmi_read(target, DMI_DMCONTROL);
+  COMPLIANCE_TEST(((testvar == 0) || (get_field(dmcontrol, DMI_DMCONTROL_HASEL)) == 0), "DMCONTROL.hasel can be 0 or RW.");
+  //TODO: test that hamask registers exist if hasel does.
+  
+  // TODO: ndmreset
+  
+  // TODO: dmactive
+
+  // haltreq
+  riscv_halt_all_harts(target);
+  // TODO: resumereq
+
+  // HARTINFO: Read-Only. This is per-hart, so need to adjust hartsel.
+  for (uint32_t hartsel = 0; hartsel < riscv_count_harts(target); hartsel++){
+    riscv_set_current_hartid(target, hartsel);
+    uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+    if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT)) {
+      break;
+    }
+    
+    uint32_t hartinfo = dmi_read(target, DMI_HARTINFO);
+    dmi_write (target, DMI_HARTINFO, ~hartinfo);
+    COMPLIANCE_TEST((dmi_read(target, DMI_HARTINFO) == hartinfo), "DMHARTINFO should be Read-Only.");
+    
+    uint32_t nscratch = get_field(hartinfo, DMI_HARTINFO_NSCRATCH);
+    for (int d = 0; d < nscratch; d++) {
+
+      for (testvar = 0x00112233; testvar != 0xDEAD ; testvar = testvar == 0x00112233 ? ~testvar : 0xDEAD ) {
+	
+	struct riscv_program program32;
+	riscv_program_init(&program32, target);
+	riscv_addr_t addr_in  = riscv_program_alloc_x(&program32);
+	riscv_addr_t addr_out = riscv_program_alloc_x(&program32);
+	
+	riscv_program_write_ram(&program32, addr_in, testvar);
+	if (riscv_xlen(target) > 32) {
+	  riscv_program_write_ram(&program32, addr_in + 4, testvar);
+	}
+	
+	riscv_program_lx(&program32, GDB_REGNO_S0, addr_in); 
+	riscv_program_csrrw(&program32, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
+	riscv_program_csrrw(&program32, GDB_REGNO_S1, GDB_REGNO_S1, GDB_REGNO_DSCRATCH);
+	riscv_program_sx(&program32, GDB_REGNO_S1, addr_out); 
+	riscv_program_fence(&program32);
+	COMPLIANCE_TEST(riscv_program_exec(&program32, target) == ERROR_OK, "Accessing DSCRATCH with program buffer should succeed.");
+	
+	COMPLIANCE_TEST(riscv_program_read_ram(&program32, addr_out) == testvar, "All DSCRATCH registers in HARTINFO must be R/W.");
+	if (riscv_xlen(target) > 32) {
+	  COMPLIANCE_TEST(riscv_program_read_ram(&program32, addr_out + 4) == testvar, "All DSCRATCH registers in HARTINFO must be R/W.");
+	}
+      }
+    }
+    
+    // TODO: dataaccess
+    if (get_field(hartinfo, DMI_HARTINFO_DATAACCESS)) {
+      // TODO: Shadowed in memory map.
+      // TODO: datasize
+      // TODO: dataaddr
+    } else {
+      // TODO: Shadowed in CSRs.
+      // TODO: datasize
+      // TODO: dataaddr
+    }
+    
+  }
+
+  // HALTSUM
+  uint32_t expected_haltsum = 0;
+  for (unsigned int i = 0; i < riscv_count_harts(target); i +=32){
+    expected_haltsum |= (1 << (i / 32));
+  }
+  COMPLIANCE_TEST(dmi_read(target, DMI_HALTSUM) == expected_haltsum, "HALTSUM should report all halted harts");
+
+  // TODO: HAWINDOWSEL
+  // TODO: HAWINDOW
+
+  // ABSTRACTCS
+
+  uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+
+  // Check that all reported Data Words are really R/W
+  for (int invert = 0; invert < 2; invert++) {
+    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT); i ++){
+      testvar = (i + 1) * 0x11111111;
+      if (invert) {testvar = ~testvar;}
+      dmi_write(target, DMI_DATA0 + i, testvar);
+    }
+    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT); i ++){
+      testvar = (i + 1) * 0x11111111;
+      if (invert) {testvar = ~testvar;}
+      COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == testvar, "All reported DATA words must be R/W");
+    }
+  }
+  
+  // Check that all reported ProgBuf words are really R/W
+  for (int invert = 0; invert < 2; invert++) {
+    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
+      testvar = (i + 1) * 0x11111111;
+      if (invert) {testvar = ~testvar;}
+      dmi_write(target, DMI_PROGBUF0 + i, testvar);
+    }
+    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
+      testvar = (i + 1) * 0x11111111;
+      if (invert) {testvar = ~testvar;}
+      COMPLIANCE_TEST(dmi_read(target, DMI_PROGBUF0 + i) == testvar, "All reported PROGBUF words must be R/W");
+    }
+  }
+
+  // TODO: Cause and clear all error types
+  
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
 
   if (total_tests == passed_tests) {
