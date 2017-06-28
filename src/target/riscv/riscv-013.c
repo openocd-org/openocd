@@ -2402,17 +2402,23 @@ int riscv013_test_compliance(struct target *target) {
   // Core Register Tests
   for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel ++){
     riscv_set_current_hartid(target, hartsel);
+
     // DCSR Tests
     riscv_set_register(target, GDB_REGNO_DCSR, 0x0);
     COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DCSR) != 0,  "Not all bits in DCSR are writable by Debugger");
     riscv_set_register(target, GDB_REGNO_DCSR, 0xFFFFFFFF);
     COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DCSR) != 0,  "At least some bits in DCSR must be 1");
+
     // DPC
     uint64_t testvar64 = 0xAAAAAAAAAAAAAAAAUL;
+    uint64_t dpcmask = 0xFFFFFFFFFFFFFFFFUL;
+    riscv_set_register(target, GDB_REGNO_DPC, dpcmask);
+    dpcmask = riscv_get_register(target, GDB_REGNO_PC);
+    COMPLIANCE_TEST(dpcmask >= 0xFFFFFFFF, "DPC must hold at least 32 bits (may hold more but hard to tell how many)"); 
     riscv_set_register(target, GDB_REGNO_DPC, testvar64);
-    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DPC) == testvar64, "DPC must be writable.");
+    COMPLIANCE_TEST((riscv_get_register(target, GDB_REGNO_DPC) & dpcmask) == (testvar64 & dpcmask), "DPC must be writable.");
     riscv_set_register(target, GDB_REGNO_DPC, ~testvar64);
-    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DPC) == ~testvar64, "DPC must be writable");
+    COMPLIANCE_TEST((riscv_get_register(target, GDB_REGNO_DPC) & dpcmask) == ((~testvar64) & dpcmask), "DPC must be writable");
   }
   
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
