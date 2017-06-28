@@ -1807,7 +1807,7 @@ static void riscv013_halt_current_hart(struct target *target)
 
 	/* Issue the halt command, and then wait for the current hart to halt. */
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 1);
+	dmcontrol |= DMI_DMCONTROL_HALTREQ;
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	for (size_t i = 0; i < 256; ++i)
 		if (riscv_is_halted(target))
@@ -1823,7 +1823,7 @@ static void riscv013_halt_current_hart(struct target *target)
 		abort();
 	}
 
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 0);
+	dmcontrol &= ~DMI_DMCONTROL_HALTREQ;
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 }
 
@@ -1963,7 +1963,7 @@ void riscv013_reset_current_hart(struct target *target)
 	select_dmi(target);
 	uint32_t control = dmi_read(target, DMI_DMCONTROL);
 	control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
-	control = set_field(control, DMI_DMCONTROL_HALTREQ, 1);
+	control |= DMI_DMCONTROL_HALTREQ;
 	dmi_write(target, DMI_DMCONTROL, control);
 
 	control = set_field(control, DMI_DMCONTROL_NDMRESET, 0);
@@ -1971,7 +1971,7 @@ void riscv013_reset_current_hart(struct target *target)
 
 	while (get_field(dmi_read(target, DMI_DMSTATUS), DMI_DMSTATUS_ALLHALTED) == 0);
 
-	control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
+        control &= ~DMI_DMCONTROL_HALTREQ; 
 	dmi_write(target, DMI_DMCONTROL, control);
 }
 
@@ -2118,6 +2118,7 @@ void riscv013_clear_abstract_error(struct target *target)
       passed_tests ++;				\
     }									\
     LOG_INFO("%s test %d (%s)\n", (pass) ? "PASSED":"FAILED",  total_tests, message); \
+    assert(pass);							\
     total_tests ++;							\
   }
    
@@ -2172,22 +2173,46 @@ int riscv013_test_compliance(struct target *target) {
 
   // haltreq
   riscv_halt_all_harts(target);
-  // TODO: resumereq
+  // Writing haltreq should not cause any problems for a halted hart, but we
+  // should be able to read and write it.
+  dmcontrol = dmi_read(target, DMI_DMCONTROL);
+  dmcontrol |= DMI_DMCONTROL_HALTREQ;
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  COMPLIANCE_TEST(dmi_read(target, DMI_DMCONTROL) & DMI_DMCONTROL_HALTREQ, "DMCONTROL.haltreq should be R/W");
+  uint32_t dmstatus;
+  do {
+    dmstatus = dmi_read(target, DMI_DMSTATUS);
+  } while ((dmstatus & DMI_DMSTATUS_ALLHALTED) == 0);
 
+  // resumereq. This will resume the hart but this test is destructive anyway.
+  dmcontrol &= ~DMI_DMCONTROL_HALTREQ;
+  dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_DMCONTROL), DMI_DMCONTROL_RESUMEREQ) == 1, "DMCONTROL.resumereq should be R/W");
+
+  do {
+    dmstatus = dmi_read(target, DMI_DMSTATUS);
+  } while (get_field(dmstatus, DMI_DMSTATUS_ALLRESUMEACK) == 0);
+  
+  // Halt the hart again because the target isn't aware that we resumed it.
+  dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 0);
+  dmcontrol |= DMI_DMCONTROL_HALTREQ;
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  do {
+    dmstatus = dmi_read(target, DMI_DMSTATUS);
+  } while ((dmstatus & DMI_DMSTATUS_ALLHALTED) == 0);
+
+  
   // HARTINFO: Read-Only. This is per-hart, so need to adjust hartsel.
-  for (uint32_t hartsel = 0; hartsel < riscv_count_harts(target); hartsel++){
+  for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++){
     riscv_set_current_hartid(target, hartsel);
-    uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
-    if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT)) {
-      break;
-    }
     
     uint32_t hartinfo = dmi_read(target, DMI_HARTINFO);
     dmi_write (target, DMI_HARTINFO, ~hartinfo);
     COMPLIANCE_TEST((dmi_read(target, DMI_HARTINFO) == hartinfo), "DMHARTINFO should be Read-Only.");
     
     uint32_t nscratch = get_field(hartinfo, DMI_HARTINFO_NSCRATCH);
-    for (int d = 0; d < nscratch; d++) {
+    for (unsigned int d = 0; d < nscratch; d++) {
 
       for (testvar = 0x00112233; testvar != 0xDEAD ; testvar = testvar == 0x00112233 ? ~testvar : 0xDEAD ) {
 	
@@ -2230,12 +2255,19 @@ int riscv013_test_compliance(struct target *target) {
 
   // HALTSUM
   uint32_t expected_haltsum = 0;
-  for (unsigned int i = 0; i < riscv_count_harts(target); i +=32){
+  for (int i = 0; i < riscv_count_harts(target); i +=32){
     expected_haltsum |= (1 << (i / 32));
   }
   COMPLIANCE_TEST(dmi_read(target, DMI_HALTSUM) == expected_haltsum, "HALTSUM should report all halted harts");
 
+  for (int i = 0; i < riscv_count_harts(target); i +=32){
+    uint32_t haltstat =  dmi_read(target, 0x40 + (i / 32));
+    uint32_t haltstat_expected = (((i + 1) * 32) <= riscv_count_harts(target)) ? 0xFFFFFFFF : ((1 << (riscv_count_harts(target) % 32)) - 1);
+    COMPLIANCE_TEST(haltstat == haltstat_expected, "Halt Status Registers should report all halted harts.");
+  }
+
   // TODO: HAWINDOWSEL
+  
   // TODO: HAWINDOW
 
   // ABSTRACTCS
@@ -2271,6 +2303,69 @@ int riscv013_test_compliance(struct target *target) {
   }
 
   // TODO: Cause and clear all error types
+
+  // COMMAND
+  // TODO: Unclear from the spec whether all these bits need to truly be R/W. 
+  // But at any rate, this is not legal and should cause an error.
+  dmi_write(target, DMI_COMMAND, 0xAAAAAAAA);
+  COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0xAAAAAAAA, "COMMAND register should be R/W");
+  uint32_t result = dmi_read(target, DMI_ABSTRACTCS);
+  LOG_INFO("result is %x", result);
+  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == 0x2, "Illegal COMMAND should result in UNSUPPORTED");
+  dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+  dmi_write(target, DMI_COMMAND, 0x55555555);
+  COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0x55555555, "COMMAND register should be R/W");
+  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == 0x2, "Illegal COMMAND should result in UNSUPPORTED");
+  dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+
+  // ABSTRACTAUTO
+  // See which bits are actually writable
+  dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
+  uint32_t abstractauto = dmi_read(target, DMI_ABSTRACTAUTO);
+  if (abstractauto > 0) {
+    testvar = 0;
+    // TODO: This mechanism only works when you have a reasonable sized progbuf, which is not 
+    // a true compliance requirement.
+    struct riscv_program program;
+    riscv_program_init(&program, target);
+    riscv_addr_t addr = riscv_program_alloc_x(&program);
+    riscv_program_lx(&program, GDB_REGNO_S0, addr);
+    riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, 1);
+    riscv_program_sx(&program, GDB_REGNO_S0, addr);
+    riscv_program_write_ram(&program, addr + 4, 0);
+    if (riscv_xlen(target) > 32) {
+      riscv_program_write_ram(&program, addr, 0);
+    }
+    dmi_write(target, DMI_ABSTRACTAUTO, 0x0);
+    riscv_program_exec(&program, target);
+    testvar ++;
+    dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
+    abstractauto = dmi_read(target, DMI_ABSTRACTAUTO);
+    uint32_t autoexec_data = get_field(abstractauto, DMI_ABSTRACTAUTO_AUTOEXECDATA);
+    uint32_t autoexec_progbuf = get_field(abstractauto, DMI_ABSTRACTAUTO_AUTOEXECPROGBUF);
+    for (unsigned int i = 0; i < 12; i ++){
+      dmi_read(target, DMI_DATA0 + i);
+      while(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY));
+      if (autoexec_data & (1 << i)) {
+	COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT), "AUTOEXEC may be writable up to DATACOUNT bits.");
+	testvar ++;
+      }
+    }
+    for (unsigned int i = 0; i < 16; i ++){
+      dmi_read(target, DMI_PROGBUF0 + i);
+      while(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY));
+      if (autoexec_progbuf & (1 << i)) {
+	COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE), "AUTOEXEC may be writable up to PROGSIZE bits.");
+	testvar ++;
+      }
+    }
+
+    dmi_write(target, DMI_ABSTRACTAUTO, 0);
+    int d_addr = (addr - riscv_debug_buffer_addr(target))/4 ;
+    
+    COMPLIANCE_TEST(testvar == riscv_read_debug_buffer_x(target, d_addr), \
+		    "ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
+  }
   
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
 
