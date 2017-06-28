@@ -2310,14 +2310,44 @@ int riscv013_test_compliance(struct target *target) {
   dmi_write(target, DMI_COMMAND, 0xAAAAAAAA);
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0xAAAAAAAA, "COMMAND register should be R/W");
   uint32_t result = dmi_read(target, DMI_ABSTRACTCS);
-  LOG_INFO("result is %x", result);
-  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == 0x2, "Illegal COMMAND should result in UNSUPPORTED");
+  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
+		  "Illegal COMMAND should result in UNSUPPORTED");
   dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
   dmi_write(target, DMI_COMMAND, 0x55555555);
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0x55555555, "COMMAND register should be R/W");
-  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == 0x2, "Illegal COMMAND should result in UNSUPPORTED");
+  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
+		  "Illegal COMMAND should result in UNSUPPORTED");
   dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 
+  // Basic Abstract Commands
+  uint32_t command = 0;
+  uint32_t busy;
+  command = set_field(command, AC_ACCESS_REGISTER_SIZE, riscv_xlen(target) > 32 ? 3:2);
+  command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
+  for (int i = 1 ; i < 32 ; i = i << 1) {
+    command = set_field(command, AC_ACCESS_REGISTER_REGNO, 0x1000 + GDB_REGNO_X0 + i);
+    command = set_field(command, AC_ACCESS_REGISTER_WRITE, 1);
+    dmi_write(target, DMI_DATA0, i);
+    if (riscv_xlen(target) > 32) {
+      dmi_write(target, DMI_DATA0 + 1, i + 1);
+    }
+    dmi_write(target, DMI_COMMAND, command);
+    do { busy = get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY);} while (busy);
+    COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == 0, "GPR Writes should be supported.");
+    dmi_write(target, DMI_DATA0, 0xDEADBEEF);
+    if (riscv_xlen(target) > 32) {
+      dmi_write(target, DMI_DATA0 + 1, 0xDEADBEEF);
+    }
+    command = set_field(command, AC_ACCESS_REGISTER_WRITE, 0);
+    dmi_write(target, DMI_COMMAND, command);
+    do { busy = get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY);} while (busy);
+    COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == 0, "GPR Reads should be supported.");
+    COMPLIANCE_TEST(dmi_read(target, DMI_DATA0) == i, "GPR Reads and writes should be supported.");
+    if (riscv_xlen(target) > 32) {
+      COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + 1) == (i + 1), "GPR Reads and writes should be supported.");
+    }
+  }
+  
   // ABSTRACTAUTO
   // See which bits are actually writable
   dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
@@ -2347,7 +2377,7 @@ int riscv013_test_compliance(struct target *target) {
     uint32_t autoexec_progbuf = get_field(abstractauto, DMI_ABSTRACTAUTO_AUTOEXECPROGBUF);
     for (unsigned int i = 0; i < 12; i ++){
       dmi_read(target, DMI_DATA0 + i);
-      while(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY));
+      do { busy = get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY);} while (busy);
       if (autoexec_data & (1 << i)) {
 	COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT), "AUTOEXEC may be writable up to DATACOUNT bits.");
 	testvar ++;
@@ -2355,7 +2385,7 @@ int riscv013_test_compliance(struct target *target) {
     }
     for (unsigned int i = 0; i < 16; i ++){
       dmi_read(target, DMI_PROGBUF0 + i);
-      while(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY));
+      do { busy = get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY);} while (busy);
       if (autoexec_progbuf & (1 << i)) {
 	COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE), "AUTOEXEC may be writable up to PROGSIZE bits.");
 	testvar ++;
@@ -2369,7 +2399,21 @@ int riscv013_test_compliance(struct target *target) {
 		    "ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
   }
 
-  // DCSR Tests
+  // Core Register Tests
+  for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel ++){
+    riscv_set_current_hartid(target, hartsel);
+    // DCSR Tests
+    riscv_set_register(target, GDB_REGNO_DCSR, 0x0);
+    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DCSR) != 0,  "Not all bits in DCSR are writable by Debugger");
+    riscv_set_register(target, GDB_REGNO_DCSR, 0xFFFFFFFF);
+    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DCSR) != 0,  "At least some bits in DCSR must be 1");
+    // DPC
+    uint64_t testvar64 = 0xAAAAAAAAAAAAAAAAUL;
+    riscv_set_register(target, GDB_REGNO_DPC, testvar64);
+    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DPC) == testvar64, "DPC must be writable.");
+    riscv_set_register(target, GDB_REGNO_DPC, ~testvar64);
+    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DPC) == ~testvar64, "DPC must be writable");
+  }
   
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
 
