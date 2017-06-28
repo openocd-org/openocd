@@ -2330,6 +2330,8 @@ int riscv013_test_compliance(struct target *target) {
     riscv_program_init(&program, target);
     riscv_addr_t addr = riscv_program_alloc_x(&program);
     riscv_program_lx(&program, GDB_REGNO_S0, addr);
+    // Also testing that WFI() is a NOP during debug mode.
+    riscv_program_insert(&program, wfi());
     riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, 1);
     riscv_program_sx(&program, GDB_REGNO_S0, addr);
     riscv_program_write_ram(&program, addr + 4, 0);
@@ -2366,6 +2368,8 @@ int riscv013_test_compliance(struct target *target) {
     COMPLIANCE_TEST(testvar == riscv_read_debug_buffer_x(target, d_addr), \
 		    "ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
   }
+
+  // DCSR Tests
   
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
 
