@@ -2126,6 +2126,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX1:	/* errata 7534 - should be K63 */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX2:	/* errata 7534 - should be K64 */
 				subfamid += 2; /* errata 7534 fix */
+				/* fallthrough */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX3:
 				/* K63FN1M0 */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX4:
