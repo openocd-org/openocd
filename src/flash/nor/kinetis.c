@@ -1959,7 +1959,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 	unsigned cpu_mhz = 120;
 	unsigned idx;
 	bool use_nvm_marking = false;
-	char flash_marking[8], nvm_marking[2];
+	char flash_marking[11], nvm_marking[2];
 	char name[40];
 
 	k_chip->probed = false;
