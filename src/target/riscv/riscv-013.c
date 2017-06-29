@@ -2413,8 +2413,8 @@ int riscv013_test_compliance(struct target *target) {
     uint64_t testvar64 = 0xAAAAAAAAAAAAAAAAUL;
     uint64_t dpcmask = 0xFFFFFFFFFFFFFFFFUL;
     riscv_set_register(target, GDB_REGNO_DPC, dpcmask);
-    dpcmask = riscv_get_register(target, GDB_REGNO_PC);
-    COMPLIANCE_TEST(dpcmask >= 0xFFFFFFFF, "DPC must hold at least 32 bits (may hold more but hard to tell how many)"); 
+    dpcmask = riscv_get_register(target, GDB_REGNO_DPC);
+    COMPLIANCE_TEST(dpcmask >= 0xFFFFFFFC, "DPC must hold the minimum for a virtual address (may tighten requirement later).");
     riscv_set_register(target, GDB_REGNO_DPC, testvar64);
     COMPLIANCE_TEST((riscv_get_register(target, GDB_REGNO_DPC) & dpcmask) == (testvar64 & dpcmask), "DPC must be writable.");
     riscv_set_register(target, GDB_REGNO_DPC, ~testvar64);
