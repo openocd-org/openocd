@@ -2461,6 +2461,10 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 	}
 
 	switch (fcfg1_pfsize) {
+	case 0x00:
+		k_chip->pflash_size = 8192;
+		break;
+	case 0x01:
 	case 0x03:
 	case 0x05:
 	case 0x07:
@@ -2471,6 +2475,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 		break;
 	case 0x0f:
 		/* a peculiar case: Freescale states different sizes for 0xf
+		 * KL03P24M48SF0RM	32 KB .... duplicate of code 0x3
 		 * K02P64M100SFARM	128 KB ... duplicate of code 0x7
 		 * K22P121M120SF8RM	256 KB ... duplicate of code 0x9
 		 * K22P121M120SF7RM	512 KB ... duplicate of code 0xb
@@ -2562,7 +2567,7 @@ static int kinetis_probe(struct flash_bank *bank)
 		 * parts with more than 32K of PFlash. For parts with
 		 * less the protection unit is set to 1024 bytes */
 		k_bank->protection_size = MAX(k_chip->pflash_size / 32, 1024);
-		bank->num_prot_blocks = 32 / k_chip->num_pflash_blocks;
+		bank->num_prot_blocks = bank->size / k_bank->protection_size;
 		k_bank->protection_block = bank->num_prot_blocks * k_bank->bank_number;
 
 		size_k = bank->size / 1024;
