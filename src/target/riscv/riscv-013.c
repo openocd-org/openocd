@@ -2364,9 +2364,9 @@ int riscv013_test_compliance(struct target *target) {
     riscv_program_insert(&program, wfi());
     riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, 1);
     riscv_program_sx(&program, GDB_REGNO_S0, addr);
-    riscv_program_write_ram(&program, addr + 4, 0);
+    riscv_program_write_ram(&program, addr, 0);
     if (riscv_xlen(target) > 32) {
-      riscv_program_write_ram(&program, addr, 0);
+      riscv_program_write_ram(&program, addr+4, 0);
     }
     dmi_write(target, DMI_ABSTRACTAUTO, 0x0);
     riscv_program_exec(&program, target);
