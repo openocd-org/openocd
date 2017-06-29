@@ -2419,8 +2419,28 @@ int riscv013_test_compliance(struct target *target) {
     COMPLIANCE_TEST((riscv_get_register(target, GDB_REGNO_DPC) & dpcmask) == (testvar64 & dpcmask), "DPC must be writable.");
     riscv_set_register(target, GDB_REGNO_DPC, ~testvar64);
     COMPLIANCE_TEST((riscv_get_register(target, GDB_REGNO_DPC) & dpcmask) == ((~testvar64) & dpcmask), "DPC must be writable");
+
   }
+
+  //TODO:
   
+  // DMACTIVE
+
+  // NDMRESET
+  // Asserting non-debug module reset should not reset Debug Module state.
+  // But it should reset Hart State, e.g. DPC should get a different value.
+  // Also make sure that DCSR reports cause of 'HALT' even though previously we single-stepped.
+  // DMCONTROL
+  // COMMAND
+  // PROGBUF
+  // ABSTRACTAUTO
+  // DATA
+  // TODO: HASEL, HAWINDOWSEL
+
+  // Single-Step each hart.
+
+  // Assert cause is SINGLESTEP
+
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
 
   if (total_tests == passed_tests) {
