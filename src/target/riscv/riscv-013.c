@@ -1177,8 +1177,12 @@ static int examine(struct target *target)
 
 		/* This program uses a temporary register. If the core can not
 		 * execute 64 bit instruction, the original value of temporary
-		 * register will not be restored due to an exception. So we have to
-		 * restore it manually in that case. */
+		 * register (s0) will not be restored due to an exception.
+		 * So we have to save it and restore manually in that case.
+		 * If the core can execute 64 bit instruction, the saved value
+		 * is wrong, because it was read with 32 bit lw instruction,
+		 * but the value of s0 will be restored by the reverse swap
+		 * of s0 and dscratch registers. */
 		uint64_t s0 = riscv_get_register(target, GDB_REGNO_S0);
 
 		struct riscv_program program64;
