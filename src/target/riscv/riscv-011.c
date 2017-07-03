@@ -764,10 +764,10 @@ static void cache_set32(struct target *target, unsigned int index, uint32_t data
 	if (info->dram_cache[index].valid &&
 			info->dram_cache[index].data == data) {
 		// This is already preset on the target.
-		LOG_DEBUG("cache[0x%x] = 0x%x (hit)", index, data);
+		LOG_DEBUG("cache[0x%x] = 0x%08x: DASM(0x%x) (hit)", index, data, data);
 		return;
 	}
-	LOG_DEBUG("cache[0x%x] = 0x%x", index, data);
+	LOG_DEBUG("cache[0x%x] = 0x%08x: DASM(0x%x)", index, data, data);
 	info->dram_cache[index].data = data;
 	info->dram_cache[index].valid = true;
 	info->dram_cache[index].dirty = true;
@@ -1033,6 +1033,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 
 static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 {
+	riscv011_info_t *info = get_info(target);
 	cache_set32(target, 0, csrr(S0, csr));
 	cache_set_store(target, 1, S0, SLOT0);
 	cache_set_jump(target, 2);
@@ -1041,6 +1042,13 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 	}
 	*value = cache_get(target, SLOT0);
 	LOG_DEBUG("csr 0x%x = 0x%" PRIx64, csr, *value);
+
+	uint32_t exception = cache_get32(target, info->dramsize-1);
+	if (exception) {
+		LOG_ERROR("Got exception 0x%x when reading CSR 0x%x", exception, csr);
+		*value = ~0;
+		return ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
@@ -1496,6 +1504,104 @@ static void deinit_target(struct target *target)
 	info->version_specific = NULL;
 }
 
+static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger,
+		uint64_t tdata1)
+{
+	riscv011_info_t *info = get_info(target);
+
+	const uint32_t bpcontrol_x = 1<<0;
+	const uint32_t bpcontrol_w = 1<<1;
+	const uint32_t bpcontrol_r = 1<<2;
+	const uint32_t bpcontrol_u = 1<<3;
+	const uint32_t bpcontrol_s = 1<<4;
+	const uint32_t bpcontrol_h = 1<<5;
+	const uint32_t bpcontrol_m = 1<<6;
+	const uint32_t bpcontrol_bpmatch = 0xf << 7;
+	const uint32_t bpcontrol_bpaction = 0xff << 11;
+
+	if (tdata1 & (bpcontrol_r | bpcontrol_w | bpcontrol_x)) {
+		// Trigger is already in use, presumably by user code.
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	tdata1 = set_field(tdata1, bpcontrol_r, trigger->read);
+	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
+	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
+	tdata1 = set_field(tdata1, bpcontrol_u, !!(info->misa & (1 << ('U' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_s, !!(info->misa & (1 << ('S' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_h, !!(info->misa & (1 << ('H' - 'A'))));
+	tdata1 |= bpcontrol_m;
+	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); // exact match
+	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); // cause bp exception
+
+	write_csr(target, CSR_TDATA1, tdata1);
+
+	uint64_t tdata1_rb;
+	read_csr(target, &tdata1_rb, CSR_TDATA1);
+	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
+
+	if (tdata1 != tdata1_rb) {
+		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
+				PRIx64 " to tdata1 it contains 0x%" PRIx64,
+				tdata1, tdata1_rb);
+		write_csr(target, CSR_TDATA1, 0);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	write_csr(target, CSR_TDATA2, trigger->address);
+
+	return ERROR_OK;
+}
+
+static int maybe_add_trigger_t2(struct target *target, struct trigger *trigger,
+		uint64_t tdata1)
+{
+	riscv011_info_t *info = get_info(target);
+	// tselect is already set
+	if (tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD)) {
+		// Trigger is already in use, presumably by user code.
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	// address/data match trigger
+	tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
+	tdata1 = set_field(tdata1, MCONTROL_ACTION,
+			MCONTROL_ACTION_DEBUG_MODE);
+	tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
+	tdata1 |= MCONTROL_M;
+	if (info->misa & (1 << ('H' - 'A')))
+		tdata1 |= MCONTROL_H;
+	if (info->misa & (1 << ('S' - 'A')))
+		tdata1 |= MCONTROL_S;
+	if (info->misa & (1 << ('U' - 'A')))
+		tdata1 |= MCONTROL_U;
+
+	if (trigger->execute)
+		tdata1 |= MCONTROL_EXECUTE;
+	if (trigger->read)
+		tdata1 |= MCONTROL_LOAD;
+	if (trigger->write)
+		tdata1 |= MCONTROL_STORE;
+
+	write_csr(target, CSR_TDATA1, tdata1);
+
+	uint64_t tdata1_rb;
+	read_csr(target, &tdata1_rb, CSR_TDATA1);
+	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
+
+	if (tdata1 != tdata1_rb) {
+		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
+				PRIx64 " to tdata1 it contains 0x%" PRIx64,
+				tdata1, tdata1_rb);
+		write_csr(target, CSR_TDATA1, 0);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	write_csr(target, CSR_TDATA2, trigger->address);
+
+	return ERROR_OK;
+}
+
 static int add_trigger(struct target *target, struct trigger *trigger)
 {
 	riscv011_info_t *info = get_info(target);
@@ -1514,50 +1620,22 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 		read_csr(target, &tdata1, CSR_TDATA1);
 		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
 
-		if (type != 2) {
-			continue;
+		int result;
+		switch (type) {
+			case 1:
+				result = maybe_add_trigger_t1(target, trigger, tdata1);
+				break;
+			case 2:
+				result = maybe_add_trigger_t2(target, trigger, tdata1);
+				break;
+			default:
+				LOG_DEBUG("trigger %d has unknown type %d", i, type);
+				continue;
 		}
 
-		if (tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD)) {
-			// Trigger is already in use, presumably by user code.
+		if (result != ERROR_OK) {
 			continue;
 		}
-
-		// address/data match trigger
-		tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
-		tdata1 = set_field(tdata1, MCONTROL_ACTION,
-				MCONTROL_ACTION_DEBUG_MODE);
-		tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
-		tdata1 |= MCONTROL_M;
-		if (info->misa & (1 << ('H' - 'A')))
-			tdata1 |= MCONTROL_H;
-		if (info->misa & (1 << ('S' - 'A')))
-			tdata1 |= MCONTROL_S;
-		if (info->misa & (1 << ('U' - 'A')))
-			tdata1 |= MCONTROL_U;
-
-		if (trigger->execute)
-			tdata1 |= MCONTROL_EXECUTE;
-		if (trigger->read)
-			tdata1 |= MCONTROL_LOAD;
-		if (trigger->write)
-			tdata1 |= MCONTROL_STORE;
-
-		write_csr(target, CSR_TDATA1, tdata1);
-
-		uint64_t tdata1_rb;
-		read_csr(target, &tdata1_rb, CSR_TDATA1);
-		LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
-
-		if (tdata1 != tdata1_rb) {
-			LOG_DEBUG("Trigger %d doesn't support what we need; After writing 0x%"
-					PRIx64 " to tdata1 it contains 0x%" PRIx64,
-					i, tdata1, tdata1_rb);
-			write_csr(target, CSR_TDATA1, 0);
-			continue;
-		}
-
-		write_csr(target, CSR_TDATA2, trigger->address);
 
 		LOG_DEBUG("Using resource %d for bp %d", i,
 				trigger->unique_id);
@@ -1898,8 +1976,13 @@ static int examine(struct target *target)
 	update_reg_list(target);
 
 	if (read_csr(target, &info->misa, CSR_MISA) != ERROR_OK) {
-		LOG_ERROR("Failed to read misa.");
-		return ERROR_FAIL;
+		LOG_WARNING("Failed to read misa at 0x%x.", CSR_MISA);
+		if (read_csr(target, &info->misa, 0xf10) != ERROR_OK) {
+			// Maybe this is an old core that still has $misa at the old
+			// address.
+			LOG_ERROR("Failed to read misa at 0x%x.", 0xf10);
+			return ERROR_FAIL;
+		}
 	}
 
 	info->never_halted = true;
@@ -2129,6 +2212,9 @@ static int handle_halt(struct target *target, bool announce)
 			write_csr(target, CSR_TSELECT, info->trigger_count);
 			uint64_t tselect_rb;
 			read_csr(target, &tselect_rb, CSR_TSELECT);
+			// Mask off the top bit, which is used as tdrmode in old
+			// implementations.
+			tselect_rb &= ~(1ULL << (riscv_xlen(target)-1));
 			if (info->trigger_count != tselect_rb)
 				break;
 			uint64_t tdata1;
