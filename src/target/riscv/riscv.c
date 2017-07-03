@@ -448,11 +448,12 @@ static int riscv_get_gdb_reg_list(struct target *target,
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("reg_class=%d", reg_class);
-	LOG_DEBUG("riscv_get_gdb_reg_list: rtos_hartid=%d current_hartid=%d", r->rtos_hartid, r->current_hartid);
-	if (r->rtos_hartid != -1)
+	LOG_DEBUG("rtos_hartid=%d current_hartid=%d", r->rtos_hartid, r->current_hartid);
+
+	if (r->rtos_hartid != -1 && riscv_rtos_enabled(target))
 		riscv_set_current_hartid(target, r->rtos_hartid);
 	else
-		riscv_set_current_hartid(target, 0);
+		riscv_set_current_hartid(target, target->coreid);
 
 	switch (reg_class) {
 		case REG_CLASS_GENERAL:
@@ -872,11 +873,12 @@ struct target_type riscv_target =
 
 /*** RISC-V Interface ***/
 
-void riscv_info_init(riscv_info_t *r)
+void riscv_info_init(struct target *target, riscv_info_t *r)
 {
 	memset(r, 0, sizeof(*r));
 	r->dtm_version = 1;
 	r->registers_initialized = false;
+	r->current_hartid = target->coreid;
 
 	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h) {
 		r->xlen[h] = -1;
@@ -889,11 +891,11 @@ void riscv_info_init(riscv_info_t *r)
 
 int riscv_halt_all_harts(struct target *target)
 {
-	if (riscv_rtos_enabled(target)) {
-		for (int i = 0; i < riscv_count_harts(target); ++i)
-			riscv_halt_one_hart(target, i);
-	} else {
-		riscv_halt_one_hart(target, riscv_current_hartid(target));
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
+		riscv_halt_one_hart(target, i);
 	}
 
 	return ERROR_OK;
@@ -915,11 +917,11 @@ int riscv_halt_one_hart(struct target *target, int hartid)
 
 int riscv_resume_all_harts(struct target *target)
 {
-	if (riscv_rtos_enabled(target)) {
-		for (int i = 0; i < riscv_count_harts(target); ++i)
-			riscv_resume_one_hart(target, i);
-	} else {
-		riscv_resume_one_hart(target, riscv_current_hartid(target));
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
+		riscv_resume_one_hart(target, i);
 	}
 
 	riscv_invalidate_register_cache(target);
@@ -943,11 +945,11 @@ int riscv_resume_one_hart(struct target *target, int hartid)
 
 int riscv_reset_all_harts(struct target *target)
 {
-	if (riscv_rtos_enabled(target)) {
-		for (int i = 0; i < riscv_count_harts(target); ++i)
-			riscv_reset_one_hart(target, i);
-	} else {
-		riscv_reset_one_hart(target, riscv_current_hartid(target));
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
+		riscv_reset_one_hart(target, i);
 	}
 
 	riscv_invalidate_register_cache(target);
@@ -1017,10 +1019,9 @@ void riscv_set_current_hartid(struct target *target, int hartid)
 
 	int previous_hartid = riscv_current_hartid(target);
 	r->current_hartid = hartid;
-	assert(riscv_rtos_enabled(target) || target->coreid == hartid);
+	assert(riscv_hart_enabled(target, hartid));
 	LOG_DEBUG("setting hartid to %d, was %d", hartid, previous_hartid);
-	if (riscv_rtos_enabled(target))
-		r->select_current_hart(target);
+	r->select_current_hart(target);
 
 	/* This might get called during init, in which case we shouldn't be
 	 * setting up the register cache. */
@@ -1068,10 +1069,7 @@ void riscv_invalidate_register_cache(struct target *target)
 int riscv_current_hartid(const struct target *target)
 {
 	RISCV_INFO(r);
-	if (riscv_rtos_enabled(target))
-		return r->current_hartid;
-	else
-		return target->coreid;
+	return r->current_hartid;
 }
 
 void riscv_set_all_rtos_harts(struct target *target)
@@ -1235,4 +1233,13 @@ int riscv_dmi_write_u64_bits(struct target *target)
 {
 	RISCV_INFO(r);
 	return r->dmi_write_u64_bits(target);
+}
+
+bool riscv_hart_enabled(struct target *target, int hartid)
+{
+	/* FIXME: Add a hart mask to the RTOS. */
+	if (riscv_rtos_enabled(target))
+		return hartid < riscv_count_harts(target);
+
+	return hartid == target->coreid;
 }

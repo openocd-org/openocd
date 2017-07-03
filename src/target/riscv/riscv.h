@@ -134,7 +134,7 @@ int riscv_openocd_deassert_reset(struct target *target);
 /*** RISC-V Interface ***/
 
 /* Initializes the shared RISC-V structure. */
-void riscv_info_init(riscv_info_t *r);
+void riscv_info_init(struct target *target, riscv_info_t *r);
 
 /* Run control, possibly for multiple harts.  The _all_harts versions resume
  * all the enabled harts, which when running in RTOS mode is all the harts on
@@ -214,5 +214,8 @@ int riscv_dmi_write_u64_bits(struct target *target);
 
 /* Invalidates the register cache. */
 void riscv_invalidate_register_cache(struct target *target);
+
+/* Returns TRUE when a hart is enabled in this target. */
+bool riscv_hart_enabled(struct target *target, int hartid);
 
 #endif
