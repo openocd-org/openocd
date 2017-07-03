@@ -1175,6 +1175,16 @@ static int examine(struct target *target)
 		 * In order to make this work we first need to */
 		int offset = (progbuf_addr % 8 == 0) ? -4 : 0;
 
+		/* This program uses a temporary register. If the core can not
+		 * execute 64 bit instruction, the original value of temporary
+		 * register (s0) will not be restored due to an exception.
+		 * So we have to save it and restore manually in that case.
+		 * If the core can execute 64 bit instruction, the saved value
+		 * is wrong, because it was read with 32 bit lw instruction,
+		 * but the value of s0 will be restored by the reverse swap
+		 * of s0 and dscratch registers. */
+		uint64_t s0 = riscv_get_register(target, GDB_REGNO_S0);
+
 		struct riscv_program program64;
 		riscv_program_init(&program64, target);
 		riscv_program_csrrw(&program64, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
@@ -1190,6 +1200,8 @@ static int examine(struct target *target)
 				+ dmi_read(target, DMI_PROGBUF0 + (4 + offset) / 4)
 				- 4;
 			r->xlen[i] = 64;
+		} else {
+			riscv_set_register(target, GDB_REGNO_S0, s0);
 		}
 
 		/* Display this as early as possible to help people who are using
