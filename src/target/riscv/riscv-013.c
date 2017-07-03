@@ -187,55 +187,60 @@ typedef struct {
 
 	// Some memoized values
 	int progbuf_size, progbuf_addr, data_addr, data_size;
+
+	bool abstract_read_csr_supported;
+	bool abstract_write_csr_supported;
+	bool abstract_read_fpr_supported;
+	bool abstract_write_fpr_supported;
 } riscv013_info_t;
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
 {
+	static const struct {
+		unsigned address;
+		uint64_t mask;
+		const char *name;
+	} description[] = {
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLRESUMEACK, "allresumeack" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYRESUMEACK, "anyresumeack" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLNONEXISTENT, "allnonexistent" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYNONEXISTENT, "anynonexistent" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLUNAVAIL, "allunavail" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYUNAVAIL, "anyunavail" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLRUNNING, "allrunning" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYRUNNING, "anyrunning" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLHALTED, "allhalted" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYHALTED, "anyhalted" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_AUTHENTICATED, "authenticated" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_AUTHBUSY, "authbusy" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_CFGSTRVALID, "cfgstrvalid" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_VERSION, "version" },
+
+		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_PROGSIZE, "progsize" },
+		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_BUSY, "busy" },
+		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR, "cmderr" },
+		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_DATACOUNT, "datacount" },
+
+		{ DMI_COMMAND, DMI_COMMAND_CMDTYPE, "cmdtype" },
+	};
+
 	text[0] = 0;
-	switch (address) {
-		case DMI_DMSTATUS:
-			if (get_field(data, DMI_DMSTATUS_ALLRESUMEACK)) {
-				strcat(text, " allresumeack");
+	for (unsigned i = 0; i < DIM(description); i++) {
+		if (description[i].address == address) {
+			uint64_t mask = description[i].mask;
+			unsigned value = get_field(data, mask);
+			if (value) {
+				if (i > 0)
+					*(text++) = ' ';
+				if (mask & (mask >> 1)) {
+					// If the field is more than 1 bit wide.
+					sprintf(text, "%s=%d", description[i].name, value);
+				} else {
+					strcpy(text, description[i].name);
+				}
+				text += strlen(text);
 			}
-			if (get_field(data, DMI_DMSTATUS_ANYRESUMEACK)) {
-				strcat(text, " anyresumeack");
-			}
-			if (get_field(data, DMI_DMSTATUS_ALLNONEXISTENT)) {
-				strcat(text, " allnonexistent");
-			}
-			if (get_field(data, DMI_DMSTATUS_ANYNONEXISTENT)) {
-				strcat(text, " anynonexistent");
-			}
-			if (get_field(data, DMI_DMSTATUS_ALLUNAVAIL)) {
-				strcat(text, " allunavail");
-			}
-			if (get_field(data, DMI_DMSTATUS_ANYUNAVAIL)) {
-				strcat(text, " anyunavail");
-			}
-			if (get_field(data, DMI_DMSTATUS_ALLRUNNING)) {
-				strcat(text, " allrunning");
-			}
-			if (get_field(data, DMI_DMSTATUS_ANYRUNNING)) {
-				strcat(text, " anyrunning");
-			}
-			if (get_field(data, DMI_DMSTATUS_ALLHALTED)) {
-				strcat(text, " allhalted");
-			}
-			if (get_field(data, DMI_DMSTATUS_ANYHALTED)) {
-				strcat(text, " anyhalted");
-			}
-			if (get_field(data, DMI_DMSTATUS_AUTHENTICATED)) {
-				strcat(text, " authenticated");
-			}
-			if (get_field(data, DMI_DMSTATUS_AUTHBUSY)) {
-				strcat(text, " authbusy");
-			}
-			if (get_field(data, DMI_DMSTATUS_CFGSTRVALID)) {
-				strcat(text, " cfgstrvalid");
-			}
-			sprintf(text + strlen(text), " version=%d", get_field(data,
-						DMI_DMSTATUS_VERSION));
-			break;
+		}
 	}
 }
 
@@ -612,9 +617,109 @@ static int register_write_direct(struct target *target, unsigned number,
 	return ERROR_OK;
 }
 
+static int execute_abstract_command(struct target *target, uint32_t command)
+{
+	LOG_DEBUG("command=0x%x", command);
+	dmi_write(target, DMI_COMMAND, command);
+
+	{
+		uint32_t dmstatus = 0;
+		wait_for_idle(target, &dmstatus);
+	}
+
+	uint32_t cs = dmi_read(target, DMI_ABSTRACTCS);
+	unsigned cmderr = get_field(cs, DMI_ABSTRACTCS_CMDERR);
+	if (cmderr != 0) {
+		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, cs);
+		// Clear the error.
+		dmi_write(target, DMI_ABSTRACTCS, set_field(0, DMI_ABSTRACTCS_CMDERR,
+					cmderr));
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+static uint64_t read_abstract_arg(struct target *target, unsigned index)
+{
+	uint64_t value = 0;
+	unsigned xlen = riscv_xlen(target);
+	unsigned offset = index * xlen / 32;
+	switch (xlen) {
+		default:
+			LOG_ERROR("Unsupported xlen: %d", xlen);
+			return ~0;
+		case 64:
+			value |= ((uint64_t) dmi_read(target, DMI_DATA0 + offset + 1)) << 32;
+		case 32:
+			value |= dmi_read(target, DMI_DATA0 + offset);
+	}
+	return value;
+}
+
+static int register_read_abstract(struct target *target, uint64_t *value,
+		uint32_t number, unsigned size)
+{
+	RISCV013_INFO(r);
+
+	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
+	switch (size) {
+		case 32:
+			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 2);
+			break;
+		case 64:
+			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
+			break;
+		default:
+			LOG_ERROR("Unsupported abstract register read size: %d", size);
+			return ERROR_FAIL;
+	}
+	command = set_field(command, AC_ACCESS_REGISTER_POSTEXEC, 0);
+	command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
+	command = set_field(command, AC_ACCESS_REGISTER_WRITE, 0);
+
+	if (number <= GDB_REGNO_XPR31) {
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				0x1000 + number - GDB_REGNO_XPR0);
+	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+		if (!r->abstract_read_fpr_supported)
+			return ERROR_FAIL;
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				0x1020 + number - GDB_REGNO_FPR0);
+	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+		if (!r->abstract_read_csr_supported)
+			return ERROR_FAIL;
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				number - GDB_REGNO_CSR0);
+	} else {
+		return ERROR_FAIL;
+	}
+
+	int result = execute_abstract_command(target, command);
+	if (result != ERROR_OK) {
+		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+			r->abstract_read_fpr_supported = false;
+			LOG_INFO("Disabling abstract command reads from FPRs.");
+		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+			r->abstract_read_csr_supported = false;
+			LOG_INFO("Disabling abstract command reads from CSRs.");
+		}
+		return result;
+	}
+
+	*value = read_abstract_arg(target, 0);
+
+	return ERROR_OK;
+}
+
 /** Actually read registers from the target right now. */
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number)
 {
+	int result = register_read_abstract(target, value, number,
+			riscv_xlen(target));
+	if (result == ERROR_OK)
+		return ERROR_OK;
+
 	struct riscv_program program;
 	riscv_program_init(&program, target);
 	riscv_addr_t output = riscv_program_alloc_d(&program);
@@ -741,6 +846,13 @@ static int init_target(struct command_context *cmd_ctx,
 
 	info->dmi_busy_delay = 0;
 	info->ac_busy_delay = 0;
+
+	// Assume all these abstract commands are supported until we learn
+	// otherwise.
+	info->abstract_read_csr_supported = true;
+	info->abstract_write_csr_supported = true;
+	info->abstract_read_fpr_supported = true;
+	info->abstract_write_fpr_supported = true;
 
 	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
 	target->reg_cache->name = "RISC-V Registers";
@@ -1207,9 +1319,9 @@ static int examine(struct target *target)
 		riscv_program_insert(&program64, sd(GDB_REGNO_S0, GDB_REGNO_S0, offset));
 		riscv_program_csrrw(&program64, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
 		riscv_program_fence(&program64);
-		riscv_program_exec(&program64, target);
+		int result = riscv_program_exec(&program64, target);
 
-		if (get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == 0) {
+		if (result == ERROR_OK) {
 			r->debug_buffer_addr[i] =
 				(dmi_read(target, DMI_PROGBUF0 + (8 + offset) / 4) << 32)
 				+ dmi_read(target, DMI_PROGBUF0 + (4 + offset) / 4)
@@ -1742,7 +1854,7 @@ struct target_type riscv013_target =
 	.arch_state = arch_state,
 };
 
-/*** 0.13-specific implementations of various RISC-V hepler functions. ***/
+/*** 0.13-specific implementations of various RISC-V helper functions. ***/
 static riscv_reg_t riscv013_get_register(struct target *target, int hid, int rid)
 {
 	LOG_DEBUG("reading register 0x%08x on hart %d", rid, hid);
@@ -1914,28 +2026,13 @@ riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 
 int riscv013_execute_debug_buffer(struct target *target)
 {
-	riscv013_clear_abstract_error(target);
-
 	uint32_t run_program = 0;
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_SIZE, 2);
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_POSTEXEC, 1);
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_TRANSFER, 0);
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_REGNO, 0x1000);
-	dmi_write(target, DMI_COMMAND, run_program);
 
-	{
-		uint32_t dmstatus = 0;
-		wait_for_idle(target, &dmstatus);
-	}
-
-	uint32_t cs = dmi_read(target, DMI_ABSTRACTCS);
-	if (get_field(cs, DMI_ABSTRACTCS_CMDERR) != 0) {
-		LOG_ERROR("unable to execute program: (abstractcs=0x%08x)", cs);
-		dmi_read(target, DMI_DMSTATUS);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
+	return execute_abstract_command(target, run_program);
 }
 
 void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d)
