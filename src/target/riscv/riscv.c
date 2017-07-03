@@ -1030,7 +1030,7 @@ void riscv_set_current_hartid(struct target *target, int hartid)
 	/* Avoid invalidating the register cache all the time. */
 	if (r->registers_initialized
 			&& (!riscv_rtos_enabled(target) || (previous_hartid == hartid))
-			&& target->reg_cache->reg_list[GDB_REGNO_XPR0].size == (long)riscv_xlen(target)
+			&& target->reg_cache->reg_list[GDB_REGNO_XPR0].size == (unsigned)riscv_xlen(target)
 			&& (!riscv_rtos_enabled(target) || (r->rtos_hartid != -1))) {
 		LOG_DEBUG("registers already initialized, skipping");
 		return;
