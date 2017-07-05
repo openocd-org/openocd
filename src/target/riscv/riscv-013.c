@@ -707,7 +707,7 @@ static int init_target(struct command_context *cmd_ctx,
 	LOG_DEBUG("init");
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 
-	riscv_info_init(generic_info);
+	riscv_info_init(target, generic_info);
 	generic_info->get_register = &riscv013_get_register;
 	generic_info->set_register = &riscv013_set_register;
 	generic_info->select_current_hart = &riscv013_select_current_hart;
@@ -834,6 +834,9 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 		uint64_t tdata1_rb;
 		for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+			if (!riscv_hart_enabled(target, hartid))
+				continue;
+
 			riscv_set_current_hartid(target, hartid);
 
 			if (hartid > 0) {
@@ -920,6 +923,9 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 	}
 	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
 	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, hartid))
+			continue;
+
 		riscv_set_current_hartid(target, hartid);
 		register_write_direct(target, GDB_REGNO_TSELECT, i);
 		register_write_direct(target, GDB_REGNO_TDATA1, 0);
@@ -1125,17 +1131,23 @@ static int examine(struct target *target)
 
 	/* Before doing anything else we must first enumerate the harts. */
 	RISCV_INFO(r);
-	if (riscv_rtos_enabled(target)) {
-		for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
-			riscv_set_current_hartid(target, i);
-			uint32_t s = dmi_read(target, DMI_DMSTATUS);
-			if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT))
-				break;
-			r->hart_count = i + 1;
+	int original_coreid = target->coreid;
+	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
+		/* Fake being a non-RTOS targeted to this core so we can see if
+		 * it exists.  This avoids the assertion in
+		 * riscv_set_current_hartid() that ensures non-RTOS targets
+		 * don't touch the harts they're not assigned to.  */
+		target->coreid = i;
+		r->hart_count = i + 1;
+		riscv_set_current_hartid(target, i);
+
+		uint32_t s = dmi_read(target, DMI_DMSTATUS);
+		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT)) {
+			r->hart_count--;
+			break;
 		}
-	} else {
-		r->hart_count = 1;
 	}
+	target->coreid = original_coreid;
 
 	LOG_DEBUG("Enumerated %d harts", r->hart_count);
 
@@ -1145,6 +1157,9 @@ static int examine(struct target *target)
 	/* Find the address of the program buffer, which must be done without
 	 * knowing anything about the target. */
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
 		riscv_set_current_hartid(target, i);
 
 		/* Without knowing anything else we can at least mess with the
@@ -1177,6 +1192,16 @@ static int examine(struct target *target)
 		 * In order to make this work we first need to */
 		int offset = (progbuf_addr % 8 == 0) ? -4 : 0;
 
+		/* This program uses a temporary register. If the core can not
+		 * execute 64 bit instruction, the original value of temporary
+		 * register (s0) will not be restored due to an exception.
+		 * So we have to save it and restore manually in that case.
+		 * If the core can execute 64 bit instruction, the saved value
+		 * is wrong, because it was read with 32 bit lw instruction,
+		 * but the value of s0 will be restored by the reverse swap
+		 * of s0 and dscratch registers. */
+		uint64_t s0 = riscv_get_register(target, GDB_REGNO_S0);
+
 		struct riscv_program program64;
 		riscv_program_init(&program64, target);
 		riscv_program_csrrw(&program64, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
@@ -1192,6 +1217,8 @@ static int examine(struct target *target)
 				+ dmi_read(target, DMI_PROGBUF0 + (4 + offset) / 4)
 				- 4;
 			r->xlen[i] = 64;
+		} else {
+			riscv_set_register(target, GDB_REGNO_S0, s0);
 		}
 
 		/* Display this as early as possible to help people who are using
@@ -1215,6 +1242,9 @@ static int examine(struct target *target)
 
 	/* Then we check the number of triggers availiable to each hart. */
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
 		for (uint32_t t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
 			riscv_set_current_hartid(target, i);
 
@@ -1229,6 +1259,7 @@ static int examine(struct target *target)
 
 	/* Resumes all the harts, so the debugger can later pause them. */
 	riscv_resume_all_harts(target);
+	target->state = TARGET_RUNNING;
 	target_set_examined(target);
 
 	if (target->rtos) {
@@ -1323,9 +1354,6 @@ static int read_memory(struct target *target, target_addr_t address,
 			size, address);
 
 	select_dmi(target);
-	/* There was a bug in the memory system and only accesses from hart 0 actually
-	 * worked correctly.  This should be obselete now. -palmer */
-	riscv_set_current_hartid(target, 0);
 
 	/* This program uses two temporary registers.  A word of data and the
 	 * associated address are stored at some location in memory.  The
@@ -1521,9 +1549,6 @@ static int write_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
 	select_dmi(target);
-	/* There was a bug in the memory system and only accesses from hart 0 actually
-	 * worked correctly.  This should be obselete now. -palmer */
-	riscv_set_current_hartid(target, 0);
 
 	/* This program uses two temporary registers.  A word of data and the
 	 * associated address are stored at some location in memory.  The
