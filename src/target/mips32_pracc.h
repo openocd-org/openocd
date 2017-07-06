@@ -114,7 +114,7 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info,
 int mips32_cp0_write(struct mips_ejtag *ejtag_info,
 		uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel);
 
-inline void pracc_swap16_array(struct mips_ejtag *ejtag_info, uint32_t *buf, int count)
+static inline void pracc_swap16_array(struct mips_ejtag *ejtag_info, uint32_t *buf, int count)
 {
 	if (ejtag_info->isa && ejtag_info->endianness)
 		for (int i = 0; i != count; i++)
