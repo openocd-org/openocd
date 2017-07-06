@@ -94,7 +94,9 @@ size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
 	riscv_batch_add_nop(batch);
 
 	batch->read_keys[batch->read_keys_used] = batch->used_scans - 1;
-	LOG_DEBUG("read key %ld for batch 0x%p is %ld (0x%p)", batch->read_keys_used, batch, batch->used_scans - 1, (uint64_t*)batch->data_in + (batch->used_scans + 1));
+	LOG_DEBUG("read key %u for batch 0x%p is %u (0x%p)",
+			(unsigned) batch->read_keys_used, batch, (unsigned) (batch->used_scans - 1),
+			(uint64_t*)batch->data_in + (batch->used_scans + 1));
 	return batch->read_keys_used++;
 }
 
