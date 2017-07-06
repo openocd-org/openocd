@@ -2527,7 +2527,13 @@ int riscv013_test_compliance(struct target *target) {
     testvar = (i + 1) * 0x11111111;
     COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == 0, "DATA words should reset to 0");
   }
-  
+
+  //TODO:
+  // DCSR.cause priorities
+  // DCSR.stoptime/stopcycle
+  // DCSR.stepie
+  // DCSR.ebreak
+  // DCSR.prv
 
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
 
