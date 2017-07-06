@@ -2224,7 +2224,10 @@ int riscv013_test_compliance(struct target *target) {
   do {
     dmstatus = dmi_read(target, DMI_DMSTATUS);
   } while ((dmstatus & DMI_DMSTATUS_ALLHALTED) == 0);
-
+  dmcontrol &= ~DMI_DMCONTROL_HALTREQ;
+  dmi_write(target, DMI_DMCONTROL, dmcontrol);
+  // Not clear that this read is required according to the spec.
+  dmi_read(target, DMI_DMSTATUS);
   
   // HARTINFO: Read-Only. This is per-hart, so need to adjust hartsel.
   for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++){
@@ -2477,22 +2480,17 @@ int riscv013_test_compliance(struct target *target) {
   dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
   abstractauto = dmi_read(target, DMI_ABSTRACTAUTO);
 
-  // Assert reset.
+  // Pulse reset.
   
   target->reset_halt = true;
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
   riscv_set_current_hartid(target, 0);
-  // Lie to OpenOCD and overwrite hartsel.
-  dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HARTSEL, 0x5);
-  dmi_write(target, DMI_DMCONTROL, dmcontrol);
   assert_reset(target);
   deassert_reset(target);
 
-  
   // Verify that most stuff is not affected by ndmreset.
-  COMPLIANCE_TEST(dmi_read(target, DMI_DMCONTROL) == dmcontrol, "NDMRESET should not affect DMI_DMSTATUS");
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0xFFFFFFFF, "NDMRESET should not affect DMI_COMMAND");
-  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR)  == 0xFFFFFFFF, "NDMRESET should not affect DMI_ABSTRACTCS");
+  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR)  == CMDERR_NOT_SUPPORTED, "NDMRESET should not affect DMI_ABSTRACTCS");
   COMPLIANCE_TEST(dmi_read(target, DMI_ABSTRACTAUTO) == abstractauto, "NDMRESET should not affect DMI_ABSTRACTAUTO");
   
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
@@ -2505,14 +2503,11 @@ int riscv013_test_compliance(struct target *target) {
     COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == testvar, "DATA words must not be affected by NDMRESET");
   }
 
-  // Stop lying to OpenOCD about which hart is selected.
-  dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HARTSEL, 0);
-
   // verify that DPC *is* affected by ndmreset. Since we don't know what it *should* be,
   // just verify that at least it's not the bogus value anymore.
   uint64_t dpc = riscv_get_register(target, GDB_REGNO_DPC);
   COMPLIANCE_TEST(bogus_dpc != riscv_get_register(target, GDB_REGNO_DPC), "NDMRESET should move $DPC to reset value.");
-  COMPLIANCE_TEST(riscv_halt_reason(target, 0)==RISCV_HALT_INTERRUPT, "After NDMRESET halt, DCSR should report cause of halt");
+  COMPLIANCE_TEST(riscv_halt_reason(target, 0) == RISCV_HALT_INTERRUPT, "After NDMRESET halt, DCSR should report cause of halt");
   
   // DMACTIVE -- deasserting DMACTIVE should reset all the above values.
   
@@ -2520,7 +2515,7 @@ int riscv013_test_compliance(struct target *target) {
   dmi_write(target, DMI_DMCONTROL, 0);
   dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0, "DMI_COMMAND should reset to 0");
-  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR)  == 0xFFFFFFFF, "ABSTRACTCS.cmderr should reset to 0");
+  COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR)  == 0, "ABSTRACTCS.cmderr should reset to 0");
   COMPLIANCE_TEST(dmi_read(target, DMI_ABSTRACTAUTO) == 0, "ABSTRACTAUTO should reset to 0");
   
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
@@ -2530,7 +2525,7 @@ int riscv013_test_compliance(struct target *target) {
   
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT); i ++){
     testvar = (i + 1) * 0x11111111;
-    COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == testvar, "DATA words should reset to 0");
+    COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == 0, "DATA words should reset to 0");
   }
   
 
