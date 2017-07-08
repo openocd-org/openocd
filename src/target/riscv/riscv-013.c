@@ -578,45 +578,6 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 	}
 }
 
-static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
-
-static int register_write_direct(struct target *target, unsigned number,
-		uint64_t value)
-{
-	struct riscv_program program;
-
-	LOG_DEBUG("[%d] reg[0x%x] <- 0x%" PRIx64, riscv_current_hartid(target),
-			number, value);
-
-	riscv_program_init(&program, target);
-
-	riscv_addr_t input = riscv_program_alloc_d(&program);
-	riscv_program_write_ram(&program, input + 4, value >> 32);
-	riscv_program_write_ram(&program, input, value);
-
-	assert(GDB_REGNO_XPR0 == 0);
-	if (number <= GDB_REGNO_XPR31) {
-		riscv_program_lx(&program, number, input);
-	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		riscv_program_fld(&program, number, input);
-	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		enum gdb_regno temp = riscv_program_gettemp(&program);
-		riscv_program_lx(&program, temp, input);
-		riscv_program_csrw(&program, temp, number);
-	} else {
-		LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
-		abort();
-	}
-
-	int exec_out = riscv_program_exec(&program, target);
-	if (exec_out != ERROR_OK) {
-		riscv013_clear_abstract_error(target);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
-}
-
 static int execute_abstract_command(struct target *target, uint32_t command)
 {
 	LOG_DEBUG("command=0x%x", command);
@@ -640,9 +601,9 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	return ERROR_OK;
 }
 
-static uint64_t read_abstract_arg(struct target *target, unsigned index)
+static riscv_reg_t read_abstract_arg(struct target *target, unsigned index)
 {
-	uint64_t value = 0;
+	riscv_reg_t value = 0;
 	unsigned xlen = riscv_xlen(target);
 	unsigned offset = index * xlen / 32;
 	switch (xlen) {
@@ -655,6 +616,23 @@ static uint64_t read_abstract_arg(struct target *target, unsigned index)
 			value |= dmi_read(target, DMI_DATA0 + offset);
 	}
 	return value;
+}
+
+static int write_abstract_arg(struct target *target, unsigned index,
+		riscv_reg_t value)
+{
+	unsigned xlen = riscv_xlen(target);
+	unsigned offset = index * xlen / 32;
+	switch (xlen) {
+		default:
+			LOG_ERROR("Unsupported xlen: %d", xlen);
+			return ~0;
+		case 64:
+			dmi_write(target, DMI_DATA0 + offset + 1, value >> 32);
+		case 32:
+			dmi_write(target, DMI_DATA0 + offset, value);
+	}
+	return ERROR_OK;
 }
 
 static int register_read_abstract(struct target *target, uint64_t *value,
@@ -712,30 +690,91 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 	return ERROR_OK;
 }
 
-/** Actually read registers from the target right now. */
-static int register_read_direct(struct target *target, uint64_t *value, uint32_t number)
+static int register_write_abstract(struct target *target, uint32_t number,
+		uint64_t value, unsigned size)
 {
-	int result = register_read_abstract(target, value, number,
+	RISCV013_INFO(r);
+
+	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
+	switch (size) {
+		case 32:
+			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 2);
+			break;
+		case 64:
+			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
+			break;
+		default:
+			LOG_ERROR("Unsupported abstract register read size: %d", size);
+			return ERROR_FAIL;
+	}
+	command = set_field(command, AC_ACCESS_REGISTER_POSTEXEC, 0);
+	command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
+	command = set_field(command, AC_ACCESS_REGISTER_WRITE, 1);
+
+	if (number <= GDB_REGNO_XPR31) {
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				0x1000 + number - GDB_REGNO_XPR0);
+	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+		if (!r->abstract_read_fpr_supported)
+			return ERROR_FAIL;
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				0x1020 + number - GDB_REGNO_FPR0);
+	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+		if (!r->abstract_read_csr_supported)
+			return ERROR_FAIL;
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				number - GDB_REGNO_CSR0);
+	} else {
+		return ERROR_FAIL;
+	}
+
+	if (write_abstract_arg(target, 0, value) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	int result = execute_abstract_command(target, command);
+	if (result != ERROR_OK) {
+		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+			r->abstract_write_fpr_supported = false;
+			LOG_INFO("Disabling abstract command writes to FPRs.");
+		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+			r->abstract_write_csr_supported = false;
+			LOG_INFO("Disabling abstract command writes to CSRs.");
+		}
+		return result;
+	}
+
+	return ERROR_OK;
+}
+
+static int register_write_direct(struct target *target, unsigned number,
+		uint64_t value)
+{
+	LOG_DEBUG("[%d] reg[0x%x] <- 0x%" PRIx64, riscv_current_hartid(target),
+			number, value);
+
+	int result = register_write_abstract(target, number, value,
 			riscv_xlen(target));
 	if (result == ERROR_OK)
 		return ERROR_OK;
 
 	struct riscv_program program;
+
 	riscv_program_init(&program, target);
-	riscv_addr_t output = riscv_program_alloc_d(&program);
-	riscv_program_write_ram(&program, output + 4, 0);
-	riscv_program_write_ram(&program, output, 0);
+
+	riscv_addr_t input = riscv_program_alloc_d(&program);
+	riscv_program_write_ram(&program, input + 4, value >> 32);
+	riscv_program_write_ram(&program, input, value);
 
 	assert(GDB_REGNO_XPR0 == 0);
 	if (number <= GDB_REGNO_XPR31) {
-		riscv_program_sx(&program, number, output);
+		riscv_program_lx(&program, number, input);
 	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		riscv_program_fsd(&program, number, output);
+		riscv_program_fld(&program, number, input);
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		LOG_DEBUG("reading CSR index=0x%03x", number - GDB_REGNO_CSR0);
 		enum gdb_regno temp = riscv_program_gettemp(&program);
-		riscv_program_csrr(&program, temp, number);
-		riscv_program_sx(&program, temp, output);
+		riscv_program_lx(&program, temp, input);
+		riscv_program_csrw(&program, temp, number);
 	} else {
 		LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
 		abort();
@@ -747,9 +786,48 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		return ERROR_FAIL;
 	}
 
-	*value = 0;
-	*value |= ((uint64_t)(riscv_program_read_ram(&program, output + 4))) << 32;
-	*value |= riscv_program_read_ram(&program, output);
+	return ERROR_OK;
+}
+
+/** Actually read registers from the target right now. */
+static int register_read_direct(struct target *target, uint64_t *value, uint32_t number)
+{
+	int result = register_read_abstract(target, value, number,
+			riscv_xlen(target));
+
+	if (result != ERROR_OK) {
+		struct riscv_program program;
+		riscv_program_init(&program, target);
+		riscv_addr_t output = riscv_program_alloc_d(&program);
+		riscv_program_write_ram(&program, output + 4, 0);
+		riscv_program_write_ram(&program, output, 0);
+
+		assert(GDB_REGNO_XPR0 == 0);
+		if (number <= GDB_REGNO_XPR31) {
+			riscv_program_sx(&program, number, output);
+		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+			riscv_program_fsd(&program, number, output);
+		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+			LOG_DEBUG("reading CSR index=0x%03x", number - GDB_REGNO_CSR0);
+			enum gdb_regno temp = riscv_program_gettemp(&program);
+			riscv_program_csrr(&program, temp, number);
+			riscv_program_sx(&program, temp, output);
+		} else {
+			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
+			abort();
+		}
+
+		int exec_out = riscv_program_exec(&program, target);
+		if (exec_out != ERROR_OK) {
+			riscv013_clear_abstract_error(target);
+			return ERROR_FAIL;
+		}
+
+		*value = 0;
+		*value |= ((uint64_t)(riscv_program_read_ram(&program, output + 4))) << 32;
+		*value |= riscv_program_read_ram(&program, output);
+	}
+
 	LOG_DEBUG("[%d] reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
 			number, *value);
 	return ERROR_OK;
