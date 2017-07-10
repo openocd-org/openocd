@@ -1103,10 +1103,12 @@ void riscv_set_register(struct target *target, enum gdb_regno r, riscv_reg_t v)
 	return riscv_set_register_on_hart(target, riscv_current_hartid(target), r, v);
 }
 
-void riscv_set_register_on_hart(struct target *target, int hartid, enum gdb_regno regid, uint64_t value)
+void riscv_set_register_on_hart(struct target *target, int hartid,
+		enum gdb_regno regid, uint64_t value)
 {
 	RISCV_INFO(r);
-	LOG_DEBUG("writing register %d on hart %d", regid, hartid);
+	LOG_DEBUG("[%d] reg[%d] <- %" PRIx64, hartid, regid, value);
+	assert(r->set_register);
 	return r->set_register(target, hartid, regid, value);
 }
 
@@ -1242,4 +1244,54 @@ bool riscv_hart_enabled(struct target *target, int hartid)
 		return hartid < riscv_count_harts(target);
 
 	return hartid == target->coreid;
+}
+
+/**
+ * Count triggers, and initialize trigger_count for each hart.
+ * trigger_count is initialized even if this function fails to discover
+ * something.
+ * Disable any hardware triggers that have dmode set. We can't have set them
+ * ourselves. Maybe they're left over from some killed debug session.
+ * */
+int riscv_enumerate_triggers(struct target *target)
+{
+	RISCV_INFO(r);
+
+	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, hartid))
+			continue;
+
+		for (unsigned t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
+			r->trigger_count[hartid] = t;
+
+			riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, t);
+			uint64_t tselect = riscv_get_register_on_hart(target, hartid,
+					GDB_REGNO_TSELECT);
+			// Mask off the top bit, which is used as tdrmode in old
+			// implementations.
+			tselect &= ~(1ULL << (riscv_xlen(target)-1));
+			if (tselect != t)
+				break;
+
+			uint64_t tdata1 = riscv_get_register_on_hart(target, hartid,
+					GDB_REGNO_TDATA1);
+			int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
+			switch (type) {
+				case 1:
+					// On these older cores we don't support software using
+					// triggers.
+					riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, 0);
+					break;
+				case 2:
+					if (tdata1 & MCONTROL_DMODE(riscv_xlen(target))) {
+						riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, 0);
+					}
+					break;
+			}
+		}
+
+		LOG_DEBUG("[%d] Found %d triggers", hartid, r->trigger_count[hartid]);
+	}
+
+	return ERROR_OK;
 }

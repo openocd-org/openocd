@@ -216,8 +216,6 @@ typedef struct {
 	// unique_id of the breakpoint/watchpoint that is using it.
 	int trigger_unique_id[MAX_HWBPS];
 
-	unsigned int trigger_count;
-
 	// Number of run-test/idle cycles the target requests we do after each dbus
 	// access.
 	unsigned int dtmcontrol_idle;
@@ -1045,7 +1043,7 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
-		LOG_ERROR("Got exception 0x%x when reading CSR 0x%x", exception, csr);
+		LOG_WARNING("Got exception 0x%x when reading CSR 0x%x", exception, csr);
 		*value = ~0;
 		return ERROR_FAIL;
 	}
@@ -1260,22 +1258,54 @@ static int update_mstatus_actual(struct target *target)
 
 /*** OpenOCD target functions. ***/
 
+static int register_read(struct target *target, riscv_reg_t *value, int regnum)
+{
+	riscv011_info_t *info = get_info(target);
+	if (regnum >= REG_CSR0 && regnum <= REG_CSR4095) {
+		cache_set32(target, 0, csrr(S0, regnum - REG_CSR0));
+		cache_set_store(target, 1, S0, SLOT0);
+		cache_set_jump(target, 2);
+	} else {
+		LOG_ERROR("Don't know how to read register %d", regnum);
+		return ERROR_FAIL;
+	}
+
+	if (cache_write(target, 4, true) != ERROR_OK) {
+		return ERROR_FAIL;
+	}
+
+	uint32_t exception = cache_get32(target, info->dramsize-1);
+	if (exception) {
+		LOG_WARNING("Got exception 0x%x when reading register %d", exception,
+				regnum);
+		*value = ~0;
+		return ERROR_FAIL;
+	}
+
+	*value = cache_get(target, SLOT0);
+	LOG_DEBUG("reg[%d]=0x%" PRIx64, regnum, *value);
+
+	if (regnum == REG_MSTATUS) {
+		info->mstatus_actual = *value;
+	}
+
+	return ERROR_OK;
+}
+
 static int register_get(struct reg *reg)
 {
 	struct target *target = (struct target *) reg->arch_info;
 	riscv011_info_t *info = get_info(target);
 
 	maybe_write_tselect(target);
+	riscv_reg_t value = ~0;
 
 	if (reg->number <= REG_XPR31) {
-		buf_set_u64(reg->value, 0, riscv_xlen(target), reg_cache_get(target, reg->number));
+		value = reg_cache_get(target, reg->number);
 		LOG_DEBUG("%s=0x%" PRIx64, reg->name, reg_cache_get(target, reg->number));
-		return ERROR_OK;
 	} else if (reg->number == REG_PC) {
-		buf_set_u32(reg->value, 0, 32, info->dpc);
-		reg->valid = true;
+		value = info->dpc;
 		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
-		return ERROR_OK;
 	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
 		int result = update_mstatus_actual(target);
 		if (result != ERROR_OK) {
@@ -1295,44 +1325,24 @@ static int register_get(struct reg *reg)
 			cache_set32(target, i++, fsd(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
 		}
 		cache_set_jump(target, i++);
-	} else if (reg->number >= REG_CSR0 && reg->number <= REG_CSR4095) {
-		cache_set32(target, 0, csrr(S0, reg->number - REG_CSR0));
-		cache_set_store(target, 1, S0, SLOT0);
-		cache_set_jump(target, 2);
-	} else if (reg->number == REG_PRIV) {
-		buf_set_u64(reg->value, 0, 8, get_field(info->dcsr, DCSR_PRV));
-		LOG_DEBUG("%s=%d (cached)", reg->name,
-				(int) get_field(info->dcsr, DCSR_PRV));
-		return ERROR_OK;
+
+		if (cache_write(target, 4, true) != ERROR_OK) {
+			return ERROR_FAIL;
+		}
 	} else {
-		LOG_ERROR("Don't know how to read register %d (%s)", reg->number, reg->name);
-		return ERROR_FAIL;
+		if (register_read(target, &value, reg->number) != ERROR_OK)
+			return ERROR_FAIL;
 	}
-
-	if (cache_write(target, 4, true) != ERROR_OK) {
-		return ERROR_FAIL;
-	}
-
-	uint32_t exception = cache_get32(target, info->dramsize-1);
-	if (exception) {
-		LOG_ERROR("Got exception 0x%x when reading register %d", exception,
-				reg->number);
-		buf_set_u64(reg->value, 0, riscv_xlen(target), ~0);
-		return ERROR_FAIL;
-	}
-
-	uint64_t value = cache_get(target, SLOT0);
-	LOG_DEBUG("%s=0x%" PRIx64, reg->name, value);
 	buf_set_u64(reg->value, 0, riscv_xlen(target), value);
 
 	if (reg->number == REG_MSTATUS) {
-		info->mstatus_actual = value;
 		reg->valid = true;
 	}
 
 	return ERROR_OK;
 }
 
+// Write the register. No caching or games.
 static int register_write(struct target *target, unsigned int number,
 		uint64_t value)
 {
@@ -1396,7 +1406,7 @@ static int register_write(struct target *target, unsigned int number,
 
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
-		LOG_ERROR("Got exception 0x%x when writing register %d", exception,
+		LOG_WARNING("Got exception 0x%x when writing register %d", exception,
 				number);
 		return ERROR_FAIL;
 	}
@@ -1423,6 +1433,25 @@ static struct reg_arch_type riscv_reg_arch_type = {
 	.set = register_set
 };
 
+static riscv_reg_t get_register(struct target *target, int hartid, int regid)
+{
+	assert(hartid == 0);
+	riscv_reg_t value;
+	if (register_read(target, &value, regid) != ERROR_OK) {
+		// TODO: propagate errors
+		value = ~0;
+	}
+	return value;
+}
+
+static void set_register(struct target *target, int hartid, int regid,
+		uint64_t value)
+{
+	assert(hartid == 0);
+	// TODO: propagate errors
+	register_write(target, regid, value);
+}
+
 static int halt(struct target *target)
 {
 	LOG_DEBUG("riscv_halt()");
@@ -1446,7 +1475,8 @@ static int init_target(struct command_context *cmd_ctx,
 {
 	LOG_DEBUG("init");
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
-	generic_info->get_register = NULL;
+	generic_info->get_register = get_register;
+	generic_info->set_register = set_register;
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -1605,11 +1635,12 @@ static int maybe_add_trigger_t2(struct target *target, struct trigger *trigger,
 static int add_trigger(struct target *target, struct trigger *trigger)
 {
 	riscv011_info_t *info = get_info(target);
+	RISCV_INFO(r);
 
 	maybe_read_tselect(target);
 
 	unsigned int i;
-	for (i = 0; i < info->trigger_count; i++) {
+	for (i = 0; i < r->trigger_count[0]; i++) {
 		if (info->trigger_unique_id[i] != -1) {
 			continue;
 		}
@@ -1642,7 +1673,7 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 		info->trigger_unique_id[i] = trigger->unique_id;
 		break;
 	}
-	if (i >= info->trigger_count) {
+	if (i >= r->trigger_count[0]) {
 		LOG_ERROR("Couldn't find an available hardware trigger.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
@@ -1652,17 +1683,18 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 static int remove_trigger(struct target *target, struct trigger *trigger)
 {
+	RISCV_INFO(r);
 	riscv011_info_t *info = get_info(target);
 
 	maybe_read_tselect(target);
 
 	unsigned int i;
-	for (i = 0; i < info->trigger_count; i++) {
+	for (i = 0; i < r->trigger_count[0]; i++) {
 		if (info->trigger_unique_id[i] == trigger->unique_id) {
 			break;
 		}
 	}
-	if (i >= info->trigger_count) {
+	if (i >= r->trigger_count[0]) {
 		LOG_ERROR("Couldn't find the hardware resources used by hardware "
 				"trigger.");
 		return ERROR_FAIL;
@@ -2200,30 +2232,10 @@ static int handle_halt(struct target *target, bool announce)
 	if (info->never_halted) {
 		info->never_halted = false;
 
-		// Disable any hardware triggers that have dmode set. We can't have set
-		// them ourselves. Maybe they're left over from some killed debug
-		// session.
-		// Count the number of triggers while we're at it.
-
 		int result = maybe_read_tselect(target);
 		if (result != ERROR_OK)
 			return result;
-		for (info->trigger_count = 0; info->trigger_count < MAX_HWBPS; info->trigger_count++) {
-			write_csr(target, CSR_TSELECT, info->trigger_count);
-			uint64_t tselect_rb;
-			read_csr(target, &tselect_rb, CSR_TSELECT);
-			// Mask off the top bit, which is used as tdrmode in old
-			// implementations.
-			tselect_rb &= ~(1ULL << (riscv_xlen(target)-1));
-			if (info->trigger_count != tselect_rb)
-				break;
-			uint64_t tdata1;
-			read_csr(target, &tdata1, CSR_TDATA1);
-			if ((tdata1 & MCONTROL_DMODE(riscv_xlen(target))) &&
-					(tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD))) {
-				write_csr(target, CSR_TDATA1, 0);
-			}
-		}
+		riscv_enumerate_triggers(target);
 	}
 
 	if (announce) {

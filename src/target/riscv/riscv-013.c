@@ -1239,21 +1239,7 @@ static int examine(struct target *target)
 	}
 
 	/* Then we check the number of triggers availiable to each hart. */
-	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		if (!riscv_hart_enabled(target, i))
-			continue;
-
-		for (uint32_t t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
-			riscv_set_current_hartid(target, i);
-
-			r->trigger_count[i] = t;
-			register_write_direct(target, GDB_REGNO_TSELECT, t);
-			uint64_t tselect = t+1;
-			register_read_direct(target, &tselect, GDB_REGNO_TSELECT);
-			if (tselect != t)
-				break;
-		}
-	}
+	riscv_enumerate_triggers(target);
 
 	/* Resumes all the harts, so the debugger can later pause them. */
 	riscv_resume_all_harts(target);
