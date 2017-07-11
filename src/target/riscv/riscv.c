@@ -248,6 +248,7 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	if (!target->arch_info)
 		return ERROR_FAIL;
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	riscv_info_init(target, info);
 	info->cmd_ctx = cmd_ctx;
 
 	select_dtmcontrol.num_bits = target->tap->ir_length;
@@ -273,32 +274,329 @@ static int oldriscv_halt(struct target *target)
 	return tt->halt(target);
 }
 
-static int riscv_add_breakpoint(struct target *target,
-	struct breakpoint *breakpoint)
+static void trigger_from_breakpoint(struct trigger *trigger,
+		const struct breakpoint *breakpoint)
 {
-	struct target_type *tt = get_target_type(target);
-	return tt->add_breakpoint(target, breakpoint);
+	trigger->address = breakpoint->address;
+	trigger->length = breakpoint->length;
+	trigger->mask = ~0LL;
+	trigger->read = false;
+	trigger->write = false;
+	trigger->execute = true;
+	// unique_id is unique across both breakpoints and watchpoints.
+	trigger->unique_id = breakpoint->unique_id;
 }
 
-static int riscv_remove_breakpoint(struct target *target,
+static int maybe_add_trigger_t1(struct target *target, unsigned hartid,
+		struct trigger *trigger, uint64_t tdata1)
+{
+	RISCV_INFO(r);
+
+	const uint32_t bpcontrol_x = 1<<0;
+	const uint32_t bpcontrol_w = 1<<1;
+	const uint32_t bpcontrol_r = 1<<2;
+	const uint32_t bpcontrol_u = 1<<3;
+	const uint32_t bpcontrol_s = 1<<4;
+	const uint32_t bpcontrol_h = 1<<5;
+	const uint32_t bpcontrol_m = 1<<6;
+	const uint32_t bpcontrol_bpmatch = 0xf << 7;
+	const uint32_t bpcontrol_bpaction = 0xff << 11;
+
+	if (tdata1 & (bpcontrol_r | bpcontrol_w | bpcontrol_x)) {
+		// Trigger is already in use, presumably by user code.
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	tdata1 = set_field(tdata1, bpcontrol_r, trigger->read);
+	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
+	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
+	tdata1 = set_field(tdata1, bpcontrol_u, !!(r->misa & (1 << ('U' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_s, !!(r->misa & (1 << ('S' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_h, !!(r->misa & (1 << ('H' - 'A'))));
+	tdata1 |= bpcontrol_m;
+	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); // exact match
+	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); // cause bp exception
+
+	riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, tdata1);
+
+	riscv_reg_t tdata1_rb = riscv_get_register_on_hart(target, hartid,
+			GDB_REGNO_TDATA1);
+	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
+
+	if (tdata1 != tdata1_rb) {
+		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
+				PRIx64 " to tdata1 it contains 0x%" PRIx64,
+				tdata1, tdata1_rb);
+		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, 0);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA2, trigger->address);
+
+	return ERROR_OK;
+}
+
+static int maybe_add_trigger_t2(struct target *target, unsigned hartid,
+		struct trigger *trigger, uint64_t tdata1)
+{
+	RISCV_INFO(r);
+
+	// tselect is already set
+	if (tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD)) {
+		// Trigger is already in use, presumably by user code.
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	// address/data match trigger
+	tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
+	tdata1 = set_field(tdata1, MCONTROL_ACTION,
+			MCONTROL_ACTION_DEBUG_MODE);
+	tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
+	tdata1 |= MCONTROL_M;
+	if (r->misa & (1 << ('H' - 'A')))
+		tdata1 |= MCONTROL_H;
+	if (r->misa & (1 << ('S' - 'A')))
+		tdata1 |= MCONTROL_S;
+	if (r->misa & (1 << ('U' - 'A')))
+		tdata1 |= MCONTROL_U;
+
+	if (trigger->execute)
+		tdata1 |= MCONTROL_EXECUTE;
+	if (trigger->read)
+		tdata1 |= MCONTROL_LOAD;
+	if (trigger->write)
+		tdata1 |= MCONTROL_STORE;
+
+	riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, tdata1);
+
+	uint64_t tdata1_rb = riscv_get_register_on_hart(target, hartid, GDB_REGNO_TDATA1);
+	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
+
+	if (tdata1 != tdata1_rb) {
+		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
+				PRIx64 " to tdata1 it contains 0x%" PRIx64,
+				tdata1, tdata1_rb);
+		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, 0);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA2, trigger->address);
+
+	return ERROR_OK;
+}
+
+static int add_trigger(struct target *target, struct trigger *trigger)
+{
+	RISCV_INFO(r);
+
+	riscv_reg_t tselect[RISCV_MAX_HARTS];
+
+	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, hartid))
+			continue;
+		tselect[hartid] = riscv_get_register_on_hart(target, hartid,
+				GDB_REGNO_TSELECT);
+	}
+
+	unsigned int i;
+	for (i = 0; i < r->trigger_count[0]; i++) {
+		if (r->trigger_unique_id[i] != -1) {
+			continue;
+		}
+
+		riscv_set_register_on_hart(target, 0, GDB_REGNO_TSELECT, i);
+
+		uint64_t tdata1 = riscv_get_register_on_hart(target, 0, GDB_REGNO_TDATA1);
+		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
+
+		int result = ERROR_OK;
+		for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+			if (!riscv_hart_enabled(target, hartid))
+				continue;
+			if (hartid > 0) {
+				riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, i);
+			}
+			switch (type) {
+				case 1:
+					result = maybe_add_trigger_t1(target, hartid, trigger, tdata1);
+					break;
+				case 2:
+					result = maybe_add_trigger_t2(target, hartid, trigger, tdata1);
+					break;
+				default:
+					LOG_DEBUG("trigger %d has unknown type %d", i, type);
+					continue;
+			}
+
+			if (result != ERROR_OK) {
+				continue;
+			}
+		}
+
+		if (result != ERROR_OK) {
+			continue;
+		}
+
+		LOG_DEBUG("Using resource %d for bp %d", i,
+				trigger->unique_id);
+		r->trigger_unique_id[i] = trigger->unique_id;
+		break;
+	}
+
+	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, hartid))
+			continue;
+		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT,
+				tselect[hartid]);
+	}
+
+	if (i >= r->trigger_count[0]) {
+		LOG_ERROR("Couldn't find an available hardware trigger.");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	return ERROR_OK;
+}
+
+int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
+{
+	if (breakpoint->type == BKPT_SOFT) {
+		if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
+					breakpoint->orig_instr) != ERROR_OK) {
+			LOG_ERROR("Failed to read original instruction at 0x%" TARGET_PRIxADDR,
+					breakpoint->address);
+			return ERROR_FAIL;
+		}
+
+		int retval;
+		if (breakpoint->length == 4) {
+			retval = target_write_u32(target, breakpoint->address, ebreak());
+		} else {
+			retval = target_write_u16(target, breakpoint->address, ebreak_c());
+		}
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
+					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
+			return ERROR_FAIL;
+		}
+
+	} else if (breakpoint->type == BKPT_HARD) {
+		struct trigger trigger;
+		trigger_from_breakpoint(&trigger, breakpoint);
+		int result = add_trigger(target, &trigger);
+		if (result != ERROR_OK) {
+			return result;
+		}
+
+	} else {
+		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	breakpoint->set = true;
+
+	return ERROR_OK;
+}
+
+static int remove_trigger(struct target *target, struct trigger *trigger)
+{
+	RISCV_INFO(r);
+
+	unsigned int i;
+	for (i = 0; i < r->trigger_count[0]; i++) {
+		if (r->trigger_unique_id[i] == trigger->unique_id) {
+			break;
+		}
+	}
+	if (i >= r->trigger_count[0]) {
+		LOG_ERROR("Couldn't find the hardware resources used by hardware "
+				"trigger.");
+		return ERROR_FAIL;
+	}
+	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
+	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, hartid))
+			continue;
+		riscv_reg_t tselect = riscv_get_register_on_hart(target, hartid, GDB_REGNO_TSELECT);
+		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, i);
+		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, 0);
+		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, tselect);
+	}
+	r->trigger_unique_id[i] = -1;
+
+	return ERROR_OK;
+}
+
+int riscv_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-	struct target_type *tt = get_target_type(target);
-	return tt->remove_breakpoint(target, breakpoint);
+	if (breakpoint->type == BKPT_SOFT) {
+		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
+					breakpoint->orig_instr) != ERROR_OK) {
+			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
+					"0x%" TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
+			return ERROR_FAIL;
+		}
+
+	} else if (breakpoint->type == BKPT_HARD) {
+		struct trigger trigger;
+		trigger_from_breakpoint(&trigger, breakpoint);
+		int result = remove_trigger(target, &trigger);
+		if (result != ERROR_OK) {
+			return result;
+		}
+
+	} else {
+		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	breakpoint->set = false;
+
+	return ERROR_OK;
 }
 
-static int riscv_add_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
+static void trigger_from_watchpoint(struct trigger *trigger,
+		const struct watchpoint *watchpoint)
 {
-	struct target_type *tt = get_target_type(target);
-	return tt->add_watchpoint(target, watchpoint);
+	trigger->address = watchpoint->address;
+	trigger->length = watchpoint->length;
+	trigger->mask = watchpoint->mask;
+	trigger->value = watchpoint->value;
+	trigger->read = (watchpoint->rw == WPT_READ || watchpoint->rw == WPT_ACCESS);
+	trigger->write = (watchpoint->rw == WPT_WRITE || watchpoint->rw == WPT_ACCESS);
+	trigger->execute = false;
+	// unique_id is unique across both breakpoints and watchpoints.
+	trigger->unique_id = watchpoint->unique_id;
 }
 
-static int riscv_remove_watchpoint(struct target *target,
+int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
+{
+	struct trigger trigger;
+	trigger_from_watchpoint(&trigger, watchpoint);
+
+	int result = add_trigger(target, &trigger);
+	if (result != ERROR_OK) {
+		return result;
+	}
+	watchpoint->set = true;
+
+	return ERROR_OK;
+}
+
+int riscv_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
-	struct target_type *tt = get_target_type(target);
-	return tt->remove_watchpoint(target, watchpoint);
+	struct trigger trigger;
+	trigger_from_watchpoint(&trigger, watchpoint);
+
+	int result = remove_trigger(target, &trigger);
+	if (result != ERROR_OK) {
+		return result;
+	}
+	watchpoint->set = false;
+
+	return ERROR_OK;
 }
 
 static int oldriscv_step(struct target *target, int current, uint32_t address,
@@ -880,6 +1178,8 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 	r->registers_initialized = false;
 	r->current_hartid = target->coreid;
 
+	memset(r->trigger_unique_id, 0xff, sizeof(r->trigger_unique_id));
+
 	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h) {
 		r->xlen[h] = -1;
 		r->debug_buffer_addr[h] = -1;
@@ -1033,7 +1333,6 @@ void riscv_set_current_hartid(struct target *target, int hartid)
 			&& (!riscv_rtos_enabled(target) || (previous_hartid == hartid))
 			&& target->reg_cache->reg_list[GDB_REGNO_XPR0].size == (unsigned)riscv_xlen(target)
 			&& (!riscv_rtos_enabled(target) || (r->rtos_hartid != -1))) {
-		LOG_DEBUG("registers already initialized, skipping");
 		return;
 	} else
 		LOG_DEBUG("Initializing registers: xlen=%d", riscv_xlen(target));
@@ -1107,7 +1406,7 @@ void riscv_set_register_on_hart(struct target *target, int hartid,
 		enum gdb_regno regid, uint64_t value)
 {
 	RISCV_INFO(r);
-	LOG_DEBUG("[%d] reg[%d] <- %" PRIx64, hartid, regid, value);
+	LOG_DEBUG("[%d] reg[0x%x] <- %" PRIx64, hartid, regid, value);
 	assert(r->set_register);
 	return r->set_register(target, hartid, regid, value);
 }
@@ -1120,13 +1419,15 @@ riscv_reg_t riscv_get_register(struct target *target, enum gdb_regno r)
 uint64_t riscv_get_register_on_hart(struct target *target, int hartid, enum gdb_regno regid)
 {
 	RISCV_INFO(r);
-	LOG_DEBUG("reading register %d on hart %d", regid, hartid);
-	return r->get_register(target, hartid, regid);
+	uint64_t value = r->get_register(target, hartid, regid);
+	LOG_DEBUG("[%d] reg[0x%x] = %" PRIx64, hartid, regid, value);
+	return value;
 }
 
 bool riscv_is_halted(struct target *target)
 {
 	RISCV_INFO(r);
+	assert(r->is_halted);
 	return r->is_halted(target);
 }
 
@@ -1261,16 +1562,19 @@ int riscv_enumerate_triggers(struct target *target)
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
 
+		riscv_reg_t tselect = riscv_get_register_on_hart(target, hartid,
+				GDB_REGNO_TSELECT);
+
 		for (unsigned t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
 			r->trigger_count[hartid] = t;
 
 			riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, t);
-			uint64_t tselect = riscv_get_register_on_hart(target, hartid,
+			uint64_t tselect_rb = riscv_get_register_on_hart(target, hartid,
 					GDB_REGNO_TSELECT);
 			// Mask off the top bit, which is used as tdrmode in old
 			// implementations.
-			tselect &= ~(1ULL << (riscv_xlen(target)-1));
-			if (tselect != t)
+			tselect_rb &= ~(1ULL << (riscv_xlen(target)-1));
+			if (tselect_rb != t)
 				break;
 
 			uint64_t tdata1 = riscv_get_register_on_hart(target, hartid,
@@ -1289,6 +1593,8 @@ int riscv_enumerate_triggers(struct target *target)
 					break;
 			}
 		}
+
+		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, tselect);
 
 		LOG_DEBUG("[%d] Found %d triggers", hartid, r->trigger_count[hartid]);
 	}

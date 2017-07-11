@@ -11,6 +11,7 @@ struct riscv_program;
 #define RISCV_MAX_HARTS 32
 #define RISCV_MAX_REGISTERS 5000
 #define RISCV_MAX_TRIGGERS 32
+#define RISCV_MAX_HWBPS 16
 
 extern struct target_type riscv011_target;
 extern struct target_type riscv013_target;
@@ -30,6 +31,9 @@ enum riscv_halt_reason {
 
 typedef struct {
 	unsigned dtm_version;
+
+	riscv_reg_t misa;
+
 	struct command_context *cmd_ctx;
 	void *version_specific;
 
@@ -58,6 +62,10 @@ typedef struct {
 
 	/* The number of triggers per hart. */
 	unsigned trigger_count[RISCV_MAX_HARTS];
+
+	/* For each physical trigger, contains -1 if the hwbp is available, or the
+	 * unique_id of the breakpoint/watchpoint that is using it. */
+	int trigger_unique_id[RISCV_MAX_HWBPS];
 
 	/* The address of the debug RAM buffer. */
 	riscv_addr_t debug_buffer_addr[RISCV_MAX_HARTS];
@@ -220,5 +228,12 @@ void riscv_invalidate_register_cache(struct target *target);
 bool riscv_hart_enabled(struct target *target, int hartid);
 
 int riscv_enumerate_triggers(struct target *target);
+
+int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int riscv_remove_breakpoint(struct target *target,
+		struct breakpoint *breakpoint);
+int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
+int riscv_remove_watchpoint(struct target *target,
+		struct watchpoint *watchpoint);
 
 #endif

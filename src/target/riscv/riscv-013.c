@@ -123,8 +123,6 @@ typedef enum slot {
 
 #define WALL_CLOCK_TIMEOUT		2
 
-#define MAX_HWBPS			16
-
 struct trigger {
 	uint64_t address;
 	uint32_t length;
@@ -149,7 +147,6 @@ typedef struct {
 	unsigned progsize;
 	/* Number of Program Buffer registers. */
 	/* Number of words in Debug RAM. */
-	uint64_t misa;
 	uint64_t tselect;
 	bool tselect_dirty;
 	/* The value that mstatus actually has on the target right now. This is not
@@ -162,10 +159,6 @@ typedef struct {
 	char *reg_names;
 	/* Single buffer that contains all register values. */
 	void *reg_values;
-
-	// For each physical trigger, contains -1 if the hwbp is available, or the
-	// unique_id of the breakpoint/watchpoint that is using it.
-	int trigger_unique_id[MAX_HWBPS];
 
 	// Number of run-test/idle cycles the target requests we do after each dbus
 	// access.
@@ -298,7 +291,7 @@ static int register_get(struct reg *reg);
 
 bool supports_extension(struct target *target, char letter)
 {
-	riscv013_info_t *info = get_info(target);
+	RISCV_INFO(r);
 	unsigned num;
 	if (letter >= 'a' && letter <= 'z') {
 		num = letter - 'a';
@@ -307,7 +300,7 @@ bool supports_extension(struct target *target, char letter)
 	} else {
 		return false;
 	}
-	return info->misa & (1 << num);
+	return r->misa & (1 << num);
 }
 
 static void select_dmi(struct target *target)
@@ -844,20 +837,6 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	return ERROR_OK;
 }
 
-static int maybe_read_tselect(struct target *target)
-{
-	riscv013_info_t *info = get_info(target);
-
-	if (info->tselect_dirty) {
-		int result = register_read_direct(target, &info->tselect, GDB_REGNO_TSELECT);
-		if (result != ERROR_OK)
-			return result;
-		info->tselect_dirty = false;
-	}
-
-	return ERROR_OK;
-}
-
 /*** OpenOCD target functions. ***/
 
 static int register_get(struct reg *reg)
@@ -900,7 +879,6 @@ static int init_target(struct command_context *cmd_ctx,
 	LOG_DEBUG("init");
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 
-	riscv_info_init(target, generic_info);
 	generic_info->get_register = &riscv013_get_register;
 	generic_info->set_register = &riscv013_set_register;
 	generic_info->select_current_hart = &riscv013_select_current_hart;
@@ -983,11 +961,6 @@ static int init_target(struct command_context *cmd_ctx,
 		reg_name += strlen(reg_name) + 1;
 		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
 	}
-#if 0
-	update_reg_list(target);
-#endif
-
-	memset(info->trigger_unique_id, 0xff, sizeof(info->trigger_unique_id));
 
 	return ERROR_OK;
 }
@@ -998,269 +971,6 @@ static void deinit_target(struct target *target)
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	free(info->version_specific);
 	info->version_specific = NULL;
-}
-
-static int add_trigger(struct target *target, struct trigger *trigger)
-{
-	riscv013_info_t *info = get_info(target);
-
-	// While we're using threads to fake harts, both gdb and OpenOCD assume
-	// that hardware breakpoints are shared among threads. Make this true by
-	// setting the same breakpoints on all harts.
-
-	// Assume that all triggers are configured the same on all harts.
-	riscv_set_current_hartid(target, 0);
-
-	maybe_read_tselect(target);
-
-	int i;
-	for (i = 0; i < riscv_count_triggers(target); i++) {
-		if (info->trigger_unique_id[i] != -1) {
-			continue;
-		}
-
-		register_write_direct(target, GDB_REGNO_TSELECT, i);
-
-		uint64_t tdata1;
-		register_read_direct(target, &tdata1, GDB_REGNO_TDATA1);
-		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
-
-		if (type != 2) {
-			continue;
-		}
-
-		if (tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD)) {
-			// Trigger is already in use, presumably by user code.
-			continue;
-		}
-
-		uint64_t tdata1_rb;
-		for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
-			if (!riscv_hart_enabled(target, hartid))
-				continue;
-
-			riscv_set_current_hartid(target, hartid);
-
-			if (hartid > 0) {
-				register_write_direct(target, GDB_REGNO_TSELECT, i);
-			}
-
-			// address/data match trigger
-			tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
-			tdata1 = set_field(tdata1, MCONTROL_ACTION,
-					MCONTROL_ACTION_DEBUG_MODE);
-			tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
-			tdata1 |= MCONTROL_M;
-			if (info->misa & (1 << ('H' - 'A')))
-				tdata1 |= MCONTROL_H;
-			if (info->misa & (1 << ('S' - 'A')))
-				tdata1 |= MCONTROL_S;
-			if (info->misa & (1 << ('U' - 'A')))
-				tdata1 |= MCONTROL_U;
-
-			if (trigger->execute)
-				tdata1 |= MCONTROL_EXECUTE;
-			if (trigger->read)
-				tdata1 |= MCONTROL_LOAD;
-			if (trigger->write)
-				tdata1 |= MCONTROL_STORE;
-
-			register_write_direct(target, GDB_REGNO_TDATA1, tdata1);
-
-			register_read_direct(target, &tdata1_rb, GDB_REGNO_TDATA1);
-			LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
-
-			if (tdata1 != tdata1_rb) {
-				LOG_DEBUG("Trigger %d doesn't support what we need; After writing 0x%"
-						PRIx64 " to tdata1 it contains 0x%" PRIx64,
-						i, tdata1, tdata1_rb);
-				register_write_direct(target, GDB_REGNO_TDATA1, 0);
-				if (hartid > 0) {
-					LOG_ERROR("Setting hardware breakpoints requires "
-							"homogeneous harts.");
-					return ERROR_FAIL;
-				}
-				break;
-			}
-
-			register_write_direct(target, GDB_REGNO_TDATA2, trigger->address);
-		}
-
-		if (tdata1 != tdata1_rb) {
-			continue;
-		}
-
-		LOG_DEBUG("Using resource %d for bp %d", i,
-				trigger->unique_id);
-		info->trigger_unique_id[i] = trigger->unique_id;
-		break;
-	}
-	if (i >= riscv_count_triggers(target)) {
-		LOG_ERROR("Couldn't find an available hardware trigger.");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	return ERROR_OK;
-}
-
-static int remove_trigger(struct target *target, struct trigger *trigger)
-{
-	riscv013_info_t *info = get_info(target);
-
-	// Assume that all triggers are configured the same on all harts.
-	riscv_set_current_hartid(target, 0);
-
-	maybe_read_tselect(target);
-
-	int i;
-	for (i = 0; i < riscv_count_triggers(target); i++) {
-		if (info->trigger_unique_id[i] == trigger->unique_id) {
-			break;
-		}
-	}
-	if (i >= riscv_count_triggers(target)) {
-		LOG_ERROR("Couldn't find the hardware resources used by hardware "
-				"trigger.");
-		return ERROR_FAIL;
-	}
-	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
-	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
-		if (!riscv_hart_enabled(target, hartid))
-			continue;
-
-		riscv_set_current_hartid(target, hartid);
-		register_write_direct(target, GDB_REGNO_TSELECT, i);
-		register_write_direct(target, GDB_REGNO_TDATA1, 0);
-	}
-	info->trigger_unique_id[i] = -1;
-
-	return ERROR_OK;
-}
-
-static void trigger_from_breakpoint(struct trigger *trigger,
-		const struct breakpoint *breakpoint)
-{
-	trigger->address = breakpoint->address;
-	trigger->length = breakpoint->length;
-	trigger->mask = ~0LL;
-	trigger->read = false;
-	trigger->write = false;
-	trigger->execute = true;
-	// unique_id is unique across both breakpoints and watchpoints.
-	trigger->unique_id = breakpoint->unique_id;
-}
-
-static void trigger_from_watchpoint(struct trigger *trigger,
-		const struct watchpoint *watchpoint)
-{
-	trigger->address = watchpoint->address;
-	trigger->length = watchpoint->length;
-	trigger->mask = watchpoint->mask;
-	trigger->value = watchpoint->value;
-	trigger->read = (watchpoint->rw == WPT_READ || watchpoint->rw == WPT_ACCESS);
-	trigger->write = (watchpoint->rw == WPT_WRITE || watchpoint->rw == WPT_ACCESS);
-	trigger->execute = false;
-	// unique_id is unique across both breakpoints and watchpoints.
-	trigger->unique_id = watchpoint->unique_id;
-}
-
-static int add_breakpoint(struct target *target,
-	struct breakpoint *breakpoint)
-{
-	if (breakpoint->type == BKPT_SOFT) {
-		if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
-					breakpoint->orig_instr) != ERROR_OK) {
-			LOG_ERROR("Failed to read original instruction at 0x%"
-					TARGET_PRIxADDR, breakpoint->address);
-			return ERROR_FAIL;
-		}
-
-		int retval;
-		if (breakpoint->length == 4) {
-			retval = target_write_u32(target, breakpoint->address, ebreak());
-		} else {
-			retval = target_write_u16(target, breakpoint->address, ebreak_c());
-		}
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
-					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
-			return ERROR_FAIL;
-		}
-
-	} else if (breakpoint->type == BKPT_HARD) {
-		struct trigger trigger;
-		trigger_from_breakpoint(&trigger, breakpoint);
-		int result = add_trigger(target, &trigger);
-		if (result != ERROR_OK) {
-			return result;
-		}
-	} else {
-		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	breakpoint->set = true;
-
-	return ERROR_OK;
-}
-
-static int remove_breakpoint(struct target *target,
-		struct breakpoint *breakpoint)
-{
-	if (breakpoint->type == BKPT_SOFT) {
-		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
-					breakpoint->orig_instr) != ERROR_OK) {
-			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
-					"0x%" TARGET_PRIxADDR, breakpoint->length,
-					breakpoint->address);
-			return ERROR_FAIL;
-		}
-
-	} else if (breakpoint->type == BKPT_HARD) {
-		struct trigger trigger;
-		trigger_from_breakpoint(&trigger, breakpoint);
-		int result = remove_trigger(target, &trigger);
-		if (result != ERROR_OK) {
-			return result;
-		}
-	} else {
-		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	breakpoint->set = false;
-
-	return ERROR_OK;
-}
-
-static int add_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
-{
-	struct trigger trigger;
-	trigger_from_watchpoint(&trigger, watchpoint);
-
-	int result = add_trigger(target, &trigger);
-	if (result != ERROR_OK) {
-		return result;
-	}
-	watchpoint->set = true;
-
-	return ERROR_OK;
-}
-
-static int remove_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
-{
-	struct trigger trigger;
-	trigger_from_watchpoint(&trigger, watchpoint);
-
-	int result = remove_trigger(target, &trigger);
-	if (result != ERROR_OK) {
-		return result;
-	}
-	watchpoint->set = false;
-
-	return ERROR_OK;
 }
 
 static int examine(struct target *target)
@@ -1938,12 +1648,6 @@ struct target_type riscv013_target =
 
 	.read_memory = read_memory,
 	.write_memory = write_memory,
-
-	.add_breakpoint = add_breakpoint,
-	.remove_breakpoint = remove_breakpoint,
-
-	.add_watchpoint = add_watchpoint,
-	.remove_watchpoint = remove_watchpoint,
 
 	.arch_state = arch_state,
 };
