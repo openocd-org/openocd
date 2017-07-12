@@ -192,6 +192,11 @@ typedef struct {
 	bool abstract_write_csr_supported;
 	bool abstract_read_fpr_supported;
 	bool abstract_write_fpr_supported;
+
+	// When a function returns some error due to a failure indicated by the
+	// target in cmderr, the caller can look here to see what that error was.
+	// (Compare with errno.)
+	unsigned cmderr;
 } riscv013_info_t;
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
@@ -546,6 +551,7 @@ uint32_t abstract_register_size(unsigned width)
 
 static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 {
+	RISCV013_INFO(info);
 	time_t start = time(NULL);
 	while (1) {
 		*abstractcs = dmi_read(target, DMI_ABSTRACTCS);
@@ -555,7 +561,8 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 		}
 
 		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
-			if (get_field(*abstractcs, DMI_ABSTRACTCS_CMDERR) != CMDERR_NONE) {
+			info->cmderr = get_field(*abstractcs, DMI_ABSTRACTCS_CMDERR);
+			if (info->cmderr != CMDERR_NONE) {
 				const char *errors[8] = {
 					"none",
 					"busy",
@@ -567,8 +574,7 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 					"other" };
 
 				LOG_ERROR("Abstract command ended in error '%s' (abstractcs=0x%x)",
-						errors[get_field(*abstractcs, DMI_ABSTRACTCS_CMDERR)],
-						*abstractcs);
+						errors[info->cmderr], *abstractcs);
 			}
 
 			LOG_ERROR("Timed out waiting for busy to go low. (abstractcs=0x%x)",
@@ -580,6 +586,7 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 
 static int execute_abstract_command(struct target *target, uint32_t command)
 {
+	RISCV013_INFO(info);
 	LOG_DEBUG("command=0x%x", command);
 	dmi_write(target, DMI_COMMAND, command);
 
@@ -589,12 +596,12 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	}
 
 	uint32_t cs = dmi_read(target, DMI_ABSTRACTCS);
-	unsigned cmderr = get_field(cs, DMI_ABSTRACTCS_CMDERR);
-	if (cmderr != 0) {
+	info->cmderr = get_field(cs, DMI_ABSTRACTCS_CMDERR);
+	if (info->cmderr != 0) {
 		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, cs);
 		// Clear the error.
 		dmi_write(target, DMI_ABSTRACTCS, set_field(0, DMI_ABSTRACTCS_CMDERR,
-					cmderr));
+					info->cmderr));
 		return ERROR_FAIL;
 	}
 
@@ -675,12 +682,14 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 
 	int result = execute_abstract_command(target, command);
 	if (result != ERROR_OK) {
-		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			r->abstract_read_fpr_supported = false;
-			LOG_INFO("Disabling abstract command reads from FPRs.");
-		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			r->abstract_read_csr_supported = false;
-			LOG_INFO("Disabling abstract command reads from CSRs.");
+		if (r->cmderr == CMDERR_NOT_SUPPORTED) {
+			if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+				r->abstract_read_fpr_supported = false;
+				LOG_INFO("Disabling abstract command reads from FPRs.");
+			} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+				r->abstract_read_csr_supported = false;
+				LOG_INFO("Disabling abstract command reads from CSRs.");
+			}
 		}
 		return result;
 	}
@@ -693,7 +702,7 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 static int register_write_abstract(struct target *target, uint32_t number,
 		uint64_t value, unsigned size)
 {
-	RISCV013_INFO(r);
+	RISCV013_INFO(info);
 
 	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
 	switch (size) {
@@ -715,12 +724,12 @@ static int register_write_abstract(struct target *target, uint32_t number,
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				0x1000 + number - GDB_REGNO_XPR0);
 	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		if (!r->abstract_read_fpr_supported)
+		if (!info->abstract_read_fpr_supported)
 			return ERROR_FAIL;
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				0x1020 + number - GDB_REGNO_FPR0);
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		if (!r->abstract_read_csr_supported)
+		if (!info->abstract_read_csr_supported)
 			return ERROR_FAIL;
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				number - GDB_REGNO_CSR0);
@@ -734,12 +743,14 @@ static int register_write_abstract(struct target *target, uint32_t number,
 
 	int result = execute_abstract_command(target, command);
 	if (result != ERROR_OK) {
-		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			r->abstract_write_fpr_supported = false;
-			LOG_INFO("Disabling abstract command writes to FPRs.");
-		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			r->abstract_write_csr_supported = false;
-			LOG_INFO("Disabling abstract command writes to CSRs.");
+		if (info->cmderr == CMDERR_NOT_SUPPORTED) {
+			if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+				info->abstract_write_fpr_supported = false;
+				LOG_INFO("Disabling abstract command writes to FPRs.");
+			} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+				info->abstract_write_csr_supported = false;
+				LOG_INFO("Disabling abstract command writes to CSRs.");
+			}
 		}
 		return result;
 	}
@@ -1415,7 +1426,7 @@ static int examine(struct target *target)
 				r->xlen[i], r->debug_buffer_addr[i]);
 
 		if (riscv_program_gah(&program64, r->debug_buffer_addr[i])) {
-			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx\n", i, 
+			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx\n", i,
 					(long)r->debug_buffer_addr[i]);
 			abort();
 		}
@@ -1479,7 +1490,7 @@ static int assert_reset(struct target *target)
 static int deassert_reset(struct target *target)
 {
 	RISCV_INFO(r);
-	RISCV013_INFO(info); 
+	RISCV013_INFO(info);
 	select_dmi(target);
 
 	/*FIXME -- this only works for Single Hart*/
@@ -1637,7 +1648,7 @@ static int read_memory(struct target *target, target_addr_t address,
 		size_t reads = 0;
 		size_t rereads = reads;
 		for (riscv_addr_t i = start; i < count; ++i) {
-			size_t index = 
+			size_t index =
 				riscv_batch_add_dmi_read(
 					batch,
 					riscv013_debug_buffer_register(target, r_data));
@@ -1690,7 +1701,8 @@ static int read_memory(struct target *target, target_addr_t address,
 		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY))
 			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-		switch (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
+		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
+		switch (info->cmderr) {
 		case CMDERR_NONE:
 			LOG_DEBUG("successful (partial?) memory write");
 			break;
@@ -1874,7 +1886,8 @@ static int write_memory(struct target *target, target_addr_t address,
 		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY))
 			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-		switch (get_field(abstractcs, DMI_ABSTRACTCS_CMDERR)) {
+		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
+		switch (info->cmderr) {
 		case CMDERR_NONE:
 			LOG_DEBUG("successful (partial?) memory write");
 			break;
