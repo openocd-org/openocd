@@ -106,7 +106,7 @@
  */
 #define DTM_DMI_DATA_OFFSET                 2
 #define DTM_DMI_DATA_LENGTH                 32
-#define DTM_DMI_DATA                        (0xffffffffL << DTM_DMI_DATA_OFFSET)
+#define DTM_DMI_DATA                        (0xffffffffLL << DTM_DMI_DATA_OFFSET)
 /*
 * When the debugger writes this field, it has the following meaning:
 *
@@ -151,7 +151,7 @@
  */
 #define DTM_DMI_OP_OFFSET                   0
 #define DTM_DMI_OP_LENGTH                   2
-#define DTM_DMI_OP                          (0x3L << DTM_DMI_OP_OFFSET)
+#define DTM_DMI_OP                          (0x3LL << DTM_DMI_OP_OFFSET)
 #define CSR_DCSR                            0x7b0
 /*
 * 0: There is no external debug support.
@@ -285,7 +285,7 @@
  */
 #define CSR_TDATA1_TYPE_OFFSET              XLEN-4
 #define CSR_TDATA1_TYPE_LENGTH              4
-#define CSR_TDATA1_TYPE                     (0xfL << CSR_TDATA1_TYPE_OFFSET)
+#define CSR_TDATA1_TYPE                     (0xfLL << CSR_TDATA1_TYPE_OFFSET)
 /*
 * 0: Both Debug and M Mode can write the {\tt tdata} registers at the
 * selected \Rtselect.
@@ -297,7 +297,7 @@
  */
 #define CSR_TDATA1_HMODE_OFFSET             XLEN-5
 #define CSR_TDATA1_HMODE_LENGTH             1
-#define CSR_TDATA1_HMODE                    (0x1L << CSR_TDATA1_HMODE_OFFSET)
+#define CSR_TDATA1_HMODE                    (0x1LL << CSR_TDATA1_HMODE_OFFSET)
 /*
 * Trigger-specific data.
  */
@@ -315,10 +315,10 @@
 #define CSR_MCONTROL                        0x7a1
 #define CSR_MCONTROL_TYPE_OFFSET            XLEN-4
 #define CSR_MCONTROL_TYPE_LENGTH            4
-#define CSR_MCONTROL_TYPE                   (0xfL << CSR_MCONTROL_TYPE_OFFSET)
+#define CSR_MCONTROL_TYPE                   (0xfLL << CSR_MCONTROL_TYPE_OFFSET)
 #define CSR_MCONTROL_DMODE_OFFSET           XLEN-5
 #define CSR_MCONTROL_DMODE_LENGTH           1
-#define CSR_MCONTROL_DMODE                  (0x1L << CSR_MCONTROL_DMODE_OFFSET)
+#define CSR_MCONTROL_DMODE                  (0x1LL << CSR_MCONTROL_DMODE_OFFSET)
 /*
 * Specifies the largest naturally aligned powers-of-two (NAPOT) range
 * supported by the hardware. The value is the logarithm base 2 of the
@@ -329,7 +329,7 @@
  */
 #define CSR_MCONTROL_MASKMAX_OFFSET         XLEN-11
 #define CSR_MCONTROL_MASKMAX_LENGTH         6
-#define CSR_MCONTROL_MASKMAX                (0x3fL << CSR_MCONTROL_MASKMAX_OFFSET)
+#define CSR_MCONTROL_MASKMAX                (0x3fLL << CSR_MCONTROL_MASKMAX_OFFSET)
 /*
 * 0: Perform a match on the virtual address.
 *
@@ -338,7 +338,7 @@
  */
 #define CSR_MCONTROL_SELECT_OFFSET          19
 #define CSR_MCONTROL_SELECT_LENGTH          1
-#define CSR_MCONTROL_SELECT                 (0x1L << CSR_MCONTROL_SELECT_OFFSET)
+#define CSR_MCONTROL_SELECT                 (0x1LL << CSR_MCONTROL_SELECT_OFFSET)
 /*
 * 0: The action for this trigger will be taken just before the
 * instruction that triggered it is executed, but after all preceding
@@ -366,7 +366,7 @@
  */
 #define CSR_MCONTROL_TIMING_OFFSET          18
 #define CSR_MCONTROL_TIMING_LENGTH          1
-#define CSR_MCONTROL_TIMING                 (0x1L << CSR_MCONTROL_TIMING_OFFSET)
+#define CSR_MCONTROL_TIMING                 (0x1LL << CSR_MCONTROL_TIMING_OFFSET)
 /*
 * Determines what happens when this trigger matches.
 *
@@ -387,7 +387,7 @@
  */
 #define CSR_MCONTROL_ACTION_OFFSET          12
 #define CSR_MCONTROL_ACTION_LENGTH          6
-#define CSR_MCONTROL_ACTION                 (0x3fL << CSR_MCONTROL_ACTION_OFFSET)
+#define CSR_MCONTROL_ACTION                 (0x3fLL << CSR_MCONTROL_ACTION_OFFSET)
 /*
 * 0: When this trigger matches, the configured action is taken.
 *
@@ -396,7 +396,7 @@
  */
 #define CSR_MCONTROL_CHAIN_OFFSET           11
 #define CSR_MCONTROL_CHAIN_LENGTH           1
-#define CSR_MCONTROL_CHAIN                  (0x1L << CSR_MCONTROL_CHAIN_OFFSET)
+#define CSR_MCONTROL_CHAIN                  (0x1LL << CSR_MCONTROL_CHAIN_OFFSET)
 /*
 * 0: Matches when the value equals \Rtdatatwo.
 *
@@ -420,57 +420,57 @@
  */
 #define CSR_MCONTROL_MATCH_OFFSET           7
 #define CSR_MCONTROL_MATCH_LENGTH           4
-#define CSR_MCONTROL_MATCH                  (0xfL << CSR_MCONTROL_MATCH_OFFSET)
+#define CSR_MCONTROL_MATCH                  (0xfLL << CSR_MCONTROL_MATCH_OFFSET)
 /*
 * When set, enable this trigger in M mode.
  */
 #define CSR_MCONTROL_M_OFFSET               6
 #define CSR_MCONTROL_M_LENGTH               1
-#define CSR_MCONTROL_M                      (0x1L << CSR_MCONTROL_M_OFFSET)
+#define CSR_MCONTROL_M                      (0x1LL << CSR_MCONTROL_M_OFFSET)
 /*
 * When set, enable this trigger in H mode.
  */
 #define CSR_MCONTROL_H_OFFSET               5
 #define CSR_MCONTROL_H_LENGTH               1
-#define CSR_MCONTROL_H                      (0x1L << CSR_MCONTROL_H_OFFSET)
+#define CSR_MCONTROL_H                      (0x1LL << CSR_MCONTROL_H_OFFSET)
 /*
 * When set, enable this trigger in S mode.
  */
 #define CSR_MCONTROL_S_OFFSET               4
 #define CSR_MCONTROL_S_LENGTH               1
-#define CSR_MCONTROL_S                      (0x1L << CSR_MCONTROL_S_OFFSET)
+#define CSR_MCONTROL_S                      (0x1LL << CSR_MCONTROL_S_OFFSET)
 /*
 * When set, enable this trigger in U mode.
  */
 #define CSR_MCONTROL_U_OFFSET               3
 #define CSR_MCONTROL_U_LENGTH               1
-#define CSR_MCONTROL_U                      (0x1L << CSR_MCONTROL_U_OFFSET)
+#define CSR_MCONTROL_U                      (0x1LL << CSR_MCONTROL_U_OFFSET)
 /*
 * When set, the trigger fires on the virtual address or opcode of an
 * instruction that is executed.
  */
 #define CSR_MCONTROL_EXECUTE_OFFSET         2
 #define CSR_MCONTROL_EXECUTE_LENGTH         1
-#define CSR_MCONTROL_EXECUTE                (0x1L << CSR_MCONTROL_EXECUTE_OFFSET)
+#define CSR_MCONTROL_EXECUTE                (0x1LL << CSR_MCONTROL_EXECUTE_OFFSET)
 /*
 * When set, the trigger fires on the virtual address or data of a store.
  */
 #define CSR_MCONTROL_STORE_OFFSET           1
 #define CSR_MCONTROL_STORE_LENGTH           1
-#define CSR_MCONTROL_STORE                  (0x1L << CSR_MCONTROL_STORE_OFFSET)
+#define CSR_MCONTROL_STORE                  (0x1LL << CSR_MCONTROL_STORE_OFFSET)
 /*
 * When set, the trigger fires on the virtual address or data of a load.
  */
 #define CSR_MCONTROL_LOAD_OFFSET            0
 #define CSR_MCONTROL_LOAD_LENGTH            1
-#define CSR_MCONTROL_LOAD                   (0x1L << CSR_MCONTROL_LOAD_OFFSET)
+#define CSR_MCONTROL_LOAD                   (0x1LL << CSR_MCONTROL_LOAD_OFFSET)
 #define CSR_ICOUNT                          0x7a1
 #define CSR_ICOUNT_TYPE_OFFSET              XLEN-4
 #define CSR_ICOUNT_TYPE_LENGTH              4
-#define CSR_ICOUNT_TYPE                     (0xfL << CSR_ICOUNT_TYPE_OFFSET)
+#define CSR_ICOUNT_TYPE                     (0xfLL << CSR_ICOUNT_TYPE_OFFSET)
 #define CSR_ICOUNT_DMODE_OFFSET             XLEN-5
 #define CSR_ICOUNT_DMODE_LENGTH             1
-#define CSR_ICOUNT_DMODE                    (0x1L << CSR_ICOUNT_DMODE_OFFSET)
+#define CSR_ICOUNT_DMODE                    (0x1LL << CSR_ICOUNT_DMODE_OFFSET)
 /*
 * When count is decremented to 0, the trigger fires. Instead of
 * changing \Fcount from 1 to 0, it is also acceptable for hardware to
@@ -479,35 +479,35 @@
  */
 #define CSR_ICOUNT_COUNT_OFFSET             10
 #define CSR_ICOUNT_COUNT_LENGTH             14
-#define CSR_ICOUNT_COUNT                    (0x3fffL << CSR_ICOUNT_COUNT_OFFSET)
+#define CSR_ICOUNT_COUNT                    (0x3fffLL << CSR_ICOUNT_COUNT_OFFSET)
 /*
 * When set, every instruction completed or exception taken in M mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_M_OFFSET                 9
 #define CSR_ICOUNT_M_LENGTH                 1
-#define CSR_ICOUNT_M                        (0x1L << CSR_ICOUNT_M_OFFSET)
+#define CSR_ICOUNT_M                        (0x1LL << CSR_ICOUNT_M_OFFSET)
 /*
 * When set, every instruction completed or exception taken in in H mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_H_OFFSET                 8
 #define CSR_ICOUNT_H_LENGTH                 1
-#define CSR_ICOUNT_H                        (0x1L << CSR_ICOUNT_H_OFFSET)
+#define CSR_ICOUNT_H                        (0x1LL << CSR_ICOUNT_H_OFFSET)
 /*
 * When set, every instruction completed or exception taken in S mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_S_OFFSET                 7
 #define CSR_ICOUNT_S_LENGTH                 1
-#define CSR_ICOUNT_S                        (0x1L << CSR_ICOUNT_S_OFFSET)
+#define CSR_ICOUNT_S                        (0x1LL << CSR_ICOUNT_S_OFFSET)
 /*
 * When set, every instruction completed or exception taken in U mode decrements \Fcount
 * by 1.
  */
 #define CSR_ICOUNT_U_OFFSET                 6
 #define CSR_ICOUNT_U_LENGTH                 1
-#define CSR_ICOUNT_U                        (0x1L << CSR_ICOUNT_U_OFFSET)
+#define CSR_ICOUNT_U                        (0x1LL << CSR_ICOUNT_U_OFFSET)
 /*
 * Determines what happens when this trigger matches.
 *
@@ -528,7 +528,7 @@
  */
 #define CSR_ICOUNT_ACTION_OFFSET            0
 #define CSR_ICOUNT_ACTION_LENGTH            6
-#define CSR_ICOUNT_ACTION                   (0x3fL << CSR_ICOUNT_ACTION_OFFSET)
+#define CSR_ICOUNT_ACTION                   (0x3fLL << CSR_ICOUNT_ACTION_OFFSET)
 #define DMI_DMSTATUS                        0x11
 /*
 * This field is 1 when all currently selected harts have acknowledged the previous \Fresumereq.

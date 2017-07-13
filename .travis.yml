@@ -1,0 +1,18 @@
+language: c
+dist: trusty
+
+matrix:
+    include:
+        - os: linux
+          env: BUILD=x86_64-linux-gnu
+
+        - os: linux
+          env: BUILD=i686-linux-gnu CFLAGS=-m32
+          addons:
+              apt:
+                  packages:
+                      - gcc-multilib
+
+script:
+    - ./bootstrap && ./configure && make
+    - file src/openocd

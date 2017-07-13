@@ -57,7 +57,7 @@ typedef struct {
 	int xlen[RISCV_MAX_HARTS];
 
 	/* The number of triggers per hart. */
-	int trigger_count[RISCV_MAX_HARTS];
+	unsigned trigger_count[RISCV_MAX_HARTS];
 
 	/* The address of the debug RAM buffer. */
 	riscv_addr_t debug_buffer_addr[RISCV_MAX_HARTS];
@@ -70,8 +70,9 @@ typedef struct {
 
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
-	riscv_reg_t (*get_register)(struct target *, int, int);
-	void (*set_register)(struct target *, int, int, uint64_t);
+	riscv_reg_t (*get_register)(struct target *, int hartid, int regid);
+	void (*set_register)(struct target *, int hartid, int regid,
+			uint64_t value);
 	void (*select_current_hart)(struct target *);
 	bool (*is_halted)(struct target *target);
 	void (*halt_current_hart)(struct target *);
@@ -218,5 +219,7 @@ void riscv_invalidate_register_cache(struct target *target);
 
 /* Returns TRUE when a hart is enabled in this target. */
 bool riscv_hart_enabled(struct target *target, int hartid);
+
+int riscv_enumerate_triggers(struct target *target);
 
 #endif
