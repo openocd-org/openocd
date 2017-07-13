@@ -2535,6 +2535,9 @@ int riscv013_test_compliance(struct target *target) {
   // DCSR.ebreak
   // DCSR.prv
 
+  /* Halt every hart for any follow-up tests*/
+  riscv_halt_all_harts(target);
+
   LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
 
   if (total_tests == passed_tests) {
