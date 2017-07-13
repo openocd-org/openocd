@@ -938,6 +938,9 @@ static int init_target(struct command_context *cmd_ctx,
 
 	// Assume all these abstract commands are supported until we learn
 	// otherwise.
+	// TODO: The spec allows eg. one CSR to be able to be accessed abstractly
+	// while another one isn't. We don't track that this closely here, but in
+	// the future we probably should.
 	info->abstract_read_csr_supported = true;
 	info->abstract_write_csr_supported = true;
 	info->abstract_read_fpr_supported = true;
