@@ -2387,7 +2387,9 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 
 	if (num_blocks == 0)
 		num_blocks = k_chip->fcfg2_maxaddr1_shifted ? 2 : 1;
-	else if (k_chip->fcfg2_maxaddr1_shifted == 0 && num_blocks >= 2) {
+	else if (k_chip->fcfg2_maxaddr1_shifted == 0 && num_blocks >= 2 && fcfg2_pflsh) {
+		/* fcfg2_maxaddr1 may be zero due to partitioning whole NVM as EEPROM backup
+		 * Do not adjust block count in this case! */
 		num_blocks = 1;
 		LOG_WARNING("MAXADDR1 is zero, number of flash banks adjusted to 1");
 	} else if (k_chip->fcfg2_maxaddr1_shifted != 0 && num_blocks == 1) {
@@ -2444,6 +2446,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 		case 0x06:
 			k_chip->dflash_size = k_chip->nvm_size - (4096 << fcfg1_depart);
 			break;
+		case 0x07:
 		case 0x08:
 			k_chip->dflash_size = 0;
 			break;
@@ -2502,8 +2505,13 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 		/* Program section size is equal to sector size by default */
 	}
 
-	k_chip->num_pflash_blocks = num_blocks / (2 - fcfg2_pflsh);
-	k_chip->num_nvm_blocks = num_blocks - k_chip->num_pflash_blocks;
+	if (fcfg2_pflsh) {
+		k_chip->num_pflash_blocks = num_blocks;
+		k_chip->num_nvm_blocks = 0;
+	} else {
+		k_chip->num_pflash_blocks = (num_blocks + 1) / 2;
+		k_chip->num_nvm_blocks = num_blocks - k_chip->num_pflash_blocks;
+	}
 
 	if (use_nvm_marking) {
 		nvm_marking[0] = k_chip->num_nvm_blocks ? 'X' : 'N';
