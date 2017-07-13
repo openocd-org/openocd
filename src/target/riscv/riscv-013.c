@@ -2667,6 +2667,10 @@ int riscv013_test_compliance(struct target *target) {
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0xFFFFFFFF, "NDMRESET should not affect DMI_COMMAND");
   COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR)  == CMDERR_NOT_SUPPORTED, "NDMRESET should not affect DMI_ABSTRACTCS");
   COMPLIANCE_TEST(dmi_read(target, DMI_ABSTRACTAUTO) == abstractauto, "NDMRESET should not affect DMI_ABSTRACTAUTO");
+
+  // Clean up to avoid future test failures
+  dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
+  dmi_write(target, DMI_ABSTRACTAUTO, 0);
   
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
     testvar = (i + 1) * 0x11111111;
