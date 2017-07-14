@@ -171,7 +171,6 @@ enum {
 	REG_COUNT
 };
 
-#define MAX_HWBPS			16
 #define DRAM_CACHE_SIZE		16
 
 struct trigger {
@@ -196,7 +195,6 @@ typedef struct {
 	unsigned int dramsize;
 	uint64_t dcsr;
 	uint64_t dpc;
-	uint64_t misa;
 	uint64_t tselect;
 	bool tselect_dirty;
 	/* The value that mstatus actually has on the target right now. This is not
@@ -211,10 +209,6 @@ typedef struct {
 	char *reg_names;
 	/* Single buffer that contains all register values. */
 	void *reg_values;
-
-	// For each physical trigger, contains -1 if the hwbp is available, or the
-	// unique_id of the breakpoint/watchpoint that is using it.
-	int trigger_unique_id[MAX_HWBPS];
 
 	// Number of run-test/idle cycles the target requests we do after each dbus
 	// access.
@@ -1519,9 +1513,6 @@ static int init_target(struct command_context *cmd_ctx,
 		reg_name += strlen(reg_name) + 1;
 		assert(reg_name < info->reg_names + REG_COUNT * max_reg_name_len);
 	}
-	update_reg_list(target);
-
-	memset(info->trigger_unique_id, 0xff, sizeof(info->trigger_unique_id));
 
 	return ERROR_OK;
 }
@@ -1534,306 +1525,6 @@ static void deinit_target(struct target *target)
 	info->version_specific = NULL;
 }
 
-static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger,
-		uint64_t tdata1)
-{
-	riscv011_info_t *info = get_info(target);
-
-	const uint32_t bpcontrol_x = 1<<0;
-	const uint32_t bpcontrol_w = 1<<1;
-	const uint32_t bpcontrol_r = 1<<2;
-	const uint32_t bpcontrol_u = 1<<3;
-	const uint32_t bpcontrol_s = 1<<4;
-	const uint32_t bpcontrol_h = 1<<5;
-	const uint32_t bpcontrol_m = 1<<6;
-	const uint32_t bpcontrol_bpmatch = 0xf << 7;
-	const uint32_t bpcontrol_bpaction = 0xff << 11;
-
-	if (tdata1 & (bpcontrol_r | bpcontrol_w | bpcontrol_x)) {
-		// Trigger is already in use, presumably by user code.
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	tdata1 = set_field(tdata1, bpcontrol_r, trigger->read);
-	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
-	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
-	tdata1 = set_field(tdata1, bpcontrol_u, !!(info->misa & (1 << ('U' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_s, !!(info->misa & (1 << ('S' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_h, !!(info->misa & (1 << ('H' - 'A'))));
-	tdata1 |= bpcontrol_m;
-	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); // exact match
-	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); // cause bp exception
-
-	write_csr(target, CSR_TDATA1, tdata1);
-
-	uint64_t tdata1_rb;
-	read_csr(target, &tdata1_rb, CSR_TDATA1);
-	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
-
-	if (tdata1 != tdata1_rb) {
-		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
-				PRIx64 " to tdata1 it contains 0x%" PRIx64,
-				tdata1, tdata1_rb);
-		write_csr(target, CSR_TDATA1, 0);
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	write_csr(target, CSR_TDATA2, trigger->address);
-
-	return ERROR_OK;
-}
-
-static int maybe_add_trigger_t2(struct target *target, struct trigger *trigger,
-		uint64_t tdata1)
-{
-	riscv011_info_t *info = get_info(target);
-	// tselect is already set
-	if (tdata1 & (MCONTROL_EXECUTE | MCONTROL_STORE | MCONTROL_LOAD)) {
-		// Trigger is already in use, presumably by user code.
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	// address/data match trigger
-	tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
-	tdata1 = set_field(tdata1, MCONTROL_ACTION,
-			MCONTROL_ACTION_DEBUG_MODE);
-	tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
-	tdata1 |= MCONTROL_M;
-	if (info->misa & (1 << ('H' - 'A')))
-		tdata1 |= MCONTROL_H;
-	if (info->misa & (1 << ('S' - 'A')))
-		tdata1 |= MCONTROL_S;
-	if (info->misa & (1 << ('U' - 'A')))
-		tdata1 |= MCONTROL_U;
-
-	if (trigger->execute)
-		tdata1 |= MCONTROL_EXECUTE;
-	if (trigger->read)
-		tdata1 |= MCONTROL_LOAD;
-	if (trigger->write)
-		tdata1 |= MCONTROL_STORE;
-
-	write_csr(target, CSR_TDATA1, tdata1);
-
-	uint64_t tdata1_rb;
-	read_csr(target, &tdata1_rb, CSR_TDATA1);
-	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
-
-	if (tdata1 != tdata1_rb) {
-		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
-				PRIx64 " to tdata1 it contains 0x%" PRIx64,
-				tdata1, tdata1_rb);
-		write_csr(target, CSR_TDATA1, 0);
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	write_csr(target, CSR_TDATA2, trigger->address);
-
-	return ERROR_OK;
-}
-
-static int add_trigger(struct target *target, struct trigger *trigger)
-{
-	riscv011_info_t *info = get_info(target);
-	RISCV_INFO(r);
-
-	maybe_read_tselect(target);
-
-	unsigned int i;
-	for (i = 0; i < r->trigger_count[0]; i++) {
-		if (info->trigger_unique_id[i] != -1) {
-			continue;
-		}
-
-		write_csr(target, CSR_TSELECT, i);
-
-		uint64_t tdata1;
-		read_csr(target, &tdata1, CSR_TDATA1);
-		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
-
-		int result;
-		switch (type) {
-			case 1:
-				result = maybe_add_trigger_t1(target, trigger, tdata1);
-				break;
-			case 2:
-				result = maybe_add_trigger_t2(target, trigger, tdata1);
-				break;
-			default:
-				LOG_DEBUG("trigger %d has unknown type %d", i, type);
-				continue;
-		}
-
-		if (result != ERROR_OK) {
-			continue;
-		}
-
-		LOG_DEBUG("Using resource %d for bp %d", i,
-				trigger->unique_id);
-		info->trigger_unique_id[i] = trigger->unique_id;
-		break;
-	}
-	if (i >= r->trigger_count[0]) {
-		LOG_ERROR("Couldn't find an available hardware trigger.");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	return ERROR_OK;
-}
-
-static int remove_trigger(struct target *target, struct trigger *trigger)
-{
-	RISCV_INFO(r);
-	riscv011_info_t *info = get_info(target);
-
-	maybe_read_tselect(target);
-
-	unsigned int i;
-	for (i = 0; i < r->trigger_count[0]; i++) {
-		if (info->trigger_unique_id[i] == trigger->unique_id) {
-			break;
-		}
-	}
-	if (i >= r->trigger_count[0]) {
-		LOG_ERROR("Couldn't find the hardware resources used by hardware "
-				"trigger.");
-		return ERROR_FAIL;
-	}
-	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
-	write_csr(target, CSR_TSELECT, i);
-	write_csr(target, CSR_TDATA1, 0);
-	info->trigger_unique_id[i] = -1;
-
-	return ERROR_OK;
-}
-
-static void trigger_from_breakpoint(struct trigger *trigger,
-		const struct breakpoint *breakpoint)
-{
-	trigger->address = breakpoint->address;
-	trigger->length = breakpoint->length;
-	trigger->mask = ~0LL;
-	trigger->read = false;
-	trigger->write = false;
-	trigger->execute = true;
-	// unique_id is unique across both breakpoints and watchpoints.
-	trigger->unique_id = breakpoint->unique_id;
-}
-
-static void trigger_from_watchpoint(struct trigger *trigger,
-		const struct watchpoint *watchpoint)
-{
-	trigger->address = watchpoint->address;
-	trigger->length = watchpoint->length;
-	trigger->mask = watchpoint->mask;
-	trigger->value = watchpoint->value;
-	trigger->read = (watchpoint->rw == WPT_READ || watchpoint->rw == WPT_ACCESS);
-	trigger->write = (watchpoint->rw == WPT_WRITE || watchpoint->rw == WPT_ACCESS);
-	trigger->execute = false;
-	// unique_id is unique across both breakpoints and watchpoints.
-	trigger->unique_id = watchpoint->unique_id;
-}
-
-static int add_breakpoint(struct target *target,
-	struct breakpoint *breakpoint)
-{
-	if (breakpoint->type == BKPT_SOFT) {
-		if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
-					breakpoint->orig_instr) != ERROR_OK) {
-			LOG_ERROR("Failed to read original instruction at 0x%" TARGET_PRIxADDR,
-					breakpoint->address);
-			return ERROR_FAIL;
-		}
-
-		int retval;
-		if (breakpoint->length == 4) {
-			retval = target_write_u32(target, breakpoint->address, ebreak());
-		} else {
-			retval = target_write_u16(target, breakpoint->address, ebreak_c());
-		}
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
-					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
-			return ERROR_FAIL;
-		}
-
-	} else if (breakpoint->type == BKPT_HARD) {
-		struct trigger trigger;
-		trigger_from_breakpoint(&trigger, breakpoint);
-		int result = add_trigger(target, &trigger);
-		if (result != ERROR_OK) {
-			return result;
-		}
-
-	} else {
-		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	breakpoint->set = true;
-
-	return ERROR_OK;
-}
-
-static int remove_breakpoint(struct target *target,
-		struct breakpoint *breakpoint)
-{
-	if (breakpoint->type == BKPT_SOFT) {
-		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
-					breakpoint->orig_instr) != ERROR_OK) {
-			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
-					"0x%" TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
-			return ERROR_FAIL;
-		}
-
-	} else if (breakpoint->type == BKPT_HARD) {
-		struct trigger trigger;
-		trigger_from_breakpoint(&trigger, breakpoint);
-		int result = remove_trigger(target, &trigger);
-		if (result != ERROR_OK) {
-			return result;
-		}
-
-	} else {
-		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
-	breakpoint->set = false;
-
-	return ERROR_OK;
-}
-
-static int add_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
-{
-	struct trigger trigger;
-	trigger_from_watchpoint(&trigger, watchpoint);
-
-	int result = add_trigger(target, &trigger);
-	if (result != ERROR_OK) {
-		return result;
-	}
-	watchpoint->set = true;
-
-	return ERROR_OK;
-}
-
-static int remove_watchpoint(struct target *target,
-		struct watchpoint *watchpoint)
-{
-	struct trigger trigger;
-	trigger_from_watchpoint(&trigger, watchpoint);
-
-	int result = remove_trigger(target, &trigger);
-	if (result != ERROR_OK) {
-		return result;
-	}
-	watchpoint->set = false;
-
-	return ERROR_OK;
-}
-
 static int strict_step(struct target *target, bool announce)
 {
 	riscv011_info_t *info = get_info(target);
@@ -1842,13 +1533,13 @@ static int strict_step(struct target *target, bool announce)
 
 	struct breakpoint *breakpoint = target->breakpoints;
 	while (breakpoint) {
-		remove_breakpoint(target, breakpoint);
+		riscv_remove_breakpoint(target, breakpoint);
 		breakpoint = breakpoint->next;
 	}
 
 	struct watchpoint *watchpoint = target->watchpoints;
 	while (watchpoint) {
-		remove_watchpoint(target, watchpoint);
+		riscv_remove_watchpoint(target, watchpoint);
 		watchpoint = watchpoint->next;
 	}
 
@@ -1858,13 +1549,13 @@ static int strict_step(struct target *target, bool announce)
 
 	breakpoint = target->breakpoints;
 	while (breakpoint) {
-		add_breakpoint(target, breakpoint);
+		riscv_add_breakpoint(target, breakpoint);
 		breakpoint = breakpoint->next;
 	}
 
 	watchpoint = target->watchpoints;
 	while (watchpoint) {
-		add_watchpoint(target, watchpoint);
+		riscv_add_watchpoint(target, watchpoint);
 		watchpoint = watchpoint->next;
 	}
 
@@ -1962,6 +1653,9 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	// Pretend this is a 32-bit system until we have found out the true value.
+	r->xlen[0] = 32;
+
 	// Figure out XLEN, and test writing all of Debug RAM while we're at it.
 	cache_set32(target, 0, xori(S1, ZERO, -1));
 	// 0xffffffff  0xffffffff:ffffffff  0xffffffff:ffffffff:ffffffff:ffffffff
@@ -2007,12 +1701,14 @@ static int examine(struct target *target)
 	// Update register list to match discovered XLEN.
 	update_reg_list(target);
 
-	if (read_csr(target, &info->misa, CSR_MISA) != ERROR_OK) {
-		LOG_WARNING("Failed to read misa at 0x%x.", CSR_MISA);
-		if (read_csr(target, &info->misa, 0xf10) != ERROR_OK) {
+	if (read_csr(target, &r->misa, CSR_MISA) != ERROR_OK) {
+		const unsigned old_csr_misa = 0xf10;
+		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
+				old_csr_misa);
+		if (read_csr(target, &r->misa, old_csr_misa) != ERROR_OK) {
 			// Maybe this is an old core that still has $misa at the old
 			// address.
-			LOG_ERROR("Failed to read misa at 0x%x.", 0xf10);
+			LOG_ERROR("Failed to read misa at 0x%x.", old_csr_misa);
 			return ERROR_FAIL;
 		}
 	}
@@ -2028,7 +1724,8 @@ static int examine(struct target *target)
 	riscv_set_current_hartid(target, 0);
 	for (size_t i = 0; i < 32; ++i)
 		reg_cache_set(target, i, -1);
-	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64, riscv_xlen(target), info->misa);
+	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64,
+			riscv_xlen(target), r->misa);
 
 	return ERROR_OK;
 }
@@ -2698,12 +2395,6 @@ struct target_type riscv011_target =
 
 	.read_memory = read_memory,
 	.write_memory = write_memory,
-
-	.add_breakpoint = add_breakpoint,
-	.remove_breakpoint = remove_breakpoint,
-
-	.add_watchpoint = add_watchpoint,
-	.remove_watchpoint = remove_watchpoint,
 
 	.arch_state = arch_state,
 };
