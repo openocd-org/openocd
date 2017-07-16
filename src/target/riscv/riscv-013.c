@@ -121,7 +121,8 @@ typedef enum slot {
 
 /*** Info about the core being debugged. ***/
 
-#define WALL_CLOCK_TIMEOUT		2
+#define WALL_CLOCK_TIMEOUT				2
+#define WALL_CLOCK_RESET_TIMEOUT		30
 
 struct trigger {
 	uint64_t address;
@@ -1882,14 +1883,17 @@ void riscv013_reset_current_hart(struct target *target)
 	control = set_field(control, DMI_DMCONTROL_NDMRESET, 0);
 	dmi_write(target, DMI_DMCONTROL, control);
 
-	for (unsigned i = 0; i < 256; i++) {
+	time_t start = time(NULL);
+
+	while (1) {
 		uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
 		if (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED)) {
 			break;
 		}
-		if (i == 255) {
-			LOG_ERROR("Hart didn't halt coming out of reset; dmstatus=0x%x",
-					dmstatus);
+		if (time(NULL) - start > WALL_CLOCK_RESET_TIMEOUT) {
+			LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
+					"dmstatus=0x%x", WALL_CLOCK_RESET_TIMEOUT, dmstatus);
+			return;
 		}
 	}
 
