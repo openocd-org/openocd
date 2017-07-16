@@ -121,7 +121,8 @@ typedef enum slot {
 
 /*** Info about the core being debugged. ***/
 
-#define WALL_CLOCK_TIMEOUT		2
+#define WALL_CLOCK_TIMEOUT				2
+#define WALL_CLOCK_RESET_TIMEOUT		30
 
 struct trigger {
 	uint64_t address;
@@ -199,6 +200,14 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		uint64_t mask;
 		const char *name;
 	} description[] = {
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HALTREQ, "haltreq" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_RESUMEREQ, "resumereq" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTRESET, "hartreset" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTSEL, "hartsel" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
+
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLRESUMEACK, "allresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYRESUMEACK, "anyresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLNONEXISTENT, "allnonexistent" },
@@ -1874,7 +1883,19 @@ void riscv013_reset_current_hart(struct target *target)
 	control = set_field(control, DMI_DMCONTROL_NDMRESET, 0);
 	dmi_write(target, DMI_DMCONTROL, control);
 
-	while (get_field(dmi_read(target, DMI_DMSTATUS), DMI_DMSTATUS_ALLHALTED) == 0);
+	time_t start = time(NULL);
+
+	while (1) {
+		uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+		if (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED)) {
+			break;
+		}
+		if (time(NULL) - start > WALL_CLOCK_RESET_TIMEOUT) {
+			LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
+					"dmstatus=0x%x", WALL_CLOCK_RESET_TIMEOUT, dmstatus);
+			return;
+		}
+	}
 
 	control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
 	dmi_write(target, DMI_DMCONTROL, control);
