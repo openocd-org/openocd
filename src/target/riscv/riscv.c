@@ -437,7 +437,7 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 			continue;
 		}
 
-		LOG_DEBUG("Using resource %d for bp %d", i,
+		LOG_DEBUG("Using trigger %d (type %d) for bp %d", i, type,
 				trigger->unique_id);
 		r->trigger_unique_id[i] = trigger->unique_id;
 		break;
@@ -1406,7 +1406,7 @@ void riscv_set_register_on_hart(struct target *target, int hartid,
 		enum gdb_regno regid, uint64_t value)
 {
 	RISCV_INFO(r);
-	LOG_DEBUG("[%d] reg[0x%x] <- %" PRIx64, hartid, regid, value);
+	LOG_DEBUG("[%d] %s <- %" PRIx64, hartid, gdb_regno_name(regid), value);
 	assert(r->set_register);
 	return r->set_register(target, hartid, regid, value);
 }
@@ -1420,7 +1420,7 @@ uint64_t riscv_get_register_on_hart(struct target *target, int hartid, enum gdb_
 {
 	RISCV_INFO(r);
 	uint64_t value = r->get_register(target, hartid, regid);
-	LOG_DEBUG("[%d] reg[0x%x] = %" PRIx64, hartid, regid, value);
+	LOG_DEBUG("[%d] %s: %" PRIx64, hartid, gdb_regno_name(regid), value);
 	return value;
 }
 
@@ -1596,8 +1596,57 @@ int riscv_enumerate_triggers(struct target *target)
 
 		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, tselect);
 
-		LOG_DEBUG("[%d] Found %d triggers", hartid, r->trigger_count[hartid]);
+		LOG_INFO("[%d] Found %d triggers", hartid, r->trigger_count[hartid]);
 	}
 
 	return ERROR_OK;
+}
+
+const char *gdb_regno_name(enum gdb_regno regno)
+{
+	static char buf[32];
+
+	switch (regno) {
+		case GDB_REGNO_ZERO:
+			return "zero";
+		case GDB_REGNO_S0:
+			return "s0";
+		case GDB_REGNO_S1:
+			return "s1";
+		case GDB_REGNO_PC:
+			return "pc";
+		case GDB_REGNO_FPR0:
+			return "fpr0";
+		case GDB_REGNO_FPR31:
+			return "fpr31";
+		case GDB_REGNO_CSR0:
+			return "csr0";
+		case GDB_REGNO_TSELECT:
+			return "tselect";
+		case GDB_REGNO_TDATA1:
+			return "tdata1";
+		case GDB_REGNO_TDATA2:
+			return "tdata2";
+		case GDB_REGNO_MISA:
+			return "misa";
+		case GDB_REGNO_DPC:
+			return "dpc";
+		case GDB_REGNO_DCSR:
+			return "dcsr";
+		case GDB_REGNO_DSCRATCH:
+			return "dscratch";
+		case GDB_REGNO_MSTATUS:
+			return "mstatus";
+		case GDB_REGNO_PRIV:
+			return "priv";
+		default:
+			if (regno <= GDB_REGNO_XPR31) {
+				sprintf(buf, "x%d", regno - GDB_REGNO_XPR0);
+			} else if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
+				sprintf(buf, "csr%d", regno - GDB_REGNO_CSR0);
+			} else {
+				sprintf(buf, "gdb_regno_%d", regno);
+			}
+			return buf;
+	}
 }
