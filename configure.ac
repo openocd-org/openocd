@@ -628,7 +628,7 @@ PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [use_libftdi=yes], [
 	PKG_CHECK_MODULES([LIBFTDI], [libftdi], [use_libftdi=yes], [use_libftdi=no])
 ])
 
-PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.1],
+PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.2],
 	[use_libjaylink=yes], [use_libjaylink=no])
 
 m4_define([PROCESS_ADAPTERS], [
