@@ -4913,16 +4913,13 @@ functionality is available through the @command{flash write_bank},
 @item @var{ir} ... is loaded into the JTAG IR to map the flash as the JTAG DR.
 For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
 @var{USER1} instruction.
-@item @var{dr_length} ... is the length of the DR register. This will be 1 for
-@file{xilinx_bscan_spi.py} bitstreams and most other cases.
 @end itemize
 
 @example
 target create $_TARGETNAME testee -chain-position $_CHIPNAME.fpga
 set _XILINX_USER1 0x02
-set _DR_LENGTH 1
 flash bank $_FLASHNAME spi 0x0 0 0 0 \
-           $_TARGETNAME $_XILINX_USER1 $_DR_LENGTH
+           $_TARGETNAME $_XILINX_USER1
 @end example
 @end deffn
 
