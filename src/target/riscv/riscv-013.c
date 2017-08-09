@@ -1353,12 +1353,14 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_addr_t cur_addr = 0xbadbeef;
 	riscv_addr_t fin_addr = address + (count * size);
 	riscv_addr_t prev_addr = ((riscv_addr_t) address) - size;
+	bool first = true;
 	LOG_DEBUG("writing until final address 0x%" PRIx64, fin_addr);
 	while (count > 1 && (cur_addr = riscv_read_debug_buffer_x(target, d_addr)) < fin_addr) {
 		LOG_DEBUG("transferring burst starting at address 0x%" TARGET_PRIxADDR
 				" (previous burst was 0x%" TARGET_PRIxADDR ")", cur_addr,
 				prev_addr);
-		assert(prev_addr < cur_addr);
+		assert(first || prev_addr < cur_addr);
+		first = false;
 		prev_addr = cur_addr;
 		riscv_addr_t start = (cur_addr - address) / size;
 		assert (cur_addr >= address);
