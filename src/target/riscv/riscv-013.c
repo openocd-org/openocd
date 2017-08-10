@@ -1416,6 +1416,7 @@ static int read_memory(struct target *target, target_addr_t address,
 			riscv013_clear_abstract_error(target);
 			increase_ac_busy_delay(target);
 			retry_batch_transaction = true;
+			riscv_batch_free(batch);
 			break;
 		default:
 			LOG_ERROR("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
@@ -1423,6 +1424,7 @@ static int read_memory(struct target *target, target_addr_t address,
 			riscv_set_register(target, GDB_REGNO_S0, s0);
 			riscv_set_register(target, GDB_REGNO_S1, s1);
 			riscv013_clear_abstract_error(target);
+			riscv_batch_free(batch);
 			return ERROR_FAIL;
 		}
 		if (retry_batch_transaction) continue;
