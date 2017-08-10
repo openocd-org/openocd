@@ -1354,8 +1354,9 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_addr_t fin_addr = address + (count * size);
 	riscv_addr_t prev_addr = ((riscv_addr_t) address) - size;
 	bool first = true;
-	LOG_DEBUG("writing until final address 0x%" PRIx64, fin_addr);
-	while (count > 1 && (cur_addr = riscv_read_debug_buffer_x(target, d_addr)) < fin_addr) {
+	bool this_is_last_read = false;
+	LOG_DEBUG("reading until final address 0x%" PRIx64, fin_addr);
+	while (count > 1 && (cur_addr = riscv_read_debug_buffer_x(target, d_addr)) < fin_addr - size) {
 		LOG_DEBUG("transferring burst starting at address 0x%" TARGET_PRIxADDR
 				" (previous burst was 0x%" TARGET_PRIxADDR ")", cur_addr,
 				prev_addr);
@@ -1372,11 +1373,23 @@ static int read_memory(struct target *target, target_addr_t address,
 		size_t reads = 0;
 		size_t rereads = reads;
 		for (riscv_addr_t i = start; i < count; ++i) {
-			size_t index =
-				riscv_batch_add_dmi_read(
-					batch,
-					riscv013_debug_buffer_register(target, r_data));
-			assert(index == reads);
+
+			if (i == count - 1) {
+				// don't do actual read in this batch,
+				// we will do it later after we disable autoexec
+				//
+				// this is done to avoid reading more memory than requested
+				// which in some special cases(like reading stack located
+				// at the very top of RAM) may cause an exception
+				this_is_last_read = true;
+			} else {
+				size_t const index =
+					riscv_batch_add_dmi_read(
+						batch,
+						riscv013_debug_buffer_register(target, r_data));
+				assert(index == reads);
+			}
+
 			reads++;
 			if (riscv_batch_full(batch))
 				break;
@@ -1384,13 +1397,49 @@ static int read_memory(struct target *target, target_addr_t address,
 
 		riscv_batch_run(batch);
 
+		// Note that if the scan resulted in a Busy DMI response, it
+		// is this read to abstractcs that will cause the dmi_busy_delay
+		// to be incremented if necessary. The loop condition above
+		// catches the case where no writes went through at all.
+
+		bool retry_batch_transaction = false;
+		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+		while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY))
+			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
+		switch (info->cmderr) {
+		case CMDERR_NONE:
+			LOG_DEBUG("successful (partial?) memory write");
+			break;
+		case CMDERR_BUSY:
+			LOG_DEBUG("memory write resulted in busy response");
+			riscv013_clear_abstract_error(target);
+			increase_ac_busy_delay(target);
+			retry_batch_transaction = true;
+			break;
+		default:
+			LOG_ERROR("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
+			riscv013_set_autoexec(target, d_data, 0);
+			riscv_set_register(target, GDB_REGNO_S0, s0);
+			riscv_set_register(target, GDB_REGNO_S1, s1);
+			riscv013_clear_abstract_error(target);
+			return ERROR_FAIL;
+		}
+		if (retry_batch_transaction) continue;
+
 		for (size_t i = start; i < start + reads; ++i) {
 			riscv_addr_t offset = size*i;
 			riscv_addr_t t_addr = address + offset;
 			uint8_t *t_buffer = buffer + offset;
 
-			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
-			value = get_field(dmi_out, DTM_DMI_DATA);
+			if (this_is_last_read && i == start + reads - 1) {
+				riscv013_set_autoexec(target, d_data, 0);
+				value = riscv_program_read_ram(&program, r_data);
+			} else {
+				uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
+				value = get_field(dmi_out, DTM_DMI_DATA);
+			}
+			
 			rereads++;
 
 			switch (size) {
@@ -1414,35 +1463,7 @@ static int read_memory(struct target *target, target_addr_t address,
 
 			LOG_DEBUG("M[0x%08lx] reads 0x%08lx", (long)t_addr, (long)value);
 		}
-
 		riscv_batch_free(batch);
-
-		// Note that if the scan resulted in a Busy DMI response, it
-		// is this read to abstractcs that will cause the dmi_busy_delay
-		// to be incremented if necessary. The loop condition above
-		// catches the case where no writes went through at all.
-
-		uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-		while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY))
-			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
-		switch (info->cmderr) {
-		case CMDERR_NONE:
-			LOG_DEBUG("successful (partial?) memory write");
-			break;
-		case CMDERR_BUSY:
-			LOG_DEBUG("memory write resulted in busy response");
-			riscv013_clear_abstract_error(target);
-			increase_ac_busy_delay(target);
-			break;
-		default:
-			LOG_ERROR("error when writing memory, abstractcs=0x%08lx", (long)abstractcs);
-			riscv013_set_autoexec(target, d_data, 0);
-			riscv_set_register(target, GDB_REGNO_S0, s0);
-			riscv_set_register(target, GDB_REGNO_S1, s1);
-			riscv013_clear_abstract_error(target);
-			return ERROR_FAIL;
-		}
 	}
 
 	riscv013_set_autoexec(target, d_data, 0);
