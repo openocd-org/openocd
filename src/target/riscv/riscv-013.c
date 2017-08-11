@@ -1175,9 +1175,13 @@ static int examine(struct target *target)
 	LOG_INFO("Examined RISC-V core; found %d harts",
 			riscv_count_harts(target));
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64
-				", %d triggers", i, r->xlen[i], r->debug_buffer_addr[i],
-				r->trigger_count[i]);
+		if (riscv_hart_enabled(target, i)) {
+			LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64
+					", %d triggers", i, r->xlen[i], r->debug_buffer_addr[i],
+					r->trigger_count[i]);
+		} else {
+			LOG_INFO(" hart %d: currently disabled", i);
+		}
 	}
 	return ERROR_OK;
 }
