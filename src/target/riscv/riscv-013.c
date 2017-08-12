@@ -1374,7 +1374,7 @@ static int read_memory(struct target *target, target_addr_t address,
 		size_t rereads = reads;
 		for (riscv_addr_t i = start; i < count; ++i) {
 
-			if (i == count - 1) {
+			if (i == count) {
 				// don't do actual read in this batch,
 				// we will do it later after we disable autoexec
 				//
