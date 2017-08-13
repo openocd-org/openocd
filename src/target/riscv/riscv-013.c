@@ -1436,7 +1436,10 @@ static int read_memory(struct target *target, target_addr_t address,
 
 			if (this_is_last_read && i == start + reads - 1) {
 				riscv013_set_autoexec(target, d_data, 0);
-				value = riscv_program_read_ram(&program, r_data);
+
+				// access debug buffer without executing a program - this address logic was taken from program.c
+				int const off = (r_data - riscv_debug_buffer_addr(program.target)) / sizeof(program.debug_buffer[0]);
+				value = riscv_read_debug_buffer(target, off);
 			} else {
 				uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
 				value = get_field(dmi_out, DTM_DMI_DATA);
