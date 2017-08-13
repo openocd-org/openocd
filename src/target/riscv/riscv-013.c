@@ -1356,7 +1356,8 @@ static int read_memory(struct target *target, target_addr_t address,
 	bool first = true;
 	bool this_is_last_read = false;
 	LOG_DEBUG("reading until final address 0x%" PRIx64, fin_addr);
-	while (count > 1 && (cur_addr = riscv_read_debug_buffer_x(target, d_addr)) < fin_addr - size) {
+	while (count > 1 && !this_is_last_read) {
+		cur_addr = riscv_read_debug_buffer_x(target, d_addr);
 		LOG_DEBUG("transferring burst starting at address 0x%" TARGET_PRIxADDR
 				" (previous burst was 0x%" TARGET_PRIxADDR ")", cur_addr,
 				prev_addr);
@@ -1373,7 +1374,6 @@ static int read_memory(struct target *target, target_addr_t address,
 		size_t reads = 0;
 		size_t rereads = reads;
 		for (riscv_addr_t i = start; i < count; ++i) {
-
 			if (i == count - 1) {
 				// don't do actual read in this batch,
 				// we will do it later after we disable autoexec
