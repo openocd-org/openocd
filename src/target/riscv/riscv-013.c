@@ -1353,7 +1353,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_addr_t cur_addr = 0xbadbeef;
 	riscv_addr_t fin_addr = address + (count * size);
 	riscv_addr_t prev_addr = ((riscv_addr_t) address) - size;
-	bool first = true;
+	bool ignore_prev_addr = true;
 	bool this_is_last_read = false;
 	LOG_DEBUG("reading until final address 0x%" PRIx64, fin_addr);
 	while (count > 1 && !this_is_last_read) {
@@ -1361,9 +1361,9 @@ static int read_memory(struct target *target, target_addr_t address,
 		LOG_DEBUG("transferring burst starting at address 0x%" TARGET_PRIxADDR
 				" (previous burst was 0x%" TARGET_PRIxADDR ")", cur_addr,
 				prev_addr);
-		assert(first || prev_addr < cur_addr);
-		first = false;
+		assert(ignore_prev_addr || prev_addr < cur_addr);
 		prev_addr = cur_addr;
+		ignore_prev_addr = false;
 		riscv_addr_t start = (cur_addr - address) / size;
 		assert (cur_addr >= address);
 		struct riscv_batch *batch = riscv_batch_alloc(
@@ -1409,10 +1409,11 @@ static int read_memory(struct target *target, target_addr_t address,
 		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 		switch (info->cmderr) {
 		case CMDERR_NONE:
-			LOG_DEBUG("successful (partial?) memory write");
+			LOG_DEBUG("successful (partial?) memory read");
 			break;
 		case CMDERR_BUSY:
-			LOG_DEBUG("memory write resulted in busy response");
+			LOG_DEBUG("memory read resulted in busy response; "
+					"this_is_last_read=%d", this_is_last_read);
 			riscv013_clear_abstract_error(target);
 			increase_ac_busy_delay(target);
 			retry_batch_transaction = true;
@@ -1427,7 +1428,11 @@ static int read_memory(struct target *target, target_addr_t address,
 			riscv_batch_free(batch);
 			return ERROR_FAIL;
 		}
-		if (retry_batch_transaction) continue;
+		if (retry_batch_transaction) {
+			this_is_last_read = false;
+			ignore_prev_addr = true;
+			continue;
+		}
 
 		for (size_t i = start; i < start + reads; ++i) {
 			riscv_addr_t offset = size*i;
@@ -1437,8 +1442,11 @@ static int read_memory(struct target *target, target_addr_t address,
 			if (this_is_last_read && i == start + reads - 1) {
 				riscv013_set_autoexec(target, d_data, 0);
 
-				// access debug buffer without executing a program - this address logic was taken from program.c
-				int const off = (r_data - riscv_debug_buffer_addr(program.target)) / sizeof(program.debug_buffer[0]);
+				// Access debug buffer without executing a program. This
+				// address logic was taken from program.c.
+				int const off = (r_data -
+						riscv_debug_buffer_addr(program.target)) /
+					sizeof(program.debug_buffer[0]);
 				value = riscv_read_debug_buffer(target, off);
 			} else {
 				uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
