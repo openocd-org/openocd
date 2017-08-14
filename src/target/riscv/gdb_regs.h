@@ -25,4 +25,6 @@ enum gdb_regno {
 	GDB_REGNO_COUNT
 };
 
+const char *gdb_regno_name(enum gdb_regno regno);
+
 #endif
