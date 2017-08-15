@@ -1319,7 +1319,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	}
 
 	uint32_t value = riscv_program_read_ram(&program, r_data);
-	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08lx", address, (long)value);
+	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", address, value);
 	switch (size) {
 	case 1:
 		buffer[0] = value;
@@ -1466,7 +1466,7 @@ static int read_memory(struct target *target, target_addr_t address,
 				return ERROR_FAIL;
 			}
 
-			LOG_DEBUG("M[0x%08lx] reads 0x%08lx", (long)t_addr, (long)value);
+			LOG_DEBUG("M[0x%08lx] reads 0x%08x", (long)t_addr, value);
 		}
 		riscv_batch_free(batch);
 	}
@@ -1555,7 +1555,7 @@ static int write_memory(struct target *target, target_addr_t address,
 	}
 	riscv_program_write_ram(&program, r_data, value);
 
-	LOG_DEBUG("M[0x%08lx] writes 0x%08lx", (long)address, (long)value);
+	LOG_DEBUG("M[0x%08lx] writes 0x%08x", (long)address, value);
 
 	if (riscv_program_exec(&program, target) != ERROR_OK) {
 		uint32_t acs = dmi_read(target, DMI_ABSTRACTCS);
@@ -1615,7 +1615,7 @@ static int write_memory(struct target *target, target_addr_t address,
 					return ERROR_FAIL;
 			}
 
-			LOG_DEBUG("M[0x%08lx] writes 0x%08lx", (long)t_addr, (long)value);
+			LOG_DEBUG("M[0x%08lx] writes 0x%08x", (long)t_addr, value);
 
 			riscv_batch_add_dmi_write(
 				batch,
