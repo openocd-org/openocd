@@ -13,6 +13,9 @@ struct riscv_program;
 #define RISCV_MAX_TRIGGERS 32
 #define RISCV_MAX_HWBPS 16
 
+#define DEFAULT_COMMAND_TIMEOUT_SEC		2
+#define DEFAULT_RESET_TIMEOUT_SEC		30
+
 extern struct target_type riscv011_target;
 extern struct target_type riscv013_target;
 
@@ -102,6 +105,12 @@ typedef struct {
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
 	void (*reset_current_hart)(struct target *target);
 } riscv_info_t;
+
+/* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
+extern int riscv_command_timeout_sec;
+
+/* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
+extern int riscv_reset_timeout_sec;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */

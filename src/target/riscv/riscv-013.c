@@ -121,9 +121,6 @@ typedef enum slot {
 
 /*** Info about the core being debugged. ***/
 
-#define WALL_CLOCK_TIMEOUT				2
-#define WALL_CLOCK_RESET_TIMEOUT		30
-
 struct trigger {
 	uint64_t address;
 	uint32_t length;
@@ -562,7 +559,7 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 			return ERROR_OK;
 		}
 
-		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
+		if (time(NULL) - start > riscv_command_timeout_sec) {
 			info->cmderr = get_field(*abstractcs, DMI_ABSTRACTCS_CMDERR);
 			if (info->cmderr != CMDERR_NONE) {
 				const char *errors[8] = {
@@ -579,8 +576,10 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 						errors[info->cmderr], *abstractcs);
 			}
 
-			LOG_ERROR("Timed out waiting for busy to go low. (abstractcs=0x%x)",
-					*abstractcs);
+			LOG_ERROR("Timed out after %ds waiting for busy to go low. (abstractcs=0x%x)"
+                                  "Increase the timeout with riscv set_command_timeout_sec.",
+                                  riscv_command_timeout_sec,
+                                  *abstractcs);
 			return ERROR_FAIL;
 		}
 	}
@@ -909,7 +908,6 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
 	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
 	generic_info->reset_current_hart = &riscv013_reset_current_hart;
-
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -1918,9 +1916,11 @@ void riscv013_reset_current_hart(struct target *target)
 		if (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED)) {
 			break;
 		}
-		if (time(NULL) - start > WALL_CLOCK_RESET_TIMEOUT) {
+		if (time(NULL) - start > riscv_reset_timeout_sec) {
 			LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
-					"dmstatus=0x%x", WALL_CLOCK_RESET_TIMEOUT, dmstatus);
+                                  "dmstatus=0x%x"
+                                  "Increase the timeout with riscv set_reset_timeout_sec.",
+                                  riscv_reset_timeout_sec, dmstatus);
 			return;
 		}
 	}
