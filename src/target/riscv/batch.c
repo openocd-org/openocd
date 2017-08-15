@@ -44,6 +44,8 @@ bool riscv_batch_full(struct riscv_batch *batch)
 
 void riscv_batch_run(struct riscv_batch *batch)
 {
+	keep_alive();
+
 	LOG_DEBUG("running a batch of %ld scans", (long)batch->used_scans);
 	riscv_batch_add_nop(batch);
 
