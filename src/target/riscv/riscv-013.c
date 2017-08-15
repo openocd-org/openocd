@@ -1358,13 +1358,13 @@ static int read_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("reading until final address 0x%" PRIx64, fin_addr);
 	while (count > 1 && !this_is_last_read) {
 		cur_addr = riscv_read_debug_buffer_x(target, d_addr);
-		LOG_DEBUG("transferring burst starting at address 0x%" TARGET_PRIxADDR
-				" (previous burst was 0x%" TARGET_PRIxADDR ")", cur_addr,
-				prev_addr);
+		riscv_addr_t start = (cur_addr - address) / size;
+		LOG_DEBUG("reading burst at address 0x%" TARGET_PRIxADDR
+				"; prev_addr=0x%" TARGET_PRIxADDR "; start=0x%"
+				TARGET_PRIxADDR, cur_addr, prev_addr, start);
 		assert(ignore_prev_addr || prev_addr < cur_addr);
 		prev_addr = cur_addr;
 		ignore_prev_addr = false;
-		riscv_addr_t start = (cur_addr - address) / size;
 		assert (cur_addr >= address);
 		struct riscv_batch *batch = riscv_batch_alloc(
 			target,
@@ -1431,6 +1431,18 @@ static int read_memory(struct target *target, target_addr_t address,
 		if (retry_batch_transaction) {
 			this_is_last_read = false;
 			ignore_prev_addr = true;
+
+			switch (riscv_xlen(target)) {
+				case 64:
+					riscv013_write_debug_buffer(target, d_addr + 4, (cur_addr - size) >> 32);
+				case 32:
+					riscv013_write_debug_buffer(target, d_addr, (cur_addr - size));
+					break;
+				default:
+					LOG_ERROR("unknown XLEN %d", riscv_xlen(target));
+					return ERROR_FAIL;
+			}
+
 			continue;
 		}
 
