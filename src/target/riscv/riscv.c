@@ -1137,6 +1137,71 @@ int riscv_openocd_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
+
+/* Command Handlers */
+COMMAND_HANDLER(riscv_set_command_timeout_sec) {
+
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	int timeout = atoi(CMD_ARGV[0]);
+	if (timeout <= 0){
+		LOG_ERROR("%s is not a valid integer argument for command.", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	riscv_command_timeout_sec = timeout;
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_reset_timeout_sec) {
+
+	if (CMD_ARGC != 1) {
+			LOG_ERROR("Command takes exactly 1 parameter");
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	int timeout = atoi(CMD_ARGV[0]);
+	if (timeout <= 0){
+		LOG_ERROR("%s is not a valid integer argument for command.", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	riscv_reset_timeout_sec = timeout;
+	return ERROR_OK;
+}
+
+
+static const struct command_registration riscv_exec_command_handlers[] = {
+	{
+		.name = "set_command_timeout_sec",
+		.handler = riscv_set_command_timeout_sec,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_command_timeout_sec [sec]",
+		.help = "Set the wall-clock timeout (in seconds) for individual commands"
+	 },
+	 {
+		.name = "set_reset_timeout_sec",
+		.handler = riscv_set_reset_timeout_sec,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_reset_timeout_sec [sec]",
+		.help = "Set the wall-clock timeout (in seconds) after reset is deasserted"
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration riscv_command_handlers[] = {
+	{
+		.name = "riscv",
+		.mode = COMMAND_ANY,
+		.help = "RISC-V Command Group",
+		.usage = "",
+		.chain = riscv_exec_command_handlers
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 struct target_type riscv_target =
 {
 	.name = "riscv",
@@ -1173,7 +1238,7 @@ struct target_type riscv_target =
 
 	.run_algorithm = riscv_run_algorithm,
 
-        .commands = riscv_command_handlers
+	.commands = riscv_command_handlers
 };
 
 /*** RISC-V Interface ***/
@@ -1583,7 +1648,6 @@ int riscv_enumerate_triggers(struct target *target)
 			tselect_rb &= ~(1ULL << (riscv_xlen(target)-1));
 			if (tselect_rb != t)
 				break;
-
 			uint64_t tdata1 = riscv_get_register_on_hart(target, hartid,
 					GDB_REGNO_TDATA1);
 			int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
@@ -1608,70 +1672,6 @@ int riscv_enumerate_triggers(struct target *target)
 
 	return ERROR_OK;
 }
-
-/* Command Handlers */
-COMMAND_HANDLER(riscv_set_command_timeout_sec) {
-
-  if (CMD_ARGC != 1) {
-      LOG_ERROR("Command takes exactly 1 parameter");
-      return ERROR_COMMAND_SYNTAX_ERROR;
-  }
-  int timeout = atoi(CMD_ARGV[0]);
-  if (timeout <= 0){
-    LOG_ERROR("%s is not a valid integer argument for command.", CMD_ARGV[0]);
-    return ERROR_FAIL;
-  }
-
-  riscv_command_timeout_sec = timeout;
-
-  return ERROR_OK;
-}
-
-COMMAND_HANDLER(riscv_set_reset_timeout_sec) {
-
-  if (CMD_ARGC != 1) {
-      LOG_ERROR("Command takes exactly 1 parameter");
-      return ERROR_COMMAND_SYNTAX_ERROR;
-  }
-  int timeout = atoi(CMD_ARGV[0]);
-  if (timeout <= 0){
-    LOG_ERROR("%s is not a valid integer argument for command.", CMD_ARGV[0]);
-    return ERROR_FAIL;
-  }
-
-  riscv_reset_timeout_sec = timeout;
-  return ERROR_OK;
-}
-
-
-static const struct command_registration riscv_exec_command_handlers[] = {
- {
-    .name = "set_command_timeout_sec",
-    .handler = riscv_set_command_timeout_sec,
-    .mode = COMMAND_ANY,
-    .usage = "riscv set_command_timeout_sec [sec]",
-    .help = "Set the wall-clock timeout (in seconds) for individual commands"
- },
- {
-    .name = "set_reset_timeout_sec",
-    .handler = riscv_set_reset_timeout_sec,
-    .mode = COMMAND_ANY,
-    .usage = "riscv set_reset_timeout_sec [sec]",
-    .help = "Set the wall-clock timeout (in seconds) after reset is deasserted"
-  },
-  COMMAND_REGISTRATION_DONE
-};
-
-const struct command_registration riscv_command_handlers[] = {
-  {
-    .name = "riscv",
-    .mode = COMMAND_ANY,
-    .help = "RISC-V Command Group",
-    .usage = "",
-    .chain = riscv_exec_command_handlers
-  },
-  COMMAND_REGISTRATION_DONE
-};
 
 const char *gdb_regno_name(enum gdb_regno regno)
 {
