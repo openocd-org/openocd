@@ -471,7 +471,7 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed read (NOP) at 0x%x, status=%d\n", address, status);
+			LOG_ERROR("failed read (NOP) at 0x%x, status=%d", address, status);
 			break;
 		}
 	}
@@ -500,13 +500,13 @@ static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed write to 0x%x, status=%d\n", address, status);
+			LOG_ERROR("failed write to 0x%x, status=%d", address, status);
 			break;
 		}
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed write to 0x%x;, status=%d\n",
+		LOG_ERROR("Failed write to 0x%x;, status=%d",
 				address, status);
 		abort();
 	}
@@ -521,12 +521,12 @@ static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed write (NOP) at 0x%x, status=%d\n", address, status);
+			LOG_ERROR("failed write (NOP) at 0x%x, status=%d", address, status);
 			break;
 		}
 	}
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("failed to write (NOP) 0x%" PRIx64 " to 0x%x; status=%d\n", value, address, status);
+		LOG_ERROR("failed to write (NOP) 0x%" PRIx64 " to 0x%x; status=%d", value, address, status);
 		abort();
 	}
 }
@@ -1146,7 +1146,7 @@ static int examine(struct target *target)
 				r->xlen[i], r->debug_buffer_addr[i]);
 
 		if (riscv_program_gah(&program64, r->debug_buffer_addr[i])) {
-			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx\n", i,
+			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx", i,
 					(long)r->debug_buffer_addr[i]);
 			abort();
 		}
