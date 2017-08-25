@@ -364,17 +364,6 @@ static void increase_dmi_busy_delay(struct target *target)
 	dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
 }
 
-static void increase_ac_busy_delay(struct target *target)
-{
-	riscv013_info_t *info = get_info(target);
-	info->ac_busy_delay += info->ac_busy_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
-			info->dtmcontrol_idle, info->dmi_busy_delay,
-			info->ac_busy_delay);
-
-	dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
-}
-
 /**
  * exec: If this is set, assume the scan results in an execution, so more
  * run-test/idle cycles may be required.
@@ -529,6 +518,23 @@ static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 		LOG_ERROR("failed to write (NOP) 0x%" PRIx64 " to 0x%x; status=%d", value, address, status);
 		abort();
 	}
+}
+
+static void increase_ac_busy_delay(struct target *target)
+{
+	riscv013_info_t *info = get_info(target);
+	info->ac_busy_delay += info->ac_busy_delay / 10 + 1;
+	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
+			info->dtmcontrol_idle, info->dmi_busy_delay,
+			info->ac_busy_delay);
+
+	// Wait for busy to go away.
+	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+	while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
+		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+	}
+	// Clear the error status.
+	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
 }
 
 uint32_t abstract_register_size(unsigned width)
@@ -1412,8 +1418,8 @@ static int read_memory(struct target *target, target_addr_t address,
 		case CMDERR_BUSY:
 			LOG_DEBUG("memory read resulted in busy response; "
 					"this_is_last_read=%d", this_is_last_read);
-			riscv013_clear_abstract_error(target);
 			increase_ac_busy_delay(target);
+			riscv013_clear_abstract_error(target);
 			retry_batch_transaction = true;
 			riscv_batch_free(batch);
 			break;
