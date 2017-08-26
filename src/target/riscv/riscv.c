@@ -629,7 +629,7 @@ static int riscv_examine(struct target *target)
 {
 	LOG_DEBUG("riscv_examine()");
 	if (target_was_examined(target)) {
-		LOG_DEBUG("Target was already examined.\n");
+		LOG_DEBUG("Target was already examined.");
 		return ERROR_OK;
 	}
 
