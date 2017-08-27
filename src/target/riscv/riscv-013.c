@@ -1438,7 +1438,7 @@ static int read_memory(struct target *target, target_addr_t address,
 
 			switch (riscv_xlen(target)) {
 				case 64:
-					riscv013_write_debug_buffer(target, d_addr + 4, (cur_addr - size) >> 32);
+					riscv013_write_debug_buffer(target, d_addr + 1, (cur_addr - size) >> 32);
 				case 32:
 					riscv013_write_debug_buffer(target, d_addr, (cur_addr - size));
 					break;
