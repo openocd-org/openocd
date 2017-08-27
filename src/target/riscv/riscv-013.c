@@ -1273,7 +1273,6 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_addr_t r_addr = riscv_program_alloc_x(&program);
 	riscv_program_fence(&program);
 	riscv_program_lx(&program, GDB_REGNO_S0, r_addr);
-	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
 	switch (size) {
 		case 1:
 			riscv_program_lbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
@@ -1288,6 +1287,7 @@ static int read_memory(struct target *target, target_addr_t address,
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
+	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
 	riscv_program_sw(&program, GDB_REGNO_S1, r_data);
 	riscv_program_sx(&program, GDB_REGNO_S0, r_addr);
 
@@ -1295,9 +1295,9 @@ static int read_memory(struct target *target, target_addr_t address,
 	 * program execution mechanism. */
 	switch (riscv_xlen(target)) {
 	case 64:
-		riscv_program_write_ram(&program, r_addr + 4, (((riscv_addr_t) address) - size) >> 32);
+		riscv_program_write_ram(&program, r_addr + 4, ((riscv_addr_t) address) >> 32);
 	case 32:
-		riscv_program_write_ram(&program, r_addr, ((riscv_addr_t) address) - size);
+		riscv_program_write_ram(&program, r_addr, (riscv_addr_t) address);
 		break;
 	default:
 		LOG_ERROR("unknown XLEN %d", riscv_xlen(target));
@@ -1314,27 +1314,6 @@ static int read_memory(struct target *target, target_addr_t address,
 		return ERROR_FAIL;
 	}
 
-	uint32_t value = riscv_program_read_ram(&program, r_data);
-	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", address, value);
-	switch (size) {
-	case 1:
-		buffer[0] = value;
-		break;
-	case 2:
-		buffer[0] = value;
-		buffer[1] = value >> 8;
-		break;
-	case 4:
-		buffer[0] = value;
-		buffer[1] = value >> 8;
-		buffer[2] = value >> 16;
-		buffer[3] = value >> 24;
-		break;
-	default:
-		LOG_ERROR("unsupported access size: %d", size);
-		return ERROR_FAIL;
-	}
-
 	/* The rest of this program is designed to be fast so it reads various
 	 * DMI registers directly. */
 	int d_data = (r_data - riscv_debug_buffer_addr(target)) / 4;
@@ -1346,22 +1325,16 @@ static int read_memory(struct target *target, target_addr_t address,
 	 * case we need to back off a bit and try again.  There's two
 	 * termination conditions to this loop: a non-BUSY error message, or
 	 * the data was all copied. */
-	riscv_addr_t cur_addr = 0xbadbeef;
+	riscv_addr_t cur_addr = address;
 	riscv_addr_t fin_addr = address + (count * size);
-	riscv_addr_t prev_addr = ((riscv_addr_t) address) - size;
-	bool ignore_prev_addr = true;
 	bool this_is_last_read = false;
 	LOG_DEBUG("reading until final address 0x%" PRIx64, fin_addr);
-	while (count > 1 && !this_is_last_read) {
-		cur_addr = riscv_read_debug_buffer_x(target, d_addr);
+	while (!this_is_last_read) {
 		riscv_addr_t start = (cur_addr - address) / size;
 		LOG_DEBUG("reading burst at address 0x%" TARGET_PRIxADDR
-				"; prev_addr=0x%" TARGET_PRIxADDR "; start=0x%"
-				TARGET_PRIxADDR, cur_addr, prev_addr, start);
-		assert(ignore_prev_addr || prev_addr < cur_addr);
-		prev_addr = cur_addr;
-		ignore_prev_addr = false;
-		assert (cur_addr >= address);
+				"; start=0x%"
+				TARGET_PRIxADDR, cur_addr, start);
+		assert(cur_addr >= address && cur_addr < fin_addr);
 		struct riscv_batch *batch = riscv_batch_alloc(
 			target,
 			32,
@@ -1426,7 +1399,6 @@ static int read_memory(struct target *target, target_addr_t address,
 		}
 		if (retry_batch_transaction) {
 			this_is_last_read = false;
-			ignore_prev_addr = true;
 
 			switch (riscv_xlen(target)) {
 				case 64:
@@ -1439,6 +1411,16 @@ static int read_memory(struct target *target, target_addr_t address,
 					return ERROR_FAIL;
 			}
 
+			if (riscv013_execute_debug_buffer(target) != ERROR_OK) {
+				uint32_t acs = dmi_read(target, DMI_ABSTRACTCS);
+				LOG_ERROR("failed to execute program, abstractcs=0x%08x", acs);
+				riscv013_clear_abstract_error(target);
+				riscv_set_register(target, GDB_REGNO_S0, s0);
+				riscv_set_register(target, GDB_REGNO_S1, s1);
+				LOG_ERROR("  exiting with ERROR_FAIL");
+				return ERROR_FAIL;
+			}
+
 			continue;
 		}
 
@@ -1446,6 +1428,7 @@ static int read_memory(struct target *target, target_addr_t address,
 			riscv_addr_t offset = size*i;
 			riscv_addr_t t_addr = address + offset;
 			uint8_t *t_buffer = buffer + offset;
+			uint32_t value;
 
 			if (this_is_last_read && i == start + reads - 1) {
 				riscv013_set_autoexec(target, d_data, 0);
@@ -1485,6 +1468,8 @@ static int read_memory(struct target *target, target_addr_t address,
 			LOG_DEBUG("M[0x%08lx] reads 0x%08x", (long)t_addr, value);
 		}
 		riscv_batch_free(batch);
+
+		cur_addr += reads * size;
 	}
 
 	riscv013_set_autoexec(target, d_data, 0);
