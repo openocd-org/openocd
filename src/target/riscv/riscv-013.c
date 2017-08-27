@@ -527,14 +527,6 @@ static void increase_ac_busy_delay(struct target *target)
 	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
 			info->dtmcontrol_idle, info->dmi_busy_delay,
 			info->ac_busy_delay);
-
-	// Wait for busy to go away.
-	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-	while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
-		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
-	}
-	// Clear the error status.
-	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
 }
 
 uint32_t abstract_register_size(unsigned width)
@@ -2087,6 +2079,11 @@ int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr)
 
 void riscv013_clear_abstract_error(struct target *target)
 {
-	uint32_t acs = dmi_read(target, DMI_ABSTRACTCS);
-	dmi_write(target, DMI_ABSTRACTCS, acs);
+	// Wait for busy to go away.
+	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+	while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
+		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+	}
+	// Clear the error status.
+	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
 }
