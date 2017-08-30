@@ -41,6 +41,8 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 
 int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
+	keep_alive();
+
 	if (riscv_debug_buffer_leave(t, p) != ERROR_OK) {
 		LOG_ERROR("unable to write program buffer exit code");
 		return ERROR_FAIL;
