@@ -39,26 +39,26 @@
  *
  * There are a few functions to just instantly shift a register and get its
  * value:
- * 		dtmcontrol_scan
- * 		idcode_scan
- * 		dbus_scan
+ *		dtmcontrol_scan
+ *		idcode_scan
+ *		dbus_scan
  *
  * Because doing one scan and waiting for the result is slow, most functions
  * batch up a bunch of dbus writes and then execute them all at once. They use
  * the scans "class" for this:
- * 		scans_new
- * 		scans_delete
- * 		scans_execute
- * 		scans_add_...
+ *		scans_new
+ *		scans_delete
+ *		scans_execute
+ *		scans_add_...
  * Usually you new(), call a bunch of add functions, then execute() and look
  * at the results by calling scans_get...()
  *
  * Optimized functions will directly use the scans class above, but slightly
  * lazier code will use the cache functions that in turn use the scans
  * functions:
- * 		cache_get...
- * 		cache_set...
- * 		cache_write
+ *		cache_get...
+ *		cache_set...
+ *		cache_write
  * cache_set... update a local structure, which is then synced to the target
  * with cache_write(). Only Debug RAM words that are actually changed are sent
  * to the target. Afterwards use cache_get... to read results.
@@ -80,10 +80,10 @@
 #define CSR_BPCONTROL_BPMATCH	(0xf<<7)
 #define CSR_BPCONTROL_BPACTION	(0xff<<11)
 
-#define DEBUG_ROM_START         0x800
-#define DEBUG_ROM_RESUME        (DEBUG_ROM_START + 4)
-#define DEBUG_ROM_EXCEPTION     (DEBUG_ROM_START + 8)
-#define DEBUG_RAM_START         0x400
+#define DEBUG_ROM_START		0x800
+#define DEBUG_ROM_RESUME	(DEBUG_ROM_START + 4)
+#define DEBUG_ROM_EXCEPTION	(DEBUG_ROM_START + 8)
+#define DEBUG_RAM_START		0x400
 
 #define SETHALTNOT				0x10c
 
@@ -154,7 +154,6 @@ typedef enum slot {
 /*** Info about the core being debugged. ***/
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
-#define WALL_CLOCK_TIMEOUT		2
 
 // gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
 // its source tree. We must interpret the numbers the same here.
@@ -730,8 +729,9 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 		if (!bits.interrupt) {
 			return ERROR_OK;
 		}
-		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
-			LOG_ERROR("Timed out waiting for debug int to clear.");
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("Timed out waiting for debug int to clear."
+				  "Increase timeout with riscv set_command_timeout_sec.");
 			return ERROR_FAIL;
 		}
 	}
@@ -864,7 +864,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 	if (last == info->dramsize) {
 		// Nothing needs to be written to RAM.
-	        dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | (run ? DMCONTROL_INTERRUPT : 0));
+		dbus_write(target, DMCONTROL, DMCONTROL_HALTNOT | (run ? DMCONTROL_INTERRUPT : 0));
 
 	} else {
 		for (unsigned int i = 0; i < info->dramsize; i++) {
@@ -1016,8 +1016,9 @@ static int wait_for_state(struct target *target, enum target_state state)
 		if (target->state == state) {
 			return ERROR_OK;
 		}
-		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
-			LOG_ERROR("Timed out waiting for state %d.", state);
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("Timed out waiting for state %d. "
+				  "Increase timeout with riscv set_command_timeout_sec.", state);
 			return ERROR_FAIL;
 		}
 	}
@@ -1174,8 +1175,9 @@ static int full_step(struct target *target, bool announce)
 			return result;
 		if (target->state != TARGET_DEBUG_RUNNING)
 			break;
-		if (time(NULL) - start > WALL_CLOCK_TIMEOUT) {
-			LOG_ERROR("Timed out waiting for step to complete.");
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("Timed out waiting for step to complete."
+                                  "Increase timeout with riscv set_command_timeout_sec");
 			return ERROR_FAIL;
 		}
 	}
@@ -1471,6 +1473,7 @@ static int init_target(struct command_context *cmd_ctx,
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 	generic_info->get_register = get_register;
 	generic_info->set_register = set_register;
+
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
