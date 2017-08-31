@@ -5767,17 +5767,19 @@ Show information about flash driver.
 
 @end deffn
 
-@deffn {Flash Driver} nrf51
+@deffn {Flash Driver} nrf5
 All members of the nRF51 microcontroller families from Nordic Semiconductor
 include internal flash and use ARM Cortex-M0 core.
+Also, the nRF52832 microcontroller from Nordic Semiconductor, which include
+internal flash and use an ARM Cortex-M4F core.
 
 @example
-flash bank $_FLASHNAME nrf51 0 0x00000000 0 0 $_TARGETNAME
+flash bank $_FLASHNAME nrf5 0 0x00000000 0 0 $_TARGETNAME
 @end example
 
-Some nrf51-specific commands are defined:
+Some nrf5-specific commands are defined:
 
-@deffn Command {nrf51 mass_erase}
+@deffn Command {nrf5 mass_erase}
 Erases the contents of the code memory and user information
 configuration registers as well. It must be noted that this command
 works only for chips that do not have factory pre-programmed region 0
