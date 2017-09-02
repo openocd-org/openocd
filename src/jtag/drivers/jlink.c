@@ -546,6 +546,7 @@ static int jlink_init(void)
 	struct jaylink_hardware_status hwstatus;
 	enum jaylink_usb_address address;
 	size_t length;
+	size_t num_devices;
 
 	LOG_DEBUG("Using libjaylink %s (compiled with %s).",
 		jaylink_version_package_get_string(), JAYLINK_VERSION_PACKAGE_STRING);
@@ -580,7 +581,7 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	ret = jaylink_get_devices(jayctx, &devs, NULL);
+	ret = jaylink_get_devices(jayctx, &devs, &num_devices);
 
 	if (ret != JAYLINK_OK) {
 		LOG_ERROR("jaylink_get_devices() failed: %s.", jaylink_strerror(ret));
@@ -588,10 +589,14 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	found_device = false;
+	if (!use_serial_number && !use_usb_address && num_devices > 1) {
+		LOG_ERROR("Multiple devices found, specify the desired device.");
+		jaylink_free_devices(devs, true);
+		jaylink_exit(jayctx);
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
-	if (!use_serial_number && !use_usb_address)
-		LOG_INFO("No device selected, using first device.");
+	found_device = false;
 
 	for (i = 0; devs[i]; i++) {
 		if (use_serial_number) {
