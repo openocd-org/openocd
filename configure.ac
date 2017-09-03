@@ -114,6 +114,7 @@ m4_define([USB1_ADAPTERS],
 	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]],
 	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
 	[[usb_blaster_2], [Altera USB-Blaster II Compatible], [USB_BLASTER_2]],
+	[[ft232r], [Bitbang mode of FT232R based devices], [FT232R]],
 	[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]]])
 
 m4_define([USB_ADAPTERS],

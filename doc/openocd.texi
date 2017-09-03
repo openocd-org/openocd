@@ -2559,6 +2559,36 @@ For example adapter definitions, see the configuration files shipped in the
 
 @end deffn
 
+@deffn {Interface Driver} {ft232r}
+This driver is implementing synchronous bitbang mode of an FTDI FT232R
+USB UART bridge IC.
+
+List of connections (pin numbers for SSOP):
+@itemize @minus
+@item RXD(5) - TDI
+@item TXD(1) - TCK
+@item RTS(3) - TDO
+@item CTS(11) - TMS
+@item DTR(2) - TRST
+@item DCD(10) - SRST
+@end itemize
+
+These interfaces have several commands, used to configure the driver
+before initializing the JTAG scan chain:
+
+@deffn {Config Command} {ft232r_vid_pid} @var{vid} @var{pid}
+The vendor ID and product ID of the adapter. If not specified, default
+0x0403:0x6001 is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_serial_desc} @var{serial}
+Specifies the @var{serial} of the adapter to use, in case the
+vendor provides unique IDs and more than one adapter is connected to
+the host. If not specified, serial numbers are not considered.
+@end deffn
+
+@end deffn
+
 @deffn {Interface Driver} {remote_bitbang}
 Drive JTAG from a remote process. This sets up a UNIX or TCP socket connection
 with a remote process and sends ASCII encoded bitbang requests to that process
