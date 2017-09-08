@@ -1707,7 +1707,7 @@ void cortex_m_deinit_target(struct target *target)
 	free(cortex_m);
 }
 
-static int cortex_m_profiling(struct target *target, uint32_t *samples,
+int cortex_m_profiling(struct target *target, uint32_t *samples,
 			      uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
 {
 	struct timeval timeout, now;
@@ -1749,13 +1749,18 @@ static int cortex_m_profiling(struct target *target, uint32_t *samples,
 
 	for (;;) {
 		if (use_pcsr) {
-			uint32_t read_count = max_num_samples - sample_count;
-			if (read_count > 1024)
-				read_count = 1024;
-			retval = mem_ap_read_buf_noincr(armv7m->debug_ap,
+			if (armv7m && armv7m->debug_ap) {
+				uint32_t read_count = max_num_samples - sample_count;
+				if (read_count > 1024)
+					read_count = 1024;
+
+				retval = mem_ap_read_buf_noincr(armv7m->debug_ap,
 							(void *)&samples[sample_count],
 							4, read_count, DWT_PCSR);
-			sample_count += read_count;
+				sample_count += read_count;
+			} else {
+				target_read_u32(target, DWT_PCSR, &samples[sample_count++]);
+			}
 		} else {
 			target_poll(target);
 			if (target->state == TARGET_HALTED) {
