@@ -574,7 +574,7 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 						errors[info->cmderr], *abstractcs);
 			}
 
-			LOG_ERROR("Timed out after %ds waiting for busy to go low. (abstractcs=0x%x)"
+			LOG_ERROR("Timed out after %ds waiting for busy to go low (abstractcs=0x%x). "
                                   "Increase the timeout with riscv set_command_timeout_sec.",
                                   riscv_command_timeout_sec,
                                   *abstractcs);
@@ -1897,7 +1897,7 @@ void riscv013_reset_current_hart(struct target *target)
 		}
 		if (time(NULL) - start > riscv_reset_timeout_sec) {
 			LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
-                                  "dmstatus=0x%x"
+                                  "dmstatus=0x%x; "
                                   "Increase the timeout with riscv set_reset_timeout_sec.",
                                   riscv_reset_timeout_sec, dmstatus);
 			return;
@@ -2041,9 +2041,19 @@ int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr)
 void riscv013_clear_abstract_error(struct target *target)
 {
 	// Wait for busy to go away.
+	time_t start = time(NULL);
 	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 	while (get_field(abstractcs, DMI_ABSTRACTCS_BUSY)) {
 		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
+
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("abstractcs.busy is not going low after %d seconds "
+					"(abstractcs=0x%x). The target is either really slow or "
+					"broken. You could increase the timeout with riscv "
+					"set_reset_timeout_sec.",
+					riscv_command_timeout_sec, abstractcs);
+			break;
+		}
 	}
 	// Clear the error status.
 	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
