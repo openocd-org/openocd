@@ -2047,9 +2047,11 @@ void riscv013_clear_abstract_error(struct target *target)
 		abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 
 		if (time(NULL) - start > riscv_command_timeout_sec) {
-			LOG_ERROR("abstractcs.busy is not going low after %d seconds. "
-					"The target is either really slow, or broken. "
-					"abstractcs=0x%x", riscv_command_timeout_sec, abstractcs);
+			LOG_ERROR("abstractcs.busy is not going low after %d seconds "
+					"(abstractcs=0x%x). The target is either really slow or "
+					"broken. You could increase the timeout with riscv "
+					"set_reset_timeout_sec.",
+					riscv_command_timeout_sec, abstractcs);
 			break;
 		}
 	}
