@@ -5344,6 +5344,30 @@ The AVR 8-bit microcontrollers from Atmel integrate flash memory.
 @comment - defines mass_erase ... pointless given flash_erase_address
 @end deffn
 
+@deffn {Flash Driver} bluenrg-x
+STMicroelectronics BlueNRG-1 and BlueNRG-2 Bluetooth low energy wireless system-on-chip. They include ARM Cortex-M0 core and internal flash memory.
+The driver automatically recognizes these chips using
+the chip identification registers, and autoconfigures itself.
+
+@example
+flash bank $_FLASHNAME bluenrg-x 0 0 0 0 $_TARGETNAME
+@end example
+
+Note that when users ask to erase all the sectors of the flash, a mass erase command is used which is faster than erasing
+each single sector one by one.
+
+@example
+flash erase_sector 0 0 79 # It will perform a mass erase on BlueNRG-1
+@end example
+
+@example
+flash erase_sector 0 0 127 # It will perform a mass erase on BlueNRG-2
+@end example
+
+Triggering a mass erase is also useful when users want to disable readout protection.
+
+@end deffn
+
 @deffn {Flash Driver} efm32
 All members of the EFM32 microcontroller family from Energy Micro include
 internal flash and use ARM Cortex-M3 cores. The driver automatically recognizes
