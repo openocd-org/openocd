@@ -1715,6 +1715,8 @@ const char *gdb_regno_name(enum gdb_regno regno)
 				sprintf(buf, "x%d", regno - GDB_REGNO_XPR0);
 			} else if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
 				sprintf(buf, "csr%d", regno - GDB_REGNO_CSR0);
+			} else if (regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) {
+				sprintf(buf, "f%d", regno - GDB_REGNO_FPR0);
 			} else {
 				sprintf(buf, "gdb_regno_%d", regno);
 			}
