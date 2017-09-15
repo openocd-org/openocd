@@ -780,7 +780,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (number <= GDB_REGNO_XPR31) {
 		riscv_program_lx(&program, number, input);
 	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		riscv_program_fld(&program, number, input);
+		riscv_program_flx(&program, number, input);
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 		enum gdb_regno temp = riscv_program_gettemp(&program);
 		riscv_program_lx(&program, temp, input);
@@ -816,7 +816,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		if (number <= GDB_REGNO_XPR31) {
 			riscv_program_sx(&program, number, output);
 		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			riscv_program_fsd(&program, number, output);
+			riscv_program_fsx(&program, number, output);
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 			LOG_DEBUG("reading CSR index=0x%03x", number - GDB_REGNO_CSR0);
 			enum gdb_regno temp = riscv_program_gettemp(&program);
