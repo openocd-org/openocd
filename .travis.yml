@@ -13,6 +13,8 @@ matrix:
                   packages:
                       - gcc-multilib
 
+        - os: osx
+
 script:
     - ./bootstrap && ./configure && make
     - file src/openocd
