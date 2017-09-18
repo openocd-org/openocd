@@ -217,7 +217,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYHALTED, "anyhalted" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_AUTHENTICATED, "authenticated" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_AUTHBUSY, "authbusy" },
-		{ DMI_DMSTATUS, DMI_DMSTATUS_CFGSTRVALID, "cfgstrvalid" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_DEVTREEVALID, "devtreevalid" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_VERSION, "version" },
 
 		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_PROGSIZE, "progsize" },
