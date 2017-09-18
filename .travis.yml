@@ -1,5 +1,8 @@
 language: c
 dist: trusty
+compiler:
+    - gcc
+    - clang
 
 matrix:
     include:
@@ -7,16 +10,11 @@ matrix:
           env: BUILD=x86_64-linux-gnu
 
         - os: linux
-          compiler: clang
-
-        - os: linux
           env: BUILD=i686-linux-gnu CFLAGS=-m32
           addons:
               apt:
                   packages:
                       - gcc-multilib
-
-        - os: osx
 
 script:
     - ./bootstrap && ./configure && make
