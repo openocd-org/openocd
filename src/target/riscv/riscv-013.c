@@ -421,7 +421,6 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 {
 	select_dmi(target);
 
-	uint64_t value;
 	dmi_status_t status;
 	uint16_t address_in;
 
@@ -429,7 +428,7 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 
 	// This first loop ensures that the read request was actually sent
 	// to the target. Note that if for some reason this stays busy,
-	// it is actually due to the Previous dmi_read or dmi_write.
+	// it is actually due to the previous dmi_read or dmi_write.
 	for (i = 0; i < 256; i++) {
 		status = dmi_scan(target, NULL, NULL, DMI_OP_READ, address, 0,
 				false);
@@ -444,14 +443,14 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed read from 0x%x; value=0x%" PRIx64 ", status=%d",
-				address, value, status);
+		LOG_ERROR("Failed read from 0x%x; status=%d", address, status);
 		abort();
 	}
 
 	// This second loop ensures that we got the read
 	// data back. Note that NOP can result in a 'busy' result as well, but
 	// that would be noticed on the next DMI access we do.
+	uint64_t value;
 	for (i = 0; i < 256; i++) {
 		status = dmi_scan(target, &address_in, &value, DMI_OP_NOP, address, 0,
 				false);

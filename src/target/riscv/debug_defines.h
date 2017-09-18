@@ -926,7 +926,7 @@
  */
 #define DMI_COMMAND_CMDTYPE_OFFSET          24
 #define DMI_COMMAND_CMDTYPE_LENGTH          8
-#define DMI_COMMAND_CMDTYPE                 (0xff << DMI_COMMAND_CMDTYPE_OFFSET)
+#define DMI_COMMAND_CMDTYPE                 (0xffu << DMI_COMMAND_CMDTYPE_OFFSET)
 /*
 * This field is interpreted in a command-specific manner,
 * described for each abstract command.
