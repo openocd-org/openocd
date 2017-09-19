@@ -5,9 +5,23 @@ matrix:
     include:
         - os: linux
           env: BUILD=x86_64-linux-gnu
+          compiler: gcc
 
         - os: linux
           env: BUILD=i686-linux-gnu CFLAGS=-m32
+          addons:
+              apt:
+                  packages:
+                      - gcc-multilib
+          compiler: gcc
+
+        - os: linux
+          env: BUILD=x86_64-linux-gnu
+          compiler: clang
+
+        - os: linux
+          env: BUILD=i686-linux-gnu CFLAGS=-m32
+          compiler: clang
           addons:
               apt:
                   packages:

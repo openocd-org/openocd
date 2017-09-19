@@ -23,8 +23,8 @@ struct riscv_batch {
 
 	size_t idle_count;
 
-	char *data_out;
-	char *data_in;
+	uint8_t *data_out;
+	uint8_t *data_in;
 	struct scan_field *fields;
 
 	/* In JTAG we scan out the previous value's output when performing a
