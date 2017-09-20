@@ -41,6 +41,8 @@
 #include <target/breakpoints.h>
 #include <target/target_request.h>
 #include <target/register.h>
+#include <target/target.h>
+#include <target/target_type.h>
 #include "server.h"
 #include <flash/nor/core.h>
 #include "gdb_server.h"
@@ -109,6 +111,8 @@ static char *gdb_port_next;
 
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
+
+static void gdb_sig_halted(struct connection *connection);
 
 /* number of gdb connections, mainly to suppress gdb related debugging spam
  * in helper/log.c when no gdb connections are actually active */
@@ -2470,7 +2474,7 @@ static int gdb_query_packet(struct connection *connection,
 			&buffer,
 			&pos,
 			&size,
-			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+",
+			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+;vContSupported+",
 			(GDB_BUFFER_SIZE - 1),
 			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-',
 			(gdb_target_desc_supported == 1) ? '+' : '-');
@@ -2559,6 +2563,90 @@ static int gdb_query_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
+static bool gdb_handle_vcont_packet(struct connection *connection, const char *packet, int packet_size)
+{
+	struct gdb_connection *gdb_connection = connection->priv;
+	struct target *target = get_target_from_connection(connection);
+	const char *parse = packet;
+	int retval;
+
+	/* query for vCont supported */
+	if (parse[0] == '?') {
+		if (target->type->step != NULL) {
+			/* gdb doesn't accept c without C and s without S */
+			gdb_put_packet(connection, "vCont;c;C;s;S", 13);
+			return true;
+		}
+		return false;
+	}
+
+	if (parse[0] == ';') {
+		++parse;
+		--packet_size;
+	}
+
+	/* simple case, a continue packet */
+	if (parse[0] == 'c') {
+		LOG_DEBUG("target %s continue", target_name(target));
+		log_add_callback(gdb_log_callback, connection);
+		retval = target_resume(target, 1, 0, 0, 0);
+		if (retval == ERROR_OK) {
+			gdb_connection->frontend_state = TARGET_RUNNING;
+			target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
+		}
+		return true;
+	}
+
+	/* single-step or step-over-breakpoint */
+	if (parse[0] == 's') {
+		if (strncmp(parse, "s:", 2) == 0) {
+			int handle_breakpoint = 1;
+			struct target *ct = target;
+			int64_t thread_id;
+			char *endp;
+
+			parse += 2;
+			packet_size -= 2;
+
+			thread_id = strtoll(parse, &endp, 16);
+			if (endp != NULL) {
+				packet_size -= endp - parse;
+				parse = endp;
+			}
+
+			if (parse[0] == ';') {
+				++parse;
+				--packet_size;
+
+				if (parse[0] == 'c') {
+					parse += 1;
+					packet_size -= 1;
+
+					handle_breakpoint = 0;
+				}
+			}
+
+			LOG_DEBUG("target %s single-step thread %"PRId64, target_name(ct), thread_id);
+			retval = target_step(ct, 1, 0, handle_breakpoint);
+			if (retval == ERROR_OK) {
+				gdb_signal_reply(target, connection);
+				/* stop forwarding log packets! */
+				log_remove_callback(gdb_log_callback, connection);
+			} else
+			if (retval == ERROR_TARGET_TIMEOUT) {
+				gdb_connection->frontend_state = TARGET_RUNNING;
+				target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
+			}
+		} else {
+			LOG_ERROR("Unknown vCont packet");
+			return false;
+		}
+		return true;
+	}
+
+	return false;
+}
+
 static int gdb_v_packet(struct connection *connection,
 		char const *packet, int packet_size)
 {
@@ -2567,6 +2655,19 @@ static int gdb_v_packet(struct connection *connection,
 	int result;
 
 	target = get_target_from_connection(connection);
+
+	if (strncmp(packet, "vCont", 5) == 0) {
+		bool handled;
+
+		packet += 5;
+		packet_size -= 5;
+
+		handled = gdb_handle_vcont_packet(connection, packet, packet_size);
+		if (!handled)
+			gdb_put_packet(connection, "", 0);
+
+		return ERROR_OK;
+	}
 
 	/* if flash programming disabled - send a empty reply */
 
