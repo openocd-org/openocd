@@ -1220,6 +1220,16 @@ static int assert_reset(struct target *target)
 				target->reset_halt ? 1 : 0);
 		control = set_field(control, DMI_DMCONTROL_HARTRESET, 1);
 		dmi_write(target, DMI_DMCONTROL, control);
+
+		// Read back to check if hartreset is supported.
+		uint32_t rb = dmi_read(target, DMI_DMCONTROL);
+		if (!get_field(rb, DMI_DMCONTROL_HARTRESET)) {
+			// Use ndmreset instead. That will reset the entire device, but
+			// that's probably what OpenOCD wants anyway.
+			control = set_field(control, DMI_DMCONTROL_HARTRESET, 0);
+			control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
+			dmi_write(target, DMI_DMCONTROL, control);
+		}
 	}
 
 	target->state = TARGET_RESET;
