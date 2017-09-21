@@ -1185,21 +1185,42 @@ static int examine(struct target *target)
 
 static int assert_reset(struct target *target)
 {
-	/*FIXME -- this only works for single-hart.*/
 	RISCV_INFO(r);
-	assert(r->current_hartid == 0);
 
 	select_dmi(target);
 
-	uint32_t control = 0;
-	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
-	control = set_field(control, DMI_DMCONTROL_HARTRESET, 1);
-	control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
-	control = set_field(control, DMI_DMCONTROL_HARTSEL, r->current_hartid);
-	control = set_field(control, DMI_DMCONTROL_DMACTIVE, 1);
+	uint32_t control_base = set_field(0, DMI_DMCONTROL_DMACTIVE, 1);
 
-	LOG_DEBUG("write 0x%x to dmcontrol", control);
-	dmi_write(target, DMI_DMCONTROL, control);
+	if (target->rtos) {
+		// There's only one target, and OpenOCD thinks each hart is a thread.
+		// We must reset them all.
+
+		// TODO: Try to use hasel in dmcontrol
+
+		// Set haltreq/resumereq for each hart.
+		uint32_t control = control_base;
+		for (int i = 0; i < riscv_count_harts(target); ++i) {
+			if (!riscv_hart_enabled(target, i))
+				continue;
+
+			control = set_field(control_base, DMI_DMCONTROL_HARTSEL, i);
+			control = set_field(control, DMI_DMCONTROL_HALTREQ,
+					target->reset_halt ? 1 : 0);
+			dmi_write(target, DMI_DMCONTROL, control);
+		}
+		// Assert ndmreset
+		control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
+		dmi_write(target, DMI_DMCONTROL, control);
+
+	} else {
+		// Reset just this hart.
+		uint32_t control = set_field(control_base, DMI_DMCONTROL_HARTSEL,
+				r->current_hartid);
+		control = set_field(control, DMI_DMCONTROL_HALTREQ,
+				target->reset_halt ? 1 : 0);
+		control = set_field(control, DMI_DMCONTROL_HARTRESET, 1);
+		dmi_write(target, DMI_DMCONTROL, control);
+	}
 
 	target->state = TARGET_RESET;
 
@@ -1212,10 +1233,7 @@ static int deassert_reset(struct target *target)
 	RISCV013_INFO(info);
 	select_dmi(target);
 
-	/*FIXME -- this only works for Single Hart*/
-	assert(r->current_hartid == 0);
-
-	/*FIXME -- is there bookkeeping we need to do here*/
+	LOG_DEBUG("%d", r->current_hartid);
 
 	// Clear the reset, but make sure haltreq is still set
 	uint32_t control = 0;
