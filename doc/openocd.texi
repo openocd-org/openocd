@@ -5401,7 +5401,7 @@ from NXP (former Freescale) include
 internal flash and use ARM Cortex-M0+ or M4 cores. The driver automatically
 recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
-Use kinetis_ke driver for KE0x devices.
+Use kinetis_ke driver for KE0x and KEAx devices.
 
 The @var{kinetis} driver defines option:
 @itemize
@@ -5494,7 +5494,7 @@ Command disables watchdog timer.
 
 @deffn {Flash Driver} kinetis_ke
 @cindex kinetis_ke
-KE0x members of the Kinetis microcontroller family from Freescale include
+KE0x and KEAx members of the Kinetis microcontroller family from NXP include
 internal flash and use ARM Cortex-M0+. The driver automatically recognizes
 the KE0x sub-family using the chip identification register, and
 autoconfigures itself.
