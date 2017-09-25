@@ -63,7 +63,6 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
-static void riscv013_reset_current_hart(struct target *target);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -904,7 +903,6 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->fill_dmi_read_u64 = &riscv013_fill_dmi_read_u64;
 	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
 	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
-	generic_info->reset_current_hart = &riscv013_reset_current_hart;
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -1187,23 +1185,54 @@ static int examine(struct target *target)
 
 static int assert_reset(struct target *target)
 {
-	/*FIXME -- this only works for single-hart.*/
 	RISCV_INFO(r);
-	assert(r->current_hartid == 0);
 
 	select_dmi(target);
-	LOG_DEBUG("ASSERTING NDRESET");
-	uint32_t control = dmi_read(target, DMI_DMCONTROL);
-	control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
-	if (target->reset_halt) {
-		LOG_DEBUG("TARGET RESET HALT SET, ensuring halt is set during reset.");
-		control = set_field(control, DMI_DMCONTROL_HALTREQ, 1);
+
+	uint32_t control_base = set_field(0, DMI_DMCONTROL_DMACTIVE, 1);
+
+	if (target->rtos) {
+		// There's only one target, and OpenOCD thinks each hart is a thread.
+		// We must reset them all.
+
+		// TODO: Try to use hasel in dmcontrol
+
+		// Set haltreq/resumereq for each hart.
+		uint32_t control = control_base;
+		for (int i = 0; i < riscv_count_harts(target); ++i) {
+			if (!riscv_hart_enabled(target, i))
+				continue;
+
+			control = set_field(control_base, DMI_DMCONTROL_HARTSEL, i);
+			control = set_field(control, DMI_DMCONTROL_HALTREQ,
+					target->reset_halt ? 1 : 0);
+			dmi_write(target, DMI_DMCONTROL, control);
+		}
+		// Assert ndmreset
+		control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
+		dmi_write(target, DMI_DMCONTROL, control);
+
 	} else {
-		LOG_DEBUG("TARGET RESET HALT NOT SET");
-		control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
+		// Reset just this hart.
+		uint32_t control = set_field(control_base, DMI_DMCONTROL_HARTSEL,
+				r->current_hartid);
+		control = set_field(control, DMI_DMCONTROL_HALTREQ,
+				target->reset_halt ? 1 : 0);
+		control = set_field(control, DMI_DMCONTROL_HARTRESET, 1);
+		dmi_write(target, DMI_DMCONTROL, control);
+
+		// Read back to check if hartreset is supported.
+		uint32_t rb = dmi_read(target, DMI_DMCONTROL);
+		if (!get_field(rb, DMI_DMCONTROL_HARTRESET)) {
+			// Use ndmreset instead. That will reset the entire device, but
+			// that's probably what OpenOCD wants anyway.
+			control = set_field(control, DMI_DMCONTROL_HARTRESET, 0);
+			control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
+			dmi_write(target, DMI_DMCONTROL, control);
+		}
 	}
 
-	dmi_write(target, DMI_DMCONTROL, control);
+	target->state = TARGET_RESET;
 
 	return ERROR_OK;
 }
@@ -1214,38 +1243,55 @@ static int deassert_reset(struct target *target)
 	RISCV013_INFO(info);
 	select_dmi(target);
 
-	/*FIXME -- this only works for Single Hart*/
-	assert(r->current_hartid == 0);
-
-	/*FIXME -- is there bookkeeping we need to do here*/
-
-	uint32_t control = dmi_read(target, DMI_DMCONTROL);
+	LOG_DEBUG("%d", r->current_hartid);
 
 	// Clear the reset, but make sure haltreq is still set
-	if (target->reset_halt) {
-		control = set_field(control, DMI_DMCONTROL_HALTREQ, 1);
-	}
-
-	control = set_field(control, DMI_DMCONTROL_NDMRESET, 0);
+	uint32_t control = 0;
+	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
+	control = set_field(control, DMI_DMCONTROL_HARTSEL, r->current_hartid);
+	control = set_field(control, DMI_DMCONTROL_DMACTIVE, 1);
 	dmi_write(target, DMI_DMCONTROL, control);
 
-	uint32_t status;
+	uint32_t dmstatus;
 	int dmi_busy_delay = info->dmi_busy_delay;
+	time_t start = time(NULL);
+
 	if (target->reset_halt) {
-		LOG_DEBUG("DEASSERTING RESET, waiting for hart to be halted.");
+		LOG_DEBUG("Waiting for hart to be halted.");
 		do {
-			status = dmi_read(target, DMI_DMSTATUS);
-		} while (get_field(status, DMI_DMSTATUS_ALLHALTED) == 0);
-	} else {
-		LOG_DEBUG("DEASSERTING RESET, waiting for hart to be running.");
-		do {
-			status = dmi_read(target, DMI_DMSTATUS);
-			if (get_field(status, DMI_DMSTATUS_ANYHALTED) ||
-					get_field(status, DMI_DMSTATUS_ANYUNAVAIL)) {
-				LOG_ERROR("Unexpected hart status during reset.");
-				abort();
+			dmstatus = dmi_read(target, DMI_DMSTATUS);
+			if (time(NULL) - start > riscv_reset_timeout_sec) {
+				LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
+						"dmstatus=0x%x; "
+						"Increase the timeout with riscv set_reset_timeout_sec.",
+						riscv_reset_timeout_sec, dmstatus);
+				return ERROR_FAIL;
 			}
-		} while (get_field(status, DMI_DMSTATUS_ALLRUNNING) == 0);
+			target->state = TARGET_HALTED;
+		} while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0);
+
+		control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
+		dmi_write(target, DMI_DMCONTROL, control);
+
+	} else {
+		LOG_DEBUG("Waiting for hart to be running.");
+		do {
+			dmstatus = dmi_read(target, DMI_DMSTATUS);
+			if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
+					get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
+				LOG_ERROR("Unexpected hart status during reset. dmstatus=0x%x",
+						dmstatus);
+				return ERROR_FAIL;
+			}
+			if (time(NULL) - start > riscv_reset_timeout_sec) {
+				LOG_ERROR("Hart didn't run coming out of reset in %ds; "
+						"dmstatus=0x%x; "
+						"Increase the timeout with riscv set_reset_timeout_sec.",
+						riscv_reset_timeout_sec, dmstatus);
+				return ERROR_FAIL;
+			}
+		} while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0);
+		target->state = TARGET_RUNNING;
 	}
 	info->dmi_busy_delay = dmi_busy_delay;
 	return ERROR_OK;
@@ -1878,37 +1924,6 @@ int riscv013_dmi_write_u64_bits(struct target *target)
 {
 	RISCV013_INFO(info);
 	return info->abits + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH;
-}
-
-void riscv013_reset_current_hart(struct target *target)
-{
-	select_dmi(target);
-	uint32_t control = dmi_read(target, DMI_DMCONTROL);
-	control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
-	control = set_field(control, DMI_DMCONTROL_HALTREQ, 1);
-	dmi_write(target, DMI_DMCONTROL, control);
-
-	control = set_field(control, DMI_DMCONTROL_NDMRESET, 0);
-	dmi_write(target, DMI_DMCONTROL, control);
-
-	time_t start = time(NULL);
-
-	while (1) {
-		uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
-		if (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED)) {
-			break;
-		}
-		if (time(NULL) - start > riscv_reset_timeout_sec) {
-			LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
-                                  "dmstatus=0x%x; "
-                                  "Increase the timeout with riscv set_reset_timeout_sec.",
-                                  riscv_reset_timeout_sec, dmstatus);
-			return;
-		}
-	}
-
-	control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
-	dmi_write(target, DMI_DMCONTROL, control);
 }
 
 /* Helper Functions. */

@@ -103,7 +103,6 @@ typedef struct {
 	void (*fill_dmi_write_u64)(struct target *target, char *buf, int a, uint64_t d);
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
-	void (*reset_current_hart)(struct target *target);
 } riscv_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
@@ -161,8 +160,6 @@ int riscv_halt_all_harts(struct target *target);
 int riscv_halt_one_hart(struct target *target, int hartid);
 int riscv_resume_all_harts(struct target *target);
 int riscv_resume_one_hart(struct target *target, int hartid);
-int riscv_reset_all_harts(struct target *target);
-int riscv_reset_one_hart(struct target *target, int hartid);
 
 /* Steps the hart that's currently selected in the RTOS, or if there is no RTOS
  * then the only hart. */
