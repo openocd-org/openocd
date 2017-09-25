@@ -5891,6 +5891,62 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} psoc6
+Supports PSoC6 (CY8C6xxx) family of Cypress microcontrollers.
+PSoC6 is a dual-core device with CM0+ and CM4 cores. Both cores share
+the same Flash/RAM/MMIO address space.
+
+Flash in PSoC6 is split into three regions:
+@itemize @bullet
+@item Main Flash - this is the main storage for user application.
+Total size varies among devices, sector size: 256 kBytes, row size:
+512 bytes. Supports erase operation on individual rows.
+@item Work Flash - intended to be used as storage for user data
+(e.g. EEPROM emulation). Total size: 32 KBytes, sector size: 32 KBytes,
+row size: 512 bytes.
+@item Supervisory Flash - special region which contains device-specific
+service data. This region does not support erase operation. Only few rows can
+be programmed by the user, most of the rows are read only. Programming
+operation will erase row automatically.
+@end itemize
+
+All three flash regions are supported by the driver. Flash geometry is detected
+automatically by parsing data in SPCIF_GEOMETRY register.
+
+PSoC6 is equipped with NOR Flash so erased Flash reads as 0x00.
+
+@example
+flash bank main_flash_cm0 psoc6 0x10000000 0 0 0 $@{TARGET@}.cm0
+flash bank work_flash_cm0 psoc6 0x14000000 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_user_cm0 psoc6 0x16000800 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_nar_cm0 psoc6 0x16001A00 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_key_cm0 psoc6 0x16005A00 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_toc2_cm0 psoc6 0x16007C00 0 0 0 $@{TARGET@}.cm0
+
+flash bank main_flash_cm4 psoc6 0x10000000 0 0 0 $@{TARGET@}.cm4
+flash bank work_flash_cm4 psoc6 0x14000000 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_user_cm4 psoc6 0x16000800 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_nar_cm4 psoc6 0x16001A00 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_key_cm4 psoc6 0x16005A00 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_toc2_cm4 psoc6 0x16007C00 0 0 0 $@{TARGET@}.cm4
+@end example
+
+psoc6-specific commands
+@deffn Command {psoc6 reset_halt}
+Command can be used to simulate broken Vector Catch from gdbinit or tcl scripts.
+When invoked for CM0+ target, it will set break point at application entry point
+and issue SYSRESETREQ. This will reset both cores and all peripherals. CM0+ will
+reset CM4 during boot anyway so this is safe. On CM4 target, VECTRESET is used
+instead of SYSRESETREQ to avoid unwanted reset of CM0+;
+@end deffn
+
+@deffn Command {psoc6 mass_erase} num
+Erases the contents given flash bank. The @var{num} parameter is a value shown
+by @command{flash banks}.
+Note: only Main and Work flash regions support Erase operation.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} sim3x
 All members of the SiM3 microcontroller family from Silicon Laboratories
 include internal flash and use ARM Cortex-M3 cores. It supports both JTAG
