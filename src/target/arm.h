@@ -66,6 +66,15 @@ enum arm_mode {
 	ARM_MODE_USER_THREAD = 1,
 	ARM_MODE_HANDLER = 2,
 
+	/* shift left 4 bits for armv8 64 */
+	ARMV8_64_EL0T = 0x0F,
+	ARMV8_64_EL1T = 0x4F,
+	ARMV8_64_EL1H = 0x5F,
+	ARMV8_64_EL2T = 0x8F,
+	ARMV8_64_EL2H = 0x9F,
+	ARMV8_64_EL3T = 0xCF,
+	ARMV8_64_EL3H = 0xDF,
+
 	ARM_MODE_ANY = -1
 };
 
@@ -78,6 +87,7 @@ enum arm_state {
 	ARM_STATE_THUMB,
 	ARM_STATE_JAZELLE,
 	ARM_STATE_THUMB_EE,
+	ARM_STATE_AARCH64,
 };
 
 #define ARM_COMMON_MAGIC 0x0A450A45
@@ -213,15 +223,19 @@ struct arm_reg {
 	enum arm_mode mode;
 	struct target *target;
 	struct arm *arm;
-	uint8_t value[4];
+	uint8_t value[8];
 };
 
 struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm);
+struct reg_cache *armv8_build_reg_cache(struct target *target);
 
 extern const struct command_registration arm_command_handlers[];
 
 int arm_arch_state(struct target *target);
 int arm_get_gdb_reg_list(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class);
+int armv8_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);
 
@@ -231,7 +245,7 @@ int arm_init_arch_info(struct target *target, struct arm *arm);
 int armv4_5_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
-		uint32_t entry_point, uint32_t exit_point,
+		target_addr_t entry_point, target_addr_t exit_point,
 		int timeout_ms, void *arch_info);
 int armv4_5_run_algorithm_inner(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
@@ -242,12 +256,13 @@ int armv4_5_run_algorithm_inner(struct target *target,
 				int timeout_ms, void *arch_info));
 
 int arm_checksum_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t *checksum);
+		target_addr_t address, uint32_t count, uint32_t *checksum);
 int arm_blank_check_memory(struct target *target,
-		uint32_t address, uint32_t count, uint32_t *blank, uint8_t erased_value);
+		target_addr_t address, uint32_t count, uint32_t *blank, uint8_t erased_value);
 
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
+struct reg *armv8_reg_current(struct arm *arm, unsigned regnum);
 
 extern struct reg arm_gdb_dummy_fp_reg;
 extern struct reg arm_gdb_dummy_fps_reg;

@@ -994,7 +994,7 @@ int lakemont_halt(struct target *t)
 	}
 }
 
-int lakemont_resume(struct target *t, int current, uint32_t address,
+int lakemont_resume(struct target *t, int current, target_addr_t address,
 			int handle_breakpoints, int debug_execution)
 {
 	struct breakpoint *bp = NULL;
@@ -1036,7 +1036,7 @@ int lakemont_resume(struct target *t, int current, uint32_t address,
 }
 
 int lakemont_step(struct target *t, int current,
-			uint32_t address, int handle_breakpoints)
+			target_addr_t address, int handle_breakpoints)
 {
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	uint32_t eflags = buf_get_u32(x86_32->cache->reg_list[EFLAGS].value, 0, 32);

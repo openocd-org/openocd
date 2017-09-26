@@ -34,26 +34,40 @@
 #define MIPS32_PRACC_PARAM_OUT			0xFF202000
 
 #define PRACC_UPPER_BASE_ADDR			(MIPS32_PRACC_BASE_ADDR >> 16)
+#define PRACC_MAX_CODE				(MIPS32_PRACC_PARAM_OUT - MIPS32_PRACC_TEXT)
+#define PRACC_MAX_INSTRUCTIONS			(PRACC_MAX_CODE / 4)
 #define PRACC_OUT_OFFSET			(MIPS32_PRACC_PARAM_OUT - MIPS32_PRACC_BASE_ADDR)
 
 #define MIPS32_FASTDATA_HANDLER_SIZE	0x80
 #define UPPER16(uint32_t)				(uint32_t >> 16)
 #define LOWER16(uint32_t)				(uint32_t & 0xFFFF)
 #define NEG16(v)						(((~(v)) + 1) & 0xFFFF)
+#define SWAP16(v)				((LOWER16(v) << 16) | (UPPER16(v)))
 /*#define NEG18(v) (((~(v)) + 1) & 0x3FFFF)*/
 
+#define PRACC_BLOCK	128	/* 1 Kbyte */
+
+typedef struct {
+	uint32_t instr;
+	uint32_t addr;
+} pa_list;
+
 struct pracc_queue_info {
+	struct mips_ejtag *ejtag_info;
+	unsigned isa;
 	int retval;
-	const int max_code;
 	int code_count;
 	int store_count;
-	uint32_t *pracc_list;	/* Code and store addresses */
+	int max_code;		/* max intstructions with currently allocated memory */
+	pa_list *pracc_list;	/* Code and store addresses at dmseg */
 };
+
 void pracc_queue_init(struct pracc_queue_info *ctx);
 void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t instr);
+void pracc_add_li32(struct pracc_queue_info *ctx, uint32_t reg_num, uint32_t data, bool optimize);
 void pracc_queue_free(struct pracc_queue_info *ctx);
 int mips32_pracc_queue_exec(struct mips_ejtag *ejtag_info,
-			    struct pracc_queue_info *ctx, uint32_t *buf);
+			    struct pracc_queue_info *ctx, uint32_t *buf, bool check_last);
 
 int mips32_pracc_read_mem(struct mips_ejtag *ejtag_info,
 		uint32_t addr, int size, int count, void *buf);
@@ -65,7 +79,8 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
 
-int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ctx, uint32_t *param_out);
+int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ctx,
+				uint32_t *param_out, bool check_last);
 
 /**
  * \b mips32_cp0_read
@@ -98,5 +113,12 @@ int mips32_cp0_read(struct mips_ejtag *ejtag_info,
  */
 int mips32_cp0_write(struct mips_ejtag *ejtag_info,
 		uint32_t val, uint32_t cp0_reg, uint32_t cp0_sel);
+
+static inline void pracc_swap16_array(struct mips_ejtag *ejtag_info, uint32_t *buf, int count)
+{
+	if (ejtag_info->isa && ejtag_info->endianness)
+		for (int i = 0; i != count; i++)
+			buf[i] = SWAP16(buf[i]);
+}
 
 #endif /* OPENOCD_TARGET_MIPS32_PRACC_H */

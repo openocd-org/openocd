@@ -291,6 +291,13 @@ static const struct nrf51_device_spec nrf51_known_devices_table[] = {
 		.build_code	= "A0",
 		.flash_size_kb	= 256,
 	},
+	{
+		.hwid		= 0x008F,
+		.part		= "51822",
+		.variant	= "QFAA",
+		.build_code	= "H1",
+		.flash_size_kb	= 256,
+	},
 
 	/* nRF51422 Devices (IC rev 1). */
 	{
@@ -690,14 +697,15 @@ static int nrf51_probe(struct flash_bank *bank)
 
 		/* Note the register name is misleading,
 		 * NRF51_FICR_CODESIZE is the number of pages in flash memory, not the number of bytes! */
-		res = target_read_u32(chip->target, NRF51_FICR_CODESIZE,
-				(uint32_t *) &bank->num_sectors);
+		uint32_t num_sectors;
+		res = target_read_u32(chip->target, NRF51_FICR_CODESIZE, &num_sectors);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read code memory size");
 			return res;
 		}
 
-		bank->size = bank->num_sectors * chip->code_page_size;
+		bank->num_sectors = num_sectors;
+		bank->size = num_sectors * chip->code_page_size;
 
 		if (spec && bank->size / 1024 != spec->flash_size_kb)
 			LOG_WARNING("Chip's reported Flash capacity does not match expected one");

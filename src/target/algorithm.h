@@ -26,7 +26,7 @@ enum param_direction {
 };
 
 struct mem_param {
-	uint32_t address;
+	target_addr_t address;
 	uint32_t size;
 	uint8_t *value;
 	enum param_direction direction;

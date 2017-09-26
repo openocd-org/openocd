@@ -879,7 +879,6 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 COMMAND_HANDLER(pic32mx_handle_unlock_command)
 {
-	uint32_t mchip_cmd;
 	struct target *target = NULL;
 	struct mips_m4k_common *mips_m4k;
 	struct mips_ejtag *ejtag_info;
@@ -904,7 +903,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 	mips_ejtag_set_instr(ejtag_info, MTAP_COMMAND);
 
 	/* first check status of device */
-	mchip_cmd = MCHP_STATUS;
+	uint8_t mchip_cmd = MCHP_STATUS;
 	mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
 	if (mchip_cmd & (1 << 7)) {
 		/* device is not locked */

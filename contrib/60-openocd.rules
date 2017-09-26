@@ -62,6 +62,12 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE="660", GROUP="plugdev", 
 # STLink v2-1
 ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# Cypress KitProg in KitProg mode
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="f139", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Cypress KitProg in CMSIS-DAP mode
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="f138", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
 # Hilscher NXHX Boards
 ATTRS{idVendor}=="0640", ATTRS{idProduct}=="0028", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
@@ -121,6 +127,11 @@ ATTRS{idVendor}=="1781", ATTRS{idProduct}=="0c63", MODE="660", GROUP="plugdev", 
 
 # TI/Luminary Stellaris In-Circuit Debug Interface (ICDI) Board
 ATTRS{idVendor}=="1cbe", ATTRS{idProduct}=="00fd", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Ambiq Micro EVK and Debug boards.
+ATTRS{idVendor}=="2aec", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2aec", ATTRS{idProduct}=="6011", MODE="664", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2aec", ATTRS{idProduct}=="1106", MODE="664", GROUP="plugdev", TAG+="uaccess"
 
 # Marvell Sheevaplug
 ATTRS{idVendor}=="9e88", ATTRS{idProduct}=="9e8f", MODE="660", GROUP="plugdev", TAG+="uaccess"

@@ -26,6 +26,10 @@ noinst_LTLIBRARIES += %D%/libtarget.la
 	%D%/dsp5680xx.c \
 	%D%/hla_target.c
 
+if TARGET64
+%C%_libtarget_la_SOURCES +=$(ARMV8_SRC)
+endif
+
 TARGET_CORE_SRC = \
 	%D%/algorithm.c \
 	%D%/register.c \
@@ -69,6 +73,13 @@ ARMV7_SRC = \
 	%D%/cortex_a.c \
 	%D%/ls1_sap.c
 
+ARMV8_SRC = \
+	%D%/armv8_dpm.c \
+	%D%/armv8_opcodes.c \
+	%D%/aarch64.c \
+	%D%/armv8.c \
+	%D%/armv8_cache.c
+
 ARM_DEBUG_SRC = \
 	%D%/arm_dpm.c \
 	%D%/arm_jtag.c \
@@ -85,7 +96,8 @@ ARM_DEBUG_SRC = \
 	%D%/etb.c \
 	%D%/etm.c \
 	$(OOCD_TRACE_FILES) \
-	%D%/etm_dummy.c
+	%D%/etm_dummy.c \
+	%D%/arm_cti.c
 
 AVR32_SRC = \
 	%D%/avr32_ap7k.c \
@@ -146,6 +158,10 @@ INTEL_IA32_SRC = \
 	%D%/armv7a.h \
 	%D%/armv7m.h \
 	%D%/armv7m_trace.h \
+	%D%/armv8.h \
+	%D%/armv8_dpm.h \
+	%D%/armv8_opcodes.h \
+	%D%/armv8_cache.h \
 	%D%/avrt.h \
 	%D%/dsp563xx.h \
 	%D%/dsp563xx_once.h \
@@ -153,6 +169,7 @@ INTEL_IA32_SRC = \
 	%D%/breakpoints.h \
 	%D%/cortex_m.h \
 	%D%/cortex_a.h \
+	%D%/aarch64.h \
 	%D%/embeddedice.h \
 	%D%/etb.h \
 	%D%/etm.h \
@@ -189,6 +206,7 @@ INTEL_IA32_SRC = \
 	%D%/nds32_v3m.h \
 	%D%/nds32_aice.h \
 	%D%/lakemont.h \
-	%D%/x86_32_common.h
+	%D%/x86_32_common.h \
+	%D%/arm_cti.h
 
 include %D%/openrisc/Makefile.am

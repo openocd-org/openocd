@@ -19,7 +19,9 @@
 
 /*
 	Disable watchdog for Kinetis Kx and KVx
-	Parameters: none
+	Parameters:
+		r0 ... WDOG base (in)
+
 	Used instruction set should work on both Cortex-M4 and M0+
 */
 
@@ -28,7 +30,6 @@
         .cpu cortex-m0
 	.thumb
 
-WDOG_ADDR	= 0x40052000
 /* WDOG registers offsets */
 WDOG_STCTRLH	= 0
 WDOG_UNLOCK	= 0x0e
@@ -39,17 +40,16 @@ WDOG_KEY2	= 0xd928
 	.thumb_func
 start:
 /* WDOG_UNLOCK = 0xC520 */
-	ldr     r3, =WDOG_ADDR
 	ldr     r2, =WDOG_KEY1
-	strh    r2, [r3, WDOG_UNLOCK]
+	strh    r2, [r0, WDOG_UNLOCK]
 /* WDOG_UNLOCK = 0xD928 */
 	ldr     r2, =WDOG_KEY2
-	strh    r2, [r3, WDOG_UNLOCK]
+	strh    r2, [r0, WDOG_UNLOCK]
 /* WDOG_STCTRLH clear bit 0 */
 	movs	r4, #1
-	ldrh    r2, [r3, WDOG_STCTRLH]
+	ldrh    r2, [r0, WDOG_STCTRLH]
 	bics	r2, r4
-	strh    r2, [r3, WDOG_STCTRLH]
+	strh    r2, [r0, WDOG_STCTRLH]
 /* OpenOCD checks exit point address. Jump to the very end. */
 	b	done
 

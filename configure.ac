@@ -1,5 +1,5 @@
 AC_PREREQ(2.64)
-AC_INIT([openocd], [0.10.0-rc2-dev],
+AC_INIT([openocd], [0.10.0+dev],
   [OpenOCD Mailing List <openocd-devel@lists.sourceforge.net>])
 AC_CONFIG_SRCDIR([src/openocd.c])
 
@@ -129,6 +129,9 @@ m4_define([USB0_ADAPTERS],
 m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP]]])
 
+m4_define([HIDAPI_USB1_ADAPTERS],
+	[[[kitprog], [Cypress KitProg Programmer], [KITPROG]]])
+
 m4_define([LIBFTDI_ADAPTERS],
 	[[[usb_blaster], [Altera USB-Blaster Compatible], [USB_BLASTER]],
 	[[presto], [ASIX Presto Adapter], [PRESTO]],
@@ -243,6 +246,7 @@ AC_ARG_ADAPTERS([
   USB_ADAPTERS,
   USB0_ADAPTERS,
   HIDAPI_ADAPTERS,
+  HIDAPI_USB1_ADAPTERS,
   LIBFTDI_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
@@ -294,11 +298,15 @@ AS_CASE(["${host_cpu}"],
     AC_ARG_ENABLE([bcm2835gpio],
       AS_HELP_STRING([--enable-bcm2835gpio], [Enable building support for bitbanging on BCM2835 (as found in Raspberry Pi)]),
       [build_bcm2835gpio=$enableval], [build_bcm2835gpio=no])
+    AC_ARG_ENABLE([imx_gpio],
+      AS_HELP_STRING([--enable-imx_gpio], [Enable building support for bitbanging on NXP IMX processors]),
+      [build_imx_gpio=$enableval], [build_imx_gpio=no])
   ],
   [
     build_ep93xx=no
     build_at91rm9200=no
     build_bcm2835gpio=no
+    build_imx_gpio=no
 ])
 
 AC_ARG_ENABLE([gw16012],
@@ -338,6 +346,10 @@ AC_ARG_ENABLE([internal-libjaylink],
   AS_HELP_STRING([--disable-internal-libjaylink],
   [Disable building internal libjaylink]),
   [use_internal_libjaylink=$enableval], [use_internal_libjaylink=yes])
+
+AC_ARG_ENABLE([target64],
+  AS_HELP_STRING([--disable-target64], [Disable 64-bit target address]),
+    [build_target64=$enableval], [build_target64=yes])
 
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
@@ -508,6 +520,13 @@ AS_IF([test "x$build_bcm2835gpio" = "xyes"], [
   AC_DEFINE([BUILD_BCM2835GPIO], [0], [0 if you don't want bcm2835gpio.])
 ])
 
+AS_IF([test "x$build_imx_gpio" = "xyes"], [
+  build_bitbang=yes
+  AC_DEFINE([BUILD_IMX_GPIO], [1], [1 if you want imx_gpio.])
+], [
+  AC_DEFINE([BUILD_IMX_GPIO], [0], [0 if you don't want imx_gpio.])
+])
+
 AS_IF([test "x$parport_use_ppdev" = "xyes"], [
   AC_DEFINE([PARPORT_USE_PPDEV], [1], [1 if you want parport to use ppdev.])
 ], [
@@ -572,6 +591,13 @@ AS_IF([test "x$build_sysfsgpio" = "xyes"], [
   AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
 ])
 
+AS_IF([test "x$build_target64" = "xyes"], [
+  AC_DEFINE([BUILD_TARGET64], [1], [1 if you want 64-bit addresses.])
+], [
+  AC_DEFINE([BUILD_TARGET64], [0], [0 if you don't want 64-bit addresses.])
+])
+
+
 PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 	use_libusb1=yes
 	AC_DEFINE([HAVE_LIBUSB1], [1], [Define if you have libusb-1.x])
@@ -627,6 +653,7 @@ PROCESS_ADAPTERS([USB1_ADAPTERS], ["x$use_libusb1" = "xyes"], [libusb-1.x])
 PROCESS_ADAPTERS([USB_ADAPTERS], ["x$use_libusb1" = "xyes" -o "x$use_libusb0" = "xyes"], [libusb-1.x or libusb-0.1])
 PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
+PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_libusb1" = "xyes" -a "x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libusb-1.x or libjaylink-0.1])
 
@@ -670,6 +697,7 @@ AM_CONDITIONAL([ZY1000_MASTER], [test "x$build_zy1000_master" = "xyes"])
 AM_CONDITIONAL([IOUTIL], [test "x$build_ioutil" = "xyes"])
 AM_CONDITIONAL([AT91RM9200], [test "x$build_at91rm9200" = "xyes"])
 AM_CONDITIONAL([BCM2835GPIO], [test "x$build_bcm2835gpio" = "xyes"])
+AM_CONDITIONAL([IMX_GPIO], [test "x$build_imx_gpio" = "xyes"])
 AM_CONDITIONAL([BITBANG], [test "x$build_bitbang" = "xyes"])
 AM_CONDITIONAL([JTAG_VPI], [test "x$build_jtag_vpi" = "xyes" -o "x$build_jtag_vpi" = "xyes"])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test "x$enable_usb_blaster" != "xno" -o "x$enable_usb_blaster_2" != "xno"])
@@ -689,6 +717,7 @@ AM_CONDITIONAL([BITQ], [test "x$build_bitq" = "xyes"])
 AM_CONDITIONAL([USE_LIBFTDI], [test "x$use_libftdi" = "xyes"])
 AM_CONDITIONAL([USE_HIDAPI], [test "x$use_hidapi" = "xyes"])
 AM_CONDITIONAL([USE_LIBJAYLINK], [test "x$use_libjaylink" = "xyes"])
+AM_CONDITIONAL([TARGET64], [test "x$build_target64" = "xyes"])
 
 AM_CONDITIONAL([MINIDRIVER], [test "x$build_minidriver" = "xyes"])
 AM_CONDITIONAL([MINIDRIVER_DUMMY], [test "x$build_minidriver_dummy" = "xyes"])
@@ -756,7 +785,8 @@ echo
 echo OpenOCD configuration summary
 echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS,
-	HIDAPI_ADAPTERS, LIBFTDI_ADAPTERS, LIBJAYLINK_ADAPTERS],
+	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
+	LIBJAYLINK_ADAPTERS],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	AS_CASE([$ADAPTER_VAR([adapter])],
 		[auto], [

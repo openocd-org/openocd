@@ -101,7 +101,8 @@ static void arm7_9_assign_wp(struct arm7_9_common *arm7_9, struct breakpoint *br
 		arm7_9->wp_available--;
 	} else
 		LOG_ERROR("BUG: no hardware comparator available");
-	LOG_DEBUG("BPID: %" PRId32 " (0x%08" PRIx32 ") using hw wp: %d",
+
+	LOG_DEBUG("BPID: %" PRId32 " (0x%08" TARGET_PRIxADDR ") using hw wp: %d",
 			breakpoint->unique_id,
 			breakpoint->address,
 			breakpoint->set);
@@ -187,7 +188,7 @@ static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *break
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	int retval = ERROR_OK;
 
-	LOG_DEBUG("BPID: %" PRId32 ", Address: 0x%08" PRIx32 ", Type: %d",
+	LOG_DEBUG("BPID: %" PRId32 ", Address: 0x%08" TARGET_PRIxADDR ", Type: %d",
 		breakpoint->unique_id,
 		breakpoint->address,
 		breakpoint->type);
@@ -244,7 +245,7 @@ static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *break
 			if (retval != ERROR_OK)
 				return retval;
 			if (verify != arm7_9->arm_bkpt) {
-				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08" PRIx32
+				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08" TARGET_PRIxADDR
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
@@ -264,7 +265,7 @@ static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *break
 			if (retval != ERROR_OK)
 				return retval;
 			if (verify != arm7_9->thumb_bkpt) {
-				LOG_ERROR("Unable to set thumb software breakpoint at address %08" PRIx32
+				LOG_ERROR("Unable to set thumb software breakpoint at address %08" TARGET_PRIxADDR
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
@@ -299,7 +300,7 @@ static int arm7_9_unset_breakpoint(struct target *target, struct breakpoint *bre
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
-	LOG_DEBUG("BPID: %" PRId32 ", Address: 0x%08" PRIx32,
+	LOG_DEBUG("BPID: %" PRId32 ", Address: 0x%08" TARGET_PRIxADDR,
 		breakpoint->unique_id,
 		breakpoint->address);
 
@@ -1692,7 +1693,7 @@ static void arm7_9_enable_breakpoints(struct target *target)
 
 int arm7_9_resume(struct target *target,
 	int current,
-	uint32_t address,
+	target_addr_t address,
 	int handle_breakpoints,
 	int debug_execution)
 {
@@ -1724,7 +1725,7 @@ int arm7_9_resume(struct target *target,
 		breakpoint = breakpoint_find(target,
 				buf_get_u32(arm->pc->value, 0, 32));
 		if (breakpoint != NULL) {
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (id: %" PRId32,
+			LOG_DEBUG("unset breakpoint at 0x%8.8" TARGET_PRIxADDR " (id: %" PRId32,
 				breakpoint->address,
 				breakpoint->unique_id);
 			retval = arm7_9_unset_breakpoint(target, breakpoint);
@@ -1783,7 +1784,7 @@ int arm7_9_resume(struct target *target,
 			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32,
 				buf_get_u32(arm->pc->value, 0, 32));
 
-			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("set breakpoint at 0x%8.8" TARGET_PRIxADDR "", breakpoint->address);
 			retval = arm7_9_set_breakpoint(target, breakpoint);
 			if (retval != ERROR_OK)
 				return retval;
@@ -1894,7 +1895,7 @@ void arm7_9_disable_eice_step(struct target *target)
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE]);
 }
 
-int arm7_9_step(struct target *target, int current, uint32_t address, int handle_breakpoints)
+int arm7_9_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *arm = &arm7_9->arm;
@@ -2094,7 +2095,7 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 }
 
 int arm7_9_read_memory(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	uint8_t *buffer)
@@ -2109,7 +2110,7 @@ int arm7_9_read_memory(struct target *target,
 	int retval;
 	int last_reg = 0;
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: 0x%8.8" TARGET_PRIxADDR ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
 		address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -2247,7 +2248,8 @@ int arm7_9_read_memory(struct target *target,
 
 	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (arm->core_mode != ARM_MODE_ABT)) {
 		LOG_WARNING(
-			"memory read caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")",
+			"memory read caused data abort "
+			"(address: 0x%8.8" TARGET_PRIxADDR ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")",
 			address,
 			size,
 			count);
@@ -2263,7 +2265,7 @@ int arm7_9_read_memory(struct target *target,
 }
 
 int arm7_9_write_memory(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	const uint8_t *buffer)
@@ -2460,7 +2462,8 @@ int arm7_9_write_memory(struct target *target,
 
 	if (((cpsr & 0x1f) == ARM_MODE_ABT) && (arm->core_mode != ARM_MODE_ABT)) {
 		LOG_WARNING(
-			"memory write caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")",
+			"memory write caused data abort "
+			"(address: 0x%8.8" TARGET_PRIxADDR ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")",
 			address,
 			size,
 			count);
@@ -2476,7 +2479,7 @@ int arm7_9_write_memory(struct target *target,
 }
 
 int arm7_9_write_memory_opt(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	const uint8_t *buffer)
@@ -2576,7 +2579,7 @@ static const uint32_t dcc_code[] = {
 };
 
 int arm7_9_bulk_write_memory(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t count,
 	const uint8_t *buffer)
 {
@@ -2632,7 +2635,7 @@ int arm7_9_bulk_write_memory(struct target *target,
 		uint32_t endaddress = buf_get_u32(reg_params[0].value, 0, 32);
 		if (endaddress != (address + count*4)) {
 			LOG_ERROR(
-				"DCC write failed, expected end address 0x%08" PRIx32 " got 0x%0" PRIx32 "",
+				"DCC write failed, expected end address 0x%08" TARGET_PRIxADDR " got 0x%0" PRIx32 "",
 				(address + count*4),
 				endaddress);
 			retval = ERROR_FAIL;

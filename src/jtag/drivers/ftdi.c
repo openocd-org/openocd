@@ -1074,12 +1074,12 @@ static void ftdi_swd_swdio_en(bool enable)
  */
 static int ftdi_swd_run_queue(void)
 {
-	LOG_DEBUG("Executing %zu queued transactions", swd_cmd_queue_length);
+	LOG_DEBUG_IO("Executing %zu queued transactions", swd_cmd_queue_length);
 	int retval;
 	struct signal *led = find_signal_by_name("LED");
 
 	if (queued_retval != ERROR_OK) {
-		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
+		LOG_DEBUG_IO("Skipping due to previous errors: %d", queued_retval);
 		goto skip;
 	}
 
@@ -1100,7 +1100,7 @@ static int ftdi_swd_run_queue(void)
 	for (size_t i = 0; i < swd_cmd_queue_length; i++) {
 		int ack = buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn, 1, 3);
 
-		LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
+		LOG_DEBUG_IO("%s %s %s reg %X = %08"PRIx32,
 				ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
 				swd_cmd_queue[i].cmd & SWD_CMD_APnDP ? "AP" : "DP",
 				swd_cmd_queue[i].cmd & SWD_CMD_RnW ? "read" : "write",

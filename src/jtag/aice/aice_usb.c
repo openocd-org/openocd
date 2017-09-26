@@ -2135,10 +2135,16 @@ static int aice_usb_open(struct aice_port_param_s *param)
 
 	/* usb_set_configuration required under win32 */
 	jtag_libusb_set_configuration(devh, 0);
+	jtag_libusb_claim_interface(devh, 0);
 
 	unsigned int aice_read_ep;
 	unsigned int aice_write_ep;
-	jtag_libusb_choose_interface(devh, &aice_read_ep, &aice_write_ep, -1, -1, -1);
+#ifdef HAVE_LIBUSB1
+	jtag_libusb_choose_interface(devh, &aice_read_ep, &aice_write_ep, -1, -1, -1, LIBUSB_TRANSFER_TYPE_BULK);
+#else
+	jtag_libusb_choose_interface(devh, &aice_read_ep, &aice_write_ep, -1, -1, -1, USB_ENDPOINT_TYPE_BULK);
+#endif
+	LOG_DEBUG("aice_read_ep=0x%x, aice_write_ep=0x%x", aice_read_ep, aice_write_ep);
 
 	aice_handler.usb_read_ep = aice_read_ep;
 	aice_handler.usb_write_ep = aice_write_ep;
@@ -3424,10 +3430,10 @@ static int aice_usb_memory_mode(uint32_t coreid, enum nds_memory_select mem_sele
 	return ERROR_OK;
 }
 
-static int aice_usb_read_tlb(uint32_t coreid, uint32_t virtual_address,
-		uint32_t *physical_address)
+static int aice_usb_read_tlb(uint32_t coreid, target_addr_t virtual_address,
+		target_addr_t *physical_address)
 {
-	LOG_DEBUG("aice_usb_read_tlb, virtual address: 0x%08" PRIx32, virtual_address);
+	LOG_DEBUG("aice_usb_read_tlb, virtual address: 0x%08" TARGET_PRIxADDR, virtual_address);
 
 	uint32_t instructions[4];
 	uint32_t probe_result;

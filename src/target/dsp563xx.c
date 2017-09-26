@@ -1117,7 +1117,7 @@ static int dsp563xx_halt(struct target *target)
 
 static int dsp563xx_resume(struct target *target,
 	int current,
-	uint32_t address,
+	target_addr_t address,
 	int handle_breakpoints,
 	int debug_execution)
 {
@@ -1290,7 +1290,7 @@ static int dsp563xx_step_ex(struct target *target,
 
 static int dsp563xx_step(struct target *target,
 	int current,
-	uint32_t address,
+	target_addr_t address,
 	int handle_breakpoints)
 {
 	int err;
@@ -1374,7 +1374,7 @@ static int dsp563xx_deassert_reset(struct target *target)
 static int dsp563xx_run_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
-	uint32_t entry_point, uint32_t exit_point,
+	target_addr_t entry_point, target_addr_t exit_point,
 	int timeout_ms, void *arch_info)
 {
 	int i;
@@ -1592,7 +1592,7 @@ static int dsp563xx_read_memory_core(struct target *target,
 
 static int dsp563xx_read_memory(struct target *target,
 	int mem_type,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	uint8_t *buffer)
@@ -1660,7 +1660,7 @@ static int dsp563xx_read_memory(struct target *target,
 }
 
 static int dsp563xx_read_memory_default(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	uint8_t *buffer)
@@ -1671,7 +1671,7 @@ static int dsp563xx_read_memory_default(struct target *target,
 }
 
 static int dsp563xx_read_buffer_default(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint8_t *buffer)
 {
@@ -1682,7 +1682,7 @@ static int dsp563xx_read_buffer_default(struct target *target,
 
 static int dsp563xx_write_memory_core(struct target *target,
 	int mem_type,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	const uint8_t *buffer)
@@ -1694,7 +1694,7 @@ static int dsp563xx_write_memory_core(struct target *target,
 	const uint8_t *b;
 
 	LOG_DEBUG(
-		"memtype: %d address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+		"memtype: %d address: 0x%8.8" TARGET_PRIxADDR ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
 		mem_type,
 		address,
 		size,
@@ -1766,7 +1766,7 @@ static int dsp563xx_write_memory_core(struct target *target,
 
 static int dsp563xx_write_memory(struct target *target,
 	int mem_type,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	const uint8_t *buffer)
@@ -1834,7 +1834,7 @@ static int dsp563xx_write_memory(struct target *target,
 }
 
 static int dsp563xx_write_memory_default(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	uint32_t count,
 	const uint8_t *buffer)
@@ -1844,7 +1844,7 @@ static int dsp563xx_write_memory_default(struct target *target,
 }
 
 static int dsp563xx_write_buffer_default(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t size,
 	const uint8_t *buffer)
 {

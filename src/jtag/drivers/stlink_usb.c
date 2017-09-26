@@ -216,7 +216,7 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_HIGH  0x01
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_PULSE 0x02
 
-#define STLINK_TRACE_SIZE               1024
+#define STLINK_TRACE_SIZE               4096
 #define STLINK_TRACE_MAX_HZ             2000000
 #define STLINK_TRACE_MIN_VERSION        13
 

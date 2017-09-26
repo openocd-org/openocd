@@ -596,7 +596,7 @@ static int cmsis_dap_swd_run_queue(void)
 {
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
 
-	LOG_DEBUG("Executing %d queued transactions", pending_transfer_count);
+	LOG_DEBUG_IO("Executing %d queued transactions", pending_transfer_count);
 
 	if (queued_retval != ERROR_OK) {
 		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
@@ -616,7 +616,7 @@ static int cmsis_dap_swd_run_queue(void)
 		uint8_t cmd = pending_transfers[i].cmd;
 		uint32_t data = pending_transfers[i].data;
 
-		LOG_DEBUG("%s %s reg %x %"PRIx32,
+		LOG_DEBUG_IO("%s %s reg %x %"PRIx32,
 				cmd & SWD_CMD_APnDP ? "AP" : "DP",
 				cmd & SWD_CMD_RnW ? "read" : "write",
 			  (cmd & SWD_CMD_A32) >> 1, data);
@@ -674,7 +674,7 @@ static int cmsis_dap_swd_run_queue(void)
 			uint32_t tmp = data;
 			idx += 4;
 
-			LOG_DEBUG("Read result: %"PRIx32, data);
+			LOG_DEBUG_IO("Read result: %"PRIx32, data);
 
 			/* Imitate posted AP reads */
 			if ((pending_transfers[i].cmd & SWD_CMD_APnDP) ||
@@ -821,7 +821,13 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 		return ERROR_FAIL;
 	}
 
-	return cmsis_dap_cmd_DAP_SWJ_Sequence(s_len, s);
+	retval = cmsis_dap_cmd_DAP_SWJ_Sequence(s_len, s);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Atmel EDBG needs renew clock setting after SWJ_Sequence
+	 * otherwise default frequency is used */
+	return cmsis_dap_cmd_DAP_SWJ_Clock(jtag_get_speed_khz());
 }
 
 static int cmsis_dap_swd_open(void)
@@ -1493,13 +1499,11 @@ static int cmsis_dap_execute_queue(void)
 
 static int cmsis_dap_speed(int speed)
 {
-	if (speed > DAP_MAX_CLOCK) {
-		LOG_INFO("reduce speed request: %dkHz to %dkHz maximum", speed, DAP_MAX_CLOCK);
-		speed = DAP_MAX_CLOCK;
-	}
+	if (speed > DAP_MAX_CLOCK)
+		LOG_INFO("High speed (adapter_khz %d) may be limited by adapter firmware.", speed);
 
 	if (speed == 0) {
-		LOG_INFO("RTCK not supported");
+		LOG_ERROR("RTCK not supported. Set nonzero adapter_khz.");
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 	}
 

@@ -8,6 +8,9 @@
  *   Copyright (C) 2011 Clement Burin des Roziers                          *
  *   clement.burin-des-roziers@hikob.com                                   *
  *                                                                         *
+ *   Copyright (C) 2017 Armin van der Togt                                 *
+ *   armin@otheruse.nl                                                     *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -28,7 +31,7 @@
 // Build : arm-eabi-gcc -c stm32lx.S
 	.text
 	.syntax unified
-	.cpu cortex-m3
+	.cpu cortex-m0
 	.thumb
 	.thumb_func
 	.global write
@@ -39,24 +42,21 @@
 	r2 - count
 */
 
-	// Set 0 to r3
-	movs	r3, #0
+	// r2 = source + count * 4
+	lsls	r2, r2, #2
+	adds	r2, r1, r2
 	// Go to compare
-	b.n test_done
-
+	b	test_done
 write_word:
-	// Load one word from address in r0, increment by 4
-	ldr.w	ip, [r1], #4
-	// Store the word to address in r1, increment by 4
-	str.w	ip, [r0], #4
-	// Increment r3
-	adds	r3, #1
-
+	// load word from address in r1 and increase r1 by 4
+	ldmia r1!, {r3}
+	// store word to address in r0 and increase r0 by 4
+	stmia r0!, {r3}
 test_done:
-	// Compare r3 and r2
-	cmp 	r3, r2
-	// Loop if not zero
-	bcc.n	write_word
+	// compare r1 and r2
+	cmp	r1, r2
+	// loop if not equal
+	bne	write_word
 
 	// Set breakpoint to exit
 	bkpt	#0x00

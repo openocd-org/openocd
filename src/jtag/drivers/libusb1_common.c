@@ -187,7 +187,7 @@ int jtag_libusb_set_configuration(jtag_libusb_device_handle *devh,
 int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 		unsigned int *usb_read_ep,
 		unsigned int *usb_write_ep,
-		int bclass, int subclass, int protocol)
+		int bclass, int subclass, int protocol, int trans_type)
 {
 	struct jtag_libusb_device *udev = jtag_libusb_get_device(devh);
 	const struct libusb_interface *inter;
@@ -210,6 +210,8 @@ int jtag_libusb_choose_interface(struct jtag_libusb_device_handle *devh,
 				continue;
 
 			epdesc = &interdesc->endpoint[k];
+			if (trans_type > 0 && (epdesc->bmAttributes & 0x3) != trans_type)
+				continue;
 
 			uint8_t epnum = epdesc->bEndpointAddress;
 			bool is_input = epnum & 0x80;
