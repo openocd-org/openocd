@@ -394,31 +394,43 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 {
 	RISCV_INFO(r);
 
+	// In RTOS mode, we need to set the same trigger in the same slot on every
+	// hart, to keep up the illusion that each hart is a thread running on the
+	// same core.
+
+	// Otherwise, we just set the trigger on the one hart this target deals
+	// with.
+
 	riscv_reg_t tselect[RISCV_MAX_HARTS];
 
+	int first_hart = -1;
 	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
+		if (first_hart < 0)
+			first_hart = hartid;
 		tselect[hartid] = riscv_get_register_on_hart(target, hartid,
 				GDB_REGNO_TSELECT);
 	}
+	assert(first_hart >= 0);
 
 	unsigned int i;
-	for (i = 0; i < r->trigger_count[0]; i++) {
+	for (i = 0; i < r->trigger_count[first_hart]; i++) {
 		if (r->trigger_unique_id[i] != -1) {
 			continue;
 		}
 
-		riscv_set_register_on_hart(target, 0, GDB_REGNO_TSELECT, i);
+		riscv_set_register_on_hart(target, first_hart, GDB_REGNO_TSELECT, i);
 
-		uint64_t tdata1 = riscv_get_register_on_hart(target, 0, GDB_REGNO_TDATA1);
+		uint64_t tdata1 = riscv_get_register_on_hart(target, first_hart, GDB_REGNO_TDATA1);
 		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
 
 		int result = ERROR_OK;
-		for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
+			LOG_DEBUG(">>> hartid=%d", hartid);
 			if (!riscv_hart_enabled(target, hartid))
 				continue;
-			if (hartid > 0) {
+			if (hartid > first_hart) {
 				riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, i);
 			}
 			switch (type) {
@@ -448,14 +460,14 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 		break;
 	}
 
-	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+	for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
 		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT,
 				tselect[hartid]);
 	}
 
-	if (i >= r->trigger_count[0]) {
+	if (i >= r->trigger_count[first_hart]) {
 		LOG_ERROR("Couldn't find an available hardware trigger.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
@@ -507,19 +519,30 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 {
 	RISCV_INFO(r);
 
+	int first_hart = -1;
+	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, hartid))
+			continue;
+		if (first_hart < 0) {
+			first_hart = hartid;
+			break;
+		}
+	}
+	assert(first_hart >= 0);
+
 	unsigned int i;
-	for (i = 0; i < r->trigger_count[0]; i++) {
+	for (i = 0; i < r->trigger_count[first_hart]; i++) {
 		if (r->trigger_unique_id[i] == trigger->unique_id) {
 			break;
 		}
 	}
-	if (i >= r->trigger_count[0]) {
+	if (i >= r->trigger_count[first_hart]) {
 		LOG_ERROR("Couldn't find the hardware resources used by hardware "
 				"trigger.");
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
-	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+	for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
 		riscv_reg_t tselect = riscv_get_register_on_hart(target, hartid, GDB_REGNO_TSELECT);

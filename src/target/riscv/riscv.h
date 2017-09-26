@@ -67,7 +67,9 @@ typedef struct {
 	unsigned trigger_count[RISCV_MAX_HARTS];
 
 	/* For each physical trigger, contains -1 if the hwbp is available, or the
-	 * unique_id of the breakpoint/watchpoint that is using it. */
+	 * unique_id of the breakpoint/watchpoint that is using it.
+	 * Note that in RTOS mode the triggers are the same across all harts the
+	 * target controls, while otherwise only a single hart is controlled. */
 	int trigger_unique_id[RISCV_MAX_HWBPS];
 
 	/* The address of the debug RAM buffer. */
