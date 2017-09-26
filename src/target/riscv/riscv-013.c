@@ -1718,7 +1718,7 @@ struct target_type riscv013_target =
 /*** 0.13-specific implementations of various RISC-V helper functions. ***/
 static riscv_reg_t riscv013_get_register(struct target *target, int hid, int rid)
 {
-	LOG_DEBUG("reading register 0x%08x on hart %d", rid, hid);
+	LOG_DEBUG("reading register %s on hart %d", gdb_regno_name(rid), hid);
 
 	riscv_set_current_hartid(target, hid);
 
@@ -1750,7 +1750,8 @@ static riscv_reg_t riscv013_get_register(struct target *target, int hid, int rid
 
 static void riscv013_set_register(struct target *target, int hid, int rid, uint64_t value)
 {
-	LOG_DEBUG("writing register 0x%08x on hart %d", rid, hid);
+	LOG_DEBUG("writing 0x%" PRIx64 " to register %s on hart %d", value,
+			gdb_regno_name(rid), hid);
 
 	riscv_set_current_hartid(target, hid);
 
