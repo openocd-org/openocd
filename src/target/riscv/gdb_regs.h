@@ -1,6 +1,8 @@
 #ifndef TARGET__RISCV__GDB_REGS_H
 #define TARGET__RISCV__GDB_REGS_H
 
+// gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
+// its source tree. We must interpret the numbers the same here.
 enum gdb_regno {
 	GDB_REGNO_XPR0 = 0,
 	GDB_REGNO_X0 = GDB_REGNO_XPR0 + 0,
