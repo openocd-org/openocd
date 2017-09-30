@@ -1311,6 +1311,8 @@ static int register_get(struct reg *reg)
 		if (cache_write(target, 4, true) != ERROR_OK) {
 			return ERROR_FAIL;
 		}
+	} else if (reg->number == GDB_REGNO_PRIV) {
+		value = get_field(info->dcsr, DCSR_PRV);
 	} else {
 		if (register_read(target, &value, reg->number) != ERROR_OK)
 			return ERROR_FAIL;
