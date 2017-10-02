@@ -269,6 +269,7 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 	LOG_ERROR("slot_offset called with xlen=%d, slot=%d",
 			riscv_xlen(target), slot);
 	assert(0);
+	return 0; // Silence -Werror=return-type
 }
 
 static uint32_t load_slot(const struct target *target, unsigned int dest,
