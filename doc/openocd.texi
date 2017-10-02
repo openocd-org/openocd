@@ -682,7 +682,8 @@ bash$ openocd --help
 --version    | -v       display OpenOCD version
 --file       | -f       use configuration file <name>
 --search     | -s       dir to search for config files and scripts
---debug      | -d       set debug level <0-3>
+--debug      | -d       set debug level to 3
+             | -d<n>    set debug level to <level>
 --log_output | -l       redirect log output to file <name>
 --command    | -c       run <command>
 @end verbatim
@@ -4715,15 +4716,18 @@ each block, and the specified length must stay within that bank.
 @end deffn
 @comment no current checks for errors if fill blocks touch multiple banks!
 
-@deffn Command {flash write_bank} num filename offset
+@deffn Command {flash write_bank} num filename [offset]
 Write the binary @file{filename} to flash bank @var{num},
-starting at @var{offset} bytes from the beginning of the bank.
+starting at @var{offset} bytes from the beginning of the bank. If @var{offset}
+is omitted, start at the beginning of the flash bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {flash read_bank} num filename offset length
+@deffn Command {flash read_bank} num filename [offset [length]]
 Read @var{length} bytes from the flash bank @var{num} starting at @var{offset}
-and write the contents to the binary @file{filename}.
+and write the contents to the binary @file{filename}. If @var{offset} is
+omitted, start at the beginning of the flash bank. If @var{length} is omitted,
+read the remaining bytes from the flash bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
@@ -5361,14 +5365,27 @@ nor is Chip Erase (only Sector Erase is implemented).}
 
 @deffn {Flash Driver} kinetis
 @cindex kinetis
-Kx and KLx members of the Kinetis microcontroller family from Freescale include
+Kx, KLx, KVx and KE1x members of the Kinetis microcontroller family
+from NXP (former Freescale) include
 internal flash and use ARM Cortex-M0+ or M4 cores. The driver automatically
 recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
+Use kinetis_ke driver for KE0x devices.
+
+The @var{kinetis} driver defines option:
+@itemize
+@item -sim-base @var{addr} ... base of System Integration Module where chip identification resides. Driver tries two known locations if option is omitted.
+@end itemize
 
 @example
 flash bank $_FLASHNAME kinetis 0 0 0 0 $_TARGETNAME
 @end example
+
+@deffn Command {kinetis create_banks}
+Configuration command enables automatic creation of additional flash banks
+based on real flash layout of device. Banks are created during device probe.
+Use 'flash probe 0' to force probe.
+@end deffn
 
 @deffn Command {kinetis fcf_source} [protection|write]
 Select what source is used when writing to a Flash Configuration Field.
@@ -5446,10 +5463,11 @@ Command disables watchdog timer.
 
 @deffn {Flash Driver} kinetis_ke
 @cindex kinetis_ke
-KE members of the Kinetis microcontroller family from Freescale include
+KE0x members of the Kinetis microcontroller family from Freescale include
 internal flash and use ARM Cortex-M0+. The driver automatically recognizes
-the KE family and sub-family using the chip identification register, and
+the KE0x sub-family using the chip identification register, and
 autoconfigures itself.
+Use kinetis (not kinetis_ke) driver for KE1x devices.
 
 @example
 flash bank $_FLASHNAME kinetis_ke 0 0 0 0 $_TARGETNAME
@@ -5971,16 +5989,21 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f2x options_read} num
-Reads and displays user options and (where implemented) boot_addr0 and boot_addr1.
+Reads and displays user options and (where implemented) boot_addr0, boot_addr1, optcr2.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f2x options_write} num user_options boot_addr0 boot_addr1
 Writes user options and (where implemented) boot_addr0 and boot_addr1 in raw format.
 Warning: The meaning of the various bits depends on the device, always check datasheet!
-The @var{num} parameter is a value shown by @command{flash banks}, user_options a
-12 bit value, consisting of bits 31-28 and 7-0 of FLASH_OPTCR, boot_addr0 and boot_addr1
-two halfwords (of FLASH_OPTCR1).
+The @var{num} parameter is a value shown by @command{flash banks}, @var{user_options} a
+12 bit value, consisting of bits 31-28 and 7-0 of FLASH_OPTCR, @var{boot_addr0} and
+@var{boot_addr1} two halfwords (of FLASH_OPTCR1).
+@end deffn
+
+@deffn Command {stm32f2x optcr2_write} num optcr2
+Writes FLASH_OPTCR2 options. Warning: Clearing PCROPi bits requires a full mass erase!
+The @var{num} parameter is a value shown by @command{flash banks}, @var{optcr2} a 32-bit word.
 @end deffn
 @end deffn
 
@@ -6832,12 +6855,13 @@ non-zero exit code to the parent process.
 @deffn Command debug_level [n]
 @cindex message level
 Display debug level.
-If @var{n} (from 0..3) is provided, then set it to that level.
+If @var{n} (from 0..4) is provided, then set it to that level.
 This affects the kind of messages sent to the server log.
 Level 0 is error messages only;
 level 1 adds warnings;
 level 2 adds informational messages;
-and level 3 adds debugging messages.
+level 3 adds debugging messages;
+and level 4 adds verbose low-level debug messages.
 The default is level 2, but that can be overridden on
 the command line along with the location of that log
 file (which is normally the server's standard output).

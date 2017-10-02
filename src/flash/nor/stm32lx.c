@@ -790,6 +790,11 @@ static int stm32lx_probe(struct flash_bank *bank)
 			flash_size_in_kb = 256;
 	}
 
+	/* 0x429 devices only use the lowest 8 bits of the flash size register */
+	if (retval == ERROR_OK && (device_id & 0xfff) == 0x429) {
+		flash_size_in_kb &= 0xff;
+	}
+
 	/* Failed reading flash size or flash size invalid (early silicon),
 	 * default to max target family */
 	if (retval != ERROR_OK || flash_size_in_kb == 0xffff || flash_size_in_kb == 0) {
