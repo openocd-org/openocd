@@ -22,8 +22,8 @@ NOR_DRIVERS = \
 	%D%/dsp5680xx_flash.c \
 	%D%/efm32.c \
 	%D%/em357.c \
-	%D%/fespi.c \
 	%D%/faux.c \
+	%D%/fespi.c \
 	%D%/fm3.c \
 	%D%/fm4.c \
 	%D%/jtagspi.c \
