@@ -242,7 +242,7 @@ static int cortex_m_endreset_event(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 	if (!(cortex_m->dcb_dhcsr & C_DEBUGEN)) {
-		retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+		retval = cortex_m_write_debug_halt_mask(target, 0, C_HALT | C_STEP | C_MASKINTS);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1005,12 +1005,12 @@ static int cortex_m_assert_reset(struct target *target)
 	/* Store important errors instead of failing and proceed to reset assert */
 
 	if (retval != ERROR_OK || !(cortex_m->dcb_dhcsr & C_DEBUGEN))
-		retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+		retval = cortex_m_write_debug_halt_mask(target, 0, C_HALT | C_STEP | C_MASKINTS);
 
 	/* If the processor is sleeping in a WFI or WFE instruction, the
 	 * C_HALT bit must be asserted to regain control */
 	if (retval == ERROR_OK && (cortex_m->dcb_dhcsr & S_SLEEP))
-		retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN);
+		retval = cortex_m_write_debug_halt_mask(target, C_HALT, 0);
 
 	mem_ap_write_u32(armv7m->debug_ap, DCB_DCRDR, 0);
 	/* Ignore less important errors */
@@ -1018,8 +1018,7 @@ static int cortex_m_assert_reset(struct target *target)
 	if (!target->reset_halt) {
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m->dcb_dhcsr & C_MASKINTS)
-			mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DHCSR,
-					DBGKEY | C_DEBUGEN | C_HALT);
+			cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
 
 		/* clear any debug flags before resuming */
 		cortex_m_clear_halt(target);
