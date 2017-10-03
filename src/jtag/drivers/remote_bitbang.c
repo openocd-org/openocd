@@ -40,11 +40,44 @@
 static char *remote_bitbang_host;
 static char *remote_bitbang_port;
 
-FILE *remote_bitbang_in;
-FILE *remote_bitbang_out;
+static FILE *remote_bitbang_in;
+static FILE *remote_bitbang_out;
+static int remote_bitbang_fd;
+
+static char remote_bitbang_buf[64];
+static unsigned remote_bitbang_start;
+static unsigned remote_bitbang_end;
+
+/* Read any incoming data, placing it into the buffer. */
+static void remote_bitbang_fill_buf(void)
+{
+	fcntl(remote_bitbang_fd, F_SETFL, O_NONBLOCK);
+	while (1) {
+		ssize_t count = read(remote_bitbang_fd,
+				remote_bitbang_buf + remote_bitbang_end,
+				sizeof(remote_bitbang_buf) - remote_bitbang_end);
+		if (count > 0) {
+			remote_bitbang_end += count;
+			// TODO: check for overflow.
+			if (remote_bitbang_end == sizeof(remote_bitbang_buf)) {
+				remote_bitbang_end = 0;
+			}
+		} else if (count == 0) {
+			return;
+		} else if (count < 0) {
+			if (errno == EAGAIN) {
+				return;
+			} else {
+				REMOTE_BITBANG_RAISE_ERROR("remote_bitbang_fill_buf: %s (%d)",
+						strerror(errno), errno);
+			}
+		}
+	}
+}
 
 static void remote_bitbang_putc(int c)
 {
+	remote_bitbang_fill_buf();
 	if (EOF == fputc(c, remote_bitbang_out))
 		REMOTE_BITBANG_RAISE_ERROR("remote_bitbang_putc: %s", strerror(errno));
 }
@@ -75,15 +108,8 @@ static int remote_bitbang_quit(void)
 	return ERROR_OK;
 }
 
-/* Get the next read response. */
-static int remote_bitbang_rread(void)
+static int char_to_int(int c)
 {
-	if (EOF == fflush(remote_bitbang_out)) {
-		remote_bitbang_quit();
-		REMOTE_BITBANG_RAISE_ERROR("fflush: %s", strerror(errno));
-	}
-
-	int c = fgetc(remote_bitbang_in);
 	switch (c) {
 		case '0':
 			return 0;
@@ -96,9 +122,40 @@ static int remote_bitbang_rread(void)
 	}
 }
 
-static int remote_bitbang_read(void)
+/* Get the next read response. */
+static int remote_bitbang_rread(void)
+{
+	if (EOF == fflush(remote_bitbang_out)) {
+		remote_bitbang_quit();
+		REMOTE_BITBANG_RAISE_ERROR("fflush: %s", strerror(errno));
+	}
+
+	/* Enable blocking access. */
+	fcntl(remote_bitbang_fd, F_SETFL, 0);
+	char c;
+	ssize_t count = read(remote_bitbang_fd, &c, 1);
+	if (count == 1) {
+		return char_to_int(c);
+	} else {
+		remote_bitbang_quit();
+		REMOTE_BITBANG_RAISE_ERROR("read: count=%d, error=%s", (int) count,
+				strerror(errno));
+	}
+}
+
+static void remote_bitbang_sample(void)
 {
 	remote_bitbang_putc('R');
+}
+
+static int remote_bitbang_read_sample(void)
+{
+	if (remote_bitbang_start != remote_bitbang_end) {
+		int c = remote_bitbang_buf[remote_bitbang_start];
+		remote_bitbang_start = 
+			(remote_bitbang_start + 1) % sizeof(remote_bitbang_buf);
+		return char_to_int(c);
+	}
 	return remote_bitbang_rread();
 }
 
@@ -121,7 +178,8 @@ static void remote_bitbang_blink(int on)
 }
 
 static struct bitbang_interface remote_bitbang_bitbang = {
-	.read = &remote_bitbang_read,
+	.sample = &remote_bitbang_sample,
+	.read_sample = &remote_bitbang_read_sample,
 	.write = &remote_bitbang_write,
 	.reset = &remote_bitbang_reset,
 	.blink = &remote_bitbang_blink,
@@ -199,26 +257,28 @@ static int remote_bitbang_init_unix(void)
 
 static int remote_bitbang_init(void)
 {
-	int fd;
 	bitbang_interface = &remote_bitbang_bitbang;
+
+	remote_bitbang_start = 0;
+	remote_bitbang_end = 0;
 
 	LOG_INFO("Initializing remote_bitbang driver");
 	if (remote_bitbang_port == NULL)
-		fd = remote_bitbang_init_unix();
+		remote_bitbang_fd = remote_bitbang_init_unix();
 	else
-		fd = remote_bitbang_init_tcp();
+		remote_bitbang_fd = remote_bitbang_init_tcp();
 
-	if (fd < 0)
-		return fd;
+	if (remote_bitbang_fd < 0)
+		return remote_bitbang_fd;
 
-	remote_bitbang_in = fdopen(fd, "r");
+	remote_bitbang_in = fdopen(remote_bitbang_fd, "r");
 	if (remote_bitbang_in == NULL) {
 		LOG_ERROR("fdopen: failed to open read stream");
-		close(fd);
+		close(remote_bitbang_fd);
 		return ERROR_FAIL;
 	}
 
-	remote_bitbang_out = fdopen(fd, "w");
+	remote_bitbang_out = fdopen(remote_bitbang_fd, "w");
 	if (remote_bitbang_out == NULL) {
 		LOG_ERROR("fdopen: failed to open write stream");
 		fclose(remote_bitbang_in);

@@ -203,7 +203,6 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 	}
 
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++) {
-		int val = 0;
 		int tms = (bit_cnt == scan_size-1) ? 1 : 0;
 		int tdi;
 		int bytec = bit_cnt/8;
@@ -219,12 +218,26 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 
 		bitbang_interface->write(0, tms, tdi);
 
-		if (type != SCAN_OUT)
-			val = bitbang_interface->read();
+		if (type != SCAN_OUT) {
+			if (bitbang_interface->sample) {
+				bitbang_interface->sample();
+			} else {
+				int val = bitbang_interface->read();
+				if (val)
+					buffer[bytec] |= bcval;
+				else
+					buffer[bytec] &= ~bcval;
+			}
+		}
 
 		bitbang_interface->write(1, tms, tdi);
+	}
 
-		if (type != SCAN_OUT) {
+	if (type != SCAN_OUT && bitbang_interface->sample) {
+		for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++) {
+			int bytec = bit_cnt/8;
+			int bcval = 1 << (bit_cnt % 8);
+			int val = bitbang_interface->read_sample();
 			if (val)
 				buffer[bytec] |= bcval;
 			else
