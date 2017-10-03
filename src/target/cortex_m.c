@@ -168,11 +168,7 @@ static int cortex_m_single_step_core(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
-	uint32_t dhcsr_save;
 	int retval;
-
-	/* backup dhcsr reg */
-	dhcsr_save = cortex_m->dcb_dhcsr;
 
 	/* Mask interrupts before clearing halt, if done already.  This avoids
 	 * Erratum 377497 (fixed in r1p0) where setting MASKINTS while clearing
@@ -191,7 +187,6 @@ static int cortex_m_single_step_core(struct target *target)
 	LOG_DEBUG(" ");
 
 	/* restore dhcsr reg */
-	cortex_m->dcb_dhcsr = dhcsr_save;
 	cortex_m_clear_halt(target);
 
 	return ERROR_OK;
