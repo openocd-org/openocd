@@ -44,18 +44,36 @@ static FILE *remote_bitbang_in;
 static FILE *remote_bitbang_out;
 static int remote_bitbang_fd;
 
+/* Circular buffer. When start == end, the buffer is empty. */
 static char remote_bitbang_buf[64];
 static unsigned remote_bitbang_start;
 static unsigned remote_bitbang_end;
+
+static int remote_bitbang_buf_full(void)
+{
+	return remote_bitbang_end ==
+		((remote_bitbang_start + sizeof(remote_bitbang_buf) - 1) %
+		 sizeof(remote_bitbang_buf));
+}
 
 /* Read any incoming data, placing it into the buffer. */
 static void remote_bitbang_fill_buf(void)
 {
 	fcntl(remote_bitbang_fd, F_SETFL, O_NONBLOCK);
-	while (1) {
+	while (!remote_bitbang_buf_full()) {
+		unsigned contiguous_available_space;
+		if (remote_bitbang_end >= remote_bitbang_start) {
+			contiguous_available_space = sizeof(remote_bitbang_buf) -
+				remote_bitbang_end;
+			if (remote_bitbang_start == 0)
+				contiguous_available_space -= 1;
+		} else {
+			contiguous_available_space = remote_bitbang_start -
+				remote_bitbang_end - 1;
+		}
 		ssize_t count = read(remote_bitbang_fd,
 				remote_bitbang_buf + remote_bitbang_end,
-				sizeof(remote_bitbang_buf) - remote_bitbang_end);
+				contiguous_available_space);
 		if (count > 0) {
 			remote_bitbang_end += count;
 			// TODO: check for overflow.
@@ -77,7 +95,6 @@ static void remote_bitbang_fill_buf(void)
 
 static void remote_bitbang_putc(int c)
 {
-	remote_bitbang_fill_buf();
 	if (EOF == fputc(c, remote_bitbang_out))
 		REMOTE_BITBANG_RAISE_ERROR("remote_bitbang_putc: %s", strerror(errno));
 }
@@ -145,6 +162,8 @@ static int remote_bitbang_rread(void)
 
 static void remote_bitbang_sample(void)
 {
+	remote_bitbang_fill_buf();
+	assert(!remote_bitbang_buf_full());
 	remote_bitbang_putc('R');
 }
 
@@ -178,6 +197,7 @@ static void remote_bitbang_blink(int on)
 }
 
 static struct bitbang_interface remote_bitbang_bitbang = {
+	.buf_size = sizeof(remote_bitbang_buf) - 1,
 	.sample = &remote_bitbang_sample,
 	.read_sample = &remote_bitbang_read_sample,
 	.write = &remote_bitbang_write,

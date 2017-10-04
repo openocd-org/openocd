@@ -36,6 +36,9 @@ struct bitbang_interface {
 	/* The sample functions allow an interface to batch a number of writes and
 	 * sample requests together. Not waiting for a value to come back can
 	 * greatly increase throughput. */
+	/* The number of TDO samples that can be buffered up before the caller has
+	 * to call read_sample. */
+	size_t buf_size;
 	/* Sample TDO and put the result in a buffer. */
 	void (*sample)(void);
 	/* Return the next unread value from the buffer. */
