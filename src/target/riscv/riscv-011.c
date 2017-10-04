@@ -2080,7 +2080,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	cache_write(target, CACHE_NO_READ, false);
 
 	riscv011_info_t *info = get_info(target);
-	const int max_batch_size = 256;
+	const unsigned max_batch_size = 256;
 	scans_t *scans = scans_new(target, max_batch_size);
 
 	uint32_t result_value = 0x777;
@@ -2241,7 +2241,7 @@ static int write_memory(struct target *target, target_addr_t address,
 		return ERROR_FAIL;
 	}
 
-	const int max_batch_size = 256;
+	const unsigned max_batch_size = 256;
 	scans_t *scans = scans_new(target, max_batch_size);
 
 	uint32_t result_value = 0x777;
