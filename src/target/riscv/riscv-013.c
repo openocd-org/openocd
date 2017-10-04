@@ -1732,7 +1732,7 @@ static riscv_reg_t riscv013_get_register(struct target *target, int hid, int rid
 		LOG_DEBUG("read PC from DPC: 0x%016" PRIx64, out);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
-		register_read_direct(target, &dcsr, CSR_DCSR);
+		register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
 		buf_set_u64((unsigned char *)&out, 0, 8, get_field(dcsr, CSR_DCSR_PRV));
 	} else {
 		int result = register_read_direct(target, &out, rid);
@@ -1766,9 +1766,9 @@ static void riscv013_set_register(struct target *target, int hid, int rid, uint6
 		assert(value == actual_value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
-		register_read_direct(target, &dcsr, CSR_DCSR);
+		register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
 		dcsr = set_field(dcsr, CSR_DCSR_PRV, value);
-		register_write_direct(target, CSR_DCSR, dcsr);
+		register_write_direct(target, GDB_REGNO_DCSR, dcsr);
 	} else {
 		register_write_direct(target, rid, value);
 	}
