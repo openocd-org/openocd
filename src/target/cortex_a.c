@@ -1500,10 +1500,22 @@ static int cortex_a_set_breakpoint(struct target *target,
 			brp_list[brp_i].value);
 	} else if (breakpoint->type == BKPT_SOFT) {
 		uint8_t code[4];
+		/* length == 2: Thumb breakpoint */
 		if (breakpoint->length == 2)
 			buf_set_u32(code, 0, 32, ARMV5_T_BKPT(0x11));
 		else
+		/* length == 3: Thumb-2 breakpoint, actual encoding is
+		 * a regular Thumb BKPT instruction but we replace a
+		 * 32bit Thumb-2 instruction, so fix-up the breakpoint
+		 * length
+		 */
+		if (breakpoint->length == 3) {
+			buf_set_u32(code, 0, 32, ARMV5_T_BKPT(0x11));
+			breakpoint->length = 4;
+		} else
+			/* length == 4, normal ARM breakpoint */
 			buf_set_u32(code, 0, 32, ARMV5_BKPT(0x11));
+
 		retval = target_read_memory(target,
 				breakpoint->address & 0xFFFFFFFE,
 				breakpoint->length, 1,
