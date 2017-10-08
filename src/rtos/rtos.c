@@ -434,7 +434,7 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 			(target->smp))) {	/* in smp several current thread are possible */
 		char *hex_reg_list;
 
-		LOG_INFO("RTOS: getting register list for thread 0x%" PRIx64
+		LOG_DEBUG("RTOS: getting register list for thread 0x%" PRIx64
 				  ", target->rtos->current_thread=0x%" PRIx64 "\r\n",
 										current_threadid,
 										target->rtos->current_thread);
