@@ -32,7 +32,6 @@
 static void riscv013_on_step_or_resume(struct target *target, bool step);
 static void riscv013_step_or_resume_current_hart(struct target *target, bool step);
 static riscv_addr_t riscv013_progbuf_addr(struct target *target);
-static riscv_addr_t riscv013_progbuf_size(struct target *target);
 static riscv_addr_t riscv013_data_size(struct target *target);
 static riscv_addr_t riscv013_data_addr(struct target *target);
 static void riscv013_set_autoexec(struct target *target, unsigned index,
@@ -176,7 +175,7 @@ typedef struct {
 	bool need_strict_step;
 
 	// Some memoized values
-	int progbuf_size, progbuf_addr, data_addr, data_size;
+	int progbuf_addr, data_addr, data_size;
 
 	bool abstract_read_csr_supported;
 	bool abstract_write_csr_supported;
@@ -908,7 +907,7 @@ static int init_target(struct command_context *cmd_ctx,
 		return ERROR_FAIL;
 	riscv013_info_t *info = get_info(target);
 
-	info->progbuf_size = -1;
+	info->progsize = -1;
 	info->progbuf_addr = -1;
 	info->data_size = -1;
 	info->data_addr = -1;
@@ -1078,7 +1077,7 @@ static int examine(struct target *target)
 
 		/* Without knowing anything else we can at least mess with the
 		 * program buffer. */
-		r->debug_buffer_size[i] = riscv013_progbuf_size(target);
+		r->debug_buffer_size[i] = info->progsize;
 
 		/* Guess this is a 32-bit system, we're probing it. */
 		r->xlen[i] = 32;
@@ -1874,15 +1873,17 @@ void riscv013_debug_buffer_leave(struct target *target, struct riscv_program *pr
 
 void riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
 {
-	if (index >= riscv013_progbuf_size(target))
-		return dmi_write(target, DMI_DATA0 + index - riscv013_progbuf_size(target), data);
+	RISCV013_INFO(info);
+	if (index >= info->progsize)
+		return dmi_write(target, DMI_DATA0 + index - info->progsize, data);
 	return dmi_write(target, DMI_PROGBUF0 + index, data);
 }
 
 riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 {
-	if (index >= riscv013_progbuf_size(target))
-		return dmi_read(target, DMI_DATA0 + index - riscv013_progbuf_size(target));
+	RISCV013_INFO(info);
+	if (index >= info->progsize)
+		return dmi_read(target, DMI_DATA0 + index - info->progsize);
 	return dmi_read(target, DMI_PROGBUF0 + index);
 }
 
@@ -1998,16 +1999,6 @@ riscv_addr_t riscv013_progbuf_addr(struct target *target)
 	return info->progbuf_addr;
 }
 
-riscv_addr_t riscv013_progbuf_size(struct target *target)
-{
-	RISCV013_INFO(info);
-	if (info->progbuf_size == -1) {
-		uint32_t acs = dmi_read(target, DMI_ABSTRACTCS);
-		info->progbuf_size = get_field(acs, DMI_ABSTRACTCS_PROGSIZE);
-	}
-	return info->progbuf_size;
-}
-
 riscv_addr_t riscv013_data_size(struct target *target)
 {
 	RISCV013_INFO(info);
@@ -2030,12 +2021,13 @@ riscv_addr_t riscv013_data_addr(struct target *target)
 
 void riscv013_set_autoexec(struct target *target, unsigned index, bool enabled)
 {
-	if (index >= riscv013_progbuf_size(target)) {
+	RISCV013_INFO(info);
+	if (index >= info->progsize) {
 		LOG_DEBUG("setting bit %d in AUTOEXECDATA to %d", index, enabled);
 		uint32_t aa = dmi_read(target, DMI_ABSTRACTAUTO);
 		uint32_t aa_aed = get_field(aa, DMI_ABSTRACTAUTO_AUTOEXECDATA);
-		aa_aed &= ~(1 << (index - riscv013_progbuf_size(target)));
-		aa_aed |= (enabled << (index - riscv013_progbuf_size(target)));
+		aa_aed &= ~(1 << (index - info->progsize));
+		aa_aed |= (enabled << (index - info->progsize));
 		aa = set_field(aa, DMI_ABSTRACTAUTO_AUTOEXECDATA, aa_aed);
 		dmi_write(target, DMI_ABSTRACTAUTO, aa);
 	} else {
