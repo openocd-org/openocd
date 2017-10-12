@@ -72,9 +72,6 @@ typedef struct {
 	 * target controls, while otherwise only a single hart is controlled. */
 	int trigger_unique_id[RISCV_MAX_HWBPS];
 
-	/* The address of the debug RAM buffer. */
-	riscv_addr_t debug_buffer_addr[RISCV_MAX_HARTS];
-
 	/* The number of entries in the debug buffer. */
 	int debug_buffer_size[RISCV_MAX_HARTS];
 
@@ -213,7 +210,6 @@ int riscv_count_triggers_of_hart(struct target *target, int hartid);
 /* These helper functions let the generic program interface get target-specific
  * information. */
 size_t riscv_debug_buffer_size(struct target *target);
-riscv_addr_t riscv_debug_buffer_addr(struct target *target);
 
 int riscv_debug_buffer_enter(struct target *target, struct riscv_program *program);
 int riscv_debug_buffer_leave(struct target *target, struct riscv_program *program);

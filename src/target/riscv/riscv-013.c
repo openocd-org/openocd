@@ -31,13 +31,13 @@
 
 static void riscv013_on_step_or_resume(struct target *target, bool step);
 static void riscv013_step_or_resume_current_hart(struct target *target, bool step);
-static riscv_addr_t riscv013_progbuf_addr(struct target *target);
-static riscv_addr_t riscv013_data_size(struct target *target);
-static riscv_addr_t riscv013_data_addr(struct target *target);
-static void riscv013_set_autoexec(struct target *target, unsigned index,
-		bool enabled);
-static int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr);
-static void riscv013_clear_abstract_error(struct target *target);
+//static riscv_addr_t riscv013_progbuf_addr(struct target *target);
+//static riscv_addr_t riscv013_data_size(struct target *target);
+//static riscv_addr_t riscv013_data_addr(struct target *target);
+//static void riscv013_set_autoexec(struct target *target, unsigned index,
+		//bool enabled);
+//static int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr);
+//static void riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in riscv_info_t. */
 static riscv_reg_t riscv013_get_register(struct target *target, int hartid, int regid);
@@ -517,6 +517,7 @@ static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 	}
 }
 
+#if 0
 static void increase_ac_busy_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
@@ -525,6 +526,7 @@ static void increase_ac_busy_delay(struct target *target)
 			info->dtmcontrol_idle, info->dmi_busy_delay,
 			info->ac_busy_delay);
 }
+#endif
 
 uint32_t abstract_register_size(unsigned width)
 {
@@ -769,6 +771,8 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	riscv_program_init(&program, target);
 
+	assert(0);
+#if 0
 	riscv_addr_t input = riscv_program_alloc_d(&program);
 	riscv_program_write_ram(&program, input + 4, value >> 32);
 	riscv_program_write_ram(&program, input, value);
@@ -794,6 +798,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	}
 
 	return ERROR_OK;
+#endif
 }
 
 /** Actually read registers from the target right now. */
@@ -805,6 +810,22 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	if (result != ERROR_OK) {
 		struct riscv_program program;
 		riscv_program_init(&program, target);
+		assert(0);
+		assert(number != GDB_REGNO_S0);
+
+		uint64_t s0;
+		if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+			return ERROR_FAIL;
+
+		// Write program to move data into s0.
+		// Execute program.
+		// Read S0
+		if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
+			return ERROR_FAIL;
+		// Restore S0.
+		if (register_write_direct(target, GDB_REGNO_S0, &s0) != ERROR_OK)
+			return ERROR_FAIL;
+#if 0
 		riscv_addr_t output = riscv_program_alloc_d(&program);
 		riscv_program_write_ram(&program, output + 4, 0);
 		riscv_program_write_ram(&program, output, 0);
@@ -833,6 +854,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		*value = 0;
 		*value |= ((uint64_t)(riscv_program_read_ram(&program, output + 4))) << 32;
 		*value |= riscv_program_read_ram(&program, output);
+#endif
 	}
 
 	LOG_DEBUG("[%d] reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
@@ -1080,77 +1102,19 @@ static int examine(struct target *target)
 		r->debug_buffer_size[i] = info->progsize;
 
 		/* Guess this is a 32-bit system, we're probing it. */
-		r->xlen[i] = 32;
+		// >>> r->xlen[i] = 32;
 
-		/* First find the low 32 bits of the program buffer.  This is
-		 * used to check for alignment. */
-		struct riscv_program program32;
-		riscv_program_init(&program32, target);
-		riscv_program_csrrw(&program32, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
-		riscv_program_insert(&program32, auipc(GDB_REGNO_S0));
-		riscv_program_insert(&program32, sw(GDB_REGNO_S0, GDB_REGNO_S0, -4));
-		riscv_program_csrrw(&program32, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
-		riscv_program_fence(&program32);
-		riscv_program_exec(&program32, target);
-
-		riscv_addr_t progbuf_addr = dmi_read(target, DMI_PROGBUF0) - 4;
-		if (get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) != 0) {
-			LOG_ERROR("Unable to find the address of the program buffer on hart %d", i);
-			r->xlen[i] = -1;
-			continue;
-		}
-		r->debug_buffer_addr[i] = progbuf_addr;
-
-		/* Check to see if the core can execute 64 bit instructions.
-		 * In order to make this work we first need to */
-		int offset = (progbuf_addr % 8 == 0) ? -4 : 0;
-
-		/* This program uses a temporary register. If the core can not
-		 * execute 64 bit instruction, the original value of temporary
-		 * register (s0) will not be restored due to an exception.
-		 * So we have to save it and restore manually in that case.
-		 * If the core can execute 64 bit instruction, the saved value
-		 * is wrong, because it was read with 32 bit lw instruction,
-		 * but the value of s0 will be restored by the reverse swap
-		 * of s0 and dscratch registers. */
-		uint64_t s0 = riscv_get_register(target, GDB_REGNO_S0);
-
-		struct riscv_program program64;
-		riscv_program_init(&program64, target);
-		riscv_program_csrrw(&program64, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
-		riscv_program_insert(&program64, auipc(GDB_REGNO_S0));
-		riscv_program_insert(&program64, sd(GDB_REGNO_S0, GDB_REGNO_S0, offset));
-		riscv_program_csrrw(&program64, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
-		riscv_program_fence(&program64);
-		int result = riscv_program_exec(&program64, target);
-
+		uint64_t value;
+		int result = register_read_abstract(target, &value, GDB_REGNO_S0, 64);
 		if (result == ERROR_OK) {
-			r->debug_buffer_addr[i] =
-				(dmi_read(target, DMI_PROGBUF0 + (8 + offset) / 4) << 32)
-				+ dmi_read(target, DMI_PROGBUF0 + (4 + offset) / 4)
-				- 4;
 			r->xlen[i] = 64;
 		} else {
-			riscv_set_register(target, GDB_REGNO_S0, s0);
+			r->xlen[i] = 32;
 		}
 
 		/* Display this as early as possible to help people who are using
 		 * really slow simulators. */
-		LOG_DEBUG(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64, i,
-				r->xlen[i], r->debug_buffer_addr[i]);
-
-		if (riscv_program_gah(&program64, r->debug_buffer_addr[i])) {
-			LOG_ERROR("This implementation will not work with hart %d with debug_buffer_addr of 0x%lx", i,
-					(long)r->debug_buffer_addr[i]);
-			abort();
-		}
-
-		/* Check to see if we can use the data words as an extended
-		 * program buffer or not. */
-		if (r->debug_buffer_addr[i] + (4 * r->debug_buffer_size[i]) == riscv013_data_addr(target)) {
-			r->debug_buffer_size[i] += riscv013_data_size(target);
-			LOG_DEBUG("extending the debug buffer using data words, total size %d", r->debug_buffer_size[i]);
-		}
+		LOG_DEBUG(" hart %d: XLEN=%d", i, r->xlen[i]);
 	}
 
 	/* Then we check the number of triggers availiable to each hart. */
@@ -1172,8 +1136,7 @@ static int examine(struct target *target)
 			riscv_count_harts(target));
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
 		if (riscv_hart_enabled(target, i)) {
-			LOG_INFO(" hart %d: XLEN=%d, program buffer at 0x%" PRIx64
-					", %d triggers", i, r->xlen[i], r->debug_buffer_addr[i],
+			LOG_INFO(" hart %d: XLEN=%d, %d triggers", i, r->xlen[i],
 					r->trigger_count[i]);
 		} else {
 			LOG_INFO(" hart %d: currently disabled", i);
@@ -1296,6 +1259,7 @@ static int deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
+#if 0
 static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 {
 	switch (size) {
@@ -1316,6 +1280,7 @@ static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 			assert(false);
 	}
 }
+#endif
 
 /**
  * Read the requested memory, taking care to execute every read exactly once,
@@ -1324,7 +1289,7 @@ static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	RISCV013_INFO(info);
+	//RISCV013_INFO(info);
 
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
 			size, address);
@@ -1342,6 +1307,8 @@ static int read_memory(struct target *target, target_addr_t address,
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
+	assert(0);
+#if 0
 	riscv_addr_t r_data = riscv_program_alloc_w(&program);
 	riscv_addr_t r_addr = riscv_program_alloc_x(&program);
 	riscv_program_fence(&program);
@@ -1496,6 +1463,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_addr_t addr = cur_addr - size;
 	write_to_buf(buffer + addr - address, value, size);
 	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", addr, value);
+#endif
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
@@ -1505,7 +1473,7 @@ static int read_memory(struct target *target, target_addr_t address,
 static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	RISCV013_INFO(info);
+	//RISCV013_INFO(info);
 
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
@@ -1522,6 +1490,8 @@ static int write_memory(struct target *target, target_addr_t address,
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
+	assert(0);
+#if 0
 	riscv_addr_t r_data = riscv_program_alloc_w(&program);
 	riscv_addr_t r_addr = riscv_program_alloc_x(&program);
 	riscv_program_fence(&program);
@@ -1682,6 +1652,7 @@ static int write_memory(struct target *target, target_addr_t address,
 	}
 
 	riscv013_set_autoexec(target, d_data, 0);
+#endif
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
 	return ERROR_OK;
@@ -1992,13 +1963,16 @@ static void riscv013_step_or_resume_current_hart(struct target *target, bool ste
 	abort();
 }
 
+#if 0
 riscv_addr_t riscv013_progbuf_addr(struct target *target)
 {
 	RISCV013_INFO(info);
 	assert(info->progbuf_addr != -1);
 	return info->progbuf_addr;
 }
+#endif
 
+#if 0
 riscv_addr_t riscv013_data_size(struct target *target)
 {
 	RISCV013_INFO(info);
@@ -2008,7 +1982,9 @@ riscv_addr_t riscv013_data_size(struct target *target)
 	}
 	return info->data_size;
 }
+#endif
 
+#if 0
 riscv_addr_t riscv013_data_addr(struct target *target)
 {
 	RISCV013_INFO(info);
@@ -2018,7 +1994,9 @@ riscv_addr_t riscv013_data_addr(struct target *target)
 	}
 	return info->data_addr;
 }
+#endif
 
+#if 0
 void riscv013_set_autoexec(struct target *target, unsigned index, bool enabled)
 {
 	RISCV013_INFO(info);
@@ -2040,7 +2018,9 @@ void riscv013_set_autoexec(struct target *target, unsigned index, bool enabled)
 		dmi_write(target, DMI_ABSTRACTAUTO, aa);
 	}
 }
+#endif
 
+#if 0
 int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr)
 {
 	if (addr >= riscv013_data_addr(target))
@@ -2069,3 +2049,4 @@ void riscv013_clear_abstract_error(struct target *target)
 	// Clear the error status.
 	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
 }
+#endif

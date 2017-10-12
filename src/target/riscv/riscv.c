@@ -1235,7 +1235,6 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 
 	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h) {
 		r->xlen[h] = -1;
-		r->debug_buffer_addr[h] = -1;
 
 		for (size_t e = 0; e < RISCV_MAX_REGISTERS; ++e)
 			r->valid_saved_registers[h][e] = false;
@@ -1481,14 +1480,6 @@ size_t riscv_debug_buffer_size(struct target *target)
 {
 	RISCV_INFO(r);
 	return r->debug_buffer_size[riscv_current_hartid(target)];
-}
-
-riscv_addr_t riscv_debug_buffer_addr(struct target *target)
-{
-	RISCV_INFO(r);
-	riscv_addr_t out = r->debug_buffer_addr[riscv_current_hartid(target)];
-	assert((out & 3) == 0);
-	return out;
 }
 
 int riscv_debug_buffer_enter(struct target *target, struct riscv_program *program)

@@ -60,22 +60,6 @@ int riscv_program_insert(struct riscv_program *p, riscv_insn_t i);
  * memory. */
 int riscv_program_save_to_dscratch(struct riscv_program *p, enum gdb_regno to_save);
 
-/* Allocates data of various sizes.  Either returns the absolute physical
- * address or RISCV_PROGRAM_ALLOC_FAIL on failure. */
-riscv_addr_t riscv_program_alloc_data(struct riscv_program *p, size_t bytes);
-riscv_addr_t riscv_program_alloc_x(struct riscv_program *p);
-riscv_addr_t riscv_program_alloc_d(struct riscv_program *p);
-riscv_addr_t riscv_program_alloc_w(struct riscv_program *p);
-riscv_addr_t riscv_program_alloc_h(struct riscv_program *p);
-riscv_addr_t riscv_program_alloc_b(struct riscv_program *p);
-#define RISCV_PROGRAM_ALLOC_FAIL ((riscv_addr_t)(-1))
-
-/* Reads a word of memory from this program's internal view of the debug RAM.
- * This is what you want to use to get data back from the program after it
- * executes. */
-riscv_insn_t riscv_program_read_ram(struct riscv_program *p, riscv_addr_t addr);
-void riscv_program_write_ram(struct riscv_program *p, riscv_addr_t a, uint64_t d);
-
 /* Helpers to assembly various instructions.  Return 0 on success.  These might
  * assembly into a multi-instruction sequence that overwrites some other
  * register, but those will be properly saved and restored. */
