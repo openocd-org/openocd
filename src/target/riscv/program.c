@@ -40,6 +40,7 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	return ERROR_OK;
 }
 
+/** Add ebreak and execute the program. */
 int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
 	keep_alive();
@@ -258,7 +259,7 @@ int riscv_program_sb(struct riscv_program *p, enum gdb_regno d, riscv_addr_t add
 
 int riscv_program_csrr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno csr)
 {
-	assert(csr >= GDB_REGNO_CSR0);
+	assert(csr >= GDB_REGNO_CSR0 && csr <= GDB_REGNO_CSR4095);
 	return riscv_program_insert(p, csrrs(d, GDB_REGNO_X0, csr - GDB_REGNO_CSR0));
 }
 

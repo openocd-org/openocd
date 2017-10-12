@@ -37,7 +37,7 @@ static void riscv013_step_or_resume_current_hart(struct target *target, bool ste
 //static void riscv013_set_autoexec(struct target *target, unsigned index,
 		//bool enabled);
 //static int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr);
-//static void riscv013_clear_abstract_error(struct target *target);
+static void riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in riscv_info_t. */
 static riscv_reg_t riscv013_get_register(struct target *target, int hartid, int regid);
@@ -62,6 +62,7 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
+static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -771,21 +772,21 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	riscv_program_init(&program, target);
 
-	assert(0);
-#if 0
-	riscv_addr_t input = riscv_program_alloc_d(&program);
-	riscv_program_write_ram(&program, input + 4, value >> 32);
-	riscv_program_write_ram(&program, input, value);
+	uint64_t s0;
+	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
 
-	assert(GDB_REGNO_XPR0 == 0);
-	if (number <= GDB_REGNO_XPR31) {
-		riscv_program_lx(&program, number, input);
-	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		riscv_program_flx(&program, number, input);
+	if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+		if (supports_extension(target, 'D') && riscv_xlen(target) >= 64) {
+			riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
+		} else {
+			riscv_program_insert(&program, fmv_x_s(S0, number - GDB_REGNO_FPR0));
+		}
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		enum gdb_regno temp = riscv_program_gettemp(&program);
-		riscv_program_lx(&program, temp, input);
-		riscv_program_csrw(&program, temp, number);
+		riscv_program_csrw(&program, S0, number);
 	} else {
 		LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
 		abort();
@@ -797,8 +798,11 @@ static int register_write_direct(struct target *target, unsigned number,
 		return ERROR_FAIL;
 	}
 
+	// Restore S0.
+	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
+		return ERROR_FAIL;
+
 	return ERROR_OK;
-#endif
 }
 
 /** Actually read registers from the target right now. */
@@ -810,7 +814,6 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	if (result != ERROR_OK) {
 		struct riscv_program program;
 		riscv_program_init(&program, target);
-		assert(0);
 		assert(number != GDB_REGNO_S0);
 
 		uint64_t s0;
@@ -818,43 +821,34 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			return ERROR_FAIL;
 
 		// Write program to move data into s0.
-		// Execute program.
-		// Read S0
-		if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
-			return ERROR_FAIL;
-		// Restore S0.
-		if (register_write_direct(target, GDB_REGNO_S0, &s0) != ERROR_OK)
-			return ERROR_FAIL;
-#if 0
-		riscv_addr_t output = riscv_program_alloc_d(&program);
-		riscv_program_write_ram(&program, output + 4, 0);
-		riscv_program_write_ram(&program, output, 0);
-
-		assert(GDB_REGNO_XPR0 == 0);
-		if (number <= GDB_REGNO_XPR31) {
-			riscv_program_sx(&program, number, output);
-		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			riscv_program_fsx(&program, number, output);
+		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+			// TODO: Possibly set F in mstatus.
+			// TODO: Fully support D extension on RV32.
+			if (supports_extension(target, 'D') && riscv_xlen(target) >= 64) {
+				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
+			} else {
+				riscv_program_insert(&program, fmv_s_x(number - GDB_REGNO_FPR0, S0));
+			}
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			LOG_DEBUG("reading CSR index=0x%03x", number - GDB_REGNO_CSR0);
-			enum gdb_regno temp = riscv_program_gettemp(&program);
-			riscv_program_csrr(&program, temp, number);
-			riscv_program_sx(&program, temp, output);
+			riscv_program_csrr(&program, S0, number);
 		} else {
 			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
 			abort();
 		}
 
+		// Execute program.
 		int exec_out = riscv_program_exec(&program, target);
 		if (exec_out != ERROR_OK) {
 			riscv013_clear_abstract_error(target);
 			return ERROR_FAIL;
 		}
 
-		*value = 0;
-		*value |= ((uint64_t)(riscv_program_read_ram(&program, output + 4))) << 32;
-		*value |= riscv_program_read_ram(&program, output);
-#endif
+		// Read S0
+		if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
+			return ERROR_FAIL;
+		// Restore S0.
+		if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
+			return ERROR_FAIL;
 	}
 
 	LOG_DEBUG("[%d] reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
@@ -1539,14 +1533,14 @@ static int write_memory(struct target *target, target_addr_t address,
 	}
 
 	switch (riscv_xlen(target)) {
-	case 64:
-		riscv_program_write_ram(&program, r_addr + 4, (uint64_t)address >> 32);
-	case 32:
-		riscv_program_write_ram(&program, r_addr, address);
-		break;
-	default:
-		LOG_ERROR("unknown XLEN %d", riscv_xlen(target));
-		return ERROR_FAIL;
+		case 64:
+			riscv_program_write_ram(&program, r_addr + 4, (uint64_t)address >> 32);
+		case 32:
+			riscv_program_write_ram(&program, r_addr, address);
+			break;
+		default:
+			LOG_ERROR("unknown XLEN %d", riscv_xlen(target));
+			return ERROR_FAIL;
 	}
 	riscv_program_write_ram(&program, r_data, value);
 
@@ -1582,9 +1576,9 @@ static int write_memory(struct target *target, target_addr_t address,
 		riscv_addr_t start = (cur_addr - address) / size;
 		assert (cur_addr > address);
 		struct riscv_batch *batch = riscv_batch_alloc(
-			target,
-			32,
-			info->dmi_busy_delay + info->ac_busy_delay);
+				target,
+				32,
+				info->dmi_busy_delay + info->ac_busy_delay);
 
 		for (riscv_addr_t i = start; i < count; ++i) {
 			riscv_addr_t offset = size*i;
@@ -1613,9 +1607,9 @@ static int write_memory(struct target *target, target_addr_t address,
 			LOG_DEBUG("M[0x%08lx] writes 0x%08x", (long)t_addr, value);
 
 			riscv_batch_add_dmi_write(
-				batch,
-				riscv013_debug_buffer_register(target, r_data),
-				value);
+					batch,
+					riscv013_debug_buffer_register(target, r_data),
+					value);
 			if (riscv_batch_full(batch))
 				break;
 		}
@@ -1633,21 +1627,21 @@ static int write_memory(struct target *target, target_addr_t address,
 			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 		switch (info->cmderr) {
-		case CMDERR_NONE:
-			LOG_DEBUG("successful (partial?) memory write");
-			break;
-		case CMDERR_BUSY:
-			LOG_DEBUG("memory write resulted in busy response");
-			riscv013_clear_abstract_error(target);
-			increase_ac_busy_delay(target);
-			break;
-		default:
-			LOG_ERROR("error when writing memory, abstractcs=0x%08lx", (long)abstractcs);
-			riscv013_set_autoexec(target, d_data, 0);
-			riscv013_clear_abstract_error(target);
-			riscv_set_register(target, GDB_REGNO_S0, s0);
-			riscv_set_register(target, GDB_REGNO_S1, s1);
-			return ERROR_FAIL;
+			case CMDERR_NONE:
+				LOG_DEBUG("successful (partial?) memory write");
+				break;
+			case CMDERR_BUSY:
+				LOG_DEBUG("memory write resulted in busy response");
+				riscv013_clear_abstract_error(target);
+				increase_ac_busy_delay(target);
+				break;
+			default:
+				LOG_ERROR("error when writing memory, abstractcs=0x%08lx", (long)abstractcs);
+				riscv013_set_autoexec(target, d_data, 0);
+				riscv013_clear_abstract_error(target);
+				riscv_set_register(target, GDB_REGNO_S0, s0);
+				riscv_set_register(target, GDB_REGNO_S1, s1);
+				return ERROR_FAIL;
 		}
 	}
 
@@ -2028,6 +2022,7 @@ int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr)
 	else
 		return DMI_PROGBUF0 + (addr - riscv013_progbuf_addr(target)) / 4;
 }
+#endif
 
 void riscv013_clear_abstract_error(struct target *target)
 {
@@ -2049,4 +2044,3 @@ void riscv013_clear_abstract_error(struct target *target)
 	// Clear the error status.
 	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
 }
-#endif
