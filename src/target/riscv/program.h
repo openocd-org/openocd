@@ -40,6 +40,9 @@ struct riscv_program {
 /* Initializes a program with the header. */
 int riscv_program_init(struct riscv_program *p, struct target *t);
 
+/* Write the program to the program buffer. */
+int riscv_program_write(struct riscv_program *program);
+
 /* Executes a program, returning 0 if the program successfully executed.  Note
  * that this may cause registers to be saved or restored, which could result to
  * calls to things like riscv_save_register which itself could require a

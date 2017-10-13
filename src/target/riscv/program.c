@@ -40,6 +40,17 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	return ERROR_OK;
 }
 
+int riscv_program_write(struct riscv_program *program)
+{
+	for (unsigned i = 0; i < riscv_debug_buffer_size(program->target); ++i) {
+		LOG_DEBUG("%p: debug_buffer[%02x] = DASM(0x%08x)", program, i, program->debug_buffer[i]);
+		if (riscv_write_debug_buffer(program->target, i,
+					program->debug_buffer[i]) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 /** Add ebreak and execute the program. */
 int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
@@ -74,16 +85,8 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 		return ERROR_FAIL;
 	}
 
-	for (unsigned i = 0; i < riscv_debug_buffer_size(p->target); ++i) {
-		if (i < p->instruction_count) {
-			LOG_DEBUG("%p: debug_buffer[%02x] = DASM(0x%08x)", p, i, p->debug_buffer[i]);
-			riscv_write_debug_buffer(t, i, p->debug_buffer[i]);
-		}
-		if (i >= riscv_debug_buffer_size(p->target) - p->data_count) {
-			LOG_DEBUG("%p: debug_buffer[%02x] = 0x%08x", p, i, p->debug_buffer[i]);
-			riscv_write_debug_buffer(t, i, p->debug_buffer[i]);
-		}
-	}
+	if (riscv_program_write(p) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (riscv_execute_debug_buffer(t) != ERROR_OK) {
 		LOG_ERROR("Unable to execute program %p", p);
