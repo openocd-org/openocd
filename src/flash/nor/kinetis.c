@@ -2187,6 +2187,17 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 				cpu_mhz = 180;
 				break;
 
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX7:
+				/* K27FN2M0 */
+			case KINETIS_SDID_FAMILYID_K2X | KINETIS_SDID_SUBFAMID_KX8:
+				/* K28FN2M0 */
+				k_chip->pflash_sector_size = 4<<10;
+				k_chip->max_flash_prog_size = 1<<10;
+				num_blocks = 4;
+				k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR | FS_ECC;
+				cpu_mhz = 150;
+				break;
+
 			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX0:
 			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX1:
 			case KINETIS_SDID_FAMILYID_K8X | KINETIS_SDID_SUBFAMID_KX2:
