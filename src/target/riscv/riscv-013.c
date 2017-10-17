@@ -700,7 +700,8 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 		return result;
 	}
 
-	*value = read_abstract_arg(target, 0);
+	if (value)
+		*value = read_abstract_arg(target, 0);
 
 	return ERROR_OK;
 }
@@ -1078,11 +1079,7 @@ static int examine(struct target *target)
 		 * program buffer. */
 		r->debug_buffer_size[i] = info->progsize;
 
-		/* Guess this is a 32-bit system, we're probing it. */
-		// >>> r->xlen[i] = 32;
-
-		uint64_t value;
-		int result = register_read_abstract(target, &value, GDB_REGNO_S0, 64);
+		int result = register_read_abstract(target, NULL, GDB_REGNO_S0, 64);
 		if (result == ERROR_OK) {
 			r->xlen[i] = 64;
 		} else {
@@ -1371,7 +1368,6 @@ static int read_memory(struct target *target, target_addr_t address,
 				dmi_write(target, DMI_ABSTRACTAUTO, 0);
 				if (register_read_direct(target, &next_addr, GDB_REGNO_S0) != ERROR_OK)
 					return ERROR_FAIL;
-				next_addr -= size;
 				dmi_write(target, DMI_ABSTRACTAUTO,
 						1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
 				break;
