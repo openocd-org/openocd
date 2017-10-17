@@ -1388,18 +1388,15 @@ static int read_memory(struct target *target, target_addr_t address,
 		// Now read whatever we got out of the batch.
 		unsigned rereads = 0;
 		for (riscv_addr_t addr = cur_addr - size; addr < next_addr - size; addr += size) {
-			if (addr < address)
-				continue;
-
-			riscv_addr_t offset = addr - address;
-
-			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
-			uint32_t value = get_field(dmi_out, DTM_DMI_DATA);
-			write_to_buf(buffer + offset, value, size);
+			if (addr >= address) {
+				riscv_addr_t offset = addr - address;
+				uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
+				uint32_t value = get_field(dmi_out, DTM_DMI_DATA);
+				write_to_buf(buffer + offset, value, size);
+				LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", addr, value);
+			}
 
 			rereads++;
-
-			LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", addr, value);
 		}
 		riscv_batch_free(batch);
 
@@ -1512,6 +1509,7 @@ static int write_memory(struct target *target, target_addr_t address,
 			}
 
 			LOG_DEBUG("M[0x%08" PRIx64 "] writes 0x%08x", address + offset, value);
+			cur_addr += size;
 
 			if (setup_needed) {
 				if (register_write_direct(target, GDB_REGNO_S0,
@@ -1541,7 +1539,6 @@ static int write_memory(struct target *target, target_addr_t address,
 				if (riscv_batch_full(batch))
 					break;
 			}
-			cur_addr += size;
 		}
 
 		riscv_batch_run(batch);
