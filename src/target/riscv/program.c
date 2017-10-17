@@ -32,17 +32,12 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	for(size_t i = 0; i < RISCV_MAX_DEBUG_BUFFER_SIZE; ++i)
 		p->debug_buffer[i] = -1;
 
-	if (riscv_debug_buffer_enter(target, p) != ERROR_OK) {
-		LOG_ERROR("unable to write progam buffer enter code");
-		return ERROR_FAIL;
-	}
-
 	return ERROR_OK;
 }
 
 int riscv_program_write(struct riscv_program *program)
 {
-	for (unsigned i = 0; i < riscv_debug_buffer_size(program->target); ++i) {
+	for (unsigned i = 0; i < program->instruction_count; ++i) {
 		LOG_DEBUG("%p: debug_buffer[%02x] = DASM(0x%08x)", program, i, program->debug_buffer[i]);
 		if (riscv_write_debug_buffer(program->target, i,
 					program->debug_buffer[i]) != ERROR_OK)
@@ -55,11 +50,6 @@ int riscv_program_write(struct riscv_program *program)
 int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
 	keep_alive();
-
-	if (riscv_debug_buffer_leave(t, p) != ERROR_OK) {
-		LOG_ERROR("unable to write program buffer exit code");
-		return ERROR_FAIL;
-	}
 
 	riscv_reg_t saved_registers[GDB_REGNO_XPR31 + 1];
 	for (size_t i = GDB_REGNO_XPR0 + 1; i <= GDB_REGNO_XPR31; ++i) {
@@ -290,6 +280,11 @@ int riscv_program_fence(struct riscv_program *p)
 
 int riscv_program_ebreak(struct riscv_program *p)
 {
+	if (p->instruction_count == riscv_debug_buffer_size(p->target)) {
+		// TODO: Check for impebreak bit.
+		// There's an implicit ebreak here, so no need for us to add one.
+		return ERROR_OK;
+	}
 	return riscv_program_insert(p, ebreak());
 }
 
@@ -441,7 +436,7 @@ int riscv_program_insert(struct riscv_program *p, riscv_insn_t i)
 		LOG_ERROR("  instruction_count=%d", (int)p->instruction_count);
 		LOG_ERROR("  data_count       =%d", (int)p->data_count);
 		LOG_ERROR("  buffer size      =%d", (int)riscv_debug_buffer_size(p->target));
-		return ERROR_FAIL;
+		abort();
 	}
 
 	p->debug_buffer[p->instruction_count] = i;

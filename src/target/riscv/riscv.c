@@ -1482,20 +1482,6 @@ size_t riscv_debug_buffer_size(struct target *target)
 	return r->debug_buffer_size[riscv_current_hartid(target)];
 }
 
-int riscv_debug_buffer_enter(struct target *target, struct riscv_program *program)
-{
-	RISCV_INFO(r);
-	r->debug_buffer_enter(target, program);
-	return ERROR_OK;
-}
-
-int riscv_debug_buffer_leave(struct target *target, struct riscv_program *program)
-{
-	RISCV_INFO(r);
-	r->debug_buffer_leave(target, program);
-	return ERROR_OK;
-}
-
 int riscv_write_debug_buffer(struct target *target, int index, riscv_insn_t insn)
 {
 	RISCV_INFO(r);

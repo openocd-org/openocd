@@ -92,8 +92,6 @@ typedef struct {
 	void (*on_resume)(struct target *target);
 	void (*on_step)(struct target *target);
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
-	void (*debug_buffer_enter)(struct target *target, struct riscv_program *program);
-	void (*debug_buffer_leave)(struct target *target, struct riscv_program *program);
 	void (*write_debug_buffer)(struct target *target, unsigned index,
 			riscv_insn_t d);
 	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned index);
@@ -210,9 +208,6 @@ int riscv_count_triggers_of_hart(struct target *target, int hartid);
 /* These helper functions let the generic program interface get target-specific
  * information. */
 size_t riscv_debug_buffer_size(struct target *target);
-
-int riscv_debug_buffer_enter(struct target *target, struct riscv_program *program);
-int riscv_debug_buffer_leave(struct target *target, struct riscv_program *program);
 
 riscv_insn_t riscv_read_debug_buffer(struct target *target, int index);
 riscv_addr_t riscv_read_debug_buffer_x(struct target *target, int index);

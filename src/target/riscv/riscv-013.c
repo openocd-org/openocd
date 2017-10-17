@@ -49,8 +49,6 @@ static void riscv013_on_step(struct target *target);
 static void riscv013_on_resume(struct target *target);
 static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
-static void riscv013_debug_buffer_enter(struct target *target, struct riscv_program *p);
-static void riscv013_debug_buffer_leave(struct target *target, struct riscv_program *p);
 static void riscv013_write_debug_buffer(struct target *target, unsigned index,
 		riscv_insn_t d);
 static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned
@@ -637,11 +635,12 @@ static int write_abstract_arg(struct target *target, unsigned index,
 	return ERROR_OK;
 }
 
-static int register_read_abstract(struct target *target, uint64_t *value,
-		uint32_t number, unsigned size)
+/**
+ * @size in bits
+ */
+static uint32_t access_register_command(uint32_t number, unsigned size,
+		uint32_t flags)
 {
-	RISCV013_INFO(r);
-
 	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
 	switch (size) {
 		case 32:
@@ -651,38 +650,50 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
 			break;
 		default:
-			LOG_ERROR("Unsupported abstract register read size: %d", size);
-			return ERROR_FAIL;
+			assert(0);
 	}
-	command = set_field(command, AC_ACCESS_REGISTER_POSTEXEC, 0);
-	command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
-	command = set_field(command, AC_ACCESS_REGISTER_WRITE, 0);
 
 	if (number <= GDB_REGNO_XPR31) {
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				0x1000 + number - GDB_REGNO_XPR0);
 	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		if (!r->abstract_read_fpr_supported)
-			return ERROR_FAIL;
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				0x1020 + number - GDB_REGNO_FPR0);
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		if (!r->abstract_read_csr_supported)
-			return ERROR_FAIL;
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				number - GDB_REGNO_CSR0);
 	} else {
-		return ERROR_FAIL;
+		assert(0);
 	}
+
+	command |= flags;
+
+	return command;
+}
+
+static int register_read_abstract(struct target *target, uint64_t *value,
+		uint32_t number, unsigned size)
+{
+	RISCV013_INFO(info);
+
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
+			!info->abstract_read_fpr_supported)
+		return ERROR_FAIL;
+	if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095 &&
+			!info->abstract_read_csr_supported)
+		return ERROR_FAIL;
+
+	uint32_t command = access_register_command(number, size,
+			AC_ACCESS_REGISTER_TRANSFER);
 
 	int result = execute_abstract_command(target, command);
 	if (result != ERROR_OK) {
-		if (r->cmderr == CMDERR_NOT_SUPPORTED) {
+		if (info->cmderr == CMDERR_NOT_SUPPORTED) {
 			if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-				r->abstract_read_fpr_supported = false;
+				info->abstract_read_fpr_supported = false;
 				LOG_INFO("Disabling abstract command reads from FPRs.");
 			} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-				r->abstract_read_csr_supported = false;
+				info->abstract_read_csr_supported = false;
 				LOG_INFO("Disabling abstract command reads from CSRs.");
 			}
 		}
@@ -699,38 +710,16 @@ static int register_write_abstract(struct target *target, uint32_t number,
 {
 	RISCV013_INFO(info);
 
-	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
-	switch (size) {
-		case 32:
-			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 2);
-			break;
-		case 64:
-			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
-			break;
-		default:
-			LOG_ERROR("Unsupported abstract register read size: %d", size);
-			return ERROR_FAIL;
-	}
-	command = set_field(command, AC_ACCESS_REGISTER_POSTEXEC, 0);
-	command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
-	command = set_field(command, AC_ACCESS_REGISTER_WRITE, 1);
-
-	if (number <= GDB_REGNO_XPR31) {
-		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
-				0x1000 + number - GDB_REGNO_XPR0);
-	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		if (!info->abstract_read_fpr_supported)
-			return ERROR_FAIL;
-		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
-				0x1020 + number - GDB_REGNO_FPR0);
-	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		if (!info->abstract_read_csr_supported)
-			return ERROR_FAIL;
-		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
-				number - GDB_REGNO_CSR0);
-	} else {
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
+			!info->abstract_write_fpr_supported)
 		return ERROR_FAIL;
-	}
+	if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095 &&
+			!info->abstract_write_csr_supported)
+		return ERROR_FAIL;
+
+	uint32_t command = access_register_command(number, size,
+			AC_ACCESS_REGISTER_TRANSFER |
+			AC_ACCESS_REGISTER_WRITE);
 
 	if (write_abstract_arg(target, 0, value) != ERROR_OK) {
 		return ERROR_FAIL;
@@ -905,8 +894,6 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->on_resume = &riscv013_on_resume;
 	generic_info->on_step = &riscv013_on_step;
 	generic_info->halt_reason = &riscv013_halt_reason;
-	generic_info->debug_buffer_enter = &riscv013_debug_buffer_enter;
-	generic_info->debug_buffer_leave = &riscv013_debug_buffer_leave;
 	generic_info->read_debug_buffer = &riscv013_read_debug_buffer;
 	generic_info->write_debug_buffer = &riscv013_write_debug_buffer;
 	generic_info->execute_debug_buffer = &riscv013_execute_debug_buffer;
@@ -1249,7 +1236,9 @@ static int deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-#if 0
+/**
+ * @size in bytes
+ */
 static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 {
 	switch (size) {
@@ -1270,7 +1259,6 @@ static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 			assert(false);
 	}
 }
-#endif
 
 /**
  * Read the requested memory, taking care to execute every read exactly once,
@@ -1279,30 +1267,27 @@ static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	//RISCV013_INFO(info);
+	RISCV013_INFO(info);
 
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
 			size, address);
 
 	select_dmi(target);
 
-	/* This program uses two temporary registers.  A word of data and the
-	 * associated address are stored at some location in memory.  The
-	 * program loads the word from that address and then increments the
-	 * address.  The debugger is expected to pull the memory word-by-word
-	 * from the chip with AUTOEXEC set in order to trigger program
-	 * execution on every word. */
-	uint64_t s0 = riscv_get_register(target, GDB_REGNO_S0);
-	uint64_t s1 = riscv_get_register(target, GDB_REGNO_S1);
+	/* s0 holds the next address to write to
+	 * s1 holds the next data value to write
+	 */
+	uint64_t s0, s1;
+	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (register_read_direct(target, &s1, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
 
+	// Write the program (load, increment)
 	struct riscv_program program;
 	riscv_program_init(&program, target);
-	assert(0);
-#if 0
-	riscv_addr_t r_data = riscv_program_alloc_w(&program);
-	riscv_addr_t r_addr = riscv_program_alloc_x(&program);
-	riscv_program_fence(&program);
-	riscv_program_lx(&program, GDB_REGNO_S0, r_addr);
+
+	// TODO: riscv_program_fence(&program);
 	switch (size) {
 		case 1:
 			riscv_program_lbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
@@ -1318,70 +1303,43 @@ static int read_memory(struct target *target, target_addr_t address,
 			return ERROR_FAIL;
 	}
 	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
-	riscv_program_sw(&program, GDB_REGNO_S1, r_data);
-	riscv_program_sx(&program, GDB_REGNO_S0, r_addr);
 
-	/* The first round through the program's execution we use the regular
-	 * program execution mechanism. */
-	switch (riscv_xlen(target)) {
-	case 64:
-		riscv_program_write_ram(&program, r_addr + 4, ((riscv_addr_t) address) >> 32);
-	case 32:
-		riscv_program_write_ram(&program, r_addr, (riscv_addr_t) address);
-		break;
-	default:
-		LOG_ERROR("unknown XLEN %d", riscv_xlen(target));
+	if (riscv_program_ebreak(&program) != ERROR_OK)
 		return ERROR_FAIL;
-	}
+	riscv_program_write(&program);
 
-	if (riscv_program_exec(&program, target) != ERROR_OK) {
-		uint32_t acs = dmi_read(target, DMI_ABSTRACTCS);
-		LOG_ERROR("failed to execute program, abstractcs=0x%08x", acs);
-		riscv013_clear_abstract_error(target);
-		riscv_set_register(target, GDB_REGNO_S0, s0);
-		riscv_set_register(target, GDB_REGNO_S1, s1);
-		LOG_ERROR("  exiting with ERROR_FAIL");
+	// Write address to S0, and execute buffer.
+	if (register_write_direct(target, GDB_REGNO_S0, address) != ERROR_OK)
 		return ERROR_FAIL;
-	}
+	if (execute_abstract_command(target,
+				access_register_command(GDB_REGNO_S1, riscv_xlen(target),
+				AC_ACCESS_REGISTER_TRANSFER |
+				AC_ACCESS_REGISTER_POSTEXEC)) != ERROR_OK)
+		return ERROR_FAIL;
 
-	// Program has been executed once. d_addr contains address+size, and d_data
-	// contains *address.
-
-	/* The rest of this program is designed to be fast so it reads various
-	 * DMI registers directly. */
-	int d_data = (r_data - riscv_debug_buffer_addr(target)) / 4;
-	int d_addr = (r_addr - riscv_debug_buffer_addr(target)) / 4;
-
-	riscv013_set_autoexec(target, d_data, 1);
+	dmi_write(target, DMI_ABSTRACTAUTO,
+			1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
 
 	/* Copying memory might fail because we're going too quickly, in which
-	 * case we need to back off a bit and try again.  There's two
-	 * termination conditions to this loop: a non-BUSY error message, or
-	 * the data was all copied. */
-	riscv_addr_t cur_addr = riscv_read_debug_buffer_x(target, d_addr);
+	 * case we need to back off a bit and try again. */
+	riscv_addr_t cur_addr = address;
 	riscv_addr_t fin_addr = address + (count * size);
 	LOG_DEBUG("reading until final address 0x%" PRIx64, fin_addr);
-	while (cur_addr < fin_addr) {
+	while (cur_addr < fin_addr - size) {
 		// Invariant:
-		// d_data contains *addr
-		// d_addr contains addr + size
+		// s0 contains the next address to read
+		// s1 contains the data read at the previous address
 
 		unsigned start = (cur_addr - address) / size;
 		LOG_DEBUG("creating burst to read address 0x%" TARGET_PRIxADDR
 				" up to 0x%" TARGET_PRIxADDR "; start=0x%d", cur_addr, fin_addr, start);
 		assert(cur_addr >= address && cur_addr < fin_addr);
-		struct riscv_batch *batch = riscv_batch_alloc(
-			target,
-			32,
-			info->dmi_busy_delay + info->ac_busy_delay);
+		struct riscv_batch *batch = riscv_batch_alloc(target, 32,
+				info->dmi_busy_delay + info->ac_busy_delay);
 
 		size_t reads = 0;
-		for (riscv_addr_t addr = cur_addr; addr < fin_addr; addr += size) {
-			size_t const index =
-				riscv_batch_add_dmi_read(
-						batch,
-						riscv013_debug_buffer_register(target, r_data));
-			assert(index == reads);
+		for (riscv_addr_t addr = cur_addr; addr < fin_addr - size; addr += size) {
+			riscv_batch_add_dmi_read(batch, DMI_DATA0);
 
 			reads++;
 			if (riscv_batch_full(batch))
@@ -1397,37 +1355,37 @@ static int read_memory(struct target *target, target_addr_t address,
 			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 
+		riscv_addr_t next_addr;
 		switch (info->cmderr) {
-		case CMDERR_NONE:
-			LOG_DEBUG("successful (partial?) memory read");
-			break;
-		case CMDERR_BUSY:
-			LOG_DEBUG("memory read resulted in busy response");
-			increase_ac_busy_delay(target);
-			riscv013_clear_abstract_error(target);
-			break;
-		default:
-			LOG_ERROR("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
-			riscv013_set_autoexec(target, d_data, 0);
-			riscv_set_register(target, GDB_REGNO_S0, s0);
-			riscv_set_register(target, GDB_REGNO_S1, s1);
-			riscv013_clear_abstract_error(target);
-			riscv_batch_free(batch);
-			return ERROR_FAIL;
-		}
+			case CMDERR_NONE:
+				LOG_DEBUG("successful (partial?) memory read");
+				next_addr = cur_addr + reads * size;
+				break;
+			case CMDERR_BUSY:
+				LOG_DEBUG("memory read resulted in busy response");
+				increase_ac_busy_delay(target);
+				riscv013_clear_abstract_error(target);
 
-		// Figure out how far we managed to read.
-		riscv_addr_t next_addr = riscv_read_debug_buffer_x(target, d_addr);
-		LOG_DEBUG("Batch read [0x%" TARGET_PRIxADDR ", 0x%" TARGET_PRIxADDR
-				"); reads=%d", cur_addr, next_addr, (unsigned) reads);
-		assert(next_addr >= address && next_addr <= fin_addr);
-		assert(info->cmderr != CMDERR_NONE ||
-				next_addr == cur_addr + reads * size);
+				dmi_write(target, DMI_ABSTRACTAUTO, 0);
+				if (register_read_direct(target, &next_addr, GDB_REGNO_S0) != ERROR_OK)
+					return ERROR_FAIL;
+				next_addr -= size;
+				dmi_write(target, DMI_ABSTRACTAUTO,
+						1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+				break;
+			default:
+				LOG_ERROR("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
+				dmi_write(target, DMI_ABSTRACTAUTO, 0);
+				riscv_set_register(target, GDB_REGNO_S0, s0);
+				riscv_set_register(target, GDB_REGNO_S1, s1);
+				riscv013_clear_abstract_error(target);
+				riscv_batch_free(batch);
+				return ERROR_FAIL;
+		}
 
 		// Now read whatever we got out of the batch.
 		unsigned rereads = 0;
-		for (riscv_addr_t addr = cur_addr - size; addr < next_addr - size;
-				addr += size) {
+		for (riscv_addr_t addr = cur_addr; addr < next_addr; addr += size) {
 			riscv_addr_t offset = addr - address;
 
 			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
@@ -1443,17 +1401,14 @@ static int read_memory(struct target *target, target_addr_t address,
 		cur_addr = next_addr;
 	}
 
-	riscv013_set_autoexec(target, d_data, 0);
+	dmi_write(target, DMI_ABSTRACTAUTO, 0);
 
 	// Read the last word.
-
-	// Access debug buffer without executing a program. This
-	// address logic was taken from program.c.
-	uint32_t value = riscv013_read_debug_buffer(target, d_data);
-	riscv_addr_t addr = cur_addr - size;
-	write_to_buf(buffer + addr - address, value, size);
-	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", addr, value);
-#endif
+	uint64_t value;
+	if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+	write_to_buf(buffer + cur_addr - address, value, size);
+	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, cur_addr, value);
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
@@ -1467,12 +1422,11 @@ static int write_memory(struct target *target, target_addr_t address,
 
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
-	/*
-	 * s0 holds the next address to write to
+	select_dmi(target);
+
+	/* s0 holds the next address to write to
 	 * s1 holds the next data value to write
 	 */
-
-	select_dmi(target);
 
 	uint64_t s0, s1;
 	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
@@ -1501,13 +1455,9 @@ static int write_memory(struct target *target, target_addr_t address,
 
 	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
 
-	if (riscv_debug_buffer_leave(target, &program) != ERROR_OK)
+	if (riscv_program_ebreak(&program) != ERROR_OK)
 		return ERROR_FAIL;
-
 	riscv_program_write(&program);
-
-	if (register_write_direct(target, GDB_REGNO_S0, address) != ERROR_OK)
-		return ERROR_FAIL;
 
 	riscv_addr_t cur_addr = address;
 	riscv_addr_t fin_addr = address + (count * size);
@@ -1551,28 +1501,19 @@ static int write_memory(struct target *target, target_addr_t address,
 			LOG_DEBUG("M[0x%08" PRIx64 "] writes 0x%08x", address + offset, value);
 
 			if (setup_needed) {
+				if (register_write_direct(target, GDB_REGNO_S0,
+							address + offset) != ERROR_OK)
+					return ERROR_FAIL;
+
 				// Write value.
 				dmi_write(target, DMI_DATA0, value);
 
 				// Write and execute command that moves value into S0 and
 				// executes program buffer.
-				uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
-				switch (size) {
-					case 32:
-						command = set_field(command, AC_ACCESS_REGISTER_SIZE, 2);
-						break;
-					case 64:
-						command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
-						break;
-					default:
-						LOG_ERROR("Unsupported abstract register read size: %d", size);
-						return ERROR_FAIL;
-				}
-				command = set_field(command, AC_ACCESS_REGISTER_POSTEXEC, 1);
-				command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
-				command = set_field(command, AC_ACCESS_REGISTER_WRITE, 1);
-				command = set_field(command, AC_ACCESS_REGISTER_REGNO,
-						0x1000 + GDB_REGNO_S1 - GDB_REGNO_XPR0);
+				uint32_t command = access_register_command(GDB_REGNO_S1, 32, 
+						AC_ACCESS_REGISTER_POSTEXEC |
+						AC_ACCESS_REGISTER_TRANSFER |
+						AC_ACCESS_REGISTER_WRITE);
 				int result = execute_abstract_command(target, command);
 				if (result != ERROR_OK)
 					return result;
@@ -1808,14 +1749,6 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 	LOG_ERROR("Unknown DCSR cause field: %x", (int)get_field(dcsr, CSR_DCSR_CAUSE));
 	LOG_ERROR("  dcsr=0x%016lx", (long)dcsr);
 	abort();
-}
-
-void riscv013_debug_buffer_enter(struct target *target, struct riscv_program *program)
-{
-}
-
-void riscv013_debug_buffer_leave(struct target *target, struct riscv_program *program)
-{
 }
 
 void riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
