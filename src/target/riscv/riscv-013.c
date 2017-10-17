@@ -1316,6 +1316,7 @@ static int read_memory(struct target *target, target_addr_t address,
 				AC_ACCESS_REGISTER_TRANSFER |
 				AC_ACCESS_REGISTER_POSTEXEC)) != ERROR_OK)
 		return ERROR_FAIL;
+	// First read has just triggered. Result is in s1.
 
 	dmi_write(target, DMI_ABSTRACTAUTO,
 			1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
@@ -1329,6 +1330,7 @@ static int read_memory(struct target *target, target_addr_t address,
 		// Invariant:
 		// s0 contains the next address to read
 		// s1 contains the data read at the previous address
+		// dmdata0 contains the data read at the previous previous address
 
 		unsigned start = (cur_addr - address) / size;
 		LOG_DEBUG("creating burst to read address 0x%" TARGET_PRIxADDR
@@ -1385,7 +1387,10 @@ static int read_memory(struct target *target, target_addr_t address,
 
 		// Now read whatever we got out of the batch.
 		unsigned rereads = 0;
-		for (riscv_addr_t addr = cur_addr; addr < next_addr; addr += size) {
+		for (riscv_addr_t addr = cur_addr - size; addr < next_addr - size; addr += size) {
+			if (addr < address)
+				continue;
+
 			riscv_addr_t offset = addr - address;
 
 			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
@@ -1402,6 +1407,14 @@ static int read_memory(struct target *target, target_addr_t address,
 	}
 
 	dmi_write(target, DMI_ABSTRACTAUTO, 0);
+
+	if (count > 1) {
+		// Read the penultimate word.
+		uint64_t value = dmi_read(target, DMI_DATA0);
+		write_to_buf(buffer + cur_addr - size - address, value, size);
+		LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, cur_addr -
+				size, value);
+	}
 
 	// Read the last word.
 	uint64_t value;
@@ -1508,7 +1521,7 @@ static int write_memory(struct target *target, target_addr_t address,
 				// Write value.
 				dmi_write(target, DMI_DATA0, value);
 
-				// Write and execute command that moves value into S0 and
+				// Write and execute command that moves value into S1 and
 				// executes program buffer.
 				uint32_t command = access_register_command(GDB_REGNO_S1, 32, 
 						AC_ACCESS_REGISTER_POSTEXEC |
@@ -1521,6 +1534,8 @@ static int write_memory(struct target *target, target_addr_t address,
 				// Turn on autoexec
 				dmi_write(target, DMI_ABSTRACTAUTO,
 						1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+
+				setup_needed = false;
 			} else {
 				riscv_batch_add_dmi_write(batch, DMI_DATA0, value);
 				if (riscv_batch_full(batch))
