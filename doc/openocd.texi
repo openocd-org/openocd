@@ -5319,6 +5319,26 @@ and prepares reset vector catch in case of reset halt.
 Command is used internally in event event reset-deassert-post.
 @end deffn
 
+@deffn Command {at91samd nvmuserrow}
+Writes or reads the entire 64 bit wide NVM user row register which is located at
+0x804000. This register includes various fuses lock-bits and factory calibration
+data. Reading the register is done by invoking this command without any
+arguments. Writing is possible by giving 1 or 2 hex values. The first argument
+is the register value to be written and the second one is an optional changemask.
+Every bit which value in changemask is 0 will stay unchanged. The lock- and
+reserved-bits are masked out and cannot be changed.
+
+@example
+# Read user row
+>at91samd nvmuserrow
+NVMUSERROW: 0xFFFFFC5DD8E0C788
+# Write 0xFFFFFC5DD8E0C788 to user row
+>at91samd nvmuserrow 0xFFFFFC5DD8E0C788
+# Write 0x12300 to user row but leave other bits and low byte unchanged
+>at91samd nvmuserrow 0x12345 0xFFF00
+@end example
+@end deffn
+
 @end deffn
 
 @anchor{at91sam3}
