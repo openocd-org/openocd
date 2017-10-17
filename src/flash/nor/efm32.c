@@ -38,19 +38,8 @@
 #include <target/armv7m.h>
 #include <target/cortex_m.h>
 
-/* keep family IDs in decimal */
-#define EFM_FAMILY_ID_GECKO             71
 #define EFM_FAMILY_ID_GIANT_GECKO       72
-#define EFM_FAMILY_ID_TINY_GECKO        73
 #define EFM_FAMILY_ID_LEOPARD_GECKO     74
-#define EFM_FAMILY_ID_WONDER_GECKO      75
-#define EFM_FAMILY_ID_ZERO_GECKO        76
-#define EFM_FAMILY_ID_HAPPY_GECKO	77
-#define EZR_FAMILY_ID_WONDER_GECKO		120
-#define EZR_FAMILY_ID_LEOPARD_GECKO		121
-#define EZR_FAMILY_ID_HAPPY_GECKO               122
-#define EFR_FAMILY_ID_MIGHTY_GECKO	16
-#define EFR_FAMILY_ID_BLUE_GECKO	20
 
 #define EFM32_FLASH_ERASE_TMO           100
 #define EFM32_FLASH_WDATAREADY_TMO      100
@@ -65,7 +54,7 @@
 #define EFM32_MSC_LOCK_BITS             (EFM32_MSC_INFO_BASE+0x4000)
 #define EFM32_MSC_DEV_INFO              (EFM32_MSC_INFO_BASE+0x8000)
 
-/* PAGE_SIZE is only present in Leopard, Giant and Wonder Gecko MCUs */
+/* PAGE_SIZE is not present in Zero, Happy and the original Gecko MCU */
 #define EFM32_MSC_DI_PAGE_SIZE          (EFM32_MSC_DEV_INFO+0x1e7)
 #define EFM32_MSC_DI_FLASH_SZ           (EFM32_MSC_DEV_INFO+0x1f8)
 #define EFM32_MSC_DI_RAM_SZ             (EFM32_MSC_DEV_INFO+0x1fa)
@@ -74,7 +63,7 @@
 #define EFM32_MSC_DI_PROD_REV           (EFM32_MSC_DEV_INFO+0x1ff)
 
 #define EFM32_MSC_REGBASE               0x400c0000
-#define EFR32_MSC_REGBASE               0x400e0000
+#define EFM32_MSC_REGBASE_SERIES1       0x400e0000
 #define EFM32_MSC_REG_WRITECTRL         0x008
 #define EFM32_MSC_WRITECTRL_WREN_MASK   0x1
 #define EFM32_MSC_REG_WRITECMD          0x00c
@@ -91,8 +80,23 @@
 #define EFM32_MSC_STATUS_WORDTIMEOUT_MASK 0x10
 #define EFM32_MSC_STATUS_ERASEABORTED_MASK 0x20
 #define EFM32_MSC_REG_LOCK              0x03c
-#define EFR32_MSC_REG_LOCK              0x040
+#define EFM32_MSC_REG_LOCK_SERIES1      0x040
 #define EFM32_MSC_LOCK_LOCKKEY          0x1b71
+
+struct efm32_family_data {
+	int family_id;
+	const char *name;
+
+	/* EFM32 series (EFM32LG995F is the "old" series 0, while EFR32MG12P132
+	   is the "new" series 1). Determines location of MSC registers. */
+	int series;
+
+	/* Page size in bytes, or 0 to read from EFM32_MSC_DI_PAGE_SIZE */
+	int page_size;
+
+	/* MSC register base address, or 0 to use default */
+	uint32_t msc_regbase;
+};
 
 struct efm32x_flash_bank {
 	int probed;
@@ -102,6 +106,7 @@ struct efm32x_flash_bank {
 };
 
 struct efm32_info {
+	const struct efm32_family_data *family_data;
 	uint16_t flash_sz_kib;
 	uint16_t ram_sz_kib;
 	uint16_t part_num;
@@ -109,6 +114,64 @@ struct efm32_info {
 	uint8_t prod_rev;
 	uint16_t page_size;
 };
+
+static const struct efm32_family_data efm32_families[] = {
+		{ 16, "EFR32MG1P Mighty", .series = 1 },
+		{ 17, "EFR32MG1B Mighty", .series = 1 },
+		{ 18, "EFR32MG1V Mighty", .series = 1 },
+		{ 19, "EFR32MG1P Blue", .series = 1 },
+		{ 20, "EFR32MG1B Blue", .series = 1 },
+		{ 21, "EFR32MG1V Blue", .series = 1 },
+		{ 25, "EFR32FG1P Flex", .series = 1 },
+		{ 26, "EFR32FG1B Flex", .series = 1 },
+		{ 27, "EFR32FG1V Flex", .series = 1 },
+		{ 28, "EFR32MG2P Mighty", .series = 1 },
+		{ 29, "EFR32MG2B Mighty", .series = 1 },
+		{ 30, "EFR32MG2V Mighty", .series = 1 },
+		{ 31, "EFR32BG12P Blue", .series = 1 },
+		{ 32, "EFR32BG12B Blue", .series = 1 },
+		{ 33, "EFR32BG12V Blue", .series = 1 },
+		{ 37, "EFR32FG12P Flex", .series = 1 },
+		{ 38, "EFR32FG12B Flex", .series = 1 },
+		{ 39, "EFR32FG12V Flex", .series = 1 },
+		{ 40, "EFR32MG13P Mighty", .series = 1 },
+		{ 41, "EFR32MG13B Mighty", .series = 1 },
+		{ 42, "EFR32MG13V Mighty", .series = 1 },
+		{ 43, "EFR32BG13P Blue", .series = 1 },
+		{ 44, "EFR32BG13B Blue", .series = 1 },
+		{ 45, "EFR32BG13V Blue", .series = 1 },
+		{ 49, "EFR32FG13P Flex", .series = 1 },
+		{ 50, "EFR32FG13B Flex", .series = 1 },
+		{ 51, "EFR32FG13V Flex", .series = 1 },
+		{ 52, "EFR32MG14P Mighty", .series = 1 },
+		{ 53, "EFR32MG14B Mighty", .series = 1 },
+		{ 54, "EFR32MG14V Mighty", .series = 1 },
+		{ 55, "EFR32BG14P Blue", .series = 1 },
+		{ 56, "EFR32BG14B Blue", .series = 1 },
+		{ 57, "EFR32BG14V Blue", .series = 1 },
+		{ 61, "EFR32FG14P Flex", .series = 1 },
+		{ 62, "EFR32FG14B Flex", .series = 1 },
+		{ 63, "EFR32FG14V Flex", .series = 1 },
+		{ 71, "EFM32G", .series = 0, .page_size = 512 },
+		{ 72, "EFM32GG Giant", .series = 0 },
+		{ 73, "EFM32TG Tiny", .series = 0, .page_size = 512 },
+		{ 74, "EFM32LG Leopard", .series = 0 },
+		{ 75, "EFM32WG Wonder", .series = 0 },
+		{ 76, "EFM32ZG Zero", .series = 0, .page_size = 1024 },
+		{ 77, "EFM32HG Happy", .series = 0, .page_size = 1024 },
+		{ 81, "EFM32PG1B Pearl", .series = 1 },
+		{ 83, "EFM32JG1B Jade", .series = 1 },
+		{ 85, "EFM32PG12B Pearl", .series = 1 },
+		{ 87, "EFM32JG12B Jade", .series = 1 },
+		{ 89, "EFM32PG13B Pearl", .series = 1 },
+		{ 91, "EFM32JG13B Jade", .series = 1 },
+		{ 100, "EFM32GG11B Giant", .series = 1, .msc_regbase = 0x40000000 },
+		{ 103, "EFM32TG11B Tiny", .series = 1 },
+		{ 120, "EZR32WG Wonder", .series = 0 },
+		{ 121, "EZR32LG Leopard", .series = 0 },
+		{ 122, "EZR32HG Happy", .series = 0, .page_size = 1024 },
+};
+
 
 static int efm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count);
@@ -200,51 +263,33 @@ static int efm32x_read_info(struct flash_bank *bank,
 	if (ERROR_OK != ret)
 		return ret;
 
-	if (EFR_FAMILY_ID_BLUE_GECKO == efm32_info->part_family ||
-	    EFR_FAMILY_ID_MIGHTY_GECKO == efm32_info->part_family) {
-		efm32x_info->reg_base = EFR32_MSC_REGBASE;
-		efm32x_info->reg_lock = EFR32_MSC_REG_LOCK;
-	} else {
-		efm32x_info->reg_base = EFM32_MSC_REGBASE;
-		efm32x_info->reg_lock = EFM32_MSC_REG_LOCK;
+	for (size_t i = 0; i < ARRAY_SIZE(efm32_families); i++) {
+		if (efm32_families[i].family_id == efm32_info->part_family)
+			efm32_info->family_data = &efm32_families[i];
 	}
 
-	if (EFM_FAMILY_ID_GECKO == efm32_info->part_family ||
-			EFM_FAMILY_ID_TINY_GECKO == efm32_info->part_family)
-		efm32_info->page_size = 512;
-	else if (EFM_FAMILY_ID_ZERO_GECKO == efm32_info->part_family ||
-			EFM_FAMILY_ID_HAPPY_GECKO == efm32_info->part_family ||
-			EZR_FAMILY_ID_HAPPY_GECKO == efm32_info->part_family)
-		efm32_info->page_size = 1024;
-	else if (EFM_FAMILY_ID_GIANT_GECKO == efm32_info->part_family ||
-			EFM_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family) {
-		if (efm32_info->prod_rev >= 18) {
-			uint8_t pg_size = 0;
-			ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE,
-				&pg_size);
-			if (ERROR_OK != ret)
-				return ret;
+	if (efm32_info->family_data == NULL) {
+		LOG_ERROR("Unknown MCU family %d", efm32_info->part_family);
+		return ERROR_FAIL;
+	}
 
-			efm32_info->page_size = (1 << ((pg_size+10) & 0xff));
-		} else {
-			/* EFM32 GG/LG errata: MEM_INFO_PAGE_SIZE is invalid
-			   for MCUs with PROD_REV < 18 */
-			if (efm32_info->flash_sz_kib < 512)
-				efm32_info->page_size = 2048;
-			else
-				efm32_info->page_size = 4096;
-		}
+	switch (efm32_info->family_data->series) {
+		case 0:
+			efm32x_info->reg_base = EFM32_MSC_REGBASE;
+			efm32x_info->reg_lock = EFM32_MSC_REG_LOCK;
+			break;
+		case 1:
+			efm32x_info->reg_base = EFM32_MSC_REGBASE_SERIES1;
+			efm32x_info->reg_lock = EFM32_MSC_REG_LOCK_SERIES1;
+			break;
+	}
 
-		if ((2048 != efm32_info->page_size) &&
-				(4096 != efm32_info->page_size)) {
-			LOG_ERROR("Invalid page size %u", efm32_info->page_size);
-			return ERROR_FAIL;
-		}
-	} else if (EFM_FAMILY_ID_WONDER_GECKO == efm32_info->part_family ||
-			EZR_FAMILY_ID_WONDER_GECKO == efm32_info->part_family ||
-			EZR_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family ||
-			EFR_FAMILY_ID_BLUE_GECKO == efm32_info->part_family ||
-			EFR_FAMILY_ID_MIGHTY_GECKO == efm32_info->part_family) {
+	if (efm32_info->family_data->msc_regbase != 0)
+		efm32x_info->reg_base = efm32_info->family_data->msc_regbase;
+
+	if (efm32_info->family_data->page_size != 0) {
+		efm32_info->page_size = efm32_info->family_data->page_size;
+	} else {
 		uint8_t pg_size = 0;
 		ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE,
 			&pg_size);
@@ -252,13 +297,25 @@ static int efm32x_read_info(struct flash_bank *bank,
 			return ret;
 
 		efm32_info->page_size = (1 << ((pg_size+10) & 0xff));
-		if (2048 != efm32_info->page_size) {
+
+		if (efm32_info->part_family == EFM_FAMILY_ID_GIANT_GECKO ||
+				efm32_info->part_family == EFM_FAMILY_ID_LEOPARD_GECKO) {
+			/* Giant or Leopard Gecko */
+			if (efm32_info->prod_rev < 18) {
+				/* EFM32 GG/LG errata: MEM_INFO_PAGE_SIZE is invalid
+				   for MCUs with PROD_REV < 18 */
+				if (efm32_info->flash_sz_kib < 512)
+					efm32_info->page_size = 2048;
+				else
+					efm32_info->page_size = 4096;
+			}
+		}
+
+		if ((efm32_info->page_size != 2048) &&
+				(efm32_info->page_size != 4096)) {
 			LOG_ERROR("Invalid page size %u", efm32_info->page_size);
 			return ERROR_FAIL;
 		}
-	} else {
-		LOG_ERROR("Unknown MCU family %d", efm32_info->part_family);
-		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
@@ -270,71 +327,10 @@ static int efm32x_read_info(struct flash_bank *bank,
 static int efm32x_decode_info(struct efm32_info *info, char *buf, int buf_size)
 {
 	int printed = 0;
+	printed = snprintf(buf, buf_size, "%s Gecko, rev %d",
+			info->family_data->name, info->prod_rev);
 
-	switch (info->part_family) {
-		case EZR_FAMILY_ID_WONDER_GECKO:
-		case EZR_FAMILY_ID_LEOPARD_GECKO:
-		case EZR_FAMILY_ID_HAPPY_GECKO:
-			printed = snprintf(buf, buf_size, "EZR32 ");
-			break;
-		case EFR_FAMILY_ID_MIGHTY_GECKO:
-		case EFR_FAMILY_ID_BLUE_GECKO:
-			printed = snprintf(buf, buf_size, "EFR32 ");
-			break;
-		default:
-			printed = snprintf(buf, buf_size, "EFM32 ");
-	}
-
-	buf += printed;
-	buf_size -= printed;
-
-	if (0 >= buf_size)
-		return ERROR_BUF_TOO_SMALL;
-
-	switch (info->part_family) {
-		case EFM_FAMILY_ID_GECKO:
-			printed = snprintf(buf, buf_size, "Gecko");
-			break;
-		case EFM_FAMILY_ID_GIANT_GECKO:
-			printed = snprintf(buf, buf_size, "Giant Gecko");
-			break;
-		case EFM_FAMILY_ID_TINY_GECKO:
-			printed = snprintf(buf, buf_size, "Tiny Gecko");
-			break;
-		case EFM_FAMILY_ID_LEOPARD_GECKO:
-		case EZR_FAMILY_ID_LEOPARD_GECKO:
-			printed = snprintf(buf, buf_size, "Leopard Gecko");
-			break;
-		case EFM_FAMILY_ID_WONDER_GECKO:
-		case EZR_FAMILY_ID_WONDER_GECKO:
-			printed = snprintf(buf, buf_size, "Wonder Gecko");
-			break;
-		case EFM_FAMILY_ID_ZERO_GECKO:
-			printed = snprintf(buf, buf_size, "Zero Gecko");
-			break;
-		case EFM_FAMILY_ID_HAPPY_GECKO:
-		case EZR_FAMILY_ID_HAPPY_GECKO:
-			printed = snprintf(buf, buf_size, "Happy Gecko");
-			break;
-		case EFR_FAMILY_ID_BLUE_GECKO:
-			printed = snprintf(buf, buf_size, "Blue Gecko");
-			break;
-		case EFR_FAMILY_ID_MIGHTY_GECKO:
-			printed = snprintf(buf, buf_size, "Mighty Gecko");
-			break;
-	}
-
-	buf += printed;
-	buf_size -= printed;
-
-	if (0 >= buf_size)
-		return ERROR_BUF_TOO_SMALL;
-
-	printed = snprintf(buf, buf_size, " - Rev: %d", info->prod_rev);
-	buf += printed;
-	buf_size -= printed;
-
-	if (0 >= buf_size)
+	if (printed >= buf_size)
 		return ERROR_BUF_TOO_SMALL;
 
 	return ERROR_OK;
@@ -522,7 +518,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 		}
 	}
 
-	/* also, read ULW, DLW and MLW */
+	/* also, read ULW, DLW, MLW, ALW and CLW words */
 
 	/* ULW, word 126 */
 	ptr = efm32x_info->lb_page + 126;
@@ -540,11 +536,35 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 		return ret;
 	}
 
-	/* MLW, word 125, present in GG and LG */
+	/* MLW, word 125, present in GG, LG, PG, JG, EFR32 */
 	ptr = efm32x_info->lb_page + 125;
 	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS+125*4, ptr);
 	if (ERROR_OK != ret) {
 		LOG_ERROR("Failed to read MLW");
+		return ret;
+	}
+
+	/* ALW, word 124, present in GG, LG, PG, JG, EFR32 */
+	ptr = efm32x_info->lb_page + 124;
+	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS+124*4, ptr);
+	if (ERROR_OK != ret) {
+		LOG_ERROR("Failed to read ALW");
+		return ret;
+	}
+
+	/* CLW1, word 123, present in EFR32 */
+	ptr = efm32x_info->lb_page + 123;
+	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS+123*4, ptr);
+	if (ERROR_OK != ret) {
+		LOG_ERROR("Failed to read CLW1");
+		return ret;
+	}
+
+	/* CLW0, word 122, present in GG, LG, PG, JG, EFR32 */
+	ptr = efm32x_info->lb_page + 122;
+	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS+122*4, ptr);
+	if (ERROR_OK != ret) {
+		LOG_ERROR("Failed to read CLW0");
 		return ret;
 	}
 
