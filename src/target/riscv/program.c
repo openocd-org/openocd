@@ -279,9 +279,10 @@ int riscv_program_fence(struct riscv_program *p)
 
 int riscv_program_ebreak(struct riscv_program *p)
 {
-	if (p->instruction_count == riscv_debug_buffer_size(p->target)) {
-		// TODO: Check for impebreak bit.
-		// There's an implicit ebreak here, so no need for us to add one.
+	struct target *target = p->target;
+	RISCV_INFO(r);
+	if (p->instruction_count == riscv_debug_buffer_size(p->target) &&
+			r->impebreak) {
 		return ERROR_OK;
 	}
 	return riscv_program_insert(p, ebreak());

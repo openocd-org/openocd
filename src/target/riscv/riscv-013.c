@@ -137,7 +137,7 @@ typedef struct {
 	/* Number of abstract command data registers. */
 	unsigned datacount;
 	/* Number of words in the Program Buffer. */
-	unsigned progsize;
+	unsigned progbufsize;
 	/* Number of Program Buffer registers. */
 	/* Number of words in Debug RAM. */
 	uint64_t tselect;
@@ -200,6 +200,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 
+		{ DMI_DMSTATUS, DMI_DMSTATUS_IMPEBREAK, "impebreak" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLRESUMEACK, "allresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYRESUMEACK, "anyresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLNONEXISTENT, "allnonexistent" },
@@ -215,7 +216,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMSTATUS, DMI_DMSTATUS_DEVTREEVALID, "devtreevalid" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_VERSION, "version" },
 
-		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_PROGSIZE, "progsize" },
+		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_PROGBUFSIZE, "progbufsize" },
 		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_BUSY, "busy" },
 		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR, "cmderr" },
 		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_DATACOUNT, "datacount" },
@@ -910,7 +911,7 @@ static int init_target(struct command_context *cmd_ctx,
 		return ERROR_FAIL;
 	riscv013_info_t *info = get_info(target);
 
-	info->progsize = -1;
+	info->progbufsize = -1;
 	info->progbuf_addr = -1;
 	info->data_size = -1;
 	info->data_addr = -1;
@@ -1043,10 +1044,12 @@ static int examine(struct target *target)
 	// Check that abstract data registers are accessible.
 	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 	info->datacount = get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT);
-	info->progsize = get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE);
+	info->progbufsize = get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE);
 
 	/* Before doing anything else we must first enumerate the harts. */
 	RISCV_INFO(r);
+	r->impebreak = get_field(dmstatus, DMI_DMSTATUS_IMPEBREAK);
+
 	int original_coreid = target->coreid;
 	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
 		/* Fake being a non-RTOS targeted to this core so we can see if
@@ -1080,7 +1083,7 @@ static int examine(struct target *target)
 
 		/* Without knowing anything else we can at least mess with the
 		 * program buffer. */
-		r->debug_buffer_size[i] = info->progsize;
+		r->debug_buffer_size[i] = info->progbufsize;
 
 		int result = register_read_abstract(target, NULL, GDB_REGNO_S0, 64);
 		if (result == ERROR_OK) {
@@ -1768,16 +1771,16 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 void riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
 {
 	RISCV013_INFO(info);
-	if (index >= info->progsize)
-		return dmi_write(target, DMI_DATA0 + index - info->progsize, data);
+	if (index >= info->progbufsize)
+		return dmi_write(target, DMI_DATA0 + index - info->progbufsize, data);
 	return dmi_write(target, DMI_PROGBUF0 + index, data);
 }
 
 riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 {
 	RISCV013_INFO(info);
-	if (index >= info->progsize)
-		return dmi_read(target, DMI_DATA0 + index - info->progsize);
+	if (index >= info->progbufsize)
+		return dmi_read(target, DMI_DATA0 + index - info->progbufsize);
 	return dmi_read(target, DMI_PROGBUF0 + index);
 }
 
@@ -1835,7 +1838,6 @@ static void riscv013_on_step_or_resume(struct target *target, bool step)
 	uint64_t dcsr = riscv_get_register(target, GDB_REGNO_DCSR);
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, 1);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKH, 1);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, 1);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, 1);
 	riscv_set_register(target, GDB_REGNO_DCSR, dcsr);

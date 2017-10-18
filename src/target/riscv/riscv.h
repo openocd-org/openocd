@@ -78,6 +78,9 @@ typedef struct {
 	/* This avoids invalidating the register cache too often. */
 	bool registers_initialized;
 
+	/* This hart contains an implicit ebreak at the end of the program buffer. */
+	bool impebreak;
+
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
 	riscv_reg_t (*get_register)(struct target *, int hartid, int regid);
