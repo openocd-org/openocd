@@ -15,11 +15,8 @@ struct riscv_program {
 
 	uint32_t debug_buffer[RISCV_MAX_DEBUG_BUFFER_SIZE];
 
-	/* The debug buffer is allocated in two directions: instructions go at
-	 * the start, while data goes at the end.  When they meet in the middle
-	 * this blows up. */
+	/* Number of 32-bit instructions in the program. */
 	size_t instruction_count;
-	size_t data_count;
 
 	/* Side effects of executing this program.  These must be accounted for
 	 * in order to maintain correct executing of the target system.  */
@@ -28,10 +25,6 @@ struct riscv_program {
 
 	/* When a register is used it will be set in this array. */
 	bool in_use[RISCV_REGISTER_COUNT];
-
-	/* Remembers the registers that have been saved into dscratch
-	 * registers.  These are restored */
-	enum gdb_regno dscratch_saved[RISCV_DSCRATCH_COUNT];
 
 	/* XLEN on the target. */
 	int target_xlen;
@@ -101,9 +94,6 @@ int riscv_program_ebreak(struct riscv_program *p);
 int riscv_program_lui(struct riscv_program *p, enum gdb_regno d, int32_t u);
 int riscv_program_addi(struct riscv_program *p, enum gdb_regno d, enum gdb_regno s, int16_t i);
 
-int riscv_program_fsx(struct riscv_program *p, enum gdb_regno s, riscv_addr_t addr);
-int riscv_program_flx(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr);
-
 /* Assembler macros. */
 int riscv_program_li(struct riscv_program *p, enum gdb_regno d, riscv_reg_t c);
 int riscv_program_la(struct riscv_program *p, enum gdb_regno d, riscv_addr_t a);
@@ -113,7 +103,6 @@ int riscv_program_la(struct riscv_program *p, enum gdb_regno d, riscv_addr_t a);
  * reserving registers -- it's expected that this has been called as the first
  * thing in the program's execution to reserve registers that can't be touched
  * by the program's execution. */
-void riscv_program_reserve_register(struct riscv_program *p, enum gdb_regno r);
 enum gdb_regno riscv_program_gettemp(struct riscv_program *p);
 void riscv_program_puttemp(struct riscv_program *p, enum gdb_regno r);
 

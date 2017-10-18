@@ -21,7 +21,6 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	memset(p, 0, sizeof(*p));
 	p->target = target;
 	p->instruction_count = 0;
-	p->data_count = 0;
 	p->writes_memory = 0;
 	p->target_xlen = riscv_xlen(target);
 	for (size_t i = 0; i < RISCV_REGISTER_COUNT; ++i) {
@@ -84,7 +83,7 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	}
 
 	for (size_t i = 0; i < riscv_debug_buffer_size(p->target); ++i)
-		if (i >= riscv_debug_buffer_size(p->target) - p->data_count)
+		if (i >= riscv_debug_buffer_size(p->target))
 			p->debug_buffer[i] = riscv_read_debug_buffer(t, i);
 
 	for (size_t i = GDB_REGNO_XPR0; i <= GDB_REGNO_XPR31; ++i)
@@ -298,56 +297,6 @@ int riscv_program_addi(struct riscv_program *p, enum gdb_regno d, enum gdb_regno
 	return riscv_program_insert(p, addi(d, s, u));
 }
 
-int riscv_program_fsx(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr)
-{
-	assert(d >= GDB_REGNO_FPR0);
-	assert(d <= GDB_REGNO_FPR31);
-	enum gdb_regno t = riscv_program_gah(p, addr) == 0
-		? GDB_REGNO_X0
-		: riscv_program_gettemp(p);
-	if (riscv_program_lah(p, t, addr) != ERROR_OK)
-		return ERROR_FAIL;
-	uint32_t instruction;
-	switch (p->target->reg_cache->reg_list[GDB_REGNO_FPR0].size) {
-		case 64:
-			instruction = fsd(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
-			break;
-		case 32:
-			instruction = fsw(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
-			break;
-		default:
-			return ERROR_FAIL;
-	}
-	if (riscv_program_insert(p, instruction) != ERROR_OK)
-		return ERROR_FAIL;
-	riscv_program_puttemp(p, t);
-	p->writes_memory = true;
-	return ERROR_OK;
-}
-
-int riscv_program_flx(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr)
-{
-	assert(d >= GDB_REGNO_FPR0);
-	assert(d <= GDB_REGNO_FPR31);
-	enum gdb_regno t = riscv_program_gah(p, addr) == 0 ? GDB_REGNO_X0 : d;
-	if (riscv_program_lah(p, t, addr) != ERROR_OK)
-		return ERROR_FAIL;
-	uint32_t instruction;
-	switch (p->target->reg_cache->reg_list[GDB_REGNO_FPR0].size) {
-		case 64:
-			instruction = fld(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
-			break;
-		case 32:
-			instruction = flw(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
-			break;
-		default:
-			return ERROR_FAIL;
-	}
-	if (riscv_program_insert(p, instruction) != ERROR_OK)
-		return ERROR_FAIL;
-	return ERROR_OK;
-}
-
 int riscv_program_li(struct riscv_program *p, enum gdb_regno d, riscv_reg_t c)
 {
 	if (riscv_program_lui(p, d, c >> 12) != ERROR_OK)
@@ -369,13 +318,6 @@ int riscv_program_do_restore_register(struct riscv_program *p, enum gdb_regno r)
 	assert(r < RISCV_REGISTER_COUNT);
 	p->writes_xreg[r] = 1;
 	return ERROR_OK;
-}
-
-void riscv_program_reserve_register(struct riscv_program *p, enum gdb_regno r)
-{
-	assert(r < RISCV_REGISTER_COUNT);
-	assert(p->in_use[r] == 0);
-	p->in_use[r] = 1;
 }
 
 enum gdb_regno riscv_program_gettemp(struct riscv_program *p)
@@ -431,10 +373,9 @@ int riscv_program_lal(struct riscv_program *p, enum gdb_regno d, riscv_addr_t ad
 
 int riscv_program_insert(struct riscv_program *p, riscv_insn_t i)
 {
-	if (p->instruction_count + p->data_count + 1 > riscv_debug_buffer_size(p->target)) {
+	if (p->instruction_count >= riscv_debug_buffer_size(p->target)) {
 		LOG_ERROR("Unable to insert instruction:");
 		LOG_ERROR("  instruction_count=%d", (int)p->instruction_count);
-		LOG_ERROR("  data_count       =%d", (int)p->data_count);
 		LOG_ERROR("  buffer size      =%d", (int)riscv_debug_buffer_size(p->target));
 		abort();
 	}
