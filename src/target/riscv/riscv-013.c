@@ -781,14 +781,13 @@ static int register_write_direct(struct target *target, unsigned number,
 	int exec_out = riscv_program_exec(&program, target);
 	if (exec_out != ERROR_OK) {
 		riscv013_clear_abstract_error(target);
-		return ERROR_FAIL;
 	}
 
 	// Restore S0.
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
 		return ERROR_FAIL;
 
-	return ERROR_OK;
+	return exec_out;
 }
 
 /** Actually read registers from the target right now. */
@@ -798,6 +797,8 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			riscv_xlen(target));
 
 	if (result != ERROR_OK) {
+		result = ERROR_OK;
+
 		struct riscv_program program;
 		riscv_program_init(&program, target);
 		assert(number != GDB_REGNO_S0);
@@ -823,10 +824,9 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		}
 
 		// Execute program.
-		int exec_out = riscv_program_exec(&program, target);
-		if (exec_out != ERROR_OK) {
+		result = riscv_program_exec(&program, target);
+		if (result != ERROR_OK) {
 			riscv013_clear_abstract_error(target);
-			return ERROR_FAIL;
 		}
 
 		// Read S0
@@ -837,9 +837,12 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("[%d] reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
-			number, *value);
-	return ERROR_OK;
+	if (result == ERROR_OK) {
+		LOG_DEBUG("[%d] reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
+				number, *value);
+	}
+
+	return result;
 }
 
 /*** OpenOCD target functions. ***/
