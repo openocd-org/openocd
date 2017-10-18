@@ -767,9 +767,9 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 		if (supports_extension(target, 'D') && riscv_xlen(target) >= 64) {
-			riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
+			riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
 		} else {
-			riscv_program_insert(&program, fmv_x_s(S0, number - GDB_REGNO_FPR0));
+			riscv_program_insert(&program, fmv_s_x(number - GDB_REGNO_FPR0, S0));
 		}
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 		riscv_program_csrw(&program, S0, number);
@@ -811,9 +811,9 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			// TODO: Possibly set F in mstatus.
 			// TODO: Fully support D extension on RV32.
 			if (supports_extension(target, 'D') && riscv_xlen(target) >= 64) {
-				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
+				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
 			} else {
-				riscv_program_insert(&program, fmv_s_x(number - GDB_REGNO_FPR0, S0));
+				riscv_program_insert(&program, fmv_x_s(S0, number - GDB_REGNO_FPR0));
 			}
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 			riscv_program_csrr(&program, S0, number);
@@ -1086,9 +1086,12 @@ static int examine(struct target *target)
 			r->xlen[i] = 32;
 		}
 
+		r->misa = riscv_get_register_on_hart(target, i, GDB_REGNO_MISA);
+
 		/* Display this as early as possible to help people who are using
 		 * really slow simulators. */
-		LOG_DEBUG(" hart %d: XLEN=%d", i, r->xlen[i]);
+		LOG_DEBUG(" hart %d: XLEN=%d, misa=0x%" PRIx64, i, r->xlen[i],
+				r->misa);
 	}
 
 	/* Then we check the number of triggers availiable to each hart. */
