@@ -1317,36 +1317,42 @@ static int read_memory(struct target *target, target_addr_t address,
 	// Write address to S0, and execute buffer.
 	if (register_write_direct(target, GDB_REGNO_S0, address) != ERROR_OK)
 		return ERROR_FAIL;
-	if (execute_abstract_command(target,
-				access_register_command(GDB_REGNO_S1, riscv_xlen(target),
+	uint32_t command = access_register_command(GDB_REGNO_S1, riscv_xlen(target),
 				AC_ACCESS_REGISTER_TRANSFER |
-				AC_ACCESS_REGISTER_POSTEXEC)) != ERROR_OK)
+				AC_ACCESS_REGISTER_POSTEXEC);
+	if (execute_abstract_command(target, command) != ERROR_OK)
 		return ERROR_FAIL;
+
 	// First read has just triggered. Result is in s1.
 
 	dmi_write(target, DMI_ABSTRACTAUTO,
 			1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
 
-	/* Copying memory might fail because we're going too quickly, in which
-	 * case we need to back off a bit and try again. */
-	riscv_addr_t cur_addr = address;
+	// read_addr is the next address that the hart will read from, which is the
+	// value in s0.
+	riscv_addr_t read_addr = address + size;
+	// The next address that we need to receive data for.
+	riscv_addr_t receive_addr = address;
 	riscv_addr_t fin_addr = address + (count * size);
-	LOG_DEBUG("reading until final address 0x%" PRIx64, fin_addr);
-	while (cur_addr < fin_addr - size) {
-		// Invariant:
-		// s0 contains the next address to read
-		// s1 contains the data read at the previous address
-		// dmdata0 contains the data read at the previous previous address
+	unsigned skip = 1;
+	while (read_addr < fin_addr) {
+		LOG_DEBUG("read_addr=0x%" PRIx64 ", receive_addr=0x%" PRIx64
+				", fin_addr=0x%" PRIx64, read_addr, receive_addr, fin_addr);
+		// The pipeline looks like this:
+		// memory -> s1 -> dm_data0 -> debugger
+		// It advances every time the debugger reads dmdata0.
+		// So at any time the debugger has just read mem[s0 - 3*size],
+		// dm_data0 contains mem[s0 - 2*size]
+		// s1 contains mem[s0-size]
 
-		unsigned start = (cur_addr - address) / size;
-		LOG_DEBUG("creating burst to read address 0x%" TARGET_PRIxADDR
-				" up to 0x%" TARGET_PRIxADDR "; start=0x%d", cur_addr, fin_addr, start);
-		assert(cur_addr >= address && cur_addr < fin_addr);
+		LOG_DEBUG("creating burst to read from 0x%" TARGET_PRIxADDR
+				" up to 0x%" TARGET_PRIxADDR, read_addr, fin_addr);
+		assert(read_addr >= address && read_addr < fin_addr);
 		struct riscv_batch *batch = riscv_batch_alloc(target, 32,
 				info->dmi_busy_delay + info->ac_busy_delay);
 
 		size_t reads = 0;
-		for (riscv_addr_t addr = cur_addr; addr < fin_addr - size; addr += size) {
+		for (riscv_addr_t addr = read_addr; addr < fin_addr; addr += size) {
 			riscv_batch_add_dmi_read(batch, DMI_DATA0);
 
 			reads++;
@@ -1363,20 +1369,62 @@ static int read_memory(struct target *target, target_addr_t address,
 			abstractcs = dmi_read(target, DMI_ABSTRACTCS);
 		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 
-		riscv_addr_t next_addr;
+		unsigned cmderr = info->cmderr;
+		riscv_addr_t next_read_addr;
+		uint32_t dmi_data0 = -1;
 		switch (info->cmderr) {
 			case CMDERR_NONE:
 				LOG_DEBUG("successful (partial?) memory read");
-				next_addr = cur_addr + reads * size;
+				next_read_addr = read_addr + reads * size;
 				break;
 			case CMDERR_BUSY:
 				LOG_DEBUG("memory read resulted in busy response");
+
+				/*
+				 * If you want to exercise this code path, apply the following patch to spike:
+--- a/riscv/debug_module.cc
++++ b/riscv/debug_module.cc
+@@ -1,3 +1,5 @@
++#include <unistd.h>
++
+ #include <cassert>
+ 
+ #include "debug_module.h"
+@@ -398,6 +400,15 @@ bool debug_module_t::perform_abstract_command()
+       // Since the next instruction is what we will use, just use nother NOP
+       // to get there.
+       write32(debug_abstract, 1, addi(ZERO, ZERO, 0));
++
++      if (abstractauto.autoexecdata &&
++          program_buffer[0] == 0x83 &&
++          program_buffer[1] == 0x24 &&
++          program_buffer[2] == 0x04 &&
++          program_buffer[3] == 0 &&
++          rand() < RAND_MAX / 10) {
++        usleep(1000000);
++      }
+     } else {
+       write32(debug_abstract, 1, ebreak());
+     }
+				 */
 				increase_ac_busy_delay(target);
 				riscv013_clear_abstract_error(target);
 
 				dmi_write(target, DMI_ABSTRACTAUTO, 0);
-				if (register_read_direct(target, &next_addr, GDB_REGNO_S0) != ERROR_OK)
+
+				// This is definitely a good version of the value that we
+				// attempted to read when we discovered that the target was
+				// busy.
+				dmi_data0 = dmi_read(target, DMI_DATA0);
+
+				// Clobbers DMI_DATA0.
+				if (register_read_direct(target, &next_read_addr, GDB_REGNO_S0) != ERROR_OK)
 					return ERROR_FAIL;
+				// Restore the command, and execute it.
+				// Now DMI_DATA0 contains the next value just as it would if no
+				// error had occurred.
+				dmi_write(target, DMI_COMMAND, command);
+
 				dmi_write(target, DMI_ABSTRACTAUTO,
 						1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
 				break;
@@ -1391,21 +1439,37 @@ static int read_memory(struct target *target, target_addr_t address,
 		}
 
 		// Now read whatever we got out of the batch.
-		unsigned rereads = 0;
-		for (riscv_addr_t addr = cur_addr - size; addr < next_addr - size; addr += size) {
-			if (addr >= address) {
-				riscv_addr_t offset = addr - address;
-				uint64_t dmi_out = riscv_batch_get_dmi_read(batch, rereads);
-				uint32_t value = get_field(dmi_out, DTM_DMI_DATA);
-				write_to_buf(buffer + offset, value, size);
-				LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", addr, value);
+		for (size_t i = 0; i < reads; i++) {
+			if (read_addr >= next_read_addr) {
+				break;
 			}
 
-			rereads++;
+			read_addr += size;
+
+			if (skip > 0) {
+				skip--;
+				continue;
+			}
+
+			riscv_addr_t offset = receive_addr - address;
+			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, i);
+			uint32_t value = get_field(dmi_out, DTM_DMI_DATA);
+			write_to_buf(buffer + offset, value, size);
+			LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", receive_addr,
+					value);
+
+			receive_addr += size;
 		}
 		riscv_batch_free(batch);
 
-		cur_addr = next_addr;
+		if (cmderr == CMDERR_BUSY) {
+			riscv_addr_t offset = receive_addr - address;
+			write_to_buf(buffer + offset, dmi_data0, size);
+			LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", receive_addr,
+					dmi_data0);
+			read_addr += size;
+			receive_addr += size;
+		}
 	}
 
 	dmi_write(target, DMI_ABSTRACTAUTO, 0);
@@ -1413,17 +1477,18 @@ static int read_memory(struct target *target, target_addr_t address,
 	if (count > 1) {
 		// Read the penultimate word.
 		uint64_t value = dmi_read(target, DMI_DATA0);
-		write_to_buf(buffer + cur_addr - size - address, value, size);
-		LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, cur_addr -
-				size, value);
+		write_to_buf(buffer + receive_addr - address, value, size);
+		LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, receive_addr, value);
+		receive_addr += size;
 	}
 
 	// Read the last word.
 	uint64_t value;
 	if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
-	write_to_buf(buffer + cur_addr - address, value, size);
-	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, cur_addr, value);
+	write_to_buf(buffer + receive_addr - address, value, size);
+	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, receive_addr, value);
+	receive_addr += size;
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
