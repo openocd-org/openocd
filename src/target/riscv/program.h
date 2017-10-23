@@ -21,10 +21,6 @@ struct riscv_program {
 	/* Side effects of executing this program.  These must be accounted for
 	 * in order to maintain correct executing of the target system.  */
 	bool writes_xreg[RISCV_REGISTER_COUNT];
-	bool writes_memory;
-
-	/* When a register is used it will be set in this array. */
-	bool in_use[RISCV_REGISTER_COUNT];
 
 	/* XLEN on the target. */
 	int target_xlen;
@@ -59,60 +55,21 @@ int riscv_program_save_to_dscratch(struct riscv_program *p, enum gdb_regno to_sa
 /* Helpers to assembly various instructions.  Return 0 on success.  These might
  * assembly into a multi-instruction sequence that overwrites some other
  * register, but those will be properly saved and restored. */
-int riscv_program_lx(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr);
-int riscv_program_ld(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr);
-int riscv_program_lw(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr);
-int riscv_program_lh(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr);
-int riscv_program_lb(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr);
-
-int riscv_program_sx(struct riscv_program *p, enum gdb_regno s, riscv_addr_t addr);
-int riscv_program_sd(struct riscv_program *p, enum gdb_regno s, riscv_addr_t addr);
-int riscv_program_sw(struct riscv_program *p, enum gdb_regno s, riscv_addr_t addr);
-int riscv_program_sh(struct riscv_program *p, enum gdb_regno s, riscv_addr_t addr);
-int riscv_program_sb(struct riscv_program *p, enum gdb_regno s, riscv_addr_t addr);
-
-int riscv_program_lxr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
-int riscv_program_ldr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
 int riscv_program_lwr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
 int riscv_program_lhr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
 int riscv_program_lbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
 
-int riscv_program_sxr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
-int riscv_program_sdr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
 int riscv_program_swr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
 int riscv_program_shr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
 int riscv_program_sbr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
 
 int riscv_program_csrr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno csr);
 int riscv_program_csrw(struct riscv_program *p, enum gdb_regno s, enum gdb_regno csr);
-int riscv_program_csrrw(struct riscv_program *p, enum gdb_regno d, enum gdb_regno s, enum gdb_regno csr);
 
 int riscv_program_fence_i(struct riscv_program *p);
 int riscv_program_fence(struct riscv_program *p);
 int riscv_program_ebreak(struct riscv_program *p);
 
-int riscv_program_lui(struct riscv_program *p, enum gdb_regno d, int32_t u);
 int riscv_program_addi(struct riscv_program *p, enum gdb_regno d, enum gdb_regno s, int16_t i);
-
-/* Assembler macros. */
-int riscv_program_li(struct riscv_program *p, enum gdb_regno d, riscv_reg_t c);
-int riscv_program_la(struct riscv_program *p, enum gdb_regno d, riscv_addr_t a);
-
-/* Register allocation.  The user is expected to have obtained temporary
- * registers using these fuctions.  Additionally, there is an interface for
- * reserving registers -- it's expected that this has been called as the first
- * thing in the program's execution to reserve registers that can't be touched
- * by the program's execution. */
-enum gdb_regno riscv_program_gettemp(struct riscv_program *p);
-void riscv_program_puttemp(struct riscv_program *p, enum gdb_regno r);
-
-/* Executing a program usually causes the registers that get overwritten to be
- * saved and restored.  Calling this prevents the given register from actually
- * being restored as a result of all activity in this program. */
-int riscv_program_dont_restore_register(struct riscv_program *p, enum gdb_regno r);
-int riscv_program_do_restore_register(struct riscv_program *p, enum gdb_regno r);
-
-/* Addressing functions. */
-riscv_addr_t riscv_program_gah(struct riscv_program *p, riscv_addr_t addr);
 
 #endif
