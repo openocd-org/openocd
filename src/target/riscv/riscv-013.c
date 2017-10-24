@@ -167,9 +167,6 @@ typedef struct {
 
 	bool need_strict_step;
 
-	// Some memoized values
-	int progbuf_addr, data_addr, data_size;
-
 	bool abstract_read_csr_supported;
 	bool abstract_write_csr_supported;
 	bool abstract_read_fpr_supported;
@@ -908,9 +905,6 @@ static int init_target(struct command_context *cmd_ctx,
 	riscv013_info_t *info = get_info(target);
 
 	info->progbufsize = -1;
-	info->progbuf_addr = -1;
-	info->data_size = -1;
-	info->data_addr = -1;
 
 	info->dmi_busy_delay = 0;
 	info->ac_busy_delay = 0;
