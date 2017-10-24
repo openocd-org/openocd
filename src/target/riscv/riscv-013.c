@@ -31,10 +31,6 @@
 
 static void riscv013_on_step_or_resume(struct target *target, bool step);
 static void riscv013_step_or_resume_current_hart(struct target *target, bool step);
-//static riscv_addr_t riscv013_progbuf_addr(struct target *target);
-//static riscv_addr_t riscv013_data_size(struct target *target);
-//static riscv_addr_t riscv013_data_addr(struct target *target);
-//static int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr);
 static void riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in riscv_info_t. */
@@ -1293,7 +1289,12 @@ static int read_memory(struct target *target, target_addr_t address,
 	struct riscv_program program;
 	riscv_program_init(&program, target);
 
-	// TODO: riscv_program_fence(&program);
+	riscv_program_fence(&program);
+	if (riscv_program_exec(&program, target) != ERROR_OK)
+		LOG_ERROR("Unable to execute fence");
+
+	// New program.
+	riscv_program_init(&program, target);
 	switch (size) {
 		case 1:
 			riscv_program_lbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
@@ -1952,49 +1953,6 @@ static void riscv013_step_or_resume_current_hart(struct target *target, bool ste
 
 	abort();
 }
-
-#if 0
-riscv_addr_t riscv013_progbuf_addr(struct target *target)
-{
-	RISCV013_INFO(info);
-	assert(info->progbuf_addr != -1);
-	return info->progbuf_addr;
-}
-#endif
-
-#if 0
-riscv_addr_t riscv013_data_size(struct target *target)
-{
-	RISCV013_INFO(info);
-	if (info->data_size == -1) {
-		uint32_t acs = dmi_read(target, DMI_HARTINFO);
-		info->data_size = get_field(acs, DMI_HARTINFO_DATASIZE);
-	}
-	return info->data_size;
-}
-#endif
-
-#if 0
-riscv_addr_t riscv013_data_addr(struct target *target)
-{
-	RISCV013_INFO(info);
-	if (info->data_addr == -1) {
-		uint32_t acs = dmi_read(target, DMI_HARTINFO);
-		info->data_addr = get_field(acs, DMI_HARTINFO_DATAACCESS) ? get_field(acs, DMI_HARTINFO_DATAADDR) : 0;
-	}
-	return info->data_addr;
-}
-#endif
-
-#if 0
-int riscv013_debug_buffer_register(struct target *target, riscv_addr_t addr)
-{
-	if (addr >= riscv013_data_addr(target))
-		return DMI_DATA0 + (addr - riscv013_data_addr(target)) / 4;
-	else
-		return DMI_PROGBUF0 + (addr - riscv013_progbuf_addr(target)) / 4;
-}
-#endif
 
 void riscv013_clear_abstract_error(struct target *target)
 {
