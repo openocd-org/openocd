@@ -1839,17 +1839,11 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 void riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
 {
-	RISCV013_INFO(info);
-	if (index >= info->progbufsize)
-		return dmi_write(target, DMI_DATA0 + index - info->progbufsize, data);
 	return dmi_write(target, DMI_PROGBUF0 + index, data);
 }
 
 riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 {
-	RISCV013_INFO(info);
-	if (index >= info->progbufsize)
-		return dmi_read(target, DMI_DATA0 + index - info->progbufsize);
 	return dmi_read(target, DMI_PROGBUF0 + index);
 }
 
