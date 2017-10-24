@@ -1256,6 +1256,16 @@ static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 	}
 }
 
+static int execute_fence(struct target *target) {
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	riscv_program_fence(&program);
+	int result = riscv_program_exec(&program, target);
+	if (result != ERROR_OK)
+		LOG_ERROR("Unable to execute fence");
+	return result;
+}
+
 /**
  * Read the requested memory, taking care to execute every read exactly once,
  * even if cmderr=busy is encountered.
@@ -1279,15 +1289,11 @@ static int read_memory(struct target *target, target_addr_t address,
 	if (register_read_direct(target, &s1, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
+	if (execute_fence(target) != ERROR_OK)
+		return ERROR_FAIL;
+
 	// Write the program (load, increment)
 	struct riscv_program program;
-	riscv_program_init(&program, target);
-
-	riscv_program_fence(&program);
-	if (riscv_program_exec(&program, target) != ERROR_OK)
-		LOG_ERROR("Unable to execute fence");
-
-	// New program.
 	riscv_program_init(&program, target);
 	switch (size) {
 		case 1:
@@ -1647,6 +1653,9 @@ static int write_memory(struct target *target, target_addr_t address,
 	if (register_write_direct(target, GDB_REGNO_S1, s1) != ERROR_OK)
 		return ERROR_FAIL;
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (execute_fence(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	return ERROR_OK;
