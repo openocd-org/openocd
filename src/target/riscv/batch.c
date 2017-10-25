@@ -44,6 +44,13 @@ bool riscv_batch_full(struct riscv_batch *batch)
 
 void riscv_batch_run(struct riscv_batch *batch)
 {
+	if (batch->used_scans == 0) {
+		LOG_DEBUG("Ignoring empty batch.");
+		return;
+	}
+
+  keep_alive();
+
 	LOG_DEBUG("running a batch of %ld scans", (long)batch->used_scans);
 	riscv_batch_add_nop(batch);
 
@@ -96,7 +103,7 @@ size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
 	batch->read_keys[batch->read_keys_used] = batch->used_scans - 1;
 	LOG_DEBUG("read key %u for batch 0x%p is %u (0x%p)",
 			(unsigned) batch->read_keys_used, batch, (unsigned) (batch->used_scans - 1),
-			(uint64_t*)batch->data_in + (batch->used_scans + 1));
+			batch->data_in + sizeof(uint64_t) * (batch->used_scans + 1));
 	return batch->read_keys_used++;
 }
 
@@ -105,8 +112,15 @@ uint64_t riscv_batch_get_dmi_read(struct riscv_batch *batch, size_t key)
 	assert(key < batch->read_keys_used);
 	size_t index = batch->read_keys[key];
 	assert(index <= batch->used_scans);
-	uint64_t *addr = ((uint64_t *)(batch->data_in) + index);
-	return *addr;
+	uint8_t *base = batch->data_in + 8 * index;
+	return base[0] |
+		((uint64_t) base[1]) << 8 |
+		((uint64_t) base[2]) << 16 |
+		((uint64_t) base[3]) << 24 |
+		((uint64_t) base[4]) << 32 |
+		((uint64_t) base[5]) << 40 |
+		((uint64_t) base[6]) << 48 |
+		((uint64_t) base[7]) << 56;
 }
 
 void riscv_batch_add_nop(struct riscv_batch *batch)

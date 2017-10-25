@@ -3,6 +3,7 @@
 #endif
 
 #include "target/target.h"
+#include "target/register.h"
 #include "riscv.h"
 #include "program.h"
 #include "helper/log.h"
@@ -41,6 +42,8 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 
 int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
+	keep_alive();
+
 	if (riscv_debug_buffer_leave(t, p) != ERROR_OK) {
 		LOG_ERROR("unable to write program buffer exit code");
 		return ERROR_FAIL;
@@ -367,7 +370,7 @@ int riscv_program_addi(struct riscv_program *p, enum gdb_regno d, enum gdb_regno
 	return riscv_program_insert(p, addi(d, s, u));
 }
 
-int riscv_program_fsd(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr)
+int riscv_program_fsx(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr)
 {
 	assert(d >= GDB_REGNO_FPR0);
 	assert(d <= GDB_REGNO_FPR31);
@@ -376,21 +379,43 @@ int riscv_program_fsd(struct riscv_program *p, enum gdb_regno d, riscv_addr_t ad
 		: riscv_program_gettemp(p);
 	if (riscv_program_lah(p, t, addr) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_program_insert(p, fsd(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr))) != ERROR_OK)
+	uint32_t instruction;
+	switch (p->target->reg_cache->reg_list[GDB_REGNO_FPR0].size) {
+		case 64:
+			instruction = fsd(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
+			break;
+		case 32:
+			instruction = fsw(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
+			break;
+		default:
+			return ERROR_FAIL;
+	}
+	if (riscv_program_insert(p, instruction) != ERROR_OK)
 		return ERROR_FAIL;
 	riscv_program_puttemp(p, t);
 	p->writes_memory = true;
 	return ERROR_OK;
 }
 
-int riscv_program_fld(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr)
+int riscv_program_flx(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr)
 {
 	assert(d >= GDB_REGNO_FPR0);
 	assert(d <= GDB_REGNO_FPR31);
 	enum gdb_regno t = riscv_program_gah(p, addr) == 0 ? GDB_REGNO_X0 : d;
 	if (riscv_program_lah(p, t, addr) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_program_insert(p, fld(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr))) != ERROR_OK)
+	uint32_t instruction;
+	switch (p->target->reg_cache->reg_list[GDB_REGNO_FPR0].size) {
+		case 64:
+			instruction = fld(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
+			break;
+		case 32:
+			instruction = flw(d - GDB_REGNO_FPR0, t, riscv_program_gal(p, addr));
+			break;
+		default:
+			return ERROR_FAIL;
+	}
+	if (riscv_program_insert(p, instruction) != ERROR_OK)
 		return ERROR_FAIL;
 	return ERROR_OK;
 }
@@ -453,7 +478,11 @@ riscv_addr_t riscv_program_gah(struct riscv_program *p, riscv_addr_t addr)
 
 riscv_addr_t riscv_program_gal(struct riscv_program *p, riscv_addr_t addr)
 {
-	return ((addr > 0) ? 1 : 0) * (abs(addr) & 0x7FF);
+	if (addr > 0) {
+	    return (addr & 0x7FF);
+	} else {
+	    return 0;
+	}
 }
 
 int riscv_program_lah(struct riscv_program *p, enum gdb_regno d, riscv_addr_t addr)

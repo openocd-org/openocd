@@ -21,6 +21,7 @@
 #include "helper/time_support.h"
 #include "riscv.h"
 #include "asm.h"
+#include "gdb_regs.h"
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -155,21 +156,6 @@ typedef enum slot {
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
 
-// gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
-// its source tree. We must interpret the numbers the same here.
-enum {
-	REG_XPR0 = 0,
-	REG_XPR31 = 31,
-	REG_PC = 32,
-	REG_FPR0 = 33,
-	REG_FPR31 = 64,
-	REG_CSR0 = 65,
-	REG_MSTATUS = CSR_MSTATUS + REG_CSR0,
-	REG_CSR4095 = 4160,
-	REG_PRIV = 4161,
-	REG_COUNT
-};
-
 #define DRAM_CACHE_SIZE		16
 
 struct trigger {
@@ -269,6 +255,7 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 	LOG_ERROR("slot_offset called with xlen=%d, slot=%d",
 			riscv_xlen(target), slot);
 	assert(0);
+	return 0; // Silence -Werror=return-type
 }
 
 static uint32_t load_slot(const struct target *target, unsigned int dest,
@@ -1117,7 +1104,7 @@ static int execute_resume(struct target *target, bool step)
 		return ERROR_FAIL;
 	}
 
-	struct reg *mstatus_reg = &target->reg_cache->reg_list[REG_MSTATUS];
+	struct reg *mstatus_reg = &target->reg_cache->reg_list[GDB_REGNO_MSTATUS];
 	if (mstatus_reg->valid) {
 		uint64_t mstatus_user = buf_get_u64(mstatus_reg->value, 0, riscv_xlen(target));
 		if (mstatus_user != info->mstatus_actual) {
@@ -1201,15 +1188,15 @@ static void update_reg_list(struct target *target)
 	if (info->reg_values) {
 		free(info->reg_values);
 	}
-	info->reg_values = malloc(REG_COUNT * riscv_xlen(target) / 4);
+	info->reg_values = malloc(GDB_REGNO_COUNT * riscv_xlen(target) / 4);
 
-	for (unsigned int i = 0; i < REG_COUNT; i++) {
+	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
 		struct reg *r = &target->reg_cache->reg_list[i];
 		r->value = info->reg_values + i * riscv_xlen(target) / 4;
 		if (r->dirty) {
 			LOG_ERROR("Register %d was dirty. Its value is lost.", i);
 		}
-		if (i == REG_PRIV) {
+		if (i == GDB_REGNO_PRIV) {
 			r->size = 8;
 		} else {
 			r->size = riscv_xlen(target);
@@ -1241,7 +1228,7 @@ static void reg_cache_set(struct target *target, unsigned int number,
 
 static int update_mstatus_actual(struct target *target)
 {
-	struct reg *mstatus_reg = &target->reg_cache->reg_list[REG_MSTATUS];
+	struct reg *mstatus_reg = &target->reg_cache->reg_list[GDB_REGNO_MSTATUS];
 	if (mstatus_reg->valid) {
 		// We previously made it valid.
 		return ERROR_OK;
@@ -1249,7 +1236,7 @@ static int update_mstatus_actual(struct target *target)
 
 	// Force reading the register. In that process mstatus_actual will be
 	// updated.
-	return register_get(&target->reg_cache->reg_list[REG_MSTATUS]);
+	return register_get(&target->reg_cache->reg_list[GDB_REGNO_MSTATUS]);
 }
 
 /*** OpenOCD target functions. ***/
@@ -1257,8 +1244,8 @@ static int update_mstatus_actual(struct target *target)
 static int register_read(struct target *target, riscv_reg_t *value, int regnum)
 {
 	riscv011_info_t *info = get_info(target);
-	if (regnum >= REG_CSR0 && regnum <= REG_CSR4095) {
-		cache_set32(target, 0, csrr(S0, regnum - REG_CSR0));
+	if (regnum >= GDB_REGNO_CSR0 && regnum <= GDB_REGNO_CSR4095) {
+		cache_set32(target, 0, csrr(S0, regnum - GDB_REGNO_CSR0));
 		cache_set_store(target, 1, S0, SLOT0);
 		cache_set_jump(target, 2);
 	} else {
@@ -1281,7 +1268,7 @@ static int register_read(struct target *target, riscv_reg_t *value, int regnum)
 	*value = cache_get(target, SLOT0);
 	LOG_DEBUG("reg[%d]=0x%" PRIx64, regnum, *value);
 
-	if (regnum == REG_MSTATUS) {
+	if (regnum == GDB_REGNO_MSTATUS) {
 		info->mstatus_actual = *value;
 	}
 
@@ -1296,13 +1283,13 @@ static int register_get(struct reg *reg)
 	maybe_write_tselect(target);
 	riscv_reg_t value = ~0;
 
-	if (reg->number <= REG_XPR31) {
+	if (reg->number <= GDB_REGNO_XPR31) {
 		value = reg_cache_get(target, reg->number);
 		LOG_DEBUG("%s=0x%" PRIx64, reg->name, reg_cache_get(target, reg->number));
-	} else if (reg->number == REG_PC) {
+	} else if (reg->number == GDB_REGNO_PC) {
 		value = info->dpc;
 		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
-	} else if (reg->number >= REG_FPR0 && reg->number <= REG_FPR31) {
+	} else if (reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) {
 		int result = update_mstatus_actual(target);
 		if (result != ERROR_OK) {
 			return result;
@@ -1316,22 +1303,24 @@ static int register_get(struct reg *reg)
 		}
 
 		if (riscv_xlen(target) == 32) {
-			cache_set32(target, i++, fsw(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+			cache_set32(target, i++, fsw(reg->number - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
 		} else {
-			cache_set32(target, i++, fsd(reg->number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+			cache_set32(target, i++, fsd(reg->number - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
 		}
 		cache_set_jump(target, i++);
 
 		if (cache_write(target, 4, true) != ERROR_OK) {
 			return ERROR_FAIL;
 		}
+	} else if (reg->number == GDB_REGNO_PRIV) {
+		value = get_field(info->dcsr, DCSR_PRV);
 	} else {
 		if (register_read(target, &value, reg->number) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 	buf_set_u64(reg->value, 0, riscv_xlen(target), value);
 
-	if (reg->number == REG_MSTATUS) {
+	if (reg->number == GDB_REGNO_MSTATUS) {
 		reg->valid = true;
 	}
 
@@ -1354,13 +1343,13 @@ static int register_write(struct target *target, unsigned int number,
 		cache_set_load(target, 0, S0, SLOT0);
 		cache_set_store(target, 1, S0, SLOT_LAST);
 		cache_set_jump(target, 2);
-	} else if (number <= REG_XPR31) {
-		cache_set_load(target, 0, number - REG_XPR0, SLOT0);
+	} else if (number <= GDB_REGNO_XPR31) {
+		cache_set_load(target, 0, number - GDB_REGNO_XPR0, SLOT0);
 		cache_set_jump(target, 1);
-	} else if (number == REG_PC) {
+	} else if (number == GDB_REGNO_PC) {
 		info->dpc = value;
 		return ERROR_OK;
-	} else if (number >= REG_FPR0 && number <= REG_FPR31) {
+	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 		int result = update_mstatus_actual(target);
 		if (result != ERROR_OK) {
 			return result;
@@ -1374,20 +1363,20 @@ static int register_write(struct target *target, unsigned int number,
 		}
 
 		if (riscv_xlen(target) == 32) {
-			cache_set32(target, i++, flw(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+			cache_set32(target, i++, flw(number - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
 		} else {
-			cache_set32(target, i++, fld(number - REG_FPR0, 0, DEBUG_RAM_START + 16));
+			cache_set32(target, i++, fld(number - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
 		}
 		cache_set_jump(target, i++);
-	} else if (number >= REG_CSR0 && number <= REG_CSR4095) {
+	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 		cache_set_load(target, 0, S0, SLOT0);
-		cache_set32(target, 1, csrw(S0, number - REG_CSR0));
+		cache_set32(target, 1, csrw(S0, number - GDB_REGNO_CSR0));
 		cache_set_jump(target, 2);
 
-		if (number == REG_MSTATUS) {
+		if (number == GDB_REGNO_MSTATUS) {
 			info->mstatus_actual = value;
 		}
-	} else if (number == REG_PRIV) {
+	} else if (number == GDB_REGNO_PRIV) {
 		info->dcsr = set_field(info->dcsr, DCSR_PRV, value);
 		return ERROR_OK;
 	} else {
@@ -1481,16 +1470,16 @@ static int init_target(struct command_context *cmd_ctx,
 
 	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
 	target->reg_cache->name = "RISC-V registers";
-	target->reg_cache->num_regs = REG_COUNT;
+	target->reg_cache->num_regs = GDB_REGNO_COUNT;
 
-	target->reg_cache->reg_list = calloc(REG_COUNT, sizeof(struct reg));
+	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
 
 	const unsigned int max_reg_name_len = 12;
-	info->reg_names = calloc(1, REG_COUNT * max_reg_name_len);
+	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
 	char *reg_name = info->reg_names;
 	info->reg_values = NULL;
 
-	for (unsigned int i = 0; i < REG_COUNT; i++) {
+	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
 		struct reg *r = &target->reg_cache->reg_list[i];
 		r->number = i;
 		r->caller_save = true;
@@ -1499,22 +1488,22 @@ static int init_target(struct command_context *cmd_ctx,
 		r->exist = true;
 		r->type = &riscv_reg_arch_type;
 		r->arch_info = target;
-		if (i <= REG_XPR31) {
+		if (i <= GDB_REGNO_XPR31) {
 			sprintf(reg_name, "x%d", i);
-		} else if (i == REG_PC) {
+		} else if (i == GDB_REGNO_PC) {
 			sprintf(reg_name, "pc");
-		} else if (i >= REG_FPR0 && i <= REG_FPR31) {
-			sprintf(reg_name, "f%d", i - REG_FPR0);
-		} else if (i >= REG_CSR0 && i <= REG_CSR4095) {
-			sprintf(reg_name, "csr%d", i - REG_CSR0);
-		} else if (i == REG_PRIV) {
+		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
+			sprintf(reg_name, "f%d", i - GDB_REGNO_FPR0);
+		} else if (i >= GDB_REGNO_CSR0 && i <= GDB_REGNO_CSR4095) {
+			sprintf(reg_name, "csr%d", i - GDB_REGNO_CSR0);
+		} else if (i == GDB_REGNO_PRIV) {
 			sprintf(reg_name, "priv");
 		}
 		if (reg_name[0]) {
 			r->name = reg_name;
 		}
 		reg_name += strlen(reg_name) + 1;
-		assert(reg_name < info->reg_names + REG_COUNT * max_reg_name_len);
+		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
 	}
 
 	return ERROR_OK;
@@ -1579,7 +1568,7 @@ static int step(struct target *target, int current, target_addr_t address,
 			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
 					riscv_xlen(target));
 		}
-		int result = register_write(target, REG_PC, address);
+		int result = register_write(target, GDB_REGNO_PC, address);
 		if (result != ERROR_OK)
 			return result;
 	}
@@ -2006,7 +1995,7 @@ static int riscv011_resume(struct target *target, int current,
 			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
 					riscv_xlen(target));
 		}
-		int result = register_write(target, REG_PC, address);
+		int result = register_write(target, GDB_REGNO_PC, address);
 		if (result != ERROR_OK)
 			return result;
 	}
@@ -2091,7 +2080,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	cache_write(target, CACHE_NO_READ, false);
 
 	riscv011_info_t *info = get_info(target);
-	const int max_batch_size = 256;
+	const unsigned max_batch_size = 256;
 	scans_t *scans = scans_new(target, max_batch_size);
 
 	uint32_t result_value = 0x777;
@@ -2252,7 +2241,7 @@ static int write_memory(struct target *target, target_addr_t address,
 		return ERROR_FAIL;
 	}
 
-	const int max_batch_size = 256;
+	const unsigned max_batch_size = 256;
 	scans_t *scans = scans_new(target, max_batch_size);
 
 	uint32_t result_value = 0x777;

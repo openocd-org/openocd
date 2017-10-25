@@ -67,7 +67,9 @@ typedef struct {
 	unsigned trigger_count[RISCV_MAX_HARTS];
 
 	/* For each physical trigger, contains -1 if the hwbp is available, or the
-	 * unique_id of the breakpoint/watchpoint that is using it. */
+	 * unique_id of the breakpoint/watchpoint that is using it.
+	 * Note that in RTOS mode the triggers are the same across all harts the
+	 * target controls, while otherwise only a single hart is controlled. */
 	int trigger_unique_id[RISCV_MAX_HWBPS];
 
 	/* The address of the debug RAM buffer. */
@@ -103,8 +105,8 @@ typedef struct {
 	void (*fill_dmi_write_u64)(struct target *target, char *buf, int a, uint64_t d);
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
-	void (*reset_current_hart)(struct target *target);
-        int (*test_compliance)(struct target *target);
+
+	int (*test_compliance)(struct target *target);
 } riscv_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
@@ -162,8 +164,6 @@ int riscv_halt_all_harts(struct target *target);
 int riscv_halt_one_hart(struct target *target, int hartid);
 int riscv_resume_all_harts(struct target *target);
 int riscv_resume_one_hart(struct target *target, int hartid);
-int riscv_reset_all_harts(struct target *target);
-int riscv_reset_one_hart(struct target *target, int hartid);
 
 /* Steps the hart that's currently selected in the RTOS, or if there is no RTOS
  * then the only hart. */

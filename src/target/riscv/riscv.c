@@ -394,31 +394,43 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 {
 	RISCV_INFO(r);
 
+	// In RTOS mode, we need to set the same trigger in the same slot on every
+	// hart, to keep up the illusion that each hart is a thread running on the
+	// same core.
+
+	// Otherwise, we just set the trigger on the one hart this target deals
+	// with.
+
 	riscv_reg_t tselect[RISCV_MAX_HARTS];
 
+	int first_hart = -1;
 	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
+		if (first_hart < 0)
+			first_hart = hartid;
 		tselect[hartid] = riscv_get_register_on_hart(target, hartid,
 				GDB_REGNO_TSELECT);
 	}
+	assert(first_hart >= 0);
 
 	unsigned int i;
-	for (i = 0; i < r->trigger_count[0]; i++) {
+	for (i = 0; i < r->trigger_count[first_hart]; i++) {
 		if (r->trigger_unique_id[i] != -1) {
 			continue;
 		}
 
-		riscv_set_register_on_hart(target, 0, GDB_REGNO_TSELECT, i);
+		riscv_set_register_on_hart(target, first_hart, GDB_REGNO_TSELECT, i);
 
-		uint64_t tdata1 = riscv_get_register_on_hart(target, 0, GDB_REGNO_TDATA1);
+		uint64_t tdata1 = riscv_get_register_on_hart(target, first_hart, GDB_REGNO_TDATA1);
 		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
 
 		int result = ERROR_OK;
-		for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
+			LOG_DEBUG(">>> hartid=%d", hartid);
 			if (!riscv_hart_enabled(target, hartid))
 				continue;
-			if (hartid > 0) {
+			if (hartid > first_hart) {
 				riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, i);
 			}
 			switch (type) {
@@ -448,14 +460,14 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 		break;
 	}
 
-	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+	for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
 		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT,
 				tselect[hartid]);
 	}
 
-	if (i >= r->trigger_count[0]) {
+	if (i >= r->trigger_count[first_hart]) {
 		LOG_ERROR("Couldn't find an available hardware trigger.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
@@ -507,19 +519,30 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 {
 	RISCV_INFO(r);
 
+	int first_hart = -1;
+	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+		if (!riscv_hart_enabled(target, hartid))
+			continue;
+		if (first_hart < 0) {
+			first_hart = hartid;
+			break;
+		}
+	}
+	assert(first_hart >= 0);
+
 	unsigned int i;
-	for (i = 0; i < r->trigger_count[0]; i++) {
+	for (i = 0; i < r->trigger_count[first_hart]; i++) {
 		if (r->trigger_unique_id[i] == trigger->unique_id) {
 			break;
 		}
 	}
-	if (i >= r->trigger_count[0]) {
+	if (i >= r->trigger_count[first_hart]) {
 		LOG_ERROR("Couldn't find the hardware resources used by hardware "
 				"trigger.");
 		return ERROR_FAIL;
 	}
 	LOG_DEBUG("Stop using resource %d for bp %d", i, trigger->unique_id);
-	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
+	for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
 		riscv_reg_t tselect = riscv_get_register_on_hart(target, hartid, GDB_REGNO_TSELECT);
@@ -629,7 +652,7 @@ static int riscv_examine(struct target *target)
 {
 	LOG_DEBUG("riscv_examine()");
 	if (target_was_examined(target)) {
-		LOG_DEBUG("Target was already examined.\n");
+		LOG_DEBUG("Target was already examined.");
 		return ERROR_OK;
 	}
 
@@ -676,38 +699,19 @@ static int old_or_new_riscv_halt(struct target *target)
 		return riscv_openocd_halt(target);
 }
 
-static int oldriscv_assert_reset(struct target *target)
+static int riscv_assert_reset(struct target *target)
 {
-	LOG_DEBUG("RISCV ASSERT RESET");
 	struct target_type *tt = get_target_type(target);
 	return tt->assert_reset(target);
 }
 
-static int oldriscv_deassert_reset(struct target *target)
+static int riscv_deassert_reset(struct target *target)
 {
 	LOG_DEBUG("RISCV DEASSERT RESET");
 	struct target_type *tt = get_target_type(target);
 	return tt->deassert_reset(target);
 }
 
-
-static int old_or_new_riscv_assert_reset(struct target *target)
-{
-	RISCV_INFO(r);
-	if (r->is_halted == NULL)
-		return oldriscv_assert_reset(target);
-	else
-		return riscv_openocd_assert_reset(target);
-}
-
-static int old_or_new_riscv_deassert_reset(struct target *target)
-{
-	RISCV_INFO(r);
-	if (r->is_halted == NULL)
-		return oldriscv_deassert_reset(target);
-	else
-		return riscv_openocd_deassert_reset(target);
-}
 
 static int oldriscv_resume(struct target *target, int current, uint32_t address,
 		int handle_breakpoints, int debug_execution)
@@ -1115,28 +1119,6 @@ int riscv_openocd_step(
 	return out;
 }
 
-int riscv_openocd_assert_reset(struct target *target)
-{
-	LOG_DEBUG("asserting reset for all harts");
-	int out = riscv_reset_all_harts(target);
-	if (out != ERROR_OK) {
-		LOG_ERROR("unable to reset all harts");
-		return out;
-	}
-
-	return out;
-}
-
-int riscv_openocd_deassert_reset(struct target *target)
-{
-	LOG_DEBUG("deasserting reset for all harts");
-	if (target->reset_halt)
-		riscv_halt_all_harts(target);
-	else
-		riscv_resume_all_harts(target);
-	return ERROR_OK;
-}
-
 /* Command Handlers */
 COMMAND_HANDLER(riscv_set_command_timeout_sec) {
 
@@ -1243,8 +1225,8 @@ struct target_type riscv_target =
 	.resume = old_or_new_riscv_resume,
 	.step = old_or_new_riscv_step,
 
-	.assert_reset = old_or_new_riscv_assert_reset,
-	.deassert_reset = old_or_new_riscv_deassert_reset,
+	.assert_reset = riscv_assert_reset,
+	.deassert_reset = riscv_deassert_reset,
 
 	.read_memory = riscv_read_memory,
 	.write_memory = riscv_write_memory,
@@ -1338,33 +1320,6 @@ int riscv_resume_one_hart(struct target *target, int hartid)
 
 	r->on_resume(target);
 	r->resume_current_hart(target);
-	return ERROR_OK;
-}
-
-int riscv_reset_all_harts(struct target *target)
-{
-	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		if (!riscv_hart_enabled(target, i))
-			continue;
-
-		riscv_reset_one_hart(target, i);
-	}
-
-	riscv_invalidate_register_cache(target);
-	return ERROR_OK;
-}
-
-int riscv_reset_one_hart(struct target *target, int hartid)
-{
-	RISCV_INFO(r);
-	LOG_DEBUG("resetting hart %d", hartid);
-	riscv_halt_one_hart(target, hartid);
-	riscv_set_current_hartid(target, hartid);
-	r->reset_current_hart(target);
-	/* At this point the hart must be halted.  On platforms that support
-	 * "reset halt" exactly we expect the hart to have been halted before
-	 * executing any instructions, while on older cores it'll just have
-	 * halted quickly. */
 	return ERROR_OK;
 }
 
@@ -1741,6 +1696,8 @@ const char *gdb_regno_name(enum gdb_regno regno)
 				sprintf(buf, "x%d", regno - GDB_REGNO_XPR0);
 			} else if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
 				sprintf(buf, "csr%d", regno - GDB_REGNO_CSR0);
+			} else if (regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) {
+				sprintf(buf, "f%d", regno - GDB_REGNO_FPR0);
 			} else {
 				sprintf(buf, "gdb_regno_%d", regno);
 			}

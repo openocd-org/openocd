@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015 Tomas Vanek                                        *
+ *   Copyright (C) 2017 Tomas Vanek                                        *
  *   vanekt@fbl.cz                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,9 +18,9 @@
  ***************************************************************************/
 
 /*
-	Disable watchdog for Kinetis Kx and KVx
+	Disable watchdog, 32-bit version for newer Kinetis
 	Parameters:
-		r0 ... WDOG base (in)
+		r0 ... WDOG32 base (in)
 
 	Used instruction set should work on both Cortex-M4 and M0+
 */
@@ -31,27 +31,44 @@
 	.thumb
 
 /* WDOG registers offsets */
-WDOG_STCTRLH	= 0
-WDOG_UNLOCK	= 0x0e
+WDOG_CS		= 0
+WDOG_CNT	= 4
+WDOG_TOVAL	= 8
 
-WDOG_KEY1	= 0xc520
-WDOG_KEY2	= 0xd928
+WDOG_KEY 	= 0xd928c520
 
 	.thumb_func
 start:
-/* WDOG_UNLOCK = 0xC520 */
-	ldr     r2, =WDOG_KEY1
-	strh    r2, [r0, WDOG_UNLOCK]
-/* WDOG_UNLOCK = 0xD928 */
-	ldr     r2, =WDOG_KEY2
-	strh    r2, [r0, WDOG_UNLOCK]
-/* WDOG_STCTRLH clear bit 0 */
-	movs	r4, #1
-	ldrh    r2, [r0, WDOG_STCTRLH]
-	bics	r2, r4
-	strh    r2, [r0, WDOG_STCTRLH]
+/* test WDOG_CS bit CMD32EN */
+	ldr     r2, [r0, WDOG_CS]
+	ldr     r3, =0x2000
+	tst     r2, r3
+	ldr     r3, =WDOG_KEY
+	beq     cmd16
+
+/* WDOG_CNT = key */
+	str     r3, [r0, WDOG_CNT]
+	b       unlocked
+
+cmd16:
+/* WDOG_CNT = key, halfword by halfword */
+	strh    r3, [r0, WDOG_CNT]
+	lsrs    r3, r3, #16
+	strh    r3, [r0, WDOG_CNT]
+
+/* WDOG_CS: clear EN bit 7, set UPDATE bit 5 */
+unlocked:
+	movs    r4, #0x80
+	bics    r2, r4
+	movs    r4, #0x20
+	orrs    r2, r4
+	str     r2, [r0, WDOG_CS]
+/* All active WDOG registers have to be updated, set dummy timeout */
+/* WDOG_TOVAL = 0x400 */
+	ldr     r3, =0x400
+	str     r3, [r0, WDOG_TOVAL]
 /* OpenOCD checks exit point address. Jump to the very end. */
-	b	done
+	b       done
 
 	.pool
 

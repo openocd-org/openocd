@@ -430,40 +430,10 @@ static void ftdi_execute_pathmove(struct jtag_command *cmd)
 	tap_set_end_state(tap_get_state());
 }
 
-#ifdef _DEBUG_JTAG_IO_
-static void debug_jtag_io_value(const char *prefix, const uint8_t *value,
-		unsigned int num_bits)
-{
-	if (!value) {
-		return;
-	}
-
-	char buf[33];
-	char *bufp = buf;
-	unsigned int chars = (num_bits + 3) / 4;
-	for (unsigned int i = 0; i < chars; i++) {
-		if (i && (i % 32) == 0) {
-			DEBUG_JTAG_IO("  %s%s", prefix, buf);
-			bufp = buf;
-		}
-		int start_bit = 4 * (chars - i - 1);
-		sprintf(bufp, "%01x", buf_get_u32(value, start_bit, 4));
-		bufp++;
-	}
-	if (bufp != buf) {
-		DEBUG_JTAG_IO("  %s%s", prefix, buf);
-	}
-}
-#endif
-
 static void ftdi_execute_scan(struct jtag_command *cmd)
 {
 	DEBUG_JTAG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
 		jtag_scan_type(cmd->cmd.scan));
-#ifdef _DEBUG_JTAG_IO_
-	debug_jtag_io_value("  out=", cmd->cmd.scan->fields->out_value,
-			cmd->cmd.scan->fields->num_bits);
-#endif
 
 	/* Make sure there are no trailing fields with num_bits == 0, or the logic below will fail. */
 	while (cmd->cmd.scan->num_fields > 0
@@ -545,11 +515,6 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 	DEBUG_JTAG_IO("%s scan, %i bits, end in %s",
 		(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
 		tap_state_name(tap_get_end_state()));
-
-#ifdef _DEBUG_JTAG_IO_
-	debug_jtag_io_value("   in=", cmd->cmd.scan->fields->in_value,
-			cmd->cmd.scan->fields->num_bits);
-#endif
 }
 
 static void ftdi_execute_reset(struct jtag_command *cmd)
@@ -1109,12 +1074,12 @@ static void ftdi_swd_swdio_en(bool enable)
  */
 static int ftdi_swd_run_queue(void)
 {
-	LOG_DEBUG("Executing %zu queued transactions", swd_cmd_queue_length);
+	LOG_DEBUG_IO("Executing %zu queued transactions", swd_cmd_queue_length);
 	int retval;
 	struct signal *led = find_signal_by_name("LED");
 
 	if (queued_retval != ERROR_OK) {
-		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
+		LOG_DEBUG_IO("Skipping due to previous errors: %d", queued_retval);
 		goto skip;
 	}
 
@@ -1135,7 +1100,7 @@ static int ftdi_swd_run_queue(void)
 	for (size_t i = 0; i < swd_cmd_queue_length; i++) {
 		int ack = buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn, 1, 3);
 
-		LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
+		LOG_DEBUG_IO("%s %s %s reg %X = %08"PRIx32,
 				ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
 				swd_cmd_queue[i].cmd & SWD_CMD_APnDP ? "AP" : "DP",
 				swd_cmd_queue[i].cmd & SWD_CMD_RnW ? "read" : "write",

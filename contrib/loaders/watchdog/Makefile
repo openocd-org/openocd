@@ -6,7 +6,7 @@ ARM_OBJCOPY ?= $(ARM_CROSS_COMPILE)objcopy
 
 ARM_AFLAGS = -EL -mthumb
 
-arm: armv7m_kinetis_wdog.inc
+arm: armv7m_kinetis_wdog.inc armv7m_kinetis_wdog32.inc
 
 armv7m_%.elf: armv7m_%.s
 	$(ARM_AS) $(ARM_AFLAGS) $< -o $@
