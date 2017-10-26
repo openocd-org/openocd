@@ -1047,7 +1047,8 @@ static int stm32x_probe(struct flash_bank *bank)
 		if (device_id == 0x451) {
 			for (i = 0; i < num_prot_blocks; i++) {
 				bank->prot_blocks[i].offset = bank->sectors[i << 1].offset;
-				bank->prot_blocks[i].size = bank->sectors[i << 1].size << 1;
+				bank->prot_blocks[i].size = bank->sectors[i << 1].size
+						+ bank->sectors[(i << 1) + 1].size;
 			}
 		}
 	} else {
