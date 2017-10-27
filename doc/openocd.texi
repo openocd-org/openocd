@@ -5440,9 +5440,16 @@ the flash.
 @anchor{at91samd}
 @deffn {Flash Driver} at91samd
 @cindex at91samd
-All members of the ATSAMD, ATSAMR, ATSAML and ATSAMC microcontroller
+All members of the ATSAM D2x, D1x, D0x, ATSAMR, ATSAML and ATSAMC microcontroller
 families from Atmel include internal flash and use ARM's Cortex-M0+ core.
-This driver uses the same command names/syntax as @xref{at91sam3}.
+
+Do not use for ATSAM D51 and E5x: use @xref{atsame5} instead.
+
+The devices have one flash bank:
+
+@example
+flash bank $_FLASHNAME at91samd 0x00000000 0 1 1 $_TARGETNAME
+@end example
 
 @deffn Command {at91samd chip-erase}
 Issues a complete Flash erase via the Device Service Unit (DSU). This can be
@@ -5604,9 +5611,72 @@ Command is used internally in event event reset-deassert-post.
 @end deffn
 @end deffn
 
+@anchor{atsame5}
+@deffn {Flash Driver} atsame5
+@cindex atsame5
+All members of the SAM E54, E53, E51 and D51 microcontroller
+families from Microchip (former Atmel) include internal flash
+and use ARM's Cortex-M4 core.
+
+The devices have two ECC flash banks with a swapping feature.
+This driver handles both banks together as it were one.
+Bank swapping is not supported yet.
+
+@example
+flash bank $_FLASHNAME atsame5 0x00000000 0 1 1 $_TARGETNAME
+@end example
+
+@deffn Command {atsame5 bootloader}
+Shows or sets the bootloader size configuration, stored in the User Page of the
+Flash. This is called the BOOTPROT region. When setting, the bootloader size
+must be specified in bytes. The nearest bigger protection size is used.
+Settings are written immediately but only take effect on MCU reset.
+Setting the bootloader size to 0 disables bootloader protection.
+
+@example
+atsame5 bootloader
+atsame5 bootloader 16384
+@end example
+@end deffn
+
+@deffn Command {atsame5 chip-erase}
+Issues a complete Flash erase via the Device Service Unit (DSU). This can be
+used to erase a chip back to its factory state and does not require the
+processor to be halted.
+@end deffn
+
+@deffn Command {atsame5 dsu_reset_deassert}
+This command releases internal reset held by DSU
+and prepares reset vector catch in case of reset halt.
+Command is used internally in event event reset-deassert-post.
+@end deffn
+
+@deffn Command {atsame5 userpage}
+Writes or reads the first 64 bits of NVM User Page which is located at
+0x804000. This field includes various fuses.
+Reading is done by invoking this command without any arguments.
+Writing is possible by giving 1 or 2 hex values. The first argument
+is the value to be written and the second one is an optional bit mask
+(a zero bit in the mask means the bit stays unchanged).
+The reserved fields are always masked out and cannot be changed.
+
+@example
+# Read
+>atsame5 userpage
+USER PAGE: 0xAEECFF80FE9A9239
+# Write
+>atsame5 userpage 0xAEECFF80FE9A9239
+# Write 2 to SEESBLK and 4 to SEEPSZ fields but leave other bits unchanged
+# (setup SmartEEPROM of virtual size 8192 bytes)
+>atsame5 userpage 0x4200000000 0x7f00000000
+@end example
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} atsamv
 @cindex atsamv
-All members of the ATSAMV, ATSAMS, and ATSAME families from
+All members of the ATSAMV7x, ATSAMS70, and ATSAME70 families from
 Atmel include internal flash and use ARM's Cortex-M7 core.
 This driver uses the same command names/syntax as @xref{at91sam3}.
 @end deffn

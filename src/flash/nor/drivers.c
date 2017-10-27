@@ -29,6 +29,7 @@ extern struct flash_driver at91sam4l_flash;
 extern struct flash_driver at91sam7_flash;
 extern struct flash_driver at91samd_flash;
 extern struct flash_driver ath79_flash;
+extern struct flash_driver atsame5_flash;
 extern struct flash_driver atsamv_flash;
 extern struct flash_driver avr_flash;
 extern struct flash_driver bluenrgx_flash;
@@ -97,6 +98,7 @@ static struct flash_driver *flash_drivers[] = {
 	&at91sam7_flash,
 	&at91samd_flash,
 	&ath79_flash,
+	&atsame5_flash,
 	&atsamv_flash,
 	&avr_flash,
 	&bluenrgx_flash,
