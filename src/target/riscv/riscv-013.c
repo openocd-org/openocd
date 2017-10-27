@@ -28,6 +28,7 @@
 #include "batch.h"
 
 #define DMI_DATA1 (DMI_DATA0 + 1)
+#define DMI_PROGBUF1 (DMI_PROGBUF0 + 1)
 
 static void riscv013_on_step_or_resume(struct target *target, bool step);
 static void riscv013_step_or_resume_current_hart(struct target *target, bool step);
@@ -55,6 +56,12 @@ static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
+static int register_write_direct(struct target *target, unsigned number,
+		uint64_t value);
+static int read_memory(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer);
+static int write_memory(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -127,6 +134,12 @@ struct memory_cache_line {
 	bool dirty;
 };
 
+typedef enum {
+	YNM_MAYBE,
+	YNM_YES,
+	YNM_NO
+} yes_no_maybe_t;
+
 typedef struct {
 	/* Number of address bits in the dbus register. */
 	unsigned abits;
@@ -142,6 +155,10 @@ typedef struct {
 	 * the value we present to the user. That one may be stored in the
 	 * reg_cache. */
 	uint64_t mstatus_actual;
+
+	yes_no_maybe_t progbuf_writable;
+	/* We only need the address so that we know the alignment of the buffer. */
+	riscv_addr_t progbuf_address;
 
 	/* Single buffer that contains all register names, instead of calling
 	 * malloc for each register. Needs to be freed when reg_list is freed. */
@@ -175,7 +192,12 @@ typedef struct {
 	// When a function returns some error due to a failure indicated by the
 	// target in cmderr, the caller can look here to see what that error was.
 	// (Compare with errno.)
-	unsigned cmderr;
+	uint8_t cmderr;
+
+	// Some fields from hartinfo.
+	uint8_t datasize;
+	uint8_t dataaccess;
+	int16_t dataaddr;
 } riscv013_info_t;
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
@@ -737,6 +759,200 @@ static int register_write_abstract(struct target *target, uint32_t number,
 	return ERROR_OK;
 }
 
+static int examine_progbuf(struct target *target)
+{
+	riscv013_info_t *info = get_info(target);
+
+	if (info->progbuf_writable != YNM_MAYBE)
+		return ERROR_OK;
+
+	// Figure out if progbuf is writable.
+
+	if (info->progbufsize < 1) {
+		info->progbuf_writable = YNM_NO;
+		LOG_INFO("No program buffer present.");
+		return ERROR_OK;
+	}
+
+	uint64_t s0;
+	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	riscv_program_insert(&program, auipc(S0));
+	if (riscv_program_exec(&program, target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (register_read_direct(target, &info->progbuf_address, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	riscv_program_init(&program, target);
+	riscv_program_insert(&program, sw(S0, S0, 0));
+	int result = riscv_program_exec(&program, target);
+
+	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (result != ERROR_OK) {
+		// This program might have failed if the program buffer is not
+		// writable.
+		info->progbuf_writable = YNM_NO;
+		return ERROR_OK;
+	}
+
+	uint32_t written = dmi_read(target, DMI_PROGBUF0);
+	if (written == (uint32_t) info->progbuf_address) {
+		LOG_INFO("progbuf is writable at 0x%" TARGET_PRIxADDR,
+				info->progbuf_address);
+		info->progbuf_writable = YNM_YES;
+
+	} else {
+		LOG_INFO("progbuf is not writeable at 0x%" TARGET_PRIxADDR,
+				info->progbuf_address);
+		info->progbuf_writable = YNM_NO;
+	}
+
+	return ERROR_OK;
+}
+
+typedef enum {
+	SPACE_DMI_DATA,
+	SPACE_DMI_PROGBUF,
+	SPACE_DMI_RAM
+} memory_space_t;
+
+typedef struct {
+	// How can the debugger access this memory?
+	memory_space_t memory_space;
+	// Memory address to access the scratch memory from the hart.
+	riscv_addr_t hart_address;
+	// Memory address to access the scratch memory from the debugger.
+	riscv_addr_t debug_address;
+} scratch_mem_t;
+
+/**
+ * Find some scratch memory to be used with the given program.
+ */
+static int scratch_find(struct target *target,
+		scratch_mem_t *scratch,
+		struct riscv_program *program,
+		unsigned size_bytes)
+{
+	riscv013_info_t *info = get_info(target);
+
+	riscv_addr_t alignment = 1;
+	while (alignment < size_bytes)
+		alignment *= 2;
+
+	if (info->dataaccess == 1) {
+		// Sign extend dataaddr.
+		scratch->hart_address = info->dataaddr;
+		if (info->dataaddr & (1<<11)) {
+			scratch->hart_address |= 0xfffffffffffff000ULL;
+		}
+		// Align.
+		scratch->hart_address = (scratch->hart_address + alignment - 1) & ~(alignment - 1);
+
+		if ((size_bytes + scratch->hart_address - info->dataaddr + 3) / 4 >=
+				info->datasize) {
+			scratch->memory_space = SPACE_DMI_DATA;
+			scratch->debug_address = (scratch->hart_address - info->dataaddr) / 4;
+			return ERROR_OK;
+		}
+	}
+
+	if (examine_progbuf(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	// Allow for ebreak at the end of the program.
+	unsigned program_size = (program->instruction_count + 1 ) * 4;
+	scratch->hart_address = (info->progbuf_address + program_size + alignment - 1) &
+		~(alignment - 1);
+	if ((size_bytes + scratch->hart_address - info->progbuf_address + 3) / 4 >=
+			info->progbufsize) {
+		scratch->memory_space = SPACE_DMI_PROGBUF;
+		scratch->debug_address = (scratch->hart_address - info->progbuf_address) / 4;
+		return ERROR_OK;
+	}
+
+	if (riscv_use_scratch_ram) {
+		scratch->hart_address = (riscv_use_scratch_ram + alignment - 1) &
+			~(alignment - 1);
+		scratch->memory_space = SPACE_DMI_RAM;
+		scratch->debug_address = scratch->hart_address;
+	}
+
+	LOG_ERROR("Couldn't find %d bytes of scratch RAM to use. Please configure "
+			"an address with 'riscv set_scratch_ram'.", size_bytes);
+	return ERROR_FAIL;
+}
+
+static int scratch_read64(struct target *target, scratch_mem_t *scratch,
+		uint64_t *value)
+{
+	switch (scratch->memory_space) {
+		case SPACE_DMI_DATA:
+			*value = dmi_read(target, DMI_DATA0 + scratch->debug_address);
+			*value |= ((uint64_t) dmi_read(target, DMI_DATA1 +
+						scratch->debug_address)) << 32;
+			break;
+		case SPACE_DMI_PROGBUF:
+			*value = dmi_read(target, DMI_PROGBUF0 + scratch->debug_address);
+			*value |= ((uint64_t) dmi_read(target, DMI_PROGBUF1 +
+						scratch->debug_address)) << 32;
+			break;
+		case SPACE_DMI_RAM:
+			{
+				uint8_t buffer[8];
+				if (read_memory(target, scratch->debug_address, 4, 2, buffer) != ERROR_OK)
+					return ERROR_FAIL;
+				*value = buffer[0] |
+					(((uint64_t) buffer[1]) << 8) |
+					(((uint64_t) buffer[2]) << 16) |
+					(((uint64_t) buffer[3]) << 24) |
+					(((uint64_t) buffer[4]) << 32) |
+					(((uint64_t) buffer[5]) << 40) |
+					(((uint64_t) buffer[6]) << 48) |
+					(((uint64_t) buffer[7]) << 56);
+			}
+			break;
+	}
+	return ERROR_OK;
+}
+
+static int scratch_write64(struct target *target, scratch_mem_t *scratch,
+		uint64_t value)
+{
+	switch (scratch->memory_space) {
+		case SPACE_DMI_DATA:
+			dmi_write(target, DMI_DATA0 + scratch->debug_address, value);
+			dmi_write(target, DMI_DATA1 + scratch->debug_address, value >> 32);
+			break;
+		case SPACE_DMI_PROGBUF:
+			dmi_write(target, DMI_PROGBUF0 + scratch->debug_address, value);
+			dmi_write(target, DMI_PROGBUF1 + scratch->debug_address, value >> 32);
+			break;
+		case SPACE_DMI_RAM:
+			{
+				uint8_t buffer[8] = {
+					value,
+					value >> 8,
+					value >> 16,
+					value >> 24,
+					value >> 32,
+					value >> 40,
+					value >> 48,
+					value >> 56
+				};
+				if (write_memory(target, scratch->debug_address, 4, 2, buffer) != ERROR_OK)
+					return ERROR_FAIL;
+			}
+			break;
+	}
+	return ERROR_OK;
+}
+
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value)
 {
@@ -749,33 +965,49 @@ static int register_write_direct(struct target *target, unsigned number,
 		return ERROR_OK;
 
 	struct riscv_program program;
-
 	riscv_program_init(&program, target);
 
 	uint64_t s0;
 	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
-		return ERROR_FAIL;
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
+			supports_extension(target, 'D') &&
+			riscv_xlen(target) < 64) {
+		/* There are no instructions to move all the bits from a register, so
+		 * we need to use some scratch RAM. */
+		riscv_program_insert(&program, fld(number - GDB_REGNO_FPR0, S0, 0));
 
-	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		if (supports_extension(target, 'D') && riscv_xlen(target) >= 64) {
-			riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
-		} else {
-			riscv_program_insert(&program, fmv_s_x(number - GDB_REGNO_FPR0, S0));
-		}
-	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		riscv_program_csrw(&program, S0, number);
+		scratch_mem_t scratch;
+		if (scratch_find(target, &scratch, &program, 8) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (register_write_direct(target, GDB_REGNO_S0, scratch.hart_address)
+				!= ERROR_OK)
+			return ERROR_FAIL;
+
+		if (scratch_write64(target, &scratch, value) != ERROR_OK)
+			return ERROR_FAIL;
+
 	} else {
-		LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
-		abort();
+		if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+			if (supports_extension(target, 'D')) {
+				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
+			} else {
+				riscv_program_insert(&program, fmv_s_x(number - GDB_REGNO_FPR0, S0));
+			}
+		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+			riscv_program_csrw(&program, S0, number);
+		} else {
+			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
+			abort();
+		}
 	}
 
 	int exec_out = riscv_program_exec(&program, target);
-	if (exec_out != ERROR_OK) {
-		riscv013_clear_abstract_error(target);
-	}
 
 	// Restore S0.
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
@@ -791,21 +1023,38 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			riscv_xlen(target));
 
 	if (result != ERROR_OK) {
+		assert(number != GDB_REGNO_S0);
+
 		result = ERROR_OK;
 
 		struct riscv_program program;
 		riscv_program_init(&program, target);
-		assert(number != GDB_REGNO_S0);
+
+		scratch_mem_t scratch;
+		bool use_scratch = false;
 
 		uint64_t s0;
 		if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 			return ERROR_FAIL;
 
 		// Write program to move data into s0.
+
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			// TODO: Possibly set F in mstatus.
-			// TODO: Fully support D extension on RV32.
-			if (supports_extension(target, 'D') && riscv_xlen(target) >= 64) {
+			if (supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+				/* There are no instructions to move all the bits from a
+				 * register, so we need to use some scratch RAM. */
+				riscv_program_insert(&program, fsd(number - GDB_REGNO_FPR0, S0,
+							0));
+
+				if (scratch_find(target, &scratch, &program, 8) != ERROR_OK)
+					return ERROR_FAIL;
+				use_scratch = true;
+
+				if (register_write_direct(target, GDB_REGNO_S0,
+							scratch.hart_address) != ERROR_OK)
+					return ERROR_FAIL;
+			} else if (supports_extension(target, 'D')) {
 				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
 			} else {
 				riscv_program_insert(&program, fmv_x_s(S0, number - GDB_REGNO_FPR0));
@@ -819,13 +1068,16 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 		// Execute program.
 		result = riscv_program_exec(&program, target);
-		if (result != ERROR_OK) {
-			riscv013_clear_abstract_error(target);
+
+		if (use_scratch) {
+			if (scratch_read64(target, &scratch, value) != ERROR_OK)
+				return ERROR_FAIL;
+		} else {
+			// Read S0
+			if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
+				return ERROR_FAIL;
 		}
 
-		// Read S0
-		if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
-			return ERROR_FAIL;
 		// Restore S0.
 		if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
 			return ERROR_FAIL;
@@ -993,7 +1245,6 @@ static int examine(struct target *target)
 	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
 	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
 
-	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
 	if (get_field(dmstatus, DMI_DMSTATUS_VERSION) != 2) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
@@ -1004,10 +1255,17 @@ static int examine(struct target *target)
 	// Reset the Debug Module.
 	dmi_write(target, DMI_DMCONTROL, 0);
 	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
-	dmcontrol = dmi_read(target, DMI_DMCONTROL);
+	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
+
+	uint32_t hartinfo = dmi_read(target, DMI_HARTINFO);
 
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
 	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
+	LOG_DEBUG("hartinfo:  0x%08x", hartinfo);
+
+	info->datasize = get_field(hartinfo, DMI_HARTINFO_DATASIZE);
+	info->dataaccess = get_field(hartinfo, DMI_HARTINFO_DATAACCESS);
+	info->dataaddr = get_field(hartinfo, DMI_HARTINFO_DATAADDR);
 
 	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
