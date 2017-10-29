@@ -27,7 +27,7 @@
 #include "helper/types.h"
 #include "rtos_ecos_stackings.h"
 
-static int eCos_detect_rtos(struct target *target);
+static bool eCos_detect_rtos(struct target *target);
 static int eCos_create(struct target *target);
 static int eCos_update_threads(struct rtos *rtos);
 static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
@@ -363,14 +363,14 @@ static int eCos_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 	return 0;
 }
 
-static int eCos_detect_rtos(struct target *target)
+static bool eCos_detect_rtos(struct target *target)
 {
 	if ((target->rtos->symbols != NULL) &&
 			(target->rtos->symbols[eCos_VAL_thread_list].address != 0)) {
 		/* looks like eCos */
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 static int eCos_create(struct target *target)
