@@ -35,7 +35,7 @@ static const struct rtos_register_stacking *get_stacking_info_arm926ejs(const st
 static int is_thread_id_valid(const struct rtos *rtos, int64_t thread_id);
 static int is_thread_id_valid_arm926ejs(const struct rtos *rtos, int64_t thread_id);
 
-static int ThreadX_detect_rtos(struct target *target);
+static bool ThreadX_detect_rtos(struct target *target);
 static int ThreadX_create(struct target *target);
 static int ThreadX_update_threads(struct rtos *rtos);
 static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
@@ -492,14 +492,14 @@ static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 	return 0;
 }
 
-static int ThreadX_detect_rtos(struct target *target)
+static bool ThreadX_detect_rtos(struct target *target)
 {
 	if ((target->rtos->symbols != NULL) &&
 			(target->rtos->symbols[ThreadX_VAL_tx_thread_created_ptr].address != 0)) {
 		/* looks like ThreadX */
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 #if 0

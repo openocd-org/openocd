@@ -59,7 +59,7 @@ struct rtos {
 
 struct rtos_type {
 	const char *name;
-	int (*detect_rtos)(struct target *target);
+	bool (*detect_rtos)(struct target *target);
 	int (*create)(struct target *target);
 	int (*smp_init)(struct target *target);
 	int (*update_threads)(struct rtos *rtos);

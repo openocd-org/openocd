@@ -241,7 +241,7 @@ static int uCOS_III_update_thread_offsets(struct rtos *rtos)
 	return ERROR_OK;
 }
 
-static int uCOS_III_detect_rtos(struct target *target)
+static bool uCOS_III_detect_rtos(struct target *target)
 {
 	return target->rtos->symbols != NULL &&
 			target->rtos->symbols[uCOS_III_VAL_OSRunning].address != 0;
