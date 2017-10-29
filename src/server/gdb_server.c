@@ -71,8 +71,8 @@ struct gdb_connection {
 	int ctrl_c;
 	enum target_state frontend_state;
 	struct image *vflash_image;
-	int closed;
-	int busy;
+	bool closed;
+	bool busy;
 	int noack_mode;
 	/* set flag to true if you want the next stepi to return immediately.
 	 * allowing GDB to pick up a fresh set of register values from the target
@@ -215,7 +215,7 @@ static int gdb_get_char_inner(struct connection *connection, int *next_char)
 		if (gdb_con->buf_cnt > 0)
 			break;
 		if (gdb_con->buf_cnt == 0) {
-			gdb_con->closed = 1;
+			gdb_con->closed = true;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 
@@ -227,10 +227,10 @@ static int gdb_get_char_inner(struct connection *connection, int *next_char)
 				usleep(1000);
 				break;
 			case WSAECONNABORTED:
-				gdb_con->closed = 1;
+				gdb_con->closed = true;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			case WSAECONNRESET:
-				gdb_con->closed = 1;
+				gdb_con->closed = true;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
 				LOG_ERROR("read: %d", errno);
@@ -242,14 +242,14 @@ static int gdb_get_char_inner(struct connection *connection, int *next_char)
 				usleep(1000);
 				break;
 			case ECONNABORTED:
-				gdb_con->closed = 1;
+				gdb_con->closed = true;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			case ECONNRESET:
-				gdb_con->closed = 1;
+				gdb_con->closed = true;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
 				LOG_ERROR("read: %s", strerror(errno));
-				gdb_con->closed = 1;
+				gdb_con->closed = true;
 				return ERROR_SERVER_REMOTE_CLOSED;
 		}
 #endif
@@ -341,7 +341,7 @@ static int gdb_write(struct connection *connection, void *data, int len)
 
 	if (connection_write(connection, data, len) == len)
 		return ERROR_OK;
-	gdb_con->closed = 1;
+	gdb_con->closed = true;
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
@@ -448,7 +448,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 				return ERROR_OK;
 			} else {
 				LOG_ERROR("unknown character(1) 0x%2.2x in reply, dropping connection", reply);
-				gdb_con->closed = 1;
+				gdb_con->closed = true;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 		} else if (reply == '$') {
@@ -458,7 +458,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 		} else {
 			LOG_ERROR("unknown character(2) 0x%2.2x in reply, dropping connection",
 				reply);
-			gdb_con->closed = 1;
+			gdb_con->closed = true;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 	}
@@ -471,9 +471,9 @@ static int gdb_put_packet_inner(struct connection *connection,
 int gdb_put_packet(struct connection *connection, char *buffer, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
-	gdb_con->busy = 1;
+	gdb_con->busy = true;
 	int retval = gdb_put_packet_inner(connection, buffer, len);
-	gdb_con->busy = 0;
+	gdb_con->busy = false;
 
 	/* we sent some data, reset timer for keep alive messages */
 	kept_alive();
@@ -679,9 +679,9 @@ static int gdb_get_packet_inner(struct connection *connection,
 static int gdb_get_packet(struct connection *connection, char *buffer, int *len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
-	gdb_con->busy = 1;
+	gdb_con->busy = true;
 	int retval = gdb_get_packet_inner(connection, buffer, len);
-	gdb_con->busy = 0;
+	gdb_con->busy = false;
 	return retval;
 }
 
@@ -930,8 +930,8 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->ctrl_c = 0;
 	gdb_connection->frontend_state = TARGET_HALTED;
 	gdb_connection->vflash_image = NULL;
-	gdb_connection->closed = 0;
-	gdb_connection->busy = 0;
+	gdb_connection->closed = false;
+	gdb_connection->busy = false;
 	gdb_connection->noack_mode = 0;
 	gdb_connection->sync = false;
 	gdb_connection->mem_write_error = false;
