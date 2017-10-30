@@ -159,23 +159,22 @@ static const struct samd_part samd21_parts[] = {
 	{ 0xC, "SAMD21E16A", 64, 8 },
 	{ 0xD, "SAMD21E15A", 32, 4 },
 	{ 0xE, "SAMD21E14A", 16, 2 },
-    /* Below are B Variants (Table 3-7 from rev I of datasheet) */
-	{ 0x20, "SAMD21J16B", 64, 8 },
-	{ 0x21, "SAMD21J15B", 32, 4 },
-	{ 0x23, "SAMD21G16B", 64, 8 },
-	{ 0x24, "SAMD21G15B", 32, 4 },
-	{ 0x26, "SAMD21E16B", 64, 8 },
-	{ 0x27, "SAMD21E15B", 32, 4 },
-};
 
-/* Known SAMR21 parts. */
-static const struct samd_part samr21_parts[] = {
+    /* SAMR21 parts have integrated SAMD21 with a radio */
 	{ 0x19, "SAMR21G18A", 256, 32 },
 	{ 0x1A, "SAMR21G17A", 128, 32 },
 	{ 0x1B, "SAMR21G16A",  64, 32 },
 	{ 0x1C, "SAMR21E18A", 256, 32 },
 	{ 0x1D, "SAMR21E17A", 128, 32 },
 	{ 0x1E, "SAMR21E16A",  64, 32 },
+
+    /* SAMD21 B Variants (Table 3-7 from rev I of datasheet) */
+	{ 0x20, "SAMD21J16B", 64, 8 },
+	{ 0x21, "SAMD21J15B", 32, 4 },
+	{ 0x23, "SAMD21G16B", 64, 8 },
+	{ 0x24, "SAMD21G15B", 32, 4 },
+	{ 0x26, "SAMD21E16B", 64, 8 },
+	{ 0x27, "SAMD21E15B", 32, 4 },
 };
 
 /* Known SAML21 parts. */
@@ -200,6 +199,10 @@ static const struct samd_part saml21_parts[] = {
 	{ 0x1A, "SAML21E17B", 128, 16 },
 	{ 0x1B, "SAML21E16B", 64, 8 },
 	{ 0x1C, "SAML21E15B", 32, 4 },
+
+    /* SAMR30 parts have integrated SAML21 with a radio */
+	{ 0x1E, "SAMR30G18A", 256, 32 },
+	{ 0x1F, "SAMR30E18A", 256, 32 },
 };
 
 /* Known SAML22 parts. */
@@ -264,8 +267,6 @@ static const struct samd_family samd_families[] = {
 		samd20_parts, ARRAY_SIZE(samd20_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
 		samd21_parts, ARRAY_SIZE(samd21_parts) },
-	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
-		samr21_parts, ARRAY_SIZE(samr21_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_09,
 		samd09_parts, ARRAY_SIZE(samd09_parts) },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_10,
