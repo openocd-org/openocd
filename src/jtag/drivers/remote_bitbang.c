@@ -281,6 +281,7 @@ static struct bitbang_interface remote_bitbang_bitbang = {
 	.swd_write = &remote_bitbang_swd_write,
 	.blink = &remote_bitbang_blink,
 	.sleep = &remote_bitbang_sleep,
+	.flush = &remote_bitbang_flush,
 };
 
 static int remote_bitbang_init_tcp(void)
