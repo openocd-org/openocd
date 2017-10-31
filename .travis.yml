@@ -28,5 +28,5 @@ matrix:
                       - gcc-multilib
 
 script:
-    - ./bootstrap && ./configure && make
+    - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi && make
     - file src/openocd
