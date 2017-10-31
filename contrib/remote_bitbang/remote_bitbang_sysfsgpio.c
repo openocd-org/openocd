@@ -302,7 +302,7 @@ static void process_remote_protocol(void)
 			break;
 		else if (c == 'b' || c == 'B') /* Blink */
 			continue;
-		else if (c >= 'r' && c <= 'r' + 2) { /* Reset */
+		else if (c >= 'r' && c <= 'r' + 3) { /* Reset */
 			char d = c - 'r';
 			sysfsgpio_reset(!!(d & 2),
 					(d & 1));
