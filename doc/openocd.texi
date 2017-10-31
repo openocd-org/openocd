@@ -4503,12 +4503,6 @@ and (if the target is using it) after SRST has been
 released on the scan chain.
 @item @b{reset-end}
 @* Issued as the final step in @command{reset} processing.
-@ignore
-@item @b{reset-halt-post}
-@* Currently not used
-@item @b{reset-halt-pre}
-@* Currently not used
-@end ignore
 @item @b{reset-init}
 @* Used by @b{reset init} command for board-specific initialization.
 This event fires after @emph{reset-deassert-post}.
@@ -4525,12 +4519,6 @@ before @command{reset_init} is called.
 This is the most robust place to use @command{jtag_rclk}
 or @command{adapter_khz} to switch to a low JTAG clock rate,
 when reset disables PLLs needed to use a fast clock.
-@ignore
-@item @b{reset-wait-pos}
-@* Currently not used
-@item @b{reset-wait-pre}
-@* Currently not used
-@end ignore
 @item @b{resume-start}
 @* Before any target is resumed
 @item @b{resume-end}

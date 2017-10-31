@@ -204,10 +204,6 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESET_ASSERT_POST,   .name = "reset-assert-post" },
 	{ .value = TARGET_EVENT_RESET_DEASSERT_PRE,  .name = "reset-deassert-pre" },
 	{ .value = TARGET_EVENT_RESET_DEASSERT_POST, .name = "reset-deassert-post" },
-	{ .value = TARGET_EVENT_RESET_HALT_PRE,      .name = "reset-halt-pre" },
-	{ .value = TARGET_EVENT_RESET_HALT_POST,     .name = "reset-halt-post" },
-	{ .value = TARGET_EVENT_RESET_WAIT_PRE,      .name = "reset-wait-pre" },
-	{ .value = TARGET_EVENT_RESET_WAIT_POST,     .name = "reset-wait-post" },
 	{ .value = TARGET_EVENT_RESET_INIT,          .name = "reset-init" },
 	{ .value = TARGET_EVENT_RESET_END,           .name = "reset-end" },
 
