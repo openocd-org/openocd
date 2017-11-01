@@ -143,10 +143,6 @@ typedef struct {
 	unsigned datacount;
 	/* Number of words in the Program Buffer. */
 	unsigned progsize;
-	/* Number of Program Buffer registers. */
-	/* Number of words in Debug RAM. */
-	uint64_t tselect;
-	bool tselect_dirty;
 	/* The value that mstatus actually has on the target right now. This is not
 	 * the value we present to the user. That one may be stored in the
 	 * reg_cache. */
