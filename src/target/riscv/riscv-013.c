@@ -2229,7 +2229,7 @@ int riscv013_test_compliance(struct target *target) {
 
   for (int i = 0; i < riscv_count_harts(target); i +=32){
     uint32_t haltstat =  dmi_read(target, 0x40 + (i / 32));
-    uint32_t haltstat_expected = (((i + 1) * 32) <= riscv_count_harts(target)) ? 0xFFFFFFFF : ((1 << (riscv_count_harts(target) % 32)) - 1);
+    uint32_t haltstat_expected = (((i + 1) * 32) <= riscv_count_harts(target)) ? 0xFFFFFFFFU : ((1U << (riscv_count_harts(target) % 32)) - 1);
     COMPLIANCE_TEST(haltstat == haltstat_expected, "Halt Status Registers should report all halted harts.");
   }
 
@@ -2276,7 +2276,6 @@ int riscv013_test_compliance(struct target *target) {
   // But at any rate, this is not legal and should cause an error.
   dmi_write(target, DMI_COMMAND, 0xAAAAAAAA);
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0xAAAAAAAA, "COMMAND register should be R/W");
-  uint32_t result = dmi_read(target, DMI_ABSTRACTCS);
   COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
 		  "Illegal COMMAND should result in UNSUPPORTED");
   dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
@@ -2291,7 +2290,7 @@ int riscv013_test_compliance(struct target *target) {
   uint32_t busy;
   command = set_field(command, AC_ACCESS_REGISTER_SIZE, riscv_xlen(target) > 32 ? 3:2);
   command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
-  for (int i = 1 ; i < 32 ; i = i << 1) {
+  for (unsigned int i = 1 ; i < 32 ; i = i << 1) {
     command = set_field(command, AC_ACCESS_REGISTER_REGNO, 0x1000 + GDB_REGNO_X0 + i);
     command = set_field(command, AC_ACCESS_REGISTER_WRITE, 1);
     dmi_write(target, DMI_DATA0, i);
@@ -2375,7 +2374,7 @@ int riscv013_test_compliance(struct target *target) {
   }
   
   // Core Register Tests
-  uint64_t bogus_dpc;
+  uint64_t bogus_dpc = 0xdeadbeef;
   for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel ++){
     riscv_set_current_hartid(target, hartsel);
 
@@ -2450,8 +2449,9 @@ int riscv013_test_compliance(struct target *target) {
 
   // verify that DPC *is* affected by ndmreset. Since we don't know what it *should* be,
   // just verify that at least it's not the bogus value anymore.
-  uint64_t dpc = riscv_get_register(target, GDB_REGNO_DPC);
+  COMPLIANCE_TEST(bogus_dpc != 0xdeadbeef, "BOGUS DPC should have been set somehow (bug in compliance test)");
   COMPLIANCE_TEST(bogus_dpc != riscv_get_register(target, GDB_REGNO_DPC), "NDMRESET should move $DPC to reset value.");
+  
   COMPLIANCE_TEST(riscv_halt_reason(target, 0) == RISCV_HALT_INTERRUPT, "After NDMRESET halt, DCSR should report cause of halt");
   
   // DMACTIVE -- deasserting DMACTIVE should reset all the above values.
