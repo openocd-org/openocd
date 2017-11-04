@@ -4820,6 +4820,8 @@ The following target events are defined:
 @* Before target examine is called.
 @item @b{examine-end}
 @* After target examine is called with no errors.
+@item @b{examine-fail}
+@* After target examine fails.
 @item @b{gdb-attach}
 @* When GDB connects. Issued before any GDB communication with the target
 starts. GDB expects the target is halted during attachment.
@@ -5991,7 +5993,8 @@ Used in kinetis 'fcf_source protection' mode only.
 @end deffn
 
 @deffn Command {kinetis mdm check_security}
-Checks status of device security lock. Used internally in examine-end event.
+Checks status of device security lock. Used internally in examine-end
+and examine-fail event.
 @end deffn
 
 @deffn Command {kinetis mdm halt}

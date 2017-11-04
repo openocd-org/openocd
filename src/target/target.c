@@ -219,6 +219,7 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESET_END,           .name = "reset-end" },
 
 	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-start" },
+	{ .value = TARGET_EVENT_EXAMINE_FAIL, .name = "examine-fail" },
 	{ .value = TARGET_EVENT_EXAMINE_END, .name = "examine-end" },
 
 	{ .value = TARGET_EVENT_DEBUG_HALTED, .name = "debug-halted" },
@@ -708,13 +709,17 @@ static int default_check_reset(struct target *target)
 	return ERROR_OK;
 }
 
+/* Equvivalent Tcl code arp_examine_one is in src/target/startup.tcl
+ * Keep in sync */
 int target_examine_one(struct target *target)
 {
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
 
 	int retval = target->type->examine(target);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_FAIL);
 		return retval;
+	}
 
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 

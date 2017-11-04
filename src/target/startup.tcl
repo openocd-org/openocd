@@ -66,7 +66,9 @@ proc ocd_process_reset_inner { MODE } {
 		if {![using_jtag] || [jtag tapisenabled [$t cget -chain-position]]} {
 			$t invoke-event examine-start
 			set err [catch "$t arp_examine allow-defer"]
-			if { $err == 0 } {
+			if { $err } {
+				$t invoke-event examine-fail
+			} else {
 				$t invoke-event examine-end
 			}
 		}
