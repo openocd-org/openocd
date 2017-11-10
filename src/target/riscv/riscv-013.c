@@ -1179,6 +1179,24 @@ static int init_target(struct command_context *cmd_ctx,
 	char *reg_name = info->reg_names;
 	info->reg_values = NULL;
 
+	static struct reg_feature feature_cpu = {
+		.name = "org.gnu.gdb.riscv.cpu"
+	};
+	static struct reg_feature feature_fpu = {
+		.name = "org.gnu.gdb.riscv.fpu"
+	};
+	static struct reg_feature feature_csr = {
+		.name = "org.gnu.gdb.riscv.csr"
+	};
+	static struct reg_feature feature_virtual = {
+		.name = "org.gnu.gdb.riscv.virtual"
+	};
+
+	static struct reg_data_type type_ieee_single = {
+		.type = REG_TYPE_IEEE_SINGLE,
+		.id = "ieee_single"
+	};
+
 	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
 		struct reg *r = &target->reg_cache->reg_list[i];
 		r->number = i;
@@ -1190,14 +1208,26 @@ static int init_target(struct command_context *cmd_ctx,
 		r->arch_info = target;
 		if (i <= GDB_REGNO_XPR31) {
 			sprintf(reg_name, "x%d", i);
+			r->group = "general";
+			r->feature = &feature_cpu;
 		} else if (i == GDB_REGNO_PC) {
 			sprintf(reg_name, "pc");
+			r->group = "general";
+			r->feature = &feature_cpu;
 		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
 			sprintf(reg_name, "f%d", i - GDB_REGNO_FPR0);
+			r->group = "float";
+			r->feature = &feature_fpu;
+			// TODO: check D or F extension
+			r->reg_data_type = &type_ieee_single;
 		} else if (i >= GDB_REGNO_CSR0 && i <= GDB_REGNO_CSR4095) {
 			sprintf(reg_name, "csr%d", i - GDB_REGNO_CSR0);
+			r->group = "csr";
+			r->feature = &feature_csr;
 		} else if (i == GDB_REGNO_PRIV) {
 			sprintf(reg_name, "priv");
+			r->group = "general";
+			r->feature = &feature_virtual;
 		}
 		if (reg_name[0]) {
 			r->name = reg_name;
