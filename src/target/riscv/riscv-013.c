@@ -128,12 +128,6 @@ struct trigger {
 	int unique_id;
 };
 
-struct memory_cache_line {
-	uint32_t data;
-	bool valid;
-	bool dirty;
-};
-
 typedef enum {
 	YNM_MAYBE,
 	YNM_YES,
@@ -301,20 +295,6 @@ static riscv013_info_t *get_info(const struct target *target)
 static int register_get(struct reg *reg);
 
 /*** Utility functions. ***/
-
-bool supports_extension(struct target *target, char letter)
-{
-	RISCV_INFO(r);
-	unsigned num;
-	if (letter >= 'a' && letter <= 'z') {
-		num = letter - 'a';
-	} else if (letter >= 'A' && letter <= 'Z') {
-		num = letter - 'A';
-	} else {
-		return false;
-	}
-	return r->misa & (1 << num);
-}
 
 static void select_dmi(struct target *target)
 {
@@ -969,7 +949,7 @@ static int register_write_direct(struct target *target, unsigned number,
 		return ERROR_FAIL;
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-			supports_extension(target, 'D') &&
+			riscv_supports_extension(target, 'D') &&
 			riscv_xlen(target) < 64) {
 		/* There are no instructions to move all the bits from a register, so
 		 * we need to use some scratch RAM. */
@@ -991,7 +971,7 @@ static int register_write_direct(struct target *target, unsigned number,
 			return ERROR_FAIL;
 
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (supports_extension(target, 'D')) {
+			if (riscv_supports_extension(target, 'D')) {
 				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
 			} else {
 				riscv_program_insert(&program, fmv_w_x(number - GDB_REGNO_FPR0, S0));
@@ -1038,7 +1018,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			// TODO: Possibly set F in mstatus.
-			if (supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+			if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
 				/* There are no instructions to move all the bits from a
 				 * register, so we need to use some scratch RAM. */
 				riscv_program_insert(&program, fsd(number - GDB_REGNO_FPR0, S0,
@@ -1051,7 +1031,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 				if (register_write_direct(target, GDB_REGNO_S0,
 							scratch.hart_address) != ERROR_OK)
 					return ERROR_FAIL;
-			} else if (supports_extension(target, 'D')) {
+			} else if (riscv_supports_extension(target, 'D')) {
 				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
 			} else {
 				riscv_program_insert(&program, fmv_x_w(S0, number - GDB_REGNO_FPR0));
@@ -1094,7 +1074,7 @@ static int register_get(struct reg *reg)
 {
 	struct target *target = (struct target *) reg->arch_info;
 	uint64_t value = riscv_get_register(target, reg->number);
-	buf_set_u64(reg->value, 0, 64, value);
+	buf_set_u64(reg->value, 0, reg->size, value);
 	return ERROR_OK;
 }
 
@@ -1109,7 +1089,7 @@ static int register_set(struct reg *reg, uint8_t *buf)
 {
 	struct target *target = (struct target *) reg->arch_info;
 
-	uint64_t value = buf_get_u64(buf, 0, riscv_xlen(target));
+	uint64_t value = buf_get_u64(buf, 0, reg->size);
 
 	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
 	struct reg *r = &target->reg_cache->reg_list[reg->number];
@@ -1123,6 +1103,99 @@ static struct reg_arch_type riscv_reg_arch_type = {
 	.get = register_get,
 	.set = register_set
 };
+
+static int init_registers(struct target *target)
+{
+	riscv013_info_t *info = get_info(target);
+
+	if (target->reg_cache) {
+		if (target->reg_cache->reg_list)
+			free(target->reg_cache->reg_list);
+		free(target->reg_cache);
+	}
+
+	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
+	target->reg_cache->name = "RISC-V Registers";
+	target->reg_cache->num_regs = GDB_REGNO_COUNT;
+
+	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
+
+	const unsigned int max_reg_name_len = 12;
+	if (info->reg_names)
+		free(info->reg_names);
+	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
+	char *reg_name = info->reg_names;
+	info->reg_values = NULL;
+
+	static struct reg_feature feature_cpu = {
+		.name = "org.gnu.gdb.riscv.cpu"
+	};
+	static struct reg_feature feature_fpu = {
+		.name = "org.gnu.gdb.riscv.fpu"
+	};
+	static struct reg_feature feature_csr = {
+		.name = "org.gnu.gdb.riscv.csr"
+	};
+	static struct reg_feature feature_virtual = {
+		.name = "org.gnu.gdb.riscv.virtual"
+	};
+
+	static struct reg_data_type type_ieee_single = {
+		.type = REG_TYPE_IEEE_SINGLE,
+		.id = "ieee_single"
+	};
+	static struct reg_data_type type_ieee_double = {
+		.type = REG_TYPE_IEEE_DOUBLE,
+		.id = "ieee_double"
+	};
+
+	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
+		struct reg *r = &target->reg_cache->reg_list[i];
+		r->number = i;
+		r->caller_save = true;
+		r->dirty = false;
+		r->valid = false;
+		r->exist = true;
+		r->type = &riscv_reg_arch_type;
+		r->arch_info = target;
+		// r->size is set in riscv_invalidate_register_cache, maybe because the
+		// target is in theory allowed to change XLEN on us. But I expect a lot
+		// of other things to break in that case as well.
+		if (i <= GDB_REGNO_XPR31) {
+			sprintf(reg_name, "x%d", i);
+			r->group = "general";
+			r->feature = &feature_cpu;
+		} else if (i == GDB_REGNO_PC) {
+			sprintf(reg_name, "pc");
+			r->group = "general";
+			r->feature = &feature_cpu;
+		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
+			sprintf(reg_name, "f%d", i - GDB_REGNO_FPR0);
+			r->group = "float";
+			r->feature = &feature_fpu;
+			if (riscv_supports_extension(target, 'D')) {
+				r->reg_data_type = &type_ieee_double;
+			} else if (riscv_supports_extension(target, 'F')) {
+				r->reg_data_type = &type_ieee_single;
+			}
+		} else if (i >= GDB_REGNO_CSR0 && i <= GDB_REGNO_CSR4095) {
+			sprintf(reg_name, "csr%d", i - GDB_REGNO_CSR0);
+			r->group = "csr";
+			r->feature = &feature_csr;
+		} else if (i == GDB_REGNO_PRIV) {
+			sprintf(reg_name, "priv");
+			r->group = "general";
+			r->feature = &feature_virtual;
+		}
+		if (reg_name[0]) {
+			r->name = reg_name;
+		}
+		reg_name += strlen(reg_name) + 1;
+		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
+	}
+
+	return ERROR_OK;
+}
 
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
@@ -1167,74 +1240,6 @@ static int init_target(struct command_context *cmd_ctx,
 	info->abstract_write_csr_supported = true;
 	info->abstract_read_fpr_supported = true;
 	info->abstract_write_fpr_supported = true;
-
-	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
-	target->reg_cache->name = "RISC-V Registers";
-	target->reg_cache->num_regs = GDB_REGNO_COUNT;
-
-	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
-
-	const unsigned int max_reg_name_len = 12;
-	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
-	char *reg_name = info->reg_names;
-	info->reg_values = NULL;
-
-	static struct reg_feature feature_cpu = {
-		.name = "org.gnu.gdb.riscv.cpu"
-	};
-	static struct reg_feature feature_fpu = {
-		.name = "org.gnu.gdb.riscv.fpu"
-	};
-	static struct reg_feature feature_csr = {
-		.name = "org.gnu.gdb.riscv.csr"
-	};
-	static struct reg_feature feature_virtual = {
-		.name = "org.gnu.gdb.riscv.virtual"
-	};
-
-	static struct reg_data_type type_ieee_single = {
-		.type = REG_TYPE_IEEE_SINGLE,
-		.id = "ieee_single"
-	};
-
-	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
-		struct reg *r = &target->reg_cache->reg_list[i];
-		r->number = i;
-		r->caller_save = true;
-		r->dirty = false;
-		r->valid = false;
-		r->exist = true;
-		r->type = &riscv_reg_arch_type;
-		r->arch_info = target;
-		if (i <= GDB_REGNO_XPR31) {
-			sprintf(reg_name, "x%d", i);
-			r->group = "general";
-			r->feature = &feature_cpu;
-		} else if (i == GDB_REGNO_PC) {
-			sprintf(reg_name, "pc");
-			r->group = "general";
-			r->feature = &feature_cpu;
-		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
-			sprintf(reg_name, "f%d", i - GDB_REGNO_FPR0);
-			r->group = "float";
-			r->feature = &feature_fpu;
-			// TODO: check D or F extension
-			r->reg_data_type = &type_ieee_single;
-		} else if (i >= GDB_REGNO_CSR0 && i <= GDB_REGNO_CSR4095) {
-			sprintf(reg_name, "csr%d", i - GDB_REGNO_CSR0);
-			r->group = "csr";
-			r->feature = &feature_csr;
-		} else if (i == GDB_REGNO_PRIV) {
-			sprintf(reg_name, "priv");
-			r->group = "general";
-			r->feature = &feature_virtual;
-		}
-		if (reg_name[0]) {
-			r->name = reg_name;
-		}
-		reg_name += strlen(reg_name) + 1;
-		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
-	}
 
 	return ERROR_OK;
 }
@@ -1345,6 +1350,10 @@ static int examine(struct target *target)
 
 	LOG_DEBUG("Enumerated %d harts", r->hart_count);
 
+	// Get a functional register cache going.
+	if (init_registers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
 	/* Halt every hart so we can probe them. */
 	riscv_halt_all_harts(target);
 
@@ -1381,6 +1390,11 @@ static int examine(struct target *target)
 	/* Resumes all the harts, so the debugger can later pause them. */
 	riscv_resume_all_harts(target);
 	target->state = TARGET_RUNNING;
+
+	// Now reinit registers based on what we discovered.
+	if (init_registers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
 	target_set_examined(target);
 
 	if (target->rtos) {

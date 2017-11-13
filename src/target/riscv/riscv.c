@@ -1352,6 +1352,20 @@ int riscv_step_rtos_hart(struct target *target)
 	return ERROR_OK;
 }
 
+bool riscv_supports_extension(struct target *target, char letter)
+{
+	RISCV_INFO(r);
+	unsigned num;
+	if (letter >= 'a' && letter <= 'z') {
+		num = letter - 'a';
+	} else if (letter >= 'A' && letter <= 'Z') {
+		num = letter - 'A';
+	} else {
+		return false;
+	}
+	return r->misa & (1 << num);
+}
+
 int riscv_xlen(const struct target *target)
 {
 	return riscv_xlen_of_hart(target, riscv_current_hartid(target));
@@ -1410,13 +1424,16 @@ void riscv_invalidate_register_cache(struct target *target)
 		reg->value = &r->reg_cache_values[i];
 		reg->valid = false;
 
-		switch (i) {
-		case GDB_REGNO_PRIV:
+		if (i == GDB_REGNO_PRIV) {
 			reg->size = 8;
-			break;
-		default:
+		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
+			if (riscv_supports_extension(target, 'D')) {
+				reg->size = 64;
+			} else if (riscv_supports_extension(target, 'F')) {
+				reg->size = 32;
+			}
+		} else {
 			reg->size = riscv_xlen(target);
-			break;
 		}
 	}
 

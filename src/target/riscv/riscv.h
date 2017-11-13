@@ -168,6 +168,8 @@ int riscv_resume_one_hart(struct target *target, int hartid);
  * then the only hart. */
 int riscv_step_rtos_hart(struct target *target);
 
+bool riscv_supports_extension(struct target *target, char letter);
+
 /* Returns XLEN for the given (or current) hart. */
 int riscv_xlen(const struct target *target);
 int riscv_xlen_of_hart(const struct target *target, int hartid);
