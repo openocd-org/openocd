@@ -6009,6 +6009,33 @@ The @var{num} parameter is a value shown by @command{flash banks}, @var{optcr2} 
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} stm32h7x
+All members of the STM32H7 microcontroller families from ST Microelectronics
+include internal flash and use ARM Cortex-M7 core.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+
+Note that some devices have been found that have a flash size register that contains
+an invalid value, to workaround this issue you can override the probed value used by
+the flash driver.
+
+@example
+flash bank $_FLASHNAME stm32h7x 0 0x20000 0 0 $_TARGETNAME
+@end example
+
+Some stm32h7x-specific commands are defined:
+
+@deffn Command {stm32h7x lock} num
+Locks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32h7x unlock} num
+Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} stm32lx
 All members of the STM32L microcontroller families from ST Microelectronics
 include internal flash and use ARM Cortex-M3 and Cortex-M0+ cores.
