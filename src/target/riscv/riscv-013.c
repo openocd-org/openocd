@@ -877,6 +877,7 @@ static int scratch_find(struct target *target,
 			~(alignment - 1);
 		scratch->memory_space = SPACE_DMI_RAM;
 		scratch->debug_address = scratch->hart_address;
+		return ERROR_OK;
 	}
 
 	LOG_ERROR("Couldn't find %d bytes of scratch RAM to use. Please configure "
