@@ -1149,40 +1149,47 @@ static int init_registers(struct target *target)
 		.id = "ieee_double"
 	};
 
-	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
-		struct reg *r = &target->reg_cache->reg_list[i];
-		r->number = i;
+	// When gdb request register N, gdb_get_register_packet() assumes that this
+	// is register at index N in reg_list. So if there are certain registers
+	// that don't exist, we need to leave holes in the list (or renumber, but
+	// it would be nice not to have yet another set of numbers to translate
+	// between).
+	for (uint32_t number = 0; number < GDB_REGNO_COUNT; number++) {
+		struct reg *r = &target->reg_cache->reg_list[number];
 		r->caller_save = true;
 		r->dirty = false;
 		r->valid = false;
 		r->exist = true;
 		r->type = &riscv_reg_arch_type;
 		r->arch_info = target;
+		r->number = number;
 		// r->size is set in riscv_invalidate_register_cache, maybe because the
 		// target is in theory allowed to change XLEN on us. But I expect a lot
 		// of other things to break in that case as well.
-		if (i <= GDB_REGNO_XPR31) {
-			sprintf(reg_name, "x%d", i);
+		if (number <= GDB_REGNO_XPR31) {
+			sprintf(reg_name, "x%d", number);
 			r->group = "general";
 			r->feature = &feature_cpu;
-		} else if (i == GDB_REGNO_PC) {
+		} else if (number == GDB_REGNO_PC) {
 			sprintf(reg_name, "pc");
 			r->group = "general";
 			r->feature = &feature_cpu;
-		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
-			sprintf(reg_name, "f%d", i - GDB_REGNO_FPR0);
-			r->group = "float";
-			r->feature = &feature_fpu;
+		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			if (riscv_supports_extension(target, 'D')) {
 				r->reg_data_type = &type_ieee_double;
 			} else if (riscv_supports_extension(target, 'F')) {
 				r->reg_data_type = &type_ieee_single;
+			} else {
+				r->exist = false;
 			}
-		} else if (i >= GDB_REGNO_CSR0 && i <= GDB_REGNO_CSR4095) {
-			sprintf(reg_name, "csr%d", i - GDB_REGNO_CSR0);
+			sprintf(reg_name, "f%d", number - GDB_REGNO_FPR0);
+			r->group = "float";
+			r->feature = &feature_fpu;
+		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+			sprintf(reg_name, "csr%d", number - GDB_REGNO_CSR0);
 			r->group = "csr";
 			r->feature = &feature_csr;
-		} else if (i == GDB_REGNO_PRIV) {
+		} else if (number == GDB_REGNO_PRIV) {
 			sprintf(reg_name, "priv");
 			r->group = "general";
 			r->feature = &feature_virtual;

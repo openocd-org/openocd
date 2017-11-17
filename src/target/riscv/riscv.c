@@ -760,6 +760,11 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	LOG_DEBUG("reg_class=%d", reg_class);
 	LOG_DEBUG("rtos_hartid=%d current_hartid=%d", r->rtos_hartid, r->current_hartid);
 
+	if (!target->reg_cache) {
+		LOG_ERROR("Target not initialized. Return ERROR_FAIL.");
+		return ERROR_FAIL;
+	}
+
 	if (r->rtos_hartid != -1 && riscv_rtos_enabled(target))
 		riscv_set_current_hartid(target, r->rtos_hartid);
 	else
@@ -770,7 +775,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 			*reg_list_size = 32;
 			break;
 		case REG_CLASS_ALL:
-			*reg_list_size = REG_COUNT;
+			*reg_list_size = GDB_REGNO_COUNT;
 			break;
 		default:
 			LOG_ERROR("Unsupported reg_class: %d", reg_class);
@@ -781,14 +786,10 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	if (!*reg_list) {
 		return ERROR_FAIL;
 	}
-	
-	if (!target->reg_cache) {
-		LOG_ERROR("Target not initialized. Return ERROR_FAIL.");
-		return ERROR_FAIL;
-	}
-	
+
 	for (int i = 0; i < *reg_list_size; i++) {
-		assert(target->reg_cache->reg_list[i].size > 0);
+		assert(!target->reg_cache->reg_list[i].valid ||
+				target->reg_cache->reg_list[i].size > 0);
 		(*reg_list)[i] = &target->reg_cache->reg_list[i];
 	}
 
@@ -1424,9 +1425,9 @@ void riscv_invalidate_register_cache(struct target *target)
 		reg->value = &r->reg_cache_values[i];
 		reg->valid = false;
 
-		if (i == GDB_REGNO_PRIV) {
+		if (reg->number == GDB_REGNO_PRIV) {
 			reg->size = 8;
-		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
+		} else if (reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) {
 			if (riscv_supports_extension(target, 'D')) {
 				reg->size = 64;
 			} else if (riscv_supports_extension(target, 'F')) {
