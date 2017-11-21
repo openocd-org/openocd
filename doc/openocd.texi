@@ -4217,6 +4217,9 @@ Calling this twice with two different event names assigns
 two different handlers, but calling it twice with the
 same event name assigns only one handler.
 
+Current target is temporarily overridden to the event issuing target
+before handler code starts and switched back after handler is done.
+
 @item @code{-work-area-backup} (@option{0}|@option{1}) -- says
 whether the work area gets backed up; by default,
 @emph{it is not backed up.}

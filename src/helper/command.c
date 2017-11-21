@@ -608,7 +608,23 @@ static int run_command(struct command_context *context,
 		.argc = num_words - 1,
 		.argv = words + 1,
 	};
+	/* Black magic of overridden current target:
+	 * If the command we are going to handle has a target prefix,
+	 * override the current target temporarily for the time
+	 * of processing the command.
+	 * current_target_override is used also for event handlers
+	 * therefore we prevent touching it if command has no prefix.
+	 * Previous override is saved and restored back to ensure
+	 * correct work when run_command() is re-entered. */
+	struct target *saved_target_override = context->current_target_override;
+	if (c->jim_handler_data)
+		context->current_target_override = c->jim_handler_data;
+
 	int retval = c->handler(&cmd);
+
+	if (c->jim_handler_data)
+		context->current_target_override = saved_target_override;
+
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
 		/* Print help for command */
 		char *full_name = command_name(c, ' ');
@@ -643,6 +659,8 @@ int command_run_line(struct command_context *context, char *line)
 	 * happen when the Jim Tcl interpreter is provided by eCos for
 	 * instance.
 	 */
+	context->current_target_override = NULL;
+
 	Jim_Interp *interp = context->interp;
 	Jim_DeleteAssocData(interp, "context");
 	retcode = Jim_SetAssocData(interp, "context", NULL, context);
@@ -1269,14 +1287,10 @@ static const struct command_registration command_builtin_handlers[] = {
 
 struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp)
 {
-	struct command_context *context = malloc(sizeof(struct command_context));
+	struct command_context *context = calloc(1, sizeof(struct command_context));
 	const char *HostOs;
 
 	context->mode = COMMAND_EXEC;
-	context->commands = NULL;
-	context->current_target = 0;
-	context->output_handler = NULL;
-	context->output_handler_priv = NULL;
 
 	/* Create a jim interpreter if we were not handed one */
 	if (interp == NULL) {

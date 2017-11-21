@@ -510,7 +510,9 @@ struct target *get_target_by_num(int num)
 
 struct target *get_current_target(struct command_context *cmd_ctx)
 {
-	struct target *target = get_target_by_num(cmd_ctx->current_target);
+	struct target *target = cmd_ctx->current_target_override
+		? cmd_ctx->current_target_override
+		: cmd_ctx->current_target;
 
 	if (target == NULL) {
 		LOG_ERROR("BUG: current_target out of bounds");
@@ -2505,7 +2507,10 @@ static int find_target(struct command_context *cmd_ctx, const char *name)
 		return ERROR_FAIL;
 	}
 
-	cmd_ctx->current_target = target->target_number;
+	cmd_ctx->current_target = target;
+	if (cmd_ctx->current_target_override)
+		cmd_ctx->current_target_override = target;
+
 	return ERROR_OK;
 }
 
@@ -2533,7 +2538,7 @@ COMMAND_HANDLER(handle_targets_command)
 		else
 			state = "tap-disabled";
 
-		if (CMD_CTX->current_target == target->target_number)
+		if (CMD_CTX->current_target == target)
 			marker = '*';
 
 		/* keep columns lined up to match the headers above */
@@ -4441,17 +4446,28 @@ void target_handle_event(struct target *target, enum target_event e)
 
 	for (teap = target->event_action; teap != NULL; teap = teap->next) {
 		if (teap->event == e) {
-			LOG_DEBUG("target: (%d) %s (%s) event: %d (%s) action: %s",
+			LOG_DEBUG("target(%d): %s (%s) event: %d (%s) action: %s",
 					   target->target_number,
 					   target_name(target),
 					   target_type_name(target),
 					   e,
 					   Jim_Nvp_value2name_simple(nvp_target_event, e)->name,
 					   Jim_GetString(teap->body, NULL));
+
+			/* Override current target by the target an event
+			 * is issued from (lot of scripts need it).
+			 * Return back to previous override as soon
+			 * as the handler processing is done */
+			struct command_context *cmd_ctx = current_command_context(teap->interp);
+			struct target *saved_target_override = cmd_ctx->current_target_override;
+			cmd_ctx->current_target_override = target;
+
 			if (Jim_EvalObj(teap->interp, teap->body) != JIM_OK) {
 				Jim_MakeErrorMessage(teap->interp);
 				command_print(NULL, "%s\n", Jim_GetString(Jim_GetResult(teap->interp), NULL));
 			}
+
+			cmd_ctx->current_target_override = saved_target_override;
 		}
 	}
 }
@@ -5529,7 +5545,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target = calloc(1, sizeof(struct target));
 	/* set target number */
 	target->target_number = new_target_number();
-	cmd_ctx->current_target = target->target_number;
+	cmd_ctx->current_target = target;
 
 	/* allocate memory for each unique target type */
 	target->type = calloc(1, sizeof(struct target_type));
