@@ -639,14 +639,6 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 
 static int at91sam7_erase_check(struct flash_bank *bank)
 {
-	struct target *target = bank->target;
-	uint16_t retval;
-	uint32_t blank;
-	uint16_t fast_check;
-	uint8_t *buffer;
-	uint16_t nSector;
-	uint16_t nByte;
-
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -656,45 +648,7 @@ static int at91sam7_erase_check(struct flash_bank *bank)
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
-	fast_check = 1;
-	for (nSector = 0; nSector < bank->num_sectors; nSector++) {
-		retval = target_blank_check_memory(target,
-				bank->base + bank->sectors[nSector].offset,
-				bank->sectors[nSector].size,
-				&blank, bank->erased_value);
-		if (retval != ERROR_OK) {
-			fast_check = 0;
-			break;
-		}
-		if (blank == 0xFF)
-			bank->sectors[nSector].is_erased = 1;
-		else
-			bank->sectors[nSector].is_erased = 0;
-	}
-
-	if (fast_check)
-		return ERROR_OK;
-
-	LOG_USER("Running slow fallback erase check - add working memory");
-
-	buffer = malloc(bank->sectors[0].size);
-	for (nSector = 0; nSector < bank->num_sectors; nSector++) {
-		bank->sectors[nSector].is_erased = 1;
-		retval = target_read_memory(target, bank->base + bank->sectors[nSector].offset, 4,
-				bank->sectors[nSector].size/4, buffer);
-		if (retval != ERROR_OK)
-			return retval;
-
-		for (nByte = 0; nByte < bank->sectors[nSector].size; nByte++) {
-			if (buffer[nByte] != 0xFF) {
-				bank->sectors[nSector].is_erased = 0;
-				break;
-			}
-		}
-	}
-	free(buffer);
-
-	return ERROR_OK;
+	return default_flash_blank_check(bank);
 }
 
 static int at91sam7_protect_check(struct flash_bank *bank)
