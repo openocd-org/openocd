@@ -339,36 +339,49 @@ int default_flash_blank_check(struct flash_bank *bank)
 	struct target *target = bank->target;
 	int i;
 	int retval;
-	int fast_check = 0;
-	uint32_t blank;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	for (i = 0; i < bank->num_sectors; i++) {
-		uint32_t address = bank->base + bank->sectors[i].offset;
-		uint32_t size = bank->sectors[i].size;
+	struct target_memory_check_block *block_array;
+	block_array = malloc(bank->num_sectors * sizeof(struct target_memory_check_block));
+	if (block_array == NULL)
+		return default_flash_mem_blank_check(bank);
 
-		retval = target_blank_check_memory(target, address, size, &blank, bank->erased_value);
-		if (retval != ERROR_OK) {
-			fast_check = 0;
+	for (i = 0; i < bank->num_sectors; i++) {
+		block_array[i].address = bank->base + bank->sectors[i].offset;
+		block_array[i].size = bank->sectors[i].size;
+		block_array[i].result = UINT32_MAX; /* erase state unknown */
+	}
+
+	bool fast_check = true;
+	for (i = 0; i < bank->num_sectors; ) {
+		retval = target_blank_check_memory(target,
+				block_array + i, bank->num_sectors - i,
+				bank->erased_value);
+		if (retval < 1) {
+			/* Run slow fallback if the first run gives no result
+			 * otherwise use possibly incomplete results */
+			if (i == 0)
+				fast_check = false;
 			break;
 		}
-		if (blank == bank->erased_value)
-			bank->sectors[i].is_erased = 1;
-		else
-			bank->sectors[i].is_erased = 0;
-		fast_check = 1;
+		i += retval; /* add number of blocks done this round */
 	}
 
-	if (!fast_check) {
+	if (fast_check) {
+		for (i = 0; i < bank->num_sectors; i++)
+			bank->sectors[i].is_erased = block_array[i].result;
+		retval = ERROR_OK;
+	} else {
 		LOG_USER("Running slow fallback erase check - add working memory");
-		return default_flash_mem_blank_check(bank);
+		retval = default_flash_mem_blank_check(bank);
 	}
+	free(block_array);
 
-	return ERROR_OK;
+	return retval;
 }
 
 /* Manipulate given flash region, selecting the bank according to target

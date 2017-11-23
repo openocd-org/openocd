@@ -1663,7 +1663,7 @@ cleanup:
  *
  */
 int arm_blank_check_memory(struct target *target,
-	target_addr_t address, uint32_t count, uint32_t *blank, uint8_t erased_value)
+	struct target_memory_check_block *blocks, int num_blocks, uint8_t erased_value)
 {
 	struct working_area *check_algorithm;
 	struct reg_param reg_params[3];
@@ -1706,10 +1706,10 @@ int arm_blank_check_memory(struct target *target,
 	arm_algo.core_state = ARM_STATE_ARM;
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
-	buf_set_u32(reg_params[0].value, 0, 32, address);
+	buf_set_u32(reg_params[0].value, 0, 32, blocks[0].address);
 
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
-	buf_set_u32(reg_params[1].value, 0, 32, count);
+	buf_set_u32(reg_params[1].value, 0, 32, blocks[0].size);
 
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
 	buf_set_u32(reg_params[2].value, 0, 32, erased_value);
@@ -1724,7 +1724,7 @@ int arm_blank_check_memory(struct target *target,
 			10000, &arm_algo);
 
 	if (retval == ERROR_OK)
-		*blank = buf_get_u32(reg_params[2].value, 0, 32);
+		blocks[0].result = buf_get_u32(reg_params[2].value, 0, 32);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
@@ -1733,7 +1733,10 @@ int arm_blank_check_memory(struct target *target,
 cleanup:
 	target_free_working_area(target, check_algorithm);
 
-	return retval;
+	if (retval != ERROR_OK)
+		return retval;
+
+	return 1;       /* only one block has been checked */
 }
 
 static int arm_full_context(struct target *target)
