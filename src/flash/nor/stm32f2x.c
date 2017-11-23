@@ -143,9 +143,8 @@
 #define FLASH_PSIZE_16 (1 << 8)
 #define FLASH_PSIZE_32 (2 << 8)
 #define FLASH_PSIZE_64 (3 << 8)
-/* The sector number encoding is not straight binary for dual bank flash.
- * Warning: evaluates the argument multiple times */
-#define FLASH_SNB(a)   ((((a) >= 12) ? 0x10 | ((a) - 12) : (a)) << 3)
+/* The sector number encoding is not straight binary for dual bank flash. */
+#define FLASH_SNB(a)   ((a) << 3)
 #define FLASH_LOCK     (1 << 31)
 
 /* FLASH_SR register bits */
@@ -489,6 +488,7 @@ static int stm32x_protect_check(struct flash_bank *bank)
 
 static int stm32x_erase(struct flash_bank *bank, int first, int last)
 {
+	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	struct target *target = bank->target;
 	int i;
 
@@ -516,8 +516,14 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 	 */
 
 	for (i = first; i <= last; i++) {
+		int snb;
+		if (stm32x_info->has_large_mem && i >= 12)
+			snb = (i - 12) | 0x10;
+		else
+			snb = i;
+
 		retval = target_write_u32(target,
-				stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_SER | FLASH_SNB(i) | FLASH_STRT);
+				stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_SER | FLASH_SNB(snb) | FLASH_STRT);
 		if (retval != ERROR_OK)
 			return retval;
 
