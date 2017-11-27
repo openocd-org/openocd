@@ -1344,7 +1344,7 @@ static int register_write(struct target *target, unsigned int number,
 		cache_set_store(target, 1, S0, SLOT_LAST);
 		cache_set_jump(target, 2);
 	} else if (number <= GDB_REGNO_XPR31) {
-		cache_set_load(target, 0, number - GDB_REGNO_XPR0, SLOT0);
+		cache_set_load(target, 0, number - GDB_REGNO_ZERO, SLOT0);
 		cache_set_jump(target, 1);
 	} else if (number == GDB_REGNO_PC) {
 		info->dpc = value;

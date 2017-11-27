@@ -4,12 +4,41 @@
 // gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
 // its source tree. We must interpret the numbers the same here.
 enum gdb_regno {
-	GDB_REGNO_XPR0 = 0,
-	GDB_REGNO_X0 = GDB_REGNO_XPR0 + 0,
-	GDB_REGNO_ZERO = GDB_REGNO_XPR0 + 0,
-	GDB_REGNO_S0 = GDB_REGNO_XPR0 + 8,
-	GDB_REGNO_S1 = GDB_REGNO_XPR0 + 9,
-	GDB_REGNO_XPR31 = GDB_REGNO_XPR0 + 31,
+	GDB_REGNO_ZERO = 0,        /* Read-only register, always 0.  */
+	GDB_REGNO_RA = 1,          /* Return Address.  */
+	GDB_REGNO_SP = 2,          /* Stack Pointer.  */
+	GDB_REGNO_GP = 3,          /* Global Pointer.  */
+	GDB_REGNO_TP = 4,          /* Thread Pointer.  */
+	GDB_REGNO_T0,
+	GDB_REGNO_T1,
+	GDB_REGNO_T2,
+	GDB_REGNO_S0 = 8,
+	GDB_REGNO_FP = 8,          /* Frame Pointer.  */
+	GDB_REGNO_S1,
+	GDB_REGNO_A0 = 10,         /* First argument.  */
+	GDB_REGNO_A1 = 11,         /* Second argument.  */
+	GDB_REGNO_A2,
+	GDB_REGNO_A3,
+	GDB_REGNO_A4,
+	GDB_REGNO_A5,
+	GDB_REGNO_A6,
+	GDB_REGNO_A7,
+	GDB_REGNO_S2,
+	GDB_REGNO_S3,
+	GDB_REGNO_S4,
+	GDB_REGNO_S5,
+	GDB_REGNO_S6,
+	GDB_REGNO_S7,
+	GDB_REGNO_S8,
+	GDB_REGNO_S9,
+	GDB_REGNO_S10,
+	GDB_REGNO_S11,
+	GDB_REGNO_T3,
+	GDB_REGNO_T4,
+	GDB_REGNO_T5,
+	GDB_REGNO_T6,
+	GDB_REGNO_XPR31 = GDB_REGNO_T6,
+
 	GDB_REGNO_PC = 32,
 	GDB_REGNO_FPR0 = 33,
 	GDB_REGNO_FPR31 = GDB_REGNO_FPR0 + 31,

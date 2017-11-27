@@ -647,7 +647,7 @@ static uint32_t access_register_command(uint32_t number, unsigned size,
 
 	if (number <= GDB_REGNO_XPR31) {
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
-				0x1000 + number - GDB_REGNO_XPR0);
+				0x1000 + number - GDB_REGNO_ZERO);
 	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				0x1020 + number - GDB_REGNO_FPR0);
@@ -1104,6 +1104,16 @@ static struct reg_arch_type riscv_reg_arch_type = {
 	.set = register_set
 };
 
+struct csr_info {
+	unsigned number;
+	const char *name;
+};
+
+static int cmp_csr_info(const void *p1, const void *p2)
+{
+	return (int) (((struct csr_info *)p1)->number) - (int) (((struct csr_info *)p2)->number);
+}
+
 static int init_registers(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
@@ -1148,6 +1158,14 @@ static int init_registers(struct target *target)
 		.type = REG_TYPE_IEEE_DOUBLE,
 		.id = "ieee_double"
 	};
+	struct csr_info csr_info[] = {
+#define DECLARE_CSR(name, number) { number, #name },
+#include "encoding.h"
+#undef DECLARE_CSR
+	};
+	// encoding.h does not contain the registers in sorted order.
+	qsort(csr_info, DIM(csr_info), sizeof(*csr_info), cmp_csr_info);
+	unsigned csr_info_index = 0;
 
 	// When gdb request register N, gdb_get_register_packet() assumes that this
 	// is register at index N in reg_list. So if there are certain registers
@@ -1167,7 +1185,40 @@ static int init_registers(struct target *target)
 		// target is in theory allowed to change XLEN on us. But I expect a lot
 		// of other things to break in that case as well.
 		if (number <= GDB_REGNO_XPR31) {
-			sprintf(reg_name, "x%d", number);
+			switch (number) {
+				case GDB_REGNO_ZERO: r->name = "zero"; break;
+				case GDB_REGNO_RA: r->name = "ra"; break;
+				case GDB_REGNO_SP: r->name = "sp"; break;
+				case GDB_REGNO_GP: r->name = "gp"; break;
+				case GDB_REGNO_TP: r->name = "tp"; break;
+				case GDB_REGNO_T0: r->name = "t0"; break;
+				case GDB_REGNO_T1: r->name = "t1"; break;
+				case GDB_REGNO_T2: r->name = "t2"; break;
+				case GDB_REGNO_FP: r->name = "fp"; break;
+				case GDB_REGNO_S1: r->name = "s1"; break;
+				case GDB_REGNO_A0: r->name = "a0"; break;
+				case GDB_REGNO_A1: r->name = "a1"; break;
+				case GDB_REGNO_A2: r->name = "a2"; break;
+				case GDB_REGNO_A3: r->name = "a3"; break;
+				case GDB_REGNO_A4: r->name = "a4"; break;
+				case GDB_REGNO_A5: r->name = "a5"; break;
+				case GDB_REGNO_A6: r->name = "a6"; break;
+				case GDB_REGNO_A7: r->name = "a7"; break;
+				case GDB_REGNO_S2: r->name = "s2"; break;
+				case GDB_REGNO_S3: r->name = "s3"; break;
+				case GDB_REGNO_S4: r->name = "s4"; break;
+				case GDB_REGNO_S5: r->name = "s5"; break;
+				case GDB_REGNO_S6: r->name = "s6"; break;
+				case GDB_REGNO_S7: r->name = "s7"; break;
+				case GDB_REGNO_S8: r->name = "s8"; break;
+				case GDB_REGNO_S9: r->name = "s9"; break;
+				case GDB_REGNO_S10: r->name = "s10"; break;
+				case GDB_REGNO_S11: r->name = "s11"; break;
+				case GDB_REGNO_T3: r->name = "t3"; break;
+				case GDB_REGNO_T4: r->name = "t4"; break;
+				case GDB_REGNO_T5: r->name = "t5"; break;
+				case GDB_REGNO_T6: r->name = "t6"; break;
+			}
 			r->group = "general";
 			r->feature = &feature_cpu;
 		} else if (number == GDB_REGNO_PC) {
@@ -1189,36 +1240,33 @@ static int init_registers(struct target *target)
 			r->group = "csr";
 			r->feature = &feature_csr;
 			r->exist = true;
-			switch (number) {
+			unsigned csr_number = number - GDB_REGNO_CSR0;
+
+			while (csr_info[csr_info_index].number < csr_number) {
+				csr_info_index++;
+			}
+			if (csr_info[csr_info_index].number == csr_number) {
+				r->name = csr_info[csr_info_index].name;
+			} else {
+				sprintf(reg_name, "csr%d", csr_number);
+			}
+
+			switch (csr_number) {
 				case CSR_FFLAGS:
-					strcpy(reg_name, "fflags");
 					r->exist = riscv_supports_extension(target, 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
 				case CSR_FRM:
-					strcpy(reg_name, "frm");
 					r->exist = riscv_supports_extension(target, 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
 				case CSR_FCSR:
-					strcpy(reg_name, "fcsr");
 					r->exist = riscv_supports_extension(target, 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
-				case CSR_CYCLE:
-					strcpy(reg_name, "cycle");
-					break;
-				case CSR_TIME:
-					strcpy(reg_name, "time");
-					break;
-				case CSR_INSTRET:
-					strcpy(reg_name, "instret");
-					break;
-				default:
-					sprintf(reg_name, "csr%d", number - GDB_REGNO_CSR0);
 			}
 		} else if (number == GDB_REGNO_PRIV) {
 			sprintf(reg_name, "priv");

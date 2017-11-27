@@ -151,21 +151,6 @@ typedef enum slot {
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
 
-// gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
-// its source tree. We must interpret the numbers the same here.
-enum {
-	REG_XPR0 = 0,
-	REG_XPR31 = 31,
-	REG_PC = 32,
-	REG_FPR0 = 33,
-	REG_FPR31 = 64,
-	REG_CSR0 = 65,
-	REG_MSTATUS = CSR_MSTATUS + REG_CSR0,
-	REG_CSR4095 = 4160,
-	REG_PRIV = 4161,
-	REG_COUNT
-};
-
 #define MAX_HWBPS			16
 #define DRAM_CACHE_SIZE		16
 
@@ -842,7 +827,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 			return ERROR_FAIL;
 		}
 
-		if (r->number > REG_XPR31) {
+		if (r->number > GDB_REGNO_XPR31) {
 			LOG_ERROR("Only GPRs can be use as argument registers.");
 			return ERROR_FAIL;
 		}
@@ -1404,7 +1389,7 @@ void riscv_set_current_hartid(struct target *target, int hartid)
 	/* Avoid invalidating the register cache all the time. */
 	if (r->registers_initialized
 			&& (!riscv_rtos_enabled(target) || (previous_hartid == hartid))
-			&& target->reg_cache->reg_list[GDB_REGNO_XPR0].size == (unsigned)riscv_xlen(target)
+			&& target->reg_cache->reg_list[GDB_REGNO_ZERO].size == (unsigned)riscv_xlen(target)
 			&& (!riscv_rtos_enabled(target) || (r->rtos_hartid != -1))) {
 		return;
 	} else
@@ -1694,7 +1679,7 @@ const char *gdb_regno_name(enum gdb_regno regno)
 			return "priv";
 		default:
 			if (regno <= GDB_REGNO_XPR31) {
-				sprintf(buf, "x%d", regno - GDB_REGNO_XPR0);
+				sprintf(buf, "x%d", regno - GDB_REGNO_ZERO);
 			} else if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
 				sprintf(buf, "csr%d", regno - GDB_REGNO_CSR0);
 			} else if (regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) {
