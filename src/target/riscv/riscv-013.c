@@ -1186,9 +1186,40 @@ static int init_registers(struct target *target)
 			r->group = "float";
 			r->feature = &feature_fpu;
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			sprintf(reg_name, "csr%d", number - GDB_REGNO_CSR0);
 			r->group = "csr";
 			r->feature = &feature_csr;
+			r->exist = true;
+			switch (number) {
+				case CSR_FFLAGS:
+					strcpy(reg_name, "fflags");
+					r->exist = riscv_supports_extension(target, 'F');
+					r->group = "float";
+					r->feature = &feature_fpu;
+					break;
+				case CSR_FRM:
+					strcpy(reg_name, "frm");
+					r->exist = riscv_supports_extension(target, 'F');
+					r->group = "float";
+					r->feature = &feature_fpu;
+					break;
+				case CSR_FCSR:
+					strcpy(reg_name, "fcsr");
+					r->exist = riscv_supports_extension(target, 'F');
+					r->group = "float";
+					r->feature = &feature_fpu;
+					break;
+				case CSR_CYCLE:
+					strcpy(reg_name, "cycle");
+					break;
+				case CSR_TIME:
+					strcpy(reg_name, "time");
+					break;
+				case CSR_INSTRET:
+					strcpy(reg_name, "instret");
+					break;
+				default:
+					sprintf(reg_name, "csr%d", number - GDB_REGNO_CSR0);
+			}
 		} else if (number == GDB_REGNO_PRIV) {
 			sprintf(reg_name, "priv");
 			r->group = "general";
