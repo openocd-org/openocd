@@ -1249,6 +1249,12 @@ static int init_registers(struct target *target)
 				r->name = csr_info[csr_info_index].name;
 			} else {
 				sprintf(reg_name, "csr%d", csr_number);
+				// Assume unnamed registers don't exist, unless we have some
+				// configuration that tells us otherwise. That's important
+				// because eg. Eclipse crashes if a target has too many
+				// registers, and apparently has no way of only showing a
+				// subset of registers in any case.
+				r->exist = false;
 			}
 
 			switch (csr_number) {

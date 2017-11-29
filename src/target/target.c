@@ -2742,21 +2742,23 @@ COMMAND_HANDLER(handle_reg_command)
 					i < cache->num_regs;
 					i++, reg++, count++) {
 				/* only print cached values if they are valid */
-				if (reg->valid) {
-					value = buf_to_str(reg->value,
-							reg->size, 16);
-					command_print(CMD_CTX,
-							"(%i) %s (/%" PRIu32 "): 0x%s%s",
-							count, reg->name,
-							reg->size, value,
-							reg->dirty
+				if (reg->exist) {
+					if (reg->valid) {
+						value = buf_to_str(reg->value,
+								reg->size, 16);
+						command_print(CMD_CTX,
+								"(%i) %s (/%" PRIu32 "): 0x%s%s",
+								count, reg->name,
+								reg->size, value,
+								reg->dirty
 								? " (dirty)"
 								: "");
-					free(value);
-				} else {
-					command_print(CMD_CTX, "(%i) %s (/%" PRIu32 ")",
-							  count, reg->name,
-							  reg->size) ;
+						free(value);
+					} else {
+						command_print(CMD_CTX, "(%i) %s (/%" PRIu32 ")",
+								count, reg->name,
+								reg->size) ;
+					}
 				}
 			}
 			cache = cache->next;
