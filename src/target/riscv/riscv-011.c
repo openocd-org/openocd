@@ -189,12 +189,6 @@ typedef struct {
 
 	struct memory_cache_line dram_cache[DRAM_CACHE_SIZE];
 
-	/* Single buffer that contains all register names, instead of calling
-	 * malloc for each register. Needs to be freed when reg_list is freed. */
-	char *reg_names;
-	/* Single buffer that contains all register values. */
-	void *reg_values;
-
 	// Number of run-test/idle cycles the target requests we do after each dbus
 	// access.
 	unsigned int dtmcontrol_idle;
@@ -223,7 +217,7 @@ typedef struct {
 
 static int poll_target(struct target *target, bool announce);
 static int riscv011_poll(struct target *target);
-static int register_get(struct reg *reg);
+static riscv_reg_t get_register(struct target *target, int hartid, int regid);
 
 /*** Utility functions. ***/
 
@@ -1181,30 +1175,6 @@ static int resume(struct target *target, int debug_execution, bool step)
 	return execute_resume(target, step);
 }
 
-/** Update register sizes based on xlen. */
-static void update_reg_list(struct target *target)
-{
-	riscv011_info_t *info = get_info(target);
-	if (info->reg_values) {
-		free(info->reg_values);
-	}
-	info->reg_values = malloc(GDB_REGNO_COUNT * riscv_xlen(target) / 4);
-
-	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
-		struct reg *r = &target->reg_cache->reg_list[i];
-		r->value = info->reg_values + i * riscv_xlen(target) / 4;
-		if (r->dirty) {
-			LOG_ERROR("Register %d was dirty. Its value is lost.", i);
-		}
-		if (i == GDB_REGNO_PRIV) {
-			r->size = 8;
-		} else {
-			r->size = riscv_xlen(target);
-		}
-		r->valid = false;
-	}
-}
-
 static uint64_t reg_cache_get(struct target *target, unsigned int number)
 {
 	struct reg *r = &target->reg_cache->reg_list[number];
@@ -1236,7 +1206,8 @@ static int update_mstatus_actual(struct target *target)
 
 	// Force reading the register. In that process mstatus_actual will be
 	// updated.
-	return register_get(&target->reg_cache->reg_list[GDB_REGNO_MSTATUS]);
+	get_register(target, 0, GDB_REGNO_MSTATUS);
+	return ERROR_OK;
 }
 
 /*** OpenOCD target functions. ***/
@@ -1270,58 +1241,6 @@ static int register_read(struct target *target, riscv_reg_t *value, int regnum)
 
 	if (regnum == GDB_REGNO_MSTATUS) {
 		info->mstatus_actual = *value;
-	}
-
-	return ERROR_OK;
-}
-
-static int register_get(struct reg *reg)
-{
-	struct target *target = (struct target *) reg->arch_info;
-	riscv011_info_t *info = get_info(target);
-
-	maybe_write_tselect(target);
-	riscv_reg_t value = ~0;
-
-	if (reg->number <= GDB_REGNO_XPR31) {
-		value = reg_cache_get(target, reg->number);
-		LOG_DEBUG("%s=0x%" PRIx64, reg->name, reg_cache_get(target, reg->number));
-	} else if (reg->number == GDB_REGNO_PC) {
-		value = info->dpc;
-		LOG_DEBUG("%s=0x%" PRIx64 " (cached)", reg->name, info->dpc);
-	} else if (reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) {
-		int result = update_mstatus_actual(target);
-		if (result != ERROR_OK) {
-			return result;
-		}
-		unsigned i = 0;
-		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
-			info->mstatus_actual = set_field(info->mstatus_actual, MSTATUS_FS, 1);
-			cache_set_load(target, i++, S0, SLOT1);
-			cache_set32(target, i++, csrw(S0, CSR_MSTATUS));
-			cache_set(target, SLOT1, info->mstatus_actual);
-		}
-
-		if (riscv_xlen(target) == 32) {
-			cache_set32(target, i++, fsw(reg->number - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
-		} else {
-			cache_set32(target, i++, fsd(reg->number - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
-		}
-		cache_set_jump(target, i++);
-
-		if (cache_write(target, 4, true) != ERROR_OK) {
-			return ERROR_FAIL;
-		}
-	} else if (reg->number == GDB_REGNO_PRIV) {
-		value = get_field(info->dcsr, DCSR_PRV);
-	} else {
-		if (register_read(target, &value, reg->number) != ERROR_OK)
-			return ERROR_FAIL;
-	}
-	buf_set_u64(reg->value, 0, riscv_xlen(target), value);
-
-	if (reg->number == GDB_REGNO_MSTATUS) {
-		reg->valid = true;
 	}
 
 	return ERROR_OK;
@@ -1399,33 +1318,53 @@ static int register_write(struct target *target, unsigned int number,
 	return ERROR_OK;
 }
 
-static int register_set(struct reg *reg, uint8_t *buf)
-{
-	struct target *target = (struct target *) reg->arch_info;
-
-	uint64_t value = buf_get_u64(buf, 0, riscv_xlen(target));
-
-	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
-	struct reg *r = &target->reg_cache->reg_list[reg->number];
-	r->valid = true;
-	memcpy(r->value, buf, (r->size + 7) / 8);
-
-	return register_write(target, reg->number, value);
-}
-
-static struct reg_arch_type riscv_reg_arch_type = {
-	.get = register_get,
-	.set = register_set
-};
-
 static riscv_reg_t get_register(struct target *target, int hartid, int regid)
 {
 	assert(hartid == 0);
-	riscv_reg_t value;
-	if (register_read(target, &value, regid) != ERROR_OK) {
-		// TODO: propagate errors
-		value = ~0;
+	riscv011_info_t *info = get_info(target);
+
+	maybe_write_tselect(target);
+	riscv_reg_t value = ~0;
+
+	if (regid <= GDB_REGNO_XPR31) {
+		value = reg_cache_get(target, regid);
+	} else if (regid == GDB_REGNO_PC) {
+		value = info->dpc;
+	} else if (regid >= GDB_REGNO_FPR0 && regid <= GDB_REGNO_FPR31) {
+		int result = update_mstatus_actual(target);
+		if (result != ERROR_OK) {
+			return ~0;
+		}
+		unsigned i = 0;
+		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
+			info->mstatus_actual = set_field(info->mstatus_actual, MSTATUS_FS, 1);
+			cache_set_load(target, i++, S0, SLOT1);
+			cache_set32(target, i++, csrw(S0, CSR_MSTATUS));
+			cache_set(target, SLOT1, info->mstatus_actual);
+		}
+
+		if (riscv_xlen(target) == 32) {
+			cache_set32(target, i++, fsw(regid - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
+		} else {
+			cache_set32(target, i++, fsd(regid - GDB_REGNO_FPR0, 0, DEBUG_RAM_START + 16));
+		}
+		cache_set_jump(target, i++);
+
+		if (cache_write(target, 4, true) != ERROR_OK) {
+			return ~0;
+		}
+	} else if (regid == GDB_REGNO_PRIV) {
+		value = get_field(info->dcsr, DCSR_PRV);
+	} else {
+		if (register_read(target, &value, regid) != ERROR_OK) {
+			value = ~0;
+		}
 	}
+
+	if (regid == GDB_REGNO_MSTATUS) {
+		target->reg_cache->reg_list[regid].valid = true;
+	}
+
 	return value;
 }
 
@@ -1466,45 +1405,10 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
-	riscv011_info_t *info = get_info(target);
 
-	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
-	target->reg_cache->name = "RISC-V registers";
-	target->reg_cache->num_regs = GDB_REGNO_COUNT;
-
-	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
-
-	const unsigned int max_reg_name_len = 12;
-	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
-	char *reg_name = info->reg_names;
-	info->reg_values = NULL;
-
-	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
-		struct reg *r = &target->reg_cache->reg_list[i];
-		r->number = i;
-		r->caller_save = true;
-		r->dirty = false;
-		r->valid = false;
-		r->exist = true;
-		r->type = &riscv_reg_arch_type;
-		r->arch_info = target;
-		if (i <= GDB_REGNO_XPR31) {
-			sprintf(reg_name, "x%d", i);
-		} else if (i == GDB_REGNO_PC) {
-			sprintf(reg_name, "pc");
-		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
-			sprintf(reg_name, "f%d", i - GDB_REGNO_FPR0);
-		} else if (i >= GDB_REGNO_CSR0 && i <= GDB_REGNO_CSR4095) {
-			sprintf(reg_name, "csr%d", i - GDB_REGNO_CSR0);
-		} else if (i == GDB_REGNO_PRIV) {
-			sprintf(reg_name, "priv");
-		}
-		if (reg_name[0]) {
-			r->name = reg_name;
-		}
-		reg_name += strlen(reg_name) + 1;
-		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
-	}
+	// Assume 32-bit until we discover the real value in examine().
+	generic_info->xlen[0] = 32;
+	riscv_init_registers(target);
 
 	return ERROR_OK;
 }
@@ -1690,9 +1594,6 @@ static int examine(struct target *target)
 	}
 	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
-	// Update register list to match discovered XLEN.
-	update_reg_list(target);
-
 	if (read_csr(target, &r->misa, CSR_MISA) != ERROR_OK) {
 		const unsigned old_csr_misa = 0xf10;
 		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
@@ -1704,6 +1605,9 @@ static int examine(struct target *target)
 			return ERROR_FAIL;
 		}
 	}
+
+	// Update register list to match discovered XLEN/supported extensions.
+	riscv_init_registers(target);
 
 	info->never_halted = true;
 

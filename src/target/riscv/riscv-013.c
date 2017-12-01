@@ -150,12 +150,6 @@ typedef struct {
 	/* We only need the address so that we know the alignment of the buffer. */
 	riscv_addr_t progbuf_address;
 
-	/* Single buffer that contains all register names, instead of calling
-	 * malloc for each register. Needs to be freed when reg_list is freed. */
-	char *reg_names;
-	/* Single buffer that contains all register values. */
-	void *reg_values;
-
 	// Number of run-test/idle cycles the target requests we do after each dbus
 	// access.
 	unsigned int dtmcontrol_idle;
@@ -289,10 +283,6 @@ static riscv013_info_t *get_info(const struct target *target)
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	return (riscv013_info_t *) info->version_specific;
 }
-
-/*** Necessary prototypes. ***/
-
-static int register_get(struct reg *reg);
 
 /*** Utility functions. ***/
 
@@ -1070,225 +1060,6 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 /*** OpenOCD target functions. ***/
 
-static int register_get(struct reg *reg)
-{
-	struct target *target = (struct target *) reg->arch_info;
-	uint64_t value = riscv_get_register(target, reg->number);
-	buf_set_u64(reg->value, 0, reg->size, value);
-	return ERROR_OK;
-}
-
-static int register_write(struct target *target, unsigned int number,
-		uint64_t value)
-{
-	riscv_set_register(target, number, value);
-	return ERROR_OK;
-}
-
-static int register_set(struct reg *reg, uint8_t *buf)
-{
-	struct target *target = (struct target *) reg->arch_info;
-
-	uint64_t value = buf_get_u64(buf, 0, reg->size);
-
-	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
-	struct reg *r = &target->reg_cache->reg_list[reg->number];
-	r->valid = true;
-	memcpy(r->value, buf, (r->size + 7) / 8);
-
-	return register_write(target, reg->number, value);
-}
-
-static struct reg_arch_type riscv_reg_arch_type = {
-	.get = register_get,
-	.set = register_set
-};
-
-struct csr_info {
-	unsigned number;
-	const char *name;
-};
-
-static int cmp_csr_info(const void *p1, const void *p2)
-{
-	return (int) (((struct csr_info *)p1)->number) - (int) (((struct csr_info *)p2)->number);
-}
-
-static int init_registers(struct target *target)
-{
-	riscv013_info_t *info = get_info(target);
-
-	if (target->reg_cache) {
-		if (target->reg_cache->reg_list)
-			free(target->reg_cache->reg_list);
-		free(target->reg_cache);
-	}
-
-	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
-	target->reg_cache->name = "RISC-V Registers";
-	target->reg_cache->num_regs = GDB_REGNO_COUNT;
-
-	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
-
-	const unsigned int max_reg_name_len = 12;
-	if (info->reg_names)
-		free(info->reg_names);
-	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
-	char *reg_name = info->reg_names;
-	info->reg_values = NULL;
-
-	static struct reg_feature feature_cpu = {
-		.name = "org.gnu.gdb.riscv.cpu"
-	};
-	static struct reg_feature feature_fpu = {
-		.name = "org.gnu.gdb.riscv.fpu"
-	};
-	static struct reg_feature feature_csr = {
-		.name = "org.gnu.gdb.riscv.csr"
-	};
-	static struct reg_feature feature_virtual = {
-		.name = "org.gnu.gdb.riscv.virtual"
-	};
-
-	static struct reg_data_type type_ieee_single = {
-		.type = REG_TYPE_IEEE_SINGLE,
-		.id = "ieee_single"
-	};
-	static struct reg_data_type type_ieee_double = {
-		.type = REG_TYPE_IEEE_DOUBLE,
-		.id = "ieee_double"
-	};
-	struct csr_info csr_info[] = {
-#define DECLARE_CSR(name, number) { number, #name },
-#include "encoding.h"
-#undef DECLARE_CSR
-	};
-	// encoding.h does not contain the registers in sorted order.
-	qsort(csr_info, DIM(csr_info), sizeof(*csr_info), cmp_csr_info);
-	unsigned csr_info_index = 0;
-
-	// When gdb request register N, gdb_get_register_packet() assumes that this
-	// is register at index N in reg_list. So if there are certain registers
-	// that don't exist, we need to leave holes in the list (or renumber, but
-	// it would be nice not to have yet another set of numbers to translate
-	// between).
-	for (uint32_t number = 0; number < GDB_REGNO_COUNT; number++) {
-		struct reg *r = &target->reg_cache->reg_list[number];
-		r->caller_save = true;
-		r->dirty = false;
-		r->valid = false;
-		r->exist = true;
-		r->type = &riscv_reg_arch_type;
-		r->arch_info = target;
-		r->number = number;
-		// r->size is set in riscv_invalidate_register_cache, maybe because the
-		// target is in theory allowed to change XLEN on us. But I expect a lot
-		// of other things to break in that case as well.
-		if (number <= GDB_REGNO_XPR31) {
-			switch (number) {
-				case GDB_REGNO_ZERO: r->name = "zero"; break;
-				case GDB_REGNO_RA: r->name = "ra"; break;
-				case GDB_REGNO_SP: r->name = "sp"; break;
-				case GDB_REGNO_GP: r->name = "gp"; break;
-				case GDB_REGNO_TP: r->name = "tp"; break;
-				case GDB_REGNO_T0: r->name = "t0"; break;
-				case GDB_REGNO_T1: r->name = "t1"; break;
-				case GDB_REGNO_T2: r->name = "t2"; break;
-				case GDB_REGNO_FP: r->name = "fp"; break;
-				case GDB_REGNO_S1: r->name = "s1"; break;
-				case GDB_REGNO_A0: r->name = "a0"; break;
-				case GDB_REGNO_A1: r->name = "a1"; break;
-				case GDB_REGNO_A2: r->name = "a2"; break;
-				case GDB_REGNO_A3: r->name = "a3"; break;
-				case GDB_REGNO_A4: r->name = "a4"; break;
-				case GDB_REGNO_A5: r->name = "a5"; break;
-				case GDB_REGNO_A6: r->name = "a6"; break;
-				case GDB_REGNO_A7: r->name = "a7"; break;
-				case GDB_REGNO_S2: r->name = "s2"; break;
-				case GDB_REGNO_S3: r->name = "s3"; break;
-				case GDB_REGNO_S4: r->name = "s4"; break;
-				case GDB_REGNO_S5: r->name = "s5"; break;
-				case GDB_REGNO_S6: r->name = "s6"; break;
-				case GDB_REGNO_S7: r->name = "s7"; break;
-				case GDB_REGNO_S8: r->name = "s8"; break;
-				case GDB_REGNO_S9: r->name = "s9"; break;
-				case GDB_REGNO_S10: r->name = "s10"; break;
-				case GDB_REGNO_S11: r->name = "s11"; break;
-				case GDB_REGNO_T3: r->name = "t3"; break;
-				case GDB_REGNO_T4: r->name = "t4"; break;
-				case GDB_REGNO_T5: r->name = "t5"; break;
-				case GDB_REGNO_T6: r->name = "t6"; break;
-			}
-			r->group = "general";
-			r->feature = &feature_cpu;
-		} else if (number == GDB_REGNO_PC) {
-			sprintf(reg_name, "pc");
-			r->group = "general";
-			r->feature = &feature_cpu;
-		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (riscv_supports_extension(target, 'D')) {
-				r->reg_data_type = &type_ieee_double;
-			} else if (riscv_supports_extension(target, 'F')) {
-				r->reg_data_type = &type_ieee_single;
-			} else {
-				r->exist = false;
-			}
-			sprintf(reg_name, "f%d", number - GDB_REGNO_FPR0);
-			r->group = "float";
-			r->feature = &feature_fpu;
-		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			r->group = "csr";
-			r->feature = &feature_csr;
-			r->exist = true;
-			unsigned csr_number = number - GDB_REGNO_CSR0;
-
-			while (csr_info[csr_info_index].number < csr_number) {
-				csr_info_index++;
-			}
-			if (csr_info[csr_info_index].number == csr_number) {
-				r->name = csr_info[csr_info_index].name;
-			} else {
-				sprintf(reg_name, "csr%d", csr_number);
-				// Assume unnamed registers don't exist, unless we have some
-				// configuration that tells us otherwise. That's important
-				// because eg. Eclipse crashes if a target has too many
-				// registers, and apparently has no way of only showing a
-				// subset of registers in any case.
-				r->exist = false;
-			}
-
-			switch (csr_number) {
-				case CSR_FFLAGS:
-					r->exist = riscv_supports_extension(target, 'F');
-					r->group = "float";
-					r->feature = &feature_fpu;
-					break;
-				case CSR_FRM:
-					r->exist = riscv_supports_extension(target, 'F');
-					r->group = "float";
-					r->feature = &feature_fpu;
-					break;
-				case CSR_FCSR:
-					r->exist = riscv_supports_extension(target, 'F');
-					r->group = "float";
-					r->feature = &feature_fpu;
-					break;
-			}
-		} else if (number == GDB_REGNO_PRIV) {
-			sprintf(reg_name, "priv");
-			r->group = "general";
-			r->feature = &feature_virtual;
-		}
-		if (reg_name[0]) {
-			r->name = reg_name;
-		}
-		reg_name += strlen(reg_name) + 1;
-		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
-	}
-
-	return ERROR_OK;
-}
-
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -1438,12 +1209,24 @@ static int examine(struct target *target)
 			break;
 		}
 	}
+	// Reset hartid to one that exists. Set coreid to avoid assert in
+	// riscv_set_current_hartid(). (TODO)
+	target->coreid = 0;
+	riscv_set_current_hartid(target, 0);
+
 	target->coreid = original_coreid;
 
 	LOG_DEBUG("Enumerated %d harts", r->hart_count);
 
+	// Assume 32-bit until we discover the real value in examine().
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (riscv_hart_enabled(target, i)) {
+			r->xlen[i] = 32;
+		}
+		LOG_DEBUG(">>> temporary XLEN for hart %d is %d", i, r->xlen[i]);
+	}
 	// Get a functional register cache going.
-	if (init_registers(target) != ERROR_OK)
+	if (riscv_init_registers(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Halt every hart so we can probe them. */
@@ -1484,7 +1267,7 @@ static int examine(struct target *target)
 	target->state = TARGET_RUNNING;
 
 	// Now reinit registers based on what we discovered.
-	if (init_registers(target) != ERROR_OK)
+	if (riscv_init_registers(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	target_set_examined(target);

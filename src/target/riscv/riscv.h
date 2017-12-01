@@ -59,7 +59,11 @@ typedef struct {
 
 	/* The register cache points into here. */
 	uint64_t reg_cache_values[RISCV_MAX_REGISTERS];
-	
+
+	/* Single buffer that contains all register names, instead of calling
+	 * malloc for each register. Needs to be freed when reg_list is freed. */
+	char *reg_names;
+
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen[RISCV_MAX_HARTS];
 
@@ -242,5 +246,7 @@ int riscv_remove_breakpoint(struct target *target,
 int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
 int riscv_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
+
+int riscv_init_registers(struct target *target);
 
 #endif
