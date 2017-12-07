@@ -5888,9 +5888,6 @@ All members of the Stellaris LM3Sxxx, LM4x and Tiva C microcontroller
 families from Texas Instruments include internal flash. The driver
 automatically recognizes a number of these chips using the chip
 identification register, and autoconfigures itself.
-@footnote{Currently there is a @command{stellaris mass_erase} command.
-That seems pointless since the same effect can be had using the
-standard @command{flash erase_address} command.}
 
 @example
 flash bank $_FLASHNAME stellaris 0 0 0 0 $_TARGETNAME
@@ -5936,11 +5933,7 @@ as per the following example.
 flash bank $_FLASHNAME stm32f1x 0x08080000 0 0 0 $_TARGETNAME
 @end example
 
-Some stm32f1x-specific commands
-@footnote{Currently there is a @command{stm32f1x mass_erase} command.
-That seems pointless since the same effect can be had using the
-standard @command{flash erase_address} command.}
-are defined:
+Some stm32f1x-specific commands are defined:
 
 @deffn Command {stm32f1x lock} num
 Locks the entire stm32 device.
@@ -5953,8 +5946,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f1x mass_erase} num
-Mass erases the entire stm32f1x device. This is the only way to
-unlock a protected flash (unless RDP Level is 2 which can't be unlocked at all).
+Mass erases the entire stm32f1x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
@@ -6001,8 +5993,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f2x mass_erase} num
-Mass erases the entire stm32f2x device. This is the only way to
-unlock a protected flash (unless RDP Level is 2 which can't be unlocked at all).
+Mass erases the entire stm32f2x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
@@ -6056,8 +6047,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32h7x mass_erase} num
-Mass erases the entire stm32h7x device. This is the only way to
-unlock a protected flash (unless RDP Level is 2 which can't be unlocked at all).
+Mass erases the entire stm32h7x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 @end deffn
@@ -6083,6 +6073,16 @@ flash bank $_FLASHNAME stm32lx 0x08000000 0x20000 0 0 $_TARGETNAME
 @end example
 
 Some stm32lx-specific commands are defined:
+
+@deffn Command {stm32lx lock} num
+Locks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32lx unlock} num
+Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
 
 @deffn Command {stm32lx mass_erase} num
 Mass erases the entire stm32lx device (all flash banks and EEPROM
@@ -6123,8 +6123,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32l4x mass_erase} num
-Mass erases the entire stm32l4x device. This is the only way to
-unlock a protected flash (unless RDP Level is 2 which can't be unlocked at all).
+Mass erases the entire stm32l4x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 @end deffn
