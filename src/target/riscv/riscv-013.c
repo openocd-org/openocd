@@ -1193,52 +1193,20 @@ static int examine(struct target *target)
 	RISCV_INFO(r);
 	r->impebreak = get_field(dmstatus, DMI_DMSTATUS_IMPEBREAK);
 
-	int original_coreid = target->coreid;
 	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
-		/* Fake being a non-RTOS targeted to this core so we can see if
-		 * it exists.  This avoids the assertion in
-		 * riscv_set_current_hartid() that ensures non-RTOS targets
-		 * don't touch the harts they're not assigned to.  */
-		target->coreid = i;
-		r->hart_count = i + 1;
-		riscv_set_current_hartid(target, i);
-
-		uint32_t s = dmi_read(target, DMI_DMSTATUS);
-		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT)) {
-			r->hart_count--;
-			break;
-		}
-	}
-	// Reset hartid to one that exists. Set coreid to avoid assert in
-	// riscv_set_current_hartid(). (TODO)
-	target->coreid = 0;
-	riscv_set_current_hartid(target, 0);
-
-	target->coreid = original_coreid;
-
-	LOG_DEBUG("Enumerated %d harts", r->hart_count);
-
-	// Assume 32-bit until we discover the real value in examine().
-	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		if (riscv_hart_enabled(target, i)) {
-			r->xlen[i] = 32;
-		}
-		LOG_DEBUG(">>> temporary XLEN for hart %d is %d", i, r->xlen[i]);
-	}
-	// Get a functional register cache going.
-	if (riscv_init_registers(target) != ERROR_OK)
-		return ERROR_FAIL;
-
-	/* Halt every hart so we can probe them. */
-	riscv_halt_all_harts(target);
-
-	/* Find the address of the program buffer, which must be done without
-	 * knowing anything about the target. */
-	for (int i = 0; i < riscv_count_harts(target); ++i) {
 		if (!riscv_hart_enabled(target, i))
 			continue;
 
 		riscv_set_current_hartid(target, i);
+		uint32_t s = dmi_read(target, DMI_DMSTATUS);
+		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT)) {
+			break;
+		}
+		r->hart_count = i + 1;
+
+		if (!riscv_is_halted(target)) {
+			riscv013_halt_current_hart(target);
+		}
 
 		/* Without knowing anything else we can at least mess with the
 		 * program buffer. */
@@ -1251,24 +1219,26 @@ static int examine(struct target *target)
 			r->xlen[i] = 32;
 		}
 
-		r->misa = riscv_get_register_on_hart(target, i, GDB_REGNO_MISA);
+		// Now init registers based on what we discovered.
+		if (riscv_init_registers(target) != ERROR_OK)
+			return ERROR_FAIL;
 
+		r->misa = riscv_get_register_on_hart(target, i, GDB_REGNO_MISA);
 		/* Display this as early as possible to help people who are using
 		 * really slow simulators. */
 		LOG_DEBUG(" hart %d: XLEN=%d, misa=0x%" PRIx64, i, r->xlen[i],
 				r->misa);
 	}
 
+	LOG_DEBUG("Enumerated %d harts", r->hart_count);
+
 	/* Then we check the number of triggers availiable to each hart. */
 	riscv_enumerate_triggers(target);
 
 	/* Resumes all the harts, so the debugger can later pause them. */
+	// TODO: Only do this if the harts were halted to start with.
 	riscv_resume_all_harts(target);
 	target->state = TARGET_RUNNING;
-
-	// Now reinit registers based on what we discovered.
-	if (riscv_init_registers(target) != ERROR_OK)
-		return ERROR_FAIL;
 
 	target_set_examined(target);
 
