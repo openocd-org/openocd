@@ -1883,6 +1883,7 @@ int riscv_init_registers(struct target *target)
 			sprintf(reg_name, "priv");
 			r->group = "general";
 			r->feature = &feature_virtual;
+			r->size = 8;
 		}
 		if (reg_name[0]) {
 			r->name = reg_name;
