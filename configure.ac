@@ -759,7 +759,7 @@ AS_IF([test "x${has_environ}" != "xyes" ], [
 AC_DEFINE([_GNU_SOURCE],[1],[Use GNU C library extensions (e.g. stdndup).])
 
 # set default gcc warnings
-GCC_WARNINGS="-Wall -Wstrict-prototypes -Wformat-security -Wshadow"
+GCC_WARNINGS="-Wall -Wstrict-prototypes -Wformat-security -Wshadow -Wno-shift-negative-value"
 AS_IF([test "x${gcc_wextra}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Wextra -Wno-unused-parameter"
   GCC_WARNINGS="${GCC_WARNINGS} -Wbad-function-cast"
