@@ -1193,11 +1193,15 @@ static int examine(struct target *target)
 	RISCV_INFO(r);
 	r->impebreak = get_field(dmstatus, DMI_DMSTATUS_IMPEBREAK);
 
+	// Don't call any riscv_* functions until after we've counted the number of
+	// cores and initialized registers.
 	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
 		if (!riscv_rtos_enabled(target) && i != target->coreid)
 			continue;
 
-		riscv_set_current_hartid(target, i);
+		r->current_hartid = i;
+		riscv013_select_current_hart(target);
+
 		uint32_t s = dmi_read(target, DMI_DMSTATUS);
 		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT)) {
 			break;
