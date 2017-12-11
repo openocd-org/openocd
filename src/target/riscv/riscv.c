@@ -1403,7 +1403,6 @@ void riscv_invalidate_register_cache(struct target *target)
 {
 	RISCV_INFO(r);
 
-	/* Update the register list's widths. */
 	register_cache_invalidate(target->reg_cache);
 	for (size_t i = 0; i < GDB_REGNO_COUNT; ++i) {
 		struct reg *reg = &target->reg_cache->reg_list[i];
