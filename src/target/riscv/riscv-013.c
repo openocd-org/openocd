@@ -1194,7 +1194,7 @@ static int examine(struct target *target)
 	r->impebreak = get_field(dmstatus, DMI_DMSTATUS_IMPEBREAK);
 
 	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
-		if (!riscv_hart_enabled(target, i))
+		if (!riscv_rtos_enabled(target) && i != target->coreid)
 			continue;
 
 		riscv_set_current_hartid(target, i);
