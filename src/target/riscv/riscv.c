@@ -200,6 +200,9 @@ int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
 /* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
 int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
+bool riscv_use_scratch_ram = false;
+uint64_t riscv_scratch_ram_address = 0;
+
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
@@ -1120,8 +1123,8 @@ int riscv_openocd_step(
 }
 
 /* Command Handlers */
-COMMAND_HANDLER(riscv_set_command_timeout_sec) {
-
+COMMAND_HANDLER(riscv_set_command_timeout_sec)
+{
 	if (CMD_ARGC != 1) {
 		LOG_ERROR("Command takes exactly 1 parameter");
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1137,11 +1140,11 @@ COMMAND_HANDLER(riscv_set_command_timeout_sec) {
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(riscv_set_reset_timeout_sec) {
-
+COMMAND_HANDLER(riscv_set_reset_timeout_sec)
+{
 	if (CMD_ARGC != 1) {
-			LOG_ERROR("Command takes exactly 1 parameter");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	int timeout = atoi(CMD_ARGV[0]);
 	if (timeout <= 0){
@@ -1153,6 +1156,29 @@ COMMAND_HANDLER(riscv_set_reset_timeout_sec) {
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_scratch_ram)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	if (!strcmp(CMD_ARGV[0], "none")) {
+		riscv_use_scratch_ram = false;
+		return ERROR_OK;
+	}
+
+	long long unsigned int address;
+	int result = sscanf(CMD_ARGV[0], "%Lx", &address);
+	if (result != (int) strlen(CMD_ARGV[0])) {
+		LOG_ERROR("%s is not a valid address for command.", CMD_ARGV[0]);
+		riscv_use_scratch_ram = false;
+		return ERROR_FAIL;
+	}
+
+	riscv_scratch_ram_address = address;
+	riscv_use_scratch_ram = true;
+	return ERROR_OK;
+}
 
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
@@ -1161,13 +1187,20 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_command_timeout_sec [sec]",
 		.help = "Set the wall-clock timeout (in seconds) for individual commands"
-	 },
-	 {
+	},
+	{
 		.name = "set_reset_timeout_sec",
 		.handler = riscv_set_reset_timeout_sec,
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_reset_timeout_sec [sec]",
 		.help = "Set the wall-clock timeout (in seconds) after reset is deasserted"
+	},
+	{
+		.name = "set_scratch_ram",
+		.handler = riscv_set_scratch_ram,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_scratch_ram none|[address]",
+		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1235,7 +1268,6 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 
 	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h) {
 		r->xlen[h] = -1;
-		r->debug_buffer_addr[h] = -1;
 
 		for (size_t e = 0; e < RISCV_MAX_REGISTERS; ++e)
 			r->valid_saved_registers[h][e] = false;
@@ -1481,28 +1513,6 @@ size_t riscv_debug_buffer_size(struct target *target)
 {
 	RISCV_INFO(r);
 	return r->debug_buffer_size[riscv_current_hartid(target)];
-}
-
-riscv_addr_t riscv_debug_buffer_addr(struct target *target)
-{
-	RISCV_INFO(r);
-	riscv_addr_t out = r->debug_buffer_addr[riscv_current_hartid(target)];
-	assert((out & 3) == 0);
-	return out;
-}
-
-int riscv_debug_buffer_enter(struct target *target, struct riscv_program *program)
-{
-	RISCV_INFO(r);
-	r->debug_buffer_enter(target, program);
-	return ERROR_OK;
-}
-
-int riscv_debug_buffer_leave(struct target *target, struct riscv_program *program)
-{
-	RISCV_INFO(r);
-	r->debug_buffer_leave(target, program);
-	return ERROR_OK;
 }
 
 int riscv_write_debug_buffer(struct target *target, int index, riscv_insn_t insn)

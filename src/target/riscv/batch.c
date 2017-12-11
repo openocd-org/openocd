@@ -49,13 +49,12 @@ void riscv_batch_run(struct riscv_batch *batch)
 		return;
 	}
 
-  keep_alive();
+	keep_alive();
 
 	LOG_DEBUG("running a batch of %ld scans", (long)batch->used_scans);
 	riscv_batch_add_nop(batch);
 
 	for (size_t i = 0; i < batch->used_scans; ++i) {
-		dump_field(batch->fields + i);
 		jtag_add_dr_scan(batch->target->tap, 1, batch->fields + i, TAP_IDLE);
 		if (batch->idle_count > 0)
 			jtag_add_runtest(batch->idle_count, TAP_IDLE);
