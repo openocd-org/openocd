@@ -1219,11 +1219,12 @@ static int examine(struct target *target)
 			r->xlen[i] = 32;
 		}
 
+		register_read_direct(target, &r->misa, GDB_REGNO_MISA);
+
 		// Now init registers based on what we discovered.
 		if (riscv_init_registers(target) != ERROR_OK)
 			return ERROR_FAIL;
 
-		r->misa = riscv_get_register_on_hart(target, i, GDB_REGNO_MISA);
 		/* Display this as early as possible to help people who are using
 		 * really slow simulators. */
 		LOG_DEBUG(" hart %d: XLEN=%d, misa=0x%" PRIx64, i, r->xlen[i],
