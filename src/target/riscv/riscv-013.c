@@ -994,7 +994,7 @@ static int register_write_direct(struct target *target, unsigned number,
 			if (supports_extension(target, 'D')) {
 				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
 			} else {
-				riscv_program_insert(&program, fmv_s_x(number - GDB_REGNO_FPR0, S0));
+				riscv_program_insert(&program, fmv_w_x(number - GDB_REGNO_FPR0, S0));
 			}
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 			riscv_program_csrw(&program, S0, number);
@@ -1054,7 +1054,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			} else if (supports_extension(target, 'D')) {
 				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
 			} else {
-				riscv_program_insert(&program, fmv_x_s(S0, number - GDB_REGNO_FPR0));
+				riscv_program_insert(&program, fmv_x_w(S0, number - GDB_REGNO_FPR0));
 			}
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 			riscv_program_csrr(&program, S0, number);
