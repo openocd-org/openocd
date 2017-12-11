@@ -1247,7 +1247,6 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 	memset(r, 0, sizeof(*r));
 	r->dtm_version = 1;
 	r->registers_initialized = false;
-	LOG_DEBUG(">>> current_hartid=%d", target->coreid);
 	r->current_hartid = target->coreid;
 
 	memset(r->trigger_unique_id, 0xff, sizeof(r->trigger_unique_id));
@@ -1360,7 +1359,6 @@ int riscv_xlen(const struct target *target)
 int riscv_xlen_of_hart(const struct target *target, int hartid)
 {
 	RISCV_INFO(r);
-	LOG_DEBUG(">>> xlen[%d] = %d", hartid, r->xlen[hartid]);
 	assert(r->xlen[hartid] != -1);
 	return r->xlen[hartid];
 }
