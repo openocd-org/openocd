@@ -41,7 +41,7 @@ extern struct jtag_interface *jtag_interface;
  * this function checks the current stable state to decide on the value of TMS
  * to use.
  */
-static void bitbang_stableclocks(int num_cycles);
+static int bitbang_stableclocks(int num_cycles);
 
 static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
 
@@ -70,15 +70,11 @@ struct bitbang_interface *bitbang_interface;
 /* The bitbang driver leaves the TCK 0 when in idle */
 static void bitbang_end_state(tap_state_t state)
 {
-	if (tap_is_state_stable(state))
-		tap_set_end_state(state);
-	else {
-		LOG_ERROR("BUG: %i is not a valid end state", state);
-		exit(-1);
-	}
+	assert(tap_is_state_stable(state));
+	tap_set_end_state(state);
 }
 
-static void bitbang_state_move(int skip)
+static int bitbang_state_move(int skip)
 {
 	int i = 0, tms = 0;
 	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
@@ -86,12 +82,16 @@ static void bitbang_state_move(int skip)
 
 	for (i = skip; i < tms_count; i++) {
 		tms = (tms_scan >> i) & 1;
-		bitbang_interface->write(0, tms, 0);
-		bitbang_interface->write(1, tms, 0);
+		if (bitbang_interface->write(0, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
+		if (bitbang_interface->write(1, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
 	}
-	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
+	if (bitbang_interface->write(CLOCK_IDLE(), tms, 0) != ERROR_OK)
+		return ERROR_FAIL;
 
 	tap_set_state(tap_get_end_state());
+	return ERROR_OK;
 }
 
 /**
@@ -108,15 +108,18 @@ static int bitbang_execute_tms(struct jtag_command *cmd)
 	int tms = 0;
 	for (unsigned i = 0; i < num_bits; i++) {
 		tms = ((bits[i/8] >> (i % 8)) & 1);
-		bitbang_interface->write(0, tms, 0);
-		bitbang_interface->write(1, tms, 0);
+		if (bitbang_interface->write(0, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
+		if (bitbang_interface->write(1, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
 	}
-	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
+	if (bitbang_interface->write(CLOCK_IDLE(), tms, 0) != ERROR_OK)
+		return ERROR_FAIL;
 
 	return ERROR_OK;
 }
 
-static void bitbang_path_move(struct pathmove_command *cmd)
+static int bitbang_path_move(struct pathmove_command *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
@@ -135,20 +138,24 @@ static void bitbang_path_move(struct pathmove_command *cmd)
 			exit(-1);
 		}
 
-		bitbang_interface->write(0, tms, 0);
-		bitbang_interface->write(1, tms, 0);
+		if (bitbang_interface->write(0, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
+		if (bitbang_interface->write(1, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
 
 		tap_set_state(cmd->path[state_count]);
 		state_count++;
 		num_states--;
 	}
 
-	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
+	if (bitbang_interface->write(CLOCK_IDLE(), tms, 0) != ERROR_OK)
+		return ERROR_FAIL;
 
 	tap_set_end_state(tap_get_state());
+	return ERROR_OK;
 }
 
-static void bitbang_runtest(int num_cycles)
+static int bitbang_runtest(int num_cycles)
 {
 	int i;
 
@@ -157,38 +164,50 @@ static void bitbang_runtest(int num_cycles)
 	/* only do a state_move when we're not already in IDLE */
 	if (tap_get_state() != TAP_IDLE) {
 		bitbang_end_state(TAP_IDLE);
-		bitbang_state_move(0);
+		if (bitbang_state_move(0) != ERROR_OK)
+			return ERROR_FAIL;
 	}
 
 	/* execute num_cycles */
 	for (i = 0; i < num_cycles; i++) {
-		bitbang_interface->write(0, 0, 0);
-		bitbang_interface->write(1, 0, 0);
+		if (bitbang_interface->write(0, 0, 0) != ERROR_OK)
+			return ERROR_FAIL;
+		if (bitbang_interface->write(1, 0, 0) != ERROR_OK)
+			return ERROR_FAIL;
 	}
-	bitbang_interface->write(CLOCK_IDLE(), 0, 0);
+	if (bitbang_interface->write(CLOCK_IDLE(), 0, 0) != ERROR_OK)
+		return ERROR_FAIL;
 
 	/* finish in end_state */
 	bitbang_end_state(saved_end_state);
 	if (tap_get_state() != tap_get_end_state())
-		bitbang_state_move(0);
+		if (bitbang_state_move(0) != ERROR_OK)
+			return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
-static void bitbang_stableclocks(int num_cycles)
+static int bitbang_stableclocks(int num_cycles)
 {
 	int tms = (tap_get_state() == TAP_RESET ? 1 : 0);
 	int i;
 
 	/* send num_cycles clocks onto the cable */
 	for (i = 0; i < num_cycles; i++) {
-		bitbang_interface->write(1, tms, 0);
-		bitbang_interface->write(0, tms, 0);
+		if (bitbang_interface->write(1, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
+		if (bitbang_interface->write(0, tms, 0) != ERROR_OK)
+			return ERROR_FAIL;
 	}
+
+	return ERROR_OK;
 }
 
-static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
+static int bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
+		unsigned scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
-	int bit_cnt;
+	unsigned bit_cnt;
 
 	if (!((!ir_scan &&
 			(tap_get_state() == TAP_DRSHIFT)) ||
@@ -198,12 +217,13 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 		else
 			bitbang_end_state(TAP_DRSHIFT);
 
-		bitbang_state_move(0);
+		if (bitbang_state_move(0) != ERROR_OK)
+			return ERROR_FAIL;
 		bitbang_end_state(saved_end_state);
 	}
 
+	size_t buffered = 0;
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++) {
-		int val = 0;
 		int tms = (bit_cnt == scan_size-1) ? 1 : 0;
 		int tdi;
 		int bytec = bit_cnt/8;
@@ -217,18 +237,47 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 		if ((type != SCAN_IN) && (buffer[bytec] & bcval))
 			tdi = 1;
 
-		bitbang_interface->write(0, tms, tdi);
-
-		if (type != SCAN_OUT)
-			val = bitbang_interface->read();
-
-		bitbang_interface->write(1, tms, tdi);
+		if (bitbang_interface->write(0, tms, tdi) != ERROR_OK)
+			return ERROR_FAIL;
 
 		if (type != SCAN_OUT) {
-			if (val)
-				buffer[bytec] |= bcval;
-			else
-				buffer[bytec] &= ~bcval;
+			if (bitbang_interface->buf_size) {
+				if (bitbang_interface->sample() != ERROR_OK)
+					return ERROR_FAIL;
+				buffered++;
+			} else {
+				switch (bitbang_interface->read()) {
+					case BB_LOW:
+						buffer[bytec] &= ~bcval;
+						break;
+					case BB_HIGH:
+						buffer[bytec] |= bcval;
+						break;
+					default:
+						return ERROR_FAIL;
+				}
+			}
+		}
+
+		if (bitbang_interface->write(1, tms, tdi) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (type != SCAN_OUT && bitbang_interface->buf_size &&
+				(buffered == bitbang_interface->buf_size ||
+				 bit_cnt == scan_size - 1)) {
+			for (unsigned i = bit_cnt + 1 - buffered; i <= bit_cnt; i++) {
+				switch (bitbang_interface->read_sample()) {
+					case BB_LOW:
+						buffer[i/8] &= ~(1 << (i % 8));
+						break;
+					case BB_HIGH:
+						buffer[i/8] |= 1 << (i % 8);
+						break;
+					default:
+						return ERROR_FAIL;
+				}
+			}
+			buffered = 0;
 		}
 	}
 
@@ -237,8 +286,10 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 		 * the shift state, so we skip the first state
 		 * and move directly to the end state.
 		 */
-		bitbang_state_move(1);
+		if (bitbang_state_move(1) != ERROR_OK)
+			return ERROR_FAIL;
 	}
+	return ERROR_OK;
 }
 
 int bitbang_execute_queue(void)
@@ -259,8 +310,10 @@ int bitbang_execute_queue(void)
 	 */
 	retval = ERROR_OK;
 
-	if (bitbang_interface->blink)
-		bitbang_interface->blink(1);
+	if (bitbang_interface->blink) {
+		if (bitbang_interface->blink(1) != ERROR_OK)
+			return ERROR_FAIL;
+	}
 
 	while (cmd) {
 		switch (cmd->type) {
@@ -273,7 +326,9 @@ int bitbang_execute_queue(void)
 				if ((cmd->cmd.reset->trst == 1) ||
 						(cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 					tap_set_state(TAP_RESET);
-				bitbang_interface->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				if (bitbang_interface->reset(cmd->cmd.reset->trst,
+							cmd->cmd.reset->srst) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
@@ -282,14 +337,16 @@ int bitbang_execute_queue(void)
 						tap_state_name(cmd->cmd.runtest->end_state));
 #endif
 				bitbang_end_state(cmd->cmd.runtest->end_state);
-				bitbang_runtest(cmd->cmd.runtest->num_cycles);
+				if (bitbang_runtest(cmd->cmd.runtest->num_cycles) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 
 			case JTAG_STABLECLOCKS:
 				/* this is only allowed while in a stable state.  A check for a stable
 				 * state was done in jtag_add_clocks()
 				 */
-				bitbang_stableclocks(cmd->cmd.stableclocks->num_cycles);
+				if (bitbang_stableclocks(cmd->cmd.stableclocks->num_cycles) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 
 			case JTAG_TLR_RESET:
@@ -298,7 +355,8 @@ int bitbang_execute_queue(void)
 						tap_state_name(cmd->cmd.statemove->end_state));
 #endif
 				bitbang_end_state(cmd->cmd.statemove->end_state);
-				bitbang_state_move(0);
+				if (bitbang_state_move(0) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
@@ -306,18 +364,22 @@ int bitbang_execute_queue(void)
 						cmd->cmd.pathmove->num_states,
 						tap_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
 #endif
-				bitbang_path_move(cmd->cmd.pathmove);
+				if (bitbang_path_move(cmd->cmd.pathmove) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 			case JTAG_SCAN:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan end in %s",
-						(cmd->cmd.scan->ir_scan) ? "IR" : "DR",
-					tap_state_name(cmd->cmd.scan->end_state));
-#endif
 				bitbang_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
+#ifdef _DEBUG_JTAG_IO_
+				LOG_DEBUG("%s scan %d bits; end in %s",
+						(cmd->cmd.scan->ir_scan) ? "IR" : "DR",
+						scan_size,
+					tap_state_name(cmd->cmd.scan->end_state));
+#endif
 				type = jtag_scan_type(cmd->cmd.scan);
-				bitbang_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
+				if (bitbang_scan(cmd->cmd.scan->ir_scan, type, buffer,
+							scan_size) != ERROR_OK)
+					return ERROR_FAIL;
 				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
 					retval = ERROR_JTAG_QUEUE_FAILED;
 				if (buffer)
@@ -338,8 +400,10 @@ int bitbang_execute_queue(void)
 		}
 		cmd = cmd->next;
 	}
-	if (bitbang_interface->blink)
-		bitbang_interface->blink(0);
+	if (bitbang_interface->blink) {
+		if (bitbang_interface->blink(0) != ERROR_OK)
+			return ERROR_FAIL;
+	}
 
 	return retval;
 }
