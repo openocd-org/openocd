@@ -59,7 +59,7 @@ static int remote_bitbang_buf_full(void)
 /* Read any incoming data, placing it into the buffer. */
 static void remote_bitbang_fill_buf(void)
 {
-	fcntl(remote_bitbang_fd, F_SETFL, O_NONBLOCK);
+	socket_nonblock(remote_bitbang_fd);
 	while (!remote_bitbang_buf_full()) {
 		unsigned contiguous_available_space;
 		if (remote_bitbang_end >= remote_bitbang_start) {
@@ -148,7 +148,7 @@ static int remote_bitbang_rread(void)
 	}
 
 	/* Enable blocking access. */
-	fcntl(remote_bitbang_fd, F_SETFL, 0);
+	socket_block(remote_bitbang_fd);
 	char c;
 	ssize_t count = read(remote_bitbang_fd, &c, 1);
 	if (count == 1) {
