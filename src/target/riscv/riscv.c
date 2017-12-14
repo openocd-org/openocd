@@ -1894,19 +1894,23 @@ int riscv_init_registers(struct target *target)
 
 			switch (csr_number) {
 				case CSR_FFLAGS:
-					r->exist = riscv_supports_extension(target, 'F');
-					r->group = "float";
-					r->feature = &feature_fpu;
-					break;
 				case CSR_FRM:
-					r->exist = riscv_supports_extension(target, 'F');
-					r->group = "float";
-					r->feature = &feature_fpu;
-					break;
 				case CSR_FCSR:
 					r->exist = riscv_supports_extension(target, 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
+					break;
+				case CSR_SSTATUS:
+				case CSR_STVEC:
+				case CSR_SIP:
+				case CSR_SIE:
+				case CSR_SCOUNTEREN:
+				case CSR_SSCRATCH:
+				case CSR_SEPC:
+				case CSR_SCAUSE:
+				case CSR_STVAL:
+				case CSR_SATP:
+					r->exist = riscv_supports_extension(target, 'S');
 					break;
 			}
 		} else if (number == GDB_REGNO_PRIV) {
