@@ -873,7 +873,7 @@ static int scratch_find(struct target *target,
 	}
 
 	if (riscv_use_scratch_ram) {
-		scratch->hart_address = (riscv_use_scratch_ram + alignment - 1) &
+		scratch->hart_address = (riscv_scratch_ram_address + alignment - 1) &
 			~(alignment - 1);
 		scratch->memory_space = SPACE_DMI_RAM;
 		scratch->debug_address = scratch->hart_address;
