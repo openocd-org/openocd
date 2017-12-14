@@ -1835,7 +1835,40 @@ int riscv_init_registers(struct target *target)
 			} else {
 				r->exist = false;
 			}
-			sprintf(reg_name, "f%d", number - GDB_REGNO_FPR0);
+			switch (number) {
+				case GDB_REGNO_FT0: r->name = "ft0"; break;
+				case GDB_REGNO_FT1: r->name = "ft1"; break;
+				case GDB_REGNO_FT2: r->name = "ft2"; break;
+				case GDB_REGNO_FT3: r->name = "ft3"; break;
+				case GDB_REGNO_FT4: r->name = "ft4"; break;
+				case GDB_REGNO_FT5: r->name = "ft5"; break;
+				case GDB_REGNO_FT6: r->name = "ft6"; break;
+				case GDB_REGNO_FT7: r->name = "ft7"; break;
+				case GDB_REGNO_FS0: r->name = "fs0"; break;
+				case GDB_REGNO_FS1: r->name = "fs1"; break;
+				case GDB_REGNO_FA0: r->name = "fa0"; break;
+				case GDB_REGNO_FA1: r->name = "fa1"; break;
+				case GDB_REGNO_FA2: r->name = "fa2"; break;
+				case GDB_REGNO_FA3: r->name = "fa3"; break;
+				case GDB_REGNO_FA4: r->name = "fa4"; break;
+				case GDB_REGNO_FA5: r->name = "fa5"; break;
+				case GDB_REGNO_FA6: r->name = "fa6"; break;
+				case GDB_REGNO_FA7: r->name = "fa7"; break;
+				case GDB_REGNO_FS2: r->name = "fs2"; break;
+				case GDB_REGNO_FS3: r->name = "fs3"; break;
+				case GDB_REGNO_FS4: r->name = "fs4"; break;
+				case GDB_REGNO_FS5: r->name = "fs5"; break;
+				case GDB_REGNO_FS6: r->name = "fs6"; break;
+				case GDB_REGNO_FS7: r->name = "fs7"; break;
+				case GDB_REGNO_FS8: r->name = "fs8"; break;
+				case GDB_REGNO_FS9: r->name = "fs9"; break;
+				case GDB_REGNO_FS10: r->name = "fs10"; break;
+				case GDB_REGNO_FS11: r->name = "fs11"; break;
+				case GDB_REGNO_FT8: r->name = "ft8"; break;
+				case GDB_REGNO_FT9: r->name = "ft9"; break;
+				case GDB_REGNO_FT10: r->name = "ft10"; break;
+				case GDB_REGNO_FT11: r->name = "ft11"; break;
+			}
 			r->group = "float";
 			r->feature = &feature_fpu;
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
