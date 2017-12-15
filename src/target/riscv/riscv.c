@@ -188,6 +188,14 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 bool riscv_use_scratch_ram = false;
 uint64_t riscv_scratch_ram_address = 0;
 
+/* In addition to the ones in the standard spec, we'll also expose additional
+ * CSRs in this list.
+ * The list is either NULL, or a series of ranges (inclusive), terminated with
+ * 1,0. */
+struct {
+	uint16_t low, high;
+} *expose_csr;
+
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
@@ -1165,6 +1173,88 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 	return ERROR_OK;
 }
 
+void parse_error(const char *string, char c, unsigned position)
+{
+	char buf[position+2];
+	for (unsigned i = 0; i < position; i++)
+		buf[i] = ' ';
+	buf[position] = '^';
+	buf[position + 1] = 0;
+
+	LOG_ERROR("Parse error at character %c in:", c);
+	LOG_ERROR("%s", string);
+	LOG_ERROR("%s", buf);
+}
+
+COMMAND_HANDLER(riscv_set_expose_csrs)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	for (unsigned pass = 0; pass < 2; pass++) {
+		unsigned range = 0;
+		unsigned low = 0;
+		bool parse_low = true;
+		unsigned high = 0;
+		for (unsigned i = 0; i == 0 || CMD_ARGV[0][i-1]; i++) {
+			char c = CMD_ARGV[0][i];
+			if isspace(c) {
+				// Ignore whitespace.
+				continue;
+			}
+
+			if (parse_low) {
+				if (isdigit(c)) {
+					low *= 10;
+					low += c - '0';
+				} else if (c == '-') {
+					parse_low = false;
+				} else if (c == ',' || c == 0) {
+					if (pass == 1) {
+						expose_csr[range].low = low;
+						expose_csr[range].high = low;
+					}
+					low = 0;
+					range++;
+				} else {
+					parse_error(CMD_ARGV[0], c, i);
+					return ERROR_COMMAND_SYNTAX_ERROR;
+				}
+
+			} else {
+				if (isdigit(c)) {
+					high *= 10;
+					high += c - '0';
+				} else if (c == ',' || c == 0) {
+					parse_low = true;
+					if (pass == 1) {
+						expose_csr[range].low = low;
+						expose_csr[range].high = high;
+					}
+					low = 0;
+					high = 0;
+					range++;
+				} else {
+					parse_error(CMD_ARGV[0], c, i);
+					return ERROR_COMMAND_SYNTAX_ERROR;
+				}
+			}
+		}
+
+		if (pass == 0) {
+			if (expose_csr)
+				free(expose_csr);
+			expose_csr = calloc(range + 2, sizeof(*expose_csr));
+		} else {
+			expose_csr[range].low = 1;
+			expose_csr[range].high = 0;
+		}
+	}
+	return ERROR_OK;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "set_command_timeout_sec",
@@ -1186,6 +1276,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_scratch_ram none|[address]",
 		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
+	},
+	{
+		.name = "expose_csrs",
+		.handler = riscv_set_expose_csrs,
+		.mode = COMMAND_ANY,
+		.usage = "riscv expose_csrs n0[-m0][,n0[-m0]]...",
+		.help = "Configure a list of inclusive ranges for CSRs to expose in "
+				"addition to the standard ones. This must be executed before "
+				"`init`."
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1913,6 +2012,17 @@ int riscv_init_registers(struct target *target)
 					r->exist = riscv_supports_extension(target, 'S');
 					break;
 			}
+
+			if (!r->exist && expose_csr) {
+				for (unsigned i = 0; expose_csr[i].low <= expose_csr[i].high; i++) {
+					if (csr_number >= expose_csr[i].low && csr_number <= expose_csr[i].high) {
+						LOG_INFO("Exposing additional CSR %d", csr_number);
+						r->exist = true;
+						break;
+					}
+				}
+			}
+
 		} else if (number == GDB_REGNO_PRIV) {
 			sprintf(reg_name, "priv");
 			r->group = "general";
