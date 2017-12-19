@@ -45,7 +45,7 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	keep_alive();
 
 	riscv_reg_t saved_registers[GDB_REGNO_XPR31 + 1];
-	for (size_t i = GDB_REGNO_XPR0 + 1; i <= GDB_REGNO_XPR31; ++i) {
+	for (size_t i = GDB_REGNO_ZERO + 1; i <= GDB_REGNO_XPR31; ++i) {
 		if (p->writes_xreg[i]) {
 			LOG_DEBUG("Saving register %d as used by program", (int)i);
 			saved_registers[i] = riscv_get_register(t, i);
@@ -72,7 +72,7 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 		if (i >= riscv_debug_buffer_size(p->target))
 			p->debug_buffer[i] = riscv_read_debug_buffer(t, i);
 
-	for (size_t i = GDB_REGNO_XPR0; i <= GDB_REGNO_XPR31; ++i)
+	for (size_t i = GDB_REGNO_ZERO; i <= GDB_REGNO_XPR31; ++i)
 		if (p->writes_xreg[i])
 			riscv_set_register(t, i, saved_registers[i]);
 
@@ -112,13 +112,13 @@ int riscv_program_lbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno 
 int riscv_program_csrr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno csr)
 {
 	assert(csr >= GDB_REGNO_CSR0 && csr <= GDB_REGNO_CSR4095);
-	return riscv_program_insert(p, csrrs(d, GDB_REGNO_X0, csr - GDB_REGNO_CSR0));
+	return riscv_program_insert(p, csrrs(d, GDB_REGNO_ZERO, csr - GDB_REGNO_CSR0));
 }
 
 int riscv_program_csrw(struct riscv_program *p, enum gdb_regno s, enum gdb_regno csr)
 {
 	assert(csr >= GDB_REGNO_CSR0);
-	return riscv_program_insert(p, csrrw(GDB_REGNO_X0, s, csr - GDB_REGNO_CSR0));
+	return riscv_program_insert(p, csrrw(GDB_REGNO_ZERO, s, csr - GDB_REGNO_CSR0));
 }
 
 int riscv_program_fence_i(struct riscv_program *p)

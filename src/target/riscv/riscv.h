@@ -59,7 +59,11 @@ typedef struct {
 
 	/* The register cache points into here. */
 	uint64_t reg_cache_values[RISCV_MAX_REGISTERS];
-	
+
+	/* Single buffer that contains all register names, instead of calling
+	 * malloc for each register. Needs to be freed when reg_list is freed. */
+	char *reg_names;
+
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen[RISCV_MAX_HARTS];
 
@@ -168,6 +172,8 @@ int riscv_resume_one_hart(struct target *target, int hartid);
  * then the only hart. */
 int riscv_step_rtos_hart(struct target *target);
 
+bool riscv_supports_extension(struct target *target, char letter);
+
 /* Returns XLEN for the given (or current) hart. */
 int riscv_xlen(const struct target *target);
 int riscv_xlen_of_hart(const struct target *target, int hartid);
@@ -240,5 +246,7 @@ int riscv_remove_breakpoint(struct target *target,
 int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
 int riscv_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
+
+int riscv_init_registers(struct target *target);
 
 #endif

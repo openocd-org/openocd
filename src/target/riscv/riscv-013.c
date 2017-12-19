@@ -128,12 +128,6 @@ struct trigger {
 	int unique_id;
 };
 
-struct memory_cache_line {
-	uint32_t data;
-	bool valid;
-	bool dirty;
-};
-
 typedef enum {
 	YNM_MAYBE,
 	YNM_YES,
@@ -155,12 +149,6 @@ typedef struct {
 	yes_no_maybe_t progbuf_writable;
 	/* We only need the address so that we know the alignment of the buffer. */
 	riscv_addr_t progbuf_address;
-
-	/* Single buffer that contains all register names, instead of calling
-	 * malloc for each register. Needs to be freed when reg_list is freed. */
-	char *reg_names;
-	/* Single buffer that contains all register values. */
-	void *reg_values;
 
 	// Number of run-test/idle cycles the target requests we do after each dbus
 	// access.
@@ -296,25 +284,7 @@ static riscv013_info_t *get_info(const struct target *target)
 	return (riscv013_info_t *) info->version_specific;
 }
 
-/*** Necessary prototypes. ***/
-
-static int register_get(struct reg *reg);
-
 /*** Utility functions. ***/
-
-bool supports_extension(struct target *target, char letter)
-{
-	RISCV_INFO(r);
-	unsigned num;
-	if (letter >= 'a' && letter <= 'z') {
-		num = letter - 'a';
-	} else if (letter >= 'A' && letter <= 'Z') {
-		num = letter - 'A';
-	} else {
-		return false;
-	}
-	return r->misa & (1 << num);
-}
 
 static void select_dmi(struct target *target)
 {
@@ -667,7 +637,7 @@ static uint32_t access_register_command(uint32_t number, unsigned size,
 
 	if (number <= GDB_REGNO_XPR31) {
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
-				0x1000 + number - GDB_REGNO_XPR0);
+				0x1000 + number - GDB_REGNO_ZERO);
 	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				0x1020 + number - GDB_REGNO_FPR0);
@@ -969,7 +939,7 @@ static int register_write_direct(struct target *target, unsigned number,
 		return ERROR_FAIL;
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-			supports_extension(target, 'D') &&
+			riscv_supports_extension(target, 'D') &&
 			riscv_xlen(target) < 64) {
 		/* There are no instructions to move all the bits from a register, so
 		 * we need to use some scratch RAM. */
@@ -991,7 +961,7 @@ static int register_write_direct(struct target *target, unsigned number,
 			return ERROR_FAIL;
 
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (supports_extension(target, 'D')) {
+			if (riscv_supports_extension(target, 'D')) {
 				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
 			} else {
 				riscv_program_insert(&program, fmv_w_x(number - GDB_REGNO_FPR0, S0));
@@ -1038,7 +1008,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			// TODO: Possibly set F in mstatus.
-			if (supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+			if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
 				/* There are no instructions to move all the bits from a
 				 * register, so we need to use some scratch RAM. */
 				riscv_program_insert(&program, fsd(number - GDB_REGNO_FPR0, S0,
@@ -1051,7 +1021,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 				if (register_write_direct(target, GDB_REGNO_S0,
 							scratch.hart_address) != ERROR_OK)
 					return ERROR_FAIL;
-			} else if (supports_extension(target, 'D')) {
+			} else if (riscv_supports_extension(target, 'D')) {
 				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
 			} else {
 				riscv_program_insert(&program, fmv_x_w(S0, number - GDB_REGNO_FPR0));
@@ -1089,40 +1059,6 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 }
 
 /*** OpenOCD target functions. ***/
-
-static int register_get(struct reg *reg)
-{
-	struct target *target = (struct target *) reg->arch_info;
-	uint64_t value = riscv_get_register(target, reg->number);
-	buf_set_u64(reg->value, 0, 64, value);
-	return ERROR_OK;
-}
-
-static int register_write(struct target *target, unsigned int number,
-		uint64_t value)
-{
-	riscv_set_register(target, number, value);
-	return ERROR_OK;
-}
-
-static int register_set(struct reg *reg, uint8_t *buf)
-{
-	struct target *target = (struct target *) reg->arch_info;
-
-	uint64_t value = buf_get_u64(buf, 0, riscv_xlen(target));
-
-	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
-	struct reg *r = &target->reg_cache->reg_list[reg->number];
-	r->valid = true;
-	memcpy(r->value, buf, (r->size + 7) / 8);
-
-	return register_write(target, reg->number, value);
-}
-
-static struct reg_arch_type riscv_reg_arch_type = {
-	.get = register_get,
-	.set = register_set
-};
 
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
@@ -1167,44 +1103,6 @@ static int init_target(struct command_context *cmd_ctx,
 	info->abstract_write_csr_supported = true;
 	info->abstract_read_fpr_supported = true;
 	info->abstract_write_fpr_supported = true;
-
-	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
-	target->reg_cache->name = "RISC-V Registers";
-	target->reg_cache->num_regs = GDB_REGNO_COUNT;
-
-	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
-
-	const unsigned int max_reg_name_len = 12;
-	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
-	char *reg_name = info->reg_names;
-	info->reg_values = NULL;
-
-	for (unsigned int i = 0; i < GDB_REGNO_COUNT; i++) {
-		struct reg *r = &target->reg_cache->reg_list[i];
-		r->number = i;
-		r->caller_save = true;
-		r->dirty = false;
-		r->valid = false;
-		r->exist = true;
-		r->type = &riscv_reg_arch_type;
-		r->arch_info = target;
-		if (i <= GDB_REGNO_XPR31) {
-			sprintf(reg_name, "x%d", i);
-		} else if (i == GDB_REGNO_PC) {
-			sprintf(reg_name, "pc");
-		} else if (i >= GDB_REGNO_FPR0 && i <= GDB_REGNO_FPR31) {
-			sprintf(reg_name, "f%d", i - GDB_REGNO_FPR0);
-		} else if (i >= GDB_REGNO_CSR0 && i <= GDB_REGNO_CSR4095) {
-			sprintf(reg_name, "csr%d", i - GDB_REGNO_CSR0);
-		} else if (i == GDB_REGNO_PRIV) {
-			sprintf(reg_name, "priv");
-		}
-		if (reg_name[0]) {
-			r->name = reg_name;
-		}
-		reg_name += strlen(reg_name) + 1;
-		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
-	}
 
 	return ERROR_OK;
 }
@@ -1295,36 +1193,24 @@ static int examine(struct target *target)
 	RISCV_INFO(r);
 	r->impebreak = get_field(dmstatus, DMI_DMSTATUS_IMPEBREAK);
 
-	int original_coreid = target->coreid;
+	// Don't call any riscv_* functions until after we've counted the number of
+	// cores and initialized registers.
 	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
-		/* Fake being a non-RTOS targeted to this core so we can see if
-		 * it exists.  This avoids the assertion in
-		 * riscv_set_current_hartid() that ensures non-RTOS targets
-		 * don't touch the harts they're not assigned to.  */
-		target->coreid = i;
-		r->hart_count = i + 1;
-		riscv_set_current_hartid(target, i);
+		if (!riscv_rtos_enabled(target) && i != target->coreid)
+			continue;
+
+		r->current_hartid = i;
+		riscv013_select_current_hart(target);
 
 		uint32_t s = dmi_read(target, DMI_DMSTATUS);
 		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT)) {
-			r->hart_count--;
 			break;
 		}
-	}
-	target->coreid = original_coreid;
+		r->hart_count = i + 1;
 
-	LOG_DEBUG("Enumerated %d harts", r->hart_count);
-
-	/* Halt every hart so we can probe them. */
-	riscv_halt_all_harts(target);
-
-	/* Find the address of the program buffer, which must be done without
-	 * knowing anything about the target. */
-	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		if (!riscv_hart_enabled(target, i))
-			continue;
-
-		riscv_set_current_hartid(target, i);
+		if (!riscv_is_halted(target)) {
+			riscv013_halt_current_hart(target);
+		}
 
 		/* Without knowing anything else we can at least mess with the
 		 * program buffer. */
@@ -1337,7 +1223,11 @@ static int examine(struct target *target)
 			r->xlen[i] = 32;
 		}
 
-		r->misa = riscv_get_register_on_hart(target, i, GDB_REGNO_MISA);
+		register_read_direct(target, &r->misa, GDB_REGNO_MISA);
+
+		// Now init registers based on what we discovered.
+		if (riscv_init_registers(target) != ERROR_OK)
+			return ERROR_FAIL;
 
 		/* Display this as early as possible to help people who are using
 		 * really slow simulators. */
@@ -1345,12 +1235,16 @@ static int examine(struct target *target)
 				r->misa);
 	}
 
+	LOG_DEBUG("Enumerated %d harts", r->hart_count);
+
 	/* Then we check the number of triggers availiable to each hart. */
 	riscv_enumerate_triggers(target);
 
 	/* Resumes all the harts, so the debugger can later pause them. */
+	// TODO: Only do this if the harts were halted to start with.
 	riscv_resume_all_harts(target);
 	target->state = TARGET_RUNNING;
+
 	target_set_examined(target);
 
 	if (target->rtos) {

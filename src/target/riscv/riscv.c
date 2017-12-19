@@ -151,21 +151,6 @@ typedef enum slot {
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
 
-// gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
-// its source tree. We must interpret the numbers the same here.
-enum {
-	REG_XPR0 = 0,
-	REG_XPR31 = 31,
-	REG_PC = 32,
-	REG_FPR0 = 33,
-	REG_FPR31 = 64,
-	REG_CSR0 = 65,
-	REG_MSTATUS = CSR_MSTATUS + REG_CSR0,
-	REG_CSR4095 = 4160,
-	REG_PRIV = 4161,
-	REG_COUNT
-};
-
 #define MAX_HWBPS			16
 #define DRAM_CACHE_SIZE		16
 
@@ -202,6 +187,14 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
 bool riscv_use_scratch_ram = false;
 uint64_t riscv_scratch_ram_address = 0;
+
+/* In addition to the ones in the standard spec, we'll also expose additional
+ * CSRs in this list.
+ * The list is either NULL, or a series of ranges (inclusive), terminated with
+ * 1,0. */
+struct {
+	uint16_t low, high;
+} *expose_csr;
 
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
@@ -430,7 +423,6 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 		int result = ERROR_OK;
 		for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
-			LOG_DEBUG(">>> hartid=%d", hartid);
 			if (!riscv_hart_enabled(target, hartid))
 				continue;
 			if (hartid > first_hart) {
@@ -760,6 +752,11 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	LOG_DEBUG("reg_class=%d", reg_class);
 	LOG_DEBUG("rtos_hartid=%d current_hartid=%d", r->rtos_hartid, r->current_hartid);
 
+	if (!target->reg_cache) {
+		LOG_ERROR("Target not initialized. Return ERROR_FAIL.");
+		return ERROR_FAIL;
+	}
+
 	if (r->rtos_hartid != -1 && riscv_rtos_enabled(target))
 		riscv_set_current_hartid(target, r->rtos_hartid);
 	else
@@ -770,7 +767,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 			*reg_list_size = 32;
 			break;
 		case REG_CLASS_ALL:
-			*reg_list_size = REG_COUNT;
+			*reg_list_size = GDB_REGNO_COUNT;
 			break;
 		default:
 			LOG_ERROR("Unsupported reg_class: %d", reg_class);
@@ -781,14 +778,10 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	if (!*reg_list) {
 		return ERROR_FAIL;
 	}
-	
-	if (!target->reg_cache) {
-		LOG_ERROR("Target not initialized. Return ERROR_FAIL.");
-		return ERROR_FAIL;
-	}
-	
+
 	for (int i = 0; i < *reg_list_size; i++) {
-		assert(target->reg_cache->reg_list[i].size > 0);
+		assert(!target->reg_cache->reg_list[i].valid ||
+				target->reg_cache->reg_list[i].size > 0);
 		(*reg_list)[i] = &target->reg_cache->reg_list[i];
 	}
 
@@ -841,7 +834,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 			return ERROR_FAIL;
 		}
 
-		if (r->number > REG_XPR31) {
+		if (r->number > GDB_REGNO_XPR31) {
 			LOG_ERROR("Only GPRs can be use as argument registers.");
 			return ERROR_FAIL;
 		}
@@ -1180,6 +1173,88 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 	return ERROR_OK;
 }
 
+void parse_error(const char *string, char c, unsigned position)
+{
+	char buf[position+2];
+	for (unsigned i = 0; i < position; i++)
+		buf[i] = ' ';
+	buf[position] = '^';
+	buf[position + 1] = 0;
+
+	LOG_ERROR("Parse error at character %c in:", c);
+	LOG_ERROR("%s", string);
+	LOG_ERROR("%s", buf);
+}
+
+COMMAND_HANDLER(riscv_set_expose_csrs)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	for (unsigned pass = 0; pass < 2; pass++) {
+		unsigned range = 0;
+		unsigned low = 0;
+		bool parse_low = true;
+		unsigned high = 0;
+		for (unsigned i = 0; i == 0 || CMD_ARGV[0][i-1]; i++) {
+			char c = CMD_ARGV[0][i];
+			if isspace(c) {
+				// Ignore whitespace.
+				continue;
+			}
+
+			if (parse_low) {
+				if (isdigit(c)) {
+					low *= 10;
+					low += c - '0';
+				} else if (c == '-') {
+					parse_low = false;
+				} else if (c == ',' || c == 0) {
+					if (pass == 1) {
+						expose_csr[range].low = low;
+						expose_csr[range].high = low;
+					}
+					low = 0;
+					range++;
+				} else {
+					parse_error(CMD_ARGV[0], c, i);
+					return ERROR_COMMAND_SYNTAX_ERROR;
+				}
+
+			} else {
+				if (isdigit(c)) {
+					high *= 10;
+					high += c - '0';
+				} else if (c == ',' || c == 0) {
+					parse_low = true;
+					if (pass == 1) {
+						expose_csr[range].low = low;
+						expose_csr[range].high = high;
+					}
+					low = 0;
+					high = 0;
+					range++;
+				} else {
+					parse_error(CMD_ARGV[0], c, i);
+					return ERROR_COMMAND_SYNTAX_ERROR;
+				}
+			}
+		}
+
+		if (pass == 0) {
+			if (expose_csr)
+				free(expose_csr);
+			expose_csr = calloc(range + 2, sizeof(*expose_csr));
+		} else {
+			expose_csr[range].low = 1;
+			expose_csr[range].high = 0;
+		}
+	}
+	return ERROR_OK;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "set_command_timeout_sec",
@@ -1201,6 +1276,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_scratch_ram none|[address]",
 		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
+	},
+	{
+		.name = "expose_csrs",
+		.handler = riscv_set_expose_csrs,
+		.mode = COMMAND_ANY,
+		.usage = "riscv expose_csrs n0[-m0][,n0[-m0]]...",
+		.help = "Configure a list of inclusive ranges for CSRs to expose in "
+				"addition to the standard ones. This must be executed before "
+				"`init`."
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1352,6 +1436,20 @@ int riscv_step_rtos_hart(struct target *target)
 	return ERROR_OK;
 }
 
+bool riscv_supports_extension(struct target *target, char letter)
+{
+	RISCV_INFO(r);
+	unsigned num;
+	if (letter >= 'a' && letter <= 'z') {
+		num = letter - 'a';
+	} else if (letter >= 'A' && letter <= 'Z') {
+		num = letter - 'A';
+	} else {
+		return false;
+	}
+	return r->misa & (1 << num);
+}
+
 int riscv_xlen(const struct target *target)
 {
 	return riscv_xlen_of_hart(target, riscv_current_hartid(target));
@@ -1389,7 +1487,7 @@ void riscv_set_current_hartid(struct target *target, int hartid)
 	/* Avoid invalidating the register cache all the time. */
 	if (r->registers_initialized
 			&& (!riscv_rtos_enabled(target) || (previous_hartid == hartid))
-			&& target->reg_cache->reg_list[GDB_REGNO_XPR0].size == (unsigned)riscv_xlen(target)
+			&& target->reg_cache->reg_list[GDB_REGNO_ZERO].size == (unsigned)riscv_xlen(target)
 			&& (!riscv_rtos_enabled(target) || (r->rtos_hartid != -1))) {
 		return;
 	} else
@@ -1402,22 +1500,10 @@ void riscv_invalidate_register_cache(struct target *target)
 {
 	RISCV_INFO(r);
 
-	/* Update the register list's widths. */
 	register_cache_invalidate(target->reg_cache);
 	for (size_t i = 0; i < GDB_REGNO_COUNT; ++i) {
 		struct reg *reg = &target->reg_cache->reg_list[i];
-
-		reg->value = &r->reg_cache_values[i];
 		reg->valid = false;
-
-		switch (i) {
-		case GDB_REGNO_PRIV:
-			reg->size = 8;
-			break;
-		default:
-			reg->size = riscv_xlen(target);
-			break;
-		}
 	}
 
 	r->registers_initialized = true;
@@ -1457,6 +1543,7 @@ bool riscv_has_register(struct target *target, int hartid, int regid)
 
 void riscv_set_register(struct target *target, enum gdb_regno r, riscv_reg_t v)
 {
+	// TODO: propagate errors
 	return riscv_set_register_on_hart(target, riscv_current_hartid(target), r, v);
 }
 
@@ -1676,7 +1763,7 @@ const char *gdb_regno_name(enum gdb_regno regno)
 			return "priv";
 		default:
 			if (regno <= GDB_REGNO_XPR31) {
-				sprintf(buf, "x%d", regno - GDB_REGNO_XPR0);
+				sprintf(buf, "x%d", regno - GDB_REGNO_ZERO);
 			} else if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
 				sprintf(buf, "csr%d", regno - GDB_REGNO_CSR0);
 			} else if (regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) {
@@ -1687,3 +1774,269 @@ const char *gdb_regno_name(enum gdb_regno regno)
 			return buf;
 	}
 }
+
+static int register_get(struct reg *reg)
+{
+	struct target *target = (struct target *) reg->arch_info;
+	uint64_t value = riscv_get_register(target, reg->number);
+	buf_set_u64(reg->value, 0, reg->size, value);
+	return ERROR_OK;
+}
+
+static int register_set(struct reg *reg, uint8_t *buf)
+{
+	struct target *target = (struct target *) reg->arch_info;
+
+	uint64_t value = buf_get_u64(buf, 0, reg->size);
+
+	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
+	struct reg *r = &target->reg_cache->reg_list[reg->number];
+	r->valid = true;
+	memcpy(r->value, buf, (r->size + 7) / 8);
+
+	riscv_set_register(target, reg->number, value);
+	return ERROR_OK;
+}
+
+static struct reg_arch_type riscv_reg_arch_type = {
+	.get = register_get,
+	.set = register_set
+};
+
+struct csr_info {
+	unsigned number;
+	const char *name;
+};
+
+static int cmp_csr_info(const void *p1, const void *p2)
+{
+	return (int) (((struct csr_info *)p1)->number) - (int) (((struct csr_info *)p2)->number);
+}
+
+int riscv_init_registers(struct target *target)
+{
+	RISCV_INFO(info);
+
+	if (target->reg_cache) {
+		if (target->reg_cache->reg_list)
+			free(target->reg_cache->reg_list);
+		free(target->reg_cache);
+	}
+
+	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
+	target->reg_cache->name = "RISC-V Registers";
+	target->reg_cache->num_regs = GDB_REGNO_COUNT;
+
+	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
+
+	const unsigned int max_reg_name_len = 12;
+	if (info->reg_names)
+		free(info->reg_names);
+	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
+	char *reg_name = info->reg_names;
+
+	static struct reg_feature feature_cpu = {
+		.name = "org.gnu.gdb.riscv.cpu"
+	};
+	static struct reg_feature feature_fpu = {
+		.name = "org.gnu.gdb.riscv.fpu"
+	};
+	static struct reg_feature feature_csr = {
+		.name = "org.gnu.gdb.riscv.csr"
+	};
+	static struct reg_feature feature_virtual = {
+		.name = "org.gnu.gdb.riscv.virtual"
+	};
+
+	static struct reg_data_type type_ieee_single = {
+		.type = REG_TYPE_IEEE_SINGLE,
+		.id = "ieee_single"
+	};
+	static struct reg_data_type type_ieee_double = {
+		.type = REG_TYPE_IEEE_DOUBLE,
+		.id = "ieee_double"
+	};
+	struct csr_info csr_info[] = {
+#define DECLARE_CSR(name, number) { number, #name },
+#include "encoding.h"
+#undef DECLARE_CSR
+	};
+	// encoding.h does not contain the registers in sorted order.
+	qsort(csr_info, DIM(csr_info), sizeof(*csr_info), cmp_csr_info);
+	unsigned csr_info_index = 0;
+
+	// When gdb request register N, gdb_get_register_packet() assumes that this
+	// is register at index N in reg_list. So if there are certain registers
+	// that don't exist, we need to leave holes in the list (or renumber, but
+	// it would be nice not to have yet another set of numbers to translate
+	// between).
+	for (uint32_t number = 0; number < GDB_REGNO_COUNT; number++) {
+		struct reg *r = &target->reg_cache->reg_list[number];
+		r->caller_save = true;
+		r->dirty = false;
+		r->valid = false;
+		r->exist = true;
+		r->type = &riscv_reg_arch_type;
+		r->arch_info = target;
+		r->number = number;
+		r->size = riscv_xlen(target);
+		// r->size is set in riscv_invalidate_register_cache, maybe because the
+		// target is in theory allowed to change XLEN on us. But I expect a lot
+		// of other things to break in that case as well.
+		if (number <= GDB_REGNO_XPR31) {
+			switch (number) {
+				case GDB_REGNO_ZERO: r->name = "zero"; break;
+				case GDB_REGNO_RA: r->name = "ra"; break;
+				case GDB_REGNO_SP: r->name = "sp"; break;
+				case GDB_REGNO_GP: r->name = "gp"; break;
+				case GDB_REGNO_TP: r->name = "tp"; break;
+				case GDB_REGNO_T0: r->name = "t0"; break;
+				case GDB_REGNO_T1: r->name = "t1"; break;
+				case GDB_REGNO_T2: r->name = "t2"; break;
+				case GDB_REGNO_FP: r->name = "fp"; break;
+				case GDB_REGNO_S1: r->name = "s1"; break;
+				case GDB_REGNO_A0: r->name = "a0"; break;
+				case GDB_REGNO_A1: r->name = "a1"; break;
+				case GDB_REGNO_A2: r->name = "a2"; break;
+				case GDB_REGNO_A3: r->name = "a3"; break;
+				case GDB_REGNO_A4: r->name = "a4"; break;
+				case GDB_REGNO_A5: r->name = "a5"; break;
+				case GDB_REGNO_A6: r->name = "a6"; break;
+				case GDB_REGNO_A7: r->name = "a7"; break;
+				case GDB_REGNO_S2: r->name = "s2"; break;
+				case GDB_REGNO_S3: r->name = "s3"; break;
+				case GDB_REGNO_S4: r->name = "s4"; break;
+				case GDB_REGNO_S5: r->name = "s5"; break;
+				case GDB_REGNO_S6: r->name = "s6"; break;
+				case GDB_REGNO_S7: r->name = "s7"; break;
+				case GDB_REGNO_S8: r->name = "s8"; break;
+				case GDB_REGNO_S9: r->name = "s9"; break;
+				case GDB_REGNO_S10: r->name = "s10"; break;
+				case GDB_REGNO_S11: r->name = "s11"; break;
+				case GDB_REGNO_T3: r->name = "t3"; break;
+				case GDB_REGNO_T4: r->name = "t4"; break;
+				case GDB_REGNO_T5: r->name = "t5"; break;
+				case GDB_REGNO_T6: r->name = "t6"; break;
+			}
+			r->group = "general";
+			r->feature = &feature_cpu;
+		} else if (number == GDB_REGNO_PC) {
+			sprintf(reg_name, "pc");
+			r->group = "general";
+			r->feature = &feature_cpu;
+		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+			if (riscv_supports_extension(target, 'D')) {
+				r->reg_data_type = &type_ieee_double;
+				r->size = 64;
+			} else if (riscv_supports_extension(target, 'F')) {
+				r->reg_data_type = &type_ieee_single;
+				r->size = 32;
+			} else {
+				r->exist = false;
+			}
+			switch (number) {
+				case GDB_REGNO_FT0: r->name = "ft0"; break;
+				case GDB_REGNO_FT1: r->name = "ft1"; break;
+				case GDB_REGNO_FT2: r->name = "ft2"; break;
+				case GDB_REGNO_FT3: r->name = "ft3"; break;
+				case GDB_REGNO_FT4: r->name = "ft4"; break;
+				case GDB_REGNO_FT5: r->name = "ft5"; break;
+				case GDB_REGNO_FT6: r->name = "ft6"; break;
+				case GDB_REGNO_FT7: r->name = "ft7"; break;
+				case GDB_REGNO_FS0: r->name = "fs0"; break;
+				case GDB_REGNO_FS1: r->name = "fs1"; break;
+				case GDB_REGNO_FA0: r->name = "fa0"; break;
+				case GDB_REGNO_FA1: r->name = "fa1"; break;
+				case GDB_REGNO_FA2: r->name = "fa2"; break;
+				case GDB_REGNO_FA3: r->name = "fa3"; break;
+				case GDB_REGNO_FA4: r->name = "fa4"; break;
+				case GDB_REGNO_FA5: r->name = "fa5"; break;
+				case GDB_REGNO_FA6: r->name = "fa6"; break;
+				case GDB_REGNO_FA7: r->name = "fa7"; break;
+				case GDB_REGNO_FS2: r->name = "fs2"; break;
+				case GDB_REGNO_FS3: r->name = "fs3"; break;
+				case GDB_REGNO_FS4: r->name = "fs4"; break;
+				case GDB_REGNO_FS5: r->name = "fs5"; break;
+				case GDB_REGNO_FS6: r->name = "fs6"; break;
+				case GDB_REGNO_FS7: r->name = "fs7"; break;
+				case GDB_REGNO_FS8: r->name = "fs8"; break;
+				case GDB_REGNO_FS9: r->name = "fs9"; break;
+				case GDB_REGNO_FS10: r->name = "fs10"; break;
+				case GDB_REGNO_FS11: r->name = "fs11"; break;
+				case GDB_REGNO_FT8: r->name = "ft8"; break;
+				case GDB_REGNO_FT9: r->name = "ft9"; break;
+				case GDB_REGNO_FT10: r->name = "ft10"; break;
+				case GDB_REGNO_FT11: r->name = "ft11"; break;
+			}
+			r->group = "float";
+			r->feature = &feature_fpu;
+		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+			r->group = "csr";
+			r->feature = &feature_csr;
+			unsigned csr_number = number - GDB_REGNO_CSR0;
+
+			while (csr_info[csr_info_index].number < csr_number &&
+					csr_info_index < DIM(csr_info) - 1) {
+				csr_info_index++;
+			}
+			if (csr_info[csr_info_index].number == csr_number) {
+				r->name = csr_info[csr_info_index].name;
+			} else {
+				sprintf(reg_name, "csr%d", csr_number);
+				// Assume unnamed registers don't exist, unless we have some
+				// configuration that tells us otherwise. That's important
+				// because eg. Eclipse crashes if a target has too many
+				// registers, and apparently has no way of only showing a
+				// subset of registers in any case.
+				r->exist = false;
+			}
+
+			switch (csr_number) {
+				case CSR_FFLAGS:
+				case CSR_FRM:
+				case CSR_FCSR:
+					r->exist = riscv_supports_extension(target, 'F');
+					r->group = "float";
+					r->feature = &feature_fpu;
+					break;
+				case CSR_SSTATUS:
+				case CSR_STVEC:
+				case CSR_SIP:
+				case CSR_SIE:
+				case CSR_SCOUNTEREN:
+				case CSR_SSCRATCH:
+				case CSR_SEPC:
+				case CSR_SCAUSE:
+				case CSR_STVAL:
+				case CSR_SATP:
+					r->exist = riscv_supports_extension(target, 'S');
+					break;
+			}
+
+			if (!r->exist && expose_csr) {
+				for (unsigned i = 0; expose_csr[i].low <= expose_csr[i].high; i++) {
+					if (csr_number >= expose_csr[i].low && csr_number <= expose_csr[i].high) {
+						LOG_INFO("Exposing additional CSR %d", csr_number);
+						r->exist = true;
+						break;
+					}
+				}
+			}
+
+		} else if (number == GDB_REGNO_PRIV) {
+			sprintf(reg_name, "priv");
+			r->group = "general";
+			r->feature = &feature_virtual;
+			r->size = 8;
+		}
+		if (reg_name[0]) {
+			r->name = reg_name;
+		}
+		reg_name += strlen(reg_name) + 1;
+		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
+		r->value = &info->reg_cache_values[number];
+	}
+
+	return ERROR_OK;
+}
+
