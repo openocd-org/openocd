@@ -1200,7 +1200,7 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 		unsigned high = 0;
 		for (unsigned i = 0; i == 0 || CMD_ARGV[0][i-1]; i++) {
 			char c = CMD_ARGV[0][i];
-			if isspace(c) {
+			if (isspace(c)) {
 				// Ignore whitespace.
 				continue;
 			}
