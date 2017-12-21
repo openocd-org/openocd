@@ -1161,7 +1161,7 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 	}
 
 	long long unsigned int address;
-	int result = sscanf(CMD_ARGV[0], "%Lx", &address);
+	int result = sscanf(CMD_ARGV[0], "%llx", &address);
 	if (result != (int) strlen(CMD_ARGV[0])) {
 		LOG_ERROR("%s is not a valid address for command.", CMD_ARGV[0]);
 		riscv_use_scratch_ram = false;
