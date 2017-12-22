@@ -2830,8 +2830,8 @@ COMMAND_HANDLER(handle_reg_command)
 
 		retval = reg->type->set(reg, buf);
 		if (retval != ERROR_OK) {
-		        LOG_DEBUG("Couldn't set register %s.", reg->name);
-			free (buf);
+			LOG_DEBUG("Couldn't set register %s.", reg->name);
+			free(buf);
 			return retval;
 		}
 

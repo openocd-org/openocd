@@ -79,7 +79,7 @@ static int riscv_gdb_thread_packet(struct connection *connection, const char *pa
 		if (strncmp(packet, "qfThreadInfo", 12) == 0) {
 			riscv_update_threads(target->rtos);
 			r->qs_thread_info_offset = 1;
-			
+
 			char m[16];
 			snprintf(m, 16, "m%08x", (int)rtos->thread_details[0].threadid);
 			gdb_put_packet(connection, m, strlen(m));
@@ -305,8 +305,7 @@ static int riscv_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 	return JIM_OK;
 }
 
-const struct rtos_type riscv_rtos =
-{
+const struct rtos_type riscv_rtos = {
 	.name = "riscv",
 	.detect_rtos = riscv_detect_rtos,
 	.create = riscv_create_rtos,

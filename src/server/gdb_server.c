@@ -1286,10 +1286,10 @@ static int gdb_get_register_packet(struct connection *connection,
 	}
 
 	if (!reg_list[reg_num]->valid) {
-	        retval = reg_list[reg_num]->type->get(reg_list[reg_num]);
+		retval = reg_list[reg_num]->type->get(reg_list[reg_num]);
 		if (retval != ERROR_OK) {
 			LOG_DEBUG("Couldn't get register %s.", reg_list[reg_num]->name);
-			free (reg_list);
+			free(reg_list);
 			return gdb_error(connection, retval);
 		}
 	}
@@ -1347,7 +1347,7 @@ static int gdb_set_register_packet(struct connection *connection,
 	gdb_target_to_reg(target, separator + 1, chars, bin_buf);
 
 	retval = reg_list[reg_num]->type->set(reg_list[reg_num], bin_buf);
-	if (retval != ERROR_OK){
+	if (retval != ERROR_OK) {
 		LOG_DEBUG("Couldn't set register %s.", reg_list[reg_num]->name);
 		free(bin_buf);
 		free(reg_list);

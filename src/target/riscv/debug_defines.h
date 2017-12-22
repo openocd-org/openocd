@@ -295,7 +295,7 @@
 *
 * Other values are reserved for future use.
  */
-#define CSR_TDATA1_TYPE_OFFSET              XLEN-4
+#define CSR_TDATA1_TYPE_OFFSET              (XLEN-4)
 #define CSR_TDATA1_TYPE_LENGTH              4
 #define CSR_TDATA1_TYPE                     (0xfULL << CSR_TDATA1_TYPE_OFFSET)
 /*
@@ -307,14 +307,14 @@
 *
 * This bit is only writable from Debug Mode.
  */
-#define CSR_TDATA1_DMODE_OFFSET             XLEN-5
+#define CSR_TDATA1_DMODE_OFFSET             (XLEN-5)
 #define CSR_TDATA1_DMODE_LENGTH             1
 #define CSR_TDATA1_DMODE                    (0x1ULL << CSR_TDATA1_DMODE_OFFSET)
 /*
 * Trigger-specific data.
  */
 #define CSR_TDATA1_DATA_OFFSET              0
-#define CSR_TDATA1_DATA_LENGTH              XLEN - 5
+#define CSR_TDATA1_DATA_LENGTH              (XLEN - 5)
 #define CSR_TDATA1_DATA                     (((1L<<XLEN - 5)-1) << CSR_TDATA1_DATA_OFFSET)
 #define CSR_TDATA2                          0x7a2
 #define CSR_TDATA2_DATA_OFFSET              0
@@ -325,10 +325,10 @@
 #define CSR_TDATA3_DATA_LENGTH              XLEN
 #define CSR_TDATA3_DATA                     (((1L<<XLEN)-1) << CSR_TDATA3_DATA_OFFSET)
 #define CSR_MCONTROL                        0x7a1
-#define CSR_MCONTROL_TYPE_OFFSET            XLEN-4
+#define CSR_MCONTROL_TYPE_OFFSET            (XLEN-4)
 #define CSR_MCONTROL_TYPE_LENGTH            4
 #define CSR_MCONTROL_TYPE                   (0xfULL << CSR_MCONTROL_TYPE_OFFSET)
-#define CSR_MCONTROL_DMODE_OFFSET           XLEN-5
+#define CSR_MCONTROL_DMODE_OFFSET           (XLEN-5)
 #define CSR_MCONTROL_DMODE_LENGTH           1
 #define CSR_MCONTROL_DMODE                  (0x1ULL << CSR_MCONTROL_DMODE_OFFSET)
 /*
@@ -339,7 +339,7 @@
 * corresponds to the maximum NAPOT range, which is $2^{63}$ bytes in
 * size.
  */
-#define CSR_MCONTROL_MASKMAX_OFFSET         XLEN-11
+#define CSR_MCONTROL_MASKMAX_OFFSET         (XLEN-11)
 #define CSR_MCONTROL_MASKMAX_LENGTH         6
 #define CSR_MCONTROL_MASKMAX                (0x3fULL << CSR_MCONTROL_MASKMAX_OFFSET)
 /*
@@ -478,10 +478,10 @@
 #define CSR_MCONTROL_LOAD_LENGTH            1
 #define CSR_MCONTROL_LOAD                   (0x1ULL << CSR_MCONTROL_LOAD_OFFSET)
 #define CSR_ICOUNT                          0x7a1
-#define CSR_ICOUNT_TYPE_OFFSET              XLEN-4
+#define CSR_ICOUNT_TYPE_OFFSET              (XLEN-4)
 #define CSR_ICOUNT_TYPE_LENGTH              4
 #define CSR_ICOUNT_TYPE                     (0xfULL << CSR_ICOUNT_TYPE_OFFSET)
-#define CSR_ICOUNT_DMODE_OFFSET             XLEN-5
+#define CSR_ICOUNT_DMODE_OFFSET             (XLEN-5)
 #define CSR_ICOUNT_DMODE_LENGTH             1
 #define CSR_ICOUNT_DMODE                    (0x1ULL << CSR_ICOUNT_DMODE_OFFSET)
 /*
