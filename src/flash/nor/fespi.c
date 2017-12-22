@@ -598,7 +598,7 @@ struct algorithm_steps {
 	uint8_t **steps;
 };
 
-struct algorithm_steps *as_new(unsigned size)
+static struct algorithm_steps *as_new(unsigned size)
 {
 	struct algorithm_steps *as = calloc(1, sizeof(struct algorithm_steps));
 	as->size = size;
@@ -606,7 +606,7 @@ struct algorithm_steps *as_new(unsigned size)
 	return as;
 }
 
-struct algorithm_steps *as_delete(struct algorithm_steps *as)
+static struct algorithm_steps *as_delete(struct algorithm_steps *as)
 {
 	for (unsigned step = 0; step < as->used; step++) {
 		free(as->steps[step]);
@@ -616,7 +616,7 @@ struct algorithm_steps *as_delete(struct algorithm_steps *as)
 	return NULL;
 }
 
-int as_empty(struct algorithm_steps *as)
+static int as_empty(struct algorithm_steps *as)
 {
 	for (unsigned s = 0; s < as->used; s++) {
 		if (as->steps[s][0] != STEP_NOP)
@@ -626,7 +626,7 @@ int as_empty(struct algorithm_steps *as)
 }
 
 // Return size of compiled program.
-unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
+static unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
 		unsigned target_size)
 {
 	unsigned offset = 0;
@@ -693,7 +693,7 @@ unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
 	return offset;
 }
 
-void as_add_tx(struct algorithm_steps *as, unsigned count, const uint8_t *data)
+static void as_add_tx(struct algorithm_steps *as, unsigned count, const uint8_t *data)
 {
 	LOG_DEBUG("count=%d", count);
 	while (count > 0) {
@@ -709,14 +709,14 @@ void as_add_tx(struct algorithm_steps *as, unsigned count, const uint8_t *data)
 	}
 }
 
-void as_add_tx1(struct algorithm_steps *as, uint8_t byte)
+static void as_add_tx1(struct algorithm_steps *as, uint8_t byte)
 {
 	uint8_t data[1];
 	data[0] = byte;
 	as_add_tx(as, 1, data);
 }
 
-void as_add_write_reg(struct algorithm_steps *as, uint8_t offset, uint8_t data)
+static void as_add_write_reg(struct algorithm_steps *as, uint8_t offset, uint8_t data)
 {
 	assert(as->used < as->size);
 	as->steps[as->used] = malloc(3);
@@ -726,7 +726,7 @@ void as_add_write_reg(struct algorithm_steps *as, uint8_t offset, uint8_t data)
 	as->used++;
 }
 
-void as_add_txwm_wait(struct algorithm_steps *as)
+static void as_add_txwm_wait(struct algorithm_steps *as)
 {
 	assert(as->used < as->size);
 	as->steps[as->used] = malloc(1);
@@ -734,7 +734,7 @@ void as_add_txwm_wait(struct algorithm_steps *as)
 	as->used++;
 }
 
-void as_add_wip_wait(struct algorithm_steps *as)
+static void as_add_wip_wait(struct algorithm_steps *as)
 {
 	assert(as->used < as->size);
 	as->steps[as->used] = malloc(1);
@@ -742,7 +742,7 @@ void as_add_wip_wait(struct algorithm_steps *as)
 	as->used++;
 }
 
-void as_add_set_dir(struct algorithm_steps *as, bool dir)
+static void as_add_set_dir(struct algorithm_steps *as, bool dir)
 {
 	assert(as->used < as->size);
 	as->steps[as->used] = malloc(2);
@@ -963,6 +963,8 @@ err:
 		target_free_working_area(target, data_wa);
 		target_free_working_area(target, algorithm_wa);
 	}
+
+	as_delete(as);
 
 	/* Switch to HW mode before return to prompt */
 	FESPI_ENABLE_HW_MODE();
