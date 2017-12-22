@@ -1959,7 +1959,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 	unsigned cpu_mhz = 120;
 	unsigned idx;
 	bool use_nvm_marking = false;
-	char flash_marking[8], nvm_marking[2];
+	char flash_marking[11], nvm_marking[2];
 	char name[40];
 
 	k_chip->probed = false;
@@ -2126,6 +2126,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX1:	/* errata 7534 - should be K63 */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX2:	/* errata 7534 - should be K64 */
 				subfamid += 2; /* errata 7534 fix */
+				/* fallthrough */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX3:
 				/* K63FN1M0 */
 			case KINETIS_SDID_FAMILYID_K6X | KINETIS_SDID_SUBFAMID_KX4:

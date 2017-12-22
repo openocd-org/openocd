@@ -244,9 +244,9 @@ static int mqx_is_scheduler_running(
 }
 
 /*
- * API function, return 1 if MQX is present
+ * API function, return true if MQX is present
  */
-static int mqx_detect_rtos(
+static bool mqx_detect_rtos(
 	struct target *target
 )
 {
@@ -254,9 +254,9 @@ static int mqx_detect_rtos(
 		(target->rtos->symbols != NULL) &&
 		(target->rtos->symbols[mqx_VAL_mqx_kernel_data].address != 0)
 	) {
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 /*

@@ -1650,13 +1650,11 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	h->transport = param->transport;
 
-	const uint16_t vids[] = { param->vid, 0 };
-	const uint16_t pids[] = { param->pid, 0 };
-	const char *serial = param->serial;
-
-	LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
-			param->transport, param->vid, param->pid,
-			param->serial ? param->serial : "");
+	for (unsigned i = 0; param->vid[i]; i++) {
+		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
+			  param->transport, param->vid[i], param->pid[i],
+			  param->serial ? param->serial : "");
+	}
 
 	/*
 	  On certain host USB configurations(e.g. MacBook Air)
@@ -1668,7 +1666,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	  in order to become operational.
 	 */
 	do {
-		if (jtag_libusb_open(vids, pids, serial, &h->fd) != ERROR_OK) {
+		if (jtag_libusb_open(param->vid, param->pid, param->serial, &h->fd) != ERROR_OK) {
 			LOG_ERROR("open failed");
 			goto error_open;
 		}
@@ -1683,8 +1681,14 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 		/* RX EP is common for all versions */
 		h->rx_ep = STLINK_RX_EP;
 
+		uint16_t pid;
+		if (jtag_libusb_get_pid(jtag_libusb_get_device(h->fd), &pid) != ERROR_OK) {
+			LOG_DEBUG("libusb_get_pid failed");
+			goto error_open;
+		}
+
 		/* wrap version for first read */
-		switch (param->pid) {
+		switch (pid) {
 			case STLINK_V1_PID:
 				h->version.stlink = 1;
 				h->tx_ep = STLINK_TX_EP;
@@ -1735,12 +1739,6 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 			retry_count--;
 		}
 	} while (1);
-
-	/* compare usb vid/pid */
-	if ((param->vid != h->vid) || (param->pid != h->pid))
-		LOG_INFO("vid/pid are not identical: 0x%04X/0x%04X 0x%04X/0x%04X",
-			param->vid, param->pid,
-			h->vid, h->pid);
 
 	/* check if mode is supported */
 	err = ERROR_OK;

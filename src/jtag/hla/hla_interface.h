@@ -29,15 +29,17 @@ enum e_hl_transports;
 /** */
 extern const char *hl_transports[];
 
+#define HLA_MAX_USB_IDS 8
+
 struct hl_interface_param_s {
 	/** */
 	const char *device_desc;
 	/** */
 	const char *serial;
-	/** */
-	uint16_t vid;
-	/** */
-	uint16_t pid;
+	/** List of recognised VIDs */
+	uint16_t vid[HLA_MAX_USB_IDS + 1];
+	/** List of recognised PIDs */
+	uint16_t pid[HLA_MAX_USB_IDS + 1];
 	/** */
 	unsigned api;
 	/** */

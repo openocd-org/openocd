@@ -114,9 +114,9 @@ struct reg_data_type {
 };
 
 struct reg {
-	/** Canonical name of the register. */
+	/* Canonical name of the register. */
 	const char *name;
-	/** Number that gdb uses to access this register. */
+	/* Number that gdb uses to access this register. */
 	uint32_t number;
 	/* TODO. This should probably be const. */
 	struct reg_feature *feature;

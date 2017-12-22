@@ -28,103 +28,112 @@
 #include <helper/types.h>
 
 enum {
-	NRF51_FLASH_BASE = 0x00000000,
+	NRF5_FLASH_BASE = 0x00000000,
 };
 
-enum nrf51_ficr_registers {
-	NRF51_FICR_BASE = 0x10000000, /* Factory Information Configuration Registers */
+enum nrf5_ficr_registers {
+	NRF5_FICR_BASE = 0x10000000, /* Factory Information Configuration Registers */
 
-#define NRF51_FICR_REG(offset) (NRF51_FICR_BASE + offset)
+#define NRF5_FICR_REG(offset) (NRF5_FICR_BASE + offset)
 
-	NRF51_FICR_CODEPAGESIZE		= NRF51_FICR_REG(0x010),
-	NRF51_FICR_CODESIZE		= NRF51_FICR_REG(0x014),
-	NRF51_FICR_CLENR0		= NRF51_FICR_REG(0x028),
-	NRF51_FICR_PPFC			= NRF51_FICR_REG(0x02C),
-	NRF51_FICR_NUMRAMBLOCK		= NRF51_FICR_REG(0x034),
-	NRF51_FICR_SIZERAMBLOCK0	= NRF51_FICR_REG(0x038),
-	NRF51_FICR_SIZERAMBLOCK1	= NRF51_FICR_REG(0x03C),
-	NRF51_FICR_SIZERAMBLOCK2	= NRF51_FICR_REG(0x040),
-	NRF51_FICR_SIZERAMBLOCK3	= NRF51_FICR_REG(0x044),
-	NRF51_FICR_CONFIGID		= NRF51_FICR_REG(0x05C),
-	NRF51_FICR_DEVICEID0		= NRF51_FICR_REG(0x060),
-	NRF51_FICR_DEVICEID1		= NRF51_FICR_REG(0x064),
-	NRF51_FICR_ER0			= NRF51_FICR_REG(0x080),
-	NRF51_FICR_ER1			= NRF51_FICR_REG(0x084),
-	NRF51_FICR_ER2			= NRF51_FICR_REG(0x088),
-	NRF51_FICR_ER3			= NRF51_FICR_REG(0x08C),
-	NRF51_FICR_IR0			= NRF51_FICR_REG(0x090),
-	NRF51_FICR_IR1			= NRF51_FICR_REG(0x094),
-	NRF51_FICR_IR2			= NRF51_FICR_REG(0x098),
-	NRF51_FICR_IR3			= NRF51_FICR_REG(0x09C),
-	NRF51_FICR_DEVICEADDRTYPE	= NRF51_FICR_REG(0x0A0),
-	NRF51_FICR_DEVICEADDR0		= NRF51_FICR_REG(0x0A4),
-	NRF51_FICR_DEVICEADDR1		= NRF51_FICR_REG(0x0A8),
-	NRF51_FICR_OVERRIDEN		= NRF51_FICR_REG(0x0AC),
-	NRF51_FICR_NRF_1MBIT0		= NRF51_FICR_REG(0x0B0),
-	NRF51_FICR_NRF_1MBIT1		= NRF51_FICR_REG(0x0B4),
-	NRF51_FICR_NRF_1MBIT2		= NRF51_FICR_REG(0x0B8),
-	NRF51_FICR_NRF_1MBIT3		= NRF51_FICR_REG(0x0BC),
-	NRF51_FICR_NRF_1MBIT4		= NRF51_FICR_REG(0x0C0),
-	NRF51_FICR_BLE_1MBIT0		= NRF51_FICR_REG(0x0EC),
-	NRF51_FICR_BLE_1MBIT1		= NRF51_FICR_REG(0x0F0),
-	NRF51_FICR_BLE_1MBIT2		= NRF51_FICR_REG(0x0F4),
-	NRF51_FICR_BLE_1MBIT3		= NRF51_FICR_REG(0x0F8),
-	NRF51_FICR_BLE_1MBIT4		= NRF51_FICR_REG(0x0FC),
+	NRF5_FICR_CODEPAGESIZE		= NRF5_FICR_REG(0x010),
+	NRF5_FICR_CODESIZE		= NRF5_FICR_REG(0x014),
+	NRF5_FICR_CLENR0		= NRF5_FICR_REG(0x028),
+	NRF5_FICR_PPFC			= NRF5_FICR_REG(0x02C),
+	NRF5_FICR_NUMRAMBLOCK		= NRF5_FICR_REG(0x034),
+	NRF5_FICR_SIZERAMBLOCK0	= NRF5_FICR_REG(0x038),
+	NRF5_FICR_SIZERAMBLOCK1	= NRF5_FICR_REG(0x03C),
+	NRF5_FICR_SIZERAMBLOCK2	= NRF5_FICR_REG(0x040),
+	NRF5_FICR_SIZERAMBLOCK3	= NRF5_FICR_REG(0x044),
+	NRF5_FICR_CONFIGID		= NRF5_FICR_REG(0x05C),
+	NRF5_FICR_DEVICEID0		= NRF5_FICR_REG(0x060),
+	NRF5_FICR_DEVICEID1		= NRF5_FICR_REG(0x064),
+	NRF5_FICR_ER0			= NRF5_FICR_REG(0x080),
+	NRF5_FICR_ER1			= NRF5_FICR_REG(0x084),
+	NRF5_FICR_ER2			= NRF5_FICR_REG(0x088),
+	NRF5_FICR_ER3			= NRF5_FICR_REG(0x08C),
+	NRF5_FICR_IR0			= NRF5_FICR_REG(0x090),
+	NRF5_FICR_IR1			= NRF5_FICR_REG(0x094),
+	NRF5_FICR_IR2			= NRF5_FICR_REG(0x098),
+	NRF5_FICR_IR3			= NRF5_FICR_REG(0x09C),
+	NRF5_FICR_DEVICEADDRTYPE	= NRF5_FICR_REG(0x0A0),
+	NRF5_FICR_DEVICEADDR0		= NRF5_FICR_REG(0x0A4),
+	NRF5_FICR_DEVICEADDR1		= NRF5_FICR_REG(0x0A8),
+	NRF5_FICR_OVERRIDEN		= NRF5_FICR_REG(0x0AC),
+	NRF5_FICR_NRF_1MBIT0		= NRF5_FICR_REG(0x0B0),
+	NRF5_FICR_NRF_1MBIT1		= NRF5_FICR_REG(0x0B4),
+	NRF5_FICR_NRF_1MBIT2		= NRF5_FICR_REG(0x0B8),
+	NRF5_FICR_NRF_1MBIT3		= NRF5_FICR_REG(0x0BC),
+	NRF5_FICR_NRF_1MBIT4		= NRF5_FICR_REG(0x0C0),
+	NRF5_FICR_BLE_1MBIT0		= NRF5_FICR_REG(0x0EC),
+	NRF5_FICR_BLE_1MBIT1		= NRF5_FICR_REG(0x0F0),
+	NRF5_FICR_BLE_1MBIT2		= NRF5_FICR_REG(0x0F4),
+	NRF5_FICR_BLE_1MBIT3		= NRF5_FICR_REG(0x0F8),
+	NRF5_FICR_BLE_1MBIT4		= NRF5_FICR_REG(0x0FC),
 };
 
-enum nrf51_uicr_registers {
-	NRF51_UICR_BASE = 0x10001000, /* User Information
+enum nrf5_uicr_registers {
+	NRF5_UICR_BASE = 0x10001000, /* User Information
 				       * Configuration Regsters */
 
-	NRF51_UICR_SIZE = 0x100,
+	NRF5_UICR_SIZE = 0x100,
 
-#define NRF51_UICR_REG(offset) (NRF51_UICR_BASE + offset)
+#define NRF5_UICR_REG(offset) (NRF5_UICR_BASE + offset)
 
-	NRF51_UICR_CLENR0	= NRF51_UICR_REG(0x000),
-	NRF51_UICR_RBPCONF	= NRF51_UICR_REG(0x004),
-	NRF51_UICR_XTALFREQ	= NRF51_UICR_REG(0x008),
-	NRF51_UICR_FWID		= NRF51_UICR_REG(0x010),
+	NRF5_UICR_CLENR0	= NRF5_UICR_REG(0x000),
+	NRF5_UICR_RBPCONF	= NRF5_UICR_REG(0x004),
+	NRF5_UICR_XTALFREQ	= NRF5_UICR_REG(0x008),
+	NRF5_UICR_FWID		= NRF5_UICR_REG(0x010),
 };
 
-enum nrf51_nvmc_registers {
-	NRF51_NVMC_BASE = 0x4001E000, /* Non-Volatile Memory
+enum nrf5_nvmc_registers {
+	NRF5_NVMC_BASE = 0x4001E000, /* Non-Volatile Memory
 				       * Controller Regsters */
 
-#define NRF51_NVMC_REG(offset) (NRF51_NVMC_BASE + offset)
+#define NRF5_NVMC_REG(offset) (NRF5_NVMC_BASE + offset)
 
-	NRF51_NVMC_READY	= NRF51_NVMC_REG(0x400),
-	NRF51_NVMC_CONFIG	= NRF51_NVMC_REG(0x504),
-	NRF51_NVMC_ERASEPAGE	= NRF51_NVMC_REG(0x508),
-	NRF51_NVMC_ERASEALL	= NRF51_NVMC_REG(0x50C),
-	NRF51_NVMC_ERASEUICR	= NRF51_NVMC_REG(0x514),
+	NRF5_NVMC_READY	= NRF5_NVMC_REG(0x400),
+	NRF5_NVMC_CONFIG	= NRF5_NVMC_REG(0x504),
+	NRF5_NVMC_ERASEPAGE	= NRF5_NVMC_REG(0x508),
+	NRF5_NVMC_ERASEALL	= NRF5_NVMC_REG(0x50C),
+	NRF5_NVMC_ERASEUICR	= NRF5_NVMC_REG(0x514),
 };
 
-enum nrf51_nvmc_config_bits {
-	NRF51_NVMC_CONFIG_REN = 0x00,
-	NRF51_NVMC_CONFIG_WEN = 0x01,
-	NRF51_NVMC_CONFIG_EEN = 0x02,
+enum nrf5_nvmc_config_bits {
+	NRF5_NVMC_CONFIG_REN = 0x00,
+	NRF5_NVMC_CONFIG_WEN = 0x01,
+	NRF5_NVMC_CONFIG_EEN = 0x02,
 
 };
 
-struct nrf51_info {
+struct nrf5_info {
 	uint32_t code_page_size;
 
 	struct {
 		bool probed;
 		int (*write) (struct flash_bank *bank,
-			      struct nrf51_info *chip,
+			      struct nrf5_info *chip,
 			      const uint8_t *buffer, uint32_t offset, uint32_t count);
 	} bank[2];
 	struct target *target;
 };
 
-struct nrf51_device_spec {
+struct nrf5_device_spec {
 	uint16_t hwid;
 	const char *part;
 	const char *variant;
 	const char *build_code;
 	unsigned int flash_size_kb;
 };
+
+#define NRF5_DEVICE_DEF(id, pt, var, bcode, fsize) \
+{                                                   \
+.hwid          = (id),                              \
+.part          = pt,                                \
+.variant       = var,                               \
+.build_code    = bcode,                             \
+.flash_size_kb = (fsize),                           \
+}
 
 /* The known devices table below is derived from the "nRF51 Series
  * Compatibility Matrix" document, which can be found by searching for
@@ -138,294 +147,74 @@ struct nrf51_device_spec {
  * shown as Gx0, Bx0, etc. In these cases the HWID in the matrix is
  * for x==0, x!=0 means different (unspecified) HWIDs.
  */
-static const struct nrf51_device_spec nrf51_known_devices_table[] = {
+static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 	/* nRF51822 Devices (IC rev 1). */
-	{
-		.hwid		= 0x001D,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "CA/C0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0026,
-		.part		= "51822",
-		.variant	= "QFAB",
-		.build_code	= "AA",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0027,
-		.part		= "51822",
-		.variant	= "QFAB",
-		.build_code	= "A0",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0020,
-		.part		= "51822",
-		.variant	= "CEAA",
-		.build_code	= "BA",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x002F,
-		.part		= "51822",
-		.variant	= "CEAA",
-		.build_code	= "B0",
-		.flash_size_kb	= 256,
-	},
+	NRF5_DEVICE_DEF(0x001D, "51822", "QFAA", "CA/C0", 256),
+	NRF5_DEVICE_DEF(0x0026, "51822", "QFAB", "AA",    128),
+	NRF5_DEVICE_DEF(0x0027, "51822", "QFAB", "A0",    128),
+	NRF5_DEVICE_DEF(0x0020, "51822", "CEAA", "BA",    256),
+	NRF5_DEVICE_DEF(0x002F, "51822", "CEAA", "B0",    256),
 
 	/* nRF51822 Devices (IC rev 2). */
-	{
-		.hwid		= 0x002A,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "FA0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0044,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "GC0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x003C,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "G0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0057,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "G2",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0058,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "G3",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x004C,
-		.part		= "51822",
-		.variant	= "QFAB",
-		.build_code	= "B0",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0040,
-		.part		= "51822",
-		.variant	= "CEAA",
-		.build_code	= "CA0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0047,
-		.part		= "51822",
-		.variant	= "CEAA",
-		.build_code	= "DA0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x004D,
-		.part		= "51822",
-		.variant	= "CEAA",
-		.build_code	= "D00",
-		.flash_size_kb	= 256,
-	},
+	NRF5_DEVICE_DEF(0x002A, "51822", "QFAA", "FA0",   256),
+	NRF5_DEVICE_DEF(0x0044, "51822", "QFAA", "GC0",   256),
+	NRF5_DEVICE_DEF(0x003C, "51822", "QFAA", "G0",    256),
+	NRF5_DEVICE_DEF(0x0057, "51822", "QFAA", "G2",    256),
+	NRF5_DEVICE_DEF(0x0058, "51822", "QFAA", "G3",    256),
+	NRF5_DEVICE_DEF(0x004C, "51822", "QFAB", "B0",    128),
+	NRF5_DEVICE_DEF(0x0040, "51822", "CEAA", "CA0",   256),
+	NRF5_DEVICE_DEF(0x0047, "51822", "CEAA", "DA0",   256),
+	NRF5_DEVICE_DEF(0x004D, "51822", "CEAA", "D00",   256),
 
 	/* nRF51822 Devices (IC rev 3). */
-	{
-		.hwid		= 0x0072,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "H0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x007B,
-		.part		= "51822",
-		.variant	= "QFAB",
-		.build_code	= "C0",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0083,
-		.part		= "51822",
-		.variant	= "QFAC",
-		.build_code	= "A0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0084,
-		.part		= "51822",
-		.variant	= "QFAC",
-		.build_code	= "A1",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x007D,
-		.part		= "51822",
-		.variant	= "CDAB",
-		.build_code	= "A0",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0079,
-		.part		= "51822",
-		.variant	= "CEAA",
-		.build_code	= "E0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0087,
-		.part		= "51822",
-		.variant	= "CFAC",
-		.build_code	= "A0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x008F,
-		.part		= "51822",
-		.variant	= "QFAA",
-		.build_code	= "H1",
-		.flash_size_kb	= 256,
-	},
+	NRF5_DEVICE_DEF(0x0072, "51822", "QFAA", "H0",    256),
+	NRF5_DEVICE_DEF(0x007B, "51822", "QFAB", "C0",    128),
+	NRF5_DEVICE_DEF(0x0083, "51822", "QFAC", "A0",    256),
+	NRF5_DEVICE_DEF(0x0084, "51822", "QFAC", "A1",    256),
+	NRF5_DEVICE_DEF(0x007D, "51822", "CDAB", "A0",    128),
+	NRF5_DEVICE_DEF(0x0079, "51822", "CEAA", "E0",    256),
+	NRF5_DEVICE_DEF(0x0087, "51822", "CFAC", "A0",    256),
 
 	/* nRF51422 Devices (IC rev 1). */
-	{
-		.hwid		= 0x001E,
-		.part		= "51422",
-		.variant	= "QFAA",
-		.build_code	= "CA",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0024,
-		.part		= "51422",
-		.variant	= "QFAA",
-		.build_code	= "C0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0031,
-		.part		= "51422",
-		.variant	= "CEAA",
-		.build_code	= "A0A",
-		.flash_size_kb	= 256,
-	},
+	NRF5_DEVICE_DEF(0x001E, "51422", "QFAA", "CA",    256),
+	NRF5_DEVICE_DEF(0x0024, "51422", "QFAA", "C0",    256),
+	NRF5_DEVICE_DEF(0x0031, "51422", "CEAA", "A0A",   256),
 
 	/* nRF51422 Devices (IC rev 2). */
-	{
-		.hwid		= 0x002D,
-		.part		= "51422",
-		.variant	= "QFAA",
-		.build_code	= "DAA",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x002E,
-		.part		= "51422",
-		.variant	= "QFAA",
-		.build_code	= "E0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0061,
-		.part		= "51422",
-		.variant	= "QFAB",
-		.build_code	= "A00",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0050,
-		.part		= "51422",
-		.variant	= "CEAA",
-		.build_code	= "B0",
-		.flash_size_kb	= 256,
-	},
+	NRF5_DEVICE_DEF(0x002D, "51422", "QFAA", "DAA",   256),
+	NRF5_DEVICE_DEF(0x002E, "51422", "QFAA", "E0",    256),
+	NRF5_DEVICE_DEF(0x0061, "51422", "QFAB", "A00",   128),
+	NRF5_DEVICE_DEF(0x0050, "51422", "CEAA", "B0",    256),
 
 	/* nRF51422 Devices (IC rev 3). */
-	{
-		.hwid		= 0x0073,
-		.part		= "51422",
-		.variant	= "QFAA",
-		.build_code	= "F0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x007C,
-		.part		= "51422",
-		.variant	= "QFAB",
-		.build_code	= "B0",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x0085,
-		.part		= "51422",
-		.variant	= "QFAC",
-		.build_code	= "A0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0086,
-		.part		= "51422",
-		.variant	= "QFAC",
-		.build_code	= "A1",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x007E,
-		.part		= "51422",
-		.variant	= "CDAB",
-		.build_code	= "A0",
-		.flash_size_kb	= 128,
-	},
-	{
-		.hwid		= 0x007A,
-		.part		= "51422",
-		.variant	= "CEAA",
-		.build_code	= "C0",
-		.flash_size_kb	= 256,
-	},
-	{
-		.hwid		= 0x0088,
-		.part		= "51422",
-		.variant	= "CFAC",
-		.build_code	= "A0",
-		.flash_size_kb	= 256,
-	},
+	NRF5_DEVICE_DEF(0x0073, "51422", "QFAA", "F0",    256),
+	NRF5_DEVICE_DEF(0x007C, "51422", "QFAB", "B0",    128),
+	NRF5_DEVICE_DEF(0x0085, "51422", "QFAC", "A0",    256),
+	NRF5_DEVICE_DEF(0x0086, "51422", "QFAC", "A1",    256),
+	NRF5_DEVICE_DEF(0x007E, "51422", "CDAB", "A0",    128),
+	NRF5_DEVICE_DEF(0x007A, "51422", "CEAA", "C0",    256),
+	NRF5_DEVICE_DEF(0x0088, "51422", "CFAC", "A0",    256),
+
+	/* nRF52832 Devices */
+	NRF5_DEVICE_DEF(0x00C7, "52832", "QFAA", "B0",    512),
 
 	/* Some early nRF51-DK (PCA10028) & nRF51-Dongle (PCA10031) boards
 	   with built-in jlink seem to use engineering samples not listed
 	   in the nRF51 Series Compatibility Matrix V1.0. */
-	{
-		.hwid		= 0x0071,
-		.part		= "51822",
-		.variant	= "QFAC",
-		.build_code	= "AB",
-		.flash_size_kb	= 256,
-	},
+	NRF5_DEVICE_DEF(0x0071, "51822", "QFAC", "AB",    256),
 };
 
-static int nrf51_bank_is_probed(struct flash_bank *bank)
+static int nrf5_bank_is_probed(struct flash_bank *bank)
 {
-	struct nrf51_info *chip = bank->driver_priv;
+	struct nrf5_info *chip = bank->driver_priv;
 
 	assert(chip != NULL);
 
 	return chip->bank[bank->bank_number].probed;
 }
-static int nrf51_probe(struct flash_bank *bank);
+static int nrf5_probe(struct flash_bank *bank);
 
-static int nrf51_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf51_info **chip)
+static int nrf5_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf5_info **chip)
 {
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -434,23 +223,23 @@ static int nrf51_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf51
 
 	*chip = bank->driver_priv;
 
-	int probed = nrf51_bank_is_probed(bank);
+	int probed = nrf5_bank_is_probed(bank);
 	if (probed < 0)
 		return probed;
 	else if (!probed)
-		return nrf51_probe(bank);
+		return nrf5_probe(bank);
 	else
 		return ERROR_OK;
 }
 
-static int nrf51_wait_for_nvmc(struct nrf51_info *chip)
+static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 {
 	uint32_t ready;
 	int res;
 	int timeout = 100;
 
 	do {
-		res = target_read_u32(chip->target, NRF51_NVMC_READY, &ready);
+		res = target_read_u32(chip->target, NRF5_NVMC_READY, &ready);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read NVMC_READY register");
 			return res;
@@ -466,12 +255,12 @@ static int nrf51_wait_for_nvmc(struct nrf51_info *chip)
 	return ERROR_FLASH_BUSY;
 }
 
-static int nrf51_nvmc_erase_enable(struct nrf51_info *chip)
+static int nrf5_nvmc_erase_enable(struct nrf5_info *chip)
 {
 	int res;
 	res = target_write_u32(chip->target,
-			       NRF51_NVMC_CONFIG,
-			       NRF51_NVMC_CONFIG_EEN);
+			       NRF5_NVMC_CONFIG,
+			       NRF5_NVMC_CONFIG_EEN);
 
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to enable erase operation");
@@ -482,19 +271,19 @@ static int nrf51_nvmc_erase_enable(struct nrf51_info *chip)
 	  According to NVMC examples in Nordic SDK busy status must be
 	  checked after writing to NVMC_CONFIG
 	 */
-	res = nrf51_wait_for_nvmc(chip);
+	res = nrf5_wait_for_nvmc(chip);
 	if (res != ERROR_OK)
 		LOG_ERROR("Erase enable did not complete");
 
 	return res;
 }
 
-static int nrf51_nvmc_write_enable(struct nrf51_info *chip)
+static int nrf5_nvmc_write_enable(struct nrf5_info *chip)
 {
 	int res;
 	res = target_write_u32(chip->target,
-			       NRF51_NVMC_CONFIG,
-			       NRF51_NVMC_CONFIG_WEN);
+			       NRF5_NVMC_CONFIG,
+			       NRF5_NVMC_CONFIG_WEN);
 
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to enable write operation");
@@ -505,19 +294,19 @@ static int nrf51_nvmc_write_enable(struct nrf51_info *chip)
 	  According to NVMC examples in Nordic SDK busy status must be
 	  checked after writing to NVMC_CONFIG
 	 */
-	res = nrf51_wait_for_nvmc(chip);
+	res = nrf5_wait_for_nvmc(chip);
 	if (res != ERROR_OK)
 		LOG_ERROR("Write enable did not complete");
 
 	return res;
 }
 
-static int nrf51_nvmc_read_only(struct nrf51_info *chip)
+static int nrf5_nvmc_read_only(struct nrf5_info *chip)
 {
 	int res;
 	res = target_write_u32(chip->target,
-			       NRF51_NVMC_CONFIG,
-			       NRF51_NVMC_CONFIG_REN);
+			       NRF5_NVMC_CONFIG,
+			       NRF5_NVMC_CONFIG_REN);
 
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to enable read-only operation");
@@ -527,19 +316,19 @@ static int nrf51_nvmc_read_only(struct nrf51_info *chip)
 	  According to NVMC examples in Nordic SDK busy status must be
 	  checked after writing to NVMC_CONFIG
 	 */
-	res = nrf51_wait_for_nvmc(chip);
+	res = nrf5_wait_for_nvmc(chip);
 	if (res != ERROR_OK)
 		LOG_ERROR("Read only enable did not complete");
 
 	return res;
 }
 
-static int nrf51_nvmc_generic_erase(struct nrf51_info *chip,
+static int nrf5_nvmc_generic_erase(struct nrf5_info *chip,
 			       uint32_t erase_register, uint32_t erase_value)
 {
 	int res;
 
-	res = nrf51_nvmc_erase_enable(chip);
+	res = nrf5_nvmc_erase_enable(chip);
 	if (res != ERROR_OK)
 		goto error;
 
@@ -549,34 +338,34 @@ static int nrf51_nvmc_generic_erase(struct nrf51_info *chip,
 	if (res != ERROR_OK)
 		goto set_read_only;
 
-	res = nrf51_wait_for_nvmc(chip);
+	res = nrf5_wait_for_nvmc(chip);
 	if (res != ERROR_OK)
 		goto set_read_only;
 
-	return nrf51_nvmc_read_only(chip);
+	return nrf5_nvmc_read_only(chip);
 
 set_read_only:
-	nrf51_nvmc_read_only(chip);
+	nrf5_nvmc_read_only(chip);
 error:
 	LOG_ERROR("Failed to erase reg: 0x%08"PRIx32" val: 0x%08"PRIx32,
 		  erase_register, erase_value);
 	return ERROR_FAIL;
 }
 
-static int nrf51_protect_check(struct flash_bank *bank)
+static int nrf5_protect_check(struct flash_bank *bank)
 {
 	int res;
 	uint32_t clenr0;
 
 	/* UICR cannot be write protected so just return early */
-	if (bank->base == NRF51_UICR_BASE)
+	if (bank->base == NRF5_UICR_BASE)
 		return ERROR_OK;
 
-	struct nrf51_info *chip = bank->driver_priv;
+	struct nrf5_info *chip = bank->driver_priv;
 
 	assert(chip != NULL);
 
-	res = target_read_u32(chip->target, NRF51_FICR_CLENR0,
+	res = target_read_u32(chip->target, NRF5_FICR_CLENR0,
 			      &clenr0);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read code region 0 size[FICR]");
@@ -584,7 +373,7 @@ static int nrf51_protect_check(struct flash_bank *bank)
 	}
 
 	if (clenr0 == 0xFFFFFFFF) {
-		res = target_read_u32(chip->target, NRF51_UICR_CLENR0,
+		res = target_read_u32(chip->target, NRF5_UICR_CLENR0,
 				      &clenr0);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read code region 0 size[UICR]");
@@ -599,17 +388,17 @@ static int nrf51_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int nrf51_protect(struct flash_bank *bank, int set, int first, int last)
+static int nrf5_protect(struct flash_bank *bank, int set, int first, int last)
 {
 	int res;
 	uint32_t clenr0, ppfc;
-	struct nrf51_info *chip;
+	struct nrf5_info *chip;
 
 	/* UICR cannot be write protected so just bail out early */
-	if (bank->base == NRF51_UICR_BASE)
+	if (bank->base == NRF5_UICR_BASE)
 		return ERROR_FAIL;
 
-	res = nrf51_get_probed_chip_if_halted(bank, &chip);
+	res = nrf5_get_probed_chip_if_halted(bank, &chip);
 	if (res != ERROR_OK)
 		return res;
 
@@ -618,7 +407,7 @@ static int nrf51_protect(struct flash_bank *bank, int set, int first, int last)
 		return ERROR_FAIL;
 	}
 
-	res = target_read_u32(chip->target, NRF51_FICR_PPFC,
+	res = target_read_u32(chip->target, NRF5_FICR_PPFC,
 			      &ppfc);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read PPFC register");
@@ -630,7 +419,7 @@ static int nrf51_protect(struct flash_bank *bank, int set, int first, int last)
 		return ERROR_FAIL;
 	}
 
-	res = target_read_u32(chip->target, NRF51_UICR_CLENR0,
+	res = target_read_u32(chip->target, NRF5_UICR_CLENR0,
 			      &clenr0);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read code region 0 size[UICR]");
@@ -638,7 +427,7 @@ static int nrf51_protect(struct flash_bank *bank, int set, int first, int last)
 	}
 
 	if (clenr0 == 0xFFFFFFFF) {
-		res = target_write_u32(chip->target, NRF51_UICR_CLENR0,
+		res = target_write_u32(chip->target, NRF5_UICR_CLENR0,
 				       clenr0);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't write code region 0 size[UICR]");
@@ -649,18 +438,18 @@ static int nrf51_protect(struct flash_bank *bank, int set, int first, int last)
 		LOG_ERROR("You need to perform chip erase before changing the protection settings");
 	}
 
-	nrf51_protect_check(bank);
+	nrf5_protect_check(bank);
 
 	return ERROR_OK;
 }
 
-static int nrf51_probe(struct flash_bank *bank)
+static int nrf5_probe(struct flash_bank *bank)
 {
 	uint32_t hwid;
 	int res;
-	struct nrf51_info *chip = bank->driver_priv;
+	struct nrf5_info *chip = bank->driver_priv;
 
-	res = target_read_u32(chip->target, NRF51_FICR_CONFIGID, &hwid);
+	res = target_read_u32(chip->target, NRF5_FICR_CONFIGID, &hwid);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read CONFIGID register");
 		return res;
@@ -669,10 +458,10 @@ static int nrf51_probe(struct flash_bank *bank)
 	hwid &= 0xFFFF;	/* HWID is stored in the lower two
 			 * bytes of the CONFIGID register */
 
-	const struct nrf51_device_spec *spec = NULL;
-	for (size_t i = 0; i < ARRAY_SIZE(nrf51_known_devices_table); i++) {
-		if (hwid == nrf51_known_devices_table[i].hwid) {
-			spec = &nrf51_known_devices_table[i];
+	const struct nrf5_device_spec *spec = NULL;
+	for (size_t i = 0; i < ARRAY_SIZE(nrf5_known_devices_table); i++) {
+		if (hwid == nrf5_known_devices_table[i].hwid) {
+			spec = &nrf5_known_devices_table[i];
 			break;
 		}
 	}
@@ -686,9 +475,9 @@ static int nrf51_probe(struct flash_bank *bank)
 			LOG_WARNING("Unknown device (HWID 0x%08" PRIx32 ")", hwid);
 	}
 
-	if (bank->base == NRF51_FLASH_BASE) {
-		/* The value stored in NRF51_FICR_CODEPAGESIZE is the number of bytes in one page of FLASH. */
-		res = target_read_u32(chip->target, NRF51_FICR_CODEPAGESIZE,
+	if (bank->base == NRF5_FLASH_BASE) {
+		/* The value stored in NRF5_FICR_CODEPAGESIZE is the number of bytes in one page of FLASH. */
+		res = target_read_u32(chip->target, NRF5_FICR_CODEPAGESIZE,
 				&chip->code_page_size);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read code page size");
@@ -696,9 +485,9 @@ static int nrf51_probe(struct flash_bank *bank)
 		}
 
 		/* Note the register name is misleading,
-		 * NRF51_FICR_CODESIZE is the number of pages in flash memory, not the number of bytes! */
+		 * NRF5_FICR_CODESIZE is the number of pages in flash memory, not the number of bytes! */
 		uint32_t num_sectors;
-		res = target_read_u32(chip->target, NRF51_FICR_CODESIZE, &num_sectors);
+		res = target_read_u32(chip->target, NRF5_FICR_CODESIZE, &num_sectors);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read code memory size");
 			return res;
@@ -715,7 +504,7 @@ static int nrf51_probe(struct flash_bank *bank)
 		if (!bank->sectors)
 			return ERROR_FLASH_BANK_NOT_PROBED;
 
-		/* Fill out the sector information: all NRF51 sectors are the same size and
+		/* Fill out the sector information: all NRF5 sectors are the same size and
 		 * there is always a fixed number of them. */
 		for (int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].size = chip->code_page_size;
@@ -726,11 +515,11 @@ static int nrf51_probe(struct flash_bank *bank)
 			bank->sectors[i].is_protected = -1;
 		}
 
-		nrf51_protect_check(bank);
+		nrf5_protect_check(bank);
 
 		chip->bank[0].probed = true;
 	} else {
-		bank->size = NRF51_UICR_SIZE;
+		bank->size = NRF5_UICR_SIZE;
 		bank->num_sectors = 1;
 		bank->sectors = calloc(bank->num_sectors,
 				       sizeof((bank->sectors)[0]));
@@ -750,21 +539,21 @@ static int nrf51_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int nrf51_auto_probe(struct flash_bank *bank)
+static int nrf5_auto_probe(struct flash_bank *bank)
 {
-	int probed = nrf51_bank_is_probed(bank);
+	int probed = nrf5_bank_is_probed(bank);
 
 	if (probed < 0)
 		return probed;
 	else if (probed)
 		return ERROR_OK;
 	else
-		return nrf51_probe(bank);
+		return nrf5_probe(bank);
 }
 
-static struct flash_sector *nrf51_find_sector_by_address(struct flash_bank *bank, uint32_t address)
+static struct flash_sector *nrf5_find_sector_by_address(struct flash_bank *bank, uint32_t address)
 {
-	struct nrf51_info *chip = bank->driver_priv;
+	struct nrf5_info *chip = bank->driver_priv;
 
 	for (int i = 0; i < bank->num_sectors; i++)
 		if (bank->sectors[i].offset <= address &&
@@ -773,16 +562,16 @@ static struct flash_sector *nrf51_find_sector_by_address(struct flash_bank *bank
 	return NULL;
 }
 
-static int nrf51_erase_all(struct nrf51_info *chip)
+static int nrf5_erase_all(struct nrf5_info *chip)
 {
 	LOG_DEBUG("Erasing all non-volatile memory");
-	return nrf51_nvmc_generic_erase(chip,
-					NRF51_NVMC_ERASEALL,
+	return nrf5_nvmc_generic_erase(chip,
+					NRF5_NVMC_ERASEALL,
 					0x00000001);
 }
 
-static int nrf51_erase_page(struct flash_bank *bank,
-							struct nrf51_info *chip,
+static int nrf5_erase_page(struct flash_bank *bank,
+							struct nrf5_info *chip,
 							struct flash_sector *sector)
 {
 	int res;
@@ -793,9 +582,9 @@ static int nrf51_erase_page(struct flash_bank *bank,
 		return ERROR_FAIL;
 	}
 
-	if (bank->base == NRF51_UICR_BASE) {
+	if (bank->base == NRF5_UICR_BASE) {
 		uint32_t ppfc;
-		res = target_read_u32(chip->target, NRF51_FICR_PPFC,
+		res = target_read_u32(chip->target, NRF5_FICR_PPFC,
 				      &ppfc);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't read PPFC register");
@@ -813,14 +602,14 @@ static int nrf51_erase_page(struct flash_bank *bank,
 			return ERROR_FAIL;
 		}
 
-		res = nrf51_nvmc_generic_erase(chip,
-					       NRF51_NVMC_ERASEUICR,
+		res = nrf5_nvmc_generic_erase(chip,
+					       NRF5_NVMC_ERASEUICR,
 					       0x00000001);
 
 
 	} else {
-		res = nrf51_nvmc_generic_erase(chip,
-					       NRF51_NVMC_ERASEPAGE,
+		res = nrf5_nvmc_generic_erase(chip,
+					       NRF5_NVMC_ERASEPAGE,
 					       sector->offset);
 	}
 
@@ -830,7 +619,7 @@ static int nrf51_erase_page(struct flash_bank *bank,
 	return res;
 }
 
-static const uint8_t nrf51_flash_write_code[] = {
+static const uint8_t nrf5_flash_write_code[] = {
 	/* See contrib/loaders/flash/cortex-m0.S */
 /* <wait_fifo>: */
 	0x0d, 0x68,		/* ldr	r5,	[r1,	#0] */
@@ -855,13 +644,13 @@ static const uint8_t nrf51_flash_write_code[] = {
 
 
 /* Start a low level flash write for the specified region */
-static int nrf51_ll_flash_write(struct nrf51_info *chip, uint32_t offset, const uint8_t *buffer, uint32_t bytes)
+static int nrf5_ll_flash_write(struct nrf5_info *chip, uint32_t offset, const uint8_t *buffer, uint32_t bytes)
 {
 	struct target *target = chip->target;
 	uint32_t buffer_size = 8192;
 	struct working_area *write_algorithm;
 	struct working_area *source;
-	uint32_t address = NRF51_FLASH_BASE + offset;
+	uint32_t address = NRF5_FLASH_BASE + offset;
 	struct reg_param reg_params[4];
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
@@ -871,7 +660,7 @@ static int nrf51_ll_flash_write(struct nrf51_info *chip, uint32_t offset, const 
 	assert(bytes % 4 == 0);
 
 	/* allocate working area with flash programming code */
-	if (target_alloc_working_area(target, sizeof(nrf51_flash_write_code),
+	if (target_alloc_working_area(target, sizeof(nrf5_flash_write_code),
 			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, falling back to slow memory writes");
 
@@ -880,7 +669,7 @@ static int nrf51_ll_flash_write(struct nrf51_info *chip, uint32_t offset, const 
 			if (retval != ERROR_OK)
 				return retval;
 
-			retval = nrf51_wait_for_nvmc(chip);
+			retval = nrf5_wait_for_nvmc(chip);
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -893,11 +682,11 @@ static int nrf51_ll_flash_write(struct nrf51_info *chip, uint32_t offset, const 
 
 	LOG_WARNING("using fast async flash loader. This is currently supported");
 	LOG_WARNING("only with ST-Link and CMSIS-DAP. If you have issues, add");
-	LOG_WARNING("\"set WORKAREASIZE 0\" before sourcing nrf51.cfg to disable it");
+	LOG_WARNING("\"set WORKAREASIZE 0\" before sourcing nrf51.cfg/nrf52.cfg to disable it");
 
 	retval = target_write_buffer(target, write_algorithm->address,
-				sizeof(nrf51_flash_write_code),
-				nrf51_flash_write_code);
+				sizeof(nrf5_flash_write_code),
+				nrf5_flash_write_code);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -948,10 +737,10 @@ static int nrf51_ll_flash_write(struct nrf51_info *chip, uint32_t offset, const 
 /* Check and erase flash sectors in specified range then start a low level page write.
    start/end must be sector aligned.
 */
-static int nrf51_write_pages(struct flash_bank *bank, uint32_t start, uint32_t end, const uint8_t *buffer)
+static int nrf5_write_pages(struct flash_bank *bank, uint32_t start, uint32_t end, const uint8_t *buffer)
 {
 	int res = ERROR_FAIL;
-	struct nrf51_info *chip = bank->driver_priv;
+	struct nrf5_info *chip = bank->driver_priv;
 	struct flash_sector *sector;
 	uint32_t offset;
 
@@ -960,7 +749,7 @@ static int nrf51_write_pages(struct flash_bank *bank, uint32_t start, uint32_t e
 
 	/* Erase all sectors */
 	for (offset = start; offset < end; offset += chip->code_page_size) {
-		sector = nrf51_find_sector_by_address(bank, offset);
+		sector = nrf5_find_sector_by_address(bank, offset);
 		if (!sector) {
 			LOG_ERROR("Invalid sector @ 0x%08"PRIx32, offset);
 			return ERROR_FLASH_SECTOR_INVALID;
@@ -972,7 +761,7 @@ static int nrf51_write_pages(struct flash_bank *bank, uint32_t start, uint32_t e
 		}
 
 		if (sector->is_erased != 1) {	/* 1 = erased, 0= not erased, -1 = unknown */
-			res = nrf51_erase_page(bank, chip, sector);
+			res = nrf5_erase_page(bank, chip, sector);
 			if (res != ERROR_OK) {
 				LOG_ERROR("Failed to erase sector @ 0x%08"PRIx32, sector->offset);
 				goto error;
@@ -981,41 +770,41 @@ static int nrf51_write_pages(struct flash_bank *bank, uint32_t start, uint32_t e
 		sector->is_erased = 0;
 	}
 
-	res = nrf51_nvmc_write_enable(chip);
+	res = nrf5_nvmc_write_enable(chip);
 	if (res != ERROR_OK)
 		goto error;
 
-	res = nrf51_ll_flash_write(chip, start, buffer, (end - start));
+	res = nrf5_ll_flash_write(chip, start, buffer, (end - start));
 	if (res != ERROR_OK)
 		goto set_read_only;
 
-	return nrf51_nvmc_read_only(chip);
+	return nrf5_nvmc_read_only(chip);
 
 set_read_only:
-	nrf51_nvmc_read_only(chip);
+	nrf5_nvmc_read_only(chip);
 error:
-	LOG_ERROR("Failed to write to nrf51 flash");
+	LOG_ERROR("Failed to write to nrf5 flash");
 	return res;
 }
 
-static int nrf51_erase(struct flash_bank *bank, int first, int last)
+static int nrf5_erase(struct flash_bank *bank, int first, int last)
 {
 	int res;
-	struct nrf51_info *chip;
+	struct nrf5_info *chip;
 
-	res = nrf51_get_probed_chip_if_halted(bank, &chip);
+	res = nrf5_get_probed_chip_if_halted(bank, &chip);
 	if (res != ERROR_OK)
 		return res;
 
 	/* For each sector to be erased */
 	for (int s = first; s <= last && res == ERROR_OK; s++)
-		res = nrf51_erase_page(bank, chip, &bank->sectors[s]);
+		res = nrf5_erase_page(bank, chip, &bank->sectors[s]);
 
 	return res;
 }
 
-static int nrf51_code_flash_write(struct flash_bank *bank,
-				  struct nrf51_info *chip,
+static int nrf5_code_flash_write(struct flash_bank *bank,
+				  struct nrf5_info *chip,
 				  const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 
@@ -1062,58 +851,58 @@ static int nrf51_code_flash_write(struct flash_bank *bank,
 			return res;
 	}
 
-	return nrf51_write_pages(bank, first_page_offset, last_page_offset, buffer_to_flash);
+	return nrf5_write_pages(bank, first_page_offset, last_page_offset, buffer_to_flash);
 }
 
-static int nrf51_uicr_flash_write(struct flash_bank *bank,
-				  struct nrf51_info *chip,
+static int nrf5_uicr_flash_write(struct flash_bank *bank,
+				  struct nrf5_info *chip,
 				  const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int res;
-	uint8_t uicr[NRF51_UICR_SIZE];
+	uint8_t uicr[NRF5_UICR_SIZE];
 	struct flash_sector *sector = &bank->sectors[0];
 
-	if ((offset + count) > NRF51_UICR_SIZE)
+	if ((offset + count) > NRF5_UICR_SIZE)
 		return ERROR_FAIL;
 
 	res = target_read_memory(bank->target,
-				 NRF51_UICR_BASE,
+				 NRF5_UICR_BASE,
 				 1,
-				 NRF51_UICR_SIZE,
+				 NRF5_UICR_SIZE,
 				 uicr);
 
 	if (res != ERROR_OK)
 		return res;
 
 	if (sector->is_erased != 1) {
-		res = nrf51_erase_page(bank, chip, sector);
+		res = nrf5_erase_page(bank, chip, sector);
 		if (res != ERROR_OK)
 			return res;
 	}
 
-	res = nrf51_nvmc_write_enable(chip);
+	res = nrf5_nvmc_write_enable(chip);
 	if (res != ERROR_OK)
 		return res;
 
 	memcpy(&uicr[offset], buffer, count);
 
-	res = nrf51_ll_flash_write(chip, NRF51_UICR_BASE, uicr, NRF51_UICR_SIZE);
+	res = nrf5_ll_flash_write(chip, NRF5_UICR_BASE, uicr, NRF5_UICR_SIZE);
 	if (res != ERROR_OK) {
-		nrf51_nvmc_read_only(chip);
+		nrf5_nvmc_read_only(chip);
 		return res;
 	}
 
-	return nrf51_nvmc_read_only(chip);
+	return nrf5_nvmc_read_only(chip);
 }
 
 
-static int nrf51_write(struct flash_bank *bank, const uint8_t *buffer,
+static int nrf5_write(struct flash_bank *bank, const uint8_t *buffer,
 		       uint32_t offset, uint32_t count)
 {
 	int res;
-	struct nrf51_info *chip;
+	struct nrf5_info *chip;
 
-	res = nrf51_get_probed_chip_if_halted(bank, &chip);
+	res = nrf5_get_probed_chip_if_halted(bank, &chip);
 	if (res != ERROR_OK)
 		return res;
 
@@ -1121,15 +910,15 @@ static int nrf51_write(struct flash_bank *bank, const uint8_t *buffer,
 }
 
 
-FLASH_BANK_COMMAND_HANDLER(nrf51_flash_bank_command)
+FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 {
-	static struct nrf51_info *chip;
+	static struct nrf5_info *chip;
 
 	switch (bank->base) {
-	case NRF51_FLASH_BASE:
+	case NRF5_FLASH_BASE:
 		bank->bank_number = 0;
 		break;
-	case NRF51_UICR_BASE:
+	case NRF5_UICR_BASE:
 		bank->bank_number = 1;
 		break;
 	default:
@@ -1147,11 +936,11 @@ FLASH_BANK_COMMAND_HANDLER(nrf51_flash_bank_command)
 	}
 
 	switch (bank->base) {
-	case NRF51_FLASH_BASE:
-		chip->bank[bank->bank_number].write = nrf51_code_flash_write;
+	case NRF5_FLASH_BASE:
+		chip->bank[bank->bank_number].write = nrf5_code_flash_write;
 		break;
-	case NRF51_UICR_BASE:
-		chip->bank[bank->bank_number].write = nrf51_uicr_flash_write;
+	case NRF5_UICR_BASE:
+		chip->bank[bank->bank_number].write = nrf5_uicr_flash_write;
 		break;
 	}
 
@@ -1161,27 +950,27 @@ FLASH_BANK_COMMAND_HANDLER(nrf51_flash_bank_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(nrf51_handle_mass_erase_command)
+COMMAND_HANDLER(nrf5_handle_mass_erase_command)
 {
 	int res;
 	struct flash_bank *bank = NULL;
 	struct target *target = get_current_target(CMD_CTX);
 
-	res = get_flash_bank_by_addr(target, NRF51_FLASH_BASE, true, &bank);
+	res = get_flash_bank_by_addr(target, NRF5_FLASH_BASE, true, &bank);
 	if (res != ERROR_OK)
 		return res;
 
 	assert(bank != NULL);
 
-	struct nrf51_info *chip;
+	struct nrf5_info *chip;
 
-	res = nrf51_get_probed_chip_if_halted(bank, &chip);
+	res = nrf5_get_probed_chip_if_halted(bank, &chip);
 	if (res != ERROR_OK)
 		return res;
 
 	uint32_t ppfc;
 
-	res = target_read_u32(target, NRF51_FICR_PPFC,
+	res = target_read_u32(target, NRF5_FICR_PPFC,
 			      &ppfc);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read PPFC register");
@@ -1194,23 +983,23 @@ COMMAND_HANDLER(nrf51_handle_mass_erase_command)
 		return ERROR_FAIL;
 	}
 
-	res = nrf51_erase_all(chip);
+	res = nrf5_erase_all(chip);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to erase the chip");
-		nrf51_protect_check(bank);
+		nrf5_protect_check(bank);
 		return res;
 	}
 
 	for (int i = 0; i < bank->num_sectors; i++)
 		bank->sectors[i].is_erased = 1;
 
-	res = nrf51_protect_check(bank);
+	res = nrf5_protect_check(bank);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to check chip's write protection");
 		return res;
 	}
 
-	res = get_flash_bank_by_addr(target, NRF51_UICR_BASE, true, &bank);
+	res = get_flash_bank_by_addr(target, NRF5_UICR_BASE, true, &bank);
 	if (res != ERROR_OK)
 		return res;
 
@@ -1219,13 +1008,13 @@ COMMAND_HANDLER(nrf51_handle_mass_erase_command)
 	return ERROR_OK;
 }
 
-static int nrf51_info(struct flash_bank *bank, char *buf, int buf_size)
+static int nrf5_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	int res;
 
-	struct nrf51_info *chip;
+	struct nrf5_info *chip;
 
-	res = nrf51_get_probed_chip_if_halted(bank, &chip);
+	res = nrf5_get_probed_chip_if_halted(bank, &chip);
 	if (res != ERROR_OK)
 		return res;
 
@@ -1233,45 +1022,45 @@ static int nrf51_info(struct flash_bank *bank, char *buf, int buf_size)
 		const uint32_t address;
 		uint32_t value;
 	} ficr[] = {
-		{ .address = NRF51_FICR_CODEPAGESIZE	},
-		{ .address = NRF51_FICR_CODESIZE	},
-		{ .address = NRF51_FICR_CLENR0		},
-		{ .address = NRF51_FICR_PPFC		},
-		{ .address = NRF51_FICR_NUMRAMBLOCK	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK0	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK1	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK2	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK3	},
-		{ .address = NRF51_FICR_CONFIGID	},
-		{ .address = NRF51_FICR_DEVICEID0	},
-		{ .address = NRF51_FICR_DEVICEID1	},
-		{ .address = NRF51_FICR_ER0		},
-		{ .address = NRF51_FICR_ER1		},
-		{ .address = NRF51_FICR_ER2		},
-		{ .address = NRF51_FICR_ER3		},
-		{ .address = NRF51_FICR_IR0		},
-		{ .address = NRF51_FICR_IR1		},
-		{ .address = NRF51_FICR_IR2		},
-		{ .address = NRF51_FICR_IR3		},
-		{ .address = NRF51_FICR_DEVICEADDRTYPE	},
-		{ .address = NRF51_FICR_DEVICEADDR0	},
-		{ .address = NRF51_FICR_DEVICEADDR1	},
-		{ .address = NRF51_FICR_OVERRIDEN	},
-		{ .address = NRF51_FICR_NRF_1MBIT0	},
-		{ .address = NRF51_FICR_NRF_1MBIT1	},
-		{ .address = NRF51_FICR_NRF_1MBIT2	},
-		{ .address = NRF51_FICR_NRF_1MBIT3	},
-		{ .address = NRF51_FICR_NRF_1MBIT4	},
-		{ .address = NRF51_FICR_BLE_1MBIT0	},
-		{ .address = NRF51_FICR_BLE_1MBIT1	},
-		{ .address = NRF51_FICR_BLE_1MBIT2	},
-		{ .address = NRF51_FICR_BLE_1MBIT3	},
-		{ .address = NRF51_FICR_BLE_1MBIT4	},
+		{ .address = NRF5_FICR_CODEPAGESIZE	},
+		{ .address = NRF5_FICR_CODESIZE	},
+		{ .address = NRF5_FICR_CLENR0		},
+		{ .address = NRF5_FICR_PPFC		},
+		{ .address = NRF5_FICR_NUMRAMBLOCK	},
+		{ .address = NRF5_FICR_SIZERAMBLOCK0	},
+		{ .address = NRF5_FICR_SIZERAMBLOCK1	},
+		{ .address = NRF5_FICR_SIZERAMBLOCK2	},
+		{ .address = NRF5_FICR_SIZERAMBLOCK3	},
+		{ .address = NRF5_FICR_CONFIGID	},
+		{ .address = NRF5_FICR_DEVICEID0	},
+		{ .address = NRF5_FICR_DEVICEID1	},
+		{ .address = NRF5_FICR_ER0		},
+		{ .address = NRF5_FICR_ER1		},
+		{ .address = NRF5_FICR_ER2		},
+		{ .address = NRF5_FICR_ER3		},
+		{ .address = NRF5_FICR_IR0		},
+		{ .address = NRF5_FICR_IR1		},
+		{ .address = NRF5_FICR_IR2		},
+		{ .address = NRF5_FICR_IR3		},
+		{ .address = NRF5_FICR_DEVICEADDRTYPE	},
+		{ .address = NRF5_FICR_DEVICEADDR0	},
+		{ .address = NRF5_FICR_DEVICEADDR1	},
+		{ .address = NRF5_FICR_OVERRIDEN	},
+		{ .address = NRF5_FICR_NRF_1MBIT0	},
+		{ .address = NRF5_FICR_NRF_1MBIT1	},
+		{ .address = NRF5_FICR_NRF_1MBIT2	},
+		{ .address = NRF5_FICR_NRF_1MBIT3	},
+		{ .address = NRF5_FICR_NRF_1MBIT4	},
+		{ .address = NRF5_FICR_BLE_1MBIT0	},
+		{ .address = NRF5_FICR_BLE_1MBIT1	},
+		{ .address = NRF5_FICR_BLE_1MBIT2	},
+		{ .address = NRF5_FICR_BLE_1MBIT3	},
+		{ .address = NRF5_FICR_BLE_1MBIT4	},
 	}, uicr[] = {
-		{ .address = NRF51_UICR_CLENR0,		},
-		{ .address = NRF51_UICR_RBPCONF		},
-		{ .address = NRF51_UICR_XTALFREQ	},
-		{ .address = NRF51_UICR_FWID		},
+		{ .address = NRF5_UICR_CLENR0,		},
+		{ .address = NRF5_UICR_RBPCONF		},
+		{ .address = NRF5_UICR_XTALFREQ	},
+		{ .address = NRF5_UICR_FWID		},
 	};
 
 	for (size_t i = 0; i < ARRAY_SIZE(ficr); i++) {
@@ -1343,38 +1132,62 @@ static int nrf51_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-static const struct command_registration nrf51_exec_command_handlers[] = {
+static const struct command_registration nrf5_exec_command_handlers[] = {
 	{
 		.name		= "mass_erase",
-		.handler	= nrf51_handle_mass_erase_command,
+		.handler	= nrf5_handle_mass_erase_command,
 		.mode		= COMMAND_EXEC,
 		.help		= "Erase all flash contents of the chip.",
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration nrf51_command_handlers[] = {
+static const struct command_registration nrf5_command_handlers[] = {
+	{
+		.name	= "nrf5",
+		.mode	= COMMAND_ANY,
+		.help	= "nrf5 flash command group",
+		.usage	= "",
+		.chain	= nrf5_exec_command_handlers,
+	},
 	{
 		.name	= "nrf51",
 		.mode	= COMMAND_ANY,
 		.help	= "nrf51 flash command group",
 		.usage	= "",
-		.chain	= nrf51_exec_command_handlers,
+		.chain	= nrf5_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
+struct flash_driver nrf5_flash = {
+	.name			= "nrf5",
+	.commands		= nrf5_command_handlers,
+	.flash_bank_command	= nrf5_flash_bank_command,
+	.info			= nrf5_info,
+	.erase			= nrf5_erase,
+	.protect		= nrf5_protect,
+	.write			= nrf5_write,
+	.read			= default_flash_read,
+	.probe			= nrf5_probe,
+	.auto_probe		= nrf5_auto_probe,
+	.erase_check		= default_flash_blank_check,
+	.protect_check		= nrf5_protect_check,
+};
+
+/* We need to retain the flash-driver name as well as the commands
+ * for backwards compatability */
 struct flash_driver nrf51_flash = {
 	.name			= "nrf51",
-	.commands		= nrf51_command_handlers,
-	.flash_bank_command	= nrf51_flash_bank_command,
-	.info			= nrf51_info,
-	.erase			= nrf51_erase,
-	.protect		= nrf51_protect,
-	.write			= nrf51_write,
+	.commands		= nrf5_command_handlers,
+	.flash_bank_command	= nrf5_flash_bank_command,
+	.info			= nrf5_info,
+	.erase			= nrf5_erase,
+	.protect		= nrf5_protect,
+	.write			= nrf5_write,
 	.read			= default_flash_read,
-	.probe			= nrf51_probe,
-	.auto_probe		= nrf51_auto_probe,
+	.probe			= nrf5_probe,
+	.auto_probe		= nrf5_auto_probe,
 	.erase_check		= default_flash_blank_check,
-	.protect_check		= nrf51_protect_check,
+	.protect_check		= nrf5_protect_check,
 };

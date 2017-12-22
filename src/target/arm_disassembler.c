@@ -3299,6 +3299,7 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 		case 0x10:
 		case 0x12:
 			is_signed = true;
+			/* fallthrough */
 		case 0x18:
 		case 0x1a:
 			/* signed/unsigned saturated add */
