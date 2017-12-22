@@ -792,8 +792,8 @@ static int steps_execute(struct algorithm_steps *as,
 	int xlen = riscv_xlen(target);
 
 	struct reg_param reg_params[2];
-	init_reg_param(&reg_params[0], "x10", xlen, PARAM_OUT);
-	init_reg_param(&reg_params[1], "x11", xlen, PARAM_OUT);
+	init_reg_param(&reg_params[0], "a0", xlen, PARAM_OUT);
+	init_reg_param(&reg_params[1], "a1", xlen, PARAM_OUT);
 	buf_set_u64(reg_params[0].value, 0, xlen, ctrl_base);
 	buf_set_u64(reg_params[1].value, 0, xlen, data_wa->address);
 	while (!as_empty(as)) {

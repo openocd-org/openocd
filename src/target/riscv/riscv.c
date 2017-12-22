@@ -854,10 +854,13 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	uint8_t mstatus_bytes[8];
 
 	LOG_DEBUG("Disabling Interrupts");
-	char mstatus_name[20];
-	sprintf(mstatus_name, "csr%d", CSR_MSTATUS);
 	struct reg *reg_mstatus = register_get_by_name(target->reg_cache,
-			mstatus_name, 1);
+			"mstatus", 1);
+	if (!reg_mstatus) {
+		LOG_ERROR("Couldn't find mstatus!");
+		return ERROR_FAIL;
+	}
+
 	reg_mstatus->type->get(reg_mstatus);
 	current_mstatus = buf_get_u64(reg_mstatus->value, 0, reg_mstatus->size);
 	uint64_t ie_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
