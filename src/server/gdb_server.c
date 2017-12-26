@@ -3090,7 +3090,13 @@ static int gdb_target_add_one(struct target *target)
 		if (!*end) {
 			if (parse_long(gdb_port_next, &portnumber) == ERROR_OK) {
 				free(gdb_port_next);
-				gdb_port_next = alloc_printf("%d", portnumber+1);
+				if (portnumber) {
+					gdb_port_next = alloc_printf("%d", portnumber+1);
+				} else {
+					/* Don't increment if gdb_port is 0, since we're just
+					 * trying to allocate an unused port. */
+					gdb_port_next = strdup("0");
+				}
 			}
 		}
 	}

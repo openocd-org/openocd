@@ -298,6 +298,12 @@ int add_service(char *name,
 			free_service(c);
 			return ERROR_FAIL;
 		}
+
+		struct sockaddr_in addr_in;
+		socklen_t addr_in_size = sizeof(addr_in);
+		getsockname(c->fd, (struct sockaddr *)&addr_in, &addr_in_size);
+		LOG_INFO("Listening on port %hu for %s connections",
+				ntohs(addr_in.sin_port), name);
 	} else if (c->type == CONNECTION_STDINOUT) {
 		c->fd = fileno(stdin);
 
