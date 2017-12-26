@@ -105,6 +105,7 @@ extern struct target_type nds32_v3m_target;
 extern struct target_type or1k_target;
 extern struct target_type quark_x10xx_target;
 extern struct target_type quark_d20xx_target;
+extern struct target_type stm8_target;
 extern struct target_type riscv_target;
 
 static struct target_type *target_types[] = {
@@ -137,6 +138,7 @@ static struct target_type *target_types[] = {
 	&or1k_target,
 	&quark_x10xx_target,
 	&quark_d20xx_target,
+	&stm8_target,
 	&riscv_target,
 #if BUILD_TARGET64
 	&aarch64_target,
@@ -204,10 +206,6 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESET_ASSERT_POST,   .name = "reset-assert-post" },
 	{ .value = TARGET_EVENT_RESET_DEASSERT_PRE,  .name = "reset-deassert-pre" },
 	{ .value = TARGET_EVENT_RESET_DEASSERT_POST, .name = "reset-deassert-post" },
-	{ .value = TARGET_EVENT_RESET_HALT_PRE,      .name = "reset-halt-pre" },
-	{ .value = TARGET_EVENT_RESET_HALT_POST,     .name = "reset-halt-post" },
-	{ .value = TARGET_EVENT_RESET_WAIT_PRE,      .name = "reset-wait-pre" },
-	{ .value = TARGET_EVENT_RESET_WAIT_POST,     .name = "reset-wait-post" },
 	{ .value = TARGET_EVENT_RESET_INIT,          .name = "reset-init" },
 	{ .value = TARGET_EVENT_RESET_END,           .name = "reset-end" },
 
@@ -3699,7 +3697,7 @@ COMMAND_HANDLER(handle_bp_command)
 				addr = 0;
 				return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
 			}
-
+			/* fallthrough */
 		case 4:
 			hw = BKPT_HARD;
 			COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);

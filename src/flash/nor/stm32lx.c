@@ -726,16 +726,13 @@ reset_pg_and_lock:
 
 static int stm32lx_read_id_code(struct target *target, uint32_t *id)
 {
-	/* read stm32 device id register */
-	int retval = target_read_u32(target, DBGMCU_IDCODE, id);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* STM32L0 parts will have 0 there, try reading the L0's location for
-	 * DBG_IDCODE in case this is an L0 part. */
-	if (*id == 0)
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	int retval;
+	if (armv7m->arm.is_armv6m == true)
 		retval = target_read_u32(target, DBGMCU_IDCODE_L0, id);
-
+	else
+	/* read stm32 device id register */
+		retval = target_read_u32(target, DBGMCU_IDCODE, id);
 	return retval;
 }
 

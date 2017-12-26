@@ -958,11 +958,14 @@ static int cmsis_dap_init(void)
 	retval = cmsis_dap_cmd_DAP_TFER_Configure(0, 64, 0);
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
-	/* Data Phase (bit 2) must be set to 1 if sticky overrun
-	 * detection is enabled */
-	retval = cmsis_dap_cmd_DAP_SWD_Configure(0);	/* 1 TRN, no Data Phase */
-	if (retval != ERROR_OK)
-		return ERROR_FAIL;
+
+	if (swd_mode) {
+		/* Data Phase (bit 2) must be set to 1 if sticky overrun
+		 * detection is enabled */
+		retval = cmsis_dap_cmd_DAP_SWD_Configure(0);	/* 1 TRN, no Data Phase */
+		if (retval != ERROR_OK)
+			return ERROR_FAIL;
+	}
 
 	retval = cmsis_dap_cmd_DAP_LED(0x03);		/* Both LEDs on */
 	if (retval != ERROR_OK)

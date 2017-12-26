@@ -222,7 +222,6 @@ static int telnet_new_connection(struct connection *connection)
 	telnet_connection->closed = 0;
 	telnet_connection->line_size = 0;
 	telnet_connection->line_cursor = 0;
-	telnet_connection->option_size = 0;
 	telnet_connection->prompt = strdup("> ");
 	telnet_connection->state = TELNET_STATE_DATA;
 

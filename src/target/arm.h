@@ -157,6 +157,9 @@ struct arm {
 
 	int (*setup_semihosting)(struct target *target, int enable);
 
+	/** Semihosting command line. */
+	char *semihosting_cmdline;
+
 	/** Backpointer to the target. */
 	struct target *target;
 

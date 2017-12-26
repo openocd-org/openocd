@@ -259,11 +259,11 @@ static int mg_dsk_wait(mg_io_type_wait wait_local, uint32_t time_var)
 				case mg_io_wait_rdy:
 					if (status & mg_io_rbit_status_ready)
 						return ERROR_OK;
-
+					/* fallthrough */
 				case mg_io_wait_drq:
 					if (status & mg_io_rbit_status_data_req)
 						return ERROR_OK;
-
+					/* fallthrough */
 				default:
 					break;
 			}

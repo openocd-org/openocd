@@ -37,7 +37,7 @@ NOR_DRIVERS = \
 	%D%/mrvlqspi.c \
 	%D%/niietcm4.c \
 	%D%/non_cfi.c \
-	%D%/nrf51.c \
+	%D%/nrf5.c \
 	%D%/numicro.c \
 	%D%/ocl.c \
 	%D%/pic32mx.c \
@@ -50,6 +50,7 @@ NOR_DRIVERS = \
 	%D%/stm32f2x.c \
 	%D%/stm32lx.c \
 	%D%/stm32l4x.c \
+	%D%/stm32h7x.c \
 	%D%/str7x.c \
 	%D%/str9x.c \
 	%D%/str9xpec.c \

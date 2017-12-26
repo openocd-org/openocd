@@ -1456,8 +1456,8 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
 				LOG_ERROR("%s: argument '%s' is not valid", CMD_NAME, in);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
-			/* fall through */
 		}
+			/* fallthrough */
 		case 0:
 			LOG_INFO("%s is %s", label, *out ? "enabled" : "disabled");
 			break;

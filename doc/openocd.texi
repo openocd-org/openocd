@@ -2948,8 +2948,8 @@ Specifies the serial number of the adapter.
 Specifies the adapter layout to use.
 @end deffn
 
-@deffn {Config Command} {hla_vid_pid} vid pid
-The vendor ID and product ID of the device.
+@deffn {Config Command} {hla_vid_pid} [vid pid]+
+Pairs of vendor IDs and product IDs of the device.
 @end deffn
 
 @deffn {Command} {hla_command} command
@@ -4503,12 +4503,6 @@ and (if the target is using it) after SRST has been
 released on the scan chain.
 @item @b{reset-end}
 @* Issued as the final step in @command{reset} processing.
-@ignore
-@item @b{reset-halt-post}
-@* Currently not used
-@item @b{reset-halt-pre}
-@* Currently not used
-@end ignore
 @item @b{reset-init}
 @* Used by @b{reset init} command for board-specific initialization.
 This event fires after @emph{reset-deassert-post}.
@@ -4525,12 +4519,6 @@ before @command{reset_init} is called.
 This is the most robust place to use @command{jtag_rclk}
 or @command{adapter_khz} to switch to a low JTAG clock rate,
 when reset disables PLLs needed to use a fast clock.
-@ignore
-@item @b{reset-wait-pos}
-@* Currently not used
-@item @b{reset-wait-pre}
-@* Currently not used
-@end ignore
 @item @b{resume-start}
 @* Before any target is resumed
 @item @b{resume-end}
@@ -5767,17 +5755,19 @@ Show information about flash driver.
 
 @end deffn
 
-@deffn {Flash Driver} nrf51
+@deffn {Flash Driver} nrf5
 All members of the nRF51 microcontroller families from Nordic Semiconductor
 include internal flash and use ARM Cortex-M0 core.
+Also, the nRF52832 microcontroller from Nordic Semiconductor, which include
+internal flash and use an ARM Cortex-M4F core.
 
 @example
-flash bank $_FLASHNAME nrf51 0 0x00000000 0 0 $_TARGETNAME
+flash bank $_FLASHNAME nrf5 0 0x00000000 0 0 $_TARGETNAME
 @end example
 
-Some nrf51-specific commands are defined:
+Some nrf5-specific commands are defined:
 
-@deffn Command {nrf51 mass_erase}
+@deffn Command {nrf5 mass_erase}
 Erases the contents of the code memory and user information
 configuration registers as well. It must be noted that this command
 works only for chips that do not have factory pre-programmed region 0
@@ -5886,9 +5876,6 @@ All members of the Stellaris LM3Sxxx, LM4x and Tiva C microcontroller
 families from Texas Instruments include internal flash. The driver
 automatically recognizes a number of these chips using the chip
 identification register, and autoconfigures itself.
-@footnote{Currently there is a @command{stellaris mass_erase} command.
-That seems pointless since the same effect can be had using the
-standard @command{flash erase_address} command.}
 
 @example
 flash bank $_FLASHNAME stellaris 0 0 0 0 $_TARGETNAME
@@ -5934,11 +5921,7 @@ as per the following example.
 flash bank $_FLASHNAME stm32f1x 0x08080000 0 0 0 $_TARGETNAME
 @end example
 
-Some stm32f1x-specific commands
-@footnote{Currently there is a @command{stm32f1x mass_erase} command.
-That seems pointless since the same effect can be had using the
-standard @command{flash erase_address} command.}
-are defined:
+Some stm32f1x-specific commands are defined:
 
 @deffn Command {stm32f1x lock} num
 Locks the entire stm32 device.
@@ -5947,6 +5930,11 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 
 @deffn Command {stm32f1x unlock} num
 Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32f1x mass_erase} num
+Mass erases the entire stm32f1x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
@@ -5968,6 +5956,10 @@ include internal flash and use ARM Cortex-M3/M4/M7 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
+@example
+flash bank $_FLASHNAME stm32f2x 0 0 0 0 $_TARGETNAME
+@end example
+
 Note that some devices have been found that have a flash size register that contains
 an invalid value, to workaround this issue you can override the probed value used by
 the flash driver.
@@ -5985,6 +5977,11 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 
 @deffn Command {stm32f2x unlock} num
 Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32f2x mass_erase} num
+Mass erases the entire stm32f2x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
@@ -6007,11 +6004,51 @@ The @var{num} parameter is a value shown by @command{flash banks}, @var{optcr2} 
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} stm32h7x
+All members of the STM32H7 microcontroller families from ST Microelectronics
+include internal flash and use ARM Cortex-M7 core.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+
+@example
+flash bank $_FLASHNAME stm32h7x 0 0 0 0 $_TARGETNAME
+@end example
+
+Note that some devices have been found that have a flash size register that contains
+an invalid value, to workaround this issue you can override the probed value used by
+the flash driver.
+
+@example
+flash bank $_FLASHNAME stm32h7x 0 0x20000 0 0 $_TARGETNAME
+@end example
+
+Some stm32h7x-specific commands are defined:
+
+@deffn Command {stm32h7x lock} num
+Locks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32h7x unlock} num
+Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32h7x mass_erase} num
+Mass erases the entire stm32h7x device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} stm32lx
 All members of the STM32L microcontroller families from ST Microelectronics
 include internal flash and use ARM Cortex-M3 and Cortex-M0+ cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
+
+@example
+flash bank $_FLASHNAME stm32lx 0 0 0 0 $_TARGETNAME
+@end example
 
 Note that some devices have been found that have a flash size register that contains
 an invalid value, to workaround this issue you can override the probed value used by
@@ -6025,10 +6062,56 @@ flash bank $_FLASHNAME stm32lx 0x08000000 0x20000 0 0 $_TARGETNAME
 
 Some stm32lx-specific commands are defined:
 
+@deffn Command {stm32lx lock} num
+Locks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32lx unlock} num
+Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
 @deffn Command {stm32lx mass_erase} num
 Mass erases the entire stm32lx device (all flash banks and EEPROM
 data). This is the only way to unlock a protected flash (unless RDP
 Level is 2 which can't be unlocked at all).
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+@end deffn
+
+@deffn {Flash Driver} stm32l4x
+All members of the STM32L4 microcontroller families from ST Microelectronics
+include internal flash and use ARM Cortex-M4 cores.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+
+@example
+flash bank $_FLASHNAME stm32l4x 0 0 0 0 $_TARGETNAME
+@end example
+
+Note that some devices have been found that have a flash size register that contains
+an invalid value, to workaround this issue you can override the probed value used by
+the flash driver.
+
+@example
+flash bank $_FLASHNAME stm32l4x 0x08000000 0x40000 0 0 $_TARGETNAME
+@end example
+
+Some stm32l4x-specific commands are defined:
+
+@deffn Command {stm32l4x lock} num
+Locks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32l4x unlock} num
+Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32l4x mass_erase} num
+Mass erases the entire stm32l4x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 @end deffn
@@ -7600,6 +7683,20 @@ is running. The target application must be linked against a library
 implementing the ARM semihosting convention that forwards operation
 requests by using a special SVC instruction that is trapped at the
 Supervisor Call vector by OpenOCD.
+@end deffn
+
+@deffn Command {arm semihosting_cmdline} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
+Set the command line to be passed to the debuggee.
+
+@example
+arm semihosting_cmdline argv0 argv1 argv2 ...
+@end example
+
+This option lets one set the command line arguments to be passed to
+the program. The first argument (argv0) is the program name in a
+standard C environment (argv[0]). Depending on the program (not much
+programs look at argv[0]), argv0 is ignored and can be any string.
 @end deffn
 
 @deffn Command {arm semihosting_fileio} [@option{enable}|@option{disable}]
