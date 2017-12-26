@@ -2415,13 +2415,13 @@ static int gdb_query_packet(struct connection *connection,
 			char gdb_reply[10];
 			char *separator;
 			uint32_t checksum;
-			uint32_t addr = 0;
+			target_addr_t addr = 0;
 			uint32_t len = 0;
 
 			/* skip command character */
 			packet += 5;
 
-			addr = strtoul(packet, &separator, 16);
+			addr = strtoull(packet, &separator, 16);
 
 			if (*separator != ',') {
 				LOG_ERROR("incomplete read memory packet received, dropping connection");
