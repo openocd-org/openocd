@@ -1415,6 +1415,8 @@ static int read_memory(struct target *target, target_addr_t address,
 {
 	RISCV013_INFO(info);
 
+	int result = ERROR_OK;
+
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
 			size, address);
 
@@ -1456,13 +1458,15 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_program_write(&program);
 
 	/* Write address to S0, and execute buffer. */
-	if (register_write_direct(target, GDB_REGNO_S0, address) != ERROR_OK)
-		return ERROR_FAIL;
+	result = register_write_direct(target, GDB_REGNO_S0, address);
+	if (result != ERROR_OK)
+		goto error;
 	uint32_t command = access_register_command(GDB_REGNO_S1, riscv_xlen(target),
 				AC_ACCESS_REGISTER_TRANSFER |
 				AC_ACCESS_REGISTER_POSTEXEC);
-	if (execute_abstract_command(target, command) != ERROR_OK)
-		return ERROR_FAIL;
+	result = execute_abstract_command(target, command);
+	if (result != ERROR_OK)
+		goto error;
 
 	/* First read has just triggered. Result is in s1. */
 
@@ -1559,8 +1563,12 @@ static int read_memory(struct target *target, target_addr_t address,
 				dmi_data0 = dmi_read(target, DMI_DATA0);
 
 				/* Clobbers DMI_DATA0. */
-				if (register_read_direct(target, &next_read_addr, GDB_REGNO_S0) != ERROR_OK)
-					return ERROR_FAIL;
+				result = register_read_direct(target, &next_read_addr,
+						GDB_REGNO_S0);
+				if (result != ERROR_OK) {
+					riscv_batch_free(batch);
+					goto error;
+				}
 				/* Restore the command, and execute it.
 				 * Now DMI_DATA0 contains the next value just as it would if no
 				 * error had occurred. */
@@ -1571,12 +1579,10 @@ static int read_memory(struct target *target, target_addr_t address,
 				break;
 			default:
 				LOG_ERROR("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
-				dmi_write(target, DMI_ABSTRACTAUTO, 0);
-				riscv_set_register(target, GDB_REGNO_S0, s0);
-				riscv_set_register(target, GDB_REGNO_S1, s1);
 				riscv013_clear_abstract_error(target);
 				riscv_batch_free(batch);
-				return ERROR_FAIL;
+				result = ERROR_FAIL;
+				goto error;
 		}
 
 		/* Now read whatever we got out of the batch. */
@@ -1624,8 +1630,9 @@ static int read_memory(struct target *target, target_addr_t address,
 
 	/* Read the last word. */
 	uint64_t value;
-	if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
-		return ERROR_FAIL;
+	result = register_read_direct(target, &value, GDB_REGNO_S1);
+	if (result != ERROR_OK)
+		goto error;
 	write_to_buf(buffer + receive_addr - address, value, size);
 	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, receive_addr, value);
 	receive_addr += size;
@@ -1633,6 +1640,13 @@ static int read_memory(struct target *target, target_addr_t address,
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
 	return ERROR_OK;
+
+error:
+	dmi_write(target, DMI_ABSTRACTAUTO, 0);
+
+	riscv_set_register(target, GDB_REGNO_S0, s0);
+	riscv_set_register(target, GDB_REGNO_S1, s1);
+	return result;
 }
 
 static int write_memory(struct target *target, target_addr_t address,
@@ -1648,6 +1662,7 @@ static int write_memory(struct target *target, target_addr_t address,
 	 * s1 holds the next data value to write
 	 */
 
+	int result = ERROR_OK;
 	uint64_t s0, s1;
 	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1670,13 +1685,15 @@ static int write_memory(struct target *target, target_addr_t address,
 			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
+			result = ERROR_FAIL;
+			goto error;
 	}
 
 	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
 
-	if (riscv_program_ebreak(&program) != ERROR_OK)
-		return ERROR_FAIL;
+	result = riscv_program_ebreak(&program);
+	if (result != ERROR_OK)
+		goto error;
 	riscv_program_write(&program);
 
 	riscv_addr_t cur_addr = address;
@@ -1715,16 +1732,21 @@ static int write_memory(struct target *target, target_addr_t address,
 					break;
 				default:
 					LOG_ERROR("unsupported access size: %d", size);
-					return ERROR_FAIL;
+					riscv_batch_free(batch);
+					result = ERROR_FAIL;
+					goto error;
 			}
 
 			LOG_DEBUG("M[0x%08" PRIx64 "] writes 0x%08x", address + offset, value);
 			cur_addr += size;
 
 			if (setup_needed) {
-				if (register_write_direct(target, GDB_REGNO_S0,
-							address + offset) != ERROR_OK)
-					return ERROR_FAIL;
+				result = register_write_direct(target, GDB_REGNO_S0,
+						address + offset);
+				if (result != ERROR_OK) {
+					riscv_batch_free(batch);
+					goto error;
+				}
 
 				/* Write value. */
 				dmi_write(target, DMI_DATA0, value);
@@ -1735,9 +1757,11 @@ static int write_memory(struct target *target, target_addr_t address,
 						AC_ACCESS_REGISTER_POSTEXEC |
 						AC_ACCESS_REGISTER_TRANSFER |
 						AC_ACCESS_REGISTER_WRITE);
-				int result = execute_abstract_command(target, command);
-				if (result != ERROR_OK)
-					return result;
+				result = execute_abstract_command(target, command);
+				if (result != ERROR_OK) {
+					riscv_batch_free(batch);
+					goto error;
+				}
 
 				/* Turn on autoexec */
 				dmi_write(target, DMI_ABSTRACTAUTO,
@@ -1751,8 +1775,10 @@ static int write_memory(struct target *target, target_addr_t address,
 			}
 		}
 
-		riscv_batch_run(batch);
+		result = riscv_batch_run(batch);
 		riscv_batch_free(batch);
+		if (result != ERROR_OK)
+			goto error;
 
 		/* Note that if the scan resulted in a Busy DMI response, it
 		 * is this read to abstractcs that will cause the dmi_busy_delay
@@ -1772,21 +1798,21 @@ static int write_memory(struct target *target, target_addr_t address,
 				increase_ac_busy_delay(target);
 
 				dmi_write(target, DMI_ABSTRACTAUTO, 0);
-				if (register_read_direct(target, &cur_addr, GDB_REGNO_S0) != ERROR_OK)
-					return ERROR_FAIL;
+				result = register_read_direct(target, &cur_addr, GDB_REGNO_S0);
+				if (result != ERROR_OK)
+					goto error;
 				setup_needed = true;
 				break;
 
 			default:
 				LOG_ERROR("error when writing memory, abstractcs=0x%08lx", (long)abstractcs);
-				dmi_write(target, DMI_ABSTRACTAUTO, 0);
 				riscv013_clear_abstract_error(target);
-				riscv_set_register(target, GDB_REGNO_S0, s0);
-				riscv_set_register(target, GDB_REGNO_S1, s1);
-				return ERROR_FAIL;
+				result = ERROR_FAIL;
+				goto error;
 		}
 	}
 
+error:
 	dmi_write(target, DMI_ABSTRACTAUTO, 0);
 
 	if (register_write_direct(target, GDB_REGNO_S1, s1) != ERROR_OK)
@@ -1797,7 +1823,7 @@ static int write_memory(struct target *target, target_addr_t address,
 	if (execute_fence(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	return ERROR_OK;
+	return result;
 }
 
 static int arch_state(struct target *target)
