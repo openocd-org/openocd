@@ -1597,22 +1597,6 @@ riscv_insn_t riscv_read_debug_buffer(struct target *target, int index)
 	return r->read_debug_buffer(target, index);
 }
 
-riscv_addr_t riscv_read_debug_buffer_x(struct target *target, int index)
-{
-	riscv_addr_t out = 0;
-	switch (riscv_xlen(target)) {
-	case 64:
-		out |= (uint64_t)riscv_read_debug_buffer(target, index + 1) << 32;
-	case 32:
-		out |= riscv_read_debug_buffer(target, index + 0) <<  0;
-		break;
-	default:
-		LOG_ERROR("unsupported XLEN %d", riscv_xlen(target));
-		abort();
-	}
-	return out;
-}
-
 int riscv_execute_debug_buffer(struct target *target)
 {
 	RISCV_INFO(r);

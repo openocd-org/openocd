@@ -222,9 +222,7 @@ int riscv_count_triggers_of_hart(struct target *target, int hartid);
 size_t riscv_debug_buffer_size(struct target *target);
 
 riscv_insn_t riscv_read_debug_buffer(struct target *target, int index);
-riscv_addr_t riscv_read_debug_buffer_x(struct target *target, int index);
 int riscv_write_debug_buffer(struct target *target, int index, riscv_insn_t insn);
-int riscv_write_debug_buffer_x(struct target *target, int index, riscv_addr_t data);
 int riscv_execute_debug_buffer(struct target *target);
 
 void riscv_fill_dmi_nop_u64(struct target *target, char *buf);
