@@ -28,7 +28,7 @@ matrix:
 
         - os: linux
           env:
-              - BUILD=i686-linux-gnu 
+              - BUILD=i686-linux-gnu
               - CFLAGS=-m32
               - EXECUTABLE=openocd
           compiler: clang
@@ -38,7 +38,7 @@ matrix:
                       - gcc-multilib
 
         - os: linux
-          env: 
+          env:
               - BUILD=i686-w64-mingw
               - CONFIGURE_ARGS="--build=i686-unknown-linux-gnu --host=i686-w64-mingw32"
               - EXECUTABLE=openocd.exe

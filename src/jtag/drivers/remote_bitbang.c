@@ -76,10 +76,8 @@ static void remote_bitbang_fill_buf(void)
 				contiguous_available_space);
 		if (count > 0) {
 			remote_bitbang_end += count;
-			// TODO: check for overflow.
-			if (remote_bitbang_end == sizeof(remote_bitbang_buf)) {
+			if (remote_bitbang_end == sizeof(remote_bitbang_buf))
 				remote_bitbang_end = 0;
-			}
 		} else if (count == 0) {
 			return;
 		} else if (count < 0) {
@@ -171,7 +169,7 @@ static int remote_bitbang_read_sample(void)
 {
 	if (remote_bitbang_start != remote_bitbang_end) {
 		int c = remote_bitbang_buf[remote_bitbang_start];
-		remote_bitbang_start = 
+		remote_bitbang_start =
 			(remote_bitbang_start + 1) % sizeof(remote_bitbang_buf);
 		return char_to_int(c);
 	}

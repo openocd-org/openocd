@@ -141,7 +141,7 @@ int riscv_openocd_resume(
 	struct target *target,
 	int current,
 	target_addr_t address,
-	int handle_breakpoints, 
+	int handle_breakpoints,
 	int debug_execution
 );
 

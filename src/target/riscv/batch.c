@@ -138,8 +138,8 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 
 void dump_field(const struct scan_field *field)
 {
-	static const char *op_string[] = {"-", "r", "w", "?"};
-	static const char *status_string[] = {"+", "?", "F", "b"};
+	static const char * const op_string[] = {"-", "r", "w", "?"};
+	static const char * const status_string[] = {"+", "?", "F", "b"};
 
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
