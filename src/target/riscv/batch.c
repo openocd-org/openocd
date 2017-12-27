@@ -42,11 +42,11 @@ bool riscv_batch_full(struct riscv_batch *batch)
 	return batch->used_scans > (batch->allocated_scans - 4);
 }
 
-void riscv_batch_run(struct riscv_batch *batch)
+int riscv_batch_run(struct riscv_batch *batch)
 {
 	if (batch->used_scans == 0) {
 		LOG_DEBUG("Ignoring empty batch.");
-		return;
+		return ERROR_OK;
 	}
 
 	keep_alive();
@@ -63,11 +63,13 @@ void riscv_batch_run(struct riscv_batch *batch)
 	LOG_DEBUG("executing queue");
 	if (jtag_execute_queue() != ERROR_OK) {
 		LOG_ERROR("Unable to execute JTAG queue");
-		abort();
+		return ERROR_FAIL;
 	}
 
 	for (size_t i = 0; i < batch->used_scans; ++i)
 		dump_field(batch->fields + i);
+
+	return ERROR_OK;
 }
 
 void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned address, uint64_t data)
