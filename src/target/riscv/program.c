@@ -55,7 +55,6 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 		LOG_ERROR("Unable to write ebreak");
 		for (size_t i = 0; i < riscv_debug_buffer_size(p->target); ++i)
 			LOG_ERROR("ram[%02x]: DASM(0x%08lx) [0x%08lx]", (int)i, (long)p->debug_buffer[i], (long)p->debug_buffer[i]);
-		abort();
 		return ERROR_FAIL;
 	}
 
@@ -152,7 +151,7 @@ int riscv_program_insert(struct riscv_program *p, riscv_insn_t i)
 		LOG_ERROR("Unable to insert instruction:");
 		LOG_ERROR("  instruction_count=%d", (int)p->instruction_count);
 		LOG_ERROR("  buffer size      =%d", (int)riscv_debug_buffer_size(p->target));
-		abort();
+		return ERROR_FAIL;
 	}
 
 	p->debug_buffer[p->instruction_count] = i;

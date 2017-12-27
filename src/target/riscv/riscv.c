@@ -1011,6 +1011,9 @@ int riscv_openocd_poll(struct target *target)
 	case RISCV_HALT_SINGLESTEP:
 		target->debug_reason = DBG_REASON_SINGLESTEP;
 		break;
+	case RISCV_HALT_UNKNOWN:
+		target->debug_reason = DBG_REASON_UNDEFINED;
+		break;
 	}
 
 	if (riscv_rtos_enabled(target)) {
@@ -1361,8 +1364,7 @@ int riscv_halt_one_hart(struct target *target, int hartid)
 		return ERROR_OK;
 	}
 
-	r->halt_current_hart(target);
-	return ERROR_OK;
+	return r->halt_current_hart(target);
 }
 
 int riscv_resume_all_harts(struct target *target)
@@ -1389,8 +1391,7 @@ int riscv_resume_one_hart(struct target *target, int hartid)
 	}
 
 	r->on_resume(target);
-	r->resume_current_hart(target);
-	return ERROR_OK;
+	return r->resume_current_hart(target);
 }
 
 int riscv_step_rtos_hart(struct target *target)
@@ -1407,13 +1408,20 @@ int riscv_step_rtos_hart(struct target *target)
 	riscv_set_current_hartid(target, hartid);
 	LOG_DEBUG("stepping hart %d", hartid);
 
-	assert(riscv_is_halted(target));
+	if (!riscv_is_halted(target)) {
+		LOG_ERROR("Hart isn't halted before single step!");
+		return ERROR_FAIL;
+	}
 	riscv_invalidate_register_cache(target);
 	r->on_step(target);
-	r->step_current_hart(target);
+	if (r->step_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
 	riscv_invalidate_register_cache(target);
 	r->on_halt(target);
-	assert(riscv_is_halted(target));
+	if (!riscv_is_halted(target)) {
+		LOG_ERROR("Hart was not halted after single step!");
+		return ERROR_FAIL;
+	}
 	return ERROR_OK;
 }
 
@@ -1523,13 +1531,12 @@ bool riscv_has_register(struct target *target, int hartid, int regid)
 	return 1;
 }
 
-void riscv_set_register(struct target *target, enum gdb_regno r, riscv_reg_t v)
+int riscv_set_register(struct target *target, enum gdb_regno r, riscv_reg_t v)
 {
-	/* TODO: propagate errors */
 	return riscv_set_register_on_hart(target, riscv_current_hartid(target), r, v);
 }
 
-void riscv_set_register_on_hart(struct target *target, int hartid,
+int riscv_set_register_on_hart(struct target *target, int hartid,
 		enum gdb_regno regid, uint64_t value)
 {
 	RISCV_INFO(r);
@@ -1562,7 +1569,10 @@ enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
 	riscv_set_current_hartid(target, hartid);
-	assert(riscv_is_halted(target));
+	if (!riscv_is_halted(target)) {
+		LOG_ERROR("Hart is not halted!");
+		return RISCV_HALT_UNKNOWN;
+	}
 	return r->halt_reason(target);
 }
 

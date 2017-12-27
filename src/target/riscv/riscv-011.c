@@ -1329,12 +1329,11 @@ static riscv_reg_t get_register(struct target *target, int hartid, int regid)
 	return value;
 }
 
-static void set_register(struct target *target, int hartid, int regid,
+static int set_register(struct target *target, int hartid, int regid,
 		uint64_t value)
 {
 	assert(hartid == 0);
-	/* TODO: propagate errors */
-	register_write(target, regid, value);
+	return register_write(target, regid, value);
 }
 
 static int halt(struct target *target)
