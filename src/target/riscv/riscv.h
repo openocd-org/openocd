@@ -30,6 +30,7 @@ enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
 	RISCV_HALT_BREAKPOINT,
 	RISCV_HALT_SINGLESTEP,
+	RISCV_HALT_UNKNOWN
 };
 
 typedef struct {
@@ -88,18 +89,18 @@ typedef struct {
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
 	riscv_reg_t (*get_register)(struct target *, int hartid, int regid);
-	void (*set_register)(struct target *, int hartid, int regid,
+	int (*set_register)(struct target *, int hartid, int regid,
 			uint64_t value);
 	void (*select_current_hart)(struct target *);
 	bool (*is_halted)(struct target *target);
-	void (*halt_current_hart)(struct target *);
-	void (*resume_current_hart)(struct target *target);
-	void (*step_current_hart)(struct target *target);
+	int (*halt_current_hart)(struct target *);
+	int (*resume_current_hart)(struct target *target);
+	int (*step_current_hart)(struct target *target);
 	void (*on_halt)(struct target *target);
 	void (*on_resume)(struct target *target);
 	void (*on_step)(struct target *target);
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
-	void (*write_debug_buffer)(struct target *target, unsigned index,
+	int (*write_debug_buffer)(struct target *target, unsigned index,
 			riscv_insn_t d);
 	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned index);
 	int (*execute_debug_buffer)(struct target *target);
@@ -202,8 +203,8 @@ bool riscv_has_register(struct target *target, int hartid, int regid);
 
 /* Returns the value of the given register on the given hart.  32-bit registers
  * are zero extended to 64 bits.  */
-void riscv_set_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
-void riscv_set_register_on_hart(struct target *target, int hid, enum gdb_regno rid, uint64_t v);
+int riscv_set_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
+int riscv_set_register_on_hart(struct target *target, int hid, enum gdb_regno rid, uint64_t v);
 riscv_reg_t riscv_get_register(struct target *target, enum gdb_regno i);
 riscv_reg_t riscv_get_register_on_hart(struct target *target, int hid, enum gdb_regno rid);
 

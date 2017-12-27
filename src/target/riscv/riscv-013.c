@@ -31,22 +31,22 @@
 #define DMI_PROGBUF1 (DMI_PROGBUF0 + 1)
 
 static void riscv013_on_step_or_resume(struct target *target, bool step);
-static void riscv013_step_or_resume_current_hart(struct target *target, bool step);
+static int riscv013_step_or_resume_current_hart(struct target *target, bool step);
 static void riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in riscv_info_t. */
 static riscv_reg_t riscv013_get_register(struct target *target, int hartid, int regid);
-static void riscv013_set_register(struct target *target, int hartid, int regid, uint64_t value);
+static int riscv013_set_register(struct target *target, int hartid, int regid, uint64_t value);
 static void riscv013_select_current_hart(struct target *target);
-static void riscv013_halt_current_hart(struct target *target);
-static void riscv013_resume_current_hart(struct target *target);
-static void riscv013_step_current_hart(struct target *target);
+static int riscv013_halt_current_hart(struct target *target);
+static int riscv013_resume_current_hart(struct target *target);
+static int riscv013_step_current_hart(struct target *target);
 static void riscv013_on_halt(struct target *target);
 static void riscv013_on_step(struct target *target);
 static void riscv013_on_resume(struct target *target);
 static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
-static void riscv013_write_debug_buffer(struct target *target, unsigned index,
+static int riscv013_write_debug_buffer(struct target *target, unsigned index,
 		riscv_insn_t d);
 static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned
 		index);
@@ -418,7 +418,7 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 
 	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("Failed read from 0x%x; status=%d", address, status);
-		abort();
+		return ~0ULL;
 	}
 
 	/* This second loop ensures that we got the read
@@ -441,13 +441,13 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%" PRIx64 ", status=%d",
 				address, value, status);
-		abort();
+		return ~0ULL;
 	}
 
 	return value;
 }
 
-static void dmi_write(struct target *target, uint16_t address, uint64_t value)
+static int dmi_write(struct target *target, uint16_t address, uint64_t value)
 {
 	select_dmi(target);
 	dmi_status_t status = DMI_STATUS_BUSY;
@@ -470,7 +470,7 @@ static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("Failed write to 0x%x;, status=%d",
 				address, status);
-		abort();
+		return ERROR_FAIL;
 	}
 
 	/* The second loop isn't strictly necessary, but would ensure that the
@@ -490,8 +490,10 @@ static void dmi_write(struct target *target, uint16_t address, uint64_t value)
 	}
 	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("failed to write (NOP) 0x%" PRIx64 " to 0x%x; status=%d", value, address, status);
-		abort();
+		return ERROR_FAIL;
 	}
+
+	return ERROR_OK;
 }
 
 static void increase_ac_busy_delay(struct target *target)
@@ -964,7 +966,7 @@ static int register_write_direct(struct target *target, unsigned number,
 			riscv_program_csrw(&program, S0, number);
 		} else {
 			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
-			abort();
+			return ERROR_FAIL;
 		}
 	}
 
@@ -1024,7 +1026,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			riscv_program_csrr(&program, S0, number);
 		} else {
 			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
-			abort();
+			return ERROR_FAIL;
 		}
 
 		/* Execute program. */
@@ -1885,7 +1887,7 @@ static riscv_reg_t riscv013_get_register(struct target *target, int hid, int rid
 	return out;
 }
 
-static void riscv013_set_register(struct target *target, int hid, int rid, uint64_t value)
+static int riscv013_set_register(struct target *target, int hid, int rid, uint64_t value)
 {
 	LOG_DEBUG("writing 0x%" PRIx64 " to register %s on hart %d", value,
 			gdb_regno_name(rid), hid);
@@ -1893,22 +1895,28 @@ static void riscv013_set_register(struct target *target, int hid, int rid, uint6
 	riscv_set_current_hartid(target, hid);
 
 	if (rid <= GDB_REGNO_XPR31) {
-		register_write_direct(target, rid, value);
+		return register_write_direct(target, rid, value);
 	} else if (rid == GDB_REGNO_PC) {
 		LOG_DEBUG("writing PC to DPC: 0x%016" PRIx64, value);
 		register_write_direct(target, GDB_REGNO_DPC, value);
 		uint64_t actual_value;
 		register_read_direct(target, &actual_value, GDB_REGNO_DPC);
 		LOG_DEBUG("  actual DPC written: 0x%016" PRIx64, actual_value);
-		assert(value == actual_value);
+		if (value != actual_value) {
+			LOG_ERROR("Written PC (0x%" PRIx64 ") does not match read back "
+					"value (0x%" PRIx64 ")", value, actual_value);
+			return ERROR_FAIL;
+		}
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
 		dcsr = set_field(dcsr, CSR_DCSR_PRV, value);
-		register_write_direct(target, GDB_REGNO_DCSR, dcsr);
+		return register_write_direct(target, GDB_REGNO_DCSR, dcsr);
 	} else {
-		register_write_direct(target, rid, value);
+		return register_write_direct(target, rid, value);
 	}
+
+	return ERROR_OK;
 }
 
 static void riscv013_select_current_hart(struct target *target)
@@ -1920,11 +1928,12 @@ static void riscv013_select_current_hart(struct target *target)
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 }
 
-static void riscv013_halt_current_hart(struct target *target)
+static int riscv013_halt_current_hart(struct target *target)
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("halting hart %d", r->current_hartid);
-	assert(!riscv_is_halted(target));
+	if (riscv_is_halted(target))
+		LOG_ERROR("Hart %d is already halted!", r->current_hartid);
 
 	/* Issue the halt command, and then wait for the current hart to halt. */
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
@@ -1941,19 +1950,21 @@ static void riscv013_halt_current_hart(struct target *target)
 		LOG_ERROR("unable to halt hart %d", r->current_hartid);
 		LOG_ERROR("  dmcontrol=0x%08x", dmcontrol);
 		LOG_ERROR("  dmstatus =0x%08x", dmstatus);
-		abort();
+		return ERROR_FAIL;
 	}
 
 	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 0);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+
+	return ERROR_OK;
 }
 
-static void riscv013_resume_current_hart(struct target *target)
+static int riscv013_resume_current_hart(struct target *target)
 {
 	return riscv013_step_or_resume_current_hart(target, false);
 }
 
-static void riscv013_step_current_hart(struct target *target)
+static int riscv013_step_current_hart(struct target *target)
 {
 	return riscv013_step_or_resume_current_hart(target, true);
 }
@@ -1998,10 +2009,10 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 	LOG_ERROR("Unknown DCSR cause field: %x", (int)get_field(dcsr, CSR_DCSR_CAUSE));
 	LOG_ERROR("  dcsr=0x%016lx", (long)dcsr);
-	abort();
+	return RISCV_HALT_UNKNOWN;
 }
 
-void riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
+int riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
 {
 	return dmi_write(target, DMI_PROGBUF0 + index, data);
 }
@@ -2070,17 +2081,20 @@ static void riscv013_on_step_or_resume(struct target *target, bool step)
 	riscv_set_register(target, GDB_REGNO_DCSR, dcsr);
 }
 
-static void riscv013_step_or_resume_current_hart(struct target *target, bool step)
+static int riscv013_step_or_resume_current_hart(struct target *target, bool step)
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("resuming hart %d (for step?=%d)", r->current_hartid, step);
-	assert(riscv_is_halted(target));
+	if (!riscv_is_halted(target)) {
+		LOG_ERROR("Hart %d is not halted!", r->current_hartid);
+		return ERROR_FAIL;
+	}
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
 	riscv_program_fence_i(&program);
 	if (riscv_program_exec(&program, target) != ERROR_OK)
-		abort();
+		return ERROR_FAIL;
 
 	/* Issue the resume command, and then wait for the current hart to resume. */
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
@@ -2097,7 +2111,7 @@ static void riscv013_step_or_resume_current_hart(struct target *target, bool ste
 
 		dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 0);
 		dmi_write(target, DMI_DMCONTROL, dmcontrol);
-		return;
+		return ERROR_OK;
 	}
 
 	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
@@ -2109,10 +2123,10 @@ static void riscv013_step_or_resume_current_hart(struct target *target, bool ste
 	if (step) {
 		LOG_ERROR("  was stepping, halting");
 		riscv013_halt_current_hart(target);
-		return;
+		return ERROR_OK;
 	}
 
-	abort();
+	return ERROR_FAIL;
 }
 
 void riscv013_clear_abstract_error(struct target *target)
