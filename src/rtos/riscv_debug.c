@@ -264,7 +264,7 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 
 static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
 {
-	LOG_DEBUG("Updating RISC-V regiser list for hart %d", (int)(thread_id - 1));
+	LOG_DEBUG("Updating RISC-V register list for hart %d", (int)(thread_id - 1));
 
 #if 0
 	LOG_ERROR("  Not actually updating");
