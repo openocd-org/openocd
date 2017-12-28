@@ -5578,6 +5578,20 @@ Triggering a mass erase is also useful when users want to disable readout protec
 
 @end deffn
 
+@deffn {Flash Driver} cc3220sf
+The CC3220SF version of the SimpleLink CC32xx microcontrollers from Texas
+Instruments includes 1MB of internal flash. The cc3220sf flash driver only
+supports the internal flash. The serial flash on SimpleLink boards is
+programmed via the bootloader over a UART connection. Security features of
+the CC3220SF may erase the internal flash during power on reset. Refer to
+documentation at @url{www.ti.com/cc3220sf} for details on security features
+and programming the serial flash.
+
+@example
+flash bank $_FLASHNAME cc3220sf 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
 @deffn {Flash Driver} efm32
 All members of the EFM32 microcontroller family from Energy Micro include
 internal flash and use ARM Cortex-M3 cores. The driver automatically recognizes
