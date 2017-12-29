@@ -281,7 +281,12 @@ static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char 
 	*hex_reg_list[0] = '\0';
 	for (size_t i = 0; i < n_regs; ++i) {
 		if (riscv_has_register(rtos->target, thread_id, i)) {
-			uint64_t reg_value = riscv_get_register_on_hart(rtos->target, thread_id - 1, i);
+			uint64_t reg_value;
+			int result = riscv_get_register_on_hart(rtos->target, &reg_value,
+					thread_id - 1, i);
+			if (result != ERROR_OK)
+				return JIM_ERR;
+
 			for (size_t byte = 0; byte < xlen / 8; ++byte) {
 				uint8_t reg_byte = reg_value >> (byte * 8);
 				char hex[3] = {'x', 'x', 'x'};

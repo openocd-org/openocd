@@ -88,7 +88,8 @@ typedef struct {
 
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
-	riscv_reg_t (*get_register)(struct target *, int hartid, int regid);
+	int (*get_register)(struct target *target,
+		riscv_reg_t *value, int hid, int rid);
 	int (*set_register)(struct target *, int hartid, int regid,
 			uint64_t value);
 	void (*select_current_hart)(struct target *);
@@ -96,9 +97,9 @@ typedef struct {
 	int (*halt_current_hart)(struct target *);
 	int (*resume_current_hart)(struct target *target);
 	int (*step_current_hart)(struct target *target);
-	void (*on_halt)(struct target *target);
-	void (*on_resume)(struct target *target);
-	void (*on_step)(struct target *target);
+	int (*on_halt)(struct target *target);
+	int (*on_resume)(struct target *target);
+	int (*on_step)(struct target *target);
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
 	int (*write_debug_buffer)(struct target *target, unsigned index,
 			riscv_insn_t d);
@@ -205,8 +206,10 @@ bool riscv_has_register(struct target *target, int hartid, int regid);
  * are zero extended to 64 bits.  */
 int riscv_set_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
 int riscv_set_register_on_hart(struct target *target, int hid, enum gdb_regno rid, uint64_t v);
-riscv_reg_t riscv_get_register(struct target *target, enum gdb_regno i);
-riscv_reg_t riscv_get_register_on_hart(struct target *target, int hid, enum gdb_regno rid);
+int riscv_get_register(struct target *target, riscv_reg_t *value,
+		enum gdb_regno r);
+int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
+		int hartid, enum gdb_regno regid);
 
 /* Checks the state of the current hart -- "is_halted" checks the actual
  * on-device register. */

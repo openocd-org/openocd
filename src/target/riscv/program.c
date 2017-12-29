@@ -47,7 +47,9 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	for (size_t i = GDB_REGNO_ZERO + 1; i <= GDB_REGNO_XPR31; ++i) {
 		if (p->writes_xreg[i]) {
 			LOG_DEBUG("Saving register %d as used by program", (int)i);
-			saved_registers[i] = riscv_get_register(t, i);
+			int result = riscv_get_register(t, &saved_registers[i], i);
+			if (result != ERROR_OK)
+				return result;
 		}
 	}
 

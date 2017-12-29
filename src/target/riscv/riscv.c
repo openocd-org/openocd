@@ -320,8 +320,10 @@ static int maybe_add_trigger_t1(struct target *target, unsigned hartid,
 
 	riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, tdata1);
 
-	riscv_reg_t tdata1_rb = riscv_get_register_on_hart(target, hartid,
-			GDB_REGNO_TDATA1);
+	riscv_reg_t tdata1_rb;
+	if (riscv_get_register_on_hart(target, &tdata1_rb, hartid,
+				GDB_REGNO_TDATA1) != ERROR_OK)
+		return ERROR_FAIL;
 	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
 
 	if (tdata1 != tdata1_rb) {
@@ -370,7 +372,10 @@ static int maybe_add_trigger_t2(struct target *target, unsigned hartid,
 
 	riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, tdata1);
 
-	uint64_t tdata1_rb = riscv_get_register_on_hart(target, hartid, GDB_REGNO_TDATA1);
+	uint64_t tdata1_rb;
+	int result = riscv_get_register_on_hart(target, &tdata1_rb, hartid, GDB_REGNO_TDATA1);
+	if (result != ERROR_OK)
+		return result;
 	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
 
 	if (tdata1 != tdata1_rb) {
@@ -405,8 +410,10 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 			continue;
 		if (first_hart < 0)
 			first_hart = hartid;
-		tselect[hartid] = riscv_get_register_on_hart(target, hartid,
-				GDB_REGNO_TSELECT);
+		int result = riscv_get_register_on_hart(target, &tselect[hartid],
+				hartid, GDB_REGNO_TSELECT);
+		if (result != ERROR_OK)
+			return result;
 	}
 	assert(first_hart >= 0);
 
@@ -417,10 +424,14 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 		riscv_set_register_on_hart(target, first_hart, GDB_REGNO_TSELECT, i);
 
-		uint64_t tdata1 = riscv_get_register_on_hart(target, first_hart, GDB_REGNO_TDATA1);
+		uint64_t tdata1;
+		int result = riscv_get_register_on_hart(target, &tdata1, first_hart,
+				GDB_REGNO_TDATA1);
+		if (result != ERROR_OK)
+			return result;
 		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
 
-		int result = ERROR_OK;
+		result = ERROR_OK;
 		for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
 			if (!riscv_hart_enabled(target, hartid))
 				continue;
@@ -533,7 +544,10 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 	for (int hartid = first_hart; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
-		riscv_reg_t tselect = riscv_get_register_on_hart(target, hartid, GDB_REGNO_TSELECT);
+		riscv_reg_t tselect;
+		int result = riscv_get_register_on_hart(target, &tselect, hartid, GDB_REGNO_TSELECT);
+		if (result != ERROR_OK)
+			return result;
 		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, i);
 		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TDATA1, 0);
 		riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, tselect);
@@ -1553,17 +1567,20 @@ int riscv_set_register_on_hart(struct target *target, int hartid,
 	return r->set_register(target, hartid, regid, value);
 }
 
-riscv_reg_t riscv_get_register(struct target *target, enum gdb_regno r)
+int riscv_get_register(struct target *target, riscv_reg_t *value,
+		enum gdb_regno r)
 {
-	return riscv_get_register_on_hart(target, riscv_current_hartid(target), r);
+	return riscv_get_register_on_hart(target, value,
+			riscv_current_hartid(target), r);
 }
 
-uint64_t riscv_get_register_on_hart(struct target *target, int hartid, enum gdb_regno regid)
+int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
+		int hartid, enum gdb_regno regid)
 {
 	RISCV_INFO(r);
-	uint64_t value = r->get_register(target, hartid, regid);
-	LOG_DEBUG("[%d] %s: %" PRIx64, hartid, gdb_regno_name(regid), value);
-	return value;
+	int result = r->get_register(target, value, hartid, regid);
+	LOG_DEBUG("[%d] %s: %" PRIx64, hartid, gdb_regno_name(regid), *value);
+	return result;
 }
 
 bool riscv_is_halted(struct target *target)
@@ -1669,22 +1686,32 @@ int riscv_enumerate_triggers(struct target *target)
 		if (!riscv_hart_enabled(target, hartid))
 			continue;
 
-		riscv_reg_t tselect = riscv_get_register_on_hart(target, hartid,
+		riscv_reg_t tselect;
+		int result = riscv_get_register_on_hart(target, &tselect, hartid,
 				GDB_REGNO_TSELECT);
+		if (result != ERROR_OK)
+			return result;
 
 		for (unsigned t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
 			r->trigger_count[hartid] = t;
 
 			riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, t);
-			uint64_t tselect_rb = riscv_get_register_on_hart(target, hartid,
+			uint64_t tselect_rb;
+			result = riscv_get_register_on_hart(target, &tselect_rb, hartid,
 					GDB_REGNO_TSELECT);
+			if (result != ERROR_OK)
+				return result;
 			/* Mask off the top bit, which is used as tdrmode in old
 			 * implementations. */
 			tselect_rb &= ~(1ULL << (riscv_xlen(target)-1));
 			if (tselect_rb != t)
 				break;
-			uint64_t tdata1 = riscv_get_register_on_hart(target, hartid,
+			uint64_t tdata1;
+			result = riscv_get_register_on_hart(target, &tdata1, hartid,
 					GDB_REGNO_TDATA1);
+			if (result != ERROR_OK)
+				return result;
+
 			int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
 			switch (type) {
 				case 1:
@@ -1760,7 +1787,10 @@ const char *gdb_regno_name(enum gdb_regno regno)
 static int register_get(struct reg *reg)
 {
 	struct target *target = (struct target *) reg->arch_info;
-	uint64_t value = riscv_get_register(target, reg->number);
+	uint64_t value;
+	int result = riscv_get_register(target, &value, reg->number);
+	if (result != ERROR_OK)
+		return result;
 	buf_set_u64(reg->value, 0, reg->size, value);
 	return ERROR_OK;
 }
