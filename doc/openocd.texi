@@ -531,6 +531,12 @@ debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/
 
 @item @b{Keil ULINK v1}
 @* Link: @url{http://www.keil.com/ulink1/}
+
+@item @b{TI XDS110 Debug Probe}
+@* The XDS110 is included as the embedded debug probe on many Texas Instruments
+LaunchPad evaluation boards.
+@* Link: @url{http://processors.wiki.ti.com/index.php/XDS110}
+@* Link: @url{http://processors.wiki.ti.com/index.php/XDS_Emulation_Software_Package#XDS110_Support_Utilities}
 @end itemize
 
 @section IBM PC Parallel Printer Port Based
