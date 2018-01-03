@@ -2444,7 +2444,7 @@ static int gdb_query_packet(struct connection *connection,
 			/* skip command character */
 			packet += 5;
 
-			addr = strtoul(packet, &separator, 16);
+			addr = strtoull(packet, &separator, 16);
 
 			if (*separator != ',') {
 				LOG_ERROR("incomplete read memory packet received, dropping connection");
