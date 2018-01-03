@@ -1003,8 +1003,15 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 		/* Write program to move data into s0. */
 
+		uint64_t mstatus;
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			/* TODO: Possibly set F in mstatus. */
+			if (register_read_direct(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+				return ERROR_FAIL;
+			if ((mstatus & MSTATUS_FS) == 0)
+				if (register_write_direct(target, GDB_REGNO_MSTATUS,
+							set_field(mstatus, MSTATUS_FS, 1)) != ERROR_OK)
+					return ERROR_FAIL;
+
 			if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
 				/* There are no instructions to move all the bits from a
 				 * register, so we need to use some scratch RAM. */
@@ -1041,6 +1048,11 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
 				return ERROR_FAIL;
 		}
+
+		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
+				(mstatus & MSTATUS_FS) == 0)
+			if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus) != ERROR_OK)
+				return ERROR_FAIL;
 
 		/* Restore S0. */
 		if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
