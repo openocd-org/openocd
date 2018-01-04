@@ -335,7 +335,7 @@ static void increase_dbus_busy_delay(struct target *target)
 {
 	riscv011_info_t *info = get_info(target);
 	info->dbus_busy_delay += info->dbus_busy_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
+	LOG_DEBUG("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
 			info->dtmcontrol_idle, info->dbus_busy_delay,
 			info->interrupt_high_delay);
 
@@ -346,7 +346,7 @@ static void increase_interrupt_high_delay(struct target *target)
 {
 	riscv011_info_t *info = get_info(target);
 	info->interrupt_high_delay += info->interrupt_high_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
+	LOG_DEBUG("dtmcontrol_idle=%d, dbus_busy_delay=%d, interrupt_high_delay=%d",
 			info->dtmcontrol_idle, info->dbus_busy_delay,
 			info->interrupt_high_delay);
 }
