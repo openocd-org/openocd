@@ -565,8 +565,8 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	dmi_write(target, DMI_COMMAND, command);
 
 	{
-		uint32_t dmstatus = 0;
-		wait_for_idle(target, &dmstatus);
+		uint32_t abstractcs = 0;
+		wait_for_idle(target, &abstractcs);
 	}
 
 	uint32_t cs = dmi_read(target, DMI_ABSTRACTCS);
