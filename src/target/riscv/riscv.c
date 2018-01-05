@@ -720,9 +720,19 @@ static int old_or_new_riscv_resume(
 		return riscv_openocd_resume(target, current, address, handle_breakpoints, debug_execution);
 }
 
+static void riscv_select_current_hart(struct target *target)
+{
+	RISCV_INFO(r);
+	if (r->rtos_hartid != -1 && riscv_rtos_enabled(target))
+		riscv_set_current_hartid(target, r->rtos_hartid);
+	else
+		riscv_set_current_hartid(target, target->coreid);
+}
+
 static int riscv_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
+	riscv_select_current_hart(target);
 	struct target_type *tt = get_target_type(target);
 	return tt->read_memory(target, address, size, count, buffer);
 }
@@ -730,6 +740,7 @@ static int riscv_read_memory(struct target *target, target_addr_t address,
 static int riscv_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
+	riscv_select_current_hart(target);
 	struct target_type *tt = get_target_type(target);
 	return tt->write_memory(target, address, size, count, buffer);
 }
@@ -747,10 +758,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 		return ERROR_FAIL;
 	}
 
-	if (r->rtos_hartid != -1 && riscv_rtos_enabled(target))
-		riscv_set_current_hartid(target, r->rtos_hartid);
-	else
-		riscv_set_current_hartid(target, target->coreid);
+	riscv_select_current_hart(target);
 
 	switch (reg_class) {
 		case REG_CLASS_GENERAL:
