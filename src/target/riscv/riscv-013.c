@@ -334,7 +334,7 @@ static void increase_dmi_busy_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
 	info->dmi_busy_delay += info->dmi_busy_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
+	LOG_DEBUG("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
 			info->dtmcontrol_idle, info->dmi_busy_delay,
 			info->ac_busy_delay);
 
@@ -500,7 +500,7 @@ static void increase_ac_busy_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
 	info->ac_busy_delay += info->ac_busy_delay / 10 + 1;
-	LOG_INFO("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
+	LOG_DEBUG("dtmcontrol_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
 			info->dtmcontrol_idle, info->dmi_busy_delay,
 			info->ac_busy_delay);
 }
