@@ -2140,4 +2140,3 @@ int riscv_init_registers(struct target *target)
 
 	return ERROR_OK;
 }
-

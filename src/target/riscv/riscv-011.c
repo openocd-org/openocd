@@ -997,7 +997,8 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
-		LOG_WARNING("Got exception 0x%x when reading CSR 0x%x", exception, csr);
+		LOG_WARNING("Got exception 0x%x when reading %s", exception,
+				gdb_regno_name(GDB_REGNO_CSR0 + csr));
 		*value = ~0;
 		return ERROR_FAIL;
 	}
@@ -1202,8 +1203,7 @@ static int register_read(struct target *target, riscv_reg_t *value, int regnum)
 
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
-		LOG_WARNING("Got exception 0x%x when reading register %d", exception,
-				regnum);
+		LOG_WARNING("Got exception 0x%x when reading %s", exception, gdb_regno_name(regnum));
 		*value = ~0;
 		return ERROR_FAIL;
 	}
@@ -1277,8 +1277,8 @@ static int register_write(struct target *target, unsigned int number,
 
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
-		LOG_WARNING("Got exception 0x%x when writing register %d", exception,
-				number);
+		LOG_WARNING("Got exception 0x%x when writing %s", exception,
+				gdb_regno_name(number));
 		return ERROR_FAIL;
 	}
 
