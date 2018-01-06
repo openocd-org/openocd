@@ -78,6 +78,8 @@
 
  CYBL10x6x, CY8C4127_BL, CY8C4247_BL Programming Specifications
 	Document No. 001-91508 Rev. *B September 22, 2014
+
+ http://dmitry.gr/index.php?r=05.Projects&proj=24.%20PSoC4%20confidential
 */
 
 /* register locations */
@@ -717,6 +719,22 @@ cleanup:
 }
 
 
+/* Due to Cypress's method of market segmentation some devices
+ * have accessible only 1/2, 1/4 or 1/8 of SPCIF described flash */
+static int psoc4_test_flash_wounding(struct target *target, uint32_t flash_size)
+{
+	int retval, i;
+	for (i = 3; i >= 1; i--) {
+		uint32_t addr = flash_size >> i;
+		uint32_t dummy;
+		retval = target_read_u32(target, addr, &dummy);
+		if (retval != ERROR_OK)
+			return i;
+	}
+	return 0;
+}
+
+
 static int psoc4_probe(struct flash_bank *bank)
 {
 	struct psoc4_flash_bank *psoc4_info = bank->driver_priv;
@@ -797,6 +815,15 @@ static int psoc4_probe(struct flash_bank *bank)
 	/* check number of flash macros */
 	if (num_macros != (num_rows + PSOC4_ROWS_PER_MACRO - 1) / PSOC4_ROWS_PER_MACRO)
 		LOG_WARNING("Number of macros does not correspond with flash size!");
+
+	if (!psoc4_info->legacy_family) {
+		int wounding = psoc4_test_flash_wounding(target, num_rows * row_size);
+		if (wounding > 0) {
+			flash_size_in_kb = flash_size_in_kb >> wounding;
+			num_rows = num_rows >> wounding;
+			LOG_INFO("WOUNDING detected: accessible flash size %" PRIu32 " kbytes", flash_size_in_kb);
+		}
+	}
 
 	if (bank->sectors) {
 		free(bank->sectors);
