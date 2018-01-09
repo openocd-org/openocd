@@ -1007,14 +1007,14 @@
 #define DMI_COMMAND_CONTROL                 (0xffffffU << DMI_COMMAND_CONTROL_OFFSET)
 #define DMI_ABSTRACTAUTO                    0x18
 /*
-* When a bit in this field is 1, read or write accesses the corresponding {\tt progbuf} word
+* When a bit in this field is 1, read or write accesses to the corresponding {\tt progbuf} word
 * cause the command in \Rcommand to be executed again.
  */
 #define DMI_ABSTRACTAUTO_AUTOEXECPROGBUF_OFFSET 16
 #define DMI_ABSTRACTAUTO_AUTOEXECPROGBUF_LENGTH 16
 #define DMI_ABSTRACTAUTO_AUTOEXECPROGBUF    (0xffffU << DMI_ABSTRACTAUTO_AUTOEXECPROGBUF_OFFSET)
 /*
-* When a bit in this field is 1, read or write accesses the corresponding {\tt data} word
+* When a bit in this field is 1, read or write accesses to the corresponding {\tt data} word
 * cause the command in \Rcommand to be executed again.
  */
 #define DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET 0
@@ -1043,15 +1043,15 @@
 #define DMI_AUTHDATA_DATA                   (0xffffffffU << DMI_AUTHDATA_DATA_OFFSET)
 #define DMI_SBCS                            0x38
 /*
-* When a 1 is written here, triggers a read at the address in {\tt
-* sbaddress} using the access size set by \Fsbaccess.
+* When a 1, every write to \Rsbaddresszero automatically triggers a
+* system bus read at the new address.
  */
-#define DMI_SBCS_SBSINGLEREAD_OFFSET        20
-#define DMI_SBCS_SBSINGLEREAD_LENGTH        1
-#define DMI_SBCS_SBSINGLEREAD               (0x1U << DMI_SBCS_SBSINGLEREAD_OFFSET)
+#define DMI_SBCS_SBREADONADDR_OFFSET        20
+#define DMI_SBCS_SBREADONADDR_LENGTH        1
+#define DMI_SBCS_SBREADONADDR               (0x1U << DMI_SBCS_SBREADONADDR_OFFSET)
 /*
 * Select the access size to use for system bus accesses triggered by
-* writes to the {\tt sbaddress} registers or \Rsbdatazero.
+* writes to \Rsbaddresszero or \Rsbdatazero.
 *
 * 0: 8-bit
 *
@@ -1080,9 +1080,9 @@
 * When 1, every read from \Rsbdatazero automatically triggers a
 * system bus read at the (possibly auto-incremented) address.
  */
-#define DMI_SBCS_SBAUTOREAD_OFFSET          15
-#define DMI_SBCS_SBAUTOREAD_LENGTH          1
-#define DMI_SBCS_SBAUTOREAD                 (0x1U << DMI_SBCS_SBAUTOREAD_OFFSET)
+#define DMI_SBCS_SBREADONDATA_OFFSET        15
+#define DMI_SBCS_SBREADONDATA_LENGTH        1
+#define DMI_SBCS_SBREADONDATA               (0x1U << DMI_SBCS_SBREADONDATA_OFFSET)
 /*
 * When the debug module's system bus
 * master causes a bus error, this field gets set. The bits in this
