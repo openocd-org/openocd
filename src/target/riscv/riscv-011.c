@@ -217,7 +217,8 @@ typedef struct {
 
 static int poll_target(struct target *target, bool announce);
 static int riscv011_poll(struct target *target);
-static riscv_reg_t get_register(struct target *target, int hartid, int regid);
+static int get_register(struct target *target, riscv_reg_t *value, int hartid,
+		int regid);
 
 /*** Utility functions. ***/
 
@@ -1180,8 +1181,8 @@ static int update_mstatus_actual(struct target *target)
 
 	/* Force reading the register. In that process mstatus_actual will be
 	 * updated. */
-	get_register(target, 0, GDB_REGNO_MSTATUS);
-	return ERROR_OK;
+	riscv_reg_t mstatus;
+	return get_register(target, &mstatus, 0, GDB_REGNO_MSTATUS);
 }
 
 /*** OpenOCD target functions. ***/
@@ -1285,22 +1286,22 @@ static int register_write(struct target *target, unsigned int number,
 	return ERROR_OK;
 }
 
-static riscv_reg_t get_register(struct target *target, int hartid, int regid)
+static int get_register(struct target *target, riscv_reg_t *value, int hartid,
+		int regid)
 {
 	assert(hartid == 0);
 	riscv011_info_t *info = get_info(target);
 
 	maybe_write_tselect(target);
-	riscv_reg_t value = ~0;
 
 	if (regid <= GDB_REGNO_XPR31) {
-		value = reg_cache_get(target, regid);
+		*value = reg_cache_get(target, regid);
 	} else if (regid == GDB_REGNO_PC) {
-		value = info->dpc;
+		*value = info->dpc;
 	} else if (regid >= GDB_REGNO_FPR0 && regid <= GDB_REGNO_FPR31) {
 		int result = update_mstatus_actual(target);
 		if (result != ERROR_OK)
-			return ~0;
+			return result;
 		unsigned i = 0;
 		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
 			info->mstatus_actual = set_field(info->mstatus_actual, MSTATUS_FS, 1);
@@ -1316,17 +1317,19 @@ static riscv_reg_t get_register(struct target *target, int hartid, int regid)
 		cache_set_jump(target, i++);
 
 		if (cache_write(target, 4, true) != ERROR_OK)
-			return ~0;
+			return ERROR_FAIL;
 	} else if (regid == GDB_REGNO_PRIV) {
-		value = get_field(info->dcsr, DCSR_PRV);
-	} else if (register_read(target, &value, regid) != ERROR_OK) {
-		value = ~0;
+		*value = get_field(info->dcsr, DCSR_PRV);
+	} else {
+		int result = register_read(target, value, regid);
+		if (result != ERROR_OK)
+			return result;
 	}
 
 	if (regid == GDB_REGNO_MSTATUS)
 		target->reg_cache->reg_list[regid].valid = true;
 
-	return value;
+	return ERROR_OK;
 }
 
 static int set_register(struct target *target, int hartid, int regid,

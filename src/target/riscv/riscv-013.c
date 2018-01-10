@@ -30,20 +30,21 @@
 #define DMI_DATA1 (DMI_DATA0 + 1)
 #define DMI_PROGBUF1 (DMI_PROGBUF0 + 1)
 
-static void riscv013_on_step_or_resume(struct target *target, bool step);
+static int riscv013_on_step_or_resume(struct target *target, bool step);
 static int riscv013_step_or_resume_current_hart(struct target *target, bool step);
 static void riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in riscv_info_t. */
-static riscv_reg_t riscv013_get_register(struct target *target, int hartid, int regid);
+static int riscv013_get_register(struct target *target,
+		riscv_reg_t *value, int hid, int rid);
 static int riscv013_set_register(struct target *target, int hartid, int regid, uint64_t value);
 static void riscv013_select_current_hart(struct target *target);
 static int riscv013_halt_current_hart(struct target *target);
 static int riscv013_resume_current_hart(struct target *target);
 static int riscv013_step_current_hart(struct target *target);
-static void riscv013_on_halt(struct target *target);
-static void riscv013_on_step(struct target *target);
-static void riscv013_on_resume(struct target *target);
+static int riscv013_on_halt(struct target *target);
+static int riscv013_on_step(struct target *target);
+static int riscv013_on_resume(struct target *target);
 static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
 static int riscv013_write_debug_buffer(struct target *target, unsigned index,
@@ -1002,8 +1003,15 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 		/* Write program to move data into s0. */
 
+		uint64_t mstatus;
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			/* TODO: Possibly set F in mstatus. */
+			if (register_read_direct(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+				return ERROR_FAIL;
+			if ((mstatus & MSTATUS_FS) == 0)
+				if (register_write_direct(target, GDB_REGNO_MSTATUS,
+							set_field(mstatus, MSTATUS_FS, 1)) != ERROR_OK)
+					return ERROR_FAIL;
+
 			if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
 				/* There are no instructions to move all the bits from a
 				 * register, so we need to use some scratch RAM. */
@@ -1040,6 +1048,11 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 			if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
 				return ERROR_FAIL;
 		}
+
+		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
+				(mstatus & MSTATUS_FS) == 0)
+			if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus) != ERROR_OK)
+				return ERROR_FAIL;
 
 		/* Restore S0. */
 		if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
@@ -1855,36 +1868,37 @@ struct target_type riscv013_target = {
 };
 
 /*** 0.13-specific implementations of various RISC-V helper functions. ***/
-static riscv_reg_t riscv013_get_register(struct target *target, int hid, int rid)
+static int riscv013_get_register(struct target *target,
+		riscv_reg_t *value, int hid, int rid)
 {
 	LOG_DEBUG("reading register %s on hart %d", gdb_regno_name(rid), hid);
 
 	riscv_set_current_hartid(target, hid);
 
-	uint64_t out;
 	riscv013_info_t *info = get_info(target);
 
+	int result = ERROR_OK;
 	if (rid <= GDB_REGNO_XPR31) {
-		register_read_direct(target, &out, rid);
+		result = register_read_direct(target, value, rid);
 	} else if (rid == GDB_REGNO_PC) {
-		register_read_direct(target, &out, GDB_REGNO_DPC);
-		LOG_DEBUG("read PC from DPC: 0x%016" PRIx64, out);
+		result = register_read_direct(target, value, GDB_REGNO_DPC);
+		LOG_DEBUG("read PC from DPC: 0x%016" PRIx64, *value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
-		register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
-		buf_set_u64((unsigned char *)&out, 0, 8, get_field(dcsr, CSR_DCSR_PRV));
+		result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+		buf_set_u64((unsigned char *)value, 0, 8, get_field(dcsr, CSR_DCSR_PRV));
 	} else {
-		int result = register_read_direct(target, &out, rid);
+		result = register_read_direct(target, value, rid);
 		if (result != ERROR_OK) {
 			LOG_ERROR("Unable to read register %d", rid);
-			out = -1;
+			*value = -1;
 		}
 
 		if (rid == GDB_REGNO_MSTATUS)
-			info->mstatus_actual = out;
+			info->mstatus_actual = *value;
 	}
 
-	return out;
+	return result;
 }
 
 static int riscv013_set_register(struct target *target, int hid, int rid, uint64_t value)
@@ -1969,18 +1983,19 @@ static int riscv013_step_current_hart(struct target *target)
 	return riscv013_step_or_resume_current_hart(target, true);
 }
 
-static void riscv013_on_resume(struct target *target)
+static int riscv013_on_resume(struct target *target)
 {
 	return riscv013_on_step_or_resume(target, false);
 }
 
-static void riscv013_on_step(struct target *target)
+static int riscv013_on_step(struct target *target)
 {
 	return riscv013_on_step_or_resume(target, true);
 }
 
-static void riscv013_on_halt(struct target *target)
+static int riscv013_on_halt(struct target *target)
 {
+	return ERROR_OK;
 }
 
 static bool riscv013_is_halted(struct target *target)
@@ -1995,7 +2010,11 @@ static bool riscv013_is_halted(struct target *target)
 
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 {
-	uint64_t dcsr = riscv_get_register(target, GDB_REGNO_DCSR);
+	riscv_reg_t dcsr;
+	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+	if (result != ERROR_OK)
+		return RISCV_HALT_UNKNOWN;
+
 	switch (get_field(dcsr, CSR_DCSR_CAUSE)) {
 	case CSR_DCSR_CAUSE_SWBP:
 	case CSR_DCSR_CAUSE_TRIGGER:
@@ -2064,7 +2083,7 @@ int riscv013_dmi_write_u64_bits(struct target *target)
 }
 
 /* Helper Functions. */
-static void riscv013_on_step_or_resume(struct target *target, bool step)
+static int riscv013_on_step_or_resume(struct target *target, bool step)
 {
 	struct riscv_program program;
 	riscv_program_init(&program, target);
@@ -2073,12 +2092,15 @@ static void riscv013_on_step_or_resume(struct target *target, bool step)
 		LOG_ERROR("Unable to execute fence.i");
 
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
-	uint64_t dcsr = riscv_get_register(target, GDB_REGNO_DCSR);
+	riscv_reg_t dcsr;
+	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+	if (result != ERROR_OK)
+		return result;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, 1);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, 1);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, 1);
-	riscv_set_register(target, GDB_REGNO_DCSR, dcsr);
+	return riscv_set_register(target, GDB_REGNO_DCSR, dcsr);
 }
 
 static int riscv013_step_or_resume_current_hart(struct target *target, bool step)
