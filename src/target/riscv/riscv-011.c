@@ -455,7 +455,12 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 	uint64_t value;
 	dbus_status_t status;
 	uint16_t address_in;
-
+	
+	/* If the previous read/write was to the same address, we will get the read data
+	 * from the previous access.
+	 * While somewhat nonintuitive, this is an efficient way to get the data.
+	 */
+	
 	unsigned i = 0;
 	do {
 		status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
