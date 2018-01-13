@@ -259,7 +259,7 @@ int add_service(char *name,
 		c->sin.sin_family = AF_INET;
 
 		if (bindto_name == NULL)
-			c->sin.sin_addr.s_addr = INADDR_ANY;
+			c->sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 		else {
 			hp = gethostbyname(bindto_name);
 			if (hp == NULL) {
