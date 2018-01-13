@@ -271,7 +271,10 @@ static int hl_target_request_data(struct target *target,
 	uint32_t i;
 
 	for (i = 0; i < (size * 4); i++) {
-		hl_dcc_read(hl_if, &data, &ctrl);
+		int err = hl_dcc_read(hl_if, &data, &ctrl);
+		if (err != ERROR_OK)
+			return err;
+
 		buffer[i] = data;
 	}
 
@@ -281,6 +284,8 @@ static int hl_target_request_data(struct target *target,
 static int hl_handle_target_request(void *priv)
 {
 	struct target *target = priv;
+	int err;
+
 	if (!target_was_examined(target))
 		return ERROR_OK;
 	struct hl_interface_s *hl_if = target_to_adapter(target);
@@ -292,7 +297,9 @@ static int hl_handle_target_request(void *priv)
 		uint8_t data;
 		uint8_t ctrl;
 
-		hl_dcc_read(hl_if, &data, &ctrl);
+		err = hl_dcc_read(hl_if, &data, &ctrl);
+		if (err != ERROR_OK)
+			return err;
 
 		/* check if we have data */
 		if (ctrl & (1 << 0)) {
@@ -300,11 +307,20 @@ static int hl_handle_target_request(void *priv)
 
 			/* we assume target is quick enough */
 			request = data;
-			hl_dcc_read(hl_if, &data, &ctrl);
+			err = hl_dcc_read(hl_if, &data, &ctrl);
+			if (err != ERROR_OK)
+				return err;
+
 			request |= (data << 8);
-			hl_dcc_read(hl_if, &data, &ctrl);
+			err = hl_dcc_read(hl_if, &data, &ctrl);
+			if (err != ERROR_OK)
+				return err;
+
 			request |= (data << 16);
-			hl_dcc_read(hl_if, &data, &ctrl);
+			err = hl_dcc_read(hl_if, &data, &ctrl);
+			if (err != ERROR_OK)
+				return err;
+
 			request |= (data << 24);
 			target_request(target, request);
 		}
