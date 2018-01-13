@@ -8,3 +8,14 @@ proc ocd_gdb_restart {target_id} {
 	# one target
 	reset halt
 }
+
+proc prevent_cps {} {
+	echo "Possible SECURITY ATTACK detected."
+	echo "It looks like somebody is sending POST or Host: commands to OpenOCD."
+	echo "This is likely due to an attacker attempting to use Cross Protocol Scripting"
+	echo "to compromise your OpenOCD instance. Connection aborted."
+	exit
+}
+
+proc POST {args} { prevent_cps }
+proc Host: {args} { prevent_cps }
