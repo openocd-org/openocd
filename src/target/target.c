@@ -3116,6 +3116,10 @@ COMMAND_HANDLER(handle_md_command)
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], count);
 
 	uint8_t *buffer = calloc(count, size);
+	if (buffer == NULL) {
+		LOG_ERROR("Failed to allocate md read buffer");
+		return ERROR_FAIL;
+	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = fn(target, address, size, count, buffer);
