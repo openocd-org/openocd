@@ -642,9 +642,11 @@ static int aarch64_prepare_restart_one(struct target *target)
 				armv8->debug_base + CPUV8_DBG_DSCR, dscr);
 	}
 
-	/* clear sticky bits in PRSR, SDR is now 0 */
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_PRSR, &tmp);
+	if (retval == ERROR_OK) {
+		/* clear sticky bits in PRSR, SDR is now 0 */
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_PRSR, &tmp);
+	}
 
 	return retval;
 }
@@ -1815,6 +1817,8 @@ static int aarch64_write_cpu_memory(struct target *target,
 	dscr = (dscr & ~DSCR_MA);
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DSCR, dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (arm->core_state == ARM_STATE_AARCH64) {
 		/* Write X0 with value 'address' using write procedure */
@@ -1826,9 +1830,12 @@ static int aarch64_write_cpu_memory(struct target *target,
 		/* Write R0 with value 'address' using write procedure */
 		/* Step 1.a+b - Write the address for read access into DBGDTRRX */
 		/* Step 1.c   - Copy value from DTR to R0 using instruction mrc DBGDTRTXint, r0 */
-		dpm->instr_write_data_dcc(dpm,
+		retval = dpm->instr_write_data_dcc(dpm,
 				ARMV4_5_MRC(14, 0, 0, 0, 5, 0), address);
 	}
+
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (size == 4 && (address % 4) == 0)
 		retval = aarch64_write_cpu_memory_fast(target, count, buffer, &dscr);
@@ -1941,13 +1948,21 @@ static int aarch64_read_cpu_memory_fast(struct target *target,
 		retval = dpm->instr_execute(dpm, ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
 	}
 
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Step 1.e - Change DCC to memory mode */
 	*dscr |= DSCR_MA;
 	retval =  mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DSCR, *dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Step 1.f - read DBGDTRTX and discard the value */
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DTRTX, &value);
+	if (retval != ERROR_OK)
+		return retval;
 
 	count--;
 	/* Read the data - Each read of the DTRTX register causes the instruction to be reissued
@@ -2011,27 +2026,34 @@ static int aarch64_read_cpu_memory(struct target *target,
 	/* Read DSCR */
 	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 				armv8->debug_base + CPUV8_DBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* This algorithm comes from DDI0487A.g, chapter J9.1 */
 
 	/* Set Normal access mode  */
 	dscr &= ~DSCR_MA;
-	retval +=  mem_ap_write_atomic_u32(armv8->debug_ap,
+	retval =  mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DSCR, dscr);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (arm->core_state == ARM_STATE_AARCH64) {
 		/* Write X0 with value 'address' using write procedure */
 		/* Step 1.a+b - Write the address for read access into DBGDTR_EL0 */
 		/* Step 1.c   - Copy value from DTR to R0 using instruction mrs DBGDTR_EL0, x0 */
-		retval += dpm->instr_write_data_dcc_64(dpm,
+		retval = dpm->instr_write_data_dcc_64(dpm,
 				ARMV8_MRS(SYSTEM_DBG_DBGDTR_EL0, 0), address);
 	} else {
 		/* Write R0 with value 'address' using write procedure */
 		/* Step 1.a+b - Write the address for read access into DBGDTRRXint */
 		/* Step 1.c   - Copy value from DTR to R0 using instruction mrc DBGDTRTXint, r0 */
-		retval += dpm->instr_write_data_dcc(dpm,
+		retval = dpm->instr_write_data_dcc(dpm,
 				ARMV4_5_MRC(14, 0, 0, 0, 5, 0), address);
 	}
+
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (size == 4 && (address % 4) == 0)
 		retval = aarch64_read_cpu_memory_fast(target, count, buffer, &dscr);
