@@ -142,10 +142,6 @@ typedef struct {
 	unsigned datacount;
 	/* Number of words in the Program Buffer. */
 	unsigned progbufsize;
-	/* The value that mstatus actually has on the target right now. This is not
-	 * the value we present to the user. That one may be stored in the
-	 * reg_cache. */
-	uint64_t mstatus_actual;
 
 	yes_no_maybe_t progbuf_writable;
 	/* We only need the address so that we know the alignment of the buffer. */
@@ -1875,8 +1871,6 @@ static int riscv013_get_register(struct target *target,
 
 	riscv_set_current_hartid(target, hid);
 
-	riscv013_info_t *info = get_info(target);
-
 	int result = ERROR_OK;
 	if (rid <= GDB_REGNO_XPR31) {
 		result = register_read_direct(target, value, rid);
@@ -1893,9 +1887,6 @@ static int riscv013_get_register(struct target *target,
 			LOG_ERROR("Unable to read register %d", rid);
 			*value = -1;
 		}
-
-		if (rid == GDB_REGNO_MSTATUS)
-			info->mstatus_actual = *value;
 	}
 
 	return result;
