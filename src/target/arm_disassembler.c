@@ -126,7 +126,8 @@ static int evaluate_pld(uint32_t opcode,
 		instruction->type = ARM_PLD;
 		Rn = (opcode & 0xf0000) >> 16;
 		U = (opcode & 0x00800000) >> 23;
-		if (Rn == 0xf) { // literal
+		if (Rn == 0xf) {
+			/* literal */
 			offset = opcode & 0x0fff;
 			snprintf(instruction->text, 128,
 				 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD %s%d",
@@ -137,13 +138,14 @@ static int evaluate_pld(uint32_t opcode,
 			I = (opcode & 0x02000000) >> 25;
 			R = (opcode & 0x00400000) >> 22;
 
-			if (I) { // register PLD{W} [<Rn>,+/-<Rm>{, <shift>}]
+			if (I) {
+				/* register PLD{W} [<Rn>,+/-<Rm>{, <shift>}] */
 				offset = (opcode & 0x0F80) >> 7;
 				uint8_t Rm;
 				Rm = opcode & 0xf;
 
 				if (offset == 0) {
-					// No shift
+					/* No shift */
 					snprintf(instruction->text, 128,
 						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d]",
 						 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm);
@@ -152,25 +154,30 @@ static int evaluate_pld(uint32_t opcode,
 					uint8_t shift;
 					shift = (opcode & 0x60) >> 5;
 
-					if (shift == 0x0) { // LSL
+					if (shift == 0x0) {
+						/* LSL */
 						snprintf(instruction->text, 128,
 							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, LSL #0x%x)",
 							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
-					} else if (shift == 0x1) { // LSR
+					} else if (shift == 0x1) {
+						/* LSR */
 						snprintf(instruction->text, 128,
 							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, LSR #0x%x)",
 							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
-					} else if (shift == 0x2) { // ASR
+					} else if (shift == 0x2) {
+						/* ASR */
 						snprintf(instruction->text, 128,
 							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, ASR #0x%x)",
 							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
-					} else if (shift == 0x3) { // ROR
+					} else if (shift == 0x3) {
+						/* ROR */
 						snprintf(instruction->text, 128,
 							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, ROR #0x%x)",
 							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
 					}
 				}
-			} else { // immediate PLD{W} [<Rn>, #+/-<imm12>]
+			} else {
+				/* immediate PLD{W} [<Rn>, #+/-<imm12>] */
 				offset = opcode & 0x0fff;
 				if (offset == 0) {
 					snprintf(instruction->text, 128,
