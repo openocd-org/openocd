@@ -117,10 +117,8 @@ static int evaluate_unknown(uint32_t opcode,
 static int evaluate_pld(uint32_t opcode,
 			uint32_t address, struct arm_instruction *instruction)
 {
-	// only called if opcode starts with 11110
 	/* PLD */
-	// if ((opcode & 0x0d70f000) == 0x0550f000) {
-	if ((opcode & 0x0d50f000) == 0x0550f000) { // Should allow PLDW commands as well
+	if ((opcode & 0x0d50f000) == 0x0550f000) {
 		uint8_t Rn;
 		uint8_t U;
 		unsigned offset;
@@ -137,7 +135,7 @@ static int evaluate_pld(uint32_t opcode,
 			uint8_t I, R;
 
 			I = (opcode & 0x02000000) >> 25;
-			R = (opcode >> 22) & 0x06;
+			R = (opcode & 0x00400000) >> 22;
 
 			if (I) { // register PLD{W} [<Rn>,+/-<Rm>{, <shift>}]
 				offset = (opcode & 0x0F80) >> 7;
