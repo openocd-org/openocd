@@ -399,18 +399,21 @@ static int flash_iterate_address_range_inner(struct target *target,
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
-	addr -= c->base;
-	last_addr -= c->base;
+	if (c->prot_blocks == NULL || c->num_prot_blocks == 0) {
+		/* flash driver does not define protect blocks, use sectors instead */
+		iterate_protect_blocks = false;
+	}
 
-	if (iterate_protect_blocks && c->prot_blocks && c->num_prot_blocks) {
+	if (iterate_protect_blocks) {
 		block_array = c->prot_blocks;
 		num_blocks = c->num_prot_blocks;
 	} else {
 		block_array = c->sectors;
 		num_blocks = c->num_sectors;
-		iterate_protect_blocks = false;
 	}
 
+	addr -= c->base;
+	last_addr -= c->base;
 
 	for (i = 0; i < num_blocks; i++) {
 		struct flash_sector *f = &block_array[i];
