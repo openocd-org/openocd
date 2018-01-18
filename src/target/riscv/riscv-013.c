@@ -143,6 +143,9 @@ typedef struct {
 	/* Number of words in the Program Buffer. */
 	unsigned progbufsize;
 
+	/* We cache the read-only bits of sbcs here. */
+	uint32_t sbcs;
+
 	yes_no_maybe_t progbuf_writable;
 	/* We only need the address so that we know the alignment of the buffer. */
 	riscv_addr_t progbuf_address;
@@ -218,6 +221,18 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_DATACOUNT, "datacount" },
 
 		{ DMI_COMMAND, DMI_COMMAND_CMDTYPE, "cmdtype" },
+
+		{ DMI_SBCS, DMI_SBCS_SBREADONADDR, "sbreadonaddr" },
+		{ DMI_SBCS, DMI_SBCS_SBACCESS, "sbaccess" },
+		{ DMI_SBCS, DMI_SBCS_SBAUTOINCREMENT, "sbautoincrement" },
+		{ DMI_SBCS, DMI_SBCS_SBREADONDATA, "sbreadondata" },
+		{ DMI_SBCS, DMI_SBCS_SBERROR, "sberror" },
+		{ DMI_SBCS, DMI_SBCS_SBASIZE, "sbasize" },
+		{ DMI_SBCS, DMI_SBCS_SBACCESS128, "sbaccess128" },
+		{ DMI_SBCS, DMI_SBCS_SBACCESS64, "sbaccess64" },
+		{ DMI_SBCS, DMI_SBCS_SBACCESS32, "sbaccess32" },
+		{ DMI_SBCS, DMI_SBCS_SBACCESS16, "sbaccess16" },
+		{ DMI_SBCS, DMI_SBCS_SBACCESS8, "sbaccess8" },
 	};
 
 	text[0] = 0;
@@ -1148,6 +1163,7 @@ static int examine(struct target *target)
 	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
 
 	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
 	if (get_field(dmstatus, DMI_DMSTATUS_VERSION) != 2) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
 				"(dmstatus=0x%x)", get_field(dmstatus, DMI_DMSTATUS_VERSION), dmstatus);
@@ -1158,22 +1174,20 @@ static int examine(struct target *target)
 	dmi_write(target, DMI_DMCONTROL, 0);
 	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
-
-	uint32_t hartinfo = dmi_read(target, DMI_HARTINFO);
-
 	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
-	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
-	LOG_DEBUG("hartinfo:  0x%08x", hartinfo);
-
-	info->datasize = get_field(hartinfo, DMI_HARTINFO_DATASIZE);
-	info->dataaccess = get_field(hartinfo, DMI_HARTINFO_DATAACCESS);
-	info->dataaddr = get_field(hartinfo, DMI_HARTINFO_DATAADDR);
 
 	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
 				dmcontrol);
 		return ERROR_FAIL;
 	}
+
+	uint32_t hartinfo = dmi_read(target, DMI_HARTINFO);
+	LOG_DEBUG("hartinfo:  0x%08x", hartinfo);
+
+	info->datasize = get_field(hartinfo, DMI_HARTINFO_DATASIZE);
+	info->dataaccess = get_field(hartinfo, DMI_HARTINFO_DATAACCESS);
+	info->dataaddr = get_field(hartinfo, DMI_HARTINFO_DATAADDR);
 
 	if (!get_field(dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
 		LOG_ERROR("Authentication required by RISC-V core but not "
@@ -1190,6 +1204,8 @@ static int examine(struct target *target)
 		LOG_ERROR("The hart doesn't exist.");
 		return ERROR_FAIL;
 	}
+
+	info->sbcs = dmi_read(target, DMI_SBCS);
 
 	/* Check that abstract data registers are accessible. */
 	uint32_t abstractcs = dmi_read(target, DMI_ABSTRACTCS);
@@ -1439,11 +1455,102 @@ static void log_memory_access(target_addr_t address, uint64_t value,
 	LOG_DEBUG(fmt, value);
 }
 
+/* Read the relevant sbdata regs depending on size, and put the results into
+ * buffer. */
+static int read_memory_bus_word(struct target *target, uint32_t size,
+		uint8_t *buffer)
+{
+	if (size > 12)
+		write_to_buf(buffer + 12, dmi_read(target, DMI_SBDATA3), 4);
+	if (size > 8)
+		write_to_buf(buffer + 8, dmi_read(target, DMI_SBDATA2), 4);
+	if (size > 4)
+		write_to_buf(buffer + 4, dmi_read(target, DMI_SBDATA1), 4);
+	write_to_buf(buffer, dmi_read(target, DMI_SBDATA0), MIN(size, 4));
+	return ERROR_OK;
+}
+
+static uint32_t sb_sbaccess(unsigned size_bytes)
+{
+	switch (size_bytes) {
+		case 1:
+			return set_field(0, DMI_SBCS_SBACCESS, 0);
+		case 2:
+			return set_field(0, DMI_SBCS_SBACCESS, 1);
+		case 4:
+			return set_field(0, DMI_SBCS_SBACCESS, 2);
+		case 8:
+			return set_field(0, DMI_SBCS_SBACCESS, 3);
+		case 16:
+			return set_field(0, DMI_SBCS_SBACCESS, 4);
+	}
+	assert(0);
+}
+
+static int sb_write_address(struct target *target, target_addr_t address)
+{
+	RISCV013_INFO(info);
+	unsigned sbasize = get_field(info->sbcs, DMI_SBCS_SBASIZE);
+	/* There currently is no support for >64-bit addresses in OpenOCD. */
+	if (sbasize > 96) {
+		dmi_write(target, DMI_SBADDRESS3, 0);
+	}
+	if (sbasize > 64) {
+		dmi_write(target, DMI_SBADDRESS2, 0);
+	}
+	if (sbasize > 32) {
+#if BUILD_TARGET64
+		dmi_write(target, DMI_SBADDRESS1, address >> 32);
+#else
+		dmi_write(target, DMI_SBADDRESS1, 0);
+#endif
+	}
+	return dmi_write(target, DMI_SBADDRESS0, address);
+}
+
+/**
+ * Read the requested memory using the system bus interface.
+ */
+static int read_memory_bus(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	uint32_t sbcs = set_field(0, DMI_SBCS_SBREADONADDR, 1);
+	sbcs |= sb_sbaccess(size);
+	sbcs = set_field(sbcs, DMI_SBCS_SBAUTOINCREMENT, 1);
+	sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, count > 1);
+	dmi_write(target, DMI_SBCS, sbcs);
+
+	/* This address write will trigger the first read. */
+	sb_write_address(target, address);
+
+	for (uint32_t i = 0; i < count - 1; i++) {
+		read_memory_bus_word(target, size, buffer + i * size);
+	}
+
+	sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, 0);
+	dmi_write(target, DMI_SBCS, sbcs);
+
+	read_memory_bus_word(target, size, buffer + (count - 1) * size);
+
+	sbcs = dmi_read(target, DMI_SBCS);
+	unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
+	if (error == 0) {
+		return ERROR_OK;
+	} else if (error == 1 || error == 2 || error == 3) {
+		/* Bus timeout, bus error, other bus error. */
+		return ERROR_FAIL;
+	} else if (error == 4) {
+		assert(0);
+		/* TODO: Reading too fast. We should deal with this properly. */
+	}
+	return ERROR_FAIL;
+}
+
 /**
  * Read the requested memory, taking care to execute every read exactly once,
  * even if cmderr=busy is encountered.
  */
-static int read_memory(struct target *target, target_addr_t address,
+static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	RISCV013_INFO(info);
@@ -1679,7 +1786,76 @@ error:
 	return result;
 }
 
-static int write_memory(struct target *target, target_addr_t address,
+static int read_memory(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	RISCV013_INFO(info);
+	if ((get_field(info->sbcs, DMI_SBCS_SBVERSION) == 1) && (
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS8) && size == 1) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS16) && size == 2) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS32) && size == 4) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS64) && size == 8) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS128) && size == 16))) {
+		return read_memory_bus(target, address, size, count, buffer);
+	} else {
+		return read_memory_progbuf(target, address, size, count, buffer);
+	}
+}
+
+static int write_memory_bus(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer)
+{
+	uint32_t sbcs = sb_sbaccess(size);
+	sbcs = set_field(sbcs, DMI_SBCS_SBAUTOINCREMENT, 1);
+	dmi_write(target, DMI_SBCS, sbcs);
+
+	sb_write_address(target, address);
+
+	for (uint32_t i = 0; i < count; i++) {
+		const uint8_t *p = buffer + i * size;
+		if (size > 12)
+			dmi_write(target, DMI_SBDATA3,
+					((uint32_t) p[12]) |
+					(((uint32_t) p[13]) << 8) |
+					(((uint32_t) p[14]) << 16) |
+					(((uint32_t) p[15]) << 24));
+		if (size > 8)
+			dmi_write(target, DMI_SBDATA2,
+					((uint32_t) p[8]) |
+					(((uint32_t) p[9]) << 8) |
+					(((uint32_t) p[10]) << 16) |
+					(((uint32_t) p[11]) << 24));
+		if (size > 4)
+			dmi_write(target, DMI_SBDATA1,
+					((uint32_t) p[4]) |
+					(((uint32_t) p[5]) << 8) |
+					(((uint32_t) p[6]) << 16) |
+					(((uint32_t) p[7]) << 24));
+		uint32_t value = p[0];
+		if (size > 2) {
+			value |= ((uint32_t) p[2]) << 16;
+			value |= ((uint32_t) p[3]) << 24;
+		}
+		if (size > 1)
+			value |= ((uint32_t) p[1]) << 8;
+		dmi_write(target, DMI_SBDATA0, value);
+	}
+
+	sbcs = dmi_read(target, DMI_SBCS);
+	unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
+	if (error == 0) {
+		return ERROR_OK;
+	} else if (error == 1 || error == 2 || error == 3) {
+		/* Bus timeout, bus error, other bus error. */
+		return ERROR_FAIL;
+	} else if (error == 4) {
+		assert(0);
+		/* TODO: Reading too fast. We should deal with this properly. */
+	}
+	return ERROR_FAIL;
+}
+
+static int write_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	RISCV013_INFO(info);
@@ -1854,6 +2030,22 @@ error:
 		return ERROR_FAIL;
 
 	return result;
+}
+
+static int write_memory(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer)
+{
+	RISCV013_INFO(info);
+	if ((get_field(info->sbcs, DMI_SBCS_SBVERSION) == 1) && (
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS8) && size == 1) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS16) && size == 2) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS32) && size == 4) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS64) && size == 8) ||
+			(get_field(info->sbcs, DMI_SBCS_SBACCESS128) && size == 16))) {
+		return write_memory_bus(target, address, size, count, buffer);
+	} else {
+		return write_memory_progbuf(target, address, size, count, buffer);
+	}
 }
 
 static int arch_state(struct target *target)

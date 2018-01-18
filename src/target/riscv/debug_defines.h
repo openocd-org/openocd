@@ -1041,17 +1041,47 @@
 #define DMI_AUTHDATA_DATA_OFFSET            0
 #define DMI_AUTHDATA_DATA_LENGTH            32
 #define DMI_AUTHDATA_DATA                   (0xffffffffU << DMI_AUTHDATA_DATA_OFFSET)
+#define DMI_SBADDRESS3                      0x37
+/*
+* Accesses bits 127:96 of the physical address in {\tt sbaddress} (if
+* the system address bus is that wide).
+ */
+#define DMI_SBADDRESS3_ADDRESS_OFFSET       0
+#define DMI_SBADDRESS3_ADDRESS_LENGTH       32
+#define DMI_SBADDRESS3_ADDRESS              (0xffffffffU << DMI_SBADDRESS3_ADDRESS_OFFSET)
 #define DMI_SBCS                            0x38
 /*
-* When a 1, every write to \Rsbaddresszero automatically triggers a
+* 0: The System Bus interface conforms to mainline drafts of this
+* spec older than 1 January, 2018.
+*
+* 1: The System Bus interface conforms to this version of the spec.
+*
+* Other values are reserved for future versions.
+ */
+#define DMI_SBCS_SBVERSION_OFFSET           29
+#define DMI_SBCS_SBVERSION_LENGTH           3
+#define DMI_SBCS_SBVERSION                  (0x7U << DMI_SBCS_SBVERSION_OFFSET)
+/*
+* When 1, indicates the system bus master is busy. (Whether the
+* system bus itself is busy is related, but not the same thing.) This
+* bit goes high immediately when a read or write is requested for any
+* reason, and does not go low until the access is fully completed.
+*
+* To avoid race conditions, debuggers must not try to clear \Fsberror
+* until they read \Fsbbusy as 0.
+ */
+#define DMI_SBCS_SBBUSY_OFFSET              21
+#define DMI_SBCS_SBBUSY_LENGTH              1
+#define DMI_SBCS_SBBUSY                     (0x1U << DMI_SBCS_SBBUSY_OFFSET)
+/*
+* When 1, every write to \Rsbaddresszero automatically triggers a
 * system bus read at the new address.
  */
 #define DMI_SBCS_SBREADONADDR_OFFSET        20
 #define DMI_SBCS_SBREADONADDR_LENGTH        1
 #define DMI_SBCS_SBREADONADDR               (0x1U << DMI_SBCS_SBREADONADDR_OFFSET)
 /*
-* Select the access size to use for system bus accesses triggered by
-* writes to \Rsbaddresszero or \Rsbdatazero.
+* Select the access size to use for system bus accesses.
 *
 * 0: 8-bit
 *
@@ -1063,8 +1093,8 @@
 *
 * 4: 128-bit
 *
-* If an unsupported system bus access size is written here, the DM
-* does not perform the access and sberror is set to 3.
+* If \Fsbaccess has an unsupported value when the DM starts a bus
+* access, the access is not performed and \Fsberror is set to 3.
  */
 #define DMI_SBCS_SBACCESS_OFFSET            17
 #define DMI_SBCS_SBACCESS_LENGTH            3
@@ -1098,9 +1128,8 @@
 *
 * 3: There was some other error (eg. alignment).
 *
-* 4: The system bus master was busy when one of the
-* {\tt sbaddress} or {\tt sbdata} registers was written,
-* or \Rsbdatazero was read when it had stale data.
+* 4: The system bus master was busy when one of the {\tt sbaddress}
+* was written, or one of the {\tt sbdata} registers was accessed.
  */
 #define DMI_SBCS_SBERROR_OFFSET             12
 #define DMI_SBCS_SBERROR_LENGTH             3
