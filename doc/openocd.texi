@@ -5575,7 +5575,18 @@ flash erase_sector 0 0 127 # It will perform a mass erase on BlueNRG-2
 @end example
 
 Triggering a mass erase is also useful when users want to disable readout protection.
+@end deffn
 
+@deffn {Flash Driver} cc26xx
+All versions of the SimpleLink CC13xx and CC26xx microcontrollers from Texas
+Instruments include internal flash. The cc26xx flash driver supports both the
+CC13xx and CC26xx family of devices. The driver automatically recognizes the
+specific version's flash parameters and autoconfigures itself. Flash bank 0
+starts at address 0.
+
+@example
+flash bank $_FLASHNAME cc26xx 0 0 0 0 $_TARGETNAME
+@end example
 @end deffn
 
 @deffn {Flash Driver} cc3220sf
