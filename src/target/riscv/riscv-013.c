@@ -1487,6 +1487,21 @@ static uint32_t sb_sbaccess(unsigned size_bytes)
 	assert(0);
 }
 
+static target_addr_t sb_read_address(struct target *target)
+{
+	RISCV013_INFO(info);
+	unsigned sbasize = get_field(info->sbcs, DMI_SBCS_SBASIZE);
+	target_addr_t address = 0;
+	if (sbasize > 32) {
+#if BUILD_TARGET64
+		address |= dmi_read(target, DMI_SBADDRESS1);
+		address <<= 32;
+#endif
+	}
+	address |= dmi_read(target, DMI_SBADDRESS0);
+	return address;
+}
+
 static int sb_write_address(struct target *target, target_addr_t address)
 {
 	RISCV013_INFO(info);
@@ -1538,6 +1553,7 @@ static int read_memory_bus(struct target *target, target_addr_t address,
 		return ERROR_OK;
 	} else if (error == 1 || error == 2 || error == 3) {
 		/* Bus timeout, bus error, other bus error. */
+		dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
 		return ERROR_FAIL;
 	} else if (error == 4) {
 		assert(0);
@@ -1809,50 +1825,58 @@ static int write_memory_bus(struct target *target, target_addr_t address,
 	sbcs = set_field(sbcs, DMI_SBCS_SBAUTOINCREMENT, 1);
 	dmi_write(target, DMI_SBCS, sbcs);
 
-	sb_write_address(target, address);
+	target_addr_t next_address = address;
+	target_addr_t end_address = address + count * size;
 
-	for (uint32_t i = 0; i < count; i++) {
-		const uint8_t *p = buffer + i * size;
-		if (size > 12)
-			dmi_write(target, DMI_SBDATA3,
-					((uint32_t) p[12]) |
-					(((uint32_t) p[13]) << 8) |
-					(((uint32_t) p[14]) << 16) |
-					(((uint32_t) p[15]) << 24));
-		if (size > 8)
-			dmi_write(target, DMI_SBDATA2,
-					((uint32_t) p[8]) |
-					(((uint32_t) p[9]) << 8) |
-					(((uint32_t) p[10]) << 16) |
-					(((uint32_t) p[11]) << 24));
-		if (size > 4)
-			dmi_write(target, DMI_SBDATA1,
-					((uint32_t) p[4]) |
-					(((uint32_t) p[5]) << 8) |
-					(((uint32_t) p[6]) << 16) |
-					(((uint32_t) p[7]) << 24));
-		uint32_t value = p[0];
-		if (size > 2) {
-			value |= ((uint32_t) p[2]) << 16;
-			value |= ((uint32_t) p[3]) << 24;
+	sb_write_address(target, next_address);
+	while (next_address < end_address) {
+		for (uint32_t i = (next_address - address) / size; i < count; i++) {
+			const uint8_t *p = buffer + i * size;
+			if (size > 12)
+				dmi_write(target, DMI_SBDATA3,
+						((uint32_t) p[12]) |
+						(((uint32_t) p[13]) << 8) |
+						(((uint32_t) p[14]) << 16) |
+						(((uint32_t) p[15]) << 24));
+			if (size > 8)
+				dmi_write(target, DMI_SBDATA2,
+						((uint32_t) p[8]) |
+						(((uint32_t) p[9]) << 8) |
+						(((uint32_t) p[10]) << 16) |
+						(((uint32_t) p[11]) << 24));
+			if (size > 4)
+				dmi_write(target, DMI_SBDATA1,
+						((uint32_t) p[4]) |
+						(((uint32_t) p[5]) << 8) |
+						(((uint32_t) p[6]) << 16) |
+						(((uint32_t) p[7]) << 24));
+			uint32_t value = p[0];
+			if (size > 2) {
+				value |= ((uint32_t) p[2]) << 16;
+				value |= ((uint32_t) p[3]) << 24;
+			}
+			if (size > 1)
+				value |= ((uint32_t) p[1]) << 8;
+			dmi_write(target, DMI_SBDATA0, value);
 		}
-		if (size > 1)
-			value |= ((uint32_t) p[1]) << 8;
-		dmi_write(target, DMI_SBDATA0, value);
+
+		sbcs = dmi_read(target, DMI_SBCS);
+		unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
+		if (error == 0) {
+			next_address = end_address;
+		} else if (error == 1 || error == 2 || error == 3) {
+			/* Bus timeout, bus error, other bus error. */
+			dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
+			return ERROR_FAIL;
+		} else if (error == 4) {
+			/* We wrote while the target was busy. Slow down and try again. */
+			next_address = sb_read_address(target);
+			dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
+			// <<< TODO: slow down
+		}
 	}
 
-	sbcs = dmi_read(target, DMI_SBCS);
-	unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
-	if (error == 0) {
-		return ERROR_OK;
-	} else if (error == 1 || error == 2 || error == 3) {
-		/* Bus timeout, bus error, other bus error. */
-		return ERROR_FAIL;
-	} else if (error == 4) {
-		assert(0);
-		/* TODO: Reading too fast. We should deal with this properly. */
-	}
-	return ERROR_FAIL;
+	return ERROR_OK;
 }
 
 static int write_memory_progbuf(struct target *target, target_addr_t address,
