@@ -1212,8 +1212,12 @@ static int examine(struct target *target)
 			break;
 		r->hart_count = i + 1;
 
-		if (!riscv_is_halted(target))
-			riscv013_halt_current_hart(target);
+		if (!riscv_is_halted(target)) {
+			if (riscv013_halt_current_hart(target) != ERROR_OK) {
+				LOG_ERROR("Fatal: Hart %d failed to halt during examine()", i);
+				return ERROR_FAIL;
+			}
+		}
 
 		/* Without knowing anything else we can at least mess with the
 		 * program buffer. */
@@ -1225,7 +1229,10 @@ static int examine(struct target *target)
 		else
 			r->xlen[i] = 32;
 
-		register_read_direct(target, &r->misa, GDB_REGNO_MISA);
+		if (register_read_direct(target, &r->misa, GDB_REGNO_MISA)) {
+			LOG_ERROR("Fatal: Failed to read MISA from hart %d.", i);
+			return ERROR_FAIL;
+		}
 
 		/* Now init registers based on what we discovered. */
 		if (riscv_init_registers(target) != ERROR_OK)
