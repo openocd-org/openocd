@@ -465,8 +465,9 @@ static int slow_fespi_write_buffer(struct flash_bank *bank,
  * Here's the source for the algorithm.
  * You can turn it into the array below using:
 	sed -n '/ALGO_START$/,/ALGO_END/ p' fespi.c | \
-		riscv32-unknown-elf-gcc -x assembler-with-cpp - -nostdlib -nostartfiles -o tmp.o && \
-		riscv32-unknown-elf-objcopy -O binary tmp.o algorithm.bin && \
+		riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 -x \
+		assembler-with-cpp - -nostdlib -nostartfiles -o tmp.o && \
+		riscv64-unknown-elf-objcopy -O binary tmp.o algorithm.bin && \
 		xxd -i algorithm.bin
 
 // ALGO_START
