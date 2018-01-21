@@ -1946,12 +1946,45 @@ static const char *gdb_get_reg_type_name(enum reg_type type)
 	return "int"; /* "int" as default value */
 }
 
+static int lookup_add_arch_defined_types(char const **arch_defined_types_list[], const char *type_id,
+					int *num_arch_defined_types)
+{
+	int tbl_sz = *num_arch_defined_types;
+
+	if (type_id != NULL && (strcmp(type_id, ""))) {
+		for (int j = 0; j < (tbl_sz + 1); j++) {
+			if (!((*arch_defined_types_list)[j])) {
+				(*arch_defined_types_list)[tbl_sz++] = type_id;
+				*arch_defined_types_list = realloc(*arch_defined_types_list,
+								sizeof(char *) * (tbl_sz + 1));
+				(*arch_defined_types_list)[tbl_sz] = NULL;
+				*num_arch_defined_types = tbl_sz;
+				return 1;
+			} else {
+				if (!strcmp((*arch_defined_types_list)[j], type_id))
+					return 0;
+			}
+		}
+	}
+
+	return -1;
+}
+
 static int gdb_generate_reg_type_description(struct target *target,
-		char **tdesc, int *pos, int *size, struct reg_data_type *type)
+		char **tdesc, int *pos, int *size, struct reg_data_type *type,
+		char const **arch_defined_types_list[], int * num_arch_defined_types)
 {
 	int retval = ERROR_OK;
 
 	if (type->type_class == REG_TYPE_CLASS_VECTOR) {
+		struct reg_data_type *data_type = type->reg_type_vector->type;
+		if (data_type->type == REG_TYPE_ARCH_DEFINED) {
+			if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
+							num_arch_defined_types))
+				gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+								arch_defined_types_list,
+								num_arch_defined_types);
+		}
 		/* <vector id="id" type="type" count="count"/> */
 		xml_printf(&retval, tdesc, pos, size,
 				"<vector id=\"%s\" type=\"%s\" count=\"%d\"/>\n",
@@ -1959,6 +1992,20 @@ static int gdb_generate_reg_type_description(struct target *target,
 				type->reg_type_vector->count);
 
 	} else if (type->type_class == REG_TYPE_CLASS_UNION) {
+		struct reg_data_type_union_field *field;
+		field = type->reg_type_union->fields;
+		while (field != NULL) {
+			struct reg_data_type *data_type = field->type;
+			if (data_type->type == REG_TYPE_ARCH_DEFINED) {
+				if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
+								num_arch_defined_types))
+					gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+									arch_defined_types_list,
+									num_arch_defined_types);
+			}
+
+			field = field->next;
+		}
 		/* <union id="id">
 		 *  <field name="name" type="type"/> ...
 		 * </union> */
@@ -1966,7 +2013,6 @@ static int gdb_generate_reg_type_description(struct target *target,
 				"<union id=\"%s\">\n",
 				type->id);
 
-		struct reg_data_type_union_field *field;
 		field = type->reg_type_union->fields;
 		while (field != NULL) {
 			xml_printf(&retval, tdesc, pos, size,
@@ -1999,6 +2045,17 @@ static int gdb_generate_reg_type_description(struct target *target,
 				field = field->next;
 			}
 		} else {
+			while (field != NULL) {
+				struct reg_data_type *data_type = field->type;
+				if (data_type->type == REG_TYPE_ARCH_DEFINED) {
+					if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
+									num_arch_defined_types))
+						gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+										arch_defined_types_list,
+										num_arch_defined_types);
+				}
+			}
+
 			/* <struct id="id">
 			 *  <field name="name" type="type"/> ...
 			 * </struct> */
@@ -2091,10 +2148,14 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 	struct reg **reg_list = NULL;
 	int reg_list_size;
 	char const **features = NULL;
+	char const **arch_defined_types = NULL;
 	int feature_list_size = 0;
+	int num_arch_defined_types = 0;
 	char *tdesc = NULL;
 	int pos = 0;
 	int size = 0;
+
+	arch_defined_types = calloc(1, sizeof(char *));
 
 	retval = target_get_gdb_reg_list(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
@@ -2148,8 +2209,13 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 				if (reg_list[i]->reg_data_type != NULL) {
 					if (reg_list[i]->reg_data_type->type == REG_TYPE_ARCH_DEFINED) {
 						/* generate <type... first, if there are architecture-defined types. */
-						gdb_generate_reg_type_description(target, &tdesc, &pos, &size,
-								reg_list[i]->reg_data_type);
+						if (lookup_add_arch_defined_types(&arch_defined_types,
+										reg_list[i]->reg_data_type->id,
+										&num_arch_defined_types))
+							gdb_generate_reg_type_description(target, &tdesc, &pos, &size,
+											reg_list[i]->reg_data_type,
+											&arch_defined_types,
+											&num_arch_defined_types);
 
 						type_str = reg_list[i]->reg_data_type->id;
 					} else {
@@ -2199,6 +2265,7 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 error:
 	free(features);
 	free(reg_list);
+	free(arch_defined_types);
 
 	if (retval == ERROR_OK)
 		*tdesc_out = tdesc;
