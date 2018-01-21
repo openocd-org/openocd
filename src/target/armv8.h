@@ -63,17 +63,52 @@ enum {
 	ARMV8_PC = 32,
 	ARMV8_xPSR = 33,
 
-	ARMV8_ELR_EL1 = 34,
-	ARMV8_ESR_EL1 = 35,
-	ARMV8_SPSR_EL1 = 36,
+	ARMV8_V0 = 34,
+	ARMV8_V1,
+	ARMV8_V2,
+	ARMV8_V3,
+	ARMV8_V4,
+	ARMV8_V5,
+	ARMV8_V6,
+	ARMV8_V7,
+	ARMV8_V8,
+	ARMV8_V9,
+	ARMV8_V10,
+	ARMV8_V11,
+	ARMV8_V12,
+	ARMV8_V13,
+	ARMV8_V14,
+	ARMV8_V15,
+	ARMV8_V16,
+	ARMV8_V17,
+	ARMV8_V18,
+	ARMV8_V19,
+	ARMV8_V20,
+	ARMV8_V21,
+	ARMV8_V22,
+	ARMV8_V23,
+	ARMV8_V24,
+	ARMV8_V25,
+	ARMV8_V26,
+	ARMV8_V27,
+	ARMV8_V28,
+	ARMV8_V29,
+	ARMV8_V30,
+	ARMV8_V31,
+	ARMV8_FPSR,
+	ARMV8_FPCR,
 
-	ARMV8_ELR_EL2 = 37,
-	ARMV8_ESR_EL2 = 38,
-	ARMV8_SPSR_EL2 = 39,
+	ARMV8_ELR_EL1 = 68,
+	ARMV8_ESR_EL1 = 69,
+	ARMV8_SPSR_EL1 = 70,
 
-	ARMV8_ELR_EL3 = 40,
-	ARMV8_ESR_EL3 = 41,
-	ARMV8_SPSR_EL3 = 42,
+	ARMV8_ELR_EL2 = 71,
+	ARMV8_ESR_EL2 = 72,
+	ARMV8_SPSR_EL2 = 73,
+
+	ARMV8_ELR_EL3 = 74,
+	ARMV8_ESR_EL3 = 75,
+	ARMV8_SPSR_EL3 = 76,
 
 	ARMV8_LAST_REG,
 };
@@ -178,6 +213,12 @@ struct armv8_common {
 	/* Direct processor core register read and writes */
 	int (*read_reg_u64)(struct armv8_common *armv8, int num, uint64_t *value);
 	int (*write_reg_u64)(struct armv8_common *armv8, int num, uint64_t value);
+
+	/* SIMD/FPU registers read/write interface */
+	int (*read_reg_u128)(struct armv8_common *armv8, int num,
+			uint64_t *lvalue, uint64_t *hvalue);
+	int (*write_reg_u128)(struct armv8_common *armv8, int num,
+			uint64_t lvalue, uint64_t hvalue);
 
 	int (*examine_debug_reason)(struct target *target);
 	int (*post_debug_entry)(struct target *target);
