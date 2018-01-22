@@ -161,8 +161,16 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 	case ARMV8_64_EL3T:
 		instr = ARMV8_MSR_GP(SYSTEM_SCTLR_EL3, 0);
 		break;
+
+	case ARM_MODE_SVC:
+	case ARM_MODE_ABT:
+	case ARM_MODE_FIQ:
+	case ARM_MODE_IRQ:
+		instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
+		break;
+
 	default:
-		LOG_DEBUG("unknown cpu state 0x%x" PRIx32, armv8->arm.core_state);
+		LOG_DEBUG("unknown cpu state 0x%" PRIx32, armv8->arm.core_mode);
 		break;
 	}
 
