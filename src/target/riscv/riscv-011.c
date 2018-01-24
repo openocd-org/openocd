@@ -436,7 +436,7 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
 		LOG_ERROR("dbus_scan failed jtag scan");
-		return retval;
+		return DBUS_STATUS_FAILED;
 	}
 
 	if (data_in)
@@ -466,6 +466,10 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 		status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
 		if (status == DBUS_STATUS_BUSY)
 			increase_dbus_busy_delay(target);
+		if (status == DBUS_STATUS_FAILED) {
+			LOG_ERROR("dbus_read(0x%x) failed!", address);
+			return 0;
+		}
 	} while (((status == DBUS_STATUS_BUSY) || (address_in != address)) &&
 			i++ < 256);
 
@@ -675,6 +679,9 @@ static bits_t read_bits(struct target *target)
 					return err_result;
 				}
 				increase_dbus_busy_delay(target);
+			} else if (status == DBUS_STATUS_FAILED) {
+				// TODO: return an actual error
+				return err_result;
 			}
 		} while (status == DBUS_STATUS_BUSY && i++ < 256);
 
@@ -860,6 +867,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 
 	int retval = scans_execute(scans);
 	if (retval != ERROR_OK) {
+		scans_delete(scans);
 		LOG_ERROR("JTAG execute failed.");
 		return retval;
 	}
@@ -873,12 +881,14 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				break;
 			case DBUS_STATUS_FAILED:
 				LOG_ERROR("Debug RAM write failed. Hardware error?");
+				scans_delete(scans);
 				return ERROR_FAIL;
 			case DBUS_STATUS_BUSY:
 				errors++;
 				break;
 			default:
 				LOG_ERROR("Got invalid bus access status: %d", status);
+				scans_delete(scans);
 				return ERROR_FAIL;
 		}
 	}
@@ -901,6 +911,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		if (wait_for_debugint_clear(target, true) != ERROR_OK) {
 			LOG_ERROR("Debug interrupt didn't clear.");
 			dump_debug_ram(target);
+			scans_delete(scans);
 			return ERROR_FAIL;
 		}
 
@@ -921,6 +932,7 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 				if (wait_for_debugint_clear(target, false) != ERROR_OK) {
 					LOG_ERROR("Debug interrupt didn't clear.");
 					dump_debug_ram(target);
+					scans_delete(scans);
 					return ERROR_FAIL;
 				}
 			} else {
@@ -1804,14 +1816,14 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	info->dpc = reg_cache_get(target, CSR_DPC);
 	info->dcsr = reg_cache_get(target, CSR_DCSR);
 
-	scans = scans_delete(scans);
+	scans_delete(scans);
 
 	cache_invalidate(target);
 
 	return RE_OK;
 
 error:
-	scans = scans_delete(scans);
+	scans_delete(scans);
 	return RE_FAIL;
 }
 
@@ -2271,6 +2283,7 @@ static int write_memory(struct target *target, target_addr_t address,
 		goto error;
 	}
 
+	scans_delete(scans);
 	cache_clean(target);
 	return register_write(target, T0, t0);
 

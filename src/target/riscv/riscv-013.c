@@ -436,8 +436,12 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%" PRIx64 ", status=%d",
-				address, value, status);
+		if (status == DMI_STATUS_FAILED) {
+			LOG_ERROR("Failed read (NOP) from 0x%x; status=%d", address, status);
+		} else {
+			LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%" PRIx64 ", status=%d",
+					address, value, status);
+		}
 		return ~0ULL;
 	}
 
@@ -984,8 +988,6 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 	if (result != ERROR_OK) {
 		assert(number != GDB_REGNO_S0);
-
-		result = ERROR_OK;
 
 		struct riscv_program program;
 		riscv_program_init(&program, target);
@@ -1653,7 +1655,6 @@ static int read_memory(struct target *target, target_addr_t address,
 		goto error;
 	write_to_buf(buffer + receive_addr - address, value, size);
 	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, receive_addr, value);
-	receive_addr += size;
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
