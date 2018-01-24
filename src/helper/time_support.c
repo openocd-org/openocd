@@ -62,6 +62,21 @@ int timeval_add_time(struct timeval *result, long sec, long usec)
 	return 0;
 }
 
+/* compare two timevals and return -1/0/+1 accordingly */
+int timeval_compare(const struct timeval *x, const struct timeval *y)
+{
+	if (x->tv_sec < y->tv_sec)
+		return -1;
+	else if (x->tv_sec > y->tv_sec)
+		return 1;
+	else if (x->tv_usec < y->tv_usec)
+		return -1;
+	else if (x->tv_usec > y->tv_usec)
+		return 1;
+	else
+		return 0;
+}
+
 int duration_start(struct duration *duration)
 {
 	return gettimeofday(&duration->start, NULL);
