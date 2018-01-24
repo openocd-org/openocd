@@ -1397,7 +1397,6 @@ int target_register_trace_callback(int (*callback)(struct target *target,
 int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv)
 {
 	struct target_timer_callback **callbacks_p = &target_timer_callbacks;
-	struct timeval now;
 
 	if (callback == NULL)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1414,14 +1413,8 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 	(*callbacks_p)->time_ms = time_ms;
 	(*callbacks_p)->removed = false;
 
-	gettimeofday(&now, NULL);
-	(*callbacks_p)->when.tv_usec = now.tv_usec + (time_ms % 1000) * 1000;
-	time_ms -= (time_ms % 1000);
-	(*callbacks_p)->when.tv_sec = now.tv_sec + (time_ms / 1000);
-	if ((*callbacks_p)->when.tv_usec > 1000000) {
-		(*callbacks_p)->when.tv_usec = (*callbacks_p)->when.tv_usec - 1000000;
-		(*callbacks_p)->when.tv_sec += 1;
-	}
+	gettimeofday(&(*callbacks_p)->when, NULL);
+	timeval_add_time(&(*callbacks_p)->when, 0, time_ms * 1000);
 
 	(*callbacks_p)->priv = priv;
 	(*callbacks_p)->next = NULL;
@@ -1556,14 +1549,8 @@ int target_call_trace_callbacks(struct target *target, size_t len, uint8_t *data
 static int target_timer_callback_periodic_restart(
 		struct target_timer_callback *cb, struct timeval *now)
 {
-	int time_ms = cb->time_ms;
-	cb->when.tv_usec = now->tv_usec + (time_ms % 1000) * 1000;
-	time_ms -= (time_ms % 1000);
-	cb->when.tv_sec = now->tv_sec + time_ms / 1000;
-	if (cb->when.tv_usec > 1000000) {
-		cb->when.tv_usec = cb->when.tv_usec - 1000000;
-		cb->when.tv_sec += 1;
-	}
+	cb->when = *now;
+	timeval_add_time(&cb->when, 0, cb->time_ms * 1000L);
 	return ERROR_OK;
 }
 
@@ -1607,9 +1594,7 @@ static int target_call_timer_callbacks_check_time(int checktime)
 
 		bool call_it = (*callback)->callback &&
 			((!checktime && (*callback)->periodic) ||
-			 now.tv_sec > (*callback)->when.tv_sec ||
-			 (now.tv_sec == (*callback)->when.tv_sec &&
-			  now.tv_usec >= (*callback)->when.tv_usec));
+			 timeval_compare(&now, &(*callback)->when) >= 0);
 
 		if (call_it)
 			target_call_timer_callback(*callback, &now);
@@ -2028,8 +2013,7 @@ static int target_profiling_default(struct target *target, uint32_t *samples,
 			break;
 
 		gettimeofday(&now, NULL);
-		if ((sample_count >= max_num_samples) ||
-			((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec))) {
+		if ((sample_count >= max_num_samples) || timeval_compare(&now, &timeout) >= 0) {
 			LOG_INFO("Profiling completed. %" PRIu32 " samples.", sample_count);
 			break;
 		}
