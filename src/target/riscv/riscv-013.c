@@ -343,7 +343,7 @@ static void increase_dmi_busy_delay(struct target *target)
  * run-test/idle cycles may be required.
  */
 static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
-		uint64_t *data_in, dmi_op_t op, uint16_t address_out, uint64_t data_out,
+		uint32_t *data_in, dmi_op_t op, uint16_t address_out, uint32_t data_out,
 		bool exec)
 {
 	riscv013_info_t *info = get_info(target);
@@ -357,9 +357,9 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 
 	assert(info->abits != 0);
 
-	buf_set_u64(out, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, op);
-	buf_set_u64(out, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, data_out);
-	buf_set_u64(out, DTM_DMI_ADDRESS_OFFSET, info->abits, address_out);
+	buf_set_u32(out, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, op);
+	buf_set_u32(out, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, data_out);
+	buf_set_u32(out, DTM_DMI_ADDRESS_OFFSET, info->abits, address_out);
 
 	/* Assume dbus is already selected. */
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
@@ -378,7 +378,7 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	}
 
 	if (data_in)
-		*data_in = buf_get_u64(in, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH);
+		*data_in = buf_get_u32(in, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH);
 
 	if (address_in)
 		*address_in = buf_get_u32(in, DTM_DMI_ADDRESS_OFFSET, info->abits);
@@ -388,7 +388,7 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
-static uint64_t dmi_read(struct target *target, uint16_t address)
+static uint32_t dmi_read(struct target *target, uint16_t address)
 {
 	select_dmi(target);
 
@@ -415,13 +415,13 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 
 	if (status != DMI_STATUS_SUCCESS) {
 		LOG_ERROR("Failed read from 0x%x; status=%d", address, status);
-		return ~0ULL;
+		return ~0;
 	}
 
 	/* This second loop ensures that we got the read
 	 * data back. Note that NOP can result in a 'busy' result as well, but
 	 * that would be noticed on the next DMI access we do. */
-	uint64_t value;
+	uint32_t value;
 	for (i = 0; i < 256; i++) {
 		status = dmi_scan(target, &address_in, &value, DMI_OP_NOP, address, 0,
 				false);
@@ -439,10 +439,10 @@ static uint64_t dmi_read(struct target *target, uint16_t address)
 		if (status == DMI_STATUS_FAILED) {
 			LOG_ERROR("Failed read (NOP) from 0x%x; status=%d", address, status);
 		} else {
-			LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%" PRIx64 ", status=%d",
+			LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%x, status=%d",
 					address, value, status);
 		}
-		return ~0ULL;
+		return ~0;
 	}
 
 	return value;
@@ -1426,6 +1426,19 @@ static int execute_fence(struct target *target)
 	return result;
 }
 
+static void log_memory_access(target_addr_t address, uint64_t value,
+		unsigned size_bytes, bool read)
+{
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
+
+	char fmt[80];
+	sprintf(fmt, "M[0x%" TARGET_PRIxADDR "] %ss 0x%%0%d" PRIx64,
+			address, read ? "read" : "write", size_bytes * 2);
+	value &= (((uint64_t) 0x1) << (size_bytes * 8)) - 1;
+	LOG_DEBUG(fmt, value);
+}
+
 /**
  * Read the requested memory, taking care to execute every read exactly once,
  * even if cmderr=busy is encountered.
@@ -1621,8 +1634,7 @@ static int read_memory(struct target *target, target_addr_t address,
 			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, i);
 			uint32_t value = get_field(dmi_out, DTM_DMI_DATA);
 			write_to_buf(buffer + offset, value, size);
-			LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", receive_addr,
-					value);
+			log_memory_access(receive_addr, value, size, true);
 
 			receive_addr += size;
 		}
@@ -1631,8 +1643,7 @@ static int read_memory(struct target *target, target_addr_t address,
 		if (cmderr == CMDERR_BUSY) {
 			riscv_addr_t offset = receive_addr - address;
 			write_to_buf(buffer + offset, dmi_data0, size);
-			LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%08x", receive_addr,
-					dmi_data0);
+			log_memory_access(receive_addr, dmi_data0, size, true);
 			read_addr += size;
 			receive_addr += size;
 		}
@@ -1644,7 +1655,7 @@ static int read_memory(struct target *target, target_addr_t address,
 		/* Read the penultimate word. */
 		uint64_t value = dmi_read(target, DMI_DATA0);
 		write_to_buf(buffer + receive_addr - address, value, size);
-		LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, receive_addr, value);
+		log_memory_access(receive_addr, value, size, true);
 		receive_addr += size;
 	}
 
@@ -1654,7 +1665,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	if (result != ERROR_OK)
 		goto error;
 	write_to_buf(buffer + receive_addr - address, value, size);
-	LOG_DEBUG("M[0x%" TARGET_PRIxADDR "] reads 0x%" PRIx64, receive_addr, value);
+	log_memory_access(receive_addr, value, size, true);
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
@@ -1756,7 +1767,7 @@ static int write_memory(struct target *target, target_addr_t address,
 					goto error;
 			}
 
-			LOG_DEBUG("M[0x%08" PRIx64 "] writes 0x%08x", address + offset, value);
+			log_memory_access(address + offset, value, size, false);
 			cur_addr += size;
 
 			if (setup_needed) {
