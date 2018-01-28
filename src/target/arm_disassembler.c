@@ -2978,6 +2978,7 @@ static int t2ev_b_bl(uint32_t opcode, uint32_t address,
 	case 0x4:
 		inst = "BLX";
 		instruction->type = ARM_BLX;
+		address &= 0xfffffffc;
 		break;
 	case 0x5:
 		inst = "BL";
