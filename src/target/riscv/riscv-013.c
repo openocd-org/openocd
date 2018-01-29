@@ -182,7 +182,22 @@ typedef struct {
 	uint8_t datasize;
 	uint8_t dataaccess;
 	int16_t dataaddr;
+
+	/* The width of the hartsel field. */
+	unsigned hartsellen;
 } riscv013_info_t;
+
+static riscv013_info_t *get_info(const struct target *target)
+{
+	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	return (riscv013_info_t *) info->version_specific;
+}
+
+static uint32_t hartsel_mask(const struct target *target)
+{
+	RISCV013_INFO(info);
+	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
+}
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
 {
@@ -195,7 +210,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_RESUMEREQ, "resumereq" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTRESET, "hartreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
-		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTSEL, "hartsel" },
+		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET, "hartsel" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 
@@ -288,12 +303,6 @@ static void dump_field(const struct scan_field *field)
 		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, "scan", "%s -> %s",
 				out_text, in_text);
 	}
-}
-
-static riscv013_info_t *get_info(const struct target *target)
-{
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	return (riscv013_info_t *) info->version_specific;
 }
 
 /*** Utility functions. ***/
@@ -1171,10 +1180,10 @@ static int examine(struct target *target)
 	}
 
 	/* Reset the Debug Module. */
-	dmi_write(target, DMI_DMCONTROL, 0);
-	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
+	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask);
+	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask | DMI_DMCONTROL_DMACTIVE);
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
-	LOG_DEBUG("dmcontrol: 0x%08x", dmcontrol);
 
 	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
@@ -1182,8 +1191,15 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	uint32_t hartsel = get_field(dmcontrol, max_hartsel_mask);
+	info->hartsellen = 0;
+	while (hartsel & 1) {
+		info->hartsellen++;
+		hartsel >>= 1;
+	}
+	LOG_DEBUG("hartsellen=%d", info->hartsellen);
+
 	uint32_t hartinfo = dmi_read(target, DMI_HARTINFO);
-	LOG_DEBUG("hartinfo:  0x%08x", hartinfo);
 
 	info->datasize = get_field(hartinfo, DMI_HARTINFO_DATASIZE);
 	info->dataaccess = get_field(hartinfo, DMI_HARTINFO_DATAACCESS);
@@ -1195,16 +1211,6 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	if (get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
-		LOG_ERROR("The hart is unavailable.");
-		return ERROR_FAIL;
-	}
-
-	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT)) {
-		LOG_ERROR("The hart doesn't exist.");
-		return ERROR_FAIL;
-	}
-
 	info->sbcs = dmi_read(target, DMI_SBCS);
 
 	/* Check that abstract data registers are accessible. */
@@ -1212,13 +1218,14 @@ static int examine(struct target *target)
 	info->datacount = get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT);
 	info->progbufsize = get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE);
 
-	/* Before doing anything else we must first enumerate the harts. */
 	RISCV_INFO(r);
 	r->impebreak = get_field(dmstatus, DMI_DMSTATUS_IMPEBREAK);
 
+	/* Before doing anything else we must first enumerate the harts. */
+
 	/* Don't call any riscv_* functions until after we've counted the number of
 	 * cores and initialized registers. */
-	for (int i = 0; i < RISCV_MAX_HARTS; ++i) {
+	for (int i = 0; i < MIN(RISCV_MAX_HARTS, 1 << info->hartsellen); ++i) {
 		if (!riscv_rtos_enabled(target) && i != target->coreid)
 			continue;
 
@@ -1263,6 +1270,11 @@ static int examine(struct target *target)
 	}
 
 	LOG_DEBUG("Enumerated %d harts", r->hart_count);
+
+	if (r->hart_count == 0) {
+		LOG_ERROR("No harts found!");
+		return ERROR_FAIL;
+	}
 
 	/* Then we check the number of triggers availiable to each hart. */
 	riscv_enumerate_triggers(target);
@@ -1313,7 +1325,7 @@ static int assert_reset(struct target *target)
 			if (!riscv_hart_enabled(target, i))
 				continue;
 
-			control = set_field(control_base, DMI_DMCONTROL_HARTSEL, i);
+			control = set_field(control_base, hartsel_mask(target), i);
 			control = set_field(control, DMI_DMCONTROL_HALTREQ,
 					target->reset_halt ? 1 : 0);
 			dmi_write(target, DMI_DMCONTROL, control);
@@ -1324,7 +1336,7 @@ static int assert_reset(struct target *target)
 
 	} else {
 		/* Reset just this hart. */
-		uint32_t control = set_field(control_base, DMI_DMCONTROL_HARTSEL,
+		uint32_t control = set_field(control_base, hartsel_mask(target),
 				r->current_hartid);
 		control = set_field(control, DMI_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
@@ -1358,7 +1370,7 @@ static int deassert_reset(struct target *target)
 	/* Clear the reset, but make sure haltreq is still set */
 	uint32_t control = 0;
 	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
-	control = set_field(control, DMI_DMCONTROL_HARTSEL, r->current_hartid);
+	control = set_field(control, hartsel_mask(target), r->current_hartid);
 	control = set_field(control, DMI_DMCONTROL_DMACTIVE, 1);
 	dmi_write(target, DMI_DMCONTROL, control);
 
@@ -2164,7 +2176,7 @@ static void riscv013_select_current_hart(struct target *target)
 	RISCV_INFO(r);
 
 	uint64_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HARTSEL, r->current_hartid);
+	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 }
 
