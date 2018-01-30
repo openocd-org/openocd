@@ -159,6 +159,10 @@ typedef struct {
 	 * in between accesses. */
 	unsigned int dmi_busy_delay;
 
+	/* Number of run-test/idle cycles to add between consecutive bus master
+	 * reads/writes respectively. */
+	unsigned int bus_master_write_delay, bus_master_read_delay;
+
 	/* This value is increased every time we tried to execute two commands
 	 * consecutively, and the second one failed because the previous hadn't
 	 * completed yet.  It's used to add extra run-test/idle cycles after
@@ -1123,6 +1127,8 @@ static int init_target(struct command_context *cmd_ctx,
 	info->progbufsize = -1;
 
 	info->dmi_busy_delay = 0;
+	info->bus_master_read_delay = 0;
+	info->bus_master_write_delay = 0;
 	info->ac_busy_delay = 0;
 
 	/* Assume all these abstract commands are supported until we learn
@@ -1469,16 +1475,28 @@ static void log_memory_access(target_addr_t address, uint64_t value,
 
 /* Read the relevant sbdata regs depending on size, and put the results into
  * buffer. */
-static int read_memory_bus_word(struct target *target, uint32_t size,
-		uint8_t *buffer)
+static int read_memory_bus_word(struct target *target, target_addr_t address,
+		uint32_t size, uint8_t *buffer)
 {
-	if (size > 12)
-		write_to_buf(buffer + 12, dmi_read(target, DMI_SBDATA3), 4);
-	if (size > 8)
-		write_to_buf(buffer + 8, dmi_read(target, DMI_SBDATA2), 4);
-	if (size > 4)
-		write_to_buf(buffer + 4, dmi_read(target, DMI_SBDATA1), 4);
-	write_to_buf(buffer, dmi_read(target, DMI_SBDATA0), MIN(size, 4));
+	uint32_t value;
+	if (size > 12) {
+		value = dmi_read(target, DMI_SBDATA3);
+		write_to_buf(buffer + 12, value, 4);
+		log_memory_access(address + 12, value, 4, true);
+	}
+	if (size > 8) {
+		value = dmi_read(target, DMI_SBDATA2);
+		write_to_buf(buffer + 8, value, 4);
+		log_memory_access(address + 8, value, 4, true);
+	}
+	if (size > 4) {
+		value = dmi_read(target, DMI_SBDATA1);
+		write_to_buf(buffer + 4, value, 4);
+		log_memory_access(address + 4, value, 4, true);
+	}
+	value = dmi_read(target, DMI_SBDATA0);
+	write_to_buf(buffer, value, MIN(size, 4));
+	log_memory_access(address, value, MIN(size, 4), true);
 	return ERROR_OK;
 }
 
@@ -1535,43 +1553,83 @@ static int sb_write_address(struct target *target, target_addr_t address)
 	return dmi_write(target, DMI_SBADDRESS0, address);
 }
 
+static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
+{
+	time_t start = time(NULL);
+	while (1) {
+		*sbcs = dmi_read(target, DMI_SBCS);
+		if (!get_field(*sbcs, DMI_SBCS_SBBUSY))
+			return ERROR_OK;
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("Timed out after %ds waiting for sbbusy to go low (sbcs=0x%x). "
+					"Increase the timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec, *sbcs);
+		}
+		return ERROR_FAIL;
+	}
+}
+
 /**
  * Read the requested memory using the system bus interface.
  */
 static int read_memory_bus(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	uint32_t sbcs = set_field(0, DMI_SBCS_SBREADONADDR, 1);
-	sbcs |= sb_sbaccess(size);
-	sbcs = set_field(sbcs, DMI_SBCS_SBAUTOINCREMENT, 1);
-	sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, count > 1);
-	dmi_write(target, DMI_SBCS, sbcs);
+	RISCV013_INFO(info);
+	target_addr_t next_address = address;
+	target_addr_t end_address = address + count * size;
 
-	/* This address write will trigger the first read. */
-	sb_write_address(target, address);
+	while (next_address < end_address) {
+		uint32_t sbcs = set_field(0, DMI_SBCS_SBREADONADDR, 1);
+		sbcs |= sb_sbaccess(size);
+		sbcs = set_field(sbcs, DMI_SBCS_SBAUTOINCREMENT, 1);
+		sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, count > 1);
+		dmi_write(target, DMI_SBCS, sbcs);
 
-	for (uint32_t i = 0; i < count - 1; i++) {
-		read_memory_bus_word(target, size, buffer + i * size);
+		/* This address write will trigger the first read. */
+		sb_write_address(target, next_address);
+
+		if (info->bus_master_read_delay) {
+			jtag_add_runtest(info->bus_master_read_delay, TAP_IDLE);
+			if (jtag_execute_queue() != ERROR_OK) {
+				LOG_ERROR("Failed to scan idle sequence");
+				return ERROR_FAIL;
+			}
+		}
+
+		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
+			read_memory_bus_word(target, address + i * size, size,
+					buffer + i * size);
+		}
+
+		sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, 0);
+		dmi_write(target, DMI_SBCS, sbcs);
+
+		read_memory_bus_word(target, address + (count - 1) * size, size,
+				buffer + (count - 1) * size);
+
+		if (read_sbcs_nonbusy(target, &sbcs) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (get_field(sbcs, DMI_SBCS_SBBUSYERROR)) {
+			/* We read while the target was busy. Slow down and try again. */
+			dmi_write(target, DMI_SBCS, DMI_SBCS_SBBUSYERROR);
+			next_address = sb_read_address(target);
+			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
+		}
+
+		unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
+		if (error == 0) {
+			next_address = end_address;
+		} else {
+			/* Some error indicating the bus access failed, but not because of
+			 * something we did wrong. */
+			dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
+			return ERROR_FAIL;
+		}
 	}
 
-	sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, 0);
-	dmi_write(target, DMI_SBCS, sbcs);
-
-	read_memory_bus_word(target, size, buffer + (count - 1) * size);
-
-	sbcs = dmi_read(target, DMI_SBCS);
-	unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
-	if (error == 0) {
-		return ERROR_OK;
-	} else if (error == 1 || error == 2 || error == 3) {
-		/* Bus timeout, bus error, other bus error. */
-		dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
-		return ERROR_FAIL;
-	} else if (error == 4) {
-		assert(0);
-		/* TODO: Reading too fast. We should deal with this properly. */
-	}
-	return ERROR_FAIL;
+	return ERROR_OK;
 }
 
 /**
@@ -1818,7 +1876,9 @@ static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	RISCV013_INFO(info);
-	if ((get_field(info->sbcs, DMI_SBCS_SBVERSION) == 1) && (
+	if (info->progbufsize >= 2) {
+		return read_memory_progbuf(target, address, size, count, buffer);
+	} else if ((get_field(info->sbcs, DMI_SBCS_SBVERSION) == 1) && (
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS8) && size == 1) ||
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS16) && size == 2) ||
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS32) && size == 4) ||
@@ -1826,13 +1886,15 @@ static int read_memory(struct target *target, target_addr_t address,
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS128) && size == 16))) {
 		return read_memory_bus(target, address, size, count, buffer);
 	} else {
-		return read_memory_progbuf(target, address, size, count, buffer);
+		LOG_ERROR("Don't know how to read memory on this target.");
+		return ERROR_FAIL;
 	}
 }
 
 static int write_memory_bus(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
+	RISCV013_INFO(info);
 	uint32_t sbcs = sb_sbaccess(size);
 	sbcs = set_field(sbcs, DMI_SBCS_SBAUTOINCREMENT, 1);
 	dmi_write(target, DMI_SBCS, sbcs);
@@ -1870,21 +1932,36 @@ static int write_memory_bus(struct target *target, target_addr_t address,
 			if (size > 1)
 				value |= ((uint32_t) p[1]) << 8;
 			dmi_write(target, DMI_SBDATA0, value);
+
+			log_memory_access(address + i * size, value, size, false);
+
+			if (info->bus_master_write_delay) {
+				jtag_add_runtest(info->bus_master_write_delay, TAP_IDLE);
+				if (jtag_execute_queue() != ERROR_OK) {
+					LOG_ERROR("Failed to scan idle sequence");
+					return ERROR_FAIL;
+				}
+			}
 		}
 
-		sbcs = dmi_read(target, DMI_SBCS);
+		if (read_sbcs_nonbusy(target, &sbcs) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (get_field(sbcs, DMI_SBCS_SBBUSYERROR)) {
+			/* We wrote while the target was busy. Slow down and try again. */
+			dmi_write(target, DMI_SBCS, DMI_SBCS_SBBUSYERROR);
+			next_address = sb_read_address(target);
+			info->bus_master_write_delay += info->bus_master_write_delay / 10 + 1;
+		}
+
 		unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
 		if (error == 0) {
 			next_address = end_address;
-		} else if (error == 1 || error == 2 || error == 3) {
-			/* Bus timeout, bus error, other bus error. */
+		} else {
+			/* Some error indicating the bus access failed, but not because of
+			 * something we did wrong. */
 			dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
 			return ERROR_FAIL;
-		} else if (error == 4) {
-			/* We wrote while the target was busy. Slow down and try again. */
-			next_address = sb_read_address(target);
-			dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
-			// <<< TODO: slow down
 		}
 	}
 
@@ -2072,7 +2149,9 @@ static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	RISCV013_INFO(info);
-	if ((get_field(info->sbcs, DMI_SBCS_SBVERSION) == 1) && (
+	if (info->progbufsize >= 2) {
+		return write_memory_progbuf(target, address, size, count, buffer);
+	} else if ((get_field(info->sbcs, DMI_SBCS_SBVERSION) == 1) && (
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS8) && size == 1) ||
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS16) && size == 2) ||
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS32) && size == 4) ||
@@ -2080,7 +2159,8 @@ static int write_memory(struct target *target, target_addr_t address,
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS128) && size == 16))) {
 		return write_memory_bus(target, address, size, count, buffer);
 	} else {
-		return write_memory_progbuf(target, address, size, count, buffer);
+		LOG_ERROR("Don't know how to write memory on this target.");
+		return ERROR_FAIL;
 	}
 }
 
