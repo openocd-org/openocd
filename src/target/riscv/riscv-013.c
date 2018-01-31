@@ -611,14 +611,14 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	return ERROR_OK;
 }
 
-static riscv_reg_t read_abstract_arg(struct target *target, unsigned index)
+static riscv_reg_t read_abstract_arg(struct target *target, unsigned index,
+		unsigned size_bits)
 {
 	riscv_reg_t value = 0;
-	unsigned xlen = riscv_xlen(target);
-	unsigned offset = index * xlen / 32;
-	switch (xlen) {
+	unsigned offset = index * size_bits / 32;
+	switch (size_bits) {
 		default:
-			LOG_ERROR("Unsupported xlen: %d", xlen);
+			LOG_ERROR("Unsupported size: %d", size_bits);
 			return ~0;
 		case 64:
 			value |= ((uint64_t) dmi_read(target, DMI_DATA0 + offset + 1)) << 32;
@@ -629,14 +629,13 @@ static riscv_reg_t read_abstract_arg(struct target *target, unsigned index)
 }
 
 static int write_abstract_arg(struct target *target, unsigned index,
-		riscv_reg_t value)
+		riscv_reg_t value, unsigned size_bits)
 {
-	unsigned xlen = riscv_xlen(target);
-	unsigned offset = index * xlen / 32;
-	switch (xlen) {
+	unsigned offset = index * size_bits / 32;
+	switch (size_bits) {
 		default:
-			LOG_ERROR("Unsupported xlen: %d", xlen);
-			return ~0;
+			LOG_ERROR("Unsupported size: %d", size_bits);
+			return ERROR_FAIL;
 		case 64:
 			dmi_write(target, DMI_DATA0 + offset + 1, value >> 32);
 		case 32:
@@ -687,7 +686,7 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 	RISCV013_INFO(info);
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-			!info->abstract_read_fpr_supported)
+			!info->abstract_write_fpr_supported)
 		return ERROR_FAIL;
 	if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095 &&
 			!info->abstract_read_csr_supported)
@@ -711,7 +710,7 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 	}
 
 	if (value)
-		*value = read_abstract_arg(target, 0);
+		*value = read_abstract_arg(target, 0, size);
 
 	return ERROR_OK;
 }
@@ -732,7 +731,7 @@ static int register_write_abstract(struct target *target, uint32_t number,
 			AC_ACCESS_REGISTER_TRANSFER |
 			AC_ACCESS_REGISTER_WRITE);
 
-	if (write_abstract_arg(target, 0, value) != ERROR_OK)
+	if (write_abstract_arg(target, 0, value, size) != ERROR_OK)
 		return ERROR_FAIL;
 
 	int result = execute_abstract_command(target, command);
@@ -946,16 +945,31 @@ static int scratch_write64(struct target *target, scratch_mem_t *scratch,
 	return ERROR_OK;
 }
 
+/** Return register size in bits. */
+static unsigned register_size(struct target *target, unsigned number)
+{
+	/* If reg_cache hasn't been initialized yet, make a guess. We need this for
+	 * when this function is called during examine(). */
+	if (target->reg_cache)
+		return target->reg_cache->reg_list[number].size;
+	else
+		return riscv_xlen(target);
+}
+
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value)
 {
+	RISCV013_INFO(info);
+	RISCV_INFO(r);
+
 	LOG_DEBUG("[%d] reg[0x%x] <- 0x%" PRIx64, riscv_current_hartid(target),
 			number, value);
 
 	int result = register_write_abstract(target, number, value,
-			riscv_xlen(target));
-	if (result == ERROR_OK)
-		return ERROR_OK;
+			register_size(target, number));
+	if (result == ERROR_OK ||
+			info->progbufsize + r->impebreak < 2)
+		return result;
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
@@ -1011,10 +1025,14 @@ static int register_write_direct(struct target *target, unsigned number,
 /** Actually read registers from the target right now. */
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number)
 {
-	int result = register_read_abstract(target, value, number,
-			riscv_xlen(target));
+	RISCV013_INFO(info);
+	RISCV_INFO(r);
 
-	if (result != ERROR_OK) {
+	int result = register_read_abstract(target, value, number,
+			register_size(target, number));
+
+	if (result != ERROR_OK &&
+			info->progbufsize + r->impebreak >= 2) {
 		assert(number != GDB_REGNO_S0);
 
 		struct riscv_program program;
@@ -1224,8 +1242,17 @@ static int examine(struct target *target)
 	info->datacount = get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT);
 	info->progbufsize = get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE);
 
+	LOG_INFO("datacount=%d progbufsize=%d", info->datacount, info->progbufsize);
+
 	RISCV_INFO(r);
 	r->impebreak = get_field(dmstatus, DMI_DMSTATUS_IMPEBREAK);
+
+	if (info->progbufsize + r->impebreak < 2) {
+		LOG_WARNING("We won't be able to execute fence instructions on this "
+				"target. Memory may not always appear consistent. "
+				"(progbufsize=%d, impebreak=%d)", info->progbufsize,
+				r->impebreak);
+	}
 
 	/* Before doing anything else we must first enumerate the harts. */
 
@@ -2400,14 +2427,26 @@ int riscv013_dmi_write_u64_bits(struct target *target)
 	return info->abits + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH;
 }
 
+static int maybe_execute_fence_i(struct target *target)
+{
+	RISCV013_INFO(info);
+	RISCV_INFO(r);
+	if (info->progbufsize + r->impebreak >= 2) {
+		struct riscv_program program;
+		riscv_program_init(&program, target);
+		if (riscv_program_fence_i(&program) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_program_exec(&program, target) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 /* Helper Functions. */
 static int riscv013_on_step_or_resume(struct target *target, bool step)
 {
-	struct riscv_program program;
-	riscv_program_init(&program, target);
-	riscv_program_fence_i(&program);
-	if (riscv_program_exec(&program, target) != ERROR_OK)
-		LOG_ERROR("Unable to execute fence.i");
+	if (maybe_execute_fence_i(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
 	riscv_reg_t dcsr;
@@ -2430,10 +2469,7 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		return ERROR_FAIL;
 	}
 
-	struct riscv_program program;
-	riscv_program_init(&program, target);
-	riscv_program_fence_i(&program);
-	if (riscv_program_exec(&program, target) != ERROR_OK)
+	if (maybe_execute_fence_i(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Issue the resume command, and then wait for the current hart to resume. */
