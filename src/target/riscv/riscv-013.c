@@ -1913,7 +1913,7 @@ static int riscv013_get_register(struct target *target,
 	} else {
 		result = register_read_direct(target, value, rid);
 		if (result != ERROR_OK) {
-			LOG_ERROR("Unable to read register %d", rid);
+			LOG_ERROR("Unable to read %s", gdb_regno_name(rid));
 			*value = -1;
 		}
 	}
