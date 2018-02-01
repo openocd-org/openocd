@@ -686,7 +686,7 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 	RISCV013_INFO(info);
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-			!info->abstract_write_fpr_supported)
+			!info->abstract_read_fpr_supported)
 		return ERROR_FAIL;
 	if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095 &&
 			!info->abstract_read_csr_supported)
