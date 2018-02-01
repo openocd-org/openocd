@@ -1542,6 +1542,7 @@ static uint32_t sb_sbaccess(unsigned size_bytes)
 			return set_field(0, DMI_SBCS_SBACCESS, 4);
 	}
 	assert(0);
+	return 0;	/* Make mingw happy. */
 }
 
 static target_addr_t sb_read_address(struct target *target)
