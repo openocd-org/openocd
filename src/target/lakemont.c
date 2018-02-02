@@ -444,6 +444,8 @@ static uint32_t get_tapstatus(struct target *t)
 static int enter_probemode(struct target *t)
 {
 	uint32_t tapstatus = 0;
+	int retries = 100;
+
 	tapstatus = get_tapstatus(t);
 	LOG_DEBUG("TS before PM enter = 0x%08" PRIx32, tapstatus);
 	if (tapstatus & TS_PM_BIT) {
@@ -456,15 +458,17 @@ static int enter_probemode(struct target *t)
 	scan.out[0] = 1;
 	if (drscan(t, scan.out, scan.in, 1) != ERROR_OK)
 		return ERROR_FAIL;
-	tapstatus = get_tapstatus(t);
-	LOG_DEBUG("TS after PM enter = 0x%08" PRIx32, tapstatus);
-	if ((tapstatus & TS_PM_BIT) && (!(tapstatus & TS_EN_PM_BIT)))
-		return ERROR_OK;
-	else {
-		LOG_ERROR("%s PM enter error, tapstatus = 0x%08" PRIx32
-				, __func__, tapstatus);
-		return ERROR_FAIL;
+
+	while (retries--) {
+		tapstatus = get_tapstatus(t);
+		LOG_DEBUG("TS after PM enter = 0x%08" PRIx32, tapstatus);
+		if ((tapstatus & TS_PM_BIT) && (!(tapstatus & TS_EN_PM_BIT)))
+			return ERROR_OK;
 	}
+
+	LOG_ERROR("%s PM enter error, tapstatus = 0x%08" PRIx32
+			, __func__, tapstatus);
+	return ERROR_FAIL;
 }
 
 static int exit_probemode(struct target *t)
@@ -966,6 +970,7 @@ int lakemont_poll(struct target *t)
 			return target_call_event_callbacks(t, TARGET_EVENT_HALTED);
 		}
 	}
+
 	return ERROR_OK;
 }
 
@@ -1111,15 +1116,137 @@ int lakemont_step(struct target *t, int current,
 	return retval;
 }
 
-/* TODO - implement resetbreak fully through CLTAP registers */
+static int lakemont_reset_break(struct target *t)
+{
+	struct x86_32_common *x86_32 = target_to_x86_32(t);
+	struct jtag_tap *saved_tap = x86_32->curr_tap;
+	struct scan_field *fields = &scan.field;
+
+	int retval = ERROR_OK;
+
+	LOG_DEBUG("issuing port 0xcf9 reset");
+
+	/* prepare resetbreak setting the proper bits in CLTAPC_CPU_VPREQ */
+	x86_32->curr_tap = jtag_tap_by_position(1);
+	if (x86_32->curr_tap == NULL) {
+		x86_32->curr_tap = saved_tap;
+		LOG_ERROR("%s could not select quark_x10xx.cltap", __func__);
+		return ERROR_FAIL;
+	}
+
+	fields->in_value  = NULL;
+	fields->num_bits  = 8;
+
+	/* select CLTAPC_CPU_VPREQ instruction*/
+	scan.out[0] = 0x51;
+	fields->out_value = ((uint8_t *)scan.out);
+	jtag_add_ir_scan(x86_32->curr_tap, fields, TAP_IDLE);
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		x86_32->curr_tap = saved_tap;
+		LOG_ERROR("%s irscan failed to execute queue", __func__);
+		return retval;
+	}
+
+	/* set enable_preq_on_reset & enable_preq_on_reset2 bits*/
+	scan.out[0] = 0x06;
+	fields->out_value  = ((uint8_t *)scan.out);
+	jtag_add_dr_scan(x86_32->curr_tap, 1, fields, TAP_IDLE);
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("%s drscan failed to execute queue", __func__);
+		x86_32->curr_tap = saved_tap;
+		return retval;
+	}
+
+	/* restore current tap */
+	x86_32->curr_tap = saved_tap;
+
+	return ERROR_OK;
+}
+
+/*
+ * If we ever get an adapter with support for PREQ# and PRDY#, we should
+ * update this function to add support for using those two signals.
+ *
+ * Meanwhile, we're assuming that we only support reset break.
+ */
 int lakemont_reset_assert(struct target *t)
 {
-	LOG_DEBUG("-");
+	struct x86_32_common *x86_32 = target_to_x86_32(t);
+	/* write 0x6 to I/O port 0xcf9 to cause the reset */
+	uint8_t cf9_reset_val = 0x6;
+	int retval;
+
+	LOG_DEBUG(" ");
+
+	if (t->state != TARGET_HALTED) {
+		LOG_DEBUG("target must be halted first");
+		retval = lakemont_halt(t);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("could not halt target");
+			return retval;
+		}
+		x86_32->forced_halt_for_reset = true;
+	}
+
+	if (t->reset_halt) {
+		retval = lakemont_reset_break(t);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	retval = x86_32_common_write_io(t, 0xcf9, BYTE, &cf9_reset_val);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("could not write to port 0xcf9");
+		return retval;
+	}
+
+	if (!t->reset_halt && x86_32->forced_halt_for_reset) {
+		x86_32->forced_halt_for_reset = false;
+		retval = lakemont_resume(t, true, 0x00, false, true);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	/* remove breakpoints and watchpoints */
+	x86_32_common_reset_breakpoints_watchpoints(t);
+
 	return ERROR_OK;
 }
 
 int lakemont_reset_deassert(struct target *t)
 {
-	LOG_DEBUG("-");
+	int retval;
+
+	LOG_DEBUG(" ");
+
+	if (target_was_examined(t)) {
+		retval = lakemont_poll(t);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	if (t->reset_halt) {
+		/* entered PM after reset, update the state */
+		retval = lakemont_update_after_probemode_entry(t);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("could not update state after probemode entry");
+			return retval;
+		}
+
+		if (t->state != TARGET_HALTED) {
+			LOG_WARNING("%s: ran after reset and before halt ...",
+				target_name(t));
+			if (target_was_examined(t)) {
+				retval = target_halt(t);
+				if (retval != ERROR_OK)
+					return retval;
+			} else {
+				t->state = TARGET_UNKNOWN;
+			}
+		}
+	}
+
 	return ERROR_OK;
 }

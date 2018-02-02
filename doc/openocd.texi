@@ -4913,17 +4913,60 @@ functionality is available through the @command{flash write_bank},
 @item @var{ir} ... is loaded into the JTAG IR to map the flash as the JTAG DR.
 For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
 @var{USER1} instruction.
-@item @var{dr_length} ... is the length of the DR register. This will be 1 for
-@file{xilinx_bscan_spi.py} bitstreams and most other cases.
 @end itemize
 
 @example
 target create $_TARGETNAME testee -chain-position $_CHIPNAME.fpga
 set _XILINX_USER1 0x02
-set _DR_LENGTH 1
 flash bank $_FLASHNAME spi 0x0 0 0 0 \
-           $_TARGETNAME $_XILINX_USER1 $_DR_LENGTH
+           $_TARGETNAME $_XILINX_USER1
 @end example
+@end deffn
+
+@deffn {Flash Driver} xcf
+@cindex Xilinx Platform flash driver
+@cindex xcf
+Xilinx FPGAs can be configured from specialized flash ICs named Platform Flash.
+It is (almost) regular NOR flash with erase sectors, program pages, etc. The
+only difference is special registers controlling its FPGA specific behavior.
+They must be properly configured for successful FPGA loading using
+additional @var{xcf} driver command:
+
+@deffn Command {xcf ccb} <bank_id>
+command accepts additional parameters:
+@itemize
+@item @var{external|internal} ... selects clock source.
+@item @var{serial|parallel} ... selects serial or parallel data bus mode.
+@item @var{slave|master} ... selects slave of master mode for flash device.
+@item @var{40|20} ... selects clock frequency in MHz for internal clock
+in master mode.
+@end itemize
+@example
+xcf ccb 0 external parallel slave 40
+@end example
+All of them must be specified even if clock frequency is pointless
+in slave mode. If only bank id specified than command prints current
+CCB register value. Note: there is no need to write this register
+every time you erase/program data sectors because it stores in
+dedicated sector.
+@end deffn
+
+@deffn Command {xcf configure} <bank_id>
+Initiates FPGA loading procedure. Useful if your board has no "configure"
+button.
+@example
+xcf configure 0
+@end example
+@end deffn
+
+Additional driver notes:
+@itemize
+@item Only single revision supported.
+@item Driver automatically detects need of bit reverse, but
+only "bin" (raw binary, do not confuse it with "bit") and "mcs"
+(Intel hex) file types supported.
+@item For additional info check xapp972.pdf and ug380.pdf.
+@end itemize
 @end deffn
 
 @deffn {Flash Driver} lpcspifi
@@ -5358,7 +5401,7 @@ from NXP (former Freescale) include
 internal flash and use ARM Cortex-M0+ or M4 cores. The driver automatically
 recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
-Use kinetis_ke driver for KE0x devices.
+Use kinetis_ke driver for KE0x and KEAx devices.
 
 The @var{kinetis} driver defines option:
 @itemize
@@ -5451,7 +5494,7 @@ Command disables watchdog timer.
 
 @deffn {Flash Driver} kinetis_ke
 @cindex kinetis_ke
-KE0x members of the Kinetis microcontroller family from Freescale include
+KE0x and KEAx members of the Kinetis microcontroller family from NXP include
 internal flash and use ARM Cortex-M0+. The driver automatically recognizes
 the KE0x sub-family using the chip identification register, and
 autoconfigures itself.
@@ -8375,6 +8418,11 @@ halting or resuming of all cores in the group. The command @code{target smp} def
 group. With SMP handling disabled, all targets need to be treated individually.
 @end deffn
 
+@deffn Command {aarch64 maskisr} [@option{on}|@option{off}]
+Selects whether interrupts will be processed when single stepping. The default configuration is
+@option{on}.
+@end deffn
+
 @section Intel Architecture
 
 Intel Quark X10xx is the first product in the Quark family of SoCs. It is an IA-32
@@ -8779,11 +8827,27 @@ way to represent JTAG test patterns in text files.
 In a debug session using JTAG for its transport protocol,
 OpenOCD supports running such test files.
 
-@deffn Command {svf} filename [@option{quiet}]
+@deffn Command {svf} @file{filename} [@option{-tap @var{tapname}}] [@option{[-]quiet}] @
+                     [@option{[-]nil}] [@option{[-]progress}] [@option{[-]ignore_error}]
 This issues a JTAG reset (Test-Logic-Reset) and then
 runs the SVF script from @file{filename}.
-Unless the @option{quiet} option is specified,
-each command is logged before it is executed.
+
+Arguments can be specified in any order; the optional dash doesn't
+affect their semantics.
+
+Command options:
+@itemize @minus
+@item @option{-tap @var{tapname}} ignore IR and DR headers and footers
+specified by the SVF file with HIR, TIR, HDR and TDR commands;
+instead, calculate them automatically according to the current JTAG
+chain configuration, targetting @var{tapname};
+@item @option{[-]quiet} do not log every command before execution;
+@item @option{[-]nil} ``dry run'', i.e., do not perform any operations
+on the real interface;
+@item @option{[-]progress} enable progress indication;
+@item @option{[-]ignore_error} continue execution despite TDO check
+errors.
+@end itemize
 @end deffn
 
 @section XSVF: Xilinx Serial Vector Format

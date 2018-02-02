@@ -1707,6 +1707,97 @@ void cortex_m_deinit_target(struct target *target)
 	free(cortex_m);
 }
 
+int cortex_m_profiling(struct target *target, uint32_t *samples,
+			      uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
+{
+	struct timeval timeout, now;
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	uint32_t reg_value;
+	bool use_pcsr = false;
+	int retval = ERROR_OK;
+	struct reg *reg;
+
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, seconds, 0);
+
+	retval = target_read_u32(target, DWT_PCSR, &reg_value);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Error while reading PCSR");
+		return retval;
+	}
+
+	if (reg_value != 0) {
+		use_pcsr = true;
+		LOG_INFO("Starting Cortex-M profiling. Sampling DWT_PCSR as fast as we can...");
+	} else {
+		LOG_INFO("Starting profiling. Halting and resuming the"
+			 " target as often as we can...");
+		reg = register_get_by_name(target->reg_cache, "pc", 1);
+	}
+
+	/* Make sure the target is running */
+	target_poll(target);
+	if (target->state == TARGET_HALTED)
+		retval = target_resume(target, 1, 0, 0, 0);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Error while resuming target");
+		return retval;
+	}
+
+	uint32_t sample_count = 0;
+
+	for (;;) {
+		if (use_pcsr) {
+			if (armv7m && armv7m->debug_ap) {
+				uint32_t read_count = max_num_samples - sample_count;
+				if (read_count > 1024)
+					read_count = 1024;
+
+				retval = mem_ap_read_buf_noincr(armv7m->debug_ap,
+							(void *)&samples[sample_count],
+							4, read_count, DWT_PCSR);
+				sample_count += read_count;
+			} else {
+				target_read_u32(target, DWT_PCSR, &samples[sample_count++]);
+			}
+		} else {
+			target_poll(target);
+			if (target->state == TARGET_HALTED) {
+				reg_value = buf_get_u32(reg->value, 0, 32);
+				/* current pc, addr = 0, do not handle breakpoints, not debugging */
+				retval = target_resume(target, 1, 0, 0, 0);
+				samples[sample_count++] = reg_value;
+				target_poll(target);
+				alive_sleep(10); /* sleep 10ms, i.e. <100 samples/second. */
+			} else if (target->state == TARGET_RUNNING) {
+				/* We want to quickly sample the PC. */
+				retval = target_halt(target);
+			} else {
+				LOG_INFO("Target not halted or running");
+				retval = ERROR_OK;
+				break;
+			}
+		}
+
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Error while reading %s", use_pcsr ? "PCSR" : "target pc");
+			return retval;
+		}
+
+
+		gettimeofday(&now, NULL);
+		if (sample_count >= max_num_samples || timeval_compare(&now, &timeout) > 0) {
+			LOG_INFO("Profiling completed. %" PRIu32 " samples.", sample_count);
+			break;
+		}
+	}
+
+	*num_samples = sample_count;
+	return retval;
+}
+
+
 /* REVISIT cache valid/dirty bits are unmaintained.  We could set "valid"
  * on r/w if the core is not running, and clear on resume or reset ... or
  * at least, in a post_restore_context() method.
@@ -2451,4 +2542,6 @@ struct target_type cortexm_target = {
 	.init_target = cortex_m_init_target,
 	.examine = cortex_m_examine,
 	.deinit_target = cortex_m_deinit_target,
+
+	.profiling = cortex_m_profiling,
 };

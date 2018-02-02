@@ -991,7 +991,9 @@ static int gdb_new_connection(struct connection *connection)
 	}
 
 	gdb_actual_connections++;
-	LOG_DEBUG("New GDB Connection: %d, Target %s, state: %s",
+	log_printf_lf(all_targets->next != NULL ? LOG_LVL_INFO : LOG_LVL_DEBUG,
+			__FILE__, __LINE__, __func__,
+			"New GDB Connection: %d, Target %s, state: %s",
 			gdb_actual_connections,
 			target_name(target),
 			target_state_name(target));
@@ -3122,7 +3124,7 @@ static int gdb_target_add_one(struct target *target)
 				} else {
 					/* Don't increment if gdb_port is 0, since we're just
 					 * trying to allocate an unused port. */
-					gdb_port_next = alloc_printf("0");
+					gdb_port_next = strdup("0");
 				}
 			}
 		}
