@@ -35,7 +35,7 @@
 
 #include <target/target.h>
 
-static struct hl_interface_s hl_if = { {0, 0, 0, 0, 0, HL_TRANSPORT_UNKNOWN, false, -1}, 0, 0 };
+static struct hl_interface_s hl_if = { {0, 0, { 0 }, { 0 }, 0, HL_TRANSPORT_UNKNOWN, false, -1}, 0, 0 };
 
 int hl_interface_open(enum hl_transports tr)
 {
@@ -264,15 +264,27 @@ COMMAND_HANDLER(hl_interface_handle_layout_command)
 
 COMMAND_HANDLER(hl_interface_handle_vid_pid_command)
 {
-	LOG_DEBUG("hl_interface_handle_vid_pid_command");
-
-	if (CMD_ARGC != 2) {
-		LOG_WARNING("ignoring extra IDs in hl_vid_pid (maximum is 1 pair)");
+	if (CMD_ARGC > HLA_MAX_USB_IDS * 2) {
+		LOG_WARNING("ignoring extra IDs in hla_vid_pid "
+			"(maximum is %d pairs)", HLA_MAX_USB_IDS);
+		CMD_ARGC = HLA_MAX_USB_IDS * 2;
+	}
+	if (CMD_ARGC < 2 || (CMD_ARGC & 1)) {
+		LOG_WARNING("incomplete hla_vid_pid configuration directive");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], hl_if.param.vid);
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], hl_if.param.pid);
+	unsigned i;
+	for (i = 0; i < CMD_ARGC; i += 2) {
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], hl_if.param.vid[i / 2]);
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], hl_if.param.pid[i / 2]);
+	}
+
+	/*
+	 * Explicitly terminate, in case there are multiple instances of
+	 * hla_vid_pid.
+	 */
+	hl_if.param.vid[i / 2] = hl_if.param.pid[i / 2] = 0;
 
 	return ERROR_OK;
 }

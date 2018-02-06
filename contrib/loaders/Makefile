@@ -1,6 +1,6 @@
 .PHONY: arm clean-arm
 
-all: arm
+all: arm stm8
 
 common_dirs = \
 	checksum \
@@ -32,3 +32,6 @@ clean: clean-arm
 	for d in $(common_dirs); do \
 		$(MAKE) -C $$d clean; \
 	done
+
+stm8:
+	$(MAKE) -C erase_check stm8

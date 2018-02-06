@@ -10,7 +10,7 @@
 static int riscv_gdb_thread_packet(struct connection *connection, const char *packet, int packet_size);
 static int riscv_gdb_v_packet(struct connection *connection, const char *packet, int packet_size);
 
-static int riscv_detect_rtos(struct target *target)
+static bool riscv_detect_rtos(struct target *target)
 {
 	LOG_ERROR("riscv_detect_rtos() unimplemented");
 	return -1;
@@ -79,7 +79,7 @@ static int riscv_gdb_thread_packet(struct connection *connection, const char *pa
 		if (strncmp(packet, "qfThreadInfo", 12) == 0) {
 			riscv_update_threads(target->rtos);
 			r->qs_thread_info_offset = 1;
-			
+
 			char m[16];
 			snprintf(m, 16, "m%08x", (int)rtos->thread_details[0].threadid);
 			gdb_put_packet(connection, m, strlen(m));
@@ -264,7 +264,7 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 
 static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
 {
-	LOG_DEBUG("Updating RISC-V regiser list for hart %d", (int)(thread_id - 1));
+	LOG_DEBUG("Updating RISC-V register list for hart %d", (int)(thread_id - 1));
 
 #if 0
 	LOG_ERROR("  Not actually updating");
@@ -279,18 +279,25 @@ static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char 
 	ssize_t hex_reg_list_length = n_regs * reg_chars + 2;
 	*hex_reg_list = malloc(hex_reg_list_length);
 	*hex_reg_list[0] = '\0';
+	char *p = hex_reg_list[0];
 	for (size_t i = 0; i < n_regs; ++i) {
+		assert(p - hex_reg_list[0] > 3);
 		if (riscv_has_register(rtos->target, thread_id, i)) {
-			uint64_t reg_value = riscv_get_register_on_hart(rtos->target, thread_id - 1, i);
+			uint64_t reg_value;
+			int result = riscv_get_register_on_hart(rtos->target, &reg_value,
+					thread_id - 1, i);
+			if (result != ERROR_OK)
+				return JIM_ERR;
+
 			for (size_t byte = 0; byte < xlen / 8; ++byte) {
 				uint8_t reg_byte = reg_value >> (byte * 8);
-				char hex[3] = {'x', 'x', 'x'};
-				snprintf(hex, 3, "%02x", reg_byte);
-				strncat(*hex_reg_list, hex, hex_reg_list_length);
+				p += snprintf(p, 3, "%02x", reg_byte);
 			}
 		} else {
-			for (size_t byte = 0; byte < xlen / 8; ++byte)
-				strncat(*hex_reg_list, "xx", hex_reg_list_length);
+			for (size_t byte = 0; byte < xlen / 8; ++byte) {
+				strcpy(p, "xx");
+				p += 2;
+			}
 		}
 	}
 	LOG_DEBUG("%s", *hex_reg_list);
@@ -305,8 +312,7 @@ static int riscv_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
 	return JIM_OK;
 }
 
-const struct rtos_type riscv_rtos =
-{
+const struct rtos_type riscv_rtos = {
 	.name = "riscv",
 	.detect_rtos = riscv_detect_rtos,
 	.create = riscv_create_rtos,

@@ -49,6 +49,8 @@
 #define EZR_FAMILY_ID_WONDER_GECKO		120
 #define EZR_FAMILY_ID_LEOPARD_GECKO		121
 #define EZR_FAMILY_ID_HAPPY_GECKO               122
+#define EFR_FAMILY_ID_MIGHTY_GECKO	16
+#define EFR_FAMILY_ID_BLUE_GECKO	20
 
 #define EFM32_FLASH_ERASE_TMO           100
 #define EFM32_FLASH_WDATAREADY_TMO      100
@@ -72,27 +74,31 @@
 #define EFM32_MSC_DI_PROD_REV           (EFM32_MSC_DEV_INFO+0x1ff)
 
 #define EFM32_MSC_REGBASE               0x400c0000
-#define EFM32_MSC_WRITECTRL             (EFM32_MSC_REGBASE+0x008)
+#define EFR32_MSC_REGBASE               0x400e0000
+#define EFM32_MSC_REG_WRITECTRL         0x008
 #define EFM32_MSC_WRITECTRL_WREN_MASK   0x1
-#define EFM32_MSC_WRITECMD              (EFM32_MSC_REGBASE+0x00c)
+#define EFM32_MSC_REG_WRITECMD          0x00c
 #define EFM32_MSC_WRITECMD_LADDRIM_MASK 0x1
 #define EFM32_MSC_WRITECMD_ERASEPAGE_MASK 0x2
 #define EFM32_MSC_WRITECMD_WRITEONCE_MASK 0x8
-#define EFM32_MSC_ADDRB                 (EFM32_MSC_REGBASE+0x010)
-#define EFM32_MSC_WDATA                 (EFM32_MSC_REGBASE+0x018)
-#define EFM32_MSC_STATUS                (EFM32_MSC_REGBASE+0x01c)
+#define EFM32_MSC_REG_ADDRB             0x010
+#define EFM32_MSC_REG_WDATA             0x018
+#define EFM32_MSC_REG_STATUS            0x01c
 #define EFM32_MSC_STATUS_BUSY_MASK      0x1
 #define EFM32_MSC_STATUS_LOCKED_MASK    0x2
 #define EFM32_MSC_STATUS_INVADDR_MASK   0x4
 #define EFM32_MSC_STATUS_WDATAREADY_MASK 0x8
 #define EFM32_MSC_STATUS_WORDTIMEOUT_MASK 0x10
 #define EFM32_MSC_STATUS_ERASEABORTED_MASK 0x20
-#define EFM32_MSC_LOCK                  (EFM32_MSC_REGBASE+0x03c)
+#define EFM32_MSC_REG_LOCK              0x03c
+#define EFR32_MSC_REG_LOCK              0x040
 #define EFM32_MSC_LOCK_LOCKKEY          0x1b71
 
 struct efm32x_flash_bank {
 	int probed;
 	uint32_t lb_page[LOCKBITS_PAGE_SZ/4];
+	uint32_t reg_base;
+	uint32_t reg_lock;
 };
 
 struct efm32_info {
@@ -132,11 +138,30 @@ static int efm32x_get_prod_rev(struct flash_bank *bank, uint8_t *prev)
 	return target_read_u8(bank->target, EFM32_MSC_DI_PROD_REV, prev);
 }
 
+static int efm32x_read_reg_u32(struct flash_bank *bank, target_addr_t offset,
+			       uint32_t *value)
+{
+	struct efm32x_flash_bank *efm32x_info = bank->driver_priv;
+	uint32_t base = efm32x_info->reg_base;
+
+	return target_read_u32(bank->target, base + offset, value);
+}
+
+static int efm32x_write_reg_u32(struct flash_bank *bank, target_addr_t offset,
+			       uint32_t value)
+{
+	struct efm32x_flash_bank *efm32x_info = bank->driver_priv;
+	uint32_t base = efm32x_info->reg_base;
+
+	return target_write_u32(bank->target, base + offset, value);
+}
+
 static int efm32x_read_info(struct flash_bank *bank,
 	struct efm32_info *efm32_info)
 {
 	int ret;
 	uint32_t cpuid = 0;
+	struct efm32x_flash_bank *efm32x_info = bank->driver_priv;
 
 	memset(efm32_info, 0, sizeof(struct efm32_info));
 
@@ -175,6 +200,15 @@ static int efm32x_read_info(struct flash_bank *bank,
 	if (ERROR_OK != ret)
 		return ret;
 
+	if (EFR_FAMILY_ID_BLUE_GECKO == efm32_info->part_family ||
+	    EFR_FAMILY_ID_MIGHTY_GECKO == efm32_info->part_family) {
+		efm32x_info->reg_base = EFR32_MSC_REGBASE;
+		efm32x_info->reg_lock = EFR32_MSC_REG_LOCK;
+	} else {
+		efm32x_info->reg_base = EFM32_MSC_REGBASE;
+		efm32x_info->reg_lock = EFM32_MSC_REG_LOCK;
+	}
+
 	if (EFM_FAMILY_ID_GECKO == efm32_info->part_family ||
 			EFM_FAMILY_ID_TINY_GECKO == efm32_info->part_family)
 		efm32_info->page_size = 512;
@@ -208,7 +242,9 @@ static int efm32x_read_info(struct flash_bank *bank,
 		}
 	} else if (EFM_FAMILY_ID_WONDER_GECKO == efm32_info->part_family ||
 			EZR_FAMILY_ID_WONDER_GECKO == efm32_info->part_family ||
-			EZR_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family) {
+			EZR_FAMILY_ID_LEOPARD_GECKO == efm32_info->part_family ||
+			EFR_FAMILY_ID_BLUE_GECKO == efm32_info->part_family ||
+			EFR_FAMILY_ID_MIGHTY_GECKO == efm32_info->part_family) {
 		uint8_t pg_size = 0;
 		ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE,
 			&pg_size);
@@ -240,6 +276,10 @@ static int efm32x_decode_info(struct efm32_info *info, char *buf, int buf_size)
 		case EZR_FAMILY_ID_LEOPARD_GECKO:
 		case EZR_FAMILY_ID_HAPPY_GECKO:
 			printed = snprintf(buf, buf_size, "EZR32 ");
+			break;
+		case EFR_FAMILY_ID_MIGHTY_GECKO:
+		case EFR_FAMILY_ID_BLUE_GECKO:
+			printed = snprintf(buf, buf_size, "EFR32 ");
 			break;
 		default:
 			printed = snprintf(buf, buf_size, "EFM32 ");
@@ -275,6 +315,12 @@ static int efm32x_decode_info(struct efm32_info *info, char *buf, int buf_size)
 		case EFM_FAMILY_ID_HAPPY_GECKO:
 		case EZR_FAMILY_ID_HAPPY_GECKO:
 			printed = snprintf(buf, buf_size, "Happy Gecko");
+			break;
+		case EFR_FAMILY_ID_BLUE_GECKO:
+			printed = snprintf(buf, buf_size, "Blue Gecko");
+			break;
+		case EFR_FAMILY_ID_MIGHTY_GECKO:
+			printed = snprintf(buf, buf_size, "Mighty Gecko");
 			break;
 	}
 
@@ -319,7 +365,7 @@ static int efm32x_set_reg_bits(struct flash_bank *bank, uint32_t reg,
 	int ret = 0;
 	uint32_t reg_val = 0;
 
-	ret = target_read_u32(bank->target, reg, &reg_val);
+	ret = efm32x_read_reg_u32(bank, reg, &reg_val);
 	if (ERROR_OK != ret)
 		return ret;
 
@@ -328,18 +374,19 @@ static int efm32x_set_reg_bits(struct flash_bank *bank, uint32_t reg,
 	else
 		reg_val &= ~bitmask;
 
-	return target_write_u32(bank->target, reg, reg_val);
+	return efm32x_write_reg_u32(bank, reg, reg_val);
 }
 
 static int efm32x_set_wren(struct flash_bank *bank, int write_enable)
 {
-	return efm32x_set_reg_bits(bank, EFM32_MSC_WRITECTRL,
+	return efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECTRL,
 		EFM32_MSC_WRITECTRL_WREN_MASK, write_enable);
 }
 
 static int efm32x_msc_lock(struct flash_bank *bank, int lock)
 {
-	return target_write_u32(bank->target, EFM32_MSC_LOCK,
+	struct efm32x_flash_bank *efm32x_info = bank->driver_priv;
+	return efm32x_write_reg_u32(bank, efm32x_info->reg_lock,
 		(lock ? 0 : EFM32_MSC_LOCK_LOCKKEY));
 }
 
@@ -350,7 +397,7 @@ static int efm32x_wait_status(struct flash_bank *bank, int timeout,
 	uint32_t status = 0;
 
 	while (1) {
-		ret = target_read_u32(bank->target, EFM32_MSC_STATUS, &status);
+		ret = efm32x_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
 		if (ERROR_OK != ret)
 			break;
 
@@ -389,16 +436,16 @@ static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
 
 	LOG_DEBUG("erasing flash page at 0x%08" PRIx32, addr);
 
-	ret = target_write_u32(bank->target, EFM32_MSC_ADDRB, addr);
+	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_ADDRB, addr);
 	if (ERROR_OK != ret)
 		return ret;
 
-	ret = efm32x_set_reg_bits(bank, EFM32_MSC_WRITECMD,
+	ret = efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
 		EFM32_MSC_WRITECMD_LADDRIM_MASK, 1);
 	if (ERROR_OK != ret)
 		return ret;
 
-	ret = target_read_u32(bank->target, EFM32_MSC_STATUS, &status);
+	ret = efm32x_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
 	if (ERROR_OK != ret)
 		return ret;
 
@@ -412,7 +459,7 @@ static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
 		return ERROR_FAIL;
 	}
 
-	ret = efm32x_set_reg_bits(bank, EFM32_MSC_WRITECMD,
+	ret = efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
 		EFM32_MSC_WRITECMD_ERASEPAGE_MASK, 1);
 	if (ERROR_OK != ret)
 		return ret;
@@ -589,6 +636,7 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
+	struct efm32x_flash_bank *efm32x_info = bank->driver_priv;
 	int ret = ERROR_OK;
 
 	/* see contrib/loaders/flash/efm32.S for src */
@@ -598,10 +646,7 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 		/* #define EFM32_MSC_ADDRB_OFFSET          0x010 */
 		/* #define EFM32_MSC_WDATA_OFFSET          0x018 */
 		/* #define EFM32_MSC_STATUS_OFFSET         0x01c */
-		/* #define EFM32_MSC_LOCK_OFFSET           0x03c */
 
-			0x15, 0x4e,    /* ldr     r6, =#0x1b71 */
-			0xc6, 0x63,    /* str     r6, [r0, #EFM32_MSC_LOCK_OFFSET] */
 			0x01, 0x26,    /* movs    r6, #1 */
 			0x86, 0x60,    /* str     r6, [r0, #EFM32_MSC_WRITECTRL_OFFSET] */
 
@@ -660,10 +705,8 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 		/* exit: */
 			0x30, 0x46,    /* mov     r0, r6 */
 			0x00, 0xbe,    /* bkpt    #0 */
-
-		/* LOCKKEY */
-			0x71, 0x1b, 0x00, 0x00
 	};
+
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(efm32x_flash_write_code),
@@ -697,7 +740,7 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);	/* buffer end */
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN_OUT);	/* target address */
 
-	buf_set_u32(reg_params[0].value, 0, 32, EFM32_MSC_REGBASE);
+	buf_set_u32(reg_params[0].value, 0, 32, efm32x_info->reg_base);
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 	buf_set_u32(reg_params[2].value, 0, 32, source->address);
 	buf_set_u32(reg_params[3].value, 0, 32, source->address + source->size);
@@ -762,16 +805,16 @@ static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
 	/* if not called, GDB errors will be reported during large writes */
 	keep_alive();
 
-	ret = target_write_u32(bank->target, EFM32_MSC_ADDRB, addr);
+	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_ADDRB, addr);
 	if (ERROR_OK != ret)
 		return ret;
 
-	ret = efm32x_set_reg_bits(bank, EFM32_MSC_WRITECMD,
+	ret = efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
 		EFM32_MSC_WRITECMD_LADDRIM_MASK, 1);
 	if (ERROR_OK != ret)
 		return ret;
 
-	ret = target_read_u32(bank->target, EFM32_MSC_STATUS, &status);
+	ret = efm32x_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
 	if (ERROR_OK != ret)
 		return ret;
 
@@ -792,13 +835,13 @@ static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
 		return ret;
 	}
 
-	ret = target_write_u32(bank->target, EFM32_MSC_WDATA, val);
+	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_WDATA, val);
 	if (ERROR_OK != ret) {
 		LOG_ERROR("WDATA write failed");
 		return ret;
 	}
 
-	ret = target_write_u32(bank->target, EFM32_MSC_WRITECMD,
+	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_WRITECMD,
 		EFM32_MSC_WRITECMD_WRITEONCE_MASK);
 	if (ERROR_OK != ret) {
 		LOG_ERROR("WRITECMD write failed");

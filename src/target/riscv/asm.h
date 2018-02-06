@@ -17,7 +17,7 @@ static uint32_t load(const struct target *target, unsigned int rd,
 			return ld(rd, base, offset);
 	}
 	assert(0);
-	return 0; // Silence -Werror=return-type
+	return 0; /* Silence -Werror=return-type */
 }
 
 static uint32_t store(const struct target *target, unsigned int src,
@@ -32,7 +32,7 @@ static uint32_t store(const struct target *target, unsigned int src,
 			return sd(src, base, offset);
 	}
 	assert(0);
-	return 0; // Silence -Werror=return-type
+	return 0; /* Silence -Werror=return-type */
 }
 
 #endif

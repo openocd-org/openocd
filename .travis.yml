@@ -4,11 +4,16 @@ dist: trusty
 matrix:
     include:
         - os: linux
-          env: BUILD=x86_64-linux-gnu
+          env:
+              - BUILD=x86_64-linux-gnu
+              - EXECUTABLE=openocd
           compiler: gcc
 
         - os: linux
-          env: BUILD=i686-linux-gnu CFLAGS=-m32
+          env:
+              - BUILD=i686-linux-gnu
+              - CFLAGS=-m32
+              - EXECUTABLE=openocd
           addons:
               apt:
                   packages:
@@ -16,17 +21,33 @@ matrix:
           compiler: gcc
 
         - os: linux
-          env: BUILD=x86_64-linux-gnu
+          env:
+              - BUILD=x86_64-linux-gnu
+              - EXECUTABLE=openocd
           compiler: clang
 
         - os: linux
-          env: BUILD=i686-linux-gnu CFLAGS=-m32
+          env:
+              - BUILD=i686-linux-gnu
+              - CFLAGS=-m32
+              - EXECUTABLE=openocd
           compiler: clang
           addons:
               apt:
                   packages:
                       - gcc-multilib
+
+        - os: linux
+          env:
+              - BUILD=i686-w64-mingw
+              - CONFIGURE_ARGS="--build=i686-unknown-linux-gnu --host=i686-w64-mingw32"
+              - EXECUTABLE=openocd.exe
+          compiler: i686-w64-mingw32-gcc
+          addons:
+              apt:
+                  packages:
+                      - binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686
 
 script:
-    - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi && make
-    - file src/openocd
+    - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi $CONFIGURE_ARGS && make
+    - file src/$EXECUTABLE

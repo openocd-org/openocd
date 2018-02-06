@@ -309,10 +309,10 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 	return ERROR_OK;
 }
 
-static int linux_os_detect(struct target *target)
+static bool linux_os_detect(struct target *target)
 {
 	LOG_INFO("should no be called");
-	return 0;
+	return false;
 }
 
 static int linux_os_smp_init(struct target *target);

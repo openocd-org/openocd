@@ -31,7 +31,7 @@
 
 #define EMBKERNEL_MAX_THREAD_NAME_STR_SIZE (64)
 
-static int embKernel_detect_rtos(struct target *target);
+static bool embKernel_detect_rtos(struct target *target);
 static int embKernel_create(struct target *target);
 static int embKernel_update_threads(struct rtos *rtos);
 static int embKernel_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
@@ -107,13 +107,13 @@ static const struct embKernel_params embKernel_params_list[] = {
 		}
 };
 
-static int embKernel_detect_rtos(struct target *target)
+static bool embKernel_detect_rtos(struct target *target)
 {
 	if (target->rtos->symbols != NULL) {
 		if (target->rtos->symbols[SYMBOL_ID_sCurrentTask].address != 0)
-			return 1;
+			return true;
 	}
-	return 0;
+	return false;
 }
 
 static int embKernel_create(struct target *target)

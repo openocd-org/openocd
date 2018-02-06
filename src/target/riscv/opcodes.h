@@ -5,16 +5,19 @@
 #define S0      8
 #define S1      9
 
-static uint32_t bits(uint32_t value, unsigned int hi, unsigned int lo) {
+static uint32_t bits(uint32_t value, unsigned int hi, unsigned int lo)
+{
 	return (value >> lo) & ((1 << (hi+1-lo)) - 1);
 }
 
-static uint32_t bit(uint32_t value, unsigned int b) {
+static uint32_t bit(uint32_t value, unsigned int b)
+{
 	return (value >> b) & 1;
 }
 
 static uint32_t jal(unsigned int rd, uint32_t imm) __attribute__ ((unused));
-static uint32_t jal(unsigned int rd, uint32_t imm) {
+static uint32_t jal(unsigned int rd, uint32_t imm)
+{
 	return (bit(imm, 20) << 31) |
 		(bits(imm, 10, 1) << 21) |
 		(bit(imm, 11) << 20) |
@@ -24,7 +27,8 @@ static uint32_t jal(unsigned int rd, uint32_t imm) {
 }
 
 static uint32_t csrsi(unsigned int csr, uint16_t imm) __attribute__ ((unused));
-static uint32_t csrsi(unsigned int csr, uint16_t imm) {
+static uint32_t csrsi(unsigned int csr, uint16_t imm)
+{
 	return (csr << 20) |
 		(bits(imm, 4, 0) << 15) |
 		MATCH_CSRRSI;
@@ -107,7 +111,8 @@ static uint32_t lb(unsigned int rd, unsigned int base, uint16_t offset)
 }
 
 static uint32_t csrw(unsigned int source, unsigned int csr) __attribute__ ((unused));
-static uint32_t csrw(unsigned int source, unsigned int csr) {
+static uint32_t csrw(unsigned int source, unsigned int csr)
+{
 	return (csr << 20) | (source << 15) | MATCH_CSRRW;
 }
 
@@ -121,17 +126,20 @@ static uint32_t addi(unsigned int dest, unsigned int src, uint16_t imm)
 }
 
 static uint32_t csrr(unsigned int rd, unsigned int csr) __attribute__ ((unused));
-static uint32_t csrr(unsigned int rd, unsigned int csr) {
+static uint32_t csrr(unsigned int rd, unsigned int csr)
+{
 	return (csr << 20) | (rd << 7) | MATCH_CSRRS;
 }
 
 static uint32_t csrrs(unsigned int rd, unsigned int rs, unsigned int csr) __attribute__ ((unused));
-static uint32_t csrrs(unsigned int rd, unsigned int rs, unsigned int csr) {
+static uint32_t csrrs(unsigned int rd, unsigned int rs, unsigned int csr)
+{
 	return (csr << 20) | (rs << 15) | (rd << 7) | MATCH_CSRRS;
 }
 
 static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr) __attribute__ ((unused));
-static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr) {
+static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr)
+{
 	return (csr << 20) | (rs << 15) | (rd << 7) | MATCH_CSRRW;
 }
 
@@ -173,12 +181,12 @@ static uint32_t fld(unsigned int dest, unsigned int base, uint16_t offset)
 		MATCH_FLD;
 }
 
-static uint32_t fmv_x_s(unsigned dest, unsigned src) __attribute__ ((unused));
-static uint32_t fmv_x_s(unsigned dest, unsigned src)
+static uint32_t fmv_x_w(unsigned dest, unsigned src) __attribute__ ((unused));
+static uint32_t fmv_x_w(unsigned dest, unsigned src)
 {
 	return src << 15 |
 		dest << 7 |
-		MATCH_FMV_X_S;
+		MATCH_FMV_X_W;
 }
 
 static uint32_t fmv_x_d(unsigned dest, unsigned src) __attribute__ ((unused));
@@ -189,12 +197,12 @@ static uint32_t fmv_x_d(unsigned dest, unsigned src)
 		MATCH_FMV_X_D;
 }
 
-static uint32_t fmv_s_x(unsigned dest, unsigned src) __attribute__ ((unused));
-static uint32_t fmv_s_x(unsigned dest, unsigned src)
+static uint32_t fmv_w_x(unsigned dest, unsigned src) __attribute__ ((unused));
+static uint32_t fmv_w_x(unsigned dest, unsigned src)
 {
 	return src << 15 |
 		dest << 7 |
-		MATCH_FMV_S_X;
+		MATCH_FMV_W_X;
 }
 
 static uint32_t fmv_d_x(unsigned dest, unsigned src) __attribute__ ((unused));
@@ -206,9 +214,15 @@ static uint32_t fmv_d_x(unsigned dest, unsigned src)
 }
 
 static uint32_t ebreak(void) __attribute__ ((unused));
-static uint32_t ebreak(void) { return MATCH_EBREAK; }
+static uint32_t ebreak(void)
+{
+	return MATCH_EBREAK;
+}
 static uint32_t ebreak_c(void) __attribute__ ((unused));
-static uint32_t ebreak_c(void) { return MATCH_C_EBREAK; }
+static uint32_t ebreak_c(void)
+{
+	return MATCH_C_EBREAK;
+}
 
 static uint32_t wfi(void) __attribute__ ((unused));
 static uint32_t wfi(void) { return MATCH_WFI; }
@@ -229,7 +243,8 @@ static uint32_t lui(unsigned int dest, uint32_t imm)
 
 /*
 static uint32_t csrci(unsigned int csr, uint16_t imm) __attribute__ ((unused));
-static uint32_t csrci(unsigned int csr, uint16_t imm) {
+static uint32_t csrci(unsigned int csr, uint16_t imm)
+{
   return (csr << 20) |
     (bits(imm, 4, 0) << 15) |
     MATCH_CSRRCI;

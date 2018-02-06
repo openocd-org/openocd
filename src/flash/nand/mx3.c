@@ -281,6 +281,7 @@ static int imx31_command(struct nand_device *nand, uint8_t command)
 			 * offset == one half of page size
 			 */
 			in_sram_address = MX3_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
+			break;
 		default:
 			in_sram_address = MX3_NF_MAIN_BUFFER0;
 	}

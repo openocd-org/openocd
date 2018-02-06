@@ -816,7 +816,7 @@ static int jim_nds32_bulk_read(Jim_Interp *interp, int argc, Jim_Obj * const *ar
 	uint32_t *data = malloc(count * sizeof(uint32_t));
 	int result;
 	result = target_read_buffer(target, address, count * 4, (uint8_t *)data);
-	char data_str[11];
+	char data_str[12];
 
 	jim_wide i;
 	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
