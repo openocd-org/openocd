@@ -30,6 +30,7 @@ enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
 	RISCV_HALT_BREAKPOINT,
 	RISCV_HALT_SINGLESTEP,
+	RISCV_HALT_TRIGGER,
 	RISCV_HALT_UNKNOWN
 };
 
@@ -215,11 +216,6 @@ int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
  * on-device register. */
 bool riscv_is_halted(struct target *target);
 enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid);
-
-/* Returns the number of triggers availiable to either the current hart or to
- * the given hart. */
-int riscv_count_triggers(struct target *target);
-int riscv_count_triggers_of_hart(struct target *target, int hartid);
 
 /* These helper functions let the generic program interface get target-specific
  * information. */

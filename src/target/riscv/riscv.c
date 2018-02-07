@@ -640,6 +640,7 @@ static int old_or_new_riscv_step(
 		int handle_breakpoints
 ){
 	RISCV_INFO(r);
+	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	if (r->is_halted == NULL)
 		return oldriscv_step(target, current, address, handle_breakpoints);
 	else
@@ -728,6 +729,7 @@ static int old_or_new_riscv_resume(
 		int debug_execution
 ){
 	RISCV_INFO(r);
+	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	if (r->is_halted == NULL)
 		return oldriscv_resume(target, current, address, handle_breakpoints, debug_execution);
 	else
@@ -1027,6 +1029,9 @@ int riscv_openocd_poll(struct target *target)
 	case RISCV_HALT_BREAKPOINT:
 		target->debug_reason = DBG_REASON_BREAKPOINT;
 		break;
+	case RISCV_HALT_TRIGGER:
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
 	case RISCV_HALT_INTERRUPT:
 		target->debug_reason = DBG_REASON_DBGRQ;
 		break;
@@ -1077,12 +1082,52 @@ int riscv_openocd_resume(
 		int current,
 		target_addr_t address,
 		int handle_breakpoints,
-		int debug_execution
-) {
-	LOG_DEBUG("resuming all harts");
+		int debug_execution)
+{
+	LOG_DEBUG("debug_reason=%d", target->debug_reason);
 
 	if (!current)
 		riscv_set_register(target, GDB_REGNO_PC, address);
+
+	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
+		/* To be able to run off a trigger, disable all the triggers, step, and
+		 * then resume as usual. */
+		struct watchpoint *watchpoint = target->watchpoints;
+		bool trigger_temporarily_cleared[RISCV_MAX_HWBPS] = {0};
+
+		int i = 0;
+		int result = ERROR_OK;
+		while (watchpoint && result == ERROR_OK) {
+			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
+			trigger_temporarily_cleared[i] = watchpoint->set;
+			if (watchpoint->set) {
+				result = riscv_remove_watchpoint(target, watchpoint);
+			}
+			watchpoint = watchpoint->next;
+			i++;
+		}
+
+		if (result == ERROR_OK) {
+			result = riscv_step_rtos_hart(target);
+		}
+
+		watchpoint = target->watchpoints;
+		i = 0;
+		while (watchpoint) {
+			LOG_DEBUG("watchpoint %d: cleared=%d", i, trigger_temporarily_cleared[i]);
+			if (trigger_temporarily_cleared[i]) {
+				if (result == ERROR_OK)
+					result = riscv_add_watchpoint(target, watchpoint);
+				else
+					riscv_add_watchpoint(target, watchpoint);
+			}
+			watchpoint = watchpoint->next;
+			i++;
+		}
+
+		if (result != ERROR_OK)
+			return result;
+	}
 
 	int out = riscv_resume_all_harts(target);
 	if (out != ERROR_OK) {
@@ -1599,18 +1644,6 @@ enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid)
 		return RISCV_HALT_UNKNOWN;
 	}
 	return r->halt_reason(target);
-}
-
-int riscv_count_triggers(struct target *target)
-{
-	return riscv_count_triggers_of_hart(target, riscv_current_hartid(target));
-}
-
-int riscv_count_triggers_of_hart(struct target *target, int hartid)
-{
-	RISCV_INFO(r);
-	assert(hartid < riscv_count_harts(target));
-	return r->trigger_count[hartid];
 }
 
 size_t riscv_debug_buffer_size(struct target *target)
