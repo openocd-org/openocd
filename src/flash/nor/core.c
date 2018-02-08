@@ -601,7 +601,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 		uint32_t buffer_size;
 		uint8_t *buffer;
 		int section_last;
-		uint32_t run_address = sections[section]->base_address + section_offset;
+		target_addr_t run_address = sections[section]->base_address + section_offset;
 		uint32_t run_size = sections[section]->size - section_offset;
 		int pad_bytes = 0;
 
@@ -617,7 +617,7 @@ int flash_write_unlock(struct target *target, struct image *image,
 		if (retval != ERROR_OK)
 			goto done;
 		if (c == NULL) {
-			LOG_WARNING("no flash bank found for address %" PRIx32, run_address);
+			LOG_WARNING("no flash bank found for address " TARGET_ADDR_FMT, run_address);
 			section++;	/* and skip it */
 			section_offset = 0;
 			continue;
@@ -652,7 +652,18 @@ int flash_write_unlock(struct target *target, struct image *image,
 			/* if we have multiple sections within our image,
 			 * flash programming could fail due to alignment issues
 			 * attempt to rebuild a consecutive buffer for the flash loader */
-			pad_bytes = (sections[section_last + 1]->base_address) - (run_address + run_size);
+			target_addr_t run_next_addr = run_address + run_size;
+			if (sections[section_last + 1]->base_address < run_next_addr) {
+				LOG_ERROR("Section at " TARGET_ADDR_FMT
+					" overlaps section ending at " TARGET_ADDR_FMT,
+					sections[section_last + 1]->base_address,
+					run_next_addr);
+				LOG_ERROR("Flash write aborted.");
+				retval = ERROR_FAIL;
+				goto done;
+			}
+
+			pad_bytes = sections[section_last + 1]->base_address - run_next_addr;
 			padding[section_last] = pad_bytes;
 			run_size += sections[++section_last]->size;
 			run_size += pad_bytes;
