@@ -102,7 +102,7 @@ do_stage() {
 	for EXT in tar.gz tar.bz2 zip; do
 		local FILE="${PACKAGE_RELEASE}.${EXT}"
 		# create archive signatures
-		for HASH in md5 sha1; do
+		for HASH in sha256; do
 			echo "sign: ${FILE}.${HASH}"
 			${HASH}sum "${FILE}" > "archives/${FILE}.${HASH}"
 		done

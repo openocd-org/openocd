@@ -117,8 +117,7 @@ static int presto_read(uint8_t *buf, uint32_t size)
 		ftbytes += presto->retval;
 
 		gettimeofday(&now, NULL);
-		if ((now.tv_sec > timeout.tv_sec) ||
-				((now.tv_sec == timeout.tv_sec) && (now.tv_usec > timeout.tv_usec)))
+		if (timeval_compare(&now, &timeout) > 0)
 			break;
 	}
 

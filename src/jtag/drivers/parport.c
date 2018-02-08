@@ -116,7 +116,7 @@ static unsigned long dataport;
 static unsigned long statusport;
 #endif
 
-static int parport_read(void)
+static bb_value_t parport_read(void)
 {
 	int data = 0;
 
@@ -127,9 +127,9 @@ static int parport_read(void)
 #endif
 
 	if ((data ^ cable->INPUT_INVERT) & cable->TDO_MASK)
-		return 1;
+		return BB_HIGH;
 	else
-		return 0;
+		return BB_LOW;
 }
 
 static inline void parport_write_data(void)
@@ -148,7 +148,7 @@ static inline void parport_write_data(void)
 #endif
 }
 
-static void parport_write(int tck, int tms, int tdi)
+static int parport_write(int tck, int tms, int tdi)
 {
 	int i = wait_states + 1;
 
@@ -169,10 +169,12 @@ static void parport_write(int tck, int tms, int tdi)
 
 	while (i-- > 0)
 		parport_write_data();
+
+	return ERROR_OK;
 }
 
 /* (1) assert or (0) deassert reset lines */
-static void parport_reset(int trst, int srst)
+static int parport_reset(int trst, int srst)
 {
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
@@ -187,10 +189,12 @@ static void parport_reset(int trst, int srst)
 		dataport_value &= ~cable->SRST_MASK;
 
 	parport_write_data();
+
+	return ERROR_OK;
 }
 
 /* turn LED on parport adapter on (1) or off (0) */
-static void parport_led(int on)
+static int parport_led(int on)
 {
 	if (on)
 		dataport_value |= cable->LED_MASK;
@@ -198,6 +202,8 @@ static void parport_led(int on)
 		dataport_value &= ~cable->LED_MASK;
 
 	parport_write_data();
+
+	return ERROR_OK;
 }
 
 static int parport_speed(int speed)
@@ -365,9 +371,12 @@ static int parport_init(void)
 
 #endif /* PARPORT_USE_PPDEV */
 
-	parport_reset(0, 0);
-	parport_write(0, 0, 0);
-	parport_led(1);
+	if (parport_reset(0, 0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (parport_write(0, 0, 0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (parport_led(1) != ERROR_OK)
+		return ERROR_FAIL;
 
 	bitbang_interface = &parport_bitbang;
 
@@ -376,7 +385,8 @@ static int parport_init(void)
 
 static int parport_quit(void)
 {
-	parport_led(0);
+	if (parport_led(0) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (parport_exit) {
 		dataport_value = cable->PORT_EXIT;

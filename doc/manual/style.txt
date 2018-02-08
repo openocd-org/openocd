@@ -176,10 +176,10 @@ comments.
  * @returns The value(s) returned, or possible error conditions.
  */
 @endverbatim
-  -# The block should start on the line following the opening @c /**.
-  -# The end of the block, \f$*/\f$, should also be on its own line.
+  -# The block should start on the line following the opening @c /\**.
+  -# The end of the block, @c *&zwj;/, should also be on its own line.
   -# Every line in the block should have a @c '*' in-line with its start:
-    - A leading space is required to align the @c '*' with the @c /** line.
+    - A leading space is required to align the @c '*' with the @c /\** line.
     - A single "empty" line should separate the function documentation
       from the block of parameter and return value descriptions.
     - Except to separate paragraphs of documentation, other extra

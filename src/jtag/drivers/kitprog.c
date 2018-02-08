@@ -681,7 +681,7 @@ static int kitprog_swd_run_queue(void)
 	uint8_t *buffer = kitprog_handle->packet_buffer;
 
 	do {
-		LOG_DEBUG("Executing %d queued transactions", pending_transfer_count);
+		LOG_DEBUG_IO("Executing %d queued transactions", pending_transfer_count);
 
 		if (queued_retval != ERROR_OK) {
 			LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
@@ -714,12 +714,10 @@ static int kitprog_swd_run_queue(void)
 				data &= ~CORUNDETECT;
 			}
 
-#if 0
-			LOG_DEBUG("%s %s reg %x %"PRIx32,
+			LOG_DEBUG_IO("%s %s reg %x %"PRIx32,
 					cmd & SWD_CMD_APnDP ? "AP" : "DP",
 					cmd & SWD_CMD_RnW ? "read" : "write",
 				  (cmd & SWD_CMD_A32) >> 1, data);
-#endif
 
 			buffer[write_count++] = (cmd | SWD_CMD_START | SWD_CMD_PARK) & ~SWD_CMD_STOP;
 			read_count++;
@@ -764,9 +762,7 @@ static int kitprog_swd_run_queue(void)
 			if (pending_transfers[i].cmd & SWD_CMD_RnW) {
 				uint32_t data = le_to_h_u32(&buffer[read_index]);
 
-#if 0
-				LOG_DEBUG("Read result: %"PRIx32, data);
-#endif
+				LOG_DEBUG_IO("Read result: %"PRIx32, data);
 
 				if (pending_transfers[i].buffer)
 					*(uint32_t *)pending_transfers[i].buffer = data;

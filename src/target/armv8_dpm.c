@@ -561,12 +561,7 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 
 	} else {
 		LOG_DEBUG("setting mode 0x%"PRIx32, mode);
-
-		/* else force to the specified mode */
-		if (is_arm_mode(mode))
-			cpsr = mode;
-		else
-			cpsr = mode >> 4;
+		cpsr = mode;
 	}
 
 	switch (cpsr & 0x1f) {

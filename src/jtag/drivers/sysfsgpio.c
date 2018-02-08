@@ -244,7 +244,7 @@ static void sysfsgpio_swdio_write(int swclk, int swdio)
  * The sysfs value will read back either '0' or '1'. The trick here is to call
  * lseek to bypass buffering in the sysfs kernel driver.
  */
-static int sysfsgpio_read(void)
+static bb_value_t sysfsgpio_read(void)
 {
 	char buf[1];
 
@@ -257,7 +257,7 @@ static int sysfsgpio_read(void)
 		return 0;
 	}
 
-	return buf[0] != '0';
+	return buf[0] == '0' ? BB_LOW : BB_HIGH;
 }
 
 /*
@@ -266,11 +266,11 @@ static int sysfsgpio_read(void)
  * Seeing as this is the only function where the outputs are changed,
  * we can cache the old value to avoid needlessly writing it.
  */
-static void sysfsgpio_write(int tck, int tms, int tdi)
+static int sysfsgpio_write(int tck, int tms, int tdi)
 {
 	if (swd_mode) {
 		sysfsgpio_swdio_write(tck, tdi);
-		return;
+		return ERROR_OK;
 	}
 
 	const char one[] = "1";
@@ -312,6 +312,8 @@ static void sysfsgpio_write(int tck, int tms, int tdi)
 	last_tdi = tdi;
 	last_tms = tms;
 	last_tck = tck;
+
+	return ERROR_OK;
 }
 
 /*
@@ -319,7 +321,7 @@ static void sysfsgpio_write(int tck, int tms, int tdi)
  *
  * (1) assert or (0) deassert reset lines
  */
-static void sysfsgpio_reset(int trst, int srst)
+static int sysfsgpio_reset(int trst, int srst)
 {
 	LOG_DEBUG("sysfsgpio_reset");
 	const char one[] = "1";
@@ -339,6 +341,8 @@ static void sysfsgpio_reset(int trst, int srst)
 		if (bytes_written != 1)
 			LOG_WARNING("writing trst failed");
 	}
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionums)
@@ -592,10 +596,6 @@ static int sysfsgpio_init(void)
 			LOG_INFO("JTAG and SWD modes enabled");
 		else
 			LOG_INFO("JTAG only mode enabled (specify swclk and swdio gpio to add SWD mode)");
-		if (!is_gpio_valid(trst_gpio) && !is_gpio_valid(srst_gpio)) {
-			LOG_ERROR("Require at least one of trst or srst gpios to be specified");
-			return ERROR_JTAG_INIT_FAILED;
-		}
 	} else if (sysfsgpio_swd_mode_possible()) {
 		LOG_INFO("SWD only mode enabled (specify tck, tms, tdi and tdo gpios to add JTAG mode)");
 	} else {

@@ -652,6 +652,9 @@ static int stm32l4_probe(struct flash_bank *bank)
 	/* get options to for DUAL BANK. */
 	retval = target_read_u32(target, STM32_FLASH_OPTR, &options);
 
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* only devices with < 1024 kiB may be set to single bank dual banks */
 	if ((flash_size_in_kb == 1024) || !(options & OPT_DUALBANK))
 		stm32l4_info->option_bytes.bank_b_start = 256;

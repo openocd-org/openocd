@@ -699,7 +699,7 @@ sub ctx_statement_block {
 		# An else is really a conditional as long as its not else if
 		if ($level == 0 && $coff_set == 0 &&
 				(!defined($p) || $p =~ /(?:\s|\}|\+)/) &&
-				$remainder =~ /^(else)(?:\s|{)/ &&
+				$remainder =~ /^(else)(?:\s|\{)/ &&
 				$remainder !~ /^else\s+if\b/) {
 			$coff = $off + length($1) - 1;
 			$coff_set = 1;
@@ -782,7 +782,7 @@ sub statement_block_size {
 	my ($stmt) = @_;
 
 	$stmt =~ s/(^|\n)./$1/g;
-	$stmt =~ s/^\s*{//;
+	$stmt =~ s/^\s*\{//;
 	$stmt =~ s/}\s*$//;
 	$stmt =~ s/^\s*//;
 	$stmt =~ s/\s*$//;
@@ -1136,7 +1136,7 @@ sub annotate_values {
 			print "ASSIGN($1)\n" if ($dbg_values > 1);
 			$type = 'N';
 
-		} elsif ($cur =~/^(;|{|})/) {
+		} elsif ($cur =~/^(;|\{|})/) {
 			print "END($1)\n" if ($dbg_values > 1);
 			$type = 'E';
 			$av_pend_colon = 'O';
@@ -1783,7 +1783,7 @@ sub process {
 			}
 
 			my $s = $stat;
-			$s =~ s/{.*$//s;
+			$s =~ s/\{.*$//s;
 
 			# Ignore goto labels.
 			if ($s =~ /$Ident:\*$/s) {
@@ -1879,7 +1879,7 @@ sub process {
 			#print "realcnt<$realcnt> ctx_cnt<$ctx_cnt>\n";
 			#print "pre<$pre_ctx>\nline<$line>\nctx<$ctx>\nnext<$lines[$ctx_ln - 1]>\n";
 
-			if ($ctx !~ /{\s*/ && defined($lines[$ctx_ln -1]) && $lines[$ctx_ln - 1] =~ /^\+\s*{/) {
+			if ($ctx !~ /\{\s*/ && defined($lines[$ctx_ln -1]) && $lines[$ctx_ln - 1] =~ /^\+\s*\{/) {
 				ERROR("OPEN_BRACE",
 				      "that open brace { should be on the previous line\n" .
 					"$here\n$ctx\n$rawlines[$ctx_ln - 1]\n");
@@ -1920,7 +1920,7 @@ sub process {
 			my $continuation = 0;
 			my $check = 0;
 			$s =~ s/^.*\bdo\b//;
-			$s =~ s/^\s*{//;
+			$s =~ s/^\s*\{//;
 			if ($s =~ s/^\s*\\//) {
 				$continuation = 1;
 			}
@@ -2024,7 +2024,7 @@ sub process {
 		}
 
 # check for initialisation to aggregates open brace on the next line
-		if ($line =~ /^.\s*{/ &&
+		if ($line =~ /^.\s*\{/ &&
 		    $prevline =~ /(?:^|[^=])=\s*$/) {
 			ERROR("OPEN_BRACE",
 			      "that open brace { should be on the previous line\n" . $hereprev);
@@ -2231,7 +2231,7 @@ sub process {
 		}
 
 # open braces for enum, union and struct go on the same line.
-		if ($line =~ /^.\s*{/ &&
+		if ($line =~ /^.\s*\{/ &&
 		    $prevline =~ /^.\s*(?:typedef\s+)?(enum|union|struct)(?:\s+$Ident)?\s*$/) {
 			ERROR("OPEN_BRACE",
 			      "open brace '{' following $1 go on the same line\n" . $hereprev);
@@ -2251,7 +2251,7 @@ sub process {
 			my ($where, $prefix) = ($-[1], $1);
 			if ($prefix !~ /$Type\s+$/ &&
 			    ($where != 0 || $prefix !~ /^.\s+$/) &&
-			    $prefix !~ /{\s+$/) {
+			    $prefix !~ /\{\s+$/) {
 				ERROR("BRACKET_SPACE",
 				      "space prohibited before open square bracket '['\n" . $herecurr);
 			}
@@ -2493,7 +2493,7 @@ sub process {
 ## 		}
 
 #need space before brace following if, while, etc
-		if (($line =~ /\(.*\)\{/ && $line !~ /\($Type\){/) ||
+		if (($line =~ /\(.*\)\{/ && $line !~ /\($Type\)\{/) ||
 		    $line =~ /do\{/) {
 			ERROR("SPACING",
 			      "space required before the open brace '{'\n" . $herecurr);
@@ -2598,7 +2598,7 @@ sub process {
 
 # Check for illegal assignment in if conditional -- and check for trailing
 # statements after the conditional.
-		if ($line =~ /do\s*(?!{)/) {
+		if ($line =~ /do\s*(?!\{)/) {
 			my ($stat_next) = ctx_statement_block($line_nr_next,
 						$remain_next, $off_next);
 			$stat_next =~ s/\n./\n /g;
@@ -2630,7 +2630,7 @@ sub process {
 			substr($s, 0, length($c), '');
 			$s =~ s/\n.*//g;
 			$s =~ s/$;//g; 	# Remove any comments
-			if (length($c) && $s !~ /^\s*{?\s*\\*\s*$/ &&
+			if (length($c) && $s !~ /^\s*\{?\s*\\*\s*$/ &&
 			    $c !~ /}\s*while\s*/)
 			{
 				# Find out how long the conditional actually is.
@@ -2669,7 +2669,7 @@ sub process {
 		if ($line =~ /^.\s*(?:}\s*)?else\b(.*)/) {
 			my $s = $1;
 			$s =~ s/$;//g; 	# Remove any comments
-			if ($s !~ /^\s*(?:\sif|(?:{|)\s*\\?\s*$)/) {
+			if ($s !~ /^\s*(?:\sif|(?:\{|)\s*\\?\s*$)/) {
 				ERROR("TRAILING_STATEMENTS",
 				      "trailing statements should be on next line\n" . $herecurr);
 			}
@@ -2879,7 +2879,7 @@ sub process {
 
 					substr($block, 0, length($cond), '');
 
-					$seen++ if ($block =~ /^\s*{/);
+					$seen++ if ($block =~ /^\s*\{/);
 
 					#print "cond<$cond> block<$block> allowed<$allowed>\n";
 					if (statement_lines($cond) > 1) {

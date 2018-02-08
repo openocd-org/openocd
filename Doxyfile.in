@@ -216,7 +216,7 @@ OPTIMIZE_OUTPUT_VHDL   = NO
 # .inc files as Fortran files (default is PHP), and .f files as C (default is Fortran), 
 # use: inc=Fortran f=C
 
-EXTENSION_MAPPING      = 
+EXTENSION_MAPPING      = no_extension=C
 
 # If you use STL classes (i.e. std::string, std::vector, etc.) but do not want
 # to include (a tag file for) the STL sources as input, then you should

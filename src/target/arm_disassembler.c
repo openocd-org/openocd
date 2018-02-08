@@ -129,6 +129,59 @@ static int evaluate_pld(uint32_t opcode,
 
 		return ERROR_OK;
 	}
+	/* DSB */
+	if ((opcode & 0x07f000f0) == 0x05700040) {
+		instruction->type = ARM_DSB;
+
+		char *opt;
+		switch (opcode & 0x0000000f) {
+		case 0xf:
+			opt = "SY";
+			break;
+		case 0xe:
+			opt = "ST";
+			break;
+		case 0xb:
+			opt = "ISH";
+			break;
+		case 0xa:
+			opt = "ISHST";
+			break;
+		case 0x7:
+			opt = "NSH";
+			break;
+		case 0x6:
+			opt = "NSHST";
+			break;
+		case 0x3:
+			opt = "OSH";
+			break;
+		case 0x2:
+			opt = "OSHST";
+			break;
+		default:
+			opt = "UNK";
+		}
+
+		snprintf(instruction->text,
+				128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tDSB %s",
+				address, opcode, opt);
+
+		return ERROR_OK;
+	}
+	/* ISB */
+	if ((opcode & 0x07f000f0) == 0x05700060) {
+		instruction->type = ARM_ISB;
+
+		snprintf(instruction->text,
+				128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tISB %s",
+				address, opcode,
+				((opcode & 0x0000000f) == 0xf) ? "SY" : "UNK");
+
+		return ERROR_OK;
+	}
 	return evaluate_unknown(opcode, address, instruction);
 }
 
@@ -1562,6 +1615,33 @@ static int evaluate_misc_instr(uint32_t opcode,
 	return ERROR_OK;
 }
 
+static int evaluate_mov_imm(uint32_t opcode,
+			      uint32_t address, struct arm_instruction *instruction)
+{
+	uint16_t immediate;
+	uint8_t Rd;
+	bool T;
+
+	Rd = (opcode & 0xf000) >> 12;
+	T = opcode & 0x00400000;
+	immediate = (opcode & 0xf0000) >> 4 | (opcode & 0xfff);
+
+	instruction->type = ARM_MOV;
+	instruction->info.data_proc.Rd = Rd;
+
+	snprintf(instruction->text,
+		 128,
+		 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tMOV%s%s r%i, #0x%" PRIx16,
+		 address,
+		 opcode,
+		 T ? "T" : "W",
+		 COND(opcode),
+		 Rd,
+		 immediate);
+
+	return ERROR_OK;
+}
+
 static int evaluate_data_proc(uint32_t opcode,
 			      uint32_t address, struct arm_instruction *instruction)
 {
@@ -1838,16 +1918,9 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
 
 	/* catch opcodes with [27:25] = b001 */
 	if ((opcode & 0x0e000000) == 0x02000000) {
-		/* Undefined instruction */
-		if ((opcode & 0x0fb00000) == 0x03000000) {
-			instruction->type = ARM_UNDEFINED_INSTRUCTION;
-			snprintf(instruction->text,
-					128,
-					"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEFINED INSTRUCTION",
-					address,
-					opcode);
-			return ERROR_OK;
-		}
+		/* 16-bit immediate load */
+		if ((opcode & 0x0fb00000) == 0x03000000)
+			return evaluate_mov_imm(opcode, address, instruction);
 
 		/* Move immediate to status register */
 		if ((opcode & 0x0fb00000) == 0x03200000)
@@ -2896,12 +2969,26 @@ static int t2ev_b_bl(uint32_t opcode, uint32_t address,
 	address += 4;
 	address += offset << 1;
 
-	instruction->type = (opcode & (1 << 14)) ? ARM_BL : ARM_B;
+	char *inst;
+	switch ((opcode >> 12) & 0x5) {
+	case 0x1:
+		inst = "B.W";
+		instruction->type = ARM_B;
+		break;
+	case 0x4:
+		inst = "BLX";
+		instruction->type = ARM_BLX;
+		break;
+	case 0x5:
+		inst = "BL";
+		instruction->type = ARM_BL;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 	instruction->info.b_bl_bx_blx.reg_operand = -1;
 	instruction->info.b_bl_bx_blx.target_address = address;
-	sprintf(cp, "%s\t%#8.8" PRIx32,
-			(opcode & (1 << 14)) ? "BL" : "B.W",
-			address);
+	sprintf(cp, "%s\t%#8.8" PRIx32, inst, address);
 
 	return ERROR_OK;
 }
@@ -3078,10 +3165,9 @@ static int t2ev_b_misc(uint32_t opcode, uint32_t address,
 
 	switch ((opcode >> 12) & 0x5) {
 		case 0x1:
+		case 0x4:
 		case 0x5:
 			return t2ev_b_bl(opcode, address, instruction, cp);
-		case 0x4:
-			goto undef;
 		case 0:
 			if (((opcode >> 23) & 0x07) != 0x07)
 				return t2ev_cond_b(opcode, address, instruction, cp);

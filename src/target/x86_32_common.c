@@ -209,15 +209,16 @@ static int read_phys_mem(struct target *t, uint32_t phys_address,
 			LOG_ERROR("%s invalid read size", __func__);
 			break;
 		}
+		if (retval != ERROR_OK)
+			break;
 	}
 	/* restore CR0.PG bit if needed (regardless of retval) */
 	if (pg_disabled) {
-		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK) {
+		int retval2 = x86_32->enable_paging(t);
+		if (retval2 != ERROR_OK) {
 			LOG_ERROR("%s could not enable paging", __func__);
-			return retval;
+			return retval2;
 		}
-		pg_disabled = true;
 	}
 	/* TODO: After reading memory from target, we must replace
 	 * software breakpoints with the original instructions again.
@@ -364,6 +365,9 @@ static int read_mem(struct target *t, uint32_t size,
 			break;
 	}
 
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* read_hw_reg() will write to 4 bytes (uint32_t)
 	 * Watch out, the buffer passed into read_mem() might be 1 or 2 bytes.
 	 */
@@ -436,6 +440,10 @@ static int write_mem(struct target *t, uint32_t size,
 			LOG_ERROR("%s invalid write mem size", __func__);
 			return ERROR_FAIL;
 	}
+
+	if (retval != ERROR_OK)
+		return retval;
+
 	retval = x86_32->transaction_status(t);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("%s error on mem write", __func__);
@@ -606,7 +614,6 @@ int x86_32_common_read_memory(struct target *t, target_addr_t addr,
 			&& x86_32_common_read_phys_mem(t, physaddr, size, count, buf) != ERROR_OK) {
 			LOG_ERROR("%s failed to read memory from physical address " TARGET_ADDR_FMT,
 					  __func__, physaddr);
-			retval = ERROR_FAIL;
 		}
 		/* restore PG bit if it was cleared prior (regardless of retval) */
 		retval = x86_32->enable_paging(t);
@@ -662,7 +669,6 @@ int x86_32_common_write_memory(struct target *t, target_addr_t addr,
 			&& x86_32_common_write_phys_mem(t, physaddr, size, count, buf) != ERROR_OK) {
 			LOG_ERROR("%s failed to write memory to physical address " TARGET_ADDR_FMT,
 					__func__, physaddr);
-			retval = ERROR_FAIL;
 		}
 		/* restore PG bit if it was cleared prior (regardless of retval) */
 		retval = x86_32->enable_paging(t);
@@ -733,15 +739,19 @@ int x86_32_common_read_io(struct target *t, uint32_t addr,
 			LOG_ERROR("%s invalid read io size", __func__);
 			return ERROR_FAIL;
 	}
+
 	/* restore CR0.PG bit if needed */
 	if (pg_disabled) {
-		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK) {
+		int retval2 = x86_32->enable_paging(t);
+		if (retval2 != ERROR_OK) {
 			LOG_ERROR("%s could not enable paging", __func__);
-			return retval;
+			return retval2;
 		}
-		pg_disabled = false;
 	}
+
+	if (retval != ERROR_OK)
+		return retval;
+
 	uint32_t regval = 0;
 	retval = x86_32->read_hw_reg(t, EAX, &regval, 0);
 	if (retval != ERROR_OK) {
@@ -818,15 +828,19 @@ int x86_32_common_write_io(struct target *t, uint32_t addr,
 			LOG_ERROR("%s invalid write io size", __func__);
 			return ERROR_FAIL;
 	}
+
 	/* restore CR0.PG bit if needed */
 	if (pg_disabled) {
-		retval = x86_32->enable_paging(t);
-		if (retval != ERROR_OK) {
+		int retval2 = x86_32->enable_paging(t);
+		if (retval2 != ERROR_OK) {
 			LOG_ERROR("%s could not enable paging", __func__);
-			return retval;
+			return retval2;
 		}
-		pg_disabled = false;
 	}
+
+	if (retval != ERROR_OK)
+		return retval;
+
 	retval = x86_32->transaction_status(t);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("%s error on io write", __func__);
@@ -1141,7 +1155,6 @@ static int set_breakpoint(struct target *t, struct breakpoint *bp)
 			}
 		} else {
 			LOG_ERROR("%s core doesn't support SW breakpoints", __func__);
-			error = ERROR_FAIL;
 			return ERROR_FAIL;
 		}
 	}
@@ -1258,6 +1271,38 @@ static int unset_watchpoint(struct target *t, struct watchpoint *wp)
 			wp->unique_id, wp->address, wp->length, wp_num);
 
 	return ERROR_OK;
+}
+
+/* after reset breakpoints and watchpoints in memory are not valid anymore and
+ * debug registers are cleared.
+ * we can't afford to remove sw breakpoints using the default methods as the
+ * memory doesn't have the same layout yet and an access might crash the target,
+ * so we just clear the openocd breakpoints structures.
+ */
+void x86_32_common_reset_breakpoints_watchpoints(struct target *t)
+{
+	struct x86_32_common *x86_32 = target_to_x86_32(t);
+	struct x86_32_dbg_reg *debug_reg_list = x86_32->hw_break_list;
+	struct breakpoint *next_b;
+	struct watchpoint *next_w;
+
+	while (t->breakpoints) {
+		next_b = t->breakpoints->next;
+		free(t->breakpoints->orig_instr);
+		free(t->breakpoints);
+		t->breakpoints = next_b;
+	}
+
+	while (t->watchpoints) {
+		next_w = t->watchpoints->next;
+		free(t->watchpoints);
+		t->watchpoints = next_w;
+	}
+
+	for (int i = 0; i < x86_32->num_hw_bpoints; i++) {
+		debug_reg_list[i].used = 0;
+		debug_reg_list[i].bp_value = 0;
+	}
 }
 
 static int read_hw_reg_to_cache(struct target *t, int num)

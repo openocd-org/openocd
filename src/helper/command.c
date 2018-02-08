@@ -1339,6 +1339,15 @@ struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp
 	return context;
 }
 
+void command_exit(struct command_context *context)
+{
+	if (!context)
+		return;
+
+	Jim_FreeInterp(context->interp);
+	command_done(context);
+}
+
 int command_context_mode(struct command_context *cmd_ctx, enum command_mode mode)
 {
 	if (!cmd_ctx)

@@ -32,14 +32,13 @@ struct jtagspi_flash_bank {
 	const struct flash_device *dev;
 	int probed;
 	uint32_t ir;
-	uint32_t dr_len;
 };
 
 FLASH_BANK_COMMAND_HANDLER(jtagspi_flash_bank_command)
 {
 	struct jtagspi_flash_bank *info;
 
-	if (CMD_ARGC < 8)
+	if (CMD_ARGC < 7)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	info = malloc(sizeof(struct jtagspi_flash_bank));
@@ -52,7 +51,6 @@ FLASH_BANK_COMMAND_HANDLER(jtagspi_flash_bank_command)
 	info->tap = NULL;
 	info->probed = 0;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], info->ir);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[7], info->dr_len);
 
 	return ERROR_OK;
 }
@@ -62,9 +60,6 @@ static void jtagspi_set_ir(struct flash_bank *bank)
 	struct jtagspi_flash_bank *info = bank->driver_priv;
 	struct scan_field field;
 	uint8_t buf[4];
-
-	if (buf_get_u32(info->tap->cur_instr, 0, info->tap->ir_length) == info->ir)
-		return;
 
 	LOG_DEBUG("loading jtagspi ir");
 	buf_set_u32(buf, 0, info->tap->ir_length, info->ir);
@@ -84,28 +79,53 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 		uint32_t *addr, uint8_t *data, int len)
 {
 	struct jtagspi_flash_bank *info = bank->driver_priv;
-	struct scan_field fields[3];
-	uint8_t cmd_buf[4];
+	struct scan_field fields[6];
+	uint8_t marker = 1;
+	uint8_t xfer_bits_buf[4];
+	uint8_t addr_buf[3];
 	uint8_t *data_buf;
+	uint32_t xfer_bits;
 	int is_read, lenb, n;
 
 	/* LOG_DEBUG("cmd=0x%02x len=%i", cmd, len); */
 
-	n = 0;
-	fields[n].num_bits = 8;
-	cmd_buf[0] = cmd;
-	if (addr) {
-		h_u24_to_be(cmd_buf + 1, *addr);
-		fields[n].num_bits += 24;
-	}
-	flip_u8(cmd_buf, cmd_buf, 4);
-	fields[n].out_value = cmd_buf;
-	fields[n].in_value = NULL;
-	n++;
-
 	is_read = (len < 0);
 	if (is_read)
 		len = -len;
+
+	n = 0;
+
+	fields[n].num_bits = 1;
+	fields[n].out_value = &marker;
+	fields[n].in_value = NULL;
+	n++;
+
+	xfer_bits = 8 + len - 1;
+	/* cmd + read/write - 1 due to the counter implementation */
+	if (addr)
+		xfer_bits += 24;
+	h_u32_to_be(xfer_bits_buf, xfer_bits);
+	flip_u8(xfer_bits_buf, xfer_bits_buf, 4);
+	fields[n].num_bits = 32;
+	fields[n].out_value = xfer_bits_buf;
+	fields[n].in_value = NULL;
+	n++;
+
+	cmd = flip_u32(cmd, 8);
+	fields[n].num_bits = 8;
+	fields[n].out_value = &cmd;
+	fields[n].in_value = NULL;
+	n++;
+
+	if (addr) {
+		h_u24_to_be(addr_buf, *addr);
+		flip_u8(addr_buf, addr_buf, 3);
+		fields[n].num_bits = 24;
+		fields[n].out_value = addr_buf;
+		fields[n].in_value = NULL;
+		n++;
+	}
+
 	lenb = DIV_ROUND_UP(len, 8);
 	data_buf = malloc(lenb);
 	if (lenb > 0) {
@@ -114,10 +134,11 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 			return ERROR_FAIL;
 		}
 		if (is_read) {
-			fields[n].num_bits = info->dr_len;
+			fields[n].num_bits = jtag_tap_count_enabled();
 			fields[n].out_value = NULL;
 			fields[n].in_value = NULL;
 			n++;
+
 			fields[n].out_value = NULL;
 			fields[n].in_value = data_buf;
 		} else {
@@ -130,6 +151,7 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 	}
 
 	jtagspi_set_ir(bank);
+	/* passing from an IR scan to SHIFT-DR clears BYPASS registers */
 	jtag_add_dr_scan(info->tap, n, fields, TAP_IDLE);
 	jtag_execute_queue();
 
@@ -202,9 +224,10 @@ static int jtagspi_probe(struct flash_bank *bank)
 static void jtagspi_read_status(struct flash_bank *bank, uint32_t *status)
 {
 	uint8_t buf;
-	jtagspi_cmd(bank, SPIFLASH_READ_STATUS, NULL, &buf, -8);
-	*status = buf;
-	/* LOG_DEBUG("status=0x%08" PRIx32, *status); */
+	if (jtagspi_cmd(bank, SPIFLASH_READ_STATUS, NULL, &buf, -8) == ERROR_OK) {
+		*status = buf;
+		/* LOG_DEBUG("status=0x%08" PRIx32, *status); */
+	}
 }
 
 static int jtagspi_wait(struct flash_bank *bank, int timeout_ms)

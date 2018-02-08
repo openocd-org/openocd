@@ -839,26 +839,30 @@ static int ublast_init(void)
 {
 	int ret, i;
 
-	if (info.lowlevel_name) {
-		for (i = 0; lowlevel_drivers_map[i].name; i++)
-			if (!strcmp(lowlevel_drivers_map[i].name, info.lowlevel_name))
+	for (i = 0; lowlevel_drivers_map[i].name; i++) {
+		if (info.lowlevel_name) {
+			if (!strcmp(lowlevel_drivers_map[i].name, info.lowlevel_name)) {
+				info.drv = lowlevel_drivers_map[i].drv_register();
+				if (!info.drv) {
+					LOG_ERROR("Error registering lowlevel driver \"%s\"",
+						  info.lowlevel_name);
+					return ERROR_JTAG_DEVICE_ERROR;
+				}
 				break;
-		if (lowlevel_drivers_map[i].name)
+			}
+		} else {
 			info.drv = lowlevel_drivers_map[i].drv_register();
-		if (!info.drv) {
-			LOG_ERROR("no lowlevel driver found for %s or lowlevel driver opening error",
-				  info.lowlevel_name);
-			return ERROR_JTAG_DEVICE_ERROR;
+			if (info.drv) {
+				info.lowlevel_name = strdup(lowlevel_drivers_map[i].name);
+				LOG_INFO("No lowlevel driver configured, using %s", info.lowlevel_name);
+				break;
+			}
 		}
-	} else {
-		LOG_INFO("No lowlevel driver configured, will try them all");
-		for (i = 0; !info.drv && lowlevel_drivers_map[i].name; i++)
-			info.drv = lowlevel_drivers_map[i].drv_register();
-		if (!info.drv) {
-			LOG_ERROR("no lowlevel driver found");
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
-		info.lowlevel_name = strdup(lowlevel_drivers_map[i-1].name);
+	}
+
+	if (!info.drv) {
+		LOG_ERROR("No lowlevel driver available");
+		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	/*
