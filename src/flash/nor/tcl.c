@@ -3,6 +3,7 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe <oyvind.harboe@zylin.com>       *
  *   Copyright (C) 2008 by Spencer Oliver <spen@spen-soft.co.uk>           *
  *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
+ *   Copyright (C) 2017-2018 Tomas Vanek <vanekt@fbl.cz>                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -460,42 +461,29 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 
 COMMAND_HANDLER(handle_flash_fill_command)
 {
-	int err = ERROR_OK;
-	uint32_t address;
+	target_addr_t address;
 	uint32_t pattern;
 	uint32_t count;
-	uint32_t wrote = 0;
-	uint32_t cur_size = 0;
-	uint32_t chunk_count;
 	struct target *target = get_current_target(CMD_CTX);
 	unsigned i;
 	uint32_t wordsize;
-	int retval = ERROR_OK;
+	int retval;
 
-	static size_t const chunksize = 1024;
-	uint8_t *chunk = NULL, *readback = NULL;
+	if (CMD_ARGC != 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (CMD_ARGC != 3) {
-		retval = ERROR_COMMAND_SYNTAX_ERROR;
-		goto done;
-	}
-
+#if BUILD_TARGET64
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], address);
+#else
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+#endif
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], pattern);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], count);
 
-	chunk = malloc(chunksize);
-	if (chunk == NULL)
-		return ERROR_FAIL;
-
-	readback = malloc(chunksize);
-	if (readback == NULL) {
-		free(chunk);
-		return ERROR_FAIL;
-	}
-
-	if (count == 0)
-		goto done;
+	struct flash_bank *bank;
+	retval = get_flash_bank_by_addr(target, address, true, &bank);
+	if (retval != ERROR_OK)
+		return retval;
 
 	switch (CMD_NAME[4]) {
 		case 'w':
@@ -508,73 +496,109 @@ COMMAND_HANDLER(handle_flash_fill_command)
 			wordsize = 1;
 			break;
 		default:
-			retval = ERROR_COMMAND_SYNTAX_ERROR;
-			goto done;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	chunk_count = MIN(count, (chunksize / wordsize));
+	if (count == 0)
+		return ERROR_OK;
+
+	if (address + count >= bank->base + bank->size) {
+		LOG_ERROR("Cannot cross flash bank borders");
+		return ERROR_FAIL;
+	}
+
+	uint32_t size_bytes = count * wordsize;
+	target_addr_t aligned_start = flash_write_align_start(bank, address);
+	target_addr_t end_addr = address + size_bytes - 1;
+	target_addr_t aligned_end = flash_write_align_end(bank, end_addr);
+	uint32_t aligned_size = aligned_end + 1 - aligned_start;
+	uint32_t padding_at_start = address - aligned_start;
+	uint32_t padding_at_end = aligned_end - end_addr;
+
+	uint8_t *buffer = malloc(aligned_size);
+	if (buffer == NULL)
+		return ERROR_FAIL;
+
+	if (padding_at_start) {
+		memset(buffer, bank->default_padded_value, padding_at_start);
+		LOG_WARNING("Start address " TARGET_ADDR_FMT
+			" breaks the required alignment of flash bank %s",
+			address, bank->name);
+		LOG_WARNING("Padding %" PRId32 " bytes from " TARGET_ADDR_FMT,
+		    padding_at_start, aligned_start);
+	}
+
+	uint8_t *ptr = buffer + padding_at_start;
+
 	switch (wordsize) {
 		case 4:
-			for (i = 0; i < chunk_count; i++)
-				target_buffer_set_u32(target, chunk + i * wordsize, pattern);
+			for (i = 0; i < count; i++, ptr += wordsize)
+				target_buffer_set_u32(target, ptr, pattern);
 			break;
 		case 2:
-			for (i = 0; i < chunk_count; i++)
-				target_buffer_set_u16(target, chunk + i * wordsize, pattern);
+			for (i = 0; i < count; i++, ptr += wordsize)
+				target_buffer_set_u16(target, ptr, pattern);
 			break;
 		case 1:
-			memset(chunk, pattern, chunk_count);
+			memset(ptr, pattern, count);
+			ptr += count;
 			break;
 		default:
 			LOG_ERROR("BUG: can't happen");
 			exit(-1);
 	}
 
+	if (padding_at_end) {
+		memset(ptr, bank->default_padded_value, padding_at_end);
+		LOG_INFO("Padding at " TARGET_ADDR_FMT " with %" PRId32
+			" bytes (bank write end alignment)",
+			end_addr + 1, padding_at_end);
+	}
+
 	struct duration bench;
 	duration_start(&bench);
 
-	for (wrote = 0; wrote < (count*wordsize); wrote += cur_size) {
-		struct flash_bank *bank;
+	retval = flash_driver_write(bank, buffer, aligned_start - bank->base, aligned_size);
+	if (retval != ERROR_OK)
+		goto done;
 
-		retval = get_flash_bank_by_addr(target, address, true, &bank);
-		if (retval != ERROR_OK)
-			goto done;
+	retval = flash_driver_read(bank, buffer, address - bank->base, size_bytes);
+	if (retval != ERROR_OK)
+		goto done;
 
-		cur_size = MIN((count * wordsize - wrote), chunksize);
-		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
-		if (err != ERROR_OK) {
-			retval = err;
+	for (i = 0, ptr = buffer; i < count; i++) {
+		uint32_t readback = 0;
+
+		switch (wordsize) {
+			case 4:
+				readback = target_buffer_get_u32(target, ptr);
+				break;
+			case 2:
+				readback = target_buffer_get_u16(target, ptr);
+				break;
+			case 1:
+				readback = *ptr;
+				break;
+		}
+		if (readback != pattern) {
+			LOG_ERROR(
+				"Verification error address " TARGET_ADDR_FMT
+				", read back 0x%02" PRIx32 ", expected 0x%02" PRIx32,
+				address + i * wordsize, readback, pattern);
+			retval = ERROR_FAIL;
 			goto done;
 		}
-
-		err = flash_driver_read(bank, readback, address - bank->base + wrote, cur_size);
-		if (err != ERROR_OK) {
-			retval = err;
-			goto done;
-		}
-
-		for (i = 0; i < cur_size; i++) {
-			if (readback[i] != chunk[i]) {
-				LOG_ERROR(
-					"Verification error address 0x%08" PRIx32 ", read back 0x%02x, expected 0x%02x",
-					address + wrote + i,
-					readback[i],
-					chunk[i]);
-				retval = ERROR_FAIL;
-				goto done;
-			}
-		}
+		ptr += wordsize;
 	}
 
 	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
-		command_print(CMD_CTX, "wrote %" PRIu32 " bytes to 0x%8.8" PRIx32
-			" in %fs (%0.3f KiB/s)", wrote, address,
-			duration_elapsed(&bench), duration_kbps(&bench, wrote));
+		command_print(CMD_CTX, "wrote %" PRIu32 " bytes to " TARGET_ADDR_FMT
+			" in %fs (%0.3f KiB/s)", size_bytes, address,
+			duration_elapsed(&bench), duration_kbps(&bench, size_bytes));
 	}
 
 done:
-	free(readback);
-	free(chunk);
+	free(buffer);
 
 	return retval;
 }
@@ -592,8 +616,8 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	struct duration bench;
 	duration_start(&bench);
 
-	struct flash_bank *p;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &p);
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -602,7 +626,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	if (CMD_ARGC > 2)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], offset);
 
-	if (offset > p->size) {
+	if (offset > bank->size) {
 		LOG_ERROR("Offset 0x%8.8" PRIx32 " is out of range of the flash bank",
 			offset);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
@@ -618,7 +642,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 		return retval;
 	}
 
-	length = MIN(filesize, p->size - offset);
+	length = MIN(filesize, bank->size - offset);
 
 	if (!length) {
 		LOG_INFO("Nothing to write to flash bank");
@@ -630,14 +654,33 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 		LOG_INFO("File content exceeds flash bank size. Only writing the "
 			"first %zu bytes of the file", length);
 
-	buffer = malloc(length);
+	target_addr_t start_addr = bank->base + offset;
+	target_addr_t aligned_start = flash_write_align_start(bank, start_addr);
+	target_addr_t end_addr = start_addr + length - 1;
+	target_addr_t aligned_end = flash_write_align_end(bank, end_addr);
+	uint32_t aligned_size = aligned_end + 1 - aligned_start;
+	uint32_t padding_at_start = start_addr - aligned_start;
+	uint32_t padding_at_end = aligned_end - end_addr;
+
+	buffer = malloc(aligned_size);
 	if (buffer == NULL) {
 		fileio_close(fileio);
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
+
+	if (padding_at_start) {
+		memset(buffer, bank->default_padded_value, padding_at_start);
+		LOG_WARNING("Start offset 0x%08" PRIx32
+			" breaks the required alignment of flash bank %s",
+			offset, bank->name);
+		LOG_WARNING("Padding %" PRId32 " bytes from " TARGET_ADDR_FMT,
+		    padding_at_start, aligned_start);
+	}
+
+	uint8_t *ptr = buffer + padding_at_start;
 	size_t buf_cnt;
-	if (fileio_read(fileio, length, buffer, &buf_cnt) != ERROR_OK) {
+	if (fileio_read(fileio, length, ptr, &buf_cnt) != ERROR_OK) {
 		free(buffer);
 		fileio_close(fileio);
 		return ERROR_FAIL;
@@ -649,15 +692,23 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 		return ERROR_FAIL;
 	}
 
-	retval = flash_driver_write(p, buffer, offset, length);
+	ptr += length;
+
+	if (padding_at_end) {
+		memset(ptr, bank->default_padded_value, padding_at_end);
+		LOG_INFO("Padding at " TARGET_ADDR_FMT " with %" PRId32
+			" bytes (bank write end alignment)",
+			end_addr + 1, padding_at_end);
+	}
+
+	retval = flash_driver_write(bank, buffer, aligned_start - bank->base, aligned_size);
 
 	free(buffer);
-	buffer = NULL;
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK)) {
 		command_print(CMD_CTX, "wrote %zu bytes from file %s to flash bank %u"
 			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
-			length, CMD_ARGV[1], p->bank_number, offset,
+			length, CMD_ARGV[1], bank->bank_number, offset,
 			duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
 
@@ -1071,21 +1122,16 @@ COMMAND_HANDLER(handle_flash_bank_command)
 		}
 	}
 
-	struct flash_bank *c = malloc(sizeof(*c));
+	struct flash_bank *c = calloc(1, sizeof(*c));
 	c->name = strdup(bank_name);
 	c->target = target;
 	c->driver = driver;
-	c->driver_priv = NULL;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], c->base);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], c->size);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], c->chip_width);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[4], c->bus_width);
 	c->default_padded_value = c->erased_value = 0xff;
-	c->num_sectors = 0;
-	c->sectors = NULL;
-	c->num_prot_blocks = 0;
-	c->prot_blocks = NULL;
-	c->next = NULL;
+	c->minimal_write_gap = FLASH_WRITE_GAP_SECTOR;
 
 	int retval;
 	retval = CALL_COMMAND_HANDLER(driver->flash_bank_command, c);
