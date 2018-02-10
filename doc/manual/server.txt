@@ -29,7 +29,7 @@ write new code and creates a support nightmare.
 In many ways, people had talked about the need for some type of
 high-level interface to OpenOCD, because they only had two choices:
 - the ability to script: via an external program the actions of OpenOCD.
-- the ablity to write a complex internal commands: native 'commands'
+- the ability to write a complex internal commands: native 'commands'
   inside of OpenOCD was complicated.
 
 Fundamentally, the basic problem with both of those would be solved
@@ -68,7 +68,7 @@ interfaces well with TCL.
 
 From there, the developers wanted to create an external front-end that
 would be @a very usable and that that @a any language could utilize,
-allowing simple front-ends to be (a) cross-platform (b) languag
+allowing simple front-ends to be (a) cross-platform (b) language
 agnostic, and (c) easy to develop and use.
 
 Simple ASCII protocols are easy.  For example, HTTP, FTP (control), and
@@ -76,7 +76,7 @@ SMTP are all text-based.  All of these examples are widely and
 well-known, and they do not require high-speed or high-volume.  They
 also support a high degree of interoperability with multiple systems.
 They are not human-centric protocols; more correctly, they are rigid,
-terse, simple ASCII protocols that are emensely parsable by a script.
+terse, simple ASCII protocols that are easily parsable by a script.
 
 Thus, the TCL server -- a 'machine' type socket interface -- was added
 with the hope was it would output simple "name-value" pair type
@@ -95,25 +95,25 @@ and do things with it!
 A lot has been said about various "widigit-foo-gui-library is so
 wonderful".  Please refer back to the domino and spider web problem of
 dependencies.  Sure, you may well know the WhatEver-GUI library, but
-most others will not (including the next contributer to OpenOCD).
+most others will not (including the next contributor to OpenOCD).
 How do we solve that problem?
 
 For example, Cygwin can be painful, Cygwin GUI packages want X11
 to be present, crossing the barrier between MinGW and Cygwin is
 painful, let alone getting the GUI front end to work on MacOS, and
-Linux, yuck yuck yuck. Painful. very very painful.
+Linux, yuck yuck yuck. Painful, very very painful.
 
 What works easier and is less work is what is already present in every
 platform?  The answer: A web browser.  In other words, OpenOCD could
 serve out embedded web pages via "localhost" to your browser.
 
 Long before OpenOCD had a TCL command line, Zylin AS built their ZY1000
-devince with a built-in HTTP server.  Later, they were willing to both
+device with a built-in HTTP server.  Later, they were willing to both
 contribute and integrate most of that work into the main tree.
 
 @subsection serverdocsother Other Options Considered
 
-What if a web browser is not acceptable ie: You want to write your own
+What if a web browser is not acceptable i.e.: You want to write your own
 front gadget in Eclipse, or KDevelop, or PerlTK, Ruby, or what ever
 the latest and greatest Script De Jour is.
 
@@ -134,7 +134,7 @@ taking over OpenOCD.  His concern is and was: how do you debug
 something written in 2 different languages?  A "SWIG" front-end is
 unlikely to help that situation.
 
-@subsection serverdoccombined Combined: Socket & WebServer Benifits
+@subsection serverdoccombined Combined: Socket & WebServer Benefits
 
 Seriously think about this question: What script language (or compiled
 language) today cannot talk directly to a socket? Every thing in the
@@ -146,23 +146,23 @@ and serve it out via the embedded web server, could it - or something
 like it talk to the built in TCL server? Yes, absolutely! We are on to
 something here.
 
-@subsection serverdocplatforms Platform Permuntations
+@subsection serverdocplatforms Platform Permutations
 
 Look at some permutations where OpenOCD can run; these "just work" if
 the Socket Approach is used.
 
 
-- Linux/Cygwin/MinGw/MacOSx/FreeBSD development Host Locally
+- Linux/Cygwin/MinGW/MacOSX/FreeBSD development Host Locally
 - OpenOCD with some dongle on that host
 
 
-- Linux/Cygwin/MingW/MacOS/FreeBSD development host
-- DONGLE:  tcpip based ARM-Linux perhaps at91rm9200 or ep93xx.c, running openocd.
+- Linux/Cygwin/MinGW/MacOS/FreeBSD development host
+- DONGLE:  TCP/IP based ARM-Linux perhaps at91rm9200 or ep93xx.c, running openocd.
 
 
-- Windows cygwin/X desktop environment.
+- Windows Cygwin/X desktop environment.
 - Linux development host (via remote X11)
-- Dongle:  "eb93xx.c" based linux board
+- Dongle:  "eb93xx.c" based Linux board
 
 
 @subsection serverdocfuture Development Scale Out
@@ -214,8 +214,8 @@ love or attention.  Perhaps it will after you read and understand this.
 One reason might be, this adds one more host side requirement to make
 use of the feature.  In other words, one could write a Python/TK
 front-end, but it is only useable if you have Python/TK installed.
-Maybe this can be done via Ecllipse, but not all developers use Ecplise.
-Many devlopers use Emacs (possibly with GUD mode) or vim and will not
+Maybe this can be done via Eclipse, but not all developers use Eclipse.
+Many developers use Emacs (possibly with GUD mode) or vim and will not
 accept such an interface.  The next developer reading this might be
 using Insight (GDB-TK) - and somebody else - DDD..
 
@@ -260,7 +260,7 @@ OS) is another example.
 
 One could create a simple: <b>Click here to display memory</b> or maybe
 <b>click here to display the UART REGISTER BLOCK</b>; click again and see
-each register explained in exquisit detail.
+each register explained in exquisite detail.
 
 For an STM32, one could create a simple HTML page, with simple
 substitution text that the simple web server use to substitute the
@@ -269,7 +269,7 @@ memory. We end up with an HTML page that could list the contents of
 every peripheral register on the target platform.
 
 That also is transportable, regardless of the OpenOCD host
-platform: Linux/X86, Linux/ARM, FreeBSD, Cygwin, MingW, or MacOSX.
+platform: Linux/X86, Linux/ARM, FreeBSD, Cygwin, MinGW, or MacOSX.
 You could even port OpenOCD to an Android system and use it as a
 bit-banging JTAG Adapter serving web pages.
 
