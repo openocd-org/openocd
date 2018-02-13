@@ -82,9 +82,9 @@ static inline bool gpio_level(int g)
 	return pio_base[g / 32].dr >> (g & 0x1F) & 1;
 }
 
-static int imx_gpio_read(void);
-static void imx_gpio_write(int tck, int tms, int tdi);
-static void imx_gpio_reset(int trst, int srst);
+static bb_value_t imx_gpio_read(void);
+static int imx_gpio_write(int tck, int tms, int tdi);
+static int imx_gpio_reset(int trst, int srst);
 
 static int imx_gpio_swdio_read(void);
 static void imx_gpio_swdio_drive(bool is_output);
@@ -128,12 +128,12 @@ static int speed_coeff = 50000;
 static int speed_offset = 100;
 static unsigned int jtag_delay;
 
-static int imx_gpio_read(void)
+static bb_value_t imx_gpio_read(void)
 {
-	return gpio_level(tdo_gpio);
+	return gpio_level(tdo_gpio) ? BB_HIGH : BB_LOW;
 }
 
-static void imx_gpio_write(int tck, int tms, int tdi)
+static int imx_gpio_write(int tck, int tms, int tdi)
 {
 	tms ? gpio_set(tms_gpio) : gpio_clear(tms_gpio);
 	tdi ? gpio_set(tdi_gpio) : gpio_clear(tdi_gpio);
@@ -141,25 +141,31 @@ static void imx_gpio_write(int tck, int tms, int tdi)
 
 	for (unsigned int i = 0; i < jtag_delay; i++)
 		asm volatile ("");
+
+	return ERROR_OK;
 }
 
-static void imx_gpio_swd_write(int tck, int tms, int tdi)
+static int imx_gpio_swd_write(int tck, int tms, int tdi)
 {
 	tdi ? gpio_set(swdio_gpio) : gpio_clear(swdio_gpio);
 	tck ? gpio_set(swclk_gpio) : gpio_clear(swclk_gpio);
 
 	for (unsigned int i = 0; i < jtag_delay; i++)
 		asm volatile ("");
+
+	return ERROR_OK;
 }
 
 /* (1) assert or (0) deassert reset lines */
-static void imx_gpio_reset(int trst, int srst)
+static int imx_gpio_reset(int trst, int srst)
 {
 	if (trst_gpio != -1)
 		trst ? gpio_set(trst_gpio) : gpio_clear(trst_gpio);
 
 	if (srst_gpio != -1)
 		srst ? gpio_set(srst_gpio) : gpio_clear(srst_gpio);
+
+	return ERROR_OK;
 }
 
 static void imx_gpio_swdio_drive(bool is_output)
@@ -469,7 +475,7 @@ static int imx_gpio_init(void)
 
 
 	LOG_INFO("imx_gpio mmap: pagesize: %u, regionsize: %u",
-			sysconf(_SC_PAGE_SIZE), IMX_GPIO_REGS_COUNT * IMX_GPIO_SIZE);
+			(unsigned int) sysconf(_SC_PAGE_SIZE), IMX_GPIO_REGS_COUNT * IMX_GPIO_SIZE);
 	pio_base = mmap(NULL, IMX_GPIO_REGS_COUNT * IMX_GPIO_SIZE,
 				PROT_READ | PROT_WRITE,
 				MAP_SHARED, dev_mem_fd, imx_gpio_peri_base);

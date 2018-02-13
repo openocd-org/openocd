@@ -1,4 +1,8 @@
 /***************************************************************************
+ *   SWIM contributions by Ake Rehnman                                     *
+ *   Copyright (C) 2017  Ake Rehnman                                       *
+ *   ake.rehnman(at)gmail.com                                              *
+ *                                                                         *
  *   Copyright (C) 2011-2012 by Mathias Kuester                            *
  *   Mathias Kuester <kesmtp@freenet.de>                                   *
  *                                                                         *
@@ -130,6 +134,8 @@ struct stlink_usb_handle_s {
 	bool reconnect_pending;
 };
 
+#define STLINK_SWIM_ERR_OK             0x00
+#define STLINK_SWIM_BUSY               0x01
 #define STLINK_DEBUG_ERR_OK            0x80
 #define STLINK_DEBUG_ERR_FAULT         0x81
 #define STLINK_SWD_AP_WAIT             0x10
@@ -167,8 +173,36 @@ struct stlink_usb_handle_s {
 
 #define STLINK_DFU_EXIT                0x07
 
-#define STLINK_SWIM_ENTER              0x00
-#define STLINK_SWIM_EXIT               0x01
+/*
+	STLINK_SWIM_ENTER_SEQ
+	1.3ms low then 750Hz then 1.5kHz
+
+	STLINK_SWIM_GEN_RST
+	STM8 DM pulls reset pin low 50us
+
+	STLINK_SWIM_SPEED
+	uint8_t (0=low|1=high)
+
+	STLINK_SWIM_WRITEMEM
+	uint16_t length
+	uint32_t address
+
+	STLINK_SWIM_RESET
+	send syncronization seq (16us low, response 64 clocks low)
+*/
+#define STLINK_SWIM_ENTER                  0x00
+#define STLINK_SWIM_EXIT                   0x01
+#define STLINK_SWIM_READ_CAP               0x02
+#define STLINK_SWIM_SPEED                  0x03
+#define STLINK_SWIM_ENTER_SEQ              0x04
+#define STLINK_SWIM_GEN_RST                0x05
+#define STLINK_SWIM_RESET                  0x06
+#define STLINK_SWIM_ASSERT_RESET           0x07
+#define STLINK_SWIM_DEASSERT_RESET         0x08
+#define STLINK_SWIM_READSTATUS             0x09
+#define STLINK_SWIM_WRITEMEM               0x0a
+#define STLINK_SWIM_READMEM                0x0b
+#define STLINK_SWIM_READBUF                0x0c
 
 #define STLINK_DEBUG_ENTER_JTAG            0x00
 #define STLINK_DEBUG_GETSTATUS             0x01
@@ -252,6 +286,7 @@ static const struct {
 };
 
 static void stlink_usb_init_buffer(void *handle, uint8_t direction, uint32_t size);
+static int stlink_swim_status(void *handle);
 
 /** */
 static int stlink_usb_xfer_v1_get_status(void *handle)
@@ -342,7 +377,11 @@ static int stlink_usb_xfer_v1_get_sense(void *handle)
 	return ERROR_OK;
 }
 
-/** */
+/*
+	transfers block in cmdbuf
+	<size> indicates number of bytes in the following
+	data phase.
+*/
 static int stlink_usb_xfer(void *handle, const uint8_t *buf, int size)
 {
 	int err, cmdsize = STLINK_CMD_SIZE_V2;
@@ -350,8 +389,11 @@ static int stlink_usb_xfer(void *handle, const uint8_t *buf, int size)
 
 	assert(handle != NULL);
 
-	if (h->version.stlink == 1)
+	if (h->version.stlink == 1) {
 		cmdsize = STLINK_SG_SIZE;
+		/* put length in bCBWCBLength */
+		h->cmdbuf[14] = h->cmdidx-15;
+	}
 
 	err = stlink_usb_xfer_rw(handle, cmdsize, buf, size);
 
@@ -373,7 +415,6 @@ static int stlink_usb_xfer(void *handle, const uint8_t *buf, int size)
 	return ERROR_OK;
 }
 
-
 /**
     Converts an STLINK status code held in the first byte of a response
     to an openocd error, logs any error/wait status as debug output.
@@ -383,6 +424,18 @@ static int stlink_usb_error_check(void *handle)
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
+
+	if (h->transport == HL_TRANSPORT_SWIM) {
+		switch (h->databuf[0]) {
+			case STLINK_SWIM_ERR_OK:
+				return ERROR_OK;
+			case STLINK_SWIM_BUSY:
+				return ERROR_WAIT;
+			default:
+				LOG_DEBUG("unknown/unexpected STLINK status code 0x%x", h->databuf[0]);
+				return ERROR_FAIL;
+		}
+	}
 
 	/* TODO: no error checking yet on api V1 */
 	if (h->jtag_api == STLINK_JTAG_API_V1)
@@ -448,7 +501,7 @@ static int stlink_usb_error_check(void *handle)
 /** Issue an STLINK command via USB transfer, with retries on any wait status responses.
 
     Works for commands where the STLINK_DEBUG status is returned in the first
-    byte of the response packet.
+    byte of the response packet. For SWIM a SWIM_READSTATUS is requested instead.
 
     Returns an openocd result code.
 */
@@ -456,10 +509,21 @@ static int stlink_cmd_allow_retry(void *handle, const uint8_t *buf, int size)
 {
 	int retries = 0;
 	int res;
+	struct stlink_usb_handle_s *h = handle;
+
 	while (1) {
-		res = stlink_usb_xfer(handle, buf, size);
-		if (res != ERROR_OK)
-			return res;
+		if ((h->transport != HL_TRANSPORT_SWIM) || !retries) {
+			res = stlink_usb_xfer(handle, buf, size);
+			if (res != ERROR_OK)
+				return res;
+		}
+
+		if (h->transport == HL_TRANSPORT_SWIM) {
+			res = stlink_swim_status(handle);
+			if (res != ERROR_OK)
+				return res;
+		}
+
 		res = stlink_usb_error_check(handle);
 		if (res == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
 			usleep((1<<retries++) * 1000);
@@ -487,7 +551,17 @@ static int stlink_usb_read_trace(void *handle, const uint8_t *buf, int size)
 	return ERROR_OK;
 }
 
-/** */
+/*
+	this function writes transfer length in
+	the right place in the cb
+*/
+static void stlink_usb_set_cbw_transfer_datalength(void *handle, uint32_t size)
+{
+	struct stlink_usb_handle_s *h = handle;
+
+	buf_set_u32(h->cmdbuf+8, 0, 32, size);
+}
+
 static void stlink_usb_xfer_v1_create_cmd(void *handle, uint8_t direction, uint32_t size)
 {
 	struct stlink_usb_handle_s *h = handle;
@@ -496,12 +570,16 @@ static void stlink_usb_xfer_v1_create_cmd(void *handle, uint8_t direction, uint3
 	strcpy((char *)h->cmdbuf, "USBC");
 	h->cmdidx += 4;
 	/* csw tag not used */
+	buf_set_u32(h->cmdbuf+h->cmdidx, 0, 32, 0);
 	h->cmdidx += 4;
+	/* cbw data transfer length (in the following data phase in or out) */
 	buf_set_u32(h->cmdbuf+h->cmdidx, 0, 32, size);
 	h->cmdidx += 4;
+	/* cbw flags */
 	h->cmdbuf[h->cmdidx++] = (direction == h->rx_ep ? ENDPOINT_IN : ENDPOINT_OUT);
 	h->cmdbuf[h->cmdidx++] = 0; /* lun */
-	h->cmdbuf[h->cmdidx++] = STLINK_CMD_SIZE_V1;
+	/* cdb clength (is filled in at xfer) */
+	h->cmdbuf[h->cmdidx++] = 0;
 }
 
 /** */
@@ -681,6 +759,8 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 		case STLINK_MODE_DEBUG_SWIM:
 			h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
 			h->cmdbuf[h->cmdidx++] = STLINK_SWIM_ENTER;
+			/* no answer for this function... */
+			rx_size = 0;
 			break;
 		case STLINK_MODE_DFU:
 		case STLINK_MODE_MASS:
@@ -824,16 +904,28 @@ static int stlink_usb_init_mode(void *handle, bool connect_under_reset)
 		return ERROR_FAIL;
 	}
 
+	/* preliminary SRST assert:
+	 * We want SRST is asserted before activating debug signals (mode_enter).
+	 * As the required mode has not been set, the adapter may not know what pin to use.
+	 * Tested firmware STLINK v2 JTAG v29 API v2 SWIM v0 uses T_NRST pin by default
+	 * Tested firmware STLINK v2 JTAG v27 API v2 SWIM v6 uses T_NRST pin by default
+	 * after power on, SWIM_RST stays unchanged */
+	if (connect_under_reset && emode != STLINK_MODE_DEBUG_SWIM)
+		stlink_usb_assert_srst(handle, 0);
+		/* do not check the return status here, we will
+		   proceed and enter the desired mode below
+		   and try asserting srst again. */
+
+	res = stlink_usb_mode_enter(handle, emode);
+	if (res != ERROR_OK)
+		return res;
+
+	/* assert SRST again: a little bit late but now the adapter knows for sure what pin to use */
 	if (connect_under_reset) {
 		res = stlink_usb_assert_srst(handle, 0);
 		if (res != ERROR_OK)
 			return res;
 	}
-
-	res = stlink_usb_mode_enter(handle, emode);
-
-	if (res != ERROR_OK)
-		return res;
 
 	res = stlink_usb_current_mode(handle, &mode);
 
@@ -845,6 +937,199 @@ static int stlink_usb_init_mode(void *handle, bool connect_under_reset)
 	return ERROR_OK;
 }
 
+/* request status from last swim request */
+static int stlink_swim_status(void *handle)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 4);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_READSTATUS;
+	res = stlink_usb_xfer(handle, h->databuf, 4);
+	if (res != ERROR_OK)
+		return res;
+	return ERROR_OK;
+}
+/*
+	the purpose of this function is unknown...
+	capabilites? anyway for swim v6 it returns
+	0001020600000000
+*/
+__attribute__((unused))
+static int stlink_swim_cap(void *handle, uint8_t *cap)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 8);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_READ_CAP;
+	h->cmdbuf[h->cmdidx++] = 0x01;
+	res = stlink_usb_xfer(handle, h->databuf, 8);
+	if (res != ERROR_OK)
+		return res;
+	memcpy(cap, h->databuf, 8);
+	return ERROR_OK;
+}
+
+/*	debug dongle assert/deassert sreset line */
+static int stlink_swim_assert_reset(void *handle, int reset)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 0);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	if (!reset)
+		h->cmdbuf[h->cmdidx++] = STLINK_SWIM_ASSERT_RESET;
+	else
+		h->cmdbuf[h->cmdidx++] = STLINK_SWIM_DEASSERT_RESET;
+	res = stlink_cmd_allow_retry(handle, h->databuf, 0);
+	if (res != ERROR_OK)
+		return res;
+	return ERROR_OK;
+}
+
+/*
+	send swim enter seq
+	1.3ms low then 750Hz then 1.5kHz
+*/
+static int stlink_swim_enter(void *handle)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 0);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_ENTER_SEQ;
+	res = stlink_cmd_allow_retry(handle, h->databuf, 0);
+	if (res != ERROR_OK)
+		return res;
+	return ERROR_OK;
+}
+
+/*	switch high/low speed swim */
+static int stlink_swim_speed(void *handle, int speed)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 0);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_SPEED;
+	if (speed)
+		h->cmdbuf[h->cmdidx++] = 1;
+	else
+		h->cmdbuf[h->cmdidx++] = 0;
+	res = stlink_cmd_allow_retry(handle, h->databuf, 0);
+	if (res != ERROR_OK)
+		return res;
+	return ERROR_OK;
+}
+
+/*
+	initiate srst from swim.
+	nrst is pulled low for 50us.
+*/
+static int stlink_swim_generate_rst(void *handle)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 0);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_GEN_RST;
+	res = stlink_cmd_allow_retry(handle, h->databuf, 0);
+	if (res != ERROR_OK)
+		return res;
+	return ERROR_OK;
+}
+
+/*
+	send resyncronize sequence
+	swim is pulled low for 16us
+	reply is 64 clks low
+*/
+static int stlink_swim_resync(void *handle)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 0);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_RESET;
+	res = stlink_cmd_allow_retry(handle, h->databuf, 0);
+	if (res != ERROR_OK)
+		return res;
+	return ERROR_OK;
+}
+
+static int stlink_swim_writebytes(void *handle, uint32_t addr, uint32_t len, const uint8_t *data)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+	unsigned int i;
+	unsigned int datalen = 0;
+	int cmdsize = STLINK_CMD_SIZE_V2;
+
+	if (len > STLINK_DATA_SIZE)
+		return ERROR_FAIL;
+
+	if (h->version.stlink == 1)
+		cmdsize = STLINK_SG_SIZE;
+
+	stlink_usb_init_buffer(handle, h->tx_ep, 0);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_WRITEMEM;
+	h_u16_to_be(h->cmdbuf+h->cmdidx, len);
+	h->cmdidx += 2;
+	h_u32_to_be(h->cmdbuf+h->cmdidx, addr);
+	h->cmdidx += 4;
+	for (i = 0; i < len; i++) {
+		if (h->cmdidx == cmdsize)
+			h->databuf[datalen++] = *(data++);
+		else
+			h->cmdbuf[h->cmdidx++] = *(data++);
+	}
+	if (h->version.stlink == 1)
+		stlink_usb_set_cbw_transfer_datalength(handle, datalen);
+
+	res = stlink_cmd_allow_retry(handle, h->databuf, datalen);
+	if (res != ERROR_OK)
+		return res;
+	return ERROR_OK;
+}
+
+static int stlink_swim_readbytes(void *handle, uint32_t addr, uint32_t len, uint8_t *data)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int res;
+
+	if (len > STLINK_DATA_SIZE)
+		return ERROR_FAIL;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 0);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_READMEM;
+	h_u16_to_be(h->cmdbuf+h->cmdidx, len);
+	h->cmdidx += 2;
+	h_u32_to_be(h->cmdbuf+h->cmdidx, addr);
+	h->cmdidx += 4;
+	res = stlink_cmd_allow_retry(handle, h->databuf, 0);
+	if (res != ERROR_OK)
+		return res;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, len);
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_SWIM_READBUF;
+	res = stlink_usb_xfer(handle, data, len);
+	if (res != ERROR_OK)
+		return res;
+
+	return ERROR_OK;
+}
+
 /** */
 static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 {
@@ -852,6 +1137,12 @@ static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
+
+	/* there is no swim read core id cmd */
+	if (h->transport == HL_TRANSPORT_SWIM) {
+		*idcode = 0;
+		return ERROR_OK;
+	}
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 4);
 
@@ -971,6 +1262,18 @@ static enum target_state stlink_usb_state(void *handle)
 
 	assert(handle != NULL);
 
+	if (h->transport == HL_TRANSPORT_SWIM) {
+		res = stlink_usb_mode_enter(handle, stlink_get_mode(h->transport));
+		if (res != ERROR_OK)
+			return TARGET_UNKNOWN;
+
+		res = stlink_swim_resync(handle);
+		if (res != ERROR_OK)
+			return TARGET_UNKNOWN;
+
+		return ERROR_OK;
+	}
+
 	if (h->reconnect_pending) {
 		LOG_INFO("Previous state query failed, trying to reconnect");
 		res = stlink_usb_mode_enter(handle, stlink_get_mode(h->transport));
@@ -1013,6 +1316,9 @@ static int stlink_usb_assert_srst(void *handle, int srst)
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
+
+	if (h->transport == HL_TRANSPORT_SWIM)
+		return stlink_swim_assert_reset(handle, srst);
 
 	if (h->version.stlink == 1)
 		return ERROR_COMMAND_NOTFOUND;
@@ -1087,6 +1393,9 @@ static int stlink_usb_reset(void *handle)
 	int retval;
 
 	assert(handle != NULL);
+
+	if (h->transport == HL_TRANSPORT_SWIM)
+		return stlink_swim_generate_rst(handle);
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
@@ -1440,6 +1749,11 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 		if (count < bytes_remaining)
 			bytes_remaining = count;
 
+		if (h->transport == HL_TRANSPORT_SWIM) {
+			retval = stlink_swim_readbytes(handle, addr, bytes_remaining, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+		} else
 		/* the stlink only supports 8/32bit memory read/writes
 		 * honour 32bit, all others will be handled as 8bit access */
 		if (size == 4) {
@@ -1510,6 +1824,11 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 		if (count < bytes_remaining)
 			bytes_remaining = count;
 
+		if (h->transport == HL_TRANSPORT_SWIM) {
+			retval = stlink_swim_writebytes(handle, addr, bytes_remaining, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+		} else
 		/* the stlink only supports 8/32bit memory read/writes
 		 * honour 32bit, all others will be handled as 8bit access */
 		if (size == 4) {
@@ -1574,6 +1893,20 @@ static int stlink_speed(void *handle, int khz, bool query)
 	int speed_diff = INT_MAX;
 	struct stlink_usb_handle_s *h = handle;
 
+	if (h && (h->transport == HL_TRANSPORT_SWIM)) {
+		/*
+			we dont care what the khz rate is
+			we only have low and high speed...
+			before changing speed the SWIM_CSR HS bit
+			must be updated
+		 */
+		if (khz == 0)
+			stlink_swim_speed(handle, 0);
+		else
+			stlink_swim_speed(handle, 1);
+		return khz;
+	}
+
 	/* only supported by stlink/v2 and for firmware >= 22 */
 	if (h && (h->version.stlink == 1 || h->version.jtag < 22))
 		return khz;
@@ -1622,7 +1955,42 @@ static int stlink_speed(void *handle, int khz, bool query)
 /** */
 static int stlink_usb_close(void *handle)
 {
+	int res;
+	uint8_t mode;
+	enum stlink_mode emode;
 	struct stlink_usb_handle_s *h = handle;
+
+	if (h && h->fd)
+		res = stlink_usb_current_mode(handle, &mode);
+	else
+		res = ERROR_FAIL;
+	/* do not exit if return code != ERROR_OK,
+	   it prevents us from closing jtag_libusb */
+
+	if (res == ERROR_OK) {
+		/* try to exit current mode */
+		switch (mode) {
+			case STLINK_DEV_DFU_MODE:
+				emode = STLINK_MODE_DFU;
+				break;
+			case STLINK_DEV_DEBUG_MODE:
+				emode = STLINK_MODE_DEBUG_SWD;
+				break;
+			case STLINK_DEV_SWIM_MODE:
+				emode = STLINK_MODE_DEBUG_SWIM;
+				break;
+			case STLINK_DEV_BOOTLOADER_MODE:
+			case STLINK_DEV_MASS_MODE:
+			default:
+				emode = STLINK_MODE_UNKNOWN;
+				break;
+		}
+
+		if (emode != STLINK_MODE_UNKNOWN)
+			stlink_usb_mode_leave(handle, emode);
+			/* do not check return code, it prevent
+			us from closing jtag_libusb */
+	}
 
 	if (h && h->fd)
 		jtag_libusb_close(h->fd);
@@ -1776,6 +2144,17 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	if (err != ERROR_OK) {
 		LOG_ERROR("init mode failed (unable to connect to the target)");
 		goto error_open;
+	}
+
+	if (h->transport == HL_TRANSPORT_SWIM) {
+		err = stlink_swim_enter(h);
+		if (err != ERROR_OK) {
+			LOG_ERROR("stlink_swim_enter_failed (unable to connect to the target)");
+			goto error_open;
+		}
+		*fd = h;
+		h->max_mem_packet = STLINK_DATA_SIZE;
+		return ERROR_OK;
 	}
 
 	/* clock speed only supported by stlink/v2 and for firmware >= 22 */

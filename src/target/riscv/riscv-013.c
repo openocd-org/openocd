@@ -1166,8 +1166,10 @@ static int examine(struct target *target)
 	}
 
 	/* Reset the Debug Module. */
+	dmi_write(target, DMI_DMCONTROL, 0);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+
 	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
-	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask);
 	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask | DMI_DMCONTROL_DMACTIVE);
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
 

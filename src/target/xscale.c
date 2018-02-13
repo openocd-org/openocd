@@ -404,8 +404,7 @@ static int xscale_read_tx(struct target *target, int consume)
 		}
 
 		gettimeofday(&now, NULL);
-		if ((now.tv_sec > timeout.tv_sec) ||
-			((now.tv_sec == timeout.tv_sec) && (now.tv_usec > timeout.tv_usec))) {
+		if (timeval_compare(&now, &timeout) > 0) {
 			LOG_ERROR("time out reading TX register");
 			return ERROR_TARGET_TIMEOUT;
 		}

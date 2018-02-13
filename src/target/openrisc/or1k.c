@@ -1248,8 +1248,7 @@ static int or1k_profiling(struct target *target, uint32_t *samples,
 		samples[sample_count++] = reg_value;
 
 		gettimeofday(&now, NULL);
-		if ((sample_count >= max_num_samples) ||
-			((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec))) {
+		if ((sample_count >= max_num_samples) || timeval_compare(&now, &timeout) > 0) {
 			LOG_INFO("Profiling completed. %" PRIu32 " samples.", sample_count);
 			break;
 		}

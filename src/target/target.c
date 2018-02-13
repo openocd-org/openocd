@@ -1399,7 +1399,6 @@ int target_register_trace_callback(int (*callback)(struct target *target,
 int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv)
 {
 	struct target_timer_callback **callbacks_p = &target_timer_callbacks;
-	struct timeval now;
 
 	if (callback == NULL)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1416,14 +1415,8 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 	(*callbacks_p)->time_ms = time_ms;
 	(*callbacks_p)->removed = false;
 
-	gettimeofday(&now, NULL);
-	(*callbacks_p)->when.tv_usec = now.tv_usec + (time_ms % 1000) * 1000;
-	time_ms -= (time_ms % 1000);
-	(*callbacks_p)->when.tv_sec = now.tv_sec + (time_ms / 1000);
-	if ((*callbacks_p)->when.tv_usec > 1000000) {
-		(*callbacks_p)->when.tv_usec = (*callbacks_p)->when.tv_usec - 1000000;
-		(*callbacks_p)->when.tv_sec += 1;
-	}
+	gettimeofday(&(*callbacks_p)->when, NULL);
+	timeval_add_time(&(*callbacks_p)->when, 0, time_ms * 1000);
 
 	(*callbacks_p)->priv = priv;
 	(*callbacks_p)->next = NULL;
@@ -1558,14 +1551,8 @@ int target_call_trace_callbacks(struct target *target, size_t len, uint8_t *data
 static int target_timer_callback_periodic_restart(
 		struct target_timer_callback *cb, struct timeval *now)
 {
-	int time_ms = cb->time_ms;
-	cb->when.tv_usec = now->tv_usec + (time_ms % 1000) * 1000;
-	time_ms -= (time_ms % 1000);
-	cb->when.tv_sec = now->tv_sec + time_ms / 1000;
-	if (cb->when.tv_usec > 1000000) {
-		cb->when.tv_usec = cb->when.tv_usec - 1000000;
-		cb->when.tv_sec += 1;
-	}
+	cb->when = *now;
+	timeval_add_time(&cb->when, 0, cb->time_ms * 1000L);
 	return ERROR_OK;
 }
 
@@ -1609,9 +1596,7 @@ static int target_call_timer_callbacks_check_time(int checktime)
 
 		bool call_it = (*callback)->callback &&
 			((!checktime && (*callback)->periodic) ||
-			 now.tv_sec > (*callback)->when.tv_sec ||
-			 (now.tv_sec == (*callback)->when.tv_sec &&
-			  now.tv_usec >= (*callback)->when.tv_usec));
+			 timeval_compare(&now, &(*callback)->when) >= 0);
 
 		if (call_it)
 			target_call_timer_callback(*callback, &now);
@@ -2030,8 +2015,7 @@ static int target_profiling_default(struct target *target, uint32_t *samples,
 			break;
 
 		gettimeofday(&now, NULL);
-		if ((sample_count >= max_num_samples) ||
-			((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec))) {
+		if ((sample_count >= max_num_samples) || timeval_compare(&now, &timeout) >= 0) {
 			LOG_INFO("Profiling completed. %" PRIu32 " samples.", sample_count);
 			break;
 		}
@@ -3131,6 +3115,10 @@ COMMAND_HANDLER(handle_md_command)
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], count);
 
 	uint8_t *buffer = calloc(count, size);
+	if (buffer == NULL) {
+		LOG_ERROR("Failed to allocate md read buffer");
+		return ERROR_FAIL;
+	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = fn(target, address, size, count, buffer);
@@ -3853,7 +3841,7 @@ typedef unsigned char UNIT[2];  /* unit of profiling */
 
 /* Dump a gmon.out histogram file. */
 static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filename, bool with_range,
-			uint32_t start_address, uint32_t end_address, struct target *target)
+			uint32_t start_address, uint32_t end_address, struct target *target, uint32_t duration_ms)
 {
 	uint32_t i;
 	FILE *f = fopen(filename, "w");
@@ -3921,7 +3909,8 @@ static void write_gmon(uint32_t *samples, uint32_t sampleNum, const char *filena
 	writeLong(f, min, target);			/* low_pc */
 	writeLong(f, max, target);			/* high_pc */
 	writeLong(f, numBuckets, target);	/* # of buckets */
-	writeLong(f, 100, target);			/* KLUDGE! We lie, ca. 100Hz best case. */
+	float sample_rate = sampleNum / (duration_ms / 1000.0);
+	writeLong(f, sample_rate, target);
 	writeString(f, "seconds");
 	for (i = 0; i < (15-strlen("seconds")); i++)
 		writeData(f, &zero, 1);
@@ -3970,6 +3959,7 @@ COMMAND_HANDLER(handle_profile_command)
 		return ERROR_FAIL;
 	}
 
+	uint64_t timestart_ms = timeval_ms();
 	/**
 	 * Some cores let us sample the PC without the
 	 * annoying halt/resume step; for example, ARMv7 PCSR.
@@ -3981,6 +3971,7 @@ COMMAND_HANDLER(handle_profile_command)
 		free(samples);
 		return retval;
 	}
+	uint32_t duration_ms = timeval_ms() - timestart_ms;
 
 	assert(num_of_samples <= MAX_PROFILE_SAMPLE_NUM);
 
@@ -4013,7 +4004,7 @@ COMMAND_HANDLER(handle_profile_command)
 	}
 
 	write_gmon(samples, num_of_samples, CMD_ARGV[1],
-		   with_range, start_address, end_address, target);
+		   with_range, start_address, end_address, target, duration_ms);
 	command_print(CMD_CTX, "Wrote %s", CMD_ARGV[1]);
 
 	free(samples);

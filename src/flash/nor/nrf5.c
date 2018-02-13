@@ -168,6 +168,7 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 
 	/* nRF51822 Devices (IC rev 3). */
 	NRF5_DEVICE_DEF(0x0072, "51822", "QFAA", "H0",    256),
+	NRF5_DEVICE_DEF(0x00D1, "51822", "QFAA", "H2",    256),
 	NRF5_DEVICE_DEF(0x007B, "51822", "QFAB", "C0",    128),
 	NRF5_DEVICE_DEF(0x0083, "51822", "QFAC", "A0",    256),
 	NRF5_DEVICE_DEF(0x0084, "51822", "QFAC", "A1",    256),

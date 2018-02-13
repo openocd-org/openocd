@@ -42,6 +42,12 @@ static const uint32_t a64_opcodes[ARMV8_OPC_NUM] = {
 		[ARMV8_OPC_DCCIVAC]	= ARMV8_SYS(SYSTEM_DCCIVAC, 0),
 		[ARMV8_OPC_ICIVAU]	= ARMV8_SYS(SYSTEM_ICIVAU, 0),
 		[ARMV8_OPC_HLT]		= ARMV8_HLT(11),
+		[ARMV8_OPC_LDRB_IP]	= ARMV8_LDRB_IP(1, 0),
+		[ARMV8_OPC_LDRH_IP]	= ARMV8_LDRH_IP(1, 0),
+		[ARMV8_OPC_LDRW_IP]	= ARMV8_LDRW_IP(1, 0),
+		[ARMV8_OPC_STRB_IP]	= ARMV8_STRB_IP(1, 0),
+		[ARMV8_OPC_STRH_IP]	= ARMV8_STRH_IP(1, 0),
+		[ARMV8_OPC_STRW_IP]	= ARMV8_STRW_IP(1, 0),
 };
 
 static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
@@ -63,6 +69,12 @@ static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
 		[ARMV8_OPC_DCCIVAC]	= ARMV4_5_MCR(15, 0, 0, 7, 14, 1),
 		[ARMV8_OPC_ICIVAU]	= ARMV4_5_MCR(15, 0, 0, 7, 5, 1),
 		[ARMV8_OPC_HLT]		= ARMV8_HLT_A1(11),
+		[ARMV8_OPC_LDRB_IP]	= ARMV4_5_LDRB_IP(1, 0),
+		[ARMV8_OPC_LDRH_IP]	= ARMV4_5_LDRH_IP(1, 0),
+		[ARMV8_OPC_LDRW_IP]	= ARMV4_5_LDRW_IP(1, 0),
+		[ARMV8_OPC_STRB_IP]	= ARMV4_5_STRB_IP(1, 0),
+		[ARMV8_OPC_STRH_IP]	= ARMV4_5_STRH_IP(1, 0),
+		[ARMV8_OPC_STRW_IP]	= ARMV4_5_STRW_IP(1, 0),
 };
 
 void armv8_select_opcodes(struct armv8_common *armv8, bool state_is_aarch64)

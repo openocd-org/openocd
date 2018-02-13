@@ -36,6 +36,11 @@
 
 #define AARCH64_PADDRDBG_CPU_SHIFT 13
 
+enum aarch64_isrmasking_mode {
+	AARCH64_ISRMASK_OFF,
+	AARCH64_ISRMASK_ON,
+};
+
 struct aarch64_brp {
 	int used;
 	int type;
@@ -58,6 +63,8 @@ struct aarch64_common {
 	struct aarch64_brp *brp_list;
 
 	struct armv8_common armv8_common;
+
+	enum aarch64_isrmasking_mode isrmasking_mode;
 };
 
 static inline struct aarch64_common *

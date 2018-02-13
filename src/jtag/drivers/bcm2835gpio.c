@@ -49,9 +49,9 @@ uint32_t bcm2835_peri_base = 0x20000000;
 static int dev_mem_fd;
 static volatile uint32_t *pio_base;
 
-static int bcm2835gpio_read(void);
-static void bcm2835gpio_write(int tck, int tms, int tdi);
-static void bcm2835gpio_reset(int trst, int srst);
+static bb_value_t bcm2835gpio_read(void);
+static int bcm2835gpio_write(int tck, int tms, int tdi);
+static int bcm2835gpio_reset(int trst, int srst);
 
 static int bcm2835_swdio_read(void);
 static void bcm2835_swdio_drive(bool is_output);
@@ -91,12 +91,12 @@ static int speed_coeff = 113714;
 static int speed_offset = 28;
 static unsigned int jtag_delay;
 
-static int bcm2835gpio_read(void)
+static bb_value_t bcm2835gpio_read(void)
 {
-	return !!(GPIO_LEV & 1<<tdo_gpio);
+	return (GPIO_LEV & 1<<tdo_gpio) ? BB_HIGH : BB_LOW;
 }
 
-static void bcm2835gpio_write(int tck, int tms, int tdi)
+static int bcm2835gpio_write(int tck, int tms, int tdi)
 {
 	uint32_t set = tck<<tck_gpio | tms<<tms_gpio | tdi<<tdi_gpio;
 	uint32_t clear = !tck<<tck_gpio | !tms<<tms_gpio | !tdi<<tdi_gpio;
@@ -106,9 +106,11 @@ static void bcm2835gpio_write(int tck, int tms, int tdi)
 
 	for (unsigned int i = 0; i < jtag_delay; i++)
 		asm volatile ("");
+
+	return ERROR_OK;
 }
 
-static void bcm2835gpio_swd_write(int tck, int tms, int tdi)
+static int bcm2835gpio_swd_write(int tck, int tms, int tdi)
 {
 	uint32_t set = tck<<swclk_gpio | tdi<<swdio_gpio;
 	uint32_t clear = !tck<<swclk_gpio | !tdi<<swdio_gpio;
@@ -118,10 +120,12 @@ static void bcm2835gpio_swd_write(int tck, int tms, int tdi)
 
 	for (unsigned int i = 0; i < jtag_delay; i++)
 		asm volatile ("");
+
+	return ERROR_OK;
 }
 
 /* (1) assert or (0) deassert reset lines */
-static void bcm2835gpio_reset(int trst, int srst)
+static int bcm2835gpio_reset(int trst, int srst)
 {
 	uint32_t set = 0;
 	uint32_t clear = 0;
@@ -138,6 +142,8 @@ static void bcm2835gpio_reset(int trst, int srst)
 
 	GPIO_SET = set;
 	GPIO_CLR = clear;
+
+	return ERROR_OK;
 }
 
 static void bcm2835_swdio_drive(bool is_output)
@@ -432,10 +438,6 @@ static int bcm2835gpio_init(void)
 			LOG_INFO("JTAG and SWD modes enabled");
 		else
 			LOG_INFO("JTAG only mode enabled (specify swclk and swdio gpio to add SWD mode)");
-		if (!is_gpio_valid(trst_gpio) && !is_gpio_valid(srst_gpio)) {
-			LOG_ERROR("Require at least one of trst or srst gpios to be specified");
-			return ERROR_JTAG_INIT_FAILED;
-		}
 	} else if (bcm2835gpio_swd_mode_possible()) {
 		LOG_INFO("SWD only mode enabled (specify tck, tms, tdi and tdo gpios to add JTAG mode)");
 	} else {

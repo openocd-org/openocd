@@ -48,6 +48,7 @@
 
 #define DWT_CTRL	0xE0001000
 #define DWT_CYCCNT	0xE0001004
+#define DWT_PCSR	0xE000101C
 #define DWT_COMP0	0xE0001020
 #define DWT_MASK0	0xE0001024
 #define DWT_FUNCTION0	0xE0001028
@@ -212,5 +213,7 @@ void cortex_m_enable_breakpoints(struct target *target);
 void cortex_m_enable_watchpoints(struct target *target);
 void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target);
 void cortex_m_deinit_target(struct target *target);
+int cortex_m_profiling(struct target *target, uint32_t *samples,
+	uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
 
 #endif /* OPENOCD_TARGET_CORTEX_M_H */

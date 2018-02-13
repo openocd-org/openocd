@@ -45,8 +45,6 @@ static const struct {
 	const char *name;
 	unsigned psr;
 } armv8_mode_data[] = {
-	/* These special modes are currently only supported
-	 * by ARMv6M and ARMv7M profiles */
 	{
 		.name = "USR",
 		.psr = ARM_MODE_USR,
@@ -110,48 +108,6 @@ const char *armv8_mode_name(unsigned psr_mode)
 	}
 	LOG_ERROR("unrecognized psr mode: %#02x", psr_mode);
 	return "UNRECOGNIZED";
-}
-
-int armv8_mode_to_number(enum arm_mode mode)
-{
-	switch (mode) {
-		case ARM_MODE_ANY:
-		/* map MODE_ANY to user mode */
-		case ARM_MODE_USR:
-			return 0;
-		case ARM_MODE_FIQ:
-			return 1;
-		case ARM_MODE_IRQ:
-			return 2;
-		case ARM_MODE_SVC:
-			return 3;
-		case ARM_MODE_ABT:
-			return 4;
-		case ARM_MODE_UND:
-			return 5;
-		case ARM_MODE_SYS:
-			return 6;
-		case ARM_MODE_MON:
-			return 7;
-		case ARMV8_64_EL0T:
-			return 8;
-		case ARMV8_64_EL1T:
-			return 9;
-		case ARMV8_64_EL1H:
-			return 10;
-		case ARMV8_64_EL2T:
-			return 11;
-		case ARMV8_64_EL2H:
-			return 12;
-		case ARMV8_64_EL3T:
-			return 13;
-		case ARMV8_64_EL3H:
-			return 14;
-
-		default:
-			LOG_ERROR("invalid mode value encountered %d", mode);
-			return -1;
-	}
 }
 
 static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regval)
@@ -533,9 +489,8 @@ void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
 	/* Older ARMs won't have the J bit */
 	enum arm_state state = 0xFF;
 
-	if (((cpsr & 0x10) >> 4) == 0) {
-		state = ARM_STATE_AARCH64;
-	} else {
+	if ((cpsr & 0x10) != 0) {
+		/* Aarch32 state */
 		if (cpsr & (1 << 5)) {	/* T */
 			if (cpsr & (1 << 24)) { /* J */
 				LOG_WARNING("ThumbEE -- incomplete support");
@@ -549,12 +504,13 @@ void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
 			} else
 				state = ARM_STATE_ARM;
 		}
+	} else {
+		/* Aarch64 state */
+		state = ARM_STATE_AARCH64;
 	}
+
 	arm->core_state = state;
-	if (arm->core_state == ARM_STATE_AARCH64)
-		arm->core_mode = (mode << 4) | 0xf;
-	else
-		arm->core_mode = mode;
+	arm->core_mode = mode;
 
 	LOG_DEBUG("set CPSR %#8.8x: %s mode, %s state", (unsigned) cpsr,
 		armv8_mode_name(arm->core_mode),

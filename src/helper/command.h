@@ -308,6 +308,14 @@ struct command_context *current_command_context(Jim_Interp *interp);
  */
 struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp);
 /**
+ * Shutdown a command context.
+ *
+ * Free the command context and the associated Jim interpreter.
+ *
+ * @param context The command_context that will be destroyed.
+ */
+void command_exit(struct command_context *context);
+/**
  * Creates a copy of an existing command context.  This does not create
  * a deep copy of the command list, so modifications in one context will
  * affect all shared contexts.  The caller must track reference counting
