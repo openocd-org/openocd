@@ -52,8 +52,8 @@ int riscv_program_insert(struct riscv_program *p, riscv_insn_t i);
  * memory. */
 int riscv_program_save_to_dscratch(struct riscv_program *p, enum gdb_regno to_save);
 
-/* Helpers to assembly various instructions.  Return 0 on success.  These might
- * assembly into a multi-instruction sequence that overwrites some other
+/* Helpers to assemble various instructions.  Return 0 on success.  These might
+ * assemble into a multi-instruction sequence that overwrites some other
  * register, but those will be properly saved and restored. */
 int riscv_program_lwr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
 int riscv_program_lhr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);

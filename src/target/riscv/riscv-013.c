@@ -2222,6 +2222,8 @@ int riscv013_test_compliance(struct target *target) {
   uint32_t dmcontrol_orig = dmi_read(target, DMI_DMCONTROL);
   uint32_t dmcontrol;
   uint32_t testvar;
+  riscv_reg_t value;
+  
   dmcontrol = set_field(dmcontrol_orig, hartsel_mask(target), RISCV_MAX_HARTS-1);
   dmi_write(target, DMI_DMCONTROL, dmcontrol);
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
@@ -2301,32 +2303,25 @@ int riscv013_test_compliance(struct target *target) {
     uint32_t nscratch = get_field(hartinfo, DMI_HARTINFO_NSCRATCH);
     for (unsigned int d = 0; d < nscratch; d++) {
 
-      for (testvar = 0x00112233; testvar != 0xDEAD ; testvar = testvar == 0x00112233 ? ~testvar : 0xDEAD ) {
-	
-	struct riscv_program program32;
+      //TODO: DSCRATCH CSRs should be 64-bit on 64-bit systems.
+      riscv_reg_t testval;
+      for (testval = 0x0011223300112233; testval != 0xDEAD ; testval = testval == 0x0011223300112233 ? ~testval : 0xDEAD ) {
+        COMPLIANCE_TEST(register_write_direct(target, GDB_REGNO_S0, testval) == ERROR_OK, "Need to be able to write S0 in order to test DSCRATCH.");
+        struct riscv_program program32;
 	riscv_program_init(&program32, target);
-	riscv_addr_t addr_in  = riscv_program_alloc_x(&program32);
-	riscv_addr_t addr_out = riscv_program_alloc_x(&program32);
-	
-	riscv_program_write_ram(&program32, addr_in, testvar);
-	if (riscv_xlen(target) > 32) {
-	  riscv_program_write_ram(&program32, addr_in + 4, testvar);
-	}
-	
-	riscv_program_lx(&program32, GDB_REGNO_S0, addr_in); 
-	riscv_program_csrrw(&program32, GDB_REGNO_S0, GDB_REGNO_S0, GDB_REGNO_DSCRATCH);
-	riscv_program_csrrw(&program32, GDB_REGNO_S1, GDB_REGNO_S1, GDB_REGNO_DSCRATCH);
-	riscv_program_sx(&program32, GDB_REGNO_S1, addr_out); 
+	riscv_program_csrw(&program32, GDB_REGNO_S0, GDB_REGNO_DSCRATCH + d);
+	riscv_program_csrr(&program32, GDB_REGNO_S1, GDB_REGNO_DSCRATCH + d);
 	riscv_program_fence(&program32);
-	COMPLIANCE_TEST(riscv_program_exec(&program32, target) == ERROR_OK, "Accessing DSCRATCH with program buffer should succeed.");
-	
-	COMPLIANCE_TEST(riscv_program_read_ram(&program32, addr_out) == testvar, "All DSCRATCH registers in HARTINFO must be R/W.");
+        riscv_program_ebreak(&program32);
+        COMPLIANCE_TEST(riscv_program_exec(&program32, target) == ERROR_OK, "Accessing DSCRATCH with program buffer should succeed.");
+        COMPLIANCE_TEST(register_read_direct(target, &value,  GDB_REGNO_S1) == ERROR_OK, "Need to be able to read S1 in order to test DSCRATCH.");
 	if (riscv_xlen(target) > 32) {
-	  COMPLIANCE_TEST(riscv_program_read_ram(&program32, addr_out + 4) == testvar, "All DSCRATCH registers in HARTINFO must be R/W.");
-	}
+	  COMPLIANCE_TEST(value == testval, "All DSCRATCH registers in HARTINFO must be R/W.");
+	} else {
+          COMPLIANCE_TEST(value == (testval & 0xFFFFFFFF), "All DSCRATCH registers in HARTINFO must be R/W.");
+        }
       }
     }
-    
     // TODO: dataaccess
     if (get_field(hartinfo, DMI_HARTINFO_DATAACCESS)) {
       // TODO: Shadowed in memory map.
@@ -2411,7 +2406,7 @@ int riscv013_test_compliance(struct target *target) {
   command = set_field(command, AC_ACCESS_REGISTER_SIZE, riscv_xlen(target) > 32 ? 3:2);
   command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
   for (unsigned int i = 1 ; i < 32 ; i = i << 1) {
-    command = set_field(command, AC_ACCESS_REGISTER_REGNO, 0x1000 + GDB_REGNO_X0 + i);
+    command = set_field(command, AC_ACCESS_REGISTER_REGNO, 0x1000 + GDB_REGNO_ZERO + i);
     command = set_field(command, AC_ACCESS_REGISTER_WRITE, 1);
     dmi_write(target, DMI_DATA0, i);
     if (riscv_xlen(target) > 32) {
@@ -2442,18 +2437,13 @@ int riscv013_test_compliance(struct target *target) {
     testvar = 0;
     // TODO: This mechanism only works when you have a reasonable sized progbuf, which is not 
     // a true compliance requirement.
+    COMPLIANCE_TEST(riscv_set_register(target, GDB_REGNO_S0, 0) == ERROR_OK, "Need to be able to write S0 to test ABSTRACTAUTO");
     struct riscv_program program;
     riscv_program_init(&program, target);
-    riscv_addr_t addr = riscv_program_alloc_x(&program);
-    riscv_program_lx(&program, GDB_REGNO_S0, addr);
     // Also testing that WFI() is a NOP during debug mode.
     riscv_program_insert(&program, wfi());
     riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, 1);
-    riscv_program_sx(&program, GDB_REGNO_S0, addr);
-    riscv_program_write_ram(&program, addr, 0);
-    if (riscv_xlen(target) > 32) {
-      riscv_program_write_ram(&program, addr+4, 0);
-    }
+    riscv_program_ebreak(&program);
     dmi_write(target, DMI_ABSTRACTAUTO, 0x0);
     riscv_program_exec(&program, target);
     testvar ++;
@@ -2479,9 +2469,9 @@ int riscv013_test_compliance(struct target *target) {
     }
 
     dmi_write(target, DMI_ABSTRACTAUTO, 0);
-    int d_addr = (addr - riscv_debug_buffer_addr(target))/4 ;
+    riscv_get_register(target, &value, GDB_REGNO_S0);
     
-    COMPLIANCE_TEST(testvar == riscv_read_debug_buffer_x(target, d_addr), \
+    COMPLIANCE_TEST(testvar == value, \
 		    "ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
   }
   
@@ -2500,20 +2490,24 @@ int riscv013_test_compliance(struct target *target) {
 
     // DCSR Tests
     riscv_set_register(target, GDB_REGNO_DCSR, 0x0);
-    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DCSR) != 0,  "Not all bits in DCSR are writable by Debugger");
+    riscv_get_register(target, &value, GDB_REGNO_DCSR);
+    COMPLIANCE_TEST(value != 0,  "Not all bits in DCSR are writable by Debugger");
     riscv_set_register(target, GDB_REGNO_DCSR, 0xFFFFFFFF);
-    COMPLIANCE_TEST(riscv_get_register(target, GDB_REGNO_DCSR) != 0,  "At least some bits in DCSR must be 1");
+    riscv_get_register(target, &value, GDB_REGNO_DCSR);
+    COMPLIANCE_TEST(value != 0,  "At least some bits in DCSR must be 1");
 
     // DPC
     uint64_t testvar64 = 0xAAAAAAAAAAAAAAAAUL;
-    uint64_t dpcmask = 0xFFFFFFFFFFFFFFFFUL;
+    riscv_reg_t dpcmask = 0xFFFFFFFFFFFFFFFFUL;
     riscv_set_register(target, GDB_REGNO_DPC, dpcmask);
-    dpcmask = riscv_get_register(target, GDB_REGNO_DPC);
+    riscv_get_register(target, &dpcmask, GDB_REGNO_DPC);
     COMPLIANCE_TEST(dpcmask >= 0xFFFFFFFC, "DPC must hold the minimum for a virtual address (may tighten requirement later).");
     riscv_set_register(target, GDB_REGNO_DPC, testvar64);
-    COMPLIANCE_TEST((riscv_get_register(target, GDB_REGNO_DPC) & dpcmask) == (testvar64 & dpcmask), "DPC must be writable.");
+    riscv_get_register(target, &value, GDB_REGNO_DPC);
+    COMPLIANCE_TEST((value & dpcmask) == (testvar64 & dpcmask), "DPC must be writable.");
     riscv_set_register(target, GDB_REGNO_DPC, ~testvar64);
-    uint64_t dpc = riscv_get_register(target, GDB_REGNO_DPC);
+    riscv_reg_t dpc;
+    riscv_get_register(target, &dpc, GDB_REGNO_DPC);
     COMPLIANCE_TEST((dpc & dpcmask) == ((~testvar64) & dpcmask), "DPC must be writable");
     if (hartsel == 0) {bogus_dpc = dpc;} // For a later test step
   }
@@ -2570,7 +2564,8 @@ int riscv013_test_compliance(struct target *target) {
   // verify that DPC *is* affected by ndmreset. Since we don't know what it *should* be,
   // just verify that at least it's not the bogus value anymore.
   COMPLIANCE_TEST(bogus_dpc != 0xdeadbeef, "BOGUS DPC should have been set somehow (bug in compliance test)");
-  COMPLIANCE_TEST(bogus_dpc != riscv_get_register(target, GDB_REGNO_DPC), "NDMRESET should move $DPC to reset value.");
+  riscv_get_register(target, &value, GDB_REGNO_DPC);
+  COMPLIANCE_TEST(bogus_dpc != value, "NDMRESET should move DPC to reset value.");
   
   COMPLIANCE_TEST(riscv_halt_reason(target, 0) == RISCV_HALT_INTERRUPT, "After NDMRESET halt, DCSR should report cause of halt");
   
