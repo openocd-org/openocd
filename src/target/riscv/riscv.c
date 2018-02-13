@@ -1286,7 +1286,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
 		.handler = riscv_test_compliance,
- 		.mode = COMMAND_EXEC,
+		.mode = COMMAND_EXEC,
 		.usage = "riscv test_compliance",
 		.help = "Runs a basic compliance test suite against the RISC-V Debug Spec."
 	},

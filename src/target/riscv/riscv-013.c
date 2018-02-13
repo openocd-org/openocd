@@ -1975,7 +1975,7 @@ static int riscv013_halt_current_hart(struct target *target)
 
 	/* Issue the halt command, and then wait for the current hart to halt. */
 	uint32_t dmcontrol = dmi_read(target, DMI_DMCONTROL);
-	dmcontrol |= DMI_DMCONTROL_HALTREQ;
+	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 1);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	for (size_t i = 0; i < 256; ++i)
 		if (riscv_is_halted(target))
@@ -1991,7 +1991,7 @@ static int riscv013_halt_current_hart(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	dmcontrol &= ~DMI_DMCONTROL_HALTREQ;
+	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 0);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 
 	return ERROR_OK;
@@ -2207,7 +2207,7 @@ void riscv013_clear_abstract_error(struct target *target)
     assert(pass);							\
     total_tests ++;							\
   }
-   
+
 int riscv013_test_compliance(struct target *target) {
   LOG_INFO("Testing Compliance against RISC-V Debug Spec v0.13");
 
@@ -2223,12 +2223,12 @@ int riscv013_test_compliance(struct target *target) {
   uint32_t dmcontrol;
   uint32_t testvar;
   riscv_reg_t value;
-  
+
   dmcontrol = set_field(dmcontrol_orig, hartsel_mask(target), RISCV_MAX_HARTS-1);
   dmi_write(target, DMI_DMCONTROL, dmcontrol);
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
   COMPLIANCE_TEST(get_field(dmcontrol, hartsel_mask(target)) == (RISCV_MAX_HARTS-1), "DMCONTROL.hartsel should hold all the harts allowed by HARTSELLEN.");
-  
+
   dmcontrol = set_field(dmcontrol_orig, hartsel_mask(target), 0);
   dmi_write(target, DMI_DMCONTROL, dmcontrol);
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
@@ -2254,9 +2254,7 @@ int riscv013_test_compliance(struct target *target) {
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
   COMPLIANCE_TEST(((testvar == 0) || (get_field(dmcontrol, DMI_DMCONTROL_HASEL)) == 0), "DMCONTROL.hasel can be 0 or RW.");
   //TODO: test that hamask registers exist if hasel does.
-  
-  // TODO: ndmreset
-  
+
   // haltreq
   riscv_halt_all_harts(target);
   // Writing haltreq should not cause any problems for a halted hart, but we
@@ -2279,7 +2277,7 @@ int riscv013_test_compliance(struct target *target) {
   do {
     dmstatus = dmi_read(target, DMI_DMSTATUS);
   } while (get_field(dmstatus, DMI_DMSTATUS_ALLRESUMEACK) == 0);
-  
+
   // Halt the hart again because the target isn't aware that we resumed it.
   dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 0);
   dmcontrol |= DMI_DMCONTROL_HALTREQ;
@@ -2291,15 +2289,15 @@ int riscv013_test_compliance(struct target *target) {
   dmi_write(target, DMI_DMCONTROL, dmcontrol);
   // Not clear that this read is required according to the spec.
   dmi_read(target, DMI_DMSTATUS);
-  
+
   // HARTINFO: Read-Only. This is per-hart, so need to adjust hartsel.
   for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++){
     riscv_set_current_hartid(target, hartsel);
-    
+
     uint32_t hartinfo = dmi_read(target, DMI_HARTINFO);
     dmi_write (target, DMI_HARTINFO, ~hartinfo);
     COMPLIANCE_TEST((dmi_read(target, DMI_HARTINFO) == hartinfo), "DMHARTINFO should be Read-Only.");
-    
+
     uint32_t nscratch = get_field(hartinfo, DMI_HARTINFO_NSCRATCH);
     for (unsigned int d = 0; d < nscratch; d++) {
 
@@ -2332,7 +2330,7 @@ int riscv013_test_compliance(struct target *target) {
       // TODO: datasize
       // TODO: dataaddr
     }
-    
+
   }
 
   // HALTSUM
@@ -2349,7 +2347,7 @@ int riscv013_test_compliance(struct target *target) {
   }
 
   // TODO: HAWINDOWSEL
-  
+
   // TODO: HAWINDOW
 
   // ABSTRACTCS
@@ -2369,7 +2367,7 @@ int riscv013_test_compliance(struct target *target) {
       COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == testvar, "All reported DATA words must be R/W");
     }
   }
-  
+
   // Check that all reported ProgBuf words are really R/W
   for (int invert = 0; invert < 2; invert++) {
     for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
@@ -2387,7 +2385,7 @@ int riscv013_test_compliance(struct target *target) {
   // TODO: Cause and clear all error types
 
   // COMMAND
-  // TODO: Unclear from the spec whether all these bits need to truly be R/W. 
+  // TODO: Unclear from the spec whether all these bits need to truly be R/W.
   // But at any rate, this is not legal and should cause an error.
   dmi_write(target, DMI_COMMAND, 0xAAAAAAAA);
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0xAAAAAAAA, "COMMAND register should be R/W");
@@ -2428,14 +2426,14 @@ int riscv013_test_compliance(struct target *target) {
       COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + 1) == (i + 1), "GPR Reads and writes should be supported.");
     }
   }
-  
+
   // ABSTRACTAUTO
   // See which bits are actually writable
   dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
   uint32_t abstractauto = dmi_read(target, DMI_ABSTRACTAUTO);
   if (abstractauto > 0) {
     testvar = 0;
-    // TODO: This mechanism only works when you have a reasonable sized progbuf, which is not 
+    // TODO: This mechanism only works when you have a reasonable sized progbuf, which is not
     // a true compliance requirement.
     COMPLIANCE_TEST(riscv_set_register(target, GDB_REGNO_S0, 0) == ERROR_OK, "Need to be able to write S0 to test ABSTRACTAUTO");
     struct riscv_program program;
@@ -2470,11 +2468,11 @@ int riscv013_test_compliance(struct target *target) {
 
     dmi_write(target, DMI_ABSTRACTAUTO, 0);
     riscv_get_register(target, &value, GDB_REGNO_S0);
-    
+
     COMPLIANCE_TEST(testvar == value, \
 		    "ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
   }
-  
+
   // Single-Step each hart.
   for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel ++){
     riscv_set_current_hartid(target, hartsel);
@@ -2482,7 +2480,7 @@ int riscv013_test_compliance(struct target *target) {
     riscv013_step_current_hart(target);
     COMPLIANCE_TEST(riscv_halt_reason(target, hartsel) == RISCV_HALT_SINGLESTEP, "Single Step should result in SINGLESTEP");
   }
-  
+
   // Core Register Tests
   uint64_t bogus_dpc = 0xdeadbeef;
   for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel ++){
@@ -2511,21 +2509,21 @@ int riscv013_test_compliance(struct target *target) {
     COMPLIANCE_TEST((dpc & dpcmask) == ((~testvar64) & dpcmask), "DPC must be writable");
     if (hartsel == 0) {bogus_dpc = dpc;} // For a later test step
   }
-  
+
   //NDMRESET
   // NDMRESET
   // Asserting non-debug module reset should not reset Debug Module state.
   // But it should reset Hart State, e.g. DPC should get a different value.
   // Also make sure that DCSR reports cause of 'HALT' even though previously we single-stepped.
-  
+
   // Write some registers. They should not be impacted by ndmreset.
   dmi_write(target, DMI_COMMAND, 0xFFFFFFFF);
-  
+
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
     testvar = (i + 1) * 0x11111111;
     dmi_write(target, DMI_PROGBUF0 + i, testvar);
   }
-  
+
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT); i ++){
     testvar = (i + 1) * 0x11111111;
     dmi_write(target, DMI_DATA0 + i, testvar);
@@ -2535,7 +2533,7 @@ int riscv013_test_compliance(struct target *target) {
   abstractauto = dmi_read(target, DMI_ABSTRACTAUTO);
 
   // Pulse reset.
-  
+
   target->reset_halt = true;
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
   riscv_set_current_hartid(target, 0);
@@ -2550,12 +2548,12 @@ int riscv013_test_compliance(struct target *target) {
   // Clean up to avoid future test failures
   dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
   dmi_write(target, DMI_ABSTRACTAUTO, 0);
-  
+
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
     testvar = (i + 1) * 0x11111111;
     COMPLIANCE_TEST(dmi_read(target, DMI_PROGBUF0 + i) == testvar, "PROGBUF words must not be affected by NDMRESET");
   }
-  
+
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT); i ++){
     testvar = (i + 1) * 0x11111111;
     COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == testvar, "DATA words must not be affected by NDMRESET");
@@ -2566,23 +2564,23 @@ int riscv013_test_compliance(struct target *target) {
   COMPLIANCE_TEST(bogus_dpc != 0xdeadbeef, "BOGUS DPC should have been set somehow (bug in compliance test)");
   riscv_get_register(target, &value, GDB_REGNO_DPC);
   COMPLIANCE_TEST(bogus_dpc != value, "NDMRESET should move DPC to reset value.");
-  
+
   COMPLIANCE_TEST(riscv_halt_reason(target, 0) == RISCV_HALT_INTERRUPT, "After NDMRESET halt, DCSR should report cause of halt");
-  
+
   // DMACTIVE -- deasserting DMACTIVE should reset all the above values.
-  
+
   // Toggle dmactive
   dmi_write(target, DMI_DMCONTROL, 0);
   dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
   COMPLIANCE_TEST(dmi_read(target, DMI_COMMAND) == 0, "DMI_COMMAND should reset to 0");
   COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR)  == 0, "ABSTRACTCS.cmderr should reset to 0");
   COMPLIANCE_TEST(dmi_read(target, DMI_ABSTRACTAUTO) == 0, "ABSTRACTAUTO should reset to 0");
-  
+
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
     testvar = (i + 1) * 0x11111111;
     COMPLIANCE_TEST(dmi_read(target, DMI_PROGBUF0 + i) == 0, "PROGBUF words should reset to 0");
   }
-  
+
   for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT); i ++){
     testvar = (i + 1) * 0x11111111;
     COMPLIANCE_TEST(dmi_read(target, DMI_DATA0 + i) == 0, "DATA words should reset to 0");
