@@ -2222,15 +2222,15 @@ int riscv013_test_compliance(struct target *target) {
   uint32_t dmcontrol_orig = dmi_read(target, DMI_DMCONTROL);
   uint32_t dmcontrol;
   uint32_t testvar;
-  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTSEL, RISCV_MAX_HARTS-1);
+  dmcontrol = set_field(dmcontrol_orig, hartsel_mask(target), RISCV_MAX_HARTS-1);
   dmi_write(target, DMI_DMCONTROL, dmcontrol);
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
-  COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_HARTSEL) == (RISCV_MAX_HARTS-1), "DMCONTROL.hartsel should hold MAX_HARTS - 1");
-
-  dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTSEL, 0);
+  COMPLIANCE_TEST(get_field(dmcontrol, hartsel_mask(target)) == (RISCV_MAX_HARTS-1), "DMCONTROL.hartsel should hold all the harts allowed by HARTSELLEN.");
+  
+  dmcontrol = set_field(dmcontrol_orig, hartsel_mask(target), 0);
   dmi_write(target, DMI_DMCONTROL, dmcontrol);
   dmcontrol = dmi_read(target, DMI_DMCONTROL);
-  COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_HARTSEL) == 0, "DMCONTROL.hartsel should hold Hart ID 0");
+  COMPLIANCE_TEST(get_field(dmcontrol, hartsel_mask(target)) == 0, "DMCONTROL.hartsel should hold Hart ID 0");
 
   // hartreset
   dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 1);
@@ -2377,12 +2377,12 @@ int riscv013_test_compliance(struct target *target) {
   
   // Check that all reported ProgBuf words are really R/W
   for (int invert = 0; invert < 2; invert++) {
-    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
+    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
       testvar = (i + 1) * 0x11111111;
       if (invert) {testvar = ~testvar;}
       dmi_write(target, DMI_PROGBUF0 + i, testvar);
     }
-    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
+    for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
       testvar = (i + 1) * 0x11111111;
       if (invert) {testvar = ~testvar;}
       COMPLIANCE_TEST(dmi_read(target, DMI_PROGBUF0 + i) == testvar, "All reported PROGBUF words must be R/W");
@@ -2473,7 +2473,7 @@ int riscv013_test_compliance(struct target *target) {
       dmi_read(target, DMI_PROGBUF0 + i);
       do { busy = get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_BUSY);} while (busy);
       if (autoexec_progbuf & (1 << i)) {
-	COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE), "AUTOEXEC may be writable up to PROGSIZE bits.");
+	COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE), "AUTOEXEC may be writable up to PROGBUFSIZE bits.");
 	testvar ++;
       }
     }
@@ -2527,7 +2527,7 @@ int riscv013_test_compliance(struct target *target) {
   // Write some registers. They should not be impacted by ndmreset.
   dmi_write(target, DMI_COMMAND, 0xFFFFFFFF);
   
-  for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
+  for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
     testvar = (i + 1) * 0x11111111;
     dmi_write(target, DMI_PROGBUF0 + i, testvar);
   }
@@ -2557,7 +2557,7 @@ int riscv013_test_compliance(struct target *target) {
   dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
   dmi_write(target, DMI_ABSTRACTAUTO, 0);
   
-  for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
+  for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
     testvar = (i + 1) * 0x11111111;
     COMPLIANCE_TEST(dmi_read(target, DMI_PROGBUF0 + i) == testvar, "PROGBUF words must not be affected by NDMRESET");
   }
@@ -2583,7 +2583,7 @@ int riscv013_test_compliance(struct target *target) {
   COMPLIANCE_TEST(get_field(dmi_read(target, DMI_ABSTRACTCS), DMI_ABSTRACTCS_CMDERR)  == 0, "ABSTRACTCS.cmderr should reset to 0");
   COMPLIANCE_TEST(dmi_read(target, DMI_ABSTRACTAUTO) == 0, "ABSTRACTAUTO should reset to 0");
   
-  for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGSIZE); i ++){
+  for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i ++){
     testvar = (i + 1) * 0x11111111;
     COMPLIANCE_TEST(dmi_read(target, DMI_PROGBUF0 + i) == 0, "PROGBUF words should reset to 0");
   }
