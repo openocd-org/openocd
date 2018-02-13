@@ -2431,6 +2431,7 @@ int riscv013_test_compliance(struct target *target) {
   // See which bits are actually writable
   dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
   uint32_t abstractauto = dmi_read(target, DMI_ABSTRACTAUTO);
+  dmi_write(target, DMI_ABSTRACTAUTO, 0x0);
   if (abstractauto > 0) {
     testvar = 0;
     // TODO: This mechanism only works when you have a reasonable sized progbuf, which is not
