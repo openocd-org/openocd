@@ -2495,19 +2495,23 @@ int riscv013_test_compliance(struct target *target) {
     riscv_get_register(target, &value, GDB_REGNO_DCSR);
     COMPLIANCE_TEST(value != 0,  "At least some bits in DCSR must be 1");
 
-    // DPC
-    uint64_t testvar64 = 0xAAAAAAAAAAAAAAAAUL;
-    riscv_reg_t dpcmask = 0xFFFFFFFFFFFFFFFFUL;
-    riscv_set_register(target, GDB_REGNO_DPC, dpcmask);
-    riscv_get_register(target, &dpcmask, GDB_REGNO_DPC);
-    COMPLIANCE_TEST(dpcmask >= 0xFFFFFFFC, "DPC must hold the minimum for a virtual address (may tighten requirement later).");
-    riscv_set_register(target, GDB_REGNO_DPC, testvar64);
-    riscv_get_register(target, &value, GDB_REGNO_DPC);
-    COMPLIANCE_TEST((value & dpcmask) == (testvar64 & dpcmask), "DPC must be writable.");
-    riscv_set_register(target, GDB_REGNO_DPC, ~testvar64);
+    // DPC. Note that DPC is sign-extended.
+    riscv_reg_t dpcmask = 0xFFFFFFFCUL;
     riscv_reg_t dpc;
+    
+    if (riscv_xlen(target) > 32) {
+      dpcmask |= (0xFFFFFFFFUL << 32);
+    }
+    if (riscv_supports_extension(target, 'C')){
+      dpcmask |= 0x2;
+    } 
+
+    riscv_set_register(target, GDB_REGNO_DPC, dpcmask);
     riscv_get_register(target, &dpc, GDB_REGNO_DPC);
-    COMPLIANCE_TEST((dpc & dpcmask) == ((~testvar64) & dpcmask), "DPC must be writable");
+    COMPLIANCE_TEST(dpcmask == dpc, "DPC must be sign-extended to XLEN and writable to all-1s (except the least significant bits)");
+    riscv_set_register(target, GDB_REGNO_DPC, 0);
+    riscv_get_register(target, &dpc, GDB_REGNO_DPC);
+    COMPLIANCE_TEST(dpc == 0, "DPC must be writable to 0.");
     if (hartsel == 0) {bogus_dpc = dpc;} // For a later test step
   }
 
