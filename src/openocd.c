@@ -345,6 +345,9 @@ int openocd_main(int argc, char *argv[])
 	/* Start the executable meat that can evolve into thread in future. */
 	ret = openocd_thread(argc, argv, cmd_ctx);
 
+	gdb_service_free();
+	server_free();
+
 	unregister_all_commands(cmd_ctx, NULL);
 
 	/* Shutdown commandline interface */

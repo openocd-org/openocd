@@ -359,3 +359,8 @@ int tcl_register_commands(struct command_context *cmd_ctx)
 	tcl_port = strdup("6666");
 	return register_commands(cmd_ctx, NULL, tcl_command_handlers);
 }
+
+void tcl_service_free(void)
+{
+	free(tcl_port);
+}

@@ -3572,3 +3572,9 @@ int gdb_register_commands(struct command_context *cmd_ctx)
 	gdb_port_next = strdup("3333");
 	return register_commands(cmd_ctx, NULL, gdb_command_handlers);
 }
+
+void gdb_service_free(void)
+{
+	free(gdb_port);
+	free(gdb_port_next);
+}

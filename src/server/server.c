@@ -641,6 +641,13 @@ int server_quit(void)
 	return last_signal;
 }
 
+void server_free(void)
+{
+	tcl_service_free();
+	telnet_service_free();
+	jsp_service_free();
+}
+
 void exit_on_signal(int sig)
 {
 #ifndef _WIN32
