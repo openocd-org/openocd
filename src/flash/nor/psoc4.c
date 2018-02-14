@@ -276,8 +276,8 @@ static int psoc4_sysreq(struct flash_bank *bank, uint8_t cmd,
 	}
 
 	if (sysreq_params_size) {
-		LOG_DEBUG("SYSREQ %02" PRIx8 " %04" PRIx16 " %08" PRIx32 " %08" PRIx32 " size %" PRIu32,
-			cmd, cmd_param, param1, sysreq_params[0], sysreq_params_size);
+		LOG_DEBUG("SYSREQ %02" PRIx8 " %04" PRIx16 " %08" PRIx32 " size %" PRIu32,
+			cmd, cmd_param, param1, sysreq_params_size);
 		/* Allocate memory for sysreq_params */
 		retval = target_alloc_working_area(target, sysreq_params_size, &sysreq_mem);
 		if (retval != ERROR_OK) {
@@ -323,6 +323,7 @@ static int psoc4_sysreq(struct flash_bank *bank, uint8_t cmd,
 	if (armv7m == NULL) {
 		/* something is very wrong if armv7m is NULL */
 		LOG_ERROR("unable to get armv7m target");
+		retval = ERROR_FAIL;
 		goto cleanup;
 	}
 
