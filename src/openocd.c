@@ -349,6 +349,8 @@ int openocd_main(int argc, char *argv[])
 
 	adapter_quit();
 
+	free_config();
+
 	if (ERROR_FAIL == ret)
 		return EXIT_FAILURE;
 	else if (ERROR_OK != ret)
