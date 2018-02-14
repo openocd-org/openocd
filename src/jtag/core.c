@@ -1315,6 +1315,7 @@ void jtag_tap_free(struct jtag_tap *tap)
 	free(tap->chip);
 	free(tap->tapname);
 	free(tap->dotted_name);
+	free(tap->dap);
 	free(tap);
 }
 
@@ -1472,13 +1473,19 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 
 int adapter_quit(void)
 {
-	if (!jtag || !jtag->quit)
-		return ERROR_OK;
+	if (jtag && jtag->quit) {
+		/* close the JTAG interface */
+		int result = jtag->quit();
+		if (ERROR_OK != result)
+			LOG_ERROR("failed: %d", result);
+	}
 
-	/* close the JTAG interface */
-	int result = jtag->quit();
-	if (ERROR_OK != result)
-		LOG_ERROR("failed: %d", result);
+	struct jtag_tap *t = jtag_all_taps();
+	while (t) {
+		struct jtag_tap *n = t->next_tap;
+		jtag_tap_free(t);
+		t = n;
+	}
 
 	return ERROR_OK;
 }
