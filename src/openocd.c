@@ -286,10 +286,13 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 		return ERROR_FAIL;
 
 	ret = parse_config_file(cmd_ctx);
-	if (ret == ERROR_COMMAND_CLOSE_CONNECTION)
+	if (ret == ERROR_COMMAND_CLOSE_CONNECTION) {
+		server_quit(); /* gdb server may be initialized by -c init */
 		return ERROR_OK;
-	else if (ret != ERROR_OK)
+	} else if (ret != ERROR_OK) {
+		server_quit(); /* gdb server may be initialized by -c init */
 		return ERROR_FAIL;
+	}
 
 	ret = server_init(cmd_ctx);
 	if (ERROR_OK != ret)
