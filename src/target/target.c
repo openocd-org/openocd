@@ -1892,8 +1892,24 @@ static void target_destroy(struct target *target)
 	if (target->type->deinit_target)
 		target->type->deinit_target(target);
 
+	struct target_event_action *teap = target->event_action;
+	while (teap) {
+		struct target_event_action *next = teap->next;
+		Jim_DecrRefCount(teap->interp, teap->body);
+		free(teap);
+		teap = next;
+	}
+
+	target_free_all_working_areas(target);
+	/* Now we have none or only one working area marked as free */
+	if (target->working_areas) {
+		free(target->working_areas->backup);
+		free(target->working_areas);
+	}
+
 	free(target->type);
 	free(target->trace_info);
+	free(target->fileio_info);
 	free(target->cmd_name);
 	free(target);
 }
