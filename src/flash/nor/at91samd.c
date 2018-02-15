@@ -304,10 +304,8 @@ struct samd_info {
 
 	bool probed;
 	struct target *target;
-	struct samd_info *next;
 };
 
-static struct samd_info *samd_chips;
 
 /**
  * Gives the family structure to specific device id.
@@ -876,36 +874,24 @@ free_pb:
 
 FLASH_BANK_COMMAND_HANDLER(samd_flash_bank_command)
 {
-	struct samd_info *chip = samd_chips;
-
-	while (chip) {
-		if (chip->target == bank->target)
-			break;
-		chip = chip->next;
-	}
-
-	if (!chip) {
-		/* Create a new chip */
-		chip = calloc(1, sizeof(*chip));
-		if (!chip)
-			return ERROR_FAIL;
-
-		chip->target = bank->target;
-		chip->probed = false;
-
-		bank->driver_priv = chip;
-
-		/* Insert it into the chips list (at head) */
-		chip->next = samd_chips;
-		samd_chips = chip;
-	}
-
 	if (bank->base != SAMD_FLASH) {
 		LOG_ERROR("Address 0x%08" PRIx32 " invalid bank address (try 0x%08" PRIx32
 				"[at91samd series] )",
 				bank->base, SAMD_FLASH);
 		return ERROR_FAIL;
 	}
+
+	struct samd_info *chip;
+	chip = calloc(1, sizeof(*chip));
+	if (!chip) {
+		LOG_ERROR("No memory for flash bank chip info");
+		return ERROR_FAIL;
+	}
+
+	chip->target = bank->target;
+	chip->probed = false;
+
+	bank->driver_priv = chip;
 
 	return ERROR_OK;
 }
@@ -1281,4 +1267,5 @@ struct flash_driver at91samd_flash = {
 	.auto_probe = samd_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = samd_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

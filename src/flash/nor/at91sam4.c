@@ -2514,6 +2514,22 @@ FLASH_BANK_COMMAND_HANDLER(sam4_flash_bank_command)
 	return ERROR_OK;
 }
 
+/**
+ * Remove all chips from the internal list without distingushing which one
+ * is owned by this bank. This simplification works only for one shot
+ * deallocation like current flash_free_all_banks()
+ */
+static void sam4_free_driver_priv(struct flash_bank *bank)
+{
+	struct sam4_chip *chip = all_sam4_chips;
+	while (chip) {
+		struct sam4_chip *next = chip->next;
+		free(chip);
+		chip = next;
+	}
+	all_sam4_chips = NULL;
+}
+
 static int sam4_GetDetails(struct sam4_bank_private *pPrivate)
 {
 	const struct sam4_chip_details *pDetails;
@@ -3194,4 +3210,5 @@ struct flash_driver at91sam4_flash = {
 	.auto_probe = sam4_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = sam4_protect_check,
+	.free_driver_priv = sam4_free_driver_priv,
 };
