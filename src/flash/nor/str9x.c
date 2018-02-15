@@ -679,4 +679,5 @@ struct flash_driver str9x_flash = {
 	.auto_probe = str9x_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = str9x_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

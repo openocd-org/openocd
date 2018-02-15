@@ -654,4 +654,5 @@ struct flash_driver stmsmi_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = stmsmi_protect_check,
 	.info = get_stmsmi_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

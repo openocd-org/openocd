@@ -340,4 +340,5 @@ struct flash_driver ocl_flash = {
 	.erase_check = ocl_erase_check,
 	.protect_check = ocl_protect_check,
 	.auto_probe = ocl_auto_probe,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

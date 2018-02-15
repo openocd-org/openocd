@@ -1133,4 +1133,5 @@ struct flash_driver efm32_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = efm32x_protect_check,
 	.info = get_efm32x_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

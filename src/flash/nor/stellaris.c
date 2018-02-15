@@ -1452,4 +1452,5 @@ struct flash_driver stellaris_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = stellaris_protect_check,
 	.info = get_stellaris_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

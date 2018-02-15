@@ -1310,4 +1310,5 @@ struct flash_driver kinetis_ke_flash = {
 	.erase_check = kinetis_ke_blank_check,
 	.protect_check = kinetis_ke_protect_check,
 	.info = kinetis_ke_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

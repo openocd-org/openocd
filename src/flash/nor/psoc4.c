@@ -963,4 +963,5 @@ struct flash_driver psoc4_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = psoc4_protect_check,
 	.info = get_psoc4_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

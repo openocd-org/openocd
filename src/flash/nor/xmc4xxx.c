@@ -1356,4 +1356,5 @@ struct flash_driver xmc4xxx_flash = {
 	.info = xmc4xxx_get_info_command,
 	.protect_check = xmc4xxx_protect_check,
 	.protect = xmc4xxx_protect,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

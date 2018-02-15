@@ -1186,4 +1186,5 @@ struct flash_driver tms470_flash = {
 	.erase_check = tms470_erase_check,
 	.protect_check = tms470_protect_check,
 	.info = get_tms470_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };
