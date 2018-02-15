@@ -3178,6 +3178,8 @@ static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 
 	cortex_a->armv7a_common.is_armv7r = false;
 
+	cortex_a->armv7a_common.arm.arm_vfp_version = ARM_VFP_V3;
+
 	return cortex_a_init_arch_info(target, cortex_a, target->tap);
 }
 
