@@ -353,6 +353,7 @@ int openocd_main(int argc, char *argv[])
 	/* Start the executable meat that can evolve into thread in future. */
 	ret = openocd_thread(argc, argv, cmd_ctx);
 
+	flash_free_all_banks();
 	gdb_service_free();
 	server_free();
 

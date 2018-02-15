@@ -171,6 +171,31 @@ int flash_get_bank_count(void)
 	return i;
 }
 
+void default_flash_free_driver_priv(struct flash_bank *bank)
+{
+	free(bank->driver_priv);
+	bank->driver_priv = NULL;
+}
+
+void flash_free_all_banks(void)
+{
+	struct flash_bank *bank = flash_banks;
+	while (bank) {
+		struct flash_bank *next = bank->next;
+		if (bank->driver->free_driver_priv)
+			bank->driver->free_driver_priv(bank);
+		else
+			LOG_WARNING("Flash driver of %s does not support free_driver_priv()", bank->name);
+
+		free(bank->name);
+		free(bank->sectors);
+		free(bank->prot_blocks);
+		free(bank);
+		bank = next;
+	}
+	flash_banks = NULL;
+}
+
 struct flash_bank *get_flash_bank_by_name_noprobe(const char *name)
 {
 	unsigned requested = get_flash_name_index(name);
