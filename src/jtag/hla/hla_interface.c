@@ -119,6 +119,11 @@ static int hl_interface_quit(void)
 	if (hl_if.layout->api->close)
 		hl_if.layout->api->close(hl_if.handle);
 
+	jtag_command_queue_reset();
+
+	free((void *)hl_if.param.device_desc);
+	free((void *)hl_if.param.serial);
+
 	return ERROR_OK;
 }
 
