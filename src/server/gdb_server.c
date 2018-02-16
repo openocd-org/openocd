@@ -2442,7 +2442,11 @@ static int gdb_get_thread_list_chunk(struct target *target, char **thread_list,
 	else
 		transfer_type = 'l';
 
-	*chunk = malloc(length + 2);
+	*chunk = malloc(length + 2 + 3);
+    /* Allocating extra 3 bytes prevents false positive valgrind report
+	 * of strlen(chunk) word access:
+	 * Invalid read of size 4
+	 * Address 0x4479934 is 44 bytes inside a block of size 45 alloc'd */
 	if (*chunk == NULL) {
 		LOG_ERROR("Unable to allocate memory");
 		return ERROR_FAIL;
