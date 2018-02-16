@@ -335,7 +335,13 @@ struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const cha
 	ctx->write_size = 16384;
 	ctx->read_chunk = malloc(ctx->read_chunk_size);
 	ctx->read_buffer = malloc(ctx->read_size);
-	ctx->write_buffer = malloc(ctx->write_size);
+
+	/* Use calloc to make valgrind happy: buffer_write() sets payload
+	 * on bit basis, so some bits can be left uninitialized in write_buffer.
+	 * Although this is perfectly ok with MPSSE, valgrind reports
+	 * Syscall param ioctl(USBDEVFS_SUBMITURB).buffer points to uninitialised byte(s) */
+	ctx->write_buffer = calloc(1, ctx->write_size);
+
 	if (!ctx->read_chunk || !ctx->read_buffer || !ctx->write_buffer)
 		goto error;
 
