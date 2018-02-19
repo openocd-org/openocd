@@ -2039,8 +2039,9 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 	switch (get_field(dcsr, CSR_DCSR_CAUSE)) {
 	case CSR_DCSR_CAUSE_SWBP:
-	case CSR_DCSR_CAUSE_TRIGGER:
 		return RISCV_HALT_BREAKPOINT;
+	case CSR_DCSR_CAUSE_TRIGGER:
+		return RISCV_HALT_TRIGGER;
 	case CSR_DCSR_CAUSE_STEP:
 		return RISCV_HALT_SINGLESTEP;
 	case CSR_DCSR_CAUSE_DEBUGINT:
