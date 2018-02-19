@@ -777,12 +777,12 @@ static int examine_progbuf(struct target *target)
 
 	uint32_t written = dmi_read(target, DMI_PROGBUF0);
 	if (written == (uint32_t) info->progbuf_address) {
-		LOG_INFO("progbuf is writable at 0x%" TARGET_PRIxADDR,
+		LOG_INFO("progbuf is writable at 0x%" PRIx64,
 				info->progbuf_address);
 		info->progbuf_writable = YNM_YES;
 
 	} else {
-		LOG_INFO("progbuf is not writeable at 0x%" TARGET_PRIxADDR,
+		LOG_INFO("progbuf is not writeable at 0x%" PRIx64,
 				info->progbuf_address);
 		info->progbuf_writable = YNM_NO;
 	}
@@ -1535,8 +1535,8 @@ static int read_memory(struct target *target, target_addr_t address,
 		 * dm_data0 contains mem[s0 - 2*size]
 		 * s1 contains mem[s0-size] */
 
-		LOG_DEBUG("creating burst to read from 0x%" TARGET_PRIxADDR
-				" up to 0x%" TARGET_PRIxADDR, read_addr, fin_addr);
+		LOG_DEBUG("creating burst to read from 0x%" PRIx64
+				" up to 0x%" PRIx64, read_addr, fin_addr);
 		assert(read_addr >= address && read_addr < fin_addr);
 		struct riscv_batch *batch = riscv_batch_alloc(target, 32,
 				info->dmi_busy_delay + info->ac_busy_delay);
