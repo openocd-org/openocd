@@ -1917,7 +1917,6 @@ int riscv_init_registers(struct target *target)
 	 * between). */
 	for (uint32_t number = 0; number < GDB_REGNO_COUNT; number++) {
 		struct reg *r = &target->reg_cache->reg_list[number];
-		r->caller_save = true;
 		r->dirty = false;
 		r->valid = false;
 		r->exist = true;
@@ -1929,6 +1928,7 @@ int riscv_init_registers(struct target *target)
 		 * target is in theory allowed to change XLEN on us. But I expect a lot
 		 * of other things to break in that case as well. */
 		if (number <= GDB_REGNO_XPR31) {
+			r->caller_save = true;
 			switch (number) {
 				case GDB_REGNO_ZERO:
 					r->name = "zero";
@@ -2030,10 +2030,12 @@ int riscv_init_registers(struct target *target)
 			r->group = "general";
 			r->feature = &feature_cpu;
 		} else if (number == GDB_REGNO_PC) {
+			r->caller_save = true;
 			sprintf(reg_name, "pc");
 			r->group = "general";
 			r->feature = &feature_cpu;
 		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+			r->caller_save = true;
 			if (riscv_supports_extension(target, 'D')) {
 				r->reg_data_type = &type_ieee_double;
 				r->size = 64;
