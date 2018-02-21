@@ -99,7 +99,7 @@
 
 
 /* constants */
-#define PSOC4_SFLASH_MACRO_SIZE		0x400
+#define PSOC4_SFLASH_MACRO_SIZE		0x800
 #define PSOC4_ROWS_PER_MACRO		512
 
 #define PSOC4_SROM_KEY1			0xb6
@@ -567,7 +567,7 @@ static int psoc4_protect(struct flash_bank *bank, int set, int first, int last)
 	uint32_t *sysrq_buffer = NULL;
 	const int param_sz = 8;
 	int chip_prot = PSOC4_CHIP_PROT_OPEN;
-	int i, m;
+	int i, m, sect;
 	int num_bits = bank->num_sectors;
 
 	if (num_bits > PSOC4_ROWS_PER_MACRO)
@@ -575,7 +575,7 @@ static int psoc4_protect(struct flash_bank *bank, int set, int first, int last)
 
 	int prot_sz = num_bits / 8;
 
-	sysrq_buffer = calloc(1, param_sz + prot_sz);
+	sysrq_buffer = malloc(param_sz + prot_sz);
 	if (sysrq_buffer == NULL) {
 		LOG_ERROR("no memory for row buffer");
 		return ERROR_FAIL;
@@ -584,10 +584,11 @@ static int psoc4_protect(struct flash_bank *bank, int set, int first, int last)
 	for (i = first; i <= last && i < bank->num_sectors; i++)
 		bank->sectors[i].is_protected = set;
 
-	for (m = 0; m < psoc4_info->num_macros; m++) {
+	for (m = 0, sect = 0; m < psoc4_info->num_macros; m++) {
 		uint8_t *p = (uint8_t *)(sysrq_buffer + 2);
-		for (i = 0; i < num_bits && i < bank->num_sectors; i++) {
-			if (bank->sectors[i].is_protected)
+		memset(p, 0, prot_sz);
+		for (i = 0; i < num_bits && sect < bank->num_sectors; i++, sect++) {
+			if (bank->sectors[sect].is_protected)
 				p[i/8] |= 1 << (i%8);
 		}
 
@@ -597,7 +598,7 @@ static int psoc4_protect(struct flash_bank *bank, int set, int first, int last)
 		retval = psoc4_sysreq(bank, PSOC4_CMD_LOAD_LATCH,
 			0	/* Byte number in latch from what to write */
 			  | (m << 8), /* flash macro index */
-			sysrq_buffer, param_sz + psoc4_info->row_size,
+			sysrq_buffer, param_sz + prot_sz,
 			NULL);
 		if (retval != ERROR_OK)
 			break;
