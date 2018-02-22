@@ -4070,6 +4070,7 @@ defaulting to the currently selected AP.
 Displays ID register from AP @var{num}, defaulting to the currently selected AP.
 @end deffn
 
+@anchor{DAP subcommand apreg}
 @deffn Command {$dap_name apreg} ap_num reg [value]
 Displays content of a register @var{reg} from AP @var{ap_num}
 or set a new value @var{value}.
@@ -4091,9 +4092,47 @@ memory bus access [0-255], giving additional time to respond to reads.
 If @var{value} is defined, first assigns that.
 @end deffn
 
-@deffn Command {$dap_name apcsw} [0 / 1]
-fix CSW_SPROT from register AP_REG_CSW on selected dap.
-Defaulting to 0.
+@deffn Command {$dap_name apcsw} [value [mask]]
+Displays or changes CSW bit pattern for MEM-AP transfers.
+
+At the begin of each memory access the CSW pattern is extended (bitwise or-ed)
+by @dfn{Size} and @dfn{AddrInc} bit-fields according to transfer requirements
+and the result is written to the real CSW register. All bits except dynamically
+updated fields @dfn{Size} and @dfn{AddrInc} can be changed by changing
+the CSW pattern. Refer to ARM ADI v5 manual chapter 7.6.4 and appendix A
+for details.
+
+Use @var{value} only syntax if you want to set the new CSW pattern as a whole.
+The example sets HPROT1 bit (required by Cortex-M) and clears the rest of
+the pattern:
+@example
+kx.dap apcsw 0x2000000
+@end example
+
+If @var{mask} is also used, the CSW pattern is changed only on bit positions
+where the mask bit is 1. The following example sets HPROT3 (cacheable)
+and leaves the rest of the pattern intact. It configures memory access through
+DCache on Cortex-M7.
+@example
+set CSW_HPROT3_CACHEABLE [expr 1 << 27]
+samv.dap apcsw $CSW_HPROT3_CACHEABLE $CSW_HPROT3_CACHEABLE
+@end example
+
+Another example clears SPROT bit and leaves the rest of pattern intact:
+@example
+set CSW_SPROT [expr 1 << 30]
+samv.dap apcsw 0 $CSW_SPROT
+@end example
+
+@emph{Note:} If you want to check the real value of CSW, not CSW pattern, use
+@code{xxx.dap apreg 0}. @xref{DAP subcommand apreg,,}.
+
+@emph{Warning:} Some of the CSW bits are vital for working memory transfer.
+If you set a wrong CSW pattern and MEM-AP stopped working, use the following
+example with a proper dap name:
+@example
+xxx.dap apcsw default
+@end example
 @end deffn
 
 @deffn Command {$dap_name ti_be_32_quirks} [@option{enable}]
