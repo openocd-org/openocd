@@ -55,6 +55,8 @@ static void dap_instance_init(struct adiv5_dap *dap)
 		dap->ap[i].memaccess_tck = 255;
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
 		dap->ap[i].tar_autoincr_block = (1<<10);
+		/* default CSW value */
+		dap->ap[i].csw_default = CSW_DEFAULT;
 	}
 	INIT_LIST_HEAD(&dap->cmd_journal);
 }

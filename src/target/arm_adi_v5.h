@@ -112,12 +112,15 @@
 #define CSW_ADDRINC_PACKED  (2UL << 4)
 #define CSW_DEVICE_EN       (1UL << 6)
 #define CSW_TRIN_PROG       (1UL << 7)
+/* all fields in bits 12 and above are implementation-defined! */
 #define CSW_SPIDEN          (1UL << 23)
-/* 30:24 - implementation-defined! */
-#define CSW_HPROT           (1UL << 25) /* ? */
-#define CSW_MASTER_DEBUG    (1UL << 29) /* ? */
+#define CSW_HPROT1          (1UL << 25) /* AHB: Privileged */
+#define CSW_MASTER_DEBUG    (1UL << 29) /* AHB: set HMASTER signals to AHB-AP ID */
 #define CSW_SPROT           (1UL << 30)
 #define CSW_DBGSWENABLE     (1UL << 31)
+
+/* initial value of csw_default used for MEM-AP transfers */
+#define CSW_DEFAULT			(CSW_HPROT1 | CSW_MASTER_DEBUG | CSW_DBGSWENABLE)
 
 /* Fields of the MEM-AP's IDR register */
 #define IDR_REV     (0xFUL << 28)
