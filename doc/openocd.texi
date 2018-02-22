@@ -8630,9 +8630,10 @@ the next instruction where the core was halted. After the step interrupts
 are enabled again. If the interrupt handlers don't complete within 500ms,
 the step command leaves with the core running.
 
-Note that a free breakpoint is required for the @option{auto} option. If no
-breakpoint is available at the time of the step, then the step is taken
-with interrupts enabled, i.e. the same way the @option{off} option does.
+Note that a free hardware (FPB) breakpoint is required for the @option{auto}
+option. If no breakpoint is available at the time of the step, then the step
+is taken with interrupts enabled, i.e. the same way the @option{off} option
+does.
 
 Default is @option{auto}.
 @end deffn
