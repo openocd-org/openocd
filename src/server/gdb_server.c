@@ -2599,18 +2599,32 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		LOG_DEBUG("target %s continue", target_name(target));
 		log_add_callback(gdb_log_callback, connection);
 		retval = target_resume(target, 1, 0, 0, 0);
-		if (retval == ERROR_OK) {
-			gdb_connection->frontend_state = TARGET_RUNNING;
-			target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
+		if (retval == ERROR_TARGET_NOT_HALTED)
+			LOG_INFO("target %s was not halted when resume was requested", target_name(target));
+
+		/* poll target in an attempt to make its internal state consistent */
+		if (retval != ERROR_OK) {
+			retval = target_poll(target);
+			if (retval != ERROR_OK)
+				LOG_DEBUG("error polling target %s after failed resume", target_name(target));
 		}
+
+		/*
+		 * We don't report errors to gdb here, move frontend_state to
+		 * TARGET_RUNNING to stay in sync with gdb's expectation of the
+		 * target state
+		 */
+		gdb_connection->frontend_state = TARGET_RUNNING;
+		target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
+
 		return true;
 	}
 
 	/* single-step or step-over-breakpoint */
 	if (parse[0] == 's') {
 		if (strncmp(parse, "s:", 2) == 0) {
-			int handle_breakpoint = 1;
 			struct target *ct = target;
+			int current_pc = 1;
 			int64_t thread_id;
 			char *endp;
 
@@ -2634,21 +2648,63 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 					parse += 1;
 					packet_size -= 1;
 
-					handle_breakpoint = 0;
+					/* check if thread-id follows */
+					if (parse[0] == ':') {
+						int64_t tid;
+						parse += 1;
+						packet_size -= 1;
+
+						tid = strtoll(parse, &endp, 16);
+						if (tid == thread_id) {
+							/*
+							 * Special case: only step a single thread (core),
+							 * keep the other threads halted. Currently, only
+							 * aarch64 target understands it. Other target types don't
+							 * care (nobody checks the actual value of 'current')
+							 * and it doesn't really matter. This deserves
+							 * a symbolic constant and a formal interface documentation
+							 * at a later time.
+							 */
+							LOG_DEBUG("request to step current core only");
+							/* uncomment after checking that indeed other targets are safe */
+							/*current_pc = 2;*/
+						}
+					}
 				}
 			}
 
 			LOG_DEBUG("target %s single-step thread %"PRId64, target_name(ct), thread_id);
-			retval = target_step(ct, 1, 0, handle_breakpoint);
+			log_add_callback(gdb_log_callback, connection);
+			target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
+
+			/* support for gdb_sync command */
+			if (gdb_connection->sync) {
+				gdb_connection->sync = false;
+				if (ct->state == TARGET_HALTED) {
+					LOG_WARNING("stepi ignored. GDB will now fetch the register state " \
+									"from the target.");
+					gdb_sig_halted(connection);
+					log_remove_callback(gdb_log_callback, connection);
+				} else
+					gdb_connection->frontend_state = TARGET_RUNNING;
+				return true;
+			}
+
+			retval = target_step(ct, current_pc, 0, 0);
+			if (retval == ERROR_TARGET_NOT_HALTED)
+				LOG_INFO("target %s was not halted when step was requested", target_name(ct));
+
+			/* if step was successful send a reply back to gdb */
 			if (retval == ERROR_OK) {
-				gdb_signal_reply(target, connection);
+				retval = target_poll(ct);
+				if (retval != ERROR_OK)
+					LOG_DEBUG("error polling target %s after successful step", target_name(ct));
+				/* send back signal information */
+				gdb_signal_reply(ct, connection);
 				/* stop forwarding log packets! */
 				log_remove_callback(gdb_log_callback, connection);
 			} else
-			if (retval == ERROR_TARGET_TIMEOUT) {
 				gdb_connection->frontend_state = TARGET_RUNNING;
-				target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
-			}
 		} else {
 			LOG_ERROR("Unknown vCont packet");
 			return false;
@@ -3124,6 +3180,8 @@ static int gdb_input_inner(struct connection *connection)
 				if (target->rtos)
 					target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &t);
 				retval = target_halt(t);
+				if (retval == ERROR_OK)
+					retval = target_poll(t);
 				if (retval != ERROR_OK)
 					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				gdb_con->ctrl_c = 0;
