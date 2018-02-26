@@ -702,7 +702,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 			}
 
 			if (verify == 0) {
-				LOG_ERROR("Unable to set 32bit breakpoint at address %08" PRIx64
+				LOG_ERROR("Unable to set 32bit breakpoint at address %08" TARGET_PRIxADDR
 					" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
@@ -723,7 +723,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 				return retval;
 
 			if (verify != MIPS16_SDBBP(isa_req)) {
-				LOG_ERROR("Unable to set 16bit breakpoint at address %08" PRIx64
+				LOG_ERROR("Unable to set 16bit breakpoint at address %08" TARGET_PRIxADDR
 						" - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
