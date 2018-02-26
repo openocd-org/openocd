@@ -808,8 +808,7 @@ done:
 }
 
 /**
- * Downloads a target-specific native code algorithm to the target,
- * executes and leaves it running.
+ * Executes a target-specific native code algorithm and leaves it running.
  *
  * @param target used to run the algorithm
  * @param arch_info target-specific description of the algorithm.
