@@ -1212,6 +1212,7 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 		return ERROR_OK;
 	}
 
+	// TODO: use COMMAND_PARSE_NUMBER
 	long long unsigned int address;
 	int result = sscanf(CMD_ARGV[0], "%llx", &address);
 	if (result != (int) strlen(CMD_ARGV[0])) {
@@ -1307,6 +1308,58 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_authdata_read)
+{
+	if (CMD_ARGC != 0) {
+		LOG_ERROR("Command takes no parameters");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target) {
+		LOG_ERROR("target is NULL!");
+		return ERROR_FAIL;
+	}
+
+	RISCV_INFO(r);
+	if (!r) {
+		LOG_ERROR("riscv_info is NULL!");
+		return ERROR_FAIL;
+	}
+
+	if (r->authdata_read) {
+		uint32_t value;
+		if (r->authdata_read(target, &value) != ERROR_OK)
+			return ERROR_FAIL;
+		command_print(CMD_CTX, "0x%" PRIx32, value);
+		return ERROR_OK;
+	} else {
+		LOG_ERROR("authdata_read is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
+COMMAND_HANDLER(riscv_authdata_write)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], value);
+
+	if (r->authdata_write) {
+		return r->authdata_write(target, value);
+	} else {
+		LOG_ERROR("authdata_write is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "set_command_timeout_sec",
@@ -1333,10 +1386,24 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "expose_csrs",
 		.handler = riscv_set_expose_csrs,
 		.mode = COMMAND_ANY,
-		.usage = "riscv expose_csrs n0[-m0][,n0[-m0]]...",
+		.usage = "riscv expose_csrs n0[-m0][,n1[-m1]]...",
 		.help = "Configure a list of inclusive ranges for CSRs to expose in "
 				"addition to the standard ones. This must be executed before "
 				"`init`."
+	},
+	{
+		.name = "authdata_read",
+		.handler = riscv_authdata_read,
+		.mode = COMMAND_ANY,
+		.usage = "riscv authdata_read",
+		.help = "Return the 32-bit value read from authdata."
+	},
+	{
+		.name = "authdata_write",
+		.handler = riscv_authdata_write,
+		.mode = COMMAND_ANY,
+		.usage = "riscv authdata_write value",
+		.help = "Write the 32-bit value to authdata."
 	},
 	COMMAND_REGISTRATION_DONE
 };
