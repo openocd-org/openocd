@@ -141,7 +141,14 @@ typedef struct {
 	int abs_chain_position;
 	/* Indicates we already reset this DM, so don't need to do it again. */
 	bool was_reset;
+	/* Targets that are connected to this DM. */
+	struct list_head target_list;
 } dm013_info_t;
+
+typedef struct {
+	struct list_head list;
+	struct target *target;
+} target_list_t;
 
 typedef struct {
 	/* Number of address bits in the dbus register. */
@@ -198,6 +205,7 @@ typedef struct {
 	/* The width of the hartsel field. */
 	unsigned hartsellen;
 
+	/* DM that provides access to this target. */
 	dm013_info_t *dm;
 } riscv013_info_t;
 
@@ -223,17 +231,31 @@ static dm013_info_t *get_dm(struct target *target)
 	int abs_chain_position = target->tap->abs_chain_position;
 
 	dm013_info_t *entry;
+	dm013_info_t *dm = NULL;
 	list_for_each_entry(entry, &dm_list, list) {
 		if (entry->abs_chain_position == abs_chain_position) {
-			info->dm = entry;
-			return entry;
+			dm = entry;
+			break;
 		}
 	}
 
-	dm013_info_t *dm = calloc(1, sizeof(dm013_info_t));
-	dm->abs_chain_position = abs_chain_position;
-	list_add(&dm->list, &dm_list);
+	if (!dm) {
+		dm = calloc(1, sizeof(dm013_info_t));
+		dm->abs_chain_position = abs_chain_position;
+		INIT_LIST_HEAD(&dm->target_list);
+		list_add(&dm->list, &dm_list);
+	}
+
 	info->dm = dm;
+	target_list_t *target_entry;
+	list_for_each_entry(target_entry, &dm->target_list, list) {
+		if (target_entry->target == target) {
+			return dm;
+		}
+	}
+	target_entry = calloc(1, sizeof(*target_entry));
+	target_entry->target = target;
+	list_add(&target_entry->list, &dm->target_list);
 
 	return dm;
 }
@@ -1404,7 +1426,14 @@ int riscv013_authdata_write(struct target *target, uint32_t value)
 	if (!get_field(before, DMI_DMSTATUS_AUTHENTICATED) &&
 			get_field(after, DMI_DMSTATUS_AUTHENTICATED)) {
 		LOG_INFO("authdata_write resulted in successful authentication");
-		return examine(target);
+		int result = ERROR_OK;
+		dm013_info_t *dm = get_dm(target);
+		target_list_t *entry;
+		list_for_each_entry(entry, &dm->target_list, list) {
+			if (examine(entry->target) != ERROR_OK)
+				result = ERROR_FAIL;
+		}
+		return result;
 	}
 
 	return ERROR_OK;
