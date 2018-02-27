@@ -1808,7 +1808,7 @@ static int gdb_memory_map(struct connection *connection,
 	int offset;
 	int length;
 	char *separator;
-	uint32_t ram_start = 0;
+	target_addr_t ram_start = 0;
 	int i;
 	int target_flash_banks = 0;
 
@@ -1823,9 +1823,6 @@ static int gdb_memory_map(struct connection *connection,
 	/* Sort banks in ascending order.  We need to report non-flash
 	 * memory as ram (or rather read/write) by default for GDB, since
 	 * it has no concept of non-cacheable read/write memory (i/o etc).
-	 *
-	 * FIXME Most non-flash addresses are *NOT* RAM!  Don't lie.
-	 * Current versions of GDB assume unlisted addresses are RAM...
 	 */
 	banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
 
@@ -1848,14 +1845,13 @@ static int gdb_memory_map(struct connection *connection,
 	for (i = 0; i < target_flash_banks; i++) {
 		int j;
 		unsigned sector_size = 0;
-		uint32_t start;
+		unsigned group_len = 0;
 
 		p = banks[i];
-		start = p->base;
 
 		if (ram_start < p->base)
 			xml_printf(&retval, &xml, &pos, &size,
-				"<memory type=\"ram\" start=\"0x%x\" "
+				"<memory type=\"ram\" start=\"" TARGET_ADDR_FMT "\" "
 				"length=\"0x%x\"/>\n",
 				ram_start, p->base - ram_start);
 
@@ -1866,27 +1862,35 @@ static int gdb_memory_map(struct connection *connection,
 		 * regions with 8KB, 32KB, and 64KB sectors; etc.
 		 */
 		for (j = 0; j < p->num_sectors; j++) {
-			unsigned group_len;
 
 			/* Maybe start a new group of sectors. */
 			if (sector_size == 0) {
+				if (p->sectors[j].offset + p->sectors[j].size > p->size) {
+					LOG_WARNING("The flash sector at offset 0x%08" PRIx32
+						" overflows the end of %s bank.",
+						p->sectors[j].offset, p->name);
+					LOG_WARNING("The rest of bank will not show in gdb memory map.");
+					break;
+				}
+				target_addr_t start;
 				start = p->base + p->sectors[j].offset;
 				xml_printf(&retval, &xml, &pos, &size,
 					"<memory type=\"flash\" "
-					"start=\"0x%x\" ",
+					"start=\"" TARGET_ADDR_FMT "\" ",
 					start);
 				sector_size = p->sectors[j].size;
+				group_len = sector_size;
+			} else {
+				group_len += sector_size; /* equal to p->sectors[j].size */
 			}
 
 			/* Does this finish a group of sectors?
 			 * If not, continue an already-started group.
 			 */
-			if (j == p->num_sectors - 1)
-				group_len = (p->base + p->size) - start;
-			else if (p->sectors[j + 1].size != sector_size)
-				group_len = p->base + p->sectors[j + 1].offset
-					- start;
-			else
+			if (j < p->num_sectors - 1
+					&& p->sectors[j + 1].size == sector_size
+					&& p->sectors[j + 1].offset == p->sectors[j].offset + sector_size
+					&& p->sectors[j + 1].offset + p->sectors[j + 1].size <= p->size)
 				continue;
 
 			xml_printf(&retval, &xml, &pos, &size,
@@ -1904,7 +1908,7 @@ static int gdb_memory_map(struct connection *connection,
 
 	if (ram_start != 0)
 		xml_printf(&retval, &xml, &pos, &size,
-			"<memory type=\"ram\" start=\"0x%x\" "
+			"<memory type=\"ram\" start=\"" TARGET_ADDR_FMT "\" "
 			"length=\"0x%x\"/>\n",
 			ram_start, 0-ram_start);
 	/* ELSE a flash chip could be at the very end of the 32 bit address
@@ -1912,11 +1916,11 @@ static int gdb_memory_map(struct connection *connection,
 	 */
 
 	free(banks);
-	banks = NULL;
 
 	xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
 
 	if (retval != ERROR_OK) {
+		free(xml);
 		gdb_error(connection, retval);
 		return retval;
 	}
