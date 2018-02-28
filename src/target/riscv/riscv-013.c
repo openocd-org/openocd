@@ -595,7 +595,7 @@ int dmstatus_read(struct target *target, uint32_t *dmstatus,
 	if (authenticated && !get_field(*dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
 		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
 				"(dmstatus=0x%x). Use `riscv authdata_read` and "
-				"`riscv_authdata_write` commands to authenticate.", *dmstatus);
+				"`riscv authdata_write` commands to authenticate.", *dmstatus);
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;
@@ -1313,7 +1313,7 @@ static int examine(struct target *target)
 	if (!get_field(dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
 		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
 				"(dmstatus=0x%x). Use `riscv authdata_read` and "
-				"`riscv_authdata_write` commands to authenticate.", dmstatus);
+				"`riscv authdata_write` commands to authenticate.", dmstatus);
 		/* If we return ERROR_FAIL here, then in a multicore setup the next
 		 * core won't be examined, which means we won't set up the
 		 * authentication commands for them, which means the config script
