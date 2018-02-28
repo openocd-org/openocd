@@ -110,6 +110,9 @@ typedef struct {
 	void (*fill_dmi_write_u64)(struct target *target, char *buf, int a, uint64_t d);
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
+
+	int (*authdata_read)(struct target *target, uint32_t *value);
+	int (*authdata_write)(struct target *target, uint32_t value);
 } riscv_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/

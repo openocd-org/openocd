@@ -19,6 +19,7 @@
 #include "target/register.h"
 #include "target/breakpoints.h"
 #include "helper/time_support.h"
+#include "helper/list.h"
 #include "riscv.h"
 #include "rtos/riscv_debug.h"
 #include "debug_defines.h"
@@ -136,6 +137,20 @@ typedef enum {
 } yes_no_maybe_t;
 
 typedef struct {
+	struct list_head list;
+	int abs_chain_position;
+	/* Indicates we already reset this DM, so don't need to do it again. */
+	bool was_reset;
+	/* Targets that are connected to this DM. */
+	struct list_head target_list;
+} dm013_info_t;
+
+typedef struct {
+	struct list_head list;
+	struct target *target;
+} target_list_t;
+
+typedef struct {
 	/* Number of address bits in the dbus register. */
 	unsigned abits;
 	/* Number of abstract command data registers. */
@@ -189,12 +204,60 @@ typedef struct {
 
 	/* The width of the hartsel field. */
 	unsigned hartsellen;
+
+	/* DM that provides access to this target. */
+	dm013_info_t *dm;
 } riscv013_info_t;
+
+LIST_HEAD(dm_list);
 
 static riscv013_info_t *get_info(const struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	return (riscv013_info_t *) info->version_specific;
+}
+
+/**
+ * Return the DM structure for this target. If there isn't one, find it in the
+ * global list of DMs. If it's not in there, then create one and initialize it
+ * to 0.
+ */
+static dm013_info_t *get_dm(struct target *target)
+{
+	RISCV013_INFO(info);
+	if (info->dm)
+		return info->dm;
+
+	int abs_chain_position = target->tap->abs_chain_position;
+
+	dm013_info_t *entry;
+	dm013_info_t *dm = NULL;
+	list_for_each_entry(entry, &dm_list, list) {
+		if (entry->abs_chain_position == abs_chain_position) {
+			dm = entry;
+			break;
+		}
+	}
+
+	if (!dm) {
+		dm = calloc(1, sizeof(dm013_info_t));
+		dm->abs_chain_position = abs_chain_position;
+		INIT_LIST_HEAD(&dm->target_list);
+		list_add(&dm->list, &dm_list);
+	}
+
+	info->dm = dm;
+	target_list_t *target_entry;
+	list_for_each_entry(target_entry, &dm->target_list, list) {
+		if (target_entry->target == target) {
+			return dm;
+		}
+	}
+	target_entry = calloc(1, sizeof(*target_entry));
+	target_entry->target = target;
+	list_add(&target_entry->list, &dm->target_list);
+
+	return dm;
 }
 
 static uint32_t hartsel_mask(const struct target *target)
@@ -522,6 +585,19 @@ static int dmi_write(struct target *target, uint16_t address, uint64_t value)
 		return ERROR_FAIL;
 	}
 
+	return ERROR_OK;
+}
+
+int dmstatus_read(struct target *target, uint32_t *dmstatus,
+		bool authenticated)
+{
+	*dmstatus = dmi_read(target, DMI_DMSTATUS);
+	if (authenticated && !get_field(*dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
+		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
+				"(dmstatus=0x%x). Use `riscv authdata_read` and "
+				"`riscv_authdata_write` commands to authenticate.", *dmstatus);
+		return ERROR_FAIL;
+	}
 	return ERROR_OK;
 }
 
@@ -1111,56 +1187,30 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	return result;
 }
 
-/*** OpenOCD target functions. ***/
-
-static int init_target(struct command_context *cmd_ctx,
-		struct target *target)
+int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 {
-	LOG_DEBUG("init");
-	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
-
-	generic_info->get_register = &riscv013_get_register;
-	generic_info->set_register = &riscv013_set_register;
-	generic_info->select_current_hart = &riscv013_select_current_hart;
-	generic_info->is_halted = &riscv013_is_halted;
-	generic_info->halt_current_hart = &riscv013_halt_current_hart;
-	generic_info->resume_current_hart = &riscv013_resume_current_hart;
-	generic_info->step_current_hart = &riscv013_step_current_hart;
-	generic_info->on_halt = &riscv013_on_halt;
-	generic_info->on_resume = &riscv013_on_resume;
-	generic_info->on_step = &riscv013_on_step;
-	generic_info->halt_reason = &riscv013_halt_reason;
-	generic_info->read_debug_buffer = &riscv013_read_debug_buffer;
-	generic_info->write_debug_buffer = &riscv013_write_debug_buffer;
-	generic_info->execute_debug_buffer = &riscv013_execute_debug_buffer;
-	generic_info->fill_dmi_write_u64 = &riscv013_fill_dmi_write_u64;
-	generic_info->fill_dmi_read_u64 = &riscv013_fill_dmi_read_u64;
-	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
-	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
-	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
-	if (!generic_info->version_specific)
-		return ERROR_FAIL;
-	riscv013_info_t *info = get_info(target);
-
-	info->progbufsize = -1;
-
-	info->dmi_busy_delay = 0;
-	info->bus_master_read_delay = 0;
-	info->bus_master_write_delay = 0;
-	info->ac_busy_delay = 0;
-
-	/* Assume all these abstract commands are supported until we learn
-	 * otherwise.
-	 * TODO: The spec allows eg. one CSR to be able to be accessed abstractly
-	 * while another one isn't. We don't track that this closely here, but in
-	 * the future we probably should. */
-	info->abstract_read_csr_supported = true;
-	info->abstract_write_csr_supported = true;
-	info->abstract_read_fpr_supported = true;
-	info->abstract_write_fpr_supported = true;
+	time_t start = time(NULL);
+	while (1) {
+		uint32_t value;
+		if (dmstatus_read(target, &value, false) != ERROR_OK)
+			return ERROR_FAIL;
+		if (dmstatus)
+			*dmstatus = value;
+		if (!get_field(value, DMI_DMSTATUS_AUTHBUSY))
+			break;
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("Timed out after %ds waiting for authbusy to go low (dmstatus=0x%x). "
+					"Increase the timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec,
+					value);
+			return ERROR_FAIL;
+		}
+	}
 
 	return ERROR_OK;
 }
+
+/*** OpenOCD target functions. ***/
 
 static void deinit_target(struct target *target)
 {
@@ -1195,7 +1245,9 @@ static int examine(struct target *target)
 	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
 	info->dtmcontrol_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
 
-	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+	uint32_t dmstatus;
+	if (dmstatus_read(target, &dmstatus, false) != ERROR_OK)
+		return ERROR_FAIL;
 	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
 	if (get_field(dmstatus, DMI_DMSTATUS_VERSION) != 2) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
@@ -1204,8 +1256,12 @@ static int examine(struct target *target)
 	}
 
 	/* Reset the Debug Module. */
-	dmi_write(target, DMI_DMCONTROL, 0);
-	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm->was_reset) {
+		dmi_write(target, DMI_DMCONTROL, 0);
+		dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE);
+		dm->was_reset = true;
+	}
 
 	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
 	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask | DMI_DMCONTROL_DMACTIVE);
@@ -1232,9 +1288,14 @@ static int examine(struct target *target)
 	info->dataaddr = get_field(hartinfo, DMI_HARTINFO_DATAADDR);
 
 	if (!get_field(dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
-		LOG_ERROR("Authentication required by RISC-V core but not "
-				"supported by OpenOCD. dmcontrol=0x%x", dmcontrol);
-		return ERROR_FAIL;
+		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
+				"(dmstatus=0x%x). Use `riscv authdata_read` and "
+				"`riscv_authdata_write` commands to authenticate.", dmstatus);
+		/* If we return ERROR_FAIL here, then in a multicore setup the next
+		 * core won't be examined, which means we won't set up the
+		 * authentication commands for them, which means the config script
+		 * needs to be a lot more complex. */
+		return ERROR_OK;
 	}
 
 	info->sbcs = dmi_read(target, DMI_SBCS);
@@ -1267,7 +1328,9 @@ static int examine(struct target *target)
 		r->current_hartid = i;
 		riscv013_select_current_hart(target);
 
-		uint32_t s = dmi_read(target, DMI_DMSTATUS);
+		uint32_t s;
+		if (dmstatus_read(target, &s, true) != ERROR_OK)
+			return ERROR_FAIL;
 		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT))
 			break;
 		r->hart_count = i + 1;
@@ -1337,6 +1400,93 @@ static int examine(struct target *target)
 			LOG_INFO(" hart %d: currently disabled", i);
 		}
 	}
+	return ERROR_OK;
+}
+
+int riscv013_authdata_read(struct target *target, uint32_t *value)
+{
+	if (wait_for_authbusy(target, NULL) != ERROR_OK)
+		return ERROR_FAIL;
+
+	*value = dmi_read(target, DMI_AUTHDATA);
+	return ERROR_OK;
+}
+
+int riscv013_authdata_write(struct target *target, uint32_t value)
+{
+	uint32_t before, after;
+	if (wait_for_authbusy(target, &before) != ERROR_OK)
+		return ERROR_FAIL;
+
+	dmi_write(target, DMI_AUTHDATA, value);
+
+	if (wait_for_authbusy(target, &after) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (!get_field(before, DMI_DMSTATUS_AUTHENTICATED) &&
+			get_field(after, DMI_DMSTATUS_AUTHENTICATED)) {
+		LOG_INFO("authdata_write resulted in successful authentication");
+		int result = ERROR_OK;
+		dm013_info_t *dm = get_dm(target);
+		target_list_t *entry;
+		list_for_each_entry(entry, &dm->target_list, list) {
+			if (examine(entry->target) != ERROR_OK)
+				result = ERROR_FAIL;
+		}
+		return result;
+	}
+
+	return ERROR_OK;
+}
+
+static int init_target(struct command_context *cmd_ctx,
+		struct target *target)
+{
+	LOG_DEBUG("init");
+	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
+
+	generic_info->get_register = &riscv013_get_register;
+	generic_info->set_register = &riscv013_set_register;
+	generic_info->select_current_hart = &riscv013_select_current_hart;
+	generic_info->is_halted = &riscv013_is_halted;
+	generic_info->halt_current_hart = &riscv013_halt_current_hart;
+	generic_info->resume_current_hart = &riscv013_resume_current_hart;
+	generic_info->step_current_hart = &riscv013_step_current_hart;
+	generic_info->on_halt = &riscv013_on_halt;
+	generic_info->on_resume = &riscv013_on_resume;
+	generic_info->on_step = &riscv013_on_step;
+	generic_info->halt_reason = &riscv013_halt_reason;
+	generic_info->read_debug_buffer = &riscv013_read_debug_buffer;
+	generic_info->write_debug_buffer = &riscv013_write_debug_buffer;
+	generic_info->execute_debug_buffer = &riscv013_execute_debug_buffer;
+	generic_info->fill_dmi_write_u64 = &riscv013_fill_dmi_write_u64;
+	generic_info->fill_dmi_read_u64 = &riscv013_fill_dmi_read_u64;
+	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
+	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
+	generic_info->authdata_read = &riscv013_authdata_read;
+	generic_info->authdata_write = &riscv013_authdata_write;
+	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
+	if (!generic_info->version_specific)
+		return ERROR_FAIL;
+	riscv013_info_t *info = get_info(target);
+
+	info->progbufsize = -1;
+
+	info->dmi_busy_delay = 0;
+	info->bus_master_read_delay = 0;
+	info->bus_master_write_delay = 0;
+	info->ac_busy_delay = 0;
+
+	/* Assume all these abstract commands are supported until we learn
+	 * otherwise.
+	 * TODO: The spec allows eg. one CSR to be able to be accessed abstractly
+	 * while another one isn't. We don't track that this closely here, but in
+	 * the future we probably should. */
+	info->abstract_read_csr_supported = true;
+	info->abstract_write_csr_supported = true;
+	info->abstract_read_fpr_supported = true;
+	info->abstract_write_fpr_supported = true;
+
 	return ERROR_OK;
 }
 
@@ -1416,7 +1566,8 @@ static int deassert_reset(struct target *target)
 	if (target->reset_halt) {
 		LOG_DEBUG("Waiting for hart to be halted.");
 		do {
-			dmstatus = dmi_read(target, DMI_DMSTATUS);
+			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+				return ERROR_FAIL;
 			if (time(NULL) - start > riscv_reset_timeout_sec) {
 				LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
 						"dmstatus=0x%x; "
@@ -1433,7 +1584,8 @@ static int deassert_reset(struct target *target)
 	} else {
 		LOG_DEBUG("Waiting for hart to be running.");
 		do {
-			dmstatus = dmi_read(target, DMI_DMSTATUS);
+			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+				return ERROR_FAIL;
 			if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
 					get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
 				LOG_ERROR("Unexpected hart status during reset. dmstatus=0x%x",
@@ -2306,7 +2458,9 @@ static int riscv013_halt_current_hart(struct target *target)
 			break;
 
 	if (!riscv_is_halted(target)) {
-		uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+		uint32_t dmstatus;
+		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+			return ERROR_FAIL;
 		dmcontrol = dmi_read(target, DMI_DMCONTROL);
 
 		LOG_ERROR("unable to halt hart %d", r->current_hartid);
@@ -2348,7 +2502,9 @@ static int riscv013_on_halt(struct target *target)
 
 static bool riscv013_is_halted(struct target *target)
 {
-	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+	uint32_t dmstatus;
+	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+		return false;
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL))
 		LOG_ERROR("hart %d is unavailiable", riscv_current_hartid(target));
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT))
@@ -2481,9 +2637,11 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 
+	uint32_t dmstatus;
 	for (size_t i = 0; i < 256; ++i) {
 		usleep(10);
-		uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+			return ERROR_FAIL;
 		if (get_field(dmstatus, DMI_DMSTATUS_ALLRESUMEACK) == 0)
 			continue;
 		if (step && get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0)
@@ -2494,7 +2652,8 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		return ERROR_OK;
 	}
 
-	uint32_t dmstatus = dmi_read(target, DMI_DMSTATUS);
+	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+		return ERROR_FAIL;
 	dmcontrol = dmi_read(target, DMI_DMCONTROL);
 	LOG_ERROR("unable to resume hart %d", r->current_hartid);
 	LOG_ERROR("  dmcontrol=0x%08x", dmcontrol);
