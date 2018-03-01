@@ -204,6 +204,14 @@ struct target {
 
 	/* file-I/O information for host to do syscall */
 	struct gdb_fileio_info *fileio_info;
+
+	/**
+	 * When true, send gdb an error result when reading/writing a register
+	 * fails. This must be false for some ARM targets (Cortex-M3), where a 'g'
+	 * packet results in an attempt to read 'r0', which fails, which causes gdb
+	 * to close the connection.
+	 */
+	bool propagate_register_errors;
 };
 
 struct target_list {
