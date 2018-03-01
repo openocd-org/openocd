@@ -22,8 +22,6 @@
 	.syntax unified
 	.cpu cortex-m0
 	.thumb
-	.thumb_func
-	.global write
 
 	/* Params:
 	 * r0 - flash base (in), status (out)
@@ -39,6 +37,9 @@
 
 #define STM32_FLASH_SR_OFFSET 0x0c /* offset of SR register from flash reg base */
 
+	.thumb_func
+	.global _start
+_start:
 wait_fifo:
 	ldr 	r6, [r2, #0]	/* read wp */
 	cmp 	r6, #0			/* abort if wp == 0 */

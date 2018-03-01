@@ -568,51 +568,8 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	struct stm32h7x_flash_bank *stm32x_info = bank->driver_priv;
 	int retval = ERROR_OK;
 
-	/* see contrib/loaders/flash/smt32h7x.S for src */
 	static const uint8_t stm32x_flash_write_code[] = {
-								/* <code>: */
-		0x45, 0x68,				/*		ldr		r5, [r0, #4] */
-								/* <wait_fifo>: */
-		0x06, 0x68,				/*		ldr		r6, [r0, #0] */
-		0x26, 0xb3,				/*		cbz		r6, <exit> */
-		0x76, 0x1b,				/*		subs	r6, r6, r5 */
-		0x42, 0xbf,				/*		ittt	mi */
-		0x76, 0x18,				/*		addmi	r6, r6, r1 */
-		0x36, 0x1a,				/*		submi	r6, r6, r0 */
-		0x08, 0x3e,				/*		submi	r6, #8 */
-		0x20, 0x2e,				/*		cmp		r6, #32 */
-		0xf6, 0xd3,				/*		bcc.n	<wait_fifo> */
-		0x4f, 0xf0, 0x32, 0x06,	/*		mov.w	r6, #STM32_PROG */
-		0xe6, 0x60,				/*		str		r6, [r4, #STM32_FLASH_CR_OFFSET] */
-		0x4f, 0xf0, 0x08, 0x07,	/*		mov.w	r7, #8 */
-								/* <write_flash>: */
-		0x55, 0xf8, 0x04, 0x6b,	/*		ldr.w	r6, [r5], #4 */
-		0x42, 0xf8, 0x04, 0x6b,	/*		str.w	r6, [r2], #4 */
-		0xbf, 0xf3, 0x4f, 0x8f,	/*		dsb		sy */
-		0x8d, 0x42,				/*		cmp		r5, r1 */
-		0x28, 0xbf,				/*		it		cs */
-		0x00, 0xf1, 0x08, 0x05,	/*		addcs.w	r5, r0, #8 */
-		0x01, 0x3f,				/*		subs	r7, #1 */
-		0xf3, 0xd1,				/*		bne.n	<write_flash> */
-								/* <busy>: */
-		0x26, 0x69,				/*		ldr		r6, [r4, #STM32_FLASH_SR_OFFSET] */
-		0x16, 0xf0, 0x01, 0x0f,	/*		tst.w	r6, #STM32_SR_BUSY_MASK */
-		0xfb, 0xd1,				/*		bne.n	<busy> */
-		0x05, 0x4f,				/*		ldr		r7, [pc, #20] ; (<stm32_sr_error_mask>) */
-		0x3e, 0x42,				/*		tst		r6, r7 */
-		0x03, 0xd1,				/*		bne.n	<error> */
-		0x45, 0x60,				/*		str		r5, [r0, #4] */
-		0x01, 0x3b,				/*		subs	r3, #1 */
-		0xdb, 0xd1,				/*		bne.n	<wait_fifo> */
-		0x01, 0xe0,				/*		b.n		<exit> */
-								/* <error>: */
-		0x00, 0x27,				/*		movs	r7, #0 */
-		0x47, 0x60,				/*		str		r7, [r0, #4] */
-								/* <exit>: */
-		0x30, 0x46,				/*		mov		r0, r6 */
-		0x00, 0xbe,				/*		bkpt	0x0000 */
-								/* <stm32_sr_error_mask>: */
-		0x00, 0x00, 0xee, 0x03	/*		.word	0x03ee0000 ; (STM32_SR_ERROR_MASK) */
+#include "../../../contrib/loaders/flash/stm32/stm32h7x.inc"
 	};
 
 	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code),
