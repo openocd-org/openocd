@@ -448,10 +448,8 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, const uint8_t *buff
 
 	int retval = ERROR_OK;
 
-	/* see contib/loaders/flash/stm32lx.S for src */
-
 	static const uint8_t stm32lx_flash_write_code[] = {
-			0x92, 0x00, 0x8A, 0x18, 0x01, 0xE0, 0x08, 0xC9, 0x08, 0xC0, 0x91, 0x42, 0xFB, 0xD1, 0x00, 0xBE
+#include "../../../contrib/loaders/flash/stm32/stm32lx.inc"
 	};
 
 	/* Make sure we're performing a half-page aligned write. */
