@@ -349,8 +349,8 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 			if (target->rtos_auto_detect == true) {
 				target->rtos_auto_detect = false;
 				target->rtos->type->create(target);
-				target->rtos->type->update_threads(target->rtos);
 			}
+			target->rtos->type->update_threads(target->rtos);
 		}
 		return ERROR_OK;
 	} else if (strncmp(packet, "qfThreadInfo", 12) == 0) {
