@@ -1092,6 +1092,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	}
 
 	int exec_out = riscv_program_exec(&program, target);
+	/* Don't message on error. Probably the register doesn't exist. */
 
 	/* Restore S0. */
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
@@ -1161,6 +1162,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 		/* Execute program. */
 		result = riscv_program_exec(&program, target);
+		/* Don't message on error. Probably the register doesn't exist. */
 
 		if (use_scratch) {
 			if (scratch_read64(target, &scratch, value) != ERROR_OK)
@@ -2597,8 +2599,10 @@ static int maybe_execute_fence_i(struct target *target)
 		riscv_program_init(&program, target);
 		if (riscv_program_fence_i(&program) != ERROR_OK)
 			return ERROR_FAIL;
-		if (riscv_program_exec(&program, target) != ERROR_OK)
+		if (riscv_program_exec(&program, target) != ERROR_OK) {
+			LOG_ERROR("Failed to execute fence.i");
 			return ERROR_FAIL;
+		}
 	}
 	return ERROR_OK;
 }

@@ -64,7 +64,7 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 		return ERROR_FAIL;
 
 	if (riscv_execute_debug_buffer(t) != ERROR_OK) {
-		LOG_ERROR("Unable to execute program %p", p);
+		LOG_DEBUG("Unable to execute program %p", p);
 		return ERROR_FAIL;
 	}
 
