@@ -2158,7 +2158,7 @@ static int write_memory_bus_v0(struct target *target, target_addr_t address,
 {
 	/*1) write sbaddress: for singlewrite and autoincrement, we need to write the address once*/
 	LOG_DEBUG("System Bus Access: size: %d\tcount:%d\tstart address: 0x%08"
-			PRIx64, size, count, address);
+			TARGET_PRIxADDR, size, count, address);
 	dmi_write(target, DMI_SBADDRESS0, address);
 	int64_t value = 0;
 	int64_t access = 0;
