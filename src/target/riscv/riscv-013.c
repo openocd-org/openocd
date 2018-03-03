@@ -1045,8 +1045,8 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	int result = register_write_abstract(target, number, value,
 			register_size(target, number));
-	if (result == ERROR_OK ||
-			info->progbufsize + r->impebreak < 2)
+	if (result == ERROR_OK || info->progbufsize + r->impebreak < 2 ||
+			!riscv_is_halted(target))
 		return result;
 
 	struct riscv_program program;
@@ -1109,8 +1109,8 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	int result = register_read_abstract(target, value, number,
 			register_size(target, number));
 
-	if (result != ERROR_OK &&
-			info->progbufsize + r->impebreak >= 2) {
+	if (result != ERROR_OK && info->progbufsize + r->impebreak >= 2 &&
+			riscv_is_halted(target)) {
 		assert(number != GDB_REGNO_S0);
 
 		struct riscv_program program;
