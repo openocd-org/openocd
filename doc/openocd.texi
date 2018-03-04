@@ -1595,8 +1595,11 @@ proc enable_fast_clock @{@} @{
 proc init_board @{@} @{
     reset_config trst_and_srst trst_pulls_srst
 
+    $_TARGETNAME configure -event reset-start @{
+        adapter_khz 100
+    @}
+
     $_TARGETNAME configure -event reset-init @{
-        adapter_khz 1
         enable_fast_clock
         adapter_khz 10000
     @}
@@ -4430,16 +4433,14 @@ buttons and events. The two examples below act the same, but one creates
 and invokes a small procedure while the other inlines it.
 
 @example
-proc my_attach_proc @{ @} @{
-    echo "Reset..."
-    reset halt
+proc my_init_proc @{ @} @{
+    echo "Disabling watchdog..."
+    mww 0xfffffd44 0x00008000
 @}
-mychip.cpu configure -event gdb-attach my_attach_proc
-mychip.cpu configure -event gdb-attach @{
-    echo "Reset..."
-    # To make flash probe and gdb load to flash work
-    # we need a reset init.
-    reset init
+mychip.cpu configure -event reset-init my_init_proc
+mychip.cpu configure -event reset-init @{
+    echo "Disabling watchdog..."
+    mww 0xfffffd44 0x00008000
 @}
 @end example
 
@@ -4449,7 +4450,7 @@ The following target events are defined:
 @item @b{debug-halted}
 @* The target has halted for debug reasons (i.e.: breakpoint)
 @item @b{debug-resumed}
-@* The target has resumed (i.e.: gdb said run)
+@* The target has resumed (i.e.: GDB said run)
 @item @b{early-halted}
 @* Occurs early in the halt process
 @item @b{examine-start}
@@ -4457,11 +4458,16 @@ The following target events are defined:
 @item @b{examine-end}
 @* After target examine is called with no errors.
 @item @b{gdb-attach}
-@* When GDB connects. This is before any communication with the target, so this
-can be used to set up the target so it is possible to probe flash. Probing flash
-is necessary during gdb connect if gdb load is to write the image to flash. Another
-use of the flash memory map is for GDB to automatically hardware/software breakpoints
-depending on whether the breakpoint is in RAM or read only memory.
+@* When GDB connects. This is before any communication with the target and GDB
+expects the target is halted during attachment.
+@xref{gdbmeminspect,,GDB as a non-intrusive memory inspector} for exclusion.
+The event can be also used to set up the target so it is possible to probe flash.
+Probing flash is necessary during GDB connect if you want to use
+@pxref{programmingusinggdb,,programming using GDB}.
+Another use of the flash memory map is for GDB to automatically choose
+hardware or software breakpoints depending on whether the breakpoint
+is in RAM or read only memory.
+Default is @code{halt}
 @item @b{gdb-detach}
 @* When GDB disconnects
 @item @b{gdb-end}
@@ -4476,13 +4482,13 @@ depending on whether the breakpoint is in RAM or read only memory.
 @item @b{gdb-flash-write-end}
 @* After GDB writes to the flash (default is @code{reset halt})
 @item @b{gdb-start}
-@* Before the target steps, gdb is trying to start/resume the target
+@* Before the target steps, GDB is trying to start/resume the target
 @item @b{halted}
 @* The target has halted
 @item @b{reset-assert-pre}
 @* Issued as part of @command{reset} processing
-after @command{reset_init} was triggered
-but before either SRST alone is re-asserted on the scan chain,
+after @command{reset-start} was triggered
+but before either SRST alone is asserted on the scan chain,
 or @code{reset-assert} is triggered.
 @item @b{reset-assert}
 @* Issued as part of @command{reset} processing
@@ -4516,8 +4522,8 @@ multiplexing, and so on.
 (You may be able to switch to a fast JTAG clock rate here, after
 the target clocks are fully set up.)
 @item @b{reset-start}
-@* Issued as part of @command{reset} processing
-before @command{reset_init} is called.
+@* Issued as the first step in @command{reset} processing
+before @command{reset-assert-pre} is called.
 
 This is the most robust place to use @command{jtag_rclk}
 or @command{adapter_khz} to switch to a low JTAG clock rate,
@@ -9178,19 +9184,6 @@ With that particular hardware (Cortex-M3) the hardware breakpoints
 only work for code running from flash memory. Most other ARM systems
 do not have such restrictions.
 
-Another example of useful GDB configuration came from a user who
-found that single stepping his Cortex-M3 didn't work well with IRQs
-and an RTOS until he told GDB to disable the IRQs while stepping:
-
-@example
-define hook-step
-mon cortex_m maskisr on
-end
-define hookpost-step
-mon cortex_m maskisr off
-end
-@end example
-
 Rather than typing such commands interactively, you may prefer to
 save them in a file and have GDB execute them as it starts, perhaps
 using a @file{.gdbinit} in your project directory or starting GDB
@@ -9230,14 +9223,60 @@ GDB will look at the target memory map when a load command is given, if any
 areas to be programmed lie within the target flash area the vFlash packets
 will be used.
 
-If the target needs configuring before GDB programming, an event
-script can be executed:
+If the target needs configuring before GDB programming, set target
+event gdb-flash-erase-start:
 @example
-$_TARGETNAME configure -event EVENTNAME BODY
+$_TARGETNAME configure -event gdb-flash-erase-start BODY
 @end example
+@xref{targetevents,,Target Events} for other GDB programming related events.
 
 To verify any flash programming the GDB command @option{compare-sections}
 can be used.
+
+@section Using GDB as a non-intrusive memory inspector
+@cindex Using GDB as a non-intrusive memory inspector
+@anchor{gdbmeminspect}
+
+If your project controls more than a blinking LED, let's say a heavy industrial
+robot or an experimental nuclear reactor, stopping the controlling process
+just because you want to attach GDB is not a good option.
+
+OpenOCD does not support GDB non-stop mode (might be implemented in the future).
+Though there is a possible setup where the target does not get stopped
+and GDB treats it as it were running.
+If the target supports background access to memory while it is running,
+you can use GDB in this mode to inspect memory (mainly global variables)
+without any intrusion of the target process.
+
+Remove default setting of gdb-attach event. @xref{targetevents,,Target Events}.
+Place following command after target configuration:
+@example
+$_TARGETNAME configure -event gdb-attach @{@}
+@end example
+
+If any of installed flash banks does not support probe on running target,
+switch off gdb_memory_map:
+@example
+gdb_memory_map disable
+@end example
+
+Ensure GDB is configured without interrupt-on-connect.
+Some GDB versions set it by default, some does not.
+@example
+set remote interrupt-on-connect off
+@end example
+
+If you switched gdb_memory_map off, you may want to setup GDB memory map
+manually or issue @command{set mem inaccessible-by-default off}
+
+Now you can issue GDB command @command{target remote ...} and inspect memory
+of a running target. Do not use GDB commands @command{continue},
+@command{step} or @command{next} as they synchronize GDB with your target
+and GDB would require stopping the target to get the prompt back.
+
+Do not use this mode under an IDE like Eclipse as it caches values of
+previously shown varibles.
+
 @anchor{usingopenocdsmpwithgdb}
 @section Using OpenOCD SMP with GDB
 @cindex SMP
