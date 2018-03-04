@@ -732,7 +732,6 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 	} else {
 		if (gdb_connection->ctrl_c) {
 			signal_var = 0x2;
-			gdb_connection->ctrl_c = 0;
 		} else
 			signal_var = gdb_last_signal(target);
 
@@ -769,11 +768,14 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 					target->rtos->current_thread);
 			target->rtos->current_threadid = target->rtos->current_thread;
 			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
-			signal_var = gdb_last_signal(ct);
+			if (!gdb_connection->ctrl_c)
+				signal_var = gdb_last_signal(ct);
 		}
 
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s%s",
 				signal_var, stop_reason, current_thread);
+
+		gdb_connection->ctrl_c = 0;
 	}
 
 	gdb_put_packet(connection, sig_reply, sig_reply_len);
