@@ -429,7 +429,7 @@ static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
 	 */
 	int ret = 0;
 	uint32_t status = 0;
-
+	addr += bank->base;
 	LOG_DEBUG("erasing flash page at 0x%08" PRIx32, addr);
 
 	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_ADDRB, addr);
