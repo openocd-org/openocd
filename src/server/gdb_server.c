@@ -2695,6 +2695,8 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 	/* single-step or step-over-breakpoint */
 	if (parse[0] == 's') {
+		bool fake_step = false;
+
 		if (strncmp(parse, "s:", 2) == 0) {
 			struct target *ct = target;
 			int current_pc = 1;
@@ -2710,8 +2712,19 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 				parse = endp;
 			}
 
-			if (target->rtos != NULL)
+			if (target->rtos != NULL) {
+				/* FIXME: why is this necessary? rtos state should be up-to-date here already! */
+				rtos_update_threads(target);
+
 				target->rtos->gdb_target_for_threadid(connection, thread_id, &ct);
+
+				/*
+				 * check if the thread to be stepped is the current rtos thread
+				 * if not, we must fake the step
+				 */
+				if (target->rtos->current_thread != thread_id)
+					fake_step = true;
+			}
 
 			if (parse[0] == ';') {
 				++parse;
@@ -2746,9 +2759,32 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 				}
 			}
 
-			LOG_DEBUG("target %s single-step thread %"PRId64, target_name(ct), thread_id);
+			LOG_DEBUG("target %s single-step thread %"PRIx64, target_name(ct), thread_id);
 			log_add_callback(gdb_log_callback, connection);
 			target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
+
+			/*
+			 * work around an annoying gdb behaviour: when the current thread
+			 * is changed in gdb, it assumes that the target can follow and also
+			 * make the thread current. This is an assumption that cannot hold
+			 * for a real target running a multi-threading OS. We just fake
+			 * the step to not trigger an internal error in gdb. See
+			 * https://sourceware.org/bugzilla/show_bug.cgi?id=22925 for details
+			 */
+			if (fake_step) {
+				int sig_reply_len;
+				char sig_reply[128];
+
+				LOG_DEBUG("fake step thread %"PRIx64, thread_id);
+
+				sig_reply_len = snprintf(sig_reply, sizeof(sig_reply),
+										 "T05thread:%016"PRIx64";", thread_id);
+
+				gdb_put_packet(connection, sig_reply, sig_reply_len);
+				log_remove_callback(gdb_log_callback, connection);
+
+				return true;
+			}
 
 			/* support for gdb_sync command */
 			if (gdb_connection->sync) {
