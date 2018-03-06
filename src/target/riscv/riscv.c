@@ -1361,6 +1361,61 @@ COMMAND_HANDLER(riscv_authdata_write)
 	}
 }
 
+COMMAND_HANDLER(riscv_dmi_read)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target) {
+		LOG_ERROR("target is NULL!");
+		return ERROR_FAIL;
+	}
+
+	RISCV_INFO(r);
+	if (!r) {
+		LOG_ERROR("riscv_info is NULL!");
+		return ERROR_FAIL;
+	}
+
+	if (r->dmi_read) {
+		uint32_t address, value;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+		if (r->dmi_read(target, &value, address) != ERROR_OK)
+			return ERROR_FAIL;
+		command_print(CMD_CTX, "0x%" PRIx32, value);
+		return ERROR_OK;
+	} else {
+		LOG_ERROR("authdata_read is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
+
+COMMAND_HANDLER(riscv_dmi_write)
+{
+	if (CMD_ARGC != 2) {
+		LOG_ERROR("Command takes exactly 2 arguments");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	uint32_t address, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	if (r->dmi_write) {
+		return r->dmi_write(target, address, value);
+	} else {
+		LOG_ERROR("dmi_write is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "set_command_timeout_sec",
@@ -1405,6 +1460,20 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv authdata_write value",
 		.help = "Write the 32-bit value to authdata."
+	},
+	{
+		.name = "dmi_read",
+		.handler = riscv_dmi_read,
+		.mode = COMMAND_ANY,
+		.usage = "riscv dmi_read address",
+		.help = "Perform a 32-bit DMI read at address, returning the value."
+	},
+	{
+		.name = "dmi_write",
+		.handler = riscv_dmi_write,
+		.mode = COMMAND_ANY,
+		.usage = "riscv dmi_write address value",
+		.help = "Perform a 32-bit DMI write of value at address."
 	},
 	COMMAND_REGISTRATION_DONE
 };
