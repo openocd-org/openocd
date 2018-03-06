@@ -130,6 +130,9 @@ static int gdb_flash_program = 1;
  * Disabled by default.
  */
 static int gdb_report_data_abort;
+/* If set, errors when accessing registers are reported to gdb. Disabled by
+ * default. */
+static int gdb_report_register_access_error;
 
 /* set if we are sending target descriptions to gdb
  * via qXfer:features:read packet */
@@ -1187,8 +1190,15 @@ static int gdb_get_registers_packet(struct connection *connection,
 	reg_packet_p = reg_packet;
 
 	for (i = 0; i < reg_list_size; i++) {
-		if (!reg_list[i]->valid)
-			reg_list[i]->type->get(reg_list[i]);
+		if (!reg_list[i]->valid) {
+			retval = reg_list[i]->type->get(reg_list[i]);
+			if (retval != ERROR_OK && gdb_report_register_access_error) {
+				LOG_DEBUG("Couldn't get register %s.", reg_list[i]->name);
+				free(reg_packet);
+				free(reg_list);
+				return gdb_error(connection, retval);
+			}
+		}
 		gdb_str_to_target(target, reg_packet_p, reg_list[i]);
 		reg_packet_p += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
 	}
@@ -1249,7 +1259,13 @@ static int gdb_set_registers_packet(struct connection *connection,
 		bin_buf = malloc(DIV_ROUND_UP(reg_list[i]->size, 8));
 		gdb_target_to_reg(target, packet_p, chars, bin_buf);
 
-		reg_list[i]->type->set(reg_list[i], bin_buf);
+		retval = reg_list[i]->type->set(reg_list[i], bin_buf);
+		if (retval != ERROR_OK && gdb_report_register_access_error) {
+			LOG_DEBUG("Couldn't set register %s.", reg_list[i]->name);
+			free(reg_list);
+			free(bin_buf);
+			return gdb_error(connection, retval);
+		}
 
 		/* advance packet pointer */
 		packet_p += chars;
@@ -1289,8 +1305,14 @@ static int gdb_get_register_packet(struct connection *connection,
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	if (!reg_list[reg_num]->valid)
-		reg_list[reg_num]->type->get(reg_list[reg_num]);
+	if (!reg_list[reg_num]->valid) {
+		retval = reg_list[reg_num]->type->get(reg_list[reg_num]);
+		if (retval != ERROR_OK && gdb_report_register_access_error) {
+			LOG_DEBUG("Couldn't get register %s.", reg_list[reg_num]->name);
+			free(reg_list);
+			return gdb_error(connection, retval);
+		}
+	}
 
 	reg_packet = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2 + 1); /* plus one for string termination null */
 
@@ -1344,7 +1366,13 @@ static int gdb_set_register_packet(struct connection *connection,
 
 	gdb_target_to_reg(target, separator + 1, chars, bin_buf);
 
-	reg_list[reg_num]->type->set(reg_list[reg_num], bin_buf);
+	retval = reg_list[reg_num]->type->set(reg_list[reg_num], bin_buf);
+	if (retval != ERROR_OK && gdb_report_register_access_error) {
+		LOG_DEBUG("Couldn't set register %s.", reg_list[reg_num]->name);
+		free(bin_buf);
+		free(reg_list);
+		return gdb_error(connection, retval);
+	}
 
 	gdb_put_packet(connection, "OK", 2);
 
@@ -3468,6 +3496,15 @@ COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_gdb_report_register_access_error)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_report_register_access_error);
+	return ERROR_OK;
+}
+
 /* gdb_breakpoint_override */
 COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 {
@@ -3587,6 +3624,13 @@ static const struct command_registration gdb_command_handlers[] = {
 		.handler = handle_gdb_report_data_abort_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable reporting data aborts",
+		.usage = "('enable'|'disable')"
+	},
+	{
+		.name = "gdb_report_register_access_error",
+		.handler = handle_gdb_report_register_access_error,
+		.mode = COMMAND_CONFIG,
+		.help = "enable or disable reporting register access errors",
 		.usage = "('enable'|'disable')"
 	},
 	{
