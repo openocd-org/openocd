@@ -1388,7 +1388,7 @@ COMMAND_HANDLER(riscv_dmi_read)
 		command_print(CMD_CTX, "0x%" PRIx32, value);
 		return ERROR_OK;
 	} else {
-		LOG_ERROR("authdata_read is not implemented for this target.");
+		LOG_ERROR("dmi_read is not implemented for this target.");
 		return ERROR_FAIL;
 	}
 }
