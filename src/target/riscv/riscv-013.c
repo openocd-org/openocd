@@ -1092,6 +1092,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	}
 
 	int exec_out = riscv_program_exec(&program, target);
+	/* Don't message on error. Probably the register doesn't exist. */
 
 	/* Restore S0. */
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
@@ -1161,6 +1162,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 
 		/* Execute program. */
 		result = riscv_program_exec(&program, target);
+		/* Don't message on error. Probably the register doesn't exist. */
 
 		if (use_scratch) {
 			if (scratch_read64(target, &scratch, value) != ERROR_OK)
@@ -2386,21 +2388,17 @@ static int riscv013_get_register(struct target *target,
 	riscv_set_current_hartid(target, hid);
 
 	int result = ERROR_OK;
-	if (rid <= GDB_REGNO_XPR31) {
-		result = register_read_direct(target, value, rid);
-	} else if (rid == GDB_REGNO_PC) {
+	if (rid == GDB_REGNO_PC) {
 		result = register_read_direct(target, value, GDB_REGNO_DPC);
 		LOG_DEBUG("read PC from DPC: 0x%016" PRIx64, *value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
-		buf_set_u64((unsigned char *)value, 0, 8, get_field(dcsr, CSR_DCSR_PRV));
+		*value = get_field(dcsr, CSR_DCSR_PRV);
 	} else {
 		result = register_read_direct(target, value, rid);
-		if (result != ERROR_OK) {
-			LOG_ERROR("Unable to read %s", gdb_regno_name(rid));
+		if (result != ERROR_OK)
 			*value = -1;
-		}
 	}
 
 	return result;
@@ -2601,8 +2599,10 @@ static int maybe_execute_fence_i(struct target *target)
 		riscv_program_init(&program, target);
 		if (riscv_program_fence_i(&program) != ERROR_OK)
 			return ERROR_FAIL;
-		if (riscv_program_exec(&program, target) != ERROR_OK)
+		if (riscv_program_exec(&program, target) != ERROR_OK) {
+			LOG_ERROR("Failed to execute fence.i");
 			return ERROR_FAIL;
+		}
 	}
 	return ERROR_OK;
 }
