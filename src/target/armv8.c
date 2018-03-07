@@ -1186,7 +1186,49 @@ static struct reg_data_type_union aarch64v_union[] = {
 };
 
 static struct reg_data_type aarch64v[] = {
-	{REG_TYPE_ARCH_DEFINED, "aarch64v", REG_TYPE_CLASS_UNION, {.reg_type_union = aarch64v_union} },
+	{REG_TYPE_ARCH_DEFINED, "aarch64v", REG_TYPE_CLASS_UNION,
+		{.reg_type_union = aarch64v_union} },
+};
+
+static struct reg_data_type_bitfield aarch64_cpsr_bits[] = {
+	{  0, 0 , REG_TYPE_UINT8 },
+	{  2, 3,  REG_TYPE_UINT8 },
+	{  4, 4 , REG_TYPE_UINT8 },
+	{  6, 6 , REG_TYPE_BOOL },
+	{  7, 7 , REG_TYPE_BOOL },
+	{  8, 8 , REG_TYPE_BOOL },
+	{  9, 9 , REG_TYPE_BOOL },
+	{ 20, 20, REG_TYPE_BOOL },
+	{ 21, 21, REG_TYPE_BOOL },
+	{ 28, 28, REG_TYPE_BOOL },
+	{ 29, 29, REG_TYPE_BOOL },
+	{ 30, 30, REG_TYPE_BOOL },
+	{ 31, 31, REG_TYPE_BOOL },
+};
+
+static struct reg_data_type_flags_field aarch64_cpsr_fields[] = {
+	{ "SP",  aarch64_cpsr_bits + 0,  aarch64_cpsr_fields + 1 },
+	{ "EL",  aarch64_cpsr_bits + 1,  aarch64_cpsr_fields + 2 },
+	{ "nRW", aarch64_cpsr_bits + 2,  aarch64_cpsr_fields + 3 },
+	{ "F"  , aarch64_cpsr_bits + 3,  aarch64_cpsr_fields + 4 },
+	{ "I"  , aarch64_cpsr_bits + 4,  aarch64_cpsr_fields + 5 },
+	{ "A"  , aarch64_cpsr_bits + 5,  aarch64_cpsr_fields + 6 },
+	{ "D"  , aarch64_cpsr_bits + 6,  aarch64_cpsr_fields + 7 },
+	{ "IL" , aarch64_cpsr_bits + 7,  aarch64_cpsr_fields + 8 },
+	{ "SS" , aarch64_cpsr_bits + 8,  aarch64_cpsr_fields + 9 },
+	{ "V"  , aarch64_cpsr_bits + 9,  aarch64_cpsr_fields + 10 },
+	{ "C"  , aarch64_cpsr_bits + 10, aarch64_cpsr_fields + 11 },
+	{ "Z"  , aarch64_cpsr_bits + 11, aarch64_cpsr_fields + 12 },
+	{ "N"  , aarch64_cpsr_bits + 12, NULL }
+};
+
+static struct reg_data_type_flags aarch64_cpsr_flags[] = {
+	{ 4, aarch64_cpsr_fields }
+};
+
+static struct reg_data_type aarch64_flags_cpsr[] = {
+	{REG_TYPE_ARCH_DEFINED, "cpsr_flags", REG_TYPE_CLASS_FLAGS,
+		{.reg_type_flags = aarch64_cpsr_flags} },
 };
 
 static const struct {
@@ -1233,9 +1275,8 @@ static const struct {
 
 	{ ARMV8_SP, "sp", 64, ARM_MODE_ANY, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.aarch64.core", NULL},
 	{ ARMV8_PC, "pc", 64, ARM_MODE_ANY, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.aarch64.core", NULL},
-
-	{ ARMV8_xPSR, "CPSR", 32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.aarch64.core", NULL},
-
+	{ ARMV8_xPSR, "cpsr", 32, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED,
+		"general", "org.gnu.gdb.aarch64.core", aarch64_flags_cpsr},
 	{ ARMV8_V0,  "v0",  128, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED, "simdfp", "org.gnu.gdb.aarch64.fpu", aarch64v},
 	{ ARMV8_V1,  "v1",  128, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED, "simdfp", "org.gnu.gdb.aarch64.fpu", aarch64v},
 	{ ARMV8_V2,  "v2",  128, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED, "simdfp", "org.gnu.gdb.aarch64.fpu", aarch64v},
