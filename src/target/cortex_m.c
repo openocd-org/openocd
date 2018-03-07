@@ -1854,6 +1854,18 @@ static struct dwt_reg dwt_comp[] = {
 	DWT_COMPARATOR(1),
 	DWT_COMPARATOR(2),
 	DWT_COMPARATOR(3),
+	DWT_COMPARATOR(4),
+	DWT_COMPARATOR(5),
+	DWT_COMPARATOR(6),
+	DWT_COMPARATOR(7),
+	DWT_COMPARATOR(8),
+	DWT_COMPARATOR(9),
+	DWT_COMPARATOR(10),
+	DWT_COMPARATOR(11),
+	DWT_COMPARATOR(12),
+	DWT_COMPARATOR(13),
+	DWT_COMPARATOR(14),
+	DWT_COMPARATOR(15),
 #undef DWT_COMPARATOR
 };
 
@@ -1887,6 +1899,7 @@ void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target)
 	int reg, i;
 
 	target_read_u32(target, DWT_CTRL, &dwtcr);
+	LOG_DEBUG("DWT_CTRL: 0x%" PRIx32, dwtcr);
 	if (!dwtcr) {
 		LOG_DEBUG("no DWT");
 		return;
