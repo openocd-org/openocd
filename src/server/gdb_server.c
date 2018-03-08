@@ -1909,6 +1909,8 @@ static int gdb_memory_map(struct connection *connection,
 static const char *gdb_get_reg_type_name(enum reg_type type)
 {
 	switch (type) {
+		case REG_TYPE_BOOL:
+			return "bool";
 		case REG_TYPE_INT:
 			return "int";
 		case REG_TYPE_INT8:
@@ -1921,6 +1923,8 @@ static const char *gdb_get_reg_type_name(enum reg_type type)
 			return "int64";
 		case REG_TYPE_INT128:
 			return "int128";
+		case REG_TYPE_UINT:
+			return "uint";
 		case REG_TYPE_UINT8:
 			return "uint8";
 		case REG_TYPE_UINT16:
@@ -2040,9 +2044,9 @@ static int gdb_generate_reg_type_description(struct target *target,
 					type->id, type->reg_type_struct->size);
 			while (field != NULL) {
 				xml_printf(&retval, tdesc, pos, size,
-						"<field name=\"%s\" start=\"%d\" end=\"%d\"/>\n",
-						field->name, field->bitfield->start,
-						field->bitfield->end);
+						"<field name=\"%s\" start=\"%d\" end=\"%d\" type=\"%s\" />\n",
+						field->name, field->bitfield->start, field->bitfield->end,
+						gdb_get_reg_type_name(field->bitfield->type));
 
 				field = field->next;
 			}
@@ -2088,8 +2092,9 @@ static int gdb_generate_reg_type_description(struct target *target,
 		field = type->reg_type_flags->fields;
 		while (field != NULL) {
 			xml_printf(&retval, tdesc, pos, size,
-					"<field name=\"%s\" start=\"%d\" end=\"%d\"/>\n",
-					field->name, field->bitfield->start, field->bitfield->end);
+					"<field name=\"%s\" start=\"%d\" end=\"%d\" type=\"%s\" />\n",
+					field->name, field->bitfield->start, field->bitfield->end,
+					gdb_get_reg_type_name(field->bitfield->type));
 
 			field = field->next;
 		}
