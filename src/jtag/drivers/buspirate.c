@@ -141,7 +141,7 @@ static void buspirate_set_speed(int, char);
 /* low level interface */
 static void buspirate_bbio_enable(int);
 static void buspirate_jtag_reset(int);
-static unsigned char buspirate_jtag_command(int, char *, int);
+static unsigned char buspirate_jtag_command(int, uint8_t *, int);
 static void buspirate_jtag_set_speed(int, char);
 static void buspirate_jtag_set_mode(int, char);
 static void buspirate_jtag_set_feature(int, char, char);
@@ -155,10 +155,10 @@ static void buspirate_swd_set_mode(int, char);
 /* low level HW communication interface */
 static int buspirate_serial_open(char *port);
 static int buspirate_serial_setspeed(int fd, char speed, cc_t timeout);
-static int buspirate_serial_write(int fd, char *buf, int size);
-static int buspirate_serial_read(int fd, char *buf, int size);
+static int buspirate_serial_write(int fd, uint8_t *buf, int size);
+static int buspirate_serial_read(int fd, uint8_t *buf, int size);
 static void buspirate_serial_close(int fd);
-static void buspirate_print_buffer(char *buf, int size);
+static void buspirate_print_buffer(uint8_t *buf, int size);
 
 static int buspirate_execute_queue(void)
 {
@@ -255,7 +255,7 @@ static bool read_and_discard_all_data(const int fd)
 	bool was_msg_already_printed = false;
 
 	for ( ; ; ) {
-		char buffer[1024];  /* Any size will do, it's a trade-off between stack size and performance. */
+		uint8_t buffer[1024];  /* Any size will do, it's a trade-off between stack size and performance. */
 
 		const ssize_t read_count = read(fd, buffer, sizeof(buffer));
 
@@ -690,8 +690,8 @@ static void buspirate_stableclocks(int num_cycles)
    make it incompatible with the Bus Pirate firmware. */
 #define BUSPIRATE_MAX_PENDING_SCANS 128
 
-static char tms_chain[BUSPIRATE_BUFFER_SIZE]; /* send */
-static char tdi_chain[BUSPIRATE_BUFFER_SIZE]; /* send */
+static uint8_t tms_chain[BUSPIRATE_BUFFER_SIZE]; /* send */
+static uint8_t tdi_chain[BUSPIRATE_BUFFER_SIZE]; /* send */
 static int tap_chain_index;
 
 struct pending_scan_result /* this was stolen from arm-jtag-ew */
@@ -716,7 +716,7 @@ static int buspirate_tap_execute(void)
 {
 	static const int CMD_TAP_SHIFT_HEADER_LEN = 3;
 
-	char tmp[4096];
+	uint8_t tmp[4096];
 	uint8_t *in_buf;
 	int i;
 	int fill_index = 0;
@@ -732,8 +732,8 @@ static int buspirate_tap_execute(void)
 	bytes_to_send = DIV_ROUND_UP(tap_chain_index, 8);
 
 	tmp[0] = CMD_TAP_SHIFT; /* this command expects number of bits */
-	tmp[1] = (char)(tap_chain_index >> 8);  /* high */
-	tmp[2] = (char)(tap_chain_index);  /* low */
+	tmp[1] = tap_chain_index >> 8;  /* high */
+	tmp[2] = tap_chain_index;  /* low */
 
 	fill_index = CMD_TAP_SHIFT_HEADER_LEN;
 	for (i = 0; i < bytes_to_send; i++) {
@@ -904,7 +904,7 @@ static void buspirate_set_speed(int fd, char speed)
 static void buspirate_swd_set_speed(int fd, char speed)
 {
 	int  ret;
-	char tmp[1];
+	uint8_t tmp[1];
 
 	LOG_DEBUG("Buspirate speed setting in SWD mode defaults to 400 kHz");
 
@@ -925,7 +925,7 @@ static void buspirate_swd_set_speed(int fd, char speed)
 static void buspirate_swd_set_mode(int fd, char mode)
 {
 	int ret;
-	char tmp[1];
+	uint8_t tmp[1];
 
 	/* raw-wire mode configuration */
 	if (mode == MODE_HIZ)
@@ -948,7 +948,7 @@ static void buspirate_swd_set_mode(int fd, char mode)
 static void buspirate_swd_set_feature(int fd, char feat, char action)
 {
 	int  ret;
-	char tmp[1];
+	uint8_t tmp[1];
 
 	switch (feat) {
 		case FEATURE_TRST:
@@ -989,7 +989,7 @@ static void buspirate_bbio_enable(int fd)
 	char command;
 	const char *mode_answers[2] = { "OCD1", "RAW1" };
 	const char *correct_ans     = NULL;
-	char tmp[21] = { [0 ... 20] = 0x00 };
+	uint8_t tmp[21] = { [0 ... 20] = 0x00 };
 	int done = 0;
 	int cmd_sent = 0;
 
@@ -1013,7 +1013,7 @@ static void buspirate_bbio_enable(int fd)
 				"/OpenOCD support enabled?");
 			exit(-1);
 		}
-		if (strncmp(tmp, "BBIO", 4) == 0) {
+		if (strncmp((char *)tmp, "BBIO", 4) == 0) {
 			ret = buspirate_serial_read(fd, tmp, 1);
 			if (ret != 1) {
 				LOG_ERROR("Buspirate did not answer correctly! "
@@ -1033,7 +1033,7 @@ static void buspirate_bbio_enable(int fd)
 					exit(-1);
 				}
 			}
-		} else if (strncmp(tmp, correct_ans, 4) == 0)
+		} else if (strncmp((char *)tmp, correct_ans, 4) == 0)
 			done = 1;
 		else {
 			LOG_ERROR("Buspirate did not answer correctly! "
@@ -1046,14 +1046,14 @@ static void buspirate_bbio_enable(int fd)
 
 static void buspirate_jtag_reset(int fd)
 {
-	char tmp[5];
+	uint8_t tmp[5];
 
 	tmp[0] = 0x00; /* exit OCD1 mode */
 	buspirate_serial_write(fd, tmp, 1);
 	usleep(10000);
 	/* We ignore the return value here purposly, nothing we can do */
 	buspirate_serial_read(fd, tmp, 5);
-	if (strncmp(tmp, "BBIO1", 5) == 0) {
+	if (strncmp((char *)tmp, "BBIO1", 5) == 0) {
 		tmp[0] = 0x0F; /*  reset BP */
 		buspirate_serial_write(fd, tmp, 1);
 	} else
@@ -1063,8 +1063,8 @@ static void buspirate_jtag_reset(int fd)
 static void buspirate_jtag_set_speed(int fd, char speed)
 {
 	int ret;
-	char tmp[2];
-	char ack[2];
+	uint8_t tmp[2];
+	uint8_t ack[2];
 
 	ack[0] = 0xAA;
 	ack[1] = 0x55;
@@ -1096,7 +1096,7 @@ static void buspirate_jtag_set_speed(int fd, char speed)
 
 static void buspirate_jtag_set_mode(int fd, char mode)
 {
-	char tmp[2];
+	uint8_t tmp[2];
 	tmp[0] = CMD_PORT_MODE;
 	tmp[1] = mode;
 	buspirate_jtag_command(fd, tmp, 2);
@@ -1104,7 +1104,7 @@ static void buspirate_jtag_set_mode(int fd, char mode)
 
 static void buspirate_jtag_set_feature(int fd, char feat, char action)
 {
-	char tmp[3];
+	uint8_t tmp[3];
 	tmp[0] = CMD_FEATURE;
 	tmp[1] = feat;   /* what */
 	tmp[2] = action; /* action */
@@ -1116,7 +1116,7 @@ static void buspirate_jtag_get_adcs(int fd)
 	uint8_t tmp[10];
 	uint16_t a, b, c, d;
 	tmp[0] = CMD_READ_ADCS;
-	buspirate_jtag_command(fd, (char *)tmp, 1);
+	buspirate_jtag_command(fd, tmp, 1);
 	a = tmp[2] << 8 | tmp[3];
 	b = tmp[4] << 8 | tmp[5];
 	c = tmp[6] << 8 | tmp[7];
@@ -1129,7 +1129,7 @@ static void buspirate_jtag_get_adcs(int fd)
 }
 
 static unsigned char buspirate_jtag_command(int fd,
-		char *cmd, int cmdlen)
+		uint8_t *cmd, int cmdlen)
 {
 	int res;
 	int len = 0;
@@ -1220,7 +1220,7 @@ static int buspirate_serial_setspeed(int fd, char speed, cc_t timeout)
 	return 0;
 }
 
-static int buspirate_serial_write(int fd, char *buf, int size)
+static int buspirate_serial_write(int fd, uint8_t *buf, int size)
 {
 	int ret = 0;
 
@@ -1235,7 +1235,7 @@ static int buspirate_serial_write(int fd, char *buf, int size)
 	return ret;
 }
 
-static int buspirate_serial_read(int fd, char *buf, int size)
+static int buspirate_serial_read(int fd, uint8_t *buf, int size)
 {
 	int len = 0;
 	int ret = 0;
@@ -1274,7 +1274,7 @@ static void buspirate_serial_close(int fd)
 
 #define LINE_SIZE      81
 #define BYTES_PER_LINE 16
-static void buspirate_print_buffer(char *buf, int size)
+static void buspirate_print_buffer(uint8_t *buf, int size)
 {
 	char line[LINE_SIZE];
 	char tmp[10];
@@ -1311,7 +1311,7 @@ static int buspirate_swd_switch_seq(enum swd_special_seq seq)
 {
 	const uint8_t *sequence;
 	int sequence_len;
-	char tmp[64];
+	uint8_t tmp[64];
 
 	switch (seq) {
 	case LINE_RESET:
@@ -1349,7 +1349,7 @@ static int buspirate_swd_switch_seq(enum swd_special_seq seq)
 
 static uint8_t buspirate_swd_write_header(uint8_t cmd)
 {
-	char tmp[8];
+	uint8_t tmp[8];
 	int  to_send;
 
 	tmp[0] = 0x10; /* bus pirate: send 1 byte */
@@ -1373,7 +1373,7 @@ static uint8_t buspirate_swd_write_header(uint8_t cmd)
 static void buspirate_swd_idle_clocks(uint32_t no_bits)
 {
 	uint32_t no_bytes;
-	char tmp[20];
+	uint8_t tmp[20];
 
 	no_bytes = (no_bits + 7) / 8;
 	memset(tmp + 1, 0x00, sizeof(tmp) - 1);
@@ -1403,7 +1403,7 @@ static void buspirate_swd_clear_sticky_errors(void)
 
 static void buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
-	char tmp[16];
+	uint8_t tmp[16];
 
 	LOG_DEBUG("buspirate_swd_read_reg");
 	assert(cmd & SWD_CMD_RnW);
@@ -1470,7 +1470,7 @@ static void buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_del
 
 static void buspirate_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
-	char tmp[16];
+	uint8_t tmp[16];
 
 	LOG_DEBUG("buspirate_swd_write_reg");
 	assert(!(cmd & SWD_CMD_RnW));
