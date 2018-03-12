@@ -620,12 +620,20 @@ void armv8_select_reg_access(struct armv8_common *armv8, bool is_aarch64)
 int armv8_read_mpidr(struct armv8_common *armv8)
 {
 	int retval = ERROR_FAIL;
+	struct arm *arm = &armv8->arm;
 	struct arm_dpm *dpm = armv8->arm.dpm;
 	uint32_t mpidr;
 
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
+
+	/* check if we're in an unprivileged mode */
+	if (armv8_curel_from_core_mode(arm->core_mode) < SYSTEM_CUREL_EL1) {
+		retval = armv8_dpm_modeswitch(dpm, ARMV8_64_EL1H);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
 	if (retval != ERROR_OK)
@@ -642,6 +650,7 @@ int armv8_read_mpidr(struct armv8_common *armv8)
 		LOG_ERROR("mpidr not in multiprocessor format");
 
 done:
+	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 	dpm->finish(dpm);
 	return retval;
 }

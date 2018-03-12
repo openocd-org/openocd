@@ -258,7 +258,7 @@ static int dpmv8_exec_opcode(struct arm_dpm *dpm,
 
 	if (dscr & DSCR_ERR) {
 		LOG_ERROR("Opcode 0x%08"PRIx32", DSCR.ERR=1, DSCR.EL=%i", opcode, dpm->last_el);
-		armv8_dpm_handle_exception(dpm);
+		armv8_dpm_handle_exception(dpm, true);
 		retval = ERROR_FAIL;
 	}
 
@@ -600,7 +600,7 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 				armv8_opcode(armv8, ARMV8_OPC_DCPS) | target_el);
 
 		/* DCPS clobbers registers just like an exception taken */
-		armv8_dpm_handle_exception(dpm);
+		armv8_dpm_handle_exception(dpm, false);
 	} else {
 		core_state = armv8_dpm_get_core_state(dpm);
 		if (core_state != ARM_STATE_AARCH64) {
@@ -1298,7 +1298,7 @@ void armv8_dpm_report_wfar(struct arm_dpm *dpm, uint64_t addr)
  * This function must not perform any actions that trigger another exception
  * or a recursion will happen.
  */
-void armv8_dpm_handle_exception(struct arm_dpm *dpm)
+void armv8_dpm_handle_exception(struct arm_dpm *dpm, bool do_restore)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
 	struct reg_cache *cache = dpm->arm->core_cache;
@@ -1344,7 +1344,8 @@ void armv8_dpm_handle_exception(struct arm_dpm *dpm)
 	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
 	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
 
-	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
+	if (do_restore)
+		armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 }
 
 /*----------------------------------------------------------------------*/
