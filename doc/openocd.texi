@@ -9259,7 +9259,7 @@ event gdb-flash-erase-start:
 @example
 $_TARGETNAME configure -event gdb-flash-erase-start BODY
 @end example
-@xref{targetevents,,Target Events} for other GDB programming related events.
+@xref{targetevents,,Target Events}, for other GDB programming related events.
 
 To verify any flash programming the GDB command @option{compare-sections}
 can be used.
