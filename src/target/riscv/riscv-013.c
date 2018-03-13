@@ -39,7 +39,7 @@ static void riscv013_clear_abstract_error(struct target *target);
 static int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, int hid, int rid);
 static int riscv013_set_register(struct target *target, int hartid, int regid, uint64_t value);
-static void riscv013_select_current_hart(struct target *target);
+static int riscv013_select_current_hart(struct target *target);
 static int riscv013_halt_current_hart(struct target *target);
 static int riscv013_resume_current_hart(struct target *target);
 static int riscv013_step_current_hart(struct target *target);
@@ -479,7 +479,8 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
-static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
+static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
+		uint32_t address, uint32_t data_out)
 {
 	select_dmi(target);
 
@@ -488,49 +489,66 @@ static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
 
 	unsigned i = 0;
 
-	/* This first loop ensures that the read request was actually sent
-	 * to the target. Note that if for some reason this stays busy,
-	 * it is actually due to the previous dmi_read or dmi_write. */
+	const char *op_name;
+	switch (dmi_op) {
+		case DMI_OP_NOP:
+			op_name = "nop";
+			break;
+		case DMI_OP_READ:
+			op_name = "read";
+			break;
+		case DMI_OP_WRITE:
+			op_name = "write";
+			break;
+		default:
+			LOG_ERROR("Invalid DMI operation: %d", dmi_op);
+			return ERROR_FAIL;
+	}
+
+	/* This first loop performs the request.  Note that if for some reason this
+	 * stays busy, it is actually due to the previous access. */
 	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, NULL, NULL, DMI_OP_READ, address, 0,
+		status = dmi_scan(target, NULL, NULL, dmi_op, address, data_out,
 				false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed read from 0x%x, status=%d", address, status);
+			LOG_ERROR("failed %s at 0x%x, status=%d", op_name, address, status);
 			return ERROR_FAIL;
 		}
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed read from 0x%x; status=%d", address, status);
+		LOG_ERROR("Failed %s at 0x%x; status=%d", op_name, address, status);
 		return ERROR_FAIL;
 	}
 
-	/* This second loop ensures that we got the read
-	 * data back. Note that NOP can result in a 'busy' result as well, but
-	 * that would be noticed on the next DMI access we do. */
+	/* This second loop ensures the request succeeded, and gets back data.
+	 * Note that NOP can result in a 'busy' result as well, but that would be
+	 * noticed on the next DMI access we do. */
 	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, &address_in, value, DMI_OP_NOP, address, 0,
+		status = dmi_scan(target, &address_in, data_in, DMI_OP_NOP, address, 0,
 				false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed read (NOP) at 0x%x, status=%d", address, status);
+			LOG_ERROR("failed %s (NOP) at 0x%x, status=%d", op_name, address,
+					status);
 			return ERROR_FAIL;
 		}
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		if (status == DMI_STATUS_FAILED) {
-			LOG_ERROR("Failed read (NOP) from 0x%x; status=%d", address, status);
+		if (status == DMI_STATUS_FAILED || !data_in) {
+			LOG_ERROR("Failed %s (NOP) at 0x%x; status=%d", op_name, address,
+					status);
 		} else {
-			LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%x, status=%d",
-					address, *value, status);
+			LOG_ERROR("Failed %s (NOP) at 0x%x; value=0x%x, status=%d",
+					op_name, address, *data_in, status);
 		}
 		return ERROR_FAIL;
 	}
@@ -538,53 +556,14 @@ static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
 	return ERROR_OK;
 }
 
+static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
+{
+	return dmi_op(target, value, DMI_OP_READ, address, 0);
+}
+
 static int dmi_write(struct target *target, uint32_t address, uint32_t value)
 {
-	select_dmi(target);
-	dmi_status_t status = DMI_STATUS_BUSY;
-	unsigned i = 0;
-
-	/* The first loop ensures that we successfully sent the write request. */
-	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, NULL, NULL, DMI_OP_WRITE, address, value,
-				address == DMI_COMMAND);
-		if (status == DMI_STATUS_BUSY) {
-			increase_dmi_busy_delay(target);
-		} else if (status == DMI_STATUS_SUCCESS) {
-			break;
-		} else {
-			LOG_ERROR("failed write to 0x%x, status=%d", address, status);
-			break;
-		}
-	}
-
-	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed write to 0x%x;, status=%d",
-				address, status);
-		return ERROR_FAIL;
-	}
-
-	/* The second loop isn't strictly necessary, but would ensure that the
-	 * write is complete/ has no non-busy errors before returning from this
-	 * function. */
-	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, NULL, NULL, DMI_OP_NOP, address, 0,
-				false);
-		if (status == DMI_STATUS_BUSY) {
-			increase_dmi_busy_delay(target);
-		} else if (status == DMI_STATUS_SUCCESS) {
-			break;
-		} else {
-			LOG_ERROR("failed write (NOP) at 0x%x, status=%d", address, status);
-			break;
-		}
-	}
-	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("failed to write (NOP) 0x%x to 0x%x; status=%d", value, address, status);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
+	return dmi_op(target, NULL, DMI_OP_WRITE, address, value);
 }
 
 int dmstatus_read(struct target *target, uint32_t *dmstatus,
@@ -1352,7 +1331,8 @@ static int examine(struct target *target)
 			continue;
 
 		r->current_hartid = i;
-		riscv013_select_current_hart(target);
+		if (riscv013_select_current_hart(target) != ERROR_OK)
+			return ERROR_FAIL;
 
 		uint32_t s;
 		if (dmstatus_read(target, &s, true) != ERROR_OK)
@@ -2480,14 +2460,15 @@ static int riscv013_set_register(struct target *target, int hid, int rid, uint64
 	return ERROR_OK;
 }
 
-static void riscv013_select_current_hart(struct target *target)
+static int riscv013_select_current_hart(struct target *target)
 {
 	RISCV_INFO(r);
 
 	uint32_t dmcontrol;
-	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
+	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
+		return ERROR_FAIL;
 	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	return dmi_write(target, DMI_DMCONTROL, dmcontrol);
 }
 
 static int riscv013_halt_current_hart(struct target *target)

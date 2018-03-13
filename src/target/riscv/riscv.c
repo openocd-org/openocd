@@ -737,19 +737,20 @@ static int old_or_new_riscv_resume(
 		return riscv_openocd_resume(target, current, address, handle_breakpoints, debug_execution);
 }
 
-static void riscv_select_current_hart(struct target *target)
+static int riscv_select_current_hart(struct target *target)
 {
 	RISCV_INFO(r);
 	if (r->rtos_hartid != -1 && riscv_rtos_enabled(target))
-		riscv_set_current_hartid(target, r->rtos_hartid);
+		return riscv_set_current_hartid(target, r->rtos_hartid);
 	else
-		riscv_set_current_hartid(target, target->coreid);
+		return riscv_set_current_hartid(target, target->coreid);
 }
 
 static int riscv_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	riscv_select_current_hart(target);
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
 	struct target_type *tt = get_target_type(target);
 	return tt->read_memory(target, address, size, count, buffer);
 }
@@ -757,7 +758,8 @@ static int riscv_read_memory(struct target *target, target_addr_t address,
 static int riscv_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	riscv_select_current_hart(target);
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
 	struct target_type *tt = get_target_type(target);
 	return tt->write_memory(target, address, size, count, buffer);
 }
@@ -775,7 +777,8 @@ static int riscv_get_gdb_reg_list(struct target *target,
 		return ERROR_FAIL;
 	}
 
-	riscv_select_current_hart(target);
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	switch (reg_class) {
 		case REG_CLASS_GENERAL:
@@ -964,24 +967,29 @@ int riscv_blank_check_memory(struct target *target,
 
 /*** OpenOCD Helper Functions ***/
 
-/* 0 means nothing happened, 1 means the hart's state changed (and thus the
- * poll should terminate), and -1 means there was an error. */
-static int riscv_poll_hart(struct target *target, int hartid)
+enum riscv_poll_hart {
+	RPH_NO_CHANGE,
+	RPH_CHANGE,
+	RPH_ERROR
+};
+static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
-	riscv_set_current_hartid(target, hartid);
+	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
+		return RPH_ERROR;
 
-	LOG_DEBUG("polling hart %d, target->state=%d (TARGET_HALTED=%d)", hartid, target->state, TARGET_HALTED);
+	LOG_DEBUG("polling hart %d, target->state=%d (TARGET_HALTED=%d)", hartid,
+			target->state, TARGET_HALTED);
 
-	/* If OpenOCD this we're running but this hart is halted then it's time
+	/* If OpenOCD thinks we're running but this hart is halted then it's time
 	 * to raise an event. */
 	if (target->state != TARGET_HALTED && riscv_is_halted(target)) {
 		LOG_DEBUG("  triggered a halt");
 		r->on_halt(target);
-		return 1;
+		return RPH_CHANGE;
 	}
 
-	return 0;
+	return RPH_NO_CHANGE;
 }
 
 /*** OpenOCD Interface ***/
@@ -992,14 +1000,14 @@ int riscv_openocd_poll(struct target *target)
 	if (riscv_rtos_enabled(target)) {
 		/* Check every hart for an event. */
 		for (int i = 0; i < riscv_count_harts(target); ++i) {
-			int out = riscv_poll_hart(target, i);
+			enum riscv_poll_hart out = riscv_poll_hart(target, i);
 			switch (out) {
-			case 0:
+			case RPH_NO_CHANGE:
 				continue;
-			case 1:
+			case RPH_CHANGE:
 				triggered_hart = i;
 				break;
-			case -1:
+			case RPH_ERROR:
 				return ERROR_FAIL;
 			}
 		}
@@ -1018,8 +1026,12 @@ int riscv_openocd_poll(struct target *target)
 		for (int i = 0; i < riscv_count_harts(target); ++i)
 			riscv_halt_one_hart(target, i);
 	} else {
-		if (riscv_poll_hart(target, riscv_current_hartid(target)) == 0)
+		enum riscv_poll_hart out = riscv_poll_hart(target,
+				riscv_current_hartid(target));
+		if (out == RPH_NO_CHANGE)
 			return ERROR_OK;
+		else if (out == RPH_ERROR)
+			return ERROR_FAIL;
 
 		triggered_hart = riscv_current_hartid(target);
 		LOG_DEBUG("  hart %d halted", triggered_hart);
@@ -1042,6 +1054,8 @@ int riscv_openocd_poll(struct target *target)
 	case RISCV_HALT_UNKNOWN:
 		target->debug_reason = DBG_REASON_UNDEFINED;
 		break;
+	case RISCV_HALT_ERROR:
+		return ERROR_FAIL;
 	}
 
 	if (riscv_rtos_enabled(target)) {
@@ -1562,7 +1576,8 @@ int riscv_halt_one_hart(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("halting hart %d", hartid);
-	riscv_set_current_hartid(target, hartid);
+	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
+		return ERROR_FAIL;
 	if (riscv_is_halted(target)) {
 		LOG_DEBUG("  hart %d requested halt, but was already halted", hartid);
 		return ERROR_OK;
@@ -1588,7 +1603,8 @@ int riscv_resume_one_hart(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("resuming hart %d", hartid);
-	riscv_set_current_hartid(target, hartid);
+	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
+		return ERROR_FAIL;
 	if (!riscv_is_halted(target)) {
 		LOG_DEBUG("  hart %d requested resume, but was already resumed", hartid);
 		return ERROR_OK;
@@ -1609,7 +1625,8 @@ int riscv_step_rtos_hart(struct target *target)
 			hartid = 0;
 		}
 	}
-	riscv_set_current_hartid(target, hartid);
+	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
+		return ERROR_FAIL;
 	LOG_DEBUG("stepping hart %d", hartid);
 
 	if (!riscv_is_halted(target)) {
@@ -1659,33 +1676,35 @@ bool riscv_rtos_enabled(const struct target *target)
 	return target->rtos != NULL;
 }
 
-void riscv_set_current_hartid(struct target *target, int hartid)
+int riscv_set_current_hartid(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
 	if (!r->select_current_hart)
-		return;
+		return ERROR_FAIL;
 
 	int previous_hartid = riscv_current_hartid(target);
 	r->current_hartid = hartid;
 	assert(riscv_hart_enabled(target, hartid));
 	LOG_DEBUG("setting hartid to %d, was %d", hartid, previous_hartid);
-	r->select_current_hart(target);
+	if (r->select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	/* This might get called during init, in which case we shouldn't be
 	 * setting up the register cache. */
 	if (!target_was_examined(target))
-		return;
+		return ERROR_OK;
 
 	/* Avoid invalidating the register cache all the time. */
 	if (r->registers_initialized
 			&& (!riscv_rtos_enabled(target) || (previous_hartid == hartid))
 			&& target->reg_cache->reg_list[GDB_REGNO_ZERO].size == (unsigned)riscv_xlen(target)
 			&& (!riscv_rtos_enabled(target) || (r->rtos_hartid != -1))) {
-		return;
+		return ERROR_OK;
 	} else
 		LOG_DEBUG("Initializing registers: xlen=%d", riscv_xlen(target));
 
 	riscv_invalidate_register_cache(target);
+	return ERROR_OK;
 }
 
 void riscv_invalidate_register_cache(struct target *target)
@@ -1775,7 +1794,8 @@ bool riscv_is_halted(struct target *target)
 enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
-	riscv_set_current_hartid(target, hartid);
+	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
+		return RISCV_HALT_ERROR;
 	if (!riscv_is_halted(target)) {
 		LOG_ERROR("Hart is not halted!");
 		return RISCV_HALT_UNKNOWN;

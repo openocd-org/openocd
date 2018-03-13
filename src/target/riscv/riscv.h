@@ -31,7 +31,8 @@ enum riscv_halt_reason {
 	RISCV_HALT_BREAKPOINT,
 	RISCV_HALT_SINGLESTEP,
 	RISCV_HALT_TRIGGER,
-	RISCV_HALT_UNKNOWN
+	RISCV_HALT_UNKNOWN,
+	RISCV_HALT_ERROR
 };
 
 typedef struct {
@@ -93,7 +94,7 @@ typedef struct {
 		riscv_reg_t *value, int hid, int rid);
 	int (*set_register)(struct target *, int hartid, int regid,
 			uint64_t value);
-	void (*select_current_hart)(struct target *);
+	int (*select_current_hart)(struct target *);
 	bool (*is_halted)(struct target *target);
 	int (*halt_current_hart)(struct target *);
 	int (*resume_current_hart)(struct target *target);
@@ -191,7 +192,7 @@ bool riscv_rtos_enabled(const struct target *target);
 
 /* Sets the current hart, which is the hart that will actually be used when
  * issuing debug commands. */
-void riscv_set_current_hartid(struct target *target, int hartid);
+int riscv_set_current_hartid(struct target *target, int hartid);
 int riscv_current_hartid(const struct target *target);
 
 /*** Support functions for the RISC-V 'RTOS', which provides multihart support
