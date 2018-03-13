@@ -4488,9 +4488,10 @@ The following target events are defined:
 @item @b{examine-end}
 @* After target examine is called with no errors.
 @item @b{gdb-attach}
-@* When GDB connects. This is before any communication with the target and GDB
-expects the target is halted during attachment.
-@xref{gdbmeminspect,,GDB as a non-intrusive memory inspector} for exclusion.
+@* When GDB connects. Issued before any GDB communication with the target
+starts. GDB expects the target is halted during attachment.
+@xref{gdbmeminspect,,GDB as a non-intrusive memory inspector}, how to
+connect GDB to running target.
 The event can be also used to set up the target so it is possible to probe flash.
 Probing flash is necessary during GDB connect if you want to use
 @pxref{programmingusinggdb,,programming using GDB}.
