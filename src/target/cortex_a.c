@@ -54,7 +54,7 @@
 #include "target_type.h"
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
-#include "jtag/swd.h"
+#include "transport/transport.h"
 #include <helper/time_support.h>
 
 static int cortex_a_poll(struct target *target);
