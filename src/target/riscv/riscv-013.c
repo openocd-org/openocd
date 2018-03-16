@@ -1107,10 +1107,9 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	int result = register_read_abstract(target, value, number,
 			register_size(target, number));
 
-	if (result != ERROR_OK && info->progbufsize + r->impebreak >= 2 &&
-			riscv_is_halted(target)) {
-		assert(number != GDB_REGNO_S0);
-
+	if (result != ERROR_OK &&
+			info->progbufsize + r->impebreak >= 2 &&
+			number > GDB_REGNO_XPR31) {
 		struct riscv_program program;
 		riscv_program_init(&program, target);
 
@@ -2567,6 +2566,14 @@ static bool riscv013_is_halted(struct target *target)
 		LOG_ERROR("hart %d is unavailable", riscv_current_hartid(target));
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT))
 		LOG_ERROR("hart %d doesn't exist", riscv_current_hartid(target));
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYHAVERESET)) {
+		int hartid = riscv_current_hartid(target);
+		LOG_INFO("hart %d unexpectedly reset!", hartid);
+		/* TODO: Can we make this more obvious to eg. a gdb user? */
+		dmi_write(target, DMI_DMCONTROL,
+				set_field(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET,
+					hartsel_mask(target), hartid));
+	}
 	return get_field(dmstatus, DMI_DMSTATUS_ALLHALTED);
 }
 

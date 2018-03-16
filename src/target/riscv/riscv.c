@@ -969,7 +969,8 @@ int riscv_blank_check_memory(struct target *target,
 
 enum riscv_poll_hart {
 	RPH_NO_CHANGE,
-	RPH_CHANGE,
+	RPH_DISCOVERED_HALTED,
+	RPH_DISCOVERED_RUNNING,
 	RPH_ERROR
 };
 static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
@@ -978,15 +979,19 @@ static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
 		return RPH_ERROR;
 
-	LOG_DEBUG("polling hart %d, target->state=%d (TARGET_HALTED=%d)", hartid,
-			target->state, TARGET_HALTED);
+	LOG_DEBUG("polling hart %d, target->state=%d", hartid, target->state);
 
 	/* If OpenOCD thinks we're running but this hart is halted then it's time
 	 * to raise an event. */
-	if (target->state != TARGET_HALTED && riscv_is_halted(target)) {
+	bool halted = riscv_is_halted(target);
+	if (target->state != TARGET_HALTED && halted) {
 		LOG_DEBUG("  triggered a halt");
 		r->on_halt(target);
-		return RPH_CHANGE;
+		return RPH_DISCOVERED_HALTED;
+	} else if (target->state != TARGET_RUNNING && !halted) {
+		LOG_DEBUG("  triggered running");
+		target->state = TARGET_RUNNING;
+		return RPH_DISCOVERED_RUNNING;
 	}
 
 	return RPH_NO_CHANGE;
@@ -996,26 +1001,27 @@ static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 int riscv_openocd_poll(struct target *target)
 {
 	LOG_DEBUG("polling all harts");
-	int triggered_hart = -1;
+	int halted_hart = -1;
 	if (riscv_rtos_enabled(target)) {
 		/* Check every hart for an event. */
 		for (int i = 0; i < riscv_count_harts(target); ++i) {
 			enum riscv_poll_hart out = riscv_poll_hart(target, i);
 			switch (out) {
 			case RPH_NO_CHANGE:
+			case RPH_DISCOVERED_RUNNING:
 				continue;
-			case RPH_CHANGE:
-				triggered_hart = i;
+			case RPH_DISCOVERED_HALTED:
+				halted_hart = i;
 				break;
 			case RPH_ERROR:
 				return ERROR_FAIL;
 			}
 		}
-		if (triggered_hart == -1) {
+		if (halted_hart == -1) {
 			LOG_DEBUG("  no harts just halted, target->state=%d", target->state);
 			return ERROR_OK;
 		}
-		LOG_DEBUG("  hart %d halted", triggered_hart);
+		LOG_DEBUG("  hart %d halted", halted_hart);
 
 		/* If we're here then at least one hart triggered.  That means
 		 * we want to go and halt _every_ hart in the system, as that's
@@ -1028,17 +1034,17 @@ int riscv_openocd_poll(struct target *target)
 	} else {
 		enum riscv_poll_hart out = riscv_poll_hart(target,
 				riscv_current_hartid(target));
-		if (out == RPH_NO_CHANGE)
+		if (out == RPH_NO_CHANGE || out == RPH_DISCOVERED_RUNNING)
 			return ERROR_OK;
 		else if (out == RPH_ERROR)
 			return ERROR_FAIL;
 
-		triggered_hart = riscv_current_hartid(target);
-		LOG_DEBUG("  hart %d halted", triggered_hart);
+		halted_hart = riscv_current_hartid(target);
+		LOG_DEBUG("  hart %d halted", halted_hart);
 	}
 
 	target->state = TARGET_HALTED;
-	switch (riscv_halt_reason(target, triggered_hart)) {
+	switch (riscv_halt_reason(target, halted_hart)) {
 	case RISCV_HALT_BREAKPOINT:
 		target->debug_reason = DBG_REASON_BREAKPOINT;
 		break;
@@ -1059,8 +1065,8 @@ int riscv_openocd_poll(struct target *target)
 	}
 
 	if (riscv_rtos_enabled(target)) {
-		target->rtos->current_threadid = triggered_hart + 1;
-		target->rtos->current_thread = triggered_hart + 1;
+		target->rtos->current_threadid = halted_hart + 1;
+		target->rtos->current_thread = halted_hart + 1;
 	}
 
 	target->state = TARGET_HALTED;
