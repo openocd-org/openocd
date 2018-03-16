@@ -280,8 +280,11 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET, "hartsel" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_ACKHAVERESET, "ackhavereset" },
 
 		{ DMI_DMSTATUS, DMI_DMSTATUS_IMPEBREAK, "impebreak" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLHAVERESET, "allhavereset" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYHAVERESET, "anyhavereset" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLRESUMEACK, "allresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYRESUMEACK, "anyresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLNONEXISTENT, "allnonexistent" },
@@ -1348,6 +1351,14 @@ static int examine(struct target *target)
 			}
 		}
 
+		/* TODO: We read dmstatus above, then in is_halted, then several times
+		 * in halt_current_hart, and then again here. */
+		if (dmstatus_read(target, &s, true) != ERROR_OK)
+			return ERROR_FAIL;
+		if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
+			dmi_write(target, DMI_DMCONTROL,
+					DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET);
+
 		/* Without knowing anything else we can at least mess with the
 		 * program buffer. */
 		r->debug_buffer_size[i] = info->progbufsize;
@@ -1572,9 +1583,24 @@ static int deassert_reset(struct target *target)
 	int dmi_busy_delay = info->dmi_busy_delay;
 	time_t start = time(NULL);
 
+	LOG_DEBUG("Waiting for hart to be reset.");
+	do {
+		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (time(NULL) - start > riscv_reset_timeout_sec) {
+			LOG_ERROR("Hart didn't reset in %ds; dmstatus=0x%x; "
+					"Increase the timeout with riscv set_reset_timeout_sec.",
+					riscv_reset_timeout_sec, dmstatus);
+			return ERROR_FAIL;
+		}
+	} while (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET) == 0);
+	/* Ack reset. */
+	dmi_write(target, DMI_DMCONTROL, control | DMI_DMCONTROL_ACKHAVERESET);
+
 	if (target->reset_halt) {
 		LOG_DEBUG("Waiting for hart to be halted.");
-		do {
+		while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0) {
 			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 				return ERROR_FAIL;
 			if (time(NULL) - start > riscv_reset_timeout_sec) {
@@ -1584,15 +1610,15 @@ static int deassert_reset(struct target *target)
 						riscv_reset_timeout_sec, dmstatus);
 				return ERROR_FAIL;
 			}
-			target->state = TARGET_HALTED;
-		} while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0);
+		}
+		target->state = TARGET_HALTED;
 
 		control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
 		dmi_write(target, DMI_DMCONTROL, control);
 
 	} else {
 		LOG_DEBUG("Waiting for hart to be running.");
-		do {
+		while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
 			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 				return ERROR_FAIL;
 			if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
@@ -1608,7 +1634,7 @@ static int deassert_reset(struct target *target)
 						riscv_reset_timeout_sec, dmstatus);
 				return ERROR_FAIL;
 			}
-		} while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0);
+		}
 		target->state = TARGET_RUNNING;
 	}
 	info->dmi_busy_delay = dmi_busy_delay;
@@ -2538,7 +2564,7 @@ static bool riscv013_is_halted(struct target *target)
 	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 		return false;
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL))
-		LOG_ERROR("hart %d is unavailiable", riscv_current_hartid(target));
+		LOG_ERROR("hart %d is unavailable", riscv_current_hartid(target));
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT))
 		LOG_ERROR("hart %d doesn't exist", riscv_current_hartid(target));
 	return get_field(dmstatus, DMI_DMSTATUS_ALLHALTED);
