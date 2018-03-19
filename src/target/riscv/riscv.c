@@ -188,6 +188,8 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 bool riscv_use_scratch_ram;
 uint64_t riscv_scratch_ram_address;
 
+bool riscv_prefer_sba;
+
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
@@ -1227,6 +1229,16 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_prefer_sba)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_prefer_sba);
+	return ERROR_OK;
+}
+
 void parse_error(const char *string, char c, unsigned position)
 {
 	char buf[position+2];
@@ -1437,6 +1449,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_scratch_ram none|[address]",
 		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
+	},
+	{
+		.name = "set_prefer_sba",
+		.handler = riscv_set_prefer_sba,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_prefer_sba on|off",
+		.help = "When on, prefer to use System Bus Access to access memory. "
+			"When off, prefer to use the Program Buffer to access memory."
 	},
 	{
 		.name = "expose_csrs",
