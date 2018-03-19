@@ -1799,7 +1799,7 @@ static int read_memory_bus_v0(struct target *target, target_addr_t address,
 	uint8_t *t_buffer = buffer;
 	riscv_addr_t cur_addr = address;
 	riscv_addr_t fin_addr = address + (count * size);
-	uint64_t access = 0;
+	uint32_t access = 0;
 
 	const int DMI_SBCS_SBSINGLEREAD_OFFSET = 20;
 	const uint32_t DMI_SBCS_SBSINGLEREAD = (0x1U << DMI_SBCS_SBSINGLEREAD_OFFSET);
@@ -1807,18 +1807,21 @@ static int read_memory_bus_v0(struct target *target, target_addr_t address,
 	const int DMI_SBCS_SBAUTOREAD_OFFSET = 15;
 	const uint32_t DMI_SBCS_SBAUTOREAD = (0x1U << DMI_SBCS_SBAUTOREAD_OFFSET);
 
-	/* ww favorise one off reading if there is an issu */
+	/* ww favorise one off reading if there is an issue */
 	if (count == 1) {
 		for (uint32_t i = 0; i < count; i++) {
-			access = dmi_read(target, DMI_SBCS);
+			if (dmi_read(target, &access, DMI_SBCS) != ERROR_OK)
+				return ERROR_FAIL;
 			dmi_write(target, DMI_SBADDRESS0, cur_addr);
 			/* size/2 matching the bit access of the spec 0.13 */
 			access = set_field(access, DMI_SBCS_SBACCESS, size/2);
 			access = set_field(access, DMI_SBCS_SBSINGLEREAD, 1);
-			LOG_DEBUG("\r\nread_memory: sab: access:  0x%08" PRIx64, access);
+			LOG_DEBUG("\r\nread_memory: sab: access:  0x%08x", access);
 			dmi_write(target, DMI_SBCS, access);
 			/* 3) read */
-			uint32_t value = dmi_read(target, DMI_SBDATA0);
+			uint32_t value;
+			if (dmi_read(target, &value, DMI_SBDATA0) != ERROR_OK)
+				return ERROR_FAIL;
 			LOG_DEBUG("\r\nread_memory: sab: value:  0x%08x", value);
 			write_to_buf(t_buffer, value, size);
 			t_buffer += size;
@@ -1829,7 +1832,8 @@ static int read_memory_bus_v0(struct target *target, target_addr_t address,
 
 	/* has to be the same size if we want to read a block */
 	LOG_DEBUG("reading block until final address 0x%" PRIx64, fin_addr);
-	access = dmi_read(target, DMI_SBCS);
+	if (dmi_read(target, &access, DMI_SBCS) != ERROR_OK)
+		return ERROR_FAIL;
 	/* set current address */
 	dmi_write(target, DMI_SBADDRESS0, cur_addr);
 	/* 2) write sbaccess=2, sbsingleread,sbautoread,sbautoincrement
@@ -1838,14 +1842,16 @@ static int read_memory_bus_v0(struct target *target, target_addr_t address,
 	access = set_field(access, DMI_SBCS_SBAUTOREAD, 1);
 	access = set_field(access, DMI_SBCS_SBSINGLEREAD, 1);
 	access = set_field(access, DMI_SBCS_SBAUTOINCREMENT, 1);
-	LOG_DEBUG("\r\naccess:  0x%08" PRIx64, access);
+	LOG_DEBUG("\r\naccess:  0x%08x", access);
 	dmi_write(target, DMI_SBCS, access);
 
 	while (cur_addr < fin_addr) {
 		LOG_DEBUG("\r\nsab:autoincrement: \r\n size: %d\tcount:%d\taddress: 0x%08"
 				PRIx64, size, count, cur_addr);
 		/* read */
-		uint32_t value = dmi_read(target, DMI_SBDATA0);
+		uint32_t value;
+		if (dmi_read(target, &value, DMI_SBDATA0) != ERROR_OK)
+			return ERROR_FAIL;
 		write_to_buf(t_buffer, value, size);
 		cur_addr += size;
 		t_buffer += size;
@@ -1853,7 +1859,8 @@ static int read_memory_bus_v0(struct target *target, target_addr_t address,
 		/* if we are reaching last address, we must clear autoread */
 		if (cur_addr == fin_addr && count != 1) {
 			dmi_write(target, DMI_SBCS, 0);
-			value = dmi_read(target, DMI_SBDATA0);
+			if (dmi_read(target, &value, DMI_SBDATA0) != ERROR_OK)
+				return ERROR_FAIL;
 			write_to_buf(t_buffer, value, size);
 		}
 	}
