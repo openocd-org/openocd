@@ -2570,9 +2570,17 @@ static bool riscv013_is_halted(struct target *target)
 		int hartid = riscv_current_hartid(target);
 		LOG_INFO("Hart %d unexpectedly reset!", hartid);
 		/* TODO: Can we make this more obvious to eg. a gdb user? */
-		dmi_write(target, DMI_DMCONTROL,
-				set_field(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET,
-					hartsel_mask(target), hartid));
+		uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE |
+			DMI_DMCONTROL_ACKHAVERESET;
+		dmcontrol = set_field(dmcontrol, hartsel_mask(target), hartid);
+		/* If we had been halted when we reset, request another halt. If we
+		 * ended up running out of reset, then the user will (hopefully) get a
+		 * message that a reset happened, that the target is running, and then
+		 * that it is halted again once the request goes through.
+		 */
+		if (target->state == TARGET_HALTED)
+			dmcontrol |= DMI_DMCONTROL_HALTREQ;
+		dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	}
 	return get_field(dmstatus, DMI_DMSTATUS_ALLHALTED);
 }
