@@ -359,10 +359,10 @@ int openocd_main(int argc, char *argv[])
 
 	unregister_all_commands(cmd_ctx, NULL);
 
+	adapter_quit();
+
 	/* Shutdown commandline interface */
 	command_exit(cmd_ctx);
-
-	adapter_quit();
 
 	free_config();
 

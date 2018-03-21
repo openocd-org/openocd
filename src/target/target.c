@@ -1893,6 +1893,8 @@ static void target_destroy(struct target *target)
 	if (target->type->deinit_target)
 		target->type->deinit_target(target);
 
+	jtag_unregister_event_callback(jtag_enable_callback, target);
+
 	struct target_event_action *teap = target->event_action;
 	while (teap) {
 		struct target_event_action *next = teap->next;

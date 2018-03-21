@@ -1308,6 +1308,14 @@ void jtag_tap_free(struct jtag_tap *tap)
 {
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
+	struct jtag_tap_event_action *jteap = tap->event_action;
+	while (jteap) {
+		struct jtag_tap_event_action *next = jteap->next;
+		Jim_DecrRefCount(jteap->interp, jteap->body);
+		free(jteap);
+		jteap = next;
+	}
+
 	free(tap->expected);
 	free(tap->expected_mask);
 	free(tap->expected_ids);
