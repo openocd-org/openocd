@@ -176,7 +176,7 @@ struct target {
 	void *private_config;				/* pointer to target specific config data (for jim_configure hook) */
 	struct target *next;				/* next target in list */
 
-	int display;						/* display async info in telnet session. Do not display
+	bool verbose_halt_msg;				/* display async info in telnet session. Do not display
 										 * lots of halted/resumed info when stepping in debugger. */
 	bool halt_issued;					/* did we transition to halted state? */
 	int64_t halt_issued_time;			/* Note time when halt was issued */

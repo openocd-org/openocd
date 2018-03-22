@@ -2959,6 +2959,9 @@ COMMAND_HANDLER(handle_halt_command)
 	LOG_DEBUG("-");
 
 	struct target *target = get_current_target(CMD_CTX);
+
+	target->verbose_halt_msg = true;
+
 	int retval = target_halt(target);
 	if (ERROR_OK != retval)
 		return retval;
@@ -5579,7 +5582,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->next                = NULL;
 	target->arch_info           = NULL;
 
-	target->display             = 1;
+	target->verbose_halt_msg	= true;
 
 	target->halt_issued			= false;
 

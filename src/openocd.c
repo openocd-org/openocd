@@ -87,13 +87,13 @@ static int log_target_callback_event_handler(struct target *target,
 {
 	switch (event) {
 		case TARGET_EVENT_GDB_START:
-			target->display = 0;
+			target->verbose_halt_msg = false;
 			break;
 		case TARGET_EVENT_GDB_END:
-			target->display = 1;
+			target->verbose_halt_msg = true;
 			break;
 		case TARGET_EVENT_HALTED:
-			if (target->display) {
+			if (target->verbose_halt_msg) {
 				/* do not display information when debugger caused the halt */
 				target_arch_state(target);
 			}
