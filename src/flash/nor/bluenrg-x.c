@@ -274,6 +274,7 @@ static int bluenrgx_write_bytes(struct target *target, uint32_t address_base, ui
 		if (pre_bytes) {
 			if (target_read_u32(target, pre_address, &pre_word)) {
 				LOG_ERROR("Memory read failed");
+				free(new_buffer);
 				return ERROR_FAIL;
 			}
 
@@ -282,6 +283,7 @@ static int bluenrgx_write_bytes(struct target *target, uint32_t address_base, ui
 		if (post_bytes) {
 			if (target_read_u32(target, post_address, &post_word)) {
 				LOG_ERROR("Memory read failed");
+				free(new_buffer);
 				return ERROR_FAIL;
 			}
 
@@ -450,6 +452,9 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 		destroy_reg_param(&reg_params[2]);
 		destroy_reg_param(&reg_params[3]);
 		destroy_reg_param(&reg_params[4]);
+		if (retval != ERROR_OK)
+			return retval;
+
 	}
 
 	/* Program chunk at end, not addressable by fast burst write algorithm */
