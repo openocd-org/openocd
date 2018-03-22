@@ -188,6 +188,8 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 bool riscv_use_scratch_ram;
 uint64_t riscv_scratch_ram_address;
 
+bool riscv_havereset_not_supported;
+
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
@@ -1247,6 +1249,17 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_supports_havereset)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_havereset_not_supported);
+	riscv_havereset_not_supported = !riscv_havereset_not_supported;
+	return ERROR_OK;
+}
+
 void parse_error(const char *string, char c, unsigned position)
 {
 	char buf[position+2];
@@ -1457,6 +1470,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_scratch_ram none|[address]",
 		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
+	},
+	{
+		.name = "set_supports_havereset",
+		.handler = riscv_set_supports_havereset,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_supports_havereset on|off",
+		.help = "Set this off if one of the targets doesn't implement "
+			"allhavereset/anyhavereset in dmcontrol. When on, OpenOCD will wait "
+			"for these bits to go high during a reset."
 	},
 	{
 		.name = "expose_csrs",

@@ -1343,20 +1343,17 @@ static int examine(struct target *target)
 			break;
 		r->hart_count = i + 1;
 
+		if (!riscv_havereset_not_supported &&
+				get_field(s, DMI_DMSTATUS_ANYHAVERESET))
+			dmi_write(target, DMI_DMCONTROL,
+					DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET);
+
 		if (!riscv_is_halted(target)) {
 			if (riscv013_halt_current_hart(target) != ERROR_OK) {
 				LOG_ERROR("Fatal: Hart %d failed to halt during examine()", i);
 				return ERROR_FAIL;
 			}
 		}
-
-		/* TODO: We read dmstatus above, then in is_halted, then several times
-		 * in halt_current_hart, and then again here. */
-		if (dmstatus_read(target, &s, true) != ERROR_OK)
-			return ERROR_FAIL;
-		if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
-			dmi_write(target, DMI_DMCONTROL,
-					DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET);
 
 		/* Without knowing anything else we can at least mess with the
 		 * program buffer. */
@@ -1569,8 +1566,6 @@ static int deassert_reset(struct target *target)
 	RISCV013_INFO(info);
 	select_dmi(target);
 
-	LOG_DEBUG("%d", r->current_hartid);
-
 	/* Clear the reset, but make sure haltreq is still set */
 	uint32_t control = 0;
 	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
@@ -1582,31 +1577,33 @@ static int deassert_reset(struct target *target)
 	int dmi_busy_delay = info->dmi_busy_delay;
 	time_t start = time(NULL);
 
-	LOG_DEBUG("Waiting for hart to be reset.");
-	do {
-		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-			return ERROR_FAIL;
+	if (!riscv_havereset_not_supported) {
+		LOG_DEBUG("Waiting for hart %d to be reset.", r->current_hartid);
+		do {
+			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+				return ERROR_FAIL;
 
-		if (time(NULL) - start > riscv_reset_timeout_sec) {
-			LOG_ERROR("Hart didn't reset in %ds; dmstatus=0x%x; "
-					"Increase the timeout with riscv set_reset_timeout_sec.",
-					riscv_reset_timeout_sec, dmstatus);
-			return ERROR_FAIL;
-		}
-	} while (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET) == 0);
-	/* Ack reset. */
-	dmi_write(target, DMI_DMCONTROL, control | DMI_DMCONTROL_ACKHAVERESET);
+			if (time(NULL) - start > riscv_reset_timeout_sec) {
+				LOG_ERROR("Hart %d didn't reset in %ds; dmstatus=0x%x; "
+						"Increase the timeout with riscv set_reset_timeout_sec.",
+						r->current_hartid, riscv_reset_timeout_sec, dmstatus);
+				return ERROR_FAIL;
+			}
+		} while (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET) == 0);
+		/* Ack reset. */
+		dmi_write(target, DMI_DMCONTROL, control | DMI_DMCONTROL_ACKHAVERESET);
+	}
 
 	if (target->reset_halt) {
-		LOG_DEBUG("Waiting for hart to be halted.");
+		LOG_DEBUG("Waiting for hart %d to be halted.", r->current_hartid);
 		while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0) {
 			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 				return ERROR_FAIL;
 			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
+				LOG_ERROR("Hart %d didn't halt coming out of reset in %ds; "
 						"dmstatus=0x%x; "
 						"Increase the timeout with riscv set_reset_timeout_sec.",
-						riscv_reset_timeout_sec, dmstatus);
+						r->current_hartid, riscv_reset_timeout_sec, dmstatus);
 				return ERROR_FAIL;
 			}
 		}
@@ -1616,21 +1613,21 @@ static int deassert_reset(struct target *target)
 		dmi_write(target, DMI_DMCONTROL, control);
 
 	} else {
-		LOG_DEBUG("Waiting for hart to be running.");
+		LOG_DEBUG("Waiting for hart %d to be running.", r->current_hartid);
 		while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
 			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 				return ERROR_FAIL;
 			if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
 					get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
-				LOG_ERROR("Unexpected hart status during reset. dmstatus=0x%x",
-						dmstatus);
+				LOG_ERROR("Unexpected hart %d status during reset. dmstatus=0x%x",
+						r->current_hartid, dmstatus);
 				return ERROR_FAIL;
 			}
 			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart didn't run coming out of reset in %ds; "
+				LOG_ERROR("Hart %d didn't run coming out of reset in %ds; "
 						"dmstatus=0x%x; "
 						"Increase the timeout with riscv set_reset_timeout_sec.",
-						riscv_reset_timeout_sec, dmstatus);
+						r->current_hartid, riscv_reset_timeout_sec, dmstatus);
 				return ERROR_FAIL;
 			}
 		}
@@ -2566,7 +2563,7 @@ static bool riscv013_is_halted(struct target *target)
 		LOG_ERROR("Hart %d is unavailable.", riscv_current_hartid(target));
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT))
 		LOG_ERROR("Hart %d doesn't exist.", riscv_current_hartid(target));
-	if (get_field(dmstatus, DMI_DMSTATUS_ANYHAVERESET)) {
+	if (!riscv_havereset_not_supported && get_field(dmstatus, DMI_DMSTATUS_ANYHAVERESET)) {
 		int hartid = riscv_current_hartid(target);
 		LOG_INFO("Hart %d unexpectedly reset!", hartid);
 		/* TODO: Can we make this more obvious to eg. a gdb user? */
