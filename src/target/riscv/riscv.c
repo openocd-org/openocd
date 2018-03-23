@@ -2323,6 +2323,15 @@ int riscv_init_registers(struct target *target)
 				case CSR_SATP:
 					r->exist = riscv_supports_extension(target, 'S');
 					break;
+				case CSR_MEDELEG:
+				case CSR_MIDELEG:
+					/* "In systems with only M-mode, or with both M-mode and
+					 * U-mode but without U-mode trap support, the medeleg and
+					 * mideleg registers should not exist." */
+					r->exist = (riscv_supports_extension(target, 'S') ||
+							riscv_supports_extension(target, 'U')) &&
+						!riscv_supports_extension(target, 'N');
+					break;
 			}
 
 			if (!r->exist && expose_csr) {
