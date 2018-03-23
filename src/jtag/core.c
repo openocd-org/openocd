@@ -1315,7 +1315,6 @@ void jtag_tap_free(struct jtag_tap *tap)
 	free(tap->chip);
 	free(tap->tapname);
 	free(tap->dotted_name);
-	free(tap->dap);
 	free(tap);
 }
 
@@ -1486,6 +1485,8 @@ int adapter_quit(void)
 		jtag_tap_free(t);
 		t = n;
 	}
+
+	dap_cleanup_all();
 
 	return ERROR_OK;
 }

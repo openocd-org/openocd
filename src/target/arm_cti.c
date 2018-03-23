@@ -365,22 +365,21 @@ static const struct command_registration cti_instance_command_handlers[] = {
 };
 
 enum cti_cfg_param {
-	CFG_CHAIN_POSITION,
+	CFG_DAP,
 	CFG_AP_NUM,
 	CFG_CTIBASE
 };
 
 static const Jim_Nvp nvp_config_opts[] = {
-	{ .name = "-chain-position",   .value = CFG_CHAIN_POSITION },
-	{ .name = "-ctibase",          .value = CFG_CTIBASE },
-	{ .name = "-ap-num",           .value = CFG_AP_NUM },
+	{ .name = "-dap",     .value = CFG_DAP },
+	{ .name = "-ctibase", .value = CFG_CTIBASE },
+	{ .name = "-ap-num",  .value = CFG_AP_NUM },
 	{ .name = NULL, .value = -1 }
 };
 
 static int cti_configure(Jim_GetOptInfo *goi, struct arm_cti_object *cti)
 {
-	struct jtag_tap *tap = NULL;
-	struct adiv5_dap *dap;
+	struct adiv5_dap *dap = NULL;
 	Jim_Nvp *n;
 	jim_wide w;
 	int e;
@@ -395,14 +394,14 @@ static int cti_configure(Jim_GetOptInfo *goi, struct arm_cti_object *cti)
 			return e;
 		}
 		switch (n->value) {
-		case CFG_CHAIN_POSITION: {
+		case CFG_DAP: {
 			Jim_Obj *o_t;
 			e = Jim_GetOpt_Obj(goi, &o_t);
 			if (e != JIM_OK)
 				return e;
-			tap = jtag_tap_by_jim_obj(goi->interp, o_t);
-			if (tap == NULL) {
-				Jim_SetResultString(goi->interp, "-chain-position is invalid", -1);
+			dap = dap_instance_by_jim_obj(goi->interp, o_t);
+			if (dap == NULL) {
+				Jim_SetResultString(goi->interp, "-dap is invalid", -1);
 				return JIM_ERR;
 			}
 			/* loop for more */
@@ -424,17 +423,10 @@ static int cti_configure(Jim_GetOptInfo *goi, struct arm_cti_object *cti)
 		}
 	}
 
-	if (tap == NULL) {
-		Jim_SetResultString(goi->interp, "-chain-position required when creating CTI", -1);
+	if (dap == NULL) {
+		Jim_SetResultString(goi->interp, "-dap required when creating CTI", -1);
 		return JIM_ERR;
 	}
-
-	if (tap->dap == NULL) {
-		dap = dap_init();
-		dap->tap = tap;
-		tap->dap = dap;
-	} else
-		dap = tap->dap;
 
 	cti->cti.ap = dap_ap(dap, cti->ap_num);
 

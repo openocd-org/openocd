@@ -153,8 +153,6 @@ struct jtag_tap {
 	struct jtag_tap_event_action *event_action;
 
 	struct jtag_tap *next_tap;
-	/* dap instance if some null if no instance , initialized to 0 by calloc*/
-	struct adiv5_dap *dap;
 	/* private pointer to support none-jtag specific functions */
 	void *priv;
 };

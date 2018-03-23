@@ -777,9 +777,6 @@ const struct command_registration l2x_cache_command_handlers[] = {
 
 const struct command_registration armv7a_command_handlers[] = {
 	{
-		.chain = dap_command_handlers,
-	},
-	{
 		.chain = l2x_cache_command_handlers,
 	},
 	{

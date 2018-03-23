@@ -365,11 +365,15 @@ static int adapter_target_create(struct target *target,
 		Jim_Interp *interp)
 {
 	LOG_DEBUG("%s", __func__);
-
+	struct adiv5_private_config *pc = target->private_config;
 	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
-
 	if (!cortex_m)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (pc != NULL && pc->ap_num > 0) {
+		LOG_ERROR("hla_target: invalid parameter -ap-num (> 0)");
+		return ERROR_FAIL;
+	}
 
 	adapter_init_arch_info(target, cortex_m, target->tap);
 
@@ -801,6 +805,7 @@ struct target_type hla_target = {
 	.init_target = adapter_init_target,
 	.deinit_target = cortex_m_deinit_target,
 	.target_create = adapter_target_create,
+	.target_jim_configure = adiv5_jim_configure,
 	.examine = cortex_m_examine,
 	.commands = adapter_command_handlers,
 

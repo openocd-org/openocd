@@ -38,6 +38,7 @@
 #include <pld/pld.h>
 #include <flash/mflash.h>
 #include <target/arm_cti.h>
+#include <target/arm_adi_v5.h>
 
 #include <server/server.h>
 #include <server/gdb_server.h>
@@ -151,6 +152,10 @@ COMMAND_HANDLER(handle_init_command)
 	if (ERROR_OK != retval)
 		return ERROR_FAIL;
 
+	retval = command_run_line(CMD_CTX, "dap init");
+	if (ERROR_OK != retval)
+		return ERROR_FAIL;
+
 	LOG_DEBUG("Examining targets...");
 	if (target_examine() != ERROR_OK)
 		LOG_DEBUG("target examination failed");
@@ -254,6 +259,7 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&pld_register_commands,
 		&mflash_register_commands,
 		&cti_register_commands,
+		&dap_register_commands,
 		NULL
 	};
 	for (unsigned i = 0; NULL != command_registrants[i]; i++) {

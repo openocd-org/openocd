@@ -1609,12 +1609,8 @@ struct reg *armv8_reg_current(struct arm *arm, unsigned regnum)
 }
 
 const struct command_registration armv8_command_handlers[] = {
-	{
-		.chain = dap_command_handlers,
-	},
 	COMMAND_REGISTRATION_DONE
 };
-
 
 int armv8_get_gdb_reg_list(struct target *target,
 	struct reg **reg_list[], int *reg_list_size,

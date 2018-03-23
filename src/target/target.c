@@ -4765,6 +4765,13 @@ no_params:
 			if (goi->isconfigure) {
 				Jim_Obj *o_t;
 				struct jtag_tap *tap;
+
+				if (target->has_dap) {
+					Jim_SetResultString(goi->interp,
+						"target requires -dap parameter instead of -chain-position!", -1);
+					return JIM_ERR;
+				}
+
 				target_free_all_working_areas(target);
 				e = Jim_GetOpt_Obj(goi, &o_t);
 				if (e != JIM_OK)
@@ -4772,8 +4779,8 @@ no_params:
 				tap = jtag_tap_by_jim_obj(goi->interp, o_t);
 				if (tap == NULL)
 					return JIM_ERR;
-				/* make this exactly 1 or 0 */
 				target->tap = tap;
+				target->tap_configured = true;
 			} else {
 				if (goi->argc != 0)
 					goto no_params;
@@ -5591,9 +5598,21 @@ static int target_create(Jim_GetOptInfo *goi)
 	goi->isconfigure = 1;
 	e = target_configure(goi, target);
 
-	if (target->tap == NULL) {
-		Jim_SetResultString(goi->interp, "-chain-position required when creating target", -1);
-		e = JIM_ERR;
+	if (e == JIM_OK) {
+		if (target->has_dap) {
+			if (!target->dap_configured) {
+				Jim_SetResultString(goi->interp, "-dap ?name? required when creating target", -1);
+				e = JIM_ERR;
+			}
+		} else {
+			if (!target->tap_configured) {
+				Jim_SetResultString(goi->interp, "-chain-position ?name? required when creating target", -1);
+				e = JIM_ERR;
+			}
+		}
+		/* tap must be set after target was configured */
+		if (target->tap == NULL)
+			e = JIM_ERR;
 	}
 
 	if (e != JIM_OK) {
@@ -5610,14 +5629,23 @@ static int target_create(Jim_GetOptInfo *goi)
 	cp = Jim_GetString(new_cmd, NULL);
 	target->cmd_name = strdup(cp);
 
+	if (target->type->target_create) {
+		e = (*(target->type->target_create))(target, goi->interp);
+		if (e != ERROR_OK) {
+			LOG_DEBUG("target_create failed");
+			free(target->type);
+			free(target->cmd_name);
+			free(target);
+			return JIM_ERR;
+		}
+	}
+
 	/* create the target specific commands */
 	if (target->type->commands) {
 		e = register_commands(cmd_ctx, NULL, target->type->commands);
 		if (ERROR_OK != e)
 			LOG_ERROR("unable to register '%s' commands", cp);
 	}
-	if (target->type->target_create)
-		(*(target->type->target_create))(target, goi->interp);
 
 	/* append to end of list */
 	{

@@ -41,6 +41,7 @@ enum halt_mode {
 };
 
 struct aarch64_private_config {
+	struct adiv5_private_config adiv5_config;
 	struct arm_cti *cti;
 };
 
@@ -2210,10 +2211,6 @@ static int aarch64_examine_first(struct target *target)
 	uint32_t tmp0, tmp1, tmp2, tmp3;
 	debug = ttypr = cpuid = 0;
 
-	retval = dap_dp_init(swjdp);
-	if (retval != ERROR_OK)
-		return retval;
-
 	/* Search for the APB-AB - it is needed for access to debug registers */
 	retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
 	if (retval != ERROR_OK) {
@@ -2358,18 +2355,13 @@ static int aarch64_init_target(struct command_context *cmd_ctx,
 }
 
 static int aarch64_init_arch_info(struct target *target,
-	struct aarch64_common *aarch64, struct jtag_tap *tap)
+	struct aarch64_common *aarch64, struct adiv5_dap *dap)
 {
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 
 	/* Setup struct aarch64_common */
 	aarch64->common_magic = AARCH64_COMMON_MAGIC;
-	/*  tap has no dap initialized */
-	if (!tap->dap) {
-		tap->dap = dap_init();
-		tap->dap->tap = tap;
-	}
-	armv8->arm.dap = tap->dap;
+	armv8->arm.dap = dap;
 
 	/* register arch-specific functions */
 	armv8->examine_debug_reason = NULL;
@@ -2385,9 +2377,13 @@ static int aarch64_init_arch_info(struct target *target,
 
 static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 {
+	struct aarch64_private_config *pc = target->private_config;
 	struct aarch64_common *aarch64 = calloc(1, sizeof(struct aarch64_common));
 
-	return aarch64_init_arch_info(target, aarch64, target->tap);
+	if (adiv5_verify_config(&pc->adiv5_config) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return aarch64_init_arch_info(target, aarch64, pc->adiv5_config.dap);
 }
 
 static int aarch64_mmu(struct target *target, int *enabled)
@@ -2407,58 +2403,89 @@ static int aarch64_virt2phys(struct target *target, target_addr_t virt,
 	return armv8_mmu_translate_va_pa(target, virt, phys, 1);
 }
 
+/*
+ * private target configuration items
+ */
+enum aarch64_cfg_param {
+	CFG_CTI,
+};
+
+static const Jim_Nvp nvp_config_opts[] = {
+	{ .name = "-cti", .value = CFG_CTI },
+	{ .name = NULL, .value = -1 }
+};
+
 static int aarch64_jim_configure(struct target *target, Jim_GetOptInfo *goi)
 {
 	struct aarch64_private_config *pc;
-	const char *arg;
+	Jim_Nvp *n;
 	int e;
 
-	/* check if argv[0] is for us */
-	arg = Jim_GetString(goi->argv[0], NULL);
-	if (strcmp(arg, "-cti"))
-		return JIM_CONTINUE;
-
-	/* pop the argument from argv */
-	e = Jim_GetOpt_String(goi, &arg, NULL);
-	if (e != JIM_OK)
-		return e;
-
-	/* check if we have another option */
-	if (goi->argc == 0) {
-		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-cti ?cti-name?");
-		return JIM_ERR;
-	}
-
 	pc = (struct aarch64_private_config *)target->private_config;
-
-	if (goi->isconfigure) {
-		Jim_Obj *o_cti;
-		struct arm_cti *cti;
-		e = Jim_GetOpt_Obj(goi, &o_cti);
-		if (e != JIM_OK)
-			return e;
-		cti = cti_instance_by_jim_obj(goi->interp, o_cti);
-		if (cti == NULL)
-			return JIM_ERR;
-
-		if (pc == NULL) {
+	if (pc == NULL) {
 			pc = calloc(1, sizeof(struct aarch64_private_config));
 			target->private_config = pc;
-		}
-		pc->cti = cti;
-	} else {
-		if (goi->argc != 0) {
-			Jim_WrongNumArgs(goi->interp,
-					goi->argc, goi->argv,
-					"NO PARAMS");
-			return JIM_ERR;
+	}
+
+	/*
+	 * Call adiv5_jim_configure() to parse the common DAP options
+	 * It will return JIM_CONTINUE if it didn't find any known
+	 * options, JIM_OK if it correctly parsed the topmost option
+	 * and JIM_ERR if an error occured during parameter evaluation.
+	 * For JIM_CONTINUE, we check our own params.
+	 */
+	e = adiv5_jim_configure(target, goi);
+	if (e != JIM_CONTINUE)
+		return e;
+
+	/* parse config or cget options ... */
+	if (goi->argc > 0) {
+		Jim_SetEmptyResult(goi->interp);
+
+		/* check first if topmost item is for us */
+		e = Jim_Nvp_name2value_obj(goi->interp, nvp_config_opts,
+				goi->argv[0], &n);
+		if (e != JIM_OK)
+			return JIM_CONTINUE;
+
+		e = Jim_GetOpt_Obj(goi, NULL);
+		if (e != JIM_OK)
+			return e;
+
+		switch (n->value) {
+		case CFG_CTI: {
+			if (goi->isconfigure) {
+				Jim_Obj *o_cti;
+				struct arm_cti *cti;
+				e = Jim_GetOpt_Obj(goi, &o_cti);
+				if (e != JIM_OK)
+					return e;
+				cti = cti_instance_by_jim_obj(goi->interp, o_cti);
+				if (cti == NULL) {
+					Jim_SetResultString(goi->interp, "CTI name invalid!", -1);
+					return JIM_ERR;
+				}
+				pc->cti = cti;
+			} else {
+				if (goi->argc != 0) {
+					Jim_WrongNumArgs(goi->interp,
+							goi->argc, goi->argv,
+							"NO PARAMS");
+					return JIM_ERR;
+				}
+
+				if (pc == NULL || pc->cti == NULL) {
+					Jim_SetResultString(goi->interp, "CTI not configured", -1);
+					return JIM_ERR;
+				}
+				Jim_SetResultString(goi->interp, arm_cti_name(pc->cti), -1);
+			}
+			break;
 		}
 
-		if (pc == NULL || pc->cti == NULL) {
-			Jim_SetResultString(goi->interp, "CTI not configured", -1);
-			return JIM_ERR;
+		default:
+			return JIM_CONTINUE;
 		}
-		Jim_SetResultString(goi->interp, arm_cti_name(pc->cti), -1);
 	}
 
 	return JIM_OK;
