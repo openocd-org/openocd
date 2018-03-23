@@ -1346,7 +1346,8 @@ static int examine(struct target *target)
 		if (!riscv_havereset_not_supported &&
 				get_field(s, DMI_DMSTATUS_ANYHAVERESET))
 			dmi_write(target, DMI_DMCONTROL,
-					DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET);
+					set_field(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET,
+						hartsel_mask(target), i));
 
 		if (!riscv_is_halted(target)) {
 			if (riscv013_halt_current_hart(target) != ERROR_OK) {
@@ -1518,7 +1519,7 @@ static int assert_reset(struct target *target)
 
 		/* TODO: Try to use hasel in dmcontrol */
 
-		/* Set haltreq/resumereq for each hart. */
+		/* Set haltreq for each hart. */
 		uint32_t control = control_base;
 		for (int i = 0; i < riscv_count_harts(target); ++i) {
 			if (!riscv_hart_enabled(target, i))
@@ -1539,20 +1540,8 @@ static int assert_reset(struct target *target)
 				r->current_hartid);
 		control = set_field(control, DMI_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
-		control = set_field(control, DMI_DMCONTROL_HARTRESET, 1);
+		control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
 		dmi_write(target, DMI_DMCONTROL, control);
-
-		/* Read back to check if hartreset is supported. */
-		uint32_t rb;
-		if (dmi_read(target, &rb, DMI_DMCONTROL) != ERROR_OK)
-			return ERROR_FAIL;
-		if (!get_field(rb, DMI_DMCONTROL_HARTRESET)) {
-			/* Use ndmreset instead. That will reset the entire device, but
-			 * that's probably what OpenOCD wants anyway. */
-			control = set_field(control, DMI_DMCONTROL_HARTRESET, 0);
-			control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
-			dmi_write(target, DMI_DMCONTROL, control);
-		}
 	}
 
 	target->state = TARGET_RESET;
@@ -1569,69 +1558,83 @@ static int deassert_reset(struct target *target)
 	/* Clear the reset, but make sure haltreq is still set */
 	uint32_t control = 0;
 	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
-	control = set_field(control, hartsel_mask(target), r->current_hartid);
 	control = set_field(control, DMI_DMCONTROL_DMACTIVE, 1);
-	dmi_write(target, DMI_DMCONTROL, control);
+	dmi_write(target, DMI_DMCONTROL,
+			set_field(control, hartsel_mask(target), r->current_hartid));
 
 	uint32_t dmstatus;
 	int dmi_busy_delay = info->dmi_busy_delay;
 	time_t start = time(NULL);
 
-	if (!riscv_havereset_not_supported) {
-		LOG_DEBUG("Waiting for hart %d to be reset.", r->current_hartid);
-		do {
-			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-				return ERROR_FAIL;
-
-			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart %d didn't reset in %ds; dmstatus=0x%x; "
-						"Increase the timeout with riscv set_reset_timeout_sec.",
-						r->current_hartid, riscv_reset_timeout_sec, dmstatus);
-				return ERROR_FAIL;
-			}
-		} while (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET) == 0);
-		/* Ack reset. */
-		dmi_write(target, DMI_DMCONTROL, control | DMI_DMCONTROL_ACKHAVERESET);
-	}
-
-	if (target->reset_halt) {
-		LOG_DEBUG("Waiting for hart %d to be halted.", r->current_hartid);
-		while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0) {
-			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-				return ERROR_FAIL;
-			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart %d didn't halt coming out of reset in %ds; "
-						"dmstatus=0x%x; "
-						"Increase the timeout with riscv set_reset_timeout_sec.",
-						r->current_hartid, riscv_reset_timeout_sec, dmstatus);
-				return ERROR_FAIL;
-			}
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		int index = i;
+		if (target->rtos) {
+			if (!riscv_hart_enabled(target, index))
+				continue;
+			dmi_write(target, DMI_DMCONTROL,
+					set_field(control, hartsel_mask(target), index));
+		} else {
+			index = r->current_hartid;
 		}
-		target->state = TARGET_HALTED;
 
-		control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
-		dmi_write(target, DMI_DMCONTROL, control);
+		if (!riscv_havereset_not_supported) {
+			LOG_DEBUG("Waiting for hart %d to be reset.", index);
+			do {
+				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+					return ERROR_FAIL;
 
-	} else {
-		LOG_DEBUG("Waiting for hart %d to be running.", r->current_hartid);
-		while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
-			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-				return ERROR_FAIL;
-			if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
-					get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
-				LOG_ERROR("Unexpected hart %d status during reset. dmstatus=0x%x",
-						r->current_hartid, dmstatus);
-				return ERROR_FAIL;
-			}
-			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart %d didn't run coming out of reset in %ds; "
-						"dmstatus=0x%x; "
-						"Increase the timeout with riscv set_reset_timeout_sec.",
-						r->current_hartid, riscv_reset_timeout_sec, dmstatus);
-				return ERROR_FAIL;
-			}
+				if (time(NULL) - start > riscv_reset_timeout_sec) {
+					LOG_ERROR("Hart %d didn't reset in %ds; dmstatus=0x%x; "
+							"Increase the timeout with riscv set_reset_timeout_sec.",
+							r->current_hartid, riscv_reset_timeout_sec, dmstatus);
+					return ERROR_FAIL;
+				}
+			} while (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET) == 0);
+			/* Ack reset. */
+			dmi_write(target, DMI_DMCONTROL,
+					set_field(control, hartsel_mask(target), index) |
+					DMI_DMCONTROL_ACKHAVERESET);
 		}
-		target->state = TARGET_RUNNING;
+
+		if (target->reset_halt) {
+			LOG_DEBUG("Waiting for hart %d to be halted.", index);
+			do {
+				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+					return ERROR_FAIL;
+				if (time(NULL) - start > riscv_reset_timeout_sec) {
+					LOG_ERROR("Hart %d didn't halt coming out of reset in %ds; "
+							"dmstatus=0x%x; "
+							"Increase the timeout with riscv set_reset_timeout_sec.",
+							index, riscv_reset_timeout_sec, dmstatus);
+					return ERROR_FAIL;
+				}
+			} while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0);
+			target->state = TARGET_HALTED;
+
+		} else {
+			LOG_DEBUG("Waiting for hart %d to be running.", index);
+			while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
+				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+					return ERROR_FAIL;
+				if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
+						get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
+					LOG_ERROR("Unexpected hart %d status during reset. dmstatus=0x%x",
+							index, dmstatus);
+					return ERROR_FAIL;
+				}
+				if (time(NULL) - start > riscv_reset_timeout_sec) {
+					LOG_ERROR("Hart %d didn't run coming out of reset in %ds; "
+							"dmstatus=0x%x; "
+							"Increase the timeout with riscv set_reset_timeout_sec.",
+							index, riscv_reset_timeout_sec, dmstatus);
+					return ERROR_FAIL;
+				}
+			}
+			target->state = TARGET_RUNNING;
+		}
+
+		if (!target->rtos)
+			break;
 	}
 	info->dmi_busy_delay = dmi_busy_delay;
 	return ERROR_OK;
@@ -2707,11 +2710,9 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		return ERROR_FAIL;
 
 	/* Issue the resume command, and then wait for the current hart to resume. */
-	uint32_t dmcontrol;
-	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
-		return ERROR_FAIL;
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE;
+	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
+	dmi_write(target, DMI_DMCONTROL, dmcontrol | DMI_DMCONTROL_RESUMEREQ);
 
 	uint32_t dmstatus;
 	for (size_t i = 0; i < 256; ++i) {
@@ -2723,17 +2724,16 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		if (step && get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0)
 			continue;
 
-		dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 0);
 		dmi_write(target, DMI_DMCONTROL, dmcontrol);
 		return ERROR_OK;
 	}
 
-	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-		return ERROR_FAIL;
+	LOG_ERROR("unable to resume hart %d", r->current_hartid);
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_ERROR("unable to resume hart %d", r->current_hartid);
 	LOG_ERROR("  dmcontrol=0x%08x", dmcontrol);
+	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+		return ERROR_FAIL;
 	LOG_ERROR("  dmstatus =0x%08x", dmstatus);
 
 	if (step) {
