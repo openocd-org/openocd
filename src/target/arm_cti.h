@@ -73,7 +73,7 @@ extern int arm_cti_read_reg(struct arm_cti *self, unsigned int reg, uint32_t *va
 extern int arm_cti_pulse_channel(struct arm_cti *self, uint32_t channel);
 extern int arm_cti_set_channel(struct arm_cti *self, uint32_t channel);
 extern int arm_cti_clear_channel(struct arm_cti *self, uint32_t channel);
-
+extern int arm_cti_cleanup_all(void);
 extern int cti_register_commands(struct command_context *cmd_ctx);
 
 #endif /* OPENOCD_TARGET_ARM_CTI_H */

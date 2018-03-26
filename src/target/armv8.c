@@ -1547,15 +1547,14 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 		} else
 			LOG_ERROR("unable to allocate feature list");
 
-		if (armv8_regs[i].data_type == NULL) {
-			reg_list[i].reg_data_type = calloc(1, sizeof(struct reg_data_type));
-			if (reg_list[i].reg_data_type)
+		reg_list[i].reg_data_type = calloc(1, sizeof(struct reg_data_type));
+		if (reg_list[i].reg_data_type) {
+			if (armv8_regs[i].data_type == NULL)
 				reg_list[i].reg_data_type->type = armv8_regs[i].type;
 			else
-				LOG_ERROR("unable to allocate reg type list");
+				*reg_list[i].reg_data_type = *armv8_regs[i].data_type;
 		} else
-			reg_list[i].reg_data_type =	armv8_regs[i].data_type;
-
+			LOG_ERROR("unable to allocate reg type list");
 	}
 
 	arm->cpsr = reg_list + ARMV8_xPSR;
@@ -1606,6 +1605,41 @@ struct reg *armv8_reg_current(struct arm *arm, unsigned regnum)
 
 	r = arm->core_cache->reg_list + regnum;
 	return r;
+}
+
+static void armv8_free_cache(struct reg_cache *cache, bool regs32)
+{
+	struct reg *reg;
+	unsigned int i;
+
+	if (!cache)
+		return;
+
+	for (i = 0; i < cache->num_regs; i++) {
+		reg = &cache->reg_list[i];
+
+		free(reg->feature);
+		free(reg->reg_data_type);
+	}
+
+	if (!regs32)
+		free(cache->reg_list[0].arch_info);
+	free(cache->reg_list);
+	free(cache);
+}
+
+void armv8_free_reg_cache(struct target *target)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	struct arm *arm = &armv8->arm;
+	struct reg_cache *cache = NULL, *cache32 = NULL;
+
+	cache = arm->core_cache;
+	if (cache != NULL)
+		cache32 = cache->next;
+	armv8_free_cache(cache32, true);
+	armv8_free_cache(cache, false);
+	arm->core_cache = NULL;
 }
 
 const struct command_registration armv8_command_handlers[] = {

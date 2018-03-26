@@ -219,6 +219,18 @@ static int cti_find_reg_offset(const char *name)
 	return -1;
 }
 
+int arm_cti_cleanup_all(void)
+{
+	struct arm_cti_object *obj, *tmp;
+
+	list_for_each_entry_safe(obj, tmp, &all_cti, lh) {
+		free(obj->name);
+		free(obj);
+	}
+
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(handle_cti_dump)
 {
 	struct arm_cti_object *obj = CMD_DATA;
