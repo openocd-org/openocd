@@ -359,6 +359,10 @@ int openocd_main(int argc, char *argv[])
 
 	unregister_all_commands(cmd_ctx, NULL);
 
+	/* free all DAP and CTI objects */
+	dap_cleanup_all();
+	arm_cti_cleanup_all();
+
 	adapter_quit();
 
 	/* Shutdown commandline interface */

@@ -318,6 +318,8 @@ static inline unsigned int armv8_curel_from_core_mode(enum arm_mode core_mode)
 void armv8_select_reg_access(struct armv8_common *armv8, bool is_aarch64);
 int armv8_set_dbgreg_bits(struct armv8_common *armv8, unsigned int reg, unsigned long mask, unsigned long value);
 
+extern void armv8_free_reg_cache(struct target *target);
+
 extern const struct command_registration armv8_command_handlers[];
 
 #endif /* OPENOCD_TARGET_ARMV8_H */
