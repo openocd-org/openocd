@@ -1343,8 +1343,7 @@ static int examine(struct target *target)
 			break;
 		r->hart_count = i + 1;
 
-		if (!riscv_havereset_not_supported &&
-				get_field(s, DMI_DMSTATUS_ANYHAVERESET))
+		if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
 			dmi_write(target, DMI_DMCONTROL,
 					set_field(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET,
 						hartsel_mask(target), i));
@@ -1577,27 +1576,8 @@ static int deassert_reset(struct target *target)
 			index = r->current_hartid;
 		}
 
-		if (!riscv_havereset_not_supported) {
-			LOG_DEBUG("Waiting for hart %d to be reset.", index);
-			do {
-				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-					return ERROR_FAIL;
-
-				if (time(NULL) - start > riscv_reset_timeout_sec) {
-					LOG_ERROR("Hart %d didn't reset in %ds; dmstatus=0x%x; "
-							"Increase the timeout with riscv set_reset_timeout_sec.",
-							r->current_hartid, riscv_reset_timeout_sec, dmstatus);
-					return ERROR_FAIL;
-				}
-			} while (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET) == 0);
-			/* Ack reset. */
-			dmi_write(target, DMI_DMCONTROL,
-					set_field(control, hartsel_mask(target), index) |
-					DMI_DMCONTROL_ACKHAVERESET);
-		}
-
 		if (target->reset_halt) {
-			LOG_DEBUG("Waiting for hart %d to be halted.", index);
+			LOG_DEBUG("Waiting for hart %d to halt out of reset.", index);
 			do {
 				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 					return ERROR_FAIL;
@@ -1612,7 +1592,7 @@ static int deassert_reset(struct target *target)
 			target->state = TARGET_HALTED;
 
 		} else {
-			LOG_DEBUG("Waiting for hart %d to be running.", index);
+			LOG_DEBUG("Waiting for hart %d to run out of reset.", index);
 			while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
 				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 					return ERROR_FAIL;
@@ -1631,6 +1611,13 @@ static int deassert_reset(struct target *target)
 				}
 			}
 			target->state = TARGET_RUNNING;
+		}
+
+		if (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET)) {
+			/* Ack reset. */
+			dmi_write(target, DMI_DMCONTROL,
+					set_field(control, hartsel_mask(target), index) |
+					DMI_DMCONTROL_ACKHAVERESET);
 		}
 
 		if (!target->rtos)
@@ -2566,7 +2553,7 @@ static bool riscv013_is_halted(struct target *target)
 		LOG_ERROR("Hart %d is unavailable.", riscv_current_hartid(target));
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT))
 		LOG_ERROR("Hart %d doesn't exist.", riscv_current_hartid(target));
-	if (!riscv_havereset_not_supported && get_field(dmstatus, DMI_DMSTATUS_ANYHAVERESET)) {
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYHAVERESET)) {
 		int hartid = riscv_current_hartid(target);
 		LOG_INFO("Hart %d unexpectedly reset!", hartid);
 		/* TODO: Can we make this more obvious to eg. a gdb user? */
