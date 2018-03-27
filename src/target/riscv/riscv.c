@@ -2329,7 +2329,7 @@ int riscv_init_registers(struct target *target)
 					 * U-mode but without U-mode trap support, the medeleg and
 					 * mideleg registers should not exist." */
 					r->exist = riscv_supports_extension(target, 'S') ||
-						!riscv_supports_extension(target, 'N');
+						riscv_supports_extension(target, 'N');
 					break;
 			}
 
