@@ -490,8 +490,6 @@ static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
 	dmi_status_t status;
 	uint32_t address_in;
 
-	unsigned i = 0;
-
 	const char *op_name;
 	switch (dmi_op) {
 		case DMI_OP_NOP:
@@ -508,9 +506,10 @@ static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
 			return ERROR_FAIL;
 	}
 
+	time_t start = time(NULL);
 	/* This first loop performs the request.  Note that if for some reason this
 	 * stays busy, it is actually due to the previous access. */
-	for (i = 0; i < 256; i++) {
+	while (1) {
 		status = dmi_scan(target, NULL, NULL, dmi_op, address, data_out,
 				false);
 		if (status == DMI_STATUS_BUSY) {
@@ -519,6 +518,13 @@ static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
 			break;
 		} else {
 			LOG_ERROR("failed %s at 0x%x, status=%d", op_name, address, status);
+			return ERROR_FAIL;
+		}
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("dmi.op is still busy after %d seconds. The target is "
+					"either really slow or broken. You could increase the "
+					"timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec);
 			return ERROR_FAIL;
 		}
 	}
@@ -531,7 +537,7 @@ static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
 	/* This second loop ensures the request succeeded, and gets back data.
 	 * Note that NOP can result in a 'busy' result as well, but that would be
 	 * noticed on the next DMI access we do. */
-	for (i = 0; i < 256; i++) {
+	while (1) {
 		status = dmi_scan(target, &address_in, data_in, DMI_OP_NOP, address, 0,
 				false);
 		if (status == DMI_STATUS_BUSY) {
@@ -541,6 +547,13 @@ static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
 		} else {
 			LOG_ERROR("failed %s (NOP) at 0x%x, status=%d", op_name, address,
 					status);
+			return ERROR_FAIL;
+		}
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("dmi.op is still busy after %d seconds. The target is "
+					"either really slow or broken. You could increase the "
+					"timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec);
 			return ERROR_FAIL;
 		}
 	}
@@ -2745,7 +2758,7 @@ void riscv013_clear_abstract_error(struct target *target)
 			LOG_ERROR("abstractcs.busy is not going low after %d seconds "
 					"(abstractcs=0x%x). The target is either really slow or "
 					"broken. You could increase the timeout with riscv "
-					"set_reset_timeout_sec.",
+					"set_command_timeout_sec.",
 					riscv_command_timeout_sec, abstractcs);
 			break;
 		}
