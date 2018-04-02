@@ -247,7 +247,6 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	LOG_DEBUG("riscv_init_target()");
-	target->propagate_register_errors = true;
 	target->arch_info = calloc(1, sizeof(riscv_info_t));
 	if (!target->arch_info)
 		return ERROR_FAIL;
