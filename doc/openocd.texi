@@ -3779,6 +3779,11 @@ a TAP doesn't conform to the JTAG specification.
 to verify that instruction scans work correctly.
 Such scans are not used by OpenOCD except to verify that
 there seems to be no problems with JTAG scan chain operations.
+@item @code{-ignore-syspwrupack}
+@*Specify this to ignore the CSYSPWRUPACK bit in the ARM DAP DP CTRL/STAT
+register during initial examination and when checking the sticky error bit.
+This bit is normally checked after setting the CSYSPWRUPREQ bit, but some
+devices do not set the ack bit until sometime later.
 @end itemize
 @end deffn
 
@@ -4014,11 +4019,21 @@ instead of "@option{-chain-position} @var{dotted.name}" when the target is creat
 
 The @command{dap} command group supports the following sub-commands:
 
-@deffn Command {dap create} dap_name @option{-chain-position} dotted.name
+@deffn Command {dap create} dap_name @option{-chain-position} dotted.name configparams...
 Declare a DAP instance named @var{dap_name} linked to the JTAG tap
 @var{dotted.name}. This also creates a new command (@command{dap_name})
 which is used for various purposes including additional configuration.
 There can only be one DAP for each JTAG tap in the system.
+
+A DAP may also provide optional @var{configparams}:
+
+@itemize @bullet
+@item @code{-ignore-syspwrupack}
+@*Specify this to ignore the CSYSPWRUPACK bit in the ARM DAP DP CTRL/STAT
+register during initial examination and when checking the sticky error bit.
+This bit is normally checked after setting the CSYSPWRUPREQ bit, but some
+devices do not set the ack bit until sometime later.
+@end itemize
 @end deffn
 
 @deffn Command {dap names}
