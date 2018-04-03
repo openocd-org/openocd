@@ -2197,6 +2197,13 @@ The default behaviour is @option{disable};
 use @option{enable} see these errors reported.
 @end deffn
 
+@deffn {Config Command} gdb_report_register_access_error (@option{enable}|@option{disable})
+Specifies whether register accesses requested by GDB register read/write
+packets report errors or not.
+The default behaviour is @option{disable};
+use @option{enable} see these errors reported.
+@end deffn
+
 @deffn {Config Command} gdb_target_description (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to send the target descriptions to gdb via qXfer:features:read packet.
 The default behaviour is @option{enable}.
