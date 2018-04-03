@@ -244,6 +244,10 @@ struct adiv5_dap {
 	 * should be performed before the next access.
 	 */
 	bool do_reconnect;
+
+	/** Flag saying whether to ignore the syspwrupack flag in DAP. Some devices
+	 *  do not set this bit until later in the bringup sequence */
+	bool ignore_syspwrupack;
 };
 
 /**

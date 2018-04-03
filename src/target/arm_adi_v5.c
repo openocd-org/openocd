@@ -676,12 +676,14 @@ int dap_dp_init(struct adiv5_dap *dap)
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("DAP: wait CSYSPWRUPACK");
-	retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
-				      CSYSPWRUPACK, CSYSPWRUPACK,
-				      DAP_POWER_DOMAIN_TIMEOUT);
-	if (retval != ERROR_OK)
-		return retval;
+	if (!dap->ignore_syspwrupack) {
+		LOG_DEBUG("DAP: wait CSYSPWRUPACK");
+		retval = dap_dp_poll_register(dap, DP_CTRL_STAT,
+					      CSYSPWRUPACK, CSYSPWRUPACK,
+					      DAP_POWER_DOMAIN_TIMEOUT);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	retval = dap_queue_dp_read(dap, DP_CTRL_STAT, NULL);
 	if (retval != ERROR_OK)

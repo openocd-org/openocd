@@ -553,7 +553,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 {
 	int retval;
-	uint32_t ctrlstat;
+	uint32_t ctrlstat, pwrmask;
 
 	/* too expensive to call keep_alive() here */
 
@@ -571,8 +571,10 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 	if (ctrlstat & SSTICKYERR) {
 		LOG_DEBUG("jtag-dp: CTRL/STAT 0x%" PRIx32, ctrlstat);
 		/* Check power to debug regions */
-		if ((ctrlstat & (CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) !=
-						(CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) {
+		pwrmask = CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ;
+		if (!dap->ignore_syspwrupack)
+			pwrmask |= CSYSPWRUPACK;
+		if ((ctrlstat & pwrmask) != pwrmask) {
 			LOG_ERROR("Debug regions are unpowered, an unexpected reset might have happened");
 			dap->do_reconnect = true;
 		}

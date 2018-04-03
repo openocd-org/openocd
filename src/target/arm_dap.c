@@ -141,10 +141,12 @@ int dap_cleanup_all(void)
 
 enum dap_cfg_param {
 	CFG_CHAIN_POSITION,
+	CFG_IGNORE_SYSPWRUPACK,
 };
 
 static const Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-chain-position",   .value = CFG_CHAIN_POSITION },
+	{ .name = "-ignore-syspwrupack", .value = CFG_IGNORE_SYSPWRUPACK },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -177,6 +179,9 @@ static int dap_configure(Jim_GetOptInfo *goi, struct arm_dap_object *dap)
 			/* loop for more */
 			break;
 		}
+		case CFG_IGNORE_SYSPWRUPACK:
+			dap->dap.ignore_syspwrupack = true;
+			break;
 		default:
 			break;
 		}
