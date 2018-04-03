@@ -1072,7 +1072,7 @@ static int register_write_direct(struct target *target, unsigned number,
 		return ERROR_FAIL;
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-			riscv_supports_extension(target, 'D') &&
+			riscv_supports_extension(target, riscv_current_hartid(target), 'D') &&
 			riscv_xlen(target) < 64) {
 		/* There are no instructions to move all the bits from a register, so
 		 * we need to use some scratch RAM. */
@@ -1094,7 +1094,7 @@ static int register_write_direct(struct target *target, unsigned number,
 			return ERROR_FAIL;
 
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (riscv_supports_extension(target, 'D'))
+			if (riscv_supports_extension(target, riscv_current_hartid(target), 'D'))
 				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
 			else
 				riscv_program_insert(&program, fmv_w_x(number - GDB_REGNO_FPR0, S0));
@@ -1150,7 +1150,8 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 							set_field(mstatus, MSTATUS_FS, 1)) != ERROR_OK)
 					return ERROR_FAIL;
 
-			if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+			if (riscv_supports_extension(target, riscv_current_hartid(target), 'D')
+					&& riscv_xlen(target) < 64) {
 				/* There are no instructions to move all the bits from a
 				 * register, so we need to use some scratch RAM. */
 				riscv_program_insert(&program, fsd(number - GDB_REGNO_FPR0, S0,
@@ -1163,7 +1164,8 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 				if (register_write_direct(target, GDB_REGNO_S0,
 							scratch.hart_address) != ERROR_OK)
 					return ERROR_FAIL;
-			} else if (riscv_supports_extension(target, 'D')) {
+			} else if (riscv_supports_extension(target,
+						riscv_current_hartid(target), 'D')) {
 				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
 			} else {
 				riscv_program_insert(&program, fmv_x_w(S0, number - GDB_REGNO_FPR0));
@@ -1378,7 +1380,7 @@ static int examine(struct target *target)
 		else
 			r->xlen[i] = 32;
 
-		if (register_read_direct(target, &r->misa, GDB_REGNO_MISA)) {
+		if (register_read_direct(target, &r->misa[i], GDB_REGNO_MISA)) {
 			LOG_ERROR("Fatal: Failed to read MISA from hart %d.", i);
 			return ERROR_FAIL;
 		}
@@ -1390,7 +1392,7 @@ static int examine(struct target *target)
 		/* Display this as early as possible to help people who are using
 		 * really slow simulators. */
 		LOG_DEBUG(" hart %d: XLEN=%d, misa=0x%" PRIx64, i, r->xlen[i],
-				r->misa);
+				r->misa[i]);
 	}
 
 	LOG_DEBUG("Enumerated %d harts", r->hart_count);
@@ -1420,8 +1422,8 @@ static int examine(struct target *target)
 			riscv_count_harts(target));
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
 		if (riscv_hart_enabled(target, i)) {
-			LOG_INFO(" hart %d: XLEN=%d, %d triggers", i, r->xlen[i],
-					r->trigger_count[i]);
+			LOG_INFO(" hart %d: XLEN=%d, misa=0x%" PRIx64 ", %d triggers", i,
+					r->xlen[i], r->misa[i], r->trigger_count[i]);
 		} else {
 			LOG_INFO(" hart %d: currently disabled", i);
 		}

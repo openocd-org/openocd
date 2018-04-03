@@ -1572,11 +1572,11 @@ static int examine(struct target *target)
 	}
 	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
-	if (read_csr(target, &r->misa, CSR_MISA) != ERROR_OK) {
+	if (read_csr(target, &r->misa[0], CSR_MISA) != ERROR_OK) {
 		const unsigned old_csr_misa = 0xf10;
 		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
 				old_csr_misa);
-		if (read_csr(target, &r->misa, old_csr_misa) != ERROR_OK) {
+		if (read_csr(target, &r->misa[0], old_csr_misa) != ERROR_OK) {
 			/* Maybe this is an old core that still has $misa at the old
 			 * address. */
 			LOG_ERROR("Failed to read misa at 0x%x.", old_csr_misa);
@@ -1598,7 +1598,7 @@ static int examine(struct target *target)
 	for (size_t i = 0; i < 32; ++i)
 		reg_cache_set(target, i, -1);
 	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64,
-			riscv_xlen(target), r->misa);
+			riscv_xlen(target), r->misa[0]);
 
 	return ERROR_OK;
 }

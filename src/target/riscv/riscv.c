@@ -313,9 +313,12 @@ static int maybe_add_trigger_t1(struct target *target, unsigned hartid,
 	tdata1 = set_field(tdata1, bpcontrol_r, trigger->read);
 	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
 	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
-	tdata1 = set_field(tdata1, bpcontrol_u, !!(r->misa & (1 << ('U' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_s, !!(r->misa & (1 << ('S' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_h, !!(r->misa & (1 << ('H' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_u,
+			!!(r->misa[hartid] & (1 << ('U' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_s,
+			!!(r->misa[hartid] & (1 << ('S' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_h,
+			!!(r->misa[hartid] & (1 << ('H' - 'A'))));
 	tdata1 |= bpcontrol_m;
 	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); /* exact match */
 	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); /* cause bp exception */
@@ -358,11 +361,11 @@ static int maybe_add_trigger_t2(struct target *target, unsigned hartid,
 			MCONTROL_ACTION_DEBUG_MODE);
 	tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
 	tdata1 |= MCONTROL_M;
-	if (r->misa & (1 << ('H' - 'A')))
+	if (r->misa[hartid] & (1 << ('H' - 'A')))
 		tdata1 |= MCONTROL_H;
-	if (r->misa & (1 << ('S' - 'A')))
+	if (r->misa[hartid] & (1 << ('S' - 'A')))
 		tdata1 |= MCONTROL_S;
-	if (r->misa & (1 << ('U' - 'A')))
+	if (r->misa[hartid] & (1 << ('U' - 'A')))
 		tdata1 |= MCONTROL_U;
 
 	if (trigger->execute)
@@ -1648,7 +1651,7 @@ int riscv_step_rtos_hart(struct target *target)
 	return ERROR_OK;
 }
 
-bool riscv_supports_extension(struct target *target, char letter)
+bool riscv_supports_extension(struct target *target, int hartid, char letter)
 {
 	RISCV_INFO(r);
 	unsigned num;
@@ -1658,7 +1661,7 @@ bool riscv_supports_extension(struct target *target, char letter)
 		num = letter - 'A';
 	else
 		return false;
-	return r->misa & (1 << num);
+	return r->misa[hartid] & (1 << num);
 }
 
 int riscv_xlen(const struct target *target)
@@ -2192,10 +2195,12 @@ int riscv_init_registers(struct target *target)
 			r->feature = &feature_cpu;
 		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			r->caller_save = true;
-			if (riscv_supports_extension(target, 'D')) {
+			if (riscv_supports_extension(target, riscv_current_hartid(target),
+						'D')) {
 				r->reg_data_type = &type_ieee_double;
 				r->size = 64;
-			} else if (riscv_supports_extension(target, 'F')) {
+			} else if (riscv_supports_extension(target,
+						riscv_current_hartid(target), 'F')) {
 				r->reg_data_type = &type_ieee_single;
 				r->size = 32;
 			} else {
@@ -2326,7 +2331,8 @@ int riscv_init_registers(struct target *target)
 				case CSR_FFLAGS:
 				case CSR_FRM:
 				case CSR_FCSR:
-					r->exist = riscv_supports_extension(target, 'F');
+					r->exist = riscv_supports_extension(target,
+							riscv_current_hartid(target), 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
@@ -2340,15 +2346,16 @@ int riscv_init_registers(struct target *target)
 				case CSR_SCAUSE:
 				case CSR_STVAL:
 				case CSR_SATP:
-					r->exist = riscv_supports_extension(target, 'S');
+					r->exist = riscv_supports_extension(target,
+							riscv_current_hartid(target), 'S');
 					break;
 				case CSR_MEDELEG:
 				case CSR_MIDELEG:
 					/* "In systems with only M-mode, or with both M-mode and
 					 * U-mode but without U-mode trap support, the medeleg and
 					 * mideleg registers should not exist." */
-					r->exist = riscv_supports_extension(target, 'S') ||
-						riscv_supports_extension(target, 'N');
+					r->exist = riscv_supports_extension(target, riscv_current_hartid(target), 'S') ||
+						riscv_supports_extension(target, riscv_current_hartid(target), 'N');
 					break;
 			}
 
