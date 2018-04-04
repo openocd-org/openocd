@@ -4131,8 +4131,9 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	 * argv[3] = memory address
 	 * argv[4] = count of times to read
 	 */
+
 	if (argc < 4 || argc > 5) {
-		Jim_WrongNumArgs(interp, 1, argv, "varname width addr nelems [phys]");
+		Jim_WrongNumArgs(interp, 0, argv, "varname width addr nelems [phys]");
 		return JIM_ERR;
 	}
 	varname = Jim_GetString(argv[0], &len);
