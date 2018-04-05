@@ -153,6 +153,8 @@ static int gdb_last_signal(struct target *target)
 			return 0x05;	/* SIGTRAP */
 		case DBG_REASON_SINGLESTEP:
 			return 0x05;	/* SIGTRAP */
+		case DBG_REASON_EXC_CATCH:
+			return 0x05;
 		case DBG_REASON_NOTHALTED:
 			return 0x0;		/* no signal... shouldn't happen */
 		default:

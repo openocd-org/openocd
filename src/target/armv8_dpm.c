@@ -1381,12 +1381,14 @@ void armv8_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 		case DSCRV8_ENTRY_BKPT:	/* SW BKPT (?) */
 		case DSCRV8_ENTRY_RESET_CATCH:	/* Reset catch */
 		case DSCRV8_ENTRY_OS_UNLOCK:  /*OS unlock catch*/
-		case DSCRV8_ENTRY_EXCEPTION_CATCH:  /*exception catch*/
 		case DSCRV8_ENTRY_SW_ACCESS_DBG: /*SW access dbg register*/
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case DSCRV8_ENTRY_WATCHPOINT:	/* asynch watchpoint */
 			target->debug_reason = DBG_REASON_WATCHPOINT;
+			break;
+		case DSCRV8_ENTRY_EXCEPTION_CATCH:  /*exception catch*/
+			target->debug_reason = DBG_REASON_EXC_CATCH;
 			break;
 		default:
 			target->debug_reason = DBG_REASON_UNDEFINED;
