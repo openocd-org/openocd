@@ -1438,11 +1438,11 @@ COMMAND_HANDLER(riscv_test_sba_config_reg)
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
 
-	uint32_t address;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	uint32_t illegal_address;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], illegal_address);
 
 	if (r->test_sba_config_reg) {
-		return r->test_sba_config_reg(target,address);
+		return r->test_sba_config_reg(target, illegal_address);
 	} else {
 		LOG_ERROR("test_sba_config_reg is not implemented for this target.");
 		return ERROR_FAIL;
@@ -1520,8 +1520,8 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "test_sba_config_reg",
 		.handler = riscv_test_sba_config_reg,
 		.mode = COMMAND_ANY,
-		.usage = "riscv test_sba_config_reg address",
-		.help = "Perform a series of tests on the SBCS register. Pass in a non-readable/writable address"
+		.usage = "riscv test_sba_config_reg illegal_address",
+		.help = "Perform a series of tests on the SBCS register. Input arg is a non-readable/writable address."
 	},
 	COMMAND_REGISTRATION_DONE
 };
