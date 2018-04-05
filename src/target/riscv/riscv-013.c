@@ -2826,12 +2826,18 @@ static int get_max_sbaccess(struct target *target)
 	uint32_t sbaccess16	 = get_field(sbcs, DMI_SBCS_SBACCESS16);
 	uint32_t sbaccess8	 = get_field(sbcs, DMI_SBCS_SBACCESS8);
 
-	if (sbaccess128)     return 4;
-	else if (sbaccess64) return 3;
-	else if (sbaccess32) return 2;
-	else if (sbaccess16) return 1;
-	else if (sbaccess8)  return 0;
-	else                 return ERROR_FAIL;
+	if (sbaccess128)
+    return 4;
+	else if (sbaccess64)
+    return 3;
+	else if (sbaccess32)
+    return 2;
+	else if (sbaccess16)
+    return 1;
+	else if (sbaccess8)
+    return 0;
+	else 
+    return ERROR_FAIL;
 }
 
 static int riscv013_test_sba_config_reg(struct target *target, target_addr_t illegal_address)
@@ -2880,7 +2886,8 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 			}
 		}
 	}
-	if (test_passed) LOG_INFO("System Bus Access Test 1: Read/write test, no addr autoincrement PASSED");
+	if (test_passed)
+    LOG_INFO("System Bus Access Test 1: Read/write test, no addr autoincrement PASSED");
 
 	// Test 2: Simple write/read test, with address autoincrement 
 	test_passed = true;
@@ -2915,7 +2922,8 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 			}
 		}
 	}
-	if (test_passed) LOG_INFO("System Bus Access Test 2: Read/write test, addr autoincrement PASSED");
+	if (test_passed)
+    LOG_INFO("System Bus Access Test 2: Read/write test, addr autoincrement PASSED");
 
 	// Test 3: Read from illegal address
 	read_memory_sba_simple(target, illegal_address, sbcs_orig);
@@ -3002,12 +3010,15 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 	dmi_write(target, DMI_SBADDRESS0, 0x80000000);
 
 	dmi_read(target, &rd_val, DMI_SBCS);
-	if (get_field(rd_val,DMI_SBCS_SBBUSYERROR)) {
+	if (get_field(rd_val, DMI_SBCS_SBBUSYERROR)) {
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBBUSYERROR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
 		dmi_read(target, &rd_val, DMI_SBCS);
-		if (get_field(rd_val, DMI_SBCS_SBBUSYERROR) == 0) LOG_INFO("System Bus Access Test 6: SBCS sbbusyerror test PASSED");
-		else LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to clear to 0");
+		if (get_field(rd_val, DMI_SBCS_SBBUSYERROR) == 0) {
+      LOG_INFO("System Bus Access Test 6: SBCS sbbusyerror test PASSED");
+    } else {
+      LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to clear to 0");
+    }
 	} else {
 		LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to set");
 	}
