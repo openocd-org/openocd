@@ -2818,27 +2818,20 @@ void riscv013_fill_dmi_nop_u64(struct target *target, char *buf)
 static int get_max_sbaccess(struct target *target)
 {
 	uint32_t sbcs;
-	dmi_read(target,&sbcs,DMI_SBCS);	
+	dmi_read(target, &sbcs, DMI_SBCS);
 
 	uint32_t sbaccess128 = get_field(sbcs, DMI_SBCS_SBACCESS128);
-	uint32_t sbaccess64	= get_field(sbcs, DMI_SBCS_SBACCESS64);
-	uint32_t sbaccess32	= get_field(sbcs, DMI_SBCS_SBACCESS32);
-	uint32_t sbaccess16	= get_field(sbcs, DMI_SBCS_SBACCESS16);
+	uint32_t sbaccess64	 = get_field(sbcs, DMI_SBCS_SBACCESS64);
+	uint32_t sbaccess32	 = get_field(sbcs, DMI_SBCS_SBACCESS32);
+	uint32_t sbaccess16	 = get_field(sbcs, DMI_SBCS_SBACCESS16);
 	uint32_t sbaccess8	 = get_field(sbcs, DMI_SBCS_SBACCESS8);
 
-	if(sbaccess128){
-		return 4;
-	}else if(sbaccess64){
-		return 3;
-	}else if(sbaccess32){
-		return 2;
-	}else if(sbaccess16){
-		return 1;
-	}else if(sbaccess8){
-		return 0;
-	} else {
-		return ERROR_FAIL;
-	}
+	if (sbaccess128)     return 4;
+	else if (sbaccess64) return 3;
+	else if (sbaccess32) return 2;
+	else if (sbaccess16) return 1;
+	else if (sbaccess8)  return 0;
+	else                 return ERROR_FAIL;
 }
 
 static int riscv013_test_sba_config_reg(struct target *target, target_addr_t illegal_address)
@@ -2854,12 +2847,12 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 
 	int max_sbaccess = get_max_sbaccess(target);
 
-	if(max_sbaccess == ERROR_FAIL) {
+	if (max_sbaccess == ERROR_FAIL) {
 		LOG_ERROR("System Bus Access not supported in this config.");
 		return ERROR_FAIL;
 	}
 
-	if(get_field(sbcs, DMI_SBCS_SBVERSION) != 1) {
+	if (get_field(sbcs, DMI_SBCS_SBVERSION) != 1) {
 		LOG_ERROR("System Bus Access unsupported SBVERSION");
 		return ERROR_FAIL;
 	}
@@ -2869,37 +2862,37 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBAUTOINCREMENT, 0);
 	dmi_write(target, DMI_SBCS, sbcs);
 
-	for(int sbaccess = 0; sbaccess <= max_sbaccess; sbaccess++){
+	for (int sbaccess = 0; sbaccess <= max_sbaccess; sbaccess++) {
 		sbcs = set_field(sbcs, DMI_SBCS_SBACCESS, sbaccess);
 		dmi_write(target, DMI_SBCS, sbcs);
 
-		for(int i = 0; i < 100; i++){
+		for (int i = 0; i < 100; i++) {
 			uint32_t addr = 0x80000000 + (i << sbaccess);
 			write_memory_sba_simple(target, addr, i, sbcs);
 		}
 
-		for(uint32_t i = 0; i < 100; i++){
+		for (uint32_t i = 0; i < 100; i++) {
 			uint32_t addr = 0x80000000 + (i << sbaccess);
 			uint32_t val = read_memory_sba_simple(target, addr, sbcs);
-			if(i != val) {
+			if (i != val) {
 				LOG_ERROR("System Bus Access Test 1: Error reading non-autoincremented address %x, expected val = %d, read val = %d", addr, i, val);
 				test_passed = false;
 			}
 		}
 	}
-	if(test_passed) LOG_INFO("System Bus Access Test 1: Read/write test, no addr autoincrement PASSED");
+	if (test_passed) LOG_INFO("System Bus Access Test 1: Read/write test, no addr autoincrement PASSED");
 
 	// Test 2: Simple write/read test, with address autoincrement 
 	test_passed = true;
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBAUTOINCREMENT, 1);
 	dmi_write(target, DMI_SBCS, sbcs);
 
-	for(int sbaccess = 0; sbaccess <= max_sbaccess; sbaccess++){
+	for (int sbaccess = 0; sbaccess <= max_sbaccess; sbaccess++) {
 		sbcs = set_field(sbcs, DMI_SBCS_SBACCESS, sbaccess);
 		dmi_write(target, DMI_SBCS, sbcs);
 
 		dmi_write(target, DMI_SBADDRESS0, 0x80000000);
-		for(int i = 0; i < 100; i++){
+		for (int i = 0; i < 100; i++) {
 			read_sbcs_nonbusy(target, &sbcs);
 			dmi_write(target, DMI_SBDATA0, i);
 		}
@@ -2912,23 +2905,23 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 		sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
 		dmi_read(target, &val, DMI_SBDATA0); // Dummy read to trigger first system bus read
-		for(uint32_t i = 0; i < 100; i++){
+		for (uint32_t i = 0; i < 100; i++) {
 			read_sbcs_nonbusy(target, &sbcs);
 			dmi_read(target, &val, DMI_SBDATA0);
 			read_sbcs_nonbusy(target, &sbcs);
-			if(i != val) {
+			if (i != val) {
 				LOG_ERROR("System Bus Access Test 2: Error reading autoincremented address, expected val = %d, read val = %d",i,val);
 				test_passed = false;
 			}
 		}
 	}
-	if(test_passed) LOG_INFO("System Bus Access Test 2: Read/write test, addr autoincrement PASSED");
+	if (test_passed) LOG_INFO("System Bus Access Test 2: Read/write test, addr autoincrement PASSED");
 
 	// Test 3: Read from illegal address
 	read_memory_sba_simple(target, illegal_address, sbcs_orig);
 
 	dmi_read(target, &rd_val, DMI_SBCS);
-	if(get_field(rd_val, DMI_SBCS_SBERROR) == 2) {
+	if (get_field(rd_val, DMI_SBCS_SBERROR) == 2) {
 		LOG_INFO("System Bus Access Test 3: Illegal address read test PASSED");
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
@@ -2940,7 +2933,7 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 	write_memory_sba_simple(target, illegal_address, 0xdeadbeef, sbcs_orig);
 
 	dmi_read(target, &rd_val, DMI_SBCS);
-	if(get_field(rd_val, DMI_SBCS_SBERROR) == 2) {
+	if (get_field(rd_val, DMI_SBCS_SBERROR) == 2) {
 		LOG_INFO("System Bus Access Test 4: Illegal address write test PASSED");
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 		dmi_write(target, DMI_SBCS,sbcs);
@@ -2951,7 +2944,7 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 	// Test 5: Write to unsupported sbaccess size 
 	uint32_t sbaccess128 = get_field(sbcs_orig, DMI_SBCS_SBACCESS128);
 
-	if(sbaccess128) {
+	if (sbaccess128) {
 		LOG_INFO("System Bus Access Test 5: SBCS Alignment error test PASSED, all alignments supported");
 	} else {
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBACCESS, 4);
@@ -2961,7 +2954,7 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 
 		dmi_read(target, &rd_val, DMI_SBCS);
 
-		if(get_field(rd_val, DMI_SBCS_SBERROR) == 3) {
+		if (get_field(rd_val, DMI_SBCS_SBERROR) == 3) {
 			LOG_INFO("System Bus Access Test 5: SBCS Alignment error test PASSED");
 			sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 			dmi_write(target, DMI_SBCS, sbcs);
@@ -3009,11 +3002,11 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t ill
 	dmi_write(target, DMI_SBADDRESS0, 0x80000000);
 
 	dmi_read(target, &rd_val, DMI_SBCS);
-	if(get_field(rd_val,DMI_SBCS_SBBUSYERROR)) {
+	if (get_field(rd_val,DMI_SBCS_SBBUSYERROR)) {
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBBUSYERROR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
 		dmi_read(target, &rd_val, DMI_SBCS);
-		if(get_field(rd_val, DMI_SBCS_SBBUSYERROR) == 0) LOG_INFO("System Bus Access Test 6: SBCS sbbusyerror test PASSED");
+		if (get_field(rd_val, DMI_SBCS_SBBUSYERROR) == 0) LOG_INFO("System Bus Access Test 6: SBCS sbbusyerror test PASSED");
 		else LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to clear to 0");
 	} else {
 		LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to set");
