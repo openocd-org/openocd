@@ -2841,7 +2841,8 @@ static int get_max_sbaccess(struct target *target)
 		return ERROR_FAIL;
 }
 
-static int riscv013_test_sba_config_reg(struct target *target, target_addr_t legal_address, target_addr_t illegal_address)
+static int riscv013_test_sba_config_reg(struct target *target,
+		target_addr_t legal_address, target_addr_t illegal_address)
 {
 	LOG_INFO("Testing System Bus Access as defined by RISC-V Debug Spec v0.13");
 

@@ -117,7 +117,7 @@ typedef struct {
 	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
 
-	int (*test_sba_config_reg)(struct target *target, target_addr_t legal_address, 
+	int (*test_sba_config_reg)(struct target *target, target_addr_t legal_address,
 			target_addr_t illegal_address);
 
 } riscv_info_t;
