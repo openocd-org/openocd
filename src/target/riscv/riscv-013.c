@@ -670,17 +670,12 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	LOG_DEBUG("command=0x%x", command);
 	dmi_write(target, DMI_COMMAND, command);
 
-	{
-		uint32_t abstractcs = 0;
-		wait_for_idle(target, &abstractcs);
-	}
+	uint32_t abstractcs = 0;
+	wait_for_idle(target, &abstractcs);
 
-	uint32_t cs;
-	if (dmi_read(target, &cs, DMI_ABSTRACTCS) != ERROR_OK)
-		return ERROR_FAIL;
-	info->cmderr = get_field(cs, DMI_ABSTRACTCS_CMDERR);
+	info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 	if (info->cmderr != 0) {
-		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, cs);
+		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, abstractcs);
 		/* Clear the error. */
 		dmi_write(target, DMI_ABSTRACTCS, set_field(0, DMI_ABSTRACTCS_CMDERR,
 					info->cmderr));
