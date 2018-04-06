@@ -1912,6 +1912,18 @@ static void target_destroy(struct target *target)
 		free(target->working_areas);
 	}
 
+	/* release the targets SMP list */
+	if (target->smp) {
+		struct target_list *head = target->head;
+		while (head != NULL) {
+			struct target_list *pos = head->next;
+			head->target->smp = 0;
+			free(head);
+			head = pos;
+		}
+		target->smp = 0;
+	}
+
 	free(target->type);
 	free(target->trace_info);
 	free(target->fileio_info);
