@@ -92,9 +92,10 @@ class OpenOcd:
         self.send("array unset output") # better to clear the array before
         self.send("mem2array output %d 0x%x %d" % (wordLen, address, n))
 
-        output = self.send("ocd_echo $output").split(" ")
+        output = [*map(int, self.send("ocd_echo $output").split(" "))]
+        d = dict([tuple(output[i:i + 2]) for i in range(0, len(output), 2)])
 
-        return [int(output[2*i+1]) for i in range(len(output)//2)]
+        return [d[k] for k in sorted(d.keys())]
 
     def writeVariable(self, address, value):
         assert value is not None
