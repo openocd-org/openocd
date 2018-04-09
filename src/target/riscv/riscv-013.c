@@ -2908,7 +2908,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			prev_addr = curr_addr;
 			read_sbcs_nonbusy(target, &sbcs);
 			dmi_read(target, &curr_addr, DMI_SBADDRESS0);
-			if ((curr_addr - prev_addr != (1 << sbaccess)) && i != 0) {
+			if ((curr_addr - prev_addr != (1 << (uint32_t)sbaccess)) && i != 0) {
 				LOG_ERROR("System Bus Access Test 2: Error with address autoincrement, sbaccess = %x", sbaccess);
 				test_passed = false;
 			}
@@ -2928,7 +2928,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			prev_addr = curr_addr;
 			read_sbcs_nonbusy(target, &sbcs);
 			dmi_read(target, &curr_addr, DMI_SBADDRESS0);
-			if ((curr_addr - prev_addr != (1 << sbaccess)) && i != 0) {
+			if ((curr_addr - prev_addr != (1 << (uint32_t)sbaccess)) && i != 0) {
 				LOG_ERROR("System Bus Access Test 2: Error with address autoincrement, sbaccess = %x", sbaccess);
 				test_passed = false;
 			}
@@ -2991,7 +2991,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	/* Test 6: Set sbbusyerror, only run this case in simulation as it is likely
 	 * impossible to hit otherwise */
-	if (run_sim_only_tests) {
+	if (riscv_run_sim_only_tests) {
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBREADONADDR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
 

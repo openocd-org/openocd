@@ -133,7 +133,7 @@ extern uint64_t riscv_scratch_ram_address;
 
 extern bool riscv_prefer_sba;
 
-extern bool run_sim_only_tests;
+extern bool riscv_run_sim_only_tests;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */
