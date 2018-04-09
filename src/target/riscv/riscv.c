@@ -1430,18 +1430,18 @@ COMMAND_HANDLER(riscv_dmi_write)
 
 COMMAND_HANDLER(riscv_test_sba_config_reg)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 argument");
+	if (CMD_ARGC != 2) {
+		LOG_ERROR("Command takes exactly 2 arguments");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
 
-	uint32_t legal_address;
-	uint32_t illegal_address;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], legal_address);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], illegal_address);
+	target_addr_t legal_address;
+	target_addr_t illegal_address;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], legal_address);
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1], illegal_address);
 
 	if (r->test_sba_config_reg) {
 		return r->test_sba_config_reg(target, legal_address, illegal_address);
@@ -1525,7 +1525,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.usage = "riscv test_sba_config_reg legal_address illegal_address",
 		.help = "Perform a series of tests on the SBCS register."
 			"Inputs are a legal address for read/write tests,"
-			"and an illegal address to for error flag/handling cases."
+			"and an illegal address for error flag/handling cases."
 	},
 	COMMAND_REGISTRATION_DONE
 };
