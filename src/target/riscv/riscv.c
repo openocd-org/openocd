@@ -190,6 +190,8 @@ uint64_t riscv_scratch_ram_address;
 
 bool riscv_prefer_sba;
 
+bool run_sim_only_tests;
+
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
@@ -1430,8 +1432,8 @@ COMMAND_HANDLER(riscv_dmi_write)
 
 COMMAND_HANDLER(riscv_test_sba_config_reg)
 {
-	if (CMD_ARGC != 2) {
-		LOG_ERROR("Command takes exactly 2 arguments");
+	if (CMD_ARGC != 3) {
+		LOG_ERROR("Command takes exactly 3 arguments");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1442,6 +1444,7 @@ COMMAND_HANDLER(riscv_test_sba_config_reg)
 	target_addr_t illegal_address;
 	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], legal_address);
 	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1], illegal_address);
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[2], run_sim_only_tests);
 
 	if (r->test_sba_config_reg) {
 		return r->test_sba_config_reg(target, legal_address, illegal_address);
@@ -1522,10 +1525,12 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "test_sba_config_reg",
 		.handler = riscv_test_sba_config_reg,
 		.mode = COMMAND_ANY,
-		.usage = "riscv test_sba_config_reg legal_address illegal_address",
+		.usage = "riscv test_sba_config_reg legal_address"
+			"illegal_address run_sim_only_tests[on/off]",
 		.help = "Perform a series of tests on the SBCS register."
 			"Inputs are a legal address for read/write tests,"
-			"and an illegal address for error flag/handling cases."
+			"an illegal address for error flag/handling cases, and"
+			"whether sim_only tests should be run."
 	},
 	COMMAND_REGISTRATION_DONE
 };

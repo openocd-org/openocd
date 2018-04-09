@@ -2816,7 +2816,7 @@ void riscv013_fill_dmi_nop_u64(struct target *target, char *buf)
 	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, 0);
 }
 
-static int get_max_sbaccess(struct target *target)
+static uint32_t get_max_sbaccess(struct target *target)
 {
 	RISCV013_INFO(info);
 
@@ -2854,7 +2854,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	int max_sbaccess = get_max_sbaccess(target);
 
-	if (max_sbaccess == ERROR_FAIL) {
+	if (max_sbaccess == -1) {
 		LOG_ERROR("System Bus Access not supported in this config.");
 		return ERROR_FAIL;
 	}
@@ -2869,7 +2869,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBAUTOINCREMENT, 0);
 	dmi_write(target, DMI_SBCS, sbcs);
 
-	for (int sbaccess = 0; sbaccess <= max_sbaccess; sbaccess++) {
+	for (uint32_t sbaccess = 0; sbaccess <= (uint32_t)max_sbaccess; sbaccess++) {
 		sbcs = set_field(sbcs, DMI_SBCS_SBACCESS, sbaccess);
 		dmi_write(target, DMI_SBCS, sbcs);
 
@@ -2897,7 +2897,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBAUTOINCREMENT, 1);
 	dmi_write(target, DMI_SBCS, sbcs);
 
-	for (int sbaccess = 0; sbaccess <= max_sbaccess; sbaccess++) {
+	for (uint32_t sbaccess = 0; sbaccess <= (uint32_t)max_sbaccess; sbaccess++) {
 		sbcs = set_field(sbcs, DMI_SBCS_SBACCESS, sbaccess);
 		dmi_write(target, DMI_SBCS, sbcs);
 
@@ -2991,57 +2991,57 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	/* Test 6: Set sbbusyerror, only run this case in simulation as it is likely
 	 * impossible to hit otherwise */
-#ifdef SIM_ON
-	sbcs = set_field(sbcs_orig, DMI_SBCS_SBREADONADDR, 1);
-	dmi_write(target, DMI_SBCS, sbcs);
-
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-	dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-	dmi_write(target, DMI_SBADDRESS0, legal_address);
-
-	dmi_read(target, &rd_val, DMI_SBCS);
-	if (get_field(rd_val, DMI_SBCS_SBBUSYERROR)) {
-		sbcs = set_field(sbcs_orig, DMI_SBCS_SBBUSYERROR, 1);
+	if (run_sim_only_tests) {
+		sbcs = set_field(sbcs_orig, DMI_SBCS_SBREADONADDR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
+
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+		dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
+
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+		dmi_write(target, DMI_SBADDRESS0, legal_address);
+
 		dmi_read(target, &rd_val, DMI_SBCS);
-		if (get_field(rd_val, DMI_SBCS_SBBUSYERROR) == 0)
-			LOG_INFO("System Bus Access Test 6: SBCS sbbusyerror test PASSED");
-		else
-			LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to clear to 0");
-	} else {
-		LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to set");
+		if (get_field(rd_val, DMI_SBCS_SBBUSYERROR)) {
+			sbcs = set_field(sbcs_orig, DMI_SBCS_SBBUSYERROR, 1);
+			dmi_write(target, DMI_SBCS, sbcs);
+			dmi_read(target, &rd_val, DMI_SBCS);
+			if (get_field(rd_val, DMI_SBCS_SBBUSYERROR) == 0)
+				LOG_INFO("System Bus Access Test 6: SBCS sbbusyerror test PASSED");
+			else
+				LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to clear to 0");
+		} else {
+			LOG_ERROR("System Bus Access Test 6: SBCS sbbusyerror test FAILED, unable to set");
+		}
 	}
-#endif
 
 	return ERROR_OK;
 
