@@ -2907,9 +2907,9 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		for (int i = 0; i < 100; i++) {
 			prev_addr = curr_addr;
 			read_sbcs_nonbusy(target, &sbcs);
-			dmi_read(target,&curr_addr,DMI_SBADDRESS0);
+			dmi_read(target, &curr_addr, DMI_SBADDRESS0);
 			if ((curr_addr - prev_addr != (1 << sbaccess)) && i != 0) {
-				LOG_ERROR("System Bus Access Test 2: Error with address autoincrement, sbaccess = %x",sbaccess);
+				LOG_ERROR("System Bus Access Test 2: Error with address autoincrement, sbaccess = %x", sbaccess);
 				test_passed = false;
 			}
 			dmi_write(target, DMI_SBDATA0, i);
@@ -2927,9 +2927,9 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		for (uint32_t i = 0; i < 100; i++) {
 			prev_addr = curr_addr;
 			read_sbcs_nonbusy(target, &sbcs);
-			dmi_read(target,&curr_addr,DMI_SBADDRESS0);
+			dmi_read(target, &curr_addr, DMI_SBADDRESS0);
 			if ((curr_addr - prev_addr != (1 << sbaccess)) && i != 0) {
-				LOG_ERROR("System Bus Access Test 2: Error with address autoincrement, sbaccess = %x",sbaccess);
+				LOG_ERROR("System Bus Access Test 2: Error with address autoincrement, sbaccess = %x", sbaccess);
 				test_passed = false;
 			}
 			dmi_read(target, &val, DMI_SBDATA0);
@@ -2989,8 +2989,8 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		}
 	}
 
-	// Test 6: Set sbbusyerror, only run this case in simulation as it is likely
-	// impossible to hit otherwise
+	/* Test 6: Set sbbusyerror, only run this case in simulation as it is likely
+	 * impossible to hit otherwise */
 #ifdef SIM_ON
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBREADONADDR, 1);
 	dmi_write(target, DMI_SBCS, sbcs);
@@ -3054,7 +3054,7 @@ void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t
 	uint32_t rd_sbcs;
 	uint32_t masked_addr;
 
-	uint32_t sba_size = get_field(info->sbcs,DMI_SBCS_SBASIZE);
+	uint32_t sba_size = get_field(info->sbcs, DMI_SBCS_SBASIZE);
 
 	read_sbcs_nonbusy(target, &rd_sbcs);
 
@@ -3081,7 +3081,7 @@ uint32_t read_memory_sba_simple(struct target *target, target_addr_t addr, uint3
 	uint32_t rd_sbcs;
 	uint32_t masked_addr;
 
-	uint32_t sba_size = get_field(info->sbcs,DMI_SBCS_SBASIZE);
+	uint32_t sba_size = get_field(info->sbcs, DMI_SBCS_SBASIZE);
 
 	read_sbcs_nonbusy(target, &rd_sbcs);
 
