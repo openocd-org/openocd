@@ -87,6 +87,7 @@ struct armv7a_mmu_common {
 	/* following field mmu working way */
 	int32_t cached;     /* 0: not initialized, 1: initialized */
 	uint32_t ttbcr;     /* cache for ttbcr register */
+	uint32_t ttbr[2];
 	uint32_t ttbr_mask[2];
 	uint32_t ttbr_range[2];
 

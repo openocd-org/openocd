@@ -80,6 +80,9 @@ if USB_BLASTER_DRIVER
 %C%_libocdjtagdrivers_la_LIBADD += %D%/usb_blaster/libocdusbblaster.la
 include %D%/usb_blaster/Makefile.am
 endif
+if FT232R
+DRIVERFILES += %D%/ft232r.c
+endif
 if AMTJTAGACCEL
 DRIVERFILES += %D%/amt_jtagaccel.c
 endif

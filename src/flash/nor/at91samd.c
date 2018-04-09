@@ -83,6 +83,9 @@
 #define SAMD_GET_SERIES(id) (((id >> 16) & 0x3F))
 #define SAMD_GET_DEVSEL(id) (id & 0xFF)
 
+/* Bits to mask out lockbits in user row */
+#define NVMUSERROW_LOCKBIT_MASK ((uint64_t)0x0000FFFFFFFFFFFF)
+
 struct samd_part {
 	uint8_t id;
 	const char *name;
@@ -159,23 +162,22 @@ static const struct samd_part samd21_parts[] = {
 	{ 0xC, "SAMD21E16A", 64, 8 },
 	{ 0xD, "SAMD21E15A", 32, 4 },
 	{ 0xE, "SAMD21E14A", 16, 2 },
-    /* Below are B Variants (Table 3-7 from rev I of datasheet) */
-	{ 0x20, "SAMD21J16B", 64, 8 },
-	{ 0x21, "SAMD21J15B", 32, 4 },
-	{ 0x23, "SAMD21G16B", 64, 8 },
-	{ 0x24, "SAMD21G15B", 32, 4 },
-	{ 0x26, "SAMD21E16B", 64, 8 },
-	{ 0x27, "SAMD21E15B", 32, 4 },
-};
 
-/* Known SAMR21 parts. */
-static const struct samd_part samr21_parts[] = {
+    /* SAMR21 parts have integrated SAMD21 with a radio */
 	{ 0x19, "SAMR21G18A", 256, 32 },
 	{ 0x1A, "SAMR21G17A", 128, 32 },
 	{ 0x1B, "SAMR21G16A",  64, 32 },
 	{ 0x1C, "SAMR21E18A", 256, 32 },
 	{ 0x1D, "SAMR21E17A", 128, 32 },
 	{ 0x1E, "SAMR21E16A",  64, 32 },
+
+    /* SAMD21 B Variants (Table 3-7 from rev I of datasheet) */
+	{ 0x20, "SAMD21J16B", 64, 8 },
+	{ 0x21, "SAMD21J15B", 32, 4 },
+	{ 0x23, "SAMD21G16B", 64, 8 },
+	{ 0x24, "SAMD21G15B", 32, 4 },
+	{ 0x26, "SAMD21E16B", 64, 8 },
+	{ 0x27, "SAMD21E15B", 32, 4 },
 };
 
 /* Known SAML21 parts. */
@@ -200,6 +202,10 @@ static const struct samd_part saml21_parts[] = {
 	{ 0x1A, "SAML21E17B", 128, 16 },
 	{ 0x1B, "SAML21E16B", 64, 8 },
 	{ 0x1C, "SAML21E15B", 32, 4 },
+
+    /* SAMR30 parts have integrated SAML21 with a radio */
+	{ 0x1E, "SAMR30G18A", 256, 32 },
+	{ 0x1F, "SAMR30E18A", 256, 32 },
 };
 
 /* Known SAML22 parts. */
@@ -256,30 +262,38 @@ struct samd_family {
 	uint8_t series;
 	const struct samd_part *parts;
 	size_t num_parts;
+	uint64_t nvm_userrow_res_mask; /* protect bits which are reserved, 0 -> protect */
 };
 
 /* Known SAMD families */
 static const struct samd_family samd_families[] = {
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_20,
-		samd20_parts, ARRAY_SIZE(samd20_parts) },
+		samd20_parts, ARRAY_SIZE(samd20_parts),
+		(uint64_t)0xFFFF01FFFE01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
-		samd21_parts, ARRAY_SIZE(samd21_parts) },
-	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_21,
-		samr21_parts, ARRAY_SIZE(samr21_parts) },
+		samd21_parts, ARRAY_SIZE(samd21_parts),
+		(uint64_t)0xFFFF01FFFE01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_09,
-		samd09_parts, ARRAY_SIZE(samd09_parts) },
+		samd09_parts, ARRAY_SIZE(samd09_parts),
+		(uint64_t)0xFFFF01FFFE01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_10,
-		samd10_parts, ARRAY_SIZE(samd10_parts) },
+		samd10_parts, ARRAY_SIZE(samd10_parts),
+		(uint64_t)0xFFFF01FFFE01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_D, SAMD_SERIES_11,
-		samd11_parts, ARRAY_SIZE(samd11_parts) },
+		samd11_parts, ARRAY_SIZE(samd11_parts),
+		(uint64_t)0xFFFF01FFFE01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_L, SAMD_SERIES_21,
-		saml21_parts, ARRAY_SIZE(saml21_parts) },
+		saml21_parts, ARRAY_SIZE(saml21_parts),
+		(uint64_t)0xFFFF03FFFC01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_L, SAMD_SERIES_22,
-		saml22_parts, ARRAY_SIZE(saml22_parts) },
+		saml22_parts, ARRAY_SIZE(saml22_parts),
+		(uint64_t)0xFFFF03FFFC01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_C, SAMD_SERIES_20,
-		samc20_parts, ARRAY_SIZE(samc20_parts) },
+		samc20_parts, ARRAY_SIZE(samc20_parts),
+		(uint64_t)0xFFFF03FFFC01FF77 },
 	{ SAMD_PROCESSOR_M0, SAMD_FAMILY_C, SAMD_SERIES_21,
-		samc21_parts, ARRAY_SIZE(samc21_parts) },
+		samc21_parts, ARRAY_SIZE(samc21_parts),
+		(uint64_t)0xFFFF03FFFC01FF77 },
 };
 
 struct samd_info {
@@ -295,24 +309,42 @@ struct samd_info {
 
 static struct samd_info *samd_chips;
 
-
-
-static const struct samd_part *samd_find_part(uint32_t id)
+/**
+ * Gives the family structure to specific device id.
+ * @param id The id of the device.
+ * @return On failure NULL, otherwise a pointer to the structure.
+ */
+static const struct samd_family *samd_find_family(uint32_t id)
 {
 	uint8_t processor = SAMD_GET_PROCESSOR(id);
 	uint8_t family = SAMD_GET_FAMILY(id);
 	uint8_t series = SAMD_GET_SERIES(id);
-	uint8_t devsel = SAMD_GET_DEVSEL(id);
 
 	for (unsigned i = 0; i < ARRAY_SIZE(samd_families); i++) {
 		if (samd_families[i].processor == processor &&
 			samd_families[i].series == series &&
-			samd_families[i].family == family) {
-			for (unsigned j = 0; j < samd_families[i].num_parts; j++) {
-				if (samd_families[i].parts[j].id == devsel)
-					return &samd_families[i].parts[j];
-			}
-		}
+			samd_families[i].family == family)
+			return &samd_families[i];
+	}
+
+	return NULL;
+}
+
+/**
+ * Gives the part structure to specific device id.
+ * @param id The id of the device.
+ * @return On failure NULL, otherwise a pointer to the structure.
+ */
+static const struct samd_part *samd_find_part(uint32_t id)
+{
+	uint8_t devsel = SAMD_GET_DEVSEL(id);
+	const struct samd_family *family = samd_find_family(id);
+	if (family == NULL)
+		return NULL;
+
+	for (unsigned i = 0; i < family->num_parts; i++) {
+		if (family->parts[i].id == devsel)
+			return &family->parts[i];
 	}
 
 	return NULL;
@@ -483,6 +515,12 @@ static int samd_issue_nvmctrl_command(struct target *target, uint16_t cmd)
 	return samd_check_error(target);
 }
 
+/**
+ * Erases a flash-row at the given address.
+ * @param target Pointer to the target structure.
+ * @param address The address of the row.
+ * @return On success ERROR_OK, on failure an errorcode.
+ */
 static int samd_erase_row(struct target *target, uint32_t address)
 {
 	int res;
@@ -504,48 +542,61 @@ static int samd_erase_row(struct target *target, uint32_t address)
 	return ERROR_OK;
 }
 
-static bool is_user_row_reserved_bit(uint8_t bit)
+/**
+ * Returns the bitmask of reserved bits in register.
+ * @param target Pointer to the target structure.
+ * @param mask Bitmask, 0 -> value stays untouched.
+ * @return On success ERROR_OK, on failure an errorcode.
+ */
+static int samd_get_reservedmask(struct target *target, uint64_t *mask)
 {
-	/* See Table 9-3 in the SAMD20 datasheet for more information. */
-	switch (bit) {
-		/* Reserved bits */
-		case 3:
-		case 7:
-		/* Voltage regulator internal configuration with default value of 0x70,
-		 * may not be changed. */
-		case 17 ... 24:
-		/* 41 is voltage regulator internal configuration and must not be
-		 * changed.  42 through 47 are reserved. */
-		case 41 ... 47:
-			return true;
-		default:
-			break;
+	int res;
+	/* Get the devicetype */
+	uint32_t id;
+	res = target_read_u32(target, SAMD_DSU + SAMD_DSU_DID, &id);
+	if (res != ERROR_OK) {
+		LOG_ERROR("Couldn't read Device ID register");
+		return res;
 	}
-
-	return false;
+	const struct samd_family *family;
+	family = samd_find_family(id);
+	if (family == NULL) {
+		LOG_ERROR("Couldn't determine device family");
+		return ERROR_FAIL;
+	}
+	*mask = family->nvm_userrow_res_mask;
+	return ERROR_OK;
 }
 
-/* Modify the contents of the User Row in Flash.  These are described in Table
- * 9-3 of the SAMD20 datasheet.  The User Row itself has a size of one page
- * and contains a combination of "fuses" and calibration data in bits 24:17.
- * We therefore try not to erase the row's contents unless we absolutely have
- * to and we don't permit modifying reserved bits. */
-static int samd_modify_user_row(struct target *target, uint32_t value,
-		uint8_t startb, uint8_t endb)
+static int read_userrow(struct target *target, uint64_t *userrow)
+{
+	int res;
+	uint8_t buffer[8];
+
+	res = target_read_memory(target, SAMD_USER_ROW, 4, 2, buffer);
+	if (res != ERROR_OK)
+		return res;
+
+	*userrow = target_buffer_get_u64(target, buffer);
+	return ERROR_OK;
+}
+
+/**
+ * Modify the contents of the User Row in Flash. The User Row itself
+ * has a size of one page and contains a combination of "fuses" and
+ * calibration data. Bits which have a value of zero in the mask will
+ * not be changed. Up to now devices only use the first 64 bits.
+ * @param target Pointer to the target structure.
+ * @param value_input The value to write.
+ * @param value_mask Bitmask, 0 -> value stays untouched.
+ * @return On success ERROR_OK, on failure an errorcode.
+ */
+static int samd_modify_user_row_masked(struct target *target,
+		uint64_t value_input, uint64_t value_mask)
 {
 	int res;
 	uint32_t nvm_ctrlb;
 	bool manual_wp = true;
-
-	if (is_user_row_reserved_bit(startb) || is_user_row_reserved_bit(endb)) {
-		LOG_ERROR("Can't modify bits in the requested range");
-		return ERROR_FAIL;
-	}
-
-	/* Check if we need to do manual page write commands */
-	res = target_read_u32(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB, &nvm_ctrlb);
-	if (res == ERROR_OK)
-		manual_wp = (nvm_ctrlb & SAMD_NVM_CTRLB_MANW) != 0;
 
 	/* Retrieve the MCU's page size, in bytes. This is also the size of the
 	 * entire User Row. */
@@ -556,44 +607,49 @@ static int samd_modify_user_row(struct target *target, uint32_t value,
 		return res;
 	}
 
-	/* Make sure the size is sane before we allocate. */
-	assert(page_size > 0 && page_size <= SAMD_PAGE_SIZE_MAX);
+	/* Make sure the size is sane. */
+	assert(page_size <= SAMD_PAGE_SIZE_MAX &&
+		page_size >= sizeof(value_input));
 
-	/* Make sure we're within the single page that comprises the User Row. */
-	if (startb >= (page_size * 8) || endb >= (page_size * 8)) {
-		LOG_ERROR("Can't modify bits outside the User Row page range");
-		return ERROR_FAIL;
-	}
-
-	uint8_t *buf = malloc(page_size);
-	if (!buf)
-		return ERROR_FAIL;
-
+	uint8_t buf[SAMD_PAGE_SIZE_MAX];
 	/* Read the user row (comprising one page) by words. */
 	res = target_read_memory(target, SAMD_USER_ROW, 4, page_size / 4, buf);
 	if (res != ERROR_OK)
-		goto out_user_row;
+		return res;
+
+	uint64_t value_device;
+	res = read_userrow(target, &value_device);
+	if (res != ERROR_OK)
+		return res;
+	uint64_t value_new = (value_input & value_mask) | (value_device & ~value_mask);
 
 	/* We will need to erase before writing if the new value needs a '1' in any
 	 * position for which the current value had a '0'.  Otherwise we can avoid
 	 * erasing. */
-	uint32_t cur = buf_get_u32(buf, startb, endb - startb + 1);
-	if ((~cur) & value) {
+	if ((~value_device) & value_new) {
 		res = samd_erase_row(target, SAMD_USER_ROW);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Couldn't erase user row");
-			goto out_user_row;
+			return res;
 		}
 	}
 
 	/* Modify */
-	buf_set_u32(buf, startb, endb - startb + 1, value);
+	target_buffer_set_u64(target, buf, value_new);
 
 	/* Write the page buffer back out to the target. */
 	res = target_write_memory(target, SAMD_USER_ROW, 4, page_size / 4, buf);
 	if (res != ERROR_OK)
-		goto out_user_row;
+		return res;
 
+	/* Check if we need to do manual page write commands */
+	res = target_read_u32(target, SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLB, &nvm_ctrlb);
+	if (res == ERROR_OK)
+		manual_wp = (nvm_ctrlb & SAMD_NVM_CTRLB_MANW) != 0;
+	else {
+		LOG_ERROR("Read of NVM register CTRKB failed.");
+		return ERROR_FAIL;
+	}
 	if (manual_wp) {
 		/* Trigger flash write */
 		res = samd_issue_nvmctrl_command(target, SAMD_NVM_CMD_WAP);
@@ -601,10 +657,26 @@ static int samd_modify_user_row(struct target *target, uint32_t value,
 		res = samd_check_error(target);
 	}
 
-out_user_row:
-	free(buf);
-
 	return res;
+}
+
+/**
+ * Modifies the user row register to the given value.
+ * @param target Pointer to the target structure.
+ * @param value The value to write.
+ * @param startb The bit-offset by which the given value is shifted.
+ * @param endb The bit-offset of the last bit in value to write.
+ * @return On success ERROR_OK, on failure an errorcode.
+ */
+static int samd_modify_user_row(struct target *target, uint64_t value,
+		uint8_t startb, uint8_t endb)
+{
+	uint64_t mask = 0;
+	int i;
+	for (i = startb ; i <= endb ; i++)
+		mask |= ((uint64_t)1) << i;
+
+	return samd_modify_user_row_masked(target, value << startb, mask);
 }
 
 static int samd_protect(struct flash_bank *bank, int set, int first_prot_bl, int last_prot_bl)
@@ -643,7 +715,8 @@ static int samd_protect(struct flash_bank *bank, int set, int first_prot_bl, int
 	 * corresponding to Sector 15.  A '1' means unlocked and a '0' means
 	 * locked.  See Table 9-3 in the SAMD20 datasheet for more details. */
 
-	res = samd_modify_user_row(bank->target, set ? 0x0000 : 0xFFFF,
+	res = samd_modify_user_row(bank->target,
+			set ? (uint64_t)0 : (uint64_t)UINT64_MAX,
 			48 + first_prot_bl, 48 + last_prot_bl);
 	if (res != ERROR_OK)
 		LOG_WARNING("SAMD: protect settings were not made persistent!");
@@ -944,6 +1017,83 @@ COMMAND_HANDLER(samd_handle_eeprom_command)
 	return res;
 }
 
+static COMMAND_HELPER(get_u64_from_hexarg, unsigned int num, uint64_t *value)
+{
+	if (num >= CMD_ARGC) {
+		command_print(CMD_CTX, "Too few Arguments.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (strlen(CMD_ARGV[num]) >= 3 &&
+		CMD_ARGV[num][0] == '0' &&
+		CMD_ARGV[num][1] == 'x') {
+		char *check = NULL;
+		*value = strtoull(&(CMD_ARGV[num][2]), &check, 16);
+		if ((value == 0 && errno == ERANGE) ||
+			check == NULL || *check != 0) {
+			command_print(CMD_CTX, "Invalid 64-bit hex value in argument %d.",
+				num + 1);
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else {
+		command_print(CMD_CTX, "Argument %d needs to be a hex value.", num + 1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(samd_handle_nvmuserrow_command)
+{
+	int res = ERROR_OK;
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (target) {
+		if (CMD_ARGC > 2) {
+			command_print(CMD_CTX, "Too much Arguments given.");
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+
+		if (CMD_ARGC > 0) {
+			if (target->state != TARGET_HALTED) {
+				LOG_ERROR("Target not halted.");
+				return ERROR_TARGET_NOT_HALTED;
+			}
+
+			uint64_t mask;
+			res = samd_get_reservedmask(target, &mask);
+			if (res != ERROR_OK) {
+				LOG_ERROR("Couldn't determine the mask for reserved bits.");
+				return ERROR_FAIL;
+			}
+			mask &= NVMUSERROW_LOCKBIT_MASK;
+
+			uint64_t value;
+			res = CALL_COMMAND_HANDLER(get_u64_from_hexarg, 0, &value);
+			if (res != ERROR_OK)
+				return res;
+			if (CMD_ARGC == 2) {
+				uint64_t mask_temp;
+				res = CALL_COMMAND_HANDLER(get_u64_from_hexarg, 1, &mask_temp);
+				if (res != ERROR_OK)
+					return res;
+				mask &= mask_temp;
+			}
+			res = samd_modify_user_row_masked(target, value, mask);
+			if (res != ERROR_OK)
+				return res;
+		}
+
+		/* read register */
+		uint64_t value;
+		res = read_userrow(target, &value);
+		if (res == ERROR_OK)
+			command_print(CMD_CTX, "NVMUSERROW: 0x%016"PRIX64, value);
+		else
+			LOG_ERROR("NVMUSERROW could not be read.");
+	}
+	return res;
+}
+
 COMMAND_HANDLER(samd_handle_bootloader_command)
 {
 	int res = ERROR_OK;
@@ -1049,29 +1199,29 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.name = "dsu_reset_deassert",
 		.handler = samd_handle_reset_deassert,
 		.mode = COMMAND_EXEC,
-		.help = "deasert internal reset held by DSU"
+		.help = "Deasert internal reset held by DSU."
 	},
 	{
 		.name = "info",
 		.handler = samd_handle_info_command,
 		.mode = COMMAND_EXEC,
-		.help = "Print information about the current at91samd chip"
+		.help = "Print information about the current at91samd chip "
 			"and its flash configuration.",
 	},
 	{
 		.name = "chip-erase",
 		.handler = samd_handle_chip_erase_command,
 		.mode = COMMAND_EXEC,
-		.help = "Erase the entire Flash by using the Chip"
+		.help = "Erase the entire Flash by using the Chip-"
 			"Erase feature in the Device Service Unit (DSU).",
 	},
 	{
 		.name = "set-security",
 		.handler = samd_handle_set_security_command,
 		.mode = COMMAND_EXEC,
-		.help = "Secure the chip's Flash by setting the Security Bit."
-			"This makes it impossible to read the Flash contents."
-			"The only way to undo this is to issue the chip-erase"
+		.help = "Secure the chip's Flash by setting the Security Bit. "
+			"This makes it impossible to read the Flash contents. "
+			"The only way to undo this is to issue the chip-erase "
 			"command.",
 	},
 	{
@@ -1079,9 +1229,9 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.usage = "[size_in_bytes]",
 		.handler = samd_handle_eeprom_command,
 		.mode = COMMAND_EXEC,
-		.help = "Show or set the EEPROM size setting, stored in the User Row."
-			"Please see Table 20-3 of the SAMD20 datasheet for allowed values."
-			"Changes are stored immediately but take affect after the MCU is"
+		.help = "Show or set the EEPROM size setting, stored in the User Row. "
+			"Please see Table 20-3 of the SAMD20 datasheet for allowed values. "
+			"Changes are stored immediately but take affect after the MCU is "
 			"reset.",
 	},
 	{
@@ -1089,10 +1239,21 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.usage = "[size_in_bytes]",
 		.handler = samd_handle_bootloader_command,
 		.mode = COMMAND_EXEC,
-		.help = "Show or set the bootloader size, stored in the User Row."
-			"Please see Table 20-2 of the SAMD20 datasheet for allowed values."
-			"Changes are stored immediately but take affect after the MCU is"
+		.help = "Show or set the bootloader size, stored in the User Row. "
+			"Please see Table 20-2 of the SAMD20 datasheet for allowed values. "
+			"Changes are stored immediately but take affect after the MCU is "
 			"reset.",
+	},
+	{
+		.name = "nvmuserrow",
+		.usage = "[value] [mask]",
+		.handler = samd_handle_nvmuserrow_command,
+		.mode = COMMAND_EXEC,
+		.help = "Show or set the nvmuserrow register. It is 64 bit wide "
+			"and located at address 0x804000. Use the optional mask argument "
+			"to prevent changes at positions where the bitvalue is zero. "
+			"For security reasons the lock- and reserved-bits are masked out "
+			"in background and therefore cannot be changed.",
 	},
 	COMMAND_REGISTRATION_DONE
 };

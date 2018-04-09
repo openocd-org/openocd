@@ -153,6 +153,11 @@ int fileio_close(struct fileio *fileio)
 	return retval;
 }
 
+int fileio_feof(struct fileio *fileio)
+{
+	return feof(fileio->file);
+}
+
 int fileio_seek(struct fileio *fileio, size_t position)
 {
 	int retval;

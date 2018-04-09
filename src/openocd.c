@@ -37,6 +37,8 @@
 #include <flash/nand/core.h>
 #include <pld/pld.h>
 #include <flash/mflash.h>
+#include <target/arm_cti.h>
+#include <target/arm_adi_v5.h>
 
 #include <server/server.h>
 #include <server/gdb_server.h>
@@ -85,13 +87,13 @@ static int log_target_callback_event_handler(struct target *target,
 {
 	switch (event) {
 		case TARGET_EVENT_GDB_START:
-			target->display = 0;
+			target->verbose_halt_msg = false;
 			break;
 		case TARGET_EVENT_GDB_END:
-			target->display = 1;
+			target->verbose_halt_msg = true;
 			break;
 		case TARGET_EVENT_HALTED:
-			if (target->display) {
+			if (target->verbose_halt_msg) {
 				/* do not display information when debugger caused the halt */
 				target_arch_state(target);
 			}
@@ -147,6 +149,10 @@ COMMAND_HANDLER(handle_init_command)
 	command_context_mode(CMD_CTX, COMMAND_EXEC);
 
 	retval = command_run_line(CMD_CTX, "transport init");
+	if (ERROR_OK != retval)
+		return ERROR_FAIL;
+
+	retval = command_run_line(CMD_CTX, "dap init");
 	if (ERROR_OK != retval)
 		return ERROR_FAIL;
 
@@ -252,6 +258,8 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&nand_register_commands,
 		&pld_register_commands,
 		&mflash_register_commands,
+		&cti_register_commands,
+		&dap_register_commands,
 		NULL
 	};
 	for (unsigned i = 0; NULL != command_registrants[i]; i++) {
@@ -286,10 +294,13 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 		return ERROR_FAIL;
 
 	ret = parse_config_file(cmd_ctx);
-	if (ret == ERROR_COMMAND_CLOSE_CONNECTION)
+	if (ret == ERROR_COMMAND_CLOSE_CONNECTION) {
+		server_quit(); /* gdb server may be initialized by -c init */
 		return ERROR_OK;
-	else if (ret != ERROR_OK)
+	} else if (ret != ERROR_OK) {
+		server_quit(); /* gdb server may be initialized by -c init */
 		return ERROR_FAIL;
+	}
 
 	ret = server_init(cmd_ctx);
 	if (ERROR_OK != ret)
@@ -342,12 +353,18 @@ int openocd_main(int argc, char *argv[])
 	/* Start the executable meat that can evolve into thread in future. */
 	ret = openocd_thread(argc, argv, cmd_ctx);
 
+	flash_free_all_banks();
+	gdb_service_free();
+	server_free();
+
 	unregister_all_commands(cmd_ctx, NULL);
+
+	adapter_quit();
 
 	/* Shutdown commandline interface */
 	command_exit(cmd_ctx);
 
-	adapter_quit();
+	free_config();
 
 	if (ERROR_FAIL == ret)
 		return EXIT_FAILURE;

@@ -53,13 +53,11 @@
 
 #include <jtag/swd.h>
 
-/* YUK! - but this is currently a global.... */
-extern struct jtag_interface *jtag_interface;
 static bool do_sync;
 
 static void swd_finish_read(struct adiv5_dap *dap)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	if (dap->last_read != NULL) {
 		swd->read_reg(swd_cmd(true, false, DP_RDBUFF), dap->last_read, 0);
 		dap->last_read = NULL;
@@ -73,7 +71,7 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 
 static void swd_clear_sticky_errors(struct adiv5_dap *dap)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
 	swd->write_reg(swd_cmd(false,  false, DP_ABORT),
@@ -82,7 +80,7 @@ static void swd_clear_sticky_errors(struct adiv5_dap *dap)
 
 static int swd_run_inner(struct adiv5_dap *dap)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	int retval;
 
 	retval = swd->run();
@@ -97,6 +95,7 @@ static int swd_run_inner(struct adiv5_dap *dap)
 
 static int swd_connect(struct adiv5_dap *dap)
 {
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	uint32_t dpidr;
 	int status;
 
@@ -120,7 +119,7 @@ static int swd_connect(struct adiv5_dap *dap)
 	}
 
 	/* Note, debugport_init() does setup too */
-	jtag_interface->swd->switch_seq(JTAG_TO_SWD);
+	swd->switch_seq(JTAG_TO_SWD);
 
 	/* Clear link state, including the SELECT cache. */
 	dap->do_reconnect = false;
@@ -136,6 +135,7 @@ static int swd_connect(struct adiv5_dap *dap)
 	if (status == ERROR_OK) {
 		LOG_INFO("SWD DPIDR %#8.8" PRIx32, dpidr);
 		dap->do_reconnect = false;
+		status = dap_dp_init(dap);
 	} else
 		dap->do_reconnect = true;
 
@@ -157,7 +157,7 @@ static int swd_check_reconnect(struct adiv5_dap *dap)
 
 static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
 	swd->write_reg(swd_cmd(false,  false, DP_ABORT),
@@ -187,7 +187,7 @@ static void swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned reg)
 static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
 	int retval = swd_check_reconnect(dap);
@@ -203,7 +203,7 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 		uint32_t data)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
 	int retval = swd_check_reconnect(dap);
@@ -236,10 +236,9 @@ static void swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned reg)
 static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
 		uint32_t *data)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
-	assert(swd);
-
 	struct adiv5_dap *dap = ap->dap;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
+	assert(swd);
 
 	int retval = swd_check_reconnect(dap);
 	if (retval != ERROR_OK)
@@ -255,10 +254,9 @@ static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
 static int swd_queue_ap_write(struct adiv5_ap *ap, unsigned reg,
 		uint32_t data)
 {
-	const struct swd_driver *swd = jtag_interface->swd;
-	assert(swd);
-
 	struct adiv5_dap *dap = ap->dap;
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
+	assert(swd);
 
 	int retval = swd_check_reconnect(dap);
 	if (retval != ERROR_OK)
@@ -279,6 +277,7 @@ static int swd_run(struct adiv5_dap *dap)
 }
 
 const struct dap_ops swd_dap_ops = {
+	.connect = swd_connect,
 	.queue_dp_read = swd_queue_dp_read,
 	.queue_dp_write = swd_queue_dp_write,
 	.queue_ap_read = swd_queue_ap_read,
@@ -381,14 +380,14 @@ static const struct command_registration swd_handlers[] = {
 
 static int swd_select(struct command_context *ctx)
 {
+	/* FIXME: only place where global 'jtag_interface' is still needed */
+	extern struct jtag_interface *jtag_interface;
+	const struct swd_driver *swd = jtag_interface->swd;
 	int retval;
 
 	retval = register_commands(ctx, NULL, swd_handlers);
-
 	if (retval != ERROR_OK)
 		return retval;
-
-	const struct swd_driver *swd = jtag_interface->swd;
 
 	 /* be sure driver is in SWD mode; start
 	  * with hardware default TRN (1), it can be changed later
@@ -404,33 +403,14 @@ static int swd_select(struct command_context *ctx)
 		return retval;
 	}
 
-	/* force DAP into SWD mode (not JTAG) */
-	/*retval = dap_to_swd(target);*/
-
-	if (ctx->current_target) {
-		/* force DAP into SWD mode (not JTAG) */
-		struct target *target = get_current_target(ctx);
-		retval = dap_to_swd(target);
-	}
-
 	return retval;
 }
 
 static int swd_init(struct command_context *ctx)
 {
-	struct target *target = get_current_target(ctx);
-	struct arm *arm = target_to_arm(target);
-	struct adiv5_dap *dap = arm->dap;
-	/* Force the DAP's ops vector for SWD mode.
-	 * messy - is there a better way? */
-	arm->dap->ops = &swd_dap_ops;
-	/* First connect after init is not reconnecting. */
-	dap->do_reconnect = false;
-
-	int retval = swd_connect(dap);
-	if (retval != ERROR_OK)
-		LOG_ERROR("SWD connect failed");
-	return retval;
+	/* nothing done here, SWD is initialized
+	 * together with the DAP */
+	return ERROR_OK;
 }
 
 static struct transport swd_transport = {

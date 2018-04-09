@@ -64,5 +64,6 @@ struct telnet_service {
 
 int telnet_init(char *banner);
 int telnet_register_commands(struct command_context *command_context);
+void telnet_service_free(void);
 
 #endif /* OPENOCD_SERVER_TELNET_SERVER_H */

@@ -636,6 +636,7 @@ static int xcf_probe(struct flash_bank *bank)
 	fill_sector_table(bank);
 
 	priv->probed = true;
+	/* REVISIT: Why is unchanged bank->driver_priv rewritten by same value? */
 	bank->driver_priv = priv;
 
 	LOG_INFO("product name: %s", product_name(bank));
@@ -893,5 +894,6 @@ struct flash_driver xcf_flash = {
 	.auto_probe         = xcf_auto_probe,
 	.erase_check        = xcf_erase_check,
 	.protect_check      = xcf_protect_check,
-	.info               = xcf_info
+	.info               = xcf_info,
+	.free_driver_priv   = default_flash_free_driver_priv,
 };

@@ -129,9 +129,13 @@ static int armv7a_read_ttbcr(struct target *target)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t ttbcr, ttbcr_n;
-	int retval = dpm->prepare(dpm);
+	int ttbidx;
+	int retval;
+
+	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
+
 	/*  MRC p15,0,<Rt>,c2,c0,2 ; Read CP15 Translation Table Base Control Register*/
 	retval = dpm->instr_read_data_r0(dpm,
 			ARMV4_5_MRC(15, 0, 0, 2, 0, 2),
@@ -144,6 +148,15 @@ static int armv7a_read_ttbcr(struct target *target)
 	ttbcr_n = ttbcr & 0x7;
 	armv7a->armv7a_mmu.ttbcr = ttbcr;
 	armv7a->armv7a_mmu.cached = 1;
+
+	for (ttbidx = 0; ttbidx < 2; ttbidx++) {
+		/*  MRC p15,0,<Rt>,c2,c0,ttbidx */
+		retval = dpm->instr_read_data_r0(dpm,
+				ARMV4_5_MRC(15, 0, 0, 2, 0, ttbidx),
+				&armv7a->armv7a_mmu.ttbr[ttbidx]);
+		if (retval != ERROR_OK)
+			goto done;
+	}
 
 	/*
 	 * ARM Architecture Reference Manual (ARMv7-A and ARMv7-Redition),
@@ -182,42 +195,21 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	uint32_t second_lvl_descriptor = 0x0;
 	int retval;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t ttbidx = 0;	/*  default to ttbr0 */
 	uint32_t ttb_mask;
 	uint32_t va_mask;
-	uint32_t ttbcr;
 	uint32_t ttb;
 
-	retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/*  MRC p15,0,<Rt>,c2,c0,2 ; Read CP15 Translation Table Base Control Register*/
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 0, 0, 2, 0, 2),
-			&ttbcr);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/* if ttbcr has changed or was not read before, re-read the information */
-	if ((armv7a->armv7a_mmu.cached == 0) ||
-		(armv7a->armv7a_mmu.ttbcr != ttbcr)) {
-		armv7a_read_ttbcr(target);
-	}
+	if (target->state != TARGET_HALTED)
+		LOG_INFO("target not halted, using cached values for translation table!");
 
 	/* if va is above the range handled by ttbr0, select ttbr1 */
 	if (va > armv7a->armv7a_mmu.ttbr_range[0]) {
 		/*  select ttb 1 */
 		ttbidx = 1;
 	}
-	/*  MRC p15,0,<Rt>,c2,c0,ttbidx */
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 0, 0, 2, 0, ttbidx),
-			&ttb);
-	if (retval != ERROR_OK)
-		return retval;
 
+	ttb = armv7a->armv7a_mmu.ttbr[ttbidx];
 	ttb_mask = armv7a->armv7a_mmu.ttbr_mask[ttbidx];
 	va_mask = 0xfff00000 & armv7a->armv7a_mmu.ttbr_range[ttbidx];
 
@@ -279,9 +271,6 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
 	}
 
 	return ERROR_OK;
-
-done:
-	return retval;
 }
 
 /*  V7 method VA TO PA  */
@@ -740,6 +729,8 @@ int armv7a_arch_state(struct target *target)
 
 	arm_arch_state(target);
 
+	armv7a_read_ttbcr(target);
+
 	if (armv7a->is_armv7r) {
 		LOG_USER("D-Cache: %s, I-Cache: %s",
 			state[armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled],
@@ -785,9 +776,6 @@ const struct command_registration l2x_cache_command_handlers[] = {
 };
 
 const struct command_registration armv7a_command_handlers[] = {
-	{
-		.chain = dap_command_handlers,
-	},
 	{
 		.chain = l2x_cache_command_handlers,
 	},

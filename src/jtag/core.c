@@ -1308,6 +1308,14 @@ void jtag_tap_free(struct jtag_tap *tap)
 {
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
+	struct jtag_tap_event_action *jteap = tap->event_action;
+	while (jteap) {
+		struct jtag_tap_event_action *next = jteap->next;
+		Jim_DecrRefCount(jteap->interp, jteap->body);
+		free(jteap);
+		jteap = next;
+	}
+
 	free(tap->expected);
 	free(tap->expected_mask);
 	free(tap->expected_ids);
@@ -1472,13 +1480,21 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 
 int adapter_quit(void)
 {
-	if (!jtag || !jtag->quit)
-		return ERROR_OK;
+	if (jtag && jtag->quit) {
+		/* close the JTAG interface */
+		int result = jtag->quit();
+		if (ERROR_OK != result)
+			LOG_ERROR("failed: %d", result);
+	}
 
-	/* close the JTAG interface */
-	int result = jtag->quit();
-	if (ERROR_OK != result)
-		LOG_ERROR("failed: %d", result);
+	struct jtag_tap *t = jtag_all_taps();
+	while (t) {
+		struct jtag_tap *n = t->next_tap;
+		jtag_tap_free(t);
+		t = n;
+	}
+
+	dap_cleanup_all();
 
 	return ERROR_OK;
 }

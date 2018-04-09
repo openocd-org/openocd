@@ -1598,4 +1598,5 @@ struct flash_driver lpc2900_flash = {
 	.auto_probe = lpc2900_probe,
 	.erase_check = lpc2900_erase_check,
 	.protect_check = lpc2900_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

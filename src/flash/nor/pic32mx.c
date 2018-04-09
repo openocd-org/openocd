@@ -980,4 +980,5 @@ struct flash_driver pic32mx_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = pic32mx_protect_check,
 	.info = pic32mx_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

@@ -31,5 +31,6 @@ struct aice_interface_param_s {
 };
 
 int aice_init_targets(void);
+int aice_scan_jtag_chain(void);
 
 #endif /* OPENOCD_JTAG_AICE_AICE_INTERFACE_H */

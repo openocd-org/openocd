@@ -54,6 +54,7 @@
 #include "image.h"
 #include "rtos/rtos.h"
 #include "transport/transport.h"
+#include "arm_cti.h"
 
 /* default halt wait timeout (ms) */
 #define DEFAULT_HALT_TIMEOUT 5000
@@ -512,7 +513,9 @@ struct target *get_target_by_num(int num)
 
 struct target *get_current_target(struct command_context *cmd_ctx)
 {
-	struct target *target = get_target_by_num(cmd_ctx->current_target);
+	struct target *target = cmd_ctx->current_target_override
+		? cmd_ctx->current_target_override
+		: cmd_ctx->current_target;
 
 	if (target == NULL) {
 		LOG_ERROR("BUG: current_target out of bounds");
@@ -810,8 +813,7 @@ done:
 }
 
 /**
- * Downloads a target-specific native code algorithm to the target,
- * executes and leaves it running.
+ * Executes a target-specific native code algorithm and leaves it running.
  *
  * @param target used to run the algorithm
  * @param arch_info target-specific description of the algorithm.
@@ -884,12 +886,45 @@ done:
 }
 
 /**
- * Executes a target-specific native code algorithm in the target.
- * It differs from target_run_algorithm in that the algorithm is asynchronous.
- * Because of this it requires an compliant algorithm:
- * see contrib/loaders/flash/stm32f1x.S for example.
+ * Streams data to a circular buffer on target intended for consumption by code
+ * running asynchronously on target.
+ *
+ * This is intended for applications where target-specific native code runs
+ * on the target, receives data from the circular buffer, does something with
+ * it (most likely writing it to a flash memory), and advances the circular
+ * buffer pointer.
+ *
+ * This assumes that the helper algorithm has already been loaded to the target,
+ * but has not been started yet. Given memory and register parameters are passed
+ * to the algorithm.
+ *
+ * The buffer is defined by (buffer_start, buffer_size) arguments and has the
+ * following format:
+ *
+ *     [buffer_start + 0, buffer_start + 4):
+ *         Write Pointer address (aka head). Written and updated by this
+ *         routine when new data is written to the circular buffer.
+ *     [buffer_start + 4, buffer_start + 8):
+ *         Read Pointer address (aka tail). Updated by code running on the
+ *         target after it consumes data.
+ *     [buffer_start + 8, buffer_start + buffer_size):
+ *         Circular buffer contents.
+ *
+ * See contrib/loaders/flash/stm32f1x.S for an example.
  *
  * @param target used to run the algorithm
+ * @param buffer address on the host where data to be sent is located
+ * @param count number of blocks to send
+ * @param block_size size in bytes of each block
+ * @param num_mem_params count of memory-based params to pass to algorithm
+ * @param mem_params memory-based params to pass to algorithm
+ * @param num_reg_params count of register-based params to pass to algorithm
+ * @param reg_params memory-based params to pass to algorithm
+ * @param buffer_start address on the target of the circular buffer structure
+ * @param buffer_size size of the circular buffer structure
+ * @param entry_point address on the target to execute to start the algorithm
+ * @param exit_point address at which to set a breakpoint to catch the
+ *     end of the algorithm; can be 0 if target triggers a breakpoint itself
  */
 
 int target_run_flash_async_algorithm(struct target *target,
@@ -1860,8 +1895,26 @@ static void target_destroy(struct target *target)
 	if (target->type->deinit_target)
 		target->type->deinit_target(target);
 
+	jtag_unregister_event_callback(jtag_enable_callback, target);
+
+	struct target_event_action *teap = target->event_action;
+	while (teap) {
+		struct target_event_action *next = teap->next;
+		Jim_DecrRefCount(teap->interp, teap->body);
+		free(teap);
+		teap = next;
+	}
+
+	target_free_all_working_areas(target);
+	/* Now we have none or only one working area marked as free */
+	if (target->working_areas) {
+		free(target->working_areas->backup);
+		free(target->working_areas);
+	}
+
 	free(target->type);
 	free(target->trace_info);
+	free(target->fileio_info);
 	free(target->cmd_name);
 	free(target);
 }
@@ -2475,7 +2528,10 @@ static int find_target(struct command_context *cmd_ctx, const char *name)
 		return ERROR_FAIL;
 	}
 
-	cmd_ctx->current_target = target->target_number;
+	cmd_ctx->current_target = target;
+	if (cmd_ctx->current_target_override)
+		cmd_ctx->current_target_override = target;
+
 	return ERROR_OK;
 }
 
@@ -2503,7 +2559,7 @@ COMMAND_HANDLER(handle_targets_command)
 		else
 			state = "tap-disabled";
 
-		if (CMD_CTX->current_target == target->target_number)
+		if (CMD_CTX->current_target == target)
 			marker = '*';
 
 		/* keep columns lined up to match the headers above */
@@ -2920,6 +2976,9 @@ COMMAND_HANDLER(handle_halt_command)
 	LOG_DEBUG("-");
 
 	struct target *target = get_current_target(CMD_CTX);
+
+	target->verbose_halt_msg = true;
+
 	int retval = target_halt(target);
 	if (ERROR_OK != retval)
 		return retval;
@@ -4424,17 +4483,28 @@ void target_handle_event(struct target *target, enum target_event e)
 
 	for (teap = target->event_action; teap != NULL; teap = teap->next) {
 		if (teap->event == e) {
-			LOG_DEBUG("target: (%d) %s (%s) event: %d (%s) action: %s",
+			LOG_DEBUG("target(%d): %s (%s) event: %d (%s) action: %s",
 					   target->target_number,
 					   target_name(target),
 					   target_type_name(target),
 					   e,
 					   Jim_Nvp_value2name_simple(nvp_target_event, e)->name,
 					   Jim_GetString(teap->body, NULL));
+
+			/* Override current target by the target an event
+			 * is issued from (lot of scripts need it).
+			 * Return back to previous override as soon
+			 * as the handler processing is done */
+			struct command_context *cmd_ctx = current_command_context(teap->interp);
+			struct target *saved_target_override = cmd_ctx->current_target_override;
+			cmd_ctx->current_target_override = target;
+
 			if (Jim_EvalObj(teap->interp, teap->body) != JIM_OK) {
 				Jim_MakeErrorMessage(teap->interp);
 				command_print(NULL, "%s\n", Jim_GetString(Jim_GetResult(teap->interp), NULL));
 			}
+
+			cmd_ctx->current_target_override = saved_target_override;
 		}
 	}
 }
@@ -4464,7 +4534,6 @@ enum target_cfg_param {
 	TCFG_COREID,
 	TCFG_CHAIN_POSITION,
 	TCFG_DBGBASE,
-	TCFG_CTIBASE,
 	TCFG_RTOS,
 	TCFG_DEFER_EXAMINE,
 };
@@ -4480,7 +4549,6 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-coreid",           .value = TCFG_COREID },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
-	{ .name = "-ctibase",          .value = TCFG_CTIBASE },
 	{ .name = "-rtos",             .value = TCFG_RTOS },
 	{ .name = "-defer-examine",    .value = TCFG_DEFER_EXAMINE },
 	{ .name = NULL, .value = -1 }
@@ -4717,6 +4785,13 @@ no_params:
 			if (goi->isconfigure) {
 				Jim_Obj *o_t;
 				struct jtag_tap *tap;
+
+				if (target->has_dap) {
+					Jim_SetResultString(goi->interp,
+						"target requires -dap parameter instead of -chain-position!", -1);
+					return JIM_ERR;
+				}
+
 				target_free_all_working_areas(target);
 				e = Jim_GetOpt_Obj(goi, &o_t);
 				if (e != JIM_OK)
@@ -4724,8 +4799,8 @@ no_params:
 				tap = jtag_tap_by_jim_obj(goi->interp, o_t);
 				if (tap == NULL)
 					return JIM_ERR;
-				/* make this exactly 1 or 0 */
 				target->tap = tap;
+				target->tap_configured = true;
 			} else {
 				if (goi->argc != 0)
 					goto no_params;
@@ -4745,20 +4820,6 @@ no_params:
 					goto no_params;
 			}
 			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->dbgbase));
-			/* loop for more */
-			break;
-		case TCFG_CTIBASE:
-			if (goi->isconfigure) {
-				e = Jim_GetOpt_Wide(goi, &w);
-				if (e != JIM_OK)
-					return e;
-				target->ctibase = (uint32_t)w;
-				target->ctibase_set = true;
-			} else {
-				if (goi->argc != 0)
-					goto no_params;
-			}
-			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->ctibase));
 			/* loop for more */
 			break;
 		case TCFG_RTOS:
@@ -5512,7 +5573,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target = calloc(1, sizeof(struct target));
 	/* set target number */
 	target->target_number = new_target_number();
-	cmd_ctx->current_target = target->target_number;
+	cmd_ctx->current_target = target;
 
 	/* allocate memory for each unique target type */
 	target->type = calloc(1, sizeof(struct target_type));
@@ -5538,7 +5599,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->next                = NULL;
 	target->arch_info           = NULL;
 
-	target->display             = 1;
+	target->verbose_halt_msg	= true;
 
 	target->halt_issued			= false;
 
@@ -5557,9 +5618,21 @@ static int target_create(Jim_GetOptInfo *goi)
 	goi->isconfigure = 1;
 	e = target_configure(goi, target);
 
-	if (target->tap == NULL) {
-		Jim_SetResultString(goi->interp, "-chain-position required when creating target", -1);
-		e = JIM_ERR;
+	if (e == JIM_OK) {
+		if (target->has_dap) {
+			if (!target->dap_configured) {
+				Jim_SetResultString(goi->interp, "-dap ?name? required when creating target", -1);
+				e = JIM_ERR;
+			}
+		} else {
+			if (!target->tap_configured) {
+				Jim_SetResultString(goi->interp, "-chain-position ?name? required when creating target", -1);
+				e = JIM_ERR;
+			}
+		}
+		/* tap must be set after target was configured */
+		if (target->tap == NULL)
+			e = JIM_ERR;
 	}
 
 	if (e != JIM_OK) {
@@ -5576,14 +5649,23 @@ static int target_create(Jim_GetOptInfo *goi)
 	cp = Jim_GetString(new_cmd, NULL);
 	target->cmd_name = strdup(cp);
 
+	if (target->type->target_create) {
+		e = (*(target->type->target_create))(target, goi->interp);
+		if (e != ERROR_OK) {
+			LOG_DEBUG("target_create failed");
+			free(target->type);
+			free(target->cmd_name);
+			free(target);
+			return JIM_ERR;
+		}
+	}
+
 	/* create the target specific commands */
 	if (target->type->commands) {
 		e = register_commands(cmd_ctx, NULL, target->type->commands);
 		if (ERROR_OK != e)
 			LOG_ERROR("unable to register '%s' commands", cp);
 	}
-	if (target->type->target_create)
-		(*(target->type->target_create))(target, goi->interp);
 
 	/* append to end of list */
 	{

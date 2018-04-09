@@ -1207,4 +1207,5 @@ struct flash_driver str9xpec_flash = {
 	.auto_probe = str9xpec_probe,
 	.erase_check = str9xpec_erase_check,
 	.protect_check = str9xpec_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

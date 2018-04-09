@@ -719,3 +719,8 @@ int telnet_register_commands(struct command_context *cmd_ctx)
 	telnet_port = strdup("4444");
 	return register_commands(cmd_ctx, NULL, telnet_command_handlers);
 }
+
+void telnet_service_free(void)
+{
+	free(telnet_port);
+}

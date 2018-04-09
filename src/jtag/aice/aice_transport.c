@@ -158,6 +158,59 @@ COMMAND_HANDLER(handle_aice_init_command)
 	return jtag_init(CMD_CTX);
 }
 
+COMMAND_HANDLER(handle_scan_chain_command)
+{
+	struct jtag_tap *tap;
+	char expected_id[12];
+
+	aice_scan_jtag_chain();
+	tap = jtag_all_taps();
+	command_print(CMD_CTX,
+		"   TapName             Enabled  IdCode     Expected   IrLen IrCap IrMask");
+	command_print(CMD_CTX,
+		"-- ------------------- -------- ---------- ---------- ----- ----- ------");
+
+	while (tap) {
+		uint32_t expected, expected_mask, ii;
+
+		snprintf(expected_id, sizeof expected_id, "0x%08x",
+			(unsigned)((tap->expected_ids_cnt > 0)
+				   ? tap->expected_ids[0]
+				   : 0));
+		if (tap->ignore_version)
+			expected_id[2] = '*';
+
+		expected = buf_get_u32(tap->expected, 0, tap->ir_length);
+		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
+
+		command_print(CMD_CTX,
+			"%2d %-18s     %c     0x%08x %s %5d 0x%02x  0x%02x",
+			tap->abs_chain_position,
+			tap->dotted_name,
+			tap->enabled ? 'Y' : 'n',
+			(unsigned int)(tap->idcode),
+			expected_id,
+			(unsigned int)(tap->ir_length),
+			(unsigned int)(expected),
+			(unsigned int)(expected_mask));
+
+		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
+			snprintf(expected_id, sizeof expected_id, "0x%08x",
+				(unsigned) tap->expected_ids[ii]);
+			if (tap->ignore_version)
+				expected_id[2] = '*';
+
+			command_print(CMD_CTX,
+				"                                           %s",
+				expected_id);
+		}
+
+		tap = tap->next_tap;
+	}
+
+	return ERROR_OK;
+}
+
 static int jim_aice_arp_init(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
 	LOG_DEBUG("No implement: jim_aice_arp_init");
@@ -306,6 +359,13 @@ aice_transport_jtag_subcommand_handlers[] = {
 		.mode = COMMAND_ANY,
 		.jim_handler = jim_aice_names,
 		.help = "Returns list of all JTAG tap names.",
+	},
+	{
+		.name = "scan_chain",
+		.handler = handle_scan_chain_command,
+		.mode = COMMAND_ANY,
+		.help = "print current scan chain configuration",
+		.usage = ""
 	},
 
 	COMMAND_REGISTRATION_DONE
