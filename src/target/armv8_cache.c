@@ -310,6 +310,7 @@ int armv8_identify_cache(struct armv8_common *armv8)
 {
 	/*  read cache descriptor */
 	int retval = ERROR_FAIL;
+	struct arm *arm = &armv8->arm;
 	struct arm_dpm *dpm = armv8->arm.dpm;
 	uint32_t csselr, clidr, ctr;
 	uint32_t cache_reg;
@@ -319,6 +320,13 @@ int armv8_identify_cache(struct armv8_common *armv8)
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
+
+	/* check if we're in an unprivileged mode */
+	if (armv8_curel_from_core_mode(arm->core_mode) < SYSTEM_CUREL_EL1) {
+		retval = armv8_dpm_modeswitch(dpm, ARMV8_64_EL1H);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	/* retrieve CTR */
 	retval = dpm->instr_read_data_r0(dpm,
@@ -417,6 +425,7 @@ int armv8_identify_cache(struct armv8_common *armv8)
 	}
 
 done:
+	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 	dpm->finish(dpm);
 	return retval;
 

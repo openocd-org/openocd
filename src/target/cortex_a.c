@@ -54,7 +54,7 @@
 #include "target_type.h"
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
-#include "jtag/swd.h"
+#include "transport/transport.h"
 #include <helper/time_support.h>
 
 static int cortex_a_poll(struct target *target);
@@ -206,20 +206,24 @@ static int cortex_a_init_debug_access(struct target *target)
 
 	/* lock memory-mapped access to debug registers to prevent
 	 * software interference */
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+	retval = mem_ap_write_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_LOCKACCESS, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Disable cacheline fills and force cache write-through in debug state */
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+	retval = mem_ap_write_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DSCCR, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
 	/* Disable TLB lookup and refill/eviction in debug state */
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+	retval = mem_ap_write_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DSMCR, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_run(armv7a->debug_ap->dap);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1496,10 +1500,22 @@ static int cortex_a_set_breakpoint(struct target *target,
 			brp_list[brp_i].value);
 	} else if (breakpoint->type == BKPT_SOFT) {
 		uint8_t code[4];
+		/* length == 2: Thumb breakpoint */
 		if (breakpoint->length == 2)
 			buf_set_u32(code, 0, 32, ARMV5_T_BKPT(0x11));
 		else
+		/* length == 3: Thumb-2 breakpoint, actual encoding is
+		 * a regular Thumb BKPT instruction but we replace a
+		 * 32bit Thumb-2 instruction, so fix-up the breakpoint
+		 * length
+		 */
+		if (breakpoint->length == 3) {
+			buf_set_u32(code, 0, 32, ARMV5_T_BKPT(0x11));
+			breakpoint->length = 4;
+		} else
+			/* length == 4, normal ARM breakpoint */
 			buf_set_u32(code, 0, 32, ARMV5_BKPT(0x11));
+
 		retval = target_read_memory(target,
 				breakpoint->address & 0xFFFFFFFE,
 				breakpoint->length, 1,
@@ -2931,12 +2947,6 @@ static int cortex_a_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t didr, cpuid, dbg_osreg;
 
-	retval = dap_dp_init(swjdp);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("Could not initialize the debug port");
-		return retval;
-	}
-
 	/* Search for the APB-AP - it is needed for access to debug registers */
 	retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
 	if (retval != ERROR_OK) {
@@ -3118,22 +3128,13 @@ static int cortex_a_init_target(struct command_context *cmd_ctx,
 }
 
 static int cortex_a_init_arch_info(struct target *target,
-	struct cortex_a_common *cortex_a, struct jtag_tap *tap)
+	struct cortex_a_common *cortex_a, struct adiv5_dap *dap)
 {
 	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
 
 	/* Setup struct cortex_a_common */
 	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
-
-	/*  tap has no dap initialized */
-	if (!tap->dap) {
-		tap->dap = dap_init();
-
-		/* Leave (only) generic DAP stuff for debugport_init() */
-		tap->dap->tap = tap;
-	}
-
-	armv7a->arm.dap = tap->dap;
+	armv7a->arm.dap = dap;
 
 	cortex_a->fast_reg_read = 0;
 
@@ -3159,19 +3160,34 @@ static int cortex_a_init_arch_info(struct target *target,
 static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_a_common *cortex_a = calloc(1, sizeof(struct cortex_a_common));
+	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
+	struct adiv5_private_config *pc;
+
+	if (target->private_config == NULL)
+		return ERROR_FAIL;
+
+	pc = (struct adiv5_private_config *)target->private_config;
 
 	cortex_a->armv7a_common.is_armv7r = false;
 
-	return cortex_a_init_arch_info(target, cortex_a, target->tap);
+	cortex_a->armv7a_common.arm.arm_vfp_version = ARM_VFP_V3;
+
+	return cortex_a_init_arch_info(target, cortex_a, pc->dap);
 }
 
 static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_a_common *cortex_a = calloc(1, sizeof(struct cortex_a_common));
+	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
+	struct adiv5_private_config *pc;
+
+	pc = (struct adiv5_private_config *)target->private_config;
+	if (adiv5_verify_config(pc) != ERROR_OK)
+		return ERROR_FAIL;
 
 	cortex_a->armv7a_common.is_armv7r = true;
 
-	return cortex_a_init_arch_info(target, cortex_a, target->tap);
+	return cortex_a_init_arch_info(target, cortex_a, pc->dap);
 }
 
 static void cortex_a_deinit_target(struct target *target)
@@ -3182,6 +3198,7 @@ static void cortex_a_deinit_target(struct target *target)
 	free(cortex_a->brp_list);
 	free(dpm->dbp);
 	free(dpm->dwp);
+	free(target->private_config);
 	free(cortex_a);
 }
 
@@ -3466,6 +3483,7 @@ struct target_type cortexa_target = {
 
 	.commands = cortex_a_command_handlers,
 	.target_create = cortex_a_target_create,
+	.target_jim_configure = adiv5_jim_configure,
 	.init_target = cortex_a_init_target,
 	.examine = cortex_a_examine,
 	.deinit_target = cortex_a_deinit_target,
@@ -3477,13 +3495,6 @@ struct target_type cortexa_target = {
 };
 
 static const struct command_registration cortex_r4_exec_command_handlers[] = {
-	{
-		.name = "cache_info",
-		.handler = cortex_a_handle_cache_info_command,
-		.mode = COMMAND_EXEC,
-		.help = "display information about target caches",
-		.usage = "",
-	},
 	{
 		.name = "dbginit",
 		.handler = cortex_a_handle_dbginit_command,
@@ -3504,9 +3515,6 @@ static const struct command_registration cortex_r4_exec_command_handlers[] = {
 static const struct command_registration cortex_r4_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,
-	},
-	{
-		.chain = armv7a_command_handlers,
 	},
 	{
 		.name = "cortex_r4",
@@ -3551,6 +3559,7 @@ struct target_type cortexr4_target = {
 
 	.commands = cortex_r4_command_handlers,
 	.target_create = cortex_r4_target_create,
+	.target_jim_configure = adiv5_jim_configure,
 	.init_target = cortex_a_init_target,
 	.examine = cortex_a_examine,
 	.deinit_target = cortex_a_deinit_target,

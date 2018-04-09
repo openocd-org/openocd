@@ -1880,4 +1880,5 @@ struct flash_driver numicro_flash = {
 	.auto_probe = numicro_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = numicro_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

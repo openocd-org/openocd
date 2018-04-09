@@ -477,7 +477,8 @@ static int stm8_examine_debug_reason(struct target *target)
 	uint8_t csr1, csr2;
 
 	retval = stm8_read_dm_csrx(target, &csr1, &csr2);
-	LOG_DEBUG("csr1 = 0x%02X csr2 = 0x%02X", csr1, csr2);
+	if (retval == ERROR_OK)
+		LOG_DEBUG("csr1 = 0x%02X csr2 = 0x%02X", csr1, csr2);
 
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 		&& (target->debug_reason != DBG_REASON_SINGLESTEP)) {

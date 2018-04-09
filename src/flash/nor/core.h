@@ -76,7 +76,7 @@ struct flash_sector {
  * per-bank basis, if required.
  */
 struct flash_bank {
-	const char *name;
+	char *name;
 
 	struct target *target; /**< Target to which this bank belongs. */
 
@@ -153,8 +153,15 @@ int flash_write(struct target *target,
  * This routine must be called when the system may modify the status.
  */
 void flash_set_dirty(void);
+
 /** @returns The number of flash banks currently defined. */
 int flash_get_bank_count(void);
+
+/** Deallocates bank->driver_priv */
+void default_flash_free_driver_priv(struct flash_bank *bank);
+
+/** Deallocates all flash banks */
+void flash_free_all_banks(void);
 /**
  * Provides default read implementation for flash memory.
  * @param bank The bank to read.

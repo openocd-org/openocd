@@ -1,12 +1,19 @@
 // This file is part of the Doxygen Developer Manual
 /** @page patchguide Patch Guidelines
 
-\attention If you're behind a corporate wall with http only access to the
-world, you can still use these instructions!
-
 \attention You can't send patches to the mailing list anymore at all. Nowadays
 you are expected to send patches to the OpenOCD Gerrit GIT server for a
 review.
+
+\attention If you already have a Gerrit account and want to try a
+different sign in method, please first sign in as usually, press your
+name in the upper-right corner, go to @a Settings, select @a
+Identities pane, press <em>Link Another Identity</em> button. In case
+you already have duplicated accounts, ask administrators for manual
+merging.
+
+\attention If you're behind a corporate wall with http only access to the
+world, you can still use these instructions!
 
 @section gerrit Submitting patches to the OpenOCD Gerrit server
 
