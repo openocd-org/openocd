@@ -144,6 +144,8 @@ typedef struct {
 	bool was_reset;
 	/* Targets that are connected to this DM. */
 	struct list_head target_list;
+	/* The currently selected hartid on this DM. */
+	int current_hartid;
 } dm013_info_t;
 
 typedef struct {
@@ -243,6 +245,7 @@ static dm013_info_t *get_dm(struct target *target)
 	if (!dm) {
 		dm = calloc(1, sizeof(dm013_info_t));
 		dm->abs_chain_position = abs_chain_position;
+		dm->current_hartid = -1;
 		INIT_LIST_HEAD(&dm->target_list);
 		list_add(&dm->list, &dm_list);
 	}
@@ -1137,8 +1140,6 @@ static int register_read(struct target *target, uint64_t *value, uint32_t number
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		if (reg && reg->valid) {
 			*value = buf_get_u64(reg->value, 0, reg->size);
-			LOG_INFO(">>> cache hit on %s: 0x%" PRIx64,
-					gdb_regno_name(number), *value);
 			return ERROR_OK;
 		}
 	}
@@ -2700,10 +2701,19 @@ static void riscv013_select_current_hart(struct target *target)
 {
 	RISCV_INFO(r);
 
+	dm013_info_t *dm = get_dm(target);
+	if (r->current_hartid == dm->current_hartid) {
+		LOG_DEBUG(">>> nothing to be done");
+		return;
+	}
+
+	LOG_DEBUG(">>> change it");
+
 	uint32_t dmcontrol;
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
 	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	dm->current_hartid = r->current_hartid;
 }
 
 static int riscv013_halt_current_hart(struct target *target)
