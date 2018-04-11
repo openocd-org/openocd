@@ -2921,7 +2921,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	if (test_passed)
 		LOG_INFO("System Bus Access Test 1: Simple write/read test PASSED.");
 
-	/* Test 2: Address autoincrement test */ 
+	/* Test 2: Address autoincrement test */
 	target_addr_t curr_addr;
 	target_addr_t prev_addr;
 	test_passed = true;
@@ -3099,7 +3099,7 @@ void write_memory_sba_simple(struct target *target, target_addr_t addr,
 
 	/* Write SBDATA registers starting with highest address, since write to
 	 * SBDATA0 triggers write */
-	for (int i = write_size-1; i >= 0; i--) 
+	for (int i = write_size-1; i >= 0; i--)
 		dmi_write(target, DMI_SBDATA0+i, write_data[i]);
 }
 
