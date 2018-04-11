@@ -118,7 +118,7 @@ typedef struct {
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
 
 	int (*test_sba_config_reg)(struct target *target, target_addr_t legal_address,
-			target_addr_t illegal_address);
+			uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
 
 } riscv_info_t;
 
@@ -133,7 +133,7 @@ extern uint64_t riscv_scratch_ram_address;
 
 extern bool riscv_prefer_sba;
 
-extern bool riscv_run_sim_only_tests;
+extern bool riscv_run_sbbusyerror_test;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */

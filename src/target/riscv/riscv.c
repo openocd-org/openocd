@@ -190,8 +190,6 @@ uint64_t riscv_scratch_ram_address;
 
 bool riscv_prefer_sba;
 
-bool riscv_run_sim_only_tests;
-
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
@@ -1432,8 +1430,8 @@ COMMAND_HANDLER(riscv_dmi_write)
 
 COMMAND_HANDLER(riscv_test_sba_config_reg)
 {
-	if (CMD_ARGC != 3) {
-		LOG_ERROR("Command takes exactly 3 arguments");
+	if (CMD_ARGC != 4) {
+		LOG_ERROR("Command takes exactly 4 arguments");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1441,13 +1439,17 @@ COMMAND_HANDLER(riscv_test_sba_config_reg)
 	RISCV_INFO(r);
 
 	target_addr_t legal_address;
+	uint32_t num_words;
 	target_addr_t illegal_address;
+	bool run_sbbusyerror_test;
 	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], legal_address);
-	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1], illegal_address);
-	COMMAND_PARSE_ON_OFF(CMD_ARGV[2], riscv_run_sim_only_tests);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], num_words);
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[2], illegal_address);
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[3], run_sbbusyerror_test);
 
 	if (r->test_sba_config_reg) {
-		return r->test_sba_config_reg(target, legal_address, illegal_address);
+		return r->test_sba_config_reg(target, legal_address, num_words,
+				illegal_address, run_sbbusyerror_test);
 	} else {
 		LOG_ERROR("test_sba_config_reg is not implemented for this target.");
 		return ERROR_FAIL;
@@ -1525,12 +1527,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "test_sba_config_reg",
 		.handler = riscv_test_sba_config_reg,
 		.mode = COMMAND_ANY,
-		.usage = "riscv test_sba_config_reg legal_address"
-			"illegal_address riscv_run_sim_only_tests[on/off]",
+		.usage = "riscv test_sba_config_reg legal_address num_words"
+			"illegal_address run_sbbusyerror_test[on/off]",
 		.help = "Perform a series of tests on the SBCS register."
-			"Inputs are a legal address for read/write tests,"
-			"an illegal address for error flag/handling cases, and"
-			"whether sim_only tests should be run."
+			"Inputs are a legal, 128-byte aligned address and a number of words to"
+			"read/write starting at that address (i.e., address range [legal address,"
+			"legal_address+word_size*num_words) must be legally readaable/writable)"
+			", an illegal, 128-byte aligned address for error flag/handling cases,"
+			"and whether sbbusyerror test should be run."
 	},
 	COMMAND_REGISTRATION_DONE
 };
