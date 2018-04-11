@@ -61,7 +61,7 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t leg
 		uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
 void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t* write_data,
 		uint32_t write_size, uint32_t sbcs);
-uint32_t* read_memory_sba_simple(struct target *target, target_addr_t addr,
+uint32_t *read_memory_sba_simple(struct target *target, target_addr_t addr,
 		uint32_t read_size, uint32_t sbcs);
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
 static int register_write_direct(struct target *target, unsigned number,
@@ -2849,9 +2849,9 @@ static uint32_t get_num_sbdata_regs(struct target *target)
 	uint32_t sbaccess128 = get_field(info->sbcs, DMI_SBCS_SBACCESS128);
 	uint32_t sbaccess64	= get_field(info->sbcs, DMI_SBCS_SBACCESS64);
 
-	if(sbaccess128)
+	if (sbaccess128)
 		return 4;
-	else if(sbaccess64)
+	else if (sbaccess64)
 		return 2;
 	else
 		return 1;
@@ -2884,7 +2884,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	uint32_t num_sbdata_regs = get_num_sbdata_regs(target);
 
-	// Test 1: Simple write/read test
+	/* Test 1: Simple write/read test */
 	test_passed = true;
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBAUTOINCREMENT, 0);
 	dmi_write(target, DMI_SBCS, sbcs);
@@ -2907,10 +2907,11 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 		for (uint32_t i = 0; i < num_words; i++) {
 			uint32_t addr = legal_address + (i << sbaccess);
-			uint32_t* val = read_memory_sba_simple(target, addr, num_sbdata_regs, sbcs);
+			uint32_t *val = read_memory_sba_simple(target, addr, num_sbdata_regs, sbcs);
 			for (uint32_t j = 0; j < num_sbdata_regs; j++) {
 				if (((test_patterns[j]+i)&compare_mask) != (val[j]&compare_mask)) {
-					LOG_ERROR("System Bus Access Test 1: Error reading non-autoincremented address %x, expected val = %x, read val = %x", addr, test_patterns[j]+i, val[j]);
+					LOG_ERROR("System Bus Access Test 1: Error reading non-autoincremented address %x,"
+							"expected val = %x, read val = %x", addr, test_patterns[j]+i, val[j]);
 					test_passed = false;
 				}
 			}
@@ -2920,7 +2921,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	if (test_passed)
 		LOG_INFO("System Bus Access Test 1: Simple write/read test PASSED.");
 
-	// Test 2: Address autoincrement test
+	/* Test 2: Address autoincrement test */ 
 	target_addr_t curr_addr;
 	target_addr_t prev_addr;
 	test_passed = true;
@@ -2965,7 +2966,8 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			dmi_read(target, &val, DMI_SBDATA0);
 			read_sbcs_nonbusy(target, &sbcs);
 			if (i != val) {
-				LOG_ERROR("System Bus Access Test 2: Error reading auto-incremented address, expected val = %x, read val = %x",i,val);
+				LOG_ERROR("System Bus Access Test 2: Error reading auto-incremented address,"
+						"expected val = %x, read val = %x", i, val);
 				test_passed = false;
 			}
 		}
@@ -2973,8 +2975,8 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	if (test_passed)
 		LOG_INFO("System Bus Access Test 2: Address auto-increment test PASSED.");
 
-	// Test 3: Read from illegal address
-	uint32_t* illegal_addr_read = read_memory_sba_simple(target, illegal_address, 1, sbcs_orig);
+	/* Test 3: Read from illegal address */
+	uint32_t *illegal_addr_read = read_memory_sba_simple(target, illegal_address, 1, sbcs_orig);
 	free(illegal_addr_read);
 
 	dmi_read(target, &rd_val, DMI_SBCS);
@@ -2986,7 +2988,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		LOG_ERROR("System Bus Access Test 3: Illegal address read test FAILED.");
 	}
 
-	// Test 4: Write to illegal address
+	/* Test 4: Write to illegal address */
 	write_memory_sba_simple(target, illegal_address, test_patterns, 1, sbcs_orig);
 
 	dmi_read(target, &rd_val, DMI_SBCS);
@@ -2998,7 +3000,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		LOG_ERROR("System Bus Access Test 4: Illegal address write test FAILED.");
 	}
 
-	// Test 5: Write with unsupported sbaccess size 
+	/* Test 5: Write with unsupported sbaccess size */
 	uint32_t sbaccess128 = get_field(sbcs_orig, DMI_SBCS_SBACCESS128);
 
 	if (sbaccess128) {
@@ -3011,14 +3013,11 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 		dmi_read(target, &rd_val, DMI_SBCS);
 
-		LOG_INFO("SBCS.SBACCESS128 = %x",sbaccess128);
-		LOG_INFO("SBCS.SBERROR = %x",get_field(rd_val,DMI_SBCS_SBERROR));
-
 		if (get_field(rd_val, DMI_SBCS_SBERROR) == 3) {
 			sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 			dmi_write(target, DMI_SBCS, sbcs);
 			dmi_read(target, &rd_val, DMI_SBCS);
-			if(get_field(rd_val, DMI_SBCS_SBERROR) == 0)
+			if (get_field(rd_val, DMI_SBCS_SBERROR) == 0)
 				LOG_INFO("System Bus Access Test 5: SBCS sbaccess error test PASSED.");
 			else
 				LOG_ERROR("System Bus Access Test 5: SBCS sbaccess error test FAILED, unable to clear to 0.");
@@ -3027,8 +3026,8 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		}
 	}
 
-	// Test 6: Write to misaligned address
-	sbcs = set_field(sbcs_orig, DMI_SBCS_SBACCESS, 1); 
+	/* Test 6: Write to misaligned address */
+	sbcs = set_field(sbcs_orig, DMI_SBCS_SBACCESS, 1);
 	dmi_write(target, DMI_SBCS, sbcs);
 
 	dmi_write(target, DMI_SBADDRESS0, legal_address+1);
@@ -3036,7 +3035,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
 		dmi_read(target, &rd_val, DMI_SBCS);
-		if(get_field(rd_val, DMI_SBCS_SBERROR) == 0)
+		if (get_field(rd_val, DMI_SBCS_SBERROR) == 0)
 			LOG_INFO("System Bus Access Test 6: SBCS address alignment error test PASSED");
 		else
 			LOG_ERROR("System Bus Access Test 6: SBCS address alignment error test FAILED, unable to clear to 0.");
@@ -3050,13 +3049,11 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBREADONADDR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
 
-		for (int i = 0; i < 16; i++) {
+		for (int i = 0; i < 16; i++)
 			dmi_write(target, DMI_SBDATA0, 0xdeadbeef);
-		}
 
-		for (int i = 0; i < 16; i++) {
+		for (int i = 0; i < 16; i++)
 			dmi_write(target, DMI_SBADDRESS0, legal_address);
-		}
 
 		dmi_read(target, &rd_val, DMI_SBCS);
 		if (get_field(rd_val, DMI_SBCS_SBBUSYERROR)) {
@@ -3077,7 +3074,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 }
 
 void write_memory_sba_simple(struct target *target, target_addr_t addr,
-		uint32_t* write_data, uint32_t write_size, uint32_t sbcs)
+		uint32_t *write_data, uint32_t write_size, uint32_t sbcs)
 {
 	RISCV013_INFO(info);
 
@@ -3102,17 +3099,16 @@ void write_memory_sba_simple(struct target *target, target_addr_t addr,
 
 	/* Write SBDATA registers starting with highest address, since write to
 	 * SBDATA0 triggers write */
-	for (int i = write_size-1; i >= 0; i--) {
-		dmi_write(target,DMI_SBDATA0+i,write_data[i]);
-	}
+	for (int i = write_size-1; i >= 0; i--) 
+		dmi_write(target, DMI_SBDATA0+i, write_data[i]);
 }
 
-uint32_t* read_memory_sba_simple(struct target *target, target_addr_t addr,
+uint32_t *read_memory_sba_simple(struct target *target, target_addr_t addr,
 		uint32_t read_size, uint32_t sbcs)
 {
 	RISCV013_INFO(info);
 
-	uint32_t* rd_val = malloc(read_size*sizeof(uint32_t));
+	uint32_t *rd_val = malloc(read_size*sizeof(uint32_t));
 	uint32_t rd_sbcs;
 	uint32_t masked_addr;
 
@@ -3123,7 +3119,7 @@ uint32_t* read_memory_sba_simple(struct target *target, target_addr_t addr,
 	uint32_t sbcs_readonaddr = set_field(sbcs, DMI_SBCS_SBREADONADDR, 1);
 	dmi_write(target, DMI_SBCS, sbcs_readonaddr);
 
-	// Write addresses starting with highest address register
+	/* Write addresses starting with highest address register */
 	for (int i = sba_size/32-1; i >= 0; i--) {
 		masked_addr = (addr >> 32*i) & 0xffffffff;
 
@@ -3135,9 +3131,8 @@ uint32_t* read_memory_sba_simple(struct target *target, target_addr_t addr,
 
 	read_sbcs_nonbusy(target, &rd_sbcs);
 
-	for (uint32_t i = 0; i < read_size; i++) {
+	for (uint32_t i = 0; i < read_size; i++)
 		dmi_read(target, &(rd_val[i]), DMI_SBDATA0+i);
-	}
 
 	return rd_val;
 }
