@@ -264,7 +264,7 @@ static dm013_info_t *get_dm(struct target *target)
 static uint32_t hartsel_mask(const struct target *target)
 {
 	RISCV013_INFO(info);
-	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
+	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET;
 }
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
@@ -278,7 +278,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_RESUMEREQ, "resumereq" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTRESET, "hartreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
-		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET, "hartsel" },
+		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET, "hartsel" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 
@@ -1290,7 +1290,7 @@ static int examine(struct target *target)
 		dm->was_reset = true;
 	}
 
-	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
+	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET;
 	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask | DMI_DMCONTROL_DMACTIVE);
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
