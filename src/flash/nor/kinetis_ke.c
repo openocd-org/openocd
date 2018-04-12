@@ -478,14 +478,13 @@ int kinetis_ke_stop_watchdog(struct target *target)
 			watchdog_algorithm->address, 0, 100000, &armv7m_info);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error executing Kinetis KE watchdog algorithm");
-		retval = ERROR_FAIL;
 	} else {
 		LOG_INFO("Watchdog stopped");
 	}
 
 	target_free_working_area(target, watchdog_algorithm);
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(kinetis_ke_disable_wdog_handler)
@@ -1311,4 +1310,5 @@ struct flash_driver kinetis_ke_flash = {
 	.erase_check = kinetis_ke_blank_check,
 	.protect_check = kinetis_ke_protect_check,
 	.info = kinetis_ke_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

@@ -30,13 +30,12 @@ enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
 	RISCV_HALT_BREAKPOINT,
 	RISCV_HALT_SINGLESTEP,
+	RISCV_HALT_TRIGGER,
 	RISCV_HALT_UNKNOWN
 };
 
 typedef struct {
 	unsigned dtm_version;
-
-	riscv_reg_t misa;
 
 	struct command_context *cmd_ctx;
 	void *version_specific;
@@ -67,6 +66,7 @@ typedef struct {
 
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen[RISCV_MAX_HARTS];
+	riscv_reg_t misa[RISCV_MAX_HARTS];
 
 	/* The number of triggers per hart. */
 	unsigned trigger_count[RISCV_MAX_HARTS];
@@ -110,7 +110,14 @@ typedef struct {
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
 
+	int (*authdata_read)(struct target *target, uint32_t *value);
+	int (*authdata_write)(struct target *target, uint32_t value);
+
+	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
+	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
+
 	int (*test_compliance)(struct target *target);
+
 } riscv_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
@@ -121,6 +128,8 @@ extern int riscv_reset_timeout_sec;
 
 extern bool riscv_use_scratch_ram;
 extern uint64_t riscv_scratch_ram_address;
+
+extern bool riscv_prefer_sba;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */
@@ -176,7 +185,7 @@ int riscv_resume_one_hart(struct target *target, int hartid);
  * then the only hart. */
 int riscv_step_rtos_hart(struct target *target);
 
-bool riscv_supports_extension(struct target *target, char letter);
+bool riscv_supports_extension(struct target *target, int hartid, char letter);
 
 /* Returns XLEN for the given (or current) hart. */
 int riscv_xlen(const struct target *target);
@@ -217,11 +226,6 @@ int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
  * on-device register. */
 bool riscv_is_halted(struct target *target);
 enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid);
-
-/* Returns the number of triggers availiable to either the current hart or to
- * the given hart. */
-int riscv_count_triggers(struct target *target);
-int riscv_count_triggers_of_hart(struct target *target, int hartid);
 
 /* These helper functions let the generic program interface get target-specific
  * information. */

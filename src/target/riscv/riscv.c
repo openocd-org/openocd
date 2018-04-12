@@ -188,6 +188,8 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 bool riscv_use_scratch_ram;
 uint64_t riscv_scratch_ram_address;
 
+bool riscv_prefer_sba;
+
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
@@ -311,9 +313,12 @@ static int maybe_add_trigger_t1(struct target *target, unsigned hartid,
 	tdata1 = set_field(tdata1, bpcontrol_r, trigger->read);
 	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
 	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
-	tdata1 = set_field(tdata1, bpcontrol_u, !!(r->misa & (1 << ('U' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_s, !!(r->misa & (1 << ('S' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_h, !!(r->misa & (1 << ('H' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_u,
+			!!(r->misa[hartid] & (1 << ('U' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_s,
+			!!(r->misa[hartid] & (1 << ('S' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_h,
+			!!(r->misa[hartid] & (1 << ('H' - 'A'))));
 	tdata1 |= bpcontrol_m;
 	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); /* exact match */
 	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); /* cause bp exception */
@@ -356,11 +361,11 @@ static int maybe_add_trigger_t2(struct target *target, unsigned hartid,
 			MCONTROL_ACTION_DEBUG_MODE);
 	tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
 	tdata1 |= MCONTROL_M;
-	if (r->misa & (1 << ('H' - 'A')))
+	if (r->misa[hartid] & (1 << ('H' - 'A')))
 		tdata1 |= MCONTROL_H;
-	if (r->misa & (1 << ('S' - 'A')))
+	if (r->misa[hartid] & (1 << ('S' - 'A')))
 		tdata1 |= MCONTROL_S;
-	if (r->misa & (1 << ('U' - 'A')))
+	if (r->misa[hartid] & (1 << ('U' - 'A')))
 		tdata1 |= MCONTROL_U;
 
 	if (trigger->execute)
@@ -640,6 +645,7 @@ static int old_or_new_riscv_step(
 		int handle_breakpoints
 ){
 	RISCV_INFO(r);
+	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	if (r->is_halted == NULL)
 		return oldriscv_step(target, current, address, handle_breakpoints);
 	else
@@ -728,6 +734,7 @@ static int old_or_new_riscv_resume(
 		int debug_execution
 ){
 	RISCV_INFO(r);
+	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	if (r->is_halted == NULL)
 		return oldriscv_resume(target, current, address, handle_breakpoints, debug_execution);
 	else
@@ -1027,6 +1034,9 @@ int riscv_openocd_poll(struct target *target)
 	case RISCV_HALT_BREAKPOINT:
 		target->debug_reason = DBG_REASON_BREAKPOINT;
 		break;
+	case RISCV_HALT_TRIGGER:
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
 	case RISCV_HALT_INTERRUPT:
 		target->debug_reason = DBG_REASON_DBGRQ;
 		break;
@@ -1077,12 +1087,52 @@ int riscv_openocd_resume(
 		int current,
 		target_addr_t address,
 		int handle_breakpoints,
-		int debug_execution
-) {
-	LOG_DEBUG("resuming all harts");
+		int debug_execution)
+{
+	LOG_DEBUG("debug_reason=%d", target->debug_reason);
 
 	if (!current)
 		riscv_set_register(target, GDB_REGNO_PC, address);
+
+	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
+		/* To be able to run off a trigger, disable all the triggers, step, and
+		 * then resume as usual. */
+		struct watchpoint *watchpoint = target->watchpoints;
+		bool trigger_temporarily_cleared[RISCV_MAX_HWBPS] = {0};
+
+		int i = 0;
+		int result = ERROR_OK;
+		while (watchpoint && result == ERROR_OK) {
+			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
+			trigger_temporarily_cleared[i] = watchpoint->set;
+			if (watchpoint->set) {
+				result = riscv_remove_watchpoint(target, watchpoint);
+			}
+			watchpoint = watchpoint->next;
+			i++;
+		}
+
+		if (result == ERROR_OK) {
+			result = riscv_step_rtos_hart(target);
+		}
+
+		watchpoint = target->watchpoints;
+		i = 0;
+		while (watchpoint) {
+			LOG_DEBUG("watchpoint %d: cleared=%d", i, trigger_temporarily_cleared[i]);
+			if (trigger_temporarily_cleared[i]) {
+				if (result == ERROR_OK)
+					result = riscv_add_watchpoint(target, watchpoint);
+				else
+					riscv_add_watchpoint(target, watchpoint);
+			}
+			watchpoint = watchpoint->next;
+			i++;
+		}
+
+		if (result != ERROR_OK)
+			return result;
+	}
 
 	int out = riscv_resume_all_harts(target);
 	if (out != ERROR_OK) {
@@ -1187,6 +1237,7 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 		return ERROR_OK;
 	}
 
+	// TODO: use COMMAND_PARSE_NUMBER
 	long long unsigned int address;
 	int result = sscanf(CMD_ARGV[0], "%llx", &address);
 	if (result != (int) strlen(CMD_ARGV[0])) {
@@ -1197,6 +1248,16 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 
 	riscv_scratch_ram_address = address;
 	riscv_use_scratch_ram = true;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_prefer_sba)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_prefer_sba);
 	return ERROR_OK;
 }
 
@@ -1282,6 +1343,113 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_authdata_read)
+{
+	if (CMD_ARGC != 0) {
+		LOG_ERROR("Command takes no parameters");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target) {
+		LOG_ERROR("target is NULL!");
+		return ERROR_FAIL;
+	}
+
+	RISCV_INFO(r);
+	if (!r) {
+		LOG_ERROR("riscv_info is NULL!");
+		return ERROR_FAIL;
+	}
+
+	if (r->authdata_read) {
+		uint32_t value;
+		if (r->authdata_read(target, &value) != ERROR_OK)
+			return ERROR_FAIL;
+		command_print(CMD_CTX, "0x%" PRIx32, value);
+		return ERROR_OK;
+	} else {
+		LOG_ERROR("authdata_read is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
+COMMAND_HANDLER(riscv_authdata_write)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], value);
+
+	if (r->authdata_write) {
+		return r->authdata_write(target, value);
+	} else {
+		LOG_ERROR("authdata_write is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
+COMMAND_HANDLER(riscv_dmi_read)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target) {
+		LOG_ERROR("target is NULL!");
+		return ERROR_FAIL;
+	}
+
+	RISCV_INFO(r);
+	if (!r) {
+		LOG_ERROR("riscv_info is NULL!");
+		return ERROR_FAIL;
+	}
+
+	if (r->dmi_read) {
+		uint32_t address, value;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+		if (r->dmi_read(target, &value, address) != ERROR_OK)
+			return ERROR_FAIL;
+		command_print(CMD_CTX, "0x%" PRIx32, value);
+		return ERROR_OK;
+	} else {
+		LOG_ERROR("dmi_read is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
+
+COMMAND_HANDLER(riscv_dmi_write)
+{
+	if (CMD_ARGC != 2) {
+		LOG_ERROR("Command takes exactly 2 arguments");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	uint32_t address, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	if (r->dmi_write) {
+		return r->dmi_write(target, address, value);
+	} else {
+		LOG_ERROR("dmi_write is not implemented for this target.");
+		return ERROR_FAIL;
+	}
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
@@ -1312,13 +1480,49 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
 	},
 	{
+		.name = "set_prefer_sba",
+		.handler = riscv_set_prefer_sba,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_prefer_sba on|off",
+		.help = "When on, prefer to use System Bus Access to access memory. "
+			"When off, prefer to use the Program Buffer to access memory."
+	},
+	{
 		.name = "expose_csrs",
 		.handler = riscv_set_expose_csrs,
 		.mode = COMMAND_ANY,
-		.usage = "riscv expose_csrs n0[-m0][,n0[-m0]]...",
+		.usage = "riscv expose_csrs n0[-m0][,n1[-m1]]...",
 		.help = "Configure a list of inclusive ranges for CSRs to expose in "
 				"addition to the standard ones. This must be executed before "
 				"`init`."
+	},
+	{
+		.name = "authdata_read",
+		.handler = riscv_authdata_read,
+		.mode = COMMAND_ANY,
+		.usage = "riscv authdata_read",
+		.help = "Return the 32-bit value read from authdata."
+	},
+	{
+		.name = "authdata_write",
+		.handler = riscv_authdata_write,
+		.mode = COMMAND_ANY,
+		.usage = "riscv authdata_write value",
+		.help = "Write the 32-bit value to authdata."
+	},
+	{
+		.name = "dmi_read",
+		.handler = riscv_dmi_read,
+		.mode = COMMAND_ANY,
+		.usage = "riscv dmi_read address",
+		.help = "Perform a 32-bit DMI read at address, returning the value."
+	},
+	{
+		.name = "dmi_write",
+		.handler = riscv_dmi_write,
+		.mode = COMMAND_ANY,
+		.usage = "riscv dmi_write address value",
+		.help = "Perform a 32-bit DMI write of value at address."
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1474,7 +1678,7 @@ int riscv_step_rtos_hart(struct target *target)
 	return ERROR_OK;
 }
 
-bool riscv_supports_extension(struct target *target, char letter)
+bool riscv_supports_extension(struct target *target, int hartid, char letter)
 {
 	RISCV_INFO(r);
 	unsigned num;
@@ -1484,7 +1688,7 @@ bool riscv_supports_extension(struct target *target, char letter)
 		num = letter - 'A';
 	else
 		return false;
-	return r->misa & (1 << num);
+	return r->misa[hartid] & (1 << num);
 }
 
 int riscv_xlen(const struct target *target)
@@ -1626,18 +1830,6 @@ enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid)
 		return RISCV_HALT_UNKNOWN;
 	}
 	return r->halt_reason(target);
-}
-
-int riscv_count_triggers(struct target *target)
-{
-	return riscv_count_triggers_of_hart(target, riscv_current_hartid(target));
-}
-
-int riscv_count_triggers_of_hart(struct target *target, int hartid)
-{
-	RISCV_INFO(r);
-	assert(hartid < riscv_count_harts(target));
-	return r->trigger_count[hartid];
 }
 
 size_t riscv_debug_buffer_size(struct target *target)
@@ -1911,7 +2103,6 @@ int riscv_init_registers(struct target *target)
 	 * between). */
 	for (uint32_t number = 0; number < GDB_REGNO_COUNT; number++) {
 		struct reg *r = &target->reg_cache->reg_list[number];
-		r->caller_save = true;
 		r->dirty = false;
 		r->valid = false;
 		r->exist = true;
@@ -1923,6 +2114,7 @@ int riscv_init_registers(struct target *target)
 		 * target is in theory allowed to change XLEN on us. But I expect a lot
 		 * of other things to break in that case as well. */
 		if (number <= GDB_REGNO_XPR31) {
+			r->caller_save = true;
 			switch (number) {
 				case GDB_REGNO_ZERO:
 					r->name = "zero";
@@ -2024,14 +2216,18 @@ int riscv_init_registers(struct target *target)
 			r->group = "general";
 			r->feature = &feature_cpu;
 		} else if (number == GDB_REGNO_PC) {
+			r->caller_save = true;
 			sprintf(reg_name, "pc");
 			r->group = "general";
 			r->feature = &feature_cpu;
 		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (riscv_supports_extension(target, 'D')) {
+			r->caller_save = true;
+			if (riscv_supports_extension(target, riscv_current_hartid(target),
+						'D')) {
 				r->reg_data_type = &type_ieee_double;
 				r->size = 64;
-			} else if (riscv_supports_extension(target, 'F')) {
+			} else if (riscv_supports_extension(target,
+						riscv_current_hartid(target), 'F')) {
 				r->reg_data_type = &type_ieee_single;
 				r->size = 32;
 			} else {
@@ -2162,7 +2358,8 @@ int riscv_init_registers(struct target *target)
 				case CSR_FFLAGS:
 				case CSR_FRM:
 				case CSR_FCSR:
-					r->exist = riscv_supports_extension(target, 'F');
+					r->exist = riscv_supports_extension(target,
+							riscv_current_hartid(target), 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
@@ -2176,7 +2373,16 @@ int riscv_init_registers(struct target *target)
 				case CSR_SCAUSE:
 				case CSR_STVAL:
 				case CSR_SATP:
-					r->exist = riscv_supports_extension(target, 'S');
+					r->exist = riscv_supports_extension(target,
+							riscv_current_hartid(target), 'S');
+					break;
+				case CSR_MEDELEG:
+				case CSR_MIDELEG:
+					/* "In systems with only M-mode, or with both M-mode and
+					 * U-mode but without U-mode trap support, the medeleg and
+					 * mideleg registers should not exist." */
+					r->exist = riscv_supports_extension(target, riscv_current_hartid(target), 'S') ||
+						riscv_supports_extension(target, riscv_current_hartid(target), 'N');
 					break;
 			}
 

@@ -258,7 +258,7 @@ static int dpmv8_exec_opcode(struct arm_dpm *dpm,
 
 	if (dscr & DSCR_ERR) {
 		LOG_ERROR("Opcode 0x%08"PRIx32", DSCR.ERR=1, DSCR.EL=%i", opcode, dpm->last_el);
-		armv8_dpm_handle_exception(dpm);
+		armv8_dpm_handle_exception(dpm, true);
 		retval = ERROR_FAIL;
 	}
 
@@ -600,7 +600,7 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 				armv8_opcode(armv8, ARMV8_OPC_DCPS) | target_el);
 
 		/* DCPS clobbers registers just like an exception taken */
-		armv8_dpm_handle_exception(dpm);
+		armv8_dpm_handle_exception(dpm, false);
 	} else {
 		core_state = armv8_dpm_get_core_state(dpm);
 		if (core_state != ARM_STATE_AARCH64) {
@@ -650,21 +650,37 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 static int dpmv8_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
-	uint64_t value_64;
-	int retval;
+	int retval = ERROR_FAIL;
 
-	retval = armv8->read_reg_u64(armv8, regnum, &value_64);
+	if (r->size <= 64) {
+		uint64_t value_64;
+		retval = armv8->read_reg_u64(armv8, regnum, &value_64);
 
-	if (retval == ERROR_OK) {
-		r->valid = true;
-		r->dirty = false;
-		buf_set_u64(r->value, 0, r->size, value_64);
-		if (r->size == 64)
-			LOG_DEBUG("READ: %s, %16.8llx", r->name, (unsigned long long) value_64);
-		else
-			LOG_DEBUG("READ: %s, %8.8x", r->name, (unsigned int) value_64);
+		if (retval == ERROR_OK) {
+			r->valid = true;
+			r->dirty = false;
+			buf_set_u64(r->value, 0, r->size, value_64);
+			if (r->size == 64)
+				LOG_DEBUG("READ: %s, %16.8llx", r->name, (unsigned long long) value_64);
+			else
+				LOG_DEBUG("READ: %s, %8.8x", r->name, (unsigned int) value_64);
+		}
+	} else if (r->size <= 128) {
+		uint64_t lvalue = 0, hvalue = 0;
+		retval = armv8->read_reg_u128(armv8, regnum, &lvalue, &hvalue);
+
+		if (retval == ERROR_OK) {
+			r->valid = true;
+			r->dirty = false;
+
+			buf_set_u64(r->value, 0, 64, lvalue);
+			buf_set_u64(r->value + 8, 0, r->size - 64, hvalue);
+
+			LOG_DEBUG("READ: %s, lvalue=%16.8llx", r->name, (unsigned long long) lvalue);
+			LOG_DEBUG("READ: %s, hvalue=%16.8llx", r->name, (unsigned long long) hvalue);
+		}
 	}
-	return ERROR_OK;
+	return retval;
 }
 
 /*
@@ -674,20 +690,36 @@ static int dpmv8_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
 	int retval = ERROR_FAIL;
-	uint64_t value_64;
 
-	value_64 = buf_get_u64(r->value, 0, r->size);
+	if (r->size <= 64) {
+		uint64_t value_64;
 
-	retval = armv8->write_reg_u64(armv8, regnum, value_64);
-	if (retval == ERROR_OK) {
-		r->dirty = false;
-		if (r->size == 64)
-			LOG_DEBUG("WRITE: %s, %16.8llx", r->name, (unsigned long long)value_64);
-		else
-			LOG_DEBUG("WRITE: %s, %8.8x", r->name, (unsigned int)value_64);
+		value_64 = buf_get_u64(r->value, 0, r->size);
+		retval = armv8->write_reg_u64(armv8, regnum, value_64);
+
+		if (retval == ERROR_OK) {
+			r->dirty = false;
+			if (r->size == 64)
+				LOG_DEBUG("WRITE: %s, %16.8llx", r->name, (unsigned long long)value_64);
+			else
+				LOG_DEBUG("WRITE: %s, %8.8x", r->name, (unsigned int)value_64);
+		}
+	} else if (r->size <= 128) {
+		uint64_t lvalue, hvalue;
+
+		lvalue = buf_get_u64(r->value, 0, 64);
+		hvalue = buf_get_u64(r->value + 8, 0, r->size - 64);
+		retval = armv8->write_reg_u128(armv8, regnum, lvalue, hvalue);
+
+		if (retval == ERROR_OK) {
+			r->dirty = false;
+
+			LOG_DEBUG("WRITE: %s, lvalue=%16.8llx", r->name, (unsigned long long) lvalue);
+			LOG_DEBUG("WRITE: %s, hvalue=%16.8llx", r->name, (unsigned long long) hvalue);
+		}
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 /**
@@ -743,6 +775,10 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 
 		r = armv8_reg_current(arm, i);
 		if (r->valid)
+			continue;
+
+		/* Skip reading FP-SIMD registers */
+		if (r->number >= ARMV8_V0 && r->number <= ARMV8_FPCR)
 			continue;
 
 		/*
@@ -1262,7 +1298,7 @@ void armv8_dpm_report_wfar(struct arm_dpm *dpm, uint64_t addr)
  * This function must not perform any actions that trigger another exception
  * or a recursion will happen.
  */
-void armv8_dpm_handle_exception(struct arm_dpm *dpm)
+void armv8_dpm_handle_exception(struct arm_dpm *dpm, bool do_restore)
 {
 	struct armv8_common *armv8 = dpm->arm->arch_info;
 	struct reg_cache *cache = dpm->arm->core_cache;
@@ -1308,7 +1344,8 @@ void armv8_dpm_handle_exception(struct arm_dpm *dpm)
 	armv8_select_opcodes(armv8, core_state == ARM_STATE_AARCH64);
 	armv8_select_reg_access(armv8, core_state == ARM_STATE_AARCH64);
 
-	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
+	if (do_restore)
+		armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
 }
 
 /*----------------------------------------------------------------------*/

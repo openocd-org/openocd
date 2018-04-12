@@ -248,7 +248,7 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 	if (strcmp(packet_stttrr, "vCont;c") == 0) {
 		target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
 		target_call_event_callbacks(target, TARGET_EVENT_RESUME_START);
-		riscv_resume_all_harts(target);
+		riscv_openocd_resume(target, 1, 0, 0, 0);
 		target->state = TARGET_RUNNING;
 		gdb_set_frontend_state_running(connection);
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);

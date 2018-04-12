@@ -19,6 +19,10 @@
 #ifndef OPENOCD_TRANSPORT_TRANSPORT_H
 #define OPENOCD_TRANSPORT_TRANSPORT_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "helper/command.h"
 
 /**
@@ -89,5 +93,20 @@ COMMAND_HELPER(transport_list_parse, char ***vector);
 int allow_transports(struct command_context *ctx, const char * const *vector);
 
 bool transports_are_declared(void);
+
+bool transport_is_jtag(void);
+bool transport_is_swd(void);
+
+/* FIXME: ZY1000 test build on jenkins is configured with enabled hla adapters
+ * but jtag/hla/hla_*.c files are not compiled. To workaround the problem we assume hla
+ * is broken if BUILD_ZY1000 is set */
+#if BUILD_HLADAPTER && !BUILD_ZY1000
+bool transport_is_hla(void);
+#else
+static inline bool transport_is_hla(void)
+{
+	return false;
+}
+#endif
 
 #endif /* OPENOCD_TRANSPORT_TRANSPORT_H */

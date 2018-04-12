@@ -259,7 +259,7 @@ int add_service(char *name,
 		c->sin.sin_family = AF_INET;
 
 		if (bindto_name == NULL)
-			c->sin.sin_addr.s_addr = INADDR_ANY;
+			c->sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 		else {
 			hp = gethostbyname(bindto_name);
 			if (hp == NULL) {
@@ -273,8 +273,7 @@ int add_service(char *name,
 		c->sin.sin_port = htons(c->portnumber);
 
 		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1) {
-			LOG_ERROR("couldn't bind %s to socket on port %d: %s", name,
-					c->portnumber, strerror(errno));
+			LOG_ERROR("couldn't bind %s to socket on port %d: %s", name, c->portnumber, strerror(errno));
 			close_socket(c->fd);
 			free_service(c);
 			return ERROR_FAIL;
@@ -346,6 +345,21 @@ int add_service(char *name,
 	return ERROR_OK;
 }
 
+static void remove_connections(struct service *service)
+{
+	struct connection *connection;
+
+	connection = service->connections;
+
+	while (connection) {
+		struct connection *tmp;
+
+		tmp = connection->next;
+		remove_connection(service, connection);
+		connection = tmp;
+	}
+}
+
 static int remove_services(void)
 {
 	struct service *c = services;
@@ -353,6 +367,8 @@ static int remove_services(void)
 	/* loop service */
 	while (c) {
 		struct service *next = c->next;
+
+		remove_connections(c);
 
 		if (c->name)
 			free(c->name);
@@ -623,6 +639,13 @@ int server_quit(void)
 
 	/* return signal number so we can kill ourselves */
 	return last_signal;
+}
+
+void server_free(void)
+{
+	tcl_service_free();
+	telnet_service_free();
+	jsp_service_free();
 }
 
 void exit_on_signal(int sig)

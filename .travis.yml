@@ -30,6 +30,7 @@ matrix:
           env:
               - BUILD=i686-linux-gnu
               - CFLAGS=-m32
+              - CONFIGURE_ARGS="--disable-target64"
               - EXECUTABLE=openocd
           compiler: clang
           addons:

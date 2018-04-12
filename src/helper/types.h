@@ -22,7 +22,12 @@
 #ifndef OPENOCD_HELPER_TYPES_H
 #define OPENOCD_HELPER_TYPES_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stddef.h>
+#include <assert.h>
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -123,17 +128,17 @@ static inline uint64_t le_to_h_u64(const uint8_t *buf)
 
 static inline uint32_t le_to_h_u32(const uint8_t* buf)
 {
-	return (uint32_t)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
+	return (uint32_t)((uint32_t)buf[0] | (uint32_t)buf[1] << 8 | (uint32_t)buf[2] << 16 | (uint32_t)buf[3] << 24);
 }
 
 static inline uint32_t le_to_h_u24(const uint8_t* buf)
 {
-	return (uint32_t)(buf[0] | buf[1] << 8 | buf[2] << 16);
+	return (uint32_t)((uint32_t)buf[0] | (uint32_t)buf[1] << 8 | (uint32_t)buf[2] << 16);
 }
 
 static inline uint16_t le_to_h_u16(const uint8_t* buf)
 {
-	return (uint16_t)(buf[0] | buf[1] << 8);
+	return (uint16_t)((uint16_t)buf[0] | (uint16_t)buf[1] << 8);
 }
 
 static inline uint64_t be_to_h_u64(const uint8_t *buf)
@@ -150,17 +155,17 @@ static inline uint64_t be_to_h_u64(const uint8_t *buf)
 
 static inline uint32_t be_to_h_u32(const uint8_t* buf)
 {
-	return (uint32_t)(buf[3] | buf[2] << 8 | buf[1] << 16 | buf[0] << 24);
+	return (uint32_t)((uint32_t)buf[3] | (uint32_t)buf[2] << 8 | (uint32_t)buf[1] << 16 | (uint32_t)buf[0] << 24);
 }
 
 static inline uint32_t be_to_h_u24(const uint8_t* buf)
 {
-	return (uint32_t)(buf[2] | buf[1] << 8 | buf[0] << 16);
+	return (uint32_t)((uint32_t)buf[2] | (uint32_t)buf[1] << 8 | (uint32_t)buf[0] << 16);
 }
 
 static inline uint16_t be_to_h_u16(const uint8_t* buf)
 {
-	return (uint16_t)(buf[1] | buf[0] << 8);
+	return (uint16_t)((uint16_t)buf[1] | (uint16_t)buf[0] << 8);
 }
 
 static inline void h_u64_to_le(uint8_t *buf, int64_t val)

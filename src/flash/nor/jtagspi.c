@@ -432,5 +432,6 @@ struct flash_driver jtagspi_flash = {
 	.auto_probe = jtagspi_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = jtagspi_protect_check,
-	.info = jtagspi_info
+	.info = jtagspi_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

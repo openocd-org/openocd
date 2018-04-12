@@ -32,6 +32,8 @@ void add_config_command(const char *cfg);
 
 void add_script_search_dir(const char *dir);
 
+void free_config(void);
+
 int configuration_output_handler(struct command_context *cmd_ctx,
 		const char *line);
 

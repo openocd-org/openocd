@@ -997,4 +997,5 @@ struct flash_driver fm3_flash = {
 	.probe = fm3_probe,
 	.auto_probe = fm3_auto_probe,
 	.erase_check = default_flash_blank_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

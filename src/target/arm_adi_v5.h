@@ -254,6 +254,8 @@ struct adiv5_dap {
  * available until run().
  */
 struct dap_ops {
+	/** connect operation for SWD */
+	int (*connect)(struct adiv5_dap *dap);
 	/** DP register read. */
 	int (*queue_dp_read)(struct adiv5_dap *dap, unsigned reg,
 			uint32_t *data);
@@ -473,9 +475,6 @@ int mem_ap_read_buf_noincr(struct adiv5_ap *ap,
 int mem_ap_write_buf_noincr(struct adiv5_ap *ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
 
-/* Create DAP struct */
-struct adiv5_dap *dap_init(void);
-
 /* Initialisation of the debug system, power domains and registers */
 int dap_dp_init(struct adiv5_dap *dap);
 int mem_ap_init(struct adiv5_ap *ap);
@@ -509,12 +508,24 @@ int dap_to_swd(struct target *target);
 /* Put debug link into JTAG mode */
 int dap_to_jtag(struct target *target);
 
-extern const struct command_registration dap_command_handlers[];
+extern const struct command_registration dap_instance_commands[];
+
+struct arm_dap_object;
+extern struct adiv5_dap *dap_instance_by_jim_obj(Jim_Interp *interp, Jim_Obj *o);
+extern struct adiv5_dap *adiv5_get_dap(struct arm_dap_object *obj);
+extern int dap_info_command(struct command_context *cmd_ctx,
+					 struct adiv5_ap *ap);
+extern int dap_register_commands(struct command_context *cmd_ctx);
+extern const char *adiv5_dap_name(struct adiv5_dap *self);
+extern const struct swd_driver *adiv5_dap_swd_driver(struct adiv5_dap *self);
+extern int dap_cleanup_all(void);
 
 struct adiv5_private_config {
 	int ap_num;
+	struct adiv5_dap *dap;
 };
 
+extern int adiv5_verify_config(struct adiv5_private_config *pc);
 extern int adiv5_jim_configure(struct target *target, Jim_GetOptInfo *goi);
 
 #endif /* OPENOCD_TARGET_ARM_ADI_V5_H */

@@ -131,6 +131,42 @@ int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 	return retval;
 }
 
+/* Read 64bit VFP registers */
+static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	int retval = ERROR_FAIL;
+	uint32_t value_r0, value_r1;
+
+	switch (regnum) {
+		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+			/* move from double word register to r0:r1: "vmov r0, r1, vm"
+			 * then read r0 via dcc
+			 */
+			retval = dpm->instr_read_data_r0(dpm,
+				ARMV4_5_VMOV(1, 1, 0, ((regnum - ARM_VFP_V3_D0) >> 4),
+				((regnum - ARM_VFP_V3_D0) & 0xf)), &value_r0);
+			/* read r1 via dcc */
+			retval = dpm->instr_read_data_dcc(dpm,
+				ARMV4_5_MCR(14, 0, 1, 0, 5, 0),
+				&value_r1);
+			break;
+		default:
+
+			break;
+	}
+
+	if (retval == ERROR_OK) {
+		buf_set_u32(r->value, 0, 32, value_r0);
+		buf_set_u32(r->value + 4, 0, 32, value_r1);
+		r->valid = true;
+		r->dirty = false;
+		LOG_DEBUG("READ: %s, %8.8x, %8.8x", r->name,
+				(unsigned) value_r0, (unsigned) value_r1);
+	}
+
+	return retval;
+}
+
 /* just read the register -- rely on the core mode being right */
 static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 {
@@ -171,6 +207,14 @@ static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 					break;
 			}
 			break;
+		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+			return dpm_read_reg_u64(dpm, r, regnum);
+			break;
+		case ARM_VFP_V3_FPSCR:
+			/* "VMRS r0, FPSCR"; then return via DCC */
+			retval = dpm->instr_read_data_r0(dpm,
+				ARMV4_5_VMRS(0), &value);
+			break;
 		default:
 			/* 16: "MRS r0, CPSR"; then return via DCC
 			 * 17: "MRS r0, SPSR"; then return via DCC
@@ -186,6 +230,40 @@ static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 		r->valid = true;
 		r->dirty = false;
 		LOG_DEBUG("READ: %s, %8.8x", r->name, (unsigned) value);
+	}
+
+	return retval;
+}
+
+/* Write 64bit VFP registers */
+static int dpm_write_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+{
+	int retval = ERROR_FAIL;
+	uint32_t value_r0 = buf_get_u32(r->value, 0, 32);
+	uint32_t value_r1 = buf_get_u32(r->value + 4, 0, 32);
+
+	switch (regnum) {
+		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+			/* write value_r1 to r1 via dcc */
+			retval = dpm->instr_write_data_dcc(dpm,
+				ARMV4_5_MRC(14, 0, 1, 0, 5, 0),
+				value_r1);
+			/* write value_r0 to r0 via dcc then,
+			 * move to double word register from r0:r1: "vmov vm, r0, r1"
+			 */
+			retval = dpm->instr_write_data_r0(dpm,
+				ARMV4_5_VMOV(0, 1, 0, ((regnum - ARM_VFP_V3_D0) >> 4),
+				((regnum - ARM_VFP_V3_D0) & 0xf)), value_r0);
+			break;
+		default:
+
+			break;
+	}
+
+	if (retval == ERROR_OK) {
+		r->dirty = false;
+		LOG_DEBUG("WRITE: %s, %8.8x, %8.8x", r->name,
+				(unsigned) value_r0, (unsigned) value_r1);
 	}
 
 	return retval;
@@ -207,6 +285,14 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 		case 15:/* PC
 			 * read r0 from DCC; then "MOV pc, r0" */
 			retval = dpm->instr_write_data_r0(dpm, 0xe1a0f000, value);
+			break;
+		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+			return dpm_write_reg_u64(dpm, r, regnum);
+			break;
+		case ARM_VFP_V3_FPSCR:
+			/* move to r0 from DCC, then "VMSR FPSCR, r0" */
+			retval = dpm->instr_write_data_r0(dpm,
+				ARMV4_5_VMSR(0), value);
 			break;
 		default:
 			/* 16: read r0 from DCC, then "MSR r0, CPSR_cxsf"
@@ -262,14 +348,16 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* read R0 first (it's used for scratch), then CPSR */
-	r = arm->core_cache->reg_list + 0;
-	if (!r->valid) {
-		retval = dpm_read_reg(dpm, r, 0);
-		if (retval != ERROR_OK)
-			goto fail;
+	/* read R0 and R1 first (it's used for scratch), then CPSR */
+	for (unsigned i = 0; i < 2; i++) {
+		r = arm->core_cache->reg_list + i;
+		if (!r->valid) {
+			retval = dpm_read_reg(dpm, r, i);
+			if (retval != ERROR_OK)
+				goto fail;
+		}
+		r->dirty = true;
 	}
-	r->dirty = true;
 
 	retval = dpm->instr_read_data_r0(dpm, ARMV4_5_MRS(0, 0), &cpsr);
 	if (retval != ERROR_OK)
@@ -279,7 +367,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 	arm_set_cpsr(arm, cpsr);
 
 	/* REVISIT we can probably avoid reading R1..R14, saving time... */
-	for (unsigned i = 1; i < 16; i++) {
+	for (unsigned i = 2; i < 16; i++) {
 		r = arm_reg_current(arm, i);
 		if (r->valid)
 			continue;
@@ -412,8 +500,8 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 
 		did_write = false;
 
-		/* check everything except our scratch register R0 */
-		for (unsigned i = 1; i < cache->num_regs; i++) {
+		/* check everything except our scratch registers R0 and R1 */
+		for (unsigned i = 2; i < cache->num_regs; i++) {
 			struct arm_reg *r;
 			unsigned regnum;
 
@@ -540,6 +628,7 @@ static enum arm_mode dpm_mapmode(struct arm *arm,
 		/* r13/sp, and r14/lr are always shadowed */
 		case 13:
 		case 14:
+		case ARM_VFP_V3_D0 ... ARM_VFP_V3_FPSCR:
 			return mode;
 		default:
 			LOG_WARNING("invalid register #%u", num);
@@ -561,7 +650,8 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 	struct arm_dpm *dpm = target_to_arm(target)->dpm;
 	int retval;
 
-	if (regnum < 0 || regnum > 16)
+	if (regnum < 0 || (regnum > 16 && regnum < ARM_VFP_V3_D0) ||
+		(regnum > ARM_VFP_V3_FPSCR))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (regnum == 16) {
@@ -604,7 +694,8 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 	int retval;
 
 
-	if (regnum < 0 || regnum > 16)
+	if (regnum < 0 || (regnum > 16 && regnum < ARM_VFP_V3_D0) ||
+			(regnum > ARM_VFP_V3_FPSCR))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (regnum == 16) {

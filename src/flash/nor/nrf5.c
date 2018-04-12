@@ -155,6 +155,11 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 	NRF5_DEVICE_DEF(0x0020, "51822", "CEAA", "BA",    256),
 	NRF5_DEVICE_DEF(0x002F, "51822", "CEAA", "B0",    256),
 
+	/* Some early nRF51-DK (PCA10028) & nRF51-Dongle (PCA10031) boards
+	   with built-in jlink seem to use engineering samples not listed
+	   in the nRF51 Series Compatibility Matrix V1.0. */
+	NRF5_DEVICE_DEF(0x0071, "51822", "QFAC", "AB",    256),
+
 	/* nRF51822 Devices (IC rev 2). */
 	NRF5_DEVICE_DEF(0x002A, "51822", "QFAA", "FA0",   256),
 	NRF5_DEVICE_DEF(0x0044, "51822", "QFAA", "GC0",   256),
@@ -175,6 +180,7 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 	NRF5_DEVICE_DEF(0x007D, "51822", "CDAB", "A0",    128),
 	NRF5_DEVICE_DEF(0x0079, "51822", "CEAA", "E0",    256),
 	NRF5_DEVICE_DEF(0x0087, "51822", "CFAC", "A0",    256),
+	NRF5_DEVICE_DEF(0x008F, "51822", "QFAA", "H1",    256),
 
 	/* nRF51422 Devices (IC rev 1). */
 	NRF5_DEVICE_DEF(0x001E, "51422", "QFAA", "CA",    256),
@@ -198,11 +204,6 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 
 	/* nRF52832 Devices */
 	NRF5_DEVICE_DEF(0x00C7, "52832", "QFAA", "B0",    512),
-
-	/* Some early nRF51-DK (PCA10028) & nRF51-Dongle (PCA10031) boards
-	   with built-in jlink seem to use engineering samples not listed
-	   in the nRF51 Series Compatibility Matrix V1.0. */
-	NRF5_DEVICE_DEF(0x0071, "51822", "QFAC", "AB",    256),
 };
 
 static int nrf5_bank_is_probed(struct flash_bank *bank)

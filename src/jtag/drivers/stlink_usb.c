@@ -457,8 +457,8 @@ static int stlink_usb_error_check(void *handle)
 			LOG_DEBUG("Write error");
 			return ERROR_FAIL;
 		case STLINK_JTAG_WRITE_VERIF_ERROR:
-			LOG_DEBUG("Verify error");
-			return ERROR_FAIL;
+			LOG_DEBUG("Write verify error, ignoring");
+			return ERROR_OK;
 		case STLINK_SWD_AP_FAULT:
 			/* git://git.ac6.fr/openocd commit 657e3e885b9ee10
 			 * returns ERROR_OK with the comment:
