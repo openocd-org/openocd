@@ -3007,12 +3007,10 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		LOG_INFO("System Bus Access Test 5: SBCS sbaccess error test PASSED, all sbaccess sizes supported.");
 	} else {
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBACCESS, 4);
-		dmi_write(target, DMI_SBCS, sbcs);
 
-		write_memory_sba_simple(target, legal_address, test_patterns, 1, sbcs_orig);
+		write_memory_sba_simple(target, legal_address, test_patterns, 1, sbcs);
 
 		dmi_read(target, &rd_val, DMI_SBCS);
-
 		if (get_field(rd_val, DMI_SBCS_SBERROR) == 3) {
 			sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 			dmi_write(target, DMI_SBCS, sbcs);
@@ -3028,9 +3026,10 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	/* Test 6: Write to misaligned address */
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBACCESS, 1);
-	dmi_write(target, DMI_SBCS, sbcs);
 
-	dmi_write(target, DMI_SBADDRESS0, legal_address+1);
+  write_memory_sba_simple(target, legal_address+1, test_patterns, 1, sbcs);
+
+  dmi_read(target, &rd_val, DMI_SBCS);
 	if (get_field(rd_val, DMI_SBCS_SBERROR) == 3) {
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
