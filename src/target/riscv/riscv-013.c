@@ -383,7 +383,11 @@ static dmi_status_t dmi_scan(struct target *target, uint16_t *address_in,
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		LOG_ERROR("dmi_scan failed jtag scan");
+		static int once = 1;
+		if (once) {
+			LOG_ERROR("dmi_scan failed jtag scan");
+			once = 0;
+		}
 		return DMI_STATUS_FAILED;
 	}
 
@@ -418,13 +422,22 @@ static uint32_t dmi_read(struct target *target, uint16_t address)
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed read from 0x%x, status=%d", address, status);
+			static int once = 1;
+			if (once) {
+				LOG_ERROR("failed read from 0x%x, status=%d", address, status);
+				once = 0;
+			}
 			break;
 		}
+		usleep(100000);
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed read from 0x%x; status=%d", address, status);
+		static int once = 1;
+		if (once) {
+			LOG_INFO("Failed read from 0x%x; status=%d", address, status);
+			once = 0;
+		}
 		return ~0;
 	}
 
@@ -2268,6 +2281,9 @@ int riscv013_test_compliance(struct target *target) {
     dmstatus = dmi_read(target, DMI_DMSTATUS);
   } while ((dmstatus & DMI_DMSTATUS_ALLHALTED) == 0);
 
+  dmi_write(target, DMI_DMSTATUS, 0xffffffff);
+  COMPLIANCE_TEST(dmi_read(target, DMI_DMSTATUS) == dmstatus, "DMSTATUS is R/O");
+
   // resumereq. This will resume the hart but this test is destructive anyway.
   dmcontrol &= ~DMI_DMCONTROL_HALTREQ;
   dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
@@ -2339,6 +2355,12 @@ int riscv013_test_compliance(struct target *target) {
     expected_haltsum |= (1 << (i / 32));
   }
   COMPLIANCE_TEST(dmi_read(target, DMI_HALTSUM) == expected_haltsum, "HALTSUM should report all halted harts");
+
+  dmi_write(target, DMI_HALTSUM, 0xffffffff);
+  COMPLIANCE_TEST(dmi_read(target, DMI_HALTSUM) == expected_haltsum, "HALTSUM is R/O");
+
+  dmi_write(target, DMI_HALTSUM, 0x0);
+  COMPLIANCE_TEST(dmi_read(target, DMI_HALTSUM) == expected_haltsum, "HALTSUM is R/O");
 
   for (int i = 0; i < riscv_count_harts(target); i +=32){
     uint32_t haltstat =  dmi_read(target, 0x40 + (i / 32));
