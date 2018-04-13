@@ -61,8 +61,8 @@ static int riscv013_test_sba_config_reg(struct target *target, target_addr_t leg
 		uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
 void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t* write_data,
 		uint32_t write_size, uint32_t sbcs);
-uint32_t *read_memory_sba_simple(struct target *target, target_addr_t addr,
-		uint32_t read_size, uint32_t sbcs);
+void read_memory_sba_simple(struct target *target, target_addr_t addr,
+		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs);
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value);
@@ -2884,6 +2884,8 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	uint32_t num_sbdata_regs = get_num_sbdata_regs(target);
 
+	uint32_t rd_buf[num_sbdata_regs];
+
 	/* Test 1: Simple write/read test */
 	test_passed = true;
 	sbcs = set_field(sbcs_orig, DMI_SBCS_SBAUTOINCREMENT, 0);
@@ -2894,8 +2896,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		sbcs = set_field(sbcs, DMI_SBCS_SBACCESS, sbaccess);
 		dmi_write(target, DMI_SBCS, sbcs);
 
-		uint32_t compare_mask = (sbaccess == 0) ? 0xff :
-														(sbaccess == 1) ? 0xffff : 0xffffffff;
+		uint32_t compare_mask = (sbaccess == 0) ? 0xff : (sbaccess == 1) ? 0xffff : 0xffffffff;
 
 		for (uint32_t i = 0; i < num_words; i++) {
 			uint32_t addr = legal_address + (i << sbaccess);
@@ -2907,15 +2908,14 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 		for (uint32_t i = 0; i < num_words; i++) {
 			uint32_t addr = legal_address + (i << sbaccess);
-			uint32_t *val = read_memory_sba_simple(target, addr, num_sbdata_regs, sbcs);
+			read_memory_sba_simple(target, addr, rd_buf, num_sbdata_regs, sbcs);
 			for (uint32_t j = 0; j < num_sbdata_regs; j++) {
-				if (((test_patterns[j]+i)&compare_mask) != (val[j]&compare_mask)) {
+				if (((test_patterns[j]+i)&compare_mask) != (rd_buf[j]&compare_mask)) {
 					LOG_ERROR("System Bus Access Test 1: Error reading non-autoincremented address %x,"
-							"expected val = %x, read val = %x", addr, test_patterns[j]+i, val[j]);
+							"expected val = %x, read val = %x", addr, test_patterns[j]+i, rd_buf[j]);
 					test_passed = false;
 				}
 			}
-			free(val);
 		}
 	}
 	if (test_passed)
@@ -2976,8 +2976,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		LOG_INFO("System Bus Access Test 2: Address auto-increment test PASSED.");
 
 	/* Test 3: Read from illegal address */
-	uint32_t *illegal_addr_read = read_memory_sba_simple(target, illegal_address, 1, sbcs_orig);
-	free(illegal_addr_read);
+	read_memory_sba_simple(target, illegal_address, rd_buf, 1, sbcs_orig);
 
 	dmi_read(target, &rd_val, DMI_SBCS);
 	if (get_field(rd_val, DMI_SBCS_SBERROR) == 2) {
@@ -3102,12 +3101,11 @@ void write_memory_sba_simple(struct target *target, target_addr_t addr,
 		dmi_write(target, DMI_SBDATA0+i, write_data[i]);
 }
 
-uint32_t *read_memory_sba_simple(struct target *target, target_addr_t addr,
-		uint32_t read_size, uint32_t sbcs)
+void read_memory_sba_simple(struct target *target, target_addr_t addr,
+		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs)
 {
 	RISCV013_INFO(info);
 
-	uint32_t *rd_val = malloc(read_size*sizeof(uint32_t));
 	uint32_t rd_sbcs;
 	uint32_t masked_addr;
 
@@ -3131,9 +3129,7 @@ uint32_t *read_memory_sba_simple(struct target *target, target_addr_t addr,
 	read_sbcs_nonbusy(target, &rd_sbcs);
 
 	for (uint32_t i = 0; i < read_size; i++)
-		dmi_read(target, &(rd_val[i]), DMI_SBDATA0+i);
-
-	return rd_val;
+		dmi_read(target, &(rd_buf[i]), DMI_SBDATA0+i);
 }
 
 int riscv013_dmi_write_u64_bits(struct target *target)
