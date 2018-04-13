@@ -3294,7 +3294,7 @@ int riscv013_test_compliance(struct target *target) {
     riscv_reg_t dpc;
     
     if (riscv_xlen(target) > 32) {
-      dpcmask |= (0xFFFFFFFFUL << 32);
+      dpcmask |= (0xFFFFFFFFULL << 32);
     }
     if (riscv_supports_extension(target, riscv_current_hartid(target), 'C')){
       dpcmask |= 0x2;
