@@ -1442,9 +1442,10 @@ COMMAND_HANDLER(riscv_test_sba_config_reg)
 	uint32_t num_words;
 	target_addr_t illegal_address;
 	bool run_sbbusyerror_test;
-	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], legal_address);
+
+	COMMAND_PARSE_NUMBER(target_addr, CMD_ARGV[0], legal_address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], num_words);
-	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[2], illegal_address);
+	COMMAND_PARSE_NUMBER(target_addr, CMD_ARGV[2], illegal_address);
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[3], run_sbbusyerror_test);
 
 	if (r->test_sba_config_reg) {
