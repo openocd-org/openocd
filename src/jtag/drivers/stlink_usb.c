@@ -246,6 +246,7 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_APIV2_STOP_TRACE_RX   0x41
 #define STLINK_DEBUG_APIV2_GET_TRACE_NB    0x42
 #define STLINK_DEBUG_APIV2_SWD_SET_FREQ    0x43
+#define STLINK_DEBUG_APIV2_JTAG_SET_FREQ   0x44
 
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_LOW   0x00
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_HIGH  0x01
@@ -268,10 +269,13 @@ enum stlink_mode {
 #define REQUEST_SENSE        0x03
 #define REQUEST_SENSE_LENGTH 18
 
-static const struct {
+struct speed_map {
 	int speed;
 	int speed_divisor;
-} stlink_khz_to_speed_map[] = {
+};
+
+/* SWD clock speed */
+static const struct speed_map stlink_khz_to_speed_map_swd[] = {
 	{4000, 0},
 	{1800, 1}, /* default */
 	{1200, 2},
@@ -284,6 +288,18 @@ static const struct {
 	{25, 158},
 	{15, 265},
 	{5,  798}
+};
+
+/* JTAG clock speed */
+static const struct speed_map stlink_khz_to_speed_map_jtag[] = {
+	{18000, 2},
+	{9000,  4},
+	{4500,  8},
+	{2250, 16},
+	{1125, 32}, /* default */
+	{562,  64},
+	{281, 128},
+	{140, 256}
 };
 
 static void stlink_usb_init_buffer(void *handle, uint8_t direction, uint32_t size);
@@ -690,6 +706,31 @@ static int stlink_usb_set_swdclk(void *handle, uint16_t clk_divisor)
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_SWD_SET_FREQ;
+	h_u16_to_le(h->cmdbuf+h->cmdidx, clk_divisor);
+	h->cmdidx += 2;
+
+	int result = stlink_cmd_allow_retry(handle, h->databuf, 2);
+
+	if (result != ERROR_OK)
+		return result;
+
+	return ERROR_OK;
+}
+
+static int stlink_usb_set_jtagclk(void *handle, uint16_t clk_divisor)
+{
+	struct stlink_usb_handle_s *h = handle;
+
+	assert(handle != NULL);
+
+	/* only supported by stlink/v2 and for firmware >= 24 */
+	if (h->version.stlink == 1 || h->version.jtag < 24)
+		return ERROR_COMMAND_NOTFOUND;
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 2);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_JTAG_SET_FREQ;
 	h_u16_to_le(h->cmdbuf+h->cmdidx, clk_divisor);
 	h->cmdidx += 2;
 
@@ -1887,70 +1928,129 @@ static int stlink_usb_override_target(const char *targetname)
 	return !strcmp(targetname, "cortex_m");
 }
 
-static int stlink_speed(void *handle, int khz, bool query)
+static int stlink_speed_swim(void *handle, int khz, bool query)
 {
-	unsigned i;
-	int speed_index = -1;
-	int speed_diff = INT_MAX;
-	struct stlink_usb_handle_s *h = handle;
-
-	if (h && (h->transport == HL_TRANSPORT_SWIM)) {
-		/*
+	/*
 			we dont care what the khz rate is
 			we only have low and high speed...
 			before changing speed the SWIM_CSR HS bit
 			must be updated
-		 */
-		if (khz == 0)
-			stlink_swim_speed(handle, 0);
-		else
-			stlink_swim_speed(handle, 1);
-		return khz;
-	}
+	 */
+	if (khz == 0)
+		stlink_swim_speed(handle, 0);
+	else
+		stlink_swim_speed(handle, 1);
+	return khz;
+}
 
-	/* only supported by stlink/v2 and for firmware >= 22 */
-	if (h && (h->version.stlink == 1 || h->version.jtag < 22))
-		return khz;
+static int stlink_match_speed_map(const struct speed_map *map, unsigned int map_size, int khz, bool query)
+{
+	unsigned int i;
+	int speed_index = -1;
+	int speed_diff = INT_MAX;
+	bool match = true;
 
-	for (i = 0; i < ARRAY_SIZE(stlink_khz_to_speed_map); i++) {
-		if (khz == stlink_khz_to_speed_map[i].speed) {
+	for (i = 0; i < map_size; i++) {
+		if (khz == map[i].speed) {
 			speed_index = i;
 			break;
 		} else {
-			int current_diff = khz - stlink_khz_to_speed_map[i].speed;
+			int current_diff = khz - map[i].speed;
 			/* get abs value for comparison */
 			current_diff = (current_diff > 0) ? current_diff : -current_diff;
-			if ((current_diff < speed_diff) && khz >= stlink_khz_to_speed_map[i].speed) {
+			if ((current_diff < speed_diff) && khz >= map[i].speed) {
 				speed_diff = current_diff;
 				speed_index = i;
 			}
 		}
 	}
 
-	bool match = true;
-
 	if (speed_index == -1) {
 		/* this will only be here if we cannot match the slow speed.
 		 * use the slowest speed we support.*/
-		speed_index = ARRAY_SIZE(stlink_khz_to_speed_map) - 1;
+		speed_index = map_size - 1;
 		match = false;
-	} else if (i == ARRAY_SIZE(stlink_khz_to_speed_map))
+	} else if (i == map_size)
 		match = false;
 
 	if (!match && query) {
 		LOG_INFO("Unable to match requested speed %d kHz, using %d kHz", \
-				khz, stlink_khz_to_speed_map[speed_index].speed);
+				khz, map[speed_index].speed);
 	}
 
-	if (h && !query) {
-		int result = stlink_usb_set_swdclk(h, stlink_khz_to_speed_map[speed_index].speed_divisor);
+	return speed_index;
+}
+
+static int stlink_speed_swd(void *handle, int khz, bool query)
+{
+	int speed_index;
+	struct stlink_usb_handle_s *h = handle;
+
+	/* only supported by stlink/v2 and for firmware >= 22 */
+	if (h->version.stlink == 1 || h->version.jtag < 22)
+		return khz;
+
+	speed_index = stlink_match_speed_map(stlink_khz_to_speed_map_swd,
+		ARRAY_SIZE(stlink_khz_to_speed_map_swd), khz, query);
+
+	if (!query) {
+		int result = stlink_usb_set_swdclk(h, stlink_khz_to_speed_map_swd[speed_index].speed_divisor);
 		if (result != ERROR_OK) {
 			LOG_ERROR("Unable to set adapter speed");
 			return khz;
 		}
 	}
 
-	return stlink_khz_to_speed_map[speed_index].speed;
+	return stlink_khz_to_speed_map_swd[speed_index].speed;
+}
+
+static int stlink_speed_jtag(void *handle, int khz, bool query)
+{
+	int speed_index;
+	struct stlink_usb_handle_s *h = handle;
+
+	/* only supported by stlink/v2 and for firmware >= 24 */
+	if (h->version.stlink == 1 || h->version.jtag < 24)
+		return khz;
+
+	speed_index = stlink_match_speed_map(stlink_khz_to_speed_map_jtag,
+		ARRAY_SIZE(stlink_khz_to_speed_map_jtag), khz, query);
+
+	if (!query) {
+		int result = stlink_usb_set_jtagclk(h, stlink_khz_to_speed_map_jtag[speed_index].speed_divisor);
+		if (result != ERROR_OK) {
+			LOG_ERROR("Unable to set adapter speed");
+			return khz;
+		}
+	}
+
+	return stlink_khz_to_speed_map_jtag[speed_index].speed;
+}
+
+void stlink_dump_speed_map(const struct speed_map *map, unsigned int map_size)
+{
+	unsigned int i;
+
+	LOG_DEBUG("Supported clock speeds are:");
+	for (i = 0; i < map_size; i++)
+		LOG_DEBUG("%d kHz", map[i].speed);
+}
+
+static int stlink_speed(void *handle, int khz, bool query)
+{
+	struct stlink_usb_handle_s *h = handle;
+
+	if (!handle)
+		return khz;
+
+	if (h->transport == HL_TRANSPORT_SWIM)
+		return stlink_speed_swim(handle, khz, query);
+	else if (h->transport == HL_TRANSPORT_SWD)
+		return stlink_speed_swd(handle, khz, query);
+	else if (h->transport == HL_TRANSPORT_JTAG)
+		return stlink_speed_jtag(handle, khz, query);
+
+	return khz;
 }
 
 /** */
@@ -2159,14 +2259,18 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 		return ERROR_OK;
 	}
 
-	/* clock speed only supported by stlink/v2 and for firmware >= 22 */
-	if (h->version.stlink >= 2 && h->version.jtag >= 22) {
-		LOG_DEBUG("Supported clock speeds are:");
-
-		for (unsigned i = 0; i < ARRAY_SIZE(stlink_khz_to_speed_map); i++)
-			LOG_DEBUG("%d kHz", stlink_khz_to_speed_map[i].speed);
-
-		stlink_speed(h, param->initial_interface_speed, false);
+	if (h->transport == HL_TRANSPORT_JTAG) {
+		/* jtag clock speed only supported by stlink/v2 and for firmware >= 24 */
+		if (h->version.stlink >= 2 && h->version.jtag >= 24) {
+			stlink_dump_speed_map(stlink_khz_to_speed_map_jtag, ARRAY_SIZE(stlink_khz_to_speed_map_jtag));
+			stlink_speed(h, param->initial_interface_speed, false);
+		}
+	} else if (h->transport == HL_TRANSPORT_SWD) {
+		/* clock speed only supported by stlink/v2 and for firmware >= 22 */
+		if (h->version.stlink >= 2 && h->version.jtag >= 22) {
+			stlink_dump_speed_map(stlink_khz_to_speed_map_swd, ARRAY_SIZE(stlink_khz_to_speed_map_swd));
+			stlink_speed(h, param->initial_interface_speed, false);
+		}
 	}
 
 	/* get cpuid, so we can determine the max page size
