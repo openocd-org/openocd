@@ -50,5 +50,6 @@ matrix:
                       - binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686
 
 script:
+    - git diff `git merge-base master HEAD` | ./tools/scripts/checkpatch.pl -
     - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi $CONFIGURE_ARGS && make
     - file src/$EXECUTABLE
