@@ -281,7 +281,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
 		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET, "hartsello" },
 		/* TODO: hartsellhi */
-                { DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 
 		{ DMI_DMSTATUS, DMI_DMSTATUS_IMPEBREAK, "impebreak" },
@@ -2977,7 +2977,7 @@ int riscv013_test_compliance(struct target *target)
 			"DMCONTROL.hartsello should hold Hart ID 0");
 
 	/* hartreset */
-	/* This field is optional. Either we can read and write it to 1/0, 
+	/* This field is optional. Either we can read and write it to 1/0,
 	or it is tied to 0. */
 	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 1);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
@@ -3006,7 +3006,7 @@ int riscv013_test_compliance(struct target *target)
 	/* This bit is not actually readable according to the spec, so nothing to check.*/
 
 	/* DMSTATUS */
-        uint32_t dmstatus, dmstatus_read;
+	uint32_t dmstatus, dmstatus_read;
 	dmi_read(target, &dmstatus, DMI_DMSTATUS);
 	dmi_write(target, DMI_DMSTATUS, ~dmstatus);
 	dmi_read(target, &dmstatus_read, DMI_DMSTATUS);
@@ -3032,11 +3032,11 @@ int riscv013_test_compliance(struct target *target)
 		/* $dscratch CSRs */
 		uint32_t nscratch = get_field(hartinfo, DMI_HARTINFO_NSCRATCH);
 		for (unsigned int d = 0; d < nscratch; d++) {
-                  riscv_reg_t testval, testval_read;
+			riscv_reg_t testval, testval_read;
 			/* Because DSCRATCH is not guaranteed to last across PB executions, need to put
 			this all into one PB execution. Which may not be possible on all implementations.*/
-                        if (info->progbufsize >= 5) {
-                        	for (testval = 0x0011223300112233;
+			if (info->progbufsize >= 5) {
+				for (testval = 0x0011223300112233;
 				     testval != 0xDEAD;
 				     testval = testval == 0x0011223300112233 ? ~testval : 0xDEAD) {
 					COMPLIANCE_TEST(register_write_direct(target, GDB_REGNO_S0, testval) == ERROR_OK,
@@ -3059,7 +3059,7 @@ int riscv013_test_compliance(struct target *target)
 								"All DSCRATCH registers in HARTINFO must be R/W.");
 					}
 				}
-                        }
+			}
 		}
 		/* TODO: dataaccess */
 		if (get_field(hartinfo, DMI_HARTINFO_DATAACCESS)) {
@@ -3177,17 +3177,16 @@ int riscv013_test_compliance(struct target *target)
 	/* Basic Abstract Commands */
 	for (unsigned int i = 1; i < 32; i = i << 1) {
 		riscv_reg_t testval =  i | ((i + 1ULL) << 32);
-                riscv_reg_t testval_read;
+		riscv_reg_t testval_read;
 		COMPLIANCE_TEST(ERROR_OK == register_write_direct(target, GDB_REGNO_ZERO + i, testval),
 				"GPR Writes should be supported.");
 		write_abstract_arg(target, 0, 0xDEADBEEFDEADBEEF, 64);
 		COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &testval_read, GDB_REGNO_ZERO + i),
 				"GPR Reads should be supported.");
 		if (riscv_xlen(target) > 32) {
-        	       COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
+			COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
 		} else {
-        	       COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
-
+			COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
 		}
 	}
 
@@ -3203,7 +3202,7 @@ int riscv013_test_compliance(struct target *target)
 		a true compliance requirement. */
 		if (info->progbufsize >= 3) {
 
-                	testvar = 0;
+		testvar = 0;
 			COMPLIANCE_TEST(ERROR_OK == register_write_direct(target, GDB_REGNO_S0, 0),
 					"Need to be able to write S0 to test ABSTRACTAUTO");
 			struct riscv_program program;
@@ -3243,16 +3242,15 @@ int riscv013_test_compliance(struct target *target)
 					testvar++;
 				}
 			}
-                	
+
 			dmi_write(target, DMI_ABSTRACTAUTO, 0);
 			COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &value, GDB_REGNO_S0),
 					"Need to be able to read S0 to test ABSTRACTAUTO");
-                	
+
 			COMPLIANCE_TEST(testvar == value,
 					"ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
-                }
-        
-        }
+		}
+	}
 
 	/* Single-Step each hart. */
 	for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++) {
