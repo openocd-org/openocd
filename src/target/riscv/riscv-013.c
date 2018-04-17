@@ -466,11 +466,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		static int once = 1;
-		if (once) {
-			LOG_ERROR("dmi_scan failed jtag scan");
-			once = 0;
-		}
+		LOG_ERROR("dmi_scan failed jtag scan");
 		return DMI_STATUS_FAILED;
 	}
 
