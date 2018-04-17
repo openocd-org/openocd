@@ -1784,8 +1784,8 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 			LOG_ERROR("Timed out after %ds waiting for sbbusy to go low (sbcs=0x%x). "
 					"Increase the timeout with riscv set_command_timeout_sec.",
 					riscv_command_timeout_sec, *sbcs);
+			return ERROR_FAIL;
 		}
-		return ERROR_FAIL;
 	}
 }
 
