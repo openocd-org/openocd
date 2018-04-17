@@ -278,8 +278,9 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_RESUMEREQ, "resumereq" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTRESET, "hartreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
-		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET, "hartsel" },
-		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
+		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET, "hartsello" },
+		/* TODO: hartsellhi */
+                { DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 
 		{ DMI_DMSTATUS, DMI_DMSTATUS_IMPEBREAK, "impebreak" },
