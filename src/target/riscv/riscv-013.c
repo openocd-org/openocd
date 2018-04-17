@@ -57,12 +57,6 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
-static int riscv013_test_sba_config_reg(struct target *target, target_addr_t legal_address,
-		uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
-void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t* write_data,
-		uint32_t write_size, uint32_t sbcs);
-void read_memory_sba_simple(struct target *target, target_addr_t addr,
-		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs);
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value);
@@ -70,6 +64,12 @@ static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer);
 static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
+static int riscv013_test_sba_config_reg(struct target *target, target_addr_t legal_address,
+		uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
+void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t* write_data,
+		uint32_t write_size, uint32_t sbcs);
+void read_memory_sba_simple(struct target *target, target_addr_t addr,
+		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -269,7 +269,7 @@ static dm013_info_t *get_dm(struct target *target)
 static uint32_t hartsel_mask(const struct target *target)
 {
 	RISCV013_INFO(info);
-	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
+	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET;
 }
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
@@ -283,7 +283,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_RESUMEREQ, "resumereq" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTRESET, "hartreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
-		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET, "hartsel" },
+		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET, "hartsel" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 
@@ -1288,7 +1288,7 @@ static int examine(struct target *target)
 		dm->was_reset = true;
 	}
 
-	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
+	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET;
 	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask | DMI_DMCONTROL_DMACTIVE);
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
@@ -1494,11 +1494,11 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->fill_dmi_read_u64 = &riscv013_fill_dmi_read_u64;
 	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
 	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
-	generic_info->test_sba_config_reg = &riscv013_test_sba_config_reg;
 	generic_info->authdata_read = &riscv013_authdata_read;
 	generic_info->authdata_write = &riscv013_authdata_write;
 	generic_info->dmi_read = &dmi_read;
 	generic_info->dmi_write = &dmi_write;
+	generic_info->test_sba_config_reg = &riscv013_test_sba_config_reg;
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -2818,6 +2818,7 @@ void riscv013_fill_dmi_nop_u64(struct target *target, char *buf)
 	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, 0);
 }
 
+/* Helper function for riscv013_test_sba_config_reg */
 static int get_max_sbaccess(struct target *target)
 {
 	RISCV013_INFO(info);
@@ -2847,7 +2848,7 @@ static uint32_t get_num_sbdata_regs(struct target *target)
 	RISCV013_INFO(info);
 
 	uint32_t sbaccess128 = get_field(info->sbcs, DMI_SBCS_SBACCESS128);
-	uint32_t sbaccess64	= get_field(info->sbcs, DMI_SBCS_SBACCESS64);
+	uint32_t sbaccess64 = get_field(info->sbcs, DMI_SBCS_SBACCESS64);
 
 	if (sbaccess128)
 		return 4;
@@ -2939,7 +2940,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			prev_addr = curr_addr;
 			read_sbcs_nonbusy(target, &sbcs);
 			curr_addr = sb_read_address(target);
-			if ((curr_addr - prev_addr != (uint32_t)(1 << sbaccess)) && i != 0) {
+			if ((curr_addr - prev_addr != (uint32_t)(1 << sbaccess)) && (i != 0)) {
 				LOG_ERROR("System Bus Access Test 2: Error with address auto-increment, sbaccess = %x", sbaccess);
 				test_passed = false;
 			}
@@ -2959,7 +2960,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			prev_addr = curr_addr;
 			read_sbcs_nonbusy(target, &sbcs);
 			curr_addr = sb_read_address(target);
-			if ((curr_addr - prev_addr != (uint32_t)(1 << sbaccess)) && i != 0) {
+			if ((curr_addr - prev_addr != (uint32_t)(1 << sbaccess)) && (i != 0)) {
 				LOG_ERROR("System Bus Access Test 2: Error with address auto-increment, sbaccess = %x", sbaccess);
 				test_passed = false;
 			}
@@ -3010,7 +3011,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		write_memory_sba_simple(target, legal_address, test_patterns, 1, sbcs);
 
 		dmi_read(target, &rd_val, DMI_SBCS);
-		if (get_field(rd_val, DMI_SBCS_SBERROR) == 3) {
+		if (get_field(rd_val, DMI_SBCS_SBERROR) == 4) {
 			sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 1);
 			dmi_write(target, DMI_SBCS, sbcs);
 			dmi_read(target, &rd_val, DMI_SBCS);
