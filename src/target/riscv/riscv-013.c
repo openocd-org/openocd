@@ -39,7 +39,7 @@ static void riscv013_clear_abstract_error(struct target *target);
 static int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, int hid, int rid);
 static int riscv013_set_register(struct target *target, int hartid, int regid, uint64_t value);
-static void riscv013_select_current_hart(struct target *target);
+static int riscv013_select_current_hart(struct target *target);
 static int riscv013_halt_current_hart(struct target *target);
 static int riscv013_resume_current_hart(struct target *target);
 static int riscv013_step_current_hart(struct target *target);
@@ -283,8 +283,11 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		/* TODO: hartsellhi */
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_ACKHAVERESET, "ackhavereset" },
 
 		{ DMI_DMSTATUS, DMI_DMSTATUS_IMPEBREAK, "impebreak" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLHAVERESET, "allhavereset" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYHAVERESET, "anyhavereset" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLRESUMEACK, "allresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYRESUMEACK, "anyresumeack" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ALLNONEXISTENT, "allnonexistent" },
@@ -482,59 +485,90 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
-static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
+static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
+		uint32_t address, uint32_t data_out)
 {
 	select_dmi(target);
 
 	dmi_status_t status;
 	uint32_t address_in;
 
-	unsigned i = 0;
+	const char *op_name;
+	switch (dmi_op) {
+		case DMI_OP_NOP:
+			op_name = "nop";
+			break;
+		case DMI_OP_READ:
+			op_name = "read";
+			break;
+		case DMI_OP_WRITE:
+			op_name = "write";
+			break;
+		default:
+			LOG_ERROR("Invalid DMI operation: %d", dmi_op);
+			return ERROR_FAIL;
+	}
 
-	/* This first loop ensures that the read request was actually sent
-	 * to the target. Note that if for some reason this stays busy,
-	 * it is actually due to the previous dmi_read or dmi_write. */
-	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, NULL, NULL, DMI_OP_READ, address, 0,
+	time_t start = time(NULL);
+	/* This first loop performs the request.  Note that if for some reason this
+	 * stays busy, it is actually due to the previous access. */
+	while (1) {
+		status = dmi_scan(target, NULL, NULL, dmi_op, address, data_out,
 				false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed read from 0x%x, status=%d", address, status);
+			LOG_ERROR("failed %s at 0x%x, status=%d", op_name, address, status);
+			return ERROR_FAIL;
+		}
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("dmi.op is still busy after %d seconds. The target is "
+					"either really slow or broken. You could increase the "
+					"timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec);
 			return ERROR_FAIL;
 		}
 		usleep(100000);
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed read from 0x%x; status=%d", address, status);
+		LOG_ERROR("Failed %s at 0x%x; status=%d", op_name, address, status);
 		return ERROR_FAIL;
 	}
 
-	/* This second loop ensures that we got the read
-	 * data back. Note that NOP can result in a 'busy' result as well, but
-	 * that would be noticed on the next DMI access we do. */
-	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, &address_in, value, DMI_OP_NOP, address, 0,
+	/* This second loop ensures the request succeeded, and gets back data.
+	 * Note that NOP can result in a 'busy' result as well, but that would be
+	 * noticed on the next DMI access we do. */
+	while (1) {
+		status = dmi_scan(target, &address_in, data_in, DMI_OP_NOP, address, 0,
 				false);
 		if (status == DMI_STATUS_BUSY) {
 			increase_dmi_busy_delay(target);
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed read (NOP) at 0x%x, status=%d", address, status);
+			LOG_ERROR("failed %s (NOP) at 0x%x, status=%d", op_name, address,
+					status);
+			return ERROR_FAIL;
+		}
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("dmi.op is still busy after %d seconds. The target is "
+					"either really slow or broken. You could increase the "
+					"timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec);
 			return ERROR_FAIL;
 		}
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		if (status == DMI_STATUS_FAILED) {
-			LOG_ERROR("Failed read (NOP) from 0x%x; status=%d", address, status);
+		if (status == DMI_STATUS_FAILED || !data_in) {
+			LOG_ERROR("Failed %s (NOP) at 0x%x; status=%d", op_name, address,
+					status);
 		} else {
-			LOG_ERROR("Failed read (NOP) from 0x%x; value=0x%x, status=%d",
-					address, *value, status);
+			LOG_ERROR("Failed %s (NOP) at 0x%x; value=0x%x, status=%d",
+					op_name, address, *data_in, status);
 		}
 		return ERROR_FAIL;
 	}
@@ -542,53 +576,14 @@ static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
 	return ERROR_OK;
 }
 
+static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
+{
+	return dmi_op(target, value, DMI_OP_READ, address, 0);
+}
+
 static int dmi_write(struct target *target, uint32_t address, uint32_t value)
 {
-	select_dmi(target);
-	dmi_status_t status = DMI_STATUS_BUSY;
-	unsigned i = 0;
-
-	/* The first loop ensures that we successfully sent the write request. */
-	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, NULL, NULL, DMI_OP_WRITE, address, value,
-				address == DMI_COMMAND);
-		if (status == DMI_STATUS_BUSY) {
-			increase_dmi_busy_delay(target);
-		} else if (status == DMI_STATUS_SUCCESS) {
-			break;
-		} else {
-			LOG_ERROR("failed write to 0x%x, status=%d", address, status);
-			break;
-		}
-	}
-
-	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed write to 0x%x;, status=%d",
-				address, status);
-		return ERROR_FAIL;
-	}
-
-	/* The second loop isn't strictly necessary, but would ensure that the
-	 * write is complete/ has no non-busy errors before returning from this
-	 * function. */
-	for (i = 0; i < 256; i++) {
-		status = dmi_scan(target, NULL, NULL, DMI_OP_NOP, address, 0,
-				false);
-		if (status == DMI_STATUS_BUSY) {
-			increase_dmi_busy_delay(target);
-		} else if (status == DMI_STATUS_SUCCESS) {
-			break;
-		} else {
-			LOG_ERROR("failed write (NOP) at 0x%x, status=%d", address, status);
-			break;
-		}
-	}
-	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("failed to write (NOP) 0x%x to 0x%x; status=%d", value, address, status);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
+	return dmi_op(target, NULL, DMI_OP_WRITE, address, value);
 }
 
 int dmstatus_read(struct target *target, uint32_t *dmstatus,
@@ -1129,10 +1124,9 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	int result = register_read_abstract(target, value, number,
 			register_size(target, number));
 
-	if (result != ERROR_OK && info->progbufsize + r->impebreak >= 2 &&
-			riscv_is_halted(target)) {
-		assert(number != GDB_REGNO_S0);
-
+	if (result != ERROR_OK &&
+			info->progbufsize + r->impebreak >= 2 &&
+			number > GDB_REGNO_XPR31) {
 		struct riscv_program program;
 		riscv_program_init(&program, target);
 
@@ -1358,7 +1352,8 @@ static int examine(struct target *target)
 			continue;
 
 		r->current_hartid = i;
-		riscv013_select_current_hart(target);
+		if (riscv013_select_current_hart(target) != ERROR_OK)
+			return ERROR_FAIL;
 
 		uint32_t s;
 		if (dmstatus_read(target, &s, true) != ERROR_OK)
@@ -1366,6 +1361,11 @@ static int examine(struct target *target)
 		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT))
 			break;
 		r->hart_count = i + 1;
+
+		if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
+			dmi_write(target, DMI_DMCONTROL,
+					set_field(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET,
+						hartsel_mask(target), i));
 
 		if (!riscv_is_halted(target)) {
 			if (riscv013_halt_current_hart(target) != ERROR_OK) {
@@ -1538,7 +1538,7 @@ static int assert_reset(struct target *target)
 
 		/* TODO: Try to use hasel in dmcontrol */
 
-		/* Set haltreq/resumereq for each hart. */
+		/* Set haltreq for each hart. */
 		uint32_t control = control_base;
 		for (int i = 0; i < riscv_count_harts(target); ++i) {
 			if (!riscv_hart_enabled(target, i))
@@ -1559,20 +1559,8 @@ static int assert_reset(struct target *target)
 				r->current_hartid);
 		control = set_field(control, DMI_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
-		control = set_field(control, DMI_DMCONTROL_HARTRESET, 1);
+		control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
 		dmi_write(target, DMI_DMCONTROL, control);
-
-		/* Read back to check if hartreset is supported. */
-		uint32_t rb;
-		if (dmi_read(target, &rb, DMI_DMCONTROL) != ERROR_OK)
-			return ERROR_FAIL;
-		if (!get_field(rb, DMI_DMCONTROL_HARTRESET)) {
-			/* Use ndmreset instead. That will reset the entire device, but
-			 * that's probably what OpenOCD wants anyway. */
-			control = set_field(control, DMI_DMCONTROL_HARTRESET, 0);
-			control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
-			dmi_write(target, DMI_DMCONTROL, control);
-		}
 	}
 
 	target->state = TARGET_RESET;
@@ -1586,57 +1574,74 @@ static int deassert_reset(struct target *target)
 	RISCV013_INFO(info);
 	select_dmi(target);
 
-	LOG_DEBUG("%d", r->current_hartid);
-
 	/* Clear the reset, but make sure haltreq is still set */
 	uint32_t control = 0;
 	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
-	control = set_field(control, hartsel_mask(target), r->current_hartid);
 	control = set_field(control, DMI_DMCONTROL_DMACTIVE, 1);
-	dmi_write(target, DMI_DMCONTROL, control);
+	dmi_write(target, DMI_DMCONTROL,
+			set_field(control, hartsel_mask(target), r->current_hartid));
 
 	uint32_t dmstatus;
 	int dmi_busy_delay = info->dmi_busy_delay;
 	time_t start = time(NULL);
 
-	if (target->reset_halt) {
-		LOG_DEBUG("Waiting for hart to be halted.");
-		do {
-			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-				return ERROR_FAIL;
-			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart didn't halt coming out of reset in %ds; "
-						"dmstatus=0x%x; "
-						"Increase the timeout with riscv set_reset_timeout_sec.",
-						riscv_reset_timeout_sec, dmstatus);
-				return ERROR_FAIL;
-			}
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		int index = i;
+		if (target->rtos) {
+			if (!riscv_hart_enabled(target, index))
+				continue;
+			dmi_write(target, DMI_DMCONTROL,
+					set_field(control, hartsel_mask(target), index));
+		} else {
+			index = r->current_hartid;
+		}
+
+		if (target->reset_halt) {
+			LOG_DEBUG("Waiting for hart %d to halt out of reset.", index);
+			do {
+				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+					return ERROR_FAIL;
+				if (time(NULL) - start > riscv_reset_timeout_sec) {
+					LOG_ERROR("Hart %d didn't halt coming out of reset in %ds; "
+							"dmstatus=0x%x; "
+							"Increase the timeout with riscv set_reset_timeout_sec.",
+							index, riscv_reset_timeout_sec, dmstatus);
+					return ERROR_FAIL;
+				}
+			} while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0);
 			target->state = TARGET_HALTED;
-		} while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0);
 
-		control = set_field(control, DMI_DMCONTROL_HALTREQ, 0);
-		dmi_write(target, DMI_DMCONTROL, control);
+		} else {
+			LOG_DEBUG("Waiting for hart %d to run out of reset.", index);
+			while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
+				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+					return ERROR_FAIL;
+				if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
+						get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
+					LOG_ERROR("Unexpected hart %d status during reset. dmstatus=0x%x",
+							index, dmstatus);
+					return ERROR_FAIL;
+				}
+				if (time(NULL) - start > riscv_reset_timeout_sec) {
+					LOG_ERROR("Hart %d didn't run coming out of reset in %ds; "
+							"dmstatus=0x%x; "
+							"Increase the timeout with riscv set_reset_timeout_sec.",
+							index, riscv_reset_timeout_sec, dmstatus);
+					return ERROR_FAIL;
+				}
+			}
+			target->state = TARGET_RUNNING;
+		}
 
-	} else {
-		LOG_DEBUG("Waiting for hart to be running.");
-		do {
-			if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-				return ERROR_FAIL;
-			if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
-					get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
-				LOG_ERROR("Unexpected hart status during reset. dmstatus=0x%x",
-						dmstatus);
-				return ERROR_FAIL;
-			}
-			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart didn't run coming out of reset in %ds; "
-						"dmstatus=0x%x; "
-						"Increase the timeout with riscv set_reset_timeout_sec.",
-						riscv_reset_timeout_sec, dmstatus);
-				return ERROR_FAIL;
-			}
-		} while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0);
-		target->state = TARGET_RUNNING;
+		if (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET)) {
+			/* Ack reset. */
+			dmi_write(target, DMI_DMCONTROL,
+					set_field(control, hartsel_mask(target), index) |
+					DMI_DMCONTROL_ACKHAVERESET);
+		}
+
+		if (!target->rtos)
+			break;
 	}
 	info->dmi_busy_delay = dmi_busy_delay;
 	return ERROR_OK;
@@ -2664,14 +2669,15 @@ static int riscv013_set_register(struct target *target, int hid, int rid, uint64
 	return ERROR_OK;
 }
 
-static void riscv013_select_current_hart(struct target *target)
+static int riscv013_select_current_hart(struct target *target)
 {
 	RISCV_INFO(r);
 
 	uint32_t dmcontrol;
-	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
+	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
+		return ERROR_FAIL;
 	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	return dmi_write(target, DMI_DMCONTROL, dmcontrol);
 }
 
 static int riscv013_halt_current_hart(struct target *target)
@@ -2741,9 +2747,25 @@ static bool riscv013_is_halted(struct target *target)
 	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 		return false;
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL))
-		LOG_ERROR("hart %d is unavailiable", riscv_current_hartid(target));
+		LOG_ERROR("Hart %d is unavailable.", riscv_current_hartid(target));
 	if (get_field(dmstatus, DMI_DMSTATUS_ANYNONEXISTENT))
-		LOG_ERROR("hart %d doesn't exist", riscv_current_hartid(target));
+		LOG_ERROR("Hart %d doesn't exist.", riscv_current_hartid(target));
+	if (get_field(dmstatus, DMI_DMSTATUS_ANYHAVERESET)) {
+		int hartid = riscv_current_hartid(target);
+		LOG_INFO("Hart %d unexpectedly reset!", hartid);
+		/* TODO: Can we make this more obvious to eg. a gdb user? */
+		uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE |
+			DMI_DMCONTROL_ACKHAVERESET;
+		dmcontrol = set_field(dmcontrol, hartsel_mask(target), hartid);
+		/* If we had been halted when we reset, request another halt. If we
+		 * ended up running out of reset, then the user will (hopefully) get a
+		 * message that a reset happened, that the target is running, and then
+		 * that it is halted again once the request goes through.
+		 */
+		if (target->state == TARGET_HALTED)
+			dmcontrol |= DMI_DMCONTROL_HALTREQ;
+		dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	}
 	return get_field(dmstatus, DMI_DMSTATUS_ALLHALTED);
 }
 
@@ -2872,11 +2894,9 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		return ERROR_FAIL;
 
 	/* Issue the resume command, and then wait for the current hart to resume. */
-	uint32_t dmcontrol;
-	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
-		return ERROR_FAIL;
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE;
+	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
+	dmi_write(target, DMI_DMCONTROL, dmcontrol | DMI_DMCONTROL_RESUMEREQ);
 
 	uint32_t dmstatus;
 	for (size_t i = 0; i < 256; ++i) {
@@ -2888,17 +2908,16 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		if (step && get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0)
 			continue;
 
-		dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 0);
 		dmi_write(target, DMI_DMCONTROL, dmcontrol);
 		return ERROR_OK;
 	}
 
-	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-		return ERROR_FAIL;
+	LOG_ERROR("unable to resume hart %d", r->current_hartid);
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_ERROR("unable to resume hart %d", r->current_hartid);
 	LOG_ERROR("  dmcontrol=0x%08x", dmcontrol);
+	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+		return ERROR_FAIL;
 	LOG_ERROR("  dmstatus =0x%08x", dmstatus);
 
 	if (step) {
@@ -2923,7 +2942,7 @@ void riscv013_clear_abstract_error(struct target *target)
 			LOG_ERROR("abstractcs.busy is not going low after %d seconds "
 					"(abstractcs=0x%x). The target is either really slow or "
 					"broken. You could increase the timeout with riscv "
-					"set_reset_timeout_sec.",
+					"set_command_timeout_sec.",
 					riscv_command_timeout_sec, abstractcs);
 			break;
 		}
