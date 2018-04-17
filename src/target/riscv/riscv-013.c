@@ -2956,7 +2956,7 @@ int riscv013_test_compliance(struct target *target)
 	int total_tests = 0;
 	int passed_tests = 0;
 
-	uint32_t dmcontrol_orig = 0;
+	uint32_t dmcontrol_orig = DMI_DMCONTROL_DMACTIVE;
 	uint32_t dmcontrol;
 	uint32_t testvar;
 	uint32_t testvar_read;
@@ -3320,7 +3320,6 @@ int riscv013_test_compliance(struct target *target)
 	/* Pulse reset. */
 
 	target->reset_halt = true;
-	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
 	riscv_set_current_hartid(target, 0);
 	assert_reset(target);
 	deassert_reset(target);
