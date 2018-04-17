@@ -1208,22 +1208,21 @@ COMMAND_HANDLER(riscv_set_reset_timeout_sec)
 
 COMMAND_HANDLER(riscv_test_compliance) {
 
-  struct target *target = get_current_target(CMD_CTX);
+	struct target *target = get_current_target(CMD_CTX);
 
-  RISCV_INFO(r);
+	RISCV_INFO(r);
 
-  if (CMD_ARGC > 0) {
-      LOG_ERROR("Command does not take any parameters.");
-      return ERROR_COMMAND_SYNTAX_ERROR;
-  }
+	if (CMD_ARGC > 0) {
+		LOG_ERROR("Command does not take any parameters.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
-  if (r->test_compliance) {
-    return r->test_compliance(target);
-  } else {
-    LOG_ERROR("This target does not support this command (may implement an older version of the spec).");
-    return ERROR_FAIL;
-  }
-
+	if (r->test_compliance) {
+		return r->test_compliance(target);
+	} else {
+		LOG_ERROR("This target does not support this command (may implement an older version of the spec).");
+		return ERROR_FAIL;
+	}
 }
 
 COMMAND_HANDLER(riscv_set_scratch_ram)
@@ -1237,7 +1236,7 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 		return ERROR_OK;
 	}
 
-	// TODO: use COMMAND_PARSE_NUMBER
+	/** TODO: use COMMAND_PARSE_NUMBER **/
 	long long unsigned int address;
 	int result = sscanf(CMD_ARGV[0], "%llx", &address);
 	if (result != (int) strlen(CMD_ARGV[0])) {
