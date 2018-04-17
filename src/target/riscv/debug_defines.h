@@ -245,6 +245,16 @@
 #define CSR_DCSR_CAUSE_LENGTH               3
 #define CSR_DCSR_CAUSE                      (0x7U << CSR_DCSR_CAUSE_OFFSET)
 /*
+* When set, there is a Non-Maskable-Interrupt (NMI) pending for the hart.
+*
+* Since an NMI can indicate a hardware error condition,
+* reliable debugging may no longer be possible once this bit becomes set.
+* This is implementation-dependent.
+ */
+#define CSR_DCSR_NMIP_OFFSET                3
+#define CSR_DCSR_NMIP_LENGTH                1
+#define CSR_DCSR_NMIP                       (0x1U << CSR_DCSR_NMIP_OFFSET)
+/*
 * When set and not in Debug Mode, the hart will only execute a single
 * instruction and then enter Debug Mode.
 * If the instruction does not complete due to an exception,
@@ -343,6 +353,16 @@
 #define CSR_MCONTROL_MASKMAX_LENGTH         6
 #define CSR_MCONTROL_MASKMAX                (0x3fULL << CSR_MCONTROL_MASKMAX_OFFSET)
 /*
+* If this optional bit is implemented, the hardware sets it when this
+* trigger matches. The trigger's user can set or clear it at any
+* time. The trigger's user can use this bit to determine which
+* trigger(s) matched.  If the bit is not implemented, it is always 0
+* and writing it has no effect.
+ */
+#define CSR_MCONTROL_HIT_OFFSET             20
+#define CSR_MCONTROL_HIT_LENGTH             1
+#define CSR_MCONTROL_HIT                    (0x1ULL << CSR_MCONTROL_HIT_OFFSET)
+/*
 * 0: Perform a match on the virtual address.
 *
 * 1: Perform a match on the data value loaded/stored, or the
@@ -368,7 +388,7 @@
 * which case the debugger has a little more control.
 *
 * Data load triggers with \Ftiming of 0 will result in the same load
-* happening again when the debugger lets the core run. For data load
+* happening again when the debugger lets the hart run. For data load
 * triggers, debuggers must first attempt to set the breakpoint with
 * \Ftiming of 1.
 *
@@ -478,6 +498,16 @@
 #define CSR_ICOUNT_DMODE_OFFSET             (XLEN-5)
 #define CSR_ICOUNT_DMODE_LENGTH             1
 #define CSR_ICOUNT_DMODE                    (0x1ULL << CSR_ICOUNT_DMODE_OFFSET)
+/*
+* If this optional bit is implemented, the hardware sets it when this
+* trigger matches. The trigger's user can set or clear it at any
+* time. The trigger's user can use this bit to determine which
+* trigger(s) matched.  If the bit is not implemented, it is always 0
+* and writing it has no effect.
+ */
+#define CSR_ICOUNT_HIT_OFFSET               24
+#define CSR_ICOUNT_HIT_LENGTH               1
+#define CSR_ICOUNT_HIT                      (0x1ULL << CSR_ICOUNT_HIT_OFFSET)
 /*
 * When count is decremented to 0, the trigger fires. Instead of
 * changing \Fcount from 1 to 0, it is also acceptable for hardware to
@@ -674,7 +704,7 @@
  */
 #define DMI_DMCONTROL_HALTREQ_OFFSET        31
 #define DMI_DMCONTROL_HALTREQ_LENGTH        1
-#define DMI_DMCONTROL_HALTREQ               (0x1ULL << DMI_DMCONTROL_HALTREQ_OFFSET)
+#define DMI_DMCONTROL_HALTREQ               (0x1U << DMI_DMCONTROL_HALTREQ_OFFSET)
 /*
 * Writes the resume request bit for all currently selected harts.
 * When set to 1, each selected hart will resume if it is currently
@@ -687,7 +717,7 @@
  */
 #define DMI_DMCONTROL_RESUMEREQ_OFFSET      30
 #define DMI_DMCONTROL_RESUMEREQ_LENGTH      1
-#define DMI_DMCONTROL_RESUMEREQ             (0x1ULL << DMI_DMCONTROL_RESUMEREQ_OFFSET)
+#define DMI_DMCONTROL_RESUMEREQ             (0x1U << DMI_DMCONTROL_RESUMEREQ_OFFSET)
 /*
 * This optional field writes the reset bit for all the currently
 * selected harts.  To perform a reset the debugger writes 1, and then
@@ -701,7 +731,7 @@
  */
 #define DMI_DMCONTROL_HARTRESET_OFFSET      29
 #define DMI_DMCONTROL_HARTRESET_LENGTH      1
-#define DMI_DMCONTROL_HARTRESET             (0x1ULL << DMI_DMCONTROL_HARTRESET_OFFSET)
+#define DMI_DMCONTROL_HARTRESET             (0x1U << DMI_DMCONTROL_HARTRESET_OFFSET)
 /*
 * Writing 1 to this bit clears the {\tt havereset} bits for
 * any selected harts.
@@ -710,7 +740,7 @@
  */
 #define DMI_DMCONTROL_ACKHAVERESET_OFFSET   28
 #define DMI_DMCONTROL_ACKHAVERESET_LENGTH   1
-#define DMI_DMCONTROL_ACKHAVERESET          (0x1ULL << DMI_DMCONTROL_ACKHAVERESET_OFFSET)
+#define DMI_DMCONTROL_ACKHAVERESET          (0x1U << DMI_DMCONTROL_ACKHAVERESET_OFFSET)
 /*
 * Selects the  definition of currently selected harts.
 *
@@ -720,20 +750,27 @@
 * plus those selected by the hart array mask register.
 *
 * An implementation which does not implement the hart array mask register
-* should tie this field to 0. A debugger which wishes to use the hart array
+* must tie this field to 0. A debugger which wishes to use the hart array
 * mask register feature should set this bit and read back to see if the functionality
 * is supported.
  */
 #define DMI_DMCONTROL_HASEL_OFFSET          26
 #define DMI_DMCONTROL_HASEL_LENGTH          1
-#define DMI_DMCONTROL_HASEL                 (0x1ULL << DMI_DMCONTROL_HASEL_OFFSET)
+#define DMI_DMCONTROL_HASEL                 (0x1U << DMI_DMCONTROL_HASEL_OFFSET)
 /*
-* The DM-specific index of the hart to select. This hart is always part of the
-* currently selected harts.
+* The low 10 bits of \Fhartsel: the DM-specific index of the hart to
+* select. This hart is always part of the currently selected harts.
  */
-#define DMI_DMCONTROL_HARTSEL_OFFSET        16
-#define DMI_DMCONTROL_HARTSEL_LENGTH        HARTSELLEN
-#define DMI_DMCONTROL_HARTSEL               (((1L<<HARTSELLEN)-1) << DMI_DMCONTROL_HARTSEL_OFFSET)
+#define DMI_DMCONTROL_HARTSELLO_OFFSET      16
+#define DMI_DMCONTROL_HARTSELLO_LENGTH      10
+#define DMI_DMCONTROL_HARTSELLO             (0x3ffU << DMI_DMCONTROL_HARTSELLO_OFFSET)
+/*
+* The high 10 bits of \Fhartsel: the DM-specific index of the hart to
+* select. This hart is always part of the currently selected harts.
+ */
+#define DMI_DMCONTROL_HARTSELHI_OFFSET      6
+#define DMI_DMCONTROL_HARTSELHI_LENGTH      10
+#define DMI_DMCONTROL_HARTSELHI             (0x3ffU << DMI_DMCONTROL_HARTSELHI_OFFSET)
 /*
 * This bit controls the reset signal from the DM to the rest of the
 * system. The signal should reset every part of the system, including
@@ -745,7 +782,7 @@
  */
 #define DMI_DMCONTROL_NDMRESET_OFFSET       1
 #define DMI_DMCONTROL_NDMRESET_LENGTH       1
-#define DMI_DMCONTROL_NDMRESET              (0x1ULL << DMI_DMCONTROL_NDMRESET_OFFSET)
+#define DMI_DMCONTROL_NDMRESET              (0x1U << DMI_DMCONTROL_NDMRESET_OFFSET)
 /*
 * This bit serves as a reset signal for the Debug Module itself.
 *
@@ -768,7 +805,7 @@
  */
 #define DMI_DMCONTROL_DMACTIVE_OFFSET       0
 #define DMI_DMCONTROL_DMACTIVE_LENGTH       1
-#define DMI_DMCONTROL_DMACTIVE              (0x1ULL << DMI_DMCONTROL_DMACTIVE_OFFSET)
+#define DMI_DMCONTROL_DMACTIVE              (0x1U << DMI_DMCONTROL_DMACTIVE_OFFSET)
 #define DMI_HARTINFO                        0x12
 /*
 * Number of {\tt dscratch} registers available for the debugger
@@ -813,107 +850,15 @@
 #define DMI_HARTINFO_DATAADDR_OFFSET        0
 #define DMI_HARTINFO_DATAADDR_LENGTH        12
 #define DMI_HARTINFO_DATAADDR               (0xfffU << DMI_HARTINFO_DATAADDR_OFFSET)
-#define DMI_HALTSUM                         0x13
-#define DMI_HALTSUM_HALT1023_992_OFFSET     31
-#define DMI_HALTSUM_HALT1023_992_LENGTH     1
-#define DMI_HALTSUM_HALT1023_992            (0x1U << DMI_HALTSUM_HALT1023_992_OFFSET)
-#define DMI_HALTSUM_HALT991_960_OFFSET      30
-#define DMI_HALTSUM_HALT991_960_LENGTH      1
-#define DMI_HALTSUM_HALT991_960             (0x1U << DMI_HALTSUM_HALT991_960_OFFSET)
-#define DMI_HALTSUM_HALT959_928_OFFSET      29
-#define DMI_HALTSUM_HALT959_928_LENGTH      1
-#define DMI_HALTSUM_HALT959_928             (0x1U << DMI_HALTSUM_HALT959_928_OFFSET)
-#define DMI_HALTSUM_HALT927_896_OFFSET      28
-#define DMI_HALTSUM_HALT927_896_LENGTH      1
-#define DMI_HALTSUM_HALT927_896             (0x1U << DMI_HALTSUM_HALT927_896_OFFSET)
-#define DMI_HALTSUM_HALT895_864_OFFSET      27
-#define DMI_HALTSUM_HALT895_864_LENGTH      1
-#define DMI_HALTSUM_HALT895_864             (0x1U << DMI_HALTSUM_HALT895_864_OFFSET)
-#define DMI_HALTSUM_HALT863_832_OFFSET      26
-#define DMI_HALTSUM_HALT863_832_LENGTH      1
-#define DMI_HALTSUM_HALT863_832             (0x1U << DMI_HALTSUM_HALT863_832_OFFSET)
-#define DMI_HALTSUM_HALT831_800_OFFSET      25
-#define DMI_HALTSUM_HALT831_800_LENGTH      1
-#define DMI_HALTSUM_HALT831_800             (0x1U << DMI_HALTSUM_HALT831_800_OFFSET)
-#define DMI_HALTSUM_HALT799_768_OFFSET      24
-#define DMI_HALTSUM_HALT799_768_LENGTH      1
-#define DMI_HALTSUM_HALT799_768             (0x1U << DMI_HALTSUM_HALT799_768_OFFSET)
-#define DMI_HALTSUM_HALT767_736_OFFSET      23
-#define DMI_HALTSUM_HALT767_736_LENGTH      1
-#define DMI_HALTSUM_HALT767_736             (0x1U << DMI_HALTSUM_HALT767_736_OFFSET)
-#define DMI_HALTSUM_HALT735_704_OFFSET      22
-#define DMI_HALTSUM_HALT735_704_LENGTH      1
-#define DMI_HALTSUM_HALT735_704             (0x1U << DMI_HALTSUM_HALT735_704_OFFSET)
-#define DMI_HALTSUM_HALT703_672_OFFSET      21
-#define DMI_HALTSUM_HALT703_672_LENGTH      1
-#define DMI_HALTSUM_HALT703_672             (0x1U << DMI_HALTSUM_HALT703_672_OFFSET)
-#define DMI_HALTSUM_HALT671_640_OFFSET      20
-#define DMI_HALTSUM_HALT671_640_LENGTH      1
-#define DMI_HALTSUM_HALT671_640             (0x1U << DMI_HALTSUM_HALT671_640_OFFSET)
-#define DMI_HALTSUM_HALT639_608_OFFSET      19
-#define DMI_HALTSUM_HALT639_608_LENGTH      1
-#define DMI_HALTSUM_HALT639_608             (0x1U << DMI_HALTSUM_HALT639_608_OFFSET)
-#define DMI_HALTSUM_HALT607_576_OFFSET      18
-#define DMI_HALTSUM_HALT607_576_LENGTH      1
-#define DMI_HALTSUM_HALT607_576             (0x1U << DMI_HALTSUM_HALT607_576_OFFSET)
-#define DMI_HALTSUM_HALT575_544_OFFSET      17
-#define DMI_HALTSUM_HALT575_544_LENGTH      1
-#define DMI_HALTSUM_HALT575_544             (0x1U << DMI_HALTSUM_HALT575_544_OFFSET)
-#define DMI_HALTSUM_HALT543_512_OFFSET      16
-#define DMI_HALTSUM_HALT543_512_LENGTH      1
-#define DMI_HALTSUM_HALT543_512             (0x1U << DMI_HALTSUM_HALT543_512_OFFSET)
-#define DMI_HALTSUM_HALT511_480_OFFSET      15
-#define DMI_HALTSUM_HALT511_480_LENGTH      1
-#define DMI_HALTSUM_HALT511_480             (0x1U << DMI_HALTSUM_HALT511_480_OFFSET)
-#define DMI_HALTSUM_HALT479_448_OFFSET      14
-#define DMI_HALTSUM_HALT479_448_LENGTH      1
-#define DMI_HALTSUM_HALT479_448             (0x1U << DMI_HALTSUM_HALT479_448_OFFSET)
-#define DMI_HALTSUM_HALT447_416_OFFSET      13
-#define DMI_HALTSUM_HALT447_416_LENGTH      1
-#define DMI_HALTSUM_HALT447_416             (0x1U << DMI_HALTSUM_HALT447_416_OFFSET)
-#define DMI_HALTSUM_HALT415_384_OFFSET      12
-#define DMI_HALTSUM_HALT415_384_LENGTH      1
-#define DMI_HALTSUM_HALT415_384             (0x1U << DMI_HALTSUM_HALT415_384_OFFSET)
-#define DMI_HALTSUM_HALT383_352_OFFSET      11
-#define DMI_HALTSUM_HALT383_352_LENGTH      1
-#define DMI_HALTSUM_HALT383_352             (0x1U << DMI_HALTSUM_HALT383_352_OFFSET)
-#define DMI_HALTSUM_HALT351_320_OFFSET      10
-#define DMI_HALTSUM_HALT351_320_LENGTH      1
-#define DMI_HALTSUM_HALT351_320             (0x1U << DMI_HALTSUM_HALT351_320_OFFSET)
-#define DMI_HALTSUM_HALT319_288_OFFSET      9
-#define DMI_HALTSUM_HALT319_288_LENGTH      1
-#define DMI_HALTSUM_HALT319_288             (0x1U << DMI_HALTSUM_HALT319_288_OFFSET)
-#define DMI_HALTSUM_HALT287_256_OFFSET      8
-#define DMI_HALTSUM_HALT287_256_LENGTH      1
-#define DMI_HALTSUM_HALT287_256             (0x1U << DMI_HALTSUM_HALT287_256_OFFSET)
-#define DMI_HALTSUM_HALT255_224_OFFSET      7
-#define DMI_HALTSUM_HALT255_224_LENGTH      1
-#define DMI_HALTSUM_HALT255_224             (0x1U << DMI_HALTSUM_HALT255_224_OFFSET)
-#define DMI_HALTSUM_HALT223_192_OFFSET      6
-#define DMI_HALTSUM_HALT223_192_LENGTH      1
-#define DMI_HALTSUM_HALT223_192             (0x1U << DMI_HALTSUM_HALT223_192_OFFSET)
-#define DMI_HALTSUM_HALT191_160_OFFSET      5
-#define DMI_HALTSUM_HALT191_160_LENGTH      1
-#define DMI_HALTSUM_HALT191_160             (0x1U << DMI_HALTSUM_HALT191_160_OFFSET)
-#define DMI_HALTSUM_HALT159_128_OFFSET      4
-#define DMI_HALTSUM_HALT159_128_LENGTH      1
-#define DMI_HALTSUM_HALT159_128             (0x1U << DMI_HALTSUM_HALT159_128_OFFSET)
-#define DMI_HALTSUM_HALT127_96_OFFSET       3
-#define DMI_HALTSUM_HALT127_96_LENGTH       1
-#define DMI_HALTSUM_HALT127_96              (0x1U << DMI_HALTSUM_HALT127_96_OFFSET)
-#define DMI_HALTSUM_HALT95_64_OFFSET        2
-#define DMI_HALTSUM_HALT95_64_LENGTH        1
-#define DMI_HALTSUM_HALT95_64               (0x1U << DMI_HALTSUM_HALT95_64_OFFSET)
-#define DMI_HALTSUM_HALT63_32_OFFSET        1
-#define DMI_HALTSUM_HALT63_32_LENGTH        1
-#define DMI_HALTSUM_HALT63_32               (0x1U << DMI_HALTSUM_HALT63_32_OFFSET)
-#define DMI_HALTSUM_HALT31_0_OFFSET         0
-#define DMI_HALTSUM_HALT31_0_LENGTH         1
-#define DMI_HALTSUM_HALT31_0                (0x1U << DMI_HALTSUM_HALT31_0_OFFSET)
 #define DMI_HAWINDOWSEL                     0x14
+/*
+* The high bits of this field may be tied to 0, depending on how large
+* the array mask register is.  Eg. on a system with 48 harts only bit 0
+* of this field may actually be writable.
+ */
 #define DMI_HAWINDOWSEL_HAWINDOWSEL_OFFSET  0
-#define DMI_HAWINDOWSEL_HAWINDOWSEL_LENGTH  5
-#define DMI_HAWINDOWSEL_HAWINDOWSEL         (0x1fU << DMI_HAWINDOWSEL_HAWINDOWSEL_OFFSET)
+#define DMI_HAWINDOWSEL_HAWINDOWSEL_LENGTH  15
+#define DMI_HAWINDOWSEL_HAWINDOWSEL         (0x7fffU << DMI_HAWINDOWSEL_HAWINDOWSEL_OFFSET)
 #define DMI_HAWINDOW                        0x15
 #define DMI_HAWINDOW_MASKDATA_OFFSET        0
 #define DMI_HAWINDOW_MASKDATA_LENGTH        32
@@ -945,15 +890,14 @@
 * \Rabstractcs, \Rabstractauto was written, or when one
 * of the {\tt data} or {\tt progbuf} registers was read or written.
 *
-* 2 (not supported): The requested command is not supported. A
-* command that is not supported while the hart is running may be
-* supported when it is halted.
+* 2 (not supported): The requested command is not supported,
+* regardless of whether the hart is running or not.
 *
 * 3 (exception): An exception occurred while executing the command
 * (eg. while executing the Program Buffer).
 *
-* 4 (halt/resume): An abstract command couldn't execute because the
-* hart wasn't in the expected state (running/halted).
+* 4 (halt/resume): The abstract command couldn't execute because the
+* hart wasn't in the required state (running/halted).
 *
 * 7 (other): The command failed for another reason.
  */
@@ -1004,6 +948,10 @@
 #define DMI_DEVTREEADDR1                    0x1a
 #define DMI_DEVTREEADDR2                    0x1b
 #define DMI_DEVTREEADDR3                    0x1c
+#define DMI_NEXTDM                          0x1d
+#define DMI_NEXTDM_ADDR_OFFSET              0
+#define DMI_NEXTDM_ADDR_LENGTH              32
+#define DMI_NEXTDM_ADDR                     (0xffffffffU << DMI_NEXTDM_ADDR_OFFSET)
 #define DMI_DATA0                           0x04
 #define DMI_DATA0_DATA_OFFSET               0
 #define DMI_DATA0_DATA_LENGTH               32
@@ -1018,6 +966,22 @@
 #define DMI_AUTHDATA_DATA_OFFSET            0
 #define DMI_AUTHDATA_DATA_LENGTH            32
 #define DMI_AUTHDATA_DATA                   (0xffffffffU << DMI_AUTHDATA_DATA_OFFSET)
+#define DMI_HALTSUM0                        0x40
+#define DMI_HALTSUM0_HALTSUM0_OFFSET        0
+#define DMI_HALTSUM0_HALTSUM0_LENGTH        32
+#define DMI_HALTSUM0_HALTSUM0               (0xffffffffU << DMI_HALTSUM0_HALTSUM0_OFFSET)
+#define DMI_HALTSUM1                        0x13
+#define DMI_HALTSUM1_HALTSUM1_OFFSET        0
+#define DMI_HALTSUM1_HALTSUM1_LENGTH        32
+#define DMI_HALTSUM1_HALTSUM1               (0xffffffffU << DMI_HALTSUM1_HALTSUM1_OFFSET)
+#define DMI_HALTSUM2                        0x34
+#define DMI_HALTSUM2_HALTSUM2_OFFSET        0
+#define DMI_HALTSUM2_HALTSUM2_LENGTH        32
+#define DMI_HALTSUM2_HALTSUM2               (0xffffffffU << DMI_HALTSUM2_HALTSUM2_OFFSET)
+#define DMI_HALTSUM3                        0x35
+#define DMI_HALTSUM3_HALTSUM3_OFFSET        0
+#define DMI_HALTSUM3_HALTSUM3_LENGTH        32
+#define DMI_HALTSUM3_HALTSUM3               (0xffffffffU << DMI_HALTSUM3_HALTSUM3_OFFSET)
 #define DMI_SBADDRESS3                      0x37
 /*
 * Accesses bits 127:96 of the physical address in {\tt sbaddress} (if
@@ -1109,13 +1073,19 @@
 * While this field is non-zero, no more system bus accesses can be
 * initiated by the debug module.
 *
+* An implementation may report "Other" (7) for any error condition.
+*
 * 0: There was no bus error.
 *
 * 1: There was a timeout.
 *
 * 2: A bad address was accessed.
 *
-* 3: There was some other error (eg. alignment).
+* 3: There was an alignment error.
+*
+* 4: An access of unsupported size was requested.
+*
+* 7: Other.
  */
 #define DMI_SBCS_SBERROR_OFFSET             12
 #define DMI_SBCS_SBERROR_LENGTH             3
@@ -1235,6 +1205,9 @@
 * If \Fsize specifies a size larger than the register's actual size,
 * then the access must fail. If a register is accessible, then reads of \Fsize
 * less than or equal to the register's actual size must be supported.
+*
+* This field controls the Argument Width as referenced in
+* Table~\ref{tab:datareg}.
  */
 #define AC_ACCESS_REGISTER_SIZE_OFFSET      20
 #define AC_ACCESS_REGISTER_SIZE_LENGTH      3
