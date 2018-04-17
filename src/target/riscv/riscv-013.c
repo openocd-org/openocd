@@ -3318,11 +3318,10 @@ int riscv013_test_compliance(struct target *target)
 	dmi_read(target, &abstractauto, DMI_ABSTRACTAUTO);
 
 	/* Pulse reset. */
-
 	target->reset_halt = true;
 	riscv_set_current_hartid(target, 0);
-	assert_reset(target);
-	deassert_reset(target);
+	COMPLIANCE_TEST(ERROR_OK == assert_reset(target), "Must be able to assert NDMRESET");
+	COMPLIANCE_TEST(ERROR_OK == deassert_reset(target), "Must be able to deassert NDMRESET");
 
 	/* Verify that most stuff is not affected by ndmreset. */
 	dmi_read(target, &testvar_read, DMI_COMMAND);
