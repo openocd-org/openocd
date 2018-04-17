@@ -3213,10 +3213,11 @@ int riscv013_test_compliance(struct target *target)
 		write_abstract_arg(target, 0, 0xDEADBEEFDEADBEEF, 64);
 		COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &testval_read, GDB_REGNO_ZERO + i),
 				"GPR Reads should be supported.");
-		if (riscv_xlen(target) > 32)
+		if (riscv_xlen(target) > 32) {
 			COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
-		else
+		} else {
 			COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
+                }
 	}
 
 	/* ABSTRACTAUTO
