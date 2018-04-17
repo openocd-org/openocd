@@ -1598,9 +1598,15 @@ static int deassert_reset(struct target *target)
 
 		if (target->reset_halt) {
 			LOG_DEBUG("Waiting for hart %d to halt out of reset.", index);
+			/* set this temporarily because this read could take the entire
+			 * time the hart takes to come out of reset. */
+			int saved_riscv_command_timeout_sec = riscv_command_timeout_sec;
+			riscv_command_timeout_sec = MAX(riscv_reset_timeout_sec, riscv_command_timeout_sec);
 			do {
 				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 					return ERROR_FAIL;
+				if (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 1)
+					break;
 				if (time(NULL) - start > riscv_reset_timeout_sec) {
 					LOG_ERROR("Hart %d didn't halt coming out of reset in %ds; "
 							"dmstatus=0x%x; "
@@ -1610,9 +1616,11 @@ static int deassert_reset(struct target *target)
 				}
 			} while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0);
 			target->state = TARGET_HALTED;
-
+			riscv_command_timeout_sec = saved_riscv_command_timeout_sec;
 		} else {
 			LOG_DEBUG("Waiting for hart %d to run out of reset.", index);
+			int saved_riscv_command_timeout_sec = riscv_command_timeout_sec;
+			riscv_command_timeout_sec = MAX(riscv_reset_timeout_sec, riscv_command_timeout_sec);
 			while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
 				if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 					return ERROR_FAIL;
@@ -1622,6 +1630,8 @@ static int deassert_reset(struct target *target)
 							index, dmstatus);
 					return ERROR_FAIL;
 				}
+				if (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 1)
+					break;
 				if (time(NULL) - start > riscv_reset_timeout_sec) {
 					LOG_ERROR("Hart %d didn't run coming out of reset in %ds; "
 							"dmstatus=0x%x; "
@@ -1631,6 +1641,7 @@ static int deassert_reset(struct target *target)
 				}
 			}
 			target->state = TARGET_RUNNING;
+			riscv_command_timeout_sec = saved_riscv_command_timeout_sec;
 		}
 
 		if (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET)) {
@@ -3202,11 +3213,10 @@ int riscv013_test_compliance(struct target *target)
 		write_abstract_arg(target, 0, 0xDEADBEEFDEADBEEF, 64);
 		COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &testval_read, GDB_REGNO_ZERO + i),
 				"GPR Reads should be supported.");
-		if (riscv_xlen(target) > 32) {
+		if (riscv_xlen(target) > 32)
 			COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
-		} else {
+		else
 			COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
-		}
 	}
 
 	/* ABSTRACTAUTO
@@ -3221,7 +3231,7 @@ int riscv013_test_compliance(struct target *target)
 		a true compliance requirement. */
 		if (info->progbufsize >= 3) {
 
-		testvar = 0;
+			testvar = 0;
 			COMPLIANCE_TEST(ERROR_OK == register_write_direct(target, GDB_REGNO_S0, 0),
 					"Need to be able to write S0 to test ABSTRACTAUTO");
 			struct riscv_program program;
