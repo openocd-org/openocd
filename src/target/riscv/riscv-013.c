@@ -264,6 +264,7 @@ static dm013_info_t *get_dm(struct target *target)
 static uint32_t hartsel_mask(const struct target *target)
 {
 	RISCV013_INFO(info);
+	/* TODO: Properly handle hartselhi as well*/
 	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET;
 }
 
@@ -2955,30 +2956,34 @@ int riscv013_test_compliance(struct target *target)
 	int total_tests = 0;
 	int passed_tests = 0;
 
-	uint32_t dmcontrol_orig;
-	dmi_read(target, &dmcontrol_orig, DMI_DMCONTROL);
+	uint32_t dmcontrol_orig = 0;
 	uint32_t dmcontrol;
 	uint32_t testvar;
 	uint32_t testvar_read;
 	riscv_reg_t value;
+	RISCV013_INFO(info);
 
-	dmcontrol = set_field(dmcontrol_orig, hartsel_mask(target), RISCV_MAX_HARTS-1);
+	/* TODO: Support HARTSELLHI as well */
+	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTSELLO, RISCV_MAX_HARTS-1);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
-	COMPLIANCE_TEST(get_field(dmcontrol, hartsel_mask(target)) == (RISCV_MAX_HARTS-1),
-			"DMCONTROL.hartsel should hold all the harts allowed by HARTSELLEN.");
+	COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_HARTSELLO) == (uint32_t) ((1 << info->hartsellen) - 1),
+			"DMCONTROL.hartsello should hold all the harts allowed by its hartsellen.");
 
-	dmcontrol = set_field(dmcontrol_orig, hartsel_mask(target), 0);
+	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTSELLO, 0);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
-	COMPLIANCE_TEST(get_field(dmcontrol, hartsel_mask(target)) == 0, "DMCONTROL.hartsel should hold Hart ID 0");
+	COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_HARTSELLO) == 0,
+			"DMCONTROL.hartsello should hold Hart ID 0");
 
 	/* hartreset */
+	/* This field is optional. Either we can read and write it to 1/0, 
+	or it is tied to 0. */
 	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 1);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
 	testvar = get_field(dmcontrol, DMI_DMCONTROL_HARTRESET);
-	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 1);
+	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 0);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
 	COMPLIANCE_TEST(((testvar == 0) || (get_field(dmcontrol, DMI_DMCONTROL_HARTRESET)) == 0),
@@ -2989,7 +2994,7 @@ int riscv013_test_compliance(struct target *target)
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
 	testvar = get_field(dmcontrol, DMI_DMCONTROL_HASEL);
-	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 1);
+	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 0);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
 	COMPLIANCE_TEST(((testvar == 0) || (get_field(dmcontrol, DMI_DMCONTROL_HASEL)) == 0),
@@ -2998,45 +3003,21 @@ int riscv013_test_compliance(struct target *target)
 
 	/* haltreq */
 	riscv_halt_all_harts(target);
-	/* Writing haltreq should not cause any problems for a halted hart, but we
-	should be able to read and write it. */
-	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
-	dmcontrol |= DMI_DMCONTROL_HALTREQ;
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
-	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
-	COMPLIANCE_TEST(dmcontrol & DMI_DMCONTROL_HALTREQ, "DMCONTROL.haltreq should be R/W");
-	uint32_t dmstatus, dmstatus_read;
-	do {
-		dmi_read(target, &dmstatus, DMI_DMSTATUS);
-	} while ((dmstatus & DMI_DMSTATUS_ALLHALTED) == 0);
+	/* This bit is not actually readable according to the spec, so nothing to check.*/
 
-	dmi_write(target, DMI_DMSTATUS, 0xffffffff);
+	/* DMSTATUS */
+        uint32_t dmstatus, dmstatus_read;
+	dmi_read(target, &dmstatus, DMI_DMSTATUS);
+	dmi_write(target, DMI_DMSTATUS, ~dmstatus);
 	dmi_read(target, &dmstatus_read, DMI_DMSTATUS);
 	COMPLIANCE_TEST(dmstatus_read == dmstatus, "DMSTATUS is R/O");
 
-	/* resumereq. This will resume the hart but this test is destructive anyway. */
-	dmcontrol &= ~DMI_DMCONTROL_HALTREQ;
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 1);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
-	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
-	COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ) == 1,
-			"DMCONTROL.resumereq should be R/W");
+	/* resumereq */
+	/* This bit is not actually readable according to the spec, so nothing to check.*/
+	riscv_resume_all_harts(target);
 
-	do {
-		dmi_read(target, &dmstatus, DMI_DMSTATUS);
-	} while (get_field(dmstatus, DMI_DMSTATUS_ALLRESUMEACK) == 0);
-
-	/* Halt the hart again because the target isn't aware that we resumed it. */
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 0);
-	dmcontrol |= DMI_DMCONTROL_HALTREQ;
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
-	do {
-		dmi_read(target, &dmstatus, DMI_DMSTATUS);
-	} while ((dmstatus & DMI_DMSTATUS_ALLHALTED) == 0);
-	dmcontrol &= ~DMI_DMCONTROL_HALTREQ;
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
-	/* Not clear that this read is required according to the spec. */
-	dmi_read(target, &dmstatus, DMI_DMSTATUS);
+	/* Halt all harts again so the test can continue.*/
+	riscv_halt_all_harts(target);
 
 	/* HARTINFO: Read-Only. This is per-hart, so need to adjust hartsel. */
 	for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++) {
@@ -3048,32 +3029,37 @@ int riscv013_test_compliance(struct target *target)
 		dmi_read(target, &hartinfo_read, DMI_HARTINFO);
 		COMPLIANCE_TEST((hartinfo_read == hartinfo), "DMHARTINFO should be Read-Only.");
 
+		/* $dscratch CSRs */
 		uint32_t nscratch = get_field(hartinfo, DMI_HARTINFO_NSCRATCH);
 		for (unsigned int d = 0; d < nscratch; d++) {
-			/* TODO: DSCRATCH CSRs should be 64-bit on 64-bit systems. */
-			riscv_reg_t testval;
-			for (testval = 0x0011223300112233;
-			     testval != 0xDEAD;
-			     testval = testval == 0x0011223300112233 ? ~testval : 0xDEAD) {
-				COMPLIANCE_TEST(register_write_direct(target, GDB_REGNO_S0, testval) == ERROR_OK,
-						"Need to be able to write S0 in order to test DSCRATCH.");
-				struct riscv_program program32;
-				riscv_program_init(&program32, target);
-				riscv_program_csrw(&program32, GDB_REGNO_S0, GDB_REGNO_DSCRATCH + d);
-				riscv_program_csrr(&program32, GDB_REGNO_S1, GDB_REGNO_DSCRATCH + d);
-				riscv_program_fence(&program32);
-				riscv_program_ebreak(&program32);
-				COMPLIANCE_TEST(riscv_program_exec(&program32, target) == ERROR_OK,
-						"Accessing DSCRATCH with program buffer should succeed.");
-				COMPLIANCE_TEST(register_read_direct(target, &value, GDB_REGNO_S1) == ERROR_OK,
-						"Need to be able to read S1 in order to test DSCRATCH.");
-				if (riscv_xlen(target) > 32)
-					COMPLIANCE_TEST(value == testval,
-							"All DSCRATCH registers in HARTINFO must be R/W.");
-				else
-					COMPLIANCE_TEST(value == (testval & 0xFFFFFFFF),
-							"All DSCRATCH registers in HARTINFO must be R/W.");
-			}
+                  riscv_reg_t testval, testval_read;
+			/* Because DSCRATCH is not guaranteed to last across PB executions, need to put
+			this all into one PB execution. Which may not be possible on all implementations.*/
+                        if (info->progbufsize >= 5) {
+                        	for (testval = 0x0011223300112233;
+				     testval != 0xDEAD;
+				     testval = testval == 0x0011223300112233 ? ~testval : 0xDEAD) {
+					COMPLIANCE_TEST(register_write_direct(target, GDB_REGNO_S0, testval) == ERROR_OK,
+							"Need to be able to write S0 in order to test DSCRATCH.");
+					struct riscv_program program32;
+					riscv_program_init(&program32, target);
+					riscv_program_csrw(&program32, GDB_REGNO_S0, GDB_REGNO_DSCRATCH + d);
+					riscv_program_csrr(&program32, GDB_REGNO_S1, GDB_REGNO_DSCRATCH + d);
+					riscv_program_fence(&program32);
+					riscv_program_ebreak(&program32);
+					COMPLIANCE_TEST(riscv_program_exec(&program32, target) == ERROR_OK,
+							"Accessing DSCRATCH with program buffer should succeed.");
+					COMPLIANCE_TEST(register_read_direct(target, &testval_read, GDB_REGNO_S1) == ERROR_OK,
+							"Need to be able to read S1 in order to test DSCRATCH.");
+					if (riscv_xlen(target) > 32) {
+						COMPLIANCE_TEST(testval == testval_read,
+								"All DSCRATCH registers in HARTINFO must be R/W.");
+					} else {
+						COMPLIANCE_TEST(testval_read == (testval & 0xFFFFFFFF),
+								"All DSCRATCH registers in HARTINFO must be R/W.");
+					}
+				}
+                        }
 		}
 		/* TODO: dataaccess */
 		if (get_field(hartinfo, DMI_HARTINFO_DATAACCESS)) {
@@ -3153,7 +3139,7 @@ int riscv013_test_compliance(struct target *target)
 		}
 	}
 
-	/*Check that all reported ProgBuf words are really R/W */
+	/* Check that all reported ProgBuf words are really R/W */
 	for (int invert = 0; invert < 2; invert++) {
 		for (unsigned int i = 0; i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE); i++) {
 			testvar = (i + 1) * 0x11111111;
@@ -3173,60 +3159,35 @@ int riscv013_test_compliance(struct target *target)
 	/* TODO: Cause and clear all error types */
 
 	/* COMMAND
-	TODO: Unclear from the spec whether all these bits need to truly be R/W.
+	According to the spec, this register is only W, so can't really check the read result.
 	But at any rate, this is not legal and should cause an error. */
 	dmi_write(target, DMI_COMMAND, 0xAAAAAAAA);
 	dmi_read(target, &testvar_read, DMI_COMMAND);
-	COMPLIANCE_TEST(testvar_read == 0xAAAAAAAA, "COMMAND register should be R/W");
 	dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
 	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
 			"Illegal COMMAND should result in UNSUPPORTED");
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 	dmi_write(target, DMI_COMMAND, 0x55555555);
 	dmi_read(target, &testvar_read, DMI_COMMAND);
-	COMPLIANCE_TEST(testvar_read == 0x55555555, "COMMAND register should be R/W");
 	dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
 	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
 			"Illegal COMMAND should result in UNSUPPORTED");
 	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 
 	/* Basic Abstract Commands */
-	uint32_t command = 0;
-	uint32_t busy;
-	command = set_field(command, AC_ACCESS_REGISTER_SIZE, riscv_xlen(target) > 32 ? 3 : 2);
-	command = set_field(command, AC_ACCESS_REGISTER_TRANSFER, 1);
 	for (unsigned int i = 1; i < 32; i = i << 1) {
-		command = set_field(command, AC_ACCESS_REGISTER_REGNO, 0x1000 + GDB_REGNO_ZERO + i);
-		command = set_field(command, AC_ACCESS_REGISTER_WRITE, 1);
-		dmi_write(target, DMI_DATA0, i);
-		if (riscv_xlen(target) > 32)
-			dmi_write(target, DMI_DATA0 + 1, i + 1);
-		dmi_write(target, DMI_COMMAND, command);
-		do {
-			dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
-			busy = get_field(testvar_read, DMI_ABSTRACTCS_BUSY);
-		} while (busy);
-		dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
-		COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == 0,
+		riscv_reg_t testval =  i | ((i + 1ULL) << 32);
+                riscv_reg_t testval_read;
+		COMPLIANCE_TEST(ERROR_OK == register_write_direct(target, GDB_REGNO_ZERO + i, testval),
 				"GPR Writes should be supported.");
-		dmi_write(target, DMI_DATA0, 0xDEADBEEF);
-		if (riscv_xlen(target) > 32)
-			dmi_write(target, DMI_DATA0 + 1, 0xDEADBEEF);
-		command = set_field(command, AC_ACCESS_REGISTER_WRITE, 0);
-		dmi_write(target, DMI_COMMAND, command);
-		do {
-			dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
-			busy = get_field(testvar_read, DMI_ABSTRACTCS_BUSY);
-		} while (busy);
-		dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
-		COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == 0,
+		write_abstract_arg(target, 0, 0xDEADBEEFDEADBEEF, 64);
+		COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &testval_read, GDB_REGNO_ZERO + i),
 				"GPR Reads should be supported.");
-		dmi_read(target, &testvar_read, DMI_DATA0);
-		COMPLIANCE_TEST(testvar_read == i, "GPR Reads and writes should be supported.");
 		if (riscv_xlen(target) > 32) {
-			dmi_read(target, &testvar_read, DMI_DATA0 + 1);
-			COMPLIANCE_TEST(testvar_read == (i + 1),
-				"GPR Reads and writes should be supported.");
+        	       COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
+		} else {
+        	       COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
+
 		}
 	}
 
@@ -3234,58 +3195,64 @@ int riscv013_test_compliance(struct target *target)
 	See which bits are actually writable */
 	dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
 	uint32_t abstractauto;
+	uint32_t busy;
 	dmi_read(target, &abstractauto, DMI_ABSTRACTAUTO);
 	dmi_write(target, DMI_ABSTRACTAUTO, 0x0);
 	if (abstractauto > 0) {
-		testvar = 0;
-		/* TODO: This mechanism only works when you have a reasonable sized progbuf, which is not
+		/* This mechanism only works when you have a reasonable sized progbuf, which is not
 		a true compliance requirement. */
-		uint32_t result = riscv_set_register(target, GDB_REGNO_S0, 0);
-		COMPLIANCE_TEST(result == ERROR_OK, "Need to be able to write S0 to test ABSTRACTAUTO");
-		struct riscv_program program;
-		riscv_program_init(&program, target);
-		/* Also testing that WFI() is a NOP during debug mode. */
-		riscv_program_insert(&program, wfi());
-		riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, 1);
-		riscv_program_ebreak(&program);
-		dmi_write(target, DMI_ABSTRACTAUTO, 0x0);
-		riscv_program_exec(&program, target);
-		testvar++;
-		dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
-		dmi_read(target, &abstractauto, DMI_ABSTRACTAUTO);
-		uint32_t autoexec_data = get_field(abstractauto, DMI_ABSTRACTAUTO_AUTOEXECDATA);
-		uint32_t autoexec_progbuf = get_field(abstractauto, DMI_ABSTRACTAUTO_AUTOEXECPROGBUF);
-		for (unsigned int i = 0; i < 12; i++) {
-			dmi_read(target, &testvar_read, DMI_DATA0 + i);
-			do {
-				dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
-				busy = get_field(testvar_read, DMI_ABSTRACTCS_BUSY);
-			} while (busy);
-			if (autoexec_data & (1 << i)) {
-				COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT),
-						"AUTOEXEC may be writable up to DATACOUNT bits.");
-				testvar++;
-			}
-		}
-		for (unsigned int i = 0; i < 16; i++) {
-			dmi_read(target, &testvar_read, DMI_PROGBUF0 + i);
-			do {
-				dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
-				busy = get_field(testvar_read, DMI_ABSTRACTCS_BUSY);
-			} while (busy);
-			if (autoexec_progbuf & (1 << i)) {
-				COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE),
-						"AUTOEXEC may be writable up to PROGBUFSIZE bits.");
-				testvar++;
-			}
-		}
+		if (info->progbufsize >= 3) {
 
-		dmi_write(target, DMI_ABSTRACTAUTO, 0);
-		riscv_get_register(target, &value, GDB_REGNO_S0);
-
-		COMPLIANCE_TEST(testvar == value, \
-				"ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
-	}
+                	testvar = 0;
+			COMPLIANCE_TEST(ERROR_OK == register_write_direct(target, GDB_REGNO_S0, 0),
+					"Need to be able to write S0 to test ABSTRACTAUTO");
+			struct riscv_program program;
+			riscv_program_init(&program, target);
+			/* This is also testing that WFI() is a NOP during debug mode. */
+			riscv_program_insert(&program, wfi());
+			riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, 1);
+			riscv_program_ebreak(&program);
+			dmi_write(target, DMI_ABSTRACTAUTO, 0x0);
+			riscv_program_exec(&program, target);
+			testvar++;
+			dmi_write(target, DMI_ABSTRACTAUTO, 0xFFFFFFFF);
+			dmi_read(target, &abstractauto, DMI_ABSTRACTAUTO);
+			uint32_t autoexec_data = get_field(abstractauto, DMI_ABSTRACTAUTO_AUTOEXECDATA);
+			uint32_t autoexec_progbuf = get_field(abstractauto, DMI_ABSTRACTAUTO_AUTOEXECPROGBUF);
+			for (unsigned int i = 0; i < 12; i++) {
+				dmi_read(target, &testvar_read, DMI_DATA0 + i);
+				do {
+					dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
+					busy = get_field(testvar_read, DMI_ABSTRACTCS_BUSY);
+				} while (busy);
+				if (autoexec_data & (1 << i)) {
+					COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_DATACOUNT),
+							"AUTOEXEC may be writable up to DATACOUNT bits.");
+					testvar++;
+				}
+			}
+			for (unsigned int i = 0; i < 16; i++) {
+				dmi_read(target, &testvar_read, DMI_PROGBUF0 + i);
+				do {
+					dmi_read(target, &testvar_read, DMI_ABSTRACTCS);
+					busy = get_field(testvar_read, DMI_ABSTRACTCS_BUSY);
+				} while (busy);
+				if (autoexec_progbuf & (1 << i)) {
+					COMPLIANCE_TEST(i < get_field(abstractcs, DMI_ABSTRACTCS_PROGBUFSIZE),
+							"AUTOEXEC may be writable up to PROGBUFSIZE bits.");
+					testvar++;
+				}
+			}
+                	
+			dmi_write(target, DMI_ABSTRACTAUTO, 0);
+			COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &value, GDB_REGNO_S0),
+					"Need to be able to read S0 to test ABSTRACTAUTO");
+                	
+			COMPLIANCE_TEST(testvar == value,
+					"ABSTRACTAUTO should cause COMMAND to run the expected number of times.");
+                }
+        
+        }
 
 	/* Single-Step each hart. */
 	for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++) {
@@ -3293,7 +3260,7 @@ int riscv013_test_compliance(struct target *target)
 		riscv013_on_step(target);
 		riscv013_step_current_hart(target);
 		COMPLIANCE_TEST(riscv_halt_reason(target, hartsel) == RISCV_HALT_SINGLESTEP,
-			"Single Step should result in SINGLESTEP");
+				"Single Step should result in SINGLESTEP");
 	}
 
 	/* Core Register Tests */
@@ -3302,11 +3269,11 @@ int riscv013_test_compliance(struct target *target)
 		riscv_set_current_hartid(target, hartsel);
 
 		/* DCSR Tests */
-		riscv_set_register(target, GDB_REGNO_DCSR, 0x0);
-		riscv_get_register(target, &value, GDB_REGNO_DCSR);
+		register_write_direct(target, GDB_REGNO_DCSR, 0x0);
+		register_read_direct(target, &value, GDB_REGNO_DCSR);
 		COMPLIANCE_TEST(value != 0,	"Not all bits in DCSR are writable by Debugger");
-		riscv_set_register(target, GDB_REGNO_DCSR, 0xFFFFFFFF);
-		riscv_get_register(target, &value, GDB_REGNO_DCSR);
+		register_write_direct(target, GDB_REGNO_DCSR, 0xFFFFFFFF);
+		register_read_direct(target, &value, GDB_REGNO_DCSR);
 		COMPLIANCE_TEST(value != 0,	"At least some bits in DCSR must be 1");
 
 		/* DPC. Note that DPC is sign-extended. */
@@ -3319,12 +3286,12 @@ int riscv013_test_compliance(struct target *target)
 		if (riscv_supports_extension(target, riscv_current_hartid(target), 'C'))
 			dpcmask |= 0x2;
 
-		riscv_set_register(target, GDB_REGNO_DPC, dpcmask);
-		riscv_get_register(target, &dpc, GDB_REGNO_DPC);
+		register_write_direct(target, GDB_REGNO_DPC, dpcmask);
+		register_read_direct(target, &dpc, GDB_REGNO_DPC);
 		COMPLIANCE_TEST(dpcmask == dpc,
-			"DPC must be sign-extended to XLEN and writable to all-1s (except the least significant bits)");
-		riscv_set_register(target, GDB_REGNO_DPC, 0);
-		riscv_get_register(target, &dpc, GDB_REGNO_DPC);
+				"DPC must be sign-extended to XLEN and writable to all-1s (except the least significant bits)");
+		register_write_direct(target, GDB_REGNO_DPC, 0);
+		register_read_direct(target, &dpc, GDB_REGNO_DPC);
 		COMPLIANCE_TEST(dpc == 0, "DPC must be writable to 0.");
 		if (hartsel == 0)
 			bogus_dpc = dpc; /* For a later test step */
@@ -3389,7 +3356,7 @@ int riscv013_test_compliance(struct target *target)
 	just verify that at least it's not the bogus value anymore. */
 
 	COMPLIANCE_TEST(bogus_dpc != 0xdeadbeef, "BOGUS DPC should have been set somehow (bug in compliance test)");
-	riscv_get_register(target, &value, GDB_REGNO_DPC);
+	register_read_direct(target, &value, GDB_REGNO_DPC);
 	COMPLIANCE_TEST(bogus_dpc != value, "NDMRESET should move DPC to reset value.");
 
 	COMPLIANCE_TEST(riscv_halt_reason(target, 0) == RISCV_HALT_INTERRUPT,
