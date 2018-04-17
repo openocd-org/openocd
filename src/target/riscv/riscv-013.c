@@ -2964,7 +2964,7 @@ int riscv013_test_compliance(struct target *target)
 	RISCV013_INFO(info);
 
 	/* TODO: Support HARTSELLHI as well */
-	dmcontrol = set_field(dmcontrol_orig, DMI_DMCONTROL_HARTSELLO, RISCV_MAX_HARTS-1);
+	dmcontrol = dmcontrol_orig |  DMI_DMCONTROL_HARTSELLO;
 	dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dmi_read(target, &dmcontrol, DMI_DMCONTROL);
 	COMPLIANCE_TEST(get_field(dmcontrol, DMI_DMCONTROL_HARTSELLO) == (uint32_t) ((1 << info->hartsellen) - 1),
