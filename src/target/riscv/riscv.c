@@ -1105,16 +1105,14 @@ int riscv_openocd_resume(
 		while (watchpoint && result == ERROR_OK) {
 			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
 			trigger_temporarily_cleared[i] = watchpoint->set;
-			if (watchpoint->set) {
+			if (watchpoint->set)
 				result = riscv_remove_watchpoint(target, watchpoint);
-			}
 			watchpoint = watchpoint->next;
 			i++;
 		}
 
-		if (result == ERROR_OK) {
+		if (result == ERROR_OK)
 			result = riscv_step_rtos_hart(target);
-		}
 
 		watchpoint = target->watchpoints;
 		i = 0;
@@ -1217,7 +1215,7 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 		return ERROR_OK;
 	}
 
-	// TODO: use COMMAND_PARSE_NUMBER
+	/* TODO: use COMMAND_PARSE_NUMBER */
 	long long unsigned int address;
 	int result = sscanf(CMD_ARGV[0], "%llx", &address);
 	if (result != (int) strlen(CMD_ARGV[0])) {

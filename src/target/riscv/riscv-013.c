@@ -249,9 +249,8 @@ static dm013_info_t *get_dm(struct target *target)
 	info->dm = dm;
 	target_list_t *target_entry;
 	list_for_each_entry(target_entry, &dm->target_list, list) {
-		if (target_entry->target == target) {
+		if (target_entry->target == target)
 			return dm;
-		}
 	}
 	target_entry = calloc(1, sizeof(*target_entry));
 	target_entry->target = target;
@@ -1760,19 +1759,16 @@ static int sb_write_address(struct target *target, target_addr_t address)
 	RISCV013_INFO(info);
 	unsigned sbasize = get_field(info->sbcs, DMI_SBCS_SBASIZE);
 	/* There currently is no support for >64-bit addresses in OpenOCD. */
-	if (sbasize > 96) {
+	if (sbasize > 96)
 		dmi_write(target, DMI_SBADDRESS3, 0);
-	}
-	if (sbasize > 64) {
+	if (sbasize > 64)
 		dmi_write(target, DMI_SBADDRESS2, 0);
-	}
-	if (sbasize > 32) {
+	if (sbasize > 32)
 #if BUILD_TARGET64
 		dmi_write(target, DMI_SBADDRESS1, address >> 32);
 #else
 		dmi_write(target, DMI_SBADDRESS1, 0);
 #endif
-	}
 	return dmi_write(target, DMI_SBADDRESS0, address);
 }
 
