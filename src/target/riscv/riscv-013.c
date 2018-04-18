@@ -3213,7 +3213,7 @@ int riscv013_test_compliance(struct target *target)
 			COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
 		} else {
 			COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
-                }
+		}
 	}
 
 	/* ABSTRACTAUTO
