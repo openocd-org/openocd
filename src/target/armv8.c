@@ -74,6 +74,10 @@ static const struct {
 		.psr = ARM_MODE_ABT,
 	},
 	{
+		.name = "SYS",
+		.psr = ARM_MODE_SYS,
+	},
+	{
 		.name = "EL0T",
 		.psr = ARMV8_64_EL0T,
 	},
