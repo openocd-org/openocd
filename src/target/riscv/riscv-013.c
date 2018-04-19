@@ -3100,15 +3100,16 @@ int riscv013_test_compliance(struct target *target)
 
 	}
 
-	/* HALTSUM -- TODO: More than 32 harts */
+	/* HALTSUM -- TODO: More than 32 harts. Would need to loop over this to set hartsel */
 	/* TODO: HALTSUM2, HALTSUM3 */
+        /* HALTSUM0 */
 	uint32_t expected_haltsum0 = 0;
-	for (int i = 0; i < riscv_count_harts(target); i += 32)
-		expected_haltsum0 |= (1 << (i / 32));
+	for (int i = 0; i < MIN(riscv_count_harts(target), 32); i ++)
+		expected_haltsum0 |= (1 << i);
 
 	dmi_read(target, &testvar_read, DMI_HALTSUM0);
 	COMPLIANCE_TEST(testvar_read == expected_haltsum0,
-			"HALTSUM0 should report summary of 32 halted harts");
+			"HALTSUM0 should report summary of up to 32 halted harts");
 
 	dmi_write(target, DMI_HALTSUM0, 0xffffffff);
 	dmi_read(target, &testvar_read, DMI_HALTSUM0);
@@ -3118,26 +3119,22 @@ int riscv013_test_compliance(struct target *target)
 	dmi_read(target, &testvar_read, DMI_HALTSUM0);
 	COMPLIANCE_TEST(testvar_read == expected_haltsum0, "HALTSUM0 should be R/O");
 
-	for (int i = 0; i < 32/*TODO: riscv_count_harts(target)*/; i += 32) {
-		/* TODO: Set hartsel for i > 32 harts. */
-		dmi_read(target, &testvar_read, DMI_HALTSUM1);
-		uint32_t haltsum1_expected = (((i + 1) * 32) <= riscv_count_harts(target)) ?
-			0xFFFFFFFFU :
-			((1U << (riscv_count_harts(target) % 32)) - 1);
-		COMPLIANCE_TEST(testvar_read == haltsum1_expected,
-				"HALTSUM1 should report summary of 1024 halted harts");
+	/* HALTSUM1 */
+        uint32_t expected_haltsum1 = 0;
+	for (int i = 0; i < MIN(riscv_count_harts(target), 1024); i +=32)
+		expected_haltsum1 |= (1 << (i/32));
 
-		/* Just have to check this once */
-		if (i == 0) {
-			dmi_write(target, DMI_HALTSUM1, 0xffffffff);
-			dmi_read(target, &testvar_read, DMI_HALTSUM1);
-			COMPLIANCE_TEST(testvar_read == haltsum1_expected, "HALTSUM1 should be R/O");
+ 	dmi_read(target, &testvar_read, DMI_HALTSUM1);
+	COMPLIANCE_TEST(testvar_read == expected_haltsum1,
+			"HALTSUM1 should report summary of up to 1024 halted harts");
 
-			dmi_write(target, DMI_HALTSUM1, 0x0);
-			dmi_read(target, &testvar_read, DMI_HALTSUM1);
-			COMPLIANCE_TEST(testvar_read == haltsum1_expected, "HALTSUM1 should be R/O");
-		}
-	}
+	dmi_write(target, DMI_HALTSUM1, 0xffffffff);
+	dmi_read(target, &testvar_read, DMI_HALTSUM1);
+	COMPLIANCE_TEST(testvar_read == expected_haltsum1, "HALTSUM1 should be R/O");
+	
+	dmi_write(target, DMI_HALTSUM1, 0x0);
+	dmi_read(target, &testvar_read, DMI_HALTSUM1);
+	COMPLIANCE_TEST(testvar_read == expected_haltsum1, "HALTSUM1 should be R/O");
 
 	/* TODO: HAWINDOWSEL */
 
