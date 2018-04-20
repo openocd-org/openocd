@@ -149,6 +149,7 @@ extern int debug_level;
  */
 #define ERROR_FAIL						(-4)
 #define ERROR_WAIT						(-5)
+#define ERROR_TIMEOUT					(-6)
 
 
 #endif /* OPENOCD_HELPER_LOG_H */

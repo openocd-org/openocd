@@ -520,13 +520,8 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in, int dmi_op,
 			LOG_ERROR("failed %s at 0x%x, status=%d", op_name, address, status);
 			return ERROR_FAIL;
 		}
-		if (time(NULL) - start > timeout_sec) {
-			LOG_ERROR("dmi.op is still busy after %d seconds. The target is "
-					"either really slow or broken. You could increase the "
-					"timeout with riscv set_command_timeout_sec.",
-					timeout_sec);
-			return ERROR_FAIL;
-		}
+		if (time(NULL) - start > timeout_sec)
+			return ERROR_TIMEOUT;
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
@@ -549,13 +544,8 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in, int dmi_op,
 					status);
 			return ERROR_FAIL;
 		}
-		if (time(NULL) - start > timeout_sec) {
-			LOG_ERROR("dmi.op is still busy after %d seconds. The target is "
-					"either really slow or broken. You could increase the "
-					"timeout with riscv set_command_timeout_sec.",
-					timeout_sec);
-			return ERROR_FAIL;
-		}
+		if (time(NULL) - start > timeout_sec)
+			return ERROR_TIMEOUT;
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
@@ -575,8 +565,16 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in, int dmi_op,
 static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
 		uint32_t address, uint32_t data_out)
 {
-	return dmi_op_timeout(target, data_in, dmi_op, address, data_out,
+	int result = dmi_op_timeout(target, data_in, dmi_op, address, data_out,
 			riscv_command_timeout_sec);
+	if (result == ERROR_TIMEOUT) {
+		LOG_ERROR("DMI operation didn't complete in %d seconds. The target is "
+				"either really slow or broken. You could increase the "
+				"timeout with riscv set_command_timeout_sec.",
+				riscv_command_timeout_sec);
+		return ERROR_FAIL;
+	}
+	return result;
 }
 
 static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
@@ -592,9 +590,10 @@ static int dmi_write(struct target *target, uint32_t address, uint32_t value)
 int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
 		bool authenticated, unsigned timeout_sec)
 {
-	if (dmi_op_timeout(target, dmstatus, DMI_OP_READ, DMI_DMSTATUS, 0,
-				timeout_sec) != ERROR_OK)
-		return ERROR_FAIL;
+	int result = dmi_op_timeout(target, dmstatus, DMI_OP_READ, DMI_DMSTATUS, 0,
+			timeout_sec);
+	if (result != ERROR_OK)
+		return result;
 	if (authenticated && !get_field(*dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
 		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
 				"(dmstatus=0x%x). Use `riscv authdata_read` and "
@@ -1604,44 +1603,45 @@ static int deassert_reset(struct target *target)
 			index = r->current_hartid;
 		}
 
+		char *operation;
+		uint32_t expected_field;
+		uint32_t unexpected_field;
 		if (target->reset_halt) {
-			LOG_DEBUG("Waiting for hart %d to halt out of reset.", index);
-			do {
-				if (dmstatus_read_timeout(target, &dmstatus, true,
-							riscv_reset_timeout_sec) != ERROR_OK)
-					return ERROR_FAIL;
-				if (time(NULL) - start > riscv_reset_timeout_sec) {
-					LOG_ERROR("Hart %d didn't halt coming out of reset in %ds; "
-							"dmstatus=0x%x; "
-							"Increase the timeout with riscv set_reset_timeout_sec.",
-							index, riscv_reset_timeout_sec, dmstatus);
-					return ERROR_FAIL;
-				}
-			} while (get_field(dmstatus, DMI_DMSTATUS_ALLHALTED) == 0);
-			target->state = TARGET_HALTED;
-
+			operation = "halt";
+			expected_field = DMI_DMSTATUS_ALLHALTED;
+			unexpected_field = DMI_DMSTATUS_ANYRUNNING;
 		} else {
-			LOG_DEBUG("Waiting for hart %d to run out of reset.", index);
-			while (get_field(dmstatus, DMI_DMSTATUS_ALLRUNNING) == 0) {
-				if (dmstatus_read_timeout(target, &dmstatus, true,
-							riscv_reset_timeout_sec) != ERROR_OK)
-					return ERROR_FAIL;
-				if (get_field(dmstatus, DMI_DMSTATUS_ANYHALTED) ||
-						get_field(dmstatus, DMI_DMSTATUS_ANYUNAVAIL)) {
-					LOG_ERROR("Unexpected hart %d status during reset. dmstatus=0x%x",
-							index, dmstatus);
-					return ERROR_FAIL;
-				}
-				if (time(NULL) - start > riscv_reset_timeout_sec) {
-					LOG_ERROR("Hart %d didn't run coming out of reset in %ds; "
-							"dmstatus=0x%x; "
-							"Increase the timeout with riscv set_reset_timeout_sec.",
-							index, riscv_reset_timeout_sec, dmstatus);
-					return ERROR_FAIL;
-				}
-			}
-			target->state = TARGET_RUNNING;
+			operation = "run";
+			expected_field = DMI_DMSTATUS_ALLRUNNING;
+			unexpected_field = DMI_DMSTATUS_ANYHALTED;
 		}
+		LOG_DEBUG("Waiting for hart %d to %s out of reset.", index, operation);
+		while (1) {
+			int result = dmstatus_read_timeout(target, &dmstatus, true,
+					riscv_reset_timeout_sec);
+			if (result == ERROR_TIMEOUT)
+				LOG_ERROR("Hart %d didn't complete a DMI read coming out of "
+						"reset in %ds; Increase the timeout with riscv "
+						"set_reset_timeout_sec.",
+						index, riscv_reset_timeout_sec);
+			if (result != ERROR_OK)
+				return result;
+			if (get_field(dmstatus, unexpected_field)) {
+				LOG_ERROR("Unexpected hart %d status during reset. dmstatus=0x%x",
+						index, dmstatus);
+				return ERROR_FAIL;
+			}
+			if (get_field(dmstatus, expected_field))
+				break;
+			if (time(NULL) - start > riscv_reset_timeout_sec) {
+				LOG_ERROR("Hart %d didn't %s coming out of reset in %ds; "
+						"dmstatus=0x%x; "
+						"Increase the timeout with riscv set_reset_timeout_sec.",
+						index, operation, riscv_reset_timeout_sec, dmstatus);
+				return ERROR_FAIL;
+			}
+		}
+		target->state = TARGET_HALTED;
 
 		if (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET)) {
 			/* Ack reset. */
