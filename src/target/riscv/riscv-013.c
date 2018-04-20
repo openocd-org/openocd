@@ -521,7 +521,7 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in, int dmi_op,
 			return ERROR_FAIL;
 		}
 		if (time(NULL) - start > timeout_sec)
-			return ERROR_TIMEOUT;
+			return ERROR_TIMEOUT_REACHED;
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
@@ -545,7 +545,7 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in, int dmi_op,
 			return ERROR_FAIL;
 		}
 		if (time(NULL) - start > timeout_sec)
-			return ERROR_TIMEOUT;
+			return ERROR_TIMEOUT_REACHED;
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
@@ -567,7 +567,7 @@ static int dmi_op(struct target *target, uint32_t *data_in, int dmi_op,
 {
 	int result = dmi_op_timeout(target, data_in, dmi_op, address, data_out,
 			riscv_command_timeout_sec);
-	if (result == ERROR_TIMEOUT) {
+	if (result == ERROR_TIMEOUT_REACHED) {
 		LOG_ERROR("DMI operation didn't complete in %d seconds. The target is "
 				"either really slow or broken. You could increase the "
 				"timeout with riscv set_command_timeout_sec.",
@@ -1619,7 +1619,7 @@ static int deassert_reset(struct target *target)
 		while (1) {
 			int result = dmstatus_read_timeout(target, &dmstatus, true,
 					riscv_reset_timeout_sec);
-			if (result == ERROR_TIMEOUT)
+			if (result == ERROR_TIMEOUT_REACHED)
 				LOG_ERROR("Hart %d didn't complete a DMI read coming out of "
 						"reset in %ds; Increase the timeout with riscv "
 						"set_reset_timeout_sec.",
