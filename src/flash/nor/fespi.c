@@ -436,6 +436,12 @@ static int slow_fespi_write_buffer(struct flash_bank *bank,
 	uint32_t ctrl_base = fespi_info->ctrl_base;
 	uint32_t ii;
 
+	if (offset & 0xFF000000) {
+		LOG_ERROR("FESPI interface does not support greater than 3B addressing, can't write to offset 0x%x",
+				offset);
+		return ERROR_FAIL;
+	}
+
 	/* TODO!!! assert that len < page size */
 
 	fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
@@ -769,6 +775,12 @@ static void as_add_set_dir(struct algorithm_steps *as, bool dir)
 static int steps_add_buffer_write(struct algorithm_steps *as,
 		const uint8_t *buffer, uint32_t chip_offset, uint32_t len)
 {
+	if (chip_offset & 0xFF000000) {
+		LOG_ERROR("FESPI interface does not support greater than 3B addressing, can't write to offset 0x%x",
+				chip_offset);
+		return ERROR_FAIL;
+	}
+
 	as_add_tx1(as, SPIFLASH_WRITE_ENABLE);
 	as_add_txwm_wait(as);
 	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
