@@ -2957,7 +2957,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		uint32_t val;
 		sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, 1);
 		dmi_write(target, DMI_SBCS, sbcs);
-		dmi_read(target, &val, DMI_SBDATA0); // Dummy read to trigger first system bus read
+		dmi_read(target, &val, DMI_SBDATA0); /* Dummy read to trigger first system bus read */
 		curr_addr = legal_address;
 		for (uint32_t i = 0; i < num_words; i++) {
 			prev_addr = curr_addr;
@@ -3001,7 +3001,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	dmi_read(target, &rd_val, DMI_SBCS);
 	if (get_field(rd_val, DMI_SBCS_SBERROR) == 2) {
 		sbcs = set_field(sbcs_orig, DMI_SBCS_SBERROR, 2);
-		dmi_write(target, DMI_SBCS,sbcs);
+		dmi_write(target, DMI_SBCS, sbcs);
 		dmi_read(target, &rd_val, DMI_SBCS);
 		if (get_field(rd_val, DMI_SBCS_SBERROR) == 0)
 			LOG_INFO("System Bus Access Test 4: Illegal address write test PASSED.");
