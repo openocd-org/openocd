@@ -133,8 +133,6 @@ extern uint64_t riscv_scratch_ram_address;
 
 extern bool riscv_prefer_sba;
 
-extern bool riscv_run_sbbusyerror_test;
-
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */
 static inline riscv_info_t *riscv_info(const struct target *target) __attribute__((unused));

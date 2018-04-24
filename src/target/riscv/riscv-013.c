@@ -2824,9 +2824,9 @@ static int get_max_sbaccess(struct target *target)
 	RISCV013_INFO(info);
 
 	uint32_t sbaccess128 = get_field(info->sbcs, DMI_SBCS_SBACCESS128);
-	uint32_t sbaccess64	= get_field(info->sbcs, DMI_SBCS_SBACCESS64);
-	uint32_t sbaccess32	= get_field(info->sbcs, DMI_SBCS_SBACCESS32);
-	uint32_t sbaccess16	= get_field(info->sbcs, DMI_SBCS_SBACCESS16);
+	uint32_t sbaccess64 = get_field(info->sbcs, DMI_SBCS_SBACCESS64);
+	uint32_t sbaccess32 = get_field(info->sbcs, DMI_SBCS_SBACCESS32);
+	uint32_t sbaccess16 = get_field(info->sbcs, DMI_SBCS_SBACCESS16);
 	uint32_t sbaccess8 = get_field(info->sbcs, DMI_SBCS_SBACCESS8);
 
 	if (sbaccess128)
@@ -2849,13 +2849,16 @@ static uint32_t get_num_sbdata_regs(struct target *target)
 
 	uint32_t sbaccess128 = get_field(info->sbcs, DMI_SBCS_SBACCESS128);
 	uint32_t sbaccess64 = get_field(info->sbcs, DMI_SBCS_SBACCESS64);
+	uint32_t sbaccess32 = get_field(info->sbcs, DMI_SBCS_SBACCESS32);
 
 	if (sbaccess128)
 		return 4;
 	else if (sbaccess64)
 		return 2;
-	else
+	else if (sbaccess32)
 		return 1;
+	else
+		return 0;
 }
 
 static int riscv013_test_sba_config_reg(struct target *target,
