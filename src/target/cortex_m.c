@@ -1806,11 +1806,11 @@ static int cortex_m_dwt_set_reg(struct reg *reg, uint8_t *buf)
 
 struct dwt_reg {
 	uint32_t addr;
-	char *name;
+	const char *name;
 	unsigned size;
 };
 
-static struct dwt_reg dwt_base_regs[] = {
+static const struct dwt_reg dwt_base_regs[] = {
 	{ DWT_CTRL, "dwt_ctrl", 32, },
 	/* NOTE that Erratum 532314 (fixed r2p0) affects CYCCNT:  it wrongly
 	 * increments while the core is asleep.
@@ -1819,7 +1819,7 @@ static struct dwt_reg dwt_base_regs[] = {
 	/* plus some 8 bit counters, useful for profiling with TPIU */
 };
 
-static struct dwt_reg dwt_comp[] = {
+static const struct dwt_reg dwt_comp[] = {
 #define DWT_COMPARATOR(i) \
 		{ DWT_COMP0 + 0x10 * (i), "dwt_" #i "_comp", 32, }, \
 		{ DWT_MASK0 + 0x10 * (i), "dwt_" #i "_mask", 4, }, \
@@ -1848,7 +1848,7 @@ static const struct reg_arch_type dwt_reg_type = {
 	.set = cortex_m_dwt_set_reg,
 };
 
-static void cortex_m_dwt_addreg(struct target *t, struct reg *r, struct dwt_reg *d)
+static void cortex_m_dwt_addreg(struct target *t, struct reg *r, const struct dwt_reg *d)
 {
 	struct dwt_reg_state *state;
 
