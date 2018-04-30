@@ -719,4 +719,5 @@ struct flash_driver fm4_flash = {
 	.erase = fm4_flash_erase,
 	.erase_check = default_flash_blank_check,
 	.write = fm4_flash_write,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

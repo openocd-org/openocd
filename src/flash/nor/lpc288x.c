@@ -433,4 +433,5 @@ struct flash_driver lpc288x_flash = {
 	.auto_probe = lpc288x_probe,
 	.erase_check = lpc288x_erase_check,
 	.protect_check = lpc288x_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

@@ -1579,4 +1579,5 @@ struct flash_driver lpc2000_flash = {
 	.erase_check = lpc2000_erase_check,
 	.protect_check = lpc2000_protect_check,
 	.info = get_lpc2000_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

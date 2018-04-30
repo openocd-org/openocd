@@ -38,8 +38,6 @@ enum riscv_halt_reason {
 typedef struct {
 	unsigned dtm_version;
 
-	riscv_reg_t misa;
-
 	struct command_context *cmd_ctx;
 	void *version_specific;
 
@@ -69,6 +67,7 @@ typedef struct {
 
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen[RISCV_MAX_HARTS];
+	riscv_reg_t misa[RISCV_MAX_HARTS];
 
 	/* The number of triggers per hart. */
 	unsigned trigger_count[RISCV_MAX_HARTS];
@@ -128,6 +127,8 @@ extern int riscv_reset_timeout_sec;
 extern bool riscv_use_scratch_ram;
 extern uint64_t riscv_scratch_ram_address;
 
+extern bool riscv_prefer_sba;
+
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */
 static inline riscv_info_t *riscv_info(const struct target *target) __attribute__((unused));
@@ -182,7 +183,7 @@ int riscv_resume_one_hart(struct target *target, int hartid);
  * then the only hart. */
 int riscv_step_rtos_hart(struct target *target);
 
-bool riscv_supports_extension(struct target *target, char letter);
+bool riscv_supports_extension(struct target *target, int hartid, char letter);
 
 /* Returns XLEN for the given (or current) hart. */
 int riscv_xlen(const struct target *target);

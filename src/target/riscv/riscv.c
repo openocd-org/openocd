@@ -188,6 +188,8 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 bool riscv_use_scratch_ram;
 uint64_t riscv_scratch_ram_address;
 
+bool riscv_prefer_sba;
+
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
@@ -245,7 +247,6 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	LOG_DEBUG("riscv_init_target()");
-	target->propagate_register_errors = true;
 	target->arch_info = calloc(1, sizeof(riscv_info_t));
 	if (!target->arch_info)
 		return ERROR_FAIL;
@@ -312,9 +313,12 @@ static int maybe_add_trigger_t1(struct target *target, unsigned hartid,
 	tdata1 = set_field(tdata1, bpcontrol_r, trigger->read);
 	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
 	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
-	tdata1 = set_field(tdata1, bpcontrol_u, !!(r->misa & (1 << ('U' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_s, !!(r->misa & (1 << ('S' - 'A'))));
-	tdata1 = set_field(tdata1, bpcontrol_h, !!(r->misa & (1 << ('H' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_u,
+			!!(r->misa[hartid] & (1 << ('U' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_s,
+			!!(r->misa[hartid] & (1 << ('S' - 'A'))));
+	tdata1 = set_field(tdata1, bpcontrol_h,
+			!!(r->misa[hartid] & (1 << ('H' - 'A'))));
 	tdata1 |= bpcontrol_m;
 	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); /* exact match */
 	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); /* cause bp exception */
@@ -357,11 +361,11 @@ static int maybe_add_trigger_t2(struct target *target, unsigned hartid,
 			MCONTROL_ACTION_DEBUG_MODE);
 	tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
 	tdata1 |= MCONTROL_M;
-	if (r->misa & (1 << ('H' - 'A')))
+	if (r->misa[hartid] & (1 << ('H' - 'A')))
 		tdata1 |= MCONTROL_H;
-	if (r->misa & (1 << ('S' - 'A')))
+	if (r->misa[hartid] & (1 << ('S' - 'A')))
 		tdata1 |= MCONTROL_S;
-	if (r->misa & (1 << ('U' - 'A')))
+	if (r->misa[hartid] & (1 << ('U' - 'A')))
 		tdata1 |= MCONTROL_U;
 
 	if (trigger->execute)
@@ -1121,16 +1125,14 @@ int riscv_openocd_resume(
 		while (watchpoint && result == ERROR_OK) {
 			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
 			trigger_temporarily_cleared[i] = watchpoint->set;
-			if (watchpoint->set) {
+			if (watchpoint->set)
 				result = riscv_remove_watchpoint(target, watchpoint);
-			}
 			watchpoint = watchpoint->next;
 			i++;
 		}
 
-		if (result == ERROR_OK) {
+		if (result == ERROR_OK)
 			result = riscv_step_rtos_hart(target);
-		}
 
 		watchpoint = target->watchpoints;
 		i = 0;
@@ -1233,7 +1235,7 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 		return ERROR_OK;
 	}
 
-	// TODO: use COMMAND_PARSE_NUMBER
+	/* TODO: use COMMAND_PARSE_NUMBER */
 	long long unsigned int address;
 	int result = sscanf(CMD_ARGV[0], "%llx", &address);
 	if (result != (int) strlen(CMD_ARGV[0])) {
@@ -1244,6 +1246,16 @@ COMMAND_HANDLER(riscv_set_scratch_ram)
 
 	riscv_scratch_ram_address = address;
 	riscv_use_scratch_ram = true;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_prefer_sba)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_prefer_sba);
 	return ERROR_OK;
 }
 
@@ -1459,6 +1471,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
 	},
 	{
+		.name = "set_prefer_sba",
+		.handler = riscv_set_prefer_sba,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_prefer_sba on|off",
+		.help = "When on, prefer to use System Bus Access to access memory. "
+			"When off, prefer to use the Program Buffer to access memory."
+	},
+	{
 		.name = "expose_csrs",
 		.handler = riscv_set_expose_csrs,
 		.mode = COMMAND_ANY,
@@ -1652,7 +1672,7 @@ int riscv_step_rtos_hart(struct target *target)
 	return ERROR_OK;
 }
 
-bool riscv_supports_extension(struct target *target, char letter)
+bool riscv_supports_extension(struct target *target, int hartid, char letter)
 {
 	RISCV_INFO(r);
 	unsigned num;
@@ -1662,7 +1682,7 @@ bool riscv_supports_extension(struct target *target, char letter)
 		num = letter - 'A';
 	else
 		return false;
-	return r->misa & (1 << num);
+	return r->misa[hartid] & (1 << num);
 }
 
 int riscv_xlen(const struct target *target)
@@ -2199,10 +2219,12 @@ int riscv_init_registers(struct target *target)
 			r->feature = &feature_cpu;
 		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			r->caller_save = true;
-			if (riscv_supports_extension(target, 'D')) {
+			if (riscv_supports_extension(target, riscv_current_hartid(target),
+						'D')) {
 				r->reg_data_type = &type_ieee_double;
 				r->size = 64;
-			} else if (riscv_supports_extension(target, 'F')) {
+			} else if (riscv_supports_extension(target,
+						riscv_current_hartid(target), 'F')) {
 				r->reg_data_type = &type_ieee_single;
 				r->size = 32;
 			} else {
@@ -2333,7 +2355,8 @@ int riscv_init_registers(struct target *target)
 				case CSR_FFLAGS:
 				case CSR_FRM:
 				case CSR_FCSR:
-					r->exist = riscv_supports_extension(target, 'F');
+					r->exist = riscv_supports_extension(target,
+							riscv_current_hartid(target), 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
@@ -2347,7 +2370,16 @@ int riscv_init_registers(struct target *target)
 				case CSR_SCAUSE:
 				case CSR_STVAL:
 				case CSR_SATP:
-					r->exist = riscv_supports_extension(target, 'S');
+					r->exist = riscv_supports_extension(target,
+							riscv_current_hartid(target), 'S');
+					break;
+				case CSR_MEDELEG:
+				case CSR_MIDELEG:
+					/* "In systems with only M-mode, or with both M-mode and
+					 * U-mode but without U-mode trap support, the medeleg and
+					 * mideleg registers should not exist." */
+					r->exist = riscv_supports_extension(target, riscv_current_hartid(target), 'S') ||
+						riscv_supports_extension(target, riscv_current_hartid(target), 'N');
 					break;
 			}
 

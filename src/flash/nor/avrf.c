@@ -487,4 +487,5 @@ struct flash_driver avr_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = avrf_protect_check,
 	.info = avrf_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

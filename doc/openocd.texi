@@ -1595,8 +1595,11 @@ proc enable_fast_clock @{@} @{
 proc init_board @{@} @{
     reset_config trst_and_srst trst_pulls_srst
 
+    $_TARGETNAME configure -event reset-start @{
+        adapter_khz 100
+    @}
+
     $_TARGETNAME configure -event reset-init @{
-        adapter_khz 1
         enable_fast_clock
         adapter_khz 10000
     @}
@@ -2197,6 +2200,13 @@ The default behaviour is @option{disable};
 use @option{enable} see these errors reported.
 @end deffn
 
+@deffn {Config Command} gdb_report_register_access_error (@option{enable}|@option{disable})
+Specifies whether register accesses requested by GDB register read/write
+packets report errors or not.
+The default behaviour is @option{disable};
+use @option{enable} see these errors reported.
+@end deffn
+
 @deffn {Config Command} gdb_target_description (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to send the target descriptions to gdb via qXfer:features:read packet.
 The default behaviour is @option{enable}.
@@ -2553,6 +2563,36 @@ stability at higher JTAG clocks.
 
 For example adapter definitions, see the configuration files shipped in the
 @file{interface/ftdi} directory.
+
+@end deffn
+
+@deffn {Interface Driver} {ft232r}
+This driver is implementing synchronous bitbang mode of an FTDI FT232R
+USB UART bridge IC.
+
+List of connections (pin numbers for SSOP):
+@itemize @minus
+@item RXD(5) - TDI
+@item TXD(1) - TCK
+@item RTS(3) - TDO
+@item CTS(11) - TMS
+@item DTR(2) - TRST
+@item DCD(10) - SRST
+@end itemize
+
+These interfaces have several commands, used to configure the driver
+before initializing the JTAG scan chain:
+
+@deffn {Config Command} {ft232r_vid_pid} @var{vid} @var{pid}
+The vendor ID and product ID of the adapter. If not specified, default
+0x0403:0x6001 is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_serial_desc} @var{serial}
+Specifies the @var{serial} of the adapter to use, in case the
+vendor provides unique IDs and more than one adapter is connected to
+the host. If not specified, serial numbers are not considered.
+@end deffn
 
 @end deffn
 
@@ -3969,6 +4009,84 @@ with these TAPs, any targets associated with them, and any on-chip
 resources; then a @file{board.cfg} with off-chip resources, clocking,
 and so forth.
 
+@anchor{dapdeclaration}
+@section DAP declaration (ARMv7 and ARMv8 targets)
+@cindex DAP declaration
+
+Since OpenOCD version 0.11.0, the Debug Access Port (DAP) is
+no longer implicitly created together with the target. It must be
+explicitly declared using the @command{dap create} command. For all
+ARMv7 and ARMv8 targets, the option "@option{-dap} @var{dap_name}" has to be used
+instead of "@option{-chain-position} @var{dotted.name}" when the target is created.
+
+The @command{dap} command group supports the following sub-commands:
+
+@deffn Command {dap create} dap_name @option{-chain-position} dotted.name
+Declare a DAP instance named @var{dap_name} linked to the JTAG tap
+@var{dotted.name}. This also creates a new command (@command{dap_name})
+which is used for various purposes including additional configuration.
+There can only be one DAP for each JTAG tap in the system.
+@end deffn
+
+@deffn Command {dap names}
+This command returns a list of all registered DAP objects. It it useful mainly
+for TCL scripting.
+@end deffn
+
+@deffn Command {dap info} [num]
+Displays the ROM table for MEM-AP @var{num},
+defaulting to the currently selected AP of the currently selected target.
+@end deffn
+
+@deffn Command {dap init}
+Initialize all registered DAPs. This command is used internally
+during initialization. It can be issued at any time after the
+initialization, too.
+@end deffn
+
+The following commands exist as subcommands of DAP instances:
+
+@deffn Command {$dap_name info} [num]
+Displays the ROM table for MEM-AP @var{num},
+defaulting to the currently selected AP.
+@end deffn
+
+@deffn Command {$dap_name apid} [num]
+Displays ID register from AP @var{num}, defaulting to the currently selected AP.
+@end deffn
+
+@deffn Command {$dap_name apreg} ap_num reg [value]
+Displays content of a register @var{reg} from AP @var{ap_num}
+or set a new value @var{value}.
+@var{reg} is byte address of a word register, 0, 4, 8 ... 0xfc.
+@end deffn
+
+@deffn Command {$dap_name apsel} [num]
+Select AP @var{num}, defaulting to 0.
+@end deffn
+
+@deffn Command {$dap_name baseaddr} [num]
+Displays debug base address from MEM-AP @var{num},
+defaulting to the currently selected AP.
+@end deffn
+
+@deffn Command {$dap_name memaccess} [value]
+Displays the number of extra tck cycles in the JTAG idle to use for MEM-AP
+memory bus access [0-255], giving additional time to respond to reads.
+If @var{value} is defined, first assigns that.
+@end deffn
+
+@deffn Command {$dap_name apcsw} [0 / 1]
+fix CSW_SPROT from register AP_REG_CSW on selected dap.
+Defaulting to 0.
+@end deffn
+
+@deffn Command {$dap_name ti_be_32_quirks} [@option{enable}]
+Set/get quirks mode for TI TMS450/TMS570 processors
+Disabled by default
+@end deffn
+
+
 @node CPU Configuration
 @chapter CPU Configuration
 @cindex GDB target
@@ -4135,10 +4253,11 @@ to be much more board-specific.
 The key steps you use might look something like this
 
 @example
-target create MyTarget cortex_m -chain-position mychip.cpu
-$MyTarget configure -work-area-phys 0x08000 -work-area-size 8096
-$MyTarget configure -event reset-deassert-pre @{ jtag_rclk 5 @}
-$MyTarget configure -event reset-init @{ myboard_reinit @}
+dap create mychip.dap -chain-position mychip.cpu
+target create MyTarget cortex_m -dap mychip.dap
+MyTarget configure -work-area-phys 0x08000 -work-area-size 8096
+MyTarget configure -event reset-deassert-pre @{ jtag_rclk 5 @}
+MyTarget configure -event reset-init @{ myboard_reinit @}
 @end example
 
 You should specify a working area if you can; typically it uses some
@@ -4188,7 +4307,8 @@ and in other places the target needs to be identified.
 @command{$target_name configure} are permitted.
 If the target is big-endian, set it here with @code{-endian big}.
 
-You @emph{must} set the @code{-chain-position @var{dotted.name}} here.
+You @emph{must} set the @code{-chain-position @var{dotted.name}} or
+@code{-dap @var{dap_name}} here.
 @end itemize
 @end deffn
 
@@ -4207,6 +4327,10 @@ and changing its endianness.
 @item @code{-chain-position} @var{dotted.name} -- names the TAP
 used to access this target.
 
+@item @code{-dap} @var{dap_name} -- names the DAP used to access
+this target. @xref{dapdeclaration,,DAP declaration}, on how to
+create and manage DAP instances.
+
 @item @code{-endian} (@option{big}|@option{little}) -- specifies
 whether the CPU uses big or little endian conventions
 
@@ -4216,6 +4340,9 @@ Note that this updates a list of named event handlers.
 Calling this twice with two different event names assigns
 two different handlers, but calling it twice with the
 same event name assigns only one handler.
+
+Current target is temporarily overridden to the event issuing target
+before handler code starts and switched back after handler is done.
 
 @item @code{-work-area-backup} (@option{0}|@option{1}) -- says
 whether the work area gets backed up; by default,
@@ -4254,9 +4381,11 @@ access the target for debugging.
 Use this option with systems where multiple, independent cores are connected
 to separate access ports of the same DAP.
 
-@item @code{-ctibase} @var{address} -- set base address of Cross-Trigger interface (CTI) connected
-to the target. Currently, only the @code{aarch64} target makes use of this option, where it is
-a mandatory configuration for the target run control.
+@item @code{-cti} @var{cti_name} -- set Cross-Trigger Interface (CTI) connected
+to the target. Currently, only the @code{aarch64} target makes use of this option,
+where it is a mandatory configuration for the target run control.
+@xref{armcrosstrigger,,ARM Cross-Trigger Interface},
+for instruction on how to declare and control a CTI instance.
 @end itemize
 @end deffn
 
@@ -4427,16 +4556,14 @@ buttons and events. The two examples below act the same, but one creates
 and invokes a small procedure while the other inlines it.
 
 @example
-proc my_attach_proc @{ @} @{
-    echo "Reset..."
-    reset halt
+proc my_init_proc @{ @} @{
+    echo "Disabling watchdog..."
+    mww 0xfffffd44 0x00008000
 @}
-mychip.cpu configure -event gdb-attach my_attach_proc
-mychip.cpu configure -event gdb-attach @{
-    echo "Reset..."
-    # To make flash probe and gdb load to flash work
-    # we need a reset init.
-    reset init
+mychip.cpu configure -event reset-init my_init_proc
+mychip.cpu configure -event reset-init @{
+    echo "Disabling watchdog..."
+    mww 0xfffffd44 0x00008000
 @}
 @end example
 
@@ -4446,7 +4573,7 @@ The following target events are defined:
 @item @b{debug-halted}
 @* The target has halted for debug reasons (i.e.: breakpoint)
 @item @b{debug-resumed}
-@* The target has resumed (i.e.: gdb said run)
+@* The target has resumed (i.e.: GDB said run)
 @item @b{early-halted}
 @* Occurs early in the halt process
 @item @b{examine-start}
@@ -4454,11 +4581,17 @@ The following target events are defined:
 @item @b{examine-end}
 @* After target examine is called with no errors.
 @item @b{gdb-attach}
-@* When GDB connects. This is before any communication with the target, so this
-can be used to set up the target so it is possible to probe flash. Probing flash
-is necessary during gdb connect if gdb load is to write the image to flash. Another
-use of the flash memory map is for GDB to automatically hardware/software breakpoints
-depending on whether the breakpoint is in RAM or read only memory.
+@* When GDB connects. Issued before any GDB communication with the target
+starts. GDB expects the target is halted during attachment.
+@xref{gdbmeminspect,,GDB as a non-intrusive memory inspector}, how to
+connect GDB to running target.
+The event can be also used to set up the target so it is possible to probe flash.
+Probing flash is necessary during GDB connect if you want to use
+@pxref{programmingusinggdb,,programming using GDB}.
+Another use of the flash memory map is for GDB to automatically choose
+hardware or software breakpoints depending on whether the breakpoint
+is in RAM or read only memory.
+Default is @code{halt}
 @item @b{gdb-detach}
 @* When GDB disconnects
 @item @b{gdb-end}
@@ -4473,13 +4606,13 @@ depending on whether the breakpoint is in RAM or read only memory.
 @item @b{gdb-flash-write-end}
 @* After GDB writes to the flash (default is @code{reset halt})
 @item @b{gdb-start}
-@* Before the target steps, gdb is trying to start/resume the target
+@* Before the target steps, GDB is trying to start/resume the target
 @item @b{halted}
 @* The target has halted
 @item @b{reset-assert-pre}
 @* Issued as part of @command{reset} processing
-after @command{reset_init} was triggered
-but before either SRST alone is re-asserted on the scan chain,
+after @command{reset-start} was triggered
+but before either SRST alone is asserted on the scan chain,
 or @code{reset-assert} is triggered.
 @item @b{reset-assert}
 @* Issued as part of @command{reset} processing
@@ -4513,8 +4646,8 @@ multiplexing, and so on.
 (You may be able to switch to a fast JTAG clock rate here, after
 the target clocks are fully set up.)
 @item @b{reset-start}
-@* Issued as part of @command{reset} processing
-before @command{reset_init} is called.
+@* Issued as the first step in @command{reset} processing
+before @command{reset-assert-pre} is called.
 
 This is the most robust place to use @command{jtag_rclk}
 or @command{adapter_khz} to switch to a low JTAG clock rate,
@@ -5193,6 +5326,26 @@ and prepares reset vector catch in case of reset halt.
 Command is used internally in event event reset-deassert-post.
 @end deffn
 
+@deffn Command {at91samd nvmuserrow}
+Writes or reads the entire 64 bit wide NVM user row register which is located at
+0x804000. This register includes various fuses lock-bits and factory calibration
+data. Reading the register is done by invoking this command without any
+arguments. Writing is possible by giving 1 or 2 hex values. The first argument
+is the register value to be written and the second one is an optional changemask.
+Every bit which value in changemask is 0 will stay unchanged. The lock- and
+reserved-bits are masked out and cannot be changed.
+
+@example
+# Read user row
+>at91samd nvmuserrow
+NVMUSERROW: 0xFFFFFC5DD8E0C788
+# Write 0xFFFFFC5DD8E0C788 to user row
+>at91samd nvmuserrow 0xFFFFFC5DD8E0C788
+# Write 0x12300 to user row but leave other bits and low byte unchanged
+>at91samd nvmuserrow 0x12345 0xFFF00
+@end example
+@end deffn
+
 @end deffn
 
 @anchor{at91sam3}
@@ -5339,6 +5492,30 @@ the appropriate at91sam7 target.
 The AVR 8-bit microcontrollers from Atmel integrate flash memory.
 @emph{The current implementation is incomplete.}
 @comment - defines mass_erase ... pointless given flash_erase_address
+@end deffn
+
+@deffn {Flash Driver} bluenrg-x
+STMicroelectronics BlueNRG-1 and BlueNRG-2 Bluetooth low energy wireless system-on-chip. They include ARM Cortex-M0 core and internal flash memory.
+The driver automatically recognizes these chips using
+the chip identification registers, and autoconfigures itself.
+
+@example
+flash bank $_FLASHNAME bluenrg-x 0 0 0 0 $_TARGETNAME
+@end example
+
+Note that when users ask to erase all the sectors of the flash, a mass erase command is used which is faster than erasing
+each single sector one by one.
+
+@example
+flash erase_sector 0 0 79 # It will perform a mass erase on BlueNRG-1
+@end example
+
+@example
+flash erase_sector 0 0 127 # It will perform a mass erase on BlueNRG-2
+@end example
+
+Triggering a mass erase is also useful when users want to disable readout protection.
+
 @end deffn
 
 @deffn {Flash Driver} efm32
@@ -5888,6 +6065,62 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 Erases the contents of the flash memory, protection and security lock.
 
 The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+@end deffn
+
+@deffn {Flash Driver} psoc6
+Supports PSoC6 (CY8C6xxx) family of Cypress microcontrollers.
+PSoC6 is a dual-core device with CM0+ and CM4 cores. Both cores share
+the same Flash/RAM/MMIO address space.
+
+Flash in PSoC6 is split into three regions:
+@itemize @bullet
+@item Main Flash - this is the main storage for user application.
+Total size varies among devices, sector size: 256 kBytes, row size:
+512 bytes. Supports erase operation on individual rows.
+@item Work Flash - intended to be used as storage for user data
+(e.g. EEPROM emulation). Total size: 32 KBytes, sector size: 32 KBytes,
+row size: 512 bytes.
+@item Supervisory Flash - special region which contains device-specific
+service data. This region does not support erase operation. Only few rows can
+be programmed by the user, most of the rows are read only. Programming
+operation will erase row automatically.
+@end itemize
+
+All three flash regions are supported by the driver. Flash geometry is detected
+automatically by parsing data in SPCIF_GEOMETRY register.
+
+PSoC6 is equipped with NOR Flash so erased Flash reads as 0x00.
+
+@example
+flash bank main_flash_cm0 psoc6 0x10000000 0 0 0 $@{TARGET@}.cm0
+flash bank work_flash_cm0 psoc6 0x14000000 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_user_cm0 psoc6 0x16000800 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_nar_cm0 psoc6 0x16001A00 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_key_cm0 psoc6 0x16005A00 0 0 0 $@{TARGET@}.cm0
+flash bank super_flash_toc2_cm0 psoc6 0x16007C00 0 0 0 $@{TARGET@}.cm0
+
+flash bank main_flash_cm4 psoc6 0x10000000 0 0 0 $@{TARGET@}.cm4
+flash bank work_flash_cm4 psoc6 0x14000000 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_user_cm4 psoc6 0x16000800 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_nar_cm4 psoc6 0x16001A00 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_key_cm4 psoc6 0x16005A00 0 0 0 $@{TARGET@}.cm4
+flash bank super_flash_toc2_cm4 psoc6 0x16007C00 0 0 0 $@{TARGET@}.cm4
+@end example
+
+psoc6-specific commands
+@deffn Command {psoc6 reset_halt}
+Command can be used to simulate broken Vector Catch from gdbinit or tcl scripts.
+When invoked for CM0+ target, it will set break point at application entry point
+and issue SYSRESETREQ. This will reset both cores and all peripherals. CM0+ will
+reset CM4 during boot anyway so this is safe. On CM4 target, VECTRESET is used
+instead of SYSRESETREQ to avoid unwanted reset of CM0+;
+@end deffn
+
+@deffn Command {psoc6 mass_erase} num
+Erases the contents given flash bank. The @var{num} parameter is a value shown
+by @command{flash banks}.
+Note: only Main and Work flash regions support Erase operation.
 @end deffn
 @end deffn
 
@@ -7012,9 +7245,11 @@ the initial log output channel is stderr.
 Add @var{directory} to the file/script search path.
 @end deffn
 
-@deffn Command bindto [name]
-Specify address by name on which to listen for incoming TCP/IP connections.
-By default, OpenOCD will listen on all available interfaces.
+@deffn Command bindto [@var{name}]
+Specify hostname or IPv4 address on which to listen for incoming
+TCP/IP connections. By default, OpenOCD will listen on the loopback
+interface only. If your network environment is safe, @code{bindto
+0.0.0.0} can be used to cover all available interfaces.
 @end deffn
 
 @anchor{targetstatehandling}
@@ -7659,6 +7894,50 @@ Reports whether the capture clock is locked or not.
 @end deffn
 @end deffn
 
+@anchor{armcrosstrigger}
+@section ARM Cross-Trigger Interface
+@cindex CTI
+
+The ARM Cross-Trigger Interface (CTI) is a generic CoreSight component
+that connects event sources like tracing components or CPU cores with each
+other through a common trigger matrix (CTM). For ARMv8 architecture, a
+CTI is mandatory for core run control and each core has an individual
+CTI instance attached to it. OpenOCD has limited support for CTI using
+the @emph{cti} group of commands.
+
+@deffn Command {cti create} cti_name @option{-dap} dap_name @option{-ap-num} apn @option{-ctibase} base_address
+Creates a CTI instance @var{cti_name} on the DAP instance @var{dap_name} on MEM-AP
+@var{apn}. The @var{base_address} must match the base address of the CTI
+on the respective MEM-AP. All arguments are mandatory. This creates a
+new command @command{$cti_name} which is used for various purposes
+including additional configuration.
+@end deffn
+
+@deffn Command {$cti_name enable} @option{on|off}
+Enable (@option{on}) or disable (@option{off}) the CTI.
+@end deffn
+
+@deffn Command {$cti_name dump}
+Displays a register dump of the CTI.
+@end deffn
+
+@deffn Command {$cti_name write } @var{reg_name} @var{value}
+Write @var{value} to the CTI register with the symbolic name @var{reg_name}.
+@end deffn
+
+@deffn Command {$cti_name read} @var{reg_name}
+Print the value read from the CTI register with the symbolic name @var{reg_name}.
+@end deffn
+
+@deffn Command {$cti_name testmode} @option{on|off}
+Enable (@option{on}) or disable (@option{off}) the integration test mode
+of the CTI.
+@end deffn
+
+@deffn Command {cti names}
+Prints a list of names of all CTI objects created. This command is mainly
+useful in TCL scripting.
+@end deffn
 
 @section Generic ARM
 @cindex ARM
@@ -8137,55 +8416,6 @@ cores @emph{except the ARM1176} use the same six bits.
 @section ARMv7 and ARMv8 Architecture
 @cindex ARMv7
 @cindex ARMv8
-
-@subsection ARMv7 and ARMv8 Debug Access Port (DAP) specific commands
-@cindex Debug Access Port
-@cindex DAP
-These commands are specific to ARM architecture v7 and v8 Debug Access Port (DAP),
-included on Cortex-M and Cortex-A systems.
-They are available in addition to other core-specific commands that may be available.
-
-@deffn Command {dap apid} [num]
-Displays ID register from AP @var{num},
-defaulting to the currently selected AP.
-@end deffn
-
-@deffn Command {dap apreg} ap_num reg [value]
-Displays content of a register @var{reg} from AP @var{ap_num}
-or set a new value @var{value}.
-@var{reg} is byte address of a word register, 0, 4, 8 ... 0xfc.
-@end deffn
-
-@deffn Command {dap apsel} [num]
-Select AP @var{num}, defaulting to 0.
-@end deffn
-
-@deffn Command {dap baseaddr} [num]
-Displays debug base address from MEM-AP @var{num},
-defaulting to the currently selected AP.
-@end deffn
-
-@deffn Command {dap info} [num]
-Displays the ROM table for MEM-AP @var{num},
-defaulting to the currently selected AP.
-@end deffn
-
-@deffn Command {dap memaccess} [value]
-Displays the number of extra tck cycles in the JTAG idle to use for MEM-AP
-memory bus access [0-255], giving additional time to respond to reads.
-If @var{value} is defined, first assigns that.
-@end deffn
-
-@deffn Command {dap apcsw} [0 / 1]
-fix CSW_SPROT from register AP_REG_CSW on selected dap.
-Defaulting to 0.
-@end deffn
-
-@deffn Command {dap ti_be_32_quirks} [@option{enable}]
-Set/get quirks mode for TI TMS450/TMS570 processors
-Disabled by default
-@end deffn
-
 
 @subsection ARMv7-A specific commands
 @cindex Cortex-A
@@ -9095,19 +9325,6 @@ With that particular hardware (Cortex-M3) the hardware breakpoints
 only work for code running from flash memory. Most other ARM systems
 do not have such restrictions.
 
-Another example of useful GDB configuration came from a user who
-found that single stepping his Cortex-M3 didn't work well with IRQs
-and an RTOS until he told GDB to disable the IRQs while stepping:
-
-@example
-define hook-step
-mon cortex_m maskisr on
-end
-define hookpost-step
-mon cortex_m maskisr off
-end
-@end example
-
 Rather than typing such commands interactively, you may prefer to
 save them in a file and have GDB execute them as it starts, perhaps
 using a @file{.gdbinit} in your project directory or starting GDB
@@ -9147,14 +9364,60 @@ GDB will look at the target memory map when a load command is given, if any
 areas to be programmed lie within the target flash area the vFlash packets
 will be used.
 
-If the target needs configuring before GDB programming, an event
-script can be executed:
+If the target needs configuring before GDB programming, set target
+event gdb-flash-erase-start:
 @example
-$_TARGETNAME configure -event EVENTNAME BODY
+$_TARGETNAME configure -event gdb-flash-erase-start BODY
 @end example
+@xref{targetevents,,Target Events}, for other GDB programming related events.
 
 To verify any flash programming the GDB command @option{compare-sections}
 can be used.
+
+@section Using GDB as a non-intrusive memory inspector
+@cindex Using GDB as a non-intrusive memory inspector
+@anchor{gdbmeminspect}
+
+If your project controls more than a blinking LED, let's say a heavy industrial
+robot or an experimental nuclear reactor, stopping the controlling process
+just because you want to attach GDB is not a good option.
+
+OpenOCD does not support GDB non-stop mode (might be implemented in the future).
+Though there is a possible setup where the target does not get stopped
+and GDB treats it as it were running.
+If the target supports background access to memory while it is running,
+you can use GDB in this mode to inspect memory (mainly global variables)
+without any intrusion of the target process.
+
+Remove default setting of gdb-attach event. @xref{targetevents,,Target Events}.
+Place following command after target configuration:
+@example
+$_TARGETNAME configure -event gdb-attach @{@}
+@end example
+
+If any of installed flash banks does not support probe on running target,
+switch off gdb_memory_map:
+@example
+gdb_memory_map disable
+@end example
+
+Ensure GDB is configured without interrupt-on-connect.
+Some GDB versions set it by default, some does not.
+@example
+set remote interrupt-on-connect off
+@end example
+
+If you switched gdb_memory_map off, you may want to setup GDB memory map
+manually or issue @command{set mem inaccessible-by-default off}
+
+Now you can issue GDB command @command{target remote ...} and inspect memory
+of a running target. Do not use GDB commands @command{continue},
+@command{step} or @command{next} as they synchronize GDB with your target
+and GDB would require stopping the target to get the prompt back.
+
+Do not use this mode under an IDE like Eclipse as it caches values of
+previously shown varibles.
+
 @anchor{usingopenocdsmpwithgdb}
 @section Using OpenOCD SMP with GDB
 @cindex SMP

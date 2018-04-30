@@ -167,6 +167,14 @@
 #define ARMV8_STRH_IP(Rd, Rn) (0x78002400 | (Rn << 5) | Rd)
 #define ARMV8_STRW_IP(Rd, Rn) (0xb8004400 | (Rn << 5) | Rd)
 
+#define ARMV8_MOV_GPR_VFP(Rd, Rn, Index) (0x4e083c00 | (Index << 20) | (Rn << 5) | Rd)
+#define ARMV8_MOV_VFP_GPR(Rd, Rn, Index) (0x4e081c00 | (Index << 20) | (Rn << 5) | Rd)
+
+#define ARMV8_MRS_FPCR(Rt)	(0xd53b4400 | (Rt))
+#define ARMV8_MRS_FPSR(Rt)	(0xd53b4420 | (Rt))
+#define ARMV8_MSR_FPCR(Rt)	(0xd51b4400 | (Rt))
+#define ARMV8_MSR_FPSR(Rt)	(0xd51b4420 | (Rt))
+
 #define ARMV8_SYS(System, Rt) (0xD5080000 | ((System) << 5) | Rt)
 
 enum armv8_opcode {

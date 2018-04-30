@@ -46,6 +46,7 @@ struct fileio;
 int fileio_open(struct fileio **fileio, const char *url,
 		enum fileio_access access_type, enum fileio_type type);
 int fileio_close(struct fileio *fileio);
+int fileio_feof(struct fileio *fileio);
 
 int fileio_seek(struct fileio *fileio, size_t position);
 int fileio_fgets(struct fileio *fileio, size_t size, void *buffer);

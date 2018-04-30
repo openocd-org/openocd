@@ -953,4 +953,5 @@ struct flash_driver stm32l4x_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = stm32l4_protect_check,
 	.info = get_stm32l4_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

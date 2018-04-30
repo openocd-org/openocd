@@ -203,6 +203,7 @@ proc init_target_events {} {
 	foreach t $targets {
 		set_default_target_event $t gdb-flash-erase-start "reset init"
 		set_default_target_event $t gdb-flash-write-end "reset halt"
+		set_default_target_event $t gdb-attach "halt"
 	}
 }
 

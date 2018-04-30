@@ -41,6 +41,8 @@
 #include <target/breakpoints.h>
 #include <target/target_request.h>
 #include <target/register.h>
+#include <target/target.h>
+#include <target/target_type.h>
 #include "server.h"
 #include <flash/nor/core.h>
 #include "gdb_server.h"
@@ -126,6 +128,9 @@ static int gdb_flash_program = 1;
  * Disabled by default.
  */
 static int gdb_report_data_abort;
+/* If set, errors when accessing registers are reported to gdb. Disabled by
+ * default. */
+static int gdb_report_register_access_error;
 
 /* set if we are sending target descriptions to gdb
  * via qXfer:features:read packet */
@@ -728,7 +733,6 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 	} else {
 		if (gdb_connection->ctrl_c) {
 			signal_var = 0x2;
-			gdb_connection->ctrl_c = 0;
 		} else
 			signal_var = gdb_last_signal(target);
 
@@ -760,12 +764,19 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 
 		current_thread[0] = '\0';
 		if (target->rtos != NULL) {
-			snprintf(current_thread, sizeof(current_thread), "thread:%016" PRIx64 ";", target->rtos->current_thread);
+			struct target *ct;
+			snprintf(current_thread, sizeof(current_thread), "thread:%016" PRIx64 ";",
+					target->rtos->current_thread);
 			target->rtos->current_threadid = target->rtos->current_thread;
+			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
+			if (!gdb_connection->ctrl_c)
+				signal_var = gdb_last_signal(ct);
 		}
 
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s%s",
 				signal_var, stop_reason, current_thread);
+
+		gdb_connection->ctrl_c = 0;
 	}
 
 	gdb_put_packet(connection, sig_reply, sig_reply_len);
@@ -953,9 +964,14 @@ static int gdb_new_connection(struct connection *connection)
 	breakpoint_clear_target(target);
 	watchpoint_clear_target(target);
 
-	/* clean previous rtos session if supported*/
-	if ((target->rtos) && (target->rtos->type->clean))
-		target->rtos->type->clean(target);
+	if (target->rtos) {
+		/* clean previous rtos session if supported*/
+		if (target->rtos->type->clean)
+			target->rtos->type->clean(target);
+
+		/* update threads */
+		rtos_update_threads(target);
+	}
 
 	/* remove the initial ACK from the incoming buffer */
 	retval = gdb_get_char(connection, &initial_ack);
@@ -1174,7 +1190,7 @@ static int gdb_get_registers_packet(struct connection *connection,
 	for (i = 0; i < reg_list_size; i++) {
 		if (!reg_list[i]->valid) {
 			retval = reg_list[i]->type->get(reg_list[i]);
-			if (retval != ERROR_OK && target->propagate_register_errors) {
+			if (retval != ERROR_OK && gdb_report_register_access_error) {
 				LOG_DEBUG("Couldn't get register %s.", reg_list[i]->name);
 				free(reg_packet);
 				free(reg_list);
@@ -1242,7 +1258,7 @@ static int gdb_set_registers_packet(struct connection *connection,
 		gdb_target_to_reg(target, packet_p, chars, bin_buf);
 
 		retval = reg_list[i]->type->set(reg_list[i], bin_buf);
-		if (retval != ERROR_OK && target->propagate_register_errors) {
+		if (retval != ERROR_OK && gdb_report_register_access_error) {
 			LOG_DEBUG("Couldn't set register %s.", reg_list[i]->name);
 			free(reg_list);
 			free(bin_buf);
@@ -1289,7 +1305,7 @@ static int gdb_get_register_packet(struct connection *connection,
 
 	if (!reg_list[reg_num]->valid) {
 		retval = reg_list[reg_num]->type->get(reg_list[reg_num]);
-		if (retval != ERROR_OK && target->propagate_register_errors) {
+		if (retval != ERROR_OK && gdb_report_register_access_error) {
 			LOG_DEBUG("Couldn't get register %s.", reg_list[reg_num]->name);
 			free(reg_list);
 			return gdb_error(connection, retval);
@@ -1349,7 +1365,7 @@ static int gdb_set_register_packet(struct connection *connection,
 	gdb_target_to_reg(target, separator + 1, chars, bin_buf);
 
 	retval = reg_list[reg_num]->type->set(reg_list[reg_num], bin_buf);
-	if (retval != ERROR_OK && target->propagate_register_errors) {
+	if (retval != ERROR_OK && gdb_report_register_access_error) {
 		LOG_DEBUG("Couldn't set register %s.", reg_list[reg_num]->name);
 		free(bin_buf);
 		free(reg_list);
@@ -1919,6 +1935,8 @@ static int gdb_memory_map(struct connection *connection,
 static const char *gdb_get_reg_type_name(enum reg_type type)
 {
 	switch (type) {
+		case REG_TYPE_BOOL:
+			return "bool";
 		case REG_TYPE_INT:
 			return "int";
 		case REG_TYPE_INT8:
@@ -1931,6 +1949,8 @@ static const char *gdb_get_reg_type_name(enum reg_type type)
 			return "int64";
 		case REG_TYPE_INT128:
 			return "int128";
+		case REG_TYPE_UINT:
+			return "uint";
 		case REG_TYPE_UINT8:
 			return "uint8";
 		case REG_TYPE_UINT16:
@@ -1958,12 +1978,45 @@ static const char *gdb_get_reg_type_name(enum reg_type type)
 	return "int"; /* "int" as default value */
 }
 
+static int lookup_add_arch_defined_types(char const **arch_defined_types_list[], const char *type_id,
+					int *num_arch_defined_types)
+{
+	int tbl_sz = *num_arch_defined_types;
+
+	if (type_id != NULL && (strcmp(type_id, ""))) {
+		for (int j = 0; j < (tbl_sz + 1); j++) {
+			if (!((*arch_defined_types_list)[j])) {
+				(*arch_defined_types_list)[tbl_sz++] = type_id;
+				*arch_defined_types_list = realloc(*arch_defined_types_list,
+								sizeof(char *) * (tbl_sz + 1));
+				(*arch_defined_types_list)[tbl_sz] = NULL;
+				*num_arch_defined_types = tbl_sz;
+				return 1;
+			} else {
+				if (!strcmp((*arch_defined_types_list)[j], type_id))
+					return 0;
+			}
+		}
+	}
+
+	return -1;
+}
+
 static int gdb_generate_reg_type_description(struct target *target,
-		char **tdesc, int *pos, int *size, struct reg_data_type *type)
+		char **tdesc, int *pos, int *size, struct reg_data_type *type,
+		char const **arch_defined_types_list[], int * num_arch_defined_types)
 {
 	int retval = ERROR_OK;
 
 	if (type->type_class == REG_TYPE_CLASS_VECTOR) {
+		struct reg_data_type *data_type = type->reg_type_vector->type;
+		if (data_type->type == REG_TYPE_ARCH_DEFINED) {
+			if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
+							num_arch_defined_types))
+				gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+								arch_defined_types_list,
+								num_arch_defined_types);
+		}
 		/* <vector id="id" type="type" count="count"/> */
 		xml_printf(&retval, tdesc, pos, size,
 				"<vector id=\"%s\" type=\"%s\" count=\"%d\"/>\n",
@@ -1971,6 +2024,20 @@ static int gdb_generate_reg_type_description(struct target *target,
 				type->reg_type_vector->count);
 
 	} else if (type->type_class == REG_TYPE_CLASS_UNION) {
+		struct reg_data_type_union_field *field;
+		field = type->reg_type_union->fields;
+		while (field != NULL) {
+			struct reg_data_type *data_type = field->type;
+			if (data_type->type == REG_TYPE_ARCH_DEFINED) {
+				if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
+								num_arch_defined_types))
+					gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+									arch_defined_types_list,
+									num_arch_defined_types);
+			}
+
+			field = field->next;
+		}
 		/* <union id="id">
 		 *  <field name="name" type="type"/> ...
 		 * </union> */
@@ -1978,7 +2045,6 @@ static int gdb_generate_reg_type_description(struct target *target,
 				"<union id=\"%s\">\n",
 				type->id);
 
-		struct reg_data_type_union_field *field;
 		field = type->reg_type_union->fields;
 		while (field != NULL) {
 			xml_printf(&retval, tdesc, pos, size,
@@ -2004,13 +2070,24 @@ static int gdb_generate_reg_type_description(struct target *target,
 					type->id, type->reg_type_struct->size);
 			while (field != NULL) {
 				xml_printf(&retval, tdesc, pos, size,
-						"<field name=\"%s\" start=\"%d\" end=\"%d\"/>\n",
-						field->name, field->bitfield->start,
-						field->bitfield->end);
+						"<field name=\"%s\" start=\"%d\" end=\"%d\" type=\"%s\" />\n",
+						field->name, field->bitfield->start, field->bitfield->end,
+						gdb_get_reg_type_name(field->bitfield->type));
 
 				field = field->next;
 			}
 		} else {
+			while (field != NULL) {
+				struct reg_data_type *data_type = field->type;
+				if (data_type->type == REG_TYPE_ARCH_DEFINED) {
+					if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
+									num_arch_defined_types))
+						gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+										arch_defined_types_list,
+										num_arch_defined_types);
+				}
+			}
+
 			/* <struct id="id">
 			 *  <field name="name" type="type"/> ...
 			 * </struct> */
@@ -2041,8 +2118,9 @@ static int gdb_generate_reg_type_description(struct target *target,
 		field = type->reg_type_flags->fields;
 		while (field != NULL) {
 			xml_printf(&retval, tdesc, pos, size,
-					"<field name=\"%s\" start=\"%d\" end=\"%d\"/>\n",
-					field->name, field->bitfield->start, field->bitfield->end);
+					"<field name=\"%s\" start=\"%d\" end=\"%d\" type=\"%s\" />\n",
+					field->name, field->bitfield->start, field->bitfield->end,
+					gdb_get_reg_type_name(field->bitfield->type));
 
 			field = field->next;
 		}
@@ -2103,10 +2181,14 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 	struct reg **reg_list = NULL;
 	int reg_list_size;
 	char const **features = NULL;
+	char const **arch_defined_types = NULL;
 	int feature_list_size = 0;
+	int num_arch_defined_types = 0;
 	char *tdesc = NULL;
 	int pos = 0;
 	int size = 0;
+
+	arch_defined_types = calloc(1, sizeof(char *));
 
 	retval = target_get_gdb_reg_list(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
@@ -2160,8 +2242,13 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 				if (reg_list[i]->reg_data_type != NULL) {
 					if (reg_list[i]->reg_data_type->type == REG_TYPE_ARCH_DEFINED) {
 						/* generate <type... first, if there are architecture-defined types. */
-						gdb_generate_reg_type_description(target, &tdesc, &pos, &size,
-								reg_list[i]->reg_data_type);
+						if (lookup_add_arch_defined_types(&arch_defined_types,
+										reg_list[i]->reg_data_type->id,
+										&num_arch_defined_types))
+							gdb_generate_reg_type_description(target, &tdesc, &pos, &size,
+											reg_list[i]->reg_data_type,
+											&arch_defined_types,
+											&num_arch_defined_types);
 
 						type_str = reg_list[i]->reg_data_type->id;
 					} else {
@@ -2211,6 +2298,7 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 error:
 	free(features);
 	free(reg_list);
+	free(arch_defined_types);
 
 	if (retval == ERROR_OK)
 		*tdesc_out = tdesc;
@@ -2387,7 +2475,11 @@ static int gdb_get_thread_list_chunk(struct target *target, char **thread_list,
 	else
 		transfer_type = 'l';
 
-	*chunk = malloc(length + 2);
+	*chunk = malloc(length + 2 + 3);
+    /* Allocating extra 3 bytes prevents false positive valgrind report
+	 * of strlen(chunk) word access:
+	 * Invalid read of size 4
+	 * Address 0x4479934 is 44 bytes inside a block of size 45 alloc'd */
 	if (*chunk == NULL) {
 		LOG_ERROR("Unable to allocate memory");
 		return ERROR_FAIL;
@@ -2495,7 +2587,7 @@ static int gdb_query_packet(struct connection *connection,
 			&buffer,
 			&pos,
 			&size,
-			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+",
+			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+;vContSupported+",
 			(GDB_BUFFER_SIZE - 1),
 			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-',
 			(gdb_target_desc_supported == 1) ? '+' : '-');
@@ -2584,6 +2676,185 @@ static int gdb_query_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
+static bool gdb_handle_vcont_packet(struct connection *connection, const char *packet, int packet_size)
+{
+	struct gdb_connection *gdb_connection = connection->priv;
+	struct target *target = get_target_from_connection(connection);
+	const char *parse = packet;
+	int retval;
+
+	/* query for vCont supported */
+	if (parse[0] == '?') {
+		if (target->type->step != NULL) {
+			/* gdb doesn't accept c without C and s without S */
+			gdb_put_packet(connection, "vCont;c;C;s;S", 13);
+			return true;
+		}
+		return false;
+	}
+
+	if (parse[0] == ';') {
+		++parse;
+		--packet_size;
+	}
+
+	/* simple case, a continue packet */
+	if (parse[0] == 'c') {
+		LOG_DEBUG("target %s continue", target_name(target));
+		log_add_callback(gdb_log_callback, connection);
+		retval = target_resume(target, 1, 0, 0, 0);
+		if (retval == ERROR_TARGET_NOT_HALTED)
+			LOG_INFO("target %s was not halted when resume was requested", target_name(target));
+
+		/* poll target in an attempt to make its internal state consistent */
+		if (retval != ERROR_OK) {
+			retval = target_poll(target);
+			if (retval != ERROR_OK)
+				LOG_DEBUG("error polling target %s after failed resume", target_name(target));
+		}
+
+		/*
+		 * We don't report errors to gdb here, move frontend_state to
+		 * TARGET_RUNNING to stay in sync with gdb's expectation of the
+		 * target state
+		 */
+		gdb_connection->frontend_state = TARGET_RUNNING;
+		target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
+
+		return true;
+	}
+
+	/* single-step or step-over-breakpoint */
+	if (parse[0] == 's') {
+		bool fake_step = false;
+
+		if (strncmp(parse, "s:", 2) == 0) {
+			struct target *ct = target;
+			int current_pc = 1;
+			int64_t thread_id;
+			char *endp;
+
+			parse += 2;
+			packet_size -= 2;
+
+			thread_id = strtoll(parse, &endp, 16);
+			if (endp != NULL) {
+				packet_size -= endp - parse;
+				parse = endp;
+			}
+
+			if (target->rtos != NULL) {
+				/* FIXME: why is this necessary? rtos state should be up-to-date here already! */
+				rtos_update_threads(target);
+
+				target->rtos->gdb_target_for_threadid(connection, thread_id, &ct);
+
+				/*
+				 * check if the thread to be stepped is the current rtos thread
+				 * if not, we must fake the step
+				 */
+				if (target->rtos->current_thread != thread_id)
+					fake_step = true;
+			}
+
+			if (parse[0] == ';') {
+				++parse;
+				--packet_size;
+
+				if (parse[0] == 'c') {
+					parse += 1;
+					packet_size -= 1;
+
+					/* check if thread-id follows */
+					if (parse[0] == ':') {
+						int64_t tid;
+						parse += 1;
+						packet_size -= 1;
+
+						tid = strtoll(parse, &endp, 16);
+						if (tid == thread_id) {
+							/*
+							 * Special case: only step a single thread (core),
+							 * keep the other threads halted. Currently, only
+							 * aarch64 target understands it. Other target types don't
+							 * care (nobody checks the actual value of 'current')
+							 * and it doesn't really matter. This deserves
+							 * a symbolic constant and a formal interface documentation
+							 * at a later time.
+							 */
+							LOG_DEBUG("request to step current core only");
+							/* uncomment after checking that indeed other targets are safe */
+							/*current_pc = 2;*/
+						}
+					}
+				}
+			}
+
+			LOG_DEBUG("target %s single-step thread %"PRIx64, target_name(ct), thread_id);
+			log_add_callback(gdb_log_callback, connection);
+			target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
+
+			/*
+			 * work around an annoying gdb behaviour: when the current thread
+			 * is changed in gdb, it assumes that the target can follow and also
+			 * make the thread current. This is an assumption that cannot hold
+			 * for a real target running a multi-threading OS. We just fake
+			 * the step to not trigger an internal error in gdb. See
+			 * https://sourceware.org/bugzilla/show_bug.cgi?id=22925 for details
+			 */
+			if (fake_step) {
+				int sig_reply_len;
+				char sig_reply[128];
+
+				LOG_DEBUG("fake step thread %"PRIx64, thread_id);
+
+				sig_reply_len = snprintf(sig_reply, sizeof(sig_reply),
+										 "T05thread:%016"PRIx64";", thread_id);
+
+				gdb_put_packet(connection, sig_reply, sig_reply_len);
+				log_remove_callback(gdb_log_callback, connection);
+
+				return true;
+			}
+
+			/* support for gdb_sync command */
+			if (gdb_connection->sync) {
+				gdb_connection->sync = false;
+				if (ct->state == TARGET_HALTED) {
+					LOG_WARNING("stepi ignored. GDB will now fetch the register state " \
+									"from the target.");
+					gdb_sig_halted(connection);
+					log_remove_callback(gdb_log_callback, connection);
+				} else
+					gdb_connection->frontend_state = TARGET_RUNNING;
+				return true;
+			}
+
+			retval = target_step(ct, current_pc, 0, 0);
+			if (retval == ERROR_TARGET_NOT_HALTED)
+				LOG_INFO("target %s was not halted when step was requested", target_name(ct));
+
+			/* if step was successful send a reply back to gdb */
+			if (retval == ERROR_OK) {
+				retval = target_poll(ct);
+				if (retval != ERROR_OK)
+					LOG_DEBUG("error polling target %s after successful step", target_name(ct));
+				/* send back signal information */
+				gdb_signal_reply(ct, connection);
+				/* stop forwarding log packets! */
+				log_remove_callback(gdb_log_callback, connection);
+			} else
+				gdb_connection->frontend_state = TARGET_RUNNING;
+		} else {
+			LOG_ERROR("Unknown vCont packet");
+			return false;
+		}
+		return true;
+	}
+
+	return false;
+}
+
 static int gdb_v_packet(struct connection *connection,
 		char const *packet, int packet_size)
 {
@@ -2595,6 +2866,19 @@ static int gdb_v_packet(struct connection *connection,
 		int out = target->rtos->gdb_v_packet(connection, packet, packet_size);
 		if (out != GDB_THREAD_PACKET_NOT_CONSUMED)
 			return out;
+	}
+
+	if (strncmp(packet, "vCont", 5) == 0) {
+		bool handled;
+
+		packet += 5;
+		packet_size -= 5;
+
+		handled = gdb_handle_vcont_packet(connection, packet, packet_size);
+		if (!handled)
+			gdb_put_packet(connection, "", 0);
+
+		return ERROR_OK;
 	}
 
 	/* if flash programming disabled - send a empty reply */
@@ -3036,7 +3320,12 @@ static int gdb_input_inner(struct connection *connection)
 
 		if (gdb_con->ctrl_c) {
 			if (target->state == TARGET_RUNNING) {
-				retval = target_halt(target);
+				struct target *t = target;
+				if (target->rtos)
+					target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &t);
+				retval = target_halt(t);
+				if (retval == ERROR_OK)
+					retval = target_poll(t);
 				if (retval != ERROR_OK)
 					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				gdb_con->ctrl_c = 0;
@@ -3209,6 +3498,15 @@ COMMAND_HANDLER(handle_gdb_report_data_abort_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_gdb_report_register_access_error)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_ENABLE(CMD_ARGV[0], gdb_report_register_access_error);
+	return ERROR_OK;
+}
+
 /* gdb_breakpoint_override */
 COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 {
@@ -3331,6 +3629,13 @@ static const struct command_registration gdb_command_handlers[] = {
 		.usage = "('enable'|'disable')"
 	},
 	{
+		.name = "gdb_report_register_access_error",
+		.handler = handle_gdb_report_register_access_error,
+		.mode = COMMAND_CONFIG,
+		.help = "enable or disable reporting register access errors",
+		.usage = "('enable'|'disable')"
+	},
+	{
 		.name = "gdb_breakpoint_override",
 		.handler = handle_gdb_breakpoint_override_command,
 		.mode = COMMAND_ANY,
@@ -3365,4 +3670,10 @@ void gdb_set_frontend_state_running(struct connection *connection)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->frontend_state = TARGET_RUNNING;
+}
+
+void gdb_service_free(void)
+{
+	free(gdb_port);
+	free(gdb_port_next);
 }

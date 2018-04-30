@@ -843,8 +843,5 @@ const struct command_registration armv7m_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,
 	},
-	{
-		.chain = dap_command_handlers,
-	},
 	COMMAND_REGISTRATION_DONE
 };

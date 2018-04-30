@@ -436,6 +436,12 @@ static int slow_fespi_write_buffer(struct flash_bank *bank,
 	uint32_t ctrl_base = fespi_info->ctrl_base;
 	uint32_t ii;
 
+	if (offset & 0xFF000000) {
+		LOG_ERROR("FESPI interface does not support greater than 3B addressing, can't write to offset 0x%x",
+				offset);
+		return ERROR_FAIL;
+	}
+
 	/* TODO!!! assert that len < page size */
 
 	fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
@@ -607,11 +613,11 @@ struct algorithm_steps {
 	uint8_t **steps;
 };
 
-static struct algorithm_steps *as_new(unsigned size)
+static struct algorithm_steps *as_new(void)
 {
 	struct algorithm_steps *as = calloc(1, sizeof(struct algorithm_steps));
-	as->size = size;
-	as->steps = calloc(size, sizeof(as->steps[0]));
+	as->size = 8;
+	as->steps = malloc(as->size * sizeof(as->steps[0]));
 	return as;
 }
 
@@ -701,17 +707,27 @@ static unsigned as_compile(struct algorithm_steps *as, uint8_t *target,
 	return offset;
 }
 
+static void as_add_step(struct algorithm_steps *as, uint8_t *step)
+{
+	if (as->used == as->size) {
+		as->size *= 2;
+		as->steps = realloc(as->steps, sizeof(as->steps[0]) * as->size);
+		LOG_DEBUG("Increased size to 0x%x", as->size);
+	}
+	as->steps[as->used] = step;
+	as->used++;
+}
+
 static void as_add_tx(struct algorithm_steps *as, unsigned count, const uint8_t *data)
 {
 	LOG_DEBUG("count=%d", count);
 	while (count > 0) {
 		unsigned step_count = MIN(count, 255);
-		assert(as->used < as->size);
-		as->steps[as->used] = malloc(step_count + 2);
-		as->steps[as->used][0] = STEP_TX;
-		as->steps[as->used][1] = step_count;
-		memcpy(as->steps[as->used] + 2, data, step_count);
-		as->used++;
+		uint8_t *step = malloc(step_count + 2);
+		step[0] = STEP_TX;
+		step[1] = step_count;
+		memcpy(step + 2, data, step_count);
+		as_add_step(as, step);
 		data += step_count;
 		count -= step_count;
 	}
@@ -726,43 +742,45 @@ static void as_add_tx1(struct algorithm_steps *as, uint8_t byte)
 
 static void as_add_write_reg(struct algorithm_steps *as, uint8_t offset, uint8_t data)
 {
-	assert(as->used < as->size);
-	as->steps[as->used] = malloc(3);
-	as->steps[as->used][0] = STEP_WRITE_REG;
-	as->steps[as->used][1] = offset;
-	as->steps[as->used][2] = data;
-	as->used++;
+	uint8_t *step = malloc(3);
+	step[0] = STEP_WRITE_REG;
+	step[1] = offset;
+	step[2] = data;
+	as_add_step(as, step);
 }
 
 static void as_add_txwm_wait(struct algorithm_steps *as)
 {
-	assert(as->used < as->size);
-	as->steps[as->used] = malloc(1);
-	as->steps[as->used][0] = STEP_TXWM_WAIT;
-	as->used++;
+	uint8_t *step = malloc(1);
+	step[0] = STEP_TXWM_WAIT;
+	as_add_step(as, step);
 }
 
 static void as_add_wip_wait(struct algorithm_steps *as)
 {
-	assert(as->used < as->size);
-	as->steps[as->used] = malloc(1);
-	as->steps[as->used][0] = STEP_WIP_WAIT;
-	as->used++;
+	uint8_t *step = malloc(1);
+	step[0] = STEP_WIP_WAIT;
+	as_add_step(as, step);
 }
 
 static void as_add_set_dir(struct algorithm_steps *as, bool dir)
 {
-	assert(as->used < as->size);
-	as->steps[as->used] = malloc(2);
-	as->steps[as->used][0] = STEP_SET_DIR;
-	as->steps[as->used][1] = FESPI_FMT_DIR(dir);
-	as->used++;
+	uint8_t *step = malloc(2);
+	step[0] = STEP_SET_DIR;
+	step[1] = FESPI_FMT_DIR(dir);
+	as_add_step(as, step);
 }
 
 /* This should write something less than or equal to a page.*/
 static int steps_add_buffer_write(struct algorithm_steps *as,
 		const uint8_t *buffer, uint32_t chip_offset, uint32_t len)
 {
+	if (chip_offset & 0xFF000000) {
+		LOG_ERROR("FESPI interface does not support greater than 3B addressing, can't write to offset 0x%x",
+				chip_offset);
+		return ERROR_FAIL;
+	}
+
 	as_add_tx1(as, SPIFLASH_WRITE_ENABLE);
 	as_add_txwm_wait(as);
 	as_add_write_reg(as, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
@@ -910,7 +928,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
-	struct algorithm_steps *as = as_new(count / 4);
+	struct algorithm_steps *as = as_new();
 
 	/* unaligned buffer head */
 	if (count > 0 && (offset & 3) != 0) {
