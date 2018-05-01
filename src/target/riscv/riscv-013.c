@@ -1806,8 +1806,8 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 			LOG_ERROR("Timed out after %ds waiting for sbbusy to go low (sbcs=0x%x). "
 					"Increase the timeout with riscv set_command_timeout_sec.",
 					riscv_command_timeout_sec, *sbcs);
+			return ERROR_FAIL;
 		}
-		return ERROR_FAIL;
 	}
 }
 
@@ -1935,6 +1935,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 			dmi_write(target, DMI_SBCS, DMI_SBCS_SBBUSYERROR);
 			next_address = sb_read_address(target);
 			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
+			continue;
 		}
 
 		unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
@@ -2373,6 +2374,7 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 			dmi_write(target, DMI_SBCS, DMI_SBCS_SBBUSYERROR);
 			next_address = sb_read_address(target);
 			info->bus_master_write_delay += info->bus_master_write_delay / 10 + 1;
+			continue;
 		}
 
 		unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
