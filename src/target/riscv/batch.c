@@ -160,11 +160,10 @@ void dump_field(const struct scan_field *field)
 
 		log_printf_lf(LOG_LVL_DEBUG,
 				__FILE__, __LINE__, __PRETTY_FUNCTION__,
-				"%db %s %08x @%02x -> %s %08x @%02x [0x%p -> 0x%p]",
+				"%db %s %08x @%02x -> %s %08x @%02x",
 				field->num_bits,
 				op_string[out_op], out_data, out_address,
-				status_string[in_op], in_data, in_address,
-				field->out_value, field->in_value);
+				status_string[in_op], in_data, in_address);
 	} else {
 		log_printf_lf(LOG_LVL_DEBUG,
 				__FILE__, __LINE__, __PRETTY_FUNCTION__, "%db %s %08x @%02x -> ?",
