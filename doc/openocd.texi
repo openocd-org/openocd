@@ -5900,8 +5900,8 @@ Command disables watchdog timer.
 @deffn {Flash Driver} lpc2000
 This is the driver to support internal flash of all members of the
 LPC11(x)00 and LPC1300 microcontroller families and most members of
-the LPC800, LPC1500, LPC1700, LPC1800, LPC2000, LPC4000 and LPC54100
-microcontroller families from NXP.
+the LPC800, LPC1500, LPC1700, LPC1800, LPC2000, LPC4000, LPC54100,
+LPC8Nxx and NHS31xx microcontroller families from NXP.
 
 @quotation Note
 There are LPC2000 devices which are not supported by the @var{lpc2000}
@@ -5926,7 +5926,7 @@ LPC43x[2357])
 @option{lpc54100} (LPC541xx)
 @option{lpc4000} (LPC40xx)
 or @option{auto} - automatically detects flash variant and size for LPC11(x)00,
-LPC8xx, LPC13xx, LPC17xx and LPC40xx
+LPC8xx, LPC13xx, LPC17xx, LPC40xx, LPC8Nxx and NHS31xx
 @item @var{clock_kHz} ... the frequency, in kiloHertz,
 at which the core is running
 @item @option{calc_checksum} ... optional (but you probably want to provide this!),
