@@ -941,4 +941,5 @@ struct flash_driver em357_flash = {
 	.auto_probe = em357_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = em357_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

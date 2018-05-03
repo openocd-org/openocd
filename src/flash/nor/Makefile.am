@@ -18,6 +18,7 @@ NOR_DRIVERS = \
 	%D%/ath79.c \
 	%D%/atsamv.c \
 	%D%/avrf.c \
+	%D%/bluenrg-x.c \
 	%D%/cfi.c \
 	%D%/dsp5680xx_flash.c \
 	%D%/efm32.c \
@@ -42,6 +43,7 @@ NOR_DRIVERS = \
 	%D%/ocl.c \
 	%D%/pic32mx.c \
 	%D%/psoc4.c \
+	%D%/psoc6.c \
 	%D%/sim3x.c \
 	%D%/spi.c \
 	%D%/stmsmi.c \

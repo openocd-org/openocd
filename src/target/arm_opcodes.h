@@ -132,6 +132,30 @@
  */
 #define ARMV4_5_BX(Rm) (0xe12fff10 | (Rm))
 
+/* Copies two words from two ARM core registers
+ * into a doubleword extension register, or
+ * from a doubleword extension register to two ARM core registers.
+ * See Armv7-A arch reference manual section A8.8.345
+ * Rt:   Arm core register 1
+ * Rt2:  Arm core register 2
+ * Vm:   The doubleword extension register
+ * M:    m = UInt(M:Vm);
+ * op:   to_arm_registers = (op == ‘1’);
+ */
+#define ARMV4_5_VMOV(op, Rt2, Rt, M, Vm) \
+	(0xec400b10 | ((op) << 20) | ((Rt2) << 16) | \
+	((Rt) << 12) | ((M) << 5) | (Vm))
+
+/* Moves the value of the FPSCR to an ARM core register
+ * Rt: Arm core register
+ */
+#define ARMV4_5_VMRS(Rt) (0xeef10a10 | ((Rt) << 12))
+
+/* Moves the value of an ARM core register to the FPSCR.
+ * Rt: Arm core register
+ */
+#define ARMV4_5_VMSR(Rt) (0xeee10a10 | ((Rt) << 12))
+
 /* Store data from coprocessor to consecutive memory
  * See Armv7-A arch doc section A8.6.187
  * P:    1=index mode (offset from Rn)

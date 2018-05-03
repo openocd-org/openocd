@@ -25,6 +25,8 @@
 #ifndef OPENOCD_HELPER_REPLACEMENTS_H
 #define OPENOCD_HELPER_REPLACEMENTS_H
 
+#include <stdint.h>
+
 /* MIN,MAX macros */
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))

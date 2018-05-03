@@ -242,3 +242,7 @@ int jsp_register_commands(struct command_context *cmd_ctx)
 	return register_commands(cmd_ctx, NULL, jsp_command_handlers);
 }
 
+void jsp_service_free(void)
+{
+	free(jsp_port);
+}

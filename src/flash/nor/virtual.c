@@ -231,4 +231,5 @@ struct flash_driver virtual_flash = {
 	.erase_check = virtual_blank_check,
 	.protect_check = virtual_protect_check,
 	.info = virtual_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

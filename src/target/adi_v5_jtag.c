@@ -574,6 +574,7 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 		if ((ctrlstat & (CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) !=
 						(CDBGPWRUPREQ | CDBGPWRUPACK | CSYSPWRUPREQ | CSYSPWRUPACK)) {
 			LOG_ERROR("Debug regions are unpowered, an unexpected reset might have happened");
+			dap->do_reconnect = true;
 		}
 
 		if (ctrlstat & SSTICKYERR)
@@ -597,6 +598,20 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 }
 
 /*--------------------------------------------------------------------------*/
+
+static int jtag_connect(struct adiv5_dap *dap)
+{
+	dap->do_reconnect = false;
+	return dap_dp_init(dap);
+}
+
+static int jtag_check_reconnect(struct adiv5_dap *dap)
+{
+	if (dap->do_reconnect)
+		return jtag_connect(dap);
+
+	return ERROR_OK;
+}
 
 static int jtag_dp_q_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
@@ -633,7 +648,11 @@ static int jtag_ap_q_bankselect(struct adiv5_ap *ap, unsigned reg)
 static int jtag_ap_q_read(struct adiv5_ap *ap, unsigned reg,
 		uint32_t *data)
 {
-	int retval = jtag_ap_q_bankselect(ap, reg);
+	int retval = jtag_check_reconnect(ap->dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = jtag_ap_q_bankselect(ap, reg);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -647,7 +666,11 @@ static int jtag_ap_q_read(struct adiv5_ap *ap, unsigned reg,
 static int jtag_ap_q_write(struct adiv5_ap *ap, unsigned reg,
 		uint32_t data)
 {
-	int retval = jtag_ap_q_bankselect(ap, reg);
+	int retval = jtag_check_reconnect(ap->dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = jtag_ap_q_bankselect(ap, reg);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -692,6 +715,7 @@ static int jtag_dp_sync(struct adiv5_dap *dap)
  * part of DAP setup
 */
 const struct dap_ops jtag_dp_ops = {
+	.connect             = jtag_connect,
 	.queue_dp_read       = jtag_dp_q_read,
 	.queue_dp_write      = jtag_dp_q_write,
 	.queue_ap_read       = jtag_ap_q_read,

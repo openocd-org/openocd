@@ -51,6 +51,21 @@ void add_config_command(const char *cfg)
 	config_file_names[num_config_files] = NULL;
 }
 
+void free_config(void)
+{
+	while (num_config_files)
+		free(config_file_names[--num_config_files]);
+
+	free(config_file_names);
+	config_file_names = NULL;
+
+	while (num_script_dirs)
+		free(script_search_dirs[--num_script_dirs]);
+
+	free(script_search_dirs);
+	script_search_dirs = NULL;
+}
+
 /* return full path or NULL according to search rules */
 char *find_file(const char *file)
 {
