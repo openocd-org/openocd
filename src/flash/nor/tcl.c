@@ -506,7 +506,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	if (count == 0)
 		return ERROR_OK;
 
-	if (address + count >= bank->base + bank->size) {
+	if (address + count * wordsize > bank->base + bank->size) {
 		LOG_ERROR("Cannot cross flash bank borders");
 		return ERROR_FAIL;
 	}
