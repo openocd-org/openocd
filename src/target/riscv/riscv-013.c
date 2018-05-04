@@ -2722,9 +2722,8 @@ static int riscv013_select_current_hart(struct target *target)
 	RISCV_INFO(r);
 
 	dm013_info_t *dm = get_dm(target);
-	if (r->current_hartid == dm->current_hartid) {
+	if (r->current_hartid == dm->current_hartid)
 		return ERROR_OK;
-	}
 
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
