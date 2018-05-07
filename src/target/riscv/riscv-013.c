@@ -57,6 +57,7 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
+static int register_read(struct target *target, uint64_t *value, uint32_t number);
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value);
@@ -143,6 +144,8 @@ typedef struct {
 	bool was_reset;
 	/* Targets that are connected to this DM. */
 	struct list_head target_list;
+	/* The currently selected hartid on this DM. */
+	int current_hartid;
 } dm013_info_t;
 
 typedef struct {
@@ -242,6 +245,7 @@ static dm013_info_t *get_dm(struct target *target)
 	if (!dm) {
 		dm = calloc(1, sizeof(dm013_info_t));
 		dm->abs_chain_position = abs_chain_position;
+		dm->current_hartid = -1;
 		INIT_LIST_HEAD(&dm->target_list);
 		list_add(&dm->list, &dm_list);
 	}
@@ -678,17 +682,12 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	LOG_DEBUG("command=0x%x", command);
 	dmi_write(target, DMI_COMMAND, command);
 
-	{
-		uint32_t abstractcs = 0;
-		wait_for_idle(target, &abstractcs);
-	}
+	uint32_t abstractcs = 0;
+	wait_for_idle(target, &abstractcs);
 
-	uint32_t cs;
-	if (dmi_read(target, &cs, DMI_ABSTRACTCS) != ERROR_OK)
-		return ERROR_FAIL;
-	info->cmderr = get_field(cs, DMI_ABSTRACTCS_CMDERR);
+	info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 	if (info->cmderr != 0) {
-		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, cs);
+		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, abstractcs);
 		/* Clear the error. */
 		dmi_write(target, DMI_ABSTRACTCS, set_field(0, DMI_ABSTRACTCS_CMDERR,
 					info->cmderr));
@@ -859,7 +858,7 @@ static int examine_progbuf(struct target *target)
 	}
 
 	uint64_t s0;
-	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1068,6 +1067,11 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	int result = register_write_abstract(target, number, value,
 			register_size(target, number));
+	if (result == ERROR_OK && target->reg_cache) {
+		struct reg *reg = &target->reg_cache->reg_list[number];
+		buf_set_u64(reg->value, 0, reg->size, value);
+		reg->valid = true;
+	}
 	if (result == ERROR_OK || info->progbufsize + r->impebreak < 2 ||
 			!riscv_is_halted(target))
 		return result;
@@ -1076,7 +1080,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	riscv_program_init(&program, target);
 
 	uint64_t s0;
-	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
@@ -1116,12 +1120,46 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	int exec_out = riscv_program_exec(&program, target);
 	/* Don't message on error. Probably the register doesn't exist. */
+	if (exec_out == ERROR_OK && target->reg_cache) {
+		struct reg *reg = &target->reg_cache->reg_list[number];
+		buf_set_u64(reg->value, 0, reg->size, value);
+		reg->valid = true;
+	}
 
 	/* Restore S0. */
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	return exec_out;
+}
+
+/** Return the cached value, or read from the target if necessary. */
+static int register_read(struct target *target, uint64_t *value, uint32_t number)
+{
+	if (number == GDB_REGNO_ZERO) {
+		*value = 0;
+		return ERROR_OK;
+	}
+	if (target->reg_cache &&
+			(number <= GDB_REGNO_XPR31 ||
+			 (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31))) {
+		/* Only check the cache for registers that we know won't spontaneously
+		 * change. */
+		struct reg *reg = &target->reg_cache->reg_list[number];
+		if (reg && reg->valid) {
+			*value = buf_get_u64(reg->value, 0, reg->size);
+			return ERROR_OK;
+		}
+	}
+	int result = register_read_direct(target, value, number);
+	if (result != ERROR_OK)
+		return ERROR_FAIL;
+	if (target->reg_cache) {
+		struct reg *reg = &target->reg_cache->reg_list[number];
+		buf_set_u64(reg->value, 0, reg->size, *value);
+		reg->valid = true;
+	}
+	return ERROR_OK;
 }
 
 /** Actually read registers from the target right now. */
@@ -1143,14 +1181,14 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		bool use_scratch = false;
 
 		uint64_t s0;
-		if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+		if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 			return ERROR_FAIL;
 
 		/* Write program to move data into s0. */
 
 		uint64_t mstatus;
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (register_read_direct(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+			if (register_read(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
 				return ERROR_FAIL;
 			if ((mstatus & MSTATUS_FS) == 0)
 				if (register_write_direct(target, GDB_REGNO_MSTATUS,
@@ -1393,7 +1431,7 @@ static int examine(struct target *target)
 		else
 			r->xlen[i] = 32;
 
-		if (register_read_direct(target, &r->misa[i], GDB_REGNO_MISA)) {
+		if (register_read(target, &r->misa[i], GDB_REGNO_MISA)) {
 			LOG_ERROR("Fatal: Failed to read MISA from hart %d.", i);
 			return ERROR_FAIL;
 		}
@@ -1972,9 +2010,9 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	 * s1 holds the next data value to write
 	 */
 	uint64_t s0, s1;
-	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
-	if (register_read_direct(target, &s1, GDB_REGNO_S1) != ERROR_OK)
+	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (execute_fence(target) != ERROR_OK)
@@ -2406,9 +2444,9 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 
 	int result = ERROR_OK;
 	uint64_t s0, s1;
-	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
-	if (register_read_direct(target, &s1, GDB_REGNO_S1) != ERROR_OK)
+	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Write the program (store, increment) */
@@ -2632,14 +2670,14 @@ static int riscv013_get_register(struct target *target,
 
 	int result = ERROR_OK;
 	if (rid == GDB_REGNO_PC) {
-		result = register_read_direct(target, value, GDB_REGNO_DPC);
+		result = register_read(target, value, GDB_REGNO_DPC);
 		LOG_DEBUG("read PC from DPC: 0x%016" PRIx64, *value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
-		result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+		result = register_read(target, &dcsr, GDB_REGNO_DCSR);
 		*value = get_field(dcsr, CSR_DCSR_PRV);
 	} else {
-		result = register_read_direct(target, value, rid);
+		result = register_read(target, value, rid);
 		if (result != ERROR_OK)
 			*value = -1;
 	}
@@ -2669,7 +2707,7 @@ static int riscv013_set_register(struct target *target, int hid, int rid, uint64
 		}
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
-		register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+		register_read(target, &dcsr, GDB_REGNO_DCSR);
 		dcsr = set_field(dcsr, CSR_DCSR_PRV, value);
 		return register_write_direct(target, GDB_REGNO_DCSR, dcsr);
 	} else {
@@ -2683,11 +2721,17 @@ static int riscv013_select_current_hart(struct target *target)
 {
 	RISCV_INFO(r);
 
+	dm013_info_t *dm = get_dm(target);
+	if (r->current_hartid == dm->current_hartid)
+		return ERROR_OK;
+
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
 	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
-	return dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	int result = dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	dm->current_hartid = r->current_hartid;
+	return result;
 }
 
 static int riscv013_halt_current_hart(struct target *target)
@@ -2782,7 +2826,7 @@ static bool riscv013_is_halted(struct target *target)
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 {
 	riscv_reg_t dcsr;
-	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+	int result = register_read(target, &dcsr, GDB_REGNO_DCSR);
 	if (result != ERROR_OK)
 		return RISCV_HALT_UNKNOWN;
 
@@ -2881,7 +2925,7 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
 	riscv_reg_t dcsr;
-	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+	int result = register_read(target, &dcsr, GDB_REGNO_DCSR);
 	if (result != ERROR_OK)
 		return result;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
