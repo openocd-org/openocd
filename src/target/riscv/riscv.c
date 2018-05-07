@@ -1706,7 +1706,7 @@ int riscv_set_current_hartid(struct target *target, int hartid)
 {
 	RISCV_INFO(r);
 	if (!r->select_current_hart)
-		return ERROR_FAIL;
+		return ERROR_OK;
 
 	int previous_hartid = riscv_current_hartid(target);
 	r->current_hartid = hartid;
