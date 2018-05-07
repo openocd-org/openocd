@@ -953,22 +953,6 @@ static int riscv_checksum_memory(struct target *target,
 	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
-/* Should run code on the target to check whether a memory
-block holds all-ones (because this is generally called on
-NOR flash which is 1 when "blank")
-Not yet implemented.
-*/
-int riscv_blank_check_memory(struct target *target,
-				target_addr_t address,
-				uint32_t count,
-				uint32_t *blank,
-				uint8_t erased_value)
-{
-	*blank = 0;
-
-	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-}
-
 /*** OpenOCD Helper Functions ***/
 
 enum riscv_poll_hart {
@@ -1549,7 +1533,6 @@ struct target_type riscv_target = {
 	.read_memory = riscv_read_memory,
 	.write_memory = riscv_write_memory,
 
-	.blank_check_memory = riscv_blank_check_memory,
 	.checksum_memory = riscv_checksum_memory,
 
 	.get_gdb_reg_list = riscv_get_gdb_reg_list,
