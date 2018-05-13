@@ -793,64 +793,64 @@ static void gdb_fileio_reply(struct target *target, struct connection *connectio
 	bool program_exited = false;
 
 	if (strcmp(target->fileio_info->identifier, "open") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3,
 				target->fileio_info->param_4);
 	else if (strcmp(target->fileio_info->identifier, "close") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1);
 	else if (strcmp(target->fileio_info->identifier, "read") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "write") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "lseek") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "rename") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32 ",%" PRIx32 "/%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64 ",%" PRIx64 "/%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3,
 				target->fileio_info->param_4);
 	else if (strcmp(target->fileio_info->identifier, "unlink") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "stat") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "fstat") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "gettimeofday") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "isatty") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1);
 	else if (strcmp(target->fileio_info->identifier, "system") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "exit") == 0) {
 		/* If target hits exit syscall, report to GDB the program is terminated.
 		 * In addition, let target run its own exit syscall handler. */
 		program_exited = true;
-		sprintf(fileio_command, "W%02" PRIx32, target->fileio_info->param_1);
+		sprintf(fileio_command, "W%02" PRIx64, target->fileio_info->param_1);
 	} else {
 		LOG_DEBUG("Unknown syscall: %s", target->fileio_info->identifier);
 

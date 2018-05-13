@@ -8092,6 +8092,30 @@ interacting with remote files or displaying console messages in the
 debugger.
 @end deffn
 
+@deffn Command {arm semihosting_resexit} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
+Enable resumable SEMIHOSTING_SYS_EXIT.
+
+When SEMIHOSTING_SYS_EXIT is called outside a debug session,
+things are simple, the openocd process calls exit() and passes
+the value returned by the target.
+
+When SEMIHOSTING_SYS_EXIT is called during a debug session,
+by default execution returns to the debugger, leaving the
+debugger in a HALT state, similar to the state entered when
+encountering a break.
+
+In some use cases, it is useful to have SEMIHOSTING_SYS_EXIT
+return normally, as any semihosting call, and do not break
+to the debugger.
+The standard allows this to happen, but the condition
+to trigger it is a bit obscure ("by performing an RDI_Execute
+request or equivalent").
+
+To make the SEMIHOSTING_SYS_EXIT call return normally, enable
+this option (default: disabled).
+@end deffn
+
 @section ARMv4 and ARMv5 Architecture
 @cindex ARMv4
 @cindex ARMv5

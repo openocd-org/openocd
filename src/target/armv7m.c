@@ -11,6 +11,9 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) 2018 by Liviu Ionescu                                   *
+ *   <ilg@livius.net>                                                      *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -37,6 +40,7 @@
 #include "armv7m.h"
 #include "algorithm.h"
 #include "register.h"
+#include "semihosting_common.h"
 
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
@@ -537,7 +541,7 @@ int armv7m_arch_state(struct target *target)
 	uint32_t ctrl, sp;
 
 	/* avoid filling log waiting for fileio reply */
-	if (arm->semihosting_hit_fileio)
+	if (target->semihosting->hit_fileio)
 		return ERROR_OK;
 
 	ctrl = buf_get_u32(arm->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
@@ -552,8 +556,8 @@ int armv7m_arch_state(struct target *target)
 		buf_get_u32(arm->pc->value, 0, 32),
 		(ctrl & 0x02) ? 'p' : 'm',
 		sp,
-		arm->is_semihosting ? ", semihosting" : "",
-		arm->is_semihosting_fileio ? " fileio" : "");
+		target->semihosting->is_active ? ", semihosting" : "",
+		target->semihosting->is_fileio ? " fileio" : "");
 
 	return ERROR_OK;
 }
