@@ -187,6 +187,8 @@ static int stm32l4_wait_status_busy(struct flash_bank *bank, int timeout)
 
 	/* Clear but report errors */
 	if (status & FLASH_ERROR) {
+		if (retval == ERROR_OK)
+			retval = ERROR_FAIL;
 		/* If this operation fails, we ignore it and report the original
 		 * retval
 		 */

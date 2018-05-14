@@ -220,6 +220,8 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 
 	/* Clear error + EOP flags but report errors */
 	if (status & FLASH_ERROR) {
+		if (retval == ERROR_OK)
+			retval = ERROR_FAIL;
 		/* If this operation fails, we ignore it and report the original retval */
 		target_write_u32(target, stm32x_get_flash_reg(bank, FLASH_CCR), status);
 	}
@@ -495,7 +497,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 		retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("erase time-out error sector %d", i);
+			LOG_ERROR("erase time-out or operation error sector %d", i);
 			return retval;
 		}
 		bank->sectors[i].is_erased = 1;
