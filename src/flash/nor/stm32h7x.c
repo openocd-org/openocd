@@ -64,7 +64,7 @@
 #define FLASH_WRPERR   (1 << 17) /* Write protection error */
 #define FLASH_PGSERR   (1 << 18) /* Programming sequence error */
 #define FLASH_STRBERR  (1 << 19) /* Strobe error */
-#define FLASH_INCERR   (1 << 21) /* Increment error */
+#define FLASH_INCERR   (1 << 21) /* Inconsistency error */
 #define FLASH_OPERR    (1 << 22) /* Operation error */
 #define FLASH_RDPERR   (1 << 23) /* Read Protection error */
 #define FLASH_RDSERR   (1 << 24) /* Secure Protection error */
