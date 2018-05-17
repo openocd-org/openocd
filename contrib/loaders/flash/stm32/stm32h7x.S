@@ -20,21 +20,6 @@
 	.syntax unified
 	.cpu cortex-m7
 	.thumb
-	.thumb_func
-
-/*
- * To assemble:
- * arm-none-eabi-gcc -c stm32h7x.S
- *
- * To disassemble:
- * arm-none-eabi-objdump -d stm32h7x.o
- *
- * To generate binary file:
- * arm-none-eabi-objcopy -O binary stm32h7x.o stm32h7_flash_write_code.bin
- *
- * To generate include file:
- * xxd -i stm32h7_flash_write_code.bin
- */
 
 /*
  * Code limitations:
@@ -67,7 +52,9 @@
 #define STM32_SR_ERROR_MASK		0x03ee0000	/* DBECCERR | SNECCERR | RDSERR | RDPERR | OPERR
 											   | INCERR | STRBERR | PGSERR | WRPERR */
 
-code:
+	.thumb_func
+	.global _start
+_start:
 	ldr		r5, [r0, #4]		/* read rp */
 
 wait_fifo:
@@ -100,7 +87,7 @@ busy:
 	tst		r6, #STM32_SR_BUSY_MASK
 	bne		busy				/* operation in progress, wait ... */
 
-	ldr		r7, stm32_sr_error_mask
+	ldr		r7, =STM32_SR_ERROR_MASK
 	tst		r6, r7
 	bne		error				/* fail... */
 
@@ -117,5 +104,5 @@ exit:
 	mov		r0, r6				/* return status in r0 */
 	bkpt	#0x00
 
-stm32_sr_error_mask:
-	.word	STM32_SR_ERROR_MASK
+	.pool
+

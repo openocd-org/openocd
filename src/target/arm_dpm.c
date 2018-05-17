@@ -587,11 +587,13 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 		goto done;
 	arm->pc->dirty = false;
 
-	/* flush R0 -- it's *very* dirty by now */
-	retval = dpm_write_reg(dpm, &cache->reg_list[0], 0);
-	if (retval != ERROR_OK)
-		goto done;
-	cache->reg_list[0].dirty = false;
+	/* flush R0 and R1 (our scratch registers) */
+	for (unsigned i = 0; i < 2; i++) {
+		retval = dpm_write_reg(dpm, &cache->reg_list[i], i);
+		if (retval != ERROR_OK)
+			goto done;
+		cache->reg_list[i].dirty = false;
+	}
 
 	/* (void) */ dpm->finish(dpm);
 done:

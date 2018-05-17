@@ -69,10 +69,9 @@ struct ChibiOS_chdebug {
 /**
  * @brief ChibiOS thread states.
  */
-static const char * const ChibiOS_thread_states[] = {
-	"READY", "CURRENT", "SUSPENDED", "WTSEM", "WTMTX", "WTCOND", "SLEEPING",
-	"WTEXIT", "WTOREVT", "WTANDEVT", "SNDMSGQ", "SNDMSG", "WTMSG", "WTQUEUE",
-	"FINAL"
+static const char * const ChibiOS_thread_states[] = { "READY", "CURRENT",
+"WTSTART", "SUSPENDED", "QUEUED", "WTSEM", "WTMTX", "WTCOND", "SLEEPING",
+"WTEXIT", "WTOREVT", "WTANDEVT", "SNDMSGQ", "SNDMSG", "WTMSG", "FINAL"
 };
 
 #define CHIBIOS_NUM_STATES (sizeof(ChibiOS_thread_states)/sizeof(char *))

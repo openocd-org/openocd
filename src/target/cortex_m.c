@@ -51,11 +51,6 @@
  * any longer.
  */
 
-/**
- * Returns the type of a break point required by address location
- */
-#define BKPT_TYPE_BY_ADDR(addr) ((addr) < 0x20000000 ? BKPT_HARD : BKPT_SOFT)
-
 /* forward declarations */
 static int cortex_m_store_core_reg_u32(struct target *target,
 		uint32_t num, uint32_t value);
@@ -868,7 +863,7 @@ static int cortex_m_step(struct target *target, int current,
 				if (breakpoint)
 					retval = cortex_m_set_breakpoint(target, breakpoint);
 				else
-					retval = breakpoint_add(target, pc_value, 2, BKPT_TYPE_BY_ADDR(pc_value));
+					retval = breakpoint_add(target, pc_value, 2, BKPT_HARD);
 				bool tmp_bp_set = (retval == ERROR_OK);
 
 				/* No more breakpoints left, just do a step */
@@ -1131,9 +1126,6 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		return ERROR_OK;
 	}
 
-	if (cortex_m->auto_bp_type)
-		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
-
 	if (breakpoint->type == BKPT_HARD) {
 		uint32_t fpcr_value;
 		while (comparator_list[fp_num].used && (fp_num < cortex_m->fp_num_code))
@@ -1253,21 +1245,6 @@ int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 
-	if (cortex_m->auto_bp_type)
-		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
-
-	if (breakpoint->type != BKPT_TYPE_BY_ADDR(breakpoint->address)) {
-		if (breakpoint->type == BKPT_HARD) {
-			LOG_INFO("flash patch comparator requested outside code memory region");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
-
-		if (breakpoint->type == BKPT_SOFT) {
-			LOG_INFO("soft breakpoint requested in code (flash) memory region");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
-	}
-
 	if ((breakpoint->type == BKPT_HARD) && (cortex_m->fp_code_available < 1)) {
 		LOG_INFO("no flash patch comparator unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -1298,9 +1275,6 @@ int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-
-	if (cortex_m->auto_bp_type)
-		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
 
 	if (breakpoint->set)
 		cortex_m_unset_breakpoint(target, breakpoint);
@@ -2111,7 +2085,6 @@ int cortex_m_examine(struct target *target)
 
 		/* Setup FPB */
 		target_read_u32(target, FP_CTRL, &fpcr);
-		cortex_m->auto_bp_type = 1;
 		/* bits [14:12] and [7:4] */
 		cortex_m->fp_num_code = ((fpcr >> 8) & 0x70) | ((fpcr >> 4) & 0xF);
 		cortex_m->fp_num_lit = (fpcr >> 8) & 0xF;
