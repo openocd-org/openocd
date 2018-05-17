@@ -1644,15 +1644,12 @@ static int deassert_reset(struct target *target)
 
 		char *operation;
 		uint32_t expected_field;
-		uint32_t unexpected_field;
 		if (target->reset_halt) {
 			operation = "halt";
 			expected_field = DMI_DMSTATUS_ALLHALTED;
-			unexpected_field = DMI_DMSTATUS_ANYRUNNING;
 		} else {
 			operation = "run";
 			expected_field = DMI_DMSTATUS_ALLRUNNING;
-			unexpected_field = DMI_DMSTATUS_ANYHALTED;
 		}
 		LOG_DEBUG("Waiting for hart %d to %s out of reset.", index, operation);
 		while (1) {
@@ -1665,11 +1662,6 @@ static int deassert_reset(struct target *target)
 						index, riscv_reset_timeout_sec);
 			if (result != ERROR_OK)
 				return result;
-			if (get_field(dmstatus, unexpected_field)) {
-				LOG_ERROR("Unexpected hart %d status during reset. dmstatus=0x%x",
-						index, dmstatus);
-				return ERROR_FAIL;
-			}
 			if (get_field(dmstatus, expected_field))
 				break;
 			if (time(NULL) - start > riscv_reset_timeout_sec) {
