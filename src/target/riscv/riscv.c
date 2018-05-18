@@ -1763,6 +1763,10 @@ bool riscv_has_register(struct target *target, int hartid, int regid)
 	return 1;
 }
 
+/**
+ * This function is called when the debug user wants to change the value of a
+ * register. The new value may be cached, and may not be written until the hart
+ * is running again. */
 int riscv_set_register(struct target *target, enum gdb_regno r, riscv_reg_t v)
 {
 	return riscv_set_register_on_hart(target, riscv_current_hartid(target), r, v);
