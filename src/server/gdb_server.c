@@ -3373,6 +3373,8 @@ static int gdb_target_start(struct target *target, const char *port)
 	if (NULL == gdb_service)
 		return -ENOMEM;
 
+	LOG_DEBUG("starting gdb server for %s on %s", target_name(target), port);
+
 	gdb_service->target = target;
 	gdb_service->core[0] = -1;
 	gdb_service->core[1] = -1;
@@ -3398,16 +3400,30 @@ static int gdb_target_start(struct target *target, const char *port)
 
 static int gdb_target_add_one(struct target *target)
 {
+	/*  one gdb instance per smp list */
+	if ((target->smp) && (target->gdb_service))
+		return ERROR_OK;
+
+	if (target->gdb_port_override) {
+		if (strcmp(target->gdb_port_override, "disabled") == 0) {
+			LOG_INFO("gdb port disabled");
+			return ERROR_OK;
+		}
+		return gdb_target_start(target, target->gdb_port_override);
+	}
+
 	if (strcmp(gdb_port, "disabled") == 0) {
 		LOG_INFO("gdb port disabled");
 		return ERROR_OK;
 	}
 
-	/*  one gdb instance per smp list */
-	if ((target->smp) && (target->gdb_service))
-		return ERROR_OK;
 	int retval = gdb_target_start(target, gdb_port_next);
 	if (retval == ERROR_OK) {
+		/* save the port number so can be queried with
+		 * $target_name cget -gdb-port
+		 */
+		target->gdb_port_override = strdup(gdb_port_next);
+
 		long portnumber;
 		/* If we can parse the port number
 		 * then we increment the port number for the next target.
@@ -3432,11 +3448,6 @@ static int gdb_target_add_one(struct target *target)
 
 int gdb_target_add_all(struct target *target)
 {
-	if (strcmp(gdb_port, "disabled") == 0) {
-		LOG_INFO("gdb server disabled");
-		return ERROR_OK;
-	}
-
 	if (NULL == target) {
 		LOG_WARNING("gdb services need one or more targets defined");
 		return ERROR_OK;

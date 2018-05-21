@@ -2114,6 +2114,7 @@ In such cases, just specify the relevant port number as "disabled".
 If you disable all access through TCP/IP, you will need to
 use the command line @option{-pipe} option.
 
+@anchor{gdb_port}
 @deffn {Command} gdb_port [number]
 @cindex GDB server
 Normally gdb listens to a TCP/IP port, but GDB can also
@@ -2139,11 +2140,15 @@ The GDB port for the first target will be the base port, the
 second target will listen on gdb_port + 1, and so on.
 When not specified during the configuration stage,
 the port @var{number} defaults to 3333.
+When @var{number} is not a numeric value, incrementing it to compute
+the next port number does not work. In this case, specify the proper
+@var{number} for each target by using the option @code{-gdb-port} of the
+commands @command{target create} or @command{$target_name configure}.
+@xref{gdbportoverride,,option -gdb-port}.
 
 Note: when using "gdb_port pipe", increasing the default remote timeout in
 gdb (with 'set remotetimeout') is recommended. An insufficient timeout may
 cause initialization to fail with "Unknown remote qXfer reply: OK".
-
 @end deffn
 
 @deffn {Command} tcl_port [number]
@@ -4458,6 +4463,13 @@ to the target. Currently, only the @code{aarch64} target makes use of this optio
 where it is a mandatory configuration for the target run control.
 @xref{armcrosstrigger,,ARM Cross-Trigger Interface},
 for instruction on how to declare and control a CTI instance.
+
+@anchor{gdbportoverride}
+@item @code{-gdb-port} @var{number} -- see command @command{gdb_port} for the
+possible values of the parameter @var{number}, which are not only numeric values.
+Use this option to override, for this target only, the global parameter set with
+command @command{gdb_port}.
+@xref{gdb_port,,command gdb_port}.
 @end itemize
 @end deffn
 

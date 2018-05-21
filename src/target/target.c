@@ -1927,6 +1927,7 @@ static void target_destroy(struct target *target)
 		target->smp = 0;
 	}
 
+	free(target->gdb_port_override);
 	free(target->type);
 	free(target->trace_info);
 	free(target->fileio_info);
@@ -4537,6 +4538,7 @@ enum target_cfg_param {
 	TCFG_DBGBASE,
 	TCFG_RTOS,
 	TCFG_DEFER_EXAMINE,
+	TCFG_GDB_PORT,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
@@ -4552,6 +4554,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
 	{ .name = "-rtos",             .value = TCFG_RTOS },
 	{ .name = "-defer-examine",    .value = TCFG_DEFER_EXAMINE },
+	{ .name = "-gdb-port",         .value = TCFG_GDB_PORT },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -4839,6 +4842,20 @@ no_params:
 			/* loop for more */
 			break;
 
+		case TCFG_GDB_PORT:
+			if (goi->isconfigure) {
+				const char *s;
+				e = Jim_GetOpt_String(goi, &s, NULL);
+				if (e != JIM_OK)
+					return e;
+				target->gdb_port_override = strdup(s);
+			} else {
+				if (goi->argc != 0)
+					goto no_params;
+			}
+			Jim_SetResultString(goi->interp, target->gdb_port_override ? : "undefined", -1);
+			/* loop for more */
+			break;
 		}
 	} /* while (goi->argc) */
 
@@ -5613,6 +5630,8 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->rtos = NULL;
 	target->rtos_auto_detect = false;
 
+	target->gdb_port_override = NULL;
+
 	/* Do the rest as "configure" options */
 	goi->isconfigure = 1;
 	e = target_configure(goi, target);
@@ -5635,6 +5654,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	}
 
 	if (e != JIM_OK) {
+		free(target->gdb_port_override);
 		free(target->type);
 		free(target);
 		return e;
@@ -5652,6 +5672,7 @@ static int target_create(Jim_GetOptInfo *goi)
 		e = (*(target->type->target_create))(target, goi->interp);
 		if (e != ERROR_OK) {
 			LOG_DEBUG("target_create failed");
+			free(target->gdb_port_override);
 			free(target->type);
 			free(target->cmd_name);
 			free(target);

@@ -206,6 +206,8 @@ struct target {
 	/* file-I/O information for host to do syscall */
 	struct gdb_fileio_info *fileio_info;
 
+	char *gdb_port_override;			/* target-specific override for gdb_port */
+
 	/* The semihosting information, extracted from the target. */
 	struct semihosting *semihosting;
 };
