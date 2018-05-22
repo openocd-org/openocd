@@ -232,6 +232,11 @@ static struct target_type *get_target_type(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
+	if (!info) {
+		LOG_ERROR("Target has not been initialized");
+		return NULL;
+	}
+
 	switch (info->dtm_version) {
 		case 0:
 			return &riscv011_target;
@@ -265,9 +270,11 @@ static void riscv_deinit_target(struct target *target)
 {
 	LOG_DEBUG("riscv_deinit_target()");
 	struct target_type *tt = get_target_type(target);
-	tt->deinit_target(target);
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	free(info);
+	if (tt) {
+		tt->deinit_target(target);
+		riscv_info_t *info = (riscv_info_t *) target->arch_info;
+		free(info);
+	}
 	target->arch_info = NULL;
 }
 
