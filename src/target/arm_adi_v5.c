@@ -1772,6 +1772,37 @@ COMMAND_HANDLER(dap_apreg_command)
 	return retval;
 }
 
+COMMAND_HANDLER(dap_dpreg_command)
+{
+	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
+	uint32_t reg, value;
+	int retval;
+
+	if (CMD_ARGC < 1 || CMD_ARGC > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], reg);
+	if (reg >= 256 || (reg & 3))
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 2) {
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+		retval = dap_queue_dp_write(dap, reg, value);
+	} else {
+		retval = dap_queue_dp_read(dap, reg, &value);
+	}
+	if (retval == ERROR_OK)
+		retval = dap_run(dap);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (CMD_ARGC == 1)
+		command_print(CMD_CTX, "0x%08" PRIx32, value);
+
+	return retval;
+}
+
 COMMAND_HANDLER(dap_ti_be_32_quirks_command)
 {
 	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
@@ -1835,6 +1866,14 @@ const struct command_registration dap_instance_commands[] = {
 		.help = "read/write a register from AP "
 			"(reg is byte address of a word register, like 0 4 8...)",
 		.usage = "ap_num reg [value]",
+	},
+	{
+		.name = "dpreg",
+		.handler = dap_dpreg_command,
+		.mode = COMMAND_EXEC,
+		.help = "read/write a register from DP "
+			"(reg is byte address (bank << 4 | reg) of a word register, like 0 4 8...)",
+		.usage = "reg [value]",
 	},
 	{
 		.name = "baseaddr",
