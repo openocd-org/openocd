@@ -11,19 +11,12 @@
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
  *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 	.text
 	.syntax unified
 	.cpu cortex-m0
 	.thumb
-	.thumb_func
-	.global write
 
 	/* Params:
 	 * r0 - flash base (in), status (out)
@@ -39,6 +32,9 @@
 
 #define STM32_FLASH_SR_OFFSET 0x0c /* offset of SR register from flash reg base */
 
+	.thumb_func
+	.global _start
+_start:
 wait_fifo:
 	ldr 	r6, [r2, #0]	/* read wp */
 	cmp 	r6, #0			/* abort if wp == 0 */

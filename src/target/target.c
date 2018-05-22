@@ -1912,6 +1912,18 @@ static void target_destroy(struct target *target)
 		free(target->working_areas);
 	}
 
+	/* release the targets SMP list */
+	if (target->smp) {
+		struct target_list *head = target->head;
+		while (head != NULL) {
+			struct target_list *pos = head->next;
+			head->target->smp = 0;
+			free(head);
+			head = pos;
+		}
+		target->smp = 0;
+	}
+
 	free(target->type);
 	free(target->trace_info);
 	free(target->fileio_info);
@@ -2241,21 +2253,19 @@ int target_checksum_memory(struct target *target, target_addr_t address, uint32_
 	return retval;
 }
 
-int target_blank_check_memory(struct target *target, target_addr_t address, uint32_t size, uint32_t* blank,
+int target_blank_check_memory(struct target *target,
+	struct target_memory_check_block *blocks, int num_blocks,
 	uint8_t erased_value)
 {
-	int retval;
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
 
-	if (target->type->blank_check_memory == 0)
+	if (target->type->blank_check_memory == NULL)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	retval = target->type->blank_check_memory(target, address, size, blank, erased_value);
-
-	return retval;
+	return target->type->blank_check_memory(target, blocks, num_blocks, erased_value);
 }
 
 int target_read_u64(struct target *target, target_addr_t address, uint64_t *value)

@@ -97,10 +97,7 @@ bool transports_are_declared(void);
 bool transport_is_jtag(void);
 bool transport_is_swd(void);
 
-/* FIXME: ZY1000 test build on jenkins is configured with enabled hla adapters
- * but jtag/hla/hla_*.c files are not compiled. To workaround the problem we assume hla
- * is broken if BUILD_ZY1000 is set */
-#if BUILD_HLADAPTER && !BUILD_ZY1000
+#if BUILD_HLADAPTER
 bool transport_is_hla(void);
 #else
 static inline bool transport_is_hla(void)

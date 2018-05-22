@@ -14,18 +14,12 @@
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
  *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 	.text
 	.syntax unified
 	.cpu cortex-m3
 	.thumb
-	.thumb_func
 
 /*
  * Params :
@@ -44,6 +38,11 @@
 #define STM32_FLASH_CR_OFFSET	0x10			/* offset of CR register in FLASH struct */
 #define STM32_FLASH_SR_OFFSET	0x0c			/* offset of SR register in FLASH struct */
 
+#define STM32_PROG16		0x101			/* PG | PSIZE_16*/
+
+	.thumb_func
+	.global	_start
+_start:
 wait_fifo:
 	ldr 	r8, [r0, #0]	/* read wp */
 	cmp 	r8, #0			/* abort if wp == 0 */
@@ -52,7 +51,7 @@ wait_fifo:
 	cmp 	r7, r8			/* wait until rp != wp */
 	beq 	wait_fifo
 
-	ldr		r6, STM32_PROG16
+	ldr		r6, =STM32_PROG16
 	str		r6, [r4, #STM32_FLASH_CR_OFFSET]
 	ldrh 	r6, [r7], #0x02						/* read one half-word from src, increment ptr */
 	strh 	r6, [r2], #0x02						/* write one half-word from src, increment ptr */
@@ -78,4 +77,4 @@ exit:
 	mov		r0, r6			/* return status in r0 */
 	bkpt	#0x00
 
-STM32_PROG16: .word 0x101 	/* PG | PSIZE_16*/
+	.pool

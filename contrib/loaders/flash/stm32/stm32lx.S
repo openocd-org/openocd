@@ -20,21 +20,13 @@
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
  *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 
-// Build : arm-eabi-gcc -c stm32lx.S
 	.text
 	.syntax unified
 	.cpu cortex-m0
 	.thumb
-	.thumb_func
-	.global write
 
 /*
 	r0 - destination address
@@ -42,6 +34,9 @@
 	r2 - count
 */
 
+	.thumb_func
+	.global _start
+_start:
 	// r2 = source + count * 4
 	lsls	r2, r2, #2
 	adds	r2, r1, r2

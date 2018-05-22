@@ -149,14 +149,14 @@ COMMAND_HANDLER(handle_interface_command)
 
 		jtag_interface = jtag_interfaces[i];
 
-	/* LEGACY SUPPORT ... adapter drivers  must declare what
-	 * transports they allow.  Until they all do so, assume
-	 * the legacy drivers are JTAG-only
-	 */
-	if (!jtag_interface->transports)
-		LOG_WARNING("Adapter driver '%s' did not declare "
-			"which transports it allows; assuming "
-			"legacy JTAG-only", jtag_interface->name);
+		/* LEGACY SUPPORT ... adapter drivers  must declare what
+		 * transports they allow.  Until they all do so, assume
+		 * the legacy drivers are JTAG-only
+		 */
+		if (!jtag_interface->transports)
+			LOG_WARNING("Adapter driver '%s' did not declare "
+				"which transports it allows; assuming "
+				"legacy JTAG-only", jtag_interface->name);
 		retval = allow_transports(CMD_CTX, jtag_interface->transports
 						? jtag_interface->transports : jtag_only);
 			if (ERROR_OK != retval)

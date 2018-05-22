@@ -915,6 +915,22 @@ FLASH_BANK_COMMAND_HANDLER(kinetis_flash_bank_command)
 }
 
 
+static void kinetis_free_driver_priv(struct flash_bank *bank)
+{
+	struct kinetis_flash_bank *k_bank = bank->driver_priv;
+	if (k_bank == NULL)
+		return;
+
+	struct kinetis_chip *k_chip = k_bank->k_chip;
+	if (k_chip == NULL)
+		return;
+
+	k_chip->num_banks--;
+	if (k_chip->num_banks == 0)
+		free(k_chip);
+}
+
+
 static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 {
 	unsigned bank_idx;
@@ -939,7 +955,7 @@ static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 			if (k_chip->num_pflash_blocks > 1) {
 				/* rename first bank if numbering is needed */
 				snprintf(name, sizeof(name), "%s.pflash0", base_name);
-				free((void *)bank->name);
+				free(bank->name);
 				bank->name = strdup(name);
 			}
 		}
@@ -3132,4 +3148,5 @@ struct flash_driver kinetis_flash = {
 	.erase_check = kinetis_blank_check,
 	.protect_check = kinetis_protect_check,
 	.info = kinetis_info,
+	.free_driver_priv = kinetis_free_driver_priv,
 };

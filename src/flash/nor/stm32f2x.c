@@ -584,45 +584,8 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
-	/* see contrib/loaders/flash/stm32f2x.S for src */
-
 	static const uint8_t stm32x_flash_write_code[] = {
-									/* wait_fifo: */
-		0xD0, 0xF8, 0x00, 0x80,		/* ldr		r8, [r0, #0] */
-		0xB8, 0xF1, 0x00, 0x0F,		/* cmp		r8, #0 */
-		0x1A, 0xD0,					/* beq		exit */
-		0x47, 0x68,					/* ldr		r7, [r0, #4] */
-		0x47, 0x45,					/* cmp		r7, r8 */
-		0xF7, 0xD0,					/* beq		wait_fifo */
-
-		0xDF, 0xF8, 0x34, 0x60,		/* ldr		r6, STM32_PROG16 */
-		0x26, 0x61,					/* str		r6, [r4, #STM32_FLASH_CR_OFFSET] */
-		0x37, 0xF8, 0x02, 0x6B,		/* ldrh		r6, [r7], #0x02 */
-		0x22, 0xF8, 0x02, 0x6B,		/* strh		r6, [r2], #0x02 */
-		0xBF, 0xF3, 0x4F, 0x8F,		/* dsb		sy */
-									/* busy: */
-		0xE6, 0x68,					/* ldr		r6, [r4, #STM32_FLASH_SR_OFFSET] */
-		0x16, 0xF4, 0x80, 0x3F,		/* tst		r6, #0x10000 */
-		0xFB, 0xD1,					/* bne		busy */
-		0x16, 0xF0, 0xF0, 0x0F,		/* tst		r6, #0xf0 */
-		0x07, 0xD1,					/* bne		error */
-
-		0x8F, 0x42,					/* cmp		r7, r1 */
-		0x28, 0xBF,					/* it		cs */
-		0x00, 0xF1, 0x08, 0x07,		/* addcs	r7, r0, #8 */
-		0x47, 0x60,					/* str		r7, [r0, #4] */
-		0x01, 0x3B,					/* subs		r3, r3, #1 */
-		0x13, 0xB1,					/* cbz		r3, exit */
-		0xDF, 0xE7,					/* b		wait_fifo */
-									/* error: */
-		0x00, 0x21,					/* movs		r1, #0 */
-		0x41, 0x60,					/* str		r1, [r0, #4] */
-									/* exit: */
-		0x30, 0x46,					/* mov		r0, r6 */
-		0x00, 0xBE,					/* bkpt		#0x00 */
-
-		/* <STM32_PROG16>: */
-		0x01, 0x01, 0x00, 0x00,		/* .word	0x00000101 */
+#include "../../../contrib/loaders/flash/stm32/stm32f2x.inc"
 	};
 
 	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code),

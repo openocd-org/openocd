@@ -1059,6 +1059,10 @@ static unsigned register_size(struct target *target, unsigned number)
 		return riscv_xlen(target);
 }
 
+/**
+ * Immediately write the new value to the requested register. This mechanism
+ * bypasses any caches.
+ */
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value)
 {

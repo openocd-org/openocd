@@ -1494,8 +1494,6 @@ int adapter_quit(void)
 		t = n;
 	}
 
-	dap_cleanup_all();
-
 	return ERROR_OK;
 }
 

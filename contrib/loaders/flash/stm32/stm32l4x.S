@@ -27,20 +27,6 @@
 	.syntax unified
 	.cpu cortex-m4
 	.thumb
-	.thumb_func
-
-/* To assemble:
- * arm-none-eabi-gcc -c stm32l4x.S
- *
- * To disassemble:
- * arm-none-eabi-objdump -o stm32l4x.o
- *
- * To generate binary file:
- * arm-none-eabi-objcopy -O binary stm32l4x.o stm32l4_flash_write_code.bin
- *
- * To generate include file:
- * xxd -i stm32l4_flash_write_code.bin
- */
 
 /*
  * Params :
@@ -59,6 +45,11 @@
 #define STM32_FLASH_CR_OFFSET	0x14	/* offset of CR register in FLASH struct */
 #define STM32_FLASH_SR_OFFSET	0x10	/* offset of SR register in FLASH struct */
 
+#define STM32_PROG	 0x1	/* PG */
+
+	.thumb_func
+	.global _start
+_start:
 wait_fifo:
 	ldr 	r8, [r0, #0]	/* read wp */
 	cmp 	r8, #0		/* abort if wp == 0 */
@@ -71,7 +62,7 @@ wait_fifo:
 	cmp 	r6, #8		/* wait until 8 bytes are available */
 	bcc 	wait_fifo
 
-	ldr	r6, STM32_PROG
+	ldr	r6, =STM32_PROG
 	str	r6, [r4, #STM32_FLASH_CR_OFFSET]
 	ldrd 	r6, [r5], #0x08	/* read one word from src, increment ptr */
 	strd 	r6, [r2], #0x08	/* write one word to dst, increment ptr */
@@ -97,4 +88,5 @@ exit:
 	mov	r0, r6		/* return status in r0 */
 	bkpt	#0x00
 
-STM32_PROG: .word 0x1 	/* PG */
+	.pool
+

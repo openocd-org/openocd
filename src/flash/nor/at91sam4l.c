@@ -129,10 +129,8 @@ struct sam4l_info {
 
 	bool probed;
 	struct target *target;
-	struct sam4l_info *next;
 };
 
-static struct sam4l_info *sam4l_chips;
 
 static int sam4l_flash_wait_until_ready(struct target *target)
 {
@@ -204,36 +202,24 @@ static int sam4l_flash_command(struct target *target, uint8_t cmd, int page)
 
 FLASH_BANK_COMMAND_HANDLER(sam4l_flash_bank_command)
 {
-	struct sam4l_info *chip = sam4l_chips;
-
-	while (chip) {
-		if (chip->target == bank->target)
-			break;
-		chip = chip->next;
-	}
-
-	if (!chip) {
-		/* Create a new chip */
-		chip = calloc(1, sizeof(*chip));
-		if (!chip)
-			return ERROR_FAIL;
-
-		chip->target = bank->target;
-		chip->probed = false;
-
-		bank->driver_priv = chip;
-
-		/* Insert it into the chips list (at head) */
-		chip->next = sam4l_chips;
-		sam4l_chips = chip;
-	}
-
 	if (bank->base != SAM4L_FLASH) {
 		LOG_ERROR("Address 0x%08" PRIx32 " invalid bank address (try 0x%08" PRIx32
 				"[at91sam4l series] )",
 				bank->base, SAM4L_FLASH);
 		return ERROR_FAIL;
 	}
+
+	struct sam4l_info *chip;
+	chip = calloc(1, sizeof(*chip));
+	if (!chip) {
+		LOG_ERROR("No memory for flash bank chip info");
+		return ERROR_FAIL;
+	}
+
+	chip->target = bank->target;
+	chip->probed = false;
+
+	bank->driver_priv = chip;
 
 	return ERROR_OK;
 }
@@ -396,7 +382,7 @@ static int sam4l_protect_check(struct flash_bank *bank)
 
 static int sam4l_protect(struct flash_bank *bank, int set, int first, int last)
 {
-	struct sam4l_info *chip = sam4l_chips;
+	struct sam4l_info *chip = (struct sam4l_info *)bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -709,4 +695,5 @@ struct flash_driver at91sam4l_flash = {
 	.auto_probe = sam4l_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = sam4l_protect_check,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

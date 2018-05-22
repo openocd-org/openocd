@@ -232,6 +232,11 @@ static struct target_type *get_target_type(struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 
+	if (!info) {
+		LOG_ERROR("Target has not been initialized");
+		return NULL;
+	}
+
 	switch (info->dtm_version) {
 		case 0:
 			return &riscv011_target;
@@ -265,9 +270,11 @@ static void riscv_deinit_target(struct target *target)
 {
 	LOG_DEBUG("riscv_deinit_target()");
 	struct target_type *tt = get_target_type(target);
-	tt->deinit_target(target);
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	free(info);
+	if (tt) {
+		tt->deinit_target(target);
+		riscv_info_t *info = (riscv_info_t *) target->arch_info;
+		free(info);
+	}
 	target->arch_info = NULL;
 }
 
@@ -953,22 +960,6 @@ static int riscv_checksum_memory(struct target *target,
 	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
-/* Should run code on the target to check whether a memory
-block holds all-ones (because this is generally called on
-NOR flash which is 1 when "blank")
-Not yet implemented.
-*/
-int riscv_blank_check_memory(struct target *target,
-				target_addr_t address,
-				uint32_t count,
-				uint32_t *blank,
-				uint8_t erased_value)
-{
-	*blank = 0;
-
-	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-}
-
 /*** OpenOCD Helper Functions ***/
 
 enum riscv_poll_hart {
@@ -1575,7 +1566,6 @@ struct target_type riscv_target = {
 	.read_memory = riscv_read_memory,
 	.write_memory = riscv_write_memory,
 
-	.blank_check_memory = riscv_blank_check_memory,
 	.checksum_memory = riscv_checksum_memory,
 
 	.get_gdb_reg_list = riscv_get_gdb_reg_list,
@@ -1806,6 +1796,10 @@ bool riscv_has_register(struct target *target, int hartid, int regid)
 	return 1;
 }
 
+/**
+ * This function is called when the debug user wants to change the value of a
+ * register. The new value may be cached, and may not be written until the hart
+ * is resumed. */
 int riscv_set_register(struct target *target, enum gdb_regno r, riscv_reg_t v)
 {
 	return riscv_set_register_on_hart(target, riscv_current_hartid(target), r, v);
