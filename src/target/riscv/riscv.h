@@ -87,6 +87,8 @@ typedef struct {
 	/* This hart contains an implicit ebreak at the end of the program buffer. */
 	bool impebreak;
 
+	bool triggers_enumerated;
+
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
 	int (*get_register)(struct target *target,
