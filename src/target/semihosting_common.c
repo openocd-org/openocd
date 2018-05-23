@@ -1397,8 +1397,9 @@ static int semihosting_read_fields(struct target *target, size_t number,
 	uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
-	return target_read_memory(target, semihosting->param,
-			semihosting->word_size_bytes, number, fields);
+	/* Use 4-byte multiples to trigger fast memory access. */
+	return target_read_memory(target, semihosting->param, 4,
+			number * (semihosting->word_size_bytes / 4), fields);
 }
 
 /**
@@ -1408,8 +1409,9 @@ static int semihosting_write_fields(struct target *target, size_t number,
 	uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
-	return target_write_memory(target, semihosting->param,
-			semihosting->word_size_bytes, number, fields);
+	/* Use 4-byte multiples to trigger fast memory access. */
+	return target_write_memory(target, semihosting->param, 4,
+			number * (semihosting->word_size_bytes / 4), fields);
 }
 
 /**
