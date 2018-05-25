@@ -407,6 +407,9 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 {
 	RISCV_INFO(r);
 
+	if (riscv_enumerate_triggers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
 	/* In RTOS mode, we need to set the same trigger in the same slot on every
 	 * hart, to keep up the illusion that each hart is a thread running on the
 	 * same core. */
@@ -530,6 +533,9 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 static int remove_trigger(struct target *target, struct trigger *trigger)
 {
 	RISCV_INFO(r);
+
+	if (riscv_enumerate_triggers(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	int first_hart = -1;
 	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
@@ -1891,6 +1897,11 @@ bool riscv_hart_enabled(struct target *target, int hartid)
 int riscv_enumerate_triggers(struct target *target)
 {
 	RISCV_INFO(r);
+
+	if (r->triggers_enumerated)
+		return ERROR_OK;
+
+	r->triggers_enumerated = true;	/* At the very least we tried. */
 
 	for (int hartid = 0; hartid < riscv_count_harts(target); ++hartid) {
 		if (!riscv_hart_enabled(target, hartid))

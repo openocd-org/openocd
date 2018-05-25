@@ -1457,9 +1457,6 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	/* Then we check the number of triggers availiable to each hart. */
-	riscv_enumerate_triggers(target);
-
 	/* Resumes all the harts, so the debugger can later pause them. */
 	/* TODO: Only do this if the harts were halted to start with. */
 	riscv_resume_all_harts(target);
@@ -1477,8 +1474,8 @@ static int examine(struct target *target)
 			riscv_count_harts(target));
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
 		if (riscv_hart_enabled(target, i)) {
-			LOG_INFO(" hart %d: XLEN=%d, misa=0x%" PRIx64 ", %d triggers", i,
-					r->xlen[i], r->misa[i], r->trigger_count[i]);
+			LOG_INFO(" hart %d: XLEN=%d, misa=0x%" PRIx64, i, r->xlen[i],
+					r->misa[i]);
 		} else {
 			LOG_INFO(" hart %d: currently disabled", i);
 		}
@@ -2830,6 +2827,10 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 	case CSR_DCSR_CAUSE_SWBP:
 		return RISCV_HALT_BREAKPOINT;
 	case CSR_DCSR_CAUSE_TRIGGER:
+		/* We could get here before triggers are enumerated if a trigger was
+		 * already set when we connected. Force enumeration now, which has the
+		 * side effect of clearing any triggers we did not set. */
+		riscv_enumerate_triggers(target);
 		return RISCV_HALT_TRIGGER;
 	case CSR_DCSR_CAUSE_STEP:
 		return RISCV_HALT_SINGLESTEP;
