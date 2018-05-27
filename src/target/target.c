@@ -5433,21 +5433,19 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_examine,
 		.help = "used internally for reset processing",
-		.usage = "arp_examine ['allow-defer']",
+		.usage = "['allow-defer']",
 	},
 	{
 		.name = "was_examined",
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_was_examined,
 		.help = "used internally for reset processing",
-		.usage = "was_examined",
 	},
 	{
 		.name = "examine_deferred",
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_examine_deferred,
 		.help = "used internally for reset processing",
-		.usage = "examine_deferred",
 	},
 	{
 		.name = "arp_halt_gdb",
