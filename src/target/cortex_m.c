@@ -1137,6 +1137,10 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		breakpoint->set = fp_num + 1;
 		fpcr_value = breakpoint->address | 1;
 		if (cortex_m->fp_rev == 0) {
+			if (breakpoint->address > 0x1FFFFFFF) {
+				LOG_ERROR("Cortex-M Flash Patch Breakpoint rev.1 cannot handle HW breakpoint above address 0x1FFFFFFE");
+				return ERROR_FAIL;
+			}
 			uint32_t hilo;
 			hilo = (breakpoint->address & 0x2) ? FPCR_REPLACE_BKPT_HIGH : FPCR_REPLACE_BKPT_LOW;
 			fpcr_value = (fpcr_value & 0x1FFFFFFC) | hilo | 1;
