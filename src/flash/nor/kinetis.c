@@ -937,7 +937,7 @@ static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 	unsigned num_blocks;
 	struct kinetis_flash_bank *k_bank;
 	struct flash_bank *bank;
-	char base_name[80], name[80], num[4];
+	char base_name[69], name[80], num[4];
 	char *class, *p;
 
 	num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
@@ -948,7 +948,8 @@ static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 
 	bank = k_chip->banks[0].bank;
 	if (bank && bank->name) {
-		strncpy(base_name, bank->name, sizeof(base_name));
+		strncpy(base_name, bank->name, sizeof(base_name) - 1);
+		base_name[sizeof(base_name) - 1] = '\0';
 		p = strstr(base_name, ".pflash");
 		if (p) {
 			*p = '\0';
@@ -960,7 +961,8 @@ static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 			}
 		}
 	} else {
-		strncpy(base_name, target_name(k_chip->target), sizeof(base_name));
+		strncpy(base_name, target_name(k_chip->target), sizeof(base_name) - 1);
+		base_name[sizeof(base_name) - 1] = '\0';
 		p = strstr(base_name, ".cpu");
 		if (p)
 			*p = '\0';
@@ -2012,7 +2014,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 	unsigned cpu_mhz = 120;
 	unsigned idx;
 	bool use_nvm_marking = false;
-	char flash_marking[11], nvm_marking[2];
+	char flash_marking[12], nvm_marking[2];
 	char name[40];
 
 	k_chip->probed = false;

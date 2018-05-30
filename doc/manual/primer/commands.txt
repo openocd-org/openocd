@@ -30,7 +30,7 @@ called (with the appropriate parameters), the @c CALL_COMMAND_HANDLER
 macro to pass any e as parameters to the following helper function:
 
 The subsequent blocks of code are a normal C function that can do
-anything, so only complex commands deserve should use comamnd helper
+anything, so only complex commands deserve should use command helper
 functions.  In this respect, this example uses one to demonstrate how --
 not when -- they should be used.
 

@@ -152,6 +152,8 @@ static uint32_t mem_ap_get_tar_increment(struct adiv5_ap *ap)
 			return 2;
 		case CSW_32BIT:
 			return 4;
+		default:
+			return 0;
 		}
 	case CSW_ADDRINC_PACKED:
 		return 4;
