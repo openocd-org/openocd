@@ -2706,6 +2706,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 	/* simple case, a continue packet */
 	if (parse[0] == 'c') {
+		gdb_running_type = 'c';
 		LOG_DEBUG("target %s continue", target_name(target));
 		log_add_callback(gdb_log_callback, connection);
 		retval = target_resume(target, 1, 0, 0, 0);
@@ -2732,6 +2733,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 	/* single-step or step-over-breakpoint */
 	if (parse[0] == 's') {
+		gdb_running_type = 's';
 		bool fake_step = false;
 
 		if (strncmp(parse, "s:", 2) == 0) {
