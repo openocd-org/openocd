@@ -46,9 +46,13 @@
 
 static struct service *services;
 
-/* shutdown_openocd == 1: exit the main event loop, and quit the
- * debugger; 2: quit with non-zero return code */
-static int shutdown_openocd;
+enum shutdown_reason {
+	CONTINUE_MAIN_LOOP,			/* stay in main event loop */
+	SHUTDOWN_REQUESTED,			/* set by shutdown command; exit the event loop and quit the debugger */
+	SHUTDOWN_WITH_ERROR_CODE,	/* set by shutdown command; quit with non-zero return code */
+	SHUTDOWN_WITH_SIGNAL_CODE	/* set by sig_handler; exec shutdown then exit with signal as return code */
+};
+static enum shutdown_reason shutdown_openocd = CONTINUE_MAIN_LOOP;
 
 /* store received signal to exit application by killing ourselves */
 static int last_signal;
@@ -413,7 +417,7 @@ int server_loop(struct command_context *command_context)
 		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
 #endif
 
-	while (!shutdown_openocd) {
+	while (shutdown_openocd == CONTINUE_MAIN_LOOP) {
 		/* monitor sockets for activity */
 		fd_max = 0;
 		FD_ZERO(&read_fds);
@@ -537,7 +541,7 @@ int server_loop(struct command_context *command_context)
 									service->type == CONNECTION_STDINOUT) {
 								/* if connection uses a pipe then
 								 * shutdown openocd on error */
-								shutdown_openocd = 1;
+								shutdown_openocd = SHUTDOWN_REQUESTED;
 							}
 							remove_connection(service, c);
 							LOG_INFO("dropped '%s' connection",
@@ -555,20 +559,24 @@ int server_loop(struct command_context *command_context)
 		MSG msg;
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			if (msg.message == WM_QUIT)
-				shutdown_openocd = 1;
+				shutdown_openocd = SHUTDOWN_WITH_SIGNAL_CODE;
 		}
 #endif
 	}
 
-	return shutdown_openocd != 2 ? ERROR_OK : ERROR_FAIL;
+	/* when quit for signal or CTRL-C, run (eventually user implemented) "shutdown" */
+	if (shutdown_openocd == SHUTDOWN_WITH_SIGNAL_CODE)
+		command_run_line(command_context, "shutdown");
+
+	return shutdown_openocd == SHUTDOWN_WITH_ERROR_CODE ? ERROR_FAIL : ERROR_OK;
 }
 
 void sig_handler(int sig)
 {
 	/* store only first signal that hits us */
-	if (!shutdown_openocd) {
+	if (shutdown_openocd == CONTINUE_MAIN_LOOP) {
+		shutdown_openocd = SHUTDOWN_WITH_SIGNAL_CODE;
 		last_signal = sig;
-		shutdown_openocd = 1;
 		LOG_DEBUG("Terminating on Signal %d", sig);
 	} else
 		LOG_DEBUG("Ignored extra Signal %d", sig);
@@ -578,7 +586,7 @@ void sig_handler(int sig)
 #ifdef _WIN32
 BOOL WINAPI ControlHandler(DWORD dwCtrlType)
 {
-	shutdown_openocd = 1;
+	shutdown_openocd = SHUTDOWN_WITH_SIGNAL_CODE;
 	return TRUE;
 }
 #else
@@ -702,11 +710,11 @@ COMMAND_HANDLER(handle_shutdown_command)
 {
 	LOG_USER("shutdown command invoked");
 
-	shutdown_openocd = 1;
+	shutdown_openocd = SHUTDOWN_REQUESTED;
 
 	if (CMD_ARGC == 1) {
 		if (!strcmp(CMD_ARGV[0], "error")) {
-			shutdown_openocd = 2;
+			shutdown_openocd = SHUTDOWN_WITH_ERROR_CODE;
 			return ERROR_FAIL;
 		}
 	}
