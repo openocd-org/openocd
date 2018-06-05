@@ -888,13 +888,11 @@ COMMAND_HANDLER(kitprog_handle_acquire_psoc_command)
 COMMAND_HANDLER(kitprog_handle_serial_command)
 {
 	if (CMD_ARGC == 1) {
-		size_t len = strlen(CMD_ARGV[0]);
-		kitprog_serial = calloc(len + 1, sizeof(char));
+		kitprog_serial = strdup(CMD_ARGV[0]);
 		if (kitprog_serial == NULL) {
 			LOG_ERROR("Failed to allocate memory for the serial number");
 			return ERROR_FAIL;
 		}
-		strncpy(kitprog_serial, CMD_ARGV[0], len + 1);
 	} else {
 		LOG_ERROR("expected exactly one argument to kitprog_serial <serial-number>");
 		return ERROR_FAIL;

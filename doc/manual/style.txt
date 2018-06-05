@@ -112,7 +112,7 @@ pthreads require modest and predictable stack usage.
 
 @section stylefunc Functions
 
-- static inline functions should be prefered over macros:
+- static inline functions should be preferred over macros:
 @code
 /** do NOT define macro-like functions like this... */
 #define CUBE(x) ((x) * (x) * (x))
@@ -201,7 +201,7 @@ The following guidelines apply to all Doxygen comment blocks:
   -# @c struct_name::member_name should be used to reference structure
     fields in the documentation (e.g. @c flash_driver::name).
   -# URLS get converted to markup automatically, without any extra effort.
-  -# new pages can be linked into the heirarchy by using the @c \@subpage
+  -# new pages can be linked into the hierarchy by using the @c \@subpage
     command somewhere the page(s) under which they should be linked:
   -# use @c \@ref in other contexts to create links to pages and sections.
 -# Use good Doxygen mark-up:
@@ -233,7 +233,7 @@ documentation as part of standalone text files:
   - Doxygen creates such pages for files automatically, but no content
     will appear on them for those that only contain manual pages.
   - The \@file block should provide useful meta-documentation to assist
-    techincal writers; typically, a list of the pages that it contains.
+    technical writers; typically, a list of the pages that it contains.
   - For example, the @ref styleguide exists in @c doc/manual/style.txt,
     which contains a reference back to itself.
 -# The \@file and \@page commands should begin on the same line as
@@ -261,7 +261,7 @@ The User's Guide is there to provide two basic kinds of information.  It
 is a guide for how and why to use each feature or mechanism of OpenOCD.
 It is also the reference manual for all commands and options involved
 in using them, including interface, flash, target, and other drivers.
-At this time, it is the only user-targetted documentation; everything
+At this time, it is the only documentation for end users; everything
 else is addressing OpenOCD developers.
 
 There are two key audiences for the User's Guide, both developer based.
