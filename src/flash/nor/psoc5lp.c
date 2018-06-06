@@ -798,47 +798,59 @@ static int psoc5lp_erase_check(struct flash_bank *bank)
 {
 	struct psoc5lp_flash_bank *psoc_bank = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t blank;
-	int i, num_sectors, retval;
+	int i, retval;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	num_sectors = bank->num_sectors;
-	if (!psoc_bank->ecc_enabled)
-		num_sectors /= 2;
+	struct target_memory_check_block *block_array;
+	block_array = malloc(bank->num_sectors * sizeof(struct target_memory_check_block));
+	if (block_array == NULL)
+		return ERROR_FAIL;
 
-	for (i = 0; i < num_sectors; i++) {
-		uint32_t address = bank->base + bank->sectors[i].offset;
-		uint32_t size = bank->sectors[i].size;
-
-		retval = armv7m_blank_check_memory(target, address, size,
-				&blank, bank->erased_value);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (blank == 0x00 && !psoc_bank->ecc_enabled) {
-			address = bank->base + bank->sectors[num_sectors + i].offset;
-			size = bank->sectors[num_sectors + i].size;
-
-			retval = armv7m_blank_check_memory(target, address, size,
-					&blank, bank->erased_value);
-			if (retval != ERROR_OK)
-				return retval;
-		}
-
-		if (blank == 0x00) {
-			bank->sectors[i].is_erased = 1;
-			bank->sectors[num_sectors + i].is_erased = 1;
-		} else {
-			bank->sectors[i].is_erased = 0;
-			bank->sectors[num_sectors + i].is_erased = 0;
-		}
+	for (i = 0; i < bank->num_sectors; i++) {
+		block_array[i].address = bank->base + bank->sectors[i].offset;
+		block_array[i].size = bank->sectors[i].size;
+		block_array[i].result = UINT32_MAX; /* erase state unknown */
 	}
 
-	return ERROR_OK;
+	bool fast_check = true;
+	for (i = 0; i < bank->num_sectors; ) {
+		retval = armv7m_blank_check_memory(target,
+					block_array + i, bank->num_sectors - i,
+					bank->erased_value);
+		if (retval < 1) {
+			/* Run slow fallback if the first run gives no result
+			 * otherwise use possibly incomplete results */
+			if (i == 0)
+				fast_check = false;
+			break;
+		}
+		i += retval; /* add number of blocks done this round */
+	}
+
+	if (fast_check) {
+		if (!psoc_bank->ecc_enabled) {
+			int half_sectors = bank->num_sectors / 2;
+			for (i = 0; i < half_sectors / 2; i++)
+				bank->sectors[i].is_erased =
+					(block_array[i].result != 1)
+					? block_array[i + half_sectors].result
+					: block_array[i].result;
+		} else {
+			for (i = 0; i < bank->num_sectors; i++)
+				bank->sectors[i].is_erased = block_array[i].result;
+		}
+		retval = ERROR_OK;
+	} else {
+		LOG_ERROR("Can't run erase check - add working memory");
+		retval = ERROR_FAIL;
+	}
+	free(block_array);
+
+	return retval;
 }
 
 static int psoc5lp_write(struct flash_bank *bank, const uint8_t *buffer,
