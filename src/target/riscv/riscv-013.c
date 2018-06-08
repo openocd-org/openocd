@@ -263,10 +263,18 @@ static dm013_info_t *get_dm(struct target *target)
 	return dm;
 }
 
-static uint32_t hartsel_mask(const struct target *target)
+static uint32_t set_hartsel(uint32_t initial, uint32_t index)
 {
-	RISCV013_INFO(info);
-	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
+	initial &= ~DMI_DMCONTROL_HARTSELLO;
+	initial &= ~DMI_DMCONTROL_HARTSELHI;
+
+	uint32_t index_lo = index & ((1 << DMI_DMCONTROL_HARTSELLO_LENGTH) - 1);
+	initial |= index_lo << DMI_DMCONTROL_HARTSELLO_OFFSET;
+	uint32_t index_hi = index >> DMI_DMCONTROL_HARTSELLO_LENGTH;
+	assert(index_hi < 1 << DMI_DMCONTROL_HARTSELHI_LENGTH);
+	initial |= index_hi << DMI_DMCONTROL_HARTSELHI_OFFSET;
+
+	return initial;
 }
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
@@ -280,7 +288,8 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_RESUMEREQ, "resumereq" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTRESET, "hartreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
-		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET, "hartsel" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTSELHI, "hartselhi" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTSELLO, "hartsello" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_ACKHAVERESET, "ackhavereset" },
@@ -1333,8 +1342,8 @@ static int examine(struct target *target)
 		dm->was_reset = true;
 	}
 
-	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSEL_OFFSET;
-	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask | DMI_DMCONTROL_DMACTIVE);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HARTSELLO |
+			DMI_DMCONTROL_HARTSELHI | DMI_DMCONTROL_DMACTIVE);
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1345,7 +1354,10 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	uint32_t hartsel = get_field(dmcontrol, max_hartsel_mask);
+	uint32_t hartsel =
+		(get_field(dmcontrol, DMI_DMCONTROL_HARTSELHI) <<
+		 DMI_DMCONTROL_HARTSELLO_LENGTH) |
+		get_field(dmcontrol, DMI_DMCONTROL_HARTSELLO);
 	info->hartsellen = 0;
 	while (hartsel & 1) {
 		info->hartsellen++;
@@ -1415,8 +1427,7 @@ static int examine(struct target *target)
 
 		if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
 			dmi_write(target, DMI_DMCONTROL,
-					set_field(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET,
-						hartsel_mask(target), i));
+					set_hartsel(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET, i));
 
 		if (!riscv_is_halted(target)) {
 			if (riscv013_halt_current_hart(target) != ERROR_OK) {
@@ -1591,7 +1602,7 @@ static int assert_reset(struct target *target)
 			if (!riscv_hart_enabled(target, i))
 				continue;
 
-			control = set_field(control_base, hartsel_mask(target), i);
+			control = set_hartsel(control_base, i);
 			control = set_field(control, DMI_DMCONTROL_HALTREQ,
 					target->reset_halt ? 1 : 0);
 			dmi_write(target, DMI_DMCONTROL, control);
@@ -1602,8 +1613,7 @@ static int assert_reset(struct target *target)
 
 	} else {
 		/* Reset just this hart. */
-		uint32_t control = set_field(control_base, hartsel_mask(target),
-				r->current_hartid);
+		uint32_t control = set_hartsel(control_base, r->current_hartid);
 		control = set_field(control, DMI_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
 		control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
@@ -1626,7 +1636,7 @@ static int deassert_reset(struct target *target)
 	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
 	control = set_field(control, DMI_DMCONTROL_DMACTIVE, 1);
 	dmi_write(target, DMI_DMCONTROL,
-			set_field(control, hartsel_mask(target), r->current_hartid));
+			set_hartsel(control, r->current_hartid));
 
 	uint32_t dmstatus;
 	int dmi_busy_delay = info->dmi_busy_delay;
@@ -1638,7 +1648,7 @@ static int deassert_reset(struct target *target)
 			if (!riscv_hart_enabled(target, index))
 				continue;
 			dmi_write(target, DMI_DMCONTROL,
-					set_field(control, hartsel_mask(target), index));
+					set_hartsel(control, index));
 		} else {
 			index = r->current_hartid;
 		}
@@ -1678,7 +1688,7 @@ static int deassert_reset(struct target *target)
 		if (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET)) {
 			/* Ack reset. */
 			dmi_write(target, DMI_DMCONTROL,
-					set_field(control, hartsel_mask(target), index) |
+					set_hartsel(control, index) |
 					DMI_DMCONTROL_ACKHAVERESET);
 		}
 
@@ -2719,9 +2729,10 @@ static int riscv013_select_current_hart(struct target *target)
 		return ERROR_OK;
 
 	uint32_t dmcontrol;
+	/* TODO: can't we just "dmcontrol = DMI_DMACTIVE"? */
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
-	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
+	dmcontrol = set_hartsel(dmcontrol, r->current_hartid);
 	int result = dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dm->current_hartid = r->current_hartid;
 	return result;
@@ -2803,7 +2814,7 @@ static bool riscv013_is_halted(struct target *target)
 		/* TODO: Can we make this more obvious to eg. a gdb user? */
 		uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE |
 			DMI_DMCONTROL_ACKHAVERESET;
-		dmcontrol = set_field(dmcontrol, hartsel_mask(target), hartid);
+		dmcontrol = set_hartsel(dmcontrol, hartid);
 		/* If we had been halted when we reset, request another halt. If we
 		 * ended up running out of reset, then the user will (hopefully) get a
 		 * message that a reset happened, that the target is running, and then
@@ -2946,7 +2957,7 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 
 	/* Issue the resume command, and then wait for the current hart to resume. */
 	uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE;
-	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
+	dmcontrol = set_hartsel(dmcontrol, r->current_hartid);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol | DMI_DMCONTROL_RESUMEREQ);
 
 	uint32_t dmstatus;
