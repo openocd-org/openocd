@@ -132,8 +132,13 @@ static int dap_init_all(void)
 int dap_cleanup_all(void)
 {
 	struct arm_dap_object *obj, *tmp;
+	struct adiv5_dap *dap;
 
 	list_for_each_entry_safe(obj, tmp, &all_dap, lh) {
+		dap = &obj->dap;
+		if (dap->ops && dap->ops->quit)
+			dap->ops->quit(dap);
+
 		free(obj->name);
 		free(obj);
 	}
