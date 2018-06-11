@@ -234,7 +234,8 @@ static void psoc5lp_get_part_number(const struct psoc5lp_device *dev, char *str)
 	}
 
 	/* Package does not matter. */
-	strncpy(str + 8, "xx", 2);
+	str[8] = 'x';
+	str[9] = 'x';
 
 	/* Temperate range cannot uniquely be identified. */
 	str[10] = 'x';
