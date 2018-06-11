@@ -22,11 +22,6 @@ static int riscv_create_rtos(struct target *target)
 
 	struct riscv_rtos *r = calloc(1, sizeof(*r));
 	target->rtos->rtos_specific_params = r;
-#if 0
-	r->target_hartid = 0;
-	r->target_any_hart = true;
-	r->target_every_hart = true;
-#endif
 
 	target->rtos->current_threadid = 1;
 	target->rtos->current_thread = 1;
@@ -265,12 +260,6 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
 {
 	LOG_DEBUG("Updating RISC-V register list for hart %d", (int)(thread_id - 1));
-
-#if 0
-	LOG_ERROR("  Not actually updating");
-	*hex_reg_list = 0;
-	return JIM_OK;
-#endif
 
 	size_t n_regs = 32;
 	size_t xlen = 64;
