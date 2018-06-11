@@ -205,6 +205,9 @@ struct target {
 
 	/* file-I/O information for host to do syscall */
 	struct gdb_fileio_info *fileio_info;
+
+	/* The semihosting information, extracted from the target. */
+	struct semihosting *semihosting;
 };
 
 struct target_list {
@@ -214,10 +217,10 @@ struct target_list {
 
 struct gdb_fileio_info {
 	char *identifier;
-	uint32_t param_1;
-	uint32_t param_2;
-	uint32_t param_3;
-	uint32_t param_4;
+	uint64_t param_1;
+	uint64_t param_2;
+	uint64_t param_3;
+	uint64_t param_4;
 };
 
 /** Returns the instance-specific name of the specified target. */

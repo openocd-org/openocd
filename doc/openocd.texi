@@ -531,6 +531,12 @@ debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/
 
 @item @b{Keil ULINK v1}
 @* Link: @url{http://www.keil.com/ulink1/}
+
+@item @b{TI XDS110 Debug Probe}
+@* The XDS110 is included as the embedded debug probe on many Texas Instruments
+LaunchPad evaluation boards.
+@* Link: @url{http://processors.wiki.ti.com/index.php/XDS110}
+@* Link: @url{http://processors.wiki.ti.com/index.php/XDS_Emulation_Software_Package#XDS110_Support_Utilities}
 @end itemize
 
 @section IBM PC Parallel Printer Port Based
@@ -5572,6 +5578,20 @@ Triggering a mass erase is also useful when users want to disable readout protec
 
 @end deffn
 
+@deffn {Flash Driver} cc3220sf
+The CC3220SF version of the SimpleLink CC32xx microcontrollers from Texas
+Instruments includes 1MB of internal flash. The cc3220sf flash driver only
+supports the internal flash. The serial flash on SimpleLink boards is
+programmed via the bootloader over a UART connection. Security features of
+the CC3220SF may erase the internal flash during power on reset. Refer to
+documentation at @url{www.ti.com/cc3220sf} for details on security features
+and programming the serial flash.
+
+@example
+flash bank $_FLASHNAME cc3220sf 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
 @deffn {Flash Driver} efm32
 All members of the EFM32 microcontroller family from Energy Micro include
 internal flash and use ARM Cortex-M3 cores. The driver automatically recognizes
@@ -6120,6 +6140,68 @@ Erases the contents of the flash memory, protection and security lock.
 
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
+@end deffn
+
+@deffn {Flash Driver} psoc5lp
+All members of the PSoC 5LP microcontroller family from Cypress
+include internal program flash and use ARM Cortex-M3 cores.
+The driver probes for a number of these chips and autoconfigures itself,
+apart from the base address.
+
+@example
+flash bank $_FLASHNAME psoc5lp 0x00000000 0 0 0 $_TARGETNAME
+@end example
+
+@b{Note:} PSoC 5LP chips can be configured to have ECC enabled or disabled.
+@quotation Attention
+If flash operations are performed in ECC-disabled mode, they will also affect
+the ECC flash region. Erasing a 16k flash sector in the 0x00000000 area will
+then also erase the corresponding 2k data bytes in the 0x48000000 area.
+Writing to the ECC data bytes in ECC-disabled mode is not implemented.
+@end quotation
+
+Commands defined in the @var{psoc5lp} driver:
+
+@deffn Command {psoc5lp mass_erase}
+Erases all flash data and ECC/configuration bytes, all flash protection rows,
+and all row latches in all flash arrays on the device.
+@end deffn
+@end deffn
+
+@deffn {Flash Driver} psoc5lp_eeprom
+All members of the PSoC 5LP microcontroller family from Cypress
+include internal EEPROM and use ARM Cortex-M3 cores.
+The driver probes for a number of these chips and autoconfigures itself,
+apart from the base address.
+
+@example
+flash bank $_CHIPNAME.eeprom psoc5lp_eeprom 0x40008000 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
+@deffn {Flash Driver} psoc5lp_nvl
+All members of the PSoC 5LP microcontroller family from Cypress
+include internal Nonvolatile Latches and use ARM Cortex-M3 cores.
+The driver probes for a number of these chips and autoconfigures itself.
+
+@example
+flash bank $_CHIPNAME.nvl psoc5lp_nvl 0 0 0 0 $_TARGETNAME
+@end example
+
+PSoC 5LP chips have multiple NV Latches:
+
+@itemize
+@item Device Configuration NV Latch - 4 bytes
+@item Write Once (WO) NV Latch - 4 bytes
+@end itemize
+
+@b{Note:} This driver only implements the Device Configuration NVL.
+
+The @var{psoc5lp} driver reads the ECC mode from Device Configuration NVL.
+@quotation Attention
+Switching ECC mode via write to Device Configuration NVL will require a reset
+after successful write.
+@end quotation
 @end deffn
 
 @deffn {Flash Driver} psoc6
@@ -8084,6 +8166,30 @@ Enabling this option forwards semihosting I/O to GDB process using the
 File-I/O remote protocol extension. This is especially useful for
 interacting with remote files or displaying console messages in the
 debugger.
+@end deffn
+
+@deffn Command {arm semihosting_resexit} [@option{enable}|@option{disable}]
+@cindex ARM semihosting
+Enable resumable SEMIHOSTING_SYS_EXIT.
+
+When SEMIHOSTING_SYS_EXIT is called outside a debug session,
+things are simple, the openocd process calls exit() and passes
+the value returned by the target.
+
+When SEMIHOSTING_SYS_EXIT is called during a debug session,
+by default execution returns to the debugger, leaving the
+debugger in a HALT state, similar to the state entered when
+encountering a break.
+
+In some use cases, it is useful to have SEMIHOSTING_SYS_EXIT
+return normally, as any semihosting call, and do not break
+to the debugger.
+The standard allows this to happen, but the condition
+to trigger it is a bit obscure ("by performing an RDI_Execute
+request or equivalent").
+
+To make the SEMIHOSTING_SYS_EXIT call return normally, enable
+this option (default: disabled).
 @end deffn
 
 @section ARMv4 and ARMv5 Architecture
