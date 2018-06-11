@@ -188,9 +188,17 @@ void flash_free_all_banks(void)
 		else
 			LOG_WARNING("Flash driver of %s does not support free_driver_priv()", bank->name);
 
+		/* For 'virtual' flash driver bank->sectors and bank->prot_blocks pointers are copied from
+		 * master flash_bank structure. They point to memory locations allocated by master flash driver
+		 * so master driver is responsible for releasing them.
+		 * Avoid UB caused by double-free memory corruption if flash bank is 'virtual'. */
+
+		if (strcmp(bank->driver->name, "virtual") != 0) {
+			free(bank->sectors);
+			free(bank->prot_blocks);
+		}
+
 		free(bank->name);
-		free(bank->sectors);
-		free(bank->prot_blocks);
 		free(bank);
 		bank = next;
 	}

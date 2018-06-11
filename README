@@ -125,8 +125,8 @@ Flash drivers
 
 ADUC702x, AT91SAM, ATH79, AVR, CFI, DSP5680xx, EFM32, EM357, FM3, FM4, Kinetis,
 LPC8xx/LPC1xxx/LPC2xxx/LPC541xx, LPC2900, LPCSPIFI, Marvell QSPI,
-Milandr, NIIET, NuMicro, PIC32mx, PSoC4, SiM3x, Stellaris, STM32, STMSMI,
-STR7x, STR9x, nRF51; NAND controllers of AT91SAM9, LPC3180, LPC32xx,
+Milandr, NIIET, NuMicro, PIC32mx, PSoC4, PSoC5LP, SiM3x, Stellaris, STM32,
+STMSMI, STR7x, STR9x, nRF51; NAND controllers of AT91SAM9, LPC3180, LPC32xx,
 i.MX31, MXC, NUC910, Orion/Kirkwood, S3C24xx, S3C6400, XMC1xxx, XMC4xxx.
 
 

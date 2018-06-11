@@ -8,6 +8,9 @@
  * Copyright (C) 2009 by Øyvind Harboe
  * oyvind.harboe@zylin.com
  *
+ * Copyright (C) 2018 by Liviu Ionescu
+ *   <ilg@livius.net>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -27,7 +30,6 @@
 
 #include <helper/command.h>
 #include "target.h"
-
 
 /**
  * @file
@@ -181,31 +183,10 @@ struct arm {
 	/** Flag reporting armv6m based core. */
 	bool is_armv6m;
 
-	/** Flag reporting whether semihosting is active. */
-	bool is_semihosting;
-
-	/** Flag reporting whether semihosting fileio is active. */
-	bool is_semihosting_fileio;
-
-	/** Flag reporting whether semihosting fileio operation is active. */
-	bool semihosting_hit_fileio;
-
 	/** Floating point or VFP version, 0 if disabled. */
 	int arm_vfp_version;
 
-	/** Current semihosting operation. */
-	int semihosting_op;
-
-	/** Current semihosting result. */
-	int semihosting_result;
-
-	/** Value to be returned by semihosting SYS_ERRNO request. */
-	int semihosting_errno;
-
 	int (*setup_semihosting)(struct target *target, int enable);
-
-	/** Semihosting command line. */
-	char *semihosting_cmdline;
 
 	/** Backpointer to the target. */
 	struct target *target;
