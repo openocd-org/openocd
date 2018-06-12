@@ -318,7 +318,7 @@ static int jtag_vpi_runtest(int cycles, tap_state_t state)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = jtag_vpi_queue_tdi(NULL, cycles, NO_TAP_SHIFT);
+	retval = jtag_vpi_queue_tdi(NULL, cycles, TAP_SHIFT);
 	if (retval != ERROR_OK)
 		return retval;
 
