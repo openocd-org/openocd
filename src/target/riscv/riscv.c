@@ -1530,17 +1530,17 @@ extern __COMMAND_HANDLER(handle_common_semihosting_resumable_exit_command);
 extern __COMMAND_HANDLER(handle_common_semihosting_cmdline);
 
 /*
- * To be noted that RISC-V targets use the same semihosting commands as 
+ * To be noted that RISC-V targets use the same semihosting commands as
  * ARM targets.
- * 
- * The main reason is compatibility with existing tools. For example the  
- * Eclipse OpenOCD/SEGGER J-Link/QEMU plug-ins have several widgets to  
- * configure semihosting, which generate commands like `arm semihosting 
- * enable`. 
- * A secondary reason is the fact that the protocol used is exactly the 
- * one specified by ARM. If RISC-V will ever define its own semihosting 
- * protocol, then a command like `riscv semihosting enable` will make 
- * sense, but for now all semihosting commands are prefixed with `arm`. 
+ *
+ * The main reason is compatibility with existing tools. For example the
+ * Eclipse OpenOCD/SEGGER J-Link/QEMU plug-ins have several widgets to
+ * configure semihosting, which generate commands like `arm semihosting
+ * enable`.
+ * A secondary reason is the fact that the protocol used is exactly the
+ * one specified by ARM. If RISC-V will ever define its own semihosting
+ * protocol, then a command like `riscv semihosting enable` will make
+ * sense, but for now all semihosting commands are prefixed with `arm`.
  */
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
