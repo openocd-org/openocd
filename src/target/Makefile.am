@@ -141,6 +141,7 @@ RISCV_SRC = \
 	%D%/riscv/riscv-011.c \
 	%D%/riscv/riscv-013.c \
 	%D%/riscv/riscv.c \
+	%D%/riscv/riscv_semihosting.c \
 	%D%/riscv/program.c \
 	%D%/riscv/batch.c
 

@@ -1873,6 +1873,12 @@ static int handle_halt(struct target *target, bool announce)
 		riscv_enumerate_triggers(target);
 	}
 
+	if (target->debug_reason == DBG_REASON_BREAKPOINT) {
+		int retval;
+		if (riscv_semihosting(target, &retval) != 0)
+			return retval;
+	}
+
 	if (announce)
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 

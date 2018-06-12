@@ -257,4 +257,7 @@ int riscv_remove_watchpoint(struct target *target,
 
 int riscv_init_registers(struct target *target);
 
+void riscv_semihosting_init(struct target *target);
+int riscv_semihosting(struct target *target, int *retval);
+
 #endif
