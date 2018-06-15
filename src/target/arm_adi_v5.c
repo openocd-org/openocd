@@ -1722,6 +1722,7 @@ COMMAND_HANDLER(dap_apreg_command)
 {
 	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
 	uint32_t apsel, reg, value;
+	struct adiv5_ap *ap;
 	int retval;
 
 	if (CMD_ARGC < 2 || CMD_ARGC > 3)
@@ -1731,6 +1732,7 @@ COMMAND_HANDLER(dap_apreg_command)
 	/* AP address is in bits 31:24 of DP_SELECT */
 	if (apsel >= 256)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+	ap = dap_ap(dap, apsel);
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg);
 	if (reg >= 256 || (reg & 3))
@@ -1738,9 +1740,21 @@ COMMAND_HANDLER(dap_apreg_command)
 
 	if (CMD_ARGC == 3) {
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
-		retval = dap_queue_ap_write(dap_ap(dap, apsel), reg, value);
+		switch (reg) {
+		case MEM_AP_REG_CSW:
+			ap->csw_default = 0;  /* invalid, force write */
+			retval = mem_ap_setup_csw(ap, value);
+			break;
+		case MEM_AP_REG_TAR:
+			ap->tar_valid = false;  /* invalid, force write */
+			retval = mem_ap_setup_tar(ap, value);
+			break;
+		default:
+			retval = dap_queue_ap_write(ap, reg, value);
+			break;
+		}
 	} else {
-		retval = dap_queue_ap_read(dap_ap(dap, apsel), reg, &value);
+		retval = dap_queue_ap_read(ap, reg, &value);
 	}
 	if (retval == ERROR_OK)
 		retval = dap_run(dap);
