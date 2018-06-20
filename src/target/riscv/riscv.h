@@ -58,7 +58,9 @@ typedef struct {
 	uint64_t saved_registers[RISCV_MAX_HARTS][RISCV_MAX_REGISTERS];
 	bool valid_saved_registers[RISCV_MAX_HARTS][RISCV_MAX_REGISTERS];
 
-	/* The register cache points into here. */
+	/* OpenOCD's register cache points into here. This is not per-hart because
+	 * we just invalidate the entire cache when we change which hart is
+	 * selected. */
 	uint64_t reg_cache_values[RISCV_MAX_REGISTERS];
 
 	/* Single buffer that contains all register names, instead of calling
