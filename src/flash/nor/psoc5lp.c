@@ -860,6 +860,7 @@ struct flash_driver psoc5lp_nvl_flash = {
 	.erase = psoc5lp_nvl_erase,
 	.erase_check = psoc5lp_nvl_erase_check,
 	.write = psoc5lp_nvl_write,
+	.free_driver_priv = default_flash_free_driver_priv,
 };
 
 /*
@@ -1068,6 +1069,7 @@ struct flash_driver psoc5lp_eeprom_flash = {
 	.erase = psoc5lp_eeprom_erase,
 	.erase_check = default_flash_blank_check,
 	.write = psoc5lp_eeprom_write,
+	.free_driver_priv = default_flash_free_driver_priv,
 };
 
 /*
@@ -1078,6 +1080,10 @@ struct psoc5lp_flash_bank {
 	bool probed;
 	const struct psoc5lp_device *device;
 	bool ecc_enabled;
+	/* If ecc is disabled, num_sectors counts both std and ecc sectors.
+	 * If ecc is enabled, num_sectors indicates just the number of std sectors.
+	 * However ecc sector descriptors bank->sector[num_sectors..2*num_sectors-1]
+	 * are used for driver private flash operations */
 };
 
 static int psoc5lp_erase(struct flash_bank *bank, int first, int last)
@@ -1122,21 +1128,25 @@ static int psoc5lp_erase_check(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	int num_sectors = bank->num_sectors;
+	if (psoc_bank->ecc_enabled)
+		num_sectors *= 2;	/* count both std and ecc sector always */
+
 	struct target_memory_check_block *block_array;
-	block_array = malloc(bank->num_sectors * sizeof(struct target_memory_check_block));
+	block_array = malloc(num_sectors * sizeof(struct target_memory_check_block));
 	if (block_array == NULL)
 		return ERROR_FAIL;
 
-	for (i = 0; i < bank->num_sectors; i++) {
+	for (i = 0; i < num_sectors; i++) {
 		block_array[i].address = bank->base + bank->sectors[i].offset;
 		block_array[i].size = bank->sectors[i].size;
 		block_array[i].result = UINT32_MAX; /* erase state unknown */
 	}
 
 	bool fast_check = true;
-	for (i = 0; i < bank->num_sectors; ) {
+	for (i = 0; i < num_sectors; ) {
 		retval = armv7m_blank_check_memory(target,
-					block_array + i, bank->num_sectors - i,
+					block_array + i, num_sectors - i,
 					bank->erased_value);
 		if (retval < 1) {
 			/* Run slow fallback if the first run gives no result
@@ -1149,15 +1159,15 @@ static int psoc5lp_erase_check(struct flash_bank *bank)
 	}
 
 	if (fast_check) {
-		if (!psoc_bank->ecc_enabled) {
-			int half_sectors = bank->num_sectors / 2;
-			for (i = 0; i < half_sectors / 2; i++)
+		if (psoc_bank->ecc_enabled) {
+			for (i = 0; i < bank->num_sectors; i++)
 				bank->sectors[i].is_erased =
 					(block_array[i].result != 1)
-					? block_array[i + half_sectors].result
-					: block_array[i].result;
+					? block_array[i].result
+					: block_array[i + bank->num_sectors].result;
+				/* if std sector is erased, use status of ecc sector */
 		} else {
-			for (i = 0; i < bank->num_sectors; i++)
+			for (i = 0; i < num_sectors; i++)
 				bank->sectors[i].is_erased = block_array[i].result;
 		}
 		retval = ERROR_OK;
@@ -1572,4 +1582,5 @@ struct flash_driver psoc5lp_flash = {
 	.erase = psoc5lp_erase,
 	.erase_check = psoc5lp_erase_check,
 	.write = psoc5lp_write,
+	.free_driver_priv = default_flash_free_driver_priv,
 };
