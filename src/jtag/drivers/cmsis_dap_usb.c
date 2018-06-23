@@ -802,8 +802,7 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 
 		/* When we are reconnecting, DAP_Connect needs to be rerun, at
 		 * least on Keil ULINK-ME */
-		retval = cmsis_dap_cmd_DAP_Connect(seq == LINE_RESET || seq == JTAG_TO_SWD ?
-					   CONNECT_SWD : CONNECT_JTAG);
+		retval = cmsis_dap_cmd_DAP_Connect(CONNECT_SWD);
 		if (retval != ERROR_OK)
 			return retval;
 	}
