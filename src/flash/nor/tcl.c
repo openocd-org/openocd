@@ -288,24 +288,6 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	return retval;
 }
 
-static int flash_check_sector_parameters(struct command_context *cmd_ctx,
-	uint32_t first, uint32_t last, uint32_t num_sectors)
-{
-	if (!(first <= last)) {
-		command_print(cmd_ctx, "ERROR: "
-			"first sector must be <= last sector");
-		return ERROR_FAIL;
-	}
-
-	if (!(last <= (num_sectors - 1))) {
-		command_print(cmd_ctx, "ERROR: last sector must be <= %" PRIu32,
-			num_sectors - 1);
-		return ERROR_FAIL;
-	}
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(handle_flash_erase_command)
 {
 	if (CMD_ARGC != 3)
@@ -327,9 +309,18 @@ COMMAND_HANDLER(handle_flash_erase_command)
 	else
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], last);
 
-	retval = flash_check_sector_parameters(CMD_CTX, first, last, p->num_sectors);
-	if (retval != ERROR_OK)
-		return retval;
+	if (!(first <= last)) {
+		command_print(CMD_CTX, "ERROR: "
+			"first sector must be <= last");
+		return ERROR_FAIL;
+	}
+
+	if (!(last <= (uint32_t)(p->num_sectors - 1))) {
+		command_print(CMD_CTX, "ERROR: "
+			"last sector must be <= %" PRIu32,
+			p->num_sectors - 1);
+		return ERROR_FAIL;
+	}
 
 	struct duration bench;
 	duration_start(&bench);
@@ -375,15 +366,28 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	bool set;
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[3], set);
 
-	retval = flash_check_sector_parameters(CMD_CTX, first, last, num_blocks);
-	if (retval != ERROR_OK)
-		return retval;
+	if (!(first <= last)) {
+		command_print(CMD_CTX, "ERROR: "
+			"first %s must be <= last",
+			(p->num_prot_blocks) ? "block" : "sector");
+		return ERROR_FAIL;
+	}
+
+	if (!(last <= (uint32_t)(num_blocks - 1))) {
+		command_print(CMD_CTX, "ERROR: "
+			"last %s must be <= %" PRIu32,
+			(p->num_prot_blocks) ? "block" : "sector",
+			num_blocks - 1);
+		return ERROR_FAIL;
+	}
 
 	retval = flash_driver_protect(p, set, first, last);
 	if (retval == ERROR_OK) {
-		command_print(CMD_CTX, "%s protection for sectors %" PRIu32
+		command_print(CMD_CTX, "%s protection for %s %" PRIu32
 			" through %" PRIu32 " on flash bank %d",
-			(set) ? "set" : "cleared", first, last, p->bank_number);
+			(set) ? "set" : "cleared",
+			(p->num_prot_blocks) ? "blocks" : "sectors",
+			first, last, p->bank_number);
 	}
 
 	return retval;
