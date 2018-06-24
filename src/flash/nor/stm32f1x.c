@@ -488,13 +488,13 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 	if ((first % stm32x_info->ppage_size) != 0) {
 		LOG_WARNING("aligned start protect sector to a %d sector boundary",
 				stm32x_info->ppage_size);
-		first = first - (first % stm32x_info->ppage_size);
+		first -= first % stm32x_info->ppage_size;
 	}
 	if (((last + 1) % stm32x_info->ppage_size) != 0) {
 		LOG_WARNING("aligned end protect sector to a %d sector boundary",
 				stm32x_info->ppage_size);
-		last++;
-		last = last - (last % stm32x_info->ppage_size);
+		last += stm32x_info->ppage_size;
+		last -= last % stm32x_info->ppage_size;
 		last--;
 	}
 
