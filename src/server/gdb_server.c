@@ -3016,9 +3016,12 @@ static int gdb_v_packet(struct connection *connection,
 
 static int gdb_detach(struct connection *connection)
 {
-	target_call_event_callbacks(get_target_from_connection(connection),
-		TARGET_EVENT_GDB_DETACH);
-
+	/*
+	 * Only reply "OK" to GDB
+	 * it will close the connection and this will trigger a call to
+	 * gdb_connection_closed() that will in turn trigger the event
+	 * TARGET_EVENT_GDB_DETACH
+	 */
 	return gdb_put_packet(connection, "OK", 2);
 }
 
