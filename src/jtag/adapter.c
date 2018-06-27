@@ -35,6 +35,7 @@
 #include "interface.h"
 #include "interfaces.h"
 #include <transport/transport.h>
+#include <jtag/drivers/jtag_usb_common.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -456,7 +457,54 @@ COMMAND_HANDLER(handle_adapter_khz_command)
 	return retval;
 }
 
+#ifndef HAVE_JTAG_MINIDRIVER_H
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
+COMMAND_HANDLER(handle_usb_location_command)
+{
+	if (CMD_ARGC == 1)
+		jtag_usb_set_location(CMD_ARGV[0]);
+
+	command_print(CMD_CTX, "adapter usb location: %s", jtag_usb_get_location());
+
+	return ERROR_OK;
+}
+#endif /* HAVE_LIBUSB_GET_PORT_NUMBERS */
+
+static const struct command_registration adapter_usb_command_handlers[] = {
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
+	{
+		.name = "location",
+		.handler = &handle_usb_location_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the USB bus location of the USB device",
+		.usage = "<bus>-port[.port]...",
+	},
+#endif /* HAVE_LIBUSB_GET_PORT_NUMBERS */
+	COMMAND_REGISTRATION_DONE
+};
+#endif /* MINIDRIVER */
+
+static const struct command_registration adapter_command_handlers[] = {
+#ifndef HAVE_JTAG_MINIDRIVER_H
+	{
+		.name = "usb",
+		.mode = COMMAND_ANY,
+		.help = "usb adapter command group",
+		.usage = "",
+		.chain = adapter_usb_command_handlers,
+	},
+#endif /* MINIDRIVER */
+	COMMAND_REGISTRATION_DONE
+};
+
 static const struct command_registration interface_command_handlers[] = {
+	{
+		.name = "adapter",
+		.mode = COMMAND_ANY,
+		.help = "adapter command group",
+		.usage = "",
+		.chain = adapter_command_handlers,
+	},
 	{
 		.name = "adapter_khz",
 		.handler = handle_adapter_khz_command,

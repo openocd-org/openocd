@@ -20,8 +20,15 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "log.h"
+#include <jtag/drivers/jtag_usb_common.h>
 #include "libusb1_common.h"
+#include "log.h"
+
+/*
+ * comment from libusb:
+ * As per the USB 3.0 specs, the current maximum limit for the depth is 7.
+ */
+#define MAX_USB_PORTS	7
 
 static struct libusb_context *jtag_libusb_context; /**< Libusb context **/
 static libusb_device **devs; /**< The usb device list **/
@@ -37,6 +44,31 @@ static bool jtag_libusb_match(struct libusb_device_descriptor *dev_desc,
 	}
 	return false;
 }
+
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
+static bool jtag_libusb_location_equal(libusb_device *device)
+{
+	uint8_t port_path[MAX_USB_PORTS];
+	uint8_t dev_bus;
+	int path_len;
+
+	path_len = libusb_get_port_numbers(device, port_path, MAX_USB_PORTS);
+	if (path_len == LIBUSB_ERROR_OVERFLOW) {
+		LOG_WARNING("cannot determine path to usb device! (more than %i ports in path)\n",
+			MAX_USB_PORTS);
+		return false;
+	}
+	dev_bus = libusb_get_bus_number(device);
+
+	return jtag_usb_location_equal(dev_bus, port_path, path_len);
+}
+#else /* HAVE_LIBUSB_GET_PORT_NUMBERS */
+static bool jtag_libusb_location_equal(libusb_device *device)
+{
+	return true;
+}
+#endif /* HAVE_LIBUSB_GET_PORT_NUMBERS */
+
 
 /* Returns true if the string descriptor indexed by str_index in device matches string */
 static bool string_descriptor_equal(libusb_device_handle *device, uint8_t str_index,
@@ -87,6 +119,9 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 			continue;
 
 		if (!jtag_libusb_match(&dev_desc, vids, pids))
+			continue;
+
+		if (jtag_usb_get_location() && !jtag_libusb_location_equal(devs[idx]))
 			continue;
 
 		errCode = libusb_open(devs[idx], &libusb_handle);
