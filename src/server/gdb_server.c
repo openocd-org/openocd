@@ -936,6 +936,7 @@ static int gdb_new_connection(struct connection *connection)
 
 	target = get_target_from_connection(connection);
 	connection->priv = gdb_connection;
+	connection->cmd_ctx->current_target = target;
 
 	/* initialize gdb connection information */
 	gdb_connection->buf_p = gdb_connection->buffer;
