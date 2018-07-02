@@ -1048,8 +1048,7 @@ int image_calculate_checksum(uint8_t *buffer, uint32_t nbytes, uint32_t *checksu
 	static bool first_init;
 	if (!first_init) {
 		/* Initialize the CRC table and the decoding table.  */
-		int i, j;
-		unsigned int c;
+		unsigned int i, j, c;
 		for (i = 0; i < 256; i++) {
 			/* as per gdb */
 			for (c = i << 24, j = 8; j > 0; --j)
