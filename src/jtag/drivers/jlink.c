@@ -38,6 +38,7 @@
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <jtag/commands.h>
+#include <jtag/drivers/jtag_usb_common.h>
 
 #include <libjaylink/libjaylink.h>
 
@@ -50,6 +51,7 @@ static uint8_t caps[JAYLINK_DEV_EXT_CAPS_SIZE];
 
 static uint32_t serial_number;
 static bool use_serial_number;
+static bool use_usb_location;
 static enum jaylink_usb_address usb_address;
 static bool use_usb_address;
 static enum jaylink_target_interface iface = JAYLINK_TIF_JTAG;
@@ -534,6 +536,31 @@ static int jaylink_log_handler(const struct jaylink_context *ctx,
 	return 0;
 }
 
+static bool jlink_usb_location_equal(struct jaylink_device *dev)
+{
+	int retval;
+	uint8_t bus;
+	uint8_t *ports;
+	size_t num_ports;
+	bool equal = false;
+
+	retval = jaylink_device_get_usb_bus_ports(dev, &bus, &ports, &num_ports);
+
+	if (retval == JAYLINK_ERR_NOT_SUPPORTED) {
+		return false;
+	} else if (retval != JAYLINK_OK) {
+		LOG_WARNING("jaylink_device_get_usb_bus_ports() failed: %s.",
+			jaylink_strerror(retval));
+		return false;
+	}
+
+	equal = jtag_usb_location_equal(bus, ports,	num_ports);
+	free(ports);
+
+	return equal;
+}
+
+
 static int jlink_init(void)
 {
 	int ret;
@@ -595,7 +622,9 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (!use_serial_number && !use_usb_address && num_devices > 1) {
+	use_usb_location = (jtag_usb_get_location() != NULL);
+
+	if (!use_serial_number && !use_usb_address && !use_usb_location && num_devices > 1) {
 		LOG_ERROR("Multiple devices found, specify the desired device.");
 		jaylink_free_devices(devs, true);
 		jaylink_exit(jayctx);
@@ -605,8 +634,10 @@ static int jlink_init(void)
 	found_device = false;
 
 	for (i = 0; devs[i]; i++) {
+		struct jaylink_device *dev = devs[i];
+
 		if (use_serial_number) {
-			ret = jaylink_device_get_serial_number(devs[i], &tmp);
+			ret = jaylink_device_get_serial_number(dev, &tmp);
 
 			if (ret == JAYLINK_ERR_NOT_AVAILABLE) {
 				continue;
@@ -621,7 +652,7 @@ static int jlink_init(void)
 		}
 
 		if (use_usb_address) {
-			ret = jaylink_device_get_usb_address(devs[i], &address);
+			ret = jaylink_device_get_usb_address(dev, &address);
 
 			if (ret == JAYLINK_ERR_NOT_SUPPORTED) {
 				continue;
@@ -635,7 +666,10 @@ static int jlink_init(void)
 				continue;
 		}
 
-		ret = jaylink_open(devs[i], &devh);
+		if (use_usb_location && !jlink_usb_location_equal(dev))
+			continue;
+
+		ret = jaylink_open(dev, &devh);
 
 		if (ret == JAYLINK_OK) {
 			found_device = true;
