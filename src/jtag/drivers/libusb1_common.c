@@ -71,11 +71,11 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 		struct jtag_libusb_device_handle **out)
 {
 	int cnt, idx, errCode;
-	int retval = -ENODEV;
+	int retval = ERROR_FAIL;
 	struct jtag_libusb_device_handle *libusb_handle = NULL;
 
 	if (libusb_init(&jtag_libusb_context) < 0)
-		return -ENODEV;
+		return ERROR_FAIL;
 
 	cnt = libusb_get_device_list(jtag_libusb_context, &devs);
 
@@ -105,7 +105,7 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 
 		/* Success. */
 		*out = libusb_handle;
-		retval = 0;
+		retval = ERROR_OK;
 		break;
 	}
 	if (cnt >= 0)
