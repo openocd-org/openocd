@@ -1063,7 +1063,7 @@ int armv8_aarch64_state(struct target *target)
 		armv8_mode_name(arm->core_mode),
 		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u64(arm->pc->value, 0, 64),
-		target->semihosting->is_active ? ", semihosting" : "");
+		(target->semihosting && target->semihosting->is_active) ? ", semihosting" : "");
 
 	return ERROR_OK;
 }
