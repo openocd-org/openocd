@@ -66,30 +66,6 @@ static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	return JIM_OK;
 }
 
-static int default_khz(int khz, int *jtag_speed)
-{
-	LOG_ERROR("Translation from khz to jtag_speed not implemented");
-	return ERROR_FAIL;
-}
-
-static int default_speed_div(int speed, int *khz)
-{
-	LOG_ERROR("Translation from jtag_speed to khz not implemented");
-	return ERROR_FAIL;
-}
-
-static int default_power_dropout(int *dropout)
-{
-	*dropout = 0; /* by default we can't detect power dropout */
-	return ERROR_OK;
-}
-
-static int default_srst_asserted(int *srst_asserted)
-{
-	*srst_asserted = 0; /* by default we can't detect srst asserted */
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(interface_transport_command)
 {
 	char **transports;
@@ -158,21 +134,8 @@ COMMAND_HANDLER(handle_interface_command)
 			LOG_WARNING("Adapter driver '%s' did not declare "
 				"which transports it allows; assuming "
 				"legacy JTAG-only", jtag_interface->name);
-		retval = allow_transports(CMD_CTX, jtag_interface->transports
+		return allow_transports(CMD_CTX, jtag_interface->transports
 						? jtag_interface->transports : jtag_only);
-			if (ERROR_OK != retval)
-				return retval;
-
-		if (jtag_interface->khz == NULL)
-			jtag_interface->khz = default_khz;
-		if (jtag_interface->speed_div == NULL)
-			jtag_interface->speed_div = default_speed_div;
-		if (jtag_interface->power_dropout == NULL)
-			jtag_interface->power_dropout = default_power_dropout;
-		if (jtag_interface->srst_asserted == NULL)
-			jtag_interface->srst_asserted = default_srst_asserted;
-
-		return ERROR_OK;
 	}
 
 	/* no valid interface was found (i.e. the configuration option,
