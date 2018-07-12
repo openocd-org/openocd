@@ -6429,28 +6429,36 @@ flash bank $_FLASHNAME stm32f1x 0x08080000 0 0 0 $_TARGETNAME
 Some stm32f1x-specific commands are defined:
 
 @deffn Command {stm32f1x lock} num
-Locks the entire stm32 device.
+Locks the entire stm32 device against reading.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f1x unlock} num
-Unlocks the entire stm32 device.
+Unlocks the entire stm32 device for reading. This command will cause
+a mass erase of the entire stm32 device if previously locked.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f1x mass_erase} num
-Mass erases the entire stm32f1x device.
+Mass erases the entire stm32 device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f1x options_read} num
-Read and display the stm32 option bytes written by
-the @command{stm32f1x options_write} command.
+Reads and displays active stm32 option bytes loaded during POR
+or upon executing the @command{stm32f1x options_load} command.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn Command {stm32f1x options_write} num (@option{SWWDG}|@option{HWWDG}) (@option{RSTSTNDBY}|@option{NORSTSTNDBY}) (@option{RSTSTOP}|@option{NORSTSTOP})
 Writes the stm32 option byte with the specified values.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32f1x options_load} num
+Generates a special kind of reset to re-load the stm32 option bytes written
+by the @command{stm32f1x options_write} or @command{flash protect} commands
+without having to power cycle the target. Not applicable to stm32f1x devices.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 @end deffn
