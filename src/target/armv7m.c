@@ -541,7 +541,7 @@ int armv7m_arch_state(struct target *target)
 	uint32_t ctrl, sp;
 
 	/* avoid filling log waiting for fileio reply */
-	if (target->semihosting->hit_fileio)
+	if (target->semihosting && target->semihosting->hit_fileio)
 		return ERROR_OK;
 
 	ctrl = buf_get_u32(arm->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
@@ -556,8 +556,8 @@ int armv7m_arch_state(struct target *target)
 		buf_get_u32(arm->pc->value, 0, 32),
 		(ctrl & 0x02) ? 'p' : 'm',
 		sp,
-		target->semihosting->is_active ? ", semihosting" : "",
-		target->semihosting->is_fileio ? " fileio" : "");
+		(target->semihosting && target->semihosting->is_active) ? ", semihosting" : "",
+		(target->semihosting && target->semihosting->is_fileio) ? " fileio" : "");
 
 	return ERROR_OK;
 }

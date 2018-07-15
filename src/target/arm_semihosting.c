@@ -82,6 +82,9 @@ static int post_result(struct target *target)
 {
 	struct arm *arm = target_to_arm(target);
 
+	if (!target->semihosting)
+		return ERROR_FAIL;
+
 	/* REVISIT this looks wrong ... ARM11 and Cortex-A8
 	 * should work this way at least sometimes.
 	 */
