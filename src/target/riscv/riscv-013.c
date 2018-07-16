@@ -923,21 +923,24 @@ typedef struct {
 	riscv_addr_t hart_address;
 	/* Memory address to access the scratch memory from the debugger. */
 	riscv_addr_t debug_address;
+	struct working_area *area;
 } scratch_mem_t;
 
 /**
  * Find some scratch memory to be used with the given program.
  */
-static int scratch_find(struct target *target,
+static int scratch_reserve(struct target *target,
 		scratch_mem_t *scratch,
 		struct riscv_program *program,
 		unsigned size_bytes)
 {
-	riscv013_info_t *info = get_info(target);
-
 	riscv_addr_t alignment = 1;
 	while (alignment < size_bytes)
 		alignment *= 2;
+
+	scratch->area = NULL;
+
+	riscv013_info_t *info = get_info(target);
 
 	if (info->dataaccess == 1) {
 		/* Sign extend dataaddr. */
@@ -969,8 +972,9 @@ static int scratch_find(struct target *target,
 		return ERROR_OK;
 	}
 
-	if (riscv_use_scratch_ram) {
-		scratch->hart_address = (riscv_scratch_ram_address + alignment - 1) &
+	if (target_alloc_working_area(target, size_bytes + alignment - 1,
+				&scratch->area) == ERROR_OK) {
+		scratch->hart_address = (scratch->area->address + alignment - 1) &
 			~(alignment - 1);
 		scratch->memory_space = SPACE_DMI_RAM;
 		scratch->debug_address = scratch->hart_address;
@@ -978,8 +982,17 @@ static int scratch_find(struct target *target,
 	}
 
 	LOG_ERROR("Couldn't find %d bytes of scratch RAM to use. Please configure "
-			"an address with 'riscv set_scratch_ram'.", size_bytes);
+			"a work area with 'configure -work-area-phys'.", size_bytes);
 	return ERROR_FAIL;
+}
+
+static int scratch_release(struct target *target,
+		scratch_mem_t *scratch)
+{
+	if (scratch->area)
+		return target_free_working_area(target, scratch->area);
+
+	return ERROR_OK;
 }
 
 static int scratch_read64(struct target *target, scratch_mem_t *scratch,
@@ -1096,23 +1109,29 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
+	scratch_mem_t scratch;
+	bool use_scratch = false;
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
 			riscv_supports_extension(target, riscv_current_hartid(target), 'D') &&
 			riscv_xlen(target) < 64) {
 		/* There are no instructions to move all the bits from a register, so
 		 * we need to use some scratch RAM. */
+		use_scratch = true;
 		riscv_program_insert(&program, fld(number - GDB_REGNO_FPR0, S0, 0));
 
-		scratch_mem_t scratch;
-		if (scratch_find(target, &scratch, &program, 8) != ERROR_OK)
+		if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
 			return ERROR_FAIL;
 
 		if (register_write_direct(target, GDB_REGNO_S0, scratch.hart_address)
-				!= ERROR_OK)
+				!= ERROR_OK) {
+			scratch_release(target, &scratch);
 			return ERROR_FAIL;
+		}
 
-		if (scratch_write64(target, &scratch, value) != ERROR_OK)
+		if (scratch_write64(target, &scratch, value) != ERROR_OK) {
+			scratch_release(target, &scratch);
 			return ERROR_FAIL;
+		}
 
 	} else {
 		if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
@@ -1138,6 +1157,9 @@ static int register_write_direct(struct target *target, unsigned number,
 		buf_set_u64(reg->value, 0, reg->size, value);
 		reg->valid = true;
 	}
+
+	if (use_scratch)
+		scratch_release(target, &scratch);
 
 	/* Restore S0. */
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
@@ -1215,13 +1237,15 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 				riscv_program_insert(&program, fsd(number - GDB_REGNO_FPR0, S0,
 							0));
 
-				if (scratch_find(target, &scratch, &program, 8) != ERROR_OK)
+				if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
 					return ERROR_FAIL;
 				use_scratch = true;
 
 				if (register_write_direct(target, GDB_REGNO_S0,
-							scratch.hart_address) != ERROR_OK)
+							scratch.hart_address) != ERROR_OK) {
+					scratch_release(target, &scratch);
 					return ERROR_FAIL;
+				}
 			} else if (riscv_supports_extension(target,
 						riscv_current_hartid(target), 'D')) {
 				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
@@ -1240,8 +1264,10 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		/* Don't message on error. Probably the register doesn't exist. */
 
 		if (use_scratch) {
-			if (scratch_read64(target, &scratch, value) != ERROR_OK)
-				return ERROR_FAIL;
+			result = scratch_read64(target, &scratch, value);
+			scratch_release(target, &scratch);
+			if (result != ERROR_OK)
+				return result;
 		} else {
 			/* Read S0 */
 			if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)

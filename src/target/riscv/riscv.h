@@ -126,9 +126,6 @@ extern int riscv_command_timeout_sec;
 /* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
 extern int riscv_reset_timeout_sec;
 
-extern bool riscv_use_scratch_ram;
-extern uint64_t riscv_scratch_ram_address;
-
 extern bool riscv_prefer_sba;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
