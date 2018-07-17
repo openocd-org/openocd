@@ -112,6 +112,8 @@ static char *gdb_port_next;
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
+static void gdb_sig_halted(struct connection *connection);
+
 /* number of gdb connections, mainly to suppress gdb related debugging spam
  * in helper/log.c when no gdb connections are actually active */
 int gdb_actual_connections;
@@ -3086,7 +3088,7 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 	gdb_output_con(connection, string);
 }
 
-void gdb_sig_halted(struct connection *connection)
+static void gdb_sig_halted(struct connection *connection)
 {
 	char sig_reply[4];
 	snprintf(sig_reply, 4, "T%2.2x", 2);

@@ -47,7 +47,6 @@ static inline struct target *get_target_from_connection(struct connection *conne
 }
 
 void gdb_set_frontend_state_running(struct connection *connection);
-void gdb_sig_halted(struct connection *connection);
 
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)
 #define ERROR_GDB_TIMEOUT (-801)
