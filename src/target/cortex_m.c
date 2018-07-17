@@ -237,8 +237,11 @@ static int cortex_m_endreset_event(struct target *target)
 			return retval;
 	}
 
-	/* clear any interrupt masking */
-	cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
+	/* Restore proper interrupt masking setting. */
+	if (cortex_m->isrmasking_mode == CORTEX_M_ISRMASK_ON)
+		cortex_m_write_debug_halt_mask(target, C_MASKINTS, 0);
+	else
+		cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
 
 	/* Enable features controlled by ITM and DWT blocks, and catch only
 	 * the vectors we were told to pay attention to.
