@@ -1694,17 +1694,19 @@ static int aarch64_deassert_reset(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	retval = aarch64_init_debug_access(target);
+	if (retval != ERROR_OK)
+		return retval;
+
 	if (target->reset_halt) {
 		if (target->state != TARGET_HALTED) {
 			LOG_WARNING("%s: ran after reset and before halt ...",
 				target_name(target));
 			retval = target_halt(target);
-			if (retval != ERROR_OK)
-				return retval;
 		}
 	}
 
-	return aarch64_init_debug_access(target);
+	return retval;
 }
 
 static int aarch64_write_cpu_memory_slow(struct target *target,
