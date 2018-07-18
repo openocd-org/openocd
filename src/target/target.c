@@ -107,6 +107,7 @@ extern struct target_type or1k_target;
 extern struct target_type quark_x10xx_target;
 extern struct target_type quark_d20xx_target;
 extern struct target_type stm8_target;
+extern struct target_type riscv_target;
 
 static struct target_type *target_types[] = {
 	&arm7tdmi_target,
@@ -139,6 +140,7 @@ static struct target_type *target_types[] = {
 	&quark_x10xx_target,
 	&quark_d20xx_target,
 	&stm8_target,
+	&riscv_target,
 #if BUILD_TARGET64
 	&aarch64_target,
 #endif
