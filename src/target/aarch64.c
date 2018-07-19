@@ -29,6 +29,7 @@
 #include "armv8_opcodes.h"
 #include "armv8_cache.h"
 #include "arm_semihosting.h"
+#include "smp.h"
 #include <helper/time_support.h>
 
 enum restart_mode {
@@ -62,9 +63,6 @@ static int aarch64_virt2phys(struct target *target,
 	target_addr_t virt, target_addr_t *phys);
 static int aarch64_read_cpu_memory(struct target *target,
 	uint64_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-
-#define foreach_smp_target(pos, head) \
-	for (pos = head; (pos != NULL); pos = pos->next)
 
 static int aarch64_restore_system_control_reg(struct target *target)
 {
@@ -2550,42 +2548,6 @@ COMMAND_HANDLER(aarch64_handle_dbginit_command)
 
 	return aarch64_init_debug_access(target);
 }
-COMMAND_HANDLER(aarch64_handle_smp_off_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	/* check target is an smp target */
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	target->smp = 0;
-	if (head != (struct target_list *)NULL) {
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 0;
-			head = head->next;
-		}
-		/*  fixes the target display to the debugger */
-		target->gdb_service->target = target;
-	}
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(aarch64_handle_smp_on_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	if (head != (struct target_list *)NULL) {
-		target->smp = 1;
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 1;
-			head = head->next;
-		}
-	}
-	return ERROR_OK;
-}
 
 COMMAND_HANDLER(aarch64_mask_interrupts_command)
 {
@@ -2767,19 +2729,6 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 		.help = "Initialize core debug",
 		.usage = "",
 	},
-	{	.name = "smp_off",
-		.handler = aarch64_handle_smp_off_command,
-		.mode = COMMAND_EXEC,
-		.help = "Stop smp handling",
-		.usage = "",
-	},
-	{
-		.name = "smp_on",
-		.handler = aarch64_handle_smp_on_command,
-		.mode = COMMAND_EXEC,
-		.help = "Restart smp handling",
-		.usage = "",
-	},
 	{
 		.name = "maskisr",
 		.handler = aarch64_mask_interrupts_command,
@@ -2800,6 +2749,9 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 		.jim_handler = jim_mcrmrc,
 		.help = "read coprocessor register",
 		.usage = "cpnum op1 CRn CRm op2",
+	},
+	{
+		.chain = smp_command_handlers,
 	},
 
 

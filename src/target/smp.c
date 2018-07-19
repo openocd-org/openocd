@@ -96,3 +96,82 @@ int gdb_write_smp_packet(struct connection *connection,
 
 	return retval;
 }
+
+COMMAND_HANDLER(default_handle_smp_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct target_list *head;
+
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (!CMD_ARGC) {
+		command_print(CMD_CTX, "%s", target->smp ? "on" : "off");
+		return ERROR_OK;
+	}
+
+	if (!strcmp(CMD_ARGV[0], "on")) {
+		foreach_smp_target(head, target->head)
+			head->target->smp = 1;
+
+		return ERROR_OK;
+	}
+
+	if (!strcmp(CMD_ARGV[0], "off")) {
+		foreach_smp_target(head, target->head)
+			head->target->smp = 0;
+
+		/* fixes the target display to the debugger */
+		if (target->head)
+			target->gdb_service->target = target;
+
+		return ERROR_OK;
+	}
+
+	return ERROR_COMMAND_SYNTAX_ERROR;
+}
+
+COMMAND_HANDLER(deprecated_handle_smp_on_command)
+{
+	const char *argv[] = {"on", NULL};
+
+	LOG_WARNING("\'smp_on\' is deprecated, please use \'smp on\' instead.");
+	CMD_ARGC = 1;
+	CMD_ARGV = argv;
+	return CALL_COMMAND_HANDLER(default_handle_smp_command);
+}
+
+COMMAND_HANDLER(deprecated_handle_smp_off_command)
+{
+	const char *argv[] = {"off", NULL};
+
+	LOG_WARNING("\'smp_off\' is deprecated, please use \'smp off\' instead.");
+	CMD_ARGC = 1;
+	CMD_ARGV = argv;
+	return CALL_COMMAND_HANDLER(default_handle_smp_command);
+}
+
+const struct command_registration smp_command_handlers[] = {
+	{
+		.name = "smp",
+		.handler = default_handle_smp_command,
+		.mode = COMMAND_EXEC,
+		.help = "smp handling",
+		.usage = "[on|off]",
+	},
+	{
+		.name = "smp_on",
+		.handler = deprecated_handle_smp_on_command,
+		.mode = COMMAND_EXEC,
+		.help = "Restart smp handling",
+		.usage = "",
+	},
+	{
+		.name = "smp_off",
+		.handler = deprecated_handle_smp_off_command,
+		.mode = COMMAND_EXEC,
+		.help = "Stop smp handling",
+		.usage = "",
+	},
+	COMMAND_REGISTRATION_DONE
+};

@@ -56,10 +56,8 @@
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
 #include "transport/transport.h"
+#include "smp.h"
 #include <helper/time_support.h>
-
-#define foreach_smp_target(pos, head) \
-	for (pos = head; (pos != NULL); pos = pos->next)
 
 static int cortex_a_poll(struct target *target);
 static int cortex_a_debug_entry(struct target *target);
@@ -2969,42 +2967,6 @@ COMMAND_HANDLER(cortex_a_handle_dbginit_command)
 
 	return cortex_a_init_debug_access(target);
 }
-COMMAND_HANDLER(cortex_a_handle_smp_off_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	/* check target is an smp target */
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	target->smp = 0;
-	if (head != (struct target_list *)NULL) {
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 0;
-			head = head->next;
-		}
-		/*  fixes the target display to the debugger */
-		target->gdb_service->target = target;
-	}
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(cortex_a_handle_smp_on_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	if (head != (struct target_list *)NULL) {
-		target->smp = 1;
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 1;
-			head = head->next;
-		}
-	}
-	return ERROR_OK;
-}
 
 COMMAND_HANDLER(cortex_a_handle_smp_gdb_command)
 {
@@ -3096,18 +3058,6 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 		.help = "Initialize core debug",
 		.usage = "",
 	},
-	{   .name = "smp_off",
-	    .handler = cortex_a_handle_smp_off_command,
-	    .mode = COMMAND_EXEC,
-	    .help = "Stop smp handling",
-	    .usage = "",},
-	{
-		.name = "smp_on",
-		.handler = cortex_a_handle_smp_on_command,
-		.mode = COMMAND_EXEC,
-		.help = "Restart smp handling",
-		.usage = "",
-	},
 	{
 		.name = "smp_gdb",
 		.handler = cortex_a_handle_smp_gdb_command,
@@ -3132,6 +3082,9 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 	},
 	{
 		.chain = armv7a_mmu_command_handlers,
+	},
+	{
+		.chain = smp_command_handlers,
 	},
 
 	COMMAND_REGISTRATION_DONE

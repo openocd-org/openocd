@@ -33,6 +33,7 @@
 #include "mips32_dmaacc.h"
 #include "target_type.h"
 #include "register.h"
+#include "smp.h"
 
 static void mips_m4k_enable_breakpoints(struct target *target);
 static void mips_m4k_enable_watchpoints(struct target *target);
@@ -1333,43 +1334,6 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(mips_m4k_handle_smp_off_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	/* check target is an smp target */
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	target->smp = 0;
-	if (head != (struct target_list *)NULL) {
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 0;
-			head = head->next;
-		}
-		/*  fixes the target display to the debugger */
-		target->gdb_service->target = target;
-	}
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(mips_m4k_handle_smp_on_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	if (head != (struct target_list *)NULL) {
-		target->smp = 1;
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 1;
-			head = head->next;
-		}
-	}
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(mips_m4k_handle_smp_gdb_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -1423,20 +1387,6 @@ static const struct command_registration mips_m4k_exec_command_handlers[] = {
 		.help = "display/modify cp0 register",
 	},
 	{
-		.name = "smp_off",
-		.handler = mips_m4k_handle_smp_off_command,
-		.mode = COMMAND_EXEC,
-		.help = "Stop smp handling",
-		.usage = "",},
-
-	{
-		.name = "smp_on",
-		.handler = mips_m4k_handle_smp_on_command,
-		.mode = COMMAND_EXEC,
-		.help = "Restart smp handling",
-		.usage = "",
-	},
-	{
 		.name = "smp_gdb",
 		.handler = mips_m4k_handle_smp_gdb_command,
 		.mode = COMMAND_EXEC,
@@ -1449,6 +1399,9 @@ static const struct command_registration mips_m4k_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "display/set scan delay in nano seconds",
 		.usage = "[value]",
+	},
+	{
+		.chain = smp_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };

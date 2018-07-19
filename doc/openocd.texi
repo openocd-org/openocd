@@ -1802,10 +1802,11 @@ displayed by the GDB session @pxref{usingopenocdsmpwithgdb,,Using OpenOCD SMP wi
 The SMP behaviour can be disabled/enabled dynamically. On cortex_a following
 command have been implemented.
 @itemize @bullet
-@item cortex_a smp_on : enable SMP mode, behaviour is as described above.
-@item cortex_a smp_off : disable SMP mode, the current target is the one
+@item cortex_a smp on : enable SMP mode, behaviour is as described above.
+@item cortex_a smp off : disable SMP mode, the current target is the one
 displayed in the GDB session, only this target is now controlled by GDB
 session. This behaviour is useful during system boot up.
+@item cortex_a smp : display current SMP mode.
 @item cortex_a smp_gdb : display/fix the core id displayed in GDB session see
 following example.
 @end itemize
@@ -8940,12 +8941,8 @@ Initialize core debug
 Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
 @end deffn
 
-@deffn Command {cortex_a smp_off}
-Disable SMP mode
-@end deffn
-
-@deffn Command {cortex_a smp_on}
-Enable SMP mode
+@deffn Command {cortex_a smp} [on|off]
+Display/set the current SMP mode
 @end deffn
 
 @deffn Command {cortex_a smp_gdb} [core_id]
@@ -9156,8 +9153,8 @@ target code relies on. In a configuration file, the command would typically be c
 However, normally it is not necessary to use the command at all.
 @end deffn
 
-@deffn Command {aarch64 smp_on|smp_off}
-Enable and disable SMP handling. The state of SMP handling influences the way targets in an SMP group
+@deffn Command {aarch64 smp} [on|off]
+Display, enable or disable SMP handling mode. The state of SMP handling influences the way targets in an SMP group
 are handled by the run control. With SMP handling enabled, issuing halt or resume to one core will trigger
 halting or resuming of all cores in the group. The command @code{target smp} defines which targets are in the SMP
 group. With SMP handling disabled, all targets need to be treated individually.
