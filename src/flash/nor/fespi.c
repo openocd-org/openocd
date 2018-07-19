@@ -1179,5 +1179,6 @@ struct flash_driver fespi_flash = {
 	.auto_probe = fespi_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = fespi_protect_check,
-	.info = get_fespi_info
+	.info = get_fespi_info,
+	.free_driver_priv = default_flash_free_driver_priv
 };
