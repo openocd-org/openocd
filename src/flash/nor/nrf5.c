@@ -108,6 +108,7 @@ enum nrf5_nvmc_config_bits {
 
 struct nrf5_info {
 	uint32_t code_page_size;
+	uint32_t refcount;
 
 	struct {
 		bool probed;
@@ -869,6 +870,18 @@ static int nrf5_write(struct flash_bank *bank, const uint8_t *buffer,
 	return chip->bank[bank->bank_number].write(bank, chip, buffer, offset, count);
 }
 
+static void nrf5_free_driver_priv(struct flash_bank *bank)
+{
+	struct nrf5_info *chip = bank->driver_priv;
+	if (chip == NULL)
+		return;
+
+	chip->refcount--;
+	if (chip->refcount == 0) {
+		free(chip);
+		bank->driver_priv = NULL;
+	}
+}
 
 FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 {
@@ -904,6 +917,7 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 		break;
 	}
 
+	chip->refcount++;
 	chip->bank[bank->bank_number].probed = false;
 	bank->driver_priv = chip;
 
@@ -1128,6 +1142,7 @@ struct flash_driver nrf5_flash = {
 	.auto_probe		= nrf5_auto_probe,
 	.erase_check		= default_flash_blank_check,
 	.protect_check		= nrf5_protect_check,
+	.free_driver_priv	= nrf5_free_driver_priv,
 };
 
 /* We need to retain the flash-driver name as well as the commands
@@ -1145,4 +1160,5 @@ struct flash_driver nrf51_flash = {
 	.auto_probe		= nrf5_auto_probe,
 	.erase_check		= default_flash_blank_check,
 	.protect_check		= nrf5_protect_check,
+	.free_driver_priv	= nrf5_free_driver_priv,
 };
