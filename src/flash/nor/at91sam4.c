@@ -2789,20 +2789,17 @@ static int sam4_page_read(struct sam4_bank_private *pPrivate, unsigned pagenum, 
 	return r;
 }
 
-static int sam4_page_write(struct sam4_bank_private *pPrivate, unsigned pagenum, const uint8_t *buf)
+static int sam4_set_wait(struct sam4_bank_private *pPrivate)
 {
-	uint32_t adr;
-	uint32_t status;
 	uint32_t fmr;	/* EEFC Flash Mode Register */
 	int r;
 
-	adr = pagenum * pPrivate->page_size;
-	adr = (adr + pPrivate->base_address);
-
 	/* Get flash mode register value */
 	r = target_read_u32(pPrivate->pChip->target, pPrivate->controller_address, &fmr);
-	if (r != ERROR_OK)
-		LOG_DEBUG("Error Read failed: read flash mode register");
+	if (r != ERROR_OK) {
+		LOG_ERROR("Error Read failed: read flash mode register");
+		return r;
+	}
 
 	/* Clear flash wait state field */
 	fmr &= 0xfffff0ff;
@@ -2813,7 +2810,19 @@ static int sam4_page_write(struct sam4_bank_private *pPrivate, unsigned pagenum,
 	LOG_DEBUG("Flash Mode: 0x%08x", ((unsigned int)(fmr)));
 	r = target_write_u32(pPrivate->pBank->target, pPrivate->controller_address, fmr);
 	if (r != ERROR_OK)
-		LOG_DEBUG("Error Write failed: set flash mode register");
+		LOG_ERROR("Error Write failed: set flash mode register");
+
+	return r;
+}
+
+static int sam4_page_write(struct sam4_bank_private *pPrivate, unsigned pagenum, const uint8_t *buf)
+{
+	uint32_t adr;
+	uint32_t status;
+	int r;
+
+	adr = pagenum * pPrivate->page_size;
+	adr = (adr + pPrivate->base_address);
 
 	/* 1st sector 8kBytes - page 0 - 15*/
 	/* 2nd sector 8kBytes - page 16 - 30*/
@@ -2900,6 +2909,10 @@ static int sam4_write(struct flash_bank *bank,
 		r = ERROR_FAIL;
 		goto done;
 	}
+
+	r = sam4_set_wait(pPrivate);
+	if (r != ERROR_OK)
+		goto done;
 
 	/* what page do we start & end in? */
 	page_cur = offset / pPrivate->page_size;
