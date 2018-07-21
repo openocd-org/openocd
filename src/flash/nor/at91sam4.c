@@ -2550,7 +2550,7 @@ static int sam4_GetDetails(struct sam4_bank_private *pPrivate)
 		sam4_explain_chipid_cidr(pPrivate->pChip);
 		return ERROR_FAIL;
 	} else {
-		LOG_INFO("SAM4 Found chip %s, CIDR 0x%08x", pDetails->name, pDetails->chipid_cidr);
+		LOG_DEBUG("SAM4 Found chip %s, CIDR 0x%08x", pDetails->name, pDetails->chipid_cidr);
 	}
 
 	/* DANGER: THERE ARE DRAGONS HERE */
@@ -2583,6 +2583,27 @@ static int sam4_GetDetails(struct sam4_bank_private *pPrivate)
 	/* update the *BANK*SIZE* */
 
 	LOG_DEBUG("End");
+	return ERROR_OK;
+}
+
+static int sam4_info(struct flash_bank *bank, char *buf, int buf_size)
+{
+	struct sam4_bank_private *pPrivate;
+	int k = bank->size / 1024;
+
+	pPrivate = get_sam4_bank_private(bank);
+	if (pPrivate == NULL) {
+		buf[0] = '\0';
+		return ERROR_FAIL;
+	}
+
+	snprintf(buf, buf_size,
+		"%s bank %d: %d kB at 0x%08" PRIx32,
+		pPrivate->pChip->details.name,
+		pPrivate->bank_number,
+		k,
+		bank->base);
+
 	return ERROR_OK;
 }
 
@@ -2621,7 +2642,7 @@ static int sam4_probe(struct flash_bank *bank)
 	for (x = 0; x < SAM4_MAX_FLASH_BANKS; x++) {
 		if (bank->base == pPrivate->pChip->details.bank[x].base_address) {
 			bank->size = pPrivate->pChip->details.bank[x].size_bytes;
-			LOG_INFO("SAM4 Set flash bank to %08X - %08X, idx %d", bank->base, bank->base + bank->size, x);
+			LOG_DEBUG("SAM4 Set flash bank to %08X - %08X, idx %d", bank->base, bank->base + bank->size, x);
 			break;
 		}
 	}
@@ -3209,5 +3230,6 @@ struct flash_driver at91sam4_flash = {
 	.auto_probe = sam4_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = sam4_protect_check,
+	.info = sam4_info,
 	.free_driver_priv = sam4_free_driver_priv,
 };
