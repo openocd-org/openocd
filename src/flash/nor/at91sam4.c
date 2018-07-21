@@ -2376,6 +2376,11 @@ static int sam4_GetInfo(struct sam4_chip *pChip)
 {
 	const struct sam4_reg_list *pReg;
 	uint32_t regval;
+	int r;
+
+	r = sam4_ReadAllRegs(pChip);
+	if (r != ERROR_OK)
+		return r;
 
 	pReg = &(sam4_all_regs[0]);
 	while (pReg->name) {
@@ -2581,14 +2586,14 @@ static int sam4_GetDetails(struct sam4_bank_private *pPrivate)
 	return ERROR_OK;
 }
 
-static int _sam4_probe(struct flash_bank *bank, int noise)
+static int sam4_probe(struct flash_bank *bank)
 {
 	unsigned x;
 	int r;
 	struct sam4_bank_private *pPrivate;
 
 
-	LOG_DEBUG("Begin: Bank: %d, Noise: %d", bank->bank_number, noise);
+	LOG_DEBUG("Begin: Bank: %d", bank->bank_number);
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -2655,14 +2660,15 @@ static int _sam4_probe(struct flash_bank *bank, int noise)
 	return r;
 }
 
-static int sam4_probe(struct flash_bank *bank)
-{
-	return _sam4_probe(bank, 1);
-}
-
 static int sam4_auto_probe(struct flash_bank *bank)
 {
-	return _sam4_probe(bank, 0);
+	struct sam4_bank_private *pPrivate;
+
+	pPrivate = get_sam4_bank_private(bank);
+	if (pPrivate && pPrivate->probed)
+		return ERROR_OK;
+
+	return sam4_probe(bank);
 }
 
 static int sam4_erase(struct flash_bank *bank, int first, int last)
