@@ -57,6 +57,9 @@
 #include "transport/transport.h"
 #include <helper/time_support.h>
 
+#define foreach_smp_target(pos, head) \
+	for (pos = head; (pos != NULL); pos = pos->next)
+
 static int cortex_a_poll(struct target *target);
 static int cortex_a_debug_entry(struct target *target);
 static int cortex_a_restore_context(struct target *target, bool bpwp);
@@ -806,12 +809,43 @@ static int cortex_a_halt_smp(struct target *target)
 
 static int update_halt_gdb(struct target *target)
 {
+	struct target *gdb_target = NULL;
+	struct target_list *head;
+	struct target *curr;
 	int retval = 0;
+
 	if (target->gdb_service && target->gdb_service->core[0] == -1) {
 		target->gdb_service->target = target;
 		target->gdb_service->core[0] = target->coreid;
 		retval += cortex_a_halt_smp(target);
 	}
+
+	if (target->gdb_service)
+		gdb_target = target->gdb_service->target;
+
+	foreach_smp_target(head, target->head) {
+		curr = head->target;
+		/* skip calling context */
+		if (curr == target)
+			continue;
+		if (!target_was_examined(curr))
+			continue;
+		/* skip targets that were already halted */
+		if (curr->state == TARGET_HALTED)
+			continue;
+		/* Skip gdb_target; it alerts GDB so has to be polled as last one */
+		if (curr == gdb_target)
+			continue;
+
+		/* avoid recursion in cortex_a_poll() */
+		curr->smp = 0;
+		cortex_a_poll(curr);
+		curr->smp = 1;
+	}
+
+	/* after all targets were updated, poll the gdb serving target */
+	if (gdb_target != NULL && gdb_target != target)
+		cortex_a_poll(gdb_target);
 	return retval;
 }
 
