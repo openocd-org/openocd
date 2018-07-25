@@ -3229,7 +3229,7 @@ static int cortex_a_virt2phys(struct target *target,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
-	int mmu_enabled;
+	int mmu_enabled = 0;
 
 	/*
 	 * If the MMU was not enabled at debug entry, there is no
