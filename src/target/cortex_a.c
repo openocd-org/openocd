@@ -3438,7 +3438,7 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 	{
 		.name = "dacrfixup",
 		.handler = handle_cortex_a_dacrfixup_command,
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.help = "set domain access control (DACR) to all-manager "
 			"on memory access",
 		.usage = "['on'|'off']",
