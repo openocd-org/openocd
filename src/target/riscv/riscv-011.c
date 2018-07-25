@@ -240,6 +240,7 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 				case SLOT1: return 5;
 				case SLOT_LAST: return info->dramsize-1;
 			}
+			break;
 		case 64:
 			switch (slot) {
 				case SLOT0: return 4;
