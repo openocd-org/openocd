@@ -8800,8 +8800,8 @@ Enable or disable trace output for all ITM stimulus ports.
 @deffn Command {cortex_m maskisr} (@option{auto}|@option{on}|@option{off})
 Control masking (disabling) interrupts during target step/resume.
 
-The @option{auto} option handles interrupts during stepping a way they get
-served but don't disturb the program flow. The step command first allows
+The @option{auto} option handles interrupts during stepping in a way that they
+get served but don't disturb the program flow. The step command first allows
 pending interrupt handlers to execute, then disables interrupts and steps over
 the next instruction where the core was halted. After the step interrupts
 are enabled again. If the interrupt handlers don't complete within 500ms,
