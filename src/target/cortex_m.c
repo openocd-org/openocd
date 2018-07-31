@@ -165,7 +165,7 @@ static int cortex_m_single_step_core(struct target *target)
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 	int retval;
 
-	/* Mask interrupts before clearing halt, if done already.  This avoids
+	/* Mask interrupts before clearing halt, if not done already.  This avoids
 	 * Erratum 377497 (fixed in r1p0) where setting MASKINTS while clearing
 	 * HALT can put the core into an unknown state.
 	 */
