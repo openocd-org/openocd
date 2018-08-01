@@ -9078,7 +9078,7 @@ Enable or disable trace output for all ITM stimulus ports.
 @subsection Cortex-M specific commands
 @cindex Cortex-M
 
-@deffn Command {cortex_m maskisr} (@option{auto}|@option{on}|@option{off})
+@deffn Command {cortex_m maskisr} (@option{auto}|@option{on}|@option{off}|@option{steponly})
 Control masking (disabling) interrupts during target step/resume.
 
 The @option{auto} option handles interrupts during stepping in a way that they
@@ -9087,6 +9087,11 @@ pending interrupt handlers to execute, then disables interrupts and steps over
 the next instruction where the core was halted. After the step interrupts
 are enabled again. If the interrupt handlers don't complete within 500ms,
 the step command leaves with the core running.
+
+The @option{steponly} option disables interrupts during single-stepping but
+enables them during normal execution. This can be used as a partial workaround
+for 702596 erratum in Cortex-M7 r0p1. See "Cortex-M7 (AT610) and Cortex-M7 with
+FPU (AT611) Software Developer Errata Notice" from ARM for further details.
 
 Note that a free hardware (FPB) breakpoint is required for the @option{auto}
 option. If no breakpoint is available at the time of the step, then the step

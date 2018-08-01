@@ -159,6 +159,7 @@ enum cortex_m_isrmasking_mode {
 	CORTEX_M_ISRMASK_AUTO,
 	CORTEX_M_ISRMASK_OFF,
 	CORTEX_M_ISRMASK_ON,
+	CORTEX_M_ISRMASK_STEPONLY,
 };
 
 struct cortex_m_common {
@@ -190,6 +191,10 @@ struct cortex_m_common {
 	struct armv7m_common armv7m;
 
 	int apsel;
+
+	/* Whether this target has the erratum that makes C_MASKINTS not apply to
+	 * already pending interrupts */
+	bool maskints_erratum;
 };
 
 static inline struct cortex_m_common *
