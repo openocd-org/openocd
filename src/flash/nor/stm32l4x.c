@@ -93,7 +93,7 @@
 
 /* STM32_FLASH_OBR bit definitions (reading) */
 
-#define OPT_DUALBANK   21	/* dual flash bank only */
+#define OPT_DUALBANK   (1 << 21)	/* dual flash bank only */
 
 /* register unlock keys */
 
@@ -631,12 +631,6 @@ static int stm32l4_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* only devices with < 1024 kiB may be set to single bank dual banks */
-	if ((flash_size_in_kb == 1024) || !(options & OPT_DUALBANK))
-		stm32l4_info->bank2_start = 256;
-	else
-		stm32l4_info->bank2_start = flash_size_in_kb << 9;
-
 	/* did we assign flash size? */
 	assert((flash_size_in_kb != 0xffff) && flash_size_in_kb);
 
@@ -645,6 +639,12 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	/* check that calculation result makes sense */
 	assert(num_pages > 0);
+
+	/* only devices with < 1024 kiB may be set to single bank dual banks */
+	if ((flash_size_in_kb == 1024) || !(options & OPT_DUALBANK))
+		stm32l4_info->bank2_start = 256;
+	else
+		stm32l4_info->bank2_start = num_pages / 2;
 
 	if (bank->sectors) {
 		free(bank->sectors);
