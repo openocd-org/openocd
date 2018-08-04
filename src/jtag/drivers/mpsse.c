@@ -120,7 +120,7 @@ static bool device_location_equal(libusb_device *device, const char *location)
 
 	LOG_DEBUG("device path has %i steps", path_len);
 
-	ptr = strtok(loc, ":");
+	ptr = strtok(loc, "-:");
 	if (ptr == NULL) {
 		LOG_DEBUG("no ':' in path");
 		goto done;
@@ -132,7 +132,7 @@ static bool device_location_equal(libusb_device *device, const char *location)
 
 	path_step = 0;
 	while (path_step < 7) {
-		ptr = strtok(NULL, ",");
+		ptr = strtok(NULL, ".,");
 		if (ptr == NULL) {
 			LOG_DEBUG("no more tokens in path at step %i", path_step);
 			break;
