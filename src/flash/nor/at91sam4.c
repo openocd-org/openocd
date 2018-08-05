@@ -3131,7 +3131,8 @@ showall:
 		}
 		if ((who >= 0) && (((unsigned)(who)) < pChip->details.n_gpnvms)) {
 			r = FLASHD_GetGPNVM(&(pChip->details.bank[0]), who, &v);
-			command_print(CMD_CTX, "sam4-gpnvm%u: %u", who, v);
+			if (r == ERROR_OK)
+				command_print(CMD_CTX, "sam4-gpnvm%u: %u", who, v);
 			return r;
 		} else {
 			command_print(CMD_CTX, "sam4-gpnvm invalid GPNVM: %u", who);
