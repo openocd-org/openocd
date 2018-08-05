@@ -1788,6 +1788,8 @@ static riscv_error_t handle_halt_routine(struct target *target)
 					break;
 				default:
 					assert(0);
+					LOG_ERROR("Got invalid register result %d", result);
+					goto error;
 			}
 			if (riscv_xlen(target) == 32) {
 				reg_cache_set(target, reg, data & 0xffffffff);
