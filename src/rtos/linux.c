@@ -1134,7 +1134,7 @@ int linux_gdb_thread_packet(struct target *target,
 	if (retval != ERROR_OK)
 		return ERROR_TARGET_FAILURE;
 
-	char *out_str = calloc(1, 350 * sizeof(int64_t));
+	char *out_str = calloc(MAX_THREADS * 17 + 10, 1);
 	char *tmp_str = out_str;
 	tmp_str += sprintf(tmp_str, "m");
 	struct threads *temp = linux_os->thread_list;
@@ -1171,7 +1171,7 @@ int linux_gdb_thread_update(struct target *target,
 
 	if (found == 1) {
 		/*LOG_INFO("INTO GDB THREAD UPDATE FOUNDING START TASK");*/
-		char *out_strr = calloc(1, 350 * sizeof(int64_t));
+		char *out_strr = calloc(MAX_THREADS * 17 + 10, 1);
 		char *tmp_strr = out_strr;
 		tmp_strr += sprintf(tmp_strr, "m");
 		/*LOG_INFO("CHAR MALLOC & M DONE");*/
