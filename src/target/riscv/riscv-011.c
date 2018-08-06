@@ -1407,12 +1407,6 @@ static int strict_step(struct target *target, bool announce)
 
 	LOG_DEBUG("enter");
 
-	struct breakpoint *breakpoint = target->breakpoints;
-	while (breakpoint) {
-		riscv_remove_breakpoint(target, breakpoint);
-		breakpoint = breakpoint->next;
-	}
-
 	struct watchpoint *watchpoint = target->watchpoints;
 	while (watchpoint) {
 		riscv_remove_watchpoint(target, watchpoint);
@@ -1422,12 +1416,6 @@ static int strict_step(struct target *target, bool announce)
 	int result = full_step(target, announce);
 	if (result != ERROR_OK)
 		return result;
-
-	breakpoint = target->breakpoints;
-	while (breakpoint) {
-		riscv_add_breakpoint(target, breakpoint);
-		breakpoint = breakpoint->next;
-	}
 
 	watchpoint = target->watchpoints;
 	while (watchpoint) {
