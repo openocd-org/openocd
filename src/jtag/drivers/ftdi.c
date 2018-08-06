@@ -1203,14 +1203,6 @@ static void ftdi_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_cl
 	ftdi_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
 }
 
-static int_least32_t ftdi_swd_frequency(int_least32_t hz)
-{
-	if (hz > 0)
-		freq = mpsse_set_frequency(mpsse_ctx, hz);
-
-	return freq;
-}
-
 static int ftdi_swd_switch_seq(enum swd_special_seq seq)
 {
 	switch (seq) {
@@ -1239,7 +1231,6 @@ static int ftdi_swd_switch_seq(enum swd_special_seq seq)
 
 static const struct swd_driver ftdi_swd = {
 	.init = ftdi_swd_init,
-	.frequency = ftdi_swd_frequency,
 	.switch_seq = ftdi_swd_switch_seq,
 	.read_reg = ftdi_swd_read_reg,
 	.write_reg = ftdi_swd_write_reg,

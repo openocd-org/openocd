@@ -1929,14 +1929,6 @@ static void jlink_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_c
 	jlink_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
 }
 
-static int_least32_t jlink_swd_frequency(int_least32_t hz)
-{
-	if (hz > 0)
-		jlink_speed(hz / 1000);
-
-	return hz;
-}
-
 /***************************************************************************/
 /* J-Link tap functions */
 
@@ -2212,7 +2204,6 @@ static void jlink_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint3
 
 static const struct swd_driver jlink_swd = {
 	.init = &jlink_swd_init,
-	.frequency = &jlink_swd_frequency,
 	.switch_seq = &jlink_swd_switch_seq,
 	.read_reg = &jlink_swd_read_reg,
 	.write_reg = &jlink_swd_write_reg,

@@ -956,7 +956,6 @@ static const char * const vsllink_transports[] = {"jtag", "swd", NULL};
 
 static const struct swd_driver vsllink_swd_driver = {
 	.init = vsllink_swd_init,
-	.frequency = vsllink_swd_frequency,
 	.switch_seq = vsllink_swd_switch_seq,
 	.read_reg = vsllink_swd_read_reg,
 	.write_reg = vsllink_swd_write_reg,

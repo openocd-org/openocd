@@ -1653,15 +1653,6 @@ static int cmsis_dap_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static int_least32_t cmsis_dap_swd_frequency(int_least32_t hz)
-{
-	if (hz > 0)
-		cmsis_dap_speed(hz / 1000);
-
-	return hz;
-}
-
-
 COMMAND_HANDLER(cmsis_dap_handle_info_command)
 {
 	if (cmsis_dap_get_version_info() == ERROR_OK)
@@ -1790,7 +1781,6 @@ static const struct command_registration cmsis_dap_command_handlers[] = {
 
 static const struct swd_driver cmsis_dap_swd_driver = {
 	.init = cmsis_dap_swd_init,
-	.frequency = cmsis_dap_swd_frequency,
 	.switch_seq = cmsis_dap_swd_switch_seq,
 	.read_reg = cmsis_dap_swd_read_reg,
 	.write_reg = cmsis_dap_swd_write_reg,
