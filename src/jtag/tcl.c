@@ -307,11 +307,13 @@ static const struct command_registration jtag_command_handlers_to_move[] = {
 
 
 enum jtag_tap_cfg_param {
-	JCFG_EVENT
+	JCFG_EVENT,
+	JCFG_IDCODE,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-event",      .value = JCFG_EVENT },
+	{ .name = "-idcode",     .value = JCFG_IDCODE },
 
 	{ .name = NULL,          .value = -1 }
 };
@@ -404,8 +406,23 @@ static int jtag_tap_configure_cmd(Jim_GetOptInfo *goi, struct jtag_tap *tap)
 				if (e != JIM_OK)
 					return e;
 				break;
+			case JCFG_IDCODE:
+				if (goi->isconfigure) {
+					Jim_SetResultFormatted(goi->interp,
+							"not settable: %s", n->name);
+					return JIM_ERR;
+				} else {
+					if (goi->argc != 0) {
+						Jim_WrongNumArgs(goi->interp,
+								goi->argc, goi->argv,
+								"NO PARAMS");
+						return JIM_ERR;
+					}
+				}
+				Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, tap->idcode));
+				break;
 			default:
-				Jim_SetResultFormatted(goi->interp, "unknown event: %s", n->name);
+				Jim_SetResultFormatted(goi->interp, "unknown value: %s", n->name);
 				return JIM_ERR;
 		}
 	}

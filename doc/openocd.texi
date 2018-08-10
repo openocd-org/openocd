@@ -3895,10 +3895,14 @@ devices do not set the ack bit until sometime later.
 
 @section Other TAP commands
 
+@deffn Command {jtag cget} dotted.name @option{-idcode}
+Get the value of the IDCODE found in hardware.
+@end deffn
+
 @deffn Command {jtag cget} dotted.name @option{-event} event_name
 @deffnx Command {jtag configure} dotted.name @option{-event} event_name handler
 At this writing this TAP attribute
-mechanism is used only for event handling.
+mechanism is limited and used mostly for event handling.
 (It is not a direct analogue of the @code{cget}/@code{configure}
 mechanism for debugger targets.)
 See the next section for information about the available events.
