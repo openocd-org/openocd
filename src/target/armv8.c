@@ -936,6 +936,11 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 			"Secure", "Not Secure"
 	};
 
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("target %s not halted", target_name(target));
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		return retval;
