@@ -207,6 +207,9 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 	/* nRF52832 Devices */
 	NRF5_DEVICE_DEF(0x00C7, "52832", "QFAA", "B0",    512),
 	NRF5_DEVICE_DEF(0x0139, "52832", "QFAA", "E0",    512),
+
+	/* nRF52840 Devices */
+	NRF5_DEVICE_DEF(0x0150, "52840", "QIAA", "C0",    1024),
 };
 
 static int nrf5_bank_is_probed(struct flash_bank *bank)
