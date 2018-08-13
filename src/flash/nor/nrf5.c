@@ -26,6 +26,7 @@
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 #include <helper/types.h>
+#include <helper/time_support.h>
 
 enum {
 	NRF5_FLASH_BASE = 0x00000000,
@@ -240,7 +241,8 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 {
 	uint32_t ready;
 	int res;
-	int timeout = 100;
+	int timeout_ms = 200;
+	int64_t ts_start = timeval_ms();
 
 	do {
 		res = target_read_u32(chip->target, NRF5_NVMC_READY, &ready);
@@ -252,8 +254,9 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 		if (ready == 0x00000001)
 			return ERROR_OK;
 
-		alive_sleep(1);
-	} while (timeout--);
+		keep_alive();
+
+	} while ((timeval_ms()-ts_start) < timeout_ms);
 
 	LOG_DEBUG("Timed out waiting for NVMC_READY");
 	return ERROR_FLASH_BUSY;
