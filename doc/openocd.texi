@@ -6596,6 +6596,42 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 Mass erases the entire stm32l4x device.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
+
+@deffn Command {stm32l4x option_read} num reg_offset
+Reads an option byte register from the stm32l4x device.
+The @var{num} parameter is a value shown by @command{flash banks}, @var{reg_offset}
+is the register offset of the Option byte to read.
+
+For example to read the FLASH_OPTR register:
+@example
+stm32l4x option_read 0 0x20
+# Option Register: <0x40022020> = 0xffeff8aa
+@end example
+
+The above example will read out the FLASH_OPTR register which contains the RDP
+option byte, Watchdog configuration, BOR level etc.
+@end deffn
+
+@deffn Command {stm32l4x option_write} num reg_offset reg_mask
+Write an option byte register of the stm32l4x device.
+The @var{num} parameter is a value shown by @command{flash banks}, @var{reg_offset}
+is the register offset of the Option byte to write, and @var{reg_mask} is the mask
+to apply when writing the register (only bits with a '1' will be touched).
+
+For example to write the WRP1AR option bytes:
+@example
+stm32l4x option_write 0 0x28 0x00FF0000 0x00FF00FF
+@end example
+
+The above example will write the WRP1AR option register configuring the Write protection
+Area A for bank 1. The above example set WRP1AR_END=255, WRP1AR_START=0.
+This will effectively write protect all sectors in flash bank 1.
+@end deffn
+
+@deffn Command {stm32l4x option_load} num
+Forces a re-load of the option byte registers. Will cause a reset of the device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} str7x

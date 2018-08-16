@@ -57,8 +57,8 @@
 #define STM32_FLASH_CR      0x40022014
 #define STM32_FLASH_OPTR    0x40022020
 #define STM32_FLASH_WRP1AR  0x4002202c
-#define STM32_FLASH_WRP2AR  0x40022030
-#define STM32_FLASH_WRP1BR  0x4002204c
+#define STM32_FLASH_WRP1BR  0x40022030
+#define STM32_FLASH_WRP2AR  0x4002204c
 #define STM32_FLASH_WRP2BR  0x40022050
 
 /* FLASH_CR register bits */
@@ -70,8 +70,10 @@
 #define FLASH_CR_BKER  (1 << 11)
 #define FLASH_MER2     (1 << 15)
 #define FLASH_STRT     (1 << 16)
+#define FLASH_OPTSTRT  (1 << 17)
 #define FLASH_EOPIE    (1 << 24)
 #define FLASH_ERRIE    (1 << 25)
+#define FLASH_OBLLAUNCH (1 << 27)
 #define FLASH_OPTLOCK  (1 << 30)
 #define FLASH_LOCK     (1 << 31)
 
@@ -102,28 +104,17 @@
 #define OPTKEY1        0x08192A3B
 #define OPTKEY2        0x4C5D6E7F
 
+#define RDP_LEVEL_0	   0xAA
+#define RDP_LEVEL_1	   0xBB
+#define RDP_LEVEL_2	   0xCC
+
 
 /* other registers */
 #define DBGMCU_IDCODE	0xE0042000
 #define FLASH_SIZE_REG	0x1FFF75E0
 
-struct stm32l4_options {
-	uint8_t RDP;
-	uint16_t bank_b_start;
-	uint8_t user_options;
-	uint8_t wpr1a_start;
-	uint8_t wpr1a_end;
-	uint8_t wpr1b_start;
-	uint8_t wpr1b_end;
-	uint8_t wpr2a_start;
-	uint8_t wpr2a_end;
-	uint8_t wpr2b_start;
-	uint8_t wpr2b_end;
-    /* Fixme: Handle PCROP */
-};
-
 struct stm32l4_flash_bank {
-	struct stm32l4_options option_bytes;
+	uint16_t bank2_start;
 	int probed;
 };
 
@@ -265,97 +256,80 @@ static int stm32l4_unlock_option_reg(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm32l4_read_options(struct flash_bank *bank)
+static int stm32l4_read_option(struct flash_bank *bank, uint32_t address, uint32_t* value)
 {
-	uint32_t optiondata;
-	struct stm32l4_flash_bank *stm32l4_info = NULL;
 	struct target *target = bank->target;
-
-	stm32l4_info = bank->driver_priv;
-
-	/* read current option bytes */
-	int retval = target_read_u32(target, STM32_FLASH_OPTR, &optiondata);
-	if (retval != ERROR_OK)
-		return retval;
-
-	stm32l4_info->option_bytes.user_options = (optiondata >> 8) & 0x3ffff;
-	stm32l4_info->option_bytes.RDP = optiondata & 0xff;
-
-	retval = target_read_u32(target, STM32_FLASH_WRP1AR, &optiondata);
-	if (retval != ERROR_OK)
-		return retval;
-	stm32l4_info->option_bytes.wpr1a_start =  optiondata         & 0xff;
-	stm32l4_info->option_bytes.wpr1a_end   = (optiondata >> 16)  & 0xff;
-
-	retval = target_read_u32(target, STM32_FLASH_WRP2AR, &optiondata);
-	if (retval != ERROR_OK)
-		return retval;
-	stm32l4_info->option_bytes.wpr2a_start =  optiondata         & 0xff;
-	stm32l4_info->option_bytes.wpr2a_end   = (optiondata >> 16)  & 0xff;
-
-	retval = target_read_u32(target, STM32_FLASH_WRP1BR, &optiondata);
-	if (retval != ERROR_OK)
-		return retval;
-	stm32l4_info->option_bytes.wpr1b_start =  optiondata         & 0xff;
-	stm32l4_info->option_bytes.wpr1b_end   = (optiondata >> 16)  & 0xff;
-
-	retval = target_read_u32(target, STM32_FLASH_WRP2BR, &optiondata);
-	if (retval != ERROR_OK)
-		return retval;
-	stm32l4_info->option_bytes.wpr2b_start =  optiondata         & 0xff;
-	stm32l4_info->option_bytes.wpr2b_end   = (optiondata >> 16)  & 0xff;
-
-	if (stm32l4_info->option_bytes.RDP != 0xAA)
-		LOG_INFO("Device Security Bit Set");
-
-	return ERROR_OK;
+	return target_read_u32(target, address, value);
 }
 
-static int stm32l4_write_options(struct flash_bank *bank)
+static int stm32l4_write_option(struct flash_bank *bank, uint32_t address, uint32_t value, uint32_t mask)
 {
-	struct stm32l4_flash_bank *stm32l4_info = NULL;
 	struct target *target = bank->target;
 	uint32_t optiondata;
 
-	stm32l4_info = bank->driver_priv;
-
-	(void) optiondata;
-	(void) stm32l4_info;
-
-	int retval = stm32l4_unlock_option_reg(target);
+	int retval = target_read_u32(target, address, &optiondata);
 	if (retval != ERROR_OK)
 		return retval;
-	/* FIXME: Implement Option writing!*/
-	return ERROR_OK;
+
+	retval = stm32l4_unlock_reg(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32l4_unlock_option_reg(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	optiondata = (optiondata & ~mask) | (value & mask);
+
+	retval = target_write_u32(target, address, optiondata);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = target_write_u32(target, stm32l4_get_flash_reg(bank, STM32_FLASH_CR), FLASH_OPTSTRT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32l4_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return retval;
 }
 
 static int stm32l4_protect_check(struct flash_bank *bank)
 {
 	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
+	uint32_t wrp1ar, wrp1br, wrp2ar, wrp2br;
+	stm32l4_read_option(bank, STM32_FLASH_WRP1AR, &wrp1ar);
+	stm32l4_read_option(bank, STM32_FLASH_WRP1BR, &wrp1br);
+	stm32l4_read_option(bank, STM32_FLASH_WRP2AR, &wrp2ar);
+	stm32l4_read_option(bank, STM32_FLASH_WRP2BR, &wrp2br);
 
-	/* read write protection settings */
-	int retval = stm32l4_read_options(bank);
-	if (retval != ERROR_OK) {
-		LOG_DEBUG("unable to read option bytes");
-		return retval;
-	}
+	const uint8_t wrp1a_start = wrp1ar & 0xFF;
+	const uint8_t wrp1a_end = (wrp1ar >> 16) & 0xFF;
+	const uint8_t wrp1b_start = wrp1br & 0xFF;
+	const uint8_t wrp1b_end = (wrp1br >> 16) & 0xFF;
+	const uint8_t wrp2a_start = wrp2ar & 0xFF;
+	const uint8_t wrp2a_end = (wrp2ar >> 16) & 0xFF;
+	const uint8_t wrp2b_start = wrp2br & 0xFF;
+	const uint8_t wrp2b_end = (wrp2br >> 16) & 0xFF;
 
 	for (int i = 0; i < bank->num_sectors; i++) {
-		if (i < stm32l4_info->option_bytes.bank_b_start) {
-			if (((i >= stm32l4_info->option_bytes.wpr1a_start) &&
-				 (i <= stm32l4_info->option_bytes.wpr1a_end)) ||
-				((i >= stm32l4_info->option_bytes.wpr2a_start) &&
-				 (i <= stm32l4_info->option_bytes.wpr2a_end)))
+		if (i < stm32l4_info->bank2_start) {
+			if (((i >= wrp1a_start) &&
+				 (i <= wrp1a_end)) ||
+				((i >= wrp1b_start) &&
+				 (i <= wrp1b_end)))
 				bank->sectors[i].is_protected = 1;
 			else
 				bank->sectors[i].is_protected = 0;
 		} else {
 			uint8_t snb;
-			snb = i - stm32l4_info->option_bytes.bank_b_start + 256;
-			if (((snb >= stm32l4_info->option_bytes.wpr1b_start) &&
-				 (snb <= stm32l4_info->option_bytes.wpr1b_end)) ||
-				((snb >= stm32l4_info->option_bytes.wpr2b_start) &&
-				 (snb <= stm32l4_info->option_bytes.wpr2b_end)))
+			snb = i - stm32l4_info->bank2_start + 256;
+			if (((snb >= wrp2a_start) &&
+				 (snb <= wrp2a_end)) ||
+				((snb >= wrp2b_start) &&
+				 (snb <= wrp2b_end)))
 				bank->sectors[i].is_protected = 1;
 			else
 				bank->sectors[i].is_protected = 0;
@@ -398,9 +372,9 @@ static int stm32l4_erase(struct flash_bank *bank, int first, int last)
 		uint32_t erase_flags;
 		erase_flags = FLASH_PER | FLASH_STRT;
 
-		if  (i >= stm32l4_info->option_bytes.bank_b_start) {
+		if  (i >= stm32l4_info->bank2_start) {
 			uint8_t snb;
-			snb = (i - stm32l4_info->option_bytes.bank_b_start) + 256;
+			snb = (i - stm32l4_info->bank2_start) + 256;
 			erase_flags |= snb << FLASH_PAGE_SHIFT | FLASH_CR_BKER;
 		} else
 			erase_flags |= i << FLASH_PAGE_SHIFT;
@@ -434,20 +408,29 @@ static int stm32l4_protect(struct flash_bank *bank, int set, int first, int last
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* read protection settings */
-	int retval = stm32l4_read_options(bank);
-	if (retval != ERROR_OK) {
-		LOG_DEBUG("unable to read option bytes");
-		return retval;
+	int ret = ERROR_OK;
+	/* Bank 2 */
+	uint32_t reg_value = 0xFF; /* Default to bank un-protected */
+	if (last >= stm32l4_info->bank2_start) {
+		if (set == 1) {
+			uint8_t begin = first > stm32l4_info->bank2_start ? first : 0x00;
+			reg_value = ((last & 0xFF) << 16) | begin;
+		}
+
+		ret = stm32l4_write_option(bank, STM32_FLASH_WRP2AR, reg_value, 0xffffffff);
+	}
+	/* Bank 1 */
+	reg_value = 0xFF; /* Default to bank un-protected */
+	if (first < stm32l4_info->bank2_start) {
+		if (set == 1) {
+			uint8_t end = last >= stm32l4_info->bank2_start ? 0xFF : last;
+			reg_value = (end << 16) | (first & 0xFF);
+		}
+
+		ret = stm32l4_write_option(bank, STM32_FLASH_WRP1AR, reg_value, 0xffffffff);
 	}
 
-	(void)stm32l4_info;
-	/* FIXME: Write First and last in a valid WRPxx_start/end combo*/
-	retval = stm32l4_write_options(bank);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ERROR_OK;
+	return ret;
 }
 
 /* Count is in halfwords */
@@ -650,9 +633,9 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	/* only devices with < 1024 kiB may be set to single bank dual banks */
 	if ((flash_size_in_kb == 1024) || !(options & OPT_DUALBANK))
-		stm32l4_info->option_bytes.bank_b_start = 256;
+		stm32l4_info->bank2_start = 256;
 	else
-		stm32l4_info->option_bytes.bank_b_start = flash_size_in_kb << 9;
+		stm32l4_info->bank2_start = flash_size_in_kb << 9;
 
 	/* did we assign flash size? */
 	assert((flash_size_in_kb != 0xffff) && flash_size_in_kb);
@@ -747,89 +730,6 @@ static int get_stm32l4_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(stm32l4_handle_lock_command)
-{
-	struct target *target = NULL;
-	struct stm32l4_flash_bank *stm32l4_info = NULL;
-
-	if (CMD_ARGC < 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
-		return retval;
-
-	stm32l4_info = bank->driver_priv;
-	target = bank->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	if (stm32l4_read_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to read options",
-					  bank->driver->name);
-		return ERROR_OK;
-	}
-
-	/* set readout protection */
-	stm32l4_info->option_bytes.RDP = 0;
-
-	if (stm32l4_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to lock device", bank->driver->name);
-		return ERROR_OK;
-	}
-
-	command_print(CMD_CTX, "%s locked", bank->driver->name);
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(stm32l4_handle_unlock_command)
-{
-	struct target *target = NULL;
-	struct stm32l4_flash_bank *stm32l4_info = NULL;
-
-	if (CMD_ARGC < 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
-		return retval;
-
-	stm32l4_info = bank->driver_priv;
-	target = bank->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	if (stm32l4_read_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to read options", bank->driver->name);
-		return ERROR_OK;
-	}
-
-	/* clear readout protection and complementary option bytes
-	 * this will also force a device unlock if set */
-	stm32l4_info->option_bytes.RDP = 0xAA;
-
-	if (stm32l4_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to unlock device",
-					  bank->driver->name);
-		return ERROR_OK;
-	}
-
-	command_print(CMD_CTX, "%s unlocked.\n"
-			"INFO: a reset or power cycle is required "
-			"for the new settings to take effect.", bank->driver->name);
-
-	return ERROR_OK;
-}
-
 static int stm32l4_mass_erase(struct flash_bank *bank, uint32_t action)
 {
 	int retval;
@@ -873,7 +773,7 @@ COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 	uint32_t action;
 
 	if (CMD_ARGC < 1) {
-		command_print(CMD_CTX, "stm32x mass_erase <STM32L4 bank>");
+		command_print(CMD_CTX, "stm32l4x mass_erase <STM32L4 bank>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -889,12 +789,149 @@ COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "stm32x mass erase complete");
+		command_print(CMD_CTX, "stm32l4x mass erase complete");
 	} else {
-		command_print(CMD_CTX, "stm32x mass erase failed");
+		command_print(CMD_CTX, "stm32l4x mass erase failed");
 	}
 
 	return retval;
+}
+
+COMMAND_HANDLER(stm32l4_handle_option_read_command)
+{
+	if (CMD_ARGC < 2) {
+		command_print(CMD_CTX, "stm32l4x option_read <STM32L4 bank> <option_reg offset>");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	uint32_t reg_addr = STM32_FLASH_BASE;
+	uint32_t value = 0;
+
+	reg_addr += strtoul(CMD_ARGV[1], NULL, 16);
+
+	retval = stm32l4_read_option(bank, reg_addr, &value);
+	if (ERROR_OK != retval)
+		return retval;
+
+	command_print(CMD_CTX, "Option Register: <0x%" PRIx32 "> = 0x%" PRIx32 "", reg_addr, value);
+
+	return retval;
+}
+
+COMMAND_HANDLER(stm32l4_handle_option_write_command)
+{
+	if (CMD_ARGC < 3) {
+		command_print(CMD_CTX, "stm32l4x option_write <STM32L4 bank> <option_reg offset> <value> [mask]");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	uint32_t reg_addr = STM32_FLASH_BASE;
+	uint32_t value = 0;
+	uint32_t mask = 0xFFFFFFFF;
+
+	reg_addr += strtoul(CMD_ARGV[1], NULL, 16);
+	value = strtoul(CMD_ARGV[2], NULL, 16);
+	if (CMD_ARGC > 3)
+		mask = strtoul(CMD_ARGV[3], NULL, 16);
+
+	command_print(CMD_CTX, "%s Option written.\n"
+				"INFO: a reset or power cycle is required "
+				"for the new settings to take effect.", bank->driver->name);
+
+	retval = stm32l4_write_option(bank, reg_addr, value, mask);
+	return retval;
+}
+
+COMMAND_HANDLER(stm32l4_handle_option_load_command)
+{
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	struct target *target = bank->target;
+
+	retval = stm32l4_unlock_reg(target);
+	if (ERROR_OK != retval)
+		return retval;
+
+	retval = stm32l4_unlock_option_reg(target);
+	if (ERROR_OK != retval)
+		return retval;
+
+	/* Write the OBLLAUNCH bit in CR -> Cause device "POR" and option bytes reload */
+	retval = target_write_u32(target, stm32l4_get_flash_reg(bank, STM32_FLASH_CR), FLASH_OBLLAUNCH);
+
+	command_print(CMD_CTX, "stm32l4x option load (POR) completed.");
+	return retval;
+}
+
+COMMAND_HANDLER(stm32l4_handle_lock_command)
+{
+	struct target *target = NULL;
+
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* set readout protection level 1 by erasing the RDP option byte */
+	if (stm32l4_write_option(bank, STM32_FLASH_OPTR, 0, 0x000000FF) != ERROR_OK) {
+		command_print(CMD_CTX, "%s failed to lock device", bank->driver->name);
+		return ERROR_OK;
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(stm32l4_handle_unlock_command)
+{
+	struct target *target = NULL;
+
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ERROR_OK != retval)
+		return retval;
+
+	target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	if (stm32l4_write_option(bank, STM32_FLASH_OPTR, RDP_LEVEL_0, 0x000000FF) != ERROR_OK) {
+		command_print(CMD_CTX, "%s failed to unlock device", bank->driver->name);
+		return ERROR_OK;
+	}
+
+	return ERROR_OK;
 }
 
 static const struct command_registration stm32l4_exec_command_handlers[] = {
@@ -918,6 +955,27 @@ static const struct command_registration stm32l4_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
 		.help = "Erase entire flash device.",
+	},
+	{
+		.name = "option_read",
+		.handler = stm32l4_handle_option_read_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id reg_offset",
+		.help = "Read & Display device option bytes.",
+	},
+	{
+		.name = "option_write",
+		.handler = stm32l4_handle_option_write_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id reg_offset value mask",
+		.help = "Write device option bit fields with provided value.",
+	},
+	{
+		.name = "option_load",
+		.handler = stm32l4_handle_option_load_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Force re-load of device options (will cause device reset).",
 	},
 	COMMAND_REGISTRATION_DONE
 };
