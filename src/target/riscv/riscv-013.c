@@ -188,8 +188,6 @@ typedef struct {
 	 * go low. */
 	unsigned int ac_busy_delay;
 
-	bool need_strict_step;
-
 	bool abstract_read_csr_supported;
 	bool abstract_write_csr_supported;
 	bool abstract_read_fpr_supported;
