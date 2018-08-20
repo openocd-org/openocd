@@ -46,6 +46,7 @@
 #include "arm7_9_common.h"
 #include "armv7m.h"
 #include "armv7a.h"
+#include "armv8.h"
 #include "cortex_m.h"
 #include "register.h"
 #include "arm_opcodes.h"
@@ -55,9 +56,34 @@
 #include <helper/log.h>
 #include <sys/stat.h>
 
+static int arm_semihosting_resume(struct target *target, int *retval)
+{
+	if (is_armv8(target_to_armv8(target))) {
+		struct armv8_common *armv8 = target_to_armv8(target);
+		if (armv8->last_run_control_op == ARMV8_RUNCONTROL_RESUME) {
+			*retval = target_resume(target, 1, 0, 0, 0);
+			if (*retval != ERROR_OK) {
+				LOG_ERROR("Failed to resume target");
+				return 0;
+			}
+		} else if (armv8->last_run_control_op == ARMV8_RUNCONTROL_STEP)
+			target->debug_reason = DBG_REASON_SINGLESTEP;
+	} else {
+		*retval = target_resume(target, 1, 0, 0, 0);
+		if (*retval != ERROR_OK) {
+			LOG_ERROR("Failed to resume target");
+			return 0;
+		}
+	}
+	return 1;
+}
+
 static int post_result(struct target *target)
 {
 	struct arm *arm = target_to_arm(target);
+
+	if (!target->semihosting)
+		return ERROR_FAIL;
 
 	/* REVISIT this looks wrong ... ARM11 and Cortex-A8
 	 * should work this way at least sometimes.
@@ -88,6 +114,16 @@ static int post_result(struct target *target)
 		if (spsr & 0x20)
 			arm->core_state = ARM_STATE_THUMB;
 
+	} else if (is_armv8(target_to_armv8(target))) {
+		if (arm->core_state == ARM_STATE_AARCH64) {
+			/* return value in R0 */
+			buf_set_u64(arm->core_cache->reg_list[0].value, 0, 64, target->semihosting->result);
+			arm->core_cache->reg_list[0].dirty = 1;
+
+			uint64_t pc = buf_get_u64(arm->core_cache->reg_list[32].value, 0, 64);
+			buf_set_u64(arm->pc->value, 0, 64, pc + 4);
+			arm->pc->dirty = 1;
+		}
 	} else {
 		/* resume execution, this will be pc+2 to skip over the
 		 * bkpt instruction */
@@ -235,6 +271,24 @@ int arm_semihosting(struct target *target, int *retval)
 		/* bkpt 0xAB */
 		if (insn != 0xBEAB)
 			return 0;
+	} else if (is_armv8(target_to_armv8(target))) {
+		if (target->debug_reason != DBG_REASON_BREAKPOINT)
+			return 0;
+
+		if (arm->core_state == ARM_STATE_AARCH64) {
+			uint32_t insn = 0;
+			r = arm->pc;
+			uint64_t pc64 = buf_get_u64(r->value, 0, 64);
+			*retval = target_read_u32(target, pc64, &insn);
+
+			if (*retval != ERROR_OK)
+				return 1;
+
+			/* bkpt 0xAB */
+			if (insn != 0xD45E0000)
+				return 0;
+		} else
+			return 1;
 	} else {
 		LOG_ERROR("Unsupported semi-hosting Target");
 		return 0;
@@ -244,13 +298,18 @@ int arm_semihosting(struct target *target, int *retval)
 	 * operation to complete.
 	 */
 	if (!semihosting->hit_fileio) {
-		/* TODO: update for 64-bits */
-		uint32_t r0 = buf_get_u32(arm->core_cache->reg_list[0].value, 0, 32);
-		uint32_t r1 = buf_get_u32(arm->core_cache->reg_list[1].value, 0, 32);
-
-		semihosting->op = r0;
-		semihosting->param = r1;
-		semihosting->word_size_bytes = 4;
+		if (is_armv8(target_to_armv8(target)) &&
+				arm->core_state == ARM_STATE_AARCH64) {
+			/* Read op and param from register x0 and x1 respectively. */
+			semihosting->op = buf_get_u64(arm->core_cache->reg_list[0].value, 0, 64);
+			semihosting->param = buf_get_u64(arm->core_cache->reg_list[1].value, 0, 64);
+			semihosting->word_size_bytes = 8;
+		} else {
+			/* Read op and param from register r0 and r1 respectively. */
+			semihosting->op = buf_get_u32(arm->core_cache->reg_list[0].value, 0, 32);
+			semihosting->param = buf_get_u32(arm->core_cache->reg_list[1].value, 0, 32);
+			semihosting->word_size_bytes = 4;
+		}
 
 		/* Check for ARM operation numbers. */
 		if (0 <= semihosting->op && semihosting->op <= 0x31) {
@@ -265,19 +324,11 @@ int arm_semihosting(struct target *target, int *retval)
 		}
 	}
 
-	/* Post result to target if we are not waiting on a fileio
+	/* Resume if target it is resumable and we are not waiting on a fileio
 	 * operation to complete:
 	 */
-	if (semihosting->is_resumable && !semihosting->hit_fileio) {
-		/* Resume right after the BRK instruction. */
-		*retval = target_resume(target, 1, 0, 0, 0);
-		if (*retval != ERROR_OK) {
-			LOG_ERROR("Failed to resume target");
-			return 0;
-		}
-
-		return 1;
-	}
+	if (semihosting->is_resumable && !semihosting->hit_fileio)
+		return arm_semihosting_resume(target, retval);
 
 	return 0;
 }

@@ -265,8 +265,8 @@ COMMAND_HANDLER(handle_power_command)
 			bool enable;
 			COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
 			setPower(enable);
-			/* fall through */
 		}
+			/* fall through */
 		case 0:
 			LOG_INFO("Target power %s", savePower ? "on" : "off");
 			break;

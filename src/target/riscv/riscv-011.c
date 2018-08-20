@@ -240,6 +240,7 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 				case SLOT1: return 5;
 				case SLOT_LAST: return info->dramsize-1;
 			}
+			break;
 		case 64:
 			switch (slot) {
 				case SLOT0: return 4;
@@ -1775,6 +1776,8 @@ static riscv_error_t handle_halt_routine(struct target *target)
 					break;
 				default:
 					assert(0);
+					LOG_ERROR("Got invalid register result %d", result);
+					goto error;
 			}
 			if (riscv_xlen(target) == 32) {
 				reg_cache_set(target, reg, data & 0xffffffff);

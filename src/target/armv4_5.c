@@ -752,7 +752,7 @@ int arm_arch_state(struct target *target)
 	}
 
 	/* avoid filling log waiting for fileio reply */
-	if (target->semihosting->hit_fileio)
+	if (target->semihosting && target->semihosting->hit_fileio)
 		return ERROR_OK;
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
@@ -762,8 +762,8 @@ int arm_arch_state(struct target *target)
 		arm_mode_name(arm->core_mode),
 		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u32(arm->pc->value, 0, 32),
-		target->semihosting->is_active ? ", semihosting" : "",
-		target->semihosting->is_fileio ? " fileio" : "");
+		(target->semihosting && target->semihosting->is_active) ? ", semihosting" : "",
+		(target->semihosting && target->semihosting->is_fileio) ? " fileio" : "");
 
 	return ERROR_OK;
 }

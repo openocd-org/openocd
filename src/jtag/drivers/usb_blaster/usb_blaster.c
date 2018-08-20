@@ -445,6 +445,7 @@ static void ublast_queue_bytes(uint8_t *bytes, int nb_bytes)
  * ublast_tms_seq - write a TMS sequence transition to JTAG
  * @bits: TMS bits to be written (bit0, bit1 .. bitN)
  * @nb_bits: number of TMS bits (between 1 and 8)
+ * @skip: number of TMS bits to skip at the beginning of the series
  *
  * Write a serie of TMS transitions, where each transition consists in :
  *  - writing out TCK=0, TMS=<new_state>, TDI=<???>
@@ -452,12 +453,12 @@ static void ublast_queue_bytes(uint8_t *bytes, int nb_bytes)
  * The function ensures that at the end of the sequence, the clock (TCK) is put
  * low.
  */
-static void ublast_tms_seq(const uint8_t *bits, int nb_bits)
+static void ublast_tms_seq(const uint8_t *bits, int nb_bits, int skip)
 {
 	int i;
 
 	DEBUG_JTAG_IO("(bits=%02x..., nb_bits=%d)", bits[0], nb_bits);
-	for (i = 0; i < nb_bits; i++)
+	for (i = skip; i < nb_bits; i++)
 		ublast_clock_tms((bits[i / 8] >> (i % 8)) & 0x01);
 	ublast_idle_clock();
 }
@@ -469,7 +470,7 @@ static void ublast_tms_seq(const uint8_t *bits, int nb_bits)
 static void ublast_tms(struct tms_command *cmd)
 {
 	DEBUG_JTAG_IO("(num_bits=%d)", cmd->num_bits);
-	ublast_tms_seq(cmd->bits, cmd->num_bits);
+	ublast_tms_seq(cmd->bits, cmd->num_bits, 0);
 }
 
 /**
@@ -501,11 +502,12 @@ static void ublast_path_move(struct pathmove_command *cmd)
 /**
  * ublast_state_move - move JTAG state to the target state
  * @state: the target state
+ * @skip: number of bits to skip at the beginning of the path
  *
  * Input the correct TMS sequence to the JTAG TAP so that we end up in the
  * target state. This assumes the current state (tap_get_state()) is correct.
  */
-static void ublast_state_move(tap_state_t state)
+static void ublast_state_move(tap_state_t state, int skip)
 {
 	uint8_t tms_scan;
 	int tms_len;
@@ -516,7 +518,7 @@ static void ublast_state_move(tap_state_t state)
 		return;
 	tms_scan = tap_get_tms_path(tap_get_state(), state);
 	tms_len = tap_get_tms_path_len(tap_get_state(), state);
-	ublast_tms_seq(&tms_scan, tms_len);
+	ublast_tms_seq(&tms_scan, tms_len, skip);
 	tap_set_state(state);
 }
 
@@ -688,9 +690,9 @@ static void ublast_runtest(int cycles, tap_state_t state)
 {
 	DEBUG_JTAG_IO("%s(cycles=%i, end_state=%d)", __func__, cycles, state);
 
-	ublast_state_move(TAP_IDLE);
+	ublast_state_move(TAP_IDLE, 0);
 	ublast_queue_tdi(NULL, cycles, SCAN_OUT);
-	ublast_state_move(state);
+	ublast_state_move(state, 0);
 }
 
 static void ublast_stableclocks(int cycles)
@@ -720,9 +722,9 @@ static int ublast_scan(struct scan_command *cmd)
 	scan_bits = jtag_build_buffer(cmd, &buf);
 
 	if (cmd->ir_scan)
-		ublast_state_move(TAP_IRSHIFT);
+		ublast_state_move(TAP_IRSHIFT, 0);
 	else
-		ublast_state_move(TAP_DRSHIFT);
+		ublast_state_move(TAP_DRSHIFT, 0);
 
 	log_buf = hexdump(buf, DIV_ROUND_UP(scan_bits, 8));
 	DEBUG_JTAG_IO("%s(scan=%s, type=%s, bits=%d, buf=[%s], end_state=%d)", __func__,
@@ -733,20 +735,15 @@ static int ublast_scan(struct scan_command *cmd)
 
 	ublast_queue_tdi(buf, scan_bits, type);
 
-	/*
-	 * As our JTAG is in an unstable state (IREXIT1 or DREXIT1), move it
-	 * forward to a stable IRPAUSE or DRPAUSE.
-	 */
-	ublast_clock_tms(0);
-	if (cmd->ir_scan)
-		tap_set_state(TAP_IRPAUSE);
-	else
-		tap_set_state(TAP_DRPAUSE);
-
 	ret = jtag_read_buffer(buf, cmd);
 	if (buf)
 		free(buf);
-	ublast_state_move(cmd->end_state);
+	/*
+	 * ublast_queue_tdi sends the last bit with TMS=1. We are therefore
+	 * already in Exit1-DR/IR and have to skip the first step on our way
+	 * to end_state.
+	 */
+	ublast_state_move(cmd->end_state, 1);
 	return ret;
 }
 
@@ -776,7 +773,7 @@ static void ublast_initial_wipeout(void)
 	/*
 	 * Put JTAG in RESET state (five 1 on TMS)
 	 */
-	ublast_tms_seq(&tms_reset, 5);
+	ublast_tms_seq(&tms_reset, 5, 0);
 	tap_set_state(TAP_RESET);
 }
 
@@ -805,7 +802,7 @@ static int ublast_execute_queue(void)
 			ublast_stableclocks(cmd->cmd.stableclocks->num_cycles);
 			break;
 		case JTAG_TLR_RESET:
-			ublast_state_move(cmd->cmd.statemove->end_state);
+			ublast_state_move(cmd->cmd.statemove->end_state, 0);
 			break;
 		case JTAG_PATHMOVE:
 			ublast_path_move(cmd->cmd.pathmove);

@@ -124,7 +124,7 @@ done:
 	return retval;
 }
 
-static int armv7a_read_ttbcr(struct target *target)
+int armv7a_read_ttbcr(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
@@ -554,9 +554,6 @@ int armv7a_identify_cache(struct target *target)
 	struct armv7a_cache_common *cache =
 		&(armv7a->armv7a_mmu.armv7a_cache);
 
-	if (!armv7a->is_armv7r)
-		armv7a_read_ttbcr(target);
-
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
@@ -728,8 +725,6 @@ int armv7a_arch_state(struct target *target)
 	}
 
 	arm_arch_state(target);
-
-	armv7a_read_ttbcr(target);
 
 	if (armv7a->is_armv7r) {
 		LOG_USER("D-Cache: %s, I-Cache: %s",

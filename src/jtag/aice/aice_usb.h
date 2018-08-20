@@ -71,6 +71,7 @@
 
 /* Constants for AICE command WRITE_CTRL:TCK_CONTROL */
 #define AICE_TCK_CONTROL_TCK3048		0x08
+#define AICE_TCK_CONTROL_TCK_SCAN		0x10
 
 /* Constants for AICE command WRITE_CTRL:JTAG_PIN_CONTROL */
 #define AICE_JTAG_PIN_CONTROL_SRST		0x01

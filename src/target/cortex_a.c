@@ -1297,6 +1297,9 @@ static int cortex_a_post_debug_entry(struct target *target)
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, cortex_a->cp15_control_reg);
 	cortex_a->cp15_control_reg_curr = cortex_a->cp15_control_reg;
 
+	if (!armv7a->is_armv7r)
+		armv7a_read_ttbcr(target);
+
 	if (armv7a->armv7a_mmu.armv7a_cache.info == -1)
 		armv7a_identify_cache(target);
 
@@ -3226,6 +3229,20 @@ static int cortex_a_virt2phys(struct target *target,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
 	uint8_t apsel = swjdp->apsel;
+	int mmu_enabled = 0;
+
+	/*
+	 * If the MMU was not enabled at debug entry, there is no
+	 * way of knowing if there was ever a valid configuration
+	 * for it and thus it's not safe to enable it. In this case,
+	 * just return the virtual address as physical.
+	 */
+	cortex_a_mmu(target, &mmu_enabled);
+	if (!mmu_enabled) {
+		*phys = virt;
+		return ERROR_OK;
+	}
+
 	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap->ap_num)) {
 		uint32_t ret;
 		retval = armv7a_mmu_translate_va(target,
@@ -3421,7 +3438,7 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 	{
 		.name = "dacrfixup",
 		.handler = handle_cortex_a_dacrfixup_command,
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.help = "set domain access control (DACR) to all-manager "
 			"on memory access",
 		.usage = "['on'|'off']",

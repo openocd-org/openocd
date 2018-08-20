@@ -225,6 +225,10 @@ int semihosting_common(struct target *target)
 			else {
 				int fd = semihosting_get_field(target, 0, fields);
 				if (semihosting->is_fileio) {
+					if (fd == 0 || fd == 1 || fd == 2) {
+						semihosting->result = 0;
+						break;
+					}
 					semihosting->hit_fileio = true;
 					fileio_info->identifier = "close";
 					fileio_info->param_1 = fd;
@@ -445,8 +449,8 @@ int semihosting_common(struct target *target)
 			 * - –1 if an error occurs.
 			 */
 			if (semihosting->is_fileio) {
-				LOG_ERROR("SYS_FLEN not supported by semihosting fileio");
-				return ERROR_FAIL;
+				semihosting->result = -1;
+				semihosting->sys_errno = EINVAL;
 			}
 			retval = semihosting_read_fields(target, 1, fields);
 			if (retval != ERROR_OK)
@@ -690,9 +694,19 @@ int semihosting_common(struct target *target)
 					/* TODO: implement the :semihosting-features special file.
 					 * */
 					if (semihosting->is_fileio) {
-						if (strcmp((char *)fn, ":tt") == 0)
-							semihosting->result = 0;
-						else {
+						if (strcmp((char *)fn, ":semihosting-features") == 0) {
+							semihosting->result = -1;
+							semihosting->sys_errno = EINVAL;
+						} else if (strcmp((char *)fn, ":tt") == 0) {
+							if (mode == 0)
+								semihosting->result = 0;
+							else if (mode == 4)
+								semihosting->result = 1;
+							else if (mode == 8)
+								semihosting->result = 2;
+							else
+								semihosting->result = -1;
+						} else {
 							semihosting->hit_fileio = true;
 							fileio_info->identifier = "open";
 							fileio_info->param_1 = addr;
@@ -1397,8 +1411,9 @@ static int semihosting_read_fields(struct target *target, size_t number,
 	uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
-	return target_read_memory(target, semihosting->param,
-			semihosting->word_size_bytes, number, fields);
+	/* Use 4-byte multiples to trigger fast memory access. */
+	return target_read_memory(target, semihosting->param, 4,
+			number * (semihosting->word_size_bytes / 4), fields);
 }
 
 /**
@@ -1408,8 +1423,9 @@ static int semihosting_write_fields(struct target *target, size_t number,
 	uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
-	return target_write_memory(target, semihosting->param,
-			semihosting->word_size_bytes, number, fields);
+	/* Use 4-byte multiples to trigger fast memory access. */
+	return target_write_memory(target, semihosting->param, 4,
+			number * (semihosting->word_size_bytes / 4), fields);
 }
 
 /**

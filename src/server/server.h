@@ -78,6 +78,7 @@ int add_service(char *name, const char *port,
 		int max_connections, new_connection_handler_t new_connection_handler,
 		input_handler_t in_handler, connection_closed_handler_t close_handler,
 		void *priv);
+int remove_service(const char *name, const char *port);
 
 int server_preinit(void);
 int server_init(struct command_context *cmd_ctx);

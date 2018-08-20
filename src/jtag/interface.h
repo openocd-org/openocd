@@ -309,7 +309,7 @@ struct jtag_interface {
 	 * its maximum supported rate there
 	 * @returns ERROR_OK on success, an error code on failure.
 	 */
-	int (*config_trace)(bool enabled, enum tpio_pin_protocol pin_protocol,
+	int (*config_trace)(bool enabled, enum tpiu_pin_protocol pin_protocol,
 			    uint32_t port_size, unsigned int *trace_freq);
 
 	/**
@@ -328,7 +328,7 @@ extern const char * const jtag_only[];
 
 void adapter_assert_reset(void);
 void adapter_deassert_reset(void);
-int adapter_config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
+int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 			 uint32_t port_size, unsigned int *trace_freq);
 int adapter_poll_trace(uint8_t *buf, size_t *size);
 

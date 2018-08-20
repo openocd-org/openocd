@@ -1017,11 +1017,24 @@ int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+static int armv8_setup_semihosting(struct target *target, int enable)
+{
+	struct arm *arm = target_to_arm(target);
+
+	if (arm->core_state != ARM_STATE_AARCH64) {
+		LOG_ERROR("semihosting only supported in AArch64 state\n");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 int armv8_init_arch_info(struct target *target, struct armv8_common *armv8)
 {
 	struct arm *arm = &armv8->arm;
 	arm->arch_info = armv8;
 	target->arch_info = &armv8->arm;
+	arm->setup_semihosting = armv8_setup_semihosting;
 	/*  target is useful in all function arm v4 5 compatible */
 	armv8->arm.target = target;
 	armv8->arm.common_magic = ARM_COMMON_MAGIC;
@@ -1050,7 +1063,7 @@ int armv8_aarch64_state(struct target *target)
 		armv8_mode_name(arm->core_mode),
 		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u64(arm->pc->value, 0, 64),
-		target->semihosting->is_active ? ", semihosting" : "");
+		(target->semihosting && target->semihosting->is_active) ? ", semihosting" : "");
 
 	return ERROR_OK;
 }

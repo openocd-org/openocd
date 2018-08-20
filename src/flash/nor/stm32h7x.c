@@ -64,7 +64,7 @@
 #define FLASH_WRPERR   (1 << 17) /* Write protection error */
 #define FLASH_PGSERR   (1 << 18) /* Programming sequence error */
 #define FLASH_STRBERR  (1 << 19) /* Strobe error */
-#define FLASH_INCERR   (1 << 21) /* Increment error */
+#define FLASH_INCERR   (1 << 21) /* Inconsistency error */
 #define FLASH_OPERR    (1 << 22) /* Operation error */
 #define FLASH_RDPERR   (1 << 23) /* Read Protection error */
 #define FLASH_RDSERR   (1 << 24) /* Secure Protection error */
@@ -220,6 +220,8 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 
 	/* Clear error + EOP flags but report errors */
 	if (status & FLASH_ERROR) {
+		if (retval == ERROR_OK)
+			retval = ERROR_FAIL;
 		/* If this operation fails, we ignore it and report the original retval */
 		target_write_u32(target, stm32x_get_flash_reg(bank, FLASH_CCR), status);
 	}
@@ -495,7 +497,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 		retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("erase time-out error sector %d", i);
+			LOG_ERROR("erase time-out or operation error sector %d", i);
 			return retval;
 		}
 		bank->sectors[i].is_erased = 1;
@@ -581,8 +583,10 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(stm32x_flash_write_code),
 			stm32x_flash_write_code);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		target_free_working_area(target, write_algorithm);
 		return retval;
+	}
 
 	/* memory buffer */
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
