@@ -2036,52 +2036,12 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
  * Read the requested memory, taking care to execute every read exactly once,
  * even if cmderr=busy is encountered.
  */
-static int read_memory_progbuf(struct target *target, target_addr_t address,
+static int read_memory_progbuf_inner(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	RISCV013_INFO(info);
 
 	int result = ERROR_OK;
-
-	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
-			size, address);
-
-	select_dmi(target);
-
-	/* s0 holds the next address to write to
-	 * s1 holds the next data value to write
-	 */
-	uint64_t s0, s1;
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
-	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (execute_fence(target) != ERROR_OK)
-		return ERROR_FAIL;
-
-	/* Write the program (load, increment) */
-	struct riscv_program program;
-	riscv_program_init(&program, target);
-	switch (size) {
-		case 1:
-			riscv_program_lbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 2:
-			riscv_program_lhr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 4:
-			riscv_program_lwr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
-	}
-	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
-
-	if (riscv_program_ebreak(&program) != ERROR_OK)
-		return ERROR_FAIL;
-	riscv_program_write(&program);
 
 	/* Write address to S0, and execute buffer. */
 	result = register_write_direct(target, GDB_REGNO_S0, address);
@@ -2210,7 +2170,7 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 						1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
 				break;
 			default:
-				LOG_ERROR("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
+				LOG_DEBUG("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
 				riscv013_clear_abstract_error(target);
 				riscv_batch_free(batch);
 				result = ERROR_FAIL;
@@ -2268,12 +2228,87 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	write_to_buf(buffer + receive_addr - address, value, size);
 	log_memory_access(receive_addr, value, size, true);
 
-	riscv_set_register(target, GDB_REGNO_S0, s0);
-	riscv_set_register(target, GDB_REGNO_S1, s1);
 	return ERROR_OK;
 
 error:
 	dmi_write(target, DMI_ABSTRACTAUTO, 0);
+
+	return result;
+}
+
+/**
+ * Read the requested memory, silently handling memory access errors.
+ */
+static int read_memory_progbuf(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	int result = ERROR_OK;
+
+	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
+			size, address);
+
+	select_dmi(target);
+
+	/* s0 holds the next address to write to
+	 * s1 holds the next data value to write
+	 */
+	uint64_t s0, s1;
+	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (execute_fence(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Write the program (load, increment) */
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	switch (size) {
+		case 1:
+			riscv_program_lbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
+			break;
+		case 2:
+			riscv_program_lhr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
+			break;
+		case 4:
+			riscv_program_lwr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
+			break;
+		default:
+			LOG_ERROR("Unsupported size: %d", size);
+			return ERROR_FAIL;
+	}
+	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
+
+	if (riscv_program_ebreak(&program) != ERROR_OK)
+		return ERROR_FAIL;
+	riscv_program_write(&program);
+
+	result = read_memory_progbuf_inner(target, address, size, count, buffer);
+
+	/* The full read did not succeed, so we will try to read each word individually. */
+	/* This will not be fast, but reading outside actual memory is a special case anyway. */
+	/* It will make the toolchain happier, especially Eclipse Memory View as it reads ahead. */
+	if (result != ERROR_OK) {
+		target_addr_t address_i = address;
+		uint32_t size_i = size;
+		uint32_t count_i = 1;
+		uint8_t* buffer_i = buffer;
+
+		for (uint32_t i = 0; i < count; i++, address_i += size_i, buffer_i += size_i) {
+			result = read_memory_progbuf_inner(target, address_i, size_i, count_i, buffer_i);
+
+			/* The read of a single word failed, so we will just return 0 for that instead */
+			if (result != ERROR_OK) {
+				LOG_DEBUG("error reading single word of %d bytes from 0x%" TARGET_PRIxADDR,
+						size_i, address_i);
+
+				uint64_t value_i = 0;
+				write_to_buf(buffer_i, value_i, size_i);
+			}
+		}
+		result = ERROR_OK;
+	}
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
