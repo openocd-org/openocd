@@ -1067,6 +1067,7 @@ int riscv_openocd_poll(struct target *target)
 	if (riscv_rtos_enabled(target)) {
 		target->rtos->current_threadid = halted_hart + 1;
 		target->rtos->current_thread = halted_hart + 1;
+		riscv_set_rtos_hartid(target, halted_hart);
 	}
 
 	target->state = TARGET_HALTED;
