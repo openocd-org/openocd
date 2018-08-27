@@ -1838,7 +1838,7 @@ static int handle_halt(struct target *target, bool announce)
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case DCSR_CAUSE_HWBP:
-			target->debug_reason = DBG_REASON_WPTANDBKPT;
+			target->debug_reason = DBG_REASON_WATCHPOINT;
 			/* If we halted because of a data trigger, gdb doesn't know to do
 			 * the disable-breakpoints-step-enable-breakpoints dance. */
 			info->need_strict_step = true;

@@ -643,6 +643,89 @@ int riscv_remove_watchpoint(struct target *target,
 	return ERROR_OK;
 }
 
+/* Sets *hit_watchpoint to the first watchpoint identified as causing the
+ * current halt.
+ *
+ * The GDB server uses this information to tell GDB what data address has
+ * been hit, which enables GDB to print the hit variable along with its old
+ * and new value. */
+int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint)
+{
+	struct watchpoint *wp = target->watchpoints;
+
+	LOG_DEBUG("Current hartid = %d", riscv_current_hartid(target));
+
+	/*TODO instead of disassembling the instruction that we think caused the
+	 * trigger, check the hit bit of each watchpoint first. The hit bit is
+	 * simpler and more reliable to check but as it is optional and relatively
+	 * new, not all hardware will implement it  */
+	riscv_reg_t dpc;
+	riscv_get_register(target, &dpc, GDB_REGNO_DPC);
+	const uint8_t length = 4;
+	LOG_DEBUG("dpc is 0x%" PRIx64, dpc);
+
+	/* fetch the instruction at dpc */
+	uint8_t buffer[length];
+	if (target_read_buffer(target, dpc, length, buffer) != ERROR_OK) {
+		LOG_ERROR("Failed to read instruction at dpc 0x%" PRIx64, dpc);
+		return ERROR_FAIL;
+	}
+
+	uint32_t instruction = 0;
+
+	for (int i = 0; i < length; i++) {
+		LOG_DEBUG("Next byte is %x", buffer[i]);
+		instruction += (buffer[i] << 8 * i);
+	}
+	LOG_DEBUG("Full instruction is %x", instruction);
+
+	/* find out which memory address is accessed by the instruction at dpc */
+	/* opcode is first 7 bits of the instruction */
+	uint8_t opcode = instruction & 0x7F;
+	uint32_t rs1;
+	int16_t imm;
+	riscv_reg_t mem_addr;
+
+	if (opcode == MATCH_LB || opcode == MATCH_SB) {
+		rs1 = (instruction & 0xf8000) >> 15;
+		riscv_get_register(target, &mem_addr, rs1);
+
+		if (opcode == MATCH_SB) {
+			LOG_DEBUG("%x is store instruction", instruction);
+			imm = ((instruction & 0xf80) >> 7) | ((instruction & 0xfe000000) >> 20);
+		} else {
+			LOG_DEBUG("%x is load instruction", instruction);
+			imm = (instruction & 0xfff00000) >> 20;
+		}
+		/* sign extend 12-bit imm to 16-bits */
+		if (imm & (1 << 11))
+			imm |= 0xf000;
+		mem_addr += imm;
+		LOG_DEBUG("memory address=0x%" PRIx64, mem_addr);
+	} else {
+		LOG_DEBUG("%x is not a RV32I load or store", instruction);
+		return ERROR_FAIL;
+	}
+
+	while (wp) {
+		/*TODO support length/mask */
+		if (wp->address == mem_addr) {
+			*hit_watchpoint = wp;
+			LOG_DEBUG("Hit address=%" TARGET_PRIxADDR, wp->address);
+			return ERROR_OK;
+		}
+		wp = wp->next;
+	}
+
+	/* No match found - either we hit a watchpoint caused by an instruction that
+	 * this function does not yet disassemble, or we hit a breakpoint.
+	 *
+	 * OpenOCD will behave as if this function had never been implemented i.e.
+	 * report the halt to GDB with no address information. */
+	return ERROR_FAIL;
+}
+
+
 static int oldriscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
@@ -1587,6 +1670,7 @@ struct target_type riscv_target = {
 
 	.add_watchpoint = riscv_add_watchpoint,
 	.remove_watchpoint = riscv_remove_watchpoint,
+	.hit_watchpoint = riscv_hit_watchpoint,
 
 	.arch_state = riscv_arch_state,
 
