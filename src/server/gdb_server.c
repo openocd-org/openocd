@@ -3404,6 +3404,12 @@ static int gdb_target_add_one(struct target *target)
 	if ((target->smp) && (target->gdb_service))
 		return ERROR_OK;
 
+	/* skip targets that cannot handle a gdb connections (e.g. mem_ap) */
+	if (!target_supports_gdb_connection(target)) {
+		LOG_DEBUG("skip gdb server for target %s", target_name(target));
+		return ERROR_OK;
+	}
+
 	if (target->gdb_port_override) {
 		if (strcmp(target->gdb_port_override, "disabled") == 0) {
 			LOG_INFO("gdb port disabled");

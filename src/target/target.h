@@ -482,6 +482,13 @@ int target_get_gdb_reg_list(struct target *target,
 		enum target_register_class reg_class);
 
 /**
+ * Check if @a target allows GDB connections.
+ *
+ * Some target do not implement the necessary code required by GDB.
+ */
+bool target_supports_gdb_connection(struct target *target);
+
+/**
  * Step the target.
  *
  * This routine is a wrapper for target->type->step.

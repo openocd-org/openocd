@@ -1205,6 +1205,16 @@ int target_get_gdb_reg_list(struct target *target,
 {
 	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
 }
+
+bool target_supports_gdb_connection(struct target *target)
+{
+	/*
+	 * based on current code, we can simply exclude all the targets that
+	 * don't provide get_gdb_reg_list; this could change with new targets.
+	 */
+	return !!target->type->get_gdb_reg_list;
+}
+
 int target_step(struct target *target,
 		int current, target_addr_t address, int handle_breakpoints)
 {
