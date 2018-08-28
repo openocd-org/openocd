@@ -722,7 +722,7 @@ static int gdb_output(struct command_context *context, const char *line)
 static void gdb_signal_reply(struct target *target, struct connection *connection)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
-	char sig_reply[45];
+	char sig_reply[65];
 	char stop_reason[20];
 	char current_thread[25];
 	int sig_reply_len;
@@ -767,7 +767,7 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		current_thread[0] = '\0';
 		if (target->rtos != NULL) {
 			struct target *ct;
-			snprintf(current_thread, sizeof(current_thread), "thread:%016" PRIx64 ";",
+			snprintf(current_thread, sizeof(current_thread), "thread:%" PRIx64 ";",
 					target->rtos->current_thread);
 			target->rtos->current_threadid = target->rtos->current_thread;
 			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
