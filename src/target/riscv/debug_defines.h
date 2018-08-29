@@ -1219,8 +1219,6 @@
 *
 * An implementation may report "Other" (7) for any error condition.
 *
-* An implementation may report "Other" (7) for any error condition.
-*
 * 0: There was no bus error.
 *
 * 1: There was a timeout.
