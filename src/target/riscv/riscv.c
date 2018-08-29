@@ -187,13 +187,17 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
 bool riscv_prefer_sba;
 
+typedef struct {
+	uint16_t low, high;
+} range_t;
+
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
  * 1,0. */
-struct {
-	uint16_t low, high;
-} *expose_csr;
+range_t *expose_csr;
+/* Same, but for custom registers. */
+range_t *expose_custom;
 
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
@@ -272,8 +276,16 @@ static void riscv_deinit_target(struct target *target)
 	if (tt) {
 		tt->deinit_target(target);
 		riscv_info_t *info = (riscv_info_t *) target->arch_info;
+		free(info->reg_names);
 		free(info);
 	}
+	/* Free the shared structure use for most registers. */
+	free(target->reg_cache->reg_list[0].arch_info);
+	/* Free the ones we allocated separately. */
+	for (unsigned i = GDB_REGNO_COUNT; i < target->reg_cache->num_regs; i++)
+		free(target->reg_cache->reg_list[i].arch_info);
+	free(target->reg_cache->reg_list);
+	free(target->reg_cache);
 	target->arch_info = NULL;
 }
 
@@ -884,7 +896,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 			*reg_list_size = 32;
 			break;
 		case REG_CLASS_ALL:
-			*reg_list_size = GDB_REGNO_COUNT;
+			*reg_list_size = target->reg_cache->num_regs;
 			break;
 		default:
 			LOG_ERROR("Unsupported reg_class: %d", reg_class);
@@ -1334,20 +1346,15 @@ void parse_error(const char *string, char c, unsigned position)
 	LOG_ERROR("%s", buf);
 }
 
-COMMAND_HANDLER(riscv_set_expose_csrs)
+int parse_ranges(range_t **ranges, const char **argv)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
 	for (unsigned pass = 0; pass < 2; pass++) {
 		unsigned range = 0;
 		unsigned low = 0;
 		bool parse_low = true;
 		unsigned high = 0;
-		for (unsigned i = 0; i == 0 || CMD_ARGV[0][i-1]; i++) {
-			char c = CMD_ARGV[0][i];
+		for (unsigned i = 0; i == 0 || argv[0][i-1]; i++) {
+			char c = argv[0][i];
 			if (isspace(c)) {
 				/* Ignore whitespace. */
 				continue;
@@ -1361,13 +1368,13 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 					parse_low = false;
 				} else if (c == ',' || c == 0) {
 					if (pass == 1) {
-						expose_csr[range].low = low;
-						expose_csr[range].high = low;
+						(*ranges)[range].low = low;
+						(*ranges)[range].high = low;
 					}
 					low = 0;
 					range++;
 				} else {
-					parse_error(CMD_ARGV[0], c, i);
+					parse_error(argv[0], c, i);
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 
@@ -1378,29 +1385,50 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 				} else if (c == ',' || c == 0) {
 					parse_low = true;
 					if (pass == 1) {
-						expose_csr[range].low = low;
-						expose_csr[range].high = high;
+						(*ranges)[range].low = low;
+						(*ranges)[range].high = high;
 					}
 					low = 0;
 					high = 0;
 					range++;
 				} else {
-					parse_error(CMD_ARGV[0], c, i);
+					parse_error(argv[0], c, i);
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 			}
 		}
 
 		if (pass == 0) {
-			if (expose_csr)
-				free(expose_csr);
-			expose_csr = calloc(range + 2, sizeof(*expose_csr));
+			if (*ranges)
+				free(*ranges);
+			*ranges = calloc(range + 2, sizeof(range_t));
 		} else {
-			expose_csr[range].low = 1;
-			expose_csr[range].high = 0;
+			(*ranges)[range].low = 1;
+			(*ranges)[range].high = 0;
 		}
 	}
+
 	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_expose_csrs)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return parse_ranges(&expose_csr, CMD_ARGV);
+}
+
+COMMAND_HANDLER(riscv_set_expose_custom)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return parse_ranges(&expose_custom, CMD_ARGV);
 }
 
 COMMAND_HANDLER(riscv_authdata_read)
@@ -1541,6 +1569,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.help = "Configure a list of inclusive ranges for CSRs to expose in "
 				"addition to the standard ones. This must be executed before "
 				"`init`."
+	},
+	{
+		.name = "expose_custom",
+		.handler = riscv_set_expose_custom,
+		.mode = COMMAND_ANY,
+		.usage = "riscv expose_custom n0[-m0][,n1[-m1]]...",
+		.help = "Configure a list of inclusive ranges for custom registers to "
+			"expose. custom0 is accessed as abstract register number 0xc000, "
+			"etc. This must be executed before `init`."
 	},
 	{
 		.name = "authdata_read",
@@ -1850,7 +1887,7 @@ void riscv_invalidate_register_cache(struct target *target)
 	RISCV_INFO(r);
 
 	register_cache_invalidate(target->reg_cache);
-	for (size_t i = 0; i < GDB_REGNO_COUNT; ++i) {
+	for (size_t i = 0; i < target->reg_cache->num_regs; ++i) {
 		struct reg *reg = &target->reg_cache->reg_list[i];
 		reg->valid = false;
 	}
@@ -2123,7 +2160,8 @@ const char *gdb_regno_name(enum gdb_regno regno)
 
 static int register_get(struct reg *reg)
 {
-	struct target *target = (struct target *) reg->arch_info;
+	riscv_reg_info_t *reg_info = reg->arch_info;
+	struct target *target = reg_info->target;
 	uint64_t value;
 	int result = riscv_get_register(target, &value, reg->number);
 	if (result != ERROR_OK)
@@ -2134,7 +2172,8 @@ static int register_get(struct reg *reg)
 
 static int register_set(struct reg *reg, uint8_t *buf)
 {
-	struct target *target = (struct target *) reg->arch_info;
+	riscv_reg_info_t *reg_info = reg->arch_info;
+	struct target *target = reg_info->target;
 
 	uint64_t value = buf_get_u64(buf, 0, reg->size);
 
@@ -2176,12 +2215,26 @@ int riscv_init_registers(struct target *target)
 	target->reg_cache->name = "RISC-V Registers";
 	target->reg_cache->num_regs = GDB_REGNO_COUNT;
 
-	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
+	if (expose_custom) {
+		for (unsigned i = 0; expose_custom[i].low <= expose_custom[i].high; i++) {
+			for (unsigned number = expose_custom[i].low;
+					number <= expose_custom[i].high;
+					number++)
+				target->reg_cache->num_regs++;
+		}
+	}
+
+	LOG_DEBUG("create register cache for %d registers",
+			target->reg_cache->num_regs);
+
+	target->reg_cache->reg_list =
+		calloc(target->reg_cache->num_regs, sizeof(struct reg));
 
 	const unsigned int max_reg_name_len = 12;
 	if (info->reg_names)
 		free(info->reg_names);
-	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
+	info->reg_names =
+		calloc(target->reg_cache->num_regs, max_reg_name_len);
 	char *reg_name = info->reg_names;
 
 	static struct reg_feature feature_cpu = {
@@ -2195,6 +2248,9 @@ int riscv_init_registers(struct target *target)
 	};
 	static struct reg_feature feature_virtual = {
 		.name = "org.gnu.gdb.riscv.virtual"
+	};
+	static struct reg_feature feature_custom = {
+		.name = "org.gnu.gdb.riscv.custom"
 	};
 
 	static struct reg_data_type type_ieee_single = {
@@ -2214,18 +2270,24 @@ int riscv_init_registers(struct target *target)
 	qsort(csr_info, DIM(csr_info), sizeof(*csr_info), cmp_csr_info);
 	unsigned csr_info_index = 0;
 
-	/* When gdb request register N, gdb_get_register_packet() assumes that this
+	unsigned custom_range_index = 0;
+	int custom_within_range = 0;
+
+	riscv_reg_info_t *shared_reg_info = calloc(1, sizeof(riscv_reg_info_t));
+	shared_reg_info->target = target;
+
+	/* When gdb requests register N, gdb_get_register_packet() assumes that this
 	 * is register at index N in reg_list. So if there are certain registers
 	 * that don't exist, we need to leave holes in the list (or renumber, but
 	 * it would be nice not to have yet another set of numbers to translate
 	 * between). */
-	for (uint32_t number = 0; number < GDB_REGNO_COUNT; number++) {
+	for (uint32_t number = 0; number < target->reg_cache->num_regs; number++) {
 		struct reg *r = &target->reg_cache->reg_list[number];
 		r->dirty = false;
 		r->valid = false;
 		r->exist = true;
 		r->type = &riscv_reg_arch_type;
-		r->arch_info = target;
+		r->arch_info = shared_reg_info;
 		r->number = number;
 		r->size = riscv_xlen(target);
 		/* r->size is set in riscv_invalidate_register_cache, maybe because the
@@ -2585,11 +2647,35 @@ int riscv_init_registers(struct target *target)
 			r->group = "general";
 			r->feature = &feature_virtual;
 			r->size = 8;
+
+		} else {
+			/* Custom registers. */
+			assert(expose_custom);
+
+			range_t *range = &expose_custom[custom_range_index];
+			assert(range->low <= range->high);
+			unsigned custom_number = range->low + custom_within_range;
+
+			r->group = "custom";
+			r->feature = &feature_custom;
+			r->arch_info = calloc(1, sizeof(riscv_reg_info_t));
+			assert(r->arch_info);
+			((riscv_reg_info_t *) r->arch_info)->target = target;
+			((riscv_reg_info_t *) r->arch_info)->custom_number = custom_number;
+			sprintf(reg_name, "custom%d", custom_number);
+
+			custom_within_range++;
+			if (custom_within_range > range->high - range->low) {
+				custom_within_range = 0;
+				custom_range_index++;
+			}
 		}
+
 		if (reg_name[0])
 			r->name = reg_name;
 		reg_name += strlen(reg_name) + 1;
-		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
+		assert(reg_name < info->reg_names + target->reg_cache->num_regs *
+				max_reg_name_len);
 		r->value = &info->reg_cache_values[number];
 	}
 

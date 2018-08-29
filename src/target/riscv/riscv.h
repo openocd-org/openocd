@@ -36,6 +36,11 @@ enum riscv_halt_reason {
 };
 
 typedef struct {
+	struct target *target;
+	unsigned custom_number;
+} riscv_reg_info_t;
+
+typedef struct {
 	unsigned dtm_version;
 
 	struct command_context *cmd_ctx;

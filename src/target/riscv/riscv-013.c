@@ -745,8 +745,8 @@ static int write_abstract_arg(struct target *target, unsigned index,
 /**
  * @size in bits
  */
-static uint32_t access_register_command(uint32_t number, unsigned size,
-		uint32_t flags)
+static uint32_t access_register_command(struct target *target, uint32_t number,
+		unsigned size, uint32_t flags)
 {
 	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
 	switch (size) {
@@ -769,8 +769,13 @@ static uint32_t access_register_command(uint32_t number, unsigned size,
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				number - GDB_REGNO_CSR0);
-	} else {
-		assert(0);
+	} else if (number >= GDB_REGNO_COUNT) {
+		/* Custom register. */
+		assert(target->reg_cache->reg_list[number].arch_info);
+		riscv_reg_info_t *reg_info = target->reg_cache->reg_list[number].arch_info;
+		assert(reg_info);
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				0xc000 + reg_info->custom_number);
 	}
 
 	command |= flags;
@@ -790,7 +795,7 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 			!info->abstract_read_csr_supported)
 		return ERROR_FAIL;
 
-	uint32_t command = access_register_command(number, size,
+	uint32_t command = access_register_command(target, number, size,
 			AC_ACCESS_REGISTER_TRANSFER);
 
 	int result = execute_abstract_command(target, command);
@@ -825,7 +830,7 @@ static int register_write_abstract(struct target *target, uint32_t number,
 			!info->abstract_write_csr_supported)
 		return ERROR_FAIL;
 
-	uint32_t command = access_register_command(number, size,
+	uint32_t command = access_register_command(target, number, size,
 			AC_ACCESS_REGISTER_TRANSFER |
 			AC_ACCESS_REGISTER_WRITE);
 
@@ -1320,6 +1325,7 @@ static void deinit_target(struct target *target)
 	LOG_DEBUG("riscv_deinit_target()");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	free(info->version_specific);
+	/* TODO: free register arch_info */
 	info->version_specific = NULL;
 }
 
@@ -2072,9 +2078,9 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	result = register_write_direct(target, GDB_REGNO_S0, address);
 	if (result != ERROR_OK)
 		goto error;
-	uint32_t command = access_register_command(GDB_REGNO_S1, riscv_xlen(target),
-				AC_ACCESS_REGISTER_TRANSFER |
-				AC_ACCESS_REGISTER_POSTEXEC);
+	uint32_t command = access_register_command(target, GDB_REGNO_S1,
+			riscv_xlen(target),
+			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
 	result = execute_abstract_command(target, command);
 	if (result != ERROR_OK)
 		goto error;
@@ -2560,7 +2566,8 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 
 				/* Write and execute command that moves value into S1 and
 				 * executes program buffer. */
-				uint32_t command = access_register_command(GDB_REGNO_S1, 32,
+				uint32_t command = access_register_command(target,
+						GDB_REGNO_S1, 32,
 						AC_ACCESS_REGISTER_POSTEXEC |
 						AC_ACCESS_REGISTER_TRANSFER |
 						AC_ACCESS_REGISTER_WRITE);
