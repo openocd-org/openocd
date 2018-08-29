@@ -68,6 +68,20 @@ static const struct uCOS_III_params uCOS_III_params_list[] = {
 		&rtos_uCOS_III_Cortex_M_stacking,	/* stacking_info */
 		0,									/* num_threads */
 	},
+	{
+		"esirisc",							/* target_name */
+		sizeof(uint32_t),					/* pointer_width */
+		0,									/* thread_stack_offset */
+		0,									/* thread_name_offset */
+		0,									/* thread_state_offset */
+		0,									/* thread_priority_offset */
+		0,									/* thread_prev_offset */
+		0,									/* thread_next_offset */
+		false,								/* thread_offsets_updated */
+		1,									/* threadid_start */
+		&rtos_uCOS_III_eSi_RISC_stacking,	/* stacking_info */
+		0,									/* num_threads */
+	},
 };
 
 static const char * const uCOS_III_symbol_list[] = {

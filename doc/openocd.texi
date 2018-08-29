@@ -4275,6 +4275,8 @@ compact Thumb2 instruction set.
 @item @code{dragonite} -- resembles arm966e
 @item @code{dsp563xx} -- implements Freescale's 24-bit DSP.
 (Support for this is still incomplete.)
+@item @code{esirisc} -- this is an EnSilica eSi-RISC core.
+The current implementation supports eSi-32xx cores.
 @item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
 @item @code{mips_m4k} -- a MIPS core
@@ -5645,6 +5647,27 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 Note that in order for this command to take effect, the target needs to be reset.
 @emph{The current implementation is incomplete. Unprotecting flash pages is not
 supported.}
+@end deffn
+
+@deffn {Flash Driver} esirisc
+Members of the eSi-RISC family may optionally include internal flash programmed
+via the eSi-TSMC Flash interface. Additional parameters are required to
+configure the driver: @option{cfg_address} is the base address of the
+configuration register interface, @option{clock_hz} is the expected clock
+frequency, and @option{wait_states} is the number of configured read wait states.
+
+@example
+flash bank $_FLASHNAME esirisc base_address size_bytes 0 0 $_TARGETNAME cfg_address clock_hz wait_states
+@end example
+
+@deffn Command {esirisc_flash mass_erase} (bank_id)
+Erases all pages in data memory for the bank identified by @option{bank_id}.
+@end deffn
+
+@deffn Command {esirisc_flash ref_erase} (bank_id)
+Erases the reference cell for the bank identified by @option{bank_id}. This is
+an uncommon operation.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} fm3
@@ -8931,6 +8954,29 @@ group. With SMP handling disabled, all targets need to be treated individually.
 @deffn Command {aarch64 maskisr} [@option{on}|@option{off}]
 Selects whether interrupts will be processed when single stepping. The default configuration is
 @option{on}.
+@end deffn
+
+@section EnSilica eSi-RISC Architecture
+
+eSi-RISC is a highly configurable microprocessor architecture for embedded systems
+provided by EnSilica. (See: @url{http://www.ensilica.com/risc-ip/}.)
+
+@subsection esirisc specific commands
+@deffn Command {esirisc cache_arch} (@option{harvard}|@option{von_neumann})
+Configure the caching architecture. Targets with the @code{UNIFIED_ADDRESS_SPACE}
+option disabled employ a Harvard architecture. By default, @option{von_neumann} is assumed.
+@end deffn
+
+@deffn Command {esirisc flush_caches}
+Flush instruction and data caches. This command requires that the target is halted
+when the command is issued and configured with an instruction or data cache.
+@end deffn
+
+@deffn Command {esirisc hwdc} (@option{all}|@option{none}|mask ...)
+Configure hardware debug control. The HWDC register controls which exceptions return
+control back to the debugger. Possible masks are @option{all}, @option{none},
+@option{reset}, @option{interrupt}, @option{syscall}, @option{error}, and @option{debug}.
+By default, @option{reset}, @option{error}, and @option{debug} are enabled.
 @end deffn
 
 @section Intel Architecture

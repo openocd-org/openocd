@@ -225,6 +225,13 @@ struct gdb_fileio_info {
 	uint64_t param_4;
 };
 
+/** Returns a description of the endianness for the specified target. */
+static inline const char *target_endianness(struct target *target)
+{
+	return (target->endianness == TARGET_ENDIAN_UNKNOWN) ? "unknown" :
+			(target->endianness == TARGET_BIG_ENDIAN) ? "big endian" : "little endian";
+}
+
 /** Returns the instance-specific name of the specified target. */
 static inline const char *target_name(struct target *target)
 {
