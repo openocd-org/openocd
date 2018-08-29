@@ -146,7 +146,7 @@ static const struct stm32lx_rev stm32_425_revs[] = {
 	{ 0x1000, "A" }, { 0x2000, "B" }, { 0x2008, "Y" },
 };
 static const struct stm32lx_rev stm32_427_revs[] = {
-	{ 0x1000, "A" }, { 0x1018, "Y" }, { 0x1038, "X" },
+	{ 0x1000, "A" }, { 0x1018, "Y" }, { 0x1038, "X" }, { 0x10f8, "V" },
 };
 static const struct stm32lx_rev stm32_429_revs[] = {
 	{ 0x1000, "A" }, { 0x1018, "Z" },

@@ -187,6 +187,8 @@ static int stm32l4_wait_status_busy(struct flash_bank *bank, int timeout)
 
 	/* Clear but report errors */
 	if (status & FLASH_ERROR) {
+		if (retval == ERROR_OK)
+			retval = ERROR_FAIL;
 		/* If this operation fails, we ignore it and report the original
 		 * retval
 		 */
@@ -474,8 +476,10 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(stm32l4_flash_write_code),
 			stm32l4_flash_write_code);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		target_free_working_area(target, write_algorithm);
 		return retval;
+	}
 
 	/* memory buffer */
 	while (target_alloc_working_area_try(target, buffer_size, &source) !=

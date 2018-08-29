@@ -1,6 +1,9 @@
 /***************************************************************************
  *   Copyright (C) 2015 by David Ung                                       *
  *                                                                         *
+ *   Copyright (C) 2018 by Liviu Ionescu                                   *
+ *   <ilg@livius.net>                                                      *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -36,6 +39,7 @@
 #include "armv8_opcodes.h"
 #include "target.h"
 #include "target_type.h"
+#include "semihosting_common.h"
 
 static const char * const armv8_state_strings[] = {
 	"AArch32", "Thumb", "Jazelle", "ThumbEE", "AArch64",
@@ -1013,11 +1017,24 @@ int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+static int armv8_setup_semihosting(struct target *target, int enable)
+{
+	struct arm *arm = target_to_arm(target);
+
+	if (arm->core_state != ARM_STATE_AARCH64) {
+		LOG_ERROR("semihosting only supported in AArch64 state\n");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 int armv8_init_arch_info(struct target *target, struct armv8_common *armv8)
 {
 	struct arm *arm = &armv8->arm;
 	arm->arch_info = armv8;
 	target->arch_info = &armv8->arm;
+	arm->setup_semihosting = armv8_setup_semihosting;
 	/*  target is useful in all function arm v4 5 compatible */
 	armv8->arm.target = target;
 	armv8->arm.common_magic = ARM_COMMON_MAGIC;
@@ -1046,7 +1063,7 @@ int armv8_aarch64_state(struct target *target)
 		armv8_mode_name(arm->core_mode),
 		buf_get_u32(arm->cpsr->value, 0, 32),
 		buf_get_u64(arm->pc->value, 0, 64),
-		arm->is_semihosting ? ", semihosting" : "");
+		(target->semihosting && target->semihosting->is_active) ? ", semihosting" : "");
 
 	return ERROR_OK;
 }

@@ -36,7 +36,7 @@ several important advantages compared to using the source repository
    were produced as part of creating the archive.
 -# Because they have been formally released by the project, users
    don't need to try a random work-in-process revision.  Releasing
-   involves spending some time specifically on quality improvments,
+   involves spending some time specifically on quality improvements,
    including bugfixing source code and documentation.
 -# They provide developers with the flexibility needed to address
    larger issues, which sometimes involves temporary breakage.
@@ -149,7 +149,7 @@ specific git revisions:
 
 0.3.0-rc1-dev-00015-gf37c9b8-dirty
 
-indicates a development tree based on git revison f37c9b8
+indicates a development tree based on git revision f37c9b8
 (a truncated version of a SHA1 hash) with some non-git
 patches applied (the <em>dirty</em> tag).  This information
 can be useful when tracking down bugs.
@@ -385,7 +385,7 @@ git tag -m "The openocd-${PACKAGE_VERSION} release." "${PACKAGE_TAG}"
      - Last updates for the release, including the release tag (you
        will need to "git push --tags").
      - Updates opening the merge window
-  - At this point, it's OK for commiters to start pushing changes
+  - At this point, it's OK for committers to start pushing changes
     which have been held off until the next release.  (Any bugfixes to
     this release will be against a bug-fix release branch starting from
     the commit you tagged as this release, not mainline.)
@@ -423,7 +423,7 @@ tools/release.sh --type=micro branch
 
 Both of these variations make automatic commits and tags in your
 repository, so you should be sure to run it on a cloned copy before
-proceding with a live release.
+proceeding with a live release.
 
 @subsection releasescriptopts Release Script Options
 

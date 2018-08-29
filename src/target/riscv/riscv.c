@@ -185,18 +185,19 @@ int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
 /* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
 int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
-bool riscv_use_scratch_ram;
-uint64_t riscv_scratch_ram_address;
-
 bool riscv_prefer_sba;
+
+typedef struct {
+	uint16_t low, high;
+} range_t;
 
 /* In addition to the ones in the standard spec, we'll also expose additional
  * CSRs in this list.
  * The list is either NULL, or a series of ranges (inclusive), terminated with
  * 1,0. */
-struct {
-	uint16_t low, high;
-} *expose_csr;
+range_t *expose_csr;
+/* Same, but for custom registers. */
+range_t *expose_custom;
 
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
@@ -263,6 +264,8 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	select_dbus.num_bits = target->tap->ir_length;
 	select_idcode.num_bits = target->tap->ir_length;
 
+	riscv_semihosting_init(target);
+
 	return ERROR_OK;
 }
 
@@ -273,8 +276,16 @@ static void riscv_deinit_target(struct target *target)
 	if (tt) {
 		tt->deinit_target(target);
 		riscv_info_t *info = (riscv_info_t *) target->arch_info;
+		free(info->reg_names);
 		free(info);
 	}
+	/* Free the shared structure use for most registers. */
+	free(target->reg_cache->reg_list[0].arch_info);
+	/* Free the ones we allocated separately. */
+	for (unsigned i = GDB_REGNO_COUNT; i < target->reg_cache->num_regs; i++)
+		free(target->reg_cache->reg_list[i].arch_info);
+	free(target->reg_cache->reg_list);
+	free(target->reg_cache);
 	target->arch_info = NULL;
 }
 
@@ -644,6 +655,89 @@ int riscv_remove_watchpoint(struct target *target,
 	return ERROR_OK;
 }
 
+/* Sets *hit_watchpoint to the first watchpoint identified as causing the
+ * current halt.
+ *
+ * The GDB server uses this information to tell GDB what data address has
+ * been hit, which enables GDB to print the hit variable along with its old
+ * and new value. */
+int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint)
+{
+	struct watchpoint *wp = target->watchpoints;
+
+	LOG_DEBUG("Current hartid = %d", riscv_current_hartid(target));
+
+	/*TODO instead of disassembling the instruction that we think caused the
+	 * trigger, check the hit bit of each watchpoint first. The hit bit is
+	 * simpler and more reliable to check but as it is optional and relatively
+	 * new, not all hardware will implement it  */
+	riscv_reg_t dpc;
+	riscv_get_register(target, &dpc, GDB_REGNO_DPC);
+	const uint8_t length = 4;
+	LOG_DEBUG("dpc is 0x%" PRIx64, dpc);
+
+	/* fetch the instruction at dpc */
+	uint8_t buffer[length];
+	if (target_read_buffer(target, dpc, length, buffer) != ERROR_OK) {
+		LOG_ERROR("Failed to read instruction at dpc 0x%" PRIx64, dpc);
+		return ERROR_FAIL;
+	}
+
+	uint32_t instruction = 0;
+
+	for (int i = 0; i < length; i++) {
+		LOG_DEBUG("Next byte is %x", buffer[i]);
+		instruction += (buffer[i] << 8 * i);
+	}
+	LOG_DEBUG("Full instruction is %x", instruction);
+
+	/* find out which memory address is accessed by the instruction at dpc */
+	/* opcode is first 7 bits of the instruction */
+	uint8_t opcode = instruction & 0x7F;
+	uint32_t rs1;
+	int16_t imm;
+	riscv_reg_t mem_addr;
+
+	if (opcode == MATCH_LB || opcode == MATCH_SB) {
+		rs1 = (instruction & 0xf8000) >> 15;
+		riscv_get_register(target, &mem_addr, rs1);
+
+		if (opcode == MATCH_SB) {
+			LOG_DEBUG("%x is store instruction", instruction);
+			imm = ((instruction & 0xf80) >> 7) | ((instruction & 0xfe000000) >> 20);
+		} else {
+			LOG_DEBUG("%x is load instruction", instruction);
+			imm = (instruction & 0xfff00000) >> 20;
+		}
+		/* sign extend 12-bit imm to 16-bits */
+		if (imm & (1 << 11))
+			imm |= 0xf000;
+		mem_addr += imm;
+		LOG_DEBUG("memory address=0x%" PRIx64, mem_addr);
+	} else {
+		LOG_DEBUG("%x is not a RV32I load or store", instruction);
+		return ERROR_FAIL;
+	}
+
+	while (wp) {
+		/*TODO support length/mask */
+		if (wp->address == mem_addr) {
+			*hit_watchpoint = wp;
+			LOG_DEBUG("Hit address=%" TARGET_PRIxADDR, wp->address);
+			return ERROR_OK;
+		}
+		wp = wp->next;
+	}
+
+	/* No match found - either we hit a watchpoint caused by an instruction that
+	 * this function does not yet disassemble, or we hit a breakpoint.
+	 *
+	 * OpenOCD will behave as if this function had never been implemented i.e.
+	 * report the halt to GDB with no address information. */
+	return ERROR_FAIL;
+}
+
+
 static int oldriscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
@@ -802,7 +896,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 			*reg_list_size = 32;
 			break;
 		case REG_CLASS_ALL:
-			*reg_list_size = GDB_REGNO_COUNT;
+			*reg_list_size = target->reg_cache->num_regs;
 			break;
 		default:
 			LOG_ERROR("Unsupported reg_class: %d", reg_class);
@@ -1068,9 +1162,17 @@ int riscv_openocd_poll(struct target *target)
 	if (riscv_rtos_enabled(target)) {
 		target->rtos->current_threadid = halted_hart + 1;
 		target->rtos->current_thread = halted_hart + 1;
+		riscv_set_rtos_hartid(target, halted_hart);
 	}
 
 	target->state = TARGET_HALTED;
+
+	if (target->debug_reason == DBG_REASON_BREAKPOINT) {
+		int retval;
+		if (riscv_semihosting(target, &retval) != 0)
+			return retval;
+	}
+
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	return ERROR_OK;
 }
@@ -1240,31 +1342,6 @@ COMMAND_HANDLER(riscv_test_compliance) {
 	}
 }
 
-COMMAND_HANDLER(riscv_set_scratch_ram)
-{
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	if (!strcmp(CMD_ARGV[0], "none")) {
-		riscv_use_scratch_ram = false;
-		return ERROR_OK;
-	}
-
-	/* TODO: use COMMAND_PARSE_NUMBER */
-	long long unsigned int address;
-	int result = sscanf(CMD_ARGV[0], "%llx", &address);
-	if (result != (int) strlen(CMD_ARGV[0])) {
-		LOG_ERROR("%s is not a valid address for command.", CMD_ARGV[0]);
-		riscv_use_scratch_ram = false;
-		return ERROR_FAIL;
-	}
-
-	riscv_scratch_ram_address = address;
-	riscv_use_scratch_ram = true;
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(riscv_set_prefer_sba)
 {
 	if (CMD_ARGC != 1) {
@@ -1288,20 +1365,15 @@ void parse_error(const char *string, char c, unsigned position)
 	LOG_ERROR("%s", buf);
 }
 
-COMMAND_HANDLER(riscv_set_expose_csrs)
+int parse_ranges(range_t **ranges, const char **argv)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
 	for (unsigned pass = 0; pass < 2; pass++) {
 		unsigned range = 0;
 		unsigned low = 0;
 		bool parse_low = true;
 		unsigned high = 0;
-		for (unsigned i = 0; i == 0 || CMD_ARGV[0][i-1]; i++) {
-			char c = CMD_ARGV[0][i];
+		for (unsigned i = 0; i == 0 || argv[0][i-1]; i++) {
+			char c = argv[0][i];
 			if (isspace(c)) {
 				/* Ignore whitespace. */
 				continue;
@@ -1315,13 +1387,13 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 					parse_low = false;
 				} else if (c == ',' || c == 0) {
 					if (pass == 1) {
-						expose_csr[range].low = low;
-						expose_csr[range].high = low;
+						(*ranges)[range].low = low;
+						(*ranges)[range].high = low;
 					}
 					low = 0;
 					range++;
 				} else {
-					parse_error(CMD_ARGV[0], c, i);
+					parse_error(argv[0], c, i);
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 
@@ -1332,29 +1404,50 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 				} else if (c == ',' || c == 0) {
 					parse_low = true;
 					if (pass == 1) {
-						expose_csr[range].low = low;
-						expose_csr[range].high = high;
+						(*ranges)[range].low = low;
+						(*ranges)[range].high = high;
 					}
 					low = 0;
 					high = 0;
 					range++;
 				} else {
-					parse_error(CMD_ARGV[0], c, i);
+					parse_error(argv[0], c, i);
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 			}
 		}
 
 		if (pass == 0) {
-			if (expose_csr)
-				free(expose_csr);
-			expose_csr = calloc(range + 2, sizeof(*expose_csr));
+			if (*ranges)
+				free(*ranges);
+			*ranges = calloc(range + 2, sizeof(range_t));
 		} else {
-			expose_csr[range].low = 1;
-			expose_csr[range].high = 0;
+			(*ranges)[range].low = 1;
+			(*ranges)[range].high = 0;
 		}
 	}
+
 	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_expose_csrs)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return parse_ranges(&expose_csr, CMD_ARGV);
+}
+
+COMMAND_HANDLER(riscv_set_expose_custom)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return parse_ranges(&expose_custom, CMD_ARGV);
 }
 
 COMMAND_HANDLER(riscv_authdata_read)
@@ -1487,13 +1580,6 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.help = "Set the wall-clock timeout (in seconds) after reset is deasserted"
 	},
 	{
-		.name = "set_scratch_ram",
-		.handler = riscv_set_scratch_ram,
-		.mode = COMMAND_ANY,
-		.usage = "riscv set_scratch_ram none|[address]",
-		.help = "Set address of 16 bytes of scratch RAM the debugger can use, or 'none'."
-	},
-	{
 		.name = "set_prefer_sba",
 		.handler = riscv_set_prefer_sba,
 		.mode = COMMAND_ANY,
@@ -1509,6 +1595,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.help = "Configure a list of inclusive ranges for CSRs to expose in "
 				"addition to the standard ones. This must be executed before "
 				"`init`."
+	},
+	{
+		.name = "expose_custom",
+		.handler = riscv_set_expose_custom,
+		.mode = COMMAND_ANY,
+		.usage = "riscv expose_custom n0[-m0][,n1[-m1]]...",
+		.help = "Configure a list of inclusive ranges for custom registers to "
+			"expose. custom0 is accessed as abstract register number 0xc000, "
+			"etc. This must be executed before `init`."
 	},
 	{
 		.name = "authdata_read",
@@ -1541,6 +1636,56 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+extern __COMMAND_HANDLER(handle_common_semihosting_command);
+extern __COMMAND_HANDLER(handle_common_semihosting_fileio_command);
+extern __COMMAND_HANDLER(handle_common_semihosting_resumable_exit_command);
+extern __COMMAND_HANDLER(handle_common_semihosting_cmdline);
+
+/*
+ * To be noted that RISC-V targets use the same semihosting commands as
+ * ARM targets.
+ *
+ * The main reason is compatibility with existing tools. For example the
+ * Eclipse OpenOCD/SEGGER J-Link/QEMU plug-ins have several widgets to
+ * configure semihosting, which generate commands like `arm semihosting
+ * enable`.
+ * A secondary reason is the fact that the protocol used is exactly the
+ * one specified by ARM. If RISC-V will ever define its own semihosting
+ * protocol, then a command like `riscv semihosting enable` will make
+ * sense, but for now all semihosting commands are prefixed with `arm`.
+ */
+static const struct command_registration arm_exec_command_handlers[] = {
+	{
+		"semihosting",
+		.handler = handle_common_semihosting_command,
+		.mode = COMMAND_EXEC,
+		.usage = "['enable'|'disable']",
+		.help = "activate support for semihosting operations",
+	},
+	{
+		"semihosting_cmdline",
+		.handler = handle_common_semihosting_cmdline,
+		.mode = COMMAND_EXEC,
+		.usage = "arguments",
+		.help = "command line arguments to be passed to program",
+	},
+	{
+		"semihosting_fileio",
+		.handler = handle_common_semihosting_fileio_command,
+		.mode = COMMAND_EXEC,
+		.usage = "['enable'|'disable']",
+		.help = "activate support for semihosting fileio operations",
+	},
+	{
+		"semihosting_resexit",
+		.handler = handle_common_semihosting_resumable_exit_command,
+		.mode = COMMAND_EXEC,
+		.usage = "['enable'|'disable']",
+		.help = "activate support for semihosting resumable exit",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 const struct command_registration riscv_command_handlers[] = {
 	{
 		.name = "riscv",
@@ -1548,6 +1693,13 @@ const struct command_registration riscv_command_handlers[] = {
 		.help = "RISC-V Command Group",
 		.usage = "",
 		.chain = riscv_exec_command_handlers
+	},
+	{
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM Command Group",
+		.usage = "",
+		.chain = arm_exec_command_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1581,6 +1733,7 @@ struct target_type riscv_target = {
 
 	.add_watchpoint = riscv_add_watchpoint,
 	.remove_watchpoint = riscv_remove_watchpoint,
+	.hit_watchpoint = riscv_hit_watchpoint,
 
 	.arch_state = riscv_arch_state,
 
@@ -1760,7 +1913,7 @@ void riscv_invalidate_register_cache(struct target *target)
 	RISCV_INFO(r);
 
 	register_cache_invalidate(target->reg_cache);
-	for (size_t i = 0; i < GDB_REGNO_COUNT; ++i) {
+	for (size_t i = 0; i < target->reg_cache->num_regs; ++i) {
 		struct reg *reg = &target->reg_cache->reg_list[i];
 		reg->valid = false;
 	}
@@ -2033,7 +2186,8 @@ const char *gdb_regno_name(enum gdb_regno regno)
 
 static int register_get(struct reg *reg)
 {
-	struct target *target = (struct target *) reg->arch_info;
+	riscv_reg_info_t *reg_info = reg->arch_info;
+	struct target *target = reg_info->target;
 	uint64_t value;
 	int result = riscv_get_register(target, &value, reg->number);
 	if (result != ERROR_OK)
@@ -2044,7 +2198,8 @@ static int register_get(struct reg *reg)
 
 static int register_set(struct reg *reg, uint8_t *buf)
 {
-	struct target *target = (struct target *) reg->arch_info;
+	riscv_reg_info_t *reg_info = reg->arch_info;
+	struct target *target = reg_info->target;
 
 	uint64_t value = buf_get_u64(buf, 0, reg->size);
 
@@ -2086,12 +2241,26 @@ int riscv_init_registers(struct target *target)
 	target->reg_cache->name = "RISC-V Registers";
 	target->reg_cache->num_regs = GDB_REGNO_COUNT;
 
-	target->reg_cache->reg_list = calloc(GDB_REGNO_COUNT, sizeof(struct reg));
+	if (expose_custom) {
+		for (unsigned i = 0; expose_custom[i].low <= expose_custom[i].high; i++) {
+			for (unsigned number = expose_custom[i].low;
+					number <= expose_custom[i].high;
+					number++)
+				target->reg_cache->num_regs++;
+		}
+	}
+
+	LOG_DEBUG("create register cache for %d registers",
+			target->reg_cache->num_regs);
+
+	target->reg_cache->reg_list =
+		calloc(target->reg_cache->num_regs, sizeof(struct reg));
 
 	const unsigned int max_reg_name_len = 12;
 	if (info->reg_names)
 		free(info->reg_names);
-	info->reg_names = calloc(1, GDB_REGNO_COUNT * max_reg_name_len);
+	info->reg_names =
+		calloc(target->reg_cache->num_regs, max_reg_name_len);
 	char *reg_name = info->reg_names;
 
 	static struct reg_feature feature_cpu = {
@@ -2105,6 +2274,9 @@ int riscv_init_registers(struct target *target)
 	};
 	static struct reg_feature feature_virtual = {
 		.name = "org.gnu.gdb.riscv.virtual"
+	};
+	static struct reg_feature feature_custom = {
+		.name = "org.gnu.gdb.riscv.custom"
 	};
 
 	static struct reg_data_type type_ieee_single = {
@@ -2124,18 +2296,24 @@ int riscv_init_registers(struct target *target)
 	qsort(csr_info, DIM(csr_info), sizeof(*csr_info), cmp_csr_info);
 	unsigned csr_info_index = 0;
 
-	/* When gdb request register N, gdb_get_register_packet() assumes that this
+	unsigned custom_range_index = 0;
+	int custom_within_range = 0;
+
+	riscv_reg_info_t *shared_reg_info = calloc(1, sizeof(riscv_reg_info_t));
+	shared_reg_info->target = target;
+
+	/* When gdb requests register N, gdb_get_register_packet() assumes that this
 	 * is register at index N in reg_list. So if there are certain registers
 	 * that don't exist, we need to leave holes in the list (or renumber, but
 	 * it would be nice not to have yet another set of numbers to translate
 	 * between). */
-	for (uint32_t number = 0; number < GDB_REGNO_COUNT; number++) {
+	for (uint32_t number = 0; number < target->reg_cache->num_regs; number++) {
 		struct reg *r = &target->reg_cache->reg_list[number];
 		r->dirty = false;
 		r->valid = false;
 		r->exist = true;
 		r->type = &riscv_reg_arch_type;
-		r->arch_info = target;
+		r->arch_info = shared_reg_info;
 		r->number = number;
 		r->size = riscv_xlen(target);
 		/* r->size is set in riscv_invalidate_register_cache, maybe because the
@@ -2495,11 +2673,35 @@ int riscv_init_registers(struct target *target)
 			r->group = "general";
 			r->feature = &feature_virtual;
 			r->size = 8;
+
+		} else {
+			/* Custom registers. */
+			assert(expose_custom);
+
+			range_t *range = &expose_custom[custom_range_index];
+			assert(range->low <= range->high);
+			unsigned custom_number = range->low + custom_within_range;
+
+			r->group = "custom";
+			r->feature = &feature_custom;
+			r->arch_info = calloc(1, sizeof(riscv_reg_info_t));
+			assert(r->arch_info);
+			((riscv_reg_info_t *) r->arch_info)->target = target;
+			((riscv_reg_info_t *) r->arch_info)->custom_number = custom_number;
+			sprintf(reg_name, "custom%d", custom_number);
+
+			custom_within_range++;
+			if (custom_within_range > range->high - range->low) {
+				custom_within_range = 0;
+				custom_range_index++;
+			}
 		}
+
 		if (reg_name[0])
 			r->name = reg_name;
 		reg_name += strlen(reg_name) + 1;
-		assert(reg_name < info->reg_names + GDB_REGNO_COUNT * max_reg_name_len);
+		assert(reg_name < info->reg_names + target->reg_cache->num_regs *
+				max_reg_name_len);
 		r->value = &info->reg_cache_values[number];
 	}
 

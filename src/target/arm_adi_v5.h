@@ -286,6 +286,9 @@ struct dap_ops {
 	/** Executes all queued DAP operations but doesn't check
 	 * sticky error conditions */
 	int (*sync)(struct adiv5_dap *dap);
+
+	/** Optional; called at OpenOCD exit */
+	void (*quit)(struct adiv5_dap *dap);
 };
 
 /*

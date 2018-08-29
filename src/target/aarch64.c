@@ -28,6 +28,7 @@
 #include "target_type.h"
 #include "armv8_opcodes.h"
 #include "armv8_cache.h"
+#include "arm_semihosting.h"
 #include <helper/time_support.h>
 
 enum restart_mode {
@@ -522,6 +523,9 @@ static int aarch64_poll(struct target *target)
 			if (target->smp)
 				update_halt_gdb(target, debug_reason);
 
+			if (arm_semihosting(target, &retval) != 0)
+				return retval;
+
 			switch (prev_target_state) {
 			case TARGET_RUNNING:
 			case TARGET_UNKNOWN:
@@ -543,6 +547,9 @@ static int aarch64_poll(struct target *target)
 
 static int aarch64_halt(struct target *target)
 {
+	struct armv8_common *armv8 = target_to_armv8(target);
+	armv8->last_run_control_op = ARMV8_RUNCONTROL_HALT;
+
 	if (target->smp)
 		return aarch64_halt_smp(target, false);
 
@@ -831,6 +838,9 @@ static int aarch64_resume(struct target *target, int current,
 	int retval = 0;
 	uint64_t addr = address;
 
+	struct armv8_common *armv8 = target_to_armv8(target);
+	armv8->last_run_control_op = ARMV8_RUNCONTROL_RESUME;
+
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
@@ -1068,6 +1078,8 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	int saved_retval = ERROR_OK;
 	int retval;
 	uint32_t edecr;
+
+	armv8->last_run_control_op = ARMV8_RUNCONTROL_STEP;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
@@ -1682,17 +1694,19 @@ static int aarch64_deassert_reset(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	retval = aarch64_init_debug_access(target);
+	if (retval != ERROR_OK)
+		return retval;
+
 	if (target->reset_halt) {
 		if (target->state != TARGET_HALTED) {
 			LOG_WARNING("%s: ran after reset and before halt ...",
 				target_name(target));
 			retval = target_halt(target);
-			if (retval != ERROR_OK)
-				return retval;
 		}
 	}
 
-	return aarch64_init_debug_access(target);
+	return retval;
 }
 
 static int aarch64_write_cpu_memory_slow(struct target *target,
@@ -2351,6 +2365,7 @@ static int aarch64_init_target(struct command_context *cmd_ctx,
 	struct target *target)
 {
 	/* examine_first() does a bunch of this */
+	arm_semihosting_init(target);
 	return ERROR_OK;
 }
 
@@ -2590,6 +2605,143 @@ COMMAND_HANDLER(aarch64_mask_interrupts_command)
 	return ERROR_OK;
 }
 
+static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+{
+	struct command_context *context;
+	struct target *target;
+	struct arm *arm;
+	int retval;
+	bool is_mcr = false;
+	int arg_cnt = 0;
+
+	if (Jim_CompareStringImmediate(interp, argv[0], "mcr")) {
+		is_mcr = true;
+		arg_cnt = 7;
+	} else {
+		arg_cnt = 6;
+	}
+
+	context = current_command_context(interp);
+	assert(context != NULL);
+
+	target = get_current_target(context);
+	if (target == NULL) {
+		LOG_ERROR("%s: no current target", __func__);
+		return JIM_ERR;
+	}
+	if (!target_was_examined(target)) {
+		LOG_ERROR("%s: not yet examined", target_name(target));
+		return JIM_ERR;
+	}
+
+	arm = target_to_arm(target);
+	if (!is_arm(arm)) {
+		LOG_ERROR("%s: not an ARM", target_name(target));
+		return JIM_ERR;
+	}
+
+	if (target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
+
+	if (arm->core_state == ARM_STATE_AARCH64) {
+		LOG_ERROR("%s: not 32-bit arm target", target_name(target));
+		return JIM_ERR;
+	}
+
+	if (argc != arg_cnt) {
+		LOG_ERROR("%s: wrong number of arguments", __func__);
+		return JIM_ERR;
+	}
+
+	int cpnum;
+	uint32_t op1;
+	uint32_t op2;
+	uint32_t CRn;
+	uint32_t CRm;
+	uint32_t value;
+	long l;
+
+	/* NOTE:  parameter sequence matches ARM instruction set usage:
+	 *	MCR	pNUM, op1, rX, CRn, CRm, op2	; write CP from rX
+	 *	MRC	pNUM, op1, rX, CRn, CRm, op2	; read CP into rX
+	 * The "rX" is necessarily omitted; it uses Tcl mechanisms.
+	 */
+	retval = Jim_GetLong(interp, argv[1], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0xf) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"coprocessor", (int) l);
+		return JIM_ERR;
+	}
+	cpnum = l;
+
+	retval = Jim_GetLong(interp, argv[2], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0x7) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"op1", (int) l);
+		return JIM_ERR;
+	}
+	op1 = l;
+
+	retval = Jim_GetLong(interp, argv[3], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0xf) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"CRn", (int) l);
+		return JIM_ERR;
+	}
+	CRn = l;
+
+	retval = Jim_GetLong(interp, argv[4], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0xf) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"CRm", (int) l);
+		return JIM_ERR;
+	}
+	CRm = l;
+
+	retval = Jim_GetLong(interp, argv[5], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0x7) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"op2", (int) l);
+		return JIM_ERR;
+	}
+	op2 = l;
+
+	value = 0;
+
+	if (is_mcr == true) {
+		retval = Jim_GetLong(interp, argv[6], &l);
+		if (retval != JIM_OK)
+			return retval;
+		value = l;
+
+		/* NOTE: parameters reordered! */
+		/* ARMV4_5_MCR(cpnum, op1, 0, CRn, CRm, op2) */
+		retval = arm->mcr(target, cpnum, op1, op2, CRn, CRm, value);
+		if (retval != ERROR_OK)
+			return JIM_ERR;
+	} else {
+		/* NOTE: parameters reordered! */
+		/* ARMV4_5_MRC(cpnum, op1, 0, CRn, CRm, op2) */
+		retval = arm->mrc(target, cpnum, op1, op2, CRn, CRm, &value);
+		if (retval != ERROR_OK)
+			return JIM_ERR;
+
+		Jim_SetResult(interp, Jim_NewIntObj(interp, value));
+	}
+
+	return JIM_OK;
+}
+
 static const struct command_registration aarch64_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
@@ -2625,9 +2777,25 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 		.help = "mask aarch64 interrupts during single-step",
 		.usage = "['on'|'off']",
 	},
+	{
+		.name = "mcr",
+		.mode = COMMAND_EXEC,
+		.jim_handler = jim_mcrmrc,
+		.help = "write coprocessor register",
+		.usage = "cpnum op1 CRn CRm op2 value",
+	},
+	{
+		.name = "mrc",
+		.mode = COMMAND_EXEC,
+		.jim_handler = jim_mcrmrc,
+		.help = "read coprocessor register",
+		.usage = "cpnum op1 CRn CRm op2",
+	},
+
 
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration aarch64_command_handlers[] = {
 	{
 		.chain = armv8_command_handlers,

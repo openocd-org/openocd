@@ -112,6 +112,8 @@ static char *gdb_port_next;
 static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
+static void gdb_sig_halted(struct connection *connection);
+
 /* number of gdb connections, mainly to suppress gdb related debugging spam
  * in helper/log.c when no gdb connections are actually active */
 int gdb_actual_connections;
@@ -720,7 +722,7 @@ static int gdb_output(struct command_context *context, const char *line)
 static void gdb_signal_reply(struct target *target, struct connection *connection)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
-	char sig_reply[45];
+	char sig_reply[65];
 	char stop_reason[20];
 	char current_thread[25];
 	int sig_reply_len;
@@ -765,7 +767,7 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		current_thread[0] = '\0';
 		if (target->rtos != NULL) {
 			struct target *ct;
-			snprintf(current_thread, sizeof(current_thread), "thread:%016" PRIx64 ";",
+			snprintf(current_thread, sizeof(current_thread), "thread:%" PRIx64 ";",
 					target->rtos->current_thread);
 			target->rtos->current_threadid = target->rtos->current_thread;
 			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
@@ -791,64 +793,64 @@ static void gdb_fileio_reply(struct target *target, struct connection *connectio
 	bool program_exited = false;
 
 	if (strcmp(target->fileio_info->identifier, "open") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3,
 				target->fileio_info->param_4);
 	else if (strcmp(target->fileio_info->identifier, "close") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1);
 	else if (strcmp(target->fileio_info->identifier, "read") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "write") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "lseek") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "rename") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32 ",%" PRIx32 "/%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64 ",%" PRIx64 "/%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3,
 				target->fileio_info->param_4);
 	else if (strcmp(target->fileio_info->identifier, "unlink") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "stat") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2,
 				target->fileio_info->param_3);
 	else if (strcmp(target->fileio_info->identifier, "fstat") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "gettimeofday") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 ",%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 ",%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "isatty") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1);
 	else if (strcmp(target->fileio_info->identifier, "system") == 0)
-		sprintf(fileio_command, "F%s,%" PRIx32 "/%" PRIx32, target->fileio_info->identifier,
+		sprintf(fileio_command, "F%s,%" PRIx64 "/%" PRIx64, target->fileio_info->identifier,
 				target->fileio_info->param_1,
 				target->fileio_info->param_2);
 	else if (strcmp(target->fileio_info->identifier, "exit") == 0) {
 		/* If target hits exit syscall, report to GDB the program is terminated.
 		 * In addition, let target run its own exit syscall handler. */
 		program_exited = true;
-		sprintf(fileio_command, "W%02" PRIx32, target->fileio_info->param_1);
+		sprintf(fileio_command, "W%02" PRIx64, target->fileio_info->param_1);
 	} else {
 		LOG_DEBUG("Unknown syscall: %s", target->fileio_info->identifier);
 
@@ -934,6 +936,7 @@ static int gdb_new_connection(struct connection *connection)
 
 	target = get_target_from_connection(connection);
 	connection->priv = gdb_connection;
+	connection->cmd_ctx->current_target = target;
 
 	/* initialize gdb connection information */
 	gdb_connection->buf_p = gdb_connection->buffer;
@@ -1357,7 +1360,8 @@ static int gdb_set_register_packet(struct connection *connection,
 	int chars = (DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
 
 	if ((unsigned int)chars != strlen(separator + 1)) {
-		LOG_ERROR("gdb sent a packet with wrong register size");
+		LOG_ERROR("gdb sent %zu bits for a %d-bit register (%s)",
+				strlen(separator + 1) * 4, chars * 4, reg_list[reg_num]->name);
 		free(bin_buf);
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
@@ -2704,6 +2708,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 	/* simple case, a continue packet */
 	if (parse[0] == 'c') {
+		gdb_running_type = 'c';
 		LOG_DEBUG("target %s continue", target_name(target));
 		log_add_callback(gdb_log_callback, connection);
 		retval = target_resume(target, 1, 0, 0, 0);
@@ -2730,6 +2735,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 	/* single-step or step-over-breakpoint */
 	if (parse[0] == 's') {
+		gdb_running_type = 's';
 		bool fake_step = false;
 
 		if (strncmp(parse, "s:", 2) == 0) {
@@ -3016,9 +3022,12 @@ static int gdb_v_packet(struct connection *connection,
 
 static int gdb_detach(struct connection *connection)
 {
-	target_call_event_callbacks(get_target_from_connection(connection),
-		TARGET_EVENT_GDB_DETACH);
-
+	/*
+	 * Only reply "OK" to GDB
+	 * it will close the connection and this will trigger a call to
+	 * gdb_connection_closed() that will in turn trigger the event
+	 * TARGET_EVENT_GDB_DETACH
+	 */
 	return gdb_put_packet(connection, "OK", 2);
 }
 
@@ -3084,7 +3093,7 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 	gdb_output_con(connection, string);
 }
 
-void gdb_sig_halted(struct connection *connection)
+static void gdb_sig_halted(struct connection *connection)
 {
 	char sig_reply[4];
 	snprintf(sig_reply, 4, "T%2.2x", 2);

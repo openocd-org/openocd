@@ -113,6 +113,12 @@ enum {
 	ARMV8_LAST_REG,
 };
 
+enum run_control_op {
+	ARMV8_RUNCONTROL_UNKNOWN = 0,
+	ARMV8_RUNCONTROL_RESUME = 1,
+	ARMV8_RUNCONTROL_HALT = 2,
+	ARMV8_RUNCONTROL_STEP = 3,
+};
 
 #define ARMV8_COMMON_MAGIC 0x0A450AAA
 
@@ -210,6 +216,9 @@ struct armv8_common {
 
 	struct arm_cti *cti;
 
+	/* last run-control command issued to this target (resume, halt, step) */
+	enum run_control_op last_run_control_op;
+
 	/* Direct processor core register read and writes */
 	int (*read_reg_u64)(struct armv8_common *armv8, int num, uint64_t *value);
 	int (*write_reg_u64)(struct armv8_common *armv8, int num, uint64_t value);
@@ -230,6 +239,11 @@ static inline struct armv8_common *
 target_to_armv8(struct target *target)
 {
 	return container_of(target->arch_info, struct armv8_common, arm);
+}
+
+static inline bool is_armv8(struct armv8_common *armv8)
+{
+	return armv8->common_magic == ARMV8_COMMON_MAGIC;
 }
 
 /* register offsets from armv8.debug_base */

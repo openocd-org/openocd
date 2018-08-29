@@ -46,8 +46,13 @@ static void virtual_update_bank_info(struct flash_bank *bank)
 	bank->bus_width = master_bank->bus_width;
 	bank->erased_value = master_bank->erased_value;
 	bank->default_padded_value = master_bank->default_padded_value;
+	bank->write_start_alignment = master_bank->write_start_alignment;
+	bank->write_end_alignment = master_bank->write_end_alignment;
+	bank->minimal_write_gap = master_bank->minimal_write_gap;
 	bank->num_sectors = master_bank->num_sectors;
 	bank->sectors = master_bank->sectors;
+	bank->num_prot_blocks = master_bank->num_prot_blocks;
+	bank->prot_blocks = master_bank->prot_blocks;
 }
 
 FLASH_BANK_COMMAND_HANDLER(virtual_flash_bank_command)

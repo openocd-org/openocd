@@ -189,8 +189,6 @@ typedef struct {
 	 * go low. */
 	unsigned int ac_busy_delay;
 
-	bool need_strict_step;
-
 	bool abstract_read_csr_supported;
 	bool abstract_write_csr_supported;
 	bool abstract_read_fpr_supported;
@@ -264,11 +262,18 @@ static dm013_info_t *get_dm(struct target *target)
 	return dm;
 }
 
-static uint32_t hartsel_mask(const struct target *target)
+static uint32_t set_hartsel(uint32_t initial, uint32_t index)
 {
-	RISCV013_INFO(info);
-	/* TODO: Properly handle hartselhi as well*/
-	return ((1L<<info->hartsellen)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET;
+	initial &= ~DMI_DMCONTROL_HARTSELLO;
+	initial &= ~DMI_DMCONTROL_HARTSELHI;
+
+	uint32_t index_lo = index & ((1 << DMI_DMCONTROL_HARTSELLO_LENGTH) - 1);
+	initial |= index_lo << DMI_DMCONTROL_HARTSELLO_OFFSET;
+	uint32_t index_hi = index >> DMI_DMCONTROL_HARTSELLO_LENGTH;
+	assert(index_hi < 1 << DMI_DMCONTROL_HARTSELHI_LENGTH);
+	initial |= index_hi << DMI_DMCONTROL_HARTSELHI_OFFSET;
+
+	return initial;
 }
 
 static void decode_dmi(char *text, unsigned address, unsigned data)
@@ -282,8 +287,8 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMCONTROL, DMI_DMCONTROL_RESUMEREQ, "resumereq" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTRESET, "hartreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_HASEL, "hasel" },
-		{ DMI_DMCONTROL, ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET, "hartsello" },
-		/* TODO: hartsellhi */
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTSELHI, "hartselhi" },
+		{ DMI_DMCONTROL, DMI_DMCONTROL_HARTSELLO, "hartsello" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_NDMRESET, "ndmreset" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_DMACTIVE, "dmactive" },
 		{ DMI_DMCONTROL, DMI_DMCONTROL_ACKHAVERESET, "ackhavereset" },
@@ -741,8 +746,8 @@ static int write_abstract_arg(struct target *target, unsigned index,
 /**
  * @size in bits
  */
-static uint32_t access_register_command(uint32_t number, unsigned size,
-		uint32_t flags)
+static uint32_t access_register_command(struct target *target, uint32_t number,
+		unsigned size, uint32_t flags)
 {
 	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
 	switch (size) {
@@ -765,8 +770,13 @@ static uint32_t access_register_command(uint32_t number, unsigned size,
 	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
 				number - GDB_REGNO_CSR0);
-	} else {
-		assert(0);
+	} else if (number >= GDB_REGNO_COUNT) {
+		/* Custom register. */
+		assert(target->reg_cache->reg_list[number].arch_info);
+		riscv_reg_info_t *reg_info = target->reg_cache->reg_list[number].arch_info;
+		assert(reg_info);
+		command = set_field(command, AC_ACCESS_REGISTER_REGNO,
+				0xc000 + reg_info->custom_number);
 	}
 
 	command |= flags;
@@ -786,7 +796,7 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 			!info->abstract_read_csr_supported)
 		return ERROR_FAIL;
 
-	uint32_t command = access_register_command(number, size,
+	uint32_t command = access_register_command(target, number, size,
 			AC_ACCESS_REGISTER_TRANSFER);
 
 	int result = execute_abstract_command(target, command);
@@ -821,7 +831,7 @@ static int register_write_abstract(struct target *target, uint32_t number,
 			!info->abstract_write_csr_supported)
 		return ERROR_FAIL;
 
-	uint32_t command = access_register_command(number, size,
+	uint32_t command = access_register_command(target, number, size,
 			AC_ACCESS_REGISTER_TRANSFER |
 			AC_ACCESS_REGISTER_WRITE);
 
@@ -917,21 +927,24 @@ typedef struct {
 	riscv_addr_t hart_address;
 	/* Memory address to access the scratch memory from the debugger. */
 	riscv_addr_t debug_address;
+	struct working_area *area;
 } scratch_mem_t;
 
 /**
  * Find some scratch memory to be used with the given program.
  */
-static int scratch_find(struct target *target,
+static int scratch_reserve(struct target *target,
 		scratch_mem_t *scratch,
 		struct riscv_program *program,
 		unsigned size_bytes)
 {
-	riscv013_info_t *info = get_info(target);
-
 	riscv_addr_t alignment = 1;
 	while (alignment < size_bytes)
 		alignment *= 2;
+
+	scratch->area = NULL;
+
+	riscv013_info_t *info = get_info(target);
 
 	if (info->dataaccess == 1) {
 		/* Sign extend dataaddr. */
@@ -963,8 +976,9 @@ static int scratch_find(struct target *target,
 		return ERROR_OK;
 	}
 
-	if (riscv_use_scratch_ram) {
-		scratch->hart_address = (riscv_scratch_ram_address + alignment - 1) &
+	if (target_alloc_working_area(target, size_bytes + alignment - 1,
+				&scratch->area) == ERROR_OK) {
+		scratch->hart_address = (scratch->area->address + alignment - 1) &
 			~(alignment - 1);
 		scratch->memory_space = SPACE_DMI_RAM;
 		scratch->debug_address = scratch->hart_address;
@@ -972,8 +986,17 @@ static int scratch_find(struct target *target,
 	}
 
 	LOG_ERROR("Couldn't find %d bytes of scratch RAM to use. Please configure "
-			"an address with 'riscv set_scratch_ram'.", size_bytes);
+			"a work area with 'configure -work-area-phys'.", size_bytes);
 	return ERROR_FAIL;
+}
+
+static int scratch_release(struct target *target,
+		scratch_mem_t *scratch)
+{
+	if (scratch->area)
+		return target_free_working_area(target, scratch->area);
+
+	return ERROR_OK;
 }
 
 static int scratch_read64(struct target *target, scratch_mem_t *scratch,
@@ -1090,23 +1113,29 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
+	scratch_mem_t scratch;
+	bool use_scratch = false;
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
 			riscv_supports_extension(target, riscv_current_hartid(target), 'D') &&
 			riscv_xlen(target) < 64) {
 		/* There are no instructions to move all the bits from a register, so
 		 * we need to use some scratch RAM. */
+		use_scratch = true;
 		riscv_program_insert(&program, fld(number - GDB_REGNO_FPR0, S0, 0));
 
-		scratch_mem_t scratch;
-		if (scratch_find(target, &scratch, &program, 8) != ERROR_OK)
+		if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
 			return ERROR_FAIL;
 
 		if (register_write_direct(target, GDB_REGNO_S0, scratch.hart_address)
-				!= ERROR_OK)
+				!= ERROR_OK) {
+			scratch_release(target, &scratch);
 			return ERROR_FAIL;
+		}
 
-		if (scratch_write64(target, &scratch, value) != ERROR_OK)
+		if (scratch_write64(target, &scratch, value) != ERROR_OK) {
+			scratch_release(target, &scratch);
 			return ERROR_FAIL;
+		}
 
 	} else {
 		if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
@@ -1132,6 +1161,9 @@ static int register_write_direct(struct target *target, unsigned number,
 		buf_set_u64(reg->value, 0, reg->size, value);
 		reg->valid = true;
 	}
+
+	if (use_scratch)
+		scratch_release(target, &scratch);
 
 	/* Restore S0. */
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
@@ -1209,13 +1241,15 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 				riscv_program_insert(&program, fsd(number - GDB_REGNO_FPR0, S0,
 							0));
 
-				if (scratch_find(target, &scratch, &program, 8) != ERROR_OK)
+				if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
 					return ERROR_FAIL;
 				use_scratch = true;
 
 				if (register_write_direct(target, GDB_REGNO_S0,
-							scratch.hart_address) != ERROR_OK)
+							scratch.hart_address) != ERROR_OK) {
+					scratch_release(target, &scratch);
 					return ERROR_FAIL;
+				}
 			} else if (riscv_supports_extension(target,
 						riscv_current_hartid(target), 'D')) {
 				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
@@ -1234,8 +1268,10 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		/* Don't message on error. Probably the register doesn't exist. */
 
 		if (use_scratch) {
-			if (scratch_read64(target, &scratch, value) != ERROR_OK)
-				return ERROR_FAIL;
+			result = scratch_read64(target, &scratch, value);
+			scratch_release(target, &scratch);
+			if (result != ERROR_OK)
+				return result;
 		} else {
 			/* Read S0 */
 			if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
@@ -1290,6 +1326,7 @@ static void deinit_target(struct target *target)
 	LOG_DEBUG("riscv_deinit_target()");
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
 	free(info->version_specific);
+	/* TODO: free register arch_info */
 	info->version_specific = NULL;
 }
 
@@ -1336,8 +1373,8 @@ static int examine(struct target *target)
 		dm->was_reset = true;
 	}
 
-	uint32_t max_hartsel_mask = ((1L<<10)-1) << DMI_DMCONTROL_HARTSELLO_OFFSET;
-	dmi_write(target, DMI_DMCONTROL, max_hartsel_mask | DMI_DMCONTROL_DMACTIVE);
+	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HARTSELLO |
+			DMI_DMCONTROL_HARTSELHI | DMI_DMCONTROL_DMACTIVE);
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1348,7 +1385,10 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	uint32_t hartsel = get_field(dmcontrol, max_hartsel_mask);
+	uint32_t hartsel =
+		(get_field(dmcontrol, DMI_DMCONTROL_HARTSELHI) <<
+		 DMI_DMCONTROL_HARTSELLO_LENGTH) |
+		get_field(dmcontrol, DMI_DMCONTROL_HARTSELLO);
 	info->hartsellen = 0;
 	while (hartsel & 1) {
 		info->hartsellen++;
@@ -1418,8 +1458,7 @@ static int examine(struct target *target)
 
 		if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
 			dmi_write(target, DMI_DMCONTROL,
-					set_field(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET,
-						hartsel_mask(target), i));
+					set_hartsel(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET, i));
 
 		if (!riscv_is_halted(target)) {
 			if (riscv013_halt_current_hart(target) != ERROR_OK) {
@@ -1595,7 +1634,7 @@ static int assert_reset(struct target *target)
 			if (!riscv_hart_enabled(target, i))
 				continue;
 
-			control = set_field(control_base, hartsel_mask(target), i);
+			control = set_hartsel(control_base, i);
 			control = set_field(control, DMI_DMCONTROL_HALTREQ,
 					target->reset_halt ? 1 : 0);
 			dmi_write(target, DMI_DMCONTROL, control);
@@ -1606,8 +1645,7 @@ static int assert_reset(struct target *target)
 
 	} else {
 		/* Reset just this hart. */
-		uint32_t control = set_field(control_base, hartsel_mask(target),
-				r->current_hartid);
+		uint32_t control = set_hartsel(control_base, r->current_hartid);
 		control = set_field(control, DMI_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
 		control = set_field(control, DMI_DMCONTROL_NDMRESET, 1);
@@ -1630,7 +1668,7 @@ static int deassert_reset(struct target *target)
 	control = set_field(control, DMI_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
 	control = set_field(control, DMI_DMCONTROL_DMACTIVE, 1);
 	dmi_write(target, DMI_DMCONTROL,
-			set_field(control, hartsel_mask(target), r->current_hartid));
+			set_hartsel(control, r->current_hartid));
 
 	uint32_t dmstatus;
 	int dmi_busy_delay = info->dmi_busy_delay;
@@ -1642,7 +1680,7 @@ static int deassert_reset(struct target *target)
 			if (!riscv_hart_enabled(target, index))
 				continue;
 			dmi_write(target, DMI_DMCONTROL,
-					set_field(control, hartsel_mask(target), index));
+					set_hartsel(control, index));
 		} else {
 			index = r->current_hartid;
 		}
@@ -1682,7 +1720,7 @@ static int deassert_reset(struct target *target)
 		if (get_field(dmstatus, DMI_DMSTATUS_ALLHAVERESET)) {
 			/* Ack reset. */
 			dmi_write(target, DMI_DMCONTROL,
-					set_field(control, hartsel_mask(target), index) |
+					set_hartsel(control, index) |
 					DMI_DMCONTROL_ACKHAVERESET);
 		}
 
@@ -2042,9 +2080,9 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	result = register_write_direct(target, GDB_REGNO_S0, address);
 	if (result != ERROR_OK)
 		goto error;
-	uint32_t command = access_register_command(GDB_REGNO_S1, riscv_xlen(target),
-				AC_ACCESS_REGISTER_TRANSFER |
-				AC_ACCESS_REGISTER_POSTEXEC);
+	uint32_t command = access_register_command(target, GDB_REGNO_S1,
+			riscv_xlen(target),
+			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
 	result = execute_abstract_command(target, command);
 	if (result != ERROR_OK)
 		goto error;
@@ -2530,7 +2568,8 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 
 				/* Write and execute command that moves value into S1 and
 				 * executes program buffer. */
-				uint32_t command = access_register_command(GDB_REGNO_S1, 32,
+				uint32_t command = access_register_command(target,
+						GDB_REGNO_S1, 32,
 						AC_ACCESS_REGISTER_POSTEXEC |
 						AC_ACCESS_REGISTER_TRANSFER |
 						AC_ACCESS_REGISTER_WRITE);
@@ -2723,9 +2762,10 @@ static int riscv013_select_current_hart(struct target *target)
 		return ERROR_OK;
 
 	uint32_t dmcontrol;
+	/* TODO: can't we just "dmcontrol = DMI_DMACTIVE"? */
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
-	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
+	dmcontrol = set_hartsel(dmcontrol, r->current_hartid);
 	int result = dmi_write(target, DMI_DMCONTROL, dmcontrol);
 	dm->current_hartid = r->current_hartid;
 	return result;
@@ -2807,7 +2847,7 @@ static bool riscv013_is_halted(struct target *target)
 		/* TODO: Can we make this more obvious to eg. a gdb user? */
 		uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE |
 			DMI_DMCONTROL_ACKHAVERESET;
-		dmcontrol = set_field(dmcontrol, hartsel_mask(target), hartid);
+		dmcontrol = set_hartsel(dmcontrol, hartid);
 		/* If we had been halted when we reset, request another halt. If we
 		 * ended up running out of reset, then the user will (hopefully) get a
 		 * message that a reset happened, that the target is running, and then
@@ -2950,7 +2990,7 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 
 	/* Issue the resume command, and then wait for the current hart to resume. */
 	uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE;
-	dmcontrol = set_field(dmcontrol, hartsel_mask(target), r->current_hartid);
+	dmcontrol = set_hartsel(dmcontrol, r->current_hartid);
 	dmi_write(target, DMI_DMCONTROL, dmcontrol | DMI_DMCONTROL_RESUMEREQ);
 
 	uint32_t dmstatus;

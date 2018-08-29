@@ -156,9 +156,11 @@ endif
 if IMX_GPIO
 DRIVERFILES += %D%/imx_gpio.c
 endif
-
 if KITPROG
 DRIVERFILES += %D%/kitprog.c
+endif
+if XDS110
+DRIVERFILES += %D%/xds110.c
 endif
 
 DRIVERHEADERS = \

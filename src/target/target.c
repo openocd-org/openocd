@@ -1895,6 +1895,9 @@ static void target_destroy(struct target *target)
 	if (target->type->deinit_target)
 		target->type->deinit_target(target);
 
+	if (target->semihosting)
+		free(target->semihosting);
+
 	jtag_unregister_event_callback(jtag_enable_callback, target);
 
 	struct target_event_action *teap = target->event_action;
@@ -4143,8 +4146,9 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	 * argv[3] = memory address
 	 * argv[4] = count of times to read
 	 */
+
 	if (argc < 4 || argc > 5) {
-		Jim_WrongNumArgs(interp, 1, argv, "varname width addr nelems [phys]");
+		Jim_WrongNumArgs(interp, 0, argv, "varname width addr nelems [phys]");
 		return JIM_ERR;
 	}
 	varname = Jim_GetString(argv[0], &len);
@@ -5448,21 +5452,19 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_examine,
 		.help = "used internally for reset processing",
-		.usage = "arp_examine ['allow-defer']",
+		.usage = "['allow-defer']",
 	},
 	{
 		.name = "was_examined",
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_was_examined,
 		.help = "used internally for reset processing",
-		.usage = "was_examined",
 	},
 	{
 		.name = "examine_deferred",
 		.mode = COMMAND_EXEC,
 		.jim_handler = jim_target_examine_deferred,
 		.help = "used internally for reset processing",
-		.usage = "examine_deferred",
 	},
 	{
 		.name = "arp_halt_gdb",
@@ -6429,7 +6431,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_bp_command,
 		.mode = COMMAND_EXEC,
 		.help = "list or set hardware or software breakpoint",
-		.usage = "<address> [<asid>]<length> ['hw'|'hw_ctx']",
+		.usage = "<address> [<asid>] <length> ['hw'|'hw_ctx']",
 	},
 	{
 		.name = "rbp",

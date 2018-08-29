@@ -344,6 +344,8 @@ static int mips_m4k_assert_reset(struct target *target)
 			jtag_add_reset(1, 1);
 		else if (!srst_asserted)
 			jtag_add_reset(0, 1);
+	} else if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
+		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
 	} else {
 		if (mips_m4k->is_pic32mx) {
 			LOG_DEBUG("Using MTAP reset to reset processor...");

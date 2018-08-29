@@ -4,7 +4,9 @@ else
 OOCD_TRACE_FILES =
 endif
 
-%C%_libtarget_la_LIBADD = %D%/openrisc/libopenrisc.la
+%C%_libtarget_la_LIBADD = %D%/openrisc/libopenrisc.la \
+	%D%/riscv/libriscv.la
+
 
 STARTUP_TCL_SRCS += %D%/startup.tcl
 
@@ -21,7 +23,6 @@ noinst_LTLIBRARIES += %D%/libtarget.la
 	$(NDS32_SRC) \
 	$(STM8_SRC) \
 	$(INTEL_IA32_SRC) \
-	$(RISCV_SRC) \
 	%D%/avrt.c \
 	%D%/dsp563xx.c \
 	%D%/dsp563xx_once.c \
@@ -40,6 +41,7 @@ TARGET_CORE_SRC = \
 	%D%/target.c \
 	%D%/target_request.c \
 	%D%/testee.c \
+	%D%/semihosting_common.c \
 	%D%/smp.c
 
 ARMV4_5_SRC = \
@@ -136,13 +138,6 @@ INTEL_IA32_SRC = \
 	%D%/lakemont.c \
 	%D%/x86_32_common.c
 
-RISCV_SRC = \
-	%D%/riscv/riscv-011.c \
-	%D%/riscv/riscv-013.c \
-	%D%/riscv/riscv.c \
-	%D%/riscv/program.c \
-	%D%/riscv/batch.c
-
 %C%_libtarget_la_SOURCES += \
 	%D%/algorithm.h \
 	%D%/arm.h \
@@ -218,9 +213,11 @@ RISCV_SRC = \
 	%D%/nds32_v3.h \
 	%D%/nds32_v3m.h \
 	%D%/nds32_aice.h \
+	%D%/semihosting_common.h \
 	%D%/stm8.h \
 	%D%/lakemont.h \
 	%D%/x86_32_common.h \
 	%D%/arm_cti.h
 
 include %D%/openrisc/Makefile.am
+include %D%/riscv/Makefile.am

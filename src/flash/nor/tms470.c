@@ -151,6 +151,7 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	if (bank->sectors) {
 		free(bank->sectors);
 		bank->sectors = NULL;
+		bank->num_sectors = 0;
 	}
 
 	/*
@@ -754,9 +755,6 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 	target_write_u32(target, 0xFFFFFFDC, glbctrl);
 	LOG_DEBUG("set glbctrl = 0x%08" PRIx32 "", glbctrl);
 
-	if (result == ERROR_OK)
-		bank->sectors[sector].is_erased = 1;
-
 	return result;
 }
 
@@ -1044,27 +1042,17 @@ static int tms470_erase_check(struct flash_bank *bank)
 	 * an attempt to reduce the JTAG overhead.
 	 */
 	for (sector = 0; sector < bank->num_sectors; sector++) {
-		if (bank->sectors[sector].is_erased != 1) {
-			uint32_t i, addr = bank->base + bank->sectors[sector].offset;
+		uint32_t i, addr = bank->base + bank->sectors[sector].offset;
 
-			LOG_INFO("checking flash bank %d sector %d", tms470_info->ordinal, sector);
+		LOG_INFO("checking flash bank %d sector %d", tms470_info->ordinal, sector);
 
-			target_read_buffer(target, addr, bank->sectors[sector].size, buffer);
+		target_read_buffer(target, addr, bank->sectors[sector].size, buffer);
 
-			bank->sectors[sector].is_erased = 1;
-			for (i = 0; i < bank->sectors[sector].size; i++) {
-				if (buffer[i] != 0xff) {
-					LOG_WARNING("tms470 bank %d, sector %d, not erased.",
-						tms470_info->ordinal,
-						sector);
-					LOG_WARNING(
-						"at location 0x%08" PRIx32 ": flash data is 0x%02x.",
-						addr + i,
-						buffer[i]);
-
-					bank->sectors[sector].is_erased = 0;
-					break;
-				}
+		bank->sectors[sector].is_erased = 1;
+		for (i = 0; i < bank->sectors[sector].size; i++) {
+			if (buffer[i] != 0xff) {
+				bank->sectors[sector].is_erased = 0;
+				break;
 			}
 		}
 		if (bank->sectors[sector].is_erased != 1) {

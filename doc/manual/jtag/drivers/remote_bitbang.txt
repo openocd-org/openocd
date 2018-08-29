@@ -28,7 +28,7 @@ An additional function, quit, is added to the remote_bitbang interface to
 indicate there will be no more requests and the connection with the remote
 driver should be closed.
 
-These five functions are encoded in ascii by assigning a single character to
+These five functions are encoded in ASCII by assigning a single character to
 each possible request. The assignments are:
 
 	B - Blink on
@@ -48,6 +48,6 @@ each possible request. The assignments are:
 	t - Reset 1 0
 	u - Reset 1 1
 
-The read response is encoded in ascii as either digit 0 or 1.
+The read response is encoded in ASCII as either digit 0 or 1.
 
  */

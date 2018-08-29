@@ -19,7 +19,7 @@ OpenOCD presently produces several kinds of documentation:
   - See @subpage primerlatex and @ref stylelatex.
 - The Manual:
   - Focuses on developing the OpenOCD software.
-  - Details the architecutre, driver interfaces, and processes.
+  - Details the architecture, driver interfaces, and processes.
   - Provides "full" coverage of C source code (work-in-progress).
   - Written using Doxygen C language conventions (i.e. in comments).
   - Created with 'make doxygen'.

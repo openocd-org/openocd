@@ -276,6 +276,16 @@ static int swd_run(struct adiv5_dap *dap)
 	return swd_run_inner(dap);
 }
 
+/** Put the SWJ-DP back to JTAG mode */
+static void swd_quit(struct adiv5_dap *dap)
+{
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
+
+	swd->switch_seq(SWD_TO_JTAG);
+	/* flush the queue before exit */
+	swd->run();
+}
+
 const struct dap_ops swd_dap_ops = {
 	.connect = swd_connect,
 	.queue_dp_read = swd_queue_dp_read,
@@ -284,6 +294,7 @@ const struct dap_ops swd_dap_ops = {
 	.queue_ap_write = swd_queue_ap_write,
 	.queue_ap_abort = swd_queue_ap_abort,
 	.run = swd_run,
+	.quit = swd_quit,
 };
 
 /*

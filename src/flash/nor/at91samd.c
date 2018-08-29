@@ -115,15 +115,16 @@ static const struct samd_part samd10_parts[] = {
 
 /* Known SAMD11 parts */
 static const struct samd_part samd11_parts[] = {
-	{ 0x0, "SAMD11D14AMU", 16, 4 },
+	{ 0x0, "SAMD11D14AM", 16, 4 },
 	{ 0x1, "SAMD11D13AMU", 8, 4 },
 	{ 0x2, "SAMD11D12AMU", 4, 4 },
-	{ 0x3, "SAMD11D14ASU", 16, 4 },
+	{ 0x3, "SAMD11D14ASS", 16, 4 },
 	{ 0x4, "SAMD11D13ASU", 8, 4 },
 	{ 0x5, "SAMD11D12ASU", 4, 4 },
 	{ 0x6, "SAMD11C14A", 16, 4 },
 	{ 0x7, "SAMD11C13A", 8, 4 },
 	{ 0x8, "SAMD11C12A", 4, 4 },
+	{ 0x9, "SAMD11D14AU", 16, 4 },
 };
 
 /* Known SAMD20 parts. See Table 12-8 in 42129F–SAM–10/2013 */

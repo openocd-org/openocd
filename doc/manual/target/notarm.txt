@@ -59,7 +59,7 @@ of the total OpenOCD system.
 
 @section targetnotarmppc PowerPC
 
-there exists open source implementations of powerpc
+there exists open source implementations of PowerPC
 target manipulation, but there hasn't been a lot
 of activity in the mailing list.
 

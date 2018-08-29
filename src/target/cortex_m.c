@@ -165,7 +165,7 @@ static int cortex_m_single_step_core(struct target *target)
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 	int retval;
 
-	/* Mask interrupts before clearing halt, if done already.  This avoids
+	/* Mask interrupts before clearing halt, if not done already.  This avoids
 	 * Erratum 377497 (fixed in r1p0) where setting MASKINTS while clearing
 	 * HALT can put the core into an unknown state.
 	 */
@@ -237,8 +237,11 @@ static int cortex_m_endreset_event(struct target *target)
 			return retval;
 	}
 
-	/* clear any interrupt masking */
-	cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
+	/* Restore proper interrupt masking setting. */
+	if (cortex_m->isrmasking_mode == CORTEX_M_ISRMASK_ON)
+		cortex_m_write_debug_halt_mask(target, C_MASKINTS, 0);
+	else
+		cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
 
 	/* Enable features controlled by ITM and DWT blocks, and catch only
 	 * the vectors we were told to pay attention to.
@@ -1137,6 +1140,10 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		breakpoint->set = fp_num + 1;
 		fpcr_value = breakpoint->address | 1;
 		if (cortex_m->fp_rev == 0) {
+			if (breakpoint->address > 0x1FFFFFFF) {
+				LOG_ERROR("Cortex-M Flash Patch Breakpoint rev.1 cannot handle HW breakpoint above address 0x1FFFFFFE");
+				return ERROR_FAIL;
+			}
 			uint32_t hilo;
 			hilo = (breakpoint->address & 0x2) ? FPCR_REPLACE_BKPT_HIGH : FPCR_REPLACE_BKPT_LOW;
 			fpcr_value = (fpcr_value & 0x1FFFFFFC) | hilo | 1;
@@ -1806,11 +1813,11 @@ static int cortex_m_dwt_set_reg(struct reg *reg, uint8_t *buf)
 
 struct dwt_reg {
 	uint32_t addr;
-	char *name;
+	const char *name;
 	unsigned size;
 };
 
-static struct dwt_reg dwt_base_regs[] = {
+static const struct dwt_reg dwt_base_regs[] = {
 	{ DWT_CTRL, "dwt_ctrl", 32, },
 	/* NOTE that Erratum 532314 (fixed r2p0) affects CYCCNT:  it wrongly
 	 * increments while the core is asleep.
@@ -1819,7 +1826,7 @@ static struct dwt_reg dwt_base_regs[] = {
 	/* plus some 8 bit counters, useful for profiling with TPIU */
 };
 
-static struct dwt_reg dwt_comp[] = {
+static const struct dwt_reg dwt_comp[] = {
 #define DWT_COMPARATOR(i) \
 		{ DWT_COMP0 + 0x10 * (i), "dwt_" #i "_comp", 32, }, \
 		{ DWT_MASK0 + 0x10 * (i), "dwt_" #i "_mask", 4, }, \
@@ -1848,7 +1855,7 @@ static const struct reg_arch_type dwt_reg_type = {
 	.set = cortex_m_dwt_set_reg,
 };
 
-static void cortex_m_dwt_addreg(struct target *t, struct reg *r, struct dwt_reg *d)
+static void cortex_m_dwt_addreg(struct target *t, struct reg *r, const struct dwt_reg *d)
 {
 	struct dwt_reg_state *state;
 
@@ -2076,7 +2083,7 @@ int cortex_m_examine(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (armv7m->trace_config.config_type != DISABLED) {
+		if (armv7m->trace_config.config_type != TRACE_CONFIG_TYPE_DISABLED) {
 			armv7m_trace_tpiu_config(target);
 			armv7m_trace_itm_config(target);
 		}
@@ -2270,20 +2277,6 @@ static int cortex_m_verify_pointer(struct command_context *cmd_ctx,
  * cortexm3_target structure, which is only used with CM3 targets.
  */
 
-static const struct {
-	char name[10];
-	unsigned mask;
-} vec_ids[] = {
-	{ "hard_err",   VC_HARDERR, },
-	{ "int_err",    VC_INTERR, },
-	{ "bus_err",    VC_BUSERR, },
-	{ "state_err",  VC_STATERR, },
-	{ "chk_err",    VC_CHKERR, },
-	{ "nocp_err",   VC_NOCPERR, },
-	{ "mm_err",     VC_MMERR, },
-	{ "reset",      VC_CORERESET, },
-};
-
 COMMAND_HANDLER(handle_cortex_m_vector_catch_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -2291,6 +2284,20 @@ COMMAND_HANDLER(handle_cortex_m_vector_catch_command)
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 	uint32_t demcr = 0;
 	int retval;
+
+	static const struct {
+		char name[10];
+		unsigned mask;
+	} vec_ids[] = {
+		{ "hard_err",   VC_HARDERR, },
+		{ "int_err",    VC_INTERR, },
+		{ "bus_err",    VC_BUSERR, },
+		{ "state_err",  VC_STATERR, },
+		{ "chk_err",    VC_CHKERR, },
+		{ "nocp_err",   VC_NOCPERR, },
+		{ "mm_err",     VC_MMERR, },
+		{ "reset",      VC_CORERESET, },
+	};
 
 	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
 	if (retval != ERROR_OK)

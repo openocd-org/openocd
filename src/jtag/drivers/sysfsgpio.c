@@ -58,11 +58,11 @@
 /*
  * Helper func to determine if gpio number valid
  *
- * Assume here that there will be less than 1000 gpios on a system
+ * Assume here that there will be less than 10000 gpios on a system
  */
 static int is_gpio_valid(int gpio)
 {
-	return gpio >= 0 && gpio < 1000;
+	return gpio >= 0 && gpio < 10000;
 }
 
 /*
@@ -89,7 +89,7 @@ static int open_write_close(const char *name, const char *valstr)
  */
 static void unexport_sysfs_gpio(int gpio)
 {
-	char gpiostr[4];
+	char gpiostr[5];
 
 	if (!is_gpio_valid(gpio))
 		return;
@@ -113,7 +113,7 @@ static void unexport_sysfs_gpio(int gpio)
 static int setup_sysfs_gpio(int gpio, int is_output, int init_high)
 {
 	char buf[40];
-	char gpiostr[4];
+	char gpiostr[5];
 	int ret;
 
 	if (!is_gpio_valid(gpio))
