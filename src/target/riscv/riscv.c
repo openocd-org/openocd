@@ -1645,7 +1645,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.help = "Perform a series of tests on the SBCS register."
 			"Inputs are a legal, 128-byte aligned address and a number of words to"
 			"read/write starting at that address (i.e., address range [legal address,"
-			"legal_address+word_size*num_words) must be legally readaable/writable)"
+			"legal_address+word_size*num_words) must be legally readable/writable)"
 			", an illegal, 128-byte aligned address for error flag/handling cases,"
 			"and whether sbbusyerror test should be run."
 	},
