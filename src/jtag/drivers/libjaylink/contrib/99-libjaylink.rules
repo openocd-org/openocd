@@ -1,0 +1,41 @@
+##
+## This file is part of the libjaylink project.
+##
+## Copyright (C) 2015 Marc Schink <jaylink-dev@marcschink.de>
+##
+## This program is free software: you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, either version 2 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##
+
+ACTION!="add", GOTO="libjaylink_end_rules"
+SUBSYSTEM!="usb", GOTO="libjaylink_end_rules"
+
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0101", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0102", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0103", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0104", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0105", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0107", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="0108", MODE="664", GROUP="plugdev"
+
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1010", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1011", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1012", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1013", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1014", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1015", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1016", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1017", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1366", ATTRS{idProduct}=="1018", MODE="664", GROUP="plugdev"
+
+LABEL="libjaylink_end_rules"

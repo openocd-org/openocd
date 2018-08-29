@@ -1,6 +1,3 @@
 [submodule "jimtcl"]
 	path = jimtcl
 	url = https://github.com/msteveb/jimtcl
-[submodule "src/jtag/drivers/libjaylink"]
-	path = src/jtag/drivers/libjaylink
-	url = http://repo.or.cz/r/libjaylink.git
