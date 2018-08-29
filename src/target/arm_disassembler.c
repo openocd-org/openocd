@@ -118,15 +118,78 @@ static int evaluate_pld(uint32_t opcode,
 			uint32_t address, struct arm_instruction *instruction)
 {
 	/* PLD */
-	if ((opcode & 0x0d70f000) == 0x0550f000) {
+	if ((opcode & 0x0d30f000) == 0x0510f000) {
+		uint8_t Rn;
+		uint8_t U;
+		unsigned offset;
+
 		instruction->type = ARM_PLD;
+		Rn = (opcode & 0xf0000) >> 16;
+		U = (opcode & 0x00800000) >> 23;
+		if (Rn == 0xf) {
+			/* literal */
+			offset = opcode & 0x0fff;
+			snprintf(instruction->text, 128,
+				 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD %s%d",
+				 address, opcode, U ? "" : "-", offset);
+		} else {
+			uint8_t I, R;
 
-		snprintf(instruction->text,
-				128,
-				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD ...TODO...",
-				address,
-				opcode);
+			I = (opcode & 0x02000000) >> 25;
+			R = (opcode & 0x00400000) >> 22;
 
+			if (I) {
+				/* register PLD{W} [<Rn>,+/-<Rm>{, <shift>}] */
+				offset = (opcode & 0x0F80) >> 7;
+				uint8_t Rm;
+				Rm = opcode & 0xf;
+
+				if (offset == 0) {
+					/* No shift */
+					snprintf(instruction->text, 128,
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d]",
+						 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm);
+
+				} else {
+					uint8_t shift;
+					shift = (opcode & 0x60) >> 5;
+
+					if (shift == 0x0) {
+						/* LSL */
+						snprintf(instruction->text, 128,
+							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, LSL #0x%x)",
+							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
+					} else if (shift == 0x1) {
+						/* LSR */
+						snprintf(instruction->text, 128,
+							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, LSR #0x%x)",
+							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
+					} else if (shift == 0x2) {
+						/* ASR */
+						snprintf(instruction->text, 128,
+							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, ASR #0x%x)",
+							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
+					} else if (shift == 0x3) {
+						/* ROR */
+						snprintf(instruction->text, 128,
+							 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, %sr%d, ROR #0x%x)",
+							 address, opcode, R ? "" : "W", Rn, U ? "" : "-", Rm, offset);
+					}
+				}
+			} else {
+				/* immediate PLD{W} [<Rn>, #+/-<imm12>] */
+				offset = opcode & 0x0fff;
+				if (offset == 0) {
+					snprintf(instruction->text, 128,
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d]",
+						 address, opcode, R ? "" : "W", Rn);
+				} else {
+					snprintf(instruction->text, 128,
+						 "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tPLD%s [r%d, #%s%d]",
+						 address, opcode, R ? "" : "W", Rn, U ? "" : "-", offset);
+				}
+			}
+		}
 		return ERROR_OK;
 	}
 	/* DSB */
@@ -1549,7 +1612,7 @@ static int evaluate_misc_instr(uint32_t opcode,
 		}
 
 		/* SMLAW < y> */
-		if (((opcode & 0x00600000) == 0x00100000) && (x == 0)) {
+		if (((opcode & 0x00600000) == 0x00200000) && (x == 0)) {
 			uint8_t Rd, Rm, Rs, Rn;
 			instruction->type = ARM_SMLAWy;
 			Rd = (opcode & 0xf0000) >> 16;
@@ -1571,7 +1634,7 @@ static int evaluate_misc_instr(uint32_t opcode,
 		}
 
 		/* SMUL < x><y> */
-		if ((opcode & 0x00600000) == 0x00300000) {
+		if ((opcode & 0x00600000) == 0x00600000) {
 			uint8_t Rd, Rm, Rs;
 			instruction->type = ARM_SMULxy;
 			Rd = (opcode & 0xf0000) >> 16;
@@ -1592,7 +1655,7 @@ static int evaluate_misc_instr(uint32_t opcode,
 		}
 
 		/* SMULW < y> */
-		if (((opcode & 0x00600000) == 0x00100000) && (x == 1)) {
+		if (((opcode & 0x00600000) == 0x00200000) && (x == 1)) {
 			uint8_t Rd, Rm, Rs;
 			instruction->type = ARM_SMULWy;
 			Rd = (opcode & 0xf0000) >> 16;
@@ -2978,6 +3041,7 @@ static int t2ev_b_bl(uint32_t opcode, uint32_t address,
 	case 0x4:
 		inst = "BLX";
 		instruction->type = ARM_BLX;
+		address &= 0xfffffffc;
 		break;
 	case 0x5:
 		inst = "BL";

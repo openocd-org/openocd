@@ -42,6 +42,7 @@
 #endif
 
 #include <helper/time_support.h>
+#include "transport/transport.h"
 
 /**
  * @file

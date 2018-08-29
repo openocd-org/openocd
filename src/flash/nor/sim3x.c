@@ -1122,5 +1122,6 @@ struct flash_driver sim3x_flash = {
 	.auto_probe = sim3x_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = sim3x_flash_protect_check,
-	.info = sim3x_flash_info
+	.info = sim3x_flash_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

@@ -25,12 +25,14 @@
 struct target;
 
 enum reg_type {
+	REG_TYPE_BOOL,
 	REG_TYPE_INT,
 	REG_TYPE_INT8,
 	REG_TYPE_INT16,
 	REG_TYPE_INT32,
 	REG_TYPE_INT64,
 	REG_TYPE_INT128,
+	REG_TYPE_UINT,
 	REG_TYPE_UINT8,
 	REG_TYPE_UINT16,
 	REG_TYPE_UINT32,
@@ -66,6 +68,7 @@ struct reg_data_type_union {
 struct reg_data_type_bitfield {
 	uint32_t start;
 	uint32_t end;
+	enum reg_type type;
 };
 
 struct reg_data_type_struct_field {

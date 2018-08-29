@@ -70,6 +70,7 @@ static int armv7a_l1_d_cache_flush_level(struct arm_dpm *dpm, struct armv7a_cach
 
 	LOG_DEBUG("cl %" PRId32, cl);
 	do {
+		keep_alive();
 		c_way = size->way;
 		do {
 			uint32_t value = (c_index << size->index_shift)
@@ -89,6 +90,7 @@ static int armv7a_l1_d_cache_flush_level(struct arm_dpm *dpm, struct armv7a_cach
 	} while (c_index >= 0);
 
  done:
+	keep_alive();
 	return retval;
 }
 
@@ -148,10 +150,11 @@ int armv7a_cache_auto_flush_all_data(struct target *target)
 	} else
 		retval = armv7a_l1_d_cache_clean_inval_all(target);
 
-	/* do outer cache flushing after inner caches have been flushed */
-	retval = arm7a_l2x_flush_all_data(target);
+	if (retval != ERROR_OK)
+		return retval;
 
-	return retval;
+	/* do outer cache flushing after inner caches have been flushed */
+	return arm7a_l2x_flush_all_data(target);
 }
 
 
@@ -163,7 +166,7 @@ int armv7a_l1_d_cache_inval_virt(struct target *target, uint32_t virt,
 	struct armv7a_cache_common *armv7a_cache = &armv7a->armv7a_mmu.armv7a_cache;
 	uint32_t linelen = armv7a_cache->dminline;
 	uint32_t va_line, va_end;
-	int retval;
+	int retval, i = 0;
 
 	retval = armv7a_l1_d_cache_sanity_check(target);
 	if (retval != ERROR_OK)
@@ -197,6 +200,8 @@ int armv7a_l1_d_cache_inval_virt(struct target *target, uint32_t virt,
 	}
 
 	while (va_line < va_end) {
+		if ((i++ & 0x3f) == 0)
+			keep_alive();
 		/* DCIMVAC - Invalidate data cache line by VA to PoC. */
 		retval = dpm->instr_write_data_r0(dpm,
 				ARMV4_5_MCR(15, 0, 0, 7, 6, 1), va_line);
@@ -205,11 +210,13 @@ int armv7a_l1_d_cache_inval_virt(struct target *target, uint32_t virt,
 		va_line += linelen;
 	}
 
+	keep_alive();
 	dpm->finish(dpm);
 	return retval;
 
 done:
 	LOG_ERROR("d-cache invalidate failed");
+	keep_alive();
 	dpm->finish(dpm);
 
 	return retval;
@@ -223,7 +230,7 @@ int armv7a_l1_d_cache_clean_virt(struct target *target, uint32_t virt,
 	struct armv7a_cache_common *armv7a_cache = &armv7a->armv7a_mmu.armv7a_cache;
 	uint32_t linelen = armv7a_cache->dminline;
 	uint32_t va_line, va_end;
-	int retval;
+	int retval, i = 0;
 
 	retval = armv7a_l1_d_cache_sanity_check(target);
 	if (retval != ERROR_OK)
@@ -237,6 +244,8 @@ int armv7a_l1_d_cache_clean_virt(struct target *target, uint32_t virt,
 	va_end = virt + size;
 
 	while (va_line < va_end) {
+		if ((i++ & 0x3f) == 0)
+			keep_alive();
 		/* DCCMVAC - Data Cache Clean by MVA to PoC */
 		retval = dpm->instr_write_data_r0(dpm,
 				ARMV4_5_MCR(15, 0, 0, 7, 10, 1), va_line);
@@ -245,11 +254,13 @@ int armv7a_l1_d_cache_clean_virt(struct target *target, uint32_t virt,
 		va_line += linelen;
 	}
 
+	keep_alive();
 	dpm->finish(dpm);
 	return retval;
 
 done:
 	LOG_ERROR("d-cache invalidate failed");
+	keep_alive();
 	dpm->finish(dpm);
 
 	return retval;
@@ -263,7 +274,7 @@ int armv7a_l1_d_cache_flush_virt(struct target *target, uint32_t virt,
 	struct armv7a_cache_common *armv7a_cache = &armv7a->armv7a_mmu.armv7a_cache;
 	uint32_t linelen = armv7a_cache->dminline;
 	uint32_t va_line, va_end;
-	int retval;
+	int retval, i = 0;
 
 	retval = armv7a_l1_d_cache_sanity_check(target);
 	if (retval != ERROR_OK)
@@ -277,6 +288,8 @@ int armv7a_l1_d_cache_flush_virt(struct target *target, uint32_t virt,
 	va_end = virt + size;
 
 	while (va_line < va_end) {
+		if ((i++ & 0x3f) == 0)
+			keep_alive();
 		/* DCCIMVAC */
 		retval = dpm->instr_write_data_r0(dpm,
 				ARMV4_5_MCR(15, 0, 0, 7, 14, 1), va_line);
@@ -285,11 +298,13 @@ int armv7a_l1_d_cache_flush_virt(struct target *target, uint32_t virt,
 		va_line += linelen;
 	}
 
+	keep_alive();
 	dpm->finish(dpm);
 	return retval;
 
 done:
 	LOG_ERROR("d-cache invalidate failed");
+	keep_alive();
 	dpm->finish(dpm);
 
 	return retval;
@@ -341,7 +356,7 @@ int armv7a_l1_i_cache_inval_virt(struct target *target, uint32_t virt,
 				&armv7a->armv7a_mmu.armv7a_cache;
 	uint32_t linelen = armv7a_cache->iminline;
 	uint32_t va_line, va_end;
-	int retval;
+	int retval, i = 0;
 
 	retval = armv7a_l1_i_cache_sanity_check(target);
 	if (retval != ERROR_OK)
@@ -355,6 +370,8 @@ int armv7a_l1_i_cache_inval_virt(struct target *target, uint32_t virt,
 	va_end = virt + size;
 
 	while (va_line < va_end) {
+		if ((i++ & 0x3f) == 0)
+			keep_alive();
 		/* ICIMVAU - Invalidate instruction cache by VA to PoU. */
 		retval = dpm->instr_write_data_r0(dpm,
 				ARMV4_5_MCR(15, 0, 0, 7, 5, 1), va_line);
@@ -367,10 +384,13 @@ int armv7a_l1_i_cache_inval_virt(struct target *target, uint32_t virt,
 			goto done;
 		va_line += linelen;
 	}
+	keep_alive();
+	dpm->finish(dpm);
 	return retval;
 
 done:
 	LOG_ERROR("i-cache invalidate failed");
+	keep_alive();
 	dpm->finish(dpm);
 
 	return retval;

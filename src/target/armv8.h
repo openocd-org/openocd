@@ -63,21 +63,62 @@ enum {
 	ARMV8_PC = 32,
 	ARMV8_xPSR = 33,
 
-	ARMV8_ELR_EL1 = 34,
-	ARMV8_ESR_EL1 = 35,
-	ARMV8_SPSR_EL1 = 36,
+	ARMV8_V0 = 34,
+	ARMV8_V1,
+	ARMV8_V2,
+	ARMV8_V3,
+	ARMV8_V4,
+	ARMV8_V5,
+	ARMV8_V6,
+	ARMV8_V7,
+	ARMV8_V8,
+	ARMV8_V9,
+	ARMV8_V10,
+	ARMV8_V11,
+	ARMV8_V12,
+	ARMV8_V13,
+	ARMV8_V14,
+	ARMV8_V15,
+	ARMV8_V16,
+	ARMV8_V17,
+	ARMV8_V18,
+	ARMV8_V19,
+	ARMV8_V20,
+	ARMV8_V21,
+	ARMV8_V22,
+	ARMV8_V23,
+	ARMV8_V24,
+	ARMV8_V25,
+	ARMV8_V26,
+	ARMV8_V27,
+	ARMV8_V28,
+	ARMV8_V29,
+	ARMV8_V30,
+	ARMV8_V31,
+	ARMV8_FPSR,
+	ARMV8_FPCR,
 
-	ARMV8_ELR_EL2 = 37,
-	ARMV8_ESR_EL2 = 38,
-	ARMV8_SPSR_EL2 = 39,
+	ARMV8_ELR_EL1 = 68,
+	ARMV8_ESR_EL1 = 69,
+	ARMV8_SPSR_EL1 = 70,
 
-	ARMV8_ELR_EL3 = 40,
-	ARMV8_ESR_EL3 = 41,
-	ARMV8_SPSR_EL3 = 42,
+	ARMV8_ELR_EL2 = 71,
+	ARMV8_ESR_EL2 = 72,
+	ARMV8_SPSR_EL2 = 73,
+
+	ARMV8_ELR_EL3 = 74,
+	ARMV8_ESR_EL3 = 75,
+	ARMV8_SPSR_EL3 = 76,
 
 	ARMV8_LAST_REG,
 };
 
+enum run_control_op {
+	ARMV8_RUNCONTROL_UNKNOWN = 0,
+	ARMV8_RUNCONTROL_RESUME = 1,
+	ARMV8_RUNCONTROL_HALT = 2,
+	ARMV8_RUNCONTROL_STEP = 3,
+};
 
 #define ARMV8_COMMON_MAGIC 0x0A450AAA
 
@@ -175,9 +216,18 @@ struct armv8_common {
 
 	struct arm_cti *cti;
 
+	/* last run-control command issued to this target (resume, halt, step) */
+	enum run_control_op last_run_control_op;
+
 	/* Direct processor core register read and writes */
 	int (*read_reg_u64)(struct armv8_common *armv8, int num, uint64_t *value);
 	int (*write_reg_u64)(struct armv8_common *armv8, int num, uint64_t value);
+
+	/* SIMD/FPU registers read/write interface */
+	int (*read_reg_u128)(struct armv8_common *armv8, int num,
+			uint64_t *lvalue, uint64_t *hvalue);
+	int (*write_reg_u128)(struct armv8_common *armv8, int num,
+			uint64_t lvalue, uint64_t hvalue);
 
 	int (*examine_debug_reason)(struct target *target);
 	int (*post_debug_entry)(struct target *target);
@@ -189,6 +239,11 @@ static inline struct armv8_common *
 target_to_armv8(struct target *target)
 {
 	return container_of(target->arch_info, struct armv8_common, arm);
+}
+
+static inline bool is_armv8(struct armv8_common *armv8)
+{
+	return armv8->common_magic == ARMV8_COMMON_MAGIC;
 }
 
 /* register offsets from armv8.debug_base */
@@ -276,6 +331,8 @@ static inline unsigned int armv8_curel_from_core_mode(enum arm_mode core_mode)
 
 void armv8_select_reg_access(struct armv8_common *armv8, bool is_aarch64);
 int armv8_set_dbgreg_bits(struct armv8_common *armv8, unsigned int reg, unsigned long mask, unsigned long value);
+
+extern void armv8_free_reg_cache(struct target *target);
 
 extern const struct command_registration armv8_command_handlers[];
 

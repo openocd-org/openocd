@@ -34,6 +34,7 @@
 #define CTI_INEN5			0x34
 #define CTI_INEN6			0x38
 #define CTI_INEN7			0x3C
+#define CTI_INEN8			0x40
 #define CTI_INEN(n)			(0x20 + 4 * n)
 #define CTI_OUTEN0			0xA0
 #define CTI_OUTEN1			0xA4
@@ -43,6 +44,7 @@
 #define CTI_OUTEN5			0xB4
 #define CTI_OUTEN6			0xB8
 #define CTI_OUTEN7			0xBC
+#define CTI_OUTEN8			0xC0
 #define CTI_OUTEN(n)		(0xA0 + 4 * n)
 #define CTI_TRIN_STATUS		0x130
 #define CTI_TROUT_STATUS	0x134
@@ -58,8 +60,10 @@
 
 /* forward-declare arm_cti struct */
 struct arm_cti;
+struct adiv5_ap;
 
-extern struct arm_cti *arm_cti_create(struct adiv5_ap *ap, uint32_t base);
+extern const char *arm_cti_name(struct arm_cti *self);
+extern struct arm_cti *cti_instance_by_jim_obj(Jim_Interp *interp, Jim_Obj *o);
 extern int arm_cti_enable(struct arm_cti *self, bool enable);
 extern int arm_cti_ack_events(struct arm_cti *self, uint32_t event);
 extern int arm_cti_gate_channel(struct arm_cti *self, uint32_t channel);
@@ -69,5 +73,7 @@ extern int arm_cti_read_reg(struct arm_cti *self, unsigned int reg, uint32_t *va
 extern int arm_cti_pulse_channel(struct arm_cti *self, uint32_t channel);
 extern int arm_cti_set_channel(struct arm_cti *self, uint32_t channel);
 extern int arm_cti_clear_channel(struct arm_cti *self, uint32_t channel);
+extern int arm_cti_cleanup_all(void);
+extern int cti_register_commands(struct command_context *cmd_ctx);
 
 #endif /* OPENOCD_TARGET_ARM_CTI_H */

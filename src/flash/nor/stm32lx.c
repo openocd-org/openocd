@@ -146,7 +146,7 @@ static const struct stm32lx_rev stm32_425_revs[] = {
 	{ 0x1000, "A" }, { 0x2000, "B" }, { 0x2008, "Y" },
 };
 static const struct stm32lx_rev stm32_427_revs[] = {
-	{ 0x1000, "A" }, { 0x1018, "Y" }, { 0x1038, "X" },
+	{ 0x1000, "A" }, { 0x1018, "Y" }, { 0x1038, "X" }, { 0x10f8, "V" },
 };
 static const struct stm32lx_rev stm32_429_revs[] = {
 	{ 0x1000, "A" }, { 0x1018, "Z" },
@@ -448,10 +448,8 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, const uint8_t *buff
 
 	int retval = ERROR_OK;
 
-	/* see contib/loaders/flash/stm32lx.S for src */
-
 	static const uint8_t stm32lx_flash_write_code[] = {
-			0x92, 0x00, 0x8A, 0x18, 0x01, 0xE0, 0x08, 0xC9, 0x08, 0xC0, 0x91, 0x42, 0xFB, 0xD1, 0x00, 0xBE
+#include "../../../contrib/loaders/flash/stm32/stm32lx.inc"
 	};
 
 	/* Make sure we're performing a half-page aligned write. */
@@ -965,6 +963,7 @@ struct flash_driver stm32lx_flash = {
 		.erase_check = default_flash_blank_check,
 		.protect_check = stm32lx_protect_check,
 		.info = stm32lx_get_info,
+		.free_driver_priv = default_flash_free_driver_priv,
 };
 
 /* Static methods implementation */

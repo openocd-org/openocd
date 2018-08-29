@@ -572,45 +572,8 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
-	/* see contrib/loaders/flash/stm32f1x.S for src */
-
 	static const uint8_t stm32x_flash_write_code[] = {
-		/* #define STM32_FLASH_SR_OFFSET 0x0C */
-		/* wait_fifo: */
-			0x16, 0x68,   /* ldr   r6, [r2, #0] */
-			0x00, 0x2e,   /* cmp   r6, #0 */
-			0x18, 0xd0,   /* beq   exit */
-			0x55, 0x68,   /* ldr   r5, [r2, #4] */
-			0xb5, 0x42,   /* cmp   r5, r6 */
-			0xf9, 0xd0,   /* beq   wait_fifo */
-			0x2e, 0x88,   /* ldrh  r6, [r5, #0] */
-			0x26, 0x80,   /* strh  r6, [r4, #0] */
-			0x02, 0x35,   /* adds  r5, #2 */
-			0x02, 0x34,   /* adds  r4, #2 */
-		/* busy: */
-			0xc6, 0x68,   /* ldr   r6, [r0, #STM32_FLASH_SR_OFFSET] */
-			0x01, 0x27,   /* movs  r7, #1 */
-			0x3e, 0x42,   /* tst   r6, r7 */
-			0xfb, 0xd1,   /* bne   busy */
-			0x14, 0x27,   /* movs  r7, #0x14 */
-			0x3e, 0x42,   /* tst   r6, r7 */
-			0x08, 0xd1,   /* bne   error */
-			0x9d, 0x42,   /* cmp   r5, r3 */
-			0x01, 0xd3,   /* bcc   no_wrap */
-			0x15, 0x46,   /* mov   r5, r2 */
-			0x08, 0x35,   /* adds  r5, #8 */
-		/* no_wrap: */
-			0x55, 0x60,   /* str   r5, [r2, #4] */
-			0x01, 0x39,   /* subs  r1, r1, #1 */
-			0x00, 0x29,   /* cmp   r1, #0 */
-			0x02, 0xd0,   /* beq   exit */
-			0xe5, 0xe7,   /* b     wait_fifo */
-		/* error: */
-			0x00, 0x20,   /* movs  r0, #0 */
-			0x50, 0x60,   /* str   r0, [r2, #4] */
-		/* exit: */
-			0x30, 0x46,   /* mov   r0, r6 */
-			0x00, 0xbe,   /* bkpt  #0 */
+#include "../../../contrib/loaders/flash/stm32/stm32f1x.inc"
 	};
 
 	/* flash write code */
@@ -622,8 +585,10 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 
 	retval = target_write_buffer(target, write_algorithm->address,
 			sizeof(stm32x_flash_write_code), stm32x_flash_write_code);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		target_free_working_area(target, write_algorithm);
 		return retval;
+	}
 
 	/* memory buffer */
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
@@ -1647,4 +1612,5 @@ struct flash_driver stm32f1x_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = stm32x_protect_check,
 	.info = get_stm32x_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

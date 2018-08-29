@@ -87,6 +87,7 @@ struct armv7a_mmu_common {
 	/* following field mmu working way */
 	int32_t cached;     /* 0: not initialized, 1: initialized */
 	uint32_t ttbcr;     /* cache for ttbcr register */
+	uint32_t ttbr[2];
 	uint32_t ttbr_mask[2];
 	uint32_t ttbr_range[2];
 
@@ -193,6 +194,7 @@ int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val);
 
 int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 		struct armv7a_cache_common *armv7a_cache);
+int armv7a_read_ttbcr(struct target *target);
 
 extern const struct command_registration armv7a_command_handlers[];
 

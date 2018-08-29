@@ -46,14 +46,14 @@ This value is defined only when a processor access is pending.
 Processor will do the action for us : it can for example read internal state (register values),
 and send us back the information via EJTAG memory (dmseg), or it can take some data from dmseg and write it into the registers or RAM.
 
-Every time when it sees address (i.e. when this address is the part of the opcode it is executing, wether it is instruction or data fetch)
-that falls into dmseg, processor stalls. That acutally meand that CPU stops it's pipeline and it is waitning for dongle to take some action.
+Every time when it sees address (i.e. when this address is the part of the opcode it is executing, whether it is instruction or data fetch)
+that falls into dmseg, processor stalls. That actually means that CPU stops it's pipeline and it is waiting for dongle to take some action.
 
 CPU is now either waiting for dongle to take some data from dmseg (if we requested for CPU do give us internal state, for example),
 or it will wait for some data from dongle (if it needs following instruction because it did previous, or if the operand address of the currently executed opcode
 falls somewhere (anywhere) in dmseg (0xff..ff20000 - 0xff..ff2fffff)).
 
-Bit PNnW describes character of CPU access to EJTAG memory (the memry where dongle puts/takes data) - CPU can either READ for it (PNnW == 0) or
+Bit PNnW describes character of CPU access to EJTAG memory (the memory where dongle puts/takes data) - CPU can either READ for it (PNnW == 0) or
 WRITE to it (PNnW == 1).
 
 By reading PNnW bit OpenOCD will know if it has to send (PNnW == 0) or to take (PNnW == 1) data (from dmseg, via dongle).
@@ -79,7 +79,7 @@ OpenOCD can figure out which action has to be taken by reading PrAcc bit.
 
 Once action from dongle has been done, i.e. after the data is taken/put, OpenOCD can signal to CPU to proceed with executing the instruction.
 This can be the next instruction (if previous was finished before pending), or the same instruction - if for example CPU was waiting on dongle
-to give it an operand, because it saw in the instruction opcode that operand address is somewhere in dmseg. That prowoked the CPU to stall (it tried operand fetch to dmseg and stopped),
+to give it an operand, because it saw in the instruction opcode that operand address is somewhere in dmseg. That provoked the CPU to stall (it tried operand fetch to dmseg and stopped),
 and PNnW bit is 0 (CPU does read from dmseg), and PrAcc is 1 (CPU is pending on dmseg access).
 
 @subsection spracc	SPrAcc
@@ -155,16 +155,16 @@ static const uint32_t code[] = {
 
 We have to pass this code to CPU via dongle via dmseg.
 
-After debug exception CPU will find itself stalling at the begining of the dmseg. It waits for the first instruction from dongle.
+After debug exception CPU will find itself stalling at the beginning of the dmseg. It waits for the first instruction from dongle.
 This is MIPS32_MTC0(15,31,0), so CPU saves C0 and continues to addr 0xFF20 0001, which falls also to dmseg, so it stalls.
 Dongle proceeds giving to CPU one by one instruction in this manner.
 
 However, things are not so simple. If you take a look at the program, you will see that some instructions take operands. If it has to take
-operand from the address in dmseg, CPU will stall witing for the dongle to do the action of passing the operand and signal this by putting PrAcc to 0.
-If this operand is somewhere in RAM, CPU will not stall (it stalls only on dmseg), but it will just take it and proceed to nex instruction. But since PC for next instruction
+operand from the address in dmseg, CPU will stall waiting for the dongle to do the action of passing the operand and signal this by putting PrAcc to 0.
+If this operand is somewhere in RAM, CPU will not stall (it stalls only on dmseg), but it will just take it and proceed to next instruction. But since PC for next instruction
 points to dmseg, it will stall, so that dongle can pass next instruction.
 
-Some instuctions are jumps (if these are jumps in dmseg addr, CPU will jump and then stall. If this is jump to some address in RAM, CPU will jump and just proceed -
+Some instructions are jumps (if these are jumps in dmseg addr, CPU will jump and then stall. If this is jump to some address in RAM, CPU will jump and just proceed -
 will not stall on addresses in RAM).
 
 To have information about CPU is currently (does it stalls wanting on operand or it jumped somewhere waiting for next instruction),
@@ -213,10 +213,10 @@ else
 @endcode
 
 i.e. if CPU is stalling on addresses in dmseg that are reserved for input parameters, we can conclude that it actually tried to take (read)
-parametar from there, and saw that address of param falls in dmseg, so it stopped. Obviously, now dongle have to give to it operand.
+parameter from there, and saw that address of parameter falls in dmseg, so it stopped. Obviously, now dongle have to give to it operand.
 
 Similarly, mips32_pracc_exec_write() describes CPU writes into EJTAG memory (dmseg).
-Obvioulsy, code is RO, and CPU can change only parameters :
+Obviously, code is RO, and CPU can change only parameters :
 
 @code
 mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA);
@@ -331,10 +331,10 @@ uint32_t handler_code[] = {
 };
 @endcode
 
-In the begining and the end of the handler we have fuction prologue (save the regs that will be clobbered) and epilogue (restore regs),
+In the beginning and the end of the handler we have function prologue (save the regs that will be clobbered) and epilogue (restore regs),
 and in the very end, after all the xfer have been done, we do jump to the MIPS32_PRACC_TEXT address, i.e. Debug Exception Vector location.
 We will use this fact (that we came back to MIPS32_PRACC_TEXT)  to verify later if all the handler is executed (because when in RAM,
-processor do not stall - it executes all instructions untill one of them do not demand access to dmseg (if one of it's opernads is there)).
+processor do not stall - it executes all instructions until one of them do not demand access to dmseg (if one of it's operands is there)).
 
 This handler is put into the RAM and executed from there, and not instruction by  instruction, like in previous simple write
 (mips_m4k_write_memory()) and read (mips_m4k_read_memory()) functions.
@@ -347,12 +347,12 @@ MIPS32_LW(9,0,8) /* start addr in t1 */
 
 and there it will stall - because it will see that one of the operands have to be fetched from dmseg (EJTAG memory, in this case FASTDATA memory segment).
 
-This handler is loaded in the RAM, ath the reserved location "work_area". This work_area is configured in OpenOCD configuration script and should be selected
+This handler is loaded in the RAM, at the reserved location "work_area". This work_area is configured in OpenOCD configuration script and should be selected
 in that way that it is not clobbered (overwritten) by data we want to write-in using FASTDATA.
 
 What is executed instruction by instruction which is passed by dongle (via EJATG memory) is small jump code, which jumps at the handler in RAM.
 CPU stalls on dmseg when receiving these jmp_code instructions, but once it jumps in RAM, CPU do not stall anymore and executes bunch of handler instructions.
-Untill it comes to the first instruction which has an operand in FASTDATA area. There it stalls and waits on action from probe.
+Until it comes to the first instruction which has an operand in FASTDATA area. There it stalls and waits on action from probe.
 It happens actually when CPU comes to this loop :
 
 @code
@@ -393,15 +393,15 @@ for (i = 0; i < count; i++)
 }
 @endcode
 
-Each time when OpenOCD fills data to CPU (via dongle, via dmseg), CPU takes it and proceeds in executing the endler. However, since handler is in a assembly loop,
+Each time when OpenOCD fills data to CPU (via dongle, via dmseg), CPU takes it and proceeds in executing the handler. However, since handler is in a assembly loop,
 CPU comes to next instruction which also fetches data from FASTDATA area. So it stalls.
 Then OpenOCD fills the data again, from it's (OpenOCD's) loop. And this game continues untill all the data has been filled.
 
-After the last data has beend given to CPU it sees that it reached the end address, so it proceeds with next instruction. However, rhis instruction do not point into dmseg, so
+After the last data has been given to CPU it sees that it reached the end address, so it proceeds with next instruction. However, this instruction do not point into dmseg, so
 CPU executes bunch of handler instructions (all prologue) and in the end jumps to MIPS32_PRACC_TEXT address.
 
-On it's side, OpenOCD checks in CPU has jumped back to MIPS32_PRACC_TEXT, which is the confirmation that it correclty executed all the rest of the handler in RAM,
-and that is not stuck somewhere in the RAM, or stalling on some acces in dmseg - that would be an error :
+On it's side, OpenOCD checks in CPU has jumped back to MIPS32_PRACC_TEXT, which is the confirmation that it correctly executed all the rest of the handler in RAM,
+and that is not stuck somewhere in the RAM, or stalling on some access in dmseg - that would be an error :
 
 @code
 address = 0;
@@ -462,7 +462,7 @@ Download flow (probe -> target block transfer) :
 
 Note: A failure may have a recoverable (and even expected) cause like slow target execution of the load loop. Other failures may be due to unexpected more troublesome causes like an exception while in debug mode or a target hang on a bad target memory access.
 
-Shifted out SPrAcc bit inform us that there was CPU access pendingand that it can be complete.
+Shifted out SPrAcc bit inform us that there was CPU access pending and that it can be complete.
 
 Basically, we should do following procedure :
 
@@ -497,7 +497,7 @@ by checking SPrAcc that we shifted out.
 If some FASTDATA write fails, OpenOCD will continue with it's loop (on the host side), but CPU will rest pending (on the target side)
 waiting for correct FASTDATA write.
 
-Since OpenOCD goes ahead, it will eventually finish it's loop, and proceede to check if CPU took all the data. But since CPU did not took all the data,
+Since OpenOCD goes ahead, it will eventually finish it's loop, and proceed to check if CPU took all the data. But since CPU did not took all the data,
 it is still turns in handler's loop in RAM, stalling on Fastdata area so this check :
 
 @code
@@ -513,24 +513,24 @@ if (address != MIPS32_PRACC_TEXT)
 
 fails, and that gives us enough information of the failure.
 
-In this case, we can lower the JTAG frquency and try again, bacuse most probable reason of this failure is that we tried FASTDATA upload before CPU arrived to rise PrAcc (i.e. before it was pending on access).
+In this case, we can lower the JTAG frequency and try again, because most probable reason of this failure is that we tried FASTDATA upload before CPU arrived to rise PrAcc (i.e. before it was pending on access).
 However, the reasons for failure might be numerous : reset, exceptions which can occur in debug mode, bus hangs, etc.
 
 If lowering the JTAG freq does not work either, we can fall back to more robust solution with patch posted below.
 
 To summarize, FASTDATA communication goes as following :
 
--# CPU jumps to Debug Exception Vector Location 0xFF200200 in dmseg and it stalls, pending and waiting for EJTAG to give it first debug instruction and signall it by putting PrAcc to "0"
+-# CPU jumps to Debug Exception Vector Location 0xFF200200 in dmseg and it stalls, pending and waiting for EJTAG to give it first debug instruction and signal it by putting PrAcc to "0"
 -# When PrAcc goes to "0" CPU execute one opcode sent by EJTAG via DATA reg. Then it pends on next access, waiting for PrAcc to be put to "0" again
 -# Following this game, OpenOCD first loads handler code in RAM, and then sends the jmp_code - instruction by instruction via DATA reg, which redirects CPU to handler previously set up in RAM
--# Once in RAM CPU does not pend on any instruction, but it executes all handler instructions untill first "fetch" to Fastdata area - then it stops and pends.
+-# Once in RAM CPU does not pend on any instruction, but it executes all handler instructions until first "fetch" to Fastdata area - then it stops and pends.
 -# So - when it comes to any instruction (opcode) in this handler in RAM which reads (or writes) to Fastdata area (0xF..F20.0000 to 0xF..F20.000F), CPU stops (i.e. stalls access).
    I.e. it stops on this lw opcode and waits to FASTDATA TAP command from the probe.
 -# CPU continues only if OpenOCD shifted in SPrAcc "0" (and if the PrAcc was "1"). It shifts-out "1" to tell us that it was OK (processor was stalled, so it can complete the access),
    and that it continued execution of the handler in RAM.
 -# If PrAcc was not "1" CPU will not continue (go to next instruction), but will shift-out "0" and keep stalling on the same instruction of my handler in RAM.
--# When Fastdata loop is finished, CPU executes all following hadler instructions in RAM (prologue).
--# In the end of my handler in RAM, I jumps back to begining of Debug Exception Vector Location 0xFF200200 in dmseg.
+-# When Fastdata loop is finished, CPU executes all following handler instructions in RAM (prologue).
+-# In the end of my handler in RAM, I jumps back to beginning of Debug Exception Vector Location 0xFF200200 in dmseg.
 -# When it jumps back to 0xFF200200 in dmseg processor stops and pends, waiting for OpenOCD to send it instruction via DATA reg and signal it by putting PrAcc to "0".
 
 */

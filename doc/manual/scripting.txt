@@ -43,7 +43,7 @@ Default implementation of procedures in tcl/procedures.tcl.
   functions constitute the tcl api. flash_banks is such
   a low level tcl proc. "flash banks" is an example of
   a command that has human readable output. The human
-  readable output is expected to change inbetween versions
+  readable output is expected to change in between versions
   of OpenOCD. The output from flash_banks may not be
   in the preferred form for the client. The client then
   has two choices a) parse the output from flash_banks

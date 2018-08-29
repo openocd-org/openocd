@@ -114,7 +114,9 @@ m4_define([USB1_ADAPTERS],
 	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]],
 	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
 	[[usb_blaster_2], [Altera USB-Blaster II Compatible], [USB_BLASTER_2]],
-	[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]]])
+	[[ft232r], [Bitbang mode of FT232R based devices], [FT232R]],
+	[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]],
+	[[xds110], [TI XDS110 Debug Probe], [XDS110]]])
 
 m4_define([USB_ADAPTERS],
 	[[[osbdm], [OSBDM (JTAG only) Programmer], [OSBDM]],
@@ -633,6 +635,9 @@ PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.2],
 
 m4_define([PROCESS_ADAPTERS], [
   m4_foreach([adapter], [$1], [
+	AS_IF([test "x$build_zy1000" = "xyes"], [
+		ADAPTER_VAR([adapter])=no
+	])
 	AS_IF([test $2], [
 		AS_IF([test "x$ADAPTER_VAR([adapter])" != "xno"], [
 			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [1], [1 if you want the ]ADAPTER_DESC([adapter]).)
@@ -655,7 +660,7 @@ PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
 PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
-PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.1])
+PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
 
 AS_IF([test "x$build_openjtag" = "xyes"], [
   AS_IF([test "x$use_libusb1" != "xyes" -a "x$use_libusb0" != "xyes"], [

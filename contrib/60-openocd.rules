@@ -128,6 +128,12 @@ ATTRS{idVendor}=="1781", ATTRS{idProduct}=="0c63", MODE="660", GROUP="plugdev", 
 # TI/Luminary Stellaris In-Circuit Debug Interface (ICDI) Board
 ATTRS{idVendor}=="1cbe", ATTRS{idProduct}=="00fd", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# TI XDS110 Debug Probe (Launchpads and Standalone)
+ATTRS{idVendor}=="0451", ATTRS{idProduct}=="bef3", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# TI Tiva-based ICDI and XDS110 probes in DFU mode
+ATTRS{idVendor}=="1cbe", ATTRS{idProduct}=="00ff", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
 # Ambiq Micro EVK and Debug boards.
 ATTRS{idVendor}=="2aec", ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="2aec", ATTRS{idProduct}=="6011", MODE="664", GROUP="plugdev", TAG+="uaccess"

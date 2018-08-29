@@ -153,7 +153,7 @@ struct target {
 	struct target_event_action *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
-	uint32_t working_area;				/* working area (initialised RAM). Evaluated
+	target_addr_t working_area;				/* working area (initialised RAM). Evaluated
 										 * upon first allocation from virtual/physical address. */
 	bool working_area_virt_spec;		/* virtual address specified? */
 	target_addr_t working_area_virt;			/* virtual address */
@@ -176,20 +176,21 @@ struct target {
 	void *private_config;				/* pointer to target specific config data (for jim_configure hook) */
 	struct target *next;				/* next target in list */
 
-	int display;						/* display async info in telnet session. Do not display
+	bool verbose_halt_msg;				/* display async info in telnet session. Do not display
 										 * lots of halted/resumed info when stepping in debugger. */
 	bool halt_issued;					/* did we transition to halted state? */
 	int64_t halt_issued_time;			/* Note time when halt was issued */
 
+										/* ARM v7/v8 targets with ADIv5 interface */
 	bool dbgbase_set;					/* By default the debug base is not set */
 	uint32_t dbgbase;					/* Really a Cortex-A specific option, but there is no
 										 * system in place to support target specific options
 										 * currently. */
+	bool has_dap;						/* set to true if target has ADIv5 support */
+	bool dap_configured;				/* set to true if ADIv5 DAP is configured */
+	bool tap_configured;				/* set to true if JTAG tap has been configured
+										 * through -chain-position */
 
-	 bool ctibase_set;					 /* By default the debug base is not set */
-	 uint32_t ctibase;					 /* Really a Cortex-A specific option, but there is no
-										  * system in place to support target specific options
-										  * currently. */
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
 										 * and must be detected when symbols are offered */
@@ -205,13 +206,8 @@ struct target {
 	/* file-I/O information for host to do syscall */
 	struct gdb_fileio_info *fileio_info;
 
-	/**
-	 * When true, send gdb an error result when reading/writing a register
-	 * fails. This must be false for some ARM targets (Cortex-M3), where a 'g'
-	 * packet results in an attempt to read 'r0', which fails, which causes gdb
-	 * to close the connection.
-	 */
-	bool propagate_register_errors;
+	/* The semihosting information, extracted from the target. */
+	struct semihosting *semihosting;
 };
 
 struct target_list {
@@ -221,10 +217,10 @@ struct target_list {
 
 struct gdb_fileio_info {
 	char *identifier;
-	uint32_t param_1;
-	uint32_t param_2;
-	uint32_t param_3;
-	uint32_t param_4;
+	uint64_t param_1;
+	uint64_t param_2;
+	uint64_t param_3;
+	uint64_t param_4;
 };
 
 /** Returns the instance-specific name of the specified target. */
@@ -317,6 +313,12 @@ struct target_timer_callback {
 	struct timeval when;
 	void *priv;
 	struct target_timer_callback *next;
+};
+
+struct target_memory_check_block {
+	target_addr_t address;
+	uint32_t size;
+	uint32_t result;
 };
 
 int target_register_commands(struct command_context *cmd_ctx);
@@ -592,7 +594,8 @@ int target_read_buffer(struct target *target,
 int target_checksum_memory(struct target *target,
 		target_addr_t address, uint32_t size, uint32_t *crc);
 int target_blank_check_memory(struct target *target,
-		target_addr_t address, uint32_t size, uint32_t *blank, uint8_t erased_value);
+		struct target_memory_check_block *blocks, int num_blocks,
+		uint8_t erased_value);
 int target_wait_state(struct target *target, enum target_state state, int ms);
 
 /**

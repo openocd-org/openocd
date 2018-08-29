@@ -836,68 +836,7 @@ int default_interface_jtag_execute_queue(void)
 		return ERROR_FAIL;
 	}
 
-	int result = jtag->execute_queue();
-
-	struct jtag_command *cmd = jtag_command_queue;
-	while (debug_level >= LOG_LVL_DEBUG && cmd) {
-		switch (cmd->type) {
-			case JTAG_SCAN:
-				DEBUG_JTAG_IO("JTAG %s SCAN to %s",
-						cmd->cmd.scan->ir_scan ? "IR" : "DR",
-						tap_state_name(cmd->cmd.scan->end_state));
-				for (int i = 0; i < cmd->cmd.scan->num_fields; i++) {
-					struct scan_field *field = cmd->cmd.scan->fields + i;
-					if (field->out_value) {
-						char *str = buf_to_str(field->out_value, field->num_bits, 16);
-						DEBUG_JTAG_IO("  %db out: %s", field->num_bits, str);
-						free(str);
-					}
-					if (field->in_value) {
-						char *str = buf_to_str(field->in_value, field->num_bits, 16);
-						DEBUG_JTAG_IO("  %db  in: %s", field->num_bits, str);
-						free(str);
-					}
-				}
-				break;
-			case JTAG_TLR_RESET:
-				DEBUG_JTAG_IO("JTAG TLR RESET to %s",
-						tap_state_name(cmd->cmd.statemove->end_state));
-				break;
-			case JTAG_RUNTEST:
-				DEBUG_JTAG_IO("JTAG RUNTEST %d cycles to %s",
-						cmd->cmd.runtest->num_cycles,
-						tap_state_name(cmd->cmd.runtest->end_state));
-				break;
-			case JTAG_RESET:
-				{
-					const char *reset_str[3] = {
-						"leave", "deassert", "assert"
-					};
-					DEBUG_JTAG_IO("JTAG RESET %s TRST, %s SRST",
-							reset_str[cmd->cmd.reset->trst + 1],
-							reset_str[cmd->cmd.reset->srst + 1]);
-				}
-				break;
-			case JTAG_PATHMOVE:
-				DEBUG_JTAG_IO("JTAG PATHMOVE (TODO)");
-				break;
-			case JTAG_SLEEP:
-				DEBUG_JTAG_IO("JTAG SLEEP (TODO)");
-				break;
-			case JTAG_STABLECLOCKS:
-				DEBUG_JTAG_IO("JTAG STABLECLOCKS (TODO)");
-				break;
-			case JTAG_TMS:
-				DEBUG_JTAG_IO("JTAG STABLECLOCKS (TODO)");
-				break;
-			default:
-				LOG_ERROR("Unknown JTAG command: %d", cmd->type);
-				break;
-		}
-		cmd = cmd->next;
-	}
-
-	return result;
+	return jtag->execute_queue();
 }
 
 void jtag_execute_queue_noclear(void)
@@ -1168,8 +1107,7 @@ static int jtag_examine_chain(void)
 
 		if ((idcode & 1) == 0) {
 			/* Zero for LSB indicates a device in bypass */
-			LOG_INFO("TAP %s does not have valid IDCODE (idcode=0x%x)",
-					tap->dotted_name, idcode);
+			LOG_INFO("TAP %s does not have IDCODE", tap->dotted_name);
 			tap->hasidcode = false;
 			tap->idcode = 0;
 
@@ -1370,6 +1308,14 @@ void jtag_tap_free(struct jtag_tap *tap)
 {
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
+	struct jtag_tap_event_action *jteap = tap->event_action;
+	while (jteap) {
+		struct jtag_tap_event_action *next = jteap->next;
+		Jim_DecrRefCount(jteap->interp, jteap->body);
+		free(jteap);
+		jteap = next;
+	}
+
 	free(tap->expected);
 	free(tap->expected_mask);
 	free(tap->expected_ids);
@@ -1534,13 +1480,19 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 
 int adapter_quit(void)
 {
-	if (!jtag || !jtag->quit)
-		return ERROR_OK;
+	if (jtag && jtag->quit) {
+		/* close the JTAG interface */
+		int result = jtag->quit();
+		if (ERROR_OK != result)
+			LOG_ERROR("failed: %d", result);
+	}
 
-	/* close the JTAG interface */
-	int result = jtag->quit();
-	if (ERROR_OK != result)
-		LOG_ERROR("failed: %d", result);
+	struct jtag_tap *t = jtag_all_taps();
+	while (t) {
+		struct jtag_tap *n = t->next_tap;
+		jtag_tap_free(t);
+		t = n;
+	}
 
 	return ERROR_OK;
 }
@@ -1891,7 +1843,7 @@ void adapter_deassert_reset(void)
 		LOG_ERROR("transport is not selected");
 }
 
-int adapter_config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
+int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 			 uint32_t port_size, unsigned int *trace_freq)
 {
 	if (jtag->config_trace)

@@ -1,12 +1,19 @@
 // This file is part of the Doxygen Developer Manual
 /** @page patchguide Patch Guidelines
 
-\attention If you're behind a corporate wall with http only access to the
-world, you can still use these instructions!
-
 \attention You can't send patches to the mailing list anymore at all. Nowadays
 you are expected to send patches to the OpenOCD Gerrit GIT server for a
 review.
+
+\attention If you already have a Gerrit account and want to try a
+different sign in method, please first sign in as usually, press your
+name in the upper-right corner, go to @a Settings, select @a
+Identities pane, press <em>Link Another Identity</em> button. In case
+you already have duplicated accounts, ask administrators for manual
+merging.
+
+\attention If you're behind a corporate wall with http only access to the
+world, you can still use these instructions!
 
 @section gerrit Submitting patches to the OpenOCD Gerrit server
 
@@ -22,12 +29,58 @@ The procedure to create a patch is essentially:
 - correct the patch and re-send it according to review feedback
 
 Your patch (or commit) should be a "good patch": focus it on a single
-issue, and make it be easily reviewable. Don't make
+issue, and make it easily reviewable. Don't make
 it so large that it's hard to review; split large
-patches into smaller ones. (That can also help
-track down bugs later on.) All patches should
+patches into smaller ones (this will also help
+to track down bugs later). All patches should
 be "clean", which includes preserving the existing
-coding style and updating documentation as needed.
+coding style and updating documentation as needed. When adding a new
+command, the corresponding documentation should be added to
+@c doc/openocd.texi in the same commit. OpenOCD runs on both Little
+Endian and Big Endian hosts so the code can't count on specific byte
+ordering (in other words, must be endian-clean).
+
+There are several additional methods of improving the quality of your
+patch:
+
+- Runtime testing with Valgrind Memcheck
+
+  This helps to spot memory leaks, undefined behaviour due to
+  uninitialized data or wrong indexing, memory corruption, etc.
+
+- Clang Static Analyzer
+
+  Using this tool uncovers many different kinds of bugs in C code,
+  with problematic execution paths fully explained. It is a part of
+  standard Clang installation.
+
+  To generate a report, run this in the OpenOCD source directory:
+  @code
+  mkdir build-scanbuild; cd build-scanbuild
+  scan-build ../configure
+  scan-build make CFLAGS="-std=gnu99 -I. -I../../jimtcl"
+  @endcode
+
+- Runtime testing with sanitizers
+
+  Both GCC and LLVM/Clang include advanced instrumentation options to
+  detect undefined behaviour and many kinds of memory
+  errors. Available with @c -fsanitize=* command arguments.
+
+  Example usage:
+  @code
+  mkdir build-sanitizers; cd build-sanitizers
+  ../configure CC=clang CFLAGS="-fno-omit-frame-pointer \
+               -fsanitize=address -fsanitize=undefined -ggdb3"
+  make
+  export ASAN_OPTIONS=detect_stack_use_after_return=1
+  src/openocd -s ../tcl -f /path/to/openocd.cfg
+  @endcode
+
+Please consider performing these additonal checks where appropriate
+(especially Clang Static Analyzer for big portions of new code) and
+mention the results (e.g. "Valgrind-clean, no new Clang analyzer
+warnings") in the commit message.
 
 Say in the commit message if it's a bugfix (describe the bug) or a new
 feature. Don't expect patches to merge immediately

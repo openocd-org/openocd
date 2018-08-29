@@ -955,4 +955,5 @@ struct flash_driver mrvlqspi_flash = {
 	.erase_check = mrvlqspi_flash_erase_check,
 	.protect_check = mrvlqspi_protect_check,
 	.info = mrvlqspi_get_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

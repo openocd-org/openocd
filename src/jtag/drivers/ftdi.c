@@ -694,6 +694,18 @@ static int ftdi_quit(void)
 {
 	mpsse_close(mpsse_ctx);
 
+	struct signal *sig = signals;
+	while (sig) {
+		struct signal *next = sig->next;
+		free((void *)sig->name);
+		free(sig);
+		sig = next;
+	}
+
+	free(ftdi_device_desc);
+	free(ftdi_serial);
+	free(ftdi_location);
+
 	free(swd_cmd_queue);
 
 	return ERROR_OK;

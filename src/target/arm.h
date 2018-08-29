@@ -8,6 +8,9 @@
  * Copyright (C) 2009 by Øyvind Harboe
  * oyvind.harboe@zylin.com
  *
+ * Copyright (C) 2018 by Liviu Ionescu
+ *   <ilg@livius.net>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -27,7 +30,6 @@
 
 #include <helper/command.h>
 #include "target.h"
-
 
 /**
  * @file
@@ -77,6 +79,43 @@ enum arm_mode {
 	ARM_MODE_ANY = -1
 };
 
+/* VFPv3 internal register numbers mapping to d0:31 */
+enum {
+	ARM_VFP_V3_D0 = 51,
+	ARM_VFP_V3_D1,
+	ARM_VFP_V3_D2,
+	ARM_VFP_V3_D3,
+	ARM_VFP_V3_D4,
+	ARM_VFP_V3_D5,
+	ARM_VFP_V3_D6,
+	ARM_VFP_V3_D7,
+	ARM_VFP_V3_D8,
+	ARM_VFP_V3_D9,
+	ARM_VFP_V3_D10,
+	ARM_VFP_V3_D11,
+	ARM_VFP_V3_D12,
+	ARM_VFP_V3_D13,
+	ARM_VFP_V3_D14,
+	ARM_VFP_V3_D15,
+	ARM_VFP_V3_D16,
+	ARM_VFP_V3_D17,
+	ARM_VFP_V3_D18,
+	ARM_VFP_V3_D19,
+	ARM_VFP_V3_D20,
+	ARM_VFP_V3_D21,
+	ARM_VFP_V3_D22,
+	ARM_VFP_V3_D23,
+	ARM_VFP_V3_D24,
+	ARM_VFP_V3_D25,
+	ARM_VFP_V3_D26,
+	ARM_VFP_V3_D27,
+	ARM_VFP_V3_D28,
+	ARM_VFP_V3_D29,
+	ARM_VFP_V3_D30,
+	ARM_VFP_V3_D31,
+	ARM_VFP_V3_FPSCR,
+};
+
 const char *arm_mode_name(unsigned psr_mode);
 bool is_arm_mode(unsigned psr_mode);
 
@@ -87,6 +126,14 @@ enum arm_state {
 	ARM_STATE_JAZELLE,
 	ARM_STATE_THUMB_EE,
 	ARM_STATE_AARCH64,
+};
+
+/** ARM vector floating point enabled, if yes which version. */
+enum arm_vfp_version {
+	ARM_VFP_DISABLED,
+	ARM_VFP_V1,
+	ARM_VFP_V2,
+	ARM_VFP_V3,
 };
 
 #define ARM_COMMON_MAGIC 0x0A450A45
@@ -136,28 +183,10 @@ struct arm {
 	/** Flag reporting armv6m based core. */
 	bool is_armv6m;
 
-	/** Flag reporting whether semihosting is active. */
-	bool is_semihosting;
-
-	/** Flag reporting whether semihosting fileio is active. */
-	bool is_semihosting_fileio;
-
-	/** Flag reporting whether semihosting fileio operation is active. */
-	bool semihosting_hit_fileio;
-
-	/** Current semihosting operation. */
-	int semihosting_op;
-
-	/** Current semihosting result. */
-	int semihosting_result;
-
-	/** Value to be returned by semihosting SYS_ERRNO request. */
-	int semihosting_errno;
+	/** Floating point or VFP version, 0 if disabled. */
+	int arm_vfp_version;
 
 	int (*setup_semihosting)(struct target *target, int enable);
-
-	/** Semihosting command line. */
-	char *semihosting_cmdline;
 
 	/** Backpointer to the target. */
 	struct target *target;
@@ -225,7 +254,7 @@ struct arm_reg {
 	enum arm_mode mode;
 	struct target *target;
 	struct arm *arm;
-	uint8_t value[8];
+	uint8_t value[16];
 };
 
 struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm);
@@ -260,7 +289,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 int arm_checksum_memory(struct target *target,
 		target_addr_t address, uint32_t count, uint32_t *checksum);
 int arm_blank_check_memory(struct target *target,
-		target_addr_t address, uint32_t count, uint32_t *blank, uint8_t erased_value);
+		struct target_memory_check_block *blocks, int num_blocks, uint8_t erased_value);
 
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);

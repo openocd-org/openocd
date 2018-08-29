@@ -51,11 +51,6 @@
  * any longer.
  */
 
-/**
- * Returns the type of a break point required by address location
- */
-#define BKPT_TYPE_BY_ADDR(addr) ((addr) < 0x20000000 ? BKPT_HARD : BKPT_SOFT)
-
 /* forward declarations */
 static int cortex_m_store_core_reg_u32(struct target *target,
 		uint32_t num, uint32_t value);
@@ -170,7 +165,7 @@ static int cortex_m_single_step_core(struct target *target)
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 	int retval;
 
-	/* Mask interrupts before clearing halt, if done already.  This avoids
+	/* Mask interrupts before clearing halt, if not done already.  This avoids
 	 * Erratum 377497 (fixed in r1p0) where setting MASKINTS while clearing
 	 * HALT can put the core into an unknown state.
 	 */
@@ -242,8 +237,11 @@ static int cortex_m_endreset_event(struct target *target)
 			return retval;
 	}
 
-	/* clear any interrupt masking */
-	cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
+	/* Restore proper interrupt masking setting. */
+	if (cortex_m->isrmasking_mode == CORTEX_M_ISRMASK_ON)
+		cortex_m_write_debug_halt_mask(target, C_MASKINTS, 0);
+	else
+		cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
 
 	/* Enable features controlled by ITM and DWT blocks, and catch only
 	 * the vectors we were told to pay attention to.
@@ -868,7 +866,7 @@ static int cortex_m_step(struct target *target, int current,
 				if (breakpoint)
 					retval = cortex_m_set_breakpoint(target, breakpoint);
 				else
-					retval = breakpoint_add(target, pc_value, 2, BKPT_TYPE_BY_ADDR(pc_value));
+					retval = breakpoint_add(target, pc_value, 2, BKPT_HARD);
 				bool tmp_bp_set = (retval == ERROR_OK);
 
 				/* No more breakpoints left, just do a step */
@@ -1131,9 +1129,6 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		return ERROR_OK;
 	}
 
-	if (cortex_m->auto_bp_type)
-		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
-
 	if (breakpoint->type == BKPT_HARD) {
 		uint32_t fpcr_value;
 		while (comparator_list[fp_num].used && (fp_num < cortex_m->fp_num_code))
@@ -1145,6 +1140,10 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		breakpoint->set = fp_num + 1;
 		fpcr_value = breakpoint->address | 1;
 		if (cortex_m->fp_rev == 0) {
+			if (breakpoint->address > 0x1FFFFFFF) {
+				LOG_ERROR("Cortex-M Flash Patch Breakpoint rev.1 cannot handle HW breakpoint above address 0x1FFFFFFE");
+				return ERROR_FAIL;
+			}
 			uint32_t hilo;
 			hilo = (breakpoint->address & 0x2) ? FPCR_REPLACE_BKPT_HIGH : FPCR_REPLACE_BKPT_LOW;
 			fpcr_value = (fpcr_value & 0x1FFFFFFC) | hilo | 1;
@@ -1253,21 +1252,6 @@ int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 
-	if (cortex_m->auto_bp_type)
-		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
-
-	if (breakpoint->type != BKPT_TYPE_BY_ADDR(breakpoint->address)) {
-		if (breakpoint->type == BKPT_HARD) {
-			LOG_INFO("flash patch comparator requested outside code memory region");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
-
-		if (breakpoint->type == BKPT_SOFT) {
-			LOG_INFO("soft breakpoint requested in code (flash) memory region");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
-	}
-
 	if ((breakpoint->type == BKPT_HARD) && (cortex_m->fp_code_available < 1)) {
 		LOG_INFO("no flash patch comparator unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -1298,9 +1282,6 @@ int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-
-	if (cortex_m->auto_bp_type)
-		breakpoint->type = BKPT_TYPE_BY_ADDR(breakpoint->address);
 
 	if (breakpoint->set)
 		cortex_m_unset_breakpoint(target, breakpoint);
@@ -1832,11 +1813,11 @@ static int cortex_m_dwt_set_reg(struct reg *reg, uint8_t *buf)
 
 struct dwt_reg {
 	uint32_t addr;
-	char *name;
+	const char *name;
 	unsigned size;
 };
 
-static struct dwt_reg dwt_base_regs[] = {
+static const struct dwt_reg dwt_base_regs[] = {
 	{ DWT_CTRL, "dwt_ctrl", 32, },
 	/* NOTE that Erratum 532314 (fixed r2p0) affects CYCCNT:  it wrongly
 	 * increments while the core is asleep.
@@ -1845,7 +1826,7 @@ static struct dwt_reg dwt_base_regs[] = {
 	/* plus some 8 bit counters, useful for profiling with TPIU */
 };
 
-static struct dwt_reg dwt_comp[] = {
+static const struct dwt_reg dwt_comp[] = {
 #define DWT_COMPARATOR(i) \
 		{ DWT_COMP0 + 0x10 * (i), "dwt_" #i "_comp", 32, }, \
 		{ DWT_MASK0 + 0x10 * (i), "dwt_" #i "_mask", 4, }, \
@@ -1854,6 +1835,18 @@ static struct dwt_reg dwt_comp[] = {
 	DWT_COMPARATOR(1),
 	DWT_COMPARATOR(2),
 	DWT_COMPARATOR(3),
+	DWT_COMPARATOR(4),
+	DWT_COMPARATOR(5),
+	DWT_COMPARATOR(6),
+	DWT_COMPARATOR(7),
+	DWT_COMPARATOR(8),
+	DWT_COMPARATOR(9),
+	DWT_COMPARATOR(10),
+	DWT_COMPARATOR(11),
+	DWT_COMPARATOR(12),
+	DWT_COMPARATOR(13),
+	DWT_COMPARATOR(14),
+	DWT_COMPARATOR(15),
 #undef DWT_COMPARATOR
 };
 
@@ -1862,7 +1855,7 @@ static const struct reg_arch_type dwt_reg_type = {
 	.set = cortex_m_dwt_set_reg,
 };
 
-static void cortex_m_dwt_addreg(struct target *t, struct reg *r, struct dwt_reg *d)
+static void cortex_m_dwt_addreg(struct target *t, struct reg *r, const struct dwt_reg *d)
 {
 	struct dwt_reg_state *state;
 
@@ -1887,6 +1880,7 @@ void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target)
 	int reg, i;
 
 	target_read_u32(target, DWT_CTRL, &dwtcr);
+	LOG_DEBUG("DWT_CTRL: 0x%" PRIx32, dwtcr);
 	if (!dwtcr) {
 		LOG_DEBUG("no DWT");
 		return;
@@ -1992,12 +1986,6 @@ int cortex_m_examine(struct target *target)
 	/* stlink shares the examine handler but does not support
 	 * all its calls */
 	if (!armv7m->stlink) {
-		retval = dap_dp_init(swjdp);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Could not initialize the debug port");
-			return retval;
-		}
-
 		if (cortex_m->apsel < 0) {
 			/* Search for the MEM-AP */
 			retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
@@ -2095,7 +2083,7 @@ int cortex_m_examine(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (armv7m->trace_config.config_type != DISABLED) {
+		if (armv7m->trace_config.config_type != TRACE_CONFIG_TYPE_DISABLED) {
 			armv7m_trace_tpiu_config(target);
 			armv7m_trace_itm_config(target);
 		}
@@ -2104,7 +2092,6 @@ int cortex_m_examine(struct target *target)
 
 		/* Setup FPB */
 		target_read_u32(target, FP_CTRL, &fpcr);
-		cortex_m->auto_bp_type = 1;
 		/* bits [14:12] and [7:4] */
 		cortex_m->fp_num_code = ((fpcr >> 8) & 0x70) | ((fpcr >> 4) & 0xF);
 		cortex_m->fp_num_lit = (fpcr >> 8) & 0xF;
@@ -2228,25 +2215,17 @@ static int cortex_m_handle_target_request(void *priv)
 }
 
 static int cortex_m_init_arch_info(struct target *target,
-	struct cortex_m_common *cortex_m, struct jtag_tap *tap)
+	struct cortex_m_common *cortex_m, struct adiv5_dap *dap)
 {
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 
 	armv7m_init_arch_info(target, armv7m);
 
-	/*  tap has no dap initialized */
-	if (!tap->dap) {
-		tap->dap = dap_init();
-
-		/* Leave (only) generic DAP stuff for debugport_init() */
-		tap->dap->tap = tap;
-	}
-
 	/* default reset mode is to use srst if fitted
 	 * if not it will use CORTEX_M3_RESET_VECTRESET */
 	cortex_m->soft_reset_config = CORTEX_M_RESET_VECTRESET;
 
-	armv7m->arm.dap = tap->dap;
+	armv7m->arm.dap = dap;
 
 	/* register arch-specific functions */
 	armv7m->examine_debug_reason = cortex_m_examine_debug_reason;
@@ -2266,16 +2245,16 @@ static int cortex_m_init_arch_info(struct target *target,
 static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
-
 	cortex_m->common_magic = CORTEX_M_COMMON_MAGIC;
-	cortex_m_init_arch_info(target, cortex_m, target->tap);
+	struct adiv5_private_config *pc;
 
-	if (target->private_config != NULL) {
-		struct adiv5_private_config *pc =
-				(struct adiv5_private_config *)target->private_config;
-		cortex_m->apsel = pc->ap_num;
-	} else
-		cortex_m->apsel = -1;
+	pc = (struct adiv5_private_config *)target->private_config;
+	if (adiv5_verify_config(pc) != ERROR_OK)
+		return ERROR_FAIL;
+
+	cortex_m->apsel = pc->ap_num;
+
+	cortex_m_init_arch_info(target, cortex_m, pc->dap);
 
 	return ERROR_OK;
 }
@@ -2298,20 +2277,6 @@ static int cortex_m_verify_pointer(struct command_context *cmd_ctx,
  * cortexm3_target structure, which is only used with CM3 targets.
  */
 
-static const struct {
-	char name[10];
-	unsigned mask;
-} vec_ids[] = {
-	{ "hard_err",   VC_HARDERR, },
-	{ "int_err",    VC_INTERR, },
-	{ "bus_err",    VC_BUSERR, },
-	{ "state_err",  VC_STATERR, },
-	{ "chk_err",    VC_CHKERR, },
-	{ "nocp_err",   VC_NOCPERR, },
-	{ "mm_err",     VC_MMERR, },
-	{ "reset",      VC_CORERESET, },
-};
-
 COMMAND_HANDLER(handle_cortex_m_vector_catch_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -2319,6 +2284,20 @@ COMMAND_HANDLER(handle_cortex_m_vector_catch_command)
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 	uint32_t demcr = 0;
 	int retval;
+
+	static const struct {
+		char name[10];
+		unsigned mask;
+	} vec_ids[] = {
+		{ "hard_err",   VC_HARDERR, },
+		{ "int_err",    VC_INTERR, },
+		{ "bus_err",    VC_BUSERR, },
+		{ "state_err",  VC_STATERR, },
+		{ "chk_err",    VC_CHKERR, },
+		{ "nocp_err",   VC_NOCPERR, },
+		{ "mm_err",     VC_MMERR, },
+		{ "reset",      VC_CORERESET, },
+	};
 
 	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
 	if (retval != ERROR_OK)

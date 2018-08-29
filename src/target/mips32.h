@@ -428,6 +428,6 @@ int mips32_get_gdb_reg_list(struct target *target,
 int mips32_checksum_memory(struct target *target, target_addr_t address,
 		uint32_t count, uint32_t *checksum);
 int mips32_blank_check_memory(struct target *target,
-		target_addr_t address, uint32_t count, uint32_t *blank, uint8_t erased_value);
+		struct target_memory_check_block *blocks, int num_blocks, uint8_t erased_value);
 
 #endif /* OPENOCD_TARGET_MIPS32_H */

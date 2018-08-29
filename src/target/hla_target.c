@@ -271,7 +271,10 @@ static int hl_target_request_data(struct target *target,
 	uint32_t i;
 
 	for (i = 0; i < (size * 4); i++) {
-		hl_dcc_read(hl_if, &data, &ctrl);
+		int err = hl_dcc_read(hl_if, &data, &ctrl);
+		if (err != ERROR_OK)
+			return err;
+
 		buffer[i] = data;
 	}
 
@@ -281,6 +284,8 @@ static int hl_target_request_data(struct target *target,
 static int hl_handle_target_request(void *priv)
 {
 	struct target *target = priv;
+	int err;
+
 	if (!target_was_examined(target))
 		return ERROR_OK;
 	struct hl_interface_s *hl_if = target_to_adapter(target);
@@ -292,7 +297,9 @@ static int hl_handle_target_request(void *priv)
 		uint8_t data;
 		uint8_t ctrl;
 
-		hl_dcc_read(hl_if, &data, &ctrl);
+		err = hl_dcc_read(hl_if, &data, &ctrl);
+		if (err != ERROR_OK)
+			return err;
 
 		/* check if we have data */
 		if (ctrl & (1 << 0)) {
@@ -300,11 +307,20 @@ static int hl_handle_target_request(void *priv)
 
 			/* we assume target is quick enough */
 			request = data;
-			hl_dcc_read(hl_if, &data, &ctrl);
+			err = hl_dcc_read(hl_if, &data, &ctrl);
+			if (err != ERROR_OK)
+				return err;
+
 			request |= (data << 8);
-			hl_dcc_read(hl_if, &data, &ctrl);
+			err = hl_dcc_read(hl_if, &data, &ctrl);
+			if (err != ERROR_OK)
+				return err;
+
 			request |= (data << 16);
-			hl_dcc_read(hl_if, &data, &ctrl);
+			err = hl_dcc_read(hl_if, &data, &ctrl);
+			if (err != ERROR_OK)
+				return err;
+
 			request |= (data << 24);
 			target_request(target, request);
 		}
@@ -349,11 +365,15 @@ static int adapter_target_create(struct target *target,
 		Jim_Interp *interp)
 {
 	LOG_DEBUG("%s", __func__);
-
+	struct adiv5_private_config *pc = target->private_config;
 	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
-
 	if (!cortex_m)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (pc != NULL && pc->ap_num > 0) {
+		LOG_ERROR("hla_target: invalid parameter -ap-num (> 0)");
+		return ERROR_FAIL;
+	}
 
 	adapter_init_arch_info(target, cortex_m, target->tap);
 
@@ -785,6 +805,7 @@ struct target_type hla_target = {
 	.init_target = adapter_init_target,
 	.deinit_target = cortex_m_deinit_target,
 	.target_create = adapter_target_create,
+	.target_jim_configure = adiv5_jim_configure,
 	.examine = cortex_m_examine,
 	.commands = adapter_command_handlers,
 

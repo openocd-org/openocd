@@ -119,6 +119,11 @@ static int hl_interface_quit(void)
 	if (hl_if.layout->api->close)
 		hl_if.layout->api->close(hl_if.handle);
 
+	jtag_command_queue_reset();
+
+	free((void *)hl_if.param.device_desc);
+	free((void *)hl_if.param.serial);
+
 	return ERROR_OK;
 }
 
@@ -186,7 +191,7 @@ int hl_interface_override_target(const char **targetname)
 	return ERROR_FAIL;
 }
 
-int hl_interface_config_trace(bool enabled, enum tpio_pin_protocol pin_protocol,
+int hl_interface_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 			      uint32_t port_size, unsigned int *trace_freq)
 {
 	if (hl_if.layout->api->config_trace)

@@ -125,7 +125,7 @@ There is some tricky things going on.
 ===============
 
 First, there is a "for" loop - at level 0
-{level 0 means: out side of a proc/function}
+{level 0 means: outside of a procedure/function}
 
 This means it is evaluated when the file is parsed.
 
@@ -151,9 +151,9 @@ The FOR command:
 5)  Goto Step 2.
 
 As show, each of these items are in {curly-braces}.  This means they
-are passed as they are - KEY-POINT: un evaluated to the FOR
+are passed as they are - KEY-POINT: unevaluated to the FOR
 command. Think of it like escaping the backticks in Bash so that the
-"under-lying" command can evaluate the contents. In this case, the FOR
+"underlying" command can evaluate the contents. In this case, the FOR
 COMMAND.
 
 == END: SIDEBAR: About The FOR command ==
@@ -167,9 +167,9 @@ Format is like "sprintf". Because of the [brackets], it becomes what
 you think.  But here's how:
 
 First - the line is parsed - for {braces}.  In this case, there are
-none.  The, the parser looks for [brackets] and finds them.  The,
+none.  Then, the parser looks for [brackets] and finds them.  The
 parser then evaluates the contents of the [brackets], and replaces
-them. It is alot this bash statement.
+them. It is similar to this bash statement.
 
        EXPORT vn=`date`
 
@@ -179,7 +179,7 @@ LINE 2 & 3
 
 In line 1, we dynamically created a variable name.  Here, we are
 assigning it a value. Lastly Line 3 we force the variable to be
-global, not "local" the the "for command body"
+global, not "local" within the "for command body"
 
 ===============
 The PROCS
@@ -194,7 +194,7 @@ The (1) NAME of the function, a (2) LIST of parameters, and a (3) BODY
 Again, this is at "level 0" so it is a global function.  (Yes, TCL
 supports local functions, you put them inside of a function}
 
-You'll see in some cases, I nest [brackets] alot and in others I'm
+You'll see in some cases, I nest [brackets] a lot and in others I'm
 lazy or wanted it to be more clear... it is a matter of choice.
 ===============
 
@@ -224,7 +224,7 @@ All memory regions must have 2 things:
 		   RWX - the access ability.
 		   WIDTH - the accessible width.
 
-        ie: Some regions of memory are not 'word'
+        i.e.: Some regions of memory are not 'word'
 	accessible.
 
 The function "address_info" - given an address should
@@ -287,7 +287,7 @@ Notice this IF COMMAND - (not statement) is like this:
           error [format string...]
        }
 
-The "IF" command expects either 2 params, or 4 params.
+The "IF" command expects either 2 or 4 parameters.
 
  === Sidebar: About "commands" ===
 
@@ -317,7 +317,7 @@ You give CATCH 1 or 2 parameters.
     The 2nd (optional) is where to put the error message.
 
     CATCH returns 0 on success, 1 for failure.
-    The "![catch command]" is self explaintory.
+    The "![catch command]" is self explanatory.
 
 
 The 3rd parameter to IF must be exactly "else" or "elseif" [I lied
@@ -341,7 +341,7 @@ exists.  {the function: "proc_exists" does this}
 
 And - if it does - I call the function.
 
-In "C" it is alot like using: 'sprintf()' to construct a function name
+In "C" it is a lot like using: 'sprintf()' to construct a function name
 string, then using "dlopen()" and "dlsym()" to look it up - and get a
 function pointer - and calling the function pointer.
 
@@ -380,7 +380,7 @@ Some assumptions:
 
 The "CHIP" file has defined some variables in a proper form.
 
-ie:   AT91C_BASE_US0 - for usart0,
+i.e.: AT91C_BASE_US0 - for usart0,
       AT91C_BASE_US1 - for usart1
       ... And so on ...
 
@@ -394,7 +394,7 @@ looks like this:
 In this case, I'm trying to figure out what USARTs exist.
 
 Step 1 - is to determine if the NAME has been defined.
-ie: Does AT91C_BASE_USx - where X is some number exist?
+i.e.: Does AT91C_BASE_USx - where X is some number exist?
 
 The "info exists VARNAME" tells you if the variable exists.  Then -
 inside the IF statement... There is another loop. This loop is the

@@ -25,6 +25,10 @@
 #ifndef OPENOCD_SERVER_SERVER_H
 #define OPENOCD_SERVER_SERVER_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <helper/log.h>
 
 #ifdef HAVE_NETINET_IN_H
@@ -74,10 +78,12 @@ int add_service(char *name, const char *port,
 		int max_connections, new_connection_handler_t new_connection_handler,
 		input_handler_t in_handler, connection_closed_handler_t close_handler,
 		void *priv);
+int remove_service(const char *name, const char *port);
 
 int server_preinit(void);
 int server_init(struct command_context *cmd_ctx);
 int server_quit(void);
+void server_free(void);
 void exit_on_signal(int);
 
 int server_loop(struct command_context *command_context);
