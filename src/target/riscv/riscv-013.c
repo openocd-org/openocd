@@ -3065,12 +3065,12 @@ void riscv013_clear_abstract_error(struct target *target)
 
 #define COMPLIANCE_CHECK_RO(target, addr)                               \
 {                                                                       \
-    uint32_t orig;                                                      \
-    uint32_t inverse;                                                   \
-    COMPLIANCE_READ(target, &orig, addr);                               \
-    COMPLIANCE_WRITE(target, addr, ~orig);                              \
-    COMPLIANCE_READ(target, &inverse, addr);                            \
-    COMPLIANCE_TEST(orig == inverse, "Register must be read-only");     \
+	uint32_t orig;                                                      \
+	uint32_t inverse;                                                   \
+	COMPLIANCE_READ(target, &orig, addr);                               \
+	COMPLIANCE_WRITE(target, addr, ~orig);                              \
+	COMPLIANCE_READ(target, &inverse, addr);                            \
+	COMPLIANCE_TEST(orig == inverse, "Register must be read-only");     \
 }
 
 int riscv013_test_compliance(struct target *target)
@@ -3096,20 +3096,20 @@ int riscv013_test_compliance(struct target *target)
 
 	/* hartreset */
 	/* This field is optional. Either we can read and write it to 1/0,
-	or it is tied to 0. This check doesn't really do anything, but 
-        it does attempt to set the bit to 1 and then back to 0, which needs to 
-        work if its implemented. */
+	or it is tied to 0. This check doesn't really do anything, but
+	it does attempt to set the bit to 1 and then back to 0, which needs to
+	work if its implemented. */
 	COMPLIANCE_WRITE(target, DMI_DMCONTROL, set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 1));
 	COMPLIANCE_WRITE(target, DMI_DMCONTROL, set_field(dmcontrol_orig, DMI_DMCONTROL_HARTRESET, 0));
 	COMPLIANCE_READ(target, &dmcontrol, DMI_DMCONTROL);
-        COMPLIANCE_TEST((get_field(dmcontrol, DMI_DMCONTROL_HARTRESET) == 0),
-                        "DMCONTROL.hartreset can be 0 or RW.");
+	COMPLIANCE_TEST((get_field(dmcontrol, DMI_DMCONTROL_HARTRESET) == 0),
+			"DMCONTROL.hartreset can be 0 or RW.");
 
 	/* hasel */
-        COMPLIANCE_WRITE(target, DMI_DMCONTROL, set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 1));
-        COMPLIANCE_WRITE(target, DMI_DMCONTROL, set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 0));
+	COMPLIANCE_WRITE(target, DMI_DMCONTROL, set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 1));
+	COMPLIANCE_WRITE(target, DMI_DMCONTROL, set_field(dmcontrol_orig, DMI_DMCONTROL_HASEL, 0));
 	COMPLIANCE_READ(target, &dmcontrol, DMI_DMCONTROL);
-        COMPLIANCE_TEST((get_field(dmcontrol, DMI_DMCONTROL_HASEL) == 0),
+	COMPLIANCE_TEST((get_field(dmcontrol, DMI_DMCONTROL_HASEL) == 0),
 			"DMCONTROL.hasel can be 0 or RW.");
 	/* TODO: test that hamask registers exist if hasel does. */
 
@@ -3118,7 +3118,7 @@ int riscv013_test_compliance(struct target *target)
 	/* This bit is not actually readable according to the spec, so nothing to check.*/
 
 	/* DMSTATUS */
-        COMPLIANCE_CHECK_RO(target, DMI_DMSTATUS);
+	COMPLIANCE_CHECK_RO(target, DMI_DMSTATUS);
 
 	/* resumereq */
 	/* This bit is not actually readable according to the spec, so nothing to check.*/
@@ -3128,12 +3128,12 @@ int riscv013_test_compliance(struct target *target)
 	COMPLIANCE_MUST_PASS(riscv_halt_all_harts(target));
 
 	/* HARTINFO: Read-Only. This is per-hart, so need to adjust hartsel. */
-        uint32_t hartinfo;
-        COMPLIANCE_READ(target, &hartinfo, DMI_HARTINFO);
+	uint32_t hartinfo;
+	COMPLIANCE_READ(target, &hartinfo, DMI_HARTINFO);
 	for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++) {
-                COMPLIANCE_MUST_PASS(riscv_set_current_hartid(target, hartsel));
+		COMPLIANCE_MUST_PASS(riscv_set_current_hartid(target, hartsel));
 
-                COMPLIANCE_CHECK_RO(target, DMI_HARTINFO);
+		COMPLIANCE_CHECK_RO(target, DMI_HARTINFO);
 
 		/* $dscratch CSRs */
 		uint32_t nscratch = get_field(hartinfo, DMI_HARTINFO_NSCRATCH);
@@ -3269,7 +3269,7 @@ int riscv013_test_compliance(struct target *target)
 	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
 			"Illegal COMMAND should result in UNSUPPORTED");
 	COMPLIANCE_WRITE(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
-        
+
 	COMPLIANCE_WRITE(target, DMI_COMMAND, 0x55555555);
 	COMPLIANCE_READ(target, &testvar_read, DMI_ABSTRACTCS);
 	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
@@ -3358,10 +3358,10 @@ int riscv013_test_compliance(struct target *target)
 
 	/* Single-Step each hart. */
 	for (int hartsel = 0; hartsel < riscv_count_harts(target); hartsel++) {
-	        COMPLIANCE_MUST_PASS(riscv_set_current_hartid(target, hartsel));
-	        COMPLIANCE_MUST_PASS(riscv013_on_step(target));
-	        COMPLIANCE_MUST_PASS(riscv013_step_current_hart(target));
-	        COMPLIANCE_TEST(riscv_halt_reason(target, hartsel) == RISCV_HALT_SINGLESTEP,
+		COMPLIANCE_MUST_PASS(riscv_set_current_hartid(target, hartsel));
+		COMPLIANCE_MUST_PASS(riscv013_on_step(target));
+		COMPLIANCE_MUST_PASS(riscv013_step_current_hart(target));
+		COMPLIANCE_TEST(riscv_halt_reason(target, hartsel) == RISCV_HALT_SINGLESTEP,
 				"Single Step should result in SINGLESTEP");
 	}
 
@@ -3389,7 +3389,7 @@ int riscv013_test_compliance(struct target *target)
 			dpcmask |= 0x2;
 
 		COMPLIANCE_MUST_PASS(register_write_direct(target, GDB_REGNO_DPC, dpcmask));
-                COMPLIANCE_MUST_PASS(register_read_direct(target, &dpc, GDB_REGNO_DPC));
+		COMPLIANCE_MUST_PASS(register_read_direct(target, &dpc, GDB_REGNO_DPC));
 		COMPLIANCE_TEST(dpcmask == dpc,
 				"DPC must be sign-extended to XLEN and writable to all-1s (except the least significant bits)");
 		COMPLIANCE_MUST_PASS(register_write_direct(target, GDB_REGNO_DPC, 0));
