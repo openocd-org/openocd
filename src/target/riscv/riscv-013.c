@@ -3092,7 +3092,7 @@ int riscv013_test_compliance(struct target *target)
 	riscv_reg_t value;
 	RISCV013_INFO(info);
 
-	/* All the bits of HARTSEL is covered by the examine sequence. */
+	/* All the bits of HARTSEL are covered by the examine sequence. */
 
 	/* hartreset */
 	/* This field is optional. Either we can read and write it to 1/0,
