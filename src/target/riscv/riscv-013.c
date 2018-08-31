@@ -3008,7 +3008,8 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	}
 
 	if (get_field(sbcs, DMI_SBCS_SBVERSION) != 1) {
-		LOG_ERROR("System Bus Access unsupported SBVERSION (%d). Only version 1 is supported.", get_field(sbcs, DMI_SBCS_SBVERSION));
+		LOG_ERROR("System Bus Access unsupported SBVERSION (%d). Only version 1 is supported.",
+        get_field(sbcs, DMI_SBCS_SBVERSION));
 		return ERROR_FAIL;
 	}
 
@@ -3224,8 +3225,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	if (tests_failed == 0) {
 		LOG_INFO("ALL TESTS PASSED");
 		return ERROR_OK;
-	}
-	else {
+	} else {
 		LOG_ERROR("%d TESTS FAILED", tests_failed);	
 		return ERROR_FAIL;
 	}
@@ -3854,8 +3854,7 @@ int riscv013_test_compliance(struct target *target)
 	if (total_tests == passed_tests) {
 		LOG_INFO("ALL TESTS PASSED\n");
 		return ERROR_OK;
-	}
-	else {
+	} else {
 		LOG_INFO("%d TESTS FAILED\n", failed_tests);
 		return ERROR_FAIL;
 	}
