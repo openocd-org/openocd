@@ -3009,7 +3009,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	if (get_field(sbcs, DMI_SBCS_SBVERSION) != 1) {
 		LOG_ERROR("System Bus Access unsupported SBVERSION (%d). Only version 1 is supported.",
-        get_field(sbcs, DMI_SBCS_SBVERSION));
+				get_field(sbcs, DMI_SBCS_SBVERSION));
 		return ERROR_FAIL;
 	}
 
