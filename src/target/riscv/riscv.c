@@ -1323,6 +1323,25 @@ COMMAND_HANDLER(riscv_set_reset_timeout_sec)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_test_compliance) {
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	RISCV_INFO(r);
+
+	if (CMD_ARGC > 0) {
+		LOG_ERROR("Command does not take any parameters.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (r->test_compliance) {
+		return r->test_compliance(target);
+	} else {
+		LOG_ERROR("This target does not support this command (may implement an older version of the spec).");
+		return ERROR_FAIL;
+	}
+}
+
 COMMAND_HANDLER(riscv_set_prefer_sba)
 {
 	if (CMD_ARGC != 1) {
@@ -1568,6 +1587,13 @@ COMMAND_HANDLER(riscv_test_sba_config_reg)
 }
 
 static const struct command_registration riscv_exec_command_handlers[] = {
+	{
+		.name = "test_compliance",
+		.handler = riscv_test_compliance,
+		.mode = COMMAND_EXEC,
+		.usage = "riscv test_compliance",
+		.help = "Runs a basic compliance test suite against the RISC-V Debug Spec."
+	},
 	{
 		.name = "set_command_timeout_sec",
 		.handler = riscv_set_command_timeout_sec,
