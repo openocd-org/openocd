@@ -71,7 +71,7 @@ void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t
 		uint32_t write_size, uint32_t sbcs);
 void read_memory_sba_simple(struct target *target, target_addr_t addr,
 		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs);
-static int  riscv013_test_compliance(struct target *target);
+static int	riscv013_test_compliance(struct target *target);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -2991,6 +2991,8 @@ static int riscv013_test_sba_config_reg(struct target *target,
 {
 	LOG_INFO("Testing System Bus Access as defined by RISC-V Debug Spec v0.13");
 
+	uint32_t tests_failed = 0;
+
 	uint32_t rd_val;
 	uint32_t sbcs_orig;
 	dmi_read(target, &sbcs_orig, DMI_SBCS);
@@ -3006,7 +3008,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	}
 
 	if (get_field(sbcs, DMI_SBCS_SBVERSION) != 1) {
-		LOG_ERROR("System Bus Access unsupported SBVERSION (0). Only version 1 is supported.");
+		LOG_ERROR("System Bus Access unsupported SBVERSION (%d). Only version 1 is supported.", get_field(sbcs, DMI_SBCS_SBVERSION));
 		return ERROR_FAIL;
 	}
 
@@ -3042,6 +3044,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 					LOG_ERROR("System Bus Access Test 1: Error reading non-autoincremented address %x,"
 							"expected val = %x, read val = %x", addr, test_patterns[j]+i, rd_buf[j]);
 					test_passed = false;
+					tests_failed++;
 				}
 			}
 		}
@@ -3070,6 +3073,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			if ((curr_addr - prev_addr != (uint32_t)(1 << sbaccess)) && (i != 0)) {
 				LOG_ERROR("System Bus Access Test 2: Error with address auto-increment, sbaccess = %x.", sbaccess);
 				test_passed = false;
+				tests_failed++;
 			}
 			dmi_write(target, DMI_SBDATA0, i);
 		}
@@ -3090,6 +3094,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			if ((curr_addr - prev_addr != (uint32_t)(1 << sbaccess)) && (i != 0)) {
 				LOG_ERROR("System Bus Access Test 2: Error with address auto-increment, sbaccess = %x", sbaccess);
 				test_passed = false;
+				tests_failed++;
 			}
 			dmi_read(target, &val, DMI_SBDATA0);
 			read_sbcs_nonbusy(target, &sbcs);
@@ -3097,6 +3102,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 				LOG_ERROR("System Bus Access Test 2: Error reading auto-incremented address,"
 						"expected val = %x, read val = %x.", i, val);
 				test_passed = false;
+				tests_failed++;
 			}
 		}
 	}
@@ -3129,10 +3135,13 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		dmi_read(target, &rd_val, DMI_SBCS);
 		if (get_field(rd_val, DMI_SBCS_SBERROR) == 0)
 			LOG_INFO("System Bus Access Test 4: Illegal address write test PASSED.");
-		else
+		else {
 			LOG_ERROR("System Bus Access Test 4: Illegal address write test FAILED, unable to clear to 0.");
+			tests_failed++;
+		}
 	} else {
 		LOG_ERROR("System Bus Access Test 4: Illegal address write test FAILED, unable to set error code.");
+		tests_failed++;
 	}
 
 	/* Test 5: Write with unsupported sbaccess size */
@@ -3152,10 +3161,13 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			dmi_read(target, &rd_val, DMI_SBCS);
 			if (get_field(rd_val, DMI_SBCS_SBERROR) == 0)
 				LOG_INFO("System Bus Access Test 5: SBCS sbaccess error test PASSED.");
-			else
+			else {
 				LOG_ERROR("System Bus Access Test 5: SBCS sbaccess error test FAILED, unable to clear to 0.");
+				tests_failed++;
+			}
 		} else {
 			LOG_ERROR("System Bus Access Test 5: SBCS sbaccess error test FAILED, unable to set error code.");
+			tests_failed++;
 		}
 	}
 
@@ -3171,10 +3183,13 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		dmi_read(target, &rd_val, DMI_SBCS);
 		if (get_field(rd_val, DMI_SBCS_SBERROR) == 0)
 			LOG_INFO("System Bus Access Test 6: SBCS address alignment error test PASSED");
-		else
+		else {
 			LOG_ERROR("System Bus Access Test 6: SBCS address alignment error test FAILED, unable to clear to 0.");
+			tests_failed++;
+		}
 	} else {
 		LOG_ERROR("System Bus Access Test 6: SBCS address alignment error test FAILED, unable to set error code.");
+		tests_failed++;
 	}
 
 	/* Test 7: Set sbbusyerror, only run this case in simulation as it is likely
@@ -3196,14 +3211,24 @@ static int riscv013_test_sba_config_reg(struct target *target,
 			dmi_read(target, &rd_val, DMI_SBCS);
 			if (get_field(rd_val, DMI_SBCS_SBBUSYERROR) == 0)
 				LOG_INFO("System Bus Access Test 7: SBCS sbbusyerror test PASSED.");
-			else
+			else {
 				LOG_ERROR("System Bus Access Test 7: SBCS sbbusyerror test FAILED, unable to clear to 0.");
+				tests_failed++;
+			}
 		} else {
 			LOG_ERROR("System Bus Access Test 7: SBCS sbbusyerror test FAILED, unable to set error code.");
+			tests_failed++;
 		}
 	}
 
-	return ERROR_OK;
+	if (tests_failed == 0) {
+		LOG_INFO("ALL TESTS PASSED");
+		return ERROR_OK;
+	}
+	else {
+		LOG_ERROR("%d TESTS FAILED", tests_failed);	
+		return ERROR_FAIL;
+	}
 
 }
 
@@ -3476,8 +3501,8 @@ int riscv013_test_compliance(struct target *target)
 			this all into one PB execution. Which may not be possible on all implementations.*/
 			if (info->progbufsize >= 5) {
 				for (testval = 0x0011223300112233;
-				     testval != 0xDEAD;
-				     testval = testval == 0x0011223300112233 ? ~testval : 0xDEAD) {
+						 testval != 0xDEAD;
+						 testval = testval == 0x0011223300112233 ? ~testval : 0xDEAD) {
 					COMPLIANCE_TEST(register_write_direct(target, GDB_REGNO_S0, testval) == ERROR_OK,
 							"Need to be able to write S0 in order to test DSCRATCH.");
 					struct riscv_program program32;
@@ -3611,7 +3636,7 @@ int riscv013_test_compliance(struct target *target)
 
 	/* Basic Abstract Commands */
 	for (unsigned int i = 1; i < 32; i = i << 1) {
-		riscv_reg_t testval =  i | ((i + 1ULL) << 32);
+		riscv_reg_t testval =	i | ((i + 1ULL) << 32);
 		riscv_reg_t testval_read;
 		COMPLIANCE_TEST(ERROR_OK == register_write_direct(target, GDB_REGNO_ZERO + i, testval),
 				"GPR Writes should be supported.");
@@ -3825,10 +3850,13 @@ int riscv013_test_compliance(struct target *target)
 	/* Halt every hart for any follow-up tests*/
 	COMPLIANCE_MUST_PASS(riscv_halt_all_harts(target));
 
-	LOG_INFO("PASSED %d of %d TESTS\n", passed_tests, total_tests);
-
-	if (total_tests == passed_tests)
+	uint32_t failed_tests = total_tests - passed_tests;
+	if (total_tests == passed_tests) {
+		LOG_INFO("ALL TESTS PASSED\n");
 		return ERROR_OK;
-	else
+	}
+	else {
+		LOG_INFO("%d TESTS FAILED\n", failed_tests);
 		return ERROR_FAIL;
+	}
 }
