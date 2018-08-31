@@ -55,6 +55,8 @@ script:
     # 50 changes any case. Most merges won't consist of more than 40 changes,
     # so this should work fine most of the time, and be a lot better than not
     # checking at all.
-    - git diff -U20 HEAD~40 | ./tools/scripts/checkpatch.pl --no-signoff -
+    - git diff -U20 HEAD~40 |
+        filterdiff -x "src/jtag/drivers/libjaylink/*" -x "tools/git2cl/*" |
+        ./tools/scripts/checkpatch.pl --no-signoff -
     - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi $CONFIGURE_ARGS && make
     - file src/$EXECUTABLE
