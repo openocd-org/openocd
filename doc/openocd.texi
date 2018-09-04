@@ -8789,7 +8789,7 @@ baud with our custom divisor to get 12MHz)
 @item @code{itmdump -f /dev/ttyUSB1 -d1}
 @item OpenOCD invocation line:
 @example
-openocd -f interface/stlink-v2-1.cfg \
+openocd -f interface/stlink.cfg \
         -c "transport select hla_swd" \
         -f target/stm32l1.cfg \
         -c "tpiu config external uart off 24000000 12000000"
