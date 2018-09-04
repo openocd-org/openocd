@@ -6607,9 +6607,10 @@ or upon executing the @command{stm32f1x options_load} command.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {stm32f1x options_write} num (@option{SWWDG}|@option{HWWDG}) (@option{RSTSTNDBY}|@option{NORSTSTNDBY}) (@option{RSTSTOP}|@option{NORSTSTOP})
+@deffn Command {stm32f1x options_write} num (@option{SWWDG}|@option{HWWDG}) (@option{RSTSTNDBY}|@option{NORSTSTNDBY}) (@option{RSTSTOP}|@option{NORSTSTOP}) (@option{USEROPT} user_data)
 Writes the stm32 option byte with the specified values.
 The @var{num} parameter is a value shown by @command{flash banks}.
+The @var{user_data} parameter is content of higher 16 bits of the option byte register (Data0 and Data1 as one 16bit number).
 @end deffn
 
 @deffn Command {stm32f1x options_load} num
