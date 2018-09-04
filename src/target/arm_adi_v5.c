@@ -1515,7 +1515,7 @@ int adiv5_jim_configure(struct target *target, Jim_GetOptInfo *goi)
 					Jim_SetResultString(goi->interp, "AP number not configured", -1);
 					return JIM_ERR;
 				}
-				Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, (int)pc->ap_num));
+				Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, pc->ap_num));
 			}
 			break;
 		}
