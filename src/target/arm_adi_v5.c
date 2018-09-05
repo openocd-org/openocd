@@ -793,7 +793,7 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 	int ap_num;
 
 	/* Maximum AP number is 255 since the SELECT register is 8 bits */
-	for (ap_num = 0; ap_num <= 255; ap_num++) {
+	for (ap_num = 0; ap_num <= DP_APSEL_MAX; ap_num++) {
 
 		/* read the IDR register of the Access Port */
 		uint32_t id_val = 0;
@@ -1429,7 +1429,7 @@ int adiv5_jim_configure(struct target *target, Jim_GetOptInfo *goi)
 	pc = (struct adiv5_private_config *)target->private_config;
 	if (pc == NULL) {
 		pc = calloc(1, sizeof(struct adiv5_private_config));
-		pc->ap_num = -1;
+		pc->ap_num = DP_APSEL_INVALID;
 		target->private_config = pc;
 	}
 
@@ -1498,6 +1498,10 @@ int adiv5_jim_configure(struct target *target, Jim_GetOptInfo *goi)
 				e = Jim_GetOpt_Wide(goi, &ap_num);
 				if (e != JIM_OK)
 					return e;
+				if (ap_num < 0 || ap_num > DP_APSEL_MAX) {
+					Jim_SetResultString(goi->interp, "Invalid AP number!", -1);
+					return JIM_ERR;
+				}
 				pc->ap_num = ap_num;
 			} else {
 				if (goi->argc != 0) {
@@ -1507,7 +1511,7 @@ int adiv5_jim_configure(struct target *target, Jim_GetOptInfo *goi)
 					return JIM_ERR;
 				}
 
-				if (pc->ap_num < 0) {
+				if (pc->ap_num == DP_APSEL_INVALID) {
 					Jim_SetResultString(goi->interp, "AP number not configured", -1);
 					return JIM_ERR;
 				}
@@ -1543,7 +1547,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
-		if (apsel >= 256)
+		if (apsel > DP_APSEL_MAX)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	default:
@@ -1566,7 +1570,7 @@ COMMAND_HANDLER(dap_baseaddr_command)
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
-		if (apsel >= 256)
+		if (apsel > DP_APSEL_MAX)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	default:
@@ -1625,7 +1629,7 @@ COMMAND_HANDLER(dap_apsel_command)
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
-		if (apsel >= 256)
+		if (apsel > DP_APSEL_MAX)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	default:
@@ -1691,7 +1695,7 @@ COMMAND_HANDLER(dap_apid_command)
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
-		if (apsel >= 256)
+		if (apsel > DP_APSEL_MAX)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		break;
 	default:
@@ -1722,7 +1726,7 @@ COMMAND_HANDLER(dap_apreg_command)
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 	/* AP address is in bits 31:24 of DP_SELECT */
-	if (apsel >= 256)
+	if (apsel > DP_APSEL_MAX)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	ap = dap_ap(dap, apsel);
 

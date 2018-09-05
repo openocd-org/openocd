@@ -431,6 +431,10 @@ static int cti_configure(Jim_GetOptInfo *goi, struct arm_cti_object *cti)
 			e = Jim_GetOpt_Wide(goi, &w);
 			if (e != JIM_OK)
 				return e;
+			if (w < 0 || w > DP_APSEL_MAX) {
+				Jim_SetResultString(goi->interp, "-ap-num is invalid", -1);
+				return JIM_ERR;
+			}
 			cti->ap_num = (uint32_t)w;
 		}
 	}

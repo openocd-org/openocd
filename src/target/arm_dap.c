@@ -48,7 +48,7 @@ static void dap_instance_init(struct adiv5_dap *dap)
 {
 	int i;
 	/* Set up with safe defaults */
-	for (i = 0; i <= 255; i++) {
+	for (i = 0; i <= DP_APSEL_MAX; i++) {
 		dap->ap[i].dap = dap;
 		dap->ap[i].ap_num = i;
 		/* memaccess_tck max is 255 */
@@ -319,7 +319,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 			break;
 		case 1:
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
-			if (apsel >= 256)
+			if (apsel > DP_APSEL_MAX)
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			break;
 		default:
