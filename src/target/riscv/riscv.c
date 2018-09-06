@@ -724,7 +724,11 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoi
 		if (wp->address == mem_addr) {
 			*hit_watchpoint = wp;
 			LOG_DEBUG("Hit address=%" TARGET_PRIxADDR, wp->address);
-			return ERROR_OK;
+			/* return ERROR_OK; */
+			LOG_DEBUG("Not reporting the exact watchpoint to gdb, until we have "
+					"a fix for "
+					"https://github.com/riscv/riscv-openocd/issues/295.");
+			return ERROR_FAIL;
 		}
 		wp = wp->next;
 	}
