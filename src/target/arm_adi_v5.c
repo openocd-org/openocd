@@ -652,6 +652,15 @@ int dap_dp_init(struct adiv5_dap *dap)
 
 	dap_invalidate_cache(dap);
 
+	/*
+	 * Early initialize dap->dp_ctrl_stat.
+	 * In jtag mode only, if the following atomic reads fail and set the
+	 * sticky error, it will trigger the clearing of the sticky. Without this
+	 * initialization system and debug power would be disabled while clearing
+	 * the sticky error bit.
+	 */
+	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
+
 	for (size_t i = 0; i < 30; i++) {
 		/* DP initialization */
 
@@ -660,7 +669,18 @@ int dap_dp_init(struct adiv5_dap *dap)
 			break;
 	}
 
-	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, SSTICKYERR);
+	/*
+	 * This write operation clears the sticky error bit in jtag mode only and
+	 * is ignored in swd mode. It also powers-up system and debug domains in
+	 * both jtag and swd modes, if not done before.
+	 * Actually we do not need to clear the sticky error here because it has
+	 * been already cleared (if it was set) in the previous atomic read. This
+	 * write could be removed, but this initial part of dap_dp_init() is the
+	 * result of years of fine tuning and there are strong concerns about any
+	 * unnecessary code change. It doesn't harm, so let's keep it here and
+	 * preserve the historical sequence of read/write operations!
+	 */
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat | SSTICKYERR);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -668,7 +688,6 @@ int dap_dp_init(struct adiv5_dap *dap)
 	if (retval != ERROR_OK)
 		return retval;
 
-	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
 	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat);
 	if (retval != ERROR_OK)
 		return retval;
