@@ -22,6 +22,7 @@
 
 #include "mpsse.h"
 #include "helper/log.h"
+#include "helper/time_support.h"
 #include <libusb.h>
 
 /* Compatibility define for older libusb-1.0 */
