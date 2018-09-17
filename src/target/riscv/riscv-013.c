@@ -2293,7 +2293,7 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		target_addr_t address_i = address;
 		uint32_t size_i = size;
 		uint32_t count_i = 1;
-		uint8_t* buffer_i = buffer;
+		uint8_t *buffer_i = buffer;
 
 		for (uint32_t i = 0; i < count; i++, address_i += size_i, buffer_i += size_i) {
 			result = read_memory_progbuf_inner(target, address_i, size_i, count_i, buffer_i);
