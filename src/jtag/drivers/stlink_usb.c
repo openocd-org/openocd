@@ -248,6 +248,9 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_APIV2_SWD_SET_FREQ    0x43
 #define STLINK_DEBUG_APIV2_JTAG_SET_FREQ   0x44
 
+#define STLINK_DEBUG_APIV2_READMEM_16BIT   0x47
+#define STLINK_DEBUG_APIV2_WRITEMEM_16BIT  0x48
+
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_LOW   0x00
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_HIGH  0x01
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_PULSE 0x02
@@ -1699,6 +1702,82 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 }
 
 /** */
+static int stlink_usb_read_mem16(void *handle, uint32_t addr, uint16_t len,
+			  uint8_t *buffer)
+{
+	int res;
+	struct stlink_usb_handle_s *h = handle;
+
+	assert(handle != NULL);
+
+	/* only supported by stlink/v2 and for firmware >= 26 */
+	if (h->jtag_api == STLINK_JTAG_API_V1 ||
+		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26))
+		return ERROR_COMMAND_NOTFOUND;
+
+	/* data must be a multiple of 2 and half-word aligned */
+	if (len % 2 || addr % 2) {
+		LOG_DEBUG("Invalid data alignment");
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
+
+	stlink_usb_init_buffer(handle, h->rx_ep, len);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READMEM_16BIT;
+	h_u32_to_le(h->cmdbuf+h->cmdidx, addr);
+	h->cmdidx += 4;
+	h_u16_to_le(h->cmdbuf+h->cmdidx, len);
+	h->cmdidx += 2;
+
+	res = stlink_usb_xfer(handle, h->databuf, len);
+
+	if (res != ERROR_OK)
+		return res;
+
+	memcpy(buffer, h->databuf, len);
+
+	return stlink_usb_get_rw_status(handle);
+}
+
+/** */
+static int stlink_usb_write_mem16(void *handle, uint32_t addr, uint16_t len,
+			   const uint8_t *buffer)
+{
+	int res;
+	struct stlink_usb_handle_s *h = handle;
+
+	assert(handle != NULL);
+
+	/* only supported by stlink/v2 and for firmware >= 26 */
+	if (h->jtag_api == STLINK_JTAG_API_V1 ||
+		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26))
+		return ERROR_COMMAND_NOTFOUND;
+
+	/* data must be a multiple of 2 and half-word aligned */
+	if (len % 2 || addr % 2) {
+		LOG_DEBUG("Invalid data alignment");
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
+
+	stlink_usb_init_buffer(handle, h->tx_ep, len);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_WRITEMEM_16BIT;
+	h_u32_to_le(h->cmdbuf+h->cmdidx, addr);
+	h->cmdidx += 4;
+	h_u16_to_le(h->cmdbuf+h->cmdidx, len);
+	h->cmdidx += 2;
+
+	res = stlink_usb_xfer(handle, buffer, len);
+
+	if (res != ERROR_OK)
+		return res;
+
+	return stlink_usb_get_rw_status(handle);
+}
+
+/** */
 static int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 			  uint8_t *buffer)
 {
@@ -1783,9 +1862,14 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 	/* calculate byte count */
 	count *= size;
 
+	/* switch to 8 bit if stlink does not support 16 bit memory read */
+	if (size == 2 && (h->jtag_api == STLINK_JTAG_API_V1 ||
+		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26)))
+		size = 1;
+
 	while (count) {
 
-		bytes_remaining = (size == 4) ? \
+		bytes_remaining = (size != 1) ? \
 				stlink_max_block_size(h->max_mem_packet, addr) : STLINK_MAX_RW8;
 
 		if (count < bytes_remaining)
@@ -1796,22 +1880,26 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 			if (retval != ERROR_OK)
 				return retval;
 		} else
-		/* the stlink only supports 8/32bit memory read/writes
-		 * honour 32bit, all others will be handled as 8bit access */
-		if (size == 4) {
+		/*
+		 * all stlink support 8/32bit memory read/writes and only from
+		 * stlink V2J26 there is support for 16 bit memory read/write.
+		 * Honour 32 bit and, if possible, 16 bit too. Otherwise, handle
+		 * as 8bit access.
+		 */
+		if (size != 1) {
 
-			/* When in jtag mode the stlink uses the auto-increment functinality.
+			/* When in jtag mode the stlink uses the auto-increment functionality.
 			 * However it expects us to pass the data correctly, this includes
 			 * alignment and any page boundaries. We already do this as part of the
 			 * adi_v5 implementation, but the stlink is a hla adapter and so this
-			 * needs implementiong manually.
+			 * needs implementing manually.
 			 * currently this only affects jtag mode, according to ST they do single
 			 * access in SWD mode - but this may change and so we do it for both modes */
 
 			/* we first need to check for any unaligned bytes */
-			if (addr % 4) {
+			if (addr & (size - 1)) {
 
-				uint32_t head_bytes = 4 - (addr % 4);
+				uint32_t head_bytes = size - (addr & (size - 1));
 				retval = stlink_usb_read_mem8(handle, addr, head_bytes, buffer);
 				if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
 					usleep((1<<retries++) * 1000);
@@ -1825,8 +1913,10 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 				bytes_remaining -= head_bytes;
 			}
 
-			if (bytes_remaining % 4)
+			if (bytes_remaining & (size - 1))
 				retval = stlink_usb_read_mem(handle, addr, 1, bytes_remaining, buffer);
+			else if (size == 2)
+				retval = stlink_usb_read_mem16(handle, addr, bytes_remaining, buffer);
 			else
 				retval = stlink_usb_read_mem32(handle, addr, bytes_remaining, buffer);
 		} else
@@ -1858,9 +1948,14 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 	/* calculate byte count */
 	count *= size;
 
+	/* switch to 8 bit if stlink does not support 16 bit memory read */
+	if (size == 2 && (h->jtag_api == STLINK_JTAG_API_V1 ||
+		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26)))
+		size = 1;
+
 	while (count) {
 
-		bytes_remaining = (size == 4) ? \
+		bytes_remaining = (size != 1) ? \
 				stlink_max_block_size(h->max_mem_packet, addr) : STLINK_MAX_RW8;
 
 		if (count < bytes_remaining)
@@ -1871,22 +1966,26 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 			if (retval != ERROR_OK)
 				return retval;
 		} else
-		/* the stlink only supports 8/32bit memory read/writes
-		 * honour 32bit, all others will be handled as 8bit access */
-		if (size == 4) {
+		/*
+		 * all stlink support 8/32bit memory read/writes and only from
+		 * stlink V2J26 there is support for 16 bit memory read/write.
+		 * Honour 32 bit and, if possible, 16 bit too. Otherwise, handle
+		 * as 8bit access.
+		 */
+		if (size != 1) {
 
-			/* When in jtag mode the stlink uses the auto-increment functinality.
+			/* When in jtag mode the stlink uses the auto-increment functionality.
 			 * However it expects us to pass the data correctly, this includes
 			 * alignment and any page boundaries. We already do this as part of the
 			 * adi_v5 implementation, but the stlink is a hla adapter and so this
-			 * needs implementiong manually.
+			 * needs implementing manually.
 			 * currently this only affects jtag mode, according to ST they do single
 			 * access in SWD mode - but this may change and so we do it for both modes */
 
 			/* we first need to check for any unaligned bytes */
-			if (addr % 4) {
+			if (addr & (size - 1)) {
 
-				uint32_t head_bytes = 4 - (addr % 4);
+				uint32_t head_bytes = size - (addr & (size - 1));
 				retval = stlink_usb_write_mem8(handle, addr, head_bytes, buffer);
 				if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES) {
 					usleep((1<<retries++) * 1000);
@@ -1900,8 +1999,10 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 				bytes_remaining -= head_bytes;
 			}
 
-			if (bytes_remaining % 4)
+			if (bytes_remaining & (size - 1))
 				retval = stlink_usb_write_mem(handle, addr, 1, bytes_remaining, buffer);
+			else if (size == 2)
+				retval = stlink_usb_write_mem16(handle, addr, bytes_remaining, buffer);
 			else
 				retval = stlink_usb_write_mem32(handle, addr, bytes_remaining, buffer);
 
