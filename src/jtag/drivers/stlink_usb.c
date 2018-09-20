@@ -89,6 +89,8 @@ struct stlink_usb_version {
 	int swim;
 	/** highest supported jtag api version */
 	enum stlink_jtag_api_version jtag_api_max;
+	/** one bit for each feature supported. See macros STLINK_F_* */
+	uint32_t flags;
 };
 
 /** */
@@ -271,6 +273,13 @@ enum stlink_mode {
 
 #define REQUEST_SENSE        0x03
 #define REQUEST_SENSE_LENGTH 18
+
+/*
+ * Map the relevant features, quirks and workaround for specific firmware
+ * version of stlink
+ */
+
+/* aliases */
 
 struct speed_map {
 	int speed;
@@ -622,6 +631,7 @@ static void stlink_usb_init_buffer(void *handle, uint8_t direction, uint32_t siz
 static int stlink_usb_version(void *handle)
 {
 	int res;
+	uint32_t flags;
 	uint16_t v;
 	struct stlink_usb_handle_s *h = handle;
 
@@ -644,13 +654,25 @@ static int stlink_usb_version(void *handle)
 	h->vid = buf_get_u32(h->databuf, 16, 16);
 	h->pid = buf_get_u32(h->databuf, 32, 16);
 
-	/* set the supported jtag api version
-	 * API V2 is supported since JTAG V11
-	 */
-	if (h->version.jtag >= 11)
+	flags = 0;
+	switch (h->version.stlink) {
+	case 1:
+		/* ST-LINK/V1 from J11 switch to api-v2 (and support SWD) */
+		if (h->version.jtag >= 11)
+			h->version.jtag_api_max = STLINK_JTAG_API_V2;
+		else
+			h->version.jtag_api_max = STLINK_JTAG_API_V1;
+
+		break;
+	case 2:
+		/* all ST-LINK/V2 and ST-Link/V2.1 use api-v2 */
 		h->version.jtag_api_max = STLINK_JTAG_API_V2;
-	else
-		h->version.jtag_api_max = STLINK_JTAG_API_V1;
+
+		break;
+	default:
+		break;
+	}
+	h->version.flags = flags;
 
 	LOG_INFO("STLINK v%d JTAG v%d API v%d SWIM v%d VID 0x%04X PID 0x%04X",
 		h->version.stlink,
