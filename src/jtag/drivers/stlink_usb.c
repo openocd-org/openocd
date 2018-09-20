@@ -2316,6 +2316,9 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	switch (h->transport) {
 		case HL_TRANSPORT_SWD:
+			if (h->version.jtag_api_max == STLINK_JTAG_API_V1)
+				err = ERROR_FAIL;
+			/* fall-through */
 		case HL_TRANSPORT_JTAG:
 			if (h->version.jtag == 0)
 				err = ERROR_FAIL;
