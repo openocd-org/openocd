@@ -280,6 +280,7 @@ enum stlink_mode {
 #define STLINK_F_HAS_TRACE              (1UL << 0)
 #define STLINK_F_HAS_SWD_SET_FREQ       (1UL << 1)
 #define STLINK_F_HAS_JTAG_SET_FREQ      (1UL << 2)
+#define STLINK_F_HAS_MEM_16BIT          (1UL << 3)
 
 /* aliases */
 #define STLINK_F_HAS_TARGET_VOLT        STLINK_F_HAS_TRACE
@@ -683,6 +684,10 @@ static int stlink_usb_version(void *handle)
 		/* API to set JTAG frequency from J24 */
 		if (h->version.jtag >= 24)
 			flags |= STLINK_F_HAS_JTAG_SET_FREQ;
+
+		/* API to read/write memory at 16 bit from J26 */
+		if (h->version.jtag >= 26)
+			flags |= STLINK_F_HAS_MEM_16BIT;
 
 		break;
 	default:
@@ -1746,9 +1751,7 @@ static int stlink_usb_read_mem16(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
-	/* only supported by stlink/v2 and for firmware >= 26 */
-	if (h->jtag_api == STLINK_JTAG_API_V1 ||
-		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26))
+	if (!(h->version.flags & STLINK_F_HAS_MEM_16BIT))
 		return ERROR_COMMAND_NOTFOUND;
 
 	/* data must be a multiple of 2 and half-word aligned */
@@ -1785,9 +1788,7 @@ static int stlink_usb_write_mem16(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
-	/* only supported by stlink/v2 and for firmware >= 26 */
-	if (h->jtag_api == STLINK_JTAG_API_V1 ||
-		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26))
+	if (!(h->version.flags & STLINK_F_HAS_MEM_16BIT))
 		return ERROR_COMMAND_NOTFOUND;
 
 	/* data must be a multiple of 2 and half-word aligned */
@@ -1899,8 +1900,7 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 	count *= size;
 
 	/* switch to 8 bit if stlink does not support 16 bit memory read */
-	if (size == 2 && (h->jtag_api == STLINK_JTAG_API_V1 ||
-		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26)))
+	if (size == 2 && !(h->version.flags & STLINK_F_HAS_MEM_16BIT))
 		size = 1;
 
 	while (count) {
@@ -1985,8 +1985,7 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 	count *= size;
 
 	/* switch to 8 bit if stlink does not support 16 bit memory read */
-	if (size == 2 && (h->jtag_api == STLINK_JTAG_API_V1 ||
-		(h->jtag_api == STLINK_JTAG_API_V2 && h->version.jtag < 26)))
+	if (size == 2 && !(h->version.flags & STLINK_F_HAS_MEM_16BIT))
 		size = 1;
 
 	while (count) {
