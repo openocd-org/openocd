@@ -278,6 +278,7 @@ enum stlink_mode {
  * version of stlink
  */
 #define STLINK_F_HAS_TRACE              (1UL << 0)
+#define STLINK_F_HAS_SWD_SET_FREQ       (1UL << 1)
 
 /* aliases */
 #define STLINK_F_HAS_TARGET_VOLT        STLINK_F_HAS_TRACE
@@ -674,6 +675,10 @@ static int stlink_usb_version(void *handle)
 		if (h->version.jtag >= 13)
 			flags |= STLINK_F_HAS_TRACE;
 
+		/* API to set SWD frequency from J22 */
+		if (h->version.jtag >= 22)
+			flags |= STLINK_F_HAS_SWD_SET_FREQ;
+
 		break;
 	default:
 		break;
@@ -729,8 +734,7 @@ static int stlink_usb_set_swdclk(void *handle, uint16_t clk_divisor)
 
 	assert(handle != NULL);
 
-	/* only supported by stlink/v2 and for firmware >= 22 */
-	if (h->version.stlink == 1 || h->version.jtag < 22)
+	if (!(h->version.flags & STLINK_F_HAS_SWD_SET_FREQ))
 		return ERROR_COMMAND_NOTFOUND;
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
@@ -2115,8 +2119,8 @@ static int stlink_speed_swd(void *handle, int khz, bool query)
 	int speed_index;
 	struct stlink_usb_handle_s *h = handle;
 
-	/* only supported by stlink/v2 and for firmware >= 22 */
-	if (h->version.stlink == 1 || h->version.jtag < 22)
+	/* old firmware cannot change it */
+	if (!(h->version.flags & STLINK_F_HAS_SWD_SET_FREQ))
 		return khz;
 
 	speed_index = stlink_match_speed_map(stlink_khz_to_speed_map_swd,
@@ -2397,8 +2401,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 			stlink_speed(h, param->initial_interface_speed, false);
 		}
 	} else if (h->transport == HL_TRANSPORT_SWD) {
-		/* clock speed only supported by stlink/v2 and for firmware >= 22 */
-		if (h->version.stlink >= 2 && h->version.jtag >= 22) {
+		if (h->version.flags & STLINK_F_HAS_SWD_SET_FREQ) {
 			stlink_dump_speed_map(stlink_khz_to_speed_map_swd, ARRAY_SIZE(stlink_khz_to_speed_map_swd));
 			stlink_speed(h, param->initial_interface_speed, false);
 		}
