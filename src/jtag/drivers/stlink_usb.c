@@ -87,8 +87,8 @@ struct stlink_usb_version {
 	int jtag;
 	/** */
 	int swim;
-	/** highest supported jtag api version */
-	enum stlink_jtag_api_version jtag_api_max;
+	/** jtag api version supported */
+	enum stlink_jtag_api_version jtag_api;
 	/** one bit for each feature supported. See macros STLINK_F_* */
 	uint32_t flags;
 };
@@ -123,8 +123,6 @@ struct stlink_usb_handle_s {
 	uint16_t vid;
 	/** */
 	uint16_t pid;
-	/** this is the currently used jtag api */
-	enum stlink_jtag_api_version jtag_api;
 	/** */
 	struct {
 		/** whether SWO tracing is enabled or not */
@@ -471,7 +469,7 @@ static int stlink_usb_error_check(void *handle)
 	}
 
 	/* TODO: no error checking yet on api V1 */
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1)
 		h->databuf[0] = STLINK_DEBUG_ERR_OK;
 
 	switch (h->databuf[0]) {
@@ -663,14 +661,14 @@ static int stlink_usb_version(void *handle)
 	case 1:
 		/* ST-LINK/V1 from J11 switch to api-v2 (and support SWD) */
 		if (h->version.jtag >= 11)
-			h->version.jtag_api_max = STLINK_JTAG_API_V2;
+			h->version.jtag_api = STLINK_JTAG_API_V2;
 		else
-			h->version.jtag_api_max = STLINK_JTAG_API_V1;
+			h->version.jtag_api = STLINK_JTAG_API_V1;
 
 		break;
 	case 2:
 		/* all ST-LINK/V2 and ST-Link/V2.1 use api-v2 */
-		h->version.jtag_api_max = STLINK_JTAG_API_V2;
+		h->version.jtag_api = STLINK_JTAG_API_V2;
 
 		/* API for trace from J13 */
 		/* API for target voltage from J13 */
@@ -698,7 +696,7 @@ static int stlink_usb_version(void *handle)
 	LOG_INFO("STLINK v%d JTAG v%d API v%d SWIM v%d VID 0x%04X PID 0x%04X",
 		h->version.stlink,
 		h->version.jtag,
-		(h->version.jtag_api_max == STLINK_JTAG_API_V1) ? 1 : 2,
+		(h->version.jtag_api == STLINK_JTAG_API_V1) ? 1 : 2,
 		h->version.swim,
 		h->vid,
 		h->pid);
@@ -820,7 +818,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 	 * status
 	 * TODO: we need the test on api V1 too
 	 */
-	if (h->jtag_api == STLINK_JTAG_API_V2)
+	if (h->version.jtag_api == STLINK_JTAG_API_V2)
 		rx_size = 2;
 
 	stlink_usb_init_buffer(handle, h->rx_ep, rx_size);
@@ -828,7 +826,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 	switch (type) {
 		case STLINK_MODE_DEBUG_JTAG:
 			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-			if (h->jtag_api == STLINK_JTAG_API_V1)
+			if (h->version.jtag_api == STLINK_JTAG_API_V1)
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_ENTER;
 			else
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_ENTER;
@@ -836,7 +834,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 			break;
 		case STLINK_MODE_DEBUG_SWD:
 			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-			if (h->jtag_api == STLINK_JTAG_API_V1)
+			if (h->version.jtag_api == STLINK_JTAG_API_V1)
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_ENTER;
 			else
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_ENTER;
@@ -1278,7 +1276,7 @@ static int stlink_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_WRITEDEBUGREG;
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_WRITEDEBUGREG;
@@ -1370,7 +1368,7 @@ static enum target_state stlink_usb_state(void *handle)
 		h->reconnect_pending = false;
 	}
 
-	if (h->jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
 		res = stlink_usb_v2_get_status(handle);
 		if (res == TARGET_UNKNOWN)
 			h->reconnect_pending = true;
@@ -1487,7 +1485,7 @@ static int stlink_usb_reset(void *handle)
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
 
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_RESETSYS;
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_RESETSYS;
@@ -1512,7 +1510,7 @@ static int stlink_usb_run(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
 		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
 		return res;
@@ -1534,7 +1532,7 @@ static int stlink_usb_halt(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
 		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_DEBUGEN);
 
 		return res;
@@ -1555,7 +1553,7 @@ static int stlink_usb_step(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
 		/* TODO: this emulates the v1 api, it should really use a similar auto mask isr
 		 * that the Cortex-M3 currently does. */
 		stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_MASKINTS|C_DEBUGEN);
@@ -1582,7 +1580,7 @@ static int stlink_usb_read_regs(void *handle)
 	stlink_usb_init_buffer(handle, h->rx_ep, 84);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_READALLREGS;
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READALLREGS;
@@ -1603,16 +1601,16 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, h->rx_ep, h->jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
+	stlink_usb_init_buffer(handle, h->rx_ep, h->version.jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_READREG;
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READREG;
 	h->cmdbuf[h->cmdidx++] = num;
 
-	if (h->jtag_api == STLINK_JTAG_API_V1) {
+	if (h->version.jtag_api == STLINK_JTAG_API_V1) {
 		res = stlink_usb_xfer(handle, h->databuf, 4);
 		if (res != ERROR_OK)
 			return res;
@@ -1637,7 +1635,7 @@ static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_WRITEREG;
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_WRITEREG;
@@ -1655,7 +1653,7 @@ static int stlink_usb_get_rw_status(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1)
 		return ERROR_OK;
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
@@ -2242,7 +2240,6 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 {
 	int err, retry_count = 1;
 	struct stlink_usb_handle_s *h;
-	enum stlink_jtag_api_version api;
 
 	LOG_DEBUG("stlink_usb_open");
 
@@ -2350,7 +2347,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	switch (h->transport) {
 		case HL_TRANSPORT_SWD:
-			if (h->version.jtag_api_max == STLINK_JTAG_API_V1)
+			if (h->version.jtag_api == STLINK_JTAG_API_V1)
 				err = ERROR_FAIL;
 			/* fall-through */
 		case HL_TRANSPORT_JTAG:
@@ -2370,13 +2367,6 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 		LOG_ERROR("mode (transport) not supported by device");
 		goto error_open;
 	}
-
-	api = h->version.jtag_api_max;
-
-	LOG_INFO("using stlink api v%d", api);
-
-	/* set the used jtag api, this will default to the newest supported version */
-	h->jtag_api = api;
 
 	/* initialize the debug hardware */
 	err = stlink_usb_init_mode(h, param->connect_under_reset);
