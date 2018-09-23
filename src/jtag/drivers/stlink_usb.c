@@ -280,6 +280,7 @@ enum stlink_mode {
 #define STLINK_F_HAS_TRACE              (1UL << 0)
 
 /* aliases */
+#define STLINK_F_HAS_TARGET_VOLT        STLINK_F_HAS_TRACE
 
 struct speed_map {
 	int speed;
@@ -669,6 +670,7 @@ static int stlink_usb_version(void *handle)
 		h->version.jtag_api_max = STLINK_JTAG_API_V2;
 
 		/* API for trace from J13 */
+		/* API for target voltage from J13 */
 		if (h->version.jtag >= 13)
 			flags |= STLINK_F_HAS_TRACE;
 
@@ -694,8 +696,8 @@ static int stlink_usb_check_voltage(void *handle, float *target_voltage)
 	struct stlink_usb_handle_s *h = handle;
 	uint32_t adc_results[2];
 
-	/* only supported by stlink/v2 and for firmware >= 13 */
-	if (h->version.stlink == 1 || h->version.jtag < 13)
+	/* no error message, simply quit with error */
+	if (!(h->version.flags & STLINK_F_HAS_TARGET_VOLT))
 		return ERROR_COMMAND_NOTFOUND;
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 8);
