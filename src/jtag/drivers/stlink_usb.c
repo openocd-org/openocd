@@ -63,6 +63,7 @@
 #define STLINK_V1_PID         (0x3744)
 #define STLINK_V2_PID         (0x3748)
 #define STLINK_V2_1_PID       (0x374B)
+#define STLINK_V2_1_NO_MSD_PID  (0x3752)
 
 /* the current implementation of the stlink limits
  * 8bit read/writes to max 64 bytes. */
@@ -2063,6 +2064,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 				h->trace_ep = STLINK_TRACE_EP;
 				break;
 			case STLINK_V2_1_PID:
+			case STLINK_V2_1_NO_MSD_PID:
 				h->version.stlink = 2;
 				h->tx_ep = STLINK_V2_1_TX_EP;
 				h->trace_ep = STLINK_V2_1_TRACE_EP;
