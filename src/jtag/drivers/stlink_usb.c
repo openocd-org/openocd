@@ -259,7 +259,6 @@ struct stlink_usb_handle_s {
 
 #define STLINK_TRACE_SIZE               4096
 #define STLINK_TRACE_MAX_HZ             2000000
-#define STLINK_TRACE_MIN_VERSION        13
 
 /** */
 enum stlink_mode {
@@ -278,6 +277,7 @@ enum stlink_mode {
  * Map the relevant features, quirks and workaround for specific firmware
  * version of stlink
  */
+#define STLINK_F_HAS_TRACE              (1UL << 0)
 
 /* aliases */
 
@@ -569,7 +569,7 @@ static int stlink_usb_read_trace(void *handle, const uint8_t *buf, int size)
 
 	assert(handle != NULL);
 
-	assert(h->version.stlink >= 2);
+	assert(h->version.flags & STLINK_F_HAS_TRACE);
 
 	if (jtag_libusb_bulk_read(h->fd, h->trace_ep, (char *)buf,
 			size, STLINK_READ_TIMEOUT) != size) {
@@ -667,6 +667,10 @@ static int stlink_usb_version(void *handle)
 	case 2:
 		/* all ST-LINK/V2 and ST-Link/V2.1 use api-v2 */
 		h->version.jtag_api_max = STLINK_JTAG_API_V2;
+
+		/* API for trace from J13 */
+		if (h->version.jtag >= 13)
+			flags |= STLINK_F_HAS_TRACE;
 
 		break;
 	default:
@@ -1278,7 +1282,7 @@ static int stlink_usb_trace_read(void *handle, uint8_t *buf, size_t *size)
 
 	assert(handle != NULL);
 
-	if (h->trace.enabled && h->version.jtag >= STLINK_TRACE_MIN_VERSION) {
+	if (h->trace.enabled && (h->version.flags & STLINK_F_HAS_TRACE)) {
 		int res;
 
 		stlink_usb_init_buffer(handle, h->rx_ep, 10);
@@ -1407,7 +1411,7 @@ static void stlink_usb_trace_disable(void *handle)
 
 	assert(handle != NULL);
 
-	assert(h->version.jtag >= STLINK_TRACE_MIN_VERSION);
+	assert(h->version.flags & STLINK_F_HAS_TRACE);
 
 	LOG_DEBUG("Tracing: disable");
 
@@ -1429,7 +1433,7 @@ static int stlink_usb_trace_enable(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->version.jtag >= STLINK_TRACE_MIN_VERSION) {
+	if (h->version.flags & STLINK_F_HAS_TRACE) {
 		stlink_usb_init_buffer(handle, h->rx_ep, 10);
 
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
@@ -2284,7 +2288,6 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 			case STLINK_V1_PID:
 				h->version.stlink = 1;
 				h->tx_ep = STLINK_TX_EP;
-				h->trace_ep = STLINK_TRACE_EP;
 				break;
 			case STLINK_V2_1_PID:
 			case STLINK_V2_1_NO_MSD_PID:
@@ -2431,7 +2434,7 @@ int stlink_config_trace(void *handle, bool enabled, enum tpiu_pin_protocol pin_p
 {
 	struct stlink_usb_handle_s *h = handle;
 
-	if (enabled && (h->jtag_api < 2 ||
+	if (enabled && (!(h->version.flags & STLINK_F_HAS_TRACE) ||
 			pin_protocol != TPIU_PIN_PROTOCOL_ASYNC_UART)) {
 		LOG_ERROR("The attached ST-LINK version doesn't support this trace mode");
 		return ERROR_FAIL;
