@@ -205,7 +205,6 @@ struct stlink_usb_handle_s {
 #define STLINK_SWIM_READMEM                0x0b
 #define STLINK_SWIM_READBUF                0x0c
 
-#define STLINK_DEBUG_ENTER_JTAG            0x00
 #define STLINK_DEBUG_GETSTATUS             0x01
 #define STLINK_DEBUG_FORCEDEBUG            0x02
 #define STLINK_DEBUG_APIV1_RESETSYS        0x03
@@ -223,8 +222,9 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_APIV1_WRITEDEBUGREG   0x0f
 #define STLINK_DEBUG_APIV1_SETWATCHPOINT   0x10
 
-#define STLINK_DEBUG_ENTER_JTAG            0x00
-#define STLINK_DEBUG_ENTER_SWD             0xa3
+#define STLINK_DEBUG_ENTER_JTAG_RESET      0x00
+#define STLINK_DEBUG_ENTER_SWD_NO_RESET    0xa3
+#define STLINK_DEBUG_ENTER_JTAG_NO_RESET   0xa4
 
 #define STLINK_DEBUG_APIV1_ENTER           0x20
 #define STLINK_DEBUG_EXIT                  0x21
@@ -830,7 +830,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_ENTER;
 			else
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_ENTER;
-			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_ENTER_JTAG;
+			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_ENTER_JTAG_NO_RESET;
 			break;
 		case STLINK_MODE_DEBUG_SWD:
 			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
@@ -838,7 +838,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_ENTER;
 			else
 				h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_ENTER;
-			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_ENTER_SWD;
+			h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_ENTER_SWD_NO_RESET;
 			break;
 		case STLINK_MODE_DEBUG_SWIM:
 			h->cmdbuf[h->cmdidx++] = STLINK_SWIM_COMMAND;
