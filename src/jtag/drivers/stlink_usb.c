@@ -64,10 +64,18 @@
 #define STLINK_V2_PID         (0x3748)
 #define STLINK_V2_1_PID       (0x374B)
 #define STLINK_V2_1_NO_MSD_PID  (0x3752)
+#define STLINK_V3_USBLOADER_PID (0x374D)
+#define STLINK_V3E_PID          (0x374E)
+#define STLINK_V3S_PID          (0x374F)
+#define STLINK_V3_2VCP_PID      (0x3753)
 
-/* the current implementation of the stlink limits
- * 8bit read/writes to max 64 bytes. */
+/*
+ * ST-Link/V1, ST-Link/V2 and ST-Link/V2.1 are full-speed USB devices and
+ * this limits the bulk packet size and the 8bit read/writes to max 64 bytes.
+ * STLINK-V3 is a high speed USB 2.0 and the limit is 512 bytes.
+ */
 #define STLINK_MAX_RW8		(64)
+#define STLINKV3_MAX_RW8	(512)
 
 /* "WAIT" responses will be retried (with exponential backoff) at
  * most this many times before failing to caller.
@@ -77,6 +85,7 @@
 enum stlink_jtag_api_version {
 	STLINK_JTAG_API_V1 = 1,
 	STLINK_JTAG_API_V2,
+	STLINK_JTAG_API_V3,
 };
 
 /** */
@@ -253,12 +262,19 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_APIV2_READMEM_16BIT   0x47
 #define STLINK_DEBUG_APIV2_WRITEMEM_16BIT  0x48
 
+#define STLINK_APIV3_SET_COM_FREQ           0x61
+#define STLINK_APIV3_GET_COM_FREQ           0x62
+
+#define STLINK_APIV3_GET_VERSION_EX         0xFB
+
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_LOW   0x00
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_HIGH  0x01
 #define STLINK_DEBUG_APIV2_DRIVE_NRST_PULSE 0x02
 
 #define STLINK_TRACE_SIZE               4096
 #define STLINK_TRACE_MAX_HZ             2000000
+
+#define STLINK_V3_MAX_FREQ_NB               10
 
 /** */
 enum stlink_mode {
@@ -321,6 +337,19 @@ static const struct speed_map stlink_khz_to_speed_map_jtag[] = {
 
 static void stlink_usb_init_buffer(void *handle, uint8_t direction, uint32_t size);
 static int stlink_swim_status(void *handle);
+
+/** */
+static unsigned int stlink_usb_block(void *handle)
+{
+	struct stlink_usb_handle_s *h = handle;
+
+	assert(handle != NULL);
+
+	if (h->version.stlink == 3)
+		return STLINKV3_MAX_RW8;
+	else
+		return STLINK_MAX_RW8;
+}
 
 /** */
 static int stlink_usb_xfer_v1_get_status(void *handle)
@@ -638,8 +667,8 @@ static int stlink_usb_version(void *handle)
 	int res;
 	uint32_t flags;
 	uint16_t version;
-	uint8_t v, x, y, jtag, swim, msd;
-	char v_str[4 * (1 + 3) + 1]; /* VvJjMmSs */
+	uint8_t v, x, y, jtag, swim, msd, bridge = 0;
+	char v_str[5 * (1 + 3) + 1]; /* VvJjMmBbSs */
 	char *p;
 	struct stlink_usb_handle_s *h = handle;
 
@@ -684,6 +713,25 @@ static int stlink_usb_version(void *handle)
 		break;
 	}
 
+	/* STLINK-V3 requires a specific command */
+	if (v == 3 && x == 0 && y == 0) {
+		stlink_usb_init_buffer(handle, h->rx_ep, 16);
+
+		h->cmdbuf[h->cmdidx++] = STLINK_APIV3_GET_VERSION_EX;
+
+		res = stlink_usb_xfer(handle, h->databuf, 12);
+		if (res != ERROR_OK)
+			return res;
+
+		v = h->databuf[0];
+		swim = h->databuf[1];
+		jtag = h->databuf[2];
+		msd  = h->databuf[3];
+		bridge = h->databuf[4];
+		h->vid = le_to_h_u16(h->databuf + 8);
+		h->pid = le_to_h_u16(h->databuf + 10);
+	}
+
 	h->version.stlink = v;
 	h->version.jtag = jtag;
 	h->version.swim = swim;
@@ -724,6 +772,23 @@ static int stlink_usb_version(void *handle)
 			flags |= STLINK_F_HAS_MEM_16BIT;
 
 		break;
+	case 3:
+		/* all STLINK-V3 use api-v3 */
+		h->version.jtag_api = STLINK_JTAG_API_V3;
+
+		/* STLINK-V3 is a superset of ST-LINK/V2 */
+
+		/* API for trace */
+		/* API for target voltage */
+		flags |= STLINK_F_HAS_TRACE;
+
+		/* preferred API to get last R/W status */
+		flags |= STLINK_F_HAS_GETLASTRWSTATUS2;
+
+		/* API to read/write memory at 16 bit */
+		flags |= STLINK_F_HAS_MEM_16BIT;
+
+		break;
 	default:
 		break;
 	}
@@ -735,6 +800,8 @@ static int stlink_usb_version(void *handle)
 		p += sprintf(p, "J%d", jtag);
 	if (msd)
 		p += sprintf(p, "M%d", msd);
+	if (bridge)
+		p += sprintf(p, "B%d", bridge);
 	if (swim || !msd)
 		p += sprintf(p, "S%d", swim);
 
@@ -861,7 +928,7 @@ static int stlink_usb_mode_enter(void *handle, enum stlink_mode type)
 	 * status
 	 * TODO: we need the test on api V1 too
 	 */
-	if (h->version.jtag_api == STLINK_JTAG_API_V2)
+	if (h->version.jtag_api != STLINK_JTAG_API_V1)
 		rx_size = 2;
 
 	stlink_usb_init_buffer(handle, h->rx_ep, rx_size);
@@ -1411,7 +1478,7 @@ static enum target_state stlink_usb_state(void *handle)
 		h->reconnect_pending = false;
 	}
 
-	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api != STLINK_JTAG_API_V1) {
 		res = stlink_usb_v2_get_status(handle);
 		if (res == TARGET_UNKNOWN)
 			h->reconnect_pending = true;
@@ -1553,7 +1620,7 @@ static int stlink_usb_run(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api != STLINK_JTAG_API_V1) {
 		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
 		return res;
@@ -1575,7 +1642,7 @@ static int stlink_usb_halt(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api != STLINK_JTAG_API_V1) {
 		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_DEBUGEN);
 
 		return res;
@@ -1596,7 +1663,7 @@ static int stlink_usb_step(void *handle)
 
 	assert(handle != NULL);
 
-	if (h->version.jtag_api == STLINK_JTAG_API_V2) {
+	if (h->version.jtag_api != STLINK_JTAG_API_V1) {
 		/* TODO: this emulates the v1 api, it should really use a similar auto mask isr
 		 * that the Cortex-M3 currently does. */
 		stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_MASKINTS|C_DEBUGEN);
@@ -1728,9 +1795,9 @@ static int stlink_usb_read_mem8(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
-	/* max 8bit read/write is 64bytes */
-	if (len > STLINK_MAX_RW8) {
-		LOG_DEBUG("max buffer length exceeded");
+	/* max 8 bit read/write is 64 bytes or 512 bytes for v3 */
+	if (len > stlink_usb_block(h)) {
+		LOG_DEBUG("max buffer (%d) length exceeded", stlink_usb_block(h));
 		return ERROR_FAIL;
 	}
 
@@ -1766,9 +1833,9 @@ static int stlink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 
 	assert(handle != NULL);
 
-	/* max 8bit read/write is 64bytes */
-	if (len > STLINK_MAX_RW8) {
-		LOG_DEBUG("max buffer length exceeded");
+	/* max 8 bit read/write is 64 bytes or 512 bytes for v3 */
+	if (len > stlink_usb_block(h)) {
+		LOG_DEBUG("max buffer length (%d) exceeded", stlink_usb_block(h));
 		return ERROR_FAIL;
 	}
 
@@ -1953,7 +2020,7 @@ static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 	while (count) {
 
 		bytes_remaining = (size != 1) ? \
-				stlink_max_block_size(h->max_mem_packet, addr) : STLINK_MAX_RW8;
+				stlink_max_block_size(h->max_mem_packet, addr) : stlink_usb_block(h);
 
 		if (count < bytes_remaining)
 			bytes_remaining = count;
@@ -2038,7 +2105,7 @@ static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 	while (count) {
 
 		bytes_remaining = (size != 1) ? \
-				stlink_max_block_size(h->max_mem_packet, addr) : STLINK_MAX_RW8;
+				stlink_max_block_size(h->max_mem_packet, addr) : stlink_usb_block(h);
 
 		if (count < bytes_remaining)
 			bytes_remaining = count;
@@ -2131,9 +2198,13 @@ static int stlink_match_speed_map(const struct speed_map *map, unsigned int map_
 	unsigned int i;
 	int speed_index = -1;
 	int speed_diff = INT_MAX;
+	int last_valid_speed = -1;
 	bool match = true;
 
 	for (i = 0; i < map_size; i++) {
+		if (!map[i].speed)
+			continue;
+		last_valid_speed = i;
 		if (khz == map[i].speed) {
 			speed_index = i;
 			break;
@@ -2151,7 +2222,7 @@ static int stlink_match_speed_map(const struct speed_map *map, unsigned int map_
 	if (speed_index == -1) {
 		/* this will only be here if we cannot match the slow speed.
 		 * use the slowest speed we support.*/
-		speed_index = map_size - 1;
+		speed_index = last_valid_speed;
 		match = false;
 	} else if (i == map_size)
 		match = false;
@@ -2216,7 +2287,84 @@ void stlink_dump_speed_map(const struct speed_map *map, unsigned int map_size)
 
 	LOG_DEBUG("Supported clock speeds are:");
 	for (i = 0; i < map_size; i++)
-		LOG_DEBUG("%d kHz", map[i].speed);
+		if (map[i].speed)
+			LOG_DEBUG("%d kHz", map[i].speed);
+}
+
+static int stlink_get_com_freq(void *handle, bool is_jtag, struct speed_map *map)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int i;
+
+	if (h->version.jtag_api != STLINK_JTAG_API_V3) {
+		LOG_ERROR("Unknown command");
+		return 0;
+	}
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 16);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_APIV3_GET_COM_FREQ;
+	h->cmdbuf[h->cmdidx++] = is_jtag ? 1 : 0;
+
+	int res = stlink_usb_xfer(handle, h->databuf, 52);
+
+	int size = h->databuf[8];
+
+	if (size > STLINK_V3_MAX_FREQ_NB)
+		size = STLINK_V3_MAX_FREQ_NB;
+
+	for (i = 0; i < size; i++) {
+		map[i].speed = le_to_h_u32(&h->databuf[12 + 4 * i]);
+		map[i].speed_divisor = i;
+	}
+
+	/* set to zero all the next entries */
+	for (i = size; i < STLINK_V3_MAX_FREQ_NB; i++)
+		map[i].speed = 0;
+
+	return res;
+}
+
+static int stlink_set_com_freq(void *handle, bool is_jtag, unsigned int frequency)
+{
+	struct stlink_usb_handle_s *h = handle;
+
+	if (h->version.jtag_api != STLINK_JTAG_API_V3) {
+		LOG_ERROR("Unknown command");
+		return 0;
+	}
+
+	stlink_usb_init_buffer(handle, h->rx_ep, 16);
+
+	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
+	h->cmdbuf[h->cmdidx++] = STLINK_APIV3_SET_COM_FREQ;
+	h->cmdbuf[h->cmdidx++] = is_jtag ? 1 : 0;
+	h->cmdbuf[h->cmdidx++] = 0;
+
+	h_u32_to_le(&h->cmdbuf[4], frequency);
+
+	return stlink_usb_xfer(handle, h->databuf, 8);
+}
+
+static int stlink_speed_v3(void *handle, bool is_jtag, int khz, bool query)
+{
+	struct stlink_usb_handle_s *h = handle;
+	int speed_index;
+	struct speed_map map[STLINK_V3_MAX_FREQ_NB];
+
+	stlink_get_com_freq(h, is_jtag, map);
+
+	speed_index = stlink_match_speed_map(map, ARRAY_SIZE(map), khz, query);
+
+	if (!query) {
+		int result = stlink_set_com_freq(h, is_jtag, map[speed_index].speed);
+		if (result != ERROR_OK) {
+			LOG_ERROR("Unable to set adapter speed");
+			return khz;
+		}
+	}
+	return map[speed_index].speed;
 }
 
 static int stlink_speed(void *handle, int khz, bool query)
@@ -2226,12 +2374,25 @@ static int stlink_speed(void *handle, int khz, bool query)
 	if (!handle)
 		return khz;
 
-	if (h->transport == HL_TRANSPORT_SWIM)
+	switch (h->transport) {
+	case HL_TRANSPORT_SWIM:
 		return stlink_speed_swim(handle, khz, query);
-	else if (h->transport == HL_TRANSPORT_SWD)
-		return stlink_speed_swd(handle, khz, query);
-	else if (h->transport == HL_TRANSPORT_JTAG)
-		return stlink_speed_jtag(handle, khz, query);
+		break;
+	case HL_TRANSPORT_SWD:
+		if (h->version.jtag_api == STLINK_JTAG_API_V3)
+			return stlink_speed_v3(handle, false, khz, query);
+		else
+			return stlink_speed_swd(handle, khz, query);
+		break;
+	case HL_TRANSPORT_JTAG:
+		if (h->version.jtag_api == STLINK_JTAG_API_V3)
+			return stlink_speed_v3(handle, true, khz, query);
+		else
+			return stlink_speed_jtag(handle, khz, query);
+		break;
+	default:
+		break;
+	}
 
 	return khz;
 }
@@ -2344,6 +2505,14 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 				h->version.stlink = 1;
 				h->tx_ep = STLINK_TX_EP;
 				break;
+			case STLINK_V3_USBLOADER_PID:
+			case STLINK_V3E_PID:
+			case STLINK_V3S_PID:
+			case STLINK_V3_2VCP_PID:
+				h->version.stlink = 3;
+				h->tx_ep = STLINK_V2_1_TX_EP;
+				h->trace_ep = STLINK_V2_1_TRACE_EP;
+				break;
 			case STLINK_V2_1_PID:
 			case STLINK_V2_1_NO_MSD_PID:
 				h->version.stlink = 2;
@@ -2446,6 +2615,14 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 			stlink_dump_speed_map(stlink_khz_to_speed_map_swd, ARRAY_SIZE(stlink_khz_to_speed_map_swd));
 			stlink_speed(h, param->initial_interface_speed, false);
 		}
+	}
+
+	if (h->version.jtag_api == STLINK_JTAG_API_V3) {
+		struct speed_map map[STLINK_V3_MAX_FREQ_NB];
+
+		stlink_get_com_freq(h, (h->transport == HL_TRANSPORT_JTAG), map);
+		stlink_dump_speed_map(map, ARRAY_SIZE(map));
+		stlink_speed(h, param->initial_interface_speed, false);
 	}
 
 	/* get cpuid, so we can determine the max page size

@@ -487,6 +487,9 @@ They only work with ST Micro chips, notably STM32 and STM8.
 @item @b{ST-LINK/V2}
 @* This is available standalone and as part of some kits, eg. STM32F4DISCOVERY.
 @* Link: @url{http://www.st.com/internet/evalboard/product/251168.jsp}
+@item @b{STLINK-V3}
+@* This is available standalone and as part of some kits.
+@* Link: @url{http://www.st.com/stlink-v3}
 @end itemize
 
 For info the original ST-LINK enumerates using the mass storage usb class; however,
