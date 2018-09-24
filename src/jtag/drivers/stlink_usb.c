@@ -242,6 +242,8 @@ struct stlink_usb_handle_s {
 #define STLINK_DEBUG_APIV2_GETLASTRWSTATUS 0x3B
 #define STLINK_DEBUG_APIV2_DRIVE_NRST      0x3C
 
+#define STLINK_DEBUG_APIV2_GETLASTRWSTATUS2 0x3E
+
 #define STLINK_DEBUG_APIV2_START_TRACE_RX  0x40
 #define STLINK_DEBUG_APIV2_STOP_TRACE_RX   0x41
 #define STLINK_DEBUG_APIV2_GET_TRACE_NB    0x42
@@ -279,6 +281,7 @@ enum stlink_mode {
 #define STLINK_F_HAS_SWD_SET_FREQ       (1UL << 1)
 #define STLINK_F_HAS_JTAG_SET_FREQ      (1UL << 2)
 #define STLINK_F_HAS_MEM_16BIT          (1UL << 3)
+#define STLINK_F_HAS_GETLASTRWSTATUS2   (1UL << 4)
 
 /* aliases */
 #define STLINK_F_HAS_TARGET_VOLT        STLINK_F_HAS_TRACE
@@ -674,6 +677,10 @@ static int stlink_usb_version(void *handle)
 		/* API for target voltage from J13 */
 		if (h->version.jtag >= 13)
 			flags |= STLINK_F_HAS_TRACE;
+
+		/* preferred API to get last R/W status from J15 */
+		if (h->version.jtag >= 15)
+			flags |= STLINK_F_HAS_GETLASTRWSTATUS2;
 
 		/* API to set SWD frequency from J22 */
 		if (h->version.jtag >= 22)
@@ -1659,9 +1666,15 @@ static int stlink_usb_get_rw_status(void *handle)
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_GETLASTRWSTATUS;
+	if (h->version.flags & STLINK_F_HAS_GETLASTRWSTATUS2) {
+		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_GETLASTRWSTATUS2;
 
-	res = stlink_usb_xfer(handle, h->databuf, 2);
+		res = stlink_usb_xfer(handle, h->databuf, 12);
+	} else {
+		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_GETLASTRWSTATUS;
+
+		res = stlink_usb_xfer(handle, h->databuf, 2);
+	}
 
 	if (res != ERROR_OK)
 		return res;
