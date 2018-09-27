@@ -2578,10 +2578,11 @@ For example adapter definitions, see the configuration files shipped in the
 @end deffn
 
 @deffn {Interface Driver} {ft232r}
-This driver is implementing synchronous bitbang mode of an FTDI FT232R
-USB UART bridge IC.
+This driver is implementing synchronous bitbang mode of an FTDI FT232R,
+FT230X, FT231X and similar USB UART bridge ICs by reusing RS232 signals as GPIO.
+It currently doesn't support using CBUS pins as GPIO.
 
-List of connections (pin numbers for SSOP):
+List of connections (default physical pin numbers for FT232R in 28-pin SSOP package):
 @itemize @minus
 @item RXD(5) - TDI
 @item TXD(1) - TCK
@@ -2589,6 +2590,27 @@ List of connections (pin numbers for SSOP):
 @item CTS(11) - TMS
 @item DTR(2) - TRST
 @item DCD(10) - SRST
+@end itemize
+
+User can change default pinout by supplying configuration
+commands with GPIO numbers or RS232 signal names.
+GPIO numbers correspond to bit numbers in FTDI GPIO register.
+They differ from physical pin numbers.
+For details see actual FTDI chip datasheets.
+Every JTAG line must be configured to unique GPIO number
+different than any other JTAG line, even those lines
+that are sometimes not used like TRST or SRST.
+
+FT232R
+@itemize @minus
+@item bit 7 - RI
+@item bit 6 - DCD
+@item bit 5 - DSR
+@item bit 4 - DTR
+@item bit 3 - CTS
+@item bit 2 - RTS
+@item bit 1 - RXD
+@item bit 0 - TXD
 @end itemize
 
 These interfaces have several commands, used to configure the driver
@@ -2603,6 +2625,47 @@ The vendor ID and product ID of the adapter. If not specified, default
 Specifies the @var{serial} of the adapter to use, in case the
 vendor provides unique IDs and more than one adapter is connected to
 the host. If not specified, serial numbers are not considered.
+@end deffn
+
+@deffn {Config Command} {ft232r_jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+Set four JTAG GPIO numbers at once.
+If not specified, default 0 3 1 2 or TXD CTS RXD RTS is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tck_num} @var{tck}
+Set TCK GPIO number. If not specified, default 0 or TXD is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tms_num} @var{tms}
+Set TMS GPIO number. If not specified, default 3 or CTS is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tdi_num} @var{tdi}
+Set TDI GPIO number. If not specified, default 1 or RXD is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tdo_num} @var{tdo}
+Set TDO GPIO number. If not specified, default 2 or RTS is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_trst_num} @var{trst}
+Set TRST GPIO number. If not specified, default 4 or DTR is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_srst_num} @var{srst}
+Set SRST GPIO number. If not specified, default 6 or DCD is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_restore_serial} @var{word}
+Restore serial port after JTAG. This USB bitmode control word
+(16-bit) will be sent before quit. Lower byte should
+set GPIO direction register to a "sane" state:
+0x15 for TXD RTS DTR as outputs (1), others as inputs (0). Higher
+byte is usually 0 to disable bitbang mode.
+When kernel driver reattaches, serial port should continue to work.
+Value 0xFFFF disables sending control word and serial port,
+then kernel driver will not reattach.
+If not specified, default 0xFFFF is used.
 @end deffn
 
 @end deffn
