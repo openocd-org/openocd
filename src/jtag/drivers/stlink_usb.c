@@ -637,7 +637,10 @@ static int stlink_usb_version(void *handle)
 {
 	int res;
 	uint32_t flags;
-	uint16_t v;
+	uint16_t version;
+	uint8_t v, x, y, jtag, swim, msd;
+	char v_str[4 * (1 + 3) + 1]; /* VvJjMmSs */
+	char *p;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
@@ -651,13 +654,32 @@ static int stlink_usb_version(void *handle)
 	if (res != ERROR_OK)
 		return res;
 
-	v = (h->databuf[0] << 8) | h->databuf[1];
+	version = be_to_h_u16(h->databuf);
+	v = (version >> 12) & 0x0f;
+	x = (version >> 6) & 0x3f;
+	y = version & 0x3f;
 
-	h->version.stlink = (v >> 12) & 0x0f;
-	h->version.jtag = (v >> 6) & 0x3f;
-	h->version.swim = v & 0x3f;
-	h->vid = buf_get_u32(h->databuf, 16, 16);
-	h->pid = buf_get_u32(h->databuf, 32, 16);
+	h->vid = le_to_h_u16(h->databuf + 2);
+	h->pid = le_to_h_u16(h->databuf + 4);
+
+	switch (h->pid) {
+	case STLINK_V2_1_PID:
+	case STLINK_V2_1_NO_MSD_PID:
+		/* JxMy : STM32 V2.1 - JTAG/SWD only */
+		jtag = x;
+		msd = y;
+		swim = 0;
+		break;
+	default:
+		jtag = x;
+		swim = y;
+		msd = 0;
+		break;
+	}
+
+	h->version.stlink = v;
+	h->version.jtag = jtag;
+	h->version.swim = swim;
 
 	flags = 0;
 	switch (h->version.stlink) {
@@ -700,11 +722,18 @@ static int stlink_usb_version(void *handle)
 	}
 	h->version.flags = flags;
 
-	LOG_INFO("STLINK v%d JTAG v%d API v%d SWIM v%d VID 0x%04X PID 0x%04X",
-		h->version.stlink,
-		h->version.jtag,
-		(h->version.jtag_api == STLINK_JTAG_API_V1) ? 1 : 2,
-		h->version.swim,
+	p = v_str;
+	p += sprintf(p, "V%d", v);
+	if (jtag || !msd)
+		p += sprintf(p, "J%d", jtag);
+	if (msd)
+		p += sprintf(p, "M%d", msd);
+	if (swim || !msd)
+		p += sprintf(p, "S%d", swim);
+
+	LOG_INFO("STLINK %s (API v%d) VID:PID %04X:%04X",
+		v_str,
+		h->version.jtag_api,
 		h->vid,
 		h->pid);
 
