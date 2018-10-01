@@ -665,10 +665,17 @@ static int stlink_usb_version(void *handle)
 	switch (h->pid) {
 	case STLINK_V2_1_PID:
 	case STLINK_V2_1_NO_MSD_PID:
-		/* JxMy : STM32 V2.1 - JTAG/SWD only */
-		jtag = x;
-		msd = y;
-		swim = 0;
+		if ((x <= 22 && y == 7) || (x >= 25 && y >= 7 && y <= 12)) {
+			/* MxSy : STM8 V2.1 - SWIM only */
+			msd = x;
+			swim = y;
+			jtag = 0;
+		} else {
+			/* JxMy : STM32 V2.1 - JTAG/SWD only */
+			jtag = x;
+			msd = y;
+			swim = 0;
+		}
 		break;
 	default:
 		jtag = x;
