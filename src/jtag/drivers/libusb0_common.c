@@ -67,7 +67,7 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 		const char *serial,
 		struct jtag_libusb_device_handle **out)
 {
-	int retval = -ENODEV;
+	int retval = ERROR_FAIL;
 	struct jtag_libusb_device_handle *libusb_handle;
 	usb_init();
 
@@ -83,7 +83,7 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 
 			libusb_handle = usb_open(dev);
 			if (NULL == libusb_handle) {
-				retval = -errno;
+				LOG_ERROR("usb_open() failed with %s", usb_strerror());
 				continue;
 			}
 
@@ -94,7 +94,7 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 				continue;
 			}
 			*out = libusb_handle;
-			retval = 0;
+			retval = ERROR_OK;
 			break;
 		}
 	}
