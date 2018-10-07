@@ -71,10 +71,6 @@ static int cortex_a_set_hybrid_breakpoint(struct target *target,
 	struct breakpoint *breakpoint);
 static int cortex_a_unset_breakpoint(struct target *target,
 	struct breakpoint *breakpoint);
-static int cortex_a_dap_read_coreregister_u32(struct target *target,
-	uint32_t *value, int regnum);
-static int cortex_a_dap_write_coreregister_u32(struct target *target,
-	uint32_t value, int regnum);
 static int cortex_a_mmu(struct target *target, int *enabled);
 static int cortex_a_mmu_modify(struct target *target, int enable);
 static int cortex_a_virt2phys(struct target *target,
@@ -303,147 +299,6 @@ static int cortex_a_exec_opcode(struct target *target,
 
 	if (dscr_p)
 		*dscr_p = dscr;
-
-	return retval;
-}
-
-static int cortex_a_dap_read_coreregister_u32(struct target *target,
-	uint32_t *value, int regnum)
-{
-	int retval = ERROR_OK;
-	uint8_t reg = regnum&0xFF;
-	uint32_t dscr = 0;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-
-	if (reg > 17)
-		return retval;
-
-	if (reg < 15) {
-		/* Rn to DCCTX, "MCR p14, 0, Rn, c0, c5, 0"  0xEE00nE15 */
-		retval = cortex_a_exec_opcode(target,
-				ARMV4_5_MCR(14, 0, reg, 0, 5, 0),
-				&dscr);
-		if (retval != ERROR_OK)
-			return retval;
-	} else if (reg == 15) {
-		/* "MOV r0, r15"; then move r0 to DCCTX */
-		retval = cortex_a_exec_opcode(target, 0xE1A0000F, &dscr);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = cortex_a_exec_opcode(target,
-				ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
-				&dscr);
-		if (retval != ERROR_OK)
-			return retval;
-	} else {
-		/* "MRS r0, CPSR" or "MRS r0, SPSR"
-		 * then move r0 to DCCTX
-		 */
-		retval = cortex_a_exec_opcode(target, ARMV4_5_MRS(0, reg & 1), &dscr);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = cortex_a_exec_opcode(target,
-				ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
-				&dscr);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	/* Wait for DTRRXfull then read DTRRTX */
-	int64_t then = timeval_ms();
-	while ((dscr & DSCR_DTR_TX_FULL) == 0) {
-		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
-				armv7a->debug_base + CPUDBG_DSCR, &dscr);
-		if (retval != ERROR_OK)
-			return retval;
-		if (timeval_ms() > then + 1000) {
-			LOG_ERROR("Timeout waiting for cortex_a_exec_opcode");
-			return ERROR_FAIL;
-		}
-	}
-
-	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DTRTX, value);
-	LOG_DEBUG("read DCC 0x%08" PRIx32, *value);
-
-	return retval;
-}
-
-__attribute__((unused))
-static int cortex_a_dap_write_coreregister_u32(struct target *target,
-	uint32_t value, int regnum)
-{
-	int retval = ERROR_OK;
-	uint8_t Rd = regnum&0xFF;
-	uint32_t dscr;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-
-	LOG_DEBUG("register %i, value 0x%08" PRIx32, regnum, value);
-
-	/* Check that DCCRX is not full */
-	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DSCR, &dscr);
-	if (retval != ERROR_OK)
-		return retval;
-	if (dscr & DSCR_DTR_RX_FULL) {
-		LOG_ERROR("DSCR_DTR_RX_FULL, dscr 0x%08" PRIx32, dscr);
-		/* Clear DCCRX with MRC(p14, 0, Rd, c0, c5, 0), opcode  0xEE100E15 */
-		retval = cortex_a_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
-				&dscr);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	if (Rd > 17)
-		return retval;
-
-	/* Write DTRRX ... sets DSCR.DTRRXfull but exec_opcode() won't care */
-	LOG_DEBUG("write DCC 0x%08" PRIx32, value);
-	retval = mem_ap_write_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DTRRX, value);
-	if (retval != ERROR_OK)
-		return retval;
-
-	if (Rd < 15) {
-		/* DCCRX to Rn, "MRC p14, 0, Rn, c0, c5, 0", 0xEE10nE15 */
-		retval = cortex_a_exec_opcode(target, ARMV4_5_MRC(14, 0, Rd, 0, 5, 0),
-				&dscr);
-
-		if (retval != ERROR_OK)
-			return retval;
-	} else if (Rd == 15) {
-		/* DCCRX to R0, "MRC p14, 0, R0, c0, c5, 0", 0xEE100E15
-		 * then "mov r15, r0"
-		 */
-		retval = cortex_a_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
-				&dscr);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = cortex_a_exec_opcode(target, 0xE1A0F000, &dscr);
-		if (retval != ERROR_OK)
-			return retval;
-	} else {
-		/* DCCRX to R0, "MRC p14, 0, R0, c0, c5, 0", 0xEE100E15
-		 * then "MSR CPSR_cxsf, r0" or "MSR SPSR_cxsf, r0" (all fields)
-		 */
-		retval = cortex_a_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
-				&dscr);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = cortex_a_exec_opcode(target, ARMV4_5_MSR_GP(0, 0xF, Rd & 1),
-				&dscr);
-		if (retval != ERROR_OK)
-			return retval;
-
-		/* "Prefetch flush" after modifying execution status in CPSR */
-		if (Rd == 16) {
-			retval = cortex_a_exec_opcode(target,
-					ARMV4_5_MCR(15, 0, 0, 7, 5, 4),
-					&dscr);
-			if (retval != ERROR_OK)
-				return retval;
-		}
-	}
 
 	return retval;
 }
@@ -1158,12 +1013,11 @@ static int cortex_a_resume(struct target *target, int current,
 
 static int cortex_a_debug_entry(struct target *target)
 {
-	uint32_t spsr, dscr;
+	uint32_t dscr;
 	int retval = ERROR_OK;
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *arm = &armv7a->arm;
-	struct reg *reg;
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a->cpudbg_dscr);
 
@@ -1206,16 +1060,10 @@ static int cortex_a_debug_entry(struct target *target)
 		return retval;
 
 	if (arm->spsr) {
-		/* read Saved PSR */
-		retval = cortex_a_dap_read_coreregister_u32(target, &spsr, 17);
-		/*  store current spsr */
+		/* read SPSR */
+		retval = arm_dpm_read_reg(&armv7a->dpm, arm->spsr, 17);
 		if (retval != ERROR_OK)
 			return retval;
-
-		reg = arm->spsr;
-		buf_set_u32(reg->value, 0, 32, spsr);
-		reg->valid = 1;
-		reg->dirty = 0;
 	}
 
 #if 0

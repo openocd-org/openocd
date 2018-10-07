@@ -168,7 +168,7 @@ static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 }
 
 /* just read the register -- rely on the core mode being right */
-static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 {
 	uint32_t value;
 	int retval;
@@ -352,7 +352,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 	for (unsigned i = 0; i < 2; i++) {
 		r = arm->core_cache->reg_list + i;
 		if (!r->valid) {
-			retval = dpm_read_reg(dpm, r, i);
+			retval = arm_dpm_read_reg(dpm, r, i);
 			if (retval != ERROR_OK)
 				goto fail;
 		}
@@ -372,7 +372,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 		if (r->valid)
 			continue;
 
-		retval = dpm_read_reg(dpm, r, i);
+		retval = arm_dpm_read_reg(dpm, r, i);
 		if (retval != ERROR_OK)
 			goto fail;
 	}
@@ -676,7 +676,7 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 			goto fail;
 	}
 
-	retval = dpm_read_reg(dpm, r, regnum);
+	retval = arm_dpm_read_reg(dpm, r, regnum);
 	if (retval != ERROR_OK)
 		goto fail;
 	/* always clean up, regardless of error */
@@ -784,7 +784,7 @@ static int arm_dpm_full_context(struct target *target)
 				continue;
 
 			/* CPSR was read, so "R16" must mean SPSR */
-			retval = dpm_read_reg(dpm,
+			retval = arm_dpm_read_reg(dpm,
 					&cache->reg_list[i],
 					(r->num == 16) ? 17 : r->num);
 			if (retval != ERROR_OK)

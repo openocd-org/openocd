@@ -152,6 +152,7 @@ struct arm_dpm {
 int arm_dpm_setup(struct arm_dpm *dpm);
 int arm_dpm_initialize(struct arm_dpm *dpm);
 
+int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum);
 int arm_dpm_read_current_registers(struct arm_dpm *);
 int arm_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
 
