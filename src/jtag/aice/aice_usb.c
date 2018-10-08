@@ -2139,11 +2139,8 @@ static int aice_usb_open(struct aice_port_param_s *param)
 
 	unsigned int aice_read_ep;
 	unsigned int aice_write_ep;
-#ifdef HAVE_LIBUSB1
+
 	jtag_libusb_choose_interface(devh, &aice_read_ep, &aice_write_ep, -1, -1, -1, LIBUSB_TRANSFER_TYPE_BULK);
-#else
-	jtag_libusb_choose_interface(devh, &aice_read_ep, &aice_write_ep, -1, -1, -1, USB_ENDPOINT_TYPE_BULK);
-#endif
 	LOG_DEBUG("aice_read_ep=0x%x, aice_write_ep=0x%x", aice_read_ep, aice_write_ep);
 
 	aice_handler.usb_read_ep = aice_read_ep;
