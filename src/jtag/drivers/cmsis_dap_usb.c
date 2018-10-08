@@ -895,9 +895,7 @@ static int cmsis_dap_init(void)
 		retval = cmsis_dap_swd_open();
 		if (retval != ERROR_OK)
 			return retval;
-	}
-
-	if (cmsis_dap_handle == NULL) {
+	} else {
 		/* Connect in JTAG mode */
 		if (!(cmsis_dap_handle->caps & INFO_CAPS_JTAG)) {
 			LOG_ERROR("CMSIS-DAP: JTAG not supported");
