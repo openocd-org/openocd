@@ -300,6 +300,11 @@ static int uCOS_III_update_threads(struct rtos *rtos)
 	struct uCOS_III_params *params = rtos->rtos_specific_params;
 	int retval;
 
+	if (rtos->symbols == NULL) {
+		LOG_ERROR("uCOS-III: symbol list not loaded");
+		return ERROR_FAIL;
+	}
+
 	/* free previous thread details */
 	rtos_free_threadlist(rtos);
 
