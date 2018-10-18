@@ -396,6 +396,7 @@ int target_call_timer_callbacks_now(void);
 
 struct target *get_target_by_num(int num);
 struct target *get_current_target(struct command_context *cmd_ctx);
+struct target *get_current_target_or_null(struct command_context *cmd_ctx);
 struct target *get_target(const char *id);
 
 /**
