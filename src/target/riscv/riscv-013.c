@@ -458,13 +458,17 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 		bool exec)
 {
 	riscv013_info_t *info = get_info(target);
-	uint8_t in[8] = {0};
-	uint8_t out[8];
+	unsigned num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH;
+	size_t num_bytes = (num_bits + 7) / 8;
+	uint8_t in[num_bytes];
+	uint8_t out[num_bytes];
 	struct scan_field field = {
-		.num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH,
+		.num_bits = num_bits,
 		.out_value = out,
 		.in_value = in
 	};
+
+	memset(in, 0, num_bytes);
 
 	assert(info->abits != 0);
 
