@@ -280,12 +280,17 @@ static void riscv_deinit_target(struct target *target)
 		free(info);
 	}
 	/* Free the shared structure use for most registers. */
-	free(target->reg_cache->reg_list[0].arch_info);
-	/* Free the ones we allocated separately. */
-	for (unsigned i = GDB_REGNO_COUNT; i < target->reg_cache->num_regs; i++)
-		free(target->reg_cache->reg_list[i].arch_info);
-	free(target->reg_cache->reg_list);
-	free(target->reg_cache);
+	if (target->reg_cache) {
+		if (target->reg_cache->reg_list) {
+			if (target->reg_cache->reg_list[0].arch_info)
+				free(target->reg_cache->reg_list[0].arch_info);
+			/* Free the ones we allocated separately. */
+			for (unsigned i = GDB_REGNO_COUNT; i < target->reg_cache->num_regs; i++)
+				free(target->reg_cache->reg_list[i].arch_info);
+			free(target->reg_cache->reg_list);
+		}
+		free(target->reg_cache);
+	}
 	target->arch_info = NULL;
 }
 
