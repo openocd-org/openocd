@@ -2249,6 +2249,8 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	select_dmi(target);
 
+	memset(buffer, 0, count*size);
+
 	/* s0 holds the next address to write to
 	 * s1 holds the next data value to write
 	 */
@@ -2286,10 +2288,10 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	result = read_memory_progbuf_inner(target, address, size, count, buffer);
 
-	/* The full read did not succeed, so we will try to read each word individually. */
-	/* This will not be fast, but reading outside actual memory is a special case anyway. */
-	/* It will make the toolchain happier, especially Eclipse Memory View as it reads ahead. */
 	if (result != ERROR_OK) {
+		/* The full read did not succeed, so we will try to read each word individually. */
+		/* This will not be fast, but reading outside actual memory is a special case anyway. */
+		/* It will make the toolchain happier, especially Eclipse Memory View as it reads ahead. */
 		target_addr_t address_i = address;
 		uint32_t size_i = size;
 		uint32_t count_i = 1;
