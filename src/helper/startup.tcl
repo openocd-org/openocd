@@ -12,15 +12,18 @@ proc exit {} {
 
 # All commands are registered with an 'ocd_' prefix, while the "real"
 # command is a wrapper that calls this function.  Its primary purpose is
-# to discard 'handler' command output,
+# to discard 'handler' command output.
+# Due to the two nested proc calls, this wrapper has to explicitly run
+# the wrapped command in the stack frame two levels above.
 proc ocd_bouncer {name args} {
 	set cmd [format "ocd_%s" $name]
 	set type [eval ocd_command type $cmd $args]
 	set errcode error
+	set skiplevel [expr [eval info level] > 1 ? 2 : 1]
 	if {$type == "native"} {
-		return [eval $cmd $args]
+		return [uplevel $skiplevel $cmd $args]
 	} else {if {$type == "simple"} {
-		set errcode [catch {eval $cmd $args}]
+		set errcode [catch {uplevel $skiplevel $cmd $args}]
 		if {$errcode == 0} {
 			return ""
 		} else {
