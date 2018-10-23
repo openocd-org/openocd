@@ -165,12 +165,13 @@ static const struct samd_part samd21_parts[] = {
 	{ 0xE, "SAMD21E14A", 16, 2 },
 
     /* SAMR21 parts have integrated SAMD21 with a radio */
+	{ 0x18, "SAMR21G19A", 256, 32 }, /* with 512k of serial flash */
 	{ 0x19, "SAMR21G18A", 256, 32 },
 	{ 0x1A, "SAMR21G17A", 128, 32 },
-	{ 0x1B, "SAMR21G16A",  64, 32 },
+	{ 0x1B, "SAMR21G16A",  64, 16 },
 	{ 0x1C, "SAMR21E18A", 256, 32 },
 	{ 0x1D, "SAMR21E17A", 128, 32 },
-	{ 0x1E, "SAMR21E16A",  64, 32 },
+	{ 0x1E, "SAMR21E16A",  64, 16 },
 
     /* SAMD21 B Variants (Table 3-7 from rev I of datasheet) */
 	{ 0x20, "SAMD21J16B", 64, 8 },
