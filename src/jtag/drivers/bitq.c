@@ -123,7 +123,7 @@ static void bitq_path_move(struct pathmove_command *cmd)
 {
 	int i;
 
-	for (i = 0; i <= cmd->num_states; i++) {
+	for (i = 0; i < cmd->num_states; i++) {
 		if (tap_state_transition(tap_get_state(), false) == cmd->path[i])
 			bitq_io(0, 0, 0);
 		else if (tap_state_transition(tap_get_state(), true) == cmd->path[i])
