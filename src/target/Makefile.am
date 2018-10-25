@@ -143,7 +143,8 @@ INTEL_IA32_SRC = \
 
 ESIRISC_SRC = \
 	%D%/esirisc.c \
-	%D%/esirisc_jtag.c
+	%D%/esirisc_jtag.c \
+	%D%/esirisc_trace.c
 
 %C%_libtarget_la_SOURCES += \
 	%D%/algorithm.h \
@@ -228,7 +229,8 @@ ESIRISC_SRC = \
 	%D%/arm_cti.h \
 	%D%/esirisc.h \
 	%D%/esirisc_jtag.h \
-	%D%/esirisc_regs.h
+	%D%/esirisc_regs.h \
+	%D%/esirisc_trace.h
 
 include %D%/openrisc/Makefile.am
 include %D%/riscv/Makefile.am

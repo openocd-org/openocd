@@ -5723,16 +5723,17 @@ configuration register interface, @option{clock_hz} is the expected clock
 frequency, and @option{wait_states} is the number of configured read wait states.
 
 @example
-flash bank $_FLASHNAME esirisc base_address size_bytes 0 0 $_TARGETNAME cfg_address clock_hz wait_states
+flash bank $_FLASHNAME esirisc base_address size_bytes 0 0 \
+           $_TARGETNAME cfg_address clock_hz wait_states
 @end example
 
-@deffn Command {esirisc_flash mass_erase} (bank_id)
-Erases all pages in data memory for the bank identified by @option{bank_id}.
+@deffn Command {esirisc flash mass_erase} bank_id
+Erase all pages in data memory for the bank identified by @option{bank_id}.
 @end deffn
 
-@deffn Command {esirisc_flash ref_erase} (bank_id)
-Erases the reference cell for the bank identified by @option{bank_id}. This is
-an uncommon operation.
+@deffn Command {esirisc flash ref_erase} bank_id
+Erase the reference cell for the bank identified by @option{bank_id}. @emph{This
+is an uncommon operation.}
 @end deffn
 @end deffn
 
@@ -9041,15 +9042,11 @@ Selects whether interrupts will be processed when single stepping. The default c
 eSi-RISC is a highly configurable microprocessor architecture for embedded systems
 provided by EnSilica. (See: @url{http://www.ensilica.com/risc-ip/}.)
 
-@subsection esirisc specific commands
+@subsection eSi-RISC Configuration
+
 @deffn Command {esirisc cache_arch} (@option{harvard}|@option{von_neumann})
 Configure the caching architecture. Targets with the @code{UNIFIED_ADDRESS_SPACE}
 option disabled employ a Harvard architecture. By default, @option{von_neumann} is assumed.
-@end deffn
-
-@deffn Command {esirisc flush_caches}
-Flush instruction and data caches. This command requires that the target is halted
-when the command is issued and configured with an instruction or data cache.
 @end deffn
 
 @deffn Command {esirisc hwdc} (@option{all}|@option{none}|mask ...)
@@ -9057,6 +9054,164 @@ Configure hardware debug control. The HWDC register controls which exceptions re
 control back to the debugger. Possible masks are @option{all}, @option{none},
 @option{reset}, @option{interrupt}, @option{syscall}, @option{error}, and @option{debug}.
 By default, @option{reset}, @option{error}, and @option{debug} are enabled.
+@end deffn
+
+@subsection eSi-RISC Operation
+
+@deffn Command {esirisc flush_caches}
+Flush instruction and data caches. This command requires that the target is halted
+when the command is issued and configured with an instruction or data cache.
+@end deffn
+
+@subsection eSi-Trace Configuration
+
+eSi-RISC targets may be configured with support for instruction tracing. Trace
+data may be written to an in-memory buffer or FIFO. If a FIFO is configured, DMA
+is typically employed to move trace data off-device using a high-speed
+peripheral (eg. SPI). Collected trace data is encoded in one of three different
+formats. At a minimum, @command{esirisc trace buffer} or @command{esirisc trace
+fifo} must be issued along with @command{esirisc trace format} before trace data
+can be collected.
+
+OpenOCD provides rudimentary analysis of collected trace data. If more detail is
+needed, collected trace data can be dumped to a file and processed by external
+tooling.
+
+@quotation Issues
+OpenOCD is unable to process trace data sent to a FIFO. A potential workaround
+for this issue is to configure DMA to copy trace data to an in-memory buffer,
+which can then be passed to the @command{esirisc trace analyze} and
+@command{esirisc trace dump} commands.
+
+It is possible to corrupt trace data when using a FIFO if the peripheral
+responsible for draining data from the FIFO is not fast enough. This can be
+managed by enabling flow control, however this can impact timing-sensitive
+software operation on the CPU.
+@end quotation
+
+@deffn Command {esirisc trace buffer} address size [@option{wrap}]
+Configure trace buffer using the provided address and size. If the @option{wrap}
+option is specified, trace collection will continue once the end of the buffer
+is reached. By default, wrap is disabled.
+@end deffn
+
+@deffn Command {esirisc trace fifo} address
+Configure trace FIFO using the provided address.
+@end deffn
+
+@deffn Command {esirisc trace flow_control} (@option{enable}|@option{disable})
+Enable or disable stalling the CPU to collect trace data. By default, flow
+control is disabled.
+@end deffn
+
+@deffn Command {esirisc trace format} (@option{full}|@option{branch}|@option{icache}) pc_bits
+Configure trace format and number of PC bits to be captured. @option{pc_bits}
+must be within 1 and 31 as the LSB is not collected. If external tooling is used
+to analyze collected trace data, these values must match.
+
+Supported trace formats:
+@itemize
+@item @option{full} capture full trace data, allowing execution history and
+timing to be determined.
+@item @option{branch} capture taken branch instructions and branch target
+addresses.
+@item @option{icache} capture instruction cache misses.
+@end itemize
+@end deffn
+
+@deffn Command {esirisc trace trigger start} (@option{condition}) [start_data start_mask]
+Configure trigger start condition using the provided start data and mask. A
+brief description of each condition is provided below; for more detail on how
+these values are used, see the eSi-RISC Architecture Manual.
+
+Supported conditions:
+@itemize
+@item @option{none} manual tracing (see @command{esirisc trace start}).
+@item @option{pc} start tracing if the PC matches start data and mask.
+@item @option{load} start tracing if the effective address of a load
+instruction matches start data and mask.
+@item @option{store} start tracing if the effective address of a store
+instruction matches start data and mask.
+@item @option{exception} start tracing if the EID of an exception matches start
+data and mask.
+@item @option{eret} start tracing when an @code{ERET} instruction is executed.
+@item @option{wait} start tracing when a @code{WAIT} instruction is executed.
+@item @option{stop} start tracing when a @code{STOP} instruction is executed.
+@item @option{high} start tracing when an external signal is a logical high.
+@item @option{low} start tracing when an external signal is a logical low.
+@end itemize
+@end deffn
+
+@deffn Command {esirisc trace trigger stop} (@option{condition}) [stop_data stop_mask]
+Configure trigger stop condition using the provided stop data and mask. A brief
+description of each condition is provided below; for more detail on how these
+values are used, see the eSi-RISC Architecture Manual.
+
+Supported conditions:
+@itemize
+@item @option{none} manual tracing (see @command{esirisc trace stop}).
+@item @option{pc} stop tracing if the PC matches stop data and mask.
+@item @option{load} stop tracing if the effective address of a load
+instruction matches stop data and mask.
+@item @option{store} stop tracing if the effective address of a store
+instruction matches stop data and mask.
+@item @option{exception} stop tracing if the EID of an exception matches stop
+data and mask.
+@item @option{eret} stop tracing when an @code{ERET} instruction is executed.
+@item @option{wait} stop tracing when a @code{WAIT} instruction is executed.
+@item @option{stop} stop tracing when a @code{STOP} instruction is executed.
+@end itemize
+@end deffn
+
+@deffn Command {esirisc trace trigger delay} (@option{trigger}) [cycles]
+Configure trigger start/stop delay in clock cycles.
+
+Supported triggers:
+@itemize
+@item @option{none} no delay to start or stop collection.
+@item @option{start} delay @option{cycles} after trigger to start collection.
+@item @option{stop} delay @option{cycles} after trigger to stop collection.
+@item @option{both} delay @option{cycles} after both triggers to start or stop
+collection.
+@end itemize
+@end deffn
+
+@subsection eSi-Trace Operation
+
+@deffn Command {esirisc trace init}
+Initialize trace collection. This command must be called any time the
+configuration changes. If an trace buffer has been configured, the contents will
+be overwritten when trace collection starts.
+@end deffn
+
+@deffn Command {esirisc trace info}
+Display trace configuration.
+@end deffn
+
+@deffn Command {esirisc trace status}
+Display trace collection status.
+@end deffn
+
+@deffn Command {esirisc trace start}
+Start manual trace collection.
+@end deffn
+
+@deffn Command {esirisc trace stop}
+Stop manual trace collection.
+@end deffn
+
+@deffn Command {esirisc trace analyze} [address size]
+Analyze collected trace data. This command may only be used if a trace buffer
+has been configured. If a trace FIFO has been configured, trace data must be
+copied to an in-memory buffer identified by the @option{address} and
+@option{size} options using DMA.
+@end deffn
+
+@deffn Command {esirisc trace dump} [address size] @file{filename}
+Dump collected trace data to file. This command may only be used if a trace
+buffer has been configured. If a trace FIFO has been configured, trace data must
+be copied to an in-memory buffer identified by the @option{address} and
+@option{size} options using DMA.
 @end deffn
 
 @section Intel Architecture

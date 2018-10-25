@@ -20,12 +20,14 @@
 #ifndef OPENOCD_TARGET_ESIRISC_H
 #define OPENOCD_TARGET_ESIRISC_H
 
+#include <helper/types.h>
 #include <target/breakpoints.h>
 #include <target/register.h>
 #include <target/target.h>
 
 #include "esirisc_jtag.h"
 #include "esirisc_regs.h"
+#include "esirisc_trace.h"
 
 #define MAX_BREAKPOINTS			8
 #define MAX_WATCHPOINTS			8
@@ -88,11 +90,15 @@ struct esirisc_common {
 	int num_regs;
 	bool has_icache;
 	bool has_dcache;
-	int num_breakpoints;
-	int num_watchpoints;
+	bool has_trace;
 
+	int num_breakpoints;
 	struct breakpoint *breakpoints_p[MAX_BREAKPOINTS];
+
+	int num_watchpoints;
 	struct watchpoint *watchpoints_p[MAX_WATCHPOINTS];
+
+	struct esirisc_trace trace_info;
 };
 
 union esirisc_memory {
@@ -116,7 +122,7 @@ static inline struct esirisc_common *target_to_esirisc(struct target *target)
 	return (struct esirisc_common *)target->arch_info;
 }
 
-static inline char *esirisc_cache_arch(struct esirisc_common *esirisc)
+static inline char *esirisc_cache_arch_name(struct esirisc_common *esirisc)
 {
 	return esirisc->cache_arch == ESIRISC_CACHE_HARVARD ? "harvard" : "von_neumann";
 }

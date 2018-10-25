@@ -104,9 +104,12 @@ struct esirisc_flash_bank {
 	uint32_t wait_states;
 };
 
+static const struct command_registration esirisc_flash_command_handlers[];
+
 FLASH_BANK_COMMAND_HANDLER(esirisc_flash_bank_command)
 {
 	struct esirisc_flash_bank *esirisc_info;
+	struct command *esirisc_cmd;
 
 	if (CMD_ARGC < 9)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -118,6 +121,10 @@ FLASH_BANK_COMMAND_HANDLER(esirisc_flash_bank_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[8], esirisc_info->wait_states);
 
 	bank->driver_priv = esirisc_info;
+
+	/* register commands using existing esirisc context */
+	esirisc_cmd = command_find_in_context(CMD_CTX, "esirisc");
+	register_commands(CMD_CTX, esirisc_cmd, esirisc_flash_command_handlers);
 
 	return ERROR_OK;
 }
@@ -435,8 +442,8 @@ static int esirisc_flash_init(struct flash_bank *bank)
 	esirisc_flash_disable_protect(bank);
 
 	/* initialize timing registers */
-	value = TIMING0_F(esirisc_flash_num_cycles(bank, TNVH)) |
-			TIMING0_R(esirisc_info->wait_states);
+	value = TIMING0_F(esirisc_flash_num_cycles(bank, TNVH))
+			| TIMING0_R(esirisc_info->wait_states);
 
 	LOG_DEBUG("TIMING0: 0x%" PRIx32, value);
 	target_write_u32(target, esirisc_info->cfg + TIMING0, value);
@@ -446,9 +453,9 @@ static int esirisc_flash_init(struct flash_bank *bank)
 	LOG_DEBUG("TIMING1: 0x%" PRIx32, value);
 	target_write_u32(target, esirisc_info->cfg + TIMING1, value);
 
-	value = TIMING2_T(esirisc_flash_num_cycles(bank, 10))   |
-			TIMING2_H(esirisc_flash_num_cycles(bank, 100))  |
-			TIMING2_P(esirisc_flash_num_cycles(bank, TPROG));
+	value = TIMING2_T(esirisc_flash_num_cycles(bank, 10))
+			| TIMING2_H(esirisc_flash_num_cycles(bank, 100))
+			| TIMING2_P(esirisc_flash_num_cycles(bank, TPROG));
 
 	LOG_DEBUG("TIMING2: 0x%" PRIx32, value);
 	target_write_u32(target, esirisc_info->cfg + TIMING2, value);
@@ -579,14 +586,14 @@ static const struct command_registration esirisc_flash_exec_command_handlers[] =
 		.name = "mass_erase",
 		.handler = handle_esirisc_flash_mass_erase_command,
 		.mode = COMMAND_EXEC,
-		.help = "erases all pages in data memory",
+		.help = "erase all pages in data memory",
 		.usage = "bank_id",
 	},
 	{
 		.name = "ref_erase",
 		.handler = handle_esirisc_flash_ref_erase_command,
 		.mode = COMMAND_EXEC,
-		.help = "erases reference cell (uncommon)",
+		.help = "erase reference cell (uncommon)",
 		.usage = "bank_id",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -594,9 +601,9 @@ static const struct command_registration esirisc_flash_exec_command_handlers[] =
 
 static const struct command_registration esirisc_flash_command_handlers[] = {
 	{
-		.name = "esirisc_flash",
-		.mode = COMMAND_ANY,
-		.help = "eSi-RISC flash command group",
+		.name = "flash",
+		.mode = COMMAND_EXEC,
+		.help = "eSi-TSMC Flash command group",
 		.usage = "",
 		.chain = esirisc_flash_exec_command_handlers,
 	},
@@ -605,7 +612,6 @@ static const struct command_registration esirisc_flash_command_handlers[] = {
 
 struct flash_driver esirisc_flash = {
 	.name = "esirisc",
-	.commands = esirisc_flash_command_handlers,
 	.usage = "flash bank bank_id 'esirisc' base_address size_bytes 0 0 target "
 			"cfg_address clock_hz wait_states",
 	.flash_bank_command = esirisc_flash_bank_command,
@@ -618,4 +624,5 @@ struct flash_driver esirisc_flash = {
 	.erase_check = default_flash_blank_check,
 	.protect_check = esirisc_flash_protect_check,
 	.info = esirisc_flash_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };
