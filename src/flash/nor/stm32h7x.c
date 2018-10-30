@@ -78,9 +78,6 @@
 #define OPT_LOCK       (1 << 0)
 #define OPT_START      (1 << 1)
 
-/* FLASH_OPTCUR bit definitions (reading) */
-#define IWDG1_HW       (1 << 4)
-
 /* register unlock keys */
 #define KEY1           0x45670123
 #define KEY2           0xCDEF89AB
@@ -109,7 +106,6 @@ struct stm32x_options {
 	uint8_t user_options;
 	uint8_t user2_options;
 	uint8_t user3_options;
-	uint8_t independent_watchdog_selection;
 };
 
 struct stm32h7x_part_info {
@@ -327,11 +323,6 @@ static int stm32x_read_options(struct flash_bank *bank)
 	stm32x_info->option_bytes.user2_options = (optiondata >> 16) & 0xff;
 	stm32x_info->option_bytes.user3_options = (optiondata >> 24) & 0x83;
 
-	if (optiondata & IWDG1_HW)
-		stm32x_info->option_bytes.independent_watchdog_selection = 1;
-	else
-		stm32x_info->option_bytes.independent_watchdog_selection = 0;
-
 	if (stm32x_info->option_bytes.RDP != 0xAA)
 		LOG_INFO("Device Security Bit Set");
 
@@ -367,11 +358,6 @@ static int stm32x_write_options(struct flash_bank *bank)
 	optiondata |= (stm32x_info->option_bytes.RDP << 8);
 	optiondata |= (stm32x_info->option_bytes.user2_options & 0xff) << 16;
 	optiondata |= (stm32x_info->option_bytes.user3_options & 0x83) << 24;
-
-	if (stm32x_info->option_bytes.independent_watchdog_selection)
-		optiondata |= IWDG1_HW;
-	else
-		optiondata &= ~IWDG1_HW;
 
 	/* program options */
 	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTPRG, optiondata);
