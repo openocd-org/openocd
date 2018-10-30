@@ -321,7 +321,7 @@ static int stm32x_read_options(struct flash_bank *bank)
 	stm32x_info->option_bytes.user_options = optiondata & 0xfc;
 	stm32x_info->option_bytes.RDP = (optiondata >> 8) & 0xff;
 	stm32x_info->option_bytes.user2_options = (optiondata >> 16) & 0xff;
-	stm32x_info->option_bytes.user3_options = (optiondata >> 24) & 0x83;
+	stm32x_info->option_bytes.user3_options = (optiondata >> 24) & 0xa3;
 
 	if (stm32x_info->option_bytes.RDP != 0xAA)
 		LOG_INFO("Device Security Bit Set");
@@ -357,7 +357,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	optiondata = stm32x_info->option_bytes.user_options;
 	optiondata |= (stm32x_info->option_bytes.RDP << 8);
 	optiondata |= (stm32x_info->option_bytes.user2_options & 0xff) << 16;
-	optiondata |= (stm32x_info->option_bytes.user3_options & 0x83) << 24;
+	optiondata |= (stm32x_info->option_bytes.user3_options & 0xa3) << 24;
 
 	/* program options */
 	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTPRG, optiondata);
