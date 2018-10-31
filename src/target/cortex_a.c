@@ -307,32 +307,6 @@ static int cortex_a_exec_opcode(struct target *target,
 	return retval;
 }
 
-/**************************************************************************
-Read core register with very few exec_opcode, fast but needs work_area.
-This can cause problems with MMU active.
-**************************************************************************/
-static int cortex_a_read_regs_through_mem(struct target *target, uint32_t address,
-	uint32_t *regfile)
-{
-	int retval = ERROR_OK;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-
-	retval = cortex_a_dap_read_coreregister_u32(target, regfile, 0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = cortex_a_dap_write_coreregister_u32(target, address, 0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = cortex_a_exec_opcode(target, ARMV4_5_STMIA(0, 0xFFFE, 0, 0), NULL);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_read_buf(armv7a->memory_ap,
-			(uint8_t *)(&regfile[1]), 4, 15, address);
-
-	return retval;
-}
-
 static int cortex_a_dap_read_coreregister_u32(struct target *target,
 	uint32_t *value, int regnum)
 {
@@ -395,6 +369,7 @@ static int cortex_a_dap_read_coreregister_u32(struct target *target,
 	return retval;
 }
 
+__attribute__((unused))
 static int cortex_a_dap_write_coreregister_u32(struct target *target,
 	uint32_t value, int regnum)
 {
@@ -1183,10 +1158,8 @@ static int cortex_a_resume(struct target *target, int current,
 
 static int cortex_a_debug_entry(struct target *target)
 {
-	int i;
-	uint32_t regfile[16], cpsr, spsr, dscr;
+	uint32_t spsr, dscr;
 	int retval = ERROR_OK;
-	struct working_area *regfile_working_area = NULL;
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *arm = &armv7a->arm;
@@ -1227,56 +1200,10 @@ static int cortex_a_debug_entry(struct target *target)
 		arm_dpm_report_wfar(&armv7a->dpm, wfar);
 	}
 
-	/* REVISIT fast_reg_read is never set ... */
-
-	/* Examine target state and mode */
-	if (cortex_a->fast_reg_read)
-		target_alloc_working_area(target, 64, &regfile_working_area);
-
-
-	/* First load register acessible through core debug port*/
-	if (!regfile_working_area)
-		retval = arm_dpm_read_current_registers(&armv7a->dpm);
-	else {
-		retval = cortex_a_read_regs_through_mem(target,
-				regfile_working_area->address, regfile);
-
-		target_free_working_area(target, regfile_working_area);
-		if (retval != ERROR_OK)
-			return retval;
-
-		/* read Current PSR */
-		retval = cortex_a_dap_read_coreregister_u32(target, &cpsr, 16);
-		/*  store current cpsr */
-		if (retval != ERROR_OK)
-			return retval;
-
-		LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
-
-		arm_set_cpsr(arm, cpsr);
-
-		/* update cache */
-		for (i = 0; i <= ARM_PC; i++) {
-			reg = arm_reg_current(arm, i);
-
-			buf_set_u32(reg->value, 0, 32, regfile[i]);
-			reg->valid = 1;
-			reg->dirty = 0;
-		}
-
-		/* Fixup PC Resume Address */
-		if (cpsr & (1 << 5)) {
-			/* T bit set for Thumb or ThumbEE state */
-			regfile[ARM_PC] -= 4;
-		} else {
-			/* ARM state */
-			regfile[ARM_PC] -= 8;
-		}
-
-		reg = arm->pc;
-		buf_set_u32(reg->value, 0, 32, regfile[ARM_PC]);
-		reg->dirty = reg->valid;
-	}
+	/* First load register accessible through core debug port */
+	retval = arm_dpm_read_current_registers(&armv7a->dpm);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (arm->spsr) {
 		/* read Saved PSR */
@@ -3173,8 +3100,6 @@ static int cortex_a_init_arch_info(struct target *target,
 	/* Setup struct cortex_a_common */
 	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
 	armv7a->arm.dap = dap;
-
-	cortex_a->fast_reg_read = 0;
 
 	/* register arch-specific functions */
 	armv7a->examine_debug_reason = NULL;
