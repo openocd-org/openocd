@@ -106,8 +106,6 @@ struct armv7a_common {
 	struct arm_dpm dpm;
 	uint32_t debug_base;
 	struct adiv5_ap *debug_ap;
-	struct adiv5_ap *memory_ap;
-	bool memory_ap_available;
 	/* mdir */
 	uint8_t multi_processor_system;
 	uint8_t cluster_id;

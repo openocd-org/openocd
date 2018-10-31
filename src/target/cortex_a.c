@@ -2622,9 +2622,6 @@ static int cortex_a_read_phys_memory(struct target *target,
 	target_addr_t address, uint32_t size,
 	uint32_t count, uint8_t *buffer)
 {
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
-	uint8_t apsel = swjdp->apsel;
 	int retval;
 
 	if (!count || !buffer)
@@ -2632,9 +2629,6 @@ static int cortex_a_read_phys_memory(struct target *target,
 
 	LOG_DEBUG("Reading memory at real address " TARGET_ADDR_FMT "; size %" PRId32 "; count %" PRId32,
 		address, size, count);
-
-	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap->ap_num))
-		return mem_ap_read_buf(armv7a->memory_ap, buffer, size, count, address);
 
 	/* read memory through the CPU */
 	cortex_a_prep_memaccess(target, 1);
@@ -2660,57 +2654,10 @@ static int cortex_a_read_memory(struct target *target, target_addr_t address,
 	return retval;
 }
 
-static int cortex_a_read_memory_ahb(struct target *target, target_addr_t address,
-	uint32_t size, uint32_t count, uint8_t *buffer)
-{
-	int mmu_enabled = 0;
-	target_addr_t virt, phys;
-	int retval;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
-	uint8_t apsel = swjdp->apsel;
-
-	if (!armv7a->memory_ap_available || (apsel != armv7a->memory_ap->ap_num))
-		return target_read_memory(target, address, size, count, buffer);
-
-	/* cortex_a handles unaligned memory access */
-	LOG_DEBUG("Reading memory at address " TARGET_ADDR_FMT "; size %" PRId32 "; count %" PRId32,
-		address, size, count);
-
-	/* determine if MMU was enabled on target stop */
-	if (!armv7a->is_armv7r) {
-		retval = cortex_a_mmu(target, &mmu_enabled);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	if (mmu_enabled) {
-		virt = address;
-		retval = cortex_a_virt2phys(target, virt, &phys);
-		if (retval != ERROR_OK)
-			return retval;
-
-		LOG_DEBUG("Reading at virtual address. "
-			  "Translating v:" TARGET_ADDR_FMT " to r:" TARGET_ADDR_FMT,
-			  virt, phys);
-		address = phys;
-	}
-
-	if (!count || !buffer)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	retval = mem_ap_read_buf(armv7a->memory_ap, buffer, size, count, address);
-
-	return retval;
-}
-
 static int cortex_a_write_phys_memory(struct target *target,
 	target_addr_t address, uint32_t size,
 	uint32_t count, const uint8_t *buffer)
 {
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
-	uint8_t apsel = swjdp->apsel;
 	int retval;
 
 	if (!count || !buffer)
@@ -2718,9 +2665,6 @@ static int cortex_a_write_phys_memory(struct target *target,
 
 	LOG_DEBUG("Writing memory to real address " TARGET_ADDR_FMT "; size %" PRId32 "; count %" PRId32,
 		address, size, count);
-
-	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap->ap_num))
-		return mem_ap_write_buf(armv7a->memory_ap, buffer, size, count, address);
 
 	/* write memory through the CPU */
 	cortex_a_prep_memaccess(target, 1);
@@ -2748,51 +2692,6 @@ static int cortex_a_write_memory(struct target *target, target_addr_t address,
 	return retval;
 }
 
-static int cortex_a_write_memory_ahb(struct target *target, target_addr_t address,
-	uint32_t size, uint32_t count, const uint8_t *buffer)
-{
-	int mmu_enabled = 0;
-	target_addr_t virt, phys;
-	int retval;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
-	uint8_t apsel = swjdp->apsel;
-
-	if (!armv7a->memory_ap_available || (apsel != armv7a->memory_ap->ap_num))
-		return target_write_memory(target, address, size, count, buffer);
-
-	/* cortex_a handles unaligned memory access */
-	LOG_DEBUG("Writing memory at address " TARGET_ADDR_FMT "; size %" PRId32 "; count %" PRId32,
-		address, size, count);
-
-	/* determine if MMU was enabled on target stop */
-	if (!armv7a->is_armv7r) {
-		retval = cortex_a_mmu(target, &mmu_enabled);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	if (mmu_enabled) {
-		virt = address;
-		retval = cortex_a_virt2phys(target, virt, &phys);
-		if (retval != ERROR_OK)
-			return retval;
-
-		LOG_DEBUG("Writing to virtual address. "
-			  "Translating v:" TARGET_ADDR_FMT " to r:" TARGET_ADDR_FMT,
-			  virt,
-			  phys);
-		address = phys;
-	}
-
-	if (!count || !buffer)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	retval = mem_ap_write_buf(armv7a->memory_ap, buffer, size, count, address);
-
-	return retval;
-}
-
 static int cortex_a_read_buffer(struct target *target, target_addr_t address,
 				uint32_t count, uint8_t *buffer)
 {
@@ -2802,7 +2701,7 @@ static int cortex_a_read_buffer(struct target *target, target_addr_t address,
 	 * will have something to do with the size we leave to it. */
 	for (size = 1; size < 4 && count >= size * 2 + (address & size); size *= 2) {
 		if (address & size) {
-			int retval = cortex_a_read_memory_ahb(target, address, size, 1, buffer);
+			int retval = target_read_memory(target, address, size, 1, buffer);
 			if (retval != ERROR_OK)
 				return retval;
 			address += size;
@@ -2815,7 +2714,7 @@ static int cortex_a_read_buffer(struct target *target, target_addr_t address,
 	for (; size > 0; size /= 2) {
 		uint32_t aligned = count - count % size;
 		if (aligned > 0) {
-			int retval = cortex_a_read_memory_ahb(target, address, size, aligned / size, buffer);
+			int retval = target_read_memory(target, address, size, aligned / size, buffer);
 			if (retval != ERROR_OK)
 				return retval;
 			address += aligned;
@@ -2836,7 +2735,7 @@ static int cortex_a_write_buffer(struct target *target, target_addr_t address,
 	 * will have something to do with the size we leave to it. */
 	for (size = 1; size < 4 && count >= size * 2 + (address & size); size *= 2) {
 		if (address & size) {
-			int retval = cortex_a_write_memory_ahb(target, address, size, 1, buffer);
+			int retval = target_write_memory(target, address, size, 1, buffer);
 			if (retval != ERROR_OK)
 				return retval;
 			address += size;
@@ -2849,7 +2748,7 @@ static int cortex_a_write_buffer(struct target *target, target_addr_t address,
 	for (; size > 0; size /= 2) {
 		uint32_t aligned = count - count % size;
 		if (aligned > 0) {
-			int retval = cortex_a_write_memory_ahb(target, address, size, aligned / size, buffer);
+			int retval = target_write_memory(target, address, size, aligned / size, buffer);
 			if (retval != ERROR_OK)
 				return retval;
 			address += aligned;
@@ -2926,21 +2825,6 @@ static int cortex_a_examine_first(struct target *target)
 	}
 
 	armv7a->debug_ap->memaccess_tck = 80;
-
-	/* Search for the AHB-AB.
-	 * REVISIT: We should search for AXI-AP as well and make sure the AP's MEMTYPE says it
-	 * can access system memory. */
-	armv7a->memory_ap_available = false;
-	retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7a->memory_ap);
-	if (retval == ERROR_OK) {
-		retval = mem_ap_init(armv7a->memory_ap);
-		if (retval == ERROR_OK)
-			armv7a->memory_ap_available = true;
-	}
-	if (retval != ERROR_OK) {
-		/* AHB-AP not found or unavailable - use the CPU */
-		LOG_DEBUG("No AHB-AP available for memory access");
-	}
 
 	if (!target->dbgbase_set) {
 		uint32_t dbgbase;
@@ -3185,10 +3069,7 @@ static int cortex_a_mmu(struct target *target, int *enabled)
 static int cortex_a_virt2phys(struct target *target,
 	target_addr_t virt, target_addr_t *phys)
 {
-	int retval = ERROR_FAIL;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
-	uint8_t apsel = swjdp->apsel;
+	int retval;
 	int mmu_enabled = 0;
 
 	/*
@@ -3203,23 +3084,12 @@ static int cortex_a_virt2phys(struct target *target,
 		return ERROR_OK;
 	}
 
-	if (armv7a->memory_ap_available && (apsel == armv7a->memory_ap->ap_num)) {
-		uint32_t ret;
-		retval = armv7a_mmu_translate_va(target,
-				virt, &ret);
-		if (retval != ERROR_OK)
-			goto done;
-		*phys = ret;
-	} else {/*  use this method if armv7a->memory_ap not selected
-		 *  mmu must be enable in order to get a correct translation */
-		retval = cortex_a_mmu_modify(target, 1);
-		if (retval != ERROR_OK)
-			goto done;
-		retval = armv7a_mmu_translate_va_pa(target, (uint32_t)virt,
+	/* mmu must be enable in order to get a correct translation */
+	retval = cortex_a_mmu_modify(target, 1);
+	if (retval != ERROR_OK)
+		return retval;
+	return armv7a_mmu_translate_va_pa(target, (uint32_t)virt,
 						    (uint32_t *)phys, 1);
-	}
-done:
-	return retval;
 }
 
 COMMAND_HANDLER(cortex_a_handle_cache_info_command)
