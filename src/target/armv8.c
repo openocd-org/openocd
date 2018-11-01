@@ -1674,6 +1674,11 @@ const struct command_registration armv8_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+const char *armv8_get_gdb_arch(struct target *target)
+{
+	return "aarch64";
+}
+
 int armv8_get_gdb_reg_list(struct target *target,
 	struct reg **reg_list[], int *reg_list_size,
 	enum target_register_class reg_class)

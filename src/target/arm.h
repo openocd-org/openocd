@@ -267,6 +267,7 @@ const char *arm_get_gdb_arch(struct target *target);
 int arm_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);
+const char *armv8_get_gdb_arch(struct target *target);
 int armv8_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);
