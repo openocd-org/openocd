@@ -2518,6 +2518,7 @@ struct target_type cortexm_target = {
 	.deassert_reset = cortex_m_deassert_reset,
 	.soft_reset_halt = cortex_m_soft_reset_halt,
 
+	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
 	.read_memory = cortex_m_read_memory,

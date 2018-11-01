@@ -820,6 +820,7 @@ struct target_type hla_target = {
 	.resume = adapter_resume,
 	.step = adapter_step,
 
+	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
 	.read_memory = adapter_read_memory,

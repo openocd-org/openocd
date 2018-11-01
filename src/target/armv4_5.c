@@ -1179,6 +1179,20 @@ const struct command_registration arm_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+/*
+ * gdb for arm targets (e.g. arm-none-eabi-gdb) supports several variants
+ * of arm architecture. You can list them using the autocompletion of gdb
+ * command prompt by typing "set architecture " and then press TAB key.
+ * The default, selected automatically, is "arm".
+ * Let's use the default value, here, to make gdb-multiarch behave in the
+ * same way as a gdb for arm. This can be changed later on. User can still
+ * set the specific architecture variant with the gdb command.
+ */
+const char *arm_get_gdb_arch(struct target *target)
+{
+	return "arm";
+}
+
 int arm_get_gdb_reg_list(struct target *target,
 	struct reg **reg_list[], int *reg_list_size,
 	enum target_register_class reg_class)
