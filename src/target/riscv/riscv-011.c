@@ -1664,7 +1664,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 				break;
 			default:
 				LOG_ERROR("Got invalid bus access status: %d", status);
-				return ERROR_FAIL;
+				goto error;
 		}
 		if (data & DMCONTROL_INTERRUPT) {
 			interrupt_set++;
@@ -1794,6 +1794,8 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		}
 	}
 
+	scans_delete(scans);
+
 	if (dbus_busy) {
 		increase_dbus_busy_delay(target);
 		return RE_AGAIN;
@@ -1806,8 +1808,6 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	/* TODO: get rid of those 2 variables and talk to the cache directly. */
 	info->dpc = reg_cache_get(target, CSR_DPC);
 	info->dcsr = reg_cache_get(target, CSR_DCSR);
-
-	scans_delete(scans);
 
 	cache_invalidate(target);
 
