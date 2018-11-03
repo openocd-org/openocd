@@ -113,7 +113,7 @@ static int cortex_a_prep_memaccess(struct target *target, int phys_access)
 	int mmu_enabled = 0;
 
 	if (phys_access == 0) {
-		dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
+		arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
 		cortex_a_mmu(target, &mmu_enabled);
 		if (mmu_enabled)
 			cortex_a_mmu_modify(target, 1);
@@ -148,7 +148,7 @@ static int cortex_a_post_memaccess(struct target *target, int phys_access)
 					0, 0, 3, 0,
 					cortex_a->cp15_dacr_reg);
 		}
-		dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
+		arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
 	} else {
 		int mmu_enabled = 0;
 		cortex_a_mmu(target, &mmu_enabled);
@@ -1011,7 +1011,7 @@ static int cortex_a_internal_restore(struct target *target, int current,
 	arm->pc->valid = 1;
 
 	/* restore dpm_mode at system halt */
-	dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
+	arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
 	/* called it now before restoring context because it uses cpu
 	 * register r0 for restoring cp15 control register */
 	retval = cortex_a_restore_cp15_control_reg(target);
@@ -1277,7 +1277,7 @@ static int cortex_a_post_debug_entry(struct target *target)
 	cortex_a->curr_mode = armv7a->arm.core_mode;
 
 	/* switch to SVC mode to read DACR */
-	dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
+	arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
 	armv7a->arm.mrc(target, 15,
 			0, 0, 3, 0,
 			&cortex_a->cp15_dacr_reg);
@@ -1285,7 +1285,7 @@ static int cortex_a_post_debug_entry(struct target *target)
 	LOG_DEBUG("cp15_dacr_reg: %8.8" PRIx32,
 			cortex_a->cp15_dacr_reg);
 
-	dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
+	arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
 	return ERROR_OK;
 }
 
