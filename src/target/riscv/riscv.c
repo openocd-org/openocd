@@ -512,19 +512,30 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 
 int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
+	assert(breakpoint);
 	if (breakpoint->type == BKPT_SOFT) {
-		if (target_read_memory(target, breakpoint->address, breakpoint->length, 1,
+		/// @todo check RVC for size/alignment
+		if (!(breakpoint->length == 4 || breakpoint->length == 2)) {
+			LOG_ERROR("Invalid breakpoint length %d", breakpoint->length);
+			return ERROR_FAIL;
+		}
+
+		if (0 != (breakpoint->address % 2)) {
+			LOG_ERROR("Invalid breakpoint alignment for address 0x%" TARGET_PRIxADDR, breakpoint->address);
+			return ERROR_FAIL;
+		}
+
+		if (target_read_memory(target, breakpoint->address, 2, breakpoint->length / 2,
 					breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to read original instruction at 0x%" TARGET_PRIxADDR,
 					breakpoint->address);
 			return ERROR_FAIL;
 		}
 
-		int retval;
-		if (breakpoint->length == 4)
-			retval = target_write_u32(target, breakpoint->address, ebreak());
-		else
-			retval = target_write_u16(target, breakpoint->address, ebreak_c());
+		uint8_t buff[4];
+		buf_set_u32(buff, 0, breakpoint->length * CHAR_BIT, breakpoint->length == 4 ? ebreak() : ebreak_c());
+		int const retval = target_write_memory(target, breakpoint->address, 2, breakpoint->length / 2, buff);
+
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
 					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
@@ -534,17 +545,15 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	} else if (breakpoint->type == BKPT_HARD) {
 		struct trigger trigger;
 		trigger_from_breakpoint(&trigger, breakpoint);
-		int result = add_trigger(target, &trigger);
+		int const result = add_trigger(target, &trigger);
 		if (result != ERROR_OK)
 			return result;
-
 	} else {
 		LOG_INFO("OpenOCD only supports hardware and software breakpoints.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	breakpoint->set = true;
-
 	return ERROR_OK;
 }
 
@@ -597,7 +606,7 @@ int riscv_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	if (breakpoint->type == BKPT_SOFT) {
-		if (target_write_memory(target, breakpoint->address, breakpoint->length, 1,
+		if (target_write_memory(target, breakpoint->address, 2, breakpoint->length / 2,
 					breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
 					"0x%" TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
