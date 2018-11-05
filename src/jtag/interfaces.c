@@ -54,6 +54,9 @@ extern struct jtag_interface dummy_interface;
 #if BUILD_FTDI == 1
 extern struct jtag_interface ftdi_interface;
 #endif
+#if BUILD_FTDI_OSCAN1 == 1
+extern struct jtag_interface oscan1_ftdi_interface;
+#endif
 #if BUILD_USB_BLASTER == 1 || BUILD_USB_BLASTER_2 == 1
 extern struct jtag_interface usb_blaster_interface;
 #endif
