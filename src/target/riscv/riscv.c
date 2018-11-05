@@ -514,7 +514,7 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	assert(breakpoint);
 	if (breakpoint->type == BKPT_SOFT) {
-		/// @todo check RVC for size/alignment
+		/* @todo check RVC for size/alignment */
 		if (!(breakpoint->length == 4 || breakpoint->length == 2)) {
 			LOG_ERROR("Invalid breakpoint length %d", breakpoint->length);
 			return ERROR_FAIL;
