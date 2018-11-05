@@ -1451,7 +1451,7 @@ static int step(struct target *target, int current, target_addr_t address,
 		if (result != ERROR_OK)
 			return result;
 	} else {
-		return resume(target, 0, true);
+		return full_step(target, false);
 	}
 
 	return ERROR_OK;
