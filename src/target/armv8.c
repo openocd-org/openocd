@@ -1477,6 +1477,9 @@ static int armv8_get_core_reg32(struct reg *reg)
 	struct reg *reg64;
 	int retval;
 
+	if (target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
+
 	/* get the corresponding Aarch64 register */
 	reg64 = cache->reg_list + armv8_reg->num;
 	if (reg64->valid) {
@@ -1499,6 +1502,9 @@ static int armv8_set_core_reg32(struct reg *reg, uint8_t *buf)
 	struct reg_cache *cache = arm->core_cache;
 	struct reg *reg64 = cache->reg_list + armv8_reg->num;
 	uint32_t value = buf_get_u32(buf, 0, 32);
+
+	if (target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
 
 	if (reg64 == arm->cpsr) {
 		armv8_set_cpsr(arm, value);
