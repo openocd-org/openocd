@@ -7,6 +7,10 @@ matrix:
           env:
               - BUILD=x86_64-linux-gnu
               - EXECUTABLE=openocd
+          addons:
+              apt:
+                  packages:
+                      - patchutils
           compiler: gcc
 
         - os: linux
@@ -17,13 +21,17 @@ matrix:
           addons:
               apt:
                   packages:
-                      - gcc-multilib
+                      - gcc-multilib patchutils
           compiler: gcc
 
         - os: linux
           env:
               - BUILD=x86_64-linux-gnu
               - EXECUTABLE=openocd
+          addons:
+              apt:
+                  packages:
+                      - patchutils
           compiler: clang
 
         - os: linux
@@ -36,7 +44,7 @@ matrix:
           addons:
               apt:
                   packages:
-                      - gcc-multilib
+                      - gcc-multilib patchutils
 
         - os: linux
           env:
@@ -47,7 +55,7 @@ matrix:
           addons:
               apt:
                   packages:
-                      - binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686
+                      - binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686 patchutils
 
 script:
     # Ideally we'd diff back to where we either branched off OpenOCD or master,
@@ -56,7 +64,7 @@ script:
     # so this should work fine most of the time, and be a lot better than not
     # checking at all.
     - git diff -U20 HEAD~40 |
-        filterdiff -x "src/jtag/drivers/libjaylink/*" -x "tools/git2cl/*" |
+        filterdiff -x "b/src/jtag/drivers/libjaylink/*" -x "b/tools/git2cl/*" |
         ./tools/scripts/checkpatch.pl --no-signoff -
     - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi $CONFIGURE_ARGS && make
     - file src/$EXECUTABLE

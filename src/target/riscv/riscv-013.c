@@ -3292,7 +3292,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 		LOG_INFO("ALL TESTS PASSED");
 		return ERROR_OK;
 	} else {
-		LOG_ERROR("%d TESTS FAILED", tests_failed);	
+		LOG_ERROR("%d TESTS FAILED", tests_failed);
 		return ERROR_FAIL;
 	}
 
@@ -3369,9 +3369,8 @@ static int maybe_execute_fence_i(struct target *target)
 {
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
-	if (info->progbufsize + r->impebreak >= 3) {
+	if (info->progbufsize + r->impebreak >= 3)
 		return execute_fence(target);
-	}
 	return ERROR_OK;
 }
 
