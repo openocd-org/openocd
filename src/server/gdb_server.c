@@ -2850,7 +2850,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 			if (gdb_connection->sync) {
 				gdb_connection->sync = false;
 				if (ct->state == TARGET_HALTED) {
-					LOG_WARNING("stepi ignored. GDB will now fetch the register state " \
+					LOG_DEBUG("stepi ignored. GDB will now fetch the register state " \
 									"from the target.");
 					gdb_sig_halted(connection);
 					log_remove_callback(gdb_log_callback, connection);
@@ -3234,7 +3234,7 @@ static int gdb_input_inner(struct connection *connection)
 						 * make only the single stepping have the sync feature...
 						 */
 						nostep = true;
-						LOG_WARNING("stepi ignored. GDB will now fetch the register state " \
+						LOG_DEBUG("stepi ignored. GDB will now fetch the register state " \
 								"from the target.");
 					}
 					gdb_con->sync = false;
