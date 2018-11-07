@@ -754,7 +754,7 @@ static int write_abstract_arg(struct target *target, unsigned index,
 }
 
 /**
- * @size in bits
+ * @par size in bits
  */
 static uint32_t access_register_command(struct target *target, uint32_t number,
 		unsigned size, uint32_t flags)
@@ -1743,7 +1743,7 @@ static int deassert_reset(struct target *target)
 }
 
 /**
- * @size in bytes
+ * @par size in bytes
  */
 static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 {
