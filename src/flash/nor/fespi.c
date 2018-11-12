@@ -501,6 +501,7 @@ static struct algorithm_steps *as_delete(struct algorithm_steps *as)
 		free(as->steps[step]);
 		as->steps[step] = NULL;
 	}
+	free(as->steps);
 	free(as);
 	return NULL;
 }
@@ -695,17 +696,19 @@ static int steps_execute(struct algorithm_steps *as,
 	init_reg_param(&reg_params[1], "a1", xlen, PARAM_OUT);
 	buf_set_u64(reg_params[0].value, 0, xlen, ctrl_base);
 	buf_set_u64(reg_params[1].value, 0, xlen, data_wa->address);
+
+	int retval = ERROR_OK;
 	while (!as_empty(as)) {
 		keep_alive();
 		uint8_t *data_buf = malloc(data_wa->size);
 		unsigned bytes = as_compile(as, data_buf, data_wa->size);
-		int retval = target_write_buffer(target, data_wa->address, bytes,
+		retval = target_write_buffer(target, data_wa->address, bytes,
 				data_buf);
 		free(data_buf);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to write data to 0x%" TARGET_PRIxADDR ": %d",
 					data_wa->address, retval);
-			return retval;
+			goto exit;
 		}
 
 		retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
@@ -714,11 +717,14 @@ static int steps_execute(struct algorithm_steps *as,
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d",
 					algorithm_wa->address, retval);
-			return retval;
+			goto exit;
 		}
 	}
 
-	return ERROR_OK;
+exit:
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[0]);
+	return retval;
 }
 
 static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
