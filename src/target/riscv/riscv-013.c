@@ -1470,7 +1470,8 @@ static int examine(struct target *target)
 			dmi_write(target, DMI_DMCONTROL,
 					set_hartsel(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET, i));
 
-		if (!riscv_is_halted(target)) {
+		bool halted = riscv_is_halted(target);
+		if (!halted) {
 			if (riscv013_halt_current_hart(target) != ERROR_OK) {
 				LOG_ERROR("Fatal: Hart %d failed to halt during examine()", i);
 				return ERROR_FAIL;
@@ -1500,6 +1501,9 @@ static int examine(struct target *target)
 		 * really slow simulators. */
 		LOG_DEBUG(" hart %d: XLEN=%d, misa=0x%" PRIx64, i, r->xlen[i],
 				r->misa[i]);
+
+		if (!halted)
+			riscv013_resume_current_hart(target);
 	}
 
 	LOG_DEBUG("Enumerated %d harts", r->hart_count);
@@ -1508,11 +1512,6 @@ static int examine(struct target *target)
 		LOG_ERROR("No harts found!");
 		return ERROR_FAIL;
 	}
-
-	/* Resumes all the harts, so the debugger can later pause them. */
-	/* TODO: Only do this if the harts were halted to start with. */
-	riscv_resume_all_harts(target);
-	target->state = TARGET_RUNNING;
 
 	target_set_examined(target);
 
