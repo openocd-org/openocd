@@ -30,11 +30,6 @@ struct ocl_priv {
 	unsigned int bufalign;
 };
 
-static int ocl_erase_check(struct flash_bank *bank)
-{
-	return ERROR_OK;
-}
-
 /* flash_bank ocl 0 0 0 0 <target#> */
 FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 {
@@ -326,7 +321,7 @@ struct flash_driver ocl_flash = {
 	.write = ocl_write,
 	.read = default_flash_read,
 	.probe = ocl_probe,
-	.erase_check = ocl_erase_check,
+	.erase_check = default_flash_blank_check,
 	.auto_probe = ocl_auto_probe,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

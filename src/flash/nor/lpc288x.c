@@ -232,17 +232,6 @@ static uint32_t lpc288x_system_ready(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int lpc288x_erase_check(struct flash_bank *bank)
-{
-	uint32_t status = lpc288x_system_ready(bank);	/* probed? halted? */
-	if (status != ERROR_OK) {
-		LOG_INFO("Processor not halted/not probed");
-		return status;
-	}
-
-	return ERROR_OK;
-}
-
 static int lpc288x_erase(struct flash_bank *bank, int first, int last)
 {
 	uint32_t status;
@@ -432,7 +421,7 @@ struct flash_driver lpc288x_flash = {
 	.read = default_flash_read,
 	.probe = lpc288x_probe,
 	.auto_probe = lpc288x_probe,
-	.erase_check = lpc288x_erase_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = lpc288x_protect_check,
 	.free_driver_priv = default_flash_free_driver_priv,
 };
