@@ -312,12 +312,6 @@ static int cc26xx_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-static int cc26xx_protect(struct flash_bank *bank, int set, int first,
-	int last)
-{
-	return ERROR_OK;
-}
-
 static int cc26xx_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
@@ -508,11 +502,6 @@ static int cc26xx_auto_probe(struct flash_bank *bank)
 	return retval;
 }
 
-static int cc26xx_protect_check(struct flash_bank *bank)
-{
-	return ERROR_OK;
-}
-
 static int cc26xx_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct cc26xx_bank *cc26xx_bank = bank->driver_priv;
@@ -555,13 +544,11 @@ struct flash_driver cc26xx_flash = {
 	.name = "cc26xx",
 	.flash_bank_command = cc26xx_flash_bank_command,
 	.erase = cc26xx_erase,
-	.protect = cc26xx_protect,
 	.write = cc26xx_write,
 	.read = default_flash_read,
 	.probe = cc26xx_probe,
 	.auto_probe = cc26xx_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = cc26xx_protect_check,
 	.info = cc26xx_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

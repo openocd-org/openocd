@@ -424,13 +424,6 @@ static int stm32lx_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int stm32lx_protect(struct flash_bank *bank, int set, int first,
-		int last)
-{
-	LOG_WARNING("protection of the STM32L flash is not implemented");
-	return ERROR_OK;
-}
-
 static int stm32lx_write_half_pages(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
@@ -862,7 +855,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 		bank->sectors[i].offset = i * FLASH_SECTOR_SIZE;
 		bank->sectors[i].size = FLASH_SECTOR_SIZE;
 		bank->sectors[i].is_erased = -1;
-		bank->sectors[i].is_protected = 1;
+		bank->sectors[i].is_protected = -1;
 	}
 
 	stm32lx_info->probed = 1;
@@ -955,7 +948,6 @@ struct flash_driver stm32lx_flash = {
 		.commands = stm32lx_command_handlers,
 		.flash_bank_command = stm32lx_flash_bank_command,
 		.erase = stm32lx_erase,
-		.protect = stm32lx_protect,
 		.write = stm32lx_write,
 		.read = default_flash_read,
 		.probe = stm32lx_probe,

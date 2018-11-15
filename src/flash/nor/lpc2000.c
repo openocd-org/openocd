@@ -1018,12 +1018,6 @@ static int lpc2000_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-static int lpc2000_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	/* can't protect/unprotect on the lpc2000 */
-	return ERROR_OK;
-}
-
 static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -1501,12 +1495,6 @@ static int lpc2000_erase_check(struct flash_bank *bank)
 	return lpc2000_iap_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
-static int lpc2000_protect_check(struct flash_bank *bank)
-{
-	/* sectors are always protected	*/
-	return ERROR_OK;
-}
-
 static int get_lpc2000_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
@@ -1571,13 +1559,11 @@ struct flash_driver lpc2000_flash = {
 	.commands = lpc2000_command_handlers,
 	.flash_bank_command = lpc2000_flash_bank_command,
 	.erase = lpc2000_erase,
-	.protect = lpc2000_protect,
 	.write = lpc2000_write,
 	.read = default_flash_read,
 	.probe = lpc2000_probe,
 	.auto_probe = lpc2000_probe,
 	.erase_check = lpc2000_erase_check,
-	.protect_check = lpc2000_protect_check,
 	.info = get_lpc2000_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

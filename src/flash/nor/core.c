@@ -68,6 +68,11 @@ int flash_driver_protect(struct flash_bank *bank, int set, int first, int last)
 	/* force "set" to 0/1 */
 	set = !!set;
 
+	if (bank->driver->protect == NULL) {
+		LOG_ERROR("Flash protection is not supported.");
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+	}
+
 	/* DANGER!
 	 *
 	 * We must not use any cached information about protection state!!!!

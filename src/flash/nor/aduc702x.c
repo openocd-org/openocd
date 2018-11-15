@@ -74,12 +74,6 @@ static int aduc702x_build_sector_list(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int aduc702x_protect_check(struct flash_bank *bank)
-{
-	printf("aduc702x_protect_check not implemented yet.\n");
-	return ERROR_OK;
-}
-
 static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 {
 	/* int res; */
@@ -128,12 +122,6 @@ static int aduc702x_erase(struct flash_bank *bank, int first, int last)
 	aduc702x_set_write_enable(target, 0);
 
 	return ERROR_OK;
-}
-
-static int aduc702x_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	printf("aduc702x_protect not implemented yet.\n");
-	return ERROR_FLASH_OPERATION_FAILED;
 }
 
 /* If this fn returns ERROR_TARGET_RESOURCE_NOT_AVAILABLE, then the caller can fall
@@ -394,11 +382,9 @@ struct flash_driver aduc702x_flash = {
 	.name = "aduc702x",
 	.flash_bank_command = aduc702x_flash_bank_command,
 	.erase = aduc702x_erase,
-	.protect = aduc702x_protect,
 	.write = aduc702x_write,
 	.read = default_flash_read,
 	.probe = aduc702x_probe,
 	.auto_probe = aduc702x_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = aduc702x_protect_check,
 };

@@ -167,6 +167,7 @@ static int lpc288x_read_part_info(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
+/* TODO: Revisit! Is it impossible to read protection status? */
 static int lpc288x_protect_check(struct flash_bank *bank)
 {
 	return ERROR_OK;

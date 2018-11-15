@@ -1035,18 +1035,13 @@ static int lpc2900_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int lpc2900_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	/* This command is not supported.
-	* "Protection" in LPC2900 terms is handled transparently. Sectors will
-	* automatically be unprotected as needed.
-	* Instead we use the concept of sector security. A secured sector is shown
-	* as "protected" in OpenOCD. Sector security is a permanent feature, and
-	* cannot be disabled once activated.
-	*/
-
-	return ERROR_OK;
-}
+/* lpc2900_protect command is not supported.
+* "Protection" in LPC2900 terms is handled transparently. Sectors will
+* automatically be unprotected as needed.
+* Instead we use the concept of sector security. A secured sector is shown
+* as "protected" in OpenOCD. Sector security is a permanent feature, and
+* cannot be disabled once activated.
+*/
 
 /**
  * Write data to flash.
@@ -1591,7 +1586,6 @@ struct flash_driver lpc2900_flash = {
 	.commands = lpc2900_command_handlers,
 	.flash_bank_command = lpc2900_flash_bank_command,
 	.erase = lpc2900_erase,
-	.protect = lpc2900_protect,
 	.write = lpc2900_write,
 	.read = default_flash_read,
 	.probe = lpc2900_probe,

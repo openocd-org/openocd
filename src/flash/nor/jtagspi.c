@@ -343,18 +343,8 @@ static int jtagspi_protect(struct flash_bank *bank, int set, int first, int last
 {
 	int sector;
 
-	if ((first < 0) || (last < first) || (last >= bank->num_sectors)) {
-		LOG_ERROR("Flash sector invalid");
-		return ERROR_FLASH_SECTOR_INVALID;
-	}
-
 	for (sector = first; sector <= last; sector++)
 		bank->sectors[sector].is_protected = set;
-	return ERROR_OK;
-}
-
-static int jtagspi_protect_check(struct flash_bank *bank)
-{
 	return ERROR_OK;
 }
 
@@ -431,7 +421,6 @@ struct flash_driver jtagspi_flash = {
 	.probe = jtagspi_probe,
 	.auto_probe = jtagspi_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = jtagspi_protect_check,
 	.info = jtagspi_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

@@ -899,12 +899,6 @@ static int mrvlqspi_flash_erase_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int mrvlqspi_protect_check(struct flash_bank *bank)
-{
-	/* Not implemented yet */
-	return ERROR_OK;
-}
-
 int mrvlqspi_get_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct mrvlqspi_flash_bank *mrvlqspi_info = bank->driver_priv;
@@ -947,13 +941,11 @@ struct flash_driver mrvlqspi_flash = {
 	.name = "mrvlqspi",
 	.flash_bank_command = mrvlqspi_flash_bank_command,
 	.erase = mrvlqspi_flash_erase,
-	.protect = NULL,
 	.write = mrvlqspi_flash_write,
 	.read = mrvlqspi_flash_read,
 	.probe = mrvlqspi_probe,
 	.auto_probe = mrvlqspi_auto_probe,
 	.erase_check = mrvlqspi_flash_erase_check,
-	.protect_check = mrvlqspi_protect_check,
 	.info = mrvlqspi_get_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

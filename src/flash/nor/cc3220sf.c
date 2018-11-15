@@ -173,12 +173,6 @@ static int cc3220sf_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-static int cc3220sf_protect(struct flash_bank *bank, int set, int first,
-	int last)
-{
-	return ERROR_OK;
-}
-
 static int cc3220sf_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
@@ -496,11 +490,6 @@ static int cc3220sf_auto_probe(struct flash_bank *bank)
 	return retval;
 }
 
-static int cc3220sf_protect_check(struct flash_bank *bank)
-{
-	return ERROR_OK;
-}
-
 static int cc3220sf_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	int printed;
@@ -517,13 +506,11 @@ struct flash_driver cc3220sf_flash = {
 	.name = "cc3220sf",
 	.flash_bank_command = cc3220sf_flash_bank_command,
 	.erase = cc3220sf_erase,
-	.protect = cc3220sf_protect,
 	.write = cc3220sf_write,
 	.read = default_flash_read,
 	.probe = cc3220sf_probe,
 	.auto_probe = cc3220sf_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = cc3220sf_protect_check,
 	.info = cc3220sf_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

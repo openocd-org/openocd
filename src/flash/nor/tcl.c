@@ -98,10 +98,18 @@ COMMAND_HANDLER(handle_flash_info_command)
 		if (retval != ERROR_OK)
 			return retval;
 
-		/* We must query the hardware to avoid printing stale information! */
-		retval = p->driver->protect_check(p);
-		if (retval != ERROR_OK)
-			return retval;
+		/* If the driver does not implement protection, we show the default
+		 * state of is_protected array - usually protection state unknown */
+		if (p->driver->protect_check == NULL) {
+			retval = ERROR_FLASH_OPER_UNSUPPORTED;
+		} else {
+			/* We must query the hardware to avoid printing stale information! */
+			retval = p->driver->protect_check(p);
+			if (retval != ERROR_OK && retval != ERROR_FLASH_OPER_UNSUPPORTED)
+				return retval;
+		}
+		if (retval == ERROR_FLASH_OPER_UNSUPPORTED)
+			LOG_WARNING("Flash protection check is not implemented.");
 
 		command_print(CMD_CTX,
 			"#%d : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32

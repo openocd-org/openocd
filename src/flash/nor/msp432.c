@@ -655,12 +655,6 @@ static int msp432_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-static int msp432_protect(struct flash_bank *bank, int set, int first,
-	int last)
-{
-	return ERROR_OK;
-}
-
 static int msp432_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
@@ -985,11 +979,6 @@ static int msp432_auto_probe(struct flash_bank *bank)
 	return retval;
 }
 
-static int msp432_protect_check(struct flash_bank *bank)
-{
-	return ERROR_OK;
-}
-
 static int msp432_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct msp432_bank *msp432_bank = bank->driver_priv;
@@ -1091,13 +1080,11 @@ struct flash_driver msp432_flash = {
 	.commands = msp432_command_handlers,
 	.flash_bank_command = msp432_flash_bank_command,
 	.erase = msp432_erase,
-	.protect = msp432_protect,
 	.write = msp432_write,
 	.read = default_flash_read,
 	.probe = msp432_probe,
 	.auto_probe = msp432_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = msp432_protect_check,
 	.info = msp432_info,
 	.free_driver_priv = msp432_flash_free_driver_priv,
 };
