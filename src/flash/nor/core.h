@@ -45,9 +45,12 @@ struct flash_sector {
 	uint32_t size;
 	/**
 	 * Indication of erasure status: 0 = not erased, 1 = erased,
-	 * other = unknown.  Set by @c flash_driver_s::erase_check.
+	 * other = unknown.  Set by @c flash_driver_s::erase_check only.
 	 *
-	 * Flag is not used in protection block
+	 * This information must be considered stale immediately.
+	 * Don't set it in flash_driver_s::erase or a device mass_erase
+	 * Don't clear it in flash_driver_s::write
+	 * The flag is not used in a protection block
 	 */
 	int is_erased;
 	/**
