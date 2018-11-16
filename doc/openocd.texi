@@ -2368,6 +2368,16 @@ the hardware can support.
 Returns the name of the debug adapter driver being used.
 @end deffn
 
+@deffn Command {adapter usb location} <bus>:<port>[.<port>]...
+Specifies the physical USB port of the adapter to use. The path
+roots at @var{bus} and walks down the physical ports, with each
+@var{port} option specifying a deeper level in the bus topology, the last
+@var{port} denoting where the target adapter is actually plugged.
+The USB bus topology can be queried with the command @emph{lsusb -t} or @emph{dmesg}.
+
+This command is only available if your libusb1 is at least version 1.0.16.
+@end deffn
+
 @section Interface Drivers
 
 Each of the interface drivers listed here must be explicitly
