@@ -69,6 +69,7 @@
 #endif
 
 /* project specific includes */
+#include <jtag/drivers/jtag_usb_common.h>
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <transport/transport.h>
@@ -89,7 +90,6 @@
 
 static char *ftdi_device_desc;
 static char *ftdi_serial;
-static char *ftdi_location;
 static uint8_t ftdi_channel;
 static uint8_t ftdi_jtag_mode = JTAG_MODE;
 
@@ -658,7 +658,7 @@ static int ftdi_initialize(void)
 
 	for (int i = 0; ftdi_vid[i] || ftdi_pid[i]; i++) {
 		mpsse_ctx = mpsse_open(&ftdi_vid[i], &ftdi_pid[i], ftdi_device_desc,
-				ftdi_serial, ftdi_location, ftdi_channel);
+				ftdi_serial, jtag_usb_get_location(), ftdi_channel);
 		if (mpsse_ctx)
 			break;
 	}
@@ -704,7 +704,6 @@ static int ftdi_quit(void)
 
 	free(ftdi_device_desc);
 	free(ftdi_serial);
-	free(ftdi_location);
 
 	free(swd_cmd_queue);
 
@@ -736,21 +735,6 @@ COMMAND_HANDLER(ftdi_handle_serial_command)
 
 	return ERROR_OK;
 }
-
-#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
-COMMAND_HANDLER(ftdi_handle_location_command)
-{
-	if (CMD_ARGC == 1) {
-		if (ftdi_location)
-			free(ftdi_location);
-		ftdi_location = strdup(CMD_ARGV[0]);
-	} else {
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return ERROR_OK;
-}
-#endif
 
 COMMAND_HANDLER(ftdi_handle_channel_command)
 {
@@ -966,15 +950,6 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.help = "set the serial number of the FTDI device",
 		.usage = "serial_string",
 	},
-#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
-	{
-		.name = "ftdi_location",
-		.handler = &ftdi_handle_location_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the USB bus location of the FTDI device",
-		.usage = "<bus>:port[,port]...",
-	},
-#endif
 	{
 		.name = "ftdi_channel",
 		.handler = &ftdi_handle_channel_command,
