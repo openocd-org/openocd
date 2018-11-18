@@ -522,6 +522,9 @@ static int ath79_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
+	if (ath79_info->dev->erase_cmd == 0x00)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+
 	for (sector = first; sector <= last; sector++) {
 		if (bank->sectors[sector].is_protected) {
 			LOG_ERROR("Flash sector %d protected", sector);
@@ -560,7 +563,11 @@ static int ath79_write_page(struct flash_bank *bank, const uint8_t *buffer,
 		address,
 	};
 	int retval;
-	uint32_t i;
+	uint32_t i, pagesize;
+
+	/* if no write pagesize, use reasonable default */
+	pagesize = ath79_info->dev->pagesize ?
+		ath79_info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
 
 	if (address & 0xff) {
 		LOG_ERROR("ath79_write_page: unaligned write address: %08x",
@@ -573,7 +580,7 @@ static int ath79_write_page(struct flash_bank *bank, const uint8_t *buffer,
 	}
 	if (len > ath79_info->dev->pagesize) {
 		LOG_ERROR("ath79_write_page: len bigger than page size %d: %d",
-			  ath79_info->dev->pagesize, len);
+			pagesize, len);
 		return ERROR_FAIL;
 	}
 
@@ -611,11 +618,15 @@ static int ath79_write_buffer(struct flash_bank *bank, const uint8_t *buffer,
 			      uint32_t address, uint32_t len)
 {
 	struct ath79_flash_bank *ath79_info = bank->driver_priv;
-	const uint32_t page_size = ath79_info->dev->pagesize;
+	uint32_t page_size;
 	int retval;
 
 	LOG_DEBUG("%s: address=0x%08" PRIx32 " len=0x%08" PRIx32,
 		  __func__, address, len);
+
+	/* if no valid page_size, use reasonable default */
+	page_size = ath79_info->dev->pagesize ?
+		ath79_info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
 
 	while (len > 0) {
 		int page_len = len > page_size ? page_size : len;
@@ -775,6 +786,7 @@ static int ath79_probe(struct flash_bank *bank)
 	struct ath79_flash_bank *ath79_info = bank->driver_priv;
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
+	uint32_t pagesize, sectorsize;
 	const struct ath79_target *target_device;
 	int retval;
 
@@ -820,16 +832,27 @@ static int ath79_probe(struct flash_bank *bank)
 
 	/* Set correct size value */
 	bank->size = ath79_info->dev->size_in_bytes;
+	if (bank->size <= (1UL << 16))
+		LOG_WARNING("device needs 2-byte addresses - not implemented");
+	if (bank->size > (1UL << 24))
+		LOG_WARNING("device needs paging or 4-byte addresses - not implemented");
+
+	/* if no sectors, treat whole bank as single sector */
+	sectorsize = ath79_info->dev->sectorsize ?
+		ath79_info->dev->sectorsize : ath79_info->dev->size_in_bytes;
 
 	/* create and fill sectors array */
-	bank->num_sectors =
-		ath79_info->dev->size_in_bytes / ath79_info->dev->sectorsize;
+	bank->num_sectors = ath79_info->dev->size_in_bytes / sectorsize;
 	sectors = calloc(1, sizeof(struct flash_sector) * bank->num_sectors);
 	if (!sectors) {
 		LOG_ERROR("not enough memory");
 		return ERROR_FAIL;
 	}
-	ath79_info->spi.page_buf = malloc(ath79_info->dev->pagesize);
+
+	/* if no write pagesize, use reasonable default */
+	pagesize = ath79_info->dev->pagesize ? ath79_info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
+
+	ath79_info->spi.page_buf = malloc(pagesize);
 	if (!ath79_info->spi.page_buf) {
 		LOG_ERROR("not enough memory");
 		free(sectors);
@@ -837,8 +860,8 @@ static int ath79_probe(struct flash_bank *bank)
 	}
 
 	for (int sector = 0; sector < bank->num_sectors; sector++) {
-		sectors[sector].offset = sector * ath79_info->dev->sectorsize;
-		sectors[sector].size = ath79_info->dev->sectorsize;
+		sectors[sector].offset = sector * sectorsize;
+		sectors[sector].size = sectorsize;
 		sectors[sector].is_erased = 0;
 		sectors[sector].is_protected = 1;
 	}
