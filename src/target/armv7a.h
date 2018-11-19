@@ -106,8 +106,6 @@ struct armv7a_common {
 	struct arm_dpm dpm;
 	uint32_t debug_base;
 	struct adiv5_ap *debug_ap;
-	struct adiv5_ap *memory_ap;
-	bool memory_ap_available;
 	/* mdir */
 	uint8_t multi_processor_system;
 	uint8_t cluster_id;
@@ -188,9 +186,6 @@ static inline bool is_armv7a(struct armv7a_common *armv7a)
 int armv7a_arch_state(struct target *target);
 int armv7a_identify_cache(struct target *target);
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
-int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
-		uint32_t *val, int meminfo);
-int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val);
 
 int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 		struct armv7a_cache_common *armv7a_cache);

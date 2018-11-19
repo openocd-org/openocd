@@ -30,7 +30,7 @@
 static bool eCos_detect_rtos(struct target *target);
 static int eCos_create(struct target *target);
 static int eCos_update_threads(struct rtos *rtos);
-static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
+static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, struct rtos_reg **reg_list, int *num_regs);
 static int eCos_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 
 struct eCos_thread_state {
@@ -285,12 +285,11 @@ static int eCos_update_threads(struct rtos *rtos)
 	return 0;
 }
 
-static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
+static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs)
 {
 	int retval;
 	const struct eCos_params *param;
-
-	*hex_reg_list = NULL;
 
 	if (rtos == NULL)
 		return -1;
@@ -345,7 +344,8 @@ static int eCos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char *
 		return rtos_generic_stack_read(rtos->target,
 			param->stacking_info,
 			stack_ptr,
-			hex_reg_list);
+			reg_list,
+			num_regs);
 	}
 
 	return -1;

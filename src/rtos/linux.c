@@ -144,16 +144,6 @@ static int linux_read_memory(struct target *target,
 	return ERROR_OK;
 }
 
-static char *reg_converter(char *buffer, void *reg, int size)
-{
-	int i;
-
-	for (i = 0; i < size; i++)
-		buffer += sprintf(buffer, "%02x", ((uint8_t *) reg)[i]);
-
-	return buffer;
-}
-
 int fill_buffer(struct target *target, uint32_t addr, uint8_t *buffer)
 {
 
@@ -174,15 +164,13 @@ uint32_t get_buffer(struct target *target, const uint8_t *buffer)
 }
 
 static int linux_os_thread_reg_list(struct rtos *rtos,
-	int64_t thread_id, char **hex_reg_list)
+	int64_t thread_id, struct rtos_reg **reg_list, int *num_regs)
 {
 	struct target *target = rtos->target;
 	struct linux_os *linux_os = (struct linux_os *)
 		target->rtos->rtos_specific_params;
-	int i = 0;
 	struct current_thread *tmp = linux_os->current_threads;
 	struct current_thread *next;
-	char *hex_string;
 	int found = 0;
 	int retval;
 	/*  check if a current thread is requested  */
@@ -195,117 +183,52 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 			next = next->next;
 	} while ((found == 0) && (next != tmp) && (next != NULL));
 
-	if (found == 1) {
-		/*  search target to perfom the access  */
-		struct reg **reg_list;
-		int reg_list_size, reg_packet_size = 0;
-		struct target_list *head;
-		head = target->head;
-		found = 0;
-		do {
-			if (head->target->coreid == next->core_id) {
-
-				target = head->target;
-				found = 1;
-			} else
-				head = head->next;
-
-		} while ((head != (struct target_list *)NULL) && (found == 0));
-
-		if (found == 0) {
-			LOG_ERROR
-			(
-				"current thread %" PRIx64 ": no target to perform access of core id %" PRIx32,
-				thread_id,
-				next->core_id);
-			return ERROR_FAIL;
-		}
-
-		/*LOG_INFO("thread %lx current on core %x",thread_id,
-		 * target->coreid);*/
-		retval =
-			target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
-					REG_CLASS_GENERAL);
-
-		if (retval != ERROR_OK)
-			return retval;
-
-		for (i = 0; i < reg_list_size; i++)
-			reg_packet_size += reg_list[i]->size;
-
-		assert(reg_packet_size > 0);
-
-		*hex_reg_list = malloc(DIV_ROUND_UP(reg_packet_size, 8) * 2);
-
-		hex_string = *hex_reg_list;
-
-		for (i = 0; i < reg_list_size; i++) {
-			if (!reg_list[i]->valid)
-				reg_list[i]->type->get(reg_list[i]);
-
-			hex_string = reg_converter(hex_string,
-					reg_list[i]->value,
-					(reg_list[i]->size) / 8);
-		}
-
-		free(reg_list);
-
-	} else {
-		struct threads *temp = linux_os->thread_list;
-		*hex_reg_list = calloc(1, 500 * sizeof(char));
-		hex_string = *hex_reg_list;
-
-		for (i = 0; i < 16; i++)
-			hex_string += sprintf(hex_string, "%02x", 0);
-
-		while ((temp != NULL) &&
-				(temp->threadid != target->rtos->current_threadid))
-			temp = temp->next;
-
-		if (temp != NULL) {
-			if (temp->context == NULL)
-				temp->context = cpu_context_read(target,
-						temp->
-						base_addr,
-						&temp->
-						thread_info_addr);
-
-			hex_string =
-				reg_converter(hex_string, &temp->context->R4, 4);
-			hex_string =
-				reg_converter(hex_string, &temp->context->R5, 4);
-			hex_string =
-				reg_converter(hex_string, &temp->context->R6, 4);
-			hex_string =
-				reg_converter(hex_string, &temp->context->R7, 4);
-			hex_string =
-				reg_converter(hex_string, &temp->context->R8, 4);
-			hex_string =
-				reg_converter(hex_string, &temp->context->R9, 4);
-
-			for (i = 0; i < 4; i++)	/*R10 = 0x0 */
-				hex_string += sprintf(hex_string, "%02x", 0);
-
-			hex_string =
-				reg_converter(hex_string, &temp->context->FP, 4);
-			hex_string =
-				reg_converter(hex_string, &temp->context->IP, 4);
-			hex_string =
-				reg_converter(hex_string, &temp->context->SP, 4);
-
-			for (i = 0; i < 4; i++)
-				hex_string += sprintf(hex_string, "%02x", 0);
-
-			hex_string =
-				reg_converter(hex_string, &temp->context->PC, 4);
-
-			for (i = 0; i < 100; i++)	/*100 */
-				hex_string += sprintf(hex_string, "%02x", 0);
-
-			uint32_t cpsr = 0x00000000;
-			reg_converter(hex_string, &cpsr, 4);
-		}
+	if (found == 0) {
+		LOG_ERROR("could not find thread: %" PRIx64, thread_id);
+		return ERROR_FAIL;
 	}
+
+	/*  search target to perfom the access  */
+	struct reg **gdb_reg_list;
+	struct target_list *head;
+	head = target->head;
+	found = 0;
+	do {
+		if (head->target->coreid == next->core_id) {
+
+			target = head->target;
+			found = 1;
+		} else
+			head = head->next;
+
+	} while ((head != (struct target_list *)NULL) && (found == 0));
+
+	if (found == 0) {
+		LOG_ERROR
+		(
+			"current thread %" PRIx64 ": no target to perform access of core id %" PRIx32,
+			thread_id,
+			next->core_id);
+		return ERROR_FAIL;
+	}
+
+	/*LOG_INFO("thread %lx current on core %x",thread_id, target->coreid);*/
+	retval = target_get_gdb_reg_list(target, &gdb_reg_list, num_regs, REG_CLASS_GENERAL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*reg_list = calloc(*num_regs, sizeof(struct rtos_reg));
+
+	for (int i = 0; i < *num_regs; ++i) {
+		if (!gdb_reg_list[i]->valid)
+			gdb_reg_list[i]->type->get(gdb_reg_list[i]);
+
+		(*reg_list)[i].number = gdb_reg_list[i]->number;
+		(*reg_list)[i].size = gdb_reg_list[i]->size;
+
+		buf_cpy(gdb_reg_list[i]->value, (*reg_list)[i].value, (*reg_list)[i].size);
+	}
+
 	return ERROR_OK;
 }
 
@@ -1134,7 +1057,7 @@ int linux_gdb_thread_packet(struct target *target,
 	if (retval != ERROR_OK)
 		return ERROR_TARGET_FAILURE;
 
-	char *out_str = calloc(1, 350 * sizeof(int64_t));
+	char *out_str = calloc(MAX_THREADS * 17 + 10, 1);
 	char *tmp_str = out_str;
 	tmp_str += sprintf(tmp_str, "m");
 	struct threads *temp = linux_os->thread_list;
@@ -1171,7 +1094,7 @@ int linux_gdb_thread_update(struct target *target,
 
 	if (found == 1) {
 		/*LOG_INFO("INTO GDB THREAD UPDATE FOUNDING START TASK");*/
-		char *out_strr = calloc(1, 350 * sizeof(int64_t));
+		char *out_strr = calloc(MAX_THREADS * 17 + 10, 1);
 		char *tmp_strr = out_strr;
 		tmp_strr += sprintf(tmp_strr, "m");
 		/*LOG_INFO("CHAR MALLOC & M DONE");*/

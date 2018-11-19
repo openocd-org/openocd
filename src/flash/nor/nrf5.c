@@ -26,6 +26,7 @@
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 #include <helper/types.h>
+#include <helper/time_support.h>
 
 enum {
 	NRF5_FLASH_BASE = 0x00000000,
@@ -203,9 +204,16 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 	NRF5_DEVICE_DEF(0x007A, "51422", "CEAA", "C0",    256),
 	NRF5_DEVICE_DEF(0x0088, "51422", "CFAC", "A0",    256),
 
+	/* nRF52810 Devices */
+	NRF5_DEVICE_DEF(0x0142, "52810", "QFAA", "B0",    192),
+	NRF5_DEVICE_DEF(0x0143, "52810", "QCAA", "C0",    192),
+
 	/* nRF52832 Devices */
 	NRF5_DEVICE_DEF(0x00C7, "52832", "QFAA", "B0",    512),
 	NRF5_DEVICE_DEF(0x0139, "52832", "QFAA", "E0",    512),
+
+	/* nRF52840 Devices */
+	NRF5_DEVICE_DEF(0x0150, "52840", "QIAA", "C0",    1024),
 };
 
 static int nrf5_bank_is_probed(struct flash_bank *bank)
@@ -240,7 +248,8 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 {
 	uint32_t ready;
 	int res;
-	int timeout = 100;
+	int timeout_ms = 200;
+	int64_t ts_start = timeval_ms();
 
 	do {
 		res = target_read_u32(chip->target, NRF5_NVMC_READY, &ready);
@@ -252,8 +261,9 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 		if (ready == 0x00000001)
 			return ERROR_OK;
 
-		alive_sleep(1);
-	} while (timeout--);
+		keep_alive();
+
+	} while ((timeval_ms()-ts_start) < timeout_ms);
 
 	LOG_DEBUG("Timed out waiting for NVMC_READY");
 	return ERROR_FLASH_BUSY;

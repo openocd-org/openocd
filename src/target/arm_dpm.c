@@ -108,7 +108,7 @@ static int dpm_mcr(struct target *target, int cpnum,
 /* Toggles between recorded core mode (USR, SVC, etc) and a temporary one.
  * Routines *must* restore the original mode before returning!!
  */
-int dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
+int arm_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 {
 	int retval;
 	uint32_t cpsr;
@@ -168,7 +168,7 @@ static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 }
 
 /* just read the register -- rely on the core mode being right */
-static int dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 {
 	uint32_t value;
 	int retval;
@@ -352,7 +352,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 	for (unsigned i = 0; i < 2; i++) {
 		r = arm->core_cache->reg_list + i;
 		if (!r->valid) {
-			retval = dpm_read_reg(dpm, r, i);
+			retval = arm_dpm_read_reg(dpm, r, i);
 			if (retval != ERROR_OK)
 				goto fail;
 		}
@@ -372,7 +372,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 		if (r->valid)
 			continue;
 
-		retval = dpm_read_reg(dpm, r, i);
+		retval = arm_dpm_read_reg(dpm, r, i);
 		if (retval != ERROR_OK)
 			goto fail;
 	}
@@ -543,7 +543,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 
 				/* REVISIT error checks */
 				if (tmode != ARM_MODE_ANY) {
-					retval = dpm_modeswitch(dpm, tmode);
+					retval = arm_dpm_modeswitch(dpm, tmode);
 					if (retval != ERROR_OK)
 						goto done;
 				}
@@ -564,7 +564,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * or it's dirty.  Must write PC to ensure the return address is
 	 * defined, and must not write it before CPSR.
 	 */
-	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
+	retval = arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
 	if (retval != ERROR_OK)
 		goto done;
 	arm->cpsr->dirty = false;
@@ -671,18 +671,18 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 		return retval;
 
 	if (mode != ARM_MODE_ANY) {
-		retval = dpm_modeswitch(dpm, mode);
+		retval = arm_dpm_modeswitch(dpm, mode);
 		if (retval != ERROR_OK)
 			goto fail;
 	}
 
-	retval = dpm_read_reg(dpm, r, regnum);
+	retval = arm_dpm_read_reg(dpm, r, regnum);
 	if (retval != ERROR_OK)
 		goto fail;
 	/* always clean up, regardless of error */
 
 	if (mode != ARM_MODE_ANY)
-		/* (void) */ dpm_modeswitch(dpm, ARM_MODE_ANY);
+		/* (void) */ arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
 
 fail:
 	/* (void) */ dpm->finish(dpm);
@@ -715,7 +715,7 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 		return retval;
 
 	if (mode != ARM_MODE_ANY) {
-		retval = dpm_modeswitch(dpm, mode);
+		retval = arm_dpm_modeswitch(dpm, mode);
 		if (retval != ERROR_OK)
 			goto fail;
 	}
@@ -724,7 +724,7 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 	/* always clean up, regardless of error */
 
 	if (mode != ARM_MODE_ANY)
-		/* (void) */ dpm_modeswitch(dpm, ARM_MODE_ANY);
+		/* (void) */ arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
 
 fail:
 	/* (void) */ dpm->finish(dpm);
@@ -773,9 +773,9 @@ static int arm_dpm_full_context(struct target *target)
 				 * in FIQ mode we need to patch mode.
 				 */
 				if (mode != ARM_MODE_ANY)
-					retval = dpm_modeswitch(dpm, mode);
+					retval = arm_dpm_modeswitch(dpm, mode);
 				else
-					retval = dpm_modeswitch(dpm, ARM_MODE_USR);
+					retval = arm_dpm_modeswitch(dpm, ARM_MODE_USR);
 
 				if (retval != ERROR_OK)
 					goto done;
@@ -784,7 +784,7 @@ static int arm_dpm_full_context(struct target *target)
 				continue;
 
 			/* CPSR was read, so "R16" must mean SPSR */
-			retval = dpm_read_reg(dpm,
+			retval = arm_dpm_read_reg(dpm,
 					&cache->reg_list[i],
 					(r->num == 16) ? 17 : r->num);
 			if (retval != ERROR_OK)
@@ -793,7 +793,7 @@ static int arm_dpm_full_context(struct target *target)
 
 	} while (did_read);
 
-	retval = dpm_modeswitch(dpm, ARM_MODE_ANY);
+	retval = arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
 	/* (void) */ dpm->finish(dpm);
 done:
 	return retval;

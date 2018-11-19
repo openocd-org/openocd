@@ -206,6 +206,8 @@ struct target {
 	/* file-I/O information for host to do syscall */
 	struct gdb_fileio_info *fileio_info;
 
+	char *gdb_port_override;			/* target-specific override for gdb_port */
+
 	/* The semihosting information, extracted from the target. */
 	struct semihosting *semihosting;
 };
@@ -222,6 +224,13 @@ struct gdb_fileio_info {
 	uint64_t param_3;
 	uint64_t param_4;
 };
+
+/** Returns a description of the endianness for the specified target. */
+static inline const char *target_endianness(struct target *target)
+{
+	return (target->endianness == TARGET_ENDIAN_UNKNOWN) ? "unknown" :
+			(target->endianness == TARGET_BIG_ENDIAN) ? "big endian" : "little endian";
+}
 
 /** Returns the instance-specific name of the specified target. */
 static inline const char *target_name(struct target *target)
@@ -387,6 +396,7 @@ int target_call_timer_callbacks_now(void);
 
 struct target *get_target_by_num(int num);
 struct target *get_current_target(struct command_context *cmd_ctx);
+struct target *get_current_target_or_null(struct command_context *cmd_ctx);
 struct target *get_target(const char *id);
 
 /**
@@ -471,6 +481,13 @@ int target_hit_watchpoint(struct target *target,
 		struct watchpoint **watchpoint);
 
 /**
+ * Obtain the architecture for GDB.
+ *
+ * This routine is a wrapper for target->type->get_gdb_arch.
+ */
+const char *target_get_gdb_arch(struct target *target);
+
+/**
  * Obtain the registers for GDB.
  *
  * This routine is a wrapper for target->type->get_gdb_reg_list.
@@ -478,6 +495,13 @@ int target_hit_watchpoint(struct target *target,
 int target_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);
+
+/**
+ * Check if @a target allows GDB connections.
+ *
+ * Some target do not implement the necessary code required by GDB.
+ */
+bool target_supports_gdb_connection(struct target *target);
 
 /**
  * Step the target.

@@ -105,7 +105,8 @@ static struct ChibiOS_params ChibiOS_params_list[] = {
 static bool ChibiOS_detect_rtos(struct target *target);
 static int ChibiOS_create(struct target *target);
 static int ChibiOS_update_threads(struct rtos *rtos);
-static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
+static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs);
 static int ChibiOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 
 struct rtos_type ChibiOS_rtos = {
@@ -464,13 +465,13 @@ static int ChibiOS_update_threads(struct rtos *rtos)
 	return 0;
 }
 
-static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
+static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs)
 {
 	int retval;
 	const struct ChibiOS_params *param;
 	uint32_t stack_ptr = 0;
 
-	*hex_reg_list = NULL;
 	if ((rtos == NULL) || (thread_id == 0) ||
 			(rtos->rtos_specific_params == NULL))
 		return -1;
@@ -495,7 +496,7 @@ static int ChibiOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, cha
 		return retval;
 	}
 
-	return rtos_generic_stack_read(rtos->target, param->stacking_info, stack_ptr, hex_reg_list);
+	return rtos_generic_stack_read(rtos->target, param->stacking_info, stack_ptr, reg_list, num_regs);
 }
 
 static int ChibiOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])

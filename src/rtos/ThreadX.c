@@ -38,7 +38,7 @@ static int is_thread_id_valid_arm926ejs(const struct rtos *rtos, int64_t thread_
 static bool ThreadX_detect_rtos(struct target *target);
 static int ThreadX_create(struct target *target);
 static int ThreadX_update_threads(struct rtos *rtos);
-static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
+static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, struct rtos_reg **reg_list, int *num_regs);
 static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 
 
@@ -69,45 +69,45 @@ static const struct ThreadX_thread_state ThreadX_thread_states[] = {
 
 #define ARM926EJS_REGISTERS_SIZE_SOLICITED (11 * 4)
 static const struct stack_register_offset rtos_threadx_arm926ejs_stack_offsets_solicited[] = {
-	{ -1,   32 },		/* r0        */
-	{ -1,   32 },		/* r1        */
-	{ -1,   32 },		/* r2        */
-	{ -1,   32 },		/* r3        */
-	{ 0x08, 32 },		/* r4        */
-	{ 0x0C, 32 },		/* r5        */
-	{ 0x10, 32 },		/* r6        */
-	{ 0x14, 32 },		/* r7        */
-	{ 0x18, 32 },		/* r8        */
-	{ 0x1C, 32 },		/* r9        */
-	{ 0x20, 32 },		/* r10       */
-	{ 0x24, 32 },		/* r11       */
-	{ -1,   32 },		/* r12       */
-	{ -2,   32 },		/* sp (r13)  */
-	{ 0x28, 32 },		/* lr (r14)  */
-	{ -1,   32 },		/* pc (r15)  */
-	/*{ -1,   32 },*/		/* lr (r14)  */
-	/*{ 0x28, 32 },*/		/* pc (r15)  */
-	{ 0x04, 32 },		/* xPSR      */
+	{ 0,  -1,   32 },		/* r0        */
+	{ 1,  -1,   32 },		/* r1        */
+	{ 2,  -1,   32 },		/* r2        */
+	{ 3,  -1,   32 },		/* r3        */
+	{ 4,  0x08, 32 },		/* r4        */
+	{ 5,  0x0C, 32 },		/* r5        */
+	{ 6,  0x10, 32 },		/* r6        */
+	{ 7,  0x14, 32 },		/* r7        */
+	{ 8,  0x18, 32 },		/* r8        */
+	{ 9,  0x1C, 32 },		/* r9        */
+	{ 10, 0x20, 32 },		/* r10       */
+	{ 11, 0x24, 32 },		/* r11       */
+	{ 12, -1,   32 },		/* r12       */
+	{ 13, -2,   32 },		/* sp (r13)  */
+	{ 14, 0x28, 32 },		/* lr (r14)  */
+	{ 15, -1,   32 },		/* pc (r15)  */
+	/*{ 16, -1,   32 },*/		/* lr (r14)  */
+	/*{ 17, 0x28, 32 },*/		/* pc (r15)  */
+	{ 16, 0x04, 32 },		/* xPSR      */
 };
 #define ARM926EJS_REGISTERS_SIZE_INTERRUPT (17 * 4)
 static const struct stack_register_offset rtos_threadx_arm926ejs_stack_offsets_interrupt[] = {
-	{ 0x08, 32 },		/* r0        */
-	{ 0x0C, 32 },		/* r1        */
-	{ 0x10, 32 },		/* r2        */
-	{ 0x14, 32 },		/* r3        */
-	{ 0x18, 32 },		/* r4        */
-	{ 0x1C, 32 },		/* r5        */
-	{ 0x20, 32 },		/* r6        */
-	{ 0x24, 32 },		/* r7        */
-	{ 0x28, 32 },		/* r8        */
-	{ 0x2C, 32 },		/* r9        */
-	{ 0x30, 32 },		/* r10       */
-	{ 0x34, 32 },		/* r11       */
-	{ 0x38, 32 },		/* r12       */
-	{ -2,   32 },		/* sp (r13)  */
-	{ 0x3C, 32 },		/* lr (r14)  */
-	{ 0x40, 32 },		/* pc (r15)  */
-	{ 0x04, 32 },		/* xPSR      */
+	{ 0,  0x08, 32 },		/* r0        */
+	{ 1,  0x0C, 32 },		/* r1        */
+	{ 2,  0x10, 32 },		/* r2        */
+	{ 3,  0x14, 32 },		/* r3        */
+	{ 4,  0x18, 32 },		/* r4        */
+	{ 5,  0x1C, 32 },		/* r5        */
+	{ 6,  0x20, 32 },		/* r6        */
+	{ 7,  0x24, 32 },		/* r7        */
+	{ 8,  0x28, 32 },		/* r8        */
+	{ 9,  0x2C, 32 },		/* r9        */
+	{ 10, 0x30, 32 },		/* r10       */
+	{ 11, 0x34, 32 },		/* r11       */
+	{ 12, 0x38, 32 },		/* r12       */
+	{ 13, -2,   32 },		/* sp (r13)  */
+	{ 14, 0x3C, 32 },		/* lr (r14)  */
+	{ 15, 0x40, 32 },		/* pc (r15)  */
+	{ 16, 0x04, 32 },		/* xPSR      */
 };
 
 const struct rtos_register_stacking rtos_threadx_arm926ejs_stacking[] = {
@@ -433,12 +433,11 @@ static int ThreadX_update_threads(struct rtos *rtos)
 	return 0;
 }
 
-static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
+static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs)
 {
 	int retval;
 	const struct ThreadX_params *param;
-
-	*hex_reg_list = NULL;
 
 	if (rtos == NULL)
 		return -1;
@@ -477,7 +476,7 @@ static int ThreadX_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, cha
 		return -6;
 	}
 
-	return rtos_generic_stack_read(rtos->target, stacking_info, stack_ptr, hex_reg_list);
+	return rtos_generic_stack_read(rtos->target, stacking_info, stack_ptr, reg_list, num_regs);
 }
 
 static int ThreadX_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])

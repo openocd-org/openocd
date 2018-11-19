@@ -201,7 +201,7 @@ Further reading: http://www.coreboot.org/Git
 
 The code review is intended to take as long as a week or two to allow
 maintainers and contributors who work on OpenOCD only in their spare
-time oportunity to perform a review and raise objections.
+time opportunity to perform a review and raise objections.
 
 With Gerrit much of the urgency of getting things committed has been
 removed as the work in progress is safely stored in Gerrit and

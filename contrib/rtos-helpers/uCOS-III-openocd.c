@@ -3,8 +3,8 @@
  * impossible to determine the appropriate offsets within the structure
  * unaided. A priori knowledge of offsets based on os_dbg.c is tied to a
  * specific release and thusly, brittle. The constants defined below
- * provide the neccessary information OpenOCD needs to provide support
- * in the most robust manner possible.
+ * provide the necessary information OpenOCD needs to provide support in
+ * the most robust manner possible.
  *
  * This file should be linked along with the project to enable RTOS
  * support for uC/OS-III.

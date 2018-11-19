@@ -270,39 +270,35 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 	return GDB_THREAD_PACKET_NOT_CONSUMED;
 }
 
-static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
+static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs)
 {
 	LOG_DEBUG("Updating RISC-V register list for hart %d", (int)(thread_id - 1));
 
-	size_t n_regs = 32;
-	size_t xlen = 64;
-	size_t reg_chars = xlen / 8 * 2;
+	/* We return just the GPRs here. */
 
-	ssize_t hex_reg_list_length = n_regs * reg_chars + 2;
-	*hex_reg_list = malloc(hex_reg_list_length);
-	*hex_reg_list[0] = '\0';
-	char *p = hex_reg_list[0];
-	for (size_t i = 0; i < n_regs; ++i) {
-		assert(p - hex_reg_list[0] > 3);
-		if (riscv_has_register(rtos->target, thread_id, i)) {
-			uint64_t reg_value;
-			int result = riscv_get_register_on_hart(rtos->target, &reg_value,
-					thread_id - 1, i);
-			if (result != ERROR_OK)
-				return JIM_ERR;
+	*num_regs = 32;
+	int xlen = riscv_xlen_of_hart(rtos->target, thread_id - 1);
 
-			for (size_t byte = 0; byte < xlen / 8; ++byte) {
-				uint8_t reg_byte = reg_value >> (byte * 8);
-				p += snprintf(p, 3, "%02x", reg_byte);
-			}
-		} else {
-			for (size_t byte = 0; byte < xlen / 8; ++byte) {
-				strcpy(p, "xx");
-				p += 2;
-			}
-		}
+	*reg_list = calloc(*num_regs, sizeof(struct rtos_reg));
+	*reg_list = 0;
+	for (int i = 0; i < *num_regs; ++i) {
+		uint64_t reg_value;
+		if (riscv_get_register_on_hart(rtos->target, &reg_value, thread_id - 1,
+					i) != ERROR_OK)
+			return JIM_ERR;
+
+		(*reg_list)[i].number = i;
+		(*reg_list)[i].size = xlen;
+		(*reg_list)[i].value[0] = reg_value & 0xff;
+		(*reg_list)[i].value[1] = (reg_value >> 8) & 0xff;
+		(*reg_list)[i].value[2] = (reg_value >> 16) & 0xff;
+		(*reg_list)[i].value[3] = (reg_value >> 24) & 0xff;
+		(*reg_list)[i].value[4] = (reg_value >> 32) & 0xff;
+		(*reg_list)[i].value[5] = (reg_value >> 40) & 0xff;
+		(*reg_list)[i].value[6] = (reg_value >> 48) & 0xff;
+		(*reg_list)[i].value[7] = (reg_value >> 56) & 0xff;
 	}
-	LOG_DEBUG("%s", *hex_reg_list);
 	return JIM_OK;
 }
 

@@ -42,7 +42,7 @@
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and
  * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
- * Some differences:  M0/M1 doesn't have FBP remapping or the
+ * Some differences:  M0/M1 doesn't have FPB remapping or the
  * DWT tracing/profiling support.  (So the cycle counter will
  * not be usable; the other stuff isn't currently used here.)
  *
@@ -255,7 +255,7 @@ static int cortex_m_endreset_event(struct target *target)
 		return retval;
 
 	/* Paranoia: evidently some (early?) chips don't preserve all the
-	 * debug state (including FBP, DWT, etc) across reset...
+	 * debug state (including FPB, DWT, etc) across reset...
 	 */
 
 	/* Enable FPB */
@@ -1277,7 +1277,7 @@ int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 
-	/* REVISIT why check? FBP can be updated with core running ... */
+	/* REVISIT why check? FPB can be updated with core running ... */
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -1986,7 +1986,7 @@ int cortex_m_examine(struct target *target)
 	/* stlink shares the examine handler but does not support
 	 * all its calls */
 	if (!armv7m->stlink) {
-		if (cortex_m->apsel < 0) {
+		if (cortex_m->apsel == DP_APSEL_INVALID) {
 			/* Search for the MEM-AP */
 			retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
 			if (retval != ERROR_OK) {

@@ -38,6 +38,7 @@ extern struct flash_driver cfi_flash;
 extern struct flash_driver dsp5680xx_flash;
 extern struct flash_driver efm32_flash;
 extern struct flash_driver em357_flash;
+extern struct flash_driver esirisc_flash;
 extern struct flash_driver faux_flash;
 extern struct flash_driver fm3_flash;
 extern struct flash_driver fm4_flash;
@@ -49,6 +50,7 @@ extern struct flash_driver lpc2000_flash;
 extern struct flash_driver lpc288x_flash;
 extern struct flash_driver lpc2900_flash;
 extern struct flash_driver lpcspifi_flash;
+extern struct flash_driver max32xxx_flash;
 extern struct flash_driver mdr_flash;
 extern struct flash_driver mrvlqspi_flash;
 extern struct flash_driver msp432_flash;
@@ -103,6 +105,7 @@ static struct flash_driver *flash_drivers[] = {
 	&dsp5680xx_flash,
 	&efm32_flash,
 	&em357_flash,
+	&esirisc_flash,
 	&faux_flash,
 	&fm3_flash,
 	&fm4_flash,
@@ -114,6 +117,7 @@ static struct flash_driver *flash_drivers[] = {
 	&lpc288x_flash,
 	&lpc2900_flash,
 	&lpcspifi_flash,
+	&max32xxx_flash,
 	&mdr_flash,
 	&mrvlqspi_flash,
 	&msp432_flash,
