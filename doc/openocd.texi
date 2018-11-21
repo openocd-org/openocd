@@ -5292,6 +5292,17 @@ flash bank flash2 ath79 0x20000000 0 0 0 $_TARGETNAME cs2
 
 @end deffn
 
+@deffn {Flash Driver} fespi
+@cindex Freedom E SPI
+@cindex fespi
+
+SiFive's Freedom E SPI controller, used in HiFive and other boards.
+
+@example
+flash bank $_FLASHNAME fespi 0x20000000 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
 @subsection Internal Flash (Microcontrollers)
 
 @deffn {Flash Driver} aduc702x
