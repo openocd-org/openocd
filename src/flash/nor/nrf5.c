@@ -111,7 +111,8 @@ struct nrf5_info {
 	uint32_t code_page_size;
 	uint32_t refcount;
 
-	struct {
+	struct nrf5_bank {
+		struct nrf5_info *chip;
 		bool probed;
 		int (*write) (struct flash_bank *bank,
 			      struct nrf5_info *chip,
@@ -219,11 +220,11 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 
 static int nrf5_bank_is_probed(struct flash_bank *bank)
 {
-	struct nrf5_info *chip = bank->driver_priv;
+	struct nrf5_bank *nbank = bank->driver_priv;
 
-	assert(chip != NULL);
+	assert(nbank != NULL);
 
-	return chip->bank[bank->bank_number].probed;
+	return nbank->probed;
 }
 static int nrf5_probe(struct flash_bank *bank);
 
@@ -234,7 +235,8 @@ static int nrf5_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf5_i
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	*chip = bank->driver_priv;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	*chip = nbank->chip;
 
 	int probed = nrf5_bank_is_probed(bank);
 	if (probed < 0)
@@ -376,7 +378,8 @@ static int nrf5_protect_check(struct flash_bank *bank)
 	if (bank->base == NRF5_UICR_BASE)
 		return ERROR_OK;
 
-	struct nrf5_info *chip = bank->driver_priv;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	struct nrf5_info *chip = nbank->chip;
 
 	assert(chip != NULL);
 
@@ -462,7 +465,8 @@ static int nrf5_probe(struct flash_bank *bank)
 {
 	uint32_t hwid;
 	int res;
-	struct nrf5_info *chip = bank->driver_priv;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	struct nrf5_info *chip = nbank->chip;
 
 	res = target_read_u32(chip->target, NRF5_FICR_CONFIGID, &hwid);
 	if (res != ERROR_OK) {
@@ -740,7 +744,8 @@ static int nrf5_ll_flash_write(struct nrf5_info *chip, uint32_t offset, const ui
 static int nrf5_write_pages(struct flash_bank *bank, uint32_t start, uint32_t end, const uint8_t *buffer)
 {
 	int res = ERROR_FAIL;
-	struct nrf5_info *chip = bank->driver_priv;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	struct nrf5_info *chip = nbank->chip;
 
 	assert(start % chip->code_page_size == 0);
 	assert(end % chip->code_page_size == 0);
@@ -872,18 +877,20 @@ static int nrf5_write(struct flash_bank *bank, const uint8_t *buffer,
 		       uint32_t offset, uint32_t count)
 {
 	int res;
+	struct nrf5_bank *nbank = bank->driver_priv;
 	struct nrf5_info *chip;
 
 	res = nrf5_get_probed_chip_if_halted(bank, &chip);
 	if (res != ERROR_OK)
 		return res;
 
-	return chip->bank[bank->bank_number].write(bank, chip, buffer, offset, count);
+	return nbank->write(bank, chip, buffer, offset, count);
 }
 
 static void nrf5_free_driver_priv(struct flash_bank *bank)
 {
-	struct nrf5_info *chip = bank->driver_priv;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	struct nrf5_info *chip = nbank->chip;
 	if (chip == NULL)
 		return;
 
@@ -897,13 +904,11 @@ static void nrf5_free_driver_priv(struct flash_bank *bank)
 FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 {
 	static struct nrf5_info *chip;
+	struct nrf5_bank *nbank = NULL;
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
-		bank->bank_number = 0;
-		break;
 	case NRF5_UICR_BASE:
-		bank->bank_number = 1;
 		break;
 	default:
 		LOG_ERROR("Invalid bank address " TARGET_ADDR_FMT, bank->base);
@@ -921,16 +926,20 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
-		chip->bank[bank->bank_number].write = nrf5_code_flash_write;
+		nbank = &chip->bank[0];
+		nbank->write = nrf5_code_flash_write;
 		break;
 	case NRF5_UICR_BASE:
-		chip->bank[bank->bank_number].write = nrf5_uicr_flash_write;
+		nbank = &chip->bank[1];
+		nbank->write = nrf5_uicr_flash_write;
 		break;
 	}
+	assert(nbank != NULL);
 
 	chip->refcount++;
-	chip->bank[bank->bank_number].probed = false;
-	bank->driver_priv = chip;
+	nbank->chip = chip;
+	nbank->probed = false;
+	bank->driver_priv = nbank;
 
 	return ERROR_OK;
 }
