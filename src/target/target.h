@@ -36,6 +36,7 @@
 struct reg;
 struct trace;
 struct command_context;
+struct command_invocation;
 struct breakpoint;
 struct watchpoint;
 struct mem_param;
@@ -728,6 +729,10 @@ int target_write_phys_u8(struct target *target, target_addr_t address, uint8_t v
 int target_arch_state(struct target *target);
 
 void target_handle_event(struct target *t, enum target_event e);
+
+void target_handle_md_output(struct command_invocation *cmd,
+	struct target *target, target_addr_t address, unsigned size,
+	unsigned count, const uint8_t *buffer);
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)
