@@ -5121,6 +5121,19 @@ each block, and the specified length must stay within that bank.
 @end deffn
 @comment no current checks for errors if fill blocks touch multiple banks!
 
+@deffn Command {flash mdw} addr [count]
+@deffnx Command {flash mdh} addr [count]
+@deffnx Command {flash mdb} addr [count]
+Display contents of address @var{addr}, as
+32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
+or 8-bit bytes (@command{mdb}).
+If @var{count} is specified, displays that many units.
+Reads from flash using the flash driver, therefore it enables reading
+from a bank not mapped in target address space.
+The flash bank to use is inferred from the @var{address} of
+each block, and the specified length must stay within that bank.
+@end deffn
+
 @deffn Command {flash write_bank} num filename [offset]
 Write the binary @file{filename} to flash bank @var{num},
 starting at @var{offset} bytes from the beginning of the bank. If @var{offset}

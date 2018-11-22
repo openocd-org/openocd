@@ -628,6 +628,67 @@ done:
 	return retval;
 }
 
+COMMAND_HANDLER(handle_flash_md_command)
+{
+	int retval;
+
+	if (CMD_ARGC < 1 || CMD_ARGC > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	target_addr_t address;
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
+
+	uint32_t count = 1;
+	if (CMD_ARGC == 2)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], count);
+
+	unsigned int wordsize;
+	switch (CMD_NAME[2]) {
+		case 'w':
+			wordsize = 4;
+			break;
+		case 'h':
+			wordsize = 2;
+			break;
+		case 'b':
+			wordsize = 1;
+			break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (count == 0)
+		return ERROR_OK;
+
+	struct target *target = get_current_target(CMD_CTX);
+	struct flash_bank *bank;
+	retval = get_flash_bank_by_addr(target, address, true, &bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint32_t offset = address - bank->base;
+	uint32_t sizebytes = count * wordsize;
+	if (offset + sizebytes > bank->size) {
+		command_print(CMD, "Cannot cross flash bank borders");
+		return ERROR_FAIL;
+	}
+
+	uint8_t *buffer = calloc(count, wordsize);
+	if (buffer == NULL) {
+		command_print(CMD, "No memory for flash read buffer");
+		return ERROR_FAIL;
+	}
+
+	retval = flash_driver_read(bank, buffer, offset, sizebytes);
+	if (retval == ERROR_OK)
+		target_handle_md_output(CMD, target, address, wordsize, count, buffer);
+
+	free(buffer);
+
+	return retval;
+}
+
+
 COMMAND_HANDLER(handle_flash_write_bank_command)
 {
 	uint32_t offset;
@@ -1048,6 +1109,27 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.usage = "address value n",
 		.help = "Fill n bytes with 8-bit value, starting at "
 			"word address.  (No autoerase.)",
+	},
+	{
+		.name = "mdb",
+		.handler = handle_flash_md_command,
+		.mode = COMMAND_EXEC,
+		.usage = "address [count]",
+		.help = "Display bytes from flash.",
+	},
+	{
+		.name = "mdh",
+		.handler = handle_flash_md_command,
+		.mode = COMMAND_EXEC,
+		.usage = "address [count]",
+		.help = "Display half-words from flash.",
+	},
+	{
+		.name = "mdw",
+		.handler = handle_flash_md_command,
+		.mode = COMMAND_EXEC,
+		.usage = "address [count]",
+		.help = "Display words from flash.",
 	},
 	{
 		.name = "write_bank",
