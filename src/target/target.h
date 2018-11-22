@@ -714,6 +714,10 @@ int target_arch_state(struct target *target);
 
 void target_handle_event(struct target *t, enum target_event e);
 
+void handle_md_output(struct command_context *cmd_ctx,
+	struct target *target, target_addr_t address, unsigned size,
+	unsigned count, const uint8_t *buffer);
+
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)
 #define ERROR_TARGET_TIMEOUT	(-302)

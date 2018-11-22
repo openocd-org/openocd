@@ -3104,7 +3104,7 @@ COMMAND_HANDLER(handle_step_command)
 	return target->type->step(target, current_pc, addr, 1);
 }
 
-static void handle_md_output(struct command_context *cmd_ctx,
+void handle_md_output(struct command_context *cmd_ctx,
 		struct target *target, target_addr_t address, unsigned size,
 		unsigned count, const uint8_t *buffer)
 {
