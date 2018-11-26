@@ -180,6 +180,28 @@ static const struct samd_part samd21_parts[] = {
 	{ 0x24, "SAMD21G15B", 32, 4 },
 	{ 0x26, "SAMD21E16B", 64, 8 },
 	{ 0x27, "SAMD21E15B", 32, 4 },
+
+	/* Known SAMDA1 parts.
+	   SAMD-A1 series uses the same series identifier like the SAMD21
+	   taken from http://ww1.microchip.com/downloads/en/DeviceDoc/40001895A.pdf (pages 14-17) */
+	{ 0x29, "SAMDA1J16A", 64, 8 },
+	{ 0x2A, "SAMDA1J15A", 32, 4 },
+	{ 0x2B, "SAMDA1J14A", 16, 4 },
+	{ 0x2C, "SAMDA1G16A", 64, 8 },
+	{ 0x2D, "SAMDA1G15A", 32, 4 },
+	{ 0x2E, "SAMDA1G14A", 16, 4 },
+	{ 0x2F, "SAMDA1E16A", 64, 8 },
+	{ 0x30, "SAMDA1E15A", 32, 4 },
+	{ 0x31, "SAMDA1E14A", 16, 4 },
+	{ 0x64, "SAMDA1J16B", 64, 8 },
+	{ 0x65, "SAMDA1J15B", 32, 4 },
+	{ 0x66, "SAMDA1J14B", 16, 4 },
+	{ 0x67, "SAMDA1G16B", 64, 8 },
+	{ 0x68, "SAMDA1G15B", 32, 4 },
+	{ 0x69, "SAMDA1G14B", 16, 4 },
+	{ 0x6A, "SAMDA1E16B", 64, 8 },
+	{ 0x6B, "SAMDA1E15B", 32, 4 },
+	{ 0x6C, "SAMDA1E14B", 16, 4 },
 };
 
 /* Known SAML21 parts. */
