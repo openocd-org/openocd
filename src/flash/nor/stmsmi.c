@@ -269,17 +269,14 @@ static int smi_write_enable(struct flash_bank *bank)
 static uint32_t erase_command(struct stmsmi_flash_bank *stmsmi_info,
 	uint32_t offset)
 {
-	union {
-		uint32_t command;
-		uint8_t x[4];
-	} cmd;
+	uint8_t cmd_bytes[] = {
+		stmsmi_info->dev->erase_cmd,
+		offset >> 16,
+		offset >> 8,
+		offset
+	};
 
-	cmd.x[0] = stmsmi_info->dev->erase_cmd;
-	cmd.x[1] = offset >> 16;
-	cmd.x[2] = offset >> 8;
-	cmd.x[3] = offset;
-
-	return cmd.command;
+	return le_to_h_u32(cmd_bytes);
 }
 
 static int smi_erase_sector(struct flash_bank *bank, int sector)
