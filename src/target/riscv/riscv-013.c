@@ -357,7 +357,7 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 	}
 }
 
-static void dump_field(const struct scan_field *field)
+static void dump_field(int idle, const struct scan_field *field)
 {
 	static const char * const op_string[] = {"-", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
@@ -377,8 +377,8 @@ static void dump_field(const struct scan_field *field)
 
 	log_printf_lf(LOG_LVL_DEBUG,
 			__FILE__, __LINE__, "scan",
-			"%db %s %08x @%02x -> %s %08x @%02x",
-			field->num_bits,
+			"%db %di %s %08x @%02x -> %s %08x @%02x",
+			field->num_bits, idle,
 			op_string[out_op], out_data, out_address,
 			status_string[in_op], in_data, in_address);
 
@@ -498,7 +498,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	if (address_in)
 		*address_in = buf_get_u32(in, DTM_DMI_ADDRESS_OFFSET, info->abits);
 
-	dump_field(&field);
+	dump_field(idle_count, &field);
 
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
@@ -697,7 +697,24 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 static int execute_abstract_command(struct target *target, uint32_t command)
 {
 	RISCV013_INFO(info);
-	LOG_DEBUG("command=0x%x", command);
+	if (debug_level >= LOG_LVL_DEBUG) {
+		switch (get_field(command, DMI_COMMAND_CMDTYPE)) {
+			case 0:
+				LOG_DEBUG("command=0x%x; access register, size=%d, postexec=%d, "
+						"transfer=%d, write=%d, regno=0x%x",
+						command,
+						8 << get_field(command, AC_ACCESS_REGISTER_SIZE),
+						get_field(command, AC_ACCESS_REGISTER_POSTEXEC),
+						get_field(command, AC_ACCESS_REGISTER_TRANSFER),
+						get_field(command, AC_ACCESS_REGISTER_WRITE),
+						get_field(command, AC_ACCESS_REGISTER_REGNO));
+				break;
+			default:
+				LOG_DEBUG("command=0x%x", command);
+				break;
+		}
+	}
+
 	dmi_write(target, DMI_COMMAND, command);
 
 	uint32_t abstractcs = 0;
@@ -2326,6 +2343,8 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint8_t *buffer_i = buffer;
 
 		for (uint32_t i = 0; i < count; i++, address_i += size_i, buffer_i += size_i) {
+			/* TODO: This is much slower than it needs to be because we end up
+			 * writing the address to read for every word we read. */
 			result = read_memory_progbuf_inner(target, address_i, size_i, count_i, buffer_i);
 
 			/* The read of a single word failed, so we will just return 0 for that instead */
