@@ -4092,13 +4092,13 @@ resources; then a @file{board.cfg} with off-chip resources, clocking,
 and so forth.
 
 @anchor{dapdeclaration}
-@section DAP declaration (ARMv7 and ARMv8 targets)
+@section DAP declaration (ARMv6-M, ARMv7 and ARMv8 targets)
 @cindex DAP declaration
 
 Since OpenOCD version 0.11.0, the Debug Access Port (DAP) is
 no longer implicitly created together with the target. It must be
-explicitly declared using the @command{dap create} command. For all
-ARMv7 and ARMv8 targets, the option "@option{-dap} @var{dap_name}" has to be used
+explicitly declared using the @command{dap create} command. For all ARMv6-M, ARMv7
+and ARMv8 targets, the option "@option{-dap} @var{dap_name}" has to be used
 instead of "@option{-chain-position} @var{dotted.name}" when the target is created.
 
 The @command{dap} command group supports the following sub-commands:
