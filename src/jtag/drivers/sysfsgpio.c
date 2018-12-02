@@ -561,6 +561,8 @@ static void cleanup_all_fds(void)
 	cleanup_fd(tdo_fd, tdo_gpio);
 	cleanup_fd(trst_fd, trst_gpio);
 	cleanup_fd(srst_fd, srst_gpio);
+	cleanup_fd(swclk_fd, swclk_gpio);
+	cleanup_fd(swdio_fd, swdio_gpio);
 }
 
 static bool sysfsgpio_jtag_mode_possible(void)
