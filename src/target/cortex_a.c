@@ -202,6 +202,7 @@ static int cortex_a_mmu_modify(struct target *target, int enable)
 static int cortex_a_init_debug_access(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
+	uint32_t dscr;
 	int retval;
 
 	/* lock memory-mapped access to debug registers to prevent
@@ -230,6 +231,16 @@ static int cortex_a_init_debug_access(struct target *target)
 	/* Enabling of instruction execution in debug mode is done in debug_entry code */
 
 	/* Resync breakpoint registers */
+
+	/* Enable halt for breakpoint, watchpoint and vector catch */
+	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, dscr | DSCR_HALT_DBG_MODE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Since this is likely called from init or reset, update target state information*/
 	return cortex_a_poll(target);
@@ -766,19 +777,6 @@ static int cortex_a_halt(struct target *target)
 	 */
 	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DRCR, DRCR_HALT);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/*
-	 * enter halting debug mode
-	 */
-	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DSCR, &dscr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DSCR, dscr | DSCR_HALT_DBG_MODE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2889,7 +2887,20 @@ static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
 static void cortex_a_deinit_target(struct target *target)
 {
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
-	struct arm_dpm *dpm = &cortex_a->armv7a_common.dpm;
+	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
+	struct arm_dpm *dpm = &armv7a->dpm;
+	uint32_t dscr;
+	int retval;
+
+	if (target_was_examined(target)) {
+		/* Disable halt for breakpoint, watchpoint and vector catch */
+		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+		if (retval == ERROR_OK)
+			mem_ap_write_atomic_u32(armv7a->debug_ap,
+					armv7a->debug_base + CPUDBG_DSCR,
+					dscr & ~DSCR_HALT_DBG_MODE);
+	}
 
 	free(cortex_a->brp_list);
 	free(dpm->dbp);
