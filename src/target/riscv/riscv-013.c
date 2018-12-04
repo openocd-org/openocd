@@ -215,6 +215,8 @@ typedef struct {
 
 	/* DM that provides access to this target. */
 	dm013_info_t *dm;
+
+	int reset_delays_wait;
 } riscv013_info_t;
 
 LIST_HEAD(dm_list);
@@ -467,6 +469,14 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 		.out_value = out,
 		.in_value = in
 	};
+
+	if (info->reset_delays_wait >= 0) {
+		info->reset_delays_wait--;
+		if (info->reset_delays_wait < 0) {
+			info->dmi_busy_delay = 0;
+			info->ac_busy_delay = 0;
+		}
+	}
 
 	memset(in, 0, num_bytes);
 
@@ -1595,6 +1605,13 @@ int riscv013_authdata_write(struct target *target, uint32_t value)
 	return ERROR_OK;
 }
 
+static int reset_delays(struct target *target, int wait)
+{
+	riscv013_info_t *info = get_info(target);
+	info->reset_delays_wait = wait;
+	return ERROR_OK;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -1625,6 +1642,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->dmi_write = &dmi_write;
 	generic_info->test_sba_config_reg = &riscv013_test_sba_config_reg;
 	generic_info->test_compliance = &riscv013_test_compliance;
+	generic_info->reset_delays = &reset_delays;
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -2086,6 +2104,20 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 	return ERROR_OK;
 }
 
+static int batch_run(const struct target *target, struct riscv_batch *batch)
+{
+	RISCV013_INFO(info);
+	if (info->reset_delays_wait >= 0) {
+		info->reset_delays_wait -= batch->used_scans;
+		if (info->reset_delays_wait <= 0) {
+			batch->idle_count = 0;
+			info->dmi_busy_delay = 0;
+			info->ac_busy_delay = 0;
+		}
+	}
+	return riscv_batch_run(batch);
+}
+
 /**
  * Read the requested memory, taking care to execute every read exactly once,
  * even if cmderr=busy is encountered.
@@ -2157,7 +2189,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				break;
 		}
 
-		riscv_batch_run(batch);
+		batch_run(target, batch);
 
 		/* Wait for the target to finish performing the last abstract command,
 		 * and update our copy of cmderr. If we see that DMI is busy here,
@@ -2715,7 +2747,7 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 			}
 		}
 
-		result = riscv_batch_run(batch);
+		result = batch_run(target, batch);
 		riscv_batch_free(batch);
 		if (result != ERROR_OK)
 			goto error;

@@ -130,6 +130,10 @@ typedef struct {
 			uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
 
 	int (*test_compliance)(struct target *target);
+
+	/* After wait scans, reset the number of Run-Test/Idle cycles we've learned
+	 * are required. */
+	int (*reset_delays)(struct target *target, int wait);
 } riscv_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/

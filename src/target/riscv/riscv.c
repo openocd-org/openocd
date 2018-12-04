@@ -1608,6 +1608,23 @@ COMMAND_HANDLER(riscv_test_sba_config_reg)
 	}
 }
 
+COMMAND_HANDLER(riscv_reset_delays)
+{
+	int wait = 0;
+
+	if (CMD_ARGC > 1) {
+		LOG_ERROR("Command takes at most one argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (CMD_ARGC == 1)
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], wait);
+
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+	return r->reset_delays(target, wait);
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
@@ -1696,6 +1713,16 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"legal_address+word_size*num_words) must be legally readable/writable)"
 			", an illegal, 128-byte aligned address for error flag/handling cases,"
 			"and whether sbbusyerror test should be run."
+	},
+	{
+		.name = "reset_delays",
+		.handler = riscv_reset_delays,
+		.mode = COMMAND_ANY,
+		.usage = "reset_delays [wait]",
+		.help = "OpenOCD learns how many Run-Test/Idle cycles are required "
+			"between scans to avoid encountering the target being busy. This "
+			"command resets those learned values after `wait` scans. It's only "
+			"useful for testing OpenOCD itself."
 	},
 	COMMAND_REGISTRATION_DONE
 };
