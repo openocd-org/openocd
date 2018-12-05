@@ -430,18 +430,10 @@ static int cc3220sf_probe(struct flash_bank *bank)
 	uint32_t base;
 	uint32_t size;
 	int num_sectors;
-	int bank_id;
 
-	bank_id = bank->bank_number;
-
-	if (0 == bank_id) {
-		base = FLASH_BASE_ADDR;
-		size = FLASH_NUM_SECTORS * FLASH_SECTOR_SIZE;
-		num_sectors = FLASH_NUM_SECTORS;
-	} else {
-		/* Invalid bank number somehow */
-		return ERROR_FAIL;
-	}
+	base = FLASH_BASE_ADDR;
+	size = FLASH_NUM_SECTORS * FLASH_SECTOR_SIZE;
+	num_sectors = FLASH_NUM_SECTORS;
 
 	if (NULL != bank->sectors) {
 		free(bank->sectors);
@@ -478,11 +470,6 @@ static int cc3220sf_auto_probe(struct flash_bank *bank)
 	struct cc3220sf_bank *cc3220sf_bank = bank->driver_priv;
 
 	int retval = ERROR_OK;
-
-	if (0 != bank->bank_number) {
-		/* Invalid bank number somehow */
-		return ERROR_FAIL;
-	}
 
 	if (!cc3220sf_bank->probed)
 		retval = cc3220sf_probe(bank);
