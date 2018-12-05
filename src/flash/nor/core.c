@@ -322,8 +322,8 @@ static int default_flash_mem_blank_check(struct flash_bank *bank)
 		for (j = 0; j < bank->sectors[i].size; j += buffer_size) {
 			uint32_t chunk;
 			chunk = buffer_size;
-			if (chunk > (j - bank->sectors[i].size))
-				chunk = (j - bank->sectors[i].size);
+			if (chunk > (bank->sectors[i].size - j))
+				chunk = (bank->sectors[i].size - j);
 
 			retval = target_read_memory(target,
 					bank->base + bank->sectors[i].offset + j,
