@@ -491,11 +491,6 @@ static int cc26xx_auto_probe(struct flash_bank *bank)
 
 	int retval = ERROR_OK;
 
-	if (bank->bank_number != 0) {
-		/* Invalid bank number somehow */
-		return ERROR_FAIL;
-	}
-
 	if (!cc26xx_bank->probed)
 		retval = cc26xx_probe(bank);
 

@@ -5673,7 +5673,7 @@ Triggering a mass erase is also useful when users want to disable readout protec
 All versions of the SimpleLink CC13xx and CC26xx microcontrollers from Texas
 Instruments include internal flash. The cc26xx flash driver supports both the
 CC13xx and CC26xx family of devices. The driver automatically recognizes the
-specific version's flash parameters and autoconfigures itself. Flash bank 0
+specific version's flash parameters and autoconfigures itself. The flash bank
 starts at address 0.
 
 @example
