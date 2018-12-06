@@ -29,6 +29,13 @@
 /* XDS110 USB serial number length */
 #define XDS110_SERIAL_LEN 8
 
+/* XDS110 stand-alone probe voltage supply limits */
+#define XDS110_MIN_VOLTAGE 1800
+#define XDS110_MAX_VOLTAGE 3600
+
+/* XDS110 stand-alone probe hardware ID */
+#define XDS110_STAND_ALONE_ID 0x21
+
 /* Firmware version that introduced OpenOCD support via block accesses */
 #define OCD_FIRMWARE_VERSION 0x02030011
 #define OCD_FIRMWARE_UPGRADE \
@@ -162,6 +169,7 @@
 #define SWD_DISCONNECT   0x18 /* Switch from SWD to JTAG connection */
 #define CJTAG_CONNECT    0x2b /* Switch from JTAG to cJTAG connection */
 #define CJTAG_DISCONNECT 0x2c /* Switch from cJTAG to JTAG connection */
+#define XDS_SET_SUPPLY   0x32 /* Set up stand-alone probe upply voltage */
 #define OCD_DAP_REQUEST  0x3a /* Handle block of DAP requests */
 #define OCD_SCAN_REQUEST 0x3b /* Handle block of JTAG scan requests */
 #define OCD_PATHMOVE     0x3c /* Handle PATHMOVE to navigate JTAG states */
@@ -219,6 +227,8 @@ struct xds110_info {
 	uint32_t delay_count;
 	/* XDS110 serial number */
 	char serial[XDS110_SERIAL_LEN + 1];
+	/* XDS110 voltage supply setting */
+	uint32_t voltage;
 	/* XDS110 firmware and hardware version */
 	uint32_t firmware;
 	uint16_t hardware;
@@ -242,6 +252,7 @@ static struct xds110_info xds110 = {
 	.speed = XDS110_MAX_TCK_SPEED,
 	.delay_count = 0,
 	.serial = {0},
+	.voltage = 0,
 	.firmware = 0,
 	.hardware = 0,
 	.txn_request_size = 0,
@@ -601,10 +612,15 @@ static bool xds_execute(uint32_t out_length, uint32_t in_length,
 			if (bytes_read != in_length) {
 				/* Unexpected amount of data returned */
 				success = false;
+				LOG_DEBUG("XDS110: command 0x%02x return %d bytes, expected %d",
+					xds110.write_payload[0], bytes_read, in_length);
 			} else {
 				/* Extract error code from return packet */
 				error = (int)xds110_get_u32(&xds110.read_payload[0]);
 				done = true;
+				if (SC_ERR_NONE != error)
+					LOG_DEBUG("XDS110: command 0x%02x returned error %d",
+						xds110.write_payload[0], error);
 			}
 		}
 	}
@@ -947,6 +963,24 @@ static bool cjtag_disconnect(void)
 	xds110.write_payload[0] = CJTAG_DISCONNECT;
 
 	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+				DEFAULT_TIMEOUT);
+
+	return success;
+}
+
+static bool xds_set_supply(uint32_t voltage)
+{
+	uint8_t *volts_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 32-bits */
+	uint8_t *source_pntr = &xds110.write_payload[XDS_OUT_LEN + 4]; /* 8-bits */
+
+	bool success;
+
+	xds110.write_payload[0] = XDS_SET_SUPPLY;
+
+	xds110_set_u32(volts_pntr, voltage);
+	*source_pntr = (uint8_t)(0 != voltage ? 1 : 0);
+
+	success = xds_execute(XDS_OUT_LEN + 5, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
 
 	return success;
@@ -1318,7 +1352,7 @@ static void xds110_show_info(void)
 		(((firmware >>  4) & 0xf) * 10) + ((firmware >>  0) & 0xf));
 	LOG_INFO("XDS110: hardware version = 0x%04x", xds110.hardware);
 	if (0 != xds110.serial[0])
-		LOG_INFO("XDS110: serial number = %s)", xds110.serial);
+		LOG_INFO("XDS110: serial number = %s", xds110.serial);
 	if (xds110.is_swd_mode) {
 		LOG_INFO("XDS110: connected to target via SWD");
 		LOG_INFO("XDS110: SWCLK set to %d kHz", xds110.speed);
@@ -1387,6 +1421,20 @@ static int xds110_init(void)
 			/* Save the firmware and hardware version */
 			xds110.firmware = firmware;
 			xds110.hardware = hardware;
+		}
+	}
+
+	if (success) {
+		/* Set supply voltage for stand-alone probes */
+		if (XDS110_STAND_ALONE_ID == xds110.hardware) {
+			success = xds_set_supply(xds110.voltage);
+			/* Allow time for target device to power up */
+			/* (CC32xx takes up to 1300 ms before debug is enabled) */
+			alive_sleep(1500);
+		} else if (0 != xds110.voltage) {
+			/* Voltage supply not a feature of embedded probes */
+			LOG_WARNING(
+				"XDS110: ignoring supply voltage, not supported on this probe");
 		}
 	}
 
@@ -1569,6 +1617,9 @@ static void xds110_execute_reset(struct jtag_command *cmd)
 			srst = 0;
 		}
 		(void)xds_set_srst(srst);
+
+		/* Toggle TCK to trigger HIB on CC13x/CC26x devices */
+		(void)xds_cycle_tck(60000);
 	}
 }
 
@@ -1918,6 +1969,31 @@ COMMAND_HANDLER(xds110_handle_serial_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(xds110_handle_supply_voltage_command)
+{
+	uint32_t voltage = 0;
+
+	if (CMD_ARGC == 1) {
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], voltage);
+		if (voltage == 0 || (voltage >= XDS110_MIN_VOLTAGE && voltage
+			<= XDS110_MAX_VOLTAGE)) {
+			/* Requested voltage is in range */
+			xds110.voltage = voltage;
+		} else {
+			LOG_ERROR("XDS110: voltage must be 0 or between %d and %d "
+				"millivolts", XDS110_MIN_VOLTAGE, XDS110_MAX_VOLTAGE);
+			return ERROR_FAIL;
+		}
+		xds110.voltage = voltage;
+	} else {
+		LOG_ERROR("XDS110: expected one argument to xds110_supply_voltage "
+			"<millivolts>");
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 static const struct command_registration xds110_subcommand_handlers[] = {
 	{
 		.name = "info",
@@ -1943,6 +2019,13 @@ static const struct command_registration xds110_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the XDS110 probe serial number",
 		.usage = "serial_string",
+	},
+	{
+		.name = "xds110_supply_voltage",
+		.handler = &xds110_handle_supply_voltage_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the XDS110 probe supply voltage",
+		.usage = "supply_voltage (millivolts)",
 	},
 	COMMAND_REGISTRATION_DONE
 };
