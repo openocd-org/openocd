@@ -156,7 +156,7 @@ static int esirisc_flash_disable_protect(struct flash_bank *bank)
 	if (!(control & CONTROL_WP))
 		return ERROR_OK;
 
-	esirisc_flash_unlock(bank);
+	(void)esirisc_flash_unlock(bank);
 
 	control &= ~CONTROL_WP;
 
@@ -175,7 +175,7 @@ static int esirisc_flash_enable_protect(struct flash_bank *bank)
 	if (control & CONTROL_WP)
 		return ERROR_OK;
 
-	esirisc_flash_unlock(bank);
+	(void)esirisc_flash_unlock(bank);
 
 	control |= CONTROL_WP;
 
@@ -261,7 +261,7 @@ static int esirisc_flash_erase(struct flash_bank *bank, int first, int last)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	for (int page = first; page < last; ++page) {
 		uint32_t address = page * PAGE_SIZE;
@@ -275,7 +275,7 @@ static int esirisc_flash_erase(struct flash_bank *bank, int first, int last)
 		}
 	}
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -289,7 +289,7 @@ static int esirisc_flash_mass_erase(struct flash_bank *bank)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	target_write_u32(target, esirisc_info->cfg + ADDRESS, 0);
 
@@ -297,7 +297,7 @@ static int esirisc_flash_mass_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		LOG_ERROR("%s: failed to mass erase", bank->name);
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -315,30 +315,15 @@ static int esirisc_flash_ref_erase(struct flash_bank *bank)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	retval = esirisc_flash_control(bank, CONTROL_ERC);
 	if (retval != ERROR_OK)
 		LOG_ERROR("%s: failed to erase reference cell", bank->name);
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
-}
-
-static int esirisc_flash_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	struct target *target = bank->target;
-
-	if (target->state != TARGET_HALTED)
-		return ERROR_TARGET_NOT_HALTED;
-
-	if (set)
-		esirisc_flash_enable_protect(bank);
-	else
-		esirisc_flash_disable_protect(bank);
-
-	return ERROR_OK;
 }
 
 static int esirisc_flash_fill_pb(struct flash_bank *bank,
@@ -382,7 +367,7 @@ static int esirisc_flash_write(struct flash_bank *bank,
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	/*
 	 * The address register is auto-incremented based on the contents of
@@ -413,7 +398,7 @@ static int esirisc_flash_write(struct flash_bank *bank,
 		count -= num_bytes;
 	}
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -439,7 +424,7 @@ static int esirisc_flash_init(struct flash_bank *bank)
 	uint32_t value;
 	int retval;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	/* initialize timing registers */
 	value = TIMING0_F(esirisc_flash_num_cycles(bank, TNVH))
@@ -465,7 +450,7 @@ static int esirisc_flash_init(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		LOG_ERROR("%s: failed to recall trim code", bank->name);
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -481,13 +466,6 @@ static int esirisc_flash_probe(struct flash_bank *bank)
 
 	bank->num_sectors = bank->size / PAGE_SIZE;
 	bank->sectors = alloc_block_array(0, PAGE_SIZE, bank->num_sectors);
-
-	/*
-	 * Register write protection is enforced using a single protection
-	 * block for the entire bank. This is as good as it gets.
-	 */
-	bank->num_prot_blocks = 1;
-	bank->prot_blocks = alloc_block_array(0, bank->size, bank->num_prot_blocks);
 
 	retval = esirisc_flash_init(bank);
 	if (retval != ERROR_OK) {
@@ -508,23 +486,6 @@ static int esirisc_flash_auto_probe(struct flash_bank *bank)
 		return ERROR_OK;
 
 	return esirisc_flash_probe(bank);
-}
-
-static int esirisc_flash_protect_check(struct flash_bank *bank)
-{
-	struct esirisc_flash_bank *esirisc_info = bank->driver_priv;
-	struct target *target = bank->target;
-	uint32_t control;
-
-	if (target->state != TARGET_HALTED)
-		return ERROR_TARGET_NOT_HALTED;
-
-	target_read_u32(target, esirisc_info->cfg + CONTROL, &control);
-
-	/* single protection block (also see: esirisc_flash_probe()) */
-	bank->prot_blocks[0].is_protected = !!(control & CONTROL_WP);
-
-	return ERROR_OK;
 }
 
 static int esirisc_flash_info(struct flash_bank *bank, char *buf, int buf_size)
@@ -616,13 +577,11 @@ struct flash_driver esirisc_flash = {
 			"cfg_address clock_hz wait_states",
 	.flash_bank_command = esirisc_flash_bank_command,
 	.erase = esirisc_flash_erase,
-	.protect = esirisc_flash_protect,
 	.write = esirisc_flash_write,
 	.read = default_flash_read,
 	.probe = esirisc_flash_probe,
 	.auto_probe = esirisc_flash_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = esirisc_flash_protect_check,
 	.info = esirisc_flash_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };
