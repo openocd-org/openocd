@@ -9002,11 +9002,15 @@ otherwise fallback to @option{vectreset}.
 @item @option{sysresetreq} use NVIC SYSRESETREQ to reset system.
 @item @option{vectreset} use NVIC VECTRESET to reset system.
 @end itemize
-Using @option{vectreset} is a safe option for all current Cortex-M cores.
+
+Using @option{vectreset} is a safe option for Cortex-M3, M4 and M7 cores.
 This however has the disadvantage of only resetting the core, all peripherals
-are unaffected. A solution would be to use a @code{reset-init} event handler to manually reset
-the peripherals.
+are unaffected. A solution would be to use a @code{reset-init} event handler
+to manually reset the peripherals.
 @xref{targetevents,,Target Events}.
+
+Cortex-M0, M0+ and M1 do not support @option{vectreset}, use @option{sysresetreq}
+instead.
 @end deffn
 
 @subsection ARMv8-A specific commands
