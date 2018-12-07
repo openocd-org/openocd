@@ -3458,6 +3458,7 @@ How long (in milliseconds) OpenOCD should wait after deasserting
 nTRST (active-low JTAG TAP reset) before starting new JTAG operations.
 @end deffn
 
+@anchor {reset_config}
 @deffn {Command} reset_config mode_flag ...
 This command displays or modifies the reset configuration
 of your combination of JTAG board and target in target
@@ -8994,13 +8995,13 @@ must also be explicitly enabled.
 This finishes by listing the current vector catch configuration.
 @end deffn
 
-@deffn Command {cortex_m reset_config} (@option{srst}|@option{sysresetreq}|@option{vectreset})
-Control reset handling. The default @option{srst} is to use srst if fitted,
-otherwise fallback to @option{vectreset}.
+@deffn Command {cortex_m reset_config} (@option{sysresetreq}|@option{vectreset})
+Control reset handling if hardware srst is not fitted
+@xref{reset_config,,reset_config}.
+
 @itemize @minus
-@item @option{srst} use hardware srst if fitted otherwise fallback to @option{vectreset}.
-@item @option{sysresetreq} use NVIC SYSRESETREQ to reset system.
-@item @option{vectreset} use NVIC VECTRESET to reset system.
+@item @option{sysresetreq} use AIRCR SYSRESETREQ to reset system.
+@item @option{vectreset} use AIRCR VECTRESET to reset system (default).
 @end itemize
 
 Using @option{vectreset} is a safe option for Cortex-M3, M4 and M7 cores.

@@ -2436,7 +2436,9 @@ COMMAND_HANDLER(handle_cortex_m_reset_config_command)
 				LOG_WARNING("VECTRESET is not supported on your Cortex-M core!");
 			else
 				cortex_m->soft_reset_config = CORTEX_M_RESET_VECTRESET;
-		}
+
+		} else
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	switch (cortex_m->soft_reset_config) {
@@ -2478,7 +2480,7 @@ static const struct command_registration cortex_m_exec_command_handlers[] = {
 		.handler = handle_cortex_m_reset_config_command,
 		.mode = COMMAND_ANY,
 		.help = "configure software reset handling",
-		.usage = "['srst'|'sysresetreq'|'vectreset']",
+		.usage = "['sysresetreq'|'vectreset']",
 	},
 	COMMAND_REGISTRATION_DONE
 };
