@@ -1949,6 +1949,14 @@ static void target_free_all_working_areas_restore(struct target *target, int res
 void target_free_all_working_areas(struct target *target)
 {
 	target_free_all_working_areas_restore(target, 1);
+
+	/* Now we have none or only one working area marked as free */
+	if (target->working_areas) {
+		/* Free the last one to allow on-the-fly moving and resizing */
+		free(target->working_areas->backup);
+		free(target->working_areas);
+		target->working_areas = NULL;
+	}
 }
 
 /* Find the largest number of bytes that can be allocated */
@@ -1989,11 +1997,6 @@ static void target_destroy(struct target *target)
 	}
 
 	target_free_all_working_areas(target);
-	/* Now we have none or only one working area marked as free */
-	if (target->working_areas) {
-		free(target->working_areas->backup);
-		free(target->working_areas);
-	}
 
 	/* release the targets SMP list */
 	if (target->smp) {
