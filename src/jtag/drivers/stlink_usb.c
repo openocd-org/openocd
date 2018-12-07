@@ -1895,20 +1895,21 @@ static int stlink_usb_read_regs(void *handle)
 
 	assert(handle != NULL);
 
-	stlink_usb_init_buffer(handle, h->rx_ep, 84);
+	stlink_usb_init_buffer(handle, h->rx_ep, 88);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-	if (h->version.jtag_api == STLINK_JTAG_API_V1)
+	if (h->version.jtag_api == STLINK_JTAG_API_V1) {
+
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_READALLREGS;
-	else
+		res = stlink_usb_xfer(handle, h->databuf, 84);
+		/* regs data from offset 0 */
+	} else {
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READALLREGS;
+		res = stlink_usb_xfer(handle, h->databuf, 88);
+		/* status at offset 0, regs data from offset 4 */
+	}
 
-	res = stlink_usb_xfer(handle, h->databuf, 84);
-
-	if (res != ERROR_OK)
-		return res;
-
-	return ERROR_OK;
+	return res;
 }
 
 /** */
