@@ -63,6 +63,7 @@ NOR_DRIVERS = \
 	%D%/str9xpec.c \
 	%D%/tms470.c \
 	%D%/virtual.c \
+	%D%/w600.c \
 	%D%/xcf.c \
 	%D%/xmc1xxx.c \
 	%D%/xmc4xxx.c

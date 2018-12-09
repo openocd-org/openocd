@@ -6891,6 +6891,17 @@ the flash clock.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} w600
+W60x series Wi-Fi SoC from WinnerMicro
+are designed with ARM Cortex-M3 and have 1M Byte QFLASH inside.
+The @var{w600} driver uses the @var{target} parameter to select the
+correct bank config.
+
+@example
+flash bank $_FLASHNAME w600 0x08000000 0 0 0 $_TARGETNAMEs
+@end example
+@end deffn
+
 @deffn {Flash Driver} xmc1xxx
 All members of the XMC1xxx microcontroller family from Infineon.
 This driver does not require the chip and bus width to be specified.
