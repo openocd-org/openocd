@@ -944,7 +944,7 @@ static const struct command_registration stm32lx_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver stm32lx_flash = {
+const struct flash_driver stm32lx_flash = {
 		.name = "stm32lx",
 		.commands = stm32lx_command_handlers,
 		.flash_bank_command = stm32lx_flash_bank_command,

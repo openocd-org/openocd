@@ -393,7 +393,7 @@ static bool fcf_fopt_configured;
 static bool create_banks;
 
 
-struct flash_driver kinetis_flash;
+const struct flash_driver kinetis_flash;
 static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 			uint32_t offset, uint32_t count);
 static int kinetis_probe_chip(struct kinetis_chip *k_chip);
@@ -3143,7 +3143,7 @@ static const struct command_registration kinetis_command_handler[] = {
 
 
 
-struct flash_driver kinetis_flash = {
+const struct flash_driver kinetis_flash = {
 	.name = "kinetis",
 	.commands = kinetis_command_handler,
 	.flash_bank_command = kinetis_flash_bank_command,

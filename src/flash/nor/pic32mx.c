@@ -967,7 +967,7 @@ static const struct command_registration pic32mx_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver pic32mx_flash = {
+const struct flash_driver pic32mx_flash = {
 	.name = "pic32mx",
 	.commands = pic32mx_command_handlers,
 	.flash_bank_command = pic32mx_flash_bank_command,

@@ -929,7 +929,7 @@ static const struct command_registration em357_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver em357_flash = {
+const struct flash_driver em357_flash = {
 	.name = "em357",
 	.commands = em357_command_handlers,
 	.flash_bank_command = em357_flash_bank_command,

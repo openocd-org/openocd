@@ -1048,7 +1048,7 @@ static const struct command_registration psoc6_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver psoc6_flash = {
+const struct flash_driver psoc6_flash = {
 	.name = "psoc6",
 	.commands = psoc6_command_handlers,
 	.flash_bank_command = psoc6_flash_bank_command,

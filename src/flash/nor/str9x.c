@@ -667,7 +667,7 @@ static const struct command_registration str9x_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver str9x_flash = {
+const struct flash_driver str9x_flash = {
 	.name = "str9x",
 	.commands = str9x_command_handlers,
 	.flash_bank_command = str9x_flash_bank_command,

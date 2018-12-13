@@ -1297,7 +1297,7 @@ static const struct command_registration kinetis_ke_command_handler[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver kinetis_ke_flash = {
+const struct flash_driver kinetis_ke_flash = {
 	.name = "kinetis_ke",
 	.commands = kinetis_ke_command_handler,
 	.flash_bank_command = kinetis_ke_flash_bank_command,

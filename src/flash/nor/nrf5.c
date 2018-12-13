@@ -1140,7 +1140,7 @@ static const struct command_registration nrf5_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver nrf5_flash = {
+const struct flash_driver nrf5_flash = {
 	.name			= "nrf5",
 	.commands		= nrf5_command_handlers,
 	.flash_bank_command	= nrf5_flash_bank_command,
@@ -1158,7 +1158,7 @@ struct flash_driver nrf5_flash = {
 
 /* We need to retain the flash-driver name as well as the commands
  * for backwards compatability */
-struct flash_driver nrf51_flash = {
+const struct flash_driver nrf51_flash = {
 	.name			= "nrf51",
 	.commands		= nrf5_command_handlers,
 	.flash_bank_command	= nrf5_flash_bank_command,

@@ -895,7 +895,7 @@ static int get_ath79_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver ath79_flash = {
+const struct flash_driver ath79_flash = {
 	.name = "ath79",
 	.flash_bank_command = ath79_flash_bank_command,
 	.erase = ath79_erase,

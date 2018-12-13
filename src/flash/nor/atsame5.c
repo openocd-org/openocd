@@ -938,7 +938,7 @@ static const struct command_registration same5_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver atsame5_flash = {
+const struct flash_driver atsame5_flash = {
 	.name = "atsame5",
 	.commands = same5_command_handlers,
 	.flash_bank_command = same5_flash_bank_command,

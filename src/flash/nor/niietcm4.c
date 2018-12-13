@@ -1729,7 +1729,7 @@ static int get_niietcm4_info(struct flash_bank *bank, char *buf, int buf_size)
 }
 
 
-struct flash_driver niietcm4_flash = {
+const struct flash_driver niietcm4_flash = {
 	.name = "niietcm4",
 	.usage = "flash bank <name> niietcm4 <base> <size> 0 0 <target#>",
 	.commands = niietcm4_command_handlers,

@@ -539,7 +539,7 @@ static int bluenrgx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver bluenrgx_flash = {
+const struct flash_driver bluenrgx_flash = {
 	.name = "bluenrg-x",
 	.flash_bank_command = bluenrgx_flash_bank_command,
 	.erase = bluenrgx_erase,

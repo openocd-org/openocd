@@ -652,7 +652,7 @@ static int get_stmsmi_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver stmsmi_flash = {
+const struct flash_driver stmsmi_flash = {
 	.name = "stmsmi",
 	.flash_bank_command = stmsmi_flash_bank_command,
 	.erase = stmsmi_erase,

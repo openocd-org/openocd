@@ -1038,7 +1038,7 @@ static int get_fespi_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver fespi_flash = {
+const struct flash_driver fespi_flash = {
 	.name = "fespi",
 	.flash_bank_command = fespi_flash_bank_command,
 	.erase = fespi_erase,

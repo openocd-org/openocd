@@ -103,7 +103,7 @@
 #define  offset_EFC_FSR   8
 #define  offset_EFC_FRR   12
 
-extern struct flash_driver at91sam4_flash;
+extern const struct flash_driver at91sam4_flash;
 
 static float _tomhz(uint32_t freq_hz)
 {
@@ -3234,7 +3234,7 @@ static const struct command_registration at91sam4_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver at91sam4_flash = {
+const struct flash_driver at91sam4_flash = {
 	.name = "at91sam4",
 	.commands = at91sam4_command_handlers,
 	.flash_bank_command = sam4_flash_bank_command,

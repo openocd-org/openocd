@@ -1441,7 +1441,7 @@ static const struct command_registration stellaris_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver stellaris_flash = {
+const struct flash_driver stellaris_flash = {
 	.name = "stellaris",
 	.commands = stellaris_command_handlers,
 	.flash_bank_command = stellaris_flash_bank_command,

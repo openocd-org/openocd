@@ -838,7 +838,7 @@ static const struct command_registration psoc5lp_nvl_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver psoc5lp_nvl_flash = {
+const struct flash_driver psoc5lp_nvl_flash = {
 	.name = "psoc5lp_nvl",
 	.commands = psoc5lp_nvl_command_handlers,
 	.flash_bank_command = psoc5lp_nvl_flash_bank_command,
@@ -1036,7 +1036,7 @@ static const struct command_registration psoc5lp_eeprom_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver psoc5lp_eeprom_flash = {
+const struct flash_driver psoc5lp_eeprom_flash = {
 	.name = "psoc5lp_eeprom",
 	.commands = psoc5lp_eeprom_command_handlers,
 	.flash_bank_command = psoc5lp_eeprom_flash_bank_command,
@@ -1548,7 +1548,7 @@ static const struct command_registration psoc5lp_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver psoc5lp_flash = {
+const struct flash_driver psoc5lp_flash = {
 	.name = "psoc5lp",
 	.commands = psoc5lp_command_handlers,
 	.flash_bank_command = psoc5lp_flash_bank_command,

@@ -314,7 +314,7 @@ static int ocl_auto_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-struct flash_driver ocl_flash = {
+const struct flash_driver ocl_flash = {
 	.name = "ocl",
 	.flash_bank_command = ocl_flash_bank_command,
 	.erase = ocl_erase,

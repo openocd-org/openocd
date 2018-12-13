@@ -3112,7 +3112,7 @@ static void cfi_fixup_0002_write_buffer(struct flash_bank *bank, const void *par
 	cfi_info->buf_write_timeout_typ = 0;
 }
 
-struct flash_driver cfi_flash = {
+const struct flash_driver cfi_flash = {
 	.name = "cfi",
 	.flash_bank_command = cfi_flash_bank_command,
 	.erase = cfi_erase,

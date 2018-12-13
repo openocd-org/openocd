@@ -1287,7 +1287,7 @@ static const struct command_registration at91samd_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver at91samd_flash = {
+const struct flash_driver at91samd_flash = {
 	.name = "at91samd",
 	.commands = at91samd_command_handlers,
 	.flash_bank_command = samd_flash_bank_command,

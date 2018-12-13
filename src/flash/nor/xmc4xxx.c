@@ -1343,7 +1343,7 @@ static const struct command_registration xmc4xxx_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver xmc4xxx_flash = {
+const struct flash_driver xmc4xxx_flash = {
 	.name = "xmc4xxx",
 	.commands = xmc4xxx_command_handlers,
 	.flash_bank_command = xmc4xxx_flash_bank_command,

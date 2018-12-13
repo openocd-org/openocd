@@ -87,7 +87,7 @@ struct flash_bank {
 
 	struct target *target; /**< Target to which this bank belongs. */
 
-	struct flash_driver *driver; /**< Driver for this bank. */
+	const struct flash_driver *driver; /**< Driver for this bank. */
 	void *driver_priv; /**< Private driver storage pointer */
 
 	int bank_number; /**< The 'bank' (or chip number) of this instance. */

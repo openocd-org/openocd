@@ -376,7 +376,7 @@ static int get_w600_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver w600_flash = {
+const struct flash_driver w600_flash = {
 	.name = "w600",
 	.flash_bank_command = w600_flash_bank_command,
 	.erase = w600_erase,

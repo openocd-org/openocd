@@ -1107,7 +1107,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	}
 
 	const char *driver_name = CMD_ARGV[0];
-	struct flash_driver *driver = flash_driver_find_by_name(driver_name);
+	const struct flash_driver *driver = flash_driver_find_by_name(driver_name);
 	if (NULL == driver) {
 		/* no matching flash driver found */
 		LOG_ERROR("flash driver '%s' not found", driver_name);

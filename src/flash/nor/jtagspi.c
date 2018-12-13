@@ -427,7 +427,7 @@ static int jtagspi_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver jtagspi_flash = {
+const struct flash_driver jtagspi_flash = {
 	.name = "jtagspi",
 	.flash_bank_command = jtagspi_flash_bank_command,
 	.erase = jtagspi_erase,

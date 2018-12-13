@@ -378,7 +378,7 @@ static int aduc702x_check_flash_completion(struct target *target, unsigned int t
 		return ERROR_OK;
 }
 
-struct flash_driver aduc702x_flash = {
+const struct flash_driver aduc702x_flash = {
 	.name = "aduc702x",
 	.flash_bank_command = aduc702x_flash_bank_command,
 	.erase = aduc702x_erase,

@@ -224,7 +224,7 @@ static int virtual_flash_read(struct flash_bank *bank,
 	return ERROR_OK;
 }
 
-struct flash_driver virtual_flash = {
+const struct flash_driver virtual_flash = {
 	.name = "virtual",
 	.flash_bank_command = virtual_flash_bank_command,
 	.erase = virtual_erase,

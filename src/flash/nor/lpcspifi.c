@@ -946,7 +946,7 @@ static int get_lpcspifi_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver lpcspifi_flash = {
+const struct flash_driver lpcspifi_flash = {
 	.name = "lpcspifi",
 	.flash_bank_command = lpcspifi_flash_bank_command,
 	.erase = lpcspifi_erase,

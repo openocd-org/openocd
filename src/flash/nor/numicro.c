@@ -1871,7 +1871,7 @@ static const struct command_registration numicro_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver numicro_flash = {
+const struct flash_driver numicro_flash = {
 	.name = "numicro",
 	.commands = numicro_command_handlers,
 	.flash_bank_command = numicro_flash_bank_command,

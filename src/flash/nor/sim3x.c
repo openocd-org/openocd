@@ -1110,7 +1110,7 @@ static const struct command_registration sim3x_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver sim3x_flash = {
+const struct flash_driver sim3x_flash = {
 	.name = "sim3x",
 	.commands = sim3x_command_handlers,
 	.flash_bank_command = sim3x_flash_bank_command,

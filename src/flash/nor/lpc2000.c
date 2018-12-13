@@ -1609,7 +1609,7 @@ static const struct command_registration lpc2000_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver lpc2000_flash = {
+const struct flash_driver lpc2000_flash = {
 	.name = "lpc2000",
 	.commands = lpc2000_command_handlers,
 	.flash_bank_command = lpc2000_flash_bank_command,
