@@ -134,6 +134,10 @@ git config remote.review.push HEAD:refs/for/master
 @code
 git remote add review http://USERNAME:PASSWORD@openocd.zylin.com/p/openocd.git
 @endcode
+  \note All contributions should be pushed to @c refs/for/master on the
+Gerrit server, even if you plan to use several local branches for different
+topics. It is possible because @c for/master is not a traditional Git
+branch.
   -# You will need to install this hook, we will look into a better solution:
 @code
 scp -p -P 29418 USERNAME@openocd.zylin.com:hooks/commit-msg .git/hooks/
