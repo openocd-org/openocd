@@ -72,8 +72,8 @@ static const char *dap_reg_name(int instr, int reg_addr)
 		case DP_RDBUFF:
 			reg_name =  "RDBUFF";
 			break;
-		case DP_WCR:
-			reg_name =  "WCR";
+		case DP_DLCR:
+			reg_name =  "DLCR";
 			break;
 		default:
 			reg_name = "UNK";
