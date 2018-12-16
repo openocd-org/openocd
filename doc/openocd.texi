@@ -5910,7 +5910,7 @@ The LPC2888 is supported by the @var{lpc288x} driver.
 The LPC29xx family is supported by the @var{lpc2900} driver.
 @end quotation
 
-The @var{lpc2000} driver defines two mandatory and one optional parameters,
+The @var{lpc2000} driver defines two mandatory and two optional parameters,
 which must appear in the following order:
 
 @itemize
@@ -5937,6 +5937,8 @@ table, the boot ROM will almost certainly ignore your flash image.
 However, if you do provide it,
 with most tool chains @command{verify_image} will fail.
 @end quotation
+@item @option{iap_entry} ... optional telling the driver to use a different
+ROM IAP entry point.
 @end itemize
 
 LPC flashes don't require the chip and bus width to be specified.

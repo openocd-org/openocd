@@ -82,6 +82,7 @@
  * - 822 | 4 (tested with LPC824)
  * - 8N04
  * - NHS31xx (tested with NHS3100)
+ * - 844 | 5 (tested with LPC845)
  *
  * lpc1100:
  * - 11xx
@@ -269,6 +270,15 @@
 #define NHS3152        0x4e315220
 #define NHS3153        0x4e315320 /* Only specified in Rev.1 of the datasheet */
 
+#define LPC844_201     0x00008441
+#define LPC844_201_1   0x00008442
+#define LPC844_201_2   0x00008444
+
+#define LPC845_301     0x00008451
+#define LPC845_301_1   0x00008452
+#define LPC845_301_2   0x00008453
+#define LPC845_301_3   0x00008454
+
 #define IAP_CODE_LEN 0x34
 
 #define LPC11xx_REG_SECTORS	24
@@ -294,6 +304,7 @@ struct lpc2000_flash_bank {
 	int checksum_vector;
 	uint32_t iap_max_stack;
 	uint32_t lpc4300_bank;
+	uint32_t iap_entry_alternative;
 	bool probed;
 };
 
@@ -546,6 +557,10 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 				lpc2000_info->cmd51_max_buffer = 1024; /* For LPC824, has 8kB of SRAM */
 				bank->num_sectors = 32;
 				break;
+			case 64 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024; /* For LPC844, has 8kB of SRAM */
+				bank->num_sectors = 64;
+				break;
 			default:
 				LOG_ERROR("BUG: unknown bank->size encountered");
 				exit(-1);
@@ -757,6 +772,9 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 			exit(-1);
 	}
 
+	if (lpc2000_info->iap_entry_alternative != 0x0)
+		iap_entry_point = lpc2000_info->iap_entry_alternative;
+
 	struct mem_param mem_params[2];
 
 	/* command parameter table */
@@ -954,6 +972,8 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		if (strcmp(CMD_ARGV[8], "calc_checksum") == 0)
 			lpc2000_info->calc_checksum = 1;
 	}
+	if (CMD_ARGC >= 10 && !lpc2000_info->iap_entry_alternative)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[9], lpc2000_info->iap_entry_alternative);
 
 	return ERROR_OK;
 }
@@ -1474,6 +1494,17 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 		case NHS3153:
 			lpc2000_info->variant = lpc800;
 			bank->size = 30 * 1024;
+			break;
+
+		case LPC844_201:
+		case LPC844_201_1:
+		case LPC844_201_2:
+		case LPC845_301:
+		case LPC845_301_1:
+		case LPC845_301_2:
+		case LPC845_301_3:
+			lpc2000_info->variant = lpc800;
+			bank->size = 64 * 1024;
 			break;
 
 		default:
