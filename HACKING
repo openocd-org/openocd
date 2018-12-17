@@ -122,12 +122,12 @@ to instruct git locally how to send off the changes.
   -# Add a new remote to git using Gerrit username:
 @code
 git remote add review ssh://USERNAME@openocd.zylin.com:29418/openocd.git
-git config remote.review.push HEAD:refs/publish/master
+git config remote.review.push HEAD:refs/for/master
 @endcode
   Or with http only:
 @code
 git remote add review http://USERNAME@openocd.zylin.com/p/openocd.git
-git config remote.review.push HEAD:refs/publish/master
+git config remote.review.push HEAD:refs/for/master
 @endcode
   The http password is configured from your gerrit settings - http://openocd.zylin.com/#/settings/http-password.
   \note If you want to simplify http access you can also add your http password to the url as follows:
