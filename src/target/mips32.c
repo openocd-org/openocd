@@ -461,6 +461,8 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	for (int i = 0; i < num_mem_params; i++) {
+		if (mem_params[i].direction == PARAM_IN)
+			continue;
 		retval = target_write_buffer(target, mem_params[i].address,
 				mem_params[i].size, mem_params[i].value);
 		if (retval != ERROR_OK)

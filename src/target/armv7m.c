@@ -379,7 +379,8 @@ int armv7m_start_algorithm(struct target *target,
 	}
 
 	for (int i = 0; i < num_mem_params; i++) {
-		/* TODO: Write only out params */
+		if (mem_params[i].direction == PARAM_IN)
+			continue;
 		retval = target_write_buffer(target, mem_params[i].address,
 				mem_params[i].size,
 				mem_params[i].value);
