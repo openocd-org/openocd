@@ -1035,7 +1035,7 @@ static int kinetis_disable_wdog_algo(struct target *target, size_t code_size, co
 		armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 		armv7m_info.core_mode = ARM_MODE_THREAD;
 
-		init_reg_param(&reg_params[0], "r0", 32, PARAM_IN);
+		init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 		buf_set_u32(reg_params[0].value, 0, 32, wdog_base);
 
 		retval = target_run_algorithm(target, 0, NULL, 1, reg_params,

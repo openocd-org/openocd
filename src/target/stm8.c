@@ -1897,6 +1897,9 @@ static int stm8_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	for (int i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].direction == PARAM_IN)
+			continue;
+
 		struct reg *reg = register_get_by_name(stm8->core_cache,
 				reg_params[i].reg_name, 0);
 

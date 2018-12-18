@@ -388,6 +388,9 @@ int armv7m_start_algorithm(struct target *target,
 	}
 
 	for (int i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].direction == PARAM_IN)
+			continue;
+
 		struct reg *reg =
 			register_get_by_name(armv7m->arm.core_cache, reg_params[i].reg_name, 0);
 /*		uint32_t regvalue; */
