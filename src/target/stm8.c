@@ -1805,6 +1805,7 @@ static int stm8_blank_check_memory(struct target *target,
 	destroy_mem_param(&mem_params[0]);
 	destroy_mem_param(&mem_params[1]);
 	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
 
 	target_free_working_area(target, erase_check_algorithm);
 
