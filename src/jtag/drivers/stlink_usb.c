@@ -1553,7 +1553,7 @@ static int stlink_swim_readbytes(void *handle, uint32_t addr, uint32_t len, uint
 /** */
 static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 {
-	int res;
+	int res, offset;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
@@ -1564,17 +1564,25 @@ static int stlink_usb_idcode(void *handle, uint32_t *idcode)
 		return ERROR_OK;
 	}
 
-	stlink_usb_init_buffer(handle, h->rx_ep, 4);
+	stlink_usb_init_buffer(handle, h->rx_ep, 12);
 
 	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_COMMAND;
-	h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_READCOREID;
+	if (h->version.jtag_api == STLINK_JTAG_API_V1) {
+		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_READCOREID;
 
-	res = stlink_usb_xfer_noerrcheck(handle, h->databuf, 4);
+		res = stlink_usb_xfer_noerrcheck(handle, h->databuf, 4);
+		offset = 0;
+	} else {
+		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READ_IDCODES;
+
+		res = stlink_usb_xfer_errcheck(handle, h->databuf, 12);
+		offset = 4;
+	}
 
 	if (res != ERROR_OK)
 		return res;
 
-	*idcode = le_to_h_u32(h->databuf);
+	*idcode = le_to_h_u32(h->databuf + offset);
 
 	LOG_DEBUG("IDCODE: 0x%08" PRIX32, *idcode);
 
