@@ -173,7 +173,7 @@ int arm_cti_clear_channel(struct arm_cti *self, uint32_t channel)
 	return arm_cti_write_reg(self, CTI_APPCLEAR, CTI_CHNL(channel));
 }
 
-static uint32_t cti_regs[26];
+static uint32_t cti_regs[28];
 
 static const struct {
 	uint32_t offset;
@@ -206,6 +206,8 @@ static const struct {
 	{ CTI_CHOU_STATUS,	"CHOUT", &cti_regs[23] },
 	{ CTI_APPSET,	"APPSET",	&cti_regs[24] },
 	{ CTI_APPCLEAR,	"APPCLR",	&cti_regs[25] },
+	{ CTI_APPPULSE,	"APPPULSE",	&cti_regs[26] },
+	{ CTI_INACK,	"INACK",	&cti_regs[27] },
 };
 
 static int cti_find_reg_offset(const char *name)
