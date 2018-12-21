@@ -564,6 +564,17 @@ static int cortex_m_poll(struct target *target)
 		}
 	}
 
+	/* Check that target is truly halted, since the target could be resumed externally */
+	if ((prev_target_state == TARGET_HALTED) && !(cortex_m->dcb_dhcsr & S_HALT)) {
+		/* registers are now invalid */
+		register_cache_invalidate(armv7m->arm.core_cache);
+
+		target->state = TARGET_RUNNING;
+		LOG_WARNING("%s: external resume detected", target_name(target));
+		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+		retval = ERROR_OK;
+	}
+
 	/* Did we detect a failure condition that we cleared? */
 	if (detected_failure != ERROR_OK)
 		retval = detected_failure;
