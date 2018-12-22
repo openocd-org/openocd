@@ -344,6 +344,9 @@ static const struct speed_map stlink_khz_to_speed_map_jtag[] = {
 
 static void stlink_usb_init_buffer(void *handle, uint8_t direction, uint32_t size);
 static int stlink_swim_status(void *handle);
+void stlink_dump_speed_map(const struct speed_map *map, unsigned int map_size);
+static int stlink_get_com_freq(void *handle, bool is_jtag, struct speed_map *map);
+static int stlink_speed(void *handle, int khz, bool query);
 
 /** */
 static unsigned int stlink_usb_block(void *handle)
@@ -1244,7 +1247,7 @@ static enum stlink_mode stlink_get_mode(enum hl_transports t)
 }
 
 /** */
-static int stlink_usb_init_mode(void *handle, bool connect_under_reset)
+static int stlink_usb_init_mode(void *handle, bool connect_under_reset, int initial_interface_speed)
 {
 	int res;
 	uint8_t mode;
@@ -1321,6 +1324,27 @@ static int stlink_usb_init_mode(void *handle, bool connect_under_reset)
 	if (emode == STLINK_MODE_UNKNOWN) {
 		LOG_ERROR("selected mode (transport) not supported");
 		return ERROR_FAIL;
+	}
+
+	/* set the speed before entering the mode, as the chip discovery phase should be done at this speed too */
+	if (h->transport == HL_TRANSPORT_JTAG) {
+		if (h->version.flags & STLINK_F_HAS_JTAG_SET_FREQ) {
+			stlink_dump_speed_map(stlink_khz_to_speed_map_jtag, ARRAY_SIZE(stlink_khz_to_speed_map_jtag));
+			stlink_speed(h, initial_interface_speed, false);
+		}
+	} else if (h->transport == HL_TRANSPORT_SWD) {
+		if (h->version.flags & STLINK_F_HAS_SWD_SET_FREQ) {
+			stlink_dump_speed_map(stlink_khz_to_speed_map_swd, ARRAY_SIZE(stlink_khz_to_speed_map_swd));
+			stlink_speed(h, initial_interface_speed, false);
+		}
+	}
+
+	if (h->version.jtag_api == STLINK_JTAG_API_V3) {
+		struct speed_map map[STLINK_V3_MAX_FREQ_NB];
+
+		stlink_get_com_freq(h, (h->transport == HL_TRANSPORT_JTAG), map);
+		stlink_dump_speed_map(map, ARRAY_SIZE(map));
+		stlink_speed(h, initial_interface_speed, false);
 	}
 
 	/* preliminary SRST assert:
@@ -2814,7 +2838,7 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 	}
 
 	/* initialize the debug hardware */
-	err = stlink_usb_init_mode(h, param->connect_under_reset);
+	err = stlink_usb_init_mode(h, param->connect_under_reset, param->initial_interface_speed);
 
 	if (err != ERROR_OK) {
 		LOG_ERROR("init mode failed (unable to connect to the target)");
@@ -2830,26 +2854,6 @@ static int stlink_usb_open(struct hl_interface_param_s *param, void **fd)
 		*fd = h;
 		h->max_mem_packet = STLINK_DATA_SIZE;
 		return ERROR_OK;
-	}
-
-	if (h->transport == HL_TRANSPORT_JTAG) {
-		if (h->version.flags & STLINK_F_HAS_JTAG_SET_FREQ) {
-			stlink_dump_speed_map(stlink_khz_to_speed_map_jtag, ARRAY_SIZE(stlink_khz_to_speed_map_jtag));
-			stlink_speed(h, param->initial_interface_speed, false);
-		}
-	} else if (h->transport == HL_TRANSPORT_SWD) {
-		if (h->version.flags & STLINK_F_HAS_SWD_SET_FREQ) {
-			stlink_dump_speed_map(stlink_khz_to_speed_map_swd, ARRAY_SIZE(stlink_khz_to_speed_map_swd));
-			stlink_speed(h, param->initial_interface_speed, false);
-		}
-	}
-
-	if (h->version.jtag_api == STLINK_JTAG_API_V3) {
-		struct speed_map map[STLINK_V3_MAX_FREQ_NB];
-
-		stlink_get_com_freq(h, (h->transport == HL_TRANSPORT_JTAG), map);
-		stlink_dump_speed_map(map, ARRAY_SIZE(map));
-		stlink_speed(h, param->initial_interface_speed, false);
 	}
 
 	/* get cpuid, so we can determine the max page size
