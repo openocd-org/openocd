@@ -470,6 +470,9 @@ static int adapter_poll(struct target *target)
 	if (prev_target_state == state)
 		return ERROR_OK;
 
+	if (prev_target_state == TARGET_DEBUG_RUNNING && state == TARGET_RUNNING)
+		return ERROR_OK;
+
 	target->state = state;
 
 	if (state == TARGET_HALTED) {
