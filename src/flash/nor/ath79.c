@@ -653,13 +653,6 @@ static int ath79_write(struct flash_bank *bank, const uint8_t *buffer,
 	LOG_DEBUG("%s: offset=0x%08" PRIx32 " count=0x%08" PRIx32,
 		  __func__, offset, count);
 
-	if (offset < bank->base || offset >= bank->base + bank->size) {
-		LOG_ERROR("Start address out of range");
-		return ERROR_FAIL;
-	}
-
-	offset -= bank->base;
-
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -728,13 +721,6 @@ static int ath79_read(struct flash_bank *bank, uint8_t *buffer,
 
 	LOG_DEBUG("%s: offset=0x%08" PRIx32 " count=0x%08" PRIx32,
 		  __func__, offset, count);
-
-	if (offset < bank->base || offset >= bank->base + bank->size) {
-		LOG_ERROR("Start address out of range");
-		return ERROR_FAIL;
-	}
-
-	offset -= bank->base;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");

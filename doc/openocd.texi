@@ -5347,12 +5347,12 @@ since the alternate function must be enabled on the GPIO pin
 CS1/CS2 is routed to on the given SoC.
 
 @example
-flash bank $_FLASHNAME ath79 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME ath79 0xbf000000 0 0 0 $_TARGETNAME
 
 # When using multiple chipselects the base should be different for each,
 # otherwise the write_image command is not able to distinguish the
 # banks.
-flash bank flash0 ath79 0x00000000 0 0 0 $_TARGETNAME cs0
+flash bank flash0 ath79 0xbf000000 0 0 0 $_TARGETNAME cs0
 flash bank flash1 ath79 0x10000000 0 0 0 $_TARGETNAME cs1
 flash bank flash2 ath79 0x20000000 0 0 0 $_TARGETNAME cs2
 @end example
