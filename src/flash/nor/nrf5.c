@@ -248,7 +248,7 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 {
 	uint32_t ready;
 	int res;
-	int timeout_ms = 200;
+	int timeout_ms = 340;
 	int64_t ts_start = timeval_ms();
 
 	do {
