@@ -514,7 +514,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 }
 
 /* If dmi_busy_encountered is non-NULL, this function will use it to tell the
- * caller whether DMI was every busy during this call. */
+ * caller whether DMI was ever busy during this call. */
 static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 		bool *dmi_busy_encountered, int dmi_op, uint32_t address,
 		uint32_t data_out, int timeout_sec, bool exec)
