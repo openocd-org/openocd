@@ -31,7 +31,8 @@
 static bool hwthread_detect_rtos(struct target *target);
 static int hwthread_create(struct target *target);
 static int hwthread_update_threads(struct rtos *rtos);
-static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list);
+static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs);
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 static int hwthread_smp_init(struct target *target);
 
@@ -208,47 +209,13 @@ static inline int gdb_reg_pos(struct target *target, int pos, int len)
 		return len - 1 - pos;
 }
 
-/* Convert register to string of bytes. NB! The # of bits in the
- * register might be non-divisible by 8(a byte), in which
- * case an entire byte is shown.
- *
- * NB! the format on the wire is the target endianness
- *
- * The format of reg->value is little endian
- *
- */
-static void gdb_str_to_target(struct target *target,
-		char *tstr, struct reg *reg)
-{
-	int i;
 
-	uint8_t *buf;
-	int buf_len;
-	buf = reg->value;
-	buf_len = DIV_ROUND_UP(reg->size, 8);
-
-	for (i = 0; i < buf_len; i++) {
-		int j = gdb_reg_pos(target, i, buf_len);
-		tstr += sprintf(tstr, "%02x", buf[j]);
-	}
-}
-
-
-static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, char **hex_reg_list)
+static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs)
 {
 	struct target_list *head;
 	struct target *target;
 	struct target *curr;
-	struct reg **reg_list;
-	int reg_list_size;
-	int reg_packet_size = 0;
-	char *reg_packet;
-	char *reg_packet_p;
-	int i;
-
-	int retval;
-
-	*hex_reg_list = NULL;
 
 	if (rtos == NULL)
 		return ERROR_FAIL;
@@ -277,35 +244,8 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id, ch
 	if (!target_was_examined(curr))
 		return ERROR_FAIL;
 
-	retval = target_get_gdb_reg_list(curr, &reg_list, &reg_list_size,
-			REG_CLASS_GENERAL);
-	if (retval != ERROR_OK)
-		return retval;
-
-	for (i = 0; i < reg_list_size; i++)
-		reg_packet_size += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
-
-	if (reg_packet_size == 0)
-		return ERROR_FAIL;
-
-	reg_packet = malloc(reg_packet_size + 1); /* plus one for string termination null */
-	if (reg_packet == NULL)
-		return ERROR_FAIL;
-
-	reg_packet_p = reg_packet;
-
-	for (i = 0; i < reg_list_size; i++) {
-		if (!reg_list[i]->valid)
-			reg_list[i]->type->get(reg_list[i]);
-		gdb_str_to_target(target, reg_packet_p, reg_list[i]);
-		reg_packet_p += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
-	}
-
-	*hex_reg_list = reg_packet;
-	free(reg_list);
-
-	return ERROR_OK;
-
+	LOG_ERROR("TODO: not implemented");
+	return ERROR_FAIL;
 }
 
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
