@@ -725,38 +725,25 @@ static int cortex_a_poll(struct target *target)
 			/* We have a halting debug event */
 			LOG_DEBUG("Target halted");
 			target->state = TARGET_HALTED;
-			if ((prev_target_state == TARGET_RUNNING)
-				|| (prev_target_state == TARGET_UNKNOWN)
-				|| (prev_target_state == TARGET_RESET)) {
-				retval = cortex_a_debug_entry(target);
+
+			retval = cortex_a_debug_entry(target);
+			if (retval != ERROR_OK)
+				return retval;
+
+			if (target->smp) {
+				retval = update_halt_gdb(target);
 				if (retval != ERROR_OK)
 					return retval;
-				if (target->smp) {
-					retval = update_halt_gdb(target);
-					if (retval != ERROR_OK)
-						return retval;
-				}
+			}
 
+			if (prev_target_state == TARGET_DEBUG_RUNNING) {
+				target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
+			} else { /* prev_target_state is RUNNING, UNKNOWN or RESET */
 				if (arm_semihosting(target, &retval) != 0)
 					return retval;
 
 				target_call_event_callbacks(target,
 					TARGET_EVENT_HALTED);
-			}
-			if (prev_target_state == TARGET_DEBUG_RUNNING) {
-				LOG_DEBUG(" ");
-
-				retval = cortex_a_debug_entry(target);
-				if (retval != ERROR_OK)
-					return retval;
-				if (target->smp) {
-					retval = update_halt_gdb(target);
-					if (retval != ERROR_OK)
-						return retval;
-				}
-
-				target_call_event_callbacks(target,
-					TARGET_EVENT_DEBUG_HALTED);
 			}
 		}
 	} else
