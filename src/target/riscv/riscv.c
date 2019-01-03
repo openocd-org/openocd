@@ -856,8 +856,28 @@ static int old_or_new_riscv_resume(
 		int handle_breakpoints,
 		int debug_execution
 ){
-	RISCV_INFO(r);
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
+	if (target->smp) {
+		struct target_list *targets = target->head;
+		int result = ERROR_OK;
+		while (targets) {
+			struct target *t = targets->target;
+			riscv_info_t *r = riscv_info(t);
+			if (r->is_halted == NULL) {
+				if (oldriscv_resume(t, current, address, handle_breakpoints,
+							debug_execution) != ERROR_OK)
+					result = ERROR_FAIL;
+			} else {
+				if (riscv_openocd_resume(t, current, address,
+							handle_breakpoints, debug_execution) != ERROR_OK)
+					result = ERROR_FAIL;
+			}
+			targets = targets->next;
+		}
+		return result;
+	}
+
+	RISCV_INFO(r);
 	if (r->is_halted == NULL)
 		return oldriscv_resume(target, current, address, handle_breakpoints, debug_execution);
 	else
@@ -1938,9 +1958,10 @@ int riscv_xlen_of_hart(const struct target *target, int hartid)
 	return r->xlen[hartid];
 }
 
+extern struct rtos_type riscv_rtos;
 bool riscv_rtos_enabled(const struct target *target)
 {
-	return target->rtos != NULL;
+	return target->rtos && target->rtos->type == &riscv_rtos;
 }
 
 int riscv_set_current_hartid(struct target *target, int hartid)
