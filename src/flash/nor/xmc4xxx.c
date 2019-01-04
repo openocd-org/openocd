@@ -1329,7 +1329,8 @@ static const struct command_registration xmc4xxx_exec_command_handlers[] = {
 		.usage = "bank_id user_level[0-1]",
 		.help = "Permanently Removes flash protection (read and write) "
 		"for the specified user level",
-	},	COMMAND_REGISTRATION_DONE
+	},
+	COMMAND_REGISTRATION_DONE
 };
 
 static const struct command_registration xmc4xxx_command_handlers[] = {
