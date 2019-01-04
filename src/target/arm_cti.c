@@ -576,6 +576,7 @@ static const struct command_registration cti_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "CTI commands",
 		.chain = cti_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

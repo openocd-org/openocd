@@ -1849,12 +1849,14 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.help = "access the device configuration. If no argument is given "
 			"this will show the device configuration",
 		.chain = jlink_config_subcommand_handlers,
+		.usage = "[<cmd>]",
 	},
 	{
 		.name = "emucom",
 		.mode = COMMAND_EXEC,
 		.help = "access EMUCOM channel",
-		.chain = jlink_emucom_subcommand_handlers
+		.chain = jlink_emucom_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1865,6 +1867,7 @@ static const struct command_registration jlink_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "perform jlink management",
 		.chain = jlink_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

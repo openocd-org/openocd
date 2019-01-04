@@ -1260,6 +1260,7 @@ static const struct command_registration flash_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "NOR flash command group",
 		.chain = flash_config_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

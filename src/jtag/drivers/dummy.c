@@ -136,8 +136,8 @@ static const struct command_registration dummy_command_handlers[] = {
 		.name = "dummy",
 		.mode = COMMAND_ANY,
 		.help = "dummy interface driver commands",
-
 		.chain = hello_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE,
 };

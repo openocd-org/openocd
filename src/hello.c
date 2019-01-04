@@ -105,8 +105,8 @@ const struct command_registration hello_command_handlers[] = {
 		.name = "foo",
 		.mode = COMMAND_ANY,
 		.help = "example command handler skeleton",
-
 		.chain = foo_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

@@ -193,7 +193,8 @@ static const struct command_registration mxc_nand_command_handler[] = {
 		.name = "mxc",
 		.mode = COMMAND_ANY,
 		.help = "MXC NAND flash controller commands",
-		.chain = mxc_sub_command_handlers
+		.chain = mxc_sub_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

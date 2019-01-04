@@ -6096,8 +6096,8 @@ static const struct command_registration target_command_handlers[] = {
 		.name = "target",
 		.mode = COMMAND_CONFIG,
 		.help = "configure target",
-
 		.chain = target_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

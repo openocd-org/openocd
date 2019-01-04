@@ -66,6 +66,7 @@ static const struct command_registration etm_dummy_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "Dummy ETM capture driver command group",
 		.chain = etm_dummy_config_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

@@ -441,6 +441,7 @@ static const struct command_registration etb_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "Embedded Trace Buffer command group",
 		.chain = etb_config_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
