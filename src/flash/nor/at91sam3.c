@@ -3731,6 +3731,7 @@ static const struct command_registration at91sam3_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Print information about the current at91sam3 chip"
 			"and its flash configuration.",
+		.usage = "",
 	},
 	{
 		.name = "slowclk",

@@ -411,6 +411,7 @@ static const struct command_registration nand_exec_command_handlers[] = {
 		.handler = handle_nand_list_command,
 		.mode = COMMAND_EXEC,
 		.help = "list configured NAND flash devices",
+		.usage = "",
 	},
 	{
 		.name = "info",

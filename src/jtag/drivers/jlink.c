@@ -1772,13 +1772,15 @@ static const struct command_registration jlink_config_subcommand_handlers[] = {
 		.name = "reset",
 		.handler = &jlink_handle_config_reset_command,
 		.mode = COMMAND_EXEC,
-		.help = "undo configuration changes"
+		.help = "undo configuration changes",
+		.usage = "",
 	},
 	{
 		.name = "write",
 		.handler = &jlink_handle_config_write_command,
 		.mode = COMMAND_EXEC,
-		.help = "write configuration to the device"
+		.help = "write configuration to the device",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1820,13 +1822,15 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.name = "freemem",
 		.handler = &jlink_handle_free_memory_command,
 		.mode = COMMAND_EXEC,
-		.help = "show free device memory"
+		.help = "show free device memory",
+		.usage = "",
 	},
 	{
 		.name = "hwstatus",
 		.handler = &jlink_handle_hwstatus_command,
 		.mode = COMMAND_EXEC,
-		.help = "show the hardware status"
+		.help = "show the hardware status",
+		.usage = "",
 	},
 	{
 		.name = "usb",

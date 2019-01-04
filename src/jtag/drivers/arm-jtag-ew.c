@@ -490,6 +490,7 @@ static const struct command_registration armjtagew_command_handlers[] = {
 		.handler = &armjtagew_handle_armjtagew_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "query armjtagew info",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

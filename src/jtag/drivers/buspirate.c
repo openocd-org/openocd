@@ -491,6 +491,7 @@ static const struct command_registration buspirate_command_handlers[] = {
 		.handler = &buspirate_handle_adc_command,
 		.mode = COMMAND_EXEC,
 		.help = "reads voltages on adc pins",
+		.usage = "",
 	},
 	{
 		.name = "buspirate_vreg",

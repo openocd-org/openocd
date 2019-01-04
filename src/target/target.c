@@ -5890,6 +5890,7 @@ static const struct command_registration target_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.handler = handle_target_init_command,
 		.help = "initialize targets",
+		.usage = "",
 	},
 	{
 		.name = "create",

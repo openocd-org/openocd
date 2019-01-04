@@ -472,6 +472,7 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.handler = handle_meminfo_command,
 		.mode = COMMAND_ANY,
 		.help = "display free heap space",
+		.usage = "",
 	},
 #endif
 	{

@@ -1217,7 +1217,8 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.name = "dsu_reset_deassert",
 		.handler = samd_handle_reset_deassert,
 		.mode = COMMAND_EXEC,
-		.help = "Deasert internal reset held by DSU."
+		.help = "Deassert internal reset held by DSU.",
+		.usage = "",
 	},
 	{
 		.name = "info",
@@ -1225,6 +1226,7 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Print information about the current at91samd chip "
 			"and its flash configuration.",
+		.usage = "",
 	},
 	{
 		.name = "chip-erase",
@@ -1232,6 +1234,7 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Erase the entire Flash by using the Chip-"
 			"Erase feature in the Device Service Unit (DSU).",
+		.usage = "",
 	},
 	{
 		.name = "set-security",

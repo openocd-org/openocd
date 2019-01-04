@@ -893,12 +893,14 @@ COMMAND_HANDLER(samd_handle_reset_deassert)
 static const struct command_registration same5_exec_command_handlers[] = {
 	{
 		.name = "dsu_reset_deassert",
+		.usage = "",
 		.handler = samd_handle_reset_deassert,
 		.mode = COMMAND_EXEC,
 		.help = "Deasert internal reset held by DSU."
 	},
 	{
 		.name = "chip-erase",
+		.usage = "",
 		.handler = same5_handle_chip_erase_command,
 		.mode = COMMAND_EXEC,
 		.help = "Erase the entire Flash by using the Chip-"

@@ -668,7 +668,8 @@ static const struct command_registration at91sam4l_exec_command_handlers[] = {
 		.name = "smap_reset_deassert",
 		.handler = sam4l_handle_reset_deassert,
 		.mode = COMMAND_EXEC,
-		.help = "deasert internal reset held by SMAP"
+		.help = "deassert internal reset held by SMAP",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

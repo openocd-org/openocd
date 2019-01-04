@@ -3699,6 +3699,7 @@ static const struct command_registration gdb_command_handlers[] = {
 		.handler = handle_gdb_save_tdesc_command,
 		.mode = COMMAND_EXEC,
 		.help = "Save the target description file",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

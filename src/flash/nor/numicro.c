@@ -1856,6 +1856,7 @@ static const struct command_registration numicro_exec_command_handlers[] = {
 		.handler = numicro_handle_chip_erase_command,
 		.mode = COMMAND_EXEC,
 		.help = "chip erase through ISP.",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

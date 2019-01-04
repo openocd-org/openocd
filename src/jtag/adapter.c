@@ -555,6 +555,7 @@ static const struct command_registration interface_command_handlers[] = {
 		.handler = handle_interface_list_command,
 		.mode = COMMAND_ANY,
 		.help = "List all built-in debug adapter interfaces (drivers)",
+		.usage = "",
 	},
 	{
 		.name = "reset_config",

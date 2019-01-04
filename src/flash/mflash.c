@@ -1327,6 +1327,7 @@ static const struct command_registration mflash_exec_command_handlers[] = {
 		.handler = mg_probe_cmd,
 		.mode = COMMAND_EXEC,
 		.help = "Detect bank configuration information",
+		.usage = "",
 	},
 	{
 		.name = "write",

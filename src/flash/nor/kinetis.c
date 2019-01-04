@@ -3127,6 +3127,7 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "Driver creates additional banks if device with two/four flash blocks is probed",
 		.handler = kinetis_create_banks_handler,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

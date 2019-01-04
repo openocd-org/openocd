@@ -215,6 +215,7 @@ static const struct command_registration opendous_command_handlers[] = {
 		.handler = &opendous_handle_opendous_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "show opendous info",
+		.usage = "",
 	},
 	{
 		.name = "opendous_hw_jtag",

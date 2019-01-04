@@ -3577,6 +3577,7 @@ static const struct command_registration xscale_exec_command_handlers[] = {
 		.handler = xscale_handle_cache_info_command,
 		.mode = COMMAND_EXEC,
 		.help = "display information about CPU caches",
+		.usage = "",
 	},
 	{
 		.name = "mmu",

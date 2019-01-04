@@ -170,6 +170,7 @@ static const struct command_registration pld_exec_command_handlers[] = {
 		.handler = handle_pld_devices_command,
 		.mode = COMMAND_EXEC,
 		.help = "list configured pld devices",
+		.usage = "",
 	},
 	{
 		.name = "load",
