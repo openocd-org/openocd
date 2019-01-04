@@ -236,7 +236,7 @@ COMMAND_HANDLER(handle_log_output_command)
 	return ERROR_OK;
 }
 
-static struct command_registration log_command_handlers[] = {
+static const struct command_registration log_command_handlers[] = {
 	{
 		.name = "log_output",
 		.handler = handle_log_output_command,
