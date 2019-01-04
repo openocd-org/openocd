@@ -3074,7 +3074,8 @@ static const struct command_registration kinetis_security_command_handlers[] = {
 		.usage = "",
 		.handler = kinetis_mdm_mass_erase,
 	},
-	{	.name = "reset",
+	{
+		.name = "reset",
 		.mode = COMMAND_EXEC,
 		.help = "Issue a reset via the MDM-AP",
 		.usage = "",
