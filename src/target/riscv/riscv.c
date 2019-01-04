@@ -1900,28 +1900,28 @@ extern __COMMAND_HANDLER(handle_common_semihosting_cmdline);
  */
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
-		"semihosting",
+		.name = "semihosting",
 		.handler = handle_common_semihosting_command,
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting operations",
 	},
 	{
-		"semihosting_cmdline",
+		.name = "semihosting_cmdline",
 		.handler = handle_common_semihosting_cmdline,
 		.mode = COMMAND_EXEC,
 		.usage = "arguments",
 		.help = "command line arguments to be passed to program",
 	},
 	{
-		"semihosting_fileio",
+		.name = "semihosting_fileio",
 		.handler = handle_common_semihosting_fileio_command,
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting fileio operations",
 	},
 	{
-		"semihosting_resexit",
+		.name = "semihosting_resexit",
 		.handler = handle_common_semihosting_resumable_exit_command,
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
