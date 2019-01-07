@@ -211,7 +211,7 @@ static inline int gdb_reg_pos(struct target *target, int pos, int len)
 
 
 static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
-		struct rtos_reg **reg_list, int *num_regs)
+		struct rtos_reg **rtos_reg_list, int *rtos_reg_list_size)
 {
 	struct target_list *head;
 	struct target *target;
@@ -238,14 +238,32 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		curr = target;
 		if (thread_id != threadid_from_target(curr))
 			return ERROR_FAIL;
-
 	}
 
 	if (!target_was_examined(curr))
 		return ERROR_FAIL;
 
-	LOG_ERROR("TODO: not implemented");
-	return ERROR_FAIL;
+	struct reg **reg_list;
+	int retval = target_get_gdb_reg_list(curr, &reg_list, rtos_reg_list_size,
+			REG_CLASS_GENERAL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*rtos_reg_list = calloc(*rtos_reg_list_size, sizeof(struct rtos_reg));
+	if (*rtos_reg_list == NULL) {
+		free(reg_list);
+		return ERROR_FAIL;
+	}
+
+	for (int i = 0; i < *rtos_reg_list_size; i++) {
+		(*rtos_reg_list)[i].number = (*reg_list)[i].number;
+		(*rtos_reg_list)[i].size = (*reg_list)[i].size;
+		memcpy((*rtos_reg_list)[i].value, (*reg_list)[i].value,
+				((*reg_list)[i].size + 7) / 8);
+	}
+	free(reg_list);
+
+	return ERROR_OK;
 }
 
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
