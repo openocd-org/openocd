@@ -945,10 +945,23 @@ static int riscv_get_gdb_reg_list(struct target *target,
 	if (!*reg_list)
 		return ERROR_FAIL;
 
+	bool read = true;
 	for (int i = 0; i < *reg_list_size; i++) {
 		assert(!target->reg_cache->reg_list[i].valid ||
 				target->reg_cache->reg_list[i].size > 0);
 		(*reg_list)[i] = &target->reg_cache->reg_list[i];
+		if (read && !target->reg_cache->reg_list[i].valid) {
+			// TODO: Confirm that this function is supposed to actually read
+			// registers. I'm just adding this because maybe
+			// hwthread_get_thread_reg_list() expects it.
+
+			// This function gets called from
+			// gdb_target_description_supported(), and we end up failing in
+			// that case. Allow failures for now.
+			if (target->reg_cache->reg_list[i].type->get(
+						&target->reg_cache->reg_list[i]) != ERROR_OK)
+				read = false;
+		}
 	}
 
 	return ERROR_OK;
