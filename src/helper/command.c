@@ -557,6 +557,10 @@ static char *__command_name(struct command *c, char delim, unsigned extra)
 	if (NULL == c->parent) {
 		/* allocate enough for the name, child names, and '\0' */
 		name = malloc(len + extra + 1);
+		if (!name) {
+			LOG_ERROR("Out of memory");
+			return NULL;
+		}
 		strcpy(name, c->name);
 	} else {
 		/* parent's extra must include both the space and name */
@@ -631,8 +635,7 @@ static int run_command(struct command_context *context,
 		if (NULL != full_name) {
 			command_run_linef(context, "usage %s", full_name);
 			free(full_name);
-		} else
-			retval = -ENOMEM;
+		}
 	} else if (retval == ERROR_COMMAND_CLOSE_CONNECTION) {
 		/* just fall through for a shutdown request */
 	} else if (retval != ERROR_OK) {
@@ -870,7 +873,7 @@ static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
 {
 	char *cmd_name = command_name(c, ' ');
 	if (NULL == cmd_name)
-		return -ENOMEM;
+		return ERROR_FAIL;
 
 	/* If the match string occurs anywhere, we print out
 	 * stuff for this command. */
