@@ -206,8 +206,6 @@ typedef struct {
 
 	bool need_strict_step;
 	bool never_halted;
-
-	int reset_delays_wait;
 } riscv011_info_t;
 
 typedef struct {
@@ -360,10 +358,11 @@ static void add_dbus_scan(const struct target *target, struct scan_field *field,
 		uint16_t address, uint64_t data)
 {
 	riscv011_info_t *info = get_info(target);
+	RISCV_INFO(r);
 
-	if (info->reset_delays_wait >= 0) {
-		info->reset_delays_wait--;
-		if (info->reset_delays_wait < 0) {
+	if (r->reset_delays_wait >= 0) {
+		r->reset_delays_wait--;
+		if (r->reset_delays_wait < 0) {
 			info->dbus_busy_delay = 0;
 			info->interrupt_high_delay = 0;
 		}
@@ -1385,13 +1384,6 @@ static int halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int reset_delays(struct target *target, int wait)
-{
-	riscv011_info_t *info = get_info(target);
-	info->reset_delays_wait = wait;
-	return ERROR_OK;
-}
-
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -1399,7 +1391,6 @@ static int init_target(struct command_context *cmd_ctx,
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 	generic_info->get_register = get_register;
 	generic_info->set_register = set_register;
-	generic_info->reset_delays = &reset_delays;
 
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)

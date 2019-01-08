@@ -1622,7 +1622,8 @@ COMMAND_HANDLER(riscv_reset_delays)
 
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
-	return r->reset_delays(target, wait);
+	r->reset_delays_wait = wait;
+	return ERROR_OK;
 }
 
 static const struct command_registration riscv_exec_command_handlers[] = {

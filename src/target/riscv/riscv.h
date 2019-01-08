@@ -96,6 +96,10 @@ typedef struct {
 
 	bool triggers_enumerated;
 
+	/* Decremented every scan, and when it reaches 0 we clear the learned
+	 * delays, causing them to be relearned. Used for testing. */
+	int reset_delays_wait;
+
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
 	int (*get_register)(struct target *target,
@@ -130,10 +134,6 @@ typedef struct {
 			uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
 
 	int (*test_compliance)(struct target *target);
-
-	/* After wait scans, reset the number of Run-Test/Idle cycles we've learned
-	 * are required. */
-	int (*reset_delays)(struct target *target, int wait);
 } riscv_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
