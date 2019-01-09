@@ -510,7 +510,10 @@ static int cortex_m_poll(struct target *target)
 	}
 
 	if (cortex_m->dcb_dhcsr & S_RESET_ST) {
-		target->state = TARGET_RESET;
+		if (target->state != TARGET_RESET) {
+			target->state = TARGET_RESET;
+			LOG_INFO("%s: external reset detected", target_name(target));
+		}
 		return ERROR_OK;
 	}
 
