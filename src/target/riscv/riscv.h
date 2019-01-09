@@ -96,6 +96,10 @@ typedef struct {
 
 	bool triggers_enumerated;
 
+	/* Decremented every scan, and when it reaches 0 we clear the learned
+	 * delays, causing them to be relearned. Used for testing. */
+	int reset_delays_wait;
+
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
 	int (*get_register)(struct target *target,

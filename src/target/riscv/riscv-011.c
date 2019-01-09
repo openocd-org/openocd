@@ -358,6 +358,15 @@ static void add_dbus_scan(const struct target *target, struct scan_field *field,
 		uint16_t address, uint64_t data)
 {
 	riscv011_info_t *info = get_info(target);
+	RISCV_INFO(r);
+
+	if (r->reset_delays_wait >= 0) {
+		r->reset_delays_wait--;
+		if (r->reset_delays_wait < 0) {
+			info->dbus_busy_delay = 0;
+			info->interrupt_high_delay = 0;
+		}
+	}
 
 	field->num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE;
 	field->in_value = in_value;
