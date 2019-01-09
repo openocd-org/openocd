@@ -5882,8 +5882,7 @@ static const struct command_registration target_subcommand_handlers[] = {
 	},
 	{
 		.name = "create",
-		/* REVISIT this should be COMMAND_CONFIG ... */
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_CONFIG,
 		.jim_handler = jim_target_create,
 		.usage = "name type '-chain-position' name [options ...]",
 		.help = "Creates and selects a new target",
