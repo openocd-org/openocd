@@ -1992,16 +1992,18 @@ int riscv_set_current_hartid(struct target *target, int hartid)
 
 	/* This might get called during init, in which case we shouldn't be
 	 * setting up the register cache. */
-	if (!target_was_examined(target))
-		return ERROR_OK;
+	//if (target_was_examined(target) && hartid != previous_hartid)
+	if (target_was_examined(target) && riscv_rtos_enabled(target))
+		riscv_invalidate_register_cache(target);
 
-	riscv_invalidate_register_cache(target);
 	return ERROR_OK;
 }
 
 void riscv_invalidate_register_cache(struct target *target)
 {
 	RISCV_INFO(r);
+
+	LOG_DEBUG(">>>");
 
 	register_cache_invalidate(target->reg_cache);
 	for (size_t i = 0; i < target->reg_cache->num_regs; ++i) {
@@ -2078,6 +2080,12 @@ int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
 
 	if (hartid != riscv_current_hartid(target))
 		riscv_invalidate_register_cache(target);
+
+	struct reg *reg = &target->reg_cache->reg_list[regid];
+	if (reg && reg->valid) {
+		*value = buf_get_u64(reg->value, 0, reg->size);
+		return ERROR_OK;
+	}
 
 	int result = r->get_register(target, value, hartid, regid);
 
@@ -2292,6 +2300,15 @@ static int register_get(struct reg *reg)
 	if (result != ERROR_OK)
 		return result;
 	buf_set_u64(reg->value, 0, reg->size, value);
+	/* CSRs (and possibly other extension) registers may change value at any
+	 * time. */
+	if (reg->number <= GDB_REGNO_XPR31 ||
+			(reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) ||
+			reg->number == GDB_REGNO_PC)
+		reg->valid = true;
+	LOG_DEBUG("[%d,%d] read 0x%" PRIx64 " from %s (valid=%d)",
+			target->coreid, riscv_current_hartid(target), value, reg->name,
+			reg->valid);
 	return ERROR_OK;
 }
 
@@ -2302,9 +2319,16 @@ static int register_set(struct reg *reg, uint8_t *buf)
 
 	uint64_t value = buf_get_u64(buf, 0, reg->size);
 
-	LOG_DEBUG("write 0x%" PRIx64 " to %s", value, reg->name);
+	LOG_DEBUG("[%d,%d] write 0x%" PRIx64 " to %s (valid=%d)",
+			target->coreid, riscv_current_hartid(target), value, reg->name,
+			reg->valid);
 	struct reg *r = &target->reg_cache->reg_list[reg->number];
-	r->valid = true;
+	/* CSRs (and possibly other extension) registers may change value at any
+	 * time. */
+	if (reg->number <= GDB_REGNO_XPR31 ||
+			(reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) ||
+			reg->number == GDB_REGNO_PC)
+		r->valid = true;
 	memcpy(r->value, buf, (r->size + 7) / 8);
 
 	riscv_set_register(target, reg->number, value);

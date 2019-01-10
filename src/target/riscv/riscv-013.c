@@ -1127,7 +1127,6 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (result == ERROR_OK && target->reg_cache) {
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		buf_set_u64(reg->value, 0, reg->size, value);
-		reg->valid = true;
 	}
 	if (result == ERROR_OK || info->progbufsize + r->impebreak < 2 ||
 			!riscv_is_halted(target))
@@ -1186,7 +1185,6 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (exec_out == ERROR_OK && target->reg_cache) {
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		buf_set_u64(reg->value, 0, reg->size, value);
-		reg->valid = true;
 	}
 
 	if (use_scratch)
@@ -1206,24 +1204,12 @@ static int register_read(struct target *target, uint64_t *value, uint32_t number
 		*value = 0;
 		return ERROR_OK;
 	}
-	if (target->reg_cache &&
-			(number <= GDB_REGNO_XPR31 ||
-			 (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31))) {
-		/* Only check the cache for registers that we know won't spontaneously
-		 * change. */
-		struct reg *reg = &target->reg_cache->reg_list[number];
-		if (reg && reg->valid) {
-			*value = buf_get_u64(reg->value, 0, reg->size);
-			return ERROR_OK;
-		}
-	}
 	int result = register_read_direct(target, value, number);
 	if (result != ERROR_OK)
 		return ERROR_FAIL;
 	if (target->reg_cache) {
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		buf_set_u64(reg->value, 0, reg->size, *value);
-		reg->valid = true;
 	}
 	return ERROR_OK;
 }
