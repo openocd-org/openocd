@@ -1096,7 +1096,7 @@ static int cmsis_dap_init(void)
 
 	if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
 		if (jtag_reset_config & RESET_SRST_NO_GATING) {
-			retval = cmsis_dap_cmd_DAP_SWJ_Pins(0, (1 << 7), 0, NULL);
+			retval = cmsis_dap_cmd_DAP_SWJ_Pins(0, SWJ_PIN_SRST, 0, NULL);
 			if (retval != ERROR_OK)
 				return ERROR_FAIL;
 			LOG_INFO("Connecting under reset");
