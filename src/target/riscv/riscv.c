@@ -154,17 +154,17 @@ typedef enum slot {
 #define MAX_HWBPS			16
 #define DRAM_CACHE_SIZE		16
 
-uint8_t ir_dtmcontrol[1] = {DTMCONTROL};
+uint8_t ir_dtmcontrol[4] = {DTMCONTROL};
 struct scan_field select_dtmcontrol = {
 	.in_value = NULL,
 	.out_value = ir_dtmcontrol
 };
-uint8_t ir_dbus[1] = {DBUS};
+uint8_t ir_dbus[4] = {DBUS};
 struct scan_field select_dbus = {
 	.in_value = NULL,
 	.out_value = ir_dbus
 };
-uint8_t ir_idcode[1] = {0x1};
+uint8_t ir_idcode[4] = {0x1};
 struct scan_field select_idcode = {
 	.in_value = NULL,
 	.out_value = ir_idcode
@@ -1626,6 +1626,30 @@ COMMAND_HANDLER(riscv_reset_delays)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_ir)
+{
+	if (CMD_ARGC != 2) {
+		LOG_ERROR("Command takes exactly 2 arguments");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	if (!strcmp(CMD_ARGV[0], "idcode")) {
+		buf_set_u32(ir_idcode, 0, 32, value);
+		return ERROR_OK;
+	} else if (!strcmp(CMD_ARGV[0], "dtmcs")) {
+		buf_set_u32(ir_dtmcontrol, 0, 32, value);
+		return ERROR_OK;
+	} else if (!strcmp(CMD_ARGV[0], "dmi")) {
+		buf_set_u32(ir_dbus, 0, 32, value);
+		return ERROR_OK;
+	} else {
+		return ERROR_FAIL;
+	}
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
@@ -1724,6 +1748,13 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"between scans to avoid encountering the target being busy. This "
 			"command resets those learned values after `wait` scans. It's only "
 			"useful for testing OpenOCD itself."
+	},
+	{
+		.name = "set_ir",
+		.handler = riscv_set_ir,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_ir_idcode [idcode|dtmcs|dmi] value",
+		.help = "Set IR value for specified JTAG register."
 	},
 	COMMAND_REGISTRATION_DONE
 };
