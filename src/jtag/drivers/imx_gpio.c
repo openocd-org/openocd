@@ -160,10 +160,10 @@ static int imx_gpio_swd_write(int tck, int tms, int tdi)
 static int imx_gpio_reset(int trst, int srst)
 {
 	if (trst_gpio != -1)
-		trst ? gpio_set(trst_gpio) : gpio_clear(trst_gpio);
+		trst ? gpio_clear(trst_gpio) : gpio_set(trst_gpio);
 
 	if (srst_gpio != -1)
-		srst ? gpio_set(srst_gpio) : gpio_clear(srst_gpio);
+		srst ? gpio_clear(srst_gpio) : gpio_set(srst_gpio);
 
 	return ERROR_OK;
 }
