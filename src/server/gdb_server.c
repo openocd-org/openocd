@@ -1340,37 +1340,49 @@ static int gdb_set_register_packet(struct connection *connection,
 {
 	struct target *target = get_target_from_connection(connection);
 	char *separator;
-	uint8_t *bin_buf;
 	int reg_num = strtoul(packet + 1, &separator, 16);
 	struct reg **reg_list;
 	int reg_list_size;
 	int retval;
 
+#ifdef _DEBUG_GDB_IO_
 	LOG_DEBUG("-");
-
-	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
-			REG_CLASS_ALL);
-	if (retval != ERROR_OK)
-		return gdb_error(connection, retval);
-
-	if (reg_list_size <= reg_num) {
-		LOG_ERROR("gdb requested a non-existing register");
-		return ERROR_SERVER_REMOTE_CLOSED;
-	}
+#endif
 
 	if (*separator != '=') {
 		LOG_ERROR("GDB 'set register packet', but no '=' following the register number");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
+	size_t chars = strlen(separator + 1);
+	uint8_t *bin_buf = malloc(chars / 2);
+	gdb_target_to_reg(target, separator + 1, chars, bin_buf);
 
-	/* convert from GDB-string (target-endian) to hex-string (big-endian) */
-	bin_buf = malloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8));
-	int chars = (DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2);
-
-	if ((unsigned int)chars != strlen(separator + 1)) {
-		LOG_ERROR("gdb sent %zu bits for a %d-bit register (%s)",
-				strlen(separator + 1) * 4, chars * 4, reg_list[reg_num]->name);
+	if ((target->rtos != NULL) &&
+			(ERROR_OK == rtos_set_reg(connection, reg_num, bin_buf))) {
 		free(bin_buf);
+		gdb_put_packet(connection, "OK", 2);
+		return ERROR_OK;
+	}
+
+	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+			REG_CLASS_ALL);
+	if (retval != ERROR_OK) {
+		free(bin_buf);
+		return gdb_error(connection, retval);
+	}
+
+	if (reg_list_size <= reg_num) {
+		LOG_ERROR("gdb requested a non-existing register");
+		free(bin_buf);
+		free(reg_list);
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
+
+	if (chars != (DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2)) {
+		LOG_ERROR("gdb sent %d bits for a %d-bit register (%s)",
+				(int) chars * 4, reg_list[reg_num]->size, reg_list[reg_num]->name);
+		free(bin_buf);
+		free(reg_list);
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 

@@ -535,6 +535,21 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 	return ERROR_FAIL;
 }
 
+int rtos_set_reg(struct connection *connection, int reg_num,
+		uint8_t *reg_value)
+{
+	struct target *target = get_target_from_connection(connection);
+	int64_t current_threadid = target->rtos->current_threadid;
+	LOG_DEBUG(">>> reg_num=%d", reg_num);
+	if ((target->rtos != NULL) &&
+			(target->rtos->type->set_reg != NULL) &&
+			(current_threadid != -1) &&
+			(current_threadid != 0)) {
+		return target->rtos->type->set_reg(target->rtos, reg_num, reg_value);
+	}
+	return ERROR_FAIL;
+}
+
 int rtos_generic_stack_read(struct target *target,
 	const struct rtos_register_stacking *stacking,
 	int64_t stack_ptr,
