@@ -138,11 +138,16 @@ struct nrf5_device_spec {
 .flash_size_kb = (fsize),                           \
 }
 
-/* The known devices table below is derived from the "nRF51 Series
- * Compatibility Matrix" document, which can be found by searching for
- * ATTN-51 on the Nordic Semi website:
+/* The known devices table below is derived from the "nRF5x series
+ * compatibility matrix" documents, which can be found in the "DocLib" of
+ * nordic:
  *
- * http://www.nordicsemi.com/eng/content/search?SearchText=ATTN-51
+ * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51422_ic_revision_overview
+ * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51822_ic_revision_overview
+ * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51824_ic_revision_overview
+ * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52810/latest/COMP/nrf52810/nRF52810_ic_revision_overview
+ * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52832/latest/COMP/nrf52832/ic_revision_overview
+ * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52840/latest/COMP/nrf52840/nRF52840_ic_revision_overview
  *
  * Up to date with Matrix v2.0, plus some additional HWIDs.
  *
