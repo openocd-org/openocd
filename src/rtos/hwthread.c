@@ -31,6 +31,8 @@
 static bool hwthread_detect_rtos(struct target *target);
 static int hwthread_create(struct target *target);
 static int hwthread_update_threads(struct rtos *rtos);
+static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
+		uint32_t reg_num, struct rtos_reg *rtos_reg);
 static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
@@ -52,6 +54,7 @@ const struct rtos_type hwthread_rtos = {
 	.create = hwthread_create,
 	.update_threads = hwthread_update_threads,
 	.get_thread_reg_list = hwthread_get_thread_reg_list,
+	.get_thread_reg = hwthread_get_thread_reg,
 	.get_symbol_list_to_lookup = hwthread_get_symbol_list_to_lookup,
 	.smp_init = hwthread_smp_init,
 	.set_reg = hwthread_set_reg,
@@ -257,6 +260,38 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 	return ERROR_OK;
 }
 
+static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
+		uint32_t reg_num, struct rtos_reg *rtos_reg)
+{
+	LOG_DEBUG(">>> thread %ld, reg %d", thread_id, reg_num);
+	if (rtos == NULL)
+		return ERROR_FAIL;
+
+	struct target *target = rtos->target;
+
+	struct target *curr = find_thread(target, thread_id);
+	if (curr == NULL)
+		return ERROR_FAIL;
+
+	if (!target_was_examined(curr))
+		return ERROR_FAIL;
+
+	struct reg *reg = register_get_by_number(curr->reg_cache, reg_num, true);
+	if (!reg)
+		return ERROR_FAIL;
+
+	if (reg->type->get(reg) != ERROR_OK)
+		return ERROR_FAIL;
+
+	rtos_reg->number = reg->number;
+	rtos_reg->size = reg->size;
+	unsigned bytes = (reg->size + 7) / 8;
+	assert(bytes <= sizeof(rtos_reg->value));
+	memcpy(rtos_reg->value, reg->value, bytes);
+
+	return ERROR_OK;
+}
+
 int hwthread_set_reg(struct rtos *rtos, int reg_num, uint8_t *reg_value)
 {
 	if (rtos == NULL)
@@ -265,14 +300,13 @@ int hwthread_set_reg(struct rtos *rtos, int reg_num, uint8_t *reg_value)
 	struct target *target = rtos->target;
 
 	struct target *curr = find_thread(target, rtos->current_thread);
-	LOG_DEBUG(">>> found %ld: %p", rtos->current_thread, curr);
 	if (curr == NULL)
 		return ERROR_FAIL;
 
 	struct reg **reg_list;
 	int reg_list_size;
 	if (target_get_gdb_reg_list(curr, &reg_list, &reg_list_size,
-				REG_CLASS_ALL) != ERROR_OK)
+				REG_CLASS_GENERAL) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (reg_list_size <= reg_num) {
@@ -332,7 +366,6 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 			target->rtos->current_thread = threadid_from_target(target);
 
 		target->rtos->current_threadid = current_threadid;
-		LOG_DEBUG(">>> current_threadid=%ld", current_threadid);
 
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;

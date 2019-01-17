@@ -931,7 +931,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 
 	switch (reg_class) {
 		case REG_CLASS_GENERAL:
-			*reg_list_size = 32;
+			*reg_list_size = 33;
 			break;
 		case REG_CLASS_ALL:
 			*reg_list_size = target->reg_cache->num_regs;
@@ -1217,6 +1217,22 @@ int riscv_openocd_poll(struct target *target)
 	}
 
 	target->state = TARGET_HALTED;
+
+	if (target->smp) {
+		LOG_DEBUG("Halt other targets in this SMP group.");
+		struct target_list *targets = target->head;
+		int result = ERROR_OK;
+		while (targets) {
+			struct target *t = targets->target;
+			targets = targets->next;
+			if (t->state != TARGET_HALTED) {
+				if (old_or_new_riscv_halt(t) != ERROR_OK)
+					result = ERROR_FAIL;
+			}
+		}
+		if (result != ERROR_OK)
+			return result;
+	}
 
 	if (target->debug_reason == DBG_REASON_BREAKPOINT) {
 		int retval;

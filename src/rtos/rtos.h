@@ -20,6 +20,7 @@
 #define OPENOCD_RTOS_RTOS_H
 
 #include "server/server.h"
+#include "target/target.h"
 #include <jim-nvp.h>
 
 typedef int64_t threadid_t;
@@ -71,11 +72,15 @@ struct rtos_type {
 	int (*create)(struct target *target);
 	int (*smp_init)(struct target *target);
 	int (*update_threads)(struct rtos *rtos);
+	/** Return a list of general registers, with their values filled out. */
 	int (*get_thread_reg_list)(struct rtos *rtos, int64_t thread_id,
 			struct rtos_reg **reg_list, int *num_regs);
+	int (*get_thread_reg)(struct rtos *rtos, int64_t thread_id,
+			uint32_t reg_num, struct rtos_reg *reg);
 	int (*get_symbol_list_to_lookup)(symbol_table_elem_t *symbol_list[]);
 	int (*clean)(struct target *target);
 	char * (*ps_command)(struct target *target);
+	// TODO: int or uint32_t for reg_num?
 	int (*set_reg)(struct rtos *rtos, int reg_num, uint8_t *reg_value);
 };
 

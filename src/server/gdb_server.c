@@ -96,7 +96,7 @@ struct gdb_connection {
 	char *thread_list;
 };
 
-#if 0
+#if 1
 #define _DEBUG_GDB_IO_
 #endif
 
