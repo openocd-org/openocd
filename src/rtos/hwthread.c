@@ -96,9 +96,6 @@ static int hwthread_update_threads(struct rtos *rtos)
 
 	target = rtos->target;
 
-	/* wipe out previous thread details if any */
-	rtos_free_threadlist(rtos);
-
 	/* determine the number of "threads" */
 	if (target->smp) {
 		for (head = target->head; head != NULL; head = head->next) {
@@ -111,6 +108,23 @@ static int hwthread_update_threads(struct rtos *rtos)
 		}
 	} else
 		thread_list_size = 1;
+
+	if (thread_list_size == rtos->thread_count) {
+		/* Nothing changed. Exit early.
+		 * This is important because if we do recreate the data, we potentially
+		 * change what the current thread is, which can lead to trouble because
+		 * this function is sometimes called when single stepping
+		 * (gdb_handle_vcont_packet), and the current thread should not be
+		 * changed as part of that. */
+		/* TODO: Do we need to confirm that all the "threads" are really the
+		 * same?  Is it even possible to change the number of configured
+		 * targets and SMP groups after this function is called the first time?
+		 */
+		return ERROR_OK;
+	}
+
+	/* wipe out previous thread details if any */
+	rtos_free_threadlist(rtos);
 
 	/* create space for new thread details */
 	rtos->thread_details = malloc(sizeof(struct thread_detail) * thread_list_size);
@@ -303,18 +317,11 @@ int hwthread_set_reg(struct rtos *rtos, int reg_num, uint8_t *reg_value)
 	if (curr == NULL)
 		return ERROR_FAIL;
 
-	struct reg **reg_list;
-	int reg_list_size;
-	if (target_get_gdb_reg_list(curr, &reg_list, &reg_list_size,
-				REG_CLASS_GENERAL) != ERROR_OK)
+	struct reg *reg = register_get_by_number(curr->reg_cache, reg_num, true);
+	if (!reg)
 		return ERROR_FAIL;
 
-	if (reg_list_size <= reg_num) {
-		LOG_ERROR("Register %d requested, but only %d registers exist.",
-				reg_num, reg_list_size);
-		return ERROR_FAIL;
-	}
-	return reg_list[reg_num]->type->set(reg_list[reg_num], reg_value);
+	return reg->type->set(reg, reg_value);
 }
 
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
