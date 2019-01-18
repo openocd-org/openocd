@@ -1226,7 +1226,7 @@ int riscv_openocd_poll(struct target *target)
 			struct target *t = targets->target;
 			targets = targets->next;
 			if (t->state != TARGET_HALTED) {
-				if (old_or_new_riscv_halt(t) != ERROR_OK)
+				if (riscv_halt_all_harts(t) != ERROR_OK)
 					result = ERROR_FAIL;
 			}
 		}
@@ -1247,16 +1247,26 @@ int riscv_openocd_poll(struct target *target)
 int riscv_openocd_halt(struct target *target)
 {
 	RISCV_INFO(r);
+	int result;
 
 	LOG_DEBUG("halting all harts");
 
-	int out = riscv_halt_all_harts(target);
-	if (out != ERROR_OK) {
-		LOG_ERROR("Unable to halt all harts");
-		return out;
+	if (target->smp) {
+		LOG_DEBUG("Halt other targets in this SMP group.");
+		struct target_list *targets = target->head;
+		result = ERROR_OK;
+		while (targets) {
+			struct target *t = targets->target;
+			targets = targets->next;
+			if (t->state != TARGET_HALTED) {
+				if (riscv_halt_all_harts(t) != ERROR_OK)
+					result = ERROR_FAIL;
+			}
+		}
+	} else {
+		result = riscv_halt_all_harts(target);
 	}
 
-	register_cache_invalidate(target->reg_cache);
 	if (riscv_rtos_enabled(target)) {
 		if (r->rtos_hartid != -1) {
 			LOG_DEBUG("halt requested on RTOS hartid %d", r->rtos_hartid);
@@ -1269,7 +1279,7 @@ int riscv_openocd_halt(struct target *target)
 	target->state = TARGET_HALTED;
 	target->debug_reason = DBG_REASON_DBGRQ;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-	return out;
+	return result;
 }
 
 int riscv_openocd_resume(
@@ -1899,7 +1909,9 @@ int riscv_halt_one_hart(struct target *target, int hartid)
 		return ERROR_OK;
 	}
 
-	return r->halt_current_hart(target);
+	int result = r->halt_current_hart(target);
+	register_cache_invalidate(target->reg_cache);
+	return result;
 }
 
 int riscv_resume_all_harts(struct target *target)
