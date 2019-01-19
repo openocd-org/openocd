@@ -1134,6 +1134,7 @@ static const struct command_registration arm_exec_command_handlers[] = {
 	},
 	{
 		.name = "mrc",
+		.mode = COMMAND_EXEC,
 		.jim_handler = &jim_mcrmrc,
 		.help = "read coprocessor register",
 		.usage = "cpnum op1 CRn CRm op2",
