@@ -877,10 +877,17 @@ static int cortex_m_step(struct target *target, int current,
 			else {
 
 				/* Set a temporary break point */
-				if (breakpoint)
+				if (breakpoint) {
 					retval = cortex_m_set_breakpoint(target, breakpoint);
-				else
-					retval = breakpoint_add(target, pc_value, 2, BKPT_HARD);
+				} else {
+					enum breakpoint_type type = BKPT_HARD;
+					if (cortex_m->fp_rev == 0 && pc_value > 0x1FFFFFFF) {
+						/* FPB rev.1 cannot handle such addr, try BKPT instr */
+						type = BKPT_SOFT;
+					}
+					retval = breakpoint_add(target, pc_value, 2, type);
+				}
+
 				bool tmp_bp_set = (retval == ERROR_OK);
 
 				/* No more breakpoints left, just do a step */
