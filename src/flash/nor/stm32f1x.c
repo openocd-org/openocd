@@ -131,7 +131,7 @@ struct stm32x_flash_bank {
 static int stm32x_mass_erase(struct flash_bank *bank);
 static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id);
 static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
-		uint32_t offset, uint32_t count);
+		uint32_t address, uint32_t count);
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
@@ -343,8 +343,7 @@ static int stm32x_write_options(struct flash_bank *bank)
 	target_buffer_set_u16(target, opt_bytes + 12, (stm32x_info->option_bytes.protection >> 16) & 0xff);
 	target_buffer_set_u16(target, opt_bytes + 14, (stm32x_info->option_bytes.protection >> 24) & 0xff);
 
-	uint32_t offset = STM32_OB_RDP - bank->base;
-	retval = stm32x_write_block(bank, opt_bytes, offset, sizeof(opt_bytes) / 2);
+	retval = stm32x_write_block(bank, opt_bytes, STM32_OB_RDP, sizeof(opt_bytes) / 2);
 	if (retval != ERROR_OK) {
 		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			LOG_ERROR("working area required to erase options bytes");
@@ -459,14 +458,13 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 }
 
 static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
-		uint32_t offset, uint32_t count)
+		uint32_t address, uint32_t count)
 {
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t buffer_size = 16384;
 	struct working_area *write_algorithm;
 	struct working_area *source;
-	uint32_t address = bank->base + offset;
 	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
@@ -601,7 +599,7 @@ static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		goto cleanup;
 
 	/* try using a block write */
-	retval = stm32x_write_block(bank, buffer, offset, words_remaining);
+	retval = stm32x_write_block(bank, buffer, bank->base + offset, words_remaining);
 
 	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 		/* if block write failed (no sufficient working area),
