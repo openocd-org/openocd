@@ -443,8 +443,10 @@ static int stm32x_protect(struct flash_bank *bank, int set, int first, int last)
 		return retval;
 
 	retval = stm32x_erase_options(bank);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		LOG_ERROR("stm32x failed to erase options");
 		return retval;
+	}
 
 	for (int i = first; i <= last; i++) {
 		if (set)
@@ -1227,12 +1229,12 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 		return retval;
 
 	if (stm32x_erase_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "stm32x failed to unlock device");
+		command_print(CMD_CTX, "stm32x failed to erase options");
 		return ERROR_OK;
 	}
 
 	if (stm32x_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "stm32x failed to lock device");
+		command_print(CMD_CTX, "stm32x failed to unlock device");
 		return ERROR_OK;
 	}
 
