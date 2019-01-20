@@ -246,7 +246,7 @@ static int tcl_input(struct connection *connection)
 			retval = tcl_output(connection, result, reslen);
 			if (retval != ERROR_OK)
 				return retval;
-			/* Always output ctrl-d as end of line to allow multiline results */
+			/* Always output ctrl-z as end of line to allow multiline results */
 			tcl_output(connection, "\x1a", 1);
 		}
 
