@@ -703,6 +703,8 @@ void server_free(void)
 	tcl_service_free();
 	telnet_service_free();
 	jsp_service_free();
+
+	free(bindto_name);
 }
 
 void exit_on_signal(int sig)
