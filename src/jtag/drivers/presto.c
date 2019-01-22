@@ -563,6 +563,7 @@ static int presto_jtag_quit(void)
 
 struct jtag_interface presto_interface = {
 	.name = "presto",
+	.transports = jtag_only,
 	.commands = presto_command_handlers,
 
 	.execute_queue = bitq_execute_queue,

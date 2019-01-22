@@ -517,6 +517,7 @@ static const struct command_registration parport_command_handlers[] = {
 struct jtag_interface parport_interface = {
 	.name = "parport",
 	.supported = DEBUG_CAP_TMS_SEQ,
+	.transports = jtag_only,
 	.commands = parport_command_handlers,
 
 	.init = parport_init,

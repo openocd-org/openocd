@@ -523,6 +523,7 @@ static const struct command_registration gw16012_command_handlers[] = {
 
 struct jtag_interface gw16012_interface = {
 	.name = "gw16012",
+	.transports = jtag_only,
 	.commands = gw16012_command_handlers,
 
 	.init = gw16012_init,

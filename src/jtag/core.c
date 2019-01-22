@@ -1348,19 +1348,6 @@ int adapter_init(struct command_context *cmd_ctx)
 		return retval;
 	jtag = jtag_interface;
 
-	/* LEGACY SUPPORT ... adapter drivers  must declare what
-	 * transports they allow.  Until they all do so, assume
-	 * the legacy drivers are JTAG-only
-	 */
-	if (!transports_are_declared()) {
-		LOG_ERROR("Adapter driver '%s' did not declare "
-			"which transports it allows; assuming "
-			"JTAG-only", jtag->name);
-		retval = allow_transports(cmd_ctx, jtag_only);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
 	if (jtag->speed == NULL) {
 		LOG_INFO("This adapter doesn't support configurable speed");
 		return ERROR_OK;

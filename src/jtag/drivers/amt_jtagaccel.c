@@ -586,6 +586,7 @@ static const struct command_registration amtjtagaccel_command_handlers[] = {
 
 struct jtag_interface amt_jtagaccel_interface = {
 	.name = "amt_jtagaccel",
+	.transports = jtag_only,
 	.commands = amtjtagaccel_command_handlers,
 
 	.init = amt_jtagaccel_init,

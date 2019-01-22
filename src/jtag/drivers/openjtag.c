@@ -894,6 +894,7 @@ static const struct command_registration openjtag_command_handlers[] = {
 
 struct jtag_interface openjtag_interface = {
 	.name = "openjtag",
+	.transports = jtag_only,
 	.commands = openjtag_command_handlers,
 
 	.execute_queue = openjtag_execute_queue,

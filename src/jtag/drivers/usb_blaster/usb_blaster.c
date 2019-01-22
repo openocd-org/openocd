@@ -1068,6 +1068,7 @@ static const struct command_registration ublast_command_handlers[] = {
 
 struct jtag_interface usb_blaster_interface = {
 	.name = "usb_blaster",
+	.transports = jtag_only,
 	.commands = ublast_command_handlers,
 	.supported = DEBUG_CAP_TMS_SEQ,
 

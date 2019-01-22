@@ -236,6 +236,7 @@ static const struct command_registration opendous_command_handlers[] = {
 
 struct jtag_interface opendous_interface = {
 	.name = "opendous",
+	.transports = jtag_only,
 	.commands = opendous_command_handlers,
 	.execute_queue = opendous_execute_queue,
 	.init = opendous_init,

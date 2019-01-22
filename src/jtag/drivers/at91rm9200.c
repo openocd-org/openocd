@@ -192,6 +192,7 @@ static const struct command_registration at91rm9200_command_handlers[] = {
 struct jtag_interface at91rm9200_interface = {
 	.name = "at91rm9200",
 	.execute_queue = bitbang_execute_queue,
+	.transports = jtag_only,
 	.commands = at91rm9200_command_handlers,
 	.init = at91rm9200_init,
 	.quit = at91rm9200_quit,
