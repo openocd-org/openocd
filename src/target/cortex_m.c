@@ -1164,7 +1164,7 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 			fp_num++;
 		if (fp_num >= cortex_m->fp_num_code) {
 			LOG_ERROR("Can not find free FPB Comparator!");
-			return ERROR_FAIL;
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		breakpoint->set = fp_num + 1;
 		fpcr_value = breakpoint->address | 1;
@@ -1273,13 +1273,6 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 
 int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
-	struct cortex_m_common *cortex_m = target_to_cm(target);
-
-	if ((breakpoint->type == BKPT_HARD) && (cortex_m->fp_code_available < 1)) {
-		LOG_INFO("no flash patch comparator unit available for hardware breakpoint");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-
 	if (breakpoint->length == 3) {
 		LOG_DEBUG("Using a two byte breakpoint for 32bit Thumb-2 request");
 		breakpoint->length = 2;
@@ -1290,16 +1283,11 @@ int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	if (breakpoint->type == BKPT_HARD)
-		cortex_m->fp_code_available--;
-
 	return cortex_m_set_breakpoint(target, breakpoint);
 }
 
 int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
-	struct cortex_m_common *cortex_m = target_to_cm(target);
-
 	/* REVISIT why check? FPB can be updated with core running ... */
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
@@ -1308,9 +1296,6 @@ int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 
 	if (breakpoint->set)
 		cortex_m_unset_breakpoint(target, breakpoint);
-
-	if (breakpoint->type == BKPT_HARD)
-		cortex_m->fp_code_available++;
 
 	return ERROR_OK;
 }
@@ -2121,7 +2106,6 @@ int cortex_m_examine(struct target *target)
 		/* bits [14:12] and [7:4] */
 		cortex_m->fp_num_code = ((fpcr >> 8) & 0x70) | ((fpcr >> 4) & 0xF);
 		cortex_m->fp_num_lit = (fpcr >> 8) & 0xF;
-		cortex_m->fp_code_available = cortex_m->fp_num_code;
 		/* Detect flash patch revision, see RM DDI 0403E.b page C1-817.
 		   Revision is zero base, fp_rev == 1 means Rev.2 ! */
 		cortex_m->fp_rev = (fpcr >> 28) & 0xf;

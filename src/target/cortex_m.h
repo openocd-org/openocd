@@ -172,7 +172,6 @@ struct cortex_m_common {
 	/* Flash Patch and Breakpoint (FPB) */
 	int fp_num_lit;
 	int fp_num_code;
-	int fp_code_available;
 	int fp_rev;
 	bool fpb_enabled;
 	struct cortex_m_fp_comparator *fp_comparator_list;
