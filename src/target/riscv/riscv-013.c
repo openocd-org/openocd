@@ -2952,6 +2952,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 		 * already set when we connected. Force enumeration now, which has the
 		 * side effect of clearing any triggers we did not set. */
 		riscv_enumerate_triggers(target);
+		LOG_DEBUG("[%d] halted because of trigger", target->coreid);
 		return RISCV_HALT_TRIGGER;
 	case CSR_DCSR_CAUSE_STEP:
 		return RISCV_HALT_SINGLESTEP;

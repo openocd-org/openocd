@@ -91,8 +91,11 @@ static int hwthread_update_threads(struct rtos *rtos)
 	int64_t current_thread = 0;
 	enum target_debug_reason current_reason = DBG_REASON_UNDEFINED;
 
+	LOG_DEBUG("current_thread=%i", (int)rtos->current_thread);
+	LOG_DEBUG("current_threadid=%i", (int)rtos->current_threadid);
+
 	if (rtos == NULL)
-		return -1;
+		return ERROR_FAIL;
 
 	target = rtos->target;
 
@@ -109,6 +112,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 	} else
 		thread_list_size = 1;
 
+#if 0
 	if (thread_list_size == rtos->thread_count) {
 		/* Nothing changed. Exit early.
 		 * This is important because if we do recreate the data, we potentially
@@ -122,9 +126,12 @@ static int hwthread_update_threads(struct rtos *rtos)
 		 */
 		return ERROR_OK;
 	}
+#endif
 
-	/* wipe out previous thread details if any */
+	/* Wipe out previous thread details if any, but preserve threadid. */
+	int64_t current_threadid = rtos->current_threadid;
 	rtos_free_threadlist(rtos);
+	rtos->current_threadid = current_threadid;
 
 	/* create space for new thread details */
 	rtos->thread_details = malloc(sizeof(struct thread_detail) * thread_list_size);
@@ -194,6 +201,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 			}
 
 			threads_found++;
+			LOG_DEBUG(">>> tid=%ld, debug_reason=%d, current_thread=%ld, current_reason=%d",
+					tid, curr->debug_reason, current_thread, current_reason);
 		}
 	} else {
 		hwthread_fill_thread(rtos, target, threads_found);
@@ -211,7 +220,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 	else
 		rtos->current_thread = threadid_from_target(target);
 
-	LOG_DEBUG("%s current_thread=%i", __func__, (int)rtos->current_thread);
+	LOG_DEBUG("current_thread=%i", (int)rtos->current_thread);
+	LOG_DEBUG("current_threadid=%i", (int)rtos->current_threadid);
 	return 0;
 }
 
@@ -358,7 +368,10 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 	struct target *curr = NULL;
 	int64_t current_threadid;
 
+	LOG_DEBUG(">>> %s", packet);
+
 	if (packet[0] == 'H' && packet[1] == 'g') {
+		/* Never reached, because this case is handled by rtos_thread_packet(). */
 		sscanf(packet, "Hg%16" SCNx64, &current_threadid);
 
 		if (current_threadid > 0) {
@@ -373,6 +386,7 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 			target->rtos->current_thread = threadid_from_target(target);
 
 		target->rtos->current_threadid = current_threadid;
+		LOG_DEBUG("current_threadid=%ld", current_threadid);
 
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;

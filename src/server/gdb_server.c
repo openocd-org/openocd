@@ -144,6 +144,7 @@ static char gdb_running_type;
 
 static int gdb_last_signal(struct target *target)
 {
+	LOG_DEBUG(">>> [%d] debug_reason=%d", target->coreid, target->debug_reason);
 	switch (target->debug_reason) {
 		case DBG_REASON_DBGRQ:
 			return 0x2;		/* SIGINT */
@@ -733,17 +734,28 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 	if (target->debug_reason == DBG_REASON_EXIT) {
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "W00");
 	} else {
+		struct target *ct;
+		if (target->rtos != NULL) {
+			target->rtos->current_threadid = target->rtos->current_thread;
+			LOG_DEBUG("current_threadid=%ld", target->rtos->current_threadid);
+			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
+		} else {
+			ct = target;
+		}
+
 		if (gdb_connection->ctrl_c) {
 			signal_var = 0x2;
 		} else
-			signal_var = gdb_last_signal(target);
+			signal_var = gdb_last_signal(ct);
+		LOG_DEBUG(">>> ctrl_c=%d, signal_var=%d", gdb_connection->ctrl_c,
+				signal_var);
 
 		stop_reason[0] = '\0';
-		if (target->debug_reason == DBG_REASON_WATCHPOINT) {
+		if (ct->debug_reason == DBG_REASON_WATCHPOINT) {
 			enum watchpoint_rw hit_wp_type;
 			target_addr_t hit_wp_address;
 
-			if (watchpoint_hit(target, &hit_wp_type, &hit_wp_address) == ERROR_OK) {
+			if (watchpoint_hit(ct, &hit_wp_type, &hit_wp_address) == ERROR_OK) {
 
 				switch (hit_wp_type) {
 					case WPT_WRITE:
@@ -765,15 +777,10 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		}
 
 		current_thread[0] = '\0';
-		if (target->rtos != NULL) {
-			struct target *ct;
+		if (target->rtos != NULL)
 			snprintf(current_thread, sizeof(current_thread), "thread:%" PRIx64 ";",
 					target->rtos->current_thread);
-			target->rtos->current_threadid = target->rtos->current_thread;
-			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
-			if (!gdb_connection->ctrl_c)
-				signal_var = gdb_last_signal(ct);
-		}
+		LOG_DEBUG(">>> signal_var=%d", signal_var);
 
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s%s",
 				signal_var, stop_reason, current_thread);
@@ -1652,7 +1659,7 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 	char *separator;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_DEBUG("[%d]", target->coreid);
 
 	type = strtoul(packet + 1, &separator, 16);
 
@@ -3178,6 +3185,7 @@ static int gdb_input_inner(struct connection *connection)
 		}
 
 		if (packet_size > 0) {
+			LOG_DEBUG(">>> current_threadid=%ld", target->rtos ? target->rtos->current_threadid : 1234);
 			retval = ERROR_OK;
 			switch (packet[0]) {
 				case 'T':	/* Is thread alive? */
