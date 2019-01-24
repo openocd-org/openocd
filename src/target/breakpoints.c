@@ -60,9 +60,9 @@ int breakpoint_add_internal(struct target *target,
 			 * breakpoint" ... check all the parameters before
 			 * succeeding.
 			 */
-			LOG_DEBUG("Duplicate Breakpoint address: " TARGET_ADDR_FMT " (BP %" PRIu32 ")",
+			LOG_ERROR("Duplicate Breakpoint address: " TARGET_ADDR_FMT " (BP %" PRIu32 ")",
 				address, breakpoint->unique_id);
-			return ERROR_OK;
+			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
 		}
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
@@ -124,9 +124,9 @@ int context_breakpoint_add_internal(struct target *target,
 			 * breakpoint" ... check all the parameters before
 			 * succeeding.
 			 */
-			LOG_DEBUG("Duplicate Breakpoint asid: 0x%08" PRIx32 " (BP %" PRIu32 ")",
+			LOG_ERROR("Duplicate Breakpoint asid: 0x%08" PRIx32 " (BP %" PRIu32 ")",
 				asid, breakpoint->unique_id);
-			return -1;
+			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
 		}
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
@@ -176,13 +176,13 @@ int hybrid_breakpoint_add_internal(struct target *target,
 			 * breakpoint" ... check all the parameters before
 			 * succeeding.
 			 */
-			LOG_DEBUG("Duplicate Hybrid Breakpoint asid: 0x%08" PRIx32 " (BP %" PRIu32 ")",
+			LOG_ERROR("Duplicate Hybrid Breakpoint asid: 0x%08" PRIx32 " (BP %" PRIu32 ")",
 				asid, breakpoint->unique_id);
-			return -1;
+			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
 		} else if ((breakpoint->address == address) && (breakpoint->asid == 0)) {
-			LOG_DEBUG("Duplicate Breakpoint IVA: " TARGET_ADDR_FMT " (BP %" PRIu32 ")",
+			LOG_ERROR("Duplicate Breakpoint IVA: " TARGET_ADDR_FMT " (BP %" PRIu32 ")",
 				address, breakpoint->unique_id);
-			return -1;
+			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
 
 		}
 		breakpoint_p = &breakpoint->next;

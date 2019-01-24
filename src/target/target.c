@@ -3719,38 +3719,31 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 
 	if (asid == 0) {
 		retval = breakpoint_add(target, addr, length, hw);
+		/* error is always logged in breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "breakpoint set at " TARGET_ADDR_FMT "", addr);
-		else {
-			LOG_ERROR("Failure setting breakpoint, the same address(IVA) is already used");
-			return retval;
-		}
+
 	} else if (addr == 0) {
 		if (target->type->add_context_breakpoint == NULL) {
-			LOG_WARNING("Context breakpoint not available");
-			return ERROR_OK;
+			LOG_ERROR("Context breakpoint not available");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		retval = context_breakpoint_add(target, asid, length, hw);
+		/* error is always logged in context_breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
-		else {
-			LOG_ERROR("Failure setting breakpoint, the same address(CONTEXTID) is already used");
-			return retval;
-		}
+
 	} else {
 		if (target->type->add_hybrid_breakpoint == NULL) {
-			LOG_WARNING("Hybrid breakpoint not available");
-			return ERROR_OK;
+			LOG_ERROR("Hybrid breakpoint not available");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
+		/* error is always logged in hybrid_breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
-		else {
-			LOG_ERROR("Failure setting breakpoint, the same address is already used");
-			return retval;
-		}
 	}
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_bp_command)
