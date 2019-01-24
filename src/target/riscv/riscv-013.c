@@ -1401,16 +1401,6 @@ static int examine(struct target *target)
 	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
 	info->dtmcs_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
 
-	uint32_t dmstatus;
-	if (dmstatus_read(target, &dmstatus, false) != ERROR_OK)
-		return ERROR_FAIL;
-	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
-	if (get_field(dmstatus, DMI_DMSTATUS_VERSION) != 2) {
-		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
-				"(dmstatus=0x%x)", get_field(dmstatus, DMI_DMSTATUS_VERSION), dmstatus);
-		return ERROR_FAIL;
-	}
-
 	/* Reset the Debug Module. */
 	dm013_info_t *dm = get_dm(target);
 	if (!dm->was_reset) {
@@ -1428,6 +1418,16 @@ static int examine(struct target *target)
 	if (!get_field(dmcontrol, DMI_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
 				dmcontrol);
+		return ERROR_FAIL;
+	}
+
+	uint32_t dmstatus;
+	if (dmstatus_read(target, &dmstatus, false) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
+	if (get_field(dmstatus, DMI_DMSTATUS_VERSION) != 2) {
+		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
+				"(dmstatus=0x%x)", get_field(dmstatus, DMI_DMSTATUS_VERSION), dmstatus);
 		return ERROR_FAIL;
 	}
 
