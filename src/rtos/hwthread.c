@@ -37,7 +37,7 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 static int hwthread_smp_init(struct target *target);
-int hwthread_set_reg(struct rtos *rtos, int reg_num, uint8_t *reg_value);
+int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
 
 #define HW_THREAD_NAME_STR_SIZE (32)
 
@@ -91,9 +91,6 @@ static int hwthread_update_threads(struct rtos *rtos)
 	int64_t current_thread = 0;
 	enum target_debug_reason current_reason = DBG_REASON_UNDEFINED;
 
-	LOG_DEBUG("current_thread=%i", (int)rtos->current_thread);
-	LOG_DEBUG("current_threadid=%i", (int)rtos->current_threadid);
-
 	if (rtos == NULL)
 		return ERROR_FAIL;
 
@@ -111,22 +108,6 @@ static int hwthread_update_threads(struct rtos *rtos)
 		}
 	} else
 		thread_list_size = 1;
-
-#if 0
-	if (thread_list_size == rtos->thread_count) {
-		/* Nothing changed. Exit early.
-		 * This is important because if we do recreate the data, we potentially
-		 * change what the current thread is, which can lead to trouble because
-		 * this function is sometimes called when single stepping
-		 * (gdb_handle_vcont_packet), and the current thread should not be
-		 * changed as part of that. */
-		/* TODO: Do we need to confirm that all the "threads" are really the
-		 * same?  Is it even possible to change the number of configured
-		 * targets and SMP groups after this function is called the first time?
-		 */
-		return ERROR_OK;
-	}
-#endif
 
 	/* Wipe out previous thread details if any, but preserve threadid. */
 	int64_t current_threadid = rtos->current_threadid;
@@ -201,8 +182,6 @@ static int hwthread_update_threads(struct rtos *rtos)
 			}
 
 			threads_found++;
-			LOG_DEBUG(">>> tid=%ld, debug_reason=%d, current_thread=%ld, current_reason=%d",
-					tid, curr->debug_reason, current_thread, current_reason);
 		}
 	} else {
 		hwthread_fill_thread(rtos, target, threads_found);
@@ -220,8 +199,6 @@ static int hwthread_update_threads(struct rtos *rtos)
 	else
 		rtos->current_thread = threadid_from_target(target);
 
-	LOG_DEBUG("current_thread=%i", (int)rtos->current_thread);
-	LOG_DEBUG("current_threadid=%i", (int)rtos->current_threadid);
 	return 0;
 }
 
@@ -287,7 +264,6 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 		uint32_t reg_num, struct rtos_reg *rtos_reg)
 {
-	LOG_DEBUG(">>> thread %ld, reg %d", thread_id, reg_num);
 	if (rtos == NULL)
 		return ERROR_FAIL;
 
@@ -316,7 +292,7 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 	return ERROR_OK;
 }
 
-int hwthread_set_reg(struct rtos *rtos, int reg_num, uint8_t *reg_value)
+int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value)
 {
 	if (rtos == NULL)
 		return ERROR_FAIL;
@@ -367,8 +343,6 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 
 	struct target *curr = NULL;
 	int64_t current_threadid;
-
-	LOG_DEBUG(">>> %s", packet);
 
 	if (packet[0] == 'H' && packet[1] == 'g') {
 		/* Never reached, because this case is handled by rtos_thread_packet(). */

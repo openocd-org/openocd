@@ -82,8 +82,7 @@ struct rtos_type {
 	int (*get_symbol_list_to_lookup)(symbol_table_elem_t *symbol_list[]);
 	int (*clean)(struct target *target);
 	char * (*ps_command)(struct target *target);
-	// TODO: int or uint32_t for reg_num?
-	int (*set_reg)(struct rtos *rtos, int reg_num, uint8_t *reg_value);
+	int (*set_reg)(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
 };
 
 struct stack_register_offset {

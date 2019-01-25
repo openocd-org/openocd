@@ -267,7 +267,6 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	riscv_semihosting_init(target);
 
 	target->debug_reason = DBG_REASON_DBGRQ;
-	LOG_DEBUG(">>> [%d] debug_reason=%d", target->coreid, target->debug_reason);
 
 	return ERROR_OK;
 }
@@ -991,13 +990,9 @@ static int riscv_get_gdb_reg_list(struct target *target,
 				target->reg_cache->reg_list[i].size > 0);
 		(*reg_list)[i] = &target->reg_cache->reg_list[i];
 		if (read && !target->reg_cache->reg_list[i].valid) {
-			// TODO: Confirm that this function is supposed to actually read
-			// registers. I'm just adding this because maybe
-			// hwthread_get_thread_reg_list() expects it.
-
-			// This function gets called from
-			// gdb_target_description_supported(), and we end up failing in
-			// that case. Allow failures for now.
+			/* This function gets called from
+			 * gdb_target_description_supported(), and we end up failing in
+			 * that case. Allow failures for now. */
 			if (target->reg_cache->reg_list[i].type->get(
 						&target->reg_cache->reg_list[i]) != ERROR_OK)
 				read = false;
@@ -1204,7 +1199,6 @@ int set_debug_reason(struct target *target, int hartid)
 		case RISCV_HALT_ERROR:
 			return ERROR_FAIL;
 	}
-	LOG_DEBUG(">>> [%d] debug_reason=%d", target->coreid, target->debug_reason);
 	return ERROR_OK;
 }
 
@@ -1368,7 +1362,6 @@ int riscv_openocd_halt(struct target *target)
 
 	target->state = TARGET_HALTED;
 	target->debug_reason = DBG_REASON_DBGRQ;
-	LOG_DEBUG(">>> [%d] debug_reason=%d", target->coreid, target->debug_reason);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	return result;
 }
@@ -1457,7 +1450,6 @@ int riscv_openocd_step(
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 	target->state = TARGET_HALTED;
 	target->debug_reason = DBG_REASON_SINGLESTEP;
-	LOG_DEBUG(">>> [%d] debug_reason=%d", target->coreid, target->debug_reason);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	return out;
 }
@@ -2171,7 +2163,6 @@ int riscv_set_current_hartid(struct target *target, int hartid)
 
 	/* This might get called during init, in which case we shouldn't be
 	 * setting up the register cache. */
-	//if (target_was_examined(target) && hartid != previous_hartid)
 	if (target_was_examined(target) && riscv_rtos_enabled(target))
 		riscv_invalidate_register_cache(target);
 
@@ -2181,8 +2172,6 @@ int riscv_set_current_hartid(struct target *target, int hartid)
 void riscv_invalidate_register_cache(struct target *target)
 {
 	RISCV_INFO(r);
-
-	LOG_DEBUG(">>>");
 
 	register_cache_invalidate(target->reg_cache);
 	for (size_t i = 0; i < target->reg_cache->num_regs; ++i) {

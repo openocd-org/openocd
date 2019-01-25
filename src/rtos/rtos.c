@@ -552,7 +552,6 @@ int rtos_set_reg(struct connection *connection, int reg_num,
 {
 	struct target *target = get_target_from_connection(connection);
 	int64_t current_threadid = target->rtos->current_threadid;
-	LOG_DEBUG(">>> thread %ld, reg %d", current_threadid, reg_num);
 	if ((target->rtos != NULL) &&
 			(target->rtos->type->set_reg != NULL) &&
 			(current_threadid != -1) &&

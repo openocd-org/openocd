@@ -144,7 +144,6 @@ static char gdb_running_type;
 
 static int gdb_last_signal(struct target *target)
 {
-	LOG_DEBUG(">>> [%d] debug_reason=%d", target->coreid, target->debug_reason);
 	switch (target->debug_reason) {
 		case DBG_REASON_DBGRQ:
 			return 0x2;		/* SIGINT */
@@ -747,8 +746,6 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 			signal_var = 0x2;
 		} else
 			signal_var = gdb_last_signal(ct);
-		LOG_DEBUG(">>> ctrl_c=%d, signal_var=%d", gdb_connection->ctrl_c,
-				signal_var);
 
 		stop_reason[0] = '\0';
 		if (ct->debug_reason == DBG_REASON_WATCHPOINT) {
@@ -780,7 +777,6 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		if (target->rtos != NULL)
 			snprintf(current_thread, sizeof(current_thread), "thread:%" PRIx64 ";",
 					target->rtos->current_thread);
-		LOG_DEBUG(">>> signal_var=%d", signal_var);
 
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s%s",
 				signal_var, stop_reason, current_thread);
@@ -3185,7 +3181,6 @@ static int gdb_input_inner(struct connection *connection)
 		}
 
 		if (packet_size > 0) {
-			LOG_DEBUG(">>> current_threadid=%ld", target->rtos ? target->rtos->current_threadid : 1234);
 			retval = ERROR_OK;
 			switch (packet[0]) {
 				case 'T':	/* Is thread alive? */
