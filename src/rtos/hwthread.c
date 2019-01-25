@@ -360,7 +360,7 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 			target->rtos->current_thread = threadid_from_target(target);
 
 		target->rtos->current_threadid = current_threadid;
-		LOG_DEBUG("current_threadid=%ld", current_threadid);
+		LOG_DEBUG("current_threadid=%" PRId64, current_threadid);
 
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
