@@ -154,17 +154,17 @@ typedef enum slot {
 #define MAX_HWBPS			16
 #define DRAM_CACHE_SIZE		16
 
-uint8_t ir_dtmcontrol[1] = {DTMCONTROL};
+uint8_t ir_dtmcontrol[4] = {DTMCONTROL};
 struct scan_field select_dtmcontrol = {
 	.in_value = NULL,
 	.out_value = ir_dtmcontrol
 };
-uint8_t ir_dbus[1] = {DBUS};
+uint8_t ir_dbus[4] = {DBUS};
 struct scan_field select_dbus = {
 	.in_value = NULL,
 	.out_value = ir_dbus
 };
-uint8_t ir_idcode[1] = {0x1};
+uint8_t ir_idcode[4] = {0x1};
 struct scan_field select_idcode = {
 	.in_value = NULL,
 	.out_value = ir_idcode
@@ -1759,6 +1759,48 @@ COMMAND_HANDLER(riscv_test_sba_config_reg)
 	}
 }
 
+COMMAND_HANDLER(riscv_reset_delays)
+{
+	int wait = 0;
+
+	if (CMD_ARGC > 1) {
+		LOG_ERROR("Command takes at most one argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (CMD_ARGC == 1)
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], wait);
+
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+	r->reset_delays_wait = wait;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_ir)
+{
+	if (CMD_ARGC != 2) {
+		LOG_ERROR("Command takes exactly 2 arguments");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	if (!strcmp(CMD_ARGV[0], "idcode")) {
+		buf_set_u32(ir_idcode, 0, 32, value);
+		return ERROR_OK;
+	} else if (!strcmp(CMD_ARGV[0], "dtmcs")) {
+		buf_set_u32(ir_dtmcontrol, 0, 32, value);
+		return ERROR_OK;
+	} else if (!strcmp(CMD_ARGV[0], "dmi")) {
+		buf_set_u32(ir_dbus, 0, 32, value);
+		return ERROR_OK;
+	} else {
+		return ERROR_FAIL;
+	}
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
@@ -1847,6 +1889,23 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"legal_address+word_size*num_words) must be legally readable/writable)"
 			", an illegal, 128-byte aligned address for error flag/handling cases,"
 			"and whether sbbusyerror test should be run."
+	},
+	{
+		.name = "reset_delays",
+		.handler = riscv_reset_delays,
+		.mode = COMMAND_ANY,
+		.usage = "reset_delays [wait]",
+		.help = "OpenOCD learns how many Run-Test/Idle cycles are required "
+			"between scans to avoid encountering the target being busy. This "
+			"command resets those learned values after `wait` scans. It's only "
+			"useful for testing OpenOCD itself."
+	},
+	{
+		.name = "set_ir",
+		.handler = riscv_set_ir,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_ir_idcode [idcode|dtmcs|dmi] value",
+		.help = "Set IR value for specified JTAG register."
 	},
 	COMMAND_REGISTRATION_DONE
 };

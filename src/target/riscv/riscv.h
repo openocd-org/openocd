@@ -96,6 +96,10 @@ typedef struct {
 
 	bool triggers_enumerated;
 
+	/* Decremented every scan, and when it reaches 0 we clear the learned
+	 * delays, causing them to be relearned. Used for testing. */
+	int reset_delays_wait;
+
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
 	int (*get_register)(struct target *target,
@@ -147,11 +151,11 @@ static inline riscv_info_t *riscv_info(const struct target *target)
 { return target->arch_info; }
 #define RISCV_INFO(R) riscv_info_t *R = riscv_info(target);
 
-extern uint8_t ir_dtmcontrol[1];
+extern uint8_t ir_dtmcontrol[4];
 extern struct scan_field select_dtmcontrol;
-extern uint8_t ir_dbus[1];
+extern uint8_t ir_dbus[4];
 extern struct scan_field select_dbus;
-extern uint8_t ir_idcode[1];
+extern uint8_t ir_idcode[4];
 extern struct scan_field select_idcode;
 
 /*** OpenOCD Interface */
