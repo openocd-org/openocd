@@ -867,13 +867,15 @@ static int old_or_new_riscv_halt(struct target *target)
 
 static int riscv_assert_reset(struct target *target)
 {
+	LOG_DEBUG("[%d]", target->coreid);
 	struct target_type *tt = get_target_type(target);
+	riscv_invalidate_register_cache(target);
 	return tt->assert_reset(target);
 }
 
 static int riscv_deassert_reset(struct target *target)
 {
-	LOG_DEBUG("RISCV DEASSERT RESET");
+	LOG_DEBUG("[%d]", target->coreid);
 	struct target_type *tt = get_target_type(target);
 	return tt->deassert_reset(target);
 }
