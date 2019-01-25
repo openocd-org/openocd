@@ -648,33 +648,12 @@ static void trigger_from_watchpoint(struct trigger *trigger,
 
 int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
-	LOG_DEBUG("[%d] @0x%" TARGET_PRIxADDR, target->coreid, watchpoint->address);
 	struct trigger trigger;
 	trigger_from_watchpoint(&trigger, watchpoint);
 
-	if (target->smp) {
-		struct target *failed = NULL;
-		for (struct target_list *list = target->head; list != NULL;
-				list = list->next) {
-			struct target *t = list->target;
-			if (add_trigger(t, &trigger) != ERROR_OK) {
-				failed = t;
-				break;
-			}
-		}
-		if (failed) {
-			for (struct target_list *list = target->head;
-					list->target != failed; list = list->next) {
-				struct target *t = list->target;
-				remove_trigger(t, &trigger);
-			}
-			return ERROR_FAIL;
-		}
-	} else {
-		int result = add_trigger(target, &trigger);
-		if (result != ERROR_OK)
-			return result;
-	}
+	int result = add_trigger(target, &trigger);
+	if (result != ERROR_OK)
+		return result;
 	watchpoint->set = true;
 
 	return ERROR_OK;
@@ -688,21 +667,9 @@ int riscv_remove_watchpoint(struct target *target,
 	struct trigger trigger;
 	trigger_from_watchpoint(&trigger, watchpoint);
 
-	if (target->smp) {
-		bool failed = false;
-		for (struct target_list *list = target->head; list != NULL;
-				list = list->next) {
-			struct target *t = list->target;
-			if (remove_trigger(t, &trigger) != ERROR_OK)
-				failed = true;
-		}
-		if (failed)
-			return ERROR_FAIL;
-	} else {
-		int result = remove_trigger(target, &trigger);
-		if (result != ERROR_OK)
-			return result;
-	}
+	int result = remove_trigger(target, &trigger);
+	if (result != ERROR_OK)
+		return result;
 	watchpoint->set = false;
 
 	return ERROR_OK;

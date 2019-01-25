@@ -96,7 +96,7 @@ struct gdb_connection {
 	char *thread_list;
 };
 
-#if 1
+#if 0
 #define _DEBUG_GDB_IO_
 #endif
 
@@ -736,7 +736,7 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		struct target *ct;
 		if (target->rtos != NULL) {
 			target->rtos->current_threadid = target->rtos->current_thread;
-			LOG_DEBUG("current_threadid=%ld", target->rtos->current_threadid);
+			LOG_DEBUG("current_threadid=%" PRId64, target->rtos->current_threadid);
 			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
 		} else {
 			ct = target;

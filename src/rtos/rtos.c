@@ -432,7 +432,6 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 				target->rtos->current_threadid = target->rtos->current_thread;
 			else
 				target->rtos->current_threadid = threadid;
-			LOG_DEBUG("current_threadid=%ld", target->rtos->current_threadid);
 		}
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
@@ -517,7 +516,6 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 {
 	struct target *target = get_target_from_connection(connection);
 	int64_t current_threadid = target->rtos->current_threadid;
-	LOG_DEBUG("current_threadid=%ld", target->rtos->current_threadid);
 	if ((target->rtos != NULL) && (current_threadid != -1) &&
 			(current_threadid != 0) &&
 			((current_threadid != target->rtos->current_thread) ||

@@ -1206,8 +1206,6 @@ int target_hit_watchpoint(struct target *target,
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("[%d]", target->coreid);
-
 	return target->type->hit_watchpoint(target, hit_watchpoint);
 }
 

@@ -549,8 +549,6 @@ int watchpoint_hit(struct target *target, enum watchpoint_rw *rw,
 	int retval;
 	struct watchpoint *hit_watchpoint;
 
-	LOG_DEBUG("[%d]", target->coreid);
-
 	retval = target_hit_watchpoint(target, &hit_watchpoint);
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
