@@ -5467,6 +5467,10 @@ will not work. These include all @command{*_image} and
 functionality is available through the @command{flash write_bank},
 @command{flash read_bank}, and @command{flash verify_bank} commands.
 
+According to device size, 1- to 4-byte addresses are sent. However, some
+flash chips additionally have to be switched to 4-byte addresses by an extra
+command, see below.
+
 @itemize
 @item @var{ir} ... is loaded into the JTAG IR to map the flash as the JTAG DR.
 For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
@@ -5479,6 +5483,24 @@ set _XILINX_USER1 0x02
 flash bank $_FLASHNAME spi 0x0 0 0 0 \
            $_TARGETNAME $_XILINX_USER1
 @end example
+
+@deffn Command {jtagspi set} bank_id name total_size page_size read_cmd unused pprg_cmd mass_erase_cmd sector_size sector_erase_cmd
+Sets flash parameters: @var{name} human readable string, @var{total_size}
+size in bytes, @var{page_size} is write page size. @var{read_cmd} and @var{pprg_cmd}
+are commands for read and page program, respectively. @var{mass_erase_cmd},
+@var{sector_size} and @var{sector_erase_cmd} are optional.
+@example
+jtagspi set 0 w25q128 0x1000000 0x100 0x03 0 0x02 0xC7 0x10000 0xD8
+@end example
+@end deffn
+
+@deffn Command {jtagspi cmd} bank_id resp_num cmd_byte ...
+Sends command @var{cmd_byte} and at most 20 following bytes and reads
+@var{resp_num} bytes afterwards. E.g. for 'Enter 4-byte address mode'
+@example
+jtagspi cmd 0 0 0xB7
+@end example
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} xcf
