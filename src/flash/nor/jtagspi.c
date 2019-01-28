@@ -32,6 +32,7 @@ struct jtagspi_flash_bank {
 	const struct flash_device *dev;
 	int probed;
 	uint32_t ir;
+	int addr_len;
 };
 
 FLASH_BANK_COMMAND_HANDLER(jtagspi_flash_bank_command)
@@ -82,7 +83,7 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 	struct scan_field fields[6];
 	uint8_t marker = 1;
 	uint8_t xfer_bits_buf[4];
-	uint8_t addr_buf[3];
+	uint8_t addr_buf[4];
 	uint8_t *data_buf;
 	uint32_t xfer_bits;
 	int is_read, lenb, n;
@@ -103,7 +104,7 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 	xfer_bits = 8 + len - 1;
 	/* cmd + read/write - 1 due to the counter implementation */
 	if (addr)
-		xfer_bits += 24;
+		xfer_bits += info->addr_len * 8;
 	h_u32_to_be(xfer_bits_buf, xfer_bits);
 	flip_u8(xfer_bits_buf, xfer_bits_buf, 4);
 	fields[n].num_bits = 32;
@@ -119,8 +120,8 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 
 	if (addr) {
 		h_u24_to_be(addr_buf, *addr);
-		flip_u8(addr_buf, addr_buf, 3);
-		fields[n].num_bits = 24;
+		flip_u8(addr_buf, addr_buf, info->addr_len);
+		fields[n].num_bits = info->addr_len * 8;
 		fields[n].out_value = addr_buf;
 		fields[n].in_value = NULL;
 		n++;
@@ -199,10 +200,17 @@ static int jtagspi_probe(struct flash_bank *bank)
 
 	/* Set correct size value */
 	bank->size = info->dev->size_in_bytes;
-	if (bank->size <= (1UL << 16))
-		LOG_WARNING("device needs 2-byte addresses - not implemented");
-	if (bank->size > (1UL << 24))
-		LOG_WARNING("device needs paging or 4-byte addresses - not implemented");
+
+	/* calculate address length in bytes */
+	info->addr_len = 1;
+	if (bank->size > (1UL << 8))
+		info->addr_len++;
+	if (bank->size > (1UL << 16))
+		info->addr_len++;
+	if (bank->size > (1UL << 24)) {
+		info->addr_len++;
+		LOG_WARNING("device needs 4-byte addresses, might need extra command to enable");
+	}
 
 	/* if no sectors, treat whole bank as single sector */
 	sectorsize = info->dev->sectorsize ?
