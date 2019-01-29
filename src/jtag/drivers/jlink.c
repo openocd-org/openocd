@@ -2130,7 +2130,7 @@ skip:
 static void jlink_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk)
 {
 	uint8_t data_parity_trn[DIV_ROUND_UP(32 + 1, 8)];
-	if (tap_length + 46 + 8 + ap_delay_clk >= sizeof(tdi_buffer) * 8 ||
+	if (tap_length + 46 + 8 + ap_delay_clk >= swd_buffer_size * 8 ||
 	    pending_scan_results_length == MAX_PENDING_SCAN_RESULTS) {
 		/* Not enough room in the queue. Run the queue. */
 		queued_retval = jlink_swd_run_queue();
