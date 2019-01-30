@@ -262,6 +262,8 @@ static const struct samd_part samc20_parts[] = {
 	{ 0x0B, "SAMC20E17A", 128, 16 },
 	{ 0x0C, "SAMC20E16A", 64, 8 },
 	{ 0x0D, "SAMC20E15A", 32, 4 },
+	{ 0x20, "SAMC20N18A", 256, 32 },
+	{ 0x21, "SAMC20N17A", 128, 16 },
 };
 
 /* Known SAMC21 parts. */
@@ -278,6 +280,8 @@ static const struct samd_part samc21_parts[] = {
 	{ 0x0B, "SAMC21E17A", 128, 16 },
 	{ 0x0C, "SAMC21E16A", 64, 8 },
 	{ 0x0D, "SAMC21E15A", 32, 4 },
+	{ 0x20, "SAMC21N18A", 256, 32 },
+	{ 0x21, "SAMC21N17A", 128, 16 },
 };
 
 /* Each family of parts contains a parts table in the DEVSEL field of DID.  The
