@@ -36,6 +36,29 @@
  * may be separate registers associated with debug or trace modules.
  */
 
+struct reg *register_get_by_number(struct reg_cache *first,
+		uint32_t reg_num, bool search_all)
+{
+	unsigned i;
+	struct reg_cache *cache = first;
+
+	while (cache) {
+		for (i = 0; i < cache->num_regs; i++) {
+			if (cache->reg_list[i].exist == false)
+				continue;
+			if (cache->reg_list[i].number == reg_num)
+				return &(cache->reg_list[i]);
+		}
+
+		if (search_all)
+			cache = cache->next;
+		else
+			break;
+	}
+
+	return NULL;
+}
+
 struct reg *register_get_by_name(struct reg_cache *first,
 		const char *name, bool search_all)
 {

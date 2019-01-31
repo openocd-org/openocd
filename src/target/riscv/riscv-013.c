@@ -1146,7 +1146,6 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (result == ERROR_OK && target->reg_cache) {
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		buf_set_u64(reg->value, 0, reg->size, value);
-		reg->valid = true;
 	}
 	if (result == ERROR_OK || info->progbufsize + r->impebreak < 2 ||
 			!riscv_is_halted(target))
@@ -1205,7 +1204,6 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (exec_out == ERROR_OK && target->reg_cache) {
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		buf_set_u64(reg->value, 0, reg->size, value);
-		reg->valid = true;
 	}
 
 	if (use_scratch)
@@ -1225,24 +1223,12 @@ static int register_read(struct target *target, uint64_t *value, uint32_t number
 		*value = 0;
 		return ERROR_OK;
 	}
-	if (target->reg_cache &&
-			(number <= GDB_REGNO_XPR31 ||
-			 (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31))) {
-		/* Only check the cache for registers that we know won't spontaneously
-		 * change. */
-		struct reg *reg = &target->reg_cache->reg_list[number];
-		if (reg && reg->valid) {
-			*value = buf_get_u64(reg->value, 0, reg->size);
-			return ERROR_OK;
-		}
-	}
 	int result = register_read_direct(target, value, number);
 	if (result != ERROR_OK)
 		return ERROR_FAIL;
 	if (target->reg_cache) {
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		buf_set_u64(reg->value, 0, reg->size, *value);
-		reg->valid = true;
 	}
 	return ERROR_OK;
 }
@@ -2834,7 +2820,7 @@ static int riscv013_get_register(struct target *target,
 	int result = ERROR_OK;
 	if (rid == GDB_REGNO_PC) {
 		result = register_read(target, value, GDB_REGNO_DPC);
-		LOG_DEBUG("read PC from DPC: 0x%016" PRIx64, *value);
+		LOG_DEBUG("read PC from DPC: 0x%" PRIx64, *value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		result = register_read(target, &dcsr, GDB_REGNO_DCSR);
@@ -2858,7 +2844,7 @@ static int riscv013_set_register(struct target *target, int hid, int rid, uint64
 	if (rid <= GDB_REGNO_XPR31) {
 		return register_write_direct(target, rid, value);
 	} else if (rid == GDB_REGNO_PC) {
-		LOG_DEBUG("writing PC to DPC: 0x%016" PRIx64, value);
+		LOG_DEBUG("writing PC to DPC: 0x%" PRIx64, value);
 		register_write_direct(target, GDB_REGNO_DPC, value);
 		uint64_t actual_value;
 		register_read_direct(target, &actual_value, GDB_REGNO_DPC);
@@ -3002,6 +2988,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 		 * already set when we connected. Force enumeration now, which has the
 		 * side effect of clearing any triggers we did not set. */
 		riscv_enumerate_triggers(target);
+		LOG_DEBUG("[%d] halted because of trigger", target->coreid);
 		return RISCV_HALT_TRIGGER;
 	case CSR_DCSR_CAUSE_STEP:
 		return RISCV_HALT_SINGLESTEP;

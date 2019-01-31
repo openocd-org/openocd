@@ -98,7 +98,9 @@ fail:
 			return retval;
 	}
 
-	LOG_DEBUG("added %s breakpoint at " TARGET_ADDR_FMT " of length 0x%8.8x, (BPID: %" PRIu32 ")",
+	LOG_DEBUG("[%d] added %s breakpoint at " TARGET_ADDR_FMT
+			" of length 0x%8.8x, (BPID: %" PRIu32 ")",
+		target->coreid,
 		breakpoint_type_strings[(*breakpoint_p)->type],
 		(*breakpoint_p)->address, (*breakpoint_p)->length,
 		(*breakpoint_p)->unique_id);
@@ -385,8 +387,8 @@ struct breakpoint *breakpoint_find(struct target *target, target_addr_t address)
 	return NULL;
 }
 
-int watchpoint_add(struct target *target, target_addr_t address, uint32_t length,
-	enum watchpoint_rw rw, uint32_t value, uint32_t mask)
+int watchpoint_add_internal(struct target *target, target_addr_t address,
+		uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
@@ -451,6 +453,29 @@ bye:
 	return ERROR_OK;
 }
 
+int watchpoint_add(struct target *target, target_addr_t address,
+		uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
+{
+	int retval = ERROR_OK;
+	if (target->smp) {
+		struct target_list *head;
+		struct target *curr;
+		head = target->head;
+
+		while (head != (struct target_list *)NULL) {
+			curr = head->target;
+			retval = watchpoint_add_internal(curr, address, length, rw, value,
+					mask);
+			if (retval != ERROR_OK)
+				return retval;
+			head = head->next;
+		}
+		return retval;
+	} else
+		return watchpoint_add_internal(target, address, length, rw, value,
+				mask);
+}
+
 static void watchpoint_free(struct target *target, struct watchpoint *watchpoint_to_remove)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
@@ -472,7 +497,7 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 	free(watchpoint);
 }
 
-void watchpoint_remove(struct target *target, target_addr_t address)
+int watchpoint_remove_internal(struct target *target, target_addr_t address)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
@@ -482,10 +507,32 @@ void watchpoint_remove(struct target *target, target_addr_t address)
 		watchpoint = watchpoint->next;
 	}
 
-	if (watchpoint)
+	if (watchpoint) {
 		watchpoint_free(target, watchpoint);
-	else
-		LOG_ERROR("no watchpoint at address " TARGET_ADDR_FMT " found", address);
+		return 1;
+	} else {
+		if (!target->smp)
+			LOG_ERROR("no watchpoint at address " TARGET_ADDR_FMT " found", address);
+		return 0;
+	}
+}
+
+void watchpoint_remove(struct target *target, target_addr_t address)
+{
+	int found = 0;
+	if (target->smp) {
+		struct target_list *head;
+		struct target *curr;
+		head = target->head;
+		while (head != (struct target_list *)NULL) {
+			curr = head->target;
+			found += watchpoint_remove_internal(curr, address);
+			head = head->next;
+		}
+		if (found == 0)
+			LOG_ERROR("no watchpoint at address " TARGET_ADDR_FMT " found", address);
+	} else
+		watchpoint_remove_internal(target, address);
 }
 
 void watchpoint_clear_target(struct target *target)

@@ -1575,8 +1575,9 @@ int target_call_event_callbacks(struct target *target, enum target_event event)
 		target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 	}
 
-	LOG_DEBUG("target event %i (%s)", event,
-			Jim_Nvp_value2name_simple(nvp_target_event, event)->name);
+	LOG_DEBUG("target event %i (%s) for core %d", event,
+			Jim_Nvp_value2name_simple(nvp_target_event, event)->name,
+			target->coreid);
 
 	target_handle_event(target, event);
 
