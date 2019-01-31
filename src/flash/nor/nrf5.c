@@ -905,7 +905,7 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 		bank->bank_number = 1;
 		break;
 	default:
-		LOG_ERROR("Invalid bank address 0x%08" PRIx32, bank->base);
+		LOG_ERROR("Invalid bank address 0x%08" TARGET_PRIxADDR, bank->base);
 		return ERROR_FAIL;
 	}
 

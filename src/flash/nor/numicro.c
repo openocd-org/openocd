@@ -1496,7 +1496,8 @@ static int numicro_erase(struct flash_bank *bank, int first, int last)
 		return retval;
 
 	for (i = first; i <= last; i++) {
-		LOG_DEBUG("erasing sector %d at address 0x%" PRIx32 "", i, bank->base + bank->sectors[i].offset);
+		LOG_DEBUG("erasing sector %d at address 0x%" TARGET_PRIxADDR, i,
+				bank->base + bank->sectors[i].offset);
 		retval = target_write_u32(target, NUMICRO_FLASH_ISPADR, bank->base + bank->sectors[i].offset);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1678,7 +1679,8 @@ static int numicro_get_flash_size(struct flash_bank *bank, const struct numicro_
 	for (size_t i = 0; i < cpu->n_banks; i++) {
 		if (bank->base == cpu->bank[i].base) {
 			*flash_size = cpu->bank[i].size;
-			LOG_INFO("bank base = 0x%08" PRIx32 ", size = 0x%08" PRIx32 "", bank->base, *flash_size);
+			LOG_INFO("bank base = 0x%08" TARGET_PRIxADDR ", size = 0x%08"
+					PRIx32, bank->base, *flash_size);
 			return ERROR_OK;
 		}
 	}

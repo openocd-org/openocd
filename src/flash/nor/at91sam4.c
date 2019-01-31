@@ -2598,7 +2598,7 @@ static int sam4_info(struct flash_bank *bank, char *buf, int buf_size)
 	}
 
 	snprintf(buf, buf_size,
-		"%s bank %d: %d kB at 0x%08" PRIx32,
+		"%s bank %d: %d kB at 0x%08" TARGET_PRIxADDR,
 		pPrivate->pChip->details.name,
 		pPrivate->bank_number,
 		k,
@@ -2642,7 +2642,9 @@ static int sam4_probe(struct flash_bank *bank)
 	for (x = 0; x < SAM4_MAX_FLASH_BANKS; x++) {
 		if (bank->base == pPrivate->pChip->details.bank[x].base_address) {
 			bank->size = pPrivate->pChip->details.bank[x].size_bytes;
-			LOG_DEBUG("SAM4 Set flash bank to %08X - %08X, idx %d", bank->base, bank->base + bank->size, x);
+			LOG_DEBUG("SAM4 Set flash bank to %" TARGET_PRIxADDR " - %"
+					TARGET_PRIxADDR ", idx %d", bank->base,
+					bank->base + bank->size, x);
 			break;
 		}
 	}

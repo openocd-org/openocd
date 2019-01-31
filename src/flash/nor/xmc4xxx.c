@@ -778,7 +778,7 @@ static int xmc4xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 		memcpy(&tmp_buf[start_pad], buffer, remaining);
 
 		if (end_pad) {
-			LOG_INFO("Padding end of page @%08"PRIx32" by %d bytes",
+			LOG_INFO("Padding end of page @%08" TARGET_PRIxADDR " by %d bytes",
 				 bank->base + offset, end_pad);
 			memset(&tmp_buf[256 - end_pad], 0xff, end_pad);
 		}

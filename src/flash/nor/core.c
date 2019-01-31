@@ -94,7 +94,8 @@ int flash_driver_write(struct flash_bank *bank,
 	retval = bank->driver->write(bank, buffer, offset, count);
 	if (retval != ERROR_OK) {
 		LOG_ERROR(
-			"error writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
+			"error writing to flash at address 0x%08" TARGET_PRIxADDR
+			" at offset 0x%8.8" PRIx32,
 			bank->base,
 			offset);
 	}
@@ -112,7 +113,8 @@ int flash_driver_read(struct flash_bank *bank,
 	retval = bank->driver->read(bank, buffer, offset, count);
 	if (retval != ERROR_OK) {
 		LOG_ERROR(
-			"error reading to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32,
+			"error reading to flash at address 0x%08" TARGET_PRIxADDR
+			" at offset 0x%8.8" PRIx32,
 			bank->base,
 			offset);
 	}

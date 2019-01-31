@@ -834,7 +834,7 @@ static int stm32x_probe(struct flash_bank *bank)
 			flash_size_in_kb = stm32x_info->part_info->first_bank_size_kb;
 		} else {
 			LOG_WARNING("STM32H flash bank base address config is incorrect."
-				    " 0x%" PRIx32 " but should rather be 0x%" PRIx32 " or 0x%" PRIx32,
+				    " 0x%" TARGET_PRIxADDR " but should rather be 0x%" PRIx32 " or 0x%" PRIx32,
 					bank->base, base_address, second_bank_base);
 			return ERROR_FAIL;
 		}

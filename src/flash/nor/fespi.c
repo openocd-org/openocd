@@ -929,12 +929,13 @@ static int fespi_probe(struct flash_bank *bank)
 
 		fespi_info->ctrl_base = target_device->ctrl_base;
 
-		LOG_DEBUG("Valid FESPI on device %s at address 0x%" PRIx32,
+		LOG_DEBUG("Valid FESPI on device %s at address 0x%" TARGET_PRIxADDR,
 				target_device->name, bank->base);
 
 	} else {
 	  LOG_DEBUG("Assuming FESPI as specified at address 0x%" TARGET_PRIxADDR
-			  " with ctrl at 0x%x", fespi_info->ctrl_base, bank->base);
+			  " with ctrl at 0x%" TARGET_PRIxADDR, fespi_info->ctrl_base,
+			  bank->base);
 	}
 
 	/* read and decode flash ID; returns in SW mode */

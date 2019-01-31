@@ -96,7 +96,7 @@ struct gdb_connection {
 	char *thread_list;
 };
 
-#if 0
+#if 1
 #define _DEBUG_GDB_IO_
 #endif
 
@@ -1919,11 +1919,10 @@ static int gdb_memory_map(struct connection *connection,
 	if (ram_start != 0)
 		xml_printf(&retval, &xml, &pos, &size,
 			"<memory type=\"ram\" start=\"" TARGET_ADDR_FMT "\" "
-			"length=\"0x%x\"/>\n",
-			ram_start, 0-ram_start);
-	/* ELSE a flash chip could be at the very end of the 32 bit address
-	 * space, in which case ram_start will be precisely 0
-	 */
+			"length=\"" TARGET_ADDR_FMT "\"/>\n",
+			ram_start, TARGET_ADDR_MAX - ram_start + 1);
+	/* ELSE a flash chip could be at the very end of the address space, in
+	 * which case ram_start will be precisely 0 */
 
 	free(banks);
 

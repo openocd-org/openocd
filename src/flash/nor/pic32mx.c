@@ -620,7 +620,7 @@ static int pic32mx_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32
+	LOG_DEBUG("writing to flash at address 0x%08" TARGET_PRIxADDR " at offset 0x%8.8" PRIx32
 			" count: 0x%8.8" PRIx32 "", bank->base, offset, count);
 
 	if (offset & 0x3) {

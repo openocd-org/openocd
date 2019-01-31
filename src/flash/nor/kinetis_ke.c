@@ -1175,7 +1175,7 @@ static int kinetis_ke_auto_probe(struct flash_bank *bank)
 static int kinetis_ke_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	(void) snprintf(buf, buf_size,
-			"%s driver for flash bank %s at 0x%8.8" PRIx32 "",
+			"%s driver for flash bank %s at 0x%8.8" TARGET_PRIxADDR,
 			bank->driver->name,	bank->name, bank->base);
 
 	return ERROR_OK;

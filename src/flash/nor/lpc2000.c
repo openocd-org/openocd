@@ -1156,8 +1156,8 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 			free(last_buffer);
 		}
 
-		LOG_DEBUG("writing 0x%" PRIx32 " bytes to address 0x%" PRIx32, thisrun_bytes,
-				bank->base + offset + bytes_written);
+		LOG_DEBUG("writing 0x%" PRIx32 " bytes to address 0x%" TARGET_PRIxADDR,
+				thisrun_bytes, bank->base + offset + bytes_written);
 
 		/* Write data */
 		param_table[0] = bank->base + offset + bytes_written;

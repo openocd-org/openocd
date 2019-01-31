@@ -203,7 +203,8 @@ static int sam4l_flash_command(struct target *target, uint8_t cmd, int page)
 FLASH_BANK_COMMAND_HANDLER(sam4l_flash_bank_command)
 {
 	if (bank->base != SAM4L_FLASH) {
-		LOG_ERROR("Address 0x%08" PRIx32 " invalid bank address (try 0x%08" PRIx32
+		LOG_ERROR("Address 0x%08" TARGET_PRIxADDR
+				" invalid bank address (try 0x%08" PRIx32
 				"[at91sam4l series] )",
 				bank->base, SAM4L_FLASH);
 		return ERROR_FAIL;

@@ -185,7 +185,7 @@ static int virtual_info(struct flash_bank *bank, char *buf, int buf_size)
 	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
 
-	snprintf(buf, buf_size, "%s driver for flash bank %s at 0x%8.8" PRIx32 "",
+	snprintf(buf, buf_size, "%s driver for flash bank %s at 0x%8.8" TARGET_PRIxADDR,
 			bank->driver->name, master_bank->name, master_bank->base);
 
 	return ERROR_OK;

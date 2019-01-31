@@ -890,7 +890,7 @@ static int cfi_intel_erase(struct flash_bank *bank, int first, int last)
 				return retval;
 
 			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%"
-					PRIx32, i, bank->base);
+					TARGET_PRIxADDR, i, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -938,7 +938,7 @@ static int cfi_spansion_erase(struct flash_bank *bank, int first, int last)
 				return retval;
 
 			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%"
-				PRIx32, i, bank->base);
+				TARGET_PRIxADDR, i, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -2006,8 +2006,9 @@ static int cfi_intel_write_word(struct flash_bank *bank, uint8_t *word, uint32_t
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_ERROR("couldn't write word at base 0x%" PRIx32 ", address 0x%" PRIx32,
-			bank->base, address);
+		LOG_ERROR("couldn't write word at base 0x%" TARGET_PRIxADDR
+				", address 0x%" PRIx32,
+				bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -2031,9 +2032,9 @@ static int cfi_intel_write_words(struct flash_bank *bank, const uint8_t *word,
 
 	/* Check for valid range */
 	if (address & buffermask) {
-		LOG_ERROR("Write address at base 0x%" PRIx32 ", address 0x%" PRIx32
-			" not aligned to 2^%d boundary",
-			bank->base, address, cfi_info->max_buf_write_size);
+		LOG_ERROR("Write address at base 0x%" TARGET_PRIxADDR ", address 0x%"
+				PRIx32 " not aligned to 2^%d boundary",
+				bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -2061,7 +2062,8 @@ static int cfi_intel_write_words(struct flash_bank *bank, const uint8_t *word,
 			return retval;
 
 		LOG_ERROR(
-			"couldn't start buffer write operation at base 0x%" PRIx32 ", address 0x%" PRIx32,
+			"couldn't start buffer write operation at base 0x%" TARGET_PRIxADDR
+			", address 0x%" PRIx32,
 			bank->base,
 			address);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -2090,7 +2092,7 @@ static int cfi_intel_write_words(struct flash_bank *bank, const uint8_t *word,
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_ERROR("Buffer write at base 0x%" PRIx32
+		LOG_ERROR("Buffer write at base 0x%" TARGET_PRIxADDR
 			", address 0x%" PRIx32 " failed.", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -2126,7 +2128,7 @@ static int cfi_spansion_write_word(struct flash_bank *bank, uint8_t *word, uint3
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_ERROR("couldn't write word at base 0x%" PRIx32
+		LOG_ERROR("couldn't write word at base 0x%" TARGET_PRIxADDR
 			", address 0x%" PRIx32, bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -2152,7 +2154,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, const uint8_t *word
 
 	/* Check for valid range */
 	if (address & buffermask) {
-		LOG_ERROR("Write address at base 0x%" PRIx32
+		LOG_ERROR("Write address at base 0x%" TARGET_PRIxADDR
 			", address 0x%" PRIx32 " not aligned to 2^%d boundary",
 			bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -2198,7 +2200,7 @@ static int cfi_spansion_write_words(struct flash_bank *bank, const uint8_t *word
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_ERROR("couldn't write block at base 0x%" PRIx32
+		LOG_ERROR("couldn't write block at base 0x%" TARGET_PRIxADDR
 			", address 0x%" PRIx32 ", size 0x%" PRIx32, bank->base, address,
 			bufferwsize);
 		return ERROR_FLASH_OPERATION_FAILED;
