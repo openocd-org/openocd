@@ -167,6 +167,8 @@ struct stlink_usb_handle_s {
 #define STLINK_SWD_AP_STICKY_ERROR     0x19
 #define STLINK_SWD_AP_STICKYORUN_ERROR 0x1a
 
+#define STLINK_BAD_AP_ERROR            0x1d
+
 #define STLINK_CORE_RUNNING            0x80
 #define STLINK_CORE_HALTED             0x81
 #define STLINK_CORE_STAT_UNKNOWN       -1
@@ -750,6 +752,9 @@ static int stlink_usb_error_check(void *handle)
 			return ERROR_FAIL;
 		case STLINK_SWD_AP_STICKYORUN_ERROR:
 			LOG_DEBUG("STLINK_SWD_AP_STICKYORUN_ERROR");
+			return ERROR_FAIL;
+		case STLINK_BAD_AP_ERROR:
+			LOG_DEBUG("STLINK_BAD_AP_ERROR");
 			return ERROR_FAIL;
 		default:
 			LOG_DEBUG("unknown/unexpected STLINK status code 0x%x", h->databuf[0]);
