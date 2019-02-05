@@ -251,7 +251,7 @@ static int armv7m_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-static uint32_t armv7m_map_id_to_regsel(unsigned int arm_reg_id)
+uint32_t armv7m_map_id_to_regsel(unsigned int arm_reg_id)
 {
 	switch (arm_reg_id) {
 	case ARMV7M_R0 ... ARMV7M_R14:
@@ -289,7 +289,7 @@ static uint32_t armv7m_map_id_to_regsel(unsigned int arm_reg_id)
 	}
 }
 
-static bool armv7m_map_reg_packing(unsigned int arm_reg_id,
+bool armv7m_map_reg_packing(unsigned int arm_reg_id,
 					unsigned int *reg32_id, uint32_t *offset)
 {
 
