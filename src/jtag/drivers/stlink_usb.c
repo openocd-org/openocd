@@ -156,6 +156,7 @@ struct stlink_usb_handle_s {
 #define STLINK_SWD_AP_FAULT            0x11
 #define STLINK_SWD_AP_ERROR            0x12
 #define STLINK_SWD_AP_PARITY_ERROR     0x13
+#define STLINK_JTAG_GET_IDCODE_ERROR   0x09
 #define STLINK_JTAG_WRITE_ERROR        0x0c
 #define STLINK_JTAG_WRITE_VERIF_ERROR  0x0d
 #define STLINK_SWD_DP_WAIT             0x14
@@ -715,6 +716,9 @@ static int stlink_usb_error_check(void *handle)
 		case STLINK_SWD_DP_WAIT:
 			LOG_DEBUG("wait status SWD_DP_WAIT (0x%x)", STLINK_SWD_DP_WAIT);
 			return ERROR_WAIT;
+		case STLINK_JTAG_GET_IDCODE_ERROR:
+			LOG_DEBUG("STLINK_JTAG_GET_IDCODE_ERROR");
+			return ERROR_FAIL;
 		case STLINK_JTAG_WRITE_ERROR:
 			LOG_DEBUG("Write error");
 			return ERROR_FAIL;
