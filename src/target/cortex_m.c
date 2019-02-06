@@ -1288,16 +1288,10 @@ int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint
 
 int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
-	/* REVISIT why check? FPB can be updated with core running ... */
-	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
+	if (!breakpoint->set)
+		return ERROR_OK;
 
-	if (breakpoint->set)
-		cortex_m_unset_breakpoint(target, breakpoint);
-
-	return ERROR_OK;
+	return cortex_m_unset_breakpoint(target, breakpoint);
 }
 
 int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
