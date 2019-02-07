@@ -1260,17 +1260,11 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 			comparator_list[fp_num].fpcr_value);
 	} else {
 		/* restore original instruction (kept in target endianness) */
-		if (breakpoint->length == 4) {
-			retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 4, 1,
+		retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE,
+					breakpoint->length, 1,
 					breakpoint->orig_instr);
-			if (retval != ERROR_OK)
-				return retval;
-		} else {
-			retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 2, 1,
-					breakpoint->orig_instr);
-			if (retval != ERROR_OK)
-				return retval;
-		}
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	breakpoint->set = false;
 
