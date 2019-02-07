@@ -1138,7 +1138,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
 
-	LOG_DEBUG("[%d] reg[0x%x] <- 0x%" PRIx64, riscv_current_hartid(target),
+	LOG_DEBUG("{%d} reg[0x%x] <- 0x%" PRIx64, riscv_current_hartid(target),
 			number, value);
 
 	int result = register_write_abstract(target, number, value,
@@ -1321,7 +1321,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	}
 
 	if (result == ERROR_OK) {
-		LOG_DEBUG("[%d] reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
+		LOG_DEBUG("{%d} reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
 				number, *value);
 	}
 
@@ -2988,7 +2988,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 		 * already set when we connected. Force enumeration now, which has the
 		 * side effect of clearing any triggers we did not set. */
 		riscv_enumerate_triggers(target);
-		LOG_DEBUG("[%d] halted because of trigger", target->coreid);
+		LOG_DEBUG("{%d} halted because of trigger", target->coreid);
 		return RISCV_HALT_TRIGGER;
 	case CSR_DCSR_CAUSE_STEP:
 		return RISCV_HALT_SINGLESTEP;

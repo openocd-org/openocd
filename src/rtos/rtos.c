@@ -475,8 +475,8 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 		struct rtos_reg *reg_list;
 		int num_regs;
 
-		LOG_DEBUG("RTOS: getting register %d for thread 0x%" PRIx64
-				  ", target->rtos->current_thread=0x%" PRIx64 "\r\n",
+		LOG_DEBUG("getting register %d for thread 0x%" PRIx64
+				  ", target->rtos->current_thread=0x%" PRIx64,
 										reg_num,
 										current_threadid,
 										target->rtos->current_thread);
@@ -487,15 +487,19 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 			num_regs = 1;
 			retval = target->rtos->type->get_thread_reg(target->rtos,
 					current_threadid, reg_num, &reg_list[0]);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("RTOS: failed to get register %d", reg_num);
+				return retval;
+			}
 		} else {
 			retval = target->rtos->type->get_thread_reg_list(target->rtos,
 					current_threadid,
 					&reg_list,
 					&num_regs);
-		}
-		if (retval != ERROR_OK) {
-			LOG_ERROR("RTOS: failed to get register list");
-			return retval;
+			if (retval != ERROR_OK) {
+				LOG_ERROR("RTOS: failed to get register list");
+				return retval;
+			}
 		}
 
 		for (int i = 0; i < num_regs; ++i) {

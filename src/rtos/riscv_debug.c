@@ -3,9 +3,11 @@
 #endif
 
 #include "riscv_debug.h"
+#include "target/register.h"
 #include "target/target.h"
 #include "target/riscv/riscv.h"
 #include "server/gdb_server.h"
+#include "helper/binarybuffer.h"
 
 static int riscv_gdb_thread_packet(struct connection *connection, const char *packet, int packet_size);
 static int riscv_gdb_v_packet(struct connection *connection, const char *packet, int packet_size);
@@ -174,6 +176,7 @@ static int riscv_gdb_thread_packet(struct connection *connection, const char *pa
 			break;
 		default:
 			riscv_set_rtos_hartid(target, tid - 1);
+			rtos->current_threadid = tid;
 			break;
 		}
 
@@ -270,6 +273,27 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 	return GDB_THREAD_PACKET_NOT_CONSUMED;
 }
 
+static int riscv_get_thread_reg(struct rtos *rtos, int64_t thread_id,
+		uint32_t reg_num, struct rtos_reg *rtos_reg)
+{
+	LOG_DEBUG("thread_id=%" PRId64 ", reg_num=%d", thread_id, reg_num);
+
+	struct target *target = rtos->target;
+	struct reg *reg = register_get_by_number(target->reg_cache, reg_num, true);
+	if (!reg)
+		return ERROR_FAIL;
+
+	uint64_t reg_value = 0;
+	if (riscv_get_register_on_hart(rtos->target, &reg_value, thread_id - 1,
+				reg_num) != ERROR_OK)
+		return ERROR_FAIL;
+
+	buf_set_u64(rtos_reg->value, 0, 64, reg_value);
+	rtos_reg->number = reg->number;
+	rtos_reg->size = reg->size;
+	return ERROR_OK;
+}
+
 static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs)
 {
@@ -277,11 +301,10 @@ static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 
 	/* We return just the GPRs here. */
 
-	*num_regs = 32;
+	*num_regs = 33;
 	int xlen = riscv_xlen_of_hart(rtos->target, thread_id - 1);
 
 	*reg_list = calloc(*num_regs, sizeof(struct rtos_reg));
-	*reg_list = 0;
 	for (int i = 0; i < *num_regs; ++i) {
 		uint64_t reg_value;
 		if (riscv_get_register_on_hart(rtos->target, &reg_value, thread_id - 1,
@@ -290,16 +313,23 @@ static int riscv_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 
 		(*reg_list)[i].number = i;
 		(*reg_list)[i].size = xlen;
-		(*reg_list)[i].value[0] = reg_value & 0xff;
-		(*reg_list)[i].value[1] = (reg_value >> 8) & 0xff;
-		(*reg_list)[i].value[2] = (reg_value >> 16) & 0xff;
-		(*reg_list)[i].value[3] = (reg_value >> 24) & 0xff;
-		(*reg_list)[i].value[4] = (reg_value >> 32) & 0xff;
-		(*reg_list)[i].value[5] = (reg_value >> 40) & 0xff;
-		(*reg_list)[i].value[6] = (reg_value >> 48) & 0xff;
-		(*reg_list)[i].value[7] = (reg_value >> 56) & 0xff;
+		buf_set_u64((*reg_list)[i].value, 0, 64, reg_value);
 	}
 	return JIM_OK;
+}
+
+static int riscv_set_reg(struct rtos *rtos, uint32_t reg_num,
+		uint8_t *reg_value)
+{
+	struct target *target = rtos->target;
+	struct reg *reg = register_get_by_number(target->reg_cache, reg_num, true);
+	if (!reg)
+		return ERROR_FAIL;
+
+	int hartid = rtos->current_threadid - 1;
+	uint64_t value = buf_get_u64(reg_value, 0, reg->size);
+
+	return riscv_set_register_on_hart(target, hartid, reg_num, value);
 }
 
 static int riscv_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
@@ -315,6 +345,8 @@ const struct rtos_type riscv_rtos = {
 	.detect_rtos = riscv_detect_rtos,
 	.create = riscv_create_rtos,
 	.update_threads = riscv_update_threads,
+	.get_thread_reg = riscv_get_thread_reg,
 	.get_thread_reg_list = riscv_get_thread_reg_list,
 	.get_symbol_list_to_lookup = riscv_get_symbol_list_to_lookup,
+	.set_reg = riscv_set_reg,
 };

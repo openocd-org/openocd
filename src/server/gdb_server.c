@@ -96,7 +96,7 @@ struct gdb_connection {
 	char *thread_list;
 };
 
-#if 1
+#if 0
 #define _DEBUG_GDB_IO_
 #endif
 
@@ -1307,7 +1307,7 @@ static int gdb_get_register_packet(struct connection *connection,
 	if ((target->rtos != NULL) && (ERROR_OK == rtos_get_gdb_reg(connection, reg_num)))
 		return ERROR_OK;
 
-	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+	retval = target_get_gdb_reg_list_noread(target, &reg_list, &reg_list_size,
 			REG_CLASS_ALL);
 	if (retval != ERROR_OK)
 		return gdb_error(connection, retval);
@@ -1367,7 +1367,7 @@ static int gdb_set_register_packet(struct connection *connection,
 		return ERROR_OK;
 	}
 
-	retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size,
+	retval = target_get_gdb_reg_list_noread(target, &reg_list, &reg_list_size,
 			REG_CLASS_ALL);
 	if (retval != ERROR_OK) {
 		free(bin_buf);
@@ -2221,7 +2221,7 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 
 	arch_defined_types = calloc(1, sizeof(char *));
 
-	retval = target_get_gdb_reg_list(target, &reg_list,
+	retval = target_get_gdb_reg_list_noread(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
 
 	if (retval != ERROR_OK) {
@@ -2409,7 +2409,7 @@ static int gdb_target_description_supported(struct target *target, int *supporte
 
 	char const *architecture = target_get_gdb_arch(target);
 
-	retval = target_get_gdb_reg_list(target, &reg_list,
+	retval = target_get_gdb_reg_list_noread(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("get register list failed");

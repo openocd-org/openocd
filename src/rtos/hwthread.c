@@ -270,15 +270,22 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 	struct target *target = rtos->target;
 
 	struct target *curr = find_thread(target, thread_id);
-	if (curr == NULL)
+	if (curr == NULL) {
+		LOG_ERROR("Couldn't find RTOS thread for id %" PRId64 ".", thread_id);
 		return ERROR_FAIL;
+	}
 
-	if (!target_was_examined(curr))
+	if (!target_was_examined(curr)) {
+		LOG_ERROR("Target %d hasn't been examined yet.", curr->coreid);
 		return ERROR_FAIL;
+	}
 
 	struct reg *reg = register_get_by_number(curr->reg_cache, reg_num, true);
-	if (!reg)
+	if (!reg) {
+		LOG_ERROR("Couldn't find register %d in thread %" PRId64 ".", reg_num,
+				thread_id);
 		return ERROR_FAIL;
+	}
 
 	if (reg->type->get(reg) != ERROR_OK)
 		return ERROR_FAIL;
