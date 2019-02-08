@@ -156,8 +156,8 @@ OpenOCD internally. @xref{Debug Adapter Hardware}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
 ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x), Cortex-M3
-(Stellaris LM3, ST STM32 and Energy Micro EFM32) and Intel Quark (x10xx)
-based cores to be debugged via the GDB protocol.
+(Stellaris LM3, STMicroelectronics STM32 and Energy Micro EFM32) and
+Intel Quark (x10xx) based cores to be debugged via the GDB protocol.
 
 @b{Flash Programming:} Flash writing is supported for external
 CFI-compatible NOR flashes (Intel and AMD/Spansion command set) and several
@@ -477,8 +477,8 @@ SWD and not JTAG, thus not supported.
 @end itemize
 
 @section USB ST-LINK based
-ST Micro has an adapter called @b{ST-LINK}.
-They only work with ST Micro chips, notably STM32 and STM8.
+STMicroelectronics has an adapter called @b{ST-LINK}.
+They only work with STMicroelectronics chips, notably STM32 and STM8.
 
 @itemize @bullet
 @item @b{ST-LINK}
@@ -487,6 +487,9 @@ They only work with ST Micro chips, notably STM32 and STM8.
 @item @b{ST-LINK/V2}
 @* This is available standalone and as part of some kits, eg. STM32F4DISCOVERY.
 @* Link: @url{http://www.st.com/internet/evalboard/product/251168.jsp}
+@item @b{STLINK-V3}
+@* This is available standalone and as part of some kits.
+@* Link: @url{http://www.st.com/stlink-v3}
 @end itemize
 
 For info the original ST-LINK enumerates using the mass storage usb class; however,
@@ -535,6 +538,12 @@ debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/
 @item @b{TI XDS110 Debug Probe}
 @* The XDS110 is included as the embedded debug probe on many Texas Instruments
 LaunchPad evaluation boards.
+@* The XDS110 is also available as a stand-alone USB debug probe. The XDS110
+stand-alone probe has the additional ability to supply voltage to the target
+board via its AUX FUNCTIONS port. Use the
+@command{xds110_supply_voltage <millivolts>} command to set the voltage. 0 turns
+off the supply. Otherwise, the supply can be set to any value in the range 1800
+to 3600 millivolts.
 @* Link: @url{http://processors.wiki.ti.com/index.php/XDS110}
 @* Link: @url{http://processors.wiki.ti.com/index.php/XDS_Emulation_Software_Package#XDS110_Support_Utilities}
 @end itemize
@@ -2359,6 +2368,16 @@ the hardware can support.
 Returns the name of the debug adapter driver being used.
 @end deffn
 
+@deffn Command {adapter usb location} <bus>:<port>[.<port>]...
+Specifies the physical USB port of the adapter to use. The path
+roots at @var{bus} and walks down the physical ports, with each
+@var{port} option specifying a deeper level in the bus topology, the last
+@var{port} denoting where the target adapter is actually plugged.
+The USB bus topology can be queried with the command @emph{lsusb -t} or @emph{dmesg}.
+
+This command is only available if your libusb1 is at least version 1.0.16.
+@end deffn
+
 @section Interface Drivers
 
 Each of the interface drivers listed here must be explicitly
@@ -2578,10 +2597,11 @@ For example adapter definitions, see the configuration files shipped in the
 @end deffn
 
 @deffn {Interface Driver} {ft232r}
-This driver is implementing synchronous bitbang mode of an FTDI FT232R
-USB UART bridge IC.
+This driver is implementing synchronous bitbang mode of an FTDI FT232R,
+FT230X, FT231X and similar USB UART bridge ICs by reusing RS232 signals as GPIO.
+It currently doesn't support using CBUS pins as GPIO.
 
-List of connections (pin numbers for SSOP):
+List of connections (default physical pin numbers for FT232R in 28-pin SSOP package):
 @itemize @minus
 @item RXD(5) - TDI
 @item TXD(1) - TCK
@@ -2589,6 +2609,27 @@ List of connections (pin numbers for SSOP):
 @item CTS(11) - TMS
 @item DTR(2) - TRST
 @item DCD(10) - SRST
+@end itemize
+
+User can change default pinout by supplying configuration
+commands with GPIO numbers or RS232 signal names.
+GPIO numbers correspond to bit numbers in FTDI GPIO register.
+They differ from physical pin numbers.
+For details see actual FTDI chip datasheets.
+Every JTAG line must be configured to unique GPIO number
+different than any other JTAG line, even those lines
+that are sometimes not used like TRST or SRST.
+
+FT232R
+@itemize @minus
+@item bit 7 - RI
+@item bit 6 - DCD
+@item bit 5 - DSR
+@item bit 4 - DTR
+@item bit 3 - CTS
+@item bit 2 - RTS
+@item bit 1 - RXD
+@item bit 0 - TXD
 @end itemize
 
 These interfaces have several commands, used to configure the driver
@@ -2603,6 +2644,47 @@ The vendor ID and product ID of the adapter. If not specified, default
 Specifies the @var{serial} of the adapter to use, in case the
 vendor provides unique IDs and more than one adapter is connected to
 the host. If not specified, serial numbers are not considered.
+@end deffn
+
+@deffn {Config Command} {ft232r_jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+Set four JTAG GPIO numbers at once.
+If not specified, default 0 3 1 2 or TXD CTS RXD RTS is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tck_num} @var{tck}
+Set TCK GPIO number. If not specified, default 0 or TXD is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tms_num} @var{tms}
+Set TMS GPIO number. If not specified, default 3 or CTS is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tdi_num} @var{tdi}
+Set TDI GPIO number. If not specified, default 1 or RXD is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_tdo_num} @var{tdo}
+Set TDO GPIO number. If not specified, default 2 or RTS is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_trst_num} @var{trst}
+Set TRST GPIO number. If not specified, default 4 or DTR is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_srst_num} @var{srst}
+Set SRST GPIO number. If not specified, default 6 or DCD is used.
+@end deffn
+
+@deffn {Config Command} {ft232r_restore_serial} @var{word}
+Restore serial port after JTAG. This USB bitmode control word
+(16-bit) will be sent before quit. Lower byte should
+set GPIO direction register to a "sane" state:
+0x15 for TXD RTS DTR as outputs (1), others as inputs (0). Higher
+byte is usually 0 to disable bitbang mode.
+When kernel driver reattaches, serial port should continue to work.
+Value 0xFFFF disables sending control word and serial port,
+then kernel driver will not reattach.
+If not specified, default 0xFFFF is used.
 @end deffn
 
 @end deffn
@@ -2981,7 +3063,7 @@ This is a driver that supports multiple High Level Adapters.
 This type of adapter does not expose some of the lower level api's
 that OpenOCD would normally use to access the target.
 
-Currently supported adapters include the ST ST-LINK and TI ICDI.
+Currently supported adapters include the STMicroelectronics ST-LINK and TI ICDI.
 ST-LINK firmware version >= V2.J21.S4 recommended due to issues with earlier
 versions of firmware where serial number is reset after first use.  Suggest
 using ST firmware update utility to upgrade ST-LINK firmware even if current
@@ -3392,6 +3474,7 @@ How long (in milliseconds) OpenOCD should wait after deasserting
 nTRST (active-low JTAG TAP reset) before starting new JTAG operations.
 @end deffn
 
+@anchor {reset_config}
 @deffn {Command} reset_config mode_flag ...
 This command displays or modifies the reset configuration
 of your combination of JTAG board and target in target
@@ -4026,13 +4109,13 @@ resources; then a @file{board.cfg} with off-chip resources, clocking,
 and so forth.
 
 @anchor{dapdeclaration}
-@section DAP declaration (ARMv7 and ARMv8 targets)
+@section DAP declaration (ARMv6-M, ARMv7 and ARMv8 targets)
 @cindex DAP declaration
 
 Since OpenOCD version 0.11.0, the Debug Access Port (DAP) is
 no longer implicitly created together with the target. It must be
-explicitly declared using the @command{dap create} command. For all
-ARMv7 and ARMv8 targets, the option "@option{-dap} @var{dap_name}" has to be used
+explicitly declared using the @command{dap create} command. For all ARMv6-M, ARMv7
+and ARMv8 targets, the option "@option{-dap} @var{dap_name}" has to be used
 instead of "@option{-chain-position} @var{dotted.name}" when the target is created.
 
 The @command{dap} command group supports the following sub-commands:
@@ -5280,12 +5363,12 @@ since the alternate function must be enabled on the GPIO pin
 CS1/CS2 is routed to on the given SoC.
 
 @example
-flash bank $_FLASHNAME ath79 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME ath79 0xbf000000 0 0 0 $_TARGETNAME
 
 # When using multiple chipselects the base should be different for each,
 # otherwise the write_image command is not able to distinguish the
 # banks.
-flash bank flash0 ath79 0x00000000 0 0 0 $_TARGETNAME cs0
+flash bank flash0 ath79 0xbf000000 0 0 0 $_TARGETNAME cs0
 flash bank flash1 ath79 0x10000000 0 0 0 $_TARGETNAME cs1
 flash bank flash2 ath79 0x20000000 0 0 0 $_TARGETNAME cs2
 @end example
@@ -5367,9 +5450,16 @@ the flash.
 @anchor{at91samd}
 @deffn {Flash Driver} at91samd
 @cindex at91samd
-All members of the ATSAMD, ATSAMR, ATSAML and ATSAMC microcontroller
+All members of the ATSAM D2x, D1x, D0x, ATSAMR, ATSAML and ATSAMC microcontroller
 families from Atmel include internal flash and use ARM's Cortex-M0+ core.
-This driver uses the same command names/syntax as @xref{at91sam3}.
+
+Do not use for ATSAM D51 and E5x: use @xref{atsame5} instead.
+
+The devices have one flash bank:
+
+@example
+flash bank $_FLASHNAME at91samd 0x00000000 0 1 1 $_TARGETNAME
+@end example
 
 @deffn Command {at91samd chip-erase}
 Issues a complete Flash erase via the Device Service Unit (DSU). This can be
@@ -5531,9 +5621,72 @@ Command is used internally in event event reset-deassert-post.
 @end deffn
 @end deffn
 
+@anchor{atsame5}
+@deffn {Flash Driver} atsame5
+@cindex atsame5
+All members of the SAM E54, E53, E51 and D51 microcontroller
+families from Microchip (former Atmel) include internal flash
+and use ARM's Cortex-M4 core.
+
+The devices have two ECC flash banks with a swapping feature.
+This driver handles both banks together as it were one.
+Bank swapping is not supported yet.
+
+@example
+flash bank $_FLASHNAME atsame5 0x00000000 0 1 1 $_TARGETNAME
+@end example
+
+@deffn Command {atsame5 bootloader}
+Shows or sets the bootloader size configuration, stored in the User Page of the
+Flash. This is called the BOOTPROT region. When setting, the bootloader size
+must be specified in bytes. The nearest bigger protection size is used.
+Settings are written immediately but only take effect on MCU reset.
+Setting the bootloader size to 0 disables bootloader protection.
+
+@example
+atsame5 bootloader
+atsame5 bootloader 16384
+@end example
+@end deffn
+
+@deffn Command {atsame5 chip-erase}
+Issues a complete Flash erase via the Device Service Unit (DSU). This can be
+used to erase a chip back to its factory state and does not require the
+processor to be halted.
+@end deffn
+
+@deffn Command {atsame5 dsu_reset_deassert}
+This command releases internal reset held by DSU
+and prepares reset vector catch in case of reset halt.
+Command is used internally in event event reset-deassert-post.
+@end deffn
+
+@deffn Command {atsame5 userpage}
+Writes or reads the first 64 bits of NVM User Page which is located at
+0x804000. This field includes various fuses.
+Reading is done by invoking this command without any arguments.
+Writing is possible by giving 1 or 2 hex values. The first argument
+is the value to be written and the second one is an optional bit mask
+(a zero bit in the mask means the bit stays unchanged).
+The reserved fields are always masked out and cannot be changed.
+
+@example
+# Read
+>atsame5 userpage
+USER PAGE: 0xAEECFF80FE9A9239
+# Write
+>atsame5 userpage 0xAEECFF80FE9A9239
+# Write 2 to SEESBLK and 4 to SEEPSZ fields but leave other bits unchanged
+# (setup SmartEEPROM of virtual size 8192 bytes)
+>atsame5 userpage 0x4200000000 0x7f00000000
+@end example
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} atsamv
 @cindex atsamv
-All members of the ATSAMV, ATSAMS, and ATSAME families from
+All members of the ATSAMV7x, ATSAMS70, and ATSAME70 families from
 Atmel include internal flash and use ARM's Cortex-M7 core.
 This driver uses the same command names/syntax as @xref{at91sam3}.
 @end deffn
@@ -5618,7 +5771,7 @@ Triggering a mass erase is also useful when users want to disable readout protec
 All versions of the SimpleLink CC13xx and CC26xx microcontrollers from Texas
 Instruments include internal flash. The cc26xx flash driver supports both the
 CC13xx and CC26xx family of devices. The driver automatically recognizes the
-specific version's flash parameters and autoconfigures itself. Flash bank 0
+specific version's flash parameters and autoconfigures itself. The flash bank
 starts at address 0.
 
 @example
@@ -5668,16 +5821,17 @@ configuration register interface, @option{clock_hz} is the expected clock
 frequency, and @option{wait_states} is the number of configured read wait states.
 
 @example
-flash bank $_FLASHNAME esirisc base_address size_bytes 0 0 $_TARGETNAME cfg_address clock_hz wait_states
+flash bank $_FLASHNAME esirisc base_address size_bytes 0 0 \
+           $_TARGETNAME cfg_address clock_hz wait_states
 @end example
 
-@deffn Command {esirisc_flash mass_erase} (bank_id)
-Erases all pages in data memory for the bank identified by @option{bank_id}.
+@deffn Command {esirisc flash mass_erase} bank_id
+Erase all pages in data memory for the bank identified by @option{bank_id}.
 @end deffn
 
-@deffn Command {esirisc_flash ref_erase} (bank_id)
-Erases the reference cell for the bank identified by @option{bank_id}. This is
-an uncommon operation.
+@deffn Command {esirisc flash ref_erase} bank_id
+Erase the reference cell for the bank identified by @option{bank_id}. @emph{This
+is an uncommon operation.}
 @end deffn
 @end deffn
 
@@ -5843,8 +5997,8 @@ Command disables watchdog timer.
 @deffn {Flash Driver} lpc2000
 This is the driver to support internal flash of all members of the
 LPC11(x)00 and LPC1300 microcontroller families and most members of
-the LPC800, LPC1500, LPC1700, LPC1800, LPC2000, LPC4000 and LPC54100
-microcontroller families from NXP.
+the LPC800, LPC1500, LPC1700, LPC1800, LPC2000, LPC4000, LPC54100,
+LPC8Nxx and NHS31xx microcontroller families from NXP.
 
 @quotation Note
 There are LPC2000 devices which are not supported by the @var{lpc2000}
@@ -5853,7 +6007,7 @@ The LPC2888 is supported by the @var{lpc288x} driver.
 The LPC29xx family is supported by the @var{lpc2900} driver.
 @end quotation
 
-The @var{lpc2000} driver defines two mandatory and one optional parameters,
+The @var{lpc2000} driver defines two mandatory and two optional parameters,
 which must appear in the following order:
 
 @itemize
@@ -5869,7 +6023,7 @@ LPC43x[2357])
 @option{lpc54100} (LPC541xx)
 @option{lpc4000} (LPC40xx)
 or @option{auto} - automatically detects flash variant and size for LPC11(x)00,
-LPC8xx, LPC13xx, LPC17xx and LPC40xx
+LPC8xx, LPC13xx, LPC17xx, LPC40xx, LPC8Nxx and NHS31xx
 @item @var{clock_kHz} ... the frequency, in kiloHertz,
 at which the core is running
 @item @option{calc_checksum} ... optional (but you probably want to provide this!),
@@ -5880,6 +6034,8 @@ table, the boot ROM will almost certainly ignore your flash image.
 However, if you do provide it,
 with most tool chains @command{verify_image} will fail.
 @end quotation
+@item @option{iap_entry} ... optional telling the driver to use a different
+ROM IAP entry point.
 @end itemize
 
 LPC flashes don't require the chip and bus width to be specified.
@@ -6415,7 +6571,7 @@ applied to all of them.
 
 @deffn {Flash Driver} stm32f1x
 All members of the STM32F0, STM32F1 and STM32F3 microcontroller families
-from ST Microelectronics include internal flash and use ARM Cortex-M0/M3/M4 cores.
+from STMicroelectronics include internal flash and use ARM Cortex-M0/M3/M4 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
@@ -6461,9 +6617,10 @@ or upon executing the @command{stm32f1x options_load} command.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn Command {stm32f1x options_write} num (@option{SWWDG}|@option{HWWDG}) (@option{RSTSTNDBY}|@option{NORSTSTNDBY}) (@option{RSTSTOP}|@option{NORSTSTOP})
+@deffn Command {stm32f1x options_write} num (@option{SWWDG}|@option{HWWDG}) (@option{RSTSTNDBY}|@option{NORSTSTNDBY}) (@option{RSTSTOP}|@option{NORSTSTOP}) (@option{USEROPT} user_data)
 Writes the stm32 option byte with the specified values.
 The @var{num} parameter is a value shown by @command{flash banks}.
+The @var{user_data} parameter is content of higher 16 bits of the option byte register (Data0 and Data1 as one 16bit number).
 @end deffn
 
 @deffn Command {stm32f1x options_load} num
@@ -6475,7 +6632,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn {Flash Driver} stm32f2x
-All members of the STM32F2, STM32F4 and STM32F7 microcontroller families from ST Microelectronics
+All members of the STM32F2, STM32F4 and STM32F7 microcontroller families from STMicroelectronics
 include internal flash and use ARM Cortex-M3/M4/M7 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
@@ -6529,7 +6686,7 @@ The @var{num} parameter is a value shown by @command{flash banks}, @var{optcr2} 
 @end deffn
 
 @deffn {Flash Driver} stm32h7x
-All members of the STM32H7 microcontroller families from ST Microelectronics
+All members of the STM32H7 microcontroller families from STMicroelectronics
 include internal flash and use ARM Cortex-M7 core.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
@@ -6565,7 +6722,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn {Flash Driver} stm32lx
-All members of the STM32L microcontroller families from ST Microelectronics
+All members of the STM32L microcontroller families from STMicroelectronics
 include internal flash and use ARM Cortex-M3 and Cortex-M0+ cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
@@ -6605,7 +6762,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn {Flash Driver} stm32l4x
-All members of the STM32L4 microcontroller families from ST Microelectronics
+All members of the STM32L4 microcontroller families from STMicroelectronics
 include internal flash and use ARM Cortex-M4 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
@@ -6677,7 +6834,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn {Flash Driver} str7x
-All members of the STR7 microcontroller family from ST Microelectronics
+All members of the STR7 microcontroller family from STMicroelectronics
 include internal flash and use ARM7TDMI cores.
 The @var{str7x} driver defines one mandatory parameter, @var{variant},
 which is either @code{STR71x}, @code{STR73x} or @code{STR75x}.
@@ -6694,7 +6851,7 @@ for the specified flash bank.
 @end deffn
 
 @deffn {Flash Driver} str9x
-Most members of the STR9 microcontroller family from ST Microelectronics
+Most members of the STR9 microcontroller family from STMicroelectronics
 include internal flash and use ARM966E cores.
 The str9 needs the flash controller to be configured using
 the @command{str9x flash_config} command prior to Flash programming.
@@ -6832,6 +6989,17 @@ Reports the clock speed, which is used to calculate timings.
 Disables (@var{1}) or enables (@var{0}) use of the PLL to speed up
 the flash clock.
 @end deffn
+@end deffn
+
+@deffn {Flash Driver} w600
+W60x series Wi-Fi SoC from WinnerMicro
+are designed with ARM Cortex-M3 and have 1M Byte QFLASH inside.
+The @var{w600} driver uses the @var{target} parameter to select the
+correct bank config.
+
+@example
+flash bank $_FLASHNAME w600 0x08000000 0 0 0 $_TARGETNAMEs
+@end example
 @end deffn
 
 @deffn {Flash Driver} xmc1xxx
@@ -8938,19 +9106,23 @@ must also be explicitly enabled.
 This finishes by listing the current vector catch configuration.
 @end deffn
 
-@deffn Command {cortex_m reset_config} (@option{srst}|@option{sysresetreq}|@option{vectreset})
-Control reset handling. The default @option{srst} is to use srst if fitted,
-otherwise fallback to @option{vectreset}.
+@deffn Command {cortex_m reset_config} (@option{sysresetreq}|@option{vectreset})
+Control reset handling if hardware srst is not fitted
+@xref{reset_config,,reset_config}.
+
 @itemize @minus
-@item @option{srst} use hardware srst if fitted otherwise fallback to @option{vectreset}.
-@item @option{sysresetreq} use NVIC SYSRESETREQ to reset system.
-@item @option{vectreset} use NVIC VECTRESET to reset system.
+@item @option{sysresetreq} use AIRCR SYSRESETREQ to reset system.
+@item @option{vectreset} use AIRCR VECTRESET to reset system (default).
 @end itemize
-Using @option{vectreset} is a safe option for all current Cortex-M cores.
+
+Using @option{vectreset} is a safe option for Cortex-M3, M4 and M7 cores.
 This however has the disadvantage of only resetting the core, all peripherals
-are unaffected. A solution would be to use a @code{reset-init} event handler to manually reset
-the peripherals.
+are unaffected. A solution would be to use a @code{reset-init} event handler
+to manually reset the peripherals.
 @xref{targetevents,,Target Events}.
+
+Cortex-M0, M0+ and M1 do not support @option{vectreset}, use @option{sysresetreq}
+instead.
 @end deffn
 
 @subsection ARMv8-A specific commands
@@ -8986,15 +9158,11 @@ Selects whether interrupts will be processed when single stepping. The default c
 eSi-RISC is a highly configurable microprocessor architecture for embedded systems
 provided by EnSilica. (See: @url{http://www.ensilica.com/risc-ip/}.)
 
-@subsection esirisc specific commands
+@subsection eSi-RISC Configuration
+
 @deffn Command {esirisc cache_arch} (@option{harvard}|@option{von_neumann})
 Configure the caching architecture. Targets with the @code{UNIFIED_ADDRESS_SPACE}
 option disabled employ a Harvard architecture. By default, @option{von_neumann} is assumed.
-@end deffn
-
-@deffn Command {esirisc flush_caches}
-Flush instruction and data caches. This command requires that the target is halted
-when the command is issued and configured with an instruction or data cache.
 @end deffn
 
 @deffn Command {esirisc hwdc} (@option{all}|@option{none}|mask ...)
@@ -9002,6 +9170,164 @@ Configure hardware debug control. The HWDC register controls which exceptions re
 control back to the debugger. Possible masks are @option{all}, @option{none},
 @option{reset}, @option{interrupt}, @option{syscall}, @option{error}, and @option{debug}.
 By default, @option{reset}, @option{error}, and @option{debug} are enabled.
+@end deffn
+
+@subsection eSi-RISC Operation
+
+@deffn Command {esirisc flush_caches}
+Flush instruction and data caches. This command requires that the target is halted
+when the command is issued and configured with an instruction or data cache.
+@end deffn
+
+@subsection eSi-Trace Configuration
+
+eSi-RISC targets may be configured with support for instruction tracing. Trace
+data may be written to an in-memory buffer or FIFO. If a FIFO is configured, DMA
+is typically employed to move trace data off-device using a high-speed
+peripheral (eg. SPI). Collected trace data is encoded in one of three different
+formats. At a minimum, @command{esirisc trace buffer} or @command{esirisc trace
+fifo} must be issued along with @command{esirisc trace format} before trace data
+can be collected.
+
+OpenOCD provides rudimentary analysis of collected trace data. If more detail is
+needed, collected trace data can be dumped to a file and processed by external
+tooling.
+
+@quotation Issues
+OpenOCD is unable to process trace data sent to a FIFO. A potential workaround
+for this issue is to configure DMA to copy trace data to an in-memory buffer,
+which can then be passed to the @command{esirisc trace analyze} and
+@command{esirisc trace dump} commands.
+
+It is possible to corrupt trace data when using a FIFO if the peripheral
+responsible for draining data from the FIFO is not fast enough. This can be
+managed by enabling flow control, however this can impact timing-sensitive
+software operation on the CPU.
+@end quotation
+
+@deffn Command {esirisc trace buffer} address size [@option{wrap}]
+Configure trace buffer using the provided address and size. If the @option{wrap}
+option is specified, trace collection will continue once the end of the buffer
+is reached. By default, wrap is disabled.
+@end deffn
+
+@deffn Command {esirisc trace fifo} address
+Configure trace FIFO using the provided address.
+@end deffn
+
+@deffn Command {esirisc trace flow_control} (@option{enable}|@option{disable})
+Enable or disable stalling the CPU to collect trace data. By default, flow
+control is disabled.
+@end deffn
+
+@deffn Command {esirisc trace format} (@option{full}|@option{branch}|@option{icache}) pc_bits
+Configure trace format and number of PC bits to be captured. @option{pc_bits}
+must be within 1 and 31 as the LSB is not collected. If external tooling is used
+to analyze collected trace data, these values must match.
+
+Supported trace formats:
+@itemize
+@item @option{full} capture full trace data, allowing execution history and
+timing to be determined.
+@item @option{branch} capture taken branch instructions and branch target
+addresses.
+@item @option{icache} capture instruction cache misses.
+@end itemize
+@end deffn
+
+@deffn Command {esirisc trace trigger start} (@option{condition}) [start_data start_mask]
+Configure trigger start condition using the provided start data and mask. A
+brief description of each condition is provided below; for more detail on how
+these values are used, see the eSi-RISC Architecture Manual.
+
+Supported conditions:
+@itemize
+@item @option{none} manual tracing (see @command{esirisc trace start}).
+@item @option{pc} start tracing if the PC matches start data and mask.
+@item @option{load} start tracing if the effective address of a load
+instruction matches start data and mask.
+@item @option{store} start tracing if the effective address of a store
+instruction matches start data and mask.
+@item @option{exception} start tracing if the EID of an exception matches start
+data and mask.
+@item @option{eret} start tracing when an @code{ERET} instruction is executed.
+@item @option{wait} start tracing when a @code{WAIT} instruction is executed.
+@item @option{stop} start tracing when a @code{STOP} instruction is executed.
+@item @option{high} start tracing when an external signal is a logical high.
+@item @option{low} start tracing when an external signal is a logical low.
+@end itemize
+@end deffn
+
+@deffn Command {esirisc trace trigger stop} (@option{condition}) [stop_data stop_mask]
+Configure trigger stop condition using the provided stop data and mask. A brief
+description of each condition is provided below; for more detail on how these
+values are used, see the eSi-RISC Architecture Manual.
+
+Supported conditions:
+@itemize
+@item @option{none} manual tracing (see @command{esirisc trace stop}).
+@item @option{pc} stop tracing if the PC matches stop data and mask.
+@item @option{load} stop tracing if the effective address of a load
+instruction matches stop data and mask.
+@item @option{store} stop tracing if the effective address of a store
+instruction matches stop data and mask.
+@item @option{exception} stop tracing if the EID of an exception matches stop
+data and mask.
+@item @option{eret} stop tracing when an @code{ERET} instruction is executed.
+@item @option{wait} stop tracing when a @code{WAIT} instruction is executed.
+@item @option{stop} stop tracing when a @code{STOP} instruction is executed.
+@end itemize
+@end deffn
+
+@deffn Command {esirisc trace trigger delay} (@option{trigger}) [cycles]
+Configure trigger start/stop delay in clock cycles.
+
+Supported triggers:
+@itemize
+@item @option{none} no delay to start or stop collection.
+@item @option{start} delay @option{cycles} after trigger to start collection.
+@item @option{stop} delay @option{cycles} after trigger to stop collection.
+@item @option{both} delay @option{cycles} after both triggers to start or stop
+collection.
+@end itemize
+@end deffn
+
+@subsection eSi-Trace Operation
+
+@deffn Command {esirisc trace init}
+Initialize trace collection. This command must be called any time the
+configuration changes. If an trace buffer has been configured, the contents will
+be overwritten when trace collection starts.
+@end deffn
+
+@deffn Command {esirisc trace info}
+Display trace configuration.
+@end deffn
+
+@deffn Command {esirisc trace status}
+Display trace collection status.
+@end deffn
+
+@deffn Command {esirisc trace start}
+Start manual trace collection.
+@end deffn
+
+@deffn Command {esirisc trace stop}
+Stop manual trace collection.
+@end deffn
+
+@deffn Command {esirisc trace analyze} [address size]
+Analyze collected trace data. This command may only be used if a trace buffer
+has been configured. If a trace FIFO has been configured, trace data must be
+copied to an in-memory buffer identified by the @option{address} and
+@option{size} options using DMA.
+@end deffn
+
+@deffn Command {esirisc trace dump} [address size] @file{filename}
+Dump collected trace data to file. This command may only be used if a trace
+buffer has been configured. If a trace FIFO has been configured, trace data must
+be copied to an in-memory buffer identified by the @option{address} and
+@option{size} options using DMA.
 @end deffn
 
 @section Intel Architecture

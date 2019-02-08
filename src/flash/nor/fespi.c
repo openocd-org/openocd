@@ -391,6 +391,9 @@ static int fespi_erase(struct flash_bank *bank, int first, int last)
 		}
 	}
 
+	if (fespi_info->dev->erase_cmd == 0x00)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+
 	if (fespi_write_reg(bank, FESPI_REG_TXCTRL, FESPI_TXWM(1)) != ERROR_OK)
 		return ERROR_FAIL;
 	retval = fespi_txwm_wait(bank);
@@ -795,7 +798,9 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		data_wa_size /= 2;
 	}
 
-	page_size = fespi_info->dev->pagesize;
+	/* If no valid page_size, use reasonable default. */
+	page_size = fespi_info->dev->pagesize ?
+		fespi_info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
 
 	fespi_txwm_wait(bank);
 
@@ -911,6 +916,7 @@ static int fespi_probe(struct flash_bank *bank)
 	uint32_t id = 0; /* silence uninitialized warning */
 	const struct fespi_target *target_device;
 	int retval;
+	uint32_t sectorsize;
 
 	if (fespi_info->probed)
 		free(bank->sectors);
@@ -972,9 +978,17 @@ static int fespi_probe(struct flash_bank *bank)
 	/* Set correct size value */
 	bank->size = fespi_info->dev->size_in_bytes;
 
+	if (bank->size <= (1UL << 16))
+		LOG_WARNING("device needs 2-byte addresses - not implemented");
+	if (bank->size > (1UL << 24))
+		LOG_WARNING("device needs paging or 4-byte addresses - not implemented");
+
+	/* if no sectors, treat whole bank as single sector */
+	sectorsize = fespi_info->dev->sectorsize ?
+		fespi_info->dev->sectorsize : fespi_info->dev->size_in_bytes;
+
 	/* create and fill sectors array */
-	bank->num_sectors =
-		fespi_info->dev->size_in_bytes / fespi_info->dev->sectorsize;
+	bank->num_sectors = fespi_info->dev->size_in_bytes / sectorsize;
 	sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	if (sectors == NULL) {
 		LOG_ERROR("not enough memory");
@@ -982,8 +996,8 @@ static int fespi_probe(struct flash_bank *bank)
 	}
 
 	for (int sector = 0; sector < bank->num_sectors; sector++) {
-		sectors[sector].offset = sector * fespi_info->dev->sectorsize;
-		sectors[sector].size = fespi_info->dev->sectorsize;
+		sectors[sector].offset = sector * sectorsize;
+		sectors[sector].size = sectorsize;
 		sectors[sector].is_erased = -1;
 		sectors[sector].is_protected = 0;
 	}

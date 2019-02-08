@@ -104,9 +104,12 @@ struct esirisc_flash_bank {
 	uint32_t wait_states;
 };
 
+static const struct command_registration esirisc_flash_command_handlers[];
+
 FLASH_BANK_COMMAND_HANDLER(esirisc_flash_bank_command)
 {
 	struct esirisc_flash_bank *esirisc_info;
+	struct command *esirisc_cmd;
 
 	if (CMD_ARGC < 9)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -118,6 +121,10 @@ FLASH_BANK_COMMAND_HANDLER(esirisc_flash_bank_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[8], esirisc_info->wait_states);
 
 	bank->driver_priv = esirisc_info;
+
+	/* register commands using existing esirisc context */
+	esirisc_cmd = command_find_in_context(CMD_CTX, "esirisc");
+	register_commands(CMD_CTX, esirisc_cmd, esirisc_flash_command_handlers);
 
 	return ERROR_OK;
 }
@@ -149,7 +156,7 @@ static int esirisc_flash_disable_protect(struct flash_bank *bank)
 	if (!(control & CONTROL_WP))
 		return ERROR_OK;
 
-	esirisc_flash_unlock(bank);
+	(void)esirisc_flash_unlock(bank);
 
 	control &= ~CONTROL_WP;
 
@@ -168,7 +175,7 @@ static int esirisc_flash_enable_protect(struct flash_bank *bank)
 	if (control & CONTROL_WP)
 		return ERROR_OK;
 
-	esirisc_flash_unlock(bank);
+	(void)esirisc_flash_unlock(bank);
 
 	control |= CONTROL_WP;
 
@@ -254,7 +261,7 @@ static int esirisc_flash_erase(struct flash_bank *bank, int first, int last)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	for (int page = first; page < last; ++page) {
 		uint32_t address = page * PAGE_SIZE;
@@ -268,7 +275,7 @@ static int esirisc_flash_erase(struct flash_bank *bank, int first, int last)
 		}
 	}
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -282,7 +289,7 @@ static int esirisc_flash_mass_erase(struct flash_bank *bank)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	target_write_u32(target, esirisc_info->cfg + ADDRESS, 0);
 
@@ -290,7 +297,7 @@ static int esirisc_flash_mass_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		LOG_ERROR("%s: failed to mass erase", bank->name);
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -308,30 +315,15 @@ static int esirisc_flash_ref_erase(struct flash_bank *bank)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	retval = esirisc_flash_control(bank, CONTROL_ERC);
 	if (retval != ERROR_OK)
 		LOG_ERROR("%s: failed to erase reference cell", bank->name);
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
-}
-
-static int esirisc_flash_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	struct target *target = bank->target;
-
-	if (target->state != TARGET_HALTED)
-		return ERROR_TARGET_NOT_HALTED;
-
-	if (set)
-		esirisc_flash_enable_protect(bank);
-	else
-		esirisc_flash_disable_protect(bank);
-
-	return ERROR_OK;
 }
 
 static int esirisc_flash_fill_pb(struct flash_bank *bank,
@@ -375,7 +367,7 @@ static int esirisc_flash_write(struct flash_bank *bank,
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	/*
 	 * The address register is auto-incremented based on the contents of
@@ -406,7 +398,7 @@ static int esirisc_flash_write(struct flash_bank *bank,
 		count -= num_bytes;
 	}
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -432,11 +424,11 @@ static int esirisc_flash_init(struct flash_bank *bank)
 	uint32_t value;
 	int retval;
 
-	esirisc_flash_disable_protect(bank);
+	(void)esirisc_flash_disable_protect(bank);
 
 	/* initialize timing registers */
-	value = TIMING0_F(esirisc_flash_num_cycles(bank, TNVH)) |
-			TIMING0_R(esirisc_info->wait_states);
+	value = TIMING0_F(esirisc_flash_num_cycles(bank, TNVH))
+			| TIMING0_R(esirisc_info->wait_states);
 
 	LOG_DEBUG("TIMING0: 0x%" PRIx32, value);
 	target_write_u32(target, esirisc_info->cfg + TIMING0, value);
@@ -446,9 +438,9 @@ static int esirisc_flash_init(struct flash_bank *bank)
 	LOG_DEBUG("TIMING1: 0x%" PRIx32, value);
 	target_write_u32(target, esirisc_info->cfg + TIMING1, value);
 
-	value = TIMING2_T(esirisc_flash_num_cycles(bank, 10))   |
-			TIMING2_H(esirisc_flash_num_cycles(bank, 100))  |
-			TIMING2_P(esirisc_flash_num_cycles(bank, TPROG));
+	value = TIMING2_T(esirisc_flash_num_cycles(bank, 10))
+			| TIMING2_H(esirisc_flash_num_cycles(bank, 100))
+			| TIMING2_P(esirisc_flash_num_cycles(bank, TPROG));
 
 	LOG_DEBUG("TIMING2: 0x%" PRIx32, value);
 	target_write_u32(target, esirisc_info->cfg + TIMING2, value);
@@ -458,7 +450,7 @@ static int esirisc_flash_init(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		LOG_ERROR("%s: failed to recall trim code", bank->name);
 
-	esirisc_flash_enable_protect(bank);
+	(void)esirisc_flash_enable_protect(bank);
 
 	return retval;
 }
@@ -474,13 +466,6 @@ static int esirisc_flash_probe(struct flash_bank *bank)
 
 	bank->num_sectors = bank->size / PAGE_SIZE;
 	bank->sectors = alloc_block_array(0, PAGE_SIZE, bank->num_sectors);
-
-	/*
-	 * Register write protection is enforced using a single protection
-	 * block for the entire bank. This is as good as it gets.
-	 */
-	bank->num_prot_blocks = 1;
-	bank->prot_blocks = alloc_block_array(0, bank->size, bank->num_prot_blocks);
 
 	retval = esirisc_flash_init(bank);
 	if (retval != ERROR_OK) {
@@ -501,23 +486,6 @@ static int esirisc_flash_auto_probe(struct flash_bank *bank)
 		return ERROR_OK;
 
 	return esirisc_flash_probe(bank);
-}
-
-static int esirisc_flash_protect_check(struct flash_bank *bank)
-{
-	struct esirisc_flash_bank *esirisc_info = bank->driver_priv;
-	struct target *target = bank->target;
-	uint32_t control;
-
-	if (target->state != TARGET_HALTED)
-		return ERROR_TARGET_NOT_HALTED;
-
-	target_read_u32(target, esirisc_info->cfg + CONTROL, &control);
-
-	/* single protection block (also see: esirisc_flash_probe()) */
-	bank->prot_blocks[0].is_protected = !!(control & CONTROL_WP);
-
-	return ERROR_OK;
 }
 
 static int esirisc_flash_info(struct flash_bank *bank, char *buf, int buf_size)
@@ -579,14 +547,14 @@ static const struct command_registration esirisc_flash_exec_command_handlers[] =
 		.name = "mass_erase",
 		.handler = handle_esirisc_flash_mass_erase_command,
 		.mode = COMMAND_EXEC,
-		.help = "erases all pages in data memory",
+		.help = "erase all pages in data memory",
 		.usage = "bank_id",
 	},
 	{
 		.name = "ref_erase",
 		.handler = handle_esirisc_flash_ref_erase_command,
 		.mode = COMMAND_EXEC,
-		.help = "erases reference cell (uncommon)",
+		.help = "erase reference cell (uncommon)",
 		.usage = "bank_id",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -594,9 +562,9 @@ static const struct command_registration esirisc_flash_exec_command_handlers[] =
 
 static const struct command_registration esirisc_flash_command_handlers[] = {
 	{
-		.name = "esirisc_flash",
-		.mode = COMMAND_ANY,
-		.help = "eSi-RISC flash command group",
+		.name = "flash",
+		.mode = COMMAND_EXEC,
+		.help = "eSi-TSMC Flash command group",
 		.usage = "",
 		.chain = esirisc_flash_exec_command_handlers,
 	},
@@ -605,17 +573,15 @@ static const struct command_registration esirisc_flash_command_handlers[] = {
 
 struct flash_driver esirisc_flash = {
 	.name = "esirisc",
-	.commands = esirisc_flash_command_handlers,
 	.usage = "flash bank bank_id 'esirisc' base_address size_bytes 0 0 target "
 			"cfg_address clock_hz wait_states",
 	.flash_bank_command = esirisc_flash_bank_command,
 	.erase = esirisc_flash_erase,
-	.protect = esirisc_flash_protect,
 	.write = esirisc_flash_write,
 	.read = default_flash_read,
 	.probe = esirisc_flash_probe,
 	.auto_probe = esirisc_flash_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = esirisc_flash_protect_check,
 	.info = esirisc_flash_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };

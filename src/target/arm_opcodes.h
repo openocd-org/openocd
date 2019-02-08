@@ -213,7 +213,7 @@
 /* Breakpoint instruction (ARMv5)
  * Im: 16-bit immediate
  */
-#define ARMV5_BKPT(Im) (0xe1200070 | ((Im & 0xfff0) << 8) | (Im & 0xf))
+#define ARMV5_BKPT(Im) (0xe1200070 | ((Im & 0xfff0) << 4) | (Im & 0xf))
 
 
 /* Thumb mode instructions

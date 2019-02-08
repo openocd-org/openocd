@@ -1355,6 +1355,7 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 COMMAND_HANDLER(stellaris_handle_recover_command)
 {
 	struct flash_bank *bank;
+	struct arm *arm;
 	int retval;
 
 	if (CMD_ARGC != 0)
@@ -1383,12 +1384,13 @@ COMMAND_HANDLER(stellaris_handle_recover_command)
 	}
 	adapter_assert_reset();
 
+	arm = target_to_arm(bank->target);
 	for (int i = 0; i < 5; i++) {
-		retval = dap_to_swd(bank->target);
+		retval = dap_to_swd(arm->dap);
 		if (retval != ERROR_OK)
 			goto done;
 
-		retval = dap_to_jtag(bank->target);
+		retval = dap_to_jtag(arm->dap);
 		if (retval != ERROR_OK)
 			goto done;
 	}

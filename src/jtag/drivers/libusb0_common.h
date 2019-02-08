@@ -38,6 +38,7 @@
 #define LIBUSB_RECIPIENT_DEVICE			USB_RECIP_DEVICE
 #define LIBUSB_ENDPOINT_OUT				USB_ENDPOINT_OUT
 #define LIBUSB_ENDPOINT_IN				USB_ENDPOINT_IN
+#define LIBUSB_TRANSFER_TYPE_BULK		USB_ENDPOINT_TYPE_BULK
 
 static inline int jtag_libusb_claim_interface(jtag_libusb_device_handle *devh,
 				       int iface)

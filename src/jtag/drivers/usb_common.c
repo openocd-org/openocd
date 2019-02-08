@@ -19,6 +19,7 @@
 #include "config.h"
 #endif
 #include "usb_common.h"
+#include "log.h"
 
 
 static bool jtag_usb_match(struct usb_device *dev,
@@ -45,10 +46,12 @@ int jtag_usb_open(const uint16_t vids[], const uint16_t pids[],
 				continue;
 
 			*out = usb_open(dev);
-			if (NULL == *out)
-				return -errno;
-			return 0;
+			if (NULL == *out) {
+				LOG_ERROR("usb_open() failed with %s", usb_strerror());
+				return ERROR_FAIL;
+			}
+			return ERROR_OK;
 		}
 	}
-	return -ENODEV;
+	return ERROR_FAIL;
 }

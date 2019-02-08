@@ -379,7 +379,8 @@ int armv7m_start_algorithm(struct target *target,
 	}
 
 	for (int i = 0; i < num_mem_params; i++) {
-		/* TODO: Write only out params */
+		if (mem_params[i].direction == PARAM_IN)
+			continue;
 		retval = target_write_buffer(target, mem_params[i].address,
 				mem_params[i].size,
 				mem_params[i].value);
@@ -388,6 +389,9 @@ int armv7m_start_algorithm(struct target *target,
 	}
 
 	for (int i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].direction == PARAM_IN)
+			continue;
+
 		struct reg *reg =
 			register_get_by_name(armv7m->arm.core_cache, reg_params[i].reg_name, 0);
 /*		uint32_t regvalue; */
@@ -405,6 +409,23 @@ int armv7m_start_algorithm(struct target *target,
 
 /*		regvalue = buf_get_u32(reg_params[i].value, 0, 32); */
 		armv7m_set_core_reg(reg, reg_params[i].value);
+	}
+
+	{
+		/*
+		 * Ensure xPSR.T is set to avoid trying to run things in arm
+		 * (non-thumb) mode, which armv7m does not support.
+		 *
+		 * We do this by setting the entirety of xPSR, which should
+		 * remove all the unknowns about xPSR state.
+		 *
+		 * Because xPSR.T is populated on reset from the vector table,
+		 * it might be 0 if the vector table has "bad" data in it.
+		 */
+		struct reg *reg = &armv7m->arm.core_cache->reg_list[ARMV7M_xPSR];
+		buf_set_u32(reg->value, 0, 32, 0x01000000);
+		reg->valid = 1;
+		reg->dirty = 1;
 	}
 
 	if (armv7m_algorithm_info->core_mode != ARM_MODE_ANY &&

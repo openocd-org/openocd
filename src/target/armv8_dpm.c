@@ -573,6 +573,7 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 	case ARM_MODE_ABT:
 	case ARM_MODE_IRQ:
 	case ARM_MODE_FIQ:
+	case ARM_MODE_SYS:
 		target_el = 1;
 		break;
 	/*
@@ -788,6 +789,10 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 		arm_reg = r->arch_info;
 		if (arm_reg->mode != ARM_MODE_ANY &&
 				dpm->last_el != armv8_curel_from_core_mode(arm_reg->mode))
+			continue;
+
+		/* Special case: ARM_MODE_SYS has no SPSR at EL1 */
+		if (r->number == ARMV8_SPSR_EL1 && arm->core_mode == ARM_MODE_SYS)
 			continue;
 
 		retval = dpmv8_read_reg(dpm, r, i);

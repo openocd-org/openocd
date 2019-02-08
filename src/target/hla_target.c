@@ -366,12 +366,14 @@ static int adapter_target_create(struct target *target,
 {
 	LOG_DEBUG("%s", __func__);
 	struct adiv5_private_config *pc = target->private_config;
-	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
-	if (!cortex_m)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	if (pc != NULL && pc->ap_num > 0) {
 		LOG_ERROR("hla_target: invalid parameter -ap-num (> 0)");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
+	if (cortex_m == NULL) {
+		LOG_ERROR("No memory creating target");
 		return ERROR_FAIL;
 	}
 
@@ -468,6 +470,9 @@ static int adapter_poll(struct target *target)
 	}
 
 	if (prev_target_state == state)
+		return ERROR_OK;
+
+	if (prev_target_state == TARGET_DEBUG_RUNNING && state == TARGET_RUNNING)
 		return ERROR_OK;
 
 	target->state = state;
@@ -820,6 +825,7 @@ struct target_type hla_target = {
 	.resume = adapter_resume,
 	.step = adapter_step,
 
+	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
 	.read_memory = adapter_read_memory,

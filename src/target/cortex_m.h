@@ -184,6 +184,7 @@ struct cortex_m_common {
 	struct reg_cache *dwt_cache;
 
 	enum cortex_m_soft_reset_config soft_reset_config;
+	bool vectreset_supported;
 
 	enum cortex_m_isrmasking_mode isrmasking_mode;
 

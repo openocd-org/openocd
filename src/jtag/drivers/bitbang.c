@@ -30,9 +30,6 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 
-/* YUK! - but this is currently a global.... */
-extern struct jtag_interface *jtag_interface;
-
 /**
  * Function bitbang_stableclocks
  * issues a number of clock cycles while staying in a stable state.

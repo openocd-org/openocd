@@ -20,6 +20,7 @@
 #ifndef OPENOCD_TARGET_ESIRISC_JTAG_H
 #define OPENOCD_TARGET_ESIRISC_JTAG_H
 
+#include <helper/types.h>
 #include <jtag/jtag.h>
 
 /* TAP Instructions */

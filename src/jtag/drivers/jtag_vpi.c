@@ -29,6 +29,10 @@
 #include <arpa/inet.h>
 #endif
 
+#ifndef _WIN32
+#include <netinet/tcp.h>
+#endif
+
 #define NO_TAP_SHIFT	0
 #define TAP_SHIFT	1
 
@@ -368,6 +372,8 @@ static int jtag_vpi_execute_queue(void)
 
 static int jtag_vpi_init(void)
 {
+	int flag = 1;
+
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
 		LOG_ERROR("Could not create socket");
@@ -393,6 +399,13 @@ static int jtag_vpi_init(void)
 		close(sockfd);
 		LOG_ERROR("Can't connect to %s : %u", server_address, server_port);
 		return ERROR_COMMAND_CLOSE_CONNECTION;
+	}
+
+	if (serv_addr.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+		/* This increases performance drematically for local
+		 * connections, which is the most likely arrangement
+		 * for a VPI connection. */
+		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
 	}
 
 	LOG_INFO("Connection to %s : %u succeed", server_address, server_port);

@@ -72,8 +72,8 @@ static const char *dap_reg_name(int instr, int reg_addr)
 		case DP_RDBUFF:
 			reg_name =  "RDBUFF";
 			break;
-		case DP_WCR:
-			reg_name =  "WCR";
+		case DP_DLCR:
+			reg_name =  "DLCR";
 			break;
 		default:
 			reg_name = "UNK";
@@ -726,52 +726,3 @@ const struct dap_ops jtag_dp_ops = {
 	.run                 = jtag_dp_run,
 	.sync                = jtag_dp_sync,
 };
-
-
-static const uint8_t swd2jtag_bitseq[] = {
-	/* More than 50 TCK/SWCLK cycles with TMS/SWDIO high,
-	 * putting both JTAG and SWD logic into reset state.
-	 */
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	/* Switching equence disables SWD and enables JTAG
-	 * NOTE: bits in the DP's IDCODE can expose the need for
-	 * the old/deprecated sequence (0xae 0xde).
-	 */
-	0x3c, 0xe7,
-	/* At least 50 TCK/SWCLK cycles with TMS/SWDIO high,
-	 * putting both JTAG and SWD logic into reset state.
-	 * NOTE:  some docs say "at least 5".
-	 */
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-};
-
-/** Put the debug link into JTAG mode, if the target supports it.
- * The link's initial mode may be either SWD or JTAG.
- *
- * @param target Enters JTAG mode (if possible).
- *
- * Note that targets implemented with SW-DP do not support JTAG, and
- * that some targets which could otherwise support it may have been
- * configured to disable JTAG signaling
- *
- * @return ERROR_OK or else a fault code.
- */
-int dap_to_jtag(struct target *target)
-{
-	int retval;
-
-	LOG_DEBUG("Enter JTAG mode");
-
-	/* REVISIT it's nasty to need to make calls to a "jtag"
-	 * subsystem if the link isn't in JTAG mode...
-	 */
-
-	retval = jtag_add_tms_seq(8 * sizeof(swd2jtag_bitseq),
-			swd2jtag_bitseq, TAP_RESET);
-	if (retval == ERROR_OK)
-		retval = jtag_execute_queue();
-
-	/* REVISIT set up the DAP's ops vector for JTAG mode. */
-
-	return retval;
-}

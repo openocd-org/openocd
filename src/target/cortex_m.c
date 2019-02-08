@@ -510,7 +510,10 @@ static int cortex_m_poll(struct target *target)
 	}
 
 	if (cortex_m->dcb_dhcsr & S_RESET_ST) {
-		target->state = TARGET_RESET;
+		if (target->state != TARGET_RESET) {
+			target->state = TARGET_RESET;
+			LOG_INFO("%s: external reset detected", target_name(target));
+		}
 		return ERROR_OK;
 	}
 
@@ -562,6 +565,17 @@ static int cortex_m_poll(struct target *target)
 			target->state = TARGET_RUNNING;
 			retval = ERROR_OK;
 		}
+	}
+
+	/* Check that target is truly halted, since the target could be resumed externally */
+	if ((prev_target_state == TARGET_HALTED) && !(cortex_m->dcb_dhcsr & S_HALT)) {
+		/* registers are now invalid */
+		register_cache_invalidate(armv7m->arm.core_cache);
+
+		target->state = TARGET_RUNNING;
+		LOG_WARNING("%s: external resume detected", target_name(target));
+		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+		retval = ERROR_OK;
 	}
 
 	/* Did we detect a failure condition that we cleared? */
@@ -863,10 +877,17 @@ static int cortex_m_step(struct target *target, int current,
 			else {
 
 				/* Set a temporary break point */
-				if (breakpoint)
+				if (breakpoint) {
 					retval = cortex_m_set_breakpoint(target, breakpoint);
-				else
-					retval = breakpoint_add(target, pc_value, 2, BKPT_HARD);
+				} else {
+					enum breakpoint_type type = BKPT_HARD;
+					if (cortex_m->fp_rev == 0 && pc_value > 0x1FFFFFFF) {
+						/* FPB rev.1 cannot handle such addr, try BKPT instr */
+						type = BKPT_SOFT;
+					}
+					retval = breakpoint_add(target, pc_value, 2, type);
+				}
+
 				bool tmp_bp_set = (retval == ERROR_OK);
 
 				/* No more breakpoints left, just do a step */
@@ -1041,10 +1062,18 @@ static int cortex_m_assert_reset(struct target *target)
 		retval = ERROR_OK;
 	} else {
 		/* Use a standard Cortex-M3 software reset mechanism.
-		 * We default to using VECRESET as it is supported on all current cores.
+		 * We default to using VECRESET as it is supported on all current cores
+		 * (except Cortex-M0, M0+ and M1 which support SYSRESETREQ only!)
 		 * This has the disadvantage of not resetting the peripherals, so a
 		 * reset-init event handler is needed to perform any peripheral resets.
 		 */
+		if (!cortex_m->vectreset_supported
+				&& reset_config == CORTEX_M_RESET_VECTRESET) {
+			reset_config = CORTEX_M_RESET_SYSRESETREQ;
+			LOG_WARNING("VECTRESET is not supported on this Cortex-M core, using SYSRESETREQ instead.");
+			LOG_WARNING("Set 'cortex_m reset_config sysresetreq'.");
+		}
+
 		LOG_DEBUG("Using Cortex-M %s", (reset_config == CORTEX_M_RESET_SYSRESETREQ)
 			? "SYSRESETREQ" : "VECTRESET");
 
@@ -2027,6 +2056,9 @@ int cortex_m_examine(struct target *target)
 		}
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
+		/* VECTRESET is not supported on Cortex-M0, M0+ and M1 */
+		cortex_m->vectreset_supported = i > 1;
+
 		if (i == 4) {
 			target_read_u32(target, MVFR0, &mvfr0);
 			target_read_u32(target, MVFR1, &mvfr1);
@@ -2244,14 +2276,19 @@ static int cortex_m_init_arch_info(struct target *target,
 
 static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
-	cortex_m->common_magic = CORTEX_M_COMMON_MAGIC;
 	struct adiv5_private_config *pc;
 
 	pc = (struct adiv5_private_config *)target->private_config;
 	if (adiv5_verify_config(pc) != ERROR_OK)
 		return ERROR_FAIL;
 
+	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
+	if (cortex_m == NULL) {
+		LOG_ERROR("No memory creating target");
+		return ERROR_FAIL;
+	}
+
+	cortex_m->common_magic = CORTEX_M_COMMON_MAGIC;
 	cortex_m->apsel = pc->ap_num;
 
 	cortex_m_init_arch_info(target, cortex_m, pc->dap);
@@ -2418,8 +2455,16 @@ COMMAND_HANDLER(handle_cortex_m_reset_config_command)
 	if (CMD_ARGC > 0) {
 		if (strcmp(*CMD_ARGV, "sysresetreq") == 0)
 			cortex_m->soft_reset_config = CORTEX_M_RESET_SYSRESETREQ;
-		else if (strcmp(*CMD_ARGV, "vectreset") == 0)
-			cortex_m->soft_reset_config = CORTEX_M_RESET_VECTRESET;
+
+		else if (strcmp(*CMD_ARGV, "vectreset") == 0) {
+			if (target_was_examined(target)
+					&& !cortex_m->vectreset_supported)
+				LOG_WARNING("VECTRESET is not supported on your Cortex-M core!");
+			else
+				cortex_m->soft_reset_config = CORTEX_M_RESET_VECTRESET;
+
+		} else
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	switch (cortex_m->soft_reset_config) {
@@ -2461,7 +2506,7 @@ static const struct command_registration cortex_m_exec_command_handlers[] = {
 		.handler = handle_cortex_m_reset_config_command,
 		.mode = COMMAND_ANY,
 		.help = "configure software reset handling",
-		.usage = "['srst'|'sysresetreq'|'vectreset']",
+		.usage = "['sysresetreq'|'vectreset']",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -2499,6 +2544,7 @@ struct target_type cortexm_target = {
 	.deassert_reset = cortex_m_deassert_reset,
 	.soft_reset_halt = cortex_m_soft_reset_halt,
 
+	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
 	.read_memory = cortex_m_read_memory,

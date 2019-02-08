@@ -1134,6 +1134,7 @@ static const struct command_registration arm_exec_command_handlers[] = {
 	},
 	{
 		.name = "mrc",
+		.mode = COMMAND_EXEC,
 		.jim_handler = &jim_mcrmrc,
 		.help = "read coprocessor register",
 		.usage = "cpnum op1 CRn CRm op2",
@@ -1178,6 +1179,20 @@ const struct command_registration arm_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
+/*
+ * gdb for arm targets (e.g. arm-none-eabi-gdb) supports several variants
+ * of arm architecture. You can list them using the autocompletion of gdb
+ * command prompt by typing "set architecture " and then press TAB key.
+ * The default, selected automatically, is "arm".
+ * Let's use the default value, here, to make gdb-multiarch behave in the
+ * same way as a gdb for arm. This can be changed later on. User can still
+ * set the specific architecture variant with the gdb command.
+ */
+const char *arm_get_gdb_arch(struct target *target)
+{
+	return "arm";
+}
 
 int arm_get_gdb_reg_list(struct target *target,
 	struct reg **reg_list[], int *reg_list_size,
@@ -1340,6 +1355,8 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	cpsr = buf_get_u32(arm->cpsr->value, 0, 32);
 
 	for (i = 0; i < num_mem_params; i++) {
+		if (mem_params[i].direction == PARAM_IN)
+			continue;
 		retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size,
 				mem_params[i].value);
 		if (retval != ERROR_OK)
@@ -1347,6 +1364,9 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	}
 
 	for (i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].direction == PARAM_IN)
+			continue;
+
 		struct reg *reg = register_get_by_name(arm->core_cache, reg_params[i].reg_name, 0);
 		if (!reg) {
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);

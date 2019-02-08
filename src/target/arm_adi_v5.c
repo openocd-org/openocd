@@ -59,7 +59,7 @@
 /*
  * Relevant specifications from ARM include:
  *
- * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031A
+ * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031E
  * CoreSight(tm) v1.0 Architecture Specification            ARM IHI 0029B
  *
  * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316D
@@ -73,6 +73,8 @@
 #include "jtag/interface.h"
 #include "arm.h"
 #include "arm_adi_v5.h"
+#include "jtag/swd.h"
+#include "transport/transport.h"
 #include <helper/jep106.h>
 #include <helper/time_support.h>
 #include <helper/list.h>
@@ -786,6 +788,77 @@ int mem_ap_init(struct adiv5_ap *ap)
 			!!(cfg & 0x04), !!(cfg & 0x02), !!(cfg & 0x01));
 
 	return ERROR_OK;
+}
+
+/**
+ * Put the debug link into SWD mode, if the target supports it.
+ * The link's initial mode may be either JTAG (for example,
+ * with SWJ-DP after reset) or SWD.
+ *
+ * Note that targets using the JTAG-DP do not support SWD, and that
+ * some targets which could otherwise support it may have been
+ * configured to disable SWD signaling
+ *
+ * @param dap The DAP used
+ * @return ERROR_OK or else a fault code.
+ */
+int dap_to_swd(struct adiv5_dap *dap)
+{
+	int retval;
+
+	LOG_DEBUG("Enter SWD mode");
+
+	if (transport_is_jtag()) {
+		retval =  jtag_add_tms_seq(swd_seq_jtag_to_swd_len,
+				swd_seq_jtag_to_swd, TAP_INVALID);
+		if (retval == ERROR_OK)
+			retval = jtag_execute_queue();
+		return retval;
+	}
+
+	if (transport_is_swd()) {
+		const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
+
+		return swd->switch_seq(JTAG_TO_SWD);
+	}
+
+	LOG_ERROR("Nor JTAG nor SWD transport");
+	return ERROR_FAIL;
+}
+
+/**
+ * Put the debug link into JTAG mode, if the target supports it.
+ * The link's initial mode may be either SWD or JTAG.
+ *
+ * Note that targets implemented with SW-DP do not support JTAG, and
+ * that some targets which could otherwise support it may have been
+ * configured to disable JTAG signaling
+ *
+ * @param dap The DAP used
+ * @return ERROR_OK or else a fault code.
+ */
+int dap_to_jtag(struct adiv5_dap *dap)
+{
+	int retval;
+
+	LOG_DEBUG("Enter JTAG mode");
+
+	if (transport_is_jtag()) {
+		retval = jtag_add_tms_seq(swd_seq_swd_to_jtag_len,
+				swd_seq_swd_to_jtag, TAP_RESET);
+		if (retval == ERROR_OK)
+			retval = jtag_execute_queue();
+		return retval;
+	}
+
+	if (transport_is_swd()) {
+		const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
+
+		return swd->switch_seq(SWD_TO_JTAG);
+	}
+
+	LOG_ERROR("Nor JTAG nor SWD transport");
+	return ERROR_FAIL;
 }
 
 /* CID interpretation -- see ARM IHI 0029B section 3
