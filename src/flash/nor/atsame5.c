@@ -730,9 +730,8 @@ free_pb:
 FLASH_BANK_COMMAND_HANDLER(same5_flash_bank_command)
 {
 	if (bank->base != SAMD_FLASH) {
-		LOG_ERROR("Address 0x%08" PRIx32 " invalid bank address (try 0x%08" PRIx32
-				"[same5] )",
-				bank->base, SAMD_FLASH);
+		LOG_ERROR("Address 0x%08" TARGET_PRIxADDR " invalid bank address (try "
+			"0x%08" PRIx32 "[same5] )", bank->base, SAMD_FLASH);
 		return ERROR_FAIL;
 	}
 
