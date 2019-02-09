@@ -5453,7 +5453,7 @@ the flash.
 All members of the ATSAM D2x, D1x, D0x, ATSAMR, ATSAML and ATSAMC microcontroller
 families from Atmel include internal flash and use ARM's Cortex-M0+ core.
 
-Do not use for ATSAM D51 and E5x: use @xref{atsame5} instead.
+Do not use for ATSAM D51 and E5x: use @xref{atsame5}.
 
 The devices have one flash bank:
 
