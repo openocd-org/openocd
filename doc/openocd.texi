@@ -2368,7 +2368,7 @@ the hardware can support.
 Returns the name of the debug adapter driver being used.
 @end deffn
 
-@deffn Command {adapter usb location} <bus>:<port>[.<port>]...
+@deffn Command {adapter usb location} <bus>-<port>[.<port>]...
 Specifies the physical USB port of the adapter to use. The path
 roots at @var{bus} and walks down the physical ports, with each
 @var{port} option specifying a deeper level in the bus topology, the last
