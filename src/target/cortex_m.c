@@ -1198,7 +1198,7 @@ static int cortex_m_assert_reset(struct target *target)
 	}
 
 	target->state = TARGET_RESET;
-	jtag_add_sleep(50000);
+	jtag_sleep(50000);
 
 	register_cache_invalidate(cortex_m->armv7m.arm.core_cache);
 
