@@ -903,7 +903,6 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 static int gdb_target_callback_event_handler(struct target *target,
 		enum target_event event, void *priv)
 {
-	int retval;
 	struct connection *connection = priv;
 	struct gdb_service *gdb_service = connection->service->priv;
 
@@ -916,11 +915,6 @@ static int gdb_target_callback_event_handler(struct target *target,
 			break;
 		case TARGET_EVENT_HALTED:
 			target_call_event_callbacks(target, TARGET_EVENT_GDB_END);
-			break;
-		case TARGET_EVENT_GDB_FLASH_ERASE_START:
-			retval = jtag_execute_queue();
-			if (retval != ERROR_OK)
-				return retval;
 			break;
 		default:
 			break;
