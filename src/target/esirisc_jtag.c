@@ -265,6 +265,7 @@ int esirisc_jtag_read_byte(struct esirisc_jtag *jtag_info, uint32_t address, uin
 		return retval;
 
 	*data = *d;
+	LOG_DEBUG("address: 0x%" PRIx32 ", data: 0x%" PRIx8, address, *data);
 
 	return ERROR_OK;
 }
@@ -292,6 +293,7 @@ int esirisc_jtag_read_hword(struct esirisc_jtag *jtag_info, uint32_t address, ui
 		return retval;
 
 	*data = le_to_h_u16(d);
+	LOG_DEBUG("address: 0x%" PRIx32 ", data: 0x%" PRIx16, address, *data);
 
 	return ERROR_OK;
 }
@@ -319,6 +321,7 @@ int esirisc_jtag_read_word(struct esirisc_jtag *jtag_info, uint32_t address, uin
 		return retval;
 
 	*data = le_to_h_u32(d);
+	LOG_DEBUG("address: 0x%" PRIx32 ", data: 0x%" PRIx32, address, *data);
 
 	return ERROR_OK;
 }
@@ -327,6 +330,8 @@ int esirisc_jtag_write_byte(struct esirisc_jtag *jtag_info, uint32_t address, ui
 {
 	struct scan_field out_fields[2];
 	uint8_t a[4];
+
+	LOG_DEBUG("address: 0x%" PRIx32 ", data: 0x%" PRIx8, address, data);
 
 	out_fields[0].num_bits = 32;
 	out_fields[0].out_value = a;
@@ -346,6 +351,8 @@ int esirisc_jtag_write_hword(struct esirisc_jtag *jtag_info, uint32_t address, u
 	struct scan_field out_fields[2];
 	uint8_t a[4], d[2];
 
+	LOG_DEBUG("address: 0x%" PRIx32 ", data: 0x%" PRIx16, address, data);
+
 	out_fields[0].num_bits = 32;
 	out_fields[0].out_value = a;
 	h_u32_to_be(a, address);
@@ -364,6 +371,8 @@ int esirisc_jtag_write_word(struct esirisc_jtag *jtag_info, uint32_t address, ui
 {
 	struct scan_field out_fields[2];
 	uint8_t a[4], d[4];
+
+	LOG_DEBUG("address: 0x%" PRIx32 ", data: 0x%" PRIx32, address, data);
 
 	out_fields[0].num_bits = 32;
 	out_fields[0].out_value = a;
@@ -400,6 +409,7 @@ int esirisc_jtag_read_reg(struct esirisc_jtag *jtag_info, uint8_t reg, uint32_t 
 		return retval;
 
 	*data = le_to_h_u32(d);
+	LOG_DEBUG("register: 0x%" PRIx32 ", data: 0x%" PRIx32, reg, *data);
 
 	return ERROR_OK;
 }
@@ -408,6 +418,8 @@ int esirisc_jtag_write_reg(struct esirisc_jtag *jtag_info, uint8_t reg, uint32_t
 {
 	struct scan_field out_fields[2];
 	uint8_t d[4];
+
+	LOG_DEBUG("register: 0x%" PRIx32 ", data: 0x%" PRIx32, reg, data);
 
 	out_fields[0].num_bits = 8;
 	out_fields[0].out_value = &reg;
@@ -445,6 +457,7 @@ int esirisc_jtag_read_csr(struct esirisc_jtag *jtag_info, uint8_t bank, uint8_t 
 		return retval;
 
 	*data = le_to_h_u32(d);
+	LOG_DEBUG("bank: 0x%" PRIx32 ", csr: 0x%" PRIx32 ", data: 0x%" PRIx32, bank, csr, *data);
 
 	return ERROR_OK;
 }
@@ -453,6 +466,8 @@ int esirisc_jtag_write_csr(struct esirisc_jtag *jtag_info, uint8_t bank, uint8_t
 {
 	struct scan_field out_fields[2];
 	uint8_t c[2], d[4];
+
+	LOG_DEBUG("bank: 0x%" PRIx32 ", csr: 0x%" PRIx32 ", data: 0x%" PRIx32, bank, csr, data);
 
 	out_fields[0].num_bits = 16;
 	out_fields[0].out_value = c;

@@ -12,7 +12,7 @@ add_remote()
 	remote_exist=`grep remote .git/config | grep review	| wc -l`
 	if [ "x$remote_exist" = "x0" ] ; then
 		git remote add review ssh://$USERNAME@openocd.zylin.com:29418/openocd.git
-		git config remote.review.push HEAD:refs/publish/master
+		git config remote.review.push HEAD:refs/for/master
 	else
 		echo "Remote review exists"
 	fi

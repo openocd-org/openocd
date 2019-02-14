@@ -233,12 +233,6 @@ static int avrf_erase(struct flash_bank *bank, int first, int last)
 	return avr_jtagprg_leaveprogmode(avr);
 }
 
-static int avrf_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	LOG_INFO("%s", __func__);
-	return ERROR_OK;
-}
-
 static int avrf_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -338,7 +332,7 @@ static int avrf_probe(struct flash_bank *bank)
 			bank->sectors[i].offset = i * avr_info->flash_page_size;
 			bank->sectors[i].size = avr_info->flash_page_size;
 			bank->sectors[i].is_erased = -1;
-			bank->sectors[i].is_protected = 1;
+			bank->sectors[i].is_protected = -1;
 		}
 
 		avrf_info->probed = 1;
@@ -358,12 +352,6 @@ static int avrf_auto_probe(struct flash_bank *bank)
 	if (avrf_info->probed)
 		return ERROR_OK;
 	return avrf_probe(bank);
-}
-
-static int avrf_protect_check(struct flash_bank *bank)
-{
-	LOG_INFO("%s", __func__);
-	return ERROR_OK;
 }
 
 static int avrf_info(struct flash_bank *bank, char *buf, int buf_size)
@@ -479,13 +467,11 @@ struct flash_driver avr_flash = {
 	.commands = avrf_command_handlers,
 	.flash_bank_command = avrf_flash_bank_command,
 	.erase = avrf_erase,
-	.protect = avrf_protect,
 	.write = avrf_write,
 	.read = default_flash_read,
 	.probe = avrf_probe,
 	.auto_probe = avrf_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = avrf_protect_check,
 	.info = avrf_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

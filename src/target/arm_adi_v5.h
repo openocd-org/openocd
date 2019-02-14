@@ -516,10 +516,10 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 struct target;
 
 /* Put debug link into SWD mode */
-int dap_to_swd(struct target *target);
+int dap_to_swd(struct adiv5_dap *dap);
 
 /* Put debug link into JTAG mode */
-int dap_to_jtag(struct target *target);
+int dap_to_jtag(struct adiv5_dap *dap);
 
 extern const struct command_registration dap_instance_commands[];
 

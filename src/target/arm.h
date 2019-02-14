@@ -263,9 +263,11 @@ struct reg_cache *armv8_build_reg_cache(struct target *target);
 extern const struct command_registration arm_command_handlers[];
 
 int arm_arch_state(struct target *target);
+const char *arm_get_gdb_arch(struct target *target);
 int arm_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);
+const char *armv8_get_gdb_arch(struct target *target);
 int armv8_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);

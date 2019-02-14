@@ -12,6 +12,9 @@
  *   by Nemui Trinomius                                                    *
  *   nemuisan_kawausogasuki@live.jp                                        *
  *                                                                         *
+ *   LPC8N04/HNS31xx support Copyright (C) 2018                            *
+ *   by Jean-Christian de Rivaz jcdr [at] innodelec [dot] ch               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -38,7 +41,7 @@
 
 /**
  * @file
- * flash programming support for NXP LPC8xx,LPC1xxx,LPC4xxx,LP5410x and LPC2xxx devices.
+ * flash programming support for NXP LPC8xx,LPC1xxx,LPC4xxx,LP5410x,LPC2xxx and NHS31xx devices.
  *
  * @todo Provide a way to update CCLK after declaring the flash bank. The value which is correct after chip reset will
  * rarely still work right after the clocks switch to use the PLL (e.g. 4MHz --> 100 MHz).
@@ -77,6 +80,9 @@
  * lpc800:
  * - 810 | 1 | 2 (tested with LPC810/LPC811/LPC812)
  * - 822 | 4 (tested with LPC824)
+ * - 8N04
+ * - NHS31xx (tested with NHS3100)
+ * - 844 | 5 (tested with LPC845)
  *
  * lpc1100:
  * - 11xx
@@ -111,6 +117,8 @@
  * - 408x
  * - 81x
  * - 82x
+ * - 8N04
+ * - NHS31xx
  */
 
 /* Part IDs for autodetection */
@@ -257,6 +265,20 @@
 #define LPC824_201     0x00008241
 #define LPC824_201_1   0x00008242
 
+#define LPC8N04        0x00008A04
+#define NHS3100        0x4e310020
+#define NHS3152        0x4e315220
+#define NHS3153        0x4e315320 /* Only specified in Rev.1 of the datasheet */
+
+#define LPC844_201     0x00008441
+#define LPC844_201_1   0x00008442
+#define LPC844_201_2   0x00008444
+
+#define LPC845_301     0x00008451
+#define LPC845_301_1   0x00008452
+#define LPC845_301_2   0x00008453
+#define LPC845_301_3   0x00008454
+
 #define IAP_CODE_LEN 0x34
 
 #define LPC11xx_REG_SECTORS	24
@@ -282,6 +304,7 @@ struct lpc2000_flash_bank {
 	int checksum_vector;
 	uint32_t iap_max_stack;
 	uint32_t lpc4300_bank;
+	uint32_t iap_entry_alternative;
 	bool probed;
 };
 
@@ -526,9 +549,17 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 			case 16 * 1024:
 				bank->num_sectors = 16;
 				break;
+			case 30 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024;	/* For LPC8N04 and NHS31xx, have 8kB of SRAM */
+				bank->num_sectors = 30;			/* There have only 30kB of writable Flash out of 32kB */
+				break;
 			case 32 * 1024:
 				lpc2000_info->cmd51_max_buffer = 1024; /* For LPC824, has 8kB of SRAM */
 				bank->num_sectors = 32;
+				break;
+			case 64 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024; /* For LPC844, has 8kB of SRAM */
+				bank->num_sectors = 64;
 				break;
 			default:
 				LOG_ERROR("BUG: unknown bank->size encountered");
@@ -741,6 +772,9 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 			exit(-1);
 	}
 
+	if (lpc2000_info->iap_entry_alternative != 0x0)
+		iap_entry_point = lpc2000_info->iap_entry_alternative;
+
 	struct mem_param mem_params[2];
 
 	/* command parameter table */
@@ -938,6 +972,8 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 		if (strcmp(CMD_ARGV[8], "calc_checksum") == 0)
 			lpc2000_info->calc_checksum = 1;
 	}
+	if (CMD_ARGC >= 10 && !lpc2000_info->iap_entry_alternative)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[9], lpc2000_info->iap_entry_alternative);
 
 	return ERROR_OK;
 }
@@ -1016,12 +1052,6 @@ static int lpc2000_erase(struct flash_bank *bank, int first, int last)
 	target_free_working_area(target, iap_working_area);
 
 	return retval;
-}
-
-static int lpc2000_protect(struct flash_bank *bank, int set, int first, int last)
-{
-	/* can't protect/unprotect on the lpc2000 */
-	return ERROR_OK;
 }
 
 static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
@@ -1458,6 +1488,25 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 			bank->size = 32 * 1024;
 			break;
 
+		case LPC8N04:
+		case NHS3100:
+		case NHS3152:
+		case NHS3153:
+			lpc2000_info->variant = lpc800;
+			bank->size = 30 * 1024;
+			break;
+
+		case LPC844_201:
+		case LPC844_201_1:
+		case LPC844_201_2:
+		case LPC845_301:
+		case LPC845_301_1:
+		case LPC845_301_2:
+		case LPC845_301_3:
+			lpc2000_info->variant = lpc800;
+			bank->size = 64 * 1024;
+			break;
+
 		default:
 			LOG_ERROR("BUG: unknown Part ID encountered: 0x%" PRIx32, part_id);
 			exit(-1);
@@ -1499,12 +1548,6 @@ static int lpc2000_erase_check(struct flash_bank *bank)
 	}
 
 	return lpc2000_iap_blank_check(bank, 0, bank->num_sectors - 1);
-}
-
-static int lpc2000_protect_check(struct flash_bank *bank)
-{
-	/* sectors are always protected	*/
-	return ERROR_OK;
 }
 
 static int get_lpc2000_info(struct flash_bank *bank, char *buf, int buf_size)
@@ -1571,13 +1614,11 @@ struct flash_driver lpc2000_flash = {
 	.commands = lpc2000_command_handlers,
 	.flash_bank_command = lpc2000_flash_bank_command,
 	.erase = lpc2000_erase,
-	.protect = lpc2000_protect,
 	.write = lpc2000_write,
 	.read = default_flash_read,
 	.probe = lpc2000_probe,
 	.auto_probe = lpc2000_probe,
 	.erase_check = lpc2000_erase_check,
-	.protect_check = lpc2000_protect_check,
 	.info = get_lpc2000_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

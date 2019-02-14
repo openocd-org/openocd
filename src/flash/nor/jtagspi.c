@@ -166,7 +166,7 @@ static int jtagspi_probe(struct flash_bank *bank)
 	struct jtagspi_flash_bank *info = bank->driver_priv;
 	struct flash_sector *sectors;
 	uint8_t in_buf[3];
-	uint32_t id;
+	uint32_t id, sectorsize;
 
 	if (info->probed)
 		free(bank->sectors);
@@ -199,10 +199,17 @@ static int jtagspi_probe(struct flash_bank *bank)
 
 	/* Set correct size value */
 	bank->size = info->dev->size_in_bytes;
+	if (bank->size <= (1UL << 16))
+		LOG_WARNING("device needs 2-byte addresses - not implemented");
+	if (bank->size > (1UL << 24))
+		LOG_WARNING("device needs paging or 4-byte addresses - not implemented");
+
+	/* if no sectors, treat whole bank as single sector */
+	sectorsize = info->dev->sectorsize ?
+		info->dev->sectorsize : info->dev->size_in_bytes;
 
 	/* create and fill sectors array */
-	bank->num_sectors =
-		info->dev->size_in_bytes / info->dev->sectorsize;
+	bank->num_sectors = info->dev->size_in_bytes / sectorsize;
 	sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	if (sectors == NULL) {
 		LOG_ERROR("not enough memory");
@@ -210,8 +217,8 @@ static int jtagspi_probe(struct flash_bank *bank)
 	}
 
 	for (int sector = 0; sector < bank->num_sectors; sector++) {
-		sectors[sector].offset = sector * info->dev->sectorsize;
-		sectors[sector].size = info->dev->sectorsize;
+		sectors[sector].offset = sector * sectorsize;
+		sectors[sector].size = sectorsize;
 		sectors[sector].is_erased = -1;
 		sectors[sector].is_protected = 0;
 	}
@@ -268,6 +275,9 @@ static int jtagspi_bulk_erase(struct flash_bank *bank)
 	struct jtagspi_flash_bank *info = bank->driver_priv;
 	int retval;
 	int64_t t0 = timeval_ms();
+
+	if (info->dev->chip_erase_cmd == 0x00)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
 
 	retval = jtagspi_write_enable(bank);
 	if (retval != ERROR_OK)
@@ -328,6 +338,9 @@ static int jtagspi_erase(struct flash_bank *bank, int first, int last)
 			LOG_WARNING("Bulk flash erase failed. Falling back to sector erase.");
 	}
 
+	if (info->dev->erase_cmd == 0x00)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+
 	for (sector = first; sector <= last; sector++) {
 		retval = jtagspi_sector_erase(bank, sector);
 		if (retval != ERROR_OK) {
@@ -343,18 +356,8 @@ static int jtagspi_protect(struct flash_bank *bank, int set, int first, int last
 {
 	int sector;
 
-	if ((first < 0) || (last < first) || (last >= bank->num_sectors)) {
-		LOG_ERROR("Flash sector invalid");
-		return ERROR_FLASH_SECTOR_INVALID;
-	}
-
 	for (sector = first; sector <= last; sector++)
 		bank->sectors[sector].is_protected = set;
-	return ERROR_OK;
-}
-
-static int jtagspi_protect_check(struct flash_bank *bank)
-{
 	return ERROR_OK;
 }
 
@@ -386,16 +389,19 @@ static int jtagspi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 {
 	struct jtagspi_flash_bank *info = bank->driver_priv;
 	int retval;
-	uint32_t n;
+	uint32_t n, pagesize;
 
 	if (!(info->probed)) {
 		LOG_ERROR("Flash bank not yet probed.");
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	for (n = 0; n < count; n += info->dev->pagesize) {
+	/* if no write pagesize, use reasonable default */
+	pagesize = info->dev->pagesize ? info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
+
+	for (n = 0; n < count; n += pagesize) {
 		retval = jtagspi_page_write(bank, buffer + n, offset + n,
-				MIN(count - n, info->dev->pagesize));
+				MIN(count - n, pagesize));
 		if (retval != ERROR_OK) {
 			LOG_ERROR("page write error");
 			return retval;
@@ -431,7 +437,6 @@ struct flash_driver jtagspi_flash = {
 	.probe = jtagspi_probe,
 	.auto_probe = jtagspi_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = jtagspi_protect_check,
 	.info = jtagspi_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

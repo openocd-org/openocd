@@ -202,6 +202,7 @@ static int cortex_a_mmu_modify(struct target *target, int enable)
 static int cortex_a_init_debug_access(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
+	uint32_t dscr;
 	int retval;
 
 	/* lock memory-mapped access to debug registers to prevent
@@ -230,6 +231,16 @@ static int cortex_a_init_debug_access(struct target *target)
 	/* Enabling of instruction execution in debug mode is done in debug_entry code */
 
 	/* Resync breakpoint registers */
+
+	/* Enable halt for breakpoint, watchpoint and vector catch */
+	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
+			armv7a->debug_base + CPUDBG_DSCR, dscr | DSCR_HALT_DBG_MODE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Since this is likely called from init or reset, update target state information*/
 	return cortex_a_poll(target);
@@ -714,38 +725,25 @@ static int cortex_a_poll(struct target *target)
 			/* We have a halting debug event */
 			LOG_DEBUG("Target halted");
 			target->state = TARGET_HALTED;
-			if ((prev_target_state == TARGET_RUNNING)
-				|| (prev_target_state == TARGET_UNKNOWN)
-				|| (prev_target_state == TARGET_RESET)) {
-				retval = cortex_a_debug_entry(target);
+
+			retval = cortex_a_debug_entry(target);
+			if (retval != ERROR_OK)
+				return retval;
+
+			if (target->smp) {
+				retval = update_halt_gdb(target);
 				if (retval != ERROR_OK)
 					return retval;
-				if (target->smp) {
-					retval = update_halt_gdb(target);
-					if (retval != ERROR_OK)
-						return retval;
-				}
+			}
 
+			if (prev_target_state == TARGET_DEBUG_RUNNING) {
+				target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
+			} else { /* prev_target_state is RUNNING, UNKNOWN or RESET */
 				if (arm_semihosting(target, &retval) != 0)
 					return retval;
 
 				target_call_event_callbacks(target,
 					TARGET_EVENT_HALTED);
-			}
-			if (prev_target_state == TARGET_DEBUG_RUNNING) {
-				LOG_DEBUG(" ");
-
-				retval = cortex_a_debug_entry(target);
-				if (retval != ERROR_OK)
-					return retval;
-				if (target->smp) {
-					retval = update_halt_gdb(target);
-					if (retval != ERROR_OK)
-						return retval;
-				}
-
-				target_call_event_callbacks(target,
-					TARGET_EVENT_DEBUG_HALTED);
 			}
 		}
 	} else
@@ -766,19 +764,6 @@ static int cortex_a_halt(struct target *target)
 	 */
 	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DRCR, DRCR_HALT);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/*
-	 * enter halting debug mode
-	 */
-	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DSCR, &dscr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DSCR, dscr | DSCR_HALT_DBG_MODE);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2889,7 +2874,20 @@ static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
 static void cortex_a_deinit_target(struct target *target)
 {
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
-	struct arm_dpm *dpm = &cortex_a->armv7a_common.dpm;
+	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
+	struct arm_dpm *dpm = &armv7a->dpm;
+	uint32_t dscr;
+	int retval;
+
+	if (target_was_examined(target)) {
+		/* Disable halt for breakpoint, watchpoint and vector catch */
+		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
+		if (retval == ERROR_OK)
+			mem_ap_write_atomic_u32(armv7a->debug_ap,
+					armv7a->debug_base + CPUDBG_DSCR,
+					dscr & ~DSCR_HALT_DBG_MODE);
+	}
 
 	free(cortex_a->brp_list);
 	free(dpm->dbp);
@@ -3160,6 +3158,7 @@ struct target_type cortexa_target = {
 	.deassert_reset = cortex_a_deassert_reset,
 
 	/* REVISIT allow exporting VFP3 registers ... */
+	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = cortex_a_read_memory,
@@ -3239,6 +3238,7 @@ struct target_type cortexr4_target = {
 	.deassert_reset = cortex_a_deassert_reset,
 
 	/* REVISIT allow exporting VFP3 registers ... */
+	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = cortex_a_read_phys_memory,

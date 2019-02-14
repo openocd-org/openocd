@@ -6,7 +6,7 @@ CC=$(CROSS_COMPILE)gcc
 OBJCOPY=$(CROSS_COMPILE)objcopy
 OBJDUMP=$(CROSS_COMPILE)objdump
 
-CFLAGS = -march=rv32i -mabi=ilp32 -x assembler-with-cpp - -nostdlib -nostartfiles
+CFLAGS = -march=rv32i -mabi=ilp32 -x assembler-with-cpp -nostdlib -nostartfiles
 
 all: fespi.inc
 

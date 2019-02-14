@@ -34,27 +34,60 @@
 
 #include "esirisc.h"
 
-#define RESET_TIMEOUT	5000	/* 5s */
-#define STEP_TIMEOUT	1000	/* 1s */
+#define RESET_TIMEOUT			5000	/* 5s */
+#define STEP_TIMEOUT			1000	/* 1s */
 
 /*
  * eSi-RISC targets support a configurable number of interrupts;
  * up to 32 interrupts are supported.
  */
-static const char * const esirisc_exceptions[] = {
-	"Reset", "HardwareFailure", "NMI", "InstBreakpoint", "DataBreakpoint",
-	"Unsupported", "PrivilegeViolation", "InstBusError", "DataBusError",
-	"AlignmentError", "ArithmeticError", "SystemCall", "MemoryManagement",
-	"Unrecoverable", "Reserved",
-
-	"Interrupt0", "Interrupt1", "Interrupt2", "Interrupt3",
-	"Interrupt4", "Interrupt5", "Interrupt6", "Interrupt7",
-	"Interrupt8", "Interrupt9", "Interrupt10", "Interrupt11",
-	"Interrupt12", "Interrupt13", "Interrupt14", "Interrupt15",
-	"Interrupt16", "Interrupt17", "Interrupt18", "Interrupt19",
-	"Interrupt20", "Interrupt21", "Interrupt22", "Interrupt23",
-	"Interrupt24", "Interrupt25", "Interrupt26", "Interrupt27",
-	"Interrupt28", "Interrupt29", "Interrupt30", "Interrupt31",
+static const char * const esirisc_exception_strings[] = {
+	[EID_RESET]					= "Reset",
+	[EID_HARDWARE_FAILURE]		= "HardwareFailure",
+	[EID_NMI]					= "NMI",
+	[EID_INST_BREAKPOINT]		= "InstBreakpoint",
+	[EID_DATA_BREAKPOINT]		= "DataBreakpoint",
+	[EID_UNSUPPORTED]			= "Unsupported",
+	[EID_PRIVILEGE_VIOLATION]	= "PrivilegeViolation",
+	[EID_INST_BUS_ERROR]		= "InstBusError",
+	[EID_DATA_BUS_ERROR]		= "DataBusError",
+	[EID_ALIGNMENT_ERROR]		= "AlignmentError",
+	[EID_ARITHMETIC_ERROR]		= "ArithmeticError",
+	[EID_SYSTEM_CALL]			= "SystemCall",
+	[EID_MEMORY_MANAGEMENT]		= "MemoryManagement",
+	[EID_UNRECOVERABLE]			= "Unrecoverable",
+	[EID_INTERRUPTn+0]			= "Interrupt0",
+	[EID_INTERRUPTn+1]			= "Interrupt1",
+	[EID_INTERRUPTn+2]			= "Interrupt2",
+	[EID_INTERRUPTn+3]			= "Interrupt3",
+	[EID_INTERRUPTn+4]			= "Interrupt4",
+	[EID_INTERRUPTn+5]			= "Interrupt5",
+	[EID_INTERRUPTn+6]			= "Interrupt6",
+	[EID_INTERRUPTn+7]			= "Interrupt7",
+	[EID_INTERRUPTn+8]			= "Interrupt8",
+	[EID_INTERRUPTn+9]			= "Interrupt9",
+	[EID_INTERRUPTn+10]			= "Interrupt10",
+	[EID_INTERRUPTn+11]			= "Interrupt11",
+	[EID_INTERRUPTn+12]			= "Interrupt12",
+	[EID_INTERRUPTn+13]			= "Interrupt13",
+	[EID_INTERRUPTn+14]			= "Interrupt14",
+	[EID_INTERRUPTn+15]			= "Interrupt15",
+	[EID_INTERRUPTn+16]			= "Interrupt16",
+	[EID_INTERRUPTn+17]			= "Interrupt17",
+	[EID_INTERRUPTn+18]			= "Interrupt18",
+	[EID_INTERRUPTn+19]			= "Interrupt19",
+	[EID_INTERRUPTn+20]			= "Interrupt20",
+	[EID_INTERRUPTn+21]			= "Interrupt21",
+	[EID_INTERRUPTn+22]			= "Interrupt22",
+	[EID_INTERRUPTn+23]			= "Interrupt23",
+	[EID_INTERRUPTn+24]			= "Interrupt24",
+	[EID_INTERRUPTn+25]			= "Interrupt25",
+	[EID_INTERRUPTn+26]			= "Interrupt26",
+	[EID_INTERRUPTn+27]			= "Interrupt27",
+	[EID_INTERRUPTn+28]			= "Interrupt28",
+	[EID_INTERRUPTn+29]			= "Interrupt29",
+	[EID_INTERRUPTn+30]			= "Interrupt30",
+	[EID_INTERRUPTn+31]			= "Interrupt31",
 };
 
 /*
@@ -142,7 +175,7 @@ static int esirisc_disable_interrupts(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, &etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: ETC", target_name(target));
+		LOG_ERROR("%s: failed to read Thread CSR: ETC", target_name(target));
 		return retval;
 	}
 
@@ -150,7 +183,7 @@ static int esirisc_disable_interrupts(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: ETC", target_name(target));
+		LOG_ERROR("%s: failed to write Thread CSR: ETC", target_name(target));
 		return retval;
 	}
 
@@ -169,7 +202,7 @@ static int esirisc_enable_interrupts(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, &etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: ETC", target_name(target));
+		LOG_ERROR("%s: failed to read Thread CSR: ETC", target_name(target));
 		return retval;
 	}
 
@@ -177,7 +210,7 @@ static int esirisc_enable_interrupts(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: ETC", target_name(target));
+		LOG_ERROR("%s: failed to write Thread CSR: ETC", target_name(target));
 		return retval;
 	}
 
@@ -195,7 +228,7 @@ static int esirisc_save_interrupts(struct target *target)
 	int retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC,
 			&esirisc->etc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: ETC", target_name(target));
+		LOG_ERROR("%s: failed to read Thread CSR: ETC", target_name(target));
 		return retval;
 	}
 
@@ -212,7 +245,7 @@ static int esirisc_restore_interrupts(struct target *target)
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC,
 			esirisc->etc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: ETC", target_name(target));
+		LOG_ERROR("%s: failed to write Thread CSR: ETC", target_name(target));
 		return retval;
 	}
 
@@ -230,7 +263,7 @@ static int esirisc_save_hwdc(struct target *target)
 	int retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_HWDC,
 			&esirisc->hwdc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: HWDC", target_name(target));
+		LOG_ERROR("%s: failed to read Thread CSR: HWDC", target_name(target));
 		return retval;
 	}
 
@@ -248,7 +281,7 @@ static int esirisc_restore_hwdc(struct target *target)
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_HWDC,
 			esirisc->hwdc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: HWDC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: HWDC", target_name(target));
 		return retval;
 	}
 
@@ -478,14 +511,14 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBAn + bp_index,
 			breakpoint->address);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: IBA", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: IBA", target_name(target));
 		return retval;
 	}
 
 	/* enable instruction breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, &ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: IBC", target_name(target));
+		LOG_ERROR("%s: failed to read Debug CSR: IBC", target_name(target));
 		return retval;
 	}
 
@@ -493,7 +526,7 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: IBC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: IBC", target_name(target));
 		return retval;
 	}
 
@@ -529,7 +562,7 @@ static int esirisc_remove_breakpoint(struct target *target, struct breakpoint *b
 	/* disable instruction breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, &ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: IBC", target_name(target));
+		LOG_ERROR("%s: failed to read Debug CSR: IBC", target_name(target));
 		return retval;
 	}
 
@@ -537,7 +570,7 @@ static int esirisc_remove_breakpoint(struct target *target, struct breakpoint *b
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: IBC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: IBC", target_name(target));
 		return retval;
 	}
 
@@ -557,7 +590,7 @@ static int esirisc_remove_breakpoints(struct target *target)
 	/* clear instruction breakpoints */
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, 0);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: IBC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: IBC", target_name(target));
 		return retval;
 	}
 
@@ -604,14 +637,14 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBAn + wp_index,
 			watchpoint->address);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: DBA", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: DBA", target_name(target));
 		return retval;
 	}
 
 	/* specify data breakpoint size */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBS, &dbs);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: DBS", target_name(target));
+		LOG_ERROR("%s: failed to read Debug CSR: DBS", target_name(target));
 		return retval;
 	}
 
@@ -642,14 +675,14 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBS, dbs);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: DBS", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: DBS", target_name(target));
 		return retval;
 	}
 
 	/* enable data breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, &dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: DBC", target_name(target));
+		LOG_ERROR("%s: failed to read Debug CSR: DBC", target_name(target));
 		return retval;
 	}
 
@@ -677,7 +710,7 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: DBC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: DBC", target_name(target));
 		return retval;
 	}
 
@@ -713,7 +746,7 @@ static int esirisc_remove_watchpoint(struct target *target, struct watchpoint *w
 	/* disable data breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, &dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: DBC", target_name(target));
+		LOG_ERROR("%s: failed to read Debug CSR: DBC", target_name(target));
 		return retval;
 	}
 
@@ -721,7 +754,7 @@ static int esirisc_remove_watchpoint(struct target *target, struct watchpoint *w
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: DBC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: DBC", target_name(target));
 		return retval;
 	}
 
@@ -741,7 +774,7 @@ static int esirisc_remove_watchpoints(struct target *target)
 	/* clear data breakpoints */
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, 0);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: DBC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: DBC", target_name(target));
 		return retval;
 	}
 
@@ -782,7 +815,7 @@ static int esirisc_disable_step(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, &dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: DC", target_name(target));
+		LOG_ERROR("%s: failed to read Debug CSR: DC", target_name(target));
 		return retval;
 	}
 
@@ -790,7 +823,7 @@ static int esirisc_disable_step(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: DC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: DC", target_name(target));
 		return retval;
 	}
 
@@ -808,7 +841,7 @@ static int esirisc_enable_step(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, &dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: DC", target_name(target));
+		LOG_ERROR("%s: failed to read Debug CSR: DC", target_name(target));
 		return retval;
 	}
 
@@ -816,7 +849,7 @@ static int esirisc_enable_step(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: DC", target_name(target));
+		LOG_ERROR("%s: failed to write Debug CSR: DC", target_name(target));
 		return retval;
 	}
 
@@ -1132,7 +1165,7 @@ static int esirisc_reset_entry(struct target *target)
 	/* read exception table address */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETA, &eta);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: ETA", target_name(target));
+		LOG_ERROR("%s: failed to read Thread CSR: ETA", target_name(target));
 		return retval;
 	}
 
@@ -1147,7 +1180,7 @@ static int esirisc_reset_entry(struct target *target)
 	/* write reset entry point */
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_EPC, epc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: EPC", target_name(target));
+		LOG_ERROR("%s: failed to write Thread CSR: EPC", target_name(target));
 		return retval;
 	}
 
@@ -1215,15 +1248,9 @@ static int esirisc_arch_state(struct target *target)
 	uint32_t eid = buf_get_u32(esirisc->eid->value, 0, esirisc->eid->size);
 	uint32_t ed = buf_get_u32(esirisc->ed->value, 0, esirisc->ed->size);
 
-	LOG_DEBUG("-");
-
-	const char *exception = "Unknown";
-	if (eid < ARRAY_SIZE(esirisc_exceptions))
-		exception = esirisc_exceptions[eid];
-
 	LOG_USER("target halted due to %s, exception: %s\n"
-			"EPC: 0x%" PRIx32 " ECAS: 0x%" PRIx32 " EID: 0x%" PRIx32 " ED: 0x%" PRIx32,
-			debug_reason_name(target), exception, epc, ecas, eid, ed);
+			"EPC: 0x%" PRIx32 ", ECAS: 0x%" PRIx32 ", EID: 0x%" PRIx32 ", ED: 0x%" PRIx32,
+			debug_reason_name(target), esirisc_exception_strings[eid], epc, ecas, eid, ed);
 
 	return ERROR_OK;
 }
@@ -1242,7 +1269,7 @@ static const char *esirisc_get_gdb_arch(struct target *target)
 	 */
 	if (esirisc->gdb_arch == NULL && target_was_examined(target))
 		esirisc->gdb_arch = alloc_printf("esirisc:%d_bit_%d_reg_%s",
-				esirisc->num_bits, esirisc->num_regs, esirisc_cache_arch(esirisc));
+				esirisc->num_bits, esirisc->num_regs, esirisc_cache_arch_name(esirisc));
 
 	return esirisc->gdb_arch;
 }
@@ -1477,7 +1504,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_ARCH0, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: ARCH0", target_name(target));
+		LOG_ERROR("%s: failed to read Configuration CSR: ARCH0", target_name(target));
 		return retval;
 	}
 
@@ -1486,7 +1513,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_MEM, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: MEM", target_name(target));
+		LOG_ERROR("%s: failed to read Configuration CSR: MEM", target_name(target));
 		return retval;
 	}
 
@@ -1495,7 +1522,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_IC, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: IC", target_name(target));
+		LOG_ERROR("%s: failed to read Configuration CSR: IC", target_name(target));
 		return retval;
 	}
 
@@ -1503,7 +1530,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_DC, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: DC", target_name(target));
+		LOG_ERROR("%s: failed to read Configuration CSR: DC", target_name(target));
 		return retval;
 	}
 
@@ -1511,12 +1538,20 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_DBG, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: DBG", target_name(target));
+		LOG_ERROR("%s: failed to read Configuration CSR: DBG", target_name(target));
 		return retval;
 	}
 
 	esirisc->num_breakpoints = (csr >> 7) & 0xf;	/* DBG.BP */
 	esirisc->num_watchpoints = (csr >> 12) & 0xf;	/* DBG.WP */
+
+	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_TRACE, &csr);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("%s: failed to read Configuration CSR: TRACE", target_name(target));
+		return retval;
+	}
+
+	esirisc->has_trace = !!(csr & 1<<0);			/* TRACE.T */
 
 	return ERROR_OK;
 }
@@ -1616,13 +1651,14 @@ static int esirisc_examine(struct target *target)
 		target_set_examined(target);
 
 		LOG_INFO("%s: %d bit, %d registers, %s%s%s", target_name(target),
-				 esirisc->num_bits, esirisc->num_regs,
-				 target_endianness(target),
-				 esirisc->has_icache ? ", icache" : "",
-				 esirisc->has_dcache ? ", dcache" : "");
+				esirisc->num_bits, esirisc->num_regs,
+				target_endianness(target),
+				esirisc->has_icache ? ", icache" : "",
+				esirisc->has_dcache ? ", dcache" : "");
 
-		LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints", target_name(target),
-				 esirisc->num_breakpoints, esirisc->num_watchpoints);
+		LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints%s", target_name(target),
+				esirisc->num_breakpoints, esirisc->num_watchpoints,
+				esirisc->has_trace ? ", trace" : "");
 	}
 
 	return ERROR_OK;
@@ -1644,7 +1680,7 @@ COMMAND_HANDLER(handle_esirisc_cache_arch_command)
 		}
 	}
 
-	command_print(CMD_CTX, "esirisc cache_arch %s", esirisc_cache_arch(esirisc));
+	command_print(CMD_CTX, "esirisc cache_arch %s", esirisc_cache_arch_name(esirisc));
 
 	return ERROR_OK;
 }
@@ -1720,6 +1756,17 @@ COMMAND_HANDLER(handle_esirisc_hwdc_command)
 
 static const struct command_registration esirisc_exec_command_handlers[] = {
 	{
+		.name = "flush_caches",
+		.handler = handle_esirisc_flush_caches_command,
+		.mode = COMMAND_EXEC,
+		.help = "flush instruction and data caches",
+		.usage = "",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration esirisc_any_command_handlers[] = {
+	{
 		.name = "cache_arch",
 		.handler = handle_esirisc_cache_arch_command,
 		.mode = COMMAND_ANY,
@@ -1727,18 +1774,17 @@ static const struct command_registration esirisc_exec_command_handlers[] = {
 		.usage = "['harvard'|'von_neumann']",
 	},
 	{
-		.name = "flush_caches",
-		.handler = handle_esirisc_flush_caches_command,
-		.mode = COMMAND_EXEC,
-		.help = "flush instruction and data caches",
-		.usage = "",
-	},
-	{
 		.name = "hwdc",
 		.handler = handle_esirisc_hwdc_command,
 		.mode = COMMAND_ANY,
 		.help = "configure hardware debug control",
 		.usage = "['all'|'none'|mask ...]",
+	},
+	{
+		.chain = esirisc_exec_command_handlers
+	},
+	{
+		.chain = esirisc_trace_command_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1749,7 +1795,7 @@ static const struct command_registration esirisc_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "eSi-RISC command group",
 		.usage = "",
-		.chain = esirisc_exec_command_handlers,
+		.chain = esirisc_any_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };

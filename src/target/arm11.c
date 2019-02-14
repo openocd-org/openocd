@@ -1362,6 +1362,7 @@ struct target_type arm11_target = {
 	.assert_reset = arm11_assert_reset,
 	.deassert_reset = arm11_deassert_reset,
 
+	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = arm_get_gdb_reg_list,
 
 	.read_memory = arm11_read_memory,

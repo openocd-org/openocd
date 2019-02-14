@@ -387,6 +387,9 @@ static int lpcspifi_bulk_erase(struct flash_bank *bank)
 	uint32_t value;
 	int retval = ERROR_OK;
 
+	if (lpcspifi_info->dev->chip_erase_cmd == 0x00)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+
 	retval = lpcspifi_set_sw_mode(bank);
 
 	if (retval == ERROR_OK)
@@ -459,6 +462,9 @@ static int lpcspifi_erase(struct flash_bank *bank, int first, int last)
 		} else
 			LOG_WARNING("Bulk flash erase failed. Falling back to sector-by-sector erase.");
 	}
+
+	if (lpcspifi_info->dev->erase_cmd == 0x00)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
 
 	retval = lpcspifi_set_hw_mode(bank);
 	if (retval != ERROR_OK)
@@ -613,7 +619,9 @@ static int lpcspifi_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 	}
 
-	page_size = lpcspifi_info->dev->pagesize;
+	/* if no valid page_size, use reasonable default */
+	page_size = lpcspifi_info->dev->pagesize ?
+		lpcspifi_info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
 
 	retval = lpcspifi_set_hw_mode(bank);
 	if (retval != ERROR_OK)
@@ -839,6 +847,7 @@ static int lpcspifi_probe(struct flash_bank *bank)
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
 	int retval;
+	uint32_t sectorsize;
 
 	/* If we've already probed, we should be fine to skip this time. */
 	if (lpcspifi_info->probed)
@@ -876,10 +885,17 @@ static int lpcspifi_probe(struct flash_bank *bank)
 
 	/* Set correct size value */
 	bank->size = lpcspifi_info->dev->size_in_bytes;
+	if (bank->size <= (1UL << 16))
+		LOG_WARNING("device needs 2-byte addresses - not implemented");
+	if (bank->size > (1UL << 24))
+		LOG_WARNING("device needs paging or 4-byte addresses - not implemented");
+
+	/* if no sectors, treat whole bank as single sector */
+	sectorsize = lpcspifi_info->dev->sectorsize ?
+		lpcspifi_info->dev->sectorsize : lpcspifi_info->dev->size_in_bytes;
 
 	/* create and fill sectors array */
-	bank->num_sectors =
-		lpcspifi_info->dev->size_in_bytes / lpcspifi_info->dev->sectorsize;
+	bank->num_sectors = lpcspifi_info->dev->size_in_bytes / sectorsize;
 	sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	if (sectors == NULL) {
 		LOG_ERROR("not enough memory");
@@ -887,8 +903,8 @@ static int lpcspifi_probe(struct flash_bank *bank)
 	}
 
 	for (int sector = 0; sector < bank->num_sectors; sector++) {
-		sectors[sector].offset = sector * lpcspifi_info->dev->sectorsize;
-		sectors[sector].size = lpcspifi_info->dev->sectorsize;
+		sectors[sector].offset = sector * sectorsize;
+		sectors[sector].size = sectorsize;
 		sectors[sector].is_erased = -1;
 		sectors[sector].is_protected = 0;
 	}

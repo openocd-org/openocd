@@ -30,16 +30,6 @@ struct ocl_priv {
 	unsigned int bufalign;
 };
 
-static int ocl_erase_check(struct flash_bank *bank)
-{
-	return ERROR_OK;
-}
-
-static int ocl_protect_check(struct flash_bank *bank)
-{
-	return ERROR_OK;
-}
-
 /* flash_bank ocl 0 0 0 0 <target#> */
 FLASH_BANK_COMMAND_HANDLER(ocl_flash_bank_command)
 {
@@ -108,11 +98,6 @@ static int ocl_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	return ERROR_OK;
-}
-
-static int ocl_protect(struct flash_bank *bank, int set, int first, int last)
-{
 	return ERROR_OK;
 }
 
@@ -333,12 +318,10 @@ struct flash_driver ocl_flash = {
 	.name = "ocl",
 	.flash_bank_command = ocl_flash_bank_command,
 	.erase = ocl_erase,
-	.protect = ocl_protect,
 	.write = ocl_write,
 	.read = default_flash_read,
 	.probe = ocl_probe,
-	.erase_check = ocl_erase_check,
-	.protect_check = ocl_protect_check,
+	.erase_check = default_flash_blank_check,
 	.auto_probe = ocl_auto_probe,
 	.free_driver_priv = default_flash_free_driver_priv,
 };

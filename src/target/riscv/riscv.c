@@ -1013,6 +1013,9 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 
 	uint64_t saved_regs[32];
 	for (int i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].direction == PARAM_IN)
+			continue;
+
 		LOG_DEBUG("save %s", reg_params[i].reg_name);
 		struct reg *r = register_get_by_name(target->reg_cache, reg_params[i].reg_name, 0);
 		if (!r) {

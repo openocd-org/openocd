@@ -33,6 +33,9 @@
  * RM0394 (STM32L43x/44x/45x/46x)
  * http://www.st.com/resource/en/reference_manual/dm00151940.pdf
  *
+ * RM0432 (STM32L4R/4Sxx)
+ * http://www.st.com/resource/en/reference_manual/dm00310109.pdf
+ *
  * STM32L476RG Datasheet (for erase timing)
  * http://www.st.com/resource/en/datasheet/stm32l476rg.pdf
  *
@@ -42,6 +45,14 @@
  * handlers do!
  *
  * RM0394 devices have a single bank only.
+ *
+ * RM0432 devices have single and dual bank operating modes.
+ * The FLASH size is 1Mbyte or 2Mbyte.
+ * Bank page (sector) size is 4Kbyte (dual mode) or 8Kbyte (single mode).
+ *
+ * Bank mode is controlled by two different bits in option bytes register.
+ * In 2M FLASH devices bit 22 (DBANK) controls Dual Bank mode.
+ * In 1M FLASH devices bit 21 (DB1M) controls Dual Bank mode.
  *
  */
 
@@ -82,7 +93,7 @@
 #define FLASH_BSY      (1 << 16)
 /* Fast programming not used => related errors not used*/
 #define FLASH_PGSERR   (1 << 7) /* Programming sequence error */
-#define FLASH_SIZERR   (1 << 6) /* Size  error */
+#define FLASH_SIZERR   (1 << 6) /* Size error */
 #define FLASH_PGAERR   (1 << 5) /* Programming alignment error */
 #define FLASH_WRPERR   (1 << 4) /* Write protection error */
 #define FLASH_PROGERR  (1 << 3) /* Programming error */
@@ -93,7 +104,8 @@
 
 /* STM32_FLASH_OBR bit definitions (reading) */
 
-#define OPT_DUALBANK   21	/* dual flash bank only */
+#define OPT_DBANK_LE_1M (1 << 21)	/* dual bank for devices up to 1M flash */
+#define OPT_DBANK_GE_2M (1 << 22)	/* dual bank for devices with 2M flash */
 
 /* register unlock keys */
 
@@ -325,7 +337,7 @@ static int stm32l4_protect_check(struct flash_bank *bank)
 				bank->sectors[i].is_protected = 0;
 		} else {
 			uint8_t snb;
-			snb = i - stm32l4_info->bank2_start + 256;
+			snb = i - stm32l4_info->bank2_start;
 			if (((snb >= wrp2a_start) &&
 				 (snb <= wrp2a_end)) ||
 				((snb >= wrp2b_start) &&
@@ -362,7 +374,7 @@ static int stm32l4_erase(struct flash_bank *bank, int first, int last)
 	1. Check that no Flash memory operation is ongoing by
        checking the BSY bit in the FLASH_SR register
 	2. Set the PER bit and select the page and bank
-	   you wish to erase  in the FLASH_CR register
+	   you wish to erase in the FLASH_CR register
 	3. Set the STRT bit in the FLASH_CR register
 	4. Wait for the BSY bit to be cleared
 	 */
@@ -372,9 +384,9 @@ static int stm32l4_erase(struct flash_bank *bank, int first, int last)
 		uint32_t erase_flags;
 		erase_flags = FLASH_PER | FLASH_STRT;
 
-		if  (i >= stm32l4_info->bank2_start) {
+		if (i >= stm32l4_info->bank2_start) {
 			uint8_t snb;
-			snb = (i - stm32l4_info->bank2_start) + 256;
+			snb = i - stm32l4_info->bank2_start;
 			erase_flags |= snb << FLASH_PAGE_SHIFT | FLASH_CR_BKER;
 		} else
 			erase_flags |= i << FLASH_PAGE_SHIFT;
@@ -473,7 +485,7 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 			 * buffer, free the algorithm */
 			target_free_working_area(target, write_algorithm);
 
-			LOG_WARNING("no large enough working area available, can't do block memory writes");
+			LOG_WARNING("large enough working area not available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
@@ -594,6 +606,9 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	/* set max flash size depending on family */
 	switch (device_id & 0xfff) {
+	case 0x470:
+		max_flash_size_in_kb = 2048;
+		break;
 	case 0x461:
 	case 0x415:
 		max_flash_size_in_kb = 1024;
@@ -605,7 +620,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		max_flash_size_in_kb = 256;
 		break;
 	default:
-		LOG_WARNING("Cannot identify target as a STM32L4 family.");
+		LOG_WARNING("Cannot identify target as an STM32L4 family device.");
 		return ERROR_FAIL;
 	}
 
@@ -622,45 +637,77 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
 
-	/* did we assign flash size? */
-	assert(flash_size_in_kb != 0xffff);
+	/* did we assign a flash size? */
+	assert((flash_size_in_kb != 0xffff) && flash_size_in_kb);
 
-	/* get options to for DUAL BANK. */
+	/* get options for DUAL BANK. */
 	retval = target_read_u32(target, STM32_FLASH_OPTR, &options);
 
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* only devices with < 1024 kiB may be set to single bank dual banks */
-	if ((flash_size_in_kb == 1024) || !(options & OPT_DUALBANK))
-		stm32l4_info->bank2_start = 256;
-	else
-		stm32l4_info->bank2_start = flash_size_in_kb << 9;
+	int num_pages = 0;
+	int page_size = 0;
 
-	/* did we assign flash size? */
-	assert((flash_size_in_kb != 0xffff) && flash_size_in_kb);
+	switch (device_id & 0xfff) {
+		case 0x470:
+			/* L4R/S have 1M or 2M FLASH and dual/single bank mode.
+			 * Page size is 4K or 8K.*/
+			if (flash_size_in_kb == 2048) {
+				stm32l4_info->bank2_start = 256;
+				if (options & OPT_DBANK_GE_2M) {
+					page_size = 4096;
+					num_pages = 512;
+				} else {
+					page_size = 8192;
+					num_pages = 256;
+				}
+				break;
+			}
+			if (flash_size_in_kb == 1024) {
+				stm32l4_info->bank2_start = 128;
+				if (options & OPT_DBANK_LE_1M) {
+					page_size = 4096;
+					num_pages = 256;
+				} else {
+					page_size = 8192;
+					num_pages = 128;
+				}
+				break;
+			}
+			/* Invalid FLASH size for this device. */
+			LOG_WARNING("Invalid flash size for STM32L4+ family device.");
+			return ERROR_FAIL;
+		default:
+			/* Other L4 family devices have 2K pages. */
+			page_size = 2048;
+			num_pages = flash_size_in_kb / 2;
+			/* check that calculation result makes sense */
+			assert(num_pages > 0);
+			if ((flash_size_in_kb == 1024) || !(options & OPT_DBANK_LE_1M))
+				stm32l4_info->bank2_start = 256;
+			else
+				stm32l4_info->bank2_start = num_pages / 2;
+			break;
+	}
 
-	/* calculate numbers of pages */
-	int num_pages = flash_size_in_kb / 2;
-
-	/* check that calculation result makes sense */
-	assert(num_pages > 0);
-
+	/* Release sector table if allocated. */
 	if (bank->sectors) {
 		free(bank->sectors);
 		bank->sectors = NULL;
 	}
 
+	/* Set bank configuration and construct sector table. */
 	bank->base = base_address;
-	bank->size = num_pages * (1 << 11);
+	bank->size = num_pages * page_size;
 	bank->num_sectors = num_pages;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_pages);
 	if (!bank->sectors)
 		return ERROR_FAIL; /* Checkme: What better error to use?*/
 
 	for (i = 0; i < num_pages; i++) {
-		bank->sectors[i].offset = i << 11;
-		bank->sectors[i].size = 1 << 11;
+		bank->sectors[i].offset = i * page_size;
+		bank->sectors[i].size = page_size;
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = 1;
 	}
@@ -703,6 +750,10 @@ static int get_stm32l4_info(struct flash_bank *bank, char *buf, int buf_size)
 	const char *device_str;
 
 	switch (device_id) {
+	case 0x470:
+		device_str = "STM32L4R/4Sxx";
+		break;
+
 	case 0x461:
 		device_str = "STM32L496/4A6";
 		break;

@@ -39,24 +39,9 @@
 #include <time.h>
 
 /*
- *   Bit 7 (0x80, pin 6, RI ): unused.
- *   Bit 6 (0x40, pin 10,DCD): /SYSRST output.
- *   Bit 5 (0x20, pin 9, DSR): unused.
- *   Bit 4 (0x10, pin 2, DTR): /TRST output.
- *   Bit 3 (0x08, pin 11,CTS): TMS output.
- *   Bit 2 (0x04, pin 3, RTS): TDO input.
- *   Bit 1 (0x02, pin 5, RXD): TDI output.
- *   Bit 0 (0x01, pin 1, TXD): TCK output.
- *
  * Sync bit bang mode is implemented as described in FTDI Application
  * Note AN232R-01: "Bit Bang Modes for the FT232R and FT245R".
  */
-#define TCK			(1 << 0)
-#define TDI			(1 << 1)
-#define READ_TDO		(1 << 2)
-#define TMS			(1 << 3)
-#define NTRST			(1 << 4)
-#define NSYSRST			(1 << 6)
 
 /*
  * USB endpoints.
@@ -81,7 +66,7 @@
 #define SIO_WRITE_EEPROM	0x91
 #define SIO_ERASE_EEPROM	0x92
 
-#define FT232R_BUF_SIZE		4000
+#define FT232R_BUF_SIZE_EXTRA	4096
 
 static char *ft232r_serial_desc;
 static uint16_t ft232r_vid = 0x0403; /* FTDI */
@@ -90,6 +75,33 @@ static jtag_libusb_device_handle *adapter;
 
 static uint8_t *ft232r_output;
 static size_t ft232r_output_len;
+
+/**
+ * FT232R GPIO bit number to RS232 name
+ */
+#define FT232R_BIT_COUNT 8
+static char *ft232r_bit_name_array[FT232R_BIT_COUNT] = {
+	"TXD", /* 0: pin 1  TCK output */
+	"RXD", /* 1: pin 5  TDI output */
+	"RTS", /* 2: pin 3  TDO input */
+	"CTS", /* 3: pin 11 TMS output */
+	"DTR", /* 4: pin 2  /TRST output */
+	"DSR", /* 5: pin 9  unused */
+	"DCD", /* 6: pin 10 /SYSRST output */
+	"RI"   /* 7: pin 6  unused */
+};
+
+static int tck_gpio; /* initialized to 0 by default */
+static int tdi_gpio = 1;
+static int tdo_gpio = 2;
+static int tms_gpio = 3;
+static int ntrst_gpio = 4;
+static int nsysrst_gpio = 6;
+static size_t ft232r_buf_size = FT232R_BUF_SIZE_EXTRA;
+/** 0xFFFF disables restore by default, after exit serial port will not work.
+ *  0x15 sets TXD RTS DTR as outputs, after exit serial port will continue to work.
+ */
+static uint16_t ft232r_restore_bitmode = 0xFFFF;
 
 /**
  * Perform sync bitbang output/input transaction.
@@ -160,20 +172,35 @@ static int ft232r_send_recv(void)
 	return ERROR_OK;
 }
 
+void ft232r_increase_buf_size(size_t new_buf_size)
+{
+	uint8_t *new_buf_ptr;
+	if (new_buf_size >= ft232r_buf_size) {
+		new_buf_size += FT232R_BUF_SIZE_EXTRA;
+		new_buf_ptr = realloc(ft232r_output, new_buf_size);
+		if (new_buf_ptr != NULL) {
+			ft232r_output = new_buf_ptr;
+			ft232r_buf_size = new_buf_size;
+		}
+	}
+}
+
 /**
  * Add one TCK/TMS/TDI sample to send buffer.
  */
 static void ft232r_write(int tck, int tms, int tdi)
 {
-	unsigned out_value = NTRST | NSYSRST;
+	unsigned out_value = (1<<ntrst_gpio) | (1<<nsysrst_gpio);
 	if (tck)
-		out_value |= TCK;
+		out_value |= (1<<tck_gpio);
 	if (tms)
-		out_value |= TMS;
+		out_value |= (1<<tms_gpio);
 	if (tdi)
-		out_value |= TDI;
+		out_value |= (1<<tdi_gpio);
 
-	if (ft232r_output_len >= FT232R_BUF_SIZE) {
+	ft232r_increase_buf_size(ft232r_output_len);
+
+	if (ft232r_output_len >= ft232r_buf_size) {
 		/* FIXME: should we just execute queue here? */
 		LOG_ERROR("ft232r_write: buffer overflow");
 		return;
@@ -187,20 +214,22 @@ static void ft232r_write(int tck, int tms, int tdi)
  */
 static void ft232r_reset(int trst, int srst)
 {
-	unsigned out_value = NTRST | NSYSRST;
+	unsigned out_value = (1<<ntrst_gpio) | (1<<nsysrst_gpio);
 	LOG_DEBUG("ft232r_reset(%d,%d)", trst, srst);
 
 	if (trst == 1)
-		out_value &= ~NTRST;		/* switch /TRST low */
+		out_value &= ~(1<<ntrst_gpio);		/* switch /TRST low */
 	else if (trst == 0)
-		out_value |= NTRST;			/* switch /TRST high */
+		out_value |= (1<<ntrst_gpio);			/* switch /TRST high */
 
 	if (srst == 1)
-		out_value &= ~NSYSRST;		/* switch /SYSRST low */
+		out_value &= ~(1<<nsysrst_gpio);		/* switch /SYSRST low */
 	else if (srst == 0)
-		out_value |= NSYSRST;		/* switch /SYSRST high */
+		out_value |= (1<<nsysrst_gpio);		/* switch /SYSRST high */
 
-	if (ft232r_output_len >= FT232R_BUF_SIZE) {
+	ft232r_increase_buf_size(ft232r_output_len);
+
+	if (ft232r_output_len >= ft232r_buf_size) {
 		/* FIXME: should we just execute queue here? */
 		LOG_ERROR("ft232r_write: buffer overflow");
 		return;
@@ -236,7 +265,10 @@ static int ft232r_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	libusb_detach_kernel_driver(adapter, 0);
+	if (ft232r_restore_bitmode == 0xFFFF) /* serial port will not be restored after jtag: */
+		libusb_detach_kernel_driver(adapter, 0);
+	else /* serial port will be restored after jtag: */
+		libusb_set_auto_detach_kernel_driver(adapter, 1); /* 1: DONT_DETACH_SIO_MODULE */
 
 	if (jtag_libusb_claim_interface(adapter, 0)) {
 		LOG_ERROR("unable to claim interface");
@@ -254,7 +286,7 @@ static int ft232r_init(void)
 	/* Sync bit bang mode. */
 	if (jtag_libusb_control_transfer(adapter,
 		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
-		SIO_SET_BITMODE, TCK | TDI | TMS | NTRST | NSYSRST | 0x400,
+		SIO_SET_BITMODE, (1<<tck_gpio) | (1<<tdi_gpio) | (1<<tms_gpio) | (1<<ntrst_gpio) | (1<<nsysrst_gpio) | 0x400,
 		0, 0, 0, 1000) != 0) {
 		LOG_ERROR("cannot set sync bitbang mode");
 		return ERROR_JTAG_INIT_FAILED;
@@ -279,7 +311,7 @@ static int ft232r_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	ft232r_output = malloc(FT232R_BUF_SIZE);
+	ft232r_output = malloc(ft232r_buf_size);
 	if (ft232r_output == NULL) {
 		LOG_ERROR("Unable to allocate memory for the buffer");
 		return ERROR_JTAG_INIT_FAILED;
@@ -290,11 +322,24 @@ static int ft232r_init(void)
 
 static int ft232r_quit(void)
 {
+	/* to restore serial port: set TXD RTS DTR as outputs, others as inputs, disable sync bit bang mode. */
+	if (ft232r_restore_bitmode != 0xFFFF) {
+		if (jtag_libusb_control_transfer(adapter,
+			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
+			SIO_SET_BITMODE, ft232r_restore_bitmode,
+			0, 0, 0, 1000) != 0) {
+			LOG_ERROR("cannot set bitmode to restore serial port");
+		}
+	}
+
 	if (jtag_libusb_release_interface(adapter, 0) != 0)
 		LOG_ERROR("usb release interface failed");
 
 	jtag_libusb_close(adapter);
-	free(ft232r_output);
+
+	free(ft232r_output); /* free used memory */
+	ft232r_output = NULL; /* reset pointer to memory */
+	ft232r_buf_size = FT232R_BUF_SIZE_EXTRA; /* reset next initial buffer size */
 
 	return ERROR_OK;
 }
@@ -331,6 +376,27 @@ static int ft232r_khz(int khz, int *divisor)
 	return ERROR_OK;
 }
 
+static char *ft232r_bit_number_to_name(int bit)
+{
+	if (bit >= 0 && bit < FT232R_BIT_COUNT)
+		return ft232r_bit_name_array[bit];
+	return "?";
+}
+
+static int ft232r_bit_name_to_number(const char *name)
+{
+	int i;
+	if (name[0] >= '0' && name[0] <= '9' && name[1] == '\0') {
+		i = atoi(name);
+		if (i >= 0 && i < FT232R_BIT_COUNT)
+			return i;
+	}
+	for (i = 0; i < FT232R_BIT_COUNT; i++)
+		if (strcasecmp(name, ft232r_bit_name_array[i]) == 0)
+			return i;
+	return -1;
+}
+
 COMMAND_HANDLER(ft232r_handle_serial_desc_command)
 {
 	if (CMD_ARGC == 1)
@@ -357,6 +423,145 @@ COMMAND_HANDLER(ft232r_handle_vid_pid_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(ft232r_handle_jtag_nums_command)
+{
+	if (CMD_ARGC == 4) {
+		tck_gpio = ft232r_bit_name_to_number(CMD_ARGV[0]);
+		tms_gpio = ft232r_bit_name_to_number(CMD_ARGV[1]);
+		tdi_gpio = ft232r_bit_name_to_number(CMD_ARGV[2]);
+		tdo_gpio = ft232r_bit_name_to_number(CMD_ARGV[3]);
+	} else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (tck_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (tms_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (tdi_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (tdo_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R nums: TCK = %d %s, TMS = %d %s, TDI = %d %s, TDO = %d %s",
+			tck_gpio, ft232r_bit_number_to_name(tck_gpio),
+			tms_gpio, ft232r_bit_number_to_name(tms_gpio),
+			tdi_gpio, ft232r_bit_number_to_name(tdi_gpio),
+			tdo_gpio, ft232r_bit_number_to_name(tdo_gpio));
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ft232r_handle_tck_num_command)
+{
+	if (CMD_ARGC == 1)
+		tck_gpio = ft232r_bit_name_to_number(CMD_ARGV[0]);
+	else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (tck_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R num: TCK = %d %s", tck_gpio, ft232r_bit_number_to_name(tck_gpio));
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ft232r_handle_tms_num_command)
+{
+	if (CMD_ARGC == 1)
+		tms_gpio = ft232r_bit_name_to_number(CMD_ARGV[0]);
+	else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (tms_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R num: TMS = %d %s", tms_gpio, ft232r_bit_number_to_name(tms_gpio));
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ft232r_handle_tdo_num_command)
+{
+	if (CMD_ARGC == 1)
+		tdo_gpio = ft232r_bit_name_to_number(CMD_ARGV[0]);
+	else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (tdo_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R num: TDO = %d %s", tdo_gpio, ft232r_bit_number_to_name(tdo_gpio));
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ft232r_handle_tdi_num_command)
+{
+	if (CMD_ARGC == 1)
+		tdi_gpio = ft232r_bit_name_to_number(CMD_ARGV[0]);
+	else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (tdi_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R num: TDI = %d %s", tdi_gpio, ft232r_bit_number_to_name(tdi_gpio));
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ft232r_handle_trst_num_command)
+{
+	if (CMD_ARGC == 1)
+		ntrst_gpio = ft232r_bit_name_to_number(CMD_ARGV[0]);
+	else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (ntrst_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R num: TRST = %d %s", ntrst_gpio, ft232r_bit_number_to_name(ntrst_gpio));
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ft232r_handle_srst_num_command)
+{
+	if (CMD_ARGC == 1)
+		nsysrst_gpio = ft232r_bit_name_to_number(CMD_ARGV[0]);
+	else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (nsysrst_gpio < 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R num: SRST = %d %s", nsysrst_gpio, ft232r_bit_number_to_name(nsysrst_gpio));
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(ft232r_handle_restore_serial_command)
+{
+	if (CMD_ARGC == 1)
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], ft232r_restore_bitmode);
+	else if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(CMD_CTX,
+			"FT232R restore serial: 0x%04X (%s)",
+			ft232r_restore_bitmode, ft232r_restore_bitmode == 0xFFFF ? "disabled" : "enabled");
+
+	return ERROR_OK;
+}
+
 static const struct command_registration ft232r_command_handlers[] = {
 	{
 		.name = "ft232r_serial_desc",
@@ -371,6 +576,62 @@ static const struct command_registration ft232r_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "USB VID and PID of the adapter",
 		.usage = "vid pid",
+	},
+	{
+		.name = "ft232r_jtag_nums",
+		.handler = ft232r_handle_jtag_nums_command,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
+		.usage = "<0-7|TXD-RI> <0-7|TXD-RI> <0-7|TXD-RI> <0-7|TXD-RI>",
+	},
+	{
+		.name = "ft232r_tck_num",
+		.handler = ft232r_handle_tck_num_command,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio number for tck.",
+		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
+	},
+	{
+		.name = "ft232r_tms_num",
+		.handler = ft232r_handle_tms_num_command,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio number for tms.",
+		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
+	},
+	{
+		.name = "ft232r_tdo_num",
+		.handler = ft232r_handle_tdo_num_command,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio number for tdo.",
+		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
+	},
+	{
+		.name = "ft232r_tdi_num",
+		.handler = ft232r_handle_tdi_num_command,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio number for tdi.",
+		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
+	},
+	{
+		.name = "ft232r_srst_num",
+		.handler = ft232r_handle_srst_num_command,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio number for srst.",
+		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
+	},
+	{
+		.name = "ft232r_trst_num",
+		.handler = ft232r_handle_trst_num_command,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio number for trst.",
+		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
+	},
+	{
+		.name = "ft232r_restore_serial",
+		.handler = ft232r_handle_restore_serial_command,
+		.mode = COMMAND_CONFIG,
+		.help = "bitmode control word that restores serial port.",
+		.usage = "bitmode_control_word",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -553,7 +814,7 @@ static void syncbb_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int 
 			int bcval = 1 << (bit_cnt % 8);
 			int val = ft232r_output[bit0_index + bit_cnt*2 + 1];
 
-			if (val & READ_TDO)
+			if (val & (1<<tdo_gpio))
 				buffer[bytec] |= bcval;
 			else
 				buffer[bytec] &= ~bcval;

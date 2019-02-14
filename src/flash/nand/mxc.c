@@ -179,6 +179,7 @@ COMMAND_HANDLER(handle_mxc_biswap_command)
 static const struct command_registration mxc_sub_command_handlers[] = {
 	{
 		.name = "biswap",
+		.mode = COMMAND_EXEC,
 		.handler = handle_mxc_biswap_command,
 		.help = "Turns on/off bad block information swaping from main area, "
 			"without parameter query status.",

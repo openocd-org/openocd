@@ -457,62 +457,70 @@ static const struct command_registration sysfsgpio_command_handlers[] = {
 		.handler = &sysfsgpio_handle_jtag_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
-		.usage = "(tck tms tdi tdo)* ",
+		.usage = "[tck tms tdi tdo]",
 	},
 	{
 		.name = "sysfsgpio_tck_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tck,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tck.",
+		.usage = "[tck]",
 	},
 	{
 		.name = "sysfsgpio_tms_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tms,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tms.",
+		.usage = "[tms]",
 	},
 	{
 		.name = "sysfsgpio_tdo_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tdo,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdo.",
+		.usage = "[tdo]",
 	},
 	{
 		.name = "sysfsgpio_tdi_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tdi,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdi.",
+		.usage = "[tdi]",
 	},
 	{
 		.name = "sysfsgpio_srst_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_srst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for srst.",
+		.usage = "[srst]",
 	},
 	{
 		.name = "sysfsgpio_trst_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_trst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for trst.",
+		.usage = "[trst]",
 	},
 	{
 		.name = "sysfsgpio_swd_nums",
 		.handler = &sysfsgpio_handle_swd_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for swclk, swdio. (in that order)",
-		.usage = "(swclk swdio)* ",
+		.usage = "[swclk swdio]",
 	},
 	{
 		.name = "sysfsgpio_swclk_num",
 		.handler = &sysfsgpio_handle_swd_gpionum_swclk,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swclk.",
+		.usage = "[swclk]",
 	},
 	{
 		.name = "sysfsgpio_swdio_num",
 		.handler = &sysfsgpio_handle_swd_gpionum_swdio,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swdio.",
+		.usage = "[swdio]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -561,6 +569,8 @@ static void cleanup_all_fds(void)
 	cleanup_fd(tdo_fd, tdo_gpio);
 	cleanup_fd(trst_fd, trst_gpio);
 	cleanup_fd(srst_fd, srst_gpio);
+	cleanup_fd(swclk_fd, swclk_gpio);
+	cleanup_fd(swdio_fd, swdio_gpio);
 }
 
 static bool sysfsgpio_jtag_mode_possible(void)

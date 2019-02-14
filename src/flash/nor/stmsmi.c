@@ -269,17 +269,14 @@ static int smi_write_enable(struct flash_bank *bank)
 static uint32_t erase_command(struct stmsmi_flash_bank *stmsmi_info,
 	uint32_t offset)
 {
-	union {
-		uint32_t command;
-		uint8_t x[4];
-	} cmd;
+	uint8_t cmd_bytes[] = {
+		stmsmi_info->dev->erase_cmd,
+		offset >> 16,
+		offset >> 8,
+		offset
+	};
 
-	cmd.x[0] = stmsmi_info->dev->erase_cmd;
-	cmd.x[1] = offset >> 16;
-	cmd.x[2] = offset >> 8;
-	cmd.x[3] = offset;
-
-	return cmd.command;
+	return le_to_h_u32(cmd_bytes);
 }
 
 static int smi_erase_sector(struct flash_bank *bank, int sector)
@@ -347,6 +344,9 @@ static int stmsmi_erase(struct flash_bank *bank, int first, int last)
 			return ERROR_FAIL;
 		}
 	}
+
+	if (stmsmi_info->dev->erase_cmd == 0x00)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
 
 	for (sector = first; sector <= last; sector++) {
 		retval = smi_erase_sector(bank, sector);
@@ -431,7 +431,9 @@ static int stmsmi_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 	}
 
-	page_size = stmsmi_info->dev->pagesize;
+	/* if no valid page_size, use reasonable default */
+	page_size = stmsmi_info->dev->pagesize ?
+		stmsmi_info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
 
 	/* unaligned buffer head */
 	if (count > 0 && (offset & 3) != 0) {
@@ -524,7 +526,7 @@ static int stmsmi_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
-	uint32_t io_base;
+	uint32_t io_base, sectorsize;
 	struct flash_sector *sectors;
 	uint32_t id = 0; /* silence uninitialized warning */
 	const struct stmsmi_target *target_device;
@@ -589,10 +591,18 @@ static int stmsmi_probe(struct flash_bank *bank)
 
 	/* Set correct size value */
 	bank->size = stmsmi_info->dev->size_in_bytes;
+	if (bank->size <= (1UL << 16))
+		LOG_WARNING("device needs 2-byte addresses - not implemented");
+	if (bank->size > (1UL << 24))
+		LOG_WARNING("device needs paging or 4-byte addresses - not implemented");
+
+	/* if no sectors, treat whole bank as single sector */
+	sectorsize = stmsmi_info->dev->sectorsize ?
+		stmsmi_info->dev->sectorsize : stmsmi_info->dev->size_in_bytes;
 
 	/* create and fill sectors array */
 	bank->num_sectors =
-		stmsmi_info->dev->size_in_bytes / stmsmi_info->dev->sectorsize;
+		stmsmi_info->dev->size_in_bytes / sectorsize;
 	sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	if (sectors == NULL) {
 		LOG_ERROR("not enough memory");
@@ -600,8 +610,8 @@ static int stmsmi_probe(struct flash_bank *bank)
 	}
 
 	for (int sector = 0; sector < bank->num_sectors; sector++) {
-		sectors[sector].offset = sector * stmsmi_info->dev->sectorsize;
-		sectors[sector].size = stmsmi_info->dev->sectorsize;
+		sectors[sector].offset = sector * sectorsize;
+		sectors[sector].size = sectorsize;
 		sectors[sector].is_erased = -1;
 		sectors[sector].is_protected = 1;
 	}

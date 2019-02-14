@@ -211,6 +211,7 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 	/* nRF52832 Devices */
 	NRF5_DEVICE_DEF(0x00C7, "52832", "QFAA", "B0",    512),
 	NRF5_DEVICE_DEF(0x0139, "52832", "QFAA", "E0",    512),
+	NRF5_DEVICE_DEF(0x00E3, "52832", "CIAA", "B0",    512),
 
 	/* nRF52840 Devices */
 	NRF5_DEVICE_DEF(0x0150, "52840", "QIAA", "C0",    1024),
@@ -248,7 +249,7 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 {
 	uint32_t ready;
 	int res;
-	int timeout_ms = 200;
+	int timeout_ms = 340;
 	int64_t ts_start = timeval_ms();
 
 	do {

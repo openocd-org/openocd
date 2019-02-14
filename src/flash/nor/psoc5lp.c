@@ -753,16 +753,6 @@ static int psoc5lp_nvl_write(struct flash_bank *bank,
 	return ERROR_OK;
 }
 
-static int psoc5lp_nvl_protect_check(struct flash_bank *bank)
-{
-	int i;
-
-	for (i = 0; i < bank->num_sectors; i++)
-		bank->sectors[i].is_protected = -1;
-
-	return ERROR_OK;
-}
-
 static int psoc5lp_nvl_get_info_command(struct flash_bank *bank,
 	char *buf, int buf_size)
 {
@@ -855,7 +845,6 @@ struct flash_driver psoc5lp_nvl_flash = {
 	.info = psoc5lp_nvl_get_info_command,
 	.probe = psoc5lp_nvl_probe,
 	.auto_probe = psoc5lp_nvl_auto_probe,
-	.protect_check = psoc5lp_nvl_protect_check,
 	.read = psoc5lp_nvl_read,
 	.erase = psoc5lp_nvl_erase,
 	.erase_check = psoc5lp_nvl_erase_check,
@@ -941,16 +930,6 @@ static int psoc5lp_eeprom_write(struct flash_bank *bank,
 		if (retval != ERROR_OK)
 			return retval;
 	}
-
-	return ERROR_OK;
-}
-
-static int psoc5lp_eeprom_protect_check(struct flash_bank *bank)
-{
-	int i;
-
-	for (i = 0; i < bank->num_sectors; i++)
-		bank->sectors[i].is_protected = -1;
 
 	return ERROR_OK;
 }
@@ -1064,7 +1043,6 @@ struct flash_driver psoc5lp_eeprom_flash = {
 	.info = psoc5lp_eeprom_get_info_command,
 	.probe = psoc5lp_eeprom_probe,
 	.auto_probe = psoc5lp_eeprom_auto_probe,
-	.protect_check = psoc5lp_eeprom_protect_check,
 	.read = default_flash_read,
 	.erase = psoc5lp_eeprom_erase,
 	.erase_check = default_flash_blank_check,

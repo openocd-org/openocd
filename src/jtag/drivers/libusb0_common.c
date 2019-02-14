@@ -67,7 +67,8 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 		const char *serial,
 		struct jtag_libusb_device_handle **out)
 {
-	int retval = -ENODEV;
+	int retval = ERROR_FAIL;
+	bool serial_mismatch = false;
 	struct jtag_libusb_device_handle *libusb_handle;
 	usb_init();
 
@@ -83,21 +84,27 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 
 			libusb_handle = usb_open(dev);
 			if (NULL == libusb_handle) {
-				retval = -errno;
+				LOG_ERROR("usb_open() failed with %s", usb_strerror());
 				continue;
 			}
 
 			/* Device must be open to use libusb_get_string_descriptor_ascii. */
 			if (serial != NULL &&
 					!string_descriptor_equal(libusb_handle, dev->descriptor.iSerialNumber, serial)) {
+				serial_mismatch = true;
 				usb_close(libusb_handle);
 				continue;
 			}
 			*out = libusb_handle;
-			retval = 0;
+			retval = ERROR_OK;
+			serial_mismatch = false;
 			break;
 		}
 	}
+
+	if (serial_mismatch)
+		LOG_INFO("No device matches the serial string");
+
 	return retval;
 }
 

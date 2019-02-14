@@ -61,46 +61,16 @@ static const char * const log_strings[6] = {
 
 static int count;
 
-static struct store_log_forward *log_head;
-static int log_forward_count;
-
-struct store_log_forward {
-	struct store_log_forward *next;
-	const char *file;
-	int line;
-	const char *function;
-	const char *string;
-};
-
-/* either forward the log to the listeners or store it for possible forwarding later */
+/* forward the log to the listeners */
 static void log_forward(const char *file, unsigned line, const char *function, const char *string)
 {
-	if (log_forward_count == 0) {
-		struct log_callback *cb, *next;
-		cb = log_callbacks;
-		/* DANGER!!!! the log callback can remove itself!!!! */
-		while (cb) {
-			next = cb->next;
-			cb->fn(cb->priv, file, line, function, string);
-			cb = next;
-		}
-	} else {
-		struct store_log_forward *log = malloc(sizeof(struct store_log_forward));
-		log->file = strdup(file);
-		log->line = line;
-		log->function = strdup(function);
-		log->string = strdup(string);
-		log->next = NULL;
-		if (log_head == NULL)
-			log_head = log;
-		else {
-			/* append to tail */
-			struct store_log_forward *t;
-			t = log_head;
-			while (t->next != NULL)
-				t = t->next;
-			t->next = log;
-		}
+	struct log_callback *cb, *next;
+	cb = log_callbacks;
+	/* DANGER!!!! the log callback can remove itself!!!! */
+	while (cb) {
+		next = cb->next;
+		cb->fn(cb->priv, file, line, function, string);
+		cb = next;
 	}
 }
 
