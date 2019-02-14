@@ -678,8 +678,9 @@ static int stm32l4_probe(struct flash_bank *bank)
 			/* Invalid FLASH size for this device. */
 			LOG_WARNING("Invalid flash size for STM32L4+ family device.");
 			return ERROR_FAIL;
-		default:
-			/* Other L4 family devices have 2K pages. */
+		case 0x461:
+		case 0x415:
+			/* These are dual-bank devices, we need to check the OPT_DBANK_LE_1M bit here */
 			page_size = 2048;
 			num_pages = flash_size_in_kb / 2;
 			/* check that calculation result makes sense */
@@ -688,6 +689,16 @@ static int stm32l4_probe(struct flash_bank *bank)
 				stm32l4_info->bank2_start = 256;
 			else
 				stm32l4_info->bank2_start = num_pages / 2;
+			break;
+		case 0x462:
+		case 0x435:
+		default:
+			/* These are single-bank devices */
+			page_size = 2048;
+			num_pages = flash_size_in_kb / 2;
+			/* check that calculation result makes sense */
+			assert(num_pages > 0);
+			stm32l4_info->bank2_start = UINT16_MAX;
 			break;
 	}
 
