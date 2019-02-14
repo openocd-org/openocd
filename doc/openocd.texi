@@ -8173,8 +8173,8 @@ in which case it will be a hardware breakpoint.
 for similar mechanisms that do not consume hardware breakpoints.)
 @end deffn
 
-@deffn Command {rbp} address
-Remove the breakpoint at @var{address}.
+@deffn Command {rbp} @option{all} | address
+Remove the breakpoint at @var{address} or all breakpoints.
 @end deffn
 
 @deffn Command {rwp} address
