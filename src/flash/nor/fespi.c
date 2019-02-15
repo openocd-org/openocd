@@ -162,7 +162,7 @@ FLASH_BANK_COMMAND_HANDLER(fespi_flash_bank_command)
 		int temp;
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[6], temp);
 		fespi_info->ctrl_base = (uint32_t) temp;
-		LOG_DEBUG("ASSUMING FESPI device at ctrl_base = 0x%" TARGET_PRIxADDR,
+		LOG_DEBUG("ASSUMING FESPI device at ctrl_base = " TARGET_ADDR_FMT,
 				fespi_info->ctrl_base);
 	}
 
@@ -176,7 +176,7 @@ static int fespi_read_reg(struct flash_bank *bank, uint32_t *value, target_addr_
 
 	int result = target_read_u32(target, fespi_info->ctrl_base + address, value);
 	if (result != ERROR_OK) {
-		LOG_ERROR("fespi_read_reg() error at 0x%" TARGET_PRIxADDR,
+		LOG_ERROR("fespi_read_reg() error at " TARGET_ADDR_FMT,
 				fespi_info->ctrl_base + address);
 		return result;
 	}
@@ -190,7 +190,7 @@ static int fespi_write_reg(struct flash_bank *bank, target_addr_t address, uint3
 
 	int result = target_write_u32(target, fespi_info->ctrl_base + address, value);
 	if (result != ERROR_OK) {
-		LOG_ERROR("fespi_write_reg() error writing 0x%x to 0x%" TARGET_PRIxADDR,
+		LOG_ERROR("fespi_write_reg() error writing 0x%x to " TARGET_ADDR_FMT,
 				value, fespi_info->ctrl_base + address);
 		return result;
 	}
@@ -709,7 +709,7 @@ static int steps_execute(struct algorithm_steps *as,
 				data_buf);
 		free(data_buf);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to write data to 0x%" TARGET_PRIxADDR ": %d",
+			LOG_ERROR("Failed to write data to " TARGET_ADDR_FMT ": %d",
 					data_wa->address, retval);
 			goto exit;
 		}
@@ -718,7 +718,7 @@ static int steps_execute(struct algorithm_steps *as,
 				algorithm_wa->address, algorithm_wa->address + 4,
 				10000, NULL);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d",
+			LOG_ERROR("Failed to execute algorithm at " TARGET_ADDR_FMT ": %d",
 					algorithm_wa->address, retval);
 			goto exit;
 		}
@@ -775,7 +775,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		retval = target_write_buffer(target, algorithm_wa->address,
 				sizeof(algorithm_bin), algorithm_bin);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to write code to 0x%" TARGET_PRIxADDR ": %d",
+			LOG_ERROR("Failed to write code to " TARGET_ADDR_FMT ": %d",
 					algorithm_wa->address, retval);
 			target_free_working_area(target, algorithm_wa);
 			algorithm_wa = NULL;
@@ -935,12 +935,13 @@ static int fespi_probe(struct flash_bank *bank)
 
 		fespi_info->ctrl_base = target_device->ctrl_base;
 
-		LOG_DEBUG("Valid FESPI on device %s at address 0x%" PRIx32,
+		LOG_DEBUG("Valid FESPI on device %s at address " TARGET_ADDR_FMT,
 				target_device->name, bank->base);
 
 	} else {
-	  LOG_DEBUG("Assuming FESPI as specified at address 0x%" TARGET_PRIxADDR
-			  " with ctrl at 0x%x", fespi_info->ctrl_base, bank->base);
+	  LOG_DEBUG("Assuming FESPI as specified at address " TARGET_ADDR_FMT
+			  " with ctrl at " TARGET_ADDR_FMT, fespi_info->ctrl_base,
+			  bank->base);
 	}
 
 	/* read and decode flash ID; returns in SW mode */

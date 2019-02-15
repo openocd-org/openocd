@@ -1227,7 +1227,7 @@ static int psoc5lp_write(struct flash_bank *bank, const uint8_t *buffer,
 			struct working_area *data_area = even_row ? even_row_area : odd_row_area;
 			unsigned len = MIN(ROW_SIZE, byte_count);
 
-			LOG_DEBUG("Writing load command for array %u row %u at 0x%08" TARGET_PRIxADDR,
+			LOG_DEBUG("Writing load command for array %u row %u at " TARGET_ADDR_FMT,
 				array_id, row, data_area->address);
 
 			psoc5lp_spc_write_opcode_buffer(target, buf, SPC_LOAD_ROW);

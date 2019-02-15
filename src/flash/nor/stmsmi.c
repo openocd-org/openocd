@@ -559,13 +559,13 @@ static int stmsmi_probe(struct flash_bank *bank)
 			stmsmi_info->bank_num = SMI_SEL_BANK3;
 			break;
 		default:
-			LOG_ERROR("Invalid SMI base address 0x%" PRIx32, bank->base);
+			LOG_ERROR("Invalid SMI base address " TARGET_ADDR_FMT, bank->base);
 			return ERROR_FAIL;
 	}
 	io_base = target_device->io_base;
 	stmsmi_info->io_base = io_base;
 
-	LOG_DEBUG("Valid SMI on device %s at address 0x%" PRIx32,
+	LOG_DEBUG("Valid SMI on device %s at address " TARGET_ADDR_FMT,
 		target_device->name, bank->base);
 
 	/* read and decode flash ID; returns in SW mode */

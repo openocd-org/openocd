@@ -112,7 +112,7 @@ COMMAND_HANDLER(handle_flash_info_command)
 			LOG_WARNING("Flash protection check is not implemented.");
 
 		command_print(CMD_CTX,
-			"#%d : %s at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32
+			"#%d : %s at " TARGET_ADDR_FMT ", size 0x%8.8" PRIx32
 			", buswidth %i, chipwidth %i",
 			p->bank_number,
 			p->driver->name,
@@ -177,7 +177,7 @@ COMMAND_HANDLER(handle_flash_probe_command)
 		retval = p->driver->probe(p);
 		if (retval == ERROR_OK)
 			command_print(CMD_CTX,
-				"flash '%s' found at 0x%8.8" PRIx32,
+				"flash '%s' found at " TARGET_ADDR_FMT,
 				p->driver->name,
 				p->base);
 	} else {
@@ -205,7 +205,8 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 		command_print(CMD_CTX, "successfully checked erase state");
 	else {
 		command_print(CMD_CTX,
-			"unknown error when checking erase state of flash bank #%s at 0x%8.8" PRIx32,
+			"unknown error when checking erase state of flash bank #%s at "
+			TARGET_ADDR_FMT,
 			CMD_ARGV[0],
 			p->base);
 	}
@@ -239,7 +240,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 {
 	struct flash_bank *p;
 	int retval = ERROR_OK;
-	uint32_t address;
+	target_addr_t address;
 	uint32_t length;
 	bool do_pad = false;
 	bool do_unlock = false;
@@ -262,7 +263,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 
 	if (length <= 0) {
@@ -288,7 +289,8 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 		retval = flash_erase_address_range(target, do_pad, address, length);
 
 	if ((ERROR_OK == retval) && (duration_measure(&bench) == ERROR_OK)) {
-		command_print(CMD_CTX, "erased address 0x%8.8" PRIx32 " (length %" PRIi32 ")"
+		command_print(CMD_CTX, "erased address " TARGET_ADDR_FMT " (length %"
+				PRIi32 ")"
 			" in %fs (%0.3f KiB/s)", address, length,
 			duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
@@ -1138,7 +1140,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	c->name = strdup(bank_name);
 	c->target = target;
 	c->driver = driver;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], c->base);
+	COMMAND_PARSE_NUMBER(target_addr, CMD_ARGV[1], c->base);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], c->size);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], c->chip_width);
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[4], c->bus_width);
@@ -1148,8 +1150,8 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	int retval;
 	retval = CALL_COMMAND_HANDLER(driver->flash_bank_command, c);
 	if (ERROR_OK != retval) {
-		LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 "; usage: %s",
-			driver_name, c->base, driver->usage);
+		LOG_ERROR("'%s' driver rejected flash bank at " TARGET_ADDR_FMT
+				"; usage: %s", driver_name, c->base, driver->usage);
 		free(c);
 		return retval;
 	}
@@ -1169,7 +1171,7 @@ COMMAND_HANDLER(handle_flash_banks_command)
 
 	unsigned n = 0;
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++) {
-		LOG_USER("#%d : %s (%s) at 0x%8.8" PRIx32 ", size 0x%8.8" PRIx32 ", "
+		LOG_USER("#%d : %s (%s) at " TARGET_ADDR_FMT ", size 0x%8.8" PRIx32 ", "
 			"buswidth %u, chipwidth %u", p->bank_number,
 			p->name, p->driver->name, p->base, p->size,
 			p->bus_width, p->chip_width);

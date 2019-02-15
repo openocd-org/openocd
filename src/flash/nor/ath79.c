@@ -794,7 +794,7 @@ static int ath79_probe(struct flash_bank *bank)
 
 	ath79_info->io_base = target_device->io_base;
 
-	LOG_DEBUG("Found device %s at address 0x%" PRIx32,
+	LOG_DEBUG("Found device %s at address " TARGET_ADDR_FMT,
 		  target_device->name, bank->base);
 
 	retval = read_flash_id(bank, &id);
