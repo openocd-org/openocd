@@ -9,23 +9,20 @@
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
-static void dump_field(const struct scan_field *field);
+static void dump_field(int idle, const struct scan_field *field);
 
 struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans, size_t idle)
 {
 	scans += 4;
-	struct riscv_batch *out = malloc(sizeof(*out));
-	memset(out, 0, sizeof(*out));
+	struct riscv_batch *out = calloc(1, sizeof(*out));
 	out->target = target;
 	out->allocated_scans = scans;
-	out->used_scans = 0;
 	out->idle_count = idle;
 	out->data_out = malloc(sizeof(*out->data_out) * (scans) * sizeof(uint64_t));
 	out->data_in  = malloc(sizeof(*out->data_in)  * (scans) * sizeof(uint64_t));
 	out->fields = malloc(sizeof(*out->fields) * (scans));
 	out->last_scan = RISCV_SCAN_TYPE_INVALID;
 	out->read_keys = malloc(sizeof(*out->read_keys) * (scans));
-	out->read_keys_used = 0;
 	return out;
 }
 
@@ -51,7 +48,6 @@ int riscv_batch_run(struct riscv_batch *batch)
 
 	keep_alive();
 
-	LOG_DEBUG("running a batch of %ld scans", (long)batch->used_scans);
 	riscv_batch_add_nop(batch);
 
 	for (size_t i = 0; i < batch->used_scans; ++i) {
@@ -60,14 +56,13 @@ int riscv_batch_run(struct riscv_batch *batch)
 			jtag_add_runtest(batch->idle_count, TAP_IDLE);
 	}
 
-	LOG_DEBUG("executing queue");
 	if (jtag_execute_queue() != ERROR_OK) {
 		LOG_ERROR("Unable to execute JTAG queue");
 		return ERROR_FAIL;
 	}
 
 	for (size_t i = 0; i < batch->used_scans; ++i)
-		dump_field(batch->fields + i);
+		dump_field(batch->idle_count, batch->fields + i);
 
 	return ERROR_OK;
 }
@@ -98,13 +93,10 @@ size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
 	batch->used_scans++;
 
 	/* FIXME We get the read response back on the next scan.  For now I'm
-	 * just sticking a NOP in there, but this should be coelesced away. */
+	 * just sticking a NOP in there, but this should be coalesced away. */
 	riscv_batch_add_nop(batch);
 
 	batch->read_keys[batch->read_keys_used] = batch->used_scans - 1;
-	LOG_DEBUG("read key %u for batch 0x%p is %u (0x%p)",
-			(unsigned) batch->read_keys_used, batch, (unsigned) (batch->used_scans - 1),
-			batch->data_in + sizeof(uint64_t) * (batch->used_scans + 1));
 	return batch->read_keys_used++;
 }
 
@@ -135,10 +127,9 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 	riscv_fill_dmi_nop_u64(batch->target, (char *)field->in_value);
 	batch->last_scan = RISCV_SCAN_TYPE_NOP;
 	batch->used_scans++;
-	LOG_DEBUG("  added NOP with in_value=0x%p", field->in_value);
 }
 
-void dump_field(const struct scan_field *field)
+void dump_field(int idle, const struct scan_field *field)
 {
 	static const char * const op_string[] = {"-", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
@@ -160,13 +151,13 @@ void dump_field(const struct scan_field *field)
 
 		log_printf_lf(LOG_LVL_DEBUG,
 				__FILE__, __LINE__, __PRETTY_FUNCTION__,
-				"%db %s %08x @%02x -> %s %08x @%02x",
-				field->num_bits,
+				"%db %di %s %08x @%02x -> %s %08x @%02x",
+				field->num_bits, idle,
 				op_string[out_op], out_data, out_address,
 				status_string[in_op], in_data, in_address);
 	} else {
 		log_printf_lf(LOG_LVL_DEBUG,
-				__FILE__, __LINE__, __PRETTY_FUNCTION__, "%db %s %08x @%02x -> ?",
-				field->num_bits, op_string[out_op], out_data, out_address);
+				__FILE__, __LINE__, __PRETTY_FUNCTION__, "%db %di %s %08x @%02x -> ?",
+				field->num_bits, idle, op_string[out_op], out_data, out_address);
 	}
 }

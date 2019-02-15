@@ -9466,6 +9466,14 @@ command can be used if OpenOCD gets this wrong, or a target implements custom
 CSRs.
 @end deffn
 
+@deffn Command {riscv expose_custom} n0[-m0][,n1[-m1]]...
+The RISC-V Debug Specification allows targets to expose custom registers
+through abstract commands. (See Section 3.5.1.1 in that document.) This command
+configures a list of inclusive ranges of those registers to expose. Number 0
+indicates the first custom register, whose abstract command number is 0xc000.
+This command must be executed before `init`.
+@end deffn
+
 @deffn Command {riscv set_command_timeout_sec} [seconds]
 Set the wall-clock timeout (in seconds) for individual commands. The default
 should work fine for all but the slowest targets (eg. simulators).
@@ -9484,6 +9492,17 @@ This is used to access 64-bit floating point registers on 32-bit targets.
 @deffn Command {riscv set_prefer_sba} on|off
 When on, prefer to use System Bus Access to access memory.  When off, prefer to
 use the Program Buffer to access memory.
+@end deffn
+
+@deffn Command {riscv set_ir} (@option{idcode}|@option{dtmcs}|@option{dmi}) [value]
+Set the IR value for the specified JTAG register.  This is useful, for
+example, when using the existing JTAG interface on a Xilinx FPGA by
+way of BSCANE2 primitives that only permit a limited selection of IR
+values.
+
+When utilizing version 0.11 of the RISC-V Debug Specification,
+@option{dtmcs} and @option{dmi} set the IR values for the DTMCONTROL
+and DBUS registers, respectively.
 @end deffn
 
 @subsection RISC-V Authentication Commands
