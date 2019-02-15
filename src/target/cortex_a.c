@@ -2840,8 +2840,7 @@ static int cortex_a_init_arch_info(struct target *target,
 
 static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct cortex_a_common *cortex_a = calloc(1, sizeof(struct cortex_a_common));
-	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
+	struct cortex_a_common *cortex_a;
 	struct adiv5_private_config *pc;
 
 	if (target->private_config == NULL)
@@ -2849,8 +2848,13 @@ static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 
 	pc = (struct adiv5_private_config *)target->private_config;
 
+	cortex_a = calloc(1, sizeof(struct cortex_a_common));
+	if (cortex_a == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
 	cortex_a->armv7a_common.is_armv7r = false;
-
 	cortex_a->armv7a_common.arm.arm_vfp_version = ARM_VFP_V3;
 
 	return cortex_a_init_arch_info(target, cortex_a, pc->dap);
@@ -2858,14 +2862,19 @@ static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 
 static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct cortex_a_common *cortex_a = calloc(1, sizeof(struct cortex_a_common));
-	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
+	struct cortex_a_common *cortex_a;
 	struct adiv5_private_config *pc;
 
 	pc = (struct adiv5_private_config *)target->private_config;
 	if (adiv5_verify_config(pc) != ERROR_OK)
 		return ERROR_FAIL;
 
+	cortex_a = calloc(1, sizeof(struct cortex_a_common));
+	if (cortex_a == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
 	cortex_a->armv7a_common.is_armv7r = true;
 
 	return cortex_a_init_arch_info(target, cortex_a, pc->dap);
