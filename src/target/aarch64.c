@@ -2396,10 +2396,16 @@ static int aarch64_init_arch_info(struct target *target,
 static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct aarch64_private_config *pc = target->private_config;
-	struct aarch64_common *aarch64 = calloc(1, sizeof(struct aarch64_common));
+	struct aarch64_common *aarch64;
 
 	if (adiv5_verify_config(&pc->adiv5_config) != ERROR_OK)
 		return ERROR_FAIL;
+
+	aarch64 = calloc(1, sizeof(struct aarch64_common));
+	if (aarch64 == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	return aarch64_init_arch_info(target, aarch64, pc->adiv5_config.dap);
 }
