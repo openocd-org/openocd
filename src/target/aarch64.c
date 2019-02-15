@@ -2388,7 +2388,8 @@ static int aarch64_init_arch_info(struct target *target,
 	armv8->armv8_mmu.read_physical_memory = aarch64_read_phys_memory;
 
 	armv8_init_arch_info(target, armv8);
-	target_register_timer_callback(aarch64_handle_target_request, 1, 1, target);
+	target_register_timer_callback(aarch64_handle_target_request, 1,
+		TARGET_TIMER_TYPE_PERIODIC, target);
 
 	return ERROR_OK;
 }

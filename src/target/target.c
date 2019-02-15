@@ -1357,7 +1357,7 @@ static int target_init(struct command_context *cmd_ctx)
 		return retval;
 
 	retval = target_register_timer_callback(&handle_target,
-			polling_interval, 1, cmd_ctx->interp);
+			polling_interval, TARGET_TIMER_TYPE_PERIODIC, cmd_ctx->interp);
 	if (ERROR_OK != retval)
 		return retval;
 

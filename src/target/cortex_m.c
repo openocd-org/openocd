@@ -2269,7 +2269,8 @@ static int cortex_m_init_arch_info(struct target *target,
 	armv7m->load_core_reg_u32 = cortex_m_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = cortex_m_store_core_reg_u32;
 
-	target_register_timer_callback(cortex_m_handle_target_request, 1, 1, target);
+	target_register_timer_callback(cortex_m_handle_target_request, 1,
+		TARGET_TIMER_TYPE_PERIODIC, target);
 
 	return ERROR_OK;
 }

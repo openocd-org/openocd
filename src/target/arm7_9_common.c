@@ -2859,7 +2859,7 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 		return retval;
 
 	return target_register_timer_callback(arm7_9_handle_target_request,
-		1, 1, target);
+		1, TARGET_TIMER_TYPE_PERIODIC, target);
 }
 
 static const struct command_registration arm7_9_any_command_handlers[] = {

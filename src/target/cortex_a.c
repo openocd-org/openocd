@@ -2833,7 +2833,8 @@ static int cortex_a_init_arch_info(struct target *target,
 
 	/* REVISIT v7a setup should be in a v7a-specific routine */
 	armv7a_init_arch_info(target, armv7a);
-	target_register_timer_callback(cortex_a_handle_target_request, 1, 1, target);
+	target_register_timer_callback(cortex_a_handle_target_request, 1,
+		TARGET_TIMER_TYPE_PERIODIC, target);
 
 	return ERROR_OK;
 }
