@@ -1437,7 +1437,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 
 	if (!len) {
 		LOG_WARNING("invalid read memory packet received (len == 0)");
-		gdb_put_packet(connection, NULL, 0);
+		gdb_put_packet(connection, "", 0);
 		return ERROR_OK;
 	}
 
@@ -3337,7 +3337,7 @@ static int gdb_input_inner(struct connection *connection)
 				default:
 					/* ignore unknown packets */
 					LOG_DEBUG("ignoring 0x%2.2x packet", packet[0]);
-					gdb_put_packet(connection, NULL, 0);
+					gdb_put_packet(connection, "", 0);
 					break;
 			}
 
