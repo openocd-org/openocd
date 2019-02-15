@@ -1460,7 +1460,8 @@ int target_register_trace_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
-int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv)
+int target_register_timer_callback(int (*callback)(void *priv),
+		unsigned int time_ms, enum target_timer_type type, void *priv)
 {
 	struct target_timer_callback **callbacks_p = &target_timer_callbacks;
 
@@ -1475,7 +1476,7 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 
 	(*callbacks_p) = malloc(sizeof(struct target_timer_callback));
 	(*callbacks_p)->callback = callback;
-	(*callbacks_p)->periodic = periodic;
+	(*callbacks_p)->type = type;
 	(*callbacks_p)->time_ms = time_ms;
 	(*callbacks_p)->removed = false;
 
@@ -1625,7 +1626,7 @@ static int target_call_timer_callback(struct target_timer_callback *cb,
 {
 	cb->callback(cb->priv);
 
-	if (cb->periodic)
+	if (cb->type == TARGET_TIMER_TYPE_PERIODIC)
 		return target_timer_callback_periodic_restart(cb, now);
 
 	return target_unregister_timer_callback(cb->callback, cb->priv);
@@ -1659,7 +1660,7 @@ static int target_call_timer_callbacks_check_time(int checktime)
 		}
 
 		bool call_it = (*callback)->callback &&
-			((!checktime && (*callback)->periodic) ||
+			((!checktime && (*callback)->type == TARGET_TIMER_TYPE_PERIODIC) ||
 			 timeval_compare(&now, &(*callback)->when) >= 0);
 
 		if (call_it)
