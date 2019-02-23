@@ -229,33 +229,19 @@ static int stm32x_read_options(struct flash_bank *bank)
 	uint32_t option_bytes;
 	int retval;
 
-	/* read user and read protection option bytes */
-	retval = target_read_u32(target, STM32_OB_RDP, &option_bytes);
+	/* read user and read protection option bytes, user data option bytes */
+	retval = target_read_u32(target, STM32_FLASH_OBR_B0, &option_bytes);
 	if (retval != ERROR_OK)
 		return retval;
 
-	stm32x_info->option_bytes.rdp = option_bytes & 0xFF;
-	stm32x_info->option_bytes.user = (option_bytes >> 16) & 0xFF;
-
-	/* read user data option bytes */
-	retval = target_read_u32(target, STM32_OB_DATA0, &option_bytes);
-	if (retval != ERROR_OK)
-		return retval;
-
-	stm32x_info->option_bytes.data = ((option_bytes >> 8) & 0xFF00) | (option_bytes & 0xFF);
+	stm32x_info->option_bytes.rdp = (option_bytes & (1 << OPT_READOUT)) ? 0 : stm32x_info->default_rdp;
+	stm32x_info->option_bytes.user = (option_bytes >> stm32x_info->option_offset >> 2) & 0xff;
+	stm32x_info->option_bytes.data = (option_bytes >> stm32x_info->user_data_offset) & 0xffff;
 
 	/* read write protection option bytes */
-	retval = target_read_u32(target, STM32_OB_WRP0, &option_bytes);
+	retval = target_read_u32(target, STM32_FLASH_WRPR_B0, &stm32x_info->option_bytes.protection);
 	if (retval != ERROR_OK)
 		return retval;
-
-	stm32x_info->option_bytes.protection = ((option_bytes >> 8) & 0xFF00) | (option_bytes & 0xFF);
-
-	retval = target_read_u32(target, STM32_OB_WRP2, &option_bytes);
-	if (retval != ERROR_OK)
-		return retval;
-
-	stm32x_info->option_bytes.protection |= (((option_bytes >> 8) & 0xFF00) | (option_bytes & 0xFF)) << 16;
 
 	return ERROR_OK;
 }
