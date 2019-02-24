@@ -55,6 +55,7 @@
 #include "target_type.h"
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
+#include "jtag/interface.h"
 #include "transport/transport.h"
 #include "smp.h"
 #include <helper/time_support.h>
@@ -1659,7 +1660,7 @@ static int cortex_a_assert_reset(struct target *target)
 		 */
 		if (transport_is_swd() ||
 				(target->reset_halt && (jtag_get_reset_config() & RESET_SRST_NO_GATING)))
-			jtag_add_reset(0, 1);
+			adapter_assert_reset();
 
 	} else {
 		LOG_ERROR("%s: how to reset?", target_name(target));
@@ -1682,7 +1683,7 @@ static int cortex_a_deassert_reset(struct target *target)
 	LOG_DEBUG(" ");
 
 	/* be certain SRST is off */
-	jtag_add_reset(0, 0);
+	adapter_deassert_reset();
 
 	if (target_was_examined(target)) {
 		retval = cortex_a_poll(target);
