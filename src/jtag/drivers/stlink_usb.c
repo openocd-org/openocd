@@ -1002,7 +1002,7 @@ static int stlink_usb_version(void *handle)
 	if (bridge)
 		p += sprintf(p, "B%d", bridge);
 	if (swim || !msd)
-		p += sprintf(p, "S%d", swim);
+		sprintf(p, "S%d", swim);
 
 	LOG_INFO("STLINK %s (API v%d) VID:PID %04X:%04X",
 		v_str,
