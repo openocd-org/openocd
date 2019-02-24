@@ -29,6 +29,7 @@
 #include "armv8_opcodes.h"
 #include "armv8_cache.h"
 #include "arm_semihosting.h"
+#include "jtag/interface.h"
 #include "smp.h"
 #include <helper/time_support.h>
 
@@ -1662,7 +1663,7 @@ static int aarch64_assert_reset(struct target *target)
 		/* REVISIT handle "pulls" cases, if there's
 		 * hardware that needs them to work.
 		 */
-		jtag_add_reset(0, 1);
+		adapter_assert_reset();
 	} else {
 		LOG_ERROR("%s: how to reset?", target_name(target));
 		return ERROR_FAIL;
@@ -1686,7 +1687,7 @@ static int aarch64_deassert_reset(struct target *target)
 	LOG_DEBUG(" ");
 
 	/* be certain SRST is off */
-	jtag_add_reset(0, 0);
+	adapter_deassert_reset();
 
 	if (!target_was_examined(target))
 		return ERROR_OK;
