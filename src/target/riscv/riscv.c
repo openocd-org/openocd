@@ -1560,6 +1560,11 @@ const struct command_registration riscv_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+unsigned riscv_address_bits(struct target *target)
+{
+	return riscv_xlen(target);
+}
+
 struct target_type riscv_target = {
 	.name = "riscv",
 
@@ -1594,7 +1599,9 @@ struct target_type riscv_target = {
 
 	.run_algorithm = riscv_run_algorithm,
 
-	.commands = riscv_command_handlers
+	.commands = riscv_command_handlers,
+
+	.address_bits = riscv_address_bits
 };
 
 /*** RISC-V Interface ***/

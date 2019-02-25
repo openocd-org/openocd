@@ -641,7 +641,17 @@ int target_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fi
  */
 int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c);
 
+/**
+ * Return the highest accessible address for this target.
+ */
+target_addr_t target_address_max(struct target *target);
 
+/**
+ * Return the number of address bits this target supports.
+ *
+ * This routine is a wrapper for target->type->address_bits.
+ */
+unsigned target_address_bits(struct target *target);
 
 /** Return the *name* of this targets current state */
 const char *target_state_name(struct target *target);

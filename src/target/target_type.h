@@ -284,6 +284,11 @@ struct target_type {
 	 */
 	int (*profiling)(struct target *target, uint32_t *samples,
 			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
+
+	/* Return the number of address bits this target supports. This will
+	 * typically be 32 for 32-bit targets, and 64 for 64-bit targets. If not
+	 * implemented, it's assumed to be 32. */
+	unsigned (*address_bits)(struct target *target);
 };
 
 #endif /* OPENOCD_TARGET_TARGET_TYPE_H */

@@ -1257,6 +1257,22 @@ int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, 
 	return target->type->gdb_fileio_end(target, retcode, fileio_errno, ctrl_c);
 }
 
+target_addr_t target_address_max(struct target *target)
+{
+	unsigned bits = target_address_bits(target);
+	if (sizeof(target_addr_t) * 8 == bits)
+		return (target_addr_t) -1;
+	else
+		return (((target_addr_t) 1) << bits) - 1;
+}
+
+unsigned target_address_bits(struct target *target)
+{
+	if (target->type->address_bits)
+		return target->type->address_bits(target);
+	return 32;
+}
+
 int target_profiling(struct target *target, uint32_t *samples,
 			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
 {
