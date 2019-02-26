@@ -287,6 +287,8 @@ static int hwthread_target_for_threadid(struct connection *connection, int64_t t
 
 		if (head == NULL)
 			return ERROR_FAIL;
+
+		target->rtos->current_thread = thread_id;
 	} else {
 		curr = target;
 		if (thread_id != threadid_from_target(curr))
