@@ -265,7 +265,7 @@ static int cortex_m_endreset_event(struct target *target)
 		return retval;
 	}
 
-	cortex_m->fpb_enabled = 1;
+	cortex_m->fpb_enabled = true;
 
 	/* Restore FPB registers */
 	for (i = 0; i < cortex_m->fp_num_code + cortex_m->fp_num_lit; i++) {
@@ -1180,7 +1180,7 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 			LOG_ERROR("Unhandled Cortex-M Flash Patch Breakpoint architecture revision");
 			return ERROR_FAIL;
 		}
-		comparator_list[fp_num].used = 1;
+		comparator_list[fp_num].used = true;
 		comparator_list[fp_num].fpcr_value = fpcr_value;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address,
 			comparator_list[fp_num].fpcr_value);
@@ -1195,7 +1195,7 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 				return retval;
 			}
 
-			cortex_m->fpb_enabled = 1;
+			cortex_m->fpb_enabled = true;
 		}
 	} else if (breakpoint->type == BKPT_SOFT) {
 		uint8_t code[4];
@@ -1254,7 +1254,7 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 			LOG_DEBUG("Invalid FP Comparator number in breakpoint");
 			return ERROR_OK;
 		}
-		comparator_list[fp_num].used = 0;
+		comparator_list[fp_num].used = false;
 		comparator_list[fp_num].fpcr_value = 0;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address,
 			comparator_list[fp_num].fpcr_value);
@@ -1351,7 +1351,7 @@ int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 		LOG_ERROR("Can not find free DWT Comparator");
 		return ERROR_FAIL;
 	}
-	comparator->used = 1;
+	comparator->used = true;
 	watchpoint->set = dwt_num + 1;
 
 	comparator->comp = watchpoint->address;
@@ -1408,7 +1408,7 @@ int cortex_m_unset_watchpoint(struct target *target, struct watchpoint *watchpoi
 	}
 
 	comparator = cortex_m->dwt_comparator_list + dwt_num;
-	comparator->used = 0;
+	comparator->used = false;
 	comparator->function = 0;
 	target_write_u32(target, comparator->dwt_comparator_address + 8,
 		comparator->function);
