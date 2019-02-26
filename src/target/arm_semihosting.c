@@ -94,12 +94,12 @@ static int post_result(struct target *target)
 
 		/* return value in R0 */
 		buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, target->semihosting->result);
-		arm->core_cache->reg_list[0].dirty = 1;
+		arm->core_cache->reg_list[0].dirty = true;
 
 		/* LR --> PC */
 		buf_set_u32(arm->core_cache->reg_list[15].value, 0, 32,
 			buf_get_u32(arm_reg_current(arm, 14)->value, 0, 32));
-		arm->core_cache->reg_list[15].dirty = 1;
+		arm->core_cache->reg_list[15].dirty = true;
 
 		/* saved PSR --> current PSR */
 		spsr = buf_get_u32(arm->spsr->value, 0, 32);
@@ -109,7 +109,7 @@ static int post_result(struct target *target)
 		 */
 
 		buf_set_u32(arm->cpsr->value, 0, 32, spsr);
-		arm->cpsr->dirty = 1;
+		arm->cpsr->dirty = true;
 		arm->core_mode = spsr & 0x1f;
 		if (spsr & 0x20)
 			arm->core_state = ARM_STATE_THUMB;
@@ -118,11 +118,11 @@ static int post_result(struct target *target)
 		if (arm->core_state == ARM_STATE_AARCH64) {
 			/* return value in R0 */
 			buf_set_u64(arm->core_cache->reg_list[0].value, 0, 64, target->semihosting->result);
-			arm->core_cache->reg_list[0].dirty = 1;
+			arm->core_cache->reg_list[0].dirty = true;
 
 			uint64_t pc = buf_get_u64(arm->core_cache->reg_list[32].value, 0, 64);
 			buf_set_u64(arm->pc->value, 0, 64, pc + 4);
-			arm->pc->dirty = 1;
+			arm->pc->dirty = true;
 		}
 	} else {
 		/* resume execution, this will be pc+2 to skip over the
@@ -130,7 +130,7 @@ static int post_result(struct target *target)
 
 		/* return result in R0 */
 		buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, target->semihosting->result);
-		arm->core_cache->reg_list[0].dirty = 1;
+		arm->core_cache->reg_list[0].dirty = true;
 	}
 
 	return ERROR_OK;
