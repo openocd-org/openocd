@@ -291,7 +291,6 @@ struct target_event_action {
 	enum target_event event;
 	struct Jim_Interp *interp;
 	struct Jim_Obj *body;
-	int has_percent;
 	struct target_event_action *next;
 };
 
