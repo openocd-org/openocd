@@ -110,8 +110,8 @@ static int avr32_read_core_reg(struct target *target, int num)
 
 	reg_value = ap7k->core_regs[num];
 	buf_set_u32(ap7k->core_cache->reg_list[num].value, 0, 32, reg_value);
-	ap7k->core_cache->reg_list[num].valid = 1;
-	ap7k->core_cache->reg_list[num].dirty = 0;
+	ap7k->core_cache->reg_list[num].valid = true;
+	ap7k->core_cache->reg_list[num].dirty = false;
 
 	return ERROR_OK;
 }
@@ -129,8 +129,8 @@ static int avr32_write_core_reg(struct target *target, int num)
 	reg_value = buf_get_u32(ap7k->core_cache->reg_list[num].value, 0, 32);
 	ap7k->core_regs[num] = reg_value;
 	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num, reg_value);
-	ap7k->core_cache->reg_list[num].valid = 1;
-	ap7k->core_cache->reg_list[num].dirty = 0;
+	ap7k->core_cache->reg_list[num].valid = true;
+	ap7k->core_cache->reg_list[num].dirty = false;
 
 	return ERROR_OK;
 }
@@ -159,8 +159,8 @@ static int avr32_set_core_reg(struct reg *reg, uint8_t *buf)
 		return ERROR_TARGET_NOT_HALTED;
 
 	buf_set_u32(reg->value, 0, 32, value);
-	reg->dirty = 1;
-	reg->valid = 1;
+	reg->dirty = true;
+	reg->valid = true;
 
 	return ERROR_OK;
 }
@@ -196,8 +196,8 @@ static struct reg_cache *avr32_build_reg_cache(struct target *target)
 		reg_list[i].name = avr32_core_reg_list[i];
 		reg_list[i].size = 32;
 		reg_list[i].value = calloc(1, 4);
-		reg_list[i].dirty = 0;
-		reg_list[i].valid = 0;
+		reg_list[i].dirty = false;
+		reg_list[i].valid = false;
 		reg_list[i].type = &avr32_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
