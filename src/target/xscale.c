@@ -212,8 +212,8 @@ static int xscale_read_dcsr(struct target *target)
 		return retval;
 	}
 
-	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = 0;
-	xscale->reg_cache->reg_list[XSCALE_DCSR].valid = 1;
+	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = false;
+	xscale->reg_cache->reg_list[XSCALE_DCSR].valid = true;
 
 	/* write the register with the value we just read
 	 * on this second pass, only the first bit of field0 is guaranteed to be 0)
@@ -624,8 +624,8 @@ static int xscale_write_dcsr(struct target *target, int hold_rst, int ext_dbg_br
 		return retval;
 	}
 
-	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = 0;
-	xscale->reg_cache->reg_list[XSCALE_DCSR].valid = 1;
+	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = false;
+	xscale->reg_cache->reg_list[XSCALE_DCSR].valid = true;
 
 	return ERROR_OK;
 }
@@ -868,21 +868,21 @@ static int xscale_debug_entry(struct target *target)
 
 	/* move r0 from buffer to register cache */
 	buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, buffer[0]);
-	arm->core_cache->reg_list[0].dirty = 1;
-	arm->core_cache->reg_list[0].valid = 1;
+	arm->core_cache->reg_list[0].dirty = true;
+	arm->core_cache->reg_list[0].valid = true;
 	LOG_DEBUG("r0: 0x%8.8" PRIx32 "", buffer[0]);
 
 	/* move pc from buffer to register cache */
 	buf_set_u32(arm->pc->value, 0, 32, buffer[1]);
-	arm->pc->dirty = 1;
-	arm->pc->valid = 1;
+	arm->pc->dirty = true;
+	arm->pc->valid = true;
 	LOG_DEBUG("pc: 0x%8.8" PRIx32 "", buffer[1]);
 
 	/* move data from buffer to register cache */
 	for (i = 1; i <= 7; i++) {
 		buf_set_u32(arm->core_cache->reg_list[i].value, 0, 32, buffer[1 + i]);
-		arm->core_cache->reg_list[i].dirty = 1;
-		arm->core_cache->reg_list[i].valid = 1;
+		arm->core_cache->reg_list[i].dirty = true;
+		arm->core_cache->reg_list[i].valid = true;
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, buffer[i + 1]);
 	}
 
@@ -920,7 +920,7 @@ static int xscale_debug_entry(struct target *target)
 	/* mark xscale regs invalid to ensure they are retrieved from the
 	 * debug handler if requested  */
 	for (i = 0; i < xscale->reg_cache->num_regs; i++)
-		xscale->reg_cache->reg_list[i].valid = 0;
+		xscale->reg_cache->reg_list[i].valid = false;
 
 	/* examine debug reason */
 	xscale_read_dcsr(target);
@@ -2423,8 +2423,8 @@ static int xscale_get_reg(struct reg *reg)
 		xscale_read_tx(target, 1);
 		buf_cpy(xscale->reg_cache->reg_list[XSCALE_TX].value, reg->value, 32);
 
-		reg->dirty = 0;
-		reg->valid = 1;
+		reg->dirty = false;
+		reg->valid = true;
 	}
 
 	return ERROR_OK;
@@ -2890,8 +2890,8 @@ static void xscale_build_reg_cache(struct target *target)
 	for (i = 0; i < num_regs; i++) {
 		(*cache_p)->reg_list[i].name = xscale_reg_list[i];
 		(*cache_p)->reg_list[i].value = calloc(4, 1);
-		(*cache_p)->reg_list[i].dirty = 0;
-		(*cache_p)->reg_list[i].valid = 0;
+		(*cache_p)->reg_list[i].dirty = false;
+		(*cache_p)->reg_list[i].valid = false;
 		(*cache_p)->reg_list[i].size = 32;
 		(*cache_p)->reg_list[i].arch_info = &arch_info[i];
 		(*cache_p)->reg_list[i].type = &xscale_reg_type;
