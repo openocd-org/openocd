@@ -576,12 +576,12 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	cpsr &= ~0xff;
 	cpsr |= 0xd3;
 	arm_set_cpsr(arm, cpsr);
-	arm->cpsr->dirty = 1;
+	arm->cpsr->dirty = true;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(arm->pc->value, 0, 32, 0x0);
-	arm->pc->dirty = 1;
-	arm->pc->valid = 1;
+	arm->pc->dirty = true;
+	arm->pc->valid = true;
 
 	retval = arm926ejs_disable_mmu_caches(target, 1, 1, 1);
 	if (retval != ERROR_OK)
