@@ -458,8 +458,8 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 	if (!current) {
 		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
-		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
-		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
+		mips32->core_cache->reg_list[MIPS32_PC].dirty = true;
+		mips32->core_cache->reg_list[MIPS32_PC].valid = true;
 	}
 
 	if ((mips32->isa_imp > 1) &&  debug_execution)	/* if more than one isa supported */
@@ -552,8 +552,8 @@ static int mips_m4k_step(struct target *target, int current,
 	if (!current) {
 		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
-		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
-		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
+		mips32->core_cache->reg_list[MIPS32_PC].dirty = true;
+		mips32->core_cache->reg_list[MIPS32_PC].valid = true;
 	}
 
 	/* the front-end may request us not to handle breakpoints */
