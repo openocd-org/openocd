@@ -678,8 +678,8 @@ void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
 	 */
 	if (arm->cpsr) {
 		buf_set_u32(arm->cpsr->value, 0, 32, cpsr);
-		arm->cpsr->valid = 1;
-		arm->cpsr->dirty = 0;
+		arm->cpsr->valid = true;
+		arm->cpsr->dirty = false;
 	}
 
 	/* Older ARMs won't have the J bit */
@@ -1518,17 +1518,17 @@ static int armv8_set_core_reg(struct reg *reg, uint8_t *buf)
 			armv8_set_cpsr(arm, (uint32_t)value);
 		else {
 			buf_set_u64(reg->value, 0, reg->size, value);
-			reg->valid = 1;
+			reg->valid = true;
 		}
 	} else if (reg->size <= 128) {
 		uint64_t hvalue = buf_get_u64(buf + 8, 0, reg->size - 64);
 
 		buf_set_u64(reg->value, 0, 64, value);
 		buf_set_u64(reg->value + 8, 0, reg->size - 64, hvalue);
-		reg->valid = 1;
+		reg->valid = true;
 	}
 
-	reg->dirty = 1;
+	reg->dirty = true;
 
 	return ERROR_OK;
 }
@@ -1585,11 +1585,11 @@ static int armv8_set_core_reg32(struct reg *reg, uint8_t *buf)
 			uint64_t value64 = buf_get_u64(buf, 0, 64);
 			buf_set_u64(reg->value, 0, 64, value64);
 		}
-		reg->valid = 1;
-		reg64->valid = 1;
+		reg->valid = true;
+		reg64->valid = true;
 	}
 
-	reg64->dirty = 1;
+	reg64->dirty = true;
 
 	return ERROR_OK;
 }
