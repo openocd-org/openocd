@@ -4526,6 +4526,7 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 void target_handle_event(struct target *target, enum target_event e)
 {
 	struct target_event_action *teap;
+	int retval;
 
 	for (teap = target->event_action; teap != NULL; teap = teap->next) {
 		if (teap->event == e) {
@@ -4544,8 +4545,12 @@ void target_handle_event(struct target *target, enum target_event e)
 			struct command_context *cmd_ctx = current_command_context(teap->interp);
 			struct target *saved_target_override = cmd_ctx->current_target_override;
 			cmd_ctx->current_target_override = target;
+			retval = Jim_EvalObj(teap->interp, teap->body);
 
-			if (Jim_EvalObj(teap->interp, teap->body) != JIM_OK) {
+			if (retval == JIM_RETURN)
+				retval = teap->interp->returnCode;
+
+			if (retval != JIM_OK) {
 				Jim_MakeErrorMessage(teap->interp);
 				LOG_USER("Error executing event %s on target %s:\n%s",
 						  Jim_Nvp_value2name_simple(nvp_target_event, e)->name,
