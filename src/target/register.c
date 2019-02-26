@@ -88,8 +88,8 @@ void register_cache_invalidate(struct reg_cache *cache)
 	for (unsigned n = cache->num_regs; n != 0; n--, reg++) {
 		if (reg->exist == false)
 			continue;
-		reg->valid = 0;
-		reg->dirty = 0;
+		reg->valid = false;
+		reg->dirty = false;
 	}
 }
 
@@ -100,8 +100,8 @@ static int register_get_dummy_core_reg(struct reg *reg)
 
 static int register_set_dummy_core_reg(struct reg *reg, uint8_t *buf)
 {
-	reg->dirty = 1;
-	reg->valid = 1;
+	reg->dirty = true;
+	reg->valid = true;
 
 	return ERROR_OK;
 }
