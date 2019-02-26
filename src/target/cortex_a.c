@@ -806,15 +806,15 @@ static int cortex_a_internal_restore(struct target *target, int current,
 		 * C_MASKINTS in parallel with disabled interrupts can cause
 		 * local faults to not be taken. */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_PRIMASK].value, 0, 32, 1);
-		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = 1;
-		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = 1;
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = true;
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = true;
 
 		/* Make sure we are in Thumb mode */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32,
 			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0,
 			32) | (1 << 24));
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = 1;
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = 1;
+		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = true;
+		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = true;
 	}
 #endif
 
@@ -848,8 +848,8 @@ static int cortex_a_internal_restore(struct target *target, int current,
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
 	buf_set_u32(arm->pc->value, 0, 32, resume_pc);
-	arm->pc->dirty = 1;
-	arm->pc->valid = 1;
+	arm->pc->dirty = true;
+	arm->pc->valid = true;
 
 	/* restore dpm_mode at system halt */
 	arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
