@@ -601,8 +601,8 @@ static int aarch64_restore_one(struct target *target, int current,
 	}
 	LOG_DEBUG("resume pc = 0x%016" PRIx64, resume_pc);
 	buf_set_u64(arm->pc->value, 0, 64, resume_pc);
-	arm->pc->dirty = 1;
-	arm->pc->valid = 1;
+	arm->pc->dirty = true;
+	arm->pc->valid = true;
 
 	/* called it now before restoring context because it uses cpu
 	 * register r0 for restoring system control register */
