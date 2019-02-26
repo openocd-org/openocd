@@ -234,6 +234,12 @@ struct adiv5_dap {
 	/* dap transaction list for WAIT support */
 	struct list_head cmd_journal;
 
+	/* pool for dap_cmd objects */
+	struct list_head cmd_pool;
+
+	/* number of dap_cmd objects in the pool */
+	size_t cmd_pool_size;
+
 	struct jtag_tap *tap;
 	/* Control config */
 	uint32_t dp_ctrl_stat;
