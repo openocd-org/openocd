@@ -211,7 +211,10 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 		return retval;
 
 	swd_finish_read(dap);
-	swd_queue_dp_bankselect(dap, reg);
+	if (reg == DP_SELECT)
+		dap->select = data & (DP_SELECT_APSEL | DP_SELECT_APBANK | DP_SELECT_DPBANK);
+	else
+		swd_queue_dp_bankselect(dap, reg);
 	swd->write_reg(swd_cmd(false,  false, reg), data, 0);
 
 	return check_sync(dap);
