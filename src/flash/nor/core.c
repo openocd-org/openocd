@@ -422,7 +422,7 @@ static int flash_iterate_address_range_inner(struct target *target,
 {
 	struct flash_bank *c;
 	struct flash_sector *block_array;
-	target_addr_t last_addr = addr + length;	/* first address AFTER end */
+	target_addr_t last_addr = addr + length - 1;	/* the last address of range */
 	int first = -1;
 	int last = -1;
 	int i;
@@ -448,7 +448,7 @@ static int flash_iterate_address_range_inner(struct target *target,
 	}
 
 	/* check whether it all fits in this bank */
-	if (addr + length - 1 > c->base + c->size - 1) {
+	if (last_addr > c->base + c->size - 1) {
 		LOG_ERROR("Flash access does not fit into bank.");
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
@@ -466,21 +466,19 @@ static int flash_iterate_address_range_inner(struct target *target,
 		num_blocks = c->num_sectors;
 	}
 
-	addr -= c->base;
-	last_addr -= c->base;
-
 	for (i = 0; i < num_blocks; i++) {
 		struct flash_sector *f = &block_array[i];
-		uint32_t end = f->offset + f->size;
+		target_addr_t sector_addr = c->base + f->offset;
+		target_addr_t sector_last_addr = sector_addr + f->size - 1;
 
 		/* start only on a sector boundary */
 		if (first < 0) {
 			/* scanned past the first sector? */
-			if (addr < f->offset)
+			if (addr < sector_addr)
 				break;
 
 			/* is this the first sector? */
-			if (addr == f->offset)
+			if (addr == sector_addr)
 				first = i;
 
 			/* Does this need head-padding?  If so, pad and warn;
@@ -490,12 +488,12 @@ static int flash_iterate_address_range_inner(struct target *target,
 			 * ever know if that data was in use.  The warning
 			 * should help users sort out messes later.
 			 */
-			else if (addr < end && pad_reason) {
+			else if (addr <= sector_last_addr && pad_reason) {
 				/* FIXME say how many bytes (e.g. 80 KB) */
 				LOG_WARNING("Adding extra %s range, "
-					"%#8.8x to " TARGET_ADDR_FMT,
+					TARGET_ADDR_FMT " .. " TARGET_ADDR_FMT,
 					pad_reason,
-					(unsigned) f->offset,
+					sector_addr,
 					addr - 1);
 				first = i;
 			} else
@@ -503,7 +501,7 @@ static int flash_iterate_address_range_inner(struct target *target,
 		}
 
 		/* is this (also?) the last sector? */
-		if (last_addr == end) {
+		if (last_addr == sector_last_addr) {
 			last = i;
 			break;
 		}
@@ -511,19 +509,19 @@ static int flash_iterate_address_range_inner(struct target *target,
 		/* Does this need tail-padding?  If so, pad and warn;
 		 * or else force an error.
 		 */
-		if (last_addr < end && pad_reason) {
+		if (last_addr < sector_last_addr && pad_reason) {
 			/* FIXME say how many bytes (e.g. 80 KB) */
 			LOG_WARNING("Adding extra %s range, "
-				"%#8.8x to %#8.8x",
+				TARGET_ADDR_FMT " .. " TARGET_ADDR_FMT,
 				pad_reason,
-				(unsigned) last_addr,
-				(unsigned) end - 1);
+				last_addr + 1,
+				sector_last_addr);
 			last = i;
 			break;
 		}
 
 		/* MUST finish on a sector boundary */
-		if (last_addr <= f->offset)
+		if (last_addr < sector_addr)
 			break;
 	}
 
@@ -531,8 +529,8 @@ static int flash_iterate_address_range_inner(struct target *target,
 	if (first == -1 || last == -1) {
 		LOG_ERROR("address range " TARGET_ADDR_FMT " .. " TARGET_ADDR_FMT
 			" is not sector-aligned",
-			c->base + addr,
-			c->base + last_addr - 1);
+			addr,
+			last_addr);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
