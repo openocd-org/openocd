@@ -716,6 +716,11 @@ static int cortex_m_soft_reset_halt(struct target *target)
 	 * core, not the peripherals */
 	LOG_WARNING("soft_reset_halt is deprecated, please use 'reset halt' instead.");
 
+	/* Set C_DEBUGEN */
+	retval = cortex_m_write_debug_halt_mask(target, 0, C_STEP | C_MASKINTS);
+	if (retval != ERROR_OK)
+		return retval;
+
 	/* Enter debug state on reset; restore DEMCR in endreset_event() */
 	retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DEMCR,
 			TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
