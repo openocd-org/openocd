@@ -3,13 +3,6 @@
 # Embedded into OpenOCD executable
 #
 
-
-# We need to explicitly redirect this to the OpenOCD command
-# as Tcl defines the exit proc
-proc exit {} {
-	ocd_throw exit
-}
-
 # All commands are registered with an 'ocd_' prefix, while the "real"
 # command is a wrapper that calls this function.  Its primary purpose is
 # to discard 'handler' command output.
