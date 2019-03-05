@@ -314,7 +314,8 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 		{ DMI_DMSTATUS, DMI_DMSTATUS_ANYHALTED, "anyhalted" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_AUTHENTICATED, "authenticated" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_AUTHBUSY, "authbusy" },
-		{ DMI_DMSTATUS, DMI_DMSTATUS_DEVTREEVALID, "devtreevalid" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_HASRESETHALTREQ, "hasresethaltreq" },
+		{ DMI_DMSTATUS, DMI_DMSTATUS_CONFSTRPTRVALID, "confstrptrvalid" },
 		{ DMI_DMSTATUS, DMI_DMSTATUS_VERSION, "version" },
 
 		{ DMI_ABSTRACTCS, DMI_ABSTRACTCS_PROGBUFSIZE, "progbufsize" },
@@ -663,12 +664,12 @@ uint32_t abstract_register_size(unsigned width)
 {
 	switch (width) {
 		case 32:
-			return set_field(0, AC_ACCESS_REGISTER_SIZE, 2);
+			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 2);
 		case 64:
-			return set_field(0, AC_ACCESS_REGISTER_SIZE, 3);
+			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 3);
 			break;
 		case 128:
-			return set_field(0, AC_ACCESS_REGISTER_SIZE, 4);
+			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 4);
 			break;
 		default:
 			LOG_ERROR("Unsupported register width: %d", width);
@@ -722,7 +723,7 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 				LOG_DEBUG("command=0x%x; access register, size=%d, postexec=%d, "
 						"transfer=%d, write=%d, regno=0x%x",
 						command,
-						8 << get_field(command, AC_ACCESS_REGISTER_SIZE),
+						8 << get_field(command, AC_ACCESS_REGISTER_AARSIZE),
 						get_field(command, AC_ACCESS_REGISTER_POSTEXEC),
 						get_field(command, AC_ACCESS_REGISTER_TRANSFER),
 						get_field(command, AC_ACCESS_REGISTER_WRITE),
@@ -798,10 +799,10 @@ static uint32_t access_register_command(struct target *target, uint32_t number,
 	uint32_t command = set_field(0, DMI_COMMAND_CMDTYPE, 0);
 	switch (size) {
 		case 32:
-			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 2);
+			command = set_field(command, AC_ACCESS_REGISTER_AARSIZE, 2);
 			break;
 		case 64:
-			command = set_field(command, AC_ACCESS_REGISTER_SIZE, 3);
+			command = set_field(command, AC_ACCESS_REGISTER_AARSIZE, 3);
 			break;
 		default:
 			assert(0);
@@ -1362,6 +1363,18 @@ static void deinit_target(struct target *target)
 	info->version_specific = NULL;
 }
 
+static int set_haltgroup(struct target *target, bool *supported)
+{
+	uint32_t write = set_field(DMI_DMCS2_HGWRITE, DMI_DMCS2_HALTGROUP, target->smp);
+	if (dmi_write(target, DMI_DMCS2, write) != ERROR_OK)
+		return ERROR_FAIL;
+	uint32_t read;
+	if (dmi_read(target, &read, DMI_DMCS2) != ERROR_OK)
+		return ERROR_FAIL;
+	*supported = get_field(read, DMI_DMCS2_HALTGROUP) == (unsigned) target->smp;
+	return ERROR_OK;
+}
+
 static int examine(struct target *target)
 {
 	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
@@ -1539,6 +1552,18 @@ static int examine(struct target *target)
 
 	if (target->rtos)
 		riscv_update_threads(target->rtos);
+
+	if (target->smp) {
+		bool haltgroup_supported;
+		if (set_haltgroup(target, &haltgroup_supported) != ERROR_OK)
+			return ERROR_FAIL;
+		if (haltgroup_supported)
+			LOG_INFO("Core %d made part of halt group %d.", target->coreid,
+					target->smp);
+		else
+			LOG_INFO("Core %d could not be made part of halt group %d.",
+					target->coreid, target->smp);
+	}
 
 	/* Some regression suites rely on seeing 'Examined RISC-V core' to know
 	 * when they can connect with gdb/telnet.
@@ -3017,7 +3042,7 @@ riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 int riscv013_execute_debug_buffer(struct target *target)
 {
 	uint32_t run_program = 0;
-	run_program = set_field(run_program, AC_ACCESS_REGISTER_SIZE, 2);
+	run_program = set_field(run_program, AC_ACCESS_REGISTER_AARSIZE, 2);
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_POSTEXEC, 1);
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_TRANSFER, 0);
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_REGNO, 0x1000);

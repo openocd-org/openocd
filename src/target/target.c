@@ -5839,6 +5839,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int i;
 	const char *targetname;
 	int retval, len;
+	static int smp_group = 1;
 	struct target *target = (struct target *) NULL;
 	struct target_list *head, *curr, *new;
 	curr = (struct target_list *) NULL;
@@ -5874,10 +5875,11 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	while (curr != (struct target_list *)NULL) {
 		target = curr->target;
-		target->smp = 1;
+		target->smp = smp_group;
 		target->head = head;
 		curr = curr->next;
 	}
+	smp_group++;
 
 	if (target && target->rtos)
 		retval = rtos_smp_init(head->target);
