@@ -2968,27 +2968,6 @@ COMMAND_HANDLER(cortex_a_handle_dbginit_command)
 	return cortex_a_init_debug_access(target);
 }
 
-COMMAND_HANDLER(cortex_a_handle_smp_gdb_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	int retval = ERROR_OK;
-	struct target_list *head;
-	head = target->head;
-	if (head != (struct target_list *)NULL) {
-		if (CMD_ARGC == 1) {
-			int coreid = 0;
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], coreid);
-			if (ERROR_OK != retval)
-				return retval;
-			target->gdb_service->core[1] = coreid;
-
-		}
-		command_print(CMD_CTX, "gdb coreid  %" PRId32 " -> %" PRId32, target->gdb_service->core[0]
-			, target->gdb_service->core[1]);
-	}
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(handle_cortex_a_mask_interrupts_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -3056,13 +3035,6 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 		.handler = cortex_a_handle_dbginit_command,
 		.mode = COMMAND_EXEC,
 		.help = "Initialize core debug",
-		.usage = "",
-	},
-	{
-		.name = "smp_gdb",
-		.handler = cortex_a_handle_smp_gdb_command,
-		.mode = COMMAND_EXEC,
-		.help = "display/fix current core played to gdb",
 		.usage = "",
 	},
 	{
