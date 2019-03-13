@@ -5364,27 +5364,25 @@ static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *a
 /* List for human, Events defined for this target.
  * scripts/programs should use 'name cget -event NAME'
  */
-static int jim_target_event_list(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_event_list)
 {
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx != NULL);
-
-	struct target *target = Jim_CmdPrivData(interp);
+	struct target *target = get_current_target(CMD_CTX);
 	struct target_event_action *teap = target->event_action;
-	command_print(cmd_ctx, "Event actions for target (%d) %s\n",
+
+	command_print(CMD_CTX, "Event actions for target (%d) %s\n",
 				   target->target_number,
 				   target_name(target));
-	command_print(cmd_ctx, "%-25s | Body", "Event");
-	command_print(cmd_ctx, "------------------------- | "
+	command_print(CMD_CTX, "%-25s | Body", "Event");
+	command_print(CMD_CTX, "------------------------- | "
 			"----------------------------------------");
 	while (teap) {
 		Jim_Nvp *opt = Jim_Nvp_value2name_simple(nvp_target_event, teap->event);
-		command_print(cmd_ctx, "%-25s | %s",
+		command_print(CMD_CTX, "%-25s | %s",
 				opt->name, Jim_GetString(teap->body, NULL));
 		teap = teap->next;
 	}
-	command_print(cmd_ctx, "***END***");
-	return JIM_OK;
+	command_print(CMD_CTX, "***END***");
+	return ERROR_OK;
 }
 static int jim_target_current_state(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
@@ -5491,9 +5489,10 @@ static const struct command_registration target_instance_command_handlers[] = {
 	},
 	{
 		.name = "eventlist",
+		.handler = handle_target_event_list,
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_event_list,
 		.help = "displays a table of events defined for this target",
+		.usage = "",
 	},
 	{
 		.name = "curstate",
