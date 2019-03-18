@@ -63,6 +63,29 @@ static int dpm_mrc(struct target *target, int cpnum,
 	return retval;
 }
 
+static int dpm_mrrc(struct target *target, int cpnum,
+	uint32_t op, uint32_t crm, uint64_t *value)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("MRRC p%d, %d, r0, r1, c%d", cpnum,
+		 (int)op, (int)crm);
+
+	/* read coprocessor register into R0, R1; return via DCC */
+	retval = dpm->instr_read_data_r0_r1(dpm,
+			ARMV5_T_MRRC(cpnum, op, 0, 1, crm),
+			value);
+
+	/* (void) */ dpm->finish(dpm);
+	return retval;
+}
+
 static int dpm_mcr(struct target *target, int cpnum,
 	uint32_t op1, uint32_t op2, uint32_t crn, uint32_t crm,
 	uint32_t value)
@@ -85,6 +108,29 @@ static int dpm_mcr(struct target *target, int cpnum,
 			value);
 
 	/* (void) */ dpm->finish(dpm);
+	return retval;
+}
+
+static int dpm_mcrr(struct target *target, int cpnum,
+	uint32_t op, uint32_t crm, uint64_t value)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("MCRR p%d, %d, r0, r1, c%d", cpnum,
+		(int)op, (int)crm);
+
+	/* read DCC into r0, r1; then write coprocessor register from R0, R1 */
+	retval = dpm->instr_write_data_r0_r1(dpm,
+			ARMV5_T_MCRR(cpnum, op, 0, 1, crm), value);
+
+	/* (void) */ dpm->finish(dpm);
+
 	return retval;
 }
 
@@ -1070,6 +1116,8 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 	/* coprocessor access setup */
 	arm->mrc = dpm_mrc;
 	arm->mcr = dpm_mcr;
+	arm->mrrc = dpm_mrrc;
+	arm->mcrr = dpm_mcrr;
 
 	/* breakpoint setup -- optional until it works everywhere */
 	if (!target->type->add_breakpoint) {
