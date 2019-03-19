@@ -42,7 +42,7 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
 	uint32_t virt = va & ~0xfff, value;
-	uint32_t NOS, NS, INNER, OUTER;
+	uint32_t NOS, NS, INNER, OUTER, SS;
 	*val = 0xdeadbeef;
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
@@ -59,19 +59,36 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 			&value);
 	if (retval != ERROR_OK)
 		goto done;
-	*val = value;
-	/* decode memory attribute */
-	NOS = (*val >> 10) & 1;	/*  Not Outer shareable */
-	NS = (*val >> 9) & 1;	/* Non secure */
-	INNER = (*val >> 4) &  0x7;
-	OUTER = (*val >> 2) & 0x3;
 
-	*val = (*val & ~0xfff)  +  (va & 0xfff);
+	/* decode memory attribute */
+	SS = (value >> 1) & 1;
+#if !BUILD_TARGET64
+	if (SS) {
+		LOG_ERROR("Super section found with no-64 bit address support");
+		return ERROR_FAIL;
+	}
+#endif
+	NOS = (value >> 10) & 1;	/*  Not Outer shareable */
+	NS = (value >> 9) & 1;	/* Non secure */
+	INNER = (value >> 4) &  0x7;
+	OUTER = (value >> 2) & 0x3;
+
+	if (SS) {
+		/* PAR[31:24] contains PA[31:24] */
+		*val = value & 0xff000000;
+		/* PAR [23:16] contains PA[39:32] */
+		*val |= (target_addr_t)(value & 0x00ff0000) << 16;
+		/* PA[23:12] is the same as VA[23:12] */
+		*val |= (va & 0xffffff);
+	} else {
+		*val = (value & ~0xfff)  +  (va & 0xfff);
+	}
 	if (meminfo) {
-		LOG_INFO("%" PRIx32 " : %" TARGET_PRIxADDR " %s outer shareable %s secured",
+		LOG_INFO("%" PRIx32 " : %" TARGET_PRIxADDR " %s outer shareable %s secured %s super section",
 			va, *val,
 			NOS == 1 ? "not" : " ",
-			NS == 1 ? "not" : "");
+			NS == 1 ? "not" : "",
+			SS == 0 ? "not" : "");
 		switch (OUTER) {
 			case 0:
 				LOG_INFO("outer: Non-Cacheable");
