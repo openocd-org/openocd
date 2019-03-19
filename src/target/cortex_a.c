@@ -2922,7 +2922,7 @@ static int cortex_a_virt2phys(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 	return armv7a_mmu_translate_va_pa(target, (uint32_t)virt,
-						    (uint32_t *)phys, 1);
+						    phys, 1);
 }
 
 COMMAND_HANDLER(cortex_a_handle_cache_info_command)

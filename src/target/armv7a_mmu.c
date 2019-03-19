@@ -36,12 +36,12 @@
 
 /*  V7 method VA TO PA  */
 int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
-	uint32_t *val, int meminfo)
+	target_addr_t *val, int meminfo)
 {
 	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
-	uint32_t virt = va & ~0xfff;
+	uint32_t virt = va & ~0xfff, value;
 	uint32_t NOS, NS, INNER, OUTER;
 	*val = 0xdeadbeef;
 	retval = dpm->prepare(dpm);
@@ -56,9 +56,10 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 		goto done;
 	retval = dpm->instr_read_data_r0(dpm,
 			ARMV4_5_MRC(15, 0, 0, 7, 4, 0),
-			val);
+			&value);
 	if (retval != ERROR_OK)
 		goto done;
+	*val = value;
 	/* decode memory attribute */
 	NOS = (*val >> 10) & 1;	/*  Not Outer shareable */
 	NS = (*val >> 9) & 1;	/* Non secure */
@@ -67,7 +68,7 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 
 	*val = (*val & ~0xfff)  +  (va & 0xfff);
 	if (meminfo) {
-		LOG_INFO("%" PRIx32 " : %" PRIx32 " %s outer shareable %s secured",
+		LOG_INFO("%" PRIx32 " : %" TARGET_PRIxADDR " %s outer shareable %s secured",
 			va, *val,
 			NOS == 1 ? "not" : " ",
 			NS == 1 ? "not" : "");
