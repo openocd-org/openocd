@@ -1391,17 +1391,7 @@ int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int dwt_num = 0;
-	uint32_t mask, temp;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-
-	/* watchpoint params were validated earlier */
-	mask = 0;
-	temp = watchpoint->length;
-	while (temp) {
-		temp >>= 1;
-		mask++;
-	}
-	mask--;
 
 	/* REVISIT Don't fully trust these "not used" records ... users
 	 * may set up breakpoints by hand, e.g. dual-address data value
@@ -1425,11 +1415,22 @@ int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 	target_write_u32(target, comparator->dwt_comparator_address + 0,
 		comparator->comp);
 
-	comparator->mask = mask;
-	target_write_u32(target, comparator->dwt_comparator_address + 4,
-		comparator->mask);
+	if ((cortex_m->dwt_devarch & 0x1FFFFF) != DWT_DEVARCH_ARMV8M) {
+		uint32_t mask = 0, temp;
 
-	switch (watchpoint->rw) {
+		/* watchpoint params were validated earlier */
+		temp = watchpoint->length;
+		while (temp) {
+			temp >>= 1;
+			mask++;
+		}
+		mask--;
+
+		comparator->mask = mask;
+		target_write_u32(target, comparator->dwt_comparator_address + 4,
+			comparator->mask);
+
+		switch (watchpoint->rw) {
 		case WPT_READ:
 			comparator->function = 5;
 			break;
@@ -1439,7 +1440,26 @@ int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 		case WPT_ACCESS:
 			comparator->function = 7;
 			break;
+		}
+	} else {
+		uint32_t data_size = watchpoint->length >> 1;
+		comparator->mask = (watchpoint->length >> 1) | 1;
+
+		switch (watchpoint->rw) {
+		case WPT_ACCESS:
+			comparator->function = 4;
+			break;
+		case WPT_WRITE:
+			comparator->function = 5;
+			break;
+		case WPT_READ:
+			comparator->function = 6;
+			break;
+		}
+		comparator->function = comparator->function | (1 << 4) |
+				(data_size << 10);
 	}
+
 	target_write_u32(target, comparator->dwt_comparator_address + 8,
 		comparator->function);
 
@@ -1982,6 +2002,9 @@ void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target)
 		return;
 	}
 
+	target_read_u32(target, DWT_DEVARCH, &cm->dwt_devarch);
+	LOG_DEBUG("DWT_DEVARCH: 0x%" PRIx32, cm->dwt_devarch);
+
 	cm->dwt_num_comp = (dwtcr >> 28) & 0xF;
 	cm->dwt_comp_available = cm->dwt_num_comp;
 	cm->dwt_comparator_list = calloc(cm->dwt_num_comp,
@@ -2112,6 +2135,20 @@ int cortex_m_examine(struct target *target)
 		/* Get CPU Type */
 		i = (cpuid >> 4) & 0xf;
 
+		switch (cpuid & ARM_CPUID_PARTNO_MASK) {
+			case CORTEX_M23_PARTNO:
+				i = 23;
+				break;
+
+			case CORTEX_M33_PARTNO:
+				i = 33;
+				break;
+
+			default:
+				break;
+		}
+
+
 		LOG_DEBUG("Cortex-M%d r%" PRId8 "p%" PRId8 " processor detected",
 				i, (uint8_t)((cpuid >> 20) & 0xf), (uint8_t)((cpuid >> 0) & 0xf));
 		cortex_m->maskints_erratum = false;
@@ -2138,7 +2175,7 @@ int cortex_m_examine(struct target *target)
 				LOG_DEBUG("Cortex-M%d floating point feature FPv4_SP found", i);
 				armv7m->fp_feature = FPv4_SP;
 			}
-		} else if (i == 7) {
+		} else if (i == 7 || i == 33) {
 			target_read_u32(target, MVFR0, &mvfr0);
 			target_read_u32(target, MVFR1, &mvfr1);
 

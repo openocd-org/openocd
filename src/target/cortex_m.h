@@ -38,6 +38,12 @@
 #define ITM_LAR_KEY	0xC5ACCE55
 
 #define CPUID		0xE000ED00
+
+#define ARM_CPUID_PARTNO_MASK	0xFFF0
+
+#define CORTEX_M23_PARTNO	0xD200
+#define CORTEX_M33_PARTNO	0xD210
+
 /* Debug Control Block */
 #define DCB_DHCSR	0xE000EDF0
 #define DCB_DCRSR	0xE000EDF4
@@ -52,6 +58,9 @@
 #define DWT_COMP0	0xE0001020
 #define DWT_MASK0	0xE0001024
 #define DWT_FUNCTION0	0xE0001028
+#define DWT_DEVARCH		0xE0001FBC
+
+#define DWT_DEVARCH_ARMV8M	0x101A02
 
 #define FP_CTRL		0xE0002000
 #define FP_REMAP	0xE0002004
@@ -181,6 +190,7 @@ struct cortex_m_common {
 	/* Data Watchpoint and Trace (DWT) */
 	int dwt_num_comp;
 	int dwt_comp_available;
+	uint32_t dwt_devarch;
 	struct cortex_m_dwt_comparator *dwt_comparator_list;
 	struct reg_cache *dwt_cache;
 
