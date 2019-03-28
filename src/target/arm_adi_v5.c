@@ -1412,7 +1412,7 @@ static int dap_rom_display(struct command_context *cmd_ctx,
 			}
 			break;
 		case 6:
-			major = "Perfomance Monitor";
+			major = "Performance Monitor";
 			switch (minor) {
 			case 0:
 				subtype = "other";
