@@ -4926,7 +4926,6 @@ Use it in board specific configuration files, not interactively.
 @end quotation
 @end deffn
 
-@comment the REAL name for this command is "ocd_flash_banks"
 @comment less confusing would be: "flash list" (like "nand list")
 @deffn Command {flash banks}
 Prints a one-line summary of each device that was
@@ -9534,13 +9533,12 @@ The following commands can be used to authenticate to a RISC-V system. Eg.  a
 trivial challenge-response protocol could be implemented as follows in a
 configuration file, immediately following @command{init}:
 @example
-set challenge [ocd_riscv authdata_read]
+set challenge [riscv authdata_read]
 riscv authdata_write [expr $challenge + 1]
 @end example
 
 @deffn Command {riscv authdata_read}
-Return the 32-bit value read from authdata. Note that to get read value back in
-a TCL script, it needs to be invoked as @command{ocd_riscv authdata_read}.
+Return the 32-bit value read from authdata.
 @end deffn
 
 @deffn Command {riscv authdata_write} value
@@ -9553,9 +9551,7 @@ The following commands allow direct access to the Debug Module Interface, which
 can be used to interact with custom debug features.
 
 @deffn Command {riscv dmi_read}
-Perform a 32-bit DMI read at address, returning the value.  Note that to get
-read value back in a TCL script, it needs to be invoked as @command{ocd_riscv
-dmi_read}.
+Perform a 32-bit DMI read at address, returning the value.
 @end deffn
 
 @deffn Command {riscv dmi_write} address value
@@ -10439,10 +10435,6 @@ should be passed in to the proc in question.
 By "low-level," we mean commands that a human would typically not
 invoke directly.
 
-Some low-level commands need to be prefixed with "ocd_"; e.g.
-@command{ocd_flash_banks}
-is the low-level API upon which @command{flash banks} is implemented.
-
 @itemize @bullet
 @item @b{mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
 
@@ -10450,7 +10442,7 @@ Read memory and return as a Tcl array for script processing
 @item @b{array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
 
 Convert a Tcl array to memory locations and write the values
-@item @b{ocd_flash_banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
+@item @b{flash banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
 
 Return information about the flash banks
 
@@ -10509,8 +10501,8 @@ interpreter terminating it with @code{0x1a} and wait for the return
 value (it will be terminated with @code{0x1a} as well). This can be
 repeated as many times as desired without reopening the connection.
 
-Remember that most of the OpenOCD commands need to be prefixed with
-@code{ocd_} to get the results back. Sometimes you might also need the
+It is not needed anymore to prefix the OpenOCD commands with
+@code{ocd_} to get the results back. But sometimes you might need the
 @command{capture} command.
 
 See @file{contrib/rpc_examples/} for specific client implementations.
