@@ -812,8 +812,6 @@ static COMMAND_HELPER(command_help_find, struct command *head,
 	if (0 == CMD_ARGC)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	*out = command_find(head, CMD_ARGV[0]);
-	if (NULL == *out && strncmp(CMD_ARGV[0], "ocd_", 4) == 0)
-		*out = command_find(head, CMD_ARGV[0] + 4);
 	if (NULL == *out)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (--CMD_ARGC == 0)
@@ -967,18 +965,16 @@ COMMAND_HANDLER(handle_help_command)
 }
 
 static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
-	struct command *head, struct command **out, bool top_level)
+	struct command *head, struct command **out)
 {
 	if (0 == argc)
 		return argc;
 	const char *cmd_name = Jim_GetString(argv[0], NULL);
 	struct command *c = command_find(head, cmd_name);
-	if (NULL == c && top_level && strncmp(cmd_name, "ocd_", 4) == 0)
-		c = command_find(head, cmd_name + 4);
 	if (NULL == c)
 		return argc;
 	*out = c;
-	return command_unknown_find(--argc, ++argv, (*out)->children, out, false);
+	return command_unknown_find(--argc, ++argv, (*out)->children, out);
 }
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -994,7 +990,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	struct command_context *cmd_ctx = current_command_context(interp);
 	struct command *c = cmd_ctx->commands;
-	int remaining = command_unknown_find(argc, argv, c, &c, true);
+	int remaining = command_unknown_find(argc, argv, c, &c);
 	/* if nothing could be consumed, then it's really an unknown command */
 	if (remaining == argc) {
 		const char *cmd = Jim_GetString(argv[0], NULL);
@@ -1036,7 +1032,7 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	if (argc > 1) {
 		struct command *c = cmd_ctx->commands;
-		int remaining = command_unknown_find(argc - 1, argv + 1, c, &c, true);
+		int remaining = command_unknown_find(argc - 1, argv + 1, c, &c);
 		/* if nothing could be consumed, then it's an unknown command */
 		if (remaining == argc - 1) {
 			Jim_SetResultString(interp, "unknown", -1);
