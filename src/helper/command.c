@@ -1119,7 +1119,7 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 			.name = cmd_name,
 			.mode = COMMAND_ANY,
 			.help = help_text,
-			.usage = usage,
+			.usage = usage ? : "",
 		};
 		nc = register_command(cmd_ctx, parent, &cr);
 		if (NULL == nc) {
@@ -1144,8 +1144,9 @@ int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 	if (usage) {
 		bool replaced = false;
 		if (nc->usage) {
+			if (*nc->usage)
+				replaced = true;
 			free(nc->usage);
-			replaced = true;
 		}
 		nc->usage = strdup(usage);
 		if (replaced)
