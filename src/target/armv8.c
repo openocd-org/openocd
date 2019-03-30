@@ -646,7 +646,7 @@ int armv8_read_mpidr(struct armv8_common *armv8)
 	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
 	if (retval != ERROR_OK)
 		goto done;
-	if (mpidr & 1<<31) {
+	if (mpidr & 1U<<31) {
 		armv8->multi_processor_system = (mpidr >> 30) & 1;
 		armv8->cluster_id = (mpidr >> 8) & 0xf;
 		armv8->cpu_id = mpidr & 0x3;

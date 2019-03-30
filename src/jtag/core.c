@@ -1007,7 +1007,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 		return true;
 
 	/* optionally ignore the JTAG version field - bits 28-31 of IDCODE */
-	uint32_t mask = tap->ignore_version ? ~(0xf << 28) : ~0;
+	uint32_t mask = tap->ignore_version ? ~(0xfU << 28) : ~0U;
 	uint32_t idcode = tap->idcode & mask;
 
 	/* Loop over the expected identification codes and test for a match */
