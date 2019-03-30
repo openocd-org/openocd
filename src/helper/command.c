@@ -316,7 +316,7 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	 * arguments.
 	*/
 	if ((cr->jim_handler == NULL) && (cr->usage == NULL)) {
-		LOG_DEBUG("BUG: command '%s%s%s' does not have the "
+		LOG_ERROR("BUG: command '%s%s%s' does not have the "
 			"'.usage' field filled out",
 			parent && parent->name ? parent->name : "",
 			parent && parent->name ? " " : "",
