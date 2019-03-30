@@ -584,8 +584,7 @@ static const struct command_registration l2_cache_commands[] = {
 		.name = "l2x",
 		.handler = handle_cache_l2x,
 		.mode = COMMAND_EXEC,
-		.help = "configure l2x cache "
-			"",
+		.help = "configure l2x cache",
 		.usage = "[base_addr] [number_of_way]",
 	},
 	COMMAND_REGISTRATION_DONE
