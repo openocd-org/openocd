@@ -1241,6 +1241,7 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 			"This makes it impossible to read the Flash contents. "
 			"The only way to undo this is to issue the chip-erase "
 			"command.",
+		.usage = "'enable'",
 	},
 	{
 		.name = "eeprom",
