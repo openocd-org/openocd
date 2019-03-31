@@ -122,6 +122,11 @@ struct command_invocation {
 #define COMMAND_HELPER(name, extra ...) __COMMAND_HANDLER(name, extra)
 
 /**
+ * Use this macro to access the command being handled,
+ * rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD (cmd)
+/**
  * Use this macro to access the context of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
  */
