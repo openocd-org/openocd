@@ -294,7 +294,7 @@ COMMAND_HANDLER(handle_nand_verify_command)
 	dev.address = file.address;
 	dev.size = file.size;
 	dev.oob_format = file.oob_format;
-	retval = nand_fileio_start(CMD_CTX, nand, NULL, FILEIO_NONE, &dev);
+	retval = nand_fileio_start(CMD, nand, NULL, FILEIO_NONE, &dev);
 	if (ERROR_OK != retval)
 		return retval;
 
