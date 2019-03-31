@@ -500,15 +500,15 @@ COMMAND_HANDLER(handle_nand_init_command)
 
 static int nand_list_walker(struct nand_flash_controller *c, void *x)
 {
-	struct command_context *cmd_ctx = x;
-	command_print(cmd_ctx, "  %s", c->name);
+	struct command_invocation *cmd = x;
+	command_print(cmd->ctx, "  %s", c->name);
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_nand_list_drivers)
 {
 	command_print(CMD_CTX, "Available NAND flash controller drivers:");
-	return nand_driver_walk(&nand_list_walker, CMD_CTX);
+	return nand_driver_walk(&nand_list_walker, CMD);
 }
 
 static COMMAND_HELPER(create_nand_device, const char *bank_name,
