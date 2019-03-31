@@ -54,12 +54,12 @@ void nand_fileio_init(struct nand_fileio_state *state)
 	state->oob_format = NAND_OOB_NONE;
 }
 
-int nand_fileio_start(struct command_context *cmd_ctx,
+int nand_fileio_start(struct command_invocation *cmd,
 	struct nand_device *nand, const char *filename, int filemode,
 	struct nand_fileio_state *state)
 {
 	if (state->address % nand->page_size) {
-		command_print(cmd_ctx, "only page-aligned addresses are supported");
+		command_print(cmd->ctx, "only page-aligned addresses are supported");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -69,7 +69,7 @@ int nand_fileio_start(struct command_context *cmd_ctx,
 		int retval = fileio_open(&state->fileio, filename, filemode, FILEIO_BINARY);
 		if (ERROR_OK != retval) {
 			const char *msg = (FILEIO_READ == filemode) ? "read" : "write";
-			command_print(cmd_ctx, "failed to open '%s' for %s access",
+			command_print(cmd->ctx, "failed to open '%s' for %s access",
 				filename, msg);
 			return retval;
 		}
@@ -161,7 +161,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 		}
 	}
 
-	retval = nand_fileio_start(CMD_CTX, nand, CMD_ARGV[1], filemode, state);
+	retval = nand_fileio_start(CMD, nand, CMD_ARGV[1], filemode, state);
 	if (ERROR_OK != retval)
 		return retval;
 
