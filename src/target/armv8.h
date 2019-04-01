@@ -170,7 +170,7 @@ struct armv8_cache_common {
 	/* l2 external unified cache if some */
 	void *l2_cache;
 	int (*flush_all_data_cache)(struct target *target);
-	int (*display_cache_info)(struct command_context *cmd_ctx,
+	int (*display_cache_info)(struct command_invocation *cmd,
 			struct armv8_cache_common *armv8_cache);
 };
 
@@ -301,7 +301,7 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 		target_addr_t *val, int meminfo);
 int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr_t *val);
 
-int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
+int armv8_handle_cache_info_command(struct command_invocation *cmd,
 		struct armv8_cache_common *armv8_cache);
 
 void armv8_set_cpsr(struct arm *arm, uint32_t cpsr);

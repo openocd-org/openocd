@@ -1079,16 +1079,16 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 	return ERROR_OK;
 }
 
-int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
+int armv8_handle_cache_info_command(struct command_invocation *cmd,
 	struct armv8_cache_common *armv8_cache)
 {
 	if (armv8_cache->info == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
+		command_print(cmd->ctx, "cache not yet identified");
 		return ERROR_OK;
 	}
 
 	if (armv8_cache->display_cache_info)
-		armv8_cache->display_cache_info(cmd_ctx, armv8_cache);
+		armv8_cache->display_cache_info(cmd, armv8_cache);
 	return ERROR_OK;
 }
 
