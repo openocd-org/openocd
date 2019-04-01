@@ -3090,7 +3090,7 @@ COMMAND_HANDLER(xscale_handle_cache_info_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	return armv4_5_handle_cache_info_command(CMD_CTX, &xscale->armv4_5_mmu.armv4_5_cache);
+	return armv4_5_handle_cache_info_command(CMD, &xscale->armv4_5_mmu.armv4_5_cache);
 }
 
 static int xscale_virt2phys(struct target *target,

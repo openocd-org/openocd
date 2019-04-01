@@ -19,7 +19,7 @@
 #ifndef OPENOCD_TARGET_ARMV4_5_CACHE_H
 #define OPENOCD_TARGET_ARMV4_5_CACHE_H
 
-struct command_context;
+struct command_invocation;
 
 struct armv4_5_cachesize {
 	int linelen;
@@ -42,7 +42,7 @@ int armv4_5_identify_cache(uint32_t cache_type_reg,
 int armv4_5_cache_state(uint32_t cp15_control_reg,
 		struct armv4_5_cache_common *cache);
 
-int armv4_5_handle_cache_info_command(struct command_context *cmd_ctx,
+int armv4_5_handle_cache_info_command(struct command_invocation *cmd,
 		struct armv4_5_cache_common *armv4_5_cache);
 
 enum {
