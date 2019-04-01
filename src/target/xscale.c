@@ -2654,16 +2654,16 @@ static inline void xscale_branch_address(struct xscale_trace_data *trace_data,
 
 static inline void xscale_display_instruction(struct target *target, uint32_t pc,
 	struct arm_instruction *instruction,
-	struct command_context *cmd_ctx)
+	struct command_invocation *cmd)
 {
 	int retval = xscale_read_instruction(target, pc, instruction);
 	if (retval == ERROR_OK)
-		command_print(cmd_ctx, "%s", instruction->text);
+		command_print(cmd->ctx, "%s", instruction->text);
 	else
-		command_print(cmd_ctx, "0x%8.8" PRIx32 "\t<not found in image>", pc);
+		command_print(cmd->ctx, "0x%8.8" PRIx32 "\t<not found in image>", pc);
 }
 
-static int xscale_analyze_trace(struct target *target, struct command_context *cmd_ctx)
+static int xscale_analyze_trace(struct target *target, struct command_invocation *cmd)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct xscale_trace_data *trace_data = xscale->trace.data;
@@ -2771,7 +2771,7 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 			count = trace_data->entries[i].data & 0x0f;
 			for (j = 0; j < count; j++) {
 				xscale_display_instruction(target, current_pc, &instruction,
-					cmd_ctx);
+					cmd);
 				current_pc += xscale->trace.core_state == ARM_STATE_ARM ? 4 : 2;
 			}
 
@@ -2779,7 +2779,7 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 			 * rollover and some exceptions: undef, swi, prefetch abort. */
 			if ((trace_msg_type == 15) || (exception > 0 && exception < 4)) {
 				xscale_display_instruction(target, current_pc, &instruction,
-					cmd_ctx);
+					cmd);
 				current_pc += xscale->trace.core_state == ARM_STATE_ARM ? 4 : 2;
 			}
 
@@ -2787,13 +2787,13 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 				continue;
 
 			if (exception) {
-				command_print(cmd_ctx, "--- exception %i ---", exception);
+				command_print(cmd->ctx, "--- exception %i ---", exception);
 				continue;
 			}
 
 			/* not exception or rollover; next instruction is a branch and is
 			 * not included in the count */
-			xscale_display_instruction(target, current_pc, &instruction, cmd_ctx);
+			xscale_display_instruction(target, current_pc, &instruction, cmd);
 
 			/* for direct branches, extract branch destination from instruction */
 			if ((trace_msg_type == 8) || (trace_msg_type == 12)) {
@@ -2813,7 +2813,7 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 				}
 
 				if (current_pc == 0)
-					command_print(cmd_ctx, "address unknown");
+					command_print(cmd->ctx, "address unknown");
 
 				continue;
 			}
@@ -2855,7 +2855,7 @@ static int xscale_analyze_trace(struct target *target, struct command_context *c
 
 	/* display remaining instructions */
 	for (i = 0; i < gap_count; i++) {
-		xscale_display_instruction(target, current_pc, &instruction, cmd_ctx);
+		xscale_display_instruction(target, current_pc, &instruction, cmd);
 		current_pc += xscale->trace.core_state == ARM_STATE_ARM ? 4 : 2;
 	}
 
@@ -3486,7 +3486,7 @@ COMMAND_HANDLER(xscale_handle_analyze_trace_buffer_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	xscale_analyze_trace(target, CMD_CTX);
+	xscale_analyze_trace(target, CMD);
 
 	return ERROR_OK;
 }
