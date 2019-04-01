@@ -640,7 +640,7 @@ int target_resume(struct target *target, int current, target_addr_t address,
 	return retval;
 }
 
-static int target_process_reset(struct command_context *cmd_ctx, enum target_reset_mode reset_mode)
+static int target_process_reset(struct command_invocation *cmd, enum target_reset_mode reset_mode)
 {
 	char buf[100];
 	int retval;
@@ -664,13 +664,13 @@ static int target_process_reset(struct command_context *cmd_ctx, enum target_res
 	jtag_poll_set_enabled(false);
 
 	sprintf(buf, "ocd_process_reset %s", n->name);
-	retval = Jim_Eval(cmd_ctx->interp, buf);
+	retval = Jim_Eval(cmd->ctx->interp, buf);
 
 	jtag_poll_set_enabled(save_poll);
 
 	if (retval != JIM_OK) {
-		Jim_MakeErrorMessage(cmd_ctx->interp);
-		command_print(NULL, "%s\n", Jim_GetString(Jim_GetResult(cmd_ctx->interp), NULL));
+		Jim_MakeErrorMessage(cmd->ctx->interp);
+		command_print(cmd->ctx, "%s", Jim_GetString(Jim_GetResult(cmd->ctx->interp), NULL));
 		return ERROR_FAIL;
 	}
 
@@ -3079,7 +3079,7 @@ COMMAND_HANDLER(handle_reset_command)
 	}
 
 	/* reset *all* targets */
-	return target_process_reset(CMD_CTX, reset_mode);
+	return target_process_reset(CMD, reset_mode);
 }
 
 
