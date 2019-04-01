@@ -2533,7 +2533,7 @@ COMMAND_HANDLER(aarch64_handle_cache_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv8_common *armv8 = target_to_armv8(target);
 
-	return armv8_handle_cache_info_command(CMD_CTX,
+	return armv8_handle_cache_info_command(CMD,
 			&armv8->armv8_mmu.armv8_cache);
 }
 
