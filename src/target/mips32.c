@@ -905,11 +905,11 @@ cleanup:
 	return 1;       /* only one block has been checked */
 }
 
-static int mips32_verify_pointer(struct command_context *cmd_ctx,
+static int mips32_verify_pointer(struct command_invocation *cmd,
 		struct mips32_common *mips32)
 {
 	if (mips32->common_magic != MIPS32_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not an MIPS32");
+		command_print(cmd->ctx, "target is not an MIPS32");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -927,7 +927,7 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
 
-	retval = mips32_verify_pointer(CMD_CTX, mips32);
+	retval = mips32_verify_pointer(CMD, mips32);
 	if (retval != ERROR_OK)
 		return retval;
 
