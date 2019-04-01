@@ -1875,7 +1875,7 @@ static int dsp563xx_remove_watchpoint(struct target *target, struct watchpoint *
 	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
-static void handle_md_output(struct command_context *cmd_ctx,
+static void handle_md_output(struct command_invocation *cmd,
 	struct target *target,
 	uint32_t address,
 	unsigned size,
@@ -1930,7 +1930,7 @@ static void handle_md_output(struct command_context *cmd_ctx,
 				value);
 
 		if ((i % line_modulo == line_modulo - 1) || (i == count - 1)) {
-			command_print(cmd_ctx, "%s", output);
+			command_print(cmd->ctx, "%s", output);
 			output_len = 0;
 		}
 	}
@@ -2208,7 +2208,7 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 		err = dsp563xx_read_memory(target, mem_type, address, sizeof(uint32_t),
 				count, buffer);
 		if (err == ERROR_OK)
-			handle_md_output(CMD_CTX, target, address, sizeof(uint32_t), count, buffer);
+			handle_md_output(CMD, target, address, sizeof(uint32_t), count, buffer);
 
 	} else {
 		b = buffer;
