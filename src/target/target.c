@@ -4553,7 +4553,12 @@ void target_handle_event(struct target *target, enum target_event e)
 
 			if (Jim_EvalObj(teap->interp, teap->body) != JIM_OK) {
 				Jim_MakeErrorMessage(teap->interp);
-				command_print(NULL, "%s\n", Jim_GetString(Jim_GetResult(teap->interp), NULL));
+				LOG_USER("Error executing event %s on target %s:\n%s",
+						  Jim_Nvp_value2name_simple(nvp_target_event, e)->name,
+						  target_name(target),
+						  Jim_GetString(Jim_GetResult(teap->interp), NULL));
+				/* clean both error code and stacktrace before return */
+				Jim_Eval(teap->interp, "error \"\" \"\"");
 			}
 
 			cmd_ctx->current_target_override = saved_target_override;
