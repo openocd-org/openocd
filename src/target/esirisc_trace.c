@@ -593,7 +593,7 @@ done:
 	return retval;
 }
 
-static int esirisc_trace_dump(struct command_context *cmd_ctx, const char *filename,
+static int esirisc_trace_dump(struct command_invocation *cmd, const char *filename,
 		uint8_t *buffer, uint32_t size)
 {
 	struct fileio *fileio;
@@ -602,24 +602,24 @@ static int esirisc_trace_dump(struct command_context *cmd_ctx, const char *filen
 
 	retval = fileio_open(&fileio, filename, FILEIO_WRITE, FILEIO_BINARY);
 	if (retval != ERROR_OK) {
-		command_print(cmd_ctx, "could not open dump file: %s", filename);
+		command_print(cmd->ctx, "could not open dump file: %s", filename);
 		return retval;
 	}
 
 	retval = fileio_write(fileio, size, buffer, &size_written);
 	if (retval == ERROR_OK)
-		command_print(cmd_ctx, "trace data dumped to: %s", filename);
+		command_print(cmd->ctx, "trace data dumped to: %s", filename);
 	else
-		command_print(cmd_ctx, "could not write dump file: %s", filename);
+		command_print(cmd->ctx, "could not write dump file: %s", filename);
 
 	fileio_close(fileio);
 
 	return retval;
 }
 
-static int esirisc_trace_dump_buffer(struct command_context *cmd_ctx, const char *filename)
+static int esirisc_trace_dump_buffer(struct command_invocation *cmd, const char *filename)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
 	uint8_t *buffer;
@@ -629,7 +629,7 @@ static int esirisc_trace_dump_buffer(struct command_context *cmd_ctx, const char
 	size = esirisc_trace_buffer_size(trace_info);
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd_ctx, "out of memory");
+		command_print(cmd->ctx, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -637,7 +637,7 @@ static int esirisc_trace_dump_buffer(struct command_context *cmd_ctx, const char
 	if (retval != ERROR_OK)
 		goto done;
 
-	retval = esirisc_trace_dump(cmd_ctx, filename, buffer, size);
+	retval = esirisc_trace_dump(cmd, filename, buffer, size);
 
 done:
 	free(buffer);
@@ -645,16 +645,16 @@ done:
 	return retval;
 }
 
-static int esirisc_trace_dump_memory(struct command_context *cmd_ctx, const char *filename,
+static int esirisc_trace_dump_memory(struct command_invocation *cmd, const char *filename,
 		target_addr_t address, uint32_t size)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	uint8_t *buffer;
 	int retval;
 
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd_ctx, "out of memory");
+		command_print(cmd->ctx, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -662,7 +662,7 @@ static int esirisc_trace_dump_memory(struct command_context *cmd_ctx, const char
 	if (retval != ERROR_OK)
 		goto done;
 
-	retval = esirisc_trace_dump(cmd_ctx, filename, buffer, size);
+	retval = esirisc_trace_dump(cmd, filename, buffer, size);
 
 done:
 	free(buffer);
@@ -853,12 +853,12 @@ COMMAND_HANDLER(handle_esirisc_trace_dump_command)
 			return ERROR_FAIL;
 		}
 
-		return esirisc_trace_dump_buffer(CMD_CTX, CMD_ARGV[0]);
+		return esirisc_trace_dump_buffer(CMD, CMD_ARGV[0]);
 	} else {
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], size);
 
-		return esirisc_trace_dump_memory(CMD_CTX, CMD_ARGV[2], address, size);
+		return esirisc_trace_dump_memory(CMD, CMD_ARGV[2], address, size);
 	}
 }
 
