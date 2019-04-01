@@ -1585,7 +1585,7 @@ COMMAND_HANDLER(arm920t_handle_cache_info_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	return armv4_5_handle_cache_info_command(CMD_CTX,
+	return armv4_5_handle_cache_info_command(CMD,
 		&arm920t->armv4_5_mmu.armv4_5_cache);
 }
 

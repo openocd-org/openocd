@@ -733,7 +733,7 @@ COMMAND_HANDLER(arm926ejs_handle_cache_info_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	return armv4_5_handle_cache_info_command(CMD_CTX, &arm926ejs->armv4_5_mmu.armv4_5_cache);
+	return armv4_5_handle_cache_info_command(CMD, &arm926ejs->armv4_5_mmu.armv4_5_cache);
 }
 
 static int arm926ejs_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)
