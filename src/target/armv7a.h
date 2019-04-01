@@ -187,7 +187,7 @@ int armv7a_arch_state(struct target *target);
 int armv7a_identify_cache(struct target *target);
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
 
-int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
+int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 		struct armv7a_cache_common *armv7a_cache);
 int armv7a_read_ttbcr(struct target *target);
 
