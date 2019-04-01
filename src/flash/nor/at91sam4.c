@@ -228,14 +228,14 @@ struct sam4_reg_list {
 
 static struct sam4_chip *all_sam4_chips;
 
-static struct sam4_chip *get_current_sam4(struct command_context *cmd_ctx)
+static struct sam4_chip *get_current_sam4(struct command_invocation *cmd)
 {
 	struct target *t;
 	static struct sam4_chip *p;
 
-	t = get_current_target(cmd_ctx);
+	t = get_current_target(cmd->ctx);
 	if (!t) {
-		command_print(cmd_ctx, "No current target?");
+		command_print(cmd->ctx, "No current target?");
 		return NULL;
 	}
 
@@ -243,7 +243,7 @@ static struct sam4_chip *get_current_sam4(struct command_context *cmd_ctx)
 	if (!p) {
 		/* this should not happen */
 		/* the command is not registered until the chip is created? */
-		command_print(cmd_ctx, "No SAM4 chips exist?");
+		command_print(cmd->ctx, "No SAM4 chips exist?");
 		return NULL;
 	}
 
@@ -252,7 +252,7 @@ static struct sam4_chip *get_current_sam4(struct command_context *cmd_ctx)
 			return p;
 		p = p->next;
 	}
-	command_print(cmd_ctx, "Cannot find SAM4 chip?");
+	command_print(cmd->ctx, "Cannot find SAM4 chip?");
 	return NULL;
 }
 
@@ -3018,7 +3018,7 @@ done:
 COMMAND_HANDLER(sam4_handle_info_command)
 {
 	struct sam4_chip *pChip;
-	pChip = get_current_sam4(CMD_CTX);
+	pChip = get_current_sam4(CMD);
 	if (!pChip)
 		return ERROR_OK;
 
@@ -3078,7 +3078,7 @@ COMMAND_HANDLER(sam4_handle_gpnvm_command)
 	int r, who;
 	struct sam4_chip *pChip;
 
-	pChip = get_current_sam4(CMD_CTX);
+	pChip = get_current_sam4(CMD);
 	if (!pChip)
 		return ERROR_OK;
 
@@ -3163,7 +3163,7 @@ COMMAND_HANDLER(sam4_handle_slowclk_command)
 {
 	struct sam4_chip *pChip;
 
-	pChip = get_current_sam4(CMD_CTX);
+	pChip = get_current_sam4(CMD);
 	if (!pChip)
 		return ERROR_OK;
 
