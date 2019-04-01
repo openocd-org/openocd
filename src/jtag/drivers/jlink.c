@@ -1101,49 +1101,49 @@ COMMAND_HANDLER(jlink_handle_target_power_command)
 	return ERROR_OK;
 }
 
-static void show_config_usb_address(struct command_context *ctx)
+static void show_config_usb_address(struct command_invocation *cmd)
 {
 	if (config.usb_address != tmp_config.usb_address)
-		command_print(ctx, "USB address: %u [%u]", config.usb_address,
+		command_print(cmd->ctx, "USB address: %u [%u]", config.usb_address,
 			tmp_config.usb_address);
 	else
-		command_print(ctx, "USB address: %u", config.usb_address);
+		command_print(cmd->ctx, "USB address: %u", config.usb_address);
 }
 
-static void show_config_ip_address(struct command_context *ctx)
+static void show_config_ip_address(struct command_invocation *cmd)
 {
 	if (!memcmp(config.ip_address, tmp_config.ip_address, 4))
-		command_print(ctx, "IP address: %d.%d.%d.%d",
+		command_print(cmd->ctx, "IP address: %d.%d.%d.%d",
 			config.ip_address[3], config.ip_address[2],
 			config.ip_address[1], config.ip_address[0]);
 	else
-		command_print(ctx, "IP address: %d.%d.%d.%d [%d.%d.%d.%d]",
+		command_print(cmd->ctx, "IP address: %d.%d.%d.%d [%d.%d.%d.%d]",
 			config.ip_address[3], config.ip_address[2],
 			config.ip_address[1], config.ip_address[0],
 			tmp_config.ip_address[3], tmp_config.ip_address[2],
 			tmp_config.ip_address[1], tmp_config.ip_address[0]);
 
 	if (!memcmp(config.subnet_mask, tmp_config.subnet_mask, 4))
-		command_print(ctx, "Subnet mask: %d.%d.%d.%d",
+		command_print(cmd->ctx, "Subnet mask: %d.%d.%d.%d",
 			config.subnet_mask[3], config.subnet_mask[2],
 			config.subnet_mask[1], config.subnet_mask[0]);
 	else
-		command_print(ctx, "Subnet mask: %d.%d.%d.%d [%d.%d.%d.%d]",
+		command_print(cmd->ctx, "Subnet mask: %d.%d.%d.%d [%d.%d.%d.%d]",
 			config.subnet_mask[3], config.subnet_mask[2],
 			config.subnet_mask[1], config.subnet_mask[0],
 			tmp_config.subnet_mask[3], tmp_config.subnet_mask[2],
 			tmp_config.subnet_mask[1], tmp_config.subnet_mask[0]);
 }
 
-static void show_config_mac_address(struct command_context *ctx)
+static void show_config_mac_address(struct command_invocation *cmd)
 {
 	if (!memcmp(config.mac_address, tmp_config.mac_address, 6))
-		command_print(ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x",
+		command_print(cmd->ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x",
 			config.mac_address[5], config.mac_address[4],
 			config.mac_address[3], config.mac_address[2],
 			config.mac_address[1], config.mac_address[0]);
 	else
-		command_print(ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x "
+		command_print(cmd->ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x "
 			"[%.02x:%.02x:%.02x:%.02x:%.02x:%.02x]",
 			config.mac_address[5], config.mac_address[4],
 			config.mac_address[3], config.mac_address[2],
@@ -1153,7 +1153,7 @@ static void show_config_mac_address(struct command_context *ctx)
 			tmp_config.mac_address[1], tmp_config.mac_address[0]);
 }
 
-static void show_config_target_power(struct command_context *ctx)
+static void show_config_target_power(struct command_invocation *cmd)
 {
 	const char *target_power;
 	const char *current_target_power;
@@ -1169,24 +1169,24 @@ static void show_config_target_power(struct command_context *ctx)
 		current_target_power = "on";
 
 	if (config.target_power != tmp_config.target_power)
-		command_print(ctx, "Target power supply: %s [%s]", target_power,
+		command_print(cmd->ctx, "Target power supply: %s [%s]", target_power,
 			current_target_power);
 	else
-		command_print(ctx, "Target power supply: %s", target_power);
+		command_print(cmd->ctx, "Target power supply: %s", target_power);
 }
 
-static void show_config(struct command_context *ctx)
+static void show_config(struct command_invocation *cmd)
 {
-	command_print(ctx, "J-Link device configuration:");
+	command_print(cmd->ctx, "J-Link device configuration:");
 
-	show_config_usb_address(ctx);
+	show_config_usb_address(cmd);
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER))
-		show_config_target_power(ctx);
+		show_config_target_power(cmd);
 
 	if (jaylink_has_cap(caps, JAYLINK_DEV_CAP_ETHERNET)) {
-		show_config_ip_address(ctx);
-		show_config_mac_address(ctx);
+		show_config_ip_address(cmd);
+		show_config_mac_address(cmd);
 	}
 }
 
@@ -1352,7 +1352,7 @@ COMMAND_HANDLER(jlink_handle_config_usb_address_command)
 	}
 
 	if (!CMD_ARGC) {
-		show_config_usb_address(CMD_CTX);
+		show_config_usb_address(CMD);
 	} else if (CMD_ARGC == 1) {
 		if (sscanf(CMD_ARGV[0], "%" SCNd8, &tmp) != 1) {
 			command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
@@ -1391,7 +1391,7 @@ COMMAND_HANDLER(jlink_handle_config_target_power_command)
 	}
 
 	if (!CMD_ARGC) {
-		show_config_target_power(CMD_CTX);
+		show_config_target_power(CMD);
 	} else if (CMD_ARGC == 1) {
 		if (!strcmp(CMD_ARGV[0], "on")) {
 			enable = true;
@@ -1432,7 +1432,7 @@ COMMAND_HANDLER(jlink_handle_config_mac_address_command)
 	}
 
 	if (!CMD_ARGC) {
-		show_config_mac_address(CMD_CTX);
+		show_config_mac_address(CMD);
 	} else if (CMD_ARGC == 1) {
 		str = CMD_ARGV[0];
 
@@ -1520,7 +1520,7 @@ COMMAND_HANDLER(jlink_handle_config_ip_address_command)
 	}
 
 	if (!CMD_ARGC) {
-		show_config_ip_address(CMD_CTX);
+		show_config_ip_address(CMD);
 	} else {
 		if (!string_to_ip(CMD_ARGV[0], ip_address, &i))
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1616,7 +1616,7 @@ COMMAND_HANDLER(jlink_handle_config_command)
 	}
 
 	if (CMD_ARGC == 0)
-		show_config(CMD_CTX);
+		show_config(CMD);
 
 	return ERROR_OK;
 }
