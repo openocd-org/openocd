@@ -331,7 +331,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return dap_info_command(CMD_CTX, &dap->ap[apsel]);
+	return dap_info_command(CMD, &dap->ap[apsel]);
 }
 
 static const struct command_registration dap_subcommand_handlers[] = {
