@@ -99,11 +99,11 @@ static int arm946e_target_create(struct target *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-static int arm946e_verify_pointer(struct command_context *cmd_ctx,
+static int arm946e_verify_pointer(struct command_invocation *cmd,
 	struct arm946e_common *arm946e)
 {
 	if (arm946e->common_magic != ARM946E_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not an ARM946");
+		command_print(cmd->ctx, "target is not an ARM946");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -558,7 +558,7 @@ COMMAND_HANDLER(arm946e_handle_cp15)
 	struct target *target = get_current_target(CMD_CTX);
 
 	struct arm946e_common *arm946e = target_to_arm946(target);
-	int retval = arm946e_verify_pointer(CMD_CTX, arm946e);
+	int retval = arm946e_verify_pointer(CMD, arm946e);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -608,7 +608,7 @@ COMMAND_HANDLER(arm946e_handle_idcache)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm946e_common *arm946e = target_to_arm946(target);
 
-	retval = arm946e_verify_pointer(CMD_CTX, arm946e);
+	retval = arm946e_verify_pointer(CMD, arm946e);
 	if (retval != ERROR_OK)
 		return retval;
 
