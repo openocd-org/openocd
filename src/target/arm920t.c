@@ -507,11 +507,11 @@ void arm920t_pre_restore_context(struct target *target)
 
 static const char arm920_not[] = "target is not an ARM920";
 
-static int arm920t_verify_pointer(struct command_context *cmd_ctx,
+static int arm920t_verify_pointer(struct command_invocation *cmd,
 	struct arm920t_common *arm920t)
 {
 	if (arm920t->common_magic != ARM920T_COMMON_MAGIC) {
-		command_print(cmd_ctx, arm920_not);
+		command_print(cmd->ctx, arm920_not);
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -869,7 +869,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	int segment, index_t;
 	struct reg *r;
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1151,7 +1151,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	int victim;
 	struct reg *r;
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1451,7 +1451,7 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1507,7 +1507,7 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1581,7 +1581,7 @@ COMMAND_HANDLER(arm920t_handle_cache_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
