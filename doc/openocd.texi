@@ -4367,6 +4367,7 @@ compact Thumb2 instruction set.
 The current implementation supports eSi-32xx cores.
 @item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
+@item @code{mem_ap} -- this is an ARM debug infrastructure Access Port without a CPU, through which bus read and write cycles can be generated; it may be useful for working with non-CPU hardware behind an AP or during development of support for new CPUs.
 @item @code{mips_m4k} -- a MIPS core
 @item @code{xscale} -- this is actually an architecture,
 not a CPU type. It is based on the ARMv5 architecture.
