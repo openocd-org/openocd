@@ -5939,13 +5939,13 @@ COMMAND_HANDLER(handle_ps_command)
 	}
 }
 
-static void binprint(struct command_context *cmd_ctx, const char *text, const uint8_t *buf, int size)
+static void binprint(struct command_invocation *cmd, const char *text, const uint8_t *buf, int size)
 {
 	if (text != NULL)
-		command_print_sameline(cmd_ctx, "%s", text);
+		command_print_sameline(cmd->ctx, "%s", text);
 	for (int i = 0; i < size; i++)
-		command_print_sameline(cmd_ctx, " %02x", buf[i]);
-	command_print(cmd_ctx, " ");
+		command_print_sameline(cmd->ctx, " %02x", buf[i]);
+	command_print(cmd->ctx, " ");
 }
 
 COMMAND_HANDLER(handle_test_mem_access_command)
@@ -6028,8 +6028,8 @@ COMMAND_HANDLER(handle_test_mem_access_command)
 							duration_kbps(&bench, count * size));
 				} else {
 					command_print(CMD_CTX, "Compare failed");
-					binprint(CMD_CTX, "ref:", read_ref, host_bufsiz);
-					binprint(CMD_CTX, "buf:", read_buf, host_bufsiz);
+					binprint(CMD, "ref:", read_ref, host_bufsiz);
+					binprint(CMD, "buf:", read_buf, host_bufsiz);
 				}
 next:
 				free(read_ref);
@@ -6114,8 +6114,8 @@ out:
 							duration_kbps(&bench, count * size));
 				} else {
 					command_print(CMD_CTX, "Compare failed");
-					binprint(CMD_CTX, "ref:", read_ref, num_bytes);
-					binprint(CMD_CTX, "buf:", read_buf, num_bytes);
+					binprint(CMD, "ref:", read_ref, num_bytes);
+					binprint(CMD, "buf:", read_buf, num_bytes);
 				}
 nextw:
 				free(read_ref);
