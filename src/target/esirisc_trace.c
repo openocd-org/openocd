@@ -385,9 +385,9 @@ static int esirisc_trace_read_buffer(struct target *target, uint8_t *buffer)
 			buffer_cur - trace_info->buffer_start, buffer);
 }
 
-static int esirisc_trace_analyze_full(struct command_context *cmd_ctx, uint8_t *buffer, uint32_t size)
+static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *buffer, uint32_t size)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	const uint32_t num_bits = size * 8;
 	int retval;
 
@@ -403,7 +403,7 @@ static int esirisc_trace_analyze_full(struct command_context *cmd_ctx, uint8_t *
 			case ESIRISC_TRACE_ID_EXECUTE:
 			case ESIRISC_TRACE_ID_STALL:
 			case ESIRISC_TRACE_ID_BRANCH:
-				command_print(cmd_ctx, "%s", esirisc_trace_id_strings[id]);
+				command_print(cmd->ctx, "%s", esirisc_trace_id_strings[id]);
 				break;
 
 			case ESIRISC_TRACE_ID_EXTENDED: {
@@ -417,7 +417,7 @@ static int esirisc_trace_analyze_full(struct command_context *cmd_ctx, uint8_t *
 					case ESIRISC_TRACE_EXT_ID_STOP:
 					case ESIRISC_TRACE_EXT_ID_WAIT:
 					case ESIRISC_TRACE_EXT_ID_MULTICYCLE:
-						command_print(cmd_ctx, "%s", esirisc_trace_ext_id_strings[ext_id]);
+						command_print(cmd->ctx, "%s", esirisc_trace_ext_id_strings[ext_id]);
 						break;
 
 					case ESIRISC_TRACE_EXT_ID_ERET:
@@ -430,11 +430,11 @@ static int esirisc_trace_analyze_full(struct command_context *cmd_ctx, uint8_t *
 						if (retval != ERROR_OK)
 							goto fail;
 
-						command_print(cmd_ctx, "%s PC: 0x%" PRIx32,
+						command_print(cmd->ctx, "%s PC: 0x%" PRIx32,
 								esirisc_trace_ext_id_strings[ext_id], pc);
 
 						if (ext_id == ESIRISC_TRACE_EXT_ID_END_PC) {
-							command_print(cmd_ctx, "--- end of trace ---");
+							command_print(cmd->ctx, "--- end of trace ---");
 							return ERROR_OK;
 						}
 						break;
@@ -450,7 +450,7 @@ static int esirisc_trace_analyze_full(struct command_context *cmd_ctx, uint8_t *
 						if (retval != ERROR_OK)
 							goto fail;
 
-						command_print(cmd_ctx, "%s EID: 0x%" PRIx32 ", EPC: 0x%" PRIx32,
+						command_print(cmd->ctx, "%s EID: 0x%" PRIx32 ", EPC: 0x%" PRIx32,
 								esirisc_trace_ext_id_strings[ext_id], eid, epc);
 						break;
 					}
@@ -461,34 +461,34 @@ static int esirisc_trace_analyze_full(struct command_context *cmd_ctx, uint8_t *
 						if (retval != ERROR_OK)
 							goto fail;
 
-						command_print(cmd_ctx, "repeats %" PRId32 " %s", count,
+						command_print(cmd->ctx, "repeats %" PRId32 " %s", count,
 								(count == 1) ? "time" : "times");
 						break;
 					}
 					case ESIRISC_TRACE_EXT_ID_END:
-						command_print(cmd_ctx, "--- end of trace ---");
+						command_print(cmd->ctx, "--- end of trace ---");
 						return ERROR_OK;
 
 					default:
-						command_print(cmd_ctx, "invalid extended trace ID: %" PRId32, ext_id);
+						command_print(cmd->ctx, "invalid extended trace ID: %" PRId32, ext_id);
 						return ERROR_FAIL;
 				}
 				break;
 			}
 			default:
-				command_print(cmd_ctx, "invalid trace ID: %" PRId32, id);
+				command_print(cmd->ctx, "invalid trace ID: %" PRId32, id);
 				return ERROR_FAIL;
 		}
 	}
 
 fail:
-	command_print(cmd_ctx, "trace buffer too small");
+	command_print(cmd->ctx, "trace buffer too small");
 	return ERROR_BUF_TOO_SMALL;
 }
 
-static int esirisc_trace_analyze_simple(struct command_context *cmd_ctx, uint8_t *buffer, uint32_t size)
+static int esirisc_trace_analyze_simple(struct command_invocation *cmd, uint8_t *buffer, uint32_t size)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
 	const uint32_t end_of_trace = BIT_MASK(trace_info->pc_bits) << 1;
@@ -504,45 +504,45 @@ static int esirisc_trace_analyze_simple(struct command_context *cmd_ctx, uint8_t
 			break;
 
 		if (pc == end_of_trace) {
-			command_print(cmd_ctx, "--- end of trace ---");
+			command_print(cmd->ctx, "--- end of trace ---");
 			return ERROR_OK;
 		}
 
-		command_print(cmd_ctx, "PC: 0x%" PRIx32, pc);
+		command_print(cmd->ctx, "PC: 0x%" PRIx32, pc);
 	}
 
-	command_print(cmd_ctx, "trace buffer too small");
+	command_print(cmd->ctx, "trace buffer too small");
 	return ERROR_BUF_TOO_SMALL;
 }
 
-static int esirisc_trace_analyze(struct command_context *cmd_ctx, uint8_t *buffer, uint32_t size)
+static int esirisc_trace_analyze(struct command_invocation *cmd, uint8_t *buffer, uint32_t size)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
 
 	switch (trace_info->format) {
 		case ESIRISC_TRACE_FORMAT_FULL:
-			command_print(cmd_ctx, "--- full pipeline ---");
-			return esirisc_trace_analyze_full(cmd_ctx, buffer, size);
+			command_print(cmd->ctx, "--- full pipeline ---");
+			return esirisc_trace_analyze_full(cmd, buffer, size);
 
 		case ESIRISC_TRACE_FORMAT_BRANCH:
-			command_print(cmd_ctx, "--- branches taken ---");
-			return esirisc_trace_analyze_full(cmd_ctx, buffer, size);
+			command_print(cmd->ctx, "--- branches taken ---");
+			return esirisc_trace_analyze_full(cmd, buffer, size);
 
 		case ESIRISC_TRACE_FORMAT_ICACHE:
-			command_print(cmd_ctx, "--- icache misses ---");
-			return esirisc_trace_analyze_simple(cmd_ctx, buffer, size);
+			command_print(cmd->ctx, "--- icache misses ---");
+			return esirisc_trace_analyze_simple(cmd, buffer, size);
 
 		default:
-			command_print(cmd_ctx, "invalid trace format: %i", trace_info->format);
+			command_print(cmd->ctx, "invalid trace format: %i", trace_info->format);
 			return ERROR_FAIL;
 	}
 }
 
-static int esirisc_trace_analyze_buffer(struct command_context *cmd_ctx)
+static int esirisc_trace_analyze_buffer(struct command_invocation *cmd)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
 	uint8_t *buffer;
@@ -552,7 +552,7 @@ static int esirisc_trace_analyze_buffer(struct command_context *cmd_ctx)
 	size = esirisc_trace_buffer_size(trace_info);
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd_ctx, "out of memory");
+		command_print(cmd->ctx, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -560,7 +560,7 @@ static int esirisc_trace_analyze_buffer(struct command_context *cmd_ctx)
 	if (retval != ERROR_OK)
 		goto done;
 
-	retval = esirisc_trace_analyze(cmd_ctx, buffer, size);
+	retval = esirisc_trace_analyze(cmd, buffer, size);
 
 done:
 	free(buffer);
@@ -568,16 +568,16 @@ done:
 	return retval;
 }
 
-static int esirisc_trace_analyze_memory(struct command_context *cmd_ctx,
+static int esirisc_trace_analyze_memory(struct command_invocation *cmd,
 		target_addr_t address, uint32_t size)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	uint8_t *buffer;
 	int retval;
 
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd_ctx, "out of memory");
+		command_print(cmd->ctx, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -585,7 +585,7 @@ static int esirisc_trace_analyze_memory(struct command_context *cmd_ctx,
 	if (retval != ERROR_OK)
 		goto done;
 
-	retval = esirisc_trace_analyze(cmd_ctx, buffer, size);
+	retval = esirisc_trace_analyze(cmd, buffer, size);
 
 done:
 	free(buffer);
@@ -821,12 +821,12 @@ COMMAND_HANDLER(handle_esirisc_trace_analyze_command)
 			return ERROR_FAIL;
 		}
 
-		return esirisc_trace_analyze_buffer(CMD_CTX);
+		return esirisc_trace_analyze_buffer(CMD);
 	} else {
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], size);
 
-		return esirisc_trace_analyze_memory(CMD_CTX, address, size);
+		return esirisc_trace_analyze_memory(CMD, address, size);
 	}
 }
 
