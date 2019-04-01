@@ -56,11 +56,11 @@ static int arm966e_target_create(struct target *target, Jim_Interp *interp)
 	return arm966e_init_arch_info(target, arm966e, target->tap);
 }
 
-static int arm966e_verify_pointer(struct command_context *cmd_ctx,
+static int arm966e_verify_pointer(struct command_invocation *cmd,
 		struct arm966e_common *arm966e)
 {
 	if (arm966e->common_magic != ARM966E_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not an ARM966");
+		command_print(cmd->ctx, "target is not an ARM966");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -170,7 +170,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm966e_common *arm966e = target_to_arm966(target);
 
-	retval = arm966e_verify_pointer(CMD_CTX, arm966e);
+	retval = arm966e_verify_pointer(CMD, arm966e);
 	if (retval != ERROR_OK)
 		return retval;
 
