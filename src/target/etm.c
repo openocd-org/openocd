@@ -859,7 +859,7 @@ static int etmv1_data(struct etm_context *ctx, int size, uint32_t *data)
 	return 0;
 }
 
-static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *cmd_ctx)
+static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocation *cmd)
 {
 	int retval;
 	struct arm_instruction instruction;
@@ -869,7 +869,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 		ctx->capture_driver->read_trace(ctx);
 
 	if (ctx->trace_depth == 0) {
-		command_print(cmd_ctx, "Trace is empty.");
+		command_print(cmd->ctx, "Trace is empty.");
 		return ERROR_OK;
 	}
 
@@ -893,7 +893,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 		int current_pc_ok = ctx->pc_ok;
 
 		if (ctx->trace_data[ctx->pipe_index].flags & ETMV1_TRIGGER_CYCLE)
-			command_print(cmd_ctx, "--- trigger ---");
+			command_print(cmd->ctx, "--- trigger ---");
 
 		/* instructions execute in IE/D or BE/D cycles */
 		if ((pipestat == STAT_IE) || (pipestat == STAT_ID))
@@ -942,7 +942,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					next_pc = ctx->last_branch;
 					break;
 				case 0x1:	/* tracing enabled */
-					command_print(cmd_ctx,
+					command_print(cmd->ctx,
 						"--- tracing enabled at 0x%8.8" PRIx32 " ---",
 						ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
@@ -950,7 +950,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					continue;
 					break;
 				case 0x2:	/* trace restarted after FIFO overflow */
-					command_print(cmd_ctx,
+					command_print(cmd->ctx,
 						"--- trace restarted after FIFO overflow at 0x%8.8" PRIx32 " ---",
 						ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
@@ -958,7 +958,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					continue;
 					break;
 				case 0x3:	/* exit from debug state */
-					command_print(cmd_ctx,
+					command_print(cmd->ctx,
 						"--- exit from debug state at 0x%8.8" PRIx32 " ---",
 						ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
@@ -971,7 +971,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					 * we have to move on with the next trace cycle
 					 */
 					if (!current_pc_ok) {
-						command_print(cmd_ctx,
+						command_print(cmd->ctx,
 							"--- periodic synchronization point at 0x%8.8" PRIx32 " ---",
 							next_pc);
 						ctx->current_pc = next_pc;
@@ -998,9 +998,9 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 				|| ((ctx->last_branch >= 0xffff0000) &&
 				(ctx->last_branch <= 0xffff0020))) {
 				if ((ctx->last_branch & 0xff) == 0x10)
-					command_print(cmd_ctx, "data abort");
+					command_print(cmd->ctx, "data abort");
 				else {
-					command_print(cmd_ctx,
+					command_print(cmd->ctx,
 						"exception vector 0x%2.2" PRIx32 "",
 						ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
@@ -1058,7 +1058,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					ctx->ptr_ok = 1;
 
 				if (ctx->ptr_ok)
-					command_print(cmd_ctx,
+					command_print(cmd->ctx,
 						"address: 0x%8.8" PRIx32 "",
 						ctx->last_ptr);
 			}
@@ -1073,7 +1073,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 							uint32_t data;
 							if (etmv1_data(ctx, 4, &data) != 0)
 								return ERROR_ETM_ANALYSIS_FAILED;
-							command_print(cmd_ctx,
+							command_print(cmd->ctx,
 								"data: 0x%8.8" PRIx32 "",
 								data);
 						}
@@ -1084,7 +1084,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					if (etmv1_data(ctx, arm_access_size(&instruction),
 						&data) != 0)
 						return ERROR_ETM_ANALYSIS_FAILED;
-					command_print(cmd_ctx, "data: 0x%8.8" PRIx32 "", data);
+					command_print(cmd->ctx, "data: 0x%8.8" PRIx32 "", data);
 				}
 			}
 
@@ -1119,7 +1119,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_context *
 					(cycles == 1) ? "cycle" : "cycles");
 			}
 
-			command_print(cmd_ctx, "%s%s%s",
+			command_print(cmd->ctx, "%s%s%s",
 				instruction.text,
 				(pipestat == STAT_IN) ? " (not executed)" : "",
 				cycles_text);
@@ -1982,7 +1982,7 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 		return ERROR_FAIL;
 	}
 
-	retval = etmv1_analyze_trace(etm_ctx, CMD_CTX);
+	retval = etmv1_analyze_trace(etm_ctx, CMD);
 	if (retval != ERROR_OK) {
 		/* FIX! error should be reported inside etmv1_analyze_trace() */
 		switch (retval) {
