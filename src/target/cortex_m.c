@@ -2271,11 +2271,11 @@ static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 
 /*--------------------------------------------------------------------------*/
 
-static int cortex_m_verify_pointer(struct command_context *cmd_ctx,
+static int cortex_m_verify_pointer(struct command_invocation *cmd,
 	struct cortex_m_common *cm)
 {
 	if (cm->common_magic != CORTEX_M_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not a Cortex-M");
+		command_print(cmd->ctx, "target is not a Cortex-M");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -2309,7 +2309,7 @@ COMMAND_HANDLER(handle_cortex_m_vector_catch_command)
 		{ "reset",      VC_CORERESET, },
 	};
 
-	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
+	retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2386,7 +2386,7 @@ COMMAND_HANDLER(handle_cortex_m_mask_interrupts_command)
 	const Jim_Nvp *n;
 
 
-	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
+	retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2421,7 +2421,7 @@ COMMAND_HANDLER(handle_cortex_m_reset_config_command)
 	int retval;
 	char *reset_config;
 
-	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
+	retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
 
