@@ -3729,17 +3729,17 @@ static int handle_bp_command_list(struct command_invocation *cmd)
 	return ERROR_OK;
 }
 
-static int handle_bp_command_set(struct command_context *cmd_ctx,
+static int handle_bp_command_set(struct command_invocation *cmd,
 		target_addr_t addr, uint32_t asid, uint32_t length, int hw)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	int retval;
 
 	if (asid == 0) {
 		retval = breakpoint_add(target, addr, length, hw);
 		/* error is always logged in breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
-			command_print(cmd_ctx, "breakpoint set at " TARGET_ADDR_FMT "", addr);
+			command_print(cmd->ctx, "breakpoint set at " TARGET_ADDR_FMT "", addr);
 
 	} else if (addr == 0) {
 		if (target->type->add_context_breakpoint == NULL) {
@@ -3749,7 +3749,7 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 		retval = context_breakpoint_add(target, asid, length, hw);
 		/* error is always logged in context_breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
-			command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
+			command_print(cmd->ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
 
 	} else {
 		if (target->type->add_hybrid_breakpoint == NULL) {
@@ -3759,7 +3759,7 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 		retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
 		/* error is always logged in hybrid_breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
-			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
+			command_print(cmd->ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
 	}
 	return retval;
 }
@@ -3779,7 +3779,7 @@ COMMAND_HANDLER(handle_bp_command)
 			asid = 0;
 			COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
-			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+			return handle_bp_command_set(CMD, addr, asid, length, hw);
 
 		case 3:
 			if (strcmp(CMD_ARGV[2], "hw") == 0) {
@@ -3787,13 +3787,13 @@ COMMAND_HANDLER(handle_bp_command)
 				COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 				asid = 0;
-				return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+				return handle_bp_command_set(CMD, addr, asid, length, hw);
 			} else if (strcmp(CMD_ARGV[2], "hw_ctx") == 0) {
 				hw = BKPT_HARD;
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], asid);
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
 				addr = 0;
-				return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+				return handle_bp_command_set(CMD, addr, asid, length, hw);
 			}
 			/* fallthrough */
 		case 4:
@@ -3801,7 +3801,7 @@ COMMAND_HANDLER(handle_bp_command)
 			COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], asid);
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], length);
-			return handle_bp_command_set(CMD_CTX, addr, asid, length, hw);
+			return handle_bp_command_set(CMD, addr, asid, length, hw);
 
 		default:
 			return ERROR_COMMAND_SYNTAX_ERROR;
