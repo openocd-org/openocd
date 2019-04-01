@@ -3125,7 +3125,7 @@ COMMAND_HANDLER(handle_step_command)
 	return target->type->step(target, current_pc, addr, 1);
 }
 
-static void handle_md_output(struct command_context *cmd_ctx,
+static void handle_md_output(struct command_invocation *cmd,
 		struct target *target, target_addr_t address, unsigned size,
 		unsigned count, const uint8_t *buffer)
 {
@@ -3183,7 +3183,7 @@ static void handle_md_output(struct command_context *cmd_ctx,
 				value_fmt, value);
 
 		if ((i % line_modulo == line_modulo - 1) || (i == count - 1)) {
-			command_print(cmd_ctx, "%s", output);
+			command_print(cmd->ctx, "%s", output);
 			output_len = 0;
 		}
 	}
@@ -3240,7 +3240,7 @@ COMMAND_HANDLER(handle_md_command)
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = fn(target, address, size, count, buffer);
 	if (ERROR_OK == retval)
-		handle_md_output(CMD_CTX, target, address, size, count, buffer);
+		handle_md_output(CMD, target, address, size, count, buffer);
 
 	free(buffer);
 
