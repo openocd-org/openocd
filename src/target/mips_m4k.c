@@ -1270,11 +1270,11 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 	return retval;
 }
 
-static int mips_m4k_verify_pointer(struct command_context *cmd_ctx,
+static int mips_m4k_verify_pointer(struct command_invocation *cmd,
 		struct mips_m4k_common *mips_m4k)
 {
 	if (mips_m4k->common_magic != MIPSM4K_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not an MIPS_M4K");
+		command_print(cmd->ctx, "target is not an MIPS_M4K");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -1287,7 +1287,7 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
 
-	retval = mips_m4k_verify_pointer(CMD_CTX, mips_m4k);
+	retval = mips_m4k_verify_pointer(CMD, mips_m4k);
 	if (retval != ERROR_OK)
 		return retval;
 
