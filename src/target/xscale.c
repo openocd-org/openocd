@@ -138,11 +138,11 @@ static int xscale_set_reg_u32(struct reg *reg, uint32_t value)
 
 static const char xscale_not[] = "target is not an XScale";
 
-static int xscale_verify_pointer(struct command_context *cmd_ctx,
+static int xscale_verify_pointer(struct command_invocation *cmd,
 	struct xscale_common *xscale)
 {
 	if (xscale->common_magic != XSCALE_COMMON_MAGIC) {
-		command_print(cmd_ctx, xscale_not);
+		command_print(cmd->ctx, xscale_not);
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -3032,7 +3032,7 @@ COMMAND_HANDLER(xscale_handle_debug_handler_command)
 	}
 
 	xscale = target_to_xscale(target);
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3066,7 +3066,7 @@ COMMAND_HANDLER(xscale_handle_cache_clean_address_command)
 		return ERROR_FAIL;
 	}
 	xscale = target_to_xscale(target);
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3086,7 +3086,7 @@ COMMAND_HANDLER(xscale_handle_cache_info_command)
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3131,7 +3131,7 @@ COMMAND_HANDLER(xscale_handle_mmu_command)
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3161,7 +3161,7 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct xscale_common *xscale = target_to_xscale(target);
 
-	int retval = xscale_verify_pointer(CMD_CTX, xscale);
+	int retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3222,7 +3222,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 	uint32_t catch = 0;
 	struct reg *dcsr_reg = &xscale->reg_cache->reg_list[XSCALE_DCSR];
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3272,7 +3272,7 @@ COMMAND_HANDLER(xscale_handle_vector_table_command)
 	int err = 0;
 	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3330,7 +3330,7 @@ COMMAND_HANDLER(xscale_handle_trace_buffer_command)
 	uint32_t dcsr_value;
 	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3395,7 +3395,7 @@ COMMAND_HANDLER(xscale_handle_trace_image_command)
 	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3434,7 +3434,7 @@ COMMAND_HANDLER(xscale_handle_dump_trace_command)
 	struct fileio *file;
 	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3482,7 +3482,7 @@ COMMAND_HANDLER(xscale_handle_analyze_trace_buffer_command)
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -3497,7 +3497,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval;
 
-	retval = xscale_verify_pointer(CMD_CTX, xscale);
+	retval = xscale_verify_pointer(CMD, xscale);
 	if (retval != ERROR_OK)
 		return retval;
 
