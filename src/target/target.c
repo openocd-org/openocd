@@ -3694,32 +3694,32 @@ COMMAND_HANDLER(handle_test_image_command)
 	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, IMAGE_TEST);
 }
 
-static int handle_bp_command_list(struct command_context *cmd_ctx)
+static int handle_bp_command_list(struct command_invocation *cmd)
 {
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(cmd->ctx);
 	struct breakpoint *breakpoint = target->breakpoints;
 	while (breakpoint) {
 		if (breakpoint->type == BKPT_SOFT) {
 			char *buf = buf_to_str(breakpoint->orig_instr,
 					breakpoint->length, 16);
-			command_print(cmd_ctx, "IVA breakpoint: " TARGET_ADDR_FMT ", 0x%x, %i, 0x%s",
+			command_print(cmd->ctx, "IVA breakpoint: " TARGET_ADDR_FMT ", 0x%x, %i, 0x%s",
 					breakpoint->address,
 					breakpoint->length,
 					breakpoint->set, buf);
 			free(buf);
 		} else {
 			if ((breakpoint->address == 0) && (breakpoint->asid != 0))
-				command_print(cmd_ctx, "Context breakpoint: 0x%8.8" PRIx32 ", 0x%x, %i",
+				command_print(cmd->ctx, "Context breakpoint: 0x%8.8" PRIx32 ", 0x%x, %i",
 							breakpoint->asid,
 							breakpoint->length, breakpoint->set);
 			else if ((breakpoint->address != 0) && (breakpoint->asid != 0)) {
-				command_print(cmd_ctx, "Hybrid breakpoint(IVA): " TARGET_ADDR_FMT ", 0x%x, %i",
+				command_print(cmd->ctx, "Hybrid breakpoint(IVA): " TARGET_ADDR_FMT ", 0x%x, %i",
 							breakpoint->address,
 							breakpoint->length, breakpoint->set);
-				command_print(cmd_ctx, "\t|--->linked with ContextID: 0x%8.8" PRIx32,
+				command_print(cmd->ctx, "\t|--->linked with ContextID: 0x%8.8" PRIx32,
 							breakpoint->asid);
 			} else
-				command_print(cmd_ctx, "Breakpoint(IVA): " TARGET_ADDR_FMT ", 0x%x, %i",
+				command_print(cmd->ctx, "Breakpoint(IVA): " TARGET_ADDR_FMT ", 0x%x, %i",
 							breakpoint->address,
 							breakpoint->length, breakpoint->set);
 		}
@@ -3773,7 +3773,7 @@ COMMAND_HANDLER(handle_bp_command)
 
 	switch (CMD_ARGC) {
 		case 0:
-			return handle_bp_command_list(CMD_CTX);
+			return handle_bp_command_list(CMD);
 
 		case 2:
 			asid = 0;
