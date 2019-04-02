@@ -4688,23 +4688,35 @@ Invokes the handler for the event named @var{event_name}.
 code, for example by the reset code in @file{startup.tcl}.)
 @end deffn
 
-@deffn Command {$target_name mdw} addr [count]
-@deffnx Command {$target_name mdh} addr [count]
-@deffnx Command {$target_name mdb} addr [count]
+@deffn Command {$target_name mdd} [phys] addr [count]
+@deffnx Command {$target_name mdw} [phys] addr [count]
+@deffnx Command {$target_name mdh} [phys] addr [count]
+@deffnx Command {$target_name mdb} [phys] addr [count]
 Display contents of address @var{addr}, as
+64-bit doublewords (@command{mdd}),
 32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
 or 8-bit bytes (@command{mdb}).
+When the current target has an MMU which is present and active,
+@var{addr} is interpreted as a virtual address.
+Otherwise, or if the optional @var{phys} flag is specified,
+@var{addr} is interpreted as a physical address.
 If @var{count} is specified, displays that many units.
 (If you want to manipulate the data instead of displaying it,
 see the @code{mem2array} primitives.)
 @end deffn
 
-@deffn Command {$target_name mww} addr word
-@deffnx Command {$target_name mwh} addr halfword
-@deffnx Command {$target_name mwb} addr byte
-Writes the specified @var{word} (32 bits),
-@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
+@deffn Command {$target_name mwd} [phys] addr doubleword [count]
+@deffnx Command {$target_name mww} [phys] addr word [count]
+@deffnx Command {$target_name mwh} [phys] addr halfword [count]
+@deffnx Command {$target_name mwb} [phys] addr byte [count]
+Writes the specified @var{doubleword} (64 bits), @var{word} (32 bits),
+@var{halfword} (16 bits), or @var{byte} (8-bit) value,
 at the specified address @var{addr}.
+When the current target has an MMU which is present and active,
+@var{addr} is interpreted as a virtual address.
+Otherwise, or if the optional @var{phys} flag is specified,
+@var{addr} is interpreted as a physical address.
+If @var{count} is specified, fills that many units of consecutive address.
 @end deffn
 
 @anchor{targetevents}
@@ -7945,10 +7957,12 @@ Please use their TARGET object siblings to avoid making assumptions
 about what TAP is the current target, or about MMU configuration.
 @end enumerate
 
-@deffn Command mdw [phys] addr [count]
+@deffn Command mdd [phys] addr [count]
+@deffnx Command mdw [phys] addr [count]
 @deffnx Command mdh [phys] addr [count]
 @deffnx Command mdb [phys] addr [count]
 Display contents of address @var{addr}, as
+64-bit doublewords (@command{mdd}),
 32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
 or 8-bit bytes (@command{mdb}).
 When the current target has an MMU which is present and active,
@@ -7960,16 +7974,18 @@ If @var{count} is specified, displays that many units.
 see the @code{mem2array} primitives.)
 @end deffn
 
-@deffn Command mww [phys] addr word
-@deffnx Command mwh [phys] addr halfword
-@deffnx Command mwb [phys] addr byte
-Writes the specified @var{word} (32 bits),
+@deffn Command mwd [phys] addr doubleword [count]
+@deffnx Command mww [phys] addr word [count]
+@deffnx Command mwh [phys] addr halfword [count]
+@deffnx Command mwb [phys] addr byte [count]
+Writes the specified @var{doubleword} (64 bits), @var{word} (32 bits),
 @var{halfword} (16 bits), or @var{byte} (8-bit) value,
 at the specified address @var{addr}.
 When the current target has an MMU which is present and active,
 @var{addr} is interpreted as a virtual address.
 Otherwise, or if the optional @var{phys} flag is specified,
 @var{addr} is interpreted as a physical address.
+If @var{count} is specified, fills that many units of consecutive address.
 @end deffn
 
 @anchor{imageaccess}

@@ -376,7 +376,7 @@ uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer)
 }
 
 /* read a uint8_t from a buffer in target memory endianness */
-static uint8_t target_buffer_get_u8(struct target *target, const uint8_t *buffer)
+static __attribute__((unused)) uint8_t target_buffer_get_u8(struct target *target, const uint8_t *buffer)
 {
 	return *buffer & 0x0ff;
 }
@@ -4934,228 +4934,6 @@ static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	return target_configure(&goi, target);
 }
 
-static int jim_target_mw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
-
-	Jim_GetOptInfo goi;
-	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
-
-	if (goi.argc < 2 || goi.argc > 4) {
-		Jim_SetResultFormatted(goi.interp,
-				"usage: %s [phys] <address> <data> [<count>]", cmd_name);
-		return JIM_ERR;
-	}
-
-	target_write_fn fn;
-	fn = target_write_memory;
-
-	int e;
-	if (strcmp(Jim_GetString(argv[1], NULL), "phys") == 0) {
-		/* consume it */
-		struct Jim_Obj *obj;
-		e = Jim_GetOpt_Obj(&goi, &obj);
-		if (e != JIM_OK)
-			return e;
-
-		fn = target_write_phys_memory;
-	}
-
-	jim_wide a;
-	e = Jim_GetOpt_Wide(&goi, &a);
-	if (e != JIM_OK)
-		return e;
-
-	jim_wide b;
-	e = Jim_GetOpt_Wide(&goi, &b);
-	if (e != JIM_OK)
-		return e;
-
-	jim_wide c = 1;
-	if (goi.argc == 1) {
-		e = Jim_GetOpt_Wide(&goi, &c);
-		if (e != JIM_OK)
-			return e;
-	}
-
-	/* all args must be consumed */
-	if (goi.argc != 0)
-		return JIM_ERR;
-
-	struct target *target = Jim_CmdPrivData(goi.interp);
-	unsigned data_size;
-	if (strcasecmp(cmd_name, "mww") == 0)
-		data_size = 4;
-	else if (strcasecmp(cmd_name, "mwh") == 0)
-		data_size = 2;
-	else if (strcasecmp(cmd_name, "mwb") == 0)
-		data_size = 1;
-	else {
-		LOG_ERROR("command '%s' unknown: ", cmd_name);
-		return JIM_ERR;
-	}
-
-	return (target_fill_mem(target, a, fn, data_size, b, c) == ERROR_OK) ? JIM_OK : JIM_ERR;
-}
-
-/**
-*  @brief Reads an array of words/halfwords/bytes from target memory starting at specified address.
-*
-*  Usage: mdw [phys] <address> [<count>] - for 32 bit reads
-*         mdh [phys] <address> [<count>] - for 16 bit reads
-*         mdb [phys] <address> [<count>] - for  8 bit reads
-*
-*  Count defaults to 1.
-*
-*  Calls target_read_memory or target_read_phys_memory depending on
-*  the presence of the "phys" argument
-*  Reads the target memory in blocks of max. 32 bytes, and returns an array of ints formatted
-*  to int representation in base16.
-*  Also outputs read data in a human readable form using command_print
-*
-*  @param phys if present target_read_phys_memory will be used instead of target_read_memory
-*  @param address address where to start the read. May be specified in decimal or hex using the standard "0x" prefix
-*  @param count optional count parameter to read an array of values. If not specified, defaults to 1.
-*  @returns:  JIM_ERR on error or JIM_OK on success and sets the result string to an array of ascii formatted numbers
-*  on success, with [<count>] number of elements.
-*
-*  In case of little endian target:
-*      Example1: "mdw 0x00000000"  returns "10123456"
-*      Exmaple2: "mdh 0x00000000 1" returns "3456"
-*      Example3: "mdb 0x00000000" returns "56"
-*      Example4: "mdh 0x00000000 2" returns "3456 1012"
-*      Example5: "mdb 0x00000000 3" returns "56 34 12"
-**/
-static int jim_target_md(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
-
-	Jim_GetOptInfo goi;
-	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
-
-	if ((goi.argc < 1) || (goi.argc > 3)) {
-		Jim_SetResultFormatted(goi.interp,
-				"usage: %s [phys] <address> [<count>]", cmd_name);
-		return JIM_ERR;
-	}
-
-	int (*fn)(struct target *target,
-			target_addr_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-	fn = target_read_memory;
-
-	int e;
-	if (strcmp(Jim_GetString(argv[1], NULL), "phys") == 0) {
-		/* consume it */
-		struct Jim_Obj *obj;
-		e = Jim_GetOpt_Obj(&goi, &obj);
-		if (e != JIM_OK)
-			return e;
-
-		fn = target_read_phys_memory;
-	}
-
-	/* Read address parameter */
-	jim_wide addr;
-	e = Jim_GetOpt_Wide(&goi, &addr);
-	if (e != JIM_OK)
-		return JIM_ERR;
-
-	/* If next parameter exists, read it out as the count parameter, if not, set it to 1 (default) */
-	jim_wide count;
-	if (goi.argc == 1) {
-		e = Jim_GetOpt_Wide(&goi, &count);
-		if (e != JIM_OK)
-			return JIM_ERR;
-	} else
-		count = 1;
-
-	/* all args must be consumed */
-	if (goi.argc != 0)
-		return JIM_ERR;
-
-	jim_wide dwidth = 1; /* shut up gcc */
-	if (strcasecmp(cmd_name, "mdw") == 0)
-		dwidth = 4;
-	else if (strcasecmp(cmd_name, "mdh") == 0)
-		dwidth = 2;
-	else if (strcasecmp(cmd_name, "mdb") == 0)
-		dwidth = 1;
-	else {
-		LOG_ERROR("command '%s' unknown: ", cmd_name);
-		return JIM_ERR;
-	}
-
-	/* convert count to "bytes" */
-	int bytes = count * dwidth;
-
-	struct target *target = Jim_CmdPrivData(goi.interp);
-	uint8_t  target_buf[32];
-	jim_wide x, y, z;
-	while (bytes > 0) {
-		y = (bytes < 16) ? bytes : 16; /* y = min(bytes, 16); */
-
-		/* Try to read out next block */
-		e = fn(target, addr, dwidth, y / dwidth, target_buf);
-
-		if (e != ERROR_OK) {
-			Jim_SetResultFormatted(interp, "error reading target @ 0x%08lx", (long)addr);
-			return JIM_ERR;
-		}
-
-		command_print_sameline(NULL, "0x%08x ", (int)(addr));
-		switch (dwidth) {
-		case 4:
-			for (x = 0; x < 16 && x < y; x += 4) {
-				z = target_buffer_get_u32(target, &(target_buf[x]));
-				command_print_sameline(NULL, "%08x ", (int)(z));
-			}
-			for (; (x < 16) ; x += 4)
-				command_print_sameline(NULL, "         ");
-			break;
-		case 2:
-			for (x = 0; x < 16 && x < y; x += 2) {
-				z = target_buffer_get_u16(target, &(target_buf[x]));
-				command_print_sameline(NULL, "%04x ", (int)(z));
-			}
-			for (; (x < 16) ; x += 2)
-				command_print_sameline(NULL, "     ");
-			break;
-		case 1:
-		default:
-			for (x = 0 ; (x < 16) && (x < y) ; x += 1) {
-				z = target_buffer_get_u8(target, &(target_buf[x]));
-				command_print_sameline(NULL, "%02x ", (int)(z));
-			}
-			for (; (x < 16) ; x += 1)
-				command_print_sameline(NULL, "   ");
-			break;
-		}
-		/* ascii-ify the bytes */
-		for (x = 0 ; x < y ; x++) {
-			if ((target_buf[x] >= 0x20) &&
-				(target_buf[x] <= 0x7e)) {
-				/* good */
-			} else {
-				/* smack it */
-				target_buf[x] = '.';
-			}
-		}
-		/* space pad  */
-		while (x < 16) {
-			target_buf[x] = ' ';
-			x++;
-		}
-		/* terminate */
-		target_buf[16] = 0;
-		/* print - with a newline */
-		command_print_sameline(NULL, "%s\n", target_buf);
-		/* NEXT... */
-		bytes -= 16;
-		addr += 16;
-	}
-	return JIM_OK;
-}
-
 static int jim_target_mem2array(Jim_Interp *interp,
 		int argc, Jim_Obj *const *argv)
 {
@@ -5435,44 +5213,58 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.usage = "target_attribute",
 	},
 	{
-		.name = "mww",
+		.name = "mwd",
+		.handler = handle_mw_command,
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_mw,
+		.help = "Write 64-bit word(s) to target memory",
+		.usage = "address data [count]",
+	},
+	{
+		.name = "mww",
+		.handler = handle_mw_command,
+		.mode = COMMAND_EXEC,
 		.help = "Write 32-bit word(s) to target memory",
 		.usage = "address data [count]",
 	},
 	{
 		.name = "mwh",
+		.handler = handle_mw_command,
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_mw,
 		.help = "Write 16-bit half-word(s) to target memory",
 		.usage = "address data [count]",
 	},
 	{
 		.name = "mwb",
+		.handler = handle_mw_command,
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_mw,
 		.help = "Write byte(s) to target memory",
 		.usage = "address data [count]",
 	},
 	{
-		.name = "mdw",
+		.name = "mdd",
+		.handler = handle_md_command,
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_md,
+		.help = "Display target memory as 64-bit words",
+		.usage = "address [count]",
+	},
+	{
+		.name = "mdw",
+		.handler = handle_md_command,
+		.mode = COMMAND_EXEC,
 		.help = "Display target memory as 32-bit words",
 		.usage = "address [count]",
 	},
 	{
 		.name = "mdh",
+		.handler = handle_md_command,
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_md,
 		.help = "Display target memory as 16-bit half-words",
 		.usage = "address [count]",
 	},
 	{
 		.name = "mdb",
+		.handler = handle_md_command,
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_md,
 		.help = "Display target memory as 8-bit bytes",
 		.usage = "address [count]",
 	},
@@ -6436,7 +6228,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "mdd",
 		.handler = handle_md_command,
 		.mode = COMMAND_EXEC,
-		.help = "display memory words",
+		.help = "display memory double-words",
 		.usage = "['phys'] address [count]",
 	},
 	{
@@ -6464,7 +6256,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "mwd",
 		.handler = handle_mw_command,
 		.mode = COMMAND_EXEC,
-		.help = "write memory word",
+		.help = "write memory double-word",
 		.usage = "['phys'] address value [count]",
 	},
 	{
