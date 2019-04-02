@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import sys
+import re
 
 # This function is the only OpenOCD-specific part of this script.
 def make_canonical(line):
     # Remove the line number and time stamp.
-    parts = line.split(None, 3)
-    if len(parts) > 3:
-        return "%s - - %s" % (parts[0], parts[3])
+    m = re.match(r"(Debug|Error|Info |User |Warn ): \d+ \d+ (.*)", line)
+    if m:
+        return "%s: - - %s\n" % (m.group(1), m.group(2))
     else:
         return line
 
