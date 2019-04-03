@@ -4831,7 +4831,7 @@ no_params:
 				if (goi->argc != 0)
 					goto no_params;
 			}
-			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->working_area_size));
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->coreid));
 			/* loop for more */
 			break;
 
