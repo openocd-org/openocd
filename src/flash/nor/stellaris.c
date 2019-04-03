@@ -1336,9 +1336,9 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "stellaris mass erase complete");
+		command_print(CMD, "stellaris mass erase complete");
 	} else
-		command_print(CMD_CTX, "stellaris mass erase failed");
+		command_print(CMD, "stellaris mass erase failed");
 
 	return ERROR_OK;
 }

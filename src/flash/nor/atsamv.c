@@ -672,22 +672,22 @@ showall:
 				r = samv_get_gpnvm(target, x, &v);
 				if (r != ERROR_OK)
 					break;
-				command_print(CMD_CTX, "samv-gpnvm%u: %u", x, v);
+				command_print(CMD, "samv-gpnvm%u: %u", x, v);
 			}
 			return r;
 		}
 		if ((who >= 0) && (((unsigned)who) < SAMV_NUM_GPNVM_BITS)) {
 			r = samv_get_gpnvm(target, who, &v);
-			command_print(CMD_CTX, "samv-gpnvm%u: %u", who, v);
+			command_print(CMD, "samv-gpnvm%u: %u", who, v);
 			return r;
 		} else {
-			command_print(CMD_CTX, "invalid gpnvm: %u", who);
+			command_print(CMD, "invalid gpnvm: %u", who);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
 
 	if (who == -1) {
-		command_print(CMD_CTX, "missing gpnvm number");
+		command_print(CMD, "missing gpnvm number");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -696,7 +696,7 @@ showall:
 	else if (!strcmp("clr", CMD_ARGV[0]) || !strcmp("clear", CMD_ARGV[0]))
 		r = samv_clear_gpnvm(target, who);
 	else {
-		command_print(CMD_CTX, "unknown command: %s", CMD_ARGV[0]);
+		command_print(CMD, "unknown command: %s", CMD_ARGV[0]);
 		r = ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return r;

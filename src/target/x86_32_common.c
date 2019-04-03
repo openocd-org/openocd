@@ -1392,7 +1392,7 @@ static void handle_iod_output(struct command_invocation *cmd,
 				value_fmt, value);
 
 		if ((i % line_modulo == line_modulo - 1) || (i == count - 1)) {
-			command_print(cmd->ctx, "%s", output);
+			command_print(cmd, "%s", output);
 			output_len = 0;
 		}
 	}

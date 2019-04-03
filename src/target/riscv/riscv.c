@@ -1623,7 +1623,7 @@ COMMAND_HANDLER(riscv_authdata_read)
 		uint32_t value;
 		if (r->authdata_read(target, &value) != ERROR_OK)
 			return ERROR_FAIL;
-		command_print(CMD_CTX, "0x%" PRIx32, value);
+		command_print(CMD, "0x%" PRIx32, value);
 		return ERROR_OK;
 	} else {
 		LOG_ERROR("authdata_read is not implemented for this target.");
@@ -1676,7 +1676,7 @@ COMMAND_HANDLER(riscv_dmi_read)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
 		if (r->dmi_read(target, &value, address) != ERROR_OK)
 			return ERROR_FAIL;
-		command_print(CMD_CTX, "0x%" PRIx32, value);
+		command_print(CMD, "0x%" PRIx32, value);
 		return ERROR_OK;
 	} else {
 		LOG_ERROR("dmi_read is not implemented for this target.");

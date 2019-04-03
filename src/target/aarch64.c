@@ -2572,7 +2572,7 @@ COMMAND_HANDLER(aarch64_mask_interrupts_command)
 	}
 
 	n = Jim_Nvp_value2name_simple(nvp_maskisr_modes, aarch64->isrmasking_mode);
-	command_print(CMD_CTX, "aarch64 interrupt mask %s", n->name);
+	command_print(CMD, "aarch64 interrupt mask %s", n->name);
 
 	return ERROR_OK;
 }

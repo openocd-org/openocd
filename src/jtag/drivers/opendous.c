@@ -185,7 +185,7 @@ COMMAND_HANDLER(opendous_handle_opendous_hw_jtag_command)
 {
 	switch (CMD_ARGC) {
 		case 0:
-			command_print(CMD_CTX, "opendous hw jtag  %i", opendous_hw_jtag_version);
+			command_print(CMD, "opendous hw jtag  %i", opendous_hw_jtag_version);
 			break;
 
 		case 1: {

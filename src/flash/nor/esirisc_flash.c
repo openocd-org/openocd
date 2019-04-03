@@ -516,7 +516,7 @@ COMMAND_HANDLER(handle_esirisc_flash_mass_erase_command)
 
 	retval = esirisc_flash_mass_erase(bank);
 
-	command_print(CMD_CTX, "mass erase %s",
+	command_print(CMD, "mass erase %s",
 			(retval == ERROR_OK) ? "successful" : "failed");
 
 	return retval;
@@ -536,7 +536,7 @@ COMMAND_HANDLER(handle_esirisc_flash_ref_erase_command)
 
 	retval = esirisc_flash_ref_erase(bank);
 
-	command_print(CMD_CTX, "erase reference cell %s",
+	command_print(CMD, "erase reference cell %s",
 			(retval == ERROR_OK) ? "successful" : "failed");
 
 	return retval;

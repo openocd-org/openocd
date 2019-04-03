@@ -413,7 +413,7 @@ COMMAND_HANDLER(parport_handle_parport_port_command)
 		}
 	}
 
-	command_print(CMD_CTX, "parport port = 0x%" PRIx16 "", parport_port);
+	command_print(CMD, "parport port = 0x%" PRIx16 "", parport_port);
 
 	return ERROR_OK;
 }
@@ -470,7 +470,7 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 		}
 	}
 
-	command_print(CMD_CTX, "parport toggling time = %" PRIu32 " ns",
+	command_print(CMD, "parport toggling time = %" PRIu32 " ns",
 			parport_toggling_time_ns);
 
 	return ERROR_OK;

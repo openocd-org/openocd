@@ -923,17 +923,17 @@ COMMAND_HANDLER(jlink_usb_command)
 	int tmp;
 
 	if (CMD_ARGC != 1) {
-		command_print(CMD_CTX, "Need exactly one argument for jlink usb.");
+		command_print(CMD, "Need exactly one argument for jlink usb.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (sscanf(CMD_ARGV[0], "%i", &tmp) != 1) {
-		command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
+		command_print(CMD, "Invalid USB address: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	if (tmp < JAYLINK_USB_ADDRESS_0 || tmp > JAYLINK_USB_ADDRESS_3) {
-		command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
+		command_print(CMD, "Invalid USB address: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -950,17 +950,17 @@ COMMAND_HANDLER(jlink_serial_command)
 	int ret;
 
 	if (CMD_ARGC != 1) {
-		command_print(CMD_CTX, "Need exactly one argument for jlink serial.");
+		command_print(CMD, "Need exactly one argument for jlink serial.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	ret = jaylink_parse_serial_number(CMD_ARGV[0], &serial_number);
 
 	if (ret == JAYLINK_ERR) {
-		command_print(CMD_CTX, "Invalid serial number: %s.", CMD_ARGV[0]);
+		command_print(CMD, "Invalid serial number: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	} else if (ret != JAYLINK_OK) {
-		command_print(CMD_CTX, "jaylink_parse_serial_number() failed: %s.",
+		command_print(CMD, "jaylink_parse_serial_number() failed: %s.",
 			jaylink_strerror(ret));
 		return ERROR_FAIL;
 	}
@@ -979,20 +979,20 @@ COMMAND_HANDLER(jlink_handle_hwstatus_command)
 	ret = jaylink_get_hardware_status(devh, &status);
 
 	if (ret != JAYLINK_OK) {
-		command_print(CMD_CTX, "jaylink_get_hardware_status() failed: %s.",
+		command_print(CMD, "jaylink_get_hardware_status() failed: %s.",
 			jaylink_strerror(ret));
 		return ERROR_FAIL;
 	}
 
-	command_print(CMD_CTX, "VTarget = %u.%03u V",
+	command_print(CMD, "VTarget = %u.%03u V",
 		status.target_voltage / 1000, status.target_voltage % 1000);
 
-	command_print(CMD_CTX, "TCK = %u TDI = %u TDO = %u TMS = %u SRST = %u "
+	command_print(CMD, "TCK = %u TDI = %u TDO = %u TMS = %u SRST = %u "
 		"TRST = %u", status.tck, status.tdi, status.tdo, status.tms,
 		status.tres, status.trst);
 
 	if (status.target_voltage < 1500)
-		command_print(CMD_CTX, "Target voltage too low. Check target power.");
+		command_print(CMD, "Target voltage too low. Check target power.");
 
 	return ERROR_OK;
 }
@@ -1003,7 +1003,7 @@ COMMAND_HANDLER(jlink_handle_free_memory_command)
 	uint32_t tmp;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_GET_FREE_MEMORY)) {
-		command_print(CMD_CTX, "Retrieval of free memory is not supported by "
+		command_print(CMD, "Retrieval of free memory is not supported by "
 			"the device.");
 		return ERROR_OK;
 	}
@@ -1011,12 +1011,12 @@ COMMAND_HANDLER(jlink_handle_free_memory_command)
 	ret = jaylink_get_free_memory(devh, &tmp);
 
 	if (ret != JAYLINK_OK) {
-		command_print(CMD_CTX, "jaylink_get_free_memory() failed: %s.",
+		command_print(CMD, "jaylink_get_free_memory() failed: %s.",
 			jaylink_strerror(ret));
 		return ERROR_FAIL;
 	}
 
-	command_print(CMD_CTX, "Device has %u bytes of free memory.", tmp);
+	command_print(CMD, "Device has %u bytes of free memory.", tmp);
 
 	return ERROR_OK;
 }
@@ -1038,10 +1038,10 @@ COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
 				return ERROR_FAIL;
 		}
 
-		command_print(CMD_CTX, "JTAG command version: %i", version);
+		command_print(CMD, "JTAG command version: %i", version);
 	} else if (CMD_ARGC == 1) {
 		if (sscanf(CMD_ARGV[0], "%i", &tmp) != 1) {
-			command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+			command_print(CMD, "Invalid argument: %s.", CMD_ARGV[0]);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
@@ -1053,11 +1053,11 @@ COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
 				jtag_command_version = JAYLINK_JTAG_VERSION_3;
 				break;
 			default:
-				command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+				command_print(CMD, "Invalid argument: %s.", CMD_ARGV[0]);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	} else {
-		command_print(CMD_CTX, "Need exactly one argument for jlink jtag.");
+		command_print(CMD, "Need exactly one argument for jlink jtag.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1070,13 +1070,13 @@ COMMAND_HANDLER(jlink_handle_target_power_command)
 	int enable;
 
 	if (CMD_ARGC != 1) {
-		command_print(CMD_CTX, "Need exactly one argument for jlink "
+		command_print(CMD, "Need exactly one argument for jlink "
 			"targetpower.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER)) {
-		command_print(CMD_CTX, "Target power supply is not supported by the "
+		command_print(CMD, "Target power supply is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
@@ -1086,14 +1086,14 @@ COMMAND_HANDLER(jlink_handle_target_power_command)
 	} else if (!strcmp(CMD_ARGV[0], "off")) {
 		enable = false;
 	} else {
-		command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+		command_print(CMD, "Invalid argument: %s.", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	ret = jaylink_set_target_power(devh, enable);
 
 	if (ret != JAYLINK_OK) {
-		command_print(CMD_CTX, "jaylink_set_target_power() failed: %s.",
+		command_print(CMD, "jaylink_set_target_power() failed: %s.",
 			jaylink_strerror(ret));
 		return ERROR_FAIL;
 	}
@@ -1104,31 +1104,31 @@ COMMAND_HANDLER(jlink_handle_target_power_command)
 static void show_config_usb_address(struct command_invocation *cmd)
 {
 	if (config.usb_address != tmp_config.usb_address)
-		command_print(cmd->ctx, "USB address: %u [%u]", config.usb_address,
+		command_print(cmd, "USB address: %u [%u]", config.usb_address,
 			tmp_config.usb_address);
 	else
-		command_print(cmd->ctx, "USB address: %u", config.usb_address);
+		command_print(cmd, "USB address: %u", config.usb_address);
 }
 
 static void show_config_ip_address(struct command_invocation *cmd)
 {
 	if (!memcmp(config.ip_address, tmp_config.ip_address, 4))
-		command_print(cmd->ctx, "IP address: %d.%d.%d.%d",
+		command_print(cmd, "IP address: %d.%d.%d.%d",
 			config.ip_address[3], config.ip_address[2],
 			config.ip_address[1], config.ip_address[0]);
 	else
-		command_print(cmd->ctx, "IP address: %d.%d.%d.%d [%d.%d.%d.%d]",
+		command_print(cmd, "IP address: %d.%d.%d.%d [%d.%d.%d.%d]",
 			config.ip_address[3], config.ip_address[2],
 			config.ip_address[1], config.ip_address[0],
 			tmp_config.ip_address[3], tmp_config.ip_address[2],
 			tmp_config.ip_address[1], tmp_config.ip_address[0]);
 
 	if (!memcmp(config.subnet_mask, tmp_config.subnet_mask, 4))
-		command_print(cmd->ctx, "Subnet mask: %d.%d.%d.%d",
+		command_print(cmd, "Subnet mask: %d.%d.%d.%d",
 			config.subnet_mask[3], config.subnet_mask[2],
 			config.subnet_mask[1], config.subnet_mask[0]);
 	else
-		command_print(cmd->ctx, "Subnet mask: %d.%d.%d.%d [%d.%d.%d.%d]",
+		command_print(cmd, "Subnet mask: %d.%d.%d.%d [%d.%d.%d.%d]",
 			config.subnet_mask[3], config.subnet_mask[2],
 			config.subnet_mask[1], config.subnet_mask[0],
 			tmp_config.subnet_mask[3], tmp_config.subnet_mask[2],
@@ -1138,12 +1138,12 @@ static void show_config_ip_address(struct command_invocation *cmd)
 static void show_config_mac_address(struct command_invocation *cmd)
 {
 	if (!memcmp(config.mac_address, tmp_config.mac_address, 6))
-		command_print(cmd->ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x",
+		command_print(cmd, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x",
 			config.mac_address[5], config.mac_address[4],
 			config.mac_address[3], config.mac_address[2],
 			config.mac_address[1], config.mac_address[0]);
 	else
-		command_print(cmd->ctx, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x "
+		command_print(cmd, "MAC address: %.02x:%.02x:%.02x:%.02x:%.02x:%.02x "
 			"[%.02x:%.02x:%.02x:%.02x:%.02x:%.02x]",
 			config.mac_address[5], config.mac_address[4],
 			config.mac_address[3], config.mac_address[2],
@@ -1169,15 +1169,15 @@ static void show_config_target_power(struct command_invocation *cmd)
 		current_target_power = "on";
 
 	if (config.target_power != tmp_config.target_power)
-		command_print(cmd->ctx, "Target power supply: %s [%s]", target_power,
+		command_print(cmd, "Target power supply: %s [%s]", target_power,
 			current_target_power);
 	else
-		command_print(cmd->ctx, "Target power supply: %s", target_power);
+		command_print(cmd, "Target power supply: %s", target_power);
 }
 
 static void show_config(struct command_invocation *cmd)
 {
-	command_print(cmd->ctx, "J-Link device configuration:");
+	command_print(cmd, "J-Link device configuration:");
 
 	show_config_usb_address(cmd);
 
@@ -1346,7 +1346,7 @@ COMMAND_HANDLER(jlink_handle_config_usb_address_command)
 	uint8_t tmp;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
-		command_print(CMD_CTX, "Reading configuration is not supported by the "
+		command_print(CMD, "Reading configuration is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
@@ -1355,18 +1355,18 @@ COMMAND_HANDLER(jlink_handle_config_usb_address_command)
 		show_config_usb_address(CMD);
 	} else if (CMD_ARGC == 1) {
 		if (sscanf(CMD_ARGV[0], "%" SCNd8, &tmp) != 1) {
-			command_print(CMD_CTX, "Invalid USB address: %s.", CMD_ARGV[0]);
+			command_print(CMD, "Invalid USB address: %s.", CMD_ARGV[0]);
 			return ERROR_FAIL;
 		}
 
 		if (tmp > JAYLINK_USB_ADDRESS_3) {
-			command_print(CMD_CTX, "Invalid USB address: %u.", tmp);
+			command_print(CMD, "Invalid USB address: %u.", tmp);
 			return ERROR_FAIL;
 		}
 
 		tmp_config.usb_address = tmp;
 	} else {
-		command_print(CMD_CTX, "Need exactly one argument for jlink config "
+		command_print(CMD, "Need exactly one argument for jlink config "
 			"usb.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1379,13 +1379,13 @@ COMMAND_HANDLER(jlink_handle_config_target_power_command)
 	int enable;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
-		command_print(CMD_CTX, "Reading configuration is not supported by the "
+		command_print(CMD, "Reading configuration is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER)) {
-		command_print(CMD_CTX, "Target power supply is not supported by the "
+		command_print(CMD, "Target power supply is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
@@ -1398,13 +1398,13 @@ COMMAND_HANDLER(jlink_handle_config_target_power_command)
 		} else if (!strcmp(CMD_ARGV[0], "off")) {
 			enable = false;
 		} else {
-			command_print(CMD_CTX, "Invalid argument: %s.", CMD_ARGV[0]);
+			command_print(CMD, "Invalid argument: %s.", CMD_ARGV[0]);
 			return ERROR_FAIL;
 		}
 
 		tmp_config.target_power = enable;
 	} else {
-		command_print(CMD_CTX, "Need exactly one argument for jlink config "
+		command_print(CMD, "Need exactly one argument for jlink config "
 			"targetpower.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1420,13 +1420,13 @@ COMMAND_HANDLER(jlink_handle_config_mac_address_command)
 	const char *str;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
-		command_print(CMD_CTX, "Reading configuration is not supported by the "
+		command_print(CMD, "Reading configuration is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_ETHERNET)) {
-		command_print(CMD_CTX, "Ethernet connectivity is not supported by the "
+		command_print(CMD, "Ethernet connectivity is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
@@ -1438,7 +1438,7 @@ COMMAND_HANDLER(jlink_handle_config_mac_address_command)
 
 		if ((strlen(str) != 17) || (str[2] != ':' || str[5] != ':' || \
 				str[8] != ':' || str[11] != ':' || str[14] != ':')) {
-			command_print(CMD_CTX, "Invalid MAC address format.");
+			command_print(CMD, "Invalid MAC address format.");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
@@ -1448,18 +1448,18 @@ COMMAND_HANDLER(jlink_handle_config_mac_address_command)
 		}
 
 		if (!(addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5])) {
-			command_print(CMD_CTX, "Invalid MAC address: zero address.");
+			command_print(CMD, "Invalid MAC address: zero address.");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		if (!(0x01 & addr[0])) {
-			command_print(CMD_CTX, "Invalid MAC address: multicast address.");
+			command_print(CMD, "Invalid MAC address: multicast address.");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		memcpy(tmp_config.mac_address, addr, sizeof(addr));
 	} else {
-		command_print(CMD_CTX, "Need exactly one argument for jlink config "
+		command_print(CMD, "Need exactly one argument for jlink config "
 			" mac.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -1508,13 +1508,13 @@ COMMAND_HANDLER(jlink_handle_config_ip_address_command)
 	uint8_t subnet_bits = 24;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
-		command_print(CMD_CTX, "Reading configuration is not supported by the "
+		command_print(CMD, "Reading configuration is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_ETHERNET)) {
-		command_print(CMD_CTX, "Ethernet connectivity is not supported by the "
+		command_print(CMD, "Ethernet connectivity is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
@@ -1565,19 +1565,19 @@ COMMAND_HANDLER(jlink_handle_config_write_command)
 	int ret;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
-		command_print(CMD_CTX, "Reading configuration is not supported by the "
+		command_print(CMD, "Reading configuration is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_WRITE_CONFIG)) {
-		command_print(CMD_CTX, "Writing configuration is not supported by the "
+		command_print(CMD, "Writing configuration is not supported by the "
 			"device.");
 		return ERROR_OK;
 	}
 
 	if (!memcmp(&config, &tmp_config, sizeof(struct device_config))) {
-		command_print(CMD_CTX, "Operation not performed due to no changes in "
+		command_print(CMD, "Operation not performed due to no changes in "
 			"the configuration.");
 		return ERROR_OK;
 	}
@@ -1602,7 +1602,7 @@ COMMAND_HANDLER(jlink_handle_config_write_command)
 	}
 
 	memcpy(&tmp_config, &config, sizeof(struct device_config));
-	command_print(CMD_CTX, "The new device configuration applies after power "
+	command_print(CMD, "The new device configuration applies after power "
 		"cycling the J-Link device.");
 
 	return ERROR_OK;
@@ -1611,7 +1611,7 @@ COMMAND_HANDLER(jlink_handle_config_write_command)
 COMMAND_HANDLER(jlink_handle_config_command)
 {
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
-		command_print(CMD_CTX, "Device doesn't support reading configuration.");
+		command_print(CMD, "Device doesn't support reading configuration.");
 		return ERROR_OK;
 	}
 
@@ -1732,7 +1732,7 @@ COMMAND_HANDLER(jlink_handle_emucom_read_command)
 		return ERROR_FAIL;
 	}
 
-	command_print(CMD_CTX, "%s", buf + length);
+	command_print(CMD, "%s", buf + length);
 	free(buf);
 
 	return ERROR_OK;

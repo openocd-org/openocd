@@ -60,7 +60,7 @@ static int arm966e_verify_pointer(struct command_invocation *cmd,
 		struct arm966e_common *arm966e)
 {
 	if (arm966e->common_magic != ARM966E_COMMON_MAGIC) {
-		command_print(cmd->ctx, "target is not an ARM966");
+		command_print(cmd, "target is not an ARM966");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -175,7 +175,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -188,7 +188,7 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 			uint32_t value;
 			retval = arm966e_read_cp15(target, address, &value);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 						"couldn't access reg %" PRIi32,
 						address);
 				return ERROR_OK;
@@ -197,19 +197,19 @@ COMMAND_HANDLER(arm966e_handle_cp15_command)
 			if (retval != ERROR_OK)
 				return retval;
 
-			command_print(CMD_CTX, "%" PRIi32 ": %8.8" PRIx32,
+			command_print(CMD, "%" PRIi32 ": %8.8" PRIx32,
 					address, value);
 		} else if (CMD_ARGC == 2) {
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 			retval = arm966e_write_cp15(target, address, value);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 						"couldn't access reg %" PRIi32,
 						address);
 				return ERROR_OK;
 			}
-			command_print(CMD_CTX, "%" PRIi32 ": %8.8" PRIx32,
+			command_print(CMD, "%" PRIi32 ": %8.8" PRIx32,
 					address, value);
 		}
 	}

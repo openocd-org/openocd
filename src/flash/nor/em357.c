@@ -776,7 +776,7 @@ COMMAND_HANDLER(em357_handle_lock_command)
 	}
 
 	if (em357_erase_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "em357 failed to erase options");
+		command_print(CMD, "em357 failed to erase options");
 		return ERROR_OK;
 	}
 
@@ -784,11 +784,11 @@ COMMAND_HANDLER(em357_handle_lock_command)
 	em357_info->option_bytes.RDP = 0;
 
 	if (em357_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "em357 failed to lock device");
+		command_print(CMD, "em357 failed to lock device");
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "em357 locked");
+	command_print(CMD, "em357 locked");
 
 	return ERROR_OK;
 }
@@ -813,16 +813,16 @@ COMMAND_HANDLER(em357_handle_unlock_command)
 	}
 
 	if (em357_erase_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "em357 failed to unlock device");
+		command_print(CMD, "em357 failed to unlock device");
 		return ERROR_OK;
 	}
 
 	if (em357_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "em357 failed to lock device");
+		command_print(CMD, "em357 failed to lock device");
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "em357 unlocked.\n"
+	command_print(CMD, "em357 unlocked.\n"
 		"INFO: a reset or power cycle is required "
 		"for the new settings to take effect.");
 
@@ -886,9 +886,9 @@ COMMAND_HANDLER(em357_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "em357 mass erase complete");
+		command_print(CMD, "em357 mass erase complete");
 	} else
-		command_print(CMD_CTX, "em357 mass erase failed");
+		command_print(CMD, "em357 mass erase failed");
 
 	return retval;
 }

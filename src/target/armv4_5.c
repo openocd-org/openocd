@@ -778,17 +778,17 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	struct reg *regs;
 
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "current target isn't an ARM");
+		command_print(CMD, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "error: target must be halted for register accesses");
+		command_print(CMD, "error: target must be halted for register accesses");
 		return ERROR_FAIL;
 	}
 
 	if (arm->core_type != ARM_MODE_ANY) {
-		command_print(CMD_CTX,
+		command_print(CMD,
 			"Microcontroller Profile not supported - use standard reg cmd");
 		return ERROR_OK;
 	}
@@ -799,7 +799,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	}
 
 	if (!arm->full_context) {
-		command_print(CMD_CTX, "error: target doesn't support %s",
+		command_print(CMD, "error: target doesn't support %s",
 			CMD_NAME);
 		return ERROR_FAIL;
 	}
@@ -828,7 +828,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 				shadow = "shadow ";
 				break;
 		}
-		command_print(CMD_CTX, "%s%s mode %sregisters",
+		command_print(CMD, "%s%s mode %sregisters",
 			sep, name, shadow);
 
 		/* display N rows of up to 4 registers each */
@@ -855,7 +855,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 						"%8s: %8.8" PRIx32 " ",
 						reg->name, value);
 			}
-			command_print(CMD_CTX, "%s", output);
+			command_print(CMD, "%s", output);
 		}
 	}
 
@@ -868,13 +868,13 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 	struct arm *arm = target_to_arm(target);
 
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "current target isn't an ARM");
+		command_print(CMD, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	if (arm->core_type == ARM_MODE_THREAD) {
 		/* armv7m not supported */
-		command_print(CMD_CTX, "Unsupported Command");
+		command_print(CMD, "Unsupported Command");
 		return ERROR_OK;
 	}
 
@@ -885,7 +885,7 @@ COMMAND_HANDLER(handle_armv4_5_core_state_command)
 			arm->core_state = ARM_STATE_THUMB;
 	}
 
-	command_print(CMD_CTX, "core state: %s", arm_state_strings[arm->core_state]);
+	command_print(CMD, "core state: %s", arm_state_strings[arm->core_state]);
 
 	return ERROR_OK;
 }
@@ -906,7 +906,7 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 	int thumb = 0;
 
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "current target isn't an ARM");
+		command_print(CMD, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
@@ -928,7 +928,7 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 			COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
 			if (address & 0x01) {
 				if (!thumb) {
-					command_print(CMD_CTX, "Disassemble as Thumb");
+					command_print(CMD, "Disassemble as Thumb");
 					thumb = 1;
 				}
 				address &= ~1;
@@ -963,7 +963,7 @@ usage:
 			if (retval != ERROR_OK)
 				break;
 		}
-		command_print(CMD_CTX, "%s", cur_instruction.text);
+		command_print(CMD, "%s", cur_instruction.text);
 		address += cur_instruction.instruction_size;
 	}
 

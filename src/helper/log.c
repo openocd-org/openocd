@@ -213,7 +213,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 	} else if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX, "debug_level: %i", debug_level);
+	command_print(CMD, "debug_level: %i", debug_level);
 
 	return ERROR_OK;
 }

@@ -258,10 +258,10 @@ COMMAND_HANDLER(handle_transport_list)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX, "The following transports are available:");
+	command_print(CMD, "The following transports are available:");
 
 	for (struct transport *t = transport_list; t; t = t->next)
-		command_print(CMD_CTX, "\t%s", t->name);
+		command_print(CMD, "\t%s", t->name);
 
 	return ERROR_OK;
 }

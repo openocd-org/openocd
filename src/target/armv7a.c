@@ -229,7 +229,7 @@ COMMAND_HANDLER(handle_cache_l2x)
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	/* command_print(CMD_CTX, "%s %s", CMD_ARGV[0], CMD_ARGV[1]); */
+	/* command_print(CMD, "%s %s", CMD_ARGV[0], CMD_ARGV[1]); */
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], base);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], way);
 
@@ -248,7 +248,7 @@ int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 	int cl;
 
 	if (armv7a_cache->info == -1) {
-		command_print(cmd->ctx, "cache not yet identified");
+		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
 
@@ -256,7 +256,7 @@ int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 		struct armv7a_arch_cache *arch = &(armv7a_cache->arch[cl]);
 
 		if (arch->ctype & 1) {
-			command_print(cmd->ctx,
+			command_print(cmd,
 				"L%d I-Cache: linelen %" PRIi32
 				", associativity %" PRIi32
 				", nsets %" PRIi32
@@ -269,7 +269,7 @@ int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 		}
 
 		if (arch->ctype >= 2) {
-			command_print(cmd->ctx,
+			command_print(cmd,
 				"L%d D-Cache: linelen %" PRIi32
 				", associativity %" PRIi32
 				", nsets %" PRIi32
@@ -283,7 +283,7 @@ int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 	}
 
 	if (l2x_cache != NULL)
-		command_print(cmd->ctx, "Outer unified cache Base Address 0x%" PRIx32 ", %" PRId32 " ways",
+		command_print(cmd, "Outer unified cache Base Address 0x%" PRIx32 ", %" PRId32 " ways",
 			l2x_cache->base, l2x_cache->way);
 
 	return ERROR_OK;

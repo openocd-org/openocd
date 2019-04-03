@@ -1290,7 +1290,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	struct nand_device *nand = get_nand_device_by_num(num);
 	if (!nand) {
-		command_print(CMD_CTX, "nand device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "nand device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -1310,10 +1310,10 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	}
 
 	if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
-		command_print(CMD_CTX, "%s controller selected",
+		command_print(CMD, "%s controller selected",
 			selected[lpc3180_info->selected_controller]);
 	else
-		command_print(CMD_CTX,
+		command_print(CMD,
 			lpc3180_info->is_bulk ? "%s controller selected bulk mode is available" :
 			"%s controller selected bulk mode is not available",
 			selected[lpc3180_info->selected_controller]);

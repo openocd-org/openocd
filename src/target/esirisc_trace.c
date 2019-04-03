@@ -403,7 +403,7 @@ static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *b
 			case ESIRISC_TRACE_ID_EXECUTE:
 			case ESIRISC_TRACE_ID_STALL:
 			case ESIRISC_TRACE_ID_BRANCH:
-				command_print(cmd->ctx, "%s", esirisc_trace_id_strings[id]);
+				command_print(cmd, "%s", esirisc_trace_id_strings[id]);
 				break;
 
 			case ESIRISC_TRACE_ID_EXTENDED: {
@@ -417,7 +417,7 @@ static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *b
 					case ESIRISC_TRACE_EXT_ID_STOP:
 					case ESIRISC_TRACE_EXT_ID_WAIT:
 					case ESIRISC_TRACE_EXT_ID_MULTICYCLE:
-						command_print(cmd->ctx, "%s", esirisc_trace_ext_id_strings[ext_id]);
+						command_print(cmd, "%s", esirisc_trace_ext_id_strings[ext_id]);
 						break;
 
 					case ESIRISC_TRACE_EXT_ID_ERET:
@@ -430,11 +430,11 @@ static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *b
 						if (retval != ERROR_OK)
 							goto fail;
 
-						command_print(cmd->ctx, "%s PC: 0x%" PRIx32,
+						command_print(cmd, "%s PC: 0x%" PRIx32,
 								esirisc_trace_ext_id_strings[ext_id], pc);
 
 						if (ext_id == ESIRISC_TRACE_EXT_ID_END_PC) {
-							command_print(cmd->ctx, "--- end of trace ---");
+							command_print(cmd, "--- end of trace ---");
 							return ERROR_OK;
 						}
 						break;
@@ -450,7 +450,7 @@ static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *b
 						if (retval != ERROR_OK)
 							goto fail;
 
-						command_print(cmd->ctx, "%s EID: 0x%" PRIx32 ", EPC: 0x%" PRIx32,
+						command_print(cmd, "%s EID: 0x%" PRIx32 ", EPC: 0x%" PRIx32,
 								esirisc_trace_ext_id_strings[ext_id], eid, epc);
 						break;
 					}
@@ -461,28 +461,28 @@ static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *b
 						if (retval != ERROR_OK)
 							goto fail;
 
-						command_print(cmd->ctx, "repeats %" PRId32 " %s", count,
+						command_print(cmd, "repeats %" PRId32 " %s", count,
 								(count == 1) ? "time" : "times");
 						break;
 					}
 					case ESIRISC_TRACE_EXT_ID_END:
-						command_print(cmd->ctx, "--- end of trace ---");
+						command_print(cmd, "--- end of trace ---");
 						return ERROR_OK;
 
 					default:
-						command_print(cmd->ctx, "invalid extended trace ID: %" PRId32, ext_id);
+						command_print(cmd, "invalid extended trace ID: %" PRId32, ext_id);
 						return ERROR_FAIL;
 				}
 				break;
 			}
 			default:
-				command_print(cmd->ctx, "invalid trace ID: %" PRId32, id);
+				command_print(cmd, "invalid trace ID: %" PRId32, id);
 				return ERROR_FAIL;
 		}
 	}
 
 fail:
-	command_print(cmd->ctx, "trace buffer too small");
+	command_print(cmd, "trace buffer too small");
 	return ERROR_BUF_TOO_SMALL;
 }
 
@@ -504,14 +504,14 @@ static int esirisc_trace_analyze_simple(struct command_invocation *cmd, uint8_t 
 			break;
 
 		if (pc == end_of_trace) {
-			command_print(cmd->ctx, "--- end of trace ---");
+			command_print(cmd, "--- end of trace ---");
 			return ERROR_OK;
 		}
 
-		command_print(cmd->ctx, "PC: 0x%" PRIx32, pc);
+		command_print(cmd, "PC: 0x%" PRIx32, pc);
 	}
 
-	command_print(cmd->ctx, "trace buffer too small");
+	command_print(cmd, "trace buffer too small");
 	return ERROR_BUF_TOO_SMALL;
 }
 
@@ -523,19 +523,19 @@ static int esirisc_trace_analyze(struct command_invocation *cmd, uint8_t *buffer
 
 	switch (trace_info->format) {
 		case ESIRISC_TRACE_FORMAT_FULL:
-			command_print(cmd->ctx, "--- full pipeline ---");
+			command_print(cmd, "--- full pipeline ---");
 			return esirisc_trace_analyze_full(cmd, buffer, size);
 
 		case ESIRISC_TRACE_FORMAT_BRANCH:
-			command_print(cmd->ctx, "--- branches taken ---");
+			command_print(cmd, "--- branches taken ---");
 			return esirisc_trace_analyze_full(cmd, buffer, size);
 
 		case ESIRISC_TRACE_FORMAT_ICACHE:
-			command_print(cmd->ctx, "--- icache misses ---");
+			command_print(cmd, "--- icache misses ---");
 			return esirisc_trace_analyze_simple(cmd, buffer, size);
 
 		default:
-			command_print(cmd->ctx, "invalid trace format: %i", trace_info->format);
+			command_print(cmd, "invalid trace format: %i", trace_info->format);
 			return ERROR_FAIL;
 	}
 }
@@ -552,7 +552,7 @@ static int esirisc_trace_analyze_buffer(struct command_invocation *cmd)
 	size = esirisc_trace_buffer_size(trace_info);
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd->ctx, "out of memory");
+		command_print(cmd, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -577,7 +577,7 @@ static int esirisc_trace_analyze_memory(struct command_invocation *cmd,
 
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd->ctx, "out of memory");
+		command_print(cmd, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -602,15 +602,15 @@ static int esirisc_trace_dump(struct command_invocation *cmd, const char *filena
 
 	retval = fileio_open(&fileio, filename, FILEIO_WRITE, FILEIO_BINARY);
 	if (retval != ERROR_OK) {
-		command_print(cmd->ctx, "could not open dump file: %s", filename);
+		command_print(cmd, "could not open dump file: %s", filename);
 		return retval;
 	}
 
 	retval = fileio_write(fileio, size, buffer, &size_written);
 	if (retval == ERROR_OK)
-		command_print(cmd->ctx, "trace data dumped to: %s", filename);
+		command_print(cmd, "trace data dumped to: %s", filename);
 	else
-		command_print(cmd->ctx, "could not write dump file: %s", filename);
+		command_print(cmd, "could not write dump file: %s", filename);
 
 	fileio_close(fileio);
 
@@ -629,7 +629,7 @@ static int esirisc_trace_dump_buffer(struct command_invocation *cmd, const char 
 	size = esirisc_trace_buffer_size(trace_info);
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd->ctx, "out of memory");
+		command_print(cmd, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -654,7 +654,7 @@ static int esirisc_trace_dump_memory(struct command_invocation *cmd, const char 
 
 	buffer = calloc(1, size);
 	if (buffer == NULL) {
-		command_print(cmd->ctx, "out of memory");
+		command_print(cmd, "out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -676,13 +676,13 @@ COMMAND_HANDLER(handle_esirisc_trace_init_command)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
 	if (!esirisc->has_trace) {
-		command_print(CMD_CTX, "target does not support trace");
+		command_print(CMD, "target does not support trace");
 		return ERROR_FAIL;
 	}
 
 	int retval = esirisc_trace_init(target);
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "trace initialized");
+		command_print(CMD, "trace initialized");
 
 	return retval;
 }
@@ -694,42 +694,42 @@ COMMAND_HANDLER(handle_esirisc_trace_info_command)
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
 
 	if (!esirisc->has_trace) {
-		command_print(CMD_CTX, "target does not support trace");
+		command_print(CMD, "target does not support trace");
 		return ERROR_FAIL;
 	}
 
 	if (esirisc_trace_is_fifo(trace_info))
-		command_print(CMD_CTX, "trace FIFO address: 0x%" TARGET_PRIxADDR,
+		command_print(CMD, "trace FIFO address: 0x%" TARGET_PRIxADDR,
 				trace_info->buffer_start);
 	else {
-		command_print(CMD_CTX, "trace buffer start: 0x%" TARGET_PRIxADDR,
+		command_print(CMD, "trace buffer start: 0x%" TARGET_PRIxADDR,
 				trace_info->buffer_start);
-		command_print(CMD_CTX, "trace buffer end: 0x%" TARGET_PRIxADDR,
+		command_print(CMD, "trace buffer end: 0x%" TARGET_PRIxADDR,
 				trace_info->buffer_end);
-		command_print(CMD_CTX, "trace buffer will %swrap",
+		command_print(CMD, "trace buffer will %swrap",
 				trace_info->buffer_wrap ? "" : "not ");
 	}
 
-	command_print(CMD_CTX, "flow control: %s",
+	command_print(CMD, "flow control: %s",
 			trace_info->flow_control ? "enabled" : "disabled");
 
-	command_print(CMD_CTX, "trace format: %s",
+	command_print(CMD, "trace format: %s",
 			esirisc_trace_format_strings[trace_info->format]);
-	command_print(CMD_CTX, "number of PC bits: %i", trace_info->pc_bits);
+	command_print(CMD, "number of PC bits: %i", trace_info->pc_bits);
 
-	command_print(CMD_CTX, "start trigger: %s",
+	command_print(CMD, "start trigger: %s",
 			esirisc_trace_trigger_strings[trace_info->start_trigger]);
-	command_print(CMD_CTX, "start data: 0x%" PRIx32, trace_info->start_data);
-	command_print(CMD_CTX, "start mask: 0x%" PRIx32, trace_info->start_mask);
+	command_print(CMD, "start data: 0x%" PRIx32, trace_info->start_data);
+	command_print(CMD, "start mask: 0x%" PRIx32, trace_info->start_mask);
 
-	command_print(CMD_CTX, "stop trigger: %s",
+	command_print(CMD, "stop trigger: %s",
 			esirisc_trace_trigger_strings[trace_info->stop_trigger]);
-	command_print(CMD_CTX, "stop data: 0x%" PRIx32, trace_info->stop_data);
-	command_print(CMD_CTX, "stop mask: 0x%" PRIx32, trace_info->stop_mask);
+	command_print(CMD, "stop data: 0x%" PRIx32, trace_info->stop_data);
+	command_print(CMD, "stop mask: 0x%" PRIx32, trace_info->stop_mask);
 
-	command_print(CMD_CTX, "trigger delay: %s",
+	command_print(CMD, "trigger delay: %s",
 			esirisc_trace_delay_strings[trace_info->delay]);
-	command_print(CMD_CTX, "trigger delay cycles: %i", trace_info->delay_cycles);
+	command_print(CMD, "trigger delay cycles: %i", trace_info->delay_cycles);
 
 	return ERROR_OK;
 }
@@ -741,7 +741,7 @@ COMMAND_HANDLER(handle_esirisc_trace_status_command)
 	uint32_t status;
 
 	if (!esirisc->has_trace) {
-		command_print(CMD_CTX, "target does not support trace");
+		command_print(CMD, "target does not support trace");
 		return ERROR_FAIL;
 	}
 
@@ -749,7 +749,7 @@ COMMAND_HANDLER(handle_esirisc_trace_status_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	command_print(CMD_CTX, "trace is %s%s%s%s",
+	command_print(CMD, "trace is %s%s%s%s",
 			(status & STATUS_T)  ? "started" : "stopped",
 			(status & STATUS_TD) ? ", disabled"   : "",
 			(status & STATUS_W)  ? ", wrapped"    : "",
@@ -764,13 +764,13 @@ COMMAND_HANDLER(handle_esirisc_trace_start_command)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
 	if (!esirisc->has_trace) {
-		command_print(CMD_CTX, "target does not support trace");
+		command_print(CMD, "target does not support trace");
 		return ERROR_FAIL;
 	}
 
 	int retval = esirisc_trace_start(target);
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "trace started");
+		command_print(CMD, "trace started");
 
 	return retval;
 }
@@ -781,13 +781,13 @@ COMMAND_HANDLER(handle_esirisc_trace_stop_command)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
 	if (!esirisc->has_trace) {
-		command_print(CMD_CTX, "target does not support trace");
+		command_print(CMD, "target does not support trace");
 		return ERROR_FAIL;
 	}
 
 	int retval = esirisc_trace_stop(target);
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "trace stopped");
+		command_print(CMD, "trace stopped");
 
 	return retval;
 }
@@ -801,7 +801,7 @@ COMMAND_HANDLER(handle_esirisc_trace_analyze_command)
 	uint32_t size;
 
 	if (!esirisc->has_trace) {
-		command_print(CMD_CTX, "target does not support trace");
+		command_print(CMD, "target does not support trace");
 		return ERROR_FAIL;
 	}
 
@@ -817,7 +817,7 @@ COMMAND_HANDLER(handle_esirisc_trace_analyze_command)
 		 * as arguments as a workaround.
 		 */
 		if (esirisc_trace_is_fifo(trace_info)) {
-			command_print(CMD_CTX, "analyze from FIFO not supported");
+			command_print(CMD, "analyze from FIFO not supported");
 			return ERROR_FAIL;
 		}
 
@@ -839,7 +839,7 @@ COMMAND_HANDLER(handle_esirisc_trace_dump_command)
 	uint32_t size;
 
 	if (!esirisc->has_trace) {
-		command_print(CMD_CTX, "target does not support trace");
+		command_print(CMD, "target does not support trace");
 		return ERROR_FAIL;
 	}
 
@@ -849,7 +849,7 @@ COMMAND_HANDLER(handle_esirisc_trace_dump_command)
 	if (CMD_ARGC == 1) {
 		/* also see: handle_esirisc_trace_analyze_command() */
 		if (esirisc_trace_is_fifo(trace_info)) {
-			command_print(CMD_CTX, "dump from FIFO not supported");
+			command_print(CMD, "dump from FIFO not supported");
 			return ERROR_FAIL;
 		}
 
@@ -946,7 +946,7 @@ COMMAND_HANDLER(handle_esirisc_trace_format_command)
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], pc_bits);
 
 	if (pc_bits < 1 || pc_bits > 31) {
-		command_print(CMD_CTX, "invalid pc_bits: %i; must be 1..31", pc_bits);
+		command_print(CMD, "invalid pc_bits: %i; must be 1..31", pc_bits);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 

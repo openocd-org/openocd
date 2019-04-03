@@ -59,7 +59,7 @@ int nand_fileio_start(struct command_invocation *cmd,
 	struct nand_fileio_state *state)
 {
 	if (state->address % nand->page_size) {
-		command_print(cmd->ctx, "only page-aligned addresses are supported");
+		command_print(cmd, "only page-aligned addresses are supported");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -69,7 +69,7 @@ int nand_fileio_start(struct command_invocation *cmd,
 		int retval = fileio_open(&state->fileio, filename, filemode, FILEIO_BINARY);
 		if (ERROR_OK != retval) {
 			const char *msg = (FILEIO_READ == filemode) ? "read" : "write";
-			command_print(cmd->ctx, "failed to open '%s' for %s access",
+			command_print(cmd, "failed to open '%s' for %s access",
 				filename, msg);
 			return retval;
 		}
@@ -131,7 +131,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 		return retval;
 
 	if (NULL == nand->device) {
-		command_print(CMD_CTX, "#%s: not probed", CMD_ARGV[0]);
+		command_print(CMD, "#%s: not probed", CMD_ARGV[0]);
 		return ERROR_NAND_DEVICE_NOT_PROBED;
 	}
 
@@ -139,7 +139,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 	if (need_size) {
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], state->size);
 		if (state->size % nand->page_size) {
-			command_print(CMD_CTX, "only page-aligned sizes are supported");
+			command_print(CMD, "only page-aligned sizes are supported");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
@@ -155,7 +155,7 @@ COMMAND_HELPER(nand_fileio_parse_args, struct nand_fileio_state *state,
 			else if (sw_ecc && !strcmp(CMD_ARGV[i], "oob_softecc_kw"))
 				state->oob_format |= NAND_OOB_SW_ECC_KW;
 			else {
-				command_print(CMD_CTX, "unknown option: %s", CMD_ARGV[i]);
+				command_print(CMD, "unknown option: %s", CMD_ARGV[i]);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		}

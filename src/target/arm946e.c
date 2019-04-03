@@ -103,7 +103,7 @@ static int arm946e_verify_pointer(struct command_invocation *cmd,
 	struct arm946e_common *arm946e)
 {
 	if (arm946e->common_magic != ARM946E_COMMON_MAGIC) {
-		command_print(cmd->ctx, "target is not an ARM946");
+		command_print(cmd, "target is not an ARM946");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -563,7 +563,7 @@ COMMAND_HANDLER(arm946e_handle_cp15)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -574,7 +574,7 @@ COMMAND_HANDLER(arm946e_handle_cp15)
 		uint32_t value;
 		retval = arm946e_read_cp15(target, address, &value);
 		if (retval != ERROR_OK) {
-			command_print(CMD_CTX, "%s cp15 reg %" PRIi32 " access failed", target_name(target), address);
+			command_print(CMD, "%s cp15 reg %" PRIi32 " access failed", target_name(target), address);
 			return retval;
 		}
 		retval = jtag_execute_queue();
@@ -582,14 +582,14 @@ COMMAND_HANDLER(arm946e_handle_cp15)
 			return retval;
 
 		/* Return value in hex format */
-		command_print(CMD_CTX, "0x%08" PRIx32, value);
+		command_print(CMD, "0x%08" PRIx32, value);
 	} else if (CMD_ARGC == 2) {
 		uint32_t value;
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 		retval = arm946e_write_cp15(target, address, value);
 		if (retval != ERROR_OK) {
-			command_print(CMD_CTX, "%s cp15 reg %" PRIi32 " access failed", target_name(target), address);
+			command_print(CMD, "%s cp15 reg %" PRIi32 " access failed", target_name(target), address);
 			return retval;
 		}
 		if (address == CP15_CTL)
@@ -613,7 +613,7 @@ COMMAND_HANDLER(arm946e_handle_idcache)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -623,9 +623,9 @@ COMMAND_HANDLER(arm946e_handle_idcache)
 		bool  bena = ((arm946e->cp15_control_reg & (icache ? CP15_CTL_ICACHE : CP15_CTL_DCACHE)) != 0)
 			  && (arm946e->cp15_control_reg & 0x1);
 		if (csize == 0)
-			command_print(CMD_CTX, "%s-cache absent", icache ? "I" : "D");
+			command_print(CMD, "%s-cache absent", icache ? "I" : "D");
 		else
-			command_print(CMD_CTX, "%s-cache size: %" PRIu32 "K, %s",
+			command_print(CMD, "%s-cache size: %" PRIu32 "K, %s",
 				      icache ? "I" : "D", csize, bena ? "enabled" : "disabled");
 		return ERROR_OK;
 	}
@@ -643,7 +643,7 @@ COMMAND_HANDLER(arm946e_handle_idcache)
 
 	/* Do not invalidate or change state, if cache is absent */
 	if (csize == 0) {
-		command_print(CMD_CTX, "%s-cache absent, '%s' operation undefined", icache ? "I" : "D", CMD_ARGV[0]);
+		command_print(CMD, "%s-cache absent, '%s' operation undefined", icache ? "I" : "D", CMD_ARGV[0]);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 

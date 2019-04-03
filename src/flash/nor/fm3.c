@@ -958,9 +958,9 @@ COMMAND_HANDLER(fm3_handle_chip_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "fm3 chip erase complete");
+		command_print(CMD, "fm3 chip erase complete");
 	} else {
-		command_print(CMD_CTX, "fm3 chip erase failed");
+		command_print(CMD, "fm3 chip erase failed");
 	}
 
 	return ERROR_OK;

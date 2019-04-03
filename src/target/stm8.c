@@ -2147,7 +2147,7 @@ COMMAND_HANDLER(stm8_handle_enable_step_irq_command)
 		stm8->enable_step_irq = enable;
 	}
 	msg = stm8->enable_step_irq ? "enabled" : "disabled";
-	command_print(CMD_CTX, "enable_step_irq = %s", msg);
+	command_print(CMD, "enable_step_irq = %s", msg);
 	return ERROR_OK;
 }
 
@@ -2163,7 +2163,7 @@ COMMAND_HANDLER(stm8_handle_enable_stm8l_command)
 		stm8->enable_stm8l = enable;
 	}
 	msg = stm8->enable_stm8l ? "enabled" : "disabled";
-	command_print(CMD_CTX, "enable_stm8l = %s", msg);
+	command_print(CMD, "enable_stm8l = %s", msg);
 	stm8_init_flash_regs(stm8->enable_stm8l, stm8);
 	return ERROR_OK;
 }

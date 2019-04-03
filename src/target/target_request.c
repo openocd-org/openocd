@@ -283,7 +283,7 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(CMD_CTX, "receiving debug messages from current target %s",
+	command_print(CMD, "receiving debug messages from current target %s",
 			(receiving) ? (charmsg_mode ? "charmsg" : "enabled") : "disabled");
 	return ERROR_OK;
 }

@@ -930,7 +930,7 @@ COMMAND_HANDLER(ftdi_handle_tdo_sample_edge_command)
 	}
 
 	n = Jim_Nvp_value2name_simple(nvp_ftdi_jtag_modes, ftdi_jtag_mode);
-	command_print(CMD_CTX, "ftdi samples TDO on %s edge of TCK", n->name);
+	command_print(CMD, "ftdi samples TDO on %s edge of TCK", n->name);
 
 	return ERROR_OK;
 }

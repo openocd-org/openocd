@@ -114,10 +114,10 @@ COMMAND_HANDLER(handle_interface_list_command)
 	if (strcmp(CMD_NAME, "interface_list") == 0 && CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX, "The following debug interfaces are available:");
+	command_print(CMD, "The following debug interfaces are available:");
 	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
 		const char *name = jtag_interfaces[i]->name;
-		command_print(CMD_CTX, "%u: %s", i + 1, name);
+		command_print(CMD, "%u: %s", i + 1, name);
 	}
 
 	return ERROR_OK;
@@ -394,7 +394,7 @@ next:
 		modes[5] = "";
 	}
 
-	command_print(CMD_CTX, "%s %s%s%s%s%s",
+	command_print(CMD, "%s %s%s%s%s%s",
 			modes[0], modes[1],
 			modes[2], modes[3], modes[4], modes[5]);
 
@@ -411,7 +411,7 @@ COMMAND_HANDLER(handle_adapter_nsrst_delay_command)
 
 		jtag_set_nsrst_delay(delay);
 	}
-	command_print(CMD_CTX, "adapter_nsrst_delay: %u", jtag_get_nsrst_delay());
+	command_print(CMD, "adapter_nsrst_delay: %u", jtag_get_nsrst_delay());
 	return ERROR_OK;
 }
 
@@ -425,7 +425,7 @@ COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
 
 		jtag_set_nsrst_assert_width(width);
 	}
-	command_print(CMD_CTX, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
+	command_print(CMD, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
 	return ERROR_OK;
 }
 
@@ -450,9 +450,9 @@ COMMAND_HANDLER(handle_adapter_khz_command)
 		return retval;
 
 	if (cur_speed)
-		command_print(CMD_CTX, "adapter speed: %d kHz", cur_speed);
+		command_print(CMD, "adapter speed: %d kHz", cur_speed);
 	else
-		command_print(CMD_CTX, "adapter speed: RCLK - adaptive");
+		command_print(CMD, "adapter speed: RCLK - adaptive");
 
 	return retval;
 }
@@ -464,7 +464,7 @@ COMMAND_HANDLER(handle_usb_location_command)
 	if (CMD_ARGC == 1)
 		jtag_usb_set_location(CMD_ARGV[0]);
 
-	command_print(CMD_CTX, "adapter usb location: %s", jtag_usb_get_location());
+	command_print(CMD, "adapter usb location: %s", jtag_usb_get_location());
 
 	return ERROR_OK;
 }

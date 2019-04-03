@@ -1284,9 +1284,9 @@ COMMAND_HANDLER(xmc4xxx_handle_flash_password_command)
 
 	fb->pw_set = true;
 
-	command_print(CMD_CTX, "XMC4xxx flash passwords set to:\n");
-	command_print(CMD_CTX, "-0x%08"PRIx32"\n", fb->pw1);
-	command_print(CMD_CTX, "-0x%08"PRIx32"\n", fb->pw2);
+	command_print(CMD, "XMC4xxx flash passwords set to:\n");
+	command_print(CMD, "-0x%08"PRIx32"\n", fb->pw1);
+	command_print(CMD, "-0x%08"PRIx32"\n", fb->pw2);
 	return ERROR_OK;
 }
 

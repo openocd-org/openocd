@@ -1054,7 +1054,7 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 			return ERROR_FAIL;
 		}
 
-		command_print(CMD_CTX, "Exception Catch: Secure: %s, Non-Secure: %s", sec, nsec);
+		command_print(CMD, "Exception Catch: Secure: %s, Non-Secure: %s", sec, nsec);
 		return ERROR_OK;
 	}
 
@@ -1083,7 +1083,7 @@ int armv8_handle_cache_info_command(struct command_invocation *cmd,
 	struct armv8_cache_common *armv8_cache)
 {
 	if (armv8_cache->info == -1) {
-		command_print(cmd->ctx, "cache not yet identified");
+		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
 

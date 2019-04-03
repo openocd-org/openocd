@@ -356,7 +356,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionums)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"SysfsGPIO nums: tck = %d, tms = %d, tdi = %d, tdo = %d",
 			tck_gpio, tms_gpio, tdi_gpio, tdo_gpio);
 
@@ -368,7 +368,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionum_tck)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tck_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: tck = %d", tck_gpio);
+	command_print(CMD, "SysfsGPIO num: tck = %d", tck_gpio);
 	return ERROR_OK;
 }
 
@@ -377,7 +377,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionum_tms)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tms_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: tms = %d", tms_gpio);
+	command_print(CMD, "SysfsGPIO num: tms = %d", tms_gpio);
 	return ERROR_OK;
 }
 
@@ -386,7 +386,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionum_tdo)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tdo_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: tdo = %d", tdo_gpio);
+	command_print(CMD, "SysfsGPIO num: tdo = %d", tdo_gpio);
 	return ERROR_OK;
 }
 
@@ -395,7 +395,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionum_tdi)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tdi_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: tdi = %d", tdi_gpio);
+	command_print(CMD, "SysfsGPIO num: tdi = %d", tdi_gpio);
 	return ERROR_OK;
 }
 
@@ -404,7 +404,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionum_srst)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], srst_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: srst = %d", srst_gpio);
+	command_print(CMD, "SysfsGPIO num: srst = %d", srst_gpio);
 	return ERROR_OK;
 }
 
@@ -413,7 +413,7 @@ COMMAND_HANDLER(sysfsgpio_handle_jtag_gpionum_trst)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], trst_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: trst = %d", trst_gpio);
+	command_print(CMD, "SysfsGPIO num: trst = %d", trst_gpio);
 	return ERROR_OK;
 }
 
@@ -426,7 +426,7 @@ COMMAND_HANDLER(sysfsgpio_handle_swd_gpionums)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"SysfsGPIO nums: swclk = %d, swdio = %d",
 			swclk_gpio, swdio_gpio);
 
@@ -438,7 +438,7 @@ COMMAND_HANDLER(sysfsgpio_handle_swd_gpionum_swclk)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swclk_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: swclk = %d", swclk_gpio);
+	command_print(CMD, "SysfsGPIO num: swclk = %d", swclk_gpio);
 	return ERROR_OK;
 }
 
@@ -447,7 +447,7 @@ COMMAND_HANDLER(sysfsgpio_handle_swd_gpionum_swdio)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swdio_gpio);
 
-	command_print(CMD_CTX, "SysfsGPIO num: swdio = %d", swdio_gpio);
+	command_print(CMD, "SysfsGPIO num: swdio = %d", swdio_gpio);
 	return ERROR_OK;
 }
 

@@ -502,7 +502,7 @@ void command_output_text(struct command_context *context, const char *data)
 		context->output_handler(context, data);
 }
 
-void command_print_sameline(struct command_context *context, const char *format, ...)
+void command_print_sameline(struct command_invocation *cmd, const char *format, ...)
 {
 	char *string;
 
@@ -525,7 +525,7 @@ void command_print_sameline(struct command_context *context, const char *format,
 	va_end(ap);
 }
 
-void command_print(struct command_context *context, const char *format, ...)
+void command_print(struct command_invocation *cmd, const char *format, ...)
 {
 	char *string;
 

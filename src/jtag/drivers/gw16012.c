@@ -515,7 +515,7 @@ COMMAND_HANDLER(gw16012_handle_parport_port_command)
 		}
 	}
 
-	command_print(CMD_CTX, "parport port = %u", gw16012_port);
+	command_print(CMD, "parport port = %u", gw16012_port);
 
 	return ERROR_OK;
 }

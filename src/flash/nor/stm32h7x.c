@@ -952,7 +952,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 	}
 
 	if (stm32x_read_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to read options",
+		command_print(CMD, "%s failed to read options",
 			      bank->driver->name);
 		return ERROR_OK;
 	}
@@ -960,11 +960,11 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 	stm32x_info->option_bytes.RDP = 0;
 
 	if (stm32x_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to lock device",
+		command_print(CMD, "%s failed to lock device",
 			      bank->driver->name);
 		return ERROR_OK;
 	}
-	command_print(CMD_CTX, "%s locked", bank->driver->name);
+	command_print(CMD, "%s locked", bank->driver->name);
 
 	return ERROR_OK;
 }
@@ -998,7 +998,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	}
 
 	if (stm32x_read_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to read options", bank->driver->name);
+		command_print(CMD, "%s failed to read options", bank->driver->name);
 		return ERROR_OK;
 	}
 
@@ -1007,10 +1007,10 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	stm32x_info->option_bytes.RDP = 0xAA;
 
 	if (stm32x_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to unlock device", bank->driver->name);
+		command_print(CMD, "%s failed to unlock device", bank->driver->name);
 		return ERROR_OK;
 	}
-	command_print(CMD_CTX, "%s unlocked.\n", bank->driver->name);
+	command_print(CMD, "%s unlocked.\n", bank->driver->name);
 
 	return ERROR_OK;
 }
@@ -1056,7 +1056,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 	int i;
 
 	if (CMD_ARGC < 1) {
-		command_print(CMD_CTX, "stm32h7x mass_erase <bank>");
+		command_print(CMD, "stm32h7x mass_erase <bank>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1071,9 +1071,9 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "stm32h7x mass erase complete");
+		command_print(CMD, "stm32h7x mass erase complete");
 	} else {
-		command_print(CMD_CTX, "stm32h7x mass erase failed");
+		command_print(CMD, "stm32h7x mass erase failed");
 	}
 
 	return retval;

@@ -505,7 +505,7 @@ static int arm926ejs_verify_pointer(struct command_invocation *cmd,
 		struct arm926ejs_common *arm926)
 {
 	if (arm926->common_magic != ARM926EJS_COMMON_MAGIC) {
-		command_print(cmd->ctx, arm926_not);
+		command_print(cmd, arm926_not);
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
