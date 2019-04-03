@@ -426,8 +426,8 @@ COMMAND_HANDLER(niietcm4_handle_uflash_read_byte_command)
 	if (retval != ERROR_OK)
 		return retval;
 	command_print(CMD,  "Read userflash %s region:\n"
-							"address = 0x%04x,\n"
-							"value   = 0x%02x.", CMD_ARGV[0], uflash_addr, uflash_data);
+						"address = 0x%04x,\n"
+						"value   = 0x%02x.", CMD_ARGV[0], uflash_addr, uflash_data);
 	return retval;
 }
 
@@ -468,9 +468,9 @@ COMMAND_HANDLER(niietcm4_handle_uflash_write_byte_command)
 	int page_num = uflash_addr/USERFLASH_PAGE_SIZE;
 
 	command_print(CMD, "Write userflash %s region:\n"
-						   "address = 0x%04x,\n"
-						   "value   = 0x%02x.\n"
-						   "Please wait ... ", CMD_ARGV[0], uflash_addr, uflash_data);
+					   "address = 0x%04x,\n"
+					   "value   = 0x%02x.\n"
+					   "Please wait ... ", CMD_ARGV[0], uflash_addr, uflash_data);
 	/* dump */
 	uint32_t uflash_dump[USERFLASH_PAGE_SIZE];
 	niietcm4_dump_uflash_page(bank, uflash_dump, page_num, mem_type);
@@ -815,10 +815,10 @@ COMMAND_HANDLER(niietcm4_handle_extmem_cfg_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(CMD,  "Try to configure external memory boot interface:\n"
-							"port = %s\n"
-							"pin  = %s\n"
-							"func = %s\n"
-							"Please wait ...", CMD_ARGV[0], CMD_ARGV[1], CMD_ARGV[2]);
+						"port = %s\n"
+						"pin  = %s\n"
+						"func = %s\n"
+						"Please wait ...", CMD_ARGV[0], CMD_ARGV[1], CMD_ARGV[2]);
 	/* dump */
 	uint32_t uflash_dump[USERFLASH_PAGE_SIZE];
 	niietcm4_dump_uflash_page(bank, uflash_dump, 0, 1);
