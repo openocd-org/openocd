@@ -204,7 +204,6 @@ typedef struct {
 	 * before the interrupt is cleared. */
 	unsigned int interrupt_high_delay;
 
-	bool need_strict_step;
 	bool never_halted;
 } riscv011_info_t;
 
@@ -1413,8 +1412,6 @@ static void deinit_target(struct target *target)
 
 static int strict_step(struct target *target, bool announce)
 {
-	riscv011_info_t *info = get_info(target);
-
 	LOG_DEBUG("enter");
 
 	struct watchpoint *watchpoint = target->watchpoints;
@@ -1433,16 +1430,12 @@ static int strict_step(struct target *target, bool announce)
 		watchpoint = watchpoint->next;
 	}
 
-	info->need_strict_step = false;
-
 	return ERROR_OK;
 }
 
 static int step(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints)
 {
-	riscv011_info_t *info = get_info(target);
-
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	if (!current) {
@@ -1455,7 +1448,7 @@ static int step(struct target *target, int current, target_addr_t address,
 			return result;
 	}
 
-	if (info->need_strict_step || handle_breakpoints) {
+	if (handle_breakpoints) {
 		int result = strict_step(target, true);
 		if (result != ERROR_OK)
 			return result;
@@ -1486,7 +1479,6 @@ static int examine(struct target *target)
 	}
 
 	RISCV_INFO(r);
-	r->hart_count = 1;
 
 	riscv011_info_t *info = get_info(target);
 	info->addrbits = get_field(dtmcontrol, DTMCONTROL_ADDRBITS);
@@ -1848,9 +1840,6 @@ static int handle_halt(struct target *target, bool announce)
 			break;
 		case DCSR_CAUSE_HWBP:
 			target->debug_reason = DBG_REASON_WATCHPOINT;
-			/* If we halted because of a data trigger, gdb doesn't know to do
-			 * the disable-breakpoints-step-enable-breakpoints dance. */
-			info->need_strict_step = true;
 			break;
 		case DCSR_CAUSE_DEBUGINT:
 			target->debug_reason = DBG_REASON_DBGRQ;
@@ -1935,26 +1924,10 @@ static int riscv011_poll(struct target *target)
 static int riscv011_resume(struct target *target, int current,
 		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
-	riscv011_info_t *info = get_info(target);
-
+	RISCV_INFO(r);
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-	if (!current) {
-		if (riscv_xlen(target) > 32) {
-			LOG_WARNING("Asked to resume at 32-bit PC on %d-bit target.",
-					riscv_xlen(target));
-		}
-		int result = register_write(target, GDB_REGNO_PC, address);
-		if (result != ERROR_OK)
-			return result;
-	}
-
-	if (info->need_strict_step || handle_breakpoints) {
-		int result = strict_step(target, false);
-		if (result != ERROR_OK)
-			return result;
-	}
-
+	r->prepped = false;
 	return resume(target, debug_execution, false);
 }
 

@@ -199,6 +199,8 @@ range_t *expose_csr;
 /* Same, but for custom registers. */
 range_t *expose_custom;
 
+static int riscv_resume_go_all_harts(struct target *target);
+
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
@@ -846,16 +848,116 @@ static int riscv_deassert_reset(struct target *target)
 	return tt->deassert_reset(target);
 }
 
-
-static int oldriscv_resume(struct target *target, int current, uint32_t address,
-		int handle_breakpoints, int debug_execution)
+int riscv_resume_prep_all_harts(struct target *target)
 {
-	struct target_type *tt = get_target_type(target);
-	return tt->resume(target, current, address, handle_breakpoints,
-			debug_execution);
+	RISCV_INFO(r);
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
+		LOG_DEBUG("prep hart %d", i);
+		if (riscv_set_current_hartid(target, i) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_is_halted(target)) {
+			if (r->resume_prep(target) != ERROR_OK)
+				return ERROR_FAIL;
+		} else {
+			LOG_DEBUG("  hart %d requested resume, but was already resumed", i);
+		}
+	}
+	return ERROR_OK;
 }
 
-static int old_or_new_riscv_resume(
+/**
+ * Get everything ready to resume.
+ */
+static int resume_prep(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints, int debug_execution)
+{
+	RISCV_INFO(r);
+	LOG_DEBUG("[%d]", target->coreid);
+
+	if (!current)
+		riscv_set_register(target, GDB_REGNO_PC, address);
+
+	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
+		/* To be able to run off a trigger, disable all the triggers, step, and
+		 * then resume as usual. */
+		struct watchpoint *watchpoint = target->watchpoints;
+		bool trigger_temporarily_cleared[RISCV_MAX_HWBPS] = {0};
+
+		int i = 0;
+		int result = ERROR_OK;
+		while (watchpoint && result == ERROR_OK) {
+			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
+			trigger_temporarily_cleared[i] = watchpoint->set;
+			if (watchpoint->set)
+				result = riscv_remove_watchpoint(target, watchpoint);
+			watchpoint = watchpoint->next;
+			i++;
+		}
+
+		if (result == ERROR_OK)
+			result = old_or_new_riscv_step(target, true, 0, false);
+
+		watchpoint = target->watchpoints;
+		i = 0;
+		while (watchpoint) {
+			LOG_DEBUG("watchpoint %d: cleared=%d", i, trigger_temporarily_cleared[i]);
+			if (trigger_temporarily_cleared[i]) {
+				if (result == ERROR_OK)
+					result = riscv_add_watchpoint(target, watchpoint);
+				else
+					riscv_add_watchpoint(target, watchpoint);
+			}
+			watchpoint = watchpoint->next;
+			i++;
+		}
+
+		if (result != ERROR_OK)
+			return result;
+	}
+
+	if (r->is_halted) {
+		if (riscv_resume_prep_all_harts(target) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	LOG_DEBUG("[%d] mark as prepped", target->coreid);
+	r->prepped = true;
+
+	return ERROR_OK;
+}
+
+/**
+ * Resume all the harts that have been prepped, as close to instantaneous as
+ * possible.
+ */
+static int resume_go(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints, int debug_execution)
+{
+	riscv_info_t *r = riscv_info(target);
+	int result;
+	if (r->is_halted == NULL) {
+		struct target_type *tt = get_target_type(target);
+		result = tt->resume(target, current, address, handle_breakpoints,
+				debug_execution);
+	} else {
+		result = riscv_resume_go_all_harts(target);
+	}
+
+	return result;
+}
+
+static int resume_finish(struct target *target)
+{
+	register_cache_invalidate(target->reg_cache);
+
+	target->state = TARGET_RUNNING;
+	return target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+}
+
+int riscv_resume(
 		struct target *target,
 		int current,
 		target_addr_t address,
@@ -863,31 +965,43 @@ static int old_or_new_riscv_resume(
 		int debug_execution
 ){
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
+	int result = ERROR_OK;
 	if (target->smp) {
-		struct target_list *targets = target->head;
-		int result = ERROR_OK;
-		while (targets) {
-			struct target *t = targets->target;
-			riscv_info_t *r = riscv_info(t);
-			if (r->is_halted == NULL) {
-				if (oldriscv_resume(t, current, address, handle_breakpoints,
+		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+			struct target *t = tlist->target;
+			if (resume_prep(t, current, address, handle_breakpoints,
+						debug_execution) != ERROR_OK)
+				result = ERROR_FAIL;
+		}
+
+		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+			struct target *t = tlist->target;
+			riscv_info_t *i = riscv_info(t);
+			if (i->prepped) {
+				if (resume_go(t, current, address, handle_breakpoints,
 							debug_execution) != ERROR_OK)
 					result = ERROR_FAIL;
-			} else {
-				if (riscv_openocd_resume(t, current, address,
-							handle_breakpoints, debug_execution) != ERROR_OK)
-					result = ERROR_FAIL;
 			}
-			targets = targets->next;
 		}
-		return result;
+
+		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+			struct target *t = tlist->target;
+			if (resume_finish(t) != ERROR_OK)
+				return ERROR_FAIL;
+		}
+
+	} else {
+		if (resume_prep(target, current, address, handle_breakpoints,
+					debug_execution) != ERROR_OK)
+			result = ERROR_FAIL;
+		if (resume_go(target, current, address, handle_breakpoints,
+					debug_execution) != ERROR_OK)
+			result = ERROR_FAIL;
+		if (resume_finish(target) != ERROR_OK)
+			return ERROR_FAIL;
 	}
 
-	RISCV_INFO(r);
-	if (r->is_halted == NULL)
-		return oldriscv_resume(target, current, address, handle_breakpoints, debug_execution);
-	else
-		return riscv_openocd_resume(target, current, address, handle_breakpoints, debug_execution);
+	return result;
 }
 
 static int riscv_select_current_hart(struct target *target)
@@ -1064,7 +1178,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 
 	/* Run algorithm */
 	LOG_DEBUG("resume at 0x%" TARGET_PRIxADDR, entry_point);
-	if (oldriscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK)
+	if (riscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	int64_t start = timeval_ms();
@@ -1346,68 +1460,6 @@ int riscv_openocd_halt(struct target *target)
 	target->debug_reason = DBG_REASON_DBGRQ;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	return result;
-}
-
-int riscv_openocd_resume(
-		struct target *target,
-		int current,
-		target_addr_t address,
-		int handle_breakpoints,
-		int debug_execution)
-{
-	LOG_DEBUG("debug_reason=%d", target->debug_reason);
-
-	if (!current)
-		riscv_set_register(target, GDB_REGNO_PC, address);
-
-	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
-		/* To be able to run off a trigger, disable all the triggers, step, and
-		 * then resume as usual. */
-		struct watchpoint *watchpoint = target->watchpoints;
-		bool trigger_temporarily_cleared[RISCV_MAX_HWBPS] = {0};
-
-		int i = 0;
-		int result = ERROR_OK;
-		while (watchpoint && result == ERROR_OK) {
-			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
-			trigger_temporarily_cleared[i] = watchpoint->set;
-			if (watchpoint->set)
-				result = riscv_remove_watchpoint(target, watchpoint);
-			watchpoint = watchpoint->next;
-			i++;
-		}
-
-		if (result == ERROR_OK)
-			result = riscv_step_rtos_hart(target);
-
-		watchpoint = target->watchpoints;
-		i = 0;
-		while (watchpoint) {
-			LOG_DEBUG("watchpoint %d: cleared=%d", i, trigger_temporarily_cleared[i]);
-			if (trigger_temporarily_cleared[i]) {
-				if (result == ERROR_OK)
-					result = riscv_add_watchpoint(target, watchpoint);
-				else
-					riscv_add_watchpoint(target, watchpoint);
-			}
-			watchpoint = watchpoint->next;
-			i++;
-		}
-
-		if (result != ERROR_OK)
-			return result;
-	}
-
-	int out = riscv_resume_all_harts(target);
-	if (out != ERROR_OK) {
-		LOG_ERROR("unable to resume all harts");
-		return out;
-	}
-
-	register_cache_invalidate(target->reg_cache);
-	target->state = TARGET_RUNNING;
-	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-	return out;
 }
 
 int riscv_openocd_step(
@@ -1963,7 +2015,7 @@ struct target_type riscv_target = {
 	.poll = old_or_new_riscv_poll,
 
 	.halt = old_or_new_riscv_halt,
-	.resume = old_or_new_riscv_resume,
+	.resume = riscv_resume,
 	.step = old_or_new_riscv_step,
 
 	.assert_reset = riscv_assert_reset,
@@ -2040,32 +2092,26 @@ int riscv_halt_one_hart(struct target *target, int hartid)
 	return result;
 }
 
-int riscv_resume_all_harts(struct target *target)
+static int riscv_resume_go_all_harts(struct target *target)
 {
+	RISCV_INFO(r);
 	for (int i = 0; i < riscv_count_harts(target); ++i) {
 		if (!riscv_hart_enabled(target, i))
 			continue;
 
-		riscv_resume_one_hart(target, i);
+		LOG_DEBUG("resuming hart %d", i);
+		if (riscv_set_current_hartid(target, i) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_is_halted(target)) {
+			if (r->resume_go(target) != ERROR_OK)
+				return ERROR_FAIL;
+		} else {
+			LOG_DEBUG("  hart %d requested resume, but was already resumed", i);
+		}
 	}
 
 	riscv_invalidate_register_cache(target);
 	return ERROR_OK;
-}
-
-int riscv_resume_one_hart(struct target *target, int hartid)
-{
-	RISCV_INFO(r);
-	LOG_DEBUG("resuming hart %d", hartid);
-	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
-		return ERROR_FAIL;
-	if (!riscv_is_halted(target)) {
-		LOG_DEBUG("  hart %d requested resume, but was already resumed", hartid);
-		return ERROR_OK;
-	}
-
-	r->on_resume(target);
-	return r->resume_current_hart(target);
 }
 
 int riscv_step_rtos_hart(struct target *target)
@@ -2190,9 +2236,9 @@ int riscv_count_harts(struct target *target)
 	if (target == NULL)
 		return 1;
 	RISCV_INFO(r);
-	if (r == NULL)
+	if (r == NULL || r->hart_count == NULL)
 		return 1;
-	return r->hart_count;
+	return r->hart_count(target);
 }
 
 bool riscv_has_register(struct target *target, int hartid, int regid)

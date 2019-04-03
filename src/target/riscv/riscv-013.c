@@ -32,7 +32,8 @@
 #define DMI_PROGBUF1 (DMI_PROGBUF0 + 1)
 
 static int riscv013_on_step_or_resume(struct target *target, bool step);
-static int riscv013_step_or_resume_current_hart(struct target *target, bool step);
+static int riscv013_step_or_resume_current_hart(struct target *target,
+		bool step, bool use_hasel);
 static void riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in riscv_info_t. */
@@ -41,11 +42,11 @@ static int riscv013_get_register(struct target *target,
 static int riscv013_set_register(struct target *target, int hartid, int regid, uint64_t value);
 static int riscv013_select_current_hart(struct target *target);
 static int riscv013_halt_current_hart(struct target *target);
-static int riscv013_resume_current_hart(struct target *target);
+static int riscv013_resume_go(struct target *target);
 static int riscv013_step_current_hart(struct target *target);
 static int riscv013_on_halt(struct target *target);
 static int riscv013_on_step(struct target *target);
-static int riscv013_on_resume(struct target *target);
+static int riscv013_resume_prep(struct target *target);
 static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
 static int riscv013_write_debug_buffer(struct target *target, unsigned index,
@@ -147,12 +148,16 @@ typedef enum {
 typedef struct {
 	struct list_head list;
 	int abs_chain_position;
+
+	/* The number of harts connected to this DM. */
+	int hart_count;
 	/* Indicates we already reset this DM, so don't need to do it again. */
 	bool was_reset;
 	/* Targets that are connected to this DM. */
 	struct list_head target_list;
 	/* The currently selected hartid on this DM. */
 	int current_hartid;
+	bool hasel_supported;
 } dm013_info_t;
 
 typedef struct {
@@ -161,6 +166,8 @@ typedef struct {
 } target_list_t;
 
 typedef struct {
+	/* The indexed used to address this hart in its DM. */
+	unsigned index;
 	/* Number of address bits in the dbus register. */
 	unsigned abits;
 	/* Number of abstract command data registers. */
@@ -230,7 +237,7 @@ static riscv013_info_t *get_info(const struct target *target)
  * global list of DMs. If it's not in there, then create one and initialize it
  * to 0.
  */
-static dm013_info_t *get_dm(struct target *target)
+dm013_info_t *get_dm(struct target *target)
 {
 	RISCV013_INFO(info);
 	if (info->dm)
@@ -248,9 +255,11 @@ static dm013_info_t *get_dm(struct target *target)
 	}
 
 	if (!dm) {
+		LOG_DEBUG("[%d] Allocating new DM", target->coreid);
 		dm = calloc(1, sizeof(dm013_info_t));
 		dm->abs_chain_position = abs_chain_position;
 		dm->current_hartid = -1;
+		dm->hart_count = -1;
 		INIT_LIST_HEAD(&dm->target_list);
 		list_add(&dm->list, &dm_list);
 	}
@@ -1397,6 +1406,8 @@ static int examine(struct target *target)
 	}
 
 	riscv013_info_t *info = get_info(target);
+	/* TODO: This won't be true if there are multiple DMs. */
+	info->index = target->coreid;
 	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
 	info->dtmcs_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
 
@@ -1409,7 +1420,8 @@ static int examine(struct target *target)
 	}
 
 	dmi_write(target, DMI_DMCONTROL, DMI_DMCONTROL_HARTSELLO |
-			DMI_DMCONTROL_HARTSELHI | DMI_DMCONTROL_DMACTIVE);
+			DMI_DMCONTROL_HARTSELHI | DMI_DMCONTROL_DMACTIVE |
+			DMI_DMCONTROL_HASEL);
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1419,6 +1431,8 @@ static int examine(struct target *target)
 				dmcontrol);
 		return ERROR_FAIL;
 	}
+
+	dm->hasel_supported = get_field(dmcontrol, DMI_DMCONTROL_HASEL);
 
 	uint32_t dmstatus;
 	if (dmstatus_read(target, &dmstatus, false) != ERROR_OK)
@@ -1483,27 +1497,41 @@ static int examine(struct target *target)
 	}
 
 	/* Before doing anything else we must first enumerate the harts. */
+	if (dm->hart_count < 0) {
+		for (int i = 0; i < MIN(RISCV_MAX_HARTS, 1 << info->hartsellen); ++i) {
+			r->current_hartid = i;
+			if (riscv013_select_current_hart(target) != ERROR_OK)
+				return ERROR_FAIL;
+
+			uint32_t s;
+			if (dmstatus_read(target, &s, true) != ERROR_OK)
+				return ERROR_FAIL;
+			if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT))
+				break;
+			dm->hart_count = i + 1;
+
+			if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
+				dmi_write(target, DMI_DMCONTROL,
+						set_hartsel(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET, i));
+		}
+
+		LOG_DEBUG("Detected %d harts.", dm->hart_count);
+	}
+
+	if (dm->hart_count == 0) {
+		LOG_ERROR("No harts found!");
+		return ERROR_FAIL;
+	}
 
 	/* Don't call any riscv_* functions until after we've counted the number of
 	 * cores and initialized registers. */
-	for (int i = 0; i < MIN(RISCV_MAX_HARTS, 1 << info->hartsellen); ++i) {
+	for (int i = 0; i < dm->hart_count; ++i) {
 		if (!riscv_rtos_enabled(target) && i != target->coreid)
 			continue;
 
 		r->current_hartid = i;
 		if (riscv013_select_current_hart(target) != ERROR_OK)
 			return ERROR_FAIL;
-
-		uint32_t s;
-		if (dmstatus_read(target, &s, true) != ERROR_OK)
-			return ERROR_FAIL;
-		if (get_field(s, DMI_DMSTATUS_ANYNONEXISTENT))
-			break;
-		r->hart_count = i + 1;
-
-		if (get_field(s, DMI_DMSTATUS_ANYHAVERESET))
-			dmi_write(target, DMI_DMCONTROL,
-					set_hartsel(DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_ACKHAVERESET, i));
 
 		bool halted = riscv_is_halted(target);
 		if (!halted) {
@@ -1538,20 +1566,10 @@ static int examine(struct target *target)
 				r->misa[i]);
 
 		if (!halted)
-			riscv013_resume_current_hart(target);
-	}
-
-	LOG_DEBUG("Enumerated %d harts", r->hart_count);
-
-	if (r->hart_count == 0) {
-		LOG_ERROR("No harts found!");
-		return ERROR_FAIL;
+			riscv013_step_or_resume_current_hart(target, false, false);
 	}
 
 	target_set_examined(target);
-
-	if (target->rtos)
-		riscv_update_threads(target->rtos);
 
 	if (target->smp) {
 		bool haltgroup_supported;
@@ -1616,6 +1634,12 @@ int riscv013_authdata_write(struct target *target, uint32_t value)
 	return ERROR_OK;
 }
 
+static int riscv013_hart_count(struct target *target)
+{
+	dm013_info_t *dm = get_dm(target);
+	return dm->hart_count;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -1627,10 +1651,10 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->select_current_hart = &riscv013_select_current_hart;
 	generic_info->is_halted = &riscv013_is_halted;
 	generic_info->halt_current_hart = &riscv013_halt_current_hart;
-	generic_info->resume_current_hart = &riscv013_resume_current_hart;
+	generic_info->resume_go = &riscv013_resume_go;
 	generic_info->step_current_hart = &riscv013_step_current_hart;
 	generic_info->on_halt = &riscv013_on_halt;
-	generic_info->on_resume = &riscv013_on_resume;
+	generic_info->resume_prep = &riscv013_resume_prep;
 	generic_info->on_step = &riscv013_on_step;
 	generic_info->halt_reason = &riscv013_halt_reason;
 	generic_info->read_debug_buffer = &riscv013_read_debug_buffer;
@@ -1646,6 +1670,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->dmi_write = &dmi_write;
 	generic_info->test_sba_config_reg = &riscv013_test_sba_config_reg;
 	generic_info->test_compliance = &riscv013_test_compliance;
+	generic_info->hart_count = &riscv013_hart_count;
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
@@ -2822,7 +2847,7 @@ struct target_type riscv013_target = {
 
 	.poll = &riscv_openocd_poll,
 	.halt = &riscv_openocd_halt,
-	.resume = &riscv_openocd_resume,
+	.resume = &riscv_resume,
 	.step = &riscv_openocd_step,
 
 	.assert_reset = assert_reset,
@@ -2945,17 +2970,74 @@ static int riscv013_halt_current_hart(struct target *target)
 	return ERROR_OK;
 }
 
-static int riscv013_resume_current_hart(struct target *target)
+/* Select all harts that were prepped and that are selectable, clearing the
+ * prepped flag on the harts that actually were selected. */
+static int select_prepped_harts(struct target *target, bool *use_hasel)
 {
-	return riscv013_step_or_resume_current_hart(target, false);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm->hasel_supported) {
+		RISCV_INFO(r);
+		r->prepped = false;
+		*use_hasel = false;
+		return ERROR_OK;
+	}
+
+	assert(dm->hart_count);
+	unsigned hawindow_count = (dm->hart_count + 31) / 32;
+	uint32_t hawindow[hawindow_count];
+
+	memset(hawindow, 0, sizeof(uint32_t) * hawindow_count);
+
+	target_list_t *entry;
+	unsigned total_selected = 0;
+	list_for_each_entry(entry, &dm->target_list, list) {
+		struct target *t = entry->target;
+		riscv_info_t *r = riscv_info(t);
+		riscv013_info_t *info = get_info(t);
+		unsigned index = info->index;
+		LOG_DEBUG("index=%d, coreid=%d, prepped=%d", index, t->coreid, r->prepped);
+		if (r->prepped) {
+			hawindow[index / 32] |= 1 << (index % 32);
+			r->prepped = false;
+			total_selected++;
+		}
+		index++;
+	}
+
+	/* Don't use hasel if we only need to talk to one hart. */
+	if (total_selected <= 1) {
+		*use_hasel = false;
+		return ERROR_OK;
+	}
+
+	for (unsigned i = 0; i < hawindow_count; i++) {
+		if (dmi_write(target, DMI_HAWINDOWSEL, i) != ERROR_OK)
+			return ERROR_FAIL;
+		if (dmi_write(target, DMI_HAWINDOW, hawindow[i]) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	*use_hasel = true;
+	return ERROR_OK;
+}
+
+static int riscv013_resume_go(struct target *target)
+{
+	bool use_hasel = false;
+	if (!riscv_rtos_enabled(target)) {
+		if (select_prepped_harts(target, &use_hasel) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	return riscv013_step_or_resume_current_hart(target, false, use_hasel);
 }
 
 static int riscv013_step_current_hart(struct target *target)
 {
-	return riscv013_step_or_resume_current_hart(target, true);
+	return riscv013_step_or_resume_current_hart(target, true, false);
 }
 
-static int riscv013_on_resume(struct target *target)
+static int riscv013_resume_prep(struct target *target)
 {
 	return riscv013_on_step_or_resume(target, false);
 }
@@ -3458,7 +3540,8 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 	return riscv_set_register(target, GDB_REGNO_DCSR, dcsr);
 }
 
-static int riscv013_step_or_resume_current_hart(struct target *target, bool step)
+static int riscv013_step_or_resume_current_hart(struct target *target,
+		bool step, bool use_hasel)
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("resuming hart %d (for step?=%d)", r->current_hartid, step);
@@ -3467,13 +3550,15 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		return ERROR_FAIL;
 	}
 
-	if (maybe_execute_fence_i(target) != ERROR_OK)
-		return ERROR_FAIL;
-
 	/* Issue the resume command, and then wait for the current hart to resume. */
-	uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE;
+	uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_RESUMEREQ;
+	if (use_hasel)
+		dmcontrol |= DMI_DMCONTROL_HASEL;
 	dmcontrol = set_hartsel(dmcontrol, r->current_hartid);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol | DMI_DMCONTROL_RESUMEREQ);
+	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+
+	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HASEL, 0);
+	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_RESUMEREQ, 0);
 
 	uint32_t dmstatus;
 	for (size_t i = 0; i < 256; ++i) {
@@ -3489,10 +3574,9 @@ static int riscv013_step_or_resume_current_hart(struct target *target, bool step
 		return ERROR_OK;
 	}
 
+	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+
 	LOG_ERROR("unable to resume hart %d", r->current_hartid);
-	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
-		return ERROR_FAIL;
-	LOG_ERROR("  dmcontrol=0x%08x", dmcontrol);
 	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_ERROR("  dmstatus =0x%08x", dmstatus);
@@ -3604,7 +3688,7 @@ int riscv013_test_compliance(struct target *target)
 
 	/* resumereq */
 	/* This bit is not actually readable according to the spec, so nothing to check.*/
-	COMPLIANCE_MUST_PASS(riscv_resume_all_harts(target));
+	COMPLIANCE_MUST_PASS(riscv_resume(target, true, 0, false, false));
 
 	/* Halt all harts again so the test can continue.*/
 	COMPLIANCE_MUST_PASS(riscv_halt_all_harts(target));

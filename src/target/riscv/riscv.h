@@ -46,9 +46,6 @@ typedef struct {
 	struct command_context *cmd_ctx;
 	void *version_specific;
 
-	/* The number of harts on this system. */
-	int hart_count;
-
 	/* The hart that the RTOS thinks is currently being debugged. */
 	int rtos_hartid;
 
@@ -100,6 +97,9 @@ typedef struct {
 	 * delays, causing them to be relearned. Used for testing. */
 	int reset_delays_wait;
 
+	/* This target has been prepped and is ready to step/resume. */
+	bool prepped;
+
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
 	int (*get_register)(struct target *target,
@@ -109,10 +109,15 @@ typedef struct {
 	int (*select_current_hart)(struct target *);
 	bool (*is_halted)(struct target *target);
 	int (*halt_current_hart)(struct target *);
-	int (*resume_current_hart)(struct target *target);
+	/* Resume this target, as well as every other prepped target that can be
+	 * resumed near-simultaneously. Clear the prepped flag on any target that
+	 * was resumed. */
+	int (*resume_go)(struct target *target);
 	int (*step_current_hart)(struct target *target);
 	int (*on_halt)(struct target *target);
-	int (*on_resume)(struct target *target);
+	/* Get this target as ready as possible to resume, without actually
+	 * resuming. */
+	int (*resume_prep)(struct target *target);
 	int (*on_step)(struct target *target);
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
 	int (*write_debug_buffer)(struct target *target, unsigned index,
@@ -134,6 +139,9 @@ typedef struct {
 			uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
 
 	int (*test_compliance)(struct target *target);
+
+	/* How many harts are attached to the DM that this target is attached to? */
+	int (*hart_count)(struct target *target);
 } riscv_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
@@ -163,7 +171,7 @@ int riscv_openocd_poll(struct target *target);
 
 int riscv_openocd_halt(struct target *target);
 
-int riscv_openocd_resume(
+int riscv_resume(
 	struct target *target,
 	int current,
 	target_addr_t address,
@@ -191,8 +199,6 @@ void riscv_info_init(struct target *target, riscv_info_t *r);
  * the system. */
 int riscv_halt_all_harts(struct target *target);
 int riscv_halt_one_hart(struct target *target, int hartid);
-int riscv_resume_all_harts(struct target *target);
-int riscv_resume_one_hart(struct target *target, int hartid);
 
 /* Steps the hart that's currently selected in the RTOS, or if there is no RTOS
  * then the only hart. */
