@@ -1065,32 +1065,6 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-static int jim_command_type(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	if (1 == argc)
-		return JIM_ERR;
-
-	struct command_context *cmd_ctx = current_command_context(interp);
-	struct command *c = cmd_ctx->commands;
-	int remaining = command_unknown_find(argc - 1, argv + 1, c, &c, true);
-	/* if nothing could be consumed, then it's an unknown command */
-	if (remaining == argc - 1) {
-		Jim_SetResultString(interp, "unknown", -1);
-		return JIM_OK;
-	}
-
-	if (c->jim_handler)
-		Jim_SetResultString(interp, "native", -1);
-	else if (c->handler)
-		Jim_SetResultString(interp, "simple", -1);
-	else if (remaining == 0)
-		Jim_SetResultString(interp, "group", -1);
-	else
-		Jim_SetResultString(interp, "unknown", -1);
-
-	return JIM_OK;
-}
-
 int help_add_command(struct command_context *cmd_ctx, struct command *parent,
 	const char *cmd_name, const char *help_text, const char *usage)
 {
@@ -1209,15 +1183,6 @@ static const struct command_registration command_subcommand_handlers[] = {
 			"'any', 'config', or 'exec'.  If no command is"
 			"specified, returns the current command mode.  "
 			"Returns 'unknown' if an unknown command is given. "
-			"Command can be multiple tokens.",
-	},
-	{
-		.name = "type",
-		.mode = COMMAND_ANY,
-		.jim_handler = jim_command_type,
-		.usage = "command_name [...]",
-		.help = "Returns the type of built-in command:"
-			"'native', 'simple', 'group', or 'unknown'. "
 			"Command can be multiple tokens.",
 	},
 	COMMAND_REGISTRATION_DONE
