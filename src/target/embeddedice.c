@@ -205,8 +205,8 @@ struct reg_cache *embeddedice_build_reg_cache(struct target *target,
 	for (i = 0; i < num_regs; i++) {
 		reg_list[i].name = eice_regs[i].name;
 		reg_list[i].size = eice_regs[i].width;
-		reg_list[i].dirty = 0;
-		reg_list[i].valid = 0;
+		reg_list[i].dirty = false;
+		reg_list[i].valid = false;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].arch_info = &arch_info[i];
 		reg_list[i].type = &eice_reg_type;
@@ -470,8 +470,8 @@ void embeddedice_set_reg(struct reg *reg, uint32_t value)
 	embeddedice_write_reg(reg, value);
 
 	buf_set_u32(reg->value, 0, reg->size, value);
-	reg->valid = 1;
-	reg->dirty = 0;
+	reg->valid = true;
+	reg->dirty = false;
 
 }
 

@@ -31,7 +31,7 @@ struct mem_ap {
 
 static int mem_ap_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct mem_ap *mem_ap = calloc(1, sizeof(struct mem_ap));
+	struct mem_ap *mem_ap;
 	struct adiv5_private_config *pc;
 
 	pc = (struct adiv5_private_config *)target->private_config;
@@ -40,6 +40,12 @@ static int mem_ap_target_create(struct target *target, Jim_Interp *interp)
 
 	if (pc->ap_num == DP_APSEL_INVALID) {
 		LOG_ERROR("AP number not specified");
+		return ERROR_FAIL;
+	}
+
+	mem_ap = calloc(1, sizeof(struct mem_ap));
+	if (mem_ap == NULL) {
+		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
 

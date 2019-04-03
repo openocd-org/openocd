@@ -1802,10 +1802,11 @@ displayed by the GDB session @pxref{usingopenocdsmpwithgdb,,Using OpenOCD SMP wi
 The SMP behaviour can be disabled/enabled dynamically. On cortex_a following
 command have been implemented.
 @itemize @bullet
-@item cortex_a smp_on : enable SMP mode, behaviour is as described above.
-@item cortex_a smp_off : disable SMP mode, the current target is the one
+@item cortex_a smp on : enable SMP mode, behaviour is as described above.
+@item cortex_a smp off : disable SMP mode, the current target is the one
 displayed in the GDB session, only this target is now controlled by GDB
 session. This behaviour is useful during system boot up.
+@item cortex_a smp : display current SMP mode.
 @item cortex_a smp_gdb : display/fix the core id displayed in GDB session see
 following example.
 @end itemize
@@ -2368,7 +2369,8 @@ the hardware can support.
 Returns the name of the debug adapter driver being used.
 @end deffn
 
-@deffn Command {adapter usb location} <bus>:<port>[.<port>]...
+@anchor{adapter_usb_location}
+@deffn Command {adapter usb location} <bus>-<port>[.<port>]...
 Specifies the physical USB port of the adapter to use. The path
 roots at @var{bus} and walks down the physical ports, with each
 @var{port} option specifying a deeper level in the bus topology, the last
@@ -2510,7 +2512,10 @@ If not specified, serial numbers are not considered.
 and are not restricted to containing only decimal digits.)
 @end deffn
 
-@deffn {Config Command} {ftdi_location} <bus>:<port>[,<port>]...
+@deffn {Config Command} {ftdi_location} <bus>-<port>[.<port>]...
+@emph{DEPRECATED -- avoid using this.
+Use the @xref{adapter_usb_location, adapter usb location} command instead.}
+
 Specifies the physical USB port of the adapter to use. The path
 roots at @var{bus} and walks down the physical ports, with each
 @var{port} option specifying a deeper level in the bus topology, the last
@@ -5453,7 +5458,7 @@ the flash.
 All members of the ATSAM D2x, D1x, D0x, ATSAMR, ATSAML and ATSAMC microcontroller
 families from Atmel include internal flash and use ARM's Cortex-M0+ core.
 
-Do not use for ATSAM D51 and E5x: use @xref{atsame5} instead.
+Do not use for ATSAM D51 and E5x: use @xref{atsame5}.
 
 The devices have one flash bank:
 
@@ -6640,6 +6645,17 @@ the chip identification register, and autoconfigures itself.
 @example
 flash bank $_FLASHNAME stm32f2x 0 0 0 0 $_TARGETNAME
 @end example
+
+If you use OTP (One-Time Programmable) memory define it as a second bank
+as per the following example.
+@example
+flash bank $_FLASHNAME stm32f2x 0x1FFF7800 0 0 0 $_TARGETNAME
+@end example
+
+@deffn Command {stm32f2x otp } num (@option{enable}|@option{disable}|@option{show})
+Enables or disables OTP write commands for bank @var{num}.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
 
 Note that some devices have been found that have a flash size register that contains
 an invalid value, to workaround this issue you can override the probed value used by
@@ -8925,12 +8941,8 @@ Initialize core debug
 Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
 @end deffn
 
-@deffn Command {cortex_a smp_off}
-Disable SMP mode
-@end deffn
-
-@deffn Command {cortex_a smp_on}
-Enable SMP mode
+@deffn Command {cortex_a smp} [on|off]
+Display/set the current SMP mode
 @end deffn
 
 @deffn Command {cortex_a smp_gdb} [core_id]
@@ -9141,8 +9153,8 @@ target code relies on. In a configuration file, the command would typically be c
 However, normally it is not necessary to use the command at all.
 @end deffn
 
-@deffn Command {aarch64 smp_on|smp_off}
-Enable and disable SMP handling. The state of SMP handling influences the way targets in an SMP group
+@deffn Command {aarch64 smp} [on|off]
+Display, enable or disable SMP handling mode. The state of SMP handling influences the way targets in an SMP group
 are handled by the run control. With SMP handling enabled, issuing halt or resume to one core will trigger
 halting or resuming of all cores in the group. The command @code{target smp} defines which targets are in the SMP
 group. With SMP handling disabled, all targets need to be treated individually.
@@ -9328,6 +9340,14 @@ Dump collected trace data to file. This command may only be used if a trace
 buffer has been configured. If a trace FIFO has been configured, trace data must
 be copied to an in-memory buffer identified by the @option{address} and
 @option{size} options using DMA.
+@end deffn
+
+@deffn Command {$target_name catch_exc} [@option{off}|@option{sec_el1}|@option{sec_el3}|@option{nsec_el1}|@option{nsec_el2}]+
+Cause @command{$target_name} to halt when an exception is taken. Any combination of
+Secure (sec) EL1/EL3 or Non-Secure (nsec) EL1/EL2 is valid. The target
+@command{$target_name} will halt before taking the exception. In order to resume
+the target, the exception catch must be disabled again with @command{$target_name catch_exc off}.
+Issuing the command without options prints the current configuration.
 @end deffn
 
 @section Intel Architecture

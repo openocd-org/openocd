@@ -203,7 +203,7 @@ static int sam4l_flash_command(struct target *target, uint8_t cmd, int page)
 FLASH_BANK_COMMAND_HANDLER(sam4l_flash_bank_command)
 {
 	if (bank->base != SAM4L_FLASH) {
-		LOG_ERROR("Address 0x%08" TARGET_PRIxADDR
+		LOG_ERROR("Address " TARGET_ADDR_FMT
 				" invalid bank address (try 0x%08" PRIx32
 				"[at91sam4l series] )",
 				bank->base, SAM4L_FLASH);
@@ -684,7 +684,7 @@ static const struct command_registration at91sam4l_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver at91sam4l_flash = {
+const struct flash_driver at91sam4l_flash = {
 	.name = "at91sam4l",
 	.commands = at91sam4l_command_handlers,
 	.flash_bank_command = sam4l_flash_bank_command,

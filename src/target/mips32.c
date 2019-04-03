@@ -190,8 +190,8 @@ static int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 		return ERROR_TARGET_NOT_HALTED;
 
 	buf_set_u32(reg->value, 0, 32, value);
-	reg->dirty = 1;
-	reg->valid = 1;
+	reg->dirty = true;
+	reg->valid = true;
 
 	return ERROR_OK;
 }
@@ -208,8 +208,8 @@ static int mips32_read_core_reg(struct target *target, unsigned int num)
 
 	reg_value = mips32->core_regs[num];
 	buf_set_u32(mips32->core_cache->reg_list[num].value, 0, 32, reg_value);
-	mips32->core_cache->reg_list[num].valid = 1;
-	mips32->core_cache->reg_list[num].dirty = 0;
+	mips32->core_cache->reg_list[num].valid = true;
+	mips32->core_cache->reg_list[num].dirty = false;
 
 	return ERROR_OK;
 }
@@ -227,8 +227,8 @@ static int mips32_write_core_reg(struct target *target, unsigned int num)
 	reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
 	mips32->core_regs[num] = reg_value;
 	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num , reg_value);
-	mips32->core_cache->reg_list[num].valid = 1;
-	mips32->core_cache->reg_list[num].dirty = 0;
+	mips32->core_cache->reg_list[num].valid = true;
+	mips32->core_cache->reg_list[num].dirty = false;
 
 	return ERROR_OK;
 }
@@ -336,12 +336,12 @@ struct reg_cache *mips32_build_reg_cache(struct target *target)
 
 		if (mips32_regs[i].flag == MIPS32_GDB_DUMMY_FP_REG) {
 			reg_list[i].value = mips32_gdb_dummy_fp_value;
-			reg_list[i].valid = 1;
+			reg_list[i].valid = true;
 			reg_list[i].arch_info = NULL;
 			register_init_dummy(&reg_list[i]);
 		} else {
 			reg_list[i].value = calloc(1, 4);
-			reg_list[i].valid = 0;
+			reg_list[i].valid = false;
 			reg_list[i].type = &mips32_reg_type;
 			reg_list[i].arch_info = &arch_info[i];
 
@@ -352,7 +352,7 @@ struct reg_cache *mips32_build_reg_cache(struct target *target)
 				LOG_ERROR("unable to allocate reg type list");
 		}
 
-		reg_list[i].dirty = 0;
+		reg_list[i].dirty = false;
 
 		reg_list[i].group = mips32_regs[i].group;
 		reg_list[i].number = i;
@@ -532,8 +532,8 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 				mips32->core_cache->reg_list[i].name, context[i]);
 			buf_set_u32(mips32->core_cache->reg_list[i].value,
 					0, 32, context[i]);
-			mips32->core_cache->reg_list[i].valid = 1;
-			mips32->core_cache->reg_list[i].dirty = 1;
+			mips32->core_cache->reg_list[i].valid = true;
+			mips32->core_cache->reg_list[i].dirty = true;
 		}
 	}
 

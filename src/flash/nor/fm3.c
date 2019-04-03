@@ -988,7 +988,7 @@ static const struct command_registration fm3_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver fm3_flash = {
+const struct flash_driver fm3_flash = {
 	.name = "fm3",
 	.commands = fm3_command_handlers,
 	.flash_bank_command = fm3_flash_bank_command,

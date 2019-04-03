@@ -251,6 +251,7 @@ static const Jim_Nvp nvp_target_debug_reason[] = {
 	{ .name = "single-step"              , .value = DBG_REASON_SINGLESTEP },
 	{ .name = "target-not-halted"        , .value = DBG_REASON_NOTHALTED  },
 	{ .name = "program-exit"             , .value = DBG_REASON_EXIT },
+	{ .name = "exception-catch"          , .value = DBG_REASON_EXC_CATCH },
 	{ .name = "undefined"                , .value = DBG_REASON_UNDEFINED },
 	{ .name = NULL, .value = -1 },
 };
@@ -1267,6 +1268,22 @@ int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, 
 	return target->type->gdb_fileio_end(target, retcode, fileio_errno, ctrl_c);
 }
 
+target_addr_t target_address_max(struct target *target)
+{
+	unsigned bits = target_address_bits(target);
+	if (sizeof(target_addr_t) * 8 == bits)
+		return (target_addr_t) -1;
+	else
+		return (((target_addr_t) 1) << bits) - 1;
+}
+
+unsigned target_address_bits(struct target *target)
+{
+	if (target->type->address_bits)
+		return target->type->address_bits(target);
+	return 32;
+}
+
 int target_profiling(struct target *target, uint32_t *samples,
 			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
 {
@@ -1368,7 +1385,7 @@ static int target_init(struct command_context *cmd_ctx)
 		return retval;
 
 	retval = target_register_timer_callback(&handle_target,
-			polling_interval, 1, cmd_ctx->interp);
+			polling_interval, TARGET_TIMER_TYPE_PERIODIC, cmd_ctx->interp);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -1471,7 +1488,8 @@ int target_register_trace_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
-int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv)
+int target_register_timer_callback(int (*callback)(void *priv),
+		unsigned int time_ms, enum target_timer_type type, void *priv)
 {
 	struct target_timer_callback **callbacks_p = &target_timer_callbacks;
 
@@ -1486,7 +1504,7 @@ int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int
 
 	(*callbacks_p) = malloc(sizeof(struct target_timer_callback));
 	(*callbacks_p)->callback = callback;
-	(*callbacks_p)->periodic = periodic;
+	(*callbacks_p)->type = type;
 	(*callbacks_p)->time_ms = time_ms;
 	(*callbacks_p)->removed = false;
 
@@ -1637,7 +1655,7 @@ static int target_call_timer_callback(struct target_timer_callback *cb,
 {
 	cb->callback(cb->priv);
 
-	if (cb->periodic)
+	if (cb->type == TARGET_TIMER_TYPE_PERIODIC)
 		return target_timer_callback_periodic_restart(cb, now);
 
 	return target_unregister_timer_callback(cb->callback, cb->priv);
@@ -1671,7 +1689,7 @@ static int target_call_timer_callbacks_check_time(int checktime)
 		}
 
 		bool call_it = (*callback)->callback &&
-			((!checktime && (*callback)->periodic) ||
+			((!checktime && (*callback)->type == TARGET_TIMER_TYPE_PERIODIC) ||
 			 timeval_compare(&now, &(*callback)->when) >= 0);
 
 		if (call_it)
@@ -3744,38 +3762,31 @@ static int handle_bp_command_set(struct command_context *cmd_ctx,
 
 	if (asid == 0) {
 		retval = breakpoint_add(target, addr, length, hw);
+		/* error is always logged in breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "breakpoint set at " TARGET_ADDR_FMT "", addr);
-		else {
-			LOG_ERROR("Failure setting breakpoint, the same address(IVA) is already used");
-			return retval;
-		}
+
 	} else if (addr == 0) {
 		if (target->type->add_context_breakpoint == NULL) {
-			LOG_WARNING("Context breakpoint not available");
-			return ERROR_OK;
+			LOG_ERROR("Context breakpoint not available");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		retval = context_breakpoint_add(target, asid, length, hw);
+		/* error is always logged in context_breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "Context breakpoint set at 0x%8.8" PRIx32 "", asid);
-		else {
-			LOG_ERROR("Failure setting breakpoint, the same address(CONTEXTID) is already used");
-			return retval;
-		}
+
 	} else {
 		if (target->type->add_hybrid_breakpoint == NULL) {
-			LOG_WARNING("Hybrid breakpoint not available");
-			return ERROR_OK;
+			LOG_ERROR("Hybrid breakpoint not available");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		retval = hybrid_breakpoint_add(target, addr, asid, length, hw);
+		/* error is always logged in hybrid_breakpoint_add(), do not print it again */
 		if (ERROR_OK == retval)
 			command_print(cmd_ctx, "Hybrid breakpoint set at 0x%8.8" PRIx32 "", asid);
-		else {
-			LOG_ERROR("Failure setting breakpoint, the same address is already used");
-			return retval;
-		}
 	}
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_bp_command)

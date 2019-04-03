@@ -609,7 +609,7 @@ static int get_mdr_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver mdr_flash = {
+const struct flash_driver mdr_flash = {
 	.name = "mdr",
 	.usage = "flash bank <name> mdr <base> <size> 0 0 <target#> <type> <page_count> <sec_count>\n"
 	"<type>: 0 for main memory, 1 for info memory",

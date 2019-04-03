@@ -1141,20 +1141,20 @@ int arm7_9_soft_reset_halt(struct target *target)
 	cpsr &= ~0xff;
 	cpsr |= 0xd3;
 	arm_set_cpsr(arm, cpsr);
-	arm->cpsr->dirty = 1;
+	arm->cpsr->dirty = true;
 
 	/* start fetching from 0x0 */
 	buf_set_u32(arm->pc->value, 0, 32, 0x0);
-	arm->pc->dirty = 1;
-	arm->pc->valid = 1;
+	arm->pc->dirty = true;
+	arm->pc->valid = true;
 
 	/* reset registers */
 	for (i = 0; i <= 14; i++) {
 		struct reg *r = arm_reg_current(arm, i);
 
 		buf_set_u32(r->value, 0, 32, 0xffffffff);
-		r->dirty = 1;
-		r->valid = 1;
+		r->dirty = true;
+		r->valid = true;
 	}
 
 	retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -1346,7 +1346,7 @@ static int arm7_9_debug_entry(struct target *target)
 		buf_set_u32(r->value, 0, 32, context[i]);
 		/* r0 and r15 (pc) have to be restored later */
 		r->dirty = (i == 0) || (i == 15);
-		r->valid = 1;
+		r->valid = true;
 	}
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 "", context[15]);
@@ -1359,8 +1359,8 @@ static int arm7_9_debug_entry(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 		buf_set_u32(arm->spsr->value, 0, 32, spsr);
-		arm->spsr->dirty = 0;
-		arm->spsr->valid = 1;
+		arm->spsr->dirty = false;
+		arm->spsr->valid = true;
 	}
 
 	retval = jtag_execute_queue();
@@ -1411,13 +1411,13 @@ static int arm7_9_full_context(struct target *target)
 		uint32_t mask = 0;
 		uint32_t *reg_p[16];
 		int j;
-		int valid = 1;
+		bool valid = true;
 
 		/* check if there are invalid registers in the current mode
 		 */
 		for (j = 0; j <= 16; j++) {
-			if (ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
-				valid = 0;
+			if (!ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j).valid)
+				valid = false;
 		}
 
 		if (!valid) {
@@ -1431,8 +1431,8 @@ static int arm7_9_full_context(struct target *target)
 			arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 
 			for (j = 0; j < 15; j++) {
-				if (ARMV4_5_CORE_REG_MODE(arm->core_cache,
-						armv4_5_number_to_mode(i), j).valid == 0) {
+				if (!ARMV4_5_CORE_REG_MODE(arm->core_cache,
+						armv4_5_number_to_mode(i), j).valid) {
 					reg_p[j] = (uint32_t *)ARMV4_5_CORE_REG_MODE(
 							arm->core_cache,
 							armv4_5_number_to_mode(i),
@@ -1440,10 +1440,10 @@ static int arm7_9_full_context(struct target *target)
 					mask |= 1 << j;
 					ARMV4_5_CORE_REG_MODE(arm->core_cache,
 						armv4_5_number_to_mode(i),
-						j).valid = 1;
+						j).valid = true;
 					ARMV4_5_CORE_REG_MODE(arm->core_cache,
 						armv4_5_number_to_mode(i),
-						j).dirty = 0;
+						j).dirty = false;
 				}
 			}
 
@@ -1452,15 +1452,15 @@ static int arm7_9_full_context(struct target *target)
 				arm7_9->read_core_regs(target, mask, reg_p);
 
 			/* check if the PSR has to be read */
-			if (ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i),
-					16).valid == 0) {
+			if (!ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i),
+					16).valid) {
 				arm7_9->read_xpsr(target,
 					(uint32_t *)ARMV4_5_CORE_REG_MODE(arm->core_cache,
 						armv4_5_number_to_mode(i), 16).value, 1);
 				ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i),
-					16).valid = 1;
+					16).valid = true;
 				ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i),
-					16).dirty = 0;
+					16).dirty = false;
 			}
 		}
 	}
@@ -1494,7 +1494,7 @@ static int arm7_9_restore_context(struct target *target)
 	struct reg *reg;
 	enum arm_mode current_mode = arm->core_mode;
 	int i, j;
-	int dirty;
+	bool dirty;
 	int mode_change;
 
 	LOG_DEBUG("-");
@@ -1518,15 +1518,15 @@ static int arm7_9_restore_context(struct target *target)
 	for (i = 0; i < 6; i++) {
 		LOG_DEBUG("examining %s mode",
 			arm_mode_name(arm->core_mode));
-		dirty = 0;
+		dirty = false;
 		mode_change = 0;
 		/* check if there are dirty registers in the current mode
 		*/
 		for (j = 0; j <= 16; j++) {
 			reg = &ARMV4_5_CORE_REG_MODE(arm->core_cache, armv4_5_number_to_mode(i), j);
-			if (reg->dirty == 1) {
-				if (reg->valid == 1) {
-					dirty = 1;
+			if (reg->dirty) {
+				if (reg->valid) {
+					dirty = true;
 					LOG_DEBUG("examining dirty reg: %s", reg->name);
 					struct arm_reg *reg_arch_info;
 					reg_arch_info = reg->arch_info;
@@ -1567,12 +1567,12 @@ static int arm7_9_restore_context(struct target *target)
 						armv4_5_number_to_mode(i),
 						j);
 
-				if (reg->dirty == 1) {
+				if (reg->dirty) {
 					regs[j] = buf_get_u32(reg->value, 0, 32);
 					mask |= 1 << j;
 					num_regs++;
-					reg->dirty = 0;
-					reg->valid = 1;
+					reg->dirty = false;
+					reg->valid = true;
 					LOG_DEBUG("writing register %i mode %s "
 						"with value 0x%8.8" PRIx32, j,
 						arm_mode_name(arm->core_mode),
@@ -1614,15 +1614,15 @@ static int arm7_9_restore_context(struct target *target)
 		arm7_9->write_xpsr(target,
 			buf_get_u32(arm->cpsr->value, 0, 32)
 			& ~0x20, 0);
-		arm->cpsr->dirty = 0;
-		arm->cpsr->valid = 1;
+		arm->cpsr->dirty = false;
+		arm->cpsr->valid = true;
 	}
 
 	/* restore PC */
 	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32,
 		buf_get_u32(arm->pc->value, 0, 32));
 	arm7_9->write_pc(target, buf_get_u32(arm->pc->value, 0, 32));
-	arm->pc->dirty = 0;
+	arm->pc->dirty = false;
 
 	return ERROR_OK;
 }
@@ -2024,8 +2024,8 @@ static int arm7_9_read_core_reg(struct target *target, struct reg *r,
 	if (retval != ERROR_OK)
 		return retval;
 
-	r->valid = 1;
-	r->dirty = 0;
+	r->valid = true;
+	r->dirty = false;
 	buf_set_u32(r->value, 0, 32, value);
 
 	if ((mode != ARM_MODE_ANY) && (mode != arm->core_mode)
@@ -2081,8 +2081,8 @@ static int arm7_9_write_core_reg(struct target *target, struct reg *r,
 		arm7_9->write_xpsr(target, t, spsr);
 	}
 
-	r->valid = 1;
-	r->dirty = 0;
+	r->valid = true;
+	r->dirty = false;
 
 	if ((mode != ARM_MODE_ANY) && (mode != arm->core_mode)
 			&& (areg->mode != ARM_MODE_ANY)) {
@@ -2859,7 +2859,7 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 		return retval;
 
 	return target_register_timer_callback(arm7_9_handle_target_request,
-		1, 1, target);
+		1, TARGET_TIMER_TYPE_PERIODIC, target);
 }
 
 static const struct command_registration arm7_9_any_command_handlers[] = {

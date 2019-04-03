@@ -442,8 +442,8 @@ static uint32_t arm11_nextpc(struct arm11_common *arm11, int current, uint32_t a
 	}
 
 	buf_set_u32(value, 0, 32, address);
-	arm11->arm.pc->dirty = 1;
-	arm11->arm.pc->valid = 1;
+	arm11->arm.pc->dirty = true;
+	arm11->arm.pc->valid = true;
 
 	return address;
 }

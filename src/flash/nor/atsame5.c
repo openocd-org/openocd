@@ -730,7 +730,7 @@ free_pb:
 FLASH_BANK_COMMAND_HANDLER(same5_flash_bank_command)
 {
 	if (bank->base != SAMD_FLASH) {
-		LOG_ERROR("Address 0x%08" TARGET_PRIxADDR " invalid bank address (try "
+		LOG_ERROR("Address " TARGET_ADDR_FMT " invalid bank address (try "
 			"0x%08" PRIx32 "[same5] )", bank->base, SAMD_FLASH);
 		return ERROR_FAIL;
 	}
@@ -938,7 +938,7 @@ static const struct command_registration same5_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver atsame5_flash = {
+const struct flash_driver atsame5_flash = {
 	.name = "atsame5",
 	.commands = same5_command_handlers,
 	.flash_bank_command = same5_flash_bank_command,

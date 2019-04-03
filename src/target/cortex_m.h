@@ -136,14 +136,14 @@
 #define FPCR_REPLACE_BKPT_BOTH  (3 << 30)
 
 struct cortex_m_fp_comparator {
-	int used;
+	bool used;
 	int type;
 	uint32_t fpcr_value;
 	uint32_t fpcr_address;
 };
 
 struct cortex_m_dwt_comparator {
-	int used;
+	bool used;
 	uint32_t comp;
 	uint32_t mask;
 	uint32_t function;
@@ -172,9 +172,8 @@ struct cortex_m_common {
 	/* Flash Patch and Breakpoint (FPB) */
 	int fp_num_lit;
 	int fp_num_code;
-	int fp_code_available;
 	int fp_rev;
-	int fpb_enabled;
+	bool fpb_enabled;
 	struct cortex_m_fp_comparator *fp_comparator_list;
 
 	/* Data Watchpoint and Trace (DWT) */

@@ -412,7 +412,7 @@ static int lpc288x_protect(struct flash_bank *bank, int set, int first, int last
 	return ERROR_OK;
 }
 
-struct flash_driver lpc288x_flash = {
+const struct flash_driver lpc288x_flash = {
 	.name = "lpc288x",
 	.flash_bank_command = lpc288x_flash_bank_command,
 	.erase = lpc288x_erase,

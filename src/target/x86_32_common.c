@@ -939,14 +939,14 @@ static int set_debug_regs(struct target *t, uint32_t address,
 	 * when we exit PM
 	*/
 	buf_set_u32(x86_32->cache->reg_list[bp_num+DR0].value, 0, 32, address);
-	x86_32->cache->reg_list[bp_num+DR0].dirty = 1;
-	x86_32->cache->reg_list[bp_num+DR0].valid = 1;
+	x86_32->cache->reg_list[bp_num+DR0].dirty = true;
+	x86_32->cache->reg_list[bp_num+DR0].valid = true;
 	buf_set_u32(x86_32->cache->reg_list[DR6].value, 0, 32, PM_DR6);
-	x86_32->cache->reg_list[DR6].dirty = 1;
-	x86_32->cache->reg_list[DR6].valid = 1;
+	x86_32->cache->reg_list[DR6].dirty = true;
+	x86_32->cache->reg_list[DR6].valid = true;
 	buf_set_u32(x86_32->cache->reg_list[DR7].value, 0, 32, dr7);
-	x86_32->cache->reg_list[DR7].dirty = 1;
-	x86_32->cache->reg_list[DR7].valid = 1;
+	x86_32->cache->reg_list[DR7].dirty = true;
+	x86_32->cache->reg_list[DR7].valid = true;
 	return ERROR_OK;
 }
 
@@ -970,14 +970,14 @@ static int unset_debug_regs(struct target *t, uint8_t bp_num)
 	 * when we exit PM
 	*/
 	buf_set_u32(x86_32->cache->reg_list[bp_num+DR0].value, 0, 32, 0);
-	x86_32->cache->reg_list[bp_num+DR0].dirty = 1;
-	x86_32->cache->reg_list[bp_num+DR0].valid = 1;
+	x86_32->cache->reg_list[bp_num+DR0].dirty = true;
+	x86_32->cache->reg_list[bp_num+DR0].valid = true;
 	buf_set_u32(x86_32->cache->reg_list[DR6].value, 0, 32, PM_DR6);
-	x86_32->cache->reg_list[DR6].dirty = 1;
-	x86_32->cache->reg_list[DR6].valid = 1;
+	x86_32->cache->reg_list[DR6].dirty = true;
+	x86_32->cache->reg_list[DR6].valid = true;
 	buf_set_u32(x86_32->cache->reg_list[DR7].value, 0, 32, dr7);
-	x86_32->cache->reg_list[DR7].dirty = 1;
-	x86_32->cache->reg_list[DR7].valid = 1;
+	x86_32->cache->reg_list[DR7].dirty = true;
+	x86_32->cache->reg_list[DR7].valid = true;
 	return ERROR_OK;
 }
 

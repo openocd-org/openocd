@@ -185,7 +185,7 @@ static int virtual_info(struct flash_bank *bank, char *buf, int buf_size)
 	if (master_bank == NULL)
 		return ERROR_FLASH_OPERATION_FAILED;
 
-	snprintf(buf, buf_size, "%s driver for flash bank %s at 0x%8.8" TARGET_PRIxADDR,
+	snprintf(buf, buf_size, "%s driver for flash bank %s at " TARGET_ADDR_FMT,
 			bank->driver->name, master_bank->name, master_bank->base);
 
 	return ERROR_OK;
@@ -224,7 +224,7 @@ static int virtual_flash_read(struct flash_bank *bank,
 	return ERROR_OK;
 }
 
-struct flash_driver virtual_flash = {
+const struct flash_driver virtual_flash = {
 	.name = "virtual",
 	.flash_bank_command = virtual_flash_bank_command,
 	.erase = virtual_erase,

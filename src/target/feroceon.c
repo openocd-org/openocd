@@ -532,8 +532,8 @@ static int feroceon_bulk_write_memory(struct target *target,
 
 	/* set up target address in r0 */
 	buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, address);
-	arm->core_cache->reg_list[0].valid = 1;
-	arm->core_cache->reg_list[0].dirty = 1;
+	arm->core_cache->reg_list[0].valid = true;
+	arm->core_cache->reg_list[0].dirty = true;
 	arm->core_state = ARM_STATE_ARM;
 
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], 0);
@@ -575,12 +575,12 @@ static int feroceon_bulk_write_memory(struct target *target,
 	/* restore target state */
 	for (i = 0; i <= 5; i++) {
 		buf_set_u32(arm->core_cache->reg_list[i].value, 0, 32, save[i]);
-		arm->core_cache->reg_list[i].valid = 1;
-		arm->core_cache->reg_list[i].dirty = 1;
+		arm->core_cache->reg_list[i].valid = true;
+		arm->core_cache->reg_list[i].dirty = true;
 	}
 	buf_set_u32(arm->pc->value, 0, 32, save[i]);
-	arm->pc->valid = 1;
-	arm->pc->dirty = 1;
+	arm->pc->valid = true;
+	arm->pc->dirty = true;
 	arm->core_state = core_state;
 
 	return retval;

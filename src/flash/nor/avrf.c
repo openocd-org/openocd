@@ -462,7 +462,7 @@ static const struct command_registration avrf_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver avr_flash = {
+const struct flash_driver avr_flash = {
 	.name = "avr",
 	.commands = avrf_command_handlers,
 	.flash_bank_command = avrf_flash_bank_command,

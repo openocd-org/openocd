@@ -881,7 +881,7 @@ static const struct command_registration xcf_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver xcf_flash = {
+const struct flash_driver xcf_flash = {
 	.name               = "xcf",
 	.usage              = NULL,
 	.commands           = xcf_command_handlers,

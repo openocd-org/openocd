@@ -165,8 +165,8 @@ static int tms470_read_part_info(struct flash_bank *bank)
 			part_name = "TMS470R1A256";
 
 			if (bank->base >= 0x00040000) {
-				LOG_ERROR("No %s flash bank contains base address 0x%08"
-						TARGET_PRIxADDR ".",
+				LOG_ERROR("No %s flash bank contains base address "
+						TARGET_ADDR_FMT ".",
 						part_name,
 						bank->base);
 				return ERROR_FLASH_OPERATION_FAILED;
@@ -205,7 +205,7 @@ static int tms470_read_part_info(struct flash_bank *bank)
 				(void)memcpy(bank->sectors, TMS470R1A288_BANK1_SECTORS,
 						sizeof(TMS470R1A288_BANK1_SECTORS));
 			} else {
-				LOG_ERROR("No %s flash bank contains base address 0x%08" TARGET_PRIxADDR ".",
+				LOG_ERROR("No %s flash bank contains base address " TARGET_ADDR_FMT ".",
 						part_name, bank->base);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
@@ -245,7 +245,7 @@ static int tms470_read_part_info(struct flash_bank *bank)
 				(void)memcpy(bank->sectors, TMS470R1A384_BANK2_SECTORS,
 						sizeof(TMS470R1A384_BANK2_SECTORS));
 			} else {
-				LOG_ERROR("No %s flash bank contains base address 0x%08" TARGET_PRIxADDR ".",
+				LOG_ERROR("No %s flash bank contains base address " TARGET_ADDR_FMT ".",
 						part_name, bank->base);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
@@ -901,7 +901,7 @@ static int tms470_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t
 
 	tms470_read_part_info(bank);
 
-	LOG_INFO("Writing %" PRId32 " bytes starting at 0x%08" TARGET_PRIxADDR,
+	LOG_INFO("Writing %" PRId32 " bytes starting at " TARGET_ADDR_FMT,
 			count, bank->base + offset);
 
 	/* set GLBCTRL.4  */
@@ -1162,7 +1162,7 @@ FLASH_BANK_COMMAND_HANDLER(tms470_flash_bank_command)
 	return ERROR_OK;
 }
 
-struct flash_driver tms470_flash = {
+const struct flash_driver tms470_flash = {
 	.name = "tms470",
 	.commands = tms470_command_handlers,
 	.flash_bank_command = tms470_flash_bank_command,

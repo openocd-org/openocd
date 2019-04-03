@@ -981,7 +981,7 @@ static const struct command_registration max32xxx_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver max32xxx_flash = {
+const struct flash_driver max32xxx_flash = {
 	.name = "max32xxx",
 	.commands = max32xxx_command_handlers,
 	.flash_bank_command = max32xxx_flash_bank_command,
