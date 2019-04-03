@@ -1167,7 +1167,7 @@ COMMAND_HANDLER(handle_flash_banks_command)
 
 	unsigned n = 0;
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++) {
-		LOG_USER("#%d : %s (%s) at " TARGET_ADDR_FMT ", size 0x%8.8" PRIx32 ", "
+		command_print(CMD, "#%d : %s (%s) at " TARGET_ADDR_FMT ", size 0x%8.8" PRIx32 ", "
 			"buswidth %u, chipwidth %u", p->bank_number,
 			p->name, p->driver->name, p->base, p->size,
 			p->bus_width, p->chip_width);
