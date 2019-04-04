@@ -190,7 +190,7 @@ struct command_context *current_command_context(Jim_Interp *interp)
 }
 
 static int script_command_run(Jim_Interp *interp,
-	int argc, Jim_Obj * const *argv, struct command *c, bool capture)
+	int argc, Jim_Obj * const *argv, struct command *c)
 {
 	target_call_timer_callbacks_now();
 	LOG_USER_N("%s", "");	/* Keep GDB connection alive*/
@@ -200,14 +200,8 @@ static int script_command_run(Jim_Interp *interp,
 	if (NULL == words)
 		return JIM_ERR;
 
-	struct log_capture_state *state = NULL;
-	if (capture)
-		state = command_log_capture_start(interp);
-
 	struct command_context *cmd_ctx = current_command_context(interp);
 	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
-
-	command_log_capture_finish(state);
 
 	script_command_args_free(words, nwords);
 	return command_retval_set(interp, retval);
@@ -220,7 +214,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	struct command *c = interp->cmdPrivData;
 	assert(c);
 	script_debug(interp, c->name, argc, argv);
-	return script_command_run(interp, argc, argv, c, true);
+	return script_command_run(interp, argc, argv, c);
 }
 
 static struct command *command_root(struct command *c)
@@ -1024,7 +1018,6 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_OK;
 	}
 
-	bool found = true;
 	Jim_Obj *const *start;
 	unsigned count;
 	if (c->handler || c->jim_handler) {
@@ -1039,7 +1032,6 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 		count = argc - remaining;
 		start = argv;
-		found = false;
 	}
 	/* pass the command through to the intended handler */
 	if (c->jim_handler) {
@@ -1050,7 +1042,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return (*c->jim_handler)(interp, count, start);
 	}
 
-	return script_command_run(interp, count, start, c, found);
+	return script_command_run(interp, count, start, c);
 }
 
 static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
