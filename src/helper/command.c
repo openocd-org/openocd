@@ -351,27 +351,11 @@ static int register_command_handler(struct command_context *cmd_ctx,
 	struct command *c)
 {
 	Jim_Interp *interp = cmd_ctx->interp;
-	char *ocd_name = alloc_printf("ocd_%s", c->name);
-	if (NULL == ocd_name)
-		return JIM_ERR;
 
-	LOG_DEBUG("registering '%s'...", ocd_name);
+	LOG_DEBUG("registering '%s'...", c->name);
 
 	Jim_CmdProc *func = c->handler ? &script_command : &command_unknown;
-	int retval = Jim_CreateCommand(interp, ocd_name, func, c, NULL);
-	free(ocd_name);
-	if (JIM_OK != retval)
-		return retval;
-
-	/* we now need to add an overrideable proc */
-	char *override_name = alloc_printf(
-			"proc %s {args} {eval ocd_bouncer %s $args}",
-			c->name, c->name);
-	if (NULL == override_name)
-		return JIM_ERR;
-
-	retval = Jim_Eval_Named(interp, override_name, 0, 0);
-	free(override_name);
+	int retval = Jim_CreateCommand(interp, c->name, func, c, NULL);
 
 	return retval;
 }
