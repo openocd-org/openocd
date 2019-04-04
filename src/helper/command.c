@@ -510,13 +510,13 @@ void command_print_sameline(struct command_invocation *cmd, const char *format, 
 	va_start(ap, format);
 
 	string = alloc_vprintf(format, ap);
-	if (string != NULL) {
+	if (string != NULL && cmd) {
 		/* we want this collected in the log + we also want to pick it up as a tcl return
 		 * value.
 		 *
 		 * The latter bit isn't precisely neat, but will do for now.
 		 */
-		LOG_USER_N("%s", string);
+		Jim_AppendString(cmd->ctx->interp, cmd->output, string, -1);
 		/* We already printed it above
 		 * command_output_text(context, string); */
 		free(string);
@@ -533,7 +533,7 @@ void command_print(struct command_invocation *cmd, const char *format, ...)
 	va_start(ap, format);
 
 	string = alloc_vprintf(format, ap);
-	if (string != NULL) {
+	if (string != NULL && cmd) {
 		strcat(string, "\n");	/* alloc_vprintf guaranteed the buffer to be at least one
 					 *char longer */
 		/* we want this collected in the log + we also want to pick it up as a tcl return
@@ -541,7 +541,7 @@ void command_print(struct command_invocation *cmd, const char *format, ...)
 		 *
 		 * The latter bit isn't precisely neat, but will do for now.
 		 */
-		LOG_USER_N("%s", string);
+		Jim_AppendString(cmd->ctx->interp, cmd->output, string, -1);
 		/* We already printed it above
 		 * command_output_text(context, string); */
 		free(string);
@@ -628,6 +628,9 @@ static int run_command(struct command_context *context,
 	if (c->jim_handler_data)
 		context->current_target_override = c->jim_handler_data;
 
+	cmd.output = Jim_NewEmptyStringObj(context->interp);
+	Jim_IncrRefCount(cmd.output);
+
 	int retval = c->handler(&cmd);
 
 	if (c->jim_handler_data)
@@ -650,7 +653,11 @@ static int run_command(struct command_context *context,
 		LOG_DEBUG("Command '%s' failed with error code %d",
 					full_name ? full_name : c->name, retval);
 		free(full_name);
+	} else {
+		/* Use the command output as the Tcl result */
+		Jim_SetResult(context->interp, cmd.output);
 	}
+	Jim_DecrRefCount(context->interp, cmd.output);
 
 	return retval;
 }
