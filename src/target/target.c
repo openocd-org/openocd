@@ -2578,23 +2578,23 @@ int target_write_phys_u8(struct target *target, target_addr_t address, uint8_t v
 	return retval;
 }
 
-static int find_target(struct command_context *cmd_ctx, const char *name)
+static int find_target(struct command_invocation *cmd, const char *name)
 {
 	struct target *target = get_target(name);
 	if (target == NULL) {
-		LOG_ERROR("Target: %s is unknown, try one of:\n", name);
+		command_print(cmd, "Target: %s is unknown, try one of:\n", name);
 		return ERROR_FAIL;
 	}
 	if (!target->tap->enabled) {
-		LOG_USER("Target: TAP %s is disabled, "
+		command_print(cmd, "Target: TAP %s is disabled, "
 			 "can't be the current target\n",
 			 target->tap->dotted_name);
 		return ERROR_FAIL;
 	}
 
-	cmd_ctx->current_target = target;
-	if (cmd_ctx->current_target_override)
-		cmd_ctx->current_target_override = target;
+	cmd->ctx->current_target = target;
+	if (cmd->ctx->current_target_override)
+		cmd->ctx->current_target_override = target;
 
 	return ERROR_OK;
 }
@@ -2604,7 +2604,7 @@ COMMAND_HANDLER(handle_targets_command)
 {
 	int retval = ERROR_OK;
 	if (CMD_ARGC == 1) {
-		retval = find_target(CMD_CTX, CMD_ARGV[0]);
+		retval = find_target(CMD, CMD_ARGV[0]);
 		if (retval == ERROR_OK) {
 			/* we're done! */
 			return retval;
