@@ -676,18 +676,8 @@ int command_run_line(struct command_context *context, char *line)
 
 		result = Jim_GetString(Jim_GetResult(interp), &reslen);
 		if (reslen > 0) {
-			int i;
-			char buff[256 + 1];
-			for (i = 0; i < reslen; i += 256) {
-				int chunk;
-				chunk = reslen - i;
-				if (chunk > 256)
-					chunk = 256;
-				strncpy(buff, result + i, chunk);
-				buff[chunk] = 0;
-				LOG_USER_N("%s", buff);
-			}
-			LOG_USER_N("\n");
+			command_output_text(context, result);
+			command_output_text(context, "\n");
 		}
 		retval = ERROR_OK;
 	} else if (retcode == JIM_EXIT) {
@@ -697,6 +687,7 @@ int command_run_line(struct command_context *context, char *line)
 		return retcode;
 	} else {
 		Jim_MakeErrorMessage(interp);
+		/* error is broadcast */
 		LOG_USER("%s", Jim_GetString(Jim_GetResult(interp), NULL));
 
 		if (retval == ERROR_OK) {
