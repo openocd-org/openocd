@@ -896,7 +896,7 @@ static const struct command_registration same5_exec_command_handlers[] = {
 		.usage = "",
 		.handler = samd_handle_reset_deassert,
 		.mode = COMMAND_EXEC,
-		.help = "Deasert internal reset held by DSU."
+		.help = "Deassert internal reset held by DSU."
 	},
 	{
 		.name = "chip-erase",
