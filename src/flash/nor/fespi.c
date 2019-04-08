@@ -159,9 +159,7 @@ FLASH_BANK_COMMAND_HANDLER(fespi_flash_bank_command)
 	fespi_info->probed = 0;
 	fespi_info->ctrl_base = 0;
 	if (CMD_ARGC >= 7) {
-		int temp;
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[6], temp);
-		fespi_info->ctrl_base = (uint32_t) temp;
+		COMMAND_PARSE_ADDRESS(CMD_ARGV[6], fespi_info->ctrl_base);
 		LOG_DEBUG("ASSUMING FESPI device at ctrl_base = " TARGET_ADDR_FMT,
 				fespi_info->ctrl_base);
 	}
