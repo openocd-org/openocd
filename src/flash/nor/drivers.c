@@ -20,75 +20,75 @@
 #endif
 #include "imp.h"
 
-extern struct flash_driver aduc702x_flash;
-extern struct flash_driver aducm360_flash;
-extern struct flash_driver ambiqmicro_flash;
-extern struct flash_driver at91sam3_flash;
-extern struct flash_driver at91sam4_flash;
-extern struct flash_driver at91sam4l_flash;
-extern struct flash_driver at91sam7_flash;
-extern struct flash_driver at91samd_flash;
-extern struct flash_driver ath79_flash;
-extern struct flash_driver atsame5_flash;
-extern struct flash_driver atsamv_flash;
-extern struct flash_driver avr_flash;
-extern struct flash_driver bluenrgx_flash;
-extern struct flash_driver cc3220sf_flash;
-extern struct flash_driver cc26xx_flash;
-extern struct flash_driver cfi_flash;
-extern struct flash_driver dsp5680xx_flash;
-extern struct flash_driver efm32_flash;
-extern struct flash_driver em357_flash;
-extern struct flash_driver esirisc_flash;
-extern struct flash_driver faux_flash;
-extern struct flash_driver fm3_flash;
-extern struct flash_driver fm4_flash;
-extern struct flash_driver fespi_flash;
-extern struct flash_driver jtagspi_flash;
-extern struct flash_driver kinetis_flash;
-extern struct flash_driver kinetis_ke_flash;
-extern struct flash_driver lpc2000_flash;
-extern struct flash_driver lpc288x_flash;
-extern struct flash_driver lpc2900_flash;
-extern struct flash_driver lpcspifi_flash;
-extern struct flash_driver max32xxx_flash;
-extern struct flash_driver mdr_flash;
-extern struct flash_driver mrvlqspi_flash;
-extern struct flash_driver msp432_flash;
-extern struct flash_driver niietcm4_flash;
-extern struct flash_driver nrf5_flash;
-extern struct flash_driver nrf51_flash;
-extern struct flash_driver numicro_flash;
-extern struct flash_driver ocl_flash;
-extern struct flash_driver pic32mx_flash;
-extern struct flash_driver psoc4_flash;
-extern struct flash_driver psoc5lp_flash;
-extern struct flash_driver psoc5lp_eeprom_flash;
-extern struct flash_driver psoc5lp_nvl_flash;
-extern struct flash_driver psoc6_flash;
-extern struct flash_driver sim3x_flash;
-extern struct flash_driver stellaris_flash;
-extern struct flash_driver stm32f1x_flash;
-extern struct flash_driver stm32f2x_flash;
-extern struct flash_driver stm32lx_flash;
-extern struct flash_driver stm32l4x_flash;
-extern struct flash_driver stm32h7x_flash;
-extern struct flash_driver stmsmi_flash;
-extern struct flash_driver str7x_flash;
-extern struct flash_driver str9x_flash;
-extern struct flash_driver str9xpec_flash;
-extern struct flash_driver tms470_flash;
-extern struct flash_driver virtual_flash;
-extern struct flash_driver w600_flash;
-extern struct flash_driver xcf_flash;
-extern struct flash_driver xmc1xxx_flash;
-extern struct flash_driver xmc4xxx_flash;
+extern const struct flash_driver aduc702x_flash;
+extern const struct flash_driver aducm360_flash;
+extern const struct flash_driver ambiqmicro_flash;
+extern const struct flash_driver at91sam3_flash;
+extern const struct flash_driver at91sam4_flash;
+extern const struct flash_driver at91sam4l_flash;
+extern const struct flash_driver at91sam7_flash;
+extern const struct flash_driver at91samd_flash;
+extern const struct flash_driver ath79_flash;
+extern const struct flash_driver atsame5_flash;
+extern const struct flash_driver atsamv_flash;
+extern const struct flash_driver avr_flash;
+extern const struct flash_driver bluenrgx_flash;
+extern const struct flash_driver cc3220sf_flash;
+extern const struct flash_driver cc26xx_flash;
+extern const struct flash_driver cfi_flash;
+extern const struct flash_driver dsp5680xx_flash;
+extern const struct flash_driver efm32_flash;
+extern const struct flash_driver em357_flash;
+extern const struct flash_driver esirisc_flash;
+extern const struct flash_driver faux_flash;
+extern const struct flash_driver fm3_flash;
+extern const struct flash_driver fm4_flash;
+extern const struct flash_driver fespi_flash;
+extern const struct flash_driver jtagspi_flash;
+extern const struct flash_driver kinetis_flash;
+extern const struct flash_driver kinetis_ke_flash;
+extern const struct flash_driver lpc2000_flash;
+extern const struct flash_driver lpc288x_flash;
+extern const struct flash_driver lpc2900_flash;
+extern const struct flash_driver lpcspifi_flash;
+extern const struct flash_driver max32xxx_flash;
+extern const struct flash_driver mdr_flash;
+extern const struct flash_driver mrvlqspi_flash;
+extern const struct flash_driver msp432_flash;
+extern const struct flash_driver niietcm4_flash;
+extern const struct flash_driver nrf5_flash;
+extern const struct flash_driver nrf51_flash;
+extern const struct flash_driver numicro_flash;
+extern const struct flash_driver ocl_flash;
+extern const struct flash_driver pic32mx_flash;
+extern const struct flash_driver psoc4_flash;
+extern const struct flash_driver psoc5lp_flash;
+extern const struct flash_driver psoc5lp_eeprom_flash;
+extern const struct flash_driver psoc5lp_nvl_flash;
+extern const struct flash_driver psoc6_flash;
+extern const struct flash_driver sim3x_flash;
+extern const struct flash_driver stellaris_flash;
+extern const struct flash_driver stm32f1x_flash;
+extern const struct flash_driver stm32f2x_flash;
+extern const struct flash_driver stm32lx_flash;
+extern const struct flash_driver stm32l4x_flash;
+extern const struct flash_driver stm32h7x_flash;
+extern const struct flash_driver stmsmi_flash;
+extern const struct flash_driver str7x_flash;
+extern const struct flash_driver str9x_flash;
+extern const struct flash_driver str9xpec_flash;
+extern const struct flash_driver tms470_flash;
+extern const struct flash_driver virtual_flash;
+extern const struct flash_driver w600_flash;
+extern const struct flash_driver xcf_flash;
+extern const struct flash_driver xmc1xxx_flash;
+extern const struct flash_driver xmc4xxx_flash;
 
 /**
  * The list of built-in flash drivers.
  * @todo Make this dynamically extendable with loadable modules.
  */
-static struct flash_driver *flash_drivers[] = {
+static const struct flash_driver * const flash_drivers[] = {
 	&aduc702x_flash,
 	&aducm360_flash,
 	&ambiqmicro_flash,
@@ -155,7 +155,7 @@ static struct flash_driver *flash_drivers[] = {
 	NULL,
 };
 
-struct flash_driver *flash_driver_find_by_name(const char *name)
+const struct flash_driver *flash_driver_find_by_name(const char *name)
 {
 	for (unsigned i = 0; flash_drivers[i]; i++) {
 		if (strcmp(name, flash_drivers[i]->name) == 0)

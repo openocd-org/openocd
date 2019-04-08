@@ -256,7 +256,7 @@ static int dsp5680xx_flash_erase_check(struct flash_bank *bank)
 	return retval;
 }
 
-struct flash_driver dsp5680xx_flash = {
+const struct flash_driver dsp5680xx_flash = {
 	.name = "dsp5680xx_flash",
 	.flash_bank_command = dsp5680xx_flash_bank_command,
 	.erase = dsp5680xx_flash_erase,

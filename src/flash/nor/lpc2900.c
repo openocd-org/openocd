@@ -1581,7 +1581,7 @@ static int lpc2900_protect_check(struct flash_bank *bank)
 	return lpc2900_read_security_status(bank);
 }
 
-struct flash_driver lpc2900_flash = {
+const struct flash_driver lpc2900_flash = {
 	.name = "lpc2900",
 	.commands = lpc2900_command_handlers,
 	.flash_bank_command = lpc2900_flash_bank_command,

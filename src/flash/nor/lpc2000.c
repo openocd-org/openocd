@@ -719,7 +719,7 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 
 	int retval = target_write_memory(target, (*iap_working_area)->address, 4, 2, jump_gate);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Write memory at address 0x%8.8" TARGET_PRIxADDR " failed (check work_area definition)",
+		LOG_ERROR("Write memory at address " TARGET_ADDR_FMT " failed (check work_area definition)",
 				(*iap_working_area)->address);
 		target_free_working_area(target, *iap_working_area);
 	}
@@ -1186,7 +1186,7 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 			free(last_buffer);
 		}
 
-		LOG_DEBUG("writing 0x%" PRIx32 " bytes to address 0x%" TARGET_PRIxADDR,
+		LOG_DEBUG("writing 0x%" PRIx32 " bytes to address " TARGET_ADDR_FMT,
 				thisrun_bytes, bank->base + offset + bytes_written);
 
 		/* Write data */
@@ -1609,7 +1609,7 @@ static const struct command_registration lpc2000_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver lpc2000_flash = {
+const struct flash_driver lpc2000_flash = {
 	.name = "lpc2000",
 	.commands = lpc2000_command_handlers,
 	.flash_bank_command = lpc2000_flash_bank_command,

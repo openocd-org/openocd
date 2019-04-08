@@ -678,8 +678,8 @@ void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
 	 */
 	if (arm->cpsr) {
 		buf_set_u32(arm->cpsr->value, 0, 32, cpsr);
-		arm->cpsr->valid = 1;
-		arm->cpsr->dirty = 0;
+		arm->cpsr->valid = true;
+		arm->cpsr->dirty = false;
 	}
 
 	/* Older ARMs won't have the J bit */
@@ -1011,6 +1011,72 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 	}
 
 	return retval;
+}
+
+COMMAND_HANDLER(armv8_handle_exception_catch_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct armv8_common *armv8 = target_to_armv8(target);
+	uint32_t edeccr = 0;
+	unsigned int argp = 0;
+	int retval;
+
+	static const Jim_Nvp nvp_ecatch_modes[] = {
+		{ .name = "off",       .value = 0 },
+		{ .name = "nsec_el1",  .value = (1 << 5) },
+		{ .name = "nsec_el2",  .value = (2 << 5) },
+		{ .name = "nsec_el12", .value = (3 << 5) },
+		{ .name = "sec_el1",   .value = (1 << 1) },
+		{ .name = "sec_el3",   .value = (4 << 1) },
+		{ .name = "sec_el13",  .value = (5 << 1) },
+		{ .name = NULL, .value = -1 },
+	};
+	const Jim_Nvp *n;
+
+	if (CMD_ARGC == 0) {
+		const char *sec = NULL, *nsec = NULL;
+
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+					armv8->debug_base + CPUV8_DBG_ECCR, &edeccr);
+		if (retval != ERROR_OK)
+			return retval;
+
+		n = Jim_Nvp_value2name_simple(nvp_ecatch_modes, edeccr & 0x0f);
+		if (n->name != NULL)
+			sec = n->name;
+
+		n = Jim_Nvp_value2name_simple(nvp_ecatch_modes, edeccr & 0xf0);
+		if (n->name != NULL)
+			nsec = n->name;
+
+		if (sec == NULL || nsec == NULL) {
+			LOG_WARNING("Exception Catch: unknown exception catch configuration: EDECCR = %02x", edeccr & 0xff);
+			return ERROR_FAIL;
+		}
+
+		command_print(CMD_CTX, "Exception Catch: Secure: %s, Non-Secure: %s", sec, nsec);
+		return ERROR_OK;
+	}
+
+	while (CMD_ARGC > argp) {
+		n = Jim_Nvp_name2value_simple(nvp_ecatch_modes, CMD_ARGV[argp]);
+		if (n->name == NULL) {
+			LOG_ERROR("Unknown option: %s", CMD_ARGV[argp]);
+			return ERROR_FAIL;
+		}
+
+		LOG_DEBUG("found: %s", n->name);
+
+		edeccr |= n->value;
+		argp++;
+	}
+
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + CPUV8_DBG_ECCR, edeccr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
 }
 
 int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
@@ -1452,17 +1518,17 @@ static int armv8_set_core_reg(struct reg *reg, uint8_t *buf)
 			armv8_set_cpsr(arm, (uint32_t)value);
 		else {
 			buf_set_u64(reg->value, 0, reg->size, value);
-			reg->valid = 1;
+			reg->valid = true;
 		}
 	} else if (reg->size <= 128) {
 		uint64_t hvalue = buf_get_u64(buf + 8, 0, reg->size - 64);
 
 		buf_set_u64(reg->value, 0, 64, value);
 		buf_set_u64(reg->value + 8, 0, reg->size - 64, hvalue);
-		reg->valid = 1;
+		reg->valid = true;
 	}
 
-	reg->dirty = 1;
+	reg->dirty = true;
 
 	return ERROR_OK;
 }
@@ -1519,11 +1585,11 @@ static int armv8_set_core_reg32(struct reg *reg, uint8_t *buf)
 			uint64_t value64 = buf_get_u64(buf, 0, 64);
 			buf_set_u64(reg->value, 0, 64, value64);
 		}
-		reg->valid = 1;
-		reg64->valid = 1;
+		reg->valid = true;
+		reg64->valid = true;
 	}
 
-	reg64->dirty = 1;
+	reg64->dirty = true;
 
 	return ERROR_OK;
 }
@@ -1675,6 +1741,13 @@ void armv8_free_reg_cache(struct target *target)
 }
 
 const struct command_registration armv8_command_handlers[] = {
+	{
+		.name = "catch_exc",
+		.handler = armv8_handle_exception_catch_command,
+		.mode = COMMAND_EXEC,
+		.help = "configure exception catch",
+		.usage = "[(nsec_el1,nsec_el2,sec_el1,sec_el3)+,off]",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 

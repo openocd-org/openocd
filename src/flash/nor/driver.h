@@ -231,6 +231,6 @@ struct flash_driver {
  * @param name The name of the requested driver.
  * @returns The flash_driver called @c name, or NULL if not found.
  */
-struct flash_driver *flash_driver_find_by_name(const char *name);
+const struct flash_driver *flash_driver_find_by_name(const char *name);
 
 #endif /* OPENOCD_FLASH_NOR_DRIVER_H */

@@ -953,7 +953,7 @@ FLASH_BANK_COMMAND_HANDLER(mrvlqspi_flash_bank_command)
 	return ERROR_OK;
 }
 
-struct flash_driver mrvlqspi_flash = {
+const struct flash_driver mrvlqspi_flash = {
 	.name = "mrvlqspi",
 	.flash_bank_command = mrvlqspi_flash_bank_command,
 	.erase = mrvlqspi_flash_erase,

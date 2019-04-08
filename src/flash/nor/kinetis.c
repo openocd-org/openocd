@@ -393,7 +393,7 @@ static bool fcf_fopt_configured;
 static bool create_banks;
 
 
-struct flash_driver kinetis_flash;
+const struct flash_driver kinetis_flash;
 static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 			uint32_t offset, uint32_t count);
 static int kinetis_probe_chip(struct kinetis_chip *k_chip);
@@ -1755,14 +1755,14 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 			result = target_write_memory(bank->target, k_chip->progr_accel_ram,
 						4, size_aligned / 4, buffer_aligned);
 
-			LOG_DEBUG("section @ %08" TARGET_PRIxADDR " aligned begin %" PRIu32
+			LOG_DEBUG("section @ " TARGET_ADDR_FMT " aligned begin %" PRIu32
 					", end %" PRIu32,
 					bank->base + offset, align_begin, align_end);
 		} else
 			result = target_write_memory(bank->target, k_chip->progr_accel_ram,
 						4, size_aligned / 4, buffer);
 
-		LOG_DEBUG("write section @ %08" TARGET_PRIxADDR " with length %" PRIu32
+		LOG_DEBUG("write section @ " TARGET_ADDR_FMT " with length %" PRIu32
 				" bytes",
 			  bank->base + offset, size);
 
@@ -1778,13 +1778,13 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 				0, 0, 0, 0,  &ftfx_fstat);
 
 		if (result != ERROR_OK) {
-			LOG_ERROR("Error writing section at %08" TARGET_PRIxADDR,
+			LOG_ERROR("Error writing section at " TARGET_ADDR_FMT,
 					bank->base + offset);
 			break;
 		}
 
 		if (ftfx_fstat & 0x01) {
-			LOG_ERROR("Flash write error at %08" TARGET_PRIxADDR,
+			LOG_ERROR("Flash write error at " TARGET_ADDR_FMT,
 					bank->base + offset);
 			if (k_bank->prog_base == 0 && offset == FCF_ADDRESS + FCF_SIZE
 					&& (k_chip->flash_support & FS_WIDTH_256BIT)) {
@@ -1824,7 +1824,7 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 		}
 	}
 
-	LOG_DEBUG("flash write @ %08" TARGET_PRIxADDR, bank->base + offset);
+	LOG_DEBUG("flash write @ " TARGET_ADDR_FMT, bank->base + offset);
 
 	if (fallback == 0) {
 		/* program section command */
@@ -1877,13 +1877,13 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 						0, 0, 0, 0,  &ftfx_fstat);
 
 				if (result != ERROR_OK) {
-					LOG_ERROR("Error writing longword at %08" TARGET_PRIxADDR,
+					LOG_ERROR("Error writing longword at " TARGET_ADDR_FMT,
 							bank->base + offset);
 					break;
 				}
 
 				if (ftfx_fstat & 0x01)
-					LOG_ERROR("Flash write error at %08" TARGET_PRIxADDR,
+					LOG_ERROR("Flash write error at " TARGET_ADDR_FMT,
 							bank->base + offset);
 
 				buffer += 4;
@@ -2775,7 +2775,7 @@ static int kinetis_info(struct flash_bank *bank, char *buf, int buf_size)
 	uint32_t size_k = bank->size / 1024;
 
 	snprintf(buf, buf_size,
-		"%s %s: %" PRIu32 "k %s bank %s at 0x%08" TARGET_PRIxADDR,
+		"%s %s: %" PRIu32 "k %s bank %s at " TARGET_ADDR_FMT,
 		bank->driver->name, k_chip->name,
 		size_k, bank_class_names[k_bank->flash_class],
 		bank->name, bank->base);
@@ -3143,7 +3143,7 @@ static const struct command_registration kinetis_command_handler[] = {
 
 
 
-struct flash_driver kinetis_flash = {
+const struct flash_driver kinetis_flash = {
 	.name = "kinetis",
 	.commands = kinetis_command_handler,
 	.flash_bank_command = kinetis_flash_bank_command,

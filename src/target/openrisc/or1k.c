@@ -424,8 +424,8 @@ static int or1k_read_core_reg(struct target *target, int num)
 		reg_value = or1k->core_regs[num];
 		buf_set_u32(or1k->core_cache->reg_list[num].value, 0, 32, reg_value);
 		LOG_DEBUG("Read core reg %i value 0x%08" PRIx32, num , reg_value);
-		or1k->core_cache->reg_list[num].valid = 1;
-		or1k->core_cache->reg_list[num].dirty = 0;
+		or1k->core_cache->reg_list[num].valid = true;
+		or1k->core_cache->reg_list[num].dirty = false;
 	} else {
 		/* This is an spr, always read value from HW */
 		int retval = du_core->or1k_jtag_read_cpu(&or1k->jtag,
@@ -453,8 +453,8 @@ static int or1k_write_core_reg(struct target *target, int num)
 	uint32_t reg_value = buf_get_u32(or1k->core_cache->reg_list[num].value, 0, 32);
 	or1k->core_regs[num] = reg_value;
 	LOG_DEBUG("Write core reg %i value 0x%08" PRIx32, num , reg_value);
-	or1k->core_cache->reg_list[num].valid = 1;
-	or1k->core_cache->reg_list[num].dirty = 0;
+	or1k->core_cache->reg_list[num].valid = true;
+	or1k->core_cache->reg_list[num].dirty = false;
 
 	return ERROR_OK;
 }
@@ -487,8 +487,8 @@ static int or1k_set_core_reg(struct reg *reg, uint8_t *buf)
 
 	if (or1k_reg->list_num < OR1KNUMCOREREGS) {
 		buf_set_u32(reg->value, 0, 32, value);
-		reg->dirty = 1;
-		reg->valid = 1;
+		reg->dirty = true;
+		reg->valid = true;
 	} else {
 		/* This is an spr, write it to the HW */
 		int retval = du_core->or1k_jtag_write_cpu(&or1k->jtag,
@@ -541,8 +541,8 @@ static struct reg_cache *or1k_build_reg_cache(struct target *target)
 		reg_list[i].group = or1k_core_reg_list_arch_info[i].group;
 		reg_list[i].size = 32;
 		reg_list[i].value = calloc(1, 4);
-		reg_list[i].dirty = 0;
-		reg_list[i].valid = 0;
+		reg_list[i].dirty = false;
+		reg_list[i].valid = false;
 		reg_list[i].type = &or1k_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
 		reg_list[i].number = i;

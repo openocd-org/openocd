@@ -404,9 +404,9 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 		/* Stack pointer for program working area */
 		buf_set_u32(reg_params[4].value, 0, 32, write_algorithm_sp->address);
 
-		LOG_DEBUG("source->address = %08" TARGET_PRIxADDR, source->address);
-		LOG_DEBUG("source->address+ source->size = %08" TARGET_PRIxADDR, source->address+source->size);
-		LOG_DEBUG("write_algorithm_sp->address = %08" TARGET_PRIxADDR, write_algorithm_sp->address);
+		LOG_DEBUG("source->address = " TARGET_ADDR_FMT, source->address);
+		LOG_DEBUG("source->address+ source->size = " TARGET_ADDR_FMT, source->address+source->size);
+		LOG_DEBUG("write_algorithm_sp->address = " TARGET_ADDR_FMT, write_algorithm_sp->address);
 		LOG_DEBUG("address = %08x", address+pre_size);
 		LOG_DEBUG("count = %08x", count);
 
@@ -539,7 +539,7 @@ static int bluenrgx_get_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver bluenrgx_flash = {
+const struct flash_driver bluenrgx_flash = {
 	.name = "bluenrg-x",
 	.flash_bank_command = bluenrgx_flash_bank_command,
 	.erase = bluenrgx_erase,

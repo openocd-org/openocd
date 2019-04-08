@@ -53,11 +53,11 @@
  *
  * This code uses information contained in the MPSSE specification which was
  * found here:
- * http://www.ftdichip.com/Documents/AppNotes/AN2232C-01_MPSSE_Cmnd.pdf
+ * https://www.ftdichip.com/Support/Documents/AppNotes/AN2232C-01_MPSSE_Cmnd.pdf
  * Hereafter this is called the "MPSSE Spec".
  *
- * The datasheet for the ftdichip.com's FT2232D part is here:
- * http://www.ftdichip.com/Documents/DataSheets/DS_FT2232D.pdf
+ * The datasheet for the ftdichip.com's FT2232H part is here:
+ * https://www.ftdichip.com/Support/Documents/DataSheets/ICs/DS_FT2232H.pdf
  *
  * Also note the issue with code 0x4b (clock data to TMS) noted in
  * http://developer.intra2net.com/mailarchive/html/libftdi/2009/msg00292.html
@@ -69,6 +69,7 @@
 #endif
 
 /* project specific includes */
+#include <jtag/drivers/jtag_usb_common.h>
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <transport/transport.h>
@@ -102,7 +103,6 @@
 
 static char *ftdi_device_desc;
 static char *ftdi_serial;
-static char *ftdi_location;
 static uint8_t ftdi_channel;
 static uint8_t ftdi_jtag_mode = JTAG_MODE;
 
@@ -731,7 +731,7 @@ static int ftdi_initialize(void)
 
 	for (int i = 0; ftdi_vid[i] || ftdi_pid[i]; i++) {
 		mpsse_ctx = mpsse_open(&ftdi_vid[i], &ftdi_pid[i], ftdi_device_desc,
-				ftdi_serial, ftdi_location, ftdi_channel);
+				ftdi_serial, jtag_usb_get_location(), ftdi_channel);
 		if (mpsse_ctx)
 			break;
 	}
@@ -788,7 +788,6 @@ static int ftdi_quit(void)
 
 	free(ftdi_device_desc);
 	free(ftdi_serial);
-	free(ftdi_location);
 
 	free(swd_cmd_queue);
 
@@ -1055,21 +1054,6 @@ COMMAND_HANDLER(ftdi_handle_serial_command)
 	return ERROR_OK;
 }
 
-#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
-COMMAND_HANDLER(ftdi_handle_location_command)
-{
-	if (CMD_ARGC == 1) {
-		if (ftdi_location)
-			free(ftdi_location);
-		ftdi_location = strdup(CMD_ARGV[0]);
-	} else {
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return ERROR_OK;
-}
-#endif
-
 COMMAND_HANDLER(ftdi_handle_channel_command)
 {
 	if (CMD_ARGC == 1)
@@ -1298,15 +1282,6 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.help = "set the serial number of the FTDI device",
 		.usage = "serial_string",
 	},
-#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
-	{
-		.name = "ftdi_location",
-		.handler = &ftdi_handle_location_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the USB bus location of the FTDI device",
-		.usage = "<bus>:port[,port]...",
-	},
-#endif
 	{
 		.name = "ftdi_channel",
 		.handler = &ftdi_handle_channel_command,
@@ -1421,7 +1396,7 @@ static void ftdi_swd_swdio_en(bool enable)
 		if (oe->data_mask)
 			ftdi_set_signal(oe, enable ? '1' : '0');
 		else {
-			/* Sets TDI/DO pin (pin 2) to input during rx when both pins are connected
+			/* Sets TDI/DO pin to input during rx when both pins are connected
 			   to SWDIO */
 			if (enable)
 				direction |= jtag_direction_init & 0x0002U;

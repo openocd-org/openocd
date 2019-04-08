@@ -152,8 +152,6 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 	if (retval != ERROR_OK)
 		goto done;
 	*val = (*val & ~0xfff)  +  (va & 0xfff);
-	if (*val == va)
-		LOG_WARNING("virt = phys  : MMU disable !!");
 	if (meminfo) {
 		LOG_INFO("%" PRIx32 " : %" PRIx32 " %s outer shareable %s secured",
 			va, *val,

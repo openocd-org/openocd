@@ -906,7 +906,7 @@ free_pb:
 FLASH_BANK_COMMAND_HANDLER(samd_flash_bank_command)
 {
 	if (bank->base != SAMD_FLASH) {
-		LOG_ERROR("Address 0x%08" TARGET_PRIxADDR
+		LOG_ERROR("Address " TARGET_ADDR_FMT
 				" invalid bank address (try 0x%08" PRIx32
 				"[at91samd series] )",
 				bank->base, SAMD_FLASH);
@@ -1287,7 +1287,7 @@ static const struct command_registration at91samd_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver at91samd_flash = {
+const struct flash_driver at91samd_flash = {
 	.name = "at91samd",
 	.commands = at91samd_command_handlers,
 	.flash_bank_command = samd_flash_bank_command,

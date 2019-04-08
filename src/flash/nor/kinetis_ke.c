@@ -1175,7 +1175,7 @@ static int kinetis_ke_auto_probe(struct flash_bank *bank)
 static int kinetis_ke_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	(void) snprintf(buf, buf_size,
-			"%s driver for flash bank %s at 0x%8.8" TARGET_PRIxADDR,
+			"%s driver for flash bank %s at " TARGET_ADDR_FMT,
 			bank->driver->name,	bank->name, bank->base);
 
 	return ERROR_OK;
@@ -1297,7 +1297,7 @@ static const struct command_registration kinetis_ke_command_handler[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver kinetis_ke_flash = {
+const struct flash_driver kinetis_ke_flash = {
 	.name = "kinetis_ke",
 	.commands = kinetis_ke_command_handler,
 	.flash_bank_command = kinetis_ke_flash_bank_command,

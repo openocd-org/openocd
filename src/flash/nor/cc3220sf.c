@@ -489,7 +489,7 @@ static int cc3220sf_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver cc3220sf_flash = {
+const struct flash_driver cc3220sf_flash = {
 	.name = "cc3220sf",
 	.flash_bank_command = cc3220sf_flash_bank_command,
 	.erase = cc3220sf_erase,

@@ -199,6 +199,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 	else
 		rtos->current_thread = threadid_from_target(target);
 
+	LOG_DEBUG("%s current_thread=%i", __func__, (int)rtos->current_thread);
 	return 0;
 }
 
@@ -367,7 +368,6 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 			target->rtos->current_thread = threadid_from_target(target);
 
 		target->rtos->current_threadid = current_threadid;
-		LOG_DEBUG("current_threadid=%" PRId64, current_threadid);
 
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;

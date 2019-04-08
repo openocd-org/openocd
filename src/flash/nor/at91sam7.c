@@ -1140,7 +1140,7 @@ static const struct command_registration at91sam7_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver at91sam7_flash = {
+const struct flash_driver at91sam7_flash = {
 	.name = "at91sam7",
 	.usage = "gpnvm <bit> <set | clear>",
 	.commands = at91sam7_command_handlers,

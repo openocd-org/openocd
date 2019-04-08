@@ -1585,7 +1585,7 @@ static int niietcm4_probe_k1921vk01t(struct flash_bank *bank)
 		char info_bootflash_addr_str[64];
 		if (niietcm4_info->bflash_info_remap)
 			snprintf(info_bootflash_addr_str, sizeof(info_bootflash_addr_str),
-					"0x%" TARGET_PRIxADDR " base adress", bank->base);
+					TARGET_ADDR_FMT " base adress", bank->base);
 		else
 			snprintf(info_bootflash_addr_str, sizeof(info_bootflash_addr_str),
 					"not mapped to global adress space");
@@ -1729,7 +1729,7 @@ static int get_niietcm4_info(struct flash_bank *bank, char *buf, int buf_size)
 }
 
 
-struct flash_driver niietcm4_flash = {
+const struct flash_driver niietcm4_flash = {
 	.name = "niietcm4",
 	.usage = "flash bank <name> niietcm4 <base> <size> 0 0 <target#>",
 	.commands = niietcm4_command_handlers,

@@ -1037,7 +1037,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	/* pass the command through to the intended handler */
 	if (c->jim_handler) {
 		if (!command_can_run(cmd_ctx, c))
-			return ERROR_FAIL;
+			return JIM_ERR;
 
 		interp->cmdPrivData = c->jim_handler_data;
 		return (*c->jim_handler)(interp, count, start);

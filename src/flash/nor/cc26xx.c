@@ -535,7 +535,7 @@ static int cc26xx_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver cc26xx_flash = {
+const struct flash_driver cc26xx_flash = {
 	.name = "cc26xx",
 	.flash_bank_command = cc26xx_flash_bank_command,
 	.erase = cc26xx_erase,

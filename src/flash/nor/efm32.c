@@ -1120,7 +1120,7 @@ static const struct command_registration efm32x_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver efm32_flash = {
+const struct flash_driver efm32_flash = {
 	.name = "efm32",
 	.commands = efm32x_command_handlers,
 	.flash_bank_command = efm32x_flash_bank_command,

@@ -1075,7 +1075,7 @@ static const struct command_registration msp432_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver msp432_flash = {
+const struct flash_driver msp432_flash = {
 	.name = "msp432",
 	.commands = msp432_command_handlers,
 	.flash_bank_command = msp432_flash_bank_command,

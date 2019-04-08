@@ -56,10 +56,8 @@
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
 #include "transport/transport.h"
+#include "smp.h"
 #include <helper/time_support.h>
-
-#define foreach_smp_target(pos, head) \
-	for (pos = head; (pos != NULL); pos = pos->next)
 
 static int cortex_a_poll(struct target *target);
 static int cortex_a_debug_entry(struct target *target);
@@ -806,15 +804,15 @@ static int cortex_a_internal_restore(struct target *target, int current,
 		 * C_MASKINTS in parallel with disabled interrupts can cause
 		 * local faults to not be taken. */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_PRIMASK].value, 0, 32, 1);
-		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = 1;
-		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = 1;
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = true;
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = true;
 
 		/* Make sure we are in Thumb mode */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32,
 			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0,
 			32) | (1 << 24));
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = 1;
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = 1;
+		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = true;
+		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = true;
 	}
 #endif
 
@@ -848,8 +846,8 @@ static int cortex_a_internal_restore(struct target *target, int current,
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
 	buf_set_u32(arm->pc->value, 0, 32, resume_pc);
-	arm->pc->dirty = 1;
-	arm->pc->valid = 1;
+	arm->pc->dirty = true;
+	arm->pc->valid = true;
 
 	/* restore dpm_mode at system halt */
 	arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
@@ -2833,15 +2831,15 @@ static int cortex_a_init_arch_info(struct target *target,
 
 	/* REVISIT v7a setup should be in a v7a-specific routine */
 	armv7a_init_arch_info(target, armv7a);
-	target_register_timer_callback(cortex_a_handle_target_request, 1, 1, target);
+	target_register_timer_callback(cortex_a_handle_target_request, 1,
+		TARGET_TIMER_TYPE_PERIODIC, target);
 
 	return ERROR_OK;
 }
 
 static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct cortex_a_common *cortex_a = calloc(1, sizeof(struct cortex_a_common));
-	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
+	struct cortex_a_common *cortex_a;
 	struct adiv5_private_config *pc;
 
 	if (target->private_config == NULL)
@@ -2849,8 +2847,13 @@ static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 
 	pc = (struct adiv5_private_config *)target->private_config;
 
+	cortex_a = calloc(1, sizeof(struct cortex_a_common));
+	if (cortex_a == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
 	cortex_a->armv7a_common.is_armv7r = false;
-
 	cortex_a->armv7a_common.arm.arm_vfp_version = ARM_VFP_V3;
 
 	return cortex_a_init_arch_info(target, cortex_a, pc->dap);
@@ -2858,14 +2861,19 @@ static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 
 static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct cortex_a_common *cortex_a = calloc(1, sizeof(struct cortex_a_common));
-	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
+	struct cortex_a_common *cortex_a;
 	struct adiv5_private_config *pc;
 
 	pc = (struct adiv5_private_config *)target->private_config;
 	if (adiv5_verify_config(pc) != ERROR_OK)
 		return ERROR_FAIL;
 
+	cortex_a = calloc(1, sizeof(struct cortex_a_common));
+	if (cortex_a == NULL) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	cortex_a->common_magic = CORTEX_A_COMMON_MAGIC;
 	cortex_a->armv7a_common.is_armv7r = true;
 
 	return cortex_a_init_arch_info(target, cortex_a, pc->dap);
@@ -2959,63 +2967,6 @@ COMMAND_HANDLER(cortex_a_handle_dbginit_command)
 
 	return cortex_a_init_debug_access(target);
 }
-COMMAND_HANDLER(cortex_a_handle_smp_off_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	/* check target is an smp target */
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	target->smp = 0;
-	if (head != (struct target_list *)NULL) {
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 0;
-			head = head->next;
-		}
-		/*  fixes the target display to the debugger */
-		target->gdb_service->target = target;
-	}
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(cortex_a_handle_smp_on_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	struct target_list *head;
-	struct target *curr;
-	head = target->head;
-	if (head != (struct target_list *)NULL) {
-		target->smp = 1;
-		while (head != (struct target_list *)NULL) {
-			curr = head->target;
-			curr->smp = 1;
-			head = head->next;
-		}
-	}
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(cortex_a_handle_smp_gdb_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	int retval = ERROR_OK;
-	struct target_list *head;
-	head = target->head;
-	if (head != (struct target_list *)NULL) {
-		if (CMD_ARGC == 1) {
-			int coreid = 0;
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], coreid);
-			if (ERROR_OK != retval)
-				return retval;
-			target->gdb_service->core[1] = coreid;
-
-		}
-		command_print(CMD_CTX, "gdb coreid  %" PRId32 " -> %" PRId32, target->gdb_service->core[0]
-			, target->gdb_service->core[1]);
-	}
-	return ERROR_OK;
-}
 
 COMMAND_HANDLER(handle_cortex_a_mask_interrupts_command)
 {
@@ -3086,25 +3037,6 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 		.help = "Initialize core debug",
 		.usage = "",
 	},
-	{   .name = "smp_off",
-	    .handler = cortex_a_handle_smp_off_command,
-	    .mode = COMMAND_EXEC,
-	    .help = "Stop smp handling",
-	    .usage = "",},
-	{
-		.name = "smp_on",
-		.handler = cortex_a_handle_smp_on_command,
-		.mode = COMMAND_EXEC,
-		.help = "Restart smp handling",
-		.usage = "",
-	},
-	{
-		.name = "smp_gdb",
-		.handler = cortex_a_handle_smp_gdb_command,
-		.mode = COMMAND_EXEC,
-		.help = "display/fix current core played to gdb",
-		.usage = "",
-	},
 	{
 		.name = "maskisr",
 		.handler = handle_cortex_a_mask_interrupts_command,
@@ -3122,6 +3054,9 @@ static const struct command_registration cortex_a_exec_command_handlers[] = {
 	},
 	{
 		.chain = armv7a_mmu_command_handlers,
+	},
+	{
+		.chain = smp_command_handlers,
 	},
 
 	COMMAND_REGISTRATION_DONE

@@ -186,7 +186,7 @@ static int lpcspifi_set_hw_mode(struct flash_bank *bank)
 		return retval;
 	}
 
-	LOG_DEBUG("Writing algorithm to working area at 0x%08" TARGET_PRIxADDR,
+	LOG_DEBUG("Writing algorithm to working area at " TARGET_ADDR_FMT,
 		spifi_init_algorithm->address);
 	/* Write algorithm to working area */
 	retval = target_write_buffer(target,
@@ -946,7 +946,7 @@ static int get_lpcspifi_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver lpcspifi_flash = {
+const struct flash_driver lpcspifi_flash = {
 	.name = "lpcspifi",
 	.flash_bank_command = lpcspifi_flash_bank_command,
 	.erase = lpcspifi_erase,

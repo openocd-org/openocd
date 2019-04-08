@@ -305,7 +305,7 @@ static int xmc1xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t blocks = MIN(block_count, data_workarea->size / NVM_BLOCK_SIZE);
 		uint32_t addr = bank->base + offset;
 
-		LOG_DEBUG("copying %" PRId32 " bytes to SRAM 0x%08" TARGET_PRIxADDR,
+		LOG_DEBUG("copying %" PRId32 " bytes to SRAM " TARGET_ADDR_FMT,
 			MIN(blocks * NVM_BLOCK_SIZE, byte_count),
 			data_workarea->address);
 
@@ -534,7 +534,7 @@ static const struct command_registration xmc1xxx_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver xmc1xxx_flash = {
+const struct flash_driver xmc1xxx_flash = {
 	.name = "xmc1xxx",
 	.commands = xmc1xxx_command_handlers,
 	.flash_bank_command = xmc1xxx_flash_bank_command,

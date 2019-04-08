@@ -794,7 +794,7 @@ static int ath79_probe(struct flash_bank *bank)
 
 	ath79_info->io_base = target_device->io_base;
 
-	LOG_DEBUG("Found device %s at address 0x%" TARGET_PRIxADDR,
+	LOG_DEBUG("Found device %s at address " TARGET_ADDR_FMT,
 		  target_device->name, bank->base);
 
 	retval = read_flash_id(bank, &id);
@@ -895,7 +895,7 @@ static int get_ath79_info(struct flash_bank *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-struct flash_driver ath79_flash = {
+const struct flash_driver ath79_flash = {
 	.name = "ath79",
 	.flash_bank_command = ath79_flash_bank_command,
 	.erase = ath79_erase,

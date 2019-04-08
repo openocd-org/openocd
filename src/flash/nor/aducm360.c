@@ -554,7 +554,7 @@ static int aducm360_check_flash_completion(struct target *target, unsigned int t
 }
 
 /* ----------------------------------------------------------------------- */
-struct flash_driver aducm360_flash = {
+const struct flash_driver aducm360_flash = {
 	.name = "aducm360",
 	.flash_bank_command = aducm360_flash_bank_command,
 	.erase = aducm360_erase,

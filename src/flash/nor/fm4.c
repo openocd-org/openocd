@@ -272,7 +272,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t halfwords = MIN(halfword_count, data_workarea->size / 2);
 		uint32_t addr = bank->base + offset;
 
-		LOG_DEBUG("copying %" PRId32 " bytes to SRAM 0x%08" TARGET_PRIxADDR,
+		LOG_DEBUG("copying %" PRId32 " bytes to SRAM " TARGET_ADDR_FMT,
 			MIN(halfwords * 2, byte_count), data_workarea->address);
 
 		retval = target_write_buffer(target, data_workarea->address,
@@ -702,7 +702,7 @@ static const struct command_registration fm4_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver fm4_flash = {
+const struct flash_driver fm4_flash = {
 	.name = "fm4",
 	.commands = fm4_command_handlers,
 	.flash_bank_command = fm4_flash_bank_command,

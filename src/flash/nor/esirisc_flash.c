@@ -571,7 +571,7 @@ static const struct command_registration esirisc_flash_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver esirisc_flash = {
+const struct flash_driver esirisc_flash = {
 	.name = "esirisc",
 	.usage = "flash bank bank_id 'esirisc' base_address size_bytes 0 0 target "
 			"cfg_address clock_hz wait_states",
