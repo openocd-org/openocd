@@ -503,6 +503,16 @@ int target_get_gdb_reg_list(struct target *target,
 		enum target_register_class reg_class);
 
 /**
+ * Obtain the registers for GDB, but don't read register values from the
+ * target.
+ *
+ * This routine is a wrapper for target->type->get_gdb_reg_list_noread.
+ */
+int target_get_gdb_reg_list_noread(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class);
+
+/**
  * Check if @a target allows GDB connections.
  *
  * Some target do not implement the necessary code required by GDB.

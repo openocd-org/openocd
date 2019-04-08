@@ -462,6 +462,7 @@ static int rtos_put_gdb_reg_list(struct connection *connection,
 	return ERROR_OK;
 }
 
+/** Look through all registers to find this register. */
 int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 {
 	struct target *target = get_target_from_connection(connection);
@@ -473,19 +474,31 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 		struct rtos_reg *reg_list;
 		int num_regs;
 
-		LOG_DEBUG("RTOS: getting register %d for thread 0x%" PRIx64
-				  ", target->rtos->current_thread=0x%" PRIx64 "\r\n",
+		LOG_DEBUG("getting register %d for thread 0x%" PRIx64
+				  ", target->rtos->current_thread=0x%" PRIx64,
 										reg_num,
 										current_threadid,
 										target->rtos->current_thread);
 
-		int retval = target->rtos->type->get_thread_reg_list(target->rtos,
-				current_threadid,
-				&reg_list,
-				&num_regs);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("RTOS: failed to get register list");
-			return retval;
+		int retval;
+		if (target->rtos->type->get_thread_reg) {
+			reg_list = calloc(1, sizeof(*reg_list));
+			num_regs = 1;
+			retval = target->rtos->type->get_thread_reg(target->rtos,
+					current_threadid, reg_num, &reg_list[0]);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("RTOS: failed to get register %d", reg_num);
+				return retval;
+			}
+		} else {
+			retval = target->rtos->type->get_thread_reg_list(target->rtos,
+					current_threadid,
+					&reg_list,
+					&num_regs);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("RTOS: failed to get register list");
+				return retval;
+			}
 		}
 
 		for (int i = 0; i < num_regs; ++i) {
@@ -501,6 +514,7 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 	return ERROR_FAIL;
 }
 
+/** Return a list of general registers. */
 int rtos_get_gdb_reg_list(struct connection *connection)
 {
 	struct target *target = get_target_from_connection(connection);
@@ -530,6 +544,20 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 		free(reg_list);
 
 		return ERROR_OK;
+	}
+	return ERROR_FAIL;
+}
+
+int rtos_set_reg(struct connection *connection, int reg_num,
+		uint8_t *reg_value)
+{
+	struct target *target = get_target_from_connection(connection);
+	int64_t current_threadid = target->rtos->current_threadid;
+	if ((target->rtos != NULL) &&
+			(target->rtos->type->set_reg != NULL) &&
+			(current_threadid != -1) &&
+			(current_threadid != 0)) {
+		return target->rtos->type->set_reg(target->rtos, reg_num, reg_value);
 	}
 	return ERROR_FAIL;
 }

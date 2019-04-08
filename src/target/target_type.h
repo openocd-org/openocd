@@ -111,6 +111,13 @@ struct target_type {
 	int (*get_gdb_reg_list)(struct target *target, struct reg **reg_list[],
 			int *reg_list_size, enum target_register_class reg_class);
 
+	/**
+	 * Same as get_gdb_reg_list, but doesn't read the register values.
+	 * */
+	int (*get_gdb_reg_list_noread)(struct target *target,
+			struct reg **reg_list[], int *reg_list_size,
+			enum target_register_class reg_class);
+
 	/* target memory access
 	* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 	* count: number of items of <size>

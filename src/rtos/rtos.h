@@ -20,6 +20,7 @@
 #define OPENOCD_RTOS_RTOS_H
 
 #include "server/server.h"
+#include "target/target.h"
 #include <jim-nvp.h>
 
 typedef int64_t threadid_t;
@@ -49,7 +50,9 @@ struct rtos {
 	symbol_table_elem_t *symbols;
 	struct target *target;
 	/*  add a context variable instead of global variable */
+	/* The thread currently selected by gdb. */
 	int64_t current_threadid;
+	/* The currently selected thread according to the target. */
 	threadid_t current_thread;
 	struct thread_detail *thread_details;
 	int thread_count;
@@ -70,11 +73,15 @@ struct rtos_type {
 	int (*create)(struct target *target);
 	int (*smp_init)(struct target *target);
 	int (*update_threads)(struct rtos *rtos);
+	/** Return a list of general registers, with their values filled out. */
 	int (*get_thread_reg_list)(struct rtos *rtos, int64_t thread_id,
 			struct rtos_reg **reg_list, int *num_regs);
+	int (*get_thread_reg)(struct rtos *rtos, int64_t thread_id,
+			uint32_t reg_num, struct rtos_reg *reg);
 	int (*get_symbol_list_to_lookup)(symbol_table_elem_t *symbol_list[]);
 	int (*clean)(struct target *target);
 	char * (*ps_command)(struct target *target);
+	int (*set_reg)(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
 };
 
 struct stack_register_offset {
@@ -104,6 +111,8 @@ struct rtos_register_stacking {
 #define GDB_THREAD_PACKET_NOT_CONSUMED (-40)
 
 int rtos_create(Jim_GetOptInfo *goi, struct target *target);
+int rtos_set_reg(struct connection *connection, int reg_num,
+		uint8_t *reg_value);
 int rtos_generic_stack_read(struct target *target,
 		const struct rtos_register_stacking *stacking,
 		int64_t stack_ptr,

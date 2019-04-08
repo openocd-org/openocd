@@ -1215,7 +1215,24 @@ int target_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class)
 {
-	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
+	int result = target->type->get_gdb_reg_list(target, reg_list,
+			reg_list_size, reg_class);
+	if (result != ERROR_OK) {
+		*reg_list = NULL;
+		*reg_list_size = 0;
+	}
+	return result;
+}
+
+int target_get_gdb_reg_list_noread(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class)
+{
+	if (target->type->get_gdb_reg_list_noread &&
+			target->type->get_gdb_reg_list_noread(target, reg_list,
+				reg_list_size, reg_class) == ERROR_OK)
+		return ERROR_OK;
+	return target_get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
 }
 
 bool target_supports_gdb_connection(struct target *target)
@@ -1587,8 +1604,9 @@ int target_call_event_callbacks(struct target *target, enum target_event event)
 		target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 	}
 
-	LOG_DEBUG("target event %i (%s)", event,
-			Jim_Nvp_value2name_simple(nvp_target_event, event)->name);
+	LOG_DEBUG("target event %i (%s) for core %s", event,
+			Jim_Nvp_value2name_simple(nvp_target_event, event)->name,
+			target_name(target));
 
 	target_handle_event(target, event);
 
