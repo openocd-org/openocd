@@ -744,13 +744,14 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 		}
 	}
 
-	dmi_write_exec(target, DMI_COMMAND, command);
+	if (dmi_write_exec(target, DMI_COMMAND, command) != ERROR_OK)
+		return ERROR_FAIL;
 
 	uint32_t abstractcs = 0;
-	wait_for_idle(target, &abstractcs);
+	int result = wait_for_idle(target, &abstractcs);
 
 	info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
-	if (info->cmderr != 0) {
+	if (info->cmderr != 0 || result != ERROR_OK) {
 		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, abstractcs);
 		/* Clear the error. */
 		dmi_write(target, DMI_ABSTRACTCS, set_field(0, DMI_ABSTRACTCS_CMDERR,
