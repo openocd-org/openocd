@@ -307,23 +307,21 @@ static int armv7a_read_mpidr(struct target *target)
 	if (retval != ERROR_OK)
 		goto done;
 
-	/* ARMv7R uses a different format for MPIDR.
-	 * When configured uniprocessor (most R cores) it reads as 0.
-	 * This will need to be implemented for multiprocessor ARMv7R cores. */
-	if (armv7a->is_armv7r) {
-		if (mpidr)
-			LOG_ERROR("MPIDR nonzero in ARMv7-R target");
-		goto done;
-	}
-
-	if (mpidr & 1<<31) {
+	/* Is register in Multiprocessing Extensions register format? */
+	if (mpidr & MPIDR_MP_EXT) {
+		LOG_DEBUG("%s: MPIDR 0x%" PRIx32, target_name(target), mpidr);
 		armv7a->multi_processor_system = (mpidr >> 30) & 1;
+		armv7a->multi_threading_processor = (mpidr >> 24) & 1;
+		armv7a->level2_id = (mpidr >> 16) & 0xf;
 		armv7a->cluster_id = (mpidr >> 8) & 0xf;
-		armv7a->cpu_id = mpidr & 0x3;
-		LOG_INFO("%s cluster %x core %x %s", target_name(target),
+		armv7a->cpu_id = mpidr & 0xf;
+		LOG_INFO("%s: MPIDR level2 %x, cluster %x, core %x, %s, %s",
+			target_name(target),
+			armv7a->level2_id,
 			armv7a->cluster_id,
 			armv7a->cpu_id,
-			armv7a->multi_processor_system == 0 ? "multi core" : "mono core");
+			armv7a->multi_processor_system == 0 ? "multi core" : "mono core",
+			armv7a->multi_threading_processor == 1 ? "SMT" : "no SMT");
 
 	} else
 		LOG_ERROR("MPIDR not in multiprocessor format");
