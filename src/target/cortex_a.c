@@ -2718,6 +2718,10 @@ static int cortex_a_examine_first(struct target *target)
 	} else
 		armv7a->debug_base = target->dbgbase;
 
+	if ((armv7a->debug_base & (1UL<<31)) == 0)
+		LOG_WARNING("Debug base address for target %s has bit 31 set to 0. Access to debug registers will likely fail!\n"
+			    "Please fix the target configuration.", target_name(target));
+
 	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DIDR, &didr);
 	if (retval != ERROR_OK) {
