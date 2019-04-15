@@ -1206,6 +1206,8 @@ static int cortex_a_step(struct target *target, int current, target_addr_t addre
 		retval = cortex_a_poll(target);
 		if (retval != ERROR_OK)
 			return retval;
+		if (target->state == TARGET_HALTED)
+			break;
 		if (timeval_ms() > then + 1000) {
 			LOG_ERROR("timeout waiting for target halt");
 			return ERROR_FAIL;
