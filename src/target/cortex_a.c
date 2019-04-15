@@ -1765,14 +1765,22 @@ static int cortex_a_wait_dscr_bits(struct target *target, uint32_t mask,
 {
 	/* Waits until the specified bit(s) of DSCR take on a specified value. */
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	int64_t then = timeval_ms();
+	int64_t then;
 	int retval;
 
-	while ((*dscr & mask) != value) {
+	if ((*dscr & mask) == value)
+		return ERROR_OK;
+
+	then = timeval_ms();
+	while (1) {
 		retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 				armv7a->debug_base + CPUDBG_DSCR, dscr);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Could not read DSCR register");
 			return retval;
+		}
+		if ((*dscr & mask) == value)
+			break;
 		if (timeval_ms() > then + 1000) {
 			LOG_ERROR("timeout waiting for DSCR bit change");
 			return ERROR_FAIL;
