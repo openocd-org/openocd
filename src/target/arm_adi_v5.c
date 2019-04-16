@@ -1745,7 +1745,7 @@ COMMAND_HANDLER(dap_apcsw_command)
 		return ERROR_OK;
 	case 1:
 		if (strcmp(CMD_ARGV[0], "default") == 0)
-			csw_val = CSW_DEFAULT;
+			csw_val = CSW_AHB_DEFAULT;
 		else
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], csw_val);
 
