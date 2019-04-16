@@ -67,7 +67,7 @@ struct target_desc_format {
 
 /* private connection data for GDB */
 struct gdb_connection {
-	char buffer[GDB_BUFFER_SIZE];
+	char buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for nul-termination */
 	char *buf_p;
 	int buf_cnt;
 	int ctrl_c;
@@ -1407,8 +1407,6 @@ static int gdb_error(struct connection *connection, int retval)
 
 /* We don't have to worry about the default 2 second timeout for GDB packets,
  * because GDB breaks up large memory reads into smaller reads.
- *
- * 8191 bytes by the looks of it. Why 8191 bytes instead of 8192?????
  */
 static int gdb_read_memory_packet(struct connection *connection,
 		char const *packet, int packet_size)
@@ -2614,7 +2612,7 @@ static int gdb_query_packet(struct connection *connection,
 			&pos,
 			&size,
 			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+;vContSupported+",
-			(GDB_BUFFER_SIZE - 1),
+			GDB_BUFFER_SIZE,
 			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-',
 			(gdb_target_desc_supported == 1) ? '+' : '-');
 
@@ -3117,7 +3115,7 @@ static void gdb_sig_halted(struct connection *connection)
 static int gdb_input_inner(struct connection *connection)
 {
 	/* Do not allocate this on the stack */
-	static char gdb_packet_buffer[GDB_BUFFER_SIZE];
+	static char gdb_packet_buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for nul-termination */
 
 	struct target *target;
 	char const *packet = gdb_packet_buffer;
@@ -3140,7 +3138,7 @@ static int gdb_input_inner(struct connection *connection)
 	 * drain the rest of the buffer.
 	 */
 	do {
-		packet_size = GDB_BUFFER_SIZE-1;
+		packet_size = GDB_BUFFER_SIZE;
 		retval = gdb_get_packet(connection, gdb_packet_buffer, &packet_size);
 		if (retval != ERROR_OK)
 			return retval;
