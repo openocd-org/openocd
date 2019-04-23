@@ -170,6 +170,44 @@ struct scan_field select_idcode = {
 	.out_value = ir_idcode
 };
 
+
+int bscan_tunnel_ir_width; /* if zero, then tunneling is not present/active */
+uint8_t bscan_zero[4] = {0};
+uint8_t bscan_one[4] = {1};
+
+uint8_t ir_user4[4] = {0x23};
+struct scan_field select_user4 = {
+	.in_value = NULL,
+	.out_value = ir_user4
+};
+
+
+uint8_t bscan_tunneled_ir_width[4] = {5};  /* overridden by assignment in riscv_init_target */
+struct scan_field _bscan_tunneled_select_dmi[] = {
+		{
+			.num_bits = 1,
+			.out_value = bscan_zero,
+			.in_value = NULL,
+		},
+		{
+			.num_bits = 7,
+			.out_value = bscan_tunneled_ir_width,
+			.in_value = NULL,
+		},
+		{
+			.num_bits = 0, /* initialized in riscv_init_target to ir width of DM */
+			.out_value = ir_dbus,
+			.in_value = NULL,
+		},
+		{
+			.num_bits = 3,
+			.out_value = bscan_zero,
+			.in_value = NULL,
+		}
+};
+struct scan_field *bscan_tunneled_select_dmi = _bscan_tunneled_select_dmi;
+uint32_t bscan_tunneled_select_dmi_num_fields = DIM(_bscan_tunneled_select_dmi);
+
 struct trigger {
 	uint64_t address;
 	uint32_t length;
@@ -201,11 +239,100 @@ range_t *expose_custom;
 
 static int riscv_resume_go_all_harts(struct target *target);
 
+void select_dmi_via_bscan(struct target *target)
+{
+	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
+	jtag_add_dr_scan(target->tap, bscan_tunneled_select_dmi_num_fields, bscan_tunneled_select_dmi, TAP_IDLE);
+}
+
+
+uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
+{
+	/* On BSCAN TAP: Select IR=USER4, issue tunneled IR scan via BSCAN TAP's DR */
+	uint8_t tunneled_ir_width[4] = {bscan_tunnel_ir_width};
+	uint8_t tunneled_dr_width[4] = {32};
+	uint8_t out_value[5] = {0};
+	uint8_t in_value[5] = {0};
+
+	buf_set_u32(out_value, 0, 32, out);
+
+	struct scan_field tunneled_ir[] = {
+		{
+			.num_bits = 1,
+			.out_value = bscan_zero,
+			.in_value = NULL,
+		},
+		{
+			.num_bits = 7,
+			.out_value = tunneled_ir_width,
+			.in_value = NULL,
+		},
+		{
+			.num_bits = bscan_tunnel_ir_width,
+			.out_value = ir_dtmcontrol,
+			.in_value = NULL,
+		},
+		{
+			.num_bits = 3,
+			.out_value = bscan_zero,
+			.in_value = NULL,
+		}
+	};
+	struct scan_field tunneled_dr[] = {
+		{
+			.num_bits = 1,
+			.out_value = bscan_one,
+			.in_value = NULL,
+		},
+		{
+			.num_bits = 7,
+			.out_value = tunneled_dr_width,
+			.in_value = NULL,
+		},
+		/* for BSCAN tunnel, there is a one-TCK skew between shift in and shift out,
+		   so scanning 33 bits and then right shifting the in_value after the scan is completed */
+		{
+			.num_bits = 32+1,
+			.out_value = out_value,
+			.in_value = in_value,
+		},
+		{
+			.num_bits = 3,
+			.out_value = bscan_zero,
+			.in_value = NULL,
+		}
+	};
+
+	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
+	jtag_add_dr_scan(target->tap, DIM(tunneled_ir), tunneled_ir, TAP_IDLE);
+	jtag_add_dr_scan(target->tap, DIM(tunneled_dr), tunneled_dr, TAP_IDLE);
+	select_dmi_via_bscan(target);
+
+	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		LOG_ERROR("failed jtag scan: %d", retval);
+		return retval;
+	}
+
+	/* Note the starting offset is bit 1, not bit 0.  In BSCAN tunnel, there is a one-bit TCK skew between
+	   output and input */
+	uint32_t in = buf_get_u32(in_value, 1, 32);
+	LOG_DEBUG("DTMCS: 0x%x -> 0x%x", out, in);
+
+	return in;
+}
+
+
+
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
 	uint8_t in_value[4];
 	uint8_t out_value[4];
+
+	if (bscan_tunnel_ir_width != 0)
+		return dtmcontrol_scan_via_bscan(target, out);
+
 
 	buf_set_u32(out_value, 0, 32, out);
 
@@ -265,6 +392,12 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	select_dtmcontrol.num_bits = target->tap->ir_length;
 	select_dbus.num_bits = target->tap->ir_length;
 	select_idcode.num_bits = target->tap->ir_length;
+
+	if (bscan_tunnel_ir_width != 0) {
+		select_user4.num_bits = target->tap->ir_length;
+		bscan_tunneled_ir_width[0] = bscan_tunnel_ir_width;
+		bscan_tunneled_select_dmi[2].num_bits = bscan_tunnel_ir_width;
+	}
 
 	riscv_semihosting_init(target);
 
@@ -1827,6 +1960,23 @@ COMMAND_HANDLER(riscv_set_ir)
 	}
 }
 
+COMMAND_HANDLER(riscv_use_bscan_tunnel)
+{
+	int irwidth = 0;
+
+	if (CMD_ARGC > 1) {
+		LOG_ERROR("Command takes at most one argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (CMD_ARGC == 1)
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], irwidth);
+
+	bscan_tunnel_ir_width = irwidth;
+	return ERROR_OK;
+}
+
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
@@ -1932,6 +2082,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_ir_idcode [idcode|dtmcs|dmi] value",
 		.help = "Set IR value for specified JTAG register."
+	},
+	{
+		.name = "use_bscan_tunnel",
+		.handler = riscv_use_bscan_tunnel,
+		.mode = COMMAND_ANY,
+		.usage = "riscv use_bscan_tunnel value",
+		.help = "Enable or disable use of a BSCAN tunnel to reach DM.  Supply "
+			"the width of the DM transport TAP's instruction register to "
+			"enable.  Supply a value of 0 to disable."
 	},
 	COMMAND_REGISTRATION_DONE
 };

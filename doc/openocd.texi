@@ -9502,6 +9502,11 @@ When utilizing version 0.11 of the RISC-V Debug Specification,
 and DBUS registers, respectively.
 @end deffn
 
+@deffn Command {riscv use_bscan_tunnel} value
+Enable or disable use of a BSCAN tunnel to reach DM.  Supply the width of
+the DM transport TAP's instruction register to enable.  Supply a value of 0 to disable.
+@end deffn
+
 @subsection RISC-V Authentication Commands
 
 The following commands can be used to authenticate to a RISC-V system. Eg.  a
