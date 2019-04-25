@@ -2895,6 +2895,7 @@ static void xscale_build_reg_cache(struct target *target)
 		(*cache_p)->reg_list[i].size = 32;
 		(*cache_p)->reg_list[i].arch_info = &arch_info[i];
 		(*cache_p)->reg_list[i].type = &xscale_reg_type;
+		(*cache_p)->reg_list[i].exist = true;
 		arch_info[i] = xscale_reg_arch_info[i];
 		arch_info[i].target = target;
 	}
