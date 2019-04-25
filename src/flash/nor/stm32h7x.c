@@ -362,26 +362,26 @@ static int stm32x_write_options(struct flash_bank *bank)
 
 	/* program options */
 	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTPRG, optiondata);
-		if (retval != ERROR_OK)
-			return retval;
+	if (retval != ERROR_OK)
+		return retval;
 
 	optiondata = stm32x_info->option_bytes.protection & 0xff;
 	/* Program protection WPSNPRG */
 	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_WPSNPRG, optiondata);
-		if (retval != ERROR_OK)
-			return retval;
+	if (retval != ERROR_OK)
+		return retval;
 
 	optiondata = stm32x_info->option_bytes.protection2 & 0xff;
 	/* Program protection WPSNPRG2 */
 	retval = target_write_u32(target, FLASH_REG_BASE_B1 + FLASH_WPSNPRG, optiondata);
-		if (retval != ERROR_OK)
-			return retval;
+	if (retval != ERROR_OK)
+		return retval;
 
 	optiondata = 0x40000000;
 	/* Remove OPT error flag before programming */
 	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTCCR, optiondata);
-		if (retval != ERROR_OK)
-			return retval;
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* start programming cycle */
 	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTCR, OPT_START);
