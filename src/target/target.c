@@ -4893,6 +4893,12 @@ no_params:
 
 		case TCFG_GDB_PORT:
 			if (goi->isconfigure) {
+				struct command_context *cmd_ctx = current_command_context(goi->interp);
+				if (cmd_ctx->mode != COMMAND_CONFIG) {
+					Jim_SetResultString(goi->interp, "-gdb-port must be configured before 'init'", -1);
+					return JIM_ERR;
+				}
+
 				const char *s;
 				e = Jim_GetOpt_String(goi, &s, NULL);
 				if (e != JIM_OK)
@@ -5194,7 +5200,7 @@ static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const 
 static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "configure",
-		.mode = COMMAND_CONFIG,
+		.mode = COMMAND_ANY,
 		.jim_handler = jim_target_configure,
 		.help  = "configure a new target for use",
 		.usage = "[target_attribute ...]",
