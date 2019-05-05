@@ -375,12 +375,6 @@ uint16_t target_buffer_get_u16(struct target *target, const uint8_t *buffer)
 		return be_to_h_u16(buffer);
 }
 
-/* read a uint8_t from a buffer in target memory endianness */
-static __attribute__((unused)) uint8_t target_buffer_get_u8(struct target *target, const uint8_t *buffer)
-{
-	return *buffer & 0x0ff;
-}
-
 /* write a uint64_t to a buffer in target memory endianness */
 void target_buffer_set_u64(struct target *target, uint8_t *buffer, uint64_t value)
 {
