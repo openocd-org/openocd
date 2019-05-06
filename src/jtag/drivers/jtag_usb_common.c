@@ -37,13 +37,13 @@ const char *jtag_usb_get_location(void)
 bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 			     size_t path_len)
 {
-	size_t path_step, string_lengh;
+	size_t path_step, string_length;
 	char *ptr, *loc;
 	bool equal = false;
 
 	/* strtok need non const char */
 	loc = strndup(jtag_usb_get_location(), JTAG_USB_MAX_LOCATION_LENGHT);
-	string_lengh = strnlen(loc, JTAG_USB_MAX_LOCATION_LENGHT);
+	string_length = strnlen(loc, JTAG_USB_MAX_LOCATION_LENGHT);
 
 	ptr = strtok(loc, "-");
 	if (ptr == NULL) {
@@ -51,7 +51,7 @@ bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 		goto done;
 	}
 
-	string_lengh -= 1;
+	string_length -= 1;
 	/* check bus mismatch */
 	if (atoi(ptr) != dev_bus)
 		goto done;
@@ -69,11 +69,11 @@ bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 			break;
 
 		path_step++;
-		string_lengh -= 2;
+		string_length -= 2;
 	};
 
 	/* walked the full path, all elements match */
-	if (path_step == path_len && !string_lengh)
+	if (path_step == path_len && !string_length)
 		equal = true;
 
 done:
