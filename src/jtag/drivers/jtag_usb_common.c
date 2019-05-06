@@ -75,9 +75,6 @@ bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 	/* walked the full path, all elements match */
 	if (path_step == path_len && !string_lengh)
 		equal = true;
-	else
-		LOG_WARNING("excluded by device path option: %s\n",
-			    jtag_usb_get_location());
 
 done:
 	free(loc);
