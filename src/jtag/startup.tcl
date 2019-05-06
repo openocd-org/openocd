@@ -34,16 +34,16 @@ proc init_reset { mode } {
 proc power_restore {} {
 	echo "Sensed power restore, running reset init and halting GDB."
 	reset init
-	
+
 	# Halt GDB so user can deal with a detected power restore.
 	#
 	# After GDB is halted, then output is no longer forwarded
 	# to the GDB console.
-	set targets [target names]	
+	set targets [target names]
 	foreach t $targets {
 		# New event script.
 		$t invoke-event arp_halt_gdb
-	}	
+	}
 }
 
 add_help_text power_restore "Overridable procedure run when power restore is detected. Runs 'reset init' by default."
@@ -65,11 +65,11 @@ proc srst_deasserted {} {
 	#
 	# After GDB is halted, then output is no longer forwarded
 	# to the GDB console.
-	set targets [target names]	
+	set targets [target names]
 	foreach t $targets {
 		# New event script.
 		$t invoke-event arp_halt_gdb
-	}		
+	}
 }
 
 add_help_text srst_deasserted "Overridable procedure run when srst deassert is detected. Runs 'reset init' by default."
