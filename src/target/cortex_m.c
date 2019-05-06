@@ -919,7 +919,7 @@ static int cortex_m_step(struct target *target, int current,
 	 * a normal step, otherwise we have to manually step over the bkpt
 	 * instruction - as such simulate a step */
 	if (bkpt_inst_found == false) {
-		if ((cortex_m->isrmasking_mode != CORTEX_M_ISRMASK_AUTO)) {
+		if (cortex_m->isrmasking_mode != CORTEX_M_ISRMASK_AUTO) {
 			/* Automatic ISR masking mode off: Just step over the next
 			 * instruction, with interrupts on or off as appropriate. */
 			cortex_m_set_maskints_for_step(target);

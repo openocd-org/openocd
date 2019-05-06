@@ -356,7 +356,7 @@ static int stm8_set_hwbreak(struct target *target,
 
 	if ((comparator_list[0].type != HWBRK_EXEC)
 			&& (comparator_list[1].type != HWBRK_EXEC)) {
-		if ((comparator_list[0].type != comparator_list[1].type)) {
+		if (comparator_list[0].type != comparator_list[1].type) {
 			LOG_ERROR("data hw breakpoints must be of same type");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
