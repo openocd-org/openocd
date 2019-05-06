@@ -1663,7 +1663,7 @@ static int numicro_get_cpu_type(struct target *target, const struct numicro_cpu_
 
 	LOG_INFO("Device ID: 0x%08" PRIx32 "", part_id);
 	/* search part numbers */
-	for (size_t i = 0; i < sizeof(NuMicroParts)/sizeof(NuMicroParts[0]); i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(NuMicroParts); i++) {
 		if (part_id == NuMicroParts[i].partid) {
 			*cpu = &NuMicroParts[i];
 			LOG_INFO("Device Name: %s", (*cpu)->partname);

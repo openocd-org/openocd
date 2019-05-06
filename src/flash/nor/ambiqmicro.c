@@ -253,8 +253,7 @@ static int ambiqmicro_read_part_info(struct flash_bank *bank)
 
 	}
 
-	if (ambiqmicro_info->target_class <
-		(sizeof(ambiqmicroParts)/sizeof(ambiqmicroParts[0])))
+	if (ambiqmicro_info->target_class < ARRAY_SIZE(ambiqmicroParts))
 		ambiqmicro_info->target_name =
 			ambiqmicroParts[ambiqmicro_info->target_class].partname;
 	else

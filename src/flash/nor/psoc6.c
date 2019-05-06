@@ -108,7 +108,7 @@ static const struct row_region safe_sflash_regions[] = {
 	{0x16007C00, 0x400},	/* SFLASH: TOC2 */
 };
 
-#define SFLASH_NUM_REGIONS (sizeof(safe_sflash_regions) / sizeof(safe_sflash_regions[0]))
+#define SFLASH_NUM_REGIONS ARRAY_SIZE(safe_sflash_regions)
 
 static struct working_area *g_stack_area;
 static struct armv7m_algorithm g_armv7m_info;

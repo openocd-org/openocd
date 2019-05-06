@@ -48,7 +48,7 @@ uint8_t usbtoxxx_abilities[USB_TO_XXX_ABILITIES_LEN];
 
 #define usbtoxxx_get_type_name(type)	\
 	types_name[((type) - VERSALOON_USB_TO_XXX_CMD_START) \
-		   % (sizeof(types_name) / sizeof(types_name[0]))]
+		   % ARRAY_SIZE(types_name)]
 
 static uint8_t type_pre;
 static uint16_t usbtoxxx_buffer_index;
