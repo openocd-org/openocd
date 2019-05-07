@@ -476,8 +476,8 @@ static const struct command_registration adapter_usb_command_handlers[] = {
 		.name = "location",
 		.handler = &handle_usb_location_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the USB bus location of the USB device",
-		.usage = "<bus>-port[.port]...",
+		.help = "display or set the USB bus location of the USB device",
+		.usage = "[<bus>-port[.port]...]",
 	},
 #endif /* HAVE_LIBUSB_GET_PORT_NUMBERS */
 	COMMAND_REGISTRATION_DONE
