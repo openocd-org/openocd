@@ -127,6 +127,7 @@
 #define DFSR_BKPT			2
 #define DFSR_DWTTRAP		4
 #define DFSR_VCATCH			8
+#define DFSR_EXTERNAL		16
 
 #define FPCR_CODE 0
 #define FPCR_LITERAL 1

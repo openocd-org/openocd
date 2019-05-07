@@ -392,7 +392,9 @@ static int cortex_m_examine_debug_reason(struct target *target)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 		else if (cortex_m->nvic_dfsr & DFSR_VCATCH)
 			target->debug_reason = DBG_REASON_BREAKPOINT;
-		else	/* EXTERNAL, HALTED */
+		else if (cortex_m->nvic_dfsr & DFSR_EXTERNAL)
+			target->debug_reason = DBG_REASON_DBGRQ;
+		else	/* HALTED */
 			target->debug_reason = DBG_REASON_UNDEFINED;
 	}
 
