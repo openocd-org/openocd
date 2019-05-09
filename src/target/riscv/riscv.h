@@ -99,6 +99,8 @@ typedef struct {
 
 	/* This target has been prepped and is ready to step/resume. */
 	bool prepped;
+	/* This target was selected using hasel. */
+	bool selected;
 
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
@@ -108,7 +110,6 @@ typedef struct {
 			uint64_t value);
 	int (*select_current_hart)(struct target *);
 	bool (*is_halted)(struct target *target);
-	int (*halt_current_hart)(struct target *);
 	/* Resume this target, as well as every other prepped target that can be
 	 * resumed near-simultaneously. Clear the prepped flag on any target that
 	 * was resumed. */
@@ -118,6 +119,8 @@ typedef struct {
 	/* Get this target as ready as possible to resume, without actually
 	 * resuming. */
 	int (*resume_prep)(struct target *target);
+	int (*halt_prep)(struct target *target);
+	int (*halt_go)(struct target *target);
 	int (*on_step)(struct target *target);
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
 	int (*write_debug_buffer)(struct target *target, unsigned index,
@@ -179,7 +182,7 @@ void select_dmi_via_bscan(struct target *target);
 /*** OpenOCD Interface */
 int riscv_openocd_poll(struct target *target);
 
-int riscv_openocd_halt(struct target *target);
+int riscv_halt(struct target *target);
 
 int riscv_resume(
 	struct target *target,
@@ -203,12 +206,6 @@ int riscv_openocd_deassert_reset(struct target *target);
 
 /* Initializes the shared RISC-V structure. */
 void riscv_info_init(struct target *target, riscv_info_t *r);
-
-/* Run control, possibly for multiple harts.  The _all_harts versions resume
- * all the enabled harts, which when running in RTOS mode is all the harts on
- * the system. */
-int riscv_halt_all_harts(struct target *target);
-int riscv_halt_one_hart(struct target *target, int hartid);
 
 /* Steps the hart that's currently selected in the RTOS, or if there is no RTOS
  * then the only hart. */

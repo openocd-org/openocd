@@ -41,7 +41,8 @@ static int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, int hid, int rid);
 static int riscv013_set_register(struct target *target, int hartid, int regid, uint64_t value);
 static int riscv013_select_current_hart(struct target *target);
-static int riscv013_halt_current_hart(struct target *target);
+static int riscv013_halt_prep(struct target *target);
+static int riscv013_halt_go(struct target *target);
 static int riscv013_resume_go(struct target *target);
 static int riscv013_step_current_hart(struct target *target);
 static int riscv013_on_halt(struct target *target);
@@ -1586,7 +1587,7 @@ static int examine(struct target *target)
 
 		bool halted = riscv_is_halted(target);
 		if (!halted) {
-			if (riscv013_halt_current_hart(target) != ERROR_OK) {
+			if (riscv013_halt_go(target) != ERROR_OK) {
 				LOG_ERROR("Fatal: Hart %d failed to halt during examine()", i);
 				return ERROR_FAIL;
 			}
@@ -1701,11 +1702,12 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->set_register = &riscv013_set_register;
 	generic_info->select_current_hart = &riscv013_select_current_hart;
 	generic_info->is_halted = &riscv013_is_halted;
-	generic_info->halt_current_hart = &riscv013_halt_current_hart;
 	generic_info->resume_go = &riscv013_resume_go;
 	generic_info->step_current_hart = &riscv013_step_current_hart;
 	generic_info->on_halt = &riscv013_on_halt;
 	generic_info->resume_prep = &riscv013_resume_prep;
+	generic_info->halt_prep = &riscv013_halt_prep;
+	generic_info->halt_go = &riscv013_halt_go;
 	generic_info->on_step = &riscv013_on_step;
 	generic_info->halt_reason = &riscv013_halt_reason;
 	generic_info->read_debug_buffer = &riscv013_read_debug_buffer;
@@ -2897,7 +2899,7 @@ struct target_type riscv013_target = {
 	.examine = examine,
 
 	.poll = &riscv_openocd_poll,
-	.halt = &riscv_openocd_halt,
+	.halt = &riscv_halt,
 	.resume = &riscv_resume,
 	.step = &riscv_openocd_step,
 
@@ -2985,42 +2987,6 @@ static int riscv013_select_current_hart(struct target *target)
 	return result;
 }
 
-static int riscv013_halt_current_hart(struct target *target)
-{
-	RISCV_INFO(r);
-	LOG_DEBUG("halting hart %d", r->current_hartid);
-	if (riscv_is_halted(target))
-		LOG_ERROR("Hart %d is already halted!", r->current_hartid);
-
-	/* Issue the halt command, and then wait for the current hart to halt. */
-	uint32_t dmcontrol;
-	if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
-		return ERROR_FAIL;
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 1);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
-	for (size_t i = 0; i < 256; ++i)
-		if (riscv_is_halted(target))
-			break;
-
-	if (!riscv_is_halted(target)) {
-		uint32_t dmstatus;
-		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-			return ERROR_FAIL;
-		if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
-			return ERROR_FAIL;
-
-		LOG_ERROR("unable to halt hart %d", r->current_hartid);
-		LOG_ERROR("  dmcontrol=0x%08x", dmcontrol);
-		LOG_ERROR("  dmstatus =0x%08x", dmstatus);
-		return ERROR_FAIL;
-	}
-
-	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 0);
-	dmi_write(target, DMI_DMCONTROL, dmcontrol);
-
-	return ERROR_OK;
-}
-
 /* Select all harts that were prepped and that are selectable, clearing the
  * prepped flag on the harts that actually were selected. */
 static int select_prepped_harts(struct target *target, bool *use_hasel)
@@ -3047,6 +3013,7 @@ static int select_prepped_harts(struct target *target, bool *use_hasel)
 		riscv013_info_t *info = get_info(t);
 		unsigned index = info->index;
 		LOG_DEBUG("index=%d, coreid=%d, prepped=%d", index, t->coreid, r->prepped);
+		r->selected = r->prepped;
 		if (r->prepped) {
 			hawindow[index / 32] |= 1 << (index % 32);
 			r->prepped = false;
@@ -3069,6 +3036,63 @@ static int select_prepped_harts(struct target *target, bool *use_hasel)
 	}
 
 	*use_hasel = true;
+	return ERROR_OK;
+}
+
+static int riscv013_halt_prep(struct target *target)
+{
+	return ERROR_OK;
+}
+
+static int riscv013_halt_go(struct target *target)
+{
+	bool use_hasel = false;
+	if (!riscv_rtos_enabled(target)) {
+		if (select_prepped_harts(target, &use_hasel) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	RISCV_INFO(r);
+	LOG_DEBUG("halting hart %d", r->current_hartid);
+
+	/* Issue the halt command, and then wait for the current hart to halt. */
+	uint32_t dmcontrol = DMI_DMCONTROL_DMACTIVE | DMI_DMCONTROL_HALTREQ;
+	if (use_hasel)
+		dmcontrol |= DMI_DMCONTROL_HASEL;
+	dmcontrol = set_hartsel(dmcontrol, r->current_hartid);
+	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+	for (size_t i = 0; i < 256; ++i)
+		if (riscv_is_halted(target))
+			break;
+
+	if (!riscv_is_halted(target)) {
+		uint32_t dmstatus;
+		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+			return ERROR_FAIL;
+		if (dmi_read(target, &dmcontrol, DMI_DMCONTROL) != ERROR_OK)
+			return ERROR_FAIL;
+
+		LOG_ERROR("unable to halt hart %d", r->current_hartid);
+		LOG_ERROR("  dmcontrol=0x%08x", dmcontrol);
+		LOG_ERROR("  dmstatus =0x%08x", dmstatus);
+		return ERROR_FAIL;
+	}
+
+	dmcontrol = set_field(dmcontrol, DMI_DMCONTROL_HALTREQ, 0);
+	dmi_write(target, DMI_DMCONTROL, dmcontrol);
+
+	if (use_hasel) {
+		target_list_t *entry;
+		dm013_info_t *dm = get_dm(target);
+		list_for_each_entry(entry, &dm->target_list, list) {
+			struct target *t = entry->target;
+			t->state = TARGET_HALTED;
+			if (t->debug_reason == DBG_REASON_NOTHALTED)
+				t->debug_reason = DBG_REASON_DBGRQ;
+		}
+	}
+	/* The "else" case is handled in halt_go(). */
+
 	return ERROR_OK;
 }
 
@@ -3634,7 +3658,7 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 
 	if (step) {
 		LOG_ERROR("  was stepping, halting");
-		riscv013_halt_current_hart(target);
+		riscv_halt(target);
 		return ERROR_OK;
 	}
 
@@ -3731,7 +3755,7 @@ int riscv013_test_compliance(struct target *target)
 	/* TODO: test that hamask registers exist if hasel does. */
 
 	/* haltreq */
-	COMPLIANCE_MUST_PASS(riscv_halt_all_harts(target));
+	COMPLIANCE_MUST_PASS(riscv_halt(target));
 	/* This bit is not actually readable according to the spec, so nothing to check.*/
 
 	/* DMSTATUS */
@@ -3742,7 +3766,7 @@ int riscv013_test_compliance(struct target *target)
 	COMPLIANCE_MUST_PASS(riscv_resume(target, true, 0, false, false));
 
 	/* Halt all harts again so the test can continue.*/
-	COMPLIANCE_MUST_PASS(riscv_halt_all_harts(target));
+	COMPLIANCE_MUST_PASS(riscv_halt(target));
 
 	/* HARTINFO: Read-Only. This is per-hart, so need to adjust hartsel. */
 	uint32_t hartinfo;
@@ -4107,7 +4131,7 @@ int riscv013_test_compliance(struct target *target)
 	*/
 
 	/* Halt every hart for any follow-up tests*/
-	COMPLIANCE_MUST_PASS(riscv_halt_all_harts(target));
+	COMPLIANCE_MUST_PASS(riscv_halt(target));
 
 	uint32_t failed_tests = total_tests - passed_tests;
 	if (total_tests == passed_tests) {

@@ -431,12 +431,6 @@ static void riscv_deinit_target(struct target *target)
 	target->arch_info = NULL;
 }
 
-static int oldriscv_halt(struct target *target)
-{
-	struct target_type *tt = get_target_type(target);
-	return tt->halt(target);
-}
-
 static void trigger_from_breakpoint(struct trigger *trigger,
 		const struct breakpoint *breakpoint)
 {
@@ -820,6 +814,8 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoi
 {
 	struct watchpoint *wp = target->watchpoints;
 
+	if (riscv_rtos_enabled(target))
+		riscv_set_current_hartid(target, target->rtos->current_thread - 1);
 	LOG_DEBUG("Current hartid = %d", riscv_current_hartid(target));
 
 	/*TODO instead of disassembling the instruction that we think caused the
@@ -957,13 +953,124 @@ static int old_or_new_riscv_poll(struct target *target)
 		return riscv_openocd_poll(target);
 }
 
-static int old_or_new_riscv_halt(struct target *target)
+int halt_prep(struct target *target)
 {
 	RISCV_INFO(r);
-	if (r->is_halted == NULL)
-		return oldriscv_halt(target);
-	else
-		return riscv_openocd_halt(target);
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
+		LOG_DEBUG("prep hart %d", i);
+		if (riscv_set_current_hartid(target, i) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_is_halted(target)) {
+			LOG_DEBUG("Hart %d is already halted.", i);
+		} else {
+			if (r->halt_prep(target) != ERROR_OK)
+				return ERROR_FAIL;
+			r->prepped = true;
+		}
+	}
+	return ERROR_OK;
+}
+
+int riscv_halt_go_all_harts(struct target *target)
+{
+	RISCV_INFO(r);
+	for (int i = 0; i < riscv_count_harts(target); ++i) {
+		if (!riscv_hart_enabled(target, i))
+			continue;
+
+		if (riscv_set_current_hartid(target, i) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_is_halted(target)) {
+			LOG_DEBUG("Hart %d is already halted.", i);
+		} else {
+			if (r->halt_go(target) != ERROR_OK)
+				return ERROR_FAIL;
+		}
+	}
+
+	riscv_invalidate_register_cache(target);
+
+	return ERROR_OK;
+}
+
+int halt_go(struct target *target)
+{
+	riscv_info_t *r = riscv_info(target);
+	int result;
+	if (r->is_halted == NULL) {
+		struct target_type *tt = get_target_type(target);
+		result = tt->halt(target);
+	} else {
+		result = riscv_halt_go_all_harts(target);
+	}
+	target->state = TARGET_HALTED;
+	if (target->debug_reason == DBG_REASON_NOTHALTED)
+		target->debug_reason = DBG_REASON_DBGRQ;
+
+	return result;
+}
+
+static int halt_finish(struct target *target)
+{
+	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+}
+
+int riscv_halt(struct target *target)
+{
+	RISCV_INFO(r);
+
+	if (r->is_halted == NULL) {
+		struct target_type *tt = get_target_type(target);
+		return tt->halt(target);
+	}
+
+	LOG_DEBUG("[%d] halting all harts", target->coreid);
+
+	int result = ERROR_OK;
+	if (target->smp) {
+		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+			struct target *t = tlist->target;
+			if (halt_prep(t) != ERROR_OK)
+				result = ERROR_FAIL;
+		}
+
+		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+			struct target *t = tlist->target;
+			riscv_info_t *i = riscv_info(t);
+			if (i->prepped) {
+				if (halt_go(t) != ERROR_OK)
+					result = ERROR_FAIL;
+			}
+		}
+
+		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+			struct target *t = tlist->target;
+			if (halt_finish(t) != ERROR_OK)
+				return ERROR_FAIL;
+		}
+
+	} else {
+		if (halt_prep(target) != ERROR_OK)
+			result = ERROR_FAIL;
+		if (halt_go(target) != ERROR_OK)
+			result = ERROR_FAIL;
+		if (halt_finish(target) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	if (riscv_rtos_enabled(target)) {
+		if (r->rtos_hartid != -1) {
+			LOG_DEBUG("halt requested on RTOS hartid %d", r->rtos_hartid);
+			target->rtos->current_threadid = r->rtos_hartid + 1;
+			target->rtos->current_thread = r->rtos_hartid + 1;
+		} else
+			LOG_DEBUG("halt requested, but no known RTOS hartid");
+	}
+
+	return result;
 }
 
 static int riscv_assert_reset(struct target *target)
@@ -998,6 +1105,10 @@ int riscv_resume_prep_all_harts(struct target *target)
 			LOG_DEBUG("  hart %d requested resume, but was already resumed", i);
 		}
 	}
+
+	LOG_DEBUG("[%d] mark as prepped", target->coreid);
+	r->prepped = true;
+
 	return ERROR_OK;
 }
 
@@ -1087,6 +1198,7 @@ static int resume_finish(struct target *target)
 	register_cache_invalidate(target->reg_cache);
 
 	target->state = TARGET_RUNNING;
+	target->debug_reason = DBG_REASON_NOTHALTED;
 	return target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 }
 
@@ -1322,7 +1434,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 			LOG_ERROR("Algorithm timed out after %d ms.", timeout_ms);
 			LOG_ERROR("  now   = 0x%08x", (uint32_t) now);
 			LOG_ERROR("  start = 0x%08x", (uint32_t) start);
-			oldriscv_halt(target);
+			riscv_halt(target);
 			old_or_new_riscv_poll(target);
 			return ERROR_TARGET_TIMEOUT;
 		}
@@ -1401,6 +1513,7 @@ static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 	} else if (target->state != TARGET_RUNNING && !halted) {
 		LOG_DEBUG("  triggered running");
 		target->state = TARGET_RUNNING;
+		target->debug_reason = DBG_REASON_NOTHALTED;
 		return RPH_DISCOVERED_RUNNING;
 	}
 
@@ -1457,14 +1570,21 @@ int riscv_openocd_poll(struct target *target)
 		}
 		LOG_DEBUG("  hart %d halted", halted_hart);
 
-		/* If we're here then at least one hart triggered.  That means
-		 * we want to go and halt _every_ hart in the system, as that's
-		 * the invariant we hold here.	Some harts might have already
-		 * halted (as we're either in single-step mode or they also
-		 * triggered a breakpoint), so don't attempt to halt those
-		 * harts. */
-		for (int i = 0; i < riscv_count_harts(target); ++i)
-			riscv_halt_one_hart(target, i);
+		target->state = TARGET_HALTED;
+		if (set_debug_reason(target, halted_hart) != ERROR_OK)
+			return ERROR_FAIL;
+
+		target->rtos->current_threadid = halted_hart + 1;
+		target->rtos->current_thread = halted_hart + 1;
+		riscv_set_rtos_hartid(target, halted_hart);
+
+		/* If we're here then at least one hart triggered.  That means we want
+		 * to go and halt _every_ hart (configured with -rtos riscv) in the
+		 * system, as that's the invariant we hold here.  Some harts might have
+		 * already halted (as we're either in single-step mode or they also
+		 * triggered a breakpoint), so don't attempt to halt those harts.
+		 * riscv_halt() will do all that for us. */
+		riscv_halt(target);
 
 	} else if (target->smp) {
 		bool halt_discovered = false;
@@ -1481,6 +1601,7 @@ int riscv_openocd_poll(struct target *target)
 					break;
 				case RPH_DISCOVERED_RUNNING:
 					t->state = TARGET_RUNNING;
+					t->debug_reason = DBG_REASON_NOTHALTED;
 					break;
 				case RPH_DISCOVERED_HALTED:
 					halt_discovered = true;
@@ -1495,24 +1616,6 @@ int riscv_openocd_poll(struct target *target)
 		}
 
 		if (halt_discovered) {
-			LOG_DEBUG("Halt other targets in this SMP group.");
-			i = 0;
-			for (struct target_list *list = target->head; list != NULL;
-					list = list->next, i++) {
-				struct target *t = list->target;
-				riscv_info_t *r = riscv_info(t);
-				if (t->state != TARGET_HALTED) {
-					if (riscv_halt_one_hart(t, r->current_hartid) != ERROR_OK)
-						return ERROR_FAIL;
-					t->state = TARGET_HALTED;
-					if (set_debug_reason(t, r->current_hartid) != ERROR_OK)
-						return ERROR_FAIL;
-					newly_halted[i] = true;
-				}
-			}
-
-			/* Now that we have all our ducks in a row, tell the higher layers
-			 * what just happened. */
 			i = 0;
 			for (struct target_list *list = target->head; list != NULL;
 					list = list->next, i++) {
@@ -1520,6 +1623,9 @@ int riscv_openocd_poll(struct target *target)
 				if (newly_halted[i])
 					target_call_event_callbacks(t, TARGET_EVENT_HALTED);
 			}
+
+			LOG_DEBUG("Halt other targets in this SMP group.");
+			riscv_halt(target);
 		}
 		return ERROR_OK;
 
@@ -1533,19 +1639,11 @@ int riscv_openocd_poll(struct target *target)
 
 		halted_hart = riscv_current_hartid(target);
 		LOG_DEBUG("  hart %d halted", halted_hart);
+
+		if (set_debug_reason(target, halted_hart) != ERROR_OK)
+			return ERROR_FAIL;
+		target->state = TARGET_HALTED;
 	}
-
-	target->state = TARGET_HALTED;
-	if (set_debug_reason(target, halted_hart) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (riscv_rtos_enabled(target)) {
-		target->rtos->current_threadid = halted_hart + 1;
-		target->rtos->current_thread = halted_hart + 1;
-		riscv_set_rtos_hartid(target, halted_hart);
-	}
-
-	target->state = TARGET_HALTED;
 
 	if (target->debug_reason == DBG_REASON_BREAKPOINT) {
 		int retval;
@@ -1555,44 +1653,6 @@ int riscv_openocd_poll(struct target *target)
 
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	return ERROR_OK;
-}
-
-int riscv_openocd_halt(struct target *target)
-{
-	RISCV_INFO(r);
-	int result;
-
-	LOG_DEBUG("[%d] halting all harts", target->coreid);
-
-	if (target->smp) {
-		LOG_DEBUG("Halt other targets in this SMP group.");
-		struct target_list *targets = target->head;
-		result = ERROR_OK;
-		while (targets) {
-			struct target *t = targets->target;
-			targets = targets->next;
-			if (t->state != TARGET_HALTED) {
-				if (riscv_halt_all_harts(t) != ERROR_OK)
-					result = ERROR_FAIL;
-			}
-		}
-	} else {
-		result = riscv_halt_all_harts(target);
-	}
-
-	if (riscv_rtos_enabled(target)) {
-		if (r->rtos_hartid != -1) {
-			LOG_DEBUG("halt requested on RTOS hartid %d", r->rtos_hartid);
-			target->rtos->current_threadid = r->rtos_hartid + 1;
-			target->rtos->current_thread = r->rtos_hartid + 1;
-		} else
-			LOG_DEBUG("halt requested, but no known RTOS hartid");
-	}
-
-	target->state = TARGET_HALTED;
-	target->debug_reason = DBG_REASON_DBGRQ;
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-	return result;
 }
 
 int riscv_openocd_step(
@@ -2178,7 +2238,7 @@ struct target_type riscv_target = {
 	/* poll current target status */
 	.poll = old_or_new_riscv_poll,
 
-	.halt = old_or_new_riscv_halt,
+	.halt = riscv_halt,
 	.resume = riscv_resume,
 	.step = old_or_new_riscv_step,
 
@@ -2226,36 +2286,6 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 		for (size_t e = 0; e < RISCV_MAX_REGISTERS; ++e)
 			r->valid_saved_registers[h][e] = false;
 	}
-}
-
-int riscv_halt_all_harts(struct target *target)
-{
-	for (int i = 0; i < riscv_count_harts(target); ++i) {
-		if (!riscv_hart_enabled(target, i))
-			continue;
-
-		riscv_halt_one_hart(target, i);
-	}
-
-	riscv_invalidate_register_cache(target);
-
-	return ERROR_OK;
-}
-
-int riscv_halt_one_hart(struct target *target, int hartid)
-{
-	RISCV_INFO(r);
-	LOG_DEBUG("halting hart %d", hartid);
-	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
-		return ERROR_FAIL;
-	if (riscv_is_halted(target)) {
-		LOG_DEBUG("  hart %d requested halt, but was already halted", hartid);
-		return ERROR_OK;
-	}
-
-	int result = r->halt_current_hart(target);
-	register_cache_invalidate(target->reg_cache);
-	return result;
 }
 
 static int riscv_resume_go_all_harts(struct target *target)
