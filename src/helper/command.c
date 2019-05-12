@@ -968,6 +968,65 @@ static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
 	return command_unknown_find(--argc, ++argv, (*out)->children, out);
 }
 
+static char *alloc_concatenate_strings(int argc, Jim_Obj * const *argv)
+{
+	char *prev, *all;
+	int i;
+
+	assert(argc >= 1);
+
+	all = strdup(Jim_GetString(argv[0], NULL));
+	if (!all) {
+		LOG_ERROR("Out of memory");
+		return NULL;
+	}
+
+	for (i = 1; i < argc; ++i) {
+		prev = all;
+		all = alloc_printf("%s %s", all, Jim_GetString(argv[i], NULL));
+		free(prev);
+		if (!all) {
+			LOG_ERROR("Out of memory");
+			return NULL;
+		}
+	}
+
+	return all;
+}
+
+static int run_usage(Jim_Interp *interp, int argc_valid, int argc, Jim_Obj * const *argv)
+{
+	struct command_context *cmd_ctx = current_command_context(interp);
+	char *command;
+	int retval;
+
+	assert(argc_valid >= 1);
+	assert(argc >= argc_valid);
+
+	command = alloc_concatenate_strings(argc_valid, argv);
+	if (!command)
+		return JIM_ERR;
+
+	retval = command_run_linef(cmd_ctx, "usage %s", command);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("unable to execute command \"usage %s\"", command);
+		return JIM_ERR;
+	}
+
+	if (argc_valid == argc)
+		LOG_ERROR("%s: command requires more arguments", command);
+	else {
+		free(command);
+		command = alloc_concatenate_strings(argc - argc_valid, argv + argc_valid);
+		if (!command)
+			return JIM_ERR;
+		LOG_ERROR("invalid subcommand \"%s\"", command);
+	}
+
+	free(command);
+	return retval;
+}
+
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	const char *cmd_name = Jim_GetString(argv[0], NULL);
@@ -996,13 +1055,10 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		count = remaining + 1;
 		start = argv + (argc - remaining - 1);
 	} else {
-		c = command_find(cmd_ctx->commands, "usage");
-		if (NULL == c) {
-			LOG_ERROR("unknown command, but usage is missing too");
-			return JIM_ERR;
-		}
 		count = argc - remaining;
 		start = argv;
+		run_usage(interp, count, argc, start);
+		return JIM_ERR;
 	}
 	/* pass the command through to the intended handler */
 	if (c->jim_handler) {
