@@ -301,7 +301,7 @@ COMMAND_HANDLER(bcm2835gpio_handle_speed_coeffs)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], speed_offset);
 	}
 
-	command_print(CMD_CTX, "BCM2835 GPIO: speed_coeffs = %d, speed_offset = %d",
+	command_print(CMD, "BCM2835 GPIO: speed_coeffs = %d, speed_offset = %d",
 				  speed_coeff, speed_offset);
 	return ERROR_OK;
 }
@@ -311,7 +311,7 @@ COMMAND_HANDLER(bcm2835gpio_handle_peripheral_base)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bcm2835_peri_base);
 
-	command_print(CMD_CTX, "BCM2835 GPIO: peripheral_base = 0x%08x",
+	command_print(CMD, "BCM2835 GPIO: peripheral_base = 0x%08x",
 				  bcm2835_peri_base);
 	return ERROR_OK;
 }
