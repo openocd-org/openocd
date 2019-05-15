@@ -323,7 +323,7 @@ COMMAND_HANDLER(imx_gpio_handle_speed_coeffs)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], speed_offset);
 	}
 
-	command_print(CMD_CTX, "imx_gpio: speed_coeffs = %d, speed_offset = %d",
+	command_print(CMD, "imx_gpio: speed_coeffs = %d, speed_offset = %d",
 				  speed_coeff, speed_offset);
 	return ERROR_OK;
 }
@@ -333,7 +333,7 @@ COMMAND_HANDLER(imx_gpio_handle_peripheral_base)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], imx_gpio_peri_base);
 
-	command_print(CMD_CTX, "imx_gpio: peripheral_base = 0x%08x",
+	command_print(CMD, "imx_gpio: peripheral_base = 0x%08x",
 				  imx_gpio_peri_base);
 	return ERROR_OK;
 }
