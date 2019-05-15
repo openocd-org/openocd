@@ -623,15 +623,13 @@ static int run_command(struct command_context *context,
 		}
 	} else if (retval == ERROR_COMMAND_CLOSE_CONNECTION) {
 		/* just fall through for a shutdown request */
-	} else if (retval != ERROR_OK) {
-		/* we do not print out an error message because the command *should*
-		 * have printed out an error
-		 */
-		char *full_name = command_name(c, ' ');
-		LOG_DEBUG("Command '%s' failed with error code %d",
-					full_name ? full_name : c->name, retval);
-		free(full_name);
 	} else {
+		if (retval != ERROR_OK) {
+			char *full_name = command_name(c, ' ');
+			LOG_DEBUG("Command '%s' failed with error code %d",
+						full_name ? full_name : c->name, retval);
+			free(full_name);
+		}
 		/* Use the command output as the Tcl result */
 		Jim_SetResult(context->interp, cmd.output);
 	}
