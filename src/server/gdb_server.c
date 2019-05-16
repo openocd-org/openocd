@@ -359,9 +359,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 {
 	int i;
 	unsigned char my_checksum = 0;
-#ifdef _DEBUG_GDB_IO_
 	char *debug_buffer;
-#endif
 	int reply;
 	int retval;
 	struct gdb_connection *gdb_con = connection->priv;
@@ -369,7 +367,6 @@ static int gdb_put_packet_inner(struct connection *connection,
 	for (i = 0; i < len; i++)
 		my_checksum += buffer[i];
 
-#ifdef _DEBUG_GDB_IO_
 	/*
 	 * At this point we should have nothing in the input queue from GDB,
 	 * however sometimes '-' is sent even though we've already received
@@ -394,14 +391,11 @@ static int gdb_put_packet_inner(struct connection *connection,
 
 		LOG_DEBUG("Discard unexpected char %c", reply);
 	}
-#endif
 
 	while (1) {
-#ifdef _DEBUG_GDB_IO_
 		debug_buffer = strndup(buffer, len);
 		LOG_DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
 		free(debug_buffer);
-#endif
 
 		char local_buffer[1024];
 		local_buffer[0] = '$';
@@ -738,7 +732,8 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		struct target *ct;
 		if (target->rtos != NULL) {
 			target->rtos->current_threadid = target->rtos->current_thread;
-			LOG_DEBUG("current_threadid=%" PRId64, target->rtos->current_threadid);
+			LOG_DEBUG("[%s] current_threadid=%" PRId64, target_name(target),
+					target->rtos->current_threadid);
 			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
 		} else {
 			ct = target;
