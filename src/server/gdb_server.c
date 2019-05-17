@@ -2205,14 +2205,11 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 	int reg_list_size;
 	char const *architecture;
 	char const **features = NULL;
-	char const **arch_defined_types = NULL;
 	int feature_list_size = 0;
-	int num_arch_defined_types = 0;
 	char *tdesc = NULL;
 	int pos = 0;
 	int size = 0;
 
-	arch_defined_types = calloc(1, sizeof(char *));
 
 	retval = target_get_gdb_reg_list_noread(target, &reg_list,
 			&reg_list_size, REG_CLASS_ALL);
@@ -2254,7 +2251,10 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 	/* generate target description according to register list */
 	if (features != NULL) {
 		while (features[current_feature]) {
+			char const **arch_defined_types = NULL;
+			int num_arch_defined_types = 0;
 
+			arch_defined_types = calloc(1, sizeof(char *));
 			xml_printf(&retval, &tdesc, &pos, &size,
 					"<feature name=\"%s\">\n",
 					features[current_feature]);
@@ -2319,6 +2319,7 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 					"</feature>\n");
 
 			current_feature++;
+			free(arch_defined_types);
 		}
 	}
 
@@ -2328,7 +2329,6 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 error:
 	free(features);
 	free(reg_list);
-	free(arch_defined_types);
 
 	if (retval == ERROR_OK)
 		*tdesc_out = tdesc;
