@@ -3687,14 +3687,22 @@ void riscv013_clear_abstract_error(struct target *target)
 	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
 }
 
+#ifdef _WIN32
+#define FILE_SEP '\\'
+#else
+#define FILE_SEP '/'
+#endif
 #define COMPLIANCE_TEST(b, message) \
-{                                   \
+{ \
+	const char *last_sep = strrchr(__FILE__, FILE_SEP); \
+	const char *fname = (last_sep == NULL ? __FILE__ : last_sep + 1); \
+	LOG_INFO("Executing test %d (%s:%d): %s", total_tests, fname, __LINE__, message); \
 	int pass = 0;		    \
 	if (b) {		    \
 		pass = 1;	    \
 		passed_tests++;     \
 	}			    \
-	LOG_INFO("%s test %d (%s)\n", (pass) ? "PASSED" : "FAILED",  total_tests, message); \
+	LOG_INFO("  %s", (pass) ? "PASSED" : "FAILED"); \
 	assert(pass);		    \
 	total_tests++;		    \
 }
