@@ -3723,6 +3723,12 @@ int riscv013_test_compliance(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Cannot run compliance test, because target has not yet "
+			"been examined, or the examination failed.\n");
+		return ERROR_FAIL;
+	}
+
 	int total_tests = 0;
 	int passed_tests = 0;
 
