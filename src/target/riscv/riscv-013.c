@@ -335,6 +335,9 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 
 		{ DMI_COMMAND, DMI_COMMAND_CMDTYPE, "cmdtype" },
 
+		{ DMI_SBCS, DMI_SBCS_SBVERSION, "sbversion" },
+		{ DMI_SBCS, DMI_SBCS_SBBUSYERROR, "sbbusyerror" },
+		{ DMI_SBCS, DMI_SBCS_SBBUSY, "sbbusy" },
 		{ DMI_SBCS, DMI_SBCS_SBREADONADDR, "sbreadonaddr" },
 		{ DMI_SBCS, DMI_SBCS_SBACCESS, "sbaccess" },
 		{ DMI_SBCS, DMI_SBCS_SBAUTOINCREMENT, "sbautoincrement" },
@@ -2136,10 +2139,12 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		sbcs |= sb_sbaccess(size);
 		sbcs = set_field(sbcs, DMI_SBCS_SBAUTOINCREMENT, 1);
 		sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, count > 1);
-		dmi_write(target, DMI_SBCS, sbcs);
+		if (dmi_write(target, DMI_SBCS, sbcs) != ERROR_OK)
+			return ERROR_FAIL;
 
 		/* This address write will trigger the first read. */
-		sb_write_address(target, next_address);
+		if (sb_write_address(target, next_address) != ERROR_OK)
+			return ERROR_FAIL;
 
 		if (info->bus_master_read_delay) {
 			jtag_add_runtest(info->bus_master_read_delay, TAP_IDLE);
@@ -2150,22 +2155,31 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		}
 
 		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
-			read_memory_bus_word(target, address + i * size, size,
-					buffer + i * size);
+			if (read_memory_bus_word(target, address + i * size, size,
+					buffer + i * size) != ERROR_OK)
+				return ERROR_FAIL;
 		}
 
-		sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, 0);
-		dmi_write(target, DMI_SBCS, sbcs);
+		/* "Writes to sbcs while sbbusy is high result in undefined behavior.
+		 * A debugger must not write to sbcs until it reads sbbusy as 0." */
+		if (read_sbcs_nonbusy(target, &sbcs) != ERROR_OK)
+			return ERROR_FAIL;
 
-		read_memory_bus_word(target, address + (count - 1) * size, size,
-				buffer + (count - 1) * size);
+		sbcs = set_field(sbcs, DMI_SBCS_SBREADONDATA, 0);
+		if (dmi_write(target, DMI_SBCS, sbcs) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (read_memory_bus_word(target, address + (count - 1) * size, size,
+				buffer + (count - 1) * size) != ERROR_OK)
+			return ERROR_FAIL;
 
 		if (read_sbcs_nonbusy(target, &sbcs) != ERROR_OK)
 			return ERROR_FAIL;
 
 		if (get_field(sbcs, DMI_SBCS_SBBUSYERROR)) {
 			/* We read while the target was busy. Slow down and try again. */
-			dmi_write(target, DMI_SBCS, DMI_SBCS_SBBUSYERROR);
+			if (dmi_write(target, DMI_SBCS, DMI_SBCS_SBBUSYERROR) != ERROR_OK)
+				return ERROR_FAIL;
 			next_address = sb_read_address(target);
 			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
 			continue;
@@ -2177,7 +2191,8 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		} else {
 			/* Some error indicating the bus access failed, but not because of
 			 * something we did wrong. */
-			dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);
+			if (dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR) != ERROR_OK)
+				return ERROR_FAIL;
 			return ERROR_FAIL;
 		}
 	}
