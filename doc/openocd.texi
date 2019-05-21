@@ -9190,6 +9190,14 @@ Selects whether interrupts will be processed when single stepping. The default c
 @option{on}.
 @end deffn
 
+@deffn Command {$target_name catch_exc} [@option{off}|@option{sec_el1}|@option{sec_el3}|@option{nsec_el1}|@option{nsec_el2}]+
+Cause @command{$target_name} to halt when an exception is taken. Any combination of
+Secure (sec) EL1/EL3 or Non-Secure (nsec) EL1/EL2 is valid. The target
+@command{$target_name} will halt before taking the exception. In order to resume
+the target, the exception catch must be disabled again with @command{$target_name catch_exc off}.
+Issuing the command without options prints the current configuration.
+@end deffn
+
 @section EnSilica eSi-RISC Architecture
 
 eSi-RISC is a highly configurable microprocessor architecture for embedded systems
@@ -9333,7 +9341,7 @@ collection.
 
 @deffn Command {esirisc trace init}
 Initialize trace collection. This command must be called any time the
-configuration changes. If an trace buffer has been configured, the contents will
+configuration changes. If a trace buffer has been configured, the contents will
 be overwritten when trace collection starts.
 @end deffn
 
@@ -9365,14 +9373,6 @@ Dump collected trace data to file. This command may only be used if a trace
 buffer has been configured. If a trace FIFO has been configured, trace data must
 be copied to an in-memory buffer identified by the @option{address} and
 @option{size} options using DMA.
-@end deffn
-
-@deffn Command {$target_name catch_exc} [@option{off}|@option{sec_el1}|@option{sec_el3}|@option{nsec_el1}|@option{nsec_el2}]+
-Cause @command{$target_name} to halt when an exception is taken. Any combination of
-Secure (sec) EL1/EL3 or Non-Secure (nsec) EL1/EL2 is valid. The target
-@command{$target_name} will halt before taking the exception. In order to resume
-the target, the exception catch must be disabled again with @command{$target_name catch_exc off}.
-Issuing the command without options prints the current configuration.
 @end deffn
 
 @section Intel Architecture
