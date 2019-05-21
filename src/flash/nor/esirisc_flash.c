@@ -92,7 +92,7 @@
 #endif
 
 #define CONTROL_TIMEOUT		5000		/* 5s    */
-#define PAGE_SIZE			4096
+#define FLASH_PAGE_SIZE		4096
 #define PB_MAX				32
 
 #define NUM_NS_PER_S		1000000000ULL
@@ -264,7 +264,7 @@ static int esirisc_flash_erase(struct flash_bank *bank, int first, int last)
 	(void)esirisc_flash_disable_protect(bank);
 
 	for (int page = first; page < last; ++page) {
-		uint32_t address = page * PAGE_SIZE;
+		uint32_t address = page * FLASH_PAGE_SIZE;
 
 		target_write_u32(target, esirisc_info->cfg + ADDRESS, address);
 
@@ -464,8 +464,8 @@ static int esirisc_flash_probe(struct flash_bank *bank)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	bank->num_sectors = bank->size / PAGE_SIZE;
-	bank->sectors = alloc_block_array(0, PAGE_SIZE, bank->num_sectors);
+	bank->num_sectors = bank->size / FLASH_PAGE_SIZE;
+	bank->sectors = alloc_block_array(0, FLASH_PAGE_SIZE, bank->num_sectors);
 
 	retval = esirisc_flash_init(bank);
 	if (retval != ERROR_OK) {
