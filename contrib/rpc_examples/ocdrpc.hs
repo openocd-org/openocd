@@ -39,7 +39,7 @@ mdwParser = (manyTill anyChar (string ": ") *>
 
 ocdMdw :: (InputStream ByteString, OutputStream ByteString) -> Integer -> Integer -> IO [Integer]
 ocdMdw s start count = do
-  s <- ocdExec s $ "ocd_mdw " ++ show start ++ " " ++ show count
+  s <- ocdExec s $ "mdw " ++ show start ++ " " ++ show count
   case parseOnly mdwParser (pack s) of
     Right r -> return $ concat r
 
