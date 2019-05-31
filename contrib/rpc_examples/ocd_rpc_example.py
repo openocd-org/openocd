@@ -85,14 +85,14 @@ class OpenOcd:
         return data
 
     def readVariable(self, address):
-        raw = self.send("ocd_mdw 0x%x" % address).split(": ")
+        raw = self.send("mdw 0x%x" % address).split(": ")
         return None if (len(raw) < 2) else strToHex(raw[1])
 
     def readMemory(self, wordLen, address, n):
         self.send("array unset output") # better to clear the array before
         self.send("mem2array output %d 0x%x %d" % (wordLen, address, n))
 
-        output = [*map(int, self.send("ocd_echo $output").split(" "))]
+        output = [*map(int, self.send("echo $output").split(" "))]
         d = dict([tuple(output[i:i + 2]) for i in range(0, len(output), 2)])
 
         return [d[k] for k in sorted(d.keys())]
@@ -116,8 +116,8 @@ if __name__ == "__main__":
     with OpenOcd() as ocd:
         ocd.send("reset")
 
-        show(ocd.send("ocd_echo \"echo says hi!\"")[:-1])
-        show(ocd.send("capture \"ocd_halt\"")[:-1])
+        show(ocd.send("echo \"echo says hi!\"")[:-1])
+        show(ocd.send("capture \"halt\"")[:-1])
 
         # Read the first few words at the RAM region (put starting adress of RAM
         # region into 'addr')
