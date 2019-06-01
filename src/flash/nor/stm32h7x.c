@@ -38,18 +38,18 @@
 #define FLASH_SR        0x10
 #define FLASH_CCR       0x14
 #define FLASH_OPTCR     0x18
-#define FLASH_OPTCUR    0x1C
-#define FLASH_OPTPRG    0x20
+#define FLASH_OPTSR_CUR 0x1C
+#define FLASH_OPTSR_PRG 0x20
 #define FLASH_OPTCCR    0x24
-#define FLASH_WPSNCUR   0x38
-#define FLASH_WPSNPRG   0x3C
+#define FLASH_WPSN_CUR  0x38
+#define FLASH_WPSN_PRG  0x3C
 
 
 /* FLASH_CR register bits */
 #define FLASH_LOCK     (1 << 0)
 #define FLASH_PG       (1 << 1)
 #define FLASH_SER      (1 << 2)
-#define FLASH_BER_CMD  (1 << 3)
+#define FLASH_BER      (1 << 3)
 #define FLASH_PSIZE_8  (0 << 4)
 #define FLASH_PSIZE_16 (1 << 4)
 #define FLASH_PSIZE_32 (2 << 4)
@@ -314,7 +314,7 @@ static int stm32x_read_options(struct flash_bank *bank)
 	stm32x_info = bank->driver_priv;
 
 	/* read current option bytes */
-	int retval = target_read_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTCUR, &optiondata);
+	int retval = target_read_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTSR_CUR, &optiondata);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -328,13 +328,13 @@ static int stm32x_read_options(struct flash_bank *bank)
 		LOG_INFO("Device Security Bit Set");
 
 	/* read current WPSN option bytes */
-	retval = target_read_u32(target, FLASH_REG_BASE_B0 + FLASH_WPSNCUR, &optiondata);
+	retval = target_read_u32(target, FLASH_REG_BASE_B0 + FLASH_WPSN_CUR, &optiondata);
 	if (retval != ERROR_OK)
 		return retval;
 	stm32x_info->option_bytes.protection = optiondata & 0xff;
 
 	/* read current WPSN2 option bytes */
-	retval = target_read_u32(target, FLASH_REG_BASE_B1 + FLASH_WPSNCUR, &optiondata);
+	retval = target_read_u32(target, FLASH_REG_BASE_B1 + FLASH_WPSN_CUR, &optiondata);
 	if (retval != ERROR_OK)
 		return retval;
 	stm32x_info->option_bytes.protection2 = optiondata & 0xff;
@@ -361,19 +361,19 @@ static int stm32x_write_options(struct flash_bank *bank)
 	optiondata |= (stm32x_info->option_bytes.user3_options & 0xa3) << 24;
 
 	/* program options */
-	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTPRG, optiondata);
+	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_OPTSR_PRG, optiondata);
 	if (retval != ERROR_OK)
 		return retval;
 
 	optiondata = stm32x_info->option_bytes.protection & 0xff;
 	/* Program protection WPSNPRG */
-	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_WPSNPRG, optiondata);
+	retval = target_write_u32(target, FLASH_REG_BASE_B0 + FLASH_WPSN_PRG, optiondata);
 	if (retval != ERROR_OK)
 		return retval;
 
 	optiondata = stm32x_info->option_bytes.protection2 & 0xff;
 	/* Program protection WPSNPRG2 */
-	retval = target_write_u32(target, FLASH_REG_BASE_B1 + FLASH_WPSNPRG, optiondata);
+	retval = target_write_u32(target, FLASH_REG_BASE_B1 + FLASH_WPSN_PRG, optiondata);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1030,12 +1030,12 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 		return retval;
 
 	/* mass erase flash memory bank */
-	retval = target_write_u32(target, stm32x_get_flash_reg(bank, FLASH_CR), FLASH_BER_CMD | FLASH_PSIZE_64);
+	retval = target_write_u32(target, stm32x_get_flash_reg(bank, FLASH_CR), FLASH_BER | FLASH_PSIZE_64);
 	if (retval != ERROR_OK)
 		return retval;
 
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, FLASH_CR),
-							  FLASH_BER_CMD | FLASH_PSIZE_64 | FLASH_START);
+							  FLASH_BER | FLASH_PSIZE_64 | FLASH_START);
 	if (retval != ERROR_OK)
 		return retval;
 
