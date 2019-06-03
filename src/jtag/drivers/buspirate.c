@@ -1312,7 +1312,7 @@ static int buspirate_swd_switch_seq(enum swd_special_seq seq)
 {
 	const uint8_t *sequence;
 	int sequence_len;
-	uint8_t tmp[64];
+	uint32_t no_bytes, sequence_offset;
 
 	switch (seq) {
 	case LINE_RESET:
@@ -1335,15 +1335,24 @@ static int buspirate_swd_switch_seq(enum swd_special_seq seq)
 		return ERROR_FAIL;
 	}
 
-	/* FIXME: all above sequences fit into one pirate command for now
-	 *        but it may cause trouble later
-	 */
+	no_bytes = sequence_len;
+	sequence_offset = 0;
 
-	tmp[0] = 0x10 + ((sequence_len - 1) & 0x0F);
-	memcpy(tmp + 1, sequence, sequence_len);
+	while (no_bytes) {
+		uint8_t tmp[17];
+		uint32_t to_send;
 
-	buspirate_serial_write(buspirate_fd, tmp, sequence_len + 1);
-	buspirate_serial_read(buspirate_fd, tmp, sequence_len + 1);
+		to_send = no_bytes > 16 ? 16 : no_bytes;
+
+		tmp[0] = 0x10 + ((to_send - 1) & 0x0F);
+		memcpy(tmp + 1, &sequence[sequence_offset], to_send);
+
+		buspirate_serial_write(buspirate_fd, tmp, to_send + 1);
+		buspirate_serial_read(buspirate_fd, tmp, to_send + 1);
+
+		no_bytes -= to_send;
+		sequence_offset += to_send;
+	}
 
 	return ERROR_OK;
 }
