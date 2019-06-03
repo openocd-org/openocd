@@ -639,6 +639,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 {
 	struct jtag_tap_event_action *jteap;
+	int retval;
 
 	for (jteap = tap->event_action; jteap != NULL; jteap = jteap->next) {
 		if (jteap->event != e)
@@ -649,7 +650,11 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 			tap->dotted_name, e, nvp->name,
 			Jim_GetString(jteap->body, NULL));
 
-		if (Jim_EvalObj(jteap->interp, jteap->body) != JIM_OK) {
+		retval = Jim_EvalObj(jteap->interp, jteap->body);
+		if (retval == JIM_RETURN)
+			retval = jteap->interp->returnCode;
+
+		if (retval != JIM_OK) {
 			Jim_MakeErrorMessage(jteap->interp);
 			LOG_USER("%s", Jim_GetString(Jim_GetResult(jteap->interp), NULL));
 			continue;
