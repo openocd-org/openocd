@@ -15,18 +15,18 @@ static char *jtag_usb_location;
  * ------
  * 16 chars
  */
-#define JTAG_USB_MAX_LOCATION_LENGHT	16
+#define JTAG_USB_MAX_LOCATION_LENGTH	16
 
 void jtag_usb_set_location(const char *location)
 {
-	if (strnlen(location, JTAG_USB_MAX_LOCATION_LENGHT) ==
-	    JTAG_USB_MAX_LOCATION_LENGHT)
+	if (strnlen(location, JTAG_USB_MAX_LOCATION_LENGTH) ==
+	    JTAG_USB_MAX_LOCATION_LENGTH)
 		LOG_WARNING("usb location string is too long!!\n");
 
 	if (jtag_usb_location)
 		free(jtag_usb_location);
 
-	jtag_usb_location = strndup(location, JTAG_USB_MAX_LOCATION_LENGHT);
+	jtag_usb_location = strndup(location, JTAG_USB_MAX_LOCATION_LENGTH);
 }
 
 const char *jtag_usb_get_location(void)
@@ -42,8 +42,8 @@ bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 	bool equal = false;
 
 	/* strtok need non const char */
-	loc = strndup(jtag_usb_get_location(), JTAG_USB_MAX_LOCATION_LENGHT);
-	string_length = strnlen(loc, JTAG_USB_MAX_LOCATION_LENGHT);
+	loc = strndup(jtag_usb_get_location(), JTAG_USB_MAX_LOCATION_LENGTH);
+	string_length = strnlen(loc, JTAG_USB_MAX_LOCATION_LENGTH);
 
 	ptr = strtok(loc, "-");
 	if (ptr == NULL) {
