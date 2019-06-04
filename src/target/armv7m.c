@@ -191,7 +191,7 @@ static int armv7m_get_core_reg(struct reg *reg)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	retval = arm->read_core_reg(target, reg, armv7m_reg->num, arm->core_mode);
+	retval = arm->read_core_reg(target, reg, reg->number, arm->core_mode);
 
 	return retval;
 }
