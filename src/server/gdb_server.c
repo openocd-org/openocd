@@ -1018,6 +1018,17 @@ static int gdb_new_connection(struct connection *connection)
 			target_name(target),
 			target_state_name(target));
 
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target %s not examined yet, refuse gdb connection %d!",
+				  target_name(target), gdb_actual_connections);
+		gdb_actual_connections--;
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
+	if (target->state == TARGET_HALTED)
+		LOG_WARNING("GDB connection %d on target %s not halted",
+					gdb_actual_connections, target_name(target));
+
 	/* DANGER! If we fail subsequently, we must remove this handler,
 	 * otherwise we occasionally see crashes as the timer can invoke the
 	 * callback fn.
