@@ -143,14 +143,14 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 	retval = dpm->instr_read_data_r0(dpm,
 			ARMV4_5_MRC(15, 0, 0, 7, 4, 0),
 			val);
+	if (retval != ERROR_OK)
+		goto done;
 	/* decode memory attribute */
 	NOS = (*val >> 10) & 1;	/*  Not Outer shareable */
 	NS = (*val >> 9) & 1;	/* Non secure */
 	INNER = (*val >> 4) &  0x7;
 	OUTER = (*val >> 2) & 0x3;
 
-	if (retval != ERROR_OK)
-		goto done;
 	*val = (*val & ~0xfff)  +  (va & 0xfff);
 	if (meminfo) {
 		LOG_INFO("%" PRIx32 " : %" PRIx32 " %s outer shareable %s secured",
