@@ -333,7 +333,6 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	c->parent = parent;
 	c->handler = cr->handler;
 	c->jim_handler = cr->jim_handler;
-	c->jim_handler_data = cr->jim_handler_data;
 	c->mode = cr->mode;
 
 	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
@@ -385,7 +384,7 @@ struct command *register_command(struct command_context *context,
 	int retval = ERROR_OK;
 	if (NULL != cr->jim_handler && NULL == parent) {
 		retval = Jim_CreateCommand(context->interp, cr->name,
-				cr->jim_handler, cr->jim_handler_data, NULL);
+				cr->jim_handler, NULL, NULL);
 	} else if (NULL != cr->handler || NULL != parent)
 		retval = register_command_handler(context, command_root(c));
 

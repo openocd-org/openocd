@@ -226,7 +226,6 @@ struct command_registration {
 	const char *name;
 	command_handler_t handler;
 	Jim_CmdProc *jim_handler;
-	void *jim_handler_data;
 	enum command_mode mode;
 	const char *help;
 	/** a string listing the options and arguments, required or optional */
