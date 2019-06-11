@@ -425,6 +425,27 @@ static int cortex_a_instr_write_data_dcc(struct arm_dpm *dpm,
 			&dscr);
 }
 
+static int cortex_a_instr_write_data_rt_dcc(struct arm_dpm *dpm,
+	uint8_t rt, uint32_t data)
+{
+	struct cortex_a_common *a = dpm_to_a(dpm);
+	uint32_t dscr = DSCR_INSTR_COMP;
+	int retval;
+
+	if (rt > 15)
+		return ERROR_TARGET_INVALID;
+
+	retval = cortex_a_write_dcc(a, data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* DCCRX to Rt, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15 */
+	return cortex_a_exec_opcode(
+			a->armv7a_common.arm.target,
+			ARMV4_5_MRC(14, 0, rt, 0, 5, 0),
+			&dscr);
+}
+
 static int cortex_a_instr_write_data_r0(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t data)
 {
@@ -432,15 +453,7 @@ static int cortex_a_instr_write_data_r0(struct arm_dpm *dpm,
 	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
-	retval = cortex_a_write_dcc(a, data);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15 */
-	retval = cortex_a_exec_opcode(
-			a->armv7a_common.arm.target,
-			ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
-			&dscr);
+	retval = cortex_a_instr_write_data_rt_dcc(dpm, 0, data);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -482,6 +495,25 @@ static int cortex_a_instr_read_data_dcc(struct arm_dpm *dpm,
 	return cortex_a_read_dcc(a, data, &dscr);
 }
 
+static int cortex_a_instr_read_data_rt_dcc(struct arm_dpm *dpm,
+	uint8_t rt, uint32_t *data)
+{
+	struct cortex_a_common *a = dpm_to_a(dpm);
+	uint32_t dscr = DSCR_INSTR_COMP;
+	int retval;
+
+	if (rt > 15)
+		return ERROR_TARGET_INVALID;
+
+	retval = cortex_a_exec_opcode(
+			a->armv7a_common.arm.target,
+			ARMV4_5_MCR(14, 0, rt, 0, 5, 0),
+			&dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return cortex_a_read_dcc(a, data, &dscr);
+}
 
 static int cortex_a_instr_read_data_r0(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t *data)
@@ -499,14 +531,7 @@ static int cortex_a_instr_read_data_r0(struct arm_dpm *dpm,
 		return retval;
 
 	/* write R0 to DCC */
-	retval = cortex_a_exec_opcode(
-			a->armv7a_common.arm.target,
-			ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
-			&dscr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return cortex_a_read_dcc(a, data, &dscr);
+	return cortex_a_instr_read_data_rt_dcc(dpm, 0, data);
 }
 
 static int cortex_a_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
