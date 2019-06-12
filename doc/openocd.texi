@@ -3479,7 +3479,7 @@ How long (in milliseconds) OpenOCD should wait after deasserting
 nTRST (active-low JTAG TAP reset) before starting new JTAG operations.
 @end deffn
 
-@anchor {reset_config}
+@anchor{reset_config}
 @deffn {Command} reset_config mode_flag ...
 This command displays or modifies the reset configuration
 of your combination of JTAG board and target in target
