@@ -1753,7 +1753,8 @@ const struct command_registration armv8_command_handlers[] = {
 
 const char *armv8_get_gdb_arch(struct target *target)
 {
-	return "aarch64";
+	struct arm *arm = target_to_arm(target);
+	return arm->core_state == ARM_STATE_AARCH64 ? "aarch64" : "arm";
 }
 
 int armv8_get_gdb_reg_list(struct target *target,
