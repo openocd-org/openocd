@@ -326,9 +326,10 @@ enum ap_class {
  */
 enum ap_type {
 	AP_TYPE_JTAG_AP = 0x0,  /* JTAG-AP - JTAG master for controlling other JTAG devices */
-	AP_TYPE_AHB_AP  = 0x1,  /* AHB Memory-AP */
+	AP_TYPE_AHB3_AP = 0x1,  /* AHB3 Memory-AP */
 	AP_TYPE_APB_AP  = 0x2,  /* APB Memory-AP */
 	AP_TYPE_AXI_AP  = 0x4,  /* AXI Memory-AP */
+	AP_TYPE_AHB5_AP = 0x5,  /* AHB5 Memory-AP. */
 };
 
 /**

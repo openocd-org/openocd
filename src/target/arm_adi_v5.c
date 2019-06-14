@@ -914,7 +914,8 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 			((id_val & IDR_TYPE) == type_to_find)) {      /* type matches*/
 
 			LOG_DEBUG("Found %s at AP index: %d (IDR=0x%08" PRIX32 ")",
-						(type_to_find == AP_TYPE_AHB_AP)  ? "AHB-AP"  :
+						(type_to_find == AP_TYPE_AHB3_AP)  ? "AHB3-AP"  :
+						(type_to_find == AP_TYPE_AHB5_AP)  ? "AHB5-AP"  :
 						(type_to_find == AP_TYPE_APB_AP)  ? "APB-AP"  :
 						(type_to_find == AP_TYPE_AXI_AP)  ? "AXI-AP"  :
 						(type_to_find == AP_TYPE_JTAG_AP) ? "JTAG-AP" : "Unknown",
@@ -926,7 +927,8 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 	}
 
 	LOG_DEBUG("No %s found",
-				(type_to_find == AP_TYPE_AHB_AP)  ? "AHB-AP"  :
+				(type_to_find == AP_TYPE_AHB3_AP)  ? "AHB3-AP"  :
+				(type_to_find == AP_TYPE_AHB5_AP)  ? "AHB5-AP"  :
 				(type_to_find == AP_TYPE_APB_AP)  ? "APB-AP"  :
 				(type_to_find == AP_TYPE_AXI_AP)  ? "AXI-AP"  :
 				(type_to_find == AP_TYPE_JTAG_AP) ? "JTAG-AP" : "Unknown");
@@ -1466,8 +1468,11 @@ int dap_info_command(struct command_invocation *cmd,
 	case IDR_JEP106_ARM | AP_TYPE_JTAG_AP:
 		command_print(cmd, "\tType is JTAG-AP");
 		break;
-	case IDR_JEP106_ARM | AP_TYPE_AHB_AP:
-		command_print(cmd, "\tType is MEM-AP AHB");
+	case IDR_JEP106_ARM | AP_TYPE_AHB3_AP:
+		command_print(cmd, "\tType is MEM-AP AHB3");
+		break;
+	case IDR_JEP106_ARM | AP_TYPE_AHB5_AP:
+		command_print(cmd, "\tType is MEM-AP AHB5");
 		break;
 	case IDR_JEP106_ARM | AP_TYPE_APB_AP:
 		command_print(cmd, "\tType is MEM-AP APB");
