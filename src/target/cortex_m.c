@@ -2093,6 +2093,15 @@ static void cortex_m_dwt_free(struct target *target)
 #define MVFR1_DEFAULT_M7_SP 0x11000011
 #define MVFR1_DEFAULT_M7_DP 0x12000011
 
+static int cortex_m_find_mem_ap(struct adiv5_dap *swjdp,
+		struct adiv5_ap **debug_ap)
+{
+	if (dap_find_ap(swjdp, AP_TYPE_AHB3_AP, debug_ap) == ERROR_OK)
+		return ERROR_OK;
+
+	return dap_find_ap(swjdp, AP_TYPE_AHB5_AP, debug_ap);
+}
+
 int cortex_m_examine(struct target *target)
 {
 	int retval;
@@ -2107,7 +2116,7 @@ int cortex_m_examine(struct target *target)
 	if (!armv7m->stlink) {
 		if (cortex_m->apsel == DP_APSEL_INVALID) {
 			/* Search for the MEM-AP */
-			retval = dap_find_ap(swjdp, AP_TYPE_AHB3_AP, &armv7m->debug_ap);
+			retval = cortex_m_find_mem_ap(swjdp, &armv7m->debug_ap);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Could not find MEM-AP to control the core");
 				return retval;
