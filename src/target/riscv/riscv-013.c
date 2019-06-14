@@ -1311,6 +1311,14 @@ static int register_read(struct target *target, uint64_t *value, uint32_t number
 	return ERROR_OK;
 }
 
+static int is_fpu_reg(uint32_t gdb_regno)
+{
+	return (gdb_regno >= GDB_REGNO_FPR0 && gdb_regno <= GDB_REGNO_FPR31) ||
+		(gdb_regno == GDB_REGNO_CSR0 + CSR_FFLAGS) ||
+		(gdb_regno == GDB_REGNO_CSR0 + CSR_FRM) ||
+		(gdb_regno == GDB_REGNO_CSR0 + CSR_FCSR);
+}
+
 /** Actually read registers from the target right now. */
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number)
 {
@@ -1336,14 +1344,16 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		/* Write program to move data into s0. */
 
 		uint64_t mstatus;
-		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+		if (is_fpu_reg(number)) {
 			if (register_read(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
 				return ERROR_FAIL;
 			if ((mstatus & MSTATUS_FS) == 0)
 				if (register_write_direct(target, GDB_REGNO_MSTATUS,
 							set_field(mstatus, MSTATUS_FS, 1)) != ERROR_OK)
 					return ERROR_FAIL;
+		}
 
+		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			if (riscv_supports_extension(target, riscv_current_hartid(target), 'D')
 					&& riscv_xlen(target) < 64) {
 				/* There are no instructions to move all the bits from a
@@ -1388,8 +1398,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 				return ERROR_FAIL;
 		}
 
-		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-				(mstatus & MSTATUS_FS) == 0)
+		if (is_fpu_reg(number) && (mstatus & MSTATUS_FS) == 0)
 			if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus) != ERROR_OK)
 				return ERROR_FAIL;
 
