@@ -36,7 +36,6 @@
 #include <flash/nor/core.h>
 #include <flash/nand/core.h>
 #include <pld/pld.h>
-#include <flash/mflash.h>
 #include <target/arm_cti.h>
 #include <target/arm_adi_v5.h>
 
@@ -165,9 +164,6 @@ COMMAND_HANDLER(handle_init_command)
 	if (command_run_line(CMD_CTX, "flash init") != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (command_run_line(CMD_CTX, "mflash init") != ERROR_OK)
-		return ERROR_FAIL;
-
 	if (command_run_line(CMD_CTX, "nand init") != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -257,7 +253,6 @@ struct command_context *setup_command_handler(Jim_Interp *interp)
 		&flash_register_commands,
 		&nand_register_commands,
 		&pld_register_commands,
-		&mflash_register_commands,
 		&cti_register_commands,
 		&dap_register_commands,
 		NULL

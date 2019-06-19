@@ -7482,67 +7482,6 @@ or @code{read_page} methods, so @command{nand raw_access} won't
 change any behavior.
 @end deffn
 
-@section mFlash
-
-@subsection mFlash Configuration
-@cindex mFlash Configuration
-
-@deffn {Config Command} {mflash bank} soc base RST_pin target
-Configures a mflash for @var{soc} host bank at
-address @var{base}.
-The pin number format depends on the host GPIO naming convention.
-Currently, the mflash driver supports s3c2440 and pxa270.
-
-Example for s3c2440 mflash where @var{RST pin} is GPIO B1:
-
-@example
-mflash bank $_FLASHNAME s3c2440 0x10000000 1b 0
-@end example
-
-Example for pxa270 mflash where @var{RST pin} is GPIO 43:
-
-@example
-mflash bank $_FLASHNAME pxa270 0x08000000 43 0
-@end example
-@end deffn
-
-@subsection mFlash commands
-@cindex mFlash commands
-
-@deffn Command {mflash config pll} frequency
-Configure mflash PLL.
-The @var{frequency} is the mflash input frequency, in Hz.
-Issuing this command will erase mflash's whole internal nand and write new pll.
-After this command, mflash needs power-on-reset for normal operation.
-If pll was newly configured, storage and boot(optional) info also need to be update.
-@end deffn
-
-@deffn Command {mflash config boot}
-Configure bootable option.
-If bootable option is set, mflash offer the first 8 sectors
-(4kB) for boot.
-@end deffn
-
-@deffn Command {mflash config storage}
-Configure storage information.
-For the normal storage operation, this information must be
-written.
-@end deffn
-
-@deffn Command {mflash dump} num filename offset size
-Dump @var{size} bytes, starting at @var{offset} bytes from the
-beginning of the bank @var{num}, to the file named @var{filename}.
-@end deffn
-
-@deffn Command {mflash probe}
-Probe mflash.
-@end deffn
-
-@deffn Command {mflash write} num filename offset
-Write the binary file @var{filename} to mflash bank @var{num}, starting at
-@var{offset} bytes from the beginning of the bank.
-@end deffn
-
 @node Flash Programming
 @chapter Flash Programming
 
