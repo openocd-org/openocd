@@ -1071,7 +1071,7 @@ int image_calculate_checksum(uint8_t *buffer, uint32_t nbytes, uint32_t *checksu
 		keep_alive();
 	}
 
-	LOG_DEBUG("Calculating checksum done");
+	LOG_DEBUG("Calculating checksum done; checksum=0x%x", crc);
 
 	*checksum = crc;
 	return ERROR_OK;

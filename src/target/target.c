@@ -796,7 +796,7 @@ static int target_soft_reset_halt(struct target *target)
 int target_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_param,
-		uint32_t entry_point, uint32_t exit_point,
+		target_addr_t entry_point, target_addr_t exit_point,
 		int timeout_ms, void *arch_info)
 {
 	int retval = ERROR_FAIL;

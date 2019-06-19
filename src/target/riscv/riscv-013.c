@@ -159,6 +159,10 @@ typedef struct {
 	/* The currently selected hartid on this DM. */
 	int current_hartid;
 	bool hasel_supported;
+
+	/* The program buffer stores executable code. 0 is an illegal instruction,
+	 * so we use 0 to mean the cached value is invalid. */
+	uint32_t progbuf_cache[16];
 } dm013_info_t;
 
 typedef struct {
@@ -1814,6 +1818,13 @@ static int assert_reset(struct target *target)
 
 	target->state = TARGET_RESET;
 
+	dm013_info_t *dm = get_dm(target);
+
+	/* The DM might have gotten reset if OpenOCD called us in some reset that
+	 * involves SRST being toggled. So clear our cache which may be out of
+	 * date. */
+	memset(dm->progbuf_cache, 0, sizeof(dm->progbuf_cache));
+
 	return ERROR_OK;
 }
 
@@ -3223,7 +3234,15 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 int riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
 {
-	return dmi_write(target, DMI_PROGBUF0 + index, data);
+	dm013_info_t *dm = get_dm(target);
+	if (dm->progbuf_cache[index] != data) {
+		if (dmi_write(target, DMI_PROGBUF0 + index, data) != ERROR_OK)
+			return ERROR_FAIL;
+		dm->progbuf_cache[index] = data;
+	} else {
+		LOG_DEBUG("cache hit for 0x%x @%d", data, index);
+	}
+	return ERROR_OK;
 }
 
 riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)

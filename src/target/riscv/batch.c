@@ -92,11 +92,7 @@ size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
 	batch->last_scan = RISCV_SCAN_TYPE_READ;
 	batch->used_scans++;
 
-	/* FIXME We get the read response back on the next scan.  For now I'm
-	 * just sticking a NOP in there, but this should be coalesced away. */
-	riscv_batch_add_nop(batch);
-
-	batch->read_keys[batch->read_keys_used] = batch->used_scans - 1;
+	batch->read_keys[batch->read_keys_used] = batch->used_scans;
 	return batch->read_keys_used++;
 }
 
