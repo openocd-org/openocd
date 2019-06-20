@@ -31,6 +31,7 @@ void riscv_batch_free(struct riscv_batch *batch)
 	free(batch->data_in);
 	free(batch->data_out);
 	free(batch->fields);
+	free(batch->read_keys);
 	free(batch);
 }
 
