@@ -1356,7 +1356,9 @@ static int riscv_get_gdb_reg_list_internal(struct target *target,
 		assert(!target->reg_cache->reg_list[i].valid ||
 				target->reg_cache->reg_list[i].size > 0);
 		(*reg_list)[i] = &target->reg_cache->reg_list[i];
-		if (read && !target->reg_cache->reg_list[i].valid) {
+		if (read &&
+				target->reg_cache->reg_list[i].exist &&
+				!target->reg_cache->reg_list[i].valid) {
 			if (target->reg_cache->reg_list[i].type->get(
 						&target->reg_cache->reg_list[i]) != ERROR_OK)
 				return ERROR_FAIL;
@@ -2595,6 +2597,12 @@ int riscv_set_register_on_hart(struct target *target, int hartid,
 	RISCV_INFO(r);
 	LOG_DEBUG("{%d} %s <- %" PRIx64, hartid, gdb_regno_name(regid), value);
 	assert(r->set_register);
+
+	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
+	if (regid > GDB_REGNO_XPR15 && regid <= GDB_REGNO_XPR31 && value == 0 &&
+			riscv_supports_extension(target, hartid, 'E'))
+		return ERROR_OK;
+
 	return r->set_register(target, hartid, regid, value);
 }
 
@@ -2614,6 +2622,13 @@ int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
 
 	if (reg && reg->valid && hartid == riscv_current_hartid(target)) {
 		*value = buf_get_u64(reg->value, 0, reg->size);
+		return ERROR_OK;
+	}
+
+	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
+	if (regid > GDB_REGNO_XPR15 && regid <= GDB_REGNO_XPR31 &&
+			riscv_supports_extension(target, hartid, 'E')) {
+		*value = 0;
 		return ERROR_OK;
 	}
 
@@ -2952,6 +2967,8 @@ int riscv_init_registers(struct target *target)
 	riscv_reg_info_t *shared_reg_info = calloc(1, sizeof(riscv_reg_info_t));
 	shared_reg_info->target = target;
 
+	int hartid = riscv_current_hartid(target);
+
 	/* When gdb requests register N, gdb_get_register_packet() assumes that this
 	 * is register at index N in reg_list. So if there are certain registers
 	 * that don't exist, we need to leave holes in the list (or renumber, but
@@ -2970,6 +2987,11 @@ int riscv_init_registers(struct target *target)
 		 * target is in theory allowed to change XLEN on us. But I expect a lot
 		 * of other things to break in that case as well. */
 		if (number <= GDB_REGNO_XPR31) {
+			r->exist = number <= GDB_REGNO_XPR15 ||
+				!riscv_supports_extension(target, hartid, 'E');
+			/* TODO: For now we fake that all GPRs exist because otherwise gdb
+			 * doesn't work. */
+			r->exist = true;
 			r->caller_save = true;
 			switch (number) {
 				case GDB_REGNO_ZERO:
@@ -3078,12 +3100,10 @@ int riscv_init_registers(struct target *target)
 			r->feature = &feature_cpu;
 		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			r->caller_save = true;
-			if (riscv_supports_extension(target, riscv_current_hartid(target),
-						'D')) {
+			if (riscv_supports_extension(target, hartid, 'D')) {
 				r->reg_data_type = &type_ieee_double;
 				r->size = 64;
-			} else if (riscv_supports_extension(target,
-						riscv_current_hartid(target), 'F')) {
+			} else if (riscv_supports_extension(target, hartid, 'F')) {
 				r->reg_data_type = &type_ieee_single;
 				r->size = 32;
 			} else {
@@ -3214,8 +3234,7 @@ int riscv_init_registers(struct target *target)
 				case CSR_FFLAGS:
 				case CSR_FRM:
 				case CSR_FCSR:
-					r->exist = riscv_supports_extension(target,
-							riscv_current_hartid(target), 'F');
+					r->exist = riscv_supports_extension(target, hartid, 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
@@ -3229,16 +3248,15 @@ int riscv_init_registers(struct target *target)
 				case CSR_SCAUSE:
 				case CSR_STVAL:
 				case CSR_SATP:
-					r->exist = riscv_supports_extension(target,
-							riscv_current_hartid(target), 'S');
+					r->exist = riscv_supports_extension(target, hartid, 'S');
 					break;
 				case CSR_MEDELEG:
 				case CSR_MIDELEG:
 					/* "In systems with only M-mode, or with both M-mode and
 					 * U-mode but without U-mode trap support, the medeleg and
 					 * mideleg registers should not exist." */
-					r->exist = riscv_supports_extension(target, riscv_current_hartid(target), 'S') ||
-						riscv_supports_extension(target, riscv_current_hartid(target), 'N');
+					r->exist = riscv_supports_extension(target, hartid, 'S') ||
+						riscv_supports_extension(target, hartid, 'N');
 					break;
 
 				case CSR_CYCLEH:
@@ -3324,7 +3342,7 @@ int riscv_init_registers(struct target *target)
 			r->feature = &feature_virtual;
 			r->size = 8;
 
-		} else {
+		} else if (number >= GDB_REGNO_COUNT) {
 			/* Custom registers. */
 			assert(expose_custom);
 
