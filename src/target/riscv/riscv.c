@@ -1480,6 +1480,12 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 			LOG_ERROR("  start = 0x%08x", (uint32_t) start);
 			riscv_halt(target);
 			old_or_new_riscv_poll(target);
+			for (enum gdb_regno regno = 0; regno <= GDB_REGNO_PC; regno++) {
+				riscv_reg_t reg_value;
+				if (riscv_get_register(target, &reg_value, regno) != ERROR_OK)
+					break;
+				LOG_ERROR("%s = 0x%" PRIx64, gdb_regno_name(regno), reg_value);
+			}
 			return ERROR_TARGET_TIMEOUT;
 		}
 
@@ -2790,10 +2796,68 @@ const char *gdb_regno_name(enum gdb_regno regno)
 	switch (regno) {
 		case GDB_REGNO_ZERO:
 			return "zero";
+		case GDB_REGNO_RA:
+			return "ra";
+		case GDB_REGNO_SP:
+			return "sp";
+		case GDB_REGNO_GP:
+			return "gp";
+		case GDB_REGNO_TP:
+			return "tp";
+		case GDB_REGNO_T0:
+			return "t0";
+		case GDB_REGNO_T1:
+			return "t1";
+		case GDB_REGNO_T2:
+			return "t2";
 		case GDB_REGNO_S0:
 			return "s0";
 		case GDB_REGNO_S1:
 			return "s1";
+		case GDB_REGNO_A0:
+			return "a0";
+		case GDB_REGNO_A1:
+			return "a1";
+		case GDB_REGNO_A2:
+			return "a2";
+		case GDB_REGNO_A3:
+			return "a3";
+		case GDB_REGNO_A4:
+			return "a4";
+		case GDB_REGNO_A5:
+			return "a5";
+		case GDB_REGNO_A6:
+			return "a6";
+		case GDB_REGNO_A7:
+			return "a7";
+		case GDB_REGNO_S2:
+			return "s2";
+		case GDB_REGNO_S3:
+			return "s3";
+		case GDB_REGNO_S4:
+			return "s4";
+		case GDB_REGNO_S5:
+			return "s5";
+		case GDB_REGNO_S6:
+			return "s6";
+		case GDB_REGNO_S7:
+			return "s7";
+		case GDB_REGNO_S8:
+			return "s8";
+		case GDB_REGNO_S9:
+			return "s9";
+		case GDB_REGNO_S10:
+			return "s10";
+		case GDB_REGNO_S11:
+			return "s11";
+		case GDB_REGNO_T3:
+			return "t3";
+		case GDB_REGNO_T4:
+			return "t4";
+		case GDB_REGNO_T5:
+			return "t5";
+		case GDB_REGNO_T6:
+			return "t6";
 		case GDB_REGNO_PC:
 			return "pc";
 		case GDB_REGNO_FPR0:
