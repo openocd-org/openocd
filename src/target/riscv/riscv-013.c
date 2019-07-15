@@ -2456,6 +2456,59 @@ error:
 	return result;
 }
 
+/* Only need to save/restore one GPR to read a single word, and the progbuf
+ * program doesn't need to increment. */
+static int read_memory_progbuf_one(struct target *target, target_addr_t address,
+		uint32_t size, uint8_t *buffer)
+{
+	uint64_t s0;
+
+	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Write the program (load, increment) */
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	switch (size) {
+		case 1:
+			riscv_program_lbr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
+			break;
+		case 2:
+			riscv_program_lhr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
+			break;
+		case 4:
+			riscv_program_lwr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
+			break;
+		default:
+			LOG_ERROR("Unsupported size: %d", size);
+			return ERROR_FAIL;
+	}
+
+	if (riscv_program_ebreak(&program) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_program_write(&program) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Write address to S0, and execute buffer. */
+	if (write_abstract_arg(target, 0, address, riscv_xlen(target)) != ERROR_OK)
+		return ERROR_FAIL;
+	uint32_t command = access_register_command(target, GDB_REGNO_S0,
+			riscv_xlen(target), AC_ACCESS_REGISTER_WRITE |
+			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
+	if (execute_abstract_command(target, command) != ERROR_OK)
+		return ERROR_FAIL;
+
+	uint64_t value;
+	if (register_read(target, &value, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	write_to_buf(buffer, value, size);
+
+	if (riscv_set_register(target, GDB_REGNO_S0, s0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
 /**
  * Read the requested memory, silently handling memory access errors.
  */
@@ -2471,6 +2524,12 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	memset(buffer, 0, count*size);
 
+	if (execute_fence(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (count == 1)
+		return read_memory_progbuf_one(target, address, size, buffer);
+
 	/* s0 holds the next address to write to
 	 * s1 holds the next data value to write
 	 */
@@ -2478,9 +2537,6 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (execute_fence(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Write the program (load, increment) */
@@ -2504,7 +2560,8 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	if (riscv_program_ebreak(&program) != ERROR_OK)
 		return ERROR_FAIL;
-	riscv_program_write(&program);
+	if (riscv_program_write(&program) != ERROR_OK)
+		return ERROR_FAIL;
 
 	result = read_memory_progbuf_inner(target, address, size, count, buffer);
 
