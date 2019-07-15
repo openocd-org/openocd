@@ -264,6 +264,11 @@ range_t *expose_csr;
 /* Same, but for custom registers. */
 range_t *expose_custom;
 
+static enum {
+	RO_NORMAL,
+	RO_REVERSED
+} resume_order;
+
 static int riscv_resume_go_all_harts(struct target *target);
 
 void select_dmi_via_bscan(struct target *target)
@@ -2141,18 +2146,35 @@ COMMAND_HANDLER(riscv_set_ir)
 	uint32_t value;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
-	if (!strcmp(CMD_ARGV[0], "idcode")) {
+	if (!strcmp(CMD_ARGV[0], "idcode"))
 		buf_set_u32(ir_idcode, 0, 32, value);
-		return ERROR_OK;
-	} else if (!strcmp(CMD_ARGV[0], "dtmcs")) {
+	else if (!strcmp(CMD_ARGV[0], "dtmcs"))
 		buf_set_u32(ir_dtmcontrol, 0, 32, value);
-		return ERROR_OK;
-	} else if (!strcmp(CMD_ARGV[0], "dmi")) {
+	else if (!strcmp(CMD_ARGV[0], "dmi"))
 		buf_set_u32(ir_dbus, 0, 32, value);
-		return ERROR_OK;
+	else
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_resume_order)
+{
+	if (CMD_ARGC > 1) {
+		LOG_ERROR("Command takes at most one argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (!strcmp(CMD_ARGV[0], "normal")) {
+		resume_order = RO_NORMAL;
+	} else if (!strcmp(CMD_ARGV[0], "reversed")) {
+		resume_order = RO_REVERSED;
 	} else {
+		LOG_ERROR("Unsupported resume order: %s", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(riscv_use_bscan_tunnel)
@@ -2279,6 +2301,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"between scans to avoid encountering the target being busy. This "
 			"command resets those learned values after `wait` scans. It's only "
 			"useful for testing OpenOCD itself."
+	},
+	{
+		.name = "resume_order",
+		.handler = riscv_resume_order,
+		.mode = COMMAND_ANY,
+		.usage = "resume_order normal|reversed",
+		.help = "Choose the order that harts are resumed in when `hasel` is not "
+			"supported. Normal order is from lowest hart index to highest. "
+			"Reversed order is from highest hart index to lowest."
 	},
 	{
 		.name = "set_ir",
@@ -2437,7 +2468,27 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 static int riscv_resume_go_all_harts(struct target *target)
 {
 	RISCV_INFO(r);
-	for (int i = 0; i < riscv_count_harts(target); ++i) {
+
+	/* Dummy variables to make mingw32-gcc happy. */
+	int first = 0;
+	int last = 1;
+	int step = 1;
+	switch (resume_order) {
+		case RO_NORMAL:
+			first = 0;
+			last = riscv_count_harts(target) - 1;
+			step = 1;
+			break;
+		case RO_REVERSED:
+			first = riscv_count_harts(target) - 1;
+			last = 0;
+			step = -1;
+			break;
+		default:
+			assert(0);
+	}
+
+	for (int i = first; i != last + step; i += step) {
 		if (!riscv_hart_enabled(target, i))
 			continue;
 

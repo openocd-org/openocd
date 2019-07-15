@@ -9491,6 +9491,17 @@ When on, prefer to use System Bus Access to access memory.  When off, prefer to
 use the Program Buffer to access memory.
 @end deffn
 
+@deffn Command {riscv resume_order} normal|reversed
+Some software assumes all harts are executing nearly continuously. Such
+software may be sensitive to the order that harts are resumed in. On harts
+that don't support hasel, this option allows the user to choose the order the
+harts are resumed in. If you are using this option, it's probably masking a
+race condition problem in your code.
+
+Normal order is from lowest hart index to highest. This is the default
+behavior. Reversed order is from highest hart index to lowest.
+@end deffn
+
 @deffn Command {riscv set_ir} (@option{idcode}|@option{dtmcs}|@option{dmi}) [value]
 Set the IR value for the specified JTAG register.  This is useful, for
 example, when using the existing JTAG interface on a Xilinx FPGA by
