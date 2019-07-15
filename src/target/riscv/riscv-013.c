@@ -3743,7 +3743,7 @@ void riscv013_clear_abstract_error(struct target *target)
 		}
 	}
 	/* Clear the error status. */
-	dmi_write(target, DMI_ABSTRACTCS, abstractcs & DMI_ABSTRACTCS_CMDERR);
+	dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 }
 
 #ifdef _WIN32
