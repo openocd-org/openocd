@@ -143,6 +143,18 @@ static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr)
 	return (csr << 20) | (rs << 15) | (rd << 7) | MATCH_CSRRW;
 }
 
+static uint32_t csrrci(unsigned int rd, unsigned int zimm, unsigned int csr) __attribute__ ((unused));
+static uint32_t csrrci(unsigned int rd, unsigned int zimm, unsigned int csr)
+{
+	return (csr << 20) | (zimm << 15) | (rd << 7) | MATCH_CSRRCI;
+}
+
+static uint32_t csrrsi(unsigned int rd, unsigned int zimm, unsigned int csr) __attribute__ ((unused));
+static uint32_t csrrsi(unsigned int rd, unsigned int zimm, unsigned int csr)
+{
+	return (csr << 20) | (zimm << 15) | (rd << 7) | MATCH_CSRRSI;
+}
+
 static uint32_t fsw(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
 static uint32_t fsw(unsigned int src, unsigned int base, uint16_t offset)
 {

@@ -1580,6 +1580,13 @@ static int examine(struct target *target)
 				r->impebreak);
 	}
 
+	if (info->progbufsize < 4 && riscv_enable_virtual) {
+		LOG_ERROR("set_enable_virtual is not available on this target. It "
+				"requires a program buffer size of at least 4. (progbufsize=%d) "
+				"Use `riscv set_enable_virtual off` to continue."
+					, info->progbufsize);
+	}
+
 	/* Before doing anything else we must first enumerate the harts. */
 	if (dm->hart_count < 0) {
 		for (int i = 0; i < MIN(RISCV_MAX_HARTS, 1 << info->hartsellen); ++i) {
@@ -2083,6 +2090,39 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 	}
 }
 
+static int modify_privilege(struct target *target, uint64_t *mstatus, uint64_t *mstatus_old)
+{
+	RISCV013_INFO(info);
+
+	if (riscv_enable_virtual && info->progbufsize >= 4) {
+		/* Read DCSR */
+		uint64_t dcsr;
+		if (register_read(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+			return ERROR_FAIL;
+
+		/* Read and save MSTATUS */
+		if (register_read(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+			return ERROR_FAIL;
+		*mstatus_old = *mstatus;
+
+		/* If we come from m-mode with mprv set, we want to keep mpp */
+		if (get_field(dcsr, DCSR_PRV) < 3) {
+			/* MPP = PRIV */
+			*mstatus = set_field(*mstatus, MSTATUS_MPP, get_field(dcsr, DCSR_PRV));
+
+			/* MPRV = 1 */
+			*mstatus = set_field(*mstatus, MSTATUS_MPRV, 1);
+
+			/* Write MSTATUS */
+			if (*mstatus != *mstatus_old)
+				if (register_write_direct(target, GDB_REGNO_MSTATUS, *mstatus) != ERROR_OK)
+					return ERROR_FAIL;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static int read_memory_bus_v0(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -2461,6 +2501,13 @@ error:
 static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 		uint32_t size, uint8_t *buffer)
 {
+	RISCV013_INFO(info);
+
+	uint64_t mstatus = 0;
+	uint64_t mstatus_old = 0;
+	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
+		return ERROR_FAIL;
+
 	uint64_t s0;
 
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
@@ -2469,6 +2516,8 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 	/* Write the program (load, increment) */
 	struct riscv_program program;
 	riscv_program_init(&program, target);
+	if (riscv_enable_virtual && info->progbufsize >= 4 && get_field(mstatus, MSTATUS_MPRV))
+		riscv_program_csrrsi(&program, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 	switch (size) {
 		case 1:
 			riscv_program_lbr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
@@ -2483,6 +2532,8 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
+	if (riscv_enable_virtual && info->progbufsize >= 4 && get_field(mstatus, MSTATUS_MPRV))
+		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 
 	if (riscv_program_ebreak(&program) != ERROR_OK)
 		return ERROR_FAIL;
@@ -2506,6 +2557,11 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 	if (riscv_set_register(target, GDB_REGNO_S0, s0) != ERROR_OK)
 		return ERROR_FAIL;
 
+	/* Restore MSTATUS */
+	if (mstatus != mstatus_old)
+		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
+			return ERROR_FAIL;
+
 	return ERROR_OK;
 }
 
@@ -2515,6 +2571,8 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
+	RISCV013_INFO(info);
+
 	int result = ERROR_OK;
 
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
@@ -2530,6 +2588,11 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	if (count == 1)
 		return read_memory_progbuf_one(target, address, size, buffer);
 
+	uint64_t mstatus = 0;
+	uint64_t mstatus_old = 0;
+	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
+		return ERROR_FAIL;
+
 	/* s0 holds the next address to write to
 	 * s1 holds the next data value to write
 	 */
@@ -2542,6 +2605,9 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	/* Write the program (load, increment) */
 	struct riscv_program program;
 	riscv_program_init(&program, target);
+	if (riscv_enable_virtual && info->progbufsize >= 4 && get_field(mstatus, MSTATUS_MPRV))
+		riscv_program_csrrsi(&program, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
+
 	switch (size) {
 		case 1:
 			riscv_program_lbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
@@ -2556,6 +2622,8 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
+	if (riscv_enable_virtual && info->progbufsize >= 4 && get_field(mstatus, MSTATUS_MPRV))
+		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
 
 	if (riscv_program_ebreak(&program) != ERROR_OK)
@@ -2593,6 +2661,12 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
+
+	/* Restore MSTATUS */
+	if (mstatus != mstatus_old)
+		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
+			return ERROR_FAIL;
+
 	return result;
 }
 
@@ -2796,6 +2870,11 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 
 	select_dmi(target);
 
+	uint64_t mstatus = 0;
+	uint64_t mstatus_old = 0;
+	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
+		return ERROR_FAIL;
+
 	/* s0 holds the next address to write to
 	 * s1 holds the next data value to write
 	 */
@@ -2810,6 +2889,8 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 	/* Write the program (store, increment) */
 	struct riscv_program program;
 	riscv_program_init(&program, target);
+	if (riscv_enable_virtual && info->progbufsize >= 4 && get_field(mstatus, MSTATUS_MPRV))
+		riscv_program_csrrsi(&program, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 
 	switch (size) {
 		case 1:
@@ -2827,6 +2908,8 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 			goto error;
 	}
 
+	if (riscv_enable_virtual && info->progbufsize >= 4 && get_field(mstatus, MSTATUS_MPRV))
+		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
 
 	result = riscv_program_ebreak(&program);
@@ -2962,6 +3045,11 @@ error:
 		return ERROR_FAIL;
 	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
 		return ERROR_FAIL;
+
+	/* Restore MSTATUS */
+	if (mstatus != mstatus_old)
+		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
+			return ERROR_FAIL;
 
 	if (execute_fence(target) != ERROR_OK)
 		return ERROR_FAIL;

@@ -109,6 +109,18 @@ int riscv_program_lbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno 
 	return riscv_program_insert(p, lb(d, b, offset));
 }
 
+int riscv_program_csrrsi(struct riscv_program *p, enum gdb_regno d, unsigned int z, enum gdb_regno csr)
+{
+	assert(csr >= GDB_REGNO_CSR0 && csr <= GDB_REGNO_CSR4095);
+	return riscv_program_insert(p, csrrsi(d, z, csr - GDB_REGNO_CSR0));
+}
+
+int riscv_program_csrrci(struct riscv_program *p, enum gdb_regno d, unsigned int z, enum gdb_regno csr)
+{
+	assert(csr >= GDB_REGNO_CSR0 && csr <= GDB_REGNO_CSR4095);
+	return riscv_program_insert(p, csrrci(d, z, csr - GDB_REGNO_CSR0));
+}
+
 int riscv_program_csrr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno csr)
 {
 	assert(csr >= GDB_REGNO_CSR0 && csr <= GDB_REGNO_CSR4095);

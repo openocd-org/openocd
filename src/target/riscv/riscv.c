@@ -252,6 +252,8 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
 bool riscv_prefer_sba;
 
+bool riscv_enable_virtual;
+
 typedef struct {
 	uint16_t low, high;
 } range_t;
@@ -1884,6 +1886,16 @@ COMMAND_HANDLER(riscv_set_prefer_sba)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_enable_virtual)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_enable_virtual);
+	return ERROR_OK;
+}
+
 void parse_error(const char *string, char c, unsigned position)
 {
 	char buf[position+2];
@@ -2232,6 +2244,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.usage = "riscv set_prefer_sba on|off",
 		.help = "When on, prefer to use System Bus Access to access memory. "
 			"When off, prefer to use the Program Buffer to access memory."
+	},
+	{
+		.name = "set_enable_virtual",
+		.handler = riscv_set_enable_virtual,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_enable_virtual on|off",
+		.help = "When on, memory accesses are performed on physical or virtual "
+				"memory depending on the current system configuration. "
+				"When off, all memory accessses are performed on physical memory."
 	},
 	{
 		.name = "expose_csrs",
