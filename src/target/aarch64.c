@@ -2715,6 +2715,145 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	return JIM_OK;
 }
 
+static int jim_msrmrs(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+{
+	struct command_context *context;
+	struct target *target;
+	struct arm *arm;
+	int retval;
+	bool is_msr = false;
+	int arg_cnt = 0;
+
+	if (Jim_CompareStringImmediate(interp, argv[0], "msr")) {
+		is_msr = true;
+		arg_cnt = 7;
+	} else {
+		arg_cnt = 6;
+	}
+
+	context = current_command_context(interp);
+	assert(context != NULL);
+
+	target = get_current_target(context);
+	if (target == NULL) {
+		LOG_ERROR("%s: no current target", __func__);
+		return JIM_ERR;
+	}
+	if (!target_was_examined(target)) {
+		LOG_ERROR("%s: not yet examined", target_name(target));
+		return JIM_ERR;
+	}
+
+	arm = target_to_arm(target);
+	if (!is_arm(arm)) {
+		LOG_ERROR("%s: not an ARM", target_name(target));
+		return JIM_ERR;
+	}
+
+	if (target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
+
+	if (arm->core_state != ARM_STATE_AARCH64) {
+		LOG_ERROR("%s: not 64-bit arm target", target_name(target));
+		return JIM_ERR;
+	}
+
+	if (argc != arg_cnt) {
+		LOG_ERROR("%s: wrong number of arguments", __func__);
+		return JIM_ERR;
+	}
+
+	uint32_t op0;
+	uint32_t op1;
+	uint32_t op2;
+	uint32_t CRn;
+	uint32_t CRm;
+	jim_wide jim_value;
+	uint64_t value;
+	long l;
+
+	/* NOTE:  parameter sequence matches ARM instruction set usage:
+	 *      MSR     op0, op1, rX, CRn, CRm, op2     ; write System Reg from rX
+	 *      MRS     op0, op1, rX, CRn, CRm, op2     ; read System Reg into rX
+	 * The "rX" is necessarily omitted; it uses Tcl mechanisms.
+	 */
+	retval = Jim_GetLong(interp, argv[1], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0x3) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"op0", (int) l);
+		return JIM_ERR;
+	}
+	op0 = l;
+
+	retval = Jim_GetLong(interp, argv[2], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0x7) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"op1", (int) l);
+		return JIM_ERR;
+	}
+	op1 = l;
+
+	retval = Jim_GetLong(interp, argv[3], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0xf) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"CRn", (int) l);
+		return JIM_ERR;
+	}
+	CRn = l;
+
+	retval = Jim_GetLong(interp, argv[4], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0xf) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"CRm", (int) l);
+		return JIM_ERR;
+	}
+	CRm = l;
+
+	retval = Jim_GetLong(interp, argv[5], &l);
+	if (retval != JIM_OK)
+		return retval;
+	if (l & ~0x7) {
+		LOG_ERROR("%s: %s %d out of range", __func__,
+			"op2", (int) l);
+		return JIM_ERR;
+	}
+	op2 = l;
+
+	jim_value = 0;
+
+	if (is_msr == true) {
+		retval = Jim_GetWide(interp, argv[6], &jim_value);
+		if (retval != JIM_OK)
+			return retval;
+
+		/* NOTE: parameters reordered! */
+		/* ARMV8_MSR(op0, op1, 0, CRn, CRm, op2) */
+		value = (uint64_t)jim_value;
+		retval = arm->msr(target, op0, op1, op2, CRn, CRm, value);
+		if (retval != ERROR_OK)
+			return JIM_ERR;
+	} else {
+		/* NOTE: parameters reordered! */
+		/* ARMV8_MRS(op0, op1, 0, CRn, CRm, op2) */
+		retval = arm->mrs(target, op0, op1, op2, CRn, CRm, &value);
+		if (retval != ERROR_OK)
+			return JIM_ERR;
+
+		jim_value = (jim_wide)value;
+		Jim_SetResult(interp, Jim_NewWideObj(interp, jim_value));
+	}
+
+	return JIM_OK;
+}
+
 static const struct command_registration aarch64_exec_command_handlers[] = {
 	{
 		.name = "cache_info",
@@ -2750,6 +2889,20 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 		.jim_handler = jim_mcrmrc,
 		.help = "read coprocessor register",
 		.usage = "cpnum op1 CRn CRm op2",
+	},
+	{
+		.name = "msr",
+		.mode = COMMAND_EXEC,
+		.jim_handler = jim_msrmrs,
+		.help = "write system register",
+		.usage = "op0 op1 CRn CRm op2 value",
+	},
+	{
+		.name = "mrs",
+		.mode = COMMAND_EXEC,
+		.jim_handler = jim_msrmrs,
+		.help = "read system register",
+		.usage = "op0 op1 CRn CRm op2",
 	},
 	{
 		.chain = smp_command_handlers,

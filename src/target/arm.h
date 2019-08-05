@@ -220,6 +220,18 @@ struct arm {
 			uint32_t CRn, uint32_t CRm,
 			uint32_t value);
 
+	/** Read system register.  */
+	int (*mrs)(struct target *target, uint32_t op0,
+			uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm,
+			uint64_t *value);
+
+	/** Write system register.  */
+	int (*msr)(struct target *target, uint32_t op0,
+			uint32_t op1, uint32_t op2,
+			uint32_t CRn, uint32_t CRm,
+			uint64_t value);
+
 	void *arch_info;
 
 	/** For targets conforming to ARM Debug Interface v5,

@@ -539,6 +539,62 @@ static int dpmv8_mcr(struct target *target, int cpnum,
 	return retval;
 }
 
+/*
+ * System register support
+ */
+
+/* Read system register */
+static int dpmv8_mrs(struct target *target, uint32_t op0,
+	uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
+	uint64_t *value)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("MRS %d, %d, r0, c%d, c%d, %d", (int) op0,
+		(int) op1, (int) CRn,
+		(int) CRm, (int) op2);
+
+	/* read system register into R0; return via DCC */
+	retval = dpm->instr_read_data_r0_64(dpm,
+			ARMV8_MRS_INSTR(op0, op1, 0, CRn, CRm, op2),
+			value);
+
+	/* (void) */ dpm->finish(dpm);
+	return retval;
+}
+
+/* Write system register */
+static int dpmv8_msr(struct target *target, uint32_t op0,
+	uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm,
+	uint64_t value)
+{
+	struct arm *arm = target_to_arm(target);
+	struct arm_dpm *dpm = arm->dpm;
+	int retval;
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("MSR %d, %d, r0, c%d, c%d, %d", (int) op0,
+		(int) op1, (int) CRn,
+		(int) CRm, (int) op2);
+
+	/* read DCC into r0; then write system register from R0 */
+	retval = dpm->instr_write_data_r0_64(dpm,
+			ARMV8_MSR_INSTR(op0, op1, 0, CRn, CRm, op2),
+			value);
+
+	/* (void) */ dpm->finish(dpm);
+	return retval;
+}
+
 /*----------------------------------------------------------------------*/
 
 /*
@@ -1430,6 +1486,10 @@ int armv8_dpm_setup(struct arm_dpm *dpm)
 	/* coprocessor access setup */
 	arm->mrc = dpmv8_mrc;
 	arm->mcr = dpmv8_mcr;
+
+	/* system register setup */
+	arm->mrs = dpmv8_mrs;
+	arm->msr = dpmv8_msr;
 
 	dpm->prepare = dpmv8_dpm_prepare;
 	dpm->finish = dpmv8_dpm_finish;
