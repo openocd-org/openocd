@@ -3080,8 +3080,22 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		}
 
 		if (target->rtos) {
-			/* FIXME: why is this necessary? rtos state should be up-to-date here already! */
-			rtos_update_threads(target);
+			/* Sometimes this results in picking a different thread than
+			 * gdb just requested to step. Then we fake it, and now there's
+			 * a different thread selected than gdb expects, so register
+			 * accesses go to the wrong one!
+			 * E.g.:
+			 * Hg1$
+			 * P8=72101ce197869329$		# write r8 on thread 1
+			 * g$
+			 * vCont?$
+			 * vCont;s:1;c$				# rtos_update_threads changes to other thread
+			 * g$
+			 * qXfer:threads:read::0,fff$
+			 * P8=cc060607eb89ca7f$		# write r8 on other thread
+			 * g$
+			 */
+			 /* rtos_update_threads(target); */
 
 			target->rtos->gdb_target_for_threadid(connection, thread_id, &ct);
 
@@ -3089,8 +3103,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 			 * check if the thread to be stepped is the current rtos thread
 			 * if not, we must fake the step
 			 */
-			if (target->rtos->current_thread != thread_id)
-				fake_step = true;
+			fake_step = rtos_needs_fake_step(target, thread_id);
 		}
 
 		if (parse[0] == ';') {

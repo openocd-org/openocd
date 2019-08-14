@@ -28,6 +28,7 @@ static int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, uint8_t *buffer);
 static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
+static bool hwthread_needs_fake_step(struct target *target, int64_t thread_id);
 
 #define HW_THREAD_NAME_STR_SIZE (32)
 
@@ -59,6 +60,7 @@ const struct rtos_type hwthread_rtos = {
 	.set_reg = hwthread_set_reg,
 	.read_buffer = hwthread_read_buffer,
 	.write_buffer = hwthread_write_buffer,
+	.needs_fake_step = hwthread_needs_fake_step
 };
 
 struct hwthread_params {
@@ -448,4 +450,9 @@ static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 		return ERROR_FAIL;
 
 	return target_write_buffer(curr, address, size, buffer);
+}
+
+bool hwthread_needs_fake_step(struct target *target, int64_t thread_id)
+{
+	return false;
 }

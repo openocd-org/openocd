@@ -79,6 +79,13 @@ struct rtos_type {
 			uint8_t *buffer);
 	int (*write_buffer)(struct rtos *rtos, target_addr_t address, uint32_t size,
 			const uint8_t *buffer);
+	/**
+	 * Possibly work around an annoying gdb behaviour: when the current thread
+	 * is changed in gdb, it assumes that the target can follow and also make
+	 * the thread current. This is an assumption that cannot hold for a real
+	 * target running a multi-threading OS. If an RTOS can do this, override
+	 * needs_fake_step(). */
+	bool (*needs_fake_step)(struct target *target, int64_t thread_id);
 };
 
 struct stack_register_offset {
@@ -137,6 +144,7 @@ int rtos_read_buffer(struct target *target, target_addr_t address,
 		uint32_t size, uint8_t *buffer);
 int rtos_write_buffer(struct target *target, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
+bool rtos_needs_fake_step(struct target *target, int64_t thread_id);
 
 // Keep in alphabetic order this list of rtos
 extern const struct rtos_type chibios_rtos;

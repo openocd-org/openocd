@@ -755,3 +755,10 @@ int rtos_write_buffer(struct target *target, target_addr_t address,
 		return target->rtos->type->write_buffer(target->rtos, address, size, buffer);
 	return ERROR_NOT_IMPLEMENTED;
 }
+
+bool rtos_needs_fake_step(struct target *target, int64_t thread_id)
+{
+	if (target->rtos->type->needs_fake_step)
+		return target->rtos->type->needs_fake_step(target, thread_id);
+	return target->rtos->current_thread != thread_id;
+}
