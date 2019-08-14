@@ -673,3 +673,10 @@ void rtos_free_threadlist(struct rtos *rtos)
 		rtos->current_thread = 0;
 	}
 }
+
+bool rtos_needs_fake_step(struct target *target, int64_t thread_id)
+{
+	if (target->rtos->type->needs_fake_step)
+		return target->rtos->type->needs_fake_step(target, thread_id);
+	return target->rtos->current_thread != thread_id;
+}

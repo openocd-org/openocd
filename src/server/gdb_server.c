@@ -2808,8 +2808,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 				 * check if the thread to be stepped is the current rtos thread
 				 * if not, we must fake the step
 				 */
-				if (target->rtos->current_thread != thread_id)
-					fake_step = true;
+				fake_step = rtos_needs_fake_step(target, thread_id);
 			}
 
 			if (parse[0] == ';') {
@@ -2849,15 +2848,10 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 			log_add_callback(gdb_log_callback, connection);
 			target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
 
-			/*
-			 * work around an annoying gdb behaviour: when the current thread
-			 * is changed in gdb, it assumes that the target can follow and also
-			 * make the thread current. This is an assumption that cannot hold
-			 * for a real target running a multi-threading OS. We just fake
-			 * the step to not trigger an internal error in gdb. See
-			 * https://sourceware.org/bugzilla/show_bug.cgi?id=22925 for details
-			 */
 			if (fake_step) {
+				/* We just fake the step to not trigger an internal error in
+				 * gdb. See https://sourceware.org/bugzilla/show_bug.cgi?id=22925
+				 * for details. */
 				int sig_reply_len;
 				char sig_reply[128];
 

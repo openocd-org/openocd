@@ -83,6 +83,13 @@ struct rtos_type {
 	int (*clean)(struct target *target);
 	char * (*ps_command)(struct target *target);
 	int (*set_reg)(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
+	/**
+	 * Possibly work around an annoying gdb behaviour: when the current thread
+	 * is changed in gdb, it assumes that the target can follow and also make
+	 * the thread current. This is an assumption that cannot hold for a real
+	 * target running a multi-threading OS. If an RTOS can do this, override
+	 * needs_fake_step(). */
+	bool (*needs_fake_step)(struct target *target, int64_t thread_id);
 };
 
 struct stack_register_offset {
@@ -128,5 +135,6 @@ void rtos_free_threadlist(struct rtos *rtos);
 int rtos_smp_init(struct target *target);
 /*  function for handling symbol access */
 int rtos_qsymbol(struct connection *connection, char const *packet, int packet_size);
+bool rtos_needs_fake_step(struct target *target, int64_t thread_id);
 
 #endif /* OPENOCD_RTOS_RTOS_H */

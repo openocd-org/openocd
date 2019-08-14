@@ -38,6 +38,7 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 static int hwthread_smp_init(struct target *target);
 int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
+bool hwthread_needs_fake_step(struct target *target, int64_t thread_id);
 
 #define HW_THREAD_NAME_STR_SIZE (32)
 
@@ -58,6 +59,7 @@ const struct rtos_type hwthread_rtos = {
 	.get_symbol_list_to_lookup = hwthread_get_symbol_list_to_lookup,
 	.smp_init = hwthread_smp_init,
 	.set_reg = hwthread_set_reg,
+	.needs_fake_step = hwthread_needs_fake_step
 };
 
 struct hwthread_params {
@@ -353,7 +355,6 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 	int64_t current_threadid;
 
 	if (packet[0] == 'H' && packet[1] == 'g') {
-		/* Never reached, because this case is handled by rtos_thread_packet(). */
 		sscanf(packet, "Hg%16" SCNx64, &current_threadid);
 
 		if (current_threadid > 0) {
@@ -386,4 +387,9 @@ static int hwthread_create(struct target *target)
 	target->rtos->gdb_target_for_threadid = hwthread_target_for_threadid;
 	target->rtos->gdb_thread_packet = hwthread_thread_packet;
 	return 0;
+}
+
+bool hwthread_needs_fake_step(struct target *target, int64_t thread_id)
+{
+	return false;
 }
