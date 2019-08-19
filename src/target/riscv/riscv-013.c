@@ -844,7 +844,7 @@ static riscv_reg_t read_abstract_arg(struct target *target, unsigned index,
 	unsigned offset = index * size_bits / 32;
 	switch (size_bits) {
 		default:
-			LOG_ERROR("Unsupported size: %d", size_bits);
+			LOG_ERROR("Unsupported size: %d bits", size_bits);
 			return ~0;
 		case 64:
 			dmi_read(target, &v, DMI_DATA0 + offset + 1);
@@ -863,7 +863,7 @@ static int write_abstract_arg(struct target *target, unsigned index,
 	unsigned offset = index * size_bits / 32;
 	switch (size_bits) {
 		default:
-			LOG_ERROR("Unsupported size: %d", size_bits);
+			LOG_ERROR("Unsupported size: %d bits", size_bits);
 			return ERROR_FAIL;
 		case 64:
 			dmi_write(target, DMI_DATA0 + offset + 1, value >> 32);
@@ -984,6 +984,45 @@ static int register_write_abstract(struct target *target, uint32_t number,
 	}
 
 	return ERROR_OK;
+}
+
+/*
+ * Sets the AAMSIZE field of a memory access abstract command based on
+ * the width (bits).
+ */
+static uint32_t abstract_memory_size(unsigned width)
+{
+	switch (width) {
+		case 8:
+			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 0);
+		case 16:
+			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 1);
+		case 32:
+			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 2);
+		case 64:
+			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 3);
+		case 128:
+			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 4);
+		default:
+			LOG_ERROR("Unsupported memory width: %d", width);
+			return 0;
+	}
+}
+
+/*
+ * Creates a memory access abstract command.
+ */
+static uint32_t access_memory_command(struct target *target, bool virtual,
+		unsigned width, bool postincrement, bool write)
+{
+	uint32_t command = set_field(0, AC_ACCESS_MEMORY_CMDTYPE, 2);
+	command = set_field(command, AC_ACCESS_MEMORY_AAMVIRTUAL, virtual);
+	command |= abstract_memory_size(width);
+	command = set_field(command, AC_ACCESS_MEMORY_AAMPOSTINCREMENT,
+						postincrement);
+	command = set_field(command, AC_ACCESS_MEMORY_WRITE, write);
+
+	return command;
 }
 
 static int examine_progbuf(struct target *target)
@@ -1915,6 +1954,30 @@ static int deassert_reset(struct target *target)
 /**
  * @par size in bytes
  */
+static void read_from_buf(uint64_t *value, const uint8_t *buffer, unsigned size)
+{
+	switch (size) {
+		case 1:
+			*value = buffer[0];
+			break;
+		case 2:
+			*value = buffer[0]
+				| ((uint64_t) buffer[1] << 8);
+			break;
+		case 4:
+			*value = buffer[0]
+				| ((uint64_t) buffer[1] << 8)
+				| ((uint64_t) buffer[2] << 16)
+				| ((uint64_t) buffer[3] << 24);
+			break;
+		default:
+			assert(false);
+	}
+}
+
+/**
+ * @par size in bytes
+ */
 static void write_to_buf(uint8_t *buffer, uint64_t value, unsigned size)
 {
 	switch (size) {
@@ -2296,6 +2359,128 @@ static int batch_run(const struct target *target, struct riscv_batch *batch)
 		}
 	}
 	return riscv_batch_run(batch);
+}
+
+/*
+ * Performs a memory read using memory access abstract commands. The read sizes
+ * supported are 1, 2, and 4 bytes despite the spec's support of 8 and 16 byte
+ * aamsize fields in the memory access abstract command.
+ */
+static int read_memory_abstract(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	int result = ERROR_OK;
+
+	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
+			  size, address);
+
+	memset(buffer, 0, count*size);
+
+	/* Convert the size (bytes) to width (bits) */
+	unsigned width = size << 3;
+	if (width > 64) {
+		/* TODO: Add 128b support if it's ever used. Involves modifying
+				 read/write_abstract_arg() to work on two 64b values. */
+		LOG_ERROR("Unsupported size: %d bits", size);
+		return ERROR_FAIL;
+	}
+
+	/* Create the command (physical address, postincrement, read) */
+	uint32_t command = access_memory_command(target, false, width, true, false);
+
+	/* Execute the reads */
+	uint8_t *p = buffer;
+	bool updateaddr = true;
+	unsigned width32 = (width + 31) / 32 * 32;
+	for (uint32_t c = 0; c < count; c++) {
+		/* Only update the addres initially and let postincrement update it */
+		if (updateaddr) {
+			/* Set arg1 to the address: address + c * size */
+			result = write_abstract_arg(target, 1, address, riscv_xlen(target));
+			if (result != ERROR_OK) {
+				LOG_ERROR("Failed to write arg1 during read_memory_abstract().");
+				return result;
+			}
+		}
+
+		/* Execute the command */
+		result = execute_abstract_command(target, command);
+		if (result != ERROR_OK) {
+			LOG_ERROR("Failed to execute command read_memory_abstract().");
+			return result;
+		}
+
+		/* Copy arg0 to buffer (rounded width up to nearest 32) */
+		riscv_reg_t value = read_abstract_arg(target, 0, width32);
+		write_to_buf(p, value, size);
+
+		updateaddr = false;
+		p += size;
+	}
+
+	return result;
+}
+
+/*
+ * Performs a memory write using memory access abstract commands. The write
+ * sizes supported are 1, 2, and 4 bytes despite the spec's support of 8 and 16
+ * byte aamsize fields in the memory access abstract command.
+ */
+static int write_memory_abstract(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer)
+{
+	int result = ERROR_OK;
+
+	LOG_DEBUG("writing %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
+			  size, address);
+
+	/* Convert the size (bytes) to width (bits) */
+	unsigned width = size << 3;
+	if (width > 64) {
+		/* TODO: Add 128b support if it's ever used. Involves modifying
+				 read/write_abstract_arg() to work on two 64b values. */
+		LOG_ERROR("Unsupported size: %d bits", width);
+		return ERROR_FAIL;
+	}
+
+	/* Create the command (physical address, postincrement, write) */
+	uint32_t command = access_memory_command(target, false, width, true, true);
+
+	/* Execute the writes */
+	const uint8_t *p = buffer;
+	bool updateaddr = true;
+	for (uint32_t c = 0; c < count; c++) {
+		/* Move data to arg0 */
+		riscv_reg_t value = 0;
+		read_from_buf(&value, p, size);
+		result = write_abstract_arg(target, 0, value, riscv_xlen(target));
+		if (result != ERROR_OK) {
+			LOG_ERROR("Failed to write arg0 during write_memory_abstract().");
+			return result;
+		  }
+
+		/* Only update the addres initially and let postincrement update it */
+		if (updateaddr) {
+			/* Set arg1 to the address: address + c * size */
+			result = write_abstract_arg(target, 1, address, riscv_xlen(target));
+			if (result != ERROR_OK) {
+				LOG_ERROR("Failed to write arg1 during write_memory_abstract().");
+				return result;
+			}
+		}
+
+		/* Execute the command */
+		result = execute_abstract_command(target, command);
+		if (result != ERROR_OK) {
+			LOG_ERROR("Failed to execute command write_memory_abstract().");
+			return result;
+		}
+
+		updateaddr = false;
+		p += size;
+	}
+
+	return result;
 }
 
 /**
@@ -2698,8 +2883,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	if (info->progbufsize >= 2)
 		return read_memory_progbuf(target, address, size, count, buffer);
 
-	LOG_ERROR("Don't know how to read memory on this target.");
-	return ERROR_FAIL;
+	return read_memory_abstract(target, address, size, count, buffer);
 }
 
 static int write_memory_bus_v0(struct target *target, target_addr_t address,
@@ -2717,6 +2901,7 @@ static int write_memory_bus_v0(struct target *target, target_addr_t address,
 
 	/* B.8 Writing Memory, single write check if we write in one go */
 	if (count == 1) { /* count is in bytes here */
+		/* TODO: Test with read_from_buf(&value, t_buffer, size) */
 		/* check the size */
 		switch (size) {
 			case 1:
@@ -2761,6 +2946,7 @@ static int write_memory_bus_v0(struct target *target, target_addr_t address,
 		t_addr = address + offset;
 		t_buffer = buffer + offset;
 
+		/* TODO: Test with read_from_buf(&value, t_buffer, size) */
 		switch (size) {
 			case 1:
 				value = t_buffer[0];
@@ -2943,6 +3129,7 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 			unsigned offset = size*i;
 			const uint8_t *t_buffer = buffer + offset;
 
+			/* TODO: Test with read_from_buf(&value, t_buffer, size)*/
 			uint32_t value;
 			switch (size) {
 				case 1:
@@ -3085,8 +3272,7 @@ static int write_memory(struct target *target, target_addr_t address,
 	if (info->progbufsize >= 2)
 		return write_memory_progbuf(target, address, size, count, buffer);
 
-	LOG_ERROR("Don't know how to write memory on this target.");
-	return ERROR_FAIL;
+	return write_memory_abstract(target, address, size, count, buffer);
 }
 
 static int arch_state(struct target *target)
