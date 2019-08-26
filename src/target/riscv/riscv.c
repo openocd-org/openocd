@@ -1251,16 +1251,21 @@ static int resume_finish(struct target *target)
 	return target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 }
 
-int riscv_resume(
+/**
+ * @par single_hart When true, only resume a single hart even if SMP is
+ * configured.  This is used to run algorithms on just one hart.
+ */
+int riscv_resume_internal(
 		struct target *target,
 		int current,
 		target_addr_t address,
 		int handle_breakpoints,
-		int debug_execution
-){
+		int debug_execution,
+		bool single_hart)
+{
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	int result = ERROR_OK;
-	if (target->smp) {
+	if (target->smp && !single_hart) {
 		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
 			struct target *t = tlist->target;
 			if (resume_prep(t, current, address, handle_breakpoints,
@@ -1296,6 +1301,13 @@ int riscv_resume(
 	}
 
 	return result;
+}
+
+int riscv_resume(struct target *target, int current, target_addr_t address,
+		int handle_breakpoints, int debug_execution)
+{
+	return riscv_resume_internal(target, current, address, handle_breakpoints,
+			debug_execution, false);
 }
 
 static int riscv_select_current_hart(struct target *target)
@@ -1420,6 +1432,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	if (!reg_pc || reg_pc->type->get(reg_pc) != ERROR_OK)
 		return ERROR_FAIL;
 	uint64_t saved_pc = buf_get_u64(reg_pc->value, 0, reg_pc->size);
+	LOG_DEBUG("saved_pc=0x%" PRIx64, saved_pc);
 
 	uint64_t saved_regs[32];
 	for (int i = 0; i < num_reg_params; i++) {
@@ -1474,7 +1487,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 
 	/* Run algorithm */
 	LOG_DEBUG("resume at 0x%" TARGET_PRIxADDR, entry_point);
-	if (riscv_resume(target, 0, entry_point, 0, 0) != ERROR_OK)
+	if (riscv_resume_internal(target, 0, entry_point, 0, 0, true) != ERROR_OK)
 		return ERROR_FAIL;
 
 	int64_t start = timeval_ms();

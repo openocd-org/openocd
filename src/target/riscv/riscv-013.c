@@ -828,8 +828,7 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	if (info->cmderr != 0 || result != ERROR_OK) {
 		LOG_DEBUG("command 0x%x failed; abstractcs=0x%x", command, abstractcs);
 		/* Clear the error. */
-		dmi_write(target, DMI_ABSTRACTCS, set_field(0, DMI_ABSTRACTCS_CMDERR,
-					info->cmderr));
+		dmi_write(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 		return ERROR_FAIL;
 	}
 
@@ -1267,10 +1266,6 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	int result = register_write_abstract(target, number, value,
 			register_size(target, number));
-	if (result == ERROR_OK && target->reg_cache) {
-		struct reg *reg = &target->reg_cache->reg_list[number];
-		buf_set_u64(reg->value, 0, reg->size, value);
-	}
 	if (result == ERROR_OK || info->progbufsize + r->impebreak < 2 ||
 			!riscv_is_halted(target))
 		return result;
