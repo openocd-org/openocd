@@ -367,10 +367,13 @@ static int gdb_put_packet_inner(struct connection *connection,
 	for (i = 0; i < len; i++)
 		my_checksum += buffer[i];
 
+#ifdef _DEBUG_GDB_IO_
 	/*
 	 * At this point we should have nothing in the input queue from GDB,
 	 * however sometimes '-' is sent even though we've already received
 	 * an ACK (+) for everything we've sent off.
+	 *
+	 * This code appears to sometimes eat a ^C coming from gdb.
 	 */
 	int gotdata;
 	for (;; ) {
@@ -391,6 +394,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 
 		LOG_DEBUG("Discard unexpected char %c", reply);
 	}
+#endif
 
 	while (1) {
 		debug_buffer = strndup(buffer, len);
