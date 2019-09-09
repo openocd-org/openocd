@@ -590,7 +590,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 					fespi_info->ctrl_base, page_size, data_wa->address, offset, cur_count,
 					buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 			retval = target_run_algorithm(target, 0, NULL, 5, reg_params,
-					algorithm_wa->address, 0, 10000, NULL);
+					algorithm_wa->address, 0, cur_count * 2, NULL);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Failed to execute algorithm at " TARGET_ADDR_FMT ": %d",
 						algorithm_wa->address, retval);

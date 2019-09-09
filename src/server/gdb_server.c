@@ -3178,16 +3178,23 @@ static int gdb_input_inner(struct connection *connection)
 		gdb_packet_buffer[packet_size] = '\0';
 
 		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
-			if (packet[0] == 'X') {
-				/* binary packets spew junk into the debug log stream */
-				char buf[50];
-				int x;
-				for (x = 0; (x < 49) && (packet[x] != ':'); x++)
-					buf[x] = packet[x];
-				buf[x] = 0;
-				LOG_DEBUG("received packet: '%s:<binary-data>'", buf);
-			} else
-				LOG_DEBUG("received packet: '%s'", packet);
+			char buf[64];
+			unsigned offset = 0;
+			int i = 0;
+			while (i < packet_size && offset < 56) {
+				if (packet[i] == '\\') {
+					buf[offset++] = '\\';
+					buf[offset++] = '\\';
+				} else if (isprint(packet[i])) {
+					buf[offset++] = packet[i];
+				} else {
+					sprintf(buf + offset, "\\x%02x", (unsigned char) packet[i]);
+					offset += 4;
+				}
+				i++;
+			}
+			buf[offset] = 0;
+			LOG_DEBUG("received packet: '%s'%s", buf, i < packet_size ? "..." : "");
 		}
 
 		if (packet_size > 0) {

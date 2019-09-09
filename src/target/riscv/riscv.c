@@ -1416,6 +1416,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		target_addr_t exit_point, int timeout_ms, void *arch_info)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	int hartid = riscv_current_hartid(target);
 
 	if (num_mem_params > 0) {
 		LOG_ERROR("Memory parameters are not supported for RISC-V algorithms.");
@@ -1495,12 +1496,23 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		LOG_DEBUG("poll()");
 		int64_t now = timeval_ms();
 		if (now - start > timeout_ms) {
-			LOG_ERROR("Algorithm timed out after %d ms.", timeout_ms);
-			LOG_ERROR("  now   = 0x%08x", (uint32_t) now);
-			LOG_ERROR("  start = 0x%08x", (uint32_t) start);
+			LOG_ERROR("Algorithm timed out after %" PRId64 " ms.", now - start);
 			riscv_halt(target);
 			old_or_new_riscv_poll(target);
-			for (enum gdb_regno regno = 0; regno <= GDB_REGNO_PC; regno++) {
+			enum gdb_regno regnums[] = {
+				GDB_REGNO_RA, GDB_REGNO_SP, GDB_REGNO_GP, GDB_REGNO_TP,
+				GDB_REGNO_T0, GDB_REGNO_T1, GDB_REGNO_T2, GDB_REGNO_FP,
+				GDB_REGNO_S1, GDB_REGNO_A0, GDB_REGNO_A1, GDB_REGNO_A2,
+				GDB_REGNO_A3, GDB_REGNO_A4, GDB_REGNO_A5, GDB_REGNO_A6,
+				GDB_REGNO_A7, GDB_REGNO_S2, GDB_REGNO_S3, GDB_REGNO_S4,
+				GDB_REGNO_S5, GDB_REGNO_S6, GDB_REGNO_S7, GDB_REGNO_S8,
+				GDB_REGNO_S9, GDB_REGNO_S10, GDB_REGNO_S11, GDB_REGNO_T3,
+				GDB_REGNO_T4, GDB_REGNO_T5, GDB_REGNO_T6,
+				GDB_REGNO_PC,
+				GDB_REGNO_MSTATUS, GDB_REGNO_MEPC, GDB_REGNO_MCAUSE,
+			};
+			for (unsigned i = 0; i < DIM(regnums); i++) {
+				enum gdb_regno regno = regnums[i];
 				riscv_reg_t reg_value;
 				if (riscv_get_register(target, &reg_value, regno) != ERROR_OK)
 					break;
@@ -1513,6 +1525,10 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		if (result != ERROR_OK)
 			return result;
 	}
+
+	/* The current hart id might have been changed in poll(). */
+	if (riscv_set_current_hartid(target, hartid) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (reg_pc->type->get(reg_pc) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1538,23 +1554,23 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		if (reg_params[i].direction == PARAM_IN ||
 				reg_params[i].direction == PARAM_IN_OUT) {
 			struct reg *r = register_get_by_name(target->reg_cache, reg_params[i].reg_name, 0);
-			if (r->type->get(r) != ERROR_OK)
+			if (r->type->get(r) != ERROR_OK) {
+				LOG_ERROR("get(%s) failed", r->name);
 				return ERROR_FAIL;
+			}
 			buf_cpy(r->value, reg_params[i].value, reg_params[i].size);
 		}
 		LOG_DEBUG("restore %s", reg_params[i].reg_name);
 		struct reg *r = register_get_by_name(target->reg_cache, reg_params[i].reg_name, 0);
 		buf_set_u64(buf, 0, info->xlen[0], saved_regs[r->number]);
-		if (r->type->set(r, buf) != ERROR_OK)
+		if (r->type->set(r, buf) != ERROR_OK) {
+			LOG_ERROR("set(%s) failed", r->name);
 			return ERROR_FAIL;
+		}
 	}
 
 	return ERROR_OK;
 }
-
-/* Should run code on the target to perform CRC of
-memory. Not yet implemented.
-*/
 
 static int riscv_checksum_memory(struct target *target,
 		target_addr_t address, uint32_t count,
@@ -2967,6 +2983,10 @@ const char *gdb_regno_name(enum gdb_regno regno)
 			return "dscratch";
 		case GDB_REGNO_MSTATUS:
 			return "mstatus";
+		case GDB_REGNO_MEPC:
+			return "mepc";
+		case GDB_REGNO_MCAUSE:
+			return "mcause";
 		case GDB_REGNO_PRIV:
 			return "priv";
 		default:

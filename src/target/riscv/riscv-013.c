@@ -3300,14 +3300,15 @@ struct target_type riscv013_target = {
 static int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, int hid, int rid)
 {
-	LOG_DEBUG("reading register %s on hart %d", gdb_regno_name(rid), hid);
+	LOG_DEBUG("[%d] reading register %s on hart %d", target->coreid,
+			gdb_regno_name(rid), hid);
 
 	riscv_set_current_hartid(target, hid);
 
 	int result = ERROR_OK;
 	if (rid == GDB_REGNO_PC) {
 		result = register_read(target, value, GDB_REGNO_DPC);
-		LOG_DEBUG("read PC from DPC: 0x%" PRIx64, *value);
+		LOG_DEBUG("[%d] read PC from DPC: 0x%" PRIx64, target->coreid, *value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		result = register_read(target, &dcsr, GDB_REGNO_DCSR);
@@ -3323,19 +3324,19 @@ static int riscv013_get_register(struct target *target,
 
 static int riscv013_set_register(struct target *target, int hid, int rid, uint64_t value)
 {
-	LOG_DEBUG("writing 0x%" PRIx64 " to register %s on hart %d", value,
-			gdb_regno_name(rid), hid);
+	LOG_DEBUG("[%d] writing 0x%" PRIx64 " to register %s on hart %d",
+			target->coreid, value, gdb_regno_name(rid), hid);
 
 	riscv_set_current_hartid(target, hid);
 
 	if (rid <= GDB_REGNO_XPR31) {
 		return register_write_direct(target, rid, value);
 	} else if (rid == GDB_REGNO_PC) {
-		LOG_DEBUG("writing PC to DPC: 0x%" PRIx64, value);
+		LOG_DEBUG("[%d] writing PC to DPC: 0x%" PRIx64, target->coreid, value);
 		register_write_direct(target, GDB_REGNO_DPC, value);
 		uint64_t actual_value;
 		register_read_direct(target, &actual_value, GDB_REGNO_DPC);
-		LOG_DEBUG("  actual DPC written: 0x%016" PRIx64, actual_value);
+		LOG_DEBUG("[%d]   actual DPC written: 0x%016" PRIx64, target->coreid, actual_value);
 		if (value != actual_value) {
 			LOG_ERROR("Written PC (0x%" PRIx64 ") does not match read back "
 					"value (0x%" PRIx64 ")", value, actual_value);

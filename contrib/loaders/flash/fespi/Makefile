@@ -6,8 +6,9 @@ RISCV_CC=$(CROSS_COMPILE)gcc
 RISCV_OBJCOPY=$(CROSS_COMPILE)objcopy
 RISCV_OBJDUMP=$(CROSS_COMPILE)objdump
 
-RISCV32_CFLAGS = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -Os -fPIC
-RISCV64_CFLAGS = -march=rv64i -mabi=lp64 -nostdlib -nostartfiles -Os -fPIC
+CFLAGS = -nostdlib -nostartfiles -Wall -Werror -Os -fPIC -Wunused-result -g
+RISCV32_CFLAGS = -march=rv32e -mabi=ilp32e $(CFLAGS)
+RISCV64_CFLAGS = -march=rv64i -mabi=lp64 $(CFLAGS)
 
 all: riscv32_fespi.inc riscv64_fespi.inc
 

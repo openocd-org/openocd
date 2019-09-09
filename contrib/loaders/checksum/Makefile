@@ -9,7 +9,7 @@ ARM_AFLAGS = -EL
 RISCV_CROSS_COMPILE ?= riscv64-unknown-elf-
 RISCV_CC      ?= $(RISCV_CROSS_COMPILE)gcc
 RISCV_OBJCOPY ?= $(RISCV_CROSS_COMPILE)objcopy
-RISCV32_CFLAGS = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -Os -fPIC
+RISCV32_CFLAGS = -march=rv32e -mabi=ilp32e -nostdlib -nostartfiles -Os -fPIC
 RISCV64_CFLAGS = -march=rv64i -mabi=lp64 -nostdlib -nostartfiles -Os -fPIC
 
 all:	arm riscv

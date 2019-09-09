@@ -73,35 +73,55 @@
 
 #define FESPI_ENDIAN_MSB          0
 #define FESPI_ENDIAN_LSB          1
-/* Timeout in target "loops" */
-#define FESPI_CMD_TIMEOUT         1000
-#define FESPI_PROBE_TIMEOUT       1000
-#define FESPI_MAX_TIMEOUT         30000
 
-enum {
-	ERROR_OK,
-	ERROR_FAIL
-};
+/* Timeouts we use, in number of status checks. */
+#define TIMEOUT			1000
+
+/* #define DEBUG to make the return error codes provide enough information to
+ * reconstruct the stack from where the error occurred. This is not enabled
+ * usually to reduce the program size. */
+#ifdef DEBUG
+#define ERROR_STACK(x)		(x)
+#define ERROR_FESPI_TXWM_WAIT	0x10
+#define ERROR_FESPI_TX		0x100
+#define ERROR_FESPI_RX		0x1000
+#define ERROR_FESPI_WIP		0x50000
+#else
+#define ERROR_STACK(x)		0
+#define ERROR_FESPI_TXWM_WAIT	1
+#define ERROR_FESPI_TX		1
+#define ERROR_FESPI_RX		1
+#define ERROR_FESPI_WIP		1
+#endif
+
+#define ERROR_OK		0
 
 static int fespi_txwm_wait(volatile uint32_t *ctrl_base);
 static void fespi_disable_hw_mode(volatile uint32_t *ctrl_base);
 static void fespi_enable_hw_mode(volatile uint32_t *ctrl_base);
 static int fespi_wip(volatile uint32_t *ctrl_base);
-static int slow_fespi_write_buffer(volatile uint32_t *ctrl_base,
+static int fespi_write_buffer(volatile uint32_t *ctrl_base,
 		const uint8_t *buffer, unsigned offset, unsigned len);
 
-int main(volatile uint32_t *ctrl_base, uint32_t page_size,
+/* Can set bits 3:0 in result. */
+int flash_fespi(volatile uint32_t *ctrl_base, uint32_t page_size,
 		const uint8_t *buffer, unsigned offset, uint32_t count)
 {
-	fespi_txwm_wait(ctrl_base);
+	int result;
+
+	result = fespi_txwm_wait(ctrl_base);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x1);
 
 	/* Disable Hardware accesses*/
 	fespi_disable_hw_mode(ctrl_base);
 
 	/* poll WIP */
-	int retval = fespi_wip(ctrl_base);
-	if (retval != ERROR_OK)
+	result = fespi_wip(ctrl_base);
+	if (result != ERROR_OK) {
+		result |= ERROR_STACK(0x2);
 		goto err;
+	}
 
 	/* Assume page_size is a power of two so we don't need the modulus code. */
 	uint32_t page_offset = offset & (page_size - 1);
@@ -115,9 +135,11 @@ int main(volatile uint32_t *ctrl_base, uint32_t page_size,
 		else
 			cur_count = count;
 
-		retval = slow_fespi_write_buffer(ctrl_base, buffer, offset, cur_count);
-		if (retval != ERROR_OK)
+		result = fespi_write_buffer(ctrl_base, buffer, offset, cur_count);
+		if (result != ERROR_OK) {
+			result |= ERROR_STACK(0x3);
 			goto err;
+		}
 
 		page_offset = 0;
 		buffer += cur_count;
@@ -129,7 +151,7 @@ err:
 	/* Switch to HW mode before return to prompt */
 	fespi_enable_hw_mode(ctrl_base);
 
-	return retval;
+	return result;
 }
 
 static uint32_t fespi_read_reg(volatile uint32_t *ctrl_base, unsigned address)
@@ -154,9 +176,10 @@ static void fespi_enable_hw_mode(volatile uint32_t *ctrl_base)
 	fespi_write_reg(ctrl_base, FESPI_REG_FCTRL, fctrl | FESPI_FCTRL_EN);
 }
 
+/* Can set bits 7:4 in result. */
 static int fespi_txwm_wait(volatile uint32_t *ctrl_base)
 {
-	unsigned timeout = 1000;
+	unsigned timeout = TIMEOUT;
 
 	while (timeout--) {
 		uint32_t ip = fespi_read_reg(ctrl_base, FESPI_REG_IP);
@@ -164,7 +187,7 @@ static int fespi_txwm_wait(volatile uint32_t *ctrl_base)
 			return ERROR_OK;
 	}
 
-	return ERROR_FAIL;
+	return ERROR_FESPI_TXWM_WAIT;
 }
 
 static void fespi_set_dir(volatile uint32_t *ctrl_base, bool dir)
@@ -174,9 +197,10 @@ static void fespi_set_dir(volatile uint32_t *ctrl_base, bool dir)
 			(fmt & ~(FESPI_FMT_DIR(0xFFFFFFFF))) | FESPI_FMT_DIR(dir));
 }
 
+/* Can set bits 11:8 in result. */
 static int fespi_tx(volatile uint32_t *ctrl_base, uint8_t in)
 {
-	unsigned timeout = 1000;
+	unsigned timeout = TIMEOUT;
 
 	while (timeout--) {
 		uint32_t txfifo = fespi_read_reg(ctrl_base, FESPI_REG_TXFIFO);
@@ -185,12 +209,13 @@ static int fespi_tx(volatile uint32_t *ctrl_base, uint8_t in)
 			return ERROR_OK;
 		}
 	}
-	return ERROR_FAIL;
+	return ERROR_FESPI_TX;
 }
 
+/* Can set bits 15:12 in result. */
 static int fespi_rx(volatile uint32_t *ctrl_base, uint8_t *out)
 {
-	unsigned timeout = 1000;
+	unsigned timeout = TIMEOUT;
 
 	while (timeout--) {
 		uint32_t value = fespi_read_reg(ctrl_base, FESPI_REG_RXFIFO);
@@ -201,25 +226,32 @@ static int fespi_rx(volatile uint32_t *ctrl_base, uint8_t *out)
 		}
 	}
 
-	return ERROR_FAIL;
+	return ERROR_FESPI_RX;
 }
 
+/* Can set bits 19:16 in result. */
 static int fespi_wip(volatile uint32_t *ctrl_base)
 {
 	fespi_set_dir(ctrl_base, FESPI_DIR_RX);
 
 	fespi_write_reg(ctrl_base, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
 
-	fespi_tx(ctrl_base, SPIFLASH_READ_STATUS);
-	if (fespi_rx(ctrl_base, NULL) != ERROR_OK)
-		return ERROR_FAIL;
+	int result = fespi_tx(ctrl_base, SPIFLASH_READ_STATUS);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x10000);
+	result = fespi_rx(ctrl_base, NULL);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x20000);
 
-	unsigned timeout = 1000;
+	unsigned timeout = TIMEOUT;
 	while (timeout--) {
-		fespi_tx(ctrl_base, 0);
+		result = fespi_tx(ctrl_base, 0);
+		if (result != ERROR_OK)
+			return result | ERROR_STACK(0x30000);
 		uint8_t rx;
-		if (fespi_rx(ctrl_base, &rx) != ERROR_OK)
-			return ERROR_FAIL;
+		result = fespi_rx(ctrl_base, &rx);
+		if (result != ERROR_OK)
+			return result | ERROR_STACK(0x40000);
 		if ((rx & SPIFLASH_BSY_BIT) == 0) {
 			fespi_write_reg(ctrl_base, FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 			fespi_set_dir(ctrl_base, FESPI_DIR_TX);
@@ -227,29 +259,50 @@ static int fespi_wip(volatile uint32_t *ctrl_base)
 		}
 	}
 
-	return ERROR_FAIL;
+	return ERROR_FESPI_WIP;
 }
 
-static int slow_fespi_write_buffer(volatile uint32_t *ctrl_base,
+/* Can set bits 23:20 in result. */
+static int fespi_write_buffer(volatile uint32_t *ctrl_base,
 		const uint8_t *buffer, unsigned offset, unsigned len)
 {
-	fespi_tx(ctrl_base, SPIFLASH_WRITE_ENABLE);
-	fespi_txwm_wait(ctrl_base);
+	int result = fespi_tx(ctrl_base, SPIFLASH_WRITE_ENABLE);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x100000);
+	result = fespi_txwm_wait(ctrl_base);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x200000);
 
 	fespi_write_reg(ctrl_base, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
 
-	fespi_tx(ctrl_base, SPIFLASH_PAGE_PROGRAM);
+	result = fespi_tx(ctrl_base, SPIFLASH_PAGE_PROGRAM);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x300000);
 
-	fespi_tx(ctrl_base, offset >> 16);
-	fespi_tx(ctrl_base, offset >> 8);
-	fespi_tx(ctrl_base, offset);
+	result = fespi_tx(ctrl_base, offset >> 16);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x400000);
+	result = fespi_tx(ctrl_base, offset >> 8);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x500000);
+	result = fespi_tx(ctrl_base, offset);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x600000);
 
-	for (unsigned i = 0; i < len; i++)
-		fespi_tx(ctrl_base, buffer[i]);
+	for (unsigned i = 0; i < len; i++) {
+		result = fespi_tx(ctrl_base, buffer[i]);
+		if (result != ERROR_OK)
+			return result | ERROR_STACK(0x700000);
+	}
 
-	fespi_txwm_wait(ctrl_base);
+	result = fespi_txwm_wait(ctrl_base);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x800000);
 
 	fespi_write_reg(ctrl_base, FESPI_REG_CSMODE, FESPI_CSMODE_AUTO);
 
-	return fespi_wip(ctrl_base);
+	result = fespi_wip(ctrl_base);
+	if (result != ERROR_OK)
+		return result | ERROR_STACK(0x900000);
+	return ERROR_OK;
 }

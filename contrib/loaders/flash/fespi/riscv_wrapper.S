@@ -12,10 +12,11 @@
 		.global _start
 _start:
 		la 		sp, stack_end
-		jal 	main
+		jal 	flash_fespi
 		ebreak
 
 		.section .data
+		.balign REGBYTES
 stack:
 		.fill	16, REGBYTES, 0x8675309
 stack_end:
