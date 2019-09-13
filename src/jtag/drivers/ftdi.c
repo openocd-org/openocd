@@ -927,6 +927,20 @@ static void oscan1_reset_online_activate(void)
 	  /* TCK=0, TMS=1, TDI=0 (falling edge TCK with TMSC still 0) */
 	  {'0', '1', '0'},
 
+	  /* 3 TCK pulses for padding */
+	  /* TCK=1, TMS=1, TDI=0 (drive rising TCK edge) */
+	  {'1', '1', '0'},
+	  /* TCK=0, TMS=1, TDI=0 (drive falling TCK edge) */
+	  {'0', '1', '0'},
+	  /* TCK=1, TMS=1, TDI=0 (drive rising TCK edge) */
+	  {'1', '1', '0'},
+	  /* TCK=0, TMS=1, TDI=0 (drive falling TCK edge) */
+	  {'0', '1', '0'},
+	  /* TCK=1, TMS=1, TDI=0 (drive rising TCK edge) */
+	  {'1', '1', '0'},
+	  /* TCK=0, TMS=1, TDI=0 (drive falling TCK edge) */
+	  {'0', '1', '0'},
+
 	  /* Drive cJTAG escape sequence for SELECT */
 	  /* TCK=1, TMS=1, TDI=0 (rising edge of TCK with TMSC still 0, TAP reset that was just setup occurs here too) */
 	  {'1', '1', '0'},
