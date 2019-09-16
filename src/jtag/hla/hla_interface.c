@@ -35,7 +35,21 @@
 
 #include <target/target.h>
 
-static struct hl_interface_s hl_if = { {0, 0, { 0 }, { 0 }, HL_TRANSPORT_UNKNOWN, false, -1, false, 7184}, 0, 0 };
+static struct hl_interface_s hl_if = {
+	.param = {
+		.device_desc = NULL,
+		.serial = NULL,
+		.vid = { 0 },
+		.pid = { 0 },
+		.transport = HL_TRANSPORT_UNKNOWN,
+		.connect_under_reset = false,
+		.initial_interface_speed = -1,
+		.use_stlink_tcp = false,
+		.stlink_tcp_port = 7184,
+	},
+	.layout = NULL,
+	.handle = NULL,
+};
 
 int hl_interface_open(enum hl_transports tr)
 {
