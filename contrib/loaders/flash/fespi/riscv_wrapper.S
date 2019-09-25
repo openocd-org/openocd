@@ -11,10 +11,7 @@
 		.section .text.entry
 		.global _start
 _start:
-		/* Spell out `la sp, stack_end` because otherwise the assembler won't
-		generate position-independent code. */
-1:	    auipc sp,     %pcrel_hi(stack_end) # load stack_end(hi)
-	    addi  sp, sp, %pcrel_lo(1b)  # load stack_end(lo)
+		lla		sp, stack_end
 		jal 	flash_fespi
 		ebreak
 
