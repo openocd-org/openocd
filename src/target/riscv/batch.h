@@ -61,4 +61,7 @@ uint64_t riscv_batch_get_dmi_read(struct riscv_batch *batch, size_t key);
 /* Scans in a NOP. */
 void riscv_batch_add_nop(struct riscv_batch *batch);
 
+/* Returns the number of available scans. */
+size_t riscv_batch_available_scans(struct riscv_batch *batch);
+
 #endif

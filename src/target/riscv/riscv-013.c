@@ -2982,24 +2982,39 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 	target_addr_t next_address = address;
 	target_addr_t end_address = address + count * size;
 
+	int result;
+
 	sb_write_address(target, next_address);
 	while (next_address < end_address) {
+		LOG_DEBUG("transferring burst starting at address 0x%" TARGET_PRIxADDR,
+				next_address);
+
+		struct riscv_batch *batch = riscv_batch_alloc(
+				target,
+				32,
+				info->dmi_busy_delay + info->bus_master_write_delay);
+
 		for (uint32_t i = (next_address - address) / size; i < count; i++) {
 			const uint8_t *p = buffer + i * size;
+
+			if (riscv_batch_available_scans(batch) < (size + 3) / 4)
+				break;
+
 			if (size > 12)
-				dmi_write(target, DMI_SBDATA3,
+				riscv_batch_add_dmi_write(batch, DMI_SBDATA3,
 						((uint32_t) p[12]) |
 						(((uint32_t) p[13]) << 8) |
 						(((uint32_t) p[14]) << 16) |
 						(((uint32_t) p[15]) << 24));
+
 			if (size > 8)
-				dmi_write(target, DMI_SBDATA2,
+				riscv_batch_add_dmi_write(batch, DMI_SBDATA2,
 						((uint32_t) p[8]) |
 						(((uint32_t) p[9]) << 8) |
 						(((uint32_t) p[10]) << 16) |
 						(((uint32_t) p[11]) << 24));
 			if (size > 4)
-				dmi_write(target, DMI_SBDATA1,
+				riscv_batch_add_dmi_write(batch, DMI_SBDATA1,
 						((uint32_t) p[4]) |
 						(((uint32_t) p[5]) << 8) |
 						(((uint32_t) p[6]) << 16) |
@@ -3011,34 +3026,53 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 			}
 			if (size > 1)
 				value |= ((uint32_t) p[1]) << 8;
-			dmi_write(target, DMI_SBDATA0, value);
+			riscv_batch_add_dmi_write(batch, DMI_SBDATA0, value);
 
 			log_memory_access(address + i * size, value, size, false);
-
-			if (info->bus_master_write_delay) {
-				jtag_add_runtest(info->bus_master_write_delay, TAP_IDLE);
-				if (jtag_execute_queue() != ERROR_OK) {
-					LOG_ERROR("Failed to scan idle sequence");
-					return ERROR_FAIL;
-				}
-			}
+			next_address += size;
 		}
 
-		if (read_sbcs_nonbusy(target, &sbcs) != ERROR_OK)
+		result = batch_run(target, batch);
+		riscv_batch_free(batch);
+		if (result != ERROR_OK)
+			return result;
+
+		bool dmi_busy_encountered;
+		if (dmi_op(target, &sbcs, &dmi_busy_encountered, DMI_OP_READ,
+			   DMI_SBCS, 0, false, false) != ERROR_OK)
 			return ERROR_FAIL;
 
-		if (get_field(sbcs, DMI_SBCS_SBBUSYERROR)) {
+		time_t start = time(NULL);
+		while (get_field(sbcs, DMI_SBCS_SBBUSY)) {
+			if (time(NULL) - start > riscv_command_timeout_sec) {
+				LOG_ERROR("Timed out after %ds waiting for sbbusy to go low (sbcs=0x%x). "
+					  "Increase the timeout with riscv set_command_timeout_sec.",
+					  riscv_command_timeout_sec, sbcs);
+				return ERROR_FAIL;
+			}
+
+			if (dmi_read(target, &sbcs, DMI_SBCS) != ERROR_OK)
+				return ERROR_FAIL;
+		}
+
+		if (get_field(sbcs, DMI_SBCS_SBBUSYERROR) || dmi_busy_encountered) {
 			/* We wrote while the target was busy. Slow down and try again. */
 			dmi_write(target, DMI_SBCS, DMI_SBCS_SBBUSYERROR);
-			next_address = sb_read_address(target);
 			info->bus_master_write_delay += info->bus_master_write_delay / 10 + 1;
+
+			next_address = sb_read_address(target);
+			if (next_address < address) {
+				/* This should never happen, probably buggy hardware. */
+				LOG_DEBUG("unexpected system bus address 0x%" TARGET_PRIxADDR,
+					  next_address);
+				return ERROR_FAIL;
+			}
+
 			continue;
 		}
 
 		unsigned error = get_field(sbcs, DMI_SBCS_SBERROR);
-		if (error == 0) {
-			next_address = end_address;
-		} else {
+		if (error != 0) {
 			/* Some error indicating the bus access failed, but not because of
 			 * something we did wrong. */
 			dmi_write(target, DMI_SBCS, DMI_SBCS_SBERROR);

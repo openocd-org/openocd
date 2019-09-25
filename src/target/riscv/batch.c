@@ -158,3 +158,8 @@ void dump_field(int idle, const struct scan_field *field)
 				field->num_bits, idle, op_string[out_op], out_data, out_address);
 	}
 }
+
+size_t riscv_batch_available_scans(struct riscv_batch *batch)
+{
+	return batch->allocated_scans - batch->used_scans - 4;
+}
