@@ -50,7 +50,7 @@ PKG_PROG_PKG_CONFIG
 # Checks for libraries.
 
 # Check for libusb-1.0 which is always needed.
-PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.9],
+PKG_CHECK_MODULES([libusb], [libusb-1.0 >= 1.0.16],
 	[HAVE_LIBUSB=yes], [HAVE_LIBUSB=no])
 
 AS_IF([test "x$HAVE_LIBUSB" = "xyes"],

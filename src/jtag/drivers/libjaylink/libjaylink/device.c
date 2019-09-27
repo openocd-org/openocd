@@ -68,6 +68,9 @@
 #define REG_MAX_SIZE		0x200
 /** Size of a connection entry in bytes. */
 #define REG_CONN_INFO_SIZE	16
+
+/* The maximum path depth according to the USB 3.0 specification. */
+#define MAX_USB_PATH_DEPTH	7
 /** @endcond */
 
 /** @private */
@@ -278,6 +281,64 @@ JAYLINK_API int jaylink_device_get_usb_address(
 
 #ifdef HAVE_LIBUSB
 	*address = dev->usb_address;
+
+	return JAYLINK_OK;
+#else
+	return JAYLINK_ERR_NOT_SUPPORTED;
+#endif
+}
+
+/**
+ * Get the USB bus and port numbers of a device.
+ *
+ * @param[in] dev Device instance.
+ * @param[out] bus The bus number of the device on success and undefined on
+ *                 failure.
+ * @param[out] ports Newly allocated array which contains the port numbers on
+ *                   success and is undefined on failure. The array must be
+ *                   free'd by the caller.
+ * @param[out] length Length of the port array on success and undefined on
+ *                    failure.
+ *
+ * @retval JAYLINK_OK Success.
+ * @retval JAYLINK_ERR_ARG Invalid arguments.
+ * @retval JAYLINK_ERR_MALLOC Memory allocation error.
+ * @retval JAYLINK_ERR_NOT_SUPPORTED Supported for devices with host interface
+ *                                   #JAYLINK_HIF_USB only.
+ *
+ * @since 0.2.0
+ */
+JAYLINK_API int jaylink_device_get_usb_bus_ports(
+		const struct jaylink_device *dev, uint8_t *bus,
+		uint8_t **ports, size_t *length)
+{
+	if (!dev || !bus || !ports || !length)
+		return JAYLINK_ERR_ARG;
+
+	if (dev->iface != JAYLINK_HIF_USB)
+		return JAYLINK_ERR_NOT_SUPPORTED;
+
+#ifdef HAVE_LIBUSB
+	struct jaylink_context *ctx = dev->ctx;
+	int ret;
+
+	*ports = malloc(MAX_USB_PATH_DEPTH * sizeof(uint8_t));
+
+	if (!*ports) {
+		return JAYLINK_ERR_MALLOC;
+	}
+
+	ret = libusb_get_port_numbers(dev->usb_dev, *ports,
+		MAX_USB_PATH_DEPTH);
+
+	if (ret == LIBUSB_ERROR_OVERFLOW) {
+		log_err(ctx, "Failed to get port numbers: %s.",
+			libusb_error_name(ret));
+		return JAYLINK_ERR_ARG;
+	}
+
+	*length = ret;
+	*bus = libusb_get_bus_number(dev->usb_dev);
 
 	return JAYLINK_OK;
 #else
