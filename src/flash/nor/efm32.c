@@ -1093,7 +1093,7 @@ COMMAND_HANDLER(efm32x_handle_debuglock_command)
 		return retval;
 	}
 
-	command_print(CMD_CTX, "efm32x debug interface locked, reset the device to apply");
+	command_print(CMD, "efm32x debug interface locked, reset the device to apply");
 
 	return ERROR_OK;
 }

@@ -157,7 +157,7 @@ COMMAND_HANDLER(handle_mxc_biswap_command)
 
 	int retval = CALL_COMMAND_HANDLER(nand_command_get_device, 0, &nand);
 	if (retval != ERROR_OK) {
-		command_print(CMD_CTX, "invalid nand device number or name: %s", CMD_ARGV[0]);
+		command_print(CMD, "invalid nand device number or name: %s", CMD_ARGV[0]);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -169,9 +169,9 @@ COMMAND_HANDLER(handle_mxc_biswap_command)
 			mxc_nf_info->flags.biswap_enabled = false;
 	}
 	if (mxc_nf_info->flags.biswap_enabled)
-		command_print(CMD_CTX, "BI-swapping enabled on %s", nand->name);
+		command_print(CMD, "BI-swapping enabled on %s", nand->name);
 	else
-		command_print(CMD_CTX, "BI-swapping disabled on %s", nand->name);
+		command_print(CMD, "BI-swapping disabled on %s", nand->name);
 
 	return ERROR_OK;
 }
@@ -193,7 +193,8 @@ static const struct command_registration mxc_nand_command_handler[] = {
 		.name = "mxc",
 		.mode = COMMAND_ANY,
 		.help = "MXC NAND flash controller commands",
-		.chain = mxc_sub_command_handlers
+		.chain = mxc_sub_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

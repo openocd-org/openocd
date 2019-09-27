@@ -15,18 +15,18 @@ static char *jtag_usb_location;
  * ------
  * 16 chars
  */
-#define JTAG_USB_MAX_LOCATION_LENGHT	16
+#define JTAG_USB_MAX_LOCATION_LENGTH	16
 
 void jtag_usb_set_location(const char *location)
 {
-	if (strnlen(location, JTAG_USB_MAX_LOCATION_LENGHT) ==
-	    JTAG_USB_MAX_LOCATION_LENGHT)
+	if (strnlen(location, JTAG_USB_MAX_LOCATION_LENGTH) ==
+	    JTAG_USB_MAX_LOCATION_LENGTH)
 		LOG_WARNING("usb location string is too long!!\n");
 
 	if (jtag_usb_location)
 		free(jtag_usb_location);
 
-	jtag_usb_location = strndup(location, JTAG_USB_MAX_LOCATION_LENGHT);
+	jtag_usb_location = strndup(location, JTAG_USB_MAX_LOCATION_LENGTH);
 }
 
 const char *jtag_usb_get_location(void)
@@ -37,13 +37,13 @@ const char *jtag_usb_get_location(void)
 bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 			     size_t path_len)
 {
-	size_t path_step, string_lengh;
+	size_t path_step, string_length;
 	char *ptr, *loc;
 	bool equal = false;
 
 	/* strtok need non const char */
-	loc = strndup(jtag_usb_get_location(), JTAG_USB_MAX_LOCATION_LENGHT);
-	string_lengh = strnlen(loc, JTAG_USB_MAX_LOCATION_LENGHT);
+	loc = strndup(jtag_usb_get_location(), JTAG_USB_MAX_LOCATION_LENGTH);
+	string_length = strnlen(loc, JTAG_USB_MAX_LOCATION_LENGTH);
 
 	ptr = strtok(loc, "-");
 	if (ptr == NULL) {
@@ -51,7 +51,7 @@ bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 		goto done;
 	}
 
-	string_lengh -= 1;
+	string_length -= 1;
 	/* check bus mismatch */
 	if (atoi(ptr) != dev_bus)
 		goto done;
@@ -69,15 +69,12 @@ bool jtag_usb_location_equal(uint8_t dev_bus, uint8_t *port_path,
 			break;
 
 		path_step++;
-		string_lengh -= 2;
+		string_length -= 2;
 	};
 
 	/* walked the full path, all elements match */
-	if (path_step == path_len && !string_lengh)
+	if (path_step == path_len && !string_length)
 		equal = true;
-	else
-		LOG_WARNING("excluded by device path option: %s\n",
-			    jtag_usb_get_location());
 
 done:
 	free(loc);

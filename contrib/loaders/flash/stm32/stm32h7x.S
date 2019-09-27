@@ -48,8 +48,8 @@
 #define STM32_FLASH_CR_OFFSET	0x0C	/* offset of CR register in FLASH struct */
 #define STM32_FLASH_SR_OFFSET	0x10	/* offset of SR register in FLASH struct */
 #define STM32_CR_PROG			0x00000032	/* PSIZE64 | PG */
-#define STM32_SR_BUSY_MASK		0x00000001	/* BSY */
-#define STM32_SR_ERROR_MASK		0x03ee0000	/* DBECCERR | SNECCERR | RDSERR | RDPERR | OPERR
+#define STM32_SR_QW_MASK		0x00000004	/* QW */
+#define STM32_SR_ERROR_MASK		0x07ee0000	/* DBECCERR | SNECCERR | RDSERR | RDPERR | OPERR
 											   | INCERR | STRBERR | PGSERR | WRPERR */
 
 	.thumb_func
@@ -73,6 +73,7 @@ wait_fifo:
 
 	mov		r7, #8				/* program by 8 words = 32 bytes */
 write_flash:
+	dsb
 	ldr		r6, [r5], #0x04		/* read one word from src, increment ptr */
 	str		r6, [r2], #0x04		/* write one word to dst, increment ptr */
 	dsb
@@ -84,7 +85,7 @@ write_flash:
 
 busy:
 	ldr		r6, [r4, #STM32_FLASH_SR_OFFSET]
-	tst		r6, #STM32_SR_BUSY_MASK
+	tst		r6, #STM32_SR_QW_MASK
 	bne		busy				/* operation in progress, wait ... */
 
 	ldr		r7, =STM32_SR_ERROR_MASK

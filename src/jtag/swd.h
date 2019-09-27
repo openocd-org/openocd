@@ -233,24 +233,6 @@ struct swd_driver {
 	int (*init)(void);
 
 	/**
-	 * Set the SWCLK frequency of the SWD link.
-	 *
-	 * The driver should round the desired value, downwards if possible, to
-	 * the nearest supported frequency. A negative value should be ignored
-	 * and can be used to query the current setting. If the driver does not
-	 * support a variable frequency a fixed, nominal, value should be
-	 * returned.
-	 *
-	 * If the frequency is increased, it must not apply before the currently
-	 * queued transactions are executed. If the frequency is lowered, it may
-	 * apply immediately.
-	 *
-	 * @param hz The desired frequency in Hz.
-	 * @return The actual resulting frequency after rounding.
-	 */
-	int_least32_t (*frequency)(int_least32_t hz);
-
-	/**
 	 * Queue a special SWDIO sequence.
 	 *
 	 * @param seq The special sequence to generate.

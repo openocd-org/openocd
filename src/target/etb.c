@@ -344,13 +344,13 @@ COMMAND_HANDLER(handle_etb_config_command)
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "ETB: '%s' isn't an ARM", CMD_ARGV[0]);
+		command_print(CMD, "ETB: '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
 	tap = jtag_tap_by_string(CMD_ARGV[1]);
 	if (tap == NULL) {
-		command_print(CMD_CTX, "ETB: TAP %s does not exist", CMD_ARGV[1]);
+		command_print(CMD, "ETB: TAP %s does not exist", CMD_ARGV[1]);
 		return ERROR_FAIL;
 	}
 
@@ -382,17 +382,17 @@ COMMAND_HANDLER(handle_etb_trigger_percent_command)
 	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "ETB: current target isn't an ARM");
+		command_print(CMD, "ETB: current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	etm = arm->etm;
 	if (!etm) {
-		command_print(CMD_CTX, "ETB: target has no ETM configured");
+		command_print(CMD, "ETB: target has no ETM configured");
 		return ERROR_FAIL;
 	}
 	if (etm->capture_driver != &etb_capture_driver) {
-		command_print(CMD_CTX, "ETB: target not using ETB");
+		command_print(CMD, "ETB: target not using ETB");
 		return ERROR_FAIL;
 	}
 	etb = arm->etm->capture_driver_priv;
@@ -402,13 +402,13 @@ COMMAND_HANDLER(handle_etb_trigger_percent_command)
 
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], new_value);
 		if ((new_value < 2) || (new_value > 100))
-			command_print(CMD_CTX,
+			command_print(CMD,
 				"valid percentages are 2%% to 100%%");
 		else
 			etb->trigger_percent = (unsigned) new_value;
 	}
 
-	command_print(CMD_CTX, "%d percent of tracebuffer fills after trigger",
+	command_print(CMD, "%d percent of tracebuffer fills after trigger",
 		etb->trigger_percent);
 
 	return ERROR_OK;
@@ -441,6 +441,7 @@ static const struct command_registration etb_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "Embedded Trace Buffer command group",
 		.chain = etb_config_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

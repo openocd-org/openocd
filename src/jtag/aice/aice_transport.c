@@ -165,9 +165,9 @@ COMMAND_HANDLER(handle_scan_chain_command)
 
 	aice_scan_jtag_chain();
 	tap = jtag_all_taps();
-	command_print(CMD_CTX,
+	command_print(CMD,
 		"   TapName             Enabled  IdCode     Expected   IrLen IrCap IrMask");
-	command_print(CMD_CTX,
+	command_print(CMD,
 		"-- ------------------- -------- ---------- ---------- ----- ----- ------");
 
 	while (tap) {
@@ -183,7 +183,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 		expected = buf_get_u32(tap->expected, 0, tap->ir_length);
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
 
-		command_print(CMD_CTX,
+		command_print(CMD,
 			"%2d %-18s     %c     0x%08x %s %5d 0x%02x  0x%02x",
 			tap->abs_chain_position,
 			tap->dotted_name,
@@ -200,7 +200,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 			if (tap->ignore_version)
 				expected_id[2] = '*';
 
-			command_print(CMD_CTX,
+			command_print(CMD,
 				"                                           %s",
 				expected_id);
 		}

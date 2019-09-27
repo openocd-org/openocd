@@ -183,7 +183,8 @@ static const struct command_registration at91rm9200_command_handlers[] = {
 		.name = "at91rm9200_device",
 		.handler = &at91rm9200_handle_device_command,
 		.mode = COMMAND_CONFIG,
-		.help = "query armjtagew info",
+		.help = "Set at91rm9200 device [default \"rea_ecr\"]",
+		.usage = "<device>",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -191,6 +192,7 @@ static const struct command_registration at91rm9200_command_handlers[] = {
 struct jtag_interface at91rm9200_interface = {
 	.name = "at91rm9200",
 	.execute_queue = bitbang_execute_queue,
+	.transports = jtag_only,
 	.commands = at91rm9200_command_handlers,
 	.init = at91rm9200_init,
 	.quit = at91rm9200_quit,

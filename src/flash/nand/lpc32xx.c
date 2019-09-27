@@ -332,7 +332,7 @@ static int lpc32xx_init(struct nand_device *nand)
 			WIDTH = bus_width)
 		*/
 		retval = target_write_u32(target, 0x20020014,
-				0x3e | (bus_width == 16) ? 1 : 0);
+				0x3e | ((bus_width == 16) ? 1 : 0));
 		if (ERROR_OK != retval) {
 			LOG_ERROR("could not set SLC_CFG");
 			return ERROR_NAND_OPERATION_FAILED;
@@ -1760,7 +1760,7 @@ COMMAND_HANDLER(handle_lpc32xx_select_command)
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	struct nand_device *nand = get_nand_device_by_num(num);
 	if (!nand) {
-		command_print(CMD_CTX, "nand device '#%s' is out of bounds",
+		command_print(CMD, "nand device '#%s' is out of bounds",
 			CMD_ARGV[0]);
 		return ERROR_OK;
 	}
@@ -1778,7 +1778,7 @@ COMMAND_HANDLER(handle_lpc32xx_select_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(CMD_CTX, "%s controller selected",
+	command_print(CMD, "%s controller selected",
 		selected[lpc32xx_info->selected_controller]);
 
 	return ERROR_OK;

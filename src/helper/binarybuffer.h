@@ -118,7 +118,7 @@ static inline uint32_t buf_get_u32(const uint8_t *_buffer,
 		uint32_t result = 0;
 		for (unsigned i = first; i < first + num; i++) {
 			if (((buffer[i / 8] >> (i % 8)) & 1) == 1)
-				result |= 1 << (i - first);
+				result |= 1U << (i - first);
 		}
 		return result;
 	}

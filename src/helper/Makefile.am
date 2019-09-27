@@ -16,6 +16,7 @@ noinst_LTLIBRARIES += %D%/libhelper.la
 	%D%/jep106.c \
 	%D%/jim-nvp.c \
 	%D%/binarybuffer.h \
+	%D%/bits.h \
 	%D%/configuration.h \
 	%D%/ioutil.h \
 	%D%/list.h \

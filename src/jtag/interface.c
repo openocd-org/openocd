@@ -376,15 +376,13 @@ tap_state_t tap_state_by_name(const char *name)
 	return TAP_INVALID;
 }
 
-#ifdef _DEBUG_JTAG_IO_
-
 #define JTAG_DEBUG_STATE_APPEND(buf, len, bit) \
 	do { buf[len] = bit ? '1' : '0'; } while (0)
 #define JTAG_DEBUG_STATE_PRINT(a, b, astr, bstr) \
-	DEBUG_JTAG_IO("TAP/SM: %9s -> %5s\tTMS: %s\tTDI: %s", \
+	LOG_DEBUG_IO("TAP/SM: %9s -> %5s\tTMS: %s\tTDI: %s", \
 	tap_state_name(a), tap_state_name(b), astr, bstr)
 
-tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
+tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
 	unsigned tap_bits, tap_state_t next_state)
 {
 	const uint8_t *tms_buffer;
@@ -401,13 +399,13 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 
 	/* set startstate (and possibly last, if tap_bits == 0) */
 	last_state = next_state;
-	DEBUG_JTAG_IO("TAP/SM: START state: %s", tap_state_name(next_state));
+	LOG_DEBUG_IO("TAP/SM: START state: %s", tap_state_name(next_state));
 
 	tms_buffer = (const uint8_t *)tms_buf;
 	tdi_buffer = (const uint8_t *)tdi_buf;
 
 	tap_bytes = DIV_ROUND_UP(tap_bits, 8);
-	DEBUG_JTAG_IO("TAP/SM: TMS bits: %u (bytes: %u)", tap_bits, tap_bytes);
+	LOG_DEBUG_IO("TAP/SM: TMS bits: %u (bytes: %u)", tap_bits, tap_bytes);
 
 	tap_out_bits = 0;
 	for (cur_byte = 0; cur_byte < tap_bytes; cur_byte++) {
@@ -452,11 +450,10 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 		JTAG_DEBUG_STATE_PRINT(last_state, next_state, tms_str, tdi_str);
 	}
 
-	DEBUG_JTAG_IO("TAP/SM: FINAL state: %s", tap_state_name(next_state));
+	LOG_DEBUG_IO("TAP/SM: FINAL state: %s", tap_state_name(next_state));
 
 	return next_state;
 }
-#endif	/* _DEBUG_JTAG_IO_ */
 
 void tap_use_new_tms_table(bool use_new)
 {

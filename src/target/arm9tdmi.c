@@ -801,7 +801,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 	/* it's uncommon, but some ARM7 chips can support this */
 	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC
 			|| !arm7_9->has_vector_catch) {
-		command_print(CMD_CTX, "target doesn't have EmbeddedICE "
+		command_print(CMD, "target doesn't have EmbeddedICE "
 				"with vector_catch");
 		return ERROR_TARGET_INVALID;
 	}
@@ -834,7 +834,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 
 				/* complain if vector wasn't found */
 				if (!arm9tdmi_vectors[j].name) {
-					command_print(CMD_CTX, "vector '%s' not found, leaving current setting unchanged", CMD_ARGV[i]);
+					command_print(CMD, "vector '%s' not found, leaving current setting unchanged", CMD_ARGV[i]);
 
 					/* reread current setting */
 					vector_catch_value = buf_get_u32(
@@ -852,7 +852,7 @@ COMMAND_HANDLER(handle_arm9tdmi_catch_vectors_command)
 
 	/* output current settings */
 	for (unsigned i = 0; arm9tdmi_vectors[i].name; i++) {
-		command_print(CMD_CTX, "%s: %s", arm9tdmi_vectors[i].name,
+		command_print(CMD, "%s: %s", arm9tdmi_vectors[i].name,
 			(vector_catch_value & arm9tdmi_vectors[i].value)
 				? "catch" : "don't catch");
 	}

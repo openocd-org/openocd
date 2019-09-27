@@ -343,35 +343,27 @@ static int amt_jtagaccel_execute_queue(void)
 	while (cmd) {
 		switch (cmd->type) {
 			case JTAG_RESET:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("reset trst: %i srst %i",
-				cmd->cmd.reset->trst,
-				cmd->cmd.reset->srst);
-#endif
+				LOG_DEBUG_IO("reset trst: %i srst %i",
+						cmd->cmd.reset->trst,
+						cmd->cmd.reset->srst);
 				if (cmd->cmd.reset->trst == 1)
 					tap_set_state(TAP_RESET);
 				amt_jtagaccel_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
 			case JTAG_RUNTEST:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %i",
-				cmd->cmd.runtest->num_cycles,
-				cmd->cmd.runtest->end_state);
-#endif
+				LOG_DEBUG_IO("runtest %i cycles, end in %i",
+						cmd->cmd.runtest->num_cycles,
+						cmd->cmd.runtest->end_state);
 				amt_jtagaccel_end_state(cmd->cmd.runtest->end_state);
 				amt_jtagaccel_runtest(cmd->cmd.runtest->num_cycles);
 				break;
 			case JTAG_TLR_RESET:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
-#endif
+				LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 				amt_jtagaccel_end_state(cmd->cmd.statemove->end_state);
 				amt_jtagaccel_state_move();
 				break;
 			case JTAG_SCAN:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("scan end in %i", cmd->cmd.scan->end_state);
-#endif
+				LOG_DEBUG_IO("scan end in %i", cmd->cmd.scan->end_state);
 				amt_jtagaccel_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);
@@ -382,9 +374,7 @@ static int amt_jtagaccel_execute_queue(void)
 					free(buffer);
 				break;
 			case JTAG_SLEEP:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("sleep %" PRIi32, cmd->cmd.sleep->us);
-#endif
+				LOG_DEBUG_IO("sleep %" PRIi32, cmd->cmd.sleep->us);
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 			default:
@@ -548,7 +538,7 @@ COMMAND_HANDLER(amt_jtagaccel_handle_parport_port_command)
 		}
 	}
 
-	command_print(CMD_CTX, "parport port = %u", amt_jtagaccel_port);
+	command_print(CMD, "parport port = %u", amt_jtagaccel_port);
 
 	return ERROR_OK;
 }
@@ -556,7 +546,7 @@ COMMAND_HANDLER(amt_jtagaccel_handle_parport_port_command)
 COMMAND_HANDLER(amt_jtagaccel_handle_rtck_command)
 {
 	if (CMD_ARGC == 0) {
-		command_print(CMD_CTX,
+		command_print(CMD,
 			"amt_jtagaccel RTCK feature %s",
 			(rtck_enabled) ? "enabled" : "disabled");
 		return ERROR_OK;
@@ -596,6 +586,7 @@ static const struct command_registration amtjtagaccel_command_handlers[] = {
 
 struct jtag_interface amt_jtagaccel_interface = {
 	.name = "amt_jtagaccel",
+	.transports = jtag_only,
 	.commands = amtjtagaccel_command_handlers,
 
 	.init = amt_jtagaccel_init,

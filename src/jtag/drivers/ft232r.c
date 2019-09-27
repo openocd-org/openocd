@@ -442,7 +442,7 @@ COMMAND_HANDLER(ft232r_handle_jtag_nums_command)
 	if (tdo_gpio < 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R nums: TCK = %d %s, TMS = %d %s, TDI = %d %s, TDO = %d %s",
 			tck_gpio, ft232r_bit_number_to_name(tck_gpio),
 			tms_gpio, ft232r_bit_number_to_name(tms_gpio),
@@ -462,7 +462,7 @@ COMMAND_HANDLER(ft232r_handle_tck_num_command)
 	if (tck_gpio < 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R num: TCK = %d %s", tck_gpio, ft232r_bit_number_to_name(tck_gpio));
 
 	return ERROR_OK;
@@ -478,7 +478,7 @@ COMMAND_HANDLER(ft232r_handle_tms_num_command)
 	if (tms_gpio < 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R num: TMS = %d %s", tms_gpio, ft232r_bit_number_to_name(tms_gpio));
 
 	return ERROR_OK;
@@ -494,7 +494,7 @@ COMMAND_HANDLER(ft232r_handle_tdo_num_command)
 	if (tdo_gpio < 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R num: TDO = %d %s", tdo_gpio, ft232r_bit_number_to_name(tdo_gpio));
 
 	return ERROR_OK;
@@ -510,7 +510,7 @@ COMMAND_HANDLER(ft232r_handle_tdi_num_command)
 	if (tdi_gpio < 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R num: TDI = %d %s", tdi_gpio, ft232r_bit_number_to_name(tdi_gpio));
 
 	return ERROR_OK;
@@ -526,7 +526,7 @@ COMMAND_HANDLER(ft232r_handle_trst_num_command)
 	if (ntrst_gpio < 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R num: TRST = %d %s", ntrst_gpio, ft232r_bit_number_to_name(ntrst_gpio));
 
 	return ERROR_OK;
@@ -542,7 +542,7 @@ COMMAND_HANDLER(ft232r_handle_srst_num_command)
 	if (nsysrst_gpio < 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R num: SRST = %d %s", nsysrst_gpio, ft232r_bit_number_to_name(nsysrst_gpio));
 
 	return ERROR_OK;
@@ -555,7 +555,7 @@ COMMAND_HANDLER(ft232r_handle_restore_serial_command)
 	else if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"FT232R restore serial: 0x%04X (%s)",
 			ft232r_restore_bitmode, ft232r_restore_bitmode == 0xFFFF ? "disabled" : "enabled");
 
@@ -675,7 +675,7 @@ static int syncbb_execute_tms(struct jtag_command *cmd)
 	unsigned num_bits = cmd->cmd.tms->num_bits;
 	const uint8_t *bits = cmd->cmd.tms->bits;
 
-	DEBUG_JTAG_IO("TMS: %d bits", num_bits);
+	LOG_DEBUG_IO("TMS: %d bits", num_bits);
 
 	int tms = 0;
 	for (unsigned i = 0; i < num_bits; i++) {

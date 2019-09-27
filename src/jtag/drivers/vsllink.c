@@ -82,9 +82,7 @@ struct vsllink {
 static int vsllink_usb_open(struct vsllink *vsllink);
 static void vsllink_usb_close(struct vsllink *vsllink);
 
-#if defined _DEBUG_JTAG_IO_
 static void vsllink_debug_buffer(uint8_t *buffer, int length);
-#endif
 
 static int tap_length;
 static int tap_buffer_size;
@@ -103,14 +101,14 @@ static int vsllink_execute_queue(void)
 	enum scan_type type;
 	uint8_t *buffer;
 
-	DEBUG_JTAG_IO("-------------------------------------"
+	LOG_DEBUG_IO("-------------------------------------"
 		" vsllink "
 		"-------------------------------------");
 
 	while (cmd != NULL) {
 		switch (cmd->type) {
 			case JTAG_RUNTEST:
-				DEBUG_JTAG_IO("runtest %i cycles, end in %s",
+				LOG_DEBUG_IO("runtest %i cycles, end in %s",
 						cmd->cmd.runtest->num_cycles,
 						tap_state_name(cmd->cmd.runtest->end_state));
 
@@ -119,7 +117,7 @@ static int vsllink_execute_queue(void)
 				break;
 
 			case JTAG_TLR_RESET:
-				DEBUG_JTAG_IO("statemove end in %s",
+				LOG_DEBUG_IO("statemove end in %s",
 						tap_state_name(cmd->cmd.statemove->end_state));
 
 				vsllink_end_state(cmd->cmd.statemove->end_state);
@@ -127,7 +125,7 @@ static int vsllink_execute_queue(void)
 				break;
 
 			case JTAG_PATHMOVE:
-				DEBUG_JTAG_IO("pathmove: %i states, end in %s",
+				LOG_DEBUG_IO("pathmove: %i states, end in %s",
 						cmd->cmd.pathmove->num_states,
 						tap_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
 
@@ -135,7 +133,7 @@ static int vsllink_execute_queue(void)
 				break;
 
 			case JTAG_SCAN:
-				DEBUG_JTAG_IO("JTAG Scan...");
+				LOG_DEBUG_IO("JTAG Scan...");
 
 				vsllink_end_state(cmd->cmd.scan->end_state);
 
@@ -143,23 +141,21 @@ static int vsllink_execute_queue(void)
 						cmd->cmd.scan, &buffer);
 
 				if (cmd->cmd.scan->ir_scan)
-					DEBUG_JTAG_IO(
+					LOG_DEBUG_IO(
 							"JTAG Scan write IR(%d bits), "
 							"end in %s:",
 							scan_size,
 							tap_state_name(cmd->cmd.scan->end_state));
 
 				else
-					DEBUG_JTAG_IO(
+					LOG_DEBUG_IO(
 							"JTAG Scan write DR(%d bits), "
 							"end in %s:",
 							scan_size,
 							tap_state_name(cmd->cmd.scan->end_state));
 
-#ifdef _DEBUG_JTAG_IO_
-				vsllink_debug_buffer(buffer,
-						DIV_ROUND_UP(scan_size, 8));
-#endif
+				if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO))
+					vsllink_debug_buffer(buffer, DIV_ROUND_UP(scan_size, 8));
 
 				type = jtag_scan_type(cmd->cmd.scan);
 
@@ -169,7 +165,7 @@ static int vsllink_execute_queue(void)
 				break;
 
 			case JTAG_RESET:
-				DEBUG_JTAG_IO("reset trst: %i srst %i",
+				LOG_DEBUG_IO("reset trst: %i srst %i",
 						cmd->cmd.reset->trst,
 						cmd->cmd.reset->srst);
 
@@ -183,13 +179,13 @@ static int vsllink_execute_queue(void)
 				break;
 
 			case JTAG_SLEEP:
-				DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
+				LOG_DEBUG_IO("sleep %i", cmd->cmd.sleep->us);
 				vsllink_tap_execute();
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 
 			case JTAG_STABLECLOCKS:
-				DEBUG_JTAG_IO("add %d clocks",
+				LOG_DEBUG_IO("add %d clocks",
 						cmd->cmd.stableclocks->num_cycles);
 
 				switch (tap_get_state()) {
@@ -219,7 +215,7 @@ static int vsllink_execute_queue(void)
 				break;
 
 				case JTAG_TMS:
-					DEBUG_JTAG_IO("add %d jtag tms",
+					LOG_DEBUG_IO("add %d jtag tms",
 							cmd->cmd.tms->num_bits);
 
 					vsllink_tms(cmd->cmd.tms->num_bits, cmd->cmd.tms->bits);
@@ -681,13 +677,11 @@ static int vsllink_jtag_execute(void)
 			command = pending_scan_result->command;
 			buf_set_buf(tdo_buffer, src_first, buffer, dest_first, length);
 
-#ifdef _DEBUG_JTAG_IO_
-			DEBUG_JTAG_IO(
+			LOG_DEBUG_IO(
 				"JTAG scan read(%d bits, from src %d bits to dest %d bits):",
 				length, src_first, dest_first);
-			vsllink_debug_buffer(buffer + dest_first / 8,
-				DIV_ROUND_UP(length, 7));
-#endif
+			if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO))
+				vsllink_debug_buffer(buffer + dest_first / 8, DIV_ROUND_UP(length, 7));
 
 			if (last) {
 				if (jtag_read_buffer(buffer, command)
@@ -895,7 +889,6 @@ static void vsllink_usb_close(struct vsllink *vsllink)
 
 #define BYTES_PER_LINE  16
 
-#if defined _DEBUG_JTAG_IO_
 static void vsllink_debug_buffer(uint8_t *buffer, int length)
 {
 	char line[81];
@@ -904,46 +897,57 @@ static void vsllink_debug_buffer(uint8_t *buffer, int length)
 	int j;
 
 	for (i = 0; i < length; i += BYTES_PER_LINE) {
-		snprintf(line, 5, "%04x", i);
+		snprintf(line, 5, "%04x", i & 0xffff);
 		for (j = i; j < i + BYTES_PER_LINE && j < length; j++) {
 			snprintf(s, 4, " %02x", buffer[j]);
 			strcat(line, s);
 		}
-		LOG_DEBUG("%s", line);
+		LOG_DEBUG_IO("%s", line);
 	}
 }
-#endif	/* _DEBUG_JTAG_IO_ */
 
 static const struct command_registration vsllink_command_handlers[] = {
 	{
 		.name = "vsllink_usb_vid",
 		.handler = &vsllink_handle_usb_vid_command,
 		.mode = COMMAND_CONFIG,
+		.help = "Set USB VID",
+		.usage = "<vid>",
 	},
 	{
 		.name = "vsllink_usb_pid",
 		.handler = &vsllink_handle_usb_pid_command,
 		.mode = COMMAND_CONFIG,
+		.help = "Set USB PID",
+		.usage = "<pid>",
 	},
 	{
 		.name = "vsllink_usb_serial",
 		.handler = &vsllink_handle_usb_serial_command,
 		.mode = COMMAND_CONFIG,
+		.help = "Set or disable check for USB serial",
+		.usage = "[<serial>]",
 	},
 	{
 		.name = "vsllink_usb_bulkin",
 		.handler = &vsllink_handle_usb_bulkin_command,
 		.mode = COMMAND_CONFIG,
+		.help = "Set USB input endpoint",
+		.usage = "<ep_in>",
 	},
 	{
 		.name = "vsllink_usb_bulkout",
 		.handler = &vsllink_handle_usb_bulkout_command,
 		.mode = COMMAND_CONFIG,
+		.help = "Set USB output endpoint",
+		.usage = "<ep_out>",
 	},
 	{
 		.name = "vsllink_usb_interface",
 		.handler = &vsllink_handle_usb_interface_command,
 		.mode = COMMAND_CONFIG,
+		.help = "Set USB output interface",
+		.usage = "<interface>",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -952,7 +956,6 @@ static const char * const vsllink_transports[] = {"jtag", "swd", NULL};
 
 static const struct swd_driver vsllink_swd_driver = {
 	.init = vsllink_swd_init,
-	.frequency = vsllink_swd_frequency,
 	.switch_seq = vsllink_swd_switch_seq,
 	.read_reg = vsllink_swd_read_reg,
 	.write_reg = vsllink_swd_write_reg,

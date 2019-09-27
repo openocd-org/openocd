@@ -252,7 +252,7 @@ COMMAND_HANDLER(handle_cti_dump)
 		return JIM_ERR;
 
 	for (int i = 0; i < (int)ARRAY_SIZE(cti_names); i++)
-		command_print(CMD_CTX, "%8.8s (0x%04"PRIx32") 0x%08"PRIx32,
+		command_print(CMD, "%8.8s (0x%04"PRIx32") 0x%08"PRIx32,
 				cti_names[i].label, cti_names[i].offset, *cti_names[i].p_val);
 
 	return JIM_OK;
@@ -336,7 +336,7 @@ COMMAND_HANDLER(handle_cti_read)
 	if (retval != ERROR_OK)
 		return retval;
 
-	command_print(CMD_CTX, "0x%08"PRIx32, value);
+	command_print(CMD, "0x%08"PRIx32, value);
 
 	return ERROR_OK;
 }
@@ -576,6 +576,7 @@ static const struct command_registration cti_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "CTI commands",
 		.chain = cti_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

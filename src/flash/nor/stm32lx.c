@@ -324,9 +324,9 @@ COMMAND_HANDLER(stm32lx_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "stm32lx mass erase complete");
+		command_print(CMD, "stm32lx mass erase complete");
 	} else {
-		command_print(CMD_CTX, "stm32lx mass erase failed");
+		command_print(CMD, "stm32lx mass erase failed");
 	}
 
 	return retval;
@@ -345,9 +345,9 @@ COMMAND_HANDLER(stm32lx_handle_lock_command)
 	retval = stm32lx_lock(bank);
 
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "STM32Lx locked, takes effect after power cycle.");
+		command_print(CMD, "STM32Lx locked, takes effect after power cycle.");
 	else
-		command_print(CMD_CTX, "STM32Lx lock failed");
+		command_print(CMD, "STM32Lx lock failed");
 
 	return retval;
 }
@@ -365,9 +365,9 @@ COMMAND_HANDLER(stm32lx_handle_unlock_command)
 	retval = stm32lx_unlock(bank);
 
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "STM32Lx unlocked, takes effect after power cycle.");
+		command_print(CMD, "STM32Lx unlocked, takes effect after power cycle.");
 	else
-		command_print(CMD_CTX, "STM32Lx unlock failed");
+		command_print(CMD, "STM32Lx unlock failed");
 
 	return retval;
 }

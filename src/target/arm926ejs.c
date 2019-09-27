@@ -501,11 +501,11 @@ static void arm926ejs_pre_restore_context(struct target *target)
 
 static const char arm926_not[] = "target is not an ARM926";
 
-static int arm926ejs_verify_pointer(struct command_context *cmd_ctx,
+static int arm926ejs_verify_pointer(struct command_invocation *cmd,
 		struct arm926ejs_common *arm926)
 {
 	if (arm926->common_magic != ARM926EJS_COMMON_MAGIC) {
-		command_print(cmd_ctx, arm926_not);
+		command_print(cmd, arm926_not);
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -729,11 +729,11 @@ COMMAND_HANDLER(arm926ejs_handle_cache_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
-	retval = arm926ejs_verify_pointer(CMD_CTX, arm926ejs);
+	retval = arm926ejs_verify_pointer(CMD, arm926ejs);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return armv4_5_handle_cache_info_command(CMD_CTX, &arm926ejs->armv4_5_mmu.armv4_5_cache);
+	return armv4_5_handle_cache_info_command(CMD, &arm926ejs->armv4_5_mmu.armv4_5_cache);
 }
 
 static int arm926ejs_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)

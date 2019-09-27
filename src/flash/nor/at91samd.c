@@ -947,9 +947,9 @@ COMMAND_HANDLER(samd_handle_chip_erase_command)
 		 * perform the erase. */
 		res = target_write_u8(target, SAMD_DSU + SAMD_DSU_CTRL_EXT, (1<<4));
 		if (res == ERROR_OK)
-			command_print(CMD_CTX, "chip erase started");
+			command_print(CMD, "chip erase started");
 		else
-			command_print(CMD_CTX, "write to DSU CTRL failed");
+			command_print(CMD, "write to DSU CTRL failed");
 	}
 
 	return res;
@@ -961,7 +961,7 @@ COMMAND_HANDLER(samd_handle_set_security_command)
 	struct target *target = get_current_target(CMD_CTX);
 
 	if (CMD_ARGC < 1 || (CMD_ARGC >= 1 && (strcmp(CMD_ARGV[0], "enable")))) {
-		command_print(CMD_CTX, "supply the \"enable\" argument to proceed.");
+		command_print(CMD, "supply the \"enable\" argument to proceed.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -975,9 +975,9 @@ COMMAND_HANDLER(samd_handle_set_security_command)
 
 		/* Check (and clear) error conditions */
 		if (res == ERROR_OK)
-			command_print(CMD_CTX, "chip secured on next power-cycle");
+			command_print(CMD, "chip secured on next power-cycle");
 		else
-			command_print(CMD_CTX, "failed to secure chip");
+			command_print(CMD, "failed to secure chip");
 	}
 
 	return res;
@@ -1008,7 +1008,7 @@ COMMAND_HANDLER(samd_handle_eeprom_command)
 				}
 
 				if (code > 6) {
-					command_print(CMD_CTX, "Invalid EEPROM size.  Please see "
+					command_print(CMD, "Invalid EEPROM size.  Please see "
 							"datasheet for a list valid sizes.");
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
@@ -1022,10 +1022,10 @@ COMMAND_HANDLER(samd_handle_eeprom_command)
 				uint32_t size = ((val >> 4) & 0x7); /* grab size code */
 
 				if (size == 0x7)
-					command_print(CMD_CTX, "EEPROM is disabled");
+					command_print(CMD, "EEPROM is disabled");
 				else {
 					/* Otherwise, 6 is 256B, 0 is 16KB */
-					command_print(CMD_CTX, "EEPROM size is %u bytes",
+					command_print(CMD, "EEPROM size is %u bytes",
 							(2 << (13 - size)));
 				}
 			}
@@ -1038,7 +1038,7 @@ COMMAND_HANDLER(samd_handle_eeprom_command)
 static COMMAND_HELPER(get_u64_from_hexarg, unsigned int num, uint64_t *value)
 {
 	if (num >= CMD_ARGC) {
-		command_print(CMD_CTX, "Too few Arguments.");
+		command_print(CMD, "Too few Arguments.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1049,12 +1049,12 @@ static COMMAND_HELPER(get_u64_from_hexarg, unsigned int num, uint64_t *value)
 		*value = strtoull(&(CMD_ARGV[num][2]), &check, 16);
 		if ((value == 0 && errno == ERANGE) ||
 			check == NULL || *check != 0) {
-			command_print(CMD_CTX, "Invalid 64-bit hex value in argument %d.",
+			command_print(CMD, "Invalid 64-bit hex value in argument %d.",
 				num + 1);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	} else {
-		command_print(CMD_CTX, "Argument %d needs to be a hex value.", num + 1);
+		command_print(CMD, "Argument %d needs to be a hex value.", num + 1);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
@@ -1067,7 +1067,7 @@ COMMAND_HANDLER(samd_handle_nvmuserrow_command)
 
 	if (target) {
 		if (CMD_ARGC > 2) {
-			command_print(CMD_CTX, "Too much Arguments given.");
+			command_print(CMD, "Too much Arguments given.");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
@@ -1105,7 +1105,7 @@ COMMAND_HANDLER(samd_handle_nvmuserrow_command)
 		uint64_t value;
 		res = read_userrow(target, &value);
 		if (res == ERROR_OK)
-			command_print(CMD_CTX, "NVMUSERROW: 0x%016"PRIX64, value);
+			command_print(CMD, "NVMUSERROW: 0x%016"PRIX64, value);
 		else
 			LOG_ERROR("NVMUSERROW could not be read.");
 	}
@@ -1145,7 +1145,7 @@ COMMAND_HANDLER(samd_handle_bootloader_command)
 				}
 
 				if (code > 6) {
-					command_print(CMD_CTX, "Invalid bootloader size.  Please "
+					command_print(CMD, "Invalid bootloader size.  Please "
 							"see datasheet for a list valid sizes.");
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
@@ -1166,7 +1166,7 @@ COMMAND_HANDLER(samd_handle_bootloader_command)
 					nb = (2 << (8 - size)) * page_size;
 
 				/* There are 4 pages per row */
-				command_print(CMD_CTX, "Bootloader size is %" PRIu32 " bytes (%" PRIu32 " rows)",
+				command_print(CMD, "Bootloader size is %" PRIu32 " bytes (%" PRIu32 " rows)",
 					   nb, (uint32_t)(nb / (page_size * 4)));
 			}
 		}
@@ -1217,7 +1217,8 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.name = "dsu_reset_deassert",
 		.handler = samd_handle_reset_deassert,
 		.mode = COMMAND_EXEC,
-		.help = "Deasert internal reset held by DSU."
+		.help = "Deassert internal reset held by DSU.",
+		.usage = "",
 	},
 	{
 		.name = "info",
@@ -1225,6 +1226,7 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Print information about the current at91samd chip "
 			"and its flash configuration.",
+		.usage = "",
 	},
 	{
 		.name = "chip-erase",
@@ -1232,6 +1234,7 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Erase the entire Flash by using the Chip-"
 			"Erase feature in the Device Service Unit (DSU).",
+		.usage = "",
 	},
 	{
 		.name = "set-security",
@@ -1241,6 +1244,7 @@ static const struct command_registration at91samd_exec_command_handlers[] = {
 			"This makes it impossible to read the Flash contents. "
 			"The only way to undo this is to issue the chip-erase "
 			"command.",
+		.usage = "'enable'",
 	},
 	{
 		.name = "eeprom",

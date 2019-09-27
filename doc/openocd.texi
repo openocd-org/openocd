@@ -2370,8 +2370,8 @@ Returns the name of the debug adapter driver being used.
 @end deffn
 
 @anchor{adapter_usb_location}
-@deffn Command {adapter usb location} <bus>-<port>[.<port>]...
-Specifies the physical USB port of the adapter to use. The path
+@deffn Command {adapter usb location} [<bus>-<port>[.<port>]...]
+Displays or specifies the physical USB port of the adapter to use. The path
 roots at @var{bus} and walks down the physical ports, with each
 @var{port} option specifying a deeper level in the bus topology, the last
 @var{port} denoting where the target adapter is actually plugged.
@@ -2514,7 +2514,7 @@ and are not restricted to containing only decimal digits.)
 
 @deffn {Config Command} {ftdi_location} <bus>-<port>[.<port>]...
 @emph{DEPRECATED -- avoid using this.
-Use the @xref{adapter_usb_location, adapter usb location} command instead.}
+Use the command @ref{adapter_usb_location,,adapter usb location} instead.}
 
 Specifies the physical USB port of the adapter to use. The path
 roots at @var{bus} and walks down the physical ports, with each
@@ -3895,10 +3895,14 @@ devices do not set the ack bit until sometime later.
 
 @section Other TAP commands
 
+@deffn Command {jtag cget} dotted.name @option{-idcode}
+Get the value of the IDCODE found in hardware.
+@end deffn
+
 @deffn Command {jtag cget} dotted.name @option{-event} event_name
 @deffnx Command {jtag configure} dotted.name @option{-event} event_name handler
 At this writing this TAP attribute
-mechanism is used only for event handling.
+mechanism is limited and used mostly for event handling.
 (It is not a direct analogue of the @code{cget}/@code{configure}
 mechanism for debugger targets.)
 See the next section for information about the available events.
@@ -4367,6 +4371,7 @@ compact Thumb2 instruction set.
 The current implementation supports eSi-32xx cores.
 @item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
+@item @code{mem_ap} -- this is an ARM debug infrastructure Access Port without a CPU, through which bus read and write cycles can be generated; it may be useful for working with non-CPU hardware behind an AP or during development of support for new CPUs.
 @item @code{mips_m4k} -- a MIPS core
 @item @code{xscale} -- this is actually an architecture,
 not a CPU type. It is based on the ARMv5 architecture.
@@ -4375,14 +4380,14 @@ The current implementation supports three JTAG TAP cores:
 @item @code{ls1_sap} -- this is the SAP on NXP LS102x CPUs,
 allowing access to physical memory addresses independently of CPU cores.
 @itemize @minus
-@item @code{OpenCores TAP} (See: @url{http://opencores.org/project,jtag})
+@item @code{OpenCores TAP} (See: @url{http://opencores.org/project@comma{}jtag})
 @item @code{Altera Virtual JTAG TAP} (See: @url{http://www.altera.com/literature/ug/ug_virtualjtag.pdf})
 @item @code{Xilinx BSCAN_* virtual JTAG interface} (See: @url{http://www.xilinx.com/support/documentation/sw_manuals/xilinx14_2/spartan6_hdl.pdf})
 @end itemize
 And two debug interfaces cores:
 @itemize @minus
-@item @code{Advanced debug interface} (See: @url{http://opencores.org/project,adv_debug_sys})
-@item @code{SoC Debug Interface} (See: @url{http://opencores.org/project,dbg_interface})
+@item @code{Advanced debug interface} (See: @url{http://opencores.org/project@comma{}adv_debug_sys})
+@item @code{SoC Debug Interface} (See: @url{http://opencores.org/project@comma{}dbg_interface})
 @end itemize
 @end itemize
 @end deffn
@@ -4683,23 +4688,35 @@ Invokes the handler for the event named @var{event_name}.
 code, for example by the reset code in @file{startup.tcl}.)
 @end deffn
 
-@deffn Command {$target_name mdw} addr [count]
-@deffnx Command {$target_name mdh} addr [count]
-@deffnx Command {$target_name mdb} addr [count]
+@deffn Command {$target_name mdd} [phys] addr [count]
+@deffnx Command {$target_name mdw} [phys] addr [count]
+@deffnx Command {$target_name mdh} [phys] addr [count]
+@deffnx Command {$target_name mdb} [phys] addr [count]
 Display contents of address @var{addr}, as
+64-bit doublewords (@command{mdd}),
 32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
 or 8-bit bytes (@command{mdb}).
+When the current target has an MMU which is present and active,
+@var{addr} is interpreted as a virtual address.
+Otherwise, or if the optional @var{phys} flag is specified,
+@var{addr} is interpreted as a physical address.
 If @var{count} is specified, displays that many units.
 (If you want to manipulate the data instead of displaying it,
 see the @code{mem2array} primitives.)
 @end deffn
 
-@deffn Command {$target_name mww} addr word
-@deffnx Command {$target_name mwh} addr halfword
-@deffnx Command {$target_name mwb} addr byte
-Writes the specified @var{word} (32 bits),
-@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
+@deffn Command {$target_name mwd} [phys] addr doubleword [count]
+@deffnx Command {$target_name mww} [phys] addr word [count]
+@deffnx Command {$target_name mwh} [phys] addr halfword [count]
+@deffnx Command {$target_name mwb} [phys] addr byte [count]
+Writes the specified @var{doubleword} (64 bits), @var{word} (32 bits),
+@var{halfword} (16 bits), or @var{byte} (8-bit) value,
 at the specified address @var{addr}.
+When the current target has an MMU which is present and active,
+@var{addr} is interpreted as a virtual address.
+Otherwise, or if the optional @var{phys} flag is specified,
+@var{addr} is interpreted as a physical address.
+If @var{count} is specified, fills that many units of consecutive address.
 @end deffn
 
 @anchor{targetevents}
@@ -4909,7 +4926,6 @@ Use it in board specific configuration files, not interactively.
 @end quotation
 @end deffn
 
-@comment the REAL name for this command is "ocd_flash_banks"
 @comment less confusing would be: "flash list" (like "nand list")
 @deffn Command {flash banks}
 Prints a one-line summary of each device that was
@@ -6986,6 +7002,23 @@ unlock str9 device.
 
 @end deffn
 
+@deffn {Flash Driver} swm050
+@cindex swm050
+All members of the swm050 microcontroller family from Foshan Synwit Tech.
+
+@example
+flash bank $_FLASHNAME swm050 0x0 0x2000 0 0 $_TARGETNAME
+@end example
+
+One swm050-specific command is defined:
+
+@deffn Command {swm050 mass_erase} bank_id
+Erases the entire flash bank.
+@end deffn
+
+@end deffn
+
+
 @deffn {Flash Driver} tms470
 Most members of the TMS470 microcontroller family from Texas Instruments
 include internal flash and use ARM7TDMI cores.
@@ -7466,67 +7499,6 @@ or @code{read_page} methods, so @command{nand raw_access} won't
 change any behavior.
 @end deffn
 
-@section mFlash
-
-@subsection mFlash Configuration
-@cindex mFlash Configuration
-
-@deffn {Config Command} {mflash bank} soc base RST_pin target
-Configures a mflash for @var{soc} host bank at
-address @var{base}.
-The pin number format depends on the host GPIO naming convention.
-Currently, the mflash driver supports s3c2440 and pxa270.
-
-Example for s3c2440 mflash where @var{RST pin} is GPIO B1:
-
-@example
-mflash bank $_FLASHNAME s3c2440 0x10000000 1b 0
-@end example
-
-Example for pxa270 mflash where @var{RST pin} is GPIO 43:
-
-@example
-mflash bank $_FLASHNAME pxa270 0x08000000 43 0
-@end example
-@end deffn
-
-@subsection mFlash commands
-@cindex mFlash commands
-
-@deffn Command {mflash config pll} frequency
-Configure mflash PLL.
-The @var{frequency} is the mflash input frequency, in Hz.
-Issuing this command will erase mflash's whole internal nand and write new pll.
-After this command, mflash needs power-on-reset for normal operation.
-If pll was newly configured, storage and boot(optional) info also need to be update.
-@end deffn
-
-@deffn Command {mflash config boot}
-Configure bootable option.
-If bootable option is set, mflash offer the first 8 sectors
-(4kB) for boot.
-@end deffn
-
-@deffn Command {mflash config storage}
-Configure storage information.
-For the normal storage operation, this information must be
-written.
-@end deffn
-
-@deffn Command {mflash dump} num filename offset size
-Dump @var{size} bytes, starting at @var{offset} bytes from the
-beginning of the bank @var{num}, to the file named @var{filename}.
-@end deffn
-
-@deffn Command {mflash probe}
-Probe mflash.
-@end deffn
-
-@deffn Command {mflash write} num filename offset
-Write the binary file @var{filename} to mflash bank @var{num}, starting at
-@var{offset} bytes from the beginning of the bank.
-@end deffn
-
 @node Flash Programming
 @chapter Flash Programming
 
@@ -7940,10 +7912,12 @@ Please use their TARGET object siblings to avoid making assumptions
 about what TAP is the current target, or about MMU configuration.
 @end enumerate
 
-@deffn Command mdw [phys] addr [count]
+@deffn Command mdd [phys] addr [count]
+@deffnx Command mdw [phys] addr [count]
 @deffnx Command mdh [phys] addr [count]
 @deffnx Command mdb [phys] addr [count]
 Display contents of address @var{addr}, as
+64-bit doublewords (@command{mdd}),
 32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
 or 8-bit bytes (@command{mdb}).
 When the current target has an MMU which is present and active,
@@ -7955,16 +7929,18 @@ If @var{count} is specified, displays that many units.
 see the @code{mem2array} primitives.)
 @end deffn
 
-@deffn Command mww [phys] addr word
-@deffnx Command mwh [phys] addr halfword
-@deffnx Command mwb [phys] addr byte
-Writes the specified @var{word} (32 bits),
+@deffn Command mwd [phys] addr doubleword [count]
+@deffnx Command mww [phys] addr word [count]
+@deffnx Command mwh [phys] addr halfword [count]
+@deffnx Command mwb [phys] addr byte [count]
+Writes the specified @var{doubleword} (64 bits), @var{word} (32 bits),
 @var{halfword} (16 bits), or @var{byte} (8-bit) value,
 at the specified address @var{addr}.
 When the current target has an MMU which is present and active,
 @var{addr} is interpreted as a virtual address.
 Otherwise, or if the optional @var{phys} flag is specified,
 @var{addr} is interpreted as a physical address.
+If @var{count} is specified, fills that many units of consecutive address.
 @end deffn
 
 @anchor{imageaccess}
@@ -9073,7 +9049,7 @@ Enable or disable trace output for all ITM stimulus ports.
 @subsection Cortex-M specific commands
 @cindex Cortex-M
 
-@deffn Command {cortex_m maskisr} (@option{auto}|@option{on}|@option{off})
+@deffn Command {cortex_m maskisr} (@option{auto}|@option{on}|@option{off}|@option{steponly})
 Control masking (disabling) interrupts during target step/resume.
 
 The @option{auto} option handles interrupts during stepping in a way that they
@@ -9082,6 +9058,11 @@ pending interrupt handlers to execute, then disables interrupts and steps over
 the next instruction where the core was halted. After the step interrupts
 are enabled again. If the interrupt handlers don't complete within 500ms,
 the step command leaves with the core running.
+
+The @option{steponly} option disables interrupts during single-stepping but
+enables them during normal execution. This can be used as a partial workaround
+for 702596 erratum in Cortex-M7 r0p1. See "Cortex-M7 (AT610) and Cortex-M7 with
+FPU (AT611) Software Developer Errata Notice" from ARM for further details.
 
 Note that a free hardware (FPB) breakpoint is required for the @option{auto}
 option. If no breakpoint is available at the time of the step, then the step
@@ -9163,6 +9144,14 @@ group. With SMP handling disabled, all targets need to be treated individually.
 @deffn Command {aarch64 maskisr} [@option{on}|@option{off}]
 Selects whether interrupts will be processed when single stepping. The default configuration is
 @option{on}.
+@end deffn
+
+@deffn Command {$target_name catch_exc} [@option{off}|@option{sec_el1}|@option{sec_el3}|@option{nsec_el1}|@option{nsec_el2}]+
+Cause @command{$target_name} to halt when an exception is taken. Any combination of
+Secure (sec) EL1/EL3 or Non-Secure (nsec) EL1/EL2 is valid. The target
+@command{$target_name} will halt before taking the exception. In order to resume
+the target, the exception catch must be disabled again with @command{$target_name catch_exc off}.
+Issuing the command without options prints the current configuration.
 @end deffn
 
 @section EnSilica eSi-RISC Architecture
@@ -9308,7 +9297,7 @@ collection.
 
 @deffn Command {esirisc trace init}
 Initialize trace collection. This command must be called any time the
-configuration changes. If an trace buffer has been configured, the contents will
+configuration changes. If a trace buffer has been configured, the contents will
 be overwritten when trace collection starts.
 @end deffn
 
@@ -9340,14 +9329,6 @@ Dump collected trace data to file. This command may only be used if a trace
 buffer has been configured. If a trace FIFO has been configured, trace data must
 be copied to an in-memory buffer identified by the @option{address} and
 @option{size} options using DMA.
-@end deffn
-
-@deffn Command {$target_name catch_exc} [@option{off}|@option{sec_el1}|@option{sec_el3}|@option{nsec_el1}|@option{nsec_el2}]+
-Cause @command{$target_name} to halt when an exception is taken. Any combination of
-Secure (sec) EL1/EL3 or Non-Secure (nsec) EL1/EL2 is valid. The target
-@command{$target_name} will halt before taking the exception. In order to resume
-the target, the exception catch must be disabled again with @command{$target_name catch_exc off}.
-Issuing the command without options prints the current configuration.
 @end deffn
 
 @section Intel Architecture
@@ -9530,13 +9511,12 @@ The following commands can be used to authenticate to a RISC-V system. Eg.  a
 trivial challenge-response protocol could be implemented as follows in a
 configuration file, immediately following @command{init}:
 @example
-set challenge [ocd_riscv authdata_read]
+set challenge [riscv authdata_read]
 riscv authdata_write [expr $challenge + 1]
 @end example
 
 @deffn Command {riscv authdata_read}
-Return the 32-bit value read from authdata. Note that to get read value back in
-a TCL script, it needs to be invoked as @command{ocd_riscv authdata_read}.
+Return the 32-bit value read from authdata.
 @end deffn
 
 @deffn Command {riscv authdata_write} value
@@ -9549,9 +9529,7 @@ The following commands allow direct access to the Debug Module Interface, which
 can be used to interact with custom debug features.
 
 @deffn Command {riscv dmi_read}
-Perform a 32-bit DMI read at address, returning the value.  Note that to get
-read value back in a TCL script, it needs to be invoked as @command{ocd_riscv
-dmi_read}.
+Perform a 32-bit DMI read at address, returning the value.
 @end deffn
 
 @deffn Command {riscv dmi_write} address value
@@ -10435,10 +10413,6 @@ should be passed in to the proc in question.
 By "low-level," we mean commands that a human would typically not
 invoke directly.
 
-Some low-level commands need to be prefixed with "ocd_"; e.g.
-@command{ocd_flash_banks}
-is the low-level API upon which @command{flash banks} is implemented.
-
 @itemize @bullet
 @item @b{mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
 
@@ -10446,7 +10420,7 @@ Read memory and return as a Tcl array for script processing
 @item @b{array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
 
 Convert a Tcl array to memory locations and write the values
-@item @b{ocd_flash_banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
+@item @b{flash banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
 
 Return information about the flash banks
 
@@ -10505,8 +10479,8 @@ interpreter terminating it with @code{0x1a} and wait for the return
 value (it will be terminated with @code{0x1a} as well). This can be
 repeated as many times as desired without reopening the connection.
 
-Remember that most of the OpenOCD commands need to be prefixed with
-@code{ocd_} to get the results back. Sometimes you might also need the
+It is not needed anymore to prefix the OpenOCD commands with
+@code{ocd_} to get the results back. But sometimes you might need the
 @command{capture} command.
 
 See @file{contrib/rpc_examples/} for specific client implementations.

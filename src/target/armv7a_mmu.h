@@ -19,9 +19,8 @@
 #ifndef OPENOCD_TARGET_ARMV7A_MMU_H
 #define OPENOCD_TARGET_ARMV7A_MMU_H
 
-extern int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val);
 extern int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
-	uint32_t *val, int meminfo);
+	target_addr_t *val, int meminfo);
 
 extern const struct command_registration armv7a_mmu_command_handlers[];
 

@@ -79,6 +79,7 @@ struct command_invocation {
 	const char *name;
 	unsigned argc;
 	const char **argv;
+	Jim_Obj *output;
 };
 
 /**
@@ -121,6 +122,11 @@ struct command_invocation {
  */
 #define COMMAND_HELPER(name, extra ...) __COMMAND_HANDLER(name, extra)
 
+/**
+ * Use this macro to access the command being handled,
+ * rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD (cmd)
 /**
  * Use this macro to access the context of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
@@ -348,9 +354,9 @@ struct command_context *copy_command_context(struct command_context *cmd_ctx);
  */
 void command_done(struct command_context *context);
 
-void command_print(struct command_context *context, const char *format, ...)
+void command_print(struct command_invocation *cmd, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
-void command_print_sameline(struct command_context *context, const char *format, ...)
+void command_print_sameline(struct command_invocation *cmd, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 int command_run_line(struct command_context *context, char *line);
 int command_run_linef(struct command_context *context, const char *format, ...)
@@ -404,7 +410,7 @@ DECLARE_PARSE_WRAPPER(_target_addr, target_addr_t);
 	do { \
 		int retval_macro_tmp = parse_ ## type(in, &(out)); \
 		if (ERROR_OK != retval_macro_tmp) { \
-			command_print(CMD_CTX, stringify(out) \
+			command_print(CMD, stringify(out) \
 				" option value ('%s') is not valid", in); \
 			return retval_macro_tmp; \
 		} \
@@ -424,9 +430,9 @@ DECLARE_PARSE_WRAPPER(_target_addr, target_addr_t);
 		bool value; \
 		int retval_macro_tmp = command_parse_bool_arg(in, &value); \
 		if (ERROR_OK != retval_macro_tmp) { \
-			command_print(CMD_CTX, stringify(out) \
+			command_print(CMD, stringify(out) \
 				" option value ('%s') is not valid", in); \
-			command_print(CMD_CTX, "  choices are '%s' or '%s'", \
+			command_print(CMD, "  choices are '%s' or '%s'", \
 				on, off); \
 			return retval_macro_tmp; \
 		} \

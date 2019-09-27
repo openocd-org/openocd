@@ -111,7 +111,7 @@ m4_define([ADAPTER_OPT], [m4_translit(ADAPTER_ARG($1), [_], [-])])
 m4_define([USB1_ADAPTERS],
 	[[[ftdi], [MPSSE mode of FTDI based devices], [FTDI]],
 	[[ftdi_oscan1], [cJTAG OSCAN1 tunneled thru MPSSE], [FTDI_OSCAN1]],
-	[[stlink], [ST-Link JTAG Programmer], [HLADAPTER_STLINK]],
+	[[stlink], [ST-Link Programmer], [HLADAPTER_STLINK]],
 	[[ti_icdi], [TI ICDI JTAG Programmer], [HLADAPTER_ICDI]],
 	[[ulink], [Keil ULINK JTAG Programmer], [ULINK]],
 	[[usb_blaster_2], [Altera USB-Blaster II Compatible], [USB_BLASTER_2]],
@@ -173,7 +173,6 @@ AC_ARG_ENABLE([werror],
   [gcc_werror=$enableval], [gcc_werror=$gcc_warnings])
 
 # set default verbose options, overridden by following options
-debug_jtag_io=no
 debug_usb_io=no
 debug_usb_comms=no
 
@@ -181,15 +180,9 @@ AC_ARG_ENABLE([verbose],
   AS_HELP_STRING([--enable-verbose],
       [Enable verbose JTAG I/O messages (for debugging).]),
   [
-  debug_jtag_io=$enableval
   debug_usb_io=$enableval
   debug_usb_comms=$enableval
   ], [])
-
-AC_ARG_ENABLE([verbose_jtag_io],
-  AS_HELP_STRING([--enable-verbose-jtag-io],
-      [Enable verbose JTAG I/O messages (for debugging).]),
-  [debug_jtag_io=$enableval], [])
 
 AC_ARG_ENABLE([verbose_usb_io],
   AS_HELP_STRING([--enable-verbose-usb-io],
@@ -200,12 +193,6 @@ AC_ARG_ENABLE([verbose_usb_comms],
   AS_HELP_STRING([--enable-verbose-usb-comms],
       [Enable verbose USB communication messages (for debugging)]),
   [debug_usb_comms=$enableval], [])
-
-AC_MSG_CHECKING([whether to enable verbose JTAG I/O messages]);
-AC_MSG_RESULT([$debug_jtag_io])
-AS_IF([test "x$debug_jtag_io" = "xyes"], [
-  AC_DEFINE([_DEBUG_JTAG_IO_],[1], [Print verbose JTAG I/O messages])
-])
 
 AC_MSG_CHECKING([whether to enable verbose USB I/O messages]);
 AC_MSG_RESULT([$debug_usb_io])
@@ -776,7 +763,7 @@ AS_IF([test "x${gcc_werror}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Werror"
 ])
 
-# overide default gcc cflags
+# override default gcc cflags
 AS_IF([test "x$gcc_warnings" = "xyes"], [
   AC_SUBST([GCC_WARNINGS], [$GCC_WARNINGS])
 ])

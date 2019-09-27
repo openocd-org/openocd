@@ -297,43 +297,33 @@ static int gw16012_execute_queue(void)
 	while (cmd) {
 		switch (cmd->type) {
 			case JTAG_RESET:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-#endif
+				LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				if (cmd->cmd.reset->trst == 1)
 					tap_set_state(TAP_RESET);
 				gw16012_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
 			case JTAG_RUNTEST:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
+				LOG_DEBUG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
 						cmd->cmd.runtest->end_state);
-#endif
 				gw16012_end_state(cmd->cmd.runtest->end_state);
 				gw16012_runtest(cmd->cmd.runtest->num_cycles);
 				break;
 			case JTAG_TLR_RESET:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
-#endif
+				LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 				gw16012_end_state(cmd->cmd.statemove->end_state);
 				gw16012_state_move();
 				break;
 			case JTAG_PATHMOVE:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states,
+				LOG_DEBUG_IO("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states,
 						cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
-#endif
 				gw16012_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
 				gw16012_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan (%i) %i bit end in %i", (cmd->cmd.scan->ir_scan) ? "ir" : "dr",
+				LOG_DEBUG_IO("%s scan (%i) %i bit end in %i", (cmd->cmd.scan->ir_scan) ? "ir" : "dr",
 					type, scan_size, cmd->cmd.scan->end_state);
-#endif
 				gw16012_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
 				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
 					retval = ERROR_JTAG_QUEUE_FAILED;
@@ -341,9 +331,7 @@ static int gw16012_execute_queue(void)
 					free(buffer);
 				break;
 			case JTAG_SLEEP:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
-#endif
+				LOG_DEBUG_IO("sleep %i", cmd->cmd.sleep->us);
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 			default:
@@ -515,7 +503,7 @@ COMMAND_HANDLER(gw16012_handle_parport_port_command)
 		}
 	}
 
-	command_print(CMD_CTX, "parport port = %u", gw16012_port);
+	command_print(CMD, "parport port = %u", gw16012_port);
 
 	return ERROR_OK;
 }
@@ -535,6 +523,7 @@ static const struct command_registration gw16012_command_handlers[] = {
 
 struct jtag_interface gw16012_interface = {
 	.name = "gw16012",
+	.transports = jtag_only,
 	.commands = gw16012_command_handlers,
 
 	.init = gw16012_init,

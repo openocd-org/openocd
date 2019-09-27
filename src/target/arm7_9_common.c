@@ -2747,14 +2747,14 @@ COMMAND_HANDLER(handle_arm7_9_dbgrq_command)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9)) {
-		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
 	if (CMD_ARGC > 0)
 		COMMAND_PARSE_ENABLE(CMD_ARGV[0], arm7_9->use_dbgrq);
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 		"use of EmbeddedICE dbgrq instead of breakpoint for target halt %s",
 		(arm7_9->use_dbgrq) ? "enabled" : "disabled");
 
@@ -2767,14 +2767,14 @@ COMMAND_HANDLER(handle_arm7_9_fast_memory_access_command)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9)) {
-		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
 	if (CMD_ARGC > 0)
 		COMMAND_PARSE_ENABLE(CMD_ARGV[0], arm7_9->fast_memory_access);
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 		"fast memory access is %s",
 		(arm7_9->fast_memory_access) ? "enabled" : "disabled");
 
@@ -2787,14 +2787,14 @@ COMMAND_HANDLER(handle_arm7_9_dcc_downloads_command)
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (!is_arm7_9(arm7_9)) {
-		command_print(CMD_CTX, "current target isn't an ARM7/ARM9 target");
+		command_print(CMD, "current target isn't an ARM7/ARM9 target");
 		return ERROR_TARGET_INVALID;
 	}
 
 	if (CMD_ARGC > 0)
 		COMMAND_PARSE_ENABLE(CMD_ARGV[0], arm7_9->dcc_downloads);
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 		"dcc downloads are %s",
 		(arm7_9->dcc_downloads) ? "enabled" : "disabled");
 
@@ -2864,7 +2864,7 @@ int arm7_9_init_arch_info(struct target *target, struct arm7_9_common *arm7_9)
 
 static const struct command_registration arm7_9_any_command_handlers[] = {
 	{
-		"dbgrq",
+		.name = "dbgrq",
 		.handler = handle_arm7_9_dbgrq_command,
 		.mode = COMMAND_ANY,
 		.usage = "['enable'|'disable']",
@@ -2872,7 +2872,7 @@ static const struct command_registration arm7_9_any_command_handlers[] = {
 			"for target halt requests",
 	},
 	{
-		"fast_memory_access",
+		.name = "fast_memory_access",
 		.handler = handle_arm7_9_fast_memory_access_command,
 		.mode = COMMAND_ANY,
 		.usage = "['enable'|'disable']",
@@ -2880,7 +2880,7 @@ static const struct command_registration arm7_9_any_command_handlers[] = {
 			"but potentially safer accesses",
 	},
 	{
-		"dcc_downloads",
+		.name = "dcc_downloads",
 		.handler = handle_arm7_9_dcc_downloads_command,
 		.mode = COMMAND_ANY,
 		.usage = "['enable'|'disable']",

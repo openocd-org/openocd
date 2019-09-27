@@ -1270,11 +1270,11 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 	return retval;
 }
 
-static int mips_m4k_verify_pointer(struct command_context *cmd_ctx,
+static int mips_m4k_verify_pointer(struct command_invocation *cmd,
 		struct mips_m4k_common *mips_m4k)
 {
 	if (mips_m4k->common_magic != MIPSM4K_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not an MIPS_M4K");
+		command_print(cmd, "target is not an MIPS_M4K");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -1287,12 +1287,12 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 	struct mips_m4k_common *mips_m4k = target_to_m4k(target);
 	struct mips_ejtag *ejtag_info = &mips_m4k->mips32.ejtag_info;
 
-	retval = mips_m4k_verify_pointer(CMD_CTX, mips_m4k);
+	retval = mips_m4k_verify_pointer(CMD, mips_m4k);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -1308,12 +1308,12 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 			uint32_t value;
 			retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 						"couldn't access reg %" PRIi32,
 						cp0_reg);
 				return ERROR_OK;
 			}
-			command_print(CMD_CTX, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+			command_print(CMD, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
 					cp0_reg, cp0_sel, value);
 
 		} else if (CMD_ARGC == 3) {
@@ -1321,12 +1321,12 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
 			retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 						"couldn't access cp0 reg %" PRIi32 ", select %" PRIi32,
 						cp0_reg,  cp0_sel);
 				return ERROR_OK;
 			}
-			command_print(CMD_CTX, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+			command_print(CMD, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
 					cp0_reg, cp0_sel, value);
 		}
 	}
@@ -1345,13 +1345,13 @@ COMMAND_HANDLER(mips_m4k_handle_scan_delay_command)
 	else if (CMD_ARGC > 1)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX, "scan delay: %d nsec", ejtag_info->scan_delay);
+	command_print(CMD, "scan delay: %d nsec", ejtag_info->scan_delay);
 	if (ejtag_info->scan_delay >= MIPS32_SCAN_DELAY_LEGACY_MODE) {
 		ejtag_info->mode = 0;
-		command_print(CMD_CTX, "running in legacy mode");
+		command_print(CMD, "running in legacy mode");
 	} else {
 		ejtag_info->mode = 1;
-		command_print(CMD_CTX, "running in fast queued mode");
+		command_print(CMD, "running in fast queued mode");
 	}
 
 	return ERROR_OK;

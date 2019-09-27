@@ -475,6 +475,7 @@ static void dsp563xx_build_reg_cache(struct target *target)
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = false;
 		reg_list[i].valid = false;
+		reg_list[i].exist = true;
 		reg_list[i].type = &dsp563xx_reg_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
@@ -1875,67 +1876,6 @@ static int dsp563xx_remove_watchpoint(struct target *target, struct watchpoint *
 	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
-static void handle_md_output(struct command_context *cmd_ctx,
-	struct target *target,
-	uint32_t address,
-	unsigned size,
-	unsigned count,
-	const uint8_t *buffer)
-{
-	const unsigned line_bytecnt = 32;
-	unsigned line_modulo = line_bytecnt / size;
-
-	char output[line_bytecnt * 4 + 1];
-	unsigned output_len = 0;
-
-	const char *value_fmt;
-	switch (size) {
-		case 4:
-			value_fmt = "%8.8x ";
-			break;
-		case 2:
-			value_fmt = "%4.4x ";
-			break;
-		case 1:
-			value_fmt = "%2.2x ";
-			break;
-		default:
-			/* "can't happen", caller checked */
-			LOG_ERROR("invalid memory read size: %u", size);
-			return;
-	}
-
-	for (unsigned i = 0; i < count; i++) {
-		if (i % line_modulo == 0)
-			output_len += snprintf(output + output_len,
-					sizeof(output) - output_len,
-					"0x%8.8x: ",
-					(unsigned) (address + i));
-
-		uint32_t value = 0;
-		const uint8_t *value_ptr = buffer + i * size;
-		switch (size) {
-			case 4:
-				value = target_buffer_get_u32(target, value_ptr);
-				break;
-			case 2:
-				value = target_buffer_get_u16(target, value_ptr);
-				break;
-			case 1:
-				value = *value_ptr;
-		}
-		output_len += snprintf(output + output_len,
-				sizeof(output) - output_len,
-				value_fmt,
-				value);
-
-		if ((i % line_modulo == line_modulo - 1) || (i == count - 1)) {
-			command_print(cmd_ctx, "%s", output);
-			output_len = 0;
-		}
-	}
-}
-
 static int dsp563xx_add_custom_watchpoint(struct target *target, uint32_t address, uint32_t memType,
 		enum watchpoint_rw rw, enum watchpoint_condition cond)
 {
@@ -2208,7 +2148,7 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 		err = dsp563xx_read_memory(target, mem_type, address, sizeof(uint32_t),
 				count, buffer);
 		if (err == ERROR_OK)
-			handle_md_output(CMD_CTX, target, address, sizeof(uint32_t), count, buffer);
+			target_handle_md_output(CMD, target, address, sizeof(uint32_t), count, buffer);
 
 	} else {
 		b = buffer;

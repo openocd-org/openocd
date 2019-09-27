@@ -188,13 +188,13 @@ done:
 	return retval;
 }
 
-static int armv8_handle_inner_cache_info_command(struct command_context *cmd_ctx,
+static int armv8_handle_inner_cache_info_command(struct command_invocation *cmd,
 	struct armv8_cache_common *armv8_cache)
 {
 	int cl;
 
 	if (armv8_cache->info == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
+		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
 
@@ -202,7 +202,7 @@ static int armv8_handle_inner_cache_info_command(struct command_context *cmd_ctx
 		struct armv8_arch_cache *arch = &(armv8_cache->arch[cl]);
 
 		if (arch->ctype & 1) {
-			command_print(cmd_ctx,
+			command_print(cmd,
 				"L%d I-Cache: linelen %" PRIi32
 				", associativity %" PRIi32
 				", nsets %" PRIi32
@@ -215,7 +215,7 @@ static int armv8_handle_inner_cache_info_command(struct command_context *cmd_ctx
 		}
 
 		if (arch->ctype >= 2) {
-			command_print(cmd_ctx,
+			command_print(cmd,
 				"L%d D-Cache: linelen %" PRIi32
 				", associativity %" PRIi32
 				", nsets %" PRIi32

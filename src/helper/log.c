@@ -213,7 +213,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 	} else if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX, "debug_level: %i", debug_level);
+	command_print(CMD, "debug_level: %i", debug_level);
 
 	return ERROR_OK;
 }
@@ -236,7 +236,7 @@ COMMAND_HANDLER(handle_log_output_command)
 	return ERROR_OK;
 }
 
-static struct command_registration log_command_handlers[] = {
+static const struct command_registration log_command_handlers[] = {
 	{
 		.name = "log_output",
 		.handler = handle_log_output_command,

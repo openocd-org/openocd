@@ -113,10 +113,10 @@ COMMAND_HANDLER(handle_cat_command)
 
 	int retval = load_file(CMD_ARGV[0], &data, &len);
 	if (retval == ERROR_OK) {
-		command_print(CMD_CTX, "%s", data);
+		command_print(CMD, "%s", data);
 		free(data);
 	} else
-		command_print(CMD_CTX, "%s not found", CMD_ARGV[0]);
+		command_print(CMD, "%s not found", CMD_ARGV[0]);
 
 	return ERROR_OK;
 }
@@ -146,10 +146,10 @@ COMMAND_HANDLER(handle_meminfo_command)
 	info = mallinfo();
 
 	if (prev > 0)
-		command_print(CMD_CTX, "Diff:            %d", prev - info.fordblks);
+		command_print(CMD, "Diff:            %d", prev - info.fordblks);
 	prev = info.fordblks;
 
-	command_print(CMD_CTX, "Available ram:   %d", info.fordblks);
+	command_print(CMD, "Available ram:   %d", info.fordblks);
 
 	return ERROR_OK;
 }
@@ -217,7 +217,7 @@ COMMAND_HANDLER(handle_cp_command)
 		if (retval != ERROR_OK)
 			break;
 
-		command_print(CMD_CTX, "%zu", len - pos);
+		command_print(CMD, "%zu", len - pos);
 
 		pos += chunk;
 
@@ -226,9 +226,9 @@ COMMAND_HANDLER(handle_cp_command)
 	}
 
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "Copied %s to %s", CMD_ARGV[0], CMD_ARGV[1]);
+		command_print(CMD, "Copied %s to %s", CMD_ARGV[0], CMD_ARGV[1]);
 	else
-		command_print(CMD_CTX, "copy failed");
+		command_print(CMD, "copy failed");
 
 	if (data != NULL)
 		free(data);
@@ -472,6 +472,7 @@ static const struct command_registration ioutil_command_handlers[] = {
 		.handler = handle_meminfo_command,
 		.mode = COMMAND_ANY,
 		.help = "display free heap space",
+		.usage = "",
 	},
 #endif
 	{

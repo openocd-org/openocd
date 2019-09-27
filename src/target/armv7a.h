@@ -108,6 +108,8 @@ struct armv7a_common {
 	struct adiv5_ap *debug_ap;
 	/* mdir */
 	uint8_t multi_processor_system;
+	uint8_t multi_threading_processor;
+	uint8_t level2_id;
 	uint8_t cluster_id;
 	uint8_t cpu_id;
 	bool is_armv7r;
@@ -183,11 +185,14 @@ static inline bool is_armv7a(struct armv7a_common *armv7a)
 #define DBG_VCR_PREF_ABORT_MASK	((1 << 27) | (1 << 3))
 #define DBG_VCR_SVC_MASK	((1 << 26) | (1 << 2))
 
+/* Masks for Multiprocessor Affinity Register */
+#define MPIDR_MP_EXT		(1UL << 31)
+
 int armv7a_arch_state(struct target *target);
 int armv7a_identify_cache(struct target *target);
 int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a);
 
-int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
+int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 		struct armv7a_cache_common *armv7a_cache);
 int armv7a_read_ttbcr(struct target *target);
 

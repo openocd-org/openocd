@@ -41,7 +41,7 @@ struct nand_fileio_state {
 };
 
 void nand_fileio_init(struct nand_fileio_state *state);
-int nand_fileio_start(struct command_context *cmd_ctx,
+int nand_fileio_start(struct command_invocation *cmd,
 		struct nand_device *nand, const char *filename, int filemode,
 		struct nand_fileio_state *state);
 int nand_fileio_cleanup(struct nand_fileio_state *state);

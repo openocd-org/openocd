@@ -79,5 +79,5 @@ if rev=`svn info 2>/dev/null | grep '^Last Changed Rev'`; then
 	exit
 fi
 
-# There's no reecognized repository; we must be a snapshot.
+# There's no recognized repository; we must be a snapshot.
 printf -- '-snapshot'

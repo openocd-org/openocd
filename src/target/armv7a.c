@@ -229,7 +229,7 @@ COMMAND_HANDLER(handle_cache_l2x)
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	/* command_print(CMD_CTX, "%s %s", CMD_ARGV[0], CMD_ARGV[1]); */
+	/* command_print(CMD, "%s %s", CMD_ARGV[0], CMD_ARGV[1]); */
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], base);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], way);
 
@@ -239,7 +239,7 @@ COMMAND_HANDLER(handle_cache_l2x)
 	return ERROR_OK;
 }
 
-int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
+int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 	struct armv7a_cache_common *armv7a_cache)
 {
 	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
@@ -248,7 +248,7 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 	int cl;
 
 	if (armv7a_cache->info == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
+		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
 
@@ -256,7 +256,7 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 		struct armv7a_arch_cache *arch = &(armv7a_cache->arch[cl]);
 
 		if (arch->ctype & 1) {
-			command_print(cmd_ctx,
+			command_print(cmd,
 				"L%d I-Cache: linelen %" PRIi32
 				", associativity %" PRIi32
 				", nsets %" PRIi32
@@ -269,7 +269,7 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 		}
 
 		if (arch->ctype >= 2) {
-			command_print(cmd_ctx,
+			command_print(cmd,
 				"L%d D-Cache: linelen %" PRIi32
 				", associativity %" PRIi32
 				", nsets %" PRIi32
@@ -283,7 +283,7 @@ int armv7a_handle_cache_info_command(struct command_context *cmd_ctx,
 	}
 
 	if (l2x_cache != NULL)
-		command_print(cmd_ctx, "Outer unified cache Base Address 0x%" PRIx32 ", %" PRId32 " ways",
+		command_print(cmd, "Outer unified cache Base Address 0x%" PRIx32 ", %" PRId32 " ways",
 			l2x_cache->base, l2x_cache->way);
 
 	return ERROR_OK;
@@ -307,23 +307,21 @@ static int armv7a_read_mpidr(struct target *target)
 	if (retval != ERROR_OK)
 		goto done;
 
-	/* ARMv7R uses a different format for MPIDR.
-	 * When configured uniprocessor (most R cores) it reads as 0.
-	 * This will need to be implemented for multiprocessor ARMv7R cores. */
-	if (armv7a->is_armv7r) {
-		if (mpidr)
-			LOG_ERROR("MPIDR nonzero in ARMv7-R target");
-		goto done;
-	}
-
-	if (mpidr & 1<<31) {
+	/* Is register in Multiprocessing Extensions register format? */
+	if (mpidr & MPIDR_MP_EXT) {
+		LOG_DEBUG("%s: MPIDR 0x%" PRIx32, target_name(target), mpidr);
 		armv7a->multi_processor_system = (mpidr >> 30) & 1;
+		armv7a->multi_threading_processor = (mpidr >> 24) & 1;
+		armv7a->level2_id = (mpidr >> 16) & 0xf;
 		armv7a->cluster_id = (mpidr >> 8) & 0xf;
-		armv7a->cpu_id = mpidr & 0x3;
-		LOG_INFO("%s cluster %x core %x %s", target_name(target),
+		armv7a->cpu_id = mpidr & 0xf;
+		LOG_INFO("%s: MPIDR level2 %x, cluster %x, core %x, %s, %s",
+			target_name(target),
+			armv7a->level2_id,
 			armv7a->cluster_id,
 			armv7a->cpu_id,
-			armv7a->multi_processor_system == 0 ? "multi core" : "mono core");
+			armv7a->multi_processor_system == 0 ? "multi core" : "mono core",
+			armv7a->multi_threading_processor == 1 ? "SMT" : "no SMT");
 
 	} else
 		LOG_ERROR("MPIDR not in multiprocessor format");
@@ -584,8 +582,7 @@ static const struct command_registration l2_cache_commands[] = {
 		.name = "l2x",
 		.handler = handle_cache_l2x,
 		.mode = COMMAND_EXEC,
-		.help = "configure l2x cache "
-			"",
+		.help = "configure l2x cache",
 		.usage = "[base_addr] [number_of_way]",
 	},
 	COMMAND_REGISTRATION_DONE

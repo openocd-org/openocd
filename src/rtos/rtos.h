@@ -65,7 +65,7 @@ struct rtos {
 struct rtos_reg {
 	uint32_t number;
 	uint32_t size;
-	uint8_t value[8];
+	uint8_t value[16];
 };
 
 struct rtos_type {

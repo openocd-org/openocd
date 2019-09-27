@@ -1340,7 +1340,7 @@ static int write_hw_reg_from_cache(struct target *t, int num)
 }
 
 /* x86 32 commands */
-static void handle_iod_output(struct command_context *cmd_ctx,
+static void handle_iod_output(struct command_invocation *cmd,
 		struct target *target, uint32_t address, unsigned size,
 		unsigned count, const uint8_t *buffer)
 {
@@ -1392,7 +1392,7 @@ static void handle_iod_output(struct command_context *cmd_ctx,
 				value_fmt, value);
 
 		if ((i % line_modulo == line_modulo - 1) || (i == count - 1)) {
-			command_print(cmd_ctx, "%s", output);
+			command_print(cmd, "%s", output);
 			output_len = 0;
 		}
 	}
@@ -1429,7 +1429,7 @@ COMMAND_HANDLER(handle_iod_command)
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = x86_32_common_read_io(target, address, size, buffer);
 	if (ERROR_OK == retval)
-		handle_iod_output(CMD_CTX, target, address, size, count, buffer);
+		handle_iod_output(CMD, target, address, size, count, buffer);
 	free(buffer);
 	return retval;
 }

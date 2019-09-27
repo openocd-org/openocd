@@ -352,6 +352,7 @@ static const struct command_registration swd_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "SWD command group",
 		.chain = swd_commands,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

@@ -217,7 +217,7 @@ COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 	COMMAND_PARSE_NUMBER(uint, str, num);
 	*nand = get_nand_device_by_num(num);
 	if (!*nand) {
-		command_print(CMD_CTX, "NAND flash device '%s' not found", str);
+		command_print(CMD, "NAND flash device '%s' not found", str);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;

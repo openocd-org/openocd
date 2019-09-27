@@ -45,9 +45,12 @@ struct flash_sector {
 	uint32_t size;
 	/**
 	 * Indication of erasure status: 0 = not erased, 1 = erased,
-	 * other = unknown.  Set by @c flash_driver_s::erase_check.
+	 * other = unknown.  Set by @c flash_driver_s::erase_check only.
 	 *
-	 * Flag is not used in protection block
+	 * This information must be considered stale immediately.
+	 * Don't set it in flash_driver_s::erase or a device mass_erase
+	 * Don't clear it in flash_driver_s::write
+	 * The flag is not used in a protection block
 	 */
 	int is_erased;
 	/**
@@ -118,7 +121,7 @@ struct flash_bank {
 
 	/**
 	 * The number of sectors on this chip.  This value will
-	 * be set intially to 0, and the flash driver must set this to
+	 * be set initially to 0, and the flash driver must set this to
 	 * some non-zero value during "probe()" or "auto_probe()".
 	 */
 	int num_sectors;
@@ -127,12 +130,12 @@ struct flash_bank {
 
 	/**
 	 * The number of protection blocks in this bank. This value
-	 * is set intially to 0 and sectors are used as protection blocks.
+	 * is set initially to 0 and sectors are used as protection blocks.
 	 * Driver probe can set protection blocks array to work with
 	 * protection granularity different than sector size.
 	 */
 	int num_prot_blocks;
-	/** Array of protection blocks, allocated and initilized by the flash driver */
+	/** Array of protection blocks, allocated and initialized by the flash driver */
 	struct flash_sector *prot_blocks;
 
 	struct flash_bank *next; /**< The next flash bank on this chip */
@@ -239,8 +242,8 @@ struct flash_bank *get_flash_bank_by_name_noprobe(const char *name);
  */
 int get_flash_bank_by_num(int num, struct flash_bank **bank);
 /**
- * Retreives @a bank from a command argument, reporting errors parsing
- * the bank identifier or retreiving the specified bank.  The bank
+ * Retrieves @a bank from a command argument, reporting errors parsing
+ * the bank identifier or retrieving the specified bank.  The bank
  * may be identified by its bank number or by @c name.instance, where
  * @a instance is driver-specific.
  * @param name_index The index to the string in args containing the

@@ -56,18 +56,11 @@ void tap_set_state_impl(tap_state_t new_state);
  * @param new_state The state we think the TAPs are currently in (or
  * are about to enter).
  */
-#if defined(_DEBUG_JTAG_IO_)
 #define tap_set_state(new_state) \
 	do { \
-		LOG_DEBUG("tap_set_state(%s)", tap_state_name(new_state)); \
+		LOG_DEBUG_IO("tap_set_state(%s)", tap_state_name(new_state)); \
 		tap_set_state_impl(new_state); \
 	} while (0)
-#else
-static inline void tap_set_state(tap_state_t new_state)
-{
-	tap_set_state_impl(new_state);
-}
-#endif
 
 /**
  * This function gets the state of the "state follower" which tracks the
@@ -164,7 +157,7 @@ void tap_use_new_tms_table(bool use_new);
 /** @returns True if new TMS table is active; false otherwise. */
 bool tap_uses_new_tms_table(void);
 
-#ifdef _DEBUG_JTAG_IO_
+
 /**
  * @brief Prints verbose TAP state transitions for the given TMS/TDI buffers.
  * @param tms_buf must points to a buffer containing the TMS bitstream.
@@ -173,15 +166,18 @@ bool tap_uses_new_tms_table(void);
  * @param start_tap_state must specify the current TAP state.
  * @returns the final TAP state; pass as @a start_tap_state in following call.
  */
-tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
-		unsigned tap_len, tap_state_t start_tap_state);
-#else
 static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
 		const void *tdi_buf, unsigned tap_len, tap_state_t start_tap_state)
 {
-	return start_tap_state;
+	/* Private declaration */
+	tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
+			unsigned tap_len, tap_state_t start_tap_state);
+
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO))
+		return jtag_debug_state_machine_(tms_buf, tdi_buf, tap_len, start_tap_state);
+	else
+		return start_tap_state;
 }
-#endif /* _DEBUG_JTAG_IO_ */
 
 /**
  * Represents a driver for a debugging interface.

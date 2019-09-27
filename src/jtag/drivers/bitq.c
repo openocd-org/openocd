@@ -59,9 +59,7 @@ static void bitq_in_proc(void)
 
 						int tdo = bitq_interface->in();
 						if (tdo < 0) {
-#ifdef _DEBUG_JTAG_IO_
-							LOG_DEBUG("bitq in EOF");
-#endif
+							LOG_DEBUG_IO("bitq in EOF");
 							return;
 						}
 						if (in_mask == 0x01)
@@ -228,9 +226,7 @@ int bitq_execute_queue(void)
 	while (cmd) {
 		switch (cmd->type) {
 		case JTAG_RESET:
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-#endif
+			LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 			if ((cmd->cmd.reset->trst == 1) ||
 					(cmd->cmd.reset->srst &&
 					(jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
@@ -241,37 +237,26 @@ int bitq_execute_queue(void)
 			break;
 
 		case JTAG_RUNTEST:
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
-#endif
+			LOG_DEBUG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 			bitq_end_state(cmd->cmd.runtest->end_state);
 			bitq_runtest(cmd->cmd.runtest->num_cycles);
 			break;
 
 		case JTAG_TLR_RESET:
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
-#endif
+			LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 			bitq_end_state(cmd->cmd.statemove->end_state);
 			bitq_state_move(tap_get_end_state());   /* uncoditional TAP move */
 			break;
 
 		case JTAG_PATHMOVE:
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states,
+			LOG_DEBUG_IO("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states,
 					cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
-#endif
 			bitq_path_move(cmd->cmd.pathmove);
 			break;
 
 		case JTAG_SCAN:
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("scan end in %i", cmd->cmd.scan->end_state);
-			if (cmd->cmd.scan->ir_scan)
-				LOG_DEBUG("scan ir");
-			else
-				LOG_DEBUG("scan dr");
-#endif
+			LOG_DEBUG_IO("scan end in %i", cmd->cmd.scan->end_state);
+			LOG_DEBUG_IO("scan %s", cmd->cmd.scan->ir_scan ? "ir" : "dr");
 			bitq_end_state(cmd->cmd.scan->end_state);
 			bitq_scan(cmd->cmd.scan);
 			if (tap_get_state() != tap_get_end_state())
@@ -279,9 +264,7 @@ int bitq_execute_queue(void)
 			break;
 
 		case JTAG_SLEEP:
-#ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
-#endif
+			LOG_DEBUG_IO("sleep %i", cmd->cmd.sleep->us);
 			bitq_interface->sleep(cmd->cmd.sleep->us);
 			if (bitq_interface->in_rdy())
 				bitq_in_proc();

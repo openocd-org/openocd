@@ -425,9 +425,9 @@ COMMAND_HANDLER(niietcm4_handle_uflash_read_byte_command)
 	retval = target_read_u32(target, UFMD, &uflash_data);
 	if (retval != ERROR_OK)
 		return retval;
-	command_print(CMD_CTX,  "Read userflash %s region:\n"
-							"address = 0x%04x,\n"
-							"value   = 0x%02x.", CMD_ARGV[0], uflash_addr, uflash_data);
+	command_print(CMD,  "Read userflash %s region:\n"
+						"address = 0x%04x,\n"
+						"value   = 0x%02x.", CMD_ARGV[0], uflash_addr, uflash_data);
 	return retval;
 }
 
@@ -467,10 +467,10 @@ COMMAND_HANDLER(niietcm4_handle_uflash_write_byte_command)
 
 	int page_num = uflash_addr/USERFLASH_PAGE_SIZE;
 
-	command_print(CMD_CTX, "Write userflash %s region:\n"
-						   "address = 0x%04x,\n"
-						   "value   = 0x%02x.\n"
-						   "Please wait ... ", CMD_ARGV[0], uflash_addr, uflash_data);
+	command_print(CMD, "Write userflash %s region:\n"
+					   "address = 0x%04x,\n"
+					   "value   = 0x%02x.\n"
+					   "Please wait ... ", CMD_ARGV[0], uflash_addr, uflash_data);
 	/* dump */
 	uint32_t uflash_dump[USERFLASH_PAGE_SIZE];
 	niietcm4_dump_uflash_page(bank, uflash_dump, page_num, mem_type);
@@ -483,7 +483,7 @@ COMMAND_HANDLER(niietcm4_handle_uflash_write_byte_command)
 
 	/* write dump to userflash */
 	niietcm4_load_uflash_page(bank, uflash_dump, page_num, mem_type);
-	command_print(CMD_CTX, "done!");
+	command_print(CMD, "done!");
 	return retval;
 }
 
@@ -520,7 +520,7 @@ COMMAND_HANDLER(niietcm4_handle_uflash_full_erase_command)
 	retval = niietcm4_uopstatus_check(bank);
 	if (retval != ERROR_OK)
 		return retval;
-	command_print(CMD_CTX, "Userflash full erase done!");
+	command_print(CMD, "Userflash full erase done!");
 
 	return retval;
 }
@@ -563,7 +563,7 @@ COMMAND_HANDLER(niietcm4_handle_uflash_erase_command)
 			return retval;
 	}
 
-	command_print(CMD_CTX, "Erase %s userflash pages %d through %d done!", CMD_ARGV[0], first, last);
+	command_print(CMD, "Erase %s userflash pages %d through %d done!", CMD_ARGV[0], first, last);
 
 	return retval;
 }
@@ -621,9 +621,9 @@ COMMAND_HANDLER(niietcm4_handle_uflash_protect_check_command)
 			return retval;
 
 		if (uflash_data & INFOWORD3_LOCK_IFB_UF)
-			command_print(CMD_CTX, "All sectors of info userflash are not protected!");
+			command_print(CMD, "All sectors of info userflash are not protected!");
 		else
-			command_print(CMD_CTX, "All sectors of info userflash are protected!");
+			command_print(CMD, "All sectors of info userflash are protected!");
 	} else {
 		uflash_addr = UF_LOCK_ADDR;
 		uflash_cmd = UFMC_MAGIC_KEY | UFMC_READ_IFB;
@@ -645,10 +645,10 @@ COMMAND_HANDLER(niietcm4_handle_uflash_protect_check_command)
 
 			for (j = 0; j < 8; j++) {
 				if (uflash_data & 0x1)
-					command_print(CMD_CTX, "Userflash sector #%03d: 0x%04x (0x100) is not protected!",
+					command_print(CMD, "Userflash sector #%03d: 0x%04x (0x100) is not protected!",
 											i*8+j, (i*8+j)*USERFLASH_PAGE_SIZE);
 				else
-					command_print(CMD_CTX, "Userflash sector #%03d: 0x%04x (0x100) is protected!",
+					command_print(CMD, "Userflash sector #%03d: 0x%04x (0x100) is protected!",
 											i*8+j, (i*8+j)*USERFLASH_PAGE_SIZE);
 				uflash_data = uflash_data >> 1;
 			}
@@ -693,11 +693,11 @@ COMMAND_HANDLER(niietcm4_handle_uflash_protect_command)
 
 	int set;
 	if (strcmp("on", CMD_ARGV[3]) == 0) {
-		command_print(CMD_CTX, "Try to enable %s userflash sectors %d through %d protection. Please wait ... ",
+		command_print(CMD, "Try to enable %s userflash sectors %d through %d protection. Please wait ... ",
 								CMD_ARGV[0], first, last);
 		set = 1;
 	} else if (strcmp("off", CMD_ARGV[3]) == 0) {
-		command_print(CMD_CTX, "Try to disable %s userflash sectors %d through %d protection. Please wait ... ",
+		command_print(CMD, "Try to disable %s userflash sectors %d through %d protection. Please wait ... ",
 								CMD_ARGV[0], first, last);
 		set = 0;
 	} else
@@ -707,7 +707,7 @@ COMMAND_HANDLER(niietcm4_handle_uflash_protect_command)
 		if (retval != ERROR_OK)
 			return retval;
 
-	command_print(CMD_CTX, "done!");
+	command_print(CMD, "done!");
 	return retval;
 }
 
@@ -733,10 +733,10 @@ COMMAND_HANDLER(niietcm4_handle_bflash_info_remap_command)
 
 	int set;
 	if (strcmp("on", CMD_ARGV[0]) == 0) {
-		command_print(CMD_CTX, "Try to enable bootflash info region remap. Please wait ...");
+		command_print(CMD, "Try to enable bootflash info region remap. Please wait ...");
 		set = 1;
 	} else if (strcmp("off", CMD_ARGV[0]) == 0) {
-		command_print(CMD_CTX, "Try to disable bootflash info region remap. Please wait ...");
+		command_print(CMD, "Try to disable bootflash info region remap. Please wait ...");
 		set = 0;
 	} else
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -756,7 +756,7 @@ COMMAND_HANDLER(niietcm4_handle_bflash_info_remap_command)
 
 	/* write dump to userflash */
 	niietcm4_load_uflash_page(bank, uflash_dump, 0, 1);
-	command_print(CMD_CTX, "done!");
+	command_print(CMD, "done!");
 
 	return retval;
 }
@@ -814,11 +814,11 @@ COMMAND_HANDLER(niietcm4_handle_extmem_cfg_command)
 	else
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX,  "Try to configure external memory boot interface:\n"
-							"port = %s\n"
-							"pin  = %s\n"
-							"func = %s\n"
-							"Please wait ...", CMD_ARGV[0], CMD_ARGV[1], CMD_ARGV[2]);
+	command_print(CMD,  "Try to configure external memory boot interface:\n"
+						"port = %s\n"
+						"pin  = %s\n"
+						"func = %s\n"
+						"Please wait ...", CMD_ARGV[0], CMD_ARGV[1], CMD_ARGV[2]);
 	/* dump */
 	uint32_t uflash_dump[USERFLASH_PAGE_SIZE];
 	niietcm4_dump_uflash_page(bank, uflash_dump, 0, 1);
@@ -833,7 +833,7 @@ COMMAND_HANDLER(niietcm4_handle_extmem_cfg_command)
 
 	/* write dump to userflash */
 	niietcm4_load_uflash_page(bank, uflash_dump, 0, 1);
-	command_print(CMD_CTX, "done!");
+	command_print(CMD, "done!");
 
 	return retval;
 }
@@ -861,10 +861,10 @@ COMMAND_HANDLER(niietcm4_handle_extmem_boot_command)
 	int set;
 
 	if (strcmp("on", CMD_ARGV[0]) == 0) {
-		command_print(CMD_CTX, "Try to enable boot from external memory. Please wait ...");
+		command_print(CMD, "Try to enable boot from external memory. Please wait ...");
 		set = 1;
 	} else if (strcmp("off", CMD_ARGV[0]) == 0) {
-		command_print(CMD_CTX, "Try to disable boot from external memory. Please wait ...");
+		command_print(CMD, "Try to disable boot from external memory. Please wait ...");
 		set = 0;
 	} else
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -884,7 +884,7 @@ COMMAND_HANDLER(niietcm4_handle_extmem_boot_command)
 
 	/* write dump to userflash */
 	niietcm4_load_uflash_page(bank, uflash_dump, 0, 1);
-	command_print(CMD_CTX, "done!");
+	command_print(CMD, "done!");
 
 	return retval;
 }
@@ -900,7 +900,7 @@ COMMAND_HANDLER(niietcm4_handle_service_mode_erase_command)
 		return retval;
 	struct target *target = bank->target;
 
-	command_print(CMD_CTX, "Try to perform service mode erase. Please wait ...");
+	command_print(CMD, "Try to perform service mode erase. Please wait ...");
 
 	retval = target_write_u32(target, SERVICE_MODE_ERASE_ADDR, 1);
 	if (retval != ERROR_OK)
@@ -923,7 +923,7 @@ COMMAND_HANDLER(niietcm4_handle_service_mode_erase_command)
 			}
 		busy_sleep(1);	/* can use busy sleep for short times. */
 	}
-	command_print(CMD_CTX, "done! All data erased.");
+	command_print(CMD, "done! All data erased.");
 
 	return retval;
 }
@@ -938,7 +938,7 @@ COMMAND_HANDLER(niietcm4_handle_driver_info_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	command_print(CMD_CTX, "niietcm4 flash driver\n"
+	command_print(CMD, "niietcm4 flash driver\n"
 						   "version: %d.%d\n"
 						   "author: Bogdan Kolbov\n"
 						   "mail: kolbov@niiet.ru",

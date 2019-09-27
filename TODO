@@ -365,7 +365,6 @@ to complete:
   - committing to git
 - Review Users' Guide for documentation errors or omissions
   - "capture" and "ocd_find" commands
-  - "ocd_" prefix on various stuff
 - Update Developer's Manual (doxygen output)
   - Add documentation describing the architecture of each module
   - Provide more Technical Primers to bootstrap contributor knowledge

@@ -1415,7 +1415,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 	}
 
 	if (stm32x_read_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to read options", bank->driver->name);
+		command_print(CMD, "%s failed to read options", bank->driver->name);
 		return ERROR_OK;
 	}
 
@@ -1423,11 +1423,11 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 	stm32x_info->option_bytes.RDP = 0;
 
 	if (stm32x_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to lock device", bank->driver->name);
+		command_print(CMD, "%s failed to lock device", bank->driver->name);
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "%s locked", bank->driver->name);
+	command_print(CMD, "%s locked", bank->driver->name);
 
 	return ERROR_OK;
 }
@@ -1454,7 +1454,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	}
 
 	if (stm32x_read_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to read options", bank->driver->name);
+		command_print(CMD, "%s failed to read options", bank->driver->name);
 		return ERROR_OK;
 	}
 
@@ -1466,11 +1466,11 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 	}
 
 	if (stm32x_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to unlock device", bank->driver->name);
+		command_print(CMD, "%s failed to unlock device", bank->driver->name);
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "%s unlocked.\n"
+	command_print(CMD, "%s unlocked.\n"
 			"INFO: a reset or power cycle is required "
 			"for the new settings to take effect.", bank->driver->name);
 
@@ -1525,7 +1525,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 	int i;
 
 	if (CMD_ARGC < 1) {
-		command_print(CMD_CTX, "stm32x mass_erase <bank>");
+		command_print(CMD, "stm32x mass_erase <bank>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1540,9 +1540,9 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "stm32x mass erase complete");
+		command_print(CMD, "stm32x mass erase complete");
 	} else {
-		command_print(CMD_CTX, "stm32x mass erase failed");
+		command_print(CMD, "stm32x mass erase failed");
 	}
 
 	return retval;
@@ -1555,7 +1555,7 @@ COMMAND_HANDLER(stm32f2x_handle_options_read_command)
 	struct stm32x_flash_bank *stm32x_info = NULL;
 
 	if (CMD_ARGC != 1) {
-		command_print(CMD_CTX, "stm32f2x options_read <bank>");
+		command_print(CMD, "stm32f2x options_read <bank>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1572,20 +1572,20 @@ COMMAND_HANDLER(stm32f2x_handle_options_read_command)
 		if (stm32x_info->has_boot_addr) {
 			uint32_t boot_addr = stm32x_info->option_bytes.boot_addr;
 
-			command_print(CMD_CTX, "stm32f2x user_options 0x%03X,"
+			command_print(CMD, "stm32f2x user_options 0x%03X,"
 				" boot_add0 0x%04X, boot_add1 0x%04X",
 				stm32x_info->option_bytes.user_options,
 				boot_addr & 0xffff, (boot_addr & 0xffff0000) >> 16);
 			if (stm32x_info->has_optcr2_pcrop) {
-				command_print(CMD_CTX, "stm32f2x optcr2_pcrop 0x%08X",
+				command_print(CMD, "stm32f2x optcr2_pcrop 0x%08X",
 						stm32x_info->option_bytes.optcr2_pcrop);
 			}
 		} else {
-			command_print(CMD_CTX, "stm32f2x user_options 0x%03X",
+			command_print(CMD, "stm32f2x user_options 0x%03X",
 				stm32x_info->option_bytes.user_options);
 		}
 	} else {
-		command_print(CMD_CTX, "stm32f2x user_options 0x%02X",
+		command_print(CMD, "stm32f2x user_options 0x%02X",
 			stm32x_info->option_bytes.user_options);
 
 	}
@@ -1601,7 +1601,7 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 	uint16_t user_options, boot_addr0, boot_addr1, options_mask;
 
 	if (CMD_ARGC < 1) {
-		command_print(CMD_CTX, "stm32f2x options_write <bank> ...");
+		command_print(CMD, "stm32f2x options_write <bank> ...");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1616,7 +1616,7 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 	stm32x_info = bank->driver_priv;
 	if (stm32x_info->has_boot_addr) {
 		if (CMD_ARGC != 4) {
-			command_print(CMD_CTX, "stm32f2x options_write <bank> <user_options>"
+			command_print(CMD, "stm32f2x options_write <bank> <user_options>"
 				" <boot_addr0> <boot_addr1>");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
@@ -1625,7 +1625,7 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 		stm32x_info->option_bytes.boot_addr = boot_addr0 | (((uint32_t) boot_addr1) << 16);
 	} else {
 		if (CMD_ARGC != 2) {
-			command_print(CMD_CTX, "stm32f2x options_write <bank> <user_options>");
+			command_print(CMD, "stm32f2x options_write <bank> <user_options>");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
@@ -1634,14 +1634,14 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 	options_mask = !stm32x_info->has_extra_options ? ~0xfc :
 		~(((0xf00 << (stm32x_info->protection_bits - 12)) | 0xff) & 0xffc);
 	if (user_options & options_mask) {
-		command_print(CMD_CTX, "stm32f2x invalid user_options");
+		command_print(CMD, "stm32f2x invalid user_options");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	stm32x_info->option_bytes.user_options = user_options;
 
 	if (stm32x_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "stm32f2x failed to write options");
+		command_print(CMD, "stm32f2x failed to write options");
 		return ERROR_OK;
 	}
 
@@ -1649,7 +1649,7 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 	/* ... and reprogramming of whole flash */
 	stm32x_info->probed = false;
 
-	command_print(CMD_CTX, "stm32f2x write options complete.\n"
+	command_print(CMD, "stm32f2x write options complete.\n"
 				"INFO: a reset or power cycle is required "
 				"for the new settings to take effect.");
 	return retval;
@@ -1663,7 +1663,7 @@ COMMAND_HANDLER(stm32f2x_handle_optcr2_write_command)
 	uint32_t optcr2_pcrop;
 
 	if (CMD_ARGC != 2) {
-		command_print(CMD_CTX, "stm32f2x optcr2_write <bank> <optcr2_value>");
+		command_print(CMD, "stm32f2x optcr2_write <bank> <optcr2_value>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1673,11 +1673,11 @@ COMMAND_HANDLER(stm32f2x_handle_optcr2_write_command)
 
 	stm32x_info = bank->driver_priv;
 	if (!stm32x_info->has_optcr2_pcrop) {
-		command_print(CMD_CTX, "no optcr2 register");
+		command_print(CMD, "no optcr2 register");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	command_print(CMD_CTX, "INFO: To disable PCROP, set PCROP_RDP"
+	command_print(CMD, "INFO: To disable PCROP, set PCROP_RDP"
 				" with PCROPi bits STILL SET, then\nlock device and"
 				" finally unlock it. Clears PCROP and mass erases flash.");
 
@@ -1689,18 +1689,18 @@ COMMAND_HANDLER(stm32f2x_handle_optcr2_write_command)
 	stm32x_info->option_bytes.optcr2_pcrop = optcr2_pcrop;
 
 	if (stm32x_write_options(bank) != ERROR_OK) {
-		command_print(CMD_CTX, "stm32f2x failed to write options");
+		command_print(CMD, "stm32f2x failed to write options");
 		return ERROR_OK;
 	}
 
-	command_print(CMD_CTX, "stm32f2x optcr2_write complete.");
+	command_print(CMD, "stm32f2x optcr2_write complete.");
 	return retval;
 }
 
 COMMAND_HANDLER(stm32x_handle_otp_command)
 {
 	if (CMD_ARGC < 2) {
-		command_print(CMD_CTX, "stm32x otp <bank> (enable|disable|show)");
+		command_print(CMD, "stm32x otp <bank> (enable|disable|show)");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1714,7 +1714,7 @@ COMMAND_HANDLER(stm32x_handle_otp_command)
 		} else if (strcmp(CMD_ARGV[1], "disable") == 0) {
 			stm32x_otp_disable(bank);
 		} else if (strcmp(CMD_ARGV[1], "show") == 0) {
-			command_print(CMD_CTX,
+			command_print(CMD,
 				"OTP memory bank #%d is %s for write commands.",
 				bank->bank_number,
 				stm32x_is_otp_unlocked(bank) ? "enabled" : "disabled");
@@ -1722,7 +1722,7 @@ COMMAND_HANDLER(stm32x_handle_otp_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	} else {
-		command_print(CMD_CTX, "Failed: not an OTP bank.");
+		command_print(CMD, "Failed: not an OTP bank.");
 	}
 
 	return retval;

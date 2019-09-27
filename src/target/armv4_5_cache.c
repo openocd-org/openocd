@@ -76,23 +76,23 @@ int armv4_5_identify_cache(uint32_t cache_type_reg, struct armv4_5_cache_common 
 	return ERROR_OK;
 }
 
-int armv4_5_handle_cache_info_command(struct command_context *cmd_ctx, struct armv4_5_cache_common *armv4_5_cache)
+int armv4_5_handle_cache_info_command(struct command_invocation *cmd, struct armv4_5_cache_common *armv4_5_cache)
 {
 	if (armv4_5_cache->ctype == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
+		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
 
-	command_print(cmd_ctx, "cache type: 0x%1.1x, %s", armv4_5_cache->ctype,
+	command_print(cmd, "cache type: 0x%1.1x, %s", armv4_5_cache->ctype,
 		(armv4_5_cache->separate) ? "separate caches" : "unified cache");
 
-	command_print(cmd_ctx, "D-Cache: linelen %i, associativity %i, nsets %i, cachesize 0x%x",
+	command_print(cmd, "D-Cache: linelen %i, associativity %i, nsets %i, cachesize 0x%x",
 		armv4_5_cache->d_u_size.linelen,
 		armv4_5_cache->d_u_size.associativity,
 		armv4_5_cache->d_u_size.nsets,
 		armv4_5_cache->d_u_size.cachesize);
 
-	command_print(cmd_ctx, "I-Cache: linelen %i, associativity %i, nsets %i, cachesize 0x%x",
+	command_print(cmd, "I-Cache: linelen %i, associativity %i, nsets %i, cachesize 0x%x",
 		armv4_5_cache->i_size.linelen,
 		armv4_5_cache->i_size.associativity,
 		armv4_5_cache->i_size.nsets,

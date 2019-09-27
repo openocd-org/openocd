@@ -345,6 +345,7 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 struct jtag_interface remote_bitbang_interface = {
 	.name = "remote_bitbang",
 	.execute_queue = &bitbang_execute_queue,
+	.transports = jtag_only,
 	.commands = remote_bitbang_command_handlers,
 	.init = &remote_bitbang_init,
 	.quit = &remote_bitbang_quit,

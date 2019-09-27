@@ -2895,7 +2895,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		flex_nvm_partition_code = (uint8_t)((sim_fcfg1 >> 8) & 0x0f);
 		switch (flex_nvm_partition_code) {
 		case 0:
-			command_print(CMD_CTX, "No EEPROM backup, data flash only");
+			command_print(CMD, "No EEPROM backup, data flash only");
 			break;
 		case 1:
 		case 2:
@@ -2903,10 +2903,10 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		case 4:
 		case 5:
 		case 6:
-			command_print(CMD_CTX, "EEPROM backup %d KB", 4 << flex_nvm_partition_code);
+			command_print(CMD, "EEPROM backup %d KB", 4 << flex_nvm_partition_code);
 			break;
 		case 8:
-			command_print(CMD_CTX, "No data flash, EEPROM backup only");
+			command_print(CMD, "No data flash, EEPROM backup only");
 			break;
 		case 0x9:
 		case 0xA:
@@ -2914,13 +2914,13 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		case 0xC:
 		case 0xD:
 		case 0xE:
-			command_print(CMD_CTX, "data flash %d KB", 4 << (flex_nvm_partition_code & 7));
+			command_print(CMD, "data flash %d KB", 4 << (flex_nvm_partition_code & 7));
 			break;
 		case 0xf:
-			command_print(CMD_CTX, "No EEPROM backup, data flash only (DEPART not set)");
+			command_print(CMD, "No EEPROM backup, data flash only (DEPART not set)");
 			break;
 		default:
-			command_print(CMD_CTX, "Unsupported EEPROM backup size code 0x%02" PRIx8, flex_nvm_partition_code);
+			command_print(CMD, "Unsupported EEPROM backup size code 0x%02" PRIx8, flex_nvm_partition_code);
 		}
 		return ERROR_OK;
 
@@ -2986,7 +2986,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	if (result != ERROR_OK)
 		return result;
 
-	command_print(CMD_CTX, "FlexNVM partition set. Please reset MCU.");
+	command_print(CMD, "FlexNVM partition set. Please reset MCU.");
 
 	if (k_chip) {
 		first_nvm_bank = k_chip->num_pflash_blocks;
@@ -2996,7 +2996,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		k_chip->probed = false;
 	}
 
-	command_print(CMD_CTX, "FlexNVM banks will be re-probed to set new data flash size.");
+	command_print(CMD, "FlexNVM banks will be re-probed to set new data flash size.");
 	return ERROR_OK;
 }
 
@@ -3015,12 +3015,12 @@ COMMAND_HANDLER(kinetis_fcf_source_handler)
 	}
 
 	if (allow_fcf_writes) {
-		command_print(CMD_CTX, "Arbitrary Flash Configuration Field writes enabled.");
-		command_print(CMD_CTX, "Protection info writes to FCF disabled.");
+		command_print(CMD, "Arbitrary Flash Configuration Field writes enabled.");
+		command_print(CMD, "Protection info writes to FCF disabled.");
 		LOG_WARNING("BEWARE: incorrect flash configuration may permanently lock the device.");
 	} else {
-		command_print(CMD_CTX, "Protection info writes to Flash Configuration Field enabled.");
-		command_print(CMD_CTX, "Arbitrary FCF writes disabled. Mode safe from unwanted locking of the device.");
+		command_print(CMD, "Protection info writes to Flash Configuration Field enabled.");
+		command_print(CMD, "Arbitrary FCF writes disabled. Mode safe from unwanted locking of the device.");
 	}
 
 	return ERROR_OK;
@@ -3035,7 +3035,7 @@ COMMAND_HANDLER(kinetis_fopt_handler)
 		fcf_fopt = (uint8_t)strtoul(CMD_ARGV[0], NULL, 0);
 		fcf_fopt_configured = true;
 	} else {
-		command_print(CMD_CTX, "FCF_FOPT 0x%02" PRIx8, fcf_fopt);
+		command_print(CMD, "FCF_FOPT 0x%02" PRIx8, fcf_fopt);
 	}
 
 	return ERROR_OK;
@@ -3074,7 +3074,8 @@ static const struct command_registration kinetis_security_command_handlers[] = {
 		.usage = "",
 		.handler = kinetis_mdm_mass_erase,
 	},
-	{	.name = "reset",
+	{
+		.name = "reset",
 		.mode = COMMAND_EXEC,
 		.help = "Issue a reset via the MDM-AP",
 		.usage = "",
@@ -3126,6 +3127,7 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "Driver creates additional banks if device with two/four flash blocks is probed",
 		.handler = kinetis_create_banks_handler,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

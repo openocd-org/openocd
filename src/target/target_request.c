@@ -56,7 +56,7 @@ static int target_asciimsg(struct target *target, uint32_t length)
 	LOG_DEBUG("%s", msg);
 
 	while (c) {
-		command_print(c->cmd_ctx, "%s", msg);
+		command_output_text(c->cmd_ctx, msg);
 		c = c->next;
 	}
 
@@ -100,7 +100,7 @@ static int target_hexmsg(struct target *target, int size, uint32_t length)
 			LOG_DEBUG("%s", line);
 
 			while (c) {
-				command_print(c->cmd_ctx, "%s", line);
+				command_output_text(c->cmd_ctx, line);
 				c = c->next;
 			}
 			c = target->dbgmsg;
@@ -283,7 +283,7 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(CMD_CTX, "receiving debug messages from current target %s",
+	command_print(CMD, "receiving debug messages from current target %s",
 			(receiving) ? (charmsg_mode ? "charmsg" : "enabled") : "disabled");
 	return ERROR_OK;
 }

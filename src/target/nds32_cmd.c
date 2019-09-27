@@ -46,7 +46,7 @@ COMMAND_HANDLER(handle_nds32_dssim_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -57,7 +57,7 @@ COMMAND_HANDLER(handle_nds32_dssim_command)
 			nds32->step_isr_enable = false;
 	}
 
-	command_print(CMD_CTX, "%s: $INT_MASK.DSSIM: %d", target_name(target),
+	command_print(CMD, "%s: $INT_MASK.DSSIM: %d", target_name(target),
 			nds32->step_isr_enable);
 
 	return ERROR_OK;
@@ -71,7 +71,7 @@ COMMAND_HANDLER(handle_nds32_memory_access_command)
 	struct nds32_memory *memory = &(nds32->memory);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -88,7 +88,7 @@ COMMAND_HANDLER(handle_nds32_memory_access_command)
 
 		aice_memory_access(aice, memory->access_channel);
 	} else {
-		command_print(CMD_CTX, "%s: memory access channel: %s",
+		command_print(CMD, "%s: memory access channel: %s",
 				target_name(target),
 				NDS_MEMORY_ACCESS_NAME[memory->access_channel]);
 	}
@@ -103,18 +103,18 @@ COMMAND_HANDLER(handle_nds32_memory_mode_command)
 	struct aice_port_s *aice = target_to_aice(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC > 0) {
 
 		if (nds32->edm.access_control == false) {
-			command_print(CMD_CTX, "%s does not support ACC_CTL. "
+			command_print(CMD, "%s does not support ACC_CTL. "
 					"Set memory mode to MEMORY", target_name(target));
 			nds32->memory.mode = NDS_MEMORY_SELECT_MEM;
 		} else if (nds32->edm.direct_access_local_memory == false) {
-			command_print(CMD_CTX, "%s does not support direct access "
+			command_print(CMD, "%s does not support direct access "
 					"local memory. Set memory mode to MEMORY",
 					target_name(target));
 			nds32->memory.mode = NDS_MEMORY_SELECT_MEM;
@@ -128,13 +128,13 @@ COMMAND_HANDLER(handle_nds32_memory_mode_command)
 				nds32->memory.mode = NDS_MEMORY_SELECT_MEM;
 			} else if (strcmp(CMD_ARGV[0], "ilm") == 0) {
 				if (nds32->memory.ilm_base == 0)
-					command_print(CMD_CTX, "%s does not support ILM",
+					command_print(CMD, "%s does not support ILM",
 							target_name(target));
 				else
 					nds32->memory.mode = NDS_MEMORY_SELECT_ILM;
 			} else if (strcmp(CMD_ARGV[0], "dlm") == 0) {
 				if (nds32->memory.dlm_base == 0)
-					command_print(CMD_CTX, "%s does not support DLM",
+					command_print(CMD, "%s does not support DLM",
 							target_name(target));
 				else
 					nds32->memory.mode = NDS_MEMORY_SELECT_DLM;
@@ -145,7 +145,7 @@ COMMAND_HANDLER(handle_nds32_memory_mode_command)
 		}
 	}
 
-	command_print(CMD_CTX, "%s: memory mode: %s",
+	command_print(CMD, "%s: memory mode: %s",
 			target_name(target),
 			NDS_MEMORY_SELECT_NAME[nds32->memory.mode]);
 
@@ -162,7 +162,7 @@ COMMAND_HANDLER(handle_nds32_cache_command)
 	int result;
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -173,30 +173,30 @@ COMMAND_HANDLER(handle_nds32_cache_command)
 				/* D$ write back */
 				result = aice_cache_ctl(aice, AICE_CACHE_CTL_L1D_WBALL, 0);
 				if (result != ERROR_OK) {
-					command_print(CMD_CTX, "%s: Write back data cache...failed",
+					command_print(CMD, "%s: Write back data cache...failed",
 							target_name(target));
 					return result;
 				}
 
-				command_print(CMD_CTX, "%s: Write back data cache...done",
+				command_print(CMD, "%s: Write back data cache...done",
 						target_name(target));
 
 				/* D$ invalidate */
 				result = aice_cache_ctl(aice, AICE_CACHE_CTL_L1D_INVALALL, 0);
 				if (result != ERROR_OK) {
-					command_print(CMD_CTX, "%s: Invalidate data cache...failed",
+					command_print(CMD, "%s: Invalidate data cache...failed",
 							target_name(target));
 					return result;
 				}
 
-				command_print(CMD_CTX, "%s: Invalidate data cache...done",
+				command_print(CMD, "%s: Invalidate data cache...done",
 						target_name(target));
 			} else {
 				if (dcache->line_size == 0)
-					command_print(CMD_CTX, "%s: No data cache",
+					command_print(CMD, "%s: No data cache",
 							target_name(target));
 				else
-					command_print(CMD_CTX, "%s: Data cache disabled",
+					command_print(CMD, "%s: Data cache disabled",
 							target_name(target));
 			}
 
@@ -204,23 +204,23 @@ COMMAND_HANDLER(handle_nds32_cache_command)
 				/* I$ invalidate */
 				result = aice_cache_ctl(aice, AICE_CACHE_CTL_L1I_INVALALL, 0);
 				if (result != ERROR_OK) {
-					command_print(CMD_CTX, "%s: Invalidate instruction cache...failed",
+					command_print(CMD, "%s: Invalidate instruction cache...failed",
 							target_name(target));
 					return result;
 				}
 
-				command_print(CMD_CTX, "%s: Invalidate instruction cache...done",
+				command_print(CMD, "%s: Invalidate instruction cache...done",
 						target_name(target));
 			} else {
 				if (icache->line_size == 0)
-					command_print(CMD_CTX, "%s: No instruction cache",
+					command_print(CMD, "%s: No instruction cache",
 							target_name(target));
 				else
-					command_print(CMD_CTX, "%s: Instruction cache disabled",
+					command_print(CMD, "%s: Instruction cache disabled",
 							target_name(target));
 			}
 		} else
-			command_print(CMD_CTX, "No valid parameter");
+			command_print(CMD, "No valid parameter");
 	}
 
 	return ERROR_OK;
@@ -235,14 +235,14 @@ COMMAND_HANDLER(handle_nds32_icache_command)
 	int result;
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC > 0) {
 
 		if (icache->line_size == 0) {
-			command_print(CMD_CTX, "%s: No instruction cache",
+			command_print(CMD, "%s: No instruction cache",
 					target_name(target));
 			return ERROR_OK;
 		}
@@ -252,15 +252,15 @@ COMMAND_HANDLER(handle_nds32_icache_command)
 				/* I$ invalidate */
 				result = aice_cache_ctl(aice, AICE_CACHE_CTL_L1I_INVALALL, 0);
 				if (result != ERROR_OK) {
-					command_print(CMD_CTX, "%s: Invalidate instruction cache...failed",
+					command_print(CMD, "%s: Invalidate instruction cache...failed",
 							target_name(target));
 					return result;
 				}
 
-				command_print(CMD_CTX, "%s: Invalidate instruction cache...done",
+				command_print(CMD, "%s: Invalidate instruction cache...done",
 						target_name(target));
 			} else {
-				command_print(CMD_CTX, "%s: Instruction cache disabled",
+				command_print(CMD, "%s: Instruction cache disabled",
 						target_name(target));
 			}
 		} else if (strcmp(CMD_ARGV[0], "enable") == 0) {
@@ -274,7 +274,7 @@ COMMAND_HANDLER(handle_nds32_icache_command)
 		} else if (strcmp(CMD_ARGV[0], "dump") == 0) {
 			/* TODO: dump cache content */
 		} else {
-			command_print(CMD_CTX, "%s: No valid parameter", target_name(target));
+			command_print(CMD, "%s: No valid parameter", target_name(target));
 		}
 	}
 
@@ -290,14 +290,14 @@ COMMAND_HANDLER(handle_nds32_dcache_command)
 	int result;
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC > 0) {
 
 		if (dcache->line_size == 0) {
-			command_print(CMD_CTX, "%s: No data cache", target_name(target));
+			command_print(CMD, "%s: No data cache", target_name(target));
 			return ERROR_OK;
 		}
 
@@ -306,26 +306,26 @@ COMMAND_HANDLER(handle_nds32_dcache_command)
 				/* D$ write back */
 				result = aice_cache_ctl(aice, AICE_CACHE_CTL_L1D_WBALL, 0);
 				if (result != ERROR_OK) {
-					command_print(CMD_CTX, "%s: Write back data cache...failed",
+					command_print(CMD, "%s: Write back data cache...failed",
 							target_name(target));
 					return result;
 				}
 
-				command_print(CMD_CTX, "%s: Write back data cache...done",
+				command_print(CMD, "%s: Write back data cache...done",
 						target_name(target));
 
 				/* D$ invalidate */
 				result = aice_cache_ctl(aice, AICE_CACHE_CTL_L1D_INVALALL, 0);
 				if (result != ERROR_OK) {
-					command_print(CMD_CTX, "%s: Invalidate data cache...failed",
+					command_print(CMD, "%s: Invalidate data cache...failed",
 							target_name(target));
 					return result;
 				}
 
-				command_print(CMD_CTX, "%s: Invalidate data cache...done",
+				command_print(CMD, "%s: Invalidate data cache...done",
 						target_name(target));
 			} else {
-				command_print(CMD_CTX, "%s: Data cache disabled",
+				command_print(CMD, "%s: Data cache disabled",
 						target_name(target));
 			}
 		} else if (strcmp(CMD_ARGV[0], "enable") == 0) {
@@ -339,7 +339,7 @@ COMMAND_HANDLER(handle_nds32_dcache_command)
 		} else if (strcmp(CMD_ARGV[0], "dump") == 0) {
 			/* TODO: dump cache content */
 		} else {
-			command_print(CMD_CTX, "%s: No valid parameter", target_name(target));
+			command_print(CMD, "%s: No valid parameter", target_name(target));
 		}
 	}
 
@@ -352,7 +352,7 @@ COMMAND_HANDLER(handle_nds32_auto_break_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -364,10 +364,10 @@ COMMAND_HANDLER(handle_nds32_auto_break_command)
 	}
 
 	if (nds32->auto_convert_hw_bp)
-		command_print(CMD_CTX, "%s: convert sw break to hw break on ROM: on",
+		command_print(CMD, "%s: convert sw break to hw break on ROM: on",
 				target_name(target));
 	else
-		command_print(CMD_CTX, "%s: convert sw break to hw break on ROM: off",
+		command_print(CMD, "%s: convert sw break to hw break on ROM: off",
 				target_name(target));
 
 	return ERROR_OK;
@@ -379,7 +379,7 @@ COMMAND_HANDLER(handle_nds32_virtual_hosting_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -391,9 +391,9 @@ COMMAND_HANDLER(handle_nds32_virtual_hosting_command)
 	}
 
 	if (nds32->virtual_hosting)
-		command_print(CMD_CTX, "%s: virtual hosting: on", target_name(target));
+		command_print(CMD, "%s: virtual hosting: on", target_name(target));
 	else
-		command_print(CMD_CTX, "%s: virtual hosting: off", target_name(target));
+		command_print(CMD, "%s: virtual hosting: off", target_name(target));
 
 	return ERROR_OK;
 }
@@ -404,7 +404,7 @@ COMMAND_HANDLER(handle_nds32_global_stop_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -429,7 +429,7 @@ COMMAND_HANDLER(handle_nds32_soft_reset_halt_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -454,7 +454,7 @@ COMMAND_HANDLER(handle_nds32_boot_time_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -470,7 +470,7 @@ COMMAND_HANDLER(handle_nds32_login_edm_passcode_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -485,7 +485,7 @@ COMMAND_HANDLER(handle_nds32_login_edm_operation_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -516,7 +516,7 @@ COMMAND_HANDLER(handle_nds32_reset_halt_as_init_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -536,7 +536,7 @@ COMMAND_HANDLER(handle_nds32_keep_target_edm_ctl_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -556,7 +556,7 @@ COMMAND_HANDLER(handle_nds32_decode_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -581,7 +581,7 @@ COMMAND_HANDLER(handle_nds32_decode_command)
 						read_addr, &instruction))
 				return ERROR_FAIL;
 
-			command_print(CMD_CTX, "%s", instruction.text);
+			command_print(CMD, "%s", instruction.text);
 
 			read_addr += instruction.instruction_size;
 			i++;
@@ -599,7 +599,7 @@ COMMAND_HANDLER(handle_nds32_decode_command)
 		if (ERROR_OK != nds32_evaluate_opcode(nds32, opcode, addr, &instruction))
 			return ERROR_FAIL;
 
-		command_print(CMD_CTX, "%s", instruction.text);
+		command_print(CMD, "%s", instruction.text);
 	} else
 		return ERROR_FAIL;
 
@@ -612,7 +612,7 @@ COMMAND_HANDLER(handle_nds32_word_access_mem_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -632,11 +632,11 @@ COMMAND_HANDLER(handle_nds32_query_target_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
-	command_print(CMD_CTX, "OCD");
+	command_print(CMD, "OCD");
 
 	return ERROR_OK;
 }
@@ -647,7 +647,7 @@ COMMAND_HANDLER(handle_nds32_query_endian_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
@@ -655,9 +655,9 @@ COMMAND_HANDLER(handle_nds32_query_endian_command)
 	nds32_get_mapped_reg(nds32, IR0, &value_psw);
 
 	if (value_psw & 0x20)
-		command_print(CMD_CTX, "%s: BE", target_name(target));
+		command_print(CMD, "%s: BE", target_name(target));
 	else
-		command_print(CMD_CTX, "%s: LE", target_name(target));
+		command_print(CMD, "%s: LE", target_name(target));
 
 	return ERROR_OK;
 }
@@ -668,11 +668,11 @@ COMMAND_HANDLER(handle_nds32_query_cpuid_command)
 	struct nds32 *nds32 = target_to_nds32(target);
 
 	if (!is_nds32(nds32)) {
-		command_print(CMD_CTX, "current target isn't an Andes core");
+		command_print(CMD, "current target isn't an Andes core");
 		return ERROR_FAIL;
 	}
 
-	command_print(CMD_CTX, "CPUID: %s", target_name(target));
+	command_print(CMD, "CPUID: %s", target_name(target));
 
 	return ERROR_OK;
 }
