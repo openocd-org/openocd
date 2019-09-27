@@ -85,8 +85,6 @@
 /* FTDI access library includes */
 #include "mpsse.h"
 
-#define DEBUG_IO(expr...) DEBUG_JTAG_IO(expr)
-
 #if BUILD_FTDI_OSCAN1 == 1
 #define DO_CLOCK_DATA clock_data
 #define DO_CLOCK_TMS_CS clock_tms_cs
@@ -801,7 +799,7 @@ static void oscan1_mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, u
 	static const uint8_t zero;
 	static const uint8_t one = 1;
 
-	DEBUG_IO("oscan1_mpsse_clock_data: %sout %d bits", in ? "in" : "", length);
+	LOG_DEBUG_IO("oscan1_mpsse_clock_data: %sout %d bits", in ? "in" : "", length);
 
 	for (unsigned i = 0; i < length; i++) {
 		int bitnum;
@@ -838,7 +836,7 @@ static void oscan1_mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out,
 	static const uint8_t zero;
 	static const uint8_t one = 1;
 
-	DEBUG_IO("oscan1_mpsse_clock_tms_cs: %sout %d bits, tdi=%d", in ? "in" : "", length, tdi);
+	LOG_DEBUG_IO("oscan1_mpsse_clock_tms_cs: %sout %d bits, tdi=%d", in ? "in" : "", length, tdi);
 
 	for (unsigned i = 0; i < length; i++) {
 		int bitnum;
@@ -1276,7 +1274,7 @@ COMMAND_HANDLER(ftdi_handle_oscan1_mode_command)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], oscan1_mode);
 
-	command_print(CMD_CTX, "oscan1 mode: %s.", oscan1_mode ? "on" : "off");
+	command_print(CMD, "oscan1 mode: %s.", oscan1_mode ? "on" : "off");
 	return ERROR_OK;
 }
 #endif

@@ -1235,17 +1235,6 @@ int target_get_gdb_reg_list_noread(struct target *target,
 	return target_get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
 }
 
-int target_get_gdb_reg_list_noread(struct target *target,
-		struct reg **reg_list[], int *reg_list_size,
-		enum target_register_class reg_class)
-{
-	if (target->type->get_gdb_reg_list_noread &&
-			target->type->get_gdb_reg_list_noread(target, reg_list,
-				reg_list_size, reg_class) == ERROR_OK)
-		return ERROR_OK;
-	return target_get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
-}
-
 bool target_supports_gdb_connection(struct target *target)
 {
 	/*
@@ -2873,7 +2862,7 @@ COMMAND_HANDLER(handle_reg_command)
 					if (reg->valid) {
 						value = buf_to_str(reg->value,
 								reg->size, 16);
-						command_print(CMD_CTX,
+						command_print(CMD,
 								"(%i) %s (/%" PRIu32 "): 0x%s%s",
 								count, reg->name,
 								reg->size, value,
@@ -2882,7 +2871,7 @@ COMMAND_HANDLER(handle_reg_command)
 								: "");
 						free(value);
 					} else {
-						command_print(CMD_CTX, "(%i) %s (/%" PRIu32 ")",
+						command_print(CMD, "(%i) %s (/%" PRIu32 ")",
 								count, reg->name,
 								reg->size) ;
 					}
