@@ -28,6 +28,7 @@ struct jtag_interface minidummy_interface = {
 	.name = "minidummy",
 	.execute_queue = NULL,
 	.speed = NULL,
+	.transports = jtag_only,
 	.commands = NULL,
 	.init = NULL,
 	.quit = NULL,

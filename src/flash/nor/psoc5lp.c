@@ -1501,9 +1501,9 @@ COMMAND_HANDLER(psoc5lp_handle_mass_erase_command)
 
 	retval = psoc5lp_spc_erase_all(bank->target);
 	if (retval == ERROR_OK)
-		command_print(CMD_CTX, "PSoC 5LP erase succeeded");
+		command_print(CMD, "PSoC 5LP erase succeeded");
 	else
-		command_print(CMD_CTX, "PSoC 5LP erase failed");
+		command_print(CMD, "PSoC 5LP erase failed");
 
 	return retval;
 }

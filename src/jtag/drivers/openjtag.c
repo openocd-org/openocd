@@ -292,7 +292,7 @@ static int openjtag_buf_read_standard(
 				qty - *bytes_read);
 		if (retval < 0) {
 			*bytes_read = 0;
-			DEBUG_JTAG_IO("ftdi_read_data: %s",
+			LOG_DEBUG_IO("ftdi_read_data: %s",
 					ftdi_get_error_string(&ftdic));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -574,7 +574,7 @@ static int openjtag_execute_tap_queue(void)
 
 			while (len > 0) {
 				if (len <= 8 && openjtag_variant != OPENJTAG_VARIANT_CY7C65215) {
-					DEBUG_JTAG_IO("bits < 8 buf = 0x%X, will be 0x%X",
+					LOG_DEBUG_IO("bits < 8 buf = 0x%X, will be 0x%X",
 						usb_rx_buf[rx_offs], usb_rx_buf[rx_offs] >> (8 - len));
 					buffer[count] = usb_rx_buf[rx_offs] >> (8 - len);
 					len = 0;
@@ -609,8 +609,8 @@ static void openjtag_add_byte(char buf)
 {
 
 	if (usb_tx_buf_offs == OPENJTAG_BUFFER_SIZE) {
-		DEBUG_JTAG_IO("Forcing execute_tap_queue");
-		DEBUG_JTAG_IO("TX Buff offs=%d", usb_tx_buf_offs);
+		LOG_DEBUG_IO("Forcing execute_tap_queue");
+		LOG_DEBUG_IO("TX Buff offs=%d", usb_tx_buf_offs);
 		openjtag_execute_tap_queue();
 	}
 
@@ -624,8 +624,8 @@ static void openjtag_add_scan(uint8_t *buffer, int length, struct scan_command *
 	/* Ensure space to send long chains */
 	/* We add two byte for each eight (or less) bits, one for command, one for data */
 	if (usb_tx_buf_offs + (DIV_ROUND_UP(length, 8) * 2) >= OPENJTAG_BUFFER_SIZE) {
-		DEBUG_JTAG_IO("Forcing execute_tap_queue from scan");
-		DEBUG_JTAG_IO("TX Buff offs=%d len=%d", usb_tx_buf_offs, DIV_ROUND_UP(length, 8) * 2);
+		LOG_DEBUG_IO("Forcing execute_tap_queue from scan");
+		LOG_DEBUG_IO("TX Buff offs=%d len=%d", usb_tx_buf_offs, DIV_ROUND_UP(length, 8) * 2);
 		openjtag_execute_tap_queue();
 	}
 
@@ -670,7 +670,7 @@ static void openjtag_add_scan(uint8_t *buffer, int length, struct scan_command *
 static void openjtag_execute_reset(struct jtag_command *cmd)
 {
 
-	DEBUG_JTAG_IO("reset trst: %i srst %i",
+	LOG_DEBUG_IO("reset trst: %i srst %i",
 			cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
 	uint8_t buf = 0x00;
@@ -703,7 +703,7 @@ static void openjtag_set_state(uint8_t openocd_state)
 
 static void openjtag_execute_statemove(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("state move to %i", cmd->cmd.statemove->end_state);
+	LOG_DEBUG_IO("state move to %i", cmd->cmd.statemove->end_state);
 
 	tap_set_end_state(cmd->cmd.statemove->end_state);
 
@@ -719,7 +719,7 @@ static void openjtag_execute_scan(struct jtag_command *cmd)
 	int scan_size, old_state;
 	uint8_t *buffer;
 
-	DEBUG_JTAG_IO("scan ends in %s", tap_state_name(cmd->cmd.scan->end_state));
+	LOG_DEBUG_IO("scan ends in %s", tap_state_name(cmd->cmd.scan->end_state));
 
 	/* get scan info */
 	tap_set_end_state(cmd->cmd.scan->end_state);
@@ -778,7 +778,7 @@ static void openjtag_execute_runtest(struct jtag_command *cmd)
 
 static void openjtag_execute_command(struct jtag_command *cmd)
 {
-	DEBUG_JTAG_IO("openjtag_execute_command %i", cmd->type);
+	LOG_DEBUG_IO("openjtag_execute_command %i", cmd->type);
 	switch (cmd->type) {
 	case JTAG_RESET:
 			openjtag_execute_reset(cmd);
@@ -894,6 +894,7 @@ static const struct command_registration openjtag_command_handlers[] = {
 
 struct jtag_interface openjtag_interface = {
 	.name = "openjtag",
+	.transports = jtag_only,
 	.commands = openjtag_command_handlers,
 
 	.execute_queue = openjtag_execute_queue,

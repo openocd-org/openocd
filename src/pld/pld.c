@@ -116,12 +116,12 @@ COMMAND_HANDLER(handle_pld_devices_command)
 	int i = 0;
 
 	if (!pld_devices) {
-		command_print(CMD_CTX, "no pld devices configured");
+		command_print(CMD, "no pld devices configured");
 		return ERROR_OK;
 	}
 
 	for (p = pld_devices; p; p = p->next)
-		command_print(CMD_CTX, "#%i: %s", i++, p->driver->name);
+		command_print(CMD, "#%i: %s", i++, p->driver->name);
 
 	return ERROR_OK;
 }
@@ -141,13 +141,13 @@ COMMAND_HANDLER(handle_pld_load_command)
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], dev_id);
 	p = get_pld_device_by_num(dev_id);
 	if (!p) {
-		command_print(CMD_CTX, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
 	retval = p->driver->load(p, CMD_ARGV[1]);
 	if (retval != ERROR_OK) {
-		command_print(CMD_CTX, "failed loading file %s to pld device %u",
+		command_print(CMD, "failed loading file %s to pld device %u",
 			CMD_ARGV[1], dev_id);
 		switch (retval) {
 		}
@@ -156,7 +156,7 @@ COMMAND_HANDLER(handle_pld_load_command)
 		gettimeofday(&end, NULL);
 		timeval_subtract(&duration, &end, &start);
 
-		command_print(CMD_CTX, "loaded file %s to pld device %u in %jis %jius",
+		command_print(CMD, "loaded file %s to pld device %u in %jis %jius",
 			CMD_ARGV[1], dev_id,
 			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}
@@ -170,6 +170,7 @@ static const struct command_registration pld_exec_command_handlers[] = {
 		.handler = handle_pld_devices_command,
 		.mode = COMMAND_EXEC,
 		.help = "list configured pld devices",
+		.usage = "",
 	},
 	{
 		.name = "load",

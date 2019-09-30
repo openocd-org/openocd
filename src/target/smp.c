@@ -106,7 +106,7 @@ COMMAND_HANDLER(default_handle_smp_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (!CMD_ARGC) {
-		command_print(CMD_CTX, "%s", target->smp ? "on" : "off");
+		command_print(CMD, "%s", target->smp ? "on" : "off");
 		return ERROR_OK;
 	}
 
@@ -166,7 +166,7 @@ COMMAND_HANDLER(handle_smp_gdb_command)
 			target->gdb_service->core[1] = coreid;
 
 		}
-		command_print(CMD_CTX, "gdb coreid  %" PRId32 " -> %" PRId32, target->gdb_service->core[0]
+		command_print(CMD, "gdb coreid  %" PRId32 " -> %" PRId32, target->gdb_service->core[0]
 			, target->gdb_service->core[1]);
 	}
 	return ERROR_OK;

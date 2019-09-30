@@ -646,7 +646,7 @@ int armv8_read_mpidr(struct armv8_common *armv8)
 	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
 	if (retval != ERROR_OK)
 		goto done;
-	if (mpidr & 1<<31) {
+	if (mpidr & 1U<<31) {
 		armv8->multi_processor_system = (mpidr >> 30) & 1;
 		armv8->cluster_id = (mpidr >> 8) & 0xf;
 		armv8->cpu_id = mpidr & 0x3;
@@ -1054,7 +1054,7 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 			return ERROR_FAIL;
 		}
 
-		command_print(CMD_CTX, "Exception Catch: Secure: %s, Non-Secure: %s", sec, nsec);
+		command_print(CMD, "Exception Catch: Secure: %s, Non-Secure: %s", sec, nsec);
 		return ERROR_OK;
 	}
 
@@ -1079,16 +1079,16 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 	return ERROR_OK;
 }
 
-int armv8_handle_cache_info_command(struct command_context *cmd_ctx,
+int armv8_handle_cache_info_command(struct command_invocation *cmd,
 	struct armv8_cache_common *armv8_cache)
 {
 	if (armv8_cache->info == -1) {
-		command_print(cmd_ctx, "cache not yet identified");
+		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
 
 	if (armv8_cache->display_cache_info)
-		armv8_cache->display_cache_info(cmd_ctx, armv8_cache);
+		armv8_cache->display_cache_info(cmd, armv8_cache);
 	return ERROR_OK;
 }
 

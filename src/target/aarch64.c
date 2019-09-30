@@ -29,6 +29,7 @@
 #include "armv8_opcodes.h"
 #include "armv8_cache.h"
 #include "arm_semihosting.h"
+#include "jtag/interface.h"
 #include "smp.h"
 #include <helper/time_support.h>
 
@@ -1662,7 +1663,7 @@ static int aarch64_assert_reset(struct target *target)
 		/* REVISIT handle "pulls" cases, if there's
 		 * hardware that needs them to work.
 		 */
-		jtag_add_reset(0, 1);
+		adapter_assert_reset();
 	} else {
 		LOG_ERROR("%s: how to reset?", target_name(target));
 		return ERROR_FAIL;
@@ -1686,7 +1687,7 @@ static int aarch64_deassert_reset(struct target *target)
 	LOG_DEBUG(" ");
 
 	/* be certain SRST is off */
-	jtag_add_reset(0, 0);
+	adapter_deassert_reset();
 
 	if (!target_was_examined(target))
 		return ERROR_OK;
@@ -2533,7 +2534,7 @@ COMMAND_HANDLER(aarch64_handle_cache_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv8_common *armv8 = target_to_armv8(target);
 
-	return armv8_handle_cache_info_command(CMD_CTX,
+	return armv8_handle_cache_info_command(CMD,
 			&armv8->armv8_mmu.armv8_cache);
 }
 
@@ -2572,7 +2573,7 @@ COMMAND_HANDLER(aarch64_mask_interrupts_command)
 	}
 
 	n = Jim_Nvp_value2name_simple(nvp_maskisr_modes, aarch64->isrmasking_mode);
-	command_print(CMD_CTX, "aarch64 interrupt mask %s", n->name);
+	command_print(CMD, "aarch64 interrupt mask %s", n->name);
 
 	return ERROR_OK;
 }

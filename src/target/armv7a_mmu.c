@@ -34,101 +34,15 @@
 
 #define SCTLR_BIT_AFE (1 << 29)
 
-/*  method adapted to Cortex-A : reused ARM v4 v5 method */
-int armv7a_mmu_translate_va(struct target *target,  uint32_t va, uint32_t *val)
-{
-	uint32_t first_lvl_descriptor = 0x0;
-	uint32_t second_lvl_descriptor = 0x0;
-	int retval;
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	uint32_t ttbidx = 0;	/*  default to ttbr0 */
-	uint32_t ttb_mask;
-	uint32_t va_mask;
-	uint32_t ttb;
-
-	if (target->state != TARGET_HALTED)
-		LOG_INFO("target not halted, using cached values for translation table!");
-
-	/* if va is above the range handled by ttbr0, select ttbr1 */
-	if (va > armv7a->armv7a_mmu.ttbr_range[0]) {
-		/*  select ttb 1 */
-		ttbidx = 1;
-	}
-
-	ttb = armv7a->armv7a_mmu.ttbr[ttbidx];
-	ttb_mask = armv7a->armv7a_mmu.ttbr_mask[ttbidx];
-	va_mask = 0xfff00000 & armv7a->armv7a_mmu.ttbr_range[ttbidx];
-
-	LOG_DEBUG("ttb_mask %" PRIx32 " va_mask %" PRIx32 " ttbidx %i",
-		  ttb_mask, va_mask, ttbidx);
-	retval = armv7a->armv7a_mmu.read_physical_memory(target,
-			(ttb & ttb_mask) | ((va & va_mask) >> 18),
-			4, 1, (uint8_t *)&first_lvl_descriptor);
-	if (retval != ERROR_OK)
-		return retval;
-	first_lvl_descriptor = target_buffer_get_u32(target, (uint8_t *)
-			&first_lvl_descriptor);
-	/*  reuse armv4_5 piece of code, specific armv7a changes may come later */
-	LOG_DEBUG("1st lvl desc: %8.8" PRIx32 "", first_lvl_descriptor);
-
-	if ((first_lvl_descriptor & 0x3) == 0) {
-		/* Avoid LOG_ERROR, probably GDB is guessing the stack frame */
-		LOG_WARNING("Address translation failure [1]: va %8.8" PRIx32 "", va);
-		return ERROR_TARGET_TRANSLATION_FAULT;
-	}
-
-	if ((first_lvl_descriptor & 0x40002) == 2) {
-		/* section descriptor */
-		*val = (first_lvl_descriptor & 0xfff00000) | (va & 0x000fffff);
-		return ERROR_OK;
-	} else if ((first_lvl_descriptor & 0x40002) == 0x40002) {
-		/* supersection descriptor */
-		if (first_lvl_descriptor & 0x00f001e0) {
-			LOG_ERROR("Physical address does not fit into 32 bits");
-			return ERROR_TARGET_TRANSLATION_FAULT;
-		}
-		*val = (first_lvl_descriptor & 0xff000000) | (va & 0x00ffffff);
-		return ERROR_OK;
-	}
-
-	/* page table */
-	retval = armv7a->armv7a_mmu.read_physical_memory(target,
-			(first_lvl_descriptor & 0xfffffc00) | ((va & 0x000ff000) >> 10),
-			4, 1, (uint8_t *)&second_lvl_descriptor);
-	if (retval != ERROR_OK)
-		return retval;
-
-	second_lvl_descriptor = target_buffer_get_u32(target, (uint8_t *)
-			&second_lvl_descriptor);
-
-	LOG_DEBUG("2nd lvl desc: %8.8" PRIx32 "", second_lvl_descriptor);
-
-	if ((second_lvl_descriptor & 0x3) == 0) {
-		/* Avoid LOG_ERROR, probably GDB is guessing the stack frame */
-		LOG_WARNING("Address translation failure [2]: va %8.8" PRIx32 "", va);
-		return ERROR_TARGET_TRANSLATION_FAULT;
-	}
-
-	if ((second_lvl_descriptor & 0x3) == 1) {
-		/* large page descriptor */
-		*val = (second_lvl_descriptor & 0xffff0000) | (va & 0x0000ffff);
-	} else {
-		/* small page descriptor */
-		*val = (second_lvl_descriptor & 0xfffff000) | (va & 0x00000fff);
-	}
-
-	return ERROR_OK;
-}
-
 /*  V7 method VA TO PA  */
 int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
-	uint32_t *val, int meminfo)
+	target_addr_t *val, int meminfo)
 {
 	int retval = ERROR_FAIL;
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm_dpm *dpm = armv7a->arm.dpm;
-	uint32_t virt = va & ~0xfff;
-	uint32_t NOS, NS, INNER, OUTER;
+	uint32_t virt = va & ~0xfff, value;
+	uint32_t NOS, NS, INNER, OUTER, SS;
 	*val = 0xdeadbeef;
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
@@ -142,21 +56,39 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 		goto done;
 	retval = dpm->instr_read_data_r0(dpm,
 			ARMV4_5_MRC(15, 0, 0, 7, 4, 0),
-			val);
-	/* decode memory attribute */
-	NOS = (*val >> 10) & 1;	/*  Not Outer shareable */
-	NS = (*val >> 9) & 1;	/* Non secure */
-	INNER = (*val >> 4) &  0x7;
-	OUTER = (*val >> 2) & 0x3;
-
+			&value);
 	if (retval != ERROR_OK)
 		goto done;
-	*val = (*val & ~0xfff)  +  (va & 0xfff);
+
+	/* decode memory attribute */
+	SS = (value >> 1) & 1;
+#if !BUILD_TARGET64
+	if (SS) {
+		LOG_ERROR("Super section found with no-64 bit address support");
+		return ERROR_FAIL;
+	}
+#endif
+	NOS = (value >> 10) & 1;	/*  Not Outer shareable */
+	NS = (value >> 9) & 1;	/* Non secure */
+	INNER = (value >> 4) &  0x7;
+	OUTER = (value >> 2) & 0x3;
+
+	if (SS) {
+		/* PAR[31:24] contains PA[31:24] */
+		*val = value & 0xff000000;
+		/* PAR [23:16] contains PA[39:32] */
+		*val |= (target_addr_t)(value & 0x00ff0000) << 16;
+		/* PA[23:12] is the same as VA[23:12] */
+		*val |= (va & 0xffffff);
+	} else {
+		*val = (value & ~0xfff)  +  (va & 0xfff);
+	}
 	if (meminfo) {
-		LOG_INFO("%" PRIx32 " : %" PRIx32 " %s outer shareable %s secured",
+		LOG_INFO("%" PRIx32 " : %" TARGET_PRIxADDR " %s outer shareable %s secured %s super section",
 			va, *val,
 			NOS == 1 ? "not" : " ",
-			NS == 1 ? "not" : "");
+			NS == 1 ? "not" : "",
+			SS == 0 ? "not" : "");
 		switch (OUTER) {
 			case 0:
 				LOG_INFO("outer: Non-Cacheable");

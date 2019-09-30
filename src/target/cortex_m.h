@@ -38,6 +38,12 @@
 #define ITM_LAR_KEY	0xC5ACCE55
 
 #define CPUID		0xE000ED00
+
+#define ARM_CPUID_PARTNO_MASK	0xFFF0
+
+#define CORTEX_M23_PARTNO	0xD200
+#define CORTEX_M33_PARTNO	0xD210
+
 /* Debug Control Block */
 #define DCB_DHCSR	0xE000EDF0
 #define DCB_DCRSR	0xE000EDF4
@@ -52,6 +58,9 @@
 #define DWT_COMP0	0xE0001020
 #define DWT_MASK0	0xE0001024
 #define DWT_FUNCTION0	0xE0001028
+#define DWT_DEVARCH		0xE0001FBC
+
+#define DWT_DEVARCH_ARMV8M	0x101A02
 
 #define FP_CTRL		0xE0002000
 #define FP_REMAP	0xE0002004
@@ -127,6 +136,7 @@
 #define DFSR_BKPT			2
 #define DFSR_DWTTRAP		4
 #define DFSR_VCATCH			8
+#define DFSR_EXTERNAL		16
 
 #define FPCR_CODE 0
 #define FPCR_LITERAL 1
@@ -159,6 +169,7 @@ enum cortex_m_isrmasking_mode {
 	CORTEX_M_ISRMASK_AUTO,
 	CORTEX_M_ISRMASK_OFF,
 	CORTEX_M_ISRMASK_ON,
+	CORTEX_M_ISRMASK_STEPONLY,
 };
 
 struct cortex_m_common {
@@ -179,6 +190,7 @@ struct cortex_m_common {
 	/* Data Watchpoint and Trace (DWT) */
 	int dwt_num_comp;
 	int dwt_comp_available;
+	uint32_t dwt_devarch;
 	struct cortex_m_dwt_comparator *dwt_comparator_list;
 	struct reg_cache *dwt_cache;
 
@@ -190,6 +202,10 @@ struct cortex_m_common {
 	struct armv7m_common armv7m;
 
 	int apsel;
+
+	/* Whether this target has the erratum that makes C_MASKINTS not apply to
+	 * already pending interrupts */
+	bool maskints_erratum;
 };
 
 static inline struct cortex_m_common *

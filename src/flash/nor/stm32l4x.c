@@ -835,7 +835,7 @@ COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 	uint32_t action;
 
 	if (CMD_ARGC < 1) {
-		command_print(CMD_CTX, "stm32l4x mass_erase <STM32L4 bank>");
+		command_print(CMD, "stm32l4x mass_erase <STM32L4 bank>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -851,9 +851,9 @@ COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "stm32l4x mass erase complete");
+		command_print(CMD, "stm32l4x mass erase complete");
 	} else {
-		command_print(CMD_CTX, "stm32l4x mass erase failed");
+		command_print(CMD, "stm32l4x mass erase failed");
 	}
 
 	return retval;
@@ -862,7 +862,7 @@ COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 COMMAND_HANDLER(stm32l4_handle_option_read_command)
 {
 	if (CMD_ARGC < 2) {
-		command_print(CMD_CTX, "stm32l4x option_read <STM32L4 bank> <option_reg offset>");
+		command_print(CMD, "stm32l4x option_read <STM32L4 bank> <option_reg offset>");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -880,7 +880,7 @@ COMMAND_HANDLER(stm32l4_handle_option_read_command)
 	if (ERROR_OK != retval)
 		return retval;
 
-	command_print(CMD_CTX, "Option Register: <0x%" PRIx32 "> = 0x%" PRIx32 "", reg_addr, value);
+	command_print(CMD, "Option Register: <0x%" PRIx32 "> = 0x%" PRIx32 "", reg_addr, value);
 
 	return retval;
 }
@@ -888,7 +888,7 @@ COMMAND_HANDLER(stm32l4_handle_option_read_command)
 COMMAND_HANDLER(stm32l4_handle_option_write_command)
 {
 	if (CMD_ARGC < 3) {
-		command_print(CMD_CTX, "stm32l4x option_write <STM32L4 bank> <option_reg offset> <value> [mask]");
+		command_print(CMD, "stm32l4x option_write <STM32L4 bank> <option_reg offset> <value> [mask]");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -906,7 +906,7 @@ COMMAND_HANDLER(stm32l4_handle_option_write_command)
 	if (CMD_ARGC > 3)
 		mask = strtoul(CMD_ARGV[3], NULL, 16);
 
-	command_print(CMD_CTX, "%s Option written.\n"
+	command_print(CMD, "%s Option written.\n"
 				"INFO: a reset or power cycle is required "
 				"for the new settings to take effect.", bank->driver->name);
 
@@ -937,7 +937,7 @@ COMMAND_HANDLER(stm32l4_handle_option_load_command)
 	/* Write the OBLLAUNCH bit in CR -> Cause device "POR" and option bytes reload */
 	retval = target_write_u32(target, stm32l4_get_flash_reg(bank, STM32_FLASH_CR), FLASH_OBLLAUNCH);
 
-	command_print(CMD_CTX, "stm32l4x option load (POR) completed.");
+	command_print(CMD, "stm32l4x option load (POR) completed.");
 	return retval;
 }
 
@@ -962,7 +962,7 @@ COMMAND_HANDLER(stm32l4_handle_lock_command)
 
 	/* set readout protection level 1 by erasing the RDP option byte */
 	if (stm32l4_write_option(bank, STM32_FLASH_OPTR, 0, 0x000000FF) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to lock device", bank->driver->name);
+		command_print(CMD, "%s failed to lock device", bank->driver->name);
 		return ERROR_OK;
 	}
 
@@ -989,7 +989,7 @@ COMMAND_HANDLER(stm32l4_handle_unlock_command)
 	}
 
 	if (stm32l4_write_option(bank, STM32_FLASH_OPTR, RDP_LEVEL_0, 0x000000FF) != ERROR_OK) {
-		command_print(CMD_CTX, "%s failed to unlock device", bank->driver->name);
+		command_print(CMD, "%s failed to unlock device", bank->driver->name);
 		return ERROR_OK;
 	}
 

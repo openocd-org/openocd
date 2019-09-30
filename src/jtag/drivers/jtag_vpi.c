@@ -319,7 +319,7 @@ static int jtag_vpi_runtest(int cycles, tap_state_t state)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = jtag_vpi_queue_tdi(NULL, cycles, TAP_SHIFT);
+	retval = jtag_vpi_queue_tdi(NULL, cycles, NO_TAP_SHIFT);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -328,7 +328,27 @@ static int jtag_vpi_runtest(int cycles, tap_state_t state)
 
 static int jtag_vpi_stableclocks(int cycles)
 {
-	return jtag_vpi_queue_tdi(NULL, cycles, TAP_SHIFT);
+	uint8_t tms_bits[4];
+	int cycles_remain = cycles;
+	int nb_bits;
+	int retval;
+	const int CYCLES_ONE_BATCH = sizeof(tms_bits) * 8;
+
+	assert(cycles >= 0);
+
+	/* use TMS=1 in TAP RESET state, TMS=0 in all other stable states */
+	memset(&tms_bits, (tap_get_state() == TAP_RESET) ? 0xff : 0x00, sizeof(tms_bits));
+
+	/* send the TMS bits */
+	while (cycles_remain > 0) {
+		nb_bits = (cycles_remain < CYCLES_ONE_BATCH) ? cycles_remain : CYCLES_ONE_BATCH;
+		retval = jtag_vpi_tms_seq(tms_bits, nb_bits);
+		if (retval != ERROR_OK)
+			return retval;
+		cycles_remain -= nb_bits;
+	}
+
+	return ERROR_OK;
 }
 
 static int jtag_vpi_execute_queue(void)

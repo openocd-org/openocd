@@ -1242,6 +1242,7 @@ struct jtag_interface zy1000_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = NULL,
 	.speed = zy1000_speed,
+	.transports = jtag_only,
 	.commands = zy1000_commands,
 	.init = zy1000_init,
 	.quit = zy1000_quit,

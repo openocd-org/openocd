@@ -507,11 +507,11 @@ void arm920t_pre_restore_context(struct target *target)
 
 static const char arm920_not[] = "target is not an ARM920";
 
-static int arm920t_verify_pointer(struct command_context *cmd_ctx,
+static int arm920t_verify_pointer(struct command_invocation *cmd,
 	struct arm920t_common *arm920t)
 {
 	if (arm920t->common_magic != ARM920T_COMMON_MAGIC) {
-		command_print(cmd_ctx, arm920_not);
+		command_print(cmd, arm920_not);
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -869,7 +869,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	int segment, index_t;
 	struct reg *r;
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1103,7 +1103,7 @@ COMMAND_HANDLER(arm920t_handle_read_cache_command)
 	/* restore CP15 MMU and Cache settings */
 	arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_ctrl_saved);
 
-	command_print(CMD_CTX, "cache content successfully output to %s",
+	command_print(CMD, "cache content successfully output to %s",
 		CMD_ARGV[0]);
 
 	fclose(output);
@@ -1151,7 +1151,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 	int victim;
 	struct reg *r;
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1415,7 +1415,7 @@ COMMAND_HANDLER(arm920t_handle_read_mmu_command)
 			(i_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
 	}
 
-	command_print(CMD_CTX, "mmu content successfully output to %s",
+	command_print(CMD, "mmu content successfully output to %s",
 		CMD_ARGV[0]);
 
 	fclose(output);
@@ -1451,12 +1451,12 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for "
+		command_print(CMD, "target must be stopped for "
 			"\"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
@@ -1472,7 +1472,7 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 			uint32_t value;
 			retval = arm920t_read_cp15_physical(target, address, &value);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 					"couldn't access reg %i", address);
 				return ERROR_OK;
 			}
@@ -1480,7 +1480,7 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 			if (retval != ERROR_OK)
 				return retval;
 
-			command_print(CMD_CTX, "%i: %8.8" PRIx32,
+			command_print(CMD, "%i: %8.8" PRIx32,
 				address, value);
 		} else if (CMD_ARGC == 2)   {
 			uint32_t value;
@@ -1488,12 +1488,12 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 			retval = arm920t_write_cp15_physical(target,
 					address, value);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 					"couldn't access reg %i", address);
 				/* REVISIT why lie? "return retval"? */
 				return ERROR_OK;
 			}
-			command_print(CMD_CTX, "%i: %8.8" PRIx32,
+			command_print(CMD, "%i: %8.8" PRIx32,
 				address, value);
 		}
 	}
@@ -1507,13 +1507,13 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for "
+		command_print(CMD, "target must be stopped for "
 			"\"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
@@ -1530,14 +1530,14 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 			retval = arm920t_read_cp15_interpreted(target,
 					opcode, 0x0, &value);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 					"couldn't execute %8.8" PRIx32,
 					opcode);
 				/* REVISIT why lie? "return retval"? */
 				return ERROR_OK;
 			}
 
-			command_print(CMD_CTX, "%8.8" PRIx32 ": %8.8" PRIx32,
+			command_print(CMD, "%8.8" PRIx32 ": %8.8" PRIx32,
 				opcode, value);
 		} else if (CMD_ARGC == 2) {
 			uint32_t value;
@@ -1545,13 +1545,13 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 			retval = arm920t_write_cp15_interpreted(target,
 					opcode, value, 0);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 					"couldn't execute %8.8" PRIx32,
 					opcode);
 				/* REVISIT why lie? "return retval"? */
 				return ERROR_OK;
 			}
-			command_print(CMD_CTX, "%8.8" PRIx32 ": %8.8" PRIx32,
+			command_print(CMD, "%8.8" PRIx32 ": %8.8" PRIx32,
 				opcode, value);
 		} else if (CMD_ARGC == 3) {
 			uint32_t value;
@@ -1561,12 +1561,12 @@ COMMAND_HANDLER(arm920t_handle_cp15i_command)
 			retval = arm920t_write_cp15_interpreted(target,
 					opcode, value, address);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX,
+				command_print(CMD,
 					"couldn't execute %8.8" PRIx32, opcode);
 				/* REVISIT why lie? "return retval"? */
 				return ERROR_OK;
 			}
-			command_print(CMD_CTX, "%8.8" PRIx32 ": %8.8" PRIx32
+			command_print(CMD, "%8.8" PRIx32 ": %8.8" PRIx32
 				" %8.8" PRIx32, opcode, value, address);
 		}
 	} else
@@ -1581,11 +1581,11 @@ COMMAND_HANDLER(arm920t_handle_cache_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
-	retval = arm920t_verify_pointer(CMD_CTX, arm920t);
+	retval = arm920t_verify_pointer(CMD, arm920t);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return armv4_5_handle_cache_info_command(CMD_CTX,
+	return armv4_5_handle_cache_info_command(CMD,
 		&arm920t->armv4_5_mmu.armv4_5_cache);
 }
 

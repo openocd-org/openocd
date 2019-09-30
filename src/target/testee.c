@@ -30,8 +30,8 @@ static const struct command_registration testee_command_handlers[] = {
 		.name = "testee",
 		.mode = COMMAND_ANY,
 		.help = "testee target commands",
-
 		.chain = hello_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

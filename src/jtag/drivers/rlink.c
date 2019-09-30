@@ -1299,11 +1299,9 @@ static int rlink_execute_queue(void)
 
 		switch (cmd->type) {
 			case JTAG_RESET:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("reset trst: %i srst %i",
+				LOG_DEBUG_IO("reset trst: %i srst %i",
 						cmd->cmd.reset->trst,
 						cmd->cmd.reset->srst);
-#endif
 				if ((cmd->cmd.reset->trst == 1) ||
 						(cmd->cmd.reset->srst &&
 								(jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
@@ -1311,37 +1309,29 @@ static int rlink_execute_queue(void)
 				rlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
 			case JTAG_RUNTEST:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %i",
+				LOG_DEBUG_IO("runtest %i cycles, end in %i",
 						cmd->cmd.runtest->num_cycles,
 						cmd->cmd.runtest->end_state);
-#endif
 				if (cmd->cmd.runtest->end_state != -1)
 					rlink_end_state(cmd->cmd.runtest->end_state);
 				rlink_runtest(cmd->cmd.runtest->num_cycles);
 				break;
 			case JTAG_TLR_RESET:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
-#endif
+				LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 				if (cmd->cmd.statemove->end_state != -1)
 					rlink_end_state(cmd->cmd.statemove->end_state);
 				rlink_state_move();
 				break;
 			case JTAG_PATHMOVE:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("pathmove: %i states, end in %i",
-				cmd->cmd.pathmove->num_states,
-				cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
-#endif
+				LOG_DEBUG_IO("pathmove: %i states, end in %i",
+						cmd->cmd.pathmove->num_states,
+						cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 				rlink_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan end in %i",
-				(cmd->cmd.scan->ir_scan) ? "IR" : "DR",
-				cmd->cmd.scan->end_state);
-#endif
+				LOG_DEBUG_IO("%s scan end in %i",
+						(cmd->cmd.scan->ir_scan) ? "IR" : "DR",
+								cmd->cmd.scan->end_state);
 				if (cmd->cmd.scan->end_state != -1)
 					rlink_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
@@ -1350,9 +1340,7 @@ static int rlink_execute_queue(void)
 					retval = ERROR_FAIL;
 				break;
 			case JTAG_SLEEP:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
-#endif
+				LOG_DEBUG_IO("sleep %i", cmd->cmd.sleep->us);
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 			default:
@@ -1674,6 +1662,7 @@ static int rlink_quit(void)
 
 struct jtag_interface rlink_interface = {
 	.name = "rlink",
+	.transports = jtag_only,
 	.init = rlink_init,
 	.quit = rlink_quit,
 	.speed = rlink_speed,

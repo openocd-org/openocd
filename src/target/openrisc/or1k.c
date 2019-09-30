@@ -1291,7 +1291,7 @@ COMMAND_HANDLER(or1k_tap_list_command_handler)
 
 	list_for_each_entry(or1k_tap, &tap_list, list) {
 		if (or1k_tap->name)
-			command_print(CMD_CTX, "%s", or1k_tap->name);
+			command_print(CMD, "%s", or1k_tap->name);
 	}
 
 	return ERROR_OK;
@@ -1339,7 +1339,7 @@ COMMAND_HANDLER(or1k_du_list_command_handler)
 
 	list_for_each_entry(or1k_du, &du_list, list) {
 		if (or1k_du->name)
-			command_print(CMD_CTX, "%s", or1k_du->name);
+			command_print(CMD, "%s", or1k_du->name);
 	}
 
 	return ERROR_OK;
@@ -1374,28 +1374,28 @@ COMMAND_HANDLER(or1k_addreg_command_handler)
 
 static const struct command_registration or1k_hw_ip_command_handlers[] = {
 	{
-		"tap_select",
+		.name = "tap_select",
 		.handler = or1k_tap_select_command_handler,
 		.mode = COMMAND_ANY,
 		.usage = "tap_select name",
 		.help = "Select the TAP core to use",
 	},
 	{
-		"tap_list",
+		.name = "tap_list",
 		.handler = or1k_tap_list_command_handler,
 		.mode = COMMAND_ANY,
 		.usage = "tap_list",
 		.help = "Display available TAP core",
 	},
 	{
-		"du_select",
+		.name = "du_select",
 		.handler = or1k_du_select_command_handler,
 		.mode = COMMAND_ANY,
 		.usage = "du_select name",
 		.help = "Select the Debug Unit core to use",
 	},
 	{
-		"du_list",
+		.name = "du_list",
 		.handler = or1k_du_list_command_handler,
 		.mode = COMMAND_ANY,
 		.usage = "select_tap name",
@@ -1406,7 +1406,7 @@ static const struct command_registration or1k_hw_ip_command_handlers[] = {
 
 static const struct command_registration or1k_reg_command_handlers[] = {
 	{
-		"addreg",
+		.name = "addreg",
 		.handler = or1k_addreg_command_handler,
 		.mode = COMMAND_ANY,
 		.usage = "addreg name addr feature group",

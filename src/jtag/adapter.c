@@ -66,30 +66,6 @@ static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	return JIM_OK;
 }
 
-static int default_khz(int khz, int *jtag_speed)
-{
-	LOG_ERROR("Translation from khz to jtag_speed not implemented");
-	return ERROR_FAIL;
-}
-
-static int default_speed_div(int speed, int *khz)
-{
-	LOG_ERROR("Translation from jtag_speed to khz not implemented");
-	return ERROR_FAIL;
-}
-
-static int default_power_dropout(int *dropout)
-{
-	*dropout = 0; /* by default we can't detect power dropout */
-	return ERROR_OK;
-}
-
-static int default_srst_asserted(int *srst_asserted)
-{
-	*srst_asserted = 0; /* by default we can't detect srst asserted */
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(interface_transport_command)
 {
 	char **transports;
@@ -114,10 +90,10 @@ COMMAND_HANDLER(handle_interface_list_command)
 	if (strcmp(CMD_NAME, "interface_list") == 0 && CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD_CTX, "The following debug interfaces are available:");
+	command_print(CMD, "The following debug interfaces are available:");
 	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
 		const char *name = jtag_interfaces[i]->name;
-		command_print(CMD_CTX, "%u: %s", i + 1, name);
+		command_print(CMD, "%u: %s", i + 1, name);
 	}
 
 	return ERROR_OK;
@@ -150,29 +126,7 @@ COMMAND_HANDLER(handle_interface_command)
 
 		jtag_interface = jtag_interfaces[i];
 
-		/* LEGACY SUPPORT ... adapter drivers  must declare what
-		 * transports they allow.  Until they all do so, assume
-		 * the legacy drivers are JTAG-only
-		 */
-		if (!jtag_interface->transports)
-			LOG_WARNING("Adapter driver '%s' did not declare "
-				"which transports it allows; assuming "
-				"legacy JTAG-only", jtag_interface->name);
-		retval = allow_transports(CMD_CTX, jtag_interface->transports
-						? jtag_interface->transports : jtag_only);
-			if (ERROR_OK != retval)
-				return retval;
-
-		if (jtag_interface->khz == NULL)
-			jtag_interface->khz = default_khz;
-		if (jtag_interface->speed_div == NULL)
-			jtag_interface->speed_div = default_speed_div;
-		if (jtag_interface->power_dropout == NULL)
-			jtag_interface->power_dropout = default_power_dropout;
-		if (jtag_interface->srst_asserted == NULL)
-			jtag_interface->srst_asserted = default_srst_asserted;
-
-		return ERROR_OK;
+		return allow_transports(CMD_CTX, jtag_interface->transports);
 	}
 
 	/* no valid interface was found (i.e. the configuration option,
@@ -394,7 +348,7 @@ next:
 		modes[5] = "";
 	}
 
-	command_print(CMD_CTX, "%s %s%s%s%s%s",
+	command_print(CMD, "%s %s%s%s%s%s",
 			modes[0], modes[1],
 			modes[2], modes[3], modes[4], modes[5]);
 
@@ -411,7 +365,7 @@ COMMAND_HANDLER(handle_adapter_nsrst_delay_command)
 
 		jtag_set_nsrst_delay(delay);
 	}
-	command_print(CMD_CTX, "adapter_nsrst_delay: %u", jtag_get_nsrst_delay());
+	command_print(CMD, "adapter_nsrst_delay: %u", jtag_get_nsrst_delay());
 	return ERROR_OK;
 }
 
@@ -425,7 +379,7 @@ COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
 
 		jtag_set_nsrst_assert_width(width);
 	}
-	command_print(CMD_CTX, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
+	command_print(CMD, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
 	return ERROR_OK;
 }
 
@@ -450,9 +404,9 @@ COMMAND_HANDLER(handle_adapter_khz_command)
 		return retval;
 
 	if (cur_speed)
-		command_print(CMD_CTX, "adapter speed: %d kHz", cur_speed);
+		command_print(CMD, "adapter speed: %d kHz", cur_speed);
 	else
-		command_print(CMD_CTX, "adapter speed: RCLK - adaptive");
+		command_print(CMD, "adapter speed: RCLK - adaptive");
 
 	return retval;
 }
@@ -464,7 +418,7 @@ COMMAND_HANDLER(handle_usb_location_command)
 	if (CMD_ARGC == 1)
 		jtag_usb_set_location(CMD_ARGV[0]);
 
-	command_print(CMD_CTX, "adapter usb location: %s", jtag_usb_get_location());
+	command_print(CMD, "adapter usb location: %s", jtag_usb_get_location());
 
 	return ERROR_OK;
 }
@@ -476,8 +430,8 @@ static const struct command_registration adapter_usb_command_handlers[] = {
 		.name = "location",
 		.handler = &handle_usb_location_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the USB bus location of the USB device",
-		.usage = "<bus>-port[.port]...",
+		.help = "display or set the USB bus location of the USB device",
+		.usage = "[<bus>-port[.port]...]",
 	},
 #endif /* HAVE_LIBUSB_GET_PORT_NUMBERS */
 	COMMAND_REGISTRATION_DONE
@@ -555,6 +509,7 @@ static const struct command_registration interface_command_handlers[] = {
 		.handler = handle_interface_list_command,
 		.mode = COMMAND_ANY,
 		.help = "List all built-in debug adapter interfaces (drivers)",
+		.usage = "",
 	},
 	{
 		.name = "reset_config",

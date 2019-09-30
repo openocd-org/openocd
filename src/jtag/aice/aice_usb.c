@@ -400,7 +400,7 @@ static int aice_usb_write(uint8_t *out_buffer, int out_length)
 	result = usb_bulk_write_ex(aice_handler.usb_handle, aice_handler.usb_write_ep,
 			(char *)out_buffer, out_length, AICE_USB_TIMEOUT);
 
-	DEBUG_JTAG_IO("aice_usb_write, out_length = %i, result = %i",
+	LOG_DEBUG_IO("aice_usb_write, out_length = %i, result = %i",
 			out_length, result);
 
 	return result;
@@ -412,7 +412,7 @@ static int aice_usb_read(uint8_t *in_buffer, int expected_size)
 	int32_t result = usb_bulk_read_ex(aice_handler.usb_handle, aice_handler.usb_read_ep,
 			(char *)in_buffer, expected_size, AICE_USB_TIMEOUT);
 
-	DEBUG_JTAG_IO("aice_usb_read, result = %" PRId32, result);
+	LOG_DEBUG_IO("aice_usb_read, result = %" PRId32, result);
 
 	return result;
 }
@@ -2812,7 +2812,7 @@ static int aice_issue_reset_hold(uint32_t coreid)
 	/* set no_dbgi_pin to 0 */
 	uint32_t pin_status;
 	aice_read_ctrl(AICE_READ_CTRL_GET_JTAG_PIN_STATUS, &pin_status);
-	if (pin_status | 0x4)
+	if (pin_status & 0x4)
 		aice_write_ctrl(AICE_WRITE_CTRL_JTAG_PIN_STATUS, pin_status & (~0x4));
 
 	/* issue restart */

@@ -1680,7 +1680,7 @@ COMMAND_HANDLER(handle_esirisc_cache_arch_command)
 		}
 	}
 
-	command_print(CMD_CTX, "esirisc cache_arch %s", esirisc_cache_arch_name(esirisc));
+	command_print(CMD, "esirisc cache_arch %s", esirisc_cache_arch_name(esirisc));
 
 	return ERROR_OK;
 }
@@ -1698,7 +1698,7 @@ COMMAND_HANDLER(handle_esirisc_flush_caches_command)
 
 	retval = esirisc_flush_caches(target);
 
-	command_print(CMD_CTX, "cache flush %s",
+	command_print(CMD, "cache flush %s",
 			(retval == ERROR_OK) ? "successful" : "failed");
 
 	return retval;
@@ -1748,7 +1748,7 @@ COMMAND_HANDLER(handle_esirisc_hwdc_command)
 	}
 
 	for (size_t i = 0; i < ARRAY_SIZE(esirisc_hwdc_masks); ++i)
-		command_print(CMD_CTX, "%9s: %s", esirisc_hwdc_masks[i].name,
+		command_print(CMD, "%9s: %s", esirisc_hwdc_masks[i].name,
 				(esirisc->hwdc_save & esirisc_hwdc_masks[i].mask) ? "enabled" : "disabled");
 
 	return ERROR_OK;

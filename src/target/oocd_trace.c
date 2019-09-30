@@ -277,7 +277,7 @@ COMMAND_HANDLER(handle_oocd_trace_config_command)
 	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "current target isn't an ARM");
+		command_print(CMD, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
@@ -306,17 +306,17 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "current target isn't an ARM");
+		command_print(CMD, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	if (!arm->etm) {
-		command_print(CMD_CTX, "current target doesn't have an ETM configured");
+		command_print(CMD, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
 	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0) {
-		command_print(CMD_CTX, "current target's ETM capture driver isn't 'oocd_trace'");
+		command_print(CMD, "current target's ETM capture driver isn't 'oocd_trace'");
 		return ERROR_FAIL;
 	}
 
@@ -325,9 +325,9 @@ COMMAND_HANDLER(handle_oocd_trace_status_command)
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 
 	if (status & 0x8)
-		command_print(CMD_CTX, "trace clock locked");
+		command_print(CMD, "trace clock locked");
 	else
-		command_print(CMD_CTX, "no trace clock");
+		command_print(CMD, "no trace clock");
 
 	return ERROR_OK;
 }
@@ -344,17 +344,17 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "current target isn't an ARM");
+		command_print(CMD, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
 	if (!arm->etm) {
-		command_print(CMD_CTX, "current target doesn't have an ETM configured");
+		command_print(CMD, "current target doesn't have an ETM configured");
 		return ERROR_FAIL;
 	}
 
 	if (strcmp(arm->etm->capture_driver->name, "oocd_trace") != 0) {
-		command_print(CMD_CTX, "current target's ETM capture driver isn't 'oocd_trace'");
+		command_print(CMD, "current target's ETM capture driver isn't 'oocd_trace'");
 		return ERROR_FAIL;
 	}
 
@@ -366,7 +366,7 @@ COMMAND_HANDLER(handle_oocd_trace_resync_command)
 	if (bytes_written < 1)
 		return ERROR_FAIL;
 
-	command_print(CMD_CTX, "requesting traceclock resync");
+	command_print(CMD, "requesting traceclock resync");
 	LOG_DEBUG("resyncing traceclk pll");
 
 	return ERROR_OK;

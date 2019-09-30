@@ -269,19 +269,14 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 				break;
 			case 'd':		/* --debug | -d */
 			{
-				char *command = alloc_printf("debug_level %s", optarg ? optarg : "3");
-				int retval = command_run_line(cmd_ctx, command);
-				free(command);
+				int retval = command_run_linef(cmd_ctx, "debug_level %s", optarg ? optarg : "3");
 				if (retval != ERROR_OK)
 					return retval;
 				break;
 			}
 			case 'l':		/* --log_output | -l */
-				if (optarg) {
-					char *command = alloc_printf("log_output %s", optarg);
-					command_run_line(cmd_ctx, command);
-					free(command);
-				}
+				if (optarg)
+					command_run_linef(cmd_ctx, "log_output %s", optarg);
 				break;
 			case 'c':		/* --command | -c */
 				if (optarg)

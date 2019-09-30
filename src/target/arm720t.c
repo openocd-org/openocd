@@ -233,11 +233,11 @@ static void arm720t_pre_restore_context(struct target *target)
 	arm720t_write_cp15(target, 0xee060f10, arm720t->far_reg);
 }
 
-static int arm720t_verify_pointer(struct command_context *cmd_ctx,
+static int arm720t_verify_pointer(struct command_invocation *cmd,
 		struct arm720t_common *arm720t)
 {
 	if (arm720t->common_magic != ARM720T_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not an ARM720");
+		command_print(cmd, "target is not an ARM720");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -442,12 +442,12 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
-	retval = arm720t_verify_pointer(CMD_CTX, arm720t);
+	retval = arm720t_verify_pointer(CMD, arm720t);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -460,7 +460,7 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 			uint32_t value;
 			retval = arm720t_read_cp15(target, opcode, &value);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
+				command_print(CMD, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
 
@@ -468,17 +468,17 @@ COMMAND_HANDLER(arm720t_handle_cp15_command)
 			if (retval != ERROR_OK)
 				return retval;
 
-			command_print(CMD_CTX, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
+			command_print(CMD, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
 		} else if (CMD_ARGC == 2) {
 			uint32_t value;
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 			retval = arm720t_write_cp15(target, opcode, value);
 			if (retval != ERROR_OK) {
-				command_print(CMD_CTX, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
+				command_print(CMD, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
-			command_print(CMD_CTX, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
+			command_print(CMD, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
 		}
 	}
 

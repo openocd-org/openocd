@@ -1925,13 +1925,6 @@ static int xds110_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static int_least32_t xds110_swd_frequency(int_least32_t hz)
-{
-	if (hz > 0)
-		xds110_speed(hz / 1000);
-	return hz;
-}
-
 COMMAND_HANDLER(xds110_handle_info_command)
 {
 	xds110_show_info();
@@ -2032,7 +2025,6 @@ static const struct command_registration xds110_command_handlers[] = {
 
 static const struct swd_driver xds110_swd_driver = {
 	.init = xds110_swd_init,
-	.frequency = xds110_swd_frequency,
 	.switch_seq = xds110_swd_switch_seq,
 	.read_reg = xds110_swd_read_reg,
 	.write_reg = xds110_swd_write_reg,

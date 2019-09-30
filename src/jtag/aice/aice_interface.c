@@ -150,7 +150,7 @@ static int aice_execute_reset(struct jtag_command *cmd)
 	static int last_trst;
 	int retval = ERROR_OK;
 
-	DEBUG_JTAG_IO("reset trst: %d", cmd->cmd.reset->trst);
+	LOG_DEBUG_IO("reset trst: %d", cmd->cmd.reset->trst);
 
 	if (cmd->cmd.reset->trst != last_trst) {
 		if (cmd->cmd.reset->trst)
@@ -269,10 +269,10 @@ COMMAND_HANDLER(aice_handle_aice_info_command)
 {
 	LOG_DEBUG("aice_handle_aice_info_command");
 
-	command_print(CMD_CTX, "Description: %s", param.device_desc);
-	command_print(CMD_CTX, "Serial number: %s", param.serial);
+	command_print(CMD, "Description: %s", param.device_desc);
+	command_print(CMD, "Serial number: %s", param.serial);
 	if (strncmp(aice_port->name, "aice_pipe", 9) == 0)
-		command_print(CMD_CTX, "Adapter: %s", param.adapter_name);
+		command_print(CMD, "Adapter: %s", param.adapter_name);
 
 	return ERROR_OK;
 }

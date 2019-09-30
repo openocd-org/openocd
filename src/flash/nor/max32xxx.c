@@ -772,7 +772,7 @@ COMMAND_HANDLER(max32xxx_handle_mass_erase_command)
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 
 	if (CMD_ARGC < 1) {
-		command_print(CMD_CTX, "max32xxx mass_erase <bank>");
+		command_print(CMD, "max32xxx mass_erase <bank>");
 		return ERROR_OK;
 	}
 
@@ -784,9 +784,9 @@ COMMAND_HANDLER(max32xxx_handle_mass_erase_command)
 		for (i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
-		command_print(CMD_CTX, "max32xxx mass erase complete");
+		command_print(CMD, "max32xxx mass erase complete");
 	} else
-		command_print(CMD_CTX, "max32xxx mass erase failed");
+		command_print(CMD, "max32xxx mass erase failed");
 
 	return ERROR_OK;
 }
@@ -799,7 +799,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_set_command)
 	uint32_t addr, len;
 
 	if (CMD_ARGC != 3) {
-		command_print(CMD_CTX, "max32xxx protection_set <bank> <addr> <size>");
+		command_print(CMD, "max32xxx protection_set <bank> <addr> <size>");
 		return ERROR_OK;
 	}
 
@@ -811,7 +811,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_set_command)
 	/* Convert the range to the page numbers */
 	if (1 != sscanf(CMD_ARGV[1], "0x%"SCNx32, &addr)) {
 		LOG_WARNING("Error parsing address");
-		command_print(CMD_CTX, "max32xxx protection_set <bank> <addr> <size>");
+		command_print(CMD, "max32xxx protection_set <bank> <addr> <size>");
 		return ERROR_FAIL;
 	}
 	/* Mask off the top portion on the address */
@@ -819,7 +819,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_set_command)
 
 	if (1 != sscanf(CMD_ARGV[2], "0x%"SCNx32, &len)) {
 		LOG_WARNING("Error parsing length");
-		command_print(CMD_CTX, "max32xxx protection_set <bank> <addr> <size>");
+		command_print(CMD, "max32xxx protection_set <bank> <addr> <size>");
 		return ERROR_FAIL;
 	}
 
@@ -840,9 +840,9 @@ COMMAND_HANDLER(max32xxx_handle_protection_set_command)
 	len = addr + (len / info->sector_size) - 1;
 
 	if (max32xxx_protect(bank, 1, addr, len) == ERROR_OK)
-		command_print(CMD_CTX, "max32xxx protection set complete");
+		command_print(CMD, "max32xxx protection set complete");
 	else
-		command_print(CMD_CTX, "max32xxx protection set failed");
+		command_print(CMD, "max32xxx protection set failed");
 
 	return ERROR_OK;
 }
@@ -855,7 +855,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_clr_command)
 	uint32_t addr, len;
 
 	if (CMD_ARGC != 3) {
-		command_print(CMD_CTX, "max32xxx protection_clr <bank> <addr> <size>");
+		command_print(CMD, "max32xxx protection_clr <bank> <addr> <size>");
 		return ERROR_OK;
 	}
 
@@ -867,7 +867,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_clr_command)
 	/* Convert the range to the page numbers */
 	if (1 != sscanf(CMD_ARGV[1], "0x%"SCNx32, &addr)) {
 		LOG_WARNING("Error parsing address");
-		command_print(CMD_CTX, "max32xxx protection_clr <bank> <addr> <size>");
+		command_print(CMD, "max32xxx protection_clr <bank> <addr> <size>");
 		return ERROR_FAIL;
 	}
 	/* Mask off the top portion on the address */
@@ -875,7 +875,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_clr_command)
 
 	if (1 != sscanf(CMD_ARGV[2], "0x%"SCNx32, &len)) {
 		LOG_WARNING("Error parsing length");
-		command_print(CMD_CTX, "max32xxx protection_clr <bank> <addr> <size>");
+		command_print(CMD, "max32xxx protection_clr <bank> <addr> <size>");
 		return ERROR_FAIL;
 	}
 
@@ -896,9 +896,9 @@ COMMAND_HANDLER(max32xxx_handle_protection_clr_command)
 	len = addr + (len / info->sector_size) - 1;
 
 	if (max32xxx_protect(bank, 0, addr, len) == ERROR_OK)
-		command_print(CMD_CTX, "max32xxx protection clear complete");
+		command_print(CMD, "max32xxx protection clear complete");
 	else
-		command_print(CMD_CTX, "max32xxx protection clear failed");
+		command_print(CMD, "max32xxx protection clear failed");
 
 	return ERROR_OK;
 }
@@ -911,7 +911,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_check_command)
 	int i;
 
 	if (CMD_ARGC < 1) {
-		command_print(CMD_CTX, "max32xxx protection_check <bank>");
+		command_print(CMD, "max32xxx protection_check <bank>");
 		return ERROR_OK;
 	}
 
@@ -977,6 +977,7 @@ static const struct command_registration max32xxx_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "max32xxx flash command group",
 		.chain = max32xxx_exec_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

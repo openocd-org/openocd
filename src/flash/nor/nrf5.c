@@ -1118,6 +1118,7 @@ static const struct command_registration nrf5_exec_command_handlers[] = {
 		.handler	= nrf5_handle_mass_erase_command,
 		.mode		= COMMAND_EXEC,
 		.help		= "Erase all flash contents of the chip.",
+		.usage		= "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

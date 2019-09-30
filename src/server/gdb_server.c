@@ -67,7 +67,7 @@ struct target_desc_format {
 
 /* private connection data for GDB */
 struct gdb_connection {
-	char buffer[GDB_BUFFER_SIZE];
+	char buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for nul-termination */
 	char *buf_p;
 	int buf_cnt;
 	int ctrl_c;
@@ -736,8 +736,6 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		struct target *ct;
 		if (target->rtos != NULL) {
 			target->rtos->current_threadid = target->rtos->current_thread;
-			LOG_DEBUG("[%s] current_threadid=%" PRId64, target_name(target),
-					target->rtos->current_threadid);
 			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
 		} else {
 			ct = target;
@@ -905,7 +903,6 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 static int gdb_target_callback_event_handler(struct target *target,
 		enum target_event event, void *priv)
 {
-	int retval;
 	struct connection *connection = priv;
 	struct gdb_service *gdb_service = connection->service->priv;
 
@@ -918,11 +915,6 @@ static int gdb_target_callback_event_handler(struct target *target,
 			break;
 		case TARGET_EVENT_HALTED:
 			target_call_event_callbacks(target, TARGET_EVENT_GDB_END);
-			break;
-		case TARGET_EVENT_GDB_FLASH_ERASE_START:
-			retval = jtag_execute_queue();
-			if (retval != ERROR_OK)
-				return retval;
 			break;
 		default:
 			break;
@@ -1421,8 +1413,6 @@ static int gdb_error(struct connection *connection, int retval)
 
 /* We don't have to worry about the default 2 second timeout for GDB packets,
  * because GDB breaks up large memory reads into smaller reads.
- *
- * 8191 bytes by the looks of it. Why 8191 bytes instead of 8192?????
  */
 static int gdb_read_memory_packet(struct connection *connection,
 		char const *packet, int packet_size)
@@ -1656,7 +1646,7 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 	char *separator;
 	int retval;
 
-	LOG_DEBUG("[%d]", target->coreid);
+	LOG_DEBUG("[%s]", target_name(target));
 
 	type = strtoul(packet + 1, &separator, 16);
 
@@ -2629,7 +2619,7 @@ static int gdb_query_packet(struct connection *connection,
 			&pos,
 			&size,
 			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+;vContSupported+",
-			(GDB_BUFFER_SIZE - 1),
+			GDB_BUFFER_SIZE,
 			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-',
 			(gdb_target_desc_supported == 1) ? '+' : '-');
 
@@ -2821,13 +2811,11 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 				if (parse[0] == 'c') {
 					parse += 1;
-					packet_size -= 1;
 
 					/* check if thread-id follows */
 					if (parse[0] == ':') {
 						int64_t tid;
 						parse += 1;
-						packet_size -= 1;
 
 						tid = strtoll(parse, &endp, 16);
 						if (tid == thread_id) {
@@ -3146,7 +3134,7 @@ static void gdb_sig_halted(struct connection *connection)
 static int gdb_input_inner(struct connection *connection)
 {
 	/* Do not allocate this on the stack */
-	static char gdb_packet_buffer[GDB_BUFFER_SIZE];
+	static char gdb_packet_buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for nul-termination */
 
 	struct target *target;
 	char const *packet = gdb_packet_buffer;
@@ -3169,7 +3157,7 @@ static int gdb_input_inner(struct connection *connection)
 	 * drain the rest of the buffer.
 	 */
 	do {
-		packet_size = GDB_BUFFER_SIZE-1;
+		packet_size = GDB_BUFFER_SIZE;
 		retval = gdb_get_packet(connection, gdb_packet_buffer, &packet_size);
 		if (retval != ERROR_OK)
 			return retval;
@@ -3530,7 +3518,7 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (current_gdb_connection == NULL) {
-		command_print(CMD_CTX,
+		command_print(CMD,
 			"gdb_sync command can only be run from within gdb using \"monitor gdb_sync\"");
 		return ERROR_FAIL;
 	}
@@ -3735,6 +3723,7 @@ static const struct command_registration gdb_command_handlers[] = {
 		.handler = handle_gdb_save_tdesc_command,
 		.mode = COMMAND_EXEC,
 		.help = "Save the target description file",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

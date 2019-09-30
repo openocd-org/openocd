@@ -431,7 +431,7 @@ COMMAND_HANDLER(arm7a_l1_cache_info_cmd)
 	struct target *target = get_current_target(CMD_CTX);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
-	return armv7a_handle_cache_info_command(CMD_CTX,
+	return armv7a_handle_cache_info_command(CMD,
 			&armv7a->armv7a_mmu.armv7a_cache);
 }
 
@@ -513,7 +513,7 @@ COMMAND_HANDLER(arm7a_cache_disable_auto_cmd)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
 	if (CMD_ARGC == 0) {
-		command_print(CMD_CTX, "auto cache is %s",
+		command_print(CMD, "auto cache is %s",
 			armv7a->armv7a_mmu.armv7a_cache.auto_cache_enabled ? "enabled" : "disabled");
 		return ERROR_OK;
 	}

@@ -136,6 +136,83 @@ static int cortex_m_write_debug_halt_mask(struct target *target,
 	return mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DHCSR, cortex_m->dcb_dhcsr);
 }
 
+static int cortex_m_set_maskints(struct target *target, bool mask)
+{
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	if (!!(cortex_m->dcb_dhcsr & C_MASKINTS) != mask)
+		return cortex_m_write_debug_halt_mask(target, mask ? C_MASKINTS : 0, mask ? 0 : C_MASKINTS);
+	else
+		return ERROR_OK;
+}
+
+static int cortex_m_set_maskints_for_halt(struct target *target)
+{
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	switch (cortex_m->isrmasking_mode) {
+		case CORTEX_M_ISRMASK_AUTO:
+			/* interrupts taken at resume, whether for step or run -> no mask */
+			return cortex_m_set_maskints(target, false);
+
+		case CORTEX_M_ISRMASK_OFF:
+			/* interrupts never masked */
+			return cortex_m_set_maskints(target, false);
+
+		case CORTEX_M_ISRMASK_ON:
+			/* interrupts always masked */
+			return cortex_m_set_maskints(target, true);
+
+		case CORTEX_M_ISRMASK_STEPONLY:
+			/* interrupts masked for single step only -> mask now if MASKINTS
+			 * erratum, otherwise only mask before stepping */
+			return cortex_m_set_maskints(target, cortex_m->maskints_erratum);
+	}
+	return ERROR_OK;
+}
+
+static int cortex_m_set_maskints_for_run(struct target *target)
+{
+	switch (target_to_cm(target)->isrmasking_mode) {
+		case CORTEX_M_ISRMASK_AUTO:
+			/* interrupts taken at resume, whether for step or run -> no mask */
+			return cortex_m_set_maskints(target, false);
+
+		case CORTEX_M_ISRMASK_OFF:
+			/* interrupts never masked */
+			return cortex_m_set_maskints(target, false);
+
+		case CORTEX_M_ISRMASK_ON:
+			/* interrupts always masked */
+			return cortex_m_set_maskints(target, true);
+
+		case CORTEX_M_ISRMASK_STEPONLY:
+			/* interrupts masked for single step only -> no mask */
+			return cortex_m_set_maskints(target, false);
+	}
+	return ERROR_OK;
+}
+
+static int cortex_m_set_maskints_for_step(struct target *target)
+{
+	switch (target_to_cm(target)->isrmasking_mode) {
+		case CORTEX_M_ISRMASK_AUTO:
+			/* the auto-interrupt should already be done -> mask */
+			return cortex_m_set_maskints(target, true);
+
+		case CORTEX_M_ISRMASK_OFF:
+			/* interrupts never masked */
+			return cortex_m_set_maskints(target, false);
+
+		case CORTEX_M_ISRMASK_ON:
+			/* interrupts always masked */
+			return cortex_m_set_maskints(target, true);
+
+		case CORTEX_M_ISRMASK_STEPONLY:
+			/* interrupts masked for single step only -> mask */
+			return cortex_m_set_maskints(target, true);
+	}
+	return ERROR_OK;
+}
+
 static int cortex_m_clear_halt(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
@@ -237,11 +314,8 @@ static int cortex_m_endreset_event(struct target *target)
 			return retval;
 	}
 
-	/* Restore proper interrupt masking setting. */
-	if (cortex_m->isrmasking_mode == CORTEX_M_ISRMASK_ON)
-		cortex_m_write_debug_halt_mask(target, C_MASKINTS, 0);
-	else
-		cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
+	/* Restore proper interrupt masking setting for running CPU. */
+	cortex_m_set_maskints_for_run(target);
 
 	/* Enable features controlled by ITM and DWT blocks, and catch only
 	 * the vectors we were told to pay attention to.
@@ -318,7 +392,9 @@ static int cortex_m_examine_debug_reason(struct target *target)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 		else if (cortex_m->nvic_dfsr & DFSR_VCATCH)
 			target->debug_reason = DBG_REASON_BREAKPOINT;
-		else	/* EXTERNAL, HALTED */
+		else if (cortex_m->nvic_dfsr & DFSR_EXTERNAL)
+			target->debug_reason = DBG_REASON_DBGRQ;
+		else	/* HALTED */
 			target->debug_reason = DBG_REASON_UNDEFINED;
 	}
 
@@ -404,6 +480,10 @@ static int cortex_m_debug_entry(struct target *target)
 	struct reg *r;
 
 	LOG_DEBUG(" ");
+
+	/* Do this really early to minimize the window where the MASKINTS erratum
+	 * can pile up pending interrupts. */
+	cortex_m_set_maskints_for_halt(target);
 
 	cortex_m_clear_halt(target);
 	retval = mem_ap_read_atomic_u32(armv7m->debug_ap, DCB_DHCSR, &cortex_m->dcb_dhcsr);
@@ -614,6 +694,10 @@ static int cortex_m_halt(struct target *target)
 	/* Write to Debug Halting Control and Status Register */
 	cortex_m_write_debug_halt_mask(target, C_HALT, 0);
 
+	/* Do this really early to minimize the window where the MASKINTS erratum
+	 * can pile up pending interrupts. */
+	cortex_m_set_maskints_for_halt(target);
+
 	target->debug_reason = DBG_REASON_DBGRQ;
 
 	return ERROR_OK;
@@ -631,6 +715,11 @@ static int cortex_m_soft_reset_halt(struct target *target)
 	 * As this reset only used VC_CORERESET it would only ever reset the cortex_m
 	 * core, not the peripherals */
 	LOG_WARNING("soft_reset_halt is deprecated, please use 'reset halt' instead.");
+
+	/* Set C_DEBUGEN */
+	retval = cortex_m_write_debug_halt_mask(target, 0, C_STEP | C_MASKINTS);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* Enter debug state on reset; restore DEMCR in endreset_event() */
 	retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DEMCR,
@@ -767,6 +856,7 @@ static int cortex_m_resume(struct target *target, int current,
 	}
 
 	/* Restart core */
+	cortex_m_set_maskints_for_run(target);
 	cortex_m_write_debug_halt_mask(target, 0, C_HALT);
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
@@ -829,10 +919,12 @@ static int cortex_m_step(struct target *target, int current,
 	 * a normal step, otherwise we have to manually step over the bkpt
 	 * instruction - as such simulate a step */
 	if (bkpt_inst_found == false) {
-		/* Automatic ISR masking mode off: Just step over the next instruction */
-		if ((cortex_m->isrmasking_mode != CORTEX_M_ISRMASK_AUTO))
+		if ((cortex_m->isrmasking_mode != CORTEX_M_ISRMASK_AUTO)) {
+			/* Automatic ISR masking mode off: Just step over the next
+			 * instruction, with interrupts on or off as appropriate. */
+			cortex_m_set_maskints_for_step(target);
 			cortex_m_write_debug_halt_mask(target, C_STEP, C_HALT);
-		else {
+		} else {
 			/* Process interrupts during stepping in a way they don't interfere
 			 * debugging.
 			 *
@@ -871,8 +963,9 @@ static int cortex_m_step(struct target *target, int current,
 				LOG_DEBUG("Stepping over next instruction with interrupts disabled");
 				cortex_m_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
 				cortex_m_write_debug_halt_mask(target, C_STEP, C_HALT);
-				/* Re-enable interrupts */
-				cortex_m_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+				/* Re-enable interrupts if appropriate */
+				cortex_m_write_debug_halt_mask(target, C_HALT, 0);
+				cortex_m_set_maskints_for_halt(target);
 			}
 			else {
 
@@ -891,12 +984,17 @@ static int cortex_m_step(struct target *target, int current,
 				bool tmp_bp_set = (retval == ERROR_OK);
 
 				/* No more breakpoints left, just do a step */
-				if (!tmp_bp_set)
+				if (!tmp_bp_set) {
+					cortex_m_set_maskints_for_step(target);
 					cortex_m_write_debug_halt_mask(target, C_STEP, C_HALT);
-				else {
+					/* Re-enable interrupts if appropriate */
+					cortex_m_write_debug_halt_mask(target, C_HALT, 0);
+					cortex_m_set_maskints_for_halt(target);
+				} else {
 					/* Start the core */
 					LOG_DEBUG("Starting core to serve pending interrupts");
 					int64_t t_start = timeval_ms();
+					cortex_m_set_maskints_for_run(target);
 					cortex_m_write_debug_halt_mask(target, 0, C_HALT | C_STEP);
 
 					/* Wait for pending handlers to complete or timeout */
@@ -924,12 +1022,14 @@ static int cortex_m_step(struct target *target, int current,
 							"leaving target running");
 					} else {
 						/* Step over next instruction with interrupts disabled */
+						cortex_m_set_maskints_for_step(target);
 						cortex_m_write_debug_halt_mask(target,
 							C_HALT | C_MASKINTS,
 							0);
 						cortex_m_write_debug_halt_mask(target, C_STEP, C_HALT);
-						/* Re-enable interrupts */
-						cortex_m_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+						/* Re-enable interrupts if appropriate */
+						cortex_m_write_debug_halt_mask(target, C_HALT, 0);
+						cortex_m_set_maskints_for_halt(target);
 					}
 				}
 			}
@@ -1031,8 +1131,7 @@ static int cortex_m_assert_reset(struct target *target)
 
 	if (!target->reset_halt) {
 		/* Set/Clear C_MASKINTS in a separate operation */
-		if (cortex_m->dcb_dhcsr & C_MASKINTS)
-			cortex_m_write_debug_halt_mask(target, 0, C_MASKINTS);
+		cortex_m_set_maskints_for_run(target);
 
 		/* clear any debug flags before resuming */
 		cortex_m_clear_halt(target);
@@ -1104,7 +1203,7 @@ static int cortex_m_assert_reset(struct target *target)
 	}
 
 	target->state = TARGET_RESET;
-	jtag_add_sleep(50000);
+	jtag_sleep(50000);
 
 	register_cache_invalidate(cortex_m->armv7m.arm.core_cache);
 
@@ -1297,17 +1396,7 @@ int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int dwt_num = 0;
-	uint32_t mask, temp;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-
-	/* watchpoint params were validated earlier */
-	mask = 0;
-	temp = watchpoint->length;
-	while (temp) {
-		temp >>= 1;
-		mask++;
-	}
-	mask--;
 
 	/* REVISIT Don't fully trust these "not used" records ... users
 	 * may set up breakpoints by hand, e.g. dual-address data value
@@ -1331,11 +1420,22 @@ int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 	target_write_u32(target, comparator->dwt_comparator_address + 0,
 		comparator->comp);
 
-	comparator->mask = mask;
-	target_write_u32(target, comparator->dwt_comparator_address + 4,
-		comparator->mask);
+	if ((cortex_m->dwt_devarch & 0x1FFFFF) != DWT_DEVARCH_ARMV8M) {
+		uint32_t mask = 0, temp;
 
-	switch (watchpoint->rw) {
+		/* watchpoint params were validated earlier */
+		temp = watchpoint->length;
+		while (temp) {
+			temp >>= 1;
+			mask++;
+		}
+		mask--;
+
+		comparator->mask = mask;
+		target_write_u32(target, comparator->dwt_comparator_address + 4,
+			comparator->mask);
+
+		switch (watchpoint->rw) {
 		case WPT_READ:
 			comparator->function = 5;
 			break;
@@ -1345,7 +1445,26 @@ int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 		case WPT_ACCESS:
 			comparator->function = 7;
 			break;
+		}
+	} else {
+		uint32_t data_size = watchpoint->length >> 1;
+		comparator->mask = (watchpoint->length >> 1) | 1;
+
+		switch (watchpoint->rw) {
+		case WPT_ACCESS:
+			comparator->function = 4;
+			break;
+		case WPT_WRITE:
+			comparator->function = 5;
+			break;
+		case WPT_READ:
+			comparator->function = 6;
+			break;
+		}
+		comparator->function = comparator->function | (1 << 4) |
+				(data_size << 10);
 	}
+
 	target_write_u32(target, comparator->dwt_comparator_address + 8,
 		comparator->function);
 
@@ -1888,6 +2007,9 @@ void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target)
 		return;
 	}
 
+	target_read_u32(target, DWT_DEVARCH, &cm->dwt_devarch);
+	LOG_DEBUG("DWT_DEVARCH: 0x%" PRIx32, cm->dwt_devarch);
+
 	cm->dwt_num_comp = (dwtcr >> 28) & 0xF;
 	cm->dwt_comp_available = cm->dwt_num_comp;
 	cm->dwt_comparator_list = calloc(cm->dwt_num_comp,
@@ -1976,6 +2098,15 @@ static void cortex_m_dwt_free(struct target *target)
 #define MVFR1_DEFAULT_M7_SP 0x11000011
 #define MVFR1_DEFAULT_M7_DP 0x12000011
 
+static int cortex_m_find_mem_ap(struct adiv5_dap *swjdp,
+		struct adiv5_ap **debug_ap)
+{
+	if (dap_find_ap(swjdp, AP_TYPE_AHB3_AP, debug_ap) == ERROR_OK)
+		return ERROR_OK;
+
+	return dap_find_ap(swjdp, AP_TYPE_AHB5_AP, debug_ap);
+}
+
 int cortex_m_examine(struct target *target)
 {
 	int retval;
@@ -1990,7 +2121,7 @@ int cortex_m_examine(struct target *target)
 	if (!armv7m->stlink) {
 		if (cortex_m->apsel == DP_APSEL_INVALID) {
 			/* Search for the MEM-AP */
-			retval = dap_find_ap(swjdp, AP_TYPE_AHB_AP, &armv7m->debug_ap);
+			retval = cortex_m_find_mem_ap(swjdp, &armv7m->debug_ap);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Could not find MEM-AP to control the core");
 				return retval;
@@ -2018,14 +2149,31 @@ int cortex_m_examine(struct target *target)
 		/* Get CPU Type */
 		i = (cpuid >> 4) & 0xf;
 
+		switch (cpuid & ARM_CPUID_PARTNO_MASK) {
+			case CORTEX_M23_PARTNO:
+				i = 23;
+				break;
+
+			case CORTEX_M33_PARTNO:
+				i = 33;
+				break;
+
+			default:
+				break;
+		}
+
+
 		LOG_DEBUG("Cortex-M%d r%" PRId8 "p%" PRId8 " processor detected",
 				i, (uint8_t)((cpuid >> 20) & 0xf), (uint8_t)((cpuid >> 0) & 0xf));
+		cortex_m->maskints_erratum = false;
 		if (i == 7) {
 			uint8_t rev, patch;
 			rev = (cpuid >> 20) & 0xf;
 			patch = (cpuid >> 0) & 0xf;
-			if ((rev == 0) && (patch < 2))
-				LOG_WARNING("Silicon bug: single stepping will enter pending exception handler!");
+			if ((rev == 0) && (patch < 2)) {
+				LOG_WARNING("Silicon bug: single stepping may enter pending exception handler!");
+				cortex_m->maskints_erratum = true;
+			}
 		}
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
@@ -2041,7 +2189,7 @@ int cortex_m_examine(struct target *target)
 				LOG_DEBUG("Cortex-M%d floating point feature FPv4_SP found", i);
 				armv7m->fp_feature = FPv4_SP;
 			}
-		} else if (i == 7) {
+		} else if (i == 7 || i == 33) {
 			target_read_u32(target, MVFR0, &mvfr0);
 			target_read_u32(target, MVFR1, &mvfr1);
 
@@ -2271,11 +2419,11 @@ static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 
 /*--------------------------------------------------------------------------*/
 
-static int cortex_m_verify_pointer(struct command_context *cmd_ctx,
+static int cortex_m_verify_pointer(struct command_invocation *cmd,
 	struct cortex_m_common *cm)
 {
 	if (cm->common_magic != CORTEX_M_COMMON_MAGIC) {
-		command_print(cmd_ctx, "target is not a Cortex-M");
+		command_print(cmd, "target is not a Cortex-M");
 		return ERROR_TARGET_INVALID;
 	}
 	return ERROR_OK;
@@ -2309,7 +2457,7 @@ COMMAND_HANDLER(handle_cortex_m_vector_catch_command)
 		{ "reset",      VC_CORERESET, },
 	};
 
-	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
+	retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2364,7 +2512,7 @@ write:
 	}
 
 	for (unsigned i = 0; i < ARRAY_SIZE(vec_ids); i++) {
-		command_print(CMD_CTX, "%9s: %s", vec_ids[i].name,
+		command_print(CMD, "%9s: %s", vec_ids[i].name,
 			(demcr & vec_ids[i].mask) ? "catch" : "ignore");
 	}
 
@@ -2381,17 +2529,18 @@ COMMAND_HANDLER(handle_cortex_m_mask_interrupts_command)
 		{ .name = "auto", .value = CORTEX_M_ISRMASK_AUTO },
 		{ .name = "off", .value = CORTEX_M_ISRMASK_OFF },
 		{ .name = "on", .value = CORTEX_M_ISRMASK_ON },
+		{ .name = "steponly", .value = CORTEX_M_ISRMASK_STEPONLY },
 		{ .name = NULL, .value = -1 },
 	};
 	const Jim_Nvp *n;
 
 
-	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
+	retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD_CTX, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_OK;
 	}
 
@@ -2400,16 +2549,11 @@ COMMAND_HANDLER(handle_cortex_m_mask_interrupts_command)
 		if (n->name == NULL)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		cortex_m->isrmasking_mode = n->value;
-
-
-		if (cortex_m->isrmasking_mode == CORTEX_M_ISRMASK_ON)
-			cortex_m_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
-		else
-			cortex_m_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+		cortex_m_set_maskints_for_halt(target);
 	}
 
 	n = Jim_Nvp_value2name_simple(nvp_maskisr_modes, cortex_m->isrmasking_mode);
-	command_print(CMD_CTX, "cortex_m interrupt mask %s", n->name);
+	command_print(CMD, "cortex_m interrupt mask %s", n->name);
 
 	return ERROR_OK;
 }
@@ -2421,7 +2565,7 @@ COMMAND_HANDLER(handle_cortex_m_reset_config_command)
 	int retval;
 	char *reset_config;
 
-	retval = cortex_m_verify_pointer(CMD_CTX, cortex_m);
+	retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2454,7 +2598,7 @@ COMMAND_HANDLER(handle_cortex_m_reset_config_command)
 			break;
 	}
 
-	command_print(CMD_CTX, "cortex_m reset_config %s", reset_config);
+	command_print(CMD, "cortex_m reset_config %s", reset_config);
 
 	return ERROR_OK;
 }
@@ -2465,7 +2609,7 @@ static const struct command_registration cortex_m_exec_command_handlers[] = {
 		.handler = handle_cortex_m_mask_interrupts_command,
 		.mode = COMMAND_EXEC,
 		.help = "mask cortex_m interrupts",
-		.usage = "['auto'|'on'|'off']",
+		.usage = "['auto'|'on'|'off'|'steponly']",
 	},
 	{
 		.name = "vector_catch",

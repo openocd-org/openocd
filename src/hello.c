@@ -89,7 +89,7 @@ COMMAND_HANDLER(handle_hello_command)
 	const char *sep, *name;
 	int retval = CALL_COMMAND_HANDLER(handle_hello_args, &sep, &name);
 	if (ERROR_OK == retval)
-		command_print(CMD_CTX, "Greetings%s%s!", sep, name);
+		command_print(CMD, "Greetings%s%s!", sep, name);
 	return retval;
 }
 
@@ -105,8 +105,8 @@ const struct command_registration hello_command_handlers[] = {
 		.name = "foo",
 		.mode = COMMAND_ANY,
 		.help = "example command handler skeleton",
-
 		.chain = foo_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

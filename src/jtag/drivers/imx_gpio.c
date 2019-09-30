@@ -221,7 +221,7 @@ COMMAND_HANDLER(imx_gpio_handle_jtag_gpionums)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"imx_gpio GPIO config: tck = %d, tms = %d, tdi = %d, tdo = %d",
 			tck_gpio, tms_gpio, tdi_gpio, tdo_gpio);
 
@@ -233,7 +233,7 @@ COMMAND_HANDLER(imx_gpio_handle_jtag_gpionum_tck)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tck_gpio);
 
-	command_print(CMD_CTX, "imx_gpio GPIO config: tck = %d", tck_gpio);
+	command_print(CMD, "imx_gpio GPIO config: tck = %d", tck_gpio);
 	return ERROR_OK;
 }
 
@@ -242,7 +242,7 @@ COMMAND_HANDLER(imx_gpio_handle_jtag_gpionum_tms)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tms_gpio);
 
-	command_print(CMD_CTX, "imx_gpio GPIO config: tms = %d", tms_gpio);
+	command_print(CMD, "imx_gpio GPIO config: tms = %d", tms_gpio);
 	return ERROR_OK;
 }
 
@@ -251,7 +251,7 @@ COMMAND_HANDLER(imx_gpio_handle_jtag_gpionum_tdo)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tdo_gpio);
 
-	command_print(CMD_CTX, "imx_gpio GPIO config: tdo = %d", tdo_gpio);
+	command_print(CMD, "imx_gpio GPIO config: tdo = %d", tdo_gpio);
 	return ERROR_OK;
 }
 
@@ -260,7 +260,7 @@ COMMAND_HANDLER(imx_gpio_handle_jtag_gpionum_tdi)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tdi_gpio);
 
-	command_print(CMD_CTX, "imx_gpio GPIO config: tdi = %d", tdi_gpio);
+	command_print(CMD, "imx_gpio GPIO config: tdi = %d", tdi_gpio);
 	return ERROR_OK;
 }
 
@@ -269,7 +269,7 @@ COMMAND_HANDLER(imx_gpio_handle_jtag_gpionum_srst)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], srst_gpio);
 
-	command_print(CMD_CTX, "imx_gpio GPIO config: srst = %d", srst_gpio);
+	command_print(CMD, "imx_gpio GPIO config: srst = %d", srst_gpio);
 	return ERROR_OK;
 }
 
@@ -278,7 +278,7 @@ COMMAND_HANDLER(imx_gpio_handle_jtag_gpionum_trst)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], trst_gpio);
 
-	command_print(CMD_CTX, "imx_gpio GPIO config: trst = %d", trst_gpio);
+	command_print(CMD, "imx_gpio GPIO config: trst = %d", trst_gpio);
 	return ERROR_OK;
 }
 
@@ -291,7 +291,7 @@ COMMAND_HANDLER(imx_gpio_handle_swd_gpionums)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(CMD_CTX,
+	command_print(CMD,
 			"imx_gpio GPIO nums: swclk = %d, swdio = %d",
 			swclk_gpio, swdio_gpio);
 
@@ -303,7 +303,7 @@ COMMAND_HANDLER(imx_gpio_handle_swd_gpionum_swclk)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swclk_gpio);
 
-	command_print(CMD_CTX, "imx_gpio num: swclk = %d", swclk_gpio);
+	command_print(CMD, "imx_gpio num: swclk = %d", swclk_gpio);
 	return ERROR_OK;
 }
 
@@ -312,7 +312,7 @@ COMMAND_HANDLER(imx_gpio_handle_swd_gpionum_swdio)
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swdio_gpio);
 
-	command_print(CMD_CTX, "imx_gpio num: swdio = %d", swdio_gpio);
+	command_print(CMD, "imx_gpio num: swdio = %d", swdio_gpio);
 	return ERROR_OK;
 }
 
@@ -322,6 +322,9 @@ COMMAND_HANDLER(imx_gpio_handle_speed_coeffs)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], speed_coeff);
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], speed_offset);
 	}
+
+	command_print(CMD, "imx_gpio: speed_coeffs = %d, speed_offset = %d",
+				  speed_coeff, speed_offset);
 	return ERROR_OK;
 }
 
@@ -329,6 +332,9 @@ COMMAND_HANDLER(imx_gpio_handle_peripheral_base)
 {
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], imx_gpio_peri_base);
+
+	command_print(CMD, "imx_gpio: peripheral_base = 0x%08x",
+				  imx_gpio_peri_base);
 	return ERROR_OK;
 }
 
@@ -338,74 +344,84 @@ static const struct command_registration imx_gpio_command_handlers[] = {
 		.handler = &imx_gpio_handle_jtag_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
-		.usage = "(tck tms tdi tdo)* ",
+		.usage = "[tck tms tdi tdo]",
 	},
 	{
 		.name = "imx_gpio_tck_num",
 		.handler = &imx_gpio_handle_jtag_gpionum_tck,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tck.",
+		.usage = "[tck]",
 	},
 	{
 		.name = "imx_gpio_tms_num",
 		.handler = &imx_gpio_handle_jtag_gpionum_tms,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tms.",
+		.usage = "[tms]",
 	},
 	{
 		.name = "imx_gpio_tdo_num",
 		.handler = &imx_gpio_handle_jtag_gpionum_tdo,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdo.",
+		.usage = "[tdo]",
 	},
 	{
 		.name = "imx_gpio_tdi_num",
 		.handler = &imx_gpio_handle_jtag_gpionum_tdi,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdi.",
+		.usage = "[tdi]",
 	},
 	{
 		.name = "imx_gpio_swd_nums",
 		.handler = &imx_gpio_handle_swd_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for swclk, swdio. (in that order)",
-		.usage = "(swclk swdio)* ",
+		.usage = "[swclk swdio]",
 	},
 	{
 		.name = "imx_gpio_swclk_num",
 		.handler = &imx_gpio_handle_swd_gpionum_swclk,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swclk.",
+		.usage = "[swclk]",
 	},
 	{
 		.name = "imx_gpio_swdio_num",
 		.handler = &imx_gpio_handle_swd_gpionum_swdio,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swdio.",
+		.usage = "[swdio]",
 	},
 	{
 		.name = "imx_gpio_srst_num",
 		.handler = &imx_gpio_handle_jtag_gpionum_srst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for srst.",
+		.usage = "[srst]",
 	},
 	{
 		.name = "imx_gpio_trst_num",
 		.handler = &imx_gpio_handle_jtag_gpionum_trst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for trst.",
+		.usage = "[trst]",
 	},
 	{
 		.name = "imx_gpio_speed_coeffs",
 		.handler = &imx_gpio_handle_speed_coeffs,
 		.mode = COMMAND_CONFIG,
 		.help = "SPEED_COEFF and SPEED_OFFSET for delay calculations.",
+		.usage = "[SPEED_COEFF SPEED_OFFSET]",
 	},
 	{
 		.name = "imx_gpio_peripheral_base",
 		.handler = &imx_gpio_handle_peripheral_base,
 		.mode = COMMAND_CONFIG,
 		.help = "peripheral base to access GPIOs (0x0209c000 for most IMX).",
+		.usage = "[base]",
 	},
 
 	COMMAND_REGISTRATION_DONE

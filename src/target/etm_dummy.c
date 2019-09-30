@@ -37,7 +37,7 @@ COMMAND_HANDLER(handle_etm_dummy_config_command)
 
 	arm = target_to_arm(target);
 	if (!is_arm(arm)) {
-		command_print(CMD_CTX, "target '%s' isn't an ARM", CMD_ARGV[0]);
+		command_print(CMD, "target '%s' isn't an ARM", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -66,6 +66,7 @@ static const struct command_registration etm_dummy_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "Dummy ETM capture driver command group",
 		.chain = etm_dummy_config_command_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

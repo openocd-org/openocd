@@ -746,7 +746,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 
 	idcode = buf_get_u32(buffer, 0, 32);
 
-	command_print(CMD_CTX, "str9xpec part id: 0x%8.8" PRIx32 "", idcode);
+	command_print(CMD, "str9xpec part id: 0x%8.8" PRIx32 "", idcode);
 
 	free(buffer);
 
@@ -780,33 +780,33 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 
 	/* boot bank */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_CSMAPBIT, 1))
-		command_print(CMD_CTX, "CS Map: bank1");
+		command_print(CMD, "CS Map: bank1");
 	else
-		command_print(CMD_CTX, "CS Map: bank0");
+		command_print(CMD, "CS Map: bank0");
 
 	/* OTP lock */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_OTPBIT, 1))
-		command_print(CMD_CTX, "OTP Lock: OTP Locked");
+		command_print(CMD, "OTP Lock: OTP Locked");
 	else
-		command_print(CMD_CTX, "OTP Lock: OTP Unlocked");
+		command_print(CMD, "OTP Lock: OTP Unlocked");
 
 	/* LVD Threshold */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_LVDTHRESBIT, 1))
-		command_print(CMD_CTX, "LVD Threshold: 2.7v");
+		command_print(CMD, "LVD Threshold: 2.7v");
 	else
-		command_print(CMD_CTX, "LVD Threshold: 2.4v");
+		command_print(CMD, "LVD Threshold: 2.4v");
 
 	/* LVD reset warning */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_LVDWARNBIT, 1))
-		command_print(CMD_CTX, "LVD Reset Warning: VDD or VDDQ Inputs");
+		command_print(CMD, "LVD Reset Warning: VDD or VDDQ Inputs");
 	else
-		command_print(CMD_CTX, "LVD Reset Warning: VDD Input Only");
+		command_print(CMD, "LVD Reset Warning: VDD Input Only");
 
 	/* LVD reset select */
 	if (buf_get_u32(str9xpec_info->options, STR9XPEC_OPT_LVDSELBIT, 1))
-		command_print(CMD_CTX, "LVD Reset Selection: VDD or VDDQ Inputs");
+		command_print(CMD, "LVD Reset Selection: VDD or VDDQ Inputs");
 	else
-		command_print(CMD_CTX, "LVD Reset Selection: VDD Input Only");
+		command_print(CMD, "LVD Reset Selection: VDD Input Only");
 
 	return ERROR_OK;
 }
@@ -885,7 +885,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 	if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 		return ERROR_FLASH_OPERATION_FAILED;
 
-	command_print(CMD_CTX, "str9xpec write options complete.\n"
+	command_print(CMD, "str9xpec write options complete.\n"
 			"INFO: a reset or power cycle is required "
 			"for the new settings to take effect.");
 
@@ -1017,7 +1017,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 	if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 		return ERROR_FLASH_OPERATION_FAILED;
 
-	command_print(CMD_CTX, "str9xpec unlocked.\n"
+	command_print(CMD, "str9xpec unlocked.\n"
 			"INFO: a reset or power cycle is required "
 			"for the new settings to take effect.");
 
@@ -1045,19 +1045,19 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 	tap0 = str9xpec_info->tap;
 	if (tap0 == NULL) {
 		/* things are *WRONG* */
-		command_print(CMD_CTX, "**STR9FLASH** (tap0) invalid chain?");
+		command_print(CMD, "**STR9FLASH** (tap0) invalid chain?");
 		return ERROR_FAIL;
 	}
 	tap1 = tap0->next_tap;
 	if (tap1 == NULL) {
 		/* things are *WRONG* */
-		command_print(CMD_CTX, "**STR9FLASH** (tap1) invalid chain?");
+		command_print(CMD, "**STR9FLASH** (tap1) invalid chain?");
 		return ERROR_FAIL;
 	}
 	tap2 = tap1->next_tap;
 	if (tap2 == NULL) {
 		/* things are *WRONG* */
-		command_print(CMD_CTX, "**STR9FLASH** (tap2) invalid chain?");
+		command_print(CMD, "**STR9FLASH** (tap2) invalid chain?");
 		return ERROR_FAIL;
 	}
 
@@ -1177,9 +1177,10 @@ static const struct command_registration str9xpec_config_command_handlers[] = {
 	},
 	{
 		.name = "part_id",
+		.usage = "<bank>",
 		.handler = str9xpec_handle_part_id_command,
 		.mode = COMMAND_EXEC,
-		.help = "print part id of str9xpec flash bank <num>",
+		.help = "print part id of str9xpec flash bank",
 	},
 	COMMAND_REGISTRATION_DONE
 };

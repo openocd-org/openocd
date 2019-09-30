@@ -55,6 +55,7 @@ struct jtag_interface ep93xx_interface = {
 
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
+	.transports = jtag_only,
 
 	.init = ep93xx_init,
 	.quit = ep93xx_quit,
