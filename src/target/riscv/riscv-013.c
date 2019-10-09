@@ -4151,7 +4151,11 @@ void riscv013_clear_abstract_error(struct target *target)
 
 int riscv013_test_compliance(struct target *target)
 {
-	LOG_INFO("Testing Compliance against RISC-V Debug Spec v0.13");
+	LOG_INFO("Basic compliance test against RISC-V Debug Spec v0.13");
+	LOG_INFO("This test is not complete, and not well supported.");
+	LOG_INFO("Your core might pass this test without being compliant.");
+	LOG_INFO("Your core might fail this test while being compliant.");
+	LOG_INFO("Use your judgment, and please contribute improvements.");
 
 	if (!riscv_rtos_enabled(target)) {
 		LOG_ERROR("Please run with -rtos riscv to run compliance test.");
