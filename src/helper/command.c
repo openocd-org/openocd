@@ -126,13 +126,12 @@ extern struct command_context *global_cmd_ctx;
 
 /* dump a single line to the log for the command.
  * Do nothing in case we are not at debug level 3 */
-void script_debug(Jim_Interp *interp, const char *name,
-	unsigned argc, Jim_Obj * const *argv)
+void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const *argv)
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
 
-	char *dbg = alloc_printf("command - %s", name);
+	char *dbg = alloc_printf("command -");
 	for (unsigned i = 0; i < argc; i++) {
 		int len;
 		const char *w = Jim_GetString(argv[i], &len);
@@ -213,7 +212,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	struct command *c = interp->cmdPrivData;
 	assert(c);
-	script_debug(interp, c->name, argc, argv);
+	script_debug(interp, argc, argv);
 	return script_command_run(interp, argc, argv, c);
 }
 
@@ -1032,8 +1031,7 @@ static int run_usage(Jim_Interp *interp, int argc_valid, int argc, Jim_Obj * con
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
-	script_debug(interp, cmd_name, argc, argv);
+	script_debug(interp, argc, argv);
 
 	struct command_context *cmd_ctx = current_command_context(interp);
 	struct command *c = cmd_ctx->commands;

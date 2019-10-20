@@ -448,7 +448,6 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label);
 #define COMMAND_PARSE_ENABLE(in, out) \
 	COMMAND_PARSE_BOOL(in, out, "enable", "disable")
 
-void script_debug(Jim_Interp *interp, const char *cmd,
-		  unsigned argc, Jim_Obj * const *argv);
+void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const *argv);
 
 #endif /* OPENOCD_HELPER_COMMAND_H */
