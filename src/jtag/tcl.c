@@ -108,7 +108,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 	endstate = TAP_IDLE;
 
-	script_debug(interp, "drscan", argc, args);
+	script_debug(interp, argc, args);
 
 	/* validate arguments as numbers */
 	e = JIM_OK;
@@ -229,7 +229,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 		return JIM_ERR;
 	}
 
-	script_debug(interp, "pathmove", argc, args);
+	script_debug(interp, argc, args);
 
 	int i;
 	for (i = 0; i < argc-1; i++) {
@@ -261,7 +261,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 
 static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 {
-	script_debug(interp, "flush_count", argc, args);
+	script_debug(interp, argc, args);
 
 	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_get_flush_queue_count()));
 
