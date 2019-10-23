@@ -3431,6 +3431,8 @@ int riscv_init_registers(struct target *target)
 						riscv_supports_extension(target, hartid, 'N');
 					break;
 
+				case CSR_PMPCFG1:
+				case CSR_PMPCFG3:
 				case CSR_CYCLEH:
 				case CSR_TIMEH:
 				case CSR_INSTRETH:
