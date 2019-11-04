@@ -1261,8 +1261,8 @@ static int register_write_direct(struct target *target, unsigned number,
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
 
-	LOG_DEBUG("{%d} reg[0x%x] <- 0x%" PRIx64, riscv_current_hartid(target),
-			number, value);
+	LOG_DEBUG("{%d} %s <- 0x%" PRIx64, riscv_current_hartid(target),
+			gdb_regno_name(number), value);
 
 	int result = register_write_abstract(target, number, value,
 			register_size(target, number));
@@ -1449,8 +1449,8 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	}
 
 	if (result == ERROR_OK) {
-		LOG_DEBUG("{%d} reg[0x%x] = 0x%" PRIx64, riscv_current_hartid(target),
-				number, *value);
+		LOG_DEBUG("{%d} %s = 0x%" PRIx64, riscv_current_hartid(target),
+				gdb_regno_name(number), *value);
 	}
 
 	return result;
@@ -1949,25 +1949,32 @@ static int deassert_reset(struct target *target)
 /**
  * @par size in bytes
  */
-static void read_from_buf(uint64_t *value, const uint8_t *buffer, unsigned size)
+static uint64_t read_from_buf(const uint8_t *buffer, unsigned size)
 {
 	switch (size) {
 		case 1:
-			*value = buffer[0];
-			break;
+			return buffer[0];
 		case 2:
-			*value = buffer[0]
+			return buffer[0]
 				| ((uint64_t) buffer[1] << 8);
-			break;
 		case 4:
-			*value = buffer[0]
+			return buffer[0]
 				| ((uint64_t) buffer[1] << 8)
 				| ((uint64_t) buffer[2] << 16)
 				| ((uint64_t) buffer[3] << 24);
-			break;
+		case 8:
+			return buffer[0]
+				| ((uint64_t) buffer[1] << 8)
+				| ((uint64_t) buffer[2] << 16)
+				| ((uint64_t) buffer[3] << 24)
+				| ((uint64_t) buffer[4] << 32)
+				| ((uint64_t) buffer[5] << 40)
+				| ((uint64_t) buffer[6] << 48)
+				| ((uint64_t) buffer[7] << 56);
 		default:
 			assert(false);
 	}
+	return -1;
 }
 
 /**
@@ -2042,7 +2049,21 @@ static void log_memory_access(target_addr_t address, uint64_t value,
 	char fmt[80];
 	sprintf(fmt, "M[0x%" TARGET_PRIxADDR "] %ss 0x%%0%d" PRIx64,
 			address, read ? "read" : "write", size_bytes * 2);
-	value &= (((uint64_t) 0x1) << (size_bytes * 8)) - 1;
+	switch (size_bytes) {
+		case 1:
+			value &= 0xff;
+			break;
+		case 2:
+			value &= 0xffff;
+			break;
+		case 4:
+			value &= 0xffffffff;
+			break;
+		case 8:
+			break;
+		default:
+			assert(false);
+	}
 	LOG_DEBUG(fmt, value);
 }
 
@@ -2446,8 +2467,7 @@ static int write_memory_abstract(struct target *target, target_addr_t address,
 	bool updateaddr = true;
 	for (uint32_t c = 0; c < count; c++) {
 		/* Move data to arg0 */
-		riscv_reg_t value = 0;
-		read_from_buf(&value, p, size);
+		riscv_reg_t value = read_from_buf(p, size);
 		result = write_abstract_arg(target, 0, value, riscv_xlen(target));
 		if (result != ERROR_OK) {
 			LOG_ERROR("Failed to write arg0 during write_memory_abstract().");
@@ -2542,6 +2562,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 		size_t reads = 0;
 		for (riscv_addr_t addr = read_addr; addr < fin_addr; addr += size) {
+			if (size > 4)
+				riscv_batch_add_dmi_read(batch, DMI_DATA1);
 			riscv_batch_add_dmi_read(batch, DMI_DATA0);
 
 			reads++;
@@ -2577,11 +2599,15 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 				dmi_write(target, DMI_ABSTRACTAUTO, 0);
 
-				uint32_t dmi_data0;
+				uint32_t dmi_data0, dmi_data1 = 0;
 				/* This is definitely a good version of the value that we
 				 * attempted to read when we discovered that the target was
 				 * busy. */
 				if (dmi_read(target, &dmi_data0, DMI_DATA0) != ERROR_OK) {
+					riscv_batch_free(batch);
+					goto error;
+				}
+				if (size > 4 && dmi_read(target, &dmi_data1, DMI_DATA1) != ERROR_OK) {
 					riscv_batch_free(batch);
 					goto error;
 				}
@@ -2593,8 +2619,9 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 					riscv_batch_free(batch);
 					goto error;
 				}
-				write_to_buf(buffer + next_read_addr - 2 * size - address, dmi_data0, size);
-				log_memory_access(next_read_addr - 2 * size, dmi_data0, size, true);
+				uint64_t value64 = (((uint64_t) dmi_data1) << 32) | dmi_data0;
+				write_to_buf(buffer + next_read_addr - 2 * size - address, value64, size);
+				log_memory_access(next_read_addr - 2 * size, value64, size, true);
 
 				/* Restore the command, and execute it.
 				 * Now DMI_DATA0 contains the next value just as it would if no
@@ -2618,15 +2645,16 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 		/* Now read whatever we got out of the batch. */
 		dmi_status_t status = DMI_STATUS_SUCCESS;
+		riscv_addr_t receive_addr = read_addr - size * 2;
+		unsigned read = 0;
 		for (size_t i = 0; i < reads; i++) {
-			riscv_addr_t receive_addr = read_addr + (i-2) * size;
 			assert(receive_addr < address + size * count);
 			if (receive_addr < address)
 				continue;
 			if (receive_addr > next_read_addr - (3 + ignore_last) * size)
 				break;
 
-			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, i);
+			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, read++);
 			status = get_field(dmi_out, DTM_DMI_OP);
 			if (status != DMI_STATUS_SUCCESS) {
 				/* If we're here because of busy count, dmi_busy_delay will
@@ -2643,7 +2671,20 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				result = ERROR_FAIL;
 				goto error;
 			}
-			uint32_t value = get_field(dmi_out, DTM_DMI_DATA);
+			uint64_t value = get_field(dmi_out, DTM_DMI_DATA);
+			if (size > 4) {
+				dmi_out = riscv_batch_get_dmi_read(batch, read++);
+				status = get_field(dmi_out, DTM_DMI_OP);
+				if (status != DMI_STATUS_SUCCESS) {
+					LOG_WARNING("Batch memory read encountered DMI error %d. "
+							"Falling back on slower reads.", status);
+					riscv_batch_free(batch);
+					result = ERROR_FAIL;
+					goto error;
+				}
+				value <<= 32;
+				value |= get_field(dmi_out, DTM_DMI_DATA);
+			}
 			riscv_addr_t offset = receive_addr - address;
 			write_to_buf(buffer + offset, value, size);
 			log_memory_access(receive_addr, value, size, true);
@@ -2660,11 +2701,14 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 	if (count > 1) {
 		/* Read the penultimate word. */
-		uint32_t value;
-		if (dmi_read(target, &value, DMI_DATA0) != ERROR_OK)
+		uint32_t dmi_data0, dmi_data1 = 0;
+		if (dmi_read(target, &dmi_data0, DMI_DATA0) != ERROR_OK)
 			return ERROR_FAIL;
-		write_to_buf(buffer + size * (count-2), value, size);
-		log_memory_access(address + size * (count-2), value, size, true);
+		if (size > 4 && dmi_read(target, &dmi_data1, DMI_DATA1) != ERROR_OK)
+			return ERROR_FAIL;
+		uint64_t value64 = (((uint64_t) dmi_data1) << 32) | dmi_data0;
+		write_to_buf(buffer + size * (count-2), value64, size);
+		log_memory_access(address + size * (count-2), value64, size, true);
 	}
 
 	/* Read the last word. */
@@ -2715,6 +2759,9 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 		case 4:
 			riscv_program_lwr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
 			break;
+		case 8:
+			riscv_program_ldr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
+			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
@@ -2740,6 +2787,7 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 	if (register_read(target, &value, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	write_to_buf(buffer, value, size);
+	log_memory_access(address, value, size, true);
 
 	if (riscv_set_register(target, GDB_REGNO_S0, s0) != ERROR_OK)
 		return ERROR_FAIL;
@@ -2759,6 +2807,12 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	RISCV013_INFO(info);
+
+	if (riscv_xlen(target) < size * 8) {
+		LOG_ERROR("XLEN (%d) is too short for %d-bit memory read.",
+				riscv_xlen(target), size * 8);
+		return ERROR_FAIL;
+	}
 
 	int result = ERROR_OK;
 
@@ -2805,10 +2859,14 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		case 4:
 			riscv_program_lwr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
 			break;
+		case 8:
+			riscv_program_ldr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
+			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
 			return ERROR_FAIL;
 	}
+
 	if (riscv_enable_virtual && info->progbufsize >= 4 && get_field(mstatus, MSTATUS_MPRV))
 		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
@@ -3088,6 +3146,12 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 {
 	RISCV013_INFO(info);
 
+	if (riscv_xlen(target) < size * 8) {
+		LOG_ERROR("XLEN (%d) is too short for %d-bit memory write.",
+				riscv_xlen(target), size * 8);
+		return ERROR_FAIL;
+	}
+
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
 	select_dmi(target);
@@ -3124,8 +3188,11 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 		case 4:
 			riscv_program_swr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
 			break;
+		case 8:
+			riscv_program_sdr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
+			break;
 		default:
-			LOG_ERROR("Unsupported size: %d", size);
+			LOG_ERROR("write_memory_progbuf(): Unsupported size: %d", size);
 			result = ERROR_FAIL;
 			goto error;
 	}
@@ -3158,28 +3225,7 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 			unsigned offset = size*i;
 			const uint8_t *t_buffer = buffer + offset;
 
-			/* TODO: Test with read_from_buf(&value, t_buffer, size)*/
-			uint32_t value;
-			switch (size) {
-				case 1:
-					value = t_buffer[0];
-					break;
-				case 2:
-					value = t_buffer[0]
-						| ((uint32_t) t_buffer[1] << 8);
-					break;
-				case 4:
-					value = t_buffer[0]
-						| ((uint32_t) t_buffer[1] << 8)
-						| ((uint32_t) t_buffer[2] << 16)
-						| ((uint32_t) t_buffer[3] << 24);
-					break;
-				default:
-					LOG_ERROR("unsupported access size: %d", size);
-					riscv_batch_free(batch);
-					result = ERROR_FAIL;
-					goto error;
-			}
+			uint64_t value = read_from_buf(t_buffer, size);
 
 			log_memory_access(address + offset, value, size, false);
 			cur_addr += size;
@@ -3193,12 +3239,14 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 				}
 
 				/* Write value. */
+				if (size > 4)
+					dmi_write(target, DMI_DATA1, value >> 32);
 				dmi_write(target, DMI_DATA0, value);
 
 				/* Write and execute command that moves value into S1 and
 				 * executes program buffer. */
 				uint32_t command = access_register_command(target,
-						GDB_REGNO_S1, 32,
+						GDB_REGNO_S1, size > 4 ? 64 : 32,
 						AC_ACCESS_REGISTER_POSTEXEC |
 						AC_ACCESS_REGISTER_TRANSFER |
 						AC_ACCESS_REGISTER_WRITE);
@@ -3214,6 +3262,8 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 
 				setup_needed = false;
 			} else {
+				if (size > 4)
+					riscv_batch_add_dmi_write(batch, DMI_DATA1, value >> 32);
 				riscv_batch_add_dmi_write(batch, DMI_DATA0, value);
 				if (riscv_batch_full(batch))
 					break;

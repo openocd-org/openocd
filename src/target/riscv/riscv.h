@@ -218,7 +218,7 @@ int riscv_step_rtos_hart(struct target *target);
 bool riscv_supports_extension(struct target *target, int hartid, char letter);
 
 /* Returns XLEN for the given (or current) hart. */
-int riscv_xlen(const struct target *target);
+unsigned riscv_xlen(const struct target *target);
 int riscv_xlen_of_hart(const struct target *target, int hartid);
 
 bool riscv_rtos_enabled(const struct target *target);

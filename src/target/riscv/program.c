@@ -79,6 +79,11 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	return ERROR_OK;
 }
 
+int riscv_program_sdr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int offset)
+{
+	return riscv_program_insert(p, sd(d, b, offset));
+}
+
 int riscv_program_swr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int offset)
 {
 	return riscv_program_insert(p, sw(d, b, offset));
@@ -92,6 +97,11 @@ int riscv_program_shr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno 
 int riscv_program_sbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int offset)
 {
 	return riscv_program_insert(p, sb(d, b, offset));
+}
+
+int riscv_program_ldr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int offset)
+{
+	return riscv_program_insert(p, ld(d, b, offset));
 }
 
 int riscv_program_lwr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int offset)
