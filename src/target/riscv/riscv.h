@@ -6,6 +6,7 @@ struct riscv_program;
 #include <stdint.h>
 #include "opcodes.h"
 #include "gdb_regs.h"
+#include "jtag/jtag.h"
 
 /* The register cache is statically allocated. */
 #define RISCV_MAX_HARTS 32
@@ -146,6 +147,12 @@ typedef struct {
 	/* How many harts are attached to the DM that this target is attached to? */
 	int (*hart_count)(struct target *target);
 } riscv_info_t;
+
+typedef struct {
+	uint8_t tunneled_dr_width;
+	struct scan_field tunneled_dr[4];
+} riscv_bscan_tunneled_scan_context_t;
+
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
 extern int riscv_command_timeout_sec;
@@ -290,5 +297,8 @@ int riscv_init_registers(struct target *target);
 
 void riscv_semihosting_init(struct target *target);
 int riscv_semihosting(struct target *target, int *retval);
+
+void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
+		riscv_bscan_tunneled_scan_context_t *ctxt);
 
 #endif

@@ -21,6 +21,8 @@ struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans, size_
 	out->data_out = malloc(sizeof(*out->data_out) * (scans) * sizeof(uint64_t));
 	out->data_in  = malloc(sizeof(*out->data_in)  * (scans) * sizeof(uint64_t));
 	out->fields = malloc(sizeof(*out->fields) * (scans));
+	if (bscan_tunnel_ir_width != 0)
+		out->bscan_ctxt = malloc(sizeof(*out->bscan_ctxt) * (scans));
 	out->last_scan = RISCV_SCAN_TYPE_INVALID;
 	out->read_keys = malloc(sizeof(*out->read_keys) * (scans));
 	return out;
@@ -31,6 +33,8 @@ void riscv_batch_free(struct riscv_batch *batch)
 	free(batch->data_in);
 	free(batch->data_out);
 	free(batch->fields);
+	if (batch->bscan_ctxt)
+		free(batch->bscan_ctxt);
 	free(batch->read_keys);
 	free(batch);
 }
@@ -52,7 +56,11 @@ int riscv_batch_run(struct riscv_batch *batch)
 	riscv_batch_add_nop(batch);
 
 	for (size_t i = 0; i < batch->used_scans; ++i) {
-		jtag_add_dr_scan(batch->target->tap, 1, batch->fields + i, TAP_IDLE);
+		if (bscan_tunnel_ir_width != 0)
+			riscv_add_bscan_tunneled_scan(batch->target, batch->fields+i, batch->bscan_ctxt+i);
+		else
+			jtag_add_dr_scan(batch->target->tap, 1, batch->fields + i, TAP_IDLE);
+
 		if (batch->idle_count > 0)
 			jtag_add_runtest(batch->idle_count, TAP_IDLE);
 	}
@@ -60,6 +68,12 @@ int riscv_batch_run(struct riscv_batch *batch)
 	if (jtag_execute_queue() != ERROR_OK) {
 		LOG_ERROR("Unable to execute JTAG queue");
 		return ERROR_FAIL;
+	}
+
+	if (bscan_tunnel_ir_width != 0) {
+		/* need to right-shift "in" by one bit, because of clock skew between BSCAN TAP and DM TAP */
+		for (size_t i = 0; i < batch->used_scans; ++i)
+			buffer_shr((batch->fields + i)->in_value, sizeof(uint64_t), 1);
 	}
 
 	for (size_t i = 0; i < batch->used_scans; ++i)

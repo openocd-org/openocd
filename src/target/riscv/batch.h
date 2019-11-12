@@ -3,6 +3,7 @@
 
 #include "target/target.h"
 #include "jtag/jtag.h"
+#include "riscv.h"
 
 enum riscv_scan_type {
 	RISCV_SCAN_TYPE_INVALID,
@@ -26,6 +27,11 @@ struct riscv_batch {
 	uint8_t *data_out;
 	uint8_t *data_in;
 	struct scan_field *fields;
+
+	/* If in BSCAN mode, this field will be allocated (one per scan),
+	   and utilized to tunnel all the scans in the batch.  If not in
+	   BSCAN mode, this field is unallocated and stays NULL */
+	riscv_bscan_tunneled_scan_context_t *bscan_ctxt;
 
 	/* In JTAG we scan out the previous value's output when performing a
 	 * scan.  This is a pain for users, so we just provide them the

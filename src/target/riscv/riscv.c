@@ -3550,3 +3550,43 @@ int riscv_init_registers(struct target *target)
 
 	return ERROR_OK;
 }
+
+
+void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
+					riscv_bscan_tunneled_scan_context_t *ctxt)
+{
+	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
+
+	memset(ctxt->tunneled_dr, 0, sizeof(ctxt->tunneled_dr));
+	if (bscan_tunnel_type == BSCAN_TUNNEL_DATA_REGISTER) {
+		ctxt->tunneled_dr[3].num_bits = 1;
+		ctxt->tunneled_dr[3].out_value = bscan_one;
+		ctxt->tunneled_dr[2].num_bits = 7;
+		ctxt->tunneled_dr_width = field->num_bits;
+		ctxt->tunneled_dr[2].out_value = &ctxt->tunneled_dr_width;
+		/* for BSCAN tunnel, there is a one-TCK skew between shift in and shift out, so
+		   scanning num_bits + 1, and then will right shift the input field after executing the queues */
+
+		ctxt->tunneled_dr[1].num_bits = field->num_bits+1;
+		ctxt->tunneled_dr[1].out_value = field->out_value;
+		ctxt->tunneled_dr[1].in_value = field->in_value;
+
+		ctxt->tunneled_dr[0].num_bits = 3;
+		ctxt->tunneled_dr[0].out_value = bscan_zero;
+	} else {
+		/* BSCAN_TUNNEL_NESTED_TAP */
+		ctxt->tunneled_dr[0].num_bits = 1;
+		ctxt->tunneled_dr[0].out_value = bscan_one;
+		ctxt->tunneled_dr[1].num_bits = 7;
+		ctxt->tunneled_dr_width = field->num_bits;
+		ctxt->tunneled_dr[1].out_value = &ctxt->tunneled_dr_width;
+		/* for BSCAN tunnel, there is a one-TCK skew between shift in and shift out, so
+		   scanning num_bits + 1, and then will right shift the input field after executing the queues */
+		ctxt->tunneled_dr[2].num_bits = field->num_bits+1;
+		ctxt->tunneled_dr[2].out_value = field->out_value;
+		ctxt->tunneled_dr[2].in_value = field->in_value;
+		ctxt->tunneled_dr[3].num_bits = 3;
+		ctxt->tunneled_dr[3].out_value = bscan_zero;
+	}
+	jtag_add_dr_scan(target->tap, ARRAY_SIZE(ctxt->tunneled_dr), ctxt->tunneled_dr, TAP_IDLE);
+}
