@@ -336,6 +336,11 @@ static int fespi_erase_sector(struct flash_bank *bank, int sector)
 	if (retval != ERROR_OK)
 		return retval;
 	sector = bank->sectors[sector].offset;
+	if (bank->size > 0x1000000) {
+		retval = fespi_tx(bank, sector >> 24);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 	retval = fespi_tx(bank, sector >> 16);
 	if (retval != ERROR_OK)
 		return retval;
@@ -436,32 +441,38 @@ static int fespi_protect(struct flash_bank *bank, int set,
 static int slow_fespi_write_buffer(struct flash_bank *bank,
 		const uint8_t *buffer, uint32_t offset, uint32_t len)
 {
+	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t ii;
-
-	if (offset & 0xFF000000) {
-		LOG_ERROR("FESPI interface does not support greater than 3B addressing, can't write to offset 0x%x",
-				offset);
-		return ERROR_FAIL;
-	}
 
 	/* TODO!!! assert that len < page size */
 
-	fespi_tx(bank, SPIFLASH_WRITE_ENABLE);
-	fespi_txwm_wait(bank);
+	if (fespi_tx(bank, SPIFLASH_WRITE_ENABLE) != ERROR_OK)
+		return ERROR_FAIL;
+	if (fespi_txwm_wait(bank) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (fespi_write_reg(bank, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD) != ERROR_OK)
 		return ERROR_FAIL;
 
-	fespi_tx(bank, SPIFLASH_PAGE_PROGRAM);
+	if (fespi_tx(bank, fespi_info->dev->pprog_cmd) != ERROR_OK)
+		return ERROR_FAIL;
 
-	fespi_tx(bank, offset >> 16);
-	fespi_tx(bank, offset >> 8);
-	fespi_tx(bank, offset);
+	if (bank->size > 0x1000000 && fespi_tx(bank, offset >> 24) != ERROR_OK)
+		return ERROR_FAIL;
+	if (fespi_tx(bank, offset >> 16) != ERROR_OK)
+		return ERROR_FAIL;
+	if (fespi_tx(bank, offset >> 8) != ERROR_OK)
+		return ERROR_FAIL;
+	if (fespi_tx(bank, offset) != ERROR_OK)
+		return ERROR_FAIL;
 
-	for (ii = 0; ii < len; ii++)
-		fespi_tx(bank, buffer[ii]);
+	for (ii = 0; ii < len; ii++) {
+		if (fespi_tx(bank, buffer[ii]) != ERROR_OK)
+			return ERROR_FAIL;
+	}
 
-	fespi_txwm_wait(bank);
+	if (fespi_txwm_wait(bank) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (fespi_write_reg(bank, FESPI_REG_CSMODE, FESPI_CSMODE_AUTO) != ERROR_OK)
 		return ERROR_FAIL;
@@ -488,7 +499,8 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	int sector;
 	int retval = ERROR_OK;
 
-	LOG_DEBUG("offset=0x%08" PRIx32 " count=0x%08" PRIx32, offset, count);
+	LOG_DEBUG("bank->size=0x%x offset=0x%08" PRIx32 " count=0x%08" PRIx32,
+			bank->size, offset, count);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -561,12 +573,13 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		fespi_info->dev->pagesize : SPIFLASH_DEF_PAGESIZE;
 
 	if (algorithm_wa) {
-		struct reg_param reg_params[5];
+		struct reg_param reg_params[6];
 		init_reg_param(&reg_params[0], "a0", xlen, PARAM_IN_OUT);
 		init_reg_param(&reg_params[1], "a1", xlen, PARAM_OUT);
 		init_reg_param(&reg_params[2], "a2", xlen, PARAM_OUT);
 		init_reg_param(&reg_params[3], "a3", xlen, PARAM_OUT);
 		init_reg_param(&reg_params[4], "a4", xlen, PARAM_OUT);
+		init_reg_param(&reg_params[5], "a5", xlen, PARAM_OUT);
 
 		while (count > 0) {
 			cur_count = MIN(count, data_wa_size);
@@ -575,6 +588,8 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 			buf_set_u64(reg_params[2].value, 0, xlen, data_wa->address);
 			buf_set_u64(reg_params[3].value, 0, xlen, offset);
 			buf_set_u64(reg_params[4].value, 0, xlen, cur_count);
+			buf_set_u64(reg_params[5].value, 0, xlen,
+					fespi_info->dev->pprog_cmd | (bank->size > 0x1000000 ? 0x100 : 0));
 
 			retval = target_write_buffer(target, data_wa->address, cur_count,
 					buffer);
@@ -589,7 +604,8 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 					", count=0x%" PRIx32 "), buffer=%02x %02x %02x %02x %02x %02x ..." PRIx32,
 					fespi_info->ctrl_base, page_size, data_wa->address, offset, cur_count,
 					buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
-			retval = target_run_algorithm(target, 0, NULL, 5, reg_params,
+			retval = target_run_algorithm(target, 0, NULL,
+					ARRAY_SIZE(reg_params), reg_params,
 					algorithm_wa->address, 0, cur_count * 2, NULL);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Failed to execute algorithm at " TARGET_ADDR_FMT ": %d",
@@ -790,8 +806,6 @@ static int fespi_probe(struct flash_bank *bank)
 
 	if (bank->size <= (1UL << 16))
 		LOG_WARNING("device needs 2-byte addresses - not implemented");
-	if (bank->size > (1UL << 24))
-		LOG_WARNING("device needs paging or 4-byte addresses - not implemented");
 
 	/* if no sectors, treat whole bank as single sector */
 	sectorsize = fespi_info->dev->sectorsize ?

@@ -101,11 +101,18 @@ static void fespi_disable_hw_mode(volatile uint32_t *ctrl_base);
 static void fespi_enable_hw_mode(volatile uint32_t *ctrl_base);
 static int fespi_wip(volatile uint32_t *ctrl_base);
 static int fespi_write_buffer(volatile uint32_t *ctrl_base,
-		const uint8_t *buffer, unsigned offset, unsigned len);
+		const uint8_t *buffer, unsigned offset, unsigned len,
+		uint32_t flash_info);
 
 /* Can set bits 3:0 in result. */
+/* flash_info contains:
+ *   bits 7:0 -- pprog_cmd
+ *   bit 8    -- 0 means send 3 bytes after pprog_cmd, 1 means send 4 bytes
+ *               after pprog_cmd
+ */
 int flash_fespi(volatile uint32_t *ctrl_base, uint32_t page_size,
-		const uint8_t *buffer, unsigned offset, uint32_t count)
+		const uint8_t *buffer, unsigned offset, uint32_t count,
+		uint32_t flash_info)
 {
 	int result;
 
@@ -135,7 +142,7 @@ int flash_fespi(volatile uint32_t *ctrl_base, uint32_t page_size,
 		else
 			cur_count = count;
 
-		result = fespi_write_buffer(ctrl_base, buffer, offset, cur_count);
+		result = fespi_write_buffer(ctrl_base, buffer, offset, cur_count, flash_info);
 		if (result != ERROR_OK) {
 			result |= ERROR_STACK(0x3);
 			goto err;
@@ -264,7 +271,8 @@ static int fespi_wip(volatile uint32_t *ctrl_base)
 
 /* Can set bits 23:20 in result. */
 static int fespi_write_buffer(volatile uint32_t *ctrl_base,
-		const uint8_t *buffer, unsigned offset, unsigned len)
+		const uint8_t *buffer, unsigned offset, unsigned len,
+		uint32_t flash_info)
 {
 	int result = fespi_tx(ctrl_base, SPIFLASH_WRITE_ENABLE);
 	if (result != ERROR_OK)
@@ -275,10 +283,15 @@ static int fespi_write_buffer(volatile uint32_t *ctrl_base,
 
 	fespi_write_reg(ctrl_base, FESPI_REG_CSMODE, FESPI_CSMODE_HOLD);
 
-	result = fespi_tx(ctrl_base, SPIFLASH_PAGE_PROGRAM);
+	result = fespi_tx(ctrl_base, flash_info & 0xff);
 	if (result != ERROR_OK)
 		return result | ERROR_STACK(0x300000);
 
+	if (flash_info & 0x100) {
+		result = fespi_tx(ctrl_base, offset >> 24);
+		if (result != ERROR_OK)
+			return result | ERROR_STACK(0x400000);
+	}
 	result = fespi_tx(ctrl_base, offset >> 16);
 	if (result != ERROR_OK)
 		return result | ERROR_STACK(0x400000);
