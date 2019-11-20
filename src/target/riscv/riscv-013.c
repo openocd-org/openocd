@@ -1073,6 +1073,7 @@ static int scratch_reserve(struct target *target,
 
 	riscv013_info_t *info = get_info(target);
 
+	/* Option 1: See if data# registers can be used as the scratch memory */
 	if (info->dataaccess == 1) {
 		/* Sign extend dataaddr. */
 		scratch->hart_address = info->dataaddr;
@@ -1089,6 +1090,7 @@ static int scratch_reserve(struct target *target,
 		}
 	}
 
+	/* Option 2: See if progbuf can be used as the scratch memory */
 	if (examine_progbuf(target) != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -1096,13 +1098,15 @@ static int scratch_reserve(struct target *target,
 	unsigned program_size = (program->instruction_count + 1) * 4;
 	scratch->hart_address = (info->progbuf_address + program_size + alignment - 1) &
 		~(alignment - 1);
-	if ((size_bytes + scratch->hart_address - info->progbuf_address + 3) / 4 >=
-			info->progbufsize) {
+	if ((info->progbuf_writable == YNM_YES) &&
+			((size_bytes + scratch->hart_address - info->progbuf_address + 3) / 4 >=
+			info->progbufsize)) {
 		scratch->memory_space = SPACE_DMI_PROGBUF;
 		scratch->debug_address = (scratch->hart_address - info->progbuf_address) / 4;
 		return ERROR_OK;
 	}
 
+	/* Option 3: User-configured memory area as scratch RAM */
 	if (target_alloc_working_area(target, size_bytes + alignment - 1,
 				&scratch->area) == ERROR_OK) {
 		scratch->hart_address = (scratch->area->address + alignment - 1) &
