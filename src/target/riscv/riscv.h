@@ -146,6 +146,7 @@ typedef struct {
 
 	/* How many harts are attached to the DM that this target is attached to? */
 	int (*hart_count)(struct target *target);
+	unsigned (*data_bits)(struct target *target);
 } riscv_info_t;
 
 typedef struct {

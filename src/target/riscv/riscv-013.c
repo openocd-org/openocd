@@ -1727,6 +1727,29 @@ static int riscv013_hart_count(struct target *target)
 	return dm->hart_count;
 }
 
+static unsigned riscv013_data_bits(struct target *target)
+{
+	RISCV013_INFO(info);
+	/* TODO: Once there is a spec for discovering abstract commands, we can
+	 * take those into account as well.  For now we assume abstract commands
+	 * support XLEN-wide accesses. */
+	if (info->progbufsize >= 2 && !riscv_prefer_sba)
+		return riscv_xlen(target);
+
+	if (get_field(info->sbcs, DMI_SBCS_SBACCESS128))
+		return 128;
+	if (get_field(info->sbcs, DMI_SBCS_SBACCESS64))
+		return 64;
+	if (get_field(info->sbcs, DMI_SBCS_SBACCESS32))
+		return 32;
+	if (get_field(info->sbcs, DMI_SBCS_SBACCESS16))
+		return 16;
+	if (get_field(info->sbcs, DMI_SBCS_SBACCESS8))
+		return 8;
+
+	return riscv_xlen(target);
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -1759,6 +1782,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->test_sba_config_reg = &riscv013_test_sba_config_reg;
 	generic_info->test_compliance = &riscv013_test_compliance;
 	generic_info->hart_count = &riscv013_hart_count;
+	generic_info->data_bits = &riscv013_data_bits;
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
