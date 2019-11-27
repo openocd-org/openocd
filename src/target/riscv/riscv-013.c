@@ -3232,7 +3232,7 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 				/* Write and execute command that moves value into S1 and
 				 * executes program buffer. */
 				uint32_t command = access_register_command(target,
-						GDB_REGNO_S1, size > 4 ? 64 : 32,
+						GDB_REGNO_S1, riscv_xlen(target),
 						AC_ACCESS_REGISTER_POSTEXEC |
 						AC_ACCESS_REGISTER_TRANSFER |
 						AC_ACCESS_REGISTER_WRITE);
