@@ -21,6 +21,13 @@ static bool riscv_detect_rtos(struct target *target)
 static int riscv_create_rtos(struct target *target)
 {
 	LOG_DEBUG("RISC-V Debug 'RTOS' created: this doesn't mean you're running an RTOS, just that you have multi-hart support on RISC-V");
+	LOG_WARNING("`-rtos riscv` is deprecated! Please change your configuration to use `-rtos");
+	LOG_WARNING("hwthread` instead. To do that, you will have to explicitly list every hart in");
+	LOG_WARNING("the system as a separate target. See");
+	LOG_WARNING("https://github.com/riscv/riscv-tests/blob/ec6537fc4a527ca88be2f045e01c460e640ab9c5/debug/targets/SiFive/HiFiveUnleashed.cfg#L11");
+	LOG_WARNING("for an example.");
+	LOG_WARNING("You will have to change your configuration file in any OpenOCD newer than June");
+	LOG_WARNING("2020.");
 
 	struct riscv_rtos *r = calloc(1, sizeof(*r));
 	target->rtos->rtos_specific_params = r;
