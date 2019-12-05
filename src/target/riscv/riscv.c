@@ -2523,12 +2523,8 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 
 	memset(r->trigger_unique_id, 0xff, sizeof(r->trigger_unique_id));
 
-	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h) {
+	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h)
 		r->xlen[h] = -1;
-
-		for (size_t e = 0; e < RISCV_MAX_REGISTERS; ++e)
-			r->valid_saved_registers[h][e] = false;
-	}
 }
 
 static int riscv_resume_go_all_harts(struct target *target)
