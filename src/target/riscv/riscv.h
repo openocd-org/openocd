@@ -9,7 +9,7 @@ struct riscv_program;
 #include "jtag/jtag.h"
 
 /* The register cache is statically allocated. */
-#define RISCV_MAX_HARTS 32
+#define RISCV_MAX_HARTS 1024
 #define RISCV_MAX_REGISTERS 5000
 #define RISCV_MAX_TRIGGERS 32
 #define RISCV_MAX_HWBPS 16
