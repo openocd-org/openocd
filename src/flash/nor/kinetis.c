@@ -1443,6 +1443,8 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 
 		kinetis_auto_probe(bank_iter);
 
+		assert(bank_iter->prot_blocks);
+
 		if (k_bank->flash_class == FC_PFLASH) {
 			for (i = 0; i < bank_iter->num_prot_blocks; i++) {
 				if (bank_iter->prot_blocks[i].is_protected == 1)
@@ -2624,7 +2626,10 @@ static int kinetis_probe(struct flash_bank *bank)
 	unsigned num_blocks, first_nvm_bank;
 	uint32_t size_k;
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
-	struct kinetis_chip *k_chip = k_bank->k_chip;
+	struct kinetis_chip *k_chip;
+
+	assert(k_bank);
+	k_chip = k_bank->k_chip;
 
 	k_bank->probed = false;
 
