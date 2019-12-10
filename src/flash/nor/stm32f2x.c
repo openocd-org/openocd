@@ -634,7 +634,7 @@ static int stm32x_erase(struct flash_bank *bank, int first, int last)
 	 */
 
 	for (i = first; i <= last; i++) {
-		int snb;
+		unsigned int snb;
 		if (stm32x_info->has_large_mem && i >= 12)
 			snb = (i - 12) | 0x10;
 		else
