@@ -251,6 +251,7 @@ int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
 int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
 bool riscv_prefer_sba;
+bool riscv_enable_virt2phys = true;
 
 bool riscv_enable_virtual;
 
@@ -270,6 +271,39 @@ static enum {
 	RO_NORMAL,
 	RO_REVERSED
 } resume_order;
+
+virt2phys_info_t sv32 = {
+	.level = 2,
+	.pte_shift = 2,
+	.vpn_shift = {12, 22},
+	.vpn_mask = {0x3ff, 0x3ff},
+	.pte_ppn_shift = {10, 20},
+	.pte_ppn_mask = {0x3ff, 0xfff},
+	.pa_ppn_shift = {12, 22},
+	.pa_ppn_mask = {0x3ff, 0xfff},
+};
+
+virt2phys_info_t sv39 = {
+	.level = 3,
+	.pte_shift = 3,
+	.vpn_shift = {12, 21, 30},
+	.vpn_mask = {0x1ff, 0x1ff, 0x1ff},
+	.pte_ppn_shift = {10, 19, 28},
+	.pte_ppn_mask = {0x1ff, 0x1ff, 0x3ffffff},
+	.pa_ppn_shift = {12, 21, 30},
+	.pa_ppn_mask = {0x1ff, 0x1ff, 0x3ffffff},
+};
+
+virt2phys_info_t sv48 = {
+	.level = 4,
+	.pte_shift = 3,
+	.vpn_shift = {12, 21, 30, 39},
+	.vpn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ff},
+	.pte_ppn_shift = {10, 19, 28, 37},
+	.pte_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ffff},
+	.pa_ppn_shift = {12, 21, 30, 39},
+	.pa_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ffff},
+};
 
 static int riscv_resume_go_all_harts(struct target *target);
 
@@ -1328,13 +1362,172 @@ static int riscv_select_current_hart(struct target *target)
 		return riscv_set_current_hartid(target, target->coreid);
 }
 
+static int riscv_mmu(struct target *target, int *enabled)
+{
+	if (riscv_rtos_enabled(target))
+		riscv_set_current_hartid(target, target->rtos->current_thread - 1);
+
+	riscv_reg_t value;
+	int result = riscv_get_register(target, &value, GDB_REGNO_SATP);
+	if (result != ERROR_OK) {
+		LOG_DEBUG("Couldn't read SATP.");
+		return result;
+	}
+
+	if (get_field(value, RISCV_SATP_MODE(riscv_xlen(target))) == SATP_MODE_OFF) {
+		LOG_DEBUG("MMU is disabled.");
+		*enabled = 0;
+	} else {
+		LOG_DEBUG("MMU is enabled.");
+		*enabled = 1;
+	}
+
+	return ERROR_OK;
+}
+
+static int riscv_address_translate(struct target *target,
+		target_addr_t virtual, target_addr_t *physical)
+{
+	riscv_reg_t satp_value;
+	int mode;
+	uint64_t ppn_value;
+	target_addr_t table_address;
+	virt2phys_info_t *info;
+	struct target_type *tt = get_target_type(target);
+	uint64_t pte;
+	int i;
+
+	if (riscv_rtos_enabled(target))
+		riscv_set_current_hartid(target, target->rtos->current_thread - 1);
+
+	int result = riscv_get_register(target, &satp_value, GDB_REGNO_SATP);
+	if (result != ERROR_OK)
+		return result;
+
+	mode = get_field(satp_value, RISCV_SATP_MODE(riscv_xlen(target)));
+	switch (mode) {
+		case SATP_MODE_SV32:
+			LOG_DEBUG("Translation mode: SV32");
+			info = &sv32;
+			break;
+		case SATP_MODE_SV39:
+			LOG_DEBUG("Translation mode: SV39");
+			info = &sv39;
+			break;
+		case SATP_MODE_SV48:
+			LOG_DEBUG("Translation mode: SV48");
+			info = &sv48;
+			break;
+		case SATP_MODE_OFF:
+			LOG_ERROR("No translation or protection." \
+				      " (satp: 0x%" PRIx64")", satp_value);
+			return ERROR_FAIL;
+		default:
+			LOG_ERROR("The translation mode is not supported." \
+				      " (satp: 0x%" PRIx64")", satp_value);
+			return ERROR_FAIL;
+	}
+
+	ppn_value = get_field(satp_value, RISCV_SATP_PPN(riscv_xlen(target)));
+	table_address = ppn_value << RISCV_PGSHIFT;
+	i = info->level - 1;
+	while (i >= 0) {
+		uint64_t vpn = virtual >> info->vpn_shift[i];
+		vpn &= info->vpn_mask[i];
+		target_addr_t pte_address = table_address +
+									(vpn << info->pte_shift);
+		uint8_t buffer[8];
+		assert(info->pte_shift <= 3);
+		int retval = tt->read_memory(target, pte_address,
+				4, (1 << info->pte_shift) / 4, buffer);
+		if (retval != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (info->pte_shift == 2)
+			pte = buf_get_u32(buffer, 0, 32);
+		else
+			pte = buf_get_u64(buffer, 0, 64);
+
+		if (!(pte & PTE_V) || (!(pte & PTE_R) && (pte & PTE_W)))
+			return ERROR_FAIL;
+
+		if ((pte & PTE_R) || (pte & PTE_X)) /* Found leaf PTE. */
+			break;
+
+		i--;
+		if (i < 0)
+			break;
+		ppn_value = pte >> PTE_PPN_SHIFT;
+		table_address = ppn_value << RISCV_PGSHIFT;
+	}
+
+	if (i < 0) {
+		LOG_ERROR("Couldn't find the PTE.");
+		return ERROR_FAIL;
+	}
+
+	*physical = virtual;
+
+	while (i < info->level) {
+		ppn_value = pte >> info->pte_ppn_shift[i];
+		ppn_value &= info->pte_ppn_mask[i];
+		*physical &= ~(info->pa_ppn_mask[i] << info->pa_ppn_shift[i]);
+		*physical |= (ppn_value << info->pa_ppn_shift[i]);
+		i++;
+	}
+	LOG_DEBUG("Virtual address: 0x%" TARGET_PRIxADDR, virtual);
+	LOG_DEBUG("Physical address: 0x%" TARGET_PRIxADDR, *physical);
+
+	return ERROR_OK;
+}
+
+static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)
+{
+	if (!riscv_enable_virt2phys)
+		return ERROR_FAIL;
+
+	int enabled;
+	if (riscv_mmu(target, &enabled) == ERROR_OK) {
+		if (!enabled)
+			return ERROR_FAIL;
+
+		if (riscv_address_translate(target, virtual, physical) == ERROR_OK)
+			return ERROR_OK;
+	}
+
+	return ERROR_FAIL;
+}
+
+static int riscv_read_phys_memory(struct target *target, target_addr_t phys_address,
+			uint32_t size, uint32_t count, uint8_t *buffer)
+{
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
+	struct target_type *tt = get_target_type(target);
+	return tt->read_memory(target, phys_address, size, count, buffer);
+}
+
 static int riscv_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
+
+	target_addr_t physical_addr;
+	if (target->type->virt2phys(target, address, &physical_addr) == ERROR_OK)
+		address = physical_addr;
+
 	struct target_type *tt = get_target_type(target);
 	return tt->read_memory(target, address, size, count, buffer);
+}
+
+static int riscv_write_phys_memory(struct target *target, target_addr_t phys_address,
+			uint32_t size, uint32_t count, const uint8_t *buffer)
+{
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
+	struct target_type *tt = get_target_type(target);
+	return tt->write_memory(target, phys_address, size, count, buffer);
 }
 
 static int riscv_write_memory(struct target *target, target_addr_t address,
@@ -1342,6 +1535,11 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 {
 	if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
+
+	target_addr_t physical_addr;
+	if (target->type->virt2phys(target, address, &physical_addr) == ERROR_OK)
+		address = physical_addr;
+
 	struct target_type *tt = get_target_type(target);
 	return tt->write_memory(target, address, size, count, buffer);
 }
@@ -2251,6 +2449,16 @@ COMMAND_HANDLER(riscv_use_bscan_tunnel)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_enable_virt2phys)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_enable_virt2phys);
+	return ERROR_OK;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
@@ -2386,6 +2594,13 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"(optional) to indicate Bscan Tunnel Type {0:(default) NESTED_TAP , "
 			"1: DATA_REGISTER}"
 	},
+	{
+		.name = "set_enable_virt2phys",
+		.handler = riscv_set_enable_virt2phys,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_enable_virt2phys on|off",
+		.help = "Enable translation from virtual address to physical address."
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -2489,8 +2704,13 @@ struct target_type riscv_target = {
 
 	.read_memory = riscv_read_memory,
 	.write_memory = riscv_write_memory,
+	.read_phys_memory = riscv_read_phys_memory,
+	.write_phys_memory = riscv_write_phys_memory,
 
 	.checksum_memory = riscv_checksum_memory,
+
+	.mmu = riscv_mmu,
+	.virt2phys = riscv_virt2phys,
 
 	.get_gdb_reg_list = riscv_get_gdb_reg_list,
 	.get_gdb_reg_list_noread = riscv_get_gdb_reg_list_noread,
@@ -3001,6 +3221,8 @@ const char *gdb_regno_name(enum gdb_regno regno)
 			return "mcause";
 		case GDB_REGNO_PRIV:
 			return "priv";
+		case GDB_REGNO_SATP:
+			return "satp";
 		default:
 			if (regno <= GDB_REGNO_XPR31)
 				sprintf(buf, "x%d", regno - GDB_REGNO_ZERO);

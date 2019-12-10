@@ -17,6 +17,12 @@ struct riscv_program;
 #define DEFAULT_COMMAND_TIMEOUT_SEC		2
 #define DEFAULT_RESET_TIMEOUT_SEC		30
 
+#define RISCV_SATP_MODE(xlen)  ((xlen) == 32 ? SATP32_MODE : SATP64_MODE)
+#define RISCV_SATP_PPN(xlen)  ((xlen) == 32 ? SATP32_PPN : SATP64_PPN)
+#define RISCV_PGSHIFT 12
+
+# define PG_MAX_LEVEL 4
+
 extern struct target_type riscv011_target;
 extern struct target_type riscv013_target;
 
@@ -149,6 +155,16 @@ typedef struct {
 	struct scan_field tunneled_dr[4];
 } riscv_bscan_tunneled_scan_context_t;
 
+typedef struct {
+	int level;
+	unsigned pte_shift;
+	unsigned vpn_shift[PG_MAX_LEVEL];
+	unsigned vpn_mask[PG_MAX_LEVEL];
+	unsigned pte_ppn_shift[PG_MAX_LEVEL];
+	unsigned pte_ppn_mask[PG_MAX_LEVEL];
+	unsigned pa_ppn_shift[PG_MAX_LEVEL];
+	unsigned pa_ppn_mask[PG_MAX_LEVEL];
+} virt2phys_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
 extern int riscv_command_timeout_sec;

@@ -9472,9 +9472,15 @@ When on, prefer to use System Bus Access to access memory.  When off, prefer to
 use the Program Buffer to access memory.
 @end deffn
 
-@deffn Command {riscv riscv_enable_virtual} on|off
+@deffn Command {riscv set_enable_virtual} on|off
 When on, memory accesses are performed on physical or virtual memory depending
 on the current system configuration. When off, all memory accessses are performed
+on physical memory.
+@end deffn
+
+@deffn Command {riscv set_enable_virt2phys} on|off
+When on, memory accesses are performed on physical or virtual memory depending
+on the current satp configuration. When off, all memory accessses are performed
 on physical memory.
 @end deffn
 
