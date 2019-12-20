@@ -229,7 +229,7 @@ static int openjtag_buf_write_standard(
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	*bytes_written += retval;
+	*bytes_written = retval;
 
 	return ERROR_OK;
 }
@@ -652,7 +652,6 @@ static void openjtag_add_scan(uint8_t *buffer, int length, struct scan_command *
 			/* whole byte */
 
 			/* bits to transfer */
-			bits = 7;
 			command |= (7 << 5);
 			length -= 8;
 		}
@@ -690,7 +689,7 @@ static void openjtag_execute_sleep(struct jtag_command *cmd)
 
 static void openjtag_set_state(uint8_t openocd_state)
 {
-	int8_t state = openjtag_get_tap_state(openocd_state);
+	uint8_t state = openjtag_get_tap_state(openocd_state);
 
 	uint8_t buf = 0;
 	buf = 0x01;
