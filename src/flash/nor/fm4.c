@@ -207,7 +207,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t halfword_count = DIV_ROUND_UP(byte_count, 2);
 	uint32_t result;
 	unsigned i;
-	int retval;
+	int retval, retval2 = ERROR_OK;
 	const uint8_t write_block_code[] = {
 #include "../../../contrib/loaders/flash/fm4/write.inc"
 	};
@@ -327,7 +327,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 err_run_ret:
 err_run:
 err_write_data:
-	retval = fm4_enter_flash_cpu_rom_mode(target);
+	retval2 = fm4_enter_flash_cpu_rom_mode(target);
 
 err_flash_mode:
 	for (i = 0; i < ARRAY_SIZE(reg_params); i++)
@@ -338,7 +338,9 @@ err_alloc_data:
 err_write_code:
 	target_free_working_area(target, code_workarea);
 
-	return retval;
+	if (retval != ERROR_OK)
+		return retval;
+	return retval2;
 }
 
 static int mb9bf_probe(struct flash_bank *bank)
