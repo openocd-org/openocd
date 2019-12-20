@@ -267,7 +267,11 @@ uint32_t arm946e_invalidate_whole_dcache(struct target *target)
 
 			/* Read dtag */
 			uint32_t dtag;
-			arm946e_read_cp15(target, 0x16, (uint32_t *) &dtag);
+			retval = arm946e_read_cp15(target, 0x16, &dtag);
+			if (retval != ERROR_OK) {
+				LOG_DEBUG("ERROR reading dtag");
+				return retval;
+			}
 
 			/* Check cache line VALID bit */
 			if (!(dtag >> 4 & 0x1))
@@ -321,7 +325,7 @@ int arm946e_post_debug_entry(struct target *target)
 
 	/* See if CACHES are enabled, and save that info
 	 * in the context bits, so that arm946e_pre_restore_context() can use them */
-	arm946e_read_cp15(target, CP15_CTL, (uint32_t *) &ctr_reg);
+	arm946e_read_cp15(target, CP15_CTL, &ctr_reg);
 
 	/* Save control reg in the context */
 	arm946e->cp15_control_reg = ctr_reg;
@@ -362,7 +366,7 @@ void arm946e_pre_restore_context(struct target *target)
 	if (arm946e_preserve_cache) {
 		struct arm946e_common *arm946e = target_to_arm946(target);
 		/* Get the contents of the CTR reg */
-		arm946e_read_cp15(target, CP15_CTL, (uint32_t *) &ctr_reg);
+		arm946e_read_cp15(target, CP15_CTL, &ctr_reg);
 
 		/**
 		 * Read-modify-write CP15 control
@@ -410,7 +414,11 @@ uint32_t arm946e_invalidate_dcache(struct target *target, uint32_t address,
 			}
 
 			/* Read dtag */
-			arm946e_read_cp15(target, 0x16, (uint32_t *) &dtag);
+			retval = arm946e_read_cp15(target, 0x16, &dtag);
+			if (retval != ERROR_OK) {
+				LOG_DEBUG("ERROR reading dtag");
+				return retval;
+			}
 
 			/* Check cache line VALID bit */
 			if (!(dtag >> 4 & 0x1))
@@ -463,7 +471,11 @@ uint32_t arm946e_invalidate_icache(struct target *target, uint32_t address,
 			}
 
 			/* Read itag */
-			arm946e_read_cp15(target, 0x17, (uint32_t *) &itag);
+			retval = arm946e_read_cp15(target, 0x17, &itag);
+			if (retval != ERROR_OK) {
+				LOG_DEBUG("ERROR reading itag");
+				return retval;
+			}
 
 			/* Check cache line VALID bit */
 			if (!(itag >> 4 & 0x1))
