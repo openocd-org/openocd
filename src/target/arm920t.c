@@ -484,7 +484,7 @@ int arm920t_post_debug_entry(struct target *target)
 /* EXPORTED to FA256 */
 void arm920t_pre_restore_context(struct target *target)
 {
-	uint32_t cp15c15;
+	uint32_t cp15c15 = 0;
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
 	/* restore i/d fault status and address register */
