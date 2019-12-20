@@ -621,17 +621,17 @@ struct threads *liste_del_task(struct threads *task_list, struct threads **t,
 	struct threads *prev)
 {
 	LOG_INFO("del task %" PRId64, (*t)->threadid);
-	prev->next = (*t)->next;
-
-	if (prev == task_list)
-		task_list = prev;
+	if (prev)
+		prev->next = (*t)->next;
+	else
+		task_list = (*t)->next;
 
 	/*  free content of threads */
 	if ((*t)->context)
 		free((*t)->context);
 
 	free(*t);
-	*t = prev;
+	*t = prev ? prev : task_list;
 	return task_list;
 }
 
@@ -725,6 +725,7 @@ int linux_get_tasks(struct target *target, int context)
 
 		/*  check that this thread is not one the current threads already
 		 *  created */
+		uint32_t base_addr;
 #ifdef PID_CHECK
 
 		if (!current_pid(linux_os, t->pid)) {
@@ -745,12 +746,13 @@ int linux_get_tasks(struct target *target, int context)
 				t->context =
 					cpu_context_read(target, t->base_addr,
 						&t->thread_info_addr);
+			base_addr = next_task(target, t);
 		} else {
 			/*LOG_INFO("thread %s is a current thread already created",t->name); */
+			base_addr = next_task(target, t);
 			free(t);
 		}
 
-		uint32_t base_addr = next_task(target, t);
 		t = calloc(1, sizeof(struct threads));
 		t->base_addr = base_addr;
 	}
@@ -1178,7 +1180,7 @@ int linux_gdb_T_packet(struct connection *connection,
 
 	if (linux_os->threads_needs_update == 0) {
 		struct threads *temp = linux_os->thread_list;
-		struct threads *prev = linux_os->thread_list;
+		struct threads *prev = NULL;
 
 		while (temp != NULL) {
 			if (temp->threadid == threadid) {
