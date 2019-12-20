@@ -663,12 +663,16 @@ int ulink_append_queue(struct ulink *device, struct ulink_cmd *ulink_cmd)
 		/* New command does not fit. Execute all commands in queue before starting
 		 * new queue with the current command as first entry. */
 		ret = ulink_execute_queued_commands(device, USB_TIMEOUT);
-		if (ret != ERROR_OK)
+		if (ret != ERROR_OK) {
+			free(ulink_cmd);
 			return ret;
+		}
 
 		ret = ulink_post_process_queue(device);
-		if (ret != ERROR_OK)
+		if (ret != ERROR_OK) {
+			free(ulink_cmd);
 			return ret;
+		}
 
 		ulink_clear_queue(device);
 	}
@@ -1627,6 +1631,7 @@ int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd)
 
 		if (ret != ERROR_OK) {
 			free(tdi_buffer_start);
+			free(tdo_buffer_start);
 			return ret;
 		}
 	}
