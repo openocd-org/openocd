@@ -47,6 +47,7 @@ static int jim_newtap_expected_id(Jim_Nvp *n, Jim_GetOptInfo *goi,
 		return JIM_ERR;
 	}
 
+	assert(pTap->expected_ids);
 	memcpy(new_expected_ids, pTap->expected_ids, expected_len);
 
 	new_expected_ids[pTap->expected_ids_cnt] = w;
