@@ -601,6 +601,7 @@ static int sam4l_write(struct flash_bank *bank, const uint8_t *buffer,
 
 	/* There's at least one aligned page to write out. */
 	if (count >= chip->page_size) {
+		assert(chip->page_size > 0);
 		int np = count / chip->page_size + ((count % chip->page_size) ? 1 : 0);
 
 		for (int i = 0; i < np; i++) {

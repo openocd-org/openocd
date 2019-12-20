@@ -711,8 +711,6 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	uint16_t page_size;
 	uint16_t num_nvmbits;
 
-	char *target_name_t;
-
 	int bnk, sec;
 
 	at91sam7_info = malloc(sizeof(struct at91sam7_flash_bank));
@@ -753,9 +751,6 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		return ERROR_OK;
 	}
 
-	target_name_t = calloc(strlen(CMD_ARGV[7]) + 1, sizeof(char));
-	strcpy(target_name_t, CMD_ARGV[7]);
-
 	/* calculate bank size  */
 	bank_size = num_sectors * pages_per_sector * page_size;
 
@@ -794,7 +789,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 
 		at91sam7_info = t_bank->driver_priv;
 
-		at91sam7_info->target_name  = target_name_t;
+		at91sam7_info->target_name = strdup(CMD_ARGV[7]);
 		at91sam7_info->flashmode = 0;
 		at91sam7_info->ext_freq  = ext_freq;
 		at91sam7_info->num_nvmbits = num_nvmbits;
