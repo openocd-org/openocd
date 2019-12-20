@@ -918,8 +918,10 @@ COMMAND_HANDLER(handle_xsvf_command)
 					struct scan_field field;
 
 					result = svf_add_statemove(loop_state);
-					if (result != ERROR_OK)
+					if (result != ERROR_OK) {
+						free(dr_in_mask);
 						return result;
+					}
 					jtag_add_clocks(loop_clocks);
 					jtag_add_sleep(loop_usecs);
 
