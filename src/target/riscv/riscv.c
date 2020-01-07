@@ -1453,6 +1453,9 @@ static int riscv_address_translate(struct target *target,
 		else
 			pte = buf_get_u64(buffer, 0, 64);
 
+		LOG_DEBUG("i=%d; PTE @0x%" TARGET_PRIxADDR " = 0x%" PRIx64, i,
+				pte_address, pte);
+
 		if (!(pte & PTE_V) || (!(pte & PTE_R) && (pte & PTE_W)))
 			return ERROR_FAIL;
 
@@ -1476,12 +1479,13 @@ static int riscv_address_translate(struct target *target,
 	while (i < info->level) {
 		ppn_value = pte >> info->pte_ppn_shift[i];
 		ppn_value &= info->pte_ppn_mask[i];
-		*physical &= ~(info->pa_ppn_mask[i] << info->pa_ppn_shift[i]);
+		*physical &= ~(((target_addr_t) info->pa_ppn_mask[i]) <<
+				info->pa_ppn_shift[i]);
 		*physical |= (ppn_value << info->pa_ppn_shift[i]);
 		i++;
 	}
-	LOG_DEBUG("Virtual address: 0x%" TARGET_PRIxADDR, virtual);
-	LOG_DEBUG("Physical address: 0x%" TARGET_PRIxADDR, *physical);
+	LOG_DEBUG("0x%" TARGET_PRIxADDR " -> 0x%" TARGET_PRIxADDR, virtual,
+			*physical);
 
 	return ERROR_OK;
 }
