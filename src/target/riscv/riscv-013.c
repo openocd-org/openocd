@@ -2010,6 +2010,10 @@ static int execute_fence(struct target *target)
 		if (!riscv_hart_enabled(target, i))
 			continue;
 
+		if (i == old_hartid)
+			/* Fence already executed for this hart */
+			continue;
+
 		riscv_set_current_hartid(target, i);
 
 		struct riscv_program program;
