@@ -683,7 +683,12 @@ int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
 			DMI_DMSTATUS, 0, timeout_sec, false, true);
 	if (result != ERROR_OK)
 		return result;
-	if (authenticated && !get_field(*dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
+	if (get_field(*dmstatus, DMI_DMSTATUS_VERSION) != 2) {
+		LOG_ERROR("OpenOCD only supports Debug Module version 2 (0.13), not "
+				"%d (dmstatus=0x%x). This error might be caused by a JTAG "
+				"signal issue. Try reducing the JTAG clock speed.",
+				get_field(*dmstatus, DMI_DMSTATUS_VERSION), *dmstatus);
+	} else if (authenticated && !get_field(*dmstatus, DMI_DMSTATUS_AUTHENTICATED)) {
 		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
 				"(dmstatus=0x%x). Use `riscv authdata_read` and "
 				"`riscv authdata_write` commands to authenticate.", *dmstatus);
@@ -1526,8 +1531,7 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	LOG_DEBUG("dmstatus:  0x%08x", dmstatus);
 	if (get_field(dmstatus, DMI_DMSTATUS_VERSION) != 2) {
-		LOG_ERROR("OpenOCD only supports Debug Module version 2, not %d "
-				"(dmstatus=0x%x)", get_field(dmstatus, DMI_DMSTATUS_VERSION), dmstatus);
+		/* Error was already printed out in dmstatus_read(). */
 		return ERROR_FAIL;
 	}
 
