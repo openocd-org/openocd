@@ -257,12 +257,13 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 	if (sscanf(packet_stttrr, "vCont;s:%d;c", &threadid) == 1) {
 		riscv_set_rtos_hartid(target, threadid - 1);
 		riscv_step_rtos_hart(target);
+		/* Stepping changes the current thread to whichever thread was stepped. */
+		target->rtos->current_threadid = threadid;
 
 		gdb_put_packet(connection, "S05", 3);
 		return JIM_OK;
-	}
 
-	if (strcmp(packet_stttrr, "vCont;c") == 0) {
+	} else if (strcmp(packet_stttrr, "vCont;c") == 0) {
 		target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
 		target_call_event_callbacks(target, TARGET_EVENT_RESUME_START);
 		riscv_set_all_rtos_harts(target);
@@ -272,10 +273,10 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 		target_call_event_callbacks(target, TARGET_EVENT_RESUME_END);
 		return JIM_OK;
-	}
 
-	if (strncmp(packet_stttrr, "vCont", 5) == 0)
+	} else if (strncmp(packet_stttrr, "vCont", 5) == 0) {
 		LOG_ERROR("Got unknown vCont-type packet");
+	}
 
 	return GDB_THREAD_PACKET_NOT_CONSUMED;
 }
