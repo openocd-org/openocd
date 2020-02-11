@@ -8,6 +8,7 @@ noinst_LTLIBRARIES += %D%/libocdflashnor.la
 
 NOR_DRIVERS = \
 	%D%/aduc702x.c \
+	%D%/aducm302x.c \
 	%D%/aducm360.c \
 	%D%/ambiqmicro.c \
 	%D%/at91sam4.c \

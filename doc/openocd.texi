@@ -5531,6 +5531,35 @@ the flash.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} aducm302x
+ The ADuCM3027/9 microcontrollers from Analog Devices include internal
+ flash and use ARM Cortex-M3 cores.
+ The flash size on ADuCM3027 is 128KB.
+ The flash size on ADuCM3029 is 256KB.
+ The flash start address is 0 on both.
+
+ @example
+ # ADuCM3027
+ flash bank $_FLASHNAME aducm302x 0 0x20000 0 0 $_TARGETNAME
+
+ # ADuCM3029
+ flash bank $_FLASHNAME aducm302x 0 0x40000 0 0 $_TARGETNAME
+ @end example
+ @end deffn
+
+ @deffn {Flash Driver} aducm4x50
+ The ADuCM4050 microcontrollers from Analog Devices include internal
+ flash and use ARM Cortex-M4F cores.
+ The flash size on ADuCM4050 is 512KB.
+ But the top two pages (4KB) are reserved as a Protected Key Storage region.
+ The flash start address is 0.
+
+ @example
+ # ADuCM4050
+ flash bank $_FLASHNAME aducm4x50 0 0x7f000 0 0 $_TARGETNAME
+ @end example
+ @end deffn
+
 @anchor{at91samd}
 @deffn {Flash Driver} at91samd
 @cindex at91samd
