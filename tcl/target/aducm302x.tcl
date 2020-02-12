@@ -35,7 +35,8 @@ if { [info exists CHIPID] } {
    shutdown error
 }
 
-adapter_khz 1000
+#adapter_khz 1000
+adapter speed 1000
 
 if { [info exists CPUTAPID] } {
    set _CPUTAPID $CPUTAPID
