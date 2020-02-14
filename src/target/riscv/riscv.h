@@ -7,6 +7,7 @@ struct riscv_program;
 #include "opcodes.h"
 #include "gdb_regs.h"
 #include "jtag/jtag.h"
+#include "target/register.h"
 
 /* The register cache is statically allocated. */
 #define RISCV_MAX_HARTS 1024
@@ -74,6 +75,7 @@ typedef struct {
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen[RISCV_MAX_HARTS];
 	riscv_reg_t misa[RISCV_MAX_HARTS];
+	unsigned vlenb[RISCV_MAX_HARTS];
 
 	/* The number of triggers per hart. */
 	unsigned trigger_count[RISCV_MAX_HARTS];
@@ -110,6 +112,9 @@ typedef struct {
 		riscv_reg_t *value, int hid, int rid);
 	int (*set_register)(struct target *, int hartid, int regid,
 			uint64_t value);
+	int (*get_register_buf)(struct target *target, uint8_t *buf, int regno);
+	int (*set_register_buf)(struct target *target, int regno,
+			const uint8_t *buf);
 	int (*select_current_hart)(struct target *);
 	bool (*is_halted)(struct target *target);
 	/* Resume this target, as well as every other prepped target that can be
@@ -148,6 +153,21 @@ typedef struct {
 	/* How many harts are attached to the DM that this target is attached to? */
 	int (*hart_count)(struct target *target);
 	unsigned (*data_bits)(struct target *target);
+
+	/* Storage for vector register types. */
+	struct reg_data_type_vector vector_uint8;
+	struct reg_data_type_vector vector_uint16;
+	struct reg_data_type_vector vector_uint32;
+	struct reg_data_type_vector vector_uint64;
+	struct reg_data_type_vector vector_uint128;
+	struct reg_data_type type_uint8_vector;
+	struct reg_data_type type_uint16_vector;
+	struct reg_data_type type_uint32_vector;
+	struct reg_data_type type_uint64_vector;
+	struct reg_data_type type_uint128_vector;
+	struct reg_data_type_union_field vector_fields[5];
+	struct reg_data_type_union vector_union;
+	struct reg_data_type type_vector;
 } riscv_info_t;
 
 typedef struct {

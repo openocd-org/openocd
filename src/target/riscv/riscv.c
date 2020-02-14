@@ -3229,6 +3229,74 @@ const char *gdb_regno_name(enum gdb_regno regno)
 			return "priv";
 		case GDB_REGNO_SATP:
 			return "satp";
+		case GDB_REGNO_VTYPE:
+			return "vtype";
+		case GDB_REGNO_VL:
+			return "vl";
+		case GDB_REGNO_V0:
+			return "v0";
+		case GDB_REGNO_V1:
+			return "v1";
+		case GDB_REGNO_V2:
+			return "v2";
+		case GDB_REGNO_V3:
+			return "v3";
+		case GDB_REGNO_V4:
+			return "v4";
+		case GDB_REGNO_V5:
+			return "v5";
+		case GDB_REGNO_V6:
+			return "v6";
+		case GDB_REGNO_V7:
+			return "v7";
+		case GDB_REGNO_V8:
+			return "v8";
+		case GDB_REGNO_V9:
+			return "v9";
+		case GDB_REGNO_V10:
+			return "v10";
+		case GDB_REGNO_V11:
+			return "v11";
+		case GDB_REGNO_V12:
+			return "v12";
+		case GDB_REGNO_V13:
+			return "v13";
+		case GDB_REGNO_V14:
+			return "v14";
+		case GDB_REGNO_V15:
+			return "v15";
+		case GDB_REGNO_V16:
+			return "v16";
+		case GDB_REGNO_V17:
+			return "v17";
+		case GDB_REGNO_V18:
+			return "v18";
+		case GDB_REGNO_V19:
+			return "v19";
+		case GDB_REGNO_V20:
+			return "v20";
+		case GDB_REGNO_V21:
+			return "v21";
+		case GDB_REGNO_V22:
+			return "v22";
+		case GDB_REGNO_V23:
+			return "v23";
+		case GDB_REGNO_V24:
+			return "v24";
+		case GDB_REGNO_V25:
+			return "v25";
+		case GDB_REGNO_V26:
+			return "v26";
+		case GDB_REGNO_V27:
+			return "v27";
+		case GDB_REGNO_V28:
+			return "v28";
+		case GDB_REGNO_V29:
+			return "v29";
+		case GDB_REGNO_V30:
+			return "v30";
+		case GDB_REGNO_V31:
+			return "v31";
 		default:
 			if (regno <= GDB_REGNO_XPR31)
 				sprintf(buf, "x%d", regno - GDB_REGNO_ZERO);
@@ -3246,20 +3314,35 @@ static int register_get(struct reg *reg)
 {
 	riscv_reg_info_t *reg_info = reg->arch_info;
 	struct target *target = reg_info->target;
-	uint64_t value;
-	int result = riscv_get_register(target, &value, reg->number);
-	if (result != ERROR_OK)
-		return result;
-	buf_set_u64(reg->value, 0, reg->size, value);
+	RISCV_INFO(r);
+
+	if (reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) {
+		if (!r->get_register_buf) {
+			LOG_ERROR("Reading register %s not supported on this RISC-V target.",
+					gdb_regno_name(reg->number));
+			return ERROR_FAIL;
+		}
+
+		if (r->get_register_buf(target, reg->value, reg->number) != ERROR_OK)
+			return ERROR_FAIL;
+	} else {
+		uint64_t value;
+		int result = riscv_get_register(target, &value, reg->number);
+		if (result != ERROR_OK)
+			return result;
+		buf_set_u64(reg->value, 0, reg->size, value);
+	}
 	/* CSRs (and possibly other extension) registers may change value at any
 	 * time. */
 	if (reg->number <= GDB_REGNO_XPR31 ||
 			(reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) ||
+			(reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) ||
 			reg->number == GDB_REGNO_PC)
 		reg->valid = true;
-	LOG_DEBUG("[%d]{%d} read 0x%" PRIx64 " from %s (valid=%d)",
-			target->coreid, riscv_current_hartid(target), value, reg->name,
-			reg->valid);
+	char *str = buf_to_str(reg->value, reg->size, 16);
+	LOG_DEBUG("[%d]{%d} read 0x%s from %s (valid=%d)", target->coreid,
+			riscv_current_hartid(target), str, reg->name, reg->valid);
+	free(str);
 	return ERROR_OK;
 }
 
@@ -3267,22 +3350,37 @@ static int register_set(struct reg *reg, uint8_t *buf)
 {
 	riscv_reg_info_t *reg_info = reg->arch_info;
 	struct target *target = reg_info->target;
+	RISCV_INFO(r);
 
-	uint64_t value = buf_get_u64(buf, 0, reg->size);
+	char *str = buf_to_str(buf, reg->size, 16);
+	LOG_DEBUG("[%d]{%d} write 0x%s to %s (valid=%d)", target->coreid,
+			riscv_current_hartid(target), str, reg->name, reg->valid);
+	free(str);
 
-	LOG_DEBUG("[%d]{%d} write 0x%" PRIx64 " to %s (valid=%d)",
-			target->coreid, riscv_current_hartid(target), value, reg->name,
-			reg->valid);
-	struct reg *r = &target->reg_cache->reg_list[reg->number];
+	memcpy(reg->value, buf, DIV_ROUND_UP(reg->size, 8));
 	/* CSRs (and possibly other extension) registers may change value at any
 	 * time. */
 	if (reg->number <= GDB_REGNO_XPR31 ||
 			(reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) ||
+			(reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) ||
 			reg->number == GDB_REGNO_PC)
-		r->valid = true;
-	memcpy(r->value, buf, (r->size + 7) / 8);
+		reg->valid = true;
 
-	riscv_set_register(target, reg->number, value);
+	if (reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) {
+		if (!r->set_register_buf) {
+			LOG_ERROR("Writing register %s not supported on this RISC-V target.",
+					gdb_regno_name(reg->number));
+			return ERROR_FAIL;
+		}
+
+		if (r->set_register_buf(target, reg->number, reg->value) != ERROR_OK)
+			return ERROR_FAIL;
+	} else {
+		uint64_t value = buf_get_u64(buf, 0, reg->size);
+		if (riscv_set_register(target, reg->number, value) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
 	return ERROR_OK;
 }
 
@@ -3333,6 +3431,8 @@ int riscv_init_registers(struct target *target)
 		calloc(target->reg_cache->num_regs, max_reg_name_len);
 	char *reg_name = info->reg_names;
 
+	int hartid = riscv_current_hartid(target);
+
 	static struct reg_feature feature_cpu = {
 		.name = "org.gnu.gdb.riscv.cpu"
 	};
@@ -3342,6 +3442,9 @@ int riscv_init_registers(struct target *target)
 	static struct reg_feature feature_csr = {
 		.name = "org.gnu.gdb.riscv.csr"
 	};
+	static struct reg_feature feature_vector = {
+		.name = "org.gnu.gdb.riscv.vector"
+	};
 	static struct reg_feature feature_virtual = {
 		.name = "org.gnu.gdb.riscv.virtual"
 	};
@@ -3349,14 +3452,104 @@ int riscv_init_registers(struct target *target)
 		.name = "org.gnu.gdb.riscv.custom"
 	};
 
-	static struct reg_data_type type_ieee_single = {
-		.type = REG_TYPE_IEEE_SINGLE,
-		.id = "ieee_single"
-	};
-	static struct reg_data_type type_ieee_double = {
-		.type = REG_TYPE_IEEE_DOUBLE,
-		.id = "ieee_double"
-	};
+	/* These types are built into gdb. */
+	static struct reg_data_type type_ieee_single = { .type = REG_TYPE_IEEE_SINGLE, .id = "ieee_single" };
+	static struct reg_data_type type_ieee_double = { .type = REG_TYPE_IEEE_DOUBLE, .id = "ieee_double" };
+	static struct reg_data_type type_uint8 = { .type = REG_TYPE_UINT8, .id = "uint8" };
+	static struct reg_data_type type_uint16 = { .type = REG_TYPE_UINT16, .id = "uint16" };
+	static struct reg_data_type type_uint32 = { .type = REG_TYPE_UINT32, .id = "uint32" };
+	static struct reg_data_type type_uint64 = { .type = REG_TYPE_UINT64, .id = "uint64" };
+	static struct reg_data_type type_uint128 = { .type = REG_TYPE_UINT128, .id = "uint128" };
+
+	/* This is roughly the XML we want:
+	 * <vector id="bytes" type="uint8" count="16"/>
+	 * <vector id="shorts" type="uint16" count="8"/>
+	 * <vector id="words" type="uint32" count="4"/>
+	 * <vector id="longs" type="uint64" count="2"/>
+	 * <vector id="quads" type="uint128" count="1"/>
+	 * <union id="riscv_vector_type">
+	 *   <field name="b" type="bytes"/>
+	 *   <field name="s" type="shorts"/>
+	 *   <field name="w" type="words"/>
+	 *   <field name="l" type="longs"/>
+	 *   <field name="q" type="quads"/>
+	 * </union>
+	 */
+
+	info->vector_uint8.type = &type_uint8;
+	info->vector_uint8.count = info->vlenb[hartid];
+	info->type_uint8_vector.type = REG_TYPE_ARCH_DEFINED;
+	info->type_uint8_vector.id = "bytes";
+	info->type_uint8_vector.type_class = REG_TYPE_CLASS_VECTOR;
+	info->type_uint8_vector.reg_type_vector = &info->vector_uint8;
+
+	info->vector_uint16.type = &type_uint16;
+	info->vector_uint16.count = info->vlenb[hartid] / 2;
+	info->type_uint16_vector.type = REG_TYPE_ARCH_DEFINED;
+	info->type_uint16_vector.id = "shorts";
+	info->type_uint16_vector.type_class = REG_TYPE_CLASS_VECTOR;
+	info->type_uint16_vector.reg_type_vector = &info->vector_uint16;
+
+	info->vector_uint32.type = &type_uint32;
+	info->vector_uint32.count = info->vlenb[hartid] / 4;
+	info->type_uint32_vector.type = REG_TYPE_ARCH_DEFINED;
+	info->type_uint32_vector.id = "words";
+	info->type_uint32_vector.type_class = REG_TYPE_CLASS_VECTOR;
+	info->type_uint32_vector.reg_type_vector = &info->vector_uint32;
+
+	info->vector_uint64.type = &type_uint64;
+	info->vector_uint64.count = info->vlenb[hartid] / 8;
+	info->type_uint64_vector.type = REG_TYPE_ARCH_DEFINED;
+	info->type_uint64_vector.id = "longs";
+	info->type_uint64_vector.type_class = REG_TYPE_CLASS_VECTOR;
+	info->type_uint64_vector.reg_type_vector = &info->vector_uint64;
+
+	info->vector_uint128.type = &type_uint128;
+	info->vector_uint128.count = info->vlenb[hartid] / 16;
+	info->type_uint128_vector.type = REG_TYPE_ARCH_DEFINED;
+	info->type_uint128_vector.id = "quads";
+	info->type_uint128_vector.type_class = REG_TYPE_CLASS_VECTOR;
+	info->type_uint128_vector.reg_type_vector = &info->vector_uint128;
+
+	info->vector_fields[0].name = "b";
+	info->vector_fields[0].type = &info->type_uint8_vector;
+	if (info->vlenb[hartid] >= 2) {
+		info->vector_fields[0].next = info->vector_fields + 1;
+		info->vector_fields[1].name = "s";
+		info->vector_fields[1].type = &info->type_uint16_vector;
+	} else {
+		info->vector_fields[0].next = NULL;
+	}
+	if (info->vlenb[hartid] >= 4) {
+		info->vector_fields[1].next = info->vector_fields + 2;
+		info->vector_fields[2].name = "w";
+		info->vector_fields[2].type = &info->type_uint32_vector;
+	} else {
+		info->vector_fields[1].next = NULL;
+	}
+	if (info->vlenb[hartid] >= 8) {
+		info->vector_fields[2].next = info->vector_fields + 3;
+		info->vector_fields[3].name = "l";
+		info->vector_fields[3].type = &info->type_uint64_vector;
+	} else {
+		info->vector_fields[2].next = NULL;
+	}
+	if (info->vlenb[hartid] >= 16) {
+		info->vector_fields[3].next = info->vector_fields + 4;
+		info->vector_fields[4].name = "q";
+		info->vector_fields[4].type = &info->type_uint128_vector;
+	} else {
+		info->vector_fields[3].next = NULL;
+	}
+	info->vector_fields[4].next = NULL;
+
+	info->vector_union.fields = info->vector_fields;
+
+	info->type_vector.type = REG_TYPE_ARCH_DEFINED;
+	info->type_vector.id = "riscv_vector";
+	info->type_vector.type_class = REG_TYPE_CLASS_UNION;
+	info->type_vector.reg_type_union = &info->vector_union;
+
 	struct csr_info csr_info[] = {
 #define DECLARE_CSR(name, number) { number, #name },
 #include "encoding.h"
@@ -3371,8 +3564,6 @@ int riscv_init_registers(struct target *target)
 
 	riscv_reg_info_t *shared_reg_info = calloc(1, sizeof(riscv_reg_info_t));
 	shared_reg_info->target = target;
-
-	int hartid = riscv_current_hartid(target);
 
 	/* When gdb requests register N, gdb_get_register_packet() assumes that this
 	 * is register at index N in reg_list. So if there are certain registers
@@ -3731,6 +3922,15 @@ int riscv_init_registers(struct target *target)
 				case CSR_MHPMCOUNTER31H:
 					r->exist = riscv_xlen(target) == 32;
 					break;
+
+				case CSR_VSTART:
+				case CSR_VXSAT:
+				case CSR_VXRM:
+				case CSR_VL:
+				case CSR_VTYPE:
+				case CSR_VLENB:
+					r->exist = riscv_supports_extension(target, hartid, 'V');
+					break;
 			}
 
 			if (!r->exist && expose_csr) {
@@ -3748,6 +3948,15 @@ int riscv_init_registers(struct target *target)
 			r->group = "general";
 			r->feature = &feature_virtual;
 			r->size = 8;
+
+		} else if (number >= GDB_REGNO_V0 && number <= GDB_REGNO_V31) {
+			r->caller_save = false;
+			r->exist = riscv_supports_extension(target, hartid, 'V');
+			r->size = info->vlenb[hartid] * 8;
+			sprintf(reg_name, "v%d", number - GDB_REGNO_V0);
+			r->group = "vector";
+			r->feature = &feature_vector;
+			r->reg_data_type = &info->type_vector;
 
 		} else if (number >= GDB_REGNO_COUNT) {
 			/* Custom registers. */
