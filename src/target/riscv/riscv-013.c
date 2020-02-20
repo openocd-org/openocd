@@ -4310,9 +4310,9 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 	if (result != ERROR_OK)
 		return result;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, 1);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, 1);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, 1);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku);
 	return riscv_set_register(target, GDB_REGNO_DCSR, dcsr);
 }
 

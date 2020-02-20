@@ -195,6 +195,9 @@ extern int riscv_reset_timeout_sec;
 extern bool riscv_prefer_sba;
 
 extern bool riscv_enable_virtual;
+extern bool riscv_ebreakm;
+extern bool riscv_ebreaks;
+extern bool riscv_ebreaku;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */

@@ -9511,6 +9511,21 @@ Enable or disable use of a BSCAN tunnel to reach DM.  Supply the width of
 the DM transport TAP's instruction register to enable.  Supply a value of 0 to disable.
 @end deffn
 
+@deffn Command {riscv set_ebreakm} on|off
+Control dcsr.ebreakm. When on (default), M-mode ebreak instructions trap to
+OpenOCD. When off, they generate a breakpoint exception handled internally.
+@end deffn
+
+@deffn Command {riscv set_ebreaks} on|off
+Control dcsr.ebreaks. When on (default), S-mode ebreak instructions trap to
+OpenOCD. When off, they generate a breakpoint exception handled internally.
+@end deffn
+
+@deffn Command {riscv set_ebreaku} on|off
+Control dcsr.ebreaku. When on (default), U-mode ebreak instructions trap to
+OpenOCD. When off, they generate a breakpoint exception handled internally.
+@end deffn
+
 @subsection RISC-V Authentication Commands
 
 The following commands can be used to authenticate to a RISC-V system. Eg.  a

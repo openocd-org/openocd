@@ -252,6 +252,9 @@ int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
 bool riscv_prefer_sba;
 bool riscv_enable_virt2phys = true;
+bool riscv_ebreakm = true;
+bool riscv_ebreaks = true;
+bool riscv_ebreaku = true;
 
 bool riscv_enable_virtual;
 
@@ -2465,6 +2468,36 @@ COMMAND_HANDLER(riscv_set_enable_virt2phys)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_ebreakm)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_ebreakm);
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_ebreaks)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_ebreaks);
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_ebreaku)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_ebreaku);
+	return ERROR_OK;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
@@ -2606,6 +2639,30 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_enable_virt2phys on|off",
 		.help = "Enable translation from virtual address to physical address."
+	},
+	{
+		.name = "set_ebreakm",
+		.handler = riscv_set_ebreakm,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_ebreakm on|off",
+		.help = "Control dcsr.ebreakm. When off, M-mode ebreak instructions "
+			"don't trap to OpenOCD. Defaults to on."
+	},
+	{
+		.name = "set_ebreaks",
+		.handler = riscv_set_ebreaks,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_ebreaks on|off",
+		.help = "Control dcsr.ebreaks. When off, S-mode ebreak instructions "
+			"don't trap to OpenOCD. Defaults to on."
+	},
+	{
+		.name = "set_ebreaku",
+		.handler = riscv_set_ebreaku,
+		.mode = COMMAND_ANY,
+		.usage = "riscv set_ebreaku on|off",
+		.help = "Control dcsr.ebreaku. When off, U-mode ebreak instructions "
+			"don't trap to OpenOCD. Defaults to on."
 	},
 	COMMAND_REGISTRATION_DONE
 };

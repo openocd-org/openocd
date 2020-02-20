@@ -1114,7 +1114,10 @@ static int execute_resume(struct target *target, bool step)
 		}
 	}
 
-	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS | DCSR_EBREAKU;
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, riscv_ebreakm);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, riscv_ebreaks);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, riscv_ebreaku);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKH, 1);
 	info->dcsr &= ~DCSR_HALT;
 
 	if (step)
@@ -1946,8 +1949,11 @@ static int assert_reset(struct target *target)
 
 	/* Not sure what we should do when there are multiple cores.
 	 * Here just reset the single hart we're talking to. */
-	info->dcsr |= DCSR_EBREAKM | DCSR_EBREAKH | DCSR_EBREAKS |
-		DCSR_EBREAKU | DCSR_HALT;
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, riscv_ebreakm);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, riscv_ebreaks);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, riscv_ebreaku);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKH, 1);
+	info->dcsr |= DCSR_HALT;
 	if (target->reset_halt)
 		info->dcsr |= DCSR_NDRESET;
 	else
