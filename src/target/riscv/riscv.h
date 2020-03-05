@@ -176,7 +176,9 @@ typedef struct {
 } riscv_bscan_tunneled_scan_context_t;
 
 typedef struct {
+	const char *name;
 	int level;
+	unsigned va_bits;
 	unsigned pte_shift;
 	unsigned vpn_shift[PG_MAX_LEVEL];
 	unsigned vpn_mask[PG_MAX_LEVEL];

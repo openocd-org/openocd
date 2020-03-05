@@ -276,6 +276,8 @@ static enum {
 } resume_order;
 
 virt2phys_info_t sv32 = {
+	.name = "Sv32",
+	.va_bits = 32,
 	.level = 2,
 	.pte_shift = 2,
 	.vpn_shift = {12, 22},
@@ -287,6 +289,8 @@ virt2phys_info_t sv32 = {
 };
 
 virt2phys_info_t sv39 = {
+	.name = "Sv39",
+	.va_bits = 39,
 	.level = 3,
 	.pte_shift = 3,
 	.vpn_shift = {12, 21, 30},
@@ -298,6 +302,8 @@ virt2phys_info_t sv39 = {
 };
 
 virt2phys_info_t sv48 = {
+	.name = "Sv48",
+	.va_bits = 48,
 	.level = 4,
 	.pte_shift = 3,
 	.vpn_shift = {12, 21, 30, 39},
@@ -1412,18 +1418,16 @@ static int riscv_address_translate(struct target *target,
 	if (result != ERROR_OK)
 		return result;
 
-	mode = get_field(satp_value, RISCV_SATP_MODE(riscv_xlen(target)));
+	unsigned xlen = riscv_xlen(target);
+	mode = get_field(satp_value, RISCV_SATP_MODE(xlen));
 	switch (mode) {
 		case SATP_MODE_SV32:
-			LOG_DEBUG("Translation mode: SV32");
 			info = &sv32;
 			break;
 		case SATP_MODE_SV39:
-			LOG_DEBUG("Translation mode: SV39");
 			info = &sv39;
 			break;
 		case SATP_MODE_SV48:
-			LOG_DEBUG("Translation mode: SV48");
 			info = &sv48;
 			break;
 		case SATP_MODE_OFF:
@@ -1435,8 +1439,18 @@ static int riscv_address_translate(struct target *target,
 				      " (satp: 0x%" PRIx64")", satp_value);
 			return ERROR_FAIL;
 	}
+	LOG_DEBUG("virtual=0x%" TARGET_PRIxADDR "; mode=%s", virtual, info->name);
 
-	ppn_value = get_field(satp_value, RISCV_SATP_PPN(riscv_xlen(target)));
+	/* verify bits xlen-1:va_bits-1 are all equal */
+	target_addr_t mask = ((target_addr_t) 1 << (xlen - (info->va_bits-1))) - 1;
+	target_addr_t masked_msbs = (virtual >> (info->va_bits-1)) & mask;
+	if (masked_msbs != 0 && masked_msbs != mask) {
+		LOG_ERROR("Virtual address 0x%" TARGET_PRIxADDR " is not sign-extended "
+				"for %s mode.", virtual, info->name);
+		return ERROR_FAIL;
+	}
+
+	ppn_value = get_field(satp_value, RISCV_SATP_PPN(xlen));
 	table_address = ppn_value << RISCV_PGSHIFT;
 	i = info->level - 1;
 	while (i >= 0) {
@@ -1477,7 +1491,8 @@ static int riscv_address_translate(struct target *target,
 		return ERROR_FAIL;
 	}
 
-	*physical = virtual;
+	/* Make sure to clear out the high bits that may be set. */
+	*physical = virtual & (((target_addr_t) 1 << info->va_bits) - 1);
 
 	while (i < info->level) {
 		ppn_value = pte >> info->pte_ppn_shift[i];
