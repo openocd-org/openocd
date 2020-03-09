@@ -75,6 +75,12 @@
  * http://www.st.com/resource/en/reference_manual/dm00622834.pdf
  */
 
+/* STM32WLxxx series for reference.
+ *
+ * RM0461 (STM32WLEx)
+ * http://www.st.com/resource/en/reference_manual/dm00530369.pdf
+ */
+
 /*
  * STM32G0xxx series for reference.
  *
@@ -132,7 +138,7 @@ struct stm32l4_flash_bank {
 };
 
 /* human readable list of families this drivers supports */
-static const char *device_families = "STM32L4/L4+/WB/G4/G0";
+static const char *device_families = "STM32L4/L4+/WB/WL/G4/G0";
 
 static const struct stm32l4_rev stm32_415_revs[] = {
 	{ 0x1000, "1" }, { 0x1001, "2" }, { 0x1003, "3" }, { 0x1007, "4" }
@@ -180,6 +186,10 @@ static const struct stm32l4_rev stm32_471_revs[] = {
 
 static const struct stm32l4_rev stm32_495_revs[] = {
 	{ 0x2001, "2.1" },
+};
+
+static const struct stm32l4_rev stm32_497_revs[] = {
+	{ 0x1000, "1.0" },
 };
 
 static const struct stm32l4_part_info stm32l4_parts[] = {
@@ -299,6 +309,16 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .num_revs              = ARRAY_SIZE(stm32_495_revs),
 	  .device_str            = "STM32WB5x",
 	  .max_flash_size_kb     = 1024,
+	  .has_dual_bank         = false,
+	  .flash_regs_base       = 0x58004000,
+	  .fsize_addr            = 0x1FFF75E0,
+	},
+	{
+	  .id                    = 0x497,
+	  .revs                  = stm32_497_revs,
+	  .num_revs              = ARRAY_SIZE(stm32_497_revs),
+	  .device_str            = "STM32WLEx",
+	  .max_flash_size_kb     = 256,
 	  .has_dual_bank         = false,
 	  .flash_regs_base       = 0x58004000,
 	  .fsize_addr            = 0x1FFF75E0,
@@ -918,6 +938,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	case 0x464: /* STM32L41/L42xx */
 	case 0x466: /* STM32G03/G04xx */
 	case 0x468: /* STM32G43/G44xx */
+	case 0x497: /* STM32WLEx */
 		/* single bank flash */
 		page_size_kb = 2;
 		num_pages = flash_size_kb / page_size_kb;
