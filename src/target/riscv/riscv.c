@@ -4023,7 +4023,7 @@ int riscv_init_registers(struct target *target)
 
 		} else if (number >= GDB_REGNO_V0 && number <= GDB_REGNO_V31) {
 			r->caller_save = false;
-			r->exist = riscv_supports_extension(target, hartid, 'V');
+			r->exist = riscv_supports_extension(target, hartid, 'V') && info->vlenb[hartid];
 			r->size = info->vlenb[hartid] * 8;
 			sprintf(reg_name, "v%d", number - GDB_REGNO_V0);
 			r->group = "vector";

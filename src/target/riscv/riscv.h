@@ -75,6 +75,7 @@ typedef struct {
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen[RISCV_MAX_HARTS];
 	riscv_reg_t misa[RISCV_MAX_HARTS];
+	/* Cached value of vlenb. 0 if vlenb is not readable for some reason. */
 	unsigned vlenb[RISCV_MAX_HARTS];
 
 	/* The number of triggers per hart. */

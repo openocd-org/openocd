@@ -1541,8 +1541,12 @@ static int discover_vlenb(struct target *target, int hartid)
 	RISCV_INFO(r);
 	riscv_reg_t vlenb;
 
-	if (register_read(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK)
-		return ERROR_FAIL;
+	if (register_read(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK) {
+		LOG_WARNING("Couldn't read vlenb for %s; vector register access won't "
+				"work.", target_name(target));
+		r->vlenb[hartid] = 0;
+		return ERROR_OK;
+	}
 	r->vlenb[hartid] = vlenb;
 
 	LOG_INFO("hart %d: Vector support with vlenb=%d", hartid, r->vlenb[hartid]);
