@@ -680,3 +680,19 @@ bool rtos_needs_fake_step(struct target *target, int64_t thread_id)
 		return target->rtos->type->needs_fake_step(target, thread_id);
 	return target->rtos->current_thread != thread_id;
 }
+
+int rtos_read_buffer(struct target *target, target_addr_t address,
+		uint32_t size, uint8_t *buffer)
+{
+	if (target->rtos->type->read_buffer)
+		return target->rtos->type->read_buffer(target->rtos, address, size, buffer);
+	return ERROR_NOT_IMPLEMENTED;
+}
+
+int rtos_write_buffer(struct target *target, target_addr_t address,
+		uint32_t size, const uint8_t *buffer)
+{
+	if (target->rtos->type->write_buffer)
+		return target->rtos->type->write_buffer(target->rtos, address, size, buffer);
+	return ERROR_NOT_IMPLEMENTED;
+}
