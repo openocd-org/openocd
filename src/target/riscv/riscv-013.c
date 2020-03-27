@@ -524,6 +524,8 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
 		LOG_ERROR("dmi_scan failed jtag scan");
+		if (data_in)
+			*data_in = ~0;
 		return DMI_STATUS_FAILED;
 	}
 
@@ -1094,6 +1096,8 @@ static int prep_for_register_access(struct target *target, uint64_t *mstatus,
 						set_field(*mstatus, MSTATUS_VS, 1)) != ERROR_OK)
 				return ERROR_FAIL;
 		}
+	} else {
+		*mstatus = 0;
 	}
 	return ERROR_OK;
 }
@@ -1220,7 +1224,7 @@ static int scratch_read64(struct target *target, scratch_mem_t *scratch,
 			break;
 		case SPACE_DMI_RAM:
 			{
-				uint8_t buffer[8];
+				uint8_t buffer[8] = {0};
 				if (read_memory(target, scratch->debug_address, 4, 2, buffer) != ERROR_OK)
 					return ERROR_FAIL;
 				*value = buffer[0] |
