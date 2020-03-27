@@ -2541,7 +2541,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_prefer_sba on|off",
 		.help = "When on, prefer to use System Bus Access to access memory. "
-			"When off, prefer to use the Program Buffer to access memory."
+			"When off (default), prefer to use the Program Buffer to access memory."
 	},
 	{
 		.name = "set_enable_virtual",
@@ -2550,7 +2550,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.usage = "riscv set_enable_virtual on|off",
 		.help = "When on, memory accesses are performed on physical or virtual "
 				"memory depending on the current system configuration. "
-				"When off, all memory accessses are performed on physical memory."
+				"When off (default), all memory accessses are performed on physical memory."
 	},
 	{
 		.name = "expose_csrs",
@@ -2653,7 +2653,8 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.handler = riscv_set_enable_virt2phys,
 		.mode = COMMAND_ANY,
 		.usage = "riscv set_enable_virt2phys on|off",
-		.help = "Enable translation from virtual address to physical address."
+		.help = "When on (default), enable translation from virtual address to "
+			"physical address."
 	},
 	{
 		.name = "set_ebreakm",

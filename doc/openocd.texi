@@ -9468,20 +9468,20 @@ This is used to access 64-bit floating point registers on 32-bit targets.
 @end deffn
 
 @deffn Command {riscv set_prefer_sba} on|off
-When on, prefer to use System Bus Access to access memory.  When off, prefer to
-use the Program Buffer to access memory.
+When on, prefer to use System Bus Access to access memory.  When off (default),
+prefer to use the Program Buffer to access memory.
 @end deffn
 
 @deffn Command {riscv set_enable_virtual} on|off
 When on, memory accesses are performed on physical or virtual memory depending
-on the current system configuration. When off, all memory accessses are performed
+on the current system configuration. When off (default), all memory accessses are performed
 on physical memory.
 @end deffn
 
 @deffn Command {riscv set_enable_virt2phys} on|off
-When on, memory accesses are performed on physical or virtual memory depending
-on the current satp configuration. When off, all memory accessses are performed
-on physical memory.
+When on (default), memory accesses are performed on physical or virtual memory
+depending on the current satp configuration. When off, all memory accessses are
+performed on physical memory.
 @end deffn
 
 @deffn Command {riscv resume_order} normal|reversed
