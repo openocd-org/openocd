@@ -19,6 +19,8 @@
  *   Copyright (C) 2015 Tomas Vanek                                        *
  *   vanekt@fbl.cz                                                         *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -144,7 +146,7 @@ struct kinetis_ke_flash_bank {
 
 #define MDM_ACCESS_TIMEOUT	3000 /* iterations */
 
-static int kinetis_ke_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
+static int kinetis_ke_mdm_write_register(struct adi_dap *dap, unsigned reg, uint32_t value)
 {
 	int retval;
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
@@ -164,7 +166,7 @@ static int kinetis_ke_mdm_write_register(struct adiv5_dap *dap, unsigned reg, ui
 	return ERROR_OK;
 }
 
-static int kinetis_ke_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
+static int kinetis_ke_mdm_read_register(struct adi_dap *dap, unsigned reg, uint32_t *result)
 {
 	int retval;
 	retval = dap_queue_ap_read(dap_ap(dap, 1), reg, result);
@@ -183,7 +185,7 @@ static int kinetis_ke_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uin
 	return ERROR_OK;
 }
 
-static int kinetis_ke_mdm_poll_register(struct adiv5_dap *dap, unsigned reg, uint32_t mask, uint32_t value)
+static int kinetis_ke_mdm_poll_register(struct adi_dap *dap, unsigned reg, uint32_t mask, uint32_t value)
 {
 	uint32_t val;
 	int retval;
@@ -501,7 +503,7 @@ COMMAND_HANDLER(kinetis_ke_mdm_mass_erase)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+	struct adi_dap *dap = cortex_m->armv7m.arm.dap;
 
 	if (!dap) {
 		LOG_ERROR("Cannot perform mass erase with a high-level adapter");
@@ -578,7 +580,7 @@ COMMAND_HANDLER(kinetis_ke_check_flash_security_status)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+	struct adi_dap *dap = cortex_m->armv7m.arm.dap;
 
 	if (!dap) {
 		LOG_WARNING("Cannot check flash security status with a high-level adapter");

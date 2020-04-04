@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2015 by David Ung                                       *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -19,7 +21,7 @@
 #ifndef OPENOCD_TARGET_ARMV8_H
 #define OPENOCD_TARGET_ARMV8_H
 
-#include "arm_adi_v5.h"
+#include "arm_adi.h"
 #include "arm.h"
 #include "armv4_5_mmu.h"
 #include "armv4_5_cache.h"
@@ -196,8 +198,8 @@ struct armv8_common {
 
 	/* Core Debug Unit */
 	struct arm_dpm dpm;
-	uint32_t debug_base;
-	struct adiv5_ap *debug_ap;
+	target_addr_t debug_base;
+	struct adi_ap *debug_ap;
 
 	const uint32_t *opcodes;
 

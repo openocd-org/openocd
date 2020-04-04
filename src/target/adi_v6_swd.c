@@ -2,7 +2,7 @@
  *
  *   Copyright (C) 2010 by David Brownell
  *
- *   Copyright (C) 2019, Ampere Computing LLC
+ *   Copyright (C) 2019-2020, Ampere Computing LLC
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 
 #include "arm.h"
 #include "arm_adi.h"
-#include "arm_adi_v5.h"
+#include "arm_adi_v6.h"
 #include <helper/time_support.h>
 
 #include <transport/transport.h>
@@ -99,7 +99,7 @@ static int swd_run_inner(struct adi_dap *dap)
 static int swd_connect(struct adi_dap *dap)
 {
 	const struct swd_driver *swd = adi_dap_swd_driver(dap);
-	uint32_t dpidr = 0xdeadbeef;
+	uint32_t dpidr;
 	int status;
 
 	/* FIXME validate transport config ... is the
@@ -329,7 +329,7 @@ static void swd_quit(struct adi_dap *dap)
 	swd->run();
 }
 
-const struct dp_ops adiv5_swd_dp_ops = {
+const struct dp_ops adiv6_swd_dp_ops = {
 	.connect = swd_connect,
 	.send_sequence = swd_send_sequence,
 	.queue_dp_read = swd_queue_dp_read,
@@ -371,7 +371,7 @@ static const struct command_registration swd_handlers[] = {
 
 static int swd_select(struct command_context *ctx)
 {
-	/* FIXME: only place where global 'adapter_driver' is still needed */
+	/* FIXME: only place where global 'jtag_interface' is still needed */
 	extern struct adapter_driver *adapter_driver;
 	const struct swd_driver *swd = adapter_driver->swd_ops;
 	int retval;
@@ -416,6 +416,7 @@ static void swd_constructor(void)
 	transport_register(&swd_transport);
 }
 
+#if 0
 /** Returns true if the current debug session
  * is using SWD as its transport.
  */
@@ -423,3 +424,4 @@ bool transport_is_swd(void)
 {
 	return get_current_transport() == &swd_transport;
 }
+#endif

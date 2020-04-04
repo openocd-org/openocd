@@ -5,6 +5,8 @@
  *   Copyright (C) 2015 by Andreas Bomholtz                                *
  *   andreas@seluxit.com                                                   *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -891,7 +893,7 @@ static int sim3x_flash_info(struct flash_bank *bank, char *buf, int buf_size)
  *  reg 3:2  - register
  *  reg 1:0  - no effect
  */
-static int ap_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
+static int ap_write_register(struct adi_dap *dap, unsigned reg, uint32_t value)
 {
 	int retval;
 	LOG_DEBUG("DAP_REG[0x%02x] <- %08" PRIX32, reg, value);
@@ -911,7 +913,7 @@ static int ap_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value
 	return ERROR_OK;
 }
 
-static int ap_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
+static int ap_read_register(struct adi_dap *dap, unsigned reg, uint32_t *result)
 {
 	int retval;
 
@@ -931,7 +933,7 @@ static int ap_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *resul
 	return ERROR_OK;
 }
 
-static int ap_poll_register(struct adiv5_dap *dap, unsigned reg, uint32_t mask, uint32_t value, int timeout)
+static int ap_poll_register(struct adi_dap *dap, unsigned reg, uint32_t mask, uint32_t value, int timeout)
 {
 	uint32_t val;
 	int retval;
@@ -955,7 +957,7 @@ COMMAND_HANDLER(sim3x_mass_erase)
 
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+	struct adi_dap *dap = cortex_m->armv7m.arm.dap;
 
 	if (dap == NULL) {
 		/* Used debug interface doesn't support direct DAP access */
@@ -1000,7 +1002,7 @@ COMMAND_HANDLER(sim3x_lock)
 
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct adiv5_dap *dap = cortex_m->armv7m.arm.dap;
+	struct adi_dap *dap = cortex_m->armv7m.arm.dap;
 
 	if (dap == NULL) {
 		/* Used debug interface doesn't support direct DAP access */

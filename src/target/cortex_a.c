@@ -23,6 +23,8 @@
  *   Copyright (C) 2013 Kamal Dasu                                         *
  *   kdasu.kdev@gmail.com                                                  *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -2674,7 +2676,7 @@ static int cortex_a_examine_first(struct target *target)
 {
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
-	struct adiv5_dap *swjdp = armv7a->arm.dap;
+	struct adi_dap *swjdp = armv7a->arm.dap;
 
 	int i;
 	int retval = ERROR_OK;
@@ -2696,7 +2698,7 @@ static int cortex_a_examine_first(struct target *target)
 	armv7a->debug_ap->memaccess_tck = 80;
 
 	if (!target->dbgbase_set) {
-		uint32_t dbgbase;
+		target_addr_t dbgbase;
 		/* Get ROM Table base */
 		uint32_t apid;
 		int32_t coreidx = target->coreid;
@@ -2713,7 +2715,7 @@ static int cortex_a_examine_first(struct target *target)
 				  target->cmd_name);
 			return retval;
 		}
-		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32,
+		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %16.16" PRIx64,
 			  target->coreid, armv7a->debug_base);
 	} else
 		armv7a->debug_base = target->dbgbase;
@@ -2868,7 +2870,7 @@ static int cortex_a_init_target(struct command_context *cmd_ctx,
 }
 
 static int cortex_a_init_arch_info(struct target *target,
-	struct cortex_a_common *cortex_a, struct adiv5_dap *dap)
+	struct cortex_a_common *cortex_a, struct adi_dap *dap)
 {
 	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
 
@@ -2899,12 +2901,12 @@ static int cortex_a_init_arch_info(struct target *target,
 static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_a_common *cortex_a;
-	struct adiv5_private_config *pc;
+	struct adi_private_config *pc;
 
 	if (target->private_config == NULL)
 		return ERROR_FAIL;
 
-	pc = (struct adiv5_private_config *)target->private_config;
+	pc = (struct adi_private_config *)target->private_config;
 
 	cortex_a = calloc(1, sizeof(struct cortex_a_common));
 	if (cortex_a == NULL) {
@@ -2921,10 +2923,10 @@ static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct cortex_a_common *cortex_a;
-	struct adiv5_private_config *pc;
+	struct adi_private_config *pc;
 
-	pc = (struct adiv5_private_config *)target->private_config;
-	if (adiv5_verify_config(pc) != ERROR_OK)
+	pc = (struct adi_private_config *)target->private_config;
+	if (adi_verify_config(pc) != ERROR_OK)
 		return ERROR_FAIL;
 
 	cortex_a = calloc(1, sizeof(struct cortex_a_common));
@@ -3175,7 +3177,7 @@ struct target_type cortexa_target = {
 
 	.commands = cortex_a_command_handlers,
 	.target_create = cortex_a_target_create,
-	.target_jim_configure = adiv5_jim_configure,
+	.target_jim_configure = adi_jim_configure,
 	.init_target = cortex_a_init_target,
 	.examine = cortex_a_examine,
 	.deinit_target = cortex_a_deinit_target,
@@ -3252,7 +3254,7 @@ struct target_type cortexr4_target = {
 
 	.commands = cortex_r4_command_handlers,
 	.target_create = cortex_r4_target_create,
-	.target_jim_configure = adiv5_jim_configure,
+	.target_jim_configure = adi_jim_configure,
 	.init_target = cortex_a_init_target,
 	.examine = cortex_a_examine,
 	.deinit_target = cortex_a_deinit_target,

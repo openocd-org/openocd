@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2016 by Matthias Welwarsky                              *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -23,62 +25,52 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "target/arm_adi_v5.h"
+#include "target/arm_adi.h"
 #include "target/arm.h"
 #include "helper/list.h"
 #include "helper/command.h"
 #include "transport/transport.h"
 #include "jtag/interface.h"
 
+extern const struct command_registration adi_dap_instance_commands[];
+
 static LIST_HEAD(all_dap);
 
-extern const struct dap_ops swd_dap_ops;
-extern const struct dap_ops jtag_dp_ops;
+extern const struct dp_ops adiv5_swd_dp_ops;
+extern const struct dp_ops adiv6_swd_dp_ops;
+extern const struct dp_ops adiv5_jtag_dp_ops;
+extern const struct dp_ops adiv6_jtag_dp_ops;
+extern void adiv5_dap_instance_init(struct adi_dap *dap);
+extern void adiv6_dap_instance_init(struct adi_dap *dap);
 extern struct adapter_driver *adapter_driver;
 
 /* DAP command support */
 struct arm_dap_object {
 	struct list_head lh;
-	struct adiv5_dap dap;
+	struct adi_dap dap;
 	char *name;
 	const struct swd_driver *swd;
+	bool adiv6;
+	bool adiv5;
 };
 
-static void dap_instance_init(struct adiv5_dap *dap)
-{
-	int i;
-	/* Set up with safe defaults */
-	for (i = 0; i <= DP_APSEL_MAX; i++) {
-		dap->ap[i].dap = dap;
-		dap->ap[i].ap_num = i;
-		/* memaccess_tck max is 255 */
-		dap->ap[i].memaccess_tck = 255;
-		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
-		dap->ap[i].tar_autoincr_block = (1<<10);
-		/* default CSW value */
-		dap->ap[i].csw_default = CSW_AHB_DEFAULT;
-	}
-	INIT_LIST_HEAD(&dap->cmd_journal);
-	INIT_LIST_HEAD(&dap->cmd_pool);
-}
-
-const char *adiv5_dap_name(struct adiv5_dap *self)
+const char *adi_dap_name(struct adi_dap *self)
 {
 	struct arm_dap_object *obj = container_of(self, struct arm_dap_object, dap);
 	return obj->name;
 }
 
-const struct swd_driver *adiv5_dap_swd_driver(struct adiv5_dap *self)
+const struct swd_driver *adi_dap_swd_driver(struct adi_dap *self)
 {
 	struct arm_dap_object *obj = container_of(self, struct arm_dap_object, dap);
 	return obj->swd;
 }
 
-struct adiv5_dap *adiv5_get_dap(struct arm_dap_object *obj)
+struct adi_dap *adi_get_dap(struct arm_dap_object *obj)
 {
 	return &obj->dap;
 }
-struct adiv5_dap *dap_instance_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
+struct adi_dap *dap_instance_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 {
 	struct arm_dap_object *obj = NULL;
 	const char *name;
@@ -102,11 +94,12 @@ static int dap_init_all(void)
 {
 	struct arm_dap_object *obj;
 	int retval;
+	uint32_t dpidr;
 
 	LOG_DEBUG("Initializing all DAPs ...");
 
 	list_for_each_entry(obj, &all_dap, lh) {
-		struct adiv5_dap *dap = &obj->dap;
+		struct adi_dap *dap = &obj->dap;
 
 		/* with hla, dap is just a dummy */
 		if (transport_is_hla())
@@ -117,18 +110,85 @@ static int dap_init_all(void)
 			continue;
 
 		if (transport_is_swd()) {
-			dap->ops = &swd_dap_ops;
+			dap->dp_ops = &adiv6_swd_dp_ops; /* assume adi-v6 for now */
 			obj->swd = adapter_driver->swd_ops;
 		} else if (transport_is_dapdirect_swd()) {
-			dap->ops = adapter_driver->dap_swd_ops;
+			dap->dp_ops = adapter_driver->dap_swd_ops;
 		} else if (transport_is_dapdirect_jtag()) {
-			dap->ops = adapter_driver->dap_jtag_ops;
-		} else
-			dap->ops = &jtag_dp_ops;
+			dap->dp_ops = adapter_driver->dap_jtag_ops;
+		} else {
+			/* assume ADI-v6 as the default; change later based on DPIDR read */
+			dap->dp_ops = &adiv6_jtag_dp_ops;
+		}
 
-		retval = dap->ops->connect(dap);
+		retval = dap->dp_ops->connect(dap);
 		if (retval != ERROR_OK)
 			return retval;
+
+		if (obj->adiv6)
+			LOG_INFO("DAP %s configured to use ADIv6 protocol by user cfg file", jtag_tap_name(dap->tap));
+		else if (!obj->adiv5) {
+			/***************************************************/
+			/* User did not specify ADI-v5 (or v6) override    */
+			/* so read DPIDR and switch ADI version if need be */
+			/***************************************************/
+			retval = dap->dp_ops->queue_dp_read(dap, DP_DPIDR, &dpidr);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR failed...");
+				return retval;
+			}
+			retval = dap_run(dap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR failed...");
+				return retval;
+			}
+
+			if (((dpidr & 0x0000F000) >> 12) < 3) {
+				LOG_INFO("DAP %s DPIDR indicates ADIv5 protocol is being used", jtag_tap_name(dap->tap));
+				obj->adiv5 = true;
+				if (transport_is_swd())
+					dap->dp_ops = &adiv5_swd_dp_ops;
+				else
+					dap->dp_ops = &adiv5_jtag_dp_ops;
+				adiv5_dap_instance_init(dap);
+				retval = dap->dp_ops->connect(dap);
+				if (retval != ERROR_OK)
+					return retval;
+			} else {   /* target is using an ADI v6 DAP */
+				obj->adiv6 = true;
+				LOG_INFO("DAP %s DPIDR indicates ADIv6 protocol is being used", jtag_tap_name(dap->tap));
+			}
+		} else {
+			/**************************************************/
+			/* User configuration wants to force use of ADI-v5*/
+			/* This may be required on DPv0 parts that do not */
+			/* have a DPIDR register value indicating ADI-v5  */
+			/**************************************************/
+			LOG_INFO("DAP %s configured to use ADIv5 protocol by user cfg file", jtag_tap_name(dap->tap));
+			if (transport_is_swd())
+				dap->dp_ops = &adiv5_swd_dp_ops;
+			else
+				dap->dp_ops = &adiv5_jtag_dp_ops;
+			adiv5_dap_instance_init(dap);
+			retval = dap->dp_ops->connect(dap);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+		/* see if address size of ROM Table is greater than 32-bits */
+		if (obj->adiv6) {
+			retval = dap->dp_ops->queue_dp_read(dap, DP_DPIDR1, &dpidr);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR1 failed...");
+				return retval;
+			}
+			retval = dap_run(dap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR1 failed...");
+				return retval;
+			}
+			dap->asize = dpidr & 0x0000007F;
+		} else
+			dap->asize = 32;  /* ADIv5 only supports one select reg */
 	}
 
 	return ERROR_OK;
@@ -137,12 +197,12 @@ static int dap_init_all(void)
 int dap_cleanup_all(void)
 {
 	struct arm_dap_object *obj, *tmp;
-	struct adiv5_dap *dap;
+	struct adi_dap *dap;
 
 	list_for_each_entry_safe(obj, tmp, &all_dap, lh) {
 		dap = &obj->dap;
-		if (dap->ops && dap->ops->quit)
-			dap->ops->quit(dap);
+		if (dap->dp_ops && dap->dp_ops->quit)
+			dap->dp_ops->quit(dap);
 
 		free(obj->name);
 		free(obj);
@@ -154,11 +214,15 @@ int dap_cleanup_all(void)
 enum dap_cfg_param {
 	CFG_CHAIN_POSITION,
 	CFG_IGNORE_SYSPWRUPACK,
+	CFG_ADIV6,
+	CFG_ADIV5,
 };
 
 static const Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-chain-position",   .value = CFG_CHAIN_POSITION },
 	{ .name = "-ignore-syspwrupack", .value = CFG_IGNORE_SYSPWRUPACK },
+	{ .name = "-adiv6",   .value = CFG_ADIV6 },
+	{ .name = "-adiv5",   .value = CFG_ADIV5 },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -194,6 +258,14 @@ static int dap_configure(Jim_GetOptInfo *goi, struct arm_dap_object *dap)
 		case CFG_IGNORE_SYSPWRUPACK:
 			dap->dap.ignore_syspwrupack = true;
 			break;
+		case CFG_ADIV6:
+			dap->adiv5 = false; /* make sure last user designated ADI flag is used */
+			dap->adiv6 = true;
+			break;
+		case CFG_ADIV5:
+			dap->adiv6 = false; /* make sure last user designated ADI flag is used */
+			dap->adiv5 = true;
+			break;
 		default:
 			break;
 		}
@@ -204,7 +276,10 @@ static int dap_configure(Jim_GetOptInfo *goi, struct arm_dap_object *dap)
 		return JIM_ERR;
 	}
 
-	dap_instance_init(&dap->dap);
+	if (dap->adiv5)
+		adiv5_dap_instance_init(&dap->dap);
+	else
+		adiv6_dap_instance_init(&dap->dap);
 	dap->dap.tap = tap;
 
 	return JIM_OK;
@@ -256,7 +331,8 @@ static int dap_create(Jim_GetOptInfo *goi)
 			.mode = COMMAND_ANY,
 			.help = "dap instance command group",
 			.usage = "",
-			.chain = dap_instance_commands,
+			.chain = adi_dap_instance_commands,
+
 		},
 		COMMAND_REGISTRATION_DONE
 	};
@@ -313,9 +389,7 @@ COMMAND_HANDLER(handle_dap_init)
 
 COMMAND_HANDLER(handle_dap_info_command)
 {
-	struct target *target = get_current_target(CMD_CTX);
-	struct arm *arm = target_to_arm(target);
-	struct adiv5_dap *dap = arm->dap;
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
 	uint32_t apsel;
 
 	if (dap == NULL) {
@@ -336,7 +410,96 @@ COMMAND_HANDLER(handle_dap_info_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return dap_info_command(CMD, &dap->ap[apsel]);
+	return dap->dap_ops->dap_info_command(CMD, &dap->ap[apsel]);
+
+}
+
+COMMAND_HANDLER(dap_apsel_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+	uint32_t apsel;
+
+	switch (CMD_ARGC) {
+	case 0:
+		command_print(CMD, "%" PRIi32, dap->apsel);
+		return ERROR_OK;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
+		/* AP address is in bits 31:24 of DP_SELECT */
+		if (apsel > DP_APSEL_MAX)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	dap->apsel = apsel;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(dap_apcsw_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+
+	return dap->dap_ops->dap_apcsw_command(CMD);
+}
+
+COMMAND_HANDLER(dap_apid_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+
+	return dap->dap_ops->dap_apid_command(CMD);
+}
+
+COMMAND_HANDLER(dap_apreg_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+
+	return dap->dap_ops->dap_apreg_command(CMD);
+}
+
+COMMAND_HANDLER(dap_dpreg_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+
+	return dap->dap_ops->dap_dpreg_command(CMD);
+}
+
+COMMAND_HANDLER(dap_baseaddr_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+
+	return dap->dap_ops->dap_baseaddr_command(CMD);
+}
+
+COMMAND_HANDLER(dap_memaccess_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+
+	return dap->dap_ops->dap_memaccess_command(CMD);
+}
+
+COMMAND_HANDLER(dap_ti_be_32_quirks_command)
+{
+	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+	uint32_t enable = dap->ti_be_32_quirks;
+
+	switch (CMD_ARGC) {
+	case 0:
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], enable);
+		if (enable > 1)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	dap->ti_be_32_quirks = enable;
+	command_print(CMD, "TI BE-32 quirks mode %s",
+		enable ? "enabled" : "disabled");
+
+	return 0;
 }
 
 static const struct command_registration dap_subcommand_handlers[] = {
@@ -361,6 +524,8 @@ static const struct command_registration dap_subcommand_handlers[] = {
 		.usage = "",
 		.help = "Initialize all registered DAP instances"
 	},
+#if 0
+	/* v5/v6 discovery processes are different */
 	{
 		.name = "info",
 		.handler = handle_dap_info_command,
@@ -369,6 +534,7 @@ static const struct command_registration dap_subcommand_handlers[] = {
 		"(default currently selected AP)",
 		.usage = "[ap_num]",
 	},
+#endif
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -382,6 +548,82 @@ static const struct command_registration dap_commands[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
+const struct command_registration adi_dap_instance_commands[] = {
+	{
+		.name = "info",
+		.handler = handle_dap_info_command,
+		.mode = COMMAND_EXEC,
+		.help = "display ROM table for MEM-AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "apsel",
+		.handler = dap_apsel_command,
+		.mode = COMMAND_ANY,
+		.help = "Set the currently selected AP (default 0) "
+			"and display the result",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "apcsw",
+		.handler = dap_apcsw_command,
+		.mode = COMMAND_ANY,
+		.help = "Set CSW default bits",
+		.usage = "[value [mask]]",
+	},
+
+	{
+		.name = "apid",
+		.handler = dap_apid_command,
+		.mode = COMMAND_EXEC,
+		.help = "return ID register from AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "apreg",
+		.handler = dap_apreg_command,
+		.mode = COMMAND_EXEC,
+		.help = "read/write a register from AP "
+			"(reg is byte address of a word register, like 0 4 8...)",
+		.usage = "ap_num reg [value]",
+	},
+	{
+		.name = "dpreg",
+		.handler = dap_dpreg_command,
+		.mode = COMMAND_EXEC,
+		.help = "read/write a register from DP "
+			"(reg is byte address (bank << 4 | reg) of a word register, like 0 4 8...)",
+		.usage = "reg [value]",
+	},
+	{
+		.name = "baseaddr",
+		.handler = dap_baseaddr_command,
+		.mode = COMMAND_EXEC,
+		.help = "return debug base address from MEM-AP "
+			"(default currently selected AP)",
+		.usage = "[ap_num]",
+	},
+	{
+		.name = "memaccess",
+		.handler = dap_memaccess_command,
+		.mode = COMMAND_EXEC,
+		.help = "set/get number of extra tck for MEM-AP memory "
+			"bus access [0-255]",
+		.usage = "[cycles]",
+	},
+	{
+		.name = "ti_be_32_quirks",
+		.handler = dap_ti_be_32_quirks_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set/get quirks mode for TI TMS450/TMS570 processors",
+		.usage = "[enable]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 
 int dap_register_commands(struct command_context *cmd_ctx)
 {

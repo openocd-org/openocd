@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2009-2010 by David Brownell                             *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -18,7 +20,7 @@
 #ifndef OPENOCD_JTAG_SWD_H
 #define OPENOCD_JTAG_SWD_H
 
-#include <target/arm_adi_v5.h>
+#include <target/arm_adi.h>
 
 /* Bits in SWD command packets, written from host to target
  * first bit on the wire is START

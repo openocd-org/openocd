@@ -95,13 +95,17 @@ ARM_DEBUG_SRC = \
 	%D%/arm_disassembler.c \
 	%D%/arm_simulator.c \
 	%D%/arm_semihosting.c \
+	%D%/arm_adi.c \
 	%D%/arm_adi_v5.c \
+	%D%/arm_adi_v6.c \
 	%D%/arm_dap.c \
 	%D%/armv7a_cache.c \
 	%D%/armv7a_cache_l2x.c \
 	%D%/adi_v5_dapdirect.c \
 	%D%/adi_v5_jtag.c \
+	%D%/adi_v6_jtag.c \
 	%D%/adi_v5_swd.c \
+	%D%/adi_v6_swd.c \
 	%D%/embeddedice.c \
 	%D%/trace.c \
 	%D%/etb.c \
@@ -168,7 +172,9 @@ ARC_SRC = \
 	%D%/arm.h \
 	%D%/arm_dpm.h \
 	%D%/arm_jtag.h \
+	%D%/arm_adi.h \
 	%D%/arm_adi_v5.h \
+	%D%/arm_adi_v6.h \
 	%D%/armv7a_cache.h \
 	%D%/armv7a_cache_l2x.h \
 	%D%/armv7a_mmu.h \

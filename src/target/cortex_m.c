@@ -8,6 +8,8 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -289,7 +291,7 @@ static int cortex_m_endreset_event(struct target *target)
 	uint32_t dcb_demcr;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
-	struct adiv5_dap *swjdp = cortex_m->armv7m.arm.dap;
+	struct adi_dap *swjdp = cortex_m->armv7m.arm.dap;
 	struct cortex_m_fp_comparator *fp_list = cortex_m->fp_comparator_list;
 	struct cortex_m_dwt_comparator *dwt_list = cortex_m->dwt_comparator_list;
 
@@ -405,7 +407,7 @@ static int cortex_m_examine_exception_reason(struct target *target)
 {
 	uint32_t shcsr = 0, except_sr = 0, cfsr = -1, except_ar = -1;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	struct adiv5_dap *swjdp = armv7m->arm.dap;
+	struct adi_dap *swjdp = armv7m->arm.dap;
 	int retval;
 
 	retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_SHCSR, &shcsr);
@@ -1831,6 +1833,7 @@ int cortex_m_profiling(struct target *target, uint32_t *samples,
 	if (reg_value != 0) {
 		use_pcsr = true;
 		LOG_INFO("Starting Cortex-M profiling. Sampling DWT_PCSR as fast as we can...");
+		reg = NULL;
 	} else {
 		LOG_INFO("Starting profiling. Halting and resuming the"
 			 " target as often as we can...");
@@ -2098,8 +2101,8 @@ static void cortex_m_dwt_free(struct target *target)
 #define MVFR1_DEFAULT_M7_SP 0x11000011
 #define MVFR1_DEFAULT_M7_DP 0x12000011
 
-static int cortex_m_find_mem_ap(struct adiv5_dap *swjdp,
-		struct adiv5_ap **debug_ap)
+static int cortex_m_find_mem_ap(struct adi_dap *swjdp,
+		struct adi_ap **debug_ap)
 {
 	if (dap_find_ap(swjdp, AP_TYPE_AHB3_AP, debug_ap) == ERROR_OK)
 		return ERROR_OK;
@@ -2113,7 +2116,7 @@ int cortex_m_examine(struct target *target)
 	uint32_t cpuid, fpcr, mvfr0, mvfr1;
 	int i;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct adiv5_dap *swjdp = cortex_m->armv7m.arm.dap;
+	struct adi_dap *swjdp = cortex_m->armv7m.arm.dap;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	/* stlink shares the examine handler but does not support
@@ -2367,7 +2370,7 @@ static int cortex_m_handle_target_request(void *priv)
 }
 
 static int cortex_m_init_arch_info(struct target *target,
-	struct cortex_m_common *cortex_m, struct adiv5_dap *dap)
+	struct cortex_m_common *cortex_m, struct adi_dap *dap)
 {
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 
@@ -2397,10 +2400,10 @@ static int cortex_m_init_arch_info(struct target *target,
 
 static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 {
-	struct adiv5_private_config *pc;
+	struct adi_private_config *pc;
 
-	pc = (struct adiv5_private_config *)target->private_config;
-	if (adiv5_verify_config(pc) != ERROR_OK)
+	pc = (struct adi_private_config *)target->private_config;
+	if (adi_verify_config(pc) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
@@ -2680,7 +2683,7 @@ struct target_type cortexm_target = {
 
 	.commands = cortex_m_command_handlers,
 	.target_create = cortex_m_target_create,
-	.target_jim_configure = adiv5_jim_configure,
+	.target_jim_configure = adi_jim_configure,
 	.init_target = cortex_m_init_target,
 	.examine = cortex_m_examine,
 	.deinit_target = cortex_m_deinit_target,

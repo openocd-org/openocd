@@ -8,6 +8,8 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -25,7 +27,7 @@
 #ifndef OPENOCD_TARGET_ARMV7M_H
 #define OPENOCD_TARGET_ARMV7M_H
 
-#include "arm_adi_v5.h"
+#include "arm_adi.h"
 #include "arm.h"
 #include "armv7m_trace.h"
 
@@ -148,7 +150,7 @@ struct armv7m_common {
 	int exception_number;
 
 	/* AP this processor is connected to in the DAP */
-	struct adiv5_ap *debug_ap;
+	struct adi_ap *debug_ap;
 
 	int fp_feature;
 	uint32_t demcr;

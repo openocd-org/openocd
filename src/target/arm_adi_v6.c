@@ -31,13 +31,13 @@
 
 /**
  * @file
- * This file implements support for the ARM Debug Interface version 5 (ADIv5)
+ * This file implements support for the ARM Debug Interface version 5 (ADIv6)
  * debugging architecture.  Compared with previous versions, this includes
  * a low pin-count Serial Wire Debug (SWD) alternative to JTAG for message
  * transport, and focusses on memory mapped resources as defined by the
  * CoreSight architecture.
  *
- * A key concept in ADIv5 is the Debug Access Port, or DAP.  A DAP has two
+ * A key concept in ADIv6 is the Debug Access Port, or DAP.  A DAP has two
  * basic components:  a Debug Port (DP) transporting messages to and from a
  * debugger, and an Access Port (AP) accessing resources.  Three types of DP
  * are defined.  One uses only JTAG for communication, and is called JTAG-DP.
@@ -61,7 +61,7 @@
 /*
  * Relevant specifications from ARM include:
  *
- * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031E
+ * ARM(tm) Debug Interface v6 Architecture Specification    ARM IHI 0031E
  * CoreSight(tm) v1.0 Architecture Specification            ARM IHI 0029B
  *
  * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316D
@@ -75,7 +75,7 @@
 #include "jtag/interface.h"
 #include "arm.h"
 #include "arm_adi.h"
-#include "arm_adi_v5.h"
+#include "arm_adi_v6.h"
 #include "jtag/swd.h"
 #include "transport/transport.h"
 #include <helper/jep106.h>
@@ -83,24 +83,26 @@
 #include <helper/list.h>
 #include <helper/jim-nvp.h>
 
-#define ADIV5_BAD_CFG 0xBAD00000
+#define ADIV6_BAD_CFG 0xBAD00000
 
-static const struct dap_ops adiv5_dap_ops;
-void adiv5_dap_instance_init(struct adi_dap *dap)
+static const struct dap_ops adiv6_dap_ops;
+void adiv6_dap_instance_init(struct adi_dap *dap)
 {
 	int i;
 	/* Set up with safe defaults */
-	dap->dap_ops = &adiv5_dap_ops;
+	dap->dap_ops = &adiv6_dap_ops;
 	for (i = 0; i <= DP_APSEL_MAX; i++) {
 		dap->ap[i].dap = dap;
 		dap->ap[i].ap_num = i;
-		/* memaccess_tck max is 255 */
-		dap->ap[i].memaccess_tck = 255;
+		/* by default init base address at 16-bit granularity */
+		dap->ap[i].base_addr = i << 16;
+		/* default number of TCK clocks between AP accesses */
+		dap->ap[i].memaccess_tck = 20;
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
 		dap->ap[i].tar_autoincr_block = (1<<10);
 		/* default CSW value */
 		dap->ap[i].csw_default = CSW_AHB_DEFAULT;
-		dap->ap[i].cfg_reg = ADIV5_BAD_CFG; /* mem_ap configuration reg (large physical addr, etc. */
+		dap->ap[i].cfg_reg = ADIV6_BAD_CFG; /* mem_ap configuration reg (large physical addr, etc. */
 	}
 	INIT_LIST_HEAD(&dap->cmd_journal);
 	INIT_LIST_HEAD(&dap->cmd_pool);
@@ -122,7 +124,7 @@ static uint32_t max_tar_block_size(uint32_t tar_autoincr_block, target_addr_t ad
  *                                                                         *
 ***************************************************************************/
 
-static int adiv5_mem_ap_setup_csw(struct adi_ap *ap, uint32_t csw)
+static int adiv6_mem_ap_setup_csw(struct adi_ap *ap, uint32_t csw)
 {
 	csw |= ap->csw_default;
 
@@ -138,10 +140,10 @@ static int adiv5_mem_ap_setup_csw(struct adi_ap *ap, uint32_t csw)
 	return ERROR_OK;
 }
 
-static int adiv5_mem_ap_setup_tar(struct adi_ap *ap, target_addr_t tar)
+static int adiv6_mem_ap_setup_tar(struct adi_ap *ap, target_addr_t tar)
 {
 	if (!ap->tar_valid || tar != ap->tar_value) {
-		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
+		/* LOG_DEBUG("DAP: Set TAR " TARGET_ADDR_FMT " size is %d" ,tar, sizeof(tar));*/
 		int retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR, (uint32_t) tar);
 		if (retval == ERROR_OK && (ap->cfg_reg & 2)) {
 			/* See if bits 63:32 of tar is different from last setting */
@@ -158,7 +160,7 @@ static int adiv5_mem_ap_setup_tar(struct adi_ap *ap, target_addr_t tar)
 	return ERROR_OK;
 }
 
-static int adiv5_mem_ap_read_tar(struct adi_ap *ap, target_addr_t *tar)
+static int adiv6_mem_ap_read_tar(struct adi_ap *ap, target_addr_t *tar)
 {
 	uint32_t lower;
 	uint32_t upper = 0;
@@ -185,7 +187,7 @@ static int adiv5_mem_ap_read_tar(struct adi_ap *ap, target_addr_t *tar)
 	return ERROR_OK;
 }
 
-static uint32_t adiv5_mem_ap_get_tar_increment(struct adi_ap *ap)
+static uint32_t adiv6_mem_ap_get_tar_increment(struct adi_ap *ap)
 {
 	switch (ap->csw_value & CSW_ADDRINC_MASK) {
 	case CSW_ADDRINC_SINGLE:
@@ -205,14 +207,14 @@ static uint32_t adiv5_mem_ap_get_tar_increment(struct adi_ap *ap)
 	return 0;
 }
 
-/* adiv5_mem_ap_update_tar_cache is called after an access to MEM_AP_REG_DRW
+/* adiv6_mem_ap_update_tar_cache is called after an access to MEM_AP_REG_DRW
  */
-static void adiv5_mem_ap_update_tar_cache(struct adi_ap *ap)
+static void adiv6_mem_ap_update_tar_cache(struct adi_ap *ap)
 {
 	if (!ap->tar_valid)
 		return;
 
-	uint32_t inc = adiv5_mem_ap_get_tar_increment(ap);
+	uint32_t inc = adiv6_mem_ap_get_tar_increment(ap);
 	if (inc >= max_tar_block_size(ap->tar_autoincr_block, ap->tar_value))
 		ap->tar_valid = false;
 	else
@@ -236,13 +238,13 @@ static void adiv5_mem_ap_update_tar_cache(struct adi_ap *ap)
  *
  * @return ERROR_OK if the transaction was properly queued, else a fault code.
  */
-static int adiv5_mem_ap_setup_transfer(struct adi_ap *ap, uint32_t csw, target_addr_t tar)
+static int adiv6_mem_ap_setup_transfer(struct adi_ap *ap, uint32_t csw, target_addr_t tar)
 {
 	int retval;
-	retval = adiv5_mem_ap_setup_csw(ap, csw);
+	retval = adiv6_mem_ap_setup_csw(ap, csw);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = adiv5_mem_ap_setup_tar(ap, tar);
+	retval = adiv6_mem_ap_setup_tar(ap, tar);
 	if (retval != ERROR_OK)
 		return retval;
 	return ERROR_OK;
@@ -259,7 +261,7 @@ static int adiv5_mem_ap_setup_transfer(struct adi_ap *ap, uint32_t csw, target_a
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-static int adiv5_mem_ap_read_u32(struct adi_ap *ap, target_addr_t address,
+static int adiv6_mem_ap_read_u32(struct adi_ap *ap, target_addr_t address,
 		uint32_t *value)
 {
 	int retval;
@@ -267,7 +269,7 @@ static int adiv5_mem_ap_read_u32(struct adi_ap *ap, target_addr_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when reading several consecutive addresses.
 	 */
-	retval = adiv5_mem_ap_setup_transfer(ap,
+	retval = adiv6_mem_ap_setup_transfer(ap,
 			CSW_32BIT | (ap->csw_value & CSW_ADDRINC_MASK),
 			address & 0xFFFFFFFFFFFFFFF0ull);
 	if (retval != ERROR_OK)
@@ -288,12 +290,12 @@ static int adiv5_mem_ap_read_u32(struct adi_ap *ap, target_addr_t address,
  * @return ERROR_OK for success; *value holds the result.
  * Otherwise a fault code.
  */
-static int adiv5_mem_ap_read_atomic_u32(struct adi_ap *ap, target_addr_t address,
+static int adiv6_mem_ap_read_atomic_u32(struct adi_ap *ap, target_addr_t address,
 		uint32_t *value)
 {
 	int retval;
 
-	retval = adiv5_mem_ap_read_u32(ap, address, value);
+	retval = adiv6_mem_ap_read_u32(ap, address, value);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -311,7 +313,7 @@ static int adiv5_mem_ap_read_atomic_u32(struct adi_ap *ap, target_addr_t address
  *
  * @return ERROR_OK for success.  Otherwise a fault code.
  */
-static int adiv5_mem_ap_write_u32(struct adi_ap *ap, target_addr_t address,
+static int adiv6_mem_ap_write_u32(struct adi_ap *ap, target_addr_t address,
 		uint32_t value)
 {
 	int retval;
@@ -319,7 +321,7 @@ static int adiv5_mem_ap_write_u32(struct adi_ap *ap, target_addr_t address,
 	/* Use banked addressing (REG_BDx) to avoid some link traffic
 	 * (updating TAR) when writing several consecutive addresses.
 	 */
-	retval = adiv5_mem_ap_setup_transfer(ap,
+	retval = adiv6_mem_ap_setup_transfer(ap,
 			CSW_32BIT | (ap->csw_value & CSW_ADDRINC_MASK),
 			address & 0xFFFFFFFFFFFFFFF0ull);
 	if (retval != ERROR_OK)
@@ -340,10 +342,10 @@ static int adiv5_mem_ap_write_u32(struct adi_ap *ap, target_addr_t address,
  *
  * @return ERROR_OK for success; the data was written.  Otherwise a fault code.
  */
-static int adiv5_mem_ap_write_atomic_u32(struct adi_ap *ap, target_addr_t address,
+static int adiv6_mem_ap_write_atomic_u32(struct adi_ap *ap, target_addr_t address,
 		uint32_t value)
 {
-	int retval = adiv5_mem_ap_write_u32(ap, address, value);
+	int retval = adiv6_mem_ap_write_u32(ap, address, value);
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -363,7 +365,7 @@ static int adiv5_mem_ap_write_atomic_u32(struct adi_ap *ap, target_addr_t addres
  *  should normally be true, except when writing to e.g. a FIFO.
  * @return ERROR_OK on success, otherwise an error code.
  */
-static int adiv5_mem_ap_write(struct adi_ap *ap, const uint8_t *buffer, uint32_t size, uint32_t count,
+static int adiv6_mem_ap_write(struct adi_ap *ap, const uint8_t *buffer, uint32_t size, uint32_t count,
 		target_addr_t address, bool addrinc)
 {
 	struct adi_dap *dap = ap->dap;
@@ -409,15 +411,16 @@ static int adiv5_mem_ap_write(struct adi_ap *ap, const uint8_t *buffer, uint32_t
 		if (addrinc && ap->packed_transfers && nbytes >= 4
 				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
-			retval = adiv5_mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
+			retval = adiv6_mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
-			retval = adiv5_mem_ap_setup_csw(ap, csw_size | csw_addrincr);
+			retval = adiv6_mem_ap_setup_csw(ap, csw_size | csw_addrincr);
 		}
 
 		if (retval != ERROR_OK)
 			break;
 
-		retval = adiv5_mem_ap_setup_tar(ap, address ^ addr_xor);
+
+		retval = adiv6_mem_ap_setup_tar(ap, address ^ addr_xor);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -461,7 +464,7 @@ static int adiv5_mem_ap_write(struct adi_ap *ap, const uint8_t *buffer, uint32_t
 		if (retval != ERROR_OK)
 			break;
 
-		adiv5_mem_ap_update_tar_cache(ap);
+		adiv6_mem_ap_update_tar_cache(ap);
 		if (addrinc)
 			address += this_size;
 	}
@@ -472,7 +475,7 @@ static int adiv5_mem_ap_write(struct adi_ap *ap, const uint8_t *buffer, uint32_t
 
 	if (retval != ERROR_OK) {
 		target_addr_t tar;
-		if (adiv5_mem_ap_read_tar(ap, &tar) == ERROR_OK)
+		if (adiv6_mem_ap_read_tar(ap, &tar) == ERROR_OK)
 			LOG_ERROR("Failed to write memory at 0x%16.16" PRIx64, tar);
 		else
 			LOG_ERROR("Failed to write memory and, additionally, failed to find out where");
@@ -493,7 +496,7 @@ static int adiv5_mem_ap_write(struct adi_ap *ap, const uint8_t *buffer, uint32_t
  *  should normally be true, except when reading from e.g. a FIFO.
  * @return ERROR_OK on success, otherwise an error code.
  */
-static int adiv5_mem_ap_read(struct adi_ap *ap, uint8_t *buffer, uint32_t size, uint32_t count,
+static int adiv6_mem_ap_read(struct adi_ap *ap, uint8_t *buffer, uint32_t size, uint32_t count,
 		target_addr_t adr, bool addrinc)
 {
 	struct adi_dap *dap = ap->dap;
@@ -543,14 +546,14 @@ static int adiv5_mem_ap_read(struct adi_ap *ap, uint8_t *buffer, uint32_t size, 
 		if (addrinc && ap->packed_transfers && nbytes >= 4
 				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
-			retval = adiv5_mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
+			retval = adiv6_mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
 		} else {
-			retval = adiv5_mem_ap_setup_csw(ap, csw_size | csw_addrincr);
+			retval = adiv6_mem_ap_setup_csw(ap, csw_size | csw_addrincr);
 		}
 		if (retval != ERROR_OK)
 			break;
 
-		retval = adiv5_mem_ap_setup_tar(ap, address);
+		retval = adiv6_mem_ap_setup_tar(ap, address);
 		if (retval != ERROR_OK)
 			break;
 
@@ -562,7 +565,7 @@ static int adiv5_mem_ap_read(struct adi_ap *ap, uint8_t *buffer, uint32_t size, 
 		if (addrinc)
 			address += this_size;
 
-		adiv5_mem_ap_update_tar_cache(ap);
+		adiv6_mem_ap_update_tar_cache(ap);
 	}
 
 	if (retval == ERROR_OK)
@@ -577,7 +580,7 @@ static int adiv5_mem_ap_read(struct adi_ap *ap, uint8_t *buffer, uint32_t size, 
 	 * at least give the caller what we have. */
 	if (retval != ERROR_OK) {
 		target_addr_t tar;
-		if (adiv5_mem_ap_read_tar(ap, &tar) == ERROR_OK) {
+		if (adiv6_mem_ap_read_tar(ap, &tar) == ERROR_OK) {
 			/* TAR is incremented after failed transfer on some devices (eg Cortex-M4) */
 			LOG_ERROR("Failed to read memory at 0x%16.16" PRIx64, tar);
 			if (nbytes > tar - address)
@@ -631,28 +634,28 @@ static int adiv5_mem_ap_read(struct adi_ap *ap, uint8_t *buffer, uint32_t size, 
 	return retval;
 }
 
-static int adiv5_mem_ap_read_buf(struct adi_ap *ap,
+static int adiv6_mem_ap_read_buf(struct adi_ap *ap,
 		uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address)
 {
-	return adiv5_mem_ap_read(ap, buffer, size, count, address, true);
+	return adiv6_mem_ap_read(ap, buffer, size, count, address, true);
 }
 
-static int adiv5_mem_ap_write_buf(struct adi_ap *ap,
+static int adiv6_mem_ap_write_buf(struct adi_ap *ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address)
 {
-	return adiv5_mem_ap_write(ap, buffer, size, count, address, true);
+	return adiv6_mem_ap_write(ap, buffer, size, count, address, true);
 }
 
-static int adiv5_mem_ap_read_buf_noincr(struct adi_ap *ap,
+static int adiv6_mem_ap_read_buf_noincr(struct adi_ap *ap,
 		uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address)
 {
-	return adiv5_mem_ap_read(ap, buffer, size, count, address, false);
+	return adiv6_mem_ap_read(ap, buffer, size, count, address, false);
 }
 
-static int adiv5_mem_ap_write_buf_noincr(struct adi_ap *ap,
+static int adiv6_mem_ap_write_buf_noincr(struct adi_ap *ap,
 		const uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address)
 {
-	return adiv5_mem_ap_write(ap, buffer, size, count, address, false);
+	return adiv6_mem_ap_write(ap, buffer, size, count, address, false);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -665,7 +668,7 @@ static int adiv5_mem_ap_write_buf_noincr(struct adi_ap *ap,
 /**
  * Invalidate cached DP select and cached TAR and CSW of all APs
  */
-static void adiv5_dap_invalidate_cache(struct adi_dap *dap)
+static void adiv6_dap_invalidate_cache(struct adi_dap *dap)
 {
 	dap->select = DP_SELECT_INVALID;
 	dap->last_read = NULL;
@@ -684,13 +687,13 @@ static void adiv5_dap_invalidate_cache(struct adi_dap *dap)
  *
  * @param dap The DAP being initialized.
  */
-static int adiv5_dap_dp_init(struct adi_dap *dap)
+static int adiv6_dap_dp_init(struct adi_dap *dap)
 {
 	int retval;
 
 	LOG_DEBUG("%s", adi_dap_name(dap));
 
-	adiv5_dap_invalidate_cache(dap);
+	adiv6_dap_invalidate_cache(dap);
 
 	/*
 	 * Early initialize dap->dp_ctrl_stat.
@@ -776,7 +779,7 @@ static int adiv5_dap_dp_init(struct adi_dap *dap)
  *
  * @param ap The MEM-AP being initialized.
  */
-static int adiv5_mem_ap_init(struct adi_ap *ap)
+static int adiv6_mem_ap_init(struct adi_ap *ap)
 {
 	/* check that we support packed transfers */
 	uint32_t csw, cfg;
@@ -785,7 +788,7 @@ static int adiv5_mem_ap_init(struct adi_ap *ap)
 
 	ap->tar_valid = false;
 	ap->csw_value = 0;      /* force csw and tar write */
-	retval = adiv5_mem_ap_setup_transfer(ap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
+	retval = adiv6_mem_ap_setup_transfer(ap, CSW_8BIT | CSW_ADDRINC_PACKED, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -837,7 +840,6 @@ static int adiv5_mem_ap_init(struct adi_ap *ap)
 		}
 	}
 
-
 	return ERROR_OK;
 }
 
@@ -853,7 +855,7 @@ static int adiv5_mem_ap_init(struct adi_ap *ap)
  * @param dap The DAP used
  * @return ERROR_OK or else a fault code.
  */
-static int adiv5_dap_to_swd(struct adi_dap *dap)
+static int adiv6_dap_to_swd(struct adi_dap *dap)
 {
 	LOG_DEBUG("Enter SWD mode");
 
@@ -871,7 +873,7 @@ static int adiv5_dap_to_swd(struct adi_dap *dap)
  * @param dap The DAP used
  * @return ERROR_OK or else a fault code.
  */
-static int adiv5_dap_to_jtag(struct adi_dap *dap)
+static int adiv6_dap_to_jtag(struct adi_dap *dap)
 {
 	LOG_DEBUG("Enter JTAG mode");
 
@@ -881,7 +883,7 @@ static int adiv5_dap_to_jtag(struct adi_dap *dap)
 /**
  * Return the address for the DAP AP IDR register
  */
-static uint32_t adiv5_dap_apidr_address(void)
+static uint32_t adiv6_dap_apidr_address(void)
 {
 	return AP_REG_IDR;
 }
@@ -896,6 +898,18 @@ static const char *class_description[16] = {
 	"Reserved", "OptimoDE DESS",
 	"Generic IP component", "PrimeCell or System component"
 };
+static const char *addr_description[2] = {
+	"32-bit Physical Addressing", "Large Physical Addressing"
+};
+static const char *class9rom_description[16] = {
+	"32-bit ROM Entries", "64-bit ROM Table Entries"
+};
+static const char *archid_description[5] = {
+	"MEM_AP", "JTAG_AP", "ROM Table", "ARCHID Unknown", ""
+};
+
+
+
 
 static bool is_dap_cid_ok(uint32_t cid)
 {
@@ -905,7 +919,7 @@ static bool is_dap_cid_ok(uint32_t cid)
 /*
  * This function checks the ID for each access port to find the requested Access Port type
  */
-static int adiv5_dap_find_ap(struct adi_dap *dap, enum ap_type type_to_find, struct adi_ap **ap_out)
+static int adiv6_dap_find_ap(struct adi_dap *dap, enum ap_type type_to_find, struct adi_ap **ap_out)
 {
 	int ap_num;
 
@@ -936,7 +950,9 @@ static int adiv5_dap_find_ap(struct adi_dap *dap, enum ap_type type_to_find, str
 		 */
 		if ((retval == ERROR_OK) &&                  /* Register read success */
 			((id_val & IDR_JEP106) == IDR_JEP106_ARM) && /* Jedec codes match */
-			((id_val & IDR_TYPE) == type_to_find)) {      /* type matches*/
+			((id_val & IDR_TYPE) == type_to_find ||
+			(type_to_find == AP_TYPE_APB_AP ? (id_val & IDR_TYPE) == AP_TYPE_APB4_AP : 0))  /* match both APB4 and APB*/
+		   ) {      /* type matches*/
 
 			LOG_DEBUG("Found %s at AP index: %d (IDR=0x%08" PRIX32 ")",
 						(type_to_find == AP_TYPE_AHB3_AP)  ? "AHB3-AP"  :
@@ -960,23 +976,39 @@ static int adiv5_dap_find_ap(struct adi_dap *dap, enum ap_type type_to_find, str
 	return ERROR_FAIL;
 }
 
-static int adiv5_dap_get_debugbase(struct adi_ap *ap,
+static int adiv6_dap_get_debugbase(struct adi_ap *ap,
 			target_addr_t *dbgbase, uint32_t *apid)
 {
 	struct adi_dap *dap = ap->dap;
-	int retval;
+	int retval = ERROR_OK;
 	uint32_t baseptr_upper, baseptr_lower;
 
 	baseptr_upper = 0;
 
-	if (ap->cfg_reg & 2) { /* large physical addressing enabled */
-		/* Read higher order 32-bits of base address */
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE_UPPER, &baseptr_upper);
-		if (retval != ERROR_OK)
-			return retval;
+	if (ap->ap_num == 0) {  /* Top level ROM table is always ap[0] */
+		if (dap->asize > 32) {
+			/* Read higher order 32-bits of base address */
+			retval = dap_dp_read_atomic(ap->dap, DP_BASEPTR1, &baseptr_upper);
+			if (retval == ERROR_OK) {
+				/* read low order 32-bits of base address first */
+				retval = dap_dp_read_atomic(ap->dap, DP_BASEPTR0, &baseptr_lower);
+			}
+		} else {
+			/* asize field indicates only a max of 32 bits needs to be read */
+			retval = dap_dp_read_atomic(ap->dap, DP_BASEPTR0, &baseptr_lower);
+		}
+	} else {
+		if (ap->cfg_reg == ADIV6_BAD_CFG)
+			return ERROR_FAIL;
+		else if (ap->cfg_reg & 2) { /* large physical addressing enabled */
+			/* Read higher order 32-bits of base address */
+			retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE_UPPER, &baseptr_upper);
+			if (retval == ERROR_OK)
+				retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseptr_lower);
+		} else
+			retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseptr_lower);
 	}
 
-	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseptr_lower);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_queue_ap_read(ap, AP_REG_IDR, apid);
@@ -988,45 +1020,93 @@ static int adiv5_dap_get_debugbase(struct adi_ap *ap,
 
 	*dbgbase = (((target_addr_t) baseptr_upper) << 32) | baseptr_lower;
 
-	return ERROR_OK;
+	return retval;
 }
 
-static int adiv5_dap_lookup_cs_component(struct adi_ap *ap,
+static int adiv6_dap_lookup_cs_component(struct adi_ap *ap,
 			target_addr_t dbgbase, uint8_t type, target_addr_t *addr, int32_t *idx)
 {
-	uint32_t romentry, entry_offset = 0, devtype;
-	target_addr_t component_base;
+	uint32_t devid_reg, cidr1, entry_offset = 0,  devtype;
+	target_addr_t component_base, romentry;
+	uint32_t rom_entry_64bit, romentry_lower, romentry_upper;
+	uint16_t max_entry_offset;
 	int retval;
 
-	dbgbase &= 0xFFFFFFFFFFFFF000ull;
 	*addr = 0;
+	retval = adiv6_mem_ap_read_atomic_u32(ap, AP_REG_DEVID, &devid_reg);
+	if (retval == ERROR_OK)
+			retval = adiv6_mem_ap_read_atomic_u32(ap, AP_REG_CIDR1, &cidr1);
+	if (retval != ERROR_OK)
+		return retval;
+
+	rom_entry_64bit = devid_reg & 0x1;
+	if (((cidr1 & 0xf0) >> 4) == 9) /* is this a class 9 ROM table */
+		max_entry_offset = 0x800; /* class 9 entry maximum count 512 */
+	else
+		max_entry_offset = 0xF00; /* class 1 entry maximum count 960 */
+
+
+	rom_entry_64bit = devid_reg & 0x1;
+	dbgbase &= 0xFFFFFFFFFFFFF000ull;
 
 	do {
-		retval = adiv5_mem_ap_read_atomic_u32(ap, dbgbase | entry_offset, &romentry);
+		if (rom_entry_64bit) {
+			retval = adiv6_mem_ap_read_atomic_u32(ap, dbgbase |
+						entry_offset, &romentry_upper);
+			if (retval != ERROR_OK)
+				return retval;
+			entry_offset += 4;
+			retval = adiv6_mem_ap_read_atomic_u32(ap, dbgbase |
+						entry_offset, &romentry_lower);
+			if (retval != ERROR_OK)
+				return retval;
+			romentry = (((target_addr_t) romentry_upper) << 32) | romentry_lower;
+
+		} else {
+			retval = adiv6_mem_ap_read_atomic_u32(ap, dbgbase |
+						entry_offset, &romentry_lower);
+			if (retval != ERROR_OK)
+				return retval;
+			/* typecast to take care of 2's complement offsets */
+			romentry = (target_addr_t) ((int32_t) romentry_lower);
+		}
+
 		if (retval != ERROR_OK)
 			return retval;
 
-		component_base = dbgbase + (target_addr_t) ((int32_t) (romentry & (~0xFFFull)));
+		component_base = dbgbase + (romentry & (0xFFFFFFFFFFFFF000ull));
 
 		if (romentry & 0x1) {
 			uint32_t c_cid1;
-			retval = adiv5_mem_ap_read_atomic_u32(ap, component_base | 0xff4, &c_cid1);
+			bool class9_rom = false;
+
+			retval = adiv6_mem_ap_read_atomic_u32(ap, component_base | 0xff4, &c_cid1);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't read component with base address 0x%" PRIx64
 					  ", the corresponding core might be turned off", component_base);
 				return retval;
 			}
-			if (((c_cid1 >> 4) & 0x0f) == 1) {
-				retval = adiv5_dap_lookup_cs_component(ap, component_base,
+			/* Class 9 CS */
+			if (((c_cid1 >> 4) & 0x0f) == 9) {
+				uint32_t devarch;
+				retval = adiv6_mem_ap_read_atomic_u32(ap, component_base | 0xFBC, &devarch);
+				if (retval != ERROR_OK)
+					return retval;
+				if ((devarch & 0xffff) == 0x0AF7)
+					class9_rom = true;
+			}
+
+			/* Class 9 ROM or class 1 ROM */
+			if (class9_rom || ((c_cid1 >> 4) & 0x0f) == 1) {
+				retval = adiv6_dap_lookup_cs_component(ap, component_base,
 							type, addr, idx);
 				if (retval == ERROR_OK)
 					break;
 				if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 					return retval;
 			}
-
-			retval = adiv5_mem_ap_read_atomic_u32(ap,
-					component_base | 0xfcc,
+			retval = adiv6_mem_ap_read_atomic_u32(ap,
+					(component_base & (0xFFFFFFFFFFFFF000ull)) | 0xfcc,
 					&devtype);
 			if (retval != ERROR_OK)
 				return retval;
@@ -1039,10 +1119,161 @@ static int adiv5_dap_lookup_cs_component(struct adi_ap *ap,
 			}
 		}
 		entry_offset += 4;
-	} while ((romentry > 0) && (entry_offset < 0xf00));
+	} while ((romentry > 0) && (entry_offset < max_entry_offset));
 
 	if (!*addr)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+	return ERROR_OK;
+}
+
+static int adiv6_dap_lookup_cs_component_root(struct adi_ap *ap,
+			target_addr_t dbgbase, uint8_t type, target_addr_t *addr, int32_t *idx) {
+	/* Root ROM table is in a separate AP at address dbgbase */
+	int retval;
+	uint16_t max_entry_offset, entry_offset;
+	uint32_t devid_reg, cidr1, rom_entry_64bit;
+	struct adi_ap rom_ap = ap->dap->ap[0];
+	/* Point the AP address to dbgbase */
+	rom_ap.base_addr = dbgbase;
+	*addr = 0;
+	uint32_t entry_lower;
+	uint32_t entry_upper = 0;
+
+	retval = adiv6_mem_ap_read_atomic_u32(&rom_ap, AP_REG_DEVID, &devid_reg);
+	if (retval == ERROR_OK)
+			retval = adiv6_mem_ap_read_atomic_u32(&rom_ap, AP_REG_CIDR1, &cidr1);
+	if (retval != ERROR_OK)
+		return retval;
+
+	rom_entry_64bit = devid_reg & 0x1;
+	if (((cidr1 & 0xf0) >> 4) == 9) /* is this a class 9 ROM table */
+		max_entry_offset = 512; /* class 9 entry maximum count 512 */
+	else
+		max_entry_offset = 960; /* class 1 entry maximum count 960 */
+
+
+	/* Read primary ROM table */
+	for (entry_offset = 0; entry_offset < max_entry_offset; entry_offset += 4) {
+		target_addr_t entry;
+		if (rom_entry_64bit) {
+			retval = dap_queue_ap_read(&rom_ap, entry_offset, &entry_upper);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = dap_queue_ap_read(&rom_ap, (entry_offset + 4), &entry_lower);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = dap_run(ap->dap);
+			if (retval != ERROR_OK)
+				return retval;
+
+			entry = (((target_addr_t) entry_upper) << 32) | entry_lower;
+			LOG_DEBUG("ROM entry[0x%x]: 0x%16.16" PRIx64, entry_offset, entry);
+			entry_offset += 4;
+
+		} else {
+			retval = dap_queue_ap_read(&rom_ap, entry_offset, &entry_lower);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = dap_run(ap->dap);
+			if (retval != ERROR_OK)
+				return retval;
+			/* typecast to take care of 2's complement offsets */
+			entry = (target_addr_t) ((int32_t) entry_lower);
+			LOG_DEBUG("ROM entry[0x%x]: 0x%16.16" PRIx64, entry_offset, entry);
+		}
+
+		if (entry == 0)
+			break;
+		/* Not sure how to differientiate DAP internal APB v.s. Debug APB addresses in the table*/
+		if ((entry & 3) == 3) {
+			entry &= 0xFFFFFFFFFFFFF000ull;
+			rom_ap.base_addr = dbgbase + entry;
+			retval = adiv6_mem_ap_read_atomic_u32(&rom_ap, AP_REG_IDR, &cidr1);
+			rom_ap.base_addr = dbgbase;
+			if (retval != ERROR_OK) {
+				LOG_ERROR("ROM Table looks wrong; assumming target mem_ap for Top Level ROM entry");
+				retval = adiv6_dap_lookup_cs_component(ap, entry, type, addr, idx);
+				if (retval == ERROR_OK)
+					break;
+				if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+					return retval;
+			} else {
+				retval = adiv6_dap_lookup_cs_component(&rom_ap, entry, type, addr, idx);
+				if (retval == ERROR_OK)
+					break;
+				if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+					return retval;
+			}
+		}
+#if 0
+		if ((entry & 3) == 3 && (entry & 0x80000000)) {
+			entry &= 0xfffffffffffff000ull;
+			retval = adiv6_dap_lookup_cs_component(ap, entry, type, addr, idx);
+			if (retval == ERROR_OK)
+				break;
+			if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+				return retval;
+		}
+#endif
+	}
+	if (!*addr)
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	return ERROR_OK;
+}
+static int dap_read_part_id(struct adi_ap *ap, target_addr_t component_base, uint32_t *cid, uint64_t *pid)
+{
+	assert((component_base & 0xFFF) == 0);
+	assert(ap != NULL && cid != NULL && pid != NULL);
+
+	uint32_t cid0, cid1, cid2, cid3;
+	uint32_t pid0, pid1, pid2, pid3, pid4;
+	int retval;
+
+	/* IDs are in last 4K section */
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFE0, &pid0);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFE4, &pid1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFE8, &pid2);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFEC, &pid3);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFD0, &pid4);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFF0, &cid0);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFF4, &cid1);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFF8, &cid2);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adiv6_mem_ap_read_u32(ap, component_base + 0xFFC, &cid3);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = dap_run(ap->dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*cid = (cid3 & 0xff) << 24
+			| (cid2 & 0xff) << 16
+			| (cid1 & 0xff) << 8
+			| (cid0 & 0xff);
+	*pid = (uint64_t)(pid4 & 0xff) << 32
+			| (pid3 & 0xff) << 24
+			| (pid2 & 0xff) << 16
+			| (pid1 & 0xff) << 8
+			| (pid0 & 0xff);
 
 	return ERROR_OK;
 }
@@ -1103,6 +1334,7 @@ static const struct {
 	{ ARM_ID, 0x4b5, "Cortex-R5 ROM",              "(ROM Table)", },
 	{ ARM_ID, 0x470, "Cortex-M1 ROM",              "(ROM Table)", },
 	{ ARM_ID, 0x471, "Cortex-M0 ROM",              "(ROM Table)", },
+	{ ARM_ID, 0x4e4, "DSU ROM v8 Debug",           "(ROM Table)", },
 	{ ARM_ID, 0x906, "CoreSight CTI",              "(Cross Trigger)", },
 	{ ARM_ID, 0x907, "CoreSight ETB",              "(Trace Buffer)", },
 	{ ARM_ID, 0x908, "CoreSight CSTF",             "(Trace Funnel)", },
@@ -1145,6 +1377,10 @@ static const struct {
 	{ ARM_ID, 0x9d3, "Cortex-A53 PMU",             "(Performance Monitor Unit)", },
 	{ ARM_ID, 0x9d7, "Cortex-A57 PMU",             "(Performance Monitor Unit)", },
 	{ ARM_ID, 0x9d8, "Cortex-A72 PMU",             "(Performance Monitor Unit)", },
+	{ ARM_ID, 0x9e8, "SOC-600 ETR",                "(Embedded Trace Router)", },
+	{ ARM_ID, 0x9ea, "SOC-600 ETF",                "(Embedded Trace FIFO)", },
+	{ ARM_ID, 0x9ed, "SOC-600 CTI",                "(Cross Trigger)", },
+	{ ARM_ID, 0x9ee, "SOC-600 CATU",               "(Address Translation Unit)", },
 	{ ARM_ID, 0xc05, "Cortex-A5 Debug",            "(Debug Unit)", },
 	{ ARM_ID, 0xc07, "Cortex-A7 Debug",            "(Debug Unit)", },
 	{ ARM_ID, 0xc08, "Cortex-A8 Debug",            "(Debug Unit)", },
@@ -1157,6 +1393,7 @@ static const struct {
 	{ ARM_ID, 0xd03, "Cortex-A53 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",           "(Debug Unit)", },
+	{ ARM_ID, 0xd0c, "ARES Debug",                 "(Debug Unit)", },
 	{ 0x097,  0x9af, "MSP432 ROM",                 "(ROM Table)" },
 	{ 0x09f,  0xcd0, "Atmel CPU with DSU",         "(CPU)" },
 	{ 0x0c1,  0x1db, "XMC4500 ROM",                "(ROM Table)" },
@@ -1174,58 +1411,120 @@ static const struct {
 	{ ANY_ID, 0x343, "TI DAPCTL",                  "", }, /* from OMAP3 memmap */
 };
 
-static int dap_read_part_id(struct adi_ap *ap, target_addr_t component_base, uint32_t *cid, uint64_t *pid)
+static const struct {
+	uint16_t archid;
+	const char *full;
+} dap_archid[] = {
+	{0x0A00, "RAS architecture"},
+	{0x1A01, "Instrumentation Trace Macrocell (ITM) architecture"},
+	{0x1A02, "DWT architecture"},
+	{0x1A03, "Flash Patch and Breakpoint unit (FPB) architecture"},
+	{0x2A04, "Processor debug architecture (ARMv8-M)"},
+	{0x6A05, "Processor debug architecture (ARMv8-R)"},
+	{0x0A10, "PC sample-based profiling"},
+	{0x4A13, "Embedded Trace Macrocell (ETM) architecture."},
+	{0x1A14, "Cross Trigger Interface (CTI) architecture"},
+	{0x6A15, "Processor debug architecture (v8.0-A)"},
+	{0x7A15, "Processor debug architecture (v8.1-A)"},
+	{0x8A15, "Processor debug architecture (v8.2-A)"},
+	{0x2A16, "Processor Performance Monitor (PMU) architecture"},
+	{0x0A17, "Memory Access Port v2 architecture"},
+	{0x0A27, "JTAG Access Port v2 architecture"},
+	{0x0A31, "Basic trace router"},
+	{0x0A37, "Power requestor"},
+	{0x0A47, "Unknown Access Port v2 architecture"},
+	{0x0A50, "HSSTP architecture"},
+	{0x0A63, "System Trace Macrocell (STM) architecture"},
+	{0x0A75, "CoreSight ELA architecture"},
+	{0x0AF7, "CoreSight ROM architecture"},
+};
+
+static void dap_archid_display(struct command_invocation *cmd,
+				struct adi_ap *ap, uint32_t archid) {
+	archid &= 0xffff;
+	for (unsigned entry = 0; entry < ARRAY_SIZE(dap_archid); entry++) {
+		if (dap_archid[entry].archid == archid) {
+			command_print(cmd, "\t\tArchID is 0x%" PRIx16", %s", archid, dap_archid[entry].full);
+			break;
+		}
+	}
+}
+static int dap_rom_display(struct command_invocation *cmd,
+				struct adi_ap *ap, target_addr_t dbgbase, int depth);
+
+static int dap_rom_display_table(struct command_invocation *cmd,
+				struct adi_ap *ap, target_addr_t base_addr, int depth)
 {
-	assert((component_base & 0xFFF) == 0);
-	assert(ap != NULL && cid != NULL && pid != NULL);
-
-	uint32_t cid0, cid1, cid2, cid3;
-	uint32_t pid0, pid1, pid2, pid3, pid4;
 	int retval;
+	uint32_t memtype, devid, cidr1;
+	char tabs[16] = "";
+	int rom_entry_64bit;
+	uint16_t max_entry_offset, entry_offset;
 
-	/* IDs are in last 4K section */
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFE0, &pid0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFE4, &pid1);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFE8, &pid2);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFEC, &pid3);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFD0, &pid4);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFF0, &cid0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFF4, &cid1);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFF8, &cid2);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = adiv5_mem_ap_read_u32(ap, component_base + 0xFFC, &cid3);
+	if (depth)
+		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
+
+	retval = adiv6_mem_ap_read_atomic_u32(ap, base_addr | 0xFCC, &memtype);
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_run(ap->dap);
+	if (memtype & 0x01)
+		command_print(cmd, "\t\tMEMTYPE system memory present on bus");
+	else
+		command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
+
+	retval = adiv6_mem_ap_read_atomic_u32(ap, base_addr | AP_REG_DEVID, &devid);
+	if (retval == ERROR_OK)
+			retval = adiv6_mem_ap_read_atomic_u32(ap, base_addr | AP_REG_CIDR1, &cidr1);
 	if (retval != ERROR_OK)
 		return retval;
 
-	*cid = (cid3 & 0xff) << 24
-			| (cid2 & 0xff) << 16
-			| (cid1 & 0xff) << 8
-			| (cid0 & 0xff);
-	*pid = (uint64_t)(pid4 & 0xff) << 32
-			| (pid3 & 0xff) << 24
-			| (pid2 & 0xff) << 16
-			| (pid1 & 0xff) << 8
-			| (pid0 & 0xff);
+	rom_entry_64bit = devid & 0x1;
+	if (((cidr1 & 0xf0) >> 4) == 9) /* is this a class 9 ROM table */
+		max_entry_offset = 0x800;
+	else
+		max_entry_offset = 0xF00; /* class 1 entry maximum count */
 
+
+	/* Read ROM table entries from base address until we get 0x00000000 or reach the reserved area */
+	for (entry_offset = 0; entry_offset < max_entry_offset; entry_offset += 4) {
+		target_addr_t romentry;
+		uint32_t romentry_upper = 0;
+		uint32_t romentry_lower;
+
+		if (rom_entry_64bit) {
+			retval = adiv6_mem_ap_read_atomic_u32(ap, base_addr | entry_offset, &romentry_upper);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = adiv6_mem_ap_read_atomic_u32(ap, base_addr | (entry_offset + 4), &romentry_lower);
+			if (retval != ERROR_OK)
+				return retval;
+			romentry = (((target_addr_t) romentry_upper) << 32) | romentry_lower;
+
+			command_print(cmd, "\t%sROMTABLE[0x%x] = 0x16.16%" PRIx64 "",
+				tabs, entry_offset, romentry);
+			entry_offset += 4;
+		} else {
+			retval = adiv6_mem_ap_read_atomic_u32(ap, base_addr | entry_offset, &romentry_lower);
+			if (retval != ERROR_OK)
+				return retval;
+			romentry = (target_addr_t) ((int32_t) romentry_lower);
+
+			command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%" PRIx32 "",
+				tabs, entry_offset, romentry_lower);
+		}
+		if (romentry & 0x01) {
+			/* Recurse */
+			retval = dap_rom_display(cmd, ap, base_addr + (romentry & 0xFFFFFFFFFFFFF000ull), depth + 1);
+			if (retval != ERROR_OK)
+				return retval;
+		} else if (romentry != 0) {
+			command_print(cmd, "\t\tComponent not present");
+		} else {
+			command_print(cmd, "\t%s\tEnd of ROM table", tabs);
+			break;
+		}
+	}
 	return ERROR_OK;
 }
 
@@ -1259,7 +1558,7 @@ static int dap_rom_display(struct command_invocation *cmd,
 		return ERROR_OK; /* Don't abort recursion */
 	}
 
-	/* component may take multiple 4K pages */
+	/* component may take multiple 4K pages  */
 	uint32_t size = (pid >> 36) & 0xf;
 	if (size > 0)
 		command_print(cmd, "\t\tStart address 0x%16.16" PRIx64, (base_addr - 0x1000 * size));
@@ -1303,41 +1602,17 @@ static int dap_rom_display(struct command_invocation *cmd,
 	command_print(cmd, "\t\tComponent class is 0x%" PRIx8 ", %s", class, class_description[class]);
 
 	if (class == 1) { /* ROM Table */
-		uint32_t memtype;
-		retval = adiv5_mem_ap_read_atomic_u32(ap, base_addr | 0xFCC, &memtype);
+		retval = dap_rom_display_table(cmd, ap, base_addr, depth);
 		if (retval != ERROR_OK)
 			return retval;
-
-		if (memtype & 0x01)
-			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
-		else
-			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
-
-		/* Read ROM table entries from base address until we get 0x00000000 or reach the reserved area */
-		for (uint16_t entry_offset = 0; entry_offset < 0xF00; entry_offset += 4) {
-			uint32_t romentry;
-			retval = adiv5_mem_ap_read_atomic_u32(ap, base_addr | entry_offset, &romentry);
-			if (retval != ERROR_OK)
-				return retval;
-			command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%" PRIx32 "",
-					tabs, entry_offset, romentry);
-			if (romentry & 0x01) {
-				/* Recurse */
-				retval = dap_rom_display(cmd, ap, base_addr + (romentry & 0xFFFFF000), depth + 1);
-				if (retval != ERROR_OK)
-					return retval;
-			} else if (romentry != 0) {
-				command_print(cmd, "\t\tComponent not present");
-			} else {
-				command_print(cmd, "\t%s\tEnd of ROM table", tabs);
-				break;
-			}
-		}
 	} else if (class == 9) { /* CoreSight component */
 		const char *major = "Reserved", *subtype = "Reserved";
 
 		uint32_t devtype;
-		retval = adiv5_mem_ap_read_atomic_u32(ap, base_addr | 0xFCC, &devtype);
+		uint32_t devarch;
+		/* Read both devtype and devarch */
+		retval = adiv6_mem_ap_read_atomic_u32(ap, base_addr | 0xFCC, &devtype) |
+			adiv6_mem_ap_read_atomic_u32(ap, base_addr | 0xFBC, &devarch);
 		if (retval != ERROR_OK)
 			return retval;
 		unsigned minor = (devtype >> 4) & 0x0f;
@@ -1478,74 +1753,212 @@ static int dap_rom_display(struct command_invocation *cmd,
 				(uint8_t)(devtype & 0xff),
 				major, subtype);
 		/* REVISIT also show 0xfc8 DevId */
-	}
-
-	return ERROR_OK;
-}
-
-static int adiv5_dap_info_command(struct command_invocation *cmd,
-		struct adi_ap *ap)
-{
-	int retval;
-	uint32_t apid;
-	target_addr_t dbgbase;
-	uint8_t mem_ap;
-
-	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-	retval = adiv5_dap_get_debugbase(ap, &dbgbase, &apid);
-	if (retval != ERROR_OK)
-		return retval;
-
-	command_print(cmd, "AP ID register 0x%8.8" PRIx32, apid);
-	if (apid == 0) {
-		command_print(cmd, "No AP found at this ap 0x%x", ap->ap_num);
-		return ERROR_FAIL;
-	}
-
-	switch (apid & (IDR_JEP106 | IDR_TYPE)) {
-	case IDR_JEP106_ARM | AP_TYPE_JTAG_AP:
-		command_print(cmd, "\tType is JTAG-AP");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_AHB3_AP:
-		command_print(cmd, "\tType is MEM-AP AHB3");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_AHB5_AP:
-		command_print(cmd, "\tType is MEM-AP AHB5");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_APB_AP:
-		command_print(cmd, "\tType is MEM-AP APB");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_AXI_AP:
-		command_print(cmd, "\tType is MEM-AP AXI");
-		break;
-	default:
-		command_print(cmd, "\tUnknown AP type");
-		break;
-	}
-
-	/* NOTE: a MEM-AP may have a single CoreSight component that's
-	 * not a ROM table ... or have no such components at all.
-	 */
-	mem_ap = (apid & IDR_CLASS) == AP_CLASS_MEM_AP;
-	if (mem_ap) {
-		command_print(cmd, "MEM-AP BASE 0x%16.16" PRIx64, dbgbase);
-
-		if (dbgbase == 0xFFFFFFFFFFFFFFFFull || (dbgbase & 0x3) == 0x2) {
-			command_print(cmd, "\tNo ROM table present");
-		} else {
-			if (dbgbase & 0x01)
-				command_print(cmd, "\tValid ROM table present");
-			else
-				command_print(cmd, "\tROM table in legacy format");
-
-			dap_rom_display(cmd, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+		dap_archid_display(cmd, ap, devarch & 0xffff);
+		/* If Class 9 CS, ARCHID 0x0AF7 is ROM */
+		if ((devarch & 0xffff) == 0x0AF7) {
+			/* Recurse */
+			retval = dap_rom_display_table(cmd, ap, base_addr, depth);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 	}
 
 	return ERROR_OK;
 }
 
-int adiv5_dap_apcsw_command(struct command_invocation *cmd)
+static int adiv6_get_dp_rom_info(struct command_invocation *cmd, struct adi_ap *ap, uint32_t *cidr1_reg,
+	uint32_t *cfg_reg, uint32_t *devid_reg, uint32_t *devarch_reg, uint32_t *id_reg)
+{
+	int retval;
+	uint32_t class = 0;
+	int archid_index;
+	int rom_entry_64bit;
+
+	retval = ERROR_OK;
+
+	/* Gather DP ROM table information for correct traversing */
+	if (id_reg != NULL)
+		retval = dap_queue_ap_read(ap, AP_REG_IDR, id_reg);
+	if (retval == ERROR_OK)
+		retval = dap_run(ap->dap); /* read this first reg to see if you get an error */
+
+	if (retval == ERROR_OK && cidr1_reg != NULL)
+		retval = dap_queue_ap_read(ap, AP_REG_CIDR1, cidr1_reg);
+	if (retval == ERROR_OK && cfg_reg != NULL)
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG, cfg_reg);
+	if (retval == ERROR_OK && devid_reg != NULL)
+		retval = dap_queue_ap_read(ap, AP_REG_DEVID, devid_reg);
+	if (retval == ERROR_OK && devarch_reg != NULL)
+		retval = dap_queue_ap_read(ap, AP_REG_DEVARCH, devarch_reg);
+	if (retval == ERROR_OK)
+		retval = dap_run(ap->dap);
+	if (retval != ERROR_OK) {
+		command_print(cmd, "\t\tFailure encountered reading AP configuration registers");
+		return retval;
+	}
+
+	if (cmd != NULL) {
+		class = (*cidr1_reg >> 4) & 0xf;
+		switch (*devarch_reg & 0x0ffff) {
+			case 0xA17:
+				archid_index = 0;
+				break;
+			case 0xA27:
+				archid_index = 1;
+				break;
+			case 0xAF7:
+				archid_index = 2;
+				class = 1; /* identify this component as a ROM Table */
+				break;
+			default:
+				archid_index = 3;
+				break;
+		}
+
+		rom_entry_64bit = *devid_reg & 0x1;
+
+		command_print(cmd, "\t\tCIDR1:0x%8.8" PRIx32 ", CFG:0x%8.8" PRIx32, *cidr1_reg, *cfg_reg);
+		command_print(cmd, "\t\tDEVID:0x%8.8" PRIx32 ",DEVARCH:0x%8.8" PRIx32, *devid_reg, *devarch_reg);
+
+		if (class == 1) { /* One of the 2 ROM Table formats */
+			command_print(cmd, "\t\tARCHID:%s", archid_description[archid_index]);
+			command_print(cmd, "\t\t%s", addr_description[(*cfg_reg >> 1) & 0x1]);
+			command_print(cmd, "\t\t%s", class9rom_description[rom_entry_64bit]);
+
+		} else {
+			command_print(cmd, "\t\tARCHID:%s", archid_description[archid_index]);
+			command_print(cmd, "\t\t%s", addr_description[(*cfg_reg >> 1) & 0x1]);
+			command_print(cmd, "\t\tClass:%s", class_description[class]);
+		}
+	}
+
+	return ERROR_OK;
+
+}
+
+
+static int adiv6_dap_info_command(struct command_invocation *cmd,
+		struct adi_ap *ap)
+{
+	int retval;
+	uint32_t baseptr_upper;
+	uint32_t baseptr_lower;
+	target_addr_t baseptr = 0;
+	uint32_t cidr1 = 0;
+	uint32_t devid = 0;
+	uint32_t devarch = 0;
+	uint32_t cfg = 0;
+	uint32_t idr;
+	uint16_t max_entry_offset, entry_offset;
+	int rom_entry_64bit;
+
+	struct adi_ap rom_ap = ap->dap->ap[0]; /* ap[0] is reserved for the DP ROM Table */
+
+	if (ap->dap->asize > 32) {
+		/* Read higher order 32-bits of base address */
+		retval = dap_dp_read_atomic(ap->dap, DP_BASEPTR1, &baseptr_upper);
+		if (retval == ERROR_OK) {
+			/* read low order 32-bits of base address first */
+			dap_dp_read_atomic(ap->dap, DP_BASEPTR0, &baseptr_lower);
+			if (retval == ERROR_OK) {
+				baseptr = (((uint64_t) baseptr_upper) << 32) | baseptr_lower;
+				command_print(cmd, "DP ROM Table BASEPTR: 0x%16.16" PRIx64, baseptr);
+			}
+		}
+	} else {
+		/* asize field indicates only a max of 32 bits needs to be read */
+		retval = dap_dp_read_atomic(ap->dap, DP_BASEPTR0, &baseptr_lower);
+		if (retval == ERROR_OK) {
+			baseptr = baseptr_lower;
+			command_print(cmd, "DP ROM Table BASEPTR0: 0x%8.8" PRIx32, baseptr_lower);
+		}
+	}
+
+	if (retval != ERROR_OK)
+		return retval;
+	if ((baseptr & 1) == 0) /* valid bit not set */
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+	baseptr &= 0xfffffffffffff000ull;
+
+	/* Point the AP address to BASEPTR */
+	rom_ap.base_addr = baseptr;
+
+	retval = adiv6_get_dp_rom_info(cmd, &rom_ap, &cidr1, &cfg, &devid, &devarch, &idr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	rom_entry_64bit = devid & 0x1;
+	if (((cidr1 & 0xf0) >> 4) == 9) /* is this a class 9 ROM table */
+		max_entry_offset = 0x800;
+	else
+		max_entry_offset = 0xF00; /* class 1 entry maximum count */
+
+
+	/* Read ROM table entries from base address until we get 0x00000000 or reach the reserved area */
+	for (entry_offset = 0; entry_offset < max_entry_offset; entry_offset += 4) {
+		target_addr_t entry;
+		uint32_t entry_upper;
+		uint32_t entry_lower;
+		uint32_t id_val = 0;
+
+		if (rom_entry_64bit) {
+			retval = dap_queue_ap_read(&rom_ap, entry_offset, &entry_upper);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = dap_queue_ap_read(&rom_ap, entry_offset + 4, &entry_lower);
+			/* Read apbrom through the register interface */
+			if (retval != ERROR_OK)
+				return retval;
+			retval = dap_run(ap->dap);
+			if (retval != ERROR_OK)
+				return retval;
+			entry = (((uint64_t) entry_upper) << 32) | entry_lower;
+
+			command_print(cmd, "ROM entry[0x%x]: 0x%16.16" PRIx64, entry_offset, entry);
+			entry_offset += 4;
+		} else {
+			retval = dap_queue_ap_read(&rom_ap, entry_offset, &entry_lower);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = dap_run(ap->dap);
+			if (retval != ERROR_OK)
+				continue;
+			entry = (target_addr_t) ((int32_t) entry_lower);
+			command_print(cmd, "ROM entry[0x%x]: 0x%8.8" PRIx32, entry_offset, (uint32_t) entry);
+		}
+
+		if (entry == 0)
+			break;
+		if ((entry & 3) == 3) {
+			rom_ap.base_addr = baseptr + entry;
+			retval = adiv6_get_dp_rom_info(cmd, &rom_ap, &cidr1, &cfg, &devid, &devarch, &idr);
+			rom_ap.base_addr = baseptr;
+			if (retval != ERROR_OK) {
+				command_print(cmd, "\t\tROM Table looks wrong; will try using target mem_ap for this entry");
+				if (ap->cfg_reg == ADIV6_BAD_CFG) {
+					command_print(CMD, "\t\tAccess Port %d not determined to be a mem_ap", ap->ap_num);
+					continue;
+				}
+
+				retval = dap_queue_ap_read(ap, AP_REG_IDR, &id_val);
+				if (retval == ERROR_OK)
+					retval = dap_run(ap->dap);
+				if (((id_val & IDR_TYPE) != AP_TYPE_APB_AP) && ((id_val & IDR_TYPE) != AP_TYPE_APB4_AP)) {
+					command_print(CMD, "\t\tAccess Port %d not determined to be an APB", ap->ap_num);
+					continue;
+				}
+				entry &= 0xFFFFFFFFFFFFF000ull;
+				/* read ROM table through MEM-AP */
+				dap_rom_display(cmd, ap, entry, 0);
+			}
+		}
+	}
+
+	return ERROR_OK;
+}
+
+int adiv6_dap_apcsw_command(struct command_invocation *cmd)
 {
 	struct adi_dap *dap = adi_get_dap(CMD_DATA);
 	uint32_t apcsw = dap->ap[dap->apsel].csw_default;
@@ -1585,9 +1998,10 @@ int adiv5_dap_apcsw_command(struct command_invocation *cmd)
 	return 0;
 }
 
-int adiv5_dap_apid_command(struct command_invocation *cmd)
+int adiv6_dap_apid_command(struct command_invocation *cmd)
 {
 	struct adi_dap *dap = adi_get_dap(CMD_DATA);
+	struct adi_ap *ap;
 	uint32_t apsel, apid;
 	int retval;
 
@@ -1605,7 +2019,14 @@ int adiv5_dap_apid_command(struct command_invocation *cmd)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	retval = dap_queue_ap_read(dap_ap(dap, apsel), AP_REG_IDR, &apid);
+	ap = dap_ap(dap, apsel);
+	if (ap->cfg_reg == ADIV6_BAD_CFG) {
+		command_print(CMD, "Access Port %d not determined to be a mem_ap", ap->ap_num);
+		return ERROR_FAIL;
+	}
+
+
+	retval = dap_queue_ap_read(ap, AP_REG_IDR, &apid);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);
@@ -1617,7 +2038,7 @@ int adiv5_dap_apid_command(struct command_invocation *cmd)
 	return retval;
 }
 
-int adiv5_dap_apreg_command(struct command_invocation *cmd)
+int adiv6_dap_apreg_command(struct command_invocation *cmd)
 {
 	struct adi_dap *dap = adi_get_dap(CMD_DATA);
 	uint32_t apsel, reg, value;
@@ -1633,8 +2054,13 @@ int adiv5_dap_apreg_command(struct command_invocation *cmd)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	ap = dap_ap(dap, apsel);
 
+	if (ap->cfg_reg == ADIV6_BAD_CFG) {
+		command_print(CMD, "Access Port %d not determined to be a mem_ap", ap->ap_num);
+		return ERROR_FAIL;
+	}
+
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg);
-	if (reg >= 256 || (reg & 3))
+	if (reg >= 4096 || (reg & 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (CMD_ARGC == 3) {
@@ -1670,7 +2096,7 @@ int adiv5_dap_apreg_command(struct command_invocation *cmd)
 	return retval;
 }
 
-int adiv5_dap_dpreg_command(struct command_invocation *cmd)
+int adiv6_dap_dpreg_command(struct command_invocation *cmd)
 {
 	struct adi_dap *dap = adi_get_dap(CMD_DATA);
 	uint32_t reg, value;
@@ -1701,16 +2127,12 @@ int adiv5_dap_dpreg_command(struct command_invocation *cmd)
 	return retval;
 }
 
-int adiv5_dap_baseaddr_command(struct command_invocation *cmd)
+int adiv6_dap_baseaddr_command(struct command_invocation *cmd)
 {
 	struct adi_dap *dap = adi_get_dap(CMD_DATA);
-	uint32_t apsel;
-	uint32_t baseaddr_lower, baseaddr_upper;
 	struct adi_ap *ap;
-	target_addr_t baseaddr;
+	uint32_t apsel;
 	int retval = ERROR_OK;
-
-	baseaddr_upper = 0;
 
 	switch (CMD_ARGC) {
 	case 0:
@@ -1726,31 +2148,32 @@ int adiv5_dap_baseaddr_command(struct command_invocation *cmd)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	/* NOTE:  assumes we're talking to a MEM-AP, which
+	ap = dap_ap(dap, apsel);
+	if (ap->cfg_reg != ADIV6_BAD_CFG)
+		command_print(CMD, "0x%16.16" PRIx64, dap_ap(dap, apsel)->base_addr);
+	else {
+		command_print(CMD, "Access Port %d not determined to be a mem_ap", ap->ap_num);
+		return ERROR_FAIL;
+	}
+#if 0
+/* NOTE:  assumes we're talking to a MEM-AP, which
 	 * has a base address.  There are other kinds of AP,
 	 * though they're not common for now.  This should
 	 * use the ID register to verify it's a MEM-AP.
 	 */
-	ap = dap_ap(dap, apsel);
-
-	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseaddr_lower);
-	if ((ap->cfg_reg & 2) && retval == ERROR_OK)
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE_UPPER, &baseaddr_upper);
+	retval = dap_queue_ap_read(dap_ap(dap, apsel), MEM_AP_REG_BASE, &baseaddr);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
-	if (ap->cfg_reg & 2) {
-		baseaddr = (((target_addr_t) baseaddr_upper) << 32) | baseaddr_lower;
-		command_print(CMD, "0x%16.16" PRIx64, baseaddr);
-	} else
-		command_print(CMD, "0x%8.8" PRIx32, baseaddr_lower);
 
+	command_print(CMD, "0x%8.8" PRIx32, baseaddr);
+#endif
 	return retval;
 }
 
-int adiv5_dap_memaccess_command(struct command_invocation *cmd)
+int adiv6_dap_memaccess_command(struct command_invocation *cmd)
 {
 	struct adi_dap *dap = adi_get_dap(CMD_DATA);
 	uint32_t memaccess_tck;
@@ -1773,29 +2196,29 @@ int adiv5_dap_memaccess_command(struct command_invocation *cmd)
 	return ERROR_OK;
 }
 
-static const struct dap_ops adiv5_dap_ops = {
-	.mem_ap_read_u32	= adiv5_mem_ap_read_u32,
-	.mem_ap_write_u32	= adiv5_mem_ap_write_u32,
-	.mem_ap_read_atomic_u32 = adiv5_mem_ap_read_atomic_u32,
-	.mem_ap_write_atomic_u32 = adiv5_mem_ap_write_atomic_u32,
-	.mem_ap_read_buf	= adiv5_mem_ap_read_buf,
-	.mem_ap_write_buf	= adiv5_mem_ap_write_buf,
-	.mem_ap_read_buf_noincr = adiv5_mem_ap_read_buf_noincr,
-	.mem_ap_write_buf_noincr = adiv5_mem_ap_write_buf_noincr,
-	.mem_ap_init		= adiv5_mem_ap_init,
-	.dp_init		= adiv5_dap_dp_init,
-	.invalidate_cache	= adiv5_dap_invalidate_cache,
-	.get_debugbase		= adiv5_dap_get_debugbase,
-	.find_ap		= adiv5_dap_find_ap,
-	.lookup_cs_component	= adiv5_dap_lookup_cs_component,
-	.to_swd			= adiv5_dap_to_swd,
-	.to_jtag		= adiv5_dap_to_jtag,
-	.dap_apidr_address	= adiv5_dap_apidr_address,
-	.dap_info_command       = adiv5_dap_info_command,
-	.dap_apcsw_command      = adiv5_dap_apcsw_command,
-	.dap_apid_command       = adiv5_dap_apid_command,
-	.dap_apreg_command      = adiv5_dap_apreg_command,
-	.dap_dpreg_command      = adiv5_dap_dpreg_command,
-	.dap_baseaddr_command   = adiv5_dap_baseaddr_command,
-	.dap_memaccess_command  = adiv5_dap_memaccess_command,
+static const struct dap_ops adiv6_dap_ops = {
+	.mem_ap_read_u32	= adiv6_mem_ap_read_u32,
+	.mem_ap_write_u32	= adiv6_mem_ap_write_u32,
+	.mem_ap_read_atomic_u32 = adiv6_mem_ap_read_atomic_u32,
+	.mem_ap_write_atomic_u32 = adiv6_mem_ap_write_atomic_u32,
+	.mem_ap_read_buf	= adiv6_mem_ap_read_buf,
+	.mem_ap_write_buf	= adiv6_mem_ap_write_buf,
+	.mem_ap_read_buf_noincr = adiv6_mem_ap_read_buf_noincr,
+	.mem_ap_write_buf_noincr = adiv6_mem_ap_write_buf_noincr,
+	.mem_ap_init		= adiv6_mem_ap_init,
+	.dp_init		= adiv6_dap_dp_init,
+	.invalidate_cache	= adiv6_dap_invalidate_cache,
+	.get_debugbase		= adiv6_dap_get_debugbase,
+	.find_ap		= adiv6_dap_find_ap,
+	.lookup_cs_component	= adiv6_dap_lookup_cs_component_root,
+	.to_swd			= adiv6_dap_to_swd,
+	.to_jtag		= adiv6_dap_to_jtag,
+	.dap_apidr_address	= adiv6_dap_apidr_address,
+	.dap_info_command       = adiv6_dap_info_command,
+	.dap_apcsw_command      = adiv6_dap_apcsw_command,
+	.dap_apid_command       = adiv6_dap_apid_command,
+	.dap_apreg_command      = adiv6_dap_apreg_command,
+	.dap_dpreg_command      = adiv6_dap_dpreg_command,
+	.dap_baseaddr_command   = adiv6_dap_baseaddr_command,
+	.dap_memaccess_command  = adiv6_dap_memaccess_command,
 };

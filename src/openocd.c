@@ -8,6 +8,8 @@
  *   Copyright (C) 2008 Richard Missenden                                  *
  *   richard.missenden@googlemail.com                                      *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -37,7 +39,7 @@
 #include <flash/nand/core.h>
 #include <pld/pld.h>
 #include <target/arm_cti.h>
-#include <target/arm_adi_v5.h>
+#include <target/arm_adi.h>
 
 #include <server/server.h>
 #include <server/gdb_server.h>

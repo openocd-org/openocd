@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2016 by Matthias Welwarsky                              *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -23,7 +25,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "target/arm_adi_v5.h"
+#include "target/arm_adi.h"
 #include "target/arm_cti.h"
 #include "target/target.h"
 #include "helper/time_support.h"
@@ -32,7 +34,7 @@
 
 struct arm_cti {
 	target_addr_t base;
-	struct adiv5_ap *ap;
+	struct adi_ap *ap;
 };
 
 struct arm_cti_object {
@@ -451,7 +453,7 @@ static const Jim_Nvp nvp_config_opts[] = {
 
 static int cti_configure(Jim_GetOptInfo *goi, struct arm_cti_object *cti)
 {
-	struct adiv5_dap *dap = NULL;
+	struct adi_dap *dap = NULL;
 	Jim_Nvp *n;
 	jim_wide w;
 	int e;
@@ -641,4 +643,3 @@ int cti_register_commands(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, cti_command_handlers);
 }
-

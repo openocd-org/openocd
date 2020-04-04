@@ -1,5 +1,7 @@
 /***************************************************************************
- *    Copyright (C) 2009 by David Brownell                                 *
+ *   Copyright (C) 2009 by David Brownell                                  *
+ *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -18,7 +20,7 @@
 #ifndef OPENOCD_TARGET_ARMV7A_H
 #define OPENOCD_TARGET_ARMV7A_H
 
-#include "arm_adi_v5.h"
+#include "arm_adi.h"
 #include "armv7a_cache.h"
 #include "arm.h"
 #include "armv4_5_mmu.h"
@@ -104,8 +106,8 @@ struct armv7a_common {
 
 	/* Core Debug Unit */
 	struct arm_dpm dpm;
-	uint32_t debug_base;
-	struct adiv5_ap *debug_ap;
+	target_addr_t debug_base;
+	struct adi_ap *debug_ap;
 	/* mdir */
 	uint8_t multi_processor_system;
 	uint8_t multi_threading_processor;

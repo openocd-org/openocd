@@ -7,6 +7,8 @@
  *                                                                         *
  *   revised:  4/25/13 by brent@mbari.org [DCC target request support]	   *
  *                                                                         *
+ *   Copyright (C) 2019, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -367,7 +369,7 @@ static int adapter_target_create(struct target *target,
 		Jim_Interp *interp)
 {
 	LOG_DEBUG("%s", __func__);
-	struct adiv5_private_config *pc = target->private_config;
+	struct adi_private_config *pc = target->private_config;
 	if (pc != NULL && pc->ap_num > 0) {
 		LOG_ERROR("hla_target: invalid parameter -ap-num (> 0)");
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -803,7 +805,7 @@ struct target_type hla_target = {
 	.init_target = adapter_init_target,
 	.deinit_target = cortex_m_deinit_target,
 	.target_create = adapter_target_create,
-	.target_jim_configure = adiv5_jim_configure,
+	.target_jim_configure = adi_jim_configure,
 	.examine = cortex_m_examine,
 	.commands = adapter_command_handlers,
 

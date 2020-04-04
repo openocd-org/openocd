@@ -1,6 +1,8 @@
 /*****************************************************************************
  *   Copyright (C) 2016 by Matthias Welwarsky <matthias.welwarsky@sysgo.com> *
  *                                                                           *
+ *   Copyright (C) 2019, Ampere Computing LLC                                *
+ *                                                                           *
  *   This program is free software; you can redistribute it and/or modify    *
  *   it under the terms of the GNU General Public License as published by    *
  *   the Free Software Foundation; either version 2 of the License, or       *
@@ -19,22 +21,22 @@
 #include "target.h"
 #include "target_type.h"
 #include "arm.h"
-#include "arm_adi_v5.h"
+#include "arm_adi.h"
 
 #include <jtag/jtag.h>
 
 struct mem_ap {
 	struct arm arm;
-	struct adiv5_ap *ap;
+	struct adi_ap *ap;
 	int ap_num;
 };
 
 static int mem_ap_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct mem_ap *mem_ap;
-	struct adiv5_private_config *pc;
+	struct adi_private_config *pc;
 
-	pc = (struct adiv5_private_config *)target->private_config;
+	pc = (struct adi_private_config *)target->private_config;
 	if (pc == NULL)
 		return ERROR_FAIL;
 
@@ -170,7 +172,7 @@ struct target_type mem_ap_target = {
 	.target_create = mem_ap_target_create,
 	.init_target = mem_ap_init_target,
 	.examine = mem_ap_examine,
-	.target_jim_configure = adiv5_jim_configure,
+	.target_jim_configure = adi_jim_configure,
 
 	.poll = mem_ap_poll,
 	.arch_state = mem_ap_arch_state,
