@@ -129,6 +129,11 @@ int semihosting_common_init(struct target *target, void *setup,
 	}
 
 	semihosting->is_active = false;
+	semihosting->redirect_cfg = SEMIHOSTING_REDIRECT_CFG_NONE;
+	semihosting->tcp_connection = NULL;
+	semihosting->stdin_fd = -1;
+	semihosting->stdout_fd = -1;
+	semihosting->stderr_fd = -1;
 	semihosting->is_fileio = false;
 	semihosting->hit_fileio = false;
 	semihosting->is_resumable = false;
@@ -152,6 +157,141 @@ int semihosting_common_init(struct target *target, void *setup,
 	target->type->gdb_fileio_end = semihosting_common_fileio_end;
 
 	return ERROR_OK;
+}
+
+struct semihosting_tcp_service {
+	struct semihosting *semihosting;
+	char *name;
+	int error;
+};
+
+static bool semihosting_is_redirected(struct semihosting *semihosting, int fd)
+{
+	if (semihosting->redirect_cfg == SEMIHOSTING_REDIRECT_CFG_NONE)
+		return false;
+
+	bool is_read_op = false;
+
+	switch (semihosting->op) {
+	/* check debug semihosting operations: READC, WRITEC and WRITE0 */
+	case SEMIHOSTING_SYS_READC:
+		is_read_op = true;
+		/* fall through */
+	case SEMIHOSTING_SYS_WRITEC:
+	case SEMIHOSTING_SYS_WRITE0:
+		/* debug operations are redirected when CFG is either DEBUG or ALL */
+		if (semihosting->redirect_cfg == SEMIHOSTING_REDIRECT_CFG_STDIO)
+			return false;
+		break;
+
+	/* check stdio semihosting operations: READ and WRITE */
+	case SEMIHOSTING_SYS_READ:
+		is_read_op = true;
+		/* fall through */
+	case SEMIHOSTING_SYS_WRITE:
+		/* stdio operations are redirected when CFG is either STDIO or ALL */
+		if (semihosting->redirect_cfg == SEMIHOSTING_REDIRECT_CFG_DEBUG)
+			return false;
+		break;
+
+	default:
+		return false;
+	}
+
+	if (is_read_op)
+		return fd == semihosting->stdin_fd;
+
+	/* write operation */
+	return fd == semihosting->stdout_fd || fd == semihosting->stderr_fd;
+}
+
+static ssize_t semihosting_redirect_write(struct semihosting *semihosting, void *buf, int size)
+{
+	if (!semihosting->tcp_connection) {
+		LOG_ERROR("No connected TCP client for semihosting");
+		semihosting->sys_errno = EBADF; /* Bad file number */
+		return -1;
+	}
+
+	struct semihosting_tcp_service *service = semihosting->tcp_connection->service->priv;
+
+	int retval = connection_write(semihosting->tcp_connection, buf, size);
+
+	if (retval < 0)
+		log_socket_error(service->name);
+
+	return retval;
+}
+
+static ssize_t semihosting_write(struct semihosting *semihosting, int fd, void *buf, int size)
+{
+	if (semihosting_is_redirected(semihosting, fd))
+		return semihosting_redirect_write(semihosting, buf, size);
+
+	/* default write */
+	return write(fd, buf, size);
+}
+
+static ssize_t semihosting_redirect_read(struct semihosting *semihosting, void *buf, int size)
+{
+	if (!semihosting->tcp_connection) {
+		LOG_ERROR("No connected TCP client for semihosting");
+		semihosting->sys_errno = EBADF; /* Bad file number */
+		return -1;
+	}
+
+	struct semihosting_tcp_service *service = semihosting->tcp_connection->service->priv;
+
+	service->error = ERROR_OK;
+	semihosting->tcp_connection->input_pending = true;
+
+	int retval = connection_read(semihosting->tcp_connection, buf, size);
+
+	if (retval <= 0)
+		service->error = ERROR_SERVER_REMOTE_CLOSED;
+
+	if (retval < 0)
+		log_socket_error(service->name);
+
+	semihosting->tcp_connection->input_pending = false;
+
+	return retval;
+}
+
+static inline int semihosting_putchar(struct semihosting *semihosting, int fd, int c)
+{
+	if (semihosting_is_redirected(semihosting, fd))
+		return semihosting_redirect_write(semihosting, &c, 1);
+
+	/* default putchar */
+	return putchar(c);
+}
+
+static inline ssize_t semihosting_read(struct semihosting *semihosting, int fd, void *buf, int size)
+{
+	if (semihosting_is_redirected(semihosting, fd))
+		return semihosting_redirect_read(semihosting, buf, size);
+
+	/* default read */
+	ssize_t result = read(fd, buf, size);
+	semihosting->sys_errno = errno;
+
+	return result;
+}
+
+static inline int semihosting_getchar(struct semihosting *semihosting, int fd)
+{
+	if (semihosting_is_redirected(semihosting, fd)) {
+		unsigned char c;
+
+		if (semihosting_redirect_read(semihosting, &c, 1) > 0)
+			return c;
+
+		return EOF;
+	}
+
+	/* default getchar */
+	return getchar();
 }
 
 /**
@@ -756,20 +896,23 @@ int semihosting_common(struct target *target)
 							 * - 4-7 ("w") for stdout,
 							 * - 8-11 ("a") for stderr */
 							if (mode < 4) {
-								semihosting->result = dup(
-										STDIN_FILENO);
+								int fd = dup(STDIN_FILENO);
+								semihosting->result = fd;
+								semihosting->stdin_fd = fd;
 								semihosting->sys_errno = errno;
 								LOG_DEBUG("dup(STDIN)=%d",
 									(int)semihosting->result);
 							} else if (mode < 8) {
-								semihosting->result = dup(
-										STDOUT_FILENO);
+								int fd = dup(STDOUT_FILENO);
+								semihosting->result = fd;
+								semihosting->stdout_fd = fd;
 								semihosting->sys_errno = errno;
 								LOG_DEBUG("dup(STDOUT)=%d",
 									(int)semihosting->result);
 							} else {
-								semihosting->result = dup(
-										STDERR_FILENO);
+								int fd = dup(STDERR_FILENO);
+								semihosting->result = fd;
+								semihosting->stderr_fd = fd;
 								semihosting->sys_errno = errno;
 								LOG_DEBUG("dup(STDERR)=%d",
 									(int)semihosting->result);
@@ -845,8 +988,7 @@ int semihosting_common(struct target *target)
 						semihosting->result = -1;
 						semihosting->sys_errno = ENOMEM;
 					} else {
-						semihosting->result = read(fd, buf, len);
-						semihosting->sys_errno = errno;
+						semihosting->result = semihosting_read(semihosting, fd, buf, len);
 						LOG_DEBUG("read(%d, 0x%" PRIx64 ", %zu)=%d",
 							fd,
 							addr,
@@ -886,7 +1028,7 @@ int semihosting_common(struct target *target)
 				LOG_ERROR("SYS_READC not supported by semihosting fileio");
 				return ERROR_FAIL;
 			}
-			semihosting->result = getchar();
+			semihosting->result = semihosting_getchar(semihosting, semihosting->stdin_fd);
 			LOG_DEBUG("getchar()=%d", (int)semihosting->result);
 			break;
 
@@ -1189,7 +1331,7 @@ int semihosting_common(struct target *target)
 							free(buf);
 							return retval;
 						}
-						semihosting->result = write(fd, buf, len);
+						semihosting->result = semihosting_write(semihosting, fd, buf, len);
 						semihosting->sys_errno = errno;
 						LOG_DEBUG("write(%d, 0x%" PRIx64 ", %zu)=%d",
 							fd,
@@ -1234,7 +1376,7 @@ int semihosting_common(struct target *target)
 				retval = target_read_memory(target, addr, 1, 1, &c);
 				if (retval != ERROR_OK)
 					return retval;
-				putchar(c);
+				semihosting_putchar(semihosting, semihosting->stdout_fd, c);
 				semihosting->result = 0;
 			}
 			break;
@@ -1278,7 +1420,7 @@ int semihosting_common(struct target *target)
 						return retval;
 					if (!c)
 						break;
-					putchar(c);
+					semihosting_putchar(semihosting, semihosting->stdout_fd, c);
 				} while (1);
 				semihosting->result = 0;
 			}
@@ -1557,6 +1699,70 @@ static void semihosting_set_field(struct target *target, uint64_t value,
 		target_buffer_set_u32(target, fields + (index * 4), value);
 }
 
+/* -------------------------------------------------------------------------
+ * Semihosting redirect over TCP structs and functions */
+
+static int semihosting_service_new_connection_handler(struct connection *connection)
+{
+	struct semihosting_tcp_service *service = connection->service->priv;
+	service->semihosting->tcp_connection = connection;
+
+	return ERROR_OK;
+}
+
+static int semihosting_service_input_handler(struct connection *connection)
+{
+	struct semihosting_tcp_service *service = connection->service->priv;
+
+	if (!connection->input_pending) {
+		/* consume received data, not for semihosting IO */
+		const int buf_len = 100;
+		char buf[buf_len];
+		int bytes_read = connection_read(connection, buf, buf_len);
+
+		if (bytes_read == 0) {
+			return ERROR_SERVER_REMOTE_CLOSED;
+		} else if (bytes_read == -1) {
+			LOG_ERROR("error during read: %s", strerror(errno));
+			return ERROR_SERVER_REMOTE_CLOSED;
+		}
+	} else if (service->error != ERROR_OK) {
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
+
+	return ERROR_OK;
+}
+
+static int semihosting_service_connection_closed_handler(struct connection *connection)
+{
+	struct semihosting_tcp_service *service = connection->service->priv;
+	if (service) {
+		free(service->name);
+		free(service);
+	}
+
+	return ERROR_OK;
+}
+
+static void semihosting_tcp_close_cnx(struct semihosting *semihosting)
+{
+	if (!semihosting->tcp_connection)
+		return;
+
+	struct service *service = semihosting->tcp_connection->service;
+	remove_service(service->name, service->port);
+	semihosting->tcp_connection = NULL;
+
+}
+
+static const struct service_driver semihosting_service_driver = {
+	.name = "semihosting",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = semihosting_service_new_connection_handler,
+	.input_handler = semihosting_service_input_handler,
+	.connection_closed_handler = semihosting_service_connection_closed_handler,
+	.keep_client_alive_handler = NULL,
+};
 
 /* -------------------------------------------------------------------------
  * Common semihosting commands handlers. */
@@ -1598,6 +1804,91 @@ COMMAND_HANDLER(handle_common_semihosting_command)
 	command_print(CMD, "semihosting is %s",
 		semihosting->is_active
 		? "enabled" : "disabled");
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_common_semihosting_redirect_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (target == NULL) {
+		LOG_ERROR("No target selected");
+		return ERROR_FAIL;
+	}
+
+	struct semihosting *semihosting = target->semihosting;
+	if (!semihosting) {
+		command_print(CMD, "semihosting not supported for current target");
+		return ERROR_FAIL;
+	}
+
+	if (!semihosting->is_active) {
+		command_print(CMD, "semihosting not yet enabled for current target");
+		return ERROR_FAIL;
+	}
+
+	enum semihosting_redirect_config cfg;
+	const char *port;
+
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (strcmp(CMD_ARGV[0], "disable") == 0) {
+		cfg = SEMIHOSTING_REDIRECT_CFG_NONE;
+		if (CMD_ARGC > 1)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	} else if (strcmp(CMD_ARGV[0], "tcp") == 0) {
+		if (CMD_ARGC < 2 || CMD_ARGC > 3)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+		port = CMD_ARGV[1];
+
+		cfg = SEMIHOSTING_REDIRECT_CFG_ALL;
+		if (CMD_ARGC == 3) {
+			if (strcmp(CMD_ARGV[2], "debug") == 0)
+				cfg = SEMIHOSTING_REDIRECT_CFG_DEBUG;
+			else if (strcmp(CMD_ARGV[2], "stdio") == 0)
+				cfg = SEMIHOSTING_REDIRECT_CFG_STDIO;
+			else if (strcmp(CMD_ARGV[2], "all") != 0)
+				return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else {
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	semihosting_tcp_close_cnx(semihosting);
+	semihosting->redirect_cfg = SEMIHOSTING_REDIRECT_CFG_NONE;
+
+	if (cfg != SEMIHOSTING_REDIRECT_CFG_NONE) {
+		struct semihosting_tcp_service *service =
+				calloc(1, sizeof(struct semihosting_tcp_service));
+		if (!service) {
+			LOG_ERROR("Failed to allocate semihosting TCP service.");
+			return ERROR_FAIL;
+		}
+
+		service->semihosting = semihosting;
+
+		service->name = alloc_printf("%s semihosting service", target_name(target));
+		if (!service->name) {
+			LOG_ERROR("Out of memory");
+			free(service);
+			return ERROR_FAIL;
+		}
+
+		int ret = add_service(&semihosting_service_driver,
+				port, 1, service);
+
+		if (ret != ERROR_OK) {
+			LOG_ERROR("failed to initialize %s", service->name);
+			free(service->name);
+			free(service);
+			return ERROR_FAIL;
+		}
+	}
+
+	semihosting->redirect_cfg = cfg;
 
 	return ERROR_OK;
 }
@@ -1721,35 +2012,42 @@ COMMAND_HANDLER(handle_common_semihosting_read_user_param_command)
 
 const struct command_registration semihosting_common_handlers[] = {
 	{
-		"semihosting",
+		.name = "semihosting",
 		.handler = handle_common_semihosting_command,
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting operations",
 	},
 	{
-		"semihosting_cmdline",
+		.name = "semihosting_redirect",
+		.handler = handle_common_semihosting_redirect_command,
+		.mode = COMMAND_EXEC,
+		.usage = "(disable | tcp <port> ['debug'|'stdio'|'all'])",
+		.help = "redirect semihosting IO",
+	},
+	{
+		.name = "semihosting_cmdline",
 		.handler = handle_common_semihosting_cmdline,
 		.mode = COMMAND_EXEC,
 		.usage = "arguments",
 		.help = "command line arguments to be passed to program",
 	},
 	{
-		"semihosting_fileio",
+		.name = "semihosting_fileio",
 		.handler = handle_common_semihosting_fileio_command,
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting fileio operations",
 	},
 	{
-		"semihosting_resexit",
+		.name = "semihosting_resexit",
 		.handler = handle_common_semihosting_resumable_exit_command,
 		.mode = COMMAND_EXEC,
 		.usage = "['enable'|'disable']",
 		.help = "activate support for semihosting resumable exit",
 	},
 	{
-		"semihosting_read_user_param",
+		.name = "semihosting_read_user_param",
 		.handler = handle_common_semihosting_read_user_param_command,
 		.mode = COMMAND_EXEC,
 		.usage = "",
