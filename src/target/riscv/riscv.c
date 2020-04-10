@@ -3528,6 +3528,19 @@ int riscv_init_registers(struct target *target)
 	/* These types are built into gdb. */
 	static struct reg_data_type type_ieee_single = { .type = REG_TYPE_IEEE_SINGLE, .id = "ieee_single" };
 	static struct reg_data_type type_ieee_double = { .type = REG_TYPE_IEEE_DOUBLE, .id = "ieee_double" };
+	static struct reg_data_type_union_field single_double_fields[] = {
+		{"float", &type_ieee_single, single_double_fields + 1},
+		{"double", &type_ieee_double, NULL},
+	};
+	static struct reg_data_type_union single_double_union = {
+		.fields = single_double_fields
+	};
+	static struct reg_data_type type_ieee_single_double = {
+		.type = REG_TYPE_ARCH_DEFINED,
+		.id = "FPU_FD",
+		.type_class = REG_TYPE_CLASS_UNION,
+		.reg_type_union = &single_double_union
+	};
 	static struct reg_data_type type_uint8 = { .type = REG_TYPE_UINT8, .id = "uint8" };
 	static struct reg_data_type type_uint16 = { .type = REG_TYPE_UINT16, .id = "uint16" };
 	static struct reg_data_type type_uint32 = { .type = REG_TYPE_UINT32, .id = "uint32" };
@@ -3770,8 +3783,11 @@ int riscv_init_registers(struct target *target)
 		} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			r->caller_save = true;
 			if (riscv_supports_extension(target, hartid, 'D')) {
-				r->reg_data_type = &type_ieee_double;
 				r->size = 64;
+				if (riscv_supports_extension(target, hartid, 'F'))
+					r->reg_data_type = &type_ieee_single_double;
+				else
+					r->reg_data_type = &type_ieee_double;
 			} else if (riscv_supports_extension(target, hartid, 'F')) {
 				r->reg_data_type = &type_ieee_single;
 				r->size = 32;
