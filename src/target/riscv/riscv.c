@@ -1382,10 +1382,11 @@ static int riscv_mmu(struct target *target, int *enabled)
 		riscv_set_current_hartid(target, target->rtos->current_thread - 1);
 
 	riscv_reg_t value;
-	int result = riscv_get_register(target, &value, GDB_REGNO_SATP);
-	if (result != ERROR_OK) {
+	if (riscv_get_register(target, &value, GDB_REGNO_SATP) != ERROR_OK) {
 		LOG_DEBUG("Couldn't read SATP.");
-		return result;
+		/* If we can't read SATP, then there must not be an MMU. */
+		*enabled = 0;
+		return ERROR_OK;
 	}
 
 	if (get_field(value, RISCV_SATP_MODE(riscv_xlen(target))) == SATP_MODE_OFF) {
