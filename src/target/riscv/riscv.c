@@ -3002,6 +3002,54 @@ bool riscv_has_register(struct target *target, int hartid, int regid)
 }
 
 /**
+ * If write is true:
+ *   return true iff we are guaranteed that the register will contain exactly
+ *       the value we just wrote when it's read.
+ * If write is false:
+ *   return true iff we are guaranteed that the register will read the same
+ *       value in the future as the value we just read.
+ */
+static bool gdb_regno_cacheable(enum gdb_regno regno, bool write)
+{
+	/* GPRs, FPRs, vector registers are just normal data stores. */
+	if (regno <= GDB_REGNO_XPR31 ||
+			(regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) ||
+			(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31) ||
+			regno == GDB_REGNO_PC)
+		return true;
+
+	/* Most CSRs won't change value on us, but we can't assume it about rbitrary
+	 * CSRs. */
+	switch (regno) {
+		case GDB_REGNO_VSTART:
+		case GDB_REGNO_VXSAT:
+		case GDB_REGNO_VXRM:
+		case GDB_REGNO_VLENB:
+		case GDB_REGNO_VL:
+		case GDB_REGNO_VTYPE:
+		case GDB_REGNO_MISA:
+		case GDB_REGNO_DPC:
+		case GDB_REGNO_DCSR:
+		case GDB_REGNO_DSCRATCH:
+		case GDB_REGNO_MSTATUS:
+		case GDB_REGNO_MEPC:
+		case GDB_REGNO_MCAUSE:
+		case GDB_REGNO_SATP:
+			/*
+			 * WARL registers might not contain the value we just wrote, but
+			 * these ones won't spontaneously change their value either. *
+			 */
+			return !write;
+
+		case GDB_REGNO_TSELECT:	/* I think this should be above, but then it doesn't work. */
+		case GDB_REGNO_TDATA1:	/* Changes value when tselect is changed. */
+		case GDB_REGNO_TDATA2:  /* Changse value when tselect is changed. */
+		default:
+			return false;
+	}
+}
+
+/**
  * This function is called when the debug user wants to change the value of a
  * register. The new value may be cached, and may not be written until the hart
  * is resumed. */
@@ -3022,7 +3070,17 @@ int riscv_set_register_on_hart(struct target *target, int hartid,
 			riscv_supports_extension(target, hartid, 'E'))
 		return ERROR_OK;
 
-	return r->set_register(target, hartid, regid, value);
+	struct reg *reg = &target->reg_cache->reg_list[regid];
+	buf_set_u64(reg->value, 0, reg->size, value);
+
+	int result = r->set_register(target, hartid, regid, value);
+	if (result == ERROR_OK)
+		reg->valid = gdb_regno_cacheable(regid, true);
+	else
+		reg->valid = false;
+	LOG_DEBUG("[%s]{%d} wrote 0x%" PRIx64 " to %s valid=%d",
+			  target_name(target), hartid, value, reg->name, reg->valid);
+	return result;
 }
 
 int riscv_get_register(struct target *target, riscv_reg_t *value,
@@ -3038,9 +3096,16 @@ int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
 	RISCV_INFO(r);
 
 	struct reg *reg = &target->reg_cache->reg_list[regid];
+	if (!reg->exist) {
+		LOG_DEBUG("[%s]{%d} %s does not exist.",
+				  target_name(target), hartid, gdb_regno_name(regid));
+		return ERROR_FAIL;
+	}
 
 	if (reg && reg->valid && hartid == riscv_current_hartid(target)) {
 		*value = buf_get_u64(reg->value, 0, reg->size);
+		LOG_DEBUG("{%d} %s: %" PRIx64 " (cached)", hartid,
+				  gdb_regno_name(regid), *value);
 		return ERROR_OK;
 	}
 
@@ -3052,6 +3117,9 @@ int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
 	}
 
 	int result = r->get_register(target, value, hartid, regid);
+
+	if (result == ERROR_OK)
+		reg->valid = gdb_regno_cacheable(regid, false);
 
 	LOG_DEBUG("{%d} %s: %" PRIx64, hartid, gdb_regno_name(regid), *value);
 	return result;
@@ -3406,13 +3474,7 @@ static int register_get(struct reg *reg)
 			return result;
 		buf_set_u64(reg->value, 0, reg->size, value);
 	}
-	/* CSRs (and possibly other extension) registers may change value at any
-	 * time. */
-	if (reg->number <= GDB_REGNO_XPR31 ||
-			(reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) ||
-			(reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) ||
-			reg->number == GDB_REGNO_PC)
-		reg->valid = true;
+	reg->valid = gdb_regno_cacheable(reg->number, false);
 	char *str = buf_to_str(reg->value, reg->size, 16);
 	LOG_DEBUG("[%d]{%d} read 0x%s from %s (valid=%d)", target->coreid,
 			riscv_current_hartid(target), str, reg->name, reg->valid);
@@ -3432,13 +3494,7 @@ static int register_set(struct reg *reg, uint8_t *buf)
 	free(str);
 
 	memcpy(reg->value, buf, DIV_ROUND_UP(reg->size, 8));
-	/* CSRs (and possibly other extension) registers may change value at any
-	 * time. */
-	if (reg->number <= GDB_REGNO_XPR31 ||
-			(reg->number >= GDB_REGNO_FPR0 && reg->number <= GDB_REGNO_FPR31) ||
-			(reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) ||
-			reg->number == GDB_REGNO_PC)
-		reg->valid = true;
+	reg->valid = gdb_regno_cacheable(reg->number, true);
 
 	if (reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) {
 		if (!r->set_register_buf) {
