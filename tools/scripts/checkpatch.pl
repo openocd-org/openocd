@@ -1132,10 +1132,12 @@ sub is_maintained_obsolete {
 sub is_SPDX_License_valid {
 	my ($license) = @_;
 
-	return 1 if (!$tree || which("python3") eq "" || !(-x "$root/scripts/spdxcheck.py") || !(-e "$gitroot"));
+	# OpenOCD specific: Begin: replace s"scripts"tools/scripts"
+	return 1 if (!$tree || which("python3") eq "" || !(-x "$root/tools/scripts/spdxcheck.py") || !(-e "$gitroot"));
 
 	my $root_path = abs_path($root);
-	my $status = `cd "$root_path"; echo "$license" | scripts/spdxcheck.py -`;
+	my $status = `cd "$root_path"; echo "$license" | tools/scripts/spdxcheck.py -`;
+	# OpenOCD specific: End
 	return 0 if ($status ne "");
 	return 1;
 }
@@ -3669,6 +3671,10 @@ sub process {
 					$comment = '#';
 				} elsif ($realfile =~ /\.rst$/) {
 					$comment = '..';
+				# OpenOCD specific: Begin
+				} elsif ($realfile =~ /\.(am|cfg|tcl)$/) {
+					$comment = '#';
+				# OpenOCD specific: End
 				}
 
 # check SPDX comment style for .[chsS] files
