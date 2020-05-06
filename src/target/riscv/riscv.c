@@ -3015,13 +3015,15 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool write)
 	/* GPRs, FPRs, vector registers are just normal data stores. */
 	if (regno <= GDB_REGNO_XPR31 ||
 			(regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) ||
-			(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31) ||
-			regno == GDB_REGNO_PC)
+			(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31))
 		return true;
 
 	/* Most CSRs won't change value on us, but we can't assume it about rbitrary
 	 * CSRs. */
 	switch (regno) {
+		case GDB_REGNO_DPC:
+			return true;
+
 		case GDB_REGNO_VSTART:
 		case GDB_REGNO_VXSAT:
 		case GDB_REGNO_VXRM:
@@ -3029,7 +3031,6 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool write)
 		case GDB_REGNO_VL:
 		case GDB_REGNO_VTYPE:
 		case GDB_REGNO_MISA:
-		case GDB_REGNO_DPC:
 		case GDB_REGNO_DCSR:
 		case GDB_REGNO_DSCRATCH:
 		case GDB_REGNO_MSTATUS:
