@@ -1931,6 +1931,7 @@ int set_debug_reason(struct target *target, int hartid)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 			break;
 		case RISCV_HALT_INTERRUPT:
+		case RISCV_HALT_GROUP:
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
 		case RISCV_HALT_SINGLESTEP:

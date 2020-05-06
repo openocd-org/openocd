@@ -92,6 +92,7 @@ static int	riscv013_test_compliance(struct target *target);
 #define CSR_DCSR_CAUSE_DEBUGINT	3
 #define CSR_DCSR_CAUSE_STEP		4
 #define CSR_DCSR_CAUSE_HALT		5
+#define CSR_DCSR_CAUSE_GROUP	6
 
 #define RISCV013_INFO(r) riscv013_info_t *r = get_info(target)
 
@@ -3878,6 +3879,8 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 	case CSR_DCSR_CAUSE_DEBUGINT:
 	case CSR_DCSR_CAUSE_HALT:
 		return RISCV_HALT_INTERRUPT;
+	case CSR_DCSR_CAUSE_GROUP:
+		return RISCV_HALT_GROUP;
 	}
 
 	LOG_ERROR("Unknown DCSR cause field: %x", (int)get_field(dcsr, CSR_DCSR_CAUSE));
