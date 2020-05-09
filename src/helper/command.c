@@ -53,6 +53,12 @@ static int unregister_command(struct command_context *context,
 	struct command *parent, const char *name);
 static char *command_name(struct command *c, char delim);
 
+/* wrap jimtcl internal data */
+static inline bool jimcmd_is_proc(Jim_Cmd *cmd)
+{
+	return cmd->isproc;
+}
+
 static void tcl_output(void *privData, const char *file, unsigned line,
 	const char *function, const char *string)
 {
@@ -1042,6 +1048,15 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	enum command_mode mode;
 
 	if (argc > 1) {
+		char *full_name = alloc_concatenate_strings(argc - 1, argv + 1);
+		if (!full_name)
+			return JIM_ERR;
+		Jim_Cmd *cmd = Jim_GetCommand(interp, Jim_NewStringObj(interp, full_name, -1), JIM_NONE);
+		free(full_name);
+		if (cmd && jimcmd_is_proc(cmd)) {
+			Jim_SetResultString(interp, "any", -1);
+			return JIM_OK;
+		}
 		struct command *c = cmd_ctx->commands;
 		int remaining = command_unknown_find(argc - 1, argv + 1, c, &c);
 		/* if nothing could be consumed, then it's an unknown command */
