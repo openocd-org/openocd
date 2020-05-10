@@ -109,7 +109,6 @@ static const struct command_registration esirisc_flash_command_handlers[];
 FLASH_BANK_COMMAND_HANDLER(esirisc_flash_bank_command)
 {
 	struct esirisc_flash_bank *esirisc_info;
-	struct command *esirisc_cmd;
 
 	if (CMD_ARGC < 9)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -123,8 +122,7 @@ FLASH_BANK_COMMAND_HANDLER(esirisc_flash_bank_command)
 	bank->driver_priv = esirisc_info;
 
 	/* register commands using existing esirisc context */
-	esirisc_cmd = command_find_in_context(CMD_CTX, "esirisc");
-	register_commands(CMD_CTX, esirisc_cmd, esirisc_flash_command_handlers);
+	register_commands(CMD_CTX, "esirisc", esirisc_flash_command_handlers);
 
 	return ERROR_OK;
 }
