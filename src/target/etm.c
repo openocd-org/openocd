@@ -2115,6 +2115,5 @@ static const struct command_registration etm_exec_command_handlers[] = {
 
 static int etm_register_user_commands(struct command_context *cmd_ctx)
 {
-	struct command *etm_cmd = command_find_in_context(cmd_ctx, "etm");
-	return register_commands(cmd_ctx, etm_cmd, etm_exec_command_handlers);
+	return register_commands(cmd_ctx, "etm", etm_exec_command_handlers);
 }
