@@ -244,12 +244,6 @@ static struct command *command_find(struct command *head, const char *name)
 	return NULL;
 }
 
-struct command *command_find_in_context(struct command_context *cmd_ctx,
-	const char *name)
-{
-	return command_find(cmd_ctx->commands, name);
-}
-
 /**
  * Add the command into the linked list, sorted by name.
  * @param head Address to head of command list pointer, which may be
@@ -391,7 +385,7 @@ static struct command *register_command(struct command_context *context,
 	return c;
 }
 
-int __register_commands(struct command_context *cmd_ctx, struct command *parent,
+static int ___register_commands(struct command_context *cmd_ctx, struct command *parent,
 	const struct command_registration *cmds, void *data,
 	struct target *override_target)
 {
@@ -412,7 +406,7 @@ int __register_commands(struct command_context *cmd_ctx, struct command *parent,
 		}
 		if (NULL != cr->chain) {
 			struct command *p = c ? : parent;
-			retval = __register_commands(cmd_ctx, p, cr->chain, data, override_target);
+			retval = ___register_commands(cmd_ctx, p, cr->chain, data, override_target);
 			if (ERROR_OK != retval)
 				break;
 		}
@@ -422,6 +416,18 @@ int __register_commands(struct command_context *cmd_ctx, struct command *parent,
 			unregister_command(cmd_ctx, parent, cmds[j].name);
 	}
 	return retval;
+}
+
+int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
+	const struct command_registration *cmds, void *data,
+	struct target *override_target)
+{
+	struct command *parent = NULL;
+
+	if (cmd_prefix)
+		parent = command_find(cmd_ctx->commands, cmd_prefix);
+
+	return ___register_commands(cmd_ctx, parent, cmds, data, override_target);
 }
 
 int unregister_all_commands(struct command_context *context,

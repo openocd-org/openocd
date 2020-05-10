@@ -240,7 +240,7 @@ struct command_registration {
 /** Use this as the last entry in an array of command_registration records. */
 #define COMMAND_REGISTRATION_DONE { .name = NULL, .chain = NULL }
 
-int __register_commands(struct command_context *cmd_ctx, struct command *parent,
+int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 		const struct command_registration *cmds, void *data,
 		struct target *override_target);
 
@@ -252,17 +252,17 @@ int __register_commands(struct command_context *cmd_ctx, struct command *parent,
  * Otherwise, the chained commands are added as children of the command.
  *
  * @param cmd_ctx The command_context in which to register the command.
- * @param parent Register this command as a child of this, or NULL to
+ * @param cmd_prefix Register this command as a child of this, or NULL to
  * register a top-level command.
  * @param cmds Pointer to an array of command_registration records that
  * contains the desired command parameters.  The last record must have
  * NULL for all fields.
  * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
  */
-static inline int register_commands(struct command_context *cmd_ctx, struct command *parent,
+static inline int register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 		const struct command_registration *cmds)
 {
-	return __register_commands(cmd_ctx, parent, cmds, NULL, NULL);
+	return __register_commands(cmd_ctx, cmd_prefix, cmds, NULL, NULL);
 }
 
 /**
@@ -270,7 +270,7 @@ static inline int register_commands(struct command_context *cmd_ctx, struct comm
  * that command should override the current target
  *
  * @param cmd_ctx The command_context in which to register the command.
- * @param parent Register this command as a child of this, or NULL to
+ * @param cmd_prefix Register this command as a child of this, or NULL to
  * register a top-level command.
  * @param cmds Pointer to an array of command_registration records that
  * contains the desired command parameters.  The last record must have
@@ -279,10 +279,10 @@ static inline int register_commands(struct command_context *cmd_ctx, struct comm
  * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
  */
 static inline int register_commands_override_target(struct command_context *cmd_ctx,
-		struct command *parent, const struct command_registration *cmds,
+		const char *cmd_prefix, const struct command_registration *cmds,
 		struct target *target)
 {
-	return __register_commands(cmd_ctx, parent, cmds, NULL, target);
+	return __register_commands(cmd_ctx, cmd_prefix, cmds, NULL, target);
 }
 
 /**
@@ -292,7 +292,7 @@ static inline int register_commands_override_target(struct command_context *cmd_
  * is unregistered.
  *
  * @param cmd_ctx The command_context in which to register the command.
- * @param parent Register this command as a child of this, or NULL to
+ * @param cmd_prefix Register this command as a child of this, or NULL to
  * register a top-level command.
  * @param cmds Pointer to an array of command_registration records that
  * contains the desired command parameters.  The last record must have
@@ -301,10 +301,10 @@ static inline int register_commands_override_target(struct command_context *cmd_
  * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
  */
 static inline int register_commands_with_data(struct command_context *cmd_ctx,
-		struct command *parent, const struct command_registration *cmds,
+		const char *cmd_prefix, const struct command_registration *cmds,
 		void *data)
 {
-	return __register_commands(cmd_ctx, parent, cmds, data, NULL);
+	return __register_commands(cmd_ctx, cmd_prefix, cmds, data, NULL);
 }
 
 /**
@@ -315,9 +315,6 @@ static inline int register_commands_with_data(struct command_context *cmd_ctx,
  */
 int unregister_all_commands(struct command_context *cmd_ctx,
 		struct command *parent);
-
-struct command *command_find_in_context(struct command_context *cmd_ctx,
-		const char *name);
 
 void command_set_output_handler(struct command_context *context,
 		command_output_handler_t output_handler, void *priv);
