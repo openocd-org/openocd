@@ -52,11 +52,22 @@ struct log_capture_state {
 static int unregister_command(struct command_context *context,
 	struct command *parent, const char *name);
 static char *command_name(struct command *c, char delim);
+static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj * const *argv);
 
-/* wrap jimtcl internal data */
+/* set of functions to wrap jimtcl internal data */
 static inline bool jimcmd_is_proc(Jim_Cmd *cmd)
 {
 	return cmd->isproc;
+}
+
+static inline bool jimcmd_is_ocd_command(Jim_Cmd *cmd)
+{
+	return !cmd->isproc && cmd->u.native.cmdProc == command_unknown;
+}
+
+static inline void *jimcmd_privdata(Jim_Cmd *cmd)
+{
+	return cmd->isproc ? NULL : cmd->u.native.privData;
 }
 
 static void tcl_output(void *privData, const char *file, unsigned line,
@@ -309,8 +320,6 @@ command_new_error:
 	command_free(c);
 	return NULL;
 }
-
-static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 static struct command *register_command(struct command_context *context,
 	struct command *parent, const struct command_registration *cr)
@@ -737,19 +746,6 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return retcode;
 }
 
-static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
-	struct command *head, struct command **out)
-{
-	if (0 == argc)
-		return argc;
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
-	struct command *c = command_find(head, cmd_name);
-	if (NULL == c)
-		return argc;
-	*out = c;
-	return command_unknown_find(--argc, ++argv, (*out)->children, out);
-}
-
 static char *alloc_concatenate_strings(int argc, Jim_Obj * const *argv)
 {
 	char *prev, *all;
@@ -858,18 +854,19 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			return JIM_ERR;
 		Jim_Cmd *cmd = Jim_GetCommand(interp, Jim_NewStringObj(interp, full_name, -1), JIM_NONE);
 		free(full_name);
-		if (cmd && jimcmd_is_proc(cmd)) {
-			Jim_SetResultString(interp, "any", -1);
-			return JIM_OK;
-		}
-		struct command *c = cmd_ctx->commands;
-		int remaining = command_unknown_find(argc - 1, argv + 1, c, &c);
-		/* if nothing could be consumed, then it's an unknown command */
-		if (remaining == argc - 1) {
+		if (!cmd || !(jimcmd_is_proc(cmd) || jimcmd_is_ocd_command(cmd))) {
 			Jim_SetResultString(interp, "unknown", -1);
 			return JIM_OK;
 		}
-		mode = c->mode;
+
+		if (jimcmd_is_proc(cmd)) {
+			/* tcl proc */
+			mode = COMMAND_ANY;
+		} else {
+			struct command *c = jimcmd_privdata(cmd);
+
+			mode = c->mode;
+		}
 	} else
 		mode = cmd_ctx->mode;
 
