@@ -52,6 +52,10 @@ struct log_capture_state {
 	Jim_Obj *output;
 };
 
+static int unregister_command(struct command_context *context,
+	struct command *parent, const char *name);
+static char *command_name(struct command *c, char delim);
+
 static void tcl_output(void *privData, const char *file, unsigned line,
 	const char *function, const char *string)
 {
@@ -242,11 +246,6 @@ struct command *command_find_in_context(struct command_context *cmd_ctx,
 {
 	return command_find(cmd_ctx->commands, name);
 }
-struct command *command_find_in_parent(struct command *parent,
-	const char *name)
-{
-	return command_find(parent->children, name);
-}
 
 /**
  * Add the command into the linked list, sorted by name.
@@ -358,7 +357,7 @@ static int register_command_handler(struct command_context *cmd_ctx,
 	return retval;
 }
 
-struct command *register_command(struct command_context *context,
+static struct command *register_command(struct command_context *context,
 	struct command *parent, const struct command_registration *cr)
 {
 	if (!context || !cr->name)
@@ -440,7 +439,7 @@ int unregister_all_commands(struct command_context *context,
 	return ERROR_OK;
 }
 
-int unregister_command(struct command_context *context,
+static int unregister_command(struct command_context *context,
 	struct command *parent, const char *name)
 {
 	if ((!context) || (!name))
@@ -548,7 +547,7 @@ static char *__command_name(struct command *c, char delim, unsigned extra)
 	return name;
 }
 
-char *command_name(struct command *c, char delim)
+static char *command_name(struct command *c, char delim)
 {
 	return __command_name(c, delim, 0);
 }
