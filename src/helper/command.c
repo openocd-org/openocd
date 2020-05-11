@@ -44,9 +44,6 @@
 /* nice short description of source file */
 #define __THIS__FILE__ "command.c"
 
-static int run_command(struct command_context *context,
-		struct command *c, const char *words[], unsigned num_words);
-
 struct log_capture_state {
 	Jim_Interp *interp;
 	Jim_Obj *output;
@@ -192,34 +189,6 @@ struct command_context *current_command_context(Jim_Interp *interp)
 	return cmd_ctx;
 }
 
-static int script_command_run(Jim_Interp *interp,
-	int argc, Jim_Obj * const *argv, struct command *c)
-{
-	target_call_timer_callbacks_now();
-	LOG_USER_N("%s", "");	/* Keep GDB connection alive*/
-
-	unsigned nwords;
-	char **words = script_command_args_alloc(argc, argv, &nwords);
-	if (NULL == words)
-		return JIM_ERR;
-
-	struct command_context *cmd_ctx = current_command_context(interp);
-	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
-
-	script_command_args_free(words, nwords);
-	return command_retval_set(interp, retval);
-}
-
-static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	/* the private data is stashed in the interp structure */
-
-	struct command *c = Jim_CmdPrivData(interp);
-	assert(c);
-	script_debug(interp, argc, argv);
-	return script_command_run(interp, argc, argv, c);
-}
-
 static struct command *command_root(struct command *c)
 {
 	while (NULL != c->parent)
@@ -351,10 +320,7 @@ static int register_command_handler(struct command_context *cmd_ctx,
 
 	LOG_DEBUG("registering '%s'...", c->name);
 
-	Jim_CmdProc *func = c->handler ? &script_command : &command_unknown;
-	int retval = Jim_CreateCommand(interp, c->name, func, c, NULL);
-
-	return retval;
+	return Jim_CreateCommand(interp, c->name, command_unknown, c, NULL);
 }
 
 static struct command *register_command(struct command_context *context,
@@ -379,16 +345,12 @@ static struct command *register_command(struct command_context *context,
 	if (NULL == c)
 		return NULL;
 
-	int retval = JIM_OK;
-	if (NULL != cr->jim_handler && NULL == parent) {
-		retval = Jim_CreateCommand(context->interp, cr->name,
-				cr->jim_handler, c, NULL);
-	} else if (NULL != cr->handler || NULL != parent)
-		retval = register_command_handler(context, command_root(c));
-
-	if (retval != JIM_OK) {
-		unregister_command(context, parent, name);
-		c = NULL;
+	if (cr->jim_handler || cr->handler) {
+		int retval = register_command_handler(context, command_root(c));
+		if (retval != JIM_OK) {
+			unregister_command(context, parent, name);
+			return NULL;
+		}
 	}
 	return c;
 }
@@ -578,11 +540,8 @@ static bool command_can_run(struct command_context *cmd_ctx, struct command *c)
 }
 
 static int run_command(struct command_context *context,
-	struct command *c, const char *words[], unsigned num_words)
+	struct command *c, const char **words, unsigned num_words)
 {
-	if (!command_can_run(context, c))
-		return ERROR_FAIL;
-
 	struct command_invocation cmd = {
 		.ctx = context,
 		.current = c,
@@ -590,26 +549,11 @@ static int run_command(struct command_context *context,
 		.argc = num_words - 1,
 		.argv = words + 1,
 	};
-	/* Black magic of overridden current target:
-	 * If the command we are going to handle has a target prefix,
-	 * override the current target temporarily for the time
-	 * of processing the command.
-	 * current_target_override is used also for event handlers
-	 * therefore we prevent touching it if command has no prefix.
-	 * Previous override is saved and restored back to ensure
-	 * correct work when run_command() is re-entered. */
-	struct target *saved_target_override = context->current_target_override;
-	if (c->jim_handler_data)
-		context->current_target_override = c->jim_handler_data;
 
 	cmd.output = Jim_NewEmptyStringObj(context->interp);
 	Jim_IncrRefCount(cmd.output);
 
 	int retval = c->handler(&cmd);
-
-	if (c->jim_handler_data)
-		context->current_target_override = saved_target_override;
-
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
 		/* Print help for command */
 		char *full_name = command_name(c, ' ');
@@ -1027,6 +971,23 @@ static int run_usage(Jim_Interp *interp, int argc_valid, int argc, Jim_Obj * con
 	return retval;
 }
 
+static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
+		struct command *c, int argc, Jim_Obj *const *argv)
+{
+	if (c->jim_handler)
+		return c->jim_handler(interp, argc, argv);
+
+	/* use c->handler */
+	unsigned int nwords;
+	char **words = script_command_args_alloc(argc, argv, &nwords);
+	if (!words)
+		return JIM_ERR;
+
+	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
+	script_command_args_free(words, nwords);
+	return command_retval_set(interp, retval);
+}
+
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	script_debug(interp, argc, argv);
@@ -1053,15 +1014,32 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		run_usage(interp, count, argc, start);
 		return JIM_ERR;
 	}
-	/* pass the command through to the intended handler */
-	if (c->jim_handler) {
-		if (!command_can_run(cmd_ctx, c))
-			return JIM_ERR;
 
-		return (*c->jim_handler)(interp, count, start);
-	}
+	if (!command_can_run(cmd_ctx, c))
+		return JIM_ERR;
 
-	return script_command_run(interp, count, start, c);
+	target_call_timer_callbacks_now();
+
+	/*
+	 * Black magic of overridden current target:
+	 * If the command we are going to handle has a target prefix,
+	 * override the current target temporarily for the time
+	 * of processing the command.
+	 * current_target_override is used also for event handlers
+	 * therefore we prevent touching it if command has no prefix.
+	 * Previous override is saved and restored back to ensure
+	 * correct work when command_unknown() is re-entered.
+	 */
+	struct target *saved_target_override = cmd_ctx->current_target_override;
+	if (c->jim_handler_data)
+		cmd_ctx->current_target_override = c->jim_handler_data;
+
+	int retval = exec_command(interp, cmd_ctx, c, count, start);
+
+	if (c->jim_handler_data)
+		cmd_ctx->current_target_override = saved_target_override;
+
+	return retval;
 }
 
 static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
