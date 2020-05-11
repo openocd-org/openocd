@@ -248,7 +248,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
 
-	struct command *c = interp->cmdPrivData;
+	struct command *c = jim_to_command(interp);
 	assert(c);
 	script_debug(interp, argc, argv);
 	return script_command_run(interp, argc, argv, c);
@@ -418,7 +418,7 @@ static struct command *register_command(struct command_context *context,
 	int retval = JIM_OK;
 	if (NULL != cr->jim_handler && NULL == parent) {
 		retval = Jim_CreateCommand(context->interp, cr->name,
-				cr->jim_handler, NULL, NULL);
+				cr->jim_handler, c, NULL);
 	} else if (NULL != cr->handler || NULL != parent)
 		retval = register_command_handler(context, command_root(c));
 
@@ -501,8 +501,7 @@ static int unregister_command(struct command_context *context,
 
 void command_set_handler_data(struct command *c, void *p)
 {
-	if (NULL != c->handler || NULL != c->jim_handler)
-		c->jim_handler_data = p;
+	c->jim_handler_data = p;
 	for (struct command *cc = c->children; NULL != cc; cc = cc->next)
 		command_set_handler_data(cc, p);
 }
@@ -1085,7 +1084,6 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		if (!command_can_run(cmd_ctx, c))
 			return JIM_ERR;
 
-		interp->cmdPrivData = c->jim_handler_data;
 		return (*c->jim_handler)(interp, count, start);
 	}
 
