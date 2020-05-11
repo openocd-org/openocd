@@ -196,6 +196,15 @@ struct command {
 };
 
 /*
+ * Return the struct command pointer kept in private data
+ * Used to enforce check on data type
+ */
+static inline struct command *jim_to_command(Jim_Interp *interp)
+{
+	return Jim_CmdPrivData(interp);
+}
+
+/*
  * Commands should be registered by filling in one or more of these
  * structures and passing them to [un]register_commands().
  *

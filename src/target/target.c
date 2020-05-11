@@ -5206,21 +5206,24 @@ static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj * const *a
 				 "missing: -option ...");
 		return JIM_ERR;
 	}
-	struct target *target = Jim_CmdPrivData(goi.interp);
+	struct command *c = jim_to_command(goi.interp);
+	struct target *target = c->jim_handler_data;
 	return target_configure(&goi, target);
 }
 
 static int jim_target_mem2array(Jim_Interp *interp,
 		int argc, Jim_Obj *const *argv)
 {
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	return target_mem2array(interp, target, argc - 1, argv + 1);
 }
 
 static int jim_target_array2mem(Jim_Interp *interp,
 		int argc, Jim_Obj *const *argv)
 {
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	return target_array2mem(interp, target, argc - 1, argv + 1);
 }
 
@@ -5252,7 +5255,8 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 		allow_defer = true;
 	}
 
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
 
@@ -5270,7 +5274,8 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 
 static int jim_target_was_examined(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 
 	Jim_SetResultBool(interp, target_was_examined(target));
 	return JIM_OK;
@@ -5278,7 +5283,8 @@ static int jim_target_was_examined(Jim_Interp *interp, int argc, Jim_Obj * const
 
 static int jim_target_examine_deferred(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 
 	Jim_SetResultBool(interp, target->defer_examine);
 	return JIM_OK;
@@ -5290,7 +5296,8 @@ static int jim_target_halt_gdb(Jim_Interp *interp, int argc, Jim_Obj *const *arg
 		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
 		return JIM_ERR;
 	}
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 
 	if (target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT) != ERROR_OK)
 		return JIM_ERR;
@@ -5304,7 +5311,8 @@ static int jim_target_poll(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
 		return JIM_ERR;
 	}
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
 
@@ -5341,7 +5349,8 @@ static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (e != JIM_OK)
 		return e;
 
-	struct target *target = Jim_CmdPrivData(goi.interp);
+	struct command *c = jim_to_command(goi.interp);
+	struct target *target = c->jim_handler_data;
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
 
@@ -5374,7 +5383,8 @@ static int jim_target_halt(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
 		return JIM_ERR;
 	}
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
 	int e = target->type->halt(target);
@@ -5404,7 +5414,8 @@ static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *a
 	e = Jim_GetOpt_Wide(&goi, &a);
 	if (e != JIM_OK)
 		return e;
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	if (!target->tap->enabled)
 		return jim_target_tap_disabled(interp);
 
@@ -5448,7 +5459,8 @@ static int jim_target_current_state(Jim_Interp *interp, int argc, Jim_Obj *const
 		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
 		return JIM_ERR;
 	}
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	Jim_SetResultString(interp, target_state_name(target), -1);
 	return JIM_OK;
 }
@@ -5467,7 +5479,8 @@ static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const 
 		Jim_GetOpt_NvpUnknown(&goi, nvp_target_event, 1);
 		return e;
 	}
-	struct target *target = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct target *target = c->jim_handler_data;
 	target_handle_event(target, n->value);
 	return JIM_OK;
 }

@@ -559,7 +559,8 @@ static int jim_arm_tpiu_swo_configure(Jim_Interp *interp, int argc, Jim_Obj * co
 			"missing: -option ...");
 		return JIM_ERR;
 	}
-	struct arm_tpiu_swo_object *obj = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct arm_tpiu_swo_object *obj = c->jim_handler_data;
 	return arm_tpiu_swo_configure(&goi, obj);
 }
 
@@ -583,7 +584,8 @@ static int wrap_read_u32(struct target *target, struct adiv5_ap *tpiu_ap,
 
 static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	struct arm_tpiu_swo_object *obj = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct arm_tpiu_swo_object *obj = c->jim_handler_data;
 	struct command_context *cmd_ctx = current_command_context(interp);
 	struct adiv5_ap *tpiu_ap = dap_ap(obj->spot.dap, obj->spot.ap_num);
 	uint32_t value;
@@ -786,7 +788,8 @@ error_exit:
 
 static int jim_arm_tpiu_swo_disable(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	struct arm_tpiu_swo_object *obj = Jim_CmdPrivData(interp);
+	struct command *c = jim_to_command(interp);
+	struct arm_tpiu_swo_object *obj = c->jim_handler_data;
 
 	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
