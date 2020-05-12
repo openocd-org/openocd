@@ -357,8 +357,9 @@ static struct command *register_command(struct command_context *context,
 	return c;
 }
 
-int register_commands(struct command_context *cmd_ctx, struct command *parent,
-	const struct command_registration *cmds)
+int __register_commands(struct command_context *cmd_ctx, struct command *parent,
+	const struct command_registration *cmds, void *data,
+	struct target *override_target)
 {
 	int retval = ERROR_OK;
 	unsigned i;
@@ -372,10 +373,12 @@ int register_commands(struct command_context *cmd_ctx, struct command *parent,
 				retval = ERROR_FAIL;
 				break;
 			}
+			c->jim_handler_data = data;
+			c->jim_override_target = override_target;
 		}
 		if (NULL != cr->chain) {
 			struct command *p = c ? : parent;
-			retval = register_commands(cmd_ctx, p, cr->chain);
+			retval = __register_commands(cmd_ctx, p, cr->chain, data, override_target);
 			if (ERROR_OK != retval)
 				break;
 		}
@@ -425,13 +428,6 @@ static int unregister_command(struct command_context *context,
 	}
 
 	return ERROR_OK;
-}
-
-void command_set_handler_data(struct command *c, void *p)
-{
-	c->jim_handler_data = p;
-	for (struct command *cc = c->children; NULL != cc; cc = cc->next)
-		command_set_handler_data(cc, p);
 }
 
 void command_output_text(struct command_context *context, const char *data)
@@ -1023,12 +1019,12 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	 * correct work when command_unknown() is re-entered.
 	 */
 	struct target *saved_target_override = cmd_ctx->current_target_override;
-	if (c->jim_handler_data)
-		cmd_ctx->current_target_override = c->jim_handler_data;
+	if (c->jim_override_target)
+		cmd_ctx->current_target_override = c->jim_override_target;
 
 	int retval = exec_command(interp, cmd_ctx, c, count, start);
 
-	if (c->jim_handler_data)
+	if (c->jim_override_target)
 		cmd_ctx->current_target_override = saved_target_override;
 
 	return retval;

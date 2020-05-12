@@ -186,11 +186,9 @@ struct command {
 	command_handler_t handler;
 	Jim_CmdProc *jim_handler;
 	void *jim_handler_data;
-		/* Currently used only for target of target-prefixed cmd.
-		 * Native OpenOCD commands use jim_handler_data exclusively
-		 * as a target override.
-		 * Jim handlers outside of target cmd tree can use
-		 * jim_handler_data for any handler specific data */
+		/* Command handlers can use it for any handler specific data */
+	struct target *jim_override_target;
+		/* Used only for target of target-prefixed cmd */
 	enum command_mode mode;
 	struct command *next;
 };
@@ -242,6 +240,10 @@ struct command_registration {
 /** Use this as the last entry in an array of command_registration records. */
 #define COMMAND_REGISTRATION_DONE { .name = NULL, .chain = NULL }
 
+int __register_commands(struct command_context *cmd_ctx, struct command *parent,
+		const struct command_registration *cmds, void *data,
+		struct target *override_target);
+
 /**
  * Register one or more commands in the specified context, as children
  * of @c parent (or top-level commends, if NULL).  In a registration's
@@ -257,8 +259,53 @@ struct command_registration {
  * NULL for all fields.
  * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
  */
-int register_commands(struct command_context *cmd_ctx, struct command *parent,
-		const struct command_registration *cmds);
+static inline int register_commands(struct command_context *cmd_ctx, struct command *parent,
+		const struct command_registration *cmds)
+{
+	return __register_commands(cmd_ctx, parent, cmds, NULL, NULL);
+}
+
+/**
+ * Register one or more commands, as register_commands(), plus specify
+ * that command should override the current target
+ *
+ * @param cmd_ctx The command_context in which to register the command.
+ * @param parent Register this command as a child of this, or NULL to
+ * register a top-level command.
+ * @param cmds Pointer to an array of command_registration records that
+ * contains the desired command parameters.  The last record must have
+ * NULL for all fields.
+ * @param target The target that has to override current target.
+ * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
+ */
+static inline int register_commands_override_target(struct command_context *cmd_ctx,
+		struct command *parent, const struct command_registration *cmds,
+		struct target *target)
+{
+	return __register_commands(cmd_ctx, parent, cmds, NULL, target);
+}
+
+/**
+ * Register one or more commands, as register_commands(), plus specify
+ * a pointer to command private data that would be accessible through
+ * the macro CMD_DATA. The private data will not be freed when command
+ * is unregistered.
+ *
+ * @param cmd_ctx The command_context in which to register the command.
+ * @param parent Register this command as a child of this, or NULL to
+ * register a top-level command.
+ * @param cmds Pointer to an array of command_registration records that
+ * contains the desired command parameters.  The last record must have
+ * NULL for all fields.
+ * @param data The command private data.
+ * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
+ */
+static inline int register_commands_with_data(struct command_context *cmd_ctx,
+		struct command *parent, const struct command_registration *cmds,
+		void *data)
+{
+	return __register_commands(cmd_ctx, parent, cmds, data, NULL);
+}
 
 /**
  * Unregisters all commands from the specified context.
@@ -271,16 +318,6 @@ int unregister_all_commands(struct command_context *cmd_ctx,
 
 struct command *command_find_in_context(struct command_context *cmd_ctx,
 		const char *name);
-
-/**
- * Update the private command data field for a command and all descendents.
- * This is used when creating a new hierarchy of commands that depends
- * on obtaining a dynamically created context.  The value will be available
- * in command handlers by using the CMD_DATA macro.
- * @param c The command (group) whose data pointer(s) will be updated.
- * @param p The new data pointer to use for the command or its descendents.
- */
-void command_set_handler_data(struct command *c, void *p);
 
 void command_set_output_handler(struct command_context *context,
 		command_output_handler_t output_handler, void *priv);
