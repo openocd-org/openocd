@@ -195,13 +195,6 @@ struct command_context *current_command_context(Jim_Interp *interp)
 	return cmd_ctx;
 }
 
-static struct command *command_root(struct command *c)
-{
-	while (NULL != c->parent)
-		c = c->parent;
-	return c;
-}
-
 /**
  * Find a command by name from a list of commands.
  * @returns Returns the named command if it exists in the list.
@@ -319,16 +312,6 @@ command_new_error:
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
-static int register_command_handler(struct command_context *cmd_ctx,
-	struct command *c)
-{
-	Jim_Interp *interp = cmd_ctx->interp;
-
-	LOG_DEBUG("registering '%s'...", c->name);
-
-	return Jim_CreateCommand(interp, c->name, command_unknown, c, NULL);
-}
-
 static struct command *register_command(struct command_context *context,
 	struct command *parent, const struct command_registration *cr)
 {
@@ -351,12 +334,13 @@ static struct command *register_command(struct command_context *context,
 	if (NULL == c)
 		return NULL;
 
-	if (cr->jim_handler || cr->handler) {
-		int retval = register_command_handler(context, command_root(c));
-		if (retval != JIM_OK) {
-			unregister_command(context, parent, name);
-			return NULL;
-		}
+	char *full_name = command_name(c, ' ');
+	LOG_DEBUG("registering '%s'...", full_name);
+	int retval = Jim_CreateCommand(context->interp, full_name,
+				command_unknown, c, NULL);
+	if (retval != JIM_OK) {
+		unregister_command(context, parent, name);
+		return NULL;
 	}
 	return c;
 }
@@ -534,7 +518,7 @@ static char *command_name(struct command *c, char delim)
 	return __command_name(c, delim, 0);
 }
 
-static bool command_can_run(struct command_context *cmd_ctx, struct command *c)
+static bool command_can_run(struct command_context *cmd_ctx, struct command *c, const char *full_name)
 {
 	if (c->mode == COMMAND_ANY || c->mode == cmd_ctx->mode)
 		return true;
@@ -553,10 +537,8 @@ static bool command_can_run(struct command_context *cmd_ctx, struct command *c)
 			when = "if Cthulhu is summoned by";
 			break;
 	}
-	char *full_name = command_name(c, ' ');
 	LOG_ERROR("The '%s' command must be used %s 'init'.",
 			full_name ? full_name : c->name, when);
-	free(full_name);
 	return false;
 }
 
@@ -801,44 +783,30 @@ static char *alloc_concatenate_strings(int argc, Jim_Obj * const *argv)
 	return all;
 }
 
-static int run_usage(Jim_Interp *interp, int argc_valid, int argc, Jim_Obj * const *argv)
-{
-	struct command_context *cmd_ctx = current_command_context(interp);
-	char *command;
-	int retval;
-
-	assert(argc_valid >= 1);
-	assert(argc >= argc_valid);
-
-	command = alloc_concatenate_strings(argc_valid, argv);
-	if (!command)
-		return JIM_ERR;
-
-	retval = command_run_linef(cmd_ctx, "usage %s", command);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("unable to execute command \"usage %s\"", command);
-		return JIM_ERR;
-	}
-
-	if (argc_valid == argc)
-		LOG_ERROR("%s: command requires more arguments", command);
-	else {
-		free(command);
-		command = alloc_concatenate_strings(argc - argc_valid, argv + argc_valid);
-		if (!command)
-			return JIM_ERR;
-		LOG_ERROR("invalid subcommand \"%s\"", command);
-	}
-
-	free(command);
-	return retval;
-}
-
 static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
-		struct command *c, int argc, Jim_Obj *const *argv)
+		struct command *c, int argc, Jim_Obj * const *argv)
 {
-	if (c->jim_handler)
-		return c->jim_handler(interp, argc, argv);
+	if (c->jim_handler) {
+		/*
+		 * FIXME: some command check argv[0], that now contains the full-name.
+		 * Replaced temporarily argv[0] with c->name
+		 * Changed all such commands and check c->name instead of argv[0]
+		 */
+		Jim_Obj **words = malloc(argc * sizeof(Jim_Obj *));
+		if (!words)
+			return JIM_ERR;
+
+		words[0] = Jim_NewStringObj(interp, c->name, -1);
+		Jim_IncrRefCount(words[0]);
+		for (int i = 1; i < argc; i++)
+			words[i] = argv[i];
+
+		int retval = c->jim_handler(interp, argc, words);
+
+		Jim_DecrRefCount(interp, words[0]);
+		free(words);
+		return retval;
+	}
 
 	/* use c->handler */
 	unsigned int nwords;
@@ -853,32 +821,34 @@ static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
 
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
+	struct command *c = Jim_CmdPrivData(interp);
+
+	assert(c);
 	script_debug(interp, argc, argv);
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	struct command *c = cmd_ctx->commands;
-	int remaining = command_unknown_find(argc, argv, c, &c);
-	/* if nothing could be consumed, then it's really an unknown command */
-	if (remaining == argc) {
-		const char *cmd = Jim_GetString(argv[0], NULL);
-		LOG_ERROR("Unknown command:\n  %s", cmd);
-		return JIM_OK;
+	/* check subcommands */
+	if (argc > 1) {
+		char *s = alloc_printf("%s %s", Jim_GetString(argv[0], NULL), Jim_GetString(argv[1], NULL));
+		Jim_Obj *js = Jim_NewStringObj(interp, s, -1);
+		Jim_IncrRefCount(js);
+		free(s);
+		Jim_Cmd *cmd = Jim_GetCommand(interp, js, JIM_NONE);
+		if (cmd) {
+			int retval = Jim_EvalObjPrefix(interp, js, argc - 2, argv + 2);
+			Jim_DecrRefCount(interp, js);
+			return retval;
+		}
+		Jim_DecrRefCount(interp, js);
 	}
 
-	Jim_Obj *const *start;
-	unsigned count;
-	if (c->handler || c->jim_handler) {
-		/* include the command name in the list */
-		count = remaining + 1;
-		start = argv + (argc - remaining - 1);
-	} else {
-		count = argc - remaining;
-		start = argv;
-		run_usage(interp, count, argc, start);
+	if (!c->jim_handler && !c->handler) {
+		Jim_EvalObjPrefix(interp, Jim_NewStringObj(interp, "usage", -1), 1, argv);
 		return JIM_ERR;
 	}
 
-	if (!command_can_run(cmd_ctx, c))
+	struct command_context *cmd_ctx = current_command_context(interp);
+
+	if (!command_can_run(cmd_ctx, c, Jim_GetString(argv[0], NULL)))
 		return JIM_ERR;
 
 	target_call_timer_callbacks_now();
@@ -897,7 +867,7 @@ static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	if (c->jim_override_target)
 		cmd_ctx->current_target_override = c->jim_override_target;
 
-	int retval = exec_command(interp, cmd_ctx, c, count, start);
+	int retval = exec_command(interp, cmd_ctx, c, argc, argv);
 
 	if (c->jim_override_target)
 		cmd_ctx->current_target_override = saved_target_override;
