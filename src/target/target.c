@@ -5011,7 +5011,7 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	if (goi.argc > 0 &&
 	    strcmp(Jim_GetString(argv[1], NULL), "allow-defer") == 0) {
 		/* consume it */
-		struct Jim_Obj *obj;
+		Jim_Obj *obj;
 		int e = Jim_GetOpt_Obj(&goi, &obj);
 		if (e != JIM_OK)
 			return e;

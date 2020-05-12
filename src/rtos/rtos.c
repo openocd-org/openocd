@@ -121,7 +121,7 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 {
 	int x;
 	const char *cp;
-	struct Jim_Obj *res;
+	Jim_Obj *res;
 	int e;
 
 	if (!goi->isconfigure && goi->argc != 0) {
