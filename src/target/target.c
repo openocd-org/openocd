@@ -5197,10 +5197,11 @@ no_params:
 
 static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
+	struct command *c = jim_to_command(interp);
 	Jim_GetOptInfo goi;
 
 	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
-	goi.isconfigure = !strcmp(Jim_GetString(argv[0], NULL), "configure");
+	goi.isconfigure = !strcmp(c->name, "configure");
 	if (goi.argc < 1) {
 		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
 				 "missing: -option ...");

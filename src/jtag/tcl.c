@@ -767,7 +767,8 @@ static bool jtag_tap_disable(struct jtag_tap *t)
 
 int jim_jtag_tap_enabler(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	struct command *c = jim_to_command(interp);
+	const char *cmd_name = c->name;
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
 	if (goi.argc != 1) {
@@ -804,7 +805,8 @@ int jim_jtag_tap_enabler(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 int jim_jtag_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	struct command *c = jim_to_command(interp);
+	const char *cmd_name = c->name;
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
 	goi.isconfigure = !strcmp(cmd_name, "configure");
