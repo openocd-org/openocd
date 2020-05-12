@@ -259,8 +259,6 @@ static void command_free(struct command *c)
 	}
 
 	free(c->name);
-	free(c->help);
-	free(c->usage);
 	free(c);
 }
 
@@ -289,12 +287,7 @@ static struct command *command_new(struct command_context *cmd_ctx,
 		return NULL;
 
 	c->name = strdup(cr->name);
-	if (cr->help)
-		c->help = strdup(cr->help);
-	if (cr->usage)
-		c->usage = strdup(cr->usage);
-
-	if (!c->name || (cr->help && !c->help) || (cr->usage && !c->usage))
+	if (!c->name)
 		goto command_new_error;
 
 	c->parent = parent;
@@ -303,6 +296,19 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	c->mode = cr->mode;
 
 	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
+
+	char *full_name = NULL;
+
+	if (cr->help || cr->usage)
+		full_name = command_name(c, ' ');
+
+	if (cr->help)
+		command_run_linef(cmd_ctx, "add_help_text {%s} {%s}", full_name, cr->help);
+
+	if (cr->usage)
+		command_run_linef(cmd_ctx, "add_usage_text {%s} {%s}", full_name, cr->usage);
+
+	free(full_name);
 
 	return c;
 
@@ -427,6 +433,13 @@ static int unregister_command(struct command_context *context,
 	for (struct command *c = *head; NULL != c; p = c, c = c->next) {
 		if (strcmp(name, c->name) != 0)
 			continue;
+
+		char *full_name = command_name(c, ' ');
+
+		command_run_linef(context, "del_help_text {%s}", full_name);
+		command_run_linef(context, "del_usage_text {%s}", full_name);
+
+		free(full_name);
 
 		if (p)
 			p->next = c->next;
@@ -749,164 +762,6 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return retcode;
 }
 
-static COMMAND_HELPER(command_help_find, struct command *head,
-	struct command **out)
-{
-	if (0 == CMD_ARGC)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	*out = command_find(head, CMD_ARGV[0]);
-	if (NULL == *out)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (--CMD_ARGC == 0)
-		return ERROR_OK;
-	CMD_ARGV++;
-	return CALL_COMMAND_HANDLER(command_help_find, (*out)->children, out);
-}
-
-static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
-	bool show_help, const char *cmd_match);
-
-static COMMAND_HELPER(command_help_show_list, struct command *head, unsigned n,
-	bool show_help, const char *cmd_match)
-{
-	for (struct command *c = head; NULL != c; c = c->next)
-		CALL_COMMAND_HANDLER(command_help_show, c, n, show_help, cmd_match);
-	return ERROR_OK;
-}
-
-#define HELP_LINE_WIDTH(_n) (int)(76 - (2 * _n))
-
-static void command_help_show_indent(unsigned n)
-{
-	for (unsigned i = 0; i < n; i++)
-		LOG_USER_N("  ");
-}
-static void command_help_show_wrap(const char *str, unsigned n, unsigned n2)
-{
-	const char *cp = str, *last = str;
-	while (*cp) {
-		const char *next = last;
-		do {
-			cp = next;
-			do {
-				next++;
-			} while (*next != ' ' && *next != '\t' && *next != '\0');
-		} while ((next - last < HELP_LINE_WIDTH(n)) && *next != '\0');
-		if (next - last < HELP_LINE_WIDTH(n))
-			cp = next;
-		command_help_show_indent(n);
-		LOG_USER("%.*s", (int)(cp - last), last);
-		last = cp + 1;
-		n = n2;
-	}
-}
-
-static COMMAND_HELPER(command_help_show, struct command *c, unsigned n,
-	bool show_help, const char *cmd_match)
-{
-	char *cmd_name = command_name(c, ' ');
-	if (NULL == cmd_name)
-		return ERROR_FAIL;
-
-	/* If the match string occurs anywhere, we print out
-	 * stuff for this command. */
-	bool is_match = (strstr(cmd_name, cmd_match) != NULL) ||
-		((c->usage != NULL) && (strstr(c->usage, cmd_match) != NULL)) ||
-		((c->help != NULL) && (strstr(c->help, cmd_match) != NULL));
-
-	if (is_match) {
-		command_help_show_indent(n);
-		LOG_USER_N("%s", cmd_name);
-	}
-	free(cmd_name);
-
-	if (is_match) {
-		if (c->usage && strlen(c->usage) > 0) {
-			LOG_USER_N(" ");
-			command_help_show_wrap(c->usage, 0, n + 5);
-		} else
-			LOG_USER_N("\n");
-	}
-
-	if (is_match && show_help) {
-		char *msg;
-
-		/* Normal commands are runtime-only; highlight exceptions */
-		if (c->mode != COMMAND_EXEC) {
-			const char *stage_msg = "";
-
-			switch (c->mode) {
-				case COMMAND_CONFIG:
-					stage_msg = " (configuration command)";
-					break;
-				case COMMAND_ANY:
-					stage_msg = " (command valid any time)";
-					break;
-				default:
-					stage_msg = " (?mode error?)";
-					break;
-			}
-			msg = alloc_printf("%s%s", c->help ? : "", stage_msg);
-		} else
-			msg = alloc_printf("%s", c->help ? : "");
-
-		if (NULL != msg) {
-			command_help_show_wrap(msg, n + 3, n + 3);
-			free(msg);
-		} else
-			return -ENOMEM;
-	}
-
-	if (++n > 5) {
-		LOG_ERROR("command recursion exceeded");
-		return ERROR_FAIL;
-	}
-
-	return CALL_COMMAND_HANDLER(command_help_show_list,
-		c->children, n, show_help, cmd_match);
-}
-
-COMMAND_HANDLER(handle_help_command)
-{
-	bool full = strcmp(CMD_NAME, "help") == 0;
-	int retval;
-	struct command *c = CMD_CTX->commands;
-	char *cmd_match = NULL;
-
-	if (CMD_ARGC == 0)
-		cmd_match = "";
-	else if (CMD_ARGC >= 1) {
-		unsigned i;
-
-		for (i = 0; i < CMD_ARGC; ++i) {
-			if (NULL != cmd_match) {
-				char *prev = cmd_match;
-
-				cmd_match = alloc_printf("%s %s", cmd_match, CMD_ARGV[i]);
-				free(prev);
-				if (NULL == cmd_match) {
-					LOG_ERROR("unable to build search string");
-					return -ENOMEM;
-				}
-			} else {
-				cmd_match = alloc_printf("%s", CMD_ARGV[i]);
-				if (NULL == cmd_match) {
-					LOG_ERROR("unable to build search string");
-					return -ENOMEM;
-				}
-			}
-		}
-	} else
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	retval = CALL_COMMAND_HANDLER(command_help_show_list,
-			c, 0, full, cmd_match);
-
-	if (CMD_ARGC >= 1)
-		free(cmd_match);
-	return retval;
-}
-
 static int command_unknown_find(unsigned argc, Jim_Obj *const *argv,
 	struct command *head, struct command **out)
 {
@@ -1095,83 +950,6 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-int help_add_command(struct command_context *cmd_ctx, struct command *parent,
-	const char *cmd_name, const char *help_text, const char *usage)
-{
-	struct command **head = command_list_for_parent(cmd_ctx, parent);
-	struct command *nc = command_find(*head, cmd_name);
-	if (NULL == nc) {
-		/* add a new command with help text */
-		struct command_registration cr = {
-			.name = cmd_name,
-			.mode = COMMAND_ANY,
-			.help = help_text,
-			.usage = usage ? : "",
-		};
-		nc = register_command(cmd_ctx, parent, &cr);
-		if (NULL == nc) {
-			LOG_ERROR("failed to add '%s' help text", cmd_name);
-			return ERROR_FAIL;
-		}
-		LOG_DEBUG("added '%s' help text", cmd_name);
-		return ERROR_OK;
-	}
-	if (help_text) {
-		bool replaced = false;
-		if (nc->help) {
-			free(nc->help);
-			replaced = true;
-		}
-		nc->help = strdup(help_text);
-		if (replaced)
-			LOG_INFO("replaced existing '%s' help", cmd_name);
-		else
-			LOG_DEBUG("added '%s' help text", cmd_name);
-	}
-	if (usage) {
-		bool replaced = false;
-		if (nc->usage) {
-			if (*nc->usage)
-				replaced = true;
-			free(nc->usage);
-		}
-		nc->usage = strdup(usage);
-		if (replaced)
-			LOG_INFO("replaced existing '%s' usage", cmd_name);
-		else
-			LOG_DEBUG("added '%s' usage text", cmd_name);
-	}
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(handle_help_add_command)
-{
-	if (CMD_ARGC < 2) {
-		LOG_ERROR("%s: insufficient arguments", CMD_NAME);
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	/* save help text and remove it from argument list */
-	const char *str = CMD_ARGV[--CMD_ARGC];
-	const char *help = !strcmp(CMD_NAME, "add_help_text") ? str : NULL;
-	const char *usage = !strcmp(CMD_NAME, "add_usage_text") ? str : NULL;
-	if (!help && !usage) {
-		LOG_ERROR("command name '%s' is unknown", CMD_NAME);
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	/* likewise for the leaf command name */
-	const char *cmd_name = CMD_ARGV[--CMD_ARGC];
-
-	struct command *c = NULL;
-	if (CMD_ARGC > 0) {
-		c = CMD_CTX->commands;
-		int retval = CALL_COMMAND_HANDLER(command_help_find, c, &c);
-		if (ERROR_OK != retval)
-			return retval;
-	}
-	return help_add_command(CMD_CTX, c, cmd_name, help, usage);
-}
-
 /* sleep command sleeps for <n> milliseconds
  * this is useful in target startup scripts
  */
@@ -1244,44 +1022,12 @@ static const struct command_registration command_builtin_handlers[] = {
 		.usage = "[-n] string",
 	},
 	{
-		.name = "add_help_text",
-		.handler = handle_help_add_command,
-		.mode = COMMAND_ANY,
-		.help = "Add new command help text; "
-			"Command can be multiple tokens.",
-		.usage = "command_name helptext_string",
-	},
-	{
-		.name = "add_usage_text",
-		.handler = handle_help_add_command,
-		.mode = COMMAND_ANY,
-		.help = "Add new command usage text; "
-			"command can be multiple tokens.",
-		.usage = "command_name usage_string",
-	},
-	{
 		.name = "sleep",
 		.handler = handle_sleep_command,
 		.mode = COMMAND_ANY,
 		.help = "Sleep for specified number of milliseconds.  "
 			"\"busy\" will busy wait instead (avoid this).",
 		.usage = "milliseconds ['busy']",
-	},
-	{
-		.name = "help",
-		.handler = handle_help_command,
-		.mode = COMMAND_ANY,
-		.help = "Show full command help; "
-			"command can be multiple tokens.",
-		.usage = "[command_name]",
-	},
-	{
-		.name = "usage",
-		.handler = handle_help_command,
-		.mode = COMMAND_ANY,
-		.help = "Show basic command usage; "
-			"command can be multiple tokens.",
-		.usage = "[command_name]",
 	},
 	{
 		.name = "command",
@@ -1344,8 +1090,6 @@ struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp
 	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS",
 		Jim_NewStringObj(interp, HostOs, strlen(HostOs)));
 
-	register_commands(context, NULL, command_builtin_handlers);
-
 	Jim_SetAssocData(interp, "context", NULL, context);
 	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl", 1) == JIM_ERR) {
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD)");
@@ -1353,6 +1097,7 @@ struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp
 		LOG_USER_N("%s", Jim_GetString(Jim_GetResult(interp), NULL));
 		exit(-1);
 	}
+	register_commands(context, NULL, command_builtin_handlers);
 	Jim_DeleteAssocData(interp, "context");
 
 	return context;
