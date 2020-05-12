@@ -179,8 +179,6 @@ typedef __COMMAND_HANDLER((*command_handler_t));
 
 struct command {
 	char *name;
-	char *help;
-	char *usage;
 	struct command *parent;
 	struct command *children;
 	command_handler_t handler;
