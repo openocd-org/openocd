@@ -380,14 +380,14 @@ struct command *register_command(struct command_context *context,
 	if (NULL == c)
 		return NULL;
 
-	int retval = ERROR_OK;
+	int retval = JIM_OK;
 	if (NULL != cr->jim_handler && NULL == parent) {
 		retval = Jim_CreateCommand(context->interp, cr->name,
 				cr->jim_handler, NULL, NULL);
 	} else if (NULL != cr->handler || NULL != parent)
 		retval = register_command_handler(context, command_root(c));
 
-	if (ERROR_OK != retval) {
+	if (retval != JIM_OK) {
 		unregister_command(context, parent, name);
 		c = NULL;
 	}
