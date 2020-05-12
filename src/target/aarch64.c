@@ -2966,6 +2966,7 @@ COMMAND_HANDLER(aarch64_mask_interrupts_command)
 
 static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
+	struct command *c = jim_to_command(interp);
 	struct command_context *context;
 	struct target *target;
 	struct arm *arm;
@@ -2973,7 +2974,7 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	bool is_mcr = false;
 	int arg_cnt = 0;
 
-	if (Jim_CompareStringImmediate(interp, argv[0], "mcr")) {
+	if (!strcmp(c->name, "mcr")) {
 		is_mcr = true;
 		arg_cnt = 7;
 	} else {
