@@ -5629,14 +5629,7 @@ static int target_create(Jim_GetOptInfo *goi)
 		},
 		COMMAND_REGISTRATION_DONE
 	};
-	e = register_commands(cmd_ctx, NULL, target_commands);
-	if (ERROR_OK != e)
-		return JIM_ERR;
-
-	struct command *c = command_find_in_context(cmd_ctx, cp);
-	assert(c);
-	command_set_handler_data(c, target);
-
+	e = register_commands_override_target(cmd_ctx, NULL, target_commands, target);
 	return (ERROR_OK == e) ? JIM_OK : JIM_ERR;
 }
 
