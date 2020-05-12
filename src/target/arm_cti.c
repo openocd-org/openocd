@@ -507,17 +507,13 @@ static int cti_create(Jim_GetOptInfo *goi)
 		},
 		COMMAND_REGISTRATION_DONE
 	};
-	e = register_commands(cmd_ctx, NULL, cti_commands);
+	e = register_commands_with_data(cmd_ctx, NULL, cti_commands, cti);
 	if (ERROR_OK != e)
 		return JIM_ERR;
 
-	struct command *c = command_find_in_context(cmd_ctx, cp);
-	assert(c);
-	command_set_handler_data(c, cti);
-
 	list_add_tail(&cti->lh, &all_cti);
 
-	return (ERROR_OK == e) ? JIM_OK : JIM_ERR;
+	return JIM_OK;
 }
 
 static int jim_cti_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)

@@ -886,13 +886,9 @@ static int arm_tpiu_swo_create(Jim_Interp *interp, struct arm_tpiu_swo_object *o
 		},
 		COMMAND_REGISTRATION_DONE
 	};
-	e = register_commands(cmd_ctx, NULL, obj_commands);
+	e = register_commands_with_data(cmd_ctx, NULL, obj_commands, obj);
 	if (ERROR_OK != e)
 		return JIM_ERR;
-
-	struct command *c = command_find_in_context(cmd_ctx, obj->name);
-	assert(c);
-	command_set_handler_data(c, obj);
 
 	list_add_tail(&obj->lh, &all_tpiu_swo);
 

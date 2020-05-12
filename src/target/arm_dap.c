@@ -265,17 +265,13 @@ static int dap_create(Jim_GetOptInfo *goi)
 	if (transport_is_hla())
 		dap_commands[0].chain = NULL;
 
-	e = register_commands(cmd_ctx, NULL, dap_commands);
+	e = register_commands_with_data(cmd_ctx, NULL, dap_commands, dap);
 	if (ERROR_OK != e)
 		return JIM_ERR;
 
-	struct command *c = command_find_in_context(cmd_ctx, cp);
-	assert(c);
-	command_set_handler_data(c, dap);
-
 	list_add_tail(&dap->lh, &all_dap);
 
-	return (ERROR_OK == e) ? JIM_OK : JIM_ERR;
+	return JIM_OK;
 }
 
 static int jim_dap_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
