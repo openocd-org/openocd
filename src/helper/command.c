@@ -586,20 +586,13 @@ static int run_command(struct command_context *context,
 	int retval = c->handler(&cmd);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
 		/* Print help for command */
-		char *full_name = command_name(c, ' ');
-		if (NULL != full_name) {
-			command_run_linef(context, "usage %s", full_name);
-			free(full_name);
-		}
+		command_run_linef(context, "usage %s", words[0]);
 	} else if (retval == ERROR_COMMAND_CLOSE_CONNECTION) {
 		/* just fall through for a shutdown request */
 	} else {
-		if (retval != ERROR_OK) {
-			char *full_name = command_name(c, ' ');
+		if (retval != ERROR_OK)
 			LOG_DEBUG("Command '%s' failed with error code %d",
-						full_name ? full_name : c->name, retval);
-			free(full_name);
-		}
+						words[0], retval);
 		/* Use the command output as the Tcl result */
 		Jim_SetResult(context->interp, cmd.output);
 	}
