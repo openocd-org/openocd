@@ -50,8 +50,7 @@ struct log_capture_state {
 };
 
 static int unregister_command(struct command_context *context,
-	struct command *parent, const char *name);
-static char *command_name(struct command *c, char delim);
+	const char *cmd_prefix, const char *name);
 static int command_unknown(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 /* set of functions to wrap jimtcl internal data */
@@ -223,68 +222,8 @@ static struct command *command_find_from_name(Jim_Interp *interp, const char *na
 	return jimcmd_privdata(cmd);
 }
 
-/**
- * Find a command by name from a list of commands.
- * @returns Returns the named command if it exists in the list.
- * Returns NULL otherwise.
- */
-static struct command *command_find(struct command *head, const char *name)
-{
-	for (struct command *cc = head; cc; cc = cc->next) {
-		if (strcmp(cc->name, name) == 0)
-			return cc;
-	}
-	return NULL;
-}
-
-/**
- * Add the command into the linked list, sorted by name.
- * @param head Address to head of command list pointer, which may be
- * updated if @c c gets inserted at the beginning of the list.
- * @param c The command to add to the list pointed to by @c head.
- */
-static void command_add_child(struct command **head, struct command *c)
-{
-	assert(head);
-	if (NULL == *head) {
-		*head = c;
-		return;
-	}
-
-	while ((*head)->next && (strcmp(c->name, (*head)->name) > 0))
-		head = &(*head)->next;
-
-	if (strcmp(c->name, (*head)->name) > 0) {
-		c->next = (*head)->next;
-		(*head)->next = c;
-	} else {
-		c->next = *head;
-		*head = c;
-	}
-}
-
-static struct command **command_list_for_parent(
-	struct command_context *cmd_ctx, struct command *parent)
-{
-	return parent ? &parent->children : &cmd_ctx->commands;
-}
-
-static void command_free(struct command *c)
-{
-	/** @todo if command has a handler, unregister its jim command! */
-
-	while (NULL != c->children) {
-		struct command *tmp = c->children;
-		c->children = tmp->next;
-		command_free(tmp);
-	}
-
-	free(c->name);
-	free(c);
-}
-
 static struct command *command_new(struct command_context *cmd_ctx,
-	struct command *parent, const struct command_registration *cr)
+	const char *full_name, const struct command_registration *cr)
 {
 	assert(cr->name);
 
@@ -295,33 +234,24 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	 * strlen(.usage) == 0 means that the command takes no
 	 * arguments.
 	*/
-	if ((cr->jim_handler == NULL) && (cr->usage == NULL)) {
-		LOG_ERROR("BUG: command '%s%s%s' does not have the "
+	if (!cr->jim_handler && !cr->usage)
+		LOG_ERROR("BUG: command '%s' does not have the "
 			"'.usage' field filled out",
-			parent && parent->name ? parent->name : "",
-			parent && parent->name ? " " : "",
-			cr->name);
-	}
+			full_name);
 
 	struct command *c = calloc(1, sizeof(struct command));
 	if (NULL == c)
 		return NULL;
 
 	c->name = strdup(cr->name);
-	if (!c->name)
-		goto command_new_error;
+	if (!c->name) {
+		free(c);
+		return NULL;
+	}
 
-	c->parent = parent;
 	c->handler = cr->handler;
 	c->jim_handler = cr->jim_handler;
 	c->mode = cr->mode;
-
-	command_add_child(command_list_for_parent(cmd_ctx, parent), c);
-
-	char *full_name = NULL;
-
-	if (cr->help || cr->usage)
-		full_name = command_name(c, ' ');
 
 	if (cr->help)
 		command_run_linef(cmd_ctx, "add_help_text {%s} {%s}", full_name, cr->help);
@@ -329,49 +259,64 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	if (cr->usage)
 		command_run_linef(cmd_ctx, "add_usage_text {%s} {%s}", full_name, cr->usage);
 
-	free(full_name);
-
 	return c;
+}
 
-command_new_error:
-	command_free(c);
-	return NULL;
+static void command_free(struct Jim_Interp *interp, void *priv)
+{
+	struct command *c = priv;
+
+	free(c->name);
+	free(c);
 }
 
 static struct command *register_command(struct command_context *context,
-	struct command *parent, const struct command_registration *cr)
+	const char *cmd_prefix, const struct command_registration *cr)
 {
+	char *full_name;
+
 	if (!context || !cr->name)
 		return NULL;
 
-	const char *name = cr->name;
-	struct command **head = command_list_for_parent(context, parent);
-	struct command *c = command_find(*head, name);
-	if (NULL != c) {
+	if (cmd_prefix)
+		full_name = alloc_printf("%s %s", cmd_prefix, cr->name);
+	else
+		full_name = strdup(cr->name);
+	if (!full_name)
+		return NULL;
+
+	struct command *c = command_find_from_name(context->interp, full_name);
+	if (c) {
 		/* TODO: originally we treated attempting to register a cmd twice as an error
 		 * Sometimes we need this behaviour, such as with flash banks.
 		 * http://www.mail-archive.com/openocd-development@lists.berlios.de/msg11152.html */
-		LOG_DEBUG("command '%s' is already registered in '%s' context",
-			name, parent ? parent->name : "<global>");
+		LOG_DEBUG("command '%s' is already registered", full_name);
+		free(full_name);
 		return c;
 	}
 
-	c = command_new(context, parent, cr);
-	if (NULL == c)
-		return NULL;
-
-	char *full_name = command_name(c, ' ');
-	LOG_DEBUG("registering '%s'...", full_name);
-	int retval = Jim_CreateCommand(context->interp, full_name,
-				command_unknown, c, NULL);
-	if (retval != JIM_OK) {
-		unregister_command(context, parent, name);
+	c = command_new(context, full_name, cr);
+	if (!c) {
+		free(full_name);
 		return NULL;
 	}
+
+	LOG_DEBUG("registering '%s'...", full_name);
+	int retval = Jim_CreateCommand(context->interp, full_name,
+				command_unknown, c, command_free);
+	if (retval != JIM_OK) {
+		command_run_linef(context, "del_help_text {%s}", full_name);
+		command_run_linef(context, "del_usage_text {%s}", full_name);
+		free(c);
+		free(full_name);
+		return NULL;
+	}
+
+	free(full_name);
 	return c;
 }
 
-static int ___register_commands(struct command_context *cmd_ctx, struct command *parent,
+int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 	const struct command_registration *cmds, void *data,
 	struct target *override_target)
 {
@@ -382,7 +327,7 @@ static int ___register_commands(struct command_context *cmd_ctx, struct command 
 
 		struct command *c = NULL;
 		if (NULL != cr->name) {
-			c = register_command(cmd_ctx, parent, cr);
+			c = register_command(cmd_ctx, cmd_prefix, cr);
 			if (NULL == c) {
 				retval = ERROR_FAIL;
 				break;
@@ -391,29 +336,30 @@ static int ___register_commands(struct command_context *cmd_ctx, struct command 
 			c->jim_override_target = override_target;
 		}
 		if (NULL != cr->chain) {
-			struct command *p = c ? : parent;
-			retval = ___register_commands(cmd_ctx, p, cr->chain, data, override_target);
+			if (cr->name) {
+				if (cmd_prefix) {
+					char *new_prefix = alloc_printf("%s %s", cmd_prefix, cr->name);
+					if (!new_prefix) {
+						retval = ERROR_FAIL;
+						break;
+					}
+					retval = __register_commands(cmd_ctx, new_prefix, cr->chain, data, override_target);
+					free(new_prefix);
+				} else {
+					retval = __register_commands(cmd_ctx, cr->name, cr->chain, data, override_target);
+				}
+			} else {
+				retval = __register_commands(cmd_ctx, cmd_prefix, cr->chain, data, override_target);
+			}
 			if (ERROR_OK != retval)
 				break;
 		}
 	}
 	if (ERROR_OK != retval) {
 		for (unsigned j = 0; j < i; j++)
-			unregister_command(cmd_ctx, parent, cmds[j].name);
+			unregister_command(cmd_ctx, cmd_prefix, cmds[j].name);
 	}
 	return retval;
-}
-
-int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
-	const struct command_registration *cmds, void *data,
-	struct target *override_target)
-{
-	struct command *parent = NULL;
-
-	if (cmd_prefix)
-		parent = command_find(cmd_ctx->commands, cmd_prefix);
-
-	return ___register_commands(cmd_ctx, parent, cmds, data, override_target);
 }
 
 static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)))
@@ -471,86 +417,29 @@ int unregister_commands_match(Jim_Interp *interp, const char *format, ...)
 int unregister_all_commands(struct command_context *context,
 	const char *cmd_prefix)
 {
-	struct command *parent = NULL;
-
 	if (!context)
 		return ERROR_OK;
 
-	if (!cmd_prefix || !*cmd_prefix) {
-		int retval = unregister_commands_match(context->interp, "*");
-		if (retval != ERROR_OK)
-			return retval;
-	} else {
-		Jim_Cmd *cmd = Jim_GetCommand(context->interp, Jim_NewStringObj(context->interp, cmd_prefix, -1), JIM_ERRMSG);
-		if (cmd && jimcmd_is_ocd_command(cmd))
-			parent = jimcmd_privdata(cmd);
+	if (!cmd_prefix || !*cmd_prefix)
+		return unregister_commands_match(context->interp, "*");
 
-		int retval = unregister_commands_match(context->interp, "%s *", cmd_prefix);
-		if (retval != ERROR_OK)
-			return retval;
-		retval = unregister_commands_match(context->interp, "%s", cmd_prefix);
-		if (retval != ERROR_OK)
-			return retval;
-	}
+	int retval = unregister_commands_match(context->interp, "%s *", cmd_prefix);
+	if (retval != ERROR_OK)
+		return retval;
 
-	struct command **head = command_list_for_parent(context, parent);
-	while (NULL != *head) {
-		struct command *tmp = *head;
-		*head = tmp->next;
-		command_free(tmp);
-	}
-
-	return ERROR_OK;
-}
-
-static __attribute__ ((unused))
-int _unregister_command(struct command_context *context,
-	const char *cmd_prefix, const char *name)
-{
-	struct command *parent = NULL;
-
-	if (!context || !name)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	if (cmd_prefix && *cmd_prefix) {
-		Jim_Cmd *cmd = Jim_GetCommand(context->interp, Jim_NewStringObj(context->interp, cmd_prefix, -1), JIM_ERRMSG);
-		if (cmd && jimcmd_is_ocd_command(cmd))
-			parent = jimcmd_privdata(cmd);
-	}
-
-	return unregister_command(context, parent, name);
+	return unregister_commands_match(context->interp, "%s", cmd_prefix);
 }
 
 static int unregister_command(struct command_context *context,
-	struct command *parent, const char *name)
+	const char *cmd_prefix, const char *name)
 {
-	if ((!context) || (!name))
+	if (!context || !name)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct command *p = NULL;
-	struct command **head = command_list_for_parent(context, parent);
-	for (struct command *c = *head; NULL != c; p = c, c = c->next) {
-		if (strcmp(name, c->name) != 0)
-			continue;
+	if (!cmd_prefix || !*cmd_prefix)
+		return unregister_commands_match(context->interp, "%s", name);
 
-		char *full_name = command_name(c, ' ');
-
-		int retval = unregister_commands_match(context->interp, "%s", full_name);
-		if (retval != ERROR_OK)
-			return retval;
-
-		free(full_name);
-
-		if (p)
-			p->next = c->next;
-		else
-			*head = c->next;
-
-		command_free(c);
-		return ERROR_OK;
-	}
-
-	return ERROR_OK;
+	return unregister_commands_match(context->interp, "%s %s", cmd_prefix, name);
 }
 
 void command_output_text(struct command_context *context, const char *data)
@@ -605,33 +494,6 @@ void command_print(struct command_invocation *cmd, const char *format, ...)
 	}
 
 	va_end(ap);
-}
-
-static char *__command_name(struct command *c, char delim, unsigned extra)
-{
-	char *name;
-	unsigned len = strlen(c->name);
-	if (NULL == c->parent) {
-		/* allocate enough for the name, child names, and '\0' */
-		name = malloc(len + extra + 1);
-		if (!name) {
-			LOG_ERROR("Out of memory");
-			return NULL;
-		}
-		strcpy(name, c->name);
-	} else {
-		/* parent's extra must include both the space and name */
-		name = __command_name(c->parent, delim, 1 + len + extra);
-		char dstr[2] = { delim, 0 };
-		strcat(name, dstr);
-		strcat(name, c->name);
-	}
-	return name;
-}
-
-static char *command_name(struct command *c, char delim)
-{
-	return __command_name(c, delim, 0);
 }
 
 static bool command_can_run(struct command_context *cmd_ctx, struct command *c, const char *full_name)
