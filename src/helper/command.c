@@ -146,7 +146,7 @@ extern struct command_context *global_cmd_ctx;
 
 /* dump a single line to the log for the command.
  * Do nothing in case we are not at debug level 3 */
-void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const *argv)
+static void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const *argv)
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
