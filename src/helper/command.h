@@ -311,11 +311,11 @@ static inline int register_commands_with_data(struct command_context *cmd_ctx,
 /**
  * Unregisters all commands from the specified context.
  * @param cmd_ctx The context that will be cleared of registered commands.
- * @param parent If given, only clear commands from under this one command.
+ * @param cmd_prefix If given, only clear commands from under this one command.
  * @returns ERROR_OK on success, or an error code.
  */
 int unregister_all_commands(struct command_context *cmd_ctx,
-		struct command *parent);
+		const char *cmd_prefix);
 
 /**
  * Unregisters the help for all commands. Used at exit to remove the help

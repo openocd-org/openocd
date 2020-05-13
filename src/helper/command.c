@@ -244,6 +244,26 @@ struct command_context *current_command_context(Jim_Interp *interp)
 }
 
 /**
+ * Find a openocd command from fullname.
+ * @returns Returns the named command if it is registred in interp.
+ * Returns NULL otherwise.
+ */
+static struct command *command_find_from_name(Jim_Interp *interp, const char *name)
+{
+	if (!name)
+		return NULL;
+
+	Jim_Obj *jim_name = Jim_NewStringObj(interp, name, -1);
+	Jim_IncrRefCount(jim_name);
+	Jim_Cmd *cmd = Jim_GetCommand(interp, jim_name, JIM_NONE);
+	Jim_DecrRefCount(interp, jim_name);
+	if (!cmd || jimcmd_is_proc(cmd) || !jimcmd_is_ocd_command(cmd))
+		return NULL;
+
+	return jimcmd_privdata(cmd);
+}
+
+/**
  * Find a command by name from a list of commands.
  * @returns Returns the named command if it exists in the list.
  * Returns NULL otherwise.
@@ -429,11 +449,79 @@ int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 	return ___register_commands(cmd_ctx, parent, cmds, data, override_target);
 }
 
-int unregister_all_commands(struct command_context *context,
-	struct command *parent)
+static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)))
+int unregister_commands_match(struct command_context *cmd_ctx, const char *format, ...)
 {
-	if (context == NULL)
+	Jim_Interp *interp = cmd_ctx->interp;
+	va_list ap;
+
+	va_start(ap, format);
+	char *query = alloc_vprintf(format, ap);
+	va_end(ap);
+	if (!query)
+		return ERROR_FAIL;
+
+	char *query_cmd = alloc_printf("info commands {%s}", query);
+	free(query);
+	if (!query_cmd)
+		return ERROR_FAIL;
+
+	int retval = Jim_EvalSource(interp, __THIS__FILE__, __LINE__, query_cmd);
+	free(query_cmd);
+	if (retval != JIM_OK)
+		return ERROR_FAIL;
+
+	Jim_Obj *list = Jim_GetResult(interp);
+	Jim_IncrRefCount(list);
+
+	int len = Jim_ListLength(interp, list);
+	for (int i = 0; i < len; i++) {
+		Jim_Obj *elem = Jim_ListGetIndex(interp, list, i);
+		Jim_IncrRefCount(elem);
+
+		const char *name = Jim_GetString(elem, NULL);
+		struct command *c = command_find_from_name(interp, name);
+		if (!c) {
+			/* not openocd command */
+			Jim_DecrRefCount(interp, elem);
+			continue;
+		}
+		LOG_DEBUG("delete command \"%s\"", name);
+		Jim_DeleteCommand(interp, elem);
+
+		help_del_command(cmd_ctx, name);
+
+		Jim_DecrRefCount(interp, elem);
+	}
+
+	Jim_DecrRefCount(interp, list);
+	return ERROR_OK;
+}
+
+int unregister_all_commands(struct command_context *context,
+	const char *cmd_prefix)
+{
+	struct command *parent = NULL;
+
+	if (!context)
 		return ERROR_OK;
+
+	if (!cmd_prefix || !*cmd_prefix) {
+		int retval = unregister_commands_match(context, "*");
+		if (retval != ERROR_OK)
+			return retval;
+	} else {
+		Jim_Cmd *cmd = Jim_GetCommand(context->interp, Jim_NewStringObj(context->interp, cmd_prefix, -1), JIM_NONE);
+		if (cmd && jimcmd_is_ocd_command(cmd))
+			parent = jimcmd_privdata(cmd);
+
+		int retval = unregister_commands_match(context, "%s *", cmd_prefix);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = unregister_commands_match(context, "%s", cmd_prefix);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
 	struct command **head = command_list_for_parent(context, parent);
 	while (NULL != *head) {
@@ -458,7 +546,11 @@ static int unregister_command(struct command_context *context,
 			continue;
 
 		char *full_name = command_name(c, ' ');
-		help_del_command(context, full_name);
+
+		int retval = unregister_commands_match(context, "%s", full_name);
+		if (retval != ERROR_OK)
+			return retval;
+
 		free(full_name);
 
 		if (p)
