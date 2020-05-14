@@ -4206,7 +4206,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	long l;
 	uint32_t width;
 	int len;
-	uint32_t addr;
+	target_addr_t addr;
 	uint32_t count;
 	uint32_t v;
 	const char *varname;
@@ -4233,8 +4233,9 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	if (e != JIM_OK)
 		return e;
 
-	e = Jim_GetLong(interp, argv[2], &l);
-	addr = l;
+	jim_wide w;
+	e = Jim_GetWide(interp, argv[2], &w);
+	addr = w;
 	if (e != JIM_OK)
 		return e;
 	e = Jim_GetLong(interp, argv[3], &l);
@@ -4288,7 +4289,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		sprintf(buf, "mem2array address: 0x%08" PRIx32 " is not aligned for %" PRId32 " byte reads",
+		sprintf(buf, "mem2array address: " TARGET_ADDR_FMT " is not aligned for %" PRId32 " byte reads",
 				addr,
 				width);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), buf, NULL);
@@ -4320,7 +4321,7 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 			retval = target_read_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("mem2array: Read @ 0x%08" PRIx32 ", w=%" PRId32 ", cnt=%" PRId32 ", failed",
+			LOG_ERROR("mem2array: Read @ " TARGET_ADDR_FMT ", w=%" PRId32 ", cnt=%" PRId32 ", failed",
 					  addr,
 					  width,
 					  count);
