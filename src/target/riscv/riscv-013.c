@@ -2536,14 +2536,60 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 			}
 		}
 
+		/* First value has been read, and is waiting for us to issue a DMI read
+		 * to get it. */
+
+		static int sbdata[4] = {DMI_SBDATA0, DMI_SBDATA1, DMI_SBDATA2, DMI_SBDATA3};
+		assert(size <= 16);
+		target_addr_t next_read = address - 1;
 		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
-			if (read_memory_bus_word(target, address + i * size, size,
-					buffer + i * size) != ERROR_OK)
-				return ERROR_FAIL;
+			for (int j = (size - 1) / 4; j >= 0; j--) {
+				uint32_t value;
+				unsigned attempt = 0;
+				while (1) {
+					if (attempt++ > 100) {
+						LOG_ERROR("DMI keeps being busy in while reading memory just past " TARGET_ADDR_FMT,
+								  next_read);
+						return ERROR_FAIL;
+					}
+					dmi_status_t status = dmi_scan(target, NULL, &value,
+												   DMI_OP_READ, sbdata[j], 0, false);
+					if (status == DMI_STATUS_BUSY)
+						increase_dmi_busy_delay(target);
+					else if (status == DMI_STATUS_SUCCESS)
+						break;
+					else
+						return ERROR_FAIL;
+				}
+				if (next_read != address - 1) {
+					write_to_buf(buffer + next_read - address, value, MIN(size, 4));
+					log_memory_access(next_read, value, MIN(size, 4), true);
+				}
+				next_read = address + i * size + j * 4;
+			}
 		}
 
 		uint32_t sbcs_read = 0;
 		if (count > 1) {
+			uint32_t value;
+			unsigned attempt = 0;
+			while (1) {
+				if (attempt++ > 100) {
+					LOG_ERROR("DMI keeps being busy in while reading memory just past " TARGET_ADDR_FMT,
+								next_read);
+					return ERROR_FAIL;
+				}
+				dmi_status_t status = dmi_scan(target, NULL, &value, DMI_OP_NOP, 0, 0, false);
+				if (status == DMI_STATUS_BUSY)
+					increase_dmi_busy_delay(target);
+				else if (status == DMI_STATUS_SUCCESS)
+					break;
+				else
+					return ERROR_FAIL;
+			}
+			write_to_buf(buffer + next_read - address, value, MIN(size, 4));
+			log_memory_access(next_read, value, MIN(size, 4), true);
+
 			/* "Writes to sbcs while sbbusy is high result in undefined behavior.
 			 * A debugger must not write to sbcs until it reads sbbusy as 0." */
 			if (read_sbcs_nonbusy(target, &sbcs_read) != ERROR_OK)
