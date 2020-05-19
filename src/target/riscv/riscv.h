@@ -239,7 +239,8 @@ int riscv_resume(
 	int current,
 	target_addr_t address,
 	int handle_breakpoints,
-	int debug_execution
+	int debug_execution,
+	bool single_hart
 );
 
 int riscv_openocd_step(
@@ -337,7 +338,13 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_wp_addre
 int riscv_init_registers(struct target *target);
 
 void riscv_semihosting_init(struct target *target);
-int riscv_semihosting(struct target *target, int *retval);
+typedef enum {
+	SEMI_NONE,		/* Not halted for a semihosting call. */
+	SEMI_HANDLED,	/* Call handled, and target was resumed. */
+	SEMI_WAITING,	/* Call handled, target is halted waiting until we can resume. */
+	SEMI_ERROR		/* Something went wrong. */
+} semihosting_result_t;
+semihosting_result_t riscv_semihosting(struct target *target, int *retval);
 
 void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
 		riscv_bscan_tunneled_scan_context_t *ctxt);

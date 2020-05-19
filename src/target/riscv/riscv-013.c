@@ -3645,7 +3645,6 @@ struct target_type riscv013_target = {
 
 	.poll = &riscv_openocd_poll,
 	.halt = &riscv_halt,
-	.resume = &riscv_resume,
 	.step = &riscv_openocd_step,
 
 	.assert_reset = assert_reset,
@@ -4539,7 +4538,7 @@ int riscv013_test_compliance(struct target *target)
 
 	/* resumereq */
 	/* This bit is not actually readable according to the spec, so nothing to check.*/
-	COMPLIANCE_MUST_PASS(riscv_resume(target, true, 0, false, false));
+	COMPLIANCE_MUST_PASS(riscv_resume(target, true, 0, false, false, false));
 
 	/* Halt all harts again so the test can continue.*/
 	COMPLIANCE_MUST_PASS(riscv_halt(target));

@@ -267,7 +267,7 @@ static int riscv_gdb_v_packet(struct connection *connection, const char *packet,
 		target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
 		target_call_event_callbacks(target, TARGET_EVENT_RESUME_START);
 		riscv_set_all_rtos_harts(target);
-		riscv_resume(target, 1, 0, 0, 0);
+		riscv_resume(target, 1, 0, 0, 0, false);
 		target->state = TARGET_RUNNING;
 		gdb_set_frontend_state_running(connection);
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
