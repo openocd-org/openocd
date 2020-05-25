@@ -54,7 +54,6 @@ typedef int (*command_output_handler_t)(struct command_context *context,
 struct command_context {
 	Jim_Interp *interp;
 	enum command_mode mode;
-	struct command *commands;
 	struct target *current_target;
 		/* The target set by 'targets xx' command or the latest created */
 	struct target *current_target_override;
@@ -182,8 +181,6 @@ typedef __COMMAND_HANDLER((*command_handler_t));
 
 struct command {
 	char *name;
-	struct command *parent;
-	struct command *children;
 	command_handler_t handler;
 	Jim_CmdProc *jim_handler;
 	void *jim_handler_data;
@@ -191,7 +188,6 @@ struct command {
 	struct target *jim_override_target;
 		/* Used only for target of target-prefixed cmd */
 	enum command_mode mode;
-	struct command *next;
 };
 
 /*
