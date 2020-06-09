@@ -118,7 +118,7 @@ Debug targets
 
 ARM11, ARM7, ARM9, AVR32, Cortex-A, Cortex-R, Cortex-M, LS102x-SAP,
 Feroceon/Dragonite, DSP563xx, DSP5680xx, EnSilica eSi-RISC, FA526, MIPS
-EJTAG, NDS32, XScale, Intel Quark.
+EJTAG, NDS32, RISC-V, XScale, Intel Quark.
 
 Flash drivers
 -------------
