@@ -1011,7 +1011,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 	}
 }
 
-static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
+static int read_remote_csr(struct target *target, uint64_t *value, uint32_t csr)
 {
 	riscv011_info_t *info = get_info(target);
 	cache_set32(target, 0, csrr(S0, csr));
@@ -1033,7 +1033,7 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 	return ERROR_OK;
 }
 
-static int write_csr(struct target *target, uint32_t csr, uint64_t value)
+static int write_remote_csr(struct target *target, uint32_t csr, uint64_t value)
 {
 	LOG_DEBUG("csr 0x%x <- 0x%" PRIx64, csr, value);
 	cache_set_load(target, 0, S0, SLOT0);
@@ -1061,7 +1061,7 @@ static int maybe_read_tselect(struct target *target)
 	riscv011_info_t *info = get_info(target);
 
 	if (info->tselect_dirty) {
-		int result = read_csr(target, &info->tselect, CSR_TSELECT);
+		int result = read_remote_csr(target, &info->tselect, CSR_TSELECT);
 		if (result != ERROR_OK)
 			return result;
 		info->tselect_dirty = false;
@@ -1075,7 +1075,7 @@ static int maybe_write_tselect(struct target *target)
 	riscv011_info_t *info = get_info(target);
 
 	if (!info->tselect_dirty) {
-		int result = write_csr(target, CSR_TSELECT, info->tselect);
+		int result = write_remote_csr(target, CSR_TSELECT, info->tselect);
 		if (result != ERROR_OK)
 			return result;
 		info->tselect_dirty = true;
@@ -1565,11 +1565,11 @@ static int examine(struct target *target)
 	}
 	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
-	if (read_csr(target, &r->misa[0], CSR_MISA) != ERROR_OK) {
+	if (read_remote_csr(target, &r->misa[0], CSR_MISA) != ERROR_OK) {
 		const unsigned old_csr_misa = 0xf10;
 		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
 				old_csr_misa);
-		if (read_csr(target, &r->misa[0], old_csr_misa) != ERROR_OK) {
+		if (read_remote_csr(target, &r->misa[0], old_csr_misa) != ERROR_OK) {
 			/* Maybe this is an old core that still has $misa at the old
 			 * address. */
 			LOG_ERROR("Failed to read misa at 0x%x.", old_csr_misa);
