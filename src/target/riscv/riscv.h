@@ -170,6 +170,10 @@ typedef struct {
 	struct reg_data_type_union_field vector_fields[5];
 	struct reg_data_type_union vector_union;
 	struct reg_data_type type_vector;
+
+	/* Set when trigger registers are changed by the user. This indicates we eed
+	 * to beware that we may hit a trigger that we didn't realize had been set. */
+	bool manual_hwbp_set;
 } riscv_info_t;
 
 typedef struct {

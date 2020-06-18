@@ -1213,6 +1213,95 @@ int riscv_resume_prep_all_harts(struct target *target)
 	return ERROR_OK;
 }
 
+/* state must be riscv_reg_t state[RISCV_MAX_HWBPS] = {0}; */
+static int disable_triggers(struct target *target, riscv_reg_t *state)
+{
+	RISCV_INFO(r);
+
+	LOG_DEBUG("deal with triggers");
+
+	if (riscv_enumerate_triggers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	int hartid = riscv_current_hartid(target);
+	if (r->manual_hwbp_set) {
+		/* Look at every trigger that may have been set. */
+		riscv_reg_t tselect;
+		if (riscv_get_register(target, &tselect, GDB_REGNO_TSELECT) != ERROR_OK)
+			return ERROR_FAIL;
+		for (unsigned t = 0; t < r->trigger_count[hartid]; t++) {
+			if (riscv_set_register(target, GDB_REGNO_TSELECT, t) != ERROR_OK)
+				return ERROR_FAIL;
+			riscv_reg_t tdata1;
+			if (riscv_get_register(target, &tdata1, GDB_REGNO_TDATA1) != ERROR_OK)
+				return ERROR_FAIL;
+			if (tdata1 & MCONTROL_DMODE(riscv_xlen(target))) {
+				state[t] = tdata1;
+				if (riscv_set_register(target, GDB_REGNO_TDATA1, 0) != ERROR_OK)
+					return ERROR_FAIL;
+			}
+		}
+		if (riscv_set_register(target, GDB_REGNO_TSELECT, tselect) != ERROR_OK)
+			return ERROR_FAIL;
+
+	} else {
+		/* Just go through the triggers we manage. */
+		struct watchpoint *watchpoint = target->watchpoints;
+		int i = 0;
+		while (watchpoint) {
+			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
+			state[i] = watchpoint->set;
+			if (watchpoint->set) {
+				if (riscv_remove_watchpoint(target, watchpoint) != ERROR_OK)
+					return ERROR_FAIL;
+			}
+			watchpoint = watchpoint->next;
+			i++;
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static int enable_triggers(struct target *target, riscv_reg_t *state)
+{
+	RISCV_INFO(r);
+
+	int hartid = riscv_current_hartid(target);
+
+	if (r->manual_hwbp_set) {
+		/* Look at every trigger that may have been set. */
+		riscv_reg_t tselect;
+		if (riscv_get_register(target, &tselect, GDB_REGNO_TSELECT) != ERROR_OK)
+			return ERROR_FAIL;
+		for (unsigned t = 0; t < r->trigger_count[hartid]; t++) {
+			if (state[t] != 0) {
+				if (riscv_set_register(target, GDB_REGNO_TSELECT, t) != ERROR_OK)
+					return ERROR_FAIL;
+				if (riscv_set_register(target, GDB_REGNO_TDATA1, state[t]) != ERROR_OK)
+					return ERROR_FAIL;
+			}
+		}
+		if (riscv_set_register(target, GDB_REGNO_TSELECT, tselect) != ERROR_OK)
+			return ERROR_FAIL;
+
+	} else {
+		struct watchpoint *watchpoint = target->watchpoints;
+		int i = 0;
+		while (watchpoint) {
+			LOG_DEBUG("watchpoint %d: cleared=%" PRId64, i, state[i]);
+			if (state[i]) {
+				if (riscv_add_watchpoint(target, watchpoint) != ERROR_OK)
+					return ERROR_FAIL;
+			}
+			watchpoint = watchpoint->next;
+			i++;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 /**
  * Get everything ready to resume.
  */
@@ -1228,39 +1317,16 @@ static int resume_prep(struct target *target, int current,
 	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
 		/* To be able to run off a trigger, disable all the triggers, step, and
 		 * then resume as usual. */
-		struct watchpoint *watchpoint = target->watchpoints;
-		bool trigger_temporarily_cleared[RISCV_MAX_HWBPS] = {0};
+		riscv_reg_t trigger_state[RISCV_MAX_HWBPS] = {0};
 
-		int i = 0;
-		int result = ERROR_OK;
-		while (watchpoint && result == ERROR_OK) {
-			LOG_DEBUG("watchpoint %d: set=%d", i, watchpoint->set);
-			trigger_temporarily_cleared[i] = watchpoint->set;
-			if (watchpoint->set)
-				result = riscv_remove_watchpoint(target, watchpoint);
-			watchpoint = watchpoint->next;
-			i++;
-		}
+		if (disable_triggers(target, trigger_state) != ERROR_OK)
+			return ERROR_FAIL;
 
-		if (result == ERROR_OK)
-			result = old_or_new_riscv_step(target, true, 0, false);
+		if (old_or_new_riscv_step(target, true, 0, false) != ERROR_OK)
+			return ERROR_FAIL;
 
-		watchpoint = target->watchpoints;
-		i = 0;
-		while (watchpoint) {
-			LOG_DEBUG("watchpoint %d: cleared=%d", i, trigger_temporarily_cleared[i]);
-			if (trigger_temporarily_cleared[i]) {
-				if (result == ERROR_OK)
-					result = riscv_add_watchpoint(target, watchpoint);
-				else
-					riscv_add_watchpoint(target, watchpoint);
-			}
-			watchpoint = watchpoint->next;
-			i++;
-		}
-
-		if (result != ERROR_OK)
-			return result;
+		if (enable_triggers(target, trigger_state) != ERROR_OK)
+			return ERROR_FAIL;
 	}
 
 	if (r->is_halted) {
@@ -2133,6 +2199,10 @@ int riscv_openocd_step(
 	if (!current)
 		riscv_set_register(target, GDB_REGNO_PC, address);
 
+	riscv_reg_t trigger_state[RISCV_MAX_HWBPS] = {0};
+	if (disable_triggers(target, trigger_state) != ERROR_OK)
+		return ERROR_FAIL;
+
 	int out = riscv_step_rtos_hart(target);
 	if (out != ERROR_OK) {
 		LOG_ERROR("unable to step rtos hart");
@@ -2140,6 +2210,10 @@ int riscv_openocd_step(
 	}
 
 	register_cache_invalidate(target->reg_cache);
+
+	if (enable_triggers(target, trigger_state) != ERROR_OK)
+		return ERROR_FAIL;
+
 	target->state = TARGET_RUNNING;
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 	target->state = TARGET_HALTED;
@@ -3562,6 +3636,17 @@ static int register_set(struct reg *reg, uint8_t *buf)
 
 	memcpy(reg->value, buf, DIV_ROUND_UP(reg->size, 8));
 	reg->valid = gdb_regno_cacheable(reg->number, true);
+
+	if (reg->number == GDB_REGNO_TDATA1 ||
+			reg->number == GDB_REGNO_TDATA2) {
+		r->manual_hwbp_set = true;
+		/* When enumerating triggers, we clear any triggers with DMODE set,
+		 * assuming they were left over from a previous debug session. So make
+		 * sure that is done before a user might be setting their own triggers.
+		 */
+		if (riscv_enumerate_triggers(target) != ERROR_OK)
+			return ERROR_FAIL;
+	}
 
 	if (reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) {
 		if (!r->set_register_buf) {
