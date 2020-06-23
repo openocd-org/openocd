@@ -657,7 +657,6 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
 		case JTAG_RESET:
-			ftdi_execute_reset(cmd);
 #if BUILD_FTDI_OSCAN1 == 1
 			oscan1_reset_online_activate(); /* put the target back into OSCAN1 mode */
 #endif

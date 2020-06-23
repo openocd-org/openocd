@@ -408,7 +408,7 @@ int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 
 	struct target *target = rtos->target;
 
-	struct target *curr = find_thread(target, rtos->current_thread);
+	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
 	if (curr == NULL)
 		return ERROR_FAIL;
 
@@ -423,7 +423,7 @@ int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 
 	struct target *target = rtos->target;
 
-	struct target *curr = find_thread(target, rtos->current_thread);
+	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
 	if (curr == NULL)
 		return ERROR_FAIL;
 
