@@ -24,18 +24,24 @@
 #include <jtag/minidriver.h>
 #include <jtag/interface.h>
 
-struct jtag_interface minidummy_interface = {
-	.name = "minidummy",
+static struct jtag_interface minidummy_interface = {
 	.execute_queue = NULL,
-	.speed = NULL,
+};
+
+struct adapter_driver minidummy_adapter_driver = {
+	.name = "minidummy",
 	.transports = jtag_only,
 	.commands = NULL,
+
 	.init = NULL,
 	.quit = NULL,
+	.speed = NULL,
 	.khz = NULL,
 	.speed_div = NULL,
 	.power_dropout = NULL,
 	.srst_asserted = NULL,
+
+	.jtag_ops = &minidummy_interface,
 };
 
 int interface_jtag_execute_queue(void)
@@ -77,7 +83,7 @@ int interface_jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits,
 	return ERROR_OK;
 }
 
-int interface_jtag_add_tlr()
+int interface_jtag_add_tlr(void)
 {
 	/* synchronously do the operation here */
 
@@ -164,7 +170,7 @@ void embeddedice_write_dcc(struct jtag_tap *tap, int reg_addr, const uint8_t *bu
 int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap, uint32_t opcode,
 		uint32_t *data, size_t count)
 {
-	int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *tap, \
+	int arm11_run_instr_data_to_core_noack_inner_default(struct jtag_tap *tap,
 			uint32_t opcode, uint32_t *data, size_t count);
 	return arm11_run_instr_data_to_core_noack_inner_default(tap, opcode, data, count);
 }

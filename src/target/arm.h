@@ -41,6 +41,26 @@
  */
 
 /**
+ * Indicates what registers are in the ARM state core register set.
+ *
+ * - ARM_CORE_TYPE_STD indicates the standard set of 37 registers, seen
+ *   on for example ARM7TDMI cores.
+ * - ARM_CORE_TYPE_SEC_EXT indicates core has security extensions, thus
+ *   three more registers are shadowed for "Secure Monitor" mode.
+ * - ARM_CORE_TYPE_VIRT_EXT indicates core has virtualization extensions
+ *   and also security extensions. Additional shadowed registers for
+ *   "Secure Monitor" and "Hypervisor" modes.
+ * - ARM_CORE_TYPE_M_PROFILE indicates a microcontroller profile core,
+ *   which only shadows SP.
+ */
+enum arm_core_type {
+	ARM_CORE_TYPE_STD = -1,
+	ARM_CORE_TYPE_SEC_EXT = 1,
+	ARM_CORE_TYPE_VIRT_EXT,
+	ARM_CORE_TYPE_M_PROFILE,
+};
+
+/**
  * Represent state of an ARM core.
  *
  * Most numbers match the five low bits of the *PSR registers on
@@ -60,6 +80,7 @@ enum arm_mode {
 	ARM_MODE_SVC = 19,
 	ARM_MODE_MON = 22,
 	ARM_MODE_ABT = 23,
+	ARM_MODE_HYP = 26,
 	ARM_MODE_UND = 27,
 	ARM_MODE_1176_MON = 28,
 	ARM_MODE_SYS = 31,
@@ -161,15 +182,8 @@ struct arm {
 	/** Support for arm_reg_current() */
 	const int *map;
 
-	/**
-	 * Indicates what registers are in the ARM state core register set.
-	 * ARM_MODE_ANY indicates the standard set of 37 registers,
-	 * seen on for example ARM7TDMI cores.  ARM_MODE_MON indicates three
-	 * more registers are shadowed, for "Secure Monitor" mode.
-	 * ARM_MODE_THREAD indicates a microcontroller profile core,
-	 * which only shadows SP.
-	 */
-	enum arm_mode core_type;
+	/** Indicates what registers are in the ARM state core register set. */
+	enum arm_core_type core_type;
 
 	/** Record the current core mode: SVC, USR, or some other mode. */
 	enum arm_mode core_mode;
@@ -258,6 +272,8 @@ struct arm_reg {
 };
 
 struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm);
+void arm_free_reg_cache(struct arm *arm);
+
 struct reg_cache *armv8_build_reg_cache(struct target *target);
 
 extern const struct command_registration arm_command_handlers[];

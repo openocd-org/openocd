@@ -49,10 +49,16 @@ class OpenOcd:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __enter__(self):
-        self.sock.connect((self.tclRpcIp, self.tclRpcPort))
+        self.connect()
         return self
 
     def __exit__(self, type, value, traceback):
+        self.disconnect()
+
+    def connect(self):
+        self.sock.connect((self.tclRpcIp, self.tclRpcPort))
+
+    def disconnect(self):
         try:
             self.send("exit")
         finally:

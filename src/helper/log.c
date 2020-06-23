@@ -220,6 +220,15 @@ COMMAND_HANDLER(handle_debug_level_command)
 
 COMMAND_HANDLER(handle_log_output_command)
 {
+	if (CMD_ARGC == 0 || (CMD_ARGC == 1 && strcmp(CMD_ARGV[0], "default") == 0)) {
+		if (log_output != stderr && log_output != NULL) {
+			/* Close previous log file, if it was open and wasn't stderr. */
+			fclose(log_output);
+		}
+		log_output = stderr;
+		LOG_DEBUG("set log_output to default");
+		return ERROR_OK;
+	}
 	if (CMD_ARGC == 1) {
 		FILE *file = fopen(CMD_ARGV[0], "w");
 		if (file == NULL) {
@@ -231,9 +240,11 @@ COMMAND_HANDLER(handle_log_output_command)
 			fclose(log_output);
 		}
 		log_output = file;
+		LOG_DEBUG("set log_output to \"%s\"", CMD_ARGV[0]);
+		return ERROR_OK;
 	}
 
-	return ERROR_OK;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 static const struct command_registration log_command_handlers[] = {
@@ -242,7 +253,7 @@ static const struct command_registration log_command_handlers[] = {
 		.handler = handle_log_output_command,
 		.mode = COMMAND_ANY,
 		.help = "redirect logging to a file (default: stderr)",
-		.usage = "file_name",
+		.usage = "[file_name | \"default\"]",
 	},
 	{
 		.name = "debug_level",
@@ -390,25 +401,43 @@ char *alloc_printf(const char *format, ...)
  * fast when invoked more often than every 500ms.
  *
  */
-void keep_alive()
+#define KEEP_ALIVE_KICK_TIME_MS  500
+#define KEEP_ALIVE_TIMEOUT_MS   1000
+
+static void gdb_timeout_warning(int64_t delta_time)
+{
+	extern int gdb_actual_connections;
+
+	if (gdb_actual_connections)
+		LOG_WARNING("keep_alive() was not invoked in the "
+			"%d ms timelimit. GDB alive packet not "
+			"sent! (%" PRId64 " ms). Workaround: increase "
+			"\"set remotetimeout\" in GDB",
+			KEEP_ALIVE_TIMEOUT_MS,
+			delta_time);
+	else
+		LOG_DEBUG("keep_alive() was not invoked in the "
+			"%d ms timelimit (%" PRId64 " ms). This may cause "
+			"trouble with GDB connections.",
+			KEEP_ALIVE_TIMEOUT_MS,
+			delta_time);
+}
+
+void keep_alive(void)
 {
 	current_time = timeval_ms();
-	if (current_time-last_time > 1000) {
-		extern int gdb_actual_connections;
 
-		if (gdb_actual_connections)
-			LOG_WARNING("keep_alive() was not invoked in the "
-				"1000ms timelimit. GDB alive packet not "
-				"sent! (%" PRId64 "). Workaround: increase "
-				"\"set remotetimeout\" in GDB",
-				current_time-last_time);
-		else
-			LOG_DEBUG("keep_alive() was not invoked in the "
-				"1000ms timelimit (%" PRId64 "). This may cause "
-				"trouble with GDB connections.",
-				current_time-last_time);
+	int64_t delta_time = current_time - last_time;
+
+	if (delta_time > KEEP_ALIVE_TIMEOUT_MS) {
+		last_time = current_time;
+
+		gdb_timeout_warning(delta_time);
 	}
-	if (current_time-last_time > 500) {
+
+	if (delta_time > KEEP_ALIVE_KICK_TIME_MS) {
+		last_time = current_time;
+
 		/* this will keep the GDB connection alive */
 		LOG_USER_N("%s", "");
 
@@ -419,16 +448,20 @@ void keep_alive()
 		 *
 		 * These functions should be invoked at a well defined spot in server.c
 		 */
-
-		last_time = current_time;
 	}
 }
 
 /* reset keep alive timer without sending message */
-void kept_alive()
+void kept_alive(void)
 {
 	current_time = timeval_ms();
+
+	int64_t delta_time = current_time - last_time;
+
 	last_time = current_time;
+
+	if (delta_time > KEEP_ALIVE_TIMEOUT_MS)
+		gdb_timeout_warning(delta_time);
 }
 
 /* if we sleep for extended periods of time, we must invoke keep_alive() intermittantly */
@@ -453,4 +486,29 @@ void busy_sleep(uint64_t ms)
 		 * busy wait
 		 */
 	}
+}
+
+/* Maximum size of socket error message retreived from operation system */
+#define MAX_SOCKET_ERR_MSG_LENGTH 256
+
+/* Provide log message for the last socket error.
+   Uses errno on *nix and WSAGetLastError() on Windows */
+void log_socket_error(const char *socket_desc)
+{
+	int error_code;
+#ifdef _WIN32
+	error_code = WSAGetLastError();
+	char error_message[MAX_SOCKET_ERR_MSG_LENGTH];
+	error_message[0] = '\0';
+	DWORD retval = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error_code, 0,
+		error_message, MAX_SOCKET_ERR_MSG_LENGTH, NULL);
+	error_message[MAX_SOCKET_ERR_MSG_LENGTH - 1] = '\0';
+	const bool have_message = (retval != 0) && (error_message[0] != '\0');
+	LOG_ERROR("Error on socket '%s': WSAGetLastError==%d%s%s.", socket_desc, error_code,
+		(have_message ? ", message: " : ""),
+		(have_message ? error_message : ""));
+#else
+	error_code = errno;
+	LOG_ERROR("Error on socket '%s': errno==%d, message: %s.", socket_desc, error_code, strerror(error_code));
+#endif
 }

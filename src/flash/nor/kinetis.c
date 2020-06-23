@@ -787,9 +787,8 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 
 	if ((val & (MDM_STAT_SYSSEC | MDM_STAT_FREADY)) != MDM_STAT_FREADY) {
 		uint32_t stats[32];
-		int i;
 
-		for (i = 0; i < 32; i++) {
+		for (unsigned int i = 0; i < 32; i++) {
 			stats[i] = MDM_STAT_FREADY;
 			dap_queue_ap_read(dap_ap(dap, MDM_AP), MDM_REG_STAT, &stats[i]);
 		}
@@ -798,7 +797,7 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 			LOG_DEBUG("MDM: dap_run failed when validating secured state");
 			return ERROR_OK;
 		}
-		for (i = 0; i < 32; i++) {
+		for (unsigned int i = 0; i < 32; i++) {
 			if (stats[i] & MDM_STAT_SYSSEC)
 				secured_score++;
 			if (!(stats[i] & MDM_STAT_FREADY))
@@ -860,8 +859,7 @@ static struct kinetis_chip *kinetis_get_chip(struct target *target)
 
 static int kinetis_chip_options(struct kinetis_chip *k_chip, int argc, const char *argv[])
 {
-	int i;
-	for (i = 0; i < argc; i++) {
+	for (int i = 0; i < argc; i++) {
 		if (strcmp(argv[i], "-sim-base") == 0) {
 			if (i + 1 < argc)
 				k_chip->sim_base = strtoul(argv[++i], NULL, 0);
@@ -933,7 +931,6 @@ static void kinetis_free_driver_priv(struct flash_bank *bank)
 
 static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 {
-	unsigned bank_idx;
 	unsigned num_blocks;
 	struct kinetis_flash_bank *k_bank;
 	struct flash_bank *bank;
@@ -968,7 +965,7 @@ static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 			*p = '\0';
 	}
 
-	for (bank_idx = 1; bank_idx < num_blocks; bank_idx++) {
+	for (unsigned int bank_idx = 1; bank_idx < num_blocks; bank_idx++) {
 		k_bank = &(k_chip->banks[bank_idx]);
 		bank = k_bank->bank;
 
@@ -1219,11 +1216,11 @@ static int kinetis_ftfx_clear_error(struct target *target)
 
 static int kinetis_ftfx_prepare(struct target *target)
 {
-	int result, i;
+	int result;
 	uint8_t fstat;
 
 	/* wait until busy */
-	for (i = 0; i < 50; i++) {
+	for (unsigned int i = 0; i < 50; i++) {
 		result = target_read_u8(target, FTFx_FSTAT, &fstat);
 		if (result != ERROR_OK)
 			return result;
@@ -1343,8 +1340,6 @@ static int kinetis_write_block(struct flash_bank *bank, const uint8_t *buffer,
 
 static int kinetis_protect(struct flash_bank *bank, int set, int first, int last)
 {
-	int i;
-
 	if (allow_fcf_writes) {
 		LOG_ERROR("Protection setting is possible with 'kinetis fcf_source protection' only!");
 		return ERROR_FAIL;
@@ -1355,7 +1350,7 @@ static int kinetis_protect(struct flash_bank *bank, int set, int first, int last
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	for (i = first; i < bank->num_prot_blocks && i <= last; i++)
+	for (int i = first; i < bank->num_prot_blocks && i <= last; i++)
 		bank->prot_blocks[i].is_protected = set;
 
 	LOG_INFO("Protection bits will be written at the next FCF sector erase or write.");
@@ -1369,7 +1364,7 @@ static int kinetis_protect_check(struct flash_bank *bank)
 {
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 	int result;
-	int i, b;
+	int b;
 	uint32_t fprot;
 
 	if (k_bank->flash_class == FC_PFLASH) {
@@ -1397,7 +1392,7 @@ static int kinetis_protect_check(struct flash_bank *bank)
 	}
 
 	b = k_bank->protection_block;
-	for (i = 0; i < bank->num_prot_blocks; i++) {
+	for (int i = 0; i < bank->num_prot_blocks; i++) {
 		if ((fprot >> b) & 1)
 			bank->prot_blocks[i].is_protected = 0;
 		else
@@ -1415,8 +1410,6 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 	uint32_t fprot = 0xffffffff;
 	uint8_t fsec = 0xfe;		 /* set MCU unsecure */
 	uint8_t fdprot = 0xff;
-	int i;
-	unsigned bank_idx;
 	unsigned num_blocks;
 	uint32_t pflash_bit;
 	uint8_t dflash_bit;
@@ -1432,7 +1425,7 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 	/* iterate over all kinetis banks */
 	/* current bank is bank 0, it contains FCF */
 	num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
-	for (bank_idx = 0; bank_idx < num_blocks; bank_idx++) {
+	for (unsigned int bank_idx = 0; bank_idx < num_blocks; bank_idx++) {
 		k_bank = &(k_chip->banks[bank_idx]);
 		bank_iter = k_bank->bank;
 
@@ -1443,8 +1436,10 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 
 		kinetis_auto_probe(bank_iter);
 
+		assert(bank_iter->prot_blocks);
+
 		if (k_bank->flash_class == FC_PFLASH) {
-			for (i = 0; i < bank_iter->num_prot_blocks; i++) {
+			for (int i = 0; i < bank_iter->num_prot_blocks; i++) {
 				if (bank_iter->prot_blocks[i].is_protected == 1)
 					fprot &= ~pflash_bit;
 
@@ -1452,7 +1447,7 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 			}
 
 		} else if (k_bank->flash_class == FC_FLEX_NVM) {
-			for (i = 0; i < bank_iter->num_prot_blocks; i++) {
+			for (int i = 0; i < bank_iter->num_prot_blocks; i++) {
 				if (bank_iter->prot_blocks[i].is_protected == 1)
 					fdprot &= ~dflash_bit;
 
@@ -1540,7 +1535,7 @@ static int kinetis_read_pmstat(struct kinetis_chip *k_chip, uint8_t *pmstat)
 
 static int kinetis_check_run_mode(struct kinetis_chip *k_chip)
 {
-	int result, i;
+	int result;
 	uint8_t pmstat;
 	struct target *target;
 
@@ -1578,7 +1573,7 @@ static int kinetis_check_run_mode(struct kinetis_chip *k_chip)
 		if (result != ERROR_OK)
 			return result;
 
-		for (i = 100; i; i--) {
+		for (unsigned int i = 100; i > 0; i--) {
 			result = kinetis_read_pmstat(k_chip, &pmstat);
 			if (result != ERROR_OK)
 				return result;
@@ -1623,7 +1618,7 @@ static void kinetis_invalidate_flash_cache(struct kinetis_chip *k_chip)
 
 static int kinetis_erase(struct flash_bank *bank, int first, int last)
 {
-	int result, i;
+	int result;
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 	struct kinetis_chip *k_chip = k_bank->k_chip;
 
@@ -1644,7 +1639,7 @@ static int kinetis_erase(struct flash_bank *bank, int first, int last)
 	 * requested erase is PFlash or NVM and encompasses the entire
 	 * block.  Should be quicker.
 	 */
-	for (i = first; i <= last; i++) {
+	for (int i = first; i <= last; i++) {
 		/* set command and sector address */
 		result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTERASE, k_bank->prog_base + bank->sectors[i].offset,
 				0, 0, 0, 0,  0, 0, 0, 0,  NULL);
@@ -1798,6 +1793,8 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 		buffer += size;
 		offset += size;
 		count -= size;
+
+		keep_alive();
 	}
 
 	free(buffer_aligned);
@@ -1808,25 +1805,26 @@ static int kinetis_write_sections(struct flash_bank *bank, const uint8_t *buffer
 static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 			 uint32_t offset, uint32_t count)
 {
-	int result, fallback = 0;
+	int result;
+	bool fallback = false;
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 	struct kinetis_chip *k_chip = k_bank->k_chip;
 
 	if (!(k_chip->flash_support & FS_PROGRAM_SECTOR)) {
 		/* fallback to longword write */
-		fallback = 1;
+		fallback = true;
 		LOG_INFO("This device supports Program Longword execution only.");
 	} else {
 		result = kinetis_make_ram_ready(bank->target);
 		if (result != ERROR_OK) {
-			fallback = 1;
+			fallback = true;
 			LOG_WARNING("FlexRAM not ready, fallback to slow longword write.");
 		}
 	}
 
 	LOG_DEBUG("flash write @ " TARGET_ADDR_FMT, bank->base + offset);
 
-	if (fallback == 0) {
+	if (!fallback) {
 		/* program section command */
 		kinetis_write_sections(bank, buffer, offset, count);
 	} else if (k_chip->flash_support & FS_PROGRAM_LONGWORD) {
@@ -1889,6 +1887,8 @@ static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 				buffer += 4;
 				offset += 4;
 				words_remaining--;
+
+				keep_alive();
 			}
 		}
 		free(new_buffer);
@@ -2018,7 +2018,6 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 
 	unsigned familyid = 0, subfamid = 0;
 	unsigned cpu_mhz = 120;
-	unsigned idx;
 	bool use_nvm_marking = false;
 	char flash_marking[12], nvm_marking[2];
 	char name[40];
@@ -2113,7 +2112,7 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 			LOG_ERROR("Unsupported K-family FAMID");
 		}
 
-		for (idx = 0; idx < ARRAY_SIZE(kinetis_types_old); idx++) {
+		for (size_t idx = 0; idx < ARRAY_SIZE(kinetis_types_old); idx++) {
 			if (kinetis_types_old[idx].sdid == mcu_type) {
 				strcpy(name, kinetis_types_old[idx].name);
 				use_nvm_marking = true;
@@ -2619,12 +2618,15 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 
 static int kinetis_probe(struct flash_bank *bank)
 {
-	int result, i;
+	int result;
 	uint8_t fcfg2_maxaddr0, fcfg2_pflsh, fcfg2_maxaddr1;
 	unsigned num_blocks, first_nvm_bank;
 	uint32_t size_k;
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
-	struct kinetis_chip *k_chip = k_bank->k_chip;
+	struct kinetis_chip *k_chip;
+
+	assert(k_bank);
+	k_chip = k_bank->k_chip;
 
 	k_bank->probed = false;
 
@@ -2668,6 +2670,7 @@ static int kinetis_probe(struct flash_bank *bank)
 		if (k_chip->dflash_size == 0) {
 			k_bank->protection_size = 0;
 		} else {
+			int i;
 			for (i = k_chip->dflash_size; ~i & 1; i >>= 1)
 				;
 			if (i == 1)
@@ -2824,8 +2827,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 
 		if (block_dirty) {
 			/* the whole bank is not erased, check sector-by-sector */
-			int i;
-			for (i = 0; i < bank->num_sectors; i++) {
+			for (int i = 0; i < bank->num_sectors; i++) {
 				/* normal margin */
 				result = kinetis_ftfx_command(bank->target, FTFx_CMD_SECTSTAT,
 						k_bank->prog_base + bank->sectors[i].offset,
@@ -2841,8 +2843,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 			}
 		} else {
 			/* the whole bank is erased, update all sectors */
-			int i;
-			for (i = 0; i < bank->num_sectors; i++)
+			for (int i = 0; i < bank->num_sectors; i++)
 				bank->sectors[i].is_erased = 1;
 		}
 	} else {

@@ -94,6 +94,7 @@ extern struct target_type cortexr4_target;
 extern struct target_type arm11_target;
 extern struct target_type ls1_sap_target;
 extern struct target_type mips_m4k_target;
+extern struct target_type mips_mips64_target;
 extern struct target_type avr_target;
 extern struct target_type dsp563xx_target;
 extern struct target_type dsp5680xx_target;
@@ -110,6 +111,7 @@ extern struct target_type stm8_target;
 extern struct target_type riscv_target;
 extern struct target_type mem_ap_target;
 extern struct target_type esirisc_target;
+extern struct target_type arcv2_target;
 
 static struct target_type *target_types[] = {
 	&arm7tdmi_target,
@@ -145,9 +147,9 @@ static struct target_type *target_types[] = {
 	&riscv_target,
 	&mem_ap_target,
 	&esirisc_target,
-#if BUILD_TARGET64
+	&arcv2_target,
 	&aarch64_target,
-#endif
+	&mips_mips64_target,
 	NULL,
 };
 
@@ -201,6 +203,8 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESUMED, .name = "resumed" },
 	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
 	{ .value = TARGET_EVENT_RESUME_END, .name = "resume-end" },
+	{ .value = TARGET_EVENT_STEP_START, .name = "step-start" },
+	{ .value = TARGET_EVENT_STEP_END, .name = "step-end" },
 
 	{ .name = "gdb-start", .value = TARGET_EVENT_GDB_START },
 	{ .name = "gdb-end", .value = TARGET_EVENT_GDB_END },
@@ -215,6 +219,7 @@ static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESET_END,           .name = "reset-end" },
 
 	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-start" },
+	{ .value = TARGET_EVENT_EXAMINE_FAIL, .name = "examine-fail" },
 	{ .value = TARGET_EVENT_EXAMINE_END, .name = "examine-end" },
 
 	{ .value = TARGET_EVENT_DEBUG_HALTED, .name = "debug-halted" },
@@ -704,13 +709,17 @@ static int default_check_reset(struct target *target)
 	return ERROR_OK;
 }
 
+/* Equvivalent Tcl code arp_examine_one is in src/target/startup.tcl
+ * Keep in sync */
 int target_examine_one(struct target *target)
 {
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
 
 	int retval = target->type->examine(target);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_FAIL);
 		return retval;
+	}
 
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 
@@ -1247,7 +1256,17 @@ bool target_supports_gdb_connection(struct target *target)
 int target_step(struct target *target,
 		int current, target_addr_t address, int handle_breakpoints)
 {
-	return target->type->step(target, current, address, handle_breakpoints);
+	int retval;
+
+	target_call_event_callbacks(target, TARGET_EVENT_STEP_START);
+
+	retval = target->type->step(target, current, address, handle_breakpoints);
+	if (retval != ERROR_OK)
+		return retval;
+
+	target_call_event_callbacks(target, TARGET_EVENT_STEP_END);
+
+	return retval;
 }
 
 int target_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fileio_info)
@@ -1687,7 +1706,7 @@ static int target_call_timer_callbacks_check_time(int checktime)
 	 * next item; initially, that's a standalone "root of the
 	 * list" variable. */
 	struct target_timer_callback **callback = &target_timer_callbacks;
-	while (*callback) {
+	while (callback && *callback) {
 		if ((*callback)->removed) {
 			struct target_timer_callback *p = *callback;
 			*callback = (*callback)->next;
@@ -2047,6 +2066,8 @@ static void target_destroy(struct target *target)
 		target->smp = 0;
 	}
 
+	rtos_destroy(target);
+
 	free(target->gdb_port_override);
 	free(target->type);
 	free(target->trace_info);
@@ -2290,7 +2311,7 @@ static int target_read_buffer_default(struct target *target, target_addr_t addre
 	return ERROR_OK;
 }
 
-int target_checksum_memory(struct target *target, target_addr_t address, uint32_t size, uint32_t* crc)
+int target_checksum_memory(struct target *target, target_addr_t address, uint32_t size, uint32_t *crc)
 {
 	uint8_t *buffer;
 	int retval;
@@ -3158,7 +3179,7 @@ COMMAND_HANDLER(handle_step_command)
 
 	struct target *target = get_current_target(CMD_CTX);
 
-	return target->type->step(target, current_pc, addr, 1);
+	return target_step(target, current_pc, addr, 1);
 }
 
 void target_handle_md_output(struct command_invocation *cmd,
@@ -3360,8 +3381,8 @@ COMMAND_HANDLER(handle_mw_command)
 	target_addr_t address;
 	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
 
-	target_addr_t value;
-	COMMAND_PARSE_ADDRESS(CMD_ARGV[1], value);
+	uint64_t value;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1], value);
 
 	unsigned count = 1;
 	if (CMD_ARGC == 3)
@@ -3660,14 +3681,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 
 				data = malloc(buf_cnt);
 
-				/* Can we use 32bit word accesses? */
-				int size = 1;
-				int count = buf_cnt;
-				if ((count % 4) == 0) {
-					size *= 4;
-					count /= 4;
-				}
-				retval = target_read_memory(target, image.sections[i].base_address, size, count, data);
+				retval = target_read_buffer(target, image.sections[i].base_address, buf_cnt, data);
 				if (retval == ERROR_OK) {
 					uint32_t t;
 					for (t = 0; t < buf_cnt; t++) {
@@ -3849,11 +3863,16 @@ COMMAND_HANDLER(handle_rbp_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	target_addr_t addr;
-	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
-
 	struct target *target = get_current_target(CMD_CTX);
-	breakpoint_remove(target, addr);
+
+	if (!strcmp(CMD_ARGV[0], "all")) {
+		breakpoint_remove_all(target);
+	} else {
+		target_addr_t addr;
+		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
+
+		breakpoint_remove(target, addr);
+	}
 
 	return ERROR_OK;
 }
@@ -5017,7 +5036,7 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	if (goi.argc > 0 &&
 	    strcmp(Jim_GetString(argv[1], NULL), "allow-defer") == 0) {
 		/* consume it */
-		struct Jim_Obj *obj;
+		Jim_Obj *obj;
 		int e = Jim_GetOpt_Obj(&goi, &obj);
 		if (e != JIM_OK)
 			return e;
@@ -5187,7 +5206,6 @@ static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *a
 				"target: %s wait %s fails (%#s) %s",
 				target_name(target), n->name,
 				eObj, target_strerror_safe(e));
-		Jim_FreeNewObj(interp, eObj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -6241,7 +6259,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "halt",
 		.handler = handle_halt_command,
 		.mode = COMMAND_EXEC,
-		.help = "request target to halt, then wait up to the specified"
+		.help = "request target to halt, then wait up to the specified "
 			"number of milliseconds (default 5000) for it to complete",
 		.usage = "[milliseconds]",
 	},
@@ -6257,7 +6275,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_reset_command,
 		.mode = COMMAND_EXEC,
 		.usage = "[run|halt|init]",
-		.help = "Reset all targets into the specified mode."
+		.help = "Reset all targets into the specified mode. "
 			"Default reset mode is run, if not given.",
 	},
 	{
@@ -6342,7 +6360,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_rbp_command,
 		.mode = COMMAND_EXEC,
 		.help = "remove breakpoint",
-		.usage = "address",
+		.usage = "'all' | address",
 	},
 	{
 		.name = "wp",

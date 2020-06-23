@@ -23,7 +23,7 @@
 #include <helper/binarybuffer.h>
 #include <helper/command.h>
 #include <jtag/interface.h>
-#include "libusb_common.h"
+#include "libusb_helper.h"
 
 struct sequence {
 	int len;
@@ -132,7 +132,7 @@ static const uint16_t osbdm_vid[] = { 0x15a2, 0x15a2, 0x15a2, 0 };
 static const uint16_t osbdm_pid[] = { 0x0042, 0x0058, 0x005e, 0 };
 
 struct osbdm {
-	struct jtag_libusb_device_handle *devh; /* USB handle */
+	struct libusb_device_handle *devh; /* USB handle */
 	uint8_t buffer[OSBDM_USB_BUFSIZE]; /* Data to send and receive */
 	int count; /* Count data to send and to read */
 };
@@ -144,10 +144,12 @@ static struct osbdm osbdm_context;
 static int osbdm_send_and_recv(struct osbdm *osbdm)
 {
 	/* Send request */
-	int count = jtag_libusb_bulk_write(osbdm->devh, OSBDM_USB_EP_WRITE,
-		(char *)osbdm->buffer, osbdm->count, OSBDM_USB_TIMEOUT);
+	int count, ret;
 
-	if (count != osbdm->count) {
+	ret = jtag_libusb_bulk_write(osbdm->devh, OSBDM_USB_EP_WRITE,
+				     (char *)osbdm->buffer, osbdm->count,
+				     OSBDM_USB_TIMEOUT, &count);
+	if (ret || count != osbdm->count) {
 		LOG_ERROR("OSBDM communication error: can't write");
 		return ERROR_FAIL;
 	}
@@ -156,13 +158,12 @@ static int osbdm_send_and_recv(struct osbdm *osbdm)
 	uint8_t cmd_saved = osbdm->buffer[0];
 
 	/* Reading answer */
-	osbdm->count = jtag_libusb_bulk_read(osbdm->devh, OSBDM_USB_EP_READ,
-		(char *)osbdm->buffer, OSBDM_USB_BUFSIZE, OSBDM_USB_TIMEOUT);
-
+	ret = jtag_libusb_bulk_read(osbdm->devh, OSBDM_USB_EP_READ,
+				    (char *)osbdm->buffer, OSBDM_USB_BUFSIZE,
+				    OSBDM_USB_TIMEOUT, &osbdm->count);
 	/* Now perform basic checks for data sent by BDM device
 	 */
-
-	if (osbdm->count < 0) {
+	if (ret) {
 		LOG_ERROR("OSBDM communication error: can't read");
 		return ERROR_FAIL;
 	}
@@ -296,7 +297,7 @@ static int osbdm_swap(struct osbdm *osbdm, void *tms, void *tdi,
 	return ERROR_OK;
 }
 
-static int osbdm_flush(struct osbdm *osbdm, struct queue* queue)
+static int osbdm_flush(struct osbdm *osbdm, struct queue *queue)
 {
 	uint8_t tms[DIV_ROUND_UP(OSBDM_SWAP_MAX, 8)];
 	uint8_t tdi[DIV_ROUND_UP(OSBDM_SWAP_MAX, 8)];
@@ -373,10 +374,10 @@ static int osbdm_flush(struct osbdm *osbdm, struct queue* queue)
 static int osbdm_open(struct osbdm *osbdm)
 {
 	(void)memset(osbdm, 0, sizeof(*osbdm));
-	if (jtag_libusb_open(osbdm_vid, osbdm_pid, NULL, &osbdm->devh) != ERROR_OK)
+	if (jtag_libusb_open(osbdm_vid, osbdm_pid, NULL, &osbdm->devh, NULL) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (jtag_libusb_claim_interface(osbdm->devh, 0) != ERROR_OK)
+	if (libusb_claim_interface(osbdm->devh, 0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	return ERROR_OK;
@@ -688,12 +689,16 @@ static int osbdm_init(void)
 	return ERROR_OK;
 }
 
-struct jtag_interface osbdm_interface = {
-	.name = "osbdm",
-
-	.transports = jtag_only,
+static struct jtag_interface osbdm_interface = {
 	.execute_queue = osbdm_execute_queue,
+};
+
+struct adapter_driver osbdm_adapter_driver = {
+	.name = "osbdm",
+	.transports = jtag_only,
 
 	.init = osbdm_init,
-	.quit = osbdm_quit
+	.quit = osbdm_quit,
+
+	.jtag_ops = &osbdm_interface,
 };

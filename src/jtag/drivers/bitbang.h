@@ -51,13 +51,12 @@ struct bitbang_interface {
 
 	/** Set TCK, TMS, and TDI to the given values. */
 	int (*write)(int tck, int tms, int tdi);
-	int (*reset)(int trst, int srst);
 	int (*blink)(int on);
 	int (*swdio_read)(void);
 	void (*swdio_drive)(bool on);
 };
 
-const struct swd_driver bitbang_swd;
+extern const struct swd_driver bitbang_swd;
 
 extern bool swd_mode;
 

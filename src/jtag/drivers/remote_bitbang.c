@@ -199,7 +199,6 @@ static struct bitbang_interface remote_bitbang_bitbang = {
 	.sample = &remote_bitbang_sample,
 	.read_sample = &remote_bitbang_read_sample,
 	.write = &remote_bitbang_write,
-	.reset = &remote_bitbang_reset,
 	.blink = &remote_bitbang_blink,
 };
 
@@ -342,11 +341,18 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE,
 };
 
-struct jtag_interface remote_bitbang_interface = {
-	.name = "remote_bitbang",
+static struct jtag_interface remote_bitbang_interface = {
 	.execute_queue = &bitbang_execute_queue,
+};
+
+struct adapter_driver remote_bitbang_adapter_driver = {
+	.name = "remote_bitbang",
 	.transports = jtag_only,
 	.commands = remote_bitbang_command_handlers,
+
 	.init = &remote_bitbang_init,
 	.quit = &remote_bitbang_quit,
+	.reset = &remote_bitbang_reset,
+
+	.jtag_ops = &remote_bitbang_interface,
 };

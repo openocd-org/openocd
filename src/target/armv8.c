@@ -1131,8 +1131,9 @@ int armv8_aarch64_state(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
+	LOG_USER("%s halted in %s state due to %s, current mode: %s\n"
 		"cpsr: 0x%8.8" PRIx32 " pc: 0x%" PRIx64 "%s",
+		target_name(target),
 		armv8_state_strings[arm->core_state],
 		debug_reason_name(target),
 		armv8_mode_name(arm->core_mode),
@@ -1753,7 +1754,8 @@ const struct command_registration armv8_command_handlers[] = {
 
 const char *armv8_get_gdb_arch(struct target *target)
 {
-	return "aarch64";
+	struct arm *arm = target_to_arm(target);
+	return arm->core_state == ARM_STATE_AARCH64 ? "aarch64" : "arm";
 }
 
 int armv8_get_gdb_reg_list(struct target *target,

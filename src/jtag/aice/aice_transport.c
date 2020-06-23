@@ -47,6 +47,7 @@ static int jim_newtap_expected_id(Jim_Nvp *n, Jim_GetOptInfo *goi,
 		return JIM_ERR;
 	}
 
+	assert(pTap->expected_ids);
 	memcpy(new_expected_ids, pTap->expected_ids, expected_len);
 
 	new_expected_ids[pTap->expected_ids_cnt] = w;
@@ -173,7 +174,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 	while (tap) {
 		uint32_t expected, expected_mask, ii;
 
-		snprintf(expected_id, sizeof expected_id, "0x%08x",
+		snprintf(expected_id, sizeof(expected_id), "0x%08x",
 			(unsigned)((tap->expected_ids_cnt > 0)
 				   ? tap->expected_ids[0]
 				   : 0));
@@ -195,7 +196,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 			(unsigned int)(expected_mask));
 
 		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
-			snprintf(expected_id, sizeof expected_id, "0x%08x",
+			snprintf(expected_id, sizeof(expected_id), "0x%08x",
 				(unsigned) tap->expected_ids[ii]);
 			if (tap->ignore_version)
 				expected_id[2] = '*';
@@ -442,4 +443,3 @@ static void aice_constructor(void)
 {
 	transport_register(&aice_jtag_transport);
 }
-

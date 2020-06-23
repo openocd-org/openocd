@@ -26,6 +26,7 @@
 #define OPENOCD_JTAG_INTERFACE_H
 
 #include <jtag/jtag.h>
+#include <jtag/swim.h>
 #include <target/armv7m_trace.h>
 
 /* @file
@@ -192,32 +193,34 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
  * debugging interface.
  */
 struct jtag_interface {
-	/** The name of the JTAG interface driver. */
-	const char * const name;
-
 	/**
 	 * Bit vector listing capabilities exposed by this driver.
 	 */
 	unsigned supported;
 #define DEBUG_CAP_TMS_SEQ	(1 << 0)
 
-	/** transports supported in C code (NULL terminated vector) */
-	const char * const *transports;
-
-	const struct swd_driver *swd;
-
 	/**
 	 * Execute queued commands.
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*execute_queue)(void);
+};
 
-	/**
-	 * Set the interface speed.
-	 * @param speed The new interface speed setting.
-	 * @returns ERROR_OK on success, or an error code on failure.
-	 */
-	int (*speed)(int speed);
+/**
+ * Represents a driver for a debugging interface
+ *
+ * @todo We need a per-instance structure too, and changes to pass
+ * that structure to the driver.  Instances can for example be in
+ * either SWD or JTAG modes.  This will help remove globals, and
+ * eventually to cope with systems which have more than one such
+ * debugging interface.
+ */
+struct adapter_driver {
+	/** The name of the interface driver. */
+	const char * const name;
+
+	/** transports supported in C code (NULL terminated vector) */
+	const char * const *transports;
 
 	/**
 	 * The interface driver may register additional commands to expose
@@ -245,6 +248,29 @@ struct jtag_interface {
 	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*quit)(void);
+
+	/**
+	 * Control (assert/deassert) the signals SRST and TRST on the interface.
+	 * This function is synchronous and should be called after the adapter
+	 * queue has been properly flushed.
+	 * This function is optional.
+	 * Adapters that don't support resets can either not define this function
+	 * or return an error code.
+	 * Adapters that don't support one of the two reset should ignore the
+	 * request to assert the missing signal and eventually log an error.
+	 *
+	 * @param srst 1 to assert SRST, 0 to deassert SRST.
+	 * @param trst 1 to assert TRST, 0 to deassert TRST.
+	 * @returns ERROR_OK on success, or an error code on failure.
+	 */
+	int (*reset)(int srst, int trst);
+
+	/**
+	 * Set the interface speed.
+	 * @param speed The new interface speed setting.
+	 * @returns ERROR_OK on success, or an error code on failure.
+	 */
+	int (*speed)(int speed);
 
 	/**
 	 * Returns JTAG maxium speed for KHz. 0 = RTCK. The function returns
@@ -303,10 +329,14 @@ struct jtag_interface {
 	 * @param trace_freq A pointer to the configured trace
 	 * frequency; if it points to 0, the adapter driver must write
 	 * its maximum supported rate there
+	 * @param traceclkin_freq TRACECLKIN frequency provided to the TPIU in Hz
+	 * @param prescaler Pointer to the SWO prescaler calculated by the
+	 * adapter
 	 * @returns ERROR_OK on success, an error code on failure.
 	 */
 	int (*config_trace)(bool enabled, enum tpiu_pin_protocol pin_protocol,
-			    uint32_t port_size, unsigned int *trace_freq);
+		uint32_t port_size, unsigned int *trace_freq,
+		unsigned int traceclkin_freq, uint16_t *prescaler);
 
 	/**
 	 * Poll for new trace data
@@ -318,14 +348,31 @@ struct jtag_interface {
 	 * @returns ERROR_OK on success, an error code on failure.
 	 */
 	int (*poll_trace)(uint8_t *buf, size_t *size);
+
+	/** Low-level JTAG APIs */
+	struct jtag_interface *jtag_ops;
+
+	/** Low-level SWD APIs */
+	const struct swd_driver *swd_ops;
+
+	/* DAP APIs over JTAG transport */
+	const struct dap_ops *dap_jtag_ops;
+
+	/* DAP APIs over SWD transport */
+	const struct dap_ops *dap_swd_ops;
+
+	/* SWIM APIs */
+	const struct swim_driver *swim_ops;
 };
 
 extern const char * const jtag_only[];
 
-void adapter_assert_reset(void);
-void adapter_deassert_reset(void);
+int adapter_resets(int assert_trst, int assert_srst);
+int adapter_assert_reset(void);
+int adapter_deassert_reset(void);
 int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
-			 uint32_t port_size, unsigned int *trace_freq);
+		uint32_t port_size, unsigned int *trace_freq,
+		unsigned int traceclkin_freq, uint16_t *prescaler);
 int adapter_poll_trace(uint8_t *buf, size_t *size);
 
 #endif /* OPENOCD_JTAG_INTERFACE_H */

@@ -129,7 +129,7 @@ static const struct xscale_reg xscale_reg_arch_info[] = {
 /* convenience wrapper to access XScale specific registers */
 static int xscale_set_reg_u32(struct reg *reg, uint32_t value)
 {
-	uint8_t buf[4];
+	uint8_t buf[4] = { 0 };
 
 	buf_set_u32(buf, 0, 32, value);
 
@@ -154,9 +154,9 @@ static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_s
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr) {
 		struct scan_field field;
-		uint8_t scratch[4];
+		uint8_t scratch[4] = { 0 };
 
-		memset(&field, 0, sizeof field);
+		memset(&field, 0, sizeof(field));
 		field.num_bits = tap->ir_length;
 		field.out_value = scratch;
 		buf_set_u32(scratch, 0, field.num_bits, new_instr);
@@ -186,7 +186,7 @@ static int xscale_read_dcsr(struct target *target)
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
-	memset(&fields, 0, sizeof fields);
+	memset(&fields, 0, sizeof(fields));
 
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
@@ -259,7 +259,7 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 	path[1] = TAP_DRCAPTURE;
 	path[2] = TAP_DRSHIFT;
 
-	memset(&fields, 0, sizeof fields);
+	memset(&fields, 0, sizeof(fields));
 
 	fields[0].num_bits = 3;
 	uint8_t tmp;
@@ -367,7 +367,7 @@ static int xscale_read_tx(struct target *target, int consume)
 	noconsume_path[4] = TAP_DREXIT2;
 	noconsume_path[5] = TAP_DRSHIFT;
 
-	memset(&fields, 0, sizeof fields);
+	memset(&fields, 0, sizeof(fields));
 
 	fields[0].num_bits = 3;
 	fields[0].in_value = &field0_in;
@@ -442,7 +442,7 @@ static int xscale_write_rx(struct target *target)
 		XSCALE_DBGRX << xscale->xscale_variant,
 		TAP_IDLE);
 
-	memset(&fields, 0, sizeof fields);
+	memset(&fields, 0, sizeof(fields));
 
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
@@ -514,7 +514,7 @@ static int xscale_send(struct target *target, const uint8_t *buffer, int count, 
 		TAP_IDLE);
 
 	static const uint8_t t0;
-	uint8_t t1[4];
+	uint8_t t1[4] = { 0 };
 	static const uint8_t t2 = 1;
 	struct scan_field fields[3] = {
 			{ .num_bits = 3, .out_value = &t0 },
@@ -598,7 +598,7 @@ static int xscale_write_dcsr(struct target *target, int hold_rst, int ext_dbg_br
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
-	memset(&fields, 0, sizeof fields);
+	memset(&fields, 0, sizeof(fields));
 
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
@@ -645,8 +645,8 @@ static unsigned int parity(unsigned int v)
 static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8])
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	uint8_t packet[4];
-	uint8_t cmd;
+	uint8_t packet[4] = { 0 };
+	uint8_t cmd = 0;
 	int word;
 	struct scan_field fields[2];
 
@@ -666,7 +666,7 @@ static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8]
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
-	memset(&fields, 0, sizeof fields);
+	memset(&fields, 0, sizeof(fields));
 
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
@@ -699,8 +699,8 @@ static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8]
 static int xscale_invalidate_ic_line(struct target *target, uint32_t va)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	uint8_t packet[4];
-	uint8_t cmd;
+	uint8_t packet[4] = { 0 };
+	uint8_t cmd = 0;
 	struct scan_field fields[2];
 
 	xscale_jtag_set_instr(target->tap,
@@ -713,7 +713,7 @@ static int xscale_invalidate_ic_line(struct target *target, uint32_t va)
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
-	memset(&fields, 0, sizeof fields);
+	memset(&fields, 0, sizeof(fields));
 
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
@@ -1551,7 +1551,7 @@ static int xscale_deassert_reset(struct target *target)
 		 * coprocessors, trace data, etc.
 		 */
 		address = xscale->handler_address;
-		for (unsigned binary_size = sizeof xscale_debug_handler;
+		for (unsigned binary_size = sizeof(xscale_debug_handler);
 			binary_size > 0;
 			binary_size -= buf_cnt, buffer += buf_cnt) {
 			uint32_t cache_line[8];
@@ -2981,7 +2981,7 @@ static int xscale_init_arch_info(struct target *target,
 
 	/* prepare ARMv4/5 specific information */
 	arm->arch_info = xscale;
-	arm->core_type = ARM_MODE_ANY;
+	arm->core_type = ARM_CORE_TYPE_STD;
 	arm->read_core_reg = xscale_read_core_reg;
 	arm->write_core_reg = xscale_write_core_reg;
 	arm->full_context = xscale_full_context;
@@ -3004,7 +3004,7 @@ static int xscale_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct xscale_common *xscale;
 
-	if (sizeof xscale_debug_handler > 0x800) {
+	if (sizeof(xscale_debug_handler) > 0x800) {
 		LOG_ERROR("debug_handler.bin: larger than 2kb");
 		return ERROR_FAIL;
 	}
@@ -3227,7 +3227,6 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	dcsr_value = buf_get_u32(dcsr_reg->value, 0, 32);
 	if (CMD_ARGC > 0) {
 		if (CMD_ARGC == 1) {
 			if (strcmp(CMD_ARGV[0], "all") == 0) {

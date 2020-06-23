@@ -19,7 +19,7 @@
 #include "config.h"
 #endif
 
-#include <jtag/drivers/libusb_common.h>
+#include <jtag/drivers/libusb_helper.h>
 #include <helper/log.h>
 #include <helper/time_support.h>
 #include <target/target.h>
@@ -349,41 +349,53 @@ static void aice_unpack_dthmb(uint8_t *cmd_ack_code, uint8_t *target_id,
 /* calls the given usb_bulk_* function, allowing for the data to
  * trickle in with some timeouts  */
 static int usb_bulk_with_retries(
-			int (*f)(jtag_libusb_device_handle *, int, char *, int, int),
-			jtag_libusb_device_handle *dev, int ep,
-			char *bytes, int size, int timeout)
+			int (*f)(libusb_device_handle *, int, char *, int, int, int *),
+			libusb_device_handle *dev, int ep,
+			char *bytes, int size, int timeout, int *transferred)
 {
 	int tries = 3, count = 0;
 
 	while (tries && (count < size)) {
-		int result = f(dev, ep, bytes + count, size - count, timeout);
-		if (result > 0)
+		int result, ret;
+
+		ret = f(dev, ep, bytes + count, size - count, timeout, &result);
+		if (ERROR_OK == ret)
 			count += result;
-		else if ((-ETIMEDOUT != result) || !--tries)
-			return result;
+		else if ((ERROR_TIMEOUT_REACHED != ret) || !--tries)
+			return ret;
 	}
-	return count;
+
+	*transferred = count;
+	return ERROR_OK;
 }
 
-static int wrap_usb_bulk_write(jtag_libusb_device_handle *dev, int ep,
-		char *buff, int size, int timeout)
+static int wrap_usb_bulk_write(libusb_device_handle *dev, int ep,
+		char *buff, int size, int timeout, int *transferred)
 {
+
 	/* usb_bulk_write() takes const char *buff */
-	return jtag_libusb_bulk_write(dev, ep, buff, size, timeout);
+	jtag_libusb_bulk_write(dev, ep, buff, size, timeout, transferred);
+
+	return 0;
 }
 
-static inline int usb_bulk_write_ex(jtag_libusb_device_handle *dev, int ep,
+static inline int usb_bulk_write_ex(libusb_device_handle *dev, int ep,
 		char *bytes, int size, int timeout)
 {
-	return usb_bulk_with_retries(&wrap_usb_bulk_write,
-			dev, ep, bytes, size, timeout);
+	int tr = 0;
+
+	usb_bulk_with_retries(&wrap_usb_bulk_write,
+			dev, ep, bytes, size, timeout, &tr);
+	return tr;
 }
 
-static inline int usb_bulk_read_ex(jtag_libusb_device_handle *dev, int ep,
+static inline int usb_bulk_read_ex(struct libusb_device_handle *dev, int ep,
 		char *bytes, int size, int timeout)
 {
-	return usb_bulk_with_retries(&jtag_libusb_bulk_read,
-			dev, ep, bytes, size, timeout);
+	int tr = 0;
+	usb_bulk_with_retries(&jtag_libusb_bulk_read,
+			dev, ep, bytes, size, timeout, &tr);
+	return tr;
 }
 
 /* Write data from out_buffer to USB. */
@@ -472,7 +484,9 @@ static int aice_usb_packet_flush(void)
 
 		i = 0;
 		while (1) {
-			aice_read_ctrl(AICE_READ_CTRL_BATCH_STATUS, &batch_status);
+			int retval = aice_read_ctrl(AICE_READ_CTRL_BATCH_STATUS, &batch_status);
+			if (retval != ERROR_OK)
+				return retval;
 
 			if (batch_status & 0x1)
 				return ERROR_OK;
@@ -1785,8 +1799,8 @@ static int aice_write_reg(uint32_t coreid, uint32_t num, uint32_t val);
 
 static int check_suppressed_exception(uint32_t coreid, uint32_t dbger_value)
 {
-	uint32_t ir4_value;
-	uint32_t ir6_value;
+	uint32_t ir4_value = 0;
+	uint32_t ir6_value = 0;
 	/* the default value of handling_suppressed_exception is false */
 	static bool handling_suppressed_exception;
 
@@ -1840,7 +1854,7 @@ static int check_privilege(uint32_t coreid, uint32_t dbger_value)
 static int aice_check_dbger(uint32_t coreid, uint32_t expect_status)
 {
 	uint32_t i = 0;
-	uint32_t value_dbger;
+	uint32_t value_dbger = 0;
 
 	while (1) {
 		aice_read_misc(coreid, NDS_EDM_MISC_DBGER, &value_dbger);
@@ -1961,7 +1975,7 @@ static int aice_read_reg(uint32_t coreid, uint32_t num, uint32_t *val)
 
 	aice_execute_dim(coreid, instructions, 4);
 
-	uint32_t value_edmsw;
+	uint32_t value_edmsw = 0;
 	aice_read_edmsr(coreid, NDS_EDM_SR_EDMSW, &value_edmsw);
 	if (value_edmsw & NDS_EDMSW_WDV)
 		aice_read_dtr(coreid, val);
@@ -2006,7 +2020,7 @@ static int aice_write_reg(uint32_t coreid, uint32_t num, uint32_t val)
 	LOG_DEBUG("aice_write_reg, reg_no: 0x%08" PRIx32 ", value: 0x%08" PRIx32, num, val);
 
 	uint32_t instructions[4]; /** execute instructions in DIM */
-	uint32_t value_edmsw;
+	uint32_t value_edmsw = 0;
 
 	aice_write_dtr(coreid, val);
 	aice_read_edmsr(coreid, NDS_EDM_SR_EDMSW, &value_edmsw);
@@ -2095,9 +2109,9 @@ static int aice_usb_open(struct aice_port_param_s *param)
 {
 	const uint16_t vids[] = { param->vid, 0 };
 	const uint16_t pids[] = { param->pid, 0 };
-	struct jtag_libusb_device_handle *devh;
+	struct libusb_device_handle *devh;
 
-	if (jtag_libusb_open(vids, pids, NULL, &devh) != ERROR_OK)
+	if (jtag_libusb_open(vids, pids, NULL, &devh, NULL) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS
@@ -2113,7 +2127,7 @@ static int aice_usb_open(struct aice_port_param_s *param)
 
 #if IS_WIN32 == 0
 
-	jtag_libusb_reset_device(devh);
+	libusb_reset_device(devh);
 
 #if IS_DARWIN == 0
 
@@ -2121,7 +2135,7 @@ static int aice_usb_open(struct aice_port_param_s *param)
 	/* reopen jlink after usb_reset
 	 * on win32 this may take a second or two to re-enumerate */
 	int retval;
-	while ((retval = jtag_libusb_open(vids, pids, NULL, &devh)) != ERROR_OK) {
+	while ((retval = jtag_libusb_open(vids, pids, NULL, &devh, NULL)) != ERROR_OK) {
 		usleep(1000);
 		timeout--;
 		if (!timeout)
@@ -2134,8 +2148,8 @@ static int aice_usb_open(struct aice_port_param_s *param)
 #endif
 
 	/* usb_set_configuration required under win32 */
-	jtag_libusb_set_configuration(devh, 0);
-	jtag_libusb_claim_interface(devh, 0);
+	libusb_set_configuration(devh, 0);
+	libusb_claim_interface(devh, 0);
 
 	unsigned int aice_read_ep;
 	unsigned int aice_write_ep;
@@ -2435,7 +2449,7 @@ static int aice_backup_tmp_registers(uint32_t coreid)
 	LOG_DEBUG("backup_tmp_registers -");
 
 	/* backup target DTR first(if the target DTR is valid) */
-	uint32_t value_edmsw;
+	uint32_t value_edmsw = 0;
 	aice_read_edmsr(coreid, NDS_EDM_SR_EDMSW, &value_edmsw);
 	core_info[coreid].edmsw_backup = value_edmsw;
 	if (value_edmsw & 0x1) { /* EDMSW.WDV == 1 */
@@ -2602,13 +2616,13 @@ static int aice_usb_halt(uint32_t coreid)
 	aice_init_edm_registers(coreid, false);
 
 	/** Clear EDM_CTL.DBGIM & EDM_CTL.DBGACKM */
-	uint32_t edm_ctl_value;
+	uint32_t edm_ctl_value = 0;
 	aice_read_edmsr(coreid, NDS_EDM_SR_EDM_CTL, &edm_ctl_value);
 	if (edm_ctl_value & 0x3)
 		aice_write_edmsr(coreid, NDS_EDM_SR_EDM_CTL, edm_ctl_value & ~(0x3));
 
-	uint32_t dbger;
-	uint32_t acc_ctl_value;
+	uint32_t dbger = 0;
+	uint32_t acc_ctl_value = 0;
 
 	core_info[coreid].debug_under_dex_on = false;
 	aice_read_misc(coreid, NDS_EDM_MISC_DBGER, &dbger);
@@ -2649,7 +2663,7 @@ static int aice_usb_halt(uint32_t coreid)
 			 * it is only for debugging 'debug exception handler' purpose.
 			 * after openocd detaches from target, target behavior is
 			 * undefined. */
-			uint32_t ir0_value;
+			uint32_t ir0_value = 0;
 			uint32_t debug_mode_ir0_value;
 			aice_read_reg(coreid, IR0, &ir0_value);
 			debug_mode_ir0_value = ir0_value | 0x408; /* turn on DEX, set POM = 1 */
@@ -4017,7 +4031,7 @@ static int aice_usb_profiling(uint32_t coreid, uint32_t interval, uint32_t itera
 
 		/* check status */
 		uint32_t i;
-		uint32_t batch_status;
+		uint32_t batch_status = 0;
 
 		i = 0;
 		while (1) {

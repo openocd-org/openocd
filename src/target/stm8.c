@@ -1,20 +1,20 @@
 /*
-    OpenOCD STM8 target driver
-    Copyright (C) 2017  Ake Rehnman
-    ake.rehnman(at)gmail.com
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*   OpenOCD STM8 target driver
+*   Copyright (C) 2017  Ake Rehnman
+*   ake.rehnman(at)gmail.com
+*
+*   This program is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 2 of the License, or
+*   (at your option) any later version.
+*
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*
+*   You should have received a copy of the GNU General Public License
+*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -25,10 +25,9 @@
 #include "target.h"
 #include "target_type.h"
 #include "hello.h"
+#include "jtag/interface.h"
 #include "jtag/jtag.h"
-#include "jtag/hla/hla_transport.h"
-#include "jtag/hla/hla_interface.h"
-#include "jtag/hla/hla_layout.h"
+#include "jtag/swim.h"
 #include "register.h"
 #include "breakpoints.h"
 #include "algorithm.h"
@@ -46,6 +45,8 @@ static int stm8_set_breakpoint(struct target *target,
 static void stm8_enable_watchpoints(struct target *target);
 static int stm8_unset_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
+static int (*adapter_speed)(int speed);
+extern struct adapter_driver *adapter_driver;
 
 static const struct {
 	unsigned id;
@@ -179,68 +180,31 @@ struct stm8_comparator {
 	enum hw_break_type type;
 };
 
-static inline struct hl_interface_s *target_to_adapter(struct target *target)
-{
-	return target->tap->priv;
-}
-
 static int stm8_adapter_read_memory(struct target *target,
 		uint32_t addr, int size, int count, void *buf)
 {
-	int ret;
-	struct hl_interface_s *adapter = target_to_adapter(target);
-
-	ret = adapter->layout->api->read_mem(adapter->handle,
-		addr, size, count, buf);
-	if (ret != ERROR_OK)
-		return ret;
-	return ERROR_OK;
+	return swim_read_mem(addr, size, count, buf);
 }
 
 static int stm8_adapter_write_memory(struct target *target,
 		uint32_t addr, int size, int count, const void *buf)
 {
-	int ret;
-	struct hl_interface_s *adapter = target_to_adapter(target);
-
-	ret = adapter->layout->api->write_mem(adapter->handle,
-		addr, size, count, buf);
-	if (ret != ERROR_OK)
-		return ret;
-	return ERROR_OK;
+	return swim_write_mem(addr, size, count, buf);
 }
 
 static int stm8_write_u8(struct target *target,
 		uint32_t addr, uint8_t val)
 {
-	int ret;
 	uint8_t buf[1];
-	struct hl_interface_s *adapter = target_to_adapter(target);
 
 	buf[0] = val;
-	ret =  adapter->layout->api->write_mem(adapter->handle, addr, 1, 1, buf);
-	if (ret != ERROR_OK)
-		return ret;
-	return ERROR_OK;
+	return swim_write_mem(addr, 1, 1, buf);
 }
 
 static int stm8_read_u8(struct target *target,
 		uint32_t addr, uint8_t *val)
 {
-	int ret;
-	struct hl_interface_s *adapter = target_to_adapter(target);
-
-	ret =  adapter->layout->api->read_mem(adapter->handle, addr, 1, 1, val);
-	if (ret != ERROR_OK)
-		return ret;
-	return ERROR_OK;
-}
-
-static int stm8_set_speed(struct target *target, int speed)
-{
-	struct hl_interface_s *adapter = target_to_adapter(target);
-	adapter->layout->api->speed(adapter->handle, speed, 0);
-	return ERROR_OK;
+	return swim_read_mem(addr, 1, 1, val);
 }
 
 /*
@@ -355,7 +319,7 @@ static int stm8_set_hwbreak(struct target *target,
 
 	if ((comparator_list[0].type != HWBRK_EXEC)
 			&& (comparator_list[1].type != HWBRK_EXEC)) {
-		if ((comparator_list[0].type != comparator_list[1].type)) {
+		if (comparator_list[0].type != comparator_list[1].type) {
 			LOG_ERROR("data hw breakpoints must be of same type");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
@@ -835,8 +799,35 @@ static int stm8_read_memory(struct target *target, target_addr_t address,
 	return retval;
 }
 
+static int stm8_speed(int speed)
+{
+	int retval;
+	uint8_t csr;
+
+	LOG_DEBUG("stm8_speed: %d", speed);
+
+	csr = SAFE_MASK | SWIM_DM;
+	if (speed >= SWIM_FREQ_HIGH)
+		csr |= HS;
+
+	LOG_DEBUG("writing B0 to SWIM_CSR (SAFE_MASK + SWIM_DM + HS:%d)", csr & HS ? 1 : 0);
+	retval = stm8_write_u8(NULL, SWIM_CSR, csr);
+	if (retval != ERROR_OK)
+		return retval;
+	return adapter_speed(speed);
+}
+
 static int stm8_init(struct command_context *cmd_ctx, struct target *target)
 {
+	/*
+	 * FIXME: this is a temporarily hack that needs better implementation.
+	 * Being the only overwrite of adapter_driver, it prevents declaring const
+	 * the struct adapter_driver.
+	 * intercept adapter_driver->speed() calls
+	 */
+	adapter_speed = adapter_driver->speed;
+	adapter_driver->speed = stm8_speed;
+
 	stm8_build_reg_cache(target);
 
 	return ERROR_OK;
@@ -923,16 +914,13 @@ static int stm8_halt(struct target *target)
 static int stm8_reset_assert(struct target *target)
 {
 	int res = ERROR_OK;
-	struct hl_interface_s *adapter = target_to_adapter(target);
 	struct stm8_common *stm8 = target_to_stm8(target);
 	bool use_srst_fallback = true;
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
-		jtag_add_reset(0, 1);
-		res = adapter->layout->api->assert_srst(adapter->handle, 0);
-
+		res = adapter_assert_reset();
 		if (res == ERROR_OK)
 			/* hardware srst supported */
 			use_srst_fallback = false;
@@ -943,7 +931,7 @@ static int stm8_reset_assert(struct target *target)
 
 	if (use_srst_fallback) {
 		LOG_DEBUG("Hardware srst not supported, falling back to swim reset");
-		res = adapter->layout->api->reset(adapter->handle);
+		res = swim_system_reset();
 		if (res != ERROR_OK)
 			return res;
 	}
@@ -966,20 +954,13 @@ static int stm8_reset_assert(struct target *target)
 static int stm8_reset_deassert(struct target *target)
 {
 	int res;
-	struct hl_interface_s *adapter = target_to_adapter(target);
-
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	if (jtag_reset_config & RESET_HAS_SRST) {
-		res = adapter->layout->api->assert_srst(adapter->handle, 1);
+		res = adapter_deassert_reset();
 		if ((res != ERROR_OK) && (res != ERROR_COMMAND_NOTFOUND))
 			return res;
 	}
-
-	/* virtual deassert reset, we need it for the internal
-	 * jtag state machine
-	 */
-	jtag_add_reset(0, 0);
 
 	/* The cpu should now be stalled. If halt was requested
 	   let poll detect the stall */
@@ -1704,34 +1685,26 @@ static int stm8_examine(struct target *target)
 	uint8_t csr1, csr2;
 	/* get pointers to arch-specific information */
 	struct stm8_common *stm8 = target_to_stm8(target);
-	struct hl_interface_s *adapter = target_to_adapter(target);
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	if (!target_was_examined(target)) {
 		if (!stm8->swim_configured) {
-			/* set SWIM_CSR = 0xa0 (enable mem access & mask reset) */
-			LOG_DEBUG("writing A0 to SWIM_CSR (SAFE_MASK + SWIM_DM)");
-			retval = stm8_write_u8(target, SWIM_CSR, SAFE_MASK + SWIM_DM);
-			if (retval != ERROR_OK)
-				return retval;
-			/* set high speed */
-			LOG_DEBUG("writing B0 to SWIM_CSR (SAFE_MASK + SWIM_DM + HS)");
-			retval = stm8_write_u8(target, SWIM_CSR, SAFE_MASK + SWIM_DM + HS);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = stm8_set_speed(target, 1);
-			if (retval == ERROR_OK)
-				stm8->swim_configured = true;
+			stm8->swim_configured = true;
 			/*
 				Now is the time to deassert reset if connect_under_reset.
 				Releasing reset line will cause the option bytes to load.
 				The core will still be stalled.
 			*/
-			if (adapter->param.connect_under_reset)
-				stm8_reset_deassert(target);
+			if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
+				if (jtag_reset_config & RESET_SRST_NO_GATING)
+					stm8_reset_deassert(target);
+				else
+					LOG_WARNING("\'srst_nogate\' reset_config option is required");
+			}
 		} else {
 			LOG_INFO("trying to reconnect");
 
-			retval = adapter->layout->api->state(adapter->handle);
+			retval = swim_reconnect();
 			if (retval != ERROR_OK) {
 				LOG_ERROR("reconnect failed");
 				return ERROR_FAIL;

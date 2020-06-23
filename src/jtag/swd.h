@@ -213,14 +213,6 @@ static const uint8_t swd_seq_dormant_to_jtag[] = {
 };
 static const unsigned swd_seq_dormant_to_jtag_len = 160;
 
-enum swd_special_seq {
-	LINE_RESET,
-	JTAG_TO_SWD,
-	SWD_TO_JTAG,
-	SWD_TO_DORMANT,
-	DORMANT_TO_SWD,
-};
-
 struct swd_driver {
 	/**
 	 * Initialize the debug link so it can perform SWD operations.
@@ -285,6 +277,5 @@ struct swd_driver {
 };
 
 int swd_init_reset(struct command_context *cmd_ctx);
-void swd_add_reset(int req_srst);
 
 #endif /* OPENOCD_JTAG_SWD_H */

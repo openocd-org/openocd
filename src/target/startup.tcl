@@ -66,7 +66,9 @@ proc ocd_process_reset_inner { MODE } {
 		if {![using_jtag] || [jtag tapisenabled [$t cget -chain-position]]} {
 			$t invoke-event examine-start
 			set err [catch "$t arp_examine allow-defer"]
-			if { $err == 0 } {
+			if { $err } {
+				$t invoke-event examine-fail
+			} else {
 				$t invoke-event examine-end
 			}
 		}
@@ -220,10 +222,4 @@ proc cortex_m3 args {
 proc cortex_a8 args {
 	echo "DEPRECATED! use 'cortex_a' not 'cortex_a8'"
 	eval cortex_a $args
-}
-
-# deprecated ftdi cmds
-proc ftdi_location args {
-	echo "DEPRECATED! use 'adapter usb location' not 'ftdi_location'"
-	eval adapter usb location $args
 }

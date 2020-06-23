@@ -709,6 +709,7 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 	 * Select one or more bits in FMBSEA or FMBSEB to disable Level 1
 	 * protection for the particular sector to be erased/written.
 	 */
+	assert(sector >= 0);
 	if (sector < 16) {
 		target_read_u32(target, 0xFFE88008, &fmbsea);
 		target_write_u32(target, 0xFFE88008, fmbsea | (1 << sector));

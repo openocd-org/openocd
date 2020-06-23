@@ -804,26 +804,9 @@ int mem_ap_init(struct adiv5_ap *ap)
  */
 int dap_to_swd(struct adiv5_dap *dap)
 {
-	int retval;
-
 	LOG_DEBUG("Enter SWD mode");
 
-	if (transport_is_jtag()) {
-		retval =  jtag_add_tms_seq(swd_seq_jtag_to_swd_len,
-				swd_seq_jtag_to_swd, TAP_INVALID);
-		if (retval == ERROR_OK)
-			retval = jtag_execute_queue();
-		return retval;
-	}
-
-	if (transport_is_swd()) {
-		const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
-
-		return swd->switch_seq(JTAG_TO_SWD);
-	}
-
-	LOG_ERROR("Nor JTAG nor SWD transport");
-	return ERROR_FAIL;
+	return dap_send_sequence(dap, JTAG_TO_SWD);
 }
 
 /**
@@ -839,26 +822,9 @@ int dap_to_swd(struct adiv5_dap *dap)
  */
 int dap_to_jtag(struct adiv5_dap *dap)
 {
-	int retval;
-
 	LOG_DEBUG("Enter JTAG mode");
 
-	if (transport_is_jtag()) {
-		retval = jtag_add_tms_seq(swd_seq_swd_to_jtag_len,
-				swd_seq_swd_to_jtag, TAP_RESET);
-		if (retval == ERROR_OK)
-			retval = jtag_execute_queue();
-		return retval;
-	}
-
-	if (transport_is_swd()) {
-		const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
-
-		return swd->switch_seq(SWD_TO_JTAG);
-	}
-
-	LOG_ERROR("Nor JTAG nor SWD transport");
-	return ERROR_FAIL;
+	return dap_send_sequence(dap, SWD_TO_JTAG);
 }
 
 /* CID interpretation -- see ARM IHI 0029B section 3
@@ -1644,8 +1610,10 @@ COMMAND_HANDLER(handle_dap_info_command)
 		break;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
-		if (apsel > DP_APSEL_MAX)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		if (apsel > DP_APSEL_MAX) {
+			command_print(CMD, "Invalid AP number");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1667,8 +1635,10 @@ COMMAND_HANDLER(dap_baseaddr_command)
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
-		if (apsel > DP_APSEL_MAX)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		if (apsel > DP_APSEL_MAX) {
+			command_print(CMD, "Invalid AP number");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1726,8 +1696,10 @@ COMMAND_HANDLER(dap_apsel_command)
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
-		if (apsel > DP_APSEL_MAX)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		if (apsel > DP_APSEL_MAX) {
+			command_print(CMD, "Invalid AP number");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1756,7 +1728,7 @@ COMMAND_HANDLER(dap_apcsw_command)
 
 		if (csw_val & (CSW_SIZE_MASK | CSW_ADDRINC_MASK)) {
 			LOG_ERROR("CSW value cannot include 'Size' and 'AddrInc' bit-fields");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		apcsw = csw_val;
 		break;
@@ -1765,7 +1737,7 @@ COMMAND_HANDLER(dap_apcsw_command)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], csw_mask);
 		if (csw_mask & (CSW_SIZE_MASK | CSW_ADDRINC_MASK)) {
 			LOG_ERROR("CSW mask cannot include 'Size' and 'AddrInc' bit-fields");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		apcsw = (apcsw & ~csw_mask) | (csw_val & csw_mask);
 		break;
@@ -1792,8 +1764,10 @@ COMMAND_HANDLER(dap_apid_command)
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 		/* AP address is in bits 31:24 of DP_SELECT */
-		if (apsel > DP_APSEL_MAX)
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		if (apsel > DP_APSEL_MAX) {
+			command_print(CMD, "Invalid AP number");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1823,13 +1797,18 @@ COMMAND_HANDLER(dap_apreg_command)
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
 	/* AP address is in bits 31:24 of DP_SELECT */
-	if (apsel > DP_APSEL_MAX)
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (apsel > DP_APSEL_MAX) {
+		command_print(CMD, "Invalid AP number");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
 	ap = dap_ap(dap, apsel);
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg);
-	if (reg >= 256 || (reg & 3))
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (reg >= 256 || (reg & 3)) {
+		command_print(CMD, "Invalid reg value (should be less than 256 and 4 bytes aligned)");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
 
 	if (CMD_ARGC == 3) {
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
@@ -1873,8 +1852,10 @@ COMMAND_HANDLER(dap_dpreg_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], reg);
-	if (reg >= 256 || (reg & 3))
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (reg >= 256 || (reg & 3)) {
+		command_print(CMD, "Invalid reg value (should be less than 256 and 4 bytes aligned)");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
 
 	if (CMD_ARGC == 2) {
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
@@ -1897,24 +1878,8 @@ COMMAND_HANDLER(dap_dpreg_command)
 COMMAND_HANDLER(dap_ti_be_32_quirks_command)
 {
 	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
-	uint32_t enable = dap->ti_be_32_quirks;
-
-	switch (CMD_ARGC) {
-	case 0:
-		break;
-	case 1:
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], enable);
-		if (enable > 1)
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		break;
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	dap->ti_be_32_quirks = enable;
-	command_print(CMD, "TI BE-32 quirks mode %s",
-		enable ? "enabled" : "disabled");
-
-	return 0;
+	return CALL_COMMAND_HANDLER(handle_command_parse_bool, &dap->ti_be_32_quirks,
+		"TI BE-32 quirks mode");
 }
 
 const struct command_registration dap_instance_commands[] = {

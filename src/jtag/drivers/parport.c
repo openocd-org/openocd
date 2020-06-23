@@ -237,7 +237,7 @@ static int parport_get_giveio_access(void)
 	HANDLE h;
 	OSVERSIONINFO version;
 
-	version.dwOSVersionInfoSize = sizeof version;
+	version.dwOSVersionInfoSize = sizeof(version);
 	if (!GetVersionEx(&version)) {
 		errno = EINVAL;
 		return -1;
@@ -260,7 +260,6 @@ static int parport_get_giveio_access(void)
 static struct bitbang_interface parport_bitbang = {
 		.read = &parport_read,
 		.write = &parport_write,
-		.reset = &parport_reset,
 		.blink = &parport_led,
 	};
 
@@ -514,16 +513,22 @@ static const struct command_registration parport_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct jtag_interface parport_interface = {
-	.name = "parport",
+static struct jtag_interface parport_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
+	.execute_queue = bitbang_execute_queue,
+};
+
+struct adapter_driver parport_adapter_driver = {
+	.name = "parport",
 	.transports = jtag_only,
 	.commands = parport_command_handlers,
 
 	.init = parport_init,
 	.quit = parport_quit,
+	.reset = parport_reset,
+	.speed = parport_speed,
 	.khz = parport_khz,
 	.speed_div = parport_speed_div,
-	.speed = parport_speed,
-	.execute_queue = bitbang_execute_queue,
+
+	.jtag_ops = &parport_interface,
 };

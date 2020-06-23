@@ -69,7 +69,7 @@ static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
 static int riscv013_test_sba_config_reg(struct target *target, target_addr_t legal_address,
 		uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
-void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t* write_data,
+void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t *write_data,
 		uint32_t write_size, uint32_t sbcs);
 void read_memory_sba_simple(struct target *target, target_addr_t addr,
 		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs);
@@ -425,7 +425,7 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
 	uint8_t in_value[4];
-	uint8_t out_value[4];
+	uint8_t out_value[4] = { 0 };
 
 	if (bscan_tunnel_ir_width != 0)
 		return dtmcontrol_scan_via_bscan(target, out);
@@ -495,6 +495,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	}
 
 	memset(in, 0, num_bytes);
+	memset(out, 0, num_bytes);
 
 	assert(info->abits != 0);
 
@@ -723,10 +724,8 @@ uint32_t abstract_register_size(unsigned width)
 			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 2);
 		case 64:
 			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 3);
-			break;
 		case 128:
 			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 4);
-			break;
 		default:
 			LOG_ERROR("Unsupported register width: %d", width);
 			return 0;
@@ -2349,11 +2348,9 @@ static target_addr_t sb_read_address(struct target *target)
 	target_addr_t address = 0;
 	uint32_t v;
 	if (sbasize > 32) {
-#if BUILD_TARGET64
 		dmi_read(target, &v, DMI_SBADDRESS1);
 		address |= v;
 		address <<= 32;
-#endif
 	}
 	dmi_read(target, &v, DMI_SBADDRESS0);
 	address |= v;
@@ -2370,11 +2367,7 @@ static int sb_write_address(struct target *target, target_addr_t address)
 	if (sbasize > 64)
 		dmi_write(target, DMI_SBADDRESS2, 0);
 	if (sbasize > 32)
-#if BUILD_TARGET64
 		dmi_write(target, DMI_SBADDRESS1, address >> 32);
-#else
-		dmi_write(target, DMI_SBADDRESS1, 0);
-#endif
 	return dmi_write(target, DMI_SBADDRESS0, address);
 }
 
@@ -4682,13 +4675,13 @@ int riscv013_test_compliance(struct target *target)
 	But at any rate, this is not legal and should cause an error. */
 	COMPLIANCE_WRITE(target, DMI_COMMAND, 0xAAAAAAAA);
 	COMPLIANCE_READ(target, &testvar_read, DMI_ABSTRACTCS);
-	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
+	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED,
 			"Illegal COMMAND should result in UNSUPPORTED");
 	COMPLIANCE_WRITE(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 
 	COMPLIANCE_WRITE(target, DMI_COMMAND, 0x55555555);
 	COMPLIANCE_READ(target, &testvar_read, DMI_ABSTRACTCS);
-	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED, \
+	COMPLIANCE_TEST(get_field(testvar_read, DMI_ABSTRACTCS_CMDERR) == CMDERR_NOT_SUPPORTED,
 			"Illegal COMMAND should result in UNSUPPORTED");
 	COMPLIANCE_WRITE(target, DMI_ABSTRACTCS, DMI_ABSTRACTCS_CMDERR);
 

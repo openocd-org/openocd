@@ -84,7 +84,6 @@ static inline bool gpio_level(int g)
 
 static bb_value_t imx_gpio_read(void);
 static int imx_gpio_write(int tck, int tms, int tdi);
-static int imx_gpio_reset(int trst, int srst);
 
 static int imx_gpio_swdio_read(void);
 static void imx_gpio_swdio_drive(bool is_output);
@@ -95,7 +94,6 @@ static int imx_gpio_quit(void);
 static struct bitbang_interface imx_gpio_bitbang = {
 	.read = imx_gpio_read,
 	.write = imx_gpio_write,
-	.reset = imx_gpio_reset,
 	.swdio_read = imx_gpio_swdio_read,
 	.swdio_drive = imx_gpio_swdio_drive,
 	.blink = NULL
@@ -429,18 +427,25 @@ static const struct command_registration imx_gpio_command_handlers[] = {
 
 static const char * const imx_gpio_transports[] = { "jtag", "swd", NULL };
 
-struct jtag_interface imx_gpio_interface = {
-	.name = "imx_gpio",
+static struct jtag_interface imx_gpio_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
+};
+
+struct adapter_driver imx_gpio_adapter_driver = {
+	.name = "imx_gpio",
 	.transports = imx_gpio_transports,
-	.swd = &bitbang_swd,
+	.commands = imx_gpio_command_handlers,
+
+	.init = imx_gpio_init,
+	.quit = imx_gpio_quit,
+	.reset = imx_gpio_reset,
 	.speed = imx_gpio_speed,
 	.khz = imx_gpio_khz,
 	.speed_div = imx_gpio_speed_div,
-	.commands = imx_gpio_command_handlers,
-	.init = imx_gpio_init,
-	.quit = imx_gpio_quit,
+
+	.jtag_ops = &imx_gpio_interface,
+	.swd_ops = &bitbang_swd,
 };
 
 static bool imx_gpio_jtag_mode_possible(void)

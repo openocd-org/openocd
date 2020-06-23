@@ -261,14 +261,11 @@ COMMAND_HANDLER(handle_cti_dump)
 COMMAND_HANDLER(handle_cti_enable)
 {
 	struct arm_cti_object *obj = CMD_DATA;
-	Jim_Interp *interp = CMD_CTX->interp;
 	struct arm_cti *cti = &obj->cti;
 	bool on_off;
 
-	if (CMD_ARGC != 1) {
-		Jim_SetResultString(interp, "wrong number of args", -1);
-		return ERROR_FAIL;
-	}
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], on_off);
 
@@ -278,14 +275,11 @@ COMMAND_HANDLER(handle_cti_enable)
 COMMAND_HANDLER(handle_cti_testmode)
 {
 	struct arm_cti_object *obj = CMD_DATA;
-	Jim_Interp *interp = CMD_CTX->interp;
 	struct arm_cti *cti = &obj->cti;
 	bool on_off;
 
-	if (CMD_ARGC != 1) {
-		Jim_SetResultString(interp, "wrong number of args", -1);
-		return ERROR_FAIL;
-	}
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], on_off);
 
@@ -295,15 +289,12 @@ COMMAND_HANDLER(handle_cti_testmode)
 COMMAND_HANDLER(handle_cti_write)
 {
 	struct arm_cti_object *obj = CMD_DATA;
-	Jim_Interp *interp = CMD_CTX->interp;
 	struct arm_cti *cti = &obj->cti;
 	int offset;
 	uint32_t value;
 
-	if (CMD_ARGC != 2) {
-		Jim_SetResultString(interp, "Wrong number of args", -1);
-		return ERROR_FAIL;
-	}
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	offset = cti_find_reg_offset(CMD_ARGV[0]);
 	if (offset < 0)
@@ -317,16 +308,13 @@ COMMAND_HANDLER(handle_cti_write)
 COMMAND_HANDLER(handle_cti_read)
 {
 	struct arm_cti_object *obj = CMD_DATA;
-	Jim_Interp *interp = CMD_CTX->interp;
 	struct arm_cti *cti = &obj->cti;
 	int offset;
 	int retval;
 	uint32_t value;
 
-	if (CMD_ARGC != 1) {
-		Jim_SetResultString(interp, "Wrong number of args", -1);
-		return ERROR_FAIL;
-	}
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	offset = cti_find_reg_offset(CMD_ARGV[0]);
 	if (offset < 0)
@@ -337,6 +325,59 @@ COMMAND_HANDLER(handle_cti_read)
 		return retval;
 
 	command_print(CMD, "0x%08"PRIx32, value);
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_cti_ack)
+{
+	struct arm_cti_object *obj = CMD_DATA;
+	struct arm_cti *cti = &obj->cti;
+	uint32_t event;
+
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], event);
+
+	int retval = arm_cti_ack_events(cti, 1 << event);
+
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_cti_channel)
+{
+	struct arm_cti_object *obj = CMD_DATA;
+	struct arm_cti *cti = &obj->cti;
+	int retval = ERROR_OK;
+	uint32_t ch_num;
+
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], ch_num);
+
+	if (!strcmp(CMD_ARGV[1], "gate"))
+		retval = arm_cti_gate_channel(cti, ch_num);
+	else if (!strcmp(CMD_ARGV[1], "ungate"))
+		retval = arm_cti_ungate_channel(cti, ch_num);
+	else if (!strcmp(CMD_ARGV[1], "pulse"))
+		retval = arm_cti_pulse_channel(cti, ch_num);
+	else if (!strcmp(CMD_ARGV[1], "set"))
+		retval = arm_cti_set_channel(cti, ch_num);
+	else if (!strcmp(CMD_ARGV[1], "clear"))
+		retval = arm_cti_clear_channel(cti, ch_num);
+	else {
+		command_print(CMD, "Possible channel operations: gate|ungate|set|clear|pulse");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	if (retval != ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -376,6 +417,21 @@ static const struct command_registration cti_instance_command_handlers[] = {
 		.handler = handle_cti_read,
 		.help = "read a CTI register",
 		.usage = "register_name",
+	},
+	{
+		.name = "ack",
+		.mode = COMMAND_EXEC,
+		.handler = handle_cti_ack,
+		.help = "acknowledge a CTI event",
+		.usage = "event",
+	},
+	{
+		.name = "channel",
+		.mode = COMMAND_EXEC,
+		.handler = handle_cti_channel,
+		.help = "do an operation on one CTI channel, possible operations: "
+				"gate, ungate, set, clear and pulse",
+		.usage = "channel_number operation",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -585,4 +641,3 @@ int cti_register_commands(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, cti_command_handlers);
 }
-
