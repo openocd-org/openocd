@@ -2080,7 +2080,7 @@ int riscv_openocd_poll(struct target *target)
 	} else if (target->smp) {
 		unsigned halts_discovered = 0;
 		unsigned total_targets = 0;
-		bool newly_halted[128] = {0};
+		bool newly_halted[RISCV_MAX_HARTS] = {0};
 		unsigned should_remain_halted = 0;
 		unsigned should_resume = 0;
 		unsigned i = 0;
@@ -2093,8 +2093,6 @@ int riscv_openocd_poll(struct target *target)
 			enum riscv_poll_hart out = riscv_poll_hart(t, r->current_hartid);
 			switch (out) {
 			case RPH_NO_CHANGE:
-				if (t->state == TARGET_HALTED)
-					should_remain_halted++;
 				break;
 			case RPH_DISCOVERED_RUNNING:
 				t->state = TARGET_RUNNING;
