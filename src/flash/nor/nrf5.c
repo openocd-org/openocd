@@ -797,11 +797,10 @@ static int nrf5_probe(struct flash_bank *bank)
 	if (!chip->bank[0].probed && !chip->bank[1].probed) {
 		char buf[80];
 		nrf5_info(bank, buf, sizeof(buf));
-		if (!chip->spec && !chip->ficr_info_valid) {
+		if (!chip->spec && !chip->ficr_info_valid)
 			LOG_INFO("Unknown device: %s", buf);
-		} else {
+		else
 			LOG_INFO("%s", buf);
-		}
 	}
 
 	free(bank->sectors);
