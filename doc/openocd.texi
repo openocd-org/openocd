@@ -9549,7 +9549,7 @@ Write the 32-bit value to authdata.
 The following commands allow direct access to the Debug Module Interface, which
 can be used to interact with custom debug features.
 
-@deffn Command {riscv dmi_read}
+@deffn Command {riscv dmi_read} address
 Perform a 32-bit DMI read at address, returning the value.
 @end deffn
 
