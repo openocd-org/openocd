@@ -1622,6 +1622,11 @@ static int riscv_read_phys_memory(struct target *target, target_addr_t phys_addr
 static int riscv_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
+	if (count == 0) {
+		LOG_WARNING("0-length read from 0x%" TARGET_PRIxADDR, address);
+		return ERROR_OK;
+	}
+
 	if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -1645,6 +1650,11 @@ static int riscv_write_phys_memory(struct target *target, target_addr_t phys_add
 static int riscv_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
+	if (count == 0) {
+		LOG_WARNING("0-length write to 0x%" TARGET_PRIxADDR, address);
+		return ERROR_OK;
+	}
+
 	if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
 
