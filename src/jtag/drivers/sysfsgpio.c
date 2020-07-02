@@ -52,6 +52,7 @@
 #include "config.h"
 #endif
 
+#include <helper/time_support.h>
 #include <jtag/interface.h>
 #include "bitbang.h"
 
@@ -60,7 +61,7 @@
  *
  * Assume here that there will be less than 10000 gpios on a system
  */
-static int is_gpio_valid(int gpio)
+static bool is_gpio_valid(int gpio)
 {
 	return gpio >= 0 && gpio < 10000;
 }
@@ -97,8 +98,6 @@ static void unexport_sysfs_gpio(int gpio)
 	snprintf(gpiostr, sizeof(gpiostr), "%d", gpio);
 	if (open_write_close("/sys/class/gpio/unexport", gpiostr) < 0)
 		LOG_ERROR("Couldn't unexport gpio %d", gpio);
-
-	return;
 }
 
 /*
@@ -112,6 +111,7 @@ static void unexport_sysfs_gpio(int gpio)
  */
 static int setup_sysfs_gpio(int gpio, int is_output, int init_high)
 {
+	struct timeval timeout, now;
 	char buf[40];
 	char gpiostr[5];
 	int ret;
@@ -131,8 +131,19 @@ static int setup_sysfs_gpio(int gpio, int is_output, int init_high)
 		}
 	}
 
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, 0, 500000);
+
 	snprintf(buf, sizeof(buf), "/sys/class/gpio/gpio%d/direction", gpio);
-	ret = open_write_close(buf, is_output ? (init_high ? "high" : "low") : "in");
+	for (;;) {
+		ret = open_write_close(buf, is_output ? (init_high ? "high" : "low") : "in");
+		if (ret >= 0 || errno != EACCES)
+			break;
+		gettimeofday(&now, NULL);
+		if (timeval_compare(&now, &timeout) >= 0)
+			break;
+		jtag_sleep(10000);
+	}
 	if (ret < 0) {
 		LOG_ERROR("Couldn't set direction for gpio %d", gpio);
 		perror("sysfsgpio: ");
@@ -141,7 +152,15 @@ static int setup_sysfs_gpio(int gpio, int is_output, int init_high)
 	}
 
 	snprintf(buf, sizeof(buf), "/sys/class/gpio/gpio%d/value", gpio);
-	ret = open(buf, O_RDWR | O_NONBLOCK | O_SYNC);
+	for (;;) {
+		ret = open(buf, O_RDWR | O_NONBLOCK | O_SYNC);
+		if (ret >= 0 || errno != EACCES)
+			break;
+		gettimeofday(&now, NULL);
+		if (timeval_compare(&now, &timeout) >= 0)
+			break;
+		jtag_sleep(10000);
+	}
 	if (ret < 0) {
 		LOG_ERROR("Couldn't open value for gpio %d", gpio);
 		perror("sysfsgpio: ");
@@ -530,21 +549,27 @@ static int sysfsgpio_quit(void);
 
 static const char * const sysfsgpio_transports[] = { "jtag", "swd", NULL };
 
-struct jtag_interface sysfsgpio_interface = {
-	.name = "sysfsgpio",
+static struct jtag_interface sysfsgpio_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
+};
+
+struct adapter_driver sysfsgpio_adapter_driver = {
+	.name = "sysfsgpio",
 	.transports = sysfsgpio_transports,
-	.swd = &bitbang_swd,
 	.commands = sysfsgpio_command_handlers,
+
 	.init = sysfsgpio_init,
 	.quit = sysfsgpio_quit,
+	.reset = sysfsgpio_reset,
+
+	.jtag_ops = &sysfsgpio_interface,
+	.swd_ops = &bitbang_swd,
 };
 
 static struct bitbang_interface sysfsgpio_bitbang = {
 	.read = sysfsgpio_read,
 	.write = sysfsgpio_write,
-	.reset = sysfsgpio_reset,
 	.swdio_read = sysfsgpio_swdio_read,
 	.swdio_drive = sysfsgpio_swdio_drive,
 	.blink = 0
@@ -576,23 +601,23 @@ static void cleanup_all_fds(void)
 static bool sysfsgpio_jtag_mode_possible(void)
 {
 	if (!is_gpio_valid(tck_gpio))
-		return 0;
+		return false;
 	if (!is_gpio_valid(tms_gpio))
-		return 0;
+		return false;
 	if (!is_gpio_valid(tdi_gpio))
-		return 0;
+		return false;
 	if (!is_gpio_valid(tdo_gpio))
-		return 0;
-	return 1;
+		return false;
+	return true;
 }
 
 static bool sysfsgpio_swd_mode_possible(void)
 {
 	if (!is_gpio_valid(swclk_gpio))
-		return 0;
+		return false;
 	if (!is_gpio_valid(swdio_gpio))
-		return 0;
-	return 1;
+		return false;
+	return true;
 }
 
 static int sysfsgpio_init(void)
@@ -688,4 +713,3 @@ static int sysfsgpio_quit(void)
 	cleanup_all_fds();
 	return ERROR_OK;
 }
-

@@ -381,7 +381,7 @@ static void usbprog_jtag_close(struct usbprog_jtag *usbprog_jtag)
 static unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg, int msglen)
 {
 	int res = usb_bulk_write(usbprog_jtag->usb_handle, 3, msg, msglen, 100);
-	if ((msg[0] == 2) || (msg[0] == 1) || (msg[0] == 4) || (msg[0] == 0) ||	\
+	if ((msg[0] == 2) || (msg[0] == 1) || (msg[0] == 4) || (msg[0] == 0) ||
 	    (msg[0] == 6) || (msg[0] == 0x0A) || (msg[0] == 9))
 		return 1;
 	if (res == msglen) {
@@ -596,11 +596,16 @@ static void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag)
 	}
 }
 
-struct jtag_interface usbprog_interface = {
+static struct jtag_interface usbprog_interface = {
+	.execute_queue = usbprog_execute_queue,
+};
+
+struct adapter_driver usbprog_adapter_driver = {
 	.name = "usbprog",
 	.transports = jtag_only,
 
-	.execute_queue = usbprog_execute_queue,
 	.init = usbprog_init,
-	.quit = usbprog_quit
+	.quit = usbprog_quit,
+
+	.jtag_ops = &usbprog_interface,
 };

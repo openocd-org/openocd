@@ -43,7 +43,7 @@
 #include <jtag/swd.h>
 #include <jtag/commands.h>
 
-#include "libusb_common.h"
+#include "libusb_helper.h"
 
 #define VID 0x04b4
 #define PID 0xf139
@@ -95,7 +95,7 @@
 
 struct kitprog {
 	hid_device *hid_handle;
-	struct jtag_libusb_device_handle *usb_handle;
+	struct libusb_device_handle *usb_handle;
 	uint16_t packet_size;
 	uint16_t packet_index;
 	uint8_t *packet_buffer;
@@ -280,7 +280,7 @@ static int kitprog_usb_open(void)
 	const uint16_t pids[] = { PID, 0 };
 
 	if (jtag_libusb_open(vids, pids, kitprog_serial,
-			&kitprog_handle->usb_handle) != ERROR_OK) {
+			&kitprog_handle->usb_handle, NULL) != ERROR_OK) {
 		LOG_ERROR("Failed to open or find the device");
 		return ERROR_FAIL;
 	}
@@ -311,7 +311,7 @@ static int kitprog_usb_open(void)
 	}
 
 	/* Claim the KitProg Programmer (bulk transfer) interface */
-	if (jtag_libusb_claim_interface(kitprog_handle->usb_handle, 1) != ERROR_OK) {
+	if (libusb_claim_interface(kitprog_handle->usb_handle, 1) != ERROR_OK) {
 		LOG_ERROR("Failed to claim KitProg Programmer (bulk transfer) interface");
 		return ERROR_FAIL;
 	}
@@ -358,7 +358,7 @@ static int kitprog_get_version(void)
 	unsigned char command[3] = {HID_TYPE_START | HID_TYPE_WRITE, 0x00, HID_COMMAND_VERSION};
 	unsigned char data[64];
 
-	ret = kitprog_hid_command(command, sizeof command, data, sizeof data);
+	ret = kitprog_hid_command(command, sizeof(command), data, sizeof(data));
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -376,7 +376,7 @@ static int kitprog_get_millivolts(void)
 	unsigned char command[3] = {HID_TYPE_START | HID_TYPE_READ, 0x00, HID_COMMAND_POWER};
 	unsigned char data[64];
 
-	ret = kitprog_hid_command(command, sizeof command, data, sizeof data);
+	ret = kitprog_hid_command(command, sizeof(command), data, sizeof(data));
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -603,7 +603,7 @@ static int kitprog_generic_acquire(void)
 	 * will take the Cortex-M3 out of reset and enable debugging.
 	 */
 	for (int i = 0; i < 2; i++) {
-		for (uint8_t j = 0; j < sizeof devices && acquire_count == i; j++) {
+		for (uint8_t j = 0; j < sizeof(devices) && acquire_count == i; j++) {
 			retval = kitprog_acquire_psoc(devices[j], ACQUIRE_MODE_RESET, 3);
 			if (retval != ERROR_OK) {
 				LOG_DEBUG("Aquisition function failed for device 0x%02x.", devices[j]);
@@ -731,14 +731,14 @@ static int kitprog_swd_run_queue(void)
 			}
 		}
 
-		ret = jtag_libusb_bulk_write(kitprog_handle->usb_handle,
-				BULK_EP_OUT, (char *)buffer, write_count, 0);
-		if (ret > 0) {
-			queued_retval = ERROR_OK;
-		} else {
+		if (jtag_libusb_bulk_write(kitprog_handle->usb_handle,
+					   BULK_EP_OUT, (char *)buffer,
+					   write_count, 0, &ret)) {
 			LOG_ERROR("Bulk write failed");
 			queued_retval = ERROR_FAIL;
 			break;
+		} else {
+			queued_retval = ERROR_OK;
 		}
 
 		/* KitProg firmware does not send a zero length packet
@@ -754,18 +754,17 @@ static int kitprog_swd_run_queue(void)
 		if (read_count % 64 == 0)
 			read_count_workaround = read_count;
 
-		ret = jtag_libusb_bulk_read(kitprog_handle->usb_handle,
+		if (jtag_libusb_bulk_read(kitprog_handle->usb_handle,
 				BULK_EP_IN | LIBUSB_ENDPOINT_IN, (char *)buffer,
-				read_count_workaround, 1000);
-		if (ret > 0) {
+				read_count_workaround, 1000, &ret)) {
+			LOG_ERROR("Bulk read failed");
+			queued_retval = ERROR_FAIL;
+			break;
+		} else {
 			/* Handle garbage data by offsetting the initial read index */
 			if ((unsigned int)ret > read_count)
 				read_index = ret - read_count;
 			queued_retval = ERROR_OK;
-		} else {
-			LOG_ERROR("Bulk read failed");
-			queued_retval = ERROR_FAIL;
-			break;
 		}
 
 		for (int i = 0; i < pending_transfer_count; i++) {
@@ -819,11 +818,16 @@ static void kitprog_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 
 /*************** jtag lowlevel functions ********************/
 
-static void kitprog_execute_reset(struct jtag_command *cmd)
+static int kitprog_reset(int trst, int srst)
 {
 	int retval = ERROR_OK;
 
-	if (cmd->cmd.reset->srst == 1) {
+	if (trst == 1) {
+		LOG_ERROR("KitProg: Interface has no TRST");
+		return ERROR_FAIL;
+	}
+
+	if (srst == 1) {
 		retval = kitprog_reset_target();
 		/* Since the previous command also disables SWCLK output, we need to send an
 		 * SWD bus reset command to re-enable it. For some reason, running
@@ -836,38 +840,7 @@ static void kitprog_execute_reset(struct jtag_command *cmd)
 
 	if (retval != ERROR_OK)
 		LOG_ERROR("KitProg: Interface reset failed");
-}
-
-static void kitprog_execute_sleep(struct jtag_command *cmd)
-{
-	jtag_sleep(cmd->cmd.sleep->us);
-}
-
-static void kitprog_execute_command(struct jtag_command *cmd)
-{
-	switch (cmd->type) {
-		case JTAG_RESET:
-			kitprog_execute_reset(cmd);
-			break;
-		case JTAG_SLEEP:
-			kitprog_execute_sleep(cmd);
-			break;
-		default:
-			LOG_ERROR("BUG: unknown JTAG command type encountered");
-			exit(-1);
-	}
-}
-
-static int kitprog_execute_queue(void)
-{
-	struct jtag_command *cmd = jtag_command_queue;
-
-	while (cmd != NULL) {
-		kitprog_execute_command(cmd);
-		cmd = cmd->next;
-	}
-
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(kitprog_handle_info_command)
@@ -961,12 +934,14 @@ static const struct swd_driver kitprog_swd = {
 
 static const char * const kitprog_transports[] = { "swd", NULL };
 
-struct jtag_interface kitprog_interface = {
+struct adapter_driver kitprog_adapter_driver = {
 	.name = "kitprog",
-	.commands = kitprog_command_handlers,
 	.transports = kitprog_transports,
-	.swd = &kitprog_swd,
-	.execute_queue = kitprog_execute_queue,
+	.commands = kitprog_command_handlers,
+
 	.init = kitprog_init,
-	.quit = kitprog_quit
+	.quit = kitprog_quit,
+	.reset = kitprog_reset,
+
+	.swd_ops = &kitprog_swd,
 };

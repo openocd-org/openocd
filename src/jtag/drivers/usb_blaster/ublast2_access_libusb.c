@@ -23,7 +23,7 @@
 #endif
 #include <jtag/interface.h>
 #include <jtag/commands.h>
-#include <libusb_common.h>
+#include <libusb_helper.h>
 #include <target/image.h>
 
 #include "ublast_access.h"
@@ -42,28 +42,37 @@
 static int ublast2_libusb_read(struct ublast_lowlevel *low, uint8_t *buf,
 			      unsigned size, uint32_t *bytes_read)
 {
-	*bytes_read = jtag_libusb_bulk_read(low->libusb_dev,
-					    USBBLASTER_EPIN | \
+	int ret, tmp = 0;
+
+	ret = jtag_libusb_bulk_read(low->libusb_dev,
+					    USBBLASTER_EPIN |
 					    LIBUSB_ENDPOINT_IN,
 					    (char *)buf,
 					    size,
-					    100);
-	return ERROR_OK;
+					    100, &tmp);
+	*bytes_read = tmp;
+
+	return ret;
 }
 
 static int ublast2_libusb_write(struct ublast_lowlevel *low, uint8_t *buf,
 			       int size, uint32_t *bytes_written)
 {
-	*bytes_written = jtag_libusb_bulk_write(low->libusb_dev,
-						USBBLASTER_EPOUT | \
+	int ret, tmp = 0;
+
+	ret = jtag_libusb_bulk_write(low->libusb_dev,
+						USBBLASTER_EPOUT |
 						LIBUSB_ENDPOINT_OUT,
 						(char *)buf,
 						size,
-						100);
-	return ERROR_OK;
+						100, &tmp);
+	*bytes_written = tmp;
+
+	return ret;
+
 }
 
-static int ublast2_write_firmware_section(struct jtag_libusb_device_handle *libusb_dev,
+static int ublast2_write_firmware_section(struct libusb_device_handle *libusb_dev,
 				   struct image *firmware_image, int section_index)
 {
 	uint16_t chunk_size;
@@ -97,7 +106,7 @@ static int ublast2_write_firmware_section(struct jtag_libusb_device_handle *libu
 			chunk_size = bytes_remaining;
 
 		jtag_libusb_control_transfer(libusb_dev,
-					     LIBUSB_REQUEST_TYPE_VENDOR | \
+					     LIBUSB_REQUEST_TYPE_VENDOR |
 					     LIBUSB_ENDPOINT_OUT,
 					     USBBLASTER_CTRL_LOAD_FIRM,
 					     addr,
@@ -114,7 +123,7 @@ static int ublast2_write_firmware_section(struct jtag_libusb_device_handle *libu
 	return ERROR_OK;
 }
 
-static int load_usb_blaster_firmware(struct jtag_libusb_device_handle *libusb_dev,
+static int load_usb_blaster_firmware(struct libusb_device_handle *libusb_dev,
 				     struct ublast_lowlevel *low)
 {
 	struct image ublast2_firmware_image;
@@ -143,7 +152,7 @@ static int load_usb_blaster_firmware(struct jtag_libusb_device_handle *libusb_de
 
 	char value = CPU_RESET;
 	jtag_libusb_control_transfer(libusb_dev,
-				     LIBUSB_REQUEST_TYPE_VENDOR | \
+				     LIBUSB_REQUEST_TYPE_VENDOR |
 				     LIBUSB_ENDPOINT_OUT,
 				     USBBLASTER_CTRL_LOAD_FIRM,
 				     EZUSB_CPUCS,
@@ -164,7 +173,7 @@ static int load_usb_blaster_firmware(struct jtag_libusb_device_handle *libusb_de
 
 	value = !CPU_RESET;
 	jtag_libusb_control_transfer(libusb_dev,
-				     LIBUSB_REQUEST_TYPE_VENDOR | \
+				     LIBUSB_REQUEST_TYPE_VENDOR |
 				     LIBUSB_ENDPOINT_OUT,
 				     USBBLASTER_CTRL_LOAD_FIRM,
 				     EZUSB_CPUCS,
@@ -182,11 +191,11 @@ static int ublast2_libusb_init(struct ublast_lowlevel *low)
 {
 	const uint16_t vids[] = { low->ublast_vid_uninit, 0 };
 	const uint16_t pids[] = { low->ublast_pid_uninit, 0 };
-	struct jtag_libusb_device_handle *temp;
+	struct libusb_device_handle *temp;
 	bool renumeration = false;
 	int ret;
 
-	if (jtag_libusb_open(vids, pids, NULL, &temp) == ERROR_OK) {
+	if (jtag_libusb_open(vids, pids, NULL, &temp, NULL) == ERROR_OK) {
 		LOG_INFO("Altera USB-Blaster II (uninitialized) found");
 		LOG_INFO("Loading firmware...");
 		ret = load_usb_blaster_firmware(temp, low);
@@ -200,13 +209,15 @@ static int ublast2_libusb_init(struct ublast_lowlevel *low)
 	const uint16_t pids_renum[] = { low->ublast_pid, 0 };
 
 	if (renumeration == false) {
-		if (jtag_libusb_open(vids_renum, pids_renum, NULL, &low->libusb_dev) != ERROR_OK) {
+		if (jtag_libusb_open(vids_renum, pids_renum, NULL,
+				&low->libusb_dev, NULL) != ERROR_OK) {
 			LOG_ERROR("Altera USB-Blaster II not found");
 			return ERROR_FAIL;
 		}
 	} else {
 		int retry = 10;
-		while (jtag_libusb_open(vids_renum, pids_renum, NULL, &low->libusb_dev) != ERROR_OK && retry--) {
+		while (jtag_libusb_open(vids_renum, pids_renum, NULL,
+				&low->libusb_dev, NULL) != ERROR_OK && retry--) {
 			usleep(1000000);
 			LOG_INFO("Waiting for renumerate...");
 		}
@@ -219,7 +230,7 @@ static int ublast2_libusb_init(struct ublast_lowlevel *low)
 
 	char buffer[5];
 	jtag_libusb_control_transfer(low->libusb_dev,
-				     LIBUSB_REQUEST_TYPE_VENDOR | \
+				     LIBUSB_REQUEST_TYPE_VENDOR |
 				     LIBUSB_ENDPOINT_IN,
 				     USBBLASTER_CTRL_READ_REV,
 				     0,

@@ -417,7 +417,7 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
 	uint8_t in_value[4];
-	uint8_t out_value[4];
+	uint8_t out_value[4] = { 0 };
 
 	if (bscan_tunnel_ir_width != 0)
 		return dtmcontrol_scan_via_bscan(target, out);
@@ -761,7 +761,7 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 			return ERROR_FAIL;
 		}
 
-		uint8_t buff[4];
+		uint8_t buff[4] = { 0 };
 		buf_set_u32(buff, 0, breakpoint->length * CHAR_BIT, breakpoint->length == 4 ? ebreak() : ebreak_c());
 		int const retval = target_write_memory(target, breakpoint->address, 2, breakpoint->length / 2, buff);
 
@@ -995,12 +995,9 @@ static int oldriscv_step(struct target *target, int current, uint32_t address,
 	return tt->step(target, current, address, handle_breakpoints);
 }
 
-static int old_or_new_riscv_step(
-		struct target *target,
-		int current,
-		target_addr_t address,
-		int handle_breakpoints
-){
+static int old_or_new_riscv_step(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints)
+{
 	RISCV_INFO(r);
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	if (r->is_halted == NULL)
@@ -1795,7 +1792,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 
 	/* Disable Interrupts before attempting to run the algorithm. */
 	uint64_t current_mstatus;
-	uint8_t mstatus_bytes[8];
+	uint8_t mstatus_bytes[8] = { 0 };
 
 	LOG_DEBUG("Disabling Interrupts");
 	struct reg *reg_mstatus = register_get_by_name(target->reg_cache,
@@ -1872,7 +1869,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	reg_mstatus->type->set(reg_mstatus, mstatus_bytes);
 
 	/* Restore registers */
-	uint8_t buf[8];
+	uint8_t buf[8] = { 0 };
 	buf_set_u64(buf, 0, info->xlen[0], saved_pc);
 	if (reg_pc->type->set(reg_pc, buf) != ERROR_OK)
 		return ERROR_FAIL;
@@ -2196,12 +2193,9 @@ int riscv_openocd_poll(struct target *target)
 	return ERROR_OK;
 }
 
-int riscv_openocd_step(
-		struct target *target,
-		int current,
-		target_addr_t address,
-		int handle_breakpoints
-) {
+int riscv_openocd_step(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints)
+{
 	LOG_DEBUG("stepping rtos hart");
 
 	if (!current)
@@ -2751,13 +2745,13 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "test_sba_config_reg",
 		.handler = riscv_test_sba_config_reg,
 		.mode = COMMAND_ANY,
-		.usage = "riscv test_sba_config_reg legal_address num_words"
+		.usage = "riscv test_sba_config_reg legal_address num_words "
 			"illegal_address run_sbbusyerror_test[on/off]",
-		.help = "Perform a series of tests on the SBCS register."
-			"Inputs are a legal, 128-byte aligned address and a number of words to"
-			"read/write starting at that address (i.e., address range [legal address,"
-			"legal_address+word_size*num_words) must be legally readable/writable)"
-			", an illegal, 128-byte aligned address for error flag/handling cases,"
+		.help = "Perform a series of tests on the SBCS register. "
+			"Inputs are a legal, 128-byte aligned address and a number of words to "
+			"read/write starting at that address (i.e., address range [legal address, "
+			"legal_address+word_size*num_words) must be legally readable/writable), "
+			"an illegal, 128-byte aligned address for error flag/handling cases, "
 			"and whether sbbusyerror test should be run."
 	},
 	{
@@ -2832,11 +2826,6 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-extern __COMMAND_HANDLER(handle_common_semihosting_command);
-extern __COMMAND_HANDLER(handle_common_semihosting_fileio_command);
-extern __COMMAND_HANDLER(handle_common_semihosting_resumable_exit_command);
-extern __COMMAND_HANDLER(handle_common_semihosting_cmdline);
-
 /*
  * To be noted that RISC-V targets use the same semihosting commands as
  * ARM targets.
@@ -2850,37 +2839,7 @@ extern __COMMAND_HANDLER(handle_common_semihosting_cmdline);
  * protocol, then a command like `riscv semihosting enable` will make
  * sense, but for now all semihosting commands are prefixed with `arm`.
  */
-static const struct command_registration arm_exec_command_handlers[] = {
-	{
-		.name = "semihosting",
-		.handler = handle_common_semihosting_command,
-		.mode = COMMAND_EXEC,
-		.usage = "['enable'|'disable']",
-		.help = "activate support for semihosting operations",
-	},
-	{
-		.name = "semihosting_cmdline",
-		.handler = handle_common_semihosting_cmdline,
-		.mode = COMMAND_EXEC,
-		.usage = "arguments",
-		.help = "command line arguments to be passed to program",
-	},
-	{
-		.name = "semihosting_fileio",
-		.handler = handle_common_semihosting_fileio_command,
-		.mode = COMMAND_EXEC,
-		.usage = "['enable'|'disable']",
-		.help = "activate support for semihosting fileio operations",
-	},
-	{
-		.name = "semihosting_resexit",
-		.handler = handle_common_semihosting_resumable_exit_command,
-		.mode = COMMAND_EXEC,
-		.usage = "['enable'|'disable']",
-		.help = "activate support for semihosting resumable exit",
-	},
-	COMMAND_REGISTRATION_DONE
-};
+extern const struct command_registration semihosting_common_handlers[];
 
 const struct command_registration riscv_command_handlers[] = {
 	{
@@ -2895,7 +2854,7 @@ const struct command_registration riscv_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "ARM Command Group",
 		.usage = "",
-		.chain = arm_exec_command_handlers
+		.chain = semihosting_common_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };

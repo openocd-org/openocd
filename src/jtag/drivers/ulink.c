@@ -235,7 +235,7 @@ int ulink_queue_stableclocks(struct ulink *device, struct jtag_command *cmd);
 int ulink_post_process_scan(struct ulink_cmd *ulink_cmd);
 int ulink_post_process_queue(struct ulink *device);
 
-/* JTAG driver functions (registered in struct jtag_interface) */
+/* adapter driver functions */
 static int ulink_execute_queue(void);
 static int ulink_khz(int khz, int *jtag_speed);
 static int ulink_speed(int speed);
@@ -650,7 +650,7 @@ void ulink_clear_queue(struct ulink *device)
 int ulink_append_queue(struct ulink *device, struct ulink_cmd *ulink_cmd)
 {
 	int newsize_out, newsize_in;
-	int ret;
+	int ret = ERROR_OK;
 
 	newsize_out = ulink_get_queue_size(device, PAYLOAD_DIRECTION_OUT) + 1
 		+ ulink_cmd->payload_out_size;
@@ -663,14 +663,12 @@ int ulink_append_queue(struct ulink *device, struct ulink_cmd *ulink_cmd)
 		/* New command does not fit. Execute all commands in queue before starting
 		 * new queue with the current command as first entry. */
 		ret = ulink_execute_queued_commands(device, USB_TIMEOUT);
-		if (ret != ERROR_OK)
-			return ret;
 
-		ret = ulink_post_process_queue(device);
-		if (ret != ERROR_OK)
-			return ret;
+		if (ret == ERROR_OK)
+			ret = ulink_post_process_queue(device);
 
-		ulink_clear_queue(device);
+		if (ret == ERROR_OK)
+			ulink_clear_queue(device);
 	}
 
 	if (device->queue_start == NULL) {
@@ -687,7 +685,10 @@ int ulink_append_queue(struct ulink *device, struct ulink_cmd *ulink_cmd)
 		device->queue_end = ulink_cmd;
 	}
 
-	return ERROR_OK;
+	if (ret != ERROR_OK)
+		ulink_clear_queue(device);
+
+	return ret;
 }
 
 /**
@@ -764,58 +765,40 @@ static const char *ulink_cmd_id_string(uint8_t id)
 	switch (id) {
 	case CMD_SCAN_IN:
 		return "CMD_SCAN_IN";
-		break;
 	case CMD_SLOW_SCAN_IN:
 		return "CMD_SLOW_SCAN_IN";
-		break;
 	case CMD_SCAN_OUT:
 		return "CMD_SCAN_OUT";
-		break;
 	case CMD_SLOW_SCAN_OUT:
 		return "CMD_SLOW_SCAN_OUT";
-		break;
 	case CMD_SCAN_IO:
 		return "CMD_SCAN_IO";
-		break;
 	case CMD_SLOW_SCAN_IO:
 		return "CMD_SLOW_SCAN_IO";
-		break;
 	case CMD_CLOCK_TMS:
 		return "CMD_CLOCK_TMS";
-		break;
 	case CMD_SLOW_CLOCK_TMS:
 		return "CMD_SLOW_CLOCK_TMS";
-		break;
 	case CMD_CLOCK_TCK:
 		return "CMD_CLOCK_TCK";
-		break;
 	case CMD_SLOW_CLOCK_TCK:
 		return "CMD_SLOW_CLOCK_TCK";
-		break;
 	case CMD_SLEEP_US:
 		return "CMD_SLEEP_US";
-		break;
 	case CMD_SLEEP_MS:
 		return "CMD_SLEEP_MS";
-		break;
 	case CMD_GET_SIGNALS:
 		return "CMD_GET_SIGNALS";
-		break;
 	case CMD_SET_SIGNALS:
 		return "CMD_SET_SIGNALS";
-		break;
 	case CMD_CONFIGURE_TCK_FREQ:
 		return "CMD_CONFIGURE_TCK_FREQ";
-		break;
 	case CMD_SET_LEDS:
 		return "CMD_SET_LEDS";
-		break;
 	case CMD_TEST:
 		return "CMD_TEST";
-		break;
 	default:
 		return "CMD_UNKNOWN";
-		break;
 	}
 }
 
@@ -1627,6 +1610,7 @@ int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd)
 
 		if (ret != ERROR_OK) {
 			free(tdi_buffer_start);
+			free(tdo_buffer_start);
 			return ret;
 		}
 	}
@@ -2209,14 +2193,17 @@ static int ulink_init(void)
 	}
 	ulink_clear_queue(ulink_handle);
 
-	ulink_append_get_signals_cmd(ulink_handle);
-	ulink_execute_queued_commands(ulink_handle, 200);
+	ret = ulink_append_get_signals_cmd(ulink_handle);
+	if (ret == ERROR_OK)
+		ret = ulink_execute_queued_commands(ulink_handle, 200);
 
-	/* Post-process the single CMD_GET_SIGNALS command */
-	input_signals = ulink_handle->queue_start->payload_in[0];
-	output_signals = ulink_handle->queue_start->payload_in[1];
+	if (ret == ERROR_OK) {
+		/* Post-process the single CMD_GET_SIGNALS command */
+		input_signals = ulink_handle->queue_start->payload_in[0];
+		output_signals = ulink_handle->queue_start->payload_in[1];
 
-	ulink_print_signal_states(input_signals, output_signals);
+		ulink_print_signal_states(input_signals, output_signals);
+	}
 
 	ulink_clear_queue(ulink_handle);
 
@@ -2272,17 +2259,20 @@ static const struct command_registration ulink_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE,
 };
 
-struct jtag_interface ulink_interface = {
-	.name = "ulink",
-
-	.commands = ulink_command_handlers,
-	.transports = jtag_only,
-
+static struct jtag_interface ulink_interface = {
 	.execute_queue = ulink_execute_queue,
-	.khz = ulink_khz,
-	.speed = ulink_speed,
-	.speed_div = ulink_speed_div,
+};
+
+struct adapter_driver ulink_adapter_driver = {
+	.name = "ulink",
+	.transports = jtag_only,
+	.commands = ulink_command_handlers,
 
 	.init = ulink_init,
-	.quit = ulink_quit
+	.quit = ulink_quit,
+	.speed = ulink_speed,
+	.khz = ulink_khz,
+	.speed_div = ulink_speed_div,
+
+	.jtag_ops = &ulink_interface,
 };

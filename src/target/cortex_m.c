@@ -129,7 +129,7 @@ static int cortex_m_write_debug_halt_mask(struct target *target,
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 
 	/* mask off status bits */
-	cortex_m->dcb_dhcsr &= ~((0xFFFF << 16) | mask_off);
+	cortex_m->dcb_dhcsr &= ~((0xFFFFul << 16) | mask_off);
 	/* create new register mask */
 	cortex_m->dcb_dhcsr |= DBGKEY | C_DEBUGEN | mask_on;
 
@@ -710,11 +710,11 @@ static int cortex_m_soft_reset_halt(struct target *target)
 	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
-	/* soft_reset_halt is deprecated on cortex_m as the same functionality
-	 * can be obtained by using 'reset halt' and 'cortex_m reset_config vectreset'
-	 * As this reset only used VC_CORERESET it would only ever reset the cortex_m
+	/* on single cortex_m MCU soft_reset_halt should be avoided as same functionality
+	 * can be obtained by using 'reset halt' and 'cortex_m reset_config vectreset'.
+	 * As this reset only uses VC_CORERESET it would only ever reset the cortex_m
 	 * core, not the peripherals */
-	LOG_WARNING("soft_reset_halt is deprecated, please use 'reset halt' instead.");
+	LOG_DEBUG("soft_reset_halt is discouraged, please use 'reset halt' instead.");
 
 	/* Set C_DEBUGEN */
 	retval = cortex_m_write_debug_halt_mask(target, 0, C_STEP | C_MASKINTS);
@@ -919,7 +919,7 @@ static int cortex_m_step(struct target *target, int current,
 	 * a normal step, otherwise we have to manually step over the bkpt
 	 * instruction - as such simulate a step */
 	if (bkpt_inst_found == false) {
-		if ((cortex_m->isrmasking_mode != CORTEX_M_ISRMASK_AUTO)) {
+		if (cortex_m->isrmasking_mode != CORTEX_M_ISRMASK_AUTO) {
 			/* Automatic ISR masking mode off: Just step over the next
 			 * instruction, with interrupts on or off as appropriate. */
 			cortex_m_set_maskints_for_step(target);
@@ -966,8 +966,7 @@ static int cortex_m_step(struct target *target, int current,
 				/* Re-enable interrupts if appropriate */
 				cortex_m_write_debug_halt_mask(target, C_HALT, 0);
 				cortex_m_set_maskints_for_halt(target);
-			}
-			else {
+			} else {
 
 				/* Set a temporary break point */
 				if (breakpoint) {
@@ -1980,7 +1979,7 @@ static void cortex_m_dwt_addreg(struct target *t, struct reg *r, const struct dw
 {
 	struct dwt_reg_state *state;
 
-	state = calloc(1, sizeof *state);
+	state = calloc(1, sizeof(*state));
 	if (!state)
 		return;
 	state->addr = d->addr;
@@ -2021,7 +2020,7 @@ fail0:
 		return;
 	}
 
-	cache = calloc(1, sizeof *cache);
+	cache = calloc(1, sizeof(*cache));
 	if (!cache) {
 fail1:
 		free(cm->dwt_comparator_list);
@@ -2029,7 +2028,7 @@ fail1:
 	}
 	cache->name = "Cortex-M DWT registers";
 	cache->num_regs = 2 + cm->dwt_num_comp * 3;
-	cache->reg_list = calloc(cache->num_regs, sizeof *cache->reg_list);
+	cache->reg_list = calloc(cache->num_regs, sizeof(*cache->reg_list));
 	if (!cache->reg_list) {
 		free(cache);
 		goto fail1;
@@ -2229,6 +2228,19 @@ int cortex_m_examine(struct target *target)
 			else if (i == 7)
 				/* Cortex-M7 has only 1024 bytes autoincrement range */
 				armv7m->debug_ap->tar_autoincr_block = (1 << 10);
+		}
+
+		/* Enable debug requests */
+		retval = target_read_u32(target, DCB_DHCSR, &cortex_m->dcb_dhcsr);
+		if (retval != ERROR_OK)
+			return retval;
+		if (!(cortex_m->dcb_dhcsr & C_DEBUGEN)) {
+			uint32_t dhcsr = (cortex_m->dcb_dhcsr | C_DEBUGEN) & ~(C_HALT | C_STEP | C_MASKINTS);
+
+			retval = target_write_u32(target, DCB_DHCSR, DBGKEY | (dhcsr & 0x0000FFFFUL));
+			if (retval != ERROR_OK)
+				return retval;
+			cortex_m->dcb_dhcsr = dhcsr;
 		}
 
 		/* Configure trace modules */

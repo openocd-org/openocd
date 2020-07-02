@@ -46,7 +46,7 @@
  * Holds support for configuring debug adapters from TCl scripts.
  */
 
-extern struct jtag_interface *jtag_interface;
+struct adapter_driver *adapter_driver;
 const char * const jtag_only[] = { "jtag", NULL };
 
 static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
@@ -61,12 +61,12 @@ static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
 		return JIM_ERR;
 	}
-	const char *name = jtag_interface ? jtag_interface->name : NULL;
+	const char *name = adapter_driver ? adapter_driver->name : NULL;
 	Jim_SetResultString(goi.interp, name ? : "undefined", -1);
 	return JIM_OK;
 }
 
-COMMAND_HANDLER(interface_transport_command)
+COMMAND_HANDLER(adapter_transports_command)
 {
 	char **transports;
 	int retval;
@@ -85,26 +85,26 @@ COMMAND_HANDLER(interface_transport_command)
 	return retval;
 }
 
-COMMAND_HANDLER(handle_interface_list_command)
+COMMAND_HANDLER(handle_adapter_list_command)
 {
-	if (strcmp(CMD_NAME, "interface_list") == 0 && CMD_ARGC > 0)
+	if (strcmp(CMD_NAME, "list") == 0 && CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(CMD, "The following debug interfaces are available:");
-	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
-		const char *name = jtag_interfaces[i]->name;
+	command_print(CMD, "The following debug adapters are available:");
+	for (unsigned i = 0; NULL != adapter_drivers[i]; i++) {
+		const char *name = adapter_drivers[i]->name;
 		command_print(CMD, "%u: %s", i + 1, name);
 	}
 
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_interface_command)
+COMMAND_HANDLER(handle_adapter_driver_command)
 {
 	int retval;
 
 	/* check whether the interface is already configured */
-	if (jtag_interface) {
+	if (adapter_driver) {
 		LOG_WARNING("Interface already configured, ignoring");
 		return ERROR_OK;
 	}
@@ -113,20 +113,20 @@ COMMAND_HANDLER(handle_interface_command)
 	if (CMD_ARGC != 1 || CMD_ARGV[0][0] == '\0')
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++) {
-		if (strcmp(CMD_ARGV[0], jtag_interfaces[i]->name) != 0)
+	for (unsigned i = 0; NULL != adapter_drivers[i]; i++) {
+		if (strcmp(CMD_ARGV[0], adapter_drivers[i]->name) != 0)
 			continue;
 
-		if (NULL != jtag_interfaces[i]->commands) {
+		if (NULL != adapter_drivers[i]->commands) {
 			retval = register_commands(CMD_CTX, NULL,
-					jtag_interfaces[i]->commands);
+					adapter_drivers[i]->commands);
 			if (ERROR_OK != retval)
 				return retval;
 		}
 
-		jtag_interface = jtag_interfaces[i];
+		adapter_driver = adapter_drivers[i];
 
-		return allow_transports(CMD_CTX, jtag_interface->transports);
+		return allow_transports(CMD_CTX, adapter_driver->transports);
 	}
 
 	/* no valid interface was found (i.e. the configuration option,
@@ -134,7 +134,7 @@ COMMAND_HANDLER(handle_interface_command)
 	 */
 	LOG_ERROR("The specified debug interface was not found (%s)",
 				CMD_ARGV[0]);
-	CALL_COMMAND_HANDLER(handle_interface_list_command);
+	CALL_COMMAND_HANDLER(handle_adapter_list_command);
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
 
@@ -355,7 +355,7 @@ next:
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_adapter_nsrst_delay_command)
+COMMAND_HANDLER(handle_adapter_srst_delay_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -365,11 +365,11 @@ COMMAND_HANDLER(handle_adapter_nsrst_delay_command)
 
 		jtag_set_nsrst_delay(delay);
 	}
-	command_print(CMD, "adapter_nsrst_delay: %u", jtag_get_nsrst_delay());
+	command_print(CMD, "adapter srst delay: %u", jtag_get_nsrst_delay());
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
+COMMAND_HANDLER(handle_adapter_srst_pulse_width_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -379,11 +379,11 @@ COMMAND_HANDLER(handle_adapter_nsrst_assert_width_command)
 
 		jtag_set_nsrst_assert_width(width);
 	}
-	command_print(CMD, "adapter_nsrst_assert_width: %u", jtag_get_nsrst_assert_width());
+	command_print(CMD, "adapter srst pulse_width: %u", jtag_get_nsrst_assert_width());
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_adapter_khz_command)
+COMMAND_HANDLER(handle_adapter_speed_command)
 {
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -409,6 +409,92 @@ COMMAND_HANDLER(handle_adapter_khz_command)
 		command_print(CMD, "adapter speed: RCLK - adaptive");
 
 	return retval;
+}
+
+COMMAND_HANDLER(handle_adapter_reset_de_assert)
+{
+	enum values {
+		VALUE_UNDEFINED = -1,
+		VALUE_DEASSERT  = 0,
+		VALUE_ASSERT    = 1,
+	};
+	enum values value;
+	enum values srst = VALUE_UNDEFINED;
+	enum values trst = VALUE_UNDEFINED;
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
+	char *signal;
+
+	if (CMD_ARGC == 0) {
+		if (transport_is_jtag()) {
+			if (jtag_reset_config & RESET_HAS_TRST)
+				signal = jtag_get_trst() ? "asserted" : "deasserted";
+			else
+				signal = "not present";
+			command_print(CMD, "trst %s", signal);
+		}
+
+		if (jtag_reset_config & RESET_HAS_SRST)
+			signal = jtag_get_srst() ? "asserted" : "deasserted";
+		else
+			signal = "not present";
+		command_print(CMD, "srst %s", signal);
+
+		return ERROR_OK;
+	}
+
+	if (CMD_ARGC != 1 && CMD_ARGC != 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	value = (strcmp(CMD_NAME, "assert") == 0) ? VALUE_ASSERT : VALUE_DEASSERT;
+	if (strcmp(CMD_ARGV[0], "srst") == 0)
+		srst = value;
+	else if (strcmp(CMD_ARGV[0], "trst") == 0)
+		trst = value;
+	else
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 3) {
+		if (strcmp(CMD_ARGV[1], "assert") == 0)
+			value = VALUE_ASSERT;
+		else if (strcmp(CMD_ARGV[1], "deassert") == 0)
+			value = VALUE_DEASSERT;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+		if (strcmp(CMD_ARGV[2], "srst") == 0 && srst == VALUE_UNDEFINED)
+			srst = value;
+		else if (strcmp(CMD_ARGV[2], "trst") == 0 && trst == VALUE_UNDEFINED)
+			trst = value;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	if (trst == VALUE_UNDEFINED) {
+		if (transport_is_jtag())
+			trst = jtag_get_trst() ? VALUE_ASSERT : VALUE_DEASSERT;
+		else
+			trst = VALUE_DEASSERT; /* unused, safe value */
+	}
+
+	if (srst == VALUE_UNDEFINED) {
+		if (jtag_reset_config & RESET_HAS_SRST)
+			srst = jtag_get_srst() ? VALUE_ASSERT : VALUE_DEASSERT;
+		else
+			srst = VALUE_DEASSERT; /* unused, safe value */
+	}
+
+	if (trst == VALUE_ASSERT && !transport_is_jtag()) {
+		LOG_ERROR("transport has no trst signal");
+		return ERROR_FAIL;
+	}
+
+	if (srst == VALUE_ASSERT && !(jtag_reset_config & RESET_HAS_SRST)) {
+		LOG_ERROR("adapter has no srst signal");
+		return ERROR_FAIL;
+	}
+
+	return adapter_resets((trst == VALUE_DEASSERT) ? TRST_DEASSERT : TRST_ASSERT,
+						  (srst == VALUE_DEASSERT) ? SRST_DEASSERT : SRST_ASSERT);
 }
 
 #ifndef HAVE_JTAG_MINIDRIVER_H
@@ -438,7 +524,70 @@ static const struct command_registration adapter_usb_command_handlers[] = {
 };
 #endif /* MINIDRIVER */
 
+static const struct command_registration adapter_srst_command_handlers[] = {
+	{
+		.name = "delay",
+		.handler = handle_adapter_srst_delay_command,
+		.mode = COMMAND_ANY,
+		.help = "delay after deasserting SRST in ms",
+		.usage = "[milliseconds]",
+	},
+	{
+		.name = "pulse_width",
+		.handler = handle_adapter_srst_pulse_width_command,
+		.mode = COMMAND_ANY,
+		.help = "SRST assertion pulse width in ms",
+		.usage = "[milliseconds]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static const struct command_registration adapter_command_handlers[] = {
+	{
+		.name = "driver",
+		.handler = handle_adapter_driver_command,
+		.mode = COMMAND_CONFIG,
+		.help = "Select a debug adapter driver",
+		.usage = "driver_name",
+	},
+	{
+		.name = "speed",
+		.handler = handle_adapter_speed_command,
+		.mode = COMMAND_ANY,
+		.help = "With an argument, change to the specified maximum "
+			"jtag speed.  For JTAG, 0 KHz signifies adaptive "
+			"clocking. "
+			"With or without argument, display current setting.",
+		.usage = "[khz]",
+	},
+	{
+		.name = "list",
+		.handler = handle_adapter_list_command,
+		.mode = COMMAND_ANY,
+		.help = "List all built-in debug adapter drivers",
+		.usage = "",
+	},
+	{
+		.name = "name",
+		.mode = COMMAND_ANY,
+		.jim_handler = jim_adapter_name,
+		.help = "Returns the name of the currently "
+			"selected adapter (driver)",
+	},
+	{
+		.name = "srst",
+		.mode = COMMAND_ANY,
+		.help = "srst adapter command group",
+		.usage = "",
+		.chain = adapter_srst_command_handlers,
+	},
+	{
+		.name = "transports",
+		.handler = adapter_transports_command,
+		.mode = COMMAND_CONFIG,
+		.help = "Declare transports the adapter supports.",
+		.usage = "transport ... ",
+	},
 #ifndef HAVE_JTAG_MINIDRIVER_H
 	{
 		.name = "usb",
@@ -448,6 +597,20 @@ static const struct command_registration adapter_command_handlers[] = {
 		.chain = adapter_usb_command_handlers,
 	},
 #endif /* MINIDRIVER */
+	{
+		.name = "assert",
+		.handler = handle_adapter_reset_de_assert,
+		.mode = COMMAND_EXEC,
+		.help = "Controls SRST and TRST lines.",
+		.usage = "|deassert [srst|trst [assert|deassert srst|trst]]",
+	},
+	{
+		.name = "deassert",
+		.handler = handle_adapter_reset_de_assert,
+		.mode = COMMAND_EXEC,
+		.help = "Controls SRST and TRST lines.",
+		.usage = "|assert [srst|trst [deassert|assert srst|trst]]",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -458,58 +621,6 @@ static const struct command_registration interface_command_handlers[] = {
 		.help = "adapter command group",
 		.usage = "",
 		.chain = adapter_command_handlers,
-	},
-	{
-		.name = "adapter_khz",
-		.handler = handle_adapter_khz_command,
-		.mode = COMMAND_ANY,
-		.help = "With an argument, change to the specified maximum "
-			"jtag speed.  For JTAG, 0 KHz signifies adaptive "
-			" clocking. "
-			"With or without argument, display current setting.",
-		.usage = "[khz]",
-	},
-	{
-		.name = "adapter_name",
-		.mode = COMMAND_ANY,
-		.jim_handler = jim_adapter_name,
-		.help = "Returns the name of the currently "
-			"selected adapter (driver)",
-	},
-	{
-		.name = "adapter_nsrst_delay",
-		.handler = handle_adapter_nsrst_delay_command,
-		.mode = COMMAND_ANY,
-		.help = "delay after deasserting SRST in ms",
-		.usage = "[milliseconds]",
-	},
-	{
-		.name = "adapter_nsrst_assert_width",
-		.handler = handle_adapter_nsrst_assert_width_command,
-		.mode = COMMAND_ANY,
-		.help = "delay after asserting SRST in ms",
-		.usage = "[milliseconds]",
-	},
-	{
-		.name = "interface",
-		.handler = handle_interface_command,
-		.mode = COMMAND_CONFIG,
-		.help = "Select a debug adapter interface (driver)",
-		.usage = "driver_name",
-	},
-	{
-		.name = "interface_transports",
-		.handler = interface_transport_command,
-		.mode = COMMAND_CONFIG,
-		.help = "Declare transports the interface supports.",
-		.usage = "transport ... ",
-	},
-	{
-		.name = "interface_list",
-		.handler = handle_interface_list_command,
-		.mode = COMMAND_ANY,
-		.help = "List all built-in debug adapter interfaces (drivers)",
-		.usage = "",
 	},
 	{
 		.name = "reset_config",

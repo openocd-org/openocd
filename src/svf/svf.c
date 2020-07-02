@@ -990,7 +990,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 				/* TODO: set jtag speed to */
 				if (svf_para.frequency > 0) {
 					command_run_linef(cmd_ctx,
-							"adapter_khz %d",
+							"adapter speed %d",
 							(int)svf_para.frequency / 1000);
 					LOG_DEBUG("\tfrequency = %f", svf_para.frequency);
 				}
@@ -1310,7 +1310,6 @@ XXR_common:
 		case PIOMAP:
 			LOG_ERROR("PIO and PIOMAP are not supported");
 			return ERROR_FAIL;
-			break;
 		case RUNTEST:
 			/* RUNTEST [run_state] run_count run_clk [min_time SEC [MAXIMUM max_time
 			 * SEC]] [ENDSTATE end_state] */
@@ -1532,7 +1531,6 @@ XXR_common:
 		default:
 			LOG_ERROR("invalid svf command: %s", argus[0]);
 			return ERROR_FAIL;
-			break;
 	}
 
 	if (!svf_quiet) {
@@ -1542,8 +1540,8 @@ XXR_common:
 
 	if (debug_level >= LOG_LVL_DEBUG) {
 		/* for convenient debugging, execute tap if possible */
-		if ((svf_buffer_index > 0) && \
-				(((command != STATE) && (command != RUNTEST)) || \
+		if ((svf_buffer_index > 0) &&
+				(((command != STATE) && (command != RUNTEST)) ||
 						((command == STATE) && (num_of_argu == 2)))) {
 			if (ERROR_OK != svf_execute_tap())
 				return ERROR_FAIL;
@@ -1557,8 +1555,8 @@ XXR_common:
 		/* for fast executing, execute tap if necessary */
 		/* half of the buffer is for the next command */
 		if (((svf_buffer_index >= SVF_MAX_BUFFER_SIZE_TO_COMMIT) ||
-				(svf_check_tdo_para_index >= SVF_CHECK_TDO_PARA_SIZE / 2)) && \
-				(((command != STATE) && (command != RUNTEST)) || \
+				(svf_check_tdo_para_index >= SVF_CHECK_TDO_PARA_SIZE / 2)) &&
+				(((command != STATE) && (command != RUNTEST)) ||
 						((command == STATE) && (num_of_argu == 2))))
 			return svf_execute_tap();
 	}

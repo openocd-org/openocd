@@ -303,6 +303,11 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 	reg_list = calloc(128, sizeof(struct reg));
 	arch_info = calloc(128, sizeof(struct etm_reg));
 
+	if (reg_cache == NULL || reg_list == NULL || arch_info == NULL) {
+		LOG_ERROR("No memory");
+		goto fail;
+	}
+
 	/* fill in values for the reg cache */
 	reg_cache->name = "etm registers";
 	reg_cache->next = NULL;
@@ -498,6 +503,7 @@ static int etm_read_reg_w_check(struct reg *reg,
 	uint8_t *check_value, uint8_t *check_mask)
 {
 	struct etm_reg *etm_reg = reg->arch_info;
+	assert(etm_reg);
 	const struct etm_reg_info *r = etm_reg->reg_info;
 	uint8_t reg_addr = r->addr & 0x7f;
 	struct scan_field fields[3];
@@ -527,7 +533,7 @@ static int etm_read_reg_w_check(struct reg *reg,
 	fields[0].check_mask = NULL;
 
 	fields[1].num_bits = 7;
-	uint8_t temp1;
+	uint8_t temp1 = 0;
 	fields[1].out_value = &temp1;
 	buf_set_u32(&temp1, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
@@ -535,7 +541,7 @@ static int etm_read_reg_w_check(struct reg *reg,
 	fields[1].check_mask = NULL;
 
 	fields[2].num_bits = 1;
-	uint8_t temp2;
+	uint8_t temp2 = 0;
 	fields[2].out_value = &temp2;
 	buf_set_u32(&temp2, 0, 1, 0);
 	fields[2].in_value = NULL;
@@ -614,13 +620,13 @@ static int etm_write_reg(struct reg *reg, uint32_t value)
 	fields[0].in_value = NULL;
 
 	fields[1].num_bits = 7;
-	uint8_t tmp2;
+	uint8_t tmp2 = 0;
 	fields[1].out_value = &tmp2;
 	buf_set_u32(&tmp2, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
 
 	fields[2].num_bits = 1;
-	uint8_t tmp3;
+	uint8_t tmp3 = 0;
 	fields[2].out_value = &tmp3;
 	buf_set_u32(&tmp3, 0, 1, 1);
 	fields[2].in_value = NULL;
@@ -1068,8 +1074,8 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 					(instruction.type == ARM_STM)) {
 					int i;
 					for (i = 0; i < 16; i++) {
-						if (instruction.info.load_store_multiple.
-							register_list & (1 << i)) {
+						if (instruction.info.load_store_multiple.register_list
+							& (1 << i)) {
 							uint32_t data;
 							if (etmv1_data(ctx, 4, &data) != 0)
 								return ERROR_ETM_ANALYSIS_FAILED;

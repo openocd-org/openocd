@@ -301,19 +301,21 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 		int *reg_list_size, enum target_register_class reg_class)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	int i;
+	int i, size;
 
 	if (reg_class == REG_CLASS_ALL)
-		*reg_list_size = armv7m->arm.core_cache->num_regs;
+		size = armv7m->arm.core_cache->num_regs;
 	else
-		*reg_list_size = ARMV7M_NUM_CORE_REGS;
+		size = ARMV7M_NUM_CORE_REGS;
 
-	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
+	*reg_list = malloc(sizeof(struct reg *) * size);
 	if (*reg_list == NULL)
 		return ERROR_FAIL;
 
-	for (i = 0; i < *reg_list_size; i++)
+	for (i = 0; i < size; i++)
 		(*reg_list)[i] = &armv7m->arm.core_cache->reg_list[i];
+
+	*reg_list_size = size;
 
 	return ERROR_OK;
 }
@@ -462,7 +464,6 @@ int armv7m_wait_algorithm(struct target *target,
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct armv7m_algorithm *armv7m_algorithm_info = arch_info;
 	int retval = ERROR_OK;
-	uint32_t pc;
 
 	/* NOTE: armv7m_run_algorithm requires that each algorithm uses a software breakpoint
 	 * at the exit point */
@@ -484,12 +485,14 @@ int armv7m_wait_algorithm(struct target *target,
 		return ERROR_TARGET_TIMEOUT;
 	}
 
-	armv7m->load_core_reg_u32(target, 15, &pc);
-	if (exit_point && (pc != exit_point)) {
-		LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 ", expected 0x%" TARGET_PRIxADDR,
-			pc,
-			exit_point);
-		return ERROR_TARGET_TIMEOUT;
+	if (exit_point) {
+		/* PC value has been cached in cortex_m_debug_entry() */
+		uint32_t pc = buf_get_u32(armv7m->arm.pc->value, 0, 32);
+		if (pc != exit_point) {
+			LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 ", expected 0x%" TARGET_PRIxADDR,
+					  pc, exit_point);
+			return ERROR_TARGET_ALGO_EXIT;
+		}
 	}
 
 	/* Read memory values to mem_params[] */
@@ -695,7 +698,7 @@ int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 	/* Enable stimulus port #0 by default */
 	armv7m->trace_config.itm_ter[0] = 1;
 
-	arm->core_type = ARM_MODE_THREAD;
+	arm->core_type = ARM_CORE_TYPE_M_PROFILE;
 	arm->arch_info = armv7m;
 	arm->setup_semihosting = armv7m_setup_semihosting;
 

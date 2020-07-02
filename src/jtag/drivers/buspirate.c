@@ -34,6 +34,7 @@
 static int buspirate_execute_queue(void);
 static int buspirate_init(void);
 static int buspirate_quit(void);
+static int buspirate_reset(int trst, int srst);
 
 static void buspirate_end_state(tap_state_t state);
 static void buspirate_state_move(void);
@@ -133,7 +134,6 @@ static void buspirate_tap_append_scan(int length, uint8_t *buffer,
 		struct scan_command *command);
 static void buspirate_tap_make_space(int scan, int bits);
 
-static void buspirate_reset(int trst, int srst);
 static void buspirate_set_feature(int, char, char);
 static void buspirate_set_mode(int, char);
 static void buspirate_set_speed(int, char);
@@ -212,18 +212,6 @@ static int buspirate_execute_queue(void)
 			buspirate_scan(cmd->cmd.scan->ir_scan, type,
 				buffer, scan_size, cmd->cmd.scan);
 
-			break;
-		case JTAG_RESET:
-			LOG_DEBUG_IO("reset trst: %i srst %i",
-				cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-
-			/* flush buffers, so we can reset */
-			buspirate_tap_execute();
-
-			if (cmd->cmd.reset->trst == 1)
-				tap_set_state(TAP_RESET);
-			buspirate_reset(cmd->cmd.reset->trst,
-					cmd->cmd.reset->srst);
 			break;
 		case JTAG_SLEEP:
 			LOG_DEBUG_IO("sleep %i", cmd->cmd.sleep->us);
@@ -548,14 +536,21 @@ static const struct swd_driver buspirate_swd = {
 
 static const char * const buspirate_transports[] = { "jtag", "swd", NULL };
 
-struct jtag_interface buspirate_interface = {
-	.name = "buspirate",
+static struct jtag_interface buspirate_interface = {
 	.execute_queue = buspirate_execute_queue,
-	.commands = buspirate_command_handlers,
+};
+
+struct adapter_driver buspirate_adapter_driver = {
+	.name = "buspirate",
 	.transports = buspirate_transports,
-	.swd = &buspirate_swd,
+	.commands = buspirate_command_handlers,
+
 	.init = buspirate_init,
-	.quit = buspirate_quit
+	.quit = buspirate_quit,
+	.reset = buspirate_reset,
+
+	.jtag_ops = &buspirate_interface,
+	.swd_ops = &buspirate_swd,
 };
 
 /*************** jtag execute commands **********************/
@@ -860,7 +855,7 @@ static void buspirate_tap_append_scan(int length, uint8_t *buffer,
 /*************** wrapper functions *********************/
 
 /* (1) assert or (0) deassert reset lines */
-static void buspirate_reset(int trst, int srst)
+static int buspirate_reset(int trst, int srst)
 {
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
@@ -873,6 +868,8 @@ static void buspirate_reset(int trst, int srst)
 		buspirate_set_feature(buspirate_fd, FEATURE_SRST, ACTION_DISABLE);
 	else
 		buspirate_set_feature(buspirate_fd, FEATURE_SRST, ACTION_ENABLE);
+
+	return ERROR_OK;
 }
 
 static void buspirate_set_feature(int fd, char feat, char action)

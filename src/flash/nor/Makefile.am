@@ -51,6 +51,8 @@ NOR_DRIVERS = \
 	%D%/psoc4.c \
 	%D%/psoc5lp.c \
 	%D%/psoc6.c \
+	%D%/renesas_rpchf.c \
+	%D%/sh_qspi.c \
 	%D%/sim3x.c \
 	%D%/spi.c \
 	%D%/stmsmi.c \
@@ -74,6 +76,7 @@ NOR_DRIVERS = \
 NORHEADERS = \
 	%D%/core.h \
 	%D%/cc3220sf.h \
+	%D%/bluenrg-x.h \
 	%D%/cc26xx.h \
 	%D%/cfi.h \
 	%D%/driver.h \
@@ -81,4 +84,5 @@ NORHEADERS = \
 	%D%/non_cfi.h \
 	%D%/ocl.h \
 	%D%/spi.h \
+	%D%/stm32l4x.h \
 	%D%/msp432.h

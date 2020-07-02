@@ -621,17 +621,17 @@ struct threads *liste_del_task(struct threads *task_list, struct threads **t,
 	struct threads *prev)
 {
 	LOG_INFO("del task %" PRId64, (*t)->threadid);
-	prev->next = (*t)->next;
-
-	if (prev == task_list)
-		task_list = prev;
+	if (prev)
+		prev->next = (*t)->next;
+	else
+		task_list = (*t)->next;
 
 	/*  free content of threads */
 	if ((*t)->context)
 		free((*t)->context);
 
 	free(*t);
-	*t = prev;
+	*t = prev ? prev : task_list;
 	return task_list;
 }
 
@@ -725,6 +725,7 @@ int linux_get_tasks(struct target *target, int context)
 
 		/*  check that this thread is not one the current threads already
 		 *  created */
+		uint32_t base_addr;
 #ifdef PID_CHECK
 
 		if (!current_pid(linux_os, t->pid)) {
@@ -745,12 +746,13 @@ int linux_get_tasks(struct target *target, int context)
 				t->context =
 					cpu_context_read(target, t->base_addr,
 						&t->thread_info_addr);
+			base_addr = next_task(target, t);
 		} else {
 			/*LOG_INFO("thread %s is a current thread already created",t->name); */
+			base_addr = next_task(target, t);
 			free(t);
 		}
 
-		uint32_t base_addr = next_task(target, t);
 		t = calloc(1, sizeof(struct threads));
 		t->base_addr = base_addr;
 	}
@@ -993,10 +995,8 @@ static int linux_task_update(struct target *target, int context)
 					if (context)
 						thread_list->context =
 							cpu_context_read(target,
-								thread_list->
-								base_addr,
-								&thread_list->
-								thread_info_addr);
+								thread_list->base_addr,
+								&thread_list->thread_info_addr);
 				} else {
 					/*  it is a current thread no need to read context */
 				}
@@ -1178,7 +1178,7 @@ int linux_gdb_T_packet(struct connection *connection,
 
 	if (linux_os->threads_needs_update == 0) {
 		struct threads *temp = linux_os->thread_list;
-		struct threads *prev = linux_os->thread_list;
+		struct threads *prev = NULL;
 
 		while (temp != NULL) {
 			if (temp->threadid == threadid) {
@@ -1188,9 +1188,8 @@ int linux_gdb_T_packet(struct connection *connection,
 				} else {
 					/* delete item in the list   */
 					linux_os->thread_list =
-						liste_del_task(linux_os->
-							thread_list, &temp,
-							prev);
+						liste_del_task(linux_os->thread_list,
+							&temp, prev);
 					linux_os->thread_count--;
 					gdb_put_packet(connection, "E01", 3);
 					return ERROR_OK;
@@ -1321,9 +1320,7 @@ static int linux_thread_packet(struct connection *connection, char const *packet
 			if (strncmp(packet, "qSymbol", 7) == 0) {
 				if (rtos_qsymbol(connection, packet, packet_size) == 1) {
 					linux_compute_virt2phys(target,
-							target->rtos->
-							symbols[INIT_TASK].
-							address);
+							target->rtos->symbols[INIT_TASK].address);
 				}
 
 				break;
@@ -1374,11 +1371,10 @@ static int linux_thread_packet(struct connection *connection, char const *packet
 				}
 
 				if ((ct != NULL) && (ct->threadid !=
-						 target->rtos->
-						 current_threadid)
+						 target->rtos->current_threadid)
 				&& (target->rtos->current_threadid != -1))
-					LOG_WARNING("WARNING! current GDB thread do not match" \
-							"current thread running." \
+					LOG_WARNING("WARNING! current GDB thread do not match "
+							"current thread running. "
 							"Switch thread in GDB to threadid %d",
 							(int)ct->threadid);
 
@@ -1408,8 +1404,7 @@ static int linux_os_smp_init(struct target *target)
 	while (head != (struct target_list *)NULL) {
 		if (head->target->rtos != rtos) {
 			struct linux_os *smp_os_linux =
-				(struct linux_os *)head->target->rtos->
-				rtos_specific_params;
+				(struct linux_os *)head->target->rtos->rtos_specific_params;
 			/*  remap smp target on rtos  */
 			free(head->target->rtos);
 			head->target->rtos = rtos;

@@ -59,7 +59,7 @@ static void jtagspi_set_ir(struct flash_bank *bank)
 {
 	struct jtagspi_flash_bank *info = bank->driver_priv;
 	struct scan_field field;
-	uint8_t buf[4];
+	uint8_t buf[4] = { 0 };
 
 	LOG_DEBUG("loading jtagspi ir");
 	buf_set_u32(buf, 0, info->tap->ir_length, info->ir);
@@ -153,12 +153,12 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 	jtagspi_set_ir(bank);
 	/* passing from an IR scan to SHIFT-DR clears BYPASS registers */
 	jtag_add_dr_scan(info->tap, n, fields, TAP_IDLE);
-	jtag_execute_queue();
+	int retval = jtag_execute_queue();
 
 	if (is_read)
 		flip_u8(data_buf, data, lenb);
 	free(data_buf);
-	return ERROR_OK;
+	return retval;
 }
 
 static int jtagspi_probe(struct flash_bank *bank)
@@ -228,13 +228,16 @@ static int jtagspi_probe(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static void jtagspi_read_status(struct flash_bank *bank, uint32_t *status)
+static int jtagspi_read_status(struct flash_bank *bank, uint32_t *status)
 {
 	uint8_t buf;
-	if (jtagspi_cmd(bank, SPIFLASH_READ_STATUS, NULL, &buf, -8) == ERROR_OK) {
+	int err = jtagspi_cmd(bank, SPIFLASH_READ_STATUS, NULL, &buf, -8);
+	if (err == ERROR_OK) {
 		*status = buf;
 		/* LOG_DEBUG("status=0x%08" PRIx32, *status); */
 	}
+
+	return err;
 }
 
 static int jtagspi_wait(struct flash_bank *bank, int timeout_ms)
@@ -245,7 +248,11 @@ static int jtagspi_wait(struct flash_bank *bank, int timeout_ms)
 
 	do {
 		dt = timeval_ms() - t0;
-		jtagspi_read_status(bank, &status);
+
+		int retval = jtagspi_read_status(bank, &status);
+		if (retval != ERROR_OK)
+			return retval;
+
 		if ((status & SPIFLASH_BSY_BIT) == 0) {
 			LOG_DEBUG("waited %" PRId64 " ms", dt);
 			return ERROR_OK;
@@ -262,7 +269,11 @@ static int jtagspi_write_enable(struct flash_bank *bank)
 	uint32_t status;
 
 	jtagspi_cmd(bank, SPIFLASH_WRITE_ENABLE, NULL, NULL, 0);
-	jtagspi_read_status(bank, &status);
+
+	int retval = jtagspi_read_status(bank, &status);
+	if (retval != ERROR_OK)
+		return retval;
+
 	if ((status & SPIFLASH_WE_BIT) == 0) {
 		LOG_ERROR("Cannot enable write to flash. Status=0x%08" PRIx32, status);
 		return ERROR_FAIL;

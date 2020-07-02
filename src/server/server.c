@@ -76,7 +76,7 @@ static int add_connection(struct service *service, struct command_context *cmd_c
 	memset(&c->sin, 0, sizeof(c->sin));
 	c->cmd_ctx = copy_command_context(cmd_ctx);
 	c->service = service;
-	c->input_pending = 0;
+	c->input_pending = false;
 	c->priv = NULL;
 	c->next = NULL;
 
@@ -562,7 +562,7 @@ int server_loop(struct command_context *command_context)
 				struct connection *c;
 
 				for (c = service->connections; c; ) {
-					if ((FD_ISSET(c->fd, &read_fds)) || c->input_pending) {
+					if ((c->fd >= 0 && FD_ISSET(c->fd, &read_fds)) || c->input_pending) {
 						retval = service->input(c);
 						if (retval != ERROR_OK) {
 							struct connection *next = c->next;
@@ -631,7 +631,7 @@ static void sigkey_handler(int sig)
 #endif
 
 
-int server_preinit(void)
+int server_host_os_entry(void)
 {
 	/* this currently only calls WSAStartup on native win32 systems
 	 * before any socket operations are performed.
@@ -647,7 +647,21 @@ int server_preinit(void)
 		LOG_ERROR("Failed to Open Winsock");
 		return ERROR_FAIL;
 	}
+#endif
+	return ERROR_OK;
+}
 
+int server_host_os_close(void)
+{
+#ifdef _WIN32
+	WSACleanup();
+#endif
+	return ERROR_OK;
+}
+
+int server_preinit(void)
+{
+#ifdef _WIN32
 	/* register ctrl-c handler */
 	SetConsoleCtrlHandler(ControlHandler, TRUE);
 
@@ -688,7 +702,6 @@ int server_quit(void)
 	target_quit();
 
 #ifdef _WIN32
-	WSACleanup();
 	SetConsoleCtrlHandler(ControlHandler, FALSE);
 
 	return ERROR_OK;
@@ -799,7 +812,7 @@ static const struct command_registration server_command_handlers[] = {
 	{
 		.name = "bindto",
 		.handler = &handle_bindto_command,
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_CONFIG,
 		.usage = "[name]",
 		.help = "Specify address by name on which to listen for "
 			"incoming TCP/IP connections",

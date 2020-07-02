@@ -29,7 +29,7 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <helper/time_support.h>
-#include "libusb1_common.h"
+#include "libusb_helper.h"
 
 /* system includes */
 #include <string.h>
@@ -71,7 +71,7 @@
 static char *ft232r_serial_desc;
 static uint16_t ft232r_vid = 0x0403; /* FTDI */
 static uint16_t ft232r_pid = 0x6001; /* FT232R */
-static jtag_libusb_device_handle *adapter;
+static struct libusb_device_handle *adapter;
 
 static uint8_t *ft232r_output;
 static size_t ft232r_output_len;
@@ -132,11 +132,11 @@ static int ft232r_send_recv(void)
 			bytes_to_write = rxfifo_free;
 
 		if (bytes_to_write) {
-			int n = jtag_libusb_bulk_write(adapter, IN_EP,
-				(char *) ft232r_output + total_written,
-				bytes_to_write, 1000);
+			int n;
 
-			if (n == 0) {
+			if (jtag_libusb_bulk_write(adapter, IN_EP,
+						   (char *) ft232r_output + total_written,
+						   bytes_to_write, 1000, &n) != ERROR_OK) {
 				LOG_ERROR("usb bulk write failed");
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
@@ -147,12 +147,10 @@ static int ft232r_send_recv(void)
 
 		/* Read */
 		uint8_t reply[64];
+		int n;
 
-		int n = jtag_libusb_bulk_read(adapter, OUT_EP,
-			(char *) reply,
-			sizeof(reply), 1000);
-
-		if (n == 0) {
+		if (jtag_libusb_bulk_read(adapter, OUT_EP, (char *) reply,
+					  sizeof(reply), 1000, &n) != ERROR_OK) {
 			LOG_ERROR("usb bulk read failed");
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
@@ -259,7 +257,7 @@ static int ft232r_init(void)
 {
 	uint16_t avids[] = {ft232r_vid, 0};
 	uint16_t apids[] = {ft232r_pid, 0};
-	if (jtag_libusb_open(avids, apids, ft232r_serial_desc, &adapter)) {
+	if (jtag_libusb_open(avids, apids, ft232r_serial_desc, &adapter, NULL)) {
 		LOG_ERROR("ft232r not found: vid=%04x, pid=%04x, serial=%s\n",
 			ft232r_vid, ft232r_pid, (ft232r_serial_desc == NULL) ? "[any]" : ft232r_serial_desc);
 		return ERROR_JTAG_INIT_FAILED;
@@ -270,7 +268,7 @@ static int ft232r_init(void)
 	else /* serial port will be restored after jtag: */
 		libusb_set_auto_detach_kernel_driver(adapter, 1); /* 1: DONT_DETACH_SIO_MODULE */
 
-	if (jtag_libusb_claim_interface(adapter, 0)) {
+	if (libusb_claim_interface(adapter, 0)) {
 		LOG_ERROR("unable to claim interface");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -332,7 +330,7 @@ static int ft232r_quit(void)
 		}
 	}
 
-	if (jtag_libusb_release_interface(adapter, 0) != 0)
+	if (libusb_release_interface(adapter, 0) != 0)
 		LOG_ERROR("usb release interface failed");
 
 	jtag_libusb_close(adapter);
@@ -914,17 +912,21 @@ static int syncbb_execute_queue(void)
 	return retval;
 }
 
-struct jtag_interface ft232r_interface = {
-	.name = "ft232r",
-	.commands = ft232r_command_handlers,
-	.transports = jtag_only,
+static struct jtag_interface ft232r_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
-
 	.execute_queue = syncbb_execute_queue,
+};
 
-	.speed = ft232r_speed,
+struct adapter_driver ft232r_adapter_driver = {
+	.name = "ft232r",
+	.transports = jtag_only,
+	.commands = ft232r_command_handlers,
+
 	.init = ft232r_init,
 	.quit = ft232r_quit,
-	.speed_div = ft232r_speed_div,
+	.speed = ft232r_speed,
 	.khz = ft232r_khz,
+	.speed_div = ft232r_speed_div,
+
+	.jtag_ops = &ft232r_interface,
 };

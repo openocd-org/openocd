@@ -2086,7 +2086,7 @@ static int evaluate_b_bl_blx_thumb(uint16_t opcode,
 			break;
 		/* BL/BLX prefix */
 		case 2:
-			instruction->type = ARM_UNKNOWN_INSTUCTION;
+			instruction->type = ARM_UNKNOWN_INSTRUCTION;
 			mnemonic = "prefix";
 			target_address = offset << 12;
 			break;
@@ -2309,7 +2309,6 @@ static int evaluate_data_proc_thumb(uint16_t opcode,
 							address, opcode);
 				}
 				return ERROR_OK;
-				break;
 		}
 	} else {
 		switch (op) {
@@ -2673,7 +2672,7 @@ static int evaluate_load_store_multiple_thumb(uint16_t opcode,
 			instruction->type = ARM_STM;
 			mnemonic = "STM";
 		}
-		snprintf(ptr_name, sizeof ptr_name, "r%i%s, ", Rn, wback);
+		snprintf(ptr_name, sizeof(ptr_name), "r%i%s, ", Rn, wback);
 	} else {/* push/pop */
 		Rn = 13;/* SP */
 		if (L) {

@@ -77,6 +77,14 @@ typedef enum tap_state {
 } tap_state_t;
 
 /**
+ * Defines arguments for reset functions
+ */
+#define SRST_DEASSERT   0
+#define SRST_ASSERT     1
+#define TRST_DEASSERT   0
+#define TRST_ASSERT     1
+
+/**
  * Function tap_state_name
  * Returns a string suitable for display representing the JTAG tap_state
  */
@@ -154,8 +162,8 @@ void jtag_tap_free(struct jtag_tap *tap);
 
 struct jtag_tap *jtag_all_taps(void);
 const char *jtag_tap_name(const struct jtag_tap *tap);
-struct jtag_tap *jtag_tap_by_string(const char* dotted_name);
-struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp* interp, Jim_Obj *obj);
+struct jtag_tap *jtag_tap_by_string(const char *dotted_name);
+struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *obj);
 struct jtag_tap *jtag_tap_by_position(unsigned abs_position);
 struct jtag_tap *jtag_tap_next_enabled(struct jtag_tap *p);
 unsigned jtag_tap_count_enabled(void);

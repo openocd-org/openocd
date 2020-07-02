@@ -216,7 +216,7 @@ static int hwthread_smp_init(struct target *target)
 	return hwthread_update_threads(target->rtos);
 }
 
-static struct target *find_thread(struct target *target, int64_t thread_id)
+static struct target *hwthread_find_thread(struct target *target, int64_t thread_id)
 {
 	/* Find the thread with that thread_id */
 	if (target == NULL)
@@ -240,7 +240,7 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 
 	struct target *target = rtos->target;
 
-	struct target *curr = find_thread(target, thread_id);
+	struct target *curr = hwthread_find_thread(target, thread_id);
 	if (curr == NULL)
 		return ERROR_FAIL;
 
@@ -278,7 +278,7 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 
 	struct target *target = rtos->target;
 
-	struct target *curr = find_thread(target, thread_id);
+	struct target *curr = hwthread_find_thread(target, thread_id);
 	if (curr == NULL) {
 		LOG_ERROR("Couldn't find RTOS thread for id %" PRId64 ".", thread_id);
 		return ERROR_FAIL;
@@ -315,7 +315,7 @@ int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value)
 
 	struct target *target = rtos->target;
 
-	struct target *curr = find_thread(target, rtos->current_thread);
+	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
 	if (curr == NULL)
 		return ERROR_FAIL;
 
@@ -338,7 +338,7 @@ static int hwthread_target_for_threadid(struct connection *connection, int64_t t
 {
 	struct target *target = get_target_from_connection(connection);
 
-	struct target *curr = find_thread(target, thread_id);
+	struct target *curr = hwthread_find_thread(target, thread_id);
 	if (curr == NULL)
 		return ERROR_FAIL;
 
@@ -408,7 +408,7 @@ int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 
 	struct target *target = rtos->target;
 
-	struct target *curr = find_thread(target, rtos->current_thread);
+	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
 	if (curr == NULL)
 		return ERROR_FAIL;
 
@@ -423,7 +423,7 @@ int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 
 	struct target *target = rtos->target;
 
-	struct target *curr = find_thread(target, rtos->current_thread);
+	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
 	if (curr == NULL)
 		return ERROR_FAIL;
 

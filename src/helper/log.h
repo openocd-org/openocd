@@ -82,6 +82,8 @@ void kept_alive(void);
 void alive_sleep(uint64_t ms);
 void busy_sleep(uint64_t ms);
 
+void log_socket_error(const char *socket_desc);
+
 typedef void (*log_callback_fn)(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
@@ -95,7 +97,8 @@ int log_add_callback(log_callback_fn fn, void *priv);
 int log_remove_callback(log_callback_fn fn, void *priv);
 
 char *alloc_vprintf(const char *fmt, va_list ap);
-char *alloc_printf(const char *fmt, ...);
+char *alloc_printf(const char *fmt, ...)
+	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 2)));
 
 extern int debug_level;
 

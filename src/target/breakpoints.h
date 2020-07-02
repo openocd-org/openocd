@@ -63,6 +63,7 @@ int context_breakpoint_add(struct target *target,
 int hybrid_breakpoint_add(struct target *target,
 		target_addr_t address, uint32_t asid, uint32_t length, enum breakpoint_type type);
 void breakpoint_remove(struct target *target, target_addr_t address);
+void breakpoint_remove_all(struct target *target);
 
 struct breakpoint *breakpoint_find(struct target *target, target_addr_t address);
 

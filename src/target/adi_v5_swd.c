@@ -96,7 +96,7 @@ static int swd_run_inner(struct adiv5_dap *dap)
 static int swd_connect(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
-	uint32_t dpidr;
+	uint32_t dpidr = 0xdeadbeef;
 	int status;
 
 	/* FIXME validate transport config ... is the
@@ -112,7 +112,7 @@ static int swd_connect(struct adiv5_dap *dap)
 
 		if (jtag_reset_config & RESET_CNCT_UNDER_SRST) {
 			if (jtag_reset_config & RESET_SRST_NO_GATING)
-				swd_add_reset(1);
+				adapter_assert_reset();
 			else
 				LOG_WARNING("\'srst_nogate\' reset_config option is required");
 		}
@@ -140,6 +140,14 @@ static int swd_connect(struct adiv5_dap *dap)
 		dap->do_reconnect = true;
 
 	return status;
+}
+
+static int swd_send_sequence(struct adiv5_dap *dap, enum swd_special_seq seq)
+{
+	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
+	assert(swd);
+
+	return swd->switch_seq(seq);
 }
 
 static inline int check_sync(struct adiv5_dap *dap)
@@ -320,6 +328,7 @@ static void swd_quit(struct adiv5_dap *dap)
 
 const struct dap_ops swd_dap_ops = {
 	.connect = swd_connect,
+	.send_sequence = swd_send_sequence,
 	.queue_dp_read = swd_queue_dp_read,
 	.queue_dp_write = swd_queue_dp_write,
 	.queue_ap_read = swd_queue_ap_read,
@@ -359,9 +368,9 @@ static const struct command_registration swd_handlers[] = {
 
 static int swd_select(struct command_context *ctx)
 {
-	/* FIXME: only place where global 'jtag_interface' is still needed */
-	extern struct jtag_interface *jtag_interface;
-	const struct swd_driver *swd = jtag_interface->swd;
+	/* FIXME: only place where global 'adapter_driver' is still needed */
+	extern struct adapter_driver *adapter_driver;
+	const struct swd_driver *swd = adapter_driver->swd_ops;
 	int retval;
 
 	retval = register_commands(ctx, NULL, swd_handlers);

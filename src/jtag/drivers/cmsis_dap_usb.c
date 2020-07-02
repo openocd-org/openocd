@@ -364,8 +364,6 @@ static void cmsis_dap_usb_close(struct cmsis_dap *dap)
 		free(pending_fifo[i].transfers);
 		pending_fifo[i].transfers = NULL;
 	}
-
-	return;
 }
 
 static int cmsis_dap_usb_write(struct cmsis_dap *dap, int txlen)
@@ -509,15 +507,15 @@ static int cmsis_dap_cmd_DAP_Info(uint8_t info, uint8_t **data)
 	return ERROR_OK;
 }
 
-static int cmsis_dap_cmd_DAP_LED(uint8_t leds)
+static int cmsis_dap_cmd_DAP_LED(uint8_t led, uint8_t state)
 {
 	int retval;
 	uint8_t *buffer = cmsis_dap_handle->packet_buffer;
 
 	buffer[0] = 0;	/* report number */
 	buffer[1] = CMD_DAP_LED;
-	buffer[2] = 0x00;
-	buffer[3] = leds;
+	buffer[2] = led;
+	buffer[3] = state;
 	retval = cmsis_dap_usb_xfer(cmsis_dap_handle, 4);
 
 	if (retval != ERROR_OK || buffer[1] != 0x00) {
@@ -1086,8 +1084,12 @@ static int cmsis_dap_init(void)
 		if (retval != ERROR_OK)
 			return ERROR_FAIL;
 	}
+	/* Both LEDs on */
+	retval = cmsis_dap_cmd_DAP_LED(LED_ID_CONNECT, LED_ON);
+	if (retval != ERROR_OK)
+		return ERROR_FAIL;
 
-	retval = cmsis_dap_cmd_DAP_LED(0x03);		/* Both LEDs on */
+	retval = cmsis_dap_cmd_DAP_LED(LED_ID_RUN, LED_ON);
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -1102,9 +1104,6 @@ static int cmsis_dap_init(void)
 			LOG_INFO("Connecting under reset");
 		}
 	}
-
-	cmsis_dap_cmd_DAP_LED(0x00);			/* Both LEDs off */
-
 	LOG_INFO("CMSIS-DAP: Interface ready");
 
 	return ERROR_OK;
@@ -1119,28 +1118,31 @@ static int cmsis_dap_swd_init(void)
 static int cmsis_dap_quit(void)
 {
 	cmsis_dap_cmd_DAP_Disconnect();
-	cmsis_dap_cmd_DAP_LED(0x00);		/* Both LEDs off */
+	/* Both LEDs off */
+	cmsis_dap_cmd_DAP_LED(LED_ID_RUN, LED_OFF);
+	cmsis_dap_cmd_DAP_LED(LED_ID_CONNECT, LED_OFF);
 
 	cmsis_dap_usb_close(cmsis_dap_handle);
 
 	return ERROR_OK;
 }
 
-static void cmsis_dap_execute_reset(struct jtag_command *cmd)
+static int cmsis_dap_reset(int trst, int srst)
 {
 	/* Set both TRST and SRST even if they're not enabled as
 	 * there's no way to tristate them */
 
 	output_pins = 0;
-	if (!cmd->cmd.reset->srst)
+	if (!srst)
 		output_pins |= SWJ_PIN_SRST;
-	if (!cmd->cmd.reset->trst)
+	if (!trst)
 		output_pins |= SWJ_PIN_TRST;
 
 	int retval = cmsis_dap_cmd_DAP_SWJ_Pins(output_pins,
 			SWJ_PIN_TRST | SWJ_PIN_SRST, 0, NULL);
 	if (retval != ERROR_OK)
 		LOG_ERROR("CMSIS-DAP: Interface reset failed");
+	return retval;
 }
 
 static void cmsis_dap_execute_sleep(struct jtag_command *cmd)
@@ -1581,10 +1583,6 @@ static void cmsis_dap_execute_tms(struct jtag_command *cmd)
 static void cmsis_dap_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
-		case JTAG_RESET:
-			cmsis_dap_flush();
-			cmsis_dap_execute_reset(cmd);
-			break;
 		case JTAG_SLEEP:
 			cmsis_dap_flush();
 			cmsis_dap_execute_sleep(cmd);
@@ -1631,10 +1629,10 @@ static int cmsis_dap_execute_queue(void)
 static int cmsis_dap_speed(int speed)
 {
 	if (speed > DAP_MAX_CLOCK)
-		LOG_INFO("High speed (adapter_khz %d) may be limited by adapter firmware.", speed);
+		LOG_INFO("High speed (adapter speed %d) may be limited by adapter firmware.", speed);
 
 	if (speed == 0) {
-		LOG_ERROR("RTCK not supported. Set nonzero adapter_khz.");
+		LOG_ERROR("RTCK not supported. Set nonzero \"adapter speed\".");
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 	}
 
@@ -1789,17 +1787,23 @@ static const struct swd_driver cmsis_dap_swd_driver = {
 
 static const char * const cmsis_dap_transport[] = { "swd", "jtag", NULL };
 
-struct jtag_interface cmsis_dap_interface = {
-	.name = "cmsis-dap",
+static struct jtag_interface cmsis_dap_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
-	.commands = cmsis_dap_command_handlers,
-	.swd = &cmsis_dap_swd_driver,
-	.transports = cmsis_dap_transport,
-
 	.execute_queue = cmsis_dap_execute_queue,
-	.speed = cmsis_dap_speed,
-	.speed_div = cmsis_dap_speed_div,
-	.khz = cmsis_dap_khz,
+};
+
+struct adapter_driver cmsis_dap_adapter_driver = {
+	.name = "cmsis-dap",
+	.transports = cmsis_dap_transport,
+	.commands = cmsis_dap_command_handlers,
+
 	.init = cmsis_dap_init,
 	.quit = cmsis_dap_quit,
+	.reset = cmsis_dap_reset,
+	.speed = cmsis_dap_speed,
+	.khz = cmsis_dap_khz,
+	.speed_div = cmsis_dap_speed_div,
+
+	.jtag_ops = &cmsis_dap_interface,
+	.swd_ops = &cmsis_dap_swd_driver,
 };

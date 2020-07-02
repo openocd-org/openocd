@@ -82,7 +82,7 @@ enum nds32_syscall_id {
 	NDS32_SYSCALL_ERRNO = 6001,
 };
 
-#define NDS32_COMMON_MAGIC (int)0xADE5ADE5
+#define NDS32_COMMON_MAGIC 0xADE5ADE5U
 
 struct nds32_edm {
 
@@ -235,7 +235,7 @@ struct nds32_misc_config {
  * Represents a generic Andes core.
  */
 struct nds32 {
-	int common_magic;
+	uint32_t common_magic;
 	struct reg_cache *core_cache;
 
 	/** Handle for the debug module. */

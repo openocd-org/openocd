@@ -39,6 +39,7 @@
 #include <jtag/swd.h>
 #include <jtag/commands.h>
 #include <jtag/drivers/jtag_usb_common.h>
+#include <target/cortex_m.h>
 
 #include <libjaylink/libjaylink.h>
 
@@ -61,6 +62,9 @@ static bool trace_enabled;
 #define JLINK_TAP_BUFFER_SIZE	2048
 
 static unsigned int swd_buffer_size = JLINK_TAP_BUFFER_SIZE;
+
+/* Maximum SWO frequency deviation. */
+#define SWO_MAX_FREQ_DEV	0.03
 
 /* 256 byte non-volatile memory */
 struct device_config {
@@ -90,6 +94,7 @@ static void jlink_path_move(int num_states, tap_state_t *path);
 static void jlink_stableclocks(int num_cycles);
 static void jlink_runtest(int num_cycles);
 static void jlink_reset(int trst, int srst);
+static int jlink_reset_safe(int trst, int srst);
 static int jlink_swd_run_queue(void);
 static void jlink_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk);
 static int jlink_swd_switch_seq(enum swd_special_seq seq);
@@ -247,16 +252,6 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 		tap_state_name(tap_get_end_state()));
 }
 
-static void jlink_execute_reset(struct jtag_command *cmd)
-{
-	LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst,
-		cmd->cmd.reset->srst);
-
-	jlink_flush();
-	jlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-	jlink_flush();
-}
-
 static void jlink_execute_sleep(struct jtag_command *cmd)
 {
 	LOG_DEBUG_IO("sleep %" PRIi32 "", cmd->cmd.sleep->us);
@@ -281,9 +276,6 @@ static int jlink_execute_command(struct jtag_command *cmd)
 			break;
 		case JTAG_SCAN:
 			jlink_execute_scan(cmd);
-			break;
-		case JTAG_RESET:
-			jlink_execute_reset(cmd);
 			break;
 		case JTAG_SLEEP:
 			jlink_execute_sleep(cmd);
@@ -952,6 +944,13 @@ static void jlink_reset(int trst, int srst)
 		jaylink_jtag_set_trst(devh);
 }
 
+static int jlink_reset_safe(int trst, int srst)
+{
+	jlink_flush();
+	jlink_reset(trst, srst);
+	return jlink_flush();
+}
+
 COMMAND_HANDLER(jlink_usb_command)
 {
 	int tmp;
@@ -1267,54 +1266,73 @@ static uint32_t calculate_trace_buffer_size(void)
 	return tmp & 0xffffff00;
 }
 
-static bool check_trace_freq(struct jaylink_swo_speed speed,
-		uint32_t trace_freq)
+static bool calculate_swo_prescaler(unsigned int traceclkin_freq,
+		uint32_t trace_freq, uint16_t *prescaler)
 {
-	double min;
+	unsigned int presc;
 	double deviation;
+
+	presc = ((1.0 - SWO_MAX_FREQ_DEV) * traceclkin_freq) / trace_freq + 1;
+
+	if (presc > TPIU_ACPR_MAX_SWOSCALER)
+		return false;
+
+	deviation = fabs(1.0 - ((double)trace_freq * presc / traceclkin_freq));
+
+	if (deviation > SWO_MAX_FREQ_DEV)
+		return false;
+
+	*prescaler = presc;
+
+	return true;
+}
+
+static bool detect_swo_freq_and_prescaler(struct jaylink_swo_speed speed,
+		unsigned int traceclkin_freq, uint32_t *trace_freq,
+		uint16_t *prescaler)
+{
 	uint32_t divider;
+	unsigned int presc;
+	double deviation;
 
-	min = fabs(1.0 - (speed.freq / ((double)trace_freq * speed.min_div)));
+	for (divider = speed.min_div; divider <= speed.max_div; divider++) {
+		*trace_freq = speed.freq / divider;
+		presc = ((1.0 - SWO_MAX_FREQ_DEV) * traceclkin_freq) / *trace_freq + 1;
 
-	for (divider = speed.min_div; divider < speed.max_div; divider++) {
-		deviation = fabs(1.0 - (speed.freq / ((double)trace_freq * divider)));
+		if (presc > TPIU_ACPR_MAX_SWOSCALER)
+			break;
 
-		if (deviation < 0.03) {
-			LOG_DEBUG("Found suitable frequency divider %u with deviation of "
-				"%.02f %%.", divider, deviation);
+		deviation = fabs(1.0 - ((double)*trace_freq * presc / traceclkin_freq));
+
+		if (deviation <= SWO_MAX_FREQ_DEV) {
+			*prescaler = presc;
 			return true;
 		}
-
-		if (deviation < min)
-			min = deviation;
 	}
-
-	LOG_ERROR("Selected trace frequency is not supported by the device. "
-		"Please choose a different trace frequency.");
-	LOG_ERROR("Maximum permitted deviation is 3.00 %%, but only %.02f %% "
-		"could be achieved.", min * 100);
 
 	return false;
 }
 
 static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
-		uint32_t port_size, unsigned int *trace_freq)
+		uint32_t port_size, unsigned int *trace_freq,
+		unsigned int traceclkin_freq, uint16_t *prescaler)
 {
 	int ret;
 	uint32_t buffer_size;
 	struct jaylink_swo_speed speed;
+	uint32_t divider;
+	uint32_t min_freq;
+	uint32_t max_freq;
+
+	trace_enabled = enabled;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SWO)) {
+		if (!enabled)
+			return ERROR_OK;
+
 		LOG_ERROR("Trace capturing is not supported by the device.");
 		return ERROR_FAIL;
 	}
-
-	if (pin_protocol != TPIU_PIN_PROTOCOL_ASYNC_UART) {
-		LOG_ERROR("Selected pin protocol is not supported.");
-		return ERROR_FAIL;
-	}
-
-	trace_enabled = enabled;
 
 	ret = jaylink_swo_stop(devh);
 
@@ -1334,6 +1352,11 @@ static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		return ERROR_OK;
 	}
 
+	if (pin_protocol != TPIU_PIN_PROTOCOL_ASYNC_UART) {
+		LOG_ERROR("Selected pin protocol is not supported.");
+		return ERROR_FAIL;
+	}
+
 	buffer_size = calculate_trace_buffer_size();
 
 	if (!buffer_size) {
@@ -1349,13 +1372,45 @@ static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		return ERROR_FAIL;
 	}
 
-	if (!*trace_freq)
-		*trace_freq = speed.freq / speed.min_div;
+	if (*trace_freq > 0) {
+		divider = speed.freq / *trace_freq;
+		min_freq = speed.freq / speed.max_div;
+		max_freq = speed.freq / speed.min_div;
 
-	if (!check_trace_freq(speed, *trace_freq))
-		return ERROR_FAIL;
+		if (*trace_freq > max_freq) {
+			LOG_INFO("Given SWO frequency too high, using %u Hz instead.",
+				max_freq);
+			*trace_freq = max_freq;
+		} else if (*trace_freq < min_freq) {
+			LOG_INFO("Given SWO frequency too low, using %u Hz instead.",
+				min_freq);
+			*trace_freq = min_freq;
+		} else if (*trace_freq != speed.freq / divider) {
+			*trace_freq = speed.freq / divider;
 
-	LOG_DEBUG("Using %u bytes device memory for trace capturing.", buffer_size);
+			LOG_INFO("Given SWO frequency is not supported by the device, "
+				"using %u Hz instead.", *trace_freq);
+		}
+
+		if (!calculate_swo_prescaler(traceclkin_freq, *trace_freq,
+				prescaler)) {
+			LOG_ERROR("SWO frequency is not suitable. Please choose a "
+				"different frequency or use auto-detection.");
+			return ERROR_FAIL;
+		}
+	} else {
+		LOG_INFO("Trying to auto-detect SWO frequency.");
+
+		if (!detect_swo_freq_and_prescaler(speed, traceclkin_freq, trace_freq,
+				prescaler)) {
+			LOG_ERROR("Maximum permitted frequency deviation of %.02f %% "
+				"could not be achieved.", SWO_MAX_FREQ_DEV);
+			LOG_ERROR("Auto-detection of SWO frequency failed.");
+			return ERROR_FAIL;
+		}
+
+		LOG_INFO("Using SWO frequency of %u Hz.", *trace_freq);
+	}
 
 	ret = jaylink_swo_start(devh, JAYLINK_SWO_MODE_UART, *trace_freq,
 		buffer_size);
@@ -1364,6 +1419,9 @@ static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		LOG_ERROR("jaylink_start_swo() failed: %s.", jaylink_strerror(ret));
 		return ERROR_FAIL;
 	}
+
+	LOG_DEBUG("Using %u bytes device memory for trace capturing.",
+		buffer_size);
 
 	/*
 	 * Adjust the SWD transaction buffer size as starting SWO capturing
@@ -1470,7 +1528,7 @@ COMMAND_HANDLER(jlink_handle_config_mac_address_command)
 	} else if (CMD_ARGC == 1) {
 		str = CMD_ARGV[0];
 
-		if ((strlen(str) != 17) || (str[2] != ':' || str[5] != ':' || \
+		if ((strlen(str) != 17) || (str[2] != ':' || str[5] != ':' ||
 				str[8] != ':' || str[11] != ':' || str[14] != ':')) {
 			command_print(CMD, "Invalid MAC address format.");
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2212,17 +2270,24 @@ static const struct swd_driver jlink_swd = {
 
 static const char * const jlink_transports[] = { "jtag", "swd", NULL };
 
-struct jtag_interface jlink_interface = {
-	.name = "jlink",
-	.commands = jlink_command_handlers,
-	.transports = jlink_transports,
-	.swd = &jlink_swd,
+static struct jtag_interface jlink_interface = {
 	.execute_queue = &jlink_execute_queue,
-	.speed = &jlink_speed,
-	.speed_div = &jlink_speed_div,
-	.khz = &jlink_khz,
+};
+
+struct adapter_driver jlink_adapter_driver = {
+	.name = "jlink",
+	.transports = jlink_transports,
+	.commands = jlink_command_handlers,
+
 	.init = &jlink_init,
 	.quit = &jlink_quit,
+	.reset = &jlink_reset_safe,
+	.speed = &jlink_speed,
+	.khz = &jlink_khz,
+	.speed_div = &jlink_speed_div,
 	.config_trace = &config_trace,
 	.poll_trace = &poll_trace,
+
+	.jtag_ops = &jlink_interface,
+	.swd_ops = &jlink_swd,
 };
