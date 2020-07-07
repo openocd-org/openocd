@@ -3339,7 +3339,9 @@ int riscv_enumerate_triggers(struct target *target)
 		for (unsigned t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
 			r->trigger_count[hartid] = t;
 
-			riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, t);
+			/* If we can't write tselect, then this hart does not support triggers. */
+			if (riscv_set_register_on_hart(target, hartid, GDB_REGNO_TSELECT, t) != ERROR_OK)
+				break;
 			uint64_t tselect_rb;
 			result = riscv_get_register_on_hart(target, &tselect_rb, hartid,
 					GDB_REGNO_TSELECT);
@@ -3357,6 +3359,8 @@ int riscv_enumerate_triggers(struct target *target)
 				return result;
 
 			int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
+			if (type == 0)
+				break;
 			switch (type) {
 				case 1:
 					/* On these older cores we don't support software using
