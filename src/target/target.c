@@ -344,6 +344,15 @@ static int new_target_number(void)
 	return x + 1;
 }
 
+static void append_to_list_all_targets(struct target *target)
+{
+	struct target **t = &all_targets;
+
+	while (*t)
+		t = &((*t)->next);
+	*t = target;
+}
+
 /* read a uint64_t from a buffer in target memory endianness */
 uint64_t target_buffer_get_u64(struct target *target, const uint8_t *buffer)
 {
@@ -5487,12 +5496,21 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	/* Create it */
 	target = calloc(1, sizeof(struct target));
+	if (!target) {
+		LOG_ERROR("Out of memory");
+		return JIM_ERR;
+	}
+
 	/* set target number */
 	target->target_number = new_target_number();
-	cmd_ctx->current_target = target;
 
 	/* allocate memory for each unique target type */
-	target->type = calloc(1, sizeof(struct target_type));
+	target->type = malloc(sizeof(struct target_type));
+	if (!target->type) {
+		LOG_ERROR("Out of memory");
+		free(target);
+		return JIM_ERR;
+	}
 
 	memcpy(target->type, target_types[x], sizeof(struct target_type));
 
@@ -5521,6 +5539,12 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	/* initialize trace information */
 	target->trace_info = calloc(1, sizeof(struct trace));
+	if (!target->trace_info) {
+		LOG_ERROR("Out of memory");
+		free(target->type);
+		free(target);
+		return JIM_ERR;
+	}
 
 	target->dbgmsg          = NULL;
 	target->dbg_msg_enabled = 0;
@@ -5554,7 +5578,9 @@ static int target_create(Jim_GetOptInfo *goi)
 	}
 
 	if (e != JIM_OK) {
+		rtos_destroy(target);
 		free(target->gdb_port_override);
+		free(target->trace_info);
 		free(target->type);
 		free(target);
 		return e;
@@ -5567,14 +5593,25 @@ static int target_create(Jim_GetOptInfo *goi)
 
 	cp = Jim_GetString(new_cmd, NULL);
 	target->cmd_name = strdup(cp);
+	if (!target->cmd_name) {
+		LOG_ERROR("Out of memory");
+		rtos_destroy(target);
+		free(target->gdb_port_override);
+		free(target->trace_info);
+		free(target->type);
+		free(target);
+		return JIM_ERR;
+	}
 
 	if (target->type->target_create) {
 		e = (*(target->type->target_create))(target, goi->interp);
 		if (e != ERROR_OK) {
 			LOG_DEBUG("target_create failed");
-			free(target->gdb_port_override);
-			free(target->type);
 			free(target->cmd_name);
+			rtos_destroy(target);
+			free(target->gdb_port_override);
+			free(target->trace_info);
+			free(target->type);
 			free(target);
 			return JIM_ERR;
 		}
@@ -5585,15 +5622,6 @@ static int target_create(Jim_GetOptInfo *goi)
 		e = register_commands(cmd_ctx, NULL, target->type->commands);
 		if (ERROR_OK != e)
 			LOG_ERROR("unable to register '%s' commands", cp);
-	}
-
-	/* append to end of list */
-	{
-		struct target **tpp;
-		tpp = &(all_targets);
-		while (*tpp)
-			tpp = &((*tpp)->next);
-		*tpp = target;
 	}
 
 	/* now - create the new target name command */
@@ -5617,14 +5645,27 @@ static int target_create(Jim_GetOptInfo *goi)
 		COMMAND_REGISTRATION_DONE
 	};
 	e = register_commands(cmd_ctx, NULL, target_commands);
-	if (ERROR_OK != e)
+	if (e != ERROR_OK) {
+		if (target->type->deinit_target)
+			target->type->deinit_target(target);
+		free(target->cmd_name);
+		rtos_destroy(target);
+		free(target->gdb_port_override);
+		free(target->trace_info);
+		free(target->type);
+		free(target);
 		return JIM_ERR;
+	}
 
 	struct command *c = command_find_in_context(cmd_ctx, cp);
 	assert(c);
 	command_set_handler_data(c, target);
 
-	return (ERROR_OK == e) ? JIM_OK : JIM_ERR;
+	/* append to end of list */
+	append_to_list_all_targets(target);
+
+	cmd_ctx->current_target = target;
+	return JIM_OK;
 }
 
 static int jim_target_current(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
