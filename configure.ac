@@ -375,7 +375,7 @@ AC_MSG_RESULT([$build_zy1000])
 
 AC_ARG_ENABLE([remote-bitbang],
   AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang jtag driver]),
-  [build_remote_bitbang=$enableval], [build_remote_bitbang=no])
+  [build_remote_bitbang=$enableval], [build_remote_bitbang=yes])
 
 AC_MSG_CHECKING([whether to enable dummy minidriver])
 AS_IF([test "x$build_minidriver_dummy" = "xyes"], [
