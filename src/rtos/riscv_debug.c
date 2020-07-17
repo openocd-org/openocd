@@ -18,16 +18,29 @@ static bool riscv_detect_rtos(struct target *target)
 	return -1;
 }
 
+extern bool enable_rtos_riscv;
+
 static int riscv_create_rtos(struct target *target)
 {
 	LOG_DEBUG("RISC-V Debug 'RTOS' created: this doesn't mean you're running an RTOS, just that you have multi-hart support on RISC-V");
-	LOG_WARNING("`-rtos riscv` is deprecated! Please change your configuration to use `-rtos");
-	LOG_WARNING("hwthread` instead. To do that, you will have to explicitly list every hart in");
-	LOG_WARNING("the system as a separate target. See");
-	LOG_WARNING("https://github.com/riscv/riscv-tests/blob/ec6537fc4a527ca88be2f045e01c460e640ab9c5/debug/targets/SiFive/HiFiveUnleashed.cfg#L11");
-	LOG_WARNING("for an example.");
-	LOG_WARNING("You will have to change your configuration file in any OpenOCD newer than June");
-	LOG_WARNING("2020.");
+
+	if (enable_rtos_riscv) {
+		LOG_WARNING("`-rtos riscv` is deprecated and will be removed at the end of 2020! Please");
+		LOG_WARNING("change your configuration to use `-rtos hwthread` instead. To do that, you");
+		LOG_WARNING("will have to explicitly list every hart in the system as a separate target. See");
+		LOG_WARNING("https://github.com/riscv/riscv-tests/blob/ec6537fc4a527ca88be2f045e01c460e640ab9c5/debug/targets/SiFive/HiFiveUnleashed.cfg#L11");
+		LOG_WARNING("for an example.");
+	} else {
+		LOG_ERROR("`-rtos riscv` is deprecated and will be removed at the end of 2020! Until");
+		LOG_ERROR("then, you can still use it by adding `enable_rtos_riscv` to your");
+		LOG_ERROR("configuration.");
+		LOG_ERROR("Please change your configuration to use `-rtos hwthread` instead. To do ");
+		LOG_ERROR("that, you will have to explicitly list every hart in the system as a separate ");
+		LOG_ERROR("target. See");
+		LOG_ERROR("https://github.com/riscv/riscv-tests/blob/ec6537fc4a527ca88be2f045e01c460e640ab9c5/debug/targets/SiFive/HiFiveUnleashed.cfg#L11");
+		LOG_ERROR("for an example.");
+		return ERROR_FAIL;
+	}
 
 	struct riscv_rtos *r = calloc(1, sizeof(*r));
 	target->rtos->rtos_specific_params = r;
