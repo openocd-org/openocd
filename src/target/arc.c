@@ -50,6 +50,8 @@
 
 static int arc_remove_watchpoint(struct target *target,
 	struct watchpoint *watchpoint);
+static int arc_enable_watchpoints(struct target *target);
+static int arc_enable_breakpoints(struct target *target);
 
 void arc_reg_data_type_add(struct target *target,
 		struct arc_reg_data_type *data_type)
@@ -1262,6 +1264,13 @@ static int arc_resume(struct target *target, int current, target_addr_t address,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	if (!debug_execution) {
+		/* (gdb) continue = execute until we hit break/watch-point */
+		target_free_all_working_areas(target);
+		CHECK_RETVAL(arc_enable_breakpoints(target));
+		CHECK_RETVAL(arc_enable_watchpoints(target));
+	}
+
 	/* current = 1: continue on current PC, otherwise continue at <address> */
 	if (!current) {
 		target_buffer_set_u32(target, pc->value, address);
@@ -1658,6 +1667,19 @@ static int arc_unset_breakpoint(struct target *target,
 	return retval;
 }
 
+static int arc_enable_breakpoints(struct target *target)
+{
+	struct breakpoint *breakpoint = target->breakpoints;
+
+	/* set any pending breakpoints */
+	while (breakpoint) {
+		if (!breakpoint->is_set)
+			CHECK_RETVAL(arc_set_breakpoint(target, breakpoint));
+		breakpoint = breakpoint->next;
+	}
+
+	return ERROR_OK;
+}
 
 static int arc_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
@@ -1893,6 +1915,20 @@ static int arc_unset_watchpoint(struct target *target,
 	}
 
 	return retval;
+}
+
+static int arc_enable_watchpoints(struct target *target)
+{
+	struct watchpoint *watchpoint = target->watchpoints;
+
+	/* set any pending watchpoints */
+	while (watchpoint) {
+		if (!watchpoint->is_set)
+			CHECK_RETVAL(arc_set_watchpoint(target, watchpoint));
+		watchpoint = watchpoint->next;
+	}
+
+	return ERROR_OK;
 }
 
 static int arc_add_watchpoint(struct target *target,
