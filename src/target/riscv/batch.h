@@ -60,9 +60,11 @@ int riscv_batch_run(struct riscv_batch *batch);
 void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned address, uint64_t data);
 
 /* DMI reads must be handled in two parts: the first one schedules a read and
- * provides a key, the second one actually obtains the value of that read .*/
+ * provides a key, the second one actually obtains the result of the read -
+ * status (op) and the actual data. */
 size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address);
-uint64_t riscv_batch_get_dmi_read(struct riscv_batch *batch, size_t key);
+unsigned riscv_batch_get_dmi_read_op(struct riscv_batch *batch, size_t key);
+uint32_t riscv_batch_get_dmi_read_data(struct riscv_batch *batch, size_t key);
 
 /* Scans in a NOP. */
 void riscv_batch_add_nop(struct riscv_batch *batch);

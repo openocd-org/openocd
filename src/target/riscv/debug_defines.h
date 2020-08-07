@@ -98,6 +98,7 @@
  */
 #define DTM_DMI_ADDRESS_OFFSET              34
 #define DTM_DMI_ADDRESS_LENGTH              abits
+#define DTM_DMI_MAX_ADDRESS_LENGTH          63
 #define DTM_DMI_ADDRESS                     (((1L<<abits)-1) << DTM_DMI_ADDRESS_OFFSET)
 /*
 * The data to send to the DM over the DMI during Update-DR, and

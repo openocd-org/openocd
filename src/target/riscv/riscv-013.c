@@ -2921,8 +2921,9 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 			if (receive_addr > next_read_addr - (3 + ignore_last) * size)
 				break;
 
-			uint64_t dmi_out = riscv_batch_get_dmi_read(batch, read++);
-			status = get_field(dmi_out, DTM_DMI_OP);
+			status = riscv_batch_get_dmi_read_op(batch, read);
+			uint64_t value = riscv_batch_get_dmi_read_data(batch, read);
+			read++;
 			if (status != DMI_STATUS_SUCCESS) {
 				/* If we're here because of busy count, dmi_busy_delay will
 				 * already have been increased and busy state will have been
@@ -2938,10 +2939,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				result = ERROR_FAIL;
 				goto error;
 			}
-			uint64_t value = get_field(dmi_out, DTM_DMI_DATA);
 			if (size > 4) {
-				dmi_out = riscv_batch_get_dmi_read(batch, read++);
-				status = get_field(dmi_out, DTM_DMI_OP);
+				status = riscv_batch_get_dmi_read_op(batch, read);
 				if (status != DMI_STATUS_SUCCESS) {
 					LOG_WARNING("Batch memory read encountered DMI error %d. "
 							"Falling back on slower reads.", status);
@@ -2950,7 +2949,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 					goto error;
 				}
 				value <<= 32;
-				value |= get_field(dmi_out, DTM_DMI_DATA);
+				value |= riscv_batch_get_dmi_read_data(batch, read);
+				read++;
 			}
 			riscv_addr_t offset = receive_addr - address;
 			write_to_buf(buffer + offset, value, size);
