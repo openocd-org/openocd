@@ -771,7 +771,7 @@ static int pic32mx_probe(struct flash_bank *bank)
 		}
 	}
 
-	LOG_INFO("flash size = %" PRId32 "kbytes", num_pages / 1024);
+	LOG_INFO("flash size = %" PRIu32 "kbytes", num_pages / 1024);
 
 	free(bank->sectors);
 
@@ -916,7 +916,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 		mchip_cmd = MCHP_STATUS;
 		mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
 		if (timeout-- == 0) {
-			LOG_DEBUG("timeout waiting for unlock: 0x%" PRIx32 "", mchip_cmd);
+			LOG_DEBUG("timeout waiting for unlock: 0x%" PRIx8 "", mchip_cmd);
 			break;
 		}
 		alive_sleep(1);
