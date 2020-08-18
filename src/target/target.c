@@ -3184,7 +3184,7 @@ COMMAND_HANDLER(handle_step_command)
 
 void target_handle_md_output(struct command_invocation *cmd,
 		struct target *target, target_addr_t address, unsigned size,
-		unsigned count, const uint8_t *buffer)
+		unsigned count, const uint8_t *buffer, bool include_address)
 {
 	const unsigned line_bytecnt = 32;
 	unsigned line_modulo = line_bytecnt / size;
@@ -3213,7 +3213,7 @@ void target_handle_md_output(struct command_invocation *cmd,
 	}
 
 	for (unsigned i = 0; i < count; i++) {
-		if (i % line_modulo == 0) {
+		if (include_address && (i % line_modulo == 0)) {
 			output_len += snprintf(output + output_len,
 					sizeof(output) - output_len,
 					TARGET_ADDR_FMT ": ",
@@ -3297,7 +3297,8 @@ COMMAND_HANDLER(handle_md_command)
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = fn(target, address, size, count, buffer);
 	if (ERROR_OK == retval)
-		target_handle_md_output(CMD, target, address, size, count, buffer);
+		target_handle_md_output(CMD, target, address, size, count, buffer,
+				true);
 
 	free(buffer);
 

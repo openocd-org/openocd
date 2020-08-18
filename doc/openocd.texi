@@ -9659,6 +9659,12 @@ indicates the first custom register, whose abstract command number is 0xc000.
 This command must be executed before `init`.
 @end deffn
 
+@deffn Command {riscv repeat_read} count address [size=4]
+Quickly read count words of the given size from address. This can be useful
+to read out a buffer that's memory-mapped to be accessed through a single
+address, or to sample a changing value in a memory-mapped device.
+@end deffn
+
 @deffn Command {riscv set_command_timeout_sec} [seconds]
 Set the wall-clock timeout (in seconds) for individual commands. The default
 should work fine for all but the slowest targets (eg. simulators).

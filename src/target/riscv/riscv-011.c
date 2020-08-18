@@ -1386,25 +1386,6 @@ static int halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int init_target(struct command_context *cmd_ctx,
-		struct target *target)
-{
-	LOG_DEBUG("init");
-	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
-	generic_info->get_register = get_register;
-	generic_info->set_register = set_register;
-
-	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
-	if (!generic_info->version_specific)
-		return ERROR_FAIL;
-
-	/* Assume 32-bit until we discover the real value in examine(). */
-	generic_info->xlen[0] = 32;
-	riscv_init_registers(target);
-
-	return ERROR_OK;
-}
-
 static void deinit_target(struct target *target)
 {
 	LOG_DEBUG("riscv_deinit_target()");
@@ -1980,8 +1961,13 @@ static int deassert_reset(struct target *target)
 }
 
 static int read_memory(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
+	if (increment != size) {
+		LOG_ERROR("read_memory with custom increment not implemented");
+		return ERROR_NOT_IMPLEMENTED;
+	}
+
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
@@ -2283,6 +2269,26 @@ static int arch_state(struct target *target)
 	return ERROR_OK;
 }
 
+static int init_target(struct command_context *cmd_ctx,
+		struct target *target)
+{
+	LOG_DEBUG("init");
+	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
+	generic_info->get_register = get_register;
+	generic_info->set_register = set_register;
+	generic_info->read_memory = read_memory;
+
+	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
+	if (!generic_info->version_specific)
+		return ERROR_FAIL;
+
+	/* Assume 32-bit until we discover the real value in examine(). */
+	generic_info->xlen[0] = 32;
+	riscv_init_registers(target);
+
+	return ERROR_OK;
+}
+
 struct target_type riscv011_target = {
 	.name = "riscv",
 
@@ -2300,7 +2306,6 @@ struct target_type riscv011_target = {
 	.assert_reset = assert_reset,
 	.deassert_reset = deassert_reset,
 
-	.read_memory = read_memory,
 	.write_memory = write_memory,
 
 	.arch_state = arch_state,

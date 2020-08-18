@@ -753,7 +753,7 @@ void target_handle_event(struct target *t, enum target_event e);
 
 void target_handle_md_output(struct command_invocation *cmd,
 	struct target *target, target_addr_t address, unsigned size,
-	unsigned count, const uint8_t *buffer);
+	unsigned count, const uint8_t *buffer, bool include_address);
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)

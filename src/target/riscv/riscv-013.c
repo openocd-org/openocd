@@ -64,7 +64,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value);
 static int read_memory(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer);
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
 static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
 static int riscv013_test_sba_config_reg(struct target *target, target_addr_t legal_address,
@@ -1226,7 +1226,7 @@ static int scratch_read64(struct target *target, scratch_mem_t *scratch,
 		case SPACE_DMI_RAM:
 			{
 				uint8_t buffer[8] = {0};
-				if (read_memory(target, scratch->debug_address, 4, 2, buffer) != ERROR_OK)
+				if (read_memory(target, scratch->debug_address, 4, 2, buffer, 4) != ERROR_OK)
 					return ERROR_FAIL;
 				*value = buffer[0] |
 					(((uint64_t) buffer[1]) << 8) |
@@ -2030,6 +2030,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->authdata_write = &riscv013_authdata_write;
 	generic_info->dmi_read = &dmi_read;
 	generic_info->dmi_write = &dmi_write;
+	generic_info->read_memory = read_memory;
 	generic_info->test_sba_config_reg = &riscv013_test_sba_config_reg;
 	generic_info->test_compliance = &riscv013_test_compliance;
 	generic_info->hart_count = &riscv013_hart_count;
@@ -2424,8 +2425,13 @@ static int modify_privilege(struct target *target, uint64_t *mstatus, uint64_t *
 }
 
 static int read_memory_bus_v0(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
+	if (size != increment) {
+		LOG_ERROR("sba v0 reads only support size==increment");
+		return ERROR_NOT_IMPLEMENTED;
+	}
+
 	LOG_DEBUG("System Bus Access: size: %d\tcount:%d\tstart address: 0x%08"
 			TARGET_PRIxADDR, size, count, address);
 	uint8_t *t_buffer = buffer;
@@ -2504,8 +2510,13 @@ static int read_memory_bus_v0(struct target *target, target_addr_t address,
  * Read the requested memory using the system bus interface.
  */
 static int read_memory_bus_v1(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
+	if (increment != size && increment != 0) {
+		LOG_ERROR("sba v1 reads only support increment of size or 0");
+		return ERROR_NOT_IMPLEMENTED;
+	}
+
 	RISCV013_INFO(info);
 	target_addr_t next_address = address;
 	target_addr_t end_address = address + count * size;
@@ -2513,7 +2524,8 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 	while (next_address < end_address) {
 		uint32_t sbcs_write = set_field(0, DMI_SBCS_SBREADONADDR, 1);
 		sbcs_write |= sb_sbaccess(size);
-		sbcs_write = set_field(sbcs_write, DMI_SBCS_SBAUTOINCREMENT, 1);
+		if (increment == size)
+			sbcs_write = set_field(sbcs_write, DMI_SBCS_SBAUTOINCREMENT, 1);
 		if (count > 1)
 			sbcs_write = set_field(sbcs_write, DMI_SBCS_SBREADONDATA, count > 1);
 		if (dmi_write(target, DMI_SBCS, sbcs_write) != ERROR_OK)
@@ -2651,8 +2663,13 @@ static int batch_run(const struct target *target, struct riscv_batch *batch)
  * aamsize fields in the memory access abstract command.
  */
 static int read_memory_abstract(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
+	if (size != increment) {
+		LOG_ERROR("abstract command reads only support size==increment");
+		return ERROR_NOT_IMPLEMENTED;
+	}
+
 	int result = ERROR_OK;
 
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
@@ -2771,7 +2788,7 @@ static int write_memory_abstract(struct target *target, target_addr_t address,
  * even if cmderr=busy is encountered.
  */
 static int read_memory_progbuf_inner(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
 	RISCV013_INFO(info);
 
@@ -2781,6 +2798,11 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 	result = register_write_direct(target, GDB_REGNO_S0, address);
 	if (result != ERROR_OK)
 		return result;
+
+	if (increment == 0 &&
+			register_write_direct(target, GDB_REGNO_S2, 0) != ERROR_OK)
+		return ERROR_FAIL;
+
 	uint32_t command = access_register_command(target, GDB_REGNO_S1,
 			riscv_xlen(target),
 			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
@@ -2808,11 +2830,10 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 	/* read_addr is the next address that the hart will read from, which is the
 	 * value in s0. */
-	riscv_addr_t read_addr = address + 2 * size;
-	riscv_addr_t fin_addr = address + (count * size);
-	while (read_addr < fin_addr) {
-		LOG_DEBUG("read_addr=0x%" PRIx64 ", fin_addr=0x%" PRIx64, read_addr,
-				fin_addr);
+	unsigned index = 2;
+	while (index < count) {
+		riscv_addr_t read_addr = address + index * increment;
+		LOG_DEBUG("i=%d, count=%d, read_addr=0x%" PRIx64, index, count, read_addr);
 		/* The pipeline looks like this:
 		 * memory -> s1 -> dm_data0 -> debugger
 		 * Right now:
@@ -2821,14 +2842,11 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 		 * dm_data0 contains[read_addr-size*2]
 		 */
 
-		LOG_DEBUG("creating burst to read from 0x%" PRIx64
-				" up to 0x%" PRIx64, read_addr, fin_addr);
-		assert(read_addr >= address && read_addr < fin_addr);
 		struct riscv_batch *batch = riscv_batch_alloc(target, 32,
 				info->dmi_busy_delay + info->ac_busy_delay);
 
-		size_t reads = 0;
-		for (riscv_addr_t addr = read_addr; addr < fin_addr; addr += size) {
+		unsigned reads = 0;
+		for (unsigned j = index; j < count; j++) {
 			if (size > 4)
 				riscv_batch_add_dmi_read(batch, DMI_DATA1);
 			riscv_batch_add_dmi_read(batch, DMI_DATA0);
@@ -2851,12 +2869,12 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				return ERROR_FAIL;
 		info->cmderr = get_field(abstractcs, DMI_ABSTRACTCS_CMDERR);
 
-		riscv_addr_t next_read_addr;
+		unsigned next_index;
 		unsigned ignore_last = 0;
 		switch (info->cmderr) {
 			case CMDERR_NONE:
 				LOG_DEBUG("successful (partial?) memory read");
-				next_read_addr = read_addr + reads * size;
+				next_index = index + reads;
 				break;
 			case CMDERR_BUSY:
 				LOG_DEBUG("memory read resulted in busy response");
@@ -2880,21 +2898,30 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				}
 
 				/* See how far we got, clobbering dmi_data0. */
-				result = register_read_direct(target, &next_read_addr,
-						GDB_REGNO_S0);
+				if (increment == 0) {
+					uint64_t counter;
+					result = register_read_direct(target, &counter, GDB_REGNO_S2);
+					next_index = counter;
+				} else {
+					uint64_t next_read_addr;
+					result = register_read_direct(target, &next_read_addr,
+												  GDB_REGNO_S0);
+					next_index = (next_read_addr - address) / increment;
+				}
 				if (result != ERROR_OK) {
 					riscv_batch_free(batch);
 					goto error;
 				}
+
 				uint64_t value64 = (((uint64_t) dmi_data1) << 32) | dmi_data0;
-				write_to_buf(buffer + next_read_addr - 2 * size - address, value64, size);
-				log_memory_access(next_read_addr - 2 * size, value64, size, true);
+				write_to_buf(buffer + (next_index - 2) * size, value64, size);
+				log_memory_access(address + (next_index - 2) * size, value64, size, true);
 
 				/* Restore the command, and execute it.
 				 * Now DMI_DATA0 contains the next value just as it would if no
 				 * error had occurred. */
 				dmi_write_exec(target, DMI_COMMAND, command, true);
-				next_read_addr += size;
+				next_index++;
 
 				dmi_write(target, DMI_ABSTRACTAUTO,
 						1 << DMI_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
@@ -2912,13 +2939,13 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 		/* Now read whatever we got out of the batch. */
 		dmi_status_t status = DMI_STATUS_SUCCESS;
-		riscv_addr_t receive_addr = read_addr - size * 2;
 		unsigned read = 0;
-		for (size_t i = 0; i < reads; i++) {
-			assert(receive_addr < address + size * count);
-			if (receive_addr < address)
-				continue;
-			if (receive_addr > next_read_addr - (3 + ignore_last) * size)
+		assert(index >= 2);
+		for (unsigned j = index - 2; j < index + reads; j++) {
+			assert(j < count);
+			LOG_DEBUG("index=%d, reads=%d, next_index=%d, ignore_last=%d, j=%d",
+				index, reads, next_index, ignore_last, j);
+			if (j + 3 + ignore_last > next_index)
 				break;
 
 			status = riscv_batch_get_dmi_read_op(batch, read);
@@ -2952,14 +2979,12 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				value |= riscv_batch_get_dmi_read_data(batch, read);
 				read++;
 			}
-			riscv_addr_t offset = receive_addr - address;
+			riscv_addr_t offset = j * size;
 			write_to_buf(buffer + offset, value, size);
-			log_memory_access(receive_addr, value, size, true);
-
-			receive_addr += size;
+			log_memory_access(address + j * increment, value, size, true);
 		}
 
-		read_addr = next_read_addr;
+		index = next_index;
 
 		riscv_batch_free(batch);
 	}
@@ -3069,7 +3094,7 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
  * Read the requested memory, silently handling memory access errors.
  */
 static int read_memory_progbuf(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
 	if (riscv_xlen(target) < size * 8) {
 		LOG_ERROR("XLEN (%d) is too short for %d-bit memory read.",
@@ -3099,11 +3124,14 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	/* s0 holds the next address to write to
 	 * s1 holds the next data value to write
+	 * s2 is a counter in case increment is 0
 	 */
-	uint64_t s0, s1;
+	uint64_t s0, s1, s2;
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+	if (increment == 0 && register_read(target, &s2, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Write the program (load, increment) */
@@ -3132,36 +3160,39 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
 		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
-	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
+	if (increment == 0)
+		riscv_program_addi(&program, GDB_REGNO_S2, GDB_REGNO_S2, 1);
+	else
+		riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, increment);
 
 	if (riscv_program_ebreak(&program) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_program_write(&program) != ERROR_OK)
 		return ERROR_FAIL;
 
-	result = read_memory_progbuf_inner(target, address, size, count, buffer);
+	result = read_memory_progbuf_inner(target, address, size, count, buffer, increment);
 
 	if (result != ERROR_OK) {
 		/* The full read did not succeed, so we will try to read each word individually. */
 		/* This will not be fast, but reading outside actual memory is a special case anyway. */
 		/* It will make the toolchain happier, especially Eclipse Memory View as it reads ahead. */
 		target_addr_t address_i = address;
-		uint32_t size_i = size;
 		uint32_t count_i = 1;
 		uint8_t *buffer_i = buffer;
 
-		for (uint32_t i = 0; i < count; i++, address_i += size_i, buffer_i += size_i) {
+		for (uint32_t i = 0; i < count; i++, address_i += increment, buffer_i += size) {
+			keep_alive();
 			/* TODO: This is much slower than it needs to be because we end up
 			 * writing the address to read for every word we read. */
-			result = read_memory_progbuf_inner(target, address_i, size_i, count_i, buffer_i);
+			result = read_memory_progbuf_inner(target, address_i, size, count_i, buffer_i, increment);
 
 			/* The read of a single word failed, so we will just return 0 for that instead */
 			if (result != ERROR_OK) {
 				LOG_DEBUG("error reading single word of %d bytes from 0x%" TARGET_PRIxADDR,
-						size_i, address_i);
+						size, address_i);
 
 				uint64_t value_i = 0;
-				write_to_buf(buffer_i, value_i, size_i);
+				write_to_buf(buffer_i, value_i, size);
 			}
 		}
 		result = ERROR_OK;
@@ -3169,6 +3200,8 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	riscv_set_register(target, GDB_REGNO_S0, s0);
 	riscv_set_register(target, GDB_REGNO_S1, s1);
+	if (increment == 0)
+		riscv_set_register(target, GDB_REGNO_S2, s2);
 
 	/* Restore MSTATUS */
 	if (mstatus != mstatus_old)
@@ -3179,12 +3212,15 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 }
 
 static int read_memory(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
-	RISCV013_INFO(info);
+	if (count == 0)
+		return ERROR_OK;
 
+	RISCV013_INFO(info);
 	if (has_sufficient_progbuf(target, 3) && !riscv_prefer_sba)
-		return read_memory_progbuf(target, address, size, count, buffer);
+		return read_memory_progbuf(target, address, size, count, buffer,
+			increment);
 
 	if ((get_field(info->sbcs, DMI_SBCS_SBACCESS8) && size == 1) ||
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS16) && size == 2) ||
@@ -3192,15 +3228,19 @@ static int read_memory(struct target *target, target_addr_t address,
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS64) && size == 8) ||
 			(get_field(info->sbcs, DMI_SBCS_SBACCESS128) && size == 16)) {
 		if (get_field(info->sbcs, DMI_SBCS_SBVERSION) == 0)
-			return read_memory_bus_v0(target, address, size, count, buffer);
+			return read_memory_bus_v0(target, address, size, count, buffer,
+				increment);
 		else if (get_field(info->sbcs, DMI_SBCS_SBVERSION) == 1)
-			return read_memory_bus_v1(target, address, size, count, buffer);
+			return read_memory_bus_v1(target, address, size, count, buffer,
+				increment);
 	}
 
 	if (has_sufficient_progbuf(target, 3))
-		return read_memory_progbuf(target, address, size, count, buffer);
+		return read_memory_progbuf(target, address, size, count, buffer,
+			increment);
 
-	return read_memory_abstract(target, address, size, count, buffer);
+	return read_memory_abstract(target, address, size, count, buffer,
+		increment);
 }
 
 static int write_memory_bus_v0(struct target *target, target_addr_t address,
@@ -3643,7 +3683,6 @@ struct target_type riscv013_target = {
 	.assert_reset = assert_reset,
 	.deassert_reset = deassert_reset,
 
-	.read_memory = read_memory,
 	.write_memory = write_memory,
 
 	.arch_state = arch_state,
