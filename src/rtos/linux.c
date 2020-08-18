@@ -1483,13 +1483,13 @@ static char *linux_ps_command(struct target *target)
 				if (temp->context)
 					tmp +=
 						sprintf(tmp,
-							"%" PRId32 "\t\t%" PRId32 "\t\t%" PRIx32 "\t\t%s\n",
+							"%" PRIu32 "\t\t%" PRIu32 "\t\t%" PRIx32 "\t\t%s\n",
 							temp->pid, temp->oncpu,
 							temp->asid, temp->name);
 				else
 					tmp +=
 						sprintf(tmp,
-							"%" PRId32 "\t\t%" PRId32 "\t\t%" PRIx32 "\t\t%s\n",
+							"%" PRIu32 "\t\t%" PRIu32 "\t\t%" PRIx32 "\t\t%s\n",
 							temp->pid, temp->oncpu,
 							temp->asid, temp->name);
 			}
