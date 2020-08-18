@@ -1877,7 +1877,7 @@ static int prep_for_vector_access(struct target *target, uint64_t *vtype,
 	if (register_read(target, vl, GDB_REGNO_VL) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (register_write_direct(target, GDB_REGNO_VTYPE, encoded_vsew << 2) != ERROR_OK)
+	if (register_write_direct(target, GDB_REGNO_VTYPE, encoded_vsew << 3) != ERROR_OK)
 		return ERROR_FAIL;
 	*debug_vl = DIV_ROUND_UP(r->vlenb[r->current_hartid] * 8,
 			riscv_xlen(target));
