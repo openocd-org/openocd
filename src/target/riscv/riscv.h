@@ -117,7 +117,7 @@ typedef struct {
 	int (*get_register_buf)(struct target *target, uint8_t *buf, int regno);
 	int (*set_register_buf)(struct target *target, int regno,
 			const uint8_t *buf);
-	int (*select_current_hart)(struct target *);
+	int (*select_current_hart)(struct target *target);
 	bool (*is_halted)(struct target *target);
 	/* Resume this target, as well as every other prepped target that can be
 	 * resumed near-simultaneously. Clear the prepped flag on any target that

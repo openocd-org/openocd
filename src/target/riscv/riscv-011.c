@@ -2273,7 +2273,7 @@ static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	LOG_DEBUG("init");
-	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
+	riscv_info_t *generic_info = (riscv_info_t *)target->arch_info;
 	generic_info->get_register = get_register;
 	generic_info->set_register = set_register;
 	generic_info->read_memory = read_memory;

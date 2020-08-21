@@ -356,7 +356,7 @@ uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
 		tunneled_dr[0].num_bits = 3;
 		tunneled_dr[0].out_value = bscan_zero;
 		tunneled_dr[0].in_value = NULL;
-		tunneled_dr[1].num_bits = 32+1;
+		tunneled_dr[1].num_bits = 32 + 1;
 		tunneled_dr[1].out_value = out_value;
 		tunneled_dr[1].in_value = in_value;
 		tunneled_dr[2].num_bits = 7;
@@ -365,7 +365,7 @@ uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
 		tunneled_dr[3].num_bits = 1;
 		tunneled_dr[3].out_value = bscan_one;
 		tunneled_dr[3].in_value = NULL;
-	} else{
+	} else {
 		/* BSCAN_TUNNEL_NESTED_TAP */
 		tunneled_ir[3].num_bits = 3;
 		tunneled_ir[3].out_value = bscan_zero;
@@ -383,7 +383,7 @@ uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
 		tunneled_dr[3].num_bits = 3;
 		tunneled_dr[3].out_value = bscan_zero;
 		tunneled_dr[3].in_value = NULL;
-		tunneled_dr[2].num_bits = 32+1;
+		tunneled_dr[2].num_bits = 32 + 1;
 		tunneled_dr[2].out_value = out_value;
 		tunneled_dr[2].in_value = in_value;
 		tunneled_dr[1].num_bits = 7;
@@ -1517,18 +1517,18 @@ static int riscv_address_translate(struct target *target,
 			break;
 		case SATP_MODE_OFF:
 			LOG_ERROR("No translation or protection." \
-				      " (satp: 0x%" PRIx64")", satp_value);
+				      " (satp: 0x%" PRIx64 ")", satp_value);
 			return ERROR_FAIL;
 		default:
 			LOG_ERROR("The translation mode is not supported." \
-				      " (satp: 0x%" PRIx64")", satp_value);
+				      " (satp: 0x%" PRIx64 ")", satp_value);
 			return ERROR_FAIL;
 	}
 	LOG_DEBUG("virtual=0x%" TARGET_PRIxADDR "; mode=%s", virtual, info->name);
 
 	/* verify bits xlen-1:va_bits-1 are all equal */
-	target_addr_t mask = ((target_addr_t) 1 << (xlen - (info->va_bits-1))) - 1;
-	target_addr_t masked_msbs = (virtual >> (info->va_bits-1)) & mask;
+	target_addr_t mask = ((target_addr_t)1 << (xlen - (info->va_bits - 1))) - 1;
+	target_addr_t masked_msbs = (virtual >> (info->va_bits - 1)) & mask;
 	if (masked_msbs != 0 && masked_msbs != mask) {
 		LOG_ERROR("Virtual address 0x%" TARGET_PRIxADDR " is not sign-extended "
 				"for %s mode.", virtual, info->name);
@@ -1577,12 +1577,12 @@ static int riscv_address_translate(struct target *target,
 	}
 
 	/* Make sure to clear out the high bits that may be set. */
-	*physical = virtual & (((target_addr_t) 1 << info->va_bits) - 1);
+	*physical = virtual & (((target_addr_t)1 << info->va_bits) - 1);
 
 	while (i < info->level) {
 		ppn_value = pte >> info->pte_ppn_shift[i];
 		ppn_value &= info->pte_ppn_mask[i];
-		*physical &= ~(((target_addr_t) info->pa_ppn_mask[i]) <<
+		*physical &= ~(((target_addr_t)info->pa_ppn_mask[i]) <<
 				info->pa_ppn_shift[i]);
 		*physical |= (ppn_value << info->pa_ppn_shift[i]);
 		i++;
@@ -4323,7 +4323,7 @@ void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *fie
 		/* for BSCAN tunnel, there is a one-TCK skew between shift in and shift out, so
 		   scanning num_bits + 1, and then will right shift the input field after executing the queues */
 
-		ctxt->tunneled_dr[1].num_bits = field->num_bits+1;
+		ctxt->tunneled_dr[1].num_bits = field->num_bits + 1;
 		ctxt->tunneled_dr[1].out_value = field->out_value;
 		ctxt->tunneled_dr[1].in_value = field->in_value;
 
@@ -4338,7 +4338,7 @@ void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *fie
 		ctxt->tunneled_dr[1].out_value = &ctxt->tunneled_dr_width;
 		/* for BSCAN tunnel, there is a one-TCK skew between shift in and shift out, so
 		   scanning num_bits + 1, and then will right shift the input field after executing the queues */
-		ctxt->tunneled_dr[2].num_bits = field->num_bits+1;
+		ctxt->tunneled_dr[2].num_bits = field->num_bits + 1;
 		ctxt->tunneled_dr[2].out_value = field->out_value;
 		ctxt->tunneled_dr[2].in_value = field->in_value;
 		ctxt->tunneled_dr[3].num_bits = 3;

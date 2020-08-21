@@ -1290,7 +1290,7 @@ static bool has_sufficient_progbuf(struct target *target, unsigned size)
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
 
-	return info->progbufsize + r->impebreak >= size ;
+	return info->progbufsize + r->impebreak >= size;
 }
 
 /**
@@ -1539,7 +1539,7 @@ static int set_haltgroup(struct target *target, bool *supported)
 	uint32_t read;
 	if (dmi_read(target, &read, DMI_DMCS2) != ERROR_OK)
 		return ERROR_FAIL;
-	*supported = get_field(read, DMI_DMCS2_HALTGROUP) == (unsigned) target->smp;
+	*supported = get_field(read, DMI_DMCS2_HALTGROUP) == (unsigned)target->smp;
 	return ERROR_OK;
 }
 
@@ -2194,21 +2194,21 @@ static uint64_t read_from_buf(const uint8_t *buffer, unsigned size)
 			return buffer[0];
 		case 2:
 			return buffer[0]
-				| ((uint64_t) buffer[1] << 8);
+				| ((uint64_t)buffer[1] << 8);
 		case 4:
 			return buffer[0]
-				| ((uint64_t) buffer[1] << 8)
-				| ((uint64_t) buffer[2] << 16)
-				| ((uint64_t) buffer[3] << 24);
+				| ((uint64_t)buffer[1] << 8)
+				| ((uint64_t)buffer[2] << 16)
+				| ((uint64_t)buffer[3] << 24);
 		case 8:
 			return buffer[0]
-				| ((uint64_t) buffer[1] << 8)
-				| ((uint64_t) buffer[2] << 16)
-				| ((uint64_t) buffer[3] << 24)
-				| ((uint64_t) buffer[4] << 32)
-				| ((uint64_t) buffer[5] << 40)
-				| ((uint64_t) buffer[6] << 48)
-				| ((uint64_t) buffer[7] << 56);
+				| ((uint64_t)buffer[1] << 8)
+				| ((uint64_t)buffer[2] << 16)
+				| ((uint64_t)buffer[3] << 24)
+				| ((uint64_t)buffer[4] << 32)
+				| ((uint64_t)buffer[5] << 40)
+				| ((uint64_t)buffer[6] << 48)
+				| ((uint64_t)buffer[7] << 56);
 		default:
 			assert(false);
 	}
@@ -2318,7 +2318,7 @@ static int read_memory_bus_word(struct target *target, target_addr_t address,
 	int result;
 	static int sbdata[4] = { DMI_SBDATA0, DMI_SBDATA1, DMI_SBDATA2, DMI_SBDATA3 };
 	assert(size <= 16);
-	for (int i = (size-1) / 4; i >= 0; i--) {
+	for (int i = (size - 1) / 4; i >= 0; i--) {
 		result = dmi_op(target, &value, NULL, DMI_OP_READ, sbdata[i], 0, false, true);
 		if (result != ERROR_OK)
 			return result;
@@ -2675,7 +2675,7 @@ static int read_memory_abstract(struct target *target, target_addr_t address,
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
 			  size, address);
 
-	memset(buffer, 0, count*size);
+	memset(buffer, 0, count * size);
 
 	/* Convert the size (bytes) to width (bits) */
 	unsigned width = size << 3;
@@ -2694,7 +2694,7 @@ static int read_memory_abstract(struct target *target, target_addr_t address,
 	bool updateaddr = true;
 	unsigned width32 = (width + 31) / 32 * 32;
 	for (uint32_t c = 0; c < count; c++) {
-		/* Only update the addres initially and let postincrement update it */
+		/* Only update the address initially and let postincrement update it */
 		if (updateaddr) {
 			/* Set arg1 to the address: address + c * size */
 			result = write_abstract_arg(target, 1, address, riscv_xlen(target));
@@ -2757,9 +2757,9 @@ static int write_memory_abstract(struct target *target, target_addr_t address,
 		if (result != ERROR_OK) {
 			LOG_ERROR("Failed to write arg0 during write_memory_abstract().");
 			return result;
-		  }
+		}
 
-		/* Only update the addres initially and let postincrement update it */
+		/* Only update the address initially and let postincrement update it */
 		if (updateaddr) {
 			/* Set arg1 to the address: address + c * size */
 			result = write_abstract_arg(target, 1, address, riscv_xlen(target));
@@ -2913,7 +2913,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 					goto error;
 				}
 
-				uint64_t value64 = (((uint64_t) dmi_data1) << 32) | dmi_data0;
+				uint64_t value64 = (((uint64_t)dmi_data1) << 32) | dmi_data0;
 				write_to_buf(buffer + (next_index - 2) * size, value64, size);
 				log_memory_access(address + (next_index - 2) * size, value64, size, true);
 
@@ -2998,9 +2998,9 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 			return ERROR_FAIL;
 		if (size > 4 && dmi_read(target, &dmi_data1, DMI_DATA1) != ERROR_OK)
 			return ERROR_FAIL;
-		uint64_t value64 = (((uint64_t) dmi_data1) << 32) | dmi_data0;
-		write_to_buf(buffer + size * (count-2), value64, size);
-		log_memory_access(address + size * (count-2), value64, size, true);
+		uint64_t value64 = (((uint64_t)dmi_data1) << 32) | dmi_data0;
+		write_to_buf(buffer + size * (count - 2), value64, size);
+		log_memory_access(address + size * (count - 2), value64, size, true);
 	}
 
 	/* Read the last word. */
