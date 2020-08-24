@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2018 by Liviu Ionescu                                   *
  *   ilg@livius.net                                                        *

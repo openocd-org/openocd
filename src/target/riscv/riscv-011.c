@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * Support for RISC-V, debug version 0.11. This was never an officially adopted
  * spec, but SiFive made some silicon that uses it.
