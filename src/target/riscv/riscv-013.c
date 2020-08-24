@@ -4585,30 +4585,30 @@ int riscv013_test_compliance(struct target *target)
 		uint32_t nscratch = get_field(hartinfo, DM_HARTINFO_NSCRATCH);
 		for (unsigned int d = 0; d < nscratch; d++) {
 			riscv_reg_t testval, testval_read;
-			/* Because DSCRATCH is not guaranteed to last across PB executions, need to put
+			/* Because DSCRATCH0 is not guaranteed to last across PB executions, need to put
 			this all into one PB execution. Which may not be possible on all implementations.*/
 			if (info->progbufsize >= 5) {
 				for (testval = 0x0011223300112233;
 						 testval != 0xDEAD;
 						 testval = testval == 0x0011223300112233 ? ~testval : 0xDEAD) {
 					COMPLIANCE_TEST(register_write_direct(target, GDB_REGNO_S0, testval) == ERROR_OK,
-							"Need to be able to write S0 in order to test DSCRATCH.");
+							"Need to be able to write S0 in order to test DSCRATCH0.");
 					struct riscv_program program32;
 					riscv_program_init(&program32, target);
-					riscv_program_csrw(&program32, GDB_REGNO_S0, GDB_REGNO_DSCRATCH + d);
-					riscv_program_csrr(&program32, GDB_REGNO_S1, GDB_REGNO_DSCRATCH + d);
+					riscv_program_csrw(&program32, GDB_REGNO_S0, GDB_REGNO_DSCRATCH0 + d);
+					riscv_program_csrr(&program32, GDB_REGNO_S1, GDB_REGNO_DSCRATCH0 + d);
 					riscv_program_fence(&program32);
 					riscv_program_ebreak(&program32);
 					COMPLIANCE_TEST(riscv_program_exec(&program32, target) == ERROR_OK,
-							"Accessing DSCRATCH with program buffer should succeed.");
+							"Accessing DSCRATCH0 with program buffer should succeed.");
 					COMPLIANCE_TEST(register_read_direct(target, &testval_read, GDB_REGNO_S1) == ERROR_OK,
-							"Need to be able to read S1 in order to test DSCRATCH.");
+							"Need to be able to read S1 in order to test DSCRATCH0.");
 					if (riscv_xlen(target) > 32) {
 						COMPLIANCE_TEST(testval == testval_read,
-								"All DSCRATCH registers in HARTINFO must be R/W.");
+								"All DSCRATCH0 registers in HARTINFO must be R/W.");
 					} else {
 						COMPLIANCE_TEST(testval_read == (testval & 0xFFFFFFFF),
-								"All DSCRATCH registers in HARTINFO must be R/W.");
+								"All DSCRATCH0 registers in HARTINFO must be R/W.");
 					}
 				}
 			}

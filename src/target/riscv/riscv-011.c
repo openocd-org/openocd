@@ -1257,7 +1257,7 @@ static int register_write(struct target *target, unsigned int number,
 
 	if (number == S0) {
 		cache_set_load(target, 0, S0, SLOT0);
-		cache_set32(target, 1, csrw(S0, CSR_DSCRATCH));
+		cache_set32(target, 1, csrw(S0, CSR_DSCRATCH0));
 		cache_set_jump(target, 2);
 	} else if (number == S1) {
 		cache_set_load(target, 0, S0, SLOT0);
@@ -1610,7 +1610,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	scans_add_read(scans, SLOT0, false);
 
 	/* Read S0 from dscratch */
-	unsigned int csr[] = {CSR_DSCRATCH, CSR_DPC, CSR_DCSR};
+	unsigned int csr[] = {CSR_DSCRATCH0, CSR_DPC, CSR_DCSR};
 	for (unsigned int i = 0; i < DIM(csr); i++) {
 		scans_add_write32(scans, 0, csrr(S0, csr[i]), true);
 		scans_add_read(scans, SLOT0, false);

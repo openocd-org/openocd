@@ -3184,7 +3184,7 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool write)
 		case GDB_REGNO_VTYPE:
 		case GDB_REGNO_MISA:
 		case GDB_REGNO_DCSR:
-		case GDB_REGNO_DSCRATCH:
+		case GDB_REGNO_DSCRATCH0:
 		case GDB_REGNO_MSTATUS:
 		case GDB_REGNO_MEPC:
 		case GDB_REGNO_MCAUSE:
@@ -3517,8 +3517,8 @@ const char *gdb_regno_name(enum gdb_regno regno)
 			return "dpc";
 		case GDB_REGNO_DCSR:
 			return "dcsr";
-		case GDB_REGNO_DSCRATCH:
-			return "dscratch";
+		case GDB_REGNO_DSCRATCH0:
+			return "dscratch0";
 		case GDB_REGNO_MSTATUS:
 			return "mstatus";
 		case GDB_REGNO_MEPC:
