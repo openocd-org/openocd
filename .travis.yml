@@ -59,7 +59,10 @@ matrix:
 
 script:
     # This is here for the signoff check.
-    - ./tools/checkpatch.sh
+    # Disabled because when travis does the integration build the last change
+    # is an automated change, which won't have the Signed-off-by line.
+    #- ./tools/checkpatch.sh
+
     # Ideally we'd diff back to where we either branched off OpenOCD or master,
     # or riscv. But that's tricky, and the default git clone only gets the last
     # 50 changes any case. Most merges won't consist of more than 40 changes,
