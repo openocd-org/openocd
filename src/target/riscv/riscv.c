@@ -178,7 +178,7 @@ int bscan_tunnel_ir_width; /* if zero, then tunneling is not present/active */
 uint8_t bscan_zero[4] = {0};
 uint8_t bscan_one[4] = {1};
 
-uint8_t ir_user4[4] = {0x23};
+uint8_t ir_user4[4];
 struct scan_field select_user4 = {
 	.in_value = NULL,
 	.out_value = ir_user4
@@ -485,6 +485,12 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	select_idcode.num_bits = target->tap->ir_length;
 
 	if (bscan_tunnel_ir_width != 0) {
+		assert(target->tap->ir_length >= 6);
+		uint32_t ir_user4_raw = 0x23 << (target->tap->ir_length - 6);
+		ir_user4[0] = (uint8_t)ir_user4_raw;
+		ir_user4[1] = (uint8_t)(ir_user4_raw >>= 8);
+		ir_user4[2] = (uint8_t)(ir_user4_raw >>= 8);
+		ir_user4[3] = (uint8_t)(ir_user4_raw >>= 8);
 		select_user4.num_bits = target->tap->ir_length;
 		bscan_tunneled_ir_width[0] = bscan_tunnel_ir_width;
 		if (bscan_tunnel_type == BSCAN_TUNNEL_DATA_REGISTER)
