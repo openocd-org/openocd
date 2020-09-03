@@ -265,6 +265,8 @@ dm013_info_t *get_dm(struct target *target)
 	if (!dm) {
 		LOG_DEBUG("[%d] Allocating new DM", target->coreid);
 		dm = calloc(1, sizeof(dm013_info_t));
+		if (!dm)
+			return NULL;
 		dm->abs_chain_position = abs_chain_position;
 		dm->current_hartid = -1;
 		dm->hart_count = -1;
@@ -279,6 +281,10 @@ dm013_info_t *get_dm(struct target *target)
 			return dm;
 	}
 	target_entry = calloc(1, sizeof(*target_entry));
+	if (!target_entry) {
+		info->dm = NULL;
+		return NULL;
+	}
 	target_entry->target = target;
 	list_add(&target_entry->list, &dm->target_list);
 
@@ -1592,6 +1598,8 @@ static int examine(struct target *target)
 
 	/* Reset the Debug Module. */
 	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
 	if (!dm->was_reset) {
 		dmi_write(target, DM_DMCONTROL, 0);
 		dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_DMACTIVE);
@@ -1814,6 +1822,8 @@ int riscv013_authdata_write(struct target *target, uint32_t value)
 		LOG_INFO("authdata_write resulted in successful authentication");
 		int result = ERROR_OK;
 		dm013_info_t *dm = get_dm(target);
+		if (!dm)
+			return ERROR_FAIL;
 		target_list_t *entry;
 		list_for_each_entry(entry, &dm->target_list, list) {
 			if (examine(entry->target) != ERROR_OK)
@@ -1828,6 +1838,7 @@ int riscv013_authdata_write(struct target *target, uint32_t value)
 static int riscv013_hart_count(struct target *target)
 {
 	dm013_info_t *dm = get_dm(target);
+	assert(dm);
 	return dm->hart_count;
 }
 
@@ -2103,6 +2114,8 @@ static int assert_reset(struct target *target)
 	target->state = TARGET_RESET;
 
 	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
 
 	/* The DM might have gotten reset if OpenOCD called us in some reset that
 	 * involves SRST being toggled. So clear our cache which may be out of
@@ -2846,6 +2859,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 		struct riscv_batch *batch = riscv_batch_alloc(target, 32,
 				info->dmi_busy_delay + info->ac_busy_delay);
+		if (!batch)
+			return ERROR_FAIL;
 
 		unsigned reads = 0;
 		for (unsigned j = index; j < count; j++) {
@@ -3357,6 +3372,8 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 				target,
 				32,
 				info->dmi_busy_delay + info->bus_master_write_delay);
+		if (!batch)
+			return ERROR_FAIL;
 
 		for (uint32_t i = (next_address - address) / size; i < count; i++) {
 			const uint8_t *p = buffer + i * size;
@@ -3528,6 +3545,8 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 				target,
 				32,
 				info->dmi_busy_delay + info->ac_busy_delay);
+		if (!batch)
+			goto error;
 
 		/* To write another word, we put it in S1 and execute the program. */
 		unsigned start = (cur_addr - address) / size;
@@ -3755,6 +3774,8 @@ static int riscv013_select_current_hart(struct target *target)
 	RISCV_INFO(r);
 
 	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
 	if (r->current_hartid == dm->current_hartid)
 		return ERROR_OK;
 
@@ -3773,6 +3794,8 @@ static int riscv013_select_current_hart(struct target *target)
 static int select_prepped_harts(struct target *target, bool *use_hasel)
 {
 	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
 	if (!dm->hasel_supported) {
 		RISCV_INFO(r);
 		r->prepped = false;
@@ -3865,6 +3888,8 @@ static int riscv013_halt_go(struct target *target)
 	if (use_hasel) {
 		target_list_t *entry;
 		dm013_info_t *dm = get_dm(target);
+		if (!dm)
+			return ERROR_FAIL;
 		list_for_each_entry(entry, &dm->target_list, list) {
 			struct target *t = entry->target;
 			t->state = TARGET_HALTED;
@@ -3970,6 +3995,8 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 int riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
 {
 	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
 	if (dm->progbuf_cache[index] != data) {
 		if (dmi_write(target, DM_PROGBUF0 + index, data) != ERROR_OK)
 			return ERROR_FAIL;
@@ -4094,6 +4121,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 	}
 
 	uint32_t num_sbdata_regs = get_num_sbdata_regs(target);
+	assert(num_sbdata_regs);
 
 	uint32_t rd_buf[num_sbdata_regs];
 

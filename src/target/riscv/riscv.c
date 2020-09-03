@@ -2371,9 +2371,10 @@ int parse_ranges(range_t **ranges, const char **argv)
 		}
 
 		if (pass == 0) {
-			if (*ranges)
-				free(*ranges);
+			free(*ranges);
 			*ranges = calloc(range + 2, sizeof(range_t));
+			if (!*ranges)
+				return ERROR_FAIL;
 		} else {
 			(*ranges)[range].low = 1;
 			(*ranges)[range].high = 0;
@@ -3713,6 +3714,8 @@ int riscv_init_registers(struct target *target)
 	riscv_free_registers(target);
 
 	target->reg_cache = calloc(1, sizeof(*target->reg_cache));
+	if (!target->reg_cache)
+		return ERROR_FAIL;
 	target->reg_cache->name = "RISC-V Registers";
 	target->reg_cache->num_regs = GDB_REGNO_COUNT;
 
@@ -3730,12 +3733,15 @@ int riscv_init_registers(struct target *target)
 
 	target->reg_cache->reg_list =
 		calloc(target->reg_cache->num_regs, sizeof(struct reg));
+	if (!target->reg_cache->reg_list)
+		return ERROR_FAIL;
 
 	const unsigned int max_reg_name_len = 12;
-	if (info->reg_names)
-		free(info->reg_names);
+	free(info->reg_names);
 	info->reg_names =
 		calloc(target->reg_cache->num_regs, max_reg_name_len);
+	if (!info->reg_names)
+		return ERROR_FAIL;
 	char *reg_name = info->reg_names;
 
 	int hartid = riscv_current_hartid(target);
@@ -3883,6 +3889,8 @@ int riscv_init_registers(struct target *target)
 	int custom_within_range = 0;
 
 	riscv_reg_info_t *shared_reg_info = calloc(1, sizeof(riscv_reg_info_t));
+	if (!shared_reg_info)
+		return ERROR_FAIL;
 	shared_reg_info->target = target;
 
 	/* When gdb requests register N, gdb_get_register_packet() assumes that this
@@ -4292,7 +4300,8 @@ int riscv_init_registers(struct target *target)
 			r->group = "custom";
 			r->feature = &feature_custom;
 			r->arch_info = calloc(1, sizeof(riscv_reg_info_t));
-			assert(r->arch_info);
+			if (!r->arch_info)
+				return ERROR_FAIL;
 			((riscv_reg_info_t *) r->arch_info)->target = target;
 			((riscv_reg_info_t *) r->arch_info)->custom_number = custom_number;
 			sprintf(reg_name, "custom%d", custom_number);
