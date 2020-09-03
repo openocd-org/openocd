@@ -2709,35 +2709,34 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "repeat_read",
 		.handler = handle_repeat_read,
 		.mode = COMMAND_ANY,
-		.usage = "riscv repeat_read count address [size=4]",
+		.usage = "count address [size=4]",
 		.help = "Repeatedly read the value at address."
 	},
 	{
 		.name = "test_compliance",
 		.handler = riscv_test_compliance,
 		.mode = COMMAND_EXEC,
-		.usage = "riscv test_compliance",
 		.help = "Runs a basic compliance test suite against the RISC-V Debug Spec."
 	},
 	{
 		.name = "set_command_timeout_sec",
 		.handler = riscv_set_command_timeout_sec,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_command_timeout_sec [sec]",
+		.usage = "[sec]",
 		.help = "Set the wall-clock timeout (in seconds) for individual commands"
 	},
 	{
 		.name = "set_reset_timeout_sec",
 		.handler = riscv_set_reset_timeout_sec,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_reset_timeout_sec [sec]",
+		.usage = "[sec]",
 		.help = "Set the wall-clock timeout (in seconds) after reset is deasserted"
 	},
 	{
 		.name = "set_prefer_sba",
 		.handler = riscv_set_prefer_sba,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_prefer_sba on|off",
+		.usage = "on|off",
 		.help = "When on, prefer to use System Bus Access to access memory. "
 			"When off (default), prefer to use the Program Buffer to access memory."
 	},
@@ -2745,7 +2744,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_enable_virtual",
 		.handler = riscv_set_enable_virtual,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_enable_virtual on|off",
+		.usage = "on|off",
 		.help = "When on, memory accesses are performed on physical or virtual "
 				"memory depending on the current system configuration. "
 				"When off (default), all memory accessses are performed on physical memory."
@@ -2754,7 +2753,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "expose_csrs",
 		.handler = riscv_set_expose_csrs,
 		.mode = COMMAND_ANY,
-		.usage = "riscv expose_csrs n0[-m0][,n1[-m1]]...",
+		.usage = "n0[-m0][,n1[-m1]]...",
 		.help = "Configure a list of inclusive ranges for CSRs to expose in "
 				"addition to the standard ones. This must be executed before "
 				"`init`."
@@ -2763,7 +2762,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "expose_custom",
 		.handler = riscv_set_expose_custom,
 		.mode = COMMAND_ANY,
-		.usage = "riscv expose_custom n0[-m0][,n1[-m1]]...",
+		.usage = "n0[-m0][,n1[-m1]]...",
 		.help = "Configure a list of inclusive ranges for custom registers to "
 			"expose. custom0 is accessed as abstract register number 0xc000, "
 			"etc. This must be executed before `init`."
@@ -2772,35 +2771,34 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "authdata_read",
 		.handler = riscv_authdata_read,
 		.mode = COMMAND_ANY,
-		.usage = "riscv authdata_read",
 		.help = "Return the 32-bit value read from authdata."
 	},
 	{
 		.name = "authdata_write",
 		.handler = riscv_authdata_write,
 		.mode = COMMAND_ANY,
-		.usage = "riscv authdata_write value",
+		.usage = "value",
 		.help = "Write the 32-bit value to authdata."
 	},
 	{
 		.name = "dmi_read",
 		.handler = riscv_dmi_read,
 		.mode = COMMAND_ANY,
-		.usage = "riscv dmi_read address",
+		.usage = "address",
 		.help = "Perform a 32-bit DMI read at address, returning the value."
 	},
 	{
 		.name = "dmi_write",
 		.handler = riscv_dmi_write,
 		.mode = COMMAND_ANY,
-		.usage = "riscv dmi_write address value",
+		.usage = "address value",
 		.help = "Perform a 32-bit DMI write of value at address."
 	},
 	{
 		.name = "test_sba_config_reg",
 		.handler = riscv_test_sba_config_reg,
 		.mode = COMMAND_ANY,
-		.usage = "riscv test_sba_config_reg legal_address num_words "
+		.usage = "legal_address num_words "
 			"illegal_address run_sbbusyerror_test[on/off]",
 		.help = "Perform a series of tests on the SBCS register. "
 			"Inputs are a legal, 128-byte aligned address and a number of words to "
@@ -2813,7 +2811,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "reset_delays",
 		.handler = riscv_reset_delays,
 		.mode = COMMAND_ANY,
-		.usage = "reset_delays [wait]",
+		.usage = "[wait]",
 		.help = "OpenOCD learns how many Run-Test/Idle cycles are required "
 			"between scans to avoid encountering the target being busy. This "
 			"command resets those learned values after `wait` scans. It's only "
@@ -2823,7 +2821,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "resume_order",
 		.handler = riscv_resume_order,
 		.mode = COMMAND_ANY,
-		.usage = "resume_order normal|reversed",
+		.usage = "normal|reversed",
 		.help = "Choose the order that harts are resumed in when `hasel` is not "
 			"supported. Normal order is from lowest hart index to highest. "
 			"Reversed order is from highest hart index to lowest."
@@ -2832,14 +2830,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ir",
 		.handler = riscv_set_ir,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_ir_idcode [idcode|dtmcs|dmi] value",
+		.usage = "[idcode|dtmcs|dmi] value",
 		.help = "Set IR value for specified JTAG register."
 	},
 	{
 		.name = "use_bscan_tunnel",
 		.handler = riscv_use_bscan_tunnel,
 		.mode = COMMAND_ANY,
-		.usage = "riscv use_bscan_tunnel value [type]",
+		.usage = "value [type]",
 		.help = "Enable or disable use of a BSCAN tunnel to reach DM.  Supply "
 			"the width of the DM transport TAP's instruction register to "
 			"enable.  Supply a value of 0 to disable. Pass A second argument "
@@ -2850,7 +2848,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_enable_virt2phys",
 		.handler = riscv_set_enable_virt2phys,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_enable_virt2phys on|off",
+		.usage = "on|off",
 		.help = "When on (default), enable translation from virtual address to "
 			"physical address."
 	},
@@ -2858,7 +2856,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ebreakm",
 		.handler = riscv_set_ebreakm,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_ebreakm on|off",
+		.usage = "on|off",
 		.help = "Control dcsr.ebreakm. When off, M-mode ebreak instructions "
 			"don't trap to OpenOCD. Defaults to on."
 	},
@@ -2866,7 +2864,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ebreaks",
 		.handler = riscv_set_ebreaks,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_ebreaks on|off",
+		.usage = "on|off",
 		.help = "Control dcsr.ebreaks. When off, S-mode ebreak instructions "
 			"don't trap to OpenOCD. Defaults to on."
 	},
@@ -2874,7 +2872,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ebreaku",
 		.handler = riscv_set_ebreaku,
 		.mode = COMMAND_ANY,
-		.usage = "riscv set_ebreaku on|off",
+		.usage = "on|off",
 		.help = "Control dcsr.ebreaku. When off, U-mode ebreak instructions "
 			"don't trap to OpenOCD. Defaults to on."
 	},
@@ -2901,14 +2899,12 @@ const struct command_registration riscv_command_handlers[] = {
 		.name = "riscv",
 		.mode = COMMAND_ANY,
 		.help = "RISC-V Command Group",
-		.usage = "",
 		.chain = riscv_exec_command_handlers
 	},
 	{
 		.name = "arm",
 		.mode = COMMAND_ANY,
 		.help = "ARM Command Group",
-		.usage = "",
 		.chain = semihosting_common_handlers
 	},
 	COMMAND_REGISTRATION_DONE

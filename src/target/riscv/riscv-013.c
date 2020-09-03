@@ -2314,7 +2314,7 @@ static void log_memory_access(target_addr_t address, uint64_t value,
 			value &= 0xffff;
 			break;
 		case 4:
-			value &= 0xffffffff;
+			value &= 0xffffffffUL;
 			break;
 		case 8:
 			break;
