@@ -117,6 +117,13 @@ distclean-local:
 	rm -rf Doxyfile doxygen
 	rm -f $(srcdir)/jimtcl/configure.gnu
 
+# We want every change to have Signed-off-by. This is tricky to enforce in
+# Travis, because it automatically makes temporary commits when merging. So
+# instead we have a hook that enforces this in each workspace. To make sure
+# that users actually use those hooks, we point git at them here.
+all-local:
+	git config core.hooksPath ./git-hooks
+
 DISTCLEANFILES = doxygen.log
 
 METASOURCES = AUTO
