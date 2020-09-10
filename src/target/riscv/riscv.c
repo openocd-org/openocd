@@ -2715,6 +2715,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "test_compliance",
 		.handler = riscv_test_compliance,
+		.usage = "",
 		.mode = COMMAND_EXEC,
 		.help = "Runs a basic compliance test suite against the RISC-V Debug Spec."
 	},
@@ -2770,6 +2771,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "authdata_read",
 		.handler = riscv_authdata_read,
+		.usage = "",
 		.mode = COMMAND_ANY,
 		.help = "Return the 32-bit value read from authdata."
 	},
@@ -2899,12 +2901,14 @@ const struct command_registration riscv_command_handlers[] = {
 		.name = "riscv",
 		.mode = COMMAND_ANY,
 		.help = "RISC-V Command Group",
+		.usage = "",
 		.chain = riscv_exec_command_handlers
 	},
 	{
 		.name = "arm",
 		.mode = COMMAND_ANY,
 		.help = "ARM Command Group",
+		.usage = "",
 		.chain = semihosting_common_handlers
 	},
 	COMMAND_REGISTRATION_DONE
