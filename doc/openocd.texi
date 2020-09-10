@@ -9681,8 +9681,17 @@ This is used to access 64-bit floating point registers on 32-bit targets.
 @end deffn
 
 @deffn Command {riscv set_prefer_sba} on|off
+@emph{DEPRECATED -- avoid using this.
+Use the command @command{riscv set_mem_access} instead.}
+
 When on, prefer to use System Bus Access to access memory.  When off (default),
 prefer to use the Program Buffer to access memory.
+Abstract Memory Access will be used with the lowest priority.
+@end deffn
+
+@deffn Command {riscv set_mem_access} method1 [method2] [method3]
+Specify which memory access methods shall be used, and in which order of priority.
+Method can be one of: 'progbuf', 'sysbus' or 'abstract'. Default: all methods enabled, and in this order.
 @end deffn
 
 @deffn Command {riscv set_enable_virtual} on|off

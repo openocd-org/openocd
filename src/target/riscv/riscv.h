@@ -26,6 +26,8 @@ struct riscv_program;
 
 # define PG_MAX_LEVEL 4
 
+#define RISCV_NUM_MEM_ACCESS_METHODS  3
+
 extern struct target_type riscv011_target;
 extern struct target_type riscv013_target;
 
@@ -35,6 +37,13 @@ extern struct target_type riscv013_target;
 typedef uint64_t riscv_reg_t;
 typedef uint32_t riscv_insn_t;
 typedef uint64_t riscv_addr_t;
+
+enum riscv_mem_access_method {
+	RISCV_MEM_ACCESS_UNSPECIFIED,
+	RISCV_MEM_ACCESS_PROGBUF,
+	RISCV_MEM_ACCESS_SYSBUS,
+	RISCV_MEM_ACCESS_ABSTRACT
+};
 
 enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
@@ -179,6 +188,15 @@ typedef struct {
 	/* Set when trigger registers are changed by the user. This indicates we eed
 	 * to beware that we may hit a trigger that we didn't realize had been set. */
 	bool manual_hwbp_set;
+
+	/* Memory access methods to use, ordered by priority, highest to lowest. */
+	int mem_access_methods[RISCV_NUM_MEM_ACCESS_METHODS];
+
+	/* Different memory regions may need different methods but single configuration is applied
+	 * for all. Following flags are used to warn only once about failing memory access method. */
+	bool mem_access_progbuf_warn;
+	bool mem_access_sysbus_warn;
+	bool mem_access_abstract_warn;
 } riscv_info_t;
 
 typedef struct {
@@ -204,8 +222,6 @@ extern int riscv_command_timeout_sec;
 
 /* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
 extern int riscv_reset_timeout_sec;
-
-extern bool riscv_prefer_sba;
 
 extern bool riscv_enable_virtual;
 extern bool riscv_ebreakm;

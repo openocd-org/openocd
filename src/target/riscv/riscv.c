@@ -252,7 +252,6 @@ int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
 /* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
 int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
-bool riscv_prefer_sba;
 bool riscv_enable_virt2phys = true;
 bool riscv_ebreakm = true;
 bool riscv_ebreaks = true;
@@ -2287,11 +2286,84 @@ COMMAND_HANDLER(riscv_test_compliance) {
 
 COMMAND_HANDLER(riscv_set_prefer_sba)
 {
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+	bool prefer_sba;
+	LOG_WARNING("`riscv set_prefer_sba` is deprecated. Please use `riscv set_mem_access` instead.");
 	if (CMD_ARGC != 1) {
 		LOG_ERROR("Command takes exactly 1 parameter");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_prefer_sba);
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], prefer_sba);
+	if (prefer_sba) {
+		/* Use system bus with highest priority */
+		r->mem_access_methods[0] = RISCV_MEM_ACCESS_SYSBUS;
+		r->mem_access_methods[1] = RISCV_MEM_ACCESS_PROGBUF;
+		r->mem_access_methods[2] = RISCV_MEM_ACCESS_ABSTRACT;
+	} else {
+		/* Use progbuf with highest priority */
+		r->mem_access_methods[0] = RISCV_MEM_ACCESS_PROGBUF;
+		r->mem_access_methods[1] = RISCV_MEM_ACCESS_SYSBUS;
+		r->mem_access_methods[2] = RISCV_MEM_ACCESS_ABSTRACT;
+	}
+
+	/* Reset warning flags */
+	r->mem_access_progbuf_warn = true;
+	r->mem_access_sysbus_warn = true;
+	r->mem_access_abstract_warn = true;
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_set_mem_access)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+	int progbuf_cnt = 0;
+	int sysbus_cnt = 0;
+	int abstract_cnt = 0;
+
+	if (CMD_ARGC < 1 || CMD_ARGC > RISCV_NUM_MEM_ACCESS_METHODS) {
+		LOG_ERROR("Command takes 1 to %d parameters", RISCV_NUM_MEM_ACCESS_METHODS);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	/* Check argument validity */
+	for (unsigned i = 0; i < CMD_ARGC; i++) {
+		if (strcmp("progbuf", CMD_ARGV[i]) == 0)
+			progbuf_cnt++;
+		else if (strcmp("sysbus", CMD_ARGV[i]) == 0)
+			sysbus_cnt++;
+		else if (strcmp("abstract", CMD_ARGV[i]) == 0)
+			abstract_cnt++;
+		else {
+			LOG_ERROR("Unknown argument '%s'. "
+				"Must be one of: 'progbuf', 'sysbus' or 'abstract'.", CMD_ARGV[i]);
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	}
+	if (progbuf_cnt > 1 || sysbus_cnt > 1 || abstract_cnt > 1) {
+		LOG_ERROR("Syntax error - duplicate arguments to `riscv set_mem_access`.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	/* Args are valid, store them */
+	for (unsigned i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++)
+		r->mem_access_methods[i] = RISCV_MEM_ACCESS_UNSPECIFIED;
+	for (unsigned i = 0; i < CMD_ARGC; i++) {
+		if (strcmp("progbuf", CMD_ARGV[i]) == 0)
+			r->mem_access_methods[i] = RISCV_MEM_ACCESS_PROGBUF;
+		else if (strcmp("sysbus", CMD_ARGV[i]) == 0)
+			r->mem_access_methods[i] = RISCV_MEM_ACCESS_SYSBUS;
+		else if (strcmp("abstract", CMD_ARGV[i]) == 0)
+			r->mem_access_methods[i] = RISCV_MEM_ACCESS_ABSTRACT;
+	}
+
+	/* Reset warning flags */
+	r->mem_access_progbuf_warn = true;
+	r->mem_access_sysbus_warn = true;
+	r->mem_access_abstract_warn = true;
+
 	return ERROR_OK;
 }
 
@@ -2742,6 +2814,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"When off (default), prefer to use the Program Buffer to access memory."
 	},
 	{
+		.name = "set_mem_access",
+		.handler = riscv_set_mem_access,
+		.mode = COMMAND_ANY,
+		.usage = "method1 [method2] [method3]",
+		.help = "Set which memory access methods shall be used and in which order "
+			"of priority. Method can be one of: 'progbuf', 'sysbus' or 'abstract'."
+	},
+	{
 		.name = "set_enable_virtual",
 		.handler = riscv_set_enable_virtual,
 		.mode = COMMAND_ANY,
@@ -2987,6 +3067,14 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 
 	for (size_t h = 0; h < RISCV_MAX_HARTS; ++h)
 		r->xlen[h] = -1;
+
+	r->mem_access_methods[0] = RISCV_MEM_ACCESS_PROGBUF;
+	r->mem_access_methods[1] = RISCV_MEM_ACCESS_SYSBUS;
+	r->mem_access_methods[2] = RISCV_MEM_ACCESS_ABSTRACT;
+
+	r->mem_access_progbuf_warn = true;
+	r->mem_access_sysbus_warn = true;
+	r->mem_access_abstract_warn = true;
 }
 
 static int riscv_resume_go_all_harts(struct target *target)
