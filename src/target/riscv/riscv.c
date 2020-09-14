@@ -745,6 +745,124 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 	return ERROR_OK;
 }
 
+/**
+ * Write one memory item of given "size". Use memory access of given "access_size".
+ * Utilize read-modify-write, if needed.
+ * */
+static int write_by_given_size(struct target *target, target_addr_t address,
+		uint32_t size, uint8_t *buffer, uint32_t access_size)
+{
+	assert(size == 1 || size == 2 || size == 4 || size == 8);
+	assert(access_size == 1 || access_size == 2 || access_size == 4 || access_size == 8);
+
+	if (access_size <= size && address % access_size == 0)
+		/* Can do the memory access directly without a helper buffer. */
+		return target_write_memory(target, address, access_size, size / access_size, buffer);
+
+	unsigned offset_head = address % access_size;
+	unsigned n_blocks = ((size + offset_head) <= access_size) ? 1 : 2;
+	uint8_t helper_buf[n_blocks * access_size];
+
+	/* Read from memory */
+	if (target_read_memory(target, address - offset_head, access_size, n_blocks, helper_buf) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Modify and write back */
+	memcpy(helper_buf + offset_head, buffer, size);
+	return target_write_memory(target, address - offset_head, access_size, n_blocks, helper_buf);
+}
+
+/**
+ * Read one memory item of given "size". Use memory access of given "access_size".
+ * Read larger section of memory and pick out the required portion, if needed.
+ * */
+static int read_by_given_size(struct target *target, target_addr_t address,
+	uint32_t size, uint8_t *buffer, uint32_t access_size)
+{
+	assert(size == 1 || size == 2 || size == 4 || size == 8);
+	assert(access_size == 1 || access_size == 2 || access_size == 4 || access_size == 8);
+
+	if (access_size <= size && address % access_size == 0)
+		/* Can do the memory access directly without a helper buffer. */
+		return target_read_memory(target, address, access_size, size / access_size, buffer);
+
+	unsigned offset_head = address % access_size;
+	unsigned n_blocks = ((size + offset_head) <= access_size) ? 1 : 2;
+	uint8_t helper_buf[n_blocks * access_size];
+
+	/* Read from memory */
+	if (target_read_memory(target, address - offset_head, access_size, n_blocks, helper_buf) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Pick the requested portion from the buffer */
+	memcpy(buffer, helper_buf + offset_head, size);
+	return ERROR_OK;
+}
+
+/**
+ * Write one memory item using any memory access size that will work.
+ * Utilize read-modify-write, if needed.
+ * */
+static int write_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer)
+{
+	assert(size == 1 || size == 2 ||  size == 4 || size == 8);
+
+	/* Find access size that correspond to data size and the alignment. */
+	unsigned preferred_size = size;
+	while (address % preferred_size != 0)
+		preferred_size /= 2;
+
+	/* First try the preferred (most natural) access size. */
+	if (write_by_given_size(target, address, size, buffer, preferred_size) == ERROR_OK)
+		return ERROR_OK;
+
+	/* On failure, try other access sizes.
+	   Minimize the number of accesses by trying first the largest size. */
+	for (unsigned access_size = 8; access_size > 0; access_size /= 2) {
+		if (access_size == preferred_size)
+			/* Already tried this size. */
+			continue;
+
+		if (write_by_given_size(target, address, size, buffer, access_size) == ERROR_OK)
+			return ERROR_OK;
+	}
+
+	/* No access attempt succeeded. */
+	return ERROR_FAIL;
+}
+
+/**
+ * Read one memory item using any memory access size that will work.
+ * Read larger section of memory and pick out the required portion, if needed.
+ * */
+static int read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer)
+{
+	assert(size == 1 || size == 2 ||  size == 4 || size == 8);
+
+	/* Find access size that correspond to data size and the alignment. */
+	unsigned preferred_size = size;
+	while (address % preferred_size != 0)
+		preferred_size /= 2;
+
+	/* First try the preferred (most natural) access size. */
+	if (read_by_given_size(target, address, size, buffer, preferred_size) == ERROR_OK)
+			return ERROR_OK;
+
+	/* On failure, try other access sizes.
+	   Minimize the number of accesses by trying first the largest size. */
+	for (unsigned access_size = 8; access_size > 0; access_size /= 2) {
+		if (access_size == preferred_size)
+			/* Already tried this size. */
+			continue;
+
+		if (read_by_given_size(target, address, size, buffer, access_size) == ERROR_OK)
+			return ERROR_OK;
+	}
+
+	/* No access attempt succeeded. */
+	return ERROR_FAIL;
+}
+
 int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	LOG_DEBUG("[%d] @0x%" TARGET_PRIxADDR, target->coreid, breakpoint->address);
@@ -761,8 +879,9 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 			return ERROR_FAIL;
 		}
 
-		if (target_read_memory(target, breakpoint->address, 2, breakpoint->length / 2,
-					breakpoint->orig_instr) != ERROR_OK) {
+		/* Read the original instruction. */
+		if (read_by_any_size(
+				target, breakpoint->address, breakpoint->length, breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to read original instruction at 0x%" TARGET_PRIxADDR,
 					breakpoint->address);
 			return ERROR_FAIL;
@@ -770,9 +889,8 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 
 		uint8_t buff[4] = { 0 };
 		buf_set_u32(buff, 0, breakpoint->length * CHAR_BIT, breakpoint->length == 4 ? ebreak() : ebreak_c());
-		int const retval = target_write_memory(target, breakpoint->address, 2, breakpoint->length / 2, buff);
-
-		if (retval != ERROR_OK) {
+		/* Write the ebreak instruction. */
+		if (write_by_any_size(target, breakpoint->address, breakpoint->length, buff) != ERROR_OK) {
 			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
 					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
 			return ERROR_FAIL;
@@ -843,8 +961,9 @@ int riscv_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	if (breakpoint->type == BKPT_SOFT) {
-		if (target_write_memory(target, breakpoint->address, 2, breakpoint->length / 2,
-					breakpoint->orig_instr) != ERROR_OK) {
+		/* Write the original instruction. */
+		if (write_by_any_size(
+				target, breakpoint->address, breakpoint->length, breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
 					"0x%" TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
 			return ERROR_FAIL;
