@@ -122,7 +122,7 @@ distclean-local:
 # instead we have a hook that enforces this in each workspace. To make sure
 # that users actually use those hooks, we point git at them here.
 all-local:
-	git config core.hooksPath ./git-hooks
+	cd $(srcdir) && git config core.hooksPath ./git-hooks
 
 DISTCLEANFILES = doxygen.log
 
