@@ -245,8 +245,6 @@ extern struct scan_field select_idcode;
 extern struct scan_field select_user4;
 extern struct scan_field *bscan_tunneled_select_dmi;
 extern uint32_t bscan_tunneled_select_dmi_num_fields;
-extern uint8_t bscan_zero[4];
-extern uint8_t bscan_one[4];
 typedef enum { BSCAN_TUNNEL_NESTED_TAP, BSCAN_TUNNEL_DATA_REGISTER } bscan_tunnel_type_t;
 extern int bscan_tunnel_ir_width;
 extern bscan_tunnel_type_t bscan_tunnel_type;

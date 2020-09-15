@@ -175,8 +175,8 @@ struct scan_field select_idcode = {
 bscan_tunnel_type_t bscan_tunnel_type;
 int bscan_tunnel_ir_width; /* if zero, then tunneling is not present/active */
 
-uint8_t bscan_zero[4] = {0};
-uint8_t bscan_one[4] = {1};
+static uint8_t bscan_zero[4] = {0};
+static uint8_t bscan_one[4] = {1};
 
 uint8_t ir_user4[4];
 struct scan_field select_user4 = {
