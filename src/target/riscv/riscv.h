@@ -232,7 +232,10 @@ extern bool riscv_ebreaku;
  * that provides that. */
 static inline riscv_info_t *riscv_info(const struct target *target) __attribute__((unused));
 static inline riscv_info_t *riscv_info(const struct target *target)
-{ return target->arch_info; }
+{
+	assert(target->arch_info);
+	return target->arch_info;
+}
 #define RISCV_INFO(R) riscv_info_t *R = riscv_info(target);
 
 extern uint8_t ir_dtmcontrol[4];

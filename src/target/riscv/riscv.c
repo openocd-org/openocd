@@ -468,15 +468,21 @@ static struct target_type *get_target_type(struct target *target)
 	}
 }
 
+static int riscv_create_target(struct target *target, Jim_Interp *interp)
+{
+	LOG_DEBUG("riscv_create_target()");
+	target->arch_info = calloc(1, sizeof(riscv_info_t));
+	if (!target->arch_info)
+		return ERROR_FAIL;
+	riscv_info_init(target, target->arch_info);
+	return ERROR_OK;
+}
+
 static int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	LOG_DEBUG("riscv_init_target()");
-	target->arch_info = calloc(1, sizeof(riscv_info_t));
-	if (!target->arch_info)
-		return ERROR_FAIL;
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-	riscv_info_init(target, info);
+	RISCV_INFO(info);
 	info->cmd_ctx = cmd_ctx;
 
 	select_dtmcontrol.num_bits = target->tap->ir_length;
@@ -1143,7 +1149,7 @@ static int riscv_examine(struct target *target)
 
 	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
 
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	RISCV_INFO(info);
 	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
 	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
 	info->dtm_version = get_field(dtmcontrol, DTMCONTROL_VERSION);
@@ -1865,7 +1871,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		struct reg_param *reg_params, target_addr_t entry_point,
 		target_addr_t exit_point, int timeout_ms, void *arch_info)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	RISCV_INFO(info);
 	int hartid = riscv_current_hartid(target);
 
 	if (num_mem_params > 0) {
@@ -3129,6 +3135,7 @@ static unsigned riscv_data_bits(struct target *target)
 struct target_type riscv_target = {
 	.name = "riscv",
 
+	.target_create = riscv_create_target,
 	.init_target = riscv_init_target,
 	.deinit_target = riscv_deinit_target,
 	.examine = riscv_examine,
@@ -3181,6 +3188,7 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 	r->dtm_version = 1;
 	r->registers_initialized = false;
 	r->current_hartid = target->coreid;
+	r->version_specific = NULL;
 
 	memset(r->trigger_unique_id, 0xff, sizeof(r->trigger_unique_id));
 

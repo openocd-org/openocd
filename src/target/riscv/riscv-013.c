@@ -239,6 +239,8 @@ LIST_HEAD(dm_list);
 static riscv013_info_t *get_info(const struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	assert(info);
+	assert(info->version_specific);
 	return (riscv013_info_t *) info->version_specific;
 }
 
@@ -2031,7 +2033,7 @@ static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	LOG_DEBUG("init");
-	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
+	RISCV_INFO(generic_info);
 
 	generic_info->get_register = &riscv013_get_register;
 	generic_info->set_register = &riscv013_set_register;
