@@ -68,12 +68,6 @@ typedef enum {
 #define DBUS_DATA_SIZE				34
 #define DBUS_ADDRESS_START			36
 
-typedef enum {
-	RE_OK,
-	RE_FAIL,
-	RE_AGAIN
-} riscv_error_t;
-
 typedef enum slot {
 	SLOT0,
 	SLOT1,

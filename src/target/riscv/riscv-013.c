@@ -111,12 +111,6 @@ typedef enum {
 	DMI_STATUS_BUSY = 3
 } dmi_status_t;
 
-typedef enum {
-	RE_OK,
-	RE_FAIL,
-	RE_AGAIN
-} riscv_error_t;
-
 typedef enum slot {
 	SLOT0,
 	SLOT1,
