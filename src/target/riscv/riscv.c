@@ -20,48 +20,6 @@
 #include "gdb_regs.h"
 #include "rtos/rtos.h"
 
-/**
- * Since almost everything can be accomplish by scanning the dbus register, all
- * functions here assume dbus is already selected. The exception are functions
- * called directly by OpenOCD, which can't assume anything about what's
- * currently in IR. They should set IR to dbus explicitly.
- */
-
-/**
- * Code structure
- *
- * At the bottom of the stack are the OpenOCD JTAG functions:
- *		jtag_add_[id]r_scan
- *		jtag_execute_query
- *		jtag_add_runtest
- *
- * There are a few functions to just instantly shift a register and get its
- * value:
- *		dtmcontrol_scan
- *		idcode_scan
- *		dbus_scan
- *
- * Because doing one scan and waiting for the result is slow, most functions
- * batch up a bunch of dbus writes and then execute them all at once. They use
- * the scans "class" for this:
- *		scans_new
- *		scans_delete
- *		scans_execute
- *		scans_add_...
- * Usually you new(), call a bunch of add functions, then execute() and look
- * at the results by calling scans_get...()
- *
- * Optimized functions will directly use the scans class above, but slightly
- * lazier code will use the cache functions that in turn use the scans
- * functions:
- *		cache_get...
- *		cache_set...
- *		cache_write
- * cache_set... update a local structure, which is then synced to the target
- * with cache_write(). Only Debug RAM words that are actually changed are sent
- * to the target. Afterwards use cache_get... to read results.
- */
-
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
