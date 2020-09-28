@@ -1561,8 +1561,8 @@ static int discover_vlenb(struct target *target, int hartid)
 	riscv_reg_t vlenb;
 
 	if (register_read(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK) {
-		LOG_WARNING("Couldn't read vlenb for %s; vector register access won't "
-				"work.", target_name(target));
+		LOG_WARNING("Couldn't read vlenb for %s; vector register access won't work.",
+				target_name(target));
 		r->vlenb[hartid] = 0;
 		return ERROR_OK;
 	}
@@ -4149,7 +4149,7 @@ int riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_ins
 			return ERROR_FAIL;
 		dm->progbuf_cache[index] = data;
 	} else {
-		LOG_DEBUG("cache hit for 0x%x @%d", data, index);
+		LOG_DEBUG("cache hit for 0x%" PRIx32 " @%d", data, index);
 	}
 	return ERROR_OK;
 }

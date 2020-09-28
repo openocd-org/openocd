@@ -159,7 +159,7 @@ uint32_t riscv_batch_get_dmi_read_data(struct riscv_batch *batch, size_t key)
 	assert(index <= batch->used_scans);
 	uint8_t *base = batch->data_in + DMI_SCAN_BUF_SIZE * index;
 	/* extract "data" field from the DMI read result */
-	return (uint32_t)buf_get_u32(base, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH);
+	return buf_get_u32(base, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH);
 }
 
 void riscv_batch_add_nop(struct riscv_batch *batch)

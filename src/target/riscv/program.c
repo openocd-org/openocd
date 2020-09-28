@@ -58,8 +58,8 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	if (riscv_program_ebreak(p) != ERROR_OK) {
 		LOG_ERROR("Unable to write ebreak");
 		for (size_t i = 0; i < riscv_debug_buffer_size(p->target); ++i)
-			LOG_ERROR("ram[%02x]: DASM(0x%08lx) [0x%08lx]", (int)i,
-					(long)p->debug_buffer[i], (long)p->debug_buffer[i]);
+			LOG_ERROR("ram[%02x]: DASM(0x%08" PRIx32 ") [0x%08" PRIx32 "]",
+					(int)i, p->debug_buffer[i], p->debug_buffer[i]);
 		return ERROR_FAIL;
 	}
 
