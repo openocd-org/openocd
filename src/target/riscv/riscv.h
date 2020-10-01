@@ -61,6 +61,12 @@ typedef struct {
 } riscv_reg_info_t;
 
 typedef struct {
+	struct list_head list;
+	uint16_t low, high;
+	char *name;
+} range_list_t;
+
+typedef struct {
 	unsigned dtm_version;
 
 	struct command_context *cmd_ctx;
@@ -197,6 +203,14 @@ typedef struct {
 	bool mem_access_progbuf_warn;
 	bool mem_access_sysbus_warn;
 	bool mem_access_abstract_warn;
+
+	/* In addition to the ones in the standard spec, we'll also expose additional
+	 * CSRs in this list. */
+	struct list_head expose_csr;
+	/* Same, but for custom registers.
+	 * Custom registers are for non-standard extensions and use abstract register numbers
+	 * from range 0xc000 ... 0xffff. */
+	struct list_head expose_custom;
 } riscv_info_t;
 
 typedef struct {
