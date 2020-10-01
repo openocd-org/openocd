@@ -2094,7 +2094,10 @@ static int assert_reset(struct target *target)
 
 	uint32_t control_base = set_field(0, DM_DMCONTROL_DMACTIVE, 1);
 
-	if (target->rtos) {
+	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
+		/* Run the user-supplied script if there is one. */
+		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
+	} else if (target->rtos) {
 		/* There's only one target, and OpenOCD thinks each hart is a thread.
 		 * We must reset them all. */
 
@@ -2166,16 +2169,7 @@ static int deassert_reset(struct target *target)
 			index = r->current_hartid;
 		}
 
-		char *operation;
-		uint32_t expected_field;
-		if (target->reset_halt) {
-			operation = "halt";
-			expected_field = DM_DMSTATUS_ALLHALTED;
-		} else {
-			operation = "run";
-			expected_field = DM_DMSTATUS_ALLRUNNING;
-		}
-		LOG_DEBUG("Waiting for hart %d to %s out of reset.", index, operation);
+		LOG_DEBUG("Waiting for hart %d to come out of reset.", index);
 		while (1) {
 			int result = dmstatus_read_timeout(target, &dmstatus, true,
 					riscv_reset_timeout_sec);
@@ -2186,13 +2180,20 @@ static int deassert_reset(struct target *target)
 						index, riscv_reset_timeout_sec);
 			if (result != ERROR_OK)
 				return result;
-			if (get_field(dmstatus, expected_field))
+			/* Certain debug modules, like the one in GD32VF103
+			 * MCUs, violate the specification's requirement that
+			 * each hart is in "exactly one of four states" and,
+			 * during reset, report harts as both unavailable and
+			 * halted/running. To work around this, we check for
+			 * the absence of the unavailable state rather than
+			 * the presence of any other state. */
+			if (!get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL))
 				break;
 			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart %d didn't %s coming out of reset in %ds; "
+				LOG_ERROR("Hart %d didn't leave reset in %ds; "
 						"dmstatus=0x%x; "
 						"Increase the timeout with riscv set_reset_timeout_sec.",
-						index, operation, riscv_reset_timeout_sec, dmstatus);
+						index, riscv_reset_timeout_sec, dmstatus);
 				return ERROR_FAIL;
 			}
 		}
