@@ -9641,6 +9641,13 @@ OpenOCD exposes each hart as a separate core.
 
 @subsection RISC-V Debug Configuration Commands
 
+@deffn Command {riscv dump_sample_buf} [base64]
+Dump and clear the contents of the sample buffer. Which samples are collected
+is configured with @code{riscv memory_sample}. If the optional base64
+argument is passed, the raw buffer is dumped in base64 format, so that
+external tools can gather the data efficiently.
+@end deffn
+
 @deffn Command {riscv expose_csrs} n[-m|=name] [...]
 Configure which CSRs to expose in addition to the standard ones. The CSRs to expose
 can be specified as individual register numbers or register ranges (inclusive). For the
@@ -9660,6 +9667,16 @@ configures individual registers or register ranges (inclusive) that shall be exp
 Number 0 indicates the first custom register, whose abstract command number is 0xc000.
 For individually listed registers, a human-readable name can be optionally provided.
 This command must be executed before `init`.
+@end deffn
+
+@deffn Command {riscv memory_sample} bucket address|clear [size=4]
+Configure OpenOCD to frequently read size bytes at the given addresses.
+Execute the command with no arguments to see the current configuration. Use
+clear to stop using a given bucket.
+
+OpenOCD will allocate a 1MB sample buffer, and when it fills up no more
+samples will be collected until it is emptied with @code{riscv
+dump_sample_buf}.
 @end deffn
 
 @deffn Command {riscv repeat_read} count address [size=4]

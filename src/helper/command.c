@@ -195,7 +195,7 @@ struct command_context *current_command_context(Jim_Interp *interp)
 static int script_command_run(Jim_Interp *interp,
 	int argc, Jim_Obj * const *argv, struct command *c)
 {
-	target_call_timer_callbacks_now();
+	target_call_timer_callbacks_now(NULL);
 	LOG_USER_N("%s", "");	/* Keep GDB connection alive*/
 
 	unsigned nwords;
@@ -1201,7 +1201,7 @@ COMMAND_HANDLER(handle_sleep_command)
 	if (!busy) {
 		int64_t then = timeval_ms();
 		while (timeval_ms() - then < (int64_t)duration) {
-			target_call_timer_callbacks_now();
+			target_call_timer_callbacks_now(NULL);
 			usleep(1000);
 		}
 	} else

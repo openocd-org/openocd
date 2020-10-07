@@ -60,6 +60,23 @@ typedef struct {
 	unsigned custom_number;
 } riscv_reg_info_t;
 
+#define RISCV_SAMPLE_BUF_TIMESTAMP	0x80
+typedef struct {
+	uint8_t *buf;
+	unsigned used;
+	unsigned size;
+	uint32_t last_timestamp;
+} riscv_sample_buf_t;
+
+typedef struct {
+	bool enabled;
+	struct {
+		bool enabled;
+		target_addr_t address;
+		uint32_t size_bytes;
+	} bucket[16];
+} riscv_sample_config_t;
+
 typedef struct {
 	struct list_head list;
 	uint16_t low, high;
@@ -169,6 +186,11 @@ typedef struct {
 
 	int (*test_compliance)(struct target *target);
 
+	int (*sample_memory)(struct target *target,
+						 riscv_sample_buf_t *buf,
+						 riscv_sample_config_t *config,
+						 int64_t until_ms);
+
 	int (*read_memory)(struct target *target, target_addr_t address,
 			uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
 
@@ -211,6 +233,9 @@ typedef struct {
 	 * Custom registers are for non-standard extensions and use abstract register numbers
 	 * from range 0xc000 ... 0xffff. */
 	struct list_head expose_custom;
+
+	riscv_sample_config_t sample_config;
+	riscv_sample_buf_t sample_buf;
 } riscv_info_t;
 
 typedef struct {
