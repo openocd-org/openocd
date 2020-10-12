@@ -123,7 +123,7 @@ static int adapter_load_core_reg_u32(struct target *target,
 			break;
 
 		case ARMV7M_CONTROL:
-			*value = buf_get_u32((uint8_t *) value, 24, 2);
+			*value = buf_get_u32((uint8_t *) value, 24, 3);
 			break;
 		}
 
@@ -215,7 +215,7 @@ static int adapter_store_core_reg_u32(struct target *target,
 			break;
 
 		case ARMV7M_CONTROL:
-			buf_set_u32((uint8_t *) &reg, 24, 2, value);
+			buf_set_u32((uint8_t *) &reg, 24, 3, value);
 			break;
 		}
 
@@ -433,7 +433,7 @@ static int adapter_debug_entry(struct target *target)
 		arm->map = armv7m_msp_reg_map;
 	} else {
 		unsigned control = buf_get_u32(arm->core_cache
-				->reg_list[ARMV7M_CONTROL].value, 0, 2);
+				->reg_list[ARMV7M_CONTROL].value, 0, 3);
 
 		/* is this thread privileged? */
 		arm->core_mode = control & 1
