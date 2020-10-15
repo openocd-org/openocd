@@ -1263,10 +1263,10 @@ int target_get_gdb_reg_list_noread(struct target *target,
 bool target_supports_gdb_connection(struct target *target)
 {
 	/*
-	 * based on current code, we can simply exclude all the targets that
-	 * don't provide get_gdb_reg_list; this could change with new targets.
+	 * exclude all the targets that don't provide get_gdb_reg_list
+	 * or that have explicit gdb_max_connection == 0
 	 */
-	return !!target->type->get_gdb_reg_list;
+	return !!target->type->get_gdb_reg_list && !!target->gdb_max_connections;
 }
 
 int target_step(struct target *target,
@@ -4652,6 +4652,7 @@ enum target_cfg_param {
 	TCFG_RTOS,
 	TCFG_DEFER_EXAMINE,
 	TCFG_GDB_PORT,
+	TCFG_GDB_MAX_CONNECTIONS,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
@@ -4668,6 +4669,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-rtos",             .value = TCFG_RTOS },
 	{ .name = "-defer-examine",    .value = TCFG_DEFER_EXAMINE },
 	{ .name = "-gdb-port",         .value = TCFG_GDB_PORT },
+	{ .name = "-gdb-max-connections",   .value = TCFG_GDB_MAX_CONNECTIONS },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -4974,6 +4976,25 @@ no_params:
 			}
 			Jim_SetResultString(goi->interp, target->gdb_port_override ? : "undefined", -1);
 			/* loop for more */
+			break;
+
+		case TCFG_GDB_MAX_CONNECTIONS:
+			if (goi->isconfigure) {
+				struct command_context *cmd_ctx = current_command_context(goi->interp);
+				if (cmd_ctx->mode != COMMAND_CONFIG) {
+					Jim_SetResultString(goi->interp, "-gdb-max-conenctions must be configured before 'init'", -1);
+					return JIM_ERR;
+				}
+
+				e = Jim_GetOpt_Wide(goi, &w);
+				if (e != JIM_OK)
+					return e;
+				target->gdb_max_connections = (w < 0) ? CONNECTION_LIMIT_UNLIMITED : (int)w;
+			} else {
+				if (goi->argc != 0)
+					goto no_params;
+			}
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->gdb_max_connections));
 			break;
 		}
 	} /* while (goi->argc) */
@@ -5555,6 +5576,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->rtos_auto_detect = false;
 
 	target->gdb_port_override = NULL;
+	target->gdb_max_connections = 1;
 
 	/* Do the rest as "configure" options */
 	goi->isconfigure = 1;
