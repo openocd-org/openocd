@@ -55,10 +55,38 @@
 #define REG_TYPE_MAX_NAME_LENGTH	20
 
 /* ARC 32bits opcodes */
-#define ARC_SDBBP_32 0x256F003F  /* BRK */
+#define ARC_SDBBP_32 0x256F003FU  /* BRK */
 
 /* ARC 16bits opcodes */
 #define ARC_SDBBP_16 0x7FFF      /* BRK_S */
+
+/* Cache registers */
+#define AUX_IC_IVIC_REG			0X10
+#define IC_IVIC_INVALIDATE		0XFFFFFFFF
+
+#define AUX_DC_IVDC_REG			0X47
+#define DC_IVDC_INVALIDATE		BIT(0)
+#define AUX_DC_CTRL_REG			0X48
+#define DC_CTRL_IM			BIT(6)
+
+/* L2 cache registers */
+#define SLC_AUX_CACHE_CTRL		0x903
+#define L2_CTRL_IM			BIT(6)
+#define L2_CTRL_BS			BIT(8)		/* Busy flag */
+#define SLC_AUX_CACHE_FLUSH		0x904
+#define L2_FLUSH_FL			BIT(0)
+#define SLC_AUX_CACHE_INV		0x905
+#define L2_INV_IV			BIT(0)
+
+ /* Action Point */
+#define AP_AC_AT_INST_ADDR		0x0
+#define AP_AC_AT_MEMORY_ADDR	0x2
+#define AP_AC_AT_AUXREG_ADDR	0x4
+
+#define AP_AC_TT_DISABLE		0x00
+#define AP_AC_TT_WRITE			0x10
+#define AP_AC_TT_READ			0x20
+#define AP_AC_TT_READWRITE		0x30
 
 struct arc_reg_bitfield {
 	struct reg_data_type_bitfield bitfield;
@@ -77,8 +105,6 @@ struct arc_reg_data_type {
 		struct reg_data_type_flags_field *reg_type_flags_field;
 	};
 };
-
-
 
 /* Standard GDB register types */
 static const struct reg_data_type standard_gdb_types[] = {
@@ -100,6 +126,18 @@ static const struct reg_data_type standard_gdb_types[] = {
 	{ .type = REG_TYPE_IEEE_DOUBLE, .id = "ieee_double" },
 };
 
+enum arc_actionpointype {
+	ARC_AP_BREAKPOINT,
+	ARC_AP_WATCHPOINT,
+};
+
+/* Actionpoint related fields  */
+struct arc_actionpoint {
+	int used;
+	uint32_t bp_value;
+	uint32_t reg_address;
+	enum arc_actionpointype type;
+};
 
 struct arc_common {
 	uint32_t common_magic;
@@ -108,6 +146,22 @@ struct arc_common {
 
 	struct reg_cache *core_and_aux_cache;
 	struct reg_cache *bcr_cache;
+
+	/* Cache control */
+	bool has_dcache;
+	bool has_icache;
+	bool has_l2cache;
+	/* If true, then D$ has been already flushed since core has been
+	 * halted. */
+	bool dcache_flushed;
+	/* If true, then L2 has been already flushed since core has been
+	 * halted. */
+	bool l2cache_flushed;
+	/* If true, then caches have been already flushed since core has been
+	 * halted. */
+	bool icache_invalidated;
+	bool dcache_invalidated;
+	bool l2cache_invalidated;
 
 	/* Indicate if cach was built (for deinit function) */
 	bool core_aux_cache_built;
@@ -138,6 +192,11 @@ struct arc_common {
 	unsigned long pc_index_in_cache;
 	/* DEBUG register location in register cache. */
 	unsigned long debug_index_in_cache;
+
+	/* Actionpoints */
+	unsigned int actionpoints_num;
+	unsigned int actionpoints_num_avail;
+	struct arc_actionpoint *actionpoints_list;
 };
 
 /* Borrowed from nds32.h */
@@ -246,5 +305,13 @@ struct reg *arc_reg_get_by_name(struct reg_cache *first,
 
 int arc_reg_get_field(struct target *target, const char *reg_name,
 		const char *field_name, uint32_t *value_ptr);
+
+int arc_cache_flush(struct target *target);
+int arc_cache_invalidate(struct target *target);
+
+int arc_add_auxreg_actionpoint(struct target *target,
+	uint32_t auxreg_addr, uint32_t transaction);
+int arc_remove_auxreg_actionpoint(struct target *target, uint32_t auxreg_addr);
+int arc_set_actionpoints_num(struct target *target, uint32_t ap_num);
 
 #endif /* OPENOCD_TARGET_ARC_H */

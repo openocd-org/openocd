@@ -869,7 +869,7 @@ static int or1k_adv_cpu_reset(struct or1k_jtag *jtag_info, int action)
 static int or1k_adv_jtag_read_memory(struct or1k_jtag *jtag_info,
 			    uint32_t addr, uint32_t size, int count, uint8_t *buffer)
 {
-	LOG_DEBUG("Reading WB%" PRId32 " at 0x%08" PRIx32, size * 8, addr);
+	LOG_DEBUG("Reading WB%" PRIu32 " at 0x%08" PRIx32, size * 8, addr);
 
 	int retval;
 	if (!jtag_info->or1k_jtag_inited) {
@@ -924,7 +924,7 @@ static int or1k_adv_jtag_read_memory(struct or1k_jtag *jtag_info,
 static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 			     uint32_t addr, uint32_t size, int count, const uint8_t *buffer)
 {
-	LOG_DEBUG("Writing WB%" PRId32 " at 0x%08" PRIx32, size * 8, addr);
+	LOG_DEBUG("Writing WB%" PRIu32 " at 0x%08" PRIx32, size * 8, addr);
 
 	int retval;
 	if (!jtag_info->or1k_jtag_inited) {
@@ -975,8 +975,7 @@ static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 					     size, blocks_this_round,
 					     block_count_address);
 		if (retval != ERROR_OK) {
-			if (t != NULL)
-				free(t);
+			free(t);
 			return retval;
 		}
 
@@ -985,9 +984,7 @@ static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 		block_count_buffer += size * MAX_BURST_SIZE;
 	}
 
-	if (t != NULL)
-		free(t);
-
+	free(t);
 	return ERROR_OK;
 }
 
@@ -995,7 +992,7 @@ int or1k_adv_jtag_jsp_xfer(struct or1k_jtag *jtag_info,
 				  int *out_len, unsigned char *out_buffer,
 				  int *in_len, unsigned char *in_buffer)
 {
-	LOG_DEBUG("JSP transfert");
+	LOG_DEBUG("JSP transfer");
 
 	int retval;
 	if (!jtag_info->or1k_jtag_inited)

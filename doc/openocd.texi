@@ -505,6 +505,12 @@ Texas Instruments has an adapter called @b{ICDI}.
 It is not to be confused with the FTDI based adapters that were originally fitted to their
 evaluation boards. This is the adapter fitted to the Stellaris LaunchPad.
 
+@section USB Nuvoton Nu-Link
+Nuvoton has an adapter called @b{Nu-Link}.
+It is available either as stand-alone dongle and embedded on development boards.
+It supports SWD, serial port bridge and mass storage for firmware update.
+Both Nu-Link v1 and v2 are supported.
+
 @section USB CMSIS-DAP based
 ARM has released a interface standard called CMSIS-DAP that simplifies connecting
 debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/dapdebug/dapdebug_introduction.htm}.
@@ -609,8 +615,14 @@ produced, PDF schematics are easily found and it is easy to make.
 @* A JTAG driver acting as a client for the JTAG VPI server interface.
 @* Link: @url{http://github.com/fjullien/jtag_vpi}
 
+@item @b{jtag_dpi}
+@* A JTAG driver acting as a client for the SystemVerilog Direct Programming
+Interface (DPI) for JTAG devices. DPI allows OpenOCD to connect to the JTAG
+interface of a hardware model written in SystemVerilog, for example, on an
+emulation model of target hardware.
+
 @item @b{xlnx_pcie_xvc}
-@* A JTAG driver exposing Xilinx Virtual Cable over PCI Express to OpenOCD as JTAG interface.
+@* A JTAG driver exposing Xilinx Virtual Cable over PCI Express to OpenOCD as JTAG/SWD interface.
 
 @end itemize
 
@@ -712,8 +724,11 @@ Configuration files and scripts are searched for in
 @item the current directory,
 @item any search dir specified on the command line using the @option{-s} option,
 @item any search dir specified using the @command{add_script_search_dir} command,
-@item @file{$HOME/.openocd} (not on Windows),
 @item a directory in the @env{OPENOCD_SCRIPTS} environment variable (if set),
+@item @file{%APPDATA%/OpenOCD} (only on Windows),
+@item @file{$HOME/Library/Preferences/org.openocd} (only on Darwin),
+@item @file{$XDG_CONFIG_HOME/openocd} (@env{$XDG_CONFIG_HOME} defaults to @file{$HOME/.config}),
+@item @file{$HOME/.openocd},
 @item the site wide script library @file{$pkgdatadir/site} and
 @item the OpenOCD-supplied script library @file{$pkgdatadir/scripts}.
 @end enumerate
@@ -1020,7 +1035,7 @@ will help support users of any board using that chip.
 @end quotation
 
 @item
-You may may need to write some C code.
+You may need to write some C code.
 It may be as simple as supporting a new FT2232 or parport
 based adapter; a bit more involved, like a NAND or NOR flash
 controller driver; or a big piece of work like supporting
@@ -3064,7 +3079,8 @@ This is a driver that supports multiple High Level Adapters.
 This type of adapter does not expose some of the lower level api's
 that OpenOCD would normally use to access the target.
 
-Currently supported adapters include the STMicroelectronics ST-LINK and TI ICDI.
+Currently supported adapters include the STMicroelectronics ST-LINK, TI ICDI
+and Nuvoton Nu-Link.
 ST-LINK firmware version >= V2.J21.S4 recommended due to issues with earlier
 versions of firmware where serial number is reset after first use.  Suggest
 using ST firmware update utility to upgrade ST-LINK firmware even if current
@@ -3078,7 +3094,7 @@ Currently Not Supported.
 Specifies the serial number of the adapter.
 @end deffn
 
-@deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi})
+@deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi}|@option{nulink})
 Specifies the adapter layout to use.
 @end deffn
 
@@ -3149,7 +3165,7 @@ version).
 @deffn {Interface Driver} {xlnx_pcie_xvc}
 This driver supports the Xilinx Virtual Cable (XVC) over PCI Express.
 It is commonly found in Xilinx based PCI Express designs. It allows debugging
-fabric based JTAG devices such as Cortex-M1/M3 microcontrollers. Access to this is
+fabric based JTAG/SWD devices such as Cortex-M1/M3 microcontrollers. Access to this is
 exposed via extended capability registers in the PCI Express configuration space.
 
 For more information see Xilinx PG245 (Section on From_PCIE_to_JTAG mode).
@@ -3227,6 +3243,22 @@ The USB device description string of the adapter.
 This value is only used with the standard variant.
 @end deffn
 @end deffn
+
+
+@deffn {Interface Driver} {jtag_dpi}
+SystemVerilog Direct Programming Interface (DPI) compatible driver for
+JTAG devices in emulation. The driver acts as a client for the SystemVerilog
+DPI server interface.
+
+@deffn {Config Command} {jtag_dpi_set_port} port
+Specifies the TCP/IP port number of the SystemVerilog DPI server interface.
+@end deffn
+
+@deffn {Config Command} {jtag_dpi_set_address} address
+Specifies the TCP/IP address of the SystemVerilog DPI server interface.
+@end deffn
+@end deffn
+
 
 @section Transport Configuration
 @cindex Transport
@@ -4637,7 +4669,8 @@ The value should normally correspond to a static mapping for the
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
 @var{rtos_type} can be one of @option{auto}, @option{eCos},
 @option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
-@option{embKernel}, @option{mqx}, @option{uCOS-III}, @option{nuttx}
+@option{embKernel}, @option{mqx}, @option{uCOS-III}, @option{nuttx},
+@option{RIOT}
 @xref{gdbrtossupport,,RTOS Support}.
 
 @item @code{-defer-examine} -- skip target examination at initial JTAG chain
@@ -5661,7 +5694,7 @@ at91samd bootloader 16384
 @deffn Command {at91samd dsu_reset_deassert}
 This command releases internal reset held by DSU
 and prepares reset vector catch in case of reset halt.
-Command is used internally in event event reset-deassert-post.
+Command is used internally in event reset-deassert-post.
 @end deffn
 
 @deffn Command {at91samd nvmuserrow}
@@ -5768,7 +5801,7 @@ The AT91SAM4L driver adds some additional commands:
 @deffn Command {at91sam4l smap_reset_deassert}
 This command releases internal reset held by SMAP
 and prepares reset vector catch in case of reset halt.
-Command is used internally in event event reset-deassert-post.
+Command is used internally in event reset-deassert-post.
 @end deffn
 @end deffn
 
@@ -5809,7 +5842,7 @@ processor to be halted.
 @deffn Command {atsame5 dsu_reset_deassert}
 This command releases internal reset held by DSU
 and prepares reset vector catch in case of reset halt.
-Command is used internally in event event reset-deassert-post.
+Command is used internally in event reset-deassert-post.
 @end deffn
 
 @deffn Command {atsame5 userpage}
@@ -8392,7 +8425,7 @@ and any buffered trace data is invalidated.
 
 @itemize
 @item @var{type} ... describing how data accesses are traced,
-when they pass any ViewData filtering that that was set up.
+when they pass any ViewData filtering that was set up.
 The value is one of
 @option{none} (save nothing),
 @option{data} (save data),
@@ -8740,7 +8773,7 @@ and any other core-specific commands that may be available.
 
 @deffn Command {arm7_9 dbgrq} [@option{enable}|@option{disable}]
 Displays the value of the flag controlling use of the
-the EmbeddedIce DBGRQ signal to force entry into debug mode,
+EmbeddedIce DBGRQ signal to force entry into debug mode,
 instead of breakpoints.
 If a boolean parameter is provided, first assigns that flag.
 
@@ -9339,6 +9372,12 @@ indications. It also establishes the expected, basic cross-trigger configuration
 target code relies on. In a configuration file, the command would typically be called from a
 @code{reset-end} or @code{reset-deassert-post} handler, to re-enable debugging after a system reset.
 However, normally it is not necessary to use the command at all.
+@end deffn
+
+@deffn Command {aarch64 disassemble} address [count]
+@cindex disassemble
+Disassembles @var{count} instructions starting at @var{address}.
+If @var{count} is not specified, a single instruction is disassembled.
 @end deffn
 
 @deffn Command {aarch64 smp} [on|off]
@@ -10430,18 +10469,31 @@ OpenOCD can communicate with GDB in two ways:
 @item
 A socket (TCP/IP) connection is typically started as follows:
 @example
-target remote localhost:3333
+target extended-remote localhost:3333
 @end example
 This would cause GDB to connect to the gdbserver on the local pc using port 3333.
 
-It is also possible to use the GDB extended remote protocol as follows:
+The extended remote protocol is a super-set of the remote protocol and should
+be the preferred choice. More details are available in GDB documentation
+@url{https://sourceware.org/gdb/onlinedocs/gdb/Connecting.html}
+
+To speed-up typing, any GDB command can be abbreviated, including the extended
+remote command above that becomes:
 @example
-target extended-remote localhost:3333
+tar ext :3333
 @end example
+
+@b{Note:} If any backward compatibility issue requires using the old remote
+protocol in place of the extended remote one, the former protocol is still
+available through the command:
+@example
+target remote localhost:3333
+@end example
+
 @item
 A pipe connection is typically started as follows:
 @example
-target remote | openocd -c "gdb_port pipe; log_output openocd.log"
+target extended-remote | openocd -c "gdb_port pipe; log_output openocd.log"
 @end example
 This would cause GDB to run OpenOCD and communicate using pipes (stdin/stdout).
 Using this method has the advantage of GDB starting/stopping OpenOCD for the debug
@@ -10463,7 +10515,7 @@ Most programs would be written into flash (address 0) and run from there.
 
 @example
 $ arm-none-eabi-gdb example.elf
-(gdb) target remote localhost:3333
+(gdb) target extended-remote localhost:3333
 Remote debugging using localhost:3333
 ...
 (gdb) monitor reset halt
@@ -10598,7 +10650,7 @@ set remote interrupt-on-connect off
 If you switched gdb_memory_map off, you may want to setup GDB memory map
 manually or issue @command{set mem inaccessible-by-default off}
 
-Now you can issue GDB command @command{target remote ...} and inspect memory
+Now you can issue GDB command @command{target extended-remote ...} and inspect memory
 of a running target. Do not use GDB commands @command{continue},
 @command{step} or @command{next} as they synchronize GDB with your target
 and GDB would require stopping the target to get the prompt back.
@@ -10636,6 +10688,7 @@ Currently supported rtos's include:
 @item @option{mqx}
 @item @option{uCOS-III}
 @item @option{nuttx}
+@item @option{RIOT}
 @item @option{hwthread} (This is not an actual RTOS. @xref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.)
 @end itemize
 
@@ -10672,6 +10725,8 @@ _mqx_kernel_data, MQX_init_struct.
 OSRunning, OSTCBCurPtr, OSTaskDbgListPtr, OSTaskQty
 @item nuttx symbols
 g_readytorun, g_tasklisttable
+@item RIOT symbols
+sched_threads, sched_num_threads, sched_active_pid, max_threads, _tcb_name_offset
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for

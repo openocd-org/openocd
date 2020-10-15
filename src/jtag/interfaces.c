@@ -12,6 +12,8 @@
  *   Copyright (C) 2009 Zachary T Welch                                    *
  *   zw@superlucidity.net                                                  *
  *                                                                         *
+ *   Copyright (C) 2020, Ampere Computing LLC                              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -59,6 +61,9 @@ extern struct adapter_driver usb_blaster_adapter_driver;
 #endif
 #if BUILD_JTAG_VPI == 1
 extern struct adapter_driver jtag_vpi_adapter_driver;
+#endif
+#if BUILD_JTAG_DPI == 1
+extern struct adapter_driver jtag_dpi_adapter_driver;
 #endif
 #if BUILD_FT232R == 1
 extern struct adapter_driver ft232r_adapter_driver;
@@ -117,6 +122,9 @@ extern struct adapter_driver opendous_adapter_driver;
 #if BUILD_SYSFSGPIO == 1
 extern struct adapter_driver sysfsgpio_adapter_driver;
 #endif
+#if BUILD_LINUXGPIOD == 1
+extern struct adapter_driver linuxgpiod_adapter_driver;
+#endif
 #if BUILD_XLNX_PCIE_XVC == 1
 extern struct adapter_driver xlnx_pcie_xvc_adapter_driver;
 #endif
@@ -138,7 +146,7 @@ extern struct adapter_driver imx_gpio_adapter_driver;
 #if BUILD_XDS110 == 1
 extern struct adapter_driver xds110_adapter_driver;
 #endif
-#if BUILD_HLADAPTER == 1
+#if BUILD_HLADAPTER_STLINK == 1
 extern struct adapter_driver stlink_dap_adapter_driver;
 #endif
 #if BUILD_RSHIM == 1
@@ -173,6 +181,9 @@ struct adapter_driver *adapter_drivers[] = {
 #endif
 #if BUILD_JTAG_VPI == 1
 		&jtag_vpi_adapter_driver,
+#endif
+#if BUILD_JTAG_DPI == 1
+		&jtag_dpi_adapter_driver,
 #endif
 #if BUILD_FT232R == 1
 		&ft232r_adapter_driver,
@@ -231,6 +242,9 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_SYSFSGPIO == 1
 		&sysfsgpio_adapter_driver,
 #endif
+#if BUILD_LINUXGPIOD == 1
+		&linuxgpiod_adapter_driver,
+#endif
 #if BUILD_XLNX_PCIE_XVC == 1
 		&xlnx_pcie_xvc_adapter_driver,
 #endif
@@ -252,7 +266,7 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_XDS110 == 1
 		&xds110_adapter_driver,
 #endif
-#if BUILD_HLADAPTER == 1
+#if BUILD_HLADAPTER_STLINK == 1
 		&stlink_dap_adapter_driver,
 #endif
 #if BUILD_RSHIM == 1

@@ -620,11 +620,11 @@ static int ftdi_reset(int trst, int srst)
 
 static void ftdi_execute_sleep(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("sleep %" PRIi32, cmd->cmd.sleep->us);
+	LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
 
 	mpsse_flush(mpsse_ctx);
 	jtag_sleep(cmd->cmd.sleep->us);
-	LOG_DEBUG_IO("sleep %" PRIi32 " usec while in %s",
+	LOG_DEBUG_IO("sleep %" PRIu32 " usec while in %s",
 		cmd->cmd.sleep->us,
 		tap_state_name(tap_get_state()));
 }
@@ -1041,8 +1041,7 @@ static void oscan1_reset_online_activate(void)
 COMMAND_HANDLER(ftdi_handle_device_desc_command)
 {
 	if (CMD_ARGC == 1) {
-		if (ftdi_device_desc)
-			free(ftdi_device_desc);
+		free(ftdi_device_desc);
 		ftdi_device_desc = strdup(CMD_ARGV[0]);
 	} else {
 		LOG_ERROR("expected exactly one argument to ftdi_device_desc <description>");
@@ -1054,8 +1053,7 @@ COMMAND_HANDLER(ftdi_handle_device_desc_command)
 COMMAND_HANDLER(ftdi_handle_serial_command)
 {
 	if (CMD_ARGC == 1) {
-		if (ftdi_serial)
-			free(ftdi_serial);
+		free(ftdi_serial);
 		ftdi_serial = strdup(CMD_ARGV[0]);
 	} else {
 		return ERROR_COMMAND_SYNTAX_ERROR;

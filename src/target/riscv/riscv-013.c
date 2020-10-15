@@ -3090,6 +3090,132 @@ static int write_memory_abstract(struct target *target, target_addr_t address,
 	return result;
 }
 
+/*
+ * Performs a memory read using memory access abstract commands. The read sizes
+ * supported are 1, 2, and 4 bytes despite the spec's support of 8 and 16 byte
+ * aamsize fields in the memory access abstract command.
+ */
+static int read_memory_abstract(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
+{
+	if (size != increment) {
+		LOG_ERROR("abstract command reads only support size==increment");
+		return ERROR_NOT_IMPLEMENTED;
+	}
+
+	int result = ERROR_OK;
+
+	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
+			  size, address);
+
+	memset(buffer, 0, count * size);
+
+	/* Convert the size (bytes) to width (bits) */
+	unsigned width = size << 3;
+	if (width > 64) {
+		/* TODO: Add 128b support if it's ever used. Involves modifying
+				 read/write_abstract_arg() to work on two 64b values. */
+		LOG_ERROR("Unsupported size: %d bits", size);
+		return ERROR_FAIL;
+	}
+
+	/* Create the command (physical address, postincrement, read) */
+	uint32_t command = access_memory_command(target, false, width, true, false);
+
+	/* Execute the reads */
+	uint8_t *p = buffer;
+	bool updateaddr = true;
+	unsigned width32 = (width + 31) / 32 * 32;
+	for (uint32_t c = 0; c < count; c++) {
+		/* Only update the address initially and let postincrement update it */
+		if (updateaddr) {
+			/* Set arg1 to the address: address + c * size */
+			result = write_abstract_arg(target, 1, address, riscv_xlen(target));
+			if (result != ERROR_OK) {
+				LOG_ERROR("Failed to write arg1 during read_memory_abstract().");
+				return result;
+			}
+		}
+
+		/* Execute the command */
+		result = execute_abstract_command(target, command);
+		if (result != ERROR_OK) {
+			LOG_ERROR("Failed to execute command read_memory_abstract().");
+			return result;
+		}
+
+		/* Copy arg0 to buffer (rounded width up to nearest 32) */
+		riscv_reg_t value = read_abstract_arg(target, 0, width32);
+		buf_set_u64(p, 0, 8 * size, value);
+
+		updateaddr = false;
+		p += size;
+	}
+
+	return result;
+}
+
+/*
+ * Performs a memory write using memory access abstract commands. The write
+ * sizes supported are 1, 2, and 4 bytes despite the spec's support of 8 and 16
+ * byte aamsize fields in the memory access abstract command.
+ */
+static int write_memory_abstract(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer)
+{
+	int result = ERROR_OK;
+
+	LOG_DEBUG("writing %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
+			  size, address);
+
+	/* Convert the size (bytes) to width (bits) */
+	unsigned width = size << 3;
+	if (width > 64) {
+		/* TODO: Add 128b support if it's ever used. Involves modifying
+				 read/write_abstract_arg() to work on two 64b values. */
+		LOG_ERROR("Unsupported size: %d bits", width);
+		return ERROR_FAIL;
+	}
+
+	/* Create the command (physical address, postincrement, write) */
+	uint32_t command = access_memory_command(target, false, width, true, true);
+
+	/* Execute the writes */
+	const uint8_t *p = buffer;
+	bool updateaddr = true;
+	for (uint32_t c = 0; c < count; c++) {
+		/* Move data to arg0 */
+		riscv_reg_t value = buf_get_u64(p, 0, 8 * size);
+		result = write_abstract_arg(target, 0, value, riscv_xlen(target));
+		if (result != ERROR_OK) {
+			LOG_ERROR("Failed to write arg0 during write_memory_abstract().");
+			return result;
+		}
+
+		/* Only update the address initially and let postincrement update it */
+		if (updateaddr) {
+			/* Set arg1 to the address: address + c * size */
+			result = write_abstract_arg(target, 1, address, riscv_xlen(target));
+			if (result != ERROR_OK) {
+				LOG_ERROR("Failed to write arg1 during write_memory_abstract().");
+				return result;
+			}
+		}
+
+		/* Execute the command */
+		result = execute_abstract_command(target, command);
+		if (result != ERROR_OK) {
+			LOG_ERROR("Failed to execute command write_memory_abstract().");
+			return result;
+		}
+
+		updateaddr = false;
+		p += size;
+	}
+
+	return result;
+}
+
 /**
  * Read the requested memory, taking care to execute every read exactly once,
  * even if cmderr=busy is encountered.
@@ -3405,6 +3531,12 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
+	if (riscv_xlen(target) < size * 8) {
+		LOG_ERROR("XLEN (%d) is too short for %d-bit memory read.",
+				riscv_xlen(target), size * 8);
+		return ERROR_FAIL;
+	}
+
 	int result = ERROR_OK;
 
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
@@ -3752,6 +3884,12 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	RISCV013_INFO(info);
+
+	if (riscv_xlen(target) < size * 8) {
+		LOG_ERROR("XLEN (%d) is too short for %d-bit memory write.",
+				riscv_xlen(target), size * 8);
+		return ERROR_FAIL;
+	}
 
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
@@ -5072,10 +5210,10 @@ int riscv013_test_compliance(struct target *target)
 		COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &testval_read, GDB_REGNO_ZERO + i),
 				"GPR Reads should be supported.");
 		if (riscv_xlen(target) > 32) {
-			/* Dummy comment to satisfy linter, since removing the brances here doesn't actually compile. */
+			/* Dummy comment to satisfy linter, since removing the branches here doesn't actually compile. */
 			COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
 		} else {
-			/* Dummy comment to satisfy linter, since removing the brances here doesn't actually compile. */
+			/* Dummy comment to satisfy linter, since removing the branches here doesn't actually compile. */
 			COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
 		}
 	}

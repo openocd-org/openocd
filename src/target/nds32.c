@@ -1462,8 +1462,7 @@ int nds32_add_software_breakpoint(struct target *target,
 		break_insn = NDS32_BREAK_32;
 	}
 
-	if (breakpoint->orig_instr != NULL)
-		free(breakpoint->orig_instr);
+	free(breakpoint->orig_instr);
 
 	breakpoint->orig_instr = malloc(breakpoint->length);
 	memcpy(breakpoint->orig_instr, &data, breakpoint->length);
@@ -1711,8 +1710,8 @@ int nds32_cache_sync(struct target *target, target_addr_t address, uint32_t leng
 		/* (address + length - 1) / dcache_line_size */
 		end_line = (address + length - 1) >> (dcache->line_size + 2);
 
-		for (cur_address = address, cur_line = start_line ;
-				cur_line <= end_line ;
+		for (cur_address = address, cur_line = start_line;
+				cur_line <= end_line;
 				cur_address += dcache_line_size, cur_line++) {
 			/* D$ write back */
 			result = aice_cache_ctl(aice, AICE_CACHE_CTL_L1D_VA_WB, cur_address);
@@ -1732,8 +1731,8 @@ int nds32_cache_sync(struct target *target, target_addr_t address, uint32_t leng
 		/* (address + length - 1) / icache_line_size */
 		end_line = (address + length - 1) >> (icache->line_size + 2);
 
-		for (cur_address = address, cur_line = start_line ;
-				cur_line <= end_line ;
+		for (cur_address = address, cur_line = start_line;
+				cur_line <= end_line;
 				cur_address += icache_line_size, cur_line++) {
 			/* Because PSW.IT is turned off under debug exception, address MUST
 			 * be physical address.  L1I_VA_INVALIDATE uses PSW.IT to decide
@@ -2334,10 +2333,8 @@ int nds32_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fil
 	LOG_DEBUG("hit syscall ID: 0x%" PRIx32, syscall_id);
 
 	/* free previous identifier storage */
-	if (NULL != fileio_info->identifier) {
-		free(fileio_info->identifier);
-		fileio_info->identifier = NULL;
-	}
+	free(fileio_info->identifier);
+	fileio_info->identifier = NULL;
 
 	uint32_t reg_r0, reg_r1, reg_r2;
 	nds32_get_mapped_reg(nds32, R0, &reg_r0);

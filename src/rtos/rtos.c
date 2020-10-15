@@ -27,6 +27,7 @@
 #include "server/gdb_server.h"
 
 /* RTOSs */
+extern struct rtos_type riscv_rtos;
 extern struct rtos_type FreeRTOS_rtos;
 extern struct rtos_type ThreadX_rtos;
 extern struct rtos_type eCos_rtos;
@@ -38,7 +39,7 @@ extern struct rtos_type mqx_rtos;
 extern struct rtos_type uCOS_III_rtos;
 extern struct rtos_type nuttx_rtos;
 extern struct rtos_type hwthread_rtos;
-extern struct rtos_type riscv_rtos;
+extern struct rtos_type riot_rtos;
 
 static struct rtos_type *rtos_types[] = {
 	&ThreadX_rtos,
@@ -51,6 +52,8 @@ static struct rtos_type *rtos_types[] = {
 	&mqx_rtos,
 	&uCOS_III_rtos,
 	&nuttx_rtos,
+	&riot_rtos,
+	/* keep this as last, as it always matches with rtos auto */
 	&hwthread_rtos,
 	&riscv_rtos,
 	NULL
@@ -100,9 +103,7 @@ static void os_free(struct target *target)
 	if (!target->rtos)
 		return;
 
-	if (target->rtos->symbols)
-		free(target->rtos->symbols);
-
+	free(target->rtos->symbols);
 	free(target->rtos);
 	target->rtos = NULL;
 }
@@ -231,7 +232,7 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	int rtos_detected = 0;
 	uint64_t addr = 0;
 	size_t reply_len;
-	char reply[GDB_BUFFER_SIZE + 1], cur_sym[GDB_BUFFER_SIZE / 2 + 1] = ""; /* Extra byte for nul-termination */
+	char reply[GDB_BUFFER_SIZE + 1], cur_sym[GDB_BUFFER_SIZE / 2 + 1] = ""; /* Extra byte for null-termination */
 	symbol_table_elem_t *next_sym = NULL;
 	struct target *target = get_target_from_connection(connection);
 	struct rtos *os = target->rtos;
@@ -646,10 +647,9 @@ int rtos_try_next(struct target *target)
 		return 0;
 
 	os->type = *type;
-	if (os->symbols) {
-		free(os->symbols);
-		os->symbols = NULL;
-	}
+
+	free(os->symbols);
+	os->symbols = NULL;
 
 	return 1;
 }

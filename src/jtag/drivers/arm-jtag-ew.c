@@ -160,7 +160,7 @@ static int armjtagew_execute_queue(void)
 				break;
 
 			case JTAG_SLEEP:
-				LOG_DEBUG_IO("sleep %i", cmd->cmd.sleep->us);
+				LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
 				armjtagew_tap_execute();
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
@@ -664,8 +664,7 @@ static int armjtagew_tap_execute(void)
 					return ERROR_JTAG_QUEUE_FAILED;
 				}
 
-				if (pending_scan_result->buffer != NULL)
-					free(pending_scan_result->buffer);
+				free(pending_scan_result->buffer);
 			}
 		} else {
 			LOG_ERROR("armjtagew_tap_execute, wrong result %d, expected %d",

@@ -264,7 +264,8 @@ FLASH_BANK_COMMAND_HANDLER(cc26xx_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int cc26xx_erase(struct flash_bank *bank, int first, int last)
+static int cc26xx_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
 	struct cc26xx_bank *cc26xx_bank = bank->driver_priv;
@@ -526,7 +527,7 @@ static int cc26xx_info(struct flash_bank *bank, char *buf, int buf_size)
 	}
 
 	printed = snprintf(buf, buf_size,
-		"%s device: ICEPick ID 0x%08x, USER ID 0x%08x\n",
+		"%s device: ICEPick ID 0x%08" PRIx32 ", USER ID 0x%08" PRIx32 "\n",
 		device, cc26xx_bank->icepick_id, cc26xx_bank->user_id);
 
 	if (printed >= buf_size)

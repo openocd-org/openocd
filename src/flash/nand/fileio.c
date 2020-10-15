@@ -99,14 +99,11 @@ int nand_fileio_cleanup(struct nand_fileio_state *state)
 	if (state->file_opened)
 		fileio_close(state->fileio);
 
-	if (state->oob) {
-		free(state->oob);
-		state->oob = NULL;
-	}
-	if (state->page) {
-		free(state->page);
-		state->page = NULL;
-	}
+	free(state->oob);
+	state->oob = NULL;
+
+	free(state->page);
+	state->page = NULL;
 	return ERROR_OK;
 }
 int nand_fileio_finish(struct nand_fileio_state *state)
@@ -206,7 +203,7 @@ int nand_fileio_read(struct nand_device *nand, struct nand_fileio_state *s)
 	} else if (s->oob_format & NAND_OOB_SW_ECC_KW)   {
 		/*
 		 * In this case eccpos is not used as
-		 * the ECC data is always stored contigously
+		 * the ECC data is always stored contiguously
 		 * at the end of the OOB area.  It consists
 		 * of 10 bytes per 512-byte data block.
 		 */

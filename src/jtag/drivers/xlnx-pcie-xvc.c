@@ -37,6 +37,9 @@
 #define XLNX_XVC_VSEC_ID	0x8
 #define XLNX_XVC_MAX_BITS	0x20
 
+#define MASK_ACK(x) (((x) >> 9) & 0x7)
+#define MASK_PAR(x) ((int)((x) & 0x1))
+
 struct xlnx_pcie_xvc {
 	int fd;
 	unsigned offset;
@@ -51,7 +54,7 @@ static int xlnx_pcie_xvc_read_reg(const int offset, uint32_t *val)
 	uint32_t res;
 	int err;
 
-	/* Note: This should be ok endianess-wise because by going
+	/* Note: This should be ok endianness-wise because by going
 	 * through sysfs the kernel does the conversion in the config
 	 * space accessor functions
 	 */
@@ -72,14 +75,14 @@ static int xlnx_pcie_xvc_write_reg(const int offset, const uint32_t val)
 {
 	int err;
 
-	/* Note: This should be ok endianess-wise because by going
+	/* Note: This should be ok endianness-wise because by going
 	 * through sysfs the kernel does the conversion in the config
 	 * space accessor functions
 	 */
 	err = pwrite(xlnx_pcie_xvc->fd, &val, sizeof(val),
 		     xlnx_pcie_xvc->offset + offset);
 	if (err != sizeof(val)) {
-		LOG_ERROR("Failed to write offset: %x with value: %x",
+		LOG_ERROR("Failed to write offset: %x with value: %" PRIx32,
 			  offset, val);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
@@ -109,10 +112,10 @@ static int xlnx_pcie_xvc_transact(size_t num_bits, uint32_t tms, uint32_t tdi,
 		return err;
 
 	if (tdo)
-		LOG_DEBUG_IO("Transact num_bits: %zu, tms: %x, tdi: %x, tdo: %x",
+		LOG_DEBUG_IO("Transact num_bits: %zu, tms: %" PRIx32 ", tdi: %" PRIx32 ", tdo: %" PRIx32,
 			     num_bits, tms, tdi, *tdo);
 	else
-		LOG_DEBUG_IO("Transact num_bits: %zu, tms: %x, tdi: %x, tdo: <null>",
+		LOG_DEBUG_IO("Transact num_bits: %zu, tms: %" PRIx32 ", tdi: %" PRIx32 ", tdo: <null>",
 			     num_bits, tms, tdi);
 	return ERROR_OK;
 }
@@ -279,8 +282,7 @@ static int xlnx_pcie_xvc_execute_scan(struct jtag_command *cmd)
 	};
 
 	err = jtag_read_buffer(buf, cmd->cmd.scan);
-	if (buf)
-		free(buf);
+	free(buf);
 
 	if (tap_get_state() != tap_get_end_state())
 		err = xlnx_pcie_xvc_execute_statemove(1);
@@ -288,8 +290,7 @@ static int xlnx_pcie_xvc_execute_scan(struct jtag_command *cmd)
 	return err;
 
 out_err:
-	if (buf)
-		free(buf);
+	free(buf);
 	return err;
 }
 
@@ -301,7 +302,7 @@ static void xlnx_pcie_xvc_execute_reset(struct jtag_command *cmd)
 
 static void xlnx_pcie_xvc_execute_sleep(struct jtag_command *cmd)
 {
-	LOG_DEBUG("sleep %" PRIi32 "", cmd->cmd.sleep->us);
+	LOG_DEBUG("sleep %" PRIu32 "", cmd->cmd.sleep->us);
 	usleep(cmd->cmd.sleep->us);
 }
 
@@ -402,7 +403,7 @@ static int xlnx_pcie_xvc_init(void)
 		err = xlnx_pcie_xvc_read_reg(XLNX_XVC_EXT_CAP, &cap);
 		if (err != ERROR_OK)
 			return err;
-		LOG_DEBUG("Checking capability at 0x%x; id=0x%04x version=0x%x next=0x%x",
+		LOG_DEBUG("Checking capability at 0x%x; id=0x%04" PRIx32 " version=0x%" PRIx32 " next=0x%" PRIx32,
 			 xlnx_pcie_xvc->offset,
 			 PCI_EXT_CAP_ID(cap),
 			 PCI_EXT_CAP_VER(cap),
@@ -411,7 +412,7 @@ static int xlnx_pcie_xvc_init(void)
 			err = xlnx_pcie_xvc_read_reg(XLNX_XVC_VSEC_HDR, &vh);
 			if (err != ERROR_OK)
 				return err;
-			LOG_DEBUG("Checking possible match at 0x%x; id: 0x%x; rev: 0x%x; length: 0x%x",
+			LOG_DEBUG("Checking possible match at 0x%x; id: 0x%" PRIx32 "; rev: 0x%" PRIx32 "; length: 0x%" PRIx32,
 				 xlnx_pcie_xvc->offset,
 				 PCI_VNDR_HEADER_ID(vh),
 				 PCI_VNDR_HEADER_REV(vh),
@@ -453,8 +454,7 @@ COMMAND_HANDLER(xlnx_pcie_xvc_handle_config_command)
 	 * limit the memory we're leaking by freeing the old one first
 	 * before allocating a new one ...
 	 */
-	if (xlnx_pcie_xvc->device)
-		free(xlnx_pcie_xvc->device);
+	free(xlnx_pcie_xvc->device);
 
 	xlnx_pcie_xvc->device = strdup(CMD_ARGV[0]);
 	return ERROR_OK;
@@ -471,17 +471,224 @@ static const struct command_registration xlnx_pcie_xvc_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static struct jtag_interface xlnx_pcie_xvc_interface = {
+static struct jtag_interface xlnx_pcie_xvc_jtag_ops = {
 	.execute_queue = &xlnx_pcie_xvc_execute_queue,
 };
 
+static int xlnx_pcie_xvc_swd_sequence(const uint8_t *seq, size_t length)
+{
+	size_t left, write;
+	uint32_t send;
+	int err;
+
+	left = length;
+	while (left) {
+		write = MIN(XLNX_XVC_MAX_BITS, left);
+		send = buf_get_u32(seq, 0, write);
+		err = xlnx_pcie_xvc_transact(write, send, 0, NULL);
+		if (err != ERROR_OK)
+			return err;
+		left -= write;
+		seq += sizeof(uint32_t);
+	};
+
+	return ERROR_OK;
+}
+
+static int xlnx_pcie_xvc_swd_switch_seq(enum swd_special_seq seq)
+{
+	switch (seq) {
+	case LINE_RESET:
+		LOG_DEBUG("SWD line reset");
+		return xlnx_pcie_xvc_swd_sequence(swd_seq_line_reset,
+						  swd_seq_line_reset_len);
+	case JTAG_TO_SWD:
+		LOG_DEBUG("JTAG-to-SWD");
+		return xlnx_pcie_xvc_swd_sequence(swd_seq_jtag_to_swd,
+						  swd_seq_jtag_to_swd_len);
+	case SWD_TO_JTAG:
+		LOG_DEBUG("SWD-to-JTAG");
+		return xlnx_pcie_xvc_swd_sequence(swd_seq_swd_to_jtag,
+						  swd_seq_swd_to_jtag_len);
+	default:
+		LOG_ERROR("Sequence %d not supported", seq);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
+static int queued_retval;
+
+static void xlnx_pcie_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
+					uint32_t ap_delay_clk);
+
+static void swd_clear_sticky_errors(void)
+{
+	xlnx_pcie_xvc_swd_write_reg(swd_cmd(false,  false, DP_ABORT),
+		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
+}
+
+static void xlnx_pcie_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
+				       uint32_t ap_delay_clk)
+{
+	uint32_t res, ack, rpar;
+	int err;
+
+	assert(cmd & SWD_CMD_RnW);
+
+	cmd |= SWD_CMD_START | SWD_CMD_PARK;
+	/* cmd + ack */
+	err = xlnx_pcie_xvc_transact(12, cmd, 0, &res);
+	if (err != ERROR_OK)
+		goto err_out;
+
+	ack = MASK_ACK(res);
+
+	/* read data */
+	err = xlnx_pcie_xvc_transact(32, 0, 0, &res);
+	if (err != ERROR_OK)
+		goto err_out;
+
+	/* parity + trn */
+	err = xlnx_pcie_xvc_transact(2, 0, 0, &rpar);
+	if (err != ERROR_OK)
+		goto err_out;
+
+	LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
+		  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ?
+		  "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
+		  cmd & SWD_CMD_APnDP ? "AP" : "DP",
+		  cmd & SWD_CMD_RnW ? "read" : "write",
+		  (cmd & SWD_CMD_A32) >> 1,
+		  res);
+	switch (ack) {
+	case SWD_ACK_OK:
+		if (MASK_PAR(rpar) != parity_u32(res)) {
+			LOG_DEBUG_IO("Wrong parity detected");
+			queued_retval = ERROR_FAIL;
+			return;
+		}
+		if (value)
+			*value = res;
+		if (cmd & SWD_CMD_APnDP)
+			err = xlnx_pcie_xvc_transact(ap_delay_clk, 0, 0, NULL);
+		queued_retval = err;
+		return;
+	case SWD_ACK_WAIT:
+		LOG_DEBUG_IO("SWD_ACK_WAIT");
+		swd_clear_sticky_errors();
+		return;
+	case SWD_ACK_FAULT:
+		LOG_DEBUG_IO("SWD_ACK_FAULT");
+		queued_retval = ack;
+		return;
+	default:
+		LOG_DEBUG_IO("No valid acknowledge: ack=%02"PRIx32, ack);
+		queued_retval = ack;
+		return;
+	}
+err_out:
+	queued_retval = err;
+}
+
+static void xlnx_pcie_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
+					uint32_t ap_delay_clk)
+{
+	uint32_t res, ack;
+	int err;
+
+	assert(!(cmd & SWD_CMD_RnW));
+
+	cmd |= SWD_CMD_START | SWD_CMD_PARK;
+	/* cmd + trn + ack */
+	err = xlnx_pcie_xvc_transact(13, cmd, 0, &res);
+	if (err != ERROR_OK)
+		goto err_out;
+
+	ack = MASK_ACK(res);
+
+	/* write data */
+	err = xlnx_pcie_xvc_transact(32, value, 0, NULL);
+	if (err != ERROR_OK)
+		goto err_out;
+
+	/* parity + trn */
+	err = xlnx_pcie_xvc_transact(2, parity_u32(value), 0, NULL);
+	if (err != ERROR_OK)
+		goto err_out;
+
+	LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
+		  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ?
+		  "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
+		  cmd & SWD_CMD_APnDP ? "AP" : "DP",
+		  cmd & SWD_CMD_RnW ? "read" : "write",
+		  (cmd & SWD_CMD_A32) >> 1,
+		  value);
+
+	switch (ack) {
+	case SWD_ACK_OK:
+		if (cmd & SWD_CMD_APnDP)
+			err = xlnx_pcie_xvc_transact(ap_delay_clk, 0, 0, NULL);
+		queued_retval = err;
+		return;
+	case SWD_ACK_WAIT:
+		LOG_DEBUG_IO("SWD_ACK_WAIT");
+		swd_clear_sticky_errors();
+		return;
+	case SWD_ACK_FAULT:
+		LOG_DEBUG_IO("SWD_ACK_FAULT");
+		queued_retval = ack;
+		return;
+	default:
+		LOG_DEBUG_IO("No valid acknowledge: ack=%02"PRIx32, ack);
+		queued_retval = ack;
+		return;
+	}
+
+err_out:
+	queued_retval = err;
+}
+
+static int xlnx_pcie_xvc_swd_run_queue(void)
+{
+	int err;
+
+	/* we want at least 8 idle cycles between each transaction */
+	err = xlnx_pcie_xvc_transact(8, 0, 0, NULL);
+	if (err != ERROR_OK)
+		return err;
+
+	err = queued_retval;
+	queued_retval = ERROR_OK;
+	LOG_DEBUG("SWD queue return value: %02x", err);
+
+	return err;
+}
+
+static int xlnx_pcie_xvc_swd_init(void)
+{
+	return ERROR_OK;
+}
+
+static const struct swd_driver xlnx_pcie_xvc_swd_ops = {
+	.init = xlnx_pcie_xvc_swd_init,
+	.switch_seq = xlnx_pcie_xvc_swd_switch_seq,
+	.read_reg = xlnx_pcie_xvc_swd_read_reg,
+	.write_reg = xlnx_pcie_xvc_swd_write_reg,
+	.run = xlnx_pcie_xvc_swd_run_queue,
+};
+
+static const char * const xlnx_pcie_xvc_transports[] = { "jtag", "swd", NULL };
+
 struct adapter_driver xlnx_pcie_xvc_adapter_driver = {
 	.name = "xlnx_pcie_xvc",
-	.transports = jtag_only,
+	.transports = xlnx_pcie_xvc_transports,
 	.commands = xlnx_pcie_xvc_command_handlers,
 
 	.init = &xlnx_pcie_xvc_init,
 	.quit = &xlnx_pcie_xvc_quit,
 
-	.jtag_ops = &xlnx_pcie_xvc_interface,
+	.jtag_ops = &xlnx_pcie_xvc_jtag_ops,
+	.swd_ops  = &xlnx_pcie_xvc_swd_ops,
 };

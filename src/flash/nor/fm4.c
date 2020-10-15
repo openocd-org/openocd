@@ -98,14 +98,15 @@ static int fm4_enter_flash_cpu_rom_mode(struct target *target)
 	return ERROR_OK;
 }
 
-static int fm4_flash_erase(struct flash_bank *bank, int first, int last)
+static int fm4_flash_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
 	struct working_area *workarea;
 	struct reg_param reg_params[4];
 	struct armv7m_algorithm armv7m_algo;
 	unsigned i;
-	int retval, sector;
+	int retval;
 	const uint8_t erase_sector_code[] = {
 #include "../../../contrib/loaders/flash/fm4/erase.inc"
 	};
@@ -115,7 +116,7 @@ static int fm4_flash_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("Spansion FM4 erase sectors %d to %d", first, last);
+	LOG_DEBUG("Spansion FM4 erase sectors %u to %u", first, last);
 
 	retval = fm4_disable_hw_watchdog(target);
 	if (retval != ERROR_OK)
@@ -145,7 +146,7 @@ static int fm4_flash_erase(struct flash_bank *bank, int first, int last)
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN);
 
-	for (sector = first; sector <= last; sector++) {
+	for (unsigned int sector = first; sector <= last; sector++) {
 		uint32_t addr = bank->base + bank->sectors[sector].offset;
 		uint32_t result;
 
@@ -171,7 +172,7 @@ static int fm4_flash_erase(struct flash_bank *bank, int first, int last)
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			goto err_run_ret;
 		} else if (result != 0) {
-			LOG_ERROR("Unexpected error %d from flash sector erase programming algorithm", result);
+			LOG_ERROR("Unexpected error %" PRIu32 " from flash sector erase programming algorithm", result);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			goto err_run_ret;
 		} else
@@ -212,7 +213,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 #include "../../../contrib/loaders/flash/fm4/write.inc"
 	};
 
-	LOG_DEBUG("Spansion FM4 write at 0x%08" PRIx32 " (%" PRId32 " bytes)",
+	LOG_DEBUG("Spansion FM4 write at 0x%08" PRIx32 " (%" PRIu32 " bytes)",
 		offset, byte_count);
 
 	if (offset & 0x1) {
@@ -221,7 +222,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	if (byte_count & 0x1) {
-		LOG_WARNING("length %" PRId32 " is not 2-byte aligned, rounding up",
+		LOG_WARNING("length %" PRIu32 " is not 2-byte aligned, rounding up",
 			byte_count);
 	}
 
@@ -272,7 +273,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t halfwords = MIN(halfword_count, data_workarea->size / 2);
 		uint32_t addr = bank->base + offset;
 
-		LOG_DEBUG("copying %" PRId32 " bytes to SRAM " TARGET_ADDR_FMT,
+		LOG_DEBUG("copying %" PRIu32 " bytes to SRAM " TARGET_ADDR_FMT,
 			MIN(halfwords * 2, byte_count), data_workarea->address);
 
 		retval = target_write_buffer(target, data_workarea->address,
@@ -283,7 +284,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 			goto err_write_data;
 		}
 
-		LOG_DEBUG("writing 0x%08" PRIx32 "-0x%08" PRIx32 " (%" PRId32 "x)",
+		LOG_DEBUG("writing 0x%08" PRIx32 "-0x%08" PRIx32 " (%" PRIu32 "x)",
 			addr, addr + halfwords * 2 - 1, halfwords);
 
 		buf_set_u32(reg_params[0].value, 0, 32, (addr & ~0xffff) | 0xAA8);
@@ -311,7 +312,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			goto err_run_ret;
 		} else if (result != 0) {
-			LOG_ERROR("Unexpected error %d from flash write "
+			LOG_ERROR("Unexpected error %" PRIu32 " from flash write "
 				"programming algorithm", result);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			goto err_run_ret;
@@ -347,7 +348,6 @@ static int mb9bf_probe(struct flash_bank *bank)
 {
 	struct fm4_flash_bank *fm4_bank = bank->driver_priv;
 	uint32_t flash_addr = bank->base;
-	int i;
 
 	switch (fm4_bank->variant) {
 	case mb9bfx64:
@@ -369,10 +369,10 @@ static int mb9bf_probe(struct flash_bank *bank)
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
-	LOG_DEBUG("%d sectors", bank->num_sectors);
+	LOG_DEBUG("%u sectors", bank->num_sectors);
 	bank->sectors = calloc(bank->num_sectors,
 				sizeof(struct flash_sector));
-	for (i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		if (i < 4)
 			bank->sectors[i].size = 8 * 1024;
 		else if (i == 4)
@@ -409,7 +409,8 @@ static int s6e2cc_probe(struct flash_bank *bank)
 	struct fm4_flash_bank *fm4_bank = bank->driver_priv;
 	uint32_t u32_value;
 	uint32_t flash_addr = bank->base;
-	int i, retval, num_sectors, num_extra_sectors;
+	int retval;
+	unsigned int i, num_extra_sectors, num_sectors;
 
 	retval = target_read_u32(target, DFCTRLR, &u32_value);
 	if (retval != ERROR_OK)
@@ -435,7 +436,7 @@ static int s6e2cc_probe(struct flash_bank *bank)
 	num_extra_sectors = (fm4_bank->macro_nr == 0) ? 1 : 4;
 	bank->num_sectors = num_sectors + num_extra_sectors;
 
-	LOG_DEBUG("%d sectors", bank->num_sectors);
+	LOG_DEBUG("%u sectors", bank->num_sectors);
 	bank->sectors = calloc(bank->num_sectors,
 				sizeof(struct flash_sector));
 	for (i = 0; i < num_sectors; i++) {
@@ -466,12 +467,11 @@ static int s6e2cc_probe(struct flash_bank *bank)
 static int s6e2dh_probe(struct flash_bank *bank)
 {
 	uint32_t flash_addr = bank->base;
-	int i;
 
 	bank->num_sectors = 10;
 	bank->sectors = calloc(bank->num_sectors,
 				sizeof(struct flash_sector));
-	for (i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		if (i < 4)
 			bank->sectors[i].size = 8 * 1024;
 		else if (i == 4)

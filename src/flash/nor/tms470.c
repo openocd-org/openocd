@@ -148,11 +148,9 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	rom_flash = (device_ident_reg >> 10) & 1;
 	part_number = (device_ident_reg >> 3) & 0x7f;
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-		bank->num_sectors = 0;
-	}
+	free(bank->sectors);
+	bank->sectors = NULL;
+	bank->num_sectors = 0;
 
 	/*
 	 * If the part number is known, determine if the flash bank is valid
@@ -722,7 +720,7 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 	bank->sectors[sector].is_protected = 0;
 
 	/*
-	 * clear status regiser, sent erase command, kickoff erase
+	 * clear status register, sent erase command, kickoff erase
 	 */
 	target_write_u16(target, flashAddr, 0x0040);
 	LOG_DEBUG("write *(uint16_t *)0x%08" PRIx32 "=0x0040", flashAddr);
@@ -801,10 +799,11 @@ static const struct command_registration tms470_command_handlers[] = {
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_erase(struct flash_bank *bank, int first, int last)
+static int tms470_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
-	int sector, result = ERROR_OK;
+	int result = ERROR_OK;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -813,9 +812,9 @@ static int tms470_erase(struct flash_bank *bank, int first, int last)
 
 	tms470_read_part_info(bank);
 
-	if ((first < 0) || (first >= bank->num_sectors) || (last < 0) ||
-	    (last >= bank->num_sectors) || (first > last)) {
-		LOG_ERROR("Sector range %d to %d invalid.", first, last);
+	if ((first >= bank->num_sectors) || (last >= bank->num_sectors) ||
+			(first > last)) {
+		LOG_ERROR("Sector range %u to %u invalid.", first, last);
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -823,8 +822,8 @@ static int tms470_erase(struct flash_bank *bank, int first, int last)
 	if (result != ERROR_OK)
 		return result;
 
-	for (sector = first; sector <= last; sector++) {
-		LOG_INFO("Erasing tms470 bank %d sector %d...", tms470_info->ordinal, sector);
+	for (unsigned int sector = first; sector <= last; sector++) {
+		LOG_INFO("Erasing tms470 bank %u sector %u...", tms470_info->ordinal, sector);
 
 		result = tms470_erase_sector(bank, sector);
 
@@ -840,12 +839,12 @@ static int tms470_erase(struct flash_bank *bank, int first, int last)
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_protect(struct flash_bank *bank, int set, int first, int last)
+static int tms470_protect(struct flash_bank *bank, int set, unsigned int first,
+		unsigned int last)
 {
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t fmmac2, fmbsea, fmbseb;
-	int sector;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -854,9 +853,9 @@ static int tms470_protect(struct flash_bank *bank, int set, int first, int last)
 
 	tms470_read_part_info(bank);
 
-	if ((first < 0) || (first >= bank->num_sectors) || (last < 0) ||
-	    (last >= bank->num_sectors) || (first > last)) {
-		LOG_ERROR("Sector range %d to %d invalid.", first, last);
+	if ((first >= bank->num_sectors) || (last >= bank->num_sectors) ||
+			(first > last)) {
+		LOG_ERROR("Sector range %u to %u invalid.", first, last);
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -864,11 +863,11 @@ static int tms470_protect(struct flash_bank *bank, int set, int first, int last)
 	target_read_u32(target, 0xFFE8BC04, &fmmac2);
 	target_write_u32(target, 0xFFE8BC04, (fmmac2 & ~7) | tms470_info->ordinal);
 
-	/* get the original sector proection flags for this bank */
+	/* get the original sector protection flags for this bank */
 	target_read_u32(target, 0xFFE88008, &fmbsea);
 	target_read_u32(target, 0xFFE8800C, &fmbseb);
 
-	for (sector = 0; sector < bank->num_sectors; sector++) {
+	for (unsigned int sector = 0; sector < bank->num_sectors; sector++) {
 		if (sector < 16) {
 			fmbsea = set ? fmbsea & ~(1 << sector) : fmbsea | (1 << sector);
 			bank->sectors[sector].is_protected = set ? 1 : 0;
@@ -902,7 +901,7 @@ static int tms470_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t
 
 	tms470_read_part_info(bank);
 
-	LOG_INFO("Writing %" PRId32 " bytes starting at " TARGET_ADDR_FMT,
+	LOG_INFO("Writing %" PRIu32 " bytes starting at " TARGET_ADDR_FMT,
 			count, bank->base + offset);
 
 	/* set GLBCTRL.4  */
@@ -1004,7 +1003,7 @@ static int tms470_erase_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
-	int sector, result = ERROR_OK;
+	int result = ERROR_OK;
 	uint32_t fmmac2, fmbac2, glbctrl, orig_fmregopt;
 	static uint8_t buffer[64 * 1024];
 
@@ -1043,10 +1042,10 @@ static int tms470_erase_check(struct flash_bank *bank)
 	 * word at a time.  Here we read an entire sector and inspect it in
 	 * an attempt to reduce the JTAG overhead.
 	 */
-	for (sector = 0; sector < bank->num_sectors; sector++) {
+	for (unsigned int sector = 0; sector < bank->num_sectors; sector++) {
 		uint32_t i, addr = bank->base + bank->sectors[sector].offset;
 
-		LOG_INFO("checking flash bank %d sector %d", tms470_info->ordinal, sector);
+		LOG_INFO("checking flash bank %u sector %u", tms470_info->ordinal, sector);
 
 		target_read_buffer(target, addr, bank->sectors[sector].size, buffer);
 
@@ -1079,7 +1078,7 @@ static int tms470_protect_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
-	int sector, result = ERROR_OK;
+	int result = ERROR_OK;
 	uint32_t fmmac2, fmbsea, fmbseb;
 
 	if (target->state != TARGET_HALTED) {
@@ -1097,7 +1096,7 @@ static int tms470_protect_check(struct flash_bank *bank)
 	target_read_u32(target, 0xFFE88008, &fmbsea);
 	target_read_u32(target, 0xFFE8800C, &fmbseb);
 
-	for (sector = 0; sector < bank->num_sectors; sector++) {
+	for (unsigned int sector = 0; sector < bank->num_sectors; sector++) {
 		int protected;
 
 		if (sector < 16) {
@@ -1108,7 +1107,7 @@ static int tms470_protect_check(struct flash_bank *bank)
 			bank->sectors[sector].is_protected = protected;
 		}
 
-		LOG_DEBUG("bank %d sector %d is %s",
+		LOG_DEBUG("bank %u sector %u is %s",
 			tms470_info->ordinal,
 			sector,
 			protected ? "protected" : "not protected");

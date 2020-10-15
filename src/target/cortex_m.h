@@ -44,12 +44,15 @@
 
 #define CORTEX_M23_PARTNO	0xD200
 #define CORTEX_M33_PARTNO	0xD210
+#define CORTEX_M35P_PARTNO	0xD310
+#define CORTEX_M55_PARTNO	0xD220
 
 /* Debug Control Block */
 #define DCB_DHCSR	0xE000EDF0
 #define DCB_DCRSR	0xE000EDF4
 #define DCB_DCRDR	0xE000EDF8
 #define DCB_DEMCR	0xE000EDFC
+#define DCB_DSCSR	0xE000EE08
 
 #define DCRSR_WnR	BIT(16)
 
@@ -114,6 +117,10 @@
 #define VC_MMERR		BIT(4)
 #define VC_CORERESET	BIT(0)
 
+/* DCB_DSCSR bit and field definitions */
+#define DSCSR_CDS		BIT(16)
+
+/* NVIC registers */
 #define NVIC_ICTR		0xE000E004
 #define NVIC_ISE0		0xE000E100
 #define NVIC_ICSR		0xE000ED04
@@ -127,6 +134,8 @@
 #define NVIC_DFSR		0xE000ED30
 #define NVIC_MMFAR		0xE000ED34
 #define NVIC_BFAR		0xE000ED38
+#define NVIC_SFSR		0xE000EDE4
+#define NVIC_SFAR		0xE000EDE8
 
 /* NVIC_AIRCR bits */
 #define AIRCR_VECTKEY		(0x5FAul << 16)

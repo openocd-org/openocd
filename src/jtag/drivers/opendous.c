@@ -310,7 +310,7 @@ static int opendous_execute_queue(void)
 				break;
 
 			case JTAG_SLEEP:
-				LOG_DEBUG_IO("sleep %" PRIi32, cmd->cmd.sleep->us);
+				LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
 				opendous_tap_execute();
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
@@ -386,25 +386,17 @@ static int opendous_quit(void)
 {
 	opendous_usb_close(opendous_jtag_handle);
 
-	if (usb_out_buffer) {
-		free(usb_out_buffer);
-		usb_out_buffer = NULL;
-	}
+	free(usb_out_buffer);
+	usb_out_buffer = NULL;
 
-	if (usb_in_buffer) {
-		free(usb_in_buffer);
-		usb_in_buffer = NULL;
-	}
+	free(usb_in_buffer);
+	usb_in_buffer = NULL;
 
-	if (pending_scan_results_buffer) {
-		free(pending_scan_results_buffer);
-		pending_scan_results_buffer = NULL;
-	}
+	free(pending_scan_results_buffer);
+	pending_scan_results_buffer = NULL;
 
-	if (opendous_type) {
-		free(opendous_type);
-		opendous_type = NULL;
-	}
+	free(opendous_type);
+	opendous_type = NULL;
 
 	return ERROR_OK;
 }
@@ -596,7 +588,7 @@ void opendous_tap_append_step(int tms, int tdi)
 		if (!bits)
 			tms_buffer[tap_index] = 0;
 
-		tms_buffer[tap_index] |= (_tdi << bits)|(_tms << (bits + 1)) ;
+		tms_buffer[tap_index] |= (_tdi << bits)|(_tms << (bits + 1));
 		tap_length++;
 	} else
 		LOG_ERROR("opendous_tap_append_step, overflow");
@@ -697,8 +689,7 @@ int opendous_tap_execute(void)
 				return ERROR_JTAG_QUEUE_FAILED;
 			}
 
-			if (pending_scan_result->buffer != NULL)
-				free(pending_scan_result->buffer);
+			free(pending_scan_result->buffer);
 		}
 
 		opendous_tap_init();

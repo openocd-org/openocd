@@ -326,7 +326,7 @@ int add_service(char *name,
 #endif
 	} else if (c->type == CONNECTION_PIPE) {
 #ifdef _WIN32
-		/* we currenty do not support named pipes under win32
+		/* we currently do not support named pipes under win32
 		 * so exit openocd for now */
 		LOG_ERROR("Named pipes currently not supported under this os");
 		free_service(c);
@@ -404,19 +404,14 @@ static int remove_services(void)
 
 		remove_connections(c);
 
-		if (c->name)
-			free(c->name);
+		free(c->name);
 
 		if (c->type == CONNECTION_PIPE) {
 			if (c->fd != -1)
 				close(c->fd);
 		}
-		if (c->port)
-			free(c->port);
-
-		if (c->priv)
-			free(c->priv);
-
+		free(c->port);
+		free(c->priv);
 		/* delete service */
 		free(c);
 

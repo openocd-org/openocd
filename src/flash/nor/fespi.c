@@ -122,7 +122,7 @@
 
 
 struct fespi_flash_bank {
-	int probed;
+	bool probed;
 	target_addr_t ctrl_base;
 	const struct flash_device *dev;
 };
@@ -136,9 +136,9 @@ struct fespi_target {
 /* TODO !!! What is the right naming convention here? */
 static const struct fespi_target target_devices[] = {
 	/* name,   tap_idcode, ctrl_base */
-	{ "Freedom E310-G000 SPI Flash",  0x10e31913 , 0x10014000 },
-	{ "Freedom E310-G002 SPI Flash",  0x20000913 , 0x10014000 },
-	{ NULL,    0,           0          }
+	{ "Freedom E310-G000 SPI Flash", 0x10e31913, 0x10014000 },
+	{ "Freedom E310-G002 SPI Flash", 0x20000913, 0x10014000 },
+	{ NULL, 0, 0 }
 };
 
 FLASH_BANK_COMMAND_HANDLER(fespi_flash_bank_command)
@@ -157,7 +157,7 @@ FLASH_BANK_COMMAND_HANDLER(fespi_flash_bank_command)
 	}
 
 	bank->driver_priv = fespi_info;
-	fespi_info->probed = 0;
+	fespi_info->probed = false;
 	fespi_info->ctrl_base = 0;
 	if (CMD_ARGC >= 7) {
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[6], fespi_info->ctrl_base);
@@ -189,7 +189,7 @@ static int fespi_write_reg(struct flash_bank *bank, target_addr_t address, uint3
 
 	int result = target_write_u32(target, fespi_info->ctrl_base + address, value);
 	if (result != ERROR_OK) {
-		LOG_ERROR("fespi_write_reg() error writing 0x%x to " TARGET_ADDR_FMT,
+		LOG_ERROR("fespi_write_reg() error writing 0x%" PRIx32 " to " TARGET_ADDR_FMT,
 				value, fespi_info->ctrl_base + address);
 		return result;
 	}
@@ -274,7 +274,7 @@ static int fespi_rx(struct flash_bank *bank, uint8_t *out)
 			break;
 		int64_t now = timeval_ms();
 		if (now - start > 1000) {
-			LOG_ERROR("rxfifo didn't go positive (value=0x%x).", value);
+			LOG_ERROR("rxfifo didn't go positive (value=0x%" PRIx32 ").", value);
 			return ERROR_TARGET_TIMEOUT;
 		}
 	}
@@ -364,21 +364,21 @@ static int fespi_erase_sector(struct flash_bank *bank, int sector)
 	return ERROR_OK;
 }
 
-static int fespi_erase(struct flash_bank *bank, int first, int last)
+static int fespi_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	int retval = ERROR_OK;
-	int sector;
 
-	LOG_DEBUG("%s: from sector %d to sector %d", __func__, first, last);
+	LOG_DEBUG("%s: from sector %u to sector %u", __func__, first, last);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first < 0) || (last < first) || (last >= bank->num_sectors)) {
+	if ((last < first) || (last >= bank->num_sectors)) {
 		LOG_ERROR("Flash sector invalid");
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
@@ -388,9 +388,9 @@ static int fespi_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	for (sector = first; sector <= last; sector++) {
+	for (unsigned int sector = first; sector <= last; sector++) {
 		if (bank->sectors[sector].is_protected) {
-			LOG_ERROR("Flash sector %d protected", sector);
+			LOG_ERROR("Flash sector %u protected", sector);
 			return ERROR_FAIL;
 		}
 	}
@@ -415,7 +415,7 @@ static int fespi_erase(struct flash_bank *bank, int first, int last)
 	if (retval != ERROR_OK)
 		goto done;
 
-	for (sector = first; sector <= last; sector++) {
+	for (unsigned int sector = first; sector <= last; sector++) {
 		retval = fespi_erase_sector(bank, sector);
 		if (retval != ERROR_OK)
 			goto done;
@@ -430,11 +430,9 @@ done:
 }
 
 static int fespi_protect(struct flash_bank *bank, int set,
-		int first, int last)
+		unsigned int first, unsigned int last)
 {
-	int sector;
-
-	for (sector = first; sector <= last; sector++)
+	for (unsigned int sector = first; sector <= last; sector++)
 		bank->sectors[sector].is_protected = set;
 	return ERROR_OK;
 }
@@ -514,14 +512,14 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	/* Check sector protection */
-	for (sector = 0; sector < bank->num_sectors; sector++) {
+	for (unsigned int sector = 0; sector < bank->num_sectors; sector++) {
 		/* Start offset in or before this sector? */
 		/* End offset in or behind this sector? */
 		if ((offset <
 					(bank->sectors[sector].offset + bank->sectors[sector].size))
 				&& ((offset + count - 1) >= bank->sectors[sector].offset)
 				&& bank->sectors[sector].is_protected) {
-			LOG_ERROR("Flash sector %d protected", sector);
+			LOG_ERROR("Flash sector %u protected", sector);
 			return ERROR_FAIL;
 		}
 	}
@@ -747,7 +745,7 @@ static int fespi_probe(struct flash_bank *bank)
 
 	if (fespi_info->probed)
 		free(bank->sectors);
-	fespi_info->probed = 0;
+	fespi_info->probed = false;
 
 	if (fespi_info->ctrl_base == 0) {
 		for (target_device = target_devices ; target_device->name ; ++target_device)
@@ -820,7 +818,7 @@ static int fespi_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	for (int sector = 0; sector < bank->num_sectors; sector++) {
+	for (unsigned int sector = 0; sector < bank->num_sectors; sector++) {
 		sectors[sector].offset = sector * sectorsize;
 		sectors[sector].size = sectorsize;
 		sectors[sector].is_erased = -1;
@@ -828,7 +826,7 @@ static int fespi_probe(struct flash_bank *bank)
 	}
 
 	bank->sectors = sectors;
-	fespi_info->probed = 1;
+	fespi_info->probed = true;
 	return ERROR_OK;
 }
 

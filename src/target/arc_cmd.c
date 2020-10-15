@@ -86,7 +86,7 @@ static int jim_arc_read_reg_type_field(Jim_GetOptInfo *goi, const char **field_n
 		int e = JIM_OK;
 		if ((type == CFG_ADD_REG_TYPE_STRUCT && goi->argc < 3) ||
 		 (type == CFG_ADD_REG_TYPE_FLAG && goi->argc < 2)) {
-			Jim_SetResultFormatted(goi->interp, "Not enough argmunets after -flag/-bitfield");
+			Jim_SetResultFormatted(goi->interp, "Not enough arguments after -flag/-bitfield");
 			return JIM_ERR;
 		}
 
@@ -101,7 +101,7 @@ static int jim_arc_read_reg_type_field(Jim_GetOptInfo *goi, const char **field_n
 
 		end_pos = start_pos;
 
-		/* Check if any argnuments remain,
+		/* Check if any arguments remain,
 		 * set bitfields[cur_field].end if flag is multibit */
 		if (goi->argc > 0)
 			/* Check current argv[0], if it is equal to "-flag",
@@ -143,9 +143,9 @@ static int jim_arc_add_reg_type_flags(Jim_Interp *interp, int argc,
 
 	int e = JIM_OK;
 
-	/* Check if the amount of argnuments is not zero */
+	/* Check if the amount of arguments is not zero */
 	if (goi.argc <= 0) {
-		Jim_SetResultFormatted(goi.interp, "The command has no argnuments");
+		Jim_SetResultFormatted(goi.interp, "The command has no arguments");
 		return JIM_ERR;
 	}
 
@@ -154,7 +154,7 @@ static int jim_arc_add_reg_type_flags(Jim_Interp *interp, int argc,
 	unsigned int fields_sz = (goi.argc - 2) / 3;
 	unsigned int cur_field = 0;
 
-	/* Tha maximum amount of bitfilds is 32 */
+	/* The maximum amount of bitfields is 32 */
 	if (fields_sz > 32) {
 		Jim_SetResultFormatted(goi.interp, "The amount of bitfields exceed 32");
 		return JIM_ERR;
@@ -451,7 +451,7 @@ static const struct command_registration arc_jtag_command_group[] = {
 			"raw JTAG request that bypasses OpenOCD register cache "
 			"and thus is unsafe and can have unexpected consequences. "
 			"Use at your own risk.",
-		.usage = "arc jtag get-aux-reg <regnum>"
+		.usage = "<regnum>"
 	},
 	{
 		.name = "set-aux-reg",
@@ -461,7 +461,7 @@ static const struct command_registration arc_jtag_command_group[] = {
 			"raw JTAG request that bypasses OpenOCD register cache "
 			"and thus is unsafe and can have unexpected consequences. "
 			"Use at your own risk.",
-		.usage = "arc jtag set-aux-reg <regnum> <value>"
+		.usage = "<regnum> <value>"
 	},
 	{
 		.name = "get-core-reg",
@@ -471,7 +471,7 @@ static const struct command_registration arc_jtag_command_group[] = {
 			"raw JTAG request that bypasses OpenOCD register cache "
 			"and thus is unsafe and can have unexpected consequences. "
 			"Use at your own risk.",
-		.usage = "arc jtag get-core-reg <regnum> [<value>]"
+		.usage = "<regnum> [<value>]"
 	},
 	{
 		.name = "set-core-reg",
@@ -481,7 +481,7 @@ static const struct command_registration arc_jtag_command_group[] = {
 			"raw JTAG request that bypasses OpenOCD register cache "
 			"and thus is unsafe and can have unexpected consequences. "
 			"Use at your own risk.",
-		.usage = "arc jtag set-core-reg <regnum> [<value>]"
+		.usage = "<regnum> [<value>]"
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -509,9 +509,9 @@ static int jim_arc_add_reg_type_struct(Jim_Interp *interp, int argc,
 
 	int e = JIM_OK;
 
-	/* Check if the amount of argnuments is not zero */
+	/* Check if the amount of arguments is not zero */
 	if (goi.argc <= 0) {
-		Jim_SetResultFormatted(goi.interp, "The command has no argnuments");
+		Jim_SetResultFormatted(goi.interp, "The command has no arguments");
 		return JIM_ERR;
 	}
 
@@ -520,7 +520,7 @@ static int jim_arc_add_reg_type_struct(Jim_Interp *interp, int argc,
 	unsigned int fields_sz = (goi.argc - 2) / 4;
 	unsigned int cur_field = 0;
 
-	/* Tha maximum amount of bitfilds is 32 */
+	/* The maximum amount of bitfields is 32 */
 	if (fields_sz > 32) {
 			Jim_SetResultFormatted(goi.interp, "The amount of bitfields exceed 32");
 			return JIM_ERR;
@@ -672,19 +672,19 @@ static int jim_arc_add_reg(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	}
 
 	/* There is no architecture number that we could treat as invalid, so
-	 * separate variable requried to ensure that arch num has been set. */
+	 * separate variable required to ensure that arch num has been set. */
 	bool arch_num_set = false;
 	const char *type_name = "int"; /* Default type */
 	int type_name_len = strlen(type_name);
 	int e = ERROR_OK;
 
 	/* At least we need to specify 4 parameters: name, number and gdb_feature,
-	 * which means there should be 6 arguments. Also there can be additional paramters
+	 * which means there should be 6 arguments. Also there can be additional parameters
 	 * "-type <type>", "-g" and  "-core" or "-bcr" which makes maximum 10 parameters. */
 	if (goi.argc < 6 || goi.argc > 10) {
 		free_reg_desc(reg);
 		Jim_SetResultFormatted(goi.interp,
-			"Should be at least 6 argnuments and not greater than 10: "
+			"Should be at least 6 arguments and not greater than 10: "
 			" -name <name> -num <num> -feature <gdb_feature> "
 			" [-type <type_name>] [-core|-bcr] [-g].");
 		return JIM_ERR;
@@ -909,14 +909,108 @@ static int jim_arc_get_reg_field(Jim_Interp *interp, int argc, Jim_Obj * const *
 	return JIM_OK;
 }
 
+COMMAND_HANDLER(arc_l1_cache_disable_auto_cmd)
+{
+	bool value;
+	int retval = 0;
+	struct arc_common *arc = target_to_arc(get_current_target(CMD_CTX));
+	retval = CALL_COMMAND_HANDLER(handle_command_parse_bool,
+		&value, "target has caches enabled");
+	arc->has_l2cache = value;
+	arc->has_dcache = value;
+	arc->has_icache = value;
+	return retval;
+}
+
+COMMAND_HANDLER(arc_l2_cache_disable_auto_cmd)
+{
+	struct arc_common *arc = target_to_arc(get_current_target(CMD_CTX));
+	return CALL_COMMAND_HANDLER(handle_command_parse_bool,
+		&arc->has_l2cache, "target has l2 cache enabled");
+}
+
+static int jim_handle_actionpoints_num(Jim_Interp *interp, int argc,
+	Jim_Obj * const *argv)
+{
+	Jim_GetOptInfo goi;
+	Jim_GetOpt_Setup(&goi, interp, argc - 1, argv + 1);
+
+	LOG_DEBUG("-");
+
+	if (goi.argc >= 2) {
+		Jim_WrongNumArgs(interp, goi.argc, goi.argv, "[<unsigned integer>]");
+		return JIM_ERR;
+	}
+
+	struct command_context *context = current_command_context(interp);
+	assert(context);
+
+	struct target *target = get_current_target(context);
+
+	if (!target) {
+		Jim_SetResultFormatted(goi.interp, "No current target");
+		return JIM_ERR;
+	}
+
+	struct arc_common *arc = target_to_arc(target);
+	/* It is not possible to pass &arc->actionpoints_num directly to
+	 * handle_command_parse_uint, because this value should be valid during
+	 * "actionpoint reset, initiated by arc_set_actionpoints_num.  */
+	uint32_t ap_num = arc->actionpoints_num;
+
+	if (goi.argc == 1) {
+		JIM_CHECK_RETVAL(arc_cmd_jim_get_uint32(&goi, &ap_num));
+		int e = arc_set_actionpoints_num(target, ap_num);
+		if (e != ERROR_OK) {
+			Jim_SetResultFormatted(goi.interp,
+				"Failed to set number of actionpoints");
+			return JIM_ERR;
+		}
+	}
+
+	Jim_SetResultInt(interp, ap_num);
+
+	return JIM_OK;
+}
+
 /* ----- Exported target commands ------------------------------------------ */
 
+const struct command_registration arc_l2_cache_group_handlers[] = {
+	{
+		.name = "auto",
+		.handler = arc_l2_cache_disable_auto_cmd,
+		.mode = COMMAND_ANY,
+		.usage = "(1|0)",
+		.help = "Disable or enable L2",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration arc_cache_group_handlers[] = {
+	{
+		.name = "auto",
+		.handler = arc_l1_cache_disable_auto_cmd,
+		.mode = COMMAND_ANY,
+		.help = "Disable or enable L1",
+		.usage = "(1|0)",
+	},
+	{
+		.name = "l2",
+		.mode = COMMAND_ANY,
+		.help = "L2 cache command group",
+		.usage = "",
+		.chain = arc_l2_cache_group_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+
 static const struct command_registration arc_core_command_handlers[] = {
-{
+	{
 		.name = "add-reg-type-flags",
 		.jim_handler = jim_arc_add_reg_type_flags,
 		.mode = COMMAND_CONFIG,
-		.usage = "arc ardd-reg-type-flags -name <string> -flag <name> <position> "
+		.usage = "-name <string> -flag <name> <position> "
 			"[-flag <name> <position>]...",
 		.help = "Add new 'flags' register data type. Only single bit flags "
 			"are supported. Type name is global. Bitsize of register is fixed "
@@ -926,7 +1020,7 @@ static const struct command_registration arc_core_command_handlers[] = {
 		.name = "add-reg-type-struct",
 		.jim_handler = jim_arc_add_reg_type_struct,
 		.mode = COMMAND_CONFIG,
-		.usage = "arc add-reg-type-struct -name <string> -bitfield <name> <start> <end> "
+		.usage = "-name <string> -bitfield <name> <start> <end> "
 			"[-bitfield <name> <start> <end>]...",
 		.help = "Add new 'struct' register data type. Only bit-fields are "
 			"supported so far, which means that for each bitfield start and end "
@@ -938,10 +1032,10 @@ static const struct command_registration arc_core_command_handlers[] = {
 		.name = "add-reg",
 		.jim_handler = jim_arc_add_reg,
 		.mode = COMMAND_CONFIG,
-		.usage = "arc add-reg -name <string> -num <int> -feature <string> [-gdbnum <int>] "
+		.usage = "-name <string> -num <int> -feature <string> [-gdbnum <int>] "
 			"[-core|-bcr] [-type <type_name>] [-g]",
 		.help = "Add new register. Name, architectural number and feature name "
-			"are requried options. GDB regnum will default to previous register "
+			"are required options. GDB regnum will default to previous register "
 			"(gdbnum + 1) and shouldn't be specified in most cases. Type "
 			"defaults to default GDB 'int'.",
 	},
@@ -949,7 +1043,7 @@ static const struct command_registration arc_core_command_handlers[] = {
 		.name = "set-reg-exists",
 		.handler = arc_set_reg_exists,
 		.mode = COMMAND_ANY,
-		.usage = "arc set-reg-exists <register-name> [<register-name>]...",
+		.usage = "<register-name> [<register-name>]...",
 		.help = "Set that register exists. Accepts multiple register names as "
 			"arguments.",
 	},
@@ -957,7 +1051,7 @@ static const struct command_registration arc_core_command_handlers[] = {
 		.name = "get-reg-field",
 		.jim_handler = jim_arc_get_reg_field,
 		.mode = COMMAND_ANY,
-		.usage = "arc get-reg-field <regname> <field_name>",
+		.usage = "<regname> <field_name>",
 		.help = "Returns value of field in a register with 'struct' type.",
 	},
 	{
@@ -967,6 +1061,20 @@ static const struct command_registration arc_core_command_handlers[] = {
 		.usage = "",
 		.chain = arc_jtag_command_group,
 	},
+	{
+		.name = "cache",
+		.mode = COMMAND_ANY,
+		.help = "cache command group",
+		.usage = "",
+		.chain = arc_cache_group_handlers,
+	},
+	{
+		.name = "num-actionpoints",
+		.jim_handler = jim_handle_actionpoints_num,
+		.mode = COMMAND_ANY,
+		.usage = "[<unsigned integer>]",
+		.help = "Prints or sets amount of actionpoints in the processor.",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -975,7 +1083,7 @@ const struct command_registration arc_monitor_command_handlers[] = {
 		.name = "arc",
 		.mode = COMMAND_ANY,
 		.help = "ARC monitor command group",
-		.usage = "Help info ...",
+		.usage = "",
 		.chain = arc_core_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE

@@ -89,7 +89,7 @@ enum nrf5_ficr_registers {
 
 enum nrf5_uicr_registers {
 	NRF5_UICR_BASE = 0x10001000, /* User Information
-				       * Configuration Regsters */
+				       * Configuration Registers */
 
 #define NRF5_UICR_REG(offset) (NRF5_UICR_BASE + offset)
 
@@ -256,7 +256,7 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 	NRF51_DEVICE_DEF(0x007A, "51422", "CEAA", "C0",    256),
 	NRF51_DEVICE_DEF(0x0088, "51422", "CFAC", "A0",    256),
 
-	/* The driver fully autodects nRF52 series devices by FICR INFO,
+	/* The driver fully autodetects nRF52 series devices by FICR INFO,
 	 * no need for nRF52xxx HWIDs in this table */
 #if 0
 	/* nRF52810 Devices */
@@ -451,7 +451,7 @@ static int nrf5_protect_check_bprot(struct flash_bank *bank)
 	uint32_t bprot_reg = 0;
 	int res;
 
-	for (int i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		unsigned int bit = i % 32;
 		if (bit == 0) {
 			unsigned int n_reg = i / 32;
@@ -505,14 +505,15 @@ static int nrf5_protect_check(struct flash_bank *bank)
 		}
 	}
 
-	for (int i = 0; i < bank->num_sectors; i++)
+	for (unsigned int i = 0; i < bank->num_sectors; i++)
 		bank->sectors[i].is_protected =
 			clenr0 != 0xFFFFFFFF && bank->sectors[i].offset < clenr0;
 
 	return ERROR_OK;
 }
 
-static int nrf5_protect(struct flash_bank *bank, int set, int first, int last)
+static int nrf5_protect(struct flash_bank *bank, int set, unsigned int first,
+		unsigned int last)
 {
 	int res;
 	uint32_t clenr0, ppfc;
@@ -532,7 +533,7 @@ static int nrf5_protect(struct flash_bank *bank, int set, int first, int last)
 	}
 
 	if (first != 0) {
-		LOG_ERROR("Code region 0 must start at the begining of the bank");
+		LOG_ERROR("Code region 0 must start at the beginning of the bank");
 		return ERROR_FAIL;
 	}
 
@@ -1026,7 +1027,8 @@ error:
 	return res;
 }
 
-static int nrf5_erase(struct flash_bank *bank, int first, int last)
+static int nrf5_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	int res;
 	struct nrf5_info *chip;
@@ -1036,7 +1038,7 @@ static int nrf5_erase(struct flash_bank *bank, int first, int last)
 		return res;
 
 	/* For each sector to be erased */
-	for (int s = first; s <= last && res == ERROR_OK; s++)
+	for (unsigned int s = first; s <= last && res == ERROR_OK; s++)
 		res = nrf5_erase_page(bank, chip, &bank->sectors[s]);
 
 	return res;
@@ -1360,7 +1362,7 @@ const struct flash_driver nrf5_flash = {
 };
 
 /* We need to retain the flash-driver name as well as the commands
- * for backwards compatability */
+ * for backwards compatibility */
 const struct flash_driver nrf51_flash = {
 	.name			= "nrf51",
 	.commands		= nrf5_command_handlers,

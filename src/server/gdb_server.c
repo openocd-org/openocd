@@ -68,7 +68,7 @@ struct target_desc_format {
 
 /* private connection data for GDB */
 struct gdb_connection {
-	char buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for nul-termination */
+	char buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for null-termination */
 	char *buf_p;
 	int buf_cnt;
 	bool ctrl_c;
@@ -994,8 +994,7 @@ static int gdb_new_connection(struct connection *connection)
 		 * This will cause an auto_probe to be invoked, which is either
 		 * a no-op or it will fail when the target isn't ready(e.g. not halted).
 		 */
-		int i;
-		for (i = 0; i < flash_get_bank_count(); i++) {
+		for (unsigned int i = 0; i < flash_get_bank_count(); i++) {
 			struct flash_bank *p;
 			p = get_flash_bank_by_num_noprobe(i);
 			if (p->target != target)
@@ -1016,6 +1015,17 @@ static int gdb_new_connection(struct connection *connection)
 			gdb_actual_connections,
 			target_name(target),
 			target_state_name(target));
+
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target %s not examined yet, refuse gdb connection %d!",
+				  target_name(target), gdb_actual_connections);
+		gdb_actual_connections--;
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
+	if (target->state != TARGET_HALTED)
+		LOG_WARNING("GDB connection %d on target %s not halted",
+					gdb_actual_connections, target_name(target));
 
 	/* DANGER! If we fail subsequently, we must remove this handler,
 	 * otherwise we occasionally see crashes as the timer can invoke the
@@ -1055,11 +1065,8 @@ static int gdb_connection_closed(struct connection *connection)
 	/* if this connection registered a debug-message receiver delete it */
 	delete_debug_msg_receiver(connection->cmd_ctx, target);
 
-	if (connection->priv) {
-		free(connection->priv);
-		connection->priv = NULL;
-	} else
-		LOG_ERROR("BUG: connection->priv == NULL");
+	free(connection->priv);
+	connection->priv = NULL;
 
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
 
@@ -1379,8 +1386,8 @@ static int gdb_set_register_packet(struct connection *connection,
 	}
 
 	if (chars != (DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2)) {
-		LOG_ERROR("gdb sent %d bits for a %d-bit register (%s)",
-				(int) chars * 4, reg_list[reg_num]->size, reg_list[reg_num]->name);
+		LOG_ERROR("gdb sent %zu bits for a %" PRIu32 "-bit register (%s)",
+				chars * 4, reg_list[reg_num]->size, reg_list[reg_num]->name);
 		free(bin_buf);
 		free(reg_list);
 		return ERROR_SERVER_REMOTE_CLOSED;
@@ -1759,8 +1766,7 @@ static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6))) void xml_printf(
 			char *t = *xml;
 			*xml = realloc(*xml, *size);
 			if (*xml == NULL) {
-				if (t)
-					free(t);
+				free(t);
 				*retval = ERROR_SERVER_REMOTE_CLOSED;
 				return;
 			}
@@ -1842,8 +1848,7 @@ static int gdb_memory_map(struct connection *connection,
 	int length;
 	char *separator;
 	target_addr_t ram_start = 0;
-	int i;
-	int target_flash_banks = 0;
+	unsigned int target_flash_banks = 0;
 
 	/* skip command character */
 	packet += 23;
@@ -1859,7 +1864,7 @@ static int gdb_memory_map(struct connection *connection,
 	 */
 	banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
 
-	for (i = 0; i < flash_get_bank_count(); i++) {
+	for (unsigned int i = 0; i < flash_get_bank_count(); i++) {
 		p = get_flash_bank_by_num_noprobe(i);
 		if (p->target != target)
 			continue;
@@ -1875,8 +1880,7 @@ static int gdb_memory_map(struct connection *connection,
 	qsort(banks, target_flash_banks, sizeof(struct flash_bank *),
 		compare_bank);
 
-	for (i = 0; i < target_flash_banks; i++) {
-		int j;
+	for (unsigned int i = 0; i < target_flash_banks; i++) {
 		unsigned sector_size = 0;
 		unsigned group_len = 0;
 
@@ -1894,7 +1898,7 @@ static int gdb_memory_map(struct connection *connection,
 		 * smaller ones at the end (maybe 32KB).  STR7 will have
 		 * regions with 8KB, 32KB, and 64KB sectors; etc.
 		 */
-		for (j = 0; j < p->num_sectors; j++) {
+		for (unsigned int j = 0; j < p->num_sectors; j++) {
 
 			/* Maybe start a new group of sectors. */
 			if (sector_size == 0) {
@@ -2057,7 +2061,7 @@ static int gdb_generate_reg_type_description(struct target *target,
 		}
 		/* <vector id="id" type="type" count="count"/> */
 		xml_printf(&retval, tdesc, pos, size,
-				"<vector id=\"%s\" type=\"%s\" count=\"%d\"/>\n",
+				"<vector id=\"%s\" type=\"%s\" count=\"%" PRIu32 "\"/>\n",
 				type->id, type->reg_type_vector->type->id,
 				type->reg_type_vector->count);
 
@@ -2104,11 +2108,11 @@ static int gdb_generate_reg_type_description(struct target *target,
 			 *  <field name="name" start="start" end="end"/> ...
 			 * </struct> */
 			xml_printf(&retval, tdesc, pos, size,
-					"<struct id=\"%s\" size=\"%d\">\n",
+					"<struct id=\"%s\" size=\"%" PRIu32 "\">\n",
 					type->id, type->reg_type_struct->size);
 			while (field != NULL) {
 				xml_printf(&retval, tdesc, pos, size,
-						"<field name=\"%s\" start=\"%d\" end=\"%d\" type=\"%s\" />\n",
+						"<field name=\"%s\" start=\"%" PRIu32 "\" end=\"%" PRIu32 "\" type=\"%s\" />\n",
 						field->name, field->bitfield->start, field->bitfield->end,
 						gdb_get_reg_type_name(field->bitfield->type));
 
@@ -2149,14 +2153,14 @@ static int gdb_generate_reg_type_description(struct target *target,
 		 *  <field name="name" start="start" end="end"/> ...
 		 * </flags> */
 		xml_printf(&retval, tdesc, pos, size,
-				"<flags id=\"%s\" size=\"%d\">\n",
+				"<flags id=\"%s\" size=\"%" PRIu32 "\">\n",
 				type->id, type->reg_type_flags->size);
 
 		struct reg_data_type_flags_field *field;
 		field = type->reg_type_flags->fields;
 		while (field != NULL) {
 			xml_printf(&retval, tdesc, pos, size,
-					"<field name=\"%s\" start=\"%d\" end=\"%d\" type=\"%s\" />\n",
+					"<field name=\"%s\" start=\"%" PRIu32 "\" end=\"%" PRIu32 "\" type=\"%s\" />\n",
 					field->name, field->bitfield->start, field->bitfield->end,
 					gdb_get_reg_type_name(field->bitfield->type));
 
@@ -2381,9 +2385,9 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 				xml_printf(&retval, &tdesc, &pos, &size,
 						"<reg name=\"%s\"", reg_list[i]->name);
 				xml_printf(&retval, &tdesc, &pos, &size,
-						" bitsize=\"%d\"", reg_list[i]->size);
+						" bitsize=\"%" PRIu32 "\"", reg_list[i]->size);
 				xml_printf(&retval, &tdesc, &pos, &size,
-						" regnum=\"%d\"", reg_list[i]->number);
+						" regnum=\"%" PRIu32 "\"", reg_list[i]->number);
 				if (reg_list[i]->caller_save)
 					xml_printf(&retval, &tdesc, &pos, &size,
 							" save-restore=\"yes\"");
@@ -3216,7 +3220,7 @@ static int gdb_v_packet(struct connection *connection,
 		target_call_event_callbacks(target,
 				TARGET_EVENT_GDB_FLASH_WRITE_START);
 		result = flash_write(target, gdb_connection->vflash_image,
-			&written, 0);
+			&written, false);
 		target_call_event_callbacks(target,
 			TARGET_EVENT_GDB_FLASH_WRITE_END);
 		if (result != ERROR_OK) {
@@ -3323,13 +3327,14 @@ static void gdb_sig_halted(struct connection *connection)
 static int gdb_input_inner(struct connection *connection)
 {
 	/* Do not allocate this on the stack */
-	static char gdb_packet_buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for nul-termination */
+	static char gdb_packet_buffer[GDB_BUFFER_SIZE + 1]; /* Extra byte for null-termination */
 
 	struct target *target;
 	char const *packet = gdb_packet_buffer;
 	int packet_size;
 	int retval;
 	struct gdb_connection *gdb_con = connection->priv;
+	static bool warn_use_ext;
 
 	target = get_target_from_connection(connection);
 
@@ -3413,6 +3418,12 @@ static int gdb_input_inner(struct connection *connection)
 					break;
 				case '?':
 					gdb_last_signal_packet(connection, packet, packet_size);
+					/* '?' is sent after the eventual '!' */
+					if (!warn_use_ext && !gdb_con->extended_protocol) {
+						warn_use_ext = true;
+						LOG_WARNING("Prefer GDB command \"target extended-remote %s\" instead of \"target remote %s\"",
+									connection->service->port, connection->service->port);
+					}
 					break;
 				case 'c':
 				case 's':
@@ -3605,7 +3616,7 @@ static int gdb_target_start(struct target *target, const char *port)
 	ret = add_service("gdb",
 			port, 1, &gdb_new_connection, &gdb_input,
 			&gdb_connection_closed, gdb_service);
-	/* initialialize all targets gdb service with the same pointer */
+	/* initialize all targets gdb service with the same pointer */
 	{
 		struct target_list *head;
 		struct target *curr;

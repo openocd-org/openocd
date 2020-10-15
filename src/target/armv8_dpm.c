@@ -253,11 +253,11 @@ static int dpmv8_exec_opcode(struct arm_dpm *dpm,
 	/* update dscr and el after each command execution */
 	dpm->dscr = dscr;
 	if (dpm->last_el != ((dscr >> 8) & 3))
-		LOG_DEBUG("EL %i -> %i", dpm->last_el, (dscr >> 8) & 3);
+		LOG_DEBUG("EL %i -> %" PRIu32, dpm->last_el, (dscr >> 8) & 3);
 	dpm->last_el = (dscr >> 8) & 3;
 
 	if (dscr & DSCR_ERR) {
-		LOG_ERROR("Opcode 0x%08"PRIx32", DSCR.ERR=1, DSCR.EL=%i", opcode, dpm->last_el);
+		LOG_ERROR("Opcode 0x%08" PRIx32 ", DSCR.ERR=1, DSCR.EL=%i", opcode, dpm->last_el);
 		armv8_dpm_handle_exception(dpm, true);
 		retval = ERROR_FAIL;
 	}
@@ -560,7 +560,7 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 		LOG_DEBUG("restoring mode, cpsr = 0x%08"PRIx32, cpsr);
 
 	} else {
-		LOG_DEBUG("setting mode 0x%"PRIx32, mode);
+		LOG_DEBUG("setting mode 0x%x", mode);
 		cpsr = mode;
 	}
 
@@ -731,7 +731,7 @@ static int dpmv8_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 }
 
 /**
- * Read basic registers of the the current context:  R0 to R15, and CPSR;
+ * Read basic registers of the current context:  R0 to R15, and CPSR;
  * sets the core mode (such as USR or IRQ) and state (such as ARM or Thumb).
  * In normal operation this is called on entry to halting debug state,
  * possibly after some other operations supporting restore of debug state

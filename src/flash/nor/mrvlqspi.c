@@ -73,7 +73,7 @@
 #define DINCNT 0x20
 
 struct mrvlqspi_flash_bank {
-	int probed;
+	bool probed;
 	uint32_t reg_base;
 	uint32_t bank_num;
 	const struct flash_device *dev;
@@ -328,7 +328,7 @@ static int mrvlqspi_flash_busy_status(struct flash_bank *bank, int timeout)
 	uint8_t val;
 	int retval;
 
-	/* Flush read/write fifo's */
+	/* Flush read/write fifos */
 	retval = mrvlqspi_fifo_flush(bank, FIFO_FLUSH_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
@@ -379,7 +379,7 @@ static int mrvlqspi_set_write_status(struct flash_bank *bank, bool mode)
 	int retval;
 	uint32_t instr;
 
-	/* Flush read/write fifo's */
+	/* Flush read/write fifos */
 	retval = mrvlqspi_fifo_flush(bank, FIFO_FLUSH_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
@@ -417,7 +417,7 @@ static int mrvlqspi_read_id(struct flash_bank *bank, uint32_t *id)
 
 	LOG_DEBUG("Getting ID");
 
-	/* Flush read/write fifo's */
+	/* Flush read/write fifos */
 	retval = mrvlqspi_fifo_flush(bank, FIFO_FLUSH_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
@@ -527,21 +527,21 @@ static int mrvlqspi_bulk_erase(struct flash_bank *bank)
 	return mrvlqspi_flash_busy_status(bank, CHIP_ERASE_TIMEOUT);
 }
 
-static int mrvlqspi_flash_erase(struct flash_bank *bank, int first, int last)
+static int mrvlqspi_flash_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
 	struct mrvlqspi_flash_bank *mrvlqspi_info = bank->driver_priv;
 	int retval = ERROR_OK;
-	int sector;
 
-	LOG_DEBUG("erase from sector %d to sector %d", first, last);
+	LOG_DEBUG("erase from sector %u to sector %u", first, last);
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first < 0) || (last < first) || (last >= bank->num_sectors)) {
+	if ((last < first) || (last >= bank->num_sectors)) {
 		LOG_ERROR("Flash sector invalid");
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
@@ -551,9 +551,9 @@ static int mrvlqspi_flash_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	for (sector = first; sector <= last; sector++) {
+	for (unsigned int sector = first; sector <= last; sector++) {
 		if (bank->sectors[sector].is_protected) {
-			LOG_ERROR("Flash sector %d protected", sector);
+			LOG_ERROR("Flash sector %u protected", sector);
 			return ERROR_FAIL;
 		}
 	}
@@ -576,7 +576,7 @@ static int mrvlqspi_flash_erase(struct flash_bank *bank, int first, int last)
 	if (mrvlqspi_info->dev->erase_cmd == 0x00)
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 
-	for (sector = first; sector <= last; sector++) {
+	for (unsigned int sector = first; sector <= last; sector++) {
 		retval = mrvlqspi_block_erase(bank,
 				sector * mrvlqspi_info->dev->sectorsize);
 		if (retval != ERROR_OK)
@@ -597,7 +597,6 @@ static int mrvlqspi_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct reg_param reg_params[6];
 	struct armv7m_algorithm armv7m_info;
 	struct working_area *write_algorithm;
-	int sector;
 
 	LOG_DEBUG("offset=0x%08" PRIx32 " count=0x%08" PRIx32,
 		offset, count);
@@ -613,14 +612,14 @@ static int mrvlqspi_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	/* Check sector protection */
-	for (sector = 0; sector < bank->num_sectors; sector++) {
+	for (unsigned int sector = 0; sector < bank->num_sectors; sector++) {
 		/* Start offset in or before this sector? */
 		/* End offset in or behind this sector? */
 		if ((offset <
 			(bank->sectors[sector].offset + bank->sectors[sector].size))
 			&& ((offset + count - 1) >= bank->sectors[sector].offset)
 			&& bank->sectors[sector].is_protected) {
-			LOG_ERROR("Flash sector %d protected", sector);
+			LOG_ERROR("Flash sector %u protected", sector);
 			return ERROR_FAIL;
 		}
 	}
@@ -780,7 +779,7 @@ int mrvlqspi_flash_read(struct flash_bank *bank, uint8_t *buffer,
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	/* Flush read/write fifo's */
+	/* Flush read/write fifos */
 	retval = mrvlqspi_fifo_flush(bank, FIFO_FLUSH_TIMEOUT);
 	if (retval != ERROR_OK)
 		return retval;
@@ -845,7 +844,7 @@ static int mrvlqspi_probe(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	mrvlqspi_info->probed = 0;
+	mrvlqspi_info->probed = false;
 	mrvlqspi_info->bank_num = bank->bank_number;
 
 	/* Read flash JEDEC ID */
@@ -888,7 +887,7 @@ static int mrvlqspi_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	for (int sector = 0; sector < bank->num_sectors; sector++) {
+	for (unsigned int sector = 0; sector < bank->num_sectors; sector++) {
 		sectors[sector].offset = sector * sectorsize;
 		sectors[sector].size = sectorsize;
 		sectors[sector].is_erased = -1;
@@ -896,7 +895,7 @@ static int mrvlqspi_probe(struct flash_bank *bank)
 	}
 
 	bank->sectors = sectors;
-	mrvlqspi_info->probed = 1;
+	mrvlqspi_info->probed = true;
 
 	return ERROR_OK;
 }
@@ -948,7 +947,7 @@ FLASH_BANK_COMMAND_HANDLER(mrvlqspi_flash_bank_command)
 	/* Get QSPI controller register map base address */
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], mrvlqspi_info->reg_base);
 	bank->driver_priv = mrvlqspi_info;
-	mrvlqspi_info->probed = 0;
+	mrvlqspi_info->probed = false;
 
 	return ERROR_OK;
 }
