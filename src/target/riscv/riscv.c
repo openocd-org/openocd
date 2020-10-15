@@ -368,103 +368,6 @@ uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
 	return in;
 }
 
-void select_dmi_via_bscan(struct target *target)
-{
-	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
-	if (bscan_tunnel_type == BSCAN_TUNNEL_DATA_REGISTER)
-		jtag_add_dr_scan(target->tap, bscan_tunnel_data_register_select_dmi_num_fields,
-										bscan_tunnel_data_register_select_dmi, TAP_IDLE);
-	else /* BSCAN_TUNNEL_NESTED_TAP */
-		jtag_add_dr_scan(target->tap, bscan_tunnel_nested_tap_select_dmi_num_fields,
-										bscan_tunnel_nested_tap_select_dmi, TAP_IDLE);
-}
-
-uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
-{
-	/* On BSCAN TAP: Select IR=USER4, issue tunneled IR scan via BSCAN TAP's DR */
-	uint8_t tunneled_ir_width[4] = {bscan_tunnel_ir_width};
-	uint8_t tunneled_dr_width[4] = {32};
-	uint8_t out_value[5] = {0};
-	uint8_t in_value[5] = {0};
-
-	buf_set_u32(out_value, 0, 32, out);
-	struct scan_field tunneled_ir[4] = {};
-	struct scan_field tunneled_dr[4] = {};
-
-	if (bscan_tunnel_type == BSCAN_TUNNEL_DATA_REGISTER) {
-		tunneled_ir[0].num_bits = 3;
-		tunneled_ir[0].out_value = bscan_zero;
-		tunneled_ir[0].in_value = NULL;
-		tunneled_ir[1].num_bits = bscan_tunnel_ir_width;
-		tunneled_ir[1].out_value = ir_dtmcontrol;
-		tunneled_ir[1].in_value = NULL;
-		tunneled_ir[2].num_bits = 7;
-		tunneled_ir[2].out_value = tunneled_ir_width;
-		tunneled_ir[2].in_value = NULL;
-		tunneled_ir[3].num_bits = 1;
-		tunneled_ir[3].out_value = bscan_zero;
-		tunneled_ir[3].in_value = NULL;
-
-		tunneled_dr[0].num_bits = 3;
-		tunneled_dr[0].out_value = bscan_zero;
-		tunneled_dr[0].in_value = NULL;
-		tunneled_dr[1].num_bits = 32 + 1;
-		tunneled_dr[1].out_value = out_value;
-		tunneled_dr[1].in_value = in_value;
-		tunneled_dr[2].num_bits = 7;
-		tunneled_dr[2].out_value = tunneled_dr_width;
-		tunneled_dr[2].in_value = NULL;
-		tunneled_dr[3].num_bits = 1;
-		tunneled_dr[3].out_value = bscan_one;
-		tunneled_dr[3].in_value = NULL;
-	} else {
-		/* BSCAN_TUNNEL_NESTED_TAP */
-		tunneled_ir[3].num_bits = 3;
-		tunneled_ir[3].out_value = bscan_zero;
-		tunneled_ir[3].in_value = NULL;
-		tunneled_ir[2].num_bits = bscan_tunnel_ir_width;
-		tunneled_ir[2].out_value = ir_dtmcontrol;
-		tunneled_ir[1].in_value = NULL;
-		tunneled_ir[1].num_bits = 7;
-		tunneled_ir[1].out_value = tunneled_ir_width;
-		tunneled_ir[2].in_value = NULL;
-		tunneled_ir[0].num_bits = 1;
-		tunneled_ir[0].out_value = bscan_zero;
-		tunneled_ir[0].in_value = NULL;
-
-		tunneled_dr[3].num_bits = 3;
-		tunneled_dr[3].out_value = bscan_zero;
-		tunneled_dr[3].in_value = NULL;
-		tunneled_dr[2].num_bits = 32 + 1;
-		tunneled_dr[2].out_value = out_value;
-		tunneled_dr[2].in_value = in_value;
-		tunneled_dr[1].num_bits = 7;
-		tunneled_dr[1].out_value = tunneled_dr_width;
-		tunneled_dr[1].in_value = NULL;
-		tunneled_dr[0].num_bits = 1;
-		tunneled_dr[0].out_value = bscan_one;
-		tunneled_dr[0].in_value = NULL;
-	}
-	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
-	jtag_add_dr_scan(target->tap, DIM(tunneled_ir), tunneled_ir, TAP_IDLE);
-	jtag_add_dr_scan(target->tap, DIM(tunneled_dr), tunneled_dr, TAP_IDLE);
-	select_dmi_via_bscan(target);
-
-	int retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("failed jtag scan: %d", retval);
-		return retval;
-	}
-	/* Note the starting offset is bit 1, not bit 0.  In BSCAN tunnel, there is a one-bit TCK skew between
-	   output and input */
-	uint32_t in = buf_get_u32(in_value, 1, 32);
-	LOG_DEBUG("DTMCS: 0x%x -> 0x%x", out, in);
-
-	return in;
-}
-
-
-
 static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
@@ -3644,6 +3547,7 @@ int riscv_xlen_of_hart(const struct target *target, int hartid)
 	return r->xlen[hartid];
 }
 
+extern struct rtos_type riscv_rtos;
 bool riscv_rtos_enabled(const struct target *target)
 {
 	return target->rtos && target->rtos->type == &riscv_rtos;

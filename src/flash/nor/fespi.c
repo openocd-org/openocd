@@ -495,7 +495,6 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct target *target = bank->target;
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 	uint32_t cur_count, page_size;
-	int sector;
 	int retval = ERROR_OK;
 
 	LOG_DEBUG("bank->size=0x%x offset=0x%08" PRIx32 " count=0x%08" PRIx32,

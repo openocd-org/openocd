@@ -267,11 +267,6 @@ extern bool riscv_ebreakm;
 extern bool riscv_ebreaks;
 extern bool riscv_ebreaku;
 
-extern bool riscv_enable_virtual;
-extern bool riscv_ebreakm;
-extern bool riscv_ebreaks;
-extern bool riscv_ebreaku;
-
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */
 static inline riscv_info_t *riscv_info(const struct target *target) __attribute__((unused));

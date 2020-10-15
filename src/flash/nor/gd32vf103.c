@@ -341,7 +341,7 @@ static int gd32vf103_protect_check(struct flash_bank *bank)
 	struct gd32vf103_flash_bank *gd32vf103_info = bank->driver_priv;
 
 	uint32_t protection;
-	int i, s;
+	int i;
 	int num_bits;
 	int set;
 
@@ -369,7 +369,7 @@ static int gd32vf103_protect_check(struct flash_bank *bank)
 
 		/* bit 31 controls sector 62 - 255 protection for high density
 		 * bit 31 controls sector 62 - 127 protection for connectivity line */
-		for (s = 62; s < bank->num_sectors; s++)
+		for (unsigned s = 62; s < bank->num_sectors; s++)
 			bank->sectors[s].is_protected = set;
 
 		if (bank->num_sectors > 61)
@@ -381,7 +381,7 @@ static int gd32vf103_protect_check(struct flash_bank *bank)
 			if (protection & (1 << i))
 				set = 0;
 
-			for (s = 0; s < gd32vf103_info->ppage_size; s++)
+			for (int s = 0; s < gd32vf103_info->ppage_size; s++)
 				bank->sectors[(i * gd32vf103_info->ppage_size) + s].is_protected = set;
 		}
 	} else {
@@ -392,7 +392,7 @@ static int gd32vf103_protect_check(struct flash_bank *bank)
 			if (protection & (1 << i))
 				set = 0;
 
-			for (s = 0; s < gd32vf103_info->ppage_size; s++)
+			for (int s = 0; s < gd32vf103_info->ppage_size; s++)
 				bank->sectors[(i * gd32vf103_info->ppage_size) + s].is_protected = set;
 		}
 	}
@@ -400,10 +400,9 @@ static int gd32vf103_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int gd32vf103_erase(struct flash_bank *bank, int first, int last)
+static int gd32vf103_erase(struct flash_bank *bank, unsigned first, unsigned last)
 {
 	struct target *target = bank->target;
-	int i;
 	uint32_t optiondata;
 	uint32_t obstat;
 
@@ -440,7 +439,7 @@ static int gd32vf103_erase(struct flash_bank *bank, int first, int last)
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (i = first; i <= last; i++) {
+	for (unsigned i = first; i <= last; i++) {
 		retval = target_write_u32(target, gd32vf103_get_flash_reg(bank, FMC_CTL), FMC_CTL_PER);
 		if (retval != ERROR_OK)
 			return retval;
@@ -467,12 +466,12 @@ static int gd32vf103_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int gd32vf103_protect(struct flash_bank *bank, int set, int first, int last)
+static int gd32vf103_protect(struct flash_bank *bank, int set, unsigned first, unsigned last)
 {
 	struct gd32vf103_flash_bank *gd32vf103_info = NULL;
 	struct target *target = bank->target;
 	uint16_t prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
-	int i, reg, bit;
+	int reg, bit;
 	int status;
 	uint32_t protection;
 
@@ -527,7 +526,7 @@ static int gd32vf103_protect(struct flash_bank *bank, int set, int first, int la
 		if (last > 61)
 			last = 61;
 
-		for (i = first; i <= last; i++) {
+		for (unsigned i = first; i <= last; i++) {
 			reg = (i / gd32vf103_info->ppage_size) / 8;
 			bit = (i / gd32vf103_info->ppage_size) - (reg * 8);
 
@@ -538,7 +537,7 @@ static int gd32vf103_protect(struct flash_bank *bank, int set, int first, int la
 		}
 	} else {
 		/* medium density flash */
-		for (i = first; i <= last; i++) {
+		for (unsigned i = first; i <= last; i++) {
 			reg = (i / gd32vf103_info->ppage_size) / 8;
 			bit = (i / gd32vf103_info->ppage_size) - (reg * 8);
 
@@ -1255,8 +1254,6 @@ static int gd32vf103_mass_erase(struct flash_bank *bank)
 
 COMMAND_HANDLER(gd32vf103_handle_mass_erase_command)
 {
-	int i;
-
 	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -1268,7 +1265,7 @@ COMMAND_HANDLER(gd32vf103_handle_mass_erase_command)
 	retval = gd32vf103_mass_erase(bank);
 	if (retval == ERROR_OK) {
 		/* set all sectors as erased */
-		for (i = 0; i < bank->num_sectors; i++)
+		for (unsigned i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
 		command_print(CMD, "gd32vf103 mass erase complete");
