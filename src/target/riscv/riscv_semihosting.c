@@ -85,12 +85,15 @@ semihosting_result_t riscv_semihosting(struct target *target, int *retval)
 	if (result != ERROR_OK)
 		return SEMI_ERROR;
 
-	uint8_t tmp[12];
+	uint8_t tmp_buf[12];
 
-	/* Read the current instruction, including the bracketing */
-	*retval = target_read_memory(target, pc - 4, 2, 6, tmp);
-	if (*retval != ERROR_OK)
-		return SEMI_ERROR;
+	/* Read three uncompressed instructions: The previous, the current one (pointed to by PC) and the next one */
+	for (int i = 0; i < 3; i++) {
+		/* Instruction memories may not support arbitrary read size. Use any size that will work. */
+		*retval = riscv_read_by_any_size(target, (pc - 4) + 4 * i, 4, tmp_buf + 4 * i);
+		if (*retval != ERROR_OK)
+			return SEMI_ERROR;
+	}
 
 	/*
 	 * The instructions that trigger a semihosting call,
@@ -100,9 +103,9 @@ semihosting_result_t riscv_semihosting(struct target *target, int *retval)
 	 * 00100073              ebreak
 	 * 40705013              srai    zero,zero,0x7
 	 */
-	uint32_t pre = target_buffer_get_u32(target, tmp);
-	uint32_t ebreak = target_buffer_get_u32(target, tmp + 4);
-	uint32_t post = target_buffer_get_u32(target, tmp + 8);
+	uint32_t pre = target_buffer_get_u32(target, tmp_buf);
+	uint32_t ebreak = target_buffer_get_u32(target, tmp_buf + 4);
+	uint32_t post = target_buffer_get_u32(target, tmp_buf + 8);
 	LOG_DEBUG("check %08x %08x %08x from 0x%" PRIx64 "-4", pre, ebreak, post, pc);
 
 	if (pre != 0x01f01013 || ebreak != 0x00100073 || post != 0x40705013) {

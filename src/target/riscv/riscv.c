@@ -778,7 +778,7 @@ static int read_by_given_size(struct target *target, target_addr_t address,
  * Write one memory item using any memory access size that will work.
  * Utilize read-modify-write, if needed.
  * */
-static int write_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer)
+int riscv_write_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer)
 {
 	assert(size == 1 || size == 2 ||  size == 4 || size == 8);
 
@@ -810,7 +810,7 @@ static int write_by_any_size(struct target *target, target_addr_t address, uint3
  * Read one memory item using any memory access size that will work.
  * Read larger section of memory and pick out the required portion, if needed.
  * */
-static int read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer)
+int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer)
 {
 	assert(size == 1 || size == 2 ||  size == 4 || size == 8);
 
@@ -855,7 +855,7 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 		}
 
 		/* Read the original instruction. */
-		if (read_by_any_size(
+		if (riscv_read_by_any_size(
 				target, breakpoint->address, breakpoint->length, breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to read original instruction at 0x%" TARGET_PRIxADDR,
 					breakpoint->address);
@@ -865,7 +865,7 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 		uint8_t buff[4] = { 0 };
 		buf_set_u32(buff, 0, breakpoint->length * CHAR_BIT, breakpoint->length == 4 ? ebreak() : ebreak_c());
 		/* Write the ebreak instruction. */
-		if (write_by_any_size(target, breakpoint->address, breakpoint->length, buff) != ERROR_OK) {
+		if (riscv_write_by_any_size(target, breakpoint->address, breakpoint->length, buff) != ERROR_OK) {
 			LOG_ERROR("Failed to write %d-byte breakpoint instruction at 0x%"
 					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
 			return ERROR_FAIL;
@@ -937,7 +937,7 @@ int riscv_remove_breakpoint(struct target *target,
 {
 	if (breakpoint->type == BKPT_SOFT) {
 		/* Write the original instruction. */
-		if (write_by_any_size(
+		if (riscv_write_by_any_size(
 				target, breakpoint->address, breakpoint->length, breakpoint->orig_instr) != ERROR_OK) {
 			LOG_ERROR("Failed to restore instruction for %d-byte breakpoint at "
 					"0x%" TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
