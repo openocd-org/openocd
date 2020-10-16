@@ -92,7 +92,7 @@ static const uint32_t apollo_sram_size[] = {
 struct ambiqmicro_flash_bank {
 	/* chip id register */
 
-	uint32_t probed;
+	bool probed;
 
 	const char *target_name;
 	uint8_t target_class;
@@ -156,7 +156,7 @@ FLASH_BANK_COMMAND_HANDLER(ambiqmicro_flash_bank_command)
 	ambiqmicro_info->target_name = "Unknown target";
 
 	/* part wasn't probed yet */
-	ambiqmicro_info->probed = 0;
+	ambiqmicro_info->probed = false;
 
 	return ERROR_OK;
 }
@@ -167,7 +167,7 @@ static int get_ambiqmicro_info(struct flash_bank *bank, char *buf, int buf_size)
 	int printed;
 	char *classname;
 
-	if (ambiqmicro_info->probed == 0) {
+	if (!ambiqmicro_info->probed) {
 		LOG_ERROR("Target not probed");
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
@@ -212,7 +212,7 @@ static int ambiqmicro_read_part_info(struct flash_bank *bank)
 		/* Set PartNum to default device */
 		PartNum = 0;
 	}
-	LOG_DEBUG("Part number: 0x%x", PartNum);
+	LOG_DEBUG("Part number: 0x%" PRIx32, PartNum);
 
 	/*
 	 * Determine device class.
@@ -260,7 +260,7 @@ static int ambiqmicro_read_part_info(struct flash_bank *bank)
 		ambiqmicro_info->target_name =
 			ambiqmicroParts[0].partname;
 
-	LOG_DEBUG("num_pages: %d, pagesize: %d, flash: %d, sram: %d",
+	LOG_DEBUG("num_pages: %" PRIu32 ", pagesize: %" PRIu32 ", flash: %" PRIu32 ", sram: %" PRIu32,
 		ambiqmicro_info->num_pages,
 		ambiqmicro_info->pagesize,
 		ambiqmicro_info->flshsiz,
@@ -280,7 +280,7 @@ static int ambiqmicro_protect_check(struct flash_bank *bank)
 	uint32_t i;
 
 
-	if (ambiqmicro->probed == 0) {
+	if (!ambiqmicro->probed) {
 		LOG_ERROR("Target not probed");
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
@@ -304,7 +304,7 @@ static int check_flash_status(struct target *target, uint32_t address)
 	}
 	/* target flash failed, unknown cause. */
 	if (retflash != 0) {
-		LOG_ERROR("Flash not happy: status(0x%x)", retflash);
+		LOG_ERROR("Flash not happy: status(0x%" PRIx32 ")", retflash);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	return ERROR_OK;
@@ -371,7 +371,7 @@ static int ambiqmicro_mass_erase(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (ambiqmicro_info->probed == 0) {
+	if (!ambiqmicro_info->probed) {
 		LOG_ERROR("Target not probed");
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
@@ -427,18 +427,19 @@ static int ambiqmicro_mass_erase(struct flash_bank *bank)
 }
 
 
-static int ambiqmicro_erase(struct flash_bank *bank, int first, int last)
+static int ambiqmicro_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct ambiqmicro_flash_bank *ambiqmicro_info = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t retval = ERROR_OK;
+	int retval;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (ambiqmicro_info->probed == 0) {
+	if (!ambiqmicro_info->probed) {
 		LOG_ERROR("Target not probed");
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
@@ -447,14 +448,14 @@ static int ambiqmicro_erase(struct flash_bank *bank, int first, int last)
 	 * Check pages.
 	 * Fix num_pages for the device.
 	 */
-	if ((first < 0) || (last < first) || (last >= (int)ambiqmicro_info->num_pages))
+	if ((last < first) || (last >= ambiqmicro_info->num_pages))
 		return ERROR_FLASH_SECTOR_INVALID;
 
 	/*
 	 * Just Mass Erase if all pages are given.
 	 * TODO: Fix num_pages for the device
 	 */
-	if ((first == 0) && (last == ((int)ambiqmicro_info->num_pages-1)))
+	if ((first == 0) && (last == (ambiqmicro_info->num_pages - 1)))
 		return ambiqmicro_mass_erase(bank);
 
 	/*
@@ -502,7 +503,7 @@ static int ambiqmicro_erase(struct flash_bank *bank, int first, int last)
 	/*
 	 * Erase the pages.
 	 */
-	LOG_INFO("Erasing pages %d to %d on bank %d", first, last, bank->bank_number);
+	LOG_INFO("Erasing pages %u to %u on bank %u", first, last, bank->bank_number);
 
 	/*
 	 * passed pc, addr = ROM function, handle breakpoints, not debugging.
@@ -512,7 +513,7 @@ static int ambiqmicro_erase(struct flash_bank *bank, int first, int last)
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_INFO("%d pages erased!", 1+(last-first));
+	LOG_INFO("%u pages erased!", 1+(last-first));
 
 	if (first == 0) {
 		/*
@@ -527,7 +528,8 @@ static int ambiqmicro_erase(struct flash_bank *bank, int first, int last)
 	return retval;
 }
 
-static int ambiqmicro_protect(struct flash_bank *bank, int set, int first, int last)
+static int ambiqmicro_protect(struct flash_bank *bank, int set,
+		unsigned int first, unsigned int last)
 {
 	/* struct ambiqmicro_flash_bank *ambiqmicro_info = bank->driver_priv;
 	 * struct target *target = bank->target; */
@@ -613,7 +615,7 @@ static int ambiqmicro_write_block(struct flash_bank *bank,
 			break;
 		}
 
-		LOG_DEBUG("address = 0x%08x", address);
+		LOG_DEBUG("address = 0x%08" PRIx32, address);
 
 		retval = ambiqmicro_exec_command(target, FLASH_PROGRAM_MAIN_FROM_SRAM, 0x1000000c);
 		CHECK_STATUS(retval, "error executing ambiqmicro flash write algorithm");
@@ -639,7 +641,7 @@ static int ambiqmicro_write_block(struct flash_bank *bank,
 static int ambiqmicro_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
-	uint32_t retval;
+	int retval;
 
 	/* try using a block write */
 	retval = ambiqmicro_write_block(bank, buffer, offset, count);
@@ -652,12 +654,12 @@ static int ambiqmicro_write(struct flash_bank *bank, const uint8_t *buffer,
 static int ambiqmicro_probe(struct flash_bank *bank)
 {
 	struct ambiqmicro_flash_bank *ambiqmicro_info = bank->driver_priv;
-	uint32_t retval;
+	int retval;
 
 	/* If this is a ambiqmicro chip, it has flash; probe() is just
 	 * to figure out how much is present.  Only do it once.
 	 */
-	if (ambiqmicro_info->probed == 1) {
+	if (ambiqmicro_info->probed) {
 		LOG_INFO("Target already probed");
 		return ERROR_OK;
 	}
@@ -670,16 +672,13 @@ static int ambiqmicro_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-	}
+	free(bank->sectors);
 
 	/* provide this for the benefit of the NOR flash framework */
 	bank->size = ambiqmicro_info->pagesize * ambiqmicro_info->num_pages;
 	bank->num_sectors = ambiqmicro_info->num_pages;
 	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
-	for (int i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		bank->sectors[i].offset = i * ambiqmicro_info->pagesize;
 		bank->sectors[i].size = ambiqmicro_info->pagesize;
 		bank->sectors[i].is_erased = -1;
@@ -689,7 +688,7 @@ static int ambiqmicro_probe(struct flash_bank *bank)
 	/*
 	 * Part has been probed.
 	 */
-	ambiqmicro_info->probed = 1;
+	ambiqmicro_info->probed = true;
 
 	return retval;
 }
@@ -699,7 +698,7 @@ static int ambiqmicro_otp_program(struct flash_bank *bank,
 {
 	struct target *target = NULL;
 	struct ambiqmicro_flash_bank *ambiqmicro_info = NULL;
-	uint32_t retval = ERROR_OK;
+	int retval;
 
 	ambiqmicro_info = bank->driver_priv;
 	target = bank->target;
@@ -709,7 +708,7 @@ static int ambiqmicro_otp_program(struct flash_bank *bank,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (ambiqmicro_info->probed == 0) {
+	if (!ambiqmicro_info->probed) {
 		LOG_ERROR("Target not probed");
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
@@ -758,7 +757,7 @@ static int ambiqmicro_otp_program(struct flash_bank *bank,
 	/*
 	 * Program OTP.
 	 */
-	LOG_INFO("Programming OTP offset 0x%08x", offset);
+	LOG_INFO("Programming OTP offset 0x%08" PRIx32, offset);
 
 	/*
 	 * passed pc, addr = ROM function, handle breakpoints, not debugging.
@@ -775,19 +774,17 @@ static int ambiqmicro_otp_program(struct flash_bank *bank,
 
 COMMAND_HANDLER(ambiqmicro_handle_mass_erase_command)
 {
-	int i;
-
 	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
-	uint32_t retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (ERROR_OK != retval)
 		return retval;
 
 	if (ambiqmicro_mass_erase(bank) == ERROR_OK) {
 		/* set all sectors as erased */
-		for (i = 0; i < bank->num_sectors; i++)
+		for (unsigned int i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
 		command_print(CMD, "ambiqmicro mass erase complete");
@@ -801,7 +798,7 @@ COMMAND_HANDLER(ambiqmicro_handle_page_erase_command)
 {
 	struct flash_bank *bank;
 	uint32_t first, last;
-	uint32_t retval;
+	int retval;
 
 	if (CMD_ARGC < 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -829,7 +826,7 @@ COMMAND_HANDLER(ambiqmicro_handle_program_otp_command)
 {
 	struct flash_bank *bank;
 	uint32_t offset, count;
-	uint32_t retval;
+	int retval;
 
 	if (CMD_ARGC < 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -837,7 +834,7 @@ COMMAND_HANDLER(ambiqmicro_handle_program_otp_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], offset);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], count);
 
-	command_print(CMD, "offset=0x%08x count=%d", offset, count);
+	command_print(CMD, "offset=0x%08" PRIx32 " count=%" PRIu32, offset, count);
 
 	CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 

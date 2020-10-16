@@ -322,7 +322,7 @@ enum watchpoint_condition {
 #define INSTR_JUMP      0x0AF080
 /* Effective Addressing Mode Encoding */
 #define EAME_R0         0x10
-/* instrcution encoder */
+/* instruction encoder */
 /* movep
  * s - peripheral space X/Y (X=0,Y=1)
  * w - write/read
@@ -937,7 +937,7 @@ static int dsp563xx_examine(struct target *target)
 		if (((chip>>5)&0x1f) == 0)
 			chip += 300;
 
-		LOG_INFO("DSP56%03" PRId32 " device found", chip);
+		LOG_INFO("DSP56%03" PRIu32 " device found", chip);
 
 		/* Clear all breakpoints */
 		dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OBCR, 0);
@@ -1359,7 +1359,7 @@ static int dsp563xx_deassert_reset(struct target *target)
 		if (target->state == TARGET_HALTED) {
 			/* after a reset the cpu jmp to the
 			 * reset vector and need 2 cycles to fill
-			 * the cache (fetch,decode,excecute)
+			 * the cache (fetch,decode,execute)
 			 */
 			err = dsp563xx_step_ex(target, 1, 0, 1, 1);
 			if (err != ERROR_OK)

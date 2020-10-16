@@ -62,7 +62,7 @@
 #define KEY		0x8AAA5551
 
 struct mdr_flash_bank {
-	int probed;
+	bool probed;
 	unsigned int mem_type;
 	unsigned int page_count;
 	unsigned int sec_count;
@@ -79,7 +79,7 @@ FLASH_BANK_COMMAND_HANDLER(mdr_flash_bank_command)
 	mdr_info = malloc(sizeof(struct mdr_flash_bank));
 
 	bank->driver_priv = mdr_info;
-	mdr_info->probed = 0;
+	mdr_info->probed = false;
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[6], mdr_info->mem_type);
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[7], mdr_info->page_count);
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[8], mdr_info->sec_count);
@@ -124,11 +124,12 @@ static int mdr_mass_erase(struct flash_bank *bank)
 	return retval;
 }
 
-static int mdr_erase(struct flash_bank *bank, int first, int last)
+static int mdr_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
 	struct mdr_flash_bank *mdr_info = bank->driver_priv;
-	int i, retval, retval2;
+	int retval, retval2;
 	unsigned int j;
 	uint32_t flash_cmd, cur_per_clock;
 
@@ -173,7 +174,7 @@ static int mdr_erase(struct flash_bank *bank, int first, int last)
 	}
 
 	unsigned int page_size = bank->size / mdr_info->page_count;
-	for (i = first; i <= last; i++) {
+	for (unsigned int i = first; i <= last; i++) {
 		for (j = 0; j < mdr_info->sec_count; j++) {
 			retval = target_write_u32(target, FLASH_ADR, (i * page_size) | (j << 2));
 			if (retval != ERROR_OK)
@@ -457,8 +458,7 @@ reset_pg_and_lock:
 		retval = retval2;
 
 free_buffer:
-	if (new_buffer)
-		free(new_buffer);
+	free(new_buffer);
 
 	/* read some bytes bytes to flush buffer in flash accelerator.
 	 * See errata for 1986VE1T and 1986VE3. Error 0007 */
@@ -572,10 +572,7 @@ static int mdr_probe(struct flash_bank *bank)
 	page_count = mdr_info->page_count;
 	page_size = bank->size / page_count;
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-	}
+	free(bank->sectors);
 
 	bank->num_sectors = page_count;
 	bank->sectors = malloc(sizeof(struct flash_sector) * page_count);
@@ -587,7 +584,7 @@ static int mdr_probe(struct flash_bank *bank)
 		bank->sectors[i].is_protected = 0;
 	}
 
-	mdr_info->probed = 1;
+	mdr_info->probed = true;
 
 	return ERROR_OK;
 }

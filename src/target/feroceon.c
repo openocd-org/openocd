@@ -37,7 +37,7 @@
  * - asserting DBGRQ doesn't work if target is looping on the undef vector
  *
  * - the EICE version signature in the COMMS_CTL reg is next to the flow bits
- *   not at the top, and rather meaningless due to existing discrepencies
+ *   not at the top, and rather meaningless due to existing discrepancies
  *
  * - the DCC channel is half duplex (only one FIFO for both directions) with
  *   seemingly no proper flow control.
@@ -593,6 +593,11 @@ static int feroceon_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+static void feroceon_deinit_target(struct target *target)
+{
+	arm9tdmi_deinit_target(target);
+}
+
 static void feroceon_common_setup(struct target *target)
 {
 	struct arm *arm = target->arch_info;
@@ -729,6 +734,7 @@ struct target_type feroceon_target = {
 	.commands = arm926ejs_command_handlers,
 	.target_create = feroceon_target_create,
 	.init_target = feroceon_init_target,
+	.deinit_target = feroceon_deinit_target,
 	.examine = feroceon_examine,
 };
 

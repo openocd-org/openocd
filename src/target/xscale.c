@@ -824,7 +824,7 @@ static int xscale_poll(struct target *target)
 			retval = xscale_debug_entry(target);
 		} else if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 			LOG_USER("error while polling TX register, reset CPU");
-			/* here we "lie" so GDB won't get stuck and a reset can be perfomed */
+			/* here we "lie" so GDB won't get stuck and a reset can be performed */
 			target->state = TARGET_HALTED;
 		}
 
@@ -955,7 +955,7 @@ static int xscale_debug_entry(struct target *target)
 			xscale->arch_debug_reason = XSCALE_DBG_REASON_GENERIC;
 			pc -= 4;
 			break;
-		case 0x5:	/* Vector trap occured */
+		case 0x5:	/* Vector trap occurred */
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			xscale->arch_debug_reason = XSCALE_DBG_REASON_GENERIC;
 			pc -= 4;
@@ -1110,8 +1110,7 @@ static void xscale_free_trace_data(struct xscale_common *xscale)
 	struct xscale_trace_data *td = xscale->trace.data;
 	while (td) {
 		struct xscale_trace_data *next_td = td->next;
-		if (td->entries)
-			free(td->entries);
+		free(td->entries);
 		free(td);
 		td = next_td;
 	}
@@ -2412,7 +2411,7 @@ static int xscale_get_reg(struct reg *reg)
 	} else if (strcmp(reg->name, "XSCALE_TXRXCTRL") == 0) {
 		/* can't (explicitly) read from TXRXCTRL register */
 		return ERROR_OK;
-	} else {/* Other DBG registers have to be transfered by the debug handler
+	} else {/* Other DBG registers have to be transferred by the debug handler
 		 * send CP read request (command 0x40) */
 		xscale_send_u32(target, 0x40);
 
@@ -2450,7 +2449,7 @@ static int xscale_set_reg(struct reg *reg, uint8_t *buf)
 	} else if (strcmp(reg->name, "XSCALE_TXRXCTRL") == 0) {
 		/* can't (explicitly) write to TXRXCTRL register */
 		return ERROR_OK;
-	} else {/* Other DBG registers have to be transfered by the debug handler
+	} else {/* Other DBG registers have to be transferred by the debug handler
 		 * send CP write request (command 0x41) */
 		xscale_send_u32(target, 0x41);
 
@@ -2809,7 +2808,7 @@ static int xscale_analyze_trace(struct target *target, struct command_invocation
 						current_pc = chkpt_reg;
 					else if (current_pc != chkpt_reg)	/* sanity check */
 						LOG_WARNING("trace is suspect: checkpoint register "
-							"inconsistent with adddress from image");
+							"inconsistent with address from image");
 				}
 
 				if (current_pc == 0)
@@ -2903,11 +2902,34 @@ static void xscale_build_reg_cache(struct target *target)
 	xscale->reg_cache = (*cache_p);
 }
 
+static void xscale_free_reg_cache(struct target *target)
+{
+	struct xscale_common *xscale = target_to_xscale(target);
+	struct reg_cache *cache = xscale->reg_cache;
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(xscale_reg_arch_info); i++)
+		free(cache->reg_list[i].value);
+
+	free(cache->reg_list[0].arch_info);
+	free(cache->reg_list);
+	free(cache);
+
+	arm_free_reg_cache(&xscale->arm);
+}
+
 static int xscale_init_target(struct command_context *cmd_ctx,
 	struct target *target)
 {
 	xscale_build_reg_cache(target);
 	return ERROR_OK;
+}
+
+static void xscale_deinit_target(struct target *target)
+{
+	struct xscale_common *xscale = target_to_xscale(target);
+
+	xscale_free_reg_cache(target);
+	free(xscale);
 }
 
 static int xscale_init_arch_info(struct target *target,
@@ -2919,7 +2941,7 @@ static int xscale_init_arch_info(struct target *target,
 
 	arm = &xscale->arm;
 
-	/* store architecture specfic data */
+	/* store architecture specific data */
 	xscale->common_magic = XSCALE_COMMON_MAGIC;
 
 	/* PXA3xx with 11 bit IR shifts the JTAG instructions */
@@ -3725,6 +3747,7 @@ struct target_type xscale_target = {
 	.commands = xscale_command_handlers,
 	.target_create = xscale_target_create,
 	.init_target = xscale_init_target,
+	.deinit_target = xscale_deinit_target,
 
 	.virt2phys = xscale_virt2phys,
 	.mmu = xscale_mmu

@@ -70,17 +70,17 @@
 static int max32xxx_mass_erase(struct flash_bank *bank);
 
 struct max32xxx_flash_bank {
-	int probed;
+	bool probed;
 	int max326xx;
 	unsigned int flash_size;
 	unsigned int flc_base;
 	unsigned int sector_size;
 	unsigned int clkdiv_value;
-	unsigned int int_state;
+	uint32_t int_state;
 	unsigned int burst_size_bits;
 };
 
-/* see contib/loaders/flash/max32xxx/max32xxx.s for src */
+/* see contrib/loaders/flash/max32xxx/max32xxx.s for src */
 static const uint8_t write_code[] = {
 #include "../../contrib/loaders/flash/max32xxx/max32xxx.inc"
 };
@@ -98,13 +98,13 @@ FLASH_BANK_COMMAND_HANDLER(max32xxx_flash_bank_command)
 	}
 
 	info = calloc(sizeof(struct max32xxx_flash_bank), 1);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], info->flash_size);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], info->flc_base);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[7], info->sector_size);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[8], info->clkdiv_value);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], info->flash_size);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[6], info->flc_base);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[7], info->sector_size);
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[8], info->clkdiv_value);
 
 	if (CMD_ARGC > 9)
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[9], info->burst_size_bits);
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[9], info->burst_size_bits);
 	else
 		info->burst_size_bits = 32;
 
@@ -118,7 +118,7 @@ static int get_info(struct flash_bank *bank, char *buf, int buf_size)
 	int printed;
 	struct max32xxx_flash_bank *info = bank->driver_priv;
 
-	if (info->probed == 0)
+	if (!info->probed)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	printed = snprintf(buf, buf_size, "\nMaxim Integrated max32xxx flash driver\n");
@@ -209,21 +209,20 @@ static int max32xxx_protect_check(struct flash_bank *bank)
 {
 	struct max32xxx_flash_bank *info = bank->driver_priv;
 	struct target *target = bank->target;
-	int i;
 	uint32_t temp_reg;
 
-	if (info->probed == 0)
+	if (!info->probed)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	if (!info->max326xx) {
-		for (i = 0; i < bank->num_sectors; i++)
+		for (unsigned i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_protected = -1;
 
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
 	/* Check the protection */
-	for (i = 0; i < bank->num_sectors; i++) {
+	for (unsigned i = 0; i < bank->num_sectors; i++) {
 		if (i%32 == 0)
 			target_read_u32(target, info->flc_base + FLSH_PROT + ((i/32)*4), &temp_reg);
 
@@ -235,9 +234,9 @@ static int max32xxx_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int max32xxx_erase(struct flash_bank *bank, int first, int last)
+static int max32xxx_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
-	int banknr;
 	uint32_t flsh_cn, flsh_int;
 	struct max32xxx_flash_bank *info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -249,10 +248,10 @@ static int max32xxx_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (info->probed == 0)
+	if (!info->probed)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
-	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
+	if ((last < first) || (last >= bank->num_sectors))
 		return ERROR_FLASH_SECTOR_INVALID;
 
 	if ((first == 0) && (last == (bank->num_sectors - 1)))
@@ -265,11 +264,11 @@ static int max32xxx_erase(struct flash_bank *bank, int first, int last)
 		return retval;
 
 	int erased = 0;
-	for (banknr = first; banknr <= last; banknr++) {
+	for (unsigned int banknr = first; banknr <= last; banknr++) {
 
 		/* Check the protection */
 		if (bank->sectors[banknr].is_protected == 1) {
-			LOG_WARNING("Flash sector %d is protected", banknr);
+			LOG_WARNING("Flash sector %u is protected", banknr);
 			continue;
 		} else
 			erased = 1;
@@ -311,7 +310,7 @@ static int max32xxx_erase(struct flash_bank *bank, int first, int last)
 	}
 
 	if (!erased) {
-		LOG_ERROR("All pages protected %d to %d", first, last);
+		LOG_ERROR("All pages protected %u to %u", first, last);
 		max32xxx_flash_op_post(bank);
 		return ERROR_FAIL;
 	}
@@ -322,11 +321,11 @@ static int max32xxx_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int max32xxx_protect(struct flash_bank *bank, int set, int first, int last)
+static int max32xxx_protect(struct flash_bank *bank, int set,
+		unsigned int first, unsigned int last)
 {
 	struct max32xxx_flash_bank *info = bank->driver_priv;
 	struct target *target = bank->target;
-	int page;
 	uint32_t temp_reg;
 
 	if (bank->target->state != TARGET_HALTED) {
@@ -334,17 +333,17 @@ static int max32xxx_protect(struct flash_bank *bank, int set, int first, int las
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (info->probed == 0)
+	if (!info->probed)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	if (!info->max326xx)
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 
-	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
+	if ((last < first) || (last >= bank->num_sectors))
 		return ERROR_FLASH_SECTOR_INVALID;
 
 	/* Setup the protection on the pages given */
-	for (page = first; page <= last; page++) {
+	for (unsigned int page = first; page <= last; page++) {
 		if (set) {
 			/* Set the write/erase bit for this page */
 			target_read_u32(target, info->flc_base + FLSH_PROT + (page/32), &temp_reg);
@@ -460,7 +459,7 @@ static int max32xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 	LOG_DEBUG("bank=%p buffer=%p offset=%08" PRIx32 " count=%08" PRIx32 "",
 		bank, buffer, offset, count);
 
-	if (info->probed == 0)
+	if (!info->probed)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	if (offset & 0x3) {
@@ -523,7 +522,7 @@ static int max32xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 			} while ((--retry > 0) && (flsh_cn & FLSH_CN_PEND));
 
 			if (retry <= 0) {
-				LOG_ERROR("Timed out waiting for flash write @ 0x%08x", address);
+				LOG_ERROR("Timed out waiting for flash write @ 0x%08" PRIx32, address);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 
@@ -544,7 +543,7 @@ static int max32xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 
 		while (remaining >= 16) {
 			if ((address & 0xFFF) == 0)
-				LOG_DEBUG("Writing @ 0x%08x", address);
+				LOG_DEBUG("Writing @ 0x%08" PRIx32, address);
 
 			target_write_buffer(target, info->flc_base + FLSH_DATA0, 16, buffer);
 			flsh_cn |= 0x00000001;
@@ -557,7 +556,7 @@ static int max32xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 			} while ((--retry > 0) && (flsh_cn & FLSH_CN_PEND));
 
 			if (retry <= 0) {
-				LOG_ERROR("Timed out waiting for flash write @ 0x%08x", address);
+				LOG_ERROR("Timed out waiting for flash write @ 0x%08" PRIx32, address);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 
@@ -588,7 +587,7 @@ static int max32xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 			} while ((--retry > 0) && (flsh_cn & FLSH_CN_PEND));
 
 			if (retry <= 0) {
-				LOG_ERROR("Timed out waiting for flash write @ 0x%08x", address);
+				LOG_ERROR("Timed out waiting for flash write @ 0x%08" PRIx32, address);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 
@@ -626,7 +625,7 @@ static int max32xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 		} while ((--retry > 0) && (flsh_cn & FLSH_CN_PEND));
 
 		if (retry <= 0) {
-			LOG_ERROR("Timed out waiting for flash write @ 0x%08x", address);
+			LOG_ERROR("Timed out waiting for flash write @ 0x%08" PRIx32, address);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -634,7 +633,7 @@ static int max32xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 	/* Check access violations */
 	target_read_u32(target, info->flc_base + FLSH_INT, &flsh_int);
 	if (flsh_int & FLSH_INT_AF) {
-		LOG_ERROR("Flash Error writing 0x%x bytes at 0x%08x", count, offset);
+		LOG_ERROR("Flash Error writing 0x%" PRIx32 " bytes at 0x%08" PRIx32, count, offset);
 		max32xxx_flash_op_post(bank);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -652,17 +651,14 @@ static int max32xxx_probe(struct flash_bank *bank)
 	uint32_t arm_id[2];
 	uint16_t arm_pid;
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-	}
+	free(bank->sectors);
 
 	/* provide this for the benefit of the NOR flash framework */
 	bank->size = info->flash_size;
 	bank->num_sectors = info->flash_size / info->sector_size;
 	bank->sectors = calloc(bank->num_sectors, sizeof(struct flash_sector));
 
-	for (int i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		bank->sectors[i].offset = i * info->sector_size;
 		bank->sectors[i].size = info->sector_size;
 		bank->sectors[i].is_erased = -1;
@@ -679,7 +675,7 @@ static int max32xxx_probe(struct flash_bank *bank)
 	if ((arm_pid == ARM_PID_DEFAULT_CM3) || arm_pid == ARM_PID_DEFAULT_CM4) {
 		uint32_t max326xx_id;
 		target_read_u32(target, MAX326XX_ID_REG, &max326xx_id);
-		LOG_DEBUG("max326xx_id = 0x%x", max326xx_id);
+		LOG_DEBUG("max326xx_id = 0x%" PRIx32, max326xx_id);
 		max326xx_id = ((max326xx_id & 0xFF000000) >> 24);
 		if (max326xx_id == MAX326XX_ID)
 			info->max326xx = 1;
@@ -690,7 +686,7 @@ static int max32xxx_probe(struct flash_bank *bank)
 	if (max32xxx_protect_check(bank) == ERROR_FLASH_OPER_UNSUPPORTED)
 		LOG_WARNING("Flash protection not supported on this device");
 
-	info->probed = 1;
+	info->probed = true;
 	return ERROR_OK;
 }
 
@@ -709,13 +705,13 @@ static int max32xxx_mass_erase(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (info->probed == 0)
+	if (!info->probed)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	int not_protected = 0;
-	for (int i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		if (bank->sectors[i].is_protected == 1)
-			LOG_WARNING("Flash sector %d is protected", i);
+			LOG_WARNING("Flash sector %u is protected", i);
 		else
 			not_protected = 1;
 	}
@@ -767,7 +763,6 @@ static int max32xxx_mass_erase(struct flash_bank *bank)
 
 COMMAND_HANDLER(max32xxx_handle_mass_erase_command)
 {
-	int i;
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 
@@ -781,7 +776,7 @@ COMMAND_HANDLER(max32xxx_handle_mass_erase_command)
 
 	if (max32xxx_mass_erase(bank) == ERROR_OK) {
 		/* set all sectors as erased */
-		for (i = 0; i < bank->num_sectors; i++)
+		for (unsigned i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
 		command_print(CMD, "max32xxx mass erase complete");
@@ -908,7 +903,6 @@ COMMAND_HANDLER(max32xxx_handle_protection_check_command)
 	struct flash_bank *bank;
 	int retval;
 	struct max32xxx_flash_bank *info;
-	int i;
 
 	if (CMD_ARGC < 1) {
 		command_print(CMD, "max32xxx protection_check <bank>");
@@ -928,7 +922,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_check_command)
 	}
 
 	LOG_WARNING("s:<sector number> a:<address> p:<protection bit>");
-	for (i = 0; i < bank->num_sectors; i += 4) {
+	for (unsigned i = 0; i < bank->num_sectors; i += 4) {
 		LOG_WARNING("s:%03d a:0x%06x p:%d | s:%03d a:0x%06x p:%d | s:%03d a:0x%06x p:%d | s:%03d a:0x%06x p:%d",
 		(i+0), (i+0)*info->sector_size, bank->sectors[(i+0)].is_protected,
 		(i+1), (i+1)*info->sector_size, bank->sectors[(i+1)].is_protected,

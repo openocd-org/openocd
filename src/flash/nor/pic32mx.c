@@ -95,7 +95,7 @@
 #define MX_17x_27x			2	/* PIC32mx17x/27x */
 
 struct pic32mx_flash_bank {
-	int probed;
+	bool probed;
 	int dev_type;		/* Default 0. 1 for Pic32MX1XX/2XX variant */
 };
 
@@ -211,7 +211,7 @@ FLASH_BANK_COMMAND_HANDLER(pic32mx_flash_bank_command)
 	pic32mx_info = malloc(sizeof(struct pic32mx_flash_bank));
 	bank->driver_priv = pic32mx_info;
 
-	pic32mx_info->probed = 0;
+	pic32mx_info->probed = false;
 	pic32mx_info->dev_type = 0;
 
 	return ERROR_OK;
@@ -271,8 +271,7 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 
 	uint32_t config0_address;
 	uint32_t devcfg0;
-	int s;
-	int num_pages;
+	unsigned int s, num_pages;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -321,10 +320,10 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int pic32mx_erase(struct flash_bank *bank, int first, int last)
+static int pic32mx_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
-	int i;
 	uint32_t status;
 
 	if (bank->target->state != TARGET_HALTED) {
@@ -345,7 +344,7 @@ static int pic32mx_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_OK;
 	}
 
-	for (i = first; i <= last; i++) {
+	for (unsigned int i = first; i <= last; i++) {
 		target_write_u32(target, PIC32MX_NVMADDR, Virt2Phys(bank->base + bank->sectors[i].offset));
 
 		status = pic32mx_nvm_exec(bank, NVMCON_OP_PAGE_ERASE, 10);
@@ -360,7 +359,8 @@ static int pic32mx_erase(struct flash_bank *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int pic32mx_protect(struct flash_bank *bank, int set, int first, int last)
+static int pic32mx_protect(struct flash_bank *bank, int set, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
 
@@ -372,7 +372,7 @@ static int pic32mx_protect(struct flash_bank *bank, int set, int first, int last
 	return ERROR_OK;
 }
 
-/* see contib/loaders/flash/pic32mx.s for src */
+/* see contrib/loaders/flash/pic32mx.s for src */
 
 static uint32_t pic32mx_flash_write_code[] = {
 					/* write: */
@@ -591,8 +591,7 @@ static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 
-	if (new_buffer != NULL)
-		free(new_buffer);
+	free(new_buffer);
 	return retval;
 }
 
@@ -700,7 +699,7 @@ static int pic32mx_probe(struct flash_bank *bank)
 	uint32_t device_id;
 	int page_size;
 
-	pic32mx_info->probed = 0;
+	pic32mx_info->probed = false;
 
 	device_id = ejtag_info->idcode;
 	LOG_INFO("device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%04x, ver 0x%02x)",
@@ -772,12 +771,9 @@ static int pic32mx_probe(struct flash_bank *bank)
 		}
 	}
 
-	LOG_INFO("flash size = %" PRId32 "kbytes", num_pages / 1024);
+	LOG_INFO("flash size = %" PRIu32 "kbytes", num_pages / 1024);
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-	}
+	free(bank->sectors);
 
 	/* calculate numbers of pages */
 	num_pages /= page_size;
@@ -792,7 +788,7 @@ static int pic32mx_probe(struct flash_bank *bank)
 		bank->sectors[i].is_protected = 1;
 	}
 
-	pic32mx_info->probed = 1;
+	pic32mx_info->probed = true;
 
 	return ERROR_OK;
 }
@@ -817,7 +813,7 @@ static int pic32mx_info(struct flash_bank *bank, char *buf, int buf_size)
 
 	if (((device_id >> 1) & 0x7ff) != PIC32MX_MANUF_ID) {
 		snprintf(buf, buf_size,
-				 "Cannot identify target as a PIC32MX family (manufacturer 0x%03d != 0x%03d)\n",
+				 "Cannot identify target as a PIC32MX family (manufacturer 0x%03x != 0x%03x)\n",
 				 (unsigned)((device_id >> 1) & 0x7ff),
 				 PIC32MX_MANUF_ID);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -920,7 +916,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 		mchip_cmd = MCHP_STATUS;
 		mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
 		if (timeout-- == 0) {
-			LOG_DEBUG("timeout waiting for unlock: 0x%" PRIx32 "", mchip_cmd);
+			LOG_DEBUG("timeout waiting for unlock: 0x%" PRIx8 "", mchip_cmd);
 			break;
 		}
 		alive_sleep(1);

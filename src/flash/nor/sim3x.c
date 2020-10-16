@@ -250,7 +250,7 @@ static int sim3x_erase_page(struct flash_bank *bank, uint32_t addr)
 			if (ret != ERROR_OK)
 				return ret;
 
-			/* Write the inital unlock value to KEY */
+			/* Write the initial unlock value to KEY */
 			ret = target_write_u32(target, FLASHCTRL0_KEY,
 			FLASHCTRL0_KEY_INITIAL_UNLOCK);
 			if (ret != ERROR_OK)
@@ -277,9 +277,10 @@ static int sim3x_erase_page(struct flash_bank *bank, uint32_t addr)
 	return ERROR_FAIL;
 }
 
-static int sim3x_flash_erase(struct flash_bank *bank, int first, int last)
+static int sim3x_flash_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
-	int ret, i;
+	int ret;
 	uint32_t temp;
 	struct sim3x_info *sim3x_info;
 	struct target *target;
@@ -302,7 +303,7 @@ static int sim3x_flash_erase(struct flash_bank *bank, int first, int last)
 	}
 
 	/* erase pages */
-	for (i = first; i <= last; i++) {
+	for (unsigned int i = first; i <= last; i++) {
 		ret = sim3x_erase_page(bank, bank->sectors[i].offset);
 		if (ret != ERROR_OK)
 			return ret;
@@ -311,7 +312,7 @@ static int sim3x_flash_erase(struct flash_bank *bank, int first, int last)
 	target = bank->target;
 
 	/* Wait until busy */
-	for (i = 0; i < FLASH_BUSY_TIMEOUT; i++) {
+	for (unsigned int i = 0; i < FLASH_BUSY_TIMEOUT; i++) {
 		ret = target_read_u32(target, FLASHCTRL0_CONFIG_ALL, &temp);
 		if (ret != ERROR_OK)
 			return ret;
@@ -489,7 +490,7 @@ static int sim3x_flash_write(struct flash_bank *bank, const uint8_t *buffer, uin
 	sim3x_info = bank->driver_priv;
 
 	if (sim3x_info->flash_locked) {
-		LOG_ERROR("Falsh is locked");
+		LOG_ERROR("Flash is locked");
 		return ERROR_FAIL;
 	}
 
@@ -547,7 +548,7 @@ static int sim3x_flash_lock_check(struct flash_bank *bank)
 
 static int sim3x_flash_protect_check(struct flash_bank *bank)
 {
-	int ret, i;
+	int ret;
 	struct sim3x_info *sim3x_info;
 
 	/* Check if target is halted */
@@ -562,13 +563,14 @@ static int sim3x_flash_protect_check(struct flash_bank *bank)
 
 	sim3x_info = bank->driver_priv;
 
-	for (i = 0; i < bank->num_sectors; i++)
+	for (unsigned int i = 0; i < bank->num_sectors; i++)
 		bank->sectors[i].is_protected = sim3x_info->flash_locked;
 
 	return ERROR_OK;
 }
 
-static int sim3x_flash_protect(struct flash_bank *bank, int set, int first, int last)
+static int sim3x_flash_protect(struct flash_bank *bank, int set,
+		unsigned int first, unsigned int last)
 {
 	int ret;
 	uint8_t lock_word[4];
@@ -799,10 +801,7 @@ static int sim3x_probe(struct flash_bank *bank)
 	if (ret != ERROR_OK)
 		return ret;
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-	}
+	free(bank->sectors);
 
 	bank->base = FLASH_BASE_ADDRESS;
 	bank->size = sim3x_info->flash_size_kb * SIM3X_FLASH_PAGE_SIZE;
@@ -1030,7 +1029,7 @@ COMMAND_HANDLER(sim3x_lock)
 		ret = target_read_u32(target, CPUID, &val);
 		/* if correct value is read, then it will continue */
 		if (ret != ERROR_OK || (val & CPUID_CHECK_VALUE_MASK) != CPUID_CHECK_VALUE) {
-			/* if correct value is'n read, then it will check SIM3X_AP_INIT_STAT register */
+			/* if correct value isn't read, then it will check SIM3X_AP_INIT_STAT register */
 			ret = ap_read_register(dap, SIM3X_AP_INIT_STAT, &val);
 			if (ret != ERROR_OK)
 				return ret;

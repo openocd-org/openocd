@@ -3405,6 +3405,12 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
+	if (riscv_xlen(target) < size * 8) {
+		LOG_ERROR("XLEN (%d) is too short for %d-bit memory read.",
+				riscv_xlen(target), size * 8);
+		return ERROR_FAIL;
+	}
+
 	int result = ERROR_OK;
 
 	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
@@ -3752,6 +3758,12 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	RISCV013_INFO(info);
+
+	if (riscv_xlen(target) < size * 8) {
+		LOG_ERROR("XLEN (%d) is too short for %d-bit memory write.",
+				riscv_xlen(target), size * 8);
+		return ERROR_FAIL;
+	}
 
 	LOG_DEBUG("writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
 
@@ -5072,10 +5084,10 @@ int riscv013_test_compliance(struct target *target)
 		COMPLIANCE_TEST(ERROR_OK == register_read_direct(target, &testval_read, GDB_REGNO_ZERO + i),
 				"GPR Reads should be supported.");
 		if (riscv_xlen(target) > 32) {
-			/* Dummy comment to satisfy linter, since removing the brances here doesn't actually compile. */
+			/* Dummy comment to satisfy linter, since removing the branches here doesn't actually compile. */
 			COMPLIANCE_TEST(testval == testval_read, "GPR Reads and writes should be supported.");
 		} else {
-			/* Dummy comment to satisfy linter, since removing the brances here doesn't actually compile. */
+			/* Dummy comment to satisfy linter, since removing the branches here doesn't actually compile. */
 			COMPLIANCE_TEST((testval & 0xFFFFFFFF) == testval_read, "GPR Reads and writes should be supported.");
 		}
 	}

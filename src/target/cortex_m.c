@@ -113,7 +113,7 @@ static int cortexm_dap_write_coreregister_u32(struct target *target,
 		return retval;
 
 	if (target->dbg_msg_enabled) {
-		/* restore DCB_DCRDR - this needs to be in a seperate
+		/* restore DCB_DCRDR - this needs to be in a separate
 		 * transaction otherwise the emulated DCC channel breaks */
 		if (retval == ERROR_OK)
 			retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DCRDR, dcrdr);
@@ -445,6 +445,14 @@ static int cortex_m_examine_exception_reason(struct target *target)
 			if (retval != ERROR_OK)
 				return retval;
 			break;
+		case 7:	/* Secure Fault */
+			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_SFSR, &except_sr);
+			if (retval != ERROR_OK)
+				return retval;
+			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_SFAR, &except_ar);
+			if (retval != ERROR_OK)
+				return retval;
+			break;
 		case 11:	/* SVCall */
 			break;
 		case 12:	/* Debug Monitor */
@@ -494,6 +502,18 @@ static int cortex_m_debug_entry(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* examine PE security state */
+	bool secure_state = false;
+	if (armv7m->arm.is_armv8m) {
+		uint32_t dscsr;
+
+		retval = mem_ap_read_u32(armv7m->debug_ap, DCB_DSCSR, &dscsr);
+		if (retval != ERROR_OK)
+			return retval;
+
+		secure_state = (dscsr & DSCSR_CDS) == DSCSR_CDS;
+	}
+
 	/* Examine target state and mode
 	 * First load register accessible through core debug port */
 	int num_regs = arm->core_cache->num_regs;
@@ -540,9 +560,10 @@ static int cortex_m_debug_entry(struct target *target)
 	if (armv7m->exception_number)
 		cortex_m_examine_exception_reason(target);
 
-	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", target->state: %s",
+	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", cpu in %s state, target->state: %s",
 		arm_mode_name(arm->core_mode),
 		buf_get_u32(arm->pc->value, 0, 32),
+		secure_state ? "Secure" : "Non-Secure",
 		target_state_name(target));
 
 	if (armv7m->post_debug_entry) {
@@ -951,7 +972,7 @@ static int cortex_m_step(struct target *target, int current,
 			 * just step over the instruction with interrupts disabled.
 			 *
 			 * The documentation has no information about this, it was found by observation
-			 * on STM32F1 and STM32F2. Proper explanation welcome. STM32F0 dosen't seem to
+			 * on STM32F1 and STM32F2. Proper explanation welcome. STM32F0 doesn't seem to
 			 * suffer from this problem.
 			 *
 			 * To add some confusion: pc_value has bit 0 always set, while the breakpoint
@@ -2148,16 +2169,24 @@ int cortex_m_examine(struct target *target)
 		/* Get CPU Type */
 		i = (cpuid >> 4) & 0xf;
 
+		/* Check if it is an ARMv8-M core */
+		armv7m->arm.is_armv8m = true;
+
 		switch (cpuid & ARM_CPUID_PARTNO_MASK) {
 			case CORTEX_M23_PARTNO:
 				i = 23;
 				break;
-
 			case CORTEX_M33_PARTNO:
 				i = 33;
 				break;
-
+			case CORTEX_M35P_PARTNO:
+				i = 35;
+				break;
+			case CORTEX_M55_PARTNO:
+				i = 55;
+				break;
 			default:
+				armv7m->arm.is_armv8m = false;
 				break;
 		}
 
@@ -2188,7 +2217,7 @@ int cortex_m_examine(struct target *target)
 				LOG_DEBUG("Cortex-M%d floating point feature FPv4_SP found", i);
 				armv7m->fp_feature = FPv4_SP;
 			}
-		} else if (i == 7 || i == 33) {
+		} else if (i == 7 || i == 33 || i == 35 || i == 55) {
 			target_read_u32(target, MVFR0, &mvfr0);
 			target_read_u32(target, MVFR1, &mvfr1);
 
@@ -2472,6 +2501,11 @@ COMMAND_HANDLER(handle_cortex_m_vector_catch_command)
 	retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
+
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 
 	retval = mem_ap_read_atomic_u32(armv7m->debug_ap, DCB_DEMCR, &demcr);
 	if (retval != ERROR_OK)

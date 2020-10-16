@@ -432,7 +432,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
-		for (int i = 0; i < bank->num_sectors; i++) {
+		for (unsigned int i = 0; i < bank->num_sectors; i++) {
 			if (i < 8) {
 				bank->sectors[i].offset = offset;
 				bank->sectors[i].size = 4 * 1024;
@@ -494,7 +494,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
-		for (int i = 0; i < bank->num_sectors; i++) {
+		for (unsigned int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
 			/* sectors 0-15 are 4kB-sized, 16 and above are 32kB-sized for LPC17xx/LPC40xx devices */
 			bank->sectors[i].size = (i < 16) ? 4 * 1024 : 32 * 1024;
@@ -524,7 +524,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
-		for (int i = 0; i < bank->num_sectors; i++) {
+		for (unsigned int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
 			/* sectors 0-7 are 8kB-sized, 8 and above are 64kB-sized for LPC43xx devices */
 			bank->sectors[i].size = (i < 8) ? 8 * 1024 : 64 * 1024;
@@ -568,7 +568,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
-		for (int i = 0; i < bank->num_sectors; i++) {
+		for (unsigned int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
 			/* all sectors are 1kB-sized for LPC8xx devices */
 			bank->sectors[i].size = 1 * 1024;
@@ -599,7 +599,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
-		for (int i = 0; i < bank->num_sectors; i++) {
+		for (unsigned int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
 			bank->sectors[i].size = (i < LPC11xx_REG_SECTORS ? 4 : 32) * 1024;
 			offset += bank->sectors[i].size;
@@ -629,7 +629,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
-		for (int i = 0; i < bank->num_sectors; i++) {
+		for (unsigned int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
 			/* all sectors are 4kB-sized */
 			bank->sectors[i].size = 4 * 1024;
@@ -657,7 +657,7 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 
-		for (int i = 0; i < bank->num_sectors; i++) {
+		for (unsigned int i = 0; i < bank->num_sectors; i++) {
 			bank->sectors[i].offset = offset;
 			/* all sectors are 32kB-sized */
 			bank->sectors[i].size = 32 * 1024;
@@ -863,9 +863,10 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	return status_code;
 }
 
-static int lpc2000_iap_blank_check(struct flash_bank *bank, int first, int last)
+static int lpc2000_iap_blank_check(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
-	if ((first < 0) || (last >= bank->num_sectors))
+	if (last >= bank->num_sectors)
 		return ERROR_FLASH_SECTOR_INVALID;
 
 	uint32_t param_table[5] = {0};
@@ -881,7 +882,7 @@ static int lpc2000_iap_blank_check(struct flash_bank *bank, int first, int last)
 	if (lpc2000_info->variant == lpc4300)
 		param_table[2] = lpc2000_info->lpc4300_bank;
 
-	for (int i = first; i <= last && retval == ERROR_OK; i++) {
+	for (unsigned int i = first; i <= last && retval == ERROR_OK; i++) {
 		/* check single sector */
 		param_table[0] = param_table[1] = i;
 		int status_code = lpc2000_iap_call(bank, iap_working_area, 53, param_table, result_table);
@@ -978,7 +979,8 @@ FLASH_BANK_COMMAND_HANDLER(lpc2000_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int lpc2000_erase(struct flash_bank *bank, int first, int last)
+static int lpc2000_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -1078,7 +1080,7 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 	int first_sector = 0;
 	int last_sector = 0;
 
-	for (int i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		if (offset >= bank->sectors[i].offset)
 			first_sector = i;
 		if (offset + DIV_ROUND_UP(count, dst_min_alignment) * dst_min_alignment > bank->sectors[i].offset)
@@ -1168,7 +1170,7 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 				break;
 		}
 
-		/* Exit if error occured */
+		/* Exit if error occurred */
 		if (retval != ERROR_OK)
 			break;
 
@@ -1210,7 +1212,7 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 				break;
 		}
 
-		/* Exit if error occured */
+		/* Exit if error occurred */
 		if (retval != ERROR_OK)
 			break;
 
@@ -1554,7 +1556,7 @@ static int get_lpc2000_info(struct flash_bank *bank, char *buf, int buf_size)
 {
 	struct lpc2000_flash_bank *lpc2000_info = bank->driver_priv;
 
-	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %" PRIi32 "kHz", lpc2000_info->variant,
+	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %" PRIu32 "kHz", lpc2000_info->variant,
 			lpc2000_info->cclk);
 
 	return ERROR_OK;

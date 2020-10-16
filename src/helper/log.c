@@ -40,7 +40,7 @@
 #endif
 #endif
 
-int debug_level = -1;
+int debug_level = LOG_LVL_INFO;
 
 static FILE *log_output;
 static struct log_callback *log_callbacks;
@@ -91,6 +91,14 @@ static void log_puts(enum log_levels level,
 	const char *string)
 {
 	char *f;
+
+	if (!log_output) {
+		/* log_init() not called yet; print on stderr */
+		fputs(string, stderr);
+		fflush(stderr);
+		return;
+	}
+
 	if (level == LOG_LVL_OUTPUT) {
 		/* do not prepend any headers, just print out what we were given and return */
 		fputs(string, log_output);
@@ -277,9 +285,6 @@ void log_init(void)
 {
 	/* set defaults for daemon configuration,
 	 * if not set by cmdline or cfgfile */
-	if (debug_level == -1)
-		debug_level = LOG_LVL_INFO;
-
 	char *debug_env = getenv("OPENOCD_DEBUG_LEVEL");
 	if (NULL != debug_env) {
 		int value;
@@ -464,7 +469,7 @@ void kept_alive(void)
 		gdb_timeout_warning(delta_time);
 }
 
-/* if we sleep for extended periods of time, we must invoke keep_alive() intermittantly */
+/* if we sleep for extended periods of time, we must invoke keep_alive() intermittently */
 void alive_sleep(uint64_t ms)
 {
 	uint64_t napTime = 10;
@@ -488,7 +493,7 @@ void busy_sleep(uint64_t ms)
 	}
 }
 
-/* Maximum size of socket error message retreived from operation system */
+/* Maximum size of socket error message retrieved from operation system */
 #define MAX_SOCKET_ERR_MSG_LENGTH 256
 
 /* Provide log message for the last socket error.

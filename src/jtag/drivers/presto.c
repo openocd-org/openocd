@@ -351,7 +351,7 @@ static int presto_bitq_out(int tms, int tdi, int tdo_req)
 	unsigned char cmd;
 
 	if (presto->jtag_tck == 0)
-		presto_sendbyte(0xA4);	/* LED idicator - JTAG active */
+		presto_sendbyte(0xA4);	/* LED indicator - JTAG active */
 	else if (presto->jtag_speed == 0 && !tdo_req && tms == presto->jtag_tms) {
 		presto->jtag_tdi_data |= (tdi != 0) << presto->jtag_tdi_count;
 
@@ -392,7 +392,7 @@ static int presto_bitq_flush(void)
 	presto_tdi_flush();
 	presto_tck_idle();
 
-	presto_sendbyte(0xA0);	/* LED idicator - JTAG idle */
+	presto_sendbyte(0xA0);	/* LED indicator - JTAG idle */
 
 	return presto_flush();
 }
@@ -511,8 +511,7 @@ static char *presto_serial;
 COMMAND_HANDLER(presto_handle_serial_command)
 {
 	if (CMD_ARGC == 1) {
-		if (presto_serial)
-			free(presto_serial);
+		free(presto_serial);
 		presto_serial = strdup(CMD_ARGV[0]);
 	} else
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -553,10 +552,8 @@ static int presto_jtag_quit(void)
 	presto_close();
 	LOG_INFO("PRESTO closed");
 
-	if (presto_serial) {
-		free(presto_serial);
-		presto_serial = NULL;
-	}
+	free(presto_serial);
+	presto_serial = NULL;
 
 	return ERROR_OK;
 }

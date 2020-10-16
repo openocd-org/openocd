@@ -51,7 +51,7 @@
  * is set in the DP_CTRL_STAT register, the SSTICKYORUN status is set and
  * further AP operations will fail.  There are two basic methods to avoid
  * such overrun errors.  One involves polling for status instead of using
- * transaction piplining.  The other involves adding delays to ensure the
+ * transaction pipelining.  The other involves adding delays to ensure the
  * AP has enough time to complete one operation before starting the next
  * one.  (For JTAG these delays are controlled by memaccess_tck.)
  */
@@ -872,7 +872,7 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 		 *  3-0  : AP Type (0=JTAG-AP 1=AHB-AP 2=APB-AP 4=AXI-AP)
 		 */
 
-		/* Reading register for a non-existant AP should not cause an error,
+		/* Reading register for a non-existent AP should not cause an error,
 		 * but just to be sure, try to continue searching if an error does happen.
 		 */
 		if ((retval == ERROR_OK) &&                  /* Register read success */
@@ -1072,21 +1072,23 @@ static const struct {
 	{ ARM_ID, 0x00c, "Cortex-M4 SCS",              "(System Control Space)", },
 	{ ARM_ID, 0x00d, "CoreSight ETM11",            "(Embedded Trace)", },
 	{ ARM_ID, 0x00e, "Cortex-M7 FPB",              "(Flash Patch and Breakpoint)", },
+	{ ARM_ID, 0x470, "Cortex-M1 ROM",              "(ROM Table)", },
+	{ ARM_ID, 0x471, "Cortex-M0 ROM",              "(ROM Table)", },
 	{ ARM_ID, 0x490, "Cortex-A15 GIC",             "(Generic Interrupt Controller)", },
 	{ ARM_ID, 0x4a1, "Cortex-A53 ROM",             "(v8 Memory Map ROM Table)", },
 	{ ARM_ID, 0x4a2, "Cortex-A57 ROM",             "(ROM Table)", },
 	{ ARM_ID, 0x4a3, "Cortex-A53 ROM",             "(v7 Memory Map ROM Table)", },
 	{ ARM_ID, 0x4a4, "Cortex-A72 ROM",             "(ROM Table)", },
 	{ ARM_ID, 0x4a9, "Cortex-A9 ROM",              "(ROM Table)", },
+	{ ARM_ID, 0x4aa, "Cortex-A35 ROM",             "(v8 Memory Map ROM Table)", },
 	{ ARM_ID, 0x4af, "Cortex-A15 ROM",             "(ROM Table)", },
+	{ ARM_ID, 0x4b5, "Cortex-R5 ROM",              "(ROM Table)", },
 	{ ARM_ID, 0x4c0, "Cortex-M0+ ROM",             "(ROM Table)", },
 	{ ARM_ID, 0x4c3, "Cortex-M3 ROM",              "(ROM Table)", },
 	{ ARM_ID, 0x4c4, "Cortex-M4 ROM",              "(ROM Table)", },
 	{ ARM_ID, 0x4c7, "Cortex-M7 PPB ROM",          "(Private Peripheral Bus ROM Table)", },
 	{ ARM_ID, 0x4c8, "Cortex-M7 ROM",              "(ROM Table)", },
-	{ ARM_ID, 0x4b5, "Cortex-R5 ROM",              "(ROM Table)", },
-	{ ARM_ID, 0x470, "Cortex-M1 ROM",              "(ROM Table)", },
-	{ ARM_ID, 0x471, "Cortex-M0 ROM",              "(ROM Table)", },
+	{ ARM_ID, 0x4e0, "Cortex-A35 ROM",             "(v7 Memory Map ROM Table)", },
 	{ ARM_ID, 0x906, "CoreSight CTI",              "(Cross Trigger)", },
 	{ ARM_ID, 0x907, "CoreSight ETB",              "(Trace Buffer)", },
 	{ ARM_ID, 0x908, "CoreSight CSTF",             "(Trace Funnel)", },
@@ -1129,6 +1131,7 @@ static const struct {
 	{ ARM_ID, 0x9d3, "Cortex-A53 PMU",             "(Performance Monitor Unit)", },
 	{ ARM_ID, 0x9d7, "Cortex-A57 PMU",             "(Performance Monitor Unit)", },
 	{ ARM_ID, 0x9d8, "Cortex-A72 PMU",             "(Performance Monitor Unit)", },
+	{ ARM_ID, 0x9da, "Cortex-A35 PMU/CTI/ETM",     "(Performance Monitor Unit/Cross Trigger/ETM)", },
 	{ ARM_ID, 0xc05, "Cortex-A5 Debug",            "(Debug Unit)", },
 	{ ARM_ID, 0xc07, "Cortex-A7 Debug",            "(Debug Unit)", },
 	{ ARM_ID, 0xc08, "Cortex-A8 Debug",            "(Debug Unit)", },
@@ -1139,6 +1142,7 @@ static const struct {
 	{ ARM_ID, 0xc15, "Cortex-R5 Debug",            "(Debug Unit)", },
 	{ ARM_ID, 0xc17, "Cortex-R7 Debug",            "(Debug Unit)", },
 	{ ARM_ID, 0xd03, "Cortex-A53 Debug",           "(Debug Unit)", },
+	{ ARM_ID, 0xd04, "Cortex-A35 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",           "(Debug Unit)", },
 	{ 0x097,  0x9af, "MSP432 ROM",                 "(ROM Table)" },
@@ -1149,8 +1153,8 @@ static const struct {
 	{ 0x0E5,  0x000, "SHARC+/Blackfin+",           "", },
 	{ 0x0F0,  0x440, "Qualcomm QDSS Component v1", "(Qualcomm Designed CoreSight Component v1)", },
 	{ 0x3eb,  0x181, "Tegra 186 ROM",              "(ROM Table)", },
-	{ 0x3eb,  0x211, "Tegra 210 ROM",              "(ROM Table)", },
 	{ 0x3eb,  0x202, "Denver ETM",                 "(Denver Embedded Trace)", },
+	{ 0x3eb,  0x211, "Tegra 210 ROM",              "(ROM Table)", },
 	{ 0x3eb,  0x302, "Denver Debug",               "(Debug Unit)", },
 	{ 0x3eb,  0x402, "Denver PMU",                 "(Performance Monitor Unit)", },
 	/* legacy comment: 0x113: what? */
@@ -1678,7 +1682,7 @@ COMMAND_HANDLER(dap_memaccess_command)
 	}
 	dap->ap[dap->apsel].memaccess_tck = memaccess_tck;
 
-	command_print(CMD, "memory bus access delay set to %" PRIi32 " tck",
+	command_print(CMD, "memory bus access delay set to %" PRIu32 " tck",
 			dap->ap[dap->apsel].memaccess_tck);
 
 	return ERROR_OK;
@@ -1691,7 +1695,7 @@ COMMAND_HANDLER(dap_apsel_command)
 
 	switch (CMD_ARGC) {
 	case 0:
-		command_print(CMD, "%" PRIi32, dap->apsel);
+		command_print(CMD, "%" PRIu32, dap->apsel);
 		return ERROR_OK;
 	case 1:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
@@ -1717,7 +1721,7 @@ COMMAND_HANDLER(dap_apcsw_command)
 
 	switch (CMD_ARGC) {
 	case 0:
-		command_print(CMD, "ap %" PRIi32 " selected, csw 0x%8.8" PRIx32,
+		command_print(CMD, "ap %" PRIu32 " selected, csw 0x%8.8" PRIx32,
 			dap->apsel, apcsw);
 		return ERROR_OK;
 	case 1:

@@ -103,11 +103,10 @@ static int jtag_vpi_send_cmd(struct vpi_cmd *vpi)
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO)) {
 		if (vpi->nb_bits > 0) {
 			/* command with a non-empty data payload */
-			char *char_buf = buf_to_str(vpi->buffer_out,
+			char *char_buf = buf_to_hex_str(vpi->buffer_out,
 					(vpi->nb_bits > DEBUG_JTAG_IOZ)
 						? DEBUG_JTAG_IOZ
-						: vpi->nb_bits,
-					16);
+						: vpi->nb_bits);
 			LOG_DEBUG_IO("sending JTAG VPI cmd: cmd=%s, "
 					"length=%" PRIu32 ", "
 					"nb_bits=%" PRIu32 ", "
@@ -227,7 +226,7 @@ static int jtag_vpi_reset(int trst, int srst)
  * @bits: TMS bits to be written (bit0, bit1 .. bitN)
  * @nb_bits: number of TMS bits (between 1 and 8)
  *
- * Write a serie of TMS transitions, where each transition consists in :
+ * Write a series of TMS transitions, where each transition consists in :
  *  - writing out TCK=0, TMS=<new_state>, TDI=<???>
  *  - writing out TCK=1, TMS=<new_state>, TDI=<???> which triggers the transition
  * The function ensures that at the end of the sequence, the clock (TCK) is put
@@ -253,7 +252,7 @@ static int jtag_vpi_tms_seq(const uint8_t *bits, int nb_bits)
  * jtag_vpi_path_move - ask a TMS sequence transition to JTAG
  * @cmd: path transition
  *
- * Write a serie of TMS transitions, where each transition consists in :
+ * Write a series of TMS transitions, where each transition consists in :
  *  - writing out TCK=0, TMS=<new_state>, TDI=<???>
  *  - writing out TCK=1, TMS=<new_state>, TDI=<???> which triggers the transition
  * The function ensures that at the end of the sequence, the clock (TCK) is put
@@ -328,9 +327,8 @@ static int jtag_vpi_queue_tdi_xfer(uint8_t *bits, int nb_bits, int tap_shift)
 
 	/* Optional low-level JTAG debug */
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO)) {
-		char *char_buf = buf_to_str(vpi.buffer_in,
-				(nb_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : nb_bits,
-				16);
+		char *char_buf = buf_to_hex_str(vpi.buffer_in,
+				(nb_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : nb_bits);
 		LOG_DEBUG_IO("recvd JTAG VPI data: nb_bits=%d, buf_in=0x%s%s",
 			nb_bits, char_buf, (nb_bits > DEBUG_JTAG_IOZ) ? "(...)" : "");
 		free(char_buf);
@@ -392,7 +390,7 @@ static int jtag_vpi_clock_tms(int tms)
  *
  * Launch a JTAG IR-scan or DR-scan
  *
- * Returns ERROR_OK if OK, ERROR_xxx if a read/write error occured.
+ * Returns ERROR_OK if OK, ERROR_xxx if a read/write error occurred.
  */
 static int jtag_vpi_scan(struct scan_command *cmd)
 {
@@ -441,8 +439,7 @@ static int jtag_vpi_scan(struct scan_command *cmd)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (buf)
-		free(buf);
+	free(buf);
 
 	if (cmd->end_state != TAP_DRSHIFT) {
 		retval = jtag_vpi_state_move(cmd->end_state);
@@ -558,7 +555,7 @@ static int jtag_vpi_init(void)
 	serv_addr.sin_addr.s_addr = inet_addr(server_address);
 
 	if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
-		LOG_ERROR("inet_addr error occured");
+		LOG_ERROR("inet_addr error occurred");
 		return ERROR_FAIL;
 	}
 
@@ -569,7 +566,7 @@ static int jtag_vpi_init(void)
 	}
 
 	if (serv_addr.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-		/* This increases performance drematically for local
+		/* This increases performance dramatically for local
 		 * connections, which is the most likely arrangement
 		 * for a VPI connection. */
 		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));

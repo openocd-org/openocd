@@ -27,13 +27,14 @@
 #include "imp.h"
 #include "helper/binarybuffer.h"
 
+#include <helper/time_support.h>
 #include <target/cortex_m.h>
 
 /* A note to prefixing.
- * Definitions and functions ingerited from at91samd.c without
- * any change retained the original prefix samd_ so they eventualy
+ * Definitions and functions inherited from at91samd.c without
+ * any change retained the original prefix samd_ so they eventually
  * may go to samd_common.h and .c
- * As currently there are olny 3 short functions identical with
+ * As currently there are only 3 short functions identical with
  * the original source, no common file was created. */
 
 #define SAME5_PAGES_PER_BLOCK	16
@@ -230,7 +231,7 @@ static const struct samd_part *samd_find_part(uint32_t id)
 
 static int same5_protect_check(struct flash_bank *bank)
 {
-	int res, prot_block;
+	int res;
 	uint32_t lock;
 
 	res = target_read_u32(bank->target,
@@ -239,7 +240,7 @@ static int same5_protect_check(struct flash_bank *bank)
 		return res;
 
 	/* Lock bits are active-low */
-	for (prot_block = 0; prot_block < bank->num_prot_blocks; prot_block++)
+	for (unsigned int prot_block = 0; prot_block < bank->num_prot_blocks; prot_block++)
 		bank->prot_blocks[prot_block].is_protected = !(lock & (1u<<prot_block));
 
 	return ERROR_OK;
@@ -338,19 +339,28 @@ static int same5_probe(struct flash_bank *bank)
 static int same5_wait_and_check_error(struct target *target)
 {
 	int ret, ret2;
-	int rep_cnt = 100;
+	/* Table 54-40 lists the maximum erase block time as 200 ms.
+	 * Include some margin.
+	 */
+	int timeout_ms = 200 * 5;
+	int64_t ts_start = timeval_ms();
 	uint16_t intflag;
 
 	do {
 		ret = target_read_u16(target,
 			SAMD_NVMCTRL + SAME5_NVMCTRL_INTFLAG, &intflag);
-		if (ret == ERROR_OK && intflag & SAME5_NVMCTRL_INTFLAG_DONE)
+		if (ret != ERROR_OK) {
+			LOG_ERROR("SAM: error reading the NVMCTRL_INTFLAG register");
+			return ret;
+		}
+		if (intflag & SAME5_NVMCTRL_INTFLAG_DONE)
 			break;
-	} while (--rep_cnt);
+		keep_alive();
+	} while (timeval_ms() - ts_start < timeout_ms);
 
-	if (ret != ERROR_OK) {
-		LOG_ERROR("Can't read NVM INTFLAG");
-		return ret;
+	if (!(intflag & SAME5_NVMCTRL_INTFLAG_DONE)) {
+		LOG_ERROR("SAM: NVM programming timed out");
+		ret = ERROR_FLASH_OPERATION_FAILED;
 	}
 #if 0
 	if (intflag & SAME5_NVMCTRL_INTFLAG_ECCSE)
@@ -559,10 +569,10 @@ static int same5_modify_user_row(struct target *target, uint32_t value,
 			buf_val, buf_mask, 0, 8);
 }
 
-static int same5_protect(struct flash_bank *bank, int set, int first_prot_bl, int last_prot_bl)
+static int same5_protect(struct flash_bank *bank, int set, unsigned int first,
+		unsigned int last)
 {
 	int res = ERROR_OK;
-	int prot_block;
 
 	/* We can issue lock/unlock region commands with the target running but
 	 * the settings won't persist unless we're able to modify the LOCK regions
@@ -572,7 +582,7 @@ static int same5_protect(struct flash_bank *bank, int set, int first_prot_bl, in
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	for (prot_block = first_prot_bl; prot_block <= last_prot_bl; prot_block++) {
+	for (unsigned int prot_block = first; prot_block <= last; prot_block++) {
 		if (set != bank->prot_blocks[prot_block].is_protected) {
 			/* Load an address that is within this protection block (we use offset 0) */
 			res = target_write_u32(bank->target,
@@ -596,7 +606,7 @@ static int same5_protect(struct flash_bank *bank, int set, int first_prot_bl, in
 	const uint8_t unlock[4] = { 0xff, 0xff, 0xff, 0xff };
 	uint8_t mask[4] = { 0, 0, 0, 0 };
 
-	buf_set_u32(mask, first_prot_bl, last_prot_bl + 1 - first_prot_bl, 0xffffffff);
+	buf_set_u32(mask, first, last + 1 - first, 0xffffffff);
 
 	res = same5_modify_user_row_masked(bank->target,
 			set ? lock : unlock, mask, 8, 4);
@@ -611,9 +621,10 @@ exit:
 	return res;
 }
 
-static int same5_erase(struct flash_bank *bank, int first_sect, int last_sect)
+static int same5_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
-	int res, s;
+	int res;
 	struct samd_info *chip = (struct samd_info *)bank->driver_priv;
 
 	if (bank->target->state != TARGET_HALTED) {
@@ -626,7 +637,7 @@ static int same5_erase(struct flash_bank *bank, int first_sect, int last_sect)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	/* For each sector to be erased */
-	for (s = first_sect; s <= last_sect; s++) {
+	for (unsigned int s = first; s <= last; s++) {
 		res = same5_erase_block(bank->target, bank->sectors[s].offset);
 		if (res != ERROR_OK) {
 			LOG_ERROR("SAM: failed to erase sector %d at 0x%08" PRIx32, s, bank->sectors[s].offset);
@@ -720,9 +731,7 @@ static int same5_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 free_pb:
-	if (pb)
-		free(pb);
-
+	free(pb);
 	return res;
 }
 
@@ -731,7 +740,7 @@ FLASH_BANK_COMMAND_HANDLER(same5_flash_bank_command)
 {
 	if (bank->base != SAMD_FLASH) {
 		LOG_ERROR("Address " TARGET_ADDR_FMT " invalid bank address (try "
-			"0x%08" PRIx32 "[same5] )", bank->base, SAMD_FLASH);
+			"0x%08x[same5] )", bank->base, SAMD_FLASH);
 		return ERROR_FAIL;
 	}
 

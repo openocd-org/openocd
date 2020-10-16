@@ -22,6 +22,7 @@
 #endif
 
 #include <jtag/interface.h>
+#include <transport/transport.h>
 #include "bitbang.h"
 
 #include <sys/mman.h>
@@ -87,6 +88,7 @@ static int imx_gpio_write(int tck, int tms, int tdi);
 
 static int imx_gpio_swdio_read(void);
 static void imx_gpio_swdio_drive(bool is_output);
+static int imx_gpio_swd_write(int swclk, int swdio);
 
 static int imx_gpio_init(void);
 static int imx_gpio_quit(void);
@@ -96,6 +98,7 @@ static struct bitbang_interface imx_gpio_bitbang = {
 	.write = imx_gpio_write,
 	.swdio_read = imx_gpio_swdio_read,
 	.swdio_drive = imx_gpio_swdio_drive,
+	.swd_write = imx_gpio_swd_write,
 	.blink = NULL
 };
 
@@ -143,10 +146,10 @@ static int imx_gpio_write(int tck, int tms, int tdi)
 	return ERROR_OK;
 }
 
-static int imx_gpio_swd_write(int tck, int tms, int tdi)
+static int imx_gpio_swd_write(int swclk, int swdio)
 {
-	tdi ? gpio_set(swdio_gpio) : gpio_clear(swdio_gpio);
-	tck ? gpio_set(swclk_gpio) : gpio_clear(swclk_gpio);
+	swdio ? gpio_set(swdio_gpio) : gpio_clear(swdio_gpio);
+	swclk ? gpio_set(swclk_gpio) : gpio_clear(swclk_gpio);
 
 	for (unsigned int i = 0; i < jtag_delay; i++)
 		asm volatile ("");
@@ -476,24 +479,21 @@ static int imx_gpio_init(void)
 
 	LOG_INFO("imx_gpio GPIO JTAG/SWD bitbang driver");
 
-	if (imx_gpio_jtag_mode_possible()) {
-		if (imx_gpio_swd_mode_possible())
-			LOG_INFO("JTAG and SWD modes enabled");
-		else
-			LOG_INFO("JTAG only mode enabled (specify swclk and swdio gpio to add SWD mode)");
-	} else if (imx_gpio_swd_mode_possible()) {
-		LOG_INFO("SWD only mode enabled (specify tck, tms, tdi and tdo gpios to add JTAG mode)");
-	} else {
-		LOG_ERROR("Require tck, tms, tdi and tdo gpios for JTAG mode and/or swclk and swdio gpio for SWD mode");
+	if (transport_is_jtag() && !imx_gpio_jtag_mode_possible()) {
+		LOG_ERROR("Require tck, tms, tdi and tdo gpios for JTAG mode");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if (transport_is_swd() && !imx_gpio_swd_mode_possible()) {
+		LOG_ERROR("Require swclk and swdio gpio for SWD mode");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (dev_mem_fd < 0) {
-		perror("open");
+		LOG_ERROR("open: %s", strerror(errno));
 		return ERROR_JTAG_INIT_FAILED;
 	}
-
 
 	LOG_INFO("imx_gpio mmap: pagesize: %u, regionsize: %u",
 			(unsigned int) sysconf(_SC_PAGE_SIZE), IMX_GPIO_REGS_COUNT * IMX_GPIO_SIZE);
@@ -502,7 +502,7 @@ static int imx_gpio_init(void)
 				MAP_SHARED, dev_mem_fd, imx_gpio_peri_base);
 
 	if (pio_base == MAP_FAILED) {
-		perror("mmap");
+		LOG_ERROR("mmap: %s", strerror(errno));
 		close(dev_mem_fd);
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -511,7 +511,7 @@ static int imx_gpio_init(void)
 	 * Configure TDO as an input, and TDI, TCK, TMS, TRST, SRST
 	 * as outputs.  Drive TDI and TCK low, and TMS/TRST/SRST high.
 	 */
-	if (imx_gpio_jtag_mode_possible()) {
+	if (transport_is_jtag()) {
 		tdo_gpio_mode = gpio_mode_get(tdo_gpio);
 		tdi_gpio_mode = gpio_mode_get(tdi_gpio);
 		tck_gpio_mode = gpio_mode_get(tck_gpio);
@@ -525,8 +525,15 @@ static int imx_gpio_init(void)
 		gpio_mode_output_set(tdi_gpio);
 		gpio_mode_output_set(tck_gpio);
 		gpio_mode_output_set(tms_gpio);
+
+		if (trst_gpio != -1) {
+			trst_gpio_mode = gpio_mode_get(trst_gpio);
+			gpio_set(trst_gpio);
+			gpio_mode_output_set(trst_gpio);
+		}
 	}
-	if (imx_gpio_swd_mode_possible()) {
+
+	if (transport_is_swd()) {
 		swclk_gpio_mode = gpio_mode_get(swclk_gpio);
 		swdio_gpio_mode = gpio_mode_get(swdio_gpio);
 
@@ -535,11 +542,7 @@ static int imx_gpio_init(void)
 		gpio_mode_output_set(swclk_gpio);
 		gpio_mode_output_set(swdio_gpio);
 	}
-	if (trst_gpio != -1) {
-		trst_gpio_mode = gpio_mode_get(trst_gpio);
-		gpio_set(trst_gpio);
-		gpio_mode_output_set(trst_gpio);
-	}
+
 	if (srst_gpio != -1) {
 		srst_gpio_mode = gpio_mode_get(srst_gpio);
 		gpio_set(srst_gpio);
@@ -550,28 +553,26 @@ static int imx_gpio_init(void)
 		  "tdo %d trst %d srst %d", tck_gpio_mode, tms_gpio_mode,
 		  tdi_gpio_mode, tdo_gpio_mode, trst_gpio_mode, srst_gpio_mode);
 
-	if (swd_mode) {
-		imx_gpio_bitbang.write = imx_gpio_swd_write;
-		bitbang_switch_to_swd();
-	}
-
 	return ERROR_OK;
 }
 
 static int imx_gpio_quit(void)
 {
-	if (imx_gpio_jtag_mode_possible()) {
+	if (transport_is_jtag()) {
 		gpio_mode_set(tdo_gpio, tdo_gpio_mode);
 		gpio_mode_set(tdi_gpio, tdi_gpio_mode);
 		gpio_mode_set(tck_gpio, tck_gpio_mode);
 		gpio_mode_set(tms_gpio, tms_gpio_mode);
+
+		if (trst_gpio != -1)
+			gpio_mode_set(trst_gpio, trst_gpio_mode);
 	}
-	if (imx_gpio_swd_mode_possible()) {
+
+	if (transport_is_swd()) {
 		gpio_mode_set(swclk_gpio, swclk_gpio_mode);
 		gpio_mode_set(swdio_gpio, swdio_gpio_mode);
 	}
-	if (trst_gpio != -1)
-		gpio_mode_set(trst_gpio, trst_gpio_mode);
+
 	if (srst_gpio != -1)
 		gpio_mode_set(srst_gpio, srst_gpio_mode);
 

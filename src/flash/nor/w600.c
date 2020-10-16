@@ -87,7 +87,7 @@ static const struct w600_flash_param w600_param[] = {
 };
 
 struct w600_flash_bank {
-	int probed;
+	bool probed;
 
 	uint32_t id;
 	const struct w600_flash_param *param;
@@ -107,7 +107,7 @@ FLASH_BANK_COMMAND_HANDLER(w600_flash_bank_command)
 	w600_info = malloc(sizeof(struct w600_flash_bank));
 
 	bank->driver_priv = w600_info;
-	w600_info->probed = 0;
+	w600_info->probed = false;
 	w600_info->register_base = QFLASH_REGBASE;
 	w600_info->user_bank_size = bank->size;
 
@@ -204,7 +204,8 @@ static int w600_start(struct flash_bank *bank, uint32_t cmd, uint32_t addr,
 	return retval;
 }
 
-static int w600_erase(struct flash_bank *bank, int first, int last)
+static int w600_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	int retval = ERROR_OK;
 
@@ -217,7 +218,7 @@ static int w600_erase(struct flash_bank *bank, int first, int last)
 		return ERROR_FAIL;
 	}
 
-	for (int i = first; i <= last; i++) {
+	for (unsigned int i = first; i <= last; i++) {
 		retval = w600_start(bank, QFLASH_CMD_SE,
 			QFLASH_ADDR(bank->sectors[i].offset), 0);
 		if (retval != ERROR_OK)
@@ -239,13 +240,13 @@ static int w600_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	if ((offset % W600_FLASH_PAGESIZE) != 0) {
-		LOG_WARNING("offset 0x%" PRIx32 " breaks required %" PRIu32 "-byte alignment",
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required %d-byte alignment",
 			offset, W600_FLASH_PAGESIZE);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
 	if ((count % W600_FLASH_PAGESIZE) != 0) {
-		LOG_WARNING("count 0x%" PRIx32 " breaks required %" PRIu32 "-byte alignment",
+		LOG_WARNING("count 0x%" PRIx32 " breaks required %d-byte alignment",
 			offset, W600_FLASH_PAGESIZE);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
@@ -286,7 +287,7 @@ static int w600_probe(struct flash_bank *bank)
 	uint32_t flash_id;
 	size_t i;
 
-	w600_info->probed = 0;
+	w600_info->probed = false;
 
 	/* read stm32 device id register */
 	int retval = w600_get_flash_id(bank, &flash_id);
@@ -322,7 +323,7 @@ static int w600_probe(struct flash_bank *bank)
 		flash_size = 1 << flash_size;
 	}
 
-	LOG_INFO("flash size = %dkbytes", flash_size / 1024);
+	LOG_INFO("flash size = %" PRIu32 "kbytes", flash_size / 1024);
 
 	/* calculate numbers of pages */
 	size_t num_pages = flash_size / W600_FLASH_SECSIZE;
@@ -330,10 +331,8 @@ static int w600_probe(struct flash_bank *bank)
 	/* check that calculation result makes sense */
 	assert(num_pages > 0);
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-	}
+	free(bank->sectors);
+	bank->sectors = NULL;
 
 	bank->base = W600_FLASH_BASE;
 	bank->size = num_pages * W600_FLASH_SECSIZE;
@@ -346,11 +345,11 @@ static int w600_probe(struct flash_bank *bank)
 		bank->sectors[i].offset = i * W600_FLASH_SECSIZE;
 		bank->sectors[i].size = W600_FLASH_SECSIZE;
 		bank->sectors[i].is_erased = -1;
-		/* offset 0 to W600_FLASH_PROTECT_SIZE shoule be protected */
+		/* offset 0 to W600_FLASH_PROTECT_SIZE should be protected */
 		bank->sectors[i].is_protected = (i < W600_FLASH_PROTECT_SIZE / W600_FLASH_SECSIZE);
 	}
 
-	w600_info->probed = 1;
+	w600_info->probed = true;
 
 	return ERROR_OK;
 }

@@ -1589,7 +1589,7 @@ sub process {
 		}
 
 # Check for absolute kernel paths.
-		if ($tree) {
+		if ($tree && $line =~ /^[^-]/) {
 			while ($line =~ m{(?:^|\s)(/\S*)}g) {
 				my $file = $1;
 

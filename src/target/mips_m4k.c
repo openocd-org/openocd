@@ -667,7 +667,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 			if (ejtag_info->endianness && isa_req)
 				sdbbp32_instr = SWAP16(sdbbp32_instr);
 
-			if ((breakpoint->address & 3) == 0) {	/* word alligned */
+			if ((breakpoint->address & 3) == 0) {	/* word aligned */
 
 				retval = target_read_memory(target, bpaddr, bplength, 1, breakpoint->orig_instr);
 				if (retval != ERROR_OK)
@@ -784,9 +784,9 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 				if (retval != ERROR_OK)
 					return retval;
 				/**
-				* target_read_memory() gets us data in _target_ endianess.
+				* target_read_memory() gets us data in _target_ endianness.
 				* If we want to use this data on the host for comparisons with some macros
-				* we must first transform it to _host_ endianess using target_buffer_get_u16().
+				* we must first transform it to _host_ endianness using target_buffer_get_u16().
 				*/
 				if (sdbbp32_instr == target_buffer_get_u32(target, current_instr)) {
 					retval = target_write_memory(target, breakpoint->address, 4, 1,
@@ -794,7 +794,7 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 					if (retval != ERROR_OK)
 						return retval;
 				}
-			} else {	/* 16bit alligned */
+			} else {	/* 16bit aligned */
 				retval = target_read_memory(target, breakpoint->address, 2, 2, current_instr);
 				if (retval != ERROR_OK)
 					return retval;
@@ -1072,7 +1072,7 @@ static int mips_m4k_read_memory(struct target *target, target_addr_t address,
 		}
 	}
 
-	if ((size > 1) && (t != NULL))
+	if (size > 1)
 		free(t);
 
 	return retval;
@@ -1106,7 +1106,7 @@ static int mips_m4k_write_memory(struct target *target, target_addr_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	/** correct endianess if we have word or hword access */
+	/** correct endianness if we have word or hword access */
 	void *t = NULL;
 	if (size > 1) {
 		/* mips32_..._write_mem with size 4/2 requires uint32_t/uint16_t in host */
@@ -1135,8 +1135,7 @@ static int mips_m4k_write_memory(struct target *target, target_addr_t address,
 	else
 		retval = mips32_dmaacc_write_mem(ejtag_info, address, size, count, buffer);
 
-	if (t != NULL)
-		free(t);
+	free(t);
 
 	if (ERROR_OK != retval)
 		return retval;
@@ -1261,8 +1260,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
 			count, t);
 
-	if (t != NULL)
-		free(t);
+	free(t);
 
 	if (retval != ERROR_OK)
 		LOG_ERROR("Fastdata access Failed");
@@ -1309,11 +1307,11 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 			retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel);
 			if (retval != ERROR_OK) {
 				command_print(CMD,
-						"couldn't access reg %" PRIi32,
+						"couldn't access reg %" PRIu32,
 						cp0_reg);
 				return ERROR_OK;
 			}
-			command_print(CMD, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+			command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
 					cp0_reg, cp0_sel, value);
 
 		} else if (CMD_ARGC == 3) {
@@ -1322,11 +1320,11 @@ COMMAND_HANDLER(mips_m4k_handle_cp0_command)
 			retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel);
 			if (retval != ERROR_OK) {
 				command_print(CMD,
-						"couldn't access cp0 reg %" PRIi32 ", select %" PRIi32,
+						"couldn't access cp0 reg %" PRIu32 ", select %" PRIu32,
 						cp0_reg,  cp0_sel);
 				return ERROR_OK;
 			}
-			command_print(CMD, "cp0 reg %" PRIi32 ", select %" PRIi32 ": %8.8" PRIx32,
+			command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
 					cp0_reg, cp0_sel, value);
 		}
 	}

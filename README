@@ -284,11 +284,15 @@ libraries that OpenOCD depends on. Alternatively, you can specify
 *_CFLAGS and *_LIBS environment variables directly, see "./configure
 --help" for the details.
 
+For a more or less complete script that does all this for you, see
+
+  contrib/cross-build.sh
+
 Parallel Port Dongles
 ---------------------
 
 If you want to access the parallel port using the PPDEV interface you
-have to specify both --enable-parport AND --enable-parport-ppdev, since the
+have to specify both --enable-parport AND --enable-parport-ppdev, since
 the later option is an option to the parport driver.
 
 The same is true for the --enable-parport-giveio option, you have to

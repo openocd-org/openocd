@@ -129,7 +129,7 @@ struct stm32l4_part_info {
 struct stm32l4_flash_bank {
 	bool probed;
 	uint32_t idcode;
-	int bank1_sectors;
+	unsigned int bank1_sectors;
 	bool dual_bank_mode;
 	int hole_sectors;
 	uint32_t user_bank_size;
@@ -534,7 +534,7 @@ static int stm32l4_protect_check(struct flash_bank *bank)
 		stm32l4_read_flash_reg(bank, STM32_FLASH_WRP2AR, &wrp2ar);
 		stm32l4_read_flash_reg(bank, STM32_FLASH_WRP2BR, &wrp2br);
 	} else {
-		/* prevent unintialized errors */
+		/* prevent uninitialized errors */
 		wrp2ar = 0;
 		wrp2br = 0;
 	}
@@ -548,7 +548,7 @@ static int stm32l4_protect_check(struct flash_bank *bank)
 	const uint8_t wrp2b_start = wrp2br & stm32l4_info->wrpxxr_mask;
 	const uint8_t wrp2b_end = (wrp2br >> 16) & stm32l4_info->wrpxxr_mask;
 
-	for (int i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		if (i < stm32l4_info->bank1_sectors) {
 			if (((i >= wrp1a_start) &&
 				 (i <= wrp1a_end)) ||
@@ -573,13 +573,13 @@ static int stm32l4_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int stm32l4_erase(struct flash_bank *bank, int first, int last)
+static int stm32l4_erase(struct flash_bank *bank, unsigned int first,
+		unsigned int last)
 {
 	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
-	int i;
 	int retval, retval2;
 
-	assert((0 <= first) && (first <= last) && (last < bank->num_sectors));
+	assert((first <= last) && (last < bank->num_sectors));
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
@@ -601,7 +601,7 @@ static int stm32l4_erase(struct flash_bank *bank, int first, int last)
 	4. Wait for the BSY bit to be cleared
 	 */
 
-	for (i = first; i <= last; i++) {
+	for (unsigned int i = first; i <= last; i++) {
 		uint32_t erase_flags;
 		erase_flags = FLASH_PER | FLASH_STRT;
 
@@ -631,7 +631,8 @@ err_lock:
 	return retval2;
 }
 
-static int stm32l4_protect(struct flash_bank *bank, int set, int first, int last)
+static int stm32l4_protect(struct flash_bank *bank, int set, unsigned int first,
+		unsigned int last)
 {
 	struct target *target = bank->target;
 	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
@@ -1014,7 +1015,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	const int gap_size_kb = stm32l4_info->hole_sectors * page_size_kb;
 
 	if (gap_size_kb != 0) {
-		LOG_INFO("gap detected from 0x%08" PRIx32 " to 0x%08" PRIx32,
+		LOG_INFO("gap detected from 0x%08x to 0x%08x",
 			STM32_FLASH_BANK_BASE + stm32l4_info->bank1_sectors
 				* page_size_kb * 1024,
 			STM32_FLASH_BANK_BASE + (stm32l4_info->bank1_sectors
@@ -1039,10 +1040,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	assert((stm32l4_info->wrpxxr_mask & 0xFFFF0000) == 0);
 	LOG_DEBUG("WRPxxR mask 0x%04" PRIx16, (uint16_t)stm32l4_info->wrpxxr_mask);
 
-	if (bank->sectors) {
-		free(bank->sectors);
-		bank->sectors = NULL;
-	}
+	free(bank->sectors);
 
 	bank->size = (flash_size_kb + gap_size_kb) * 1024;
 	bank->base = STM32_FLASH_BANK_BASE;
@@ -1053,7 +1051,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	for (int i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		bank->sectors[i].offset = i * page_size_kb * 1024;
 		/* in dual bank configuration, if there is a gap between banks
 		 * we fix up the sector offset to consider this gap */
@@ -1169,7 +1167,7 @@ COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 	retval = stm32l4_mass_erase(bank);
 	if (retval == ERROR_OK) {
 		/* set all sectors as erased */
-		for (int i = 0; i < bank->num_sectors; i++)
+		for (unsigned int i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
 		command_print(CMD, "stm32l4x mass erase complete");

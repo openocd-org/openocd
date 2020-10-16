@@ -227,18 +227,11 @@ static int kitprog_quit(void)
 {
 	kitprog_usb_close();
 
-	if (kitprog_handle->packet_buffer != NULL)
-		free(kitprog_handle->packet_buffer);
-	if (kitprog_handle->serial != NULL)
-		free(kitprog_handle->serial);
-	if (kitprog_handle != NULL)
-		free(kitprog_handle);
-
-	if (kitprog_serial != NULL)
-		free(kitprog_serial);
-
-	if (pending_transfers != NULL)
-		free(pending_transfers);
+	free(kitprog_handle->packet_buffer);
+	free(kitprog_handle->serial);
+	free(kitprog_handle);
+	free(kitprog_serial);
+	free(pending_transfers);
 
 	return ERROR_OK;
 }
@@ -606,7 +599,7 @@ static int kitprog_generic_acquire(void)
 		for (uint8_t j = 0; j < sizeof(devices) && acquire_count == i; j++) {
 			retval = kitprog_acquire_psoc(devices[j], ACQUIRE_MODE_RESET, 3);
 			if (retval != ERROR_OK) {
-				LOG_DEBUG("Aquisition function failed for device 0x%02x.", devices[j]);
+				LOG_DEBUG("Acquisition function failed for device 0x%02x.", devices[j]);
 				return retval;
 			}
 
@@ -746,7 +739,7 @@ static int kitprog_swd_run_queue(void)
 		 * size (64 bytes) as required by the USB specification.
 		 * Therefore libusb would wait for continuation of transmission.
 		 * Workaround: Limit bulk read size to expected number of bytes
-		 * for problematic tranfer sizes. Otherwise use the maximum buffer
+		 * for problematic transfer sizes. Otherwise use the maximum buffer
 		 * size here because the KitProg sometimes doesn't like bulk reads
 		 * of fewer than 62 bytes. (?!?!)
 		 */
