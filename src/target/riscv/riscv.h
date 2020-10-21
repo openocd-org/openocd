@@ -60,12 +60,12 @@ typedef struct {
 	unsigned custom_number;
 } riscv_reg_info_t;
 
-#define RISCV_SAMPLE_BUF_TIMESTAMP	0x80
+#define RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE	0x80
+#define RISCV_SAMPLE_BUF_TIMESTAMP_AFTER	0x81
 typedef struct {
 	uint8_t *buf;
 	unsigned used;
 	unsigned size;
-	uint32_t last_timestamp;
 } riscv_sample_buf_t;
 
 typedef struct {

@@ -2207,7 +2207,7 @@ static int sample_memory_bus_v1(struct target *target,
 		for (unsigned n = 0; n < repeat; n++) {
 			for (unsigned i = 0; i < DIM(config->bucket); i++) {
 				if (config->bucket[i].enabled) {
-					assert(i < RISCV_SAMPLE_BUF_TIMESTAMP);
+					assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
 					uint64_t value = 0;
 					if (config->bucket[i].size_bytes > 4)
 						value = ((uint64_t) riscv_batch_get_dmi_read_data(batch, read++)) << 32;

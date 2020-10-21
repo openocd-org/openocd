@@ -256,18 +256,19 @@ virt2phys_info_t sv48 = {
 	.pa_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ffff},
 };
 
-void riscv_sample_buf_maybe_add_timestamp(struct target *target)
+void riscv_sample_buf_maybe_add_timestamp(struct target *target, bool before)
 {
 	RISCV_INFO(r);
 	uint32_t now = timeval_ms() & 0xffffffff;
-	if (r->sample_buf.used + 5 < r->sample_buf.size &&
-			(r->sample_buf.used == 0 || r->sample_buf.last_timestamp != now)) {
-		r->sample_buf.buf[r->sample_buf.used++] = RISCV_SAMPLE_BUF_TIMESTAMP;
+	if (r->sample_buf.used + 5 < r->sample_buf.size) {
+		if (before)
+			r->sample_buf.buf[r->sample_buf.used++] = RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE;
+		else
+			r->sample_buf.buf[r->sample_buf.used++] = RISCV_SAMPLE_BUF_TIMESTAMP_AFTER;
 		r->sample_buf.buf[r->sample_buf.used++] = now & 0xff;
 		r->sample_buf.buf[r->sample_buf.used++] = (now >> 8) & 0xff;
 		r->sample_buf.buf[r->sample_buf.used++] = (now >> 16) & 0xff;
 		r->sample_buf.buf[r->sample_buf.used++] = (now >> 24) & 0xff;
-		r->sample_buf.last_timestamp = now;
 	}
 }
 
@@ -2149,7 +2150,7 @@ int sample_memory(struct target *target)
 	LOG_DEBUG("buf used/size: %d/%d", r->sample_buf.used, r->sample_buf.size);
 
 	uint64_t start = timeval_ms();
-	riscv_sample_buf_maybe_add_timestamp(target);
+	riscv_sample_buf_maybe_add_timestamp(target, true);
 	int result = ERROR_OK;
 	if (r->sample_memory) {
 		result = r->sample_memory(target, &r->sample_buf, &r->sample_config,
@@ -2163,7 +2164,7 @@ int sample_memory(struct target *target)
 		for (unsigned i = 0; i < DIM(r->sample_config.bucket); i++) {
 			if (r->sample_config.bucket[i].enabled &&
 					r->sample_buf.used + 1 + r->sample_config.bucket[i].size_bytes < r->sample_buf.size) {
-				assert(i < RISCV_SAMPLE_BUF_TIMESTAMP);
+				assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
 				r->sample_buf.buf[r->sample_buf.used] = i;
 				result = riscv_read_phys_memory(
 					target, r->sample_config.bucket[i].address,
@@ -2178,6 +2179,7 @@ int sample_memory(struct target *target)
 	}
 
 exit:
+	riscv_sample_buf_maybe_add_timestamp(target, false);
 	if (result != ERROR_OK) {
 		LOG_INFO("Turning off memory sampling because it failed.");
 		r->sample_config.enabled = false;
@@ -3092,10 +3094,14 @@ COMMAND_HANDLER(handle_dump_sample_buf_command)
 		unsigned i = 0;
 		while (i < r->sample_buf.used) {
 			uint8_t command = r->sample_buf.buf[i++];
-			if (command == RISCV_SAMPLE_BUF_TIMESTAMP) {
+			if (command == RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE) {
 				uint32_t timestamp = buf_get_u32(r->sample_buf.buf + i, 0, 32);
 				i += 4;
-				command_print(CMD, "timestamp: %u", timestamp);
+				command_print(CMD, "timestamp before: %u", timestamp);
+			} else if (command == RISCV_SAMPLE_BUF_TIMESTAMP_AFTER) {
+				uint32_t timestamp = buf_get_u32(r->sample_buf.buf + i, 0, 32);
+				i += 4;
+				command_print(CMD, "timestamp after: %u", timestamp);
 			} else if (command < DIM(r->sample_config.bucket)) {
 				command_print_sameline(CMD, "0x%" TARGET_PRIxADDR ": ",
 									   r->sample_config.bucket[command].address);
