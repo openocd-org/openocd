@@ -153,7 +153,7 @@ static int sromalgo_prepare(struct target *target)
 
 	/* Restore THUMB bit in xPSR register */
 	const struct armv7m_common *cm = target_to_armv7m(target);
-	hr = cm->store_core_reg_u32(target, ARMV7M_xPSR, 0x01000000);
+	hr = cm->store_core_reg_u32(target, ARMV7M_REGSEL_xPSR, 0x01000000);
 	if (hr != ERROR_OK)
 		return hr;
 
