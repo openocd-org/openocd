@@ -121,8 +121,10 @@ distclean-local:
 # Travis, because it automatically makes temporary commits when merging. So
 # instead we have a hook that enforces this in each workspace. To make sure
 # that users actually use those hooks, we point git at them here.
+# If git fails for some reason, that's OK. It's probably because somebody is
+# building the source completely outside a git repo.
 all-local:
-	cd $(srcdir) && git config core.hooksPath ./git-hooks
+	cd $(srcdir) && git config core.hooksPath ./git-hooks || true
 
 DISTCLEANFILES = doxygen.log
 
