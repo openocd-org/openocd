@@ -527,12 +527,6 @@ static int cortex_m_debug_entry(struct target *target)
 	r = arm->cpsr;
 	xPSR = buf_get_u32(r->value, 0, 32);
 
-	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec */
-	if (xPSR & 0xf00) {
-		r->dirty = r->valid;
-		cortex_m_store_core_reg_u32(target, ARMV7M_REGSEL_xPSR, xPSR & ~0xff);
-	}
-
 	/* Are we in an exception handler */
 	if (xPSR & 0x1FF) {
 		armv7m->exception_number = (xPSR & 0x1FF);
