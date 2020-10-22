@@ -493,8 +493,7 @@ int armv7m_start_algorithm(struct target *target,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* refresh core register cache
-	 * Not needed if core register cache is always consistent with target process state */
+	/* Store all non-debug execution registers to armv7m_algorithm_info context */
 	for (unsigned i = 0; i < armv7m->arm.core_cache->num_regs; i++) {
 
 		armv7m_algorithm_info->context[i] = buf_get_u32(

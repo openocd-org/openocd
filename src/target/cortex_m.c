@@ -817,15 +817,19 @@ static int cortex_m_resume(struct target *target, int current,
 		 * in parallel with disabled interrupts can cause local faults
 		 * to not be taken.
 		 *
-		 * REVISIT this clearly breaks non-debug execution, since the
-		 * PRIMASK register state isn't saved/restored...  workaround
-		 * by never resuming app code after debug execution.
+		 * This breaks non-debug (application) execution if not
+		 * called from armv7m_start_algorithm() which saves registers.
 		 */
 		buf_set_u32(r->value, 0, 1, 1);
 		r->dirty = true;
 		r->valid = true;
 
-		/* Make sure we are in Thumb mode */
+		/* Make sure we are in Thumb mode, set xPSR.T bit */
+		/* armv7m_start_algorithm() initializes entire xPSR register.
+		 * This duplicity handles the case when cortex_m_resume()
+		 * is used with the debug_execution flag directly,
+		 * not called through armv7m_start_algorithm().
+		 */
 		r = armv7m->arm.cpsr;
 		buf_set_u32(r->value, 24, 1, 1);
 		r->dirty = true;
