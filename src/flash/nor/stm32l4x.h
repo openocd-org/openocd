@@ -60,11 +60,19 @@
 #define FLASH_RDP_MASK			0xFF
 #define FLASH_TZEN				(1 << 31)
 
+/* FLASH secure block based bank 1/2 register offsets */
+#define FLASH_SECBB1(X) (0x80 + 4 * (X - 1))
+#define FLASH_SECBB2(X) (0xA0 + 4 * (X - 1))
+
+#define FLASH_SECBB_SECURE      0xFFFFFFFF
+#define FLASH_SECBB_NON_SECURE  0
+
 /* other registers */
 #define DBGMCU_IDCODE_G0		0x40015800
 #define DBGMCU_IDCODE_L4_G4		0xE0042000
 #define DBGMCU_IDCODE_L5		0xE0044000
 
 #define STM32_FLASH_BANK_BASE	0x08000000
+#define STM32_FLASH_S_BANK_BASE	0x0C000000
 
 #endif

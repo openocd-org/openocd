@@ -127,6 +127,8 @@
 #define F_USE_ALL_WRPXX     BIT(1)
 /* this flag indicates if the device embeds a TrustZone security feature */
 #define F_HAS_TZ            BIT(2)
+/* this flag indicates if the device has the same flash registers as STM32L5 */
+#define F_HAS_L5_FLASH_REGS BIT(3)
 /* end of STM32L4 flags ******************************************************/
 
 
@@ -166,10 +168,23 @@ static const uint32_t stm32l4_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 
 static const uint32_t stm32l5_ns_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 	[STM32_FLASH_ACR_INDEX]      = 0x000,
-	[STM32_FLASH_KEYR_INDEX]     = 0x008,
+	[STM32_FLASH_KEYR_INDEX]     = 0x008, /* NSKEYR */
 	[STM32_FLASH_OPTKEYR_INDEX]  = 0x010,
-	[STM32_FLASH_SR_INDEX]       = 0x020,
-	[STM32_FLASH_CR_INDEX]       = 0x028,
+	[STM32_FLASH_SR_INDEX]       = 0x020, /* NSSR */
+	[STM32_FLASH_CR_INDEX]       = 0x028, /* NSCR */
+	[STM32_FLASH_OPTR_INDEX]     = 0x040,
+	[STM32_FLASH_WRP1AR_INDEX]   = 0x058,
+	[STM32_FLASH_WRP1BR_INDEX]   = 0x05C,
+	[STM32_FLASH_WRP2AR_INDEX]   = 0x068,
+	[STM32_FLASH_WRP2BR_INDEX]   = 0x06C,
+};
+
+static const uint32_t stm32l5_s_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
+	[STM32_FLASH_ACR_INDEX]      = 0x000,
+	[STM32_FLASH_KEYR_INDEX]     = 0x00C, /* SECKEYR */
+	[STM32_FLASH_OPTKEYR_INDEX]  = 0x010,
+	[STM32_FLASH_SR_INDEX]       = 0x024, /* SECSR */
+	[STM32_FLASH_CR_INDEX]       = 0x02C, /* SECCR */
 	[STM32_FLASH_OPTR_INDEX]     = 0x040,
 	[STM32_FLASH_WRP1AR_INDEX]   = 0x058,
 	[STM32_FLASH_WRP1BR_INDEX]   = 0x05C,
@@ -205,6 +220,7 @@ struct stm32l4_flash_bank {
 	uint32_t user_bank_size;
 	uint32_t wrpxxr_mask;
 	const struct stm32l4_part_info *part_info;
+	uint32_t flash_regs_base;
 	const uint32_t *flash_regs;
 	bool otp_enabled;
 	enum stm32l4_rdp rdp;
@@ -444,7 +460,7 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .num_revs              = ARRAY_SIZE(stm32_472_revs),
 	  .device_str            = "STM32L55/L56xx",
 	  .max_flash_size_kb     = 512,
-	  .flags                 = F_HAS_DUAL_BANK | F_USE_ALL_WRPXX | F_HAS_TZ,
+	  .flags                 = F_HAS_DUAL_BANK | F_USE_ALL_WRPXX | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
 	  .flash_regs_base       = 0x40022000,
 	  .default_flash_regs    = stm32l5_ns_flash_regs,
 	  .fsize_addr            = 0x0BFA05E0,
@@ -653,7 +669,7 @@ static void stm32l4_sync_rdp_tzen(struct flash_bank *bank)
 static inline uint32_t stm32l4_get_flash_reg(struct flash_bank *bank, uint32_t reg_offset)
 {
 	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
-	return stm32l4_info->part_info->flash_regs_base + reg_offset;
+	return stm32l4_info->flash_regs_base + reg_offset;
 }
 
 static inline uint32_t stm32l4_get_flash_reg_by_index(struct flash_bank *bank,
@@ -723,6 +739,49 @@ static int stm32l4_wait_status_busy(struct flash_bank *bank, int timeout)
 	}
 
 	return retval;
+}
+
+/** set all FLASH_SECBB registers to the same value */
+static int stm32l4_set_secbb(struct flash_bank *bank, uint32_t value)
+{
+	/* This function should be used only with device with TrustZone, do just a security check */
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
+	assert(stm32l4_info->part_info->flags & F_HAS_TZ);
+
+	/* based on RM0438 Rev6 for STM32L5x devices:
+	 * to modify a page block-based security attribution, it is recommended to
+	 *  1- check that no flash operation is ongoing on the related page
+	 *  2- add ISB instruction after modifying the page security attribute in SECBBxRy
+	 *     this step is not need in case of JTAG direct access
+	 */
+	int retval = stm32l4_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* write SECBBxRy registers */
+	LOG_DEBUG("setting secure block-based areas registers (SECBBxRy) to 0x%08x", value);
+
+	const uint8_t secbb_regs[] = {
+			FLASH_SECBB1(1), FLASH_SECBB1(2), FLASH_SECBB1(3), FLASH_SECBB1(4), /* bank 1 SECBB register offsets */
+			FLASH_SECBB2(1), FLASH_SECBB2(2), FLASH_SECBB2(3), FLASH_SECBB2(4)  /* bank 2 SECBB register offsets */
+	};
+
+
+	unsigned int num_secbb_regs = ARRAY_SIZE(secbb_regs);
+
+	/* in single bank mode, it's useless to modify FLASH_SECBB2Rx registers
+	 * then consider only the first half of secbb_regs
+	 */
+	if (!stm32l4_info->dual_bank_mode)
+		num_secbb_regs /= 2;
+
+	for (unsigned int i = 0; i < num_secbb_regs; i++) {
+		retval = stm32l4_write_flash_reg(bank, secbb_regs[i], value);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	return ERROR_OK;
 }
 
 static int stm32l4_unlock_reg(struct flash_bank *bank)
@@ -831,12 +890,19 @@ err_lock:
 static int stm32l4_write_option(struct flash_bank *bank, uint32_t reg_offset,
 	uint32_t value, uint32_t mask)
 {
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
 	uint32_t optiondata;
 	int retval, retval2;
 
 	retval = stm32l4_read_flash_reg(bank, reg_offset, &optiondata);
 	if (retval != ERROR_OK)
 		return retval;
+
+	/* for STM32L5 and similar devices, use always non-secure
+	 * registers for option bytes programming */
+	const uint32_t *saved_flash_regs = stm32l4_info->flash_regs;
+	if (stm32l4_info->part_info->flags & F_HAS_L5_FLASH_REGS)
+		stm32l4_info->flash_regs = stm32l5_ns_flash_regs;
 
 	retval = stm32l4_unlock_reg(bank);
 	if (retval != ERROR_OK)
@@ -860,6 +926,7 @@ static int stm32l4_write_option(struct flash_bank *bank, uint32_t reg_offset,
 
 err_lock:
 	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK | FLASH_OPTLOCK);
+	stm32l4_info->flash_regs = saved_flash_regs;
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -1007,6 +1074,16 @@ static int stm32l4_erase(struct flash_bank *bank, unsigned int first,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+		/* set all FLASH pages as secure */
+		retval = stm32l4_set_secbb(bank, FLASH_SECBB_SECURE);
+		if (retval != ERROR_OK) {
+			/* restore all FLASH pages as non-secure */
+			stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE); /* ignore the return value */
+			return retval;
+		}
+	}
+
 	retval = stm32l4_unlock_reg(bank);
 	if (retval != ERROR_OK)
 		goto err_lock;
@@ -1043,6 +1120,13 @@ static int stm32l4_erase(struct flash_bank *bank, unsigned int first,
 
 err_lock:
 	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK);
+
+	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+		/* restore all FLASH pages as non-secure */
+		int retval3 = stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE);
+		if (retval3 != ERROR_OK)
+			return retval3;
+	}
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -1281,6 +1365,7 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
 	int retval = ERROR_OK, retval2;
 
 	if (stm32l4_is_otp(bank) && !stm32l4_otp_is_enabled(bank)) {
@@ -1335,6 +1420,16 @@ static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 
+	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+		/* set all FLASH pages as secure */
+		retval = stm32l4_set_secbb(bank, FLASH_SECBB_SECURE);
+		if (retval != ERROR_OK) {
+			/* restore all FLASH pages as non-secure */
+			stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE); /* ignore the return value */
+			return retval;
+		}
+	}
+
 	retval = stm32l4_unlock_reg(bank);
 	if (retval != ERROR_OK)
 		goto err_lock;
@@ -1343,6 +1438,13 @@ static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 
 err_lock:
 	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK);
+
+	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+		/* restore all FLASH pages as non-secure */
+		int retval3 = stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE);
+		if (retval3 != ERROR_OK)
+			return retval3;
+	}
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("block write failed");
@@ -1426,6 +1528,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	LOG_INFO("device idcode = 0x%08" PRIx32 " (%s - Rev %s : 0x%04x)",
 			stm32l4_info->idcode, part_info->device_str, rev_str, rev_id);
 
+	stm32l4_info->flash_regs_base = stm32l4_info->part_info->flash_regs_base;
 	stm32l4_info->flash_regs = stm32l4_info->part_info->default_flash_regs;
 
 	/* read flash option register */
@@ -1461,7 +1564,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 		stm32l4_info->probed = true;
 		return ERROR_OK;
-	} else if (bank->base != STM32_FLASH_BANK_BASE) {
+	} else if (bank->base != STM32_FLASH_BANK_BASE && bank->base != STM32_FLASH_S_BANK_BASE) {
 		LOG_ERROR("invalid bank base address");
 		return ERROR_FAIL;
 	}
@@ -1589,6 +1692,15 @@ static int stm32l4_probe(struct flash_bank *bank)
 			num_pages = flash_size_kb / page_size_kb;
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
+
+		/**
+		 * by default use the non-secure registers,
+		 * switch secure registers if TZ is enabled and RDP is LEVEL_0
+		 */
+		if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+			stm32l4_info->flash_regs_base |= 0x10000000;
+			stm32l4_info->flash_regs = stm32l5_s_flash_regs;
+		}
 		break;
 	case 0x495: /* STM32WB5x */
 	case 0x496: /* STM32WB3x */
@@ -1714,6 +1826,16 @@ static int stm32l4_mass_erase(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+		/* set all FLASH pages as secure */
+		retval = stm32l4_set_secbb(bank, FLASH_SECBB_SECURE);
+		if (retval != ERROR_OK) {
+			/* restore all FLASH pages as non-secure */
+			stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE); /* ignore the return value */
+			return retval;
+		}
+	}
+
 	retval = stm32l4_unlock_reg(bank);
 	if (retval != ERROR_OK)
 		goto err_lock;
@@ -1735,6 +1857,13 @@ static int stm32l4_mass_erase(struct flash_bank *bank)
 
 err_lock:
 	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK);
+
+	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+		/* restore all FLASH pages as non-secure */
+		int retval3 = stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE);
+		if (retval3 != ERROR_OK)
+			return retval3;
+	}
 
 	if (retval != ERROR_OK)
 		return retval;
