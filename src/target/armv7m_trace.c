@@ -408,8 +408,9 @@ COMMAND_HANDLER(handle_itm_port_command)
 
 	if (CMD_CTX->mode == COMMAND_EXEC)
 		return armv7m_trace_itm_config(target);
-	else
-		return ERROR_OK;
+
+	armv7m->trace_config.itm_deferred_config = true;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_itm_ports_command)
@@ -427,8 +428,9 @@ COMMAND_HANDLER(handle_itm_ports_command)
 
 	if (CMD_CTX->mode == COMMAND_EXEC)
 		return armv7m_trace_itm_config(target);
-	else
-		return ERROR_OK;
+
+	armv7m->trace_config.itm_deferred_config = true;
+	return ERROR_OK;
 }
 
 static const struct command_registration tpiu_command_handlers[] = {
