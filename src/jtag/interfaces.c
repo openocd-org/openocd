@@ -40,6 +40,7 @@
  * that contain a jtag_interface structure that can added to this list.
  */
 
+extern struct jtag_interface kernel_jtag_interface;
 #if BUILD_ZY1000 == 1
 extern struct jtag_interface zy1000_interface;
 #elif defined(BUILD_MINIDRIVER_DUMMY)
@@ -241,6 +242,7 @@ struct jtag_interface *jtag_interfaces[] = {
 		&xds110_interface,
 #endif
 #endif /* standard drivers */
+		&kernel_jtag_interface,
 		NULL,
 	};
 

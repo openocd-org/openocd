@@ -15,7 +15,7 @@ EXTRA_DIST += $(ULINK_FIRMWARE) \
 	%D%/rlink_call.m4 \
 	%D%/rlink_init.m4
 
-DRIVERFILES =
+DRIVERFILES = %D%/kernel_jtag.c
 
 # Standard Driver: common files
 DRIVERFILES += %D%/driver.c
@@ -165,6 +165,7 @@ DRIVERFILES += %D%/xds110.c
 endif
 
 DRIVERHEADERS = \
+	%D%/kernel_jtag.h \
 	%D%/bitbang.h \
 	%D%/bitq.h \
 	%D%/jtag_usb_common.h \
