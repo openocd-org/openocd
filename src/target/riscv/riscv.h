@@ -10,6 +10,7 @@ struct riscv_program;
 #include "gdb_regs.h"
 #include "jtag/jtag.h"
 #include "target/register.h"
+#include "command.h"
 
 /* The register cache is statically allocated. */
 #define RISCV_MAX_HARTS 1024
@@ -198,6 +199,8 @@ typedef struct {
 	int (*hart_count)(struct target *target);
 	unsigned (*data_bits)(struct target *target);
 
+	COMMAND_HELPER((*print_info), struct target *target);
+
 	/* Storage for vector register types. */
 	struct reg_data_type_vector vector_uint8;
 	struct reg_data_type_vector vector_uint16;
@@ -237,6 +240,9 @@ typedef struct {
 	riscv_sample_config_t sample_config;
 	riscv_sample_buf_t sample_buf;
 } riscv_info_t;
+
+COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
+			   unsigned value);
 
 typedef struct {
 	uint8_t tunneled_dr_width;

@@ -1876,6 +1876,22 @@ static unsigned riscv013_data_bits(struct target *target)
 	return 32;
 }
 
+COMMAND_HELPER(riscv013_print_info, struct target *target)
+{
+	RISCV013_INFO(info);
+	riscv_print_info_line(CMD, "dm", "abits", info->abits);
+	riscv_print_info_line(CMD, "dm", "progbufsize", info->progbufsize);
+	riscv_print_info_line(CMD, "dm", "sbversion", get_field(info->sbcs, DM_SBCS_SBVERSION));
+	riscv_print_info_line(CMD, "dm", "sbasize", get_field(info->sbcs, DM_SBCS_SBASIZE));
+	riscv_print_info_line(CMD, "dm", "sbaccess128", get_field(info->sbcs, DM_SBCS_SBACCESS128));
+	riscv_print_info_line(CMD, "dm", "sbaccess64", get_field(info->sbcs, DM_SBCS_SBACCESS64));
+	riscv_print_info_line(CMD, "dm", "sbaccess32", get_field(info->sbcs, DM_SBCS_SBACCESS32));
+	riscv_print_info_line(CMD, "dm", "sbaccess16", get_field(info->sbcs, DM_SBCS_SBACCESS16));
+	riscv_print_info_line(CMD, "dm", "sbaccess8", get_field(info->sbcs, DM_SBCS_SBACCESS8));
+
+	return 0;
+}
+
 static int prep_for_vector_access(struct target *target, uint64_t *vtype,
 		uint64_t *vl, unsigned *debug_vl)
 {
@@ -2273,6 +2289,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->test_compliance = &riscv013_test_compliance;
 	generic_info->hart_count = &riscv013_hart_count;
 	generic_info->data_bits = &riscv013_data_bits;
+	generic_info->print_info = &riscv013_print_info;
 	generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;

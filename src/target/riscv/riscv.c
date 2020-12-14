@@ -3134,6 +3134,33 @@ error:
 	return result;
 }
 
+COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
+			   unsigned value)
+{
+	char full_key[80];
+	snprintf(full_key, sizeof(full_key), "%s.%s", section, key);
+	command_print(CMD, "%-21s %3d", full_key, value);
+	return 0;
+}
+
+COMMAND_HANDLER(handle_info)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	/* This output format can be fed directly into TCL's "array set". */
+
+	riscv_print_info_line(CMD, "hart", "xlen", riscv_xlen(target));
+	riscv_enumerate_triggers(target);
+	riscv_print_info_line(CMD, "hart", "trigger_count",
+						  r->trigger_count[target->coreid]);
+
+	if (r->print_info)
+		return CALL_COMMAND_HANDLER(r->print_info, target);
+
+	return 0;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "dump_sample_buf",
@@ -3141,6 +3168,13 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "riscv dump_sample_buf [base64]",
 		.help = "Print the contents of the sample buffer, and clear the buffer."
+	},
+	{
+		.name = "info",
+		.handler = handle_info,
+		.mode = COMMAND_ANY,
+		.usage = "riscv info",
+		.help = "Displays some information OpenOCD detected about the target."
 	},
 	{
 		.name = "memory_sample",
