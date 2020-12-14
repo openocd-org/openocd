@@ -2192,7 +2192,7 @@ static int sample_memory_bus_v1(struct target *target,
 			/* Discard this batch (too much hassle to try to recover partial
 			 * data) and try again with a larger delay. */
 			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
-			dmi_write(target, DM_SBCS, DM_SBCS_SBBUSYERROR | DM_SBCS_SBERROR);
+			dmi_write(target, DM_SBCS, sbcs_read | DM_SBCS_SBBUSYERROR | DM_SBCS_SBERROR);
 			riscv_batch_free(batch);
 			continue;
 		}
@@ -2778,7 +2778,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 
 		if (get_field(sbcs_read, DM_SBCS_SBBUSYERROR)) {
 			/* We read while the target was busy. Slow down and try again. */
-			if (dmi_write(target, DM_SBCS, DM_SBCS_SBBUSYERROR) != ERROR_OK)
+			if (dmi_write(target, DM_SBCS, sbcs_read | DM_SBCS_SBBUSYERROR) != ERROR_OK)
 				return ERROR_FAIL;
 			next_address = sb_read_address(target);
 			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
@@ -3726,7 +3726,7 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 
 		if (get_field(sbcs, DM_SBCS_SBBUSYERROR)) {
 			/* We wrote while the target was busy. Slow down and try again. */
-			dmi_write(target, DM_SBCS, DM_SBCS_SBBUSYERROR);
+			dmi_write(target, DM_SBCS, sbcs | DM_SBCS_SBBUSYERROR);
 			info->bus_master_write_delay += info->bus_master_write_delay / 10 + 1;
 		}
 
