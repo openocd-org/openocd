@@ -3339,9 +3339,10 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 		return ERROR_FAIL;
 
 	uint64_t s0;
+	int result = ERROR_FAIL;
 
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
+		goto restore_mstatus;
 
 	/* Write the program (load, increment) */
 	struct riscv_program program;
@@ -3363,40 +3364,42 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 			break;
 		default:
 			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
+			goto restore_mstatus;
 	}
 	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
 		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 
 	if (riscv_program_ebreak(&program) != ERROR_OK)
-		return ERROR_FAIL;
+		goto restore_mstatus;
 	if (riscv_program_write(&program) != ERROR_OK)
-		return ERROR_FAIL;
+		goto restore_mstatus;
 
 	/* Write address to S0, and execute buffer. */
 	if (write_abstract_arg(target, 0, address, riscv_xlen(target)) != ERROR_OK)
-		return ERROR_FAIL;
+		goto restore_mstatus;
 	uint32_t command = access_register_command(target, GDB_REGNO_S0,
 			riscv_xlen(target), AC_ACCESS_REGISTER_WRITE |
 			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
 	if (execute_abstract_command(target, command) != ERROR_OK)
-		return ERROR_FAIL;
+		goto restore_s0;
 
 	uint64_t value;
 	if (register_read(target, &value, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
+		goto restore_s0;
 	buf_set_u64(buffer, 0, 8 * size, value);
 	log_memory_access(address, value, size, true);
+	result = ERROR_OK;
 
+restore_s0:
 	if (riscv_set_register(target, GDB_REGNO_S0, s0) != ERROR_OK)
-		return ERROR_FAIL;
+		result = ERROR_FAIL;
 
-	/* Restore MSTATUS */
+restore_mstatus:
 	if (mstatus != mstatus_old)
 		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
-			return ERROR_FAIL;
+			result = ERROR_FAIL;
 
-	return ERROR_OK;
+	return result;
 }
 
 /**
