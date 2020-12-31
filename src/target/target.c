@@ -72,8 +72,6 @@ static int target_get_gdb_fileio_info_default(struct target *target,
 		struct gdb_fileio_info *fileio_info);
 static int target_gdb_fileio_end_default(struct target *target, int retcode,
 		int fileio_errno, bool ctrl_c);
-static int target_profiling_default(struct target *target, uint32_t *samples,
-		uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
 
 /* targets */
 extern struct target_type arm7tdmi_target;
@@ -156,8 +154,8 @@ static struct target_type *target_types[] = {
 struct target *all_targets;
 static struct target_event_callback *target_event_callbacks;
 static struct target_timer_callback *target_timer_callbacks;
-LIST_HEAD(target_reset_callback_list);
-LIST_HEAD(target_trace_callback_list);
+static LIST_HEAD(target_reset_callback_list);
+static LIST_HEAD(target_trace_callback_list);
 static const int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
 
 static const Jim_Nvp nvp_assert[] = {
@@ -768,9 +766,11 @@ int target_examine(void)
 		if (target->defer_examine)
 			continue;
 
-		retval = target_examine_one(target);
-		if (retval != ERROR_OK)
-			return retval;
+		int retval2 = target_examine_one(target);
+		if (retval2 != ERROR_OK) {
+			LOG_WARNING("target %s examination failed", target_name(target));
+			retval = retval2;
+		}
 	}
 	return retval;
 }
@@ -1031,11 +1031,11 @@ int target_run_flash_async_algorithm(struct target *target,
 			 * programming. The exact delay shouldn't matter as long as it's
 			 * less than buffer size / flash speed. This is very unlikely to
 			 * run when using high latency connections such as USB. */
-			alive_sleep(10);
+			alive_sleep(2);
 
 			/* to stop an infinite loop on some targets check and increment a timeout
 			 * this issue was observed on a stellaris using the new ICDI interface */
-			if (timeout++ >= 500) {
+			if (timeout++ >= 2500) {
 				LOG_ERROR("timeout waiting for algorithm, a target reset is recommended");
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
@@ -1048,6 +1048,10 @@ int target_run_flash_async_algorithm(struct target *target,
 		/* Limit to the amount of data we actually want to write */
 		if (thisrun_bytes > count * block_size)
 			thisrun_bytes = count * block_size;
+
+		/* Force end of large blocks to be word aligned */
+		if (thisrun_bytes >= 16)
+			thisrun_bytes -= (rp + thisrun_bytes) & 0x03;
 
 		/* Write data to fifo */
 		retval = target_write_buffer(target, wp, thisrun_bytes, buffer);
@@ -1091,6 +1095,156 @@ int target_run_flash_async_algorithm(struct target *target,
 		retval = target_read_u32(target, rp_addr, &rp);
 		if (retval == ERROR_OK && rp == 0) {
 			LOG_ERROR("flash write algorithm aborted by target");
+			retval = ERROR_FLASH_OPERATION_FAILED;
+		}
+	}
+
+	return retval;
+}
+
+int target_run_read_async_algorithm(struct target *target,
+		uint8_t *buffer, uint32_t count, int block_size,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t buffer_start, uint32_t buffer_size,
+		uint32_t entry_point, uint32_t exit_point, void *arch_info)
+{
+	int retval;
+	int timeout = 0;
+
+	const uint8_t *buffer_orig = buffer;
+
+	/* Set up working area. First word is write pointer, second word is read pointer,
+	 * rest is fifo data area. */
+	uint32_t wp_addr = buffer_start;
+	uint32_t rp_addr = buffer_start + 4;
+	uint32_t fifo_start_addr = buffer_start + 8;
+	uint32_t fifo_end_addr = buffer_start + buffer_size;
+
+	uint32_t wp = fifo_start_addr;
+	uint32_t rp = fifo_start_addr;
+
+	/* validate block_size is 2^n */
+	assert(!block_size || !(block_size & (block_size - 1)));
+
+	retval = target_write_u32(target, wp_addr, wp);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = target_write_u32(target, rp_addr, rp);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Start up algorithm on target */
+	retval = target_start_algorithm(target, num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			entry_point,
+			exit_point,
+			arch_info);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("error starting target flash read algorithm");
+		return retval;
+	}
+
+	while (count > 0) {
+		retval = target_read_u32(target, wp_addr, &wp);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("failed to get write pointer");
+			break;
+		}
+
+		LOG_DEBUG("offs 0x%zx count 0x%" PRIx32 " wp 0x%" PRIx32 " rp 0x%" PRIx32,
+			(size_t)(buffer - buffer_orig), count, wp, rp);
+
+		if (wp == 0) {
+			LOG_ERROR("flash read algorithm aborted by target");
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		}
+
+		if (((wp - fifo_start_addr) & (block_size - 1)) || wp < fifo_start_addr || wp >= fifo_end_addr) {
+			LOG_ERROR("corrupted fifo write pointer 0x%" PRIx32, wp);
+			break;
+		}
+
+		/* Count the number of bytes available in the fifo without
+		 * crossing the wrap around. */
+		uint32_t thisrun_bytes;
+		if (wp >= rp)
+			thisrun_bytes = wp - rp;
+		else
+			thisrun_bytes = fifo_end_addr - rp;
+
+		if (thisrun_bytes == 0) {
+			/* Throttle polling a bit if transfer is (much) faster than flash
+			 * reading. The exact delay shouldn't matter as long as it's
+			 * less than buffer size / flash speed. This is very unlikely to
+			 * run when using high latency connections such as USB. */
+			alive_sleep(2);
+
+			/* to stop an infinite loop on some targets check and increment a timeout
+			 * this issue was observed on a stellaris using the new ICDI interface */
+			if (timeout++ >= 2500) {
+				LOG_ERROR("timeout waiting for algorithm, a target reset is recommended");
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+			continue;
+		}
+
+		/* Reset our timeout */
+		timeout = 0;
+
+		/* Limit to the amount of data we actually want to read */
+		if (thisrun_bytes > count * block_size)
+			thisrun_bytes = count * block_size;
+
+		/* Force end of large blocks to be word aligned */
+		if (thisrun_bytes >= 16)
+			thisrun_bytes -= (rp + thisrun_bytes) & 0x03;
+
+		/* Read data from fifo */
+		retval = target_read_buffer(target, rp, thisrun_bytes, buffer);
+		if (retval != ERROR_OK)
+			break;
+
+		/* Update counters and wrap write pointer */
+		buffer += thisrun_bytes;
+		count -= thisrun_bytes / block_size;
+		rp += thisrun_bytes;
+		if (rp >= fifo_end_addr)
+			rp = fifo_start_addr;
+
+		/* Store updated write pointer to target */
+		retval = target_write_u32(target, rp_addr, rp);
+		if (retval != ERROR_OK)
+			break;
+
+		/* Avoid GDB timeouts */
+		keep_alive();
+
+	}
+
+	if (retval != ERROR_OK) {
+		/* abort flash write algorithm on target */
+		target_write_u32(target, rp_addr, 0);
+	}
+
+	int retval2 = target_wait_algorithm(target, num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			exit_point,
+			10000,
+			arch_info);
+
+	if (retval2 != ERROR_OK) {
+		LOG_ERROR("error waiting for target flash write algorithm");
+		retval = retval2;
+	}
+
+	if (retval == ERROR_OK) {
+		/* check if algorithm set wp = 0 after fifo writer loop finished */
+		retval = target_read_u32(target, wp_addr, &wp);
+		if (retval == ERROR_OK && wp == 0) {
+			LOG_ERROR("flash read algorithm aborted by target");
 			retval = ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -1265,10 +1419,10 @@ int target_get_gdb_reg_list_noread(struct target *target,
 bool target_supports_gdb_connection(struct target *target)
 {
 	/*
-	 * based on current code, we can simply exclude all the targets that
-	 * don't provide get_gdb_reg_list; this could change with new targets.
+	 * exclude all the targets that don't provide get_gdb_reg_list
+	 * or that have explicit gdb_max_connection == 0
 	 */
-	return !!target->type->get_gdb_reg_list;
+	return !!target->type->get_gdb_reg_list && !!target->gdb_max_connections;
 }
 
 int target_step(struct target *target,
@@ -1328,13 +1482,9 @@ unsigned target_data_bits(struct target *target)
 	return 32;
 }
 
-int target_profiling(struct target *target, uint32_t *samples,
+static int target_profiling(struct target *target, uint32_t *samples,
 			uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
 {
-	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target %s is not halted (profiling)", target->cmd_name);
-		return ERROR_TARGET_NOT_HALTED;
-	}
 	return target->type->profiling(target, samples, max_num_samples,
 			num_samples, seconds);
 }
@@ -2154,7 +2304,7 @@ static int target_gdb_fileio_end_default(struct target *target,
 	return ERROR_OK;
 }
 
-static int target_profiling_default(struct target *target, uint32_t *samples,
+int target_profiling_default(struct target *target, uint32_t *samples,
 		uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
 {
 	struct timeval timeout, now;
@@ -2905,7 +3055,7 @@ COMMAND_HANDLER(handle_reg_command)
 			for (i = 0, reg = cache->reg_list;
 					i < cache->num_regs;
 					i++, reg++, count++) {
-				if (reg->exist == false)
+				if (reg->exist == false || reg->hidden)
 					continue;
 				/* only print cached values if they are valid */
 				if (reg->exist) {
@@ -3441,11 +3591,11 @@ static COMMAND_HELPER(parse_load_image_command_CMD_ARGV, struct image *image,
 		target_addr_t addr;
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[1], addr);
 		image->base_address = addr;
-		image->base_address_set = 1;
+		image->base_address_set = true;
 	} else
-		image->base_address_set = 0;
+		image->base_address_set = false;
 
-	image->start_address_set = 0;
+	image->start_address_set = false;
 
 	if (CMD_ARGC >= 4)
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[3], *min_address);
@@ -3468,7 +3618,6 @@ COMMAND_HANDLER(handle_load_image_command)
 	uint32_t image_size;
 	target_addr_t min_address = 0;
 	target_addr_t max_address = -1;
-	int i;
 	struct image image;
 
 	int retval = CALL_COMMAND_HANDLER(parse_load_image_command_CMD_ARGV,
@@ -3486,7 +3635,7 @@ COMMAND_HANDLER(handle_load_image_command)
 
 	image_size = 0x0;
 	retval = ERROR_OK;
-	for (i = 0; i < image.num_sections; i++) {
+	for (unsigned int i = 0; i < image.num_sections; i++) {
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL) {
 			command_print(CMD,
@@ -3619,7 +3768,6 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 	uint8_t *buffer;
 	size_t buf_cnt;
 	uint32_t image_size;
-	int i;
 	int retval;
 	uint32_t checksum = 0;
 	uint32_t mem_checksum = 0;
@@ -3643,13 +3791,13 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 		target_addr_t addr;
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[1], addr);
 		image.base_address = addr;
-		image.base_address_set = 1;
+		image.base_address_set = true;
 	} else {
-		image.base_address_set = 0;
+		image.base_address_set = false;
 		image.base_address = 0x0;
 	}
 
-	image.start_address_set = 0;
+	image.start_address_set = false;
 
 	retval = image_open(&image, CMD_ARGV[0], (CMD_ARGC == 3) ? CMD_ARGV[2] : NULL);
 	if (retval != ERROR_OK)
@@ -3658,12 +3806,12 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 	image_size = 0x0;
 	int diffs = 0;
 	retval = ERROR_OK;
-	for (i = 0; i < image.num_sections; i++) {
+	for (unsigned int i = 0; i < image.num_sections; i++) {
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL) {
 			command_print(CMD,
-					"error allocating buffer for section (%d bytes)",
-					(int)(image.sections[i].size));
+					"error allocating buffer for section (%" PRIu32 " bytes)",
+					image.sections[i].size);
 			break;
 		}
 		retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt);
@@ -4134,6 +4282,7 @@ COMMAND_HANDLER(handle_profile_command)
 	uint32_t offset;
 	uint32_t num_of_samples;
 	int retval = ERROR_OK;
+	bool halted_before_profiling = target->state == TARGET_HALTED;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
 
@@ -4164,8 +4313,19 @@ COMMAND_HANDLER(handle_profile_command)
 		free(samples);
 		return retval;
 	}
-	if (target->state == TARGET_RUNNING) {
+
+	if (target->state == TARGET_RUNNING && halted_before_profiling) {
+		/* The target was halted before we started and is running now. Halt it,
+		 * for consistency. */
 		retval = target_halt(target);
+		if (retval != ERROR_OK) {
+			free(samples);
+			return retval;
+		}
+	} else if (target->state == TARGET_HALTED && !halted_before_profiling) {
+		/* The target was running before we started and is halted now. Resume
+		 * it, for consistency. */
+		retval = target_resume(target, 1, 0, 0, 0);
 		if (retval != ERROR_OK) {
 			free(samples);
 			return retval;
@@ -4678,6 +4838,7 @@ enum target_cfg_param {
 	TCFG_RTOS,
 	TCFG_DEFER_EXAMINE,
 	TCFG_GDB_PORT,
+	TCFG_GDB_MAX_CONNECTIONS,
 };
 
 static Jim_Nvp nvp_config_opts[] = {
@@ -4694,6 +4855,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-rtos",             .value = TCFG_RTOS },
 	{ .name = "-defer-examine",    .value = TCFG_DEFER_EXAMINE },
 	{ .name = "-gdb-port",         .value = TCFG_GDB_PORT },
+	{ .name = "-gdb-max-connections",   .value = TCFG_GDB_MAX_CONNECTIONS },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -5000,6 +5162,25 @@ no_params:
 			}
 			Jim_SetResultString(goi->interp, target->gdb_port_override ? : "undefined", -1);
 			/* loop for more */
+			break;
+
+		case TCFG_GDB_MAX_CONNECTIONS:
+			if (goi->isconfigure) {
+				struct command_context *cmd_ctx = current_command_context(goi->interp);
+				if (cmd_ctx->mode != COMMAND_CONFIG) {
+					Jim_SetResultString(goi->interp, "-gdb-max-conenctions must be configured before 'init'", -1);
+					return JIM_ERR;
+				}
+
+				e = Jim_GetOpt_Wide(goi, &w);
+				if (e != JIM_OK)
+					return e;
+				target->gdb_max_connections = (w < 0) ? CONNECTION_LIMIT_UNLIMITED : (int)w;
+			} else {
+				if (goi->argc != 0)
+					goto no_params;
+			}
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->gdb_max_connections));
 			break;
 		}
 	} /* while (goi->argc) */
@@ -5581,6 +5762,7 @@ static int target_create(Jim_GetOptInfo *goi)
 	target->rtos_auto_detect = false;
 
 	target->gdb_port_override = NULL;
+	target->gdb_max_connections = 1;
 
 	/* Do the rest as "configure" options */
 	goi->isconfigure = 1;
@@ -5703,7 +5885,9 @@ static int jim_target_current(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	struct command_context *cmd_ctx = current_command_context(interp);
 	assert(cmd_ctx != NULL);
 
-	Jim_SetResultString(interp, target_name(get_current_target(cmd_ctx)), -1);
+	struct target *target = get_current_target_or_null(cmd_ctx);
+	if (target)
+		Jim_SetResultString(interp, target_name(target), -1);
 	return JIM_OK;
 }
 
@@ -5875,7 +6059,6 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	uint32_t image_size;
 	target_addr_t min_address = 0;
 	target_addr_t max_address = -1;
-	int i;
 
 	struct image image;
 
@@ -5901,7 +6084,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 		return ERROR_FAIL;
 	}
 	memset(fastload, 0, sizeof(struct FastLoad)*image.num_sections);
-	for (i = 0; i < image.num_sections; i++) {
+	for (unsigned int i = 0; i < image.num_sections; i++) {
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL) {
 			command_print(CMD, "error allocating buffer for section (%d bytes)",

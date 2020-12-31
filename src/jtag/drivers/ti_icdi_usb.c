@@ -31,7 +31,7 @@
 
 #include <target/cortex_m.h>
 
-#include <libusb.h>
+#include "libusb_helper.h"
 
 #define ICDI_WRITE_ENDPOINT 0x02
 #define ICDI_READ_ENDPOINT 0x83
@@ -44,8 +44,7 @@
 #define PACKET_END "#"
 
 struct icdi_usb_handle_s {
-	libusb_context *usb_ctx;
-	libusb_device_handle *usb_dev;
+	struct libusb_device_handle *usb_dev;
 
 	char *read_buffer;
 	char *write_buffer;
@@ -476,13 +475,13 @@ static int icdi_usb_read_regs(void *handle)
 	return ERROR_OK;
 }
 
-static int icdi_usb_read_reg(void *handle, int num, uint32_t *val)
+static int icdi_usb_read_reg(void *handle, unsigned int regsel, uint32_t *val)
 {
 	int result;
 	struct icdi_usb_handle_s *h = handle;
 	char cmd[10];
 
-	snprintf(cmd, sizeof(cmd), "p%x", num);
+	snprintf(cmd, sizeof(cmd), "p%x", regsel);
 	result = icdi_send_cmd(handle, cmd);
 	if (result != ERROR_OK)
 		return result;
@@ -505,14 +504,14 @@ static int icdi_usb_read_reg(void *handle, int num, uint32_t *val)
 	return result;
 }
 
-static int icdi_usb_write_reg(void *handle, int num, uint32_t val)
+static int icdi_usb_write_reg(void *handle, unsigned int regsel, uint32_t val)
 {
 	int result;
 	char cmd[20];
 	uint8_t buf[4];
 	h_u32_to_le(buf, val);
 
-	int cmd_len = snprintf(cmd, sizeof(cmd), "P%x=", num);
+	int cmd_len = snprintf(cmd, sizeof(cmd), "P%x=", regsel);
 	hexify(cmd + cmd_len, buf, 4, sizeof(cmd));
 
 	result = icdi_send_cmd(handle, cmd);
@@ -657,10 +656,7 @@ static int icdi_usb_close(void *handle)
 		return ERROR_OK;
 
 	if (h->usb_dev)
-		libusb_close(h->usb_dev);
-
-	if (h->usb_ctx)
-		libusb_exit(h->usb_ctx);
+		jtag_libusb_close(h->usb_dev);
 
 	free(h->read_buffer);
 	free(h->write_buffer);
@@ -670,6 +666,7 @@ static int icdi_usb_close(void *handle)
 
 static int icdi_usb_open(struct hl_interface_param_s *param, void **fd)
 {
+	/* TODO: Convert remaining libusb_ calls to jtag_libusb_ */
 	int retval;
 	struct icdi_usb_handle_s *h;
 
@@ -682,19 +679,14 @@ static int icdi_usb_open(struct hl_interface_param_s *param, void **fd)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x", param->transport,
-		  param->vid[0], param->pid[0]);
+	for (uint8_t i = 0; param->vid[i] && param->pid[i]; ++i)
+		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s", param->transport,
+			param->vid[i], param->pid[i], param->serial ? param->serial : "");
 
-	/* TODO: convert libusb_ calls to jtag_libusb_ */
-	if (param->vid[1])
-		LOG_WARNING("Bad configuration: 'hla_vid_pid' command does not accept more than one VID PID pair on ti-icdi!");
+	/* TI (Stellaris) ICDI provides its serial number in the USB descriptor;
+	   no need to provide a callback here. */
+	jtag_libusb_open(param->vid, param->pid, param->serial, &h->usb_dev, NULL);
 
-	if (libusb_init(&h->usb_ctx) != 0) {
-		LOG_ERROR("libusb init failed");
-		goto error_open;
-	}
-
-	h->usb_dev = libusb_open_device_with_vid_pid(h->usb_ctx, param->vid[0], param->pid[0]);
 	if (!h->usb_dev) {
 		LOG_ERROR("open failed");
 		goto error_open;

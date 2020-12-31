@@ -299,6 +299,7 @@ struct stlink_usb_handle_s {
 
 #define STLINK_TRACE_SIZE               4096
 #define STLINK_TRACE_MAX_HZ             2000000
+#define STLINK_V3_TRACE_MAX_HZ          24000000
 
 #define STLINK_V3_MAX_FREQ_NB               10
 
@@ -323,6 +324,9 @@ struct stlink_usb_handle_s {
 
 /* aliases */
 #define STLINK_F_HAS_TARGET_VOLT        STLINK_F_HAS_TRACE
+#define STLINK_F_HAS_FPU_REG            STLINK_F_HAS_GETLASTRWSTATUS2
+
+#define STLINK_REGSEL_IS_FPU(x)         ((x) > 0x1F)
 
 struct speed_map {
 	int speed;
@@ -358,7 +362,7 @@ static const struct speed_map stlink_khz_to_speed_map_jtag[] = {
 
 static void stlink_usb_init_buffer(void *handle, uint8_t direction, uint32_t size);
 static int stlink_swim_status(void *handle);
-void stlink_dump_speed_map(const struct speed_map *map, unsigned int map_size);
+static void stlink_dump_speed_map(const struct speed_map *map, unsigned int map_size);
 static int stlink_get_com_freq(void *handle, bool is_jtag, struct speed_map *map);
 static int stlink_speed(void *handle, int khz, bool query);
 static int stlink_usb_open_ap(void *handle, unsigned short apsel);
@@ -2015,12 +2019,21 @@ static int stlink_usb_read_regs(void *handle)
 }
 
 /** */
-static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
+static int stlink_usb_read_reg(void *handle, unsigned int regsel, uint32_t *val)
 {
 	int res;
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
+
+	if (STLINK_REGSEL_IS_FPU(regsel) && !(h->version.flags & STLINK_F_HAS_FPU_REG)) {
+		res = stlink_usb_write_debug_reg(h, DCB_DCRSR, regsel & 0x7f);
+		if (res != ERROR_OK)
+			return res;
+
+		/* FIXME: poll DHCSR.S_REGRDY before read DCRDR */
+		return stlink_usb_v2_read_debug_reg(h, DCB_DCRDR, val);
+	}
 
 	stlink_usb_init_buffer(handle, h->rx_ep, h->version.jtag_api == STLINK_JTAG_API_V1 ? 4 : 8);
 
@@ -2029,7 +2042,7 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_READREG;
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_READREG;
-	h->cmdbuf[h->cmdidx++] = num;
+	h->cmdbuf[h->cmdidx++] = regsel;
 
 	if (h->version.jtag_api == STLINK_JTAG_API_V1) {
 		res = stlink_usb_xfer_noerrcheck(handle, h->databuf, 4);
@@ -2047,11 +2060,20 @@ static int stlink_usb_read_reg(void *handle, int num, uint32_t *val)
 }
 
 /** */
-static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
+static int stlink_usb_write_reg(void *handle, unsigned int regsel, uint32_t val)
 {
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle != NULL);
+
+	if (STLINK_REGSEL_IS_FPU(regsel) && !(h->version.flags & STLINK_F_HAS_FPU_REG)) {
+		int res = stlink_usb_write_debug_reg(h, DCB_DCRDR, val);
+		if (res != ERROR_OK)
+			return res;
+
+		return stlink_usb_write_debug_reg(h, DCB_DCRSR, DCRSR_WnR | (regsel & 0x7f));
+		/* FIXME: poll DHCSR.S_REGRDY after write DCRSR */
+	}
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
@@ -2060,7 +2082,7 @@ static int stlink_usb_write_reg(void *handle, int num, uint32_t val)
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV1_WRITEREG;
 	else
 		h->cmdbuf[h->cmdidx++] = STLINK_DEBUG_APIV2_WRITEREG;
-	h->cmdbuf[h->cmdidx++] = num;
+	h->cmdbuf[h->cmdidx++] = regsel;
 	h_u32_to_le(h->cmdbuf+h->cmdidx, val);
 	h->cmdidx += 4;
 
@@ -2577,7 +2599,7 @@ static int stlink_speed_jtag(void *handle, int khz, bool query)
 	return stlink_khz_to_speed_map_jtag[speed_index].speed;
 }
 
-void stlink_dump_speed_map(const struct speed_map *map, unsigned int map_size)
+static void stlink_dump_speed_map(const struct speed_map *map, unsigned int map_size)
 {
 	unsigned int i;
 
@@ -2725,7 +2747,7 @@ static int stlink_usb_close(void *handle)
  *    based on the length (0x1a = 26) we could easily decide if we have to fixup the serial
  *    and then we have just to convert the raw data into printable characters using sprintf
  */
-char *stlink_usb_get_alternate_serial(libusb_device_handle *device,
+static char *stlink_usb_get_alternate_serial(libusb_device_handle *device,
 		struct libusb_device_descriptor *dev_desc)
 {
 	int usb_retval;
@@ -2982,13 +3004,12 @@ static int stlink_usb_hl_open(struct hl_interface_param_s *param, void **fd)
 	return stlink_usb_open(param, stlink_get_mode(param->transport), fd);
 }
 
-int stlink_config_trace(void *handle, bool enabled,
+static int stlink_config_trace(void *handle, bool enabled,
 		enum tpiu_pin_protocol pin_protocol, uint32_t port_size,
 		unsigned int *trace_freq, unsigned int traceclkin_freq,
 		uint16_t *prescaler)
 {
 	struct stlink_usb_handle_s *h = handle;
-	uint16_t presc;
 
 	if (enabled && (!(h->version.flags & STLINK_F_HAS_TRACE) ||
 			pin_protocol != TPIU_PIN_PROTOCOL_ASYNC_UART)) {
@@ -2996,34 +3017,42 @@ int stlink_config_trace(void *handle, bool enabled,
 		return ERROR_FAIL;
 	}
 
-	if (!enabled) {
-		stlink_usb_trace_disable(h);
-		return ERROR_OK;
-	}
+	unsigned int max_trace_freq = (h->version.stlink == 3) ?
+			STLINK_V3_TRACE_MAX_HZ : STLINK_TRACE_MAX_HZ;
 
-	if (*trace_freq > STLINK_TRACE_MAX_HZ) {
+	/* Only concern ourselves with the frequency if the STlink is processing it. */
+	if (enabled && *trace_freq > max_trace_freq) {
 		LOG_ERROR("ST-LINK doesn't support SWO frequency higher than %u",
-			  STLINK_TRACE_MAX_HZ);
+			  max_trace_freq);
 		return ERROR_FAIL;
 	}
 
 	stlink_usb_trace_disable(h);
 
 	if (!*trace_freq)
-		*trace_freq = STLINK_TRACE_MAX_HZ;
+		*trace_freq = max_trace_freq;
 
-	presc = traceclkin_freq / *trace_freq;
+	unsigned int presc = (traceclkin_freq + *trace_freq / 2) / *trace_freq;
+	if (presc == 0 || presc > TPIU_ACPR_MAX_SWOSCALER + 1) {
+		LOG_ERROR("SWO frequency is not suitable. Please choose a different "
+			"frequency.");
+		return ERROR_FAIL;
+	}
 
-	if (traceclkin_freq % *trace_freq > 0)
-		presc++;
-
-	if (presc > TPIU_ACPR_MAX_SWOSCALER) {
+	/* Probe's UART speed must be within 3% of the TPIU's SWO baud rate. */
+	unsigned int max_deviation = (traceclkin_freq * 3) / 100;
+	if (presc * *trace_freq < traceclkin_freq - max_deviation ||
+			presc * *trace_freq > traceclkin_freq + max_deviation) {
 		LOG_ERROR("SWO frequency is not suitable. Please choose a different "
 			"frequency.");
 		return ERROR_FAIL;
 	}
 
 	*prescaler = presc;
+
+	if (!enabled)
+		return ERROR_OK;
+
 	h->trace.source_hz = *trace_freq;
 
 	return stlink_usb_trace_enable(h);

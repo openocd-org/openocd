@@ -127,13 +127,15 @@ struct reg {
 	bool caller_save;
 	/* Pointer to place where the value is stored, in the format understood by
 	 * the binarybuffer.h functions. */
-	void *value;
+	uint8_t *value;
 	/* The stored value needs to be written to the target. */
 	bool dirty;
 	/* When true, value is valid. */
 	bool valid;
 	/* When false, the register doesn't actually exist in the target. */
 	bool exist;
+	/* Hide the register from gdb and omit it in 'reg' cmd output */
+	bool hidden;
 	/* Size of the register in bits. */
 	uint32_t size;
 	/* Used for generating XML description of registers. Can be set to NULL for

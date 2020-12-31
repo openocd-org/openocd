@@ -39,6 +39,7 @@
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
 #include <helper/time_support.h>
+#include <rtt/rtt.h>
 
 /* NOTE:  most of this should work fine for the Cortex-M1 and
  * Cortex-M0 cores too, although they're ARMv6-M not ARMv7-M.
@@ -56,8 +57,8 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 		uint32_t num, uint32_t value);
 static void cortex_m_dwt_free(struct target *target);
 
-static int cortexm_dap_read_coreregister_u32(struct target *target,
-	uint32_t *value, int regnum)
+static int cortex_m_load_core_reg_u32(struct target *target,
+		uint32_t regsel, uint32_t *value)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int retval;
@@ -71,7 +72,7 @@ static int cortexm_dap_read_coreregister_u32(struct target *target,
 			return retval;
 	}
 
-	retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DCRSR, regnum);
+	retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DCRSR, regsel);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -89,8 +90,8 @@ static int cortexm_dap_read_coreregister_u32(struct target *target,
 	return retval;
 }
 
-static int cortexm_dap_write_coreregister_u32(struct target *target,
-	uint32_t value, int regnum)
+static int cortex_m_store_core_reg_u32(struct target *target,
+		uint32_t regsel, uint32_t value)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	int retval;
@@ -108,7 +109,7 @@ static int cortexm_dap_write_coreregister_u32(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DCRSR, regnum | DCRSR_WnR);
+	retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DCRSR, regsel | DCRSR_WnR);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -527,12 +528,6 @@ static int cortex_m_debug_entry(struct target *target)
 	r = arm->cpsr;
 	xPSR = buf_get_u32(r->value, 0, 32);
 
-	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec */
-	if (xPSR & 0xf00) {
-		r->dirty = r->valid;
-		cortex_m_store_core_reg_u32(target, 16, xPSR & ~0xff);
-	}
-
 	/* Are we in an exception handler */
 	if (xPSR & 0x1FF) {
 		armv7m->exception_number = (xPSR & 0x1FF);
@@ -541,7 +536,7 @@ static int cortex_m_debug_entry(struct target *target)
 		arm->map = armv7m_msp_reg_map;
 	} else {
 		unsigned control = buf_get_u32(arm->core_cache
-				->reg_list[ARMV7M_CONTROL].value, 0, 2);
+				->reg_list[ARMV7M_CONTROL].value, 0, 3);
 
 		/* is this thread privileged? */
 		arm->core_mode = control & 1
@@ -656,13 +651,9 @@ static int cortex_m_poll(struct target *target)
 		}
 	}
 
-	/* REVISIT when S_SLEEP is set, it's in a Sleep or DeepSleep state.
-	 * How best to model low power modes?
-	 */
-
 	if (target->state == TARGET_UNKNOWN) {
-		/* check if processor is retiring instructions */
-		if (cortex_m->dcb_dhcsr & S_RETIRE_ST) {
+		/* check if processor is retiring instructions or sleeping */
+		if (cortex_m->dcb_dhcsr & S_RETIRE_ST || cortex_m->dcb_dhcsr & S_SLEEP) {
 			target->state = TARGET_RUNNING;
 			retval = ERROR_OK;
 		}
@@ -827,15 +818,19 @@ static int cortex_m_resume(struct target *target, int current,
 		 * in parallel with disabled interrupts can cause local faults
 		 * to not be taken.
 		 *
-		 * REVISIT this clearly breaks non-debug execution, since the
-		 * PRIMASK register state isn't saved/restored...  workaround
-		 * by never resuming app code after debug execution.
+		 * This breaks non-debug (application) execution if not
+		 * called from armv7m_start_algorithm() which saves registers.
 		 */
 		buf_set_u32(r->value, 0, 1, 1);
 		r->dirty = true;
 		r->valid = true;
 
-		/* Make sure we are in Thumb mode */
+		/* Make sure we are in Thumb mode, set xPSR.T bit */
+		/* armv7m_start_algorithm() initializes entire xPSR register.
+		 * This duplicity handles the case when cortex_m_resume()
+		 * is used with the debug_execution flag directly,
+		 * not called through armv7m_start_algorithm().
+		 */
 		r = armv7m->arm.cpsr;
 		buf_set_u32(r->value, 24, 1, 1);
 		r->dirty = true;
@@ -1208,11 +1203,13 @@ static int cortex_m_assert_reset(struct target *target)
 		if (retval3 != ERROR_OK)
 			LOG_DEBUG("Ignoring AP write error right after reset");
 
-		retval3 = dap_dp_init(armv7m->debug_ap->dap);
-		if (retval3 != ERROR_OK)
+		retval3 = dap_dp_init_or_reconnect(armv7m->debug_ap->dap);
+		if (retval3 != ERROR_OK) {
 			LOG_ERROR("DP initialisation failed");
-
-		else {
+			/* The error return value must not be propagated in this case.
+			 * SYSRESETREQ or VECTRESET have been possibly triggered
+			 * so reset processing should continue */
+		} else {
 			/* I do not know why this is necessary, but it
 			 * fixes strange effects (step/resume cause NMI
 			 * after reset) on LM3S6918 -- Michael Schwingen
@@ -1255,7 +1252,8 @@ static int cortex_m_deassert_reset(struct target *target)
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
 	    !(jtag_reset_config & RESET_SRST_NO_GATING) &&
 		target_was_examined(target)) {
-		int retval = dap_dp_init(armv7m->debug_ap->dap);
+
+		int retval = dap_dp_init_or_reconnect(armv7m->debug_ap->dap);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("DP initialisation failed");
 			return retval;
@@ -1413,7 +1411,7 @@ int cortex_m_remove_breakpoint(struct target *target, struct breakpoint *breakpo
 	return cortex_m_unset_breakpoint(target, breakpoint);
 }
 
-int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	int dwt_num = 0;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
@@ -1496,7 +1494,7 @@ int cortex_m_set_watchpoint(struct target *target, struct watchpoint *watchpoint
 	return ERROR_OK;
 }
 
-int cortex_m_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
+static int cortex_m_unset_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct cortex_m_dwt_comparator *comparator;
@@ -1610,176 +1608,6 @@ void cortex_m_enable_watchpoints(struct target *target)
 	}
 }
 
-static int cortex_m_load_core_reg_u32(struct target *target,
-		uint32_t num, uint32_t *value)
-{
-	int retval;
-
-	/* NOTE:  we "know" here that the register identifiers used
-	 * in the v7m header match the Cortex-M3 Debug Core Register
-	 * Selector values for R0..R15, xPSR, MSP, and PSP.
-	 */
-	switch (num) {
-		case 0 ... 18:
-			/* read a normal core register */
-			retval = cortexm_dap_read_coreregister_u32(target, value, num);
-
-			if (retval != ERROR_OK) {
-				LOG_ERROR("JTAG failure %i", retval);
-				return ERROR_JTAG_DEVICE_ERROR;
-			}
-			LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "", (int)num, *value);
-			break;
-
-		case ARMV7M_FPSCR:
-			/* Floating-point Status and Registers */
-			retval = target_write_u32(target, DCB_DCRSR, 0x21);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = target_read_u32(target, DCB_DCRDR, value);
-			if (retval != ERROR_OK)
-				return retval;
-			LOG_DEBUG("load from FPSCR  value 0x%" PRIx32, *value);
-			break;
-
-		case ARMV7M_S0 ... ARMV7M_S31:
-			/* Floating-point Status and Registers */
-			retval = target_write_u32(target, DCB_DCRSR, num - ARMV7M_S0 + 0x40);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = target_read_u32(target, DCB_DCRDR, value);
-			if (retval != ERROR_OK)
-				return retval;
-			LOG_DEBUG("load from FPU reg S%d  value 0x%" PRIx32,
-				  (int)(num - ARMV7M_S0), *value);
-			break;
-
-		case ARMV7M_PRIMASK:
-		case ARMV7M_BASEPRI:
-		case ARMV7M_FAULTMASK:
-		case ARMV7M_CONTROL:
-			/* Cortex-M3 packages these four registers as bitfields
-			 * in one Debug Core register.  So say r0 and r2 docs;
-			 * it was removed from r1 docs, but still works.
-			 */
-			cortexm_dap_read_coreregister_u32(target, value, 20);
-
-			switch (num) {
-				case ARMV7M_PRIMASK:
-					*value = buf_get_u32((uint8_t *)value, 0, 1);
-					break;
-
-				case ARMV7M_BASEPRI:
-					*value = buf_get_u32((uint8_t *)value, 8, 8);
-					break;
-
-				case ARMV7M_FAULTMASK:
-					*value = buf_get_u32((uint8_t *)value, 16, 1);
-					break;
-
-				case ARMV7M_CONTROL:
-					*value = buf_get_u32((uint8_t *)value, 24, 2);
-					break;
-			}
-
-			LOG_DEBUG("load from special reg %i value 0x%" PRIx32 "", (int)num, *value);
-			break;
-
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return ERROR_OK;
-}
-
-static int cortex_m_store_core_reg_u32(struct target *target,
-		uint32_t num, uint32_t value)
-{
-	int retval;
-	uint32_t reg;
-	struct armv7m_common *armv7m = target_to_armv7m(target);
-
-	/* NOTE:  we "know" here that the register identifiers used
-	 * in the v7m header match the Cortex-M3 Debug Core Register
-	 * Selector values for R0..R15, xPSR, MSP, and PSP.
-	 */
-	switch (num) {
-		case 0 ... 18:
-			retval = cortexm_dap_write_coreregister_u32(target, value, num);
-			if (retval != ERROR_OK) {
-				struct reg *r;
-
-				LOG_ERROR("JTAG failure");
-				r = armv7m->arm.core_cache->reg_list + num;
-				r->dirty = r->valid;
-				return ERROR_JTAG_DEVICE_ERROR;
-			}
-			LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
-			break;
-
-		case ARMV7M_FPSCR:
-			/* Floating-point Status and Registers */
-			retval = target_write_u32(target, DCB_DCRDR, value);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = target_write_u32(target, DCB_DCRSR, 0x21 | (1<<16));
-			if (retval != ERROR_OK)
-				return retval;
-			LOG_DEBUG("write FPSCR value 0x%" PRIx32, value);
-			break;
-
-		case ARMV7M_S0 ... ARMV7M_S31:
-			/* Floating-point Status and Registers */
-			retval = target_write_u32(target, DCB_DCRDR, value);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = target_write_u32(target, DCB_DCRSR, (num - ARMV7M_S0 + 0x40) | (1<<16));
-			if (retval != ERROR_OK)
-				return retval;
-			LOG_DEBUG("write FPU reg S%d  value 0x%" PRIx32,
-				  (int)(num - ARMV7M_S0), value);
-			break;
-
-		case ARMV7M_PRIMASK:
-		case ARMV7M_BASEPRI:
-		case ARMV7M_FAULTMASK:
-		case ARMV7M_CONTROL:
-			/* Cortex-M3 packages these four registers as bitfields
-			 * in one Debug Core register.  So say r0 and r2 docs;
-			 * it was removed from r1 docs, but still works.
-			 */
-			cortexm_dap_read_coreregister_u32(target, &reg, 20);
-
-			switch (num) {
-				case ARMV7M_PRIMASK:
-					buf_set_u32((uint8_t *)&reg, 0, 1, value);
-					break;
-
-				case ARMV7M_BASEPRI:
-					buf_set_u32((uint8_t *)&reg, 8, 8, value);
-					break;
-
-				case ARMV7M_FAULTMASK:
-					buf_set_u32((uint8_t *)&reg, 16, 1, value);
-					break;
-
-				case ARMV7M_CONTROL:
-					buf_set_u32((uint8_t *)&reg, 24, 2, value);
-					break;
-			}
-
-			cortexm_dap_write_coreregister_u32(target, reg, 20);
-
-			LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num, value);
-			break;
-
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return ERROR_OK;
-}
-
 static int cortex_m_read_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -1820,6 +1648,8 @@ void cortex_m_deinit_target(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 
+	armv7m_trace_tpiu_exit(target);
+
 	free(cortex_m->fp_comparator_list);
 
 	cortex_m_dwt_free(target);
@@ -1835,27 +1665,22 @@ int cortex_m_profiling(struct target *target, uint32_t *samples,
 	struct timeval timeout, now;
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	uint32_t reg_value;
-	bool use_pcsr = false;
-	int retval = ERROR_OK;
-	struct reg *reg;
-
-	gettimeofday(&timeout, NULL);
-	timeval_add_time(&timeout, seconds, 0);
+	int retval;
 
 	retval = target_read_u32(target, DWT_PCSR, &reg_value);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while reading PCSR");
 		return retval;
 	}
-
-	if (reg_value != 0) {
-		use_pcsr = true;
-		LOG_INFO("Starting Cortex-M profiling. Sampling DWT_PCSR as fast as we can...");
-	} else {
-		LOG_INFO("Starting profiling. Halting and resuming the"
-			 " target as often as we can...");
-		reg = register_get_by_name(target->reg_cache, "pc", 1);
+	if (reg_value == 0) {
+		LOG_INFO("PCSR sampling not supported on this processor.");
+		return target_profiling_default(target, samples, max_num_samples, num_samples, seconds);
 	}
+
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, seconds, 0);
+
+	LOG_INFO("Starting Cortex-M profiling. Sampling DWT_PCSR as fast as we can...");
 
 	/* Make sure the target is running */
 	target_poll(target);
@@ -1870,40 +1695,21 @@ int cortex_m_profiling(struct target *target, uint32_t *samples,
 	uint32_t sample_count = 0;
 
 	for (;;) {
-		if (use_pcsr) {
-			if (armv7m && armv7m->debug_ap) {
-				uint32_t read_count = max_num_samples - sample_count;
-				if (read_count > 1024)
-					read_count = 1024;
+		if (armv7m && armv7m->debug_ap) {
+			uint32_t read_count = max_num_samples - sample_count;
+			if (read_count > 1024)
+				read_count = 1024;
 
-				retval = mem_ap_read_buf_noincr(armv7m->debug_ap,
-							(void *)&samples[sample_count],
-							4, read_count, DWT_PCSR);
-				sample_count += read_count;
-			} else {
-				target_read_u32(target, DWT_PCSR, &samples[sample_count++]);
-			}
+			retval = mem_ap_read_buf_noincr(armv7m->debug_ap,
+						(void *)&samples[sample_count],
+						4, read_count, DWT_PCSR);
+			sample_count += read_count;
 		} else {
-			target_poll(target);
-			if (target->state == TARGET_HALTED) {
-				reg_value = buf_get_u32(reg->value, 0, 32);
-				/* current pc, addr = 0, do not handle breakpoints, not debugging */
-				retval = target_resume(target, 1, 0, 0, 0);
-				samples[sample_count++] = reg_value;
-				target_poll(target);
-				alive_sleep(10); /* sleep 10ms, i.e. <100 samples/second. */
-			} else if (target->state == TARGET_RUNNING) {
-				/* We want to quickly sample the PC. */
-				retval = target_halt(target);
-			} else {
-				LOG_INFO("Target not halted or running");
-				retval = ERROR_OK;
-				break;
-			}
+			target_read_u32(target, DWT_PCSR, &samples[sample_count++]);
 		}
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Error while reading %s", use_pcsr ? "PCSR" : "target pc");
+			LOG_ERROR("Error while reading PCSR");
 			return retval;
 		}
 
@@ -2013,7 +1819,7 @@ static void cortex_m_dwt_addreg(struct target *t, struct reg *r, const struct dw
 	r->type = &dwt_reg_type;
 }
 
-void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target)
+static void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target)
 {
 	uint32_t dwtcr;
 	struct reg_cache *cache;
@@ -2242,7 +2048,6 @@ int cortex_m_examine(struct target *target)
 			for (idx = ARMV7M_NUM_CORE_REGS_NOFP;
 			     idx < armv7m->arm.core_cache->num_regs;
 			     idx++) {
-				free(armv7m->arm.core_cache->reg_list[idx].value);
 				free(armv7m->arm.core_cache->reg_list[idx].feature);
 				free(armv7m->arm.core_cache->reg_list[idx].reg_data_type);
 			}
@@ -2686,6 +2491,9 @@ static const struct command_registration cortex_m_command_handlers[] = {
 		.help = "Cortex-M command group",
 		.usage = "",
 		.chain = cortex_m_exec_command_handlers,
+	},
+	{
+		.chain = rtt_target_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
