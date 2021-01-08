@@ -47,7 +47,7 @@ struct gdb_fileio_info;
 
 /*
  * TARGET_UNKNOWN = 0: we don't know anything about the target yet
- * TARGET_RUNNING = 1: the target is executing user code
+ * TARGET_RUNNING = 1: the target is executing or ready to execute user code
  * TARGET_HALTED  = 2: the target is not executing code, and ready to talk to the
  * debugger. on an xscale it means that the debug handler is executing
  * TARGET_RESET   = 3: the target is being held in reset (only a temporary state,
@@ -210,6 +210,8 @@ struct target {
 	struct gdb_fileio_info *fileio_info;
 
 	char *gdb_port_override;			/* target-specific override for gdb_port */
+
+	int gdb_max_connections;			/* max number of simultaneous gdb connections */
 
 	/* The semihosting information, extracted from the target. */
 	struct semihosting *semihosting;
@@ -576,6 +578,18 @@ int target_run_flash_async_algorithm(struct target *target,
 		void *arch_info);
 
 /**
+ * This routine is a wrapper for asynchronous algorithms.
+ *
+ */
+int target_run_read_async_algorithm(struct target *target,
+		uint8_t *buffer, uint32_t count, int block_size,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		uint32_t buffer_start, uint32_t buffer_size,
+		uint32_t entry_point, uint32_t exit_point,
+		void *arch_info);
+
+/**
  * Read @a count items of @a size bytes from the memory of @a target at
  * the @a address given.
  *
@@ -754,6 +768,9 @@ void target_handle_event(struct target *t, enum target_event e);
 void target_handle_md_output(struct command_invocation *cmd,
 	struct target *target, target_addr_t address, unsigned size,
 	unsigned count, const uint8_t *buffer, bool include_address);
+
+int target_profiling_default(struct target *target, uint32_t *samples, uint32_t
+		max_num_samples, uint32_t *num_samples, uint32_t seconds);
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)

@@ -1,7 +1,8 @@
 AC_PREREQ(2.64)
-AC_INIT([openocd], [0.10.0+dev],
+AC_INIT([openocd], [0.11.0-rc1+dev],
   [OpenOCD Mailing List <openocd-devel@lists.sourceforge.net>])
 AC_CONFIG_SRCDIR([src/openocd.c])
+AC_CONFIG_AUX_DIR([.])
 
 m4_include([config_subdir.m4])dnl
 
@@ -43,6 +44,7 @@ AC_TYPE_LONG_LONG_INT
 
 AC_SEARCH_LIBS([ioperm], [ioperm])
 AC_SEARCH_LIBS([dlopen], [dl])
+AC_SEARCH_LIBS([openpty], [util])
 
 AC_CHECK_HEADERS([sys/socket.h])
 AC_CHECK_HEADERS([elf.h])
@@ -118,6 +120,7 @@ m4_define([USB1_ADAPTERS],
 	[[ft232r], [Bitbang mode of FT232R based devices], [FT232R]],
 	[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]],
 	[[xds110], [TI XDS110 Debug Probe], [XDS110]],
+	[[cmsis_dap_v2], [CMSIS-DAP v2 Compliant Debugger], [CMSIS_DAP_USB]],
 	[[osbdm], [OSBDM (JTAG only) Programmer], [OSBDM]],
 	[[opendous], [eStick/opendous JTAG Programmer], [OPENDOUS]],
 	[[aice], [Andes JTAG Programmer], [AICE]]])
@@ -128,7 +131,7 @@ m4_define([USB0_ADAPTERS],
 	[[armjtagew], [Olimex ARM-JTAG-EW Programmer], [ARMJTAGEW]]])
 
 m4_define([HIDAPI_ADAPTERS],
-	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP]],
+	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP_HID]],
 	[[nulink], [Nu-Link Programmer], [HLADAPTER_NULINK]]])
 
 m4_define([HIDAPI_USB1_ADAPTERS],
@@ -669,7 +672,11 @@ for hidapi_lib in hidapi hidapi-hidraw hidapi-libusb; do
 	])
 done
 
-PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [use_libftdi=yes], [
+PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [
+	use_libftdi=yes
+	PKG_CHECK_EXISTS([libftdi1 >= 1.5],
+		[AC_DEFINE([HAVE_LIBFTDI_TCIOFLUSH], [1], [Define if your libftdi has ftdi_tcioflush()])])
+  ], [
 	PKG_CHECK_MODULES([LIBFTDI], [libftdi], [use_libftdi=yes], [use_libftdi=no])
 ])
 
@@ -827,6 +834,7 @@ AS_IF([test "x${gcc_wextra}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Wbad-function-cast"
   GCC_WARNINGS="${GCC_WARNINGS} -Wcast-align"
   GCC_WARNINGS="${GCC_WARNINGS} -Wredundant-decls"
+  GCC_WARNINGS="${GCC_WARNINGS} -Wpointer-arith"
 ])
 AS_IF([test "x${gcc_werror}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Werror"

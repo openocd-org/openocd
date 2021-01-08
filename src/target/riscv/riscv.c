@@ -4835,7 +4835,7 @@ int riscv_init_registers(struct target *target)
 			assert(reg_name < info->reg_names + target->reg_cache->num_regs *
 					max_reg_name_len);
 		}
-		r->value = &info->reg_cache_values[number];
+		r->value = info->reg_cache_values[number];
 	}
 
 	return ERROR_OK;

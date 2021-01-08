@@ -1115,7 +1115,8 @@ static int cortex_a_post_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
-int cortex_a_set_dscr_bits(struct target *target, unsigned long bit_mask, unsigned long value)
+static int cortex_a_set_dscr_bits(struct target *target,
+		unsigned long bit_mask, unsigned long value)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	uint32_t dscr;
@@ -1680,10 +1681,10 @@ static int cortex_a_assert_reset(struct target *target)
 		 */
 
 		/*
-		 * FIXME: fix reset when transport is SWD. This is a temporary
+		 * FIXME: fix reset when transport is not JTAG. This is a temporary
 		 * work-around for release v0.10 that is not intended to stay!
 		 */
-		if (transport_is_swd() ||
+		if (!transport_is_jtag() ||
 				(target->reset_halt && (jtag_get_reset_config() & RESET_SRST_NO_GATING)))
 			adapter_assert_reset();
 

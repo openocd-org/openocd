@@ -151,12 +151,6 @@ static int sromalgo_prepare(struct target *target)
 	if (hr != ERROR_OK)
 		return hr;
 
-	/* Restore THUMB bit in xPSR register */
-	const struct armv7m_common *cm = target_to_armv7m(target);
-	hr = cm->store_core_reg_u32(target, ARMV7M_xPSR, 0x01000000);
-	if (hr != ERROR_OK)
-		return hr;
-
 	/* Allocate Working Area for Stack and Flash algorithm */
 	hr = target_alloc_working_area(target, RAM_STACK_WA_SIZE, &g_stack_area);
 	if (hr != ERROR_OK)
@@ -908,7 +902,7 @@ COMMAND_HANDLER(psoc6_handle_mass_erase_command)
  * @param target current target
  * @return ERROR_OK in case of success, ERROR_XXX code otherwise
  *************************************************************************************************/
-int handle_reset_halt(struct target *target)
+static int handle_reset_halt(struct target *target)
 {
 	int hr;
 	uint32_t reset_addr;

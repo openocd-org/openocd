@@ -856,6 +856,9 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 		char *sep = "\n";
 		char *shadow = "";
 
+		if (!arm_mode_data[mode].n_indices)
+			continue;
+
 		/* label this bank of registers (or shadows) */
 		switch (arm_mode_data[mode].psr) {
 			case ARM_MODE_SYS:
@@ -869,6 +872,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 					continue;
 			/* FALLTHROUGH */
 			case ARM_MODE_MON:
+			case ARM_MODE_1176_MON:
 				if (arm->core_type != ARM_CORE_TYPE_SEC_EXT
 					&& arm->core_type != ARM_CORE_TYPE_VIRT_EXT)
 					continue;

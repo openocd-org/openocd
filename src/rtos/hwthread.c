@@ -37,11 +37,11 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
 static int hwthread_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 static int hwthread_smp_init(struct target *target);
-int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
-bool hwthread_needs_fake_step(struct target *target, int64_t thread_id);
-int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
+static int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
+static bool hwthread_needs_fake_step(struct target *target, int64_t thread_id);
+static int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, uint8_t *buffer);
-int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
+static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
 
 #define HW_THREAD_NAME_STR_SIZE (32)
@@ -247,23 +247,35 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 	if (!target_was_examined(curr))
 		return ERROR_FAIL;
 
+	int reg_list_size;
 	struct reg **reg_list;
-	int retval = target_get_gdb_reg_list(curr, &reg_list, rtos_reg_list_size,
+	int retval = target_get_gdb_reg_list(curr, &reg_list, &reg_list_size,
 			REG_CLASS_GENERAL);
 	if (retval != ERROR_OK)
 		return retval;
 
+	int j = 0;
+	for (int i = 0; i < reg_list_size; i++) {
+		if (reg_list[i] == NULL || reg_list[i]->exist == false || reg_list[i]->hidden)
+			continue;
+		j++;
+	}
+	*rtos_reg_list_size = j;
 	*rtos_reg_list = calloc(*rtos_reg_list_size, sizeof(struct rtos_reg));
 	if (*rtos_reg_list == NULL) {
 		free(reg_list);
 		return ERROR_FAIL;
 	}
 
-	for (int i = 0; i < *rtos_reg_list_size; i++) {
-		(*rtos_reg_list)[i].number = (*reg_list)[i].number;
-		(*rtos_reg_list)[i].size = (*reg_list)[i].size;
-		memcpy((*rtos_reg_list)[i].value, (*reg_list)[i].value,
+	j = 0;
+	for (int i = 0; i < reg_list_size; i++) {
+		if (reg_list[i] == NULL || reg_list[i]->exist == false || reg_list[i]->hidden)
+			continue;
+		(*rtos_reg_list)[j].number = (*reg_list)[i].number;
+		(*rtos_reg_list)[j].size = (*reg_list)[i].size;
+		memcpy((*rtos_reg_list)[j].value, (*reg_list)[i].value,
 				((*reg_list)[i].size + 7) / 8);
+		j++;
 	}
 	free(reg_list);
 
@@ -308,7 +320,7 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 	return ERROR_OK;
 }
 
-int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value)
+static int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value)
 {
 	if (rtos == NULL)
 		return ERROR_FAIL;
@@ -395,12 +407,12 @@ static int hwthread_create(struct target *target)
 	return 0;
 }
 
-bool hwthread_needs_fake_step(struct target *target, int64_t thread_id)
+static bool hwthread_needs_fake_step(struct target *target, int64_t thread_id)
 {
 	return false;
 }
 
-int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
+static int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, uint8_t *buffer)
 {
 	if (rtos == NULL)
@@ -415,7 +427,7 @@ int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 	return target_read_buffer(curr, address, size, buffer);
 }
 
-int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
+static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, const uint8_t *buffer)
 {
 	if (rtos == NULL)
