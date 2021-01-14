@@ -3451,8 +3451,8 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* s0 holds the next address to write to
-	 * s1 holds the next data value to write
+	/* s0 holds the next address to read from
+	 * s1 holds the next data value read
 	 * s2 is a counter in case increment is 0
 	 */
 	uint64_t s0, s1, s2;
