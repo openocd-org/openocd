@@ -4165,6 +4165,11 @@ static int register_set(struct reg *reg, uint8_t *buf)
 			riscv_current_hartid(target), str, reg->name, reg->valid);
 	free(str);
 
+	/* Exit early for writing x0, which on the hardware would be ignored, and we
+	 * don't want to update our cache. */
+	if (reg->number == GDB_REGNO_ZERO)
+		return ERROR_OK;
+
 	memcpy(reg->value, buf, DIV_ROUND_UP(reg->size, 8));
 	reg->valid = gdb_regno_cacheable(reg->number, true);
 
