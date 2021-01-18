@@ -27,7 +27,6 @@
 #include "server/gdb_server.h"
 
 /* RTOSs */
-extern struct rtos_type riscv_rtos;
 extern struct rtos_type FreeRTOS_rtos;
 extern struct rtos_type ThreadX_rtos;
 extern struct rtos_type eCos_rtos;
@@ -42,7 +41,6 @@ extern struct rtos_type hwthread_rtos;
 extern struct rtos_type riot_rtos;
 
 static struct rtos_type *rtos_types[] = {
-	&riscv_rtos,
 	&ThreadX_rtos,
 	&FreeRTOS_rtos,
 	&eCos_rtos,

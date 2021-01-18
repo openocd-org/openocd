@@ -218,8 +218,7 @@ typedef struct {
 
 static int poll_target(struct target *target, bool announce);
 static int riscv011_poll(struct target *target);
-static int get_register(struct target *target, riscv_reg_t *value, int hartid,
-		int regid);
+static int get_register(struct target *target, riscv_reg_t *value, int regid);
 
 /*** Utility functions. ***/
 
@@ -1234,7 +1233,7 @@ static int update_mstatus_actual(struct target *target)
 	/* Force reading the register. In that process mstatus_actual will be
 	 * updated. */
 	riscv_reg_t mstatus;
-	return get_register(target, &mstatus, 0, GDB_REGNO_MSTATUS);
+	return get_register(target, &mstatus, GDB_REGNO_MSTATUS);
 }
 
 /*** OpenOCD target functions. ***/
@@ -1338,10 +1337,8 @@ static int register_write(struct target *target, unsigned int number,
 	return ERROR_OK;
 }
 
-static int get_register(struct target *target, riscv_reg_t *value, int hartid,
-		int regid)
+static int get_register(struct target *target, riscv_reg_t *value, int regid)
 {
-	assert(hartid == 0);
 	riscv011_info_t *info = get_info(target);
 
 	maybe_write_tselect(target);
@@ -1384,10 +1381,8 @@ static int get_register(struct target *target, riscv_reg_t *value, int hartid,
 	return ERROR_OK;
 }
 
-static int set_register(struct target *target, int hartid, int regid,
-		uint64_t value)
+static int set_register(struct target *target, int regid, uint64_t value)
 {
-	assert(hartid == 0);
 	return register_write(target, regid, value);
 }
 
@@ -1527,7 +1522,7 @@ static int examine(struct target *target)
 	}
 
 	/* Pretend this is a 32-bit system until we have found out the true value. */
-	r->xlen[0] = 32;
+	r->xlen = 32;
 
 	/* Figure out XLEN, and test writing all of Debug RAM while we're at it. */
 	cache_set32(target, 0, xori(S1, ZERO, -1));
@@ -1555,11 +1550,11 @@ static int examine(struct target *target)
 	uint32_t word1 = cache_get32(target, 1);
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 	if (word0 == 1 && word1 == 0) {
-		generic_info->xlen[0] = 32;
+		generic_info->xlen = 32;
 	} else if (word0 == 0xffffffff && word1 == 3) {
-		generic_info->xlen[0] = 64;
+		generic_info->xlen = 64;
 	} else if (word0 == 0xffffffff && word1 == 0xffffffff) {
-		generic_info->xlen[0] = 128;
+		generic_info->xlen = 128;
 	} else {
 		uint32_t exception = cache_get32(target, info->dramsize-1);
 		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x, exception=0x%x",
@@ -1569,11 +1564,11 @@ static int examine(struct target *target)
 	}
 	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
-	if (read_remote_csr(target, &r->misa[0], CSR_MISA) != ERROR_OK) {
+	if (read_remote_csr(target, &r->misa, CSR_MISA) != ERROR_OK) {
 		const unsigned old_csr_misa = 0xf10;
 		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
 				old_csr_misa);
-		if (read_remote_csr(target, &r->misa[0], old_csr_misa) != ERROR_OK) {
+		if (read_remote_csr(target, &r->misa, old_csr_misa) != ERROR_OK) {
 			/* Maybe this is an old core that still has $misa at the old
 			 * address. */
 			LOG_ERROR("Failed to read misa at 0x%x.", old_csr_misa);
@@ -1595,7 +1590,7 @@ static int examine(struct target *target)
 	for (size_t i = 0; i < 32; ++i)
 		reg_cache_set(target, i, -1);
 	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64,
-			riscv_xlen(target), r->misa[0]);
+			riscv_xlen(target), r->misa);
 
 	return ERROR_OK;
 }
@@ -2312,7 +2307,7 @@ static int init_target(struct command_context *cmd_ctx,
 		return ERROR_FAIL;
 
 	/* Assume 32-bit until we discover the real value in examine(). */
-	generic_info->xlen[0] = 32;
+	generic_info->xlen = 32;
 	riscv_init_registers(target);
 
 	return ERROR_OK;
