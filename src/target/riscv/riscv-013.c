@@ -1398,7 +1398,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	return exec_out;
 }
 
-/** Return the cached value, or read from the target if necessary. */
+/** Read register value from the target. Also update the cached value. */
 static int register_read(struct target *target, uint64_t *value, uint32_t number)
 {
 	if (number == GDB_REGNO_ZERO) {
