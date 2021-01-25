@@ -9938,6 +9938,43 @@ A @emph{hart} is a hardware thread. A hart may share resources (eg. FPU) with
 another hart, or may be a separate core.  RISC-V treats those the same, and
 OpenOCD exposes each hart as a separate core.
 
+@subsection Vector Registers
+
+For harts that implement the vector extension, OpenOCD provides access to the
+relevant CSRs, as well as the vector registers (v0-v31). The size of each
+vector register is dependent on the value of vlenb. RISC-V allows each vector
+register to be divided into selected-width elements, and this division can be
+changed at run-time. Because OpenOCD cannot update register definitions at
+run-time, it exposes each vector register to gdb as a union of fields of
+vectors so that users can easily access individual bytes, shorts, words,
+longs, and quads inside each vector register. It is left to gdb or
+higher-level debuggers to present this data in a more intuitive format.
+
+In the XML register description, the vector registers (when vlenb=16) look as
+follows:
+
+@example
+<feature name="org.gnu.gdb.riscv.vector">
+<vector id="bytes" type="uint8" count="16"/>
+<vector id="shorts" type="uint16" count="8"/>
+<vector id="words" type="uint32" count="4"/>
+<vector id="longs" type="uint64" count="2"/>
+<vector id="quads" type="uint128" count="1"/>
+<union id="riscv_vector">
+<field name="b" type="bytes"/>
+<field name="s" type="shorts"/>
+<field name="w" type="words"/>
+<field name="l" type="longs"/>
+<field name="q" type="quads"/>
+</union>
+<reg name="v0" bitsize="128" regnum="4162" save-restore="no"
+        type="riscv_vector" group="vector"/>
+...
+<reg name="v31" bitsize="128" regnum="4193" save-restore="no"
+        type="riscv_vector" group="vector"/>
+</feature>
+@end example
+
 @subsection RISC-V Debug Configuration Commands
 
 @deffn Command {riscv dump_sample_buf} [base64]
