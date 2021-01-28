@@ -10129,12 +10129,14 @@ set challenge [riscv authdata_read]
 riscv authdata_write [expr $challenge + 1]
 @end example
 
-@deffn Command {riscv authdata_read}
-Return the 32-bit value read from authdata.
+@deffn Command {riscv authdata_read} [index=0]
+Return the 32-bit value read from authdata or authdata0 (index=0), or
+authdata1 (index=1).
 @end deffn
 
-@deffn Command {riscv authdata_write} value
-Write the 32-bit value to authdata.
+@deffn Command {riscv authdata_write} [index=0] value
+Write the 32-bit value to authdata or authdata0 (index=0), or authdata1
+(index=1).
 @end deffn
 
 @subsection RISC-V DMI Commands

@@ -154,6 +154,9 @@ typedef enum slot {
 #define DMINFO_AUTHTYPE			(3<<2)
 #define DMINFO_VERSION			3
 
+#define DMAUTHDATA0				0x12
+#define DMAUTHDATA1				0x13
+
 /*** Info about the core being debugged. ***/
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
@@ -2293,6 +2296,65 @@ static int arch_state(struct target *target)
 	return ERROR_OK;
 }
 
+COMMAND_HELPER(riscv011_print_info, struct target *target)
+{
+	uint32_t dminfo = dbus_read(target, DMINFO);
+	riscv_print_info_line(CMD, "dm", "authenticated", get_field(dminfo, DMINFO_AUTHENTICATED));
+
+	return 0;
+}
+
+static int wait_for_authbusy(struct target *target)
+{
+	time_t start = time(NULL);
+	while (1) {
+		uint32_t dminfo = dbus_read(target, DMINFO);
+		if (!get_field(dminfo, DMINFO_AUTHBUSY))
+			break;
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("Timed out after %ds waiting for authbusy to go low (dminfo=0x%x). "
+					"Increase the timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec,
+					dminfo);
+			return ERROR_FAIL;
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static int riscv011_authdata_read(struct target *target, uint32_t *value, unsigned index)
+{
+	if (index > 1) {
+		LOG_ERROR("Spec 0.11 only has a two authdata registers.");
+		return ERROR_FAIL;
+	}
+
+	if (wait_for_authbusy(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	uint16_t authdata_address = index ? DMAUTHDATA1 : DMAUTHDATA0;
+	*value = dbus_read(target, authdata_address);
+
+	return ERROR_OK;
+}
+
+static int riscv011_authdata_write(struct target *target, uint32_t value, unsigned index)
+{
+	if (index > 1) {
+		LOG_ERROR("Spec 0.11 only has a two authdata registers.");
+		return ERROR_FAIL;
+	}
+
+	if (wait_for_authbusy(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	uint16_t authdata_address = index ? DMAUTHDATA1 : DMAUTHDATA0;
+	dbus_write(target, authdata_address, value);
+
+	return ERROR_OK;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -2301,6 +2363,9 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->get_register = get_register;
 	generic_info->set_register = set_register;
 	generic_info->read_memory = read_memory;
+	generic_info->authdata_read = &riscv011_authdata_read;
+	generic_info->authdata_write = &riscv011_authdata_write;
+	generic_info->print_info = &riscv011_print_info;
 
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)

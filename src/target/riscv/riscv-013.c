@@ -1500,7 +1500,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 	return result;
 }
 
-int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
+static int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 {
 	time_t start = time(NULL);
 	while (1) {
@@ -1784,16 +1784,26 @@ static int examine(struct target *target)
 	return ERROR_OK;
 }
 
-int riscv013_authdata_read(struct target *target, uint32_t *value)
+static int riscv013_authdata_read(struct target *target, uint32_t *value, unsigned index)
 {
+	if (index > 0) {
+		LOG_ERROR("Spec 0.13 only has a single authdata register.");
+		return ERROR_FAIL;
+	}
+
 	if (wait_for_authbusy(target, NULL) != ERROR_OK)
 		return ERROR_FAIL;
 
 	return dmi_read(target, value, DM_AUTHDATA);
 }
 
-int riscv013_authdata_write(struct target *target, uint32_t value)
+static int riscv013_authdata_write(struct target *target, uint32_t value, unsigned index)
 {
+	if (index > 0) {
+		LOG_ERROR("Spec 0.13 only has a single authdata register.");
+		return ERROR_FAIL;
+	}
+
 	uint32_t before, after;
 	if (wait_for_authbusy(target, &before) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1867,6 +1877,7 @@ static unsigned riscv013_data_bits(struct target *target)
 COMMAND_HELPER(riscv013_print_info, struct target *target)
 {
 	RISCV013_INFO(info);
+
 	riscv_print_info_line(CMD, "dm", "abits", info->abits);
 	riscv_print_info_line(CMD, "dm", "progbufsize", info->progbufsize);
 	riscv_print_info_line(CMD, "dm", "sbversion", get_field(info->sbcs, DM_SBCS_SBVERSION));
@@ -1876,6 +1887,10 @@ COMMAND_HELPER(riscv013_print_info, struct target *target)
 	riscv_print_info_line(CMD, "dm", "sbaccess32", get_field(info->sbcs, DM_SBCS_SBACCESS32));
 	riscv_print_info_line(CMD, "dm", "sbaccess16", get_field(info->sbcs, DM_SBCS_SBACCESS16));
 	riscv_print_info_line(CMD, "dm", "sbaccess8", get_field(info->sbcs, DM_SBCS_SBACCESS8));
+
+	uint32_t dmstatus;
+	if (dmstatus_read(target, &dmstatus, false) == ERROR_OK)
+		riscv_print_info_line(CMD, "dm", "authenticated", get_field(dmstatus, DM_DMSTATUS_AUTHENTICATED));
 
 	return 0;
 }

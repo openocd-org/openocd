@@ -171,8 +171,8 @@ typedef struct {
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
 
-	int (*authdata_read)(struct target *target, uint32_t *value);
-	int (*authdata_write)(struct target *target, uint32_t value);
+	int (*authdata_read)(struct target *target, uint32_t *value, unsigned index);
+	int (*authdata_write)(struct target *target, uint32_t value, unsigned index);
 
 	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);

@@ -2552,8 +2552,13 @@ COMMAND_HANDLER(riscv_set_expose_custom)
 
 COMMAND_HANDLER(riscv_authdata_read)
 {
-	if (CMD_ARGC != 0) {
-		LOG_ERROR("Command takes no parameters");
+	unsigned index = 0;
+	if (CMD_ARGC == 0) {
+		/* nop */
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], index);
+	} else {
+		LOG_ERROR("Command takes at most one parameter");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -2571,7 +2576,7 @@ COMMAND_HANDLER(riscv_authdata_read)
 
 	if (r->authdata_read) {
 		uint32_t value;
-		if (r->authdata_read(target, &value) != ERROR_OK)
+		if (r->authdata_read(target, &value, index) != ERROR_OK)
 			return ERROR_FAIL;
 		command_print(CMD, "0x%" PRIx32, value);
 		return ERROR_OK;
@@ -2583,19 +2588,26 @@ COMMAND_HANDLER(riscv_authdata_read)
 
 COMMAND_HANDLER(riscv_authdata_write)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 argument");
+	uint32_t value;
+	unsigned index = 0;
+
+	if (CMD_ARGC == 0) {
+		/* nop */
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], value);
+	} else if (CMD_ARGC == 2) {
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], index);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+	} else {
+		LOG_ERROR("Command takes at most 2 arguments");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
 
-	uint32_t value;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], value);
-
 	if (r->authdata_write) {
-		return r->authdata_write(target, value);
+		return r->authdata_write(target, value, index);
 	} else {
 		LOG_ERROR("authdata_write is not implemented for this target.");
 		return ERROR_FAIL;
@@ -3103,16 +3115,18 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "authdata_read",
 		.handler = riscv_authdata_read,
-		.usage = "",
+		.usage = "[index]",
 		.mode = COMMAND_ANY,
-		.help = "Return the 32-bit value read from authdata."
+		.help = "Return the 32-bit value read from authdata or authdata0 "
+				"(index=0), or authdata1 (index=1)."
 	},
 	{
 		.name = "authdata_write",
 		.handler = riscv_authdata_write,
 		.mode = COMMAND_ANY,
-		.usage = "value",
-		.help = "Write the 32-bit value to authdata."
+		.usage = "[index] value",
+		.help = "Write the 32-bit value to authdata or authdata0 (index=0), "
+				"or authdata1 (index=1)."
 	},
 	{
 		.name = "dmi_read",
