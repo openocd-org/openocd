@@ -1945,6 +1945,9 @@ static int riscv013_get_register_buf(struct target *target,
 {
 	assert(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31);
 
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
+
 	riscv_reg_t s0;
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
@@ -2000,6 +2003,9 @@ static int riscv013_set_register_buf(struct target *target,
 		int regno, const uint8_t *value)
 {
 	assert(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31);
+
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	riscv_reg_t s0;
 	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
@@ -4033,7 +4039,8 @@ static int riscv013_get_register(struct target *target,
 	LOG_DEBUG("[%s] reading register %s", target_name(target),
 			gdb_regno_name(rid));
 
-	riscv_select_current_hart(target);
+	if (riscv_select_current_hart(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	int result = ERROR_OK;
 	if (rid == GDB_REGNO_PC) {
