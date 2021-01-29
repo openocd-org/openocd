@@ -2298,6 +2298,18 @@ static int arch_state(struct target *target)
 
 COMMAND_HELPER(riscv011_print_info, struct target *target)
 {
+	/* Abstract description. */
+	riscv_print_info_line(CMD, "target", "memory.read_while_running8", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running8", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running16", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running16", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running32", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running32", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running64", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running64", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running128", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running128", 0);
+
 	uint32_t dminfo = dbus_read(target, DMINFO);
 	riscv_print_info_line(CMD, "dm", "authenticated", get_field(dminfo, DMINFO_AUTHENTICATED));
 
