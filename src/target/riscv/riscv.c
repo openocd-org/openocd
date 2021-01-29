@@ -128,8 +128,8 @@ struct scan_field select_idcode = {
 bscan_tunnel_type_t bscan_tunnel_type;
 int bscan_tunnel_ir_width; /* if zero, then tunneling is not present/active */
 
-static uint8_t bscan_zero[4] = {0};
-static uint8_t bscan_one[4] = {1};
+static const uint8_t bscan_zero[4] = {0};
+static const uint8_t bscan_one[4] = {1};
 
 uint8_t ir_user4[4];
 struct scan_field select_user4 = {
@@ -217,7 +217,7 @@ static enum {
 	RO_REVERSED
 } resume_order;
 
-virt2phys_info_t sv32 = {
+const virt2phys_info_t sv32 = {
 	.name = "Sv32",
 	.va_bits = 32,
 	.level = 2,
@@ -230,7 +230,7 @@ virt2phys_info_t sv32 = {
 	.pa_ppn_mask = {0x3ff, 0xfff},
 };
 
-virt2phys_info_t sv39 = {
+const virt2phys_info_t sv39 = {
 	.name = "Sv39",
 	.va_bits = 39,
 	.level = 3,
@@ -243,7 +243,7 @@ virt2phys_info_t sv39 = {
 	.pa_ppn_mask = {0x1ff, 0x1ff, 0x3ffffff},
 };
 
-virt2phys_info_t sv48 = {
+const virt2phys_info_t sv48 = {
 	.name = "Sv48",
 	.va_bits = 48,
 	.level = 4,
@@ -1510,7 +1510,7 @@ static int riscv_address_translate(struct target *target,
 	int mode;
 	uint64_t ppn_value;
 	target_addr_t table_address;
-	virt2phys_info_t *info;
+	const virt2phys_info_t *info;
 	uint64_t pte;
 	int i;
 
@@ -3470,7 +3470,7 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool write)
 			(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31))
 		return true;
 
-	/* Most CSRs won't change value on us, but we can't assume it about rbitrary
+	/* Most CSRs won't change value on us, but we can't assume it about arbitrary
 	 * CSRs. */
 	switch (regno) {
 		case GDB_REGNO_DPC:
