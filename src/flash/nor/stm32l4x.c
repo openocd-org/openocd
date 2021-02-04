@@ -27,7 +27,7 @@
 #include <helper/align.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
-#include <target/armv7m.h>
+#include <target/cortex_m.h>
 #include "bits.h"
 #include "stm32l4x.h"
 
@@ -80,6 +80,9 @@
  *
  * RM0461 (STM32WLEx)
  * http://www.st.com/resource/en/reference_manual/dm00530369.pdf
+ *
+ * RM0453 (STM32WL5x)
+ * http://www.st.com/resource/en/reference_manual/dm00451556.pdf
  */
 
 /* STM32G0xxx series for reference.
@@ -139,6 +142,9 @@ enum stm32l4_flash_reg_index {
 	STM32_FLASH_OPTKEYR_INDEX,
 	STM32_FLASH_SR_INDEX,
 	STM32_FLASH_CR_INDEX,
+	/* for some devices like STM32WL5x, the CPU2 have a dedicated C2CR register w/o LOCKs,
+	 * so it uses the C2CR for flash operations and CR for checking locks and locking */
+	STM32_FLASH_CR_WLK_INDEX, /* FLASH_CR_WITH_LOCK */
 	STM32_FLASH_OPTR_INDEX,
 	STM32_FLASH_WRP1AR_INDEX,
 	STM32_FLASH_WRP1BR_INDEX,
@@ -165,6 +171,18 @@ static const uint32_t stm32l4_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 	[STM32_FLASH_WRP1BR_INDEX]   = 0x030,
 	[STM32_FLASH_WRP2AR_INDEX]   = 0x04C,
 	[STM32_FLASH_WRP2BR_INDEX]   = 0x050,
+};
+
+static const uint32_t stm32wl_cpu2_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
+	[STM32_FLASH_ACR_INDEX]      = 0x000,
+	[STM32_FLASH_KEYR_INDEX]     = 0x008,
+	[STM32_FLASH_OPTKEYR_INDEX]  = 0x010,
+	[STM32_FLASH_SR_INDEX]       = 0x060,
+	[STM32_FLASH_CR_INDEX]       = 0x064,
+	[STM32_FLASH_CR_WLK_INDEX]   = 0x014,
+	[STM32_FLASH_OPTR_INDEX]     = 0x020,
+	[STM32_FLASH_WRP1AR_INDEX]   = 0x02C,
+	[STM32_FLASH_WRP1BR_INDEX]   = 0x030,
 };
 
 static const uint32_t stm32l5_ns_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
@@ -514,7 +532,7 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .id                    = 0x497,
 	  .revs                  = stm32_497_revs,
 	  .num_revs              = ARRAY_SIZE(stm32_497_revs),
-	  .device_str            = "STM32WLEx",
+	  .device_str            = "STM32WLEx/WL5x",
 	  .max_flash_size_kb     = 256,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x58004000,
@@ -789,14 +807,22 @@ static int stm32l4_set_secbb(struct flash_bank *bank, uint32_t value)
 	return ERROR_OK;
 }
 
+static inline int stm32l4_get_flash_cr_with_lock_index(struct flash_bank *bank)
+{
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
+	return (stm32l4_info->flash_regs[STM32_FLASH_CR_WLK_INDEX]) ?
+		STM32_FLASH_CR_WLK_INDEX : STM32_FLASH_CR_INDEX;
+}
+
 static int stm32l4_unlock_reg(struct flash_bank *bank)
 {
+	const uint32_t flash_cr_index = stm32l4_get_flash_cr_with_lock_index(bank);
 	uint32_t ctrl;
 
 	/* first check if not already unlocked
 	 * otherwise writing on STM32_FLASH_KEYR will fail
 	 */
-	int retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, &ctrl);
+	int retval = stm32l4_read_flash_reg_by_index(bank, flash_cr_index, &ctrl);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -812,7 +838,7 @@ static int stm32l4_unlock_reg(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, &ctrl);
+	retval = stm32l4_read_flash_reg_by_index(bank, flash_cr_index, &ctrl);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -826,9 +852,10 @@ static int stm32l4_unlock_reg(struct flash_bank *bank)
 
 static int stm32l4_unlock_option_reg(struct flash_bank *bank)
 {
+	const uint32_t flash_cr_index = stm32l4_get_flash_cr_with_lock_index(bank);
 	uint32_t ctrl;
 
-	int retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, &ctrl);
+	int retval = stm32l4_read_flash_reg_by_index(bank, flash_cr_index, &ctrl);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -844,7 +871,7 @@ static int stm32l4_unlock_option_reg(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, &ctrl);
+	retval = stm32l4_read_flash_reg_by_index(bank, flash_cr_index, &ctrl);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -884,7 +911,8 @@ static int stm32l4_perform_obl_launch(struct flash_bank *bank)
 	stm32l4_info->probed = false;
 
 err_lock:
-	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK | FLASH_OPTLOCK);
+	retval2 = stm32l4_write_flash_reg_by_index(bank, stm32l4_get_flash_cr_with_lock_index(bank),
+			FLASH_LOCK | FLASH_OPTLOCK);
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -930,7 +958,8 @@ static int stm32l4_write_option(struct flash_bank *bank, uint32_t reg_offset,
 	retval = stm32l4_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 
 err_lock:
-	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK | FLASH_OPTLOCK);
+	retval2 = stm32l4_write_flash_reg_by_index(bank, stm32l4_get_flash_cr_with_lock_index(bank),
+			FLASH_LOCK | FLASH_OPTLOCK);
 	stm32l4_info->flash_regs = saved_flash_regs;
 
 	if (retval != ERROR_OK)
@@ -1124,7 +1153,7 @@ static int stm32l4_erase(struct flash_bank *bank, unsigned int first,
 	}
 
 err_lock:
-	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK);
+	retval2 = stm32l4_write_flash_reg_by_index(bank, stm32l4_get_flash_cr_with_lock_index(bank), FLASH_LOCK);
 
 	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
 		/* restore all FLASH pages as non-secure */
@@ -1511,7 +1540,7 @@ static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 
 
 err_lock:
-	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK);
+	retval2 = stm32l4_write_flash_reg_by_index(bank, stm32l4_get_flash_cr_with_lock_index(bank), FLASH_LOCK);
 
 	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
 		/* restore all FLASH pages as non-secure */
@@ -1538,6 +1567,30 @@ static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 		retval = target_read_u32(bank->target, dbgmcu_idcode[i], id);
 		if ((retval == ERROR_OK) && ((*id & 0xfff) != 0) && ((*id & 0xfff) != 0xfff))
 			return ERROR_OK;
+	}
+
+	/* Workaround for STM32WL5x devices:
+	 * DBGMCU_IDCODE cannot be read using CPU1 (Cortex-M0+) at AP1,
+	 * to solve this read the UID64 (IEEE 64-bit unique device ID register) */
+
+	struct cortex_m_common *cortex_m = target_to_cm(bank->target);
+
+	if (cortex_m->core_info->partno == CORTEX_M0P_PARTNO && cortex_m->armv7m.debug_ap->ap_num == 1) {
+		uint32_t uid64_ids;
+
+		/* UID64 is contains
+		 *  - Bits 63:32 : DEVNUM (unique device number, different for each individual device)
+		 *  - Bits 31:08 : STID (company ID) = 0x0080E1
+		 *  - Bits 07:00 : DEVID (device ID) = 0x15
+		 *
+		 *  read only the fixed values {STID,DEVID} from UID64_IDS to identify the device as STM32WLx
+		 */
+		retval = target_read_u32(bank->target, UID64_IDS, &uid64_ids);
+		if (retval == ERROR_OK && uid64_ids == UID64_IDS_STM32WL) {
+			/* force the DEV_ID to 0x497 and the REV_ID to unknown */
+			*id = 0x00000497;
+			return ERROR_OK;
+		}
 	}
 
 	LOG_ERROR("can't get the device id");
@@ -1570,6 +1623,7 @@ static const char *get_stm32l4_bank_type_str(struct flash_bank *bank)
 static int stm32l4_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
 	const struct stm32l4_part_info *part_info;
 	uint16_t flash_size_kb = 0xffff;
@@ -1722,7 +1776,6 @@ static int stm32l4_probe(struct flash_bank *bank)
 	case 0x466: /* STM32G03/G04xx */
 	case 0x468: /* STM32G43/G44xx */
 	case 0x479: /* STM32G49/G4Axx */
-	case 0x497: /* STM32WLEx */
 		/* single bank flash */
 		page_size_kb = 2;
 		num_pages = flash_size_kb / page_size_kb;
@@ -1805,6 +1858,14 @@ static int stm32l4_probe(struct flash_bank *bank)
 		page_size_kb = 4;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
+		break;
+	case 0x497: /* STM32WLEx/WL5x */
+		/* single bank flash */
+		page_size_kb = 2;
+		num_pages = flash_size_kb / page_size_kb;
+		stm32l4_info->bank1_sectors = num_pages;
+		if (armv7m->debug_ap->ap_num == 1)
+			stm32l4_info->flash_regs = stm32wl_cpu2_flash_regs;
 		break;
 	default:
 		LOG_ERROR("unsupported device");
@@ -1953,7 +2014,7 @@ static int stm32l4_mass_erase(struct flash_bank *bank)
 	retval = stm32l4_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 
 err_lock:
-	retval2 = stm32l4_write_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX, FLASH_LOCK);
+	retval2 = stm32l4_write_flash_reg_by_index(bank, stm32l4_get_flash_cr_with_lock_index(bank), FLASH_LOCK);
 
 	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
 		/* restore all FLASH pages as non-secure */
