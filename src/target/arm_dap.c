@@ -36,6 +36,8 @@ extern const struct dap_ops swd_dap_ops;
 extern const struct dap_ops jtag_dp_ops;
 extern struct adapter_driver *adapter_driver;
 
+#define ADI_BAD_CFG 0xBAD00000
+
 /* DAP command support */
 struct arm_dap_object {
 	struct list_head lh;
@@ -57,6 +59,7 @@ static void dap_instance_init(struct adiv5_dap *dap)
 		dap->ap[i].tar_autoincr_block = (1<<10);
 		/* default CSW value */
 		dap->ap[i].csw_default = CSW_AHB_DEFAULT;
+		dap->ap[i].cfg_reg = ADI_BAD_CFG; /* mem_ap configuration reg (large physical addr, etc. */
 	}
 	INIT_LIST_HEAD(&dap->cmd_journal);
 	INIT_LIST_HEAD(&dap->cmd_pool);
