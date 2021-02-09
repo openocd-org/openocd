@@ -243,7 +243,7 @@ static int aarch64_init_debug_access(struct target *target)
 
 /* Write to memory mapped registers directly with no cache or mmu handling */
 static int aarch64_dap_write_memap_register_u32(struct target *target,
-	uint32_t address,
+	target_addr_t address,
 	uint32_t value)
 {
 	int retval;
@@ -2279,7 +2279,7 @@ static int aarch64_examine_first(struct target *target)
 	armv8->debug_ap->memaccess_tck = 10;
 
 	if (!target->dbgbase_set) {
-		uint32_t dbgbase;
+		target_addr_t dbgbase;
 		/* Get ROM Table base */
 		uint32_t apid;
 		int32_t coreidx = target->coreid;
@@ -2291,7 +2291,7 @@ static int aarch64_examine_first(struct target *target)
 				&armv8->debug_base, &coreidx);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32
+		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %016" PRIx64
 				" apid: %08" PRIx32, coreidx, armv8->debug_base, apid);
 	} else
 		armv8->debug_base = target->dbgbase;
