@@ -2699,7 +2699,7 @@ static int cortex_a_examine_first(struct target *target)
 	armv7a->debug_ap->memaccess_tck = 80;
 
 	if (!target->dbgbase_set) {
-		uint32_t dbgbase;
+		target_addr_t dbgbase;
 		/* Get ROM Table base */
 		uint32_t apid;
 		int32_t coreidx = target->coreid;
@@ -2716,7 +2716,7 @@ static int cortex_a_examine_first(struct target *target)
 				  target->cmd_name);
 			return retval;
 		}
-		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %08" PRIx32,
+		LOG_DEBUG("Detected core %" PRId32 " dbgbase: %016" PRIx64,
 			  target->coreid, armv7a->debug_base);
 	} else
 		armv7a->debug_base = target->dbgbase;
