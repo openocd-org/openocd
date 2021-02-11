@@ -1511,7 +1511,7 @@ static int riscv_address_translate(struct target *target,
 	uint64_t ppn_value;
 	target_addr_t table_address;
 	const virt2phys_info_t *info;
-	uint64_t pte;
+	uint64_t pte = 0;
 	int i;
 
 	int result = riscv_get_register(target, &satp_value, GDB_REGNO_SATP);

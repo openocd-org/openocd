@@ -589,17 +589,19 @@ static int ftdi_reset(int trst, int srst)
 
 	LOG_DEBUG_IO("reset trst: %i srst %i", trst, srst);
 
-	if (trst == 1) {
-		if (sig_ntrst)
-			ftdi_set_signal(sig_ntrst, '0');
-		else
-			LOG_ERROR("Can't assert TRST: nTRST signal is not defined");
-	} else if (sig_ntrst && jtag_get_reset_config() & RESET_HAS_TRST &&
-			trst == 0) {
-		if (jtag_get_reset_config() & RESET_TRST_OPEN_DRAIN)
-			ftdi_set_signal(sig_ntrst, 'z');
-		else
-			ftdi_set_signal(sig_ntrst, '1');
+	if (!swd_mode) {
+		if (trst == 1) {
+			if (sig_ntrst)
+				ftdi_set_signal(sig_ntrst, '0');
+			else
+				LOG_ERROR("Can't assert TRST: nTRST signal is not defined");
+		} else if (sig_ntrst && jtag_get_reset_config() & RESET_HAS_TRST &&
+				trst == 0) {
+			if (jtag_get_reset_config() & RESET_TRST_OPEN_DRAIN)
+				ftdi_set_signal(sig_ntrst, 'z');
+			else
+				ftdi_set_signal(sig_ntrst, '1');
+		}
 	}
 
 	if (srst == 1) {
@@ -1417,7 +1419,6 @@ static void ftdi_swd_swdio_en(bool enable)
 
 /**
  * Flush the MPSSE queue and process the SWD transaction queue
- * @param dap
  * @return
  */
 static int ftdi_swd_run_queue(void)

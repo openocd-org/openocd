@@ -1,5 +1,5 @@
 AC_PREREQ(2.64)
-AC_INIT([openocd], [0.11.0-rc1+dev],
+AC_INIT([openocd], [0.11.0-rc2+dev],
   [OpenOCD Mailing List <openocd-devel@lists.sourceforge.net>])
 AC_CONFIG_SRCDIR([src/openocd.c])
 AC_CONFIG_AUX_DIR([.])
@@ -25,7 +25,8 @@ AH_BOTTOM([
 
 AC_LANG([C])
 AC_PROG_CC
-AC_PROG_CC_C99
+# autoconf 2.70 obsoletes AC_PROG_CC_C99 and includes it in AC_PROG_CC
+m4_version_prereq([2.70],[],[AC_PROG_CC_C99])
 AM_PROG_CC_C_O
 AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG([0.23])
@@ -80,7 +81,6 @@ AC_CHECK_HEADERS([arpa/inet.h ifaddrs.h netinet/in.h netinet/tcp.h net/if.h], []
 
 AC_HEADER_ASSERT
 AC_HEADER_STDBOOL
-AC_HEADER_TIME
 
 AC_C_BIGENDIAN
 
@@ -139,8 +139,10 @@ m4_define([HIDAPI_USB1_ADAPTERS],
 
 m4_define([LIBFTDI_ADAPTERS],
 	[[[usb_blaster], [Altera USB-Blaster Compatible], [USB_BLASTER]],
-	[[presto], [ASIX Presto Adapter], [PRESTO]],
-	[[openjtag], [OpenJTAG Adapter], [OPENJTAG]]])
+	[[presto], [ASIX Presto Adapter], [PRESTO]]])
+
+m4_define([LIBFTDI_USB1_ADAPTERS],
+	[[[openjtag], [OpenJTAG Adapter], [OPENJTAG]]])
 
 m4_define([LIBGPIOD_ADAPTERS],
 	[[[linuxgpiod], [Linux GPIO bitbang through libgpiod], [LINUXGPIOD]]])
@@ -151,6 +153,8 @@ m4_define([LIBJAYLINK_ADAPTERS],
 m4_define([PCIE_ADAPTERS],
 	[[[xlnx_pcie_xvc], [Xilinx XVC/PCIe], [XLNX_PCIE_XVC]]])
 
+m4_define([OPTIONAL_LIBRARIES],
+	[[[capstone], [Use Capstone disassembly framework], []]])
 
 AC_ARG_ENABLE([doxygen-html],
   AS_HELP_STRING([--disable-doxygen-html],
@@ -249,6 +253,7 @@ AC_ARG_ADAPTERS([
   HIDAPI_ADAPTERS,
   HIDAPI_USB1_ADAPTERS,
   LIBFTDI_ADAPTERS,
+  LIBFTDI_USB1_ADAPTERS
   LIBGPIOD_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
@@ -654,13 +659,24 @@ PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 
 PKG_CHECK_MODULES([LIBUSB0], [libusb], [use_libusb0=yes], [use_libusb0=no])
 
-PKG_CHECK_MODULES([CAPSTONE], [capstone], [have_capstone=yes],
-	[have_capstone=no])
+AC_ARG_WITH([capstone],
+		AS_HELP_STRING([--with-capstone], [Use Capstone disassembly library (default=auto)])
+	, [
+		enable_capstone=$withval
+	], [
+		enable_capstone=auto
+])
 
-AS_IF([test "x$have_capstone" = "xyes"], [
-  AC_DEFINE([HAVE_CAPSTONE], [1], [1 if you have captone disassembly framework.])
-], [
-  AC_DEFINE([HAVE_CAPSTONE], [0], [0 if you don't have captone disassembly framework.])
+AS_IF([test "x$enable_capstone" != xno], [
+	PKG_CHECK_MODULES([CAPSTONE], [capstone], [
+		AC_DEFINE([HAVE_CAPSTONE], [1], [1 if you have Capstone disassembly framework.])
+	], [
+		AC_DEFINE([HAVE_CAPSTONE], [0], [0 if you don't have Capstone disassembly framework.])
+		if test "x$enable_capstone" != xauto; then
+			AC_MSG_ERROR([--with-capstone was given, but test for Capstone failed])
+		fi
+		enable_capstone=no
+	])
 ])
 
 for hidapi_lib in hidapi hidapi-hidraw hidapi-libusb; do
@@ -711,15 +727,9 @@ PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
 PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
+PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
 PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [libgpiod])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
-
-AS_IF([test "x$build_openjtag" = "xyes"], [
-  AS_IF([test "x$use_libusb1" != "xyes" -a "x$use_libusb0" != "xyes"], [
-    AC_MSG_ERROR([libusb-1.x or libusb-0.1 is required for the OpenJTAG Programmer])
-    build_openjtag=no
-  ])
-])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
   build_bitbang=yes
@@ -786,7 +796,7 @@ AM_CONDITIONAL([USE_LIBGPIOD], [test "x$use_libgpiod" = "xyes"])
 AM_CONDITIONAL([USE_HIDAPI], [test "x$use_hidapi" = "xyes"])
 AM_CONDITIONAL([USE_LIBJAYLINK], [test "x$use_libjaylink" = "xyes"])
 AM_CONDITIONAL([RSHIM], [test "x$build_rshim" = "xyes"])
-AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$have_capstone" = "xyes"])
+AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
 
 AM_CONDITIONAL([MINIDRIVER], [test "x$build_minidriver" = "xyes"])
 AM_CONDITIONAL([MINIDRIVER_DUMMY], [test "x$build_minidriver_dummy" = "xyes"])
@@ -856,8 +866,10 @@ echo OpenOCD configuration summary
 echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS, USB0_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
+	LIBFTDI_USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
-	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS],
+	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS,
+	OPTIONAL_LIBRARIES],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	AS_CASE([$ADAPTER_VAR([adapter])],
 		[auto], [
