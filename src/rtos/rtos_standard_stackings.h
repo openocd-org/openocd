@@ -37,4 +37,6 @@ int64_t rtos_Cortex_M_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
 	int64_t stack_ptr, size_t xpsr_offset);
 
+extern const struct rtos_register_stacking rtos_standard_RV32_stacking;
+
 #endif /* OPENOCD_RTOS_RTOS_STANDARD_STACKINGS_H */

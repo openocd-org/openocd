@@ -68,17 +68,16 @@ static const struct stack_register_offset rtos_uCOS_III_eSi_RISC_stack_offsets[]
 };
 
 const struct rtos_register_stacking rtos_uCOS_III_Cortex_M_stacking = {
-	0x40,												/* stack_registers_size */
-	-1,													/* stack_growth_direction */
-	ARRAY_SIZE(rtos_uCOS_III_Cortex_M_stack_offsets),	/* num_output_registers */
-	rtos_generic_stack_align8,							/* stack_alignment */
-	rtos_uCOS_III_Cortex_M_stack_offsets				/* register_offsets */
+	.stack_registers_size = 0x40,
+	.stack_growth_direction = -1,
+	.num_output_registers = ARRAY_SIZE(rtos_uCOS_III_Cortex_M_stack_offsets),
+	.calculate_process_stack = rtos_generic_stack_align8,
+	.register_offsets = rtos_uCOS_III_Cortex_M_stack_offsets
 };
 
 const struct rtos_register_stacking rtos_uCOS_III_eSi_RISC_stacking = {
-	0x4c,												/* stack_registers_size */
-	-1,													/* stack_growth_direction */
-	ARRAY_SIZE(rtos_uCOS_III_eSi_RISC_stack_offsets),	/* num_output_registers */
-	NULL,												/* stack_alignment */
-	rtos_uCOS_III_eSi_RISC_stack_offsets				/* register_offsets */
+	.stack_registers_size = 0x4c,
+	.stack_growth_direction = -1,
+	.num_output_registers = ARRAY_SIZE(rtos_uCOS_III_eSi_RISC_stack_offsets),
+	.register_offsets = rtos_uCOS_III_eSi_RISC_stack_offsets
 };

@@ -68,7 +68,9 @@ int rtos_smp_init(struct target *target)
 	return ERROR_TARGET_INIT_FAILED;
 }
 
-static int rtos_target_for_threadid(struct connection *connection, int64_t threadid, struct target **t)
+static int rtos_target_for_threadid(struct connection *connection,
+									threadid_t threadid,
+									struct target **t)
 {
 	struct target *curr = get_target_from_connection(connection);
 	if (t)
@@ -475,7 +477,7 @@ static int rtos_put_gdb_reg_list(struct connection *connection,
 int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 {
 	struct target *target = get_target_from_connection(connection);
-	int64_t current_threadid = target->rtos->current_threadid;
+	threadid_t current_threadid = target->rtos->current_threadid;
 	if ((target->rtos != NULL) && (current_threadid != -1) &&
 			(current_threadid != 0) &&
 			((current_threadid != target->rtos->current_thread) ||
@@ -492,6 +494,7 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 		int retval;
 		if (target->rtos->type->get_thread_reg) {
 			reg_list = calloc(1, sizeof(*reg_list));
+			reg_list[0].number = reg_num;
 			num_regs = 1;
 			retval = target->rtos->type->get_thread_reg(target->rtos,
 					current_threadid, reg_num, &reg_list[0]);
@@ -573,7 +576,7 @@ int rtos_set_reg(struct connection *connection, int reg_num,
 
 int rtos_generic_stack_read(struct target *target,
 	const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr,
+	target_addr_t stack_ptr,
 	struct rtos_reg **reg_list,
 	int *num_regs)
 {
@@ -585,7 +588,7 @@ int rtos_generic_stack_read(struct target *target,
 	}
 	/* Read the stack */
 	uint8_t *stack_data = malloc(stacking->stack_registers_size);
-	uint32_t address = stack_ptr;
+	target_addr_t address = stack_ptr;
 
 	if (stacking->stack_growth_direction == 1)
 		address -= stacking->stack_registers_size;
@@ -595,7 +598,7 @@ int rtos_generic_stack_read(struct target *target,
 		LOG_ERROR("Error reading stack frame from thread");
 		return retval;
 	}
-	LOG_DEBUG("RTOS: Read stack frame at 0x%" PRIx32, address);
+	LOG_DEBUG("RTOS: Read stack frame at " TARGET_ADDR_FMT, address);
 
 #if 0
 		LOG_OUTPUT("Stack Data :");
@@ -625,10 +628,55 @@ int rtos_generic_stack_read(struct target *target,
 			buf_cpy(&new_stack_ptr, (*reg_list)[i].value, (*reg_list)[i].size);
 		else if (offset != -1)
 			buf_cpy(stack_data + offset, (*reg_list)[i].value, (*reg_list)[i].size);
+
+		LOG_DEBUG("register %d has value 0x%" PRIx64, (*reg_list)[i].number,
+				  buf_get_u64((*reg_list)[i].value, 0, 64));
 	}
 
 	free(stack_data);
 /*	LOG_OUTPUT("Output register string: %s\r\n", *hex_reg_list); */
+	return ERROR_OK;
+}
+
+/* Read an individual register from the RTOS stack. */
+int rtos_generic_stack_read_reg(struct target *target,
+								const struct rtos_register_stacking *stacking,
+								target_addr_t stack_ptr,
+								uint32_t reg_num, struct rtos_reg *reg)
+{
+	LOG_DEBUG("stack_ptr=" TARGET_ADDR_FMT ", reg_num=%d", stack_ptr, reg_num);
+	unsigned total_count = MAX(stacking->total_register_count, stacking->num_output_registers);
+	unsigned i;
+	for (i = 0; i < total_count; i++) {
+		if (stacking->register_offsets[i].number == reg_num)
+			break;
+	}
+	if (i >= total_count) {
+		/* This register is not on the stack. Return error so a caller somewhere
+		 * will just read the register directly fromt he target. */
+		return ERROR_FAIL;
+	}
+
+	const struct stack_register_offset *offsets = &stacking->register_offsets[i];
+	reg->size = offsets->width_bits;
+
+	unsigned width_bytes = DIV_ROUND_UP(offsets->width_bits, 8);
+	if (offsets->offset >= 0) {
+		target_addr_t address = stack_ptr;
+
+		if (stacking->stack_growth_direction == 1)
+			address -= stacking->stack_registers_size;
+
+		if (target_read_buffer(
+				target, address + offsets->offset,
+				width_bytes, reg->value) != ERROR_OK)
+			return ERROR_FAIL;
+		LOG_DEBUG("register %d has value 0x%" PRIx64, reg->number,
+				  buf_get_u64(reg->value, 0, 64));
+	} else {
+		memset(reg->value, 0, width_bytes);
+	}
+
 	return ERROR_OK;
 }
 

@@ -47,11 +47,10 @@ static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets[ARM
 };
 
 const struct rtos_register_stacking rtos_chibios_arm_v7m_stacking = {
-	0x24,					/* stack_registers_size */
-	-1,						/* stack_growth_direction */
-	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
-	NULL,					/* stack_alignment */
-	rtos_chibios_arm_v7m_stack_offsets	/* register_offsets */
+	.stack_registers_size = 0x24,
+	.stack_growth_direction = -1,
+	.num_output_registers = ARMV7M_NUM_CORE_REGS,
+	.register_offsets = rtos_chibios_arm_v7m_stack_offsets
 };
 
 static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets_w_fpu[ARMV7M_NUM_CORE_REGS] = {
@@ -75,9 +74,8 @@ static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets_w_f
 };
 
 const struct rtos_register_stacking rtos_chibios_arm_v7m_stacking_w_fpu = {
-	0x64,										/* stack_registers_size */
-	-1,											/* stack_growth_direction */
-	ARMV7M_NUM_CORE_REGS,						/* num_output_registers */
-	NULL,										/* stack_alignment */
-	rtos_chibios_arm_v7m_stack_offsets_w_fpu	/* register_offsets */
+	.stack_registers_size = 0x64,
+	.stack_growth_direction = -1,
+	.num_output_registers = ARMV7M_NUM_CORE_REGS,
+	.register_offsets = rtos_chibios_arm_v7m_stack_offsets_w_fpu
 };

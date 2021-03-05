@@ -58,11 +58,11 @@ static const struct stack_register_offset rtos_riot_cortex_m0_stack_offsets[ARMV
 };
 
 const struct rtos_register_stacking rtos_riot_cortex_m0_stacking = {
-	0x44,					/* stack_registers_size */
-	-1,						/* stack_growth_direction */
-	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
-	rtos_riot_cortex_m_stack_align,		/* stack_alignment */
-	rtos_riot_cortex_m0_stack_offsets	/* register_offsets */
+	.stack_registers_size = 0x44,
+	.stack_growth_direction = -1,
+	.num_output_registers = ARMV7M_NUM_CORE_REGS,
+	.calculate_process_stack = rtos_riot_cortex_m_stack_align,
+	.register_offsets = rtos_riot_cortex_m0_stack_offsets
 };
 
 /* see thread_arch.c */
@@ -87,9 +87,9 @@ static const struct stack_register_offset rtos_riot_cortex_m34_stack_offsets[ARM
 };
 
 const struct rtos_register_stacking rtos_riot_cortex_m34_stacking = {
-	0x44,			/* stack_registers_size */
-	-1,			/* stack_growth_direction */
-	ARMV7M_NUM_CORE_REGS,	/* num_output_registers */
-	rtos_riot_cortex_m_stack_align,	/* stack_alignment */
-	rtos_riot_cortex_m34_stack_offsets	/* register_offsets */
+	.stack_registers_size = 0x44,
+	.stack_growth_direction = -1,
+	.num_output_registers = ARMV7M_NUM_CORE_REGS,
+	.calculate_process_stack = rtos_riot_cortex_m_stack_align,
+	.register_offsets = rtos_riot_cortex_m34_stack_offsets
 };

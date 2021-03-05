@@ -27,11 +27,10 @@
 #include "rtos.h"
 #include "helper/log.h"
 #include "helper/types.h"
+#include "gnulib/gl_linkedhash_map.h"
 #include "rtos_standard_stackings.h"
 #include "target/armv7m.h"
 #include "target/cortex_m.h"
-
-
 
 #define FREERTOS_MAX_PRIORITIES	63
 
@@ -52,10 +51,84 @@ struct FreeRTOS_params {
 	const unsigned char list_elem_content_offset;
 	const unsigned char thread_stack_offset;
 	const unsigned char thread_name_offset;
-	const struct rtos_register_stacking *stacking_info_cm3;
-	const struct rtos_register_stacking *stacking_info_cm4f;
-	const struct rtos_register_stacking *stacking_info_cm4f_fpu;
+	int (*stacking)(struct rtos *rtos, const struct rtos_register_stacking **stacking,
+					target_addr_t stack_ptr);
 };
+
+struct FreeRTOS_thread_entry {
+	threadid_t threadid;
+	target_addr_t tcb;
+};
+
+struct FreeRTOS {
+	const struct FreeRTOS_params *param;
+	threadid_t last_threadid;
+	/* Map from threadid to FreeRTOS_thread_entry. This map owns the value and
+	 * is responsible for free()ing it. */
+	gl_map_t entry_by_threadid;
+	/* Map from tcb to FreeRTOS_thread_entry. */
+	gl_map_t entry_by_tcb;
+};
+
+static int cortex_m_stacking(struct rtos *rtos, const struct rtos_register_stacking **stacking,
+							 target_addr_t stack_ptr)
+{
+	/* Check for armv7m with *enabled* FPU, i.e. a Cortex-M4F */
+	int cm4_fpu_enabled = 0;
+	struct armv7m_common *armv7m_target = target_to_armv7m(rtos->target);
+	if (is_armv7m(armv7m_target)) {
+		if (armv7m_target->fp_feature == FPv4_SP) {
+			/* Found ARM v7m target which includes a FPU */
+			uint32_t cpacr;
+
+			int retval = target_read_u32(rtos->target, FPU_CPACR, &cpacr);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not read CPACR register to check FPU state");
+				return retval;
+			}
+
+			/* Check if CP10 and CP11 are set to full access. */
+			if (cpacr & 0x00F00000) {
+				/* Found target with enabled FPU */
+				cm4_fpu_enabled = 1;
+			}
+		}
+	}
+
+	if (cm4_fpu_enabled == 1) {
+		/* Read the LR to decide between stacking with or without FPU */
+		uint32_t LR_svc = 0;
+		int retval = target_read_u32(rtos->target,
+				stack_ptr + 0x20,
+				&LR_svc);
+		if (retval != ERROR_OK) {
+			LOG_OUTPUT("Error reading stack frame from FreeRTOS thread");
+			return retval;
+		}
+		if ((LR_svc & 0x10) == 0)
+			*stacking = &rtos_standard_Cortex_M4F_FPU_stacking;
+		else
+			*stacking = &rtos_standard_Cortex_M4F_stacking;
+	} else {
+		*stacking = &rtos_standard_Cortex_M3_stacking;
+	}
+
+	return ERROR_OK;
+}
+
+static int nds32_stacking(struct rtos *rtos, const struct rtos_register_stacking **stacking,
+							 target_addr_t stack_ptr)
+{
+	*stacking = &rtos_standard_NDS32_N1068_stacking;
+	return ERROR_OK;
+}
+
+static int riscv_stacking(struct rtos *rtos, const struct rtos_register_stacking **stacking,
+							 target_addr_t stack_ptr)
+{
+	*stacking = &rtos_standard_RV32_stacking;
+	return ERROR_OK;
+}
 
 static const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	{
@@ -68,9 +141,7 @@ static const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	12,						/* list_elem_content_offset */
 	0,						/* thread_stack_offset; */
 	52,						/* thread_name_offset; */
-	&rtos_standard_Cortex_M3_stacking,	/* stacking_info */
-	&rtos_standard_Cortex_M4F_stacking,
-	&rtos_standard_Cortex_M4F_FPU_stacking,
+	cortex_m_stacking,
 	},
 	{
 	"hla_target",			/* target_name */
@@ -82,9 +153,7 @@ static const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	12,						/* list_elem_content_offset */
 	0,						/* thread_stack_offset; */
 	52,						/* thread_name_offset; */
-	&rtos_standard_Cortex_M3_stacking,	/* stacking_info */
-	&rtos_standard_Cortex_M4F_stacking,
-	&rtos_standard_Cortex_M4F_FPU_stacking,
+	cortex_m_stacking,
 	},
 	{
 	"nds32_v3",			/* target_name */
@@ -96,9 +165,19 @@ static const struct FreeRTOS_params FreeRTOS_params_list[] = {
 	12,						/* list_elem_content_offset */
 	0,						/* thread_stack_offset; */
 	52,						/* thread_name_offset; */
-	&rtos_standard_NDS32_N1068_stacking,	/* stacking_info */
-	&rtos_standard_Cortex_M4F_stacking,
-	&rtos_standard_Cortex_M4F_FPU_stacking,
+	nds32_stacking,
+	},
+	{
+	"riscv",			/* target_name */
+	4,						/* thread_count_width; */
+	4,						/* pointer_width; */
+	16,						/* list_next_offset; */
+	20,						/* list_width; */
+	8,						/* list_elem_next_offset; */
+	12,						/* list_elem_content_offset */
+	0,						/* thread_stack_offset; */
+	52,						/* thread_name_offset; */
+	riscv_stacking,
 	},
 };
 
@@ -107,8 +186,10 @@ static const struct FreeRTOS_params FreeRTOS_params_list[] = {
 static bool FreeRTOS_detect_rtos(struct target *target);
 static int FreeRTOS_create(struct target *target);
 static int FreeRTOS_update_threads(struct rtos *rtos);
-static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
+static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, threadid_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
+static int FreeRTOS_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
+		uint32_t reg_num, struct rtos_reg *reg);
 static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 
 struct rtos_type FreeRTOS_rtos = {
@@ -118,6 +199,7 @@ struct rtos_type FreeRTOS_rtos = {
 	.create = FreeRTOS_create,
 	.update_threads = FreeRTOS_update_threads,
 	.get_thread_reg_list = FreeRTOS_get_thread_reg_list,
+	.get_thread_reg = FreeRTOS_get_thread_reg,
 	.get_symbol_list_to_lookup = FreeRTOS_get_symbol_list_to_lookup,
 };
 
@@ -164,21 +246,21 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 {
 	int retval;
 	unsigned int tasks_found = 0;
-	const struct FreeRTOS_params *param;
 
 	if (rtos->rtos_specific_params == NULL)
-		return -1;
+		return ERROR_FAIL;
 
-	param = (const struct FreeRTOS_params *) rtos->rtos_specific_params;
+	struct FreeRTOS *freertos = (struct FreeRTOS *) rtos->rtos_specific_params;
+	const struct FreeRTOS_params *param = freertos->param;
 
 	if (rtos->symbols == NULL) {
 		LOG_ERROR("No symbols for FreeRTOS");
-		return -3;
+		return ERROR_FAIL;
 	}
 
 	if (rtos->symbols[FreeRTOS_VAL_uxCurrentNumberOfTasks].address == 0) {
 		LOG_ERROR("Don't have the number of threads in FreeRTOS");
-		return -2;
+		return ERROR_FAIL;
 	}
 
 	uint32_t thread_list_size = 0;
@@ -206,12 +288,12 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 		LOG_ERROR("Error reading current thread in FreeRTOS thread list");
 		return retval;
 	}
-	rtos->current_thread = pointer_casts_are_bad;
+	target_addr_t pxCurrentTCB = pointer_casts_are_bad;
 	LOG_DEBUG("FreeRTOS: Read pxCurrentTCB at 0x%" PRIx64 ", value 0x%" PRIx64,
 										rtos->symbols[FreeRTOS_VAL_pxCurrentTCB].address,
-										rtos->current_thread);
+										pxCurrentTCB);
 
-	if ((thread_list_size  == 0) || (rtos->current_thread == 0)) {
+	if ((thread_list_size == 0) || (pxCurrentTCB == 0)) {
 		/* Either : No RTOS threads - there is always at least the current execution though */
 		/* OR     : No current thread - all threads suspended - show the current execution
 		 * of idling */
@@ -245,19 +327,23 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 	}
 
 	/* Find out how many lists are needed to be read from pxReadyTasksLists, */
-	if (rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address == 0) {
-		LOG_ERROR("FreeRTOS: uxTopUsedPriority is not defined, consult the OpenOCD manual for a work-around");
-		return ERROR_FAIL;
-	}
 	uint32_t top_used_priority = 0;
-	retval = target_read_u32(rtos->target,
-			rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address,
-			&top_used_priority);
-	if (retval != ERROR_OK)
-		return retval;
-	LOG_DEBUG("FreeRTOS: Read uxTopUsedPriority at 0x%" PRIx64 ", value %" PRIu32,
-										rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address,
-										top_used_priority);
+	if (rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address == 0) {
+		LOG_WARNING("FreeRTOS: uxTopUsedPriority is not defined, consult the OpenOCD manual for a work-around");
+		/* This is a hack specific to the binary I'm debugging.
+		 * Ideally we get https://github.com/FreeRTOS/FreeRTOS-Kernel/issues/33
+		 * into our FreeRTOS source. */
+		top_used_priority = 6;
+	} else {
+		retval = target_read_u32(rtos->target,
+								 rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address,
+								 &top_used_priority);
+		if (retval != ERROR_OK)
+			return retval;
+		LOG_DEBUG("FreeRTOS: Read uxTopUsedPriority at 0x%" PRIx64 ", value %" PRIu32,
+				  rtos->symbols[FreeRTOS_VAL_uxTopUsedPriority].address,
+				  top_used_priority);
+	}
 	if (top_used_priority > FREERTOS_MAX_PRIORITIES) {
 		LOG_ERROR("FreeRTOS top used priority is unreasonably big, not proceeding: %" PRIu32,
 			top_used_priority);
@@ -289,6 +375,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 	list_of_lists[num_lists++] = rtos->symbols[FreeRTOS_VAL_xSuspendedTaskList].address;
 	list_of_lists[num_lists++] = rtos->symbols[FreeRTOS_VAL_xTasksWaitingTermination].address;
 
+	rtos->current_thread = 0;
 	for (unsigned int i = 0; i < num_lists; i++) {
 		if (list_of_lists[i] == 0)
 			continue;
@@ -336,10 +423,34 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 				free(list_of_lists);
 				return retval;
 			}
-			rtos->thread_details[tasks_found].threadid = pointer_casts_are_bad;
-			LOG_DEBUG("FreeRTOS: Read Thread ID at 0x%" PRIx32 ", value 0x%" PRIx64,
-										list_elem_ptr + param->list_elem_content_offset,
-										rtos->thread_details[tasks_found].threadid);
+
+			target_addr_t tcb = pointer_casts_are_bad;
+			const struct FreeRTOS_thread_entry *value =
+					gl_map_get(freertos->entry_by_tcb, &tcb);
+
+			if (value == NULL) {
+				struct FreeRTOS_thread_entry *new_value = calloc(1, sizeof(struct FreeRTOS_thread_entry));
+				new_value->tcb = tcb;
+				/* threadid can't be 0. */
+				new_value->threadid = ++freertos->last_threadid;
+
+				if (gl_map_nx_put(freertos->entry_by_tcb, &new_value->tcb, new_value) == -1) {
+					LOG_ERROR("gl_map_nx_put failed");
+					return ERROR_FAIL;
+				}
+				if (gl_map_nx_put(freertos->entry_by_threadid, &new_value->threadid, new_value) == -1) {
+					LOG_ERROR("gl_map_nx_put failed");
+					return ERROR_FAIL;
+				}
+				value = new_value;
+			}
+
+			rtos->thread_details[tasks_found].threadid = value->threadid;
+
+			LOG_DEBUG("FreeRTOS: Thread %" PRId64 " has TCB 0x%" TARGET_PRIxADDR
+					  "; read from 0x%" PRIx32,
+					  value->threadid, value->tcb,
+					  list_elem_ptr + param->list_elem_content_offset);
 
 			/* get thread name */
 
@@ -348,7 +459,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 
 			/* Read the thread name */
 			retval = target_read_buffer(rtos->target,
-					rtos->thread_details[tasks_found].threadid + param->thread_name_offset,
+					value->tcb + param->thread_name_offset,
 					FREERTOS_THREAD_NAME_STR_SIZE,
 					(uint8_t *)&tmp_str);
 			if (retval != ERROR_OK) {
@@ -358,7 +469,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 			}
 			tmp_str[FREERTOS_THREAD_NAME_STR_SIZE-1] = '\x00';
 			LOG_DEBUG("FreeRTOS: Read Thread Name at 0x%" PRIx64 ", value '%s'",
-										rtos->thread_details[tasks_found].threadid + param->thread_name_offset,
+										value->tcb + param->thread_name_offset,
 										tmp_str);
 
 			if (tmp_str[0] == '\x00')
@@ -369,8 +480,9 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 			strcpy(rtos->thread_details[tasks_found].thread_name_str, tmp_str);
 			rtos->thread_details[tasks_found].exists = true;
 
-			if (rtos->thread_details[tasks_found].threadid == rtos->current_thread) {
+			if (value->tcb == pxCurrentTCB) {
 				char running_str[] = "State: Running";
+				rtos->current_thread = value->threadid;
 				rtos->thread_details[tasks_found].extra_info_str = malloc(
 						sizeof(running_str));
 				strcpy(rtos->thread_details[tasks_found].extra_info_str,
@@ -402,76 +514,75 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 	return 0;
 }
 
-static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
-		struct rtos_reg **reg_list, int *num_regs)
+static int FreeRTOS_get_stacking_info(struct rtos *rtos, threadid_t thread_id,
+									  const struct rtos_register_stacking **stacking_info,
+									  target_addr_t *stack_ptr)
 {
-	int retval;
-	const struct FreeRTOS_params *param;
-	int64_t stack_ptr = 0;
+	if (rtos->rtos_specific_params == NULL) {
+		LOG_ERROR("rtos_specific_params is NULL!");
+		return ERROR_FAIL;
+	}
 
-	if (rtos == NULL)
-		return -1;
+	struct FreeRTOS *freertos = (struct FreeRTOS *) rtos->rtos_specific_params;
+	const struct FreeRTOS_params *param = freertos->param;
 
-	if (thread_id == 0)
-		return -2;
-
-	if (rtos->rtos_specific_params == NULL)
-		return -1;
-
-	param = (const struct FreeRTOS_params *) rtos->rtos_specific_params;
+	const struct FreeRTOS_thread_entry *entry =
+			gl_map_get(freertos->entry_by_threadid, &thread_id);
+	if (entry == NULL) {
+		LOG_ERROR("Unknown thread id: %" PRId64, thread_id);
+		return ERROR_FAIL;
+	}
 
 	/* Read the stack pointer */
 	uint32_t pointer_casts_are_bad;
-	retval = target_read_u32(rtos->target,
-			thread_id + param->thread_stack_offset,
+	int retval = target_read_u32(rtos->target,
+			entry->tcb + param->thread_stack_offset,
 			&pointer_casts_are_bad);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Error reading stack frame from FreeRTOS thread");
+		LOG_ERROR("Error reading stack frame from FreeRTOS thread %" PRIx64, thread_id);
 		return retval;
 	}
-	stack_ptr = pointer_casts_are_bad;
-	LOG_DEBUG("FreeRTOS: Read stack pointer at 0x%" PRIx64 ", value 0x%" PRIx64,
-										thread_id + param->thread_stack_offset,
-										stack_ptr);
+	*stack_ptr = pointer_casts_are_bad;
+	LOG_DEBUG("[%" PRId64 "] FreeRTOS: Read stack pointer at 0x%" PRIx64 ", value 0x%" PRIx64,
+			  thread_id, entry->tcb + param->thread_stack_offset, *stack_ptr);
 
-	/* Check for armv7m with *enabled* FPU, i.e. a Cortex-M4F */
-	int cm4_fpu_enabled = 0;
-	struct armv7m_common *armv7m_target = target_to_armv7m(rtos->target);
-	if (is_armv7m(armv7m_target)) {
-		if (armv7m_target->fp_feature == FPv4_SP) {
-			/* Found ARM v7m target which includes a FPU */
-			uint32_t cpacr;
-
-			retval = target_read_u32(rtos->target, FPU_CPACR, &cpacr);
-			if (retval != ERROR_OK) {
-				LOG_ERROR("Could not read CPACR register to check FPU state");
-				return -1;
-			}
-
-			/* Check if CP10 and CP11 are set to full access. */
-			if (cpacr & 0x00F00000) {
-				/* Found target with enabled FPU */
-				cm4_fpu_enabled = 1;
-			}
-		}
+	if (param->stacking(rtos, stacking_info, *stack_ptr) != ERROR_OK) {
+		LOG_ERROR("No stacking info found for %s!", param->target_name);
+		return ERROR_FAIL;
 	}
 
-	if (cm4_fpu_enabled == 1) {
-		/* Read the LR to decide between stacking with or without FPU */
-		uint32_t LR_svc = 0;
-		retval = target_read_u32(rtos->target,
-				stack_ptr + 0x20,
-				&LR_svc);
-		if (retval != ERROR_OK) {
-			LOG_OUTPUT("Error reading stack frame from FreeRTOS thread");
-			return retval;
-		}
-		if ((LR_svc & 0x10) == 0)
-			return rtos_generic_stack_read(rtos->target, param->stacking_info_cm4f_fpu, stack_ptr, reg_list, num_regs);
-		else
-			return rtos_generic_stack_read(rtos->target, param->stacking_info_cm4f, stack_ptr, reg_list, num_regs);
-	} else
-		return rtos_generic_stack_read(rtos->target, param->stacking_info_cm3, stack_ptr, reg_list, num_regs);
+	return ERROR_OK;
+}
+
+static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, threadid_t thread_id,
+		struct rtos_reg **reg_list, int *num_regs)
+{
+	/* Let the caller read registers directly for the current thread. */
+	if (thread_id == 0)
+		return ERROR_FAIL;
+
+	const struct rtos_register_stacking *stacking_info;
+	target_addr_t stack_ptr;
+	if (FreeRTOS_get_stacking_info(rtos, thread_id, &stacking_info, &stack_ptr) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return rtos_generic_stack_read(rtos->target, stacking_info, stack_ptr, reg_list, num_regs);
+}
+
+static int FreeRTOS_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
+		uint32_t reg_num, struct rtos_reg *reg)
+{
+	LOG_DEBUG("reg_num=%d", reg_num);
+	/* Let the caller read registers directly for the current thread. */
+	if (thread_id == 0)
+		return ERROR_FAIL;
+
+	const struct rtos_register_stacking *stacking_info;
+	target_addr_t stack_ptr;
+	if (FreeRTOS_get_stacking_info(rtos, thread_id, &stacking_info, &stack_ptr) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return rtos_generic_stack_read_reg(rtos->target, stacking_info, stack_ptr, reg_num, reg);
 }
 
 static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
@@ -545,6 +656,25 @@ static bool FreeRTOS_detect_rtos(struct target *target)
 	return false;
 }
 
+static bool target_addr_equals(const void *x1, const void *x2)
+{
+	const target_addr_t *a1 = x1;
+	const target_addr_t *a2 = x2;
+	return *a1 == *a2;
+}
+
+static size_t target_addr_hash(const void *x)
+{
+	const target_addr_t *a = x;
+	return *a;
+}
+
+static void free_const(const void *x)
+{
+	/* Cast away const. */
+	free((void *) x);
+}
+
 static int FreeRTOS_create(struct target *target)
 {
 	int i = 0;
@@ -554,9 +684,29 @@ static int FreeRTOS_create(struct target *target)
 	}
 	if (i >= FREERTOS_NUM_PARAMS) {
 		LOG_ERROR("Could not find target in FreeRTOS compatibility list");
-		return -1;
+		return ERROR_FAIL;
 	}
 
-	target->rtos->rtos_specific_params = (void *) &FreeRTOS_params_list[i];
+	target->rtos->rtos_specific_params = calloc(1, sizeof(struct FreeRTOS));
+	if (target->rtos->rtos_specific_params == NULL) {
+		LOG_ERROR("calloc failed");
+		return ERROR_FAIL;
+	}
+
+	struct FreeRTOS *freertos = (struct FreeRTOS *) target->rtos->rtos_specific_params;
+	freertos->entry_by_threadid = gl_map_nx_create_empty(
+		GL_LINKEDHASH_MAP, target_addr_equals, target_addr_hash, NULL, free_const);
+	if (freertos->entry_by_threadid == NULL) {
+		LOG_ERROR("gl_map_nx_create_empty failed");
+		return ERROR_FAIL;
+	}
+	freertos->entry_by_tcb = gl_map_nx_create_empty(
+		GL_LINKEDHASH_MAP, target_addr_equals, target_addr_hash, NULL, NULL);
+	if (freertos->entry_by_tcb == NULL) {
+		LOG_ERROR("gl_map_nx_create_empty failed");
+		return ERROR_FAIL;
+	}
+	freertos->param = &FreeRTOS_params_list[i];
+
 	return 0;
 }

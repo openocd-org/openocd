@@ -17,14 +17,10 @@ AC_SUBST([MAKEINFO])
 AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip subdir-objects])
 
 AC_CONFIG_HEADERS([config.h])
-AH_BOTTOM([
-#include <helper/system.h>
-#include <helper/types.h>
-#include <helper/replacements.h>
-])
 
 AC_LANG([C])
 AC_PROG_CC
+gl_EARLY
 # autoconf 2.70 obsoletes AC_PROG_CC_C99 and includes it in AC_PROG_CC
 m4_version_prereq([2.70],[],[AC_PROG_CC_C99])
 AM_PROG_CC_C_O
@@ -90,6 +86,8 @@ AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([usleep])
 AC_CHECK_FUNCS([vasprintf])
 AC_CHECK_FUNCS([realpath])
+
+gl_INIT
 
 # guess-rev.sh only exists in the repository, not in the released archives
 AC_MSG_CHECKING([whether to build a release])
@@ -857,6 +855,7 @@ AS_IF([test "x$gcc_warnings" = "xyes"], [
 
 AC_CONFIG_FILES([
   Makefile
+  src/gnulib/Makefile
 ])
 AC_OUTPUT
 

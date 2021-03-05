@@ -69,7 +69,8 @@ script:
     # so this should work fine most of the time, and be a lot better than not
     # checking at all.
     - git diff -U20 HEAD~40 |
-        filterdiff -x "a/src/jtag/drivers/libjaylink/*" -x "a/tools/git2cl/*" |
+        filterdiff -x "a/src/jtag/drivers/libjaylink/*" -x "a/tools/git2cl/*"
+                -x "b/src/gnulib/*" |
         ./tools/scripts/checkpatch.pl --no-signoff -
     - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi $CONFIGURE_ARGS && make
     - file src/$EXECUTABLE
