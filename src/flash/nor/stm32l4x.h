@@ -92,4 +92,22 @@
 
 #define STM32L5_REGS_SEC_OFFSET 0x10000000
 
+/* 100 bytes as loader stack should be large enough for the loader to operate */
+#define LDR_STACK_SIZE			100
+
+struct stm32l4_work_area {
+	struct stm32l4_loader_params {
+		uint32_t flash_sr_addr;
+		uint32_t flash_cr_addr;
+		uint32_t flash_word_size;
+		uint32_t flash_sr_bsy_mask;
+	} params;
+	uint8_t stack[LDR_STACK_SIZE];
+	struct flash_async_algorithm_circbuf {
+		uint8_t *wp;
+		uint8_t *rp;
+		uint8_t *buf;
+	} fifo;
+};
+
 #endif
