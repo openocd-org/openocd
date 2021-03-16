@@ -133,6 +133,9 @@
 #define F_HAS_TZ            BIT(2)
 /* this flag indicates if the device has the same flash registers as STM32L5 */
 #define F_HAS_L5_FLASH_REGS BIT(3)
+/* this flag indicates that programming should be done in quad-word
+ * the default programming word size is double-word */
+#define F_QUAD_WORD_PROG    BIT(4)
 /* end of STM32L4 flags ******************************************************/
 
 
@@ -236,6 +239,7 @@ struct stm32l4_flash_bank {
 	bool dual_bank_mode;
 	int hole_sectors;
 	uint32_t user_bank_size;
+	uint32_t data_width;
 	uint32_t cr_bker_mask;
 	uint32_t sr_bsy_mask;
 	uint32_t wrpxxr_mask;
@@ -265,7 +269,7 @@ struct stm32l4_wrp {
 };
 
 /* human readable list of families this drivers supports (sorted alphabetically) */
-static const char *device_families = "STM32G0/G4/L4/L4+/L5/WB/WL";
+static const char *device_families = "STM32G0/G4/L4/L4+/L5/U5/WB/WL";
 
 static const struct stm32l4_rev stm32_415_revs[] = {
 	{ 0x1000, "1" }, { 0x1001, "2" }, { 0x1003, "3" }, { 0x1007, "4" }
@@ -321,6 +325,10 @@ static const struct stm32l4_rev stm32_472_revs[] = {
 
 static const struct stm32l4_rev stm32_479_revs[] = {
 	{ 0x1000, "A" },
+};
+
+static const struct stm32l4_rev stm32_482_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" },
 };
 
 static const struct stm32l4_rev stm32_495_revs[] = {
@@ -505,6 +513,18 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .otp_size              = 1024,
 	},
 	{
+	  .id                    = 0x482,
+	  .revs                  = stm32_482_revs,
+	  .num_revs              = ARRAY_SIZE(stm32_482_revs),
+	  .device_str            = "STM32U57/U58xx",
+	  .max_flash_size_kb     = 2048,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x0BFA07A0,
+	  .otp_base              = 0x0BFA0000,
+	  .otp_size              = 512,
+	},
+	{
 	  .id                    = 0x495,
 	  .revs                  = stm32_495_revs,
 	  .num_revs              = ARRAY_SIZE(stm32_495_revs),
@@ -558,10 +578,6 @@ FLASH_BANK_COMMAND_HANDLER(stm32l4_flash_bank_command)
 	if (!stm32l4_info)
 		return ERROR_FAIL; /* Checkme: What better error to use?*/
 	bank->driver_priv = stm32l4_info;
-
-	/* The flash write must be aligned to a double word (8-bytes) boundary.
-	 * Ask the flash infrastructure to ensure required alignment */
-	bank->write_start_alignment = bank->write_end_alignment = 8;
 
 	stm32l4_info->probed = false;
 	stm32l4_info->otp_enabled = false;
@@ -1297,11 +1313,12 @@ static int stm32l4_protect(struct flash_bank *bank, int set, unsigned int first,
 	return stm32l4_write_all_wrpxy(bank, wrpxy, n_wrp);
 }
 
-/* Count is in double-words */
+/* count is the size divided by stm32l4_info->data_width */
 static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
 	uint32_t buffer_size;
 	struct working_area *write_algorithm;
 	struct working_area *source;
@@ -1328,7 +1345,11 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		return retval;
 	}
 
-	/* memory buffer, size *must* be multiple of dword plus one dword for rp and one for wp */
+	/* memory buffer, size *must* be multiple of stm32l4_info->data_width
+	 * plus one dword for rp and one for wp */
+	/* FIXME, currently only STM32U5 devices do have a different data_width,
+	 * but STM32U5 device flash programming does not go through this function
+	 * so temporarily continue to consider the default data_width = 8 */
 	buffer_size = target_get_working_area_avail(target) & ~(2 * sizeof(uint32_t) - 1);
 	if (buffer_size < 256) {
 		LOG_WARNING("large enough working area not available, can't do block memory writes");
@@ -1360,7 +1381,7 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	buf_set_u32(reg_params[4].value, 0, 32, stm32l4_get_flash_reg_by_index(bank, STM32_FLASH_SR_INDEX));
 	buf_set_u32(reg_params[5].value, 0, 32, stm32l4_get_flash_reg_by_index(bank, STM32_FLASH_CR_INDEX));
 
-	retval = target_run_flash_async_algorithm(target, buffer, count, 8,
+	retval = target_run_flash_async_algorithm(target, buffer, count, stm32l4_info->data_width,
 			0, NULL,
 			ARRAY_SIZE(reg_params), reg_params,
 			source->address, source->size,
@@ -1396,10 +1417,11 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	return retval;
 }
 
-/* Count is in double-words */
+/* count is the size divided by stm32l4_info->data_width */
 static int stm32l4_write_block_without_loader(struct flash_bank *bank, const uint8_t *buffer,
 				uint32_t offset, uint32_t count)
 {
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
 	struct target *target = bank->target;
 	uint32_t address = bank->base + offset;
 	int retval = ERROR_OK;
@@ -1417,8 +1439,9 @@ static int stm32l4_write_block_without_loader(struct flash_bank *bank, const uin
 
 	/* write directly to flash memory */
 	const uint8_t *src = buffer;
+	const uint32_t data_width_in_words = stm32l4_info->data_width / 4;
 	while (count--) {
-		retval = target_write_memory(target, address, 4, 2, src);
+		retval = target_write_memory(target, address, 4, data_width_in_words, src);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1427,8 +1450,8 @@ static int stm32l4_write_block_without_loader(struct flash_bank *bank, const uin
 		if (retval != ERROR_OK)
 			return retval;
 
-		src += 8;
-		address += 8;
+		src += stm32l4_info->data_width;
+		address += stm32l4_info->data_width;
 	}
 
 	/* reset PG in FLASH_CR */
@@ -1455,10 +1478,13 @@ static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* The flash write must be aligned to a double word (8-bytes) boundary.
+	/* ensure that stm32l4_info->data_width is 'at least' a multiple of dword */
+	assert(stm32l4_info->data_width % 8 == 0);
+
+	/* The flash write must be aligned to the 'stm32l4_info->data_width' boundary.
 	 * The flash infrastructure ensures it, do just a security check */
-	assert(offset % 8 == 0);
-	assert(count % 8 == 0);
+	assert(offset % stm32l4_info->data_width == 0);
+	assert(count % stm32l4_info->data_width == 0);
 
 	/* STM32G4xxx Cat. 3 devices may have gaps between banks, check whether
 	 * data to be written does not go into a gap:
@@ -1520,6 +1546,12 @@ static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 	if ((stm32l4_info->part_info->id == 0x467) && stm32l4_info->dual_bank_mode) {
 		LOG_INFO("Couldn't use the flash loader in dual-bank mode");
 		use_flashloader = false;
+	} else if (stm32l4_info->part_info->id == 0x482) {
+		/**
+		 * FIXME the current flashloader does not support writing in quad-words
+		 * which is required for STM32U5 devices.
+		 */
+		use_flashloader = false;
 	}
 
 	if (use_flashloader) {
@@ -1530,14 +1562,15 @@ static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 		if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0_5))
 			LOG_INFO("RDP level is 0.5, the work-area should reside in non-secure RAM");
 
-		retval = stm32l4_write_block(bank, buffer, offset, count / 8);
+		retval = stm32l4_write_block(bank, buffer, offset,
+				count / stm32l4_info->data_width);
 	}
 
 	if (!use_flashloader || retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 		LOG_INFO("falling back to single memory accesses");
-		retval = stm32l4_write_block_without_loader(bank, buffer, offset, count / 8);
+		retval = stm32l4_write_block_without_loader(bank, buffer, offset,
+				count / stm32l4_info->data_width);
 	}
-
 
 err_lock:
 	retval2 = stm32l4_write_flash_reg_by_index(bank, stm32l4_get_flash_cr_with_lock_index(bank), FLASH_LOCK);
@@ -1657,8 +1690,13 @@ static int stm32l4_probe(struct flash_bank *bank)
 			stm32l4_info->idcode, part_info->device_str, rev_str, rev_id);
 
 	stm32l4_info->flash_regs_base = stm32l4_info->part_info->flash_regs_base;
+	stm32l4_info->data_width = (part_info->flags & F_QUAD_WORD_PROG) ? 16 : 8;
 	stm32l4_info->cr_bker_mask = FLASH_BKER;
 	stm32l4_info->sr_bsy_mask = FLASH_BSY;
+
+	/* Set flash write alignment boundaries.
+	 * Ask the flash infrastructure to ensure required alignment */
+	bank->write_start_alignment = bank->write_end_alignment = stm32l4_info->data_width;
 
 	/* initialise the flash registers layout */
 	if (part_info->flags & F_HAS_L5_FLASH_REGS)
@@ -1849,6 +1887,18 @@ static int stm32l4_probe(struct flash_bank *bank)
 			stm32l4_info->dual_bank_mode = true;
 			page_size_kb = 2;
 			num_pages = flash_size_kb / page_size_kb;
+			stm32l4_info->bank1_sectors = num_pages / 2;
+		}
+		break;
+	case 0x482: /* STM32U57/U58xx */
+		/* if flash size is max (2M) the device is always dual bank
+		 * otherwise check DUALBANK bit(21)
+		 */
+		page_size_kb = 8;
+		num_pages = flash_size_kb / page_size_kb;
+		stm32l4_info->bank1_sectors = num_pages;
+		if ((flash_size_kb == part_info->max_flash_size_kb) || (stm32l4_info->optr & BIT(21))) {
+			stm32l4_info->dual_bank_mode = true;
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
 		break;
