@@ -3131,6 +3131,26 @@ Specifies the serial number of the adapter.
 @deffn {Config Command} {st-link vid_pid} [vid pid]+
 Pairs of vendor IDs and product IDs of the device.
 @end deffn
+
+@deffn {Command} {st-link cmd} rx_n (tx_byte)+
+Sends an arbitrary command composed by the sequence of bytes @var{tx_byte}
+and receives @var{rx_n} bytes.
+
+For example, the command to read the target's supply voltage is one byte 0xf7 followed
+by 15 bytes zero. It returns 8 bytes, where the first 4 bytes represent the ADC sampling
+of the reference voltage 1.2V and the last 4 bytes represent the ADC sampling of half
+the target's supply voltage.
+@example
+> st-link cmd 8 0xf7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0xf1 0x05 0x00 0x00 0x0b 0x08 0x00 0x00
+@end example
+The result can be converted to Volts (ignoring the most significant bytes, always zero)
+@example
+> set a [st-link cmd 8 0xf7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+> echo [expr 2*1.2*([lindex $a 4]+256*[lindex $a 5])/([lindex $a 0]+256*[lindex $a 1])]
+3.24891518738
+@end example
+@end deffn
 @end deffn
 
 @deffn {Interface Driver} {opendous}
