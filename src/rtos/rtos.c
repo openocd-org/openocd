@@ -653,7 +653,7 @@ int rtos_generic_stack_read_reg(struct target *target,
 	}
 	if (i >= total_count) {
 		/* This register is not on the stack. Return error so a caller somewhere
-		 * will just read the register directly fromt he target. */
+		 * will just read the register directly from the target. */
 		return ERROR_FAIL;
 	}
 
@@ -675,6 +675,58 @@ int rtos_generic_stack_read_reg(struct target *target,
 				  buf_get_u64(reg->value, 0, 64));
 	} else {
 		memset(reg->value, 0, width_bytes);
+	}
+
+	return ERROR_OK;
+}
+
+int rtos_generic_stack_write_reg(struct target *target,
+								const struct rtos_register_stacking *stacking,
+								target_addr_t stack_ptr,
+								uint32_t reg_num, uint8_t *reg_value)
+{
+	LOG_DEBUG("stack_ptr=" TARGET_ADDR_FMT ", reg_num=%d", stack_ptr, reg_num);
+	unsigned total_count = MAX(stacking->total_register_count, stacking->num_output_registers);
+	unsigned i;
+	for (i = 0; i < total_count; i++) {
+		if (stacking->register_offsets[i].number == reg_num)
+			break;
+	}
+	if (i >= total_count) {
+		/* This register is not on the stack. Return error so a caller somewhere
+		 * will just read the register directly from the target. */
+		return ERROR_FAIL;
+	}
+
+	const struct stack_register_offset *offsets = &stacking->register_offsets[i];
+
+	unsigned width_bytes = DIV_ROUND_UP(offsets->width_bits, 8);
+	if (offsets->offset >= 0) {
+		target_addr_t address = stack_ptr;
+
+		if (stacking->stack_growth_direction == 1)
+			address -= stacking->stack_registers_size;
+
+		LOG_DEBUG("write 0x%" PRIx64 " to register %d",
+				  buf_get_u64(reg_value, 0, offsets->width_bits), reg_num);
+		if (target_write_buffer(
+				target, address + offsets->offset,
+				width_bytes, reg_value) != ERROR_OK)
+			return ERROR_FAIL;
+	} else if (offsets->offset == -1) {
+		/* This register isn't on the stack, but is listed as one of those. We
+		 * read it as 0, and ignore writes. */
+	} else if (offsets->offset == -2) {
+		/* This register requires computation when we "read" it. I'm not sure
+		 * how to handle writes. We can't simply return error here because then
+		 * the higher level code will end up writing the register in the halted
+		 * core, which is definitely not the same as writing it for a thread. */
+		LOG_ERROR("Don't know how to write register %d with offset -2 in a thread.",
+				  reg_num);
+		assert(0);
+	} else {
+		LOG_ERROR("Don't know how to handle offset <2.");
+		assert(0);
 	}
 
 	return ERROR_OK;

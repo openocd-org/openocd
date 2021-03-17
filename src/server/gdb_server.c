@@ -2942,6 +2942,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 				char sig_reply[128];
 
 				LOG_DEBUG("fake step thread %"PRIx64, thread_id);
+				target->rtos->current_threadid = thread_id;
 
 				sig_reply_len = snprintf(sig_reply, sizeof(sig_reply),
 										 "T05thread:%016"PRIx64";", thread_id);

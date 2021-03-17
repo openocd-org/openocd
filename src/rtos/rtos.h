@@ -143,6 +143,10 @@ int rtos_generic_stack_read_reg(struct target *target,
 								const struct rtos_register_stacking *stacking,
 								target_addr_t stack_ptr,
 								uint32_t reg_num, struct rtos_reg *reg);
+int rtos_generic_stack_write_reg(struct target *target,
+								const struct rtos_register_stacking *stacking,
+								target_addr_t stack_ptr,
+								uint32_t reg_num, uint8_t *reg_value);
 int gdb_thread_packet(struct connection *connection, char const *packet, int packet_size);
 int rtos_get_gdb_reg(struct connection *connection, int reg_num);
 int rtos_get_gdb_reg_list(struct connection *connection);

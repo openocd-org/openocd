@@ -190,6 +190,7 @@ static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, threadid_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
 static int FreeRTOS_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
 		uint32_t reg_num, struct rtos_reg *reg);
+static int FreeRTOS_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
 static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
 
 struct rtos_type FreeRTOS_rtos = {
@@ -200,6 +201,7 @@ struct rtos_type FreeRTOS_rtos = {
 	.update_threads = FreeRTOS_update_threads,
 	.get_thread_reg_list = FreeRTOS_get_thread_reg_list,
 	.get_thread_reg = FreeRTOS_get_thread_reg,
+	.set_reg = FreeRTOS_set_reg,
 	.get_symbol_list_to_lookup = FreeRTOS_get_symbol_list_to_lookup,
 };
 
@@ -583,6 +585,24 @@ static int FreeRTOS_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
 		return ERROR_FAIL;
 
 	return rtos_generic_stack_read_reg(rtos->target, stacking_info, stack_ptr, reg_num, reg);
+}
+
+static int FreeRTOS_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value)
+{
+	LOG_DEBUG("[%" PRId64 "] reg_num=%" PRId32, rtos->current_threadid, reg_num);
+
+	/* Let the caller write registers directly for the current thread. */
+	if (rtos->current_threadid == rtos->current_thread)
+		return ERROR_FAIL;
+
+	const struct rtos_register_stacking *stacking_info;
+	target_addr_t stack_ptr;
+	if (FreeRTOS_get_stacking_info(rtos, rtos->current_threadid,
+								   &stacking_info, &stack_ptr) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return rtos_generic_stack_write_reg(rtos->target, stacking_info, stack_ptr,
+										reg_num, reg_value);
 }
 
 static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
