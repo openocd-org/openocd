@@ -365,6 +365,7 @@ int openocd_main(int argc, char *argv[])
 	server_free();
 
 	unregister_all_commands(cmd_ctx, NULL);
+	help_del_all_commands(cmd_ctx);
 
 	/* free all DAP and CTI objects */
 	dap_cleanup_all();
