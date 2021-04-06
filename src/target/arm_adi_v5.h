@@ -97,6 +97,11 @@
 #define DP_APSEL_MAX        (255)
 #define DP_APSEL_INVALID    (-1)
 
+#define DP_TARGETSEL_INVALID 0xFFFFFFFFU
+#define DP_TARGETSEL_DPID_MASK 0x0FFFFFFFU
+#define DP_TARGETSEL_INSTANCEID_MASK 0xF0000000U
+#define DP_TARGETSEL_INSTANCEID_SHIFT 28
+
 
 /* MEM-AP register addresses */
 #define MEM_AP_REG_CSW		0x00
@@ -324,6 +329,13 @@ struct adiv5_dap {
 	/** Flag saying whether to ignore the syspwrupack flag in DAP. Some devices
 	 *  do not set this bit until later in the bringup sequence */
 	bool ignore_syspwrupack;
+
+	/** Value to select DP in SWD multidrop mode or DP_TARGETSEL_INVALID */
+	uint32_t multidrop_targetsel;
+	/** TPARTNO and TDESIGNER fields of multidrop_targetsel have been configured */
+	bool multidrop_dp_id_valid;
+	/** TINSTANCE field of multidrop_targetsel has been configured */
+	bool multidrop_instance_id_valid;
 };
 
 /**
@@ -608,6 +620,12 @@ int dap_find_ap(struct adiv5_dap *dap,
 static inline struct adiv5_ap *dap_ap(struct adiv5_dap *dap, uint8_t ap_num)
 {
 	return &dap->ap[ap_num];
+}
+
+/** Check if SWD multidrop configuration is valid */
+static inline bool dap_is_multidrop(struct adiv5_dap *dap)
+{
+	return dap->multidrop_dp_id_valid && dap->multidrop_instance_id_valid;
 }
 
 /* Lookup CoreSight component */

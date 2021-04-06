@@ -155,11 +155,15 @@ int dap_cleanup_all(void)
 enum dap_cfg_param {
 	CFG_CHAIN_POSITION,
 	CFG_IGNORE_SYSPWRUPACK,
+	CFG_DP_ID,
+	CFG_INSTANCE_ID,
 };
 
 static const struct jim_nvp nvp_config_opts[] = {
-	{ .name = "-chain-position",   .value = CFG_CHAIN_POSITION },
+	{ .name = "-chain-position",     .value = CFG_CHAIN_POSITION },
 	{ .name = "-ignore-syspwrupack", .value = CFG_IGNORE_SYSPWRUPACK },
+	{ .name = "-dp-id",              .value = CFG_DP_ID },
+	{ .name = "-instance-id",        .value = CFG_INSTANCE_ID },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -197,6 +201,48 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 		case CFG_IGNORE_SYSPWRUPACK:
 			dap->dap.ignore_syspwrupack = true;
 			break;
+		case CFG_DP_ID: {
+			jim_wide w;
+			e = jim_getopt_wide(goi, &w);
+			if (e != JIM_OK) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: bad parameter %s",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			if (w < 0 || w > DP_TARGETSEL_DPID_MASK) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: %s out of range",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			dap->dap.multidrop_targetsel =
+				(dap->dap.multidrop_targetsel & DP_TARGETSEL_INSTANCEID_MASK)
+				| (w & DP_TARGETSEL_DPID_MASK);
+			dap->dap.multidrop_dp_id_valid = true;
+			break;
+		}
+		case CFG_INSTANCE_ID: {
+			jim_wide w;
+			e = jim_getopt_wide(goi, &w);
+			if (e != JIM_OK) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: bad parameter %s",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			if (w < 0 || w > 15) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: %s out of range",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			dap->dap.multidrop_targetsel =
+				(dap->dap.multidrop_targetsel & DP_TARGETSEL_DPID_MASK)
+				| ((w << DP_TARGETSEL_INSTANCEID_SHIFT) & DP_TARGETSEL_INSTANCEID_MASK);
+			dap->dap.multidrop_instance_id_valid = true;
+			break;
+		}
 		default:
 			break;
 		}
