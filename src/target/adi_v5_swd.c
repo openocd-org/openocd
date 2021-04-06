@@ -56,8 +56,9 @@
 /* for debug, set do_sync to true to force synchronous transfers */
 static bool do_sync;
 
+static struct adiv5_dap *swd_multidrop_selected_dap;
 
-static int swd_run(struct adiv5_dap *dap);
+
 static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 		uint32_t data);
 
@@ -176,17 +177,191 @@ static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 	return check_sync(dap);
 }
 
+
+static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr,
+		uint32_t *dlpidr_ptr, bool clear_sticky)
+{
+	int retval;
+	uint32_t dpidr, dlpidr;
+
+	assert(dap_is_multidrop(dap));
+
+	swd_send_sequence(dap, LINE_RESET);
+
+	retval = swd_queue_dp_write_inner(dap, DP_TARGETSEL, dap->multidrop_targetsel);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd_queue_dp_read_inner(dap, DP_DPIDR, &dpidr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (clear_sticky) {
+		/* Clear all sticky errors (including ORUN) */
+		swd_clear_sticky_errors(dap);
+	} else {
+		/* Ideally just clear ORUN flag which is set by reset */
+		retval = swd_queue_dp_write_inner(dap, DP_ABORT, ORUNERRCLR);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	retval = swd_queue_dp_read_inner(dap, DP_DLPIDR, &dlpidr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd_run_inner(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((dpidr & DP_DPIDR_VERSION_MASK) < (2UL << DP_DPIDR_VERSION_SHIFT)) {
+		LOG_INFO("Read DPIDR 0x%08" PRIx32
+				 " has version < 2. A non multidrop capable device connected?",
+				 dpidr);
+		return ERROR_FAIL;
+	}
+
+	/* TODO: check TARGETID if DLIPDR is same for more than one DP */
+	uint32_t expected_dlpidr = DP_DLPIDR_PROTVSN |
+			(dap->multidrop_targetsel & DP_TARGETSEL_INSTANCEID_MASK);
+	if (dlpidr != expected_dlpidr) {
+		LOG_INFO("Read incorrect DLPIDR 0x%08" PRIx32
+				 " (possibly CTRL/STAT value)",
+				 dlpidr);
+		return ERROR_FAIL;
+	}
+
+	LOG_DEBUG_IO("Selected DP_TARGETSEL 0x%08" PRIx32, dap->multidrop_targetsel);
+	swd_multidrop_selected_dap = dap;
+
+	if (dpidr_ptr)
+		*dpidr_ptr = dpidr;
+
+	if (dlpidr_ptr)
+		*dlpidr_ptr = dlpidr;
+
+	return retval;
+}
+
+static int swd_multidrop_select(struct adiv5_dap *dap)
+{
+	if (!dap_is_multidrop(dap))
+		return ERROR_OK;
+
+	if (swd_multidrop_selected_dap == dap)
+		return ERROR_OK;
+
+	int retval = ERROR_OK;
+	for (unsigned int retry = 0; ; retry++) {
+		bool clear_sticky = retry > 0;
+
+		retval = swd_multidrop_select_inner(dap, NULL, NULL, clear_sticky);
+		if (retval == ERROR_OK)
+			break;
+
+		swd_multidrop_selected_dap = NULL;
+		if (retry > 3) {
+			LOG_ERROR("Failed to select multidrop %s", adiv5_dap_name(dap));
+			return retval;
+		}
+
+		LOG_DEBUG("Failed to select multidrop %s, retrying...",
+				  adiv5_dap_name(dap));
+	}
+
+	return retval;
+}
+
+static int swd_connect_multidrop(struct adiv5_dap *dap)
+{
+	int retval;
+	uint32_t dpidr = 0xdeadbeef;
+	uint32_t dlpidr = 0xdeadbeef;
+	int64_t timeout = timeval_ms() + 500;
+
+	do {
+		swd_send_sequence(dap, JTAG_TO_DORMANT);
+		swd_send_sequence(dap, DORMANT_TO_SWD);
+
+		/* Clear link state, including the SELECT cache. */
+		dap->do_reconnect = false;
+		dap_invalidate_cache(dap);
+		swd_multidrop_selected_dap = NULL;
+
+		retval = swd_multidrop_select_inner(dap, &dpidr, &dlpidr, true);
+		if (retval == ERROR_OK)
+			break;
+
+		alive_sleep(1);
+
+	} while (timeval_ms() < timeout);
+
+	if (retval != ERROR_OK) {
+		swd_multidrop_selected_dap = NULL;
+		LOG_ERROR("Failed to connect multidrop %s", adiv5_dap_name(dap));
+		return retval;
+	}
+
+	LOG_INFO("SWD DPIDR 0x%08" PRIx32 ", DLPIDR 0x%08" PRIx32,
+			  dpidr, dlpidr);
+
+	return retval;
+}
+
+static int swd_connect_single(struct adiv5_dap *dap)
+{
+	int retval;
+	uint32_t dpidr = 0xdeadbeef;
+	int64_t timeout = timeval_ms() + 500;
+
+	do {
+		swd_send_sequence(dap, JTAG_TO_SWD);
+
+		/* Clear link state, including the SELECT cache. */
+		dap->do_reconnect = false;
+		dap_invalidate_cache(dap);
+
+		retval = swd_queue_dp_read_inner(dap, DP_DPIDR, &dpidr);
+		if (retval == ERROR_OK) {
+			retval = swd_run_inner(dap);
+			if (retval == ERROR_OK)
+				break;
+		}
+
+		alive_sleep(1);
+
+	} while (timeval_ms() < timeout);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Error connecting DP: cannot read IDR");
+		return retval;
+	}
+
+	LOG_INFO("SWD DPIDR 0x%08" PRIx32, dpidr);
+
+	do {
+		dap->do_reconnect = false;
+
+		/* force clear all sticky faults */
+		swd_clear_sticky_errors(dap);
+
+		retval = swd_run_inner(dap);
+		if (retval != ERROR_WAIT)
+			break;
+
+		alive_sleep(10);
+
+	} while (timeval_ms() < timeout);
+
+	return retval;
+}
+
 static int swd_connect(struct adiv5_dap *dap)
 {
-	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
-	uint32_t dpidr = 0xdeadbeef;
 	int status;
 
 	/* FIXME validate transport config ... is the
 	 * configured DAP present (check IDCODE)?
-	 * Is *only* one DAP configured?
-	 *
-	 * MUST READ DPIDR
 	 */
 
 	/* Check if we should reset srst already when connecting, but not if reconnecting. */
@@ -201,48 +376,10 @@ static int swd_connect(struct adiv5_dap *dap)
 		}
 	}
 
-
-	int64_t timeout = timeval_ms() + 500;
-
-	do {
-		/* Note, debugport_init() does setup too */
-		swd->switch_seq(JTAG_TO_SWD);
-
-		/* Clear link state, including the SELECT cache. */
-		dap->do_reconnect = false;
-		dap_invalidate_cache(dap);
-
-		status = swd_queue_dp_read_inner(dap, DP_DPIDR, &dpidr);
-		if (status == ERROR_OK) {
-			status = swd_run_inner(dap);
-			if (status == ERROR_OK)
-				break;
-		}
-
-		alive_sleep(1);
-
-	} while (timeval_ms() < timeout);
-
-	if (status != ERROR_OK) {
-		LOG_ERROR("Error connecting DP: cannot read IDR");
-		return status;
-	}
-
-	LOG_INFO("SWD DPIDR %#8.8" PRIx32, dpidr);
-
-	do {
-		dap->do_reconnect = false;
-
-		/* force clear all sticky faults */
-		swd_clear_sticky_errors(dap);
-
-		status = swd_run_inner(dap);
-		if (status != ERROR_WAIT)
-			break;
-
-		alive_sleep(10);
-
-	} while (timeval_ms() < timeout);
+	if (dap_is_multidrop(dap))
+		status = swd_connect_multidrop(dap);
+	else
+		status = swd_connect_single(dap);
 
 	/* IHI 0031E B4.3.2:
 	 * "A WAIT response must not be issued to the ...
@@ -257,9 +394,11 @@ static int swd_connect(struct adiv5_dap *dap)
 
 		dap->do_reconnect = false;
 
-		swd->write_reg(swd_cmd(false, false, DP_ABORT),
-			DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
-		status = swd_run_inner(dap);
+		status = swd_queue_dp_write_inner(dap, DP_ABORT,
+			DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR);
+
+		if (status == ERROR_OK)
+			status = swd_run_inner(dap);
 	}
 
 	if (status == ERROR_OK)
@@ -281,6 +420,14 @@ static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
+	/* TODO: Send DAPABORT in swd_multidrop_select_inner()
+	 * in the case the multidrop dap is not selected?
+	 * swd_queue_ap_abort() is not currently used anyway...
+	 */
+	int retval = swd_multidrop_select(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
 	swd->write_reg(swd_cmd(false, false, DP_ABORT),
 		DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
 	return check_sync(dap);
@@ -290,6 +437,10 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 		uint32_t *data)
 {
 	int retval = swd_check_reconnect(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd_multidrop_select(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -303,6 +454,10 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 	assert(swd);
 
 	int retval = swd_check_reconnect(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd_multidrop_select(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -340,6 +495,10 @@ static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
 	if (retval != ERROR_OK)
 		return retval;
 
+	retval = swd_multidrop_select(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
 	retval = swd_queue_ap_bankselect(ap, reg);
 	if (retval != ERROR_OK)
 		return retval;
@@ -361,7 +520,12 @@ static int swd_queue_ap_write(struct adiv5_ap *ap, unsigned reg,
 	if (retval != ERROR_OK)
 		return retval;
 
+	retval = swd_multidrop_select(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
 	swd_finish_read(dap);
+
 	retval = swd_queue_ap_bankselect(ap, reg);
 	if (retval != ERROR_OK)
 		return retval;
@@ -374,7 +538,12 @@ static int swd_queue_ap_write(struct adiv5_ap *ap, unsigned reg,
 /** Executes all queued DAP operations. */
 static int swd_run(struct adiv5_dap *dap)
 {
+	int retval = swd_multidrop_select(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
 	swd_finish_read(dap);
+
 	return swd_run_inner(dap);
 }
 
@@ -382,9 +551,27 @@ static int swd_run(struct adiv5_dap *dap)
 static void swd_quit(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
+	static bool done;
 
-	swd->switch_seq(SWD_TO_JTAG);
-	/* flush the queue before exit */
+	/* There is no difference if the sequence is sent at the last
+	 * or the first swd_quit() call, send it just once */
+	if (done)
+		return;
+
+	done = true;
+	if (dap_is_multidrop(dap)) {
+		swd->switch_seq(SWD_TO_DORMANT);
+		/* Revisit!
+		 * Leaving DPs in dormant state was tested and offers some safety
+		 * against DPs mismatch in case of unintentional use of non-multidrop SWD.
+		 * To put SWJ-DPs to power-on state issue
+		 * swd->switch_seq(DORMANT_TO_JTAG);
+		 */
+	} else {
+		swd->switch_seq(SWD_TO_JTAG);
+	}
+
+	/* flush the queue to shift out the sequence before exit */
 	swd->run();
 }
 
