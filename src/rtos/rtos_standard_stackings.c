@@ -153,7 +153,7 @@ static const struct stack_register_offset rtos_standard_NDS32_N1068_stack_offset
 	{ 35, 0x10, 32 },		/* IFC_LP */
 };
 
-static const struct stack_register_offset rtos_standard_RV32_stack_offsets[] = {
+static const struct stack_register_offset rtos_metal_RV32_stack_offsets[] = {
 	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
 	 * inside rtos_generic_stack_read(). */
 	{ GDB_REGNO_ZERO,  -1, 32 },
@@ -194,15 +194,139 @@ static const struct stack_register_offset rtos_standard_RV32_stack_offsets[] = {
 	{ GDB_REGNO_MSTATUS, 0x84, 32 },
 };
 
-static int64_t rtos_generic_stack_align(struct target *target,
+static const struct stack_register_offset rtos_metal_RV64_stack_offsets[] = {
+	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
+	 * inside rtos_generic_stack_read(). */
+	{ GDB_REGNO_ZERO,  -1, 64 },
+	{ GDB_REGNO_RA, 2 * 0x04, 64 },
+	{ GDB_REGNO_SP, 2 * 0x08, 64 },
+	{ GDB_REGNO_GP, 2 * 0x0c, 64 },
+	{ GDB_REGNO_TP, 2 * 0x10, 64 },
+	{ GDB_REGNO_T0, 2 * 0x14, 64 },
+	{ GDB_REGNO_T1, 2 * 0x18, 64 },
+	{ GDB_REGNO_T2, 2 * 0x1c, 64 },
+	{ GDB_REGNO_FP, 2 * 0x20, 64 },
+	{ GDB_REGNO_S1, 2 * 0x24, 64 },
+	{ GDB_REGNO_A0, 2 * 0x28, 64 },
+	{ GDB_REGNO_A1, 2 * 0x2c, 64 },
+	{ GDB_REGNO_A2, 2 * 0x30, 64 },
+	{ GDB_REGNO_A3, 2 * 0x34, 64 },
+	{ GDB_REGNO_A4, 2 * 0x38, 64 },
+	{ GDB_REGNO_A5, 2 * 0x3c, 64 },
+	{ GDB_REGNO_A6, 2 * 0x40, 64 },
+	{ GDB_REGNO_A7, 2 * 0x44, 64 },
+	{ GDB_REGNO_S2, 2 * 0x48, 64 },
+	{ GDB_REGNO_S3, 2 * 0x4c, 64 },
+	{ GDB_REGNO_S4, 2 * 0x50, 64 },
+	{ GDB_REGNO_S5, 2 * 0x54, 64 },
+	{ GDB_REGNO_S6, 2 * 0x58, 64 },
+	{ GDB_REGNO_S7, 2 * 0x5c, 64 },
+	{ GDB_REGNO_S8, 2 * 0x60, 64 },
+	{ GDB_REGNO_S9, 2 * 0x64, 64 },
+	{ GDB_REGNO_S10, 2 * 0x68, 64 },
+	{ GDB_REGNO_S11, 2 * 0x6c, 64 },
+	{ GDB_REGNO_T3, 2 * 0x70, 64 },
+	{ GDB_REGNO_T4, 2 * 0x74, 64 },
+	{ GDB_REGNO_T5, 2 * 0x78, 64 },
+	{ GDB_REGNO_T6, 2 * 0x7c, 64 },
+	{ GDB_REGNO_PC, 2 * 0x80, 64 },
+	/* Registers below are on the stack, but not what gdb expects to return from
+	 * a 'g' packet so are only accessible through get_reg. */
+	{ GDB_REGNO_MSTATUS, 2 * 0x84, 64 },
+};
+
+static const struct stack_register_offset rtos_standard_RV32_stack_offsets[] = {
+	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
+	 * inside rtos_generic_stack_read(). */
+	{ GDB_REGNO_ZERO,  -1, 32 },
+	{ GDB_REGNO_RA,  0x04, 32 },
+	{ GDB_REGNO_SP,  -2, 32 },
+	{ GDB_REGNO_GP,  -2, 32 },
+	{ GDB_REGNO_TP,  -2, 32 },
+	{ GDB_REGNO_T0,  0x08, 32 },
+	{ GDB_REGNO_T1,  0x0c, 32 },
+	{ GDB_REGNO_T2,  0x10, 32 },
+	{ GDB_REGNO_FP,  0x14, 32 },
+	{ GDB_REGNO_S1,  0x18, 32 },
+	{ GDB_REGNO_A0, 0x1c, 32 },
+	{ GDB_REGNO_A1, 0x20, 32 },
+	{ GDB_REGNO_A2, 0x24, 32 },
+	{ GDB_REGNO_A3, 0x28, 32 },
+	{ GDB_REGNO_A4, 0x2c, 32 },
+	{ GDB_REGNO_A5, 0x30, 32 },
+	{ GDB_REGNO_A6, 0x34, 32 },
+	{ GDB_REGNO_A7, 0x38, 32 },
+	{ GDB_REGNO_S2, 0x3c, 32 },
+	{ GDB_REGNO_S3, 0x40, 32 },
+	{ GDB_REGNO_S4, 0x44, 32 },
+	{ GDB_REGNO_S5, 0x48, 32 },
+	{ GDB_REGNO_S6, 0x4c, 32 },
+	{ GDB_REGNO_S7, 0x50, 32 },
+	{ GDB_REGNO_S8, 0x54, 32 },
+	{ GDB_REGNO_S9, 0x58, 32 },
+	{ GDB_REGNO_S10, 0x5c, 32 },
+	{ GDB_REGNO_S11, 0x60, 32 },
+	{ GDB_REGNO_T3, 0x64, 32 },
+	{ GDB_REGNO_T4, 0x68, 32 },
+	{ GDB_REGNO_T5, 0x6c, 32 },
+	{ GDB_REGNO_T6, 0x70, 32 },
+	{ GDB_REGNO_PC, 0, 32 },
+	/* Registers below are on the stack, but not what gdb expects to return from
+	 * a 'g' packet so are only accessible through get_reg. */
+	{ GDB_REGNO_MSTATUS, 29 * 4, 32 },
+};
+
+static const struct stack_register_offset rtos_standard_RV64_stack_offsets[] = {
+	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
+	 * inside rtos_generic_stack_read(). */
+	{ GDB_REGNO_ZERO,  -1, 64 },
+	{ GDB_REGNO_RA, 2 * 0x04, 64 },
+	{ GDB_REGNO_SP, -2, 64 },
+	{ GDB_REGNO_GP, -2, 64 },
+	{ GDB_REGNO_TP, -2, 64 },
+	{ GDB_REGNO_T0, 2 * 0x08, 64 },
+	{ GDB_REGNO_T1, 2 * 0x0c, 64 },
+	{ GDB_REGNO_T2, 2 * 0x10, 64 },
+	{ GDB_REGNO_FP, 2 * 0x14, 64 },
+	{ GDB_REGNO_S1, 2 * 0x18, 64 },
+	{ GDB_REGNO_A0, 2 * 0x1c, 64 },
+	{ GDB_REGNO_A1, 2 * 0x20, 64 },
+	{ GDB_REGNO_A2, 2 * 0x24, 64 },
+	{ GDB_REGNO_A3, 2 * 0x28, 64 },
+	{ GDB_REGNO_A4, 2 * 0x2c, 64 },
+	{ GDB_REGNO_A5, 2 * 0x30, 64 },
+	{ GDB_REGNO_A6, 2 * 0x34, 64 },
+	{ GDB_REGNO_A7, 2 * 0x38, 64 },
+	{ GDB_REGNO_S2, 2 * 0x3c, 64 },
+	{ GDB_REGNO_S3, 2 * 0x40, 64 },
+	{ GDB_REGNO_S4, 2 * 0x44, 64 },
+	{ GDB_REGNO_S5, 2 * 0x48, 64 },
+	{ GDB_REGNO_S6, 2 * 0x4c, 64 },
+	{ GDB_REGNO_S7, 2 * 0x50, 64 },
+	{ GDB_REGNO_S8, 2 * 0x54, 64 },
+	{ GDB_REGNO_S9, 2 * 0x58, 64 },
+	{ GDB_REGNO_S10, 2 * 0x5c, 64 },
+	{ GDB_REGNO_S11, 2 * 0x60, 64 },
+	{ GDB_REGNO_T3, 2 * 0x64, 64 },
+	{ GDB_REGNO_T4, 2 * 0x68, 64 },
+	{ GDB_REGNO_T5, 2 * 0x6c, 64 },
+	{ GDB_REGNO_T6, 2 * 0x70, 64 },
+	{ GDB_REGNO_PC, 0, 64 },
+	/* Registers below are on the stack, but not what gdb expects to return from
+	 * a 'g' packet so are only accessible through get_reg. */
+	{ GDB_REGNO_MSTATUS, 2 * 29 * 4, 64 },
+};
+
+static target_addr_t rtos_generic_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr, int align)
+	target_addr_t stack_ptr, int align)
 {
-	int64_t new_stack_ptr;
-	int64_t aligned_stack_ptr;
-	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
-		stacking->stack_registers_size;
-	aligned_stack_ptr = new_stack_ptr & ~((int64_t)align - 1);
+	target_addr_t new_stack_ptr = stack_ptr;
+	if (stacking->stack_growth_direction > 0)
+		new_stack_ptr -= stacking->stack_registers_size;
+	else
+		new_stack_ptr += stacking->stack_registers_size;
+	target_addr_t aligned_stack_ptr = new_stack_ptr & ~((int64_t)align - 1);
 	if (aligned_stack_ptr != new_stack_ptr &&
 		stacking->stack_growth_direction == -1) {
 		/* If we have a downward growing stack, the simple alignment code
@@ -214,9 +338,9 @@ static int64_t rtos_generic_stack_align(struct target *target,
 	return aligned_stack_ptr;
 }
 
-int64_t rtos_generic_stack_align8(struct target *target,
+target_addr_t rtos_generic_stack_align8(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	return rtos_generic_stack_align(target, stack_data,
 			stacking, stack_ptr, 8);
@@ -262,27 +386,27 @@ int64_t rtos_Cortex_M_stack_align(struct target *target,
 	return new_stack_ptr;
 }
 
-static int64_t rtos_standard_Cortex_M3_stack_align(struct target *target,
+static target_addr_t rtos_standard_Cortex_M3_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	const int XPSR_OFFSET = 0x3c;
 	return rtos_Cortex_M_stack_align(target, stack_data, stacking,
 		stack_ptr, XPSR_OFFSET);
 }
 
-static int64_t rtos_standard_Cortex_M4F_stack_align(struct target *target,
+static target_addr_t rtos_standard_Cortex_M4F_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	const int XPSR_OFFSET = 0x40;
 	return rtos_Cortex_M_stack_align(target, stack_data, stacking,
 		stack_ptr, XPSR_OFFSET);
 }
 
-static int64_t rtos_standard_Cortex_M4F_FPU_stack_align(struct target *target,
+static target_addr_t rtos_standard_Cortex_M4F_FPU_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	const int XPSR_OFFSET = 0x80;
 	return rtos_Cortex_M_stack_align(target, stack_data, stacking,
@@ -330,6 +454,15 @@ const struct rtos_register_stacking rtos_standard_NDS32_N1068_stacking = {
 	.register_offsets = rtos_standard_NDS32_N1068_stack_offsets
 };
 
+const struct rtos_register_stacking rtos_metal_RV32_stacking = {
+	.stack_registers_size = (32 + 2) * 4,
+	.stack_growth_direction = -1,
+	.num_output_registers = 33,
+	.calculate_process_stack = rtos_generic_stack_align8,
+	.register_offsets = rtos_metal_RV32_stack_offsets,
+	.total_register_count = ARRAY_SIZE(rtos_metal_RV32_stack_offsets)
+};
+
 const struct rtos_register_stacking rtos_standard_RV32_stacking = {
 	.stack_registers_size = (32 + 2) * 4,
 	.stack_growth_direction = -1,
@@ -337,4 +470,22 @@ const struct rtos_register_stacking rtos_standard_RV32_stacking = {
 	.calculate_process_stack = rtos_generic_stack_align8,
 	.register_offsets = rtos_standard_RV32_stack_offsets,
 	.total_register_count = ARRAY_SIZE(rtos_standard_RV32_stack_offsets)
+};
+
+const struct rtos_register_stacking rtos_metal_RV64_stacking = {
+	.stack_registers_size = (32 + 2) * 8,
+	.stack_growth_direction = -1,
+	.num_output_registers = 33,
+	.calculate_process_stack = rtos_generic_stack_align8,
+	.register_offsets = rtos_metal_RV64_stack_offsets,
+	.total_register_count = ARRAY_SIZE(rtos_metal_RV64_stack_offsets)
+};
+
+const struct rtos_register_stacking rtos_standard_RV64_stacking = {
+	.stack_registers_size = (32 + 2) * 8,
+	.stack_growth_direction = -1,
+	.num_output_registers = 33,
+	.calculate_process_stack = rtos_generic_stack_align8,
+	.register_offsets = rtos_standard_RV64_stack_offsets,
+	.total_register_count = ARRAY_SIZE(rtos_standard_RV64_stack_offsets)
 };

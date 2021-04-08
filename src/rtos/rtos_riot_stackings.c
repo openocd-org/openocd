@@ -27,9 +27,9 @@
 /* This works for the M0 and M34 stackings as xPSR is in a fixed
  * location
  */
-static int64_t rtos_riot_cortex_m_stack_align(struct target *target,
+static target_addr_t rtos_riot_cortex_m_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	const int XPSR_OFFSET = 0x40;
 	return rtos_Cortex_M_stack_align(target, stack_data, stacking,

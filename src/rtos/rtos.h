@@ -60,6 +60,8 @@ struct rtos {
 	int (*gdb_v_packet)(struct connection *connection, char const *packet, int packet_size);
 	int (*gdb_target_for_threadid)(struct connection *connection, threadid_t thread_id, struct target **p_target);
 	void *rtos_specific_params;
+	/* Populated in rtos.c, so that individual RTOSes can register commands. */
+	struct command_context *cmd_ctx;
 };
 
 struct rtos_reg {
@@ -108,8 +110,8 @@ struct stack_register_offset {
 };
 
 struct rtos_register_stacking {
-	unsigned char stack_registers_size;
-	signed char stack_growth_direction;
+	unsigned stack_registers_size;
+	int stack_growth_direction;
 	/* The number of gdb general registers, in order. */
 	unsigned char num_output_registers;
 	/* Some targets require evaluating the stack to determine the
@@ -117,10 +119,10 @@ struct rtos_register_stacking {
 	 * just use stacking->stack_registers_size * stack_growth_direction
 	 * to calculate adjustment.
 	 */
-	int64_t (*calculate_process_stack)(struct target *target,
+	target_addr_t (*calculate_process_stack)(struct target *target,
 		const uint8_t *stack_data,
 		const struct rtos_register_stacking *stacking,
-		int64_t stack_ptr);
+		target_addr_t stack_ptr);
 	const struct stack_register_offset *register_offsets;
 	/* Total number of registers on the stack, including the general ones. This
 	 * may be 0 if there are no additional registers on the stack beyond the

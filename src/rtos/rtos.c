@@ -79,7 +79,8 @@ static int rtos_target_for_threadid(struct connection *connection,
 	return ERROR_OK;
 }
 
-static int os_alloc(struct target *target, struct rtos_type *ostype)
+static int os_alloc(struct target *target, struct rtos_type *ostype,
+					struct command_context *cmd_ctx)
 {
 	struct rtos *os = target->rtos = calloc(1, sizeof(struct rtos));
 
@@ -96,6 +97,7 @@ static int os_alloc(struct target *target, struct rtos_type *ostype)
 	os->gdb_thread_packet = rtos_thread_packet;
 	os->gdb_v_packet = NULL;
 	os->gdb_target_for_threadid = rtos_target_for_threadid;
+	os->cmd_ctx = cmd_ctx;
 
 	return JIM_OK;
 }
@@ -110,9 +112,10 @@ static void os_free(struct target *target)
 	target->rtos = NULL;
 }
 
-static int os_alloc_create(struct target *target, struct rtos_type *ostype)
+static int os_alloc_create(struct target *target, struct rtos_type *ostype,
+						   struct command_context *cmd_ctx)
 {
-	int ret = os_alloc(target, ostype);
+	int ret = os_alloc(target, ostype, cmd_ctx);
 
 	if (JIM_OK == ret) {
 		ret = target->rtos->type->create(target);
@@ -135,6 +138,8 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 		return JIM_ERR;
 	}
 
+	struct command_context *cmd_ctx = current_command_context(goi->interp);
+
 	os_free(target);
 
 	e = Jim_GetOpt_String(goi, &cp, NULL);
@@ -149,12 +154,12 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 
 		/* rtos_qsymbol() will iterate over all RTOSes. Allocate
 		 * target->rtos here, and set it to the first RTOS type. */
-		return os_alloc(target, rtos_types[0]);
+		return os_alloc(target, rtos_types[0], cmd_ctx);
 	}
 
 	for (x = 0; rtos_types[x]; x++)
 		if (0 == strcmp(cp, rtos_types[x]->name))
-			return os_alloc_create(target, rtos_types[x]);
+			return os_alloc_create(target, rtos_types[x], cmd_ctx);
 
 	Jim_SetResultFormatted(goi->interp, "Unknown RTOS type %s, try one of: ", cp);
 	res = Jim_GetResult(goi->interp);
@@ -607,7 +612,7 @@ int rtos_generic_stack_read(struct target *target,
 		LOG_OUTPUT("\r\n");
 #endif
 
-	int64_t new_stack_ptr;
+	target_addr_t new_stack_ptr;
 	if (stacking->calculate_process_stack != NULL) {
 		new_stack_ptr = stacking->calculate_process_stack(target,
 				stack_data, stacking, stack_ptr);
