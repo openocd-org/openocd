@@ -345,6 +345,74 @@ static unsigned populate_offset_size(struct FreeRTOS *freertos,
 	return offset;
 }
 
+static void FreeRTOS_compute_offsets(struct rtos *rtos)
+{
+	struct FreeRTOS *freertos = (struct FreeRTOS *) rtos->rtos_specific_params;
+
+	if (freertos->pointer_size != 0)
+		return;
+
+	freertos->pointer_size = DIV_ROUND_UP(target_address_bits(rtos->target), 8);
+	freertos->ubasetype_size = DIV_ROUND_UP(target_data_bits(rtos->target), 8);
+
+	/*
+	 * FreeRTOS can be compiled with configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES
+	 * in which case extra data is inserted and OpenOCD won't work right.
+	 */
+
+	/* struct xLIST */
+	type_offset_size_t struct_list_info[] = {
+		{TYPE_UBASE, 0, 0},		/* uxNumberOfItems */
+		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxIndex */
+		{TYPE_TICKTYPE, 0, 0},	/* xItemValue */
+		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxNext */
+		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxPrevious */
+	};
+
+	/* struct xLIST_ITEM */
+	type_offset_size_t struct_list_item_info[] = {
+		{TYPE_TICKTYPE, 0, 0},	/* xItemValue */
+		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxNext */
+		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxPrevious */
+		{TYPE_POINTER, 0, 0},	/* void *pvOwner */
+		{TYPE_POINTER, 0, 0},	/* List_t *pvContainer */
+	};
+
+	/* struct tskTaskControlBlock */
+	type_offset_size_t task_control_block_info[] = {
+		{TYPE_POINTER, 0, 0},		/* StackType_t *pxTopOfStack */
+		{TYPE_LIST_ITEM, 0, 0},		/* ListItem_t xStateListItem */
+		{TYPE_LIST_ITEM, 0, 0},		/* ListItem_t xEventListItem */
+		{TYPE_UBASE, 0, 0},			/* uxPriority */
+		{TYPE_POINTER, 0, 0},		/* StackType_t *pxStack */
+		/* configMAX_TASK_NAME_LEN varies a lot between targets, but luckily the
+		 * name is NULL_terminated and we don't need to read anything else in
+		 * the TCB. */
+		{TYPE_CHAR_ARRAY, 0, FREERTOS_THREAD_NAME_STR_SIZE},	/* char pcTaskName[configMAX_TASK_NAME_LEN] */
+		/* Lots of more optional stuff, but is is irrelevant to us. */
+	};
+
+	freertos->list_width = populate_offset_size(
+		freertos, struct_list_info, ARRAY_SIZE(struct_list_info));
+	freertos->list_uxNumberOfItems_offset = struct_list_info[0].offset;
+	freertos->list_uxNumberOfItems_size = struct_list_info[0].size;
+	freertos->list_next_offset = struct_list_info[3].offset;
+	freertos->list_next_size = struct_list_info[3].size;
+
+	freertos->list_item_width = populate_offset_size(
+		freertos, struct_list_item_info, ARRAY_SIZE(struct_list_item_info));
+	freertos->list_elem_next_offset = struct_list_item_info[1].offset;
+	freertos->list_elem_next_size = struct_list_item_info[1].size;
+	freertos->list_elem_content_offset = struct_list_item_info[3].offset;
+	freertos->list_elem_content_size = struct_list_item_info[3].size;
+
+	populate_offset_size(
+		freertos, task_control_block_info, ARRAY_SIZE(task_control_block_info));
+	freertos->thread_stack_offset = task_control_block_info[0].offset;
+	freertos->thread_stack_size = task_control_block_info[0].size;
+	freertos->thread_name_offset = task_control_block_info[5].offset;
+}
+
 static int FreeRTOS_update_threads(struct rtos *rtos)
 {
 	int retval;
@@ -352,6 +420,8 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 
 	if (rtos->rtos_specific_params == NULL)
 		return ERROR_FAIL;
+
+	FreeRTOS_compute_offsets(rtos);
 
 	struct FreeRTOS *freertos = (struct FreeRTOS *) rtos->rtos_specific_params;
 
@@ -638,6 +708,8 @@ static int FreeRTOS_get_stacking_info(struct rtos *rtos, threadid_t thread_id,
 		return ERROR_FAIL;
 	}
 
+	FreeRTOS_compute_offsets(rtos);
+
 	struct FreeRTOS *freertos = (struct FreeRTOS *) rtos->rtos_specific_params;
 	const struct FreeRTOS_params *param = freertos->param;
 
@@ -846,66 +918,6 @@ static int FreeRTOS_create(struct target *target)
 							  freertos->param->commands) != ERROR_OK)
 			return ERROR_FAIL;
 	}
-
-	freertos->pointer_size = DIV_ROUND_UP(target_address_bits(target), 8);
-	freertos->ubasetype_size = DIV_ROUND_UP(target_data_bits(target), 8);
-
-	/*
-	 * FreeRTOS can be compiled with configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES
-	 * in which case extra data is inserted and OpenOCD won't work right.
-	 */
-
-	/* struct xLIST */
-	type_offset_size_t struct_list_info[] = {
-		{TYPE_UBASE, 0, 0},		/* uxNumberOfItems */
-		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxIndex */
-		{TYPE_TICKTYPE, 0, 0},	/* xItemValue */
-		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxNext */
-		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxPrevious */
-	};
-
-	/* struct xLIST_ITEM */
-	type_offset_size_t struct_list_item_info[] = {
-		{TYPE_TICKTYPE, 0, 0},	/* xItemValue */
-		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxNext */
-		{TYPE_POINTER, 0, 0},	/* ListItem_t *pxPrevious */
-		{TYPE_POINTER, 0, 0},	/* void *pvOwner */
-		{TYPE_POINTER, 0, 0},	/* List_t *pvContainer */
-	};
-
-	/* struct tskTaskControlBlock */
-	type_offset_size_t task_control_block_info[] = {
-		{TYPE_POINTER, 0, 0},		/* StackType_t *pxTopOfStack */
-		{TYPE_LIST_ITEM, 0, 0},		/* ListItem_t xStateListItem */
-		{TYPE_LIST_ITEM, 0, 0},		/* ListItem_t xEventListItem */
-		{TYPE_UBASE, 0, 0},			/* uxPriority */
-		{TYPE_POINTER, 0, 0},		/* StackType_t *pxStack */
-		/* configMAX_TASK_NAME_LEN varies a lot between targets, but luckily the
-		 * name is NULL_terminated and we don't need to read anything else in
-		 * the TCB. */
-		{TYPE_CHAR_ARRAY, 0, FREERTOS_THREAD_NAME_STR_SIZE},	/* char pcTaskName[configMAX_TASK_NAME_LEN] */
-		/* Lots of more optional stuff, but is is irrelevant to us. */
-	};
-
-	freertos->list_width = populate_offset_size(
-		freertos, struct_list_info, ARRAY_SIZE(struct_list_info));
-	freertos->list_uxNumberOfItems_offset = struct_list_info[0].offset;
-	freertos->list_uxNumberOfItems_size = struct_list_info[0].size;
-	freertos->list_next_offset = struct_list_info[3].offset;
-	freertos->list_next_size = struct_list_info[3].size;
-
-	freertos->list_item_width = populate_offset_size(
-		freertos, struct_list_item_info, ARRAY_SIZE(struct_list_item_info));
-	freertos->list_elem_next_offset = struct_list_item_info[1].offset;
-	freertos->list_elem_next_size = struct_list_item_info[1].size;
-	freertos->list_elem_content_offset = struct_list_item_info[3].offset;
-	freertos->list_elem_content_size = struct_list_item_info[3].size;
-
-	populate_offset_size(
-		freertos, task_control_block_info, ARRAY_SIZE(task_control_block_info));
-	freertos->thread_stack_offset = task_control_block_info[0].offset;
-	freertos->thread_stack_size = task_control_block_info[0].size;
-	freertos->thread_name_offset = task_control_block_info[5].offset;
 
 	return 0;
 }
