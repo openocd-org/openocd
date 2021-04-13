@@ -1,3 +1,8 @@
+/*
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ * Copyright (C) 2009-2021 Free Software Foundation, Inc.
+ */
+
 /* Copied from https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
  * and then tweaked a little. */
 

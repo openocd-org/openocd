@@ -726,7 +726,7 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 	char sig_reply[65];
-	char stop_reason[20];
+	char stop_reason[32];
 	char current_thread[25];
 	int sig_reply_len;
 	int signal_var;
@@ -3617,7 +3617,7 @@ static int gdb_target_start(struct target *target, const char *port)
 
 	ret = add_service("gdb",
 			port, target->gdb_max_connections, &gdb_new_connection, &gdb_input,
-			&gdb_connection_closed, gdb_service, NULL);
+			&gdb_connection_closed, gdb_service);
 	/* initialize all targets gdb service with the same pointer */
 	{
 		struct target_list *head;

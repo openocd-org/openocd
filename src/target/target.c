@@ -637,7 +637,18 @@ int target_resume(struct target *target, int current, target_addr_t address,
 	 * we poll. The CPU can even halt at the current PC as a result of
 	 * a software breakpoint being inserted by (a bug?) the application.
 	 */
+	/*
+	 * resume() triggers the event 'resumed'. The execution of TCL commands
+	 * in the event handler causes the polling of targets. If the target has
+	 * already halted for a breakpoint, polling will run the 'halted' event
+	 * handler before the pending 'resumed' handler.
+	 * Disable polling during resume() to guarantee the execution of handlers
+	 * in the correct order.
+	 */
+	bool save_poll = jtag_poll_get_enabled();
+	jtag_poll_set_enabled(false);
 	retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution);
+	jtag_poll_set_enabled(save_poll);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -4087,7 +4098,7 @@ COMMAND_HANDLER(handle_wp_command)
 	}
 
 	enum watchpoint_rw type = WPT_ACCESS;
-	uint32_t addr = 0;
+	target_addr_t addr = 0;
 	uint32_t length = 0;
 	uint32_t data_value = 0x0;
 	uint32_t data_mask = 0xffffffff;
@@ -4117,7 +4128,7 @@ COMMAND_HANDLER(handle_wp_command)
 		/* fall through */
 	case 2:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
 		break;
 
 	default:
@@ -4137,8 +4148,8 @@ COMMAND_HANDLER(handle_rwp_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	uint32_t addr;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], addr);
+	target_addr_t addr;
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
 
 	struct target *target = get_current_target(CMD_CTX);
 	watchpoint_remove(target, addr);
@@ -4966,6 +4977,11 @@ no_params:
 				}
 
 				if (goi->isconfigure) {
+					/* START_DEPRECATED_TPIU */
+					if (n->value == TARGET_EVENT_TRACE_CONFIG)
+						LOG_INFO("DEPRECATED target event %s", n->name);
+					/* END_DEPRECATED_TPIU */
+
 					bool replace = true;
 					if (teap == NULL) {
 						/* create new */
@@ -5694,15 +5710,6 @@ static int target_create(Jim_GetOptInfo *goi)
 			/* found */
 			break;
 		}
-
-		/* check for deprecated name */
-		if (target_types[x]->deprecated_name) {
-			if (0 == strcmp(cp, target_types[x]->deprecated_name)) {
-				/* found */
-				LOG_WARNING("target name is deprecated use: \'%s\'", target_types[x]->name);
-				break;
-			}
-		}
 	}
 	if (target_types[x] == NULL) {
 		Jim_SetResultFormatted(goi->interp, "Unknown target type %s, try one of ", cp);
@@ -5741,9 +5748,6 @@ static int target_create(Jim_GetOptInfo *goi)
 	}
 
 	memcpy(target->type, target_types[x], sizeof(struct target_type));
-
-	/* will be set by "-endian" */
-	target->endianness = TARGET_ENDIAN_UNKNOWN;
 
 	/* default to first core, override with -coreid */
 	target->coreid = 0;

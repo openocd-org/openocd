@@ -226,7 +226,7 @@ static int adapter_load_context(struct target *target)
 	for (int i = 0; i < num_regs; i++) {
 
 		struct reg *r = &armv7m->arm.core_cache->reg_list[i];
-		if (!r->valid)
+		if (r->exist && !r->valid)
 			armv7m->arm.read_core_reg(target, r, i, ARM_MODE_ANY);
 	}
 
@@ -630,12 +630,16 @@ static const struct command_registration adapter_command_handlers[] = {
 	{
 		.chain = rtt_target_command_handlers,
 	},
+	/* START_DEPRECATED_TPIU */
+	{
+		.chain = arm_tpiu_deprecated_command_handlers,
+	},
+	/* END_DEPRECATED_TPIU */
 	COMMAND_REGISTRATION_DONE
 };
 
 struct target_type hla_target = {
 	.name = "hla_target",
-	.deprecated_name = "stm32_stlink",
 
 	.init_target = adapter_init_target,
 	.deinit_target = cortex_m_deinit_target,

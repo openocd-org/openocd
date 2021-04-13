@@ -596,6 +596,12 @@ static int telnet_input(struct connection *connection)
 						telnet_history_up(connection);
 					} else if (*buf_p == 'B') {	/* cursor down */
 						telnet_history_down(connection);
+					} else if (*buf_p == 'F') { /* end key */
+						telnet_move_cursor(connection, t_con->line_size);
+						t_con->state = TELNET_STATE_DATA;
+					} else if (*buf_p == 'H') { /* home key */
+						telnet_move_cursor(connection, 0);
+						t_con->state = TELNET_STATE_DATA;
 					} else if (*buf_p == '3')
 						t_con->last_escape = *buf_p;
 					else
@@ -694,7 +700,7 @@ int telnet_init(char *banner)
 
 	int ret = add_service("telnet", telnet_port, CONNECTION_LIMIT_UNLIMITED,
 		telnet_new_connection, telnet_input, telnet_connection_closed,
-		telnet_service, NULL);
+		telnet_service);
 
 	if (ret != ERROR_OK) {
 		free(telnet_service);
