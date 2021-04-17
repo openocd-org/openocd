@@ -988,6 +988,32 @@ sub read_words {
 	return 0;
 }
 
+# OpenOCD specific: Begin: Load list of allowed CamelCase symbols
+if (show_type("CAMELCASE")) {
+	my $allowed_camelcase_file = "$root/tools/scripts/camelcase.txt";
+	if (open(my $words, '<', $allowed_camelcase_file)) {
+		while (<$words>) {
+			 my $line = $_;
+
+			$line =~ s/\s*\n?$//g;
+			$line =~ s/^\s*//g;
+
+			next if ($line =~ m/^\s*#/);
+			next if ($line =~ m/^\s*$/);
+			if ($line =~ /\s/) {
+				print("$allowed_camelcase_file: '$line' invalid - ignored\n");
+				next;
+			}
+
+			$camelcase{$line} = 1;
+		}
+		close($allowed_camelcase_file);
+	} else {
+		warn "No camelcase symbols to ignore - file '$allowed_camelcase_file': $!\n";
+	}
+}
+# OpenOCD specific: End
+
 my $const_structs;
 if (show_type("CONST_STRUCT")) {
 	read_words(\$const_structs, $conststructsfile)
@@ -5786,6 +5812,10 @@ sub process {
 				while ($var =~ m{\b($Ident)}g) {
 					my $word = $1;
 					next if ($word !~ /[A-Z][a-z]|[a-z][A-Z]/);
+					if (!$OpenOCD) {
+					# This will not work for OpenOCD jenkins because it runs
+					# checkpatch from a tree already patched. Any new camelcase
+					# in include file will be ignored as it was pre-existing.
 					if ($check) {
 						seed_camelcase_includes();
 						if (!$file && !$camelcase_file_seeded) {
@@ -5793,6 +5823,7 @@ sub process {
 							$camelcase_file_seeded = 1;
 						}
 					}
+					} # !$OpenOCD
 					if (!defined $camelcase{$word}) {
 						$camelcase{$word} = 1;
 						CHK("CAMELCASE",
