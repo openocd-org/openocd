@@ -1918,7 +1918,7 @@ static int riscv_checksum_memory(struct target *target,
 	struct reg_param reg_params[2];
 	int retval;
 
-	LOG_DEBUG("address=0x%" TARGET_PRIxADDR "; count=0x%x", address, count);
+	LOG_DEBUG("address=0x%" TARGET_PRIxADDR "; count=0x%" PRIx32, address, count);
 
 	static const uint8_t riscv32_crc_code[] = {
 #include "../../contrib/loaders/checksum/riscv32_crc.inc"
@@ -1929,7 +1929,7 @@ static int riscv_checksum_memory(struct target *target,
 
 	static const uint8_t *crc_code;
 
-	int xlen = riscv_xlen(target);
+	unsigned xlen = riscv_xlen(target);
 	unsigned crc_code_size;
 	if (xlen == 32) {
 		crc_code = riscv32_crc_code;
@@ -1991,7 +1991,7 @@ static int riscv_checksum_memory(struct target *target,
 
 	target_free_working_area(target, crc_algorithm);
 
-	LOG_DEBUG("checksum=0x%x, result=%d", *checksum, retval);
+	LOG_DEBUG("checksum=0x%" PRIx32 ", result=%d", *checksum, retval);
 
 	return retval;
 }

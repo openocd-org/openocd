@@ -47,15 +47,6 @@
 typedef enum tap_state {
 	TAP_INVALID = -1,
 
-#if BUILD_ZY1000
-	/* These are the old numbers. Leave as-is for now... */
-	TAP_RESET    = 0, TAP_IDLE = 8,
-	TAP_DRSELECT = 1, TAP_DRCAPTURE = 2, TAP_DRSHIFT = 3, TAP_DREXIT1 = 4,
-	TAP_DRPAUSE  = 5, TAP_DREXIT2 = 6, TAP_DRUPDATE = 7,
-	TAP_IRSELECT = 9, TAP_IRCAPTURE = 10, TAP_IRSHIFT = 11, TAP_IREXIT1 = 12,
-	TAP_IRPAUSE  = 13, TAP_IREXIT2 = 14, TAP_IRUPDATE = 15,
-
-#else
 	/* Proper ARM recommended numbers */
 	TAP_DREXIT2 = 0x0,
 	TAP_DREXIT1 = 0x1,
@@ -73,8 +64,6 @@ typedef enum tap_state {
 	TAP_IRUPDATE = 0xd,
 	TAP_IRCAPTURE = 0xe,
 	TAP_RESET = 0x0f,
-
-#endif
 } tap_state_t;
 
 /**
@@ -636,9 +625,6 @@ bool jtag_poll_get_enabled(void);
  */
 void jtag_poll_set_enabled(bool value);
 
-
-/* The minidriver may have inline versions of some of the low
- * level APIs that are used in inner loops. */
 #include <jtag/minidriver.h>
 
 int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv);

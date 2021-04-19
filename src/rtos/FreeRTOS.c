@@ -215,7 +215,7 @@ static int FreeRTOS_get_thread_reg_list(struct rtos *rtos, threadid_t thread_id,
 static int FreeRTOS_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
 		uint32_t reg_num, struct rtos_reg *reg);
 static int FreeRTOS_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
-static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[]);
+static int FreeRTOS_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[]);
 
 struct rtos_type FreeRTOS_rtos = {
 	.name = "FreeRTOS",
@@ -790,11 +790,11 @@ static int FreeRTOS_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_va
 										reg_num, reg_value);
 }
 
-static int FreeRTOS_get_symbol_list_to_lookup(symbol_table_elem_t *symbol_list[])
+static int FreeRTOS_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[])
 {
 	unsigned int i;
 	*symbol_list = calloc(
-			ARRAY_SIZE(FreeRTOS_symbol_list), sizeof(symbol_table_elem_t));
+			ARRAY_SIZE(FreeRTOS_symbol_list), sizeof(struct symbol_table_elem));
 
 	for (i = 0; i < ARRAY_SIZE(FreeRTOS_symbol_list); i++) {
 		(*symbol_list)[i].symbol_name = FreeRTOS_symbol_list[i].name;

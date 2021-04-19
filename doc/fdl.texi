@@ -1,6 +1,5 @@
 @c -*-texinfo-*-
-@node License
-@appendix The GNU Free Documentation License.
+@c The GNU Free Documentation License.
 @center Version 1.2, November 2002
 
 @c This file is intended to be included within another document,
@@ -396,7 +395,7 @@ The Free Software Foundation may publish new, revised versions
 of the GNU Free Documentation License from time to time.  Such new
 versions will be similar in spirit to the present version, but may
 differ in detail to address new problems or concerns.  See
-@uref{http://www.gnu.org/copyleft/}.
+@uref{https://www.gnu.org/licenses/}.
 
 Each version of the License is given a distinguishing version number.
 If the Document specifies that a particular numbered version of this
@@ -408,7 +407,8 @@ number of this License, you may choose any version ever published (not
 as a draft) by the Free Software Foundation.
 @end enumerate
 
-@unnumberedsec ADDENDUM: How to use this License for your documents
+@page
+@heading ADDENDUM: How to use this License for your documents
 
 To use this License in a document you have written, include a copy of
 the License in the document and put the following copyright and
