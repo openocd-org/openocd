@@ -23,7 +23,6 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include "helper/system.h"
-#include <usb.h>
 #include "libusb_helper.h"
 
 #define USB_VID						0x15ba
