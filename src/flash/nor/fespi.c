@@ -1017,18 +1017,17 @@ static int fespi_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int get_fespi_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_fespi_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 
 	if (!(fespi_info->probed)) {
-		snprintf(buf, buf_size,
-				"\nFESPI flash bank not probed yet\n");
+		command_print(cmd, "\nFESPI flash bank not probed yet");
 		return ERROR_OK;
 	}
 
-	snprintf(buf, buf_size, "\nFESPI flash information:\n"
-			"  Device \'%s\' (ID 0x%08" PRIx32 ")\n",
+	command_print(cmd, "\nFESPI flash information:\n"
+			"  Device \'%s\' (ID 0x%08" PRIx32 ")",
 			fespi_info->dev->name, fespi_info->dev->device_id);
 
 	return ERROR_OK;

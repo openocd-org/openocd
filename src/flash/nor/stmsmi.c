@@ -631,18 +631,17 @@ static int stmsmi_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int get_stmsmi_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_stmsmi_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct stmsmi_flash_bank *stmsmi_info = bank->driver_priv;
 
 	if (!(stmsmi_info->probed)) {
-		snprintf(buf, buf_size,
-			"\nSMI flash bank not probed yet\n");
+		command_print(cmd, "\nSMI flash bank not probed yet");
 		return ERROR_OK;
 	}
 
-	snprintf(buf, buf_size, "\nSMI flash information:\n"
-		"  Device \'%s\' (ID 0x%08" PRIx32 ")\n",
+	command_print(cmd, "\nSMI flash information:\n"
+		"  Device \'%s\' (ID 0x%08" PRIx32 ")",
 		stmsmi_info->dev->name, stmsmi_info->dev->device_id);
 
 	return ERROR_OK;

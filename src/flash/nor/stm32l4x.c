@@ -1332,6 +1332,59 @@ static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 	return (retval == ERROR_OK) ? ERROR_FAIL : retval;
 }
 
+static char *get_stm32l4_info_str(struct flash_bank *bank)
+{
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
+	const struct stm32l4_part_info *part_info = stm32l4_info->part_info;
+
+	unsigned int buf_size = 512;
+	char *buf = malloc(buf_size);
+	if (!buf) {
+		LOG_ERROR("malloc error");
+		return NULL;
+	}
+	char *buf_pos = buf;
+
+	int printed;
+	if (part_info) {
+		const char *rev_str = NULL;
+		uint16_t rev_id = stm32l4_info->idcode >> 16;
+		for (unsigned int i = 0; i < part_info->num_revs; i++) {
+			if (rev_id == part_info->revs[i].rev) {
+				rev_str = part_info->revs[i].str;
+				break;
+			}
+		}
+
+		printed = snprintf(buf_pos, buf_size, "%s - Rev %s : 0x%04x",
+				part_info->device_str, rev_str ? rev_str : "'unknown'", rev_id);
+		if (printed < 0 || (unsigned)printed >= buf_size) {
+			free(buf);
+			return NULL;
+		}
+		buf_pos += printed;
+		buf_size -= printed;
+
+		if (stm32l4_info->probed) {
+			printed = snprintf(buf_pos, buf_size - printed, " - %s-bank",
+					stm32l4_is_otp(bank) ? "OTP" :
+					stm32l4_info->dual_bank_mode ? "Flash dual" : "Flash single");
+			if (printed < 0 || (unsigned)printed >= buf_size) {
+				free(buf);
+				return NULL;
+			}
+		}
+	} else {
+		printed = snprintf(buf_pos, buf_size, "Cannot identify target as an %s device", device_families);
+		if (printed < 0 || (unsigned)printed >= buf_size) {
+			free(buf);
+			return NULL;
+		}
+	}
+
+	return buf;
+}
+
 static int stm32l4_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -1363,12 +1416,12 @@ static int stm32l4_probe(struct flash_bank *bank)
 	part_info = stm32l4_info->part_info;
 	stm32l4_info->flash_regs = stm32l4_info->part_info->default_flash_regs;
 
-	char device_info[1024];
-	retval = bank->driver->info(bank, device_info, sizeof(device_info));
-	if (retval != ERROR_OK)
-		return retval;
+	char *device_info = get_stm32l4_info_str(bank);
+	if (!device_info)
+		return ERROR_FAIL;
 
 	LOG_INFO("device idcode = 0x%08" PRIx32 " (%s)", stm32l4_info->idcode, device_info);
+	free(device_info);
 
 	/* read flash option register */
 	retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_OPTR_INDEX, &options);
@@ -1608,35 +1661,14 @@ static int stm32l4_auto_probe(struct flash_bank *bank)
 	return stm32l4_probe(bank);
 }
 
-static int get_stm32l4_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_stm32l4_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
-	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
-	const struct stm32l4_part_info *part_info = stm32l4_info->part_info;
-
-	if (part_info) {
-		const char *rev_str = NULL;
-		uint16_t rev_id = stm32l4_info->idcode >> 16;
-		for (unsigned int i = 0; i < part_info->num_revs; i++) {
-			if (rev_id == part_info->revs[i].rev) {
-				rev_str = part_info->revs[i].str;
-				break;
-			}
-		}
-
-		int buf_len = snprintf(buf, buf_size, "%s - Rev %s : 0x%04x",
-				part_info->device_str, rev_str ? rev_str : "'unknown'", rev_id);
-
-		if (stm32l4_info->probed)
-			snprintf(buf + buf_len, buf_size - buf_len, " - %s-bank",
-					stm32l4_is_otp(bank) ? "OTP" :
-					stm32l4_info->dual_bank_mode ? "Flash dual" : "Flash single");
-
-		return ERROR_OK;
-	} else {
-		snprintf(buf, buf_size, "Cannot identify target as an %s device", device_families);
+	char *device_info = get_stm32l4_info_str(bank);
+	if (!device_info)
 		return ERROR_FAIL;
-	}
 
+	command_print_sameline(cmd, "%s", device_info);
+	free(device_info);
 	return ERROR_OK;
 }
 

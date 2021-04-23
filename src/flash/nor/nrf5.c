@@ -624,35 +624,28 @@ static const char *nrf5_decode_info_package(uint32_t package)
 	return "xx";
 }
 
-static int nrf5_info(struct flash_bank *bank, char *buf, int buf_size)
+static int nrf5_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
 	struct nrf5_info *chip = nbank->chip;
-	int res;
 
 	if (chip->spec) {
-		res = snprintf(buf, buf_size,
-				"nRF%s-%s(build code: %s)",
+		command_print_sameline(cmd, "nRF%s-%s(build code: %s)",
 				chip->spec->part, chip->spec->variant, chip->spec->build_code);
-
 	} else if (chip->ficr_info_valid) {
 		char variant[5];
 		nrf5_info_variant_to_str(chip->ficr_info.variant, variant);
-		res = snprintf(buf, buf_size,
-				"nRF%" PRIx32 "-%s%.2s(build code: %s)",
+		command_print_sameline(cmd, "nRF%" PRIx32 "-%s%.2s(build code: %s)",
 				chip->ficr_info.part,
 				nrf5_decode_info_package(chip->ficr_info.package),
 				variant, &variant[2]);
-
 	} else {
-		res = snprintf(buf, buf_size, "nRF51xxx (HWID 0x%04" PRIx16 ")",
+		command_print_sameline(cmd, "nRF51xxx (HWID 0x%04" PRIx16 ")",
 				chip->hwid);
 	}
-	if (res <= 0)
-		return ERROR_FAIL;
 
-	snprintf(buf + res, buf_size - res, " %ukB Flash, %ukB RAM",
-				chip->flash_size_kb, chip->ram_size_kb);
+	command_print_sameline(cmd, " %ukB Flash, %ukB RAM",
+			chip->flash_size_kb, chip->ram_size_kb);
 	return ERROR_OK;
 }
 
@@ -824,13 +817,11 @@ static int nrf5_probe(struct flash_bank *bank)
 	chip->flash_size_kb = num_sectors * flash_page_size / 1024;
 
 	if (!chip->bank[0].probed && !chip->bank[1].probed) {
-		char buf[80];
-		nrf5_info(bank, buf, sizeof(buf));
 		if (!chip->spec && !chip->ficr_info_valid) {
-			LOG_INFO("Unknown device: %s", buf);
-		} else {
-			LOG_INFO("%s", buf);
+			LOG_INFO("Unknown device: ");
 		}
+		/* Print device info */
+		nrf5_info(bank, NULL);
 	}
 
 	free(bank->sectors);
