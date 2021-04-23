@@ -2656,19 +2656,16 @@ static int sam4_GetDetails(struct sam4_bank_private *pPrivate)
 	return ERROR_OK;
 }
 
-static int sam4_info(struct flash_bank *bank, char *buf, int buf_size)
+static int sam4_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct sam4_bank_private *pPrivate;
 	int k = bank->size / 1024;
 
 	pPrivate = get_sam4_bank_private(bank);
-	if (pPrivate == NULL) {
-		buf[0] = '\0';
+	if (pPrivate == NULL)
 		return ERROR_FAIL;
-	}
 
-	snprintf(buf, buf_size,
-		"%s bank %d: %d kB at " TARGET_ADDR_FMT,
+	command_print_sameline(cmd, "%s bank %d: %d kB at " TARGET_ADDR_FMT,
 		pPrivate->pChip->details.name,
 		pPrivate->bank_number,
 		k,

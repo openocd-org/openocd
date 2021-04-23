@@ -327,15 +327,13 @@ static int efm32x_read_info(struct flash_bank *bank,
 /*
  * Helper to create a human friendly string describing a part
  */
-static int efm32x_decode_info(struct efm32_info *info, char *buf, int buf_size)
+static int efm32x_decode_info(struct efm32_info *info, char *buf, unsigned int buf_size)
 {
 	int printed = 0;
 	printed = snprintf(buf, buf_size, "%s Gecko, rev %d",
 			info->family_data->name, info->prod_rev);
-
-	if (printed >= buf_size)
-		return ERROR_BUF_TOO_SMALL;
-
+	if (printed < 0 || (unsigned)printed >= buf_size)
+		return ERROR_FAIL;
 	return ERROR_OK;
 }
 
@@ -1044,10 +1042,10 @@ static int efm32x_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_efm32x_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct efm32_info info;
-	int ret = 0;
+	int ret;
 
 	ret = efm32x_read_info(bank, &info);
 	if (ERROR_OK != ret) {
@@ -1055,7 +1053,11 @@ static int get_efm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		return ret;
 	}
 
-	return efm32x_decode_info(&info, buf, buf_size);
+	char buf[256];
+	ret = efm32x_decode_info(&info, buf, sizeof(buf));
+	if (ret == ERROR_OK)
+		command_print_sameline(cmd, "%s", buf);
+	return ret;
 }
 
 COMMAND_HANDLER(efm32x_handle_debuglock_command)
