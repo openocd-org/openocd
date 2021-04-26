@@ -361,8 +361,21 @@ struct command_context *copy_command_context(struct command_context *cmd_ctx);
  */
 void command_done(struct command_context *context);
 
+/**
+ * Appends a formated string and a newline char to cmd->output object
+ * which is later passed as the return value of the command.
+ * If cmd (or cmd->ctx or cmd->output) is NULL, the string
+ * is logged at LOG_LVL_INFO
+ * @param cmd pointer to command_invocation structure or NULL
+ * @param format printf style format
+ */
 void command_print(struct command_invocation *cmd, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+/**
+ * Same as command_print except no newline is appended.
+ * @param cmd pointer to command_invocation structure or NULL
+ * @param format printf style format
+ */
 void command_print_sameline(struct command_invocation *cmd, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 int command_run_line(struct command_context *context, char *line);

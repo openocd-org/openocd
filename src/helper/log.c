@@ -84,9 +84,9 @@ static void log_forward(const char *file, unsigned line, const char *function, c
  * target_request.c).
  *
  */
-static void log_puts(enum log_levels level,
+void log_puts(enum log_levels level,
 	const char *file,
-	int line,
+	unsigned int line,
 	const char *function,
 	const char *string)
 {

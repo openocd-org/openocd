@@ -482,48 +482,39 @@ void command_output_text(struct command_context *context, const char *data)
 		context->output_handler(context, data);
 }
 
+static void command_puts(struct command_invocation *cmd, const char *string)
+{
+	if (string == NULL)
+		return;
+
+	if (cmd && cmd->ctx && cmd->output)
+		Jim_AppendString(cmd->ctx->interp, cmd->output, string, -1);
+	else
+		log_puts(LOG_LVL_INFO, __FILE__, __LINE__, __func__, string);
+}
+
 void command_print_sameline(struct command_invocation *cmd, const char *format, ...)
 {
-	char *string;
-
 	va_list ap;
 	va_start(ap, format);
 
-	string = alloc_vprintf(format, ap);
-	if (string != NULL && cmd) {
-		/* we want this collected in the log + we also want to pick it up as a tcl return
-		 * value.
-		 *
-		 * The latter bit isn't precisely neat, but will do for now.
-		 */
-		Jim_AppendString(cmd->ctx->interp, cmd->output, string, -1);
-		/* We already printed it above
-		 * command_output_text(context, string); */
-		free(string);
-	}
+	char *string = alloc_vprintf(format, ap);
+	command_puts(cmd, string);
+	free(string);
 
 	va_end(ap);
 }
 
 void command_print(struct command_invocation *cmd, const char *format, ...)
 {
-	char *string;
-
 	va_list ap;
 	va_start(ap, format);
 
-	string = alloc_vprintf(format, ap);
-	if (string != NULL && cmd) {
-		strcat(string, "\n");	/* alloc_vprintf guaranteed the buffer to be at least one
-					 *char longer */
-		/* we want this collected in the log + we also want to pick it up as a tcl return
-		 * value.
-		 *
-		 * The latter bit isn't precisely neat, but will do for now.
-		 */
-		Jim_AppendString(cmd->ctx->interp, cmd->output, string, -1);
-		/* We already printed it above
-		 * command_output_text(context, string); */
+	char *string = alloc_vprintf(format, ap);
+	if (string != NULL) {
+		strcat(string, "\n");	/* alloc_vprintf guaranteed the buffer to be
+								 * at least one char longer */
+		command_puts(cmd, string);
 		free(string);
 	}
 

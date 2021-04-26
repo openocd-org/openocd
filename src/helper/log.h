@@ -59,6 +59,8 @@ enum log_levels {
 	LOG_LVL_DEBUG_IO = 4,
 };
 
+void log_puts(enum log_levels level, const char *file, unsigned int line,
+	    const char *function, const char *string);
 void log_printf(enum log_levels level, const char *file, unsigned line,
 		const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
