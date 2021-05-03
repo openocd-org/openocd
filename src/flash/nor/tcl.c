@@ -1249,8 +1249,7 @@ static int flash_init_drivers(struct command_context *cmd_ctx)
 	if (!flash_bank_list())
 		return ERROR_OK;
 
-	struct command *parent = command_find_in_context(cmd_ctx, "flash");
-	return register_commands(cmd_ctx, parent, flash_exec_command_handlers);
+	return register_commands(cmd_ctx, "flash", flash_exec_command_handlers);
 }
 
 COMMAND_HANDLER(handle_flash_bank_command)

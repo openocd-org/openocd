@@ -108,8 +108,6 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 	endstate = TAP_IDLE;
 
-	script_debug(interp, argc, args);
-
 	/* validate arguments as numbers */
 	e = JIM_OK;
 	for (i = 2; i < argc; i += 2) {
@@ -234,8 +232,6 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 		return JIM_ERR;
 	}
 
-	script_debug(interp, argc, args);
-
 	int i;
 	for (i = 0; i < argc-1; i++) {
 		const char *cp;
@@ -266,8 +262,6 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 
 static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 {
-	script_debug(interp, argc, args);
-
 	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_get_flush_queue_count()));
 
 	return JIM_OK;
@@ -693,10 +687,8 @@ static int jim_jtag_arp_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	struct command_context *context = current_command_context(interp);
 	int e = jtag_init_inner(context);
 	if (e != ERROR_OK) {
-		Jim_Obj *eObj = Jim_NewIntObj(goi.interp, e);
-		Jim_IncrRefCount(eObj);
-		Jim_SetResultFormatted(goi.interp, "error: %#s", eObj);
-		Jim_DecrRefCount(goi.interp, eObj);
+		Jim_Obj *obj = Jim_NewIntObj(goi.interp, e);
+		Jim_SetResultFormatted(goi.interp, "error: %#s", obj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -718,10 +710,8 @@ static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const 
 		e = swd_init_reset(context);
 
 	if (e != ERROR_OK) {
-		Jim_Obj *eObj = Jim_NewIntObj(goi.interp, e);
-		Jim_IncrRefCount(eObj);
-		Jim_SetResultFormatted(goi.interp, "error: %#s", eObj);
-		Jim_DecrRefCount(goi.interp, eObj);
+		Jim_Obj *obj = Jim_NewIntObj(goi.interp, e);
+		Jim_SetResultFormatted(goi.interp, "error: %#s", obj);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -767,7 +757,8 @@ static bool jtag_tap_disable(struct jtag_tap *t)
 
 int jim_jtag_tap_enabler(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	struct command *c = jim_to_command(interp);
+	const char *cmd_name = c->name;
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
 	if (goi.argc != 1) {
@@ -804,7 +795,8 @@ int jim_jtag_tap_enabler(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 int jim_jtag_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	const char *cmd_name = Jim_GetString(argv[0], NULL);
+	struct command *c = jim_to_command(interp);
+	const char *cmd_name = c->name;
 	Jim_GetOptInfo goi;
 	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
 	goi.isconfigure = !strcmp(cmd_name, "configure");

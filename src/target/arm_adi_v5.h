@@ -85,6 +85,15 @@
 #define CSYSPWRUPREQ    (1UL << 30)
 #define CSYSPWRUPACK    (1UL << 31)
 
+#define DP_SELECT_APSEL 0xFF000000
+#define DP_SELECT_APBANK 0x000000F0
+#define DP_SELECT_DPBANK 0x0000000F
+#define DP_SELECT_INVALID 0x00FFFF00 /* Reserved bits one */
+
+#define DP_APSEL_MAX        (255)
+#define DP_APSEL_INVALID    (-1)
+
+
 /* MEM-AP register addresses */
 #define MEM_AP_REG_CSW		0x00
 #define MEM_AP_REG_TAR		0x04
@@ -150,18 +159,11 @@
 
 #define IDR_JEP106_ARM 0x04760000
 
-#define DP_SELECT_APSEL 0xFF000000
-#define DP_SELECT_APBANK 0x000000F0
-#define DP_SELECT_DPBANK 0x0000000F
-#define DP_SELECT_INVALID 0x00FFFF00 /* Reserved bits one */
-
-#define DP_APSEL_MAX        (255)
-#define DP_APSEL_INVALID    (-1)
-
 /* FIXME: not SWD specific; should be renamed, e.g. adiv5_special_seq */
 enum swd_special_seq {
 	LINE_RESET,
 	JTAG_TO_SWD,
+	JTAG_TO_DORMANT,
 	SWD_TO_JTAG,
 	SWD_TO_DORMANT,
 	DORMANT_TO_SWD,
