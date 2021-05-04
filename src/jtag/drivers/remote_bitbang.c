@@ -36,6 +36,8 @@ static char *remote_bitbang_host;
 static char *remote_bitbang_port;
 
 static int remote_bitbang_fd;
+static uint8_t remote_bitbang_send_buf[512];
+static unsigned int remote_bitbang_send_buf_used;
 
 /* Circular buffer. When start == end, the buffer is empty. */
 static char remote_bitbang_buf[64];
@@ -90,20 +92,37 @@ static int remote_bitbang_fill_buf(void)
 	return ERROR_OK;
 }
 
-static int remote_bitbang_putc(int c)
+static int remote_bitbang_flush(void)
 {
-	char buf = c;
-	ssize_t count = write_socket(remote_bitbang_fd, &buf, sizeof(buf));
-	if (count < 0) {
-		log_socket_error("remote_bitbang_putc");
-		return ERROR_FAIL;
+	if (remote_bitbang_send_buf_used <= 0)
+		return ERROR_OK;
+
+	unsigned int offset = 0;
+	while (offset < remote_bitbang_send_buf_used) {
+		ssize_t written = write_socket(remote_bitbang_fd, remote_bitbang_send_buf + offset,
+									   remote_bitbang_send_buf_used - offset);
+		if (written < 0) {
+			log_socket_error("remote_bitbang_putc");
+			remote_bitbang_send_buf_used = 0;
+			return ERROR_FAIL;
+		}
+		offset += written;
 	}
+	remote_bitbang_send_buf_used = 0;
+	return ERROR_OK;
+}
+
+static int remote_bitbang_queue(int c, bool flush)
+{
+	remote_bitbang_send_buf[remote_bitbang_send_buf_used++] = c;
+	if (flush || remote_bitbang_send_buf_used >= ARRAY_SIZE(remote_bitbang_send_buf))
+		return remote_bitbang_flush();
 	return ERROR_OK;
 }
 
 static int remote_bitbang_quit(void)
 {
-	if (remote_bitbang_putc('Q') == ERROR_FAIL)
+	if (remote_bitbang_queue('Q', true) == ERROR_FAIL)
 		return ERROR_FAIL;
 
 	if (close_socket(remote_bitbang_fd) != 0) {
@@ -135,6 +154,9 @@ static bb_value_t char_to_int(int c)
 /* Get the next read response. */
 static bb_value_t remote_bitbang_rread(void)
 {
+	if (remote_bitbang_flush() != ERROR_OK)
+		return ERROR_FAIL;
+
 	/* Enable blocking access. */
 	socket_block(remote_bitbang_fd);
 	char c;
@@ -154,7 +176,7 @@ static int remote_bitbang_sample(void)
 	if (remote_bitbang_fill_buf() != ERROR_OK)
 		return ERROR_FAIL;
 	assert(!remote_bitbang_buf_full());
-	return remote_bitbang_putc('R');
+	return remote_bitbang_queue('R', false);
 }
 
 static bb_value_t remote_bitbang_read_sample(void)
@@ -171,19 +193,19 @@ static bb_value_t remote_bitbang_read_sample(void)
 static int remote_bitbang_write(int tck, int tms, int tdi)
 {
 	char c = '0' + ((tck ? 0x4 : 0x0) | (tms ? 0x2 : 0x0) | (tdi ? 0x1 : 0x0));
-	return remote_bitbang_putc(c);
+	return remote_bitbang_queue(c, false);
 }
 
 static int remote_bitbang_reset(int trst, int srst)
 {
 	char c = 'r' + ((trst ? 0x2 : 0x0) | (srst ? 0x1 : 0x0));
-	return remote_bitbang_putc(c);
+	return remote_bitbang_queue(c, false);
 }
 
 static int remote_bitbang_blink(int on)
 {
 	char c = on ? 'B' : 'b';
-	return remote_bitbang_putc(c);
+	return remote_bitbang_queue(c, true);
 }
 
 static struct bitbang_interface remote_bitbang_bitbang = {
