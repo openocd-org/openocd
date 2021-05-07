@@ -2745,6 +2745,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 				}
 				next_read = address + i * size + j * 4;
 			}
+			keep_alive();
 		}
 
 		uint32_t sbcs_read = 0;

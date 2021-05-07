@@ -188,8 +188,7 @@ static int pld_init(struct command_context *cmd_ctx)
 	if (!pld_devices)
 		return ERROR_OK;
 
-	struct command *parent = command_find_in_context(cmd_ctx, "pld");
-	return register_commands(cmd_ctx, parent, pld_exec_command_handlers);
+	return register_commands(cmd_ctx, "pld", pld_exec_command_handlers);
 }
 
 COMMAND_HANDLER(handle_pld_init_command)

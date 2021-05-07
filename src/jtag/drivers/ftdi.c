@@ -547,7 +547,7 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 			uint8_t last_bit = 0;
 			if (field->out_value)
 				bit_copy(&last_bit, 0, field->out_value, field->num_bits - 1, 1);
-			uint8_t tms_bits = 0x01;
+			uint8_t tms_bits = 0x03;
 			DO_CLOCK_TMS_CS(mpsse_ctx,
 					&tms_bits,
 					0,
@@ -557,13 +557,24 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 					last_bit,
 					ftdi_jtag_mode);
 			tap_set_state(tap_state_transition(tap_get_state(), 1));
-			DO_CLOCK_TMS_CS_OUT(mpsse_ctx,
-					&tms_bits,
-					1,
-					1,
-					last_bit,
-					ftdi_jtag_mode);
-			tap_set_state(tap_state_transition(tap_get_state(), 0));
+			if (tap_get_end_state() == TAP_IDLE) {
+				DO_CLOCK_TMS_CS_OUT(mpsse_ctx,
+						&tms_bits,
+						1,
+						2,
+						last_bit,
+						ftdi_jtag_mode);
+				tap_set_state(tap_state_transition(tap_get_state(), 1));
+				tap_set_state(tap_state_transition(tap_get_state(), 0));
+			} else {
+				DO_CLOCK_TMS_CS_OUT(mpsse_ctx,
+						&tms_bits,
+						2,
+						1,
+						last_bit,
+						ftdi_jtag_mode);
+				tap_set_state(tap_state_transition(tap_get_state(), 0));
+			}
 		} else
 			DO_CLOCK_DATA(mpsse_ctx,
 				field->out_value,

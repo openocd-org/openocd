@@ -722,7 +722,9 @@ static int jim_nds32_bulk_write(Jim_Interp *interp, int argc, Jim_Obj * const *a
 		return JIM_ERR;
 	}
 
-	struct target *target = Jim_CmdPrivData(goi.interp);
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	int result;
 
 	result = target_write_buffer(target, address, count * 4, (const uint8_t *)data);
@@ -751,7 +753,9 @@ static int jim_nds32_multi_write(Jim_Interp *interp, int argc, Jim_Obj * const *
 	if (e != JIM_OK)
 		return e;
 
-	struct target *target = Jim_CmdPrivData(goi.interp);
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct aice_port_s *aice = target_to_aice(target);
 	int result;
 	uint32_t address;
@@ -812,7 +816,9 @@ static int jim_nds32_bulk_read(Jim_Interp *interp, int argc, Jim_Obj * const *ar
 	if (goi.argc != 0)
 		return JIM_ERR;
 
-	struct target *target = Jim_CmdPrivData(goi.interp);
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	uint32_t *data = malloc(count * sizeof(uint32_t));
 	int result;
 	result = target_read_buffer(target, address, count * 4, (uint8_t *)data);
@@ -863,7 +869,9 @@ static int jim_nds32_read_edm_sr(Jim_Interp *interp, int argc, Jim_Obj * const *
 	else
 		return ERROR_FAIL;
 
-	struct target *target = Jim_CmdPrivData(goi.interp);
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct aice_port_s *aice = target_to_aice(target);
 	char data_str[11];
 
@@ -911,7 +919,9 @@ static int jim_nds32_write_edm_sr(Jim_Interp *interp, int argc, Jim_Obj * const 
 	else
 		return ERROR_FAIL;
 
-	struct target *target = Jim_CmdPrivData(goi.interp);
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx);
+	struct target *target = get_current_target(cmd_ctx);
 	struct aice_port_s *aice = target_to_aice(target);
 
 	aice_write_debug_reg(aice, edm_sr_number, value);

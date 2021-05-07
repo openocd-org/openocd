@@ -479,8 +479,8 @@ static int nand_init(struct command_context *cmd_ctx)
 {
 	if (!nand_devices)
 		return ERROR_OK;
-	struct command *parent = command_find_in_context(cmd_ctx, "nand");
-	return register_commands(cmd_ctx, parent, nand_exec_command_handlers);
+
+	return register_commands(cmd_ctx, "nand", nand_exec_command_handlers);
 }
 
 COMMAND_HANDLER(handle_nand_init_command)

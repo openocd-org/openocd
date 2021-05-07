@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <jim-nvp.h>
 
+#include <helper/list.h>
 #include <helper/types.h>
 
 /* To achieve C99 printf compatibility in MinGW, gnu_printf should be
@@ -41,6 +42,7 @@ enum command_mode {
 	COMMAND_EXEC,
 	COMMAND_CONFIG,
 	COMMAND_ANY,
+	COMMAND_UNKNOWN = -1, /* error condition */
 };
 
 struct command_context;
@@ -52,7 +54,6 @@ typedef int (*command_output_handler_t)(struct command_context *context,
 struct command_context {
 	Jim_Interp *interp;
 	enum command_mode mode;
-	struct command *commands;
 	struct target *current_target;
 		/* The target set by 'targets xx' command or the latest created */
 	struct target *current_target_override;
@@ -64,6 +65,7 @@ struct command_context {
 		 */
 	command_output_handler_t output_handler;
 	void *output_handler_priv;
+	struct list_head *help_list;
 };
 
 struct command;
@@ -179,21 +181,23 @@ typedef __COMMAND_HANDLER((*command_handler_t));
 
 struct command {
 	char *name;
-	char *help;
-	char *usage;
-	struct command *parent;
-	struct command *children;
 	command_handler_t handler;
 	Jim_CmdProc *jim_handler;
 	void *jim_handler_data;
-		/* Currently used only for target of target-prefixed cmd.
-		 * Native OpenOCD commands use jim_handler_data exclusively
-		 * as a target override.
-		 * Jim handlers outside of target cmd tree can use
-		 * jim_handler_data for any handler specific data */
+		/* Command handlers can use it for any handler specific data */
+	struct target *jim_override_target;
+		/* Used only for target of target-prefixed cmd */
 	enum command_mode mode;
-	struct command *next;
 };
+
+/*
+ * Return the struct command pointer kept in private data
+ * Used to enforce check on data type
+ */
+static inline struct command *jim_to_command(Jim_Interp *interp)
+{
+	return Jim_CmdPrivData(interp);
+}
 
 /*
  * Commands should be registered by filling in one or more of these
@@ -233,6 +237,10 @@ struct command_registration {
 /** Use this as the last entry in an array of command_registration records. */
 #define COMMAND_REGISTRATION_DONE { .name = NULL, .chain = NULL }
 
+int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
+		const struct command_registration *cmds, void *data,
+		struct target *override_target);
+
 /**
  * Register one or more commands in the specified context, as children
  * of @c parent (or top-level commends, if NULL).  In a registration's
@@ -241,37 +249,77 @@ struct command_registration {
  * Otherwise, the chained commands are added as children of the command.
  *
  * @param cmd_ctx The command_context in which to register the command.
- * @param parent Register this command as a child of this, or NULL to
+ * @param cmd_prefix Register this command as a child of this, or NULL to
  * register a top-level command.
  * @param cmds Pointer to an array of command_registration records that
  * contains the desired command parameters.  The last record must have
  * NULL for all fields.
  * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
  */
-int register_commands(struct command_context *cmd_ctx, struct command *parent,
-		const struct command_registration *cmds);
+static inline int register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
+		const struct command_registration *cmds)
+{
+	return __register_commands(cmd_ctx, cmd_prefix, cmds, NULL, NULL);
+}
+
+/**
+ * Register one or more commands, as register_commands(), plus specify
+ * that command should override the current target
+ *
+ * @param cmd_ctx The command_context in which to register the command.
+ * @param cmd_prefix Register this command as a child of this, or NULL to
+ * register a top-level command.
+ * @param cmds Pointer to an array of command_registration records that
+ * contains the desired command parameters.  The last record must have
+ * NULL for all fields.
+ * @param target The target that has to override current target.
+ * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
+ */
+static inline int register_commands_override_target(struct command_context *cmd_ctx,
+		const char *cmd_prefix, const struct command_registration *cmds,
+		struct target *target)
+{
+	return __register_commands(cmd_ctx, cmd_prefix, cmds, NULL, target);
+}
+
+/**
+ * Register one or more commands, as register_commands(), plus specify
+ * a pointer to command private data that would be accessible through
+ * the macro CMD_DATA. The private data will not be freed when command
+ * is unregistered.
+ *
+ * @param cmd_ctx The command_context in which to register the command.
+ * @param cmd_prefix Register this command as a child of this, or NULL to
+ * register a top-level command.
+ * @param cmds Pointer to an array of command_registration records that
+ * contains the desired command parameters.  The last record must have
+ * NULL for all fields.
+ * @param data The command private data.
+ * @returns ERROR_OK on success; ERROR_FAIL if any registration fails.
+ */
+static inline int register_commands_with_data(struct command_context *cmd_ctx,
+		const char *cmd_prefix, const struct command_registration *cmds,
+		void *data)
+{
+	return __register_commands(cmd_ctx, cmd_prefix, cmds, data, NULL);
+}
 
 /**
  * Unregisters all commands from the specified context.
  * @param cmd_ctx The context that will be cleared of registered commands.
- * @param parent If given, only clear commands from under this one command.
+ * @param cmd_prefix If given, only clear commands from under this one command.
  * @returns ERROR_OK on success, or an error code.
  */
 int unregister_all_commands(struct command_context *cmd_ctx,
-		struct command *parent);
-
-struct command *command_find_in_context(struct command_context *cmd_ctx,
-		const char *name);
+		const char *cmd_prefix);
 
 /**
- * Update the private command data field for a command and all descendents.
- * This is used when creating a new hierarchy of commands that depends
- * on obtaining a dynamically created context.  The value will be available
- * in command handlers by using the CMD_DATA macro.
- * @param c The command (group) whose data pointer(s) will be updated.
- * @param p The new data pointer to use for the command or its descendents.
+ * Unregisters the help for all commands. Used at exit to remove the help
+ * added through the commands 'add_help_text' and 'add_usage_text'.
+ * @param cmd_ctx The context that will be cleared of registered helps.
+ * @returns ERROR_OK on success, or an error code.
  */
-void command_set_handler_data(struct command *c, void *p);
+int help_del_all_commands(struct command_context *cmd_ctx);
 
 void command_set_output_handler(struct command_context *context,
 		command_output_handler_t output_handler, void *priv);
@@ -407,7 +455,5 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label);
 /** parses an enable/disable command argument */
 #define COMMAND_PARSE_ENABLE(in, out) \
 	COMMAND_PARSE_BOOL(in, out, "enable", "disable")
-
-void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const *argv);
 
 #endif /* OPENOCD_HELPER_COMMAND_H */
