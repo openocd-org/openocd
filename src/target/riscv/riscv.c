@@ -3513,6 +3513,8 @@ int riscv_set_register(struct target *target, enum gdb_regno regid, riscv_reg_t 
 	LOG_DEBUG("[%s] %s <- %" PRIx64, target_name(target), gdb_regno_name(regid), value);
 	assert(r->set_register);
 
+	keep_alive();
+
 	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
 	if (regid > GDB_REGNO_XPR15 && regid <= GDB_REGNO_XPR31 && value == 0 &&
 			riscv_supports_extension(target, 'E'))
@@ -3535,6 +3537,8 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno regid)
 {
 	RISCV_INFO(r);
+
+	keep_alive();
 
 	struct reg *reg = &target->reg_cache->reg_list[regid];
 	if (!reg->exist) {
