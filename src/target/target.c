@@ -41,6 +41,7 @@
 #include "config.h"
 #endif
 
+#include <helper/align.h>
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include <flash/nor/core.h>
@@ -1004,7 +1005,7 @@ int target_run_flash_async_algorithm(struct target *target,
 	uint32_t rp = fifo_start_addr;
 
 	/* validate block_size is 2^n */
-	assert(!block_size || !(block_size & (block_size - 1)));
+	assert(IS_PWR_OF_2(block_size));
 
 	retval = target_write_u32(target, wp_addr, wp);
 	if (retval != ERROR_OK)
@@ -1042,7 +1043,7 @@ int target_run_flash_async_algorithm(struct target *target,
 			break;
 		}
 
-		if (((rp - fifo_start_addr) & (block_size - 1)) || rp < fifo_start_addr || rp >= fifo_end_addr) {
+		if (!IS_ALIGNED(rp - fifo_start_addr, block_size) || rp < fifo_start_addr || rp >= fifo_end_addr) {
 			LOG_ERROR("corrupted fifo read pointer 0x%" PRIx32, rp);
 			break;
 		}
@@ -1157,7 +1158,7 @@ int target_run_read_async_algorithm(struct target *target,
 	uint32_t rp = fifo_start_addr;
 
 	/* validate block_size is 2^n */
-	assert(!block_size || !(block_size & (block_size - 1)));
+	assert(IS_PWR_OF_2(block_size));
 
 	retval = target_write_u32(target, wp_addr, wp);
 	if (retval != ERROR_OK)
@@ -1194,7 +1195,7 @@ int target_run_read_async_algorithm(struct target *target,
 			break;
 		}
 
-		if (((wp - fifo_start_addr) & (block_size - 1)) || wp < fifo_start_addr || wp >= fifo_end_addr) {
+		if (!IS_ALIGNED(wp - fifo_start_addr, block_size) || wp < fifo_start_addr || wp >= fifo_end_addr) {
 			LOG_ERROR("corrupted fifo write pointer 0x%" PRIx32, wp);
 			break;
 		}

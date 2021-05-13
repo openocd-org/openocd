@@ -68,6 +68,7 @@
 #include "config.h"
 #endif
 
+#include <helper/align.h>
 #include <helper/time_support.h>
 
 #include "mips32.h"
@@ -658,7 +659,7 @@ static int mips32_pracc_synchronize_cache(struct mips_ejtag *ejtag_info,
 		goto exit;  /* Nothing to do */
 
 	/* make sure clsiz is power of 2 */
-	if (clsiz & (clsiz - 1)) {
+	if (!IS_PWR_OF_2(clsiz)) {
 		LOG_DEBUG("clsiz must be power of 2");
 		ctx.retval = ERROR_FAIL;
 		goto exit;

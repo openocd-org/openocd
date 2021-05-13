@@ -24,6 +24,7 @@
 #endif
 
 #include "imp.h"
+#include <helper/align.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
@@ -1591,7 +1592,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	 * max_flash_size is always power of two, so max_pages too
 	 */
 	uint32_t max_pages = stm32l4_info->part_info->max_flash_size_kb / page_size_kb;
-	assert((max_pages & (max_pages - 1)) == 0);
+	assert(IS_PWR_OF_2(max_pages));
 
 	/* in dual bank mode number of pages is doubled, but extra bit is bank selection */
 	stm32l4_info->wrpxxr_mask = ((max_pages >> (stm32l4_info->dual_bank_mode ? 1 : 0)) - 1);

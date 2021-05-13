@@ -11,6 +11,7 @@
 #endif
 
 #include "imp.h"
+#include <helper/align.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
@@ -256,12 +257,12 @@ static int xmc1xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 	LOG_DEBUG("Infineon XMC1000 write at 0x%08" PRIx32 " (%" PRIu32 " bytes)",
 		offset, byte_count);
 
-	if (offset & (NVM_BLOCK_SIZE - 1)) {
+	if (!IS_ALIGNED(offset, NVM_BLOCK_SIZE)) {
 		LOG_ERROR("offset 0x%" PRIx32 " breaks required block alignment",
 			offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
-	if (byte_count & (NVM_BLOCK_SIZE - 1)) {
+	if (!IS_ALIGNED(byte_count, NVM_BLOCK_SIZE)) {
 		LOG_WARNING("length %" PRIu32 " is not block aligned, rounding up",
 			byte_count);
 	}
