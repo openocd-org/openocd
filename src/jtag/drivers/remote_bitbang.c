@@ -40,15 +40,15 @@ static uint8_t remote_bitbang_send_buf[512];
 static unsigned int remote_bitbang_send_buf_used;
 
 /* Circular buffer. When start == end, the buffer is empty. */
-static char remote_bitbang_buf[64];
-static unsigned remote_bitbang_start;
-static unsigned remote_bitbang_end;
+static char remote_bitbang_recv_buf[64];
+static unsigned remote_bitbang_recv_buf_start;
+static unsigned remote_bitbang_recv_buf_end;
 
 static int remote_bitbang_buf_full(void)
 {
-	return remote_bitbang_end ==
-		((remote_bitbang_start + sizeof(remote_bitbang_buf) - 1) %
-		 sizeof(remote_bitbang_buf));
+	return remote_bitbang_recv_buf_end ==
+		((remote_bitbang_recv_buf_start + sizeof(remote_bitbang_recv_buf) - 1) %
+		 sizeof(remote_bitbang_recv_buf));
 }
 
 /* Read any incoming data, placing it into the buffer. */
@@ -57,22 +57,22 @@ static int remote_bitbang_fill_buf(void)
 	socket_nonblock(remote_bitbang_fd);
 	while (!remote_bitbang_buf_full()) {
 		unsigned contiguous_available_space;
-		if (remote_bitbang_end >= remote_bitbang_start) {
-			contiguous_available_space = sizeof(remote_bitbang_buf) -
-				remote_bitbang_end;
-			if (remote_bitbang_start == 0)
+		if (remote_bitbang_recv_buf_end >= remote_bitbang_recv_buf_start) {
+			contiguous_available_space = sizeof(remote_bitbang_recv_buf) -
+				remote_bitbang_recv_buf_end;
+			if (remote_bitbang_recv_buf_start == 0)
 				contiguous_available_space -= 1;
 		} else {
-			contiguous_available_space = remote_bitbang_start -
-				remote_bitbang_end - 1;
+			contiguous_available_space = remote_bitbang_recv_buf_start -
+				remote_bitbang_recv_buf_end - 1;
 		}
 		ssize_t count = read_socket(remote_bitbang_fd,
-				remote_bitbang_buf + remote_bitbang_end,
+				remote_bitbang_recv_buf + remote_bitbang_recv_buf_end,
 				contiguous_available_space);
 		if (count > 0) {
-			remote_bitbang_end += count;
-			if (remote_bitbang_end == sizeof(remote_bitbang_buf))
-				remote_bitbang_end = 0;
+			remote_bitbang_recv_buf_end += count;
+			if (remote_bitbang_recv_buf_end == sizeof(remote_bitbang_recv_buf))
+				remote_bitbang_recv_buf_end = 0;
 		} else if (count == 0) {
 			return ERROR_OK;
 		} else if (count < 0) {
@@ -181,14 +181,14 @@ static int remote_bitbang_sample(void)
 
 static bb_value_t remote_bitbang_read_sample(void)
 {
-	if (remote_bitbang_start == remote_bitbang_end) {
+	if (remote_bitbang_recv_buf_start == remote_bitbang_recv_buf_end) {
 		if (remote_bitbang_fill_buf() != ERROR_OK)
 			return ERROR_FAIL;
 	}
-	if (remote_bitbang_start != remote_bitbang_end) {
-		int c = remote_bitbang_buf[remote_bitbang_start];
-		remote_bitbang_start =
-			(remote_bitbang_start + 1) % sizeof(remote_bitbang_buf);
+	if (remote_bitbang_recv_buf_start != remote_bitbang_recv_buf_end) {
+		int c = remote_bitbang_recv_buf[remote_bitbang_recv_buf_start];
+		remote_bitbang_recv_buf_start =
+			(remote_bitbang_recv_buf_start + 1) % sizeof(remote_bitbang_recv_buf);
 		return char_to_int(c);
 	}
 	return remote_bitbang_rread();
@@ -213,7 +213,7 @@ static int remote_bitbang_blink(int on)
 }
 
 static struct bitbang_interface remote_bitbang_bitbang = {
-	.buf_size = sizeof(remote_bitbang_buf) - 1,
+	.buf_size = sizeof(remote_bitbang_recv_buf) - 1,
 	.sample = &remote_bitbang_sample,
 	.read_sample = &remote_bitbang_read_sample,
 	.write = &remote_bitbang_write,
@@ -294,8 +294,8 @@ static int remote_bitbang_init(void)
 {
 	bitbang_interface = &remote_bitbang_bitbang;
 
-	remote_bitbang_start = 0;
-	remote_bitbang_end = 0;
+	remote_bitbang_recv_buf_start = 0;
+	remote_bitbang_recv_buf_end = 0;
 
 	LOG_INFO("Initializing remote_bitbang driver");
 	if (remote_bitbang_port == NULL)
