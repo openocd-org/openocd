@@ -181,6 +181,10 @@ static int remote_bitbang_sample(void)
 
 static bb_value_t remote_bitbang_read_sample(void)
 {
+	if (remote_bitbang_start == remote_bitbang_end) {
+		if (remote_bitbang_fill_buf() != ERROR_OK)
+			return ERROR_FAIL;
+	}
 	if (remote_bitbang_start != remote_bitbang_end) {
 		int c = remote_bitbang_buf[remote_bitbang_start];
 		remote_bitbang_start =
