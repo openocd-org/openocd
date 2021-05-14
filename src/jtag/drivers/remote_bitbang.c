@@ -352,8 +352,19 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE,
 };
 
+static int remote_bitbang_execute_queue(void)
+{
+	/* process the JTAG command queue */
+	int ret = bitbang_execute_queue();
+	if (ret != ERROR_OK)
+		return ret;
+
+	/* flush not-yet-sent characters, if any */
+	return remote_bitbang_flush();
+}
+
 static struct jtag_interface remote_bitbang_interface = {
-	.execute_queue = &bitbang_execute_queue,
+	.execute_queue = &remote_bitbang_execute_queue,
 };
 
 struct adapter_driver remote_bitbang_adapter_driver = {
