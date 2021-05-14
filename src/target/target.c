@@ -6231,17 +6231,6 @@ COMMAND_HANDLER(handle_fast_load_command)
 	return retval;
 }
 
-bool enable_rtos_riscv;
-COMMAND_HANDLER(handle_enable_rtos_riscv_command)
-{
-	if (CMD_ARGC != 0) {
-		LOG_ERROR("Command takes no arguments");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	enable_rtos_riscv = true;
-	return ERROR_OK;
-}
-
 static const struct command_registration target_command_handlers[] = {
 	{
 		.name = "targets",
@@ -6257,14 +6246,6 @@ static const struct command_registration target_command_handlers[] = {
 		.help = "configure target",
 		.chain = target_subcommand_handlers,
 		.usage = "",
-	},
-	{
-		.name = "enable_rtos_riscv",
-		.handler = handle_enable_rtos_riscv_command,
-		.mode = COMMAND_CONFIG,
-		.usage = "enable_rtos_riscv",
-		.help = "Allow the use of `-rtos riscv` for just a little longer, "
-			"until it will be completely removed at the end of 2020."
 	},
 	COMMAND_REGISTRATION_DONE
 };
