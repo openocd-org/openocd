@@ -2076,7 +2076,7 @@ int sample_memory(struct target *target)
 
 	/* Default slow path. */
 	while (timeval_ms() - start < TARGET_DEFAULT_POLLING_INTERVAL) {
-		for (unsigned i = 0; i < DIM(r->sample_config.bucket); i++) {
+		for (unsigned i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
 			if (r->sample_config.bucket[i].enabled &&
 					r->sample_buf.used + 1 + r->sample_config.bucket[i].size_bytes < r->sample_buf.size) {
 				assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
@@ -2866,7 +2866,7 @@ COMMAND_HANDLER(handle_memory_sample_command)
 
 	if (CMD_ARGC == 0) {
 		command_print(CMD, "Memory sample configuration for %s:", target_name(target));
-		for (unsigned i = 0; i < DIM(r->sample_config.bucket); i++) {
+		for (unsigned i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
 			if (r->sample_config.bucket[i].enabled) {
 				command_print(CMD, "bucket %d; address=0x%" TARGET_PRIxADDR "; size=%d", i,
 							  r->sample_config.bucket[i].address,
@@ -2885,8 +2885,8 @@ COMMAND_HANDLER(handle_memory_sample_command)
 
 	uint32_t bucket;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bucket);
-	if (bucket > DIM(r->sample_config.bucket)) {
-		LOG_ERROR("Max bucket number is %d.", (unsigned) DIM(r->sample_config.bucket));
+	if (bucket > ARRAY_SIZE(r->sample_config.bucket)) {
+		LOG_ERROR("Max bucket number is %d.", (unsigned) ARRAY_SIZE(r->sample_config.bucket));
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -2964,7 +2964,7 @@ COMMAND_HANDLER(handle_dump_sample_buf_command)
 				uint32_t timestamp = buf_get_u32(r->sample_buf.buf + i, 0, 32);
 				i += 4;
 				command_print(CMD, "timestamp after: %u", timestamp);
-			} else if (command < DIM(r->sample_config.bucket)) {
+			} else if (command < ARRAY_SIZE(r->sample_config.bucket)) {
 				command_print_sameline(CMD, "0x%" TARGET_PRIxADDR ": ",
 									   r->sample_config.bucket[command].address);
 				if (r->sample_config.bucket[command].size_bytes == 4) {

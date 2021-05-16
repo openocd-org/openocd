@@ -2159,7 +2159,7 @@ static int sample_memory_bus_v1(struct target *target,
 	const unsigned repeat = 5;
 
 	unsigned enabled_count = 0;
-	for (unsigned i = 0; i < DIM(config->bucket); i++) {
+	for (unsigned i = 0; i < ARRAY_SIZE(config->bucket); i++) {
 		if (config->bucket[i].enabled)
 			enabled_count++;
 	}
@@ -2176,7 +2176,7 @@ static int sample_memory_bus_v1(struct target *target,
 
 		unsigned result_bytes = 0;
 		for (unsigned n = 0; n < repeat; n++) {
-			for (unsigned i = 0; i < DIM(config->bucket); i++) {
+			for (unsigned i = 0; i < ARRAY_SIZE(config->bucket); i++) {
 				if (config->bucket[i].enabled) {
 					if (!sba_supports_access(target, config->bucket[i].size_bytes)) {
 						LOG_ERROR("Hardware does not support SBA access for %d-byte memory sampling.",
@@ -2244,7 +2244,7 @@ static int sample_memory_bus_v1(struct target *target,
 
 		unsigned read = 0;
 		for (unsigned n = 0; n < repeat; n++) {
-			for (unsigned i = 0; i < DIM(config->bucket); i++) {
+			for (unsigned i = 0; i < ARRAY_SIZE(config->bucket); i++) {
 				if (config->bucket[i].enabled) {
 					assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
 					uint64_t value = 0;
