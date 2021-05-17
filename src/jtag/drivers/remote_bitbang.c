@@ -203,7 +203,9 @@ static int remote_bitbang_write(int tck, int tms, int tdi)
 static int remote_bitbang_reset(int trst, int srst)
 {
 	char c = 'r' + ((trst ? 0x2 : 0x0) | (srst ? 0x1 : 0x0));
-	return remote_bitbang_queue(c, false);
+	/* Always flush the send buffer on reset, because the reset call need not be
+	 * followed by jtag_execute_queue(). */
+	return remote_bitbang_queue(c, true);
 }
 
 static int remote_bitbang_blink(int on)
@@ -354,6 +356,10 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 
 static int remote_bitbang_execute_queue(void)
 {
+	/* safety: the send buffer must be empty, no leftover characters from
+	 * previous transactions */
+	assert(remote_bitbang_send_buf_used == 0);
+
 	/* process the JTAG command queue */
 	int ret = bitbang_execute_queue();
 	if (ret != ERROR_OK)
