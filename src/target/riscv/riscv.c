@@ -24,8 +24,6 @@
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
-#define DIM(x)		(sizeof(x)/sizeof(*x))
-
 /* Constants for legacy SiFive hardware breakpoints. */
 #define CSR_BPCONTROL_X			(1<<0)
 #define CSR_BPCONTROL_W			(1<<1)
@@ -185,10 +183,10 @@ struct scan_field _bscan_tunnel_nested_tap_select_dmi[] = {
 		}
 };
 struct scan_field *bscan_tunnel_nested_tap_select_dmi = _bscan_tunnel_nested_tap_select_dmi;
-uint32_t bscan_tunnel_nested_tap_select_dmi_num_fields = DIM(_bscan_tunnel_nested_tap_select_dmi);
+uint32_t bscan_tunnel_nested_tap_select_dmi_num_fields = ARRAY_SIZE(_bscan_tunnel_nested_tap_select_dmi);
 
 struct scan_field *bscan_tunnel_data_register_select_dmi = _bscan_tunnel_data_register_select_dmi;
-uint32_t bscan_tunnel_data_register_select_dmi_num_fields = DIM(_bscan_tunnel_data_register_select_dmi);
+uint32_t bscan_tunnel_data_register_select_dmi_num_fields = ARRAY_SIZE(_bscan_tunnel_data_register_select_dmi);
 
 struct trigger {
 	uint64_t address;
@@ -352,8 +350,8 @@ uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
 		tunneled_dr[0].in_value = NULL;
 	}
 	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
-	jtag_add_dr_scan(target->tap, DIM(tunneled_ir), tunneled_ir, TAP_IDLE);
-	jtag_add_dr_scan(target->tap, DIM(tunneled_dr), tunneled_dr, TAP_IDLE);
+	jtag_add_dr_scan(target->tap, ARRAY_SIZE(tunneled_ir), tunneled_ir, TAP_IDLE);
+	jtag_add_dr_scan(target->tap, ARRAY_SIZE(tunneled_dr), tunneled_dr, TAP_IDLE);
 	select_dmi_via_bscan(target);
 
 	int retval = jtag_execute_queue();
@@ -1849,7 +1847,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 				GDB_REGNO_PC,
 				GDB_REGNO_MSTATUS, GDB_REGNO_MEPC, GDB_REGNO_MCAUSE,
 			};
-			for (unsigned i = 0; i < DIM(regnums); i++) {
+			for (unsigned i = 0; i < ARRAY_SIZE(regnums); i++) {
 				enum gdb_regno regno = regnums[i];
 				riscv_reg_t reg_value;
 				if (riscv_get_register(target, &reg_value, regno) != ERROR_OK)
@@ -2076,7 +2074,7 @@ int sample_memory(struct target *target)
 
 	/* Default slow path. */
 	while (timeval_ms() - start < TARGET_DEFAULT_POLLING_INTERVAL) {
-		for (unsigned i = 0; i < DIM(r->sample_config.bucket); i++) {
+		for (unsigned i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
 			if (r->sample_config.bucket[i].enabled &&
 					r->sample_buf.used + 1 + r->sample_config.bucket[i].size_bytes < r->sample_buf.size) {
 				assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
@@ -2110,7 +2108,6 @@ int riscv_openocd_poll(struct target *target)
 
 	if (target->smp) {
 		unsigned halts_discovered = 0;
-		bool newly_halted[RISCV_MAX_HARTS] = {0};
 		unsigned should_remain_halted = 0;
 		unsigned should_resume = 0;
 		unsigned i = 0;
@@ -2118,7 +2115,6 @@ int riscv_openocd_poll(struct target *target)
 				list = list->next, i++) {
 			struct target *t = list->target;
 			riscv_info_t *r = riscv_info(t);
-			assert(i < DIM(newly_halted));
 			enum riscv_poll_hart out = riscv_poll_hart(t, r->current_hartid);
 			switch (out) {
 			case RPH_NO_CHANGE:
@@ -2129,7 +2125,6 @@ int riscv_openocd_poll(struct target *target)
 				break;
 			case RPH_DISCOVERED_HALTED:
 				halts_discovered++;
-				newly_halted[i] = true;
 				t->state = TARGET_HALTED;
 				enum riscv_halt_reason halt_reason =
 					riscv_halt_reason(t, r->current_hartid);
@@ -2869,7 +2864,7 @@ COMMAND_HANDLER(handle_memory_sample_command)
 
 	if (CMD_ARGC == 0) {
 		command_print(CMD, "Memory sample configuration for %s:", target_name(target));
-		for (unsigned i = 0; i < DIM(r->sample_config.bucket); i++) {
+		for (unsigned i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
 			if (r->sample_config.bucket[i].enabled) {
 				command_print(CMD, "bucket %d; address=0x%" TARGET_PRIxADDR "; size=%d", i,
 							  r->sample_config.bucket[i].address,
@@ -2888,8 +2883,8 @@ COMMAND_HANDLER(handle_memory_sample_command)
 
 	uint32_t bucket;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bucket);
-	if (bucket > DIM(r->sample_config.bucket)) {
-		LOG_ERROR("Max bucket number is %d.", (unsigned) DIM(r->sample_config.bucket));
+	if (bucket > ARRAY_SIZE(r->sample_config.bucket)) {
+		LOG_ERROR("Max bucket number is %d.", (unsigned) ARRAY_SIZE(r->sample_config.bucket));
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -2967,7 +2962,7 @@ COMMAND_HANDLER(handle_dump_sample_buf_command)
 				uint32_t timestamp = buf_get_u32(r->sample_buf.buf + i, 0, 32);
 				i += 4;
 				command_print(CMD, "timestamp after: %u", timestamp);
-			} else if (command < DIM(r->sample_config.bucket)) {
+			} else if (command < ARRAY_SIZE(r->sample_config.bucket)) {
 				command_print_sameline(CMD, "0x%" TARGET_PRIxADDR ": ",
 									   r->sample_config.bucket[command].address);
 				if (r->sample_config.bucket[command].size_bytes == 4) {
@@ -4155,7 +4150,7 @@ int riscv_init_registers(struct target *target)
 #undef DECLARE_CSR
 	};
 	/* encoding.h does not contain the registers in sorted order. */
-	qsort(csr_info, DIM(csr_info), sizeof(*csr_info), cmp_csr_info);
+	qsort(csr_info, ARRAY_SIZE(csr_info), sizeof(*csr_info), cmp_csr_info);
 	unsigned csr_info_index = 0;
 
 	int custom_within_range = 0;
@@ -4414,7 +4409,7 @@ int riscv_init_registers(struct target *target)
 			unsigned csr_number = number - GDB_REGNO_CSR0;
 
 			while (csr_info[csr_info_index].number < csr_number &&
-					csr_info_index < DIM(csr_info) - 1) {
+					csr_info_index < ARRAY_SIZE(csr_info) - 1) {
 				csr_info_index++;
 			}
 			if (csr_info[csr_info_index].number == csr_number) {
