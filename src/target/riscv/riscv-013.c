@@ -1307,6 +1307,8 @@ static int register_write_direct(struct target *target, unsigned number,
 	LOG_DEBUG("{%d} %s <- 0x%" PRIx64, riscv_current_hartid(target),
 			gdb_regno_name(number), value);
 
+	keep_alive();
+
 	int result = register_write_abstract(target, number, value,
 			register_size(target, number));
 	if (result == ERROR_OK || !has_sufficient_progbuf(target, 2) ||
