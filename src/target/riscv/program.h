@@ -40,19 +40,9 @@ int riscv_program_write(struct riscv_program *program);
  * program to execute.  That's OK, just make sure this eventually terminates.
  * */
 int riscv_program_exec(struct riscv_program *p, struct target *t);
-int riscv_program_load(struct riscv_program *p, struct target *t);
-
-/* Clears a program, removing all the state associated with it. */
-int riscv_program_clear(struct riscv_program *p, struct target *t);
 
 /* A lower level interface, you shouldn't use this unless you have a reason. */
 int riscv_program_insert(struct riscv_program *p, riscv_insn_t i);
-
-/* There is hardware support for saving at least one register.  This register
- * doesn't need to be saved/restored the usual way, which is useful during
- * early initialization when we can't save/restore arbitrary registerrs to host
- * memory. */
-int riscv_program_save_to_dscratch(struct riscv_program *p, enum gdb_regno to_save);
 
 /* Helpers to assemble various instructions.  Return 0 on success.  These might
  * assemble into a multi-instruction sequence that overwrites some other
