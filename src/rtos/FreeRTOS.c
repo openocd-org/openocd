@@ -27,7 +27,6 @@
 #include "rtos.h"
 #include "helper/log.h"
 #include "helper/types.h"
-#include "gnulib/gl_linkedhash_map.h"
 #include "rtos_standard_stackings.h"
 #include "target/armv7m.h"
 #include "target/cortex_m.h"
@@ -43,6 +42,7 @@ struct FreeRTOS_params {
 };
 
 struct FreeRTOS_thread_entry {
+	struct list_head list;
 	threadid_t threadid;
 	target_addr_t tcb;
 };
@@ -50,11 +50,11 @@ struct FreeRTOS_thread_entry {
 struct FreeRTOS {
 	const struct FreeRTOS_params *param;
 	threadid_t last_threadid;
-	/* Map from threadid to FreeRTOS_thread_entry. This map owns the value and
-	 * is responsible for free()ing it. */
-	gl_map_t entry_by_threadid;
-	/* Map from tcb to FreeRTOS_thread_entry. */
-	gl_map_t entry_by_tcb;
+	/* Keep track of which threadid we're using for which TCB.  We cannot use a
+	 * 1:1 mapping because TCB's can be 64 bits, and the gdb protocol doesn't
+	 * work well with thread id's that are greater than 32 bits.
+	 */
+	struct list_head thread_entry_list;
 	/* sizeof(UBaseType_t) */
 	unsigned ubasetype_size;
 	/* sizeof(void *) */
@@ -413,6 +413,28 @@ static void FreeRTOS_compute_offsets(struct rtos *rtos)
 	freertos->thread_name_offset = task_control_block_info[5].offset;
 }
 
+struct FreeRTOS_thread_entry *thread_entry_list_find_by_tcb(
+	struct list_head *list, target_addr_t tcb)
+{
+	struct FreeRTOS_thread_entry *t;
+	list_for_each_entry(t, list, list) {
+		if (t->tcb == tcb)
+			return t;
+	}
+	return NULL;
+}
+
+struct FreeRTOS_thread_entry *thread_entry_list_find_by_id(
+	struct list_head *list, threadid_t threadid)
+{
+	struct FreeRTOS_thread_entry *t;
+	list_for_each_entry(t, list, list) {
+		if (t->threadid == threadid)
+			return t;
+	}
+	return NULL;
+}
+
 static int FreeRTOS_update_threads(struct rtos *rtos)
 {
 	int retval;
@@ -609,7 +631,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 			}
 
 			const struct FreeRTOS_thread_entry *value =
-					gl_map_get(freertos->entry_by_tcb, &tcb);
+				thread_entry_list_find_by_tcb(&freertos->thread_entry_list, tcb);
 
 			if (value == NULL) {
 				struct FreeRTOS_thread_entry *new_value = calloc(1, sizeof(struct FreeRTOS_thread_entry));
@@ -617,14 +639,7 @@ static int FreeRTOS_update_threads(struct rtos *rtos)
 				/* threadid can't be 0. */
 				new_value->threadid = ++freertos->last_threadid;
 
-				if (gl_map_nx_put(freertos->entry_by_tcb, &new_value->tcb, new_value) == -1) {
-					LOG_ERROR("gl_map_nx_put failed");
-					return ERROR_FAIL;
-				}
-				if (gl_map_nx_put(freertos->entry_by_threadid, &new_value->threadid, new_value) == -1) {
-					LOG_ERROR("gl_map_nx_put failed");
-					return ERROR_FAIL;
-				}
+				list_add_tail(&new_value->list, &freertos->thread_entry_list);
 				value = new_value;
 			}
 
@@ -714,7 +729,7 @@ static int FreeRTOS_get_stacking_info(struct rtos *rtos, threadid_t thread_id,
 	const struct FreeRTOS_params *param = freertos->param;
 
 	const struct FreeRTOS_thread_entry *entry =
-			gl_map_get(freertos->entry_by_threadid, &thread_id);
+		thread_entry_list_find_by_id(&freertos->thread_entry_list, thread_id);
 	if (entry == NULL) {
 		LOG_ERROR("Unknown thread id: %" PRId64, thread_id);
 		return ERROR_FAIL;
@@ -861,25 +876,6 @@ static bool FreeRTOS_detect_rtos(struct target *target)
 	return false;
 }
 
-static bool target_addr_equals(const void *x1, const void *x2)
-{
-	const target_addr_t *a1 = x1;
-	const target_addr_t *a2 = x2;
-	return *a1 == *a2;
-}
-
-static size_t target_addr_hash(const void *x)
-{
-	const target_addr_t *a = x;
-	return *a;
-}
-
-static void free_const(const void *x)
-{
-	/* Cast away const. */
-	free((void *) x);
-}
-
 static int FreeRTOS_create(struct target *target)
 {
 	int i = 0;
@@ -899,18 +895,8 @@ static int FreeRTOS_create(struct target *target)
 	}
 
 	struct FreeRTOS *freertos = (struct FreeRTOS *) target->rtos->rtos_specific_params;
-	freertos->entry_by_threadid = gl_map_nx_create_empty(
-		GL_LINKEDHASH_MAP, target_addr_equals, target_addr_hash, NULL, free_const);
-	if (freertos->entry_by_threadid == NULL) {
-		LOG_ERROR("gl_map_nx_create_empty failed");
-		return ERROR_FAIL;
-	}
-	freertos->entry_by_tcb = gl_map_nx_create_empty(
-		GL_LINKEDHASH_MAP, target_addr_equals, target_addr_hash, NULL, NULL);
-	if (freertos->entry_by_tcb == NULL) {
-		LOG_ERROR("gl_map_nx_create_empty failed");
-		return ERROR_FAIL;
-	}
+	INIT_LIST_HEAD(&freertos->thread_entry_list);
+
 	freertos->param = &FreeRTOS_params_list[i];
 
 	if (freertos->param->commands) {

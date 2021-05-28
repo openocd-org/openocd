@@ -1,5 +1,3 @@
-SUBDIRS += src/gnulib
-
 noinst_LTLIBRARIES += %D%/libopenocd.la
 bin_PROGRAMS += %D%/openocd
 
@@ -21,7 +19,6 @@ else
 endif
 
 %C%_libopenocd_la_CPPFLAGS =
-%C%_openocd_LDADD += src/gnulib/libgnu.a
 
 # banner output includes RELSTR appended to $VERSION from the configure script
 # guess-rev.sh returns either a repository version ID or "-snapshot"
@@ -63,7 +60,6 @@ BIN2C = $(srcdir)/%D%/helper/bin2char.sh
 
 STARTUP_TCL_SRCS =
 EXTRA_DIST += $(STARTUP_TCL_SRCS)
-EXTRA_DIST += m4/gnulib-cache.m4
 
 BUILT_SOURCES += %D%/startup_tcl.inc
 
