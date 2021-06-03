@@ -4821,8 +4821,8 @@ They are not otherwise documented here.
 @deffn {Command} {$target_name array2mem} arrayname width address count
 @deffnx {Command} {$target_name mem2array} arrayname width address count
 These provide an efficient script-oriented interface to memory.
-The @code{array2mem} primitive writes bytes, halfwords, or words;
-while @code{mem2array} reads them.
+The @code{array2mem} primitive writes bytes, halfwords, words
+or double-words; while @code{mem2array} reads them.
 In both cases, the TCL side uses an array, and
 the target side uses raw memory.
 
@@ -4835,7 +4835,7 @@ and neither store nor return those values.
 
 @itemize
 @item @var{arrayname} ... is the name of an array variable
-@item @var{width} ... is 8/16/32 - indicating the memory access size
+@item @var{width} ... is 8/16/32/64 - indicating the memory access size
 @item @var{address} ... is the target memory address
 @item @var{count} ... is the number of elements to process
 @end itemize

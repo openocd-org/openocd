@@ -4372,7 +4372,7 @@ COMMAND_HANDLER(handle_profile_command)
 	return retval;
 }
 
-static int new_int_array_element(Jim_Interp *interp, const char *varname, int idx, uint32_t val)
+static int new_u64_array_element(Jim_Interp *interp, const char *varname, int idx, uint64_t val)
 {
 	char *namebuf;
 	Jim_Obj *nameObjPtr, *valObjPtr;
@@ -4383,7 +4383,8 @@ static int new_int_array_element(Jim_Interp *interp, const char *varname, int id
 		return JIM_ERR;
 
 	nameObjPtr = Jim_NewStringObj(interp, namebuf, -1);
-	valObjPtr = Jim_NewIntObj(interp, val);
+	jim_wide wide_val = val;
+	valObjPtr = Jim_NewWideObj(interp, wide_val);
 	if (!nameObjPtr || !valObjPtr) {
 		free(namebuf);
 		return JIM_ERR;
@@ -4418,68 +4419,65 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 static int target_mem2array(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv)
 {
-	long l;
-	jim_wide wide_addr;
-	uint32_t width;
-	int len;
-	target_addr_t addr;
-	uint32_t count;
-	uint32_t v;
-	const char *varname;
-	const char *phys;
-	bool is_phys;
-	int  n, e, retval;
-	uint32_t i;
+	int e;
 
-	/* argv[1] = name of array to receive the data
-	 * argv[2] = desired width
-	 * argv[3] = memory address
-	 * argv[4] = count of times to read
+	/* argv[0] = name of array to receive the data
+	 * argv[1] = desired element width in bits
+	 * argv[2] = memory address
+	 * argv[3] = count of times to read
+	 * argv[4] = optional "phys"
 	 */
-
 	if (argc < 4 || argc > 5) {
 		Jim_WrongNumArgs(interp, 0, argv, "varname width addr nelems [phys]");
 		return JIM_ERR;
 	}
-	varname = Jim_GetString(argv[0], &len);
-	/* given "foo" get space for worse case "foo(%d)" .. add 20 */
 
+	/* Arg 0: Name of the array variable */
+	const char *varname = Jim_GetString(argv[0], NULL);
+
+	/* Arg 1: Bit width of one element */
+	long l;
 	e = Jim_GetLong(interp, argv[1], &l);
-	width = l;
 	if (e != JIM_OK)
 		return e;
+	const unsigned int width_bits = l;
 
+	if (width_bits != 8 &&
+			width_bits != 16 &&
+			width_bits != 32 &&
+			width_bits != 64) {
+		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings(interp, Jim_GetResult(interp),
+				"Invalid width param. Must be one of: 8, 16, 32 or 64.", NULL);
+		return JIM_ERR;
+	}
+	const unsigned int width = width_bits / 8;
+
+	/* Arg 2: Memory address */
+	jim_wide wide_addr;
 	e = Jim_GetWide(interp, argv[2], &wide_addr);
-	addr = (target_addr_t)wide_addr;
 	if (e != JIM_OK)
 		return e;
+	target_addr_t addr = (target_addr_t)wide_addr;
+
+	/* Arg 3: Number of elements to read */
 	e = Jim_GetLong(interp, argv[3], &l);
-	len = l;
 	if (e != JIM_OK)
 		return e;
-	is_phys = false;
+	size_t len = l;
+
+	/* Arg 4: phys */
+	bool is_phys = false;
 	if (argc > 4) {
-		phys = Jim_GetString(argv[4], &n);
-		if (!strncmp(phys, "phys", n))
+		int str_len = 0;
+		const char *phys = Jim_GetString(argv[4], &str_len);
+		if (!strncmp(phys, "phys", str_len))
 			is_phys = true;
 		else
 			return JIM_ERR;
 	}
-	switch (width) {
-		case 8:
-			width = 1;
-			break;
-		case 16:
-			width = 2;
-			break;
-		case 32:
-			width = 4;
-			break;
-		default:
-			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-			Jim_AppendStrings(interp, Jim_GetResult(interp), "Invalid width param, must be 8/16/32", NULL);
-			return JIM_ERR;
-	}
+
+	/* Argument checks */
 	if (len == 0) {
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 		Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: zero width read?", NULL);
@@ -4490,17 +4488,18 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 		Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: addr + len - wraps to zero?", NULL);
 		return JIM_ERR;
 	}
-	/* absurd transfer size? */
 	if (len > 65536) {
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: absurd > 64K item request", NULL);
+		Jim_AppendStrings(interp, Jim_GetResult(interp),
+				"mem2array: too large read request, exceeds 64K items", NULL);
 		return JIM_ERR;
 	}
 
 	if ((width == 1) ||
 		((width == 2) && ((addr & 1) == 0)) ||
-		((width == 4) && ((addr & 3) == 0))) {
-		/* all is well */
+		((width == 4) && ((addr & 3) == 0)) ||
+		((width == 8) && ((addr & 7) == 0))) {
+		/* alignment correct */
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
@@ -4514,9 +4513,9 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	/* Transfer loop */
 
 	/* index counter */
-	n = 0;
+	size_t idx = 0;
 
-	size_t buffersize = 4096;
+	const size_t buffersize = 4096;
 	uint8_t *buffer = malloc(buffersize);
 	if (buffer == NULL)
 		return JIM_ERR;
@@ -4525,29 +4524,31 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	e = JIM_OK;
 	while (len) {
 		/* Slurp... in buffer size chunks */
+		const unsigned int max_chunk_len = buffersize / width;
+		const size_t chunk_len = MIN(len, max_chunk_len); /* in elements.. */
 
-		count = len; /* in objects.. */
-		if (count > (buffersize / width))
-			count = (buffersize / width);
-
+		int retval;
 		if (is_phys)
-			retval = target_read_phys_memory(target, addr, width, count, buffer);
+			retval = target_read_phys_memory(target, addr, width, chunk_len, buffer);
 		else
-			retval = target_read_memory(target, addr, width, count, buffer);
+			retval = target_read_memory(target, addr, width, chunk_len, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("mem2array: Read @ " TARGET_ADDR_FMT ", w=%" PRIu32 ", cnt=%" PRIu32 ", failed",
+			LOG_ERROR("mem2array: Read @ " TARGET_ADDR_FMT ", w=%u, cnt=%zu, failed",
 					  addr,
 					  width,
-					  count);
+					  chunk_len);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: cannot read memory", NULL);
 			e = JIM_ERR;
 			break;
 		} else {
-			v = 0; /* shut up gcc */
-			for (i = 0; i < count ; i++, n++) {
+			for (size_t i = 0; i < chunk_len ; i++, idx++) {
+				uint64_t v = 0;
 				switch (width) {
+					case 8:
+						v = target_buffer_get_u64(target, &buffer[i*width]);
+						break;
 					case 4:
 						v = target_buffer_get_u32(target, &buffer[i*width]);
 						break;
@@ -4558,10 +4559,10 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 						v = buffer[i] & 0x0ff;
 						break;
 				}
-				new_int_array_element(interp, varname, n, v);
+				new_u64_array_element(interp, varname, idx, v);
 			}
-			len -= count;
-			addr += count * width;
+			len -= chunk_len;
+			addr += chunk_len * width;
 		}
 	}
 
@@ -4572,33 +4573,28 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	return e;
 }
 
-static int get_int_array_element(Jim_Interp *interp, const char *varname, int idx, uint32_t *val)
+static int get_u64_array_element(Jim_Interp *interp, const char *varname, size_t idx, uint64_t *val)
 {
-	char *namebuf;
-	Jim_Obj *nameObjPtr, *valObjPtr;
-	int result;
-	long l;
-
-	namebuf = alloc_printf("%s(%d)", varname, idx);
+	char *namebuf = alloc_printf("%s(%zu)", varname, idx);
 	if (!namebuf)
 		return JIM_ERR;
 
-	nameObjPtr = Jim_NewStringObj(interp, namebuf, -1);
+	Jim_Obj *nameObjPtr = Jim_NewStringObj(interp, namebuf, -1);
 	if (!nameObjPtr) {
 		free(namebuf);
 		return JIM_ERR;
 	}
 
 	Jim_IncrRefCount(nameObjPtr);
-	valObjPtr = Jim_GetVariable(interp, nameObjPtr, JIM_ERRMSG);
+	Jim_Obj *valObjPtr = Jim_GetVariable(interp, nameObjPtr, JIM_ERRMSG);
 	Jim_DecrRefCount(interp, nameObjPtr);
 	free(namebuf);
 	if (valObjPtr == NULL)
 		return JIM_ERR;
 
-	result = Jim_GetLong(interp, valObjPtr, &l);
-	/* printf("%s(%d) => 0%08x\n", varname, idx, val); */
-	*val = l;
+	jim_wide wide_val;
+	int result = Jim_GetWide(interp, valObjPtr, &wide_val);
+	*val = wide_val;
 	return result;
 }
 
@@ -4622,92 +4618,91 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 static int target_array2mem(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv)
 {
-	long l;
-	jim_wide wide_addr;
-	uint32_t width;
-	int len;
-	target_addr_t addr;
-	uint32_t count;
-	uint32_t v;
-	const char *varname;
-	const char *phys;
-	bool is_phys;
-	int  n, e, retval;
-	uint32_t i;
+	int e;
 
-	/* argv[1] = name of array to get the data
-	 * argv[2] = desired width
-	 * argv[3] = memory address
-	 * argv[4] = count to write
+	/* argv[0] = name of array from which to read the data
+	 * argv[1] = desired element width in bits
+	 * argv[2] = memory address
+	 * argv[3] = number of elements to write
+	 * argv[4] = optional "phys"
 	 */
 	if (argc < 4 || argc > 5) {
 		Jim_WrongNumArgs(interp, 0, argv, "varname width addr nelems [phys]");
 		return JIM_ERR;
 	}
-	varname = Jim_GetString(argv[0], &len);
-	/* given "foo" get space for worse case "foo(%d)" .. add 20 */
 
+	/* Arg 0: Name of the array variable */
+	const char *varname = Jim_GetString(argv[0], NULL);
+
+	/* Arg 1: Bit width of one element */
+	long l;
 	e = Jim_GetLong(interp, argv[1], &l);
-	width = l;
 	if (e != JIM_OK)
 		return e;
+	const unsigned int width_bits = l;
 
+	if (width_bits != 8 &&
+			width_bits != 16 &&
+			width_bits != 32 &&
+			width_bits != 64) {
+		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings(interp, Jim_GetResult(interp),
+				"Invalid width param. Must be one of: 8, 16, 32 or 64.", NULL);
+		return JIM_ERR;
+	}
+	const unsigned int width = width_bits / 8;
+
+	/* Arg 2: Memory address */
+	jim_wide wide_addr;
 	e = Jim_GetWide(interp, argv[2], &wide_addr);
-	addr = (target_addr_t)wide_addr;
 	if (e != JIM_OK)
 		return e;
+	target_addr_t addr = (target_addr_t)wide_addr;
+
+	/* Arg 3: Number of elements to write */
 	e = Jim_GetLong(interp, argv[3], &l);
-	len = l;
 	if (e != JIM_OK)
 		return e;
-	is_phys = false;
+	size_t len = l;
+
+	/* Arg 4: Phys */
+	bool is_phys = false;
 	if (argc > 4) {
-		phys = Jim_GetString(argv[4], &n);
-		if (!strncmp(phys, "phys", n))
+		int str_len = 0;
+		const char *phys = Jim_GetString(argv[4], &str_len);
+		if (!strncmp(phys, "phys", str_len))
 			is_phys = true;
 		else
 			return JIM_ERR;
 	}
-	switch (width) {
-		case 8:
-			width = 1;
-			break;
-		case 16:
-			width = 2;
-			break;
-		case 32:
-			width = 4;
-			break;
-		default:
-			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-			Jim_AppendStrings(interp, Jim_GetResult(interp),
-					"Invalid width param, must be 8/16/32", NULL);
-			return JIM_ERR;
-	}
+
+	/* Argument checks */
 	if (len == 0) {
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 		Jim_AppendStrings(interp, Jim_GetResult(interp),
 				"array2mem: zero width read?", NULL);
 		return JIM_ERR;
 	}
+
 	if ((addr + (len * width)) < addr) {
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 		Jim_AppendStrings(interp, Jim_GetResult(interp),
 				"array2mem: addr + len - wraps to zero?", NULL);
 		return JIM_ERR;
 	}
-	/* absurd transfer size? */
+
 	if (len > 65536) {
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 		Jim_AppendStrings(interp, Jim_GetResult(interp),
-				"array2mem: absurd > 64K item request", NULL);
+				"array2mem: too large memory write request, exceeds 64K items", NULL);
 		return JIM_ERR;
 	}
 
 	if ((width == 1) ||
 		((width == 2) && ((addr & 1) == 0)) ||
-		((width == 4) && ((addr & 3) == 0))) {
-		/* all is well */
+		((width == 4) && ((addr & 3) == 0)) ||
+		((width == 8) && ((addr & 7) == 0))) {
+		/* alignment correct */
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
@@ -4720,27 +4715,34 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 
 	/* Transfer loop */
 
-	/* index counter */
-	n = 0;
 	/* assume ok */
 	e = JIM_OK;
 
-	size_t buffersize = 4096;
+	const size_t buffersize = 4096;
 	uint8_t *buffer = malloc(buffersize);
 	if (buffer == NULL)
 		return JIM_ERR;
 
+	/* index counter */
+	size_t idx = 0;
+
 	while (len) {
 		/* Slurp... in buffer size chunks */
+		const unsigned int max_chunk_len = buffersize / width;
 
-		count = len; /* in objects.. */
-		if (count > (buffersize / width))
-			count = (buffersize / width);
+		const size_t chunk_len = MIN(len, max_chunk_len); /* in elements.. */
 
-		v = 0; /* shut up gcc */
-		for (i = 0; i < count; i++, n++) {
-			get_int_array_element(interp, varname, n, &v);
+		/* Fill the buffer */
+		for (size_t i = 0; i < chunk_len; i++, idx++) {
+			uint64_t v = 0;
+			if (get_u64_array_element(interp, varname, idx, &v) != JIM_OK) {
+				free(buffer);
+				return JIM_ERR;
+			}
 			switch (width) {
+			case 8:
+				target_buffer_set_u64(target, &buffer[i * width], v);
+				break;
 			case 4:
 				target_buffer_set_u32(target, &buffer[i * width], v);
 				break;
@@ -4752,24 +4754,26 @@ static int target_array2mem(Jim_Interp *interp, struct target *target,
 				break;
 			}
 		}
-		len -= count;
+		len -= chunk_len;
 
+		/* Write the buffer to memory */
+		int retval;
 		if (is_phys)
-			retval = target_write_phys_memory(target, addr, width, count, buffer);
+			retval = target_write_phys_memory(target, addr, width, chunk_len, buffer);
 		else
-			retval = target_write_memory(target, addr, width, count, buffer);
+			retval = target_write_memory(target, addr, width, chunk_len, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("array2mem: Write @ " TARGET_ADDR_FMT ", w=%" PRIu32 ", cnt=%" PRIu32 ", failed",
+			LOG_ERROR("array2mem: Write @ " TARGET_ADDR_FMT ", w=%u, cnt=%zu, failed",
 					  addr,
 					  width,
-					  count);
+					  chunk_len);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "array2mem: cannot read memory", NULL);
 			e = JIM_ERR;
 			break;
 		}
-		addr += count * width;
+		addr += chunk_len * width;
 	}
 
 	free(buffer);
