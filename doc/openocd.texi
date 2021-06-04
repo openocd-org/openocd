@@ -5018,6 +5018,24 @@ set_reg @{pc 0 sp 0x1000@}
 @end example
 @end deffn
 
+@deffn {Command} {$target_name get_reg} [-force] list
+Get register values from the target and return them as Tcl dictionary with pairs
+of register names and values.
+If option "-force" is set, the register values are read directly from the
+target, bypassing any caching.
+
+@itemize
+@item @var{list} ... List of register names
+@end itemize
+
+For example, the following command retrieves the values from the program
+counter (pc) and stack pointer (sp) register:
+
+@example
+get_reg @{pc sp@}
+@end example
+@end deffn
+
 @deffn {Command} {$target_name cget} queryparm
 Each configuration parameter accepted by
 @command{$target_name configure}
@@ -8518,6 +8536,24 @@ register and 0x1000 to the stack pointer (sp) register:
 
 @example
 set_reg @{pc 0 sp 0x1000@}
+@end example
+@end deffn
+
+@deffn {Command} {get_reg} [-force] list
+Get register values from the target and return them as Tcl dictionary with pairs
+of register names and values.
+If option "-force" is set, the register values are read directly from the
+target, bypassing any caching.
+
+@itemize
+@item @var{list} ... List of register names
+@end itemize
+
+For example, the following command retrieves the values from the program
+counter (pc) and stack pointer (sp) register:
+
+@example
+get_reg @{pc sp@}
 @end example
 @end deffn
 

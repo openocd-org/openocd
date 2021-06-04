@@ -4863,6 +4863,93 @@ void target_handle_event(struct target *target, enum target_event e)
 	}
 }
 
+static int target_jim_get_reg(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
+{
+	bool force = false;
+
+	if (argc == 3) {
+		const char *option = Jim_GetString(argv[1], NULL);
+
+		if (!strcmp(option, "-force")) {
+			argc--;
+			argv++;
+			force = true;
+		} else {
+			Jim_SetResultFormatted(interp, "invalid option '%s'", option);
+			return JIM_ERR;
+		}
+	}
+
+	if (argc != 2) {
+		Jim_WrongNumArgs(interp, 1, argv, "[-force] list");
+		return JIM_ERR;
+	}
+
+	const int length = Jim_ListLength(interp, argv[1]);
+
+	Jim_Obj *result_dict = Jim_NewDictObj(interp, NULL, 0);
+
+	if (!result_dict)
+		return JIM_ERR;
+
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx != NULL);
+	const struct target *target = get_current_target(cmd_ctx);
+
+	for (int i = 0; i < length; i++) {
+		Jim_Obj *elem = Jim_ListGetIndex(interp, argv[1], i);
+
+		if (!elem)
+			return JIM_ERR;
+
+		const char *reg_name = Jim_String(elem);
+
+		struct reg *reg = register_get_by_name(target->reg_cache, reg_name,
+			false);
+
+		if (!reg || !reg->exist) {
+			Jim_SetResultFormatted(interp, "unknown register '%s'", reg_name);
+			return JIM_ERR;
+		}
+
+		if (force) {
+			int retval = reg->type->get(reg);
+
+			if (retval != ERROR_OK) {
+				Jim_SetResultFormatted(interp, "failed to read register '%s'",
+					reg_name);
+				return JIM_ERR;
+			}
+		}
+
+		char *reg_value = buf_to_hex_str(reg->value, reg->size);
+
+		if (!reg_value) {
+			LOG_ERROR("Failed to allocate memory");
+			return JIM_ERR;
+		}
+
+		char *tmp = alloc_printf("0x%s", reg_value);
+
+		free(reg_value);
+
+		if (!tmp) {
+			LOG_ERROR("Failed to allocate memory");
+			return JIM_ERR;
+		}
+
+		Jim_DictAddElement(interp, result_dict, elem,
+			Jim_NewStringObj(interp, tmp, -1));
+
+		free(tmp);
+	}
+
+	Jim_SetResult(interp, result_dict);
+
+	return JIM_OK;
+}
+
 static int target_jim_set_reg(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
@@ -5695,6 +5782,13 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.help = "Loads Tcl array of 8/16/32 bit numbers "
 			"from target memory",
 		.usage = "arrayname bitwidth address count",
+	},
+	{
+		.name = "get_reg",
+		.mode = COMMAND_EXEC,
+		.jim_handler = target_jim_get_reg,
+		.help = "Get register values from the target",
+		.usage = "list",
 	},
 	{
 		.name = "set_reg",
@@ -6784,6 +6878,13 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.help = "convert a TCL array to memory locations "
 			"and write the 8/16/32 bit values",
 		.usage = "arrayname bitwidth address count",
+	},
+	{
+		.name = "get_reg",
+		.mode = COMMAND_EXEC,
+		.jim_handler = target_jim_get_reg,
+		.help = "Get register values from the target",
+		.usage = "list",
 	},
 	{
 		.name = "set_reg",
