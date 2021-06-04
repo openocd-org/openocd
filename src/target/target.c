@@ -4863,6 +4863,57 @@ void target_handle_event(struct target *target, enum target_event e)
 	}
 }
 
+static int target_jim_set_reg(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
+{
+	if (argc != 2) {
+		Jim_WrongNumArgs(interp, 1, argv, "dict");
+		return JIM_ERR;
+	}
+
+	int tmp;
+	Jim_Obj **dict = Jim_DictPairs(interp, argv[1], &tmp);
+
+	if (!dict)
+		return JIM_ERR;
+
+	const unsigned int length = tmp;
+	struct command_context *cmd_ctx = current_command_context(interp);
+	assert(cmd_ctx);
+	const struct target *target = get_current_target(cmd_ctx);
+
+	for (unsigned int i = 0; i < length; i += 2) {
+		const char *reg_name = Jim_String(dict[i]);
+		const char *reg_value = Jim_String(dict[i + 1]);
+		struct reg *reg = register_get_by_name(target->reg_cache, reg_name,
+			false);
+
+		if (!reg || !reg->exist) {
+			Jim_SetResultFormatted(interp, "unknown register '%s'", reg_name);
+			return JIM_ERR;
+		}
+
+		uint8_t *buf = malloc(DIV_ROUND_UP(reg->size, 8));
+
+		if (!buf) {
+			LOG_ERROR("Failed to allocate memory");
+			return JIM_ERR;
+		}
+
+		str_to_buf(reg_value, strlen(reg_value), buf, reg->size, 0);
+		int retval = reg->type->set(reg, buf);
+		free(buf);
+
+		if (retval != ERROR_OK) {
+			Jim_SetResultFormatted(interp, "failed to set '%s' to register '%s'",
+				reg_value, reg_name);
+			return JIM_ERR;
+		}
+	}
+
+	return JIM_OK;
+}
+
 /**
  * Returns true only if the target has a handler for the specified event.
  */
@@ -5644,6 +5695,13 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.help = "Loads Tcl array of 8/16/32 bit numbers "
 			"from target memory",
 		.usage = "arrayname bitwidth address count",
+	},
+	{
+		.name = "set_reg",
+		.mode = COMMAND_EXEC,
+		.jim_handler = target_jim_set_reg,
+		.help = "Set target register values",
+		.usage = "dict",
 	},
 	{
 		.name = "eventlist",
@@ -6726,6 +6784,13 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.help = "convert a TCL array to memory locations "
 			"and write the 8/16/32 bit values",
 		.usage = "arrayname bitwidth address count",
+	},
+	{
+		.name = "set_reg",
+		.mode = COMMAND_EXEC,
+		.jim_handler = target_jim_set_reg,
+		.help = "Set target register values",
+		.usage = "dict",
 	},
 	{
 		.name = "reset_nag",
