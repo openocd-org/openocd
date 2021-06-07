@@ -4431,26 +4431,11 @@ static int new_u64_array_element(Jim_Interp *interp, const char *varname, int id
 	return result;
 }
 
-static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct command_context *context;
-	struct target *target;
-
-	context = current_command_context(interp);
-	assert(context);
-
-	target = get_current_target(context);
-	if (!target) {
-		LOG_ERROR("mem2array: no current target");
-		return JIM_ERR;
-	}
-
-	return target_mem2array(interp, target, argc - 1, argv + 1);
-}
-
 static int target_mem2array(Jim_Interp *interp, struct target *target, int argc, Jim_Obj *const *argv)
 {
 	int e;
+
+	LOG_WARNING("DEPRECATED! use 'read_memory' not 'mem2array'");
 
 	/* argv[0] = name of array to receive the data
 	 * argv[1] = desired element width in bits
@@ -4784,27 +4769,12 @@ static int get_u64_array_element(Jim_Interp *interp, const char *varname, size_t
 	return result;
 }
 
-static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct command_context *context;
-	struct target *target;
-
-	context = current_command_context(interp);
-	assert(context);
-
-	target = get_current_target(context);
-	if (!target) {
-		LOG_ERROR("array2mem: no current target");
-		return JIM_ERR;
-	}
-
-	return target_array2mem(interp, target, argc-1, argv + 1);
-}
-
 static int target_array2mem(Jim_Interp *interp, struct target *target,
 		int argc, Jim_Obj *const *argv)
 {
 	int e;
+
+	LOG_WARNING("DEPRECATED! use 'write_memory' not 'array2mem'");
 
 	/* argv[0] = name of array from which to read the data
 	 * argv[1] = desired element width in bits
@@ -7169,22 +7139,6 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_test_image_command,
 		.mode = COMMAND_EXEC,
 		.usage = "filename [offset [type]]",
-	},
-	{
-		.name = "mem2array",
-		.mode = COMMAND_EXEC,
-		.jim_handler = jim_mem2array,
-		.help = "read 8/16/32 bit memory and return as a TCL array "
-			"for script processing",
-		.usage = "arrayname bitwidth address count",
-	},
-	{
-		.name = "array2mem",
-		.mode = COMMAND_EXEC,
-		.jim_handler = jim_array2mem,
-		.help = "convert a TCL array to memory locations "
-			"and write the 8/16/32 bit values",
-		.usage = "arrayname bitwidth address count",
 	},
 	{
 		.name = "get_reg",

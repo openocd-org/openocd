@@ -4980,29 +4980,6 @@ use these to deal with specific reset cases.
 They are not otherwise documented here.
 @end deffn
 
-@deffn {Command} {$target_name array2mem} arrayname width address count
-@deffnx {Command} {$target_name mem2array} arrayname width address count
-These provide an efficient script-oriented interface to memory.
-The @code{array2mem} primitive writes bytes, halfwords, words
-or double-words; while @code{mem2array} reads them.
-In both cases, the TCL side uses an array, and
-the target side uses raw memory.
-
-The efficiency comes from enabling the use of
-bulk JTAG data transfer operations.
-The script orientation comes from working with data
-values that are packaged for use by TCL scripts;
-@command{mdw} type primitives only print data they retrieve,
-and neither store nor return those values.
-
-@itemize
-@item @var{arrayname} ... is the name of an array variable
-@item @var{width} ... is 8/16/32/64 - indicating the memory access size
-@item @var{address} ... is the target memory address
-@item @var{count} ... is the number of elements to process
-@end itemize
-@end deffn
-
 @deffn {Command} {$target_name set_reg} dict
 Set register values of the target.
 
@@ -5142,8 +5119,8 @@ When the current target has an MMU which is present and active,
 Otherwise, or if the optional @var{phys} flag is specified,
 @var{addr} is interpreted as a physical address.
 If @var{count} is specified, displays that many units.
-(If you want to manipulate the data instead of displaying it,
-see the @code{mem2array} primitives.)
+(If you want to process the data instead of displaying it,
+see the @code{read_memory} primitives.)
 @end deffn
 
 @deffn {Command} {$target_name mwd} [phys] addr doubleword [count]
@@ -8772,8 +8749,8 @@ When the current target has an MMU which is present and active,
 Otherwise, or if the optional @var{phys} flag is specified,
 @var{addr} is interpreted as a physical address.
 If @var{count} is specified, displays that many units.
-(If you want to manipulate the data instead of displaying it,
-see the @code{mem2array} primitives.)
+(If you want to process the data instead of displaying it,
+see the @code{read_memory} primitives.)
 @end deffn
 
 @deffn {Command} {mwd} [phys] addr doubleword [count]
@@ -11681,13 +11658,7 @@ should be passed in to the proc in question.
 By "low-level", we mean commands that a human would typically not
 invoke directly.
 
-@itemize @bullet
-@item @b{mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
-
-Read memory and return as a Tcl array for script processing
-@item @b{array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
-
-Convert a Tcl array to memory locations and write the values
+@itemize
 @item @b{flash banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
 
 Return information about the flash banks
