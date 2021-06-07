@@ -4325,6 +4325,8 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 	if (result != ERROR_OK)
 		return RISCV_HALT_UNKNOWN;
 
+	LOG_DEBUG("dcsr.cause: 0x%x", (unsigned int)get_field(dcsr, CSR_DCSR_CAUSE));
+
 	switch (get_field(dcsr, CSR_DCSR_CAUSE)) {
 	case CSR_DCSR_CAUSE_SWBP:
 		return RISCV_HALT_BREAKPOINT;
@@ -4344,7 +4346,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 		return RISCV_HALT_GROUP;
 	}
 
-	LOG_ERROR("Unknown DCSR cause field: %x", (int)get_field(dcsr, CSR_DCSR_CAUSE));
+	LOG_ERROR("Unknown DCSR cause field: 0x%x", (unsigned int)get_field(dcsr, CSR_DCSR_CAUSE));
 	LOG_ERROR("  dcsr=0x%016lx", (long)dcsr);
 	return RISCV_HALT_UNKNOWN;
 }
