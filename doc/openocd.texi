@@ -5036,6 +5036,45 @@ get_reg @{pc sp@}
 @end example
 @end deffn
 
+@deffn {Command} {$target_name write_memory} address width data ['phys']
+This function provides an efficient way to write to the target memory from a Tcl
+script.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{data} ... Tcl list with the elements to write
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command writes two 32 bit words into the target
+memory at address 0x20000000:
+
+@example
+write_memory 0x20000000 32 @{0xdeadbeef 0x00230500@}
+@end example
+@end deffn
+
+@deffn {Command} {$target_name read_memory} address width count ['phys']
+This function provides an efficient way to read the target memory from a Tcl
+script.
+A Tcl list containing the requested memory elements is returned by this function.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{count} ... number of elements to read
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command reads two 32 bit words from the target
+memory at address 0x20000000:
+
+@example
+read_memory 0x20000000 32 2
+@end example
+@end deffn
+
 @deffn {Command} {$target_name cget} queryparm
 Each configuration parameter accepted by
 @command{$target_name configure}
@@ -8554,6 +8593,45 @@ counter (pc) and stack pointer (sp) register:
 
 @example
 get_reg @{pc sp@}
+@end example
+@end deffn
+
+@deffn {Command} {write_memory} address width data ['phys']
+This function provides an efficient way to write to the target memory from a Tcl
+script.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{data} ... Tcl list with the elements to write
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command writes two 32 bit words into the target
+memory at address 0x20000000:
+
+@example
+write_memory 0x20000000 32 @{0xdeadbeef 0x00230500@}
+@end example
+@end deffn
+
+@deffn {Command} {read_memory} address width count ['phys']
+This function provides an efficient way to read the target memory from a Tcl
+script.
+A Tcl list containing the requested memory elements is returned by this function.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{count} ... number of elements to read
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command reads two 32 bit words from the target
+memory at address 0x20000000:
+
+@example
+read_memory 0x20000000 32 2
 @end example
 @end deffn
 
