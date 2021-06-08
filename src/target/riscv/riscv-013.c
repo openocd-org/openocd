@@ -591,6 +591,8 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 			return ERROR_FAIL;
 	}
 
+	keep_alive();
+
 	time_t start = time(NULL);
 	/* This first loop performs the request.  Note that if for some reason this
 	 * stays busy, it is actually due to the previous access. */
@@ -1306,8 +1308,6 @@ static int register_write_direct(struct target *target, unsigned number,
 {
 	LOG_DEBUG("{%d} %s <- 0x%" PRIx64, riscv_current_hartid(target),
 			gdb_regno_name(number), value);
-
-	keep_alive();
 
 	int result = register_write_abstract(target, number, value,
 			register_size(target, number));
@@ -2730,6 +2730,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 								  next_read);
 						return ERROR_FAIL;
 					}
+					keep_alive();
 					dmi_status_t status = dmi_scan(target, NULL, &value,
 												   DMI_OP_READ, sbdata[j], 0, false);
 					if (status == DMI_STATUS_BUSY)
@@ -2745,7 +2746,6 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 				}
 				next_read = address + i * size + j * 4;
 			}
-			keep_alive();
 		}
 
 		uint32_t sbcs_read = 0;
@@ -3507,7 +3507,6 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint8_t *buffer_i = buffer;
 
 		for (uint32_t i = 0; i < count; i++, address_i += increment, buffer_i += size) {
-			keep_alive();
 			/* TODO: This is much slower than it needs to be because we end up
 			 * writing the address to read for every word we read. */
 			result = read_memory_progbuf_inner(target, address_i, size, count_i, buffer_i, increment);

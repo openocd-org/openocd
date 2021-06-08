@@ -82,8 +82,6 @@ int riscv_batch_run(struct riscv_batch *batch)
 		return ERROR_OK;
 	}
 
-	keep_alive();
-
 	riscv_batch_add_nop(batch);
 
 	for (size_t i = 0; i < batch->used_scans; ++i) {
@@ -96,10 +94,14 @@ int riscv_batch_run(struct riscv_batch *batch)
 			jtag_add_runtest(batch->idle_count, TAP_IDLE);
 	}
 
+	keep_alive();
+
 	if (jtag_execute_queue() != ERROR_OK) {
 		LOG_ERROR("Unable to execute JTAG queue");
 		return ERROR_FAIL;
 	}
+
+	keep_alive();
 
 	if (bscan_tunnel_ir_width != 0) {
 		/* need to right-shift "in" by one bit, because of clock skew between BSCAN TAP and DM TAP */
