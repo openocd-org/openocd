@@ -45,6 +45,9 @@
 #include "svf/svf.h"
 #include "xsvf/xsvf.h"
 
+/* ipdbg are utilities to debug IP-cores. It uses JTAG for transport. */
+#include "server/ipdbg.h"
+
 /** The number of JTAG queue flushes (for profiling and debugging purposes). */
 static int jtag_flush_queue_count;
 
@@ -487,7 +490,7 @@ void jtag_add_tlr(void)
 
 /**
  * If supported by the underlying adapter, this clocks a raw bit sequence
- * onto TMS for switching betwen JTAG and SWD modes.
+ * onto TMS for switching between JTAG and SWD modes.
  *
  * DO NOT use this to bypass the integrity checks and logging provided
  * by the jtag_add_pathmove() and jtag_add_statemove() calls.
@@ -1340,7 +1343,7 @@ static int jtag_validate_ircapture(void)
 	int chain_pos = 0;
 	int retval;
 
-	/* when autoprobing, accomodate huge IR lengths */
+	/* when autoprobing, accommodate huge IR lengths */
 	for (tap = NULL, total_ir_length = 0;
 			(tap = jtag_tap_next_enabled(tap)) != NULL;
 			total_ir_length += tap->ir_length) {
@@ -1452,7 +1455,7 @@ void jtag_tap_init(struct jtag_tap *tap)
 	unsigned ir_len_bytes;
 
 	/* if we're autoprobing, cope with potentially huge ir_length */
-	ir_len_bits = tap->ir_length ? : JTAG_IRLEN_MAX;
+	ir_len_bits = tap->ir_length ? tap->ir_length : JTAG_IRLEN_MAX;
 	ir_len_bytes = DIV_ROUND_UP(ir_len_bits, 8);
 
 	tap->expected = calloc(1, ir_len_bytes);
@@ -1975,7 +1978,12 @@ static int jtag_select(struct command_context *ctx)
 	if (retval != ERROR_OK)
 		return retval;
 
-	return xsvf_register_commands(ctx);
+	retval = xsvf_register_commands(ctx);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ipdbg_register_commands(ctx);
 }
 
 static struct transport jtag_transport = {

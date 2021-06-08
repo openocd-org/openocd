@@ -47,8 +47,8 @@ const char * const jtag_only[] = { "jtag", NULL };
 
 static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
-	Jim_GetOptInfo goi;
-	Jim_GetOpt_Setup(&goi, interp, argc-1, argv + 1);
+	struct jim_getopt_info goi;
+	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
 
 	/* return the name of the interface */
 	/* TCL code might need to know the exact type... */
@@ -58,7 +58,7 @@ static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 		return JIM_ERR;
 	}
 	const char *name = adapter_driver ? adapter_driver->name : NULL;
-	Jim_SetResultString(goi.interp, name ? : "undefined", -1);
+	Jim_SetResultString(goi.interp, name ? name : "undefined", -1);
 	return JIM_OK;
 }
 
@@ -580,7 +580,7 @@ static const struct command_registration adapter_command_handlers[] = {
 		.handler = adapter_transports_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Declare transports the adapter supports.",
-		.usage = "transport ... ",
+		.usage = "transport ...",
 	},
 	{
 		.name = "usb",

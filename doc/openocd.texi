@@ -315,7 +315,7 @@ There are several things you should keep in mind when choosing a dongle.
 
 @enumerate
 @item @b{Transport} Does it support the kind of communication that you need?
-OpenOCD focusses mostly on JTAG. Your version may also support
+OpenOCD focuses mostly on JTAG. Your version may also support
 other ways to communicate with target devices.
 @item @b{Voltage} What voltage is your target - 1.8, 2.8, 3.3, or 5V?
 Does your dongle support it? You might need a level converter.
@@ -3264,6 +3264,68 @@ Specifies the TCP/IP address of the SystemVerilog DPI server interface.
 @end deffn
 
 
+@deffn {Interface Driver} {buspirate}
+
+This driver is for the Bus Pirate (see @url{http://dangerousprototypes.com/docs/Bus_Pirate}) and compatible devices.
+It uses a simple data protocol over a serial port connection.
+
+Most hardware development boards have a UART, a real serial port, or a virtual USB serial device, so this driver
+allows you to start building your own JTAG adapter without the complexity of a custom USB connection.
+
+@deffn {Config Command} {buspirate_port} serial_port
+Specify the serial port's filename. For example:
+@example
+buspirate_port /dev/ttyUSB0
+@end example
+@end deffn
+
+@deffn {Config Command} {buspirate_speed} (normal|fast)
+Set the communication speed to 115k (normal) or 1M (fast). For example:
+@example
+buspirate_mode normal
+@end example
+@end deffn
+
+@deffn {Config Command} {buspirate_mode} (normal|open-drain)
+Set the Bus Pirate output mode.
+@itemize @minus
+@item In normal mode (push/pull), do not enable the pull-ups, and do not connect I/O header pin VPU to JTAG VREF.
+@item In open drain mode, you will then need to enable the pull-ups.
+@end itemize
+For example:
+@example
+buspirate_mode normal
+@end example
+@end deffn
+
+@deffn {Config Command} {buspirate_pullup} (0|1)
+Whether to connect (1) or not (0) the I/O header pin VPU (JTAG VREF)
+to the pull-up/pull-down resistors on MOSI (JTAG TDI), CLK (JTAG TCK), MISO (JTAG TDO) and CS (JTAG TMS).
+For example:
+@example
+buspirate_pullup 0
+@end example
+@end deffn
+
+@deffn {Config Command} {buspirate_vreg} (0|1)
+Whether to enable (1) or disable (0) the built-in voltage regulator,
+which can be used to supply power to a test circuit through
+I/O header pins +3V3 and +5V. For example:
+@example
+buspirate_vreg 0
+@end example
+@end deffn
+
+@deffn {Command} {buspirate_led} (0|1)
+Turns the Bus Pirate's LED on (1) or off (0). For example:
+@end deffn
+@example
+buspirate_led 1
+@end example
+
+@end deffn
+
+
 @section Transport Configuration
 @cindex Transport
 As noted earlier, depending on the version of OpenOCD you use,
@@ -4681,7 +4743,7 @@ The value should normally correspond to a static mapping for the
 @var{rtos_type} can be one of @option{auto}, @option{eCos},
 @option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
 @option{embKernel}, @option{mqx}, @option{uCOS-III}, @option{nuttx},
-@option{RIOT}
+@option{RIOT}, @option{Zephyr}
 @xref{gdbrtossupport,,RTOS Support}.
 
 @item @code{-defer-examine} -- skip target examination at initial JTAG chain
@@ -5577,7 +5639,7 @@ flash driver infers all parameters from current controller register values when
 'flash probe @var{bank_id}' is executed.
 
 Normal OpenOCD commands like @command{mdw} can be used to display the flash content,
-but only after proper controller initialization as decribed above. However,
+but only after proper controller initialization as described above. However,
 due to a silicon bug in some devices, attempting to access the very last word
 should be avoided.
 
@@ -10680,6 +10742,49 @@ If @emph{xsvfdump} shows a file is using those opcodes, it
 probably will not be usable with other XSVF tools.
 
 
+@section IPDBG: JTAG-Host server
+@cindex IPDBG JTAG-Host server
+@cindex IPDBG
+
+IPDBG is a set of tools to debug IP-Cores. It comprises, among others, a logic analyzer and an arbitrary
+waveform generator. These are synthesize-able hardware descriptions of
+logic circuits in addition to software for control, visualization and further analysis.
+In a session using JTAG for its transport protocol, OpenOCD supports the function
+of a JTAG-Host. The JTAG-Host is needed to connect the circuit over JTAG to the
+control-software. For more details see @url{http://ipdbg.org}.
+
+@deffn {Command} {ipdbg} [@option{-start|-stop}] @option{-tap @var{tapname}} @option{-hub @var{ir_value} [@var{dr_length}]} [@option{-port @var{number}}] [@option{-tool @var{number}}] [@option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]}]
+Starts or stops a IPDBG JTAG-Host server. Arguments can be specified in any order.
+
+Command options:
+@itemize @bullet
+@item @option{-start|-stop} starts or stops a IPDBG JTAG-Host server (default: start).
+@item @option{-tap @var{tapname}} targeting the TAP @var{tapname}.
+@item @option{-hub @var{ir_value}} states that the JTAG hub is
+reachable with dr-scans while the JTAG instruction register has the value @var{ir_value}.
+@item @option{-port @var{number}} tcp port number where the JTAG-Host is listening.
+@item @option{-tool @var{number}} number of the tool/feature. These corresponds to the ports "data_(up/down)_(0..6)" at the JtagHub.
+@item @option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]} On some devices, the user data-register is only reachable if there is a
+specific value in a second dr. This second dr is called vir (virtual ir). With this parameter given, the IPDBG satisfies this condition prior an
+access to the IPDBG-Hub. The value shifted into the vir is given by the first parameter @var{vir_value} (default: 0x11). The second
+parameter @var{length} is the length of the vir data register (default: 5). With the @var{instr_code} (default: 0x00e) parameter the ir value to
+shift data through vir can be configured.
+@end itemize
+@end deffn
+
+Examples:
+@example
+ipdbg -start -tap xc6s.tap -hub 0x02 -port 4242 -tool 4
+@end example
+Starts a server listening on tcp-port 4242 which connects to tool 4.
+The connection is through the TAP of a Xilinx Spartan 6 on USER1 instruction (tested with a papillion pro board).
+
+@example
+ipdbg -start -tap 10m50.tap -hub 0x00C -vir -port 60000 -tool 1
+@end example
+Starts a server listening on tcp-port 60000 which connects to tool 1 (data_up_1/data_down_1).
+The connection is through the TAP of a Intel MAX10 virtual jtag component (sld_instance_index is 0; sld_ir_width is smaller than 5).
+
 @node Utility Commands
 @chapter Utility Commands
 @cindex Utility Commands
@@ -11002,6 +11107,7 @@ Currently supported rtos's include:
 @item @option{nuttx}
 @item @option{RIOT}
 @item @option{hwthread} (This is not an actual RTOS. @xref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.)
+@item @option{Zephyr}
 @end itemize
 
 Before an RTOS can be detected, it must export certain symbols; otherwise, it cannot
@@ -11036,12 +11142,17 @@ g_readytorun, g_tasklisttable.
 sched_threads, sched_num_threads, sched_active_pid, max_threads,
 _tcb_name_offset.
 @end raggedright
+@item Zephyr symbols
+_kernel, _kernel_openocd_offsets, _kernel_openocd_size_t_size
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for
-some, eg. FreeRTOS and uC/OS-III, extra steps must be taken.
+some, eg. FreeRTOS, uC/OS-III and Zephyr, extra steps must be taken.
 
-These RTOSes may require additional OpenOCD-specific file to be linked
+Zephyr must be compiled with the DEBUG_THREAD_INFO option. This will generate some symbols
+with information needed in order to build the list of threads.
+
+FreeRTOS and uC/OS-III RTOSes may require additional OpenOCD-specific file to be linked
 along with the project:
 
 @table @code
@@ -11438,7 +11549,7 @@ your C code, do the same - artificially push some zeros onto the stack,
 remember to pop them off when the ISR is done.
 
 @b{Also note:} If you have a multi-threaded operating system, they
-often do not @b{in the intrest of saving memory} waste these few
+often do not @b{in the interest of saving memory} waste these few
 bytes. Painful...
 
 
