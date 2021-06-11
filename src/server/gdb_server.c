@@ -357,12 +357,50 @@ static int gdb_write(struct connection *connection, void *data, int len)
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
+static void gdb_log_incoming_packet(char *packet)
+{
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
+		return;
+
+	/* Avoid dumping non-printable characters to the terminal */
+	const unsigned packet_len = strlen(packet);
+	const char *nonprint = find_nonprint_char(packet, packet_len);
+	if (nonprint) {
+		/* Does packet at least have a prefix that is printable?
+		 * Look within the first 50 chars of the packet. */
+		const char *colon = memchr(packet, ':', MIN(50, packet_len));
+		const bool packet_has_prefix = (colon != NULL);
+		const bool packet_prefix_printable = (packet_has_prefix && nonprint > colon);
+
+		if (packet_prefix_printable) {
+			const unsigned int prefix_len = colon - packet + 1;  /* + 1 to include the ':' */
+			const unsigned int payload_len = packet_len - prefix_len;
+			LOG_DEBUG("received packet: %.*s<binary-data-%u-bytes>", prefix_len, packet, payload_len);
+		} else {
+			LOG_DEBUG("received packet: <binary-data-%u-bytes>", packet_len);
+		}
+	} else {
+		/* All chars printable, dump the packet as is */
+		LOG_DEBUG("received packet: %s", packet);
+	}
+}
+
+static void gdb_log_outgoing_packet(char *packet_buf, unsigned int packet_len, unsigned char checksum)
+{
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
+		return;
+
+	if (find_nonprint_char(packet_buf, packet_len))
+		LOG_DEBUG("sending packet: $<binary-data-%u-bytes>#%2.2x", packet_len, checksum);
+	else
+		LOG_DEBUG("sending packet: $%.*s#%2.2x'", packet_len, packet_buf, checksum);
+}
+
 static int gdb_put_packet_inner(struct connection *connection,
 		char *buffer, int len)
 {
 	int i;
 	unsigned char my_checksum = 0;
-	char *debug_buffer;
 	int reply;
 	int retval;
 	struct gdb_connection *gdb_con = connection->priv;
@@ -400,9 +438,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 #endif
 
 	while (1) {
-		debug_buffer = strndup(buffer, len);
-		LOG_DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
-		free(debug_buffer);
+		gdb_log_outgoing_packet(buffer, len, my_checksum);
 
 		char local_buffer[1024];
 		local_buffer[0] = '$';
@@ -3360,25 +3396,7 @@ static int gdb_input_inner(struct connection *connection)
 		/* terminate with zero */
 		gdb_packet_buffer[packet_size] = '\0';
 
-		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
-			char buf[64];
-			unsigned offset = 0;
-			int i = 0;
-			while (i < packet_size && offset < 56) {
-				if (packet[i] == '\\') {
-					buf[offset++] = '\\';
-					buf[offset++] = '\\';
-				} else if (isprint(packet[i])) {
-					buf[offset++] = packet[i];
-				} else {
-					sprintf(buf + offset, "\\x%02x", (unsigned char) packet[i]);
-					offset += 4;
-				}
-				i++;
-			}
-			buf[offset] = 0;
-			LOG_DEBUG("received packet: '%s'%s", buf, i < packet_size ? "..." : "");
-		}
+		gdb_log_incoming_packet(gdb_packet_buffer);
 
 		if (packet_size > 0) {
 			retval = ERROR_OK;
@@ -3423,7 +3441,7 @@ static int gdb_input_inner(struct connection *connection)
 					/* '?' is sent after the eventual '!' */
 					if (!warn_use_ext && !gdb_con->extended_protocol) {
 						warn_use_ext = true;
-						LOG_WARNING("Prefer GDB command \"target extended-remote %s\" instead of \"target remote %s\"",
+						LOG_WARNING("Prefer GDB command \"target extended-remote :%s\" instead of \"target remote :%s\"",
 									connection->service->port, connection->service->port);
 					}
 					break;

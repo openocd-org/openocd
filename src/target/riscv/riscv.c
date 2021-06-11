@@ -2573,7 +2573,7 @@ COMMAND_HANDLER(riscv_authdata_read)
 		uint32_t value;
 		if (r->authdata_read(target, &value, index) != ERROR_OK)
 			return ERROR_FAIL;
-		command_print(CMD, "0x%" PRIx32, value);
+		command_print_sameline(CMD, "0x%08" PRIx32, value);
 		return ERROR_OK;
 	} else {
 		LOG_ERROR("authdata_read is not implemented for this target.");
@@ -3260,7 +3260,7 @@ static unsigned riscv_xlen_nonconst(struct target *target)
 	return riscv_xlen(target);
 }
 
-static unsigned riscv_data_bits(struct target *target)
+static unsigned int riscv_data_bits(struct target *target)
 {
 	RISCV_INFO(r);
 	if (r->data_bits)

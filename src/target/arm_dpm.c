@@ -1010,7 +1010,7 @@ void arm_dpm_report_wfar(struct arm_dpm *dpm, uint32_t addr)
 			/* ?? */
 			break;
 	}
-	dpm->wp_pc = addr;
+	dpm->wp_addr = addr;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1088,9 +1088,11 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 		target->type->remove_breakpoint = dpm_remove_breakpoint;
 	}
 
-	/* watchpoint setup */
-	target->type->add_watchpoint = dpm_add_watchpoint;
-	target->type->remove_watchpoint = dpm_remove_watchpoint;
+	/* watchpoint setup -- optional until it works everywhere */
+	if (!target->type->add_watchpoint) {
+		target->type->add_watchpoint = dpm_add_watchpoint;
+		target->type->remove_watchpoint = dpm_remove_watchpoint;
+	}
 
 	/* FIXME add vector catch support */
 

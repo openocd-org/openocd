@@ -26,14 +26,14 @@ proc configC100 {} {
     dict set configC100 w_amba 1
     dict set configC100 x_amba 1
     # y = amba_clk * (w+1)*(x+1)*2/xtal_clk
-    dict set configC100 y_amba [expr ([dict get $configC100 CONFIG_SYS_HZ_CLOCK] * ( ([dict get $configC100 w_amba]+1 ) * ([dict get $configC100 x_amba]+1 ) *2 ) / [dict get $configC100 CFG_REFCLKFREQ]) ]
+    dict set configC100 y_amba [expr {[dict get $configC100 CONFIG_SYS_HZ_CLOCK] * ( ([dict get $configC100 w_amba]+1 ) * ([dict get $configC100 x_amba]+1 ) *2 ) / [dict get $configC100 CFG_REFCLKFREQ]} ]
 
     # Arm Clk 450MHz, must be a multiple of 25 MHz
     dict set configC100 CFG_ARM_CLOCK      450000000
     dict set configC100 w_arm 0
     dict set configC100 x_arm 1
     # y = arm_clk * (w+1)*(x+1)*2/xtal_clk
-    dict set configC100 y_arm [expr ([dict get $configC100 CFG_ARM_CLOCK] * ( ([dict get $configC100 w_arm]+1 ) * ([dict get $configC100 x_arm]+1 ) *2 ) / [dict get $configC100 CFG_REFCLKFREQ]) ]
+    dict set configC100 y_arm [expr {[dict get $configC100 CFG_ARM_CLOCK] * ( ([dict get $configC100 w_arm]+1 ) * ([dict get $configC100 x_arm]+1 ) *2 ) / [dict get $configC100 CFG_REFCLKFREQ]} ]
 
 
 }
@@ -43,7 +43,7 @@ proc setupTelo {} {
 
     # setup GPIO used as control signals for C100
     setupGPIO
-    # This will allow acces to lower 8MB or NOR
+    # This will allow access to lower 8MB or NOR
     lowGPIO5
     # setup NOR size,timing,etc.
     setupNOR
@@ -79,7 +79,7 @@ proc setupNOR {} {
     #mww $EX_CS0_TMG3_REG
     # set EBUS clock 165/5=33MHz
     mww $EX_CLOCK_DIV_REG 0x5
-    # everthing else is OK with default
+    # everything else is OK with default
 }
 
 proc bootNOR {} {
@@ -111,23 +111,23 @@ proc setupGPIO {} {
     set GPIO_OE_REG		    [regs GPIO_OE_REG]
 
     # set GPIO29=GPIO17=1, GPIO5=0
-    mww $GPIO_OUTPUT_REG [expr 1<<29 | 1<<17]
+    mww $GPIO_OUTPUT_REG [expr {1<<29 | 1<<17}]
     # enable [as output] GPIO29,GPIO17,GPIO5
-    mww $GPIO_OE_REG [expr  1<<29 | 1<<17 | 1<<5]
+    mww $GPIO_OE_REG [expr  {1<<29 | 1<<17 | 1<<5}]
 }
 
 proc highGPIO5 {} {
     echo "GPIO5 high"
     set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # set GPIO5=1
-    mmw $GPIO_OUTPUT_REG [expr 1 << 5] 0x0
+    mmw $GPIO_OUTPUT_REG [expr {1 << 5}] 0x0
 }
 
 proc lowGPIO5 {} {
     echo "GPIO5 low"
     set GPIO_OUTPUT_REG		    [regs GPIO_OUTPUT_REG]
     # set GPIO5=0
-    mmw $GPIO_OUTPUT_REG 0x0 [expr 1 << 5]
+    mmw $GPIO_OUTPUT_REG 0x0 [expr {1 << 5}]
 }
 
 proc boardID {id} {
@@ -159,11 +159,11 @@ proc boardID {id} {
 proc ooma_board_detect {} {
     set GPIO_BOOTSTRAP_REG	[regs GPIO_BOOTSTRAP_REG]
 
-    # read the current value of the BOOTSRAP pins
+    # read the current value of the BOOTSTRAP pins
     set tmp [mrw $GPIO_BOOTSTRAP_REG]
     echo [format "GPIO_BOOTSTRAP_REG  (0x%x): 0x%x" $GPIO_BOOTSTRAP_REG $tmp]
     # extract the GPBP bits
-    set gpbt [expr ($tmp &0x1C00) >> 10 | ($tmp & 0x40) >>3]
+    set gpbt [expr {($tmp &0x1C00) >> 10 | ($tmp & 0x40) >>3}]
 
     # display board ID
     echo [format "This is %s (0x%x)" [dict get [boardID $gpbt] $gpbt name] $gpbt]
@@ -226,13 +226,13 @@ proc configureDDR2regs_256M {} {
 
     set wr_dqs_shift 0x40
     # start DDRC
-    mw64bit $DENALI_CTL_02_DATA [expr $DENALI_CTL_02_VAL | (1 << 32)]
+    mw64bit $DENALI_CTL_02_DATA [expr {$DENALI_CTL_02_VAL | (1 << 32)}]
     # wait int_status[2] (DRAM init complete)
     echo -n "Waiting for DDR2 controller to init..."
-    set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
-    while { [expr $tmp & 0x040000] == 0 } {
+    set tmp [mrw [expr {$DENALI_CTL_08_DATA + 4}]]
+    while { [expr {$tmp & 0x040000}] == 0 } {
 	sleep 1
-	set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
+	set tmp [mrw [expr {$DENALI_CTL_08_DATA + 4}]]
     }
     echo "done."
 
@@ -294,16 +294,16 @@ proc configureDDR2regs_128M {} {
 
     set wr_dqs_shift 0x40
     # start DDRC
-    mw64bit $DENALI_CTL_02_DATA [expr $DENALI_CTL_02_VAL | (1 << 32)]
+    mw64bit $DENALI_CTL_02_DATA [expr {$DENALI_CTL_02_VAL | (1 << 32)}]
     # wait int_status[2] (DRAM init complete)
     echo -n "Waiting for DDR2 controller to init..."
-    set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
-    while { [expr $tmp & 0x040000] == 0 } {
+    set tmp [mrw [expr {$DENALI_CTL_08_DATA + 4}]]
+    while { [expr {$tmp & 0x040000}] == 0 } {
 	sleep 1
-	set tmp [mrw [expr $DENALI_CTL_08_DATA + 4]]
+	set tmp [mrw [expr {$DENALI_CTL_08_DATA + 4}]]
     }
     # This is not necessary
-    #mw64bit $DENALI_CTL_11_DATA [expr ($DENALI_CTL_11_VAL  & ~0x00007F0000000000) | ($wr_dqs_shift << 40) ]
+    #mw64bit $DENALI_CTL_11_DATA [expr {($DENALI_CTL_11_VAL  & ~0x00007F0000000000) | ($wr_dqs_shift << 40)} ]
     echo "done."
 
     # do ddr2 training sequence
@@ -341,14 +341,14 @@ proc setupUART0 {} {
     # Enable Divisor Latch access
     mmw  $UART0_LCR $LCR_DLAB 0x0
     # set the divisor to $tmp
-    mww $UART0_DLL [expr $tmp & 0xff]
-    mww $UART0_DLH [expr $tmp >> 8]
+    mww $UART0_DLL [expr {$tmp & 0xff}]
+    mww $UART0_DLH [expr {$tmp >> 8}]
     # Disable Divisor Latch access
     mmw  $UART0_LCR 0x0 $LCR_DLAB
     # set the UART to 8N1
-    mmw  $UART0_LCR [expr $LCR_ONE_STOP | $LCR_CHAR_LEN_8 ] 0x0
+    mmw  $UART0_LCR [expr {$LCR_ONE_STOP | $LCR_CHAR_LEN_8} ] 0x0
     # reset FIFO
-    mmw  $UART0_IIR [expr $FCR_XMITRES  | $FCR_RCVRRES | $FCR_FIFOEN ] 0x0
+    mmw  $UART0_IIR [expr {$FCR_XMITRES  | $FCR_RCVRRES | $FCR_FIFOEN} ] 0x0
     #  enable FFUART
     mww $UART0_IER $IER_UUE
 }
@@ -362,7 +362,7 @@ proc putcUART0 {char} {
     # convert the 'char' to digit
     set tmp [ scan $char %c ]
     # /* wait for room in the tx FIFO on FFUART */
-    while {[expr [mrw $UART0_LSR] & $LSR_TEMT] == 0} { sleep 1 }
+    while {[expr {[mrw $UART0_LSR] & $LSR_TEMT}] == 0} { sleep 1 }
     mww $UART0_THR $tmp
     if { $char == "\n" } { putcUART0 \r }
 }
@@ -372,7 +372,7 @@ proc putsUART0 {str} {
     set len [string length $str]
     while { $index < $len } {
 	putcUART0 [string index $str $index]
-	set index [expr $index + 1]
+	set index [expr {$index + 1}]
     }
 }
 

@@ -85,6 +85,17 @@ struct command_invocation {
 };
 
 /**
+ * Return true if the command @c cmd is registered by OpenOCD.
+ */
+bool jimcmd_is_oocd_command(Jim_Cmd *cmd);
+
+/**
+ * Return the pointer to the command's private data specified during the
+ * registration of command @a cmd .
+ */
+void *jimcmd_privdata(Jim_Cmd *cmd);
+
+/**
  * Command handlers may be defined with more parameters than the base
  * set provided by command.c.  This macro uses C99 magic to allow
  * defining all such derivative types using this macro.
@@ -425,6 +436,48 @@ DECLARE_PARSE_WRAPPER(_target_addr, target_addr_t);
 
 #define COMMAND_PARSE_ADDRESS(in, out) \
 	COMMAND_PARSE_NUMBER(target_addr, in, out)
+
+/**
+ * @brief parses the command argument at position @a argn into @a out
+ * as a @a type, or prints a command error referring to @a name_str
+ * and passes the error code to the caller. @a argn will be incremented
+ * if no error occurred. Otherwise the calling function will return
+ * the error code produced by the parsing function.
+ *
+ * This function may cause the calling function to return immediately,
+ * so it should be used carefully to avoid leaking resources.  In most
+ * situations, parsing should be completed in full before proceeding
+ * to allocate resources, and this strategy will most prevents leaks.
+ */
+#define COMMAND_PARSE_ADDITIONAL_NUMBER(type, argn, out, name_str) \
+	do { \
+		if (argn+1 >= CMD_ARGC || CMD_ARGV[argn+1][0] == '-') { \
+			command_print(CMD, "no " name_str " given"); \
+			return ERROR_FAIL; \
+		} \
+		++argn; \
+		COMMAND_PARSE_NUMBER(type, CMD_ARGV[argn], out); \
+	} while (0)
+
+/**
+ * @brief parses the command argument at position @a argn into @a out
+ * as a @a type if the argument @a argn does not start with '-'.
+ * and passes the error code to the caller. @a argn will be incremented
+ * if no error occurred. Otherwise the calling function will return
+ * the error code produced by the parsing function.
+ *
+ * This function may cause the calling function to return immediately,
+ * so it should be used carefully to avoid leaking resources.  In most
+ * situations, parsing should be completed in full before proceeding
+ * to allocate resources, and this strategy will most prevents leaks.
+ */
+#define COMMAND_PARSE_OPTIONAL_NUMBER(type, argn, out) \
+	do { \
+		if (argn+1 < CMD_ARGC && CMD_ARGV[argn+1][0] != '-') { \
+			++argn; \
+			COMMAND_PARSE_NUMBER(type, CMD_ARGV[argn], out); \
+		} \
+	} while (0)
 
 /**
  * Parse the string @c as a binary parameter, storing the boolean value

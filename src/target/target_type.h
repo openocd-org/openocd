@@ -79,7 +79,7 @@ struct target_type {
 	 * state correctly.
 	 *
 	 * Otherwise the following would fail, as there will not
-	 * be any "poll" invoked inbetween the "reset run" and
+	 * be any "poll" invoked between the "reset run" and
 	 * "halt".
 	 *
 	 * reset run; halt
@@ -210,11 +210,11 @@ struct target_type {
 	/* called for various config parameters */
 	/* returns JIM_CONTINUE - if option not understood */
 	/* otherwise: JIM_OK, or JIM_ERR, */
-	int (*target_jim_configure)(struct target *target, Jim_GetOptInfo *goi);
+	int (*target_jim_configure)(struct target *target, struct jim_getopt_info *goi);
 
 	/* target commands specifically handled by the target */
 	/* returns JIM_OK, or JIM_ERR, or JIM_CONTINUE - if option not understood */
-	int (*target_jim_commands)(struct target *target, Jim_GetOptInfo *goi);
+	int (*target_jim_commands)(struct target *target, struct jim_getopt_info *goi);
 
 	/**
 	 * This method is used to perform target setup that requires
@@ -299,7 +299,7 @@ struct target_type {
 	/* Return the number of system bus data bits this target supports. This
 	 * will typically be 32 for 32-bit targets, and 64 for 64-bit targets. If
 	 * not implemented, it's assumed to be 32. */
-	unsigned (*data_bits)(struct target *target);
+	unsigned int (*data_bits)(struct target *target);
 };
 
 #endif /* OPENOCD_TARGET_TARGET_TYPE_H */

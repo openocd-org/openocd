@@ -39,6 +39,7 @@ extern struct rtos_type uCOS_III_rtos;
 extern struct rtos_type nuttx_rtos;
 extern struct rtos_type hwthread_rtos;
 extern struct rtos_type riot_rtos;
+extern struct rtos_type zephyr_rtos;
 
 static struct rtos_type *rtos_types[] = {
 	&ThreadX_rtos,
@@ -52,6 +53,7 @@ static struct rtos_type *rtos_types[] = {
 	&uCOS_III_rtos,
 	&nuttx_rtos,
 	&riot_rtos,
+	&zephyr_rtos,
 	/* keep this as last, as it always matches with rtos auto */
 	&hwthread_rtos,
 	NULL
@@ -126,7 +128,7 @@ static int os_alloc_create(struct target *target, struct rtos_type *ostype,
 	return ret;
 }
 
-int rtos_create(Jim_GetOptInfo *goi, struct target *target)
+int rtos_create(struct jim_getopt_info *goi, struct target *target)
 {
 	int x;
 	const char *cp;
@@ -142,7 +144,7 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 
 	os_free(target);
 
-	e = Jim_GetOpt_String(goi, &cp, NULL);
+	e = jim_getopt_string(goi, &cp, NULL);
 	if (e != JIM_OK)
 		return e;
 
