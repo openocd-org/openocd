@@ -886,7 +886,8 @@ static int arm_tpiu_swo_create(Jim_Interp *interp, struct arm_tpiu_swo_object *o
 	/* does this command exist? */
 	cmd = Jim_GetCommand(interp, Jim_NewStringObj(interp, obj->name, -1), JIM_NONE);
 	if (cmd) {
-		Jim_SetResultFormatted(interp, "Command: %s Exists", obj->name);
+		Jim_SetResultFormatted(interp, "cannot create TPIU object because a command with name '%s' already exists",
+			obj->name);
 		return JIM_ERR;
 	}
 
