@@ -29,7 +29,7 @@
 #include "imp.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
-#include <target/armv7m.h>
+#include <target/cortex_m.h>
 
 /* Regarding performance:
  *
@@ -968,25 +968,17 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	 * Only effects Rev A silicon */
 
 	struct target *target = bank->target;
-	uint32_t cpuid;
+	struct cortex_m_common *cortex_m = target_to_cm(target);
 
 	/* read stm32 device id register */
 	int retval = target_read_u32(target, 0xE0042000, device_id);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((*device_id & 0xfff) == 0x411) {
-		/* read CPUID reg to check core type */
-		retval = target_read_u32(target, 0xE000ED00, &cpuid);
-		if (retval != ERROR_OK)
-			return retval;
-
-		/* check for cortex_m4 */
-		if (((cpuid >> 4) & 0xFFF) == 0xC24) {
-			*device_id &= ~((0xFFFF << 16) | 0xfff);
-			*device_id |= (0x1000 << 16) | 0x413;
-			LOG_INFO("stm32f4x errata detected - fixing incorrect MCU_IDCODE");
-		}
+	if ((*device_id & 0xfff) == 0x411 && cortex_m->core_info->partno == CORTEX_M4_PARTNO) {
+		*device_id &= ~((0xFFFF << 16) | 0xfff);
+		*device_id |= (0x1000 << 16) | 0x413;
+		LOG_INFO("stm32f4x errata detected - fixing incorrect MCU_IDCODE");
 	}
 	return retval;
 }
@@ -1251,7 +1243,7 @@ static int stm32x_auto_probe(struct flash_bank *bank)
 	return stm32x_probe(bank);
 }
 
-static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
+static int get_stm32x_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	uint32_t dbgmcu_idcode;
 
@@ -1416,14 +1408,14 @@ static int get_stm32x_info(struct flash_bank *bank, char *buf, int buf_size)
 		break;
 
 	default:
-		snprintf(buf, buf_size, "Cannot identify target as a STM32F2/4/7\n");
+		command_print_sameline(cmd, "Cannot identify target as a STM32F2/4/7\n");
 		return ERROR_FAIL;
 	}
 
 	if (rev_str != NULL)
-		snprintf(buf, buf_size, "%s - Rev: %s", device_str, rev_str);
+		command_print_sameline(cmd, "%s - Rev: %s", device_str, rev_str);
 	else
-		snprintf(buf, buf_size, "%s - Rev: unknown (0x%04" PRIx16 ")", device_str, rev_id);
+		command_print_sameline(cmd, "%s - Rev: unknown (0x%04" PRIx16 ")", device_str, rev_id);
 
 	return ERROR_OK;
 }

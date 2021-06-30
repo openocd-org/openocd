@@ -913,7 +913,7 @@ static int dsp563xx_init_target(struct command_context *cmd_ctx, struct target *
 	dsp563xx_build_reg_cache(target);
 	struct dsp563xx_common *dsp563xx = target_to_dsp563xx(target);
 
-	dsp563xx->hardware_breakpoints_cleared = 0;
+	dsp563xx->hardware_breakpoints_cleared = false;
 	dsp563xx->hardware_breakpoint[0].used = BPU_NONE;
 
 	return ERROR_OK;
@@ -1085,9 +1085,18 @@ static int dsp563xx_poll(struct target *target)
 
 	if (!dsp563xx->hardware_breakpoints_cleared) {
 		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OBCR, 0);
+		if (err != ERROR_OK)
+			return err;
+
 		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OMLR0, 0);
+		if (err != ERROR_OK)
+			return err;
+
 		err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OMLR1, 0);
-		dsp563xx->hardware_breakpoints_cleared = 1;
+		if (err != ERROR_OK)
+			return err;
+
+		dsp563xx->hardware_breakpoints_cleared = true;
 	}
 
 	return ERROR_OK;
@@ -1402,7 +1411,7 @@ static int dsp563xx_run_algorithm(struct target *target,
 
 		struct reg *reg = register_get_by_name(dsp563xx->core_cache,
 				reg_params[i].reg_name,
-				0);
+				false);
 
 		if (!reg) {
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
@@ -1444,7 +1453,7 @@ static int dsp563xx_run_algorithm(struct target *target,
 
 			struct reg *reg = register_get_by_name(dsp563xx->core_cache,
 					reg_params[i].reg_name,
-					0);
+					false);
 			if (!reg) {
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 				continue;
