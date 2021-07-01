@@ -41,10 +41,10 @@ static unsigned int remote_bitbang_send_buf_used;
 
 /* Circular buffer. When start == end, the buffer is empty. */
 static char remote_bitbang_recv_buf[64];
-static unsigned remote_bitbang_recv_buf_start;
-static unsigned remote_bitbang_recv_buf_end;
+static unsigned int remote_bitbang_recv_buf_start;
+static unsigned int remote_bitbang_recv_buf_end;
 
-static int remote_bitbang_buf_full(void)
+static bool remote_bitbang_buf_full(void)
 {
 	return remote_bitbang_recv_buf_end ==
 		((remote_bitbang_recv_buf_start + sizeof(remote_bitbang_recv_buf) - 1) %
@@ -56,7 +56,7 @@ static int remote_bitbang_fill_buf(void)
 {
 	socket_nonblock(remote_bitbang_fd);
 	while (!remote_bitbang_buf_full()) {
-		unsigned contiguous_available_space;
+		unsigned int contiguous_available_space;
 		if (remote_bitbang_recv_buf_end >= remote_bitbang_recv_buf_start) {
 			contiguous_available_space = sizeof(remote_bitbang_recv_buf) -
 				remote_bitbang_recv_buf_end;
@@ -112,17 +112,23 @@ static int remote_bitbang_flush(void)
 	return ERROR_OK;
 }
 
-static int remote_bitbang_queue(int c, bool flush)
+typedef enum {
+	NO_FLUSH,
+	FLUSH_SEND_BUF
+} flush_bool_t;
+
+static int remote_bitbang_queue(int c, flush_bool_t flush)
 {
 	remote_bitbang_send_buf[remote_bitbang_send_buf_used++] = c;
-	if (flush || remote_bitbang_send_buf_used >= ARRAY_SIZE(remote_bitbang_send_buf))
+	if (flush == FLUSH_SEND_BUF ||
+			remote_bitbang_send_buf_used >= ARRAY_SIZE(remote_bitbang_send_buf))
 		return remote_bitbang_flush();
 	return ERROR_OK;
 }
 
 static int remote_bitbang_quit(void)
 {
-	if (remote_bitbang_queue('Q', true) == ERROR_FAIL)
+	if (remote_bitbang_queue('Q', FLUSH_SEND_BUF) == ERROR_FAIL)
 		return ERROR_FAIL;
 
 	if (close_socket(remote_bitbang_fd) != 0) {
@@ -176,7 +182,7 @@ static int remote_bitbang_sample(void)
 	if (remote_bitbang_fill_buf() != ERROR_OK)
 		return ERROR_FAIL;
 	assert(!remote_bitbang_buf_full());
-	return remote_bitbang_queue('R', false);
+	return remote_bitbang_queue('R', NO_FLUSH);
 }
 
 static bb_value_t remote_bitbang_read_sample(void)
@@ -197,7 +203,7 @@ static bb_value_t remote_bitbang_read_sample(void)
 static int remote_bitbang_write(int tck, int tms, int tdi)
 {
 	char c = '0' + ((tck ? 0x4 : 0x0) | (tms ? 0x2 : 0x0) | (tdi ? 0x1 : 0x0));
-	return remote_bitbang_queue(c, false);
+	return remote_bitbang_queue(c, NO_FLUSH);
 }
 
 static int remote_bitbang_reset(int trst, int srst)
@@ -205,13 +211,13 @@ static int remote_bitbang_reset(int trst, int srst)
 	char c = 'r' + ((trst ? 0x2 : 0x0) | (srst ? 0x1 : 0x0));
 	/* Always flush the send buffer on reset, because the reset call need not be
 	 * followed by jtag_execute_queue(). */
-	return remote_bitbang_queue(c, true);
+	return remote_bitbang_queue(c, FLUSH_SEND_BUF);
 }
 
 static int remote_bitbang_blink(int on)
 {
 	char c = on ? 'B' : 'b';
-	return remote_bitbang_queue(c, true);
+	return remote_bitbang_queue(c, FLUSH_SEND_BUF);
 }
 
 static struct bitbang_interface remote_bitbang_bitbang = {

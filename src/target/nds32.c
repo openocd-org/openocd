@@ -997,7 +997,7 @@ int nds32_arch_state(struct target *target)
 			nds32->virtual_hosting ? ", virtual hosting" : "");
 
 	/* save pc value to pseudo register pc */
-	struct reg *reg = register_get_by_name(target->reg_cache, "pc", 1);
+	struct reg *reg = register_get_by_name(target->reg_cache, "pc", true);
 	buf_set_u32(reg->value, 0, 32, value_pc);
 
 	return ERROR_OK;
@@ -1660,7 +1660,7 @@ int nds32_init_arch_info(struct target *target, struct nds32 *nds32)
 	nds32->syscall_break.orig_instr = NULL;
 	nds32->syscall_break.next = NULL;
 	nds32->syscall_break.unique_id = 0x515CAll + target->target_number;
-	nds32->syscall_break.linked_BRP = 0;
+	nds32->syscall_break.linked_brp = 0;
 
 	nds32_reg_init();
 

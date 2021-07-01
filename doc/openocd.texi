@@ -8153,7 +8153,6 @@ file (which is normally the server's standard output).
 
 @deffn {Command} {echo} [-n] message
 Logs a message at "user" priority.
-Output @var{message} to stdout.
 Option "-n" suppresses trailing newline.
 @example
 echo "Downloading kernel -- please wait"
@@ -11276,7 +11275,7 @@ should be passed in to the proc in question.
 
 @section Internal low-level Commands
 
-By "low-level," we mean commands that a human would typically not
+By "low-level", we mean commands that a human would typically not
 invoke directly.
 
 @itemize @bullet

@@ -782,7 +782,7 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 		struct arm_reg *arm_reg;
 
 		r = armv8_reg_current(arm, i);
-		if (r->valid)
+		if (!r->exist || r->valid)
 			continue;
 
 		/* Skip reading FP-SIMD registers */
@@ -922,6 +922,9 @@ int armv8_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	for (unsigned i = 1; i < cache->num_regs; i++) {
 		struct arm_reg *r;
 
+		/* skip non-existent */
+		if (!cache->reg_list[i].exist)
+			continue;
 		/* skip PC and CPSR */
 		if (i == ARMV8_PC || i == ARMV8_xPSR)
 			continue;
@@ -1047,7 +1050,7 @@ static int armv8_dpm_full_context(struct target *target)
 		for (unsigned i = 0; i < cache->num_regs; i++) {
 			struct arm_reg *r;
 
-			if (cache->reg_list[i].valid)
+			if (!cache->reg_list[i].exist || cache->reg_list[i].valid)
 				continue;
 			r = cache->reg_list[i].arch_info;
 

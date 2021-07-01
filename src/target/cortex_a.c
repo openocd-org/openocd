@@ -1290,7 +1290,7 @@ static int cortex_a_set_breakpoint(struct target *target,
 		control = ((matchmode & 0x7) << 20)
 			| (byte_addr_select << 5)
 			| (3 << 1) | 1;
-		brp_list[brp_i].used = 1;
+		brp_list[brp_i].used = true;
 		brp_list[brp_i].value = (breakpoint->address & 0xFFFFFFFC);
 		brp_list[brp_i].control = control;
 		retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -1384,7 +1384,7 @@ static int cortex_a_set_context_breakpoint(struct target *target,
 	control = ((matchmode & 0x7) << 20)
 		| (byte_addr_select << 5)
 		| (3 << 1) | 1;
-	brp_list[brp_i].used = 1;
+	brp_list[brp_i].used = true;
 	brp_list[brp_i].value = (breakpoint->asid);
 	brp_list[brp_i].control = control;
 	retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -1444,13 +1444,13 @@ static int cortex_a_set_hybrid_breakpoint(struct target *target, struct breakpoi
 	}
 
 	breakpoint->set = brp_1 + 1;
-	breakpoint->linked_BRP = brp_2;
+	breakpoint->linked_brp = brp_2;
 	control_CTX = ((CTX_machmode & 0x7) << 20)
 		| (brp_2 << 16)
 		| (0 << 14)
 		| (CTX_byte_addr_select << 5)
 		| (3 << 1) | 1;
-	brp_list[brp_1].used = 1;
+	brp_list[brp_1].used = true;
 	brp_list[brp_1].value = (breakpoint->asid);
 	brp_list[brp_1].control = control_CTX;
 	retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -1468,7 +1468,7 @@ static int cortex_a_set_hybrid_breakpoint(struct target *target, struct breakpoi
 		| (brp_1 << 16)
 		| (IVA_byte_addr_select << 5)
 		| (3 << 1) | 1;
-	brp_list[brp_2].used = 1;
+	brp_list[brp_2].used = true;
 	brp_list[brp_2].value = (breakpoint->address & 0xFFFFFFFC);
 	brp_list[brp_2].control = control_IVA;
 	retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -1500,14 +1500,14 @@ static int cortex_a_unset_breakpoint(struct target *target, struct breakpoint *b
 	if (breakpoint->type == BKPT_HARD) {
 		if ((breakpoint->address != 0) && (breakpoint->asid != 0)) {
 			int brp_i = breakpoint->set - 1;
-			int brp_j = breakpoint->linked_BRP;
+			int brp_j = breakpoint->linked_brp;
 			if ((brp_i < 0) || (brp_i >= cortex_a->brp_num)) {
 				LOG_DEBUG("Invalid BRP number in breakpoint");
 				return ERROR_OK;
 			}
 			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
 				brp_list[brp_i].control, brp_list[brp_i].value);
-			brp_list[brp_i].used = 0;
+			brp_list[brp_i].used = false;
 			brp_list[brp_i].value = 0;
 			brp_list[brp_i].control = 0;
 			retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -1526,7 +1526,7 @@ static int cortex_a_unset_breakpoint(struct target *target, struct breakpoint *b
 			}
 			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_j,
 				brp_list[brp_j].control, brp_list[brp_j].value);
-			brp_list[brp_j].used = 0;
+			brp_list[brp_j].used = false;
 			brp_list[brp_j].value = 0;
 			brp_list[brp_j].control = 0;
 			retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -1539,7 +1539,7 @@ static int cortex_a_unset_breakpoint(struct target *target, struct breakpoint *b
 					brp_list[brp_j].value);
 			if (retval != ERROR_OK)
 				return retval;
-			breakpoint->linked_BRP = 0;
+			breakpoint->linked_brp = 0;
 			breakpoint->set = 0;
 			return ERROR_OK;
 
@@ -1551,7 +1551,7 @@ static int cortex_a_unset_breakpoint(struct target *target, struct breakpoint *b
 			}
 			LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
 				brp_list[brp_i].control, brp_list[brp_i].value);
-			brp_list[brp_i].used = 0;
+			brp_list[brp_i].used = false;
 			brp_list[brp_i].value = 0;
 			brp_list[brp_i].control = 0;
 			retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -1753,7 +1753,7 @@ static int cortex_a_set_watchpoint(struct target *target, struct watchpoint *wat
 		(byte_address_select << 5) |
 		(load_store_access_control << 3) |
 		(0x3 << 1) | 1;
-	wrp_list[wrp_i].used = 1;
+	wrp_list[wrp_i].used = true;
 	wrp_list[wrp_i].value = address;
 	wrp_list[wrp_i].control = control;
 
@@ -1803,7 +1803,7 @@ static int cortex_a_unset_watchpoint(struct target *target, struct watchpoint *w
 	}
 	LOG_DEBUG("wrp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, wrp_i,
 			wrp_list[wrp_i].control, wrp_list[wrp_i].value);
-	wrp_list[wrp_i].used = 0;
+	wrp_list[wrp_i].used = false;
 	wrp_list[wrp_i].value = 0;
 	wrp_list[wrp_i].control = 0;
 	retval = cortex_a_dap_write_memap_register_u32(target, armv7a->debug_base
@@ -3033,7 +3033,7 @@ static int cortex_a_examine_first(struct target *target)
 	cortex_a->brp_list = calloc(cortex_a->brp_num, sizeof(struct cortex_a_brp));
 /*	cortex_a->brb_enabled = ????; */
 	for (i = 0; i < cortex_a->brp_num; i++) {
-		cortex_a->brp_list[i].used = 0;
+		cortex_a->brp_list[i].used = false;
 		if (i < (cortex_a->brp_num-cortex_a->brp_num_context))
 			cortex_a->brp_list[i].type = BRP_NORMAL;
 		else
@@ -3051,7 +3051,7 @@ static int cortex_a_examine_first(struct target *target)
 	free(cortex_a->wrp_list);
 	cortex_a->wrp_list = calloc(cortex_a->wrp_num, sizeof(struct cortex_a_wrp));
 	for (i = 0; i < cortex_a->wrp_num; i++) {
-		cortex_a->wrp_list[i].used = 0;
+		cortex_a->wrp_list[i].used = false;
 		cortex_a->wrp_list[i].value = 0;
 		cortex_a->wrp_list[i].control = 0;
 		cortex_a->wrp_list[i].WRPn = i;
