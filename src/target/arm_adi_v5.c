@@ -928,8 +928,8 @@ static const struct {
 };
 
 #define DEVARCH_ID_MASK         (ARM_CS_C9_DEVARCH_ARCHITECT_MASK | ARM_CS_C9_DEVARCH_ARCHID_MASK)
+#define DEVARCH_ROM_C_0X9       ARCH_ID(ARM_ID, 0x0AF7)
 
-__attribute__((unused))
 static const char *class0x9_devarch_description(uint32_t devarch)
 {
 	if (!(devarch & ARM_CS_C9_DEVARCH_PRESENT))
@@ -1449,6 +1449,7 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 static int dap_rom_display(struct command_invocation *cmd,
 				struct adiv5_ap *ap, target_addr_t dbgbase, int depth)
 {
+	unsigned int rom_num_entries;
 	int retval;
 	uint64_t pid;
 	uint32_t cid;
@@ -1513,27 +1514,7 @@ static int dap_rom_display(struct command_invocation *cmd,
 		else
 			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
 
-		/* Read ROM table entries from base address until we get 0x00000000 or reach the reserved area */
-		for (uint16_t entry_offset = 0; entry_offset < 0xF00; entry_offset += 4) {
-			uint32_t romentry;
-			retval = mem_ap_read_atomic_u32(ap, base_addr | entry_offset, &romentry);
-			if (retval != ERROR_OK)
-				return retval;
-			command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%" PRIx32 "",
-					tabs, entry_offset, romentry);
-			if (romentry & ARM_CS_ROMENTRY_PRESENT) {
-				/* Recurse. "romentry" is signed */
-				retval = dap_rom_display(cmd, ap, base_addr + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK),
-										 depth + 1);
-				if (retval != ERROR_OK)
-					return retval;
-			} else if (romentry != 0) {
-				command_print(cmd, "\t\tComponent not present");
-			} else {
-				command_print(cmd, "\t%s\tEnd of ROM table", tabs);
-				break;
-			}
-		}
+		rom_num_entries = 960;
 	} else if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
 		uint32_t devtype;
 		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C9_DEVTYPE, &devtype);
@@ -1545,6 +1526,50 @@ static int dap_rom_display(struct command_invocation *cmd,
 			return retval;
 
 		/* REVISIT also show ARM_CS_C9_DEVID */
+
+		uint32_t devarch;
+		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C9_DEVARCH, &devarch);
+		if (retval != ERROR_OK)
+			return retval;
+
+		if ((devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
+			return ERROR_OK;
+
+		unsigned int architect_id = (devarch & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) >> ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT;
+		unsigned int revision = (devarch & ARM_CS_C9_DEVARCH_REVISION_MASK) >> ARM_CS_C9_DEVARCH_REVISION_SHIFT;
+		command_print(cmd, "\t\tDev Arch is 0x%08" PRIx32 ", %s \"%s\" rev.%u", devarch,
+				jep106_manufacturer(architect_id), class0x9_devarch_description(devarch),
+				revision);
+		/* quit if not ROM table */
+		if ((devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
+			return ERROR_OK;
+
+		rom_num_entries = 512;
+	} else {
+		/* Class other than 0x1 and 0x9 */
+		return ERROR_OK;
+	}
+
+	/* Read ROM table entries from base address until we get 0x00000000 or reach the reserved area */
+	for (unsigned int entry_offset = 0; entry_offset < 4 * rom_num_entries; entry_offset += 4) {
+		uint32_t romentry;
+		retval = mem_ap_read_atomic_u32(ap, base_addr + entry_offset, &romentry);
+		if (retval != ERROR_OK)
+			return retval;
+		command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx32 "",
+				tabs, entry_offset, romentry);
+		if (romentry & ARM_CS_ROMENTRY_PRESENT) {
+			/* Recurse. "romentry" is signed */
+			retval = dap_rom_display(cmd, ap, base_addr + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK),
+									 depth + 1);
+			if (retval != ERROR_OK)
+				return retval;
+		} else if (romentry != 0) {
+			command_print(cmd, "\t\tComponent not present");
+		} else {
+			command_print(cmd, "\t%s\tEnd of ROM table", tabs);
+			break;
+		}
 	}
 
 	return ERROR_OK;
