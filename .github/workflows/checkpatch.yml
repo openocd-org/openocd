@@ -1,0 +1,21 @@
+on: push
+
+name: Check Code Style
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      DL_DIR: ../downloads
+      BUILD_DIR: ../build
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+            fetch-depth: 50
+      - run: sudo apt-get install patchutils
+      - name: Run checkpatch
+        run: |
+            git diff -U20 HEAD~40 | \
+                    filterdiff -x "a/src/jtag/drivers/libjaylink/*" -x "a/tools/git2cl/*" | \
+                    ./tools/scripts/checkpatch.pl --no-signoff -
