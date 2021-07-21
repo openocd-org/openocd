@@ -102,10 +102,16 @@ static bool swd_mode;
 #define INFO_ID_PKT_SZ            0xff      /* short */
 #define INFO_ID_SWO_BUF_SZ        0xfd      /* word */
 
-#define INFO_CAPS_SWD             BIT(0)
-#define INFO_CAPS_JTAG            BIT(1)
-#define INFO_CAPS_SWO_UART        BIT(2)
-#define INFO_CAPS_SWO_MANCHESTER  BIT(3)
+#define INFO_CAPS_SWD                 BIT(0)
+#define INFO_CAPS_JTAG                BIT(1)
+#define INFO_CAPS_SWO_UART            BIT(2)
+#define INFO_CAPS_SWO_MANCHESTER      BIT(3)
+#define INFO_CAPS_ATOMIC_CMDS         BIT(4)
+#define INFO_CAPS_TEST_DOMAIN_TIMER   BIT(5)
+#define INFO_CAPS_SWO_STREAMING_TRACE BIT(6)
+#define INFO_CAPS_UART_PORT           BIT(7)
+#define INFO_CAPS_USB_COM_PORT        BIT(8)
+#define INFO_CAPS__NUM_CAPS               9
 
 /* CMD_LED */
 #define LED_ID_CONNECT            0x00
@@ -203,11 +209,16 @@ static bool swd_mode;
 /* CMSIS-DAP Vendor Commands
  * None as yet... */
 
-static const char * const info_caps_str[] = {
-	"SWD  Supported",
-	"JTAG Supported",
-	"SWO-UART Supported",
-	"SWO-MANCHESTER Supported"
+static const char * const info_caps_str[INFO_CAPS__NUM_CAPS] = {
+	"SWD  supported",
+	"JTAG supported",
+	"SWO-UART supported",
+	"SWO-MANCHESTER supported",
+	"Atomic commands supported",
+	"Test domain timer supported",
+	"SWO streaming trace supported",
+	"UART communication port supported",
+	"UART via USB COM port supported",
 };
 
 struct pending_transfer_result {
@@ -1016,19 +1027,17 @@ static int cmsis_dap_get_caps_info(void)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (data[0] == 1) {
-		uint8_t caps = data[1];
+	if (data[0] == 1 || data[0] == 2) {
+		uint16_t caps = data[1];
+		if (data[0] == 2)
+			caps |= (uint16_t)data[2] << 8;
 
 		cmsis_dap_handle->caps = caps;
 
-		if (caps & INFO_CAPS_SWD)
-			LOG_INFO("CMSIS-DAP: %s", info_caps_str[0]);
-		if (caps & INFO_CAPS_JTAG)
-			LOG_INFO("CMSIS-DAP: %s", info_caps_str[1]);
-		if (caps & INFO_CAPS_SWO_UART)
-			LOG_INFO("CMSIS-DAP: %s", info_caps_str[2]);
-		if (caps & INFO_CAPS_SWO_MANCHESTER)
-			LOG_INFO("CMSIS-DAP: %s", info_caps_str[3]);
+		for (int i = 0; i < INFO_CAPS__NUM_CAPS; ++i) {
+			if (caps & BIT(i))
+				LOG_INFO("CMSIS-DAP: %s", info_caps_str[i]);
+		}
 	}
 
 	return ERROR_OK;
